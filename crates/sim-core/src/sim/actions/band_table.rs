@@ -1,0 +1,2186 @@
+use super::*;
+
+// The generated action library is intentionally broad, but an action family
+// only enters an organism's decision pool when its world and personal context
+// support it. A rotating sample from each eligible family keeps every action
+// reachable over time without constructing a 4,000-entry Vec for every agent
+// on every tick.
+pub(super) const ACTION_BANDS: &[ActionBand] = &[
+    band!(
+        540,
+        540,
+        Stone,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification(&["shelter"], &[], 0.0)
+    ),
+    band!(
+        541,
+        541,
+        Stone,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::HomeAndWater,
+        None,
+        qualification(&["shelter"], &[], 0.0)
+    ),
+    band!(
+        542,
+        542,
+        Bronze,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification_all_discoveries(&["shelter", "weaving"], &[], 0.0)
+    ),
+    band!(
+        543,
+        543,
+        Bronze,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::HomeAndWater,
+        None,
+        qualification(&["pottery"], &[], 0.0)
+    ),
+    band!(
+        544,
+        544,
+        Bronze,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::HomeAndWater,
+        None,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        545,
+        547,
+        Bronze,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        548,
+        548,
+        Stone,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification(&["shelter"], &[], 0.0)
+    ),
+    band!(
+        549,
+        549,
+        Bronze,
+        AdultOrElder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification(&["smelting"], &["smith", "merchant"], 0.0)
+    ),
+    band!(
+        550,
+        551,
+        Renaissance,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification(&["glass"], &[], 0.0)
+    ),
+    band!(
+        552,
+        552,
+        Modern,
+        AdultOrElder,
+        Kin,
+        PlaceGate::HomeAndWater,
+        None,
+        qualification(&["automobile"], &["engineer"], 0.0)
+    ),
+    band!(
+        553,
+        554,
+        Bronze,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        555,
+        556,
+        Bronze,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        Food,
+        qualification(&["agriculture"], &["farmer"], 0.0)
+    ),
+    band!(
+        557,
+        557,
+        Stone,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        Wood,
+        qualification(&["fire"], &[], 0.0)
+    ),
+    band!(
+        558,
+        558,
+        Bronze,
+        AdultOrElder,
+        Kin,
+        PlaceGate::Home,
+        Materials,
+        qualification(&["smelting"], &["smith", "carpenter"], 0.0)
+    ),
+    band!(
+        559,
+        560,
+        Stone,
+        AdultOrElder,
+        Kin,
+        PlaceGate::Home,
+        Materials,
+        qualification(&["shelter"], &["builder", "carpenter"], 0.0)
+    ),
+    band!(
+        561,
+        561,
+        Stone,
+        AdultOrElder,
+        Kin,
+        PlaceGate::Home,
+        Stone,
+        qualification(&["tool_making"], &["hunter", "smith"], 0.0)
+    ),
+    band!(
+        562,
+        562,
+        Bronze,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification(&["candle", "fire"], &[], 0.0)
+    ),
+    band!(
+        563,
+        563,
+        Bronze,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification(&["pottery"], &[], 0.0)
+    ),
+    band!(
+        564,
+        564,
+        Stone,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification(&["shelter"], &[], 0.0)
+    ),
+    band!(
+        565,
+        565,
+        Bronze,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        566,
+        566,
+        Stone,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Fire,
+        Wood,
+        qualification(&["fire"], &[], 0.0)
+    ),
+    band!(
+        567,
+        567,
+        Bronze,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::HomeAndWater,
+        None,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        568,
+        569,
+        Bronze,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::HomeAndWater,
+        None,
+        qualification(&["pottery"], &[], 0.0)
+    ),
+    band!(
+        570,
+        571,
+        Medieval,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Fire,
+        Food,
+        qualification(&["cooking", "agriculture"], &["baker", "brewer", "farmer"], 0.0)
+    ),
+    band!(
+        572,
+        573,
+        Bronze,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Fire,
+        Food,
+        qualification(&["cooking"], &["baker"], 0.0)
+    ),
+    band!(
+        574,
+        575,
+        Stone,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification(&["shelter"], &[], 0.0)
+    ),
+    band!(
+        576,
+        578,
+        Stone,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Fire,
+        Wood,
+        qualification(&["fire"], &[], 0.0)
+    ),
+    band!(
+        579,
+        580,
+        Stone,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification(&["shelter"], &["builder", "carpenter"], 0.0)
+    ),
+    band!(
+        581,
+        581,
+        Bronze,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        582,
+        582,
+        Stone,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification(&["foraging"], &[], 0.0)
+    ),
+    band!(
+        583,
+        584,
+        Bronze,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification(&["agriculture"], &["farmer"], 0.0)
+    ),
+    band!(
+        585,
+        588,
+        Bronze,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        Food,
+        qualification(&["animal_domestication"], &["farmer"], 0.0)
+    ),
+    band!(
+        589,
+        589,
+        Stone,
+        TeenOrOlder,
+        Kin,
+        PlaceGate::Home,
+        None,
+        qualification(&["shelter"], &[], 0.0)
+    ),
+    band!(
+        600,
+        649,
+        Stone,
+        TeenOrOlder,
+        None,
+        PlaceGate::Anywhere,
+        None,
+        Q_NONE
+    ),
+    band!(
+        660,
+        710,
+        Classical,
+        TeenOrOlder,
+        None,
+        PlaceGate::Workspace(Workspace::Any),
+        None,
+        Q_NONE
+    ),
+    band!(
+        720,
+        770,
+        Classical,
+        TeenOrOlder,
+        Anyone,
+        PlaceGate::Workspace(Workspace::Recreation),
+        None,
+        Q_NONE
+    ),
+    band!(
+        780,
+        830,
+        Stone,
+        AdultOrElder,
+        None,
+        PlaceGate::Anywhere,
+        None,
+        Q_ANY_SPECIALTY
+    ),
+    band!(
+        840,
+        889,
+        Modern,
+        TeenOrOlder,
+        None,
+        PlaceGate::Anywhere,
+        None,
+        qualification(
+            &["electricity", "radio", "automobile"],
+            &["engineer", "programmer"],
+            0.0
+        )
+    ),
+    band!(
+        900,
+        949,
+        PreStone,
+        TeenOrOlder,
+        None,
+        PlaceGate::WildLand,
+        None,
+        Q_NONE
+    ),
+    band!(
+        960,
+        1011,
+        Iron,
+        TeenOrOlder,
+        None,
+        PlaceGate::Anywhere,
+        None,
+        qualification(
+            &["wheel", "railroad", "automobile", "airplane"],
+            &["sailor", "engineer", "pilot"],
+            0.0
+        )
+    ),
+    band!(
+        1020,
+        1070,
+        Stone,
+        TeenOrOlder,
+        None,
+        PlaceGate::Anywhere,
+        None,
+        Q_NONE
+    ),
+    band!(
+        1080,
+        1080,
+        Bronze,
+        TeenOrOlder,
+        None,
+        PlaceGate::FireAndWorkspace(Workspace::Craft),
+        Stone,
+        qualification(&["pottery", "ceramics"], &["artist", "mason"], 0.0)
+    ),
+    band!(
+        1081,
+        1081,
+        Bronze,
+        TeenOrOlder,
+        None,
+        PlaceGate::FireAndWorkspace(Workspace::Craft),
+        Stone,
+        qualification_all_discoveries(&["pottery", "pottery_glaze"], &["artist", "mason"], 0.0)
+    ),
+    band!(
+        1082,
+        1082,
+        Bronze,
+        TeenOrOlder,
+        None,
+        PlaceGate::FireAndWorkspace(Workspace::Craft),
+        Stone,
+        qualification(&["pottery", "ceramics"], &["artist", "mason"], 0.0)
+    ),
+    band!(
+        1083,
+        1086,
+        Stone,
+        TeenOrOlder,
+        None,
+        PlaceGate::Workspace(Workspace::Workshop),
+        Wood,
+        qualification(&["tool_making"], &["carpenter", "artist"], 0.0)
+    ),
+    band!(
+        1087,
+        1089,
+        Stone,
+        TeenOrOlder,
+        None,
+        PlaceGate::Workspace(Workspace::Workshop),
+        Materials,
+        qualification(&["tool_making"], &["carpenter", "weaver"], 0.0)
+    ),
+    band!(
+        1090,
+        1090,
+        Bronze,
+        TeenOrOlder,
+        None,
+        PlaceGate::Workspace(Workspace::Workshop),
+        Materials,
+        qualification_all_discoveries(&["fire", "candle"], &["builder", "carpenter"], 0.0)
+    ),
+    band!(
+        1091,
+        1091,
+        Stone,
+        TeenOrOlder,
+        None,
+        PlaceGate::Anywhere,
+        Wood,
+        qualification(&["basket_weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        1092,
+        1092,
+        Bronze,
+        TeenOrOlder,
+        None,
+        PlaceGate::Workspace(Workspace::Textile),
+        Materials,
+        qualification_all_discoveries(&["weaving", "dye"], &["weaver"], 0.0)
+    ),
+    band!(
+        1093,
+        1093,
+        Classical,
+        TeenOrOlder,
+        None,
+        PlaceGate::Workspace(Workspace::Textile),
+        Materials,
+        qualification_all_discoveries(&["weaving", "dye", "currency"], &["weaver"], 0.0)
+    ),
+    band!(
+        1094,
+        1094,
+        Stone,
+        TeenOrOlder,
+        Anyone,
+        PlaceGate::Home,
+        None,
+        Q_NONE
+    ),
+    band!(
+        1095,
+        1096,
+        Bronze,
+        TeenOrOlder,
+        None,
+        PlaceGate::Workspace(Workspace::Textile),
+        Materials,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        1097,
+        1101,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Jewelry),
+        Metalworking,
+        qualification(&["smelting"], &["smith", "artist"], 0.0)
+    ),
+    band!(
+        1102,
+        1103,
+        Iron,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Forge),
+        Metalworking,
+        qualification(&["ironworking"], &["smith"], 0.0)
+    ),
+    band!(
+        1104,
+        1104,
+        Stone,
+        TeenOrOlder,
+        None,
+        PlaceGate::Workspace(Workspace::Workshop),
+        Wood,
+        qualification(&["tool_making"], &["carpenter"], 0.0)
+    ),
+    band!(
+        1105,
+        1105,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Forge),
+        Metalworking,
+        qualification(&["smelting"], &["smith"], 0.0)
+    ),
+    band!(
+        1106,
+        1107,
+        Iron,
+        AdultOrElder,
+        None,
+        PlaceGate::FireAndWorkspace(Workspace::Craft),
+        Stone,
+        qualification(&["glass", "glassblowing"], &["smith", "artist"], 0.0)
+    ),
+    band!(
+        1108,
+        1109,
+        Bronze,
+        TeenOrOlder,
+        None,
+        PlaceGate::FireAndWorkspace(Workspace::Craft),
+        Materials,
+        qualification_all_discoveries(&["fire", "candle"], &["artist", "builder"], 0.0)
+    ),
+    band!(
+        1110,
+        1110,
+        Renaissance,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Craft),
+        Materials,
+        qualification(&["chemistry"], &["brewer", "artist"], 0.0)
+    ),
+    band!(
+        1111,
+        1112,
+        Renaissance,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Craft),
+        Materials,
+        qualification(&["distillation"], &["brewer", "artist"], 0.0)
+    ),
+    band!(
+        1113,
+        1114,
+        Medieval,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Writing),
+        Wood,
+        qualification_all_discoveries(&["paper", "writing"], &["scribe"], 0.5)
+    ),
+    band!(
+        1115,
+        1117,
+        Renaissance,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Writing),
+        Materials,
+        qualification_all_discoveries(&["paper", "writing", "printing"], &["scribe", "artist"], 0.5)
+    ),
+    band!(
+        1118,
+        1118,
+        Renaissance,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Writing),
+        Materials,
+        qualification(&["cartography"], &["scholar", "scribe"], 0.4)
+    ),
+    band!(
+        1119,
+        1121,
+        Classical,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Writing),
+        Materials,
+        qualification_all_discoveries(&["writing", "geometry"], &["builder", "engineer", "weaver"], 0.4)
+    ),
+    band!(
+        1122,
+        1122,
+        Renaissance,
+        TeenOrOlder,
+        None,
+        PlaceGate::Workspace(Workspace::Arts),
+        Materials,
+        qualification(&["perspective_drawing"], &["artist"], 0.0)
+    ),
+    band!(
+        1123,
+        1123,
+        Bronze,
+        TeenOrOlder,
+        None,
+        PlaceGate::FireAndWorkspace(Workspace::Craft),
+        Stone,
+        qualification(&["pottery"], &["artist", "mason"], 0.0)
+    ),
+    band!(
+        1124,
+        1124,
+        Bronze,
+        TeenOrOlder,
+        None,
+        PlaceGate::Workspace(Workspace::Arts),
+        Materials,
+        qualification(&["candle"], &["artist"], 0.0)
+    ),
+    band!(
+        1125,
+        1125,
+        Renaissance,
+        TeenOrOlder,
+        None,
+        PlaceGate::Workspace(Workspace::Arts),
+        Materials,
+        qualification(&["perspective_drawing", "pigment_making"], &["artist"], 0.0)
+    ),
+    band!(
+        1126,
+        1127,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Forge),
+        Metalworking,
+        qualification(&["smelting"], &["smith"], 0.0)
+    ),
+    band!(
+        1128,
+        1129,
+        Iron,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Forge),
+        Metalworking,
+        qualification(&["ironworking"], &["smith"], 0.0)
+    ),
+    band!(
+        1130,
+        1131,
+        Iron,
+        TeenOrOlder,
+        None,
+        PlaceGate::Workspace(Workspace::Arts),
+        Materials,
+        qualification_all_discoveries(&["writing", "dye"], &["artist", "scribe"], 0.0)
+    ),
+    band!(
+        1140,
+        1189,
+        Stone,
+        TeenOrOlder,
+        None,
+        PlaceGate::Fire,
+        Food,
+        qualification(&["fire", "cooking"], &["baker", "brewer"], 0.0)
+    ),
+    band!(
+        1200,
+        1201,
+        Stone,
+        AdultOrElder,
+        None,
+        PlaceGate::Rock,
+        Stone,
+        qualification(&["stone_tools"], &["hunter", "smith"], 0.0)
+    ),
+    band!(
+        1202,
+        1209,
+        Iron,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Forge),
+        Metalworking,
+        qualification(&["ironworking"], &["smith"], 0.0)
+    ),
+    band!(
+        1210,
+        1210,
+        Stone,
+        AdultOrElder,
+        None,
+        PlaceGate::Anywhere,
+        Wood,
+        qualification(&["tool_making"], &["hunter", "carpenter"], 0.0)
+    ),
+    band!(
+        1211,
+        1211,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Anywhere,
+        Wood,
+        qualification_all_discoveries(&["tool_making", "weaving"], &["hunter", "carpenter"], 0.0)
+    ),
+    band!(
+        1212,
+        1212,
+        Stone,
+        AdultOrElder,
+        None,
+        PlaceGate::Anywhere,
+        Wood,
+        qualification(&["tool_making"], &["hunter", "carpenter"], 0.0)
+    ),
+    band!(
+        1213,
+        1213,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Forge),
+        Metalworking,
+        qualification(&["smelting"], &["smith", "hunter"], 0.0)
+    ),
+    band!(
+        1214,
+        1214,
+        Stone,
+        AdultOrElder,
+        None,
+        PlaceGate::Anywhere,
+        Wood,
+        qualification(&["tool_making"], &["hunter", "carpenter"], 0.0)
+    ),
+    band!(
+        1215,
+        1215,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Workshop),
+        Wood,
+        qualification_all_discoveries(&["tool_making", "weaving"], &["carpenter", "weaver"], 0.0)
+    ),
+    band!(
+        1216,
+        1218,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Textile),
+        Materials,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        1219,
+        1219,
+        Classical,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Textile),
+        Materials,
+        qualification_all_discoveries(&["weaving", "currency"], &["weaver"], 0.0)
+    ),
+    band!(
+        1220,
+        1224,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Textile),
+        Materials,
+        qualification_all_discoveries(&["weaving", "dye"], &["weaver", "artist"], 0.0)
+    ),
+    band!(
+        1225,
+        1225,
+        Classical,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Textile),
+        Materials,
+        qualification_all_discoveries(&["weaving", "dye", "currency"], &["weaver", "artist"], 0.0)
+    ),
+    band!(
+        1226,
+        1227,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Textile),
+        Materials,
+        qualification_all_discoveries(&["weaving", "dye"], &["weaver", "artist"], 0.0)
+    ),
+    band!(
+        1228,
+        1229,
+        Medieval,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Writing),
+        Materials,
+        qualification_all_discoveries(&["writing", "paper"], &["scribe", "artist"], 0.5)
+    ),
+    band!(
+        1230,
+        1232,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Textile),
+        Materials,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        1233,
+        1234,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Water,
+        Materials,
+        qualification_all_discoveries(&["weaving", "agriculture"], &["weaver"], 0.0)
+    ),
+    band!(
+        1235,
+        1237,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Water,
+        Materials,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        1238,
+        1238,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Textile),
+        Materials,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        1239,
+        1240,
+        Renaissance,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Arts),
+        Materials,
+        qualification(&["perspective_drawing"], &["artist"], 0.0)
+    ),
+    band!(
+        1241,
+        1241,
+        Stone,
+        AdultOrElder,
+        None,
+        PlaceGate::Rock,
+        Stone,
+        qualification(&["pigment_making"], &["artist"], 0.0)
+    ),
+    band!(
+        1242,
+        1242,
+        Renaissance,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Arts),
+        Materials,
+        qualification(&["oil_painting"], &["artist"], 0.0)
+    ),
+    band!(
+        1243,
+        1243,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Arts),
+        Materials,
+        qualification(&["dye"], &["artist"], 0.0)
+    ),
+    band!(
+        1244,
+        1244,
+        Iron,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        Stone,
+        qualification(&["masonry"], &["artist", "mason"], 0.0)
+    ),
+    band!(
+        1245,
+        1248,
+        Iron,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        Stone,
+        qualification(&["masonry"], &["mason", "builder"], 0.0)
+    ),
+    band!(
+        1249,
+        1249,
+        Renaissance,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Writing),
+        Materials,
+        qualification_all_discoveries(&["paper", "printing"], &["artist", "scribe"], 0.5)
+    ),
+    band!(
+        1260,
+        1310,
+        Stone,
+        Child,
+        Anyone,
+        PlaceGate::Anywhere,
+        None,
+        Q_NONE
+    ),
+    band!(
+        1260,
+        1310,
+        Stone,
+        TeenOrOlder,
+        Anyone,
+        PlaceGate::Anywhere,
+        None,
+        Q_NONE
+    ),
+    band!(
+        1320,
+        1369,
+        Stone,
+        AdultOrElder,
+        Kin,
+        PlaceGate::Anywhere,
+        Food,
+        qualification(&["medicine_lore", "herbalism"], &["healer", "doctor"], 0.0)
+    ),
+    band!(
+        1380,
+        1428,
+        Stone,
+        Child,
+        Kin,
+        PlaceGate::Anywhere,
+        None,
+        qualification_any(&["language", "writing"], &["teacher", "scholar", "scribe"], 0.15)
+    ),
+    band!(
+        1380,
+        1428,
+        Stone,
+        TeenOrOlder,
+        None,
+        PlaceGate::Workspace(Workspace::Education),
+        None,
+        Q_NONE
+    ),
+    band!(
+        1440,
+        1489,
+        Bronze,
+        TeenOrOlder,
+        None,
+        PlaceGate::WildLand,
+        None,
+        qualification(
+            &["cartography", "navigation", "wheel"],
+            &["sailor", "pilot", "merchant"],
+            0.0
+        )
+    ),
+    band!(
+        1500,
+        1548,
+        Stone,
+        TeenOrOlder,
+        None,
+        PlaceGate::Workspace(Workspace::Worship),
+        None,
+        qualification(&["ritual", "ritual_dance"], &["priest"], 0.0)
+    ),
+    band!(
+        1560,
+        1608,
+        Classical,
+        AdultOrElder,
+        Anyone,
+        PlaceGate::Workspace(Workspace::Civic),
+        None,
+        leadership_qualification(&["lawyer", "politician", "officer"])
+    ),
+    band!(
+        1620,
+        1668,
+        Stone,
+        AdultOrElder,
+        Kin,
+        PlaceGate::Home,
+        Food,
+        Q_NONE
+    ),
+    band!(
+        1680,
+        1729,
+        Bronze,
+        AdultOrElder,
+        Anyone,
+        PlaceGate::Workspace(Workspace::Trade),
+        None,
+        qualification(&["barter", "currency"], &["merchant", "banker"], 0.0)
+    ),
+    band!(
+        1740,
+        1790,
+        Iron,
+        AdultOrElder,
+        Stranger,
+        PlaceGate::Workspace(Workspace::Civic),
+        None,
+        leadership_qualification(&["lawyer", "officer", "soldier"])
+    ),
+    band!(
+        1800,
+        1849,
+        Bronze,
+        TeenOrOlder,
+        None,
+        PlaceGate::Water,
+        None,
+        qualification(&["fishing", "navigation", "sail"], &["sailor"], 0.0)
+    ),
+    band!(
+        1860,
+        1909,
+        Classical,
+        TeenOrOlder,
+        Anyone,
+        PlaceGate::Workspace(Workspace::Recreation),
+        None,
+        qualification(&["drumming", "theater", "opera"], &["artist", "actor"], 0.0)
+    ),
+    band!(
+        1920,
+        1969,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::WildLand,
+        Food,
+        qualification(&["agriculture", "farm", "irrigation"], &["farmer"], 0.0)
+    ),
+    band!(
+        1980,
+        2029,
+        Stone,
+        TeenOrOlder,
+        None,
+        PlaceGate::WildLand,
+        Food,
+        qualification(
+            &["hunting", "hunt", "animal_domestication"],
+            &["hunter", "farmer"],
+            0.0
+        )
+    ),
+    band!(
+        2040,
+        2089,
+        Industrial,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Industry),
+        Materials,
+        qualification(
+            &["factory", "steam_engine", "smelting"],
+            &["engineer", "smith", "miner"],
+            0.0
+        )
+    ),
+    band!(
+        2100,
+        2149,
+        Modern,
+        TeenOrOlder,
+        None,
+        PlaceGate::Anywhere,
+        None,
+        qualification(
+            &["electricity", "radio", "automobile"],
+            &["engineer", "programmer"],
+            0.0
+        )
+    ),
+    band!(
+        2160,
+        2212,
+        PreStone,
+        TeenOrOlder,
+        None,
+        PlaceGate::WildLand,
+        None,
+        Q_NONE
+    ),
+    band!(
+        2220,
+        2269,
+        Stone,
+        TeenOrOlder,
+        Anyone,
+        PlaceGate::Anywhere,
+        None,
+        Q_NONE
+    ),
+    band!(
+        2280,
+        2329,
+        Stone,
+        TeenOrOlder,
+        None,
+        PlaceGate::Anywhere,
+        None,
+        Q_NONE
+    ),
+    band!(
+        2340,
+        2389,
+        Stone,
+        TeenOrOlder,
+        None,
+        PlaceGate::Anywhere,
+        None,
+        Q_NONE
+    ),
+    band!(
+        2400,
+        2449,
+        Renaissance,
+        TeenOrOlder,
+        None,
+        PlaceGate::Anywhere,
+        None,
+        qualification(&["astronomy", "mathematics"], &["artist", "scholar"], 0.35)
+    ),
+    band!(
+        2460,
+        2509,
+        Medieval,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Worship),
+        None,
+        qualification(&["ritual", "philosophy"], &["priest"], 0.0)
+    ),
+    band!(
+        2520,
+        2568,
+        Classical,
+        AdultOrElder,
+        Anyone,
+        PlaceGate::Workspace(Workspace::Worship),
+        None,
+        qualification(&["ritual", "ritual_dance"], &["priest"], 0.0)
+    ),
+    band!(
+        2580,
+        2629,
+        Classical,
+        AdultOrElder,
+        None,
+        PlaceGate::Anywhere,
+        Materials,
+        qualification(
+            &["masonry", "engineering", "gothic_architecture"],
+            &["builder", "engineer", "mason"],
+            0.0
+        )
+    ),
+    band!(
+        2640,
+        2689,
+        Iron,
+        AdultOrElder,
+        Anyone,
+        PlaceGate::Anywhere,
+        None,
+        leadership_qualification(&["politician", "officer", "soldier"])
+    ),
+    band!(
+        2700,
+        2749,
+        Classical,
+        AdultOrElder,
+        Anyone,
+        PlaceGate::Workspace(Workspace::Trade),
+        None,
+        qualification(&["currency", "trade"], &["merchant", "banker"], 0.0)
+    ),
+    band!(
+        2760,
+        2809,
+        Classical,
+        AdultOrElder,
+        Anyone,
+        PlaceGate::Workspace(Workspace::Worship),
+        None,
+        qualification(&["ritual", "writing", "philosophy"], &["priest", "scholar"], 0.35)
+    ),
+    band!(
+        2820,
+        2869,
+        Bronze,
+        TeenOrOlder,
+        None,
+        PlaceGate::Fire,
+        Food,
+        qualification(&["cooking"], &["baker", "brewer"], 0.0)
+    ),
+    band!(2880, 2929, Stone, TeenOrOlder, Kin, PlaceGate::Home, None, Q_NONE),
+    band!(
+        2940,
+        2941,
+        Stone,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        Wood,
+        qualification(&["shelter"], &["builder", "carpenter"], 0.0)
+    ),
+    band!(
+        2942,
+        2944,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        Materials,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        2945,
+        2948,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        None,
+        qualification(&["fire", "candle"], &[], 0.0)
+    ),
+    band!(
+        2949,
+        2949,
+        Iron,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        Materials,
+        qualification_all_discoveries(&["glass", "smelting"], &["smith", "builder"], 0.0)
+    ),
+    band!(
+        2950,
+        2950,
+        Renaissance,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        Materials,
+        qualification(&["body_paint", "perspective_drawing"], &["artist"], 0.0)
+    ),
+    band!(
+        2951,
+        2951,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        Materials,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        2952,
+        2952,
+        Renaissance,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        Materials,
+        qualification(&["perspective_drawing"], &["artist"], 0.0)
+    ),
+    band!(
+        2953,
+        2953,
+        Stone,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        None,
+        qualification(&["ritual"], &["priest", "artist"], 0.0)
+    ),
+    band!(
+        2954,
+        2954,
+        Iron,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        Materials,
+        qualification(&["glass"], &["smith", "artist"], 0.0)
+    ),
+    band!(
+        2955,
+        2955,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        Materials,
+        Q_NONE
+    ),
+    band!(
+        2956,
+        2956,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        Materials,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        2957,
+        2959,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        Materials,
+        qualification(&["smelting", "pottery"], &["smith", "artist"], 0.0)
+    ),
+    band!(
+        2960,
+        2964,
+        Stone,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        None,
+        qualification(&["foraging", "herbalism"], &[], 0.0)
+    ),
+    band!(
+        2965,
+        2969,
+        Stone,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        None,
+        Q_NONE
+    ),
+    band!(
+        2970,
+        2974,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        None,
+        qualification_all_discoveries(&["beekeeping", "candle"], &[], 0.0)
+    ),
+    band!(
+        2975,
+        2978,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        Materials,
+        qualification(&["smelting"], &["builder", "carpenter"], 0.0)
+    ),
+    band!(
+        2979,
+        2979,
+        Industrial,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        Materials,
+        qualification(&["engineering"], &["smith", "engineer"], 0.0)
+    ),
+    band!(
+        2980,
+        2987,
+        Stone,
+        AdultOrElder,
+        None,
+        PlaceGate::Home,
+        None,
+        Q_NONE
+    ),
+    band!(
+        2988,
+        2989,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::HomeAndWater,
+        None,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        3000,
+        3049,
+        Classical,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Education),
+        None,
+        qualification(
+            &["writing", "mathematics", "philosophy"],
+            &["scholar", "scribe", "teacher"],
+            0.45
+        )
+    ),
+    band!(
+        3060,
+        3109,
+        Renaissance,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Research),
+        None,
+        qualification(&["astronomy"], &["scholar", "engineer"], 0.45)
+    ),
+    band!(
+        3120,
+        3169,
+        Stone,
+        AdultOrElder,
+        Kin,
+        PlaceGate::Anywhere,
+        None,
+        qualification(&["language", "ritual"], &["priest", "artist"], 0.0)
+    ),
+    band!(
+        3180,
+        3229,
+        Iron,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Transport),
+        None,
+        qualification(
+            &["wheel", "trade", "railroad"],
+            &["merchant", "engineer", "officer"],
+            0.0
+        )
+    ),
+    band!(
+        3240,
+        3289,
+        Stone,
+        AdultOrElder,
+        Kin,
+        PlaceGate::Anywhere,
+        None,
+        qualification(&["language", "writing"], &["scholar", "scribe", "teacher"], 0.25)
+    ),
+    band!(
+        3300,
+        3349,
+        Classical,
+        AdultOrElder,
+        None,
+        PlaceGate::Anywhere,
+        Materials,
+        qualification(
+            &["masonry", "engineering", "gothic_architecture"],
+            &["builder", "engineer", "mason"],
+            0.0
+        )
+    ),
+    band!(
+        3360,
+        3409,
+        Classical,
+        AdultOrElder,
+        Kin,
+        PlaceGate::Workspace(Workspace::Education),
+        None,
+        qualification(&["writing"], &["teacher", "scholar", "scribe"], 0.45)
+    ),
+    band!(
+        3420,
+        3469,
+        Stone,
+        AdultOrElder,
+        Kin,
+        PlaceGate::Anywhere,
+        Food,
+        qualification(&["medicine_lore", "herbalism"], &["healer", "doctor"], 0.0)
+    ),
+    band!(
+        3480,
+        3482,
+        Renaissance,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Writing),
+        Materials,
+        qualification(&["printing"], &["artist", "scribe"], 0.0)
+    ),
+    band!(
+        3483,
+        3485,
+        Renaissance,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Craft),
+        Materials,
+        qualification_all_discoveries(&["printing", "chemistry"], &["artist", "smith"], 0.0)
+    ),
+    band!(
+        3486,
+        3486,
+        Atomic,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Technical),
+        Materials,
+        qualification_all_discoveries(&["electricity", "chemistry"], &["engineer"], 0.0)
+    ),
+    band!(
+        3487,
+        3487,
+        Information,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Technical),
+        Materials,
+        qualification_all_discoveries(&["electricity", "microchip"], &["engineer"], 0.0)
+    ),
+    band!(
+        3488,
+        3489,
+        Industrial,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Industry),
+        Materials,
+        qualification_all_discoveries(&["factory", "chemistry"], &["engineer", "smith"], 0.0)
+    ),
+    band!(
+        3490,
+        3499,
+        Renaissance,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Writing),
+        Materials,
+        qualification_all_discoveries(&["printing", "paper"], &["scribe", "artist"], 0.5)
+    ),
+    band!(
+        3500,
+        3510,
+        Industrial,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Textile),
+        Materials,
+        qualification_all_discoveries(&["printing", "chemistry"], &["artist", "weaver"], 0.0)
+    ),
+    band!(
+        3511,
+        3515,
+        Industrial,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Technical),
+        Materials,
+        qualification(&["chemistry"], &["artist", "engineer"], 0.0)
+    ),
+    band!(
+        3516,
+        3516,
+        Renaissance,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Arts),
+        Materials,
+        qualification(&["oil_painting", "pigment_making"], &["artist"], 0.0)
+    ),
+    band!(
+        3517,
+        3517,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Textile),
+        Materials,
+        qualification_all_discoveries(&["weaving", "dye"], &["weaver"], 0.0)
+    ),
+    band!(
+        3518,
+        3518,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::FireAndWorkspace(Workspace::Craft),
+        Stone,
+        qualification_all_discoveries(&["pottery_glaze", "ceramics"], &["artist", "mason"], 0.0)
+    ),
+    band!(
+        3519,
+        3520,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Textile),
+        Materials,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        3521,
+        3521,
+        Renaissance,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Writing),
+        Materials,
+        qualification(&["printing"], &["scribe", "artist"], 0.0)
+    ),
+    band!(
+        3522,
+        3522,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::FireAndWorkspace(Workspace::Craft),
+        Stone,
+        qualification(&["ceramics"], &["artist", "mason"], 0.0)
+    ),
+    band!(
+        3523,
+        3523,
+        Industrial,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Craft),
+        Materials,
+        qualification(&["chemistry"], &["carpenter", "artist"], 0.0)
+    ),
+    band!(
+        3524,
+        3524,
+        Iron,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Craft),
+        Materials,
+        qualification(&["glass", "ceramics"], &["artist"], 0.0)
+    ),
+    band!(
+        3525,
+        3525,
+        Industrial,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Technical),
+        Materials,
+        qualification(&["chemistry"], &["engineer"], 0.0)
+    ),
+    band!(
+        3540,
+        3589,
+        Stone,
+        TeenOrOlder,
+        None,
+        PlaceGate::WildLand,
+        Food,
+        qualification(&["agriculture", "farm"], &["farmer"], 0.0)
+    ),
+    band!(
+        3600,
+        3649,
+        Classical,
+        TeenOrOlder,
+        Anyone,
+        PlaceGate::Home,
+        Materials,
+        qualification(&["ritual", "drumming", "opera"], &["artist", "priest"], 0.0)
+    ),
+    band!(
+        3660,
+        3709,
+        Bronze,
+        TeenOrOlder,
+        Stranger,
+        PlaceGate::Anywhere,
+        None,
+        qualification(
+            &["tool_making", "ironworking"],
+            &["soldier", "hunter", "officer"],
+            0.0
+        )
+    ),
+    band!(
+        3720,
+        3769,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Rock,
+        Stone,
+        qualification(&["masonry", "stone_tools"], &["mason", "builder"], 0.0)
+    ),
+    band!(
+        3780,
+        3829,
+        Stone,
+        AdultOrElder,
+        None,
+        PlaceGate::Anywhere,
+        Wood,
+        qualification(&["wood", "tool_making"], &["carpenter", "builder"], 0.0)
+    ),
+    band!(
+        3840,
+        3889,
+        Iron,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Industry),
+        Stone,
+        qualification(&["smelting", "ironworking"], &["smith", "miner"], 0.0)
+    ),
+    band!(
+        3900,
+        3949,
+        Classical,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Industry),
+        Materials,
+        qualification(&["glass", "glassblowing"], &["smith", "artist"], 0.0)
+    ),
+    band!(
+        3960,
+        4009,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Anywhere,
+        Materials,
+        qualification(&["weaving"], &["weaver"], 0.0)
+    ),
+    band!(
+        4020,
+        4069,
+        Stone,
+        AdultOrElder,
+        None,
+        PlaceGate::Anywhere,
+        None,
+        qualification(&["leather", "leatherwork", "hunting"], &["hunter"], 0.0)
+    ),
+    band!(
+        4080,
+        4124,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Fire,
+        Stone,
+        qualification(&["pottery", "ceramics"], &["artist", "mason"], 0.0)
+    ),
+    band!(
+        4140,
+        4189,
+        Industrial,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Research),
+        None,
+        qualification(
+            &["scientific_method", "electricity"],
+            &["scholar", "engineer", "doctor"],
+            0.55
+        )
+    ),
+    band!(
+        4200,
+        4249,
+        Renaissance,
+        AdultOrElder,
+        None,
+        PlaceGate::WildLand,
+        None,
+        qualification(
+            &["scientific_method", "cartography"],
+            &["scholar", "doctor", "engineer"],
+            0.4
+        )
+    ),
+    band!(
+        4260,
+        4309,
+        Cyber,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Research),
+        None,
+        qualification(
+            &["cybernetics", "neural_interface"],
+            &["programmer", "engineer"],
+            0.6
+        )
+    ),
+    band!(
+        4320,
+        4369,
+        Genetic,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Research),
+        None,
+        qualification(
+            &["genome_edit", "biotech"],
+            &["doctor", "scholar", "engineer"],
+            0.6
+        )
+    ),
+    band!(
+        4380,
+        4429,
+        Modern,
+        AdultOrElder,
+        None,
+        PlaceGate::WildLand,
+        None,
+        qualification(&["scientific_method"], &["farmer", "scholar", "engineer"], 0.35)
+    ),
+    band!(
+        4440,
+        4489,
+        Stone,
+        TeenOrOlder,
+        None,
+        PlaceGate::Rock,
+        None,
+        qualification(&["stone_tools", "tool_making"], &["hunter", "miner"], 0.0)
+    ),
+    band!(
+        4500,
+        4549,
+        Stone,
+        TeenOrOlder,
+        None,
+        PlaceGate::Water,
+        None,
+        Q_NONE
+    ),
+    band!(
+        4560,
+        4609,
+        Bronze,
+        TeenOrOlder,
+        None,
+        PlaceGate::WildLand,
+        None,
+        qualification(&["astronomy", "star_charts"], &["scholar", "sailor"], 0.25)
+    ),
+    band!(
+        4620,
+        4669,
+        Modern,
+        AdultOrElder,
+        Anyone,
+        PlaceGate::Workspace(Workspace::Healthcare),
+        None,
+        qualification(
+            &["medicine_lore", "surgery", "germ_theory"],
+            &["doctor", "healer", "officer"],
+            0.0
+        )
+    ),
+    band!(
+        4680,
+        4729,
+        Classical,
+        AdultOrElder,
+        Anyone,
+        PlaceGate::Workspace(Workspace::Civic),
+        None,
+        leadership_qualification(&["politician", "lawyer", "officer"])
+    ),
+    band!(
+        4740,
+        4789,
+        Orbital,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Transport),
+        None,
+        qualification(&["orbital_ring", "space_elevator"], &["pilot", "engineer"], 0.6)
+    ),
+    band!(
+        4800,
+        4849,
+        Martian,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Research),
+        None,
+        qualification(
+            &["mars_colony", "terraforming"],
+            &["pilot", "engineer", "scholar"],
+            0.6
+        )
+    ),
+    band!(
+        4860,
+        4910,
+        Interstellar,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Research),
+        None,
+        qualification(&["biotech", "exoplanet"], &["doctor", "scholar"], 0.7)
+    ),
+    band!(
+        4920,
+        4969,
+        Singularity,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Research),
+        None,
+        qualification(
+            &["agi", "self_improvement", "transcend", "synthetic_mind"],
+            &["programmer", "engineer", "scholar"],
+            0.75
+        )
+    ),
+    band!(
+        4980,
+        5029,
+        Galactic,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Industry),
+        None,
+        qualification(&["dyson_swarm", "galactic_net"], &["engineer", "pilot"], 0.75)
+    ),
+    band!(
+        5040,
+        5089,
+        Stone,
+        TeenOrOlder,
+        None,
+        PlaceGate::Home,
+        None,
+        qualification(&["ritual", "language"], &["priest", "artist"], 0.0)
+    ),
+    band!(
+        5100,
+        5149,
+        Iron,
+        AdultOrElder,
+        Stranger,
+        PlaceGate::Anywhere,
+        None,
+        qualification(&["trade", "writing"], &["merchant", "lawyer", "politician"], 0.25)
+    ),
+    band!(
+        5160,
+        5209,
+        Iron,
+        AdultOrElder,
+        Kin,
+        PlaceGate::Workspace(Workspace::Education),
+        None,
+        qualification(&["writing"], &["scribe", "scholar", "journalist"], 0.45)
+    ),
+    band!(
+        5220,
+        5269,
+        Iron,
+        TeenOrOlder,
+        None,
+        PlaceGate::Anywhere,
+        None,
+        qualification(&["wheel", "writing"], &["merchant", "sailor", "pilot"], 0.0)
+    ),
+    band!(
+        5280,
+        5329,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::WildLand,
+        Food,
+        qualification(&["beekeeping", "agriculture"], &["farmer"], 0.0)
+    ),
+    band!(
+        5340,
+        5389,
+        Modern,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Cafe),
+        Food,
+        qualification(&["cooking"], &["baker", "merchant"], 0.0)
+    ),
+    band!(
+        5400,
+        5449,
+        Modern,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Cafe),
+        Food,
+        qualification(&["brewing", "cooking"], &["baker", "brewer", "merchant"], 0.0)
+    ),
+    band!(
+        5460,
+        5509,
+        Modern,
+        AdultOrElder,
+        Anyone,
+        PlaceGate::Workspace(Workspace::Trade),
+        None,
+        qualification(&["currency"], &["merchant", "banker"], 0.0)
+    ),
+    band!(
+        5520,
+        5569,
+        Information,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Research),
+        None,
+        qualification(&["computer", "internet"], &["programmer", "engineer"], 0.5)
+    ),
+    band!(
+        5580,
+        5629,
+        PreStone,
+        Child,
+        None,
+        PlaceGate::Anywhere,
+        None,
+        Q_NONE
+    ),
+    band!(
+        5640,
+        5689,
+        PreStone,
+        Elder,
+        None,
+        PlaceGate::Anywhere,
+        None,
+        Q_NONE
+    ),
+    band!(
+        5700,
+        5749,
+        Renaissance,
+        AdultOrElder,
+        Anyone,
+        PlaceGate::Workspace(Workspace::Education),
+        None,
+        qualification(
+            &["writing", "printing"],
+            &["journalist", "scribe", "scholar"],
+            0.5
+        )
+    ),
+    band!(
+        5760,
+        5809,
+        Bronze,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Fashion),
+        Materials,
+        qualification(&["weaving"], &["weaver", "artist"], 0.0)
+    ),
+    band!(
+        5820,
+        5869,
+        Stone,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Butchery),
+        CarriedFood,
+        qualification(&["hunting", "hunt"], &["hunter"], 0.0)
+    ),
+    band!(
+        5880,
+        5929,
+        Bronze,
+        AdultOrElder,
+        Anyone,
+        PlaceGate::Workspace(Workspace::Brewery),
+        Food,
+        qualification(&["brewing"], &["brewer"], 0.0)
+    ),
+];
