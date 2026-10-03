@@ -1,0 +1,361 @@
+/* ── Header ──────────────────────────────────────────────────────────────
+ * Mirrors the world dock: same wood, brass trim on the edge that meets the
+ * world, sunken pixel chips for readouts, raised pixel buttons for actions. */
+.header {
+  --hdr-ink: var(--px-ink);
+  --hdr-brass: var(--px-brass);
+  --hdr-gold: var(--px-gold-text);
+  --hdr-notch: var(--px-notch);
+  flex-wrap: nowrap;
+  gap: 12px;
+  min-height: 48px;
+  padding-top: 6px;
+  padding-bottom: 8px;
+  padding-right: 12px;
+  background: repeating-linear-gradient(0deg, #2b2118 0 22px, #231a13 22px 24px);
+  border-bottom: 2px solid var(--hdr-ink);
+  box-shadow:
+    inset 0 -2px 0 var(--hdr-brass),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.35);
+}
+.header h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--hdr-gold);
+  text-shadow: 0 2px 0 #000;
+  white-space: nowrap;
+}
+.header h1 svg {
+  filter: drop-shadow(0 2px 0 #000);
+}
+.header .github-link {
+  color: #8f8272;
+}
+.header .github-link:hover {
+  color: var(--hdr-gold);
+}
+
+.header .header-badges {
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+  /* Chips that do not fit wrap onto a hidden second line, so a chip is
+   * either shown whole or not at all, never cut mid-word. */
+  flex-wrap: wrap;
+  height: 28px;
+  overflow: hidden;
+  align-content: flex-start;
+}
+/* Priority when space is short: people, then live alerts, then the rest. */
+.header .population-badge {
+  order: 0;
+}
+.header :is(.drought-badge, .weather-badge, .sick-badge) {
+  order: 1;
+}
+.header .season-badge {
+  order: 2;
+}
+.header .daynight {
+  order: 3;
+}
+.header .era-badge {
+  order: 4;
+}
+.header .moon-badge {
+  order: 5;
+}
+.header .hdr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 9px 0 7px;
+  border: 2px solid var(--hdr-ink);
+  border-radius: 0;
+  clip-path: var(--hdr-notch);
+  box-shadow:
+    inset 2px 2px 0 rgba(0, 0, 0, 0.45),
+    inset -1px -1px 0 rgba(255, 255, 255, 0.06);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  cursor: default;
+}
+/* Neutral readouts get a dark inset; tinted ones (season, era, alerts)
+ * keep their own colors, including the colorblind palette. */
+:where(.header) .hdr-chip {
+  background: #1a130d;
+  color: #e7d8bc;
+}
+.header .hdr-chip.moon-badge,
+.header .hdr-chip.daynight {
+  text-transform: lowercase;
+}
+.header .hdr-chip:not(.moon-badge):not(.daynight) {
+  text-transform: uppercase;
+}
+.header .hdr-dim {
+  color: #9d8c6e;
+  font-weight: 400;
+}
+.header .hdr-chip.population-badge .hdr-dim {
+  margin-left: -2px;
+}
+
+.header .header-actions,
+.header .header-panels {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.header .header-actions {
+  margin-left: auto;
+}
+.header .header-panels {
+  padding-left: 10px;
+  box-shadow:
+    -2px 0 0 #3f3022,
+    -4px 0 0 var(--hdr-ink);
+}
+.header .hdr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  min-height: 30px;
+  width: auto;
+  margin: 0;
+  padding: 0 10px 0 7px;
+  border: 2px solid var(--hdr-ink);
+  border-radius: 0;
+  clip-path: var(--hdr-notch);
+  background: #45362a;
+  box-shadow:
+    inset 2px 2px 0 #6a5439,
+    inset -2px -3px 0 #2a1f15;
+  color: #e7d8bc;
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 90ms ease;
+}
+.header .hdr-btn:hover {
+  background: #54422f;
+  color: #fff3d6;
+  border-color: var(--hdr-ink);
+}
+.header .hdr-btn:active {
+  box-shadow:
+    inset 2px 3px 0 #2a1f15,
+    inset -2px -2px 0 #6a5439;
+}
+.header .hdr-btn.active,
+.header .hdr-btn[aria-pressed='true'],
+.header .hdr-btn[aria-expanded='true'] {
+  background: #5c4527;
+  border-color: #e8b64c;
+  color: var(--hdr-gold);
+  box-shadow:
+    inset 2px 2px 0 #9c7a3e,
+    inset -2px -3px 0 #3a2a15;
+}
+.header .hdr-btn:focus-visible {
+  outline: 2px solid #e8b64c;
+  outline-offset: -4px;
+}
+.header .hdr-btn.fullscreen-btn {
+  padding: 0 7px;
+}
+.header .btn-count {
+  min-width: 16px;
+  padding: 1px 4px;
+  background: #1a130d;
+  color: var(--hdr-gold);
+  font-size: 10px;
+  text-align: center;
+}
+
+@media (max-width: 1480px) {
+  .header .moon-badge .hdr-chip-label {
+    display: none;
+  }
+}
+@media (max-width: 1320px) {
+  .header .header-actions .btn-label,
+  .header .header-panels .btn-label {
+    display: none;
+  }
+  .header .hdr-btn {
+    padding: 0 7px;
+  }
+}
+@media (max-width: 1080px) {
+  .header .daynight .hdr-chip-label,
+  .header .era-badge,
+  .header .github-link {
+    display: none;
+  }
+}
+
+/* Tooltips share the dock's palette. */
+.ui-tooltip {
+  background: #1c140d;
+  color: #e7d8bc;
+  border: 2px solid #8a6a3e;
+  border-radius: 0;
+  padding: 6px 9px;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.45);
+}
+.ui-tooltip--above .ui-tooltip-arrow {
+  border-top-color: #8a6a3e;
+}
+.ui-tooltip--above .ui-tooltip-arrow::after {
+  border-top-color: #1c140d;
+}
+.ui-tooltip--below .ui-tooltip-arrow {
+  border-bottom-color: #8a6a3e;
+}
+.ui-tooltip--below .ui-tooltip-arrow::after {
+  border-bottom-color: #1c140d;
+}
+.tip-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-width: 240px;
+  text-align: left;
+}
+.tip-title {
+  color: #f3d17a;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+.tip-body {
+  color: #e7d8bc;
+}
+.tip-how {
+  color: #9d8c6e;
+  font-size: 10px;
+}
+
+/* ── Prayers: the player's to-do list ─────────────────────────────── */
+.header .hdr-chip.peril-chip {
+  order: 0;
+  cursor: pointer;
+  color: #ffb4a8;
+  border-color: #8a3b2e;
+  background: rgba(200, 60, 40, 0.16);
+  font-family: inherit;
+}
+
+.header .hdr-chip.peril-chip:hover {
+  color: #ffd2c6;
+  filter: brightness(1.15);
+}
+
+.header .prayer-chip-wrap {
+  order: 1;
+  display: inline-flex;
+}
+
+.header .hdr-chip.prayer-chip {
+  cursor: pointer;
+  color: #f6e7b4;
+  font-family: inherit;
+}
+
+.header .hdr-chip.prayer-chip:hover,
+.header .hdr-chip.prayer-chip.active {
+  color: #fff6d2;
+  filter: brightness(1.15);
+}
+
+.header .hdr-chip.prayer-chip.urgent {
+  color: #ffb4a8;
+  animation: prayer-urgent 1.1s steps(2, end) infinite;
+}
+
+@keyframes prayer-urgent {
+  50% {
+    color: #ff6a58;
+  }
+}
+
+.prayer-list {
+  position: fixed;
+  z-index: 210;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 260px;
+  max-width: min(340px, calc(100vw - 32px));
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--px-wood, #2c231f);
+  color: var(--px-text, #f2e6cc);
+  border: 2px solid var(--px-ink, #140e0a);
+  box-shadow: var(--px-frame-shadow, 0 4px 16px rgba(0, 0, 0, 0.5));
+}
+
+.prayer-row {
+  display: grid;
+  grid-template-columns: 16px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.prayer-row:hover,
+.prayer-row:focus-visible {
+  background: rgba(255, 228, 160, 0.1);
+  outline: none;
+}
+
+.prayer-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.prayer-time {
+  height: 4px;
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+.prayer-time > span {
+  display: block;
+  height: 100%;
+  background: #c9a043;
+}
+
+.prayer-time.low > span {
+  background: #d0453a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header .hdr-chip.prayer-chip.urgent {
+    animation: none;
+  }
+}

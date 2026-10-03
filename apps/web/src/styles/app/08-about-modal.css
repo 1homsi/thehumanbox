@@ -1,0 +1,881 @@
+/* ── About modal ─────────────────────────────────────────────────────────── */
+.about-modal {
+  background: #181410;
+  border: 1px solid #2e2820;
+  border-radius: 10px;
+  width: 480px;
+  max-width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+.about-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #2e2820;
+  background: #13110f;
+}
+.about-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #8b7e69;
+  text-transform: uppercase;
+}
+.about-body {
+  padding: 16px 18px 18px;
+  overflow-y: auto;
+}
+.about-blurb {
+  margin: 0 0 18px 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #b9b0a0;
+}
+.about-section {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #665e50;
+  text-transform: uppercase;
+  margin: 14px 0 6px 0;
+}
+.about-section:first-of-type {
+  margin-top: 0;
+}
+.about-grid {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 4px 14px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.about-k {
+  color: #6e6555;
+}
+.about-v {
+  color: #d8d2c4;
+  word-break: break-all;
+}
+.about-v code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: #d4a843;
+}
+.about-loading {
+  font-size: 11px;
+  color: #6e6555;
+  font-style: italic;
+}
+.about-err {
+  font-size: 11px;
+  color: #e08070;
+  background: rgba(224, 112, 80, 0.08);
+  border: 1px solid rgba(224, 112, 80, 0.25);
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+.about-links a {
+  font-size: 11px;
+  color: #7abbff;
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(122, 187, 255, 0.4);
+}
+.about-links a:hover {
+  color: #a0d0ff;
+  border-bottom-color: rgba(160, 208, 255, 0.7);
+}
+.about-built-with-detail {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  color: #6e6555;
+  line-height: 1.45;
+}
+
+@media (max-width: 1080px) {
+  .header-actions .lang-btn .btn-label {
+    display: none;
+  }
+  .header-actions .lang-btn {
+    min-width: 36px;
+    padding: 4px 8px;
+  }
+}
+
+@media (max-width: 600px) {
+  .desktop-toast {
+    bottom: calc(116px + env(safe-area-inset-bottom, 0px));
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+  .idle-resume-panel {
+    margin: 0 16px;
+    padding: 22px 20px;
+  }
+}
+
+body.thb-colorblind .season-badge.season-abundance {
+  background: #001a33;
+  color: #3a86ff;
+}
+body.thb-colorblind .season-badge.season-decline {
+  background: #1a1400;
+  color: #ffd166;
+}
+body.thb-colorblind .season-badge.season-scarcity {
+  background: #2a1500;
+  color: #fb8500;
+}
+body.thb-colorblind .season-badge.season-recovery {
+  background: #001a1a;
+  color: #55ccdd;
+}
+body.thb-colorblind .org-sick-badge {
+  background: #fb8500;
+  color: #1a0a00;
+}
+
+.life-skeleton {
+  padding: 12px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.life-skel-meta,
+.life-skel-row,
+.life-skel-section,
+.life-skel-event {
+  background: linear-gradient(
+    90deg,
+    rgba(80, 72, 60, 0.18) 0%,
+    rgba(140, 128, 108, 0.22) 50%,
+    rgba(80, 72, 60, 0.18) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: 4px;
+  animation: life-shimmer 1.4s ease-in-out infinite;
+}
+.life-skel-meta {
+  height: 10px;
+  width: 60%;
+}
+.life-skel-row {
+  height: 8px;
+  width: 90%;
+}
+.life-skel-row.short {
+  width: 55%;
+}
+.life-skel-section {
+  height: 28px;
+  width: 100%;
+  margin-top: 6px;
+}
+.life-skel-event {
+  height: 22px;
+  width: 100%;
+}
+@keyframes life-shimmer {
+  0% {
+    background-position: 200% 50%;
+  }
+  100% {
+    background-position: -100% 50%;
+  }
+}
+
+.org-detail-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.icon-btn {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid #443329;
+  background: #24201a;
+  color: #aaa;
+  cursor: pointer;
+  font-family: inherit;
+}
+.icon-btn:hover {
+  color: #fff;
+  border-color: #6a5240;
+  background: #2c2620;
+}
+.icon-btn.active {
+  background: #001a10;
+  color: #44ffaa;
+  border-color: #1a4a2a;
+}
+.icon-btn.active-star {
+  color: #ffcc44;
+  border-color: #5a4422;
+}
+.icon-btn.icon-close:hover {
+  color: #cc4444;
+  border-color: #4a1a1a;
+}
+.icon-btn:focus-visible {
+  outline: 2px solid #cfe6ff;
+  outline-offset: 1px;
+}
+
+.org-detail-header {
+  flex-wrap: nowrap;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 6px 0 2px;
+}
+.starred-toggle {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid #443329;
+  background: transparent;
+  color: #aaa;
+  cursor: pointer;
+  font-family: monospace;
+}
+.starred-toggle:hover {
+  color: #ffcc44;
+  border-color: #5a4422;
+}
+.starred-toggle.active {
+  background: #2a1f0d;
+  color: #ffcc44;
+  border-color: #5a4422;
+}
+
+.civ-modal {
+  width: min(1180px, 94vw);
+  max-width: 94vw;
+  max-height: 88vh;
+  background: #181410;
+  border: 1px solid #2e2820;
+  border-radius: 10px;
+  padding: 18px 22px 18px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  color: #d8cdb6;
+}
+.civ-modal > [data-radix-dialog-title],
+.civ-modal h2 {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #8b7e69;
+  text-transform: uppercase;
+  margin: 0 0 12px 0;
+}
+.civ-calendar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: linear-gradient(180deg, #2b2218 0%, #201913 100%);
+  border: 1px solid #4a3829;
+  border-radius: 8px;
+  padding: 12px 20px;
+  margin-bottom: 16px;
+}
+.civ-cal-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.civ-cal-label {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8b7e69;
+}
+.civ-cal-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f0e6cf;
+  text-transform: capitalize;
+}
+.civ-cal-sub {
+  font-size: 11px;
+  color: #8a8170;
+}
+.civ-cal-moon {
+  font-size: 17px;
+  line-height: 1;
+}
+.civ-cal-sep {
+  width: 1px;
+  align-self: stretch;
+  background: #4a3829;
+}
+
+.civ-modal-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+}
+.civ-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.civ-modal-grid::-webkit-scrollbar {
+  width: 8px;
+}
+.civ-modal-grid::-webkit-scrollbar-thumb {
+  background: #4a3a2c;
+  border-radius: 4px;
+}
+.civ-section {
+  background: #221b15;
+  border: 1px solid #4a3829;
+  border-radius: 8px;
+  padding: 13px 15px 15px;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.civ-section--span {
+  grid-column: 1 / -1;
+}
+.civ-table-wrap {
+  overflow-x: auto;
+}
+.civ-section h3 {
+  margin: 0 0 11px 0;
+  padding: 0 0 9px 0;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #e0c98f;
+  border-bottom: 1px solid #3a2d22;
+}
+.civ-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.civ-table th,
+.civ-table td {
+  padding: 5px 8px;
+  text-align: left;
+  color: #c8c0b0;
+  border-bottom: 1px solid #3a2d22;
+}
+.civ-table th {
+  color: #8a8170;
+  font-weight: 600;
+}
+.civ-era-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 120px;
+  max-width: 180px;
+}
+.civ-era-next,
+.civ-era-ready,
+.civ-era-gate,
+.civ-era-missing {
+  display: block;
+  font-size: 10px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.civ-era-next {
+  color: #c8c0b0;
+  text-transform: capitalize;
+}
+.civ-era-ready {
+  color: #9fd49f;
+  text-transform: capitalize;
+}
+.civ-era-gate {
+  color: #d0a66f;
+}
+.civ-era-missing {
+  color: #8f8575;
+}
+.civ-row {
+  padding: 5px 0;
+  border-bottom: 1px solid #3a2d22;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.civ-row:last-child {
+  border-bottom: none;
+}
+.civ-row-head {
+  font-size: 11px;
+  color: #f0eada;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+}
+.civ-row > .civ-row-link {
+  margin-left: auto;
+  order: 99;
+}
+.civ-row-sub {
+  font-size: 10px;
+  color: #aaa190;
+}
+.civ-row-tag {
+  font-size: 10px;
+  color: #8a8170;
+  background: #1d1612;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.civ-row-laws {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+  width: 100%;
+}
+.civ-chip {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #1d1612;
+  color: #c8c0b0;
+  border: 1px solid #3a2d22;
+}
+.civ-build-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.empty-state,
+.civ-empty,
+.org-search-empty,
+.worlds-empty {
+  font-size: 11px;
+  color: #8c7c63;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  padding: 16px 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.9;
+}
+.empty-state::before,
+.civ-empty::before,
+.org-search-empty::before,
+.worlds-empty::before {
+  content: '◯';
+  font-size: 16px;
+  color: #5a4838;
+  font-style: normal;
+  line-height: 1;
+}
+.civ-headline {
+  padding: 4px 0;
+  border-bottom: 1px solid #3a2d22;
+  display: flex;
+  gap: 8px;
+}
+.civ-headline:last-child {
+  border-bottom: none;
+}
+.civ-headline-tick {
+  font-size: 10px;
+  color: #6e6555;
+  width: 64px;
+  flex-shrink: 0;
+  font-family: monospace;
+}
+.civ-headline-text {
+  font-size: 11px;
+  color: #c8c0b0;
+  font-style: italic;
+  line-height: 1.4;
+}
+.civ-row-link {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  font-size: 9px;
+  line-height: 1.4;
+  font-family: monospace;
+  letter-spacing: 0.04em;
+  background: rgba(216, 178, 112, 0.1);
+  color: #d8b270;
+  border: 1px solid rgba(216, 178, 112, 0.35);
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  height: 20px;
+}
+.civ-row-link:hover {
+  background: rgba(216, 178, 112, 0.2);
+  color: #f0d590;
+  border-color: rgba(216, 178, 112, 0.55);
+}
+.civ-table td {
+  vertical-align: middle;
+}
+.civ-lineage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 112px;
+}
+.civ-guide-select {
+  height: 22px;
+  max-width: 124px;
+  padding: 1px 5px;
+  border: 1px solid rgba(216, 178, 112, 0.35);
+  border-radius: 3px;
+  background: #1d1612;
+  color: #d8b270;
+  font: 9px/1.3 monospace;
+}
+.civ-guide-select:disabled {
+  opacity: 0.55;
+}
+.civ-strategy-active,
+.civ-strategy-status {
+  font-size: 9px;
+  color: #9fd49f;
+  white-space: nowrap;
+}
+.civ-strategy-status {
+  color: #d0a66f;
+}
+.civ-strategy-objective {
+  display: grid;
+  gap: 3px;
+  min-width: 112px;
+}
+.civ-strategy-complete {
+  color: #e3c470;
+}
+.civ-strategy-progress {
+  display: block;
+  width: 100%;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(216, 178, 112, 0.16);
+}
+.civ-strategy-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #6da673, #e3c470);
+  transition: width 180ms ease-out;
+}
+.civ-campaign-board {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(111, 84, 55, 0.48);
+  border-radius: 7px;
+  background: rgba(24, 19, 15, 0.48);
+}
+.civ-campaign-board-heading,
+.civ-campaign-card-head,
+.civ-campaign-progress-copy,
+.civ-campaign-card-actions,
+.civ-campaign-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.civ-campaign-board-heading h4 {
+  margin: 1px 0 0;
+  color: #e1c18b;
+  font-size: 12px;
+  font-weight: 600;
+}
+.civ-campaign-board-kicker {
+  color: #8b7b69;
+  font-size: 8px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.civ-campaign-board-help {
+  max-width: 420px;
+  color: #8d8377;
+  font-size: 9px;
+  line-height: 1.4;
+  text-align: right;
+}
+.civ-campaign-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+  gap: 7px;
+}
+.civ-campaign-card {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid rgba(91, 69, 47, 0.55);
+  border-radius: 6px;
+  background: linear-gradient(160deg, rgba(47, 36, 26, 0.7), rgba(27, 22, 18, 0.82));
+}
+.civ-campaign-card.completed {
+  border-color: rgba(120, 168, 104, 0.52);
+  box-shadow: inset 0 0 20px rgba(95, 146, 81, 0.08);
+}
+.civ-campaign-card-head > div {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.civ-campaign-lineage {
+  overflow: hidden;
+  color: #e4d5c0;
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.civ-campaign-pop {
+  color: #796f64;
+  font-size: 8px;
+}
+.civ-campaign-badge {
+  max-width: 120px;
+  overflow: hidden;
+  padding: 2px 6px;
+  border: 1px solid rgba(190, 145, 82, 0.4);
+  border-radius: 999px;
+  color: #dfb873;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.civ-campaign-badge.idle {
+  border-color: rgba(125, 115, 101, 0.3);
+  color: #82796e;
+}
+.civ-campaign-description {
+  min-height: 26px;
+  margin: 0;
+  color: #a59a8c;
+  font-size: 9px;
+  line-height: 1.45;
+}
+.civ-campaign-progress-copy {
+  color: #a99a86;
+  font-size: 8px;
+}
+.civ-campaign-card-progress {
+  display: block;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(216, 178, 112, 0.13);
+}
+.civ-campaign-card-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #658e6d, #d8ae62);
+  transition: width 160ms ease-out;
+}
+.civ-campaign-reward {
+  color: #8fbaa0;
+  font-size: 8px;
+}
+.civ-campaign-card-actions {
+  min-height: 24px;
+}
+.civ-campaign-card-actions .civ-guide-select {
+  max-width: 155px;
+}
+.civ-campaign-history {
+  display: grid;
+  gap: 5px;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(123, 91, 58, 0.38);
+}
+.civ-campaign-history-title {
+  color: #9f8f79;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.civ-campaign-history-toggle {
+  padding: 2px 5px;
+  border: 1px solid rgba(147, 112, 68, 0.35);
+  border-radius: 3px;
+  background: rgba(57, 42, 29, 0.5);
+  color: #b99a6e;
+  font: 8px/1.2 monospace;
+  cursor: pointer;
+}
+.civ-campaign-history-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 4px 8px;
+}
+.civ-campaign-record {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto auto auto;
+  gap: 5px;
+  align-items: center;
+  min-width: 0;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: rgba(22, 18, 14, 0.42);
+  color: #9f9688;
+  font-size: 9px;
+}
+.civ-campaign-record--completed {
+  color: #9fd49f;
+}
+.civ-campaign-record--expired {
+  color: #d58d78;
+}
+.civ-campaign-record--failed {
+  color: #dc7468;
+}
+.civ-campaign-record--redirected {
+  color: #d0a66f;
+}
+.civ-campaign-outcome {
+  font-weight: 700;
+  text-align: center;
+}
+.civ-campaign-name {
+  overflow: hidden;
+  color: #d5c8b6;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.civ-campaign-result,
+.civ-campaign-effort,
+.civ-campaign-tick {
+  white-space: nowrap;
+}
+.civ-campaign-tick {
+  color: #786f64;
+}
+.civ-build-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.civ-summary {
+  background: #28201a;
+  border: 1px solid #513d2e;
+  border-radius: 5px;
+  padding: 8px 10px;
+  margin: 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.civ-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.civ-summary-chip {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: #1d1612;
+  color: #d8c89a;
+  border: 1px solid #3a2d22;
+}
+.civ-summary-stats {
+  display: flex;
+  gap: 8px;
+  font-size: 10px;
+  color: #aaa190;
+}
+.civ-summary-stats strong {
+  color: #f0eada;
+}
+.civ-summary-headlines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 60px;
+  overflow: hidden;
+}
+.civ-summary-headline {
+  font-size: 9px;
+  color: #c8c0b0;
+  font-style: italic;
+  line-height: 1.3;
+}
+.civ-summary-btn {
+  align-self: flex-start;
+  font-size: 9px;
+  padding: 2px 8px;
+  background: #1d1612;
+  color: #d8c89a;
+  border: 1px solid #513d2e;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: monospace;
+}
+.civ-summary-btn:hover {
+  color: #f0eada;
+  border-color: #6a5340;
+}
+
+.unstar-dead-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #ffcc44;
+  font-size: 13px;
+  padding: 0 4px;
+}
+.unstar-dead-btn:hover {
+  color: #fff;
+}

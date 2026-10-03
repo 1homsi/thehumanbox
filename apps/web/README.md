@@ -89,7 +89,7 @@ pnpm run build   # outputs to dist/
 
 ```
 src/
-├── main.tsx, App.tsx, App.css, index.css, pixel-theme.css
+├── main.tsx, App.tsx, App.css (imports styles/app/*), index.css, pixel-theme.css
 ├── game/
 │   ├── render/       Canvas world rendering (WorldView, sprites, terrain, effects)
 │   ├── scenes/       Interior scenes (home, tavern, temple, forge, settlement) + registry
