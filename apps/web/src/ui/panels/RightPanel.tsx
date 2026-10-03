@@ -1,10 +1,24 @@
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import type { OrganismState, WorldState } from '../../shared/types'
 import { useUIStore } from '../../state/store'
-import { OrgCard } from './OrgCard'
-import { OrgDetail } from './OrgDetail'
+import { lazyWithRetry as lazy } from '../../shared/lazyWithRetry'
 import { CivSummary } from './CivSummary'
+
+// The person cards and the detail view (with the life-story modal) are only drawn
+// once the drawer is open, so they ship as their own chunk instead of in the first
+// download. The chunk is fetched shortly after startup, well before anyone opens the drawer.
+const loadOrgCard = () => import('./OrgCard')
+const loadOrgDetail = () => import('./OrgDetail')
+const OrgCard = lazy(() => loadOrgCard().then((m) => ({ default: m.OrgCard })))
+const OrgDetail = lazy(() => loadOrgDetail().then((m) => ({ default: m.OrgDetail })))
+if (typeof window !== 'undefined') {
+  const prefetch = () => {
+    void loadOrgCard().catch(() => undefined)
+    void loadOrgDetail().catch(() => undefined)
+  }
+  window.setTimeout(prefetch, 1500)
+}
 
 interface Props {
   world: WorldState
@@ -68,7 +82,7 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
       {panelOpen && <div className="panel-overlay" onClick={togglePanel} />}
       <aside data-tour="right-panel" className={clsx('panel', 'panel-right', panelOpen && 'open')}>
         {panelOpen && (
-          <>
+          <Suspense fallback={null}>
             {selectedOrg && (
               <OrgDetail
                 org={selectedOrg}
@@ -156,7 +170,7 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
                 ))}
               </>
             )}
-          </>
+          </Suspense>
         )}
       </aside>
     </>

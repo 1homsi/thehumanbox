@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { startTour, isTourSupported } from '../tour/tour'
+import { startTour, isTourSupported, preloadTour } from '../tour/tour'
 import { useIsMobile } from '../../shared/hooks/useIsMobile'
 import { useSimulationData } from '../../simulation/simulationData'
 import { welcomeStepsFor } from '../../simulation/playerWorldCopy'
@@ -23,6 +23,11 @@ export function WelcomeModal() {
     }
     if (!seen) setOpen(true)
   }, [])
+
+  // Fetch the tour code while the welcome steps are being read.
+  useEffect(() => {
+    if (open && tourAvailable) preloadTour()
+  }, [open, tourAvailable])
 
   if (!open) return null
 
