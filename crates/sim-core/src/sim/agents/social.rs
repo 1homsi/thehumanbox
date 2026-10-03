@@ -62,9 +62,9 @@ pub fn signal_food(
     let mut understood = 0usize;
 
     for &ni in &nearby_indices {
-        let their_word = organisms[ni].vocabulary.known_word("food").map(str::to_string);
+        let recognizes =
+            signal_word.is_some() && organisms[ni].vocabulary.known_word("food") == signal_word.as_deref();
         organisms[ni].vocabulary.touch_concept("food", tick);
-        let recognizes = signal_word.is_some() && their_word == signal_word;
         let is_kin = organisms[ni].lineage_id == org_lineage;
         let trust = *organisms[ni].org_trust.get(&org_id).unwrap_or(&0.0);
 
@@ -164,9 +164,9 @@ pub fn sound_alarm(
     let mut kin_warned = 0usize;
 
     for &ni in &nearby_indices {
-        let their_word = organisms[ni].vocabulary.known_word(concept).map(str::to_string);
+        let recognizes =
+            signal_word.is_some() && organisms[ni].vocabulary.known_word(concept) == signal_word.as_deref();
         organisms[ni].vocabulary.touch_concept(concept, tick);
-        let recognizes = signal_word.is_some() && their_word == signal_word;
         let is_kin = organisms[ni].lineage_id == org_lineage;
 
         let strength = match (is_kin, recognizes) {
@@ -325,19 +325,12 @@ pub fn gift_knowledge(
     let reward_add = if new_att >= 0.0 { 0.014 } else { -0.003 };
 
     if new_att >= 0.25 {
-        // `absorb_from` reads only the word slots, so the words view is
-        // equivalent to the round-tripped `as_hashmap` here without the
-        // cost of packing and re-parsing the forgetting clock.
-        let their_snap = organisms[ti].vocabulary.words();
-        let my_snap = organisms[org_idx].vocabulary.words();
-        organisms[org_idx].vocabulary.absorb_from(
-            &crate::organism::vocabulary::Vocabulary::from_hashmap(&their_snap),
-            rng,
-        );
-        organisms[ti].vocabulary.absorb_from(
-            &crate::organism::vocabulary::Vocabulary::from_hashmap(&my_snap),
-            rng,
-        );
+        // `absorb_from` reads only the word slots, so a copy of each side as
+        // it stands (taken before either absorbs) is what it needs.
+        let their_vocabulary = organisms[ti].vocabulary.clone();
+        let my_vocabulary = organisms[org_idx].vocabulary.clone();
+        organisms[org_idx].vocabulary.absorb_from(&their_vocabulary, rng);
+        organisms[ti].vocabulary.absorb_from(&my_vocabulary, rng);
     }
 
     let org_name = organisms[org_idx].name.clone();
