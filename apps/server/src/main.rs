@@ -6,6 +6,7 @@ pub use sim_core::{organism, physics, sim, world};
 mod broadcaster;
 mod config;
 mod desktop_lock;
+mod frame_codec;
 mod rollover;
 mod router;
 mod runtime;
