@@ -226,12 +226,18 @@ impl Simulation {
         }
 
         if self.organisms[idx].inv_water >= 2 && self.tick_count % 7 == (idx as u64 % 7) {
-            let lid = self.organisms[idx].lineage_id.clone();
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
-            let recipient = spatial
-                .ordered_nearby(&self.organisms, sx, sy, 3)
-                .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid && o.hydration < 0.30)
-                .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() < 2.5)
+            let lid = &self.organisms[idx].lineage_id;
+            ordered_nearby_filtered(&self.organisms, spatial, sx, sy, 3, spatial_buf, |i, o| {
+                i != idx
+                    && o.alive
+                    && o.lineage_id == *lid
+                    && o.hydration < 0.30
+                    && (o.x - sx).abs() + (o.y - sy).abs() < 2.5
+            });
+            let recipient = spatial_buf
+                .iter()
+                .map(|&i| (i, &self.organisms[i]))
                 .min_by(|a, b| {
                     a.1.hydration
                         .partial_cmp(&b.1.hydration)
@@ -273,12 +279,18 @@ impl Simulation {
                     .any(|ddy| matches!(self.grid.get(sx + ddx, sy + ddy), Tile::Campfire | Tile::Fire))
             });
             if near_fire {
-                let lid = self.organisms[idx].lineage_id.clone();
                 let (fx, fy) = (self.organisms[idx].x, self.organisms[idx].y);
-                let listener = spatial
-                    .ordered_nearby(&self.organisms, fx, fy, 4)
-                    .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid && o.age < 1800)
-                    .filter(|(_, o)| (o.x - fx).abs() + (o.y - fy).abs() < 3.5)
+                let lid = &self.organisms[idx].lineage_id;
+                ordered_nearby_filtered(&self.organisms, spatial, fx, fy, 4, spatial_buf, |i, o| {
+                    i != idx
+                        && o.alive
+                        && o.lineage_id == *lid
+                        && o.age < 1800
+                        && (o.x - fx).abs() + (o.y - fy).abs() < 3.5
+                });
+                let listener = spatial_buf
+                    .iter()
+                    .map(|&i| (i, &self.organisms[i]))
                     .min_by_key(|(_, o)| o.age)
                     .map(|(i, _)| i);
                 if let Some(li) = listener {
@@ -332,12 +344,18 @@ impl Simulation {
         }
 
         if self.organisms[idx].energy > 0.75 && self.tick_count % 5 == (idx as u64 % 5) {
-            let lid = self.organisms[idx].lineage_id.clone();
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
-            let recipient = spatial
-                .ordered_nearby(&self.organisms, sx, sy, 3)
-                .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid && o.energy < 0.30)
-                .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() < 2.5)
+            let lid = &self.organisms[idx].lineage_id;
+            ordered_nearby_filtered(&self.organisms, spatial, sx, sy, 3, spatial_buf, |i, o| {
+                i != idx
+                    && o.alive
+                    && o.lineage_id == *lid
+                    && o.energy < 0.30
+                    && (o.x - sx).abs() + (o.y - sy).abs() < 2.5
+            });
+            let recipient = spatial_buf
+                .iter()
+                .map(|&i| (i, &self.organisms[i]))
                 .min_by(|a, b| {
                     a.1.energy
                         .partial_cmp(&b.1.energy)
@@ -422,21 +440,18 @@ impl Simulation {
 
         if self.organisms[idx].infection < 0.8 {
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
-            let spreaders: Vec<(f32, f32, f32)> = spatial
-                .query(sx as i32, sy as i32, 2)
-                .into_iter()
-                .filter(|&i| {
-                    if i == idx {
-                        return false;
-                    }
-                    let o = &self.organisms[i];
-                    o.alive && o.infection >= 0.15 && (o.x - sx).abs() + (o.y - sy).abs() <= 2.0
-                })
-                .map(|i| (self.organisms[i].infection, 0.0, 0.0))
-                .collect();
+            spatial.query_into(sx as i32, sy as i32, 2, spatial_buf);
             let res = self.organisms[idx].traits.resilience;
             let prev_inf = self.organisms[idx].infection;
-            for (other_inf, _, _) in spreaders {
+            for &i in spatial_buf.iter() {
+                if i == idx {
+                    continue;
+                }
+                let o = &self.organisms[i];
+                if !(o.alive && o.infection >= 0.15 && (o.x - sx).abs() + (o.y - sy).abs() <= 2.0) {
+                    continue;
+                }
+                let other_inf = o.infection;
                 let spread = 0.015 * other_inf * (1.0 - res * 0.8);
                 self.organisms[idx].infection = (self.organisms[idx].infection + spread).min(1.0);
             }

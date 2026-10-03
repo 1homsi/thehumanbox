@@ -378,7 +378,35 @@ pub(super) fn resource_near(grid: &WorldGrid, x: i32, y: i32, tile: Tile) -> boo
     (-1i32..=1).any(|dx| (-1i32..=1).any(|dy| grid.get(x + dx, y + dy) == tile))
 }
 
+/// Weaken what an organism remembers about the nine tiles around it and drop
+/// every memory that has faded below the floor. One walk over the map does
+/// both: the nine lookups it replaces cost more than the sweep they preceded.
 pub(super) fn decay_local_resource_memory(
+    memory: &mut FxHashMap<(i32, i32), f32>,
+    x: i32,
+    y: i32,
+    exact_factor: f32,
+    nearby_factor: f32,
+) {
+    if memory.is_empty() {
+        return;
+    }
+    memory.retain(|&(kx, ky), v| {
+        let (dx, dy) = (kx - x, ky - y);
+        if dx.abs() <= 1 && dy.abs() <= 1 {
+            *v *= if dx == 0 && dy == 0 {
+                exact_factor
+            } else {
+                nearby_factor
+            };
+        }
+        *v >= 0.04
+    });
+}
+
+/// The nine-lookup version this replaced, kept to check the single walk against.
+#[cfg(test)]
+pub(super) fn decay_local_resource_memory_reference(
     memory: &mut FxHashMap<(i32, i32), f32>,
     x: i32,
     y: i32,
@@ -398,6 +426,25 @@ pub(super) fn decay_local_resource_memory(
         }
     }
     memory.retain(|_, v| *v >= 0.04);
+}
+
+/// The people `SpatialIndex::ordered_nearby` would yield that `keep` accepts,
+/// as population indices in population order, written into a reused buffer.
+/// Filtering before the sort gives the same list as sorting first, and the
+/// sort only has to order the few that qualify.
+pub(super) fn ordered_nearby_filtered(
+    organisms: &[Organism],
+    spatial: &SpatialIndex,
+    x: f32,
+    y: f32,
+    radius: i32,
+    buf: &mut Vec<usize>,
+    mut keep: impl FnMut(usize, &Organism) -> bool,
+) {
+    // `ordered_nearby` pads the radius by one tick of movement.
+    spatial.query_into(x as i32, y as i32, radius + 2, buf);
+    buf.retain(|&i| keep(i, &organisms[i]));
+    buf.sort_unstable();
 }
 
 pub(super) fn verify_local_resource_memory(org: &mut Organism, grid: &WorldGrid, x: i32, y: i32) {
@@ -472,4 +519,133 @@ pub(super) fn verify_local_danger_memory(
 
 pub(super) fn scarcity_driven_migration_season(season: &str) -> bool {
     matches!(season, "scarcity" | "decline")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::organism::traits::Traits;
+
+    struct Lcg(u64);
+    impl Lcg {
+        fn next(&mut self) -> u64 {
+            self.0 ^= self.0 << 13;
+            self.0 ^= self.0 >> 7;
+            self.0 ^= self.0 << 17;
+            self.0
+        }
+    }
+
+    fn snapshot(memory: &FxHashMap<(i32, i32), f32>) -> Vec<((i32, i32), u32)> {
+        // Iteration order is part of the state: later code walks these maps.
+        memory.iter().map(|(&k, &v)| (k, v.to_bits())).collect()
+    }
+
+    /// Memories around a standing point: some on it, some beside it, some
+    /// far away, with strengths on both sides of the 0.04 floor.
+    fn memory_around(rng: &mut Lcg, x: i32, y: i32, n: usize) -> FxHashMap<(i32, i32), f32> {
+        let mut memory = FxHashMap::default();
+        for _ in 0..n {
+            let (dx, dy) = match rng.next() % 4 {
+                0 => ((rng.next() % 3) as i32 - 1, (rng.next() % 3) as i32 - 1),
+                1 => ((rng.next() % 7) as i32 - 3, (rng.next() % 7) as i32 - 3),
+                _ => ((rng.next() % 61) as i32 - 30, (rng.next() % 61) as i32 - 30),
+            };
+            let strength = match rng.next() % 5 {
+                0 => 0.01 + (rng.next() % 40) as f32 * 0.001,
+                1 => 0.04,
+                2 => 0.05 + (rng.next() % 10) as f32 * 0.001,
+                _ => (rng.next() % 1000) as f32 / 1000.0,
+            };
+            memory.insert((x + dx, y + dy), strength);
+        }
+        memory
+    }
+
+    #[test]
+    fn local_memory_decay_matches_the_lookup_version() {
+        let mut rng = Lcg(0x9E37_79B9_7F4A_7C15);
+        let mut changed = 0;
+        for round in 0..4_000 {
+            let (x, y) = ((rng.next() % 300) as i32, (rng.next() % 300) as i32);
+            let n = (rng.next() % 40) as usize;
+            let mut fast = memory_around(&mut rng, x, y, n);
+            if round % 17 == 0 {
+                fast.insert((x, y), f32::NAN);
+            }
+            let mut reference = fast.clone();
+            let before = snapshot(&fast);
+            let (exact, nearby) = if round % 2 == 0 {
+                (0.45, 0.70)
+            } else {
+                (0.50, 0.72)
+            };
+            // Decay the same map a few times, standing in different places,
+            // as an organism walking about does.
+            for step in 0..3 {
+                let (sx, sy) = (x + step - 1, y + (step % 2));
+                decay_local_resource_memory(&mut fast, sx, sy, exact, nearby);
+                decay_local_resource_memory_reference(&mut reference, sx, sy, exact, nearby);
+                assert_eq!(snapshot(&fast), snapshot(&reference), "round {round} step {step}");
+            }
+            changed += usize::from(snapshot(&fast) != before);
+        }
+        assert!(changed > 1_000, "the maps barely changed: {changed}");
+    }
+
+    fn crowd(seed: u64, n: usize) -> Vec<Organism> {
+        let mut rng = Lcg(seed.wrapping_mul(0x2545_F491_4F6C_DD1D) | 1);
+        (0..n)
+            .map(|i| {
+                let lineage = ["lineage-a", "lineage-b"][(rng.next() % 2) as usize];
+                let x = 10.0 + (rng.next() % 300) as f32 / 10.0;
+                let y = 10.0 + (rng.next() % 300) as f32 / 10.0;
+                let mut o = Organism::new(
+                    format!("id-{i}"),
+                    format!("Name{i}"),
+                    x,
+                    y,
+                    0,
+                    String::new(),
+                    lineage.to_string(),
+                    5000,
+                    Traits::default(),
+                );
+                o.energy = (rng.next() % 5) as f32 * 0.1;
+                o.alive = rng.next() % 9 != 0;
+                o
+            })
+            .collect()
+    }
+
+    #[test]
+    fn filtered_neighbour_list_matches_ordered_nearby() {
+        let mut checked = 0;
+        for seed in 1..=30u64 {
+            let organisms = crowd(seed, 90);
+            let spatial = SpatialIndex::build(&organisms, 10);
+            let mut buf = Vec::new();
+            for (idx, me) in organisms.iter().enumerate() {
+                for radius in [3, 4, 6] {
+                    let (sx, sy) = (me.x, me.y);
+                    let pass = |i: usize, o: &Organism| {
+                        i != idx
+                            && o.alive
+                            && o.lineage_id == me.lineage_id
+                            && o.energy < 0.30
+                            && (o.x - sx).abs() + (o.y - sy).abs() < 2.5 + radius as f32
+                    };
+                    let expected: Vec<usize> = spatial
+                        .ordered_nearby(&organisms, sx, sy, radius)
+                        .filter(|(i, o)| pass(*i, o))
+                        .map(|(i, _)| i)
+                        .collect();
+                    ordered_nearby_filtered(&organisms, &spatial, sx, sy, radius, &mut buf, pass);
+                    assert_eq!(buf, expected, "seed {seed} idx {idx} radius {radius}");
+                    checked += expected.len();
+                }
+            }
+        }
+        assert!(checked > 1_000, "too few neighbours to mean anything: {checked}");
+    }
 }

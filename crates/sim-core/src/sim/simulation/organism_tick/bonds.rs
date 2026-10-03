@@ -20,10 +20,14 @@ impl Simulation {
         let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
         let lineage = self.organisms[idx].lineage_id.clone();
         let soc = self.organisms[idx].traits.social_tendency;
-        let kin_count = spatial
-            .query(ox as i32, oy as i32, 4)
-            .into_iter()
-            .filter(|&i| {
+        // One query serves every neighbour scan below: the index buckets are
+        // wider than any of their radii, so each radius reaches the same
+        // buckets, and every scan applies its own exact distance.
+        spatial.query_into(ox as i32, oy as i32, 6, spatial_buf);
+        spatial_buf.sort_unstable();
+        let kin_count = spatial_buf
+            .iter()
+            .filter(|&&i| {
                 if i == idx {
                     return false;
                 }
@@ -33,10 +37,9 @@ impl Simulation {
             .count();
         reward += 0.004 * (kin_count.min(1) as f32) * (0.5 + soc);
 
-        let crowding = spatial
-            .query(ox as i32, oy as i32, 3)
-            .into_iter()
-            .filter(|&i| {
+        let crowding = spatial_buf
+            .iter()
+            .filter(|&&i| {
                 if i == idx {
                     return false;
                 }
@@ -60,9 +63,9 @@ impl Simulation {
             };
             let resilience = self.organisms[idx].traits.resilience;
             if resilience > 0.4 || healer_bonus > 1.0 {
-                let sick_kin: Vec<usize> = spatial
-                    .query(ox as i32, oy as i32, 3)
-                    .into_iter()
+                let sick_kin: Vec<usize> = spatial_buf
+                    .iter()
+                    .copied()
                     .filter(|&i| {
                         if i == idx {
                             return false;
@@ -92,8 +95,6 @@ impl Simulation {
             }
         }
 
-        spatial.query_into(ox as i32, oy as i32, 6, spatial_buf);
-        spatial_buf.sort_unstable();
         let att_adjustments: Vec<(usize, f32)> = spatial_buf
             .iter()
             .copied()
@@ -171,25 +172,23 @@ impl Simulation {
             reward += (comfort - 0.75) * 0.01;
         }
 
-        let aligned_strategy = {
-            let lineage_id = self.organisms[idx].lineage_id.clone();
-            self.lineage_strategies
-                .get(&lineage_id)
-                .filter(|(strategy, expiry)| {
-                    action_succeeded
-                        && !matches!(action, 287..=289 | 2704)
-                        && *expiry > self.tick_count
-                        && directive_aligns_action(strategy, action)
-                })
-                .map(|(strategy, _)| {
-                    let bonus = match strategy.as_str() {
-                        "hunt" | "trade" | "defend" => 0.008,
-                        "explore" | "settle" => 0.006,
-                        _ => 0.0,
-                    };
-                    (lineage_id, strategy.clone(), bonus)
-                })
-        };
+        let aligned_strategy = self
+            .lineage_strategies
+            .get(&lineage)
+            .filter(|(strategy, expiry)| {
+                action_succeeded
+                    && !matches!(action, 287..=289 | 2704)
+                    && *expiry > self.tick_count
+                    && directive_aligns_action(strategy, action)
+            })
+            .map(|(strategy, _)| {
+                let bonus = match strategy.as_str() {
+                    "hunt" | "trade" | "defend" => 0.008,
+                    "explore" | "settle" => 0.006,
+                    _ => 0.0,
+                };
+                (lineage.clone(), strategy.clone(), bonus)
+            });
         if let Some((lineage_id, strategy, bonus)) = aligned_strategy {
             reward += bonus;
             self.record_strategy_progress(&lineage_id, &strategy);

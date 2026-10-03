@@ -54,8 +54,8 @@ impl Simulation {
         }
 
         {
-            let my_lid = self.organisms[idx].lineage_id.clone();
-            let intruders: Vec<String> = if let Some(elder_id) = self.lineage_elders.get(&my_lid) {
+            let my_lid = &self.organisms[idx].lineage_id;
+            let intruders: Vec<String> = if let Some(elder_id) = self.lineage_elders.get(my_lid) {
                 if let Some(&elder_idx) = org_idx_by_id.get(elder_id) {
                     let ex = self.organisms[elder_idx].home_x;
                     let ey = self.organisms[elder_idx].home_y;
@@ -68,7 +68,7 @@ impl Simulation {
                         let mut v: Vec<String> = Vec::new();
                         for &i in spatial_buf.iter() {
                             let o = &self.organisms[i];
-                            if !o.alive || o.lineage_id == my_lid {
+                            if !o.alive || o.lineage_id == *my_lid {
                                 continue;
                             }
                             if (o.x - ex).abs() + (o.y - ey).abs() < 12.0 {
