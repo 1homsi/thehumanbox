@@ -82,16 +82,6 @@ impl Organism {
             } else {
                 None
             },
-            has_reflected: if include_cold {
-                Some(self.has_reflected)
-            } else {
-                None
-            },
-            last_invention_tick: if include_cold {
-                Some(self.last_invention_tick)
-            } else {
-                None
-            },
             loneliness: if include_cold {
                 Some((self.loneliness * 100.0).round() / 100.0)
             } else {
@@ -633,10 +623,6 @@ pub struct OrgJson {
     pub attitudes: Option<HashMap<String, f32>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub org_trust: Option<HashMap<String, f32>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub has_reflected: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub last_invention_tick: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub loneliness: Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

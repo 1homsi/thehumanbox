@@ -1462,11 +1462,8 @@ fn save_load_preserves_social_continuity_and_rng_stream() {
         outcome: "completed".to_string(),
         reason: None,
     });
-    sim.lineage_last_council.insert("lineage-a".to_string(), 12_000);
     sim.lineage_elders
         .insert("lineage-a".to_string(), "elder-a".to_string());
-    sim.lineage_negotiations
-        .insert(("lineage-a".to_string(), "lineage-b".to_string()), 11_500);
 
     let mut expected_rng = sim.rng.clone();
     let expected_next: u64 = expected_rng.random();
@@ -1492,16 +1489,9 @@ fn save_load_preserves_social_continuity_and_rng_stream() {
     assert_eq!(campaign.strategy, "trade");
     assert_eq!(campaign.outcome, "completed");
     assert_eq!(campaign.ended_tick, 11_800);
-    assert_eq!(loaded.lineage_last_council.get("lineage-a"), Some(&12_000));
     assert_eq!(
         loaded.lineage_elders.get("lineage-a"),
         Some(&"elder-a".to_string())
-    );
-    assert_eq!(
-        loaded
-            .lineage_negotiations
-            .get(&("lineage-a".to_string(), "lineage-b".to_string())),
-        Some(&11_500)
     );
     assert_eq!(loaded.rng.random::<u64>(), expected_next);
 
@@ -1510,7 +1500,7 @@ fn save_load_preserves_social_continuity_and_rng_stream() {
 }
 
 #[test]
-fn save_load_preserves_organism_cooldowns_for_deterministic_replay() {
+fn save_load_preserves_experiment_evidence() {
     let mut path = std::env::temp_dir();
     path.push(format!("thehumanbox-cooldown-test-{}.json", std::process::id()));
     let path_s = path.to_string_lossy().to_string();
@@ -1520,8 +1510,6 @@ fn save_load_preserves_organism_cooldowns_for_deterministic_replay() {
     let mut sim = Simulation::new(42);
     sim.tick_count = 50_000;
     let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
-    sim.organisms[idx].last_think_tick = 1_000;
-    sim.organisms[idx].last_invention_tick = 2_000;
     sim.organisms[idx].last_experiment_tick = 3_000;
     let org_id = sim.organisms[idx].id.clone();
 
@@ -1529,14 +1517,6 @@ fn save_load_preserves_organism_cooldowns_for_deterministic_replay() {
     let loaded = Simulation::load_or_new(999, &path_s);
 
     let loaded_org = loaded.organisms.iter().find(|o| o.id == org_id).unwrap();
-    assert_eq!(
-        loaded_org.last_think_tick, 1_000,
-        "cooldown was jittered on load - breaks determinism"
-    );
-    assert_eq!(
-        loaded_org.last_invention_tick, 2_000,
-        "cooldown was jittered on load - breaks determinism"
-    );
     assert_eq!(
         loaded_org.last_experiment_tick, 3_000,
         "experiment evidence was lost on load"
@@ -1626,9 +1606,6 @@ fn save_load_preserves_civilization_and_personal_progress() {
     sim.organisms[idx].mood = 0.73;
     sim.organisms[idx].specialty = Some("scholar".to_string());
     sim.organisms[idx].religion_id = Some("faith-a".to_string());
-    sim.organisms[idx]
-        .last_think_by_kind
-        .insert("discovery".to_string(), 41_000);
     sim.organisms[idx].is_leader = true;
 
     sim.save_result(&path_s).unwrap();
@@ -1659,7 +1636,6 @@ fn save_load_preserves_civilization_and_personal_progress() {
     assert_eq!(loaded_org.mood, 0.73);
     assert_eq!(loaded_org.specialty.as_deref(), Some("scholar"));
     assert_eq!(loaded_org.religion_id.as_deref(), Some("faith-a"));
-    assert_eq!(loaded_org.last_think_by_kind.get("discovery"), Some(&41_000));
     assert!(loaded_org.is_leader);
 
     let _ = std::fs::remove_file(&path_s);

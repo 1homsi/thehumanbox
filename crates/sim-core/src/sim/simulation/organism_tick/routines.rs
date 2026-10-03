@@ -71,13 +71,6 @@ impl Simulation {
             }
         }
 
-        {
-            let last_think = self.organisms[idx].last_think_tick;
-            if self.organisms[idx].infection > 0.5 && self.tick_count - last_think >= 1200 {
-                self.organisms[idx].last_think_tick = self.tick_count;
-            }
-        }
-
         if let Some(ref pid) = self.organisms[idx].partner_id.clone() {
             let partner_pos = org_idx_by_id.get(pid).copied();
             let dead = partner_pos.map(|p| !self.organisms[p].alive).unwrap_or(true);

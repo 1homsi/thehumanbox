@@ -173,37 +173,6 @@ impl Simulation {
             );
             if signal_reward > before {
                 self.organisms[idx].log_event(format!("shared knowledge with kin near ({},{})", ix, iy));
-
-                let actor_lid = self.organisms[idx].lineage_id.clone();
-                let neg_target: Option<(usize, String)> = spatial
-                    .ordered_nearby(&self.organisms, ix as f32, iy as f32, 7)
-                    .filter(|(i, o)| *i != idx && o.alive && o.lineage_id != actor_lid)
-                    .filter(|(_, o)| (o.x - ix as f32).abs() + (o.y - iy as f32).abs() < 7.0)
-                    .filter_map(|(i, o)| {
-                        let att = self.organisms[idx].attitude_toward(&o.lineage_id);
-                        let trust = *self.organisms[idx].org_trust.get(&o.id).unwrap_or(&0.0);
-                        if att > 0.4 && trust > 0.3 {
-                            Some((i, o.lineage_id.clone()))
-                        } else {
-                            None
-                        }
-                    })
-                    .next();
-
-                if let Some((_, their_lid)) = neg_target {
-                    let neg_key = {
-                        let (a, b) = (actor_lid.clone(), their_lid.clone());
-                        if a < b {
-                            (a, b)
-                        } else {
-                            (b, a)
-                        }
-                    };
-                    let last_neg = *self.lineage_negotiations.get(&neg_key).unwrap_or(&0);
-                    if self.tick_count - last_neg >= 6000 {
-                        self.lineage_negotiations.insert(neg_key, self.tick_count);
-                    }
-                }
             }
         } else if action == 14 {
             if self.organisms[idx].carrying == 0 {

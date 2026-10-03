@@ -470,42 +470,6 @@ pub(super) fn verify_local_danger_memory(
     decay_local_resource_memory(&mut org.danger_memory, x, y, 0.50, 0.72);
 }
 
-pub(super) fn invention_candidates(discoveries: &std::collections::BTreeSet<String>) -> Vec<&'static str> {
-    let has = |s: &str| discoveries.contains(s);
-    let mut v = Vec::new();
-    if has("fire") && has("wood") && !has("cooking") {
-        v.push("cooking");
-    }
-    if has("fire") && has("stone") && !has("stone_tools") {
-        v.push("stone_tools");
-    }
-    if has("shelter") && has("stone") && !has("masonry") {
-        v.push("masonry");
-    }
-    if has("stone") && has("hunt") && !has("spear") {
-        v.push("spear");
-    }
-    if has("fire") && has("shelter") && !has("torch") {
-        v.push("torch");
-    }
-    if has("fire") && has("cooking") && !has("medicine") {
-        v.push("medicine");
-    }
-    if has("wood") && has("hunt") && !has("trap") {
-        v.push("trap");
-    }
-    if has("fire") && has("shelter") && !has("ritual") {
-        v.push("ritual");
-    }
-    if has("wood") && !has("basket") {
-        v.push("basket");
-    }
-    if has("masonry") && has("water") && !has("irrigation") {
-        v.push("irrigation");
-    }
-    v
-}
-
 pub(super) fn scarcity_driven_migration_season(season: &str) -> bool {
     matches!(season, "scarcity" | "decline")
 }

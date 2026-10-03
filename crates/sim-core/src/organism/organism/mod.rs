@@ -84,14 +84,10 @@ pub struct Organism {
     pub home_style_seed: u32,
 
     pub is_elder: bool,
-    pub has_reflected: bool,
-    pub last_invention_tick: u64,
     pub last_experiment_tick: u64,
 
     pub directive: String,
     pub directive_until: u64,
-    pub last_think_tick: u64,
-    pub last_think_by_kind: BTreeMap<String, u64>,
 
     pub loneliness: f32,
     pub boredom: f32,
@@ -236,13 +232,9 @@ impl Organism {
             home_furniture: Vec::new(),
             home_style_seed: 0,
             is_elder: false,
-            has_reflected: false,
-            last_invention_tick: 0,
             last_experiment_tick: 0,
             directive: String::new(),
             directive_until: 0,
-            last_think_tick: 0,
-            last_think_by_kind: BTreeMap::new(),
             loneliness: 0.0,
             boredom: 0.0,
             fear_level: 0.0,
