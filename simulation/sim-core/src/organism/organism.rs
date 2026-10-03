@@ -697,25 +697,6 @@ impl Organism {
         self.tools.get(tool).copied().unwrap_or(0) > 0
     }
 
-    pub fn combat_tool_bonus(&self) -> f32 {
-        if self.has_tool("rifle") {
-            return 4.5;
-        }
-        if self.has_tool("musket") {
-            return 3.0;
-        }
-        if self.has_tool("iron_sword") {
-            return 1.8;
-        }
-        if self.has_tool("bronze_spear") {
-            return 1.4;
-        }
-        if self.has_tool("stone_spear") {
-            return 1.2;
-        }
-        1.0
-    }
-
     pub fn add_degree(&mut self, degree: &str) {
         let d = degree.to_string();
         if !self.degrees.contains(&d) {

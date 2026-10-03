@@ -5,7 +5,6 @@ use crate::sim::world_events::push_event;
 use crate::world::grid::WorldGrid;
 use crate::world::tiles::Tile;
 
-#[allow(dead_code)]
 pub struct ActionCtx<'a> {
     pub sim: &'a mut Simulation,
     pub idx: usize,
@@ -253,20 +252,6 @@ impl<'a> ActionCtx<'a> {
                 continue;
             }
             o.comfort = (o.comfort + amount).min(1.0);
-            n += 1;
-        }
-        n
-    }
-
-    pub fn energize_kin(&mut self, amount: f32) -> usize {
-        let kin = self.kin.clone();
-        let mut n = 0;
-        for &i in &kin {
-            let o = &mut self.sim.organisms[i];
-            if !o.alive {
-                continue;
-            }
-            o.energy = (o.energy + amount).min(1.0);
             n += 1;
         }
         n

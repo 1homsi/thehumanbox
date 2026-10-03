@@ -1,6 +1,5 @@
 pub mod agriculture;
 pub mod buildings;
-pub mod inventions;
 pub mod language_tech;
 pub mod medicine;
 pub mod tech_progress;

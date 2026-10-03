@@ -104,33 +104,6 @@ impl Specialty {
             Specialty::Programmer => Era::Information,
         }
     }
-
-    pub fn wealth_per_tick(self) -> u32 {
-        match self {
-            Specialty::Farmer | Specialty::Hunter | Specialty::Miner => 1,
-            Specialty::Smith
-            | Specialty::Builder
-            | Specialty::Weaver
-            | Specialty::Baker
-            | Specialty::Carpenter
-            | Specialty::Mason
-            | Specialty::Brewer => 2,
-            Specialty::Merchant | Specialty::Sailor => 3,
-            Specialty::Healer
-            | Specialty::Priest
-            | Specialty::Artist
-            | Specialty::Scribe
-            | Specialty::Scholar => 2,
-            Specialty::Engineer | Specialty::Teacher | Specialty::Soldier => 4,
-            Specialty::Doctor | Specialty::Lawyer | Specialty::Banker | Specialty::Officer => 6,
-            Specialty::Pilot
-            | Specialty::Journalist
-            | Specialty::Actor
-            | Specialty::Athlete
-            | Specialty::Politician => 8,
-            Specialty::Programmer => 12,
-        }
-    }
 }
 
 pub fn currency_unit_for_era(era: Era) -> &'static str {
@@ -346,20 +319,6 @@ pub struct Trade {
     pub good: String,
     pub amount: u32,
     pub price: u32,
-}
-
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct LineageTreasury {
-    pub balance: u64,
-    pub tax_rate: f32,
-}
-
-pub fn elder_pension(era: Era) -> u32 {
-    match era {
-        Era::Modern | Era::Information => 2,
-        Era::Industrial => 1,
-        _ => 0,
-    }
 }
 
 pub fn lineage_currencies(lineage_eras: &HashMap<String, Era>) -> HashMap<String, &'static str> {

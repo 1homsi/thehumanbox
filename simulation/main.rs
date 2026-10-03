@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 // The sim core now lives in the `sim-core` crate. Re-export its modules at
 // the crate root so every existing `crate::sim::…` / `crate::organism::…`
 // path in this binary and in `server/*` keeps resolving unchanged.
