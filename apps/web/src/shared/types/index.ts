@@ -303,7 +303,6 @@ export interface MemoryEntry {
 export interface OrgDetail extends OrganismState {
   thought_history: ThoughtEntry[]
   vocabulary: Record<string, string>
-  daily_story: string
   life_log: LifeEvent[]
   conversations: ConversationEntry[]
   memories: MemoryEntry[]

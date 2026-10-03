@@ -75,27 +75,6 @@ pub(super) fn ordered_human_candidates(
     candidates.sort_unstable();
 }
 
-pub(super) fn derive_mood(o: &Organism) -> String {
-    if o.infection > 0.20 {
-        "sick"
-    } else if o.energy < 0.30 {
-        "hungry"
-    } else if o.hydration < 0.30 {
-        "thirsty"
-    } else if o.fear_level > 0.40 {
-        "afraid"
-    } else if o.grief_ticks > 0 {
-        "mourning"
-    } else if o.loneliness > 0.60 {
-        "lonely"
-    } else if o.is_elder {
-        "weary"
-    } else {
-        "content"
-    }
-    .to_string()
-}
-
 pub(super) fn fallback_walkable_step(
     grid: &WorldGrid,
     ix: i32,

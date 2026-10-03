@@ -460,7 +460,7 @@ pub fn gen_phoneme_word(rng: &mut impl Rng) -> String {
 ///
 /// Only ever emitted by `as_hashmap`, which exists for the
 /// serialise/deserialise round trip. Anything that treats the map as
-/// *words* - snapshots, LLM prompts, the client, the lab - must use
+/// *words* - snapshots, the client, the org-detail API - must use
 /// `words` instead, or this clock blob gets rendered as if it were a
 /// word the organism speaks.
 const LAST_USED_KEY: &str = "__thb_last_used";
@@ -659,8 +659,8 @@ impl Vocabulary {
     /// The words this organism currently knows, keyed by concept.
     ///
     /// This is the view for anything that *reads* the vocabulary as
-    /// language: snapshots sent to the client and the lab, the
-    /// narration and conversation LLM prompts, the org-detail API.
+    /// language: snapshots sent to the client and the
+    /// org-detail API.
     /// It deliberately omits `LAST_USED_KEY`.
     ///
     /// Allocates - use sparingly; for hot reads prefer `word_for`.
@@ -780,8 +780,8 @@ mod tests {
         Vocabulary::generate(&mut rng)
     }
 
-    /// The regression this guards: `words()` feeds snapshots, the client,
-    /// the lab, and the narration/conversation prompts. When it carried
+    /// The regression this guards: `words()` feeds snapshots, the client
+    /// and the org-detail API. When it carried
     /// the reserved clock blob, `__thb_last_used` was rendered as if it
     /// were one of the organism's words - a ~400-number string.
     #[test]

@@ -83,19 +83,6 @@ impl Simulation {
                             &name,
                             "understood shelter",
                         );
-                        let lid = self.organisms[idx].lineage_id.clone();
-                        self.push_think_for(
-                            idx,
-                            ThinkTrigger {
-                                org_id: self.organisms[idx].id.clone(),
-                                org_name: self.organisms[idx].name.clone(),
-                                lineage_id: lid,
-                                scenario: "discovery".to_string(),
-                                context: "shelter".to_string(),
-                                discoveries: self.organisms[idx].discoveries.iter().cloned().collect(),
-                                ..Default::default()
-                            },
-                        );
                     }
                 }
             }

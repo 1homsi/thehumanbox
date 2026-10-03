@@ -31,7 +31,6 @@ mod memory;
 mod organism_tick;
 mod strategy;
 mod territory;
-mod thinking;
 mod tick;
 mod types;
 mod world;
@@ -66,8 +65,6 @@ pub struct Simulation {
     /// Autumn's forecast that the coming winter will be hard.
     pub hard_winter_ahead: bool,
     pub story_history: VecDeque<StoryEntry>,
-    pub pending_thinks: Vec<ThinkTrigger>,
-    pub pending_convos: Vec<crate::sim::convo_req::ConversationReq>,
     pub pending_memory_flushes: Vec<PendingMemoryFlush>,
     pub lineage_names: HashMap<String, String>,
     pub lineage_strategies: HashMap<String, (String, u64)>,
@@ -210,8 +207,6 @@ impl Simulation {
             hard_winter: false,
             hard_winter_ahead: false,
             story_history: VecDeque::new(),
-            pending_thinks: Vec::new(),
-            pending_convos: Vec::new(),
             pending_memory_flushes: Vec::new(),
             lineage_names: HashMap::default(),
             lineage_strategies: HashMap::default(),

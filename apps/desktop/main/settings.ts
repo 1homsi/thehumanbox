@@ -8,18 +8,11 @@ import {
 } from "./world-safety";
 
 export type SimMode = "local";
-export type ModelProvider = "ollama" | "llama-cpp" | "custom" | "none";
 
 export interface Settings {
   mode: SimMode;
   tickMs: number;
   populationCap: number;
-  model: {
-    provider: ModelProvider;
-    apiUrl: string;
-    apiKey: string;
-    modelName: string;
-  };
   saveLocationOverride: string | null;
   autoUpdate: boolean;
   autoLaunch: boolean;
@@ -31,12 +24,6 @@ export const DEFAULT_SETTINGS: Settings = {
   mode: "local",
   tickMs: 100,
   populationCap: 500,
-  model: {
-    provider: "none",
-    apiUrl: "",
-    apiKey: "",
-    modelName: "",
-  },
   saveLocationOverride: null,
   autoUpdate: true,
   autoLaunch: false,
@@ -88,7 +75,6 @@ export function saveSettings(s: Settings): void {
 }
 
 function mergeWithDefaults(partial: Partial<Settings>): Settings {
-  const provider = partial.model?.provider;
   return {
     // Older releases supported a hosted "remote" mode. Always migrate those
     // settings back to the bundled local simulation.
@@ -99,14 +85,6 @@ function mergeWithDefaults(partial: Partial<Settings>): Settings {
       120,
       5000,
     ),
-    model: {
-      provider: isModelProvider(provider)
-        ? provider
-        : DEFAULT_SETTINGS.model.provider,
-      apiUrl: partial.model?.apiUrl ?? DEFAULT_SETTINGS.model.apiUrl,
-      apiKey: partial.model?.apiKey ?? DEFAULT_SETTINGS.model.apiKey,
-      modelName: partial.model?.modelName ?? DEFAULT_SETTINGS.model.modelName,
-    },
     saveLocationOverride:
       partial.saveLocationOverride ?? DEFAULT_SETTINGS.saveLocationOverride,
     autoUpdate: partial.autoUpdate ?? DEFAULT_SETTINGS.autoUpdate,
@@ -115,15 +93,6 @@ function mergeWithDefaults(partial: Partial<Settings>): Settings {
     pauseWhenHidden:
       partial.pauseWhenHidden ?? DEFAULT_SETTINGS.pauseWhenHidden,
   };
-}
-
-function isModelProvider(value: unknown): value is ModelProvider {
-  return (
-    value === "ollama" ||
-    value === "llama-cpp" ||
-    value === "custom" ||
-    value === "none"
-  );
 }
 
 function clampInt(v: number, lo: number, hi: number): number {

@@ -75,20 +75,6 @@ impl Simulation {
             let last_think = self.organisms[idx].last_think_tick;
             if self.organisms[idx].infection > 0.5 && self.tick_count - last_think >= 1200 {
                 self.organisms[idx].last_think_tick = self.tick_count;
-                let energy = self.organisms[idx].energy;
-                let lid = self.organisms[idx].lineage_id.clone();
-                self.push_think_for(
-                    idx,
-                    ThinkTrigger {
-                        org_id: self.organisms[idx].id.clone(),
-                        org_name: self.organisms[idx].name.clone(),
-                        lineage_id: lid,
-                        scenario: "illness".to_string(),
-                        energy_avg: energy,
-                        context: format!("infection={:.0}%", self.organisms[idx].infection * 100.0),
-                        ..Default::default()
-                    },
-                );
             }
         }
 

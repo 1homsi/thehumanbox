@@ -193,10 +193,9 @@ impl Organism {
             // Learning something new is a genuine high.
             self.joy_ticks = (self.joy_ticks + 220).min(1200);
         }
-        // Cap so a future free-form discovery string (e.g. LLM-suggested
+        // Cap so a future free-form discovery string (e.g. a generated
         // verb-noun pair) can't grow the set unboundedly. 64 is well
-        // above the current ~25 hand-written discoveries and the
-        // pathological worst case at high LLM density. Eviction is
+        // above the current ~25 hand-written discoveries. Eviction is
         // arbitrary because HashSet has no insertion-order - we drop
         // a random element which, on a stable interner-style set, is
         // fine: the dropped knowledge is rare or stale.

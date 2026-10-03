@@ -644,106 +644,19 @@ pub fn generate_conversation(
     (entry_a, entry_b)
 }
 
-fn category_salience(cat: &str) -> f32 {
-    match cat {
-        "loss" | "death" => 1.0,
-        "birth" => 0.9,
-        "danger" | "raid" => 0.85,
-        "love" | "partnership" | "courtship" => 0.8,
-        "discovery" | "milestone" | "graduated" => 0.7,
-        "friendship" | "betrayal" => 0.6,
-        _ => 0.3,
-    }
-}
-
-fn pick_anchor(a: &Organism, b: &Organism, tick: u64, day_len: u32) -> Option<super::convo_req::ConvoTopic> {
-    let day_len = day_len.max(1) as f32;
-    let mut best: Option<(f32, &str, &str, &str)> = None;
-    for (who, o) in [(a.name.as_str(), a), (b.name.as_str(), b)] {
-        for e in o.life_log.iter().rev().take(6) {
-            let days_ago = tick.saturating_sub(e.tick) as f32 / day_len;
-            let weight = category_salience(&e.category) / (1.0 + days_ago);
-            if best.map(|(w, ..)| weight > w).unwrap_or(true) {
-                best = Some((weight, who, e.category.as_str(), e.text.as_str()));
-            }
-        }
-    }
-    best.and_then(|(w, who, cat, text)| {
-        if w < 0.25 {
-            None
-        } else {
-            Some(super::convo_req::ConvoTopic {
-                category: cat.to_string(),
-                text: text.to_string(),
-                who: who.to_string(),
-            })
-        }
-    })
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn generate_conversation_with_req(
+/// A conversation seen from both sides, sharing one id. The id is drawn from
+/// the seeded stream so a seed reproduces a world; it is also what pairs the
+/// two sides of a conversation in the client.
+pub fn generate_conversation_pair(
     a: &Organism,
     b: &Organism,
-    a_recent: Vec<String>,
-    b_recent: Vec<String>,
-    a_tribe: Option<String>,
-    b_tribe: Option<String>,
-    a_mood: String,
-    b_mood: String,
     tick: u64,
     kind: &str,
-    era: &str,
     rng: &mut impl Rng,
-) -> (
-    ConversationEntry,
-    ConversationEntry,
-    super::convo_req::ConversationReq,
-) {
+) -> (ConversationEntry, ConversationEntry) {
     let (mut conv_a, mut conv_b) = generate_conversation(a, b, tick, kind, rng);
-    // Derived from the seeded stream so a seed reproduces a world; this id
-    // is also what pairs the two sides of a conversation in the client.
     let id = crate::sim::agents::spawn::seeded_id(rng, 32);
     conv_a.id = id.clone();
-    conv_b.id = id.clone();
-
-    let n_lines = conv_a.lines.len();
-    let day_len = crate::sim::config::DAY_LENGTH as u32;
-
-    use super::convo_req::{ConversationReq, ConvoSpeaker};
-
-    let speaker = |o: &Organism,
-                   mood: String,
-                   tribe: Option<String>,
-                   partner_of: Option<String>,
-                   recent: Vec<String>| ConvoSpeaker {
-        name: o.name.clone(),
-        sex: format!("{:?}", o.sex).to_lowercase(),
-        age_days: (o.age / day_len.max(1)),
-        mood,
-        tribe_name: tribe,
-        partner_of,
-        vocab: o.vocabulary.words(),
-        recent,
-    };
-    let a_partner = a
-        .partner_id
-        .as_ref()
-        .and_then(|pid| if pid == &b.id { Some(b.name.clone()) } else { None });
-    let b_partner = b
-        .partner_id
-        .as_ref()
-        .and_then(|pid| if pid == &a.id { Some(a.name.clone()) } else { None });
-
-    let topic = pick_anchor(a, b, tick, day_len);
-    let req = ConversationReq {
-        entry_id: id,
-        kind: kind.to_string(),
-        n_lines,
-        a: speaker(a, a_mood, a_tribe, a_partner, a_recent),
-        b: speaker(b, b_mood, b_tribe, b_partner, b_recent),
-        topic,
-        era: era.to_string(),
-    };
-    (conv_a, conv_b, req)
+    conv_b.id = id;
+    (conv_a, conv_b)
 }

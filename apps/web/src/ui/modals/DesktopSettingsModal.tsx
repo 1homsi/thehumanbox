@@ -10,13 +10,7 @@ import { useSimulationData } from '../../simulation/simulationData'
 import { LOW_PERF } from '../../shared/perf'
 import { readLowPerf, toggleLowPerf } from '../../shared/perf-mode'
 import { getDesktop } from '../../shared/desktop'
-import type {
-  DesktopBridge,
-  DesktopSettings,
-  ModelProvider,
-  SimStatus,
-  UpdateCheckResult,
-} from '../../shared/desktop'
+import type { DesktopBridge, DesktopSettings, SimStatus, UpdateCheckResult } from '../../shared/desktop'
 import {
   getWorldSource,
   OWN_WORLD_ID,
@@ -98,7 +92,7 @@ function WorldSourceSection() {
       </div>
       <div style={{ fontSize: 12, color: 'var(--dialog-muted)', marginTop: 10, lineHeight: 1.6 }}>
         The web game runs and saves entirely in this browser. It never connects to a hosted simulation API.
-        For the full native game and configurable local AI, download the desktop app.
+        For the full native game, download the desktop app.
       </div>
       {source === 'wasm' && recoveries.length > 0 && (
         <div style={{ marginTop: 12 }}>
@@ -177,13 +171,6 @@ function WorldSourceSection() {
   )
 }
 
-const PROVIDER_DEFAULTS: Record<ModelProvider, { url: string; model: string }> = {
-  ollama: { url: 'http://localhost:11434/v1/chat/completions', model: 'llama3.2' },
-  'llama-cpp': { url: 'http://localhost:8080/v1/chat/completions', model: 'default' },
-  custom: { url: '', model: '' },
-  none: { url: '', model: '' },
-}
-
 const POPULATION_CAP_PRESETS: ReadonlyArray<readonly [number, string]> = [
   [350, 'light'],
   [500, 'recommended'],
@@ -191,7 +178,7 @@ const POPULATION_CAP_PRESETS: ReadonlyArray<readonly [number, string]> = [
   [2000, 'experimental'],
 ]
 
-type TabId = 'world' | 'display' | 'access' | 'performance' | 'help' | 'simulation' | 'ai' | 'app'
+type TabId = 'world' | 'display' | 'access' | 'performance' | 'help' | 'simulation' | 'app'
 
 const WEB_TABS: ReadonlyArray<{ id: TabId; label: string; icon: string }> = [
   { id: 'world', label: 'world', icon: '🗺️' },
@@ -203,7 +190,6 @@ const WEB_TABS: ReadonlyArray<{ id: TabId; label: string; icon: string }> = [
 
 const DESKTOP_TABS: ReadonlyArray<{ id: TabId; label: string; icon: string }> = [
   { id: 'simulation', label: 'simulation', icon: '⏱️' },
-  { id: 'ai', label: 'ai model', icon: '💡' },
   { id: 'app', label: 'app', icon: '⚙️' },
 ]
 
@@ -338,8 +324,6 @@ export function DesktopSettingsModal({ onClose }: Props) {
   }, [desktop])
 
   const update = (patch: Partial<DesktopSettings>) => setSettings((s) => (s ? { ...s, ...patch } : s))
-  const updateModel = (patch: Partial<DesktopSettings['model']>) =>
-    setSettings((s) => (s ? { ...s, model: { ...s.model, ...patch } } : s))
 
   async function save() {
     if (!settings || !desktop) return
@@ -426,7 +410,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
   }
 
   const tabs = desktop ? [...WEB_TABS.slice(0, 1), ...DESKTOP_TABS, ...WEB_TABS.slice(1)] : WEB_TABS
-  const desktopTab = tab === 'simulation' || tab === 'ai' || tab === 'app'
+  const desktopTab = tab === 'simulation' || tab === 'app'
   const justSaved = savedAt && Date.now() - savedAt < 2500
 
   return (
@@ -561,63 +545,6 @@ export function DesktopSettingsModal({ onClose }: Props) {
                   </Field>
                 </Section>
               )}
-              {tab === 'ai' && (
-                <Section title="AI model (optional)">
-                  <Field label="Provider">
-                    <select
-                      value={settings.model.provider}
-                      onChange={(e) => {
-                        const provider = e.target.value as ModelProvider
-                        const defaults = PROVIDER_DEFAULTS[provider]
-                        updateModel({ provider, apiUrl: defaults.url, modelName: defaults.model })
-                      }}
-                      style={inputStyle}
-                    >
-                      <option value="none">none (the world still runs, just no narration)</option>
-                      <option value="ollama">Ollama (local)</option>
-                      <option value="llama-cpp">llama.cpp (local)</option>
-                      <option value="custom">Custom OpenAI-compatible endpoint</option>
-                    </select>
-                  </Field>
-                  {settings.model.provider !== 'none' && (
-                    <>
-                      <Field label="API URL">
-                        <input
-                          type="text"
-                          value={settings.model.apiUrl}
-                          onChange={(e) => updateModel({ apiUrl: e.target.value })}
-                          style={inputStyle}
-                        />
-                      </Field>
-                      <Field label="API key">
-                        <input
-                          type="password"
-                          value={settings.model.apiKey}
-                          onChange={(e) => updateModel({ apiKey: e.target.value })}
-                          placeholder={
-                            settings.model.provider === 'ollama' || settings.model.provider === 'llama-cpp'
-                              ? '(not needed for local)'
-                              : 'sk-...'
-                          }
-                          style={inputStyle}
-                        />
-                      </Field>
-                      <Field label="Model name">
-                        <input
-                          type="text"
-                          value={settings.model.modelName}
-                          onChange={(e) => updateModel({ modelName: e.target.value })}
-                          style={inputStyle}
-                        />
-                      </Field>
-                    </>
-                  )}
-                  <div className="settings-note">
-                    The simulation runs without AI. To add narration, point it at a model server on your
-                    computer.
-                  </div>
-                </Section>
-              )}
               {tab === 'app' && (
                 <>
                   <Section title="Updates">
@@ -710,7 +637,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
                   {busy ? 'saving…' : 'save settings'}
                 </button>
                 {justSaved && <span className="settings-saved">saved</span>}
-                <span className="settings-note">Tick and model changes apply after a restart.</span>
+                <span className="settings-note">Tick changes apply after a restart.</span>
               </div>
             </>
           )}
@@ -835,15 +762,4 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       {children}
     </div>
   )
-}
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  background: '#1c1612',
-  border: '1px solid #3a3028',
-  color: '#d0c8c0',
-  padding: '6px 8px',
-  borderRadius: 3,
-  fontSize: 12,
-  fontFamily: 'inherit',
 }

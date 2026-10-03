@@ -388,33 +388,6 @@ impl Simulation {
                                         Organism::remember(&mut child.food_memory, k.0, k.1, v * 0.2, ms);
                                     }
                                 }
-
-                                if !self.organisms[epos].life_log.is_empty() {
-                                    let elder_name = self.organisms[epos].name.clone();
-                                    let elder_id = self.organisms[epos].id.clone();
-                                    let life_top: Vec<String> = self.organisms[epos]
-                                        .life_log
-                                        .iter()
-                                        .take(4)
-                                        .map(|e| e.text.clone())
-                                        .collect();
-                                    let child_name = self.organisms[child_idx].name.clone();
-                                    let child_id = self.organisms[child_idx].id.clone();
-                                    let lid = self.organisms[child_idx].lineage_id.clone();
-                                    self.push_think_for(
-                                        epos,
-                                        ThinkTrigger {
-                                            org_id: elder_id,
-                                            org_name: elder_name,
-                                            lineage_id: lid,
-                                            scenario: "elder_teaching".to_string(),
-                                            other_name: Some(child_name),
-                                            target_org_id: Some(child_id),
-                                            life_log_top: life_top,
-                                            ..Default::default()
-                                        },
-                                    );
-                                }
                             }
                         }
                     }

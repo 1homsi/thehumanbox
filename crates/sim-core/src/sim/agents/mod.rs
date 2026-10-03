@@ -1,8 +1,6 @@
 pub mod age_stage;
-pub mod convo_req;
 pub mod courtship;
 pub mod growth;
-pub mod local_think;
 pub mod memory_pressure;
 pub mod newcomers;
 pub mod social;

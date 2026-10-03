@@ -159,46 +159,17 @@ impl Simulation {
                         let pname = self.organisms[pi].name.clone();
                         let oid = self.organisms[idx].id.clone();
                         let oname = self.organisms[idx].name.clone();
-                        let a_mood = derive_mood(&self.organisms[idx]);
-                        let b_mood = derive_mood(&self.organisms[pi]);
-                        let a_recent: Vec<String> = self.organisms[idx]
-                            .life_log
-                            .iter()
-                            .rev()
-                            .take(3)
-                            .map(|e| e.text.clone())
-                            .collect();
-                        let b_recent: Vec<String> = self.organisms[pi]
-                            .life_log
-                            .iter()
-                            .rev()
-                            .take(3)
-                            .map(|e| e.text.clone())
-                            .collect();
-                        let a_tribe = self.lineage_names.get(&self.organisms[idx].lineage_id).cloned();
-                        let b_tribe = self.lineage_names.get(&self.organisms[pi].lineage_id).cloned();
-                        let (conv_a, conv_b, req) = courtship::generate_conversation_with_req(
+                        let (conv_a, conv_b) = courtship::generate_conversation_pair(
                             &self.organisms[idx],
                             &self.organisms[pi],
-                            a_recent,
-                            b_recent,
-                            a_tribe,
-                            b_tribe,
-                            a_mood,
-                            b_mood,
                             tc,
                             "courtship",
-                            self.lineage_eras
-                                .get(&self.organisms[idx].lineage_id)
-                                .map(|e| e.name())
-                                .unwrap_or("pre-stone"),
                             &mut self.rng,
                         );
                         self.organisms[idx].vocabulary.touch_all_known(tc);
                         self.organisms[pi].vocabulary.touch_all_known(tc);
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[pi].store_conversation(conv_b);
-                        self.push_pending_convo(req);
                         let a_lid = self.organisms[idx].lineage_id.clone();
                         let b_lid = self.organisms[pi].lineage_id.clone();
                         self.organisms[idx].record_conversation_outcome(
@@ -253,46 +224,17 @@ impl Simulation {
                     .filter(|&i| self.organisms[i].alive)
                 {
                     if (self.organisms[pi].x - ox).hypot(self.organisms[pi].y - oy) < 8.0 {
-                        let a_mood = derive_mood(&self.organisms[idx]);
-                        let b_mood = derive_mood(&self.organisms[pi]);
-                        let a_recent: Vec<String> = self.organisms[idx]
-                            .life_log
-                            .iter()
-                            .rev()
-                            .take(3)
-                            .map(|e| e.text.clone())
-                            .collect();
-                        let b_recent: Vec<String> = self.organisms[pi]
-                            .life_log
-                            .iter()
-                            .rev()
-                            .take(3)
-                            .map(|e| e.text.clone())
-                            .collect();
-                        let a_tribe = self.lineage_names.get(&self.organisms[idx].lineage_id).cloned();
-                        let b_tribe = self.lineage_names.get(&self.organisms[pi].lineage_id).cloned();
-                        let (conv_a, conv_b, req) = courtship::generate_conversation_with_req(
+                        let (conv_a, conv_b) = courtship::generate_conversation_pair(
                             &self.organisms[idx],
                             &self.organisms[pi],
-                            a_recent,
-                            b_recent,
-                            a_tribe,
-                            b_tribe,
-                            a_mood,
-                            b_mood,
                             tc,
                             "bonded",
-                            self.lineage_eras
-                                .get(&self.organisms[idx].lineage_id)
-                                .map(|e| e.name())
-                                .unwrap_or("pre-stone"),
                             &mut self.rng,
                         );
                         self.organisms[idx].vocabulary.touch_all_known(tc);
                         self.organisms[pi].vocabulary.touch_all_known(tc);
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[pi].store_conversation(conv_b);
-                        self.push_pending_convo(req);
                         let a_id = self.organisms[idx].id.clone();
                         let a_name = self.organisms[idx].name.clone();
                         let a_lid = self.organisms[idx].lineage_id.clone();
@@ -355,46 +297,17 @@ impl Simulation {
                         "chat"
                     };
                     if self.rng.random::<f32>() < 0.004 {
-                        let a_mood = derive_mood(&self.organisms[idx]);
-                        let b_mood = derive_mood(&self.organisms[ci]);
-                        let a_recent: Vec<String> = self.organisms[idx]
-                            .life_log
-                            .iter()
-                            .rev()
-                            .take(3)
-                            .map(|e| e.text.clone())
-                            .collect();
-                        let b_recent: Vec<String> = self.organisms[ci]
-                            .life_log
-                            .iter()
-                            .rev()
-                            .take(3)
-                            .map(|e| e.text.clone())
-                            .collect();
-                        let a_tribe = self.lineage_names.get(&self.organisms[idx].lineage_id).cloned();
-                        let b_tribe = self.lineage_names.get(&self.organisms[ci].lineage_id).cloned();
-                        let (conv_a, conv_b, req) = courtship::generate_conversation_with_req(
+                        let (conv_a, conv_b) = courtship::generate_conversation_pair(
                             &self.organisms[idx],
                             &self.organisms[ci],
-                            a_recent,
-                            b_recent,
-                            a_tribe,
-                            b_tribe,
-                            a_mood,
-                            b_mood,
                             tc,
                             kind,
-                            self.lineage_eras
-                                .get(&self.organisms[idx].lineage_id)
-                                .map(|e| e.name())
-                                .unwrap_or("pre-stone"),
                             &mut self.rng,
                         );
                         self.organisms[idx].vocabulary.touch_all_known(tc);
                         self.organisms[ci].vocabulary.touch_all_known(tc);
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[ci].store_conversation(conv_b);
-                        self.push_pending_convo(req);
                         let a_id = self.organisms[idx].id.clone();
                         let a_name = self.organisms[idx].name.clone();
                         let a_lid = self.organisms[idx].lineage_id.clone();

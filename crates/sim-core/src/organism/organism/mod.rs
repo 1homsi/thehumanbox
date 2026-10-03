@@ -74,7 +74,6 @@ pub struct Organism {
     pub carrying_type: u8,
 
     pub vocabulary: Vocabulary,
-    pub daily_story: String,
     pub last_story_tick: u64,
     pub life_log: VecDeque<LifeEvent>,
     pub discoveries: BTreeSet<String>,
@@ -229,7 +228,6 @@ impl Organism {
             carrying: 0,
             carrying_type: 0,
             vocabulary: Vocabulary::from_hashmap(&rustc_hash::FxHashMap::default()),
-            daily_story: String::new(),
             last_story_tick: 0,
             life_log: VecDeque::new(),
             discoveries: BTreeSet::new(),
