@@ -10,7 +10,7 @@ use super::{courtship, growth, social};
 use crate::organism::animal::{Animal, AnimalKind};
 use crate::organism::attributes::check_earned_attributes;
 use crate::organism::decision_bias::directive_aligns_action;
-use crate::organism::organism::{Organism, DIRECTIONS};
+use crate::organism::organism::{Hot, Organism, DIRECTIONS};
 use crate::physics::engine::PhysicsEngine;
 use crate::world::{
     grid::{TrailKind, WorldGrid, HEIGHT, WIDTH},

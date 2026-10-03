@@ -39,14 +39,13 @@ impl Organism {
         }
 
         if self.grief_ticks > 0 {
-            let extra = if self.discoveries.contains("herbalism") || self.discoveries.contains("ritual_dance")
-            {
+            let extra = if self.discoveries.has(Hot::Herbalism) || self.discoveries.has(Hot::RitualDance) {
                 1
             } else {
                 0
             };
             self.grief_ticks = self.grief_ticks.saturating_sub(1 + extra);
-            let fear_add = if self.discoveries.contains("ritual_dance") {
+            let fear_add = if self.discoveries.has(Hot::RitualDance) {
                 0.003
             } else {
                 0.004
@@ -78,9 +77,9 @@ impl Organism {
             _ => {}
         }
 
-        let has_leather = self.discoveries.contains("leatherwork")
-            || self.discoveries.contains("animal_hides")
-            || self.discoveries.contains("textiles");
+        let has_leather = self.discoveries.has(Hot::Leatherwork)
+            || self.discoveries.has(Hot::AnimalHides)
+            || self.discoveries.has(Hot::Textiles);
         if night && !near_shelter {
             let add = if has_leather { 0.0009 } else { 0.0015 };
             self.sleep_debt = (self.sleep_debt + add).min(1.0);
@@ -267,9 +266,9 @@ impl Organism {
     pub fn decay_memory(&mut self, tick: u64) {
         self.vocabulary.decay(tick, 5000);
         let preserves_food =
-            self.discoveries.contains("food_preservation") || self.discoveries.contains("salt_harvesting");
-        let cartography = self.discoveries.contains("cartography");
-        let star_charts = self.discoveries.contains("star_charts");
+            self.discoveries.has(Hot::FoodPreservation) || self.discoveries.has(Hot::SaltHarvesting);
+        let cartography = self.discoveries.has(Hot::Cartography);
+        let star_charts = self.discoveries.has(Hot::StarCharts);
         let food_decay = if preserves_food { 0.998 } else { 0.995 };
         let water_decay = if cartography || star_charts { 0.998 } else { 0.995 };
         let danger_decay = 0.995;

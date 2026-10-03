@@ -23,8 +23,8 @@ impl Simulation {
 
         if self.organisms[idx].energy > 0.7 && self.organisms[idx].hydration > 0.7 {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
-            let neighbour_idxs = spatial.query(ox as i32, oy as i32, 3);
-            let nearby_kin = neighbour_idxs
+            spatial.query_into(ox as i32, oy as i32, 3, spatial_buf);
+            let nearby_kin = spatial_buf
                 .iter()
                 .copied()
                 .filter(|&i| {
@@ -35,7 +35,7 @@ impl Simulation {
                     o.alive && o.lineage_id == lineage && (o.x - ox).abs() + (o.y - oy).abs() <= 3.0
                 })
                 .count();
-            let nearby_stranger_count = neighbour_idxs
+            let nearby_stranger_count = spatial_buf
                 .iter()
                 .copied()
                 .filter(|&i| {
@@ -46,8 +46,15 @@ impl Simulation {
                     o.alive && o.lineage_id != lineage && (o.x - ox).abs() + (o.y - oy).abs() <= 3.0
                 })
                 .count();
-            let thought = self.organisms[idx].thought.clone();
-            if nearby_kin >= 1 && matches!(thought.as_str(), "exploring" | "observing" | "satisfied") {
+            // Read the current thought once: each branch below changes it.
+            let thought = self.organisms[idx].thought.as_str();
+            let settled = matches!(thought, "exploring" | "observing" | "satisfied");
+            let open_to_strangers = matches!(
+                thought,
+                "exploring" | "observing" | "satisfied" | "wary" | "coexisting peacefully"
+            );
+            let idle = matches!(thought, "exploring" | "observing");
+            if nearby_kin >= 1 && settled {
                 self.organisms[idx].think("socializing", self.tick_count);
                 social::social_knowledge_share(
                     idx,
@@ -56,18 +63,13 @@ impl Simulation {
                     self.tick_count,
                     &mut self.rng,
                 );
-            } else if nearby_stranger_count >= 1
-                && matches!(
-                    thought.as_str(),
-                    "exploring" | "observing" | "satisfied" | "wary" | "coexisting peacefully"
-                )
-            {
-                let nearest_lid: Option<String> = spatial
-                    .ordered_nearby(&self.organisms, ox, oy, 3)
-                    .map(|(_, o)| o)
-                    .filter(|o| {
-                        o.alive && o.lineage_id != lineage && (o.x - ox).abs() + (o.y - oy).abs() <= 3.0
-                    })
+            } else if nearby_stranger_count >= 1 && open_to_strangers {
+                ordered_nearby_filtered(&self.organisms, spatial, ox, oy, 3, spatial_buf, |_, o| {
+                    o.alive && o.lineage_id != lineage && (o.x - ox).abs() + (o.y - oy).abs() <= 3.0
+                });
+                let nearest_lid: Option<String> = spatial_buf
+                    .iter()
+                    .map(|&i| &self.organisms[i])
                     .min_by(|a, b| {
                         let da = (a.x - ox).abs() + (a.y - oy).abs();
                         let db = (b.x - ox).abs() + (b.y - oy).abs();
@@ -90,7 +92,7 @@ impl Simulation {
                         self.organisms[idx].think("wary", self.tick_count);
                     }
                 }
-            } else if matches!(thought.as_str(), "exploring" | "observing") {
+            } else if idle {
                 self.organisms[idx].think("satisfied", self.tick_count);
             }
         }

@@ -767,13 +767,72 @@ pub fn teach(
     0.018
 }
 
-pub fn share_food(
+/// Orphaned minors first, then the giver's kin, then the hungriest.
+fn food_recipient_order(a: &Organism, b: &Organism, me: &Organism, tick: u64) -> std::cmp::Ordering {
+    let a_recent_orphan = a.orphaned_tick > 0 && tick.saturating_sub(a.orphaned_tick) < 600;
+    let b_recent_orphan = b.orphaned_tick > 0 && tick.saturating_sub(b.orphaned_tick) < 600;
+    let a_kin =
+        a.parent_id == me.parent_id || a.parent_id == me.id || a.father_id.as_deref() == Some(me.id.as_str());
+    let b_kin =
+        b.parent_id == me.parent_id || b.parent_id == me.id || b.father_id.as_deref() == Some(me.id.as_str());
+    match (a_recent_orphan, b_recent_orphan) {
+        (true, false) => std::cmp::Ordering::Less,
+        (false, true) => std::cmp::Ordering::Greater,
+        _ => match (a_kin, b_kin) {
+            (true, false) => std::cmp::Ordering::Less,
+            (false, true) => std::cmp::Ordering::Greater,
+            _ => a
+                .energy
+                .partial_cmp(&b.energy)
+                .unwrap_or(std::cmp::Ordering::Equal),
+        },
+    }
+}
+
+/// The hungry neighbour `org_idx` would feed, if any: kin, named friends and
+/// strongly trusted people within reach; orphaned minors first, then the
+/// giver's kin, then the hungriest, ties going to the lowest population index.
+/// `candidates` is scratch space for the spatial query.
+fn pick_food_recipient(
     org_idx: usize,
-    organisms: &mut [Organism],
+    organisms: &[Organism],
     spatial: &SpatialIndex,
     tick: u64,
-    events: &mut std::collections::VecDeque<Event>,
-) -> f32 {
+    candidates: &mut Vec<usize>,
+) -> Option<usize> {
+    let me = &organisms[org_idx];
+    let (ox, oy) = (me.x, me.y);
+    // The same candidates as `ordered_nearby(.., 6)`: the index is built
+    // before movement, so it pads the radius by two. Filtering before the
+    // population-order sort keeps the sort to the few who qualify.
+    spatial.query_into(ox as i32, oy as i32, 8, candidates);
+    candidates.retain(|&i| {
+        let o = &organisms[i];
+        i != org_idx
+            && o.alive
+            && o.energy < 0.30
+            && (o.lineage_id == me.lineage_id
+                || me.friends.contains_key(&o.id)
+                || me.org_trust.get(&o.id).is_some_and(|&v| v >= 0.55))
+            && (o.x - ox).abs() + (o.y - oy).abs() <= 6.0
+    });
+    candidates.sort_unstable();
+    candidates
+        .iter()
+        .map(|&i| (i, &organisms[i]))
+        .min_by(|(_, a), (_, b)| food_recipient_order(a, b, me, tick))
+        .map(|(i, _)| i)
+}
+
+/// The selection as it was before the scratch buffer and the direct lookups,
+/// kept to check the fast path against.
+#[cfg(test)]
+fn pick_food_recipient_reference(
+    org_idx: usize,
+    organisms: &[Organism],
+    spatial: &SpatialIndex,
+    tick: u64,
+) -> Option<usize> {
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let (ox, oy) = (organisms[org_idx].x, organisms[org_idx].y);
 
@@ -791,7 +850,7 @@ pub fn share_food(
     // food).
     let my_parent_id = organisms[org_idx].parent_id.clone();
     let my_id = organisms[org_idx].id.clone();
-    let target_idx = spatial
+    spatial
         .ordered_nearby(organisms, ox, oy, 6)
         .filter(|(i, o)| *i != org_idx && o.alive && o.energy < 0.30)
         .filter(|(_, o)| {
@@ -820,7 +879,21 @@ pub fn share_food(
                 },
             }
         })
-        .map(|(i, _)| i);
+        .map(|(i, _)| i)
+}
+
+pub fn share_food(
+    org_idx: usize,
+    organisms: &mut [Organism],
+    spatial: &SpatialIndex,
+    tick: u64,
+    events: &mut std::collections::VecDeque<Event>,
+    candidates: &mut Vec<usize>,
+) -> f32 {
+    // Share with hungry kin OR hungry named friends / strong-trust orgs.
+    // Recently-orphaned minors get prioritised ahead of all other
+    // candidates (they need adoption-tier care, not just food).
+    let target_idx = pick_food_recipient(org_idx, organisms, spatial, tick, candidates);
 
     let Some(ti) = target_idx else {
         return 0.0;
@@ -1180,5 +1253,102 @@ mod tests {
         assert_eq!(organisms[1].infection, 0.40);
         assert!(events.is_empty());
         assert_eq!(organisms[0].thought, "grooming (alone)");
+    }
+
+    /// A crowd of hungry and fed people with kin, friends, trust and orphans
+    /// scattered through it. Energies come from a short list so that exact
+    /// ties exercise the lowest-index rule.
+    fn crowd(seed: u64, n: usize) -> Vec<Organism> {
+        let mut state = seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        let lineages = ["lineage-a", "lineage-b", "lineage-c"];
+        let energies = [0.05f32, 0.10, 0.10, 0.20, 0.29, 0.30, 0.55, 0.90];
+        let mut organisms: Vec<Organism> = (0..n)
+            .map(|i| {
+                let lineage = lineages[(next() % 3) as usize];
+                let x = 20.0 + (next() % 160) as f32 / 10.0;
+                let y = 20.0 + (next() % 160) as f32 / 10.0;
+                let mut o = test_org(&format!("id-{i}"), &format!("Name{i}"), lineage, x, y);
+                o.energy = energies[(next() % energies.len() as u64) as usize];
+                o.alive = next() % 11 != 0;
+                o.parent_id = format!("id-{}", next() % n as u64);
+                if next() % 3 == 0 {
+                    o.father_id = Some(format!("id-{}", next() % n as u64));
+                }
+                if next() % 4 == 0 {
+                    o.orphaned_tick = 1000 + next() % 900;
+                }
+                o
+            })
+            .collect();
+        for i in 0..n {
+            for _ in 0..(next() % 4) {
+                let other = format!("id-{}", next() % n as u64);
+                match next() % 3 {
+                    0 => {
+                        organisms[i].friends.insert(other, "friend".to_string());
+                    }
+                    1 => {
+                        organisms[i]
+                            .org_trust
+                            .insert(other, 0.54 + (next() % 5) as f32 * 0.01);
+                    }
+                    _ => {
+                        organisms[i].org_trust.insert(other, 0.2);
+                    }
+                }
+            }
+        }
+        organisms
+    }
+
+    #[test]
+    fn food_recipient_matches_the_original_selection() {
+        let mut picked = 0;
+        for seed in 1..=40u64 {
+            let organisms = crowd(seed, 70);
+            let spatial = SpatialIndex::build(&organisms, 10);
+            let mut candidates = Vec::new();
+            for tick in [1_000u64, 1_300, 1_599, 1_650, 2_500] {
+                for giver in 0..organisms.len() {
+                    let fast = pick_food_recipient(giver, &organisms, &spatial, tick, &mut candidates);
+                    let reference = pick_food_recipient_reference(giver, &organisms, &spatial, tick);
+                    assert_eq!(fast, reference, "seed {seed} tick {tick} giver {giver}");
+                    picked += usize::from(fast.is_some());
+                }
+            }
+        }
+        assert!(picked > 1_000, "the crowds rarely had anyone to feed: {picked}");
+    }
+
+    #[test]
+    fn food_recipient_matches_the_original_in_a_lived_in_world() {
+        use crate::sim::simulation::Simulation;
+        let mut sim = Simulation::new(7);
+        sim.tick_n(900);
+        // Starve a share of the living so there is someone to feed.
+        for (i, o) in sim.organisms.iter_mut().enumerate() {
+            if o.alive && i % 3 == 0 {
+                o.energy = 0.12 + (i % 5) as f32 * 0.03;
+            }
+        }
+        let spatial = SpatialIndex::build(&sim.organisms, 10);
+        let mut candidates = Vec::new();
+        let mut picked = 0;
+        for giver in 0..sim.organisms.len() {
+            if !sim.organisms[giver].alive {
+                continue;
+            }
+            let fast = pick_food_recipient(giver, &sim.organisms, &spatial, sim.tick_count, &mut candidates);
+            let reference = pick_food_recipient_reference(giver, &sim.organisms, &spatial, sim.tick_count);
+            assert_eq!(fast, reference, "giver {giver}");
+            picked += usize::from(fast.is_some());
+        }
+        assert!(picked > 5, "nobody had anyone to feed: {picked}");
     }
 }

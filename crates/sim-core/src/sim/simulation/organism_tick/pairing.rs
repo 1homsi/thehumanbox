@@ -19,9 +19,9 @@ impl Simulation {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
             let my_sex = self.organisms[idx].sex;
             let my_age = self.organisms[idx].age as f32;
-            let my_lid = self.organisms[idx].lineage_id.clone();
-            let my_atts = self.organisms[idx].lineage_attitudes.clone();
-            let my_trust = self.organisms[idx].org_trust.clone();
+            let my_lid = &self.organisms[idx].lineage_id;
+            let my_atts = &self.organisms[idx].lineage_attitudes;
+            let my_trust = &self.organisms[idx].org_trust;
             // Score candidates by attitude / trust / age compat, not raw
             // proximity. Distance still matters (you have to walk there),
             // but two villagers who hate each other's lineages no longer
@@ -41,7 +41,7 @@ impl Simulation {
                 })
                 .filter(|(_, d)| *d <= MATE_SEEK_MAX_TILES)
                 .map(|(o, dist)| {
-                    let lineage_att = if o.lineage_id == my_lid {
+                    let lineage_att = if o.lineage_id == *my_lid {
                         0.3
                     } else {
                         my_atts.get(&o.lineage_id).copied().unwrap_or(0.0)
@@ -73,15 +73,15 @@ impl Simulation {
             && !self.organisms[idx].friends.is_empty()
             && self.organisms[idx].energy > 0.30
         {
-            let friend_ids: Vec<String> = self.organisms[idx].friends.keys().cloned().collect();
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
             // Only walk toward friends within this radius. Without a cap,
             // every lonely org in the world eventually drifts toward whichever
             // cluster has the densest friend network, producing a one-way
             // attractor that empties out the rest of the map.
             const FRIEND_SEEK_MAX_TILES: f32 = 60.0;
-            let best = friend_ids
-                .iter()
+            let best = self.organisms[idx]
+                .friends
+                .keys()
                 .filter_map(|fid| {
                     org_idx_by_id
                         .get(fid)

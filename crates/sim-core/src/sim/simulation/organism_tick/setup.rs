@@ -54,8 +54,8 @@ impl Simulation {
         }
 
         {
-            let my_lid = self.organisms[idx].lineage_id.clone();
-            let intruders: Vec<String> = if let Some(elder_id) = self.lineage_elders.get(&my_lid) {
+            let my_lid = &self.organisms[idx].lineage_id;
+            let intruders: Vec<String> = if let Some(elder_id) = self.lineage_elders.get(my_lid) {
                 if let Some(&elder_idx) = org_idx_by_id.get(elder_id) {
                     let ex = self.organisms[elder_idx].home_x;
                     let ey = self.organisms[elder_idx].home_y;
@@ -68,7 +68,7 @@ impl Simulation {
                         let mut v: Vec<String> = Vec::new();
                         for &i in spatial_buf.iter() {
                             let o = &self.organisms[i];
-                            if !o.alive || o.lineage_id == my_lid {
+                            if !o.alive || o.lineage_id == *my_lid {
                                 continue;
                             }
                             if (o.x - ex).abs() + (o.y - ey).abs() < 12.0 {
@@ -97,8 +97,8 @@ impl Simulation {
         // Passive territory: organisms gradually stamp their lineage onto land they inhabit.
         // Those with borders/territory discovery claim a wider radius around home.
         if self.tick_count % 40 == (idx as u64 % 40) {
-            let has_borders = self.organisms[idx].discoveries.contains("territory")
-                || self.organisms[idx].discoveries.contains("borders");
+            let has_borders = self.organisms[idx].discoveries.has(Hot::Territory)
+                || self.organisms[idx].discoveries.has(Hot::Borders);
             let (hx, hy) = (
                 self.organisms[idx].home_x as i32,
                 self.organisms[idx].home_y as i32,
