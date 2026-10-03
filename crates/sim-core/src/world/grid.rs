@@ -742,6 +742,134 @@ impl WorldGrid {
             None
         };
 
+        let window = Window { ox, oy, vw, vh };
+        let mut fire: Vec<[u16; 3]> = Vec::new();
+        push_over_threshold(&mut fire, &self.fire_intensity, window, 0.001, 1000.0);
+        let mut structure: Vec<[u16; 3]> = Vec::new();
+        push_over_threshold(&mut structure, &self.structure, window, 0.001, 100.0);
+
+        let trails: Option<Vec<[u16; 5]>> = if include_static {
+            let mut v: Vec<[u16; 5]> = Vec::new();
+            for y in oy..oy + vh {
+                let base = y * WIDTH + ox;
+                let food = &self.food_trail[base..base + vw];
+                let water = &self.water_trail[base..base + vw];
+                let path = &self.path_trail[base..base + vw];
+                let mut start = 0;
+                while start < vw {
+                    let end = (start + SCAN_BLOCK).min(vw);
+                    let top = top_bits(&food[start..end])
+                        .max(top_bits(&water[start..end]))
+                        .max(top_bits(&path[start..end]));
+                    if top > TRAIL_BITS {
+                        for col_off in start..end {
+                            let (f, w, p) = (food[col_off], water[col_off], path[col_off]);
+                            if f > 0.10 || w > 0.10 || p > 0.10 {
+                                v.push([
+                                    (y - oy) as u16,
+                                    col_off as u16,
+                                    (f * 100.0).min(65535.0) as u16,
+                                    (w * 100.0).min(65535.0) as u16,
+                                    (p * 100.0).min(65535.0) as u16,
+                                ]);
+                            }
+                        }
+                    }
+                    start = end;
+                }
+            }
+            Some(v)
+        } else {
+            None
+        };
+
+        let fertility_dense: Option<Vec<u8>> = if include_static {
+            let mut v: Vec<u8> = Vec::with_capacity(vw * vh);
+            for y in oy..oy + vh {
+                let row = &self.fertility[y * WIDTH + ox..y * WIDTH + ox + vw];
+                for &f in row.iter() {
+                    v.push((f * 100.0).clamp(0.0, 255.0) as u8);
+                }
+            }
+            Some(v)
+        } else {
+            None
+        };
+        let fertility: Option<Vec<[u16; 3]>> = None;
+
+        let hazard: Option<Vec<[u16; 3]>> = if include_static {
+            let mut v: Vec<[u16; 3]> = Vec::new();
+            push_over_threshold(&mut v, &self.hazard, window, 0.02, 100.0);
+            Some(v)
+        } else {
+            None
+        };
+
+        let (biomes, depth_map) = if include_terrain {
+            let b = (oy..oy + vh).map(|y| slice_u8(&self.biome, y)).collect();
+            let d = (oy..oy + vh)
+                .map(|y| {
+                    let row_tiles = &self.tiles[y * WIDTH + ox..y * WIDTH + ox + vw];
+                    let row_depth = &self.depth[y * WIDTH + ox..y * WIDTH + ox + vw];
+                    row_tiles
+                        .iter()
+                        .zip(row_depth.iter())
+                        .map(|(&t, &d)| {
+                            if t == Tile::Water as i8 {
+                                ((1.0 - d) * 200.0) as u8
+                            } else {
+                                255u8
+                            }
+                        })
+                        .collect()
+                })
+                .collect();
+            (Some(b), Some(d))
+        } else {
+            (None, None)
+        };
+
+        GridJson {
+            width: vw,
+            height: vh,
+            origin_x: ox as i32,
+            origin_y: oy as i32,
+            tiles,
+            fire,
+            structure,
+            biomes,
+            depth_map,
+            trails,
+            fertility,
+            fertility_dense,
+            hazard,
+        }
+    }
+
+    /// The scalar per-tile scans this replaced, kept as the test reference.
+    #[cfg(test)]
+    fn to_json_viewport_reference(
+        &self,
+        cx: i32,
+        cy: i32,
+        vw: usize,
+        vh: usize,
+        include_tiles: bool,
+        include_static: bool,
+        include_terrain: bool,
+    ) -> GridJson {
+        let ox = (cx - vw as i32 / 2).clamp(0, (WIDTH as i32 - vw as i32).max(0)) as usize;
+        let oy = (cy - vh as i32 / 2).clamp(0, (HEIGHT as i32 - vh as i32).max(0)) as usize;
+
+        let slice_row = |vec: &[i8], y: usize| vec[y * WIDTH + ox..y * WIDTH + ox + vw].to_vec();
+        let slice_u8 = |vec: &[u8], y: usize| vec[y * WIDTH + ox..y * WIDTH + ox + vw].to_vec();
+
+        let tiles = if include_tiles {
+            Some((oy..oy + vh).map(|y| slice_row(&self.tiles, y)).collect())
+        } else {
+            None
+        };
+
         let mut fire: Vec<[u16; 3]> = Vec::new();
         for y in oy..oy + vh {
             let row = &self.fire_intensity[y * WIDTH + ox..y * WIDTH + ox + vw];
@@ -870,6 +998,57 @@ impl WorldGrid {
     }
 }
 
+/// Tiles are tested for "anything here?" this many at a time: almost every
+/// block of a frame's fire, structure, trail and hazard layers is empty.
+const SCAN_BLOCK: usize = 64;
+
+#[derive(Clone, Copy)]
+struct Window {
+    ox: usize,
+    oy: usize,
+    vw: usize,
+    vh: usize,
+}
+
+/// The largest bit pattern in a block, read as `i32`. For a positive finite
+/// threshold `t`, `v > t` implies `top_bits(..) > t.to_bits() as i32` for the
+/// block holding `v` (positive floats order like their bit patterns, and
+/// negatives have the sign bit set and compare below), so a block whose top is
+/// not above the threshold has no tile over it. The converse fails only for
+/// NaN, which the exact per-tile test that follows rejects. An integer max over
+/// a block vectorises; a float compare-and-or does not.
+#[inline]
+fn top_bits(block: &[f32]) -> i32 {
+    block.iter().fold(i32::MIN, |top, &v| top.max(v.to_bits() as i32))
+}
+
+/// `0.10_f32` as a bit pattern, the trail layers' threshold.
+const TRAIL_BITS: i32 = 0.10_f32.to_bits() as i32;
+
+/// Append `[row, col, scaled value]` for every tile of the viewport window
+/// whose layer value exceeds `threshold`, in row-major order.
+fn push_over_threshold(out: &mut Vec<[u16; 3]>, layer: &[f32], w: Window, threshold: f32, scale: f32) {
+    debug_assert!(threshold.is_finite() && threshold > 0.0);
+    let threshold_bits = threshold.to_bits() as i32;
+    for y in w.oy..w.oy + w.vh {
+        let row = &layer[y * WIDTH + w.ox..y * WIDTH + w.ox + w.vw];
+        for (block_index, block) in row.chunks(SCAN_BLOCK).enumerate() {
+            if top_bits(block) <= threshold_bits {
+                continue;
+            }
+            for (i, &v) in block.iter().enumerate() {
+                if v > threshold {
+                    out.push([
+                        (y - w.oy) as u16,
+                        (block_index * SCAN_BLOCK + i) as u16,
+                        (v * scale).min(65535.0) as u16,
+                    ]);
+                }
+            }
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum TrailKind {
     Food,
@@ -905,6 +1084,85 @@ pub struct GridJson {
 mod tests {
     use super::*;
     use std::collections::VecDeque;
+
+    /// The block-skipping layer scans must emit exactly what the per-tile
+    /// scans did: same entries, same order, for sparse and dense layers,
+    /// values at and around each threshold, NaN, huge values that hit the
+    /// `u16` clamp, and windows whose width is not a multiple of the block.
+    #[test]
+    fn viewport_scans_match_the_per_tile_reference() {
+        let mut grid = WorldGrid::new(5);
+        let mut state = 0x9E37_79B9_7F4A_7C15u64;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        let specials = [
+            0.0f32,
+            0.001,
+            0.0010001,
+            0.0009999,
+            0.02,
+            0.0200001,
+            0.1,
+            0.1000001,
+            0.5,
+            1.0,
+            70_000.0,
+            f32::NAN,
+            f32::INFINITY,
+            -3.0,
+        ];
+        for layer in 0..6 {
+            let len = WIDTH * HEIGHT;
+            for i in 0..len {
+                let r = next();
+                // Mostly empty, with isolated and clustered non-empty tiles.
+                let v = match r % 97 {
+                    0 => specials[(r >> 8) as usize % specials.len()],
+                    1..=3 => (r >> 16) as f32 / u32::MAX as f32,
+                    _ => 0.0,
+                };
+                match layer {
+                    0 => grid.fire_intensity[i] = v,
+                    1 => grid.structure[i] = v,
+                    2 => grid.food_trail[i] = v,
+                    3 => grid.water_trail[i] = v,
+                    4 => grid.path_trail[i] = v,
+                    _ => grid.hazard[i] = v,
+                }
+            }
+        }
+        // A dense band across several rows.
+        for i in 40 * WIDTH..46 * WIDTH {
+            grid.fire_intensity[i] = 0.7;
+            grid.structure[i] = 2.0;
+            grid.hazard[i] = 0.3;
+            grid.path_trail[i] = 0.4;
+        }
+        let windows = [
+            (WIDTH as i32 / 2, HEIGHT as i32 / 2, WIDTH, HEIGHT),
+            (100, 60, 200, 100),
+            (5, 5, 37, 23),
+            (WIDTH as i32 - 3, HEIGHT as i32 - 3, 101, 50),
+            (300, 150, 15, 7),
+            (300, 150, 16, 16),
+            (300, 150, 17, 1),
+        ];
+        for (cx, cy, vw, vh) in windows {
+            for (tiles, stat, terrain) in [(true, true, true), (false, false, false), (false, true, false)] {
+                let new = grid.to_json_viewport(cx, cy, vw, vh, tiles, stat, terrain);
+                let old = grid.to_json_viewport_reference(cx, cy, vw, vh, tiles, stat, terrain);
+                assert_eq!(
+                    serde_json::to_string(&new).unwrap(),
+                    serde_json::to_string(&old).unwrap(),
+                    "window ({cx},{cy}) {vw}x{vh} tiles={tiles} static={stat} terrain={terrain}"
+                );
+            }
+        }
+    }
 
     fn terrain_mix(seed: u64) -> (usize, usize, usize) {
         let grid = WorldGrid::new(seed);
