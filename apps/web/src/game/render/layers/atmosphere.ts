@@ -1,10 +1,7 @@
 import { getWaterFxLayers } from '.././base-layer'
-
-import { isPermanentWaterTile } from '../../model/terrain-ids'
+import { emitStarRects, waterCellIndex } from '.././water-fx'
 
 import { LOW_PERF } from '../../../shared/perf'
-
-import { TILE } from '../../model/palette'
 
 import type { DrawFrame } from './frame'
 
@@ -133,19 +130,9 @@ export function draw_atmosphere(f: DrawFrame) {
       // Align to even boundaries so the star-on-water pattern stays
       // stable as the camera pans (stride-2 sampling must visit the
       // same cells from frame to frame).
-      for (let row = r0 & ~1; row < r1; row += 2) {
-        for (let col = c0 & ~1; col < c1; col += 2) {
-          if (!isPermanentWaterTile(tiles[row]?.[col])) continue
-          let h = (col * 374761393 + row * 668265263) | 0
-          h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0
-          const phase = ((h & 0xff) / 255) * Math.PI * 2
-          const blink = Math.sin(tt * 1.7 + phase) + Math.sin(tt * 0.9 + phase * 1.3)
-          if (blink < 1.3) continue
-          const px = col * TILE + ((h >>> 8) & 3)
-          const py = row * TILE + ((h >>> 10) & 3)
-          ctx.fillRect(px, py, 2, 1)
-        }
-      }
+      emitStarRects(waterCellIndex(tiles, world.grid.depth_map), tt, { r0, r1, c0, c1 }, (x, y, w, h) =>
+        ctx.fillRect(x, y, w, h),
+      )
     }
   }
 }
