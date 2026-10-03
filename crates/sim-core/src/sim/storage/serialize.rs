@@ -79,40 +79,158 @@ fn lineage_strategy_history_payload(sim: &Simulation) -> serde_json::Value {
     .unwrap()
 }
 
+/// One frame's top-level object, ready to be encoded.
+///
+/// It is the same sorted JSON object `state_json*` returns, except that the
+/// two sections that dominate a delta frame (the grid and the hot organism
+/// arrays: thousands of small `[row, col, value]` triples and parallel number
+/// arrays) stay typed. Converting them to `serde_json::Value` first allocated
+/// one `Value` per number (and one `Vec` per triple) only to walk the tree
+/// again when encoding; written from the typed form they cost a fraction of
+/// that. `Serialize` merges the typed sections into the sorted key order, and
+/// both structs serialise only integers, strings and bools, which encode to
+/// the same bytes whether they come from a `Value` or from the typed field.
+/// `into_value` gives the original `Value` for consumers that want one.
+pub struct FramePayload {
+    rest: serde_json::Map<String, serde_json::Value>,
+    grid: Option<crate::world::grid::GridJson>,
+    organisms_hot: Option<crate::organism::organism::OrgsHotSoa>,
+}
+
+impl FramePayload {
+    pub fn as_object_mut(&mut self) -> Option<&mut serde_json::Map<String, serde_json::Value>> {
+        Some(&mut self.rest)
+    }
+
+    /// Add or replace a top-level entry (the transport stamps frame metadata
+    /// this way).
+    pub fn insert(&mut self, key: &str, value: serde_json::Value) {
+        self.rest.insert(key.to_string(), value);
+    }
+
+    pub fn into_value(self) -> serde_json::Value {
+        let FramePayload {
+            mut rest,
+            grid,
+            organisms_hot,
+        } = self;
+        if let Some(grid) = grid {
+            rest.insert("grid".to_string(), serde_json::to_value(grid).unwrap());
+        }
+        if let Some(soa) = organisms_hot {
+            rest.insert("organisms_hot".to_string(), serde_json::to_value(&soa).unwrap());
+        }
+        serde_json::Value::Object(rest)
+    }
+}
+
+/// A frame is always a JSON object; anything else becomes an empty one.
+impl From<serde_json::Value> for FramePayload {
+    fn from(value: serde_json::Value) -> Self {
+        let rest = match value {
+            serde_json::Value::Object(map) => map,
+            _ => serde_json::Map::new(),
+        };
+        FramePayload {
+            rest,
+            grid: None,
+            organisms_hot: None,
+        }
+    }
+}
+
+impl serde::Serialize for FramePayload {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeMap;
+
+        enum Entry<'a> {
+            Json(&'a serde_json::Value),
+            Grid(&'a crate::world::grid::GridJson),
+            Hot(&'a crate::organism::organism::OrgsHotSoa),
+        }
+        impl serde::Serialize for Entry<'_> {
+            fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+                match self {
+                    Entry::Json(value) => value.serialize(serializer),
+                    Entry::Grid(grid) => grid.serialize(serializer),
+                    Entry::Hot(soa) => soa.serialize(serializer),
+                }
+            }
+        }
+
+        // `rest` is already sorted (a `BTreeMap`); slot the typed sections in.
+        let mut entries: Vec<(&str, Entry<'_>)> = Vec::with_capacity(self.rest.len() + 2);
+        entries.extend(self.rest.iter().map(|(k, v)| (k.as_str(), Entry::Json(v))));
+        if let Some(grid) = &self.grid {
+            entries.push(("grid", Entry::Grid(grid)));
+        }
+        if let Some(soa) = &self.organisms_hot {
+            entries.push(("organisms_hot", Entry::Hot(soa)));
+        }
+        entries.sort_by(|a, b| a.0.cmp(b.0));
+        let mut map = serializer.serialize_map(Some(entries.len()))?;
+        for (key, entry) in &entries {
+            map.serialize_entry(key, entry)?;
+        }
+        map.end()
+    }
+}
+
+/// The organism section `entity_head` receives: the full list as `Value`s, or
+/// the hot arrays, which stay typed.
+enum HeadOrganisms {
+    Full(Vec<serde_json::Value>),
+    Hot(Box<crate::organism::organism::OrgsHotSoa>),
+}
+
 impl Simulation {
     pub fn state_json(&mut self) -> serde_json::Value {
-        let (cx, cy) = self.viewport_centroid();
-        self.state_json_inner(cx, cy, true, true)
+        self.state_frame().into_value()
     }
 
     pub fn state_json_periodic_full(&mut self) -> serde_json::Value {
-        let (cx, cy) = self.viewport_centroid();
-        self.state_json_inner(cx, cy, true, false)
+        self.state_frame_periodic_full().into_value()
     }
 
     pub fn state_json_incremental(&mut self) -> serde_json::Value {
-        let (cx, cy) = self.viewport_centroid();
-        self.state_json_inner(cx, cy, false, false)
+        self.state_frame_incremental().into_value()
     }
 
     pub fn state_json_at(&mut self, vp_cx: i32, vp_cy: i32) -> serde_json::Value {
-        self.state_json_inner(vp_cx, vp_cy, false, false)
+        self.state_frame_inner(vp_cx, vp_cy, false, false).into_value()
+    }
+
+    /// `state_json`, left typed for the encoder.
+    pub fn state_frame(&mut self) -> FramePayload {
+        let (cx, cy) = self.viewport_centroid();
+        self.state_frame_inner(cx, cy, true, true)
+    }
+
+    /// `state_json_periodic_full`, left typed for the encoder.
+    pub fn state_frame_periodic_full(&mut self) -> FramePayload {
+        let (cx, cy) = self.viewport_centroid();
+        self.state_frame_inner(cx, cy, true, false)
+    }
+
+    /// `state_json_incremental`, left typed for the encoder.
+    pub fn state_frame_incremental(&mut self) -> FramePayload {
+        let (cx, cy) = self.viewport_centroid();
+        self.state_frame_inner(cx, cy, false, false)
     }
 
     /// The top-level frame fields that come before the per-kind extras: the
-    /// grid, the organism and animal sections and the world clock. The three
-    /// large sections arrive already converted to `Value` and are moved into
-    /// the object. Embedding them through `json!` instead re-serialises each
-    /// one into a fresh copy of itself (a deep clone of every tile, organism
-    /// and animal) and then drops the original.
+    /// grid, the organism and animal sections and the world clock. The big
+    /// sections are moved into the payload (the grid and the hot organism
+    /// arrays stay typed). Embedding already-built `Value`s through `json!`
+    /// instead re-serialises each one into a fresh copy of itself (a deep
+    /// clone of every tile, organism and animal) and then drops the original.
     fn entity_head(
         &self,
-        grid: serde_json::Value,
-        organisms_key: &'static str,
-        organisms: serde_json::Value,
+        grid: crate::world::grid::GridJson,
+        organisms: HeadOrganisms,
         animals: serde_json::Value,
         complete: bool,
-    ) -> serde_json::Value {
+    ) -> FramePayload {
         let mut head = json!({
             "tick":               self.tick_count,
             "organisms_complete": complete,
@@ -130,12 +248,20 @@ impl Simulation {
                 "day_of_year":   crate::sim::cosmos::day_of_year(self.tick_count),
             },
         });
+        let mut organisms_hot = None;
         if let Some(obj) = head.as_object_mut() {
-            obj.insert("grid".to_string(), grid);
-            obj.insert(organisms_key.to_string(), organisms);
             obj.insert("animals".to_string(), animals);
+            match organisms {
+                HeadOrganisms::Full(list) => {
+                    obj.insert("organisms".to_string(), serde_json::Value::Array(list));
+                }
+                HeadOrganisms::Hot(soa) => organisms_hot = Some(*soa),
+            }
         }
-        head
+        let mut payload = FramePayload::from(head);
+        payload.grid = Some(grid);
+        payload.organisms_hot = organisms_hot;
+        payload
     }
 
     /// The previous construction, kept as the reference the tests compare
@@ -215,13 +341,13 @@ impl Simulation {
         }
     }
 
-    fn state_json_inner(
+    fn state_frame_inner(
         &mut self,
         vp_cx: i32,
         vp_cy: i32,
         force_full: bool,
         include_cold: bool,
-    ) -> serde_json::Value {
+    ) -> FramePayload {
         let needs_slow = self.tick_count == 0 || self.tick_count.saturating_sub(self.slow_compute_tick) >= 60;
         if needs_slow {
             let alive_lineages: rustc_hash::FxHashSet<String> = self
@@ -350,9 +476,8 @@ impl Simulation {
                 animals_json.push(serde_json::to_value(a.to_json()).unwrap());
             }
             self.entity_head(
-                serde_json::to_value(grid_json).unwrap(),
-                "organisms",
-                serde_json::Value::Array(organisms_json),
+                grid_json,
+                HeadOrganisms::Full(organisms_json),
                 serde_json::Value::Array(animals_json),
                 true,
             )
@@ -361,7 +486,7 @@ impl Simulation {
             let lookahead = *LOOKAHEAD_TICKS;
             // `soa.push` takes `&mut Organism` because it clears
             // `thought_dirty` after emitting the change. That's fine
-            // - `state_json_inner` already holds `&mut self`.
+            // - `state_frame_inner` already holds `&mut self`.
             for o in self.organisms.iter_mut() {
                 if o.alive && in_view(o.x, o.y) {
                     soa.push(o, lookahead);
@@ -374,9 +499,8 @@ impl Simulation {
                 }
             }
             self.entity_head(
-                serde_json::to_value(grid_json).unwrap(),
-                "organisms_hot",
-                serde_json::to_value(&soa).unwrap(),
+                grid_json,
+                HeadOrganisms::Hot(Box::new(soa)),
                 serde_json::Value::Array(animals_json),
                 false,
             )
@@ -1301,45 +1425,114 @@ mod schema_tests {
     /// has run for a while both must give the same bytes for every frame kind.
     #[test]
     fn entity_head_matches_the_deep_copy_reference() {
+        use crate::organism::organism::OrgsHotSoa;
+        use crate::world::grid::{VP_H, VP_W};
         let mut sim = Simulation::new(42);
         for _ in 0..400 {
             sim.tick();
         }
-        for complete in [true, false] {
-            let frame = if complete {
-                sim.state_json_periodic_full()
-            } else {
-                sim.state_json_incremental()
-            };
-            let key = if complete { "organisms" } else { "organisms_hot" };
-            let section = |name: &str| frame[name].clone();
-            let (grid, organisms, animals) = (section("grid"), section(key), section("animals"));
-            assert!(organisms.as_array().is_some_and(|a| !a.is_empty()) || !complete);
+        let grid = |sim: &Simulation| sim.grid.to_json_viewport(300, 150, VP_W, VP_H, true, true, true);
+        let animals: Vec<serde_json::Value> = sim
+            .animals
+            .iter()
+            .map(|a| serde_json::to_value(a.to_json()).unwrap())
+            .collect();
+        let animals = serde_json::Value::Array(animals);
 
-            let new = sim.entity_head(
-                grid.clone(),
-                key_static(key),
-                organisms.clone(),
+        // Full frame: the organism list is a `Value` section.
+        let list: Vec<serde_json::Value> = sim
+            .organisms
+            .iter()
+            .filter(|o| o.alive)
+            .map(|o| serde_json::to_value(o.to_json_with(false)).unwrap())
+            .collect();
+        assert!(!list.is_empty());
+        let new = sim
+            .entity_head(
+                grid(&sim),
+                HeadOrganisms::Full(list.clone()),
                 animals.clone(),
-                complete,
-            );
-            let old = sim.entity_head_reference(grid, organisms, animals, complete);
-            assert_eq!(new, old);
-            assert_eq!(
-                serde_json::to_vec(&new).unwrap(),
-                serde_json::to_vec(&old).unwrap()
-            );
-            // And the head is exactly what the real frame starts from.
-            for (k, v) in new.as_object().unwrap() {
-                assert_eq!(frame.get(k), Some(v), "frame disagrees on `{k}`");
-            }
+                true,
+            )
+            .into_value();
+        let old = sim.entity_head_reference(
+            serde_json::to_value(grid(&sim)).unwrap(),
+            serde_json::Value::Array(list),
+            animals.clone(),
+            true,
+        );
+        assert_eq!(new, old);
+        assert_eq!(
+            serde_json::to_vec(&new).unwrap(),
+            serde_json::to_vec(&old).unwrap()
+        );
+
+        // Delta frame: the hot arrays stay typed until the encoder.
+        let mut soa = OrgsHotSoa::with_capacity(sim.organisms.len());
+        for o in sim.organisms.iter_mut().filter(|o| o.alive) {
+            soa.push(o, 0.0);
         }
+        let hot_value = serde_json::to_value(&soa).unwrap();
+        let new = sim
+            .entity_head(
+                grid(&sim),
+                HeadOrganisms::Hot(Box::new(soa)),
+                animals.clone(),
+                false,
+            )
+            .into_value();
+        let old = sim.entity_head_reference(
+            serde_json::to_value(grid(&sim)).unwrap(),
+            hot_value,
+            animals,
+            false,
+        );
+        assert_eq!(new, old);
+        assert_eq!(
+            serde_json::to_vec(&new).unwrap(),
+            serde_json::to_vec(&old).unwrap()
+        );
     }
 
-    fn key_static(key: &str) -> &'static str {
-        match key {
-            "organisms" => "organisms",
-            _ => "organisms_hot",
+    /// The typed frame is serialised straight to the wire; the `Value` frame is
+    /// what every consumer used to get. Their JSON must be identical for every
+    /// frame kind, in the same key order (this also guards the alphabetical
+    /// field order of `GridJson` and `OrgsHotSoa`). The server tests compare
+    /// the encoded msgpack frames as well.
+    #[test]
+    fn typed_frame_serialises_like_the_value_frame() {
+        let mut typed_world = Simulation::new(7);
+        let mut value_world = Simulation::new(7);
+        for _ in 0..400 {
+            typed_world.tick();
+            value_world.tick();
         }
+        let mut kinds = std::collections::BTreeSet::new();
+        for round in 0..130u64 {
+            for _ in 0..3 {
+                typed_world.tick();
+                value_world.tick();
+            }
+            // Cover periodic full frames, deltas (hot arrays) and deep fulls.
+            let (typed, value) = match round % 13 {
+                0 => (typed_world.state_frame(), value_world.state_json()),
+                6 => (
+                    typed_world.state_frame_periodic_full(),
+                    value_world.state_json_periodic_full(),
+                ),
+                _ => (
+                    typed_world.state_frame_incremental(),
+                    value_world.state_json_incremental(),
+                ),
+            };
+            kinds.insert(value.get("organisms_hot").is_some());
+            assert_eq!(
+                serde_json::to_string(&typed).unwrap(),
+                serde_json::to_string(&value).unwrap(),
+                "round {round}"
+            );
+            assert_eq!(typed.into_value(), value, "round {round}");
+        }
+        assert_eq!(kinds.len(), 2, "both hot-array and full-organism frames occur");
     }
 }
