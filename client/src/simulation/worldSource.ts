@@ -144,14 +144,6 @@ export function getOwnWorldSeed(): string {
   return seed
 }
 
-export function clearOwnWorldSeed() {
-  try {
-    window.localStorage.removeItem(SEED_KEY)
-  } catch {
-    /* noop */
-  }
-}
-
 export function requestOwnWorldReset(): boolean {
   const snapshot = readLocalWorldRequestSnapshot()
   if (!snapshot) {

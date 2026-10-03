@@ -1,6 +1,5 @@
 import {
   HUMAN_ATLAS_CELL,
-  HUMAN_ATLAS_FRAMES,
   humanAtlasRow,
   wrapHumanFrame,
   type AgeStage,
@@ -34,7 +33,6 @@ export const ATLAS_CREATURE = loadAtlas(`${import.meta.env.BASE_URL}sprites/tiny
 export const ATLAS_PEOPLE = loadAtlas(`${import.meta.env.BASE_URL}sprites/people/people.svg`)
 
 export const PEOPLE_CELL = HUMAN_ATLAS_CELL
-export const PEOPLE_COLS = HUMAN_ATLAS_FRAMES
 
 export function pickHumanSprite(sex: HumanSex, stage: AgeStage, frame: number, appearance = 0): Tile {
   return [wrapHumanFrame(frame), humanAtlasRow(sex, stage, appearance)]
