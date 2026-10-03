@@ -1,0 +1,329 @@
+/* World history grid */
+.history-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  font-size: 9px;
+}
+.hist-label {
+  color: #999;
+}
+.hist-val {
+  color: #ddd;
+  text-align: right;
+}
+
+/* ── OrgDetail ─────────────────────────────────────────────────── */
+.org-detail {
+  background: #241f18;
+  border-radius: 4px;
+  padding: 8px 10px 10px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+.org-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 3px;
+  flex-wrap: wrap;
+}
+.org-detail-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.org-detail-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.03em;
+}
+.org-detail-sub {
+  font-size: 9px;
+  color: #999;
+  margin-bottom: 5px;
+}
+.org-detail-thought {
+  font-size: 10px;
+  color: #7abbff;
+  margin-bottom: 6px;
+  font-style: italic;
+}
+.org-detail-section {
+  font-size: 8px;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 8px 0 3px;
+  border-bottom: 1px solid #3b2d22;
+  padding-bottom: 2px;
+}
+.trait-full-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+.trait-full-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.trait-full-label {
+  font-size: 8px;
+  color: #999;
+  width: 58px;
+  flex-shrink: 0;
+}
+.relation-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-bottom: 2px;
+}
+.relation-tag {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+.relation-tag.ally {
+  background: #0a1a0a;
+  color: #55ff88;
+}
+.relation-tag.enemy {
+  background: #1a0a0a;
+  color: #ff5544;
+}
+.thought-history {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.thought-row {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+.thought-tick {
+  font-size: 8px;
+  color: #777;
+  flex-shrink: 0;
+  width: 54px;
+}
+.thought-text {
+  font-size: 9px;
+  color: #bbc;
+}
+.follow-btn {
+  margin-left: auto;
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid #513d2e;
+  background: #28201a;
+  color: #aaa;
+  cursor: pointer;
+  font-family: monospace;
+}
+.follow-btn.active {
+  background: #001a10;
+  color: #44ffaa;
+  border-color: #1a4a2a;
+}
+.close-btn {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid #513d2e;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+}
+.close-btn:hover {
+  color: #cc4444;
+  border-color: #4a1a1a;
+}
+.close-btn:focus-visible,
+.lang-btn:focus-visible {
+  outline: 2px solid #d49a55;
+  outline-offset: 2px;
+}
+
+/* Modal-header action cluster: reload + close grouped at top-right */
+.modal-header-actions {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  margin-left: auto;
+}
+.reload-btn {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid #2e3d51;
+  background: transparent;
+  color: #88aacc;
+  cursor: pointer;
+  line-height: 1;
+}
+.reload-btn:hover {
+  color: #aaffdd;
+  border-color: #335533;
+}
+.reload-btn:active {
+  transform: rotate(180deg);
+  transition: transform 0.3s ease;
+}
+.org-carrying-badge {
+  font-size: 8px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: #1a1200;
+  color: #c8a050;
+}
+
+/* Languages button */
+.lang-btn {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid #513d2e;
+  background: #28201a;
+  color: #aaa;
+  cursor: pointer;
+  font-family: monospace;
+  letter-spacing: 0.04em;
+  transition: all 0.12s;
+}
+.lang-btn:hover {
+  background: #32271f;
+  color: #aaffdd;
+  border-color: #335533;
+}
+.lang-btn.active {
+  background: #1a2a1a;
+  color: #aaffdd;
+  border-color: #335533;
+}
+
+.more-menu {
+  position: relative;
+}
+
+.more-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #2c231f;
+  border: 1px solid #443329;
+  border-radius: 5px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 380px;
+  z-index: 200;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.more-dropdown .lang-btn {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.more-dropdown-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+}
+
+.more-dropdown-section {
+  font-size: 8px;
+  color: #444;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 4px 0;
+}
+
+.more-dropdown-divider {
+  height: 1px;
+  background: #3b2d22;
+  margin: 2px 0;
+}
+
+/* Photo mode: hide every chrome element so only the canvas / world is
+   visible. Header fades to a thin ghost strip but reappears on hover
+   so the user can still toggle the mode off. */
+body.thb-photo-mode .panel,
+body.thb-photo-mode .panel-overlay,
+body.thb-photo-mode .panel-toggle-btn,
+body.thb-photo-mode .thb-action-ticker {
+  display: none !important;
+}
+body.thb-photo-mode .header {
+  opacity: 0.08;
+  transition: opacity 0.18s ease;
+}
+body.thb-photo-mode .header:hover {
+  opacity: 1;
+}
+
+/* Action ticker: 28px strip pinned to the bottom of the viewport,
+   shows each alive organism's current thought scrolling right to
+   left. Doubled track + 60s linear animation gives a seamless loop. */
+.thb-action-ticker {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  background: linear-gradient(180deg, rgba(20, 16, 12, 0.78), rgba(20, 16, 12, 0.92));
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  z-index: 1;
+  pointer-events: auto;
+  font-family: monospace;
+  font-size: 11px;
+}
+.thb-action-ticker-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: thb-action-ticker-scroll 240s linear infinite;
+  padding-left: 100%;
+}
+.thb-action-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: #cbd0d6;
+  height: 28px;
+  flex-shrink: 0;
+}
+.thb-action-ticker-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.thb-action-ticker-name {
+  font-weight: 700;
+}
+.thb-action-ticker-thought {
+  color: #9aa1a8;
+}
+.thb-action-ticker-thought::before {
+  content: '- ';
+  color: #6a7077;
+}
+@keyframes thb-action-ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}

@@ -1,0 +1,334 @@
+/* Vocabulary grid in OrgDetail */
+.vocab-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px 8px;
+  margin-bottom: 4px;
+}
+.vocab-row {
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+}
+.vocab-word {
+  font-size: 10px;
+  color: #aaffdd;
+  font-weight: 600;
+  font-family: monospace;
+  min-width: 36px;
+}
+.vocab-concept {
+  font-size: 8px;
+  color: #889;
+}
+
+/* ── Language modal ───────────────────────────────────────────────── */
+.lang-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.idle-resume-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100000;
+}
+.idle-resume-panel {
+  background: #28201a;
+  border: 1px solid #443329;
+  border-radius: 10px;
+  padding: 32px 36px 28px;
+  max-width: 420px;
+  text-align: center;
+  color: #f5e9d4;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+}
+.idle-resume-eye {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(245, 233, 212, 0.06) 0%, transparent 70%);
+  border: 1px solid #5a4838;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.idle-resume-eye::before {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  border: 1px solid #6b8e5a;
+  animation: idle-eye-pulse 2.4s ease-in-out infinite;
+}
+.idle-resume-eye-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6b8e5a;
+  box-shadow: 0 0 14px rgba(107, 142, 90, 0.6);
+}
+@keyframes idle-eye-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 0;
+  }
+}
+.idle-resume-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 18px;
+  letter-spacing: 0.02em;
+  color: #f5e9d4;
+}
+.idle-resume-sub {
+  font-size: 13px;
+  color: #bfae90;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+.idle-resume-btn {
+  background: #6b8e5a;
+  color: #0c0a08;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 28px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    background 0.12s,
+    transform 0.06s;
+}
+.idle-resume-btn:hover {
+  background: #84a76e;
+}
+.idle-resume-btn:active {
+  transform: translateY(1px);
+}
+.desktop-toast {
+  position: fixed;
+  bottom: 150px;
+  left: 16px;
+  z-index: 90;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  background: #28201a;
+  border: 1px solid #443329;
+  border-radius: 8px;
+  padding: 14px 16px 12px;
+  color: #f5e9d4;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: thb-desktop-toast-in 280ms ease-out;
+}
+@keyframes thb-desktop-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.desktop-toast-close {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  background: transparent;
+  border: 0;
+  color: #8c7c63;
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 4px;
+}
+.desktop-toast-close:hover {
+  color: #f5e9d4;
+}
+.desktop-toast-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.desktop-toast-sub {
+  font-size: 12px;
+  color: #bfae90;
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+.desktop-toast-cmd-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.desktop-toast-cmd {
+  flex: 1;
+  background: #1a1612;
+  border: 1px solid #3a2e25;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-family: ui-monospace, Menlo, monospace;
+  color: #d6c4a5;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.desktop-toast-copy {
+  background: #3a2e25;
+  border: 1px solid #5a4838;
+  border-radius: 4px;
+  padding: 6px 10px;
+  color: #f5e9d4;
+  font-size: 11px;
+  cursor: pointer;
+}
+.desktop-toast-copy:hover {
+  background: #4a3a2e;
+}
+.desktop-toast-actions {
+  display: flex;
+  gap: 8px;
+}
+.desktop-toast-primary {
+  flex: 1;
+  background: #6b8e5a;
+  color: #0c0a08;
+  border: 0;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+.desktop-toast-primary:hover {
+  background: #84a76e;
+}
+.desktop-toast-secondary {
+  background: transparent;
+  color: #bfae90;
+  border: 1px solid #443329;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.desktop-toast-secondary:hover {
+  color: #f5e9d4;
+  border-color: #5a4838;
+}
+.lang-modal {
+  background: #28201a;
+  border: 1px solid #443329;
+  border-radius: 6px;
+  width: 680px;
+  max-width: 95vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.lang-modal-body {
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+.lang-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #372a21;
+  flex-shrink: 0;
+  background: #28201a;
+  border-radius: 6px 6px 0 0;
+}
+
+.lang-modal-header .tree-modal-sub,
+.lang-modal-header .lang-modal-sub {
+  margin-right: 0;
+}
+
+.lang-modal-header .close-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.lang-modal-title {
+  font-size: 11px;
+  color: #aaffdd;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}
+.lang-modal-sub {
+  font-size: 9px;
+  color: #889;
+  margin: 0;
+}
+
+/* Language table */
+.lang-table-wrap {
+  overflow-x: auto;
+}
+.lang-table {
+  display: grid;
+  gap: 1px;
+}
+.lang-th {
+  font-size: 9px;
+  color: #aaa;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 6px;
+  background: #28201a;
+  border-bottom: 1px solid #3b2d22;
+}
+.lang-td {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-bottom: 1px solid #32271f;
+}
+.lang-concept-col {
+  min-width: 70px;
+}
+.lang-lineage-col {
+  min-width: 80px;
+  text-align: center;
+}
+.lang-lineage-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.lang-lineage-count {
+  font-size: 8px;
+  color: #888;
+  margin-left: 4px;
+}
