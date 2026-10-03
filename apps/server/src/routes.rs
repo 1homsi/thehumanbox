@@ -347,13 +347,19 @@ pub async fn world_meta_handler(Path(hash): Path<String>) -> Result<impl IntoRes
 pub async fn world_save_handler(Path(hash): Path<String>) -> Result<impl IntoResponse, StatusCode> {
     validate_world_hash(&hash)?;
     let path = crate::world_store::world_save_path(&hash);
-    // Saves grow with the world; keep the multi-MB read off the reactor.
-    let bytes = tokio::task::spawn_blocking(move || std::fs::read(&path).map_err(|_| StatusCode::NOT_FOUND))
+    // Saves grow with the world (tens of MB): stream the file in chunks
+    // instead of reading it whole into memory for every download.
+    let file = tokio::fs::File::open(&path)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)??;
+        .map_err(|_| StatusCode::NOT_FOUND)?;
+    let length = file.metadata().await.map_err(|_| StatusCode::NOT_FOUND)?.len();
+    let bytes = axum::body::Body::from_stream(tokio_util::io::ReaderStream::with_capacity(file, 64 * 1024));
     Ok((
         [
             (axum::http::header::CONTENT_TYPE, "application/json".to_string()),
+            // A streamed body has no length of its own; the file's size keeps
+            // the header the buffered response carried.
+            (axum::http::header::CONTENT_LENGTH, length.to_string()),
             (
                 axum::http::header::CACHE_CONTROL,
                 "public, max-age=86400, immutable".to_string(),
@@ -853,5 +859,60 @@ async fn handle_socket(
                 if socket.send(Message::Ping(Vec::new().into())).await.is_err() { break; }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The streamed archive download returns exactly the bytes `std::fs::read`
+    /// (the previous implementation) returns, with the same headers, and keeps
+    /// the not-found and bad-hash statuses.
+    #[test]
+    fn world_save_download_streams_the_file_unchanged() {
+        let _cwd = crate::world_store::CWD_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let root = std::env::temp_dir().join(format!("thb_dl_test_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let hash = "feedfacecafe";
+        std::fs::create_dir_all(root.join("worlds").join(hash)).unwrap();
+        let contents: Vec<u8> = (0..3_000_000u32)
+            .map(|i| (i.wrapping_mul(2_654_435_761) >> 13) as u8)
+            .collect();
+        std::fs::write(root.join("worlds").join(hash).join("world.save"), &contents).unwrap();
+        let previous = std::env::current_dir().unwrap();
+        std::env::set_current_dir(&root).unwrap();
+
+        let runtime = tokio::runtime::Builder::new_current_thread().build().unwrap();
+        let (status_ok, length, disposition, body, missing, invalid) = runtime.block_on(async {
+            let ok = world_save_handler(Path(hash.to_string()))
+                .await
+                .unwrap()
+                .into_response();
+            let status_ok = ok.status();
+            let length = ok.headers().get(axum::http::header::CONTENT_LENGTH).cloned();
+            let disposition = ok.headers().get(axum::http::header::CONTENT_DISPOSITION).cloned();
+            let body = axum::body::to_bytes(ok.into_body(), usize::MAX).await.unwrap();
+            let missing = world_save_handler(Path("0123456789ab".to_string())).await.err();
+            let invalid = world_save_handler(Path("../etc".to_string())).await.err();
+            (status_ok, length, disposition, body, missing, invalid)
+        });
+        std::env::set_current_dir(previous).unwrap();
+        let _ = std::fs::remove_dir_all(&root);
+
+        assert_eq!(status_ok, StatusCode::OK);
+        assert_eq!(length.unwrap(), contents.len().to_string().as_str());
+        assert_eq!(
+            disposition.unwrap(),
+            format!("attachment; filename=\"world-{hash}.save\"").as_str()
+        );
+        assert!(
+            body.as_ref() == contents.as_slice(),
+            "streamed bytes differ from the file"
+        );
+        assert_eq!(missing, Some(StatusCode::NOT_FOUND));
+        assert_eq!(invalid, Some(StatusCode::BAD_REQUEST));
     }
 }

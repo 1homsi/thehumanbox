@@ -186,6 +186,11 @@ pub fn migrate_legacy_save(legacy_path: &Path, hash: &str) -> std::io::Result<bo
     Ok(true)
 }
 
+/// Tests that change the working directory (the world files are relative paths)
+/// hold this so they cannot interleave.
+#[cfg(test)]
+pub(crate) static CWD_LOCK: Mutex<()> = Mutex::new(());
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -206,6 +211,7 @@ mod tests {
 
     #[test]
     fn store_round_trip_flush_and_load() {
+        let _cwd = CWD_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
         let root = tmp_root();
         let prev_cwd = std::env::current_dir().unwrap();
         std::env::set_current_dir(&root).unwrap();
