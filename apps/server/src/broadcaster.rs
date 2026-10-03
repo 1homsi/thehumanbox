@@ -2,6 +2,7 @@
 //! connected client, widening its cadence as the daily egress budget fills.
 
 use super::*;
+use crate::sim::serialize::FramePayload;
 
 pub(super) struct Broadcaster {
     pub(super) sim: SharedSim,
@@ -39,7 +40,7 @@ impl Broadcaster {
                         let (frame_id, snapshot) = {
                             let mut s = sim_clone.lock().await;
                             let frame_id = next_frame_id(&frame_clock_w);
-                            (frame_id, tokio::task::block_in_place(|| s.state_json()))
+                            (frame_id, tokio::task::block_in_place(|| s.state_frame()))
                         };
                         let full = Arc::new(tokio::task::block_in_place(|| {
                             encode_frame(snapshot, frame_id, now_ms(), "full")
@@ -114,12 +115,12 @@ pub(super) struct FrameCadence {
 /// The JSON values one broadcast cycle builds while it holds the sim lock.
 pub(super) struct CycleValues {
     frame_id: u64,
-    main: serde_json::Value,
+    main: FramePayload,
     kind: FrameKind,
     /// How long building `main` took, so the recorded generation time still
     /// covers just this frame and not the deep full built after it.
     main_build: std::time::Duration,
-    deep_full: Option<serde_json::Value>,
+    deep_full: Option<FramePayload>,
 }
 
 impl FrameCadence {
@@ -137,12 +138,12 @@ impl FrameCadence {
         }
         let started = std::time::Instant::now();
         let (main, kind) = if is_full_frame {
-            (s.state_json_periodic_full(), FrameKind::Full)
+            (s.state_frame_periodic_full(), FrameKind::Full)
         } else {
-            (s.state_json_incremental(), FrameKind::Delta)
+            (s.state_frame_incremental(), FrameKind::Delta)
         };
         let main_build = started.elapsed();
-        let deep_full = is_deep_full.then(|| s.state_json());
+        let deep_full = is_deep_full.then(|| s.state_frame());
         CycleValues {
             frame_id,
             main,

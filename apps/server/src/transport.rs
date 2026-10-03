@@ -223,19 +223,15 @@ pub fn next_frame_id(frame_clock: &AtomicU64) -> u64 {
 }
 
 pub fn encode_frame(
-    mut payload: serde_json::Value,
+    payload: impl Into<crate::sim::serialize::FramePayload>,
     frame_id: u64,
     server_sent_at_ms: u64,
     frame_kind: &str,
 ) -> Vec<u8> {
-    if let Some(obj) = payload.as_object_mut() {
-        obj.insert("frame_id".to_string(), serde_json::json!(frame_id));
-        obj.insert(
-            "server_sent_at_ms".to_string(),
-            serde_json::json!(server_sent_at_ms),
-        );
-        obj.insert("frame_kind".to_string(), serde_json::json!(frame_kind));
-    }
+    let mut payload: crate::sim::serialize::FramePayload = payload.into();
+    payload.insert("frame_id", serde_json::json!(frame_id));
+    payload.insert("server_sent_at_ms", serde_json::json!(server_sent_at_ms));
+    payload.insert("frame_kind", serde_json::json!(frame_kind));
     let raw = match rmp_serde::to_vec_named(&payload) {
         Ok(v) => v,
         Err(_) => return Vec::new(),

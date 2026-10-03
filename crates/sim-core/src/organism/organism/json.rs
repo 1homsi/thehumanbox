@@ -671,31 +671,36 @@ pub struct OrgLifeJson {
 ///   whose `thought_dirty` flag was set since the last delta.
 /// - `partner_ids` / `attracted_tos` are sparse `Vec<(u32, String)>`
 ///   too - only a small minority of orgs have either at any tick.
+///
+/// Fields are declared in alphabetical order on purpose: frames are sorted
+/// JSON maps, and `FramePayload` writes this struct to the wire directly, so
+/// the declaration order is the key order. A test compares it with the
+/// `serde_json::Value` path byte for byte.
 #[derive(Serialize)]
 pub struct OrgsHotSoa {
-    pub ids: Vec<String>,
-    pub xs: Vec<i16>,
-    pub ys: Vec<i16>,
-    pub vxs: Vec<i16>,
-    pub vys: Vec<i16>,
-    pub target_xs: Vec<i16>,
-    pub target_ys: Vec<i16>,
-    pub energies: Vec<u8>,
-    pub hydrations: Vec<u8>,
-    pub healths: Vec<u8>,
-    /// Sparse: (index into ids, thought text). Only orgs whose thought
-    /// changed this tick. Client merges into prev cached thought.
-    pub thoughts: Vec<(u32, String)>,
-    pub infections: Vec<u8>,
-    pub fear_levels: Vec<u8>,
-    pub carryings: Vec<u8>,
-    pub carrying_types: Vec<u8>,
-    pub pregnants: Vec<bool>,
-    /// Sparse: (index into ids, partner_id). Absent → unpartnered.
-    pub partner_ids: Vec<(u32, String)>,
     /// Sparse: (index into ids, attracted_to id). Absent → no
     /// current attraction.
     pub attracted_tos: Vec<(u32, String)>,
+    pub carrying_types: Vec<u8>,
+    pub carryings: Vec<u8>,
+    pub energies: Vec<u8>,
+    pub fear_levels: Vec<u8>,
+    pub healths: Vec<u8>,
+    pub hydrations: Vec<u8>,
+    pub ids: Vec<String>,
+    pub infections: Vec<u8>,
+    /// Sparse: (index into ids, partner_id). Absent → unpartnered.
+    pub partner_ids: Vec<(u32, String)>,
+    pub pregnants: Vec<bool>,
+    pub target_xs: Vec<i16>,
+    pub target_ys: Vec<i16>,
+    /// Sparse: (index into ids, thought text). Only orgs whose thought
+    /// changed this tick. Client merges into prev cached thought.
+    pub thoughts: Vec<(u32, String)>,
+    pub vxs: Vec<i16>,
+    pub vys: Vec<i16>,
+    pub xs: Vec<i16>,
+    pub ys: Vec<i16>,
 }
 
 #[inline]

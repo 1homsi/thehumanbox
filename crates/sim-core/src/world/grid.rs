@@ -877,28 +877,35 @@ pub enum TrailKind {
     Path,
 }
 
+/// The grid section of a frame.
+///
+/// Fields are declared in alphabetical order on purpose: a frame's JSON
+/// object is a sorted map (`serde_json::Value`), and `FramePayload` writes
+/// this struct straight to the wire without going through `Value`, so the
+/// declaration order is the key order that comes out. A test compares the two
+/// paths byte for byte.
 #[derive(Serialize)]
 pub struct GridJson {
-    pub width: usize,
-    pub height: usize,
-    pub origin_x: i32,
-    pub origin_y: i32,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tiles: Option<Vec<Vec<i8>>>,
-    pub fire: Vec<[u16; 3]>,
-    pub structure: Vec<[u16; 3]>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub biomes: Option<Vec<Vec<u8>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub depth_map: Option<Vec<Vec<u8>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub trails: Option<Vec<[u16; 5]>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub fertility: Option<Vec<[u16; 3]>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fertility_dense: Option<Vec<u8>>,
+    pub fire: Vec<[u16; 3]>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hazard: Option<Vec<[u16; 3]>>,
+    pub height: usize,
+    pub origin_x: i32,
+    pub origin_y: i32,
+    pub structure: Vec<[u16; 3]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tiles: Option<Vec<Vec<i8>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trails: Option<Vec<[u16; 5]>>,
+    pub width: usize,
 }
 
 #[cfg(test)]
