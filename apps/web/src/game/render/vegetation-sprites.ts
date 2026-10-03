@@ -14,6 +14,18 @@ const crops: Record<string, readonly [number, number, number, number]> = {
   '4,1': [1389, 589, 333, 261],
 }
 
+// Sprite tiles are shared constant tuples, so their crop is looked up once per tuple
+// instead of joining a key string for every tree on every frame.
+const cropByTile = new WeakMap<readonly [number, number], readonly [number, number, number, number] | null>()
+function cropFor(tile: readonly [number, number]) {
+  let crop = cropByTile.get(tile)
+  if (crop === undefined) {
+    crop = crops[tile.join(',')] ?? null
+    cropByTile.set(tile, crop)
+  }
+  return crop
+}
+
 export function drawVegetationSprite(
   ctx: CanvasRenderingContext2D,
   tile: readonly [number, number],
@@ -21,7 +33,7 @@ export function drawVegetationSprite(
   y: number,
   size: number,
 ): boolean {
-  const crop = crops[tile.join(',')]
+  const crop = cropFor(tile)
   if (!crop || !atlas.complete || atlas.naturalWidth === 0) return false
   const [sx, sy, sw, sh] = crop
   const scale = size / Math.max(sw, sh)

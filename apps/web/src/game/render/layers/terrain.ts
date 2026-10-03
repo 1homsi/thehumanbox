@@ -10,13 +10,36 @@ import { drawFoodPatch, drawMineralOutcrop, drawPixelFire, visualTileHash } from
 import { getBuildingSprite, PAD as SPRITE_PAD, PAD_BOT as SPRITE_PAD_BOT } from '.././building-sprites'
 
 import { TILE_ID } from '../../model/terrain-ids'
-import { permanentWaterDepth } from '../../model/terrain-visuals'
 
 import { LOW_PERF } from '../../../shared/perf'
 
 import { TILE } from '../../model/palette'
 
+import { firstCellAtRow, specialTileIndex } from '.././special-tiles'
+import { emitShimmerRects, emitWaveletRects, waterCellIndex } from '.././water-fx'
 import type { DrawFrame } from './frame'
+
+// Structure strength arrives as whole percents, so a frame draws thousands of tiles
+// from at most ~100 distinct strengths. Each style string is built (and parsed by the
+// canvas) once per strength instead of once per tile per frame.
+const STRUCTURE_STYLES: Array<(s: number) => string> = [
+  (s) => `rgba(120,90,60,${0.6 + s * 0.3})`,
+  (s) => `rgba(90,70,50,${0.7 + s * 0.25})`,
+  (s) => `rgba(100,65,30,${0.45 + s * 0.4})`,
+  (s) => `rgba(80,50,20,${0.5 + s * 0.35})`,
+  (s) => `rgba(130,95,45,${s * 2.5})`,
+]
+const structureStyleCache: Array<Map<number, string>> = STRUCTURE_STYLES.map(() => new Map())
+function structureStyle(kind: number, s: number): string {
+  const cache = structureStyleCache[kind]
+  let style = cache.get(s)
+  if (style === undefined) {
+    if (cache.size >= 4096) cache.clear()
+    style = STRUCTURE_STYLES[kind](s)
+    cache.set(s, style)
+  }
+  return style
+}
 
 /** Terrain detail drawn per frame: shore foam, lake shimmer, tile decoration, settlement rings and structure. */
 export function draw_terrain(f: DrawFrame) {
@@ -39,6 +62,7 @@ export function draw_terrain(f: DrawFrame) {
     overview,
     ruinedTiles,
   } = f
+  const win = { r0, r1, c0, c1 }
   // Shore foam: geometry is precomputed per terrain rebuild; each frame
   // just fills the paths with animated alpha. The old version rescanned
   // the visible grid twice per frame computing edge masks.
@@ -73,36 +97,14 @@ export function draw_terrain(f: DrawFrame) {
       ctx.globalAlpha = 1
     } else {
       ctx.fillStyle = 'rgba(180,230,255,0.28)'
-      for (let row = r0; row < r1; row++) {
-        for (let col = c0; col < c1; col++) {
-          const d = permanentWaterDepth(tiles[row]?.[col], dm?.[row]?.[col])
-          if (d === null || d < 180) continue
-          let h = (col * 374761393 + row * 668265263) | 0
-          h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0
-          const pulse = Math.sin(shimmerT * 2.1 + ((h & 0xff) / 255) * Math.PI * 2)
-          if (pulse < 0.6) continue
-          ctx.fillRect(col * TILE + ((h >>> 8) & 3), row * TILE + ((h >>> 10) & 3), 2, 1)
-        }
-      }
+      emitShimmerRects(waterCellIndex(tiles, dm), shimmerT, win, (x, y, w, h) => ctx.fillRect(x, y, w, h))
     }
 
     // Integer-aligned wavelets stay within the camera window instead of
     // scanning and antialiasing paths across the whole world.
     if (!LOW_PERF && !overview) {
       ctx.fillStyle = 'rgba(140,200,240,0.2)'
-      const wavePhase = Math.floor(shimmerT * 3)
-      for (let row = r0; row < r1; row += 2) {
-        for (let col = c0; col < c1; col++) {
-          const d = permanentWaterDepth(tiles[row]?.[col], dm?.[row]?.[col])
-          if (d === null || d < 180) continue
-          let h = (col * 374761393 + row * 668265263) | 0
-          h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0
-          if ((h + wavePhase) % 7 !== 0) continue
-          const wx = col * TILE + 1 + ((h >>> 8) & 1)
-          const wy = row * TILE + 2 + ((wavePhase + (h >>> 10)) & 3)
-          ctx.fillRect(wx, wy, 3, 1)
-        }
-      }
+      emitWaveletRects(waterCellIndex(tiles, dm), shimmerT, win, (x, y, w, h) => ctx.fillRect(x, y, w, h))
     }
   }
 
@@ -112,22 +114,23 @@ export function draw_terrain(f: DrawFrame) {
   // every frame - hundreds of thousands of calls on grown worlds.
   const bakedDecor = renderScale < 1 ? getTileDecorLayer(renderScale) : null
   if (bakedDecor) ctx.drawImage(bakedDecor, 0, 0, W, H)
-  for (let row = r0; row < r1; row++) {
-    for (let col = c0; col < c1; col++) {
+  {
+    const special = specialTileIndex(tiles)
+    const cells = bakedDecor ? special.animated : special.all
+    // Frame-constant values for the hut pass.
+    const dp = world.day_progress ?? 0.5
+    const nightFactor = world.is_day ? 0 : 1 - Math.abs(dp - 0.5) * 2
+    const glowAlpha = 0.04 + 0.18 * nightFactor
+    const glowStyle = `rgba(255,215,110,${glowAlpha})`
+    const hutNight = Math.max(0, Math.min(3, Math.round(nightFactor * 3)))
+    const smokeAlpha = !world.is_day && !overview ? 0.25 : 0
+    const hutSprites: Array<ReturnType<typeof getBuildingSprite> | undefined> = new Array(8)
+    for (let i = firstCellAtRow(cells, r0); i < cells.length; i += 2) {
+      const row = cells[i]
+      if (row >= r1) break
+      const col = cells[i + 1]
+      if (col < c0 || col >= c1) continue
       const tile = tiles[row][col]
-      if (bakedDecor) {
-        if (tile !== TILE_ID.FIRE && tile !== TILE_ID.CAMPFIRE && tile !== TILE_ID.HUT) {
-          continue
-        }
-      } else if (
-        tile !== TILE_ID.FOOD &&
-        tile !== TILE_ID.FIRE &&
-        tile !== TILE_ID.CAMPFIRE &&
-        tile !== TILE_ID.HUT &&
-        tile !== TILE_ID.MINERAL
-      ) {
-        continue
-      }
       const px = col * TILE
       const py = row * TILE
       const seed = visualTileHash(col + ox, row + oy)
@@ -158,19 +161,19 @@ export function draw_terrain(f: DrawFrame) {
         drawPixelFire(ctx, px, py, fi, Math.floor(t / 170 + (seed & 7)), isCampfire)
       }
 
-      if (tile === TILE_ID.HUT && !ruinedTiles.has(`${col + ox},${row + oy}`)) {
+      if (tile === TILE_ID.HUT && (ruinedTiles.size === 0 || !ruinedTiles.has(`${col + ox},${row + oy}`))) {
         const BW = TILE
         const BH = TILE
         const bx = px
         const by = py
-        const dp = world.day_progress ?? 0.5
-        const nightFactor = world.is_day ? 0 : 1 - Math.abs(dp - 0.5) * 2
-        const glowAlpha = 0.04 + 0.18 * nightFactor
-        ctx.fillStyle = `rgba(255,215,110,${glowAlpha})`
+        ctx.fillStyle = glowStyle
         ctx.fillRect(bx - TILE / 2, by - TILE / 2, BW + TILE, BH + TILE)
         const hutVariant = (((col * 73856093) ^ (row * 19349663)) >>> 0) & 7
-        const hutNight = Math.max(0, Math.min(3, Math.round(nightFactor * 3)))
-        const hutSprite = getBuildingSprite('Hut', 1, 1, TILE, hutVariant, hutNight, 1)
+        let hutSprite = hutSprites[hutVariant]
+        if (hutSprite === undefined) {
+          hutSprite = getBuildingSprite('Hut', 1, 1, TILE, hutVariant, hutNight, 1)
+          hutSprites[hutVariant] = hutSprite
+        }
         if (hutSprite) {
           ctx.drawImage(
             hutSprite,
@@ -178,9 +181,8 @@ export function draw_terrain(f: DrawFrame) {
             Math.round(by + BH + SPRITE_PAD_BOT - hutSprite.height),
           )
         }
-        const now = Date.now()
-        const smokeAlpha = !world.is_day && !overview ? 0.25 : 0
         if (smokeAlpha > 0) {
+          const now = Date.now()
           for (let s = 0; s < 3; s++) {
             const phase = (now * 0.0008 + s * 0.4) % 1
             ctx.fillStyle = `rgba(180,180,185,${smokeAlpha * (1 - phase)})`
@@ -257,10 +259,12 @@ export function draw_terrain(f: DrawFrame) {
 
   if (structure) {
     for (let row = r0; row < r1; row++) {
+      const structureRow = structure[row]
+      const tileRow = tiles[row]
       for (let col = c0; col < c1; col++) {
-        const s = structure[row][col]
+        const s = structureRow[col]
         if (s < 0.05) continue
-        const t = tiles[row][col]
+        const t = tileRow[col]
         if (t === 8) continue
         const px = col * TILE
         const py = row * TILE
@@ -268,9 +272,9 @@ export function draw_terrain(f: DrawFrame) {
         if (TILE >= 8) {
           const cx2 = px + TILE / 2
           if (s >= 0.7) {
-            ctx.fillStyle = `rgba(120,90,60,${0.6 + s * 0.3})`
+            ctx.fillStyle = structureStyle(0, s)
             ctx.fillRect(px + 1, py + TILE * 0.5, TILE - 2, TILE * 0.5 - 1)
-            ctx.fillStyle = `rgba(90,70,50,${0.7 + s * 0.25})`
+            ctx.fillStyle = structureStyle(1, s)
             ctx.beginPath()
             ctx.moveTo(cx2, py + 2)
             ctx.lineTo(px + TILE - 2, py + TILE * 0.52)
@@ -281,9 +285,9 @@ export function draw_terrain(f: DrawFrame) {
             ctx.fillRect(px + 2, py + TILE * 0.55, 3, 3)
             ctx.fillRect(px + TILE - 5, py + TILE * 0.65, 3, 3)
           } else if (s >= 0.35) {
-            ctx.fillStyle = `rgba(100,65,30,${0.45 + s * 0.4})`
+            ctx.fillStyle = structureStyle(2, s)
             ctx.fillRect(px + 2, py + TILE * 0.45, TILE - 4, TILE * 0.55 - 1)
-            ctx.fillStyle = `rgba(80,50,20,${0.5 + s * 0.35})`
+            ctx.fillStyle = structureStyle(3, s)
             ctx.beginPath()
             ctx.moveTo(cx2 - 1, py + 3)
             ctx.lineTo(px + TILE - 2, py + TILE * 0.47)
@@ -291,7 +295,7 @@ export function draw_terrain(f: DrawFrame) {
             ctx.closePath()
             ctx.fill()
           } else {
-            ctx.fillStyle = `rgba(130,95,45,${s * 2.5})`
+            ctx.fillStyle = structureStyle(4, s)
             ctx.fillRect(px + 1, py + TILE * 0.6, TILE - 2, TILE * 0.35)
           }
         } else {
