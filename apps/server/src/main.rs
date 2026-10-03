@@ -24,8 +24,6 @@ mod memory_watch;
 mod og_image;
 mod routes;
 mod transport;
-#[cfg(feature = "webtransport")]
-mod webtransport;
 mod world_archive;
 mod world_store;
 
