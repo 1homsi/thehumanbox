@@ -2,21 +2,17 @@ SHELL := /usr/bin/env bash
 
 SEED         ?= 42
 TICKS        ?= 6000
-URL          ?= ws://localhost:8000/ws
 HOST         ?= http://localhost:8000
 OUT          ?= profile.csv
-DURATION     ?= 300
-WORKDIR      ?= lab/datasets/generated/run
-MODEL        ?=
 TAG          ?=
 
 CARGO_RELEASE := cd simulation && cargo
 
 .PHONY: help sim client desktop-dev desktop-pack desktop-release \
-        headless test test-backend test-frontend test-desktop test-lab \
-        lint lint-rust lint-client lint-lab fmt fmt-rust fmt-client \
+        headless test test-backend test-frontend test-desktop \
+        lint lint-rust lint-client fmt fmt-rust fmt-client \
         build build-client build-sim build-desktop wasm \
-        wipe wipe-archive logs profile lab-pipeline metrics snapshot \
+        wipe wipe-archive logs profile metrics snapshot \
         install install-client install-desktop install-sim \
         clean clean-sim clean-client clean-desktop perf-gate \
         ci-status ci-watch ci-log redeploy ec2-status worlds-list \
@@ -28,8 +24,7 @@ help: ## Show this help (default)
 		| sort \
 		| awk 'BEGIN {FS=":.*?## "} {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@printf "\nVariables (override on the command line):\n"
-	@printf "  SEED=$(SEED)  TICKS=$(TICKS)  HOST=$(HOST)  URL=$(URL)\n"
-	@printf "  OUT=$(OUT)  DURATION=$(DURATION)  WORKDIR=$(WORKDIR)\n\n"
+	@printf "  SEED=$(SEED)  TICKS=$(TICKS)  HOST=$(HOST)  OUT=$(OUT)\n\n"
 
 # ── Run servers ─────────────────────────────────────────────────────
 
@@ -50,7 +45,7 @@ desktop-release: ## Build + publish desktop installers to GitHub Releases (requi
 
 # ── Tests ───────────────────────────────────────────────────────────
 
-test: test-backend test-frontend test-desktop test-lab ## Run every test suite
+test: test-backend test-frontend test-desktop ## Run every test suite
 
 test-backend: ## Rust simulation tests (release, locked, whole workspace)
 	$(CARGO_RELEASE) test --release --locked --workspace
@@ -61,12 +56,9 @@ test-frontend: ## Client unit tests
 test-desktop: ## Desktop tsc typecheck
 	cd desktop && pnpm exec tsc -p tsconfig.json --noEmit
 
-test-lab: ## Python lab tests
-	cd lab && $$(test -x .venv/bin/python && printf .venv/bin/python || printf python3) -m pytest
-
 # ── Lint + format ───────────────────────────────────────────────────
 
-lint: lint-rust lint-client lint-lab ## Lint everything
+lint: lint-rust lint-client ## Lint everything
 
 lint-rust: ## cargo fmt --check + clippy (whole workspace)
 	$(CARGO_RELEASE) fmt --all -- --check
@@ -75,9 +67,6 @@ lint-rust: ## cargo fmt --check + clippy (whole workspace)
 lint-client: ## eslint + prettier check
 	cd client && pnpm lint
 	cd client && pnpm format:check
-
-lint-lab: ## ruff check for lab package + tests
-	cd lab && $$(test -x .venv/bin/python && printf .venv/bin/python || printf python3) -m ruff check .
 
 fmt: fmt-rust fmt-client ## Auto-format the entire tree
 
@@ -161,15 +150,6 @@ worlds-list: ## List the locally archived worlds with their meta
 
 logs: ## Tail the local sim log (only when launched via redirect)
 	@tail -f simulation/sim.log 2>/dev/null || echo "no simulation/sim.log — run sim with > sim.log first"
-
-# ── Lab pipeline ────────────────────────────────────────────────────
-
-lab-pipeline: ## Run thought-distillation pipeline — `make lab-pipeline DURATION=300 MODEL=...`
-	python3 lab/scripts/run_pipeline.py \
-		--url $(URL) \
-		--duration $(DURATION) \
-		--workdir $(WORKDIR) \
-		$(if $(MODEL),--eval-model $(MODEL),)
 
 # ── Install ─────────────────────────────────────────────────────────
 

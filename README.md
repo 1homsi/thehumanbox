@@ -19,7 +19,7 @@ Live: [thehumanbox.com](https://thehumanbox.com)
 thehumanbox/
 ├── simulation/   Rust simulation engine + WebSocket server
 ├── client/       React/Vite frontend (2D pixel world)
-└── lab/          Python workspace for model experiments and eval tooling
+└── desktop/      Electron app that wraps the client and the local simulation
 ```
 
 ## Desktop app
