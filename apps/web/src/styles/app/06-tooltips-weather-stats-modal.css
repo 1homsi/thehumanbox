@@ -1,0 +1,315 @@
+/* ── Custom portal tooltip ──────────────────────────────────────────── */
+.ui-tooltip {
+  position: fixed;
+  background: #32271f;
+  color: #c8c8c8;
+  font-size: 11px;
+  font-family: monospace;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: 1px solid #4a372b;
+  max-width: 320px;
+  white-space: normal;
+  word-wrap: break-word;
+  line-height: 1.4;
+  pointer-events: none;
+  z-index: 99999;
+}
+/* Above anchor - tooltip sits above, arrow points down */
+.ui-tooltip--above {
+  transform: translate(-50%, -100%);
+  animation: tooltip-in-above 0.1s ease forwards;
+}
+.ui-tooltip--above .ui-tooltip-arrow {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #4a372b;
+}
+.ui-tooltip--above .ui-tooltip-arrow::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: -4px;
+  border: 4px solid transparent;
+  border-top-color: #32271f;
+}
+/* Below anchor - tooltip sits below, arrow points up */
+.ui-tooltip--below {
+  transform: translate(-50%, 0);
+  animation: tooltip-in-below 0.1s ease forwards;
+}
+.ui-tooltip--below .ui-tooltip-arrow {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: #4a372b;
+}
+.ui-tooltip--below .ui-tooltip-arrow::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: -4px;
+  border: 4px solid transparent;
+  border-bottom-color: #32271f;
+}
+@keyframes tooltip-in-above {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-100% + 4px));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%);
+  }
+}
+@keyframes tooltip-in-below {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -4px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* ── Weather badges ─────────────────────────────────────────────────── */
+.weather-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.weather-badge.rain {
+  background: #0a1a30;
+  color: #66aaff;
+}
+.weather-badge.storm {
+  background: #0d0d22;
+  color: #aabbff;
+  animation: pulse-drought 1.2s ease-in-out infinite;
+}
+
+/* ── Stats modal ─────────────────────────────────────────────────────── */
+.stats-modal,
+.notable-modal,
+.settings-modal {
+  background: #28201a;
+  border: 1px solid #443329;
+  border-radius: 6px;
+  width: 1200px;
+  max-width: 96vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.notable-modal,
+.settings-modal {
+  width: 760px;
+}
+.desktop-toggle-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 28px;
+  padding: 4px 0;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.desktop-toggle-row input {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+.desktop-cap-presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 7px;
+}
+.desktop-cap-presets button {
+  border: 1px solid #443329;
+  border-radius: 3px;
+  background: #1c1612;
+  color: #8f8276;
+  padding: 5px 4px;
+  font: inherit;
+  font-size: 9px;
+  cursor: pointer;
+}
+.desktop-cap-presets button:hover,
+.desktop-cap-presets button.active {
+  border-color: #927047;
+  color: #f0d088;
+  background: #33271d;
+}
+.stats-quick {
+  gap: 8px;
+}
+.stats-num-card {
+  min-width: 78px;
+  padding: 6px 12px;
+}
+.stats-num {
+  font-size: 17px !important;
+}
+/* stats modal header already inherits padding/border from .lang-modal-header */
+.stats-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stats-section-title {
+  font-size: 9px;
+  font-weight: 600;
+  color: #444;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 0 2px;
+  border-bottom: 1px solid #372a21;
+}
+.stats-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.stats-num-card {
+  background: #28201a;
+  border: 1px solid #372a21;
+  border-radius: 4px;
+  padding: 8px 14px;
+  min-width: 72px;
+  text-align: center;
+}
+.stats-num {
+  font-size: 20px;
+  font-weight: 600;
+  color: #ddd;
+}
+.stats-num-label {
+  font-size: 9px;
+  color: #444;
+  margin-top: 2px;
+}
+/* Population chart - explicit min-height so the responsive viewBox SVG
+   actually paints. With just `width: 100%; height: auto` flex children
+   sometimes resolve height to 0 and the chart disappears. */
+.stats-chart-wrap {
+  padding: 2px 0;
+  min-height: 170px;
+  display: flex;
+  align-items: stretch;
+}
+.stats-chart-wrap > svg {
+  width: 100%;
+  height: 170px;
+}
+
+/* Two-column grid for the lower sections so the wide modal isn't a
+   long single column with whitespace on the right. Each grid panel has
+   its own header + content stacked vertically, and the grid wraps to
+   one column on narrow viewports. */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 24px;
+  align-items: start;
+}
+.stats-grid > section {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stats-relations {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stats-rel-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  padding: 3px 0;
+}
+.stats-rel-bar-wrap {
+  flex: 1;
+  max-width: 80px;
+  height: 4px;
+  background: #32271f;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.stats-rel-bar {
+  height: 4px;
+  border-radius: 2px;
+}
+.stats-rel-status {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.status-ally {
+  background: #0a1e0a;
+  color: #55cc88;
+}
+.status-neutral {
+  background: #32271f;
+  color: #666;
+}
+.status-rivals {
+  background: #1e0a0a;
+  color: #cc4444;
+}
+.stats-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stats-timeline-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 10px;
+}
+.stats-tick {
+  color: #444;
+  font-size: 9px;
+  min-width: 36px;
+}
+.stats-actor {
+  color: #aaa;
+  min-width: 70px;
+}
+.stats-detail {
+  color: #666;
+  flex: 1;
+}
+.stats-death-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  font-size: 11px;
+  max-width: 320px;
+}
+.stats-death-grid .hist-val {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
