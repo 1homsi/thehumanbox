@@ -793,8 +793,14 @@ impl Vocabulary {
             order
                 .iter()
                 .filter_map(|&i| {
-                    let word = self.slots.get(i).filter(|w| !w.is_empty())?;
-                    Some((CONCEPTS[i].to_string(), serde_json::Value::String(word.clone())))
+                    let word = self.text(i);
+                    if word.is_empty() {
+                        return None;
+                    }
+                    Some((
+                        CONCEPTS[i].to_string(),
+                        serde_json::Value::String(word.to_string()),
+                    ))
                 })
                 .collect(),
         )
