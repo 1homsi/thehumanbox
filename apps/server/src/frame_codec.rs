@@ -378,6 +378,41 @@ mod tests {
         );
     }
 
+    /// The typed buildings section encodes to the bytes the `Value` objects it
+    /// replaced did (floats widened to `f64`, `null` for non-finite ones, keys
+    /// sorted), for every kind in odd states.
+    #[test]
+    fn typed_buildings_encode_like_the_value_frame() {
+        use crate::sim::buildings::{Building, BuildingKind};
+        let mut sim = Simulation::new(42);
+        sim.buildings.clear();
+        sim.tick_count = 5_000;
+        for (i, kind) in BuildingKind::all().iter().enumerate() {
+            let owner = (i % 3 != 0).then(|| format!("lineage-{}", i % 5));
+            let mut b = Building::new(i as u32 + 1, *kind, i as i32 % 600, i as i32 % 300, owner, 12);
+            b.condition = [1.0, 0.37, f32::NAN, 0.999, 0.0][i % 5];
+            match i % 4 {
+                1 => b.damage = 0.3,
+                2 => {
+                    b.damage = f32::NAN;
+                    b.ruined_at_tick = Some(4_000);
+                }
+                3 => {
+                    b.damage = 0.5;
+                    b.last_damage_tick = Some(4_960);
+                    b.last_repair_tick = Some(4_990);
+                    b.condition = 1.0;
+                }
+                _ => {}
+            }
+            sim.buildings.push(b);
+        }
+        let typed = sim.state_frame();
+        let via_value = FramePayload::from(sim.state_frame().into_value());
+        assert!(typed.entries().iter().any(|(k, _)| *k == "buildings"));
+        assert_eq!(encode(&typed).unwrap(), reference(&via_value));
+    }
+
     /// Optional layers present or absent in every combination, with values on
     /// the width boundaries, in a hand-built grid.
     #[test]

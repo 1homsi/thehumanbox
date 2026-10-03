@@ -95,9 +95,81 @@ pub struct FramePayload {
     rest: serde_json::Map<String, serde_json::Value>,
     grid: Option<crate::world::grid::GridJson>,
     organisms_hot: Option<crate::organism::organism::OrgsHotSoa>,
+    buildings: Option<Vec<BuildingJson>>,
+}
+
+/// An `f32` as `serde_json::Value` holds it: widened to `f64`, or `null` when
+/// it is not finite. Typed sections use it so they encode to the same bytes
+/// as the `Value` they replace.
+struct Num32(f32);
+
+impl serde::Serialize for Num32 {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        if self.0.is_finite() {
+            serializer.serialize_f64(f64::from(self.0))
+        } else {
+            serializer.serialize_unit()
+        }
+    }
+}
+
+/// One building as a frame carries it (every frame after a building changed,
+/// and every full frame). Fields are declared alphabetically: that is the key
+/// order of the sorted `Value` object this replaces.
+#[derive(serde::Serialize)]
+pub struct BuildingJson {
+    // `condition` is retained for older clients. It is construction progress,
+    // not structural health.
+    condition: Num32,
+    construction_progress: Num32,
+    damage: Num32,
+    fh: u8,
+    function: &'static str,
+    fw: u8,
+    id: u32,
+    integrity: Num32,
+    kind: &'static str,
+    last_damage_tick: Option<u64>,
+    last_repair_tick: Option<u64>,
+    lineage_id: String,
+    repairing: bool,
+    ruined: bool,
+    ruined_at_tick: Option<u64>,
+    x: i32,
+    y: i32,
+}
+
+impl BuildingJson {
+    fn new(b: &crate::sim::buildings::Building, tick: u64) -> Self {
+        let (fw, fh) = b.kind.footprint();
+        BuildingJson {
+            condition: Num32(b.condition),
+            construction_progress: Num32(b.condition),
+            damage: Num32(b.damage_fraction()),
+            fh,
+            function: b.kind.function().label(),
+            fw,
+            id: b.id,
+            integrity: Num32(b.integrity()),
+            kind: b.kind.name(),
+            last_damage_tick: b.last_damage_tick,
+            last_repair_tick: b.last_repair_tick,
+            lineage_id: b.owner_lineage.clone().unwrap_or_default(),
+            repairing: b.is_repairing_at(tick),
+            ruined: b.is_ruined(),
+            ruined_at_tick: b.ruined_at_tick,
+            x: b.x,
+            y: b.y,
+        }
+    }
 }
 
 impl FramePayload {
+    /// Set the typed buildings section.
+    pub fn set_buildings(&mut self, buildings: Vec<BuildingJson>) {
+        self.buildings = Some(buildings);
+    }
+
     pub fn as_object_mut(&mut self) -> Option<&mut serde_json::Map<String, serde_json::Value>> {
         Some(&mut self.rest)
     }
@@ -118,12 +190,16 @@ impl FramePayload {
             mut rest,
             grid,
             organisms_hot,
+            buildings,
         } = self;
         if let Some(grid) = grid {
             rest.insert("grid".to_string(), serde_json::to_value(grid).unwrap());
         }
         if let Some(soa) = organisms_hot {
             rest.insert("organisms_hot".to_string(), serde_json::to_value(&soa).unwrap());
+        }
+        if let Some(buildings) = buildings {
+            rest.insert("buildings".to_string(), serde_json::to_value(&buildings).unwrap());
         }
         serde_json::Value::Object(rest)
     }
@@ -140,6 +216,7 @@ impl From<serde_json::Value> for FramePayload {
             rest,
             grid: None,
             organisms_hot: None,
+            buildings: None,
         }
     }
 }
@@ -149,6 +226,7 @@ pub enum FrameEntry<'a> {
     Json(&'a serde_json::Value),
     Grid(&'a crate::world::grid::GridJson),
     HotOrganisms(&'a crate::organism::organism::OrgsHotSoa),
+    Buildings(&'a [BuildingJson]),
 }
 
 impl serde::Serialize for FrameEntry<'_> {
@@ -157,6 +235,7 @@ impl serde::Serialize for FrameEntry<'_> {
             FrameEntry::Json(value) => value.serialize(serializer),
             FrameEntry::Grid(grid) => grid.serialize(serializer),
             FrameEntry::HotOrganisms(soa) => soa.serialize(serializer),
+            FrameEntry::Buildings(list) => list.serialize(serializer),
         }
     }
 }
@@ -172,6 +251,9 @@ impl FramePayload {
         }
         if let Some(soa) = &self.organisms_hot {
             entries.push(("organisms_hot", FrameEntry::HotOrganisms(soa)));
+        }
+        if let Some(list) = &self.buildings {
+            entries.push(("buildings", FrameEntry::Buildings(list)));
         }
         entries.sort_by(|a, b| a.0.cmp(b.0));
         entries
@@ -331,6 +413,38 @@ impl Simulation {
                 },
             })
         }
+    }
+
+    /// The buildings section as it was built before it became typed
+    /// (`BuildingJson`): one `json!` object per building. The test reference.
+    #[cfg(test)]
+    fn buildings_value_reference(&self) -> serde_json::Value {
+        serde_json::Value::Array(
+            self.buildings
+                .iter()
+                .map(|b| {
+                    json!({
+                        "id": b.id,
+                        "kind": b.kind.name(),
+                        "x": b.x,
+                        "y": b.y,
+                        "lineage_id": b.owner_lineage.clone().unwrap_or_default(),
+                        "condition": b.condition,
+                        "construction_progress": b.condition,
+                        "damage": b.damage_fraction(),
+                        "integrity": b.integrity(),
+                        "ruined": b.is_ruined(),
+                        "repairing": b.is_repairing_at(self.tick_count),
+                        "ruined_at_tick": b.ruined_at_tick,
+                        "last_damage_tick": b.last_damage_tick,
+                        "last_repair_tick": b.last_repair_tick,
+                        "fw": b.kind.footprint().0,
+                        "fh": b.kind.footprint().1,
+                        "function": format!("{:?}", b.kind.function()).to_lowercase(),
+                    })
+                })
+                .collect(),
+        )
     }
 
     fn viewport_centroid(&self) -> (i32, i32) {
@@ -1013,35 +1127,14 @@ impl Simulation {
         }
         let buildings_changed = self.building_state_revision != self.serialized_building_state_revision;
         if include_cold || force_full || buildings_changed {
-            if let Some(obj) = payload.as_object_mut() {
-                let buildings_json: Vec<serde_json::Value> = self
-                    .buildings
-                    .iter()
-                    .map(|b| {
-                        json!({
-                            "id": b.id,
-                            "kind": b.kind.name(),
-                            "x": b.x,
-                            "y": b.y,
-                            "lineage_id": b.owner_lineage.clone().unwrap_or_default(),
-                            // `condition` is retained for older clients. It is
-                            // construction progress, not structural health.
-                            "condition": b.condition,
-                            "construction_progress": b.condition,
-                            "damage": b.damage_fraction(),
-                            "integrity": b.integrity(),
-                            "ruined": b.is_ruined(),
-                            "repairing": b.is_repairing_at(self.tick_count),
-                            "ruined_at_tick": b.ruined_at_tick,
-                            "last_damage_tick": b.last_damage_tick,
-                            "last_repair_tick": b.last_repair_tick,
-                            "fw": b.kind.footprint().0,
-                            "fh": b.kind.footprint().1,
-                            "function": format!("{:?}", b.kind.function()).to_lowercase(),
-                        })
-                    })
-                    .collect();
-                obj.insert("buildings".to_string(), serde_json::Value::Array(buildings_json));
+            {
+                let tick = self.tick_count;
+                payload.set_buildings(
+                    self.buildings
+                        .iter()
+                        .map(|b| BuildingJson::new(b, tick))
+                        .collect(),
+                );
                 self.serialized_building_state_revision = self.building_state_revision;
             }
         }
@@ -1432,6 +1525,97 @@ mod schema_tests {
         assert_eq!(settlement["capacity"].as_u64(), Some(6));
         assert!(settlement["score"].as_u64().is_some_and(|score| score >= 24));
         assert_eq!(settlement["center"].as_array().map(Vec::len), Some(2));
+    }
+
+    /// The typed buildings section must equal the `json!` objects it replaced,
+    /// as values and as JSON text, for every kind and for the odd states a
+    /// building can be in: owned or not, damaged, ruined, repairing, unfinished,
+    /// NaN damage and condition.
+    #[test]
+    fn typed_buildings_match_the_value_reference() {
+        use crate::sim::buildings::{Building, BuildingKind};
+        let mut sim = Simulation::new(42);
+        sim.buildings.clear();
+        sim.tick_count = 5_000;
+        for (i, kind) in BuildingKind::all().iter().enumerate() {
+            let owner = (i % 3 != 0).then(|| format!("lineage-{}", i % 5));
+            let mut b = Building::new(
+                i as u32 + 1,
+                *kind,
+                i as i32 * 7 % 600,
+                i as i32 * 3 % 300,
+                owner,
+                12,
+            );
+            b.condition = match i % 5 {
+                0 => 1.0,
+                1 => 0.37,
+                2 => f32::NAN,
+                3 => 0.999,
+                _ => 0.0,
+            };
+            match i % 7 {
+                1 => b.damage = 0.3,
+                2 => {
+                    b.damage = 1.0;
+                    b.ruined_at_tick = Some(4_000);
+                }
+                3 => {
+                    b.damage = 0.5;
+                    b.last_damage_tick = Some(4_960);
+                    b.last_repair_tick = Some(4_990);
+                    b.condition = 1.0;
+                }
+                4 => b.damage = f32::NAN,
+                5 => {
+                    b.damage = 0.0001;
+                    b.last_repair_tick = Some(1);
+                }
+                _ => {}
+            }
+            sim.buildings.push(b);
+        }
+        assert!(sim.buildings.len() > 50);
+        let reference = sim.buildings_value_reference();
+        let frame = sim.state_frame().into_value();
+        assert_eq!(frame["buildings"], reference);
+        assert_eq!(
+            serde_json::to_string(&frame["buildings"]).unwrap(),
+            serde_json::to_string(&reference).unwrap()
+        );
+        // And the typed section serialises like its `Value`.
+        let typed = sim.state_frame();
+        let entries = typed.entries();
+        let (_, entry) = entries.iter().find(|(k, _)| *k == "buildings").unwrap();
+        assert_eq!(
+            serde_json::to_string(entry).unwrap(),
+            serde_json::to_string(&reference).unwrap()
+        );
+    }
+
+    #[test]
+    fn building_function_labels_match_the_debug_names() {
+        use crate::sim::buildings::{BuildingFunction::*, BuildingKind};
+        for function in [
+            Housing,
+            Education,
+            Worship,
+            Trade,
+            Industry,
+            Healthcare,
+            Military,
+            Civic,
+            Infrastructure,
+            Recreation,
+        ] {
+            assert_eq!(function.label(), format!("{function:?}").to_lowercase());
+        }
+        for kind in BuildingKind::all() {
+            assert_eq!(
+                kind.function().label(),
+                format!("{:?}", kind.function()).to_lowercase()
+            );
+        }
     }
 
     /// `entity_head` moves the grid, organism and animal sections into the
