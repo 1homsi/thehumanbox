@@ -27,50 +27,20 @@ pub fn available_actions_into(
 ) {
     let org = &sim.organisms[idx];
     let tile = sim.grid.get(ix, iy);
-    let (sx, sy) = (org.x, org.y);
     let lid = &org.lineage_id;
 
-    spatial.query_into(sx as i32, sy as i32, 6, nearby);
-    let mut kin_near = false;
-    let mut kin_count = 0;
-    let mut stranger_near = false;
-    for &i in nearby.iter() {
-        if i == idx {
-            continue;
-        }
-        let o = &sim.organisms[i];
-        if !o.alive || (o.x - sx).abs() + (o.y - sy).abs() > 6.0 {
-            continue;
-        }
-        if o.lineage_id == *lid {
-            kin_near = true;
-            kin_count += 1;
-        } else {
-            stranger_near = true;
-        }
-    }
+    let context = EligibilityContext::gather(sim, idx, ix, iy, spatial, nearby);
+    let EligibilityContext {
+        kin_near,
+        stranger_near,
+        near_water,
+        has_food,
+        has_materials: has_mats,
+        ..
+    } = context;
     let any_near = kin_near || stranger_near;
-    let has_mats = org.inv_wood > 0 || org.inv_stone > 0;
-    let has_food = org.inv_food > 0 || matches!(tile, Tile::Food);
-    let near_water =
-        (-2i32..=2).any(|dx| (-2i32..=2).any(|dy| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Water)));
-    let near_rock = [
-        (-1, 0),
-        (1, 0),
-        (0, -1),
-        (0, 1),
-        (-1, -1),
-        (1, -1),
-        (-1, 1),
-        (1, 1),
-    ]
-    .iter()
-    .any(|&(dx, dy)| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Rock | Tile::Mineral));
-    let near_fire = (-2i32..=2).any(|dx| {
-        (-2i32..=2).any(|dy| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Fire | Tile::Campfire))
-    });
-    let near_home = (org.home_x - org.x).abs() + (org.home_y - org.y).abs() <= 10.0;
     let needs_low = org.energy < 0.5 || org.hydration < 0.5;
+    let near_rock = context.near_rock;
 
     actions.clear();
     let a = actions;
@@ -175,32 +145,15 @@ pub fn available_actions_into(
 
     a.extend(536..=537);
     let era = sim.era(lid);
-    let context = EligibilityContext {
-        kin_near,
-        kin_count,
-        stranger_near,
-        near_water,
-        near_rock,
-        near_fire,
-        near_home,
-        wild_land: matches!(
-            tile,
-            Tile::Grass | Tile::Food | Tile::Sand | Tile::Snow | Tile::Ash
-        ),
-        has_food,
-        has_carried_food: org.inv_food > 0,
-        has_materials: has_mats,
-        has_wood: org.inv_wood > 0,
-        has_stone: org.inv_stone > 0,
-    };
     let phase = stable_action_phase(&org.id, sim.tick_count);
     let mut semantically_eligible = ActionSet::new();
     let mut place_cache = LocalPlaceCache::new();
     let tables = resolved::tables();
     let gate = tables.org_gate(org);
+    let bits = ctx_bits(sim, idx, ix, iy, &context);
     for resolved in &tables.base {
         let band = resolved.band;
-        if band_is_eligible(sim, idx, ix, iy, resolved, era, context, &gate, &mut place_cache) {
+        if band_is_eligible(sim, ix, iy, resolved, era, bits, &gate, &mut place_cache, lid) {
             a.extend(band.start..=band.end);
             semantically_eligible.insert_range(band.start, band.end);
         }
@@ -208,7 +161,7 @@ pub fn available_actions_into(
     let mut eligible_by_family = [0u64; ACTION_FAMILY_COUNT];
     for resolved in tables.banded.iter().chain(&tables.registered) {
         let band = resolved.band;
-        if band_is_eligible(sim, idx, ix, iy, resolved, era, context, &gate, &mut place_cache) {
+        if band_is_eligible(sim, ix, iy, resolved, era, bits, &gate, &mut place_cache, lid) {
             semantically_eligible.insert_range(band.start, band.end);
             mark_eligible_family_band(&mut eligible_by_family, band.start, band.end);
         }

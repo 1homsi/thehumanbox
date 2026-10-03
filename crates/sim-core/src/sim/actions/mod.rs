@@ -31,7 +31,7 @@ use registry::ActionDef;
 pub use registry::{registered_actions, FIRST_REGISTERED_ID, LAST_REGISTERED_ID};
 use reservation::*;
 pub(crate) use resolved::discovery_bit;
-use resolved::{OrgGate, ResolvedBand};
+use resolved::{OrgGate, ResolvedBand, LAZY_BRIDGE_MATERIALS, LAZY_BRIDGE_SITE, LAZY_NEAR_HUT};
 
 const ACTIONS_PER_BAND: usize = 8;
 

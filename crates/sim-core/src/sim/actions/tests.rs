@@ -1190,3 +1190,86 @@ fn ids_without_a_context_check_pass_every_context_check() {
         }
     }
 }
+
+/// The mask-based band gate must open and close exactly where the original
+/// gate-by-gate check did, for organisms in every kind of situation.
+#[test]
+fn band_gate_masks_agree_with_the_gate_by_gate_check() {
+    use crate::sim::civ::progress::eras::LADDER;
+    let mut sim = Simulation::new(0xba5e);
+    let mut state = 0x9e37_79b9_7f4a_7c15u64;
+    let mut next = move |modulus: u64| {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        state % modulus
+    };
+    let mut compared = 0usize;
+    let mut open = 0usize;
+    for round in 0..6 {
+        for _ in 0..200 {
+            sim.tick();
+        }
+        let spatial = SpatialIndex::build(&sim.organisms, 10);
+        for idx in 0..sim.organisms.len().min(40) {
+            if !sim.organisms[idx].alive {
+                continue;
+            }
+            for variation in 0..6 {
+                {
+                    let org = &mut sim.organisms[idx];
+                    if variation > 0 {
+                        org.inv_food = next(3) as u8;
+                        org.inv_wood = next(3) as u8;
+                        org.inv_stone = next(3) as u8;
+                        org.wealth = next(2) as u32 * next(50) as u32;
+                        org.is_leader = next(4) == 0;
+                        org.literacy = next(101) as f32 / 100.0;
+                        org.x = (next(560) + 20) as f32;
+                        org.y = (next(260) + 20) as f32;
+                        org.home_x = org.x + (next(30) as f32 - 15.0);
+                        org.home_y = org.y + (next(30) as f32 - 15.0);
+                    }
+                }
+                let lineage = sim.organisms[idx].lineage_id.clone();
+                sim.lineage_eras
+                    .insert(lineage.clone(), LADDER[next(LADDER.len() as u64) as usize]);
+                let (ix, iy) = (sim.organisms[idx].x as i32, sim.organisms[idx].y as i32);
+                let mut nearby = Vec::new();
+                let context = EligibilityContext::gather(&sim, idx, ix, iy, &spatial, &mut nearby);
+                let bits = ctx_bits(&sim, idx, ix, iy, &context);
+                let era = sim.era(&lineage);
+                let tables = resolved::tables();
+                let gate = tables.org_gate(&sim.organisms[idx]);
+                let mut fast_cache = LocalPlaceCache::new();
+                let mut reference_cache = LocalPlaceCache::new();
+                for band in tables.base.iter().chain(&tables.banded).chain(&tables.registered) {
+                    let fast =
+                        band_is_eligible(&sim, ix, iy, band, era, bits, &gate, &mut fast_cache, &lineage);
+                    let reference = band_is_eligible_reference(
+                        &sim,
+                        idx,
+                        ix,
+                        iy,
+                        band,
+                        era,
+                        context,
+                        &gate,
+                        &mut reference_cache,
+                    );
+                    assert_eq!(
+                        fast, reference,
+                        "round {round}, organism {idx}, variation {variation}, band {}..={}",
+                        band.band.start, band.band.end
+                    );
+                    compared += 1;
+                    open += usize::from(fast);
+                }
+            }
+        }
+    }
+    assert!(
+        compared > 50_000 && open > 1_000,
+        "compared {compared}, open {open}"
+    );
+}

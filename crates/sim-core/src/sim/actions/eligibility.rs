@@ -17,6 +17,79 @@ pub(super) struct EligibilityContext {
     pub(super) has_stone: bool,
 }
 
+impl EligibilityContext {
+    /// Look around `(ix, iy)` for what the gates ask about. Leaves the
+    /// organisms within the six-tile query in `nearby` for the caller.
+    pub(super) fn gather(
+        sim: &Simulation,
+        idx: usize,
+        ix: i32,
+        iy: i32,
+        spatial: &crate::sim::spatial::SpatialIndex,
+        nearby: &mut Vec<usize>,
+    ) -> Self {
+        let org = &sim.organisms[idx];
+        let tile = sim.grid.get(ix, iy);
+        let (sx, sy) = (org.x, org.y);
+        let lid = &org.lineage_id;
+
+        spatial.query_into(sx as i32, sy as i32, 6, nearby);
+        let mut kin_near = false;
+        let mut kin_count = 0;
+        let mut stranger_near = false;
+        for &i in nearby.iter() {
+            if i == idx {
+                continue;
+            }
+            let o = &sim.organisms[i];
+            if !o.alive || (o.x - sx).abs() + (o.y - sy).abs() > 6.0 {
+                continue;
+            }
+            if o.lineage_id == *lid {
+                kin_near = true;
+                kin_count += 1;
+            } else {
+                stranger_near = true;
+            }
+        }
+        let near_water =
+            (-2i32..=2).any(|dx| (-2i32..=2).any(|dy| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Water)));
+        let near_rock = [
+            (-1, 0),
+            (1, 0),
+            (0, -1),
+            (0, 1),
+            (-1, -1),
+            (1, -1),
+            (-1, 1),
+            (1, 1),
+        ]
+        .iter()
+        .any(|&(dx, dy)| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Rock | Tile::Mineral));
+        let near_fire = (-2i32..=2).any(|dx| {
+            (-2i32..=2).any(|dy| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Fire | Tile::Campfire))
+        });
+        Self {
+            kin_near,
+            kin_count,
+            stranger_near,
+            near_water,
+            near_rock,
+            near_fire,
+            near_home: (org.home_x - org.x).abs() + (org.home_y - org.y).abs() <= 10.0,
+            wild_land: matches!(
+                tile,
+                Tile::Grass | Tile::Food | Tile::Sand | Tile::Snow | Tile::Ash
+            ),
+            has_food: org.inv_food > 0 || matches!(tile, Tile::Food),
+            has_carried_food: org.inv_food > 0,
+            has_materials: org.inv_wood > 0 || org.inv_stone > 0,
+            has_wood: org.inv_wood > 0,
+            has_stone: org.inv_stone > 0,
+        }
+    }
+}
+
 pub(super) fn stable_action_phase(id: &str, tick: u64) -> usize {
     let hash = id.bytes().fold(2_166_136_261u32, |hash, byte| {
         (hash ^ u32::from(byte)).wrapping_mul(16_777_619)
@@ -274,6 +347,7 @@ impl LocalPlaceCache {
         }
     }
 
+    #[cfg(test)]
     pub(super) fn workspace(
         &mut self,
         sim: &Simulation,
@@ -289,6 +363,13 @@ impl LocalPlaceCache {
             != 0
     }
 
+    /// The workspace kinds within reach, as a bit mask.
+    pub(super) fn workspaces(&mut self, sim: &Simulation, lineage: &str, ix: i32, iy: i32) -> u32 {
+        self.snapshot
+            .get_or_insert_with(|| local_place_snapshot(sim, lineage, ix, iy))
+            .workspaces
+    }
+
     pub(super) fn hut(&mut self, sim: &Simulation, lineage: &str, ix: i32, iy: i32) -> bool {
         *self.hut.get_or_insert_with(|| {
             (-1..=1).any(|dx| (-1..=1).any(|dy| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Hut)))
@@ -300,7 +381,8 @@ impl LocalPlaceCache {
     }
 }
 
-pub(super) fn band_is_eligible(
+#[cfg(test)]
+pub(super) fn band_is_eligible_reference(
     sim: &Simulation,
     idx: usize,
     ix: i32,
@@ -384,6 +466,129 @@ pub(super) fn band_is_eligible(
     }
 }
 
+/// Bits describing the situation an organism is in, one per condition a band
+/// can require. A band's requirement is a mask of these (`GateReq::ctx`), so
+/// checking it is a single AND.
+pub(super) mod ctx {
+    pub(in crate::sim::actions) const KIN: u32 = 1 << 0;
+    pub(in crate::sim::actions) const STRANGER: u32 = 1 << 1;
+    pub(in crate::sim::actions) const ANYONE: u32 = 1 << 2;
+    pub(in crate::sim::actions) const KIN_AND_STRANGER: u32 = 1 << 3;
+    pub(in crate::sim::actions) const NEAR_WATER: u32 = 1 << 4;
+    pub(in crate::sim::actions) const NEAR_ROCK: u32 = 1 << 5;
+    pub(in crate::sim::actions) const NEAR_FIRE: u32 = 1 << 6;
+    pub(in crate::sim::actions) const NEAR_HOME: u32 = 1 << 7;
+    pub(in crate::sim::actions) const WILD_LAND: u32 = 1 << 8;
+    pub(in crate::sim::actions) const HAS_FOOD: u32 = 1 << 9;
+    pub(in crate::sim::actions) const HAS_CARRIED_FOOD: u32 = 1 << 10;
+    pub(in crate::sim::actions) const HAS_MATERIALS: u32 = 1 << 11;
+    pub(in crate::sim::actions) const HAS_TRADE_GOODS: u32 = 1 << 12;
+    pub(in crate::sim::actions) const HAS_WEALTH: u32 = 1 << 13;
+    pub(in crate::sim::actions) const HAS_WOOD: u32 = 1 << 14;
+    pub(in crate::sim::actions) const HAS_WOOD_AND_STONE: u32 = 1 << 15;
+    pub(in crate::sim::actions) const HAS_STONE: u32 = 1 << 16;
+    pub(in crate::sim::actions) const HAS_METALWORKING_INPUTS: u32 = 1 << 17;
+    pub(in crate::sim::actions) const TILE_BUILDABLE: u32 = 1 << 18;
+    pub(in crate::sim::actions) const TILE_HUT: u32 = 1 << 19;
+    pub(in crate::sim::actions) const HUT_OR_ROCK: u32 = 1 << 20;
+    pub(in crate::sim::actions) const HOME_AND_WATER: u32 = 1 << 21;
+    pub(in crate::sim::actions) const FIRE_OR_WATER: u32 = 1 << 22;
+    /// Bits 23.. say "at least n kin nearby", for n in 1..=MAX_KIN_COUNT_GATE.
+    const KIN_COUNT_BASE: u32 = 23;
+    pub(in crate::sim::actions) const MAX_KIN_COUNT_GATE: u8 = 8;
+
+    pub(in crate::sim::actions) fn kin_count_at_least(count: u8) -> u32 {
+        assert!(
+            (1..=MAX_KIN_COUNT_GATE).contains(&count),
+            "KinCount({count}) is outside what the gate bits cover"
+        );
+        1 << (KIN_COUNT_BASE + u32::from(count) - 1)
+    }
+}
+
+/// Every `ctx` bit that holds for this organism here and now.
+pub(super) fn ctx_bits(sim: &Simulation, idx: usize, ix: i32, iy: i32, context: &EligibilityContext) -> u32 {
+    use ctx::*;
+    let org = &sim.organisms[idx];
+    let tile = sim.grid.get(ix, iy);
+    let mut bits = 0;
+    let mut set = |condition: bool, bit: u32| {
+        if condition {
+            bits |= bit;
+        }
+    };
+    set(context.kin_near, KIN);
+    set(context.stranger_near, STRANGER);
+    set(context.kin_near || context.stranger_near, ANYONE);
+    set(context.kin_near && context.stranger_near, KIN_AND_STRANGER);
+    set(context.near_water, NEAR_WATER);
+    set(context.near_rock, NEAR_ROCK);
+    set(context.near_fire, NEAR_FIRE);
+    set(context.near_home, NEAR_HOME);
+    set(context.wild_land, WILD_LAND);
+    set(context.has_food, HAS_FOOD);
+    set(context.has_carried_food, HAS_CARRIED_FOOD);
+    set(context.has_materials, HAS_MATERIALS);
+    set(
+        context.has_carried_food || context.has_materials || org.wealth > 0,
+        HAS_TRADE_GOODS,
+    );
+    set(org.wealth > 0, HAS_WEALTH);
+    set(context.has_wood, HAS_WOOD);
+    set(context.has_wood && context.has_stone, HAS_WOOD_AND_STONE);
+    set(context.has_stone, HAS_STONE);
+    set(context.has_stone && org.wealth > 0, HAS_METALWORKING_INPUTS);
+    set(
+        matches!(tile, Tile::Grass | Tile::Sand | Tile::Snow),
+        TILE_BUILDABLE,
+    );
+    set(matches!(tile, Tile::Hut), TILE_HUT);
+    set(matches!(tile, Tile::Hut) || context.near_rock, HUT_OR_ROCK);
+    set(context.near_home && context.near_water, HOME_AND_WATER);
+    set(context.near_fire || context.near_water, FIRE_OR_WATER);
+    for count in 1..=MAX_KIN_COUNT_GATE {
+        set(context.kin_count >= usize::from(count), kin_count_at_least(count));
+    }
+    bits
+}
+
+/// Whether `resolved` is open to this organism. Same answer as
+/// `band_is_eligible_reference`, reached with a few mask tests instead of a
+/// match per gate: everything that is a plain condition was folded into
+/// `bits`; the building scan and the bridge checks run only for bands that
+/// get that far.
+pub(super) fn band_is_eligible(
+    sim: &Simulation,
+    ix: i32,
+    iy: i32,
+    resolved: &ResolvedBand,
+    era: Era,
+    bits: u32,
+    gate: &OrgGate,
+    place_cache: &mut LocalPlaceCache,
+    lineage: &str,
+) -> bool {
+    let band = &resolved.band;
+    if era < band.min_era || !gate.age_ok(band.age) || resolved.req.ctx & !bits != 0 || !resolved.passes(gate)
+    {
+        return false;
+    }
+    if resolved.req.workspaces != 0
+        && resolved.req.workspaces & !place_cache.workspaces(sim, lineage, ix, iy) != 0
+    {
+        return false;
+    }
+    let lazy = resolved.req.lazy;
+    if lazy == 0 {
+        return true;
+    }
+    (lazy & LAZY_NEAR_HUT == 0 || place_cache.hut(sim, lineage, ix, iy))
+        && (lazy & LAZY_BRIDGE_SITE == 0
+            || crate::sim::civ_tick::construction_site_is_valid(sim, BuildingKind::Bridge, ix, iy))
+        && (lazy & LAZY_BRIDGE_MATERIALS == 0
+            || crate::sim::civ_tick::lineage_can_afford_construction(sim, lineage, BuildingKind::Bridge))
+}
+
 pub(super) fn eligible_band_for_action(
     sim: &Simulation,
     idx: usize,
@@ -397,62 +602,8 @@ pub(super) fn eligible_band_for_action(
         return None;
     }
     let mut nearby = Vec::with_capacity(16);
-    spatial.query_into(org.x as i32, org.y as i32, 6, &mut nearby);
-    let mut kin_near = false;
-    let mut kin_count = 0;
-    let mut stranger_near = false;
-    for other_index in nearby {
-        if other_index == idx {
-            continue;
-        }
-        let other = &sim.organisms[other_index];
-        if !other.alive || (other.x - org.x).abs() + (other.y - org.y).abs() > 6.0 {
-            continue;
-        }
-        if other.lineage_id == org.lineage_id {
-            kin_near = true;
-            kin_count += 1;
-        } else {
-            stranger_near = true;
-        }
-    }
-
-    let tile = sim.grid.get(ix, iy);
-    let near_water =
-        (-2i32..=2).any(|dx| (-2i32..=2).any(|dy| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Water)));
-    let near_rock = [
-        (-1, 0),
-        (1, 0),
-        (0, -1),
-        (0, 1),
-        (-1, -1),
-        (1, -1),
-        (-1, 1),
-        (1, 1),
-    ]
-    .iter()
-    .any(|&(dx, dy)| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Rock | Tile::Mineral));
-    let near_fire = (-2i32..=2).any(|dx| {
-        (-2i32..=2).any(|dy| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Fire | Tile::Campfire))
-    });
-    let context = EligibilityContext {
-        kin_near,
-        kin_count,
-        stranger_near,
-        near_water,
-        near_rock,
-        near_fire,
-        near_home: (org.home_x - org.x).abs() + (org.home_y - org.y).abs() <= 10.0,
-        wild_land: matches!(
-            tile,
-            Tile::Grass | Tile::Food | Tile::Sand | Tile::Snow | Tile::Ash
-        ),
-        has_food: org.inv_food > 0 || matches!(tile, Tile::Food),
-        has_carried_food: org.inv_food > 0,
-        has_materials: org.inv_wood > 0 || org.inv_stone > 0,
-        has_wood: org.inv_wood > 0,
-        has_stone: org.inv_stone > 0,
-    };
+    let context = EligibilityContext::gather(sim, idx, ix, iy, spatial, &mut nearby);
+    let bits = ctx_bits(sim, idx, ix, iy, &context);
     let era = sim.era(&org.lineage_id);
     let mut place_cache = LocalPlaceCache::new();
 
@@ -465,7 +616,17 @@ pub(super) fn eligible_band_for_action(
         .chain(&tables.registered)
         .find(|resolved| {
             (resolved.band.start..=resolved.band.end).contains(&action)
-                && band_is_eligible(sim, idx, ix, iy, resolved, era, context, &gate, &mut place_cache)
+                && band_is_eligible(
+                    sim,
+                    ix,
+                    iy,
+                    resolved,
+                    era,
+                    bits,
+                    &gate,
+                    &mut place_cache,
+                    &org.lineage_id,
+                )
         })
         .map(|resolved| resolved.band)
 }
