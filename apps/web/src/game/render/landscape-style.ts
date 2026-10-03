@@ -1,7 +1,22 @@
 import { BIOME_ID, TILE_ID } from '../model/terrain-ids'
 
-/** Wire depth is inverse: 0 is deep ocean, 200 is the shoreline. */
+const oceanColors = new Map<number, [number, number, number]>()
+
+/**
+ * Wire depth is inverse: 0 is deep ocean, 200 is the shoreline. The result is shared
+ * between calls for the same depth (a terrain rebuild asks for it once per water tile),
+ * so callers must not modify it.
+ */
 export function oceanColor(wireDepth: number): [number, number, number] {
+  const cached = oceanColors.get(wireDepth)
+  if (cached) return cached
+  const color = computeOceanColor(wireDepth)
+  if (oceanColors.size >= 1024) oceanColors.clear()
+  oceanColors.set(wireDepth, color)
+  return color
+}
+
+function computeOceanColor(wireDepth: number): [number, number, number] {
   const shallow = Math.max(0, Math.min(1, wireDepth / 200))
   const stops = [
     [24, 55, 91],

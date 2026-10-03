@@ -2,6 +2,16 @@ import { TILE_ID } from '../model/terrain-ids'
 
 /** Quiet, directional surface marks rather than uniform television-static grain. */
 export function terrainDetail(tile: number, x: number, y: number): number {
+  // Water, rock-free ground and everything else without surface marks costs nothing.
+  if (
+    tile !== TILE_ID.SAND &&
+    tile !== TILE_ID.ROCK &&
+    tile !== TILE_ID.SNOW &&
+    tile !== TILE_ID.GRASS &&
+    tile !== TILE_ID.FOOD
+  ) {
+    return 0
+  }
   const cellX = Math.floor(x / 6),
     cellY = Math.floor(y / 5)
   const hash = Math.imul(cellX, 374761393) ^ Math.imul(cellY, 668265263)

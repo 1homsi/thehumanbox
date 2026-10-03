@@ -57,17 +57,14 @@ export function mountainHeights(
         const i = y * width + x
         if (h[i] === 0) continue
         let low = MAX_HEIGHT
-        for (const [dx, dy] of [
-          [-1, 0],
-          [1, 0],
-          [0, -1],
-          [0, 1],
-        ]) {
-          const nx = x + dx
-          const ny = y + dy
-          const n = nx < 0 || ny < 0 || nx >= width || ny >= height ? 0 : h[ny * width + nx]
-          if (n < low) low = n
-        }
+        const west = x <= 0 ? 0 : h[i - 1]
+        if (west < low) low = west
+        const east = x + 1 >= width ? 0 : h[i + 1]
+        if (east < low) low = east
+        const north = y <= 0 ? 0 : h[i - width]
+        if (north < low) low = north
+        const south = y + 1 >= height ? 0 : h[i + width]
+        if (south < low) low = south
         if (low + 1 < h[i]) h[i] = low + 1
       }
     }

@@ -126,6 +126,24 @@ export function drawTreeSway(
   }
 }
 
+// The placement order is a fixed shuffle of the cell indices that depends only on how
+// many cells the grid has, so it is built once per grid size, not once per repaint.
+let treeOrderCache: { n: number; order: Int32Array } | null = null
+export function treePlacementOrder(n: number): Int32Array {
+  if (treeOrderCache && treeOrderCache.n === n) return treeOrderCache.order
+  const order = new Int32Array(n)
+  for (let i = 0; i < n; i++) order[i] = i
+  for (let i = n - 1; i > 0; i--) {
+    const r = (i * 2654435761) >>> 0
+    const j = r % (i + 1)
+    const tmp = order[i]
+    order[i] = order[j]
+    order[j] = tmp
+  }
+  treeOrderCache = { n, order }
+  return order
+}
+
 export function drawTrees(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -144,15 +162,7 @@ export function drawTrees(
   const acacias: { x: number; y: number; s: number }[] = []
 
   const placed: Uint8Array = new Uint8Array(width * height)
-  const order: number[] = []
-  for (let i = 0; i < width * height; i++) order.push(i)
-  for (let i = order.length - 1; i > 0; i--) {
-    const r = (i * 2654435761) >>> 0
-    const j = r % (i + 1)
-    const tmp = order[i]
-    order[i] = order[j]
-    order[j] = tmp
-  }
+  const order = treePlacementOrder(width * height)
 
   for (const idx of order) {
     const x = idx % width
