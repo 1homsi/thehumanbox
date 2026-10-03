@@ -1,6 +1,6 @@
 use super::traits::Traits;
 use super::vocabulary::Vocabulary;
-use crate::sim::buildings::Building;
+use crate::sim::buildings::BuildingList;
 use crate::world::{
     grid::{TrailKind, WorldGrid},
     tiles::Tile,

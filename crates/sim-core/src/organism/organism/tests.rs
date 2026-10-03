@@ -516,7 +516,7 @@ fn hungry_organism_filters_learned_choice_to_survival_actions() {
 
     let (action, _) = org.choose_action(
         &grid,
-        &[],
+        &BuildingList::new(),
         100,
         0.0,
         &[],
@@ -560,7 +560,7 @@ fn injured_organism_filters_learned_choice_to_recovery_actions() {
 
     let (action, _) = org.choose_action(
         &grid,
-        &[],
+        &BuildingList::new(),
         100,
         0.0,
         &[],
@@ -606,7 +606,7 @@ fn active_directive_does_not_override_stronger_learned_choice() {
 
     let (action, _) = org.choose_action(
         &grid,
-        &[],
+        &BuildingList::new(),
         100,
         0.0,
         &[],
@@ -652,7 +652,7 @@ fn active_directive_biases_tie_without_forcing_action() {
 
     let (action, _) = org.choose_action(
         &grid,
-        &[],
+        &BuildingList::new(),
         100,
         0.0,
         &[],
@@ -698,7 +698,7 @@ fn equal_q_actions_do_not_always_choose_the_highest_id() {
 
         let (action, _) = org.choose_action(
             &grid,
-            &[],
+            &BuildingList::new(),
             100,
             0.0,
             &[],
@@ -752,7 +752,7 @@ fn untried_actions_are_not_ranked_by_numeric_id() {
 
         let (action, _) = org.choose_action(
             &grid,
-            &[],
+            &BuildingList::new(),
             100,
             0.0,
             &[],
@@ -818,7 +818,7 @@ fn wander_target_does_not_override_stronger_learned_choice() {
 
     let (action, thought) = org.choose_action(
         &grid,
-        &[],
+        &BuildingList::new(),
         100,
         0.0,
         &[],
@@ -864,7 +864,7 @@ fn wander_target_biases_tie_without_forcing_action() {
 
     let (action, thought) = org.choose_action(
         &grid,
-        &[],
+        &BuildingList::new(),
         100,
         0.0,
         &[],
@@ -902,7 +902,19 @@ fn hydrated_organisms_leave_water_instead_of_lingering() {
     org.hydration = 0.95;
     org.water_ticks = 8;
 
-    let (action, thought) = org.choose_action(&grid, &[], 100, 0.0, &[], false, 0, &mut rng, false, "", &[]);
+    let (action, thought) = org.choose_action(
+        &grid,
+        &BuildingList::new(),
+        100,
+        0.0,
+        &[],
+        false,
+        0,
+        &mut rng,
+        false,
+        "",
+        &[],
+    );
 
     assert_eq!(DIRECTIONS[action], (1, 0));
     assert_eq!(thought.as_deref(), Some("swimming ashore"));
@@ -939,7 +951,19 @@ fn builder_packs_shelter_beside_a_hut_on_the_home_tile() {
     org.carrying = 2;
     org.carrying_type = 1;
 
-    let (action, thought) = org.choose_action(&grid, &[], 100, 0.0, &[], false, 0, &mut rng, false, "", &[]);
+    let (action, thought) = org.choose_action(
+        &grid,
+        &BuildingList::new(),
+        100,
+        0.0,
+        &[],
+        false,
+        0,
+        &mut rng,
+        false,
+        "",
+        &[],
+    );
     assert_eq!(thought.as_deref(), Some("packing shelter"));
     assert_eq!(action, 17);
 }
@@ -972,7 +996,19 @@ fn hydrated_wader_in_shallows_keeps_going_instead_of_turning_back() {
     org.water_ticks = 1;
     org.wander_target = Some((20, 10));
 
-    let (_, thought) = org.choose_action(&grid, &[], 100, 0.0, &[], false, 0, &mut rng, false, "", &[]);
+    let (_, thought) = org.choose_action(
+        &grid,
+        &BuildingList::new(),
+        100,
+        0.0,
+        &[],
+        false,
+        0,
+        &mut rng,
+        false,
+        "",
+        &[],
+    );
     assert_ne!(thought.as_deref(), Some("swimming ashore"));
 }
 
@@ -1171,7 +1207,7 @@ fn committed_journey_moves_around_wall_instead_of_shuffling() {
         }
         let (action, _) = org.choose_action(
             &grid,
-            &[],
+            &BuildingList::new(),
             tick,
             0.0,
             &[],
@@ -1204,7 +1240,7 @@ fn committed_journey_moves_around_wall_instead_of_shuffling() {
     org.energy = 0.1;
     let (action, _) = org.choose_action(
         &grid,
-        &[],
+        &BuildingList::new(),
         110,
         0.0,
         &[],
@@ -1262,7 +1298,7 @@ fn indexed_local_decisions_match_population_scan() {
             let mut indexed_rng = StdRng::seed_from_u64(seed);
             let full = org.choose_action(
                 &grid,
-                &[],
+                &BuildingList::new(),
                 100,
                 0.1,
                 &people,
@@ -1275,7 +1311,7 @@ fn indexed_local_decisions_match_population_scan() {
             );
             let indexed = org.choose_action_with_neighbors(
                 &grid,
-                &[],
+                &BuildingList::new(),
                 100,
                 0.1,
                 &people,
@@ -1324,8 +1360,20 @@ fn toolmakers_fetch_stone_from_nearby_rock() {
     let thoughts: Vec<Option<String>> = (0..200)
         .map(|seed| {
             let mut rng = StdRng::seed_from_u64(seed);
-            org.choose_action(&grid, &[], 100, 0.0, &[], false, 0, &mut rng, false, "", &[])
-                .1
+            org.choose_action(
+                &grid,
+                &BuildingList::new(),
+                100,
+                0.0,
+                &[],
+                false,
+                0,
+                &mut rng,
+                false,
+                "",
+                &[],
+            )
+            .1
         })
         .collect();
     assert!(thoughts
@@ -1335,8 +1383,19 @@ fn toolmakers_fetch_stone_from_nearby_rock() {
     org.x = 15.0;
     let quarried = (0..200).any(|seed| {
         let mut rng = StdRng::seed_from_u64(seed);
-        org.choose_action(&grid, &[], 100, 0.0, &[], false, 0, &mut rng, false, "", &[])
-            == (29, Some("quarrying stone".to_string()))
+        org.choose_action(
+            &grid,
+            &BuildingList::new(),
+            100,
+            0.0,
+            &[],
+            false,
+            0,
+            &mut rng,
+            false,
+            "",
+            &[],
+        ) == (29, Some("quarrying stone".to_string()))
     });
     assert!(quarried, "next to rock they quarry");
 }
