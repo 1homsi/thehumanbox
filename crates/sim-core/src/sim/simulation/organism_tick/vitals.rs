@@ -57,7 +57,7 @@ impl Simulation {
                 Tile::Grass | Tile::Food | Tile::Ash | Tile::Hut | Tile::Snow | Tile::Sand
             ) {
                 let prev_s = self.grid.structure_at(cx, cy);
-                let has_masonry = self.organisms[idx].discoveries.contains("masonry");
+                let has_masonry = self.organisms[idx].discoveries.has(Hot::Masonry);
                 let deposit = match (self.organisms[idx].carrying_type, has_masonry) {
                     (2, true) => 0.0090,
                     (2, false) => 0.0060,
@@ -165,7 +165,7 @@ impl Simulation {
         }
         self.apply_water_fatigue(idx, cx, cy);
         if night {
-            let has_torch = self.organisms[idx].discoveries.contains("torch");
+            let has_torch = self.organisms[idx].discoveries.has(Hot::Torch);
             let night_base = if has_torch { 0.0002 } else { 0.0005 };
             let night_drain = night_base * shelter_drain_mult;
             self.organisms[idx].energy = (self.organisms[idx].energy - night_drain).max(0.0);
@@ -402,7 +402,7 @@ impl Simulation {
             }
         }
 
-        if self.organisms[idx].discoveries.contains("trap") {
+        if self.organisms[idx].discoveries.has(Hot::Trap) {
             let (cx2, cy2) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             let food_trail = self.grid.detect_trail(cx2, cy2, TrailKind::Food, 3);
             if food_trail > 0.45 && self.rng.random::<f32>() < 0.0025 {
@@ -413,7 +413,7 @@ impl Simulation {
             }
         }
 
-        if night && self.organisms[idx].discoveries.contains("ritual") {
+        if night && self.organisms[idx].discoveries.has(Hot::Ritual) {
             let (cx2, cy2) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             let near_fire = (-3i32..=3)
                 .any(|ddx| (-3i32..=3).any(|ddy| self.grid.get(cx2 + ddx, cy2 + ddy) == Tile::Campfire));

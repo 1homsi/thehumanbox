@@ -5,7 +5,7 @@ use crate::world::{
     grid::{TrailKind, WorldGrid},
     tiles::Tile,
 };
-pub use discoveries::{Discoveries, DiscoveryMask, DISCOVERY_MASK_WORDS};
+pub use discoveries::{Discoveries, DiscoveryMask, Hot, DISCOVERY_MASK_WORDS};
 use rand::{Rng, RngExt};
 use rustc_hash::FxHashMap;
 use rustc_hash::FxHashMap as HashMap;

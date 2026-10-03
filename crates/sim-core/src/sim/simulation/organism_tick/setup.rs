@@ -97,8 +97,8 @@ impl Simulation {
         // Passive territory: organisms gradually stamp their lineage onto land they inhabit.
         // Those with borders/territory discovery claim a wider radius around home.
         if self.tick_count % 40 == (idx as u64 % 40) {
-            let has_borders = self.organisms[idx].discoveries.contains("territory")
-                || self.organisms[idx].discoveries.contains("borders");
+            let has_borders = self.organisms[idx].discoveries.has(Hot::Territory)
+                || self.organisms[idx].discoveries.has(Hot::Borders);
             let (hx, hy) = (
                 self.organisms[idx].home_x as i32,
                 self.organisms[idx].home_y as i32,
