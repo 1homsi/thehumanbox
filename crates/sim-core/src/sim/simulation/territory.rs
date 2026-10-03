@@ -25,6 +25,83 @@ impl Simulation {
                 to_claim.push((tx, ty));
             }
         }
+        if !self.territory.contains_key(lid) {
+            self.territory.insert(lid.to_string(), Default::default());
+        }
+        let Some(tiles) = self.territory.get_mut(lid) else {
+            return;
+        };
+        for p in &to_claim {
+            tiles.insert(*p);
+        }
+        let mut evicted: Vec<(i32, i32)> = Vec::new();
+        if tiles.len() > MAX_TERRITORY {
+            // The tiles farthest from the claimed center go, ties broken by the
+            // order the set yields them. Only the `excess` farthest are wanted,
+            // so pick them out and order just those rather than sorting all.
+            let mut ranked: Vec<(i32, usize, (i32, i32))> = tiles
+                .iter()
+                .enumerate()
+                .map(|(order, &(x, y))| (-((x - cx) * (x - cx) + (y - cy) * (y - cy)), order, (x, y)))
+                .collect();
+            let excess = ranked.len() - MAX_TERRITORY;
+            if excess < ranked.len() {
+                ranked.select_nth_unstable_by_key(excess, |&(distance, order, _)| (distance, order));
+                ranked.truncate(excess);
+            }
+            ranked.sort_unstable_by_key(|&(distance, order, _)| (distance, order));
+            for (_, _, p) in ranked {
+                tiles.remove(&p);
+                evicted.push(p);
+            }
+        }
+        // Update the inverse map. New claims overwrite (most-recent
+        // wins). Evictions only clear the inverse entry if it was
+        // owned by *this* lineage - another lineage may have a more
+        // recent claim on the same tile.
+        for p in to_claim {
+            match self.tile_owner.get_mut(&p) {
+                Some(owner) if owner == lid => {}
+                Some(owner) => {
+                    owner.clear();
+                    owner.push_str(lid);
+                }
+                None => {
+                    self.tile_owner.insert(p, lid.to_string());
+                }
+            }
+        }
+        for p in evicted {
+            if let Some(owner) = self.tile_owner.get(&p) {
+                if owner == lid {
+                    self.tile_owner.remove(&p);
+                }
+            }
+        }
+    }
+
+    /// The claim as it was before borrowing the lineage id and picking the
+    /// evicted tiles instead of sorting them all, kept to check the new one
+    /// against.
+    #[cfg(test)]
+    pub(super) fn claim_territory_reference(&mut self, lid: &str, cx: i32, cy: i32, radius: i32) {
+        const MAX_TERRITORY: usize = 400;
+        // Pre-compute the tile list so we can update both maps without
+        // holding two mutable borrows on `self` simultaneously.
+        let mut to_claim: Vec<(i32, i32)> = Vec::new();
+        for dy in -radius..=radius {
+            for dx in -radius..=radius {
+                if dx * dx + dy * dy > radius * radius {
+                    continue;
+                }
+                let tx = (cx + dx).clamp(0, crate::world::grid::WIDTH as i32 - 1);
+                let ty = (cy + dy).clamp(0, crate::world::grid::HEIGHT as i32 - 1);
+                if matches!(self.grid.get(tx, ty), Tile::Water | Tile::Void) {
+                    continue;
+                }
+                to_claim.push((tx, ty));
+            }
+        }
         let tiles = self.territory.entry(lid.to_string()).or_default();
         for p in &to_claim {
             tiles.insert(*p);

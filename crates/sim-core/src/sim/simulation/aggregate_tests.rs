@@ -111,3 +111,63 @@ fn lineage_aggregates_match_the_cloning_version() {
         );
     }
 }
+
+/// Territory as the maps hold it: lineages, their tiles and the tile owners,
+/// each in the order the maps yield them, because later claims read that order.
+fn territory_state(sim: &Simulation) -> (Vec<(String, Vec<(i32, i32)>)>, Vec<((i32, i32), String)>) {
+    (
+        sim.territory
+            .iter()
+            .map(|(lineage, tiles)| (lineage.clone(), tiles.iter().copied().collect()))
+            .collect(),
+        sim.tile_owner
+            .iter()
+            .map(|(&tile, owner)| (tile, owner.clone()))
+            .collect(),
+    )
+}
+
+#[test]
+fn territory_claims_match_the_sorting_version() {
+    let mut evicting_claims = 0;
+    for seed in [7u64, 42] {
+        let mut fast = lived_in(seed, 300);
+        let mut original = lived_in(seed, 300);
+        let lineages: Vec<String> = {
+            let mut ids: Vec<String> = fast.organisms.iter().map(|o| o.lineage_id.clone()).collect();
+            ids.sort();
+            ids.dedup();
+            ids
+        };
+        let mut state = seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        for step in 0..1_500 {
+            // Three lineages share a patch of land, so their territories
+            // overlap and fill up, with the odd claim off the edge of the world.
+            let lineage = &lineages[(next() % 3.min(lineages.len() as u64)) as usize];
+            let cx = 150 + (next() % 50) as i32 + if step % 97 == 0 { -190 } else { 0 };
+            let cy = 100 + (next() % 40) as i32;
+            let radius = [1, 3, 4, 6, 6][(next() % 5) as usize];
+            let before = fast.territory.get(lineage).map_or(0, |t| t.len());
+            fast.claim_territory(lineage, cx, cy, radius);
+            original.claim_territory_reference(lineage, cx, cy, radius);
+            evicting_claims += usize::from(before + 1 > 400 && radius >= 3);
+            assert_eq!(
+                territory_state(&fast),
+                territory_state(&original),
+                "seed {seed} step {step}"
+            );
+        }
+        let largest = fast.territory.values().map(|t| t.len()).max().unwrap_or(0);
+        assert_eq!(largest, 400, "no lineage ever filled its territory");
+    }
+    assert!(
+        evicting_claims > 50,
+        "too few claims had to evict: {evicting_claims}"
+    );
+}
