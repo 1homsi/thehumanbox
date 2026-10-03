@@ -1,7 +1,7 @@
 import { drawTradeNetwork2D } from '.././base-layer'
 import { lineageEraTiers } from '.././draw-helpers'
 
-import { compareBuildingsByDepth, drawBuilding, RUIN_CRUMBLE_TICKS } from '.././buildings2d'
+import { drawBuilding, RUIN_CRUMBLE_TICKS, sortBuildingsByDepth } from '.././buildings2d'
 
 import { PERIL_HELP, remainingLine } from '../../model/tribe-peril'
 
@@ -41,9 +41,11 @@ export function draw_buildings(f: DrawFrame) {
     const bdp = world.day_progress ?? 0.5
     const bNight = world.is_day ? 0 : Math.max(0, Math.min(1, 1 - Math.abs(bdp - 0.5) * 2))
     const buildingDetail = zoomDetailLevel(cameraZoom)
-    const sorted = world.buildings
-      .filter((b) => b.x - ox >= cxLo && b.x - ox <= cxHi && b.y - oy >= ryLo && b.y - oy <= ryHi)
-      .sort(compareBuildingsByDepth)
+    const sorted = sortBuildingsByDepth(
+      world.buildings.filter(
+        (b) => b.x - ox >= cxLo && b.x - ox <= cxHi && b.y - oy >= ryLo && b.y - oy <= ryHi,
+      ),
+    )
     const tiers = lineageEraTiers(world.lineage_eras)
     for (const b of sorted) {
       if (typeof b.x !== 'number' || typeof b.y !== 'number') continue

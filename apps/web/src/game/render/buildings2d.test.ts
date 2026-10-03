@@ -3,7 +3,9 @@ import type { Building } from '../../shared/types'
 import {
   buildingDepthKey,
   compareBuildingsByDepth,
+  buildingFootprint,
   resolveBuildingFootprint,
+  sortBuildingsByDepth,
   type BuildingLike,
 } from './buildings2d'
 
@@ -63,6 +65,59 @@ describe('2D building layout', () => {
     ]
 
     expect(buildings.sort(compareBuildingsByDepth).map(({ id }) => id)).toEqual([1, 3, 9])
+  })
+})
+
+describe('sortBuildingsByDepth', () => {
+  function seeded(seed: number) {
+    let s = seed >>> 0
+    return () => {
+      s = (Math.imul(s, 1664525) + 1013904223) >>> 0
+      return s / 4294967296
+    }
+  }
+
+  it('matches sorting with compareBuildingsByDepth, including ties and malformed numbers', () => {
+    const rand = seeded(7)
+    const kinds = ['Hut', 'house', 'town_house', 'University', 'Pyramid', 'mystery_kind', 'Dock']
+    const list: BuildingLike[] = []
+    for (let i = 0; i < 400; i++) {
+      list.push(
+        building({
+          id: Math.floor(rand() * 60),
+          kind: kinds[Math.floor(rand() * kinds.length)],
+          x: rand() < 0.05 ? Number.NaN : Math.floor(rand() * 12),
+          y: rand() < 0.05 ? Number.POSITIVE_INFINITY : Math.floor(rand() * 12),
+          ...(rand() < 0.4 ? { fw: Math.floor(rand() * 5), fh: Math.floor(rand() * 5) } : {}),
+          ...(rand() < 0.2 ? { footprint: [1 + Math.floor(rand() * 4), 1 + Math.floor(rand() * 4)] } : {}),
+        }),
+      )
+    }
+    const expected = [...list].sort(compareBuildingsByDepth)
+    const actual = sortBuildingsByDepth(list)
+    expect(actual).toHaveLength(expected.length)
+    for (let i = 0; i < expected.length; i++) expect(actual[i]).toBe(expected[i])
+  })
+
+  it('returns a new array and leaves the input order alone', () => {
+    const a = building({ id: 2, y: 9 })
+    const b = building({ id: 1, y: 3 })
+    const input = [a, b]
+    const sorted = sortBuildingsByDepth(input)
+    expect(sorted).not.toBe(input)
+    expect(input).toEqual([a, b])
+    expect(sorted).toEqual([b, a])
+  })
+})
+
+describe('cached kind lookups', () => {
+  it('give the same footprint on repeated calls, for known, snake_case and unknown kinds', () => {
+    for (let round = 0; round < 3; round++) {
+      expect(buildingFootprint('Hut')).toEqual([2, 2])
+      expect(buildingFootprint('town_house')).toEqual([3, 4])
+      expect(buildingFootprint('TOWN_HOUSE')).toEqual([3, 4])
+      expect(buildingFootprint('UnknownBuilding')).toEqual([1, 1])
+    }
   })
 })
 
