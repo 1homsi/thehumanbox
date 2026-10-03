@@ -13,16 +13,6 @@ impl Organism {
             .map(|(h, _)| h)
     }
 
-    pub fn think_ready(&self, scenario: &str, tick: u64, cooldown: u64) -> bool {
-        let last = self.last_think_by_kind.get(scenario).copied().unwrap_or(0);
-        tick.saturating_sub(last) >= cooldown
-    }
-
-    pub fn mark_thought(&mut self, scenario: &str, tick: u64) {
-        self.last_think_by_kind.insert(scenario.to_string(), tick);
-        self.last_think_tick = tick;
-    }
-
     pub fn carry_load(&self) -> u32 {
         self.inv_water as u32 + self.inv_food as u32 + self.inv_wood as u32 + self.inv_stone as u32
     }

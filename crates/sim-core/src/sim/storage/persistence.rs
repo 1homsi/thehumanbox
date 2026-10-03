@@ -120,11 +120,8 @@ pub(crate) struct OrgSave {
     home_furniture: Vec<String>,
     #[serde(default)]
     home_style_seed: u32,
-    has_reflected: bool,
-    last_invention_tick: u64,
     #[serde(default)]
     last_experiment_tick: u64,
-    last_think_tick: u64,
     partner_id: Option<String>,
     children_count: u32,
     sex: String,
@@ -189,8 +186,6 @@ pub(crate) struct OrgSave {
     zodiac: String,
     #[serde(default)]
     birth_tick: u64,
-    #[serde(default)]
-    last_think_by_kind: std::collections::BTreeMap<String, u64>,
     #[serde(default)]
     mood: f32,
     #[serde(default)]
@@ -263,14 +258,6 @@ pub(crate) struct AnimalSave {
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
-pub(crate) struct NegotiationSave {
-    a: String,
-    b: String,
-    tick: u64,
-}
-
-#[derive(Default, Serialize, Deserialize)]
-#[serde(default)]
 pub(crate) struct WaterUseSave {
     x: i32,
     y: i32,
@@ -306,9 +293,7 @@ pub struct SaveState {
     lineage_strategy_objectives: HashMap<String, crate::sim::simulation::StrategyObjective>,
     #[serde(default)]
     lineage_strategy_history: Vec<crate::sim::simulation::StrategyCampaignRecord>,
-    lineage_last_council: HashMap<String, u64>,
     lineage_elders: HashMap<String, String>,
-    lineage_negotiations: Vec<NegotiationSave>,
     rng: Option<ChaCha8Rng>,
     flood_tiles: Vec<(i32, i32, u64)>,
     #[serde(default)]
@@ -480,10 +465,7 @@ fn org_to_save(o: &Organism) -> OrgSave {
         home_y: o.home_y,
         home_furniture: o.home_furniture.clone(),
         home_style_seed: o.home_style_seed,
-        has_reflected: o.has_reflected,
-        last_invention_tick: o.last_invention_tick,
         last_experiment_tick: o.last_experiment_tick,
-        last_think_tick: o.last_think_tick,
         partner_id: o.partner_id.clone(),
         children_count: o.children_count,
         sex: o.sex.as_str().to_string(),
@@ -519,7 +501,6 @@ fn org_to_save(o: &Organism) -> OrgSave {
         memories: o.memories.clone(),
         zodiac: o.zodiac.clone(),
         birth_tick: o.birth_tick,
-        last_think_by_kind: o.last_think_by_kind.clone(),
         mood: o.mood,
         hope: o.hope,
         awe: o.awe,
@@ -615,10 +596,7 @@ fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
     }
     o.home_furniture = s.home_furniture;
     o.home_style_seed = s.home_style_seed;
-    o.has_reflected = s.has_reflected;
-    o.last_invention_tick = s.last_invention_tick;
     o.last_experiment_tick = s.last_experiment_tick;
-    o.last_think_tick = s.last_think_tick;
     o.partner_id = s.partner_id;
     o.children_count = s.children_count;
     o.sex = crate::organism::organism::Sex::from_str(&s.sex);
@@ -661,7 +639,6 @@ fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
         o.birth_tick = s.birth_tick;
     }
     if save_version >= 4 {
-        o.last_think_by_kind = s.last_think_by_kind;
         o.mood = s.mood;
         o.hope = s.hope;
         o.awe = s.awe;
@@ -844,17 +821,7 @@ impl Simulation {
                 .rev()
                 .cloned()
                 .collect(),
-            lineage_last_council: self.lineage_last_council.clone(),
             lineage_elders: self.lineage_elders.clone(),
-            lineage_negotiations: self
-                .lineage_negotiations
-                .iter()
-                .map(|((a, b), &tick)| NegotiationSave {
-                    a: a.clone(),
-                    b: b.clone(),
-                    tick,
-                })
-                .collect(),
             rng: Some(self.rng.clone()),
             flood_tiles: self.flood_tiles.clone(),
             wards: self.wards.clone(),
@@ -1066,29 +1033,15 @@ impl Simulation {
             rain_relief: state.drought.rain_relief,
         };
 
-        let tick = state.tick_count;
         let save_version = state.version;
-        let is_legacy_save = state.rng.is_none();
         let mut organisms: Vec<_> = state
             .organisms
             .into_iter()
             .map(|saved| org_from_save(saved, save_version))
             .collect();
-        {
-            use rand::RngExt;
-            let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed ^ tick ^ 0xdeadbeef);
-            for org in &mut organisms {
-                if is_legacy_save {
-                    if tick.saturating_sub(org.last_think_tick) >= 4000 {
-                        org.last_think_tick = tick - rng.random_range(0..4000);
-                    }
-                    if tick.saturating_sub(org.last_invention_tick) >= 5000 {
-                        org.last_invention_tick = tick - rng.random_range(0..5000);
-                    }
-                }
-                org.x = org.x.clamp(1.0, WIDTH as f32 - 2.0);
-                org.y = org.y.clamp(1.0, HEIGHT as f32 - 2.0);
-            }
+        for org in &mut organisms {
+            org.x = org.x.clamp(1.0, WIDTH as f32 - 2.0);
+            org.y = org.y.clamp(1.0, HEIGHT as f32 - 2.0);
         }
 
         let active_structure_tiles: HashSet<(i32, i32)> = {
@@ -1188,16 +1141,7 @@ impl Simulation {
             lineage_strategies: state.lineage_strategies,
             lineage_strategy_objectives: state.lineage_strategy_objectives,
             lineage_strategy_history: state.lineage_strategy_history.into_iter().collect(),
-            lineage_last_council: state.lineage_last_council,
             lineage_elders: state.lineage_elders,
-            lineage_negotiations: state
-                .lineage_negotiations
-                .into_iter()
-                .map(|n| {
-                    let key = if n.a < n.b { (n.a, n.b) } else { (n.b, n.a) };
-                    (key, n.tick)
-                })
-                .collect(),
             pop_history: state.pop_history.into_iter().collect(),
             lineage_centroid_history: state
                 .lineage_centroid_history
