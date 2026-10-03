@@ -207,7 +207,7 @@ mod tests {
                     discoveries.remove(name);
                 }
                 _ => {
-                    if (state >> 50) % 16 == 0 {
+                    if (state >> 50).is_multiple_of(16) {
                         discoveries.clear();
                     }
                 }

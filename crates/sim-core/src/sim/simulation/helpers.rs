@@ -612,7 +612,7 @@ mod tests {
                     Traits::default(),
                 );
                 o.energy = (rng.next() % 5) as f32 * 0.1;
-                o.alive = rng.next() % 9 != 0;
+                o.alive = !rng.next().is_multiple_of(9);
                 o
             })
             .collect()
