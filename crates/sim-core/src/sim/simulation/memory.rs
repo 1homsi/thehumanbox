@@ -67,11 +67,7 @@ impl Simulation {
                     .retain(|k, _| alive_lineages.contains(k));
                 self.lineage_centroid_history
                     .retain(|k, _| alive_lineages.contains(k));
-                self.lineage_last_council
-                    .retain(|k, _| alive_lineages.contains(k));
                 self.lineage_elders.retain(|k, _| alive_lineages.contains(k));
-                self.lineage_negotiations
-                    .retain(|(a, b), _| alive_lineages.contains(a) && alive_lineages.contains(b));
             }
         }
     }
