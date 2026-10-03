@@ -1,8 +1,8 @@
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::{Deserialize, Serialize};
 
-use super::era::Era;
 use super::government::{Government, LawKind};
+use crate::sim::era::Era;
 use crate::sim::tech::buildings::{Building, BuildingKind};
 use crate::sim::world_events::push_event;
 use crate::world::grid::WorldGrid;

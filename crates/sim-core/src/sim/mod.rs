@@ -2,17 +2,19 @@ pub mod actions;
 pub mod command;
 pub mod config;
 pub mod cosmos;
-pub mod persistence;
 pub mod seasons;
-pub mod serialize;
 pub mod simulation;
 pub mod spatial;
+pub mod storage;
 pub mod utils;
 pub mod world_events;
 
 pub mod agents;
 pub mod civ;
 pub mod tech;
+
+// Storage keeps its old paths (sim::persistence, sim::serialize).
+pub use storage::{persistence, serialize};
 
 pub use agents::age_stage;
 pub use agents::convo_req;
