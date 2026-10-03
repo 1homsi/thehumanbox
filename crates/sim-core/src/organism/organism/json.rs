@@ -8,15 +8,14 @@ impl Organism {
     pub(super) fn learning_summary(&self) -> LearningSummary {
         let states = self.q_table.len();
         let tried_actions = self.q_table.values().map(Vec::len).sum();
-        let promising_states = self.q_table.values().filter(|row| row.max_q() > 0.01).count();
+        // One scan of every row for its best value, shared by the promising
+        // count and the confidence sum (each used to rescan every row).
+        let best: Vec<f32> = self.q_table.values().map(|row| row.max_q()).collect();
+        let promising_states = best.iter().filter(|&&q| q > 0.01).count();
         let confidence = if states == 0 {
             0.0
         } else {
-            let total: f32 = self
-                .q_table
-                .values()
-                .map(|row| (row.max_q().max(0.0) / 0.25).clamp(0.0, 1.0))
-                .sum();
+            let total: f32 = best.iter().map(|&q| (q.max(0.0) / 0.25).clamp(0.0, 1.0)).sum();
             (total / states as f32 * 100.0).round() / 100.0
         };
         LearningSummary {
@@ -271,6 +270,203 @@ impl Organism {
                 None
             },
         }
+    }
+
+    /// `serde_json::to_value(self.to_json_with(include_cold))`, built without
+    /// the intermediate `OrgJson`.
+    ///
+    /// Frames convert every organism to a `Value`. Going through the struct
+    /// cloned each string twice (into the struct, then into the `Value`),
+    /// collected the attitude/trust/vocabulary maps into hash maps only to
+    /// re-insert them key by key into `BTreeMap`s, and inserted the ~60 fields
+    /// one at a time. Here the entries are collected once and the object is
+    /// bulk-built (the `Map` constructor sorts them, so the result does not
+    /// depend on the order they are listed in). `OrgJson` and its serde
+    /// output stay as they are for the detail API; the tests keep the two in
+    /// step.
+    pub fn to_json_value_with(&self, include_cold: bool) -> serde_json::Value {
+        use serde_json::Value;
+        let r1 = |v: f32| Value::from((v * 10.0).round() / 10.0);
+        let r2 = |v: f32| Value::from((v * 100.0).round() / 100.0);
+        let r3 = |v: f32| Value::from((v * 1000.0).round() / 1000.0);
+        let text = |s: &str| Value::String(s.to_string());
+        let optional =
+            |s: &Option<String>| s.as_deref().map_or(Value::Null, |s| Value::String(s.to_string()));
+        let mut f: Vec<(String, Value)> = Vec::with_capacity(if include_cold { 64 } else { 16 });
+        let mut put = |key: &str, value: Value| f.push((key.to_string(), value));
+
+        put("id", text(&self.id));
+        put("x", r1(self.x));
+        put("y", r1(self.y));
+        put("energy", r3(self.energy));
+        put("hydration", r3(self.hydration));
+        put("health", r3(self.health));
+        put("age", Value::from(self.age));
+        put("alive", Value::Bool(self.alive));
+        put("thought", text(&self.thought));
+        put("infection", r3(self.infection));
+        put("fear_level", r2(self.fear_level));
+        put("carrying", Value::from(self.carrying));
+        put("carrying_type", Value::from(self.carrying_type));
+        put("pregnant", Value::Bool(self.pregnant));
+        put("partner_id", optional(&self.partner_id));
+        put("attracted_to", optional(&self.attracted_to));
+
+        if include_cold {
+            put(
+                "attitudes",
+                Value::Object(
+                    self.lineage_attitudes
+                        .iter()
+                        .filter(|(_, &v)| v.abs() > 0.1)
+                        .map(|(k, &v)| (k.clone(), r2(v)))
+                        .collect(),
+                ),
+            );
+            put(
+                "org_trust",
+                Value::Object(
+                    self.org_trust
+                        .iter()
+                        .filter(|(_, &v)| v.abs() > 0.15)
+                        .map(|(k, &v)| (k[..k.len().min(8)].to_string(), r2(v)))
+                        .collect(),
+                ),
+            );
+            put(
+                "memory_count",
+                Value::Object(
+                    [
+                        ("food", self.food_memory.len()),
+                        ("water", self.water_memory.len()),
+                        ("danger", self.danger_memory.len()),
+                    ]
+                    .into_iter()
+                    .map(|(k, n)| (k.to_string(), Value::from(n)))
+                    .collect(),
+                ),
+            );
+            let learning = self.learning_summary();
+            put(
+                "learning",
+                Value::Object(
+                    [
+                        ("states", Value::from(learning.states)),
+                        ("tried_actions", Value::from(learning.tried_actions)),
+                        ("promising_states", Value::from(learning.promising_states)),
+                        ("confidence", Value::from(learning.confidence)),
+                    ]
+                    .into_iter()
+                    .map(|(k, v)| (k.to_string(), v))
+                    .collect(),
+                ),
+            );
+            put("loneliness", r2(self.loneliness));
+            put("boredom", r2(self.boredom));
+            put("comfort", r2(self.comfort));
+            put("grief_ticks", Value::from(self.grief_ticks));
+            if self.joy_ticks > 0 {
+                put("joy_ticks", Value::from(self.joy_ticks));
+            }
+            put("hope", r2(self.hope));
+            put("awe", r2(self.awe));
+            put("gratitude", r2(self.gratitude));
+            put("jealousy", r2(self.jealousy));
+            put("anger", r2(self.anger));
+            put("regret", r2(self.regret));
+            put("curiosity_drive", r2(self.curiosity_drive));
+            put("spiritual", r2(self.spiritual));
+            if !self.aspiration.is_empty() {
+                put("aspiration", text(&self.aspiration));
+            }
+            put("sleep_debt", r2(self.sleep_debt));
+            put("children_count", Value::from(self.children_count));
+            put("conversation_count", Value::from(self.conversations.len()));
+
+            put("name", text(&self.name));
+            put("generation", Value::from(self.generation));
+            put("parent_id", text(&self.parent_id));
+            put("father_id", optional(&self.father_id));
+            put("lineage_id", text(&self.lineage_id));
+            put("max_age", Value::from(self.max_age));
+            put("sex", text(self.sex.as_str()));
+            put(
+                "traits",
+                Value::Object(
+                    [
+                        ("curiosity", self.traits.curiosity),
+                        ("aggression", self.traits.aggression),
+                        ("fear", self.traits.fear),
+                        ("memory_strength", self.traits.memory_strength),
+                        ("social_tendency", self.traits.social_tendency),
+                        ("resilience", self.traits.resilience),
+                    ]
+                    .into_iter()
+                    .map(|(k, v)| (k.to_string(), r2(v)))
+                    .collect(),
+                ),
+            );
+            put("vocabulary", self.vocabulary.words_value());
+            put(
+                "discoveries",
+                Value::Array(self.discoveries.iter().map(|d| text(d)).collect()),
+            );
+            put("home_x", r1(self.home_x));
+            put("home_y", r1(self.home_y));
+            put("is_elder", Value::Bool(self.is_elder));
+            if !self.friends.is_empty() {
+                put(
+                    "friends",
+                    Value::Object(self.friends.iter().map(|(k, v)| (k.clone(), text(v))).collect()),
+                );
+            }
+            if !self.attributes.is_empty() {
+                put(
+                    "attributes",
+                    Value::Array(self.attributes.iter().map(|a| text(a)).collect()),
+                );
+            }
+            if !self.anchor_events.is_empty() {
+                put(
+                    "anchor_events",
+                    Value::Array(
+                        self.anchor_events
+                            .iter()
+                            .map(|(tick, what, weight)| {
+                                Value::Array(vec![Value::from(*tick), text(what), Value::from(*weight)])
+                            })
+                            .collect(),
+                    ),
+                );
+            }
+            if !self.tools.is_empty() {
+                put(
+                    "tools",
+                    Value::Object(
+                        self.tools
+                            .iter()
+                            .map(|(k, &n)| (k.clone(), Value::from(n)))
+                            .collect(),
+                    ),
+                );
+            }
+            if !self.home_furniture.is_empty() {
+                put(
+                    "home_furniture",
+                    Value::Array(self.home_furniture.iter().map(|p| text(p)).collect()),
+                );
+            }
+            if self.home_style_seed > 0 {
+                put("home_style_seed", Value::from(self.home_style_seed));
+            }
+            if !self.zodiac.is_empty() {
+                put("zodiac", text(&self.zodiac));
+            }
+            if self.birth_tick > 0 {
+                put("birth_tick", Value::from(self.birth_tick));
+            }
+        }
+        Value::Object(f.into_iter().collect())
     }
 
     pub fn to_detail_json(&self) -> OrgDetailJson {
