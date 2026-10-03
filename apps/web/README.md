@@ -89,15 +89,19 @@ pnpm run build   # outputs to dist/
 
 ```
 src/
-├── App.tsx, main.tsx, App.css, index.css
-├── 2d/               2D world rendering (WorldView), 2D scenes (home, tavern, temple)
-├── scenes/           Shared scene types, registry, core resolver
-├── components/       Modals, panels, inspectors, civ stats, family tree
-├── tour/             Shepherd-based desktop onboarding
-├── hooks/            useIsMobile, useFrozenSnapshot, useOrgDetail
-├── simulation/       useSimulation hook, wire decoding, frame merging
-├── stores/           UI store (zustand slices), live world store, scene store
-├── types/            shared types
-├── utils/            constants, sprite atlas, era utils, lineage colour
-└── lib/              config (API base resolution)
+├── main.tsx, App.tsx, App.css, index.css, pixel-theme.css
+├── game/
+│   ├── render/       Canvas world rendering (WorldView, sprites, terrain, effects)
+│   ├── scenes/       Interior scenes (home, tavern, temple, forge, settlement) + registry
+│   └── model/        Pure game-data helpers (territory, tribe status, peril, prayers)
+├── ui/
+│   ├── modals/       Modals, the router, civ stats (stats/)
+│   ├── panels/       Right panel, event log, tribe/org cards, chips
+│   ├── toolbar/      Sandbox toolbar, tool search, command palette, header
+│   ├── toasts/       Update and download toasts, mobile banner
+│   └── tour/         Shepherd-based desktop onboarding
+├── state/            UI store (zustand slices), live world store, scene store
+├── simulation/       useSimulation hook, wasm worker, wire decoding, frame merging
+├── shared/           config, logging, motion, sprite atlas, era utils, hooks/, types/
+└── wasm/             Generated wasm-pack output (git-ignored)
 ```

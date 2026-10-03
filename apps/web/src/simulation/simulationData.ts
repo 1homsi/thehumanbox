@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { OrgDetail, OrgLife } from '../types'
+import type { OrgDetail, OrgLife } from '../shared/types'
 import type { PlayerWorldKind } from './worldSource'
 
 export interface SimulationDataAccess {

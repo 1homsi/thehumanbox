@@ -1,4 +1,4 @@
-import type { WorldState, GridState, OrganismState, AnimalState } from '../types'
+import type { WorldState, GridState, OrganismState, AnimalState } from '../shared/types'
 import {
   type IncomingWorldFrame,
   type ExpandedOrgDelta,

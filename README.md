@@ -24,8 +24,7 @@ thehumanbox/
 ├── crates/
 │   ├── sim-core/   The simulation engine (native + WebAssembly)
 │   └── headless/   Deterministic headless runs: sweeps, perf gate
-├── tools/          Dev and CI helper scripts
-├── scripts/        Published installer (its raw URL is documented below)
+├── scripts/        Dev and CI helpers, and the published desktop installer
 └── docs/           Images and notes
 ```
 

@@ -1,7 +1,7 @@
 {
   "name": "client",
   "private": true,
-  "version": "0.3.89",
+  "version": "0.3.91",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -26,7 +26,7 @@
     "d3-zoom": "^3.0.0",
     "fflate": "^0.8.3",
     "neverthrow": "^8.2.0",
-    "posthog-js": "^1.434.17",
+    "posthog-js": "^1.435.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "shepherd.js": "^15.3.0",
