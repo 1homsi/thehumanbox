@@ -5,6 +5,7 @@ use crate::world::{
     grid::{TrailKind, WorldGrid},
     tiles::Tile,
 };
+pub use discoveries::{Discoveries, DiscoveryMask, DISCOVERY_MASK_WORDS};
 use rand::{Rng, RngExt};
 use rustc_hash::FxHashMap;
 use rustc_hash::FxHashMap as HashMap;
@@ -12,6 +13,7 @@ use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 mod basics;
+mod discoveries;
 mod helpers;
 mod inner;
 mod json;
@@ -76,7 +78,7 @@ pub struct Organism {
     pub vocabulary: Vocabulary,
     pub last_story_tick: u64,
     pub life_log: VecDeque<LifeEvent>,
-    pub discoveries: BTreeSet<String>,
+    pub discoveries: Discoveries,
 
     pub home_x: f32,
     pub home_y: f32,
@@ -226,7 +228,7 @@ impl Organism {
             vocabulary: Vocabulary::from_hashmap(&rustc_hash::FxHashMap::default()),
             last_story_tick: 0,
             life_log: VecDeque::new(),
-            discoveries: BTreeSet::new(),
+            discoveries: Discoveries::new(),
             home_x: x,
             home_y: y,
             home_furniture: Vec::new(),

@@ -67,6 +67,7 @@ pub(super) fn extend_rotating_family_masks(
     }
 }
 
+#[cfg(test)]
 pub(super) fn qualifies(org: &crate::organism::organism::Organism, requirement: Qualification) -> bool {
     let mut active_gates = 0;
     let mut passed_gates = 0;
@@ -304,27 +305,21 @@ pub(super) fn band_is_eligible(
     idx: usize,
     ix: i32,
     iy: i32,
-    band: ActionBand,
+    resolved: &ResolvedBand,
     era: Era,
     context: EligibilityContext,
+    gate: &OrgGate,
     place_cache: &mut LocalPlaceCache,
 ) -> bool {
+    let band = &resolved.band;
     let org = &sim.organisms[idx];
     if era < band.min_era {
         return false;
     }
 
-    // Cheap gates run first; `qualifies` hashes discovery names, and this
-    // runs for every action band of every organism each tick. All gates must
-    // pass, so the order does not change the result.
-    let stage = org.age_stage();
-    let age_ok = match band.age {
-        AgeGate::Child => matches!(stage, AgeStage::Infant | AgeStage::Child),
-        AgeGate::TeenOrOlder => matches!(stage, AgeStage::Teen | AgeStage::Adult | AgeStage::Elder),
-        AgeGate::AdultOrElder => matches!(stage, AgeStage::Adult | AgeStage::Elder),
-        AgeGate::Elder => stage == AgeStage::Elder || org.is_elder,
-    };
-    if !age_ok {
+    // All gates must pass, so the order does not change the result; the
+    // cheap ones run first.
+    if !gate.age_ok(band.age) {
         return false;
     }
 
@@ -340,7 +335,7 @@ pub(super) fn band_is_eligible(
         return false;
     }
 
-    if !qualifies(org, band.qualification) {
+    if !resolved.passes(gate) {
         return false;
     }
 
@@ -461,13 +456,16 @@ pub(super) fn eligible_band_for_action(
     let era = sim.era(&org.lineage_id);
     let mut place_cache = LocalPlaceCache::new();
 
-    BASE_ACTION_BANDS
+    let tables = resolved::tables();
+    let gate = tables.org_gate(org);
+    tables
+        .base
         .iter()
-        .chain(ACTION_BANDS)
-        .copied()
-        .chain(registry::bands())
-        .find(|band| {
-            (band.start..=band.end).contains(&action)
-                && band_is_eligible(sim, idx, ix, iy, *band, era, context, &mut place_cache)
+        .chain(&tables.banded)
+        .chain(&tables.registered)
+        .find(|resolved| {
+            (resolved.band.start..=resolved.band.end).contains(&action)
+                && band_is_eligible(sim, idx, ix, iy, resolved, era, context, &gate, &mut place_cache)
         })
+        .map(|resolved| resolved.band)
 }
