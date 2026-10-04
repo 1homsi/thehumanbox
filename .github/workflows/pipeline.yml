@@ -187,7 +187,7 @@ jobs:
             find crates/sim-core -type f -not -path '*/target/*' -print0 | sort -z | xargs -0 sha256sum
             sed '/^name = "simulation-rs"$/{n;d;}' Cargo.lock
             grep -v '^version = ' apps/server/Cargo.toml
-            cat Cargo.toml
+            cat Cargo.toml scripts/build-wasm.sh
           } | sha256sum | cut -c1-32 > /tmp/wasm-key
           echo "key=wasm-sim-core-$(cat /tmp/wasm-key)" >> "$GITHUB_OUTPUT"
       - name: Restore wasm build
@@ -211,10 +211,7 @@ jobs:
           tool: wasm-pack
       - name: Build wasm sim-core
         if: steps.wasm-cache.outputs.cache-hit != 'true'
-        run: |
-          RUSTFLAGS='--cfg getrandom_backend="wasm_js"' \
-            wasm-pack build crates/sim-core --target web --release \
-            --out-dir ../../apps/web/src/wasm/sim-core
+        run: scripts/build-wasm.sh
       - uses: actions/upload-artifact@v7
         with:
           name: sim-core-wasm

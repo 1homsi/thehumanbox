@@ -87,9 +87,7 @@ build-sim: ## cargo build --release for the simulation
 wasm: ## Build the browser WASM sim-core into apps/web/src/wasm/sim-core (needs rustup + wasm-pack)
 	rustup target add --toolchain stable wasm32-unknown-unknown >/dev/null 2>&1 || true
 	PATH="$$(dirname "$$(rustup which rustc --toolchain stable)"):$$PATH" \
-		RUSTFLAGS='--cfg getrandom_backend="wasm_js"' \
-		wasm-pack build crates/sim-core --target web --release \
-		--out-dir ../../apps/web/src/wasm/sim-core
+		scripts/build-wasm.sh
 
 build-client: ## Production Vite build (web target)
 	cd apps/web && pnpm run build
