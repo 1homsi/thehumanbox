@@ -179,13 +179,16 @@ describe('resolveMapClick', () => {
     for (let seed = 1; seed <= 40_000; seed++) {
       const input = randomInput(seed)
       const expected = legacy(input)
-      expect(resolveMapClick(input), `seed ${seed}`).toEqual(expected)
+      const actual = resolveMapClick(input)
+      // Cheap check first: a deep equality on every one of the 40,000 is slow.
+      if (JSON.stringify(actual) !== JSON.stringify(expected))
+        expect(actual, `seed ${seed}`).toEqual(expected)
       seen.set(expected.kind, (seen.get(expected.kind) ?? 0) + 1)
     }
     // The generator reaches every kind of outcome, so the comparison is not vacuous.
     for (const kind of ['ignore', 'sandbox', 'prayer', 'territory', 'enter-home', 'select'])
       expect(seen.get(kind) ?? 0, kind).toBeGreaterThan(50)
-  })
+  }, 30_000)
 
   it('picks a person within a tile and a bit, a wider reach on touch screens', () => {
     const world = {

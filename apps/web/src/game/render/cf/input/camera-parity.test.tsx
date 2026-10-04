@@ -191,7 +191,6 @@ describe('cubeforge camera against the map camera', () => {
     }
     const own = await record('own')
     const cf = await record('cf')
-    console.log(JSON.stringify(scenario(5)), JSON.stringify(own[4]), JSON.stringify(cf[4]))
     let compared = 0
     let moved = 0
     let maxPlain = 0

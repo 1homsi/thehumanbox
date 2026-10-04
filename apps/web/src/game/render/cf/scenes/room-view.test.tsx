@@ -9,7 +9,7 @@ import type { RoomPainter } from './room-model'
 /**
  * A room on cubeforge, with a real engine and no GPU: it paints its backdrop
  * every frame, shows the cursor and ring state of whoever is hovered, and
- * selects on click, through the engine's own coordinate conversion and
+ * selects on a tap, through the engine's own coordinate conversion and
  * SpriteLayer.pick().
  */
 
@@ -70,18 +70,19 @@ describe('the room on cubeforge', () => {
     expect(paintBack.mock.calls[0][1]).toEqual(expect.any(Number))
   })
 
-  it('shows a pointer over a person and selects them on click', async () => {
+  it('shows a pointer over a person and selects them on a tap', async () => {
     const { h, onSelectOrg } = await open()
     const canvas = h.canvas()
     // Ada stands on slot (7, 5): feet at (112, 80), hit circle centred two pixels above.
     const at = onScreen(112, 78)
     canvas.dispatchEvent(pointer('pointermove', at.x, at.y))
     expect(canvas.style.cursor).toBe('pointer')
-    canvas.dispatchEvent(new MouseEvent('click', { clientX: at.x, clientY: at.y }))
+    canvas.dispatchEvent(pointer('pointerdown', at.x, at.y))
+    canvas.dispatchEvent(pointer('pointerup', at.x, at.y))
     expect(onSelectOrg).toHaveBeenCalledExactlyOnceWith('a')
   })
 
-  it('ignores a click on the floor and puts the cursor back', async () => {
+  it('ignores a tap on the floor and puts the cursor back', async () => {
     const { h, onSelectOrg } = await open()
     const canvas = h.canvas()
     const person = onScreen(112, 78)
@@ -89,18 +90,21 @@ describe('the room on cubeforge', () => {
     const floor = onScreen(40, 120)
     canvas.dispatchEvent(pointer('pointermove', floor.x, floor.y))
     expect(canvas.style.cursor).toBe('default')
-    canvas.dispatchEvent(new MouseEvent('click', { clientX: floor.x, clientY: floor.y }))
+    canvas.dispatchEvent(pointer('pointerdown', floor.x, floor.y))
+    canvas.dispatchEvent(pointer('pointerup', floor.x, floor.y))
     expect(onSelectOrg).not.toHaveBeenCalled()
   })
 
-  it('misses a click just outside the 14 pixel circle', async () => {
+  it('misses a tap just outside the 14 pixel circle', async () => {
     const { h, onSelectOrg } = await open()
     const canvas = h.canvas()
     const edge = onScreen(112 + 14.5, 78)
-    canvas.dispatchEvent(new MouseEvent('click', { clientX: edge.x, clientY: edge.y }))
+    canvas.dispatchEvent(pointer('pointerdown', edge.x, edge.y))
+    canvas.dispatchEvent(pointer('pointerup', edge.x, edge.y))
     expect(onSelectOrg).not.toHaveBeenCalled()
     const inside = onScreen(112 + 13.5, 78)
-    canvas.dispatchEvent(new MouseEvent('click', { clientX: inside.x, clientY: inside.y }))
+    canvas.dispatchEvent(pointer('pointerdown', inside.x, inside.y))
+    canvas.dispatchEvent(pointer('pointerup', inside.x, inside.y))
     expect(onSelectOrg).toHaveBeenCalledWith('a')
   })
 })

@@ -143,7 +143,7 @@ function RoomScene({ ctx, painter, selectedOrgId, onSelectOrg }: Props) {
   // Hover, cursor and click, through the engine's own conversions and pick().
   useEffect(() => {
     const canvas = engine.canvas
-    const at = (e: PointerEvent | MouseEvent) => {
+    const at = (e: PointerEvent) => {
       const rect = canvas.getBoundingClientRect()
       const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
       return pickOccupant(hits, live.current.placed, world.x, world.y)
@@ -161,17 +161,29 @@ function RoomScene({ ctx, painter, selectedOrgId, onSelectOrg }: Props) {
       labelsDirty.current = true
       canvas.style.cursor = 'default'
     }
-    const click = (e: MouseEvent) => {
+    // A tap, from pointer events: the engine cancels touchstart on its canvas,
+    // which stops browsers from sending the `click` that follows a touch.
+    let down: { id: number; x: number; y: number } | null = null
+    const press = (e: PointerEvent) => {
+      down = { id: e.pointerId, x: e.clientX, y: e.clientY }
+    }
+    const release = (e: PointerEvent) => {
+      const start = down
+      down = null
+      if (!start || start.id !== e.pointerId) return
+      if ((e.clientX - start.x) ** 2 + (e.clientY - start.y) ** 2 > 36) return
       const id = at(e)
       if (id) onSelectRef.current(id)
     }
     canvas.addEventListener('pointermove', move)
     canvas.addEventListener('pointerleave', leave)
-    canvas.addEventListener('click', click)
+    canvas.addEventListener('pointerdown', press)
+    canvas.addEventListener('pointerup', release)
     return () => {
       canvas.removeEventListener('pointermove', move)
       canvas.removeEventListener('pointerleave', leave)
-      canvas.removeEventListener('click', click)
+      canvas.removeEventListener('pointerdown', press)
+      canvas.removeEventListener('pointerup', release)
     }
   }, [engine, screenToWorld, hits])
 

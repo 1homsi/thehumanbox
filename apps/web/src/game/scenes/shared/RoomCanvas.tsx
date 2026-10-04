@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { drawPeopleTile, pickHumanSprite } from '../../../shared/sprites'
 import type { SceneContext, SceneFixture } from '../core/types'
 import { deterministicAppearanceIndex, resolveAgeStage } from '../../render/character-visuals'
@@ -15,7 +15,12 @@ import {
 } from './room-draw'
 import { TILE_PX, SCALE, ROOM_COLS, ROOM_ROWS, CANVAS_W, CANVAS_H } from './room-constants'
 import { cfFlag } from '../../render/cf/flags'
-import { CfRoomView } from '../../render/cf/scenes/CfRoomView'
+import { lazyWithRetry } from '../../../shared/lazyWithRetry'
+
+// Only fetched when ?cf=scenes asks for it.
+const CfRoomView = lazyWithRetry(() =>
+  import('../../render/cf/scenes/CfRoomView').then((m) => ({ default: m.CfRoomView })),
+)
 import { roomPainter } from '../../render/cf/scenes/room-painters'
 
 export { TILE_PX, SCALE, ROOM_COLS, ROOM_ROWS, CANVAS_W, CANVAS_H }
@@ -180,6 +185,10 @@ export function RoomCanvas(props: Props) {
     [onCubeforge, ctx, palette, drawFurniture, occupantSlots],
   )
   if (painter)
-    return <CfRoomView ctx={ctx} painter={painter} selectedOrgId={selectedOrgId} onSelectOrg={onSelectOrg} />
+    return (
+      <Suspense fallback={null}>
+        <CfRoomView ctx={ctx} painter={painter} selectedOrgId={selectedOrgId} onSelectOrg={onSelectOrg} />
+      </Suspense>
+    )
   return <RoomCanvas2D {...props} />
 }

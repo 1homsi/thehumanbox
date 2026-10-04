@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { drawPeopleTile, pickHumanSprite } from '../../../shared/sprites'
 import type { SceneContext } from '../core/types'
 import { deterministicAppearanceIndex, resolveAgeStage } from '../../render/character-visuals'
@@ -14,7 +14,12 @@ import {
   SCONCE_COLS,
 } from '../shared/room-draw'
 import { cfFlag } from '../../render/cf/flags'
-import { CfRoomView } from '../../render/cf/scenes/CfRoomView'
+import { lazyWithRetry } from '../../../shared/lazyWithRetry'
+
+// Only fetched when ?cf=scenes asks for it.
+const CfRoomView = lazyWithRetry(() =>
+  import('../../render/cf/scenes/CfRoomView').then((m) => ({ default: m.CfRoomView })),
+)
 import type { RoomPainter } from '../../render/cf/scenes/room-model'
 
 const ERA_PALETTE: Record<
@@ -525,12 +530,14 @@ export function HomeCanvas(props: Props) {
   const painter = useMemo(() => (onCubeforge ? homePainter(props.ctx) : null), [onCubeforge, props.ctx])
   if (painter)
     return (
-      <CfRoomView
-        ctx={props.ctx}
-        painter={painter}
-        selectedOrgId={props.selectedOrgId}
-        onSelectOrg={props.onSelectOrg}
-      />
+      <Suspense fallback={null}>
+        <CfRoomView
+          ctx={props.ctx}
+          painter={painter}
+          selectedOrgId={props.selectedOrgId}
+          onSelectOrg={props.onSelectOrg}
+        />
+      </Suspense>
     )
   return <HomeCanvas2D {...props} />
 }

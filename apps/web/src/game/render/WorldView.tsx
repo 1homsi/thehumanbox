@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Game, World, Entity, Camera2D } from 'cubeforge'
 import type { PrayerInfo, WorldState } from '../../shared/types'
 import type { InterpRefs } from '../../simulation/useSimulation'
@@ -18,7 +18,12 @@ import { CanvasWorldFallback } from './world-view/CanvasWorldFallback'
 import { useRendererBackend } from './world-view/useRendererBackend'
 import { useMapPointer } from './world-view/useMapPointer'
 import { cfFlag } from './cf/flags'
-import { CfMapCameraController } from './cf/input/CfMapCameraController'
+import { lazyWithRetry } from '../../shared/lazyWithRetry'
+
+// Only fetched when ?cf=camera asks for it: the default map does not carry the code.
+const CfMapCameraController = lazyWithRetry(() =>
+  import('./cf/input/CfMapCameraController').then((m) => ({ default: m.CfMapCameraController })),
+)
 
 interface Props {
   world: WorldState
@@ -201,17 +206,19 @@ export function WorldView({
                 </Entity>
 
                 {cfCamera ? (
-                  <CfMapCameraController
-                    commandRef={commandRef}
-                    worldW={W}
-                    worldH={H}
-                    containerW={dims.w}
-                    containerH={dims.h}
-                    containerEl={containerRef.current}
-                    cameraStateRef={cameraStateRef}
-                    followTarget={followTarget}
-                    onTap={handleTap}
-                  />
+                  <Suspense fallback={null}>
+                    <CfMapCameraController
+                      commandRef={commandRef}
+                      worldW={W}
+                      worldH={H}
+                      containerW={dims.w}
+                      containerH={dims.h}
+                      containerEl={containerRef.current}
+                      cameraStateRef={cameraStateRef}
+                      followTarget={followTarget}
+                      onTap={handleTap}
+                    />
+                  </Suspense>
                 ) : (
                   <MapCameraController
                     commandRef={commandRef}

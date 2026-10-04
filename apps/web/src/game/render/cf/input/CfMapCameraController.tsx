@@ -75,6 +75,7 @@ export function CfMapCameraController({
     dragThreshold: 6,
     buttons: [0, 1],
     onTap: (e) => {
+      cfSample('camera.tap', e.button)
       if (e.button === 0) tapRef.current?.(e)
     },
   })

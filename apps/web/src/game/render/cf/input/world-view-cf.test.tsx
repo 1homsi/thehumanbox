@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import type { ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { WorldState } from '../../../../shared/types'
 import { useUIStore } from '../../../../state/store'
@@ -79,7 +80,7 @@ afterEach(async () => {
   useUIStore.setState({ selectedOrgId: null })
 })
 
-async function open(search: string) {
+async function open(search: string, props: Partial<ComponentProps<typeof WorldView>> = {}) {
   window.history.replaceState(null, '', '/' + search)
   harness = engineHarness()
   vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(800)
@@ -102,8 +103,19 @@ async function open(search: string) {
       }
     },
   )
-  await harness.renderRaw(<WorldView world={world()} />)
+  await harness.renderRaw(<WorldView world={world()} {...props} />)
   await harness.frame(8)
+  // The cf controller is a lazy chunk: the first test waits for it to arrive.
+  if (search.includes('camera')) {
+    for (
+      let i = 0;
+      i < 100 && !(window as unknown as { __cfProbe?: { camera?: unknown } }).__cfProbe?.camera;
+      i++
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      await harness.frame(1)
+    }
+  }
   return harness
 }
 
@@ -170,6 +182,37 @@ describe('the map with the cubeforge camera', () => {
     await h.frame(3)
     expect(useUIStore.getState().selectedOrgId).toBeNull()
     expect(probeCamera().x).toBeLessThan(closer.x)
+  })
+})
+
+describe('placing a tool with the cubeforge camera', () => {
+  it('a tap applies the armed tool where it landed; a drag pans and applies nothing', async () => {
+    const onSandboxApply = vi.fn()
+    const h = await open('?cf=camera,probe', { sandboxArmed: true, onSandboxApply, sandboxToolId: null })
+    const camera = probeCamera()
+    const canvas = h.canvas()
+    // A point of open ground: tile (3, 2) of the 16 x 10 map.
+    const at = {
+      x: (3.5 * TILE - camera.x) * camera.zoom + 400,
+      y: (2.5 * TILE - camera.y) * camera.zoom + 250,
+    }
+    canvas.dispatchEvent(pointer('pointerdown', at.x, at.y))
+    canvas.dispatchEvent(pointer('pointerup', at.x, at.y))
+    await h.frame(2)
+    expect(onSandboxApply).toHaveBeenCalledOnce()
+    const [x, y] = onSandboxApply.mock.calls[0]
+    expect(x).toBeCloseTo(3.5, 6)
+    expect(y).toBeCloseTo(2.5, 6)
+    onSandboxApply.mockClear()
+    canvas.dispatchEvent(wheel(at.x, at.y, -400))
+    await h.frame(3)
+    const closer = probeCamera()
+    canvas.dispatchEvent(pointer('pointerdown', 300, 200))
+    canvas.dispatchEvent(pointer('pointermove', 340, 220))
+    canvas.dispatchEvent(pointer('pointerup', 340, 220))
+    await h.frame(3)
+    expect(onSandboxApply).not.toHaveBeenCalled()
+    expect(probeCamera().x).not.toBe(closer.x)
   })
 })
 
