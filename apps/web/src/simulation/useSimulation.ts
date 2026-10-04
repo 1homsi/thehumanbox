@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { WorldState, GridState, OrganismState, AnimalState, OrgDetail, OrgLife } from '../shared/types'
 import { WS_BASE, API_BASE, IS_LOCAL_SERVER } from '../shared/config'
 import { useWorldStore } from '../state/worldStore'
-import { fetchSnapshotWithProgress, parseWorldFrame } from './wire'
+import { binaryFramesReady, fetchSnapshotWithProgress, loadBinaryFrameDecoder, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
 import { logger } from '../shared/logger'
 import {
@@ -224,6 +224,16 @@ export function useSimulation(source: WorldSource = 'native'): {
 
     function flushUpdate() {
       rafPending.current = null
+      // Binary frames need their decoder; fetch it and come back, leaving the frames queued.
+      if (!binaryFramesReady() && queuedMsgs.current.some((raw) => typeof raw !== 'string')) {
+        void loadBinaryFrameDecoder().then(
+          () => {
+            if (!destroyed) scheduleFlush()
+          },
+          (error: unknown) => logger.warn('ws', 'could not load the binary frame decoder:', error),
+        )
+        return
+      }
       const pending = queuedMsgs.current.splice(0, queuedMsgs.current.length)
       let latest: WorldState | null = null
       for (const raw of pending) {
@@ -552,6 +562,8 @@ export function useSimulation(source: WorldSource = 'native'): {
     }
 
     setLocalSaveStatus({ phase: 'inactive' })
+    // The native server sends binary frames: fetch their decoder now, ahead of the first one.
+    void loadBinaryFrameDecoder().catch(() => undefined)
     const runtimeHydrationAbort = new AbortController()
     if (isDesktop()) {
       const hydrateRuntimeState = async (): Promise<void> => {
