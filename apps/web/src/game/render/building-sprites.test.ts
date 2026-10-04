@@ -5,7 +5,7 @@ import { BUILDING_SPRITE_KINDS, hasBuildingSprite } from './building-sprites'
 describe('building asset coverage', () => {
   it('has a pixel-art painter for every authoritative simulation building', () => {
     const source = readFileSync(
-      new URL('../../../../../crates/sim-core/src/sim/tech/buildings.rs', import.meta.url),
+      new URL('../../../../../crates/sim-core/src/sim/tech/buildings/kind.rs', import.meta.url),
       'utf8',
     )
     const body = source.split('pub enum BuildingKind {')[1].split('}')[0]
