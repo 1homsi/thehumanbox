@@ -51,7 +51,8 @@ function preloadSimAssets(): Plugin {
       }
       const wasm = names.find((n) => /^sim_core_bg-.*\.wasm$/.test(n))
       const worker = names.find((n) => /^wasmWorker-.*\.js$/.test(n))
-      if (!wasm && !worker) return
+      const worldView = names.find((n) => /^WorldView-.*\.js$/.test(n))
+      if (!wasm && !worker && !worldView) return
       const join = (p: string) => (base === './' ? `./assets/${p}` : `${base}assets/${p}`)
       const tags: string[] = ['<!-- thb-preload-sim -->']
       // crossorigin matches fetch()'s default cors mode so the preload
@@ -63,6 +64,10 @@ function preloadSimAssets(): Plugin {
       }
       if (worker) {
         tags.push(`<link rel="modulepreload" href="${join(worker)}" />`)
+      }
+      // The map renderer is lazy-loaded; hint it so it downloads alongside the entry.
+      if (worldView) {
+        tags.push(`<link rel="modulepreload" href="${join(worldView)}" />`)
       }
       const next = html.replace('</head>', `  ${tags.join('\n  ')}\n</head>`)
       if (next !== html) await writeFile(htmlPath, next, 'utf8')
