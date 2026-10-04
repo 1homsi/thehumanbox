@@ -16,12 +16,12 @@ import {
 import { TILE_PX, SCALE, ROOM_COLS, ROOM_ROWS, CANVAS_W, CANVAS_H } from './room-constants'
 import { cfFlag } from '../../render/cf/flags'
 import { lazyWithRetry } from '../../../shared/lazyWithRetry'
+import { roomPainter } from '../../render/cf/scenes/room-painters'
 
 // Only fetched when ?cf=scenes asks for it.
 const CfRoomView = lazyWithRetry(() =>
   import('../../render/cf/scenes/CfRoomView').then((m) => ({ default: m.CfRoomView })),
 )
-import { roomPainter } from '../../render/cf/scenes/room-painters'
 
 export { TILE_PX, SCALE, ROOM_COLS, ROOM_ROWS, CANVAS_W, CANVAS_H }
 

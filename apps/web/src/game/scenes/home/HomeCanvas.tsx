@@ -15,12 +15,12 @@ import {
 } from '../shared/room-draw'
 import { cfFlag } from '../../render/cf/flags'
 import { lazyWithRetry } from '../../../shared/lazyWithRetry'
+import type { RoomPainter } from '../../render/cf/scenes/room-model'
 
 // Only fetched when ?cf=scenes asks for it.
 const CfRoomView = lazyWithRetry(() =>
   import('../../render/cf/scenes/CfRoomView').then((m) => ({ default: m.CfRoomView })),
 )
-import type { RoomPainter } from '../../render/cf/scenes/room-model'
 
 const ERA_PALETTE: Record<
   string,
