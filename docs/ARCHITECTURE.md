@@ -105,7 +105,7 @@ dispatched by id range in `actions/mod.rs` and gated by the band tables; ids
 | add an era | `sim/civ/progress/eras/<era>.rs` (an `EraSpec`) and the `Era` enum and the `LADDER` array (its length is part of the type) in `eras/mod.rs`; the compiler lists every `match` that needs the new variant |
 | add a building kind | `BuildingKind` in `sim/tech/buildings.rs` (footprint, function, era, …), then its sprite in `apps/web/src/game/render/building-sprites.ts` / `buildings2d.ts` |
 | add a tile | `Tile` in `world/tiles.rs` (`from_i8`, `walkable`), grid rules in `world/grid`, palette in the web renderer |
-| add a discovery or technology | `sim/tech/tech_tree.rs`, `tech_progress.rs`; era specs list the discoveries that open an era |
+| add a discovery or technology | `sim/tech/tech_tree/` (a node goes in the table module for its era span; table order feeds the discovery rolls), `tech_progress.rs`; era specs list the discoveries that open an era |
 | add a world event or disaster | `sim/world_events.rs`; player-triggered ones in `sim/command/` |
 | add a god power | `sim/command/` (`blessings`, `disasters`, `creation`, `tribes`), then the toolbar in `apps/web/src/ui/toolbar` |
 | add a server route | `apps/server/src/routes.rs`, wired in `router.rs` |
