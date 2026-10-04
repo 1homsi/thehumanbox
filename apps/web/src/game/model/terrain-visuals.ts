@@ -1,4 +1,4 @@
-import { TILE_ID, isPermanentWaterTile, isWaterTile } from './terrain-ids'
+import { TILE_ID, isPermanentWaterTile } from './terrain-ids'
 
 export const EDGE_NORTH = 1
 export const EDGE_SOUTH = 2
@@ -38,23 +38,15 @@ export function terrainVisualSignature(tiles: number[][], width: number, height:
   return hash >>> 0
 }
 
-function edgeMask(
-  tiles: number[][],
-  row: number,
-  col: number,
-  matches: (tile: number | undefined) => boolean,
-): number {
-  let mask = 0
-  if (row > 0 && matches(tiles[row - 1]?.[col])) mask |= EDGE_NORTH
-  if (row + 1 < tiles.length && matches(tiles[row + 1]?.[col])) mask |= EDGE_SOUTH
-  if (col > 0 && matches(tiles[row]?.[col - 1])) mask |= EDGE_WEST
-  if (col + 1 < (tiles[row]?.length ?? 0) && matches(tiles[row]?.[col + 1])) mask |= EDGE_EAST
-  return mask
-}
-
 /** Permanent water directly beside a land tile; floods never create beaches. */
 export function permanentWaterNeighborMask(tiles: number[][], row: number, col: number): number {
-  return edgeMask(tiles, row, col, isPermanentWaterTile)
+  let mask = 0
+  if (row > 0 && tiles[row - 1]?.[col] === TILE_ID.WATER) mask |= EDGE_NORTH
+  if (row + 1 < tiles.length && tiles[row + 1]?.[col] === TILE_ID.WATER) mask |= EDGE_SOUTH
+  const here = tiles[row]
+  if (col > 0 && here?.[col - 1] === TILE_ID.WATER) mask |= EDGE_WEST
+  if (col + 1 < (here?.length ?? 0) && here?.[col + 1] === TILE_ID.WATER) mask |= EDGE_EAST
+  return mask
 }
 
 /**
@@ -62,8 +54,18 @@ export function permanentWaterNeighborMask(tiles: number[][], row: number, col: 
  * lakes do not draw a false foam seam where a flood meets the shore.
  */
 export function permanentWaterLandEdgeMask(tiles: number[][], row: number, col: number): number {
-  if (!isPermanentWaterTile(tiles[row]?.[col])) return 0
-  return edgeMask(tiles, row, col, (tile) => tile !== undefined && !isWaterTile(tile))
+  const here = tiles[row]
+  if (here?.[col] !== TILE_ID.WATER) return 0
+  let mask = 0
+  if (row > 0 && isLandTile(tiles[row - 1]?.[col])) mask |= EDGE_NORTH
+  if (row + 1 < tiles.length && isLandTile(tiles[row + 1]?.[col])) mask |= EDGE_SOUTH
+  if (col > 0 && isLandTile(here[col - 1])) mask |= EDGE_WEST
+  if (col + 1 < here.length && isLandTile(here[col + 1])) mask |= EDGE_EAST
+  return mask
+}
+
+function isLandTile(tile: number | undefined): boolean {
+  return tile !== undefined && tile !== TILE_ID.WATER && tile !== TILE_ID.FLOODED
 }
 
 /** Depth controls water shading only. Live tile state remains authoritative. */
