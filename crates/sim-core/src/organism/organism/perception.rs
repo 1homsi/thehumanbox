@@ -238,29 +238,29 @@ impl Organism {
             '.'
         };
 
-        format!("{hunger}{thirst}{food_dir}{water_dir}{mem_food}{mem_water}{fire_near_c}{org_near}{food_tr}{water_tr}{kin_near}{att_char}{inf_level}{dnear}{warmth}{carry}{food_reserve}{water_reserve}{shelter}{animal}{hazard}",
-            hunger = hunger,
-            thirst = thirst,
-            food_dir = food_dir,
-            water_dir = water_dir,
-            mem_food = remembered_food_dir,
-            mem_water = remembered_water_dir,
-            fire_near_c = if fire_near { 1 } else { 0 },
-            org_near = org_near,
-            food_tr = food_tr,
-            water_tr = water_tr,
-            kin_near = kin_near,
-            att_char = att_char,
-            inf_level = inf_level,
-            dnear = if danger_near { 'D' } else { 'S' },
-            warmth = warmth_char,
-            carry  = carry_char,
-            food_reserve = food_reserve_char,
-            water_reserve = water_reserve_char,
-            shelter = shelter_char,
-            animal  = animal_char,
-            hazard  = hazard_char,
-        )
+        perception_key(&KeyParts {
+            hunger,
+            thirst,
+            food_dir,
+            water_dir,
+            remembered_food_dir,
+            remembered_water_dir,
+            fire_near,
+            org_near,
+            food_tr,
+            water_tr,
+            kin_near,
+            att_char,
+            inf_level,
+            danger_near,
+            warmth_char,
+            carry_char,
+            food_reserve_char,
+            water_reserve_char,
+            shelter_char,
+            animal_char,
+            hazard_char,
+        })
     }
 
     pub fn near_shelter(&self, grid: &WorldGrid, buildings: &BuildingList) -> bool {
@@ -413,5 +413,137 @@ impl Organism {
             }
         }
         best
+    }
+}
+
+/// The pieces of a perception key, in the order they are written.
+pub(super) struct KeyParts {
+    pub hunger: i32,
+    pub thirst: i32,
+    pub food_dir: char,
+    pub water_dir: char,
+    pub remembered_food_dir: char,
+    pub remembered_water_dir: char,
+    pub fire_near: bool,
+    pub org_near: u8,
+    pub food_tr: i32,
+    pub water_tr: i32,
+    pub kin_near: u8,
+    pub att_char: char,
+    pub inf_level: char,
+    pub danger_near: bool,
+    pub warmth_char: char,
+    pub carry_char: char,
+    pub food_reserve_char: char,
+    pub water_reserve_char: char,
+    pub shelter_char: char,
+    pub animal_char: char,
+    pub hazard_char: char,
+}
+
+/// A digit the key writes for a small non-negative number, as `format!` would
+/// print it (the callers only produce 0 to 2).
+fn digit(n: impl Into<i32>) -> char {
+    (b'0' + n.into() as u8) as char
+}
+
+/// Join the pieces into the Q-table key: 21 characters, one allocation, no
+/// formatting machinery.
+pub(super) fn perception_key(k: &KeyParts) -> String {
+    let mut key = String::with_capacity(21);
+    key.push(digit(k.hunger));
+    key.push(digit(k.thirst));
+    key.push(k.food_dir);
+    key.push(k.water_dir);
+    key.push(k.remembered_food_dir);
+    key.push(k.remembered_water_dir);
+    key.push(digit(i32::from(k.fire_near)));
+    key.push(digit(k.org_near));
+    key.push(digit(k.food_tr));
+    key.push(digit(k.water_tr));
+    key.push(digit(k.kin_near));
+    key.push(k.att_char);
+    key.push(k.inf_level);
+    key.push(if k.danger_near { 'D' } else { 'S' });
+    key.push(k.warmth_char);
+    key.push(k.carry_char);
+    key.push(k.food_reserve_char);
+    key.push(k.water_reserve_char);
+    key.push(k.shelter_char);
+    key.push(k.animal_char);
+    key.push(k.hazard_char);
+    key
+}
+
+/// The `format!` this replaced, kept to check the key writer against.
+#[cfg(test)]
+pub(super) fn perception_key_reference(k: &KeyParts) -> String {
+    format!(
+        "{hunger}{thirst}{food_dir}{water_dir}{mem_food}{mem_water}{fire_near_c}{org_near}{food_tr}{water_tr}{kin_near}{att_char}{inf_level}{dnear}{warmth}{carry}{food_reserve}{water_reserve}{shelter}{animal}{hazard}",
+        hunger = k.hunger,
+        thirst = k.thirst,
+        food_dir = k.food_dir,
+        water_dir = k.water_dir,
+        mem_food = k.remembered_food_dir,
+        mem_water = k.remembered_water_dir,
+        fire_near_c = if k.fire_near { 1 } else { 0 },
+        org_near = k.org_near,
+        food_tr = k.food_tr,
+        water_tr = k.water_tr,
+        kin_near = k.kin_near,
+        att_char = k.att_char,
+        inf_level = k.inf_level,
+        dnear = if k.danger_near { 'D' } else { 'S' },
+        warmth = k.warmth_char,
+        carry = k.carry_char,
+        food_reserve = k.food_reserve_char,
+        water_reserve = k.water_reserve_char,
+        shelter = k.shelter_char,
+        animal = k.animal_char,
+        hazard = k.hazard_char,
+    )
+}
+
+#[cfg(test)]
+mod key_tests {
+    use super::*;
+
+    #[test]
+    fn the_key_writer_matches_format() {
+        let dirs = ['X', 'N', 'S', 'E', 'W', 'O'];
+        let mut state = 0x9E37_79B9_7F4A_7C15u64;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        for _ in 0..20_000 {
+            let mut pick = |n: usize| (next() % n as u64) as usize;
+            let k = KeyParts {
+                hunger: pick(3) as i32,
+                thirst: pick(3) as i32,
+                food_dir: dirs[pick(6)],
+                water_dir: dirs[pick(6)],
+                remembered_food_dir: dirs[pick(6)],
+                remembered_water_dir: dirs[pick(6)],
+                fire_near: pick(2) == 1,
+                org_near: pick(2) as u8,
+                food_tr: pick(2) as i32,
+                water_tr: pick(2) as i32,
+                kin_near: pick(2) as u8,
+                att_char: ['A', 'H', 'N', 'X'][pick(4)],
+                inf_level: ['0', '1', '2'][pick(3)],
+                danger_near: pick(2) == 1,
+                warmth_char: ['W', 'C', 'N'][pick(3)],
+                carry_char: ['R', 'K', '0'][pick(3)],
+                food_reserve_char: ['0', '1', '2'][pick(3)],
+                water_reserve_char: ['0', '1', '2'][pick(3)],
+                shelter_char: ['S', 'E'][pick(2)],
+                animal_char: ['A', '.'][pick(2)],
+                hazard_char: ['H', 'h', '.'][pick(3)],
+            };
+            assert_eq!(perception_key(&k), perception_key_reference(&k));
+        }
     }
 }
