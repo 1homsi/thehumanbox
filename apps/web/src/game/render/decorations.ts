@@ -378,6 +378,11 @@ function drawAcacia(ctx: CanvasRenderingContext2D, x: number, baseY: number, sca
   ctx.fillRect(cx - half + 3, top, half * 2 - 7, 1)
 }
 
+const GRASS_EDGE_ORDER = [EDGE_NORTH, EDGE_SOUTH, EDGE_WEST, EDGE_EAST] as const
+function isGrassLand(n: number | undefined): boolean {
+  return n === TILE_ID.GRASS || n === TILE_ID.FOOD
+}
+
 export function drawNaturalDecor(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -398,6 +403,16 @@ export function drawNaturalDecor(
     for (let x = 1; x < width - 1; x++) {
       if (only && (x < only.x0 - 1 || x > only.x1 + 1)) continue
       const t = tRow[x]
+      // Only these ground types carry scattered detail; skip the hash for water and the rest.
+      if (
+        t !== TILE_ID.GRASS &&
+        t !== TILE_ID.FOOD &&
+        t !== TILE_ID.ROCK &&
+        t !== TILE_ID.SAND &&
+        t !== TILE_ID.SNOW
+      ) {
+        continue
+      }
       const biome = bRow[x] ?? 0
       const worldX = x + originX
       const worldY = y + originY
@@ -584,14 +599,26 @@ export function drawNaturalDecor(
       const below = tiles[y + 1]?.[x]
       const left = tRow[x - 1]
       const right = tRow[x + 1]
-      const landGrass = (n: number | undefined) => n === TILE_ID.GRASS || n === TILE_ID.FOOD
-      const grassEdges = [
-        landGrass(above) ? EDGE_NORTH : 0,
-        landGrass(below) ? EDGE_SOUTH : 0,
-        landGrass(left) ? EDGE_WEST : 0,
-        landGrass(right) ? EDGE_EAST : 0,
-      ].filter(Boolean)
-      if (grassEdges.length === 0) continue
+      // Which sides touch grass, in north, south, west, east order.
+      let grassMask = 0
+      let grassCount = 0
+      if (isGrassLand(above)) {
+        grassMask |= EDGE_NORTH
+        grassCount++
+      }
+      if (isGrassLand(below)) {
+        grassMask |= EDGE_SOUTH
+        grassCount++
+      }
+      if (isGrassLand(left)) {
+        grassMask |= EDGE_WEST
+        grassCount++
+      }
+      if (isGrassLand(right)) {
+        grassMask |= EDGE_EAST
+        grassCount++
+      }
+      if (grassCount === 0) continue
       const worldX = x + originX
       const worldY = y + originY
       const hash = landscapeHash(worldX, worldY)
@@ -600,7 +627,17 @@ export function drawNaturalDecor(
       const r2 = ((hash >>> 16) & 0xff) / 255
       ctx.strokeStyle = '#3e6b3a'
       ctx.lineWidth = 1
-      const edge = grassEdges[hash % grassEdges.length]
+      // The (hash % count)-th set side, counting in the same order as above.
+      let pick = hash % grassCount
+      let edge = EDGE_NORTH
+      for (const side of GRASS_EDGE_ORDER) {
+        if ((grassMask & side) === 0) continue
+        if (pick === 0) {
+          edge = side
+          break
+        }
+        pick--
+      }
       let px = x * TILE + 2 + Math.round(r2 * Math.max(1, TILE - 4))
       let py = y * TILE + TILE - 1
       if (edge === EDGE_NORTH) py = y * TILE + 2

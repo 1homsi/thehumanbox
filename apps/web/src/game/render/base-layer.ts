@@ -459,6 +459,13 @@ export function varAmountForTile(tid: number): number {
 
 const clusterNoiseScratch = new Int32Array(TILE / 2)
 
+function packClamped(r: number, g: number, b: number): number {
+  const rr = r < 0 ? 0 : r > 255 ? 255 : r
+  const gg = g < 0 ? 0 : g > 255 ? 255 : g
+  const bb = b < 0 ? 0 : b > 255 ? 255 : b
+  return 0xff000000 | (bb << 16) | (gg << 8) | rr
+}
+
 // RGBA pixels are written as one 32-bit word instead of four byte stores. Only valid on
 // little-endian hosts (every browser target), where the word is 0xAABBGGRR.
 const LITTLE_ENDIAN = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1
@@ -513,7 +520,10 @@ export function paintTileBlock(
 
   const visualDepth = permanentWaterDepth(rawTid, depthRow?.[col])
   if (visualDepth !== null) {
-    ;[r, g, b] = oceanColor(visualDepth)
+    const ocean = oceanColor(visualDepth)
+    r = ocean[0]
+    g = ocean[1]
+    b = ocean[2]
   }
 
   if (isPermanentWater && touchesLand) {
@@ -567,6 +577,28 @@ export function paintTileBlock(
     tid === TILE_ID.SNOW ||
     tid === TILE_ID.GRASS ||
     tid === TILE_ID.FOOD
+  if (words && !hasDetail) {
+    // No surface marks: a 2x2 cluster has one noise value and a diagonal dither, so it is
+    // two colours, (noise - 1) on the main diagonal and (noise + 1) on the other. TILE is even
+    // and tiles start on even pixels, so cluster and pixel parity line up with the tile origin.
+    for (let cy = 0; cy < TILE / 2; cy++) {
+      const clusterY = (by >> 1) + cy
+      let at = (by + cy * 2) * W + bx
+      for (let cx = 0; cx < TILE / 2; cx++, at += 2) {
+        const clusterX = (bx >> 1) + cx
+        let h = (clusterX * 374761393 + clusterY * 668265263) | 0
+        h = Math.imul(h ^ (h >>> 13), 1274126177) | 0
+        const noise = ((((h >>> 0) & 0xff) - 128) * varAmt) >> 7
+        const dark = packClamped(r + noise - 1 + shading, g + noise - 1 + shading, b + noise - 1 + shading)
+        const light = packClamped(r + noise + 1 + shading, g + noise + 1 + shading, b + noise + 1 + shading)
+        words[at] = dark
+        words[at + 1] = light
+        words[at + W] = light
+        words[at + W + 1] = dark
+      }
+    }
+    return
+  }
   for (let ty = 0; ty < TILE; ty++) {
     const gy = by + ty
     if ((ty & 1) === 0) {
