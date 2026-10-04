@@ -2,6 +2,7 @@ import type { AnimalInterpCache, OrgInterpCache } from '../draw-helpers'
 import { worldRenderScale, worldRenderWindow, interpolationFactor, shouldRenderFrame } from '../render-timing'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Transform, Sprite, useEntity, useGame, useDynamicCanvas } from 'cubeforge'
+import type { SpriteComponent, TransformComponent } from 'cubeforge'
 import type { WorldState } from '../../../shared/types'
 import type { InterpRefs } from '../../../simulation/useSimulation'
 import type { ViewFlags } from '../../../state/store'
@@ -129,12 +130,12 @@ export function WorldSprite({
       zoom,
       renderScale,
     )
-    const sprite = engine.ecs.getComponent(entityId, 'Sprite')
+    const sprite = engine.ecs.getComponent<SpriteComponent>(entityId, 'Sprite')
     if (sprite) {
       sprite.width = renderWindow.width
       sprite.height = renderWindow.height
     }
-    const transform = engine.ecs.getComponent(entityId, 'Transform')
+    const transform = engine.ecs.getComponent<TransformComponent>(entityId, 'Transform')
     if (transform) {
       transform.x = atX - W / 2 + renderWindow.x + renderWindow.width / 2
       transform.y = atY - H / 2 + renderWindow.y + renderWindow.height / 2
