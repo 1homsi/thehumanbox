@@ -263,11 +263,11 @@ impl Organism {
         )
     }
 
-    pub fn near_shelter(&self, grid: &WorldGrid, buildings: &[Building]) -> bool {
+    pub fn near_shelter(&self, grid: &WorldGrid, buildings: &BuildingList) -> bool {
         self.has_shelter_within(grid, buildings, 2)
     }
 
-    pub(crate) fn has_shelter_within(&self, grid: &WorldGrid, buildings: &[Building], radius: i32) -> bool {
+    pub(crate) fn has_shelter_within(&self, grid: &WorldGrid, buildings: &BuildingList, radius: i32) -> bool {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let legacy_shelter = (-radius..=radius).any(|dx| {
             (-radius..=radius).any(|dy| {
@@ -281,6 +281,32 @@ impl Organism {
             })
         });
         legacy_shelter
+            || buildings.any_near(ix, iy, radius, |building| {
+                if !building.provides_shelter_for(&self.lineage_id) {
+                    return false;
+                }
+                let (sx, sy) = building.closest_footprint_tile(ix, iy);
+                (sx - ix).abs() <= radius && (sy - iy).abs() <= radius
+            })
+    }
+
+    /// The scan of every building this replaced, kept to check the index against.
+    #[cfg(test)]
+    pub(crate) fn has_shelter_within_reference(
+        &self,
+        grid: &WorldGrid,
+        buildings: &[crate::sim::buildings::Building],
+        radius: i32,
+    ) -> bool {
+        let (ix, iy) = (self.x as i32, self.y as i32);
+        let legacy_shelter = (-radius..=radius).any(|dx| {
+            (-radius..=radius).any(|dy| {
+                let nx = ix + dx;
+                let ny = iy + dy;
+                matches!(grid.get(nx, ny), Tile::Hut | Tile::Campfire) || grid.structure_at(nx, ny) >= 0.35
+            })
+        });
+        legacy_shelter
             || buildings.iter().any(|building| {
                 if !building.provides_shelter_for(&self.lineage_id) {
                     return false;
@@ -290,9 +316,9 @@ impl Organism {
             })
     }
 
-    pub(crate) fn has_shelter_project_within(&self, buildings: &[Building], radius: i32) -> bool {
+    pub(crate) fn has_shelter_project_within(&self, buildings: &BuildingList, radius: i32) -> bool {
         let (ix, iy) = (self.x as i32, self.y as i32);
-        buildings.iter().any(|building| {
+        buildings.any_near(ix, iy, radius, |building| {
             if !building.is_shelter_project_for(&self.lineage_id) {
                 return false;
             }
@@ -304,7 +330,57 @@ impl Organism {
     pub(crate) fn find_shelter_tile(
         &self,
         grid: &WorldGrid,
-        buildings: &[Building],
+        buildings: &BuildingList,
+        radius: i32,
+    ) -> Option<(i32, i32)> {
+        let (ix, iy) = (self.x as i32, self.y as i32);
+        let mut best: Option<(i32, i32)> = None;
+        let mut best_dist = radius + 1;
+        for dx in -radius..=radius {
+            for dy in -radius..=radius {
+                let nx = ix + dx;
+                let ny = iy + dy;
+                let is_shelter = matches!(grid.get(nx, ny), Tile::Hut | Tile::Campfire)
+                    || grid.structure_at(nx, ny) >= 0.35;
+                if is_shelter {
+                    let dist = dx.abs() + dy.abs();
+                    if dist < best_dist {
+                        best_dist = dist;
+                        best = Some((nx, ny));
+                    }
+                }
+            }
+        }
+        // The list-order scan took the first building to beat the best so far,
+        // so ties go to the building earliest in the list. Only buildings closer
+        // than `best_dist <= radius + 1` can win, and every one of those lies
+        // within `radius` on both axes, so the index's candidates (in cell order)
+        // are ranked by (distance, list position) to the same effect.
+        let mut best_position = usize::MAX;
+        buildings.visit_near(ix, iy, radius, |position, building| {
+            if !building.provides_shelter_for(&self.lineage_id) {
+                return false;
+            }
+            let (sx, sy) = building.closest_footprint_tile(ix, iy);
+            let dist = (sx - ix).abs() + (sy - iy).abs();
+            if dist < best_dist
+                || (dist == best_dist && best_position != usize::MAX && position < best_position)
+            {
+                best_dist = dist;
+                best_position = position;
+                best = Some((sx, sy));
+            }
+            false
+        });
+        best
+    }
+
+    /// The scan of every building this replaced, kept to check the index against.
+    #[cfg(test)]
+    pub(crate) fn find_shelter_tile_reference(
+        &self,
+        grid: &WorldGrid,
+        buildings: &[crate::sim::buildings::Building],
         radius: i32,
     ) -> Option<(i32, i32)> {
         let (ix, iy) = (self.x as i32, self.y as i32);

@@ -1,6 +1,6 @@
 use rand::{Rng, RngExt};
 
-use crate::sim::buildings::Building;
+use crate::sim::buildings::BuildingList;
 use crate::world::{
     grid::{TrailKind, WorldGrid},
     tiles::Tile,
@@ -72,7 +72,7 @@ impl Organism {
     pub fn choose_action(
         &self,
         grid: &WorldGrid,
-        buildings: &[Building],
+        buildings: &BuildingList,
         tick: u64,
         epsilon: f32,
         organisms: &[Organism],
@@ -103,7 +103,7 @@ impl Organism {
     pub fn choose_action_with_neighbors(
         &self,
         grid: &WorldGrid,
-        buildings: &[Building],
+        buildings: &BuildingList,
         tick: u64,
         epsilon: f32,
         organisms: &[Organism],

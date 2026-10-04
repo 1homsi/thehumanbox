@@ -305,6 +305,49 @@ pub(super) fn local_place_snapshot(sim: &Simulation, lineage: &str, ix: i32, iy:
         workspaces: 0,
         building_hut: false,
     };
+    // Only buildings within 8 tiles count, so only those near the index cells
+    // around here are looked at.
+    sim.buildings.any_near(ix, iy, 8, |building| {
+        if !building.is_operational() {
+            return false;
+        }
+        let (width, height) = building.footprint();
+        let nearest_x = ix.clamp(building.x, building.x + i32::from(width) - 1);
+        let nearest_y = iy.clamp(building.y, building.y + i32::from(height) - 1);
+        let distance = (nearest_x - ix).abs() + (nearest_y - iy).abs();
+        if distance > 8
+            || building
+                .owner_lineage
+                .as_deref()
+                .is_some_and(|owner| owner != lineage)
+        {
+            return false;
+        }
+        if distance <= 1 && building.kind == BuildingKind::Hut {
+            snapshot.building_hut = true;
+        }
+        for workspace in ALL_WORKSPACES {
+            if workspace_matches(building.kind, workspace) {
+                snapshot.workspaces |= 1 << (workspace as u32);
+            }
+        }
+        false
+    });
+    snapshot
+}
+
+/// The scan of every building this replaced, kept to check the index against.
+#[cfg(test)]
+pub(super) fn local_place_snapshot_reference(
+    sim: &Simulation,
+    lineage: &str,
+    ix: i32,
+    iy: i32,
+) -> LocalPlaceSnapshot {
+    let mut snapshot = LocalPlaceSnapshot {
+        workspaces: 0,
+        building_hut: false,
+    };
     for building in &sim.buildings {
         if !building.is_operational() {
             continue;

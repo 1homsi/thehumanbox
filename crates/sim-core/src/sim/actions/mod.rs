@@ -12,6 +12,8 @@ mod available;
 mod band_table;
 mod base_bands;
 mod bonus;
+#[cfg(test)]
+mod building_index_tests;
 mod eligibility;
 #[cfg(test)]
 mod plan_tests;
