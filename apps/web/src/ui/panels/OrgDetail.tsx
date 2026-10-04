@@ -4,6 +4,7 @@ import type { OrganismState } from '../../shared/types'
 import { lineageColor, cbColor } from '../../shared/constants'
 import { Tooltip } from '../toolbar/Tooltip'
 import { useOrgDetail } from '../../shared/hooks/useOrgDetail'
+import { WithQueryClient } from '../../shared/query'
 import { useUIStore } from '../../state/store'
 import { useSceneStore } from '../../state/scene'
 import { hasBuiltHome, isAtHome } from '../../game/scenes'
@@ -245,7 +246,7 @@ function HomeButton({ org }: { org: OrganismState }) {
   )
 }
 
-export function OrgDetail({
+function OrgDetailBody({
   org,
   onClose,
   onFollow,
@@ -1037,5 +1038,13 @@ export function OrgDetail({
         )}
       </div>
     </>
+  )
+}
+
+export function OrgDetail(props: Props) {
+  return (
+    <WithQueryClient>
+      <OrgDetailBody {...props} />
+    </WithQueryClient>
   )
 }

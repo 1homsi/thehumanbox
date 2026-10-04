@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { WorldState } from '../../shared/types'
 import { everLived, livingCount, worldEpitaph } from '../../game/model/world-end'
-import { Modal } from '../modals/Modal'
+import { Modal } from '../modals/LazyModal'
 
 interface Props {
   world: WorldState | null

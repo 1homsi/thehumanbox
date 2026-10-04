@@ -1,7 +1,7 @@
 // Moments the world shows on the map: fireworks over a town when its tribe
 // reaches a new age, and a soft drift of golden motes over a blessed tribe.
 import type { WorldState } from '../../shared/types'
-import { eraTier } from './building-sprites'
+import { eraTier } from '../model/era-tier'
 
 type Ctx = CanvasRenderingContext2D
 

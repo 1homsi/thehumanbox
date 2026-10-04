@@ -48,8 +48,22 @@ pub(super) struct ResolvedTables {
     pub(super) base: Vec<ResolvedBand>,
     pub(super) banded: Vec<ResolvedBand>,
     pub(super) registered: Vec<ResolvedBand>,
+    /// Every positive `min_literacy` any band asks for, ascending.
+    literacy_thresholds: Vec<f32>,
     discoveries: FxHashMap<&'static str, u16>,
     specialties: FxHashMap<&'static str, u8>,
+}
+
+/// See `ResolvedTables::gate_key`.
+#[derive(Clone, PartialEq)]
+pub(super) struct GateKey {
+    era: u8,
+    age_ok: [bool; 4],
+    discoveries: DiscMask,
+    specialty_bit: u128,
+    has_specialty: bool,
+    is_leader: bool,
+    literacy_cleared: u8,
 }
 
 /// The per-organism inputs of every gate, computed once per evaluation.
@@ -111,12 +125,68 @@ impl ResolvedTables {
                 })
                 .collect()
         };
+        let mut literacy_thresholds: Vec<f32> = all()
+            .map(|band| band.qualification.min_literacy)
+            .filter(|&t| t > 0.0)
+            .collect();
+        literacy_thresholds.sort_by(|a, b| a.total_cmp(b));
+        literacy_thresholds.dedup();
         Self {
             base: resolve(BASE_ACTION_BANDS),
             banded: resolve(ACTION_BANDS),
             registered: resolve(&registered),
+            literacy_thresholds,
             discoveries,
             specialties,
+        }
+    }
+
+    /// How many bands there are in all: base, then banded, then registered.
+    pub(super) fn band_count(&self) -> usize {
+        self.base.len() + self.banded.len() + self.registered.len()
+    }
+
+    /// Band `index` in that order.
+    pub(super) fn band(&self, index: usize) -> &ResolvedBand {
+        let (base, banded) = (self.base.len(), self.banded.len());
+        if index < base {
+            &self.base[index]
+        } else if index < base + banded {
+            &self.banded[index - base]
+        } else {
+            &self.registered[index - base - banded]
+        }
+    }
+
+    /// Everything about an organism that the era, age and qualification gates
+    /// of any band read, with literacy reduced to the thresholds it clears. The
+    /// bands those gates let through are the same while this is.
+    pub(super) fn gate_key(&self, gate: &OrgGate, era: Era) -> GateKey {
+        GateKey {
+            era: era as u8,
+            age_ok: gate.age_ok,
+            discoveries: gate.discoveries,
+            specialty_bit: gate.specialty_bit,
+            has_specialty: gate.has_specialty,
+            is_leader: gate.is_leader,
+            literacy_cleared: self
+                .literacy_thresholds
+                .iter()
+                .filter(|&&t| gate.literacy >= t)
+                .count() as u8,
+        }
+    }
+
+    /// A bit per band (in `band` order) for those the era, age and qualification
+    /// gates let through for this organism.
+    pub(super) fn org_pass_mask(&self, gate: &OrgGate, era: Era, mask: &mut [u64]) {
+        mask.fill(0);
+        for index in 0..self.band_count() {
+            let resolved = self.band(index);
+            let band = &resolved.band;
+            if era >= band.min_era && gate.age_ok(band.age) && resolved.passes(gate) {
+                mask[index / 64] |= 1 << (index % 64);
+            }
         }
     }
 
