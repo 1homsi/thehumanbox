@@ -13,6 +13,9 @@ import { logger } from '../../../shared/logger'
 import { zoomDetailLevel } from '../character-visuals'
 import { TILE } from '../../model/palette'
 import { paintWorldTexture } from './paint-texture'
+import { terrainBackend } from '../terrain-backend'
+import { TerrainTileLayer } from '../terrain-tiles/TerrainTileLayer'
+import type { TerrainSyncFn } from '../terrain-tiles/TerrainTileLayer'
 
 export function WorldSprite({
   world,
@@ -45,6 +48,10 @@ export function WorldSprite({
 }) {
   const entityId = useEntity()
   const engine = useGame()
+  // With the TileLayer backend the ground is a cubeforge layer under this sprite, and the canvas
+  // painted here keeps only what goes on top of it (a transparent texture).
+  const tileTerrain = terrainBackend() === 'tilelayer'
+  const terrainSyncRef = useRef<TerrainSyncFn | null>(null)
 
   const W = world.grid.width * TILE
   const H = world.grid.height * TILE
@@ -89,10 +96,13 @@ export function WorldSprite({
   useLayoutEffect(() => {
     if (filledDynId.current === dyn.id) return
     filledDynId.current = dyn.id
-    dyn.ctx.fillStyle = '#1a4a80'
-    dyn.ctx.fillRect(0, 0, dynW, dynH)
+    // Over a TileLayer the texture must stay transparent: the ground shows through it.
+    if (!tileTerrain) {
+      dyn.ctx.fillStyle = '#1a4a80'
+      dyn.ctx.fillRect(0, 0, dynW, dynH)
+    }
     dyn.markDirty()
-  }, [dyn, dynW, dynH])
+  }, [dyn, dynW, dynH, tileTerrain])
 
   const worldRef = useRef<WorldState | null>(world)
   const selectedOrgIdRef = useRef<string | null>(selectedOrgId)
@@ -129,6 +139,7 @@ export function WorldSprite({
       renderWindow,
       zoom,
       renderScale,
+      tileTerrain ? { sync: terrainSyncRef.current } : undefined,
     )
     const sprite = engine.ecs.getComponent<SpriteComponent>(entityId, 'Sprite')
     if (sprite) {
@@ -145,7 +156,21 @@ export function WorldSprite({
       hasDrawn.current = true
       requestAnimationFrame(() => requestAnimationFrame(onFirstDraw))
     }
-  }, [dyn, engine, entityId, interp, cameraStateRef, renderWindow, renderScale, atX, atY, W, H, onFirstDraw])
+  }, [
+    dyn,
+    engine,
+    entityId,
+    interp,
+    cameraStateRef,
+    renderWindow,
+    renderScale,
+    atX,
+    atY,
+    W,
+    H,
+    onFirstDraw,
+    tileTerrain,
+  ])
 
   useEffect(() => {
     if (!interp || rendererPaused) return
@@ -313,6 +338,7 @@ export function WorldSprite({
           renderWindow,
           renderZoom,
           renderScale,
+          tileTerrain ? { sync: terrainSyncRef.current } : undefined,
         )
       } catch (error) {
         stopped = true
@@ -358,10 +384,14 @@ export function WorldSprite({
     renderWindow,
     W,
     H,
+    tileTerrain,
   ])
 
   return (
     <>
+      {tileTerrain && (
+        <TerrainTileLayer width={world.grid.width} height={world.grid.height} syncRef={terrainSyncRef} />
+      )}
       <Transform
         x={atX - W / 2 + renderWindow.x + renderWindow.width / 2}
         y={atY - H / 2 + renderWindow.y + renderWindow.height / 2}

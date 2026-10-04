@@ -1,0 +1,29 @@
+<!doctype html><meta charset="utf-8" />
+<title>Terrain backend comparison (canvas vs TileLayer)</title>
+<style>
+  body {
+    background: #241e17;
+    color: #eee;
+    font: 13px monospace;
+    margin: 12px;
+  }
+  #stage {
+    width: 960px;
+    height: 540px;
+    position: relative;
+    overflow: hidden;
+    outline: 1px solid #665;
+  }
+  pre {
+    white-space: pre-wrap;
+    max-width: 960px;
+  }
+  img {
+    image-rendering: pixelated;
+    max-width: 960px;
+  }
+</style>
+<div id="stage"></div>
+<pre id="log">Loading the world. Drive it from the console: window.__spike (see terrain-spike harness).</pre>
+<div id="shots"></div>
+<script type="module" src="/src/game/render/terrain-tiles/spike-harness.tsx"></script>
