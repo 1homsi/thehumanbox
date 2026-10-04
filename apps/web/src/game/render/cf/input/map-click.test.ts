@@ -201,7 +201,7 @@ describe('resolveMapClick', () => {
       prayerClicksEnabled: false,
       viewFlags: {} as MapClickInput['viewFlags'],
       focus: 'all',
-      territoryIndex: { ownersByTile: new Map(), contested: new Set() },
+      territoryIndex: { ownersByTile: new Map(), contested: new Set<string>() },
       zoom: 1,
     }
     const at = (tiles: number, coarsePointer: boolean) =>

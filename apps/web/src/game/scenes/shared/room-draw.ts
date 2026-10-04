@@ -1,5 +1,5 @@
 import type { SceneFixture } from '../core/types'
-import { ROOM_COLS, ROOM_ROWS, TILE_PX } from './room-constants'
+import { CANVAS_H, CANVAS_W, ROOM_COLS, ROOM_ROWS, TILE_PX } from './room-constants'
 
 /** Fixture kinds that emit warm light and should punch through the night dim. */
 const FIRE_FIXTURE_KINDS = new Set([
@@ -87,7 +87,7 @@ export function drawNamePlate(
   ctx.fillText(name, px, by + 1)
 }
 
-interface LightSource {
+export interface LightSource {
   cx: number
   cy: number
   radius: number
@@ -148,4 +148,52 @@ export function drawRoomFloor(
   ctx.fillStyle = 'rgba(20, 14, 12, 0.22)'
   ctx.fillRect(TILE_PX, TILE_PX, (ROOM_COLS - 2) * TILE_PX, 3)
   ctx.fillRect(TILE_PX, TILE_PX, 2, (ROOM_ROWS - 2) * TILE_PX)
+}
+
+/** The colours a room's walls and doorway are drawn in. */
+export interface WallPalette {
+  wall: string
+  wallShade: string
+  wallHighlight: string
+  floor: string
+  floorShade: string
+}
+
+export function drawWalls(ctx: CanvasRenderingContext2D, p: WallPalette, t: number) {
+  ctx.fillStyle = p.wall
+  ctx.fillRect(0, 0, CANVAS_W, TILE_PX)
+  ctx.fillRect(0, CANVAS_H - TILE_PX, CANVAS_W, TILE_PX)
+  ctx.fillRect(0, 0, TILE_PX, CANVAS_H)
+  ctx.fillRect(CANVAS_W - TILE_PX, 0, TILE_PX, CANVAS_H)
+
+  ctx.fillStyle = p.wallShade
+  ctx.fillRect(0, TILE_PX - 2, CANVAS_W, 2)
+  ctx.fillRect(0, CANVAS_H - TILE_PX, CANVAS_W, 2)
+  ctx.fillRect(TILE_PX - 2, 0, 2, CANVAS_H)
+  ctx.fillRect(CANVAS_W - TILE_PX, 0, 2, CANVAS_H)
+
+  ctx.fillStyle = p.wallHighlight
+  for (let c = 0; c < ROOM_COLS; c++) {
+    ctx.fillRect(c * TILE_PX, 0, TILE_PX - 2, 2)
+    ctx.fillRect(c * TILE_PX, CANVAS_H - 2, TILE_PX - 2, 2)
+  }
+
+  for (const col of SCONCE_COLS) drawSconce(ctx, col * TILE_PX + TILE_PX / 2, t)
+
+  const doorX = Math.floor(ROOM_COLS / 2) - 1
+  ctx.fillStyle = p.floorShade
+  ctx.fillRect(doorX * TILE_PX, CANVAS_H - TILE_PX, TILE_PX * 2, TILE_PX)
+  ctx.fillStyle = p.floor
+  ctx.fillRect(doorX * TILE_PX + 2, CANVAS_H - TILE_PX + 2, TILE_PX * 2 - 4, TILE_PX - 4)
+  ctx.fillStyle = p.wallShade
+  ctx.fillRect(doorX * TILE_PX + 1, CANVAS_H - 2, TILE_PX * 2 - 2, 2)
+}
+
+/** The dim of a room at night, over the floor and everything on it. */
+export function drawAmbient(ctx: CanvasRenderingContext2D, isDay: boolean) {
+  if (isDay) return
+  ctx.globalCompositeOperation = 'multiply'
+  ctx.fillStyle = 'rgba(40, 32, 50, 0.55)'
+  ctx.fillRect(TILE_PX, TILE_PX, CANVAS_W - TILE_PX * 2, CANVAS_H - TILE_PX * 2)
+  ctx.globalCompositeOperation = 'source-over'
 }

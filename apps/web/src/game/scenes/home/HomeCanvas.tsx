@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { drawPeopleTile, pickHumanSprite } from '../../../shared/sprites'
 import type { SceneContext } from '../core/types'
 import { deterministicAppearanceIndex, resolveAgeStage } from '../../render/character-visuals'
@@ -13,6 +13,9 @@ import {
   drawSconce,
   SCONCE_COLS,
 } from '../shared/room-draw'
+import { cfFlag } from '../../render/cf/flags'
+import { CfRoomView } from '../../render/cf/scenes/CfRoomView'
+import type { RoomPainter } from '../../render/cf/scenes/room-model'
 
 const ERA_PALETTE: Record<
   string,
@@ -361,7 +364,7 @@ function drawAmbient(ctx: CanvasRenderingContext2D, isDay: boolean) {
   ctx.globalCompositeOperation = 'source-over'
 }
 
-export function HomeCanvas({ ctx: sceneCtx, selectedOrgId, onSelectOrg }: Props) {
+function HomeCanvas2D({ ctx: sceneCtx, selectedOrgId, onSelectOrg }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef = useRef<number>(0)
   const hitRef = useRef<Array<{ id: string; x: number; y: number; r: number }>>([])
@@ -490,4 +493,44 @@ export function HomeCanvas({ ctx: sceneCtx, selectedOrgId, onSelectOrg }: Props)
       }}
     />
   )
+}
+
+/** The look of a home for the cubeforge room view: era palette, fixtures, hearth and sconce light. */
+function homePainter(sceneCtx: SceneContext): RoomPainter {
+  const host = sceneCtx.world.organisms.find(
+    (o) => o.id === (sceneCtx.scene.kind === 'home' ? sceneCtx.scene.orgId : ''),
+  )
+  const era = host ? eraOf(sceneCtx.world, host.lineage_id) : 'pre-stone'
+  const palette = ERA_PALETTE[era] ?? ERA_PALETTE['stone']
+  const fixtures = fixturesLayout(era).sort((a, b) => a.y + a.h - (b.y + b.h))
+  // Hearth + sconces punch warm light back through the night dim.
+  const nightLights = [{ cx: 3 * TILE_PX + TILE_PX, cy: (ROOM_ROWS - 3) * TILE_PX + TILE_PX, radius: 50 }]
+  for (const col of SCONCE_COLS) nightLights.push({ cx: col * TILE_PX + TILE_PX / 2, cy: 6, radius: 18 })
+  return {
+    slots: occupantSlots(sceneCtx.occupants.length),
+    nightLights,
+    paintBack(c, time) {
+      c.fillStyle = palette.outside
+      c.fillRect(0, 0, CANVAS_W, CANVAS_H)
+      drawRoomFloor(c, palette)
+      drawFixtures(c, fixtures, time)
+      drawWalls(c, palette, time)
+    },
+  }
+}
+
+/** A home interior. On cubeforge with `?cf=scenes`, otherwise on a 2D canvas. */
+export function HomeCanvas(props: Props) {
+  const onCubeforge = useMemo(() => cfFlag('scenes'), [])
+  const painter = useMemo(() => (onCubeforge ? homePainter(props.ctx) : null), [onCubeforge, props.ctx])
+  if (painter)
+    return (
+      <CfRoomView
+        ctx={props.ctx}
+        painter={painter}
+        selectedOrgId={props.selectedOrgId}
+        onSelectOrg={props.onSelectOrg}
+      />
+    )
+  return <HomeCanvas2D {...props} />
 }
