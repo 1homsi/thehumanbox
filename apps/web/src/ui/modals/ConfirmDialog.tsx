@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { Modal } from './Modal'
+import { Modal } from './LazyModal'
 import { currentConfirm, settleConfirm, subscribeConfirm } from '../../shared/confirm'
 
 /** Renders the dialog requested through `askConfirm` or `showNotice`. Mount once near the app root. */

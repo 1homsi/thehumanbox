@@ -1,5 +1,5 @@
 import type { WorldState } from '../../shared/types'
-import { eraTier } from '../render/building-sprites'
+import { eraTier } from './era-tier'
 
 export interface WorldEpitaph {
   years: number
