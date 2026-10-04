@@ -13,6 +13,8 @@ mod band_table;
 mod base_bands;
 mod bonus;
 mod eligibility;
+#[cfg(test)]
+mod plan_tests;
 mod registered;
 mod registry;
 mod reservation;
