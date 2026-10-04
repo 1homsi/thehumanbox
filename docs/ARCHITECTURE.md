@@ -32,7 +32,7 @@ private world in WebAssembly, `headless` runs it flat out for measurement.
 
 | Path | What lives there |
 |---|---|
-| `crates/sim-core/src/sim/` | the simulation: `simulation/` (the `Simulation` struct and its tick), `actions/`, `civ/`, `agents/`, `tech/`, `command/`, `storage/`, `world_events.rs`, `seasons.rs`, `spatial.rs` |
+| `crates/sim-core/src/sim/` | the simulation: `simulation/` (the `Simulation` struct and its tick), `actions/`, `civ/`, `agents/`, `tech/`, `command/`, `storage/`, `world_events/`, `seasons.rs`, `spatial.rs` |
 | `crates/sim-core/src/organism/` | one person: `organism/` (state, perception, learning, movement, JSON view), `choose_action.rs`, `navigation.rs`, `traits.rs`, `vocabulary.rs`, animals |
 | `crates/sim-core/src/world/` | the tile grid (`grid.rs`, `tiles.rs`) and its layers |
 | `crates/sim-core/src/physics/` | fire, water and weather physics on the grid |
@@ -106,7 +106,7 @@ dispatched by id range in `actions/mod.rs` and gated by the band tables; ids
 | add a building kind | `BuildingKind` in `sim/tech/buildings/` (`kind.rs` lists it; `profile.rs` has footprint, function and era, `costs.rs` the material bill), then its sprite in `apps/web/src/game/render/building-sprites.ts` / `buildings2d.ts` |
 | add a tile | `Tile` in `world/tiles.rs` (`from_i8`, `walkable`), grid rules in `world/grid`, palette in the web renderer |
 | add a discovery or technology | `sim/tech/tech_tree/` (a node goes in the table module for its era span; table order feeds the discovery rolls), `tech_progress.rs`; era specs list the discoveries that open an era |
-| add a world event or disaster | `sim/world_events.rs`; player-triggered ones in `sim/command/` |
+| add a world event or disaster | `sim/world_events/` (weather, disasters, evolution, the event log); player-triggered ones in `sim/command/` |
 | add a god power | `sim/command/` (`blessings`, `disasters`, `creation`, `tribes`), then the toolbar in `apps/web/src/ui/toolbar` |
 | add a server route | `apps/server/src/routes.rs`, wired in `router.rs` |
 | add a UI panel or modal | `apps/web/src/ui/panels` or `ui/modals`; lazy-load rarely used ones |
