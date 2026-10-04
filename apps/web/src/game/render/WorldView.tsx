@@ -17,6 +17,8 @@ import { WorldSprite } from './world-view/WorldSprite'
 import { CanvasWorldFallback } from './world-view/CanvasWorldFallback'
 import { useRendererBackend } from './world-view/useRendererBackend'
 import { useMapPointer } from './world-view/useMapPointer'
+import { cfFlag } from './cf/flags'
+import { CfMapCameraController } from './cf/input/CfMapCameraController'
 
 interface Props {
   world: WorldState
@@ -94,7 +96,9 @@ export function WorldView({
       })()
     : null
 
-  const { overPrayer, handlePointerDown, handlePointerMove, handlePointerCancel, handleClick } =
+  // Experimental: cubeforge's pan/zoom and tap instead of the map's own (?cf=camera).
+  const cfCamera = useMemo(() => cfFlag('camera'), [])
+  const { overPrayer, handlePointerDown, handlePointerMove, handlePointerCancel, handleClick, handleTap } =
     useMapPointer({
       containerRef,
       cameraStateRef,
@@ -147,10 +151,10 @@ export function WorldView({
         // gets the events instead.
         touchAction: 'none',
       }}
-      onPointerDown={handlePointerDown}
+      onPointerDown={cfCamera ? undefined : handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerCancel={handlePointerCancel}
-      onClick={handleClick}
+      onClick={cfCamera ? undefined : handleClick}
     >
       <div
         style={{
@@ -176,7 +180,7 @@ export function WorldView({
               style={{ display: 'block' }}
             >
               <World background="#1a4a80">
-                <Camera2D />
+                <Camera2D pixelSnap={cfFlag('snap')} />
 
                 <Entity>
                   <WorldSprite
@@ -196,16 +200,30 @@ export function WorldView({
                   />
                 </Entity>
 
-                <MapCameraController
-                  commandRef={commandRef}
-                  worldW={W}
-                  worldH={H}
-                  containerW={dims.w}
-                  containerH={dims.h}
-                  containerEl={containerRef.current}
-                  cameraStateRef={cameraStateRef}
-                  followTarget={followTarget}
-                />
+                {cfCamera ? (
+                  <CfMapCameraController
+                    commandRef={commandRef}
+                    worldW={W}
+                    worldH={H}
+                    containerW={dims.w}
+                    containerH={dims.h}
+                    containerEl={containerRef.current}
+                    cameraStateRef={cameraStateRef}
+                    followTarget={followTarget}
+                    onTap={handleTap}
+                  />
+                ) : (
+                  <MapCameraController
+                    commandRef={commandRef}
+                    worldW={W}
+                    worldH={H}
+                    containerW={dims.w}
+                    containerH={dims.h}
+                    containerEl={containerRef.current}
+                    cameraStateRef={cameraStateRef}
+                    followTarget={followTarget}
+                  />
+                )}
               </World>
             </Game>
           </World2DErrorBoundary>
