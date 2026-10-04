@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import type { OrganismState, ConversationEntry } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
 import { useOrgConversations } from '../../shared/hooks/useOrgConversations'
+import { WithQueryClient } from '../../shared/query'
 import { Modal } from './Modal'
 
 const DAY_LENGTH = 600
@@ -111,7 +112,7 @@ const ConvoBlock = memo(function ConvoBlock({
 
 type KindFilter = 'all' | 'courtship' | 'bonded' | 'chat' | 'gossip' | 'excited' | 'argue' | 'farewell'
 
-export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
+function ConversationsModalBody({ org, allOrgs, sexWords, onClose }: Props) {
   const { data: convosData, isLoading } = useOrgConversations(org.id)
   const allConvos = useMemo(() => convosData?.conversations ?? [], [convosData?.conversations])
   const [kindFilter, setKindFilter] = useState<KindFilter>('all')
@@ -220,5 +221,13 @@ export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
         )}
       </div>
     </Modal>
+  )
+}
+
+export function ConversationsModal(props: Props) {
+  return (
+    <WithQueryClient>
+      <ConversationsModalBody {...props} />
+    </WithQueryClient>
   )
 }

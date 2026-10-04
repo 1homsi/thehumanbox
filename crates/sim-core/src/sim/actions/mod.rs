@@ -15,6 +15,8 @@ mod bonus;
 #[cfg(test)]
 mod building_index_tests;
 mod eligibility;
+#[cfg(test)]
+mod plan_tests;
 mod registered;
 mod registry;
 mod reservation;

@@ -12,9 +12,9 @@
  * crates/sim-core/src/sim/serialize.rs; if either side drifts, this test
  * catches it before the regression hits the live wire.
  */
-import { describe, it, expect } from 'vitest'
+import { beforeAll, describe, it, expect } from 'vitest'
 import { encode as msgpackEncode } from '@msgpack/msgpack'
-import { parseWorldFrame } from './wire'
+import { loadBinaryFrameDecoder, parseWorldFrame } from './wire'
 
 const knownDelta = () => ({
   frame_id: 42,
@@ -116,6 +116,8 @@ const knownDelta = () => ({
 })
 
 describe('wire round-trip', () => {
+  beforeAll(() => loadBinaryFrameDecoder())
+
   it('decodes a msgpack-encoded delta frame the renderer can use', () => {
     const original = knownDelta()
     const bytes = msgpackEncode(original)

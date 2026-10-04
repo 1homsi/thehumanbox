@@ -12,6 +12,7 @@ import { SimulationDataProvider } from './simulation/SimulationDataProvider'
 import { SandboxToolbar } from './ui/toolbar/SandboxToolbar'
 import { PhotoModeExit } from './ui/toolbar/PhotoModeExit'
 import { ConfirmHost } from './ui/modals/ConfirmDialog'
+import './ui/modals/modal-theme.css'
 import { WorldSilent } from './ui/panels/WorldSilent'
 import { PrayerHint } from './ui/panels/PrayerHint'
 import { TribeCard } from './ui/panels/TribeCard'
@@ -39,7 +40,6 @@ import {
   shouldPauseDesktopRenderer,
 } from './shared/desktopVisibility'
 
-import { WorldView } from './game/render/WorldView'
 import { EventLog } from './ui/panels/EventLog'
 import { HistoryGrid } from './ui/panels/HistoryGrid'
 import { WildlifePanel } from './ui/panels/WildlifePanel'
@@ -57,6 +57,19 @@ import type { OrganismState } from './shared/types'
 import clsx from 'clsx'
 import './App.css'
 import './pixel-theme.css'
+
+// The map renderer (the CubeForge engine plus every draw layer and sprite painter) is a
+// third of the app's JavaScript and is only needed once the first world frame has
+// arrived, which takes seconds of WebAssembly start-up. It is its own chunk, fetched in
+// parallel with the entry through a modulepreload hint (see vite.config.ts), so the app
+// shell parses and the simulation worker starts without waiting for it.
+const WorldView = lazyWithRetry(() =>
+  import('./game/render/WorldView').then((m) => ({ default: m.WorldView })),
+)
+function WorldViewPending() {
+  // Same footprint and colour as the map's own loading cover.
+  return <div className="map2d-world" style={{ flex: 1, minWidth: 0, background: '#1a4a80' }} />
+}
 
 const SceneView = lazyWithRetry(() =>
   import('./game/scenes/components/SceneView').then((m) => ({ default: m.SceneView })),
@@ -599,20 +612,22 @@ function LiveApp() {
                   <SceneView world={world} />
                 </Suspense>
               ) : (
-                <WorldView
-                  world={world}
-                  interp={interp}
-                  rendererPaused={desktopRendererPaused}
-                  sandboxArmed={sandboxControlsEnabled && !!armedTool}
-                  sandboxLabel={armedTool?.label}
-                  sandboxToolId={armedTool?.id}
-                  sandboxRadius={(() => {
-                    const preview = armedTool?.build?.(0, 0, brush)
-                    return preview && 'radius' in preview ? (preview.radius ?? 0) : 0
-                  })()}
-                  onSandboxApply={handleSandboxApply}
-                  onPrayerClick={handleAnswerPrayer}
-                />
+                <Suspense fallback={<WorldViewPending />}>
+                  <WorldView
+                    world={world}
+                    interp={interp}
+                    rendererPaused={desktopRendererPaused}
+                    sandboxArmed={sandboxControlsEnabled && !!armedTool}
+                    sandboxLabel={armedTool?.label}
+                    sandboxToolId={armedTool?.id}
+                    sandboxRadius={(() => {
+                      const preview = armedTool?.build?.(0, 0, brush)
+                      return preview && 'radius' in preview ? (preview.radius ?? 0) : 0
+                    })()}
+                    onSandboxApply={handleSandboxApply}
+                    onPrayerClick={handleAnswerPrayer}
+                  />
+                </Suspense>
               )}
 
               {!currentScene && !viewFlags.hideUI && (

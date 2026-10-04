@@ -97,6 +97,7 @@ pub(super) fn stable_action_phase(id: &str, tick: u64) -> usize {
     (u64::from(hash) + tick / 30) as usize
 }
 
+#[cfg(test)]
 pub(super) fn extend_rotating_candidates(actions: &mut Vec<usize>, candidates: &[usize], phase: usize) {
     let len = candidates.len();
     if len == 0 {
@@ -122,6 +123,7 @@ pub(super) fn mark_eligible_family_band(families: &mut [u64; ACTION_FAMILY_COUNT
     families[family] |= ((1u64 << width) - 1) << (start % ACTION_FAMILY_WIDTH);
 }
 
+#[cfg(test)]
 pub(super) fn extend_rotating_family_masks(
     actions: &mut Vec<usize>,
     families: &[u64; ACTION_FAMILY_COUNT],
@@ -614,6 +616,36 @@ pub(super) fn band_is_eligible(
     let band = &resolved.band;
     if era < band.min_era || !gate.age_ok(band.age) || resolved.req.ctx & !bits != 0 || !resolved.passes(gate)
     {
+        return false;
+    }
+    if resolved.req.workspaces != 0
+        && resolved.req.workspaces & !place_cache.workspaces(sim, lineage, ix, iy) != 0
+    {
+        return false;
+    }
+    let lazy = resolved.req.lazy;
+    if lazy == 0 {
+        return true;
+    }
+    (lazy & LAZY_NEAR_HUT == 0 || place_cache.hut(sim, lineage, ix, iy))
+        && (lazy & LAZY_BRIDGE_SITE == 0
+            || crate::sim::civ_tick::construction_site_is_valid(sim, BuildingKind::Bridge, ix, iy))
+        && (lazy & LAZY_BRIDGE_MATERIALS == 0
+            || crate::sim::civ_tick::lineage_can_afford_construction(sim, lineage, BuildingKind::Bridge))
+}
+
+/// What `band_is_eligible` asks once the era, age and qualification gates have
+/// let the band through: the situation, the workspaces and the lazy checks.
+pub(super) fn band_is_eligible_in_place(
+    sim: &Simulation,
+    ix: i32,
+    iy: i32,
+    resolved: &ResolvedBand,
+    bits: u32,
+    place_cache: &mut LocalPlaceCache,
+    lineage: &str,
+) -> bool {
+    if resolved.req.ctx & !bits != 0 {
         return false;
     }
     if resolved.req.workspaces != 0
