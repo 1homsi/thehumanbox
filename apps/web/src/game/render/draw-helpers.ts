@@ -2,7 +2,7 @@ import type { AnimalState, OrganismState } from '../../shared/types'
 
 import { cbFireRgba } from '../../shared/constants'
 
-import { eraTier } from './building-sprites'
+import { eraTier } from '../model/era-tier'
 
 import { characterMotion, type CharacterMotion } from './character-visuals'
 
