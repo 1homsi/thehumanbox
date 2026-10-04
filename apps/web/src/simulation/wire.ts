@@ -1,6 +1,5 @@
 import { Result, ok, err } from 'neverthrow'
-import { decode as msgpackDecode } from '@msgpack/msgpack'
-import { gunzipSync } from 'fflate'
+import { loadWithChunkRecovery } from '../shared/lazyWithRetry'
 import type { WorldState, GridState, GridWire, OrganismState, AnimalState } from '../shared/types'
 import { PATH_TRAIL_HOT } from '../shared/types'
 
@@ -274,6 +273,28 @@ export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
   return out
 }
 
+// Binary (MessagePack) frames only come from the native server, so their codecs are loaded
+// on demand rather than shipped in the first download of the in-browser build.
+let binaryDecoder: ((raw: ArrayBuffer | Uint8Array) => unknown) | null = null
+let binaryDecoderLoading: Promise<void> | null = null
+
+export function binaryFramesReady(): boolean {
+  return binaryDecoder !== null
+}
+
+/** Fetches the binary frame decoder; resolves immediately once it is loaded. */
+export function loadBinaryFrameDecoder(): Promise<void> {
+  if (binaryDecoder) return Promise.resolve()
+  binaryDecoderLoading ??= loadWithChunkRecovery(() => import('./binary-frames'))
+    .then((m) => {
+      binaryDecoder = m.decodeBinaryFrame
+    })
+    .finally(() => {
+      binaryDecoderLoading = null
+    })
+  return binaryDecoderLoading
+}
+
 export function parseWorldFrame(
   raw: ArrayBuffer | Uint8Array | string,
 ): Result<IncomingWorldFrame, ParseError> {
@@ -282,13 +303,8 @@ export function parseWorldFrame(
     if (typeof raw === 'string') {
       decoded = JSON.parse(raw)
     } else {
-      let bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw)
-      if (bytes.length > 0 && bytes[0] === 0) {
-        bytes = bytes.subarray(1)
-      } else if (bytes.length > 0 && bytes[0] === 1) {
-        bytes = gunzipSync(bytes.subarray(1))
-      }
-      decoded = msgpackDecode(bytes)
+      if (!binaryDecoder) throw new Error('binary frame decoder is not loaded yet')
+      decoded = binaryDecoder(raw)
     }
   } catch (e) {
     return err({ kind: 'json', message: e instanceof Error ? e.message : String(e) })
