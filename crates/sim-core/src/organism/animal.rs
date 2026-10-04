@@ -25,7 +25,7 @@ pub enum AnimalKind {
     Fish,
     Wolf,
     Dog,
-    // Appended so saved worlds keep their numeric kinds (see persistence.rs).
+    // Appended so saved worlds keep their numeric kinds (see storage/persistence/organism.rs).
     Bear,
     Sheep,
     Cow,

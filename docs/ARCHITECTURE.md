@@ -111,7 +111,7 @@ dispatched by id range in `actions/mod.rs` and gated by the band tables; ids
 | add a server route | `apps/server/src/routes.rs`, wired in `router.rs` |
 | add a UI panel or modal | `apps/web/src/ui/panels` or `ui/modals`; lazy-load rarely used ones |
 | draw something new on the map | a layer in `apps/web/src/game/render/layers/` and one line in `draw-world.ts` |
-| change what is saved | `sim/storage/serialize.rs` and `persistence.rs`; bump `SAVE_SCHEMA_VERSION` if old saves need migrating (unknown fields are ignored on load) |
+| change what is saved | the `serialize` and `persistence` modules in `sim/storage/`; bump `SAVE_SCHEMA_VERSION` if old saves need migrating (unknown fields are ignored on load) |
 
 ## Rules that keep a world reproducible
 
