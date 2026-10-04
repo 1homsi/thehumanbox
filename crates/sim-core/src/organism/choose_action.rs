@@ -67,6 +67,30 @@ fn context_actions(
     Some(filtered)
 }
 
+/// Learned values by action id for the state being decided, kept between
+/// decisions (see `choose_action_with_neighbors`). Always all zero / false
+/// outside a decision.
+struct QValueScratch {
+    dense: Vec<f32>,
+    seen: Vec<bool>,
+}
+
+impl QValueScratch {
+    fn tables(&mut self) -> (&mut [f32], &mut [bool]) {
+        if self.dense.is_empty() {
+            self.dense = vec![0.0; ACTION_ID_SPACE];
+            self.seen = vec![false; ACTION_ID_SPACE];
+        }
+        (&mut self.dense, &mut self.seen)
+    }
+}
+
+thread_local! {
+    static QVALUES: std::cell::RefCell<QValueScratch> = const {
+        std::cell::RefCell::new(QValueScratch { dense: Vec::new(), seen: Vec::new() })
+    };
+}
+
 impl Organism {
     #[allow(clippy::too_many_arguments)]
     pub fn choose_action(
@@ -1080,54 +1104,72 @@ impl Organism {
                 None
             }
         });
-        let mut dense = [0.0f32; ACTION_ID_SPACE];
-        let mut seen = [false; ACTION_ID_SPACE];
-        if let Some(r) = q_row {
-            for &(a, v) in r.iter() {
-                let ai = a as usize;
-                if ai < ACTION_ID_SPACE {
-                    dense[ai] = v;
-                    seen[ai] = true;
+        let has_directive = !active_directive.is_empty();
+        let novelty_seed = 0.006 + self.traits.curiosity.clamp(0.0, 1.0) * 0.012;
+        // The learned values of this state, spread over a table indexed by action
+        // id. The table is kept between decisions and only the entries this state
+        // set are cleared again, instead of zeroing 30 KB for every choice.
+        let (best_avail, _) = QVALUES.with_borrow_mut(|scratch| {
+            let (dense, seen) = scratch.tables();
+            if let Some(r) = q_row {
+                for &(a, v) in r.iter() {
+                    let ai = a as usize;
+                    if ai < ACTION_ID_SPACE {
+                        dense[ai] = v;
+                        seen[ai] = true;
+                    }
                 }
             }
-        }
-        let lookup = |a: usize| -> f32 {
-            let (v, tried) = if a < ACTION_ID_SPACE {
-                (dense[a], seen[a])
-            } else {
-                (
-                    q_row.map(|r| r.get_q(a as u16)).unwrap_or(0.0),
-                    q_row.is_some_and(|r| r.iter().any(|&(known, _)| known as usize == a)),
-                )
+            let lookup = |a: usize| -> f32 {
+                let (v, tried) = if a < ACTION_ID_SPACE {
+                    (dense[a], seen[a])
+                } else {
+                    (
+                        q_row.map(|r| r.get_q(a as u16)).unwrap_or(0.0),
+                        q_row.is_some_and(|r| r.iter().any(|&(known, _)| known as usize == a)),
+                    )
+                };
+                let learned = if tried { v } else { novelty_seed };
+                let directed = if has_directive {
+                    directive_action_boost(active_directive, a)
+                } else {
+                    0.0
+                };
+                learned + directed + preferred_action_boost(active_wander_action, a)
             };
-            let novelty_seed = 0.006 + self.traits.curiosity.clamp(0.0, 1.0) * 0.012;
-            let learned = if tried { v } else { novelty_seed };
-            learned
-                + directive_action_boost(active_directive, a)
-                + preferred_action_boost(active_wander_action, a)
-        };
-        let mut best_avail: Option<usize> = None;
-        let mut best_score = f32::NEG_INFINITY;
-        let mut equal_best_seen = 0u32;
-        for &a in decision_pool {
-            let s = lookup(a);
-            if best_avail.is_none() || s > best_score + f32::EPSILON {
-                best_score = s;
-                best_avail = Some(a);
-                equal_best_seen = 1;
-            } else if (s - best_score).abs() <= f32::EPSILON {
-                // Reservoir-sample exact ties. Previously `>=` always chose
-                // the final (usually highest-ID) action, so large generated
-                // families looked diverse on paper but converged on one
-                // deterministic tail action. The simulation RNG remains
-                // seeded, preserving reproducible worlds while allowing
-                // different organisms/ticks to make different tied choices.
-                equal_best_seen += 1;
-                if rng.random_range(0..equal_best_seen) == 0 {
+            let mut best_avail: Option<usize> = None;
+            let mut best_score = f32::NEG_INFINITY;
+            let mut equal_best_seen = 0u32;
+            for &a in decision_pool {
+                let s = lookup(a);
+                if best_avail.is_none() || s > best_score + f32::EPSILON {
+                    best_score = s;
                     best_avail = Some(a);
+                    equal_best_seen = 1;
+                } else if (s - best_score).abs() <= f32::EPSILON {
+                    // Reservoir-sample exact ties. Previously `>=` always chose
+                    // the final (usually highest-ID) action, so large generated
+                    // families looked diverse on paper but converged on one
+                    // deterministic tail action. The simulation RNG remains
+                    // seeded, preserving reproducible worlds while allowing
+                    // different organisms/ticks to make different tied choices.
+                    equal_best_seen += 1;
+                    if rng.random_range(0..equal_best_seen) == 0 {
+                        best_avail = Some(a);
+                    }
                 }
             }
-        }
+            if let Some(r) = q_row {
+                for &(a, _) in r.iter() {
+                    let ai = a as usize;
+                    if ai < ACTION_ID_SPACE {
+                        dense[ai] = 0.0;
+                        seen[ai] = false;
+                    }
+                }
+            }
+            (best_avail, best_score)
+        });
         // Commit to the best available action even when best_val ≤ 0.
         // The previous gate (`if best_val > 0.0`) silently fell through
         // to a uniform-random pick whenever every learned Q was negative,
