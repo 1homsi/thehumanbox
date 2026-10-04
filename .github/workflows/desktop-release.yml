@@ -117,9 +117,7 @@ jobs:
       - name: Build wasm sim-core (renderer imports it)
         if: steps.wasm.outcome != 'success'
         shell: bash
-        env:
-          RUSTFLAGS: '--cfg getrandom_backend="wasm_js"'
-        run: wasm-pack build crates/sim-core --target web --release --out-dir ../../apps/web/src/wasm/sim-core
+        run: scripts/build-wasm.sh
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
