@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Game, World, Entity, Camera2D } from 'cubeforge'
 import type { PrayerInfo, WorldState } from '../../shared/types'
 import type { InterpRefs } from '../../simulation/useSimulation'
@@ -17,6 +17,10 @@ import { WorldSprite } from './world-view/WorldSprite'
 import { CanvasWorldFallback } from './world-view/CanvasWorldFallback'
 import { useRendererBackend } from './world-view/useRendererBackend'
 import { useMapPointer } from './world-view/useMapPointer'
+import { anyCfOverlay, readCfFeatures } from './cf/overlays/features'
+
+// The cubeforge overlay renderer is opt-in (`?cf=...`), so it stays out of the default chunk.
+const CfOverlays = lazy(() => import('./cf/overlays/CfOverlays').then((m) => ({ default: m.CfOverlays })))
 
 interface Props {
   world: WorldState
@@ -52,6 +56,7 @@ export function WorldView({
   const viewFlags = useUIStore((s) => s.viewFlags)
   const onOrgSelect = useUIStore((s) => s.selectOrg)
   const territoryIndex = useMemo(() => buildTerritoryIndex(world.territory), [world.territory])
+  const cfFeatures = useMemo(readCfFeatures, [])
   const W = world.grid.width * TILE
   const H = world.grid.height * TILE
   const cx = W / 2
@@ -195,6 +200,22 @@ export function WorldView({
                     viewportDims={dims}
                   />
                 </Entity>
+
+                {anyCfOverlay(cfFeatures) && (
+                  <Suspense fallback={null}>
+                    <CfOverlays
+                      world={world}
+                      interp={interp}
+                      overlay={overlay}
+                      focus={focus}
+                      viewFlags={viewFlags}
+                      features={cfFeatures}
+                      rendererPaused={rendererPaused}
+                      cameraStateRef={cameraStateRef}
+                      viewportDims={dims}
+                    />
+                  </Suspense>
+                )}
 
                 <MapCameraController
                   commandRef={commandRef}
