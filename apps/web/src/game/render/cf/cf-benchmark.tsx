@@ -290,11 +290,9 @@ async function mount(which: 'canvas' | 'cf', size = { w: 1000, h: 640 }) {
   stage.style.width = `${size.w}px`
   stage.style.height = `${size.h}px`
   // cfFlag reads the URL on every call, so the page picks the renderer through ?cf=
-  history.replaceState(
-    null,
-    '',
-    `${location.pathname}${location.search.replace(/[?&]cf=[^&]*/g, '')}${location.search.includes('?') ? '&' : '?'}cf=${which === 'cf' ? 'people,animals,probe' : 'probe'}`,
-  )
+  const params = new URLSearchParams(location.search)
+  params.set('cf', which === 'cf' ? 'people,animals,probe' : 'probe')
+  history.replaceState(null, '', `${location.pathname}?${params.toString().replace(/%2C/g, ',')}`)
   mode = which
   root = createRoot(stage)
   root.render(<WorldView world={world!} interp={interp} />)

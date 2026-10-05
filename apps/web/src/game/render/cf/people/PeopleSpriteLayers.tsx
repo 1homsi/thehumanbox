@@ -7,7 +7,7 @@ import { normalizeLineageEras } from '../../../../shared/lineageEras'
 import { zoomDetailLevel } from '../../character-visuals'
 import { ruinedBuildingTiles } from '../../base-parts/terrain-scans'
 import { useBoatAtlas, useDecalAtlas, useEmoteAtlas, useGlyphAtlas, usePeopleAtlas } from '../atlas-hooks'
-import { useSpriteClock } from '../frame-clock'
+import { useSpriteClock, wakeEngine } from '../frame-clock'
 import { cfPerf, registerPeopleLayer } from './bridge'
 import { PeopleSprites } from './people-sprites'
 import { PEOPLE_Z } from './z-order'
@@ -25,7 +25,7 @@ interface Props {
 }
 
 /**
- * People drawn by three SpriteLayers instead of the canvas painter's
+ * People drawn by four SpriteLayers instead of the canvas painter's
  * `draw_people`. Mount inside `<World>`; renders nothing itself.
  */
 export function PeopleSpriteLayers({
@@ -160,7 +160,7 @@ export function PeopleSpriteLayers({
     sprites.animate(frame.now, frame.t)
     cfPerf.peopleFrames++
     cfPerf.peopleAnimateMs += performance.now() - started
-    engine.loop.markDirty()
+    wakeEngine(engine)
   })
 
   return null

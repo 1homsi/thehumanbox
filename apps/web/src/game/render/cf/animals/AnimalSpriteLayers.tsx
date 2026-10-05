@@ -5,7 +5,7 @@ import type { InterpRefs } from '../../../../simulation/useSimulation'
 import type { ViewFlags } from '../../../../state/store'
 import { useDecalAtlas, useFaunaAtlas, useGlyphAtlas, usePixelFaunaAtlas } from '../atlas-hooks'
 import { DECAL_CELL, FAUNA_CELL, GLYPH_CELL, PIXEL_FAUNA_CELL } from '../atlas-bake'
-import { useSpriteClock } from '../frame-clock'
+import { useSpriteClock, wakeEngine } from '../frame-clock'
 import { cfPerf, registerAnimalLayer } from '../people/bridge'
 import { AnimalSprites } from './animal-sprites'
 import { ANIMAL_Z } from '../people/z-order'
@@ -82,7 +82,7 @@ export function AnimalSpriteLayers({ world, interp, viewFlags, rendererPaused }:
     sprites.animate(frame.now, frame.t)
     cfPerf.animalFrames++
     cfPerf.animalAnimateMs += performance.now() - started
-    engine.loop.markDirty()
+    wakeEngine(engine)
   })
 
   return null

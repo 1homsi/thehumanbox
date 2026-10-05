@@ -62,3 +62,20 @@ export function useSpriteClock(
     return () => cancelAnimationFrame(raf)
   }, [interp, paused])
 }
+
+/**
+ * Wake an `onDemand` engine loop for one more frame. `markDirty()` is ignored
+ * while a wake-up is already pending, and a call made from a rAF callback that
+ * runs before the engine's own callback lands in that window, so the engine
+ * rendered only 45 of 60 frames. Waking from a task that runs after the frame's
+ * rAF callbacks avoids it.
+ */
+export function wakeEngine(engine: { loop: { markDirty(): void } }): void {
+  if (pendingWake) return
+  pendingWake = true
+  setTimeout(() => {
+    pendingWake = false
+    engine.loop.markDirty()
+  }, 0)
+}
+let pendingWake = false
