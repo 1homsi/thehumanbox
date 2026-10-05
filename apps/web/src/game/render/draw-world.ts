@@ -11,6 +11,7 @@ import { draw_animals } from './layers/animals'
 import { draw_people } from './layers/people'
 import { draw_effects } from './layers/effects'
 import { draw_hud } from './layers/hud'
+import { cfActive } from './cf/active'
 
 export function drawWorldOnCanvas(
   ctx: CanvasRenderingContext2D,
@@ -22,17 +23,30 @@ export function drawWorldOnCanvas(
   bounds?: { c0: number; c1: number; r0: number; r1: number },
   cameraZoom = 1,
   renderScale = 1,
+  /** False when the TileLayer terrain draws the ground and this canvas is composited over it. */
+  ground = true,
 ) {
-  const f = createFrame(ctx, world, selectedOrgId, overlay, focus, viewFlags, bounds, cameraZoom, renderScale)
+  const f = createFrame(
+    ctx,
+    world,
+    selectedOrgId,
+    overlay,
+    focus,
+    viewFlags,
+    bounds,
+    cameraZoom,
+    renderScale,
+    ground,
+  )
   if (!f) return
   draw_base(f)
-  draw_atmosphere(f)
+  if (!cfActive('atmosphere')) draw_atmosphere(f)
   draw_terrain(f)
-  draw_overlays(f)
+  if (!cfActive('overlays')) draw_overlays(f)
   draw_landuse(f)
   draw_buildings(f)
   draw_animals(f)
   draw_people(f)
-  draw_effects(f)
-  draw_hud(f)
+  if (!cfActive('effects')) draw_effects(f)
+  if (!cfActive('hud')) draw_hud(f)
 }
