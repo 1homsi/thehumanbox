@@ -149,6 +149,12 @@ weather, heat maps, effects or labels. `?renderer=canvas` forces it.
 Dev builds expose `window.__thbCf` (the engine and the driver registry) and `window.__thbDev`
 (UI store, camera focus, current world) for checking the map in a browser.
 
+Performance is measured with `apps/web/bench` (see its README): a production build in headless Chrome with
+the GPU, on two fixed saved worlds (seed 42 at tick 9000, and the same with 3,000 more people), at three zooms,
+paused and playing. It reports frames delivered, main-thread busy time, JS per frame, GPU process time, GC,
+heap and GPU memory, and writes CPU and allocation profiles mapped back to `src/`. The address `?bench` makes
+the app publish `window.__thbBench` so the script can place the camera at an exact zoom.
+
 ## Where does my change go?
 
 | I want to … | Start here |

@@ -9,6 +9,7 @@ import { TILE } from '../model/palette'
 import { CanvasCameraController } from './CanvasCameraController'
 import { World2DErrorBoundary } from './World2DErrorBoundary'
 import { WorldMapHud } from './WorldMapHud'
+import { installBenchHooks } from './bench-hooks'
 import { SandboxBursts } from './SandboxBursts'
 import { useSandboxBursts } from './sandbox-bursts'
 import type { MapCommand } from './camera-controls'
@@ -79,6 +80,12 @@ export function WorldView({
   const cameraStateRef = useRef({ x: cx, y: cy, zoom: 1.5 })
   // Dev builds only: lets cf-compare.html drive and read the camera.
   if (import.meta.env.DEV) (window as unknown as { __thbCamera?: unknown }).__thbCamera = cameraStateRef
+  // `?bench`: the benchmark harness drives the camera through window.__thbBench.
+  useEffect(
+    () =>
+      installBenchHooks({ camera: cameraStateRef, command: commandRef, world: () => latestWorld.current }),
+    [],
+  )
   // Other panels (the prayer list) ask the camera to look at a tile.
   const focusRequest = useCameraFocus((s) => s.request)
   useEffect(() => {
