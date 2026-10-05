@@ -67,15 +67,18 @@ export function AnimalSpriteLayers({ world, interp, viewFlags, rendererPaused }:
     const animals = shown ? pick(w) : []
     const prevAnimals = frame.prev && shown ? pick(frame.prev) : null
     const l = last.current
-    if (!l || l.animals !== animals || l.prev !== prevAnimals || l.shown !== shown) {
+    const rebuilt = !l || l.animals !== animals || l.prev !== prevAnimals || l.shown !== shown
+    if (rebuilt) {
       sprites.rebuild({ animals, prevAnimals, ox, oy })
       last.current = { animals, prev: prevAnimals, shown }
     }
-    // Fish and birds bob forever; settled scenery only needs every other display frame.
+    // Fish and birds bob while the simulation runs, at half the display rate once the frame has
+    // arrived; a paused world stops with the last pose.
+    if (!rebuilt && frame.settled) return
     if (frame.t >= 1 && frame.now - lastAnimate.current < 33) return
     lastAnimate.current = frame.now
     sprites.animate(frame.now, frame.t)
-    wakeEngine(engine)
+    wakeEngine(engine, 30)
   })
 
   return null

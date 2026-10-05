@@ -3,8 +3,7 @@ import { TILE } from '../../../model/palette'
 import { makeCanvas } from './atlas-host'
 import { packRgba } from './color'
 
-/** Tile id 1 is a solid square, id 2 a square outline one world pixel thick (tile ids are 1-based). */
-export const TILE_SOLID = 1
+/** Tile id 2 is a square outline one world pixel thick (tile ids are 1-based; id 1 is a solid square). */
 export const TILE_OUTLINE = 2
 const TEXELS = 16
 

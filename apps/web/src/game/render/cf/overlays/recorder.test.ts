@@ -181,3 +181,26 @@ describe('ShapeAtlas', () => {
     expect(atlas.ring(0.105)).toBe(a)
   })
 })
+
+describe('outlined text', () => {
+  it('writes the outline first, in the stroke colour around the glyphs, then the fill on top', () => {
+    ctx.font = '9px monospace'
+    ctx.textAlign = 'center'
+    ctx.lineWidth = 3
+    ctx.strokeStyle = 'rgba(0,0,0,1)'
+    ctx.strokeText('Ab', 50, 50)
+    const outline = text.count
+    // Eight shifted copies of each of the two glyphs.
+    expect(outline).toBe(16)
+    for (let i = 0; i < outline; i++) expect(rgba(text.color[i]).slice(0, 3)).toEqual([0, 0, 0])
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText('Ab', 50, 50)
+    expect(text.count).toBe(18)
+    expect(rgba(text.color[outline]).slice(0, 3)).toEqual([255, 255, 255])
+    // The outline reaches half the line width beyond the fill on each side.
+    const xs = Array.from({ length: outline }, (_, i) => text.x[i])
+    const fillX = text.x[outline]
+    expect(Math.min(...xs)).toBeLessThan(fillX)
+    expect(Math.max(...xs)).toBeGreaterThan(fillX)
+  })
+})

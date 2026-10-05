@@ -3,7 +3,7 @@ import { writeFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { TILE_ID } from '../model/terrain-ids'
 import { permanentWaterLandEdgeMask, permanentWaterNeighborMask } from '../model/terrain-visuals'
-import { drawNaturalDecor } from './decorations'
+import { drawNaturalDecor, paintReed, paintShoreTile, reedAt, shoreTileKey } from './decorations'
 
 function rng(seed: number) {
   let s = seed >>> 0
@@ -82,7 +82,6 @@ function recorder() {
 // allocations were removed.
 const GOLDEN: Record<string, string> = {
   'whole map': '41f77942',
-  window: 'cbc1a700',
   'offset origin': 'cb41167b',
 }
 
@@ -90,8 +89,6 @@ function run(name: string) {
   const { tiles, biomes } = world(name.length * 31, 64, 48)
   const { ctx, log } = recorder()
   if (name === 'whole map') drawNaturalDecor(ctx, 64, 48, tiles, biomes, 0, 0)
-  else if (name === 'window')
-    drawNaturalDecor(ctx, 64, 48, tiles, biomes, 0, 0, { x0: 10, y0: 8, x1: 40, y1: 30 })
   else drawNaturalDecor(ctx, 64, 48, tiles, biomes, 1234, -567)
   return { hash: fnv(log.join('\n')), calls: log.length }
 }
@@ -146,5 +143,56 @@ describe('water edge masks', () => {
         expect(permanentWaterLandEdgeMask(tiles, row, col)).toBe(expected)
       }
     }
+  })
+})
+
+describe('shore tiles shared with the sprite atlas', () => {
+  function record(draw: (ctx: CanvasRenderingContext2D) => void): string {
+    const { ctx, log } = recorder()
+    draw(ctx)
+    return log.join('\n')
+  }
+
+  it('paints the same pixels for tiles with the same key, and nothing when the key is null', () => {
+    const { tiles, biomes } = world(5, 40, 30)
+    const byKey = new Map<string, string>()
+    let keyed = 0
+    for (let y = 1; y < 29; y++) {
+      for (let x = 1; x < 39; x++) {
+        const key = shoreTileKey(tiles, biomes, x, y, 100, 200)
+        const drawn = record((ctx) => paintShoreTile(ctx, tiles, biomes, x, y, 100, 200, 0, 0))
+        if (key === null) {
+          expect(drawn).toBe('')
+          continue
+        }
+        keyed++
+        const seen = byKey.get(key)
+        if (seen === undefined) byKey.set(key, drawn)
+        else expect(drawn).toBe(seen)
+      }
+    }
+    expect(keyed).toBeGreaterThan(50)
+    // Far fewer looks than tiles: that is what makes an atlas worth it.
+    expect(byKey.size).toBeLessThan(keyed / 2)
+  })
+
+  it('places a reed from the position alone, and paints it relative to its tile', () => {
+    const { tiles } = world(9, 40, 30)
+    let reeds = 0
+    for (let y = 1; y < 29; y++) {
+      for (let x = 1; x < 39; x++) {
+        const reed = reedAt(tiles, x, y, 7, 11)
+        expect(reedAt(tiles, x, y, 7, 11)).toEqual(reed)
+        if (!reed) continue
+        reeds++
+        const here = record((ctx) => paintReed(ctx, reed, x * 8, y * 8))
+        const moved = record((ctx) => paintReed(ctx, reed, x * 8 + 80, y * 8 + 40))
+        expect(here).not.toBe(moved)
+        expect(record((ctx) => paintReed(ctx, reed, 0, 0))).toBe(
+          record((ctx) => paintReed(ctx, { ...reed }, 0, 0)),
+        )
+      }
+    }
+    expect(reeds).toBeGreaterThan(5)
   })
 })

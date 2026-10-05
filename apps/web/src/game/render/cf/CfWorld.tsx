@@ -4,6 +4,7 @@ import type { WorldState } from '../../../shared/types'
 import type { InterpRefs } from '../../../simulation/useSimulation'
 import { logger } from '../../../shared/logger'
 import { vegetationSeason } from '../landscape-style'
+import { isSettled } from '../render-timing'
 import { terrainSeason } from '../terrain-season'
 import { TerrainTileLayer, type TerrainSyncFn } from '../terrain-tiles/TerrainTileLayer'
 import { makeFrame } from './frame'
@@ -69,7 +70,7 @@ export function CfWorld({
       const signalFirstDraw = () => {
         if (hasDrawn.current) return
         hasDrawn.current = true
-        wakeEngine(engine)
+        wakeEngine(engine, 30)
         requestAnimationFrame(() => requestAnimationFrame(() => onFirstDrawRef.current()))
       }
       if (!grid.tiles || grid.tiles.length < grid.height) {
@@ -95,7 +96,7 @@ export function CfWorld({
         vegetationSeason(terrainSeason(w)),
       )
       const frame = makeFrame(w, cachedBiomes.current, camera, viewportDims, Date.now(), 2, watch.revision)
-      if (registry.update(frame)) wakeEngine(engine)
+      if (registry.update(frame)) wakeEngine(engine, 30)
       signalFirstDraw()
     },
     [engine, cameraStateRef, viewportDims, registry, watch],
@@ -118,6 +119,7 @@ export function CfWorld({
     let raf = 0
     let last = -Infinity
     let stopped = false
+    let lastKey = ''
     const tick = (now: number) => {
       if (stopped) return
       raf = requestAnimationFrame(tick)
@@ -125,6 +127,12 @@ export function CfWorld({
       last = now
       const w = interp?.current.current ?? worldRef.current
       if (!w) return
+      // A paused map with a still camera stays as it is (fires stop flickering, trees stop swaying),
+      // so the engine can sleep. A new frame, a pan or a zoom wakes it.
+      const cam = cameraStateRef.current
+      const key = `${interp?.currentServerAt.current ?? 0}|${cam.x}|${cam.y}|${cam.zoom}|${viewportDims.w}x${viewportDims.h}`
+      if (interp && key === lastKey && isSettled(interp, now)) return
+      lastKey = key
       try {
         step(w)
       } catch (error) {
@@ -139,7 +147,7 @@ export function CfWorld({
       stopped = true
       cancelAnimationFrame(raf)
     }
-  }, [interp, rendererPaused, step])
+  }, [interp, rendererPaused, step, cameraStateRef, viewportDims])
 
   useEffect(() => {
     const handle = { registry, engine }

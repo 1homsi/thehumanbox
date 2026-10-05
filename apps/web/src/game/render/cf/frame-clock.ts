@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { WorldState } from '../../../shared/types'
 import type { InterpRefs } from '../../../simulation/useSimulation'
-import { interpolationFactor } from '../render-timing'
+import { interpolationFactor, isSettled } from '../render-timing'
 
 /** What a sprite layer needs to know about "now": the frame, the one before, and how far between them. */
 export interface SpriteFrame {
@@ -12,6 +12,8 @@ export interface SpriteFrame {
   t: number
   /** Wall-clock milliseconds, the same clock the canvas painter animates by. */
   now: number
+  /** The simulation is quiet (paused): nothing is arriving, so only a change of view needs a redraw. */
+  settled: boolean
 }
 
 export function readSpriteFrame(
@@ -24,13 +26,15 @@ export function readSpriteFrame(
   const world = cur ?? fallback
   if (!world) return null
   const prev = interp?.prev.current ?? null
-  if (!interp || !prev || cur !== world) return { world, prev: null, t: 1, now: wallNow }
+  if (!interp || !prev || cur !== world)
+    return { world, prev: null, t: 1, now: wallNow, settled: !!interp && isSettled(interp, rafNow) }
   const interval = Math.max(50, interp.currentServerAt.current - interp.prevServerAt.current)
   return {
     world,
     prev,
     t: interpolationFactor(rafNow, interp.currentReceivedAt.current, interval),
     now: wallNow,
+    settled: isSettled(interp, rafNow),
   }
 }
 
@@ -64,18 +68,29 @@ export function useSpriteClock(
 }
 
 /**
- * Wake an `onDemand` engine loop for one more frame. `markDirty()` is ignored
- * while a wake-up is already pending, and a call made from a rAF callback that
- * runs before the engine's own callback lands in that window, so the engine
- * rendered only 45 of 60 frames. Waking from a task that runs after the frame's
- * rAF callbacks avoids it.
+ * Wake an `onDemand` engine loop for one more frame, at most `maxFps` times a second.
+ *
+ * `markDirty()` is ignored while a wake-up is already pending, and a call made from a rAF callback
+ * that runs before the engine's own callback lands in that window, so the engine rendered only 45
+ * of 60 frames. Waking from a task that runs after the frame's rAF callbacks avoids it. Several
+ * writers (people at the display rate, animals and the map at 30 Hz) share one wake-up, so a
+ * layer that only needs 30 does not pull the engine to 60, and the last write is never dropped.
  */
-export function wakeEngine(engine: { loop: { markDirty(): void } }): void {
-  if (pendingWake) return
-  pendingWake = true
-  setTimeout(() => {
-    pendingWake = false
-    engine.loop.markDirty()
-  }, 0)
+export function wakeEngine(engine: { loop: { markDirty(): void } }, maxFps = 60): void {
+  const at = Math.max(performance.now(), lastWake + 1000 / maxFps - 1)
+  // One wake-up at a time; a writer that wants a frame sooner brings it forward.
+  if (pending && pendingAt <= at) return
+  if (pending) clearTimeout(pending)
+  pendingAt = at
+  pending = setTimeout(
+    () => {
+      pending = 0
+      lastWake = performance.now()
+      engine.loop.markDirty()
+    },
+    Math.max(0, at - performance.now()),
+  )
 }
-let pendingWake = false
+let pending: ReturnType<typeof setTimeout> | 0 = 0
+let pendingAt = 0
+let lastWake = 0

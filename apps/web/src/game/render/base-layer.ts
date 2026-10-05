@@ -144,8 +144,7 @@ export function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null 
       }
     }
   }
-  if (biomes && ATLAS_TOWN.complete)
-    drawTrees(ctx, width, height, tiles, biomes, origin_x, origin_y, undefined, season)
+  if (biomes && ATLAS_TOWN.complete) drawTrees(ctx, width, height, tiles, biomes, origin_x, origin_y, season)
   drawMountains(ctx, width, height, tiles, biomes, origin_x, origin_y)
   _baseCanvas = canvas
   _baseKey = {

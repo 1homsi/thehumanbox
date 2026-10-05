@@ -3,11 +3,8 @@ import { useDynamicCanvas } from 'cubeforge'
 import type { LayerAtlas } from 'cubeforge'
 import { CellAtlas, type AtlasPage } from './cell-atlas'
 
-/** The engine draws at most this many textures per SpriteLayer. */
-export const MAX_PAGES = 8
-
 /**
- * Up to eight dynamic canvases as the atlases of one SpriteLayer. `useDynamicCanvas`
+ * Up to eight dynamic canvases (the most the engine draws per SpriteLayer) as the atlases of one SpriteLayer. `useDynamicCanvas`
  * is a hook with a fixed size per call, so the page count and sizes are fixed at
  * mount: sizes beyond `sizes.length` stay 4x4 and are never claimed.
  */

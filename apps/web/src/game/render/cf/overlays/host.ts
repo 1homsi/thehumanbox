@@ -1,4 +1,5 @@
 import type { SpriteLayer } from 'cubeforge'
+import { wakeEngine } from '../frame-clock'
 import { engineAtlasHost, type AtlasHost } from './atlas-host'
 
 /** Everything the overlay renderer needs from the engine, so it can run against a stub in tests. */
@@ -31,7 +32,7 @@ export function engineRenderHost(engine: EngineLike): RenderHost {
       rs()?.removeSpriteLayer?.(layer)
     },
     markDirty() {
-      engine.loop.markDirty()
+      wakeEngine(engine, 30)
     },
   }
 }
