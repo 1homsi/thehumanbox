@@ -8,7 +8,7 @@ import { prayerAtPoint } from '../prayer-bubbles'
 import { burstForTool, type useSandboxBursts } from '../sandbox-bursts'
 import { isMapControl } from '../camera-controls'
 import { resolveMapClick, type MapClickOutcome } from '../cf/input/map-click'
-import { pickPersonAt } from '../cf/people/bridge'
+import { pickBuildingAt, pickPersonAt } from '../cf/picking'
 
 /** Taps, drags and hovers on the map: selection, sandbox tools, prayer bubbles, territory focus. */
 export function useMapPointer({
@@ -104,6 +104,7 @@ export function useMapPointer({
       territoryIndex,
       coarsePointer: typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches,
       pickPerson: pickPersonAt,
+      pickBuilding: pickBuildingAt,
     })
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isMapControl(e.target)) return

@@ -68,6 +68,9 @@ export interface OverlayExtras {
   selectedId: string | null
 }
 
+/** The ground effects are rewritten at most this often when nothing else changed. */
+const GROUND_INTERVAL_MS = 66
+
 const ZERO_TIMES = (): SectionTimes => ({
   atmosphere: 0,
   heat: 0,
@@ -109,6 +112,9 @@ export class CfOverlayRenderer {
   private territoryRef: unknown = null
   private contestedKey = ''
   private outlineKey = ''
+  private groundKey = ''
+  private groundFlags: unknown = null
+  private groundAt = -Infinity
   lastResult: UpdateResult = { times: ZERO_TIMES(), sprites: 0, heatRebuilt: false, unsupported: {} }
 
   private readonly host: RenderHost
@@ -217,16 +223,28 @@ export class CfOverlayRenderer {
     const heatRebuilt = this.updateHeat(f)
     lap('heat')
 
-    // Per-frame ground effects: clouds, lines, water and fire light.
+    // Ground effects: clouds, lines, water glints and fire light. They drift slowly, so they are
+    // rewritten about 15 times a second, at once when the view or the settings change.
     const gv = { zoom: f.zoom, dpr: f.dpr }
-    this.ground.begin(gv)
-    const ground = this.ground.asContext()
-    paintClouds(ground, f)
-    paintLines(ground, f)
-    paintWaterStars(ground, f)
-    paintWaterShimmer(ground, f)
-    paintFireGlow(ground, f)
-    this.ground.end()
+    const { c0, c1, r0, r1 } = f.bounds
+    const groundKey = `${c0},${c1},${r0},${r1}|${f.zoom}|${f.world.frame_id}`
+    if (
+      groundKey !== this.groundKey ||
+      f.viewFlags !== this.groundFlags ||
+      f.t - this.groundAt >= GROUND_INTERVAL_MS
+    ) {
+      this.groundKey = groundKey
+      this.groundFlags = f.viewFlags
+      this.groundAt = f.t
+      this.ground.begin(gv)
+      const ground = this.ground.asContext()
+      paintClouds(ground, f)
+      paintLines(ground, f)
+      paintWaterStars(ground, f)
+      paintWaterShimmer(ground, f)
+      paintFireGlow(ground, f)
+      this.ground.end()
+    }
     this.updateTerritoryBorders(f)
     lap('ground')
 

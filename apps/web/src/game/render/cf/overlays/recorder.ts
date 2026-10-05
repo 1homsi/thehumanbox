@@ -658,15 +658,38 @@ export class SpriteRecorder {
 
   /** The recorder typed as a canvas context, for painters. Unknown members count as unsupported and do nothing. */
   asContext(): CanvasRenderingContext2D {
+    const target = this as unknown as Record<string | symbol, unknown>
     const count = (name: string) => this.unsupported(name)
-    return new Proxy(this as unknown as CanvasRenderingContext2D, {
-      get(target, prop, receiver) {
-        if (prop in target) return Reflect.get(target, prop, receiver)
+    // Methods run against the recorder itself, not the proxy, so their own `this.x` reads skip the
+    // trap; the bound copies are made once per name.
+    const bound = new Map<string | symbol, unknown>()
+    const noops = new Map<string, () => undefined>()
+    return new Proxy(target, {
+      get(_t, prop) {
+        if (prop in target) {
+          const value = target[prop]
+          if (typeof value !== 'function') return value
+          let fn = bound.get(prop)
+          if (!fn) {
+            fn = (value as (...args: unknown[]) => unknown).bind(target)
+            bound.set(prop, fn)
+          }
+          return fn
+        }
         const name = String(prop)
         count(name)
-        return () => undefined
+        let noop = noops.get(name)
+        if (!noop) {
+          noop = () => undefined
+          noops.set(name, noop)
+        }
+        return noop
       },
-    })
+      set(_t, prop, value) {
+        target[prop] = value
+        return true
+      },
+    }) as unknown as CanvasRenderingContext2D
   }
 }
 

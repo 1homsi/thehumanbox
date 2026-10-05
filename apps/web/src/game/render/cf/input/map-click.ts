@@ -1,10 +1,11 @@
 import type { PrayerInfo, WorldState } from '../../../../shared/types'
 import type { ViewFlags } from '../../../../state/store'
 import { TILE_ID, isWaterTile } from '../../../model/terrain-ids'
-import { hasRuinedBuildingAtWorldTile } from '../../../model/building-state'
+import { hasRuinedBuildingAtWorldTile, isRuinedBuilding } from '../../../model/building-state'
 import { lineageAtTerritoryTile, type TerritoryIndex } from '../../../model/territory'
 import { TILE } from '../../../model/palette'
 import { prayerAtPoint } from '../../prayer-bubbles'
+import { resolveBuildingFootprint } from '../../building-draw/footprints'
 
 /** Everything the map needs to decide what a click at one point means. */
 export interface MapClickInput {
@@ -25,6 +26,8 @@ export interface MapClickInput {
   coarsePointer: boolean
   /** The person drawn under a map point (the sprite layer's pick), when one is. */
   pickPerson?: (mapX: number, mapY: number) => string | null | undefined
+  /** The building drawn under a map point (the sprite layer's footprint pick): its id, -1 for none. */
+  pickBuilding?: (mapX: number, mapY: number) => number | undefined
 }
 
 /** What a click did. The caller performs it, so the decision stays pure and testable. */
@@ -87,6 +90,13 @@ export function resolveMapClick(input: MapClickInput): MapClickOutcome {
   const nearest = nearestOrganism(world, worldX, worldY, zoom, input.coarsePointer)
   if (nearest && nearest.dist < 1.2) return { kind: 'select', orgId: nearest.id }
 
+  // A building drawn under the pointer opens the home of someone who lives in it.
+  const buildingId = input.pickBuilding?.(input.mapX, input.mapY)
+  if (buildingId !== undefined && buildingId >= 0) {
+    const host = residentOf(world, buildingId)
+    if (host) return { kind: 'enter-home', orgId: host }
+  }
+
   const ruinedBuildingAtTile = hasRuinedBuildingAtWorldTile(world.buildings, tx, ty)
   const localCol = tx - ox
   const localRow = ty - oy
@@ -107,6 +117,22 @@ export function resolveMapClick(input: MapClickInput): MapClickOutcome {
     if (bestHost) return { kind: 'enter-home', orgId: bestHost.id }
   }
   return { kind: 'select', orgId: nearest ? nearest.id : null }
+}
+
+/** The oldest living person whose home tile lies inside a standing building's footprint. */
+export function residentOf(world: WorldState, buildingId: number): string | null {
+  const building = world.buildings?.find((b) => b.id === buildingId)
+  if (!building || isRuinedBuilding(building)) return null
+  const [fw, fh] = resolveBuildingFootprint(building)
+  let best: { id: string; age: number } | null = null
+  for (const org of world.organisms) {
+    if (!org.alive || org.home_x == null || org.home_y == null) continue
+    const hx = Math.floor(org.home_x)
+    const hy = Math.floor(org.home_y)
+    if (hx < building.x || hx >= building.x + fw || hy < building.y || hy >= building.y + fh) continue
+    if (!best || org.age > best.age) best = { id: org.id, age: org.age }
+  }
+  return best?.id ?? null
 }
 
 /**

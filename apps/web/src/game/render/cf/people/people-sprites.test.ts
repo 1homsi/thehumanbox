@@ -5,7 +5,7 @@ import { orgVariant } from '../../../model/org-variant'
 import { deterministicAppearanceIndex, humanAtlasRow, HUMAN_ATLAS_FRAMES } from '../../character-visuals'
 import { BODY_ATLAS, PeopleSprites, isFocused, type PeopleFrameInput } from './people-sprites'
 import { emoteFor } from '../../activity-emotes'
-import { peopleLabelSource, pickPersonAt, registerPeopleLayer } from './bridge'
+import { peopleLabelSource, pickPersonAt, registerPeopleLayer } from '../picking'
 
 const flags = { health: false, age: false, fear: false, lineageDot: false, pregnancy: false }
 

@@ -63,7 +63,6 @@ export function CfWorld({
       if (w.grid.biomes) cachedBiomes.current = w.grid.biomes as number[][]
       if (w.grid.depth_map) cachedDepth.current = w.grid.depth_map as number[][]
       const grid = w.grid
-      ;(window as unknown as { __dbgW?: unknown }).__dbgW = w
       const camera = cameraStateRef.current
       // The cover over the map comes off after the first pass, even before the terrain has arrived:
       // an empty map is ocean blue, as the cover is.
@@ -143,12 +142,12 @@ export function CfWorld({
   }, [interp, rendererPaused, step])
 
   useEffect(() => {
-    const handle = { registry, engine, watch, terrain: terrainSyncRef }
+    const handle = { registry, engine }
     ;(window as unknown as { __thbCf?: unknown }).__thbCf = handle
     return () => {
       delete (window as unknown as { __thbCf?: unknown }).__thbCf
     }
-  }, [registry, engine, watch])
+  }, [registry, engine])
 
   return (
     <>

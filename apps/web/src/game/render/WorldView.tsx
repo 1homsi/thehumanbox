@@ -54,6 +54,17 @@ export function WorldView({
   const setFocus = useUIStore((s) => s.setFocus)
   const viewFlags = useUIStore((s) => s.viewFlags)
   const onOrgSelect = useUIStore((s) => s.selectOrg)
+  // Dev builds only: the console and the browser checks read and steer the UI through this.
+  const latestWorld = useRef(world)
+  latestWorld.current = world
+  useEffect(() => {
+    if (import.meta.env.DEV)
+      (window as unknown as { __thbDev?: unknown }).__thbDev = {
+        ui: useUIStore,
+        focus: useCameraFocus,
+        world: () => latestWorld.current,
+      }
+  }, [])
   const territoryIndex = useMemo(() => buildTerritoryIndex(world.territory), [world.territory])
   const W = world.grid.width * TILE
   const H = world.grid.height * TILE
