@@ -2,6 +2,10 @@ import { useEffect, useMemo } from 'react'
 import type { TransformComponent } from 'cubeforge'
 import {
   Circle,
+  SPRITE_UNTEXTURED,
+  TileLayer,
+  useSpriteLayer,
+  useTileLayer,
   Entity,
   Gradient,
   Line,
@@ -33,6 +37,9 @@ export interface ExperimentSpec {
     | 'post-2d'
     | 'sprite-additive'
     | 'sprite-shape'
+    | 'tile-under-sprite'
+    | 'layer-image-update'
+    | 'layer-blend'
   n: number
   box: { cx: number; cy: number; w: number; h: number }
   /** Font size for text, in world px. */
@@ -82,6 +89,95 @@ function PostGl() {
 function Post2d() {
   const effect = useMemo(() => vignetteEffect(0.6), [])
   usePostProcess(effect)
+  return null
+}
+
+/** A red tile layer at zIndex 100 over a green sprite at zIndex 0: if the pixel is green, tiles draw below sprites. */
+function TileUnderSprite({ spec }: { spec: ExperimentSpec }) {
+  const tileset = useMemo(() => {
+    const c = document.createElement('canvas')
+    c.width = 8
+    c.height = 8
+    const g = c.getContext('2d')!
+    g.fillStyle = '#fff'
+    g.fillRect(0, 0, 8, 8)
+    return { image: c, tileWidth: 8, tileHeight: 8, columns: 1 }
+  }, [])
+  const layer = useTileLayer({
+    width: 4,
+    height: 4,
+    tileset,
+    tinted: true,
+    tileWorldWidth: 20,
+    tileWorldHeight: 20,
+    tiles: new Array(16).fill(1),
+  })
+  useEffect(() => {
+    const red = new Uint8Array(16 * 4)
+    for (let i = 0; i < 16; i++) red.set([255, 0, 0, 255], i * 4)
+    layer.setTints(red)
+    layer.x = spec.box.cx - 40
+    layer.y = spec.box.cy - 40
+    layer.zIndex = 100
+  }, [layer, spec])
+  return (
+    <>
+      <TileLayer layer={layer} zIndex={100} />
+      <Entity>
+        <Transform x={spec.box.cx} y={spec.box.cy} />
+        <Sprite width={80} height={80} color="#00ff00" zIndex={0} />
+      </Entity>
+    </>
+  )
+}
+
+/** A SpriteLayer atlas given as a canvas: repaint the canvas and see whether the layer shows the change. */
+function LayerImageUpdate({ spec }: { spec: ExperimentSpec }) {
+  const canvas = useMemo(() => {
+    const c = document.createElement('canvas')
+    c.width = 16
+    c.height = 16
+    c.getContext('2d')!.fillStyle = '#ff0000'
+    c.getContext('2d')!.fillRect(0, 0, 16, 16)
+    return c
+  }, [])
+  const layer = useSpriteLayer({
+    image: canvas,
+    frameWidth: 16,
+    frameHeight: 16,
+    zIndex: 5,
+    sampling: 'nearest',
+  })
+  const engine = useGame()
+  useEffect(() => {
+    layer.add(spec.box.cx, spec.box.cy, 80, 80, 0)
+    let n = 0
+    const id = window.setInterval(() => {
+      n++
+      if (n === 3) {
+        const g = canvas.getContext('2d')!
+        g.fillStyle = '#0000ff'
+        g.fillRect(0, 0, 16, 16)
+        layer.touch()
+      }
+      engine.loop.markDirty()
+    }, 50)
+    return () => window.clearInterval(id)
+  }, [layer, canvas, engine, spec])
+  return null
+}
+
+/** Two overlapping sprites in a SpriteLayer: there is no per-layer blend mode to make the glow additive. */
+function LayerBlend({ spec }: { spec: ExperimentSpec }) {
+  const layer = useSpriteLayer({ zIndex: 5 })
+  useEffect(() => {
+    for (let i = 0; i < 2; i++) {
+      const k = layer.add(spec.box.cx + i * 20, spec.box.cy, 60, 60, 0)
+      layer.color[k] = i === 0 ? 0xff0000ff : 0x0000ffff
+      layer.flags[k] = SPRITE_UNTEXTURED
+    }
+    layer.touch()
+  }, [layer, spec])
   return null
 }
 
@@ -219,6 +315,12 @@ export function Experiment({ spec }: { spec: ExperimentSpec }) {
           ))}
         </>
       )
+    case 'tile-under-sprite':
+      return <TileUnderSprite spec={spec} />
+    case 'layer-image-update':
+      return <LayerImageUpdate spec={spec} />
+    case 'layer-blend':
+      return <LayerBlend spec={spec} />
     default:
       return null
   }

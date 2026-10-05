@@ -744,7 +744,12 @@ const api = {
     await setCamera(current.centre.x * TILE, current.centre.y * TILE, current.sc.zoom)
     const engine = stage.engine!
     await frames(3)
+    await new Promise((r) => setTimeout(r, 400))
     const pixels = await captureEngine()
+    const cw = engine.canvas.width
+    const ch = engine.canvas.height
+    const mid = ((ch >> 1) * cw + (cw >> 1)) * 4
+    const centre = Array.from(pixels.subarray(mid, mid + 3))
     let changed = 0
     for (let i = 0; i < pixels.length; i += 4) {
       if (pixels[i] !== GROUND[0] || pixels[i + 1] !== GROUND[1] || pixels[i + 2] !== GROUND[2]) changed++
@@ -752,6 +757,7 @@ const api = {
     const prof = await profileFrames(engine, count, () => engine.loop.markDirty())
     return {
       spec: { kind: spec.kind, n: spec.n },
+      centre,
       mountMs: +mountMs.toFixed(1),
       changedPixels: changed,
       pixelPct: +((changed / (pixels.length / 4)) * 100).toFixed(2),
