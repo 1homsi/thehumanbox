@@ -84,6 +84,9 @@ const ICONS: Record<Emote, string[]> = {
   joy: ['.......', 'y.....y', '.......', '.y...y.', '..yyy..', '.......', '.......'],
 }
 
+/** Every emote, in a stable order. */
+export const EMOTES = Object.keys(ICONS) as Emote[]
+
 interface EmotePixels {
   size: number
   /** Column, row and colour of every painted pixel, in the row-major order they are drawn. */

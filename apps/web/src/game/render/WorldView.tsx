@@ -14,6 +14,7 @@ import { SandboxBursts } from './SandboxBursts'
 import { useSandboxBursts } from './sandbox-bursts'
 import type { MapCommand } from './camera-controls'
 import { WorldSprite } from './world-view/WorldSprite'
+import { CfSpriteLayers } from './world-view/CfSpriteLayers'
 import { CanvasWorldFallback } from './world-view/CanvasWorldFallback'
 import { useRendererBackend } from './world-view/useRendererBackend'
 import { useMapPointer } from './world-view/useMapPointer'
@@ -209,6 +210,16 @@ export function WorldView({
                     viewportDims={dims}
                   />
                 </Entity>
+
+                <CfSpriteLayers
+                  world={world}
+                  interp={interp}
+                  selectedOrgId={selectedOrgId}
+                  focus={focus}
+                  viewFlags={viewFlags}
+                  rendererPaused={rendererPaused}
+                  cameraStateRef={cameraStateRef}
+                />
 
                 {anyCfOverlay(cfFeatures) && (
                   <Suspense fallback={null}>

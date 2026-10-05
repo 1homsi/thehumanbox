@@ -23,6 +23,8 @@ export interface MapClickInput {
   territoryIndex: TerritoryIndex
   /** A touch screen: fingers are fat, so people are easier to hit. */
   coarsePointer: boolean
+  /** The person drawn under a map point (the sprite layer's pick), when one is. */
+  pickPerson?: (mapX: number, mapY: number) => string | null | undefined
 }
 
 /** What a click did. The caller performs it, so the decision stays pure and testable. */
@@ -77,6 +79,10 @@ export function resolveMapClick(input: MapClickInput): MapClickOutcome {
       lineageId: lineageAtTerritoryTile(input.territoryIndex, tx, ty, focusedLineage),
     }
   }
+
+  // The person drawn under the pointer wins; empty ground falls through to the nearest-person search.
+  const drawnHit = input.pickPerson?.(input.mapX, input.mapY)
+  if (drawnHit) return { kind: 'select', orgId: drawnHit }
 
   const nearest = nearestOrganism(world, worldX, worldY, zoom, input.coarsePointer)
   if (nearest && nearest.dist < 1.2) return { kind: 'select', orgId: nearest.id }
