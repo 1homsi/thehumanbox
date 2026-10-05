@@ -1,5 +1,6 @@
 import { cachedRailLinks } from '.././rails'
 import { drawTradeNetwork2D } from '.././base-layer'
+import { cfActive } from '../cf/active'
 import { lineageEraTiers } from '.././draw-helpers'
 
 import { farmCropColor, farmProgress, farmStage } from '../../model/farms'
@@ -92,5 +93,5 @@ export function draw_landuse(f: DrawFrame) {
     }
   }
 
-  drawTradeNetwork2D(ctx, world, { c0, c1, r0, r1 }, t, 'roads')
+  if (!cfActive('roads')) drawTradeNetwork2D(ctx, world, { c0, c1, r0, r1 }, t, 'roads')
 }
