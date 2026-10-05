@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { StatsOverlay, TileLayer, useGame } from 'cubeforge'
+import { StatsOverlay, useGame } from 'cubeforge'
 import type { WorldState } from '../../../../shared/types'
 import type { InterpRefs } from '../../../../simulation/useSimulation'
 import type { ViewFlags } from '../../../../state/store'
@@ -150,13 +150,5 @@ export function CfOverlays({
     }
   }, [renderer, rendererPaused, interp, cameraStateRef, viewportDims])
 
-  if (!renderer) return null
-  const { contested, outline } = renderer.tileLayers
-  return (
-    <>
-      <TileLayer layer={contested} />
-      <TileLayer layer={outline} />
-      {viewFlags.fps && <StatsOverlay corner="top-right" />}
-    </>
-  )
+  return viewFlags.fps ? <StatsOverlay corner="top-right" /> : null
 }

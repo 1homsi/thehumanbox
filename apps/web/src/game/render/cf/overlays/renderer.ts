@@ -24,7 +24,6 @@ import {
 import { paintHud } from './paint-hud'
 import { SpriteRecorder } from './recorder'
 import { ShapeAtlas } from './shape-atlas'
-import { createTileLayers, TILE_OUTLINE, type TileLayerSet } from './tile-layers'
 
 /**
  * Draw order of what this renderer adds. The rest of the map: ground detail 2.5 to 5.6, then
@@ -82,15 +81,13 @@ const ZERO_TIMES = (): SectionTimes => ({
 })
 
 /**
- * The non-sprite world visuals on cubeforge: owns the SpriteLayers, TileLayers, atlases and
+ * The non-sprite world visuals on cubeforge: owns the SpriteLayers, atlases and
  * recorders, and `update()` rewrites them from a frame of world data. No React and no GPU of its
  * own: it talks to the engine through a `RenderHost`.
  */
 export class CfOverlayRenderer {
   readonly shapes: ShapeAtlas
   readonly glyphs: GlyphSet
-  /** Contested borders and structure outlines (the heat map itself is one sprite). */
-  readonly tileLayers: TileLayerSet
   private readonly heat: HeatGrid
   private readonly heatCanvas: HTMLCanvasElement
   private readonly heatId = atlasId('heat')
@@ -107,11 +104,12 @@ export class CfOverlayRenderer {
   private readonly effects: SpriteRecorder
   private readonly hud: SpriteRecorder
   private readonly contestedScratch: Uint16Array
+  private contestedTiles: number[] = []
   private heatKey = ''
   private staticKey = ''
+  private outlineFrame = -1
   private territoryRef: unknown = null
   private contestedKey = ''
-  private outlineKey = ''
   private groundKey = ''
   private groundFlags: unknown = null
   private groundAt = -Infinity
@@ -127,7 +125,6 @@ export class CfOverlayRenderer {
     this.gridHeight = gridHeight
     this.shapes = new ShapeAtlas(host)
     this.glyphs = new GlyphSet(host)
-    this.tileLayers = createTileLayers(gridWidth, gridHeight)
     this.heat = new HeatGrid(gridWidth, gridHeight)
     this.contestedScratch = new Uint16Array(gridWidth * gridHeight)
     const shape = (z: number) =>
@@ -243,6 +240,7 @@ export class CfOverlayRenderer {
       paintWaterStars(ground, f)
       paintWaterShimmer(ground, f)
       paintFireGlow(ground, f)
+      this.paintContested(ground, f)
       this.ground.end()
     }
     this.updateTerritoryBorders(f)
@@ -399,51 +397,58 @@ export class CfOverlayRenderer {
       }
       rebuilt = true
     }
-    // Contested border: tiles change with the data, the pulse is just the layer's opacity.
-    const contested = this.tileLayers.contested
-    if (viewFlags.territory && world.territory && world.territory.contested.length > 0) {
-      if (this.contestedKey !== key) {
-        this.contestedKey = key
-        this.heat.contestedTiles(world, f.ox, f.oy, this.contestedScratch)
-        contested.setTiles(this.contestedScratch)
-        this.tileLayers.uploads.contested++
-      }
-      contested.opacity = 0.12 + Math.abs(Math.sin(f.t / 420)) * 0.16
-    } else if (contested.opacity !== 0) {
-      contested.opacity = 0
-    }
-    // Structure outlines.
-    const outline = this.tileLayers.outline
-    if (f.viewFlags.structures && g.structure) {
-      if (this.outlineKey !== key) {
-        this.outlineKey = key
-        const ids = this.contestedScratch
-        ids.fill(0)
-        const { width, height } = this.heat
-        for (let row = 0; row < height; row++) {
-          const r = g.structure[row]
-          if (!r) continue
-          for (let col = 0; col < width; col++)
-            if (r[col] && r[col] > 0.1) ids[row * width + col] = TILE_OUTLINE
-        }
-        outline.setTiles(ids)
-        this.tileLayers.uploads.outline++
-      }
-      outline.opacity = 1
-    } else if (outline.opacity !== 0) {
-      outline.opacity = 0
-    }
     return rebuilt
   }
 
+  /** The contested border pulses white over the tiles two tribes both claim. */
+  private paintContested(ctx: CanvasRenderingContext2D, f: CfFrame): void {
+    const { world, viewFlags } = f
+    if (!viewFlags.territory || !world.territory || world.territory.contested.length === 0) return
+    const key = `${world.frame_id}|${f.focus}`
+    if (key !== this.contestedKey) {
+      this.contestedKey = key
+      this.contestedTiles.length = 0
+      this.heat.contestedTiles(world, f.ox, f.oy, this.contestedScratch)
+      const { width } = this.heat
+      for (let i = 0; i < this.contestedScratch.length; i++)
+        if (this.contestedScratch[i]) this.contestedTiles.push(i % width, Math.floor(i / width))
+    }
+    ctx.fillStyle = `rgba(255,255,255,${0.12 + Math.abs(Math.sin(f.t / 420)) * 0.16})`
+    for (let i = 0; i < this.contestedTiles.length; i += 2)
+      ctx.fillRect(this.contestedTiles[i] * TILE, this.contestedTiles[i + 1] * TILE, TILE, TILE)
+  }
+
+  /** Territory borders and, with the structures view, a thin outline on every built-up tile. */
   private updateTerritoryBorders(f: CfFrame): void {
     const { world, viewFlags } = f
-    const key = `${viewFlags.territory ? 1 : 0}|${f.focus}`
-    if (key === this.staticKey && world.territory === this.territoryRef) return
+    const outline = viewFlags.structures && !!world.grid.structure
+    const key = `${viewFlags.territory ? 1 : 0}|${f.focus}|${outline ? 1 : 0}`
+    if (key === this.staticKey && world.territory === this.territoryRef) {
+      if (!outline || this.outlineFrame === world.frame_id) return
+    }
     this.staticKey = key
     this.territoryRef = world.territory
+    this.outlineFrame = world.frame_id
     this.groundStatic.begin({ zoom: f.zoom, dpr: f.dpr })
-    if (viewFlags.territory) paintTerritoryBorders(this.groundStatic.asContext(), world, f.focus)
+    const ctx = this.groundStatic.asContext()
+    if (viewFlags.territory) paintTerritoryBorders(ctx, world, f.focus)
+    if (outline) {
+      const structure = world.grid.structure!
+      ctx.fillStyle = 'rgba(255,210,140,0.7)'
+      for (let row = 0; row < structure.length; row++) {
+        const r = structure[row]
+        if (!r) continue
+        for (let col = 0; col < r.length; col++) {
+          if (!(r[col] > 0.1)) continue
+          const x = col * TILE
+          const y = row * TILE
+          ctx.fillRect(x, y, TILE, 1)
+          ctx.fillRect(x, y + TILE - 1, TILE, 1)
+          ctx.fillRect(x, y + 1, 1, TILE - 2)
+          ctx.fillRect(x + TILE - 1, y + 1, 1, TILE - 2)
+        }
+      }
+    }
     this.groundStatic.end()
   }
 }

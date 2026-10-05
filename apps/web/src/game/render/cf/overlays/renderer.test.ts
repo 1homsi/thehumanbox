@@ -160,18 +160,36 @@ describe('CfOverlayRenderer', () => {
     expect(heat.visible).toBe(false)
   })
 
-  it('pulses the contested border by layer opacity and hides it without a territory view', () => {
+  it('pulses the contested border over the tiles two tribes claim, only in the territory view', () => {
     make()
     const w = world({
       territory: { claimed: [{ lid: 'a', tiles: [[3, 3]] }], contested: [[3, 3]] },
     } as unknown as Partial<WorldState>)
+    const ground = host.layers.find((l) => l.zIndex === Z.ground)!
     renderer.update(frameOf(w))
-    expect(renderer.tileLayers.contested.opacity).toBe(0)
-    const f = frameOf(w)
+    const without = ground.count
+    const f = frameOf(w, null, 5100)
     f.viewFlags = { ...flags, territory: true }
     renderer.update(f)
-    expect(renderer.tileLayers.contested.opacity).toBeGreaterThan(0.1)
-    expect(renderer.tileLayers.contested.opacity).toBeLessThanOrEqual(0.28)
+    expect(ground.count).toBeGreaterThan(without)
+    // The pulse is the fill alpha, between 12% and 28%.
+    const alphas = Array.from({ length: ground.count }, (_, i) => ground.color[i] & 255)
+    expect(alphas.some((a) => a >= 30 && a <= 72)).toBe(true)
+  })
+
+  it('outlines built-up tiles in the structures view', () => {
+    make()
+    const structure = Array.from({ length: GH }, () => Array(GW).fill(0))
+    structure[5][5] = 0.8
+    structure[5][6] = 0.8
+    const w = world({ grid: { ...world().grid, structure } })
+    const still = host.layers.find((l) => l.zIndex === Z.groundStatic)!
+    renderer.update(frameOf(w))
+    expect(still.count).toBe(0)
+    const f = frameOf(w)
+    f.viewFlags = { ...flags, structures: true }
+    renderer.update(f)
+    expect(still.count).toBe(8)
   })
 
   it('draws battles, wards, festivals and smog as sprites from the existing painters', () => {
