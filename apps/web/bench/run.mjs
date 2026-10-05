@@ -299,9 +299,13 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
       result.camera = await focusView(page, meta.focus, ZOOMS[zoomName])
     }
     if (mode === 'paused') {
-      await page.evaluate(`document.querySelector('[aria-label="Pause simulation"]')?.click()`)
-      await sleep(400)
-      const paused = await page.evaluate(`!!document.querySelector('[aria-label="Resume simulation"]')`)
+      // The toolbar mounts a little after the map; the crowd world takes the longest.
+      let paused = false
+      for (let attempt = 0; attempt < 100 && !paused; attempt++) {
+        await page.evaluate(`document.querySelector('[aria-label="Pause simulation"]')?.click()`)
+        await sleep(200)
+        paused = await page.evaluate(`!!document.querySelector('[aria-label="Resume simulation"]')`)
+      }
       if (!paused) throw new Error('could not pause the simulation')
     }
     await sleep(warmupMs)
@@ -481,18 +485,24 @@ async function main() {
             for (const pass of passes) {
               for (const b of builds) {
                 const t = Date.now()
-                const result = await runScenario({
-                  origin: b.server.origin,
-                  label: b.label,
-                  outDir: b.outDir,
-                  fixture,
-                  meta: metas[fixture],
-                  zoomName,
-                  mode,
-                  pass,
-                  port: port++,
-                  runIndex,
-                })
+                // A scenario that fails (a Chrome that did not start, a timeout on a loaded machine) is tried again.
+                let result
+                for (let attempt = 1; attempt <= 3; attempt++) {
+                  result = await runScenario({
+                    origin: b.server.origin,
+                    label: b.label,
+                    outDir: b.outDir,
+                    fixture,
+                    meta: metas[fixture],
+                    zoomName,
+                    mode,
+                    pass,
+                    port: port++,
+                    runIndex,
+                  })
+                  if (!result.error) break
+                  console.log(`retry ${b.label} ${fixture}/${zoomName}/${mode}/${pass}: ${result.error}`)
+                }
                 b.results.push(result)
                 const tag = `${b.label} ${fixture}/${zoomName}/${mode}/${pass} run ${runIndex}`
                 if (result.error) console.log(`FAIL ${tag}: ${result.error}`)
