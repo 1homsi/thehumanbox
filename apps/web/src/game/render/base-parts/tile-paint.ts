@@ -38,19 +38,24 @@ function pixelWords(d: Uint8ClampedArray<ArrayBufferLike>): Uint32Array | null {
   return view
 }
 
-// Paint one tile's TILE x TILE pixel block into the base ImageData.
-// Extracted from the full-grid rebuild loop so incremental updates can
-// repaint individual tiles with byte-identical results.
-export function paintTileBlock(
-  d: Uint8ClampedArray<ArrayBufferLike>,
-  W: number,
+const colorScratch = new Int32Array(4)
+
+/**
+ * One tile's flat colour before the per-pixel texture: the tile id's colour, ocean depth, the
+ * shallow-edge mix, the biome blend, macro noise shading and the season's land tint. Writes
+ * `[r, g, b, shading]` into `out` (r, g, b are unclamped integers; `shading` is added to every
+ * channel of every pixel) and returns the base terrain id the texture is chosen by. Shared by the
+ * canvas painter and the TileLayer terrain, so both colour the ground identically.
+ */
+export function tileColor(
+  out: Int32Array,
   tiles: number[][],
   biomes: number[][] | undefined,
   depth_map: number[][] | undefined,
   season: string | undefined,
   row: number,
   col: number,
-) {
+): number {
   const height = tiles.length
   const tileRow = tiles[row]
   const biomeRow = biomes?.[row]
@@ -120,7 +125,31 @@ export function paintTileBlock(
       shading += ((macro - 0.5) * 8) | 0
     }
   }
+  out[0] = r
+  out[1] = g
+  out[2] = b
+  out[3] = shading
+  return tid
+}
 
+// Paint one tile's TILE x TILE pixel block into the base ImageData.
+// Extracted from the full-grid rebuild loop so incremental updates can
+// repaint individual tiles with byte-identical results.
+export function paintTileBlock(
+  d: Uint8ClampedArray<ArrayBufferLike>,
+  W: number,
+  tiles: number[][],
+  biomes: number[][] | undefined,
+  depth_map: number[][] | undefined,
+  season: string | undefined,
+  row: number,
+  col: number,
+) {
+  const tid = tileColor(colorScratch, tiles, biomes, depth_map, season, row, col)
+  const r = colorScratch[0]
+  const g = colorScratch[1]
+  const b = colorScratch[2]
+  const shading = colorScratch[3]
   const varAmt = varAmountForTile(tid)
   const bx = col * TILE
   const by = row * TILE

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { drawPeopleTile, pickHumanSprite } from '../../../shared/sprites'
 import type { SceneContext, SceneFixture } from '../core/types'
 import { deterministicAppearanceIndex, resolveAgeStage } from '../../render/character-visuals'
@@ -10,10 +10,18 @@ import {
   drawNamePlate,
   drawNightLights,
   drawOccupantShadow,
-  drawSconce,
-  SCONCE_COLS,
+  drawAmbient,
+  drawWalls,
 } from './room-draw'
 import { TILE_PX, SCALE, ROOM_COLS, ROOM_ROWS, CANVAS_W, CANVAS_H } from './room-constants'
+import { cfFlag } from '../../render/cf/flags'
+import { lazyWithRetry } from '../../../shared/lazyWithRetry'
+import { roomPainter } from '../../render/cf/scenes/room-painters'
+
+// Only fetched when ?cf=scenes asks for it.
+const CfRoomView = lazyWithRetry(() =>
+  import('../../render/cf/scenes/CfRoomView').then((m) => ({ default: m.CfRoomView })),
+)
 
 export { TILE_PX, SCALE, ROOM_COLS, ROOM_ROWS, CANVAS_W, CANVAS_H }
 
@@ -38,45 +46,7 @@ interface Props {
   onSelectOrg: (id: string) => void
 }
 
-function drawWalls(ctx: CanvasRenderingContext2D, p: RoomPalette, t: number) {
-  ctx.fillStyle = p.wall
-  ctx.fillRect(0, 0, CANVAS_W, TILE_PX)
-  ctx.fillRect(0, CANVAS_H - TILE_PX, CANVAS_W, TILE_PX)
-  ctx.fillRect(0, 0, TILE_PX, CANVAS_H)
-  ctx.fillRect(CANVAS_W - TILE_PX, 0, TILE_PX, CANVAS_H)
-
-  ctx.fillStyle = p.wallShade
-  ctx.fillRect(0, TILE_PX - 2, CANVAS_W, 2)
-  ctx.fillRect(0, CANVAS_H - TILE_PX, CANVAS_W, 2)
-  ctx.fillRect(TILE_PX - 2, 0, 2, CANVAS_H)
-  ctx.fillRect(CANVAS_W - TILE_PX, 0, 2, CANVAS_H)
-
-  ctx.fillStyle = p.wallHighlight
-  for (let c = 0; c < ROOM_COLS; c++) {
-    ctx.fillRect(c * TILE_PX, 0, TILE_PX - 2, 2)
-    ctx.fillRect(c * TILE_PX, CANVAS_H - 2, TILE_PX - 2, 2)
-  }
-
-  for (const col of SCONCE_COLS) drawSconce(ctx, col * TILE_PX + TILE_PX / 2, t)
-
-  const doorX = Math.floor(ROOM_COLS / 2) - 1
-  ctx.fillStyle = p.floorShade
-  ctx.fillRect(doorX * TILE_PX, CANVAS_H - TILE_PX, TILE_PX * 2, TILE_PX)
-  ctx.fillStyle = p.floor
-  ctx.fillRect(doorX * TILE_PX + 2, CANVAS_H - TILE_PX + 2, TILE_PX * 2 - 4, TILE_PX - 4)
-  ctx.fillStyle = p.wallShade
-  ctx.fillRect(doorX * TILE_PX + 1, CANVAS_H - 2, TILE_PX * 2 - 2, 2)
-}
-
-function drawAmbient(ctx: CanvasRenderingContext2D, isDay: boolean) {
-  if (isDay) return
-  ctx.globalCompositeOperation = 'multiply'
-  ctx.fillStyle = 'rgba(40, 32, 50, 0.55)'
-  ctx.fillRect(TILE_PX, TILE_PX, CANVAS_W - TILE_PX * 2, CANVAS_H - TILE_PX * 2)
-  ctx.globalCompositeOperation = 'source-over'
-}
-
-export function RoomCanvas({
+function RoomCanvas2D({
   ctx: sceneCtx,
   palette,
   drawFurniture,
@@ -204,4 +174,21 @@ export function RoomCanvas({
       }}
     />
   )
+}
+
+/** A room interior. On cubeforge with `?cf=scenes`, otherwise on a 2D canvas. */
+export function RoomCanvas(props: Props) {
+  const { ctx, palette, drawFurniture, occupantSlots, selectedOrgId, onSelectOrg } = props
+  const onCubeforge = useMemo(() => cfFlag('scenes'), [])
+  const painter = useMemo(
+    () => (onCubeforge ? roomPainter({ ctx, palette, drawFurniture, occupantSlots }) : null),
+    [onCubeforge, ctx, palette, drawFurniture, occupantSlots],
+  )
+  if (painter)
+    return (
+      <Suspense fallback={null}>
+        <CfRoomView ctx={ctx} painter={painter} selectedOrgId={selectedOrgId} onSelectOrg={onSelectOrg} />
+      </Suspense>
+    )
+  return <RoomCanvas2D {...props} />
 }

@@ -18,6 +18,13 @@ import { CanvasWorldFallback } from './world-view/CanvasWorldFallback'
 import { useRendererBackend } from './world-view/useRendererBackend'
 import { useMapPointer } from './world-view/useMapPointer'
 import { anyCfOverlay, readCfFeatures } from './cf/overlays/features'
+import { cfFlag } from './cf/flags'
+import { lazyWithRetry } from '../../shared/lazyWithRetry'
+
+// Only fetched when ?cf=camera asks for it: the default map does not carry the code.
+const CfMapCameraController = lazyWithRetry(() =>
+  import('./cf/input/CfMapCameraController').then((m) => ({ default: m.CfMapCameraController })),
+)
 
 // The cubeforge overlay renderer is opt-in (`?cf=...`), so it stays out of the default chunk.
 const CfOverlays = lazy(() => import('./cf/overlays/CfOverlays').then((m) => ({ default: m.CfOverlays })))
@@ -99,7 +106,9 @@ export function WorldView({
       })()
     : null
 
-  const { overPrayer, handlePointerDown, handlePointerMove, handlePointerCancel, handleClick } =
+  // Experimental: cubeforge's pan/zoom and tap instead of the map's own (?cf=camera).
+  const cfCamera = useMemo(() => cfFlag('camera'), [])
+  const { overPrayer, handlePointerDown, handlePointerMove, handlePointerCancel, handleClick, handleTap } =
     useMapPointer({
       containerRef,
       cameraStateRef,
@@ -152,10 +161,10 @@ export function WorldView({
         // gets the events instead.
         touchAction: 'none',
       }}
-      onPointerDown={handlePointerDown}
+      onPointerDown={cfCamera ? undefined : handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerCancel={handlePointerCancel}
-      onClick={handleClick}
+      onClick={cfCamera ? undefined : handleClick}
     >
       <div
         style={{
@@ -181,7 +190,7 @@ export function WorldView({
               style={{ display: 'block' }}
             >
               <World background="#1a4a80">
-                <Camera2D />
+                <Camera2D pixelSnap={cfFlag('snap')} />
 
                 <Entity>
                   <WorldSprite
@@ -217,16 +226,32 @@ export function WorldView({
                   </Suspense>
                 )}
 
-                <MapCameraController
-                  commandRef={commandRef}
-                  worldW={W}
-                  worldH={H}
-                  containerW={dims.w}
-                  containerH={dims.h}
-                  containerEl={containerRef.current}
-                  cameraStateRef={cameraStateRef}
-                  followTarget={followTarget}
-                />
+                {cfCamera ? (
+                  <Suspense fallback={null}>
+                    <CfMapCameraController
+                      commandRef={commandRef}
+                      worldW={W}
+                      worldH={H}
+                      containerW={dims.w}
+                      containerH={dims.h}
+                      containerEl={containerRef.current}
+                      cameraStateRef={cameraStateRef}
+                      followTarget={followTarget}
+                      onTap={handleTap}
+                    />
+                  </Suspense>
+                ) : (
+                  <MapCameraController
+                    commandRef={commandRef}
+                    worldW={W}
+                    worldH={H}
+                    containerW={dims.w}
+                    containerH={dims.h}
+                    containerEl={containerRef.current}
+                    cameraStateRef={cameraStateRef}
+                    followTarget={followTarget}
+                  />
+                )}
               </World>
             </Game>
           </World2DErrorBoundary>

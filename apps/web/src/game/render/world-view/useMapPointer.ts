@@ -2,13 +2,12 @@ import { useRef, useState } from 'react'
 import type { PrayerInfo, WorldState } from '../../../shared/types'
 import { useUIStore, type ViewFlags } from '../../../state/store'
 import { useSceneStore } from '../../../state/scene'
-import { TILE_ID, isWaterTile } from '../../model/terrain-ids'
-import { hasRuinedBuildingAtWorldTile } from '../../model/building-state'
-import { lineageAtTerritoryTile, type TerritoryIndex } from '../../model/territory'
+import type { TerritoryIndex } from '../../model/territory'
 import { TILE } from '../../model/palette'
 import { prayerAtPoint } from '../prayer-bubbles'
 import { burstForTool, type useSandboxBursts } from '../sandbox-bursts'
 import { isMapControl } from '../camera-controls'
+import { resolveMapClick, type MapClickOutcome } from '../cf/input/map-click'
 
 /** Taps, drags and hovers on the map: selection, sandbox tools, prayer bubbles, territory focus. */
 export function useMapPointer({
@@ -62,6 +61,48 @@ export function useMapPointer({
     }
     pointerDownPos.current = { x: e.clientX, y: e.clientY, moved: false, id: e.pointerId }
   }
+  /** Carry out what a click on the map means. `screen` is where it landed, in container pixels. */
+  const act = (outcome: MapClickOutcome, screen: { x: number; y: number }, zoom: number) => {
+    switch (outcome.kind) {
+      case 'ignore':
+        return
+      case 'sandbox': {
+        if (!onSandboxApply) return
+        const burst = burstForTool(sandboxToolId)
+        if (burst) spawnBurst(burst, screen.x, screen.y, (sandboxRadius ?? 0) * TILE * zoom)
+        onSandboxApply(outcome.worldX, outcome.worldY)
+        return
+      }
+      case 'prayer':
+        onPrayerClick?.(outcome.prayer)
+        return
+      case 'territory':
+        onOrgSelect(null)
+        useUIStore.setState({ panelOpen: false })
+        setFocus(outcome.lineageId ? `lineage:${outcome.lineageId}` : 'all')
+        return
+      case 'enter-home':
+        useSceneStore.getState().enter({ kind: 'home', orgId: outcome.orgId })
+        return
+      case 'select':
+        onOrgSelect(outcome.orgId)
+    }
+  }
+  const resolve = (mapX: number, mapY: number, zoom: number) =>
+    resolveMapClick({
+      mapX,
+      mapY,
+      zoom,
+      world,
+      ox,
+      oy,
+      sandboxArmed: !!sandboxArmed && !!onSandboxApply,
+      prayerClicksEnabled: !!onPrayerClick,
+      viewFlags,
+      focus,
+      territoryIndex,
+      coarsePointer: typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches,
+    })
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isMapControl(e.target)) return
     const down = pointerDownPos.current
@@ -75,109 +116,22 @@ export function useMapPointer({
     const sx = e.clientX - rect.left
     const sy = e.clientY - rect.top
     const { x: camX, y: camY, zoom } = cameraStateRef.current
-    const canvasTileX = (camX + (sx - dims.w / 2) / zoom) / TILE
-    const canvasTileY = (camY + (sy - dims.h / 2) / zoom) / TILE
-    const worldX = canvasTileX + ox
-    const worldY = canvasTileY + oy
-
-    if (
-      canvasTileX < 0 ||
-      canvasTileY < 0 ||
-      canvasTileX >= world.grid.width ||
-      canvasTileY >= world.grid.height
+    act(
+      resolve(camX + (sx - dims.w / 2) / zoom, camY + (sy - dims.h / 2) / zoom, zoom),
+      { x: sx, y: sy },
+      zoom,
     )
-      return
-
-    if (sandboxArmed && onSandboxApply) {
-      if (
-        Math.round(worldX) < ox ||
-        Math.round(worldX) >= ox + world.grid.width ||
-        Math.round(worldY) < oy ||
-        Math.round(worldY) >= oy + world.grid.height
-      )
-        return
-      const burst = burstForTool(sandboxToolId)
-      if (burst) spawnBurst(burst, sx, sy, (sandboxRadius ?? 0) * TILE * zoom)
-      onSandboxApply(worldX, worldY)
-      return
-    }
-
-    // A prayer bubble is a button: clicking it goes to help that tribe.
-    if (onPrayerClick && world.prayers?.length && !viewFlags.hideUI) {
-      const prayer = prayerAtPoint(
-        world.prayers,
-        canvasTileX * TILE,
-        canvasTileY * TILE,
-        { x: ox, y: oy },
-        TILE,
-        zoom,
-      )
-      if (prayer) {
-        onPrayerClick(prayer)
-        return
-      }
-    }
-
-    const tx = Math.floor(worldX)
-    const ty = Math.floor(worldY)
-
-    if (viewFlags.territory) {
-      const focusedLineage = focus.startsWith('lineage:') ? focus.slice('lineage:'.length) : null
-      const lineageId = lineageAtTerritoryTile(territoryIndex, tx, ty, focusedLineage)
-      onOrgSelect(null)
-      useUIStore.setState({ panelOpen: false })
-      setFocus(lineageId ? `lineage:${lineageId}` : 'all')
-      return
-    }
-
-    const isCoarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
-
-    let nearestOrg: { id: string; dist: number } | null = null
-    let nearestOrgDist = Math.min(5, Math.max(1.2, (isCoarse ? 26 : 16) / (TILE * zoom)))
-    for (const org of world.viewport_organisms?.length ? world.viewport_organisms : world.organisms) {
-      if (!org.alive) continue
-      const d = Math.hypot(org.x - worldX, org.y - worldY)
-      if (d < nearestOrgDist) {
-        nearestOrgDist = d
-        nearestOrg = { id: org.id, dist: d }
-      }
-    }
-    if (nearestOrg && nearestOrg.dist < 1.2) {
-      onOrgSelect(nearestOrg.id)
-      return
-    }
-
-    const ruinedBuildingAtTile = hasRuinedBuildingAtWorldTile(world.buildings, tx, ty)
-    const localCol = tx - ox
-    const localRow = ty - oy
-    const tileRow = world.grid?.tiles?.[localRow]
-    const tileVal = tileRow ? tileRow[localCol] : undefined
-    if (isWaterTile(tileVal) && (!nearestOrg || nearestOrg.dist >= 2.5)) {
-      onOrgSelect(null)
-      return
-    }
-    const isHut = tileVal === TILE_ID.HUT
-    const structRow = world.grid?.structure?.[localRow]
-    const structVal = (structRow && structRow[localCol]) || 0
-    if (!ruinedBuildingAtTile && (isHut || structVal >= 0.35)) {
-      let bestHost: { id: string; age: number } | null = null
-      for (const org of world.organisms) {
-        if (!org.alive) continue
-        const hx = Math.floor(org.home_x)
-        const hy = Math.floor(org.home_y)
-        if (hx === tx && hy === ty) {
-          if (!bestHost || org.age > bestHost.age) {
-            bestHost = { id: org.id, age: org.age }
-          }
-        }
-      }
-      if (bestHost) {
-        useSceneStore.getState().enter({ kind: 'home', orgId: bestHost.id })
-        return
-      }
-    }
-
-    onOrgSelect(nearestOrg ? nearestOrg.id : null)
+  }
+  /**
+   * A tap reported by the cubeforge camera (`useCameraPanZoom` onTap): the map
+   * point and the container point it landed on. Same rules as a click.
+   */
+  const handleTap = (tap: { worldX: number; worldY: number; screenX: number; screenY: number }) => {
+    act(
+      resolve(tap.worldX, tap.worldY, cameraStateRef.current.zoom),
+      { x: tap.screenX, y: tap.screenY },
+      cameraStateRef.current.zoom,
+    )
   }
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -199,5 +153,5 @@ export function useMapPointer({
     if (pointerDownPos.current) pointerDownPos.current.moved = true
   }
 
-  return { overPrayer, handlePointerDown, handlePointerMove, handlePointerCancel, handleClick }
+  return { overPrayer, handlePointerDown, handlePointerMove, handlePointerCancel, handleClick, handleTap }
 }

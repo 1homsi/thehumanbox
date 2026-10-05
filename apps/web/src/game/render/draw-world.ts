@@ -23,8 +23,21 @@ export function drawWorldOnCanvas(
   bounds?: { c0: number; c1: number; r0: number; r1: number },
   cameraZoom = 1,
   renderScale = 1,
+  /** False when the TileLayer terrain draws the ground and this canvas is composited over it. */
+  ground = true,
 ) {
-  const f = createFrame(ctx, world, selectedOrgId, overlay, focus, viewFlags, bounds, cameraZoom, renderScale)
+  const f = createFrame(
+    ctx,
+    world,
+    selectedOrgId,
+    overlay,
+    focus,
+    viewFlags,
+    bounds,
+    cameraZoom,
+    renderScale,
+    ground,
+  )
   if (!f) return
   draw_base(f)
   if (!cfActive('atmosphere')) draw_atmosphere(f)
