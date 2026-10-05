@@ -28,3 +28,12 @@ export function cfOwns(name: string): boolean {
 export function cfSplitCanvas(): boolean {
   return cfFlag('buildings') || cfFlag('vegetation') || cfFlag('landuse')
 }
+
+/** Which parts of the map the cubeforge layers own, from `?cf=`. */
+export function cfPartsEnabled() {
+  return {
+    buildings: cfFlag('buildings'),
+    vegetation: cfFlag('vegetation'),
+    landuse: cfFlag('landuse'),
+  }
+}

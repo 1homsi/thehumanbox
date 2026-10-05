@@ -2,8 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useGame } from 'cubeforge'
 import type { WorldState } from '../../../shared/types'
 import type { InterpRefs } from '../../../simulation/useSimulation'
-import { cfFlag } from './flags'
-import { claimCf } from './ownership'
+import { cfPartsEnabled, claimCf } from './ownership'
 import { makeFrame } from './frame'
 import { CfRegistry } from './registry'
 import { CfBuildings } from './buildings/CfBuildings'
@@ -16,15 +15,6 @@ interface Props {
   cameraStateRef: React.MutableRefObject<{ x: number; y: number; zoom: number }>
   viewportDims: { w: number; h: number }
   rendererPaused: boolean
-}
-
-/** Which parts of the map the cubeforge layers own, from `?cf=`. */
-export function cfPartsEnabled() {
-  return {
-    buildings: cfFlag('buildings'),
-    vegetation: cfFlag('vegetation'),
-    landuse: cfFlag('landuse'),
-  }
 }
 
 /**

@@ -46,6 +46,8 @@ export function WorldSprite({
 }) {
   const entityId = useEntity()
   const engine = useGame()
+  // Dev builds only: cf-compare.html reads the engine's stats.
+  if (import.meta.env.DEV) (window as unknown as { __thbEngine?: unknown }).__thbEngine = engine
 
   const W = world.grid.width * TILE
   const H = world.grid.height * TILE

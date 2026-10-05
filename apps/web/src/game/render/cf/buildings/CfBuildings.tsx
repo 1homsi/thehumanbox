@@ -12,7 +12,7 @@ export const PROPS_Z = 19
 export const GLOW_Z = 18
 
 const BUILDING_PAGES = [1024, 1024, 1024, 1024, 1024, 1024, 1024, 512]
-const PROP_PAGES = [256, 512, 256]
+const PROP_PAGES = [512, 512, 1024]
 const GLOW_PAGES = [128, 128]
 
 /**
@@ -29,10 +29,20 @@ export function CfBuildings({ registry }: { registry: CfRegistry }) {
   })
   const p = useCellAtlas(PROP_PAGES, PROP_CLASSES)
   const props = useSpriteLayer({ atlases: p.atlases, sortByKey: true, zIndex: PROPS_Z, sampling: 'nearest' })
+  const hits = useSpriteLayer({
+    visible: false,
+    sortByKey: true,
+    anchorX: 0,
+    anchorY: 0,
+    zIndex: BUILDINGS_Z,
+  })
   const g = useCellAtlas(GLOW_PAGES, GLOW_CLASSES)
   const glow = useSpriteLayer({ atlases: g.atlases, sortByKey: true, zIndex: GLOW_Z, sampling: 'linear' })
 
-  const buildingsDriver = useMemo(() => new BuildingsDriver(buildings, b.atlas), [buildings, b.atlas])
+  const buildingsDriver = useMemo(
+    () => new BuildingsDriver(buildings, b.atlas, hits),
+    [buildings, b.atlas, hits],
+  )
   const specialDriver = useMemo(
     () => new SpecialTilesDriver(props, p.atlas, glow, g.atlas),
     [props, p.atlas, glow, g.atlas],

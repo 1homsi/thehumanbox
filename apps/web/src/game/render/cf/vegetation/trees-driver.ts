@@ -53,6 +53,8 @@ export class TreesDriver {
   private readonly swayLayer: SpriteLayer
   private readonly atlas: CellAtlas
   private sprites: TreeSprite[] = []
+  private tint = WHITE
+  private shadowCount = 0
   /** Sorted by bottom edge, for a visible-range scan each frame. */
   private bottoms: number[] = []
   private canopyCells = new Map<string, CellRef>()
@@ -212,8 +214,17 @@ export class TreesDriver {
       )
     }
     layer.touch()
+    this.shadowCount = sprites.length
     this.stats.trees = sprites.length
     this.stats.acacias = acaciaCells.length
+  }
+
+  /** Tint the trees and acacias (not their shadows) and the wind overlay. */
+  applyTint(tint: number): void {
+    this.tint = tint
+    const l = this.layer
+    l.color.fill(tint, this.shadowCount, l.count)
+    l.touch()
   }
 
   /** The canopy of a tree without its trunk: the top 62% of the box, as the canvas sway clip. */
@@ -280,7 +291,6 @@ export class TreesDriver {
       picked.push(i)
       shifts.push(shift)
     }
-    let changed = picked.length !== sway.count
     sway.resize(picked.length)
     for (let k = 0; k < picked.length; k++) {
       const s = sprites[picked[k]]
@@ -296,18 +306,17 @@ export class TreesDriver {
         cell.ch,
         cell.atlas,
         cell.frame,
-        WHITE,
+        this.tint,
         0,
         s.sortKey,
         0,
       )
     }
     sway.resize(n)
-    changed = true
     sway.touch()
     this.stats.sway = n
     this.stats.swayMs += performance.now() - t0
-    return changed
+    return true
   }
 }
 

@@ -81,7 +81,7 @@ function paintGlow(ctx: CanvasRenderingContext2D, size: number, inner: number) {
  * holds sprites and untextured rects ordered by tile; the glow layer holds the lights.
  */
 export class SpecialTilesDriver implements CfDriver {
-  stats = { huts: 0, fires: 0, townHalls: 0, bakes: 0, ms: 0, updates: 0 }
+  stats = { huts: 0, fires: 0, townHalls: 0, bakes: 0, resets: 0, ms: 0, updates: 0 }
   private readonly props: SpriteLayer
   private readonly propAtlas: CellAtlas
   private readonly glow: SpriteLayer
@@ -308,6 +308,7 @@ export class SpecialTilesDriver implements CfDriver {
     this.stats.fires = fires
     this.stats.townHalls = halls
     this.stats.bakes = this.propAtlas.bakes + this.glowAtlas.bakes
+    this.stats.resets = this.propAtlas.resets + this.glowAtlas.resets
     this.stats.updates++
     this.stats.ms += performance.now() - t0
     return true

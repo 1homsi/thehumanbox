@@ -6,6 +6,7 @@ import { createRoot } from 'react-dom/client'
 import init, { Sim } from '../../../../wasm/sim-core/sim_core'
 import { parseWorldFrame } from '../../../../simulation/wire'
 import { mergeFrame } from '../../../../simulation/merge'
+import type { MergeCaches } from '../../../../simulation/merge'
 import type { WorldState } from '../../../../shared/types'
 import type { InterpRefs } from '../../../../simulation/useSimulation'
 import { WorldView } from '../../WorldView'
@@ -20,6 +21,7 @@ declare global {
     __advance?: (ticks: number) => WorldState
     __saveBlob?: () => string
     __setWorld?: (w: WorldState) => void
+    __stopLive?: () => void
   }
 }
 
@@ -105,6 +107,35 @@ async function main() {
   }
   window.__setWorld = show
   show(frameOf(sim))
+
+  // ?live=1 plays the world like the app does: a tick, a delta frame, interpolation between
+  // the last two, ten times a second. window.__stopLive() ends it.
+  if (q.get('live') === '1') {
+    const caches: MergeCaches = { organisms: new Map(), animals: new Map(), grid: null, prevWorld: null }
+    const first = parseWorldFrame(sim.fullFrame(1, Date.now()))
+    if (first.isOk()) {
+      const r = mergeFrame(first.value, caches)
+      caches.grid = r.grid
+      interp.current.current = r.next
+      interp.prev.current = r.next
+    }
+    let frameId = 2
+    const timer = window.setInterval(() => {
+      sim.tickN(1)
+      const parsed = parseWorldFrame(sim.deltaFrame(frameId++, Date.now()))
+      if (parsed.isErr()) return
+      caches.prevWorld = interp.current.current
+      const { next, grid } = mergeFrame(parsed.value, caches)
+      caches.grid = grid
+      interp.prev.current = interp.current.current
+      interp.prevServerAt.current = interp.currentServerAt.current
+      interp.current.current = next
+      interp.currentServerAt.current = parsed.value.server_sent_at_ms
+      interp.currentReceivedAt.current = performance.now()
+      window.__world = next
+    }, 100)
+    window.__stopLive = () => window.clearInterval(timer)
+  }
   window.__ready = true
 }
 

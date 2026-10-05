@@ -3,6 +3,7 @@ import type { Building } from '../../../../shared/types'
 import { TILE } from '../../../model/palette'
 import { PAD, PAD_TOP } from '../../building-painters/kit'
 import { drawBuilding } from '../../building-draw/draw'
+import { resolveBuildingFootprint } from '../../building-draw/footprints'
 import { lineageEraTiers } from '../../draw-helpers'
 import type { CellAtlas, CellRef } from '../atlas/cell-atlas'
 import { CELL_GUTTER } from '../atlas/cell-atlas'
@@ -47,7 +48,7 @@ export function bakeBuilding(atlas: CellAtlas, v: BuildingVisual) {
 export class BuildingsDriver implements CfDriver {
   /** Visible buildings at the last update, sprite index aligned. */
   ids: number[] = []
-  stats = { sprites: 0, bakes: 0, updates: 0, skipped: 0, ms: 0 }
+  stats = { sprites: 0, bakes: 0, resets: 0, updates: 0, skipped: 0, ms: 0 }
   private visible: Building[] = []
   private cells: CellRef[] = []
   private sig = ''
@@ -56,10 +57,18 @@ export class BuildingsDriver implements CfDriver {
 
   private readonly layer: SpriteLayer
   private readonly atlas: CellAtlas
+  /** An invisible layer of footprint rectangles: pick() on the drawn layer would test the padded cells. */
+  private readonly hits: SpriteLayer
 
-  constructor(layer: SpriteLayer, atlas: CellAtlas) {
+  constructor(layer: SpriteLayer, atlas: CellAtlas, hits: SpriteLayer) {
     this.layer = layer
     this.atlas = atlas
+    this.hits = hits
+  }
+
+  /** The id of the building whose footprint covers a world point (topmost first), or -1. */
+  pick(wx: number, wy: number): number {
+    return this.hits.pick(wx, wy)
   }
 
   update(f: CfFrame): boolean {
@@ -135,11 +144,34 @@ export class BuildingsDriver implements CfDriver {
         b.id,
       )
     }
+    // Footprint rectangles for picking, anchored at their top-left corner.
+    const hits = this.hits
+    hits.resize(n)
+    for (let i = 0; i < n; i++) {
+      const b = vis[i]
+      const [fw, fh] = resolveBuildingFootprint(b)
+      writeSprite(
+        hits,
+        i,
+        Math.round((b.x - ox) * TILE),
+        Math.round((b.y - oy) * TILE),
+        fw * TILE,
+        fh * TILE,
+        0,
+        0,
+        WHITE,
+        0,
+        buildingSortKey(b),
+        b.id,
+      )
+    }
+    hits.touch()
     this.ids.length = n
     for (let i = 0; i < n; i++) this.ids[i] = vis[i].id
     layer.touch()
     this.stats.sprites = n
     this.stats.bakes = this.atlas.bakes
+    this.stats.resets = this.atlas.resets
     this.stats.updates++
     this.stats.ms += performance.now() - t0
     return true

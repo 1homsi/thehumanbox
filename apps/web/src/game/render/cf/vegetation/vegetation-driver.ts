@@ -1,4 +1,5 @@
 import { vegetationSeason } from '../../landscape-style'
+import { groundTint } from '../atmosphere-tint'
 import type { CfDriver, CfFrame } from '../frame'
 import { DecorDriver } from './decor-driver'
 import { MountainsDriver } from './mountains-driver'
@@ -16,6 +17,7 @@ export class VegetationDriver implements CfDriver {
   private readonly trees: TreesDriver
   /** Revision each part last built for, so a late atlas image retries without a terrain change. */
   private built = { decor: -1, mountains: -1, trees: -1 }
+  private tint = -1
   stats: Record<string, unknown> = {}
 
   constructor(decor: DecorDriver, mountains: MountainsDriver, trees: TreesDriver) {
@@ -48,6 +50,15 @@ export class VegetationDriver implements CfDriver {
     if (this.built.trees !== rev && this.trees.ready()) {
       this.trees.rebuild(f, season)
       this.built.trees = rev
+      changed = true
+    }
+    // Rebuilt sprites start white; the day/night light reaches them as a multiply tint.
+    const tint = groundTint(world)
+    if (changed || tint !== this.tint) {
+      this.tint = tint
+      this.decor.applyTint(tint)
+      this.mountains.applyTint(tint)
+      this.trees.applyTint(tint)
       changed = true
     }
     if (this.trees.update(f)) changed = true
