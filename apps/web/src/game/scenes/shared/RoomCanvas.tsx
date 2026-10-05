@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { drawPeopleTile, pickHumanSprite } from '../../../shared/sprites'
 import type { SceneContext, SceneFixture } from '../core/types'
 import { deterministicAppearanceIndex, resolveAgeStage } from '../../render/character-visuals'
@@ -14,14 +14,9 @@ import {
   drawWalls,
 } from './room-draw'
 import { TILE_PX, SCALE, ROOM_COLS, ROOM_ROWS, CANVAS_W, CANVAS_H } from './room-constants'
-import { cfFlag } from '../../render/cf/flags'
-import { lazyWithRetry } from '../../../shared/lazyWithRetry'
 import { roomPainter } from '../../render/cf/scenes/room-painters'
-
-// Only fetched when ?cf=scenes asks for it.
-const CfRoomView = lazyWithRetry(() =>
-  import('../../render/cf/scenes/CfRoomView').then((m) => ({ default: m.CfRoomView })),
-)
+import { CfRoomView } from '../../render/cf/scenes/CfRoomView'
+import { canUseWorldGPU } from '../../render/world-view/gpu'
 
 export { TILE_PX, SCALE, ROOM_COLS, ROOM_ROWS, CANVAS_W, CANVAS_H }
 
@@ -176,19 +171,15 @@ function RoomCanvas2D({
   )
 }
 
-/** A room interior. On cubeforge with `?cf=scenes`, otherwise on a 2D canvas. */
+/** A room interior on cubeforge; browsers without WebGL2 get the 2D canvas. */
 export function RoomCanvas(props: Props) {
   const { ctx, palette, drawFurniture, occupantSlots, selectedOrgId, onSelectOrg } = props
-  const onCubeforge = useMemo(() => cfFlag('scenes'), [])
+  const onCubeforge = canUseWorldGPU()
   const painter = useMemo(
     () => (onCubeforge ? roomPainter({ ctx, palette, drawFurniture, occupantSlots }) : null),
     [onCubeforge, ctx, palette, drawFurniture, occupantSlots],
   )
   if (painter)
-    return (
-      <Suspense fallback={null}>
-        <CfRoomView ctx={ctx} painter={painter} selectedOrgId={selectedOrgId} onSelectOrg={onSelectOrg} />
-      </Suspense>
-    )
+    return <CfRoomView ctx={ctx} painter={painter} selectedOrgId={selectedOrgId} onSelectOrg={onSelectOrg} />
   return <RoomCanvas2D {...props} />
 }

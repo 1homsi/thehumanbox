@@ -73,27 +73,6 @@ export function hardWinter(world: Pick<WorldState, 'hard_winter' | 'season'>): b
   return !!world.hard_winter && world.season === 'scarcity'
 }
 
-/**
- * Fold a stack of source-over tints into the one tint that has the same effect on any pixel:
- * `p' = p * (1 - A) + C * A`. That is exactly what cubeforge's `useScreenTint(..., 'normal')`
- * computes, so the whole atmosphere is a single call per frame.
- */
-export function composeTints(layers: readonly Tint[]): Tint | null {
-  let pr = 0
-  let pg = 0
-  let pb = 0
-  let pa = 0
-  for (const l of layers) {
-    if (l.a <= 0) continue
-    pr = l.r * l.a + pr * (1 - l.a)
-    pg = l.g * l.a + pg * (1 - l.a)
-    pb = l.b * l.a + pb * (1 - l.a)
-    pa = l.a + pa * (1 - l.a)
-  }
-  if (pa <= 0) return null
-  return { r: pr / pa, g: pg / pa, b: pb / pa, a: pa }
-}
-
 // ── precipitation ────────────────────────────────────────────────────────────
 
 /** Whether anything falls from the sky right now. */

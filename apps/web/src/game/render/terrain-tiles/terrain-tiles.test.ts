@@ -1,12 +1,10 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { TileLayerData, tileHash } from 'cubeforge'
-import { TILE, TILE_RGB } from '../../model/palette'
+import { TileLayerData } from 'cubeforge'
+import { TILE } from '../../model/palette'
 import { TILE_ID } from '../../model/terrain-ids'
-import { baseLayerMatches, paintTileBlock, terrainSeason } from '../base-layer'
+import { terrainSeason } from '../terrain-season'
 import { TERRAIN_VARIANTS } from './atlas'
-import { blockMeans, diffStats } from './compare'
-import { emulateTerrainLayer } from './emulate'
 import { createTerrainSyncState, syncTerrainLayer, terrainLod } from './sync'
 import type { TerrainSource } from './sync'
 import {
@@ -16,9 +14,7 @@ import {
   kindHeadId,
   terrainKind,
   terrainTilesetPixels,
-  textureTerm,
 } from './tileset'
-import { TERRAIN_STORAGE_KEY, setTerrainBackend, terrainBackend } from '../terrain-backend'
 
 function rng(seed: number) {
   let s = seed >>> 0
@@ -76,50 +72,9 @@ function makeLayer() {
   })
 }
 
-function canvasGround(src: TerrainSource): Uint8ClampedArray {
-  const px = new Uint8ClampedArray(W * TILE * H * TILE * 4)
-  for (let row = 0; row < H; row++) {
-    for (let col = 0; col < W; col++) {
-      paintTileBlock(px, W * TILE, src.tiles, src.biomes, src.depth_map, src.season, row, col)
-    }
-  }
-  return px
-}
-
-const store = new Map<string, string>()
-const fakeStorage = {
-  getItem: (k: string) => store.get(k) ?? null,
-  setItem: (k: string, v: string) => void store.set(k, v),
-}
-Object.defineProperty(window, 'localStorage', { value: fakeStorage, configurable: true })
-
 afterEach(() => {
-  setTerrainBackend(null)
-  store.clear()
   vi.unstubAllGlobals()
   terrainLod.enabled = true
-})
-
-describe('terrain backend flag', () => {
-  it('defaults to the canvas painter', () => {
-    setTerrainBackend(null)
-    expect(terrainBackend()).toBe('canvas')
-  })
-
-  it('reads the stored choice and ignores junk', () => {
-    window.localStorage.setItem(TERRAIN_STORAGE_KEY, 'tilelayer')
-    setTerrainBackend(null)
-    expect(terrainBackend()).toBe('tilelayer')
-    window.localStorage.setItem(TERRAIN_STORAGE_KEY, 'webgpu')
-    setTerrainBackend(null)
-    expect(terrainBackend()).toBe('canvas')
-  })
-
-  it('is read once and then stable', () => {
-    setTerrainBackend('tilelayer')
-    window.localStorage.setItem(TERRAIN_STORAGE_KEY, 'canvas')
-    expect(terrainBackend()).toBe('tilelayer')
-  })
 })
 
 describe('terrain tileset', () => {
@@ -138,41 +93,6 @@ describe('terrain tileset', () => {
         for (let x = 0; x < px.width; x++) max = Math.max(max, px.data[(y * px.width + x) * 4])
       }
       expect(max).toBe(255)
-    }
-  })
-
-  it('uses the production texture function at the pixels it samples', () => {
-    // A flat world: one tile id, no biome, no season. Each pixel is colour + shading + k, so
-    // subtracting the tile's colour leaves the texture term the atlas is built from.
-    for (const [tid, kind] of [
-      [TILE_ID.GRASS, 1],
-      [TILE_ID.SAND, 7],
-      [TILE_ID.ROCK, 3],
-      [TILE_ID.SNOW, 6],
-    ] as const) {
-      const rows = 4
-      const tiles = Array.from({ length: rows }, () => Array.from({ length: rows }, () => tid))
-      const px = new Uint8ClampedArray(rows * TILE * rows * TILE * 4)
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < rows; c++) paintTileBlock(px, rows * TILE, tiles, undefined, undefined, '', r, c)
-      }
-      expect(terrainKind(tid)).toBe(kind)
-      const base = TILE_RGB[tid]
-      let spread = 0
-      for (let y = 0; y < rows * TILE; y++) {
-        for (let x = 0; x < rows * TILE; x++) {
-          const k = textureTerm(tid, x, y)
-          const got = px[(y * rows * TILE + x) * 4]
-          // Shading is a per-tile constant (macro noise): constant within a tile, so compare within one.
-          const tx = Math.floor(x / TILE)
-          const ty = Math.floor(y / TILE)
-          const ref = px[(ty * TILE * rows * TILE + tx * TILE) * 4] - textureTerm(tid, tx * TILE, ty * TILE)
-          spread = Math.max(spread, Math.abs(got - (ref + k)))
-        }
-      }
-      // Rounding aside (clamping at 0 and 255), the pixel is colour + shading + k.
-      expect(spread).toBeLessThanOrEqual(1)
-      expect(base[0]).toBeGreaterThan(0)
     }
   })
 
@@ -277,49 +197,6 @@ describe('TileLayer terrain sync', () => {
   })
 })
 
-describe('parity with the canvas painter', () => {
-  it('colours every tile like the canvas (block means within a couple of levels)', () => {
-    for (const season of ['abundance', 'decline', 'scarcity', 'hard_winter']) {
-      const src = makeSource(season)
-      const layer = makeLayer()
-      syncTerrainLayer(layer, createTerrainSyncState(), src)
-      const canvas = canvasGround(src)
-      const tilelayer = emulateTerrainLayer(layer)
-      const stats = diffStats(
-        blockMeans(canvas, W * TILE, H * TILE, TILE),
-        blockMeans(tilelayer, W * TILE, H * TILE, TILE),
-      )
-      // Measured on a real 600x300 world: mean 0.45, max 5.9, bias under 0.4.
-      expect(stats.meanAbs).toBeLessThan(1)
-      expect(stats.maxAbs).toBeLessThan(8)
-      expect(Math.max(...stats.bias.map(Math.abs))).toBeLessThan(0.75)
-    }
-  })
-
-  it('keeps the texture in the same range as the canvas', () => {
-    const src = makeSource()
-    const layer = makeLayer()
-    syncTerrainLayer(layer, createTerrainSyncState(), src)
-    const stats = diffStats(canvasGround(src), emulateTerrainLayer(layer))
-    // The per-pixel noise cannot match (different positions); it must stay small and unbiased.
-    expect(stats.meanAbs).toBeLessThan(3)
-    expect(stats.over16).toBeLessThan(0.02)
-  })
-
-  it('picks variants with the same hash the shader uses', () => {
-    const layer = makeLayer()
-    syncTerrainLayer(layer, createTerrainSyncState(), makeSource())
-    for (const [x, y] of [
-      [0, 0],
-      [5, 9],
-      [47, 31],
-    ]) {
-      const head = layer.tiles[y * W + x]
-      expect(layer.visualTile(x, y)).toBe(head + (tileHash(x, y) % VARIANTS))
-    }
-  })
-})
-
 describe('level of detail', () => {
   function stubDom() {
     vi.stubGlobal('ImageData', class {})
@@ -360,24 +237,7 @@ describe('level of detail', () => {
   })
 })
 
-describe('base layer ground flag', () => {
-  it('treats a ground-less base canvas as a different cache entry', () => {
-    const key = {
-      width: 1,
-      height: 1,
-      origin_x: 0,
-      origin_y: 0,
-      tiles: [[1]],
-      terrain_signature: 1,
-      ground: false,
-    }
-    expect(baseLayerMatches(key, 1, 1, 0, 0, key.tiles, 1, undefined, undefined, undefined, false)).toBe(true)
-    expect(baseLayerMatches(key, 1, 1, 0, 0, key.tiles, 1, undefined, undefined, undefined, true)).toBe(false)
-    // Keys from before the flag existed hold ground.
-    const old = { ...key, ground: undefined }
-    expect(baseLayerMatches(old, 1, 1, 0, 0, key.tiles, 1)).toBe(true)
-  })
-
+describe('terrain season', () => {
   it('colours a hard winter differently from an ordinary scarcity', () => {
     expect(terrainSeason({ season: 'scarcity', hard_winter: true })).toBe('hard_winter')
     expect(terrainSeason({ season: 'scarcity', hard_winter: false })).toBe('scarcity')

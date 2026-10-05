@@ -1,7 +1,7 @@
 import type { SpriteLayer } from 'cubeforge'
 import { farmCropColor, farmProgress, farmStage } from '../../../model/farms'
 import { TILE } from '../../../model/palette'
-import { paintFarmTile } from '../../layers/landuse'
+import { paintFarmTile } from './farm-tile'
 import { PLANT_KIND, drawPlanting } from '../../plantings'
 import { CELL_GUTTER, type CellAtlas } from '../atlas/cell-atlas'
 import { WHITE, writeSprite, type CfDriver, type CfFrame } from '../frame'

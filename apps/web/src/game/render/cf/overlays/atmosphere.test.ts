@@ -2,14 +2,7 @@
 import { SpriteLayer } from 'cubeforge'
 import { describe, expect, it } from 'vitest'
 import type { WorldState } from '../../../../shared/types'
-import {
-  atmosphereTints,
-  composeTints,
-  hardWinter,
-  precipitating,
-  writePrecipitation,
-  type Tint,
-} from './atmosphere'
+import { atmosphereTints, hardWinter, precipitating, writePrecipitation } from './atmosphere'
 
 type W = Parameters<typeof atmosphereTints>[0]
 
@@ -26,21 +19,9 @@ function world(over: Partial<W> = {}): W {
   } as W
 }
 
-/** Source-over `layers` onto one pixel, one fillRect at a time. */
-function overPixel(pixel: [number, number, number], layers: readonly Tint[]): [number, number, number] {
-  let [r, g, b] = pixel
-  for (const l of layers) {
-    r = r * (1 - l.a) + l.r * l.a
-    g = g * (1 - l.a) + l.g * l.a
-    b = b * (1 - l.a) + l.b * l.a
-  }
-  return [r, g, b]
-}
-
 describe('atmosphere tints', () => {
   it('lays nothing over a clear midday in the growing season', () => {
     expect(atmosphereTints(world(), 0)).toEqual([])
-    expect(composeTints([])).toBeNull()
   })
 
   it('goes blue at night and warm at dusk and dawn', () => {
@@ -66,31 +47,6 @@ describe('atmosphere tints', () => {
     )
     // season, dusk x2, hard winter, storm, drought
     expect(all.map((t) => Math.round(t.a * 100))).toEqual([11, 15, 5, 9, 16, 4])
-  })
-
-  it('folds a stack of tints into one with exactly the same effect on any pixel', () => {
-    const layers = atmosphereTints(
-      world({
-        season: 'decline',
-        is_day: false,
-        day_progress: 0.9,
-        weather: { kind: 'rain', intensity: 0.6 },
-        drought: true,
-      }),
-      1234,
-    )
-    expect(layers.length).toBeGreaterThan(3)
-    const one = composeTints(layers)!
-    for (const px of [
-      [0, 0, 0],
-      [255, 255, 255],
-      [79, 127, 63],
-      [200, 30, 90],
-    ] as [number, number, number][]) {
-      const expected = overPixel(px, layers)
-      const got = overPixel(px, [one])
-      for (let k = 0; k < 3; k++) expect(got[k]).toBeCloseTo(expected[k], 6)
-    }
   })
 
   it('knows when anything falls from the sky', () => {

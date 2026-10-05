@@ -15,9 +15,10 @@ simulation never stops, even when nobody's watching.
 ## Stack
 
 - **React + TypeScript + Vite (rolldown)**
-- **2D HTML canvas** for the world view — biome rendering,
-  fire/weather overlays, organism markers, heatmap overlays, sprite
-  decorations, animated lake shimmer, weather effects
+- **[cubeforge](https://github.com/1homsi/cubeforge)** (WebGL2) for the world view — a
+  `TileLayer` ground, `SpriteLayer`s for trees, buildings, animals and people,
+  and an overlay renderer for weather, heat maps, effects and labels. A plain
+  2D canvas painter remains only as the fallback for browsers without WebGL2
 - **Zustand** for UI + world state, **TanStack Query** for on-demand
   organism detail fetches
 - **MessagePack** decode of binary WS frames (no per-tick JSON parse)

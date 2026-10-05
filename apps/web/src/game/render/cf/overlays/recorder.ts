@@ -626,6 +626,30 @@ export class SpriteRecorder {
     }
   }
 
+  /**
+   * An outline: the text again, in the stroke colour, shifted around the glyphs by half the line
+   * width. A name tag's black halo is the one use; the fill goes on top afterwards.
+   */
+  strokeText(text: string, x: number, y: number): void {
+    if (typeof this.strokeStyle !== 'string' || text.length === 0) return
+    const r = this.lineWidth / 2
+    const d = r * Math.SQRT1_2
+    const fill = this.fillStyle
+    this.fillStyle = this.strokeStyle
+    for (const [dx, dy] of [
+      [r, 0],
+      [-r, 0],
+      [0, r],
+      [0, -r],
+      [d, d],
+      [-d, d],
+      [d, -d],
+      [-d, -d],
+    ])
+      this.fillText(text, x + dx, y + dy)
+    this.fillStyle = fill
+  }
+
   // ── everything else ────────────────────────────────────────────────────────
 
   unsupported(name: string): void {
@@ -634,15 +658,38 @@ export class SpriteRecorder {
 
   /** The recorder typed as a canvas context, for painters. Unknown members count as unsupported and do nothing. */
   asContext(): CanvasRenderingContext2D {
+    const target = this as unknown as Record<string | symbol, unknown>
     const count = (name: string) => this.unsupported(name)
-    return new Proxy(this as unknown as CanvasRenderingContext2D, {
-      get(target, prop, receiver) {
-        if (prop in target) return Reflect.get(target, prop, receiver)
+    // Methods run against the recorder itself, not the proxy, so their own `this.x` reads skip the
+    // trap; the bound copies are made once per name.
+    const bound = new Map<string | symbol, unknown>()
+    const noops = new Map<string, () => undefined>()
+    return new Proxy(target, {
+      get(_t, prop) {
+        if (prop in target) {
+          const value = target[prop]
+          if (typeof value !== 'function') return value
+          let fn = bound.get(prop)
+          if (!fn) {
+            fn = (value as (...args: unknown[]) => unknown).bind(target)
+            bound.set(prop, fn)
+          }
+          return fn
+        }
         const name = String(prop)
         count(name)
-        return () => undefined
+        let noop = noops.get(name)
+        if (!noop) {
+          noop = () => undefined
+          noops.set(name, noop)
+        }
+        return noop
       },
-    })
+      set(_t, prop, value) {
+        target[prop] = value
+        return true
+      },
+    }) as unknown as CanvasRenderingContext2D
   }
 }
 

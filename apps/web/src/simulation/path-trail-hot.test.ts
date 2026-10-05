@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
 import { PATH_TRAIL_HOT, type GridWire } from '../shared/types'
-import { draw_overlays } from '../game/render/layers/overlays'
-import type { DrawFrame } from '../game/render/layers/frame'
+import { HeatGrid } from '../game/render/cf/overlays/heatmap'
+import type { WorldState } from '../shared/types'
 import { applyGridWire } from './wire'
 
 function rng(seed: number) {
@@ -72,66 +72,28 @@ describe('path_trail_hot', () => {
 })
 
 describe('worn-path overlay', () => {
-  // Records the fillStyle/fillRect pairs the overlay pass issues.
-  function record(
-    grid: ReturnType<typeof applyGridWire>,
-    win: { r0: number; r1: number; c0: number; c1: number },
-  ) {
-    const out: string[] = []
-    let style = ''
-    const ctx = {
-      save() {},
-      restore() {},
-      set fillStyle(v: string) {
-        style = v
-      },
-      get fillStyle() {
-        return style
-      },
-      fillRect: (x: number, y: number, w: number, h: number) => out.push(`${style}|${x},${y},${w},${h}`),
-    }
-    const world = { grid, weather: undefined } as unknown as DrawFrame['world']
-    const frame = {
-      ctx,
+  function heatOf(grid: ReturnType<typeof applyGridWire>): Uint8Array {
+    const heat = new HeatGrid(grid.width, grid.height)
+    const world = { grid, weather: undefined } as unknown as WorldState
+    heat.compute(
       world,
-      selectedOrgId: null,
-      overlay: null,
-      focus: 'all',
-      viewFlags: {},
-      width: grid.width,
-      height: grid.height,
-      structure: grid.structure,
-      food_trail: grid.food_trail,
-      water_trail: grid.water_trail,
-      path_trail: grid.path_trail,
-      fertility: grid.fertility,
-      hazard: grid.hazard,
-      ox: 0,
-      oy: 0,
-      ...win,
-      organisms: [],
-      W: grid.width * 8,
-      H: grid.height * 8,
-      t: 1234,
-    } as unknown as DrawFrame
-    draw_overlays(frame)
-    return out
+      {
+        overlay: null,
+        viewFlags: { territory: false, fertility: false, hazard: false, trails: false },
+        focus: 'all',
+      },
+      [],
+    )
+    return heat.rgba
   }
 
-  it('draws the same tiles in the same order from the hot list as from a full scan', () => {
+  it('tints the same tiles from the hot list as from a full scan', () => {
     for (const seed of [21, 22, 23]) {
       const grid = applyGridWire(wireWithTrails(seed, 60, 40, 3000), null)
       const scan = { ...grid, path_trail_hot: undefined }
-      for (const win of [
-        { r0: 0, r1: 40, c0: 0, c1: 60 },
-        { r0: 5, r1: 30, c0: 11, c1: 47 },
-        { r0: 17, r1: 18, c0: 0, c1: 60 },
-        { r0: 0, r1: 40, c0: 59, c1: 60 },
-      ]) {
-        const fast = record(grid, win)
-        expect(fast).toEqual(record(scan, win))
-        if (win.c1 - win.c0 > 30 && win.r1 - win.r0 > 20) expect(fast.length).toBeGreaterThan(10)
-      }
+      const fast = heatOf(grid)
+      expect(fast).toEqual(heatOf(scan))
+      expect(fast.some((v, i) => i % 4 === 3 && v > 0)).toBe(true)
     }
   })
 })

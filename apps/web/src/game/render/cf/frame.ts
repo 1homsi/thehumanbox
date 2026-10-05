@@ -19,6 +19,8 @@ export interface CfFrame {
   detail: BuildingVisualDetail
   /** Visible window in tiles (inclusive-exclusive), margin included. */
   win: { c0: number; c1: number; r0: number; r1: number }
+  /** Bumped whenever the terrain (tiles, biomes, season) changes in a way the ground sprites show. */
+  terrainRevision: number
 }
 
 export function makeFrame(
@@ -28,6 +30,7 @@ export function makeFrame(
   viewport: { w: number; h: number },
   now: number,
   margin: number,
+  terrainRevision = 0,
 ): CfFrame {
   const zoom = Math.max(0.01, camera.zoom)
   const halfW = viewport.w / 2 / zoom
@@ -42,6 +45,7 @@ export function makeFrame(
     ox: world.grid.origin_x ?? 0,
     oy: world.grid.origin_y ?? 0,
     detail: zoomDetailLevel(camera.zoom),
+    terrainRevision,
     win: {
       c0: Math.max(0, Math.floor((camera.x - halfW) / TILE) - margin),
       c1: Math.min(width, Math.ceil((camera.x + halfW) / TILE) + margin),

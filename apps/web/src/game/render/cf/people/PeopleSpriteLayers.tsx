@@ -8,7 +8,7 @@ import { zoomDetailLevel } from '../../character-visuals'
 import { ruinedBuildingTiles } from '../../base-parts/terrain-scans'
 import { useBoatAtlas, useDecalAtlas, useEmoteAtlas, useGlyphAtlas, usePeopleAtlas } from '../atlas-hooks'
 import { useSpriteClock, wakeEngine } from '../frame-clock'
-import { cfPerf, registerPeopleLayer } from './bridge'
+import { registerPeopleLayer } from '../picking'
 import { PeopleSprites } from './people-sprites'
 import { PEOPLE_Z } from './z-order'
 import { HUMAN_ATLAS_CELL } from '../../character-visuals'
@@ -81,6 +81,7 @@ export function PeopleSpriteLayers({
   const oy = world.grid.origin_y ?? 0
   const ui = useRef({ selectedOrgId, focus, viewFlags })
   ui.current = { selectedOrgId, focus, viewFlags }
+  const lastAnimate = useRef(0)
   const last = useRef<{
     orgs: unknown
     prev: unknown
@@ -95,7 +96,26 @@ export function PeopleSpriteLayers({
 
   useEffect(() => {
     const pick = (wx: number, wy: number) => sprites.pick(wx, wy)
-    const unregister = registerPeopleLayer(pick)
+    const unregister = registerPeopleLayer(pick, {
+      get orgs() {
+        return sprites.orgs
+      },
+      get px() {
+        return sprites.px
+      },
+      get py() {
+        return sprites.py
+      },
+      get hidden() {
+        return sprites.hidden
+      },
+      get phase() {
+        return sprites.phase
+      },
+      get step() {
+        return sprites.stepState
+      },
+    })
     // Force the next frame to rebuild: the buffer is new.
     last.current = null
     return unregister
@@ -126,7 +146,6 @@ export function PeopleSpriteLayers({
       l.buildings !== w.buildings ||
       l.eras !== w.lineage_eras
     if (stale) {
-      const started = performance.now()
       sprites.rebuild({
         orgs,
         prevOrgs,
@@ -140,8 +159,6 @@ export function PeopleSpriteLayers({
         ox,
         oy,
       })
-      cfPerf.peopleRebuilds++
-      cfPerf.peopleRebuildMs += performance.now() - started
       last.current = {
         orgs,
         prev: prevOrgs,
@@ -154,13 +171,14 @@ export function PeopleSpriteLayers({
         eras: w.lineage_eras,
       }
     }
-    // A quiet world with nobody selected needs no more frames: the layer keeps its last write.
-    if (!stale && frame.t >= 1 && !sprites.moving && selected === null) return
-    const started = performance.now()
+    // A quiet world needs no more frames. Only the selected person's turning ring keeps going,
+    // and not while the simulation is paused.
+    if (!stale && frame.t >= 1 && !sprites.moving && (selected === null || frame.settled)) return
+    // Zoomed out, a person moves a few pixels a second: 20 updates a second are as smooth as 60.
+    if (!stale && detail === 'overview' && frame.now - lastAnimate.current < 50) return
+    lastAnimate.current = frame.now
     sprites.animate(frame.now, frame.t)
-    cfPerf.peopleFrames++
-    cfPerf.peopleAnimateMs += performance.now() - started
-    wakeEngine(engine)
+    wakeEngine(engine, detail === 'overview' ? 20 : 60)
   })
 
   return null

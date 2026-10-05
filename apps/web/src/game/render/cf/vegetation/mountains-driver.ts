@@ -89,10 +89,4 @@ export class MountainsDriver {
     this.stats.rebuilds++
     this.stats.rebuildMs += performance.now() - t0
   }
-
-  /** Multiply tint for every sprite (the ground's share of the day/night light). */
-  applyTint(tint: number): void {
-    this.layer.color.fill(tint, 0, this.layer.count)
-    this.layer.touch()
-  }
 }

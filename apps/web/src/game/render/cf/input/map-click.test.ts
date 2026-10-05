@@ -5,7 +5,7 @@ import { hasRuinedBuildingAtWorldTile } from '../../../model/building-state'
 import { lineageAtTerritoryTile, type TerritoryIndex } from '../../../model/territory'
 import { TILE } from '../../../model/palette'
 import { prayerAtPoint } from '../../prayer-bubbles'
-import { resolveMapClick, type MapClickInput, type MapClickOutcome } from './map-click'
+import { residentOf, resolveMapClick, type MapClickInput, type MapClickOutcome } from './map-click'
 
 /**
  * What a click on the map does used to live inside `useMapPointer`'s click
@@ -215,5 +215,91 @@ describe('resolveMapClick', () => {
     expect(at(2.5, false)).toEqual({ kind: 'select', orgId: null })
     expect(at(2.5, true)).toEqual({ kind: 'select', orgId: 'a' })
     expect(at(3.5, true)).toEqual({ kind: 'select', orgId: null })
+  })
+})
+
+describe('residents of a picked building', () => {
+  const building = (over: Record<string, unknown> = {}) => ({
+    id: 7,
+    kind: 'House',
+    x: 10,
+    y: 10,
+    fw: 2,
+    fh: 2,
+    condition: 1,
+    ...over,
+  })
+  const person = (id: string, hx: number, hy: number, age = 20) => ({
+    id,
+    alive: true,
+    home_x: hx,
+    home_y: hy,
+    age,
+    // Out in the fields, away from the click.
+    x: 35,
+    y: 35,
+  })
+
+  function click(world: Partial<WorldState>, pickBuilding: (x: number, y: number) => number) {
+    const full = {
+      grid: { width: 40, height: 40, tiles: Array.from({ length: 40 }, () => Array(40).fill(TILE_ID.GRASS)) },
+      organisms: [],
+      buildings: [],
+      ...world,
+    } as unknown as WorldState
+    return resolveMapClick({
+      mapX: 11 * TILE,
+      mapY: 11 * TILE,
+      zoom: 2,
+      world: full,
+      ox: 0,
+      oy: 0,
+      sandboxArmed: false,
+      prayerClicksEnabled: false,
+      viewFlags: { territory: false, hideUI: false } as MapClickInput['viewFlags'],
+      focus: 'all',
+      territoryIndex: new Map() as unknown as TerritoryIndex,
+      coarsePointer: false,
+      pickBuilding,
+    })
+  }
+
+  it('opens the home of the oldest person who lives inside the footprint', () => {
+    const outcome = click(
+      {
+        buildings: [building()] as never,
+        organisms: [
+          person('young', 10, 10, 5),
+          person('elder', 11, 11, 70),
+          person('away', 20, 20, 90),
+        ] as never,
+      },
+      () => 7,
+    )
+    expect(outcome).toEqual({ kind: 'enter-home', orgId: 'elder' })
+  })
+
+  it('does nothing special when nobody lives there, the building is a ruin, or none is under the pointer', () => {
+    const base = { buildings: [building()] as never, organisms: [person('far', 30, 30)] as never }
+    expect(click(base, () => 7)).toEqual({ kind: 'select', orgId: null })
+    expect(click({ ...base, organisms: [person('home', 10, 10)] as never }, () => -1)).toEqual({
+      kind: 'select',
+      orgId: null,
+    })
+    expect(
+      click(
+        { buildings: [building({ ruined: true })] as never, organisms: [person('home', 10, 10)] as never },
+        () => 7,
+      ),
+    ).toEqual({ kind: 'select', orgId: null })
+  })
+
+  it('finds the residents of a building by its footprint', () => {
+    const world = {
+      buildings: [building({ fw: 3, fh: 1 })],
+      organisms: [person('a', 12, 10), person('b', 12, 11)],
+    } as unknown as WorldState
+    expect(residentOf(world, 7)).toBe('a')
+    expect(residentOf(world, 99)).toBeNull()
   })
 })

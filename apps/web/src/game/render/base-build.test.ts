@@ -1,9 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
-import { BIOME_RGBA, SEASON_LAND_TINT, TILE, TILE_RGB } from '../model/palette'
-import { TILE_ID, isPermanentWaterTile, isWaterTile } from '../model/terrain-ids'
-import { baseTerrainTile, permanentWaterDepth } from '../model/terrain-visuals'
-import { SHALLOW_RGB, paintTileBlock, valueNoise, varAmountForTile } from './base-layer'
+import { TILE_ID } from '../model/terrain-ids'
 import { oceanColor } from './landscape-style'
 import { mountainHeights } from './mountains'
 import { terrainDetail } from './terrain-detail'
@@ -50,107 +47,6 @@ function refTerrainDetail(tile: number, x: number, y: number): number {
     return (px === 2 && py < 2) || (px === 3 && py === 2) ? 9 : py === 3 && px > 1 && px < 4 ? -5 : 0
   }
   return 0
-}
-
-function refPaintTileBlock(
-  d: Uint8ClampedArray,
-  W: number,
-  tiles: number[][],
-  biomes: number[][] | undefined,
-  depth_map: number[][] | undefined,
-  season: string | undefined,
-  row: number,
-  col: number,
-) {
-  const height = tiles.length
-  const tileRow = tiles[row]
-  const biomeRow = biomes?.[row]
-  const depthRow = depth_map?.[row]
-  const tileRowPrev = row > 0 ? tiles[row - 1] : undefined
-  const tileRowNext = row + 1 < height ? tiles[row + 1] : undefined
-  const rawTid = tileRow?.[col] ?? TILE_ID.VOID
-  const tid = baseTerrainTile(rawTid)
-  const rgb = TILE_RGB[tid] ?? TILE_RGB[0]
-  let r = rgb[0]
-  let g = rgb[1]
-  let b = rgb[2]
-  const isWater = isWaterTile(rawTid)
-  const isPermanentWater = isPermanentWaterTile(rawTid)
-  const wN = tileRowPrev?.[col]
-  const wS = tileRowNext?.[col]
-  const wW = col > 0 ? tileRow?.[col - 1] : undefined
-  const wE = tileRow?.[col + 1]
-  const touchesLand =
-    (wN !== undefined && !isWaterTile(wN)) ||
-    (wS !== undefined && !isWaterTile(wS)) ||
-    (wW !== undefined && !isWaterTile(wW)) ||
-    (wE !== undefined && !isWaterTile(wE))
-  const visualDepth = permanentWaterDepth(rawTid, depthRow?.[col])
-  if (visualDepth !== null) {
-    ;[r, g, b] = refOceanColor(visualDepth)
-  }
-  if (isPermanentWater && touchesLand) {
-    r = (r * 0.68 + SHALLOW_RGB[0] * 0.32) | 0
-    g = (g * 0.68 + SHALLOW_RGB[1] * 0.32) | 0
-    b = (b * 0.68 + SHALLOW_RGB[2] * 0.32) | 0
-  }
-  if (!isWater && tid !== TILE_ID.ROCK && tid !== TILE_ID.SNOW) {
-    const bm = biomeRow?.[col] ?? 0
-    const bo = BIOME_RGBA[bm]
-    if (bo) {
-      const a = bo[3]
-      if (a > 0) {
-        const ia = 1 - a
-        r = (r * ia + bo[0] * a) | 0
-        g = (g * ia + bo[1] * a) | 0
-        b = (b * ia + bo[2] * a) | 0
-      }
-    }
-  }
-  const macro = valueNoise(col / 42, row / 42) * 0.65 + valueNoise(col / 13 + 7, row / 13 + 7) * 0.35
-  let shading = ((macro - 0.5) * (isWater ? 5 : 25)) | 0
-  if (!isWater) {
-    const grassy = tid === 1 || tid === 3 || tid === 6 || tid === 13
-    const landTint = SEASON_LAND_TINT[season ?? '']
-    if (grassy && landTint) {
-      let w = landTint.w * (0.55 + macro * 0.9)
-      if (w > 0.85) w = 0.85
-      const iw = 1 - w
-      r = (r * iw + landTint.rgb[0] * w) | 0
-      g = (g * iw + landTint.rgb[1] * w) | 0
-      b = (b * iw + landTint.rgb[2] * w) | 0
-      shading += ((macro - 0.5) * 8) | 0
-    }
-  }
-  const varAmt = varAmountForTile(tid)
-  const bx = col * TILE
-  const by = row * TILE
-  for (let ty = 0; ty < TILE; ty++) {
-    const gy = by + ty
-    let pi = (gy * W + bx) * 4
-    for (let tx = 0; tx < TILE; tx++, pi += 4) {
-      const gx = bx + tx
-      const clusterX = gx >> 1
-      const clusterY = gy >> 1
-      let h = (clusterX * 374761393 + clusterY * 668265263) | 0
-      h = Math.imul(h ^ (h >>> 13), 1274126177) | 0
-      const dither = ((gx ^ gy) & 1) === 0 ? -1 : 1
-      const k = (((((h >>> 0) & 0xff) - 128) * varAmt) >> 7) + dither + refTerrainDetail(tid, gx, gy)
-      let rr = r + k + shading
-      let gg = g + k + shading
-      let bb = b + k + shading
-      if (rr < 0) rr = 0
-      else if (rr > 255) rr = 255
-      if (gg < 0) gg = 0
-      else if (gg > 255) gg = 255
-      if (bb < 0) bb = 0
-      else if (bb > 255) bb = 255
-      d[pi] = rr
-      d[pi + 1] = gg
-      d[pi + 2] = bb
-      d[pi + 3] = 255
-    }
-  }
 }
 
 function refMountainHeights(tiles: number[][], width: number, height: number): Uint8Array {
@@ -245,41 +141,7 @@ function makeWorld(seed: number, width: number, height: number) {
   return { tiles, biomes, depth }
 }
 
-describe('terrain base layer build', () => {
-  it('paints byte-identical pixels to the previous per-pixel implementation', () => {
-    const width = 70
-    const height = 50
-    const W = width * TILE
-    for (const [seed, season] of [
-      [1, 'recovery'],
-      [2, 'scarcity'],
-      [3, 'hard_winter'],
-      [4, undefined],
-      [5, 'decline'],
-    ] as const) {
-      const { tiles, biomes, depth } = makeWorld(seed, width, height)
-      const a = new Uint8ClampedArray(W * height * TILE * 4)
-      const b = new Uint8ClampedArray(W * height * TILE * 4)
-      for (let row = 0; row < height; row++) {
-        for (let col = 0; col < width; col++) {
-          refPaintTileBlock(a, W, tiles, biomes, depth, season, row, col)
-          paintTileBlock(b, W, tiles, biomes, depth, season, row, col)
-        }
-      }
-      expect(Buffer.compare(Buffer.from(a), Buffer.from(b))).toBe(0)
-      // Without biome or depth data, and with a repaint order that is not row-major.
-      const c = new Uint8ClampedArray(a.length)
-      const d = new Uint8ClampedArray(a.length)
-      for (let col = width - 1; col >= 0; col--) {
-        for (let row = height - 1; row >= 0; row--) {
-          refPaintTileBlock(c, W, tiles, undefined, undefined, season, row, col)
-          paintTileBlock(d, W, tiles, undefined, undefined, season, row, col)
-        }
-      }
-      expect(Buffer.compare(Buffer.from(c), Buffer.from(d))).toBe(0)
-    }
-  })
-
+describe('terrain helpers', () => {
   it('terrainDetail, oceanColor, mountain heights and tree order are unchanged', () => {
     for (const tile of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]) {
       for (let x = -12; x < 40; x++) {

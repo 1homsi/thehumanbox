@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo } from 'react'
 import { useSpriteLayer } from 'cubeforge'
 import { useCellAtlas } from '../atlas/useCellAtlas'
 import type { CfRegistry } from '../registry'
+import { registerBuildingLayer } from '../picking'
 import { BUILDING_CLASSES, BuildingsDriver } from './buildings-driver'
 import { GLOW_CLASSES, PROP_CLASSES, SpecialTilesDriver } from './special-tiles-driver'
 
@@ -48,6 +49,7 @@ export function CfBuildings({ registry }: { registry: CfRegistry }) {
     [props, p.atlas, glow, g.atlas],
   )
   useLayoutEffect(() => registry.add('buildings', buildingsDriver), [registry, buildingsDriver])
+  useLayoutEffect(() => registerBuildingLayer((x, y) => buildingsDriver.pick(x, y)), [buildingsDriver])
   useLayoutEffect(() => registry.add('special', specialDriver), [registry, specialDriver])
   return null
 }

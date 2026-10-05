@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { interpolationFactor, shouldRenderFrame, worldRenderScale, worldRenderWindow } from './render-timing'
+import { interpolationFactor, isSettled, shouldRenderFrame, worldRenderScale } from './render-timing'
 
 describe('world render pacing', () => {
   it('caps drawing at 30fps on both 60Hz and 120Hz displays', () => {
@@ -31,42 +31,21 @@ describe('world render pacing', () => {
   })
 })
 
-describe('viewport texture bounds', () => {
-  it('keeps zoomed-in uploads smaller than the world while covering the screen', () => {
-    const area = worldRenderWindow(4800, 2400, { x: 2400, y: 1200, zoom: 2 }, { w: 1200, h: 800 })
-    expect(area.x).toBeLessThanOrEqual(2100)
-    expect(area.x + area.width).toBeGreaterThanOrEqual(2700)
-    expect(area.y).toBeLessThanOrEqual(1000)
-    expect(area.y + area.height).toBeGreaterThanOrEqual(1400)
-    expect(area.width * area.height).toBeLessThan((4800 * 2400) / 10)
-  })
-  it('reuses padded pixels during panning and small zoom changes', () => {
-    const viewport = { w: 1200, h: 800 }
-    const area = worldRenderWindow(4800, 2400, { x: 2400, y: 1200, zoom: 2 }, viewport)
-    for (let offset = 0; offset <= 60; offset += 5) {
-      expect(worldRenderWindow(4800, 2400, { x: 2400 + offset, y: 1200, zoom: 2.05 }, viewport, area)).toBe(
-        area,
-      )
-    }
-    const moved = worldRenderWindow(4800, 2400, { x: 3000, y: 1200, zoom: 2 }, viewport, area)
-    expect(moved).not.toBe(area)
-    expect(moved.width).toBe(area.width)
-    expect(moved.height).toBe(area.height)
-    expect(moved.x + moved.width).toBeGreaterThanOrEqual(3300)
-    const out = worldRenderWindow(4800, 2400, { x: 2400, y: 1200, zoom: 0.2 }, viewport, area)
-    expect(out.width).toBe(4800)
-    expect(out.height).toBe(2400)
+describe('a quiet simulation', () => {
+  const refs = (receivedAt: number, serverAt: number, prevServerAt: number) => ({
+    currentReceivedAt: { current: receivedAt },
+    currentServerAt: { current: serverAt },
+    prevServerAt: { current: prevServerAt },
   })
 
-  it('covers the whole map at overview zoom and clamps texture edges', () => {
-    expect(worldRenderWindow(4800, 2400, { x: 2400, y: 1200, zoom: 0.2 }, { w: 1200, h: 800 })).toEqual({
-      x: 0,
-      y: 0,
-      width: 4800,
-      height: 2400,
-    })
-    const edge = worldRenderWindow(4800, 2400, { x: 4800, y: 2400, zoom: 2 }, { w: 1200, h: 800 })
-    expect(edge.x + edge.width).toBe(4800)
-    expect(edge.y + edge.height).toBe(2400)
+  it('is settled once a frame is older than its interval plus a little, and not before', () => {
+    const interp = refs(1000, 2000, 1900)
+    expect(isSettled(interp, 1100)).toBe(false)
+    // The interval is never shorter than 50 ms: 50 + 160 after the last frame.
+    expect(isSettled(interp, 1000 + 210)).toBe(false)
+    expect(isSettled(interp, 1000 + 261)).toBe(true)
+    // A slow simulation keeps the map awake for its whole (longer) interval.
+    expect(isSettled(refs(1000, 3000, 2000), 1000 + 1100)).toBe(false)
+    expect(isSettled(refs(1000, 3000, 2000), 1000 + 1200)).toBe(true)
   })
 })

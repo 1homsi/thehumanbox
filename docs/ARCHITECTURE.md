@@ -38,7 +38,7 @@ private world in WebAssembly, `headless` runs it flat out for measurement.
 | `crates/sim-core/src/physics/` | fire, water and weather physics on the grid |
 | `crates/headless/` | `headless` binary: deterministic runs, `--profile`, `--sweep-seeds`, gates |
 | `apps/server/src/` | `main`, `config`, `tick_loop`, `broadcaster`, `router`/`routes`, `transport`, `world_store`/`world_archive`, `rollover`, `memory_watch` |
-| `apps/web/src/` | `game/render` (canvas renderer in layers), `game/model`, `game/scenes`, `simulation` (wasm worker, frame decode, runtime controls), `ui/` (panels, modals, toolbar), `state`, `styles/app/*.css` |
+| `apps/web/src/` | `game/render` (the world view on cubeforge layers, see below), `game/model`, `game/scenes`, `simulation` (wasm worker, frame decode, runtime controls), `ui/` (panels, modals, toolbar), `state`, `styles/app/*.css` |
 | `apps/desktop/` | Electron main process (`main/`), preload, installer config |
 | `scripts/` | perf gate, installer, helpers; `docs/` is this folder |
 
@@ -96,6 +96,59 @@ Action ids live in a space of 6144 (`ACTION_ID_SPACE`). Ids below 5930 are
 dispatched by id range in `actions/mod.rs` and gated by the band tables; ids
 5930..=6143 are *registered* actions that carry their own definition.
 
+## The world view
+
+The map in `apps/web/src/game/render/` runs on the [cubeforge](https://github.com/1homsi/cubeforge)
+engine (WebGL2). `WorldView.tsx` mounts one `<Game mode="onDemand">`: the engine sleeps until a
+layer asks for a frame, so a paused world costs nothing. Inside its `<World>` the map is a stack of
+layers, bottom to top (z is the engine's `zIndex`):
+
+| z | What | Lives in | Fed by |
+|---|---|---|---|
+| 0 | ground: one `TileLayer` tile per grid cell, tinted per tile | `terrain-tiles/` | `CfWorld` |
+| 2 to 4.5 | ground decor, shore banks and reeds, mountains, trees (and their wind) | `cf/vegetation/`, `cf/ground/` | `CfWorld` registry |
+| 5 | day/night, season and weather tint (translucent quads: darkens the land, not what stands on it) | `cf/overlays/` | overlay renderer |
+| 5.2 to 5.6 | shore foam, food and mineral patches, settlement marks | `cf/ground/` | `CfWorld` registry |
+| 6, 10 | rain and snow; the heat map (one nearest-sampled sprite, 1 px per tile) | `cf/overlays/` | overlay renderer |
+| 11 to 15 | territory borders, clouds, water glints, trade roads, rails and trains, farms | `cf/overlays/`, `cf/landuse/` | |
+| 18 to 20 | fires, huts, buildings (and a hidden layer of footprints for picking) | `cf/buildings/` | `CfWorld` registry |
+| 25 | caravans | `cf/overlays/` | |
+| 29 to 31 | animals | `cf/animals/` | 60 Hz sprite clock |
+| 39 to 41.5 | people: shadows and rings, bodies and boats, crowns and bars, thought bubbles | `cf/people/` | 60 Hz sprite clock |
+| 45 | names, thoughts, work poses and prayer glyphs above the people | `cf/people/people-labels.ts` | overlay renderer |
+| 50, 60 | battles, wards, festivals, smog, beacons; settlement names, prayers, world moments, grid | `cf/overlays/` | overlay renderer |
+
+`cf/CfWorld.tsx` owns the terrain and every "static world" driver. A driver is a small class with
+`update(frame)`; `CfRegistry` runs them at 30 Hz on the current world and each rewrites only what
+changed (the terrain revision from `TerrainWatch`, the wire frame id, the camera window). Sprites
+are baked once into atlas pages (`cf/atlas/cell-atlas.ts`) using the same canvas painters the old
+renderer used (`building-draw/`, `decorations.ts`, `plantings.ts` ...), so the art has one source.
+`cf/overlays/CfOverlays.tsx` runs `CfOverlayRenderer`: weather, heat, effects and labels are written
+through `SpriteRecorder`, a stand-in `CanvasRenderingContext2D` that turns `fillRect`, arcs, lines,
+gradients and text into sprites of a shape atlas and a glyph atlas, so painters such as
+`battles.ts` or `wards.ts` still draw with canvas calls but the GPU draws the result.
+
+People and animals are written from typed arrays by `cf/people/people-sprites.ts` and
+`cf/animals/animal-sprites.ts`: `rebuild` when a simulation frame or the UI changes (about 10 Hz),
+`animate` every display frame for interpolation, walk frame and depth sort. Everything stops when
+the simulation pauses (`render-timing.ts` `isSettled`).
+
+Input and picking: `cf/input/CfMapCameraController.tsx` wires cubeforge's `useCameraPanZoom` to
+the map (clamping, fit, focus, follow, keyboard) and keeps `cameraStateRef` for the HUD.
+`cf/input/map-click.ts` holds the click rules; a tap asks `cf/picking.ts` for the person under the
+pointer (`SpriteLayer.pick` on the body layer), then the nearest person in reach, then the building
+under it (the footprint layer: it opens the home of someone who lives there), then the ground rules. Room and home
+interiors are `cf/scenes/CfRoomView.tsx`. "Save a picture of the world" reads the canvas in the
+frame that drew it (`cf/capture.ts`).
+
+The only other path is `world-view/CanvasWorldFallback.tsx`, used when the browser has no WebGL2
+(or the context is lost): a 2D canvas painter in `draw-world.ts` and `layers/` for the ground,
+buildings, animals and people, with `CanvasCameraController`. It is not kept at parity: no
+weather, heat maps, effects or labels. `?renderer=canvas` forces it.
+
+Dev builds expose `window.__thbCf` (the engine and the driver registry) and `window.__thbDev`
+(UI store, camera focus, current world) for checking the map in a browser.
+
 ## Where does my change go?
 
 | I want to … | Start here |
@@ -110,7 +163,7 @@ dispatched by id range in `actions/mod.rs` and gated by the band tables; ids
 | add a god power | `sim/command/` (`blessings`, `disasters`, `creation`, `tribes`), then the toolbar in `apps/web/src/ui/toolbar` |
 | add a server route | `apps/server/src/routes.rs`, wired in `router.rs` |
 | add a UI panel or modal | `apps/web/src/ui/panels` or `ui/modals`; lazy-load rarely used ones |
-| draw something new on the map | a layer in `apps/web/src/game/render/layers/` and one line in `draw-world.ts` |
+| draw something new on the map | a sprite layer or driver under `apps/web/src/game/render/cf/` (see [The world view](#the-world-view)), registered in `CfWorld`; the 2D fallback in `render/layers/` only draws the ground, buildings, animals and people |
 | change what is saved | the `serialize` and `persistence` modules in `sim/storage/`; bump `SAVE_SCHEMA_VERSION` if old saves need migrating (unknown fields are ignored on load) |
 
 ## Rules that keep a world reproducible

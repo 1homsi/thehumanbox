@@ -204,7 +204,6 @@ export function CanvasWorldFallback({
           ctx,
           enriched,
           selectedOrgId,
-          overlay,
           focus,
           viewFlags,
           bounds,

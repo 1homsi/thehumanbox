@@ -24,7 +24,6 @@ import {
 } from '../../../scenes/shared/room-draw'
 import { HUMAN_ATLAS_COLS } from '../../character-visuals'
 import { getPeopleAtlas } from '../../../../shared/sprites'
-import { cfSample } from '../probe'
 import {
   HIT_RADIUS,
   OCCUPANT_SIZE,
@@ -231,7 +230,6 @@ function RoomScene({ ctx, painter, selectedOrgId, onSelectOrg }: Props) {
       for (const o of list) drawNamePlate(l, o.name, o.px, o.py, o.id === hovered || o.id === selected)
       labels.markDirty()
     }
-    cfSample('room.frame', performance.now() - t0)
   }
   const frameRef = useRef(frame)
   frameRef.current = frame
