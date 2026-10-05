@@ -19,6 +19,7 @@ export function createFrame(
   bounds: { c0: number; c1: number; r0: number; r1: number } | undefined,
   cameraZoom: number,
   renderScale: number,
+  ground = true,
 ) {
   const { width, height, tiles, fire_intensity, structure } = world.grid
   const { food_trail, water_trail, path_trail, fertility, hazard } = world.grid
@@ -60,7 +61,7 @@ export function createFrame(
   // before; at 1:1 keep hard pixel-art edges.
   ctx.imageSmoothingEnabled = renderScale < 1
 
-  const base = getBaseLayerCanvas(world)
+  const base = getBaseLayerCanvas(world, ground)
   if (!base) return null
   return {
     ctx,
