@@ -1,3 +1,6 @@
+import { cfFlag } from '../game/render/cf/flags'
+import { captureCanvas } from '../game/render/cf/capture'
+
 /** A file name for a picture of the world: "the-human-box-tick-12000.png". */
 export function pictureName(tick: number | undefined): string {
   const t = Number.isFinite(tick) ? Math.max(0, Math.floor(tick as number)) : 0
@@ -21,13 +24,17 @@ export async function saveMapPicture(
 ): Promise<boolean> {
   const canvas = findMapCanvas(root)
   if (!canvas) return false
-  const blob = await new Promise<Blob | null>((resolve) => {
-    try {
-      canvas.toBlob((b) => resolve(b), 'image/png')
-    } catch {
-      resolve(null)
-    }
-  })
+  // `?cf=picture`: read the engine's canvas in the frame that drew it (a WebGL
+  // canvas read between frames comes out black).
+  const blob = cfFlag('picture')
+    ? await captureCanvas(canvas)
+    : await new Promise<Blob | null>((resolve) => {
+        try {
+          canvas.toBlob((b) => resolve(b), 'image/png')
+        } catch {
+          resolve(null)
+        }
+      })
   if (!blob) return false
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
