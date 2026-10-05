@@ -3,7 +3,7 @@ import type { ViewFlags } from '../../../../state/store'
 import { orgVariant } from '../../../model/org-variant'
 import { drawWorkActivity, workActivity } from '../../activity-visuals'
 import { compareCharacterDepth, zoomDetailLevel } from '../../character-visuals'
-import { LabelPlacer, crowdLabelIds, labelWidth } from '../../crowd-detail'
+import { LabelPlacer, crowdLabelIdsAt, labelWidth } from '../../crowd-detail'
 import { celebrating, drawCelebrationGlyph, drawPrayingGlyph } from '../../prayer-feedback'
 import type { PlacedLabel } from '../../settlement-labels'
 import { isFocused } from './people-sprites'
@@ -39,11 +39,31 @@ export interface PeopleLabelInput {
   oy: number
 }
 
+/** What a person has to draw above their sprite this frame (a bit mask). */
+const WORK = 1
+const GLYPH_CELEBRATE = 2
+const GLYPH_PRAY = 4
+const NAME = 8
+const THOUGHT = 16
+
+/** Scratch space reused between frames: the painter runs up to 30 times a second over a crowd. */
+let onScreenScratch = new Int32Array(0)
+let flagsScratch = new Uint8Array(0)
+const candidates: number[] = []
+
+/** A person's prayer glyph seed: whether they join in, and where in the dance they start. */
+function prayerSeed(id: string): number {
+  return id.charCodeAt(0) + id.charCodeAt(id.length - 1)
+}
+
 /**
  * What a sprite cannot carry: work poses (a tool swung from the hand), prayer and celebration
  * glyphs, name tags and thoughts. Written through a recording context so the text and strokes
  * become sprites that draw above the people. Nothing is drawn for people the sprite layer does
  * not show, or when zoomed out with nobody selected.
+ *
+ * A first pass over everyone on screen only decides who has anything to draw (a handful, even in
+ * a crowd of thousands); the depth sort and the drawing then run over those people alone.
  */
 export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLabelInput): void {
   const { people, selectedId, focus, viewFlags, zoom, now } = input
@@ -51,33 +71,84 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
   if (detail === 'overview' && selectedId == null) return
   const { c0, c1, r0, r1 } = input.window
   const { ox, oy } = input
+  const orgs = people.orgs
+  const n = orgs.length
+  if (onScreenScratch.length < n) {
+    onScreenScratch = new Int32Array(Math.max(n, onScreenScratch.length * 2, 256))
+    flagsScratch = new Uint8Array(onScreenScratch.length)
+  }
+  const onScreen = onScreenScratch
+  const flags = flagsScratch
 
-  // Visible, living, drawn people in the order the placer should claim space (back to front).
-  const order: number[] = []
-  const n = people.orgs.length
+  // Visible, living, drawn people.
+  let count = 0
   for (let j = 0; j < n; j++) {
-    const org = people.orgs[j]
     if (people.hidden[j] === 1) continue
+    const org = orgs[j]
     const lx = org.x - ox
     const ly = org.y - oy
     if (lx < c0 - 8 || lx > c1 + 8 || ly < r0 - 8 || ly > r1 + 8) continue
-    order.push(j)
+    onScreen[count++] = j
   }
-  const visible = order.map((j) => people.orgs[j])
-  const labelIds = detail !== 'overview' && viewFlags.names ? crowdLabelIds(visible, zoom) : null
-  const prayerSpots = new Map((input.prayers ?? []).map((p) => [p.lineage_id, p] as const))
-  const riders = new Set(
-    (input.vehicles ?? []).filter((v) => v.kind === 'boat' && v.rider_id).map((v) => v.rider_id!),
-  )
-  const placer = new LabelPlacer()
-  for (const p of input.settlementLabels) placer.place(p.cx, p.cy + p.h / 2, p.w, p.h, true)
+  const labelIds =
+    detail !== 'overview' && viewFlags.names ? crowdLabelIdsAt(orgs, onScreen, count, zoom) : null
+  let prayerSpots: Map<string, PrayerInfo> | null = null
+  if (input.prayers && input.prayers.length > 0) {
+    prayerSpots = new Map()
+    for (const p of input.prayers) prayerSpots.set(p.lineage_id, p)
+  }
+  let riders: Set<string> | null = null
+  if (input.vehicles) {
+    for (const v of input.vehicles) {
+      if (v.kind === 'boat' && v.rider_id) (riders ??= new Set()).add(v.rider_id)
+    }
+  }
 
-  order.sort((a, b) => compareCharacterDepth(people.orgs[a], people.orgs[b]))
-  for (const j of order) {
-    const org = people.orgs[j]
+  // Who has something to draw, and what.
+  const hideUI = viewFlags.hideUI
+  candidates.length = 0
+  for (let k = 0; k < count; k++) {
+    const j = onScreen[k]
+    const org = orgs[j]
     const isSelected = org.id === selectedId
     const standard = isSelected || detail !== 'overview'
     const full = isSelected || detail === 'detail'
+    let mask = 0
+    if (
+      standard &&
+      !riders?.has(org.id) &&
+      workActivity(org.thought ?? '', now - people.step.movedAt[j] <= 120)
+    )
+      mask |= WORK
+    if (standard && !hideUI) {
+      if (celebrating(org.lineage_id, org.x, org.y, now)) mask |= GLYPH_CELEBRATE
+      else if (prayerSpots) {
+        const spot = prayerSpots.get(org.lineage_id)
+        if (spot && prayerSeed(org.id) % 2 === 0 && Math.hypot(org.x - spot.x, org.y - spot.y) <= 8)
+          mask |= GLYPH_PRAY
+      }
+    }
+    if (org.name && (isSelected || (standard && viewFlags.names && (!labelIds || labelIds.has(org.id)))))
+      mask |= NAME
+    if ((isSelected || (full && viewFlags.thoughts)) && org.thought && org.thought !== 'observing')
+      mask |= THOUGHT
+    flags[j] = mask
+    if (mask !== 0) candidates.push(j)
+  }
+  if (candidates.length === 0) {
+    ctx.globalAlpha = 1
+    return
+  }
+
+  const placer = new LabelPlacer()
+  for (const p of input.settlementLabels) placer.place(p.cx, p.cy + p.h / 2, p.w, p.h, true)
+
+  // Back to front, the order the placer should claim space in.
+  candidates.sort((a, b) => compareCharacterDepth(orgs[a], orgs[b]))
+  for (const j of candidates) {
+    const org = orgs[j]
+    const mask = flags[j]
+    const isSelected = org.id === selectedId
     const px = people.px[j]
     const py = people.py[j]
     const variant = orgVariant(org.id)
@@ -87,11 +158,10 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
     const focused = isFocused(org, focus)
     ctx.globalAlpha = focused ? 1 : 0.12
 
-    const movedAt = people.step.movedAt[j]
-    if (standard && !riders.has(org.id)) {
+    if (mask & WORK) {
       drawWorkActivity(
         ctx,
-        workActivity(org.thought ?? '', now - movedAt <= 120),
+        workActivity(org.thought ?? '', now - people.step.movedAt[j] <= 120),
         px,
         py,
         people.step.flipped[j] === 1,
@@ -101,28 +171,18 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
     }
 
     const showVitals = isSelected || org.energy < 0.22 || org.hydration < 0.22 || org.health < 0.22
-    const showName =
-      !!org.name && (isSelected || (standard && viewFlags.names && (!labelIds || labelIds.has(org.id))))
-    const showThought =
-      (isSelected || (full && viewFlags.thoughts)) && org.thought && org.thought !== 'observing'
     const labelY = spriteTop - (showVitals ? 10 : 2)
 
-    if (standard && !viewFlags.hideUI) {
-      const seed = org.id.charCodeAt(0) + org.id.charCodeAt(org.id.length - 1)
-      const spot = prayerSpots.get(org.lineage_id)
-      if (celebrating(org.lineage_id, org.x, org.y, now)) {
-        drawCelebrationGlyph(ctx, px, spriteTop, now, seed)
-      } else if (spot && seed % 2 === 0 && Math.hypot(org.x - spot.x, org.y - spot.y) <= 8) {
-        drawPrayingGlyph(ctx, px, spriteTop, now, seed)
-      }
-    }
+    if (mask & GLYPH_CELEBRATE) drawCelebrationGlyph(ctx, px, spriteTop, now, prayerSeed(org.id))
+    else if (mask & GLYPH_PRAY) drawPrayingGlyph(ctx, px, spriteTop, now, prayerSeed(org.id))
 
     // Names and thoughts that would sit on top of another label are left out; the selected
     // person's always shows.
     const nameShown =
-      showName && placer.place(px, labelY, labelWidth(org.name, isSelected ? 10 : 9), 10, isSelected)
+      (mask & NAME) !== 0 &&
+      placer.place(px, labelY, labelWidth(org.name, isSelected ? 10 : 9), 10, isSelected)
     const thoughtShown =
-      showThought &&
+      (mask & THOUGHT) !== 0 &&
       placer.place(px, labelY - (nameShown ? 10 : 0), labelWidth(org.thought ?? '', 8), 9, isSelected)
 
     if (nameShown) {
