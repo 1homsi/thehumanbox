@@ -1,7 +1,7 @@
 import { SPRITE_UNTEXTURED, type SpriteLayer } from 'cubeforge'
 import { TILE_ID } from '../../../model/terrain-ids'
 import { TILE } from '../../../model/palette'
-import { cachedHutClusters, hutTileList, ruinedBuildingTiles } from '../../base-layer'
+import { cachedHutClusters, hutTileList, ruinedBuildingTiles } from '../../base-parts/terrain-scans'
 import { PAD, PAD_TOP } from '../../building-painters/kit'
 import { getBuildingSprite } from '../../building-sprites'
 import { drawPixelFire, visualTileHash } from '../../draw-helpers'

@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { drawPeopleTile, pickHumanSprite } from '../../../shared/sprites'
 import type { SceneContext } from '../core/types'
 import { deterministicAppearanceIndex, resolveAgeStage } from '../../render/character-visuals'
@@ -13,14 +13,9 @@ import {
   drawSconce,
   SCONCE_COLS,
 } from '../shared/room-draw'
-import { cfFlag } from '../../render/cf/flags'
-import { lazyWithRetry } from '../../../shared/lazyWithRetry'
 import type { RoomPainter } from '../../render/cf/scenes/room-model'
-
-// Only fetched when ?cf=scenes asks for it.
-const CfRoomView = lazyWithRetry(() =>
-  import('../../render/cf/scenes/CfRoomView').then((m) => ({ default: m.CfRoomView })),
-)
+import { CfRoomView } from '../../render/cf/scenes/CfRoomView'
+import { canUseWorldGPU } from '../../render/world-view/gpu'
 
 const ERA_PALETTE: Record<
   string,
@@ -524,20 +519,18 @@ function homePainter(sceneCtx: SceneContext): RoomPainter {
   }
 }
 
-/** A home interior. On cubeforge with `?cf=scenes`, otherwise on a 2D canvas. */
+/** A home interior on cubeforge; browsers without WebGL2 get the 2D canvas. */
 export function HomeCanvas(props: Props) {
-  const onCubeforge = useMemo(() => cfFlag('scenes'), [])
+  const onCubeforge = canUseWorldGPU()
   const painter = useMemo(() => (onCubeforge ? homePainter(props.ctx) : null), [onCubeforge, props.ctx])
   if (painter)
     return (
-      <Suspense fallback={null}>
-        <CfRoomView
-          ctx={props.ctx}
-          painter={painter}
-          selectedOrgId={props.selectedOrgId}
-          onSelectOrg={props.onSelectOrg}
-        />
-      </Suspense>
+      <CfRoomView
+        ctx={props.ctx}
+        painter={painter}
+        selectedOrgId={props.selectedOrgId}
+        onSelectOrg={props.onSelectOrg}
+      />
     )
   return <HomeCanvas2D {...props} />
 }

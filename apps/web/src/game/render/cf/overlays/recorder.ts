@@ -626,6 +626,30 @@ export class SpriteRecorder {
     }
   }
 
+  /**
+   * An outline: the text again, in the stroke colour, shifted around the glyphs by half the line
+   * width. A name tag's black halo is the one use; the fill goes on top afterwards.
+   */
+  strokeText(text: string, x: number, y: number): void {
+    if (typeof this.strokeStyle !== 'string' || text.length === 0) return
+    const r = this.lineWidth / 2
+    const d = r * Math.SQRT1_2
+    const fill = this.fillStyle
+    this.fillStyle = this.strokeStyle
+    for (const [dx, dy] of [
+      [r, 0],
+      [-r, 0],
+      [0, r],
+      [0, -r],
+      [d, d],
+      [-d, d],
+      [d, -d],
+      [-d, -d],
+    ])
+      this.fillText(text, x + dx, y + dy)
+    this.fillStyle = fill
+  }
+
   // ── everything else ────────────────────────────────────────────────────────
 
   unsupported(name: string): void {

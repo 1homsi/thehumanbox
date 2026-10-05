@@ -5,10 +5,11 @@ import type { WorldState } from '../../../../shared/types'
 import { useUIStore } from '../../../../state/store'
 import { TILE } from '../../../model/palette'
 import { WorldView } from '../../WorldView'
+import { setWorldGPUForTests } from '../../world-view/gpu'
 import { engineHarness, pointer, wheel, type EngineHarness } from '../engine-harness.test-util'
 
 /**
- * The whole map, flag on and off: a tap or click on a person selects them,
+ * The whole map on cubeforge, and the 2D fallback: a tap or click on a person selects them,
  * a drag pans and selects nobody. Runs the real WorldView with the real engine
  * (no GPU), so it covers the hook-up in WorldView as well as the controller.
  */
@@ -76,54 +77,44 @@ let harness: EngineHarness | null = null
 afterEach(async () => {
   await harness?.unmount()
   harness = null
-  window.history.replaceState(null, '', '/')
   useUIStore.setState({ selectedOrgId: null })
+  setWorldGPUForTests(null)
 })
 
-async function open(search: string, props: Partial<ComponentProps<typeof WorldView>> = {}) {
-  window.history.replaceState(null, '', '/' + search)
+async function open(props: Partial<ComponentProps<typeof WorldView>> = {}) {
   harness = engineHarness()
   vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(800)
   vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(500)
   vi.stubGlobal(
-    'Path2D',
-    class {
-      constructor() {
-        // Any path method is a no-op.
-        return new Proxy(this, { get: (target, key) => (target as never)[key] ?? (() => {}) })
-      }
-    },
-  )
-  vi.stubGlobal(
     'ImageData',
     class {
       data: Uint8ClampedArray
-      constructor(width: number, height: number) {
-        this.data = new Uint8ClampedArray(width * height * 4)
+      constructor(data: Uint8ClampedArray) {
+        this.data = data
       }
     },
   )
   await harness.renderRaw(<WorldView world={world()} {...props} />)
   await harness.frame(8)
-  // The cf controller is a lazy chunk: the first test waits for it to arrive.
-  if (search.includes('camera')) {
-    for (
-      let i = 0;
-      i < 100 && !(window as unknown as { __cfProbe?: { camera?: unknown } }).__cfProbe?.camera;
-      i++
-    ) {
-      await new Promise((resolve) => setTimeout(resolve, 20))
-      await harness.frame(1)
-    }
-  }
   return harness
 }
 
-/** The camera the cf controller publishes under `?cf=...,probe`. */
+/** The camera the map is showing: the engine's own Camera2D, which the controller keeps clamped. */
 function probeCamera() {
-  return (
-    window as unknown as { __cfProbe: { camera: () => { x: number; y: number; zoom: number } } }
-  ).__cfProbe.camera()
+  const { engine } = (
+    window as unknown as {
+      __thbCf: {
+        engine: {
+          ecs: {
+            query(type: string): number[]
+            getComponent(id: number, type: string): { x: number; y: number; zoom: number }
+          }
+        }
+      }
+    }
+  ).__thbCf
+  const camera = engine.ecs.getComponent(engine.ecs.query('Camera2D')[0], 'Camera2D')
+  return { x: camera.x, y: camera.y, zoom: camera.zoom }
 }
 
 /** Where the first person is on screen, from the camera the map is showing. */
@@ -134,9 +125,9 @@ function personOnScreen(camera: { x: number; y: number; zoom: number }) {
   }
 }
 
-describe('the map with the cubeforge camera', () => {
+describe('the map on cubeforge', () => {
   it('opens on the whole world, on both cameras', async () => {
-    const h = await open('?cf=camera,probe')
+    const h = await open()
     expect(document.querySelector('.map2d-world canvas')).not.toBeNull()
     const camera = probeCamera()
     expect(camera.x).toBe((WIDTH * TILE) / 2)
@@ -146,7 +137,7 @@ describe('the map with the cubeforge camera', () => {
   })
 
   it('a tap on a person selects them', async () => {
-    const h = await open('?cf=camera,probe')
+    const h = await open()
     const camera = probeCamera()
     const at = personOnScreen(camera)
     const canvas = h.canvas()
@@ -157,7 +148,7 @@ describe('the map with the cubeforge camera', () => {
   })
 
   it('a tap on empty ground clears the selection', async () => {
-    const h = await open('?cf=camera,probe')
+    const h = await open()
     useUIStore.setState({ selectedOrgId: 'p1' })
     const canvas = h.canvas()
     canvas.dispatchEvent(pointer('pointerdown', 120, 120))
@@ -167,7 +158,7 @@ describe('the map with the cubeforge camera', () => {
   })
 
   it('a drag over a person pans and does not select them', async () => {
-    const h = await open('?cf=camera,probe')
+    const h = await open()
     const camera = probeCamera()
     const at = personOnScreen(camera)
     const canvas = h.canvas()
@@ -185,10 +176,10 @@ describe('the map with the cubeforge camera', () => {
   })
 })
 
-describe('placing a tool with the cubeforge camera', () => {
+describe('placing a tool on the cubeforge map', () => {
   it('a tap applies the armed tool where it landed; a drag pans and applies nothing', async () => {
     const onSandboxApply = vi.fn()
-    const h = await open('?cf=camera,probe', { sandboxArmed: true, onSandboxApply, sandboxToolId: null })
+    const h = await open({ sandboxArmed: true, onSandboxApply, sandboxToolId: null })
     const camera = probeCamera()
     const canvas = h.canvas()
     // A point of open ground: tile (3, 2) of the 16 x 10 map.
@@ -216,9 +207,10 @@ describe('placing a tool with the cubeforge camera', () => {
   })
 })
 
-describe('the map with its own camera (flag off)', () => {
+describe('the 2D fallback map (no WebGL2)', () => {
   it('a click on a person selects them', async () => {
-    const h = await open('')
+    setWorldGPUForTests(false)
+    const h = await open()
     // The own camera does not publish itself; the opening view is the fit of the world.
     const zoom = Math.min(800 / (WIDTH * TILE), 500 / (HEIGHT * TILE)) * 0.95
     const at = personOnScreen({ x: (WIDTH * TILE) / 2, y: (HEIGHT * TILE) / 2, zoom })

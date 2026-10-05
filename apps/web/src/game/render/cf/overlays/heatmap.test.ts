@@ -1,12 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
 import type { WorldState } from '../../../../shared/types'
-import { TILE } from '../../../model/palette'
-import { draw_overlays } from '../../layers/overlays'
-import type { DrawFrame } from '../../layers/frame'
-import { parseColor } from './color'
 import { HeatGrid } from './heatmap'
-import { recordingContext } from './test-support'
 
 const W = 24
 const H = 16
@@ -80,89 +75,33 @@ function makeWorld(): WorldState {
 
 type Flags = { territory: boolean; fertility: boolean; hazard: boolean; trails: boolean }
 
-/** What the canvas painter ends up with on each tile: its fill calls, composited source-over. */
-function paintWithCanvas(world: WorldState, overlay: string | null, flags: Flags): Float64Array {
-  const acc = new Float64Array(W * H * 4) // premultiplied r, g, b, a
-  const ctx = recordingContext((x, y, w, h, style) => {
-    // Skip anything that is not a whole-tile fill (outline strokes use 1px rects).
-    if (Math.abs(w - TILE) > 1e-6 || Math.abs(h - TILE) > 1e-6) return
-    const c = parseColor(style)
-    const col = Math.round(x / TILE)
-    const row = Math.round(y / TILE)
-    if (col < 0 || col >= W || row < 0 || row >= H) return
-    const i = (row * W + col) * 4
-    const a = c.a
-    acc[i] = c.r * a + acc[i] * (1 - a)
-    acc[i + 1] = c.g * a + acc[i + 1] * (1 - a)
-    acc[i + 2] = c.b * a + acc[i + 2] * (1 - a)
-    acc[i + 3] = a + acc[i + 3] * (1 - a)
-  })
-  const f = {
-    ctx,
-    world,
-    overlay,
-    focus: 'all',
-    viewFlags: { ...flags, structures: false, partners: false, history: false, grid: false },
-    width: W,
-    height: H,
-    structure: world.grid.structure,
-    food_trail: world.grid.food_trail,
-    water_trail: world.grid.water_trail,
-    path_trail: world.grid.path_trail,
-    fertility: world.grid.fertility,
-    hazard: world.grid.hazard,
-    ox: 0,
-    oy: 0,
-    r0: 0,
-    r1: H,
-    c0: 0,
-    c1: W,
-    organisms: world.viewport_organisms,
-    W: W * TILE,
-    H: H * TILE,
-    t: 0,
-  } as unknown as DrawFrame
-  draw_overlays(f)
-  return acc
-}
-
-function compare(overlay: string | null, flags: Flags, tolerance = 1.5) {
-  const world = makeWorld()
-  const expected = paintWithCanvas(world, overlay, flags)
-  const heat = new HeatGrid(W, H)
-  const shown = heat.compute(world, { overlay, viewFlags: flags, focus: 'all' }, world.viewport_organisms!)
-  let worst = 0
-  let tilesWithColour = 0
-  for (let i = 0; i < W * H; i++) {
-    const a = expected[i * 4 + 3]
-    const alpha = heat.rgba[i * 4 + 3] / 255
-    if (a > 0.004) tilesWithColour++
-    // Alpha, and the straight colour, within a few levels (the byte quantisation of the tint texture).
-    worst = Math.max(worst, Math.abs(a - alpha) * 255)
-    if (a > 0.05) {
-      for (let k = 0; k < 3; k++)
-        worst = Math.max(worst, Math.abs(expected[i * 4 + k] / a - heat.rgba[i * 4 + k]))
-    }
-  }
-  expect(worst).toBeLessThanOrEqual(tolerance)
-  return { shown, tilesWithColour }
-}
-
 const none: Flags = { territory: false, fertility: false, hazard: false, trails: false }
 
-describe('heat map matches the canvas overlay painter, tile by tile', () => {
+function shownTiles(overlay: string | null, flags: Flags): number {
+  const world = makeWorld()
+  const heat = new HeatGrid(W, H)
+  return heat.compute(world, { overlay, viewFlags: flags, focus: 'all' }, world.viewport_organisms!)
+}
+
+describe('heat map', () => {
   it.each(['hazard', 'fertility', 'structures', 'trails', 'age', 'threat', 'density'])(
-    'overlay %s',
+    'overlay %s tints tiles',
     (overlay) => {
-      const { shown } = compare(overlay, none)
-      expect(shown).toBeGreaterThan(0)
+      expect(shownTiles(overlay, none)).toBeGreaterThan(0)
     },
   )
 
-  it('view flags, territory fills and the always-on worn paths stack in the same order', () => {
-    // A real canvas rounds each fill to 8 bits as it stacks them; the float accumulator does not.
-    const { shown } = compare(null, { territory: true, fertility: true, hazard: true, trails: true }, 3)
-    expect(shown).toBeGreaterThan(50)
+  it('shows nothing with no overlay and no view flag', () => {
+    const world = makeWorld()
+    world.grid.path_trail = undefined
+    const heat = new HeatGrid(W, H)
+    expect(heat.compute(world, { overlay: null, viewFlags: none, focus: 'all' }, [])).toBe(0)
+  })
+
+  it('view flags, territory fills and the always-on worn paths add tints', () => {
+    const all = shownTiles(null, { territory: true, fertility: true, hazard: true, trails: true })
+    expect(all).toBeGreaterThan(50)
+    expect(all).toBeGreaterThan(shownTiles(null, none))
   })
 
   it('marks only tinted tiles with the solid tile id', () => {

@@ -5,7 +5,7 @@ import { orgVariant } from '../../../model/org-variant'
 import { deterministicAppearanceIndex, humanAtlasRow, HUMAN_ATLAS_FRAMES } from '../../character-visuals'
 import { BODY_ATLAS, PeopleSprites, isFocused, type PeopleFrameInput } from './people-sprites'
 import { emoteFor } from '../../activity-emotes'
-import { pickPersonAt, registerPeopleLayer, spriteLayerActive } from './bridge'
+import { peopleLabelSource, pickPersonAt, registerPeopleLayer } from './bridge'
 
 const flags = { health: false, age: false, fear: false, lineageDot: false, pregnancy: false }
 
@@ -297,15 +297,24 @@ describe('emotes', () => {
 })
 
 describe('sprite layer bridge', () => {
-  it('tells the canvas painter when the people layer is mounted and routes picks', () => {
-    expect(spriteLayerActive('people')).toBe(false)
+  it('routes picks to the people layer while it is mounted and hands out who is drawn where', () => {
+    const source = { orgs: [], px: [], py: [], hidden: [], phase: [], step: { flipped: [], movedAt: [] } }
     expect(pickPersonAt(1, 1)).toBeUndefined()
-    const off = registerPeopleLayer((x) => (x > 0 ? 'p' : null))
-    expect(spriteLayerActive('people')).toBe(true)
+    expect(peopleLabelSource()).toBeNull()
+    const off = registerPeopleLayer((x) => (x > 0 ? 'p' : null), source)
     expect(pickPersonAt(1, 1)).toBe('p')
     expect(pickPersonAt(-1, 1)).toBeNull()
+    expect(peopleLabelSource()).toBe(source)
     off()
-    expect(spriteLayerActive('people')).toBe(false)
     expect(pickPersonAt(1, 1)).toBeUndefined()
+    expect(peopleLabelSource()).toBeNull()
+  })
+
+  it('lists the living people in slot order with where each is drawn', () => {
+    const { sprites } = setup()
+    sprites.rebuild(input([org('a', 4, 4), org('b', 6, 6, { alive: false }), org('c', 8, 8)]))
+    sprites.animate(0, 1)
+    expect(sprites.orgs.map((o) => o.id)).toEqual(['a', 'c'])
+    expect(sprites.px[1]).toBeCloseTo(8 * 8 + 4)
   })
 })

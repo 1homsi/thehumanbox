@@ -552,6 +552,170 @@ export function paintDecorTile(
   }
 }
 
+/**
+ * The shoreline work of one tile, painted with its top-left at (px, py): beach banks on land
+ * next to permanent water, a bright rim on shallow water next to land, mud marks on floodwater.
+ * Permanent water creates beaches and shallow rims; temporary floodwater stays a separate muddy
+ * overlay. Which edges and colours are drawn depends only on `shoreTileKey`.
+ */
+export function paintShoreTile(
+  ctx: CanvasRenderingContext2D,
+  tiles: number[][],
+  biomes: number[][] | undefined,
+  x: number,
+  y: number,
+  originX: number,
+  originY: number,
+  px: number,
+  py: number,
+) {
+  const t = tiles[y]?.[x]
+  if (t === undefined) return
+  if (!isWaterTile(t)) {
+    const beach = permanentWaterNeighborMask(tiles, y, x)
+    if (beach === 0) return
+    const [bank, rim] = shorelineColors(t, biomes?.[y]?.[x] ?? 0)
+    ctx.fillStyle = bank
+    if (beach & EDGE_NORTH) ctx.fillRect(px, py, TILE, 2)
+    if (beach & EDGE_SOUTH) ctx.fillRect(px, py + TILE - 2, TILE, 2)
+    if (beach & EDGE_WEST) ctx.fillRect(px, py, 2, TILE)
+    if (beach & EDGE_EAST) ctx.fillRect(px + TILE - 2, py, 2, TILE)
+    ctx.fillStyle = 'rgba(53,66,48,0.48)'
+    if (beach & EDGE_SOUTH) ctx.fillRect(px, py + TILE - 2, TILE, 2)
+    if (beach & EDGE_EAST) ctx.fillRect(px + TILE - 2, py, 2, TILE)
+    ctx.fillStyle = rim
+    if (beach & EDGE_NORTH) ctx.fillRect(px + 1, py, TILE - 2, 1)
+    if (beach & EDGE_SOUTH) ctx.fillRect(px + 1, py + TILE - 1, TILE - 2, 1)
+    if (beach & EDGE_WEST) ctx.fillRect(px, py + 1, 1, TILE - 2)
+    if (beach & EDGE_EAST) ctx.fillRect(px + TILE - 1, py + 1, 1, TILE - 2)
+  } else if (t === TILE_ID.WATER) {
+    const shore = permanentWaterLandEdgeMask(tiles, y, x)
+    if (shore === 0) return
+    ctx.fillStyle = 'rgba(145,220,222,0.42)'
+    if (shore & EDGE_NORTH) ctx.fillRect(px, py, TILE, 1)
+    if (shore & EDGE_SOUTH) ctx.fillRect(px, py + TILE - 1, TILE, 1)
+    if (shore & EDGE_WEST) ctx.fillRect(px, py, 1, TILE)
+    if (shore & EDGE_EAST) ctx.fillRect(px + TILE - 1, py, 1, TILE)
+  } else {
+    const hash = landscapeHash(x + originX, y + originY)
+    ctx.fillStyle = 'rgba(175,214,206,0.24)'
+    ctx.fillRect(px + 1 + ((hash >>> 8) & 1), py + 2, 4, 1)
+    ctx.fillStyle = 'rgba(74,101,91,0.3)'
+    ctx.fillRect(px + 3, py + 5, 3, 1)
+  }
+}
+
+/**
+ * Everything `paintShoreTile` draws for this tile, as a string, or null when it draws nothing.
+ * Two tiles with the same key paint the same pixels, so a sprite atlas can share one cell.
+ */
+export function shoreTileKey(
+  tiles: number[][],
+  biomes: number[][] | undefined,
+  x: number,
+  y: number,
+  originX: number,
+  originY: number,
+): string | null {
+  const t = tiles[y]?.[x]
+  if (t === undefined) return null
+  if (!isWaterTile(t)) {
+    const beach = permanentWaterNeighborMask(tiles, y, x)
+    if (beach === 0) return null
+    const [bank, rim] = shorelineColors(t, biomes?.[y]?.[x] ?? 0)
+    return `B|${bank}|${rim}|${beach}`
+  }
+  if (t === TILE_ID.WATER) {
+    const shore = permanentWaterLandEdgeMask(tiles, y, x)
+    return shore === 0 ? null : `S|${shore}`
+  }
+  return `M|${(landscapeHash(x + originX, y + originY) >>> 8) & 1}`
+}
+
+/** A reed tuft on a water tile that touches grass: which side, how it leans, how far along the side. */
+export interface ReedSpec {
+  edge: number
+  lean: number
+  /** Whole pixels along the bank from the tile's corner. */
+  offset: number
+}
+
+/** The reed on this water tile, or null (most water tiles have none). */
+export function reedAt(
+  tiles: number[][],
+  x: number,
+  y: number,
+  originX: number,
+  originY: number,
+): ReedSpec | null {
+  const row = tiles[y]
+  if (!row || row[x] !== TILE_ID.WATER) return null
+  const above = tiles[y - 1]?.[x]
+  const below = tiles[y + 1]?.[x]
+  const left = row[x - 1]
+  const right = row[x + 1]
+  // Which sides touch grass, in north, south, west, east order.
+  let grassMask = 0
+  let grassCount = 0
+  if (isGrassLand(above)) {
+    grassMask |= EDGE_NORTH
+    grassCount++
+  }
+  if (isGrassLand(below)) {
+    grassMask |= EDGE_SOUTH
+    grassCount++
+  }
+  if (isGrassLand(left)) {
+    grassMask |= EDGE_WEST
+    grassCount++
+  }
+  if (isGrassLand(right)) {
+    grassMask |= EDGE_EAST
+    grassCount++
+  }
+  if (grassCount === 0) return null
+  const hash = landscapeHash(x + originX, y + originY)
+  if ((hash & 0xff) > 110) return null
+  const r1 = ((hash >>> 8) & 0xff) / 255
+  const r2 = ((hash >>> 16) & 0xff) / 255
+  // The (hash % count)-th set side, counting in the same order as above.
+  let pick = hash % grassCount
+  let edge: number = EDGE_NORTH
+  for (const side of GRASS_EDGE_ORDER) {
+    if ((grassMask & side) === 0) continue
+    if (pick === 0) {
+      edge = side
+      break
+    }
+    pick--
+  }
+  const span = edge === EDGE_NORTH || edge === EDGE_SOUTH ? Math.max(1, TILE - 4) : Math.max(1, TILE - 6)
+  return { edge, lean: Math.round((r1 - 0.5) * 2), offset: Math.round(r2 * span) }
+}
+
+/** Two thin blades of reed, painted for the tile whose top-left is (tilePx, tilePy). */
+export function paintReed(ctx: CanvasRenderingContext2D, reed: ReedSpec, tilePx: number, tilePy: number) {
+  const { edge, lean } = reed
+  let px = tilePx + 2 + reed.offset
+  let py = tilePy + TILE - 1
+  if (edge === EDGE_NORTH) py = tilePy + 2
+  else if (edge === EDGE_WEST) {
+    px = tilePx + 1
+    py = tilePy + 3 + reed.offset
+  } else if (edge === EDGE_EAST) {
+    px = tilePx + TILE - 1
+    py = tilePy + 3 + reed.offset
+  }
+  ctx.strokeStyle = '#3e6b3a'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(px, py)
+  ctx.lineTo(px + lean, py - 4)
+  ctx.moveTo(px + 1, py)
+  ctx.lineTo(px + 1 + lean, py - 3)
+  ctx.stroke()
+}
+
 export function drawNaturalDecor(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -578,118 +742,18 @@ export function drawNaturalDecor(
     }
   }
 
-  // Crisp land/water transitions. Permanent water creates beaches and
-  // shallow rims; temporary floodwater remains a separate muddy overlay.
+  // Crisp land/water transitions, then reeds where water meets grass.
   for (let y = 0; y < height; y++) {
-    const tRow = tiles[y]
-    if (!tRow) continue
+    if (!tiles[y]) continue
     for (let x = 0; x < width; x++) {
-      const t = tRow[x]
-      const px = x * TILE
-      const py = y * TILE
-      if (!isWaterTile(t)) {
-        const beach = permanentWaterNeighborMask(tiles, y, x)
-        if (beach !== 0) {
-          const [bank, rim] = shorelineColors(t, biomes?.[y]?.[x] ?? 0)
-          ctx.fillStyle = bank
-          if (beach & EDGE_NORTH) ctx.fillRect(px, py, TILE, 2)
-          if (beach & EDGE_SOUTH) ctx.fillRect(px, py + TILE - 2, TILE, 2)
-          if (beach & EDGE_WEST) ctx.fillRect(px, py, 2, TILE)
-          if (beach & EDGE_EAST) ctx.fillRect(px + TILE - 2, py, 2, TILE)
-          ctx.fillStyle = 'rgba(53,66,48,0.48)'
-          if (beach & EDGE_SOUTH) ctx.fillRect(px, py + TILE - 2, TILE, 2)
-          if (beach & EDGE_EAST) ctx.fillRect(px + TILE - 2, py, 2, TILE)
-          ctx.fillStyle = rim
-          if (beach & EDGE_NORTH) ctx.fillRect(px + 1, py, TILE - 2, 1)
-          if (beach & EDGE_SOUTH) ctx.fillRect(px + 1, py + TILE - 1, TILE - 2, 1)
-          if (beach & EDGE_WEST) ctx.fillRect(px, py + 1, 1, TILE - 2)
-          if (beach & EDGE_EAST) ctx.fillRect(px + TILE - 1, py + 1, 1, TILE - 2)
-        }
-      } else if (t === TILE_ID.WATER) {
-        const shore = permanentWaterLandEdgeMask(tiles, y, x)
-        if (shore !== 0) {
-          ctx.fillStyle = 'rgba(145,220,222,0.42)'
-          if (shore & EDGE_NORTH) ctx.fillRect(px, py, TILE, 1)
-          if (shore & EDGE_SOUTH) ctx.fillRect(px, py + TILE - 1, TILE, 1)
-          if (shore & EDGE_WEST) ctx.fillRect(px, py, 1, TILE)
-          if (shore & EDGE_EAST) ctx.fillRect(px + TILE - 1, py, 1, TILE)
-        }
-      } else {
-        const worldX = x + originX
-        const worldY = y + originY
-        const hash = landscapeHash(worldX, worldY)
-        ctx.fillStyle = 'rgba(175,214,206,0.24)'
-        ctx.fillRect(px + 1 + ((hash >>> 8) & 1), py + 2, 4, 1)
-        ctx.fillStyle = 'rgba(74,101,91,0.3)'
-        ctx.fillRect(px + 3, py + 5, 3, 1)
-      }
+      paintShoreTile(ctx, tiles, biomes, x, y, originX, originY, x * TILE, y * TILE)
     }
   }
-
   for (let y = 1; y < height - 1; y++) {
-    const tRow = tiles[y]
-    if (!tRow) continue
+    if (!tiles[y]) continue
     for (let x = 1; x < width - 1; x++) {
-      if (tRow[x] !== TILE_ID.WATER) continue
-      const above = tiles[y - 1]?.[x]
-      const below = tiles[y + 1]?.[x]
-      const left = tRow[x - 1]
-      const right = tRow[x + 1]
-      // Which sides touch grass, in north, south, west, east order.
-      let grassMask = 0
-      let grassCount = 0
-      if (isGrassLand(above)) {
-        grassMask |= EDGE_NORTH
-        grassCount++
-      }
-      if (isGrassLand(below)) {
-        grassMask |= EDGE_SOUTH
-        grassCount++
-      }
-      if (isGrassLand(left)) {
-        grassMask |= EDGE_WEST
-        grassCount++
-      }
-      if (isGrassLand(right)) {
-        grassMask |= EDGE_EAST
-        grassCount++
-      }
-      if (grassCount === 0) continue
-      const worldX = x + originX
-      const worldY = y + originY
-      const hash = landscapeHash(worldX, worldY)
-      if ((hash & 0xff) > 110) continue
-      const r1 = ((hash >>> 8) & 0xff) / 255
-      const r2 = ((hash >>> 16) & 0xff) / 255
-      ctx.strokeStyle = '#3e6b3a'
-      ctx.lineWidth = 1
-      // The (hash % count)-th set side, counting in the same order as above.
-      let pick = hash % grassCount
-      let edge = EDGE_NORTH
-      for (const side of GRASS_EDGE_ORDER) {
-        if ((grassMask & side) === 0) continue
-        if (pick === 0) {
-          edge = side
-          break
-        }
-        pick--
-      }
-      let px = x * TILE + 2 + Math.round(r2 * Math.max(1, TILE - 4))
-      let py = y * TILE + TILE - 1
-      if (edge === EDGE_NORTH) py = y * TILE + 2
-      else if (edge === EDGE_WEST) {
-        px = x * TILE + 1
-        py = y * TILE + 3 + Math.round(r2 * Math.max(1, TILE - 6))
-      } else if (edge === EDGE_EAST) {
-        px = x * TILE + TILE - 1
-        py = y * TILE + 3 + Math.round(r2 * Math.max(1, TILE - 6))
-      }
-      ctx.beginPath()
-      ctx.moveTo(px, py)
-      ctx.lineTo(px + Math.round((r1 - 0.5) * 2), py - 4)
-      ctx.moveTo(px + 1, py)
-      ctx.lineTo(px + 1 + Math.round((r1 - 0.5) * 2), py - 3)
-      ctx.stroke()
+      const reed = reedAt(tiles, x, y, originX, originY)
+      if (reed) paintReed(ctx, reed, x * TILE, y * TILE)
     }
   }
   ctx.restore()

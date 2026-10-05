@@ -7,25 +7,24 @@ import { LOW_PERF } from '../../../../shared/perf'
 import { interpolationFactor, shouldRenderFrame } from '../../render-timing'
 import { prayerEffectsActive } from '../../prayer-feedback'
 import { worldMomentsActive } from '../../world-moments'
+import { peopleLabelSource } from '../people/bridge'
 import { makeFrame } from './frame'
 import { engineRenderHost } from './host'
-import type { CfFeatures } from './features'
 import { CfOverlayRenderer } from './renderer'
-import { setCfActive } from '../active'
 
 interface Props {
   world: WorldState
   interp?: InterpRefs
+  selectedOrgId: string | null
   overlay: string | null
   focus: string
   viewFlags: ViewFlags
-  features: CfFeatures
   rendererPaused: boolean
   cameraStateRef: React.MutableRefObject<{ x: number; y: number; zoom: number }>
   viewportDims: { w: number; h: number }
-  /** Called with each frame's timings (the benchmark and the optional stats readout). */
+  /** Called with each frame's timings (tests and the optional stats readout). */
   onUpdate?: (result: CfOverlayRenderer['lastResult']) => void
-  /** Hands the renderer to the benchmark, which drives `update()` itself. */
+  /** Hands the renderer to a test, which drives `update()` itself. */
   onRenderer?: (renderer: CfOverlayRenderer | null) => void
 }
 
@@ -37,17 +36,17 @@ const lerpCycle = (a: number, b: number, k: number) => {
 }
 
 /**
- * The non-sprite world visuals (weather and day/night light, heat maps, territory, battles,
- * wards, labels, prayers ...) as cubeforge layers, mounted inside the same `<World>` as the map
- * sprite. Everything is behind `features`, so with all of them off this renders nothing.
+ * Everything on the map that is not a tile, a plant or a person: weather and day/night light, heat
+ * maps and territory, roads and rails, battles, wards, labels, prayers, and the name tags above
+ * the people. Mounted inside the same `<World>` as the other layers.
  */
 export function CfOverlays({
   world,
   interp,
+  selectedOrgId,
   overlay,
   focus,
   viewFlags,
-  features,
   rendererPaused,
   cameraStateRef,
   viewportDims,
@@ -73,24 +72,19 @@ export function CfOverlays({
   }, [engine, gw, gh])
 
   const worldRef = useRef(world)
+  const selectedRef = useRef(selectedOrgId)
   const overlayRef = useRef(overlay)
   const focusRef = useRef(focus)
   const viewFlagsRef = useRef(viewFlags)
   const onUpdateRef = useRef(onUpdate)
+  const cachedDepth = useRef<number[][] | undefined>(undefined)
+  const cachedBiomes = useRef<number[][] | undefined>(undefined)
   worldRef.current = world
+  selectedRef.current = selectedOrgId
   overlayRef.current = overlay
   focusRef.current = focus
   viewFlagsRef.current = viewFlags
   onUpdateRef.current = onUpdate
-
-  useEffect(() => {
-    if (!renderer) return
-    renderer.features = features
-    // Tell the canvas painters which of their layers this renderer has taken over.
-    const names = (Object.keys(features) as (keyof CfFeatures)[]).filter((k) => features[k] === true)
-    setCfActive(names)
-    return () => setCfActive([])
-  }, [renderer, features])
 
   useEffect(() => {
     if (!renderer || rendererPaused) return
@@ -104,6 +98,8 @@ export function CfOverlays({
       if (document.hidden || !shouldRenderFrame(now, lastFrameAt, LOW_PERF ? 24 : 30)) return
       const cur = interp?.current.current ?? worldRef.current
       if (!cur) return
+      if (cur.grid.depth_map) cachedDepth.current = cur.grid.depth_map as number[][]
+      if (cur.grid.biomes) cachedBiomes.current = cur.grid.biomes as number[][]
       const cam = cameraStateRef.current
       const prev = interp?.prev.current
       const curServerAt = interp?.currentServerAt.current ?? 0
@@ -111,19 +107,26 @@ export function CfOverlays({
       const receivedAt = interp?.currentReceivedAt.current ?? 0
       const interval = Math.max(50, curServerAt - prevServerAt)
       const k = interp && cur && prev ? interpolationFactor(now, receivedAt, interval) : 1
-      // Same rule as the canvas painter: a settled map (no new frame, still camera) stops repainting.
-      const key = `${curServerAt}|${cam.x}|${cam.y}|${cam.zoom}|${overlayRef.current ?? ''}|${focusRef.current}|${JSON.stringify(viewFlagsRef.current)}|${viewportDims.w}x${viewportDims.h}`
+      // A settled map (no new frame, still camera, nobody selected moving) stops repainting.
+      const key = `${curServerAt}|${cam.x}|${cam.y}|${cam.zoom}|${overlayRef.current ?? ''}|${focusRef.current}|${selectedRef.current ?? ''}|${JSON.stringify(viewFlagsRef.current)}|${viewportDims.w}x${viewportDims.h}`
       const settled = key === lastKey && !prayerEffectsActive() && !worldMomentsActive()
       if (interp && settled && now - receivedAt > interval + 160) return
       lastFrameAt = now
       lastKey = key
-      const enriched: WorldState = prev
-        ? {
-            ...cur,
-            day_progress: lerpCycle(prev.day_progress, cur.day_progress, k),
-            season_progress: lerpCycle(prev.season_progress, cur.season_progress, k),
-          }
-        : cur
+      const grid =
+        cachedDepth.current || cachedBiomes.current
+          ? {
+              ...cur.grid,
+              depth_map: cachedDepth.current ?? cur.grid.depth_map,
+              biomes: cachedBiomes.current ?? cur.grid.biomes,
+            }
+          : cur.grid
+      const enriched: WorldState = {
+        ...cur,
+        grid,
+        day_progress: prev ? lerpCycle(prev.day_progress, cur.day_progress, k) : cur.day_progress,
+        season_progress: prev ? lerpCycle(prev.season_progress, cur.season_progress, k) : cur.season_progress,
+      }
       const result = renderer.update(
         makeFrame({
           world: enriched,
@@ -136,6 +139,7 @@ export function CfOverlays({
           focus: focusRef.current,
           viewFlags: viewFlagsRef.current,
         }),
+        { people: peopleLabelSource(), selectedId: selectedRef.current },
       )
       onUpdateRef.current?.(result)
     }
@@ -147,17 +151,12 @@ export function CfOverlays({
   }, [renderer, rendererPaused, interp, cameraStateRef, viewportDims])
 
   if (!renderer) return null
-  const { heat, contested, outline } = renderer.tileLayers
+  const { contested, outline } = renderer.tileLayers
   return (
     <>
-      {features.overlays && (
-        <>
-          <TileLayer layer={heat} />
-          <TileLayer layer={contested} />
-          <TileLayer layer={outline} />
-        </>
-      )}
-      {features.hud && viewFlags.fps && <StatsOverlay corner="top-right" />}
+      <TileLayer layer={contested} />
+      <TileLayer layer={outline} />
+      {viewFlags.fps && <StatsOverlay corner="top-right" />}
     </>
   )
 }

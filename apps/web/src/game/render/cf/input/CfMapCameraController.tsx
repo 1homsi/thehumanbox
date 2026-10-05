@@ -11,8 +11,6 @@ import {
   type MapCamera,
   type MapCommand,
 } from '../../camera-controls'
-import { cfFlag } from '../flags'
-import { cfExposeCamera, cfSample } from '../probe'
 import { KEY_ZOOM_STEP, WHEEL_SPEED, commandCamera, keyboardPanDelta, panKey } from './camera-rig'
 
 interface Props {
@@ -70,12 +68,11 @@ export function CfMapCameraController({
     minZoom,
     maxZoom: MAX_MAP_ZOOM,
     wheelSpeed: WHEEL_SPEED,
-    // The 2D map has never glided after a drag; `?cf=camera,inertia` tries it.
-    inertia: cfFlag('inertia'),
+    // The map has never glided after a drag.
+    inertia: false,
     dragThreshold: 6,
     buttons: [0, 1],
     onTap: (e) => {
-      cfSample('camera.tap', e.button)
       if (e.button === 0) tapRef.current?.(e)
     },
   })
@@ -197,8 +194,6 @@ export function CfMapCameraController({
     }
   }, [containerEl, commandRef, engine])
 
-  useEffect(() => cfExposeCamera(() => cameraStateRef.current), [cameraStateRef])
-
   // Runs every engine frame, before the renderer draws.
   const frame = () => {
     const opening = initialMapCamera(world, viewport)
@@ -237,13 +232,7 @@ export function CfMapCameraController({
 
   return (
     <Entity>
-      <Script
-        update={() => {
-          const t0 = performance.now()
-          frameRef.current()
-          cfSample('camera.frame', performance.now() - t0)
-        }}
-      />
+      <Script update={() => frameRef.current()} />
     </Entity>
   )
 }

@@ -1,4 +1,3 @@
-import { cfFlag } from '../game/render/cf/flags'
 import { captureCanvas } from '../game/render/cf/capture'
 
 /** A file name for a picture of the world: "the-human-box-tick-12000.png". */
@@ -24,17 +23,9 @@ export async function saveMapPicture(
 ): Promise<boolean> {
   const canvas = findMapCanvas(root)
   if (!canvas) return false
-  // `?cf=picture`: read the engine's canvas in the frame that drew it (a WebGL
-  // canvas read between frames comes out black).
-  const blob = cfFlag('picture')
-    ? await captureCanvas(canvas)
-    : await new Promise<Blob | null>((resolve) => {
-        try {
-          canvas.toBlob((b) => resolve(b), 'image/png')
-        } catch {
-          resolve(null)
-        }
-      })
+  // The GPU canvas is only readable in the frame that drew it (a read between frames comes out
+  // black), so ask the engine for a frame and read it there. The 2D fallback reads like any canvas.
+  const blob = await captureCanvas(canvas)
   if (!blob) return false
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')

@@ -1,36 +1,25 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Game, World, Entity, Camera2D } from 'cubeforge'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Game, World, Camera2D } from 'cubeforge'
 import type { PrayerInfo, WorldState } from '../../shared/types'
 import type { InterpRefs } from '../../simulation/useSimulation'
 import { useUIStore } from '../../state/store'
 import { useCameraFocus } from '../../state/camera-focus'
 import { buildTerritoryIndex } from '../model/territory'
 import { TILE } from '../model/palette'
-import { MapCameraController } from './MapCameraController'
 import { CanvasCameraController } from './CanvasCameraController'
 import { World2DErrorBoundary } from './World2DErrorBoundary'
 import { WorldMapHud } from './WorldMapHud'
 import { SandboxBursts } from './SandboxBursts'
 import { useSandboxBursts } from './sandbox-bursts'
 import type { MapCommand } from './camera-controls'
-import { WorldSprite } from './world-view/WorldSprite'
-import { CfSpriteLayers } from './world-view/CfSpriteLayers'
 import { CanvasWorldFallback } from './world-view/CanvasWorldFallback'
 import { useRendererBackend } from './world-view/useRendererBackend'
 import { useMapPointer } from './world-view/useMapPointer'
 import { CfWorld } from './cf/CfWorld'
-import { cfSplitCanvas } from './cf/ownership'
-import { anyCfOverlay, readCfFeatures } from './cf/overlays/features'
-import { cfFlag } from './cf/flags'
-import { lazyWithRetry } from '../../shared/lazyWithRetry'
-
-// Only fetched when ?cf=camera asks for it: the default map does not carry the code.
-const CfMapCameraController = lazyWithRetry(() =>
-  import('./cf/input/CfMapCameraController').then((m) => ({ default: m.CfMapCameraController })),
-)
-
-// The cubeforge overlay renderer is opt-in (`?cf=...`), so it stays out of the default chunk.
-const CfOverlays = lazy(() => import('./cf/overlays/CfOverlays').then((m) => ({ default: m.CfOverlays })))
+import { CfMapCameraController } from './cf/input/CfMapCameraController'
+import { CfOverlays } from './cf/overlays/CfOverlays'
+import { AnimalSpriteLayers } from './cf/animals/AnimalSpriteLayers'
+import { PeopleSpriteLayers } from './cf/people/PeopleSpriteLayers'
 
 interface Props {
   world: WorldState
@@ -66,7 +55,6 @@ export function WorldView({
   const viewFlags = useUIStore((s) => s.viewFlags)
   const onOrgSelect = useUIStore((s) => s.selectOrg)
   const territoryIndex = useMemo(() => buildTerritoryIndex(world.territory), [world.territory])
-  const cfFeatures = useMemo(readCfFeatures, [])
   const W = world.grid.width * TILE
   const H = world.grid.height * TILE
   const cx = W / 2
@@ -111,8 +99,6 @@ export function WorldView({
       })()
     : null
 
-  // Experimental: cubeforge's pan/zoom and tap instead of the map's own (?cf=camera).
-  const cfCamera = useMemo(() => cfFlag('camera'), [])
   const { overPrayer, handlePointerDown, handlePointerMove, handlePointerCancel, handleClick, handleTap } =
     useMapPointer({
       containerRef,
@@ -166,10 +152,11 @@ export function WorldView({
         // gets the events instead.
         touchAction: 'none',
       }}
-      onPointerDown={cfCamera ? undefined : handlePointerDown}
+      // On the GPU path cubeforge's camera reports taps; the 2D fallback reads clicks itself.
+      onPointerDown={renderBackend === 'gpu' ? undefined : handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerCancel={handlePointerCancel}
-      onClick={cfCamera ? undefined : handleClick}
+      onClick={renderBackend === 'gpu' ? undefined : handleClick}
     >
       <div
         style={{
@@ -195,36 +182,24 @@ export function WorldView({
               style={{ display: 'block' }}
             >
               <World background="#1a4a80">
-                <Camera2D pixelSnap={cfFlag('snap')} />
+                <Camera2D />
 
-                {cfSplitCanvas() && (
-                  <CfWorld
-                    world={world}
-                    interp={interp}
-                    cameraStateRef={cameraStateRef}
-                    viewportDims={dims}
-                    rendererPaused={rendererPaused}
-                  />
-                )}
-                <Entity>
-                  <WorldSprite
-                    world={world}
-                    interp={interp}
-                    selectedOrgId={selectedOrgId}
-                    overlay={overlay}
-                    focus={focus}
-                    viewFlags={viewFlags}
-                    rendererPaused={rendererPaused}
-                    onFirstDraw={handleFirstDraw}
-                    onDrawError={setDrawError}
-                    atX={cx}
-                    atY={cy}
-                    cameraStateRef={cameraStateRef}
-                    viewportDims={dims}
-                  />
-                </Entity>
-
-                <CfSpriteLayers
+                <CfWorld
+                  world={world}
+                  interp={interp}
+                  cameraStateRef={cameraStateRef}
+                  viewportDims={dims}
+                  rendererPaused={rendererPaused}
+                  onFirstDraw={handleFirstDraw}
+                  onDrawError={setDrawError}
+                />
+                <AnimalSpriteLayers
+                  world={world}
+                  interp={interp}
+                  viewFlags={viewFlags}
+                  rendererPaused={rendererPaused}
+                />
+                <PeopleSpriteLayers
                   world={world}
                   interp={interp}
                   selectedOrgId={selectedOrgId}
@@ -233,49 +208,29 @@ export function WorldView({
                   rendererPaused={rendererPaused}
                   cameraStateRef={cameraStateRef}
                 />
+                <CfOverlays
+                  world={world}
+                  interp={interp}
+                  selectedOrgId={selectedOrgId}
+                  overlay={overlay}
+                  focus={focus}
+                  viewFlags={viewFlags}
+                  rendererPaused={rendererPaused}
+                  cameraStateRef={cameraStateRef}
+                  viewportDims={dims}
+                />
 
-                {anyCfOverlay(cfFeatures) && (
-                  <Suspense fallback={null}>
-                    <CfOverlays
-                      world={world}
-                      interp={interp}
-                      overlay={overlay}
-                      focus={focus}
-                      viewFlags={viewFlags}
-                      features={cfFeatures}
-                      rendererPaused={rendererPaused}
-                      cameraStateRef={cameraStateRef}
-                      viewportDims={dims}
-                    />
-                  </Suspense>
-                )}
-
-                {cfCamera ? (
-                  <Suspense fallback={null}>
-                    <CfMapCameraController
-                      commandRef={commandRef}
-                      worldW={W}
-                      worldH={H}
-                      containerW={dims.w}
-                      containerH={dims.h}
-                      containerEl={containerRef.current}
-                      cameraStateRef={cameraStateRef}
-                      followTarget={followTarget}
-                      onTap={handleTap}
-                    />
-                  </Suspense>
-                ) : (
-                  <MapCameraController
-                    commandRef={commandRef}
-                    worldW={W}
-                    worldH={H}
-                    containerW={dims.w}
-                    containerH={dims.h}
-                    containerEl={containerRef.current}
-                    cameraStateRef={cameraStateRef}
-                    followTarget={followTarget}
-                  />
-                )}
+                <CfMapCameraController
+                  commandRef={commandRef}
+                  worldW={W}
+                  worldH={H}
+                  containerW={dims.w}
+                  containerH={dims.h}
+                  containerEl={containerRef.current}
+                  cameraStateRef={cameraStateRef}
+                  followTarget={followTarget}
+                  onTap={handleTap}
+                />
               </World>
             </Game>
           </World2DErrorBoundary>

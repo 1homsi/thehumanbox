@@ -1,6 +1,5 @@
 import type { TileLayerData } from 'cubeforge'
 import { tileColor } from '../base-parts/tile-paint'
-import { MAX_INCREMENTAL_TILES } from '../base-layer'
 import { TILE } from '../../model/palette'
 import { getFlatTerrainTileset, getTerrainTileset } from './atlas'
 import { TERRAIN_KINDS, kindHeadId, terrainKind, terrainTilesetPixels } from './tileset'
@@ -40,6 +39,9 @@ export function createTerrainSyncState(): TerrainSyncState {
     flat: false,
   }
 }
+
+/** Tiles written incrementally per sync before a full rewrite is cheaper (a wildfire can touch thousands). */
+export const MAX_INCREMENTAL_TILES = 6000
 
 /** Level of detail: below `flatBelowPx` device pixels per tile the flat tileset is shown. */
 export const terrainLod = { enabled: true, flatBelowPx: 7, detailAbovePx: 9 }

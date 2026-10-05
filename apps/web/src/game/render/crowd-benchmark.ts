@@ -67,7 +67,6 @@ button.onclick = async () => {
             ctx,
             world,
             null,
-            null,
             'all',
             flags,
             zoom === 2 ? { c0: 100, c1: 164, r0: 100, r1: 148 } : undefined,

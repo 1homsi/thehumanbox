@@ -1,9 +1,14 @@
 import { SPRITE_UNTEXTURED, SpriteLayer } from 'cubeforge'
+import { TILE } from '../../../model/palette'
 import { drawTradeNetwork2D } from '../../base-parts/trade-network'
-import { atmosphereTints, composeTints, precipitating, writePrecipitation, type Tint } from './atmosphere'
+import { drawRail, drawTrain, trainProgress } from '../../era-traffic'
+import { lineageEraTiers } from '../../draw-helpers'
+import { cachedRailLinks } from '../../rails'
+import { paintPeopleLabels, type PeopleLabelSource } from '../people/people-labels'
+import { atmosphereTints, precipitating, writePrecipitation, type Tint } from './atmosphere'
+import { atlasId, makeCanvas } from './atlas-host'
 import { packRgba } from './color'
 import type { CfFrame } from './frame'
-import { NO_FEATURES, type CfFeatures } from './features'
 import { GlyphSet } from './glyph-atlas'
 import { HeatGrid, type HeatSettings } from './heatmap'
 import type { RenderHost } from './host'
@@ -19,15 +24,23 @@ import {
 import { paintHud } from './paint-hud'
 import { SpriteRecorder } from './recorder'
 import { ShapeAtlas } from './shape-atlas'
-import { applyHeat, createTileLayers, TILE_OUTLINE, type TileLayerSet } from './tile-layers'
+import { createTileLayers, TILE_OUTLINE, type TileLayerSet } from './tile-layers'
 
-/** Draw order of what this renderer adds (the agreed layering: terrain 0, overlays 10, land use 15, effects 50, HUD 60). */
+/**
+ * Draw order of what this renderer adds. The rest of the map: ground detail 2.5 to 5.6, then
+ * these, land use 15, huts and buildings 18 to 20, animals 29 to 31, people 39 to 41.5.
+ * The tint sits above the ground (terrain, shore, trees, mountains) and under everything built
+ * or alive, as the canvas painter laid it.
+ */
 export const Z = {
-  tint: 4,
+  tint: 5,
   precip: 6,
+  heat: 10,
   groundStatic: 11,
   ground: 12,
   roads: 15,
+  traffic: 25,
+  labels: 45,
   effects: 50,
   hud: 60,
 } as const
@@ -49,6 +62,12 @@ export interface UpdateResult {
   unsupported: Record<string, number>
 }
 
+/** What the renderer needs besides the world: the people layer, for names and work poses. */
+export interface OverlayExtras {
+  people: PeopleLabelSource | null
+  selectedId: string | null
+}
+
 const ZERO_TIMES = (): SectionTimes => ({
   atmosphere: 0,
   heat: 0,
@@ -67,14 +86,21 @@ const ZERO_TIMES = (): SectionTimes => ({
 export class CfOverlayRenderer {
   readonly shapes: ShapeAtlas
   readonly glyphs: GlyphSet
+  /** Contested borders and structure outlines (the heat map itself is one sprite). */
   readonly tileLayers: TileLayerSet
   private readonly heat: HeatGrid
+  private readonly heatCanvas: HTMLCanvasElement
+  private readonly heatId = atlasId('heat')
+  private readonly heatLayer: SpriteLayer
+  private heatShown = false
   private readonly layers: SpriteLayer[] = []
   private readonly tintLayer: SpriteLayer
   private readonly precipLayer: SpriteLayer
   private readonly groundStatic: SpriteRecorder
   private readonly ground: SpriteRecorder
   private readonly roads: SpriteRecorder
+  private readonly traffic: SpriteRecorder
+  private readonly labels: SpriteRecorder
   private readonly effects: SpriteRecorder
   private readonly hud: SpriteRecorder
   private readonly contestedScratch: Uint16Array
@@ -83,7 +109,6 @@ export class CfOverlayRenderer {
   private territoryRef: unknown = null
   private contestedKey = ''
   private outlineKey = ''
-  features: CfFeatures = NO_FEATURES
   lastResult: UpdateResult = { times: ZERO_TIMES(), sprites: 0, heatRebuilt: false, unsupported: {} }
 
   private readonly host: RenderHost
@@ -117,6 +142,28 @@ export class CfOverlayRenderer {
           capacity: 256,
         }),
       )
+    // The heat map is a 1 px per tile canvas stretched over the world, nearest-sampled: crisp tile
+    // squares, and (unlike a TileLayer) drawn above the trees and below the buildings.
+    this.heatCanvas = makeCanvas(gridWidth, gridHeight)
+    host.register(this.heatId, this.heatCanvas)
+    this.heatLayer = this.addLayer(
+      new SpriteLayer({
+        atlases: [
+          { dynamicSrc: this.heatId, frameWidth: gridWidth, frameHeight: gridHeight, frameColumns: 1 },
+        ],
+        zIndex: Z.heat,
+        sampling: 'nearest',
+        capacity: 1,
+        visible: false,
+      }),
+    )
+    this.heatLayer.add(
+      (gridWidth * TILE) / 2,
+      (gridHeight * TILE) / 2,
+      gridWidth * TILE,
+      gridHeight * TILE,
+      0,
+    )
     this.tintLayer = shape(Z.tint)
     this.precipLayer = shape(Z.precip)
     this.groundStatic = new SpriteRecorder(
@@ -127,6 +174,8 @@ export class CfOverlayRenderer {
     )
     this.ground = new SpriteRecorder(shape(Z.ground), text(Z.ground), this.shapes, this.glyphs)
     this.roads = new SpriteRecorder(shape(Z.roads), text(Z.roads), this.shapes, this.glyphs)
+    this.traffic = new SpriteRecorder(shape(Z.traffic), text(Z.traffic), this.shapes, this.glyphs)
+    this.labels = new SpriteRecorder(shape(Z.labels), text(Z.labels), this.shapes, this.glyphs)
     this.effects = new SpriteRecorder(shape(Z.effects), text(Z.effects), this.shapes, this.glyphs)
     this.hud = new SpriteRecorder(shape(Z.hud), text(Z.hud), this.shapes, this.glyphs)
   }
@@ -146,14 +195,13 @@ export class CfOverlayRenderer {
 
   dispose(): void {
     for (const l of this.layers) this.host.removeLayer(l)
-    this.host.setScreenTint(null)
+    this.host.unregister(this.heatId)
     this.shapes.dispose()
     this.glyphs.dispose()
   }
 
-  /** Rewrite every enabled layer from this frame's world. */
-  update(f: CfFrame): UpdateResult {
-    const feat = this.features
+  /** Rewrite every layer from this frame's world. */
+  update(f: CfFrame, extras: OverlayExtras = { people: null, selectedId: null }): UpdateResult {
     const times = ZERO_TIMES()
     const t0 = performance.now()
     let mark = t0
@@ -163,54 +211,76 @@ export class CfOverlayRenderer {
       mark = now
     }
 
-    if (feat.atmosphere) this.updateAtmosphere(f)
+    this.updateAtmosphere(f)
     lap('atmosphere')
 
-    const heatRebuilt = feat.overlays ? this.updateHeat(f) : false
+    const heatRebuilt = this.updateHeat(f)
     lap('heat')
 
     // Per-frame ground effects: clouds, lines, water and fire light.
     const gv = { zoom: f.zoom, dpr: f.dpr }
-    const anyGround = feat.overlays || feat.water || feat.glow || feat.atmosphere
-    if (anyGround) {
-      this.ground.begin(gv)
-      const ctx = this.ground.asContext()
-      if (feat.overlays) {
-        paintClouds(ctx, f)
-        paintLines(ctx, f)
-      }
-      if (feat.atmosphere) paintWaterStars(ctx, f)
-      if (feat.water) paintWaterShimmer(ctx, f)
-      if (feat.glow) paintFireGlow(ctx, f)
-      this.ground.end()
-    }
-    if (feat.overlays) this.updateTerritoryBorders(f)
+    this.ground.begin(gv)
+    const ground = this.ground.asContext()
+    paintClouds(ground, f)
+    paintLines(ground, f)
+    paintWaterStars(ground, f)
+    paintWaterShimmer(ground, f)
+    paintFireGlow(ground, f)
+    this.ground.end()
+    this.updateTerritoryBorders(f)
     lap('ground')
 
-    if (feat.roads) {
-      this.roads.begin(gv)
-      drawTradeNetwork2D(this.roads.asContext(), f.world, f.bounds, f.t, 'roads')
-      this.roads.end()
-    }
+    // Trade roads and the rails and trains that run along them.
+    this.roads.begin(gv)
+    drawTradeNetwork2D(this.roads.asContext(), f.world, f.bounds, f.t, 'roads')
+    this.paintRails(this.roads.asContext(), f)
+    this.roads.end()
+    this.traffic.begin(gv)
+    drawTradeNetwork2D(this.traffic.asContext(), f.world, f.bounds, f.t, 'caravans')
+    this.traffic.end()
     lap('roads')
 
-    if (feat.effects) {
-      this.effects.begin(gv)
-      paintEffects(this.effects.asContext(), f)
-      this.effects.end()
-    }
+    this.effects.begin(gv)
+    paintEffects(this.effects.asContext(), f)
+    this.effects.end()
     lap('effects')
 
-    if (feat.hud) {
-      this.hud.begin(gv)
-      paintHud(this.hud.asContext(), f, { grid: f.viewFlags.grid })
-      this.hud.end()
+    this.hud.begin(gv)
+    const { labels: settlementLabels } = paintHud(this.hud.asContext(), f, { grid: f.viewFlags.grid })
+    this.hud.end()
+
+    // Names, thoughts, work poses and prayer glyphs go above the people; town names claim space first.
+    this.labels.begin(gv)
+    if (extras.people) {
+      paintPeopleLabels(this.labels.asContext(), {
+        people: extras.people,
+        selectedId: extras.selectedId,
+        focus: f.focus,
+        viewFlags: f.viewFlags,
+        zoom: f.zoom,
+        now: f.t,
+        prayers: f.world.prayers,
+        vehicles: f.world.vehicles,
+        settlementLabels,
+        window: f.bounds,
+        ox: f.ox,
+        oy: f.oy,
+      })
     }
+    this.labels.end()
     lap('hud')
 
     times.total = performance.now() - t0
     const unsupported: Record<string, number> = {}
-    for (const r of [this.ground, this.roads, this.effects, this.hud, this.groundStatic]) {
+    for (const r of [
+      this.ground,
+      this.roads,
+      this.traffic,
+      this.labels,
+      this.effects,
+      this.hud,
+      this.groundStatic,
+    ]) {
       for (const [k, v] of Object.entries(r.stats.unsupported)) unsupported[k] = (unsupported[k] ?? 0) + v
     }
     this.lastResult = { times, sprites: this.spriteCount, heatRebuilt, unsupported }
@@ -218,20 +288,50 @@ export class CfOverlayRenderer {
     return this.lastResult
   }
 
+  // ── rails ──────────────────────────────────────────────────────────────────
+
+  /** Railways between each tribe's train stations, with trains shuttling along them in the tribe's age. */
+  private paintRails(ctx: CanvasRenderingContext2D, f: CfFrame): void {
+    const { world, ox, oy, t } = f
+    const links = cachedRailLinks(world.buildings)
+    if (links.length === 0) return
+    const tiers = lineageEraTiers(world.lineage_eras)
+    for (const link of links) {
+      drawRail(
+        ctx,
+        (link.a.x - ox) * TILE,
+        (link.a.y - oy) * TILE,
+        (link.b.x - ox) * TILE,
+        (link.b.y - oy) * TILE,
+      )
+    }
+    for (const link of links) {
+      drawTrain(
+        ctx,
+        (link.a.x - ox) * TILE,
+        (link.a.y - oy) * TILE,
+        (link.b.x - ox) * TILE,
+        (link.b.y - oy) * TILE,
+        trainProgress(link, world.tick),
+        tiers.get(link.owner) ?? 5,
+        t,
+      )
+    }
+  }
+
   // ── atmosphere ─────────────────────────────────────────────────────────────
 
+  /**
+   * Season, weather and day/night as translucent quads over the whole map, between the ground and
+   * everything built or alive (so a night darkens the land but not the people on it), plus rain
+   * and snow.
+   */
   private updateAtmosphere(f: CfFrame): void {
     const { world, t, W, H } = f
     const tints = atmosphereTints(world, t)
-    if (this.features.tint === 'screen') {
-      this.host.setScreenTint(composeTints(tints))
-      this.tintLayer.clear()
-    } else {
-      this.host.setScreenTint(null)
-      this.tintLayer.clear()
-      for (const tint of tints) this.addTint(tint, W, H)
-      this.tintLayer.touch()
-    }
+    this.tintLayer.clear()
+    for (const tint of tints) this.addTint(tint, W, H)
+    this.tintLayer.touch()
     if (precipitating(world)) writePrecipitation(this.precipLayer, this.shapes.softLine(), world, t, W, H)
     else if (this.precipLayer.count > 0) {
       this.precipLayer.clear()
@@ -268,8 +368,17 @@ export class CfOverlayRenderer {
     let rebuilt = false
     if (key !== this.heatKey) {
       this.heatKey = key
-      this.heat.compute(world, settings, f.organisms)
-      applyHeat(this.tileLayers, this.heat)
+      const shown = this.heat.compute(world, settings, f.organisms)
+      this.heatShown = shown > 0
+      this.heatLayer.visible = this.heatShown
+      if (this.heatShown) {
+        const ctx = this.heatCanvas.getContext('2d')
+        if (ctx) {
+          const image = new ImageData(new Uint8ClampedArray(this.heat.rgba), g.width, g.height)
+          ctx.putImageData(image, 0, 0)
+          this.host.dirty(this.heatId, 0, 0, g.width, g.height)
+        }
+      }
       rebuilt = true
     }
     // Contested border: tiles change with the data, the pulse is just the layer's opacity.

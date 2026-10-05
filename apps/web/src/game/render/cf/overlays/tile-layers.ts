@@ -1,7 +1,6 @@
 import { TileLayerData, type Tileset } from 'cubeforge'
 import { TILE } from '../../../model/palette'
 import { makeCanvas } from './atlas-host'
-import type { HeatGrid } from './heatmap'
 import { packRgba } from './color'
 
 /** Tile id 1 is a solid square, id 2 a square outline one world pixel thick (tile ids are 1-based). */
@@ -26,15 +25,13 @@ export function flatTileset(): Tileset {
 }
 
 export interface TileLayerSet {
-  /** Heat map: every overlay, one tint per tile. */
-  heat: TileLayerData
   /** Contested border tiles: one white tint whose layer opacity pulses. */
   contested: TileLayerData
   /** Outlines on tiles with structure (the `structures` view flag). */
   outline: TileLayerData
   all: TileLayerData[]
   /** Counters for the benchmark. */
-  uploads: { heat: number; contested: number; outline: number }
+  uploads: { contested: number; outline: number }
 }
 
 export function createTileLayers(width: number, height: number): TileLayerSet {
@@ -49,7 +46,6 @@ export function createTileLayers(width: number, height: number): TileLayerSet {
       tileWorldHeight: TILE,
       zIndex,
     })
-  const heat = make(10)
   const contested = make(10.5)
   const outline = make(10.6)
   // The outline and contested layers have one colour each, set once.
@@ -66,17 +62,9 @@ export function createTileLayers(width: number, height: number): TileLayerSet {
   outline.setTints(edge)
   contested.opacity = 0
   return {
-    heat,
     contested,
     outline,
-    all: [heat, contested, outline],
-    uploads: { heat: 0, contested: 0, outline: 0 },
+    all: [contested, outline],
+    uploads: { contested: 0, outline: 0 },
   }
-}
-
-/** Push a freshly computed heat grid into its tile layer (full replace: ids and tints). */
-export function applyHeat(layers: TileLayerSet, grid: HeatGrid): void {
-  layers.heat.setTiles(grid.tiles)
-  layers.heat.setTints(grid.rgba)
-  layers.uploads.heat++
 }

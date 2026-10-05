@@ -8,15 +8,13 @@ import { pickAnimalTile, ATLAS_CREATURE, drawTile } from '../../../shared/sprite
 
 import { characterMotion } from '.././character-visuals'
 import { TILE } from '../../model/palette'
-import { spriteLayerActive } from '../cf/people/bridge'
 
 import type { DrawFrame } from './frame'
 
-/** Wild animals and monsters. */
+/** Wild animals and monsters (the 2D fallback). */
 export function draw_animals(f: DrawFrame) {
   const { ctx, viewFlags, ox, oy, r0, r1, c0, c1, animals, t } = f
-  // With the sprite layer mounted, animals are drawn by the GPU; nothing is left for the canvas.
-  if (viewFlags.animals && animals.length > 0 && !spriteLayerActive('animals')) {
+  if (viewFlags.animals && animals.length > 0) {
     ctx.save()
     const atlasReady = ATLAS_CREATURE.complete && ATLAS_CREATURE.naturalWidth > 0
     if (_animalLastPos.size > Math.max(256, animals.length * 3)) {

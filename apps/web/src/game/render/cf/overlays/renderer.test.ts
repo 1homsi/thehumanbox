@@ -1,10 +1,9 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from 'vitest'
-import type { WorldState } from '../../../../shared/types'
+import type { OrganismState, WorldState } from '../../../../shared/types'
 import type { ViewFlags } from '../../../../state/store'
 import { resetPrayerFeedback } from '../../prayer-feedback'
 import { resetWorldMoments } from '../../world-moments'
-import { NO_FEATURES, type CfFeatures } from './features'
 import { makeFrame } from './frame'
 import { CfOverlayRenderer, Z } from './renderer'
 import { stubHost, type StubHost } from './test-support'
@@ -84,17 +83,12 @@ function frameOf(w: WorldState, overlay: string | null = null, t = 5000) {
   })
 }
 
-function features(over: Partial<CfFeatures>): CfFeatures {
-  return { ...NO_FEATURES, ...over }
-}
-
 let host: StubHost
 let renderer: CfOverlayRenderer
 
-function make(over: Partial<CfFeatures>) {
+function make() {
   host = stubHost()
   renderer = new CfOverlayRenderer(host, GW, GH)
-  renderer.features = features(over)
   return renderer
 }
 
@@ -105,7 +99,7 @@ afterEach(() => {
 
 describe('CfOverlayRenderer', () => {
   it('registers its layers with the engine in the agreed draw order and removes them on dispose', () => {
-    make({})
+    make()
     const zs = host.layers.map((l) => l.zIndex)
     expect(zs).toContain(Z.tint)
     expect(zs).toContain(Z.effects)
@@ -117,30 +111,19 @@ describe('CfOverlayRenderer', () => {
     expect(host.registered.size).toBe(0)
   })
 
-  it('draws nothing when no feature is on', () => {
-    make({})
-    const r = renderer.update(frameOf(world(), 'hazard'))
-    expect(r.sprites).toBe(0)
-    expect(host.tint).toBeNull()
-  })
-
-  it('applies the atmosphere as one screen tint (or as ground sprites in the other mode)', () => {
-    make({ atmosphere: true })
+  it('draws the atmosphere as tint quads between the ground and everything built', () => {
+    make()
     renderer.update(frameOf(world({ is_day: false, day_progress: 0.85 })))
-    expect(host.tint).not.toBeNull()
-    expect(host.tint!.a).toBeGreaterThan(0.2)
-    renderer.update(frameOf(world()))
-    expect(host.tint).toBeNull()
-
-    make({ atmosphere: true, tint: 'ground' })
-    renderer.update(frameOf(world({ is_day: false, day_progress: 0.85 })))
-    expect(host.tint).toBeNull()
     const tintLayer = host.layers.find((l) => l.zIndex === Z.tint)!
     expect(tintLayer.count).toBe(2)
+    expect(Z.tint).toBeGreaterThan(4.5)
+    expect(Z.tint).toBeLessThan(10)
+    renderer.update(frameOf(world()))
+    expect(tintLayer.count).toBe(0)
   })
 
   it('writes rain into the precipitation layer and clears it when the weather does', () => {
-    make({ atmosphere: true })
+    make()
     renderer.update(frameOf(world({ weather: { kind: 'rain', intensity: 1, wind_x: 0.3, wind_y: 0 } })))
     const rain = host.layers.find((l) => l.zIndex === Z.precip)!
     expect(rain.count).toBeGreaterThan(20)
@@ -149,20 +132,22 @@ describe('CfOverlayRenderer', () => {
   })
 
   it('rebuilds the heat map only when the data or a setting changes', () => {
-    make({ overlays: true })
+    make()
     const w = world()
     expect(renderer.update(frameOf(w, 'hazard')).heatRebuilt).toBe(true)
     expect(renderer.update(frameOf(w, 'hazard', 5100)).heatRebuilt).toBe(false)
     expect(renderer.update(frameOf(w, 'fertility', 5200)).heatRebuilt).toBe(true)
     expect(renderer.update(frameOf({ ...w, frame_id: 2 }, 'fertility', 5300)).heatRebuilt).toBe(true)
-    expect(renderer.tileLayers.uploads.heat).toBe(3)
   })
 
-  it('tints the hazard tiles and leaves the rest empty', () => {
-    make({ overlays: true })
+  it('shows the heat map as one sprite above the trees, and hides it when nothing is tinted', () => {
+    make()
+    const heat = host.layers.find((l) => l.zIndex === Z.heat)!
+    expect(heat.count).toBe(1)
+    expect(Z.heat).toBeGreaterThan(Z.tint)
+    expect(heat.visible).toBe(false)
     renderer.update(frameOf(world(), 'hazard'))
-    const heat = renderer.tileLayers.heat
-    expect(heat.tiles.every((id) => id === 1)).toBe(true)
+    expect(heat.visible).toBe(true)
     renderer.update(
       frameOf(
         world({
@@ -172,11 +157,11 @@ describe('CfOverlayRenderer', () => {
         'hazard',
       ),
     )
-    expect(renderer.tileLayers.heat.tiles.every((id) => id === 0)).toBe(true)
+    expect(heat.visible).toBe(false)
   })
 
   it('pulses the contested border by layer opacity and hides it without a territory view', () => {
-    make({ overlays: true })
+    make()
     const w = world({
       territory: { claimed: [{ lid: 'a', tiles: [[3, 3]] }], contested: [[3, 3]] },
     } as unknown as Partial<WorldState>)
@@ -190,7 +175,7 @@ describe('CfOverlayRenderer', () => {
   })
 
   it('draws battles, wards, festivals and smog as sprites from the existing painters', () => {
-    make({ effects: true })
+    make()
     const w = world({
       battles: [
         {
@@ -217,7 +202,7 @@ describe('CfOverlayRenderer', () => {
   })
 
   it('places settlement labels and prayer bubbles in the HUD layers, and respects hideUI', () => {
-    make({ hud: true })
+    make()
     const w = world({
       prayers: [
         { id: 1, lineage_id: 'a', tribe: 'a', kind: 'hunger', x: 14, y: 12, created: 900, expires: 1500 },
@@ -231,10 +216,49 @@ describe('CfOverlayRenderer', () => {
   })
 
   it('reports section timings that add up and marks the engine dirty', () => {
-    make({ atmosphere: true, overlays: true, effects: true, hud: true })
+    make()
     const before = host.dirtyCount
     const { times } = renderer.update(frameOf(world(), 'hazard'))
     expect(times.total).toBeGreaterThanOrEqual(times.heat)
     expect(host.dirtyCount).toBeGreaterThan(before)
+  })
+
+  it('puts names, thoughts and work poses above the people, in order of the layers', () => {
+    make()
+    const org = {
+      id: 'p1',
+      name: 'Ada',
+      alive: true,
+      x: 12,
+      y: 10,
+      sex: 'female',
+      age: 900,
+      energy: 0.9,
+      hydration: 0.9,
+      health: 0.9,
+      thought: 'chopping wood',
+      lineage_id: 'a',
+      infection: 0,
+    }
+    const people = {
+      orgs: [org as unknown as OrganismState],
+      px: [12 * 8 + 4],
+      py: [10 * 8 + 4],
+      hidden: [0],
+      phase: [0],
+      step: { flipped: [0], movedAt: [-Infinity] },
+    }
+    const w = world({ organisms: [org], viewport_organisms: [org] } as unknown as Partial<WorldState>)
+    const f = frameOf(w)
+    f.zoom = 3
+    f.viewFlags = { ...flags, names: true, thoughts: true } as ViewFlags
+    // Not selected: the name tag shows, the thought (full detail only) is not asked for at this zoom.
+    const labels = host.layers.filter((l) => l.zIndex === Z.labels || l.zIndex === Z.labels + 0.5)
+    const none = renderer.update(f, { people: null, selectedId: null })
+    expect(none.sprites).toBeGreaterThanOrEqual(0)
+    renderer.update(f, { people, selectedId: 'p1' })
+    expect(labels.reduce((n, l) => n + l.count, 0)).toBeGreaterThan(20)
+    expect(Z.labels).toBeGreaterThan(41.5)
+    expect(Z.labels).toBeLessThan(Z.effects)
   })
 })

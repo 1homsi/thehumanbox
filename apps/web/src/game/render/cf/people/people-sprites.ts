@@ -77,6 +77,8 @@ export class PeopleSprites {
 
   n = 0
   ids: string[] = []
+  /** The living people of the last rebuild, in slot order (what `ids` names). */
+  readonly orgs: OrganismState[] = []
   private cap = 0
   fromX = new Float64Array(0)
   fromY = new Float64Array(0)
@@ -88,7 +90,8 @@ export class PeopleSprites {
   private size = new Uint8Array(0)
   private row = new Uint8Array(0)
   private alpha = new Uint8Array(0)
-  private phase = new Uint16Array(0)
+  /** Each person's walk-cycle offset, from their id. */
+  phase = new Uint16Array(0)
   private restCandidate = new Uint8Array(0)
   /** Layer index of this rider's boat, or -1. */
   private boatIdx = new Int32Array(0)
@@ -147,6 +150,11 @@ export class PeopleSprites {
     return this.index.get(id) ?? -1
   }
 
+  /** Walking state per slot: the last step's direction and time, for names and work poses. */
+  get stepState(): { flipped: Uint8Array; movedAt: Float64Array } {
+    return this.motion
+  }
+
   /** The person under a world-pixel point, or null. */
   pick(wx: number, wy: number): string | null {
     const slot = this.body.pick(wx, wy)
@@ -186,6 +194,7 @@ export class PeopleSprites {
     over.begin()
     emotes.begin()
     this.ids.length = 0
+    this.orgs.length = 0
 
     const riders: number[] = []
     let j = 0
@@ -193,6 +202,7 @@ export class PeopleSprites {
       if (!org.alive) continue
       const id = org.id
       this.ids.push(id)
+      this.orgs.push(org)
       this.index.set(id, j)
       this.toX[j] = org.x
       this.toY[j] = org.y

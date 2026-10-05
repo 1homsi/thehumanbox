@@ -6,7 +6,6 @@ import type { ViewFlags } from '../../../../state/store'
 import { useDecalAtlas, useFaunaAtlas, useGlyphAtlas, usePixelFaunaAtlas } from '../atlas-hooks'
 import { DECAL_CELL, FAUNA_CELL, GLYPH_CELL, PIXEL_FAUNA_CELL } from '../atlas-bake'
 import { useSpriteClock, wakeEngine } from '../frame-clock'
-import { cfPerf, registerAnimalLayer } from '../people/bridge'
 import { AnimalSprites } from './animal-sprites'
 import { ANIMAL_Z } from '../people/z-order'
 
@@ -57,8 +56,8 @@ export function AnimalSpriteLayers({ world, interp, viewFlags, rendererPaused }:
   const lastAnimate = useRef(0)
 
   useEffect(() => {
+    // The layer is new: the next frame must rebuild it.
     last.current = null
-    return registerAnimalLayer()
   }, [sprites])
 
   useSpriteClock(interp, world, rendererPaused, (frame) => {
@@ -69,19 +68,13 @@ export function AnimalSpriteLayers({ world, interp, viewFlags, rendererPaused }:
     const prevAnimals = frame.prev && shown ? pick(frame.prev) : null
     const l = last.current
     if (!l || l.animals !== animals || l.prev !== prevAnimals || l.shown !== shown) {
-      const started = performance.now()
       sprites.rebuild({ animals, prevAnimals, ox, oy })
-      cfPerf.animalRebuilds++
-      cfPerf.animalRebuildMs += performance.now() - started
       last.current = { animals, prev: prevAnimals, shown }
     }
     // Fish and birds bob forever; settled scenery only needs every other display frame.
     if (frame.t >= 1 && frame.now - lastAnimate.current < 33) return
     lastAnimate.current = frame.now
-    const started = performance.now()
     sprites.animate(frame.now, frame.t)
-    cfPerf.animalFrames++
-    cfPerf.animalAnimateMs += performance.now() - started
     wakeEngine(engine)
   })
 
