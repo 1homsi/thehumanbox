@@ -8,6 +8,7 @@ import { makeFrame } from './frame'
 import { CfRegistry } from './registry'
 import { CfBuildings } from './buildings/CfBuildings'
 import { CfVegetation } from './vegetation/CfVegetation'
+import { CfLanduse } from './landuse/CfLanduse'
 
 interface Props {
   world: WorldState
@@ -77,6 +78,7 @@ export function CfWorld({ world, interp, cameraStateRef, viewportDims, rendererP
     <>
       {parts.buildings && <CfBuildings registry={registry} />}
       {parts.vegetation && <CfVegetation registry={registry} />}
+      {parts.landuse && <CfLanduse registry={registry} />}
     </>
   )
 }
