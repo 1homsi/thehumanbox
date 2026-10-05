@@ -233,6 +233,17 @@ export function hasPixelFauna(kind: string): boolean {
   return kind in SPRITES
 }
 
+/** Every kind this module draws, in a stable order. */
+export function pixelFaunaKinds(): string[] {
+  return Object.keys(SPRITES)
+}
+
+/** Sprite size in its own pixels, or null for kinds this module does not draw. */
+export function pixelFaunaDims(kind: string): { cols: number; rows: number } | null {
+  const frames = SPRITES[kind]
+  return frames ? { cols: frames[0][0].length, rows: frames[0].length } : null
+}
+
 /** Draws `kind` centred on (cx, cy) about `size` px wide. Returns false if unknown. */
 export function drawPixelFauna(
   ctx: CanvasRenderingContext2D,

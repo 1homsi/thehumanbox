@@ -24,6 +24,8 @@ import {
 import { TILE, THOUGHT_COLORS } from '../../model/palette'
 import { orgVariant } from '../../model/org-variant'
 
+import { spriteLayerActive } from '../cf/people/bridge'
+
 import type { DrawFrame } from './frame'
 
 /** The population: shadows, sprites, motion, boats, thoughts and name tags. */
@@ -46,6 +48,11 @@ export function draw_people(f: DrawFrame) {
     ruinedTiles,
     placedSettlementLabels,
   } = f
+  // With the sprite layer mounted, bodies, boats, shadows, rings, bars and icons are
+  // drawn by the GPU. The canvas keeps what a sprite cannot carry: names, thoughts,
+  // emotes, work poses and prayer glyphs.
+  const glActive = spriteLayerActive('people')
+  if (glActive && zoomDetailLevel(cameraZoom) === 'overview' && selectedOrgId == null) return
   const lineageErasMap = normalizeLineageEras(world.lineage_eras)
 
   const isFocused = (org: WorldState['organisms'][0]) => {
@@ -79,7 +86,7 @@ export function draw_people(f: DrawFrame) {
   // Dense crowds contain many sprites on the same eight-pixel tile. Preserve
   // individual animation nearby, but cap overlapping atlas draws when the
   // viewport holds thousands of people. Selection and boats stay visible.
-  const drawnOrganisms =
+  const allDrawn =
     visibleOrganisms.length > 6000
       ? selectCrowdSpriteRepresentatives(
           visibleOrganisms,
@@ -89,6 +96,28 @@ export function draw_people(f: DrawFrame) {
           new Set(boatsByRider.keys()),
         )
       : visibleOrganisms
+  const crowded = visibleOrganisms.length > 400
+  const labelIds =
+    characterDetail !== 'overview' && viewFlags.names ? crowdLabelIds(allDrawn, cameraZoom) : null
+  // Where each praying tribe gathers, for the raised-hands glyphs.
+  const prayerSpots = new Map((world.prayers ?? []).map((p) => [p.lineage_id, p] as const))
+  // With the sprite layer drawing bodies and emotes, only people who still need the
+  // canvas (a name, a thought, a work pose, a prayer glyph) are visited at all.
+  const drawnOrganisms = glActive
+    ? allDrawn.filter(
+        (org) =>
+          org.id === selectedOrgId ||
+          (characterDetail !== 'overview' &&
+            ((viewFlags.names && !!org.name && (!labelIds || labelIds.has(org.id))) ||
+              (characterDetail === 'detail' &&
+                viewFlags.thoughts &&
+                !!org.thought &&
+                org.thought !== 'observing') ||
+              workActivity(org.thought ?? '', false) !== null ||
+              (!viewFlags.hideUI &&
+                (prayerSpots.has(org.lineage_id) || celebrating(org.lineage_id, org.x, org.y, t))))),
+      )
+    : allDrawn
   if (_orgLastPos.size > Math.max(512, drawnOrganisms.length * 3)) {
     const drawnIds = new Set(drawnOrganisms.map((organism) => organism.id))
     for (const id of _orgLastPos.keys()) {
@@ -97,6 +126,7 @@ export function draw_people(f: DrawFrame) {
   }
   for (const boat of world.vehicles ?? []) {
     if (
+      glActive ||
       boat.kind !== 'boat' ||
       boat.rider_id ||
       boat.x - ox < c0 - 3 ||
@@ -118,17 +148,12 @@ export function draw_people(f: DrawFrame) {
     const dy = org.y - org.home_y
     return dx * dx + dy * dy < 2 && ((org.sleep_debt ?? 0) > 0.4 || org.energy < 0.1 || org.health < 0.15)
   }
-  const crowded = visibleOrganisms.length > 400
-  const labelIds =
-    characterDetail !== 'overview' && viewFlags.names ? crowdLabelIds(drawnOrganisms, cameraZoom) : null
   const labelPlacer = new LabelPlacer()
   for (const p of placedSettlementLabels) labelPlacer.place(p.cx, p.cy + p.h / 2, p.w, p.h, true)
-  // Where each praying tribe gathers, for the raised-hands glyphs.
-  const prayerSpots = new Map((world.prayers ?? []).map((p) => [p.lineage_id, p] as const))
   // Batch every organism shadow into two paths (focused / dimmed) so the
   // whole population costs two fills instead of hundreds of separate
   // beginPath/ellipse/fill draw calls per frame.
-  if (characterDetail !== 'overview' && !crowded) {
+  if (!glActive && characterDetail !== 'overview' && !crowded) {
     const focusedShadows = new Path2D()
     const dimShadows = new Path2D()
     let any = false
@@ -187,7 +212,7 @@ export function draw_people(f: DrawFrame) {
     ctx.globalAlpha = focused ? 1 : 0.12
 
     const isSignaling = org.thought.startsWith('"') || org.thought.startsWith("'")
-    if (standardDetail && (isSignaling || org.thought === 'sounding alarm')) {
+    if (!glActive && standardDetail && (isSignaling || org.thought === 'sounding alarm')) {
       ctx.strokeStyle =
         org.thought.includes('!') || org.thought === 'sounding alarm'
           ? 'rgba(255,68,136,0.6)'
@@ -196,7 +221,11 @@ export function draw_people(f: DrawFrame) {
       ctx.beginPath()
       ctx.arc(px, py, 10, 0, Math.PI * 2)
       ctx.stroke()
-    } else if (standardDetail && (org.thought === 'challenging' || org.thought === 'challenging alone')) {
+    } else if (
+      !glActive &&
+      standardDetail &&
+      (org.thought === 'challenging' || org.thought === 'challenging alone')
+    ) {
       ctx.strokeStyle = org.thought === 'challenging' ? 'rgba(255,34,0,0.85)' : 'rgba(204,68,34,0.7)'
       ctx.lineWidth = 2
       ctx.beginPath()
@@ -208,14 +237,14 @@ export function draw_people(f: DrawFrame) {
       ctx.stroke()
     }
 
-    if (standardDetail && org.infection > 0.15) {
+    if (!glActive && standardDetail && org.infection > 0.15) {
       ctx.beginPath()
       ctx.arc(px, py, 8, 0, Math.PI * 2)
       ctx.fillStyle = `rgba(187,255,68,${org.infection * 0.3})`
       ctx.fill()
     }
 
-    if (isSelected) {
+    if (isSelected && !glActive) {
       ctx.save()
       ctx.beginPath()
       ctx.ellipse(px, py + 2, spriteSize * 0.42, spriteSize * 0.24, 0, 0, Math.PI * 2)
@@ -231,7 +260,7 @@ export function draw_people(f: DrawFrame) {
       ctx.restore()
     }
 
-    if (standardDetail && (!crowded || isSelected) && org.lineage_id) {
+    if (!glActive && standardDetail && (!crowded || isSelected) && org.lineage_id) {
       ctx.strokeStyle = lineageColor(org.lineage_id)
       ctx.lineWidth = org.traits ? 0.75 + org.traits.resilience : 1
       ctx.beginPath()
@@ -260,7 +289,7 @@ export function draw_people(f: DrawFrame) {
       else if (stage === 'infant' || stage === 'child') bodyFill = '#8db5d6'
       else bodyFill = '#b8b8a8'
     }
-    if (isSelected || viewFlags.health || viewFlags.age || (standardDetail && !crowded)) {
+    if (!glActive && (isSelected || viewFlags.health || viewFlags.age || (standardDetail && !crowded))) {
       ctx.save()
       ctx.globalAlpha *= viewFlags.health || viewFlags.age ? 0.3 : standardDetail ? 0.16 : 0.1
       ctx.fillStyle = bodyFill
@@ -269,7 +298,7 @@ export function draw_people(f: DrawFrame) {
       ctx.fill()
       ctx.restore()
     }
-    if (standardDetail && viewFlags.fear && (org.fear_level ?? 0) > 0.25) {
+    if (!glActive && standardDetail && viewFlags.fear && (org.fear_level ?? 0) > 0.25) {
       const fa = Math.min(0.55, (org.fear_level ?? 0) * 0.8)
       ctx.beginPath()
       ctx.arc(px, py, bodyR + 4, 0, Math.PI * 2)
@@ -277,14 +306,14 @@ export function draw_people(f: DrawFrame) {
       ctx.fill()
     }
 
-    if (standardDetail && viewFlags.lineageDot && org.lineage_id) {
+    if (!glActive && standardDetail && viewFlags.lineageDot && org.lineage_id) {
       ctx.fillStyle = lineageColor(org.lineage_id)
       ctx.beginPath()
       ctx.arc(px, py + bodyR * 0.4, 1.6, 0, Math.PI * 2)
       ctx.fill()
     }
 
-    if (standardDetail && viewFlags.pregnancy && org.pregnant) {
+    if (!glActive && standardDetail && viewFlags.pregnancy && org.pregnant) {
       ctx.strokeStyle = 'rgba(255,220,120,0.9)'
       ctx.lineWidth = 1.3
       ctx.setLineDash([2, 2])
@@ -297,15 +326,17 @@ export function draw_people(f: DrawFrame) {
     const motion = _orgLastPos.get(org.id)!
     const boat = boatsByRider.get(org.id)
     const frame = boat ? 0 : characterFrame(motion, t)
-    const drew = drawPeopleTile(
-      ctx,
-      pickHumanSprite(orgSex, stage, frame, deterministicAppearanceIndex(org.id)),
-      Math.round(px - spriteSize / 2),
-      Math.round(spriteTop),
-      spriteSize,
-      motion.flipped,
-      peopleAtlas,
-    )
+    const drew =
+      glActive ||
+      drawPeopleTile(
+        ctx,
+        pickHumanSprite(orgSex, stage, frame, deterministicAppearanceIndex(org.id)),
+        Math.round(px - spriteSize / 2),
+        Math.round(spriteTop),
+        spriteSize,
+        motion.flipped,
+        peopleAtlas,
+      )
     if (!drew) {
       ctx.fillStyle = variant.hairColor
       ctx.beginPath()
@@ -315,7 +346,8 @@ export function draw_people(f: DrawFrame) {
       ctx.fillRect(Math.round(px - bodyR * 0.7), Math.round(py + bodyR * 0.15), bodyR * 1.4, 2)
     }
 
-    if (boat) drawBoat(ctx, px, py, t, !boat.building && t - motion.movedAt <= 120, boat.building)
+    if (boat && !glActive)
+      drawBoat(ctx, px, py, t, !boat.building && t - motion.movedAt <= 120, boat.building)
     if (standardDetail && !boat) {
       drawWorkActivity(
         ctx,
@@ -327,20 +359,20 @@ export function draw_people(f: DrawFrame) {
         motion.phase,
       )
     }
-    if (standardDetail) {
+    if (standardDetail && !glActive) {
       const emote = emoteFor(org)
       if (emote) drawEmote(ctx, emote, px, py - bodyR * 2.4, t, motion.phase)
     }
 
     const era = lineageErasMap[org.lineage_id] ?? ''
-    if (standardDetail && era && era !== 'pre-stone' && era !== 'stone') {
+    if (!glActive && standardDetail && era && era !== 'pre-stone' && era !== 'stone') {
       ctx.save()
       ctx.fillStyle = ERA_STRIPE_COLOR[era] ?? 'rgba(255,255,255,0.0)'
       ctx.globalAlpha *= 0.75
       ctx.fillRect(Math.round(px - bodyR), Math.round(py + bodyR + 1), Math.round(bodyR * 2), 1)
       ctx.restore()
     }
-    if (org.is_leader) {
+    if (org.is_leader && !glActive) {
       const crownX = Math.round(px - 4)
       const crownY = Math.round(spriteTop - 2)
       ctx.fillStyle = '#f2c84b'
@@ -350,7 +382,7 @@ export function draw_people(f: DrawFrame) {
       ctx.fillRect(crownX + 6, crownY - 2, 2, 2)
     }
     const specEmoji = SPECIALTY_EMOJI[org.specialty ?? ''] ?? ''
-    if (fullDetail && specEmoji) {
+    if (!glActive && fullDetail && specEmoji) {
       ctx.save()
       ctx.font = '7px serif'
       ctx.textAlign = 'center'
@@ -358,7 +390,7 @@ export function draw_people(f: DrawFrame) {
       ctx.fillText(specEmoji, px + bodyR + 1, py - bodyR * 0.4)
       ctx.restore()
     }
-    if (standardDetail && org.diseases && org.diseases.length > 0) {
+    if (!glActive && standardDetail && org.diseases && org.diseases.length > 0) {
       ctx.save()
       ctx.font = '7px serif'
       ctx.textAlign = 'center'
@@ -366,7 +398,7 @@ export function draw_people(f: DrawFrame) {
       ctx.fillText('\u{1F912}', px - bodyR - 1, py - bodyR * 0.4)
       ctx.restore()
     }
-    if (fullDetail && org.tools) {
+    if (!glActive && fullDetail && org.tools) {
       const toolEmoji = pickToolEmoji(org.tools)
       if (toolEmoji) {
         ctx.save()
@@ -377,7 +409,7 @@ export function draw_people(f: DrawFrame) {
         ctx.restore()
       }
     }
-    if (fullDetail && org.degrees && org.degrees.length > 0) {
+    if (!glActive && fullDetail && org.degrees && org.degrees.length > 0) {
       ctx.save()
       ctx.font = '7px serif'
       ctx.textAlign = 'center'
@@ -386,13 +418,13 @@ export function draw_people(f: DrawFrame) {
       ctx.restore()
     }
 
-    if (standardDetail && org.carrying > 0) {
+    if (!glActive && standardDetail && org.carrying > 0) {
       ctx.fillStyle = org.carrying_type === 2 ? '#9a9a9a' : '#8b5e3c'
       ctx.fillRect(Math.round(px + spriteSize * 0.2), Math.round(py - 1), 5, 4)
     }
 
     const showVitals = isSelected || org.energy < 0.22 || org.hydration < 0.22 || org.health < 0.22
-    if (showVitals) {
+    if (showVitals && !glActive) {
       const barW = Math.max(8, Math.round(spriteSize * 0.55))
       const bx = Math.round(px - barW / 2)
       const by = Math.round(spriteTop - 5)

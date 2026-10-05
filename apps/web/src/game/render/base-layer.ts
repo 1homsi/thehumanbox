@@ -32,6 +32,12 @@ export interface BaseLayerKey {
   depth_map?: number[][]
   season?: string
   foam?: FoamPaths
+  /**
+   * Whether the canvas holds the ground pixels. False when the TileLayer terrain draws the ground
+   * and the canvas keeps only trees, mountains and decor on a transparent background. Missing
+   * means true (older keys).
+   */
+  ground?: boolean
 }
 export let _baseKey: BaseLayerKey | null = null
 
@@ -56,9 +62,11 @@ export function baseLayerMatches(
   biomes?: number[][],
   depth_map?: number[][],
   season?: string,
+  ground = true,
 ) {
   return (
     !!key &&
+    (key.ground ?? true) === ground &&
     key.width === width &&
     key.height === height &&
     key.origin_x === origin_x &&
@@ -257,11 +265,21 @@ export function updateScaledBaseRegion(tx0: number, ty0: number, tx1: number, ty
   )
 }
 
+/** The season the ground is coloured for: a hard winter frosts the land beyond an ordinary winter's browns. */
+export function terrainSeason(world: Pick<WorldState, 'hard_winter' | 'season'>): string {
+  return world.hard_winter && world.season === 'scarcity' ? 'hard_winter' : world.season
+}
+
 // Whether the cached base canvas was painted without trees, scattered decor and
 // mountains (?cf=vegetation draws those as cubeforge sprites instead).
 let _builtWithoutVegetation = false
 
-export function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
+/**
+ * The cached base canvas: ground, natural decor, trees and mountains. With `ground` false the
+ * ground pixels are left out (the canvas is transparent where nothing is drawn) because the
+ * TileLayer terrain draws them underneath.
+ */
+export function getBaseLayerCanvas(world: WorldState, ground = true): HTMLCanvasElement | null {
   const cfVegetation = cfOwns('vegetation')
   if (cfVegetation !== _builtWithoutVegetation) {
     _builtWithoutVegetation = cfVegetation
@@ -275,8 +293,7 @@ export function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null 
   const W = width * TILE
   const H = height * TILE
 
-  // A hard winter frosts the land beyond an ordinary winter's browns.
-  const season = world.hard_winter && world.season === 'scarcity' ? 'hard_winter' : world.season
+  const season = terrainSeason(world)
   const terrain_signature =
     _baseKey?.tiles === tiles ? _baseKey.terrain_signature : terrainVisualSignature(tiles, width, height)
   if (
@@ -292,6 +309,7 @@ export function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null 
       biomes,
       depth_map,
       season,
+      ground,
     )
   ) {
     if (_baseKey) _baseKey.tiles = tiles
@@ -307,9 +325,8 @@ export function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null 
   if (
     _baseKey &&
     _baseCanvas &&
-    _imgBuf &&
-    _imgBuf.width === width * TILE &&
-    _imgBuf.height === height * TILE &&
+    (_baseKey.ground ?? true) === ground &&
+    (!ground || (_imgBuf && _imgBuf.width === width * TILE && _imgBuf.height === height * TILE)) &&
     _baseKey.width === width &&
     _baseKey.height === height &&
     _baseKey.origin_x === origin_x &&
@@ -347,7 +364,7 @@ export function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null 
       const baseCtx = canvas.getContext('2d')!
       // Repaint changed tile blocks into the shared ImageData buffer.
       for (const [row, col] of changes) {
-        paintTileBlock(_imgBuf.data, W, tiles, biomes, depth_map, season, row, col)
+        if (ground && _imgBuf) paintTileBlock(_imgBuf.data, W, tiles, biomes, depth_map, season, row, col)
         // Keep the baked decor layer in sync for food/mineral toggles.
         updateTileDecorTile(tiles[row][col], col, row, origin_x, origin_y)
       }
@@ -370,15 +387,20 @@ export function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null 
       bx1 = Math.min(width - 1, bx1 + m)
       by1 = Math.min(height - 1, by1 + m)
       baseCtx.imageSmoothingEnabled = false
-      baseCtx.putImageData(
-        _imgBuf,
-        0,
-        0,
-        bx0 * TILE,
-        by0 * TILE,
-        (bx1 - bx0 + 1) * TILE,
-        (by1 - by0 + 1) * TILE,
-      )
+      if (ground && _imgBuf) {
+        baseCtx.putImageData(
+          _imgBuf,
+          0,
+          0,
+          bx0 * TILE,
+          by0 * TILE,
+          (bx1 - bx0 + 1) * TILE,
+          (by1 - by0 + 1) * TILE,
+        )
+      } else {
+        // The ground lives in the TileLayer: erase the old sprites back to transparent.
+        baseCtx.clearRect(bx0 * TILE, by0 * TILE, (bx1 - bx0 + 1) * TILE, (by1 - by0 + 1) * TILE)
+      }
       const only = { x0: bx0, y0: by0, x1: bx1, y1: by1 }
       baseCtx.save()
       baseCtx.beginPath()
@@ -416,17 +438,21 @@ export function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null 
   canvas.width = W
   canvas.height = H
 
-  const imgData = getReuseImgData(W, H)
-  const d = imgData.data
-  for (let row = 0; row < height; row++) {
-    for (let col = 0; col < width; col++) {
-      paintTileBlock(d, W, tiles, biomes, depth_map, season, row, col)
-    }
-  }
-
   const baseCtx = canvas.getContext('2d')!
   baseCtx.imageSmoothingEnabled = false
-  baseCtx.putImageData(imgData, 0, 0)
+  if (ground) {
+    const imgData = getReuseImgData(W, H)
+    const d = imgData.data
+    for (let row = 0; row < height; row++) {
+      for (let col = 0; col < width; col++) {
+        paintTileBlock(d, W, tiles, biomes, depth_map, season, row, col)
+      }
+    }
+    baseCtx.putImageData(imgData, 0, 0)
+  } else {
+    // Drop the 46 MB ground buffer a previous canvas-terrain build left behind.
+    _imgBuf = null
+  }
   if (biomes) {
     drawNaturalDecor(baseCtx, width, height, tiles, biomes, origin_x, origin_y, undefined, !cfVegetation)
   }
@@ -446,6 +472,7 @@ export function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null 
     depth_map,
     season,
     foam: buildFoamPaths(tiles, width, height),
+    ground,
   }
   return canvas
 }
