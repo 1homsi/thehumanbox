@@ -9,12 +9,14 @@ import { drawRail, drawTrain, trainProgress } from '.././era-traffic'
 
 import { TILE } from '../../model/palette'
 
+import { cfOwns } from '../cf/ownership'
 import type { DrawFrame } from './frame'
 
 /** Farms, railways, plantings and trade roads. */
 export function draw_landuse(f: DrawFrame) {
   const { ctx, world, ox, oy, r0, r1, c0, c1, t } = f
-  if (world.farms && world.farms.length > 0) {
+  const cfLanduse = cfOwns('landuse')
+  if (!cfLanduse && world.farms && world.farms.length > 0) {
     ctx.save()
     for (const farm of world.farms) {
       const localX = farm.x - ox
@@ -82,7 +84,7 @@ export function draw_landuse(f: DrawFrame) {
     }
   }
 
-  if (world.plantings && world.plantings.length >= 4) {
+  if (!cfLanduse && world.plantings && world.plantings.length >= 4) {
     const flat = world.plantings
     for (let i = 0; i + 3 < flat.length; i += 4) {
       const localX = flat[i]! - ox

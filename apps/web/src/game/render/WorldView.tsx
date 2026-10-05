@@ -17,6 +17,8 @@ import { WorldSprite } from './world-view/WorldSprite'
 import { CanvasWorldFallback } from './world-view/CanvasWorldFallback'
 import { useRendererBackend } from './world-view/useRendererBackend'
 import { useMapPointer } from './world-view/useMapPointer'
+import { CfWorld } from './cf/CfWorld'
+import { cfSplitCanvas } from './cf/ownership'
 
 interface Props {
   world: WorldState
@@ -63,6 +65,8 @@ export function WorldView({
   const containerRef = useRef<HTMLDivElement>(null)
   const commandRef = useRef<MapCommand | null>(null)
   const cameraStateRef = useRef({ x: cx, y: cy, zoom: 1.5 })
+  // Dev builds only: lets cf-compare.html drive and read the camera.
+  if (import.meta.env.DEV) (window as unknown as { __thbCamera?: unknown }).__thbCamera = cameraStateRef
   // Other panels (the prayer list) ask the camera to look at a tile.
   const focusRequest = useCameraFocus((s) => s.request)
   useEffect(() => {
@@ -178,6 +182,15 @@ export function WorldView({
               <World background="#1a4a80">
                 <Camera2D />
 
+                {cfSplitCanvas() && (
+                  <CfWorld
+                    world={world}
+                    interp={interp}
+                    cameraStateRef={cameraStateRef}
+                    viewportDims={dims}
+                    rendererPaused={rendererPaused}
+                  />
+                )}
                 <Entity>
                   <WorldSprite
                     world={world}

@@ -86,7 +86,7 @@ export interface DecorRegion {
   y1: number
 }
 
-type PlacedTree = { cx: number; cy: number; sz: number; sprite: typeof SPRITE.trees.oak_mid }
+export type PlacedTree = { cx: number; cy: number; sz: number; sprite: typeof SPRITE.trees.oak_mid }
 
 /** Trees painted into the cached base layer, kept so the frame can sway them. */
 let swayTrees: PlacedTree[] = []
@@ -144,22 +144,31 @@ export function treePlacementOrder(n: number): Int32Array {
   return order
 }
 
-export function drawTrees(
-  ctx: CanvasRenderingContext2D,
+export interface PlacedAcacia {
+  x: number
+  y: number
+  s: number
+}
+
+/**
+ * Where trees stand: a deterministic placement over the whole grid (a tree's
+ * existence depends on every higher-priority neighbour), sorted back to front.
+ * With `only`, trees anchored outside that region are skipped, as drawTrees repaints.
+ */
+export function placeTrees(
   width: number,
   height: number,
   tiles: number[][],
-  biomes?: number[][],
+  biomes: number[][],
   originX = 0,
   originY = 0,
   only?: DecorRegion,
   season = 'summer',
-) {
-  if (!biomes || !ATLAS_TOWN.complete) return
+): { trees: PlacedTree[]; acacias: PlacedAcacia[] } {
   season = vegetationSeason(season)
   const TREE_SIZE = 25
   const trees: PlacedTree[] = []
-  const acacias: { x: number; y: number; s: number }[] = []
+  const acacias: PlacedAcacia[] = []
 
   const placed: Uint8Array = new Uint8Array(width * height)
   const order = treePlacementOrder(width * height)
@@ -324,6 +333,22 @@ export function drawTrees(
   }
   // Place deterministically, then paint back-to-front so tree crowns overlap naturally.
   trees.sort((a, b) => a.cy + a.sz - (b.cy + b.sz))
+  return { trees, acacias }
+}
+
+export function drawTrees(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  tiles: number[][],
+  biomes?: number[][],
+  originX = 0,
+  originY = 0,
+  only?: DecorRegion,
+  season = 'summer',
+) {
+  if (!biomes || !ATLAS_TOWN.complete) return
+  const { trees, acacias } = placeTrees(width, height, tiles, biomes, originX, originY, only, season)
   if (only) {
     // A region repaint only re-places trees inside it; keep the rest.
     const inRegion = (t: PlacedTree) =>
@@ -358,7 +383,7 @@ export function drawTrees(
 }
 
 /** A savanna acacia: thin forked trunk under a wide, flat canopy. */
-function drawAcacia(ctx: CanvasRenderingContext2D, x: number, baseY: number, scale: number) {
+export function drawAcacia(ctx: CanvasRenderingContext2D, x: number, baseY: number, scale: number) {
   const cx = Math.round(x)
   const by = Math.round(baseY)
   const trunk = Math.round(9 * Math.min(1.3, scale))
@@ -383,6 +408,150 @@ function isGrassLand(n: number | undefined): boolean {
   return n === TILE_ID.GRASS || n === TILE_ID.FOOD
 }
 
+/**
+ * The scattered detail of one ground tile (rocks, flowers, tufts, ...), painted with
+ * the tile's top-left at (px, py). The pattern depends on the world position only
+ * through `worldX`/`worldY`, so the same call can bake a tile into a sprite atlas.
+ */
+export function paintDecorTile(
+  ctx: CanvasRenderingContext2D,
+  t: number,
+  biome: number,
+  worldX: number,
+  worldY: number,
+  px: number,
+  py: number,
+) {
+  // Only these ground types carry scattered detail; skip the hash for water and the rest.
+  if (
+    t !== TILE_ID.GRASS &&
+    t !== TILE_ID.FOOD &&
+    t !== TILE_ID.ROCK &&
+    t !== TILE_ID.SAND &&
+    t !== TILE_ID.SNOW
+  ) {
+    return
+  }
+  const hash = landscapeHash(worldX, worldY)
+  const r0 = (hash & 0xff) / 255
+  const r1 = ((hash >>> 8) & 0xff) / 255
+  const r2 = ((hash >>> 16) & 0xff) / 255
+
+  if ((t === TILE_ID.ROCK && r0 < 0.25) || (t === TILE_ID.SAND && biome === BIOME_ID.DESERT && r0 < 0.04)) {
+    const sz = 2 + Math.floor(r1 * 2)
+    const rockX = Math.round(px + TILE / 2 + (r2 - 0.5) * TILE * 0.4 - sz / 2)
+    const rockY = Math.round(py + TILE / 2 + (r0 - 0.5) * TILE * 0.4)
+    ctx.fillStyle = t === TILE_ID.ROCK ? '#443f3b' : '#705f45'
+    ctx.fillRect(rockX, rockY, sz + 1, 2)
+    ctx.fillStyle = t === TILE_ID.ROCK ? '#77706a' : '#a58a5e'
+    ctx.fillRect(rockX + 1, rockY - 1, Math.max(1, sz - 1), 1)
+    return
+  }
+  if (t === TILE_ID.SNOW && r0 < 0.18) {
+    const snowX = Math.round(px + TILE / 2 + (r2 - 0.5) * TILE * 0.3)
+    const snowY = Math.round(py + TILE / 2 + (r1 - 0.5) * TILE * 0.3)
+    ctx.fillStyle = 'rgba(245,250,255,0.7)'
+    ctx.fillRect(snowX - 2, snowY, 4, 1)
+    ctx.fillRect(snowX - 1, snowY - 1, 3, 1)
+    return
+  }
+  if (biome === BIOME_ID.BADLANDS && t === TILE_ID.SAND && r0 < 0.07) {
+    // A wind-cut red rock pillar with a lit face and a flat cap.
+    const bx = Math.round(px + TILE / 2 + (r1 - 0.5) * TILE * 0.4)
+    const by = Math.round(py + TILE - 1)
+    const hgt = 4 + Math.floor(r2 * 5)
+    ctx.fillStyle = 'rgba(40,16,8,0.3)'
+    ctx.fillRect(bx - 2, by, 6, 1)
+    ctx.fillStyle = '#8a3f22'
+    ctx.fillRect(bx - 2, by - hgt, 4, hgt)
+    ctx.fillStyle = '#c26a3e'
+    ctx.fillRect(bx - 2, by - hgt, 2, hgt)
+    ctx.fillStyle = '#e09160'
+    ctx.fillRect(bx - 3, by - hgt - 1, 6, 1)
+    return
+  }
+  if (t !== TILE_ID.GRASS && t !== TILE_ID.FOOD) return
+
+  if (biome === BIOME_ID.SAVANNA && r0 < 0.2) {
+    // Tall dry grass in tufts.
+    const gx = Math.round(px + TILE / 2 + (r1 - 0.5) * TILE * 0.5)
+    const gy = Math.round(py + TILE / 2 + (r2 - 0.5) * TILE * 0.4)
+    ctx.fillStyle = '#b9a45a'
+    ctx.fillRect(gx - 2, gy - 2, 1, 3)
+    ctx.fillRect(gx, gy - 3, 1, 4)
+    ctx.fillRect(gx + 2, gy - 2, 1, 3)
+    ctx.fillStyle = '#e1cd7c'
+    ctx.fillRect(gx, gy - 3, 1, 1)
+    return
+  }
+  if (biome === BIOME_ID.JUNGLE && r0 < 0.14) {
+    // Ferns in the undergrowth.
+    const fx = Math.round(px + TILE / 2 + (r1 - 0.5) * TILE * 0.5)
+    const fy = Math.round(py + TILE / 2 + (r2 - 0.5) * TILE * 0.4)
+    ctx.fillStyle = '#1f5a28'
+    ctx.fillRect(fx - 2, fy, 5, 1)
+    ctx.fillRect(fx - 1, fy - 1, 3, 1)
+    ctx.fillStyle = '#3f8a3a'
+    ctx.fillRect(fx, fy - 2, 1, 2)
+    return
+  }
+
+  if (
+    biome === BIOME_ID.GRASSLAND &&
+    r0 < (Math.sin(worldX * 0.13) + Math.sin(worldY * 0.17) > 1 ? 0.22 : 0.018)
+  ) {
+    const colors = ['#f1b9bf', '#f6e3a0', '#cfc0e9', '#f5eade']
+    ctx.fillStyle = colors[Math.floor(r2 * colors.length)]
+    const fx = px + TILE / 2 + (r1 - 0.5) * TILE * 0.4
+    const fy = py + TILE / 2 + (r2 - 0.5) * TILE * 0.4
+    ctx.fillRect(Math.round(fx) - 1, Math.round(fy), 3, 1)
+    ctx.fillRect(Math.round(fx), Math.round(fy) - 1, 1, 3)
+    ctx.fillStyle = '#e4bc68'
+    ctx.fillRect(Math.round(fx), Math.round(fy), 1, 1)
+    ctx.fillStyle = '#3a6b32'
+    ctx.fillRect(fx, fy + 1, 1, 2)
+  } else if (biome === BIOME_ID.FOREST && r0 < 0.06) {
+    const mx = px + TILE / 2 + (r2 - 0.5) * TILE * 0.4
+    const my = py + TILE / 2 + (r1 - 0.5) * TILE * 0.4
+    ctx.fillStyle = r1 < 0.5 ? '#c54a4a' : '#ddd5b8'
+    ctx.beginPath()
+    ctx.arc(mx, my, 2, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#f0e8d8'
+    ctx.fillRect(mx - 1, my + 1, 2, 2)
+  } else if ((biome === BIOME_ID.GRASSLAND || biome === BIOME_ID.WETLAND) && r1 < 0.12) {
+    ctx.strokeStyle = biome === BIOME_ID.WETLAND ? '#5a8848' : '#7ea860'
+    ctx.lineWidth = 1
+    const gx = px + TILE / 2 + (r0 - 0.5) * TILE * 0.5
+    const gy = py + TILE - 1
+    ctx.beginPath()
+    ctx.moveTo(gx, gy)
+    ctx.lineTo(gx + (r2 - 0.5) * 2, gy - 3)
+    ctx.moveTo(gx + 1, gy)
+    ctx.lineTo(gx + 1 + (r2 - 0.5) * 2, gy - 2)
+    ctx.stroke()
+  } else if (biome === BIOME_ID.TUNDRA && r0 < 0.08) {
+    ctx.fillStyle = 'rgba(220,225,235,0.55)'
+    ctx.beginPath()
+    ctx.ellipse(
+      px + TILE / 2 + (r2 - 0.5) * TILE * 0.4,
+      py + TILE / 2 + (r1 - 0.5) * TILE * 0.4,
+      2.5,
+      1.4,
+      0,
+      0,
+      Math.PI * 2,
+    )
+    ctx.fill()
+  }
+
+  if (r2 < 0.003) {
+    ctx.fillStyle = 'rgba(220,210,190,0.55)'
+    ctx.fillRect(px + TILE / 2 - 1, py + TILE / 2, 3, 1)
+    ctx.fillRect(px + TILE / 2 - 1, py + TILE / 2 + 1, 2, 1)
+  }
+}
+
 export function drawNaturalDecor(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -392,10 +561,12 @@ export function drawNaturalDecor(
   originX = 0,
   originY = 0,
   only?: DecorRegion,
+  /** False when cubeforge draws the scattered detail; the shore and edge work stays here. */
+  scatter = true,
 ) {
   if (!biomes) return
   ctx.save()
-  for (let y = 1; y < height - 1; y++) {
+  for (let y = scatter ? 1 : height; y < height - 1; y++) {
     if (only && (y < only.y0 - 1 || y > only.y1 + 1)) continue
     const tRow = tiles[y]
     const bRow = biomes[y]
@@ -403,142 +574,7 @@ export function drawNaturalDecor(
     for (let x = 1; x < width - 1; x++) {
       if (only && (x < only.x0 - 1 || x > only.x1 + 1)) continue
       const t = tRow[x]
-      // Only these ground types carry scattered detail; skip the hash for water and the rest.
-      if (
-        t !== TILE_ID.GRASS &&
-        t !== TILE_ID.FOOD &&
-        t !== TILE_ID.ROCK &&
-        t !== TILE_ID.SAND &&
-        t !== TILE_ID.SNOW
-      ) {
-        continue
-      }
-      const biome = bRow[x] ?? 0
-      const worldX = x + originX
-      const worldY = y + originY
-      const hash = landscapeHash(worldX, worldY)
-      const r0 = (hash & 0xff) / 255
-      const r1 = ((hash >>> 8) & 0xff) / 255
-      const r2 = ((hash >>> 16) & 0xff) / 255
-      const px = x * TILE
-      const py = y * TILE
-
-      if (
-        (t === TILE_ID.ROCK && r0 < 0.25) ||
-        (t === TILE_ID.SAND && biome === BIOME_ID.DESERT && r0 < 0.04)
-      ) {
-        const sz = 2 + Math.floor(r1 * 2)
-        const rockX = Math.round(px + TILE / 2 + (r2 - 0.5) * TILE * 0.4 - sz / 2)
-        const rockY = Math.round(py + TILE / 2 + (r0 - 0.5) * TILE * 0.4)
-        ctx.fillStyle = t === TILE_ID.ROCK ? '#443f3b' : '#705f45'
-        ctx.fillRect(rockX, rockY, sz + 1, 2)
-        ctx.fillStyle = t === TILE_ID.ROCK ? '#77706a' : '#a58a5e'
-        ctx.fillRect(rockX + 1, rockY - 1, Math.max(1, sz - 1), 1)
-        continue
-      }
-      if (t === TILE_ID.SNOW && r0 < 0.18) {
-        const snowX = Math.round(px + TILE / 2 + (r2 - 0.5) * TILE * 0.3)
-        const snowY = Math.round(py + TILE / 2 + (r1 - 0.5) * TILE * 0.3)
-        ctx.fillStyle = 'rgba(245,250,255,0.7)'
-        ctx.fillRect(snowX - 2, snowY, 4, 1)
-        ctx.fillRect(snowX - 1, snowY - 1, 3, 1)
-        continue
-      }
-      if (biome === BIOME_ID.BADLANDS && t === TILE_ID.SAND && r0 < 0.07) {
-        // A wind-cut red rock pillar with a lit face and a flat cap.
-        const bx = Math.round(px + TILE / 2 + (r1 - 0.5) * TILE * 0.4)
-        const by = Math.round(py + TILE - 1)
-        const hgt = 4 + Math.floor(r2 * 5)
-        ctx.fillStyle = 'rgba(40,16,8,0.3)'
-        ctx.fillRect(bx - 2, by, 6, 1)
-        ctx.fillStyle = '#8a3f22'
-        ctx.fillRect(bx - 2, by - hgt, 4, hgt)
-        ctx.fillStyle = '#c26a3e'
-        ctx.fillRect(bx - 2, by - hgt, 2, hgt)
-        ctx.fillStyle = '#e09160'
-        ctx.fillRect(bx - 3, by - hgt - 1, 6, 1)
-        continue
-      }
-      if (t !== TILE_ID.GRASS && t !== TILE_ID.FOOD) continue
-
-      if (biome === BIOME_ID.SAVANNA && r0 < 0.2) {
-        // Tall dry grass in tufts.
-        const gx = Math.round(px + TILE / 2 + (r1 - 0.5) * TILE * 0.5)
-        const gy = Math.round(py + TILE / 2 + (r2 - 0.5) * TILE * 0.4)
-        ctx.fillStyle = '#b9a45a'
-        ctx.fillRect(gx - 2, gy - 2, 1, 3)
-        ctx.fillRect(gx, gy - 3, 1, 4)
-        ctx.fillRect(gx + 2, gy - 2, 1, 3)
-        ctx.fillStyle = '#e1cd7c'
-        ctx.fillRect(gx, gy - 3, 1, 1)
-        continue
-      }
-      if (biome === BIOME_ID.JUNGLE && r0 < 0.14) {
-        // Ferns in the undergrowth.
-        const fx = Math.round(px + TILE / 2 + (r1 - 0.5) * TILE * 0.5)
-        const fy = Math.round(py + TILE / 2 + (r2 - 0.5) * TILE * 0.4)
-        ctx.fillStyle = '#1f5a28'
-        ctx.fillRect(fx - 2, fy, 5, 1)
-        ctx.fillRect(fx - 1, fy - 1, 3, 1)
-        ctx.fillStyle = '#3f8a3a'
-        ctx.fillRect(fx, fy - 2, 1, 2)
-        continue
-      }
-
-      if (
-        biome === BIOME_ID.GRASSLAND &&
-        r0 < (Math.sin(worldX * 0.13) + Math.sin(worldY * 0.17) > 1 ? 0.22 : 0.018)
-      ) {
-        const colors = ['#f1b9bf', '#f6e3a0', '#cfc0e9', '#f5eade']
-        ctx.fillStyle = colors[Math.floor(r2 * colors.length)]
-        const fx = px + TILE / 2 + (r1 - 0.5) * TILE * 0.4
-        const fy = py + TILE / 2 + (r2 - 0.5) * TILE * 0.4
-        ctx.fillRect(Math.round(fx) - 1, Math.round(fy), 3, 1)
-        ctx.fillRect(Math.round(fx), Math.round(fy) - 1, 1, 3)
-        ctx.fillStyle = '#e4bc68'
-        ctx.fillRect(Math.round(fx), Math.round(fy), 1, 1)
-        ctx.fillStyle = '#3a6b32'
-        ctx.fillRect(fx, fy + 1, 1, 2)
-      } else if (biome === BIOME_ID.FOREST && r0 < 0.06) {
-        const mx = px + TILE / 2 + (r2 - 0.5) * TILE * 0.4
-        const my = py + TILE / 2 + (r1 - 0.5) * TILE * 0.4
-        ctx.fillStyle = r1 < 0.5 ? '#c54a4a' : '#ddd5b8'
-        ctx.beginPath()
-        ctx.arc(mx, my, 2, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.fillStyle = '#f0e8d8'
-        ctx.fillRect(mx - 1, my + 1, 2, 2)
-      } else if ((biome === BIOME_ID.GRASSLAND || biome === BIOME_ID.WETLAND) && r1 < 0.12) {
-        ctx.strokeStyle = biome === BIOME_ID.WETLAND ? '#5a8848' : '#7ea860'
-        ctx.lineWidth = 1
-        const gx = px + TILE / 2 + (r0 - 0.5) * TILE * 0.5
-        const gy = py + TILE - 1
-        ctx.beginPath()
-        ctx.moveTo(gx, gy)
-        ctx.lineTo(gx + (r2 - 0.5) * 2, gy - 3)
-        ctx.moveTo(gx + 1, gy)
-        ctx.lineTo(gx + 1 + (r2 - 0.5) * 2, gy - 2)
-        ctx.stroke()
-      } else if (biome === BIOME_ID.TUNDRA && r0 < 0.08) {
-        ctx.fillStyle = 'rgba(220,225,235,0.55)'
-        ctx.beginPath()
-        ctx.ellipse(
-          px + TILE / 2 + (r2 - 0.5) * TILE * 0.4,
-          py + TILE / 2 + (r1 - 0.5) * TILE * 0.4,
-          2.5,
-          1.4,
-          0,
-          0,
-          Math.PI * 2,
-        )
-        ctx.fill()
-      }
-
-      if (r2 < 0.003) {
-        ctx.fillStyle = 'rgba(220,210,190,0.55)'
-        ctx.fillRect(px + TILE / 2 - 1, py + TILE / 2, 3, 1)
-        ctx.fillRect(px + TILE / 2 - 1, py + TILE / 2 + 1, 2, 1)
-      }
+      paintDecorTile(ctx, t, bRow[x] ?? 0, x + originX, y + originY, x * TILE, y * TILE)
     }
   }
 

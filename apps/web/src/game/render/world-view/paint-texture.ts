@@ -14,6 +14,7 @@ export function paintWorldTexture(
   renderWindow: ReturnType<typeof worldRenderWindow>,
   zoom: number,
   scale: number,
+  phase: 'all' | 'below' | 'above' = 'all',
 ) {
   const bounds = {
     c0: Math.max(0, Math.floor(renderWindow.x / TILE)),
@@ -21,6 +22,11 @@ export function paintWorldTexture(
     r0: Math.max(0, Math.floor(renderWindow.y / TILE)),
     r1: Math.min(world.grid.height, Math.ceil((renderWindow.y + renderWindow.height) / TILE)),
   }
+  // The transparent top canvas is rebuilt from scratch each time.
+  if (phase === 'above') {
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+  }
   ctx.setTransform(scale, 0, 0, scale, -renderWindow.x * scale, -renderWindow.y * scale)
-  drawWorldOnCanvas(ctx, world, selectedOrgId, overlay, focus, viewFlags, bounds, zoom, scale)
+  drawWorldOnCanvas(ctx, world, selectedOrgId, overlay, focus, viewFlags, bounds, zoom, scale, phase)
 }

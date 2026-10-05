@@ -22,17 +22,26 @@ export function drawWorldOnCanvas(
   bounds?: { c0: number; c1: number; r0: number; r1: number },
   cameraZoom = 1,
   renderScale = 1,
+  /**
+   * 'below' / 'above' split the stack at the buildings so cubeforge layers can sit
+   * between the two canvases (see cf/flags.ts); 'all' is the single canvas.
+   */
+  phase: 'all' | 'below' | 'above' = 'all',
 ) {
   const f = createFrame(ctx, world, selectedOrgId, overlay, focus, viewFlags, bounds, cameraZoom, renderScale)
   if (!f) return
-  draw_base(f)
-  draw_atmosphere(f)
-  draw_terrain(f)
-  draw_overlays(f)
-  draw_landuse(f)
-  draw_buildings(f)
-  draw_animals(f)
-  draw_people(f)
-  draw_effects(f)
-  draw_hud(f)
+  if (phase !== 'above') {
+    draw_base(f)
+    draw_atmosphere(f)
+    draw_terrain(f)
+    draw_overlays(f)
+    draw_landuse(f)
+  }
+  if (phase !== 'below') {
+    draw_buildings(f)
+    draw_animals(f)
+    draw_people(f)
+    draw_effects(f)
+    draw_hud(f)
+  }
 }
