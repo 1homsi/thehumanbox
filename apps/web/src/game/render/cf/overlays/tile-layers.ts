@@ -65,7 +65,13 @@ export function createTileLayers(width: number, height: number): TileLayerSet {
   }
   outline.setTints(edge)
   contested.opacity = 0
-  return { heat, contested, outline, all: [heat, contested, outline], uploads: { heat: 0, contested: 0, outline: 0 } }
+  return {
+    heat,
+    contested,
+    outline,
+    all: [heat, contested, outline],
+    uploads: { heat: 0, contested: 0, outline: 0 },
+  }
 }
 
 /** Push a freshly computed heat grid into its tile layer (full replace: ids and tints). */
@@ -74,4 +80,3 @@ export function applyHeat(layers: TileLayerSet, grid: HeatGrid): void {
   layers.heat.setTints(grid.rgba)
   layers.uploads.heat++
 }
-

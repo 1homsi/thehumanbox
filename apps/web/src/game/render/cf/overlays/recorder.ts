@@ -16,7 +16,15 @@ export class RecGradient {
   readonly y1: number
   readonly r1: number
 
-  constructor(kind: 'radial' | 'linear', x0: number, y0: number, r0: number, x1: number, y1: number, r1: number) {
+  constructor(
+    kind: 'radial' | 'linear',
+    x0: number,
+    y0: number,
+    r0: number,
+    x1: number,
+    y1: number,
+    r1: number,
+  ) {
     this.kind = kind
     this.x0 = x0
     this.y0 = y0
@@ -461,7 +469,15 @@ export class SpriteRecorder {
       if (diagonal && lw <= 3) {
         // A thin slanted line: feather it like the canvas does instead of a hard-edged quad.
         const alpha = Math.min(1, (2 * lw) / (lw + 1)) * col.a * this.globalAlpha
-        this.pushShape((x0 + x1) / 2, (y0 + y1) / 2, len + ext, lw + 1, angle, this.shapes.softLine(), packRgba(col.r, col.g, col.b, alpha))
+        this.pushShape(
+          (x0 + x1) / 2,
+          (y0 + y1) / 2,
+          len + ext,
+          lw + 1,
+          angle,
+          this.shapes.softLine(),
+          packRgba(col.r, col.g, col.b, alpha),
+        )
       } else {
         this.pushUntextured((x0 + x1) / 2, (y0 + y1) / 2, len + ext, lw, angle, color)
       }
@@ -523,7 +539,15 @@ export class SpriteRecorder {
     stops.push({ offset: 1, color: colorAt(t0 <= t1 ? hi : lo) })
     stops.sort((p, q) => p.offset - q.offset)
     const { frame, alpha } = this.shapes.linear(stops)
-    this.pushShape(x + w / 2, y + h / 2, w * DISC_SPAN_LINEAR, h * DISC_SPAN_LINEAR, 0, frame, packRgba(255, 255, 255, alpha * this.globalAlpha))
+    this.pushShape(
+      x + w / 2,
+      y + h / 2,
+      w * DISC_SPAN_LINEAR,
+      h * DISC_SPAN_LINEAR,
+      0,
+      frame,
+      packRgba(255, 255, 255, alpha * this.globalAlpha),
+    )
   }
 
   // ── text ───────────────────────────────────────────────────────────────────
@@ -532,7 +556,10 @@ export class SpriteRecorder {
     let f = this.fontCache.get(this.font)
     if (!f) {
       const m = FONT_RE.exec(this.font)
-      f = { size: m ? parseFloat(m[2]) : 10, weight: m && m[1] && (m[1] === 'bold' || +m[1] >= 600) ? 'bold' : 'normal' }
+      f = {
+        size: m ? parseFloat(m[2]) : 10,
+        weight: m && m[1] && (m[1] === 'bold' || +m[1] >= 600) ? 'bold' : 'normal',
+      }
       this.fontCache.set(this.font, f)
     }
     return f

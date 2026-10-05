@@ -14,7 +14,8 @@ const H = 16
 function field(seed: number, scale: number): number[][] {
   return Array.from({ length: H }, (_, y) =>
     Array.from({ length: W }, (_, x) => {
-      const v = Math.sin((x + seed) / scale) * Math.cos((y + seed * 2) / scale) + Math.sin((x + y) / (scale * 1.7))
+      const v =
+        Math.sin((x + seed) / scale) * Math.cos((y + seed * 2) / scale) + Math.sin((x + y) / (scale * 1.7))
       return Math.max(0, Math.min(1, v * 0.5 + 0.4))
     }),
   )
@@ -49,8 +50,25 @@ function makeWorld(): WorldState {
     weather: { kind: 'clear', intensity: 0 },
     territory: {
       claimed: [
-        { lid: 'a', tiles: [[2, 2], [3, 2], [2, 3], [3, 3], [4, 3]] },
-        { lid: 'b', tiles: [[3, 3], [4, 3], [5, 3], [5, 4]] },
+        {
+          lid: 'a',
+          tiles: [
+            [2, 2],
+            [3, 2],
+            [2, 3],
+            [3, 3],
+            [4, 3],
+          ],
+        },
+        {
+          lid: 'b',
+          tiles: [
+            [3, 3],
+            [4, 3],
+            [5, 3],
+            [5, 4],
+          ],
+        },
       ],
       contested: [[3, 3]],
     },
@@ -122,7 +140,8 @@ function compare(overlay: string | null, flags: Flags, tolerance = 1.5) {
     // Alpha, and the straight colour, within a few levels (the byte quantisation of the tint texture).
     worst = Math.max(worst, Math.abs(a - alpha) * 255)
     if (a > 0.05) {
-      for (let k = 0; k < 3; k++) worst = Math.max(worst, Math.abs(expected[i * 4 + k] / a - heat.rgba[i * 4 + k]))
+      for (let k = 0; k < 3; k++)
+        worst = Math.max(worst, Math.abs(expected[i * 4 + k] / a - heat.rgba[i * 4 + k]))
     }
   }
   expect(worst).toBeLessThanOrEqual(tolerance)

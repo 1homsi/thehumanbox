@@ -1,7 +1,18 @@
 /* eslint-disable react-refresh/only-export-components -- a benchmark page, not an app module */
 import { createRoot } from 'react-dom/client'
 import { useEffect, useMemo, useRef } from 'react'
-import { Camera2D, Entity, Game, Sprite, Transform, World, useCamera, useDynamicCanvas, useEntity, useGame } from 'cubeforge'
+import {
+  Camera2D,
+  Entity,
+  Game,
+  Sprite,
+  Transform,
+  World,
+  useCamera,
+  useDynamicCanvas,
+  useEntity,
+  useGame,
+} from 'cubeforge'
 import type { CameraControls, EngineState, SpriteComponent, TransformComponent } from 'cubeforge'
 import init, { Sim } from '../../../../wasm/sim-core/sim_core'
 import { parseWorldFrame } from '../../../../simulation/wire'
@@ -46,7 +57,10 @@ const composite = document.querySelector<HTMLCanvasElement>('#composite')!
 /** Wait n animation frames; refuses to wait forever on a hidden tab (rAF does not run there). */
 const frames = (n: number) =>
   new Promise<void>((resolve, reject) => {
-    const guard = window.setTimeout(() => reject(new Error(`rAF stalled (document.hidden=${document.hidden})`)), 4000)
+    const guard = window.setTimeout(
+      () => reject(new Error(`rAF stalled (document.hidden=${document.hidden})`)),
+      4000,
+    )
     const step = (left: number) => {
       if (left <= 0) {
         window.clearTimeout(guard)
@@ -121,7 +135,13 @@ function CanvasSprite({ w, h }: { w: number; h: number }) {
   )
 }
 
-function Stage({ world, mode, size, onRenderer, exp }: {
+function Stage({
+  world,
+  mode,
+  size,
+  onRenderer,
+  exp,
+}: {
   world: WorldState
   mode: 'cf' | 'canvas' | 'none'
   size: { w: number; h: number }
@@ -131,7 +151,16 @@ function Stage({ world, mode, size, onRenderer, exp }: {
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 })
   const noop = useMemo(() => () => {}, [])
   const all: CfFeatures = useMemo(
-    () => ({ ...NO_FEATURES, atmosphere: true, overlays: true, effects: true, hud: true, water: true, glow: true, roads: true }),
+    () => ({
+      ...NO_FEATURES,
+      atmosphere: true,
+      overlays: true,
+      effects: true,
+      hud: true,
+      water: true,
+      glow: true,
+      roads: true,
+    }),
     [],
   )
   const flags = useUIStore.getState().viewFlags
@@ -268,10 +297,17 @@ function paintCanvasLayers(ctx: CanvasRenderingContext2D, f: CfFrame, features: 
     if (features.hud) {
       if (!f.viewFlags.hideUI) {
         const measure = (text: string, kind: 'major' | 'minor' | 'sub') => {
-          ctx.font = kind === 'sub' ? '8px monospace' : kind === 'major' ? 'bold 12px monospace' : '10px monospace'
+          ctx.font =
+            kind === 'sub' ? '8px monospace' : kind === 'major' ? 'bold 12px monospace' : '10px monospace'
           return ctx.measureText(text).width
         }
-        frame.placedSettlementLabels = placeLabels(collectSettlementLabels(f.world, f.bounds, f.zoom), f.zoom, measure, f.W, f.H)
+        frame.placedSettlementLabels = placeLabels(
+          collectSettlementLabels(f.world, f.bounds, f.zoom),
+          f.zoom,
+          measure,
+          f.W,
+          f.H,
+        )
       }
       draw_hud(frame)
     }
@@ -283,9 +319,13 @@ function paintCanvasLayers(ctx: CanvasRenderingContext2D, f: CfFrame, features: 
 function summarise(times: number[]) {
   const s = [...times].sort((a, b) => a - b)
   const mean = s.reduce((a, b) => a + b, 0) / Math.max(1, s.length)
-  return { mean: +mean.toFixed(3), p50: +s[Math.floor(s.length / 2)]?.toFixed(3), p95: +s[Math.min(s.length - 1, Math.floor(s.length * 0.95))]?.toFixed(3), n: s.length }
+  return {
+    mean: +mean.toFixed(3),
+    p50: +s[Math.floor(s.length / 2)]?.toFixed(3),
+    p95: +s[Math.min(s.length - 1, Math.floor(s.length * 0.95))]?.toFixed(3),
+    n: s.length,
+  }
 }
-
 
 interface GpuTimer {
   TIME_ELAPSED_EXT: number
@@ -320,7 +360,8 @@ async function profileFrames(engine: EngineState, count: number, before: (i: num
     while (pending.length) {
       const q = pending[0]
       if (!gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)) break
-      if (!gl.getParameter(ext.GPU_DISJOINT_EXT)) gpu.push(Number(gl.getQueryParameter(q, gl.QUERY_RESULT)) / 1e6)
+      if (!gl.getParameter(ext.GPU_DISJOINT_EXT))
+        gpu.push(Number(gl.getQueryParameter(q, gl.QUERY_RESULT)) / 1e6)
       gl.deleteQuery(q)
       pending.shift()
     }
@@ -362,7 +403,12 @@ const api = {
     const parsed = parseWorldFrame(sim.fullFrame(1, Date.now()))
     sim.free()
     if (parsed.isErr()) throw new Error(String(parsed.error))
-    const { next } = mergeFrame(parsed.value, { organisms: new Map(), animals: new Map(), grid: null, prevWorld: null })
+    const { next } = mergeFrame(parsed.value, {
+      organisms: new Map(),
+      animals: new Map(),
+      grid: null,
+      prevWorld: null,
+    })
     ensureGrids(next)
     ensureTerritory(next)
     baseWorld = next
@@ -375,7 +421,12 @@ const api = {
       grid: [w.grid.width, w.grid.height],
       origin: [w.grid.origin_x, w.grid.origin_y],
       organisms: w.organisms.length,
-      settlements: (w.settlements ?? []).map((s) => ({ n: s.name, tier: s.tier, pop: s.population, c: s.center })),
+      settlements: (w.settlements ?? []).map((s) => ({
+        n: s.name,
+        tier: s.tier,
+        pop: s.population,
+        c: s.center,
+      })),
       buildings: w.buildings?.length ?? 0,
       tick: w.tick,
       centre: townCentre(w),
@@ -489,7 +540,13 @@ const api = {
     }
     // Engine side: frame cost with the layers on screen.
     const engine = stage.engine!
-    const stats = { render: [] as number[], update: [] as number[], draws: 0, instances: 0, uploadBytes: [] as number[] }
+    const stats = {
+      render: [] as number[],
+      update: [] as number[],
+      draws: 0,
+      instances: 0,
+      uploadBytes: [] as number[],
+    }
     for (let i = 0; i < 30; i++) {
       const f = frameFor(current.sc, current.world, current.centre, t0 + i * 33)
       renderer.update(f)
@@ -559,7 +616,13 @@ const api = {
         draws = s.render.drawCalls
       }
     }
-    return { paintMs: summarise(paint), renderMs: summarise(render), updateMs: summarise(update), uploadBytes: summarise(upload).mean, drawCalls: draws }
+    return {
+      paintMs: summarise(paint),
+      renderMs: summarise(render),
+      updateMs: summarise(update),
+      uploadBytes: summarise(upload).mean,
+      drawCalls: draws,
+    }
   },
 
   /**
@@ -567,7 +630,12 @@ const api = {
    * the next frame, `count` times, reporting the mean/p95 interval. Run Chrome with
    * --disable-gpu-vsync --disable-frame-rate-limit so the interval is the work, not the display.
    */
-  async flatOut(kind: 'cf' | 'canvas' | 'empty', features: Partial<CfFeatures>, count = 240, rebuild = false) {
+  async flatOut(
+    kind: 'cf' | 'canvas' | 'empty',
+    features: Partial<CfFeatures>,
+    count = 240,
+    rebuild = false,
+  ) {
     if (!current || !baseWorld) throw new Error('call init() and setup() first')
     const feat: CfFeatures = { ...NO_FEATURES, ...features }
     await mountStage(current.world, kind === 'canvas' ? 'canvas' : kind === 'cf' ? 'cf' : 'none')
@@ -621,7 +689,12 @@ const api = {
    * GPU time per frame from timer queries wrapped round the render system's update (needs Chrome's
    * --enable-webgl-draft-extensions), next to the engine's own CPU timings for the same frames.
    */
-  async gpuProfile(kind: 'cf' | 'canvas' | 'empty', features: Partial<CfFeatures>, count = 120, rebuild = false) {
+  async gpuProfile(
+    kind: 'cf' | 'canvas' | 'empty',
+    features: Partial<CfFeatures>,
+    count = 120,
+    rebuild = false,
+  ) {
     if (!current || !baseWorld) throw new Error('call init() and setup() first')
     const feat: CfFeatures = { ...NO_FEATURES, ...features }
     await mountStage(current.world, kind === 'canvas' ? 'canvas' : kind === 'cf' ? 'cf' : 'none')
@@ -630,7 +703,9 @@ const api = {
     if (kind === 'cf') stage.renderer!.features = feat
     const t0 = 1_700_000_000_000
     return profileFrames(engine, count, (i) => {
-      const world = rebuild ? { ...current!.world, frame_id: current!.world.frame_id + i + 1 } : current!.world
+      const world = rebuild
+        ? { ...current!.world, frame_id: current!.world.frame_id + i + 1 }
+        : current!.world
       const f = frameFor(current!.sc, world, current!.centre, t0 + i * 33)
       if (kind === 'cf') stage.renderer!.update(f)
       else if (kind === 'canvas') {
@@ -656,7 +731,12 @@ const api = {
     if (!current || !baseWorld) throw new Error('call init() and setup() first')
     const full: ExperimentSpec = {
       ...spec,
-      box: spec.box ?? { cx: current.centre.x * TILE, cy: current.centre.y * TILE, w: stage.viewport.w / current.sc.zoom - 40, h: stage.viewport.h / current.sc.zoom - 40 },
+      box: spec.box ?? {
+        cx: current.centre.x * TILE,
+        cy: current.centre.y * TILE,
+        w: stage.viewport.w / current.sc.zoom - 40,
+        h: stage.viewport.h / current.sc.zoom - 40,
+      },
     }
     const t0 = performance.now()
     await mountStage(current.world, 'none', full)
@@ -670,7 +750,13 @@ const api = {
       if (pixels[i] !== GROUND[0] || pixels[i + 1] !== GROUND[1] || pixels[i + 2] !== GROUND[2]) changed++
     }
     const prof = await profileFrames(engine, count, () => engine.loop.markDirty())
-    return { spec: { kind: spec.kind, n: spec.n }, mountMs: +mountMs.toFixed(1), changedPixels: changed, pixelPct: +((changed / (pixels.length / 4)) * 100).toFixed(2), ...prof }
+    return {
+      spec: { kind: spec.kind, n: spec.n },
+      mountMs: +mountMs.toFixed(1),
+      changedPixels: changed,
+      pixelPct: +((changed / (pixels.length / 4)) * 100).toFixed(2),
+      ...prof,
+    }
   },
 
   /** The same N labels as the engine's `Text` entities, drawn through the glyph atlas instead. */
@@ -717,7 +803,13 @@ const api = {
     })
     host.removeLayer(shapeLayer)
     host.removeLayer(textLayer)
-    return { n, recordMs: summarise(recordMs.slice(20)), ...prof, glyphBakes: glyphs.bakes, sprites: textLayer.count }
+    return {
+      n,
+      recordMs: summarise(recordMs.slice(20)),
+      ...prof,
+      glyphBakes: glyphs.bakes,
+      sprites: textLayer.count,
+    }
   },
 
   /** Engine frame stats for an empty stage (the floor to subtract). */

@@ -273,7 +273,13 @@ export class HeatGrid {
       const v = this.heat[idx]
       if (v < 0.15) continue
       const t = Math.min(1, v / 2)
-      this.blend(idx, 255, Math.round(140 - t * 100), Math.round(60 - t * 40), Number((0.3 + t * 0.4).toFixed(2)))
+      this.blend(
+        idx,
+        255,
+        Math.round(140 - t * 100),
+        Math.round(60 - t * 40),
+        Number((0.3 + t * 0.4).toFixed(2)),
+      )
     }
   }
 

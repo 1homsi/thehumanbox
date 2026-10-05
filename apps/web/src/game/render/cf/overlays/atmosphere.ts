@@ -151,7 +151,9 @@ export function writePrecipitation(
         addRect(layer, sx, sy, sz, sz, color)
       }
     } else if (!(winter && !isStorm)) {
-      const color = isStorm ? packRgba(180, 195, 230, 0.1 + wi * 0.1) : packRgba(170, 190, 225, 0.08 + wi * 0.08)
+      const color = isStorm
+        ? packRgba(180, 195, 230, 0.1 + wi * 0.1)
+        : packRgba(170, 190, 225, 0.08 + wi * 0.08)
       const streaks = Math.round((isStorm ? 80 : 50) * (0.4 + wi * 0.6))
       const slantX = wx * (isStorm ? 10 : 6)
       const slantY = (1 + wy * 0.5) * 8

@@ -72,7 +72,10 @@ function Moving({ id, x, y }: { id: number; x: number; y: number }) {
 }
 
 function PostGl() {
-  useWebGLPostProcess({ vignette: { enabled: true, intensity: 0.5 }, bloom: { enabled: true, threshold: 0.6, intensity: 0.5 } })
+  useWebGLPostProcess({
+    vignette: { enabled: true, intensity: 0.5 },
+    bloom: { enabled: true, threshold: 0.6, intensity: 0.5 },
+  })
   return null
 }
 

@@ -101,7 +101,15 @@ export class ShapeAtlas {
       g.lineWidth = Math.max(1, FILL * t)
       g.beginPath()
       const ry = FILL * a
-      g.ellipse(CELL / 2, CELL / 2, FILL - g.lineWidth / 2, Math.max(0.5, ry - g.lineWidth / 2), 0, 0, Math.PI * 2)
+      g.ellipse(
+        CELL / 2,
+        CELL / 2,
+        FILL - g.lineWidth / 2,
+        Math.max(0.5, ry - g.lineWidth / 2),
+        0,
+        0,
+        Math.PI * 2,
+      )
       g.stroke()
     })
   }

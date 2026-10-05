@@ -22,7 +22,15 @@ import { ShapeAtlas } from './shape-atlas'
 import { applyHeat, createTileLayers, TILE_OUTLINE, type TileLayerSet } from './tile-layers'
 
 /** Draw order of what this renderer adds (the agreed layering: terrain 0, overlays 10, land use 15, effects 50, HUD 60). */
-export const Z = { tint: 4, precip: 6, groundStatic: 11, ground: 12, roads: 15, effects: 50, hud: 60 } as const
+export const Z = {
+  tint: 4,
+  precip: 6,
+  groundStatic: 11,
+  ground: 12,
+  roads: 15,
+  effects: 50,
+  hud: 60,
+} as const
 
 export interface SectionTimes {
   atmosphere: number
@@ -91,12 +99,32 @@ export class CfOverlayRenderer {
     this.tileLayers = createTileLayers(gridWidth, gridHeight)
     this.heat = new HeatGrid(gridWidth, gridHeight)
     this.contestedScratch = new Uint16Array(gridWidth * gridHeight)
-    const shape = (z: number) => this.addLayer(new SpriteLayer({ atlases: [this.shapes.layerAtlas()], zIndex: z, sampling: 'linear', capacity: 512 }))
+    const shape = (z: number) =>
+      this.addLayer(
+        new SpriteLayer({
+          atlases: [this.shapes.layerAtlas()],
+          zIndex: z,
+          sampling: 'linear',
+          capacity: 512,
+        }),
+      )
     const text = (z: number) =>
-      this.addLayer(new SpriteLayer({ atlases: this.glyphs.layerAtlases(), zIndex: z + 0.5, sampling: 'linear', capacity: 256 }))
+      this.addLayer(
+        new SpriteLayer({
+          atlases: this.glyphs.layerAtlases(),
+          zIndex: z + 0.5,
+          sampling: 'linear',
+          capacity: 256,
+        }),
+      )
     this.tintLayer = shape(Z.tint)
     this.precipLayer = shape(Z.precip)
-    this.groundStatic = new SpriteRecorder(shape(Z.groundStatic), text(Z.groundStatic), this.shapes, this.glyphs)
+    this.groundStatic = new SpriteRecorder(
+      shape(Z.groundStatic),
+      text(Z.groundStatic),
+      this.shapes,
+      this.glyphs,
+    )
     this.ground = new SpriteRecorder(shape(Z.ground), text(Z.ground), this.shapes, this.glyphs)
     this.roads = new SpriteRecorder(shape(Z.roads), text(Z.roads), this.shapes, this.glyphs)
     this.effects = new SpriteRecorder(shape(Z.effects), text(Z.effects), this.shapes, this.glyphs)
@@ -268,7 +296,8 @@ export class CfOverlayRenderer {
         for (let row = 0; row < height; row++) {
           const r = g.structure[row]
           if (!r) continue
-          for (let col = 0; col < width; col++) if (r[col] && r[col] > 0.1) ids[row * width + col] = TILE_OUTLINE
+          for (let col = 0; col < width; col++)
+            if (r[col] && r[col] > 0.1) ids[row * width + col] = TILE_OUTLINE
         }
         outline.setTiles(ids)
         this.tileLayers.uploads.outline++
@@ -291,4 +320,3 @@ export class CfOverlayRenderer {
     this.groundStatic.end()
   }
 }
-

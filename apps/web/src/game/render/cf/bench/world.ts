@@ -51,7 +51,8 @@ export function townCentre(world: WorldState): { x: number; y: number } {
   const oy = world.grid.origin_y ?? 0
   let best: { x: number; y: number; pop: number } | null = null
   for (const s of world.settlements ?? []) {
-    if (!best || s.population > best.pop) best = { x: s.center[0] - ox, y: s.center[1] - oy, pop: s.population }
+    if (!best || s.population > best.pop)
+      best = { x: s.center[0] - ox, y: s.center[1] - oy, pop: s.population }
   }
   return best ?? { x: world.grid.width / 2, y: world.grid.height / 2 }
 }
@@ -165,7 +166,18 @@ export function applyScenario(base: WorldState, sc: Scenario): WorldState {
     const [x, y] = near(40)
     return { x, y, s: 1.2 }
   })
-  const kinds = ['hunger', 'thirst', 'sickness', 'danger', 'rain', 'children', 'peace', 'fire', 'shelter', 'knowledge']
+  const kinds = [
+    'hunger',
+    'thirst',
+    'sickness',
+    'danger',
+    'rain',
+    'children',
+    'peace',
+    'fire',
+    'shelter',
+    'knowledge',
+  ]
   world.prayers = Array.from({ length: synth.prayers ?? 0 }, (_, i): PrayerInfo => {
     const [x, y] = near(60)
     return {

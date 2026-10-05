@@ -44,7 +44,9 @@ export function stubHost(): StubHost {
 }
 
 /** A 2D context that accepts every call; `fillRect` and filled `rect` paths are reported with the fill style at the time. */
-export function recordingContext(onRect: (x: number, y: number, w: number, h: number, style: string) => void) {
+export function recordingContext(
+  onRect: (x: number, y: number, w: number, h: number, style: string) => void,
+) {
   const pathRects: [number, number, number, number][] = []
   const state: Record<string | symbol, unknown> = { fillStyle: '#000' }
   const handler: ProxyHandler<object> = {

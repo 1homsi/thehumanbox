@@ -2,7 +2,14 @@
 import { SpriteLayer } from 'cubeforge'
 import { describe, expect, it } from 'vitest'
 import type { WorldState } from '../../../../shared/types'
-import { atmosphereTints, composeTints, hardWinter, precipitating, writePrecipitation, type Tint } from './atmosphere'
+import {
+  atmosphereTints,
+  composeTints,
+  hardWinter,
+  precipitating,
+  writePrecipitation,
+  type Tint,
+} from './atmosphere'
 
 type W = Parameters<typeof atmosphereTints>[0]
 
@@ -63,7 +70,13 @@ describe('atmosphere tints', () => {
 
   it('folds a stack of tints into one with exactly the same effect on any pixel', () => {
     const layers = atmosphereTints(
-      world({ season: 'decline', is_day: false, day_progress: 0.9, weather: { kind: 'rain', intensity: 0.6 }, drought: true }),
+      world({
+        season: 'decline',
+        is_day: false,
+        day_progress: 0.9,
+        weather: { kind: 'rain', intensity: 0.6 },
+        drought: true,
+      }),
       1234,
     )
     expect(layers.length).toBeGreaterThan(3)
@@ -120,17 +133,38 @@ describe('precipitation', () => {
 
   it('snows in a scarcity-season rain and keeps snowing through a hard winter', () => {
     const snow = new SpriteLayer()
-    writePrecipitation(snow, 0, world({ season: 'scarcity', weather: { kind: 'rain', intensity: 1 } }) as unknown as WorldState, 1, Wpx, Hpx)
+    writePrecipitation(
+      snow,
+      0,
+      world({ season: 'scarcity', weather: { kind: 'rain', intensity: 1 } }) as unknown as WorldState,
+      1,
+      Wpx,
+      Hpx,
+    )
     expect(snow.count).toBe(90)
     expect(snow.rotation[0]).toBe(0)
     const winter = new SpriteLayer()
-    writePrecipitation(winter, 0, world({ season: 'scarcity', hard_winter: true }) as unknown as WorldState, 1, Wpx, Hpx)
+    writePrecipitation(
+      winter,
+      0,
+      world({ season: 'scarcity', hard_winter: true }) as unknown as WorldState,
+      1,
+      Wpx,
+      Hpx,
+    )
     expect(winter.count).toBeGreaterThanOrEqual(160)
   })
 
   it('clears the layer when the sky clears', () => {
     const layer = new SpriteLayer()
-    writePrecipitation(layer, 0, world({ weather: { kind: 'rain', intensity: 1 } }) as unknown as WorldState, 1, Wpx, Hpx)
+    writePrecipitation(
+      layer,
+      0,
+      world({ weather: { kind: 'rain', intensity: 1 } }) as unknown as WorldState,
+      1,
+      Wpx,
+      Hpx,
+    )
     expect(layer.count).toBeGreaterThan(0)
     writePrecipitation(layer, 0, world() as unknown as WorldState, 1, Wpx, Hpx)
     expect(layer.count).toBe(0)

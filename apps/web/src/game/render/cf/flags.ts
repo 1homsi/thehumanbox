@@ -1,66 +1,40 @@
 /**
- * Opt-in switches for the cubeforge-backed renderer, so each migrated layer can be
- * tried on its own while the canvas painters stay the default.
+ * Switches for the cubeforge-backed renderer pieces. Each piece ships behind a
+ * name so the default game is unchanged until the owner flips it on.
  *
- * Enable with `?cf=overlays,effects` in the URL, or `localStorage['thb-cf'] = 'overlays,effects'`.
- * `all` (or `1`) turns every flag on. Names are free-form, so each migration owns its own
- * (`terrain`, `people`, `buildings`, `atmosphere`, `overlays`, `effects`, `hud`, `roads`, ...).
+ *   ?cf=camera,scenes   in the URL (wins), or
+ *   localStorage['thb-cf'] = 'camera,scenes'
+ *
+ * `all` (or `1`) turns every flag on. Unknown names are simply never asked for.
  */
-
 const STORAGE_KEY = 'thb-cf'
 
-let cachedRaw: string | null = null
-let cachedSet: ReadonlySet<string> = new Set()
-let storedRaw: string | null | undefined
-
-function readStored(): string | null {
-  if (storedRaw !== undefined) return storedRaw
+function names(): Set<string> {
+  const found = new Set<string>()
+  const add = (raw: string | null | undefined) => {
+    for (const part of (raw ?? '').split(',')) {
+      const name = part.trim().toLowerCase()
+      if (name) found.add(name)
+    }
+  }
   try {
-    storedRaw = typeof localStorage === 'undefined' ? null : localStorage.getItem(STORAGE_KEY)
+    const fromUrl = new URLSearchParams(window.location.search).get('cf')
+    if (fromUrl !== null) {
+      add(fromUrl)
+      return found
+    }
   } catch {
-    storedRaw = null
+    /* no window (tests, SSR) */
   }
-  return storedRaw
-}
-
-function readUrl(): string | null {
   try {
-    if (typeof location === 'undefined') return null
-    return new URLSearchParams(location.search).get('cf')
+    add(window.localStorage.getItem(STORAGE_KEY))
   } catch {
-    return null
+    /* storage blocked */
   }
+  return found
 }
 
-function parse(raw: string): ReadonlySet<string> {
-  return new Set(
-    raw
-      .split(',')
-      .map((s) => s.trim().toLowerCase())
-      .filter(Boolean),
-  )
-}
-
-/** The enabled flag names. The URL wins over local storage; both are re-read cheaply. */
-export function cfFlags(): ReadonlySet<string> {
-  const raw = readUrl() ?? readStored() ?? ''
-  if (raw !== cachedRaw) {
-    cachedRaw = raw
-    cachedSet = parse(raw)
-  }
-  return cachedSet
-}
-
-/** True when the named cubeforge migration is switched on. */
 export function cfFlag(name: string): boolean {
-  const flags = cfFlags()
-  if (flags.size === 0) return false
-  return flags.has(name.toLowerCase()) || flags.has('all') || flags.has('1') || flags.has('true')
-}
-
-/** For tests: forget cached state so the next read sees the current URL and storage. */
-export function resetCfFlagsForTests(): void {
-  cachedRaw = null
-  cachedSet = new Set()
-  storedRaw = undefined
+  const on = names()
+  return on.has('all') || on.has('1') || on.has(name.toLowerCase())
 }

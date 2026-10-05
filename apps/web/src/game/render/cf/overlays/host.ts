@@ -14,7 +14,13 @@ export interface RenderHost extends AtlasHost {
 interface LayerRenderer {
   addSpriteLayer?: (layer: SpriteLayer) => void
   removeSpriteLayer?: (layer: SpriteLayer) => void
-  setScreenTint?: (r: number, g: number, b: number, a: number, mode?: 'multiply' | 'normal' | 'additive') => void
+  setScreenTint?: (
+    r: number,
+    g: number,
+    b: number,
+    a: number,
+    mode?: 'multiply' | 'normal' | 'additive',
+  ) => void
   clearScreenTint?: () => void
 }
 

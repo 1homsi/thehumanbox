@@ -165,7 +165,10 @@ describe('CfOverlayRenderer', () => {
     expect(heat.tiles.every((id) => id === 1)).toBe(true)
     renderer.update(
       frameOf(
-        world({ frame_id: 2, grid: { ...world().grid, hazard: Array.from({ length: GH }, () => Array(GW).fill(0)) } }),
+        world({
+          frame_id: 2,
+          grid: { ...world().grid, hazard: Array.from({ length: GH }, () => Array(GW).fill(0)) },
+        }),
         'hazard',
       ),
     )
@@ -216,7 +219,9 @@ describe('CfOverlayRenderer', () => {
   it('places settlement labels and prayer bubbles in the HUD layers, and respects hideUI', () => {
     make({ hud: true })
     const w = world({
-      prayers: [{ id: 1, lineage_id: 'a', tribe: 'a', kind: 'hunger', x: 14, y: 12, created: 900, expires: 1500 }],
+      prayers: [
+        { id: 1, lineage_id: 'a', tribe: 'a', kind: 'hunger', x: 14, y: 12, created: 900, expires: 1500 },
+      ],
     } as unknown as Partial<WorldState>)
     const shown = renderer.update(frameOf(w))
     expect(shown.sprites).toBeGreaterThan(50)

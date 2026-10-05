@@ -1,4 +1,16 @@
-import { cfFlag, cfFlags } from '../flags'
+import { cfFlag } from '../flags'
+
+/** The opt-in ground-sprite tint mode is asked for by name only, so `all` keeps the default screen tint. */
+function tintOnGround(): boolean {
+  try {
+    return (new URLSearchParams(window.location.search).get('cf') ?? '')
+      .toLowerCase()
+      .split(',')
+      .includes('tint-ground')
+  } catch {
+    return false
+  }
+}
 
 /** Which migrated pieces the overlay renderer owns (each mirrors a canvas layer file or helper). */
 export interface CfFeatures {
@@ -41,7 +53,7 @@ export function readCfFeatures(): CfFeatures {
     water: cfFlag('water'),
     glow: cfFlag('glow'),
     roads: cfFlag('roads'),
-    tint: cfFlags().has('tint-ground') ? 'ground' : 'screen',
+    tint: tintOnGround() ? 'ground' : 'screen',
   }
 }
 
