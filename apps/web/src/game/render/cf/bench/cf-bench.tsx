@@ -16,12 +16,18 @@ import { draw_overlays } from '../../layers/overlays'
 import { draw_effects } from '../../layers/effects'
 import { draw_hud } from '../../layers/hud'
 import { drawTradeNetwork2D } from '../../base-parts/trade-network'
+import { SpriteLayer } from 'cubeforge'
 import { CfOverlays } from '../overlays/CfOverlays'
+import { engineRenderHost } from '../overlays/host'
+import { GlyphSet } from '../overlays/glyph-atlas'
+import { ShapeAtlas } from '../overlays/shape-atlas'
+import { SpriteRecorder } from '../overlays/recorder'
+import { Experiment, type ExperimentSpec } from './experiments'
 import { collectSettlementLabels, placeLabels } from '../overlays/settlement-label-list'
 import { NO_FEATURES, type CfFeatures } from '../overlays/features'
 import { makeFrame, type CfFrame } from '../overlays/frame'
 import type { CfOverlayRenderer } from '../overlays/renderer'
-import { applyScenario, ensureGrids, ensureTerritory, townCentre, type Scenario } from './world'
+import { applyScenario, ensureGrids, ensureTerritory, rng, townCentre, type Scenario } from './world'
 import { diffImage, diffStats } from './diff'
 
 const GROUND = [79, 127, 63] as const
@@ -115,11 +121,12 @@ function CanvasSprite({ w, h }: { w: number; h: number }) {
   )
 }
 
-function Stage({ world, mode, size, onRenderer }: {
+function Stage({ world, mode, size, onRenderer, exp }: {
   world: WorldState
   mode: 'cf' | 'canvas' | 'none'
   size: { w: number; h: number }
   onRenderer: (r: CfOverlayRenderer | null) => void
+  exp?: ExperimentSpec
 }) {
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 })
   const noop = useMemo(() => () => {}, [])
@@ -147,13 +154,14 @@ function Stage({ world, mode, size, onRenderer }: {
           />
         )}
         {mode === 'canvas' && <CanvasSprite w={size.w} h={size.h} />}
+        {exp && <Experiment spec={exp} />}
       </World>
     </Game>
   )
 }
 
 let root: ReturnType<typeof createRoot> | null = null
-async function mountStage(world: WorldState, mode: StageState['mode']) {
+async function mountStage(world: WorldState, mode: StageState['mode'], exp?: ExperimentSpec) {
   const host = document.querySelector<HTMLDivElement>('#stage')!
   if (root) {
     root.unmount()
@@ -174,6 +182,7 @@ async function mountStage(world: WorldState, mode: StageState['mode']) {
       onRenderer={(r) => {
         stage.renderer = r
       }}
+      exp={exp}
     />,
   )
   for (let i = 0; i < 60 && !(stage.engine && (mode !== 'cf' || stage.renderer)); i++) await frames(1)
@@ -275,6 +284,72 @@ function summarise(times: number[]) {
   const s = [...times].sort((a, b) => a - b)
   const mean = s.reduce((a, b) => a + b, 0) / Math.max(1, s.length)
   return { mean: +mean.toFixed(3), p50: +s[Math.floor(s.length / 2)]?.toFixed(3), p95: +s[Math.min(s.length - 1, Math.floor(s.length * 0.95))]?.toFixed(3), n: s.length }
+}
+
+
+interface GpuTimer {
+  TIME_ELAPSED_EXT: number
+  GPU_DISJOINT_EXT: number
+}
+
+/**
+ * Run `count` frames, calling `before(i)` ahead of each, and collect GPU time from timer queries
+ * wrapped round the render system's update (needs Chrome's --enable-webgl-draft-extensions) and the CPU
+ * time that update itself took.
+ */
+async function profileFrames(engine: EngineState, count: number, before: (i: number) => void) {
+  const gl = engine.canvas.getContext('webgl2') as WebGL2RenderingContext
+  const ext = gl.getExtension('EXT_disjoint_timer_query_webgl2') as GpuTimer | null
+  if (!ext) throw new Error('no timer query extension')
+  const rs = engine.activeRenderSystem as unknown as { update: (...a: unknown[]) => unknown }
+  const orig = rs.update
+  const pending: WebGLQuery[] = []
+  const gpu: number[] = []
+  const renderCpu: number[] = []
+  rs.update = function (this: unknown, ...args: unknown[]) {
+    const q = gl.createQuery()!
+    gl.beginQuery(ext.TIME_ELAPSED_EXT, q)
+    const a = performance.now()
+    const r = orig.apply(this, args)
+    renderCpu.push(performance.now() - a)
+    gl.endQuery(ext.TIME_ELAPSED_EXT)
+    pending.push(q)
+    return r
+  }
+  const drain = () => {
+    while (pending.length) {
+      const q = pending[0]
+      if (!gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)) break
+      if (!gl.getParameter(ext.GPU_DISJOINT_EXT)) gpu.push(Number(gl.getQueryParameter(q, gl.QUERY_RESULT)) / 1e6)
+      gl.deleteQuery(q)
+      pending.shift()
+    }
+  }
+  try {
+    for (let i = 0; i < count + 20; i++) {
+      before(i)
+      await frames(1)
+      drain()
+    }
+    for (let i = 0; i < 10; i++) {
+      await frames(1)
+      drain()
+    }
+  } finally {
+    rs.update = orig
+  }
+  const stats = engine.stats ?? engine.getStats?.()
+  return {
+    gpuMs: summarise(gpu.slice(10)),
+    renderCpuMs: summarise(renderCpu.slice(10)),
+    drawCalls: stats?.render.drawCalls,
+    instances: stats?.render.instances,
+    uploadBytes: stats?.render.textureUploadBytes,
+    textCacheHits: stats?.render.textCacheHits,
+    textCacheMisses: stats?.render.textCacheMisses,
+    textures: stats?.render.textureCount,
+    entities: stats?.entityCount,
+  }
 }
 
 // ── public API for the browser tools ──────────────────────────────────────────
@@ -485,6 +560,164 @@ const api = {
       }
     }
     return { paintMs: summarise(paint), renderMs: summarise(render), updateMs: summarise(update), uploadBytes: summarise(upload).mean, drawCalls: draws }
+  },
+
+  /**
+   * Whole-frame cost with vsync off: update the layers (or repaint the canvas sprite) and wait for
+   * the next frame, `count` times, reporting the mean/p95 interval. Run Chrome with
+   * --disable-gpu-vsync --disable-frame-rate-limit so the interval is the work, not the display.
+   */
+  async flatOut(kind: 'cf' | 'canvas' | 'empty', features: Partial<CfFeatures>, count = 240, rebuild = false) {
+    if (!current || !baseWorld) throw new Error('call init() and setup() first')
+    const feat: CfFeatures = { ...NO_FEATURES, ...features }
+    await mountStage(current.world, kind === 'canvas' ? 'canvas' : kind === 'cf' ? 'cf' : 'none')
+    await setCamera(current.centre.x * TILE, current.centre.y * TILE, current.sc.zoom)
+    const engine = stage.engine!
+    if (kind === 'cf') stage.renderer!.features = feat
+    const t0 = 1_700_000_000_000
+    const intervals: number[] = []
+    const cpu: number[] = []
+    let last = 0
+    for (let i = 0; i < count + 20; i++) {
+      const a = performance.now()
+      const world = rebuild ? { ...current.world, frame_id: current.world.frame_id + i + 1 } : current.world
+      const f = frameFor(current.sc, world, current.centre, t0 + i * 33)
+      if (kind === 'cf') stage.renderer!.update(f)
+      else if (kind === 'canvas') {
+        paintCanvasLayers(stage.canvasHandle!.ctx, f, feat)
+        stage.canvasHandle!.markDirty()
+        const id = stage.canvasEntity
+        if (id !== null) {
+          const sprite = engine.ecs.getComponent<SpriteComponent>(id, 'Sprite')
+          const tr = engine.ecs.getComponent<TransformComponent>(id, 'Transform')
+          if (sprite && tr) {
+            sprite.width = stage.viewport.w / current.sc.zoom
+            sprite.height = stage.viewport.h / current.sc.zoom
+            tr.x = current.centre.x * TILE
+            tr.y = current.centre.y * TILE
+          }
+        }
+      } else engine.loop.markDirty()
+      const b = performance.now()
+      await frames(1)
+      const now = performance.now()
+      if (i >= 20) {
+        intervals.push(now - last)
+        cpu.push(b - a)
+      }
+      last = now
+    }
+    const stats = engine.stats ?? engine.getStats?.()
+    return {
+      interval: summarise(intervals),
+      cpu: summarise(cpu),
+      drawCalls: stats?.render.drawCalls,
+      instances: stats?.render.instances,
+      textureUploadBytes: stats?.render.textureUploadBytes,
+    }
+  },
+
+  /**
+   * GPU time per frame from timer queries wrapped round the render system's update (needs Chrome's
+   * --enable-webgl-draft-extensions), next to the engine's own CPU timings for the same frames.
+   */
+  async gpuProfile(kind: 'cf' | 'canvas' | 'empty', features: Partial<CfFeatures>, count = 120, rebuild = false) {
+    if (!current || !baseWorld) throw new Error('call init() and setup() first')
+    const feat: CfFeatures = { ...NO_FEATURES, ...features }
+    await mountStage(current.world, kind === 'canvas' ? 'canvas' : kind === 'cf' ? 'cf' : 'none')
+    await setCamera(current.centre.x * TILE, current.centre.y * TILE, current.sc.zoom)
+    const engine = stage.engine!
+    if (kind === 'cf') stage.renderer!.features = feat
+    const t0 = 1_700_000_000_000
+    return profileFrames(engine, count, (i) => {
+      const world = rebuild ? { ...current!.world, frame_id: current!.world.frame_id + i + 1 } : current!.world
+      const f = frameFor(current!.sc, world, current!.centre, t0 + i * 33)
+      if (kind === 'cf') stage.renderer!.update(f)
+      else if (kind === 'canvas') {
+        paintCanvasLayers(stage.canvasHandle!.ctx, f, feat)
+        stage.canvasHandle!.markDirty()
+        const id = stage.canvasEntity
+        if (id !== null) {
+          const sprite = engine.ecs.getComponent<SpriteComponent>(id, 'Sprite')
+          const tr = engine.ecs.getComponent<TransformComponent>(id, 'Transform')
+          if (sprite && tr) {
+            sprite.width = stage.viewport.w / current!.sc.zoom
+            sprite.height = stage.viewport.h / current!.sc.zoom
+            tr.x = current!.centre.x * TILE
+            tr.y = current!.centre.y * TILE
+          }
+        }
+      } else engine.loop.markDirty()
+    })
+  },
+
+  /** One cubeforge feature on its own: does it draw in WebGL, and what does N of it cost? */
+  async experiment(spec: Omit<ExperimentSpec, 'box'> & { box?: ExperimentSpec['box'] }, count = 60) {
+    if (!current || !baseWorld) throw new Error('call init() and setup() first')
+    const full: ExperimentSpec = {
+      ...spec,
+      box: spec.box ?? { cx: current.centre.x * TILE, cy: current.centre.y * TILE, w: stage.viewport.w / current.sc.zoom - 40, h: stage.viewport.h / current.sc.zoom - 40 },
+    }
+    const t0 = performance.now()
+    await mountStage(current.world, 'none', full)
+    const mountMs = performance.now() - t0
+    await setCamera(current.centre.x * TILE, current.centre.y * TILE, current.sc.zoom)
+    const engine = stage.engine!
+    await frames(3)
+    const pixels = await captureEngine()
+    let changed = 0
+    for (let i = 0; i < pixels.length; i += 4) {
+      if (pixels[i] !== GROUND[0] || pixels[i + 1] !== GROUND[1] || pixels[i + 2] !== GROUND[2]) changed++
+    }
+    const prof = await profileFrames(engine, count, () => engine.loop.markDirty())
+    return { spec: { kind: spec.kind, n: spec.n }, mountMs: +mountMs.toFixed(1), changedPixels: changed, pixelPct: +((changed / (pixels.length / 4)) * 100).toFixed(2), ...prof }
+  },
+
+  /** The same N labels as the engine's `Text` entities, drawn through the glyph atlas instead. */
+  async experimentGlyphText(n: number, fontSize = 10, count = 60) {
+    if (!current || !baseWorld) throw new Error('call init() and setup() first')
+    await mountStage(current.world, 'none')
+    await setCamera(current.centre.x * TILE, current.centre.y * TILE, current.sc.zoom)
+    const engine = stage.engine!
+    const host = engineRenderHost(engine)
+    const shapes = new ShapeAtlas(host)
+    const glyphs = new GlyphSet(host)
+    const shapeLayer = new SpriteLayer({ atlases: [shapes.layerAtlas()], zIndex: 5, sampling: 'linear' })
+    const textLayer = new SpriteLayer({ atlases: glyphs.layerAtlases(), zIndex: 5.5, sampling: 'linear' })
+    host.addLayer(shapeLayer)
+    host.addLayer(textLayer)
+    const rec = new SpriteRecorder(shapeLayer, textLayer, shapes, glyphs)
+    const rand = rng(77)
+    const box = {
+      cx: current.centre.x * TILE,
+      cy: current.centre.y * TILE,
+      w: stage.viewport.w / current.sc.zoom - 40,
+      h: stage.viewport.h / current.sc.zoom - 40,
+    }
+    const pts = Array.from({ length: n }, (_, i) => ({
+      i,
+      x: box.cx + (rand() - 0.5) * box.w,
+      y: box.cy + (rand() - 0.5) * box.h,
+    }))
+    const zoom = current.sc.zoom
+    const record = () => {
+      rec.begin({ zoom, dpr: dprNow() })
+      const ctx = rec.asContext()
+      ctx.font = `${fontSize}px monospace`
+      ctx.fillStyle = '#ffffff'
+      for (const p of pts) ctx.fillText(`Settlement ${p.i}`, p.x, p.y)
+      rec.end()
+    }
+    const recordMs: number[] = []
+    const prof = await profileFrames(engine, count, () => {
+      const a = performance.now()
+      record()
+      recordMs.push(performance.now() - a)
+      engine.loop.markDirty()
+    })
+    host.removeLayer(shapeLayer)
+    host.removeLayer(textLayer)
+    return { n, recordMs: summarise(recordMs.slice(20)), ...prof, glyphBakes: glyphs.bakes, sprites: textLayer.count }
   },
 
   /** Engine frame stats for an empty stage (the floor to subtract). */

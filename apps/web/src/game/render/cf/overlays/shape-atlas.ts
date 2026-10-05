@@ -56,6 +56,7 @@ export class ShapeAtlas {
   }
 
   private paint(frame: number, draw: (g: CanvasRenderingContext2D) => void): void {
+    this.bakes++
     const g = this.ctx
     if (!g) return
     const x = (frame % COLS) * CELL
@@ -69,7 +70,6 @@ export class ShapeAtlas {
     draw(g)
     g.restore()
     this.host.dirty(this.id, x, y, CELL, CELL)
-    this.bakes++
   }
 
   private frameFor(key: string, draw: (g: CanvasRenderingContext2D) => void): number {
