@@ -21,6 +21,7 @@
 //   --profile           also write a CPU profile of each metrics scenario next to the results
 //   --shots             save a screenshot of every scenario
 //   --alloc-profile     sample every allocation in the window (what makes garbage), written as .heapprofile
+//   --eval <js>         evaluate an expression in the page after the window, stored as result.eval
 //   --gl-log           record live WebGL textures by size and texture upload sizes (metrics pass)
 //   --headed            show the Chrome window (the default is headless)
 //
@@ -71,6 +72,7 @@ const wantShots = opt('shots', false) === true
 const headed = opt('headed', false) === true
 const wantGl = opt('gl-log', false) === true
 const wantAlloc = opt('alloc-profile', false) === true
+const evalExpr = opt('eval', null)
 
 /** Zoom of each named view. `fit` is the opening view that shows the whole world. */
 const ZOOMS = { overview: 'fit', mid: 1, close: 3 }
@@ -259,7 +261,9 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
     await page.send('Runtime.enable')
     await page.send('Performance.enable', { timeDomain: 'timeTicks' })
     await page.send('HeapProfiler.enable')
-    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: INIT_SCRIPT + (wantGl ? GL_LOG : '') })
+    await page.send('Page.addScriptToEvaluateOnNewDocument', {
+      source: INIT_SCRIPT + ';\n' + (wantGl ? GL_LOG : ''),
+    })
 
     // 1. Put the saved world where the app looks for it.
     await page.send('Page.navigate', { url: `${origin}/__bench/seed.html?world=${fixture}` })
@@ -417,6 +421,7 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
         result.textureMB = (snapshot.render.textureBytes ?? 0) / 1048576
       }
       if (wantGl) result.glTextures = await page.evaluate('window.__benchGlSummary()')
+      if (evalExpr) result.eval = await page.evaluate(evalExpr)
       const counters = await page.send('Memory.getDOMCounters').catch(() => null)
       if (counters) result.domNodes = counters.nodes
     } else {

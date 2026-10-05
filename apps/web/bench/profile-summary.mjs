@@ -161,6 +161,29 @@ for (const [id, us] of self) {
     inclusive.set(key, (inclusive.get(key) ?? 0) + us)
   }
 }
+// --callers <text>: who calls the functions whose name contains <text>, with the time under each caller.
+const callersOf = flag('callers', null)
+if (callersOf) {
+  const rows = new Map()
+  for (const node of profile.nodes) {
+    const o = original(node.callFrame)
+    if (!o.fn.includes(callersOf)) continue
+    // Time under this node: its own samples and its descendants'.
+    const under = (id) => {
+      const n = byId.get(id)
+      return (self.get(id) ?? 0) + (n.children ?? []).reduce((a, c) => a + under(c), 0)
+    }
+    const stack = []
+    for (let cur = parent.get(node.id); cur !== undefined && stack.length < 4; cur = parent.get(cur))
+      stack.push(original(byId.get(cur).callFrame).fn)
+    const key = stack.join(' < ')
+    rows.set(key, (rows.get(key) ?? 0) + under(node.id))
+  }
+  console.log(`\nCallers of "${callersOf}" (ms under it)`)
+  for (const [k, v] of [...rows.entries()].sort((a, b) => b[1] - a[1]).slice(0, top))
+    console.log(`${(v / 1000).toFixed(0).padStart(7)}  ${k}`)
+  process.exit(0)
+}
 const ms = (us) => (us / 1000).toFixed(0).padStart(7)
 const pct = (us) => ((us / total) * 100).toFixed(1).padStart(5)
 const rows = (m) => [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, top)
