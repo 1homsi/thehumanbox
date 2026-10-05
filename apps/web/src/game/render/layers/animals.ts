@@ -1,4 +1,5 @@
-import { MONSTER_SIZES, _animalLastPos, drawCanineSprite } from '.././draw-helpers'
+import { _animalLastPos, drawCanineSprite } from '.././draw-helpers'
+import { animalBob, animalMoving, animalSize, animalStep, isFlyer } from '.././animal-visuals'
 
 import { drawFaunaSprite } from '.././fauna-sprites'
 import { drawPixelFauna } from '.././pixel-fauna'
@@ -7,13 +8,15 @@ import { pickAnimalTile, ATLAS_CREATURE, drawTile } from '../../../shared/sprite
 
 import { characterMotion } from '.././character-visuals'
 import { TILE } from '../../model/palette'
+import { spriteLayerActive } from '../cf/people/bridge'
 
 import type { DrawFrame } from './frame'
 
 /** Wild animals and monsters. */
 export function draw_animals(f: DrawFrame) {
   const { ctx, viewFlags, ox, oy, r0, r1, c0, c1, animals, t } = f
-  if (viewFlags.animals && animals.length > 0) {
+  // With the sprite layer mounted, animals are drawn by the GPU; nothing is left for the canvas.
+  if (viewFlags.animals && animals.length > 0 && !spriteLayerActive('animals')) {
     ctx.save()
     const atlasReady = ATLAS_CREATURE.complete && ATLAS_CREATURE.naturalWidth > 0
     if (_animalLastPos.size > Math.max(256, animals.length * 3)) {
@@ -35,42 +38,10 @@ export function draw_animals(f: DrawFrame) {
         continue
       const motion = characterMotion(_animalLastPos.get(animal.id), animal.x, animal.y, t, 0)
       _animalLastPos.set(animal.id, motion)
-      const small = animal.kind === 'fish' || animal.kind === 'bird' || animal.kind === 'rabbit'
-      const flyer = animal.kind === 'dragon' || animal.kind === 'ufo'
-      const size =
-        MONSTER_SIZES[animal.kind] ??
-        (animal.kind === 'chicken'
-          ? 10
-          : animal.kind === 'bear' || animal.kind === 'cow' || animal.kind === 'horse'
-            ? 22
-            : small
-              ? 14
-              : animal.kind === 'sheep'
-                ? 18
-                : 20)
-      const moving = animal.kind === 'fish' || animal.kind === 'bird' || t - motion.movedAt < 320
-      const speed =
-        animal.kind === 'fish'
-          ? 0.0028
-          : animal.kind === 'bird'
-            ? 0.005
-            : animal.kind === 'wolf' || animal.kind === 'dog'
-              ? 0.0042
-              : 0.0036
-      // Standing grazers dip slowly, as if eating, instead of freezing.
-      const grazer = ['deer', 'sheep', 'cow', 'horse', 'rabbit'].includes(animal.kind)
-      const amp =
-        animal.kind === 'fish'
-          ? 1.4
-          : animal.kind === 'bird' || flyer
-            ? 1.6
-            : moving
-              ? 0.55
-              : grazer
-                ? 0.45
-                : 0
-      const phase = (moving || !grazer ? t * speed : t * 0.0012) + animal.id * 0.7
-      const yOff = Math.sin(phase) * amp
+      const flyer = isFlyer(animal.kind)
+      const size = animalSize(animal.kind)
+      const moving = animalMoving(animal.kind, t, motion.movedAt)
+      const yOff = animalBob(animal.kind, animal.id, moving, t)
       const cx = (animal.x - ox) * TILE + TILE / 2
       const cy = (animal.y - oy) * TILE + TILE / 2 + yOff
       if (animal.kind !== 'fish' && animal.kind !== 'bird') {
@@ -90,7 +61,7 @@ export function draw_animals(f: DrawFrame) {
       }
       if (animal.sleeping) sleepers.push([cx, cy - size * 0.55, animal.id])
       const flip = motion.flipped
-      const step = moving ? Math.floor(t / 200 + animal.id) & 1 : 0
+      const step = animalStep(animal.id, moving, t)
       if (drawPixelFauna(ctx, animal.kind, cx, cy, size, flip, step)) continue
       if (drawFaunaSprite(ctx, animal.kind, animal.id, cx, cy, size, flip)) continue
       if (animal.kind === 'wolf' || animal.kind === 'dog') {

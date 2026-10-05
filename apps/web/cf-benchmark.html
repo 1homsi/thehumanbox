@@ -1,0 +1,31 @@
+<!doctype html><meta charset="utf-8" /><title>Cubeforge people/animals benchmark</title>
+<style>
+  body {
+    margin: 0;
+    background: #241e17;
+    color: #eee;
+    font: 12px monospace;
+  }
+  #stage {
+    width: 1000px;
+    height: 640px;
+    display: flex;
+    position: relative;
+  }
+  #out {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  #out canvas {
+    width: 480px;
+    border: 1px solid #555;
+  }
+  pre {
+    white-space: pre-wrap;
+  }
+</style>
+<div id="stage"></div>
+<pre id="log">Drive with window.cfBench (see src/game/render/cf/cf-benchmark.tsx).</pre>
+<div id="out"></div>
+<script type="module" src="/src/game/render/cf/cf-benchmark.tsx"></script>

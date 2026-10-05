@@ -9,6 +9,7 @@ import { TILE } from '../../model/palette'
 import { prayerAtPoint } from '../prayer-bubbles'
 import { burstForTool, type useSandboxBursts } from '../sandbox-bursts'
 import { isMapControl } from '../camera-controls'
+import { pickPersonAt } from '../cf/people/bridge'
 
 /** Taps, drags and hovers on the map: selection, sandbox tools, prayer bubbles, territory focus. */
 export function useMapPointer({
@@ -127,6 +128,14 @@ export function useMapPointer({
       onOrgSelect(null)
       useUIStore.setState({ panelOpen: false })
       setFocus(lineageId ? `lineage:${lineageId}` : 'all')
+      return
+    }
+
+    // With the people sprite layer running, the person drawn under the pointer wins;
+    // empty ground falls through to the nearest-person search below.
+    const drawnHit = pickPersonAt(canvasTileX * TILE, canvasTileY * TILE)
+    if (drawnHit) {
+      onOrgSelect(drawnHit)
       return
     }
 
