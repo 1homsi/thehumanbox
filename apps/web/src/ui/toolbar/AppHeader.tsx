@@ -98,7 +98,7 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
         <Tooltip tip={tip('GitHub', 'View the source code for The Human Box.')}>
           <a
             className="github-link"
-            href="https://github.com/stackxio/thehumanbox"
+            href="https://github.com/1homsi/thehumanbox"
             target="_blank"
             rel="noreferrer"
             aria-label="View on GitHub"
