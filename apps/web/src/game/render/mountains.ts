@@ -92,7 +92,7 @@ function levelColor(here: number, snowy: boolean, volcanic: boolean): string {
  * the dark face of the step above it showing along its top, a lit lip
  * where it rises above its neighbour, and a cliff onto the lowland.
  */
-function drawMassTile(
+export function drawMassTile(
   ctx: CanvasRenderingContext2D,
   h: Uint8Array,
   width: number,
@@ -101,10 +101,11 @@ function drawMassTile(
   y: number,
   volcanic: boolean,
   hash: number,
+  /** Top-left of the tile; baking a tile into a sprite atlas passes its own origin. */
+  px = x * TILE,
+  py = y * TILE,
 ) {
   const here = at(h, width, height, x, y)
-  const px = x * TILE
-  const py = y * TILE
   const snowy = !volcanic && here >= SNOW_HEIGHT
   ctx.fillStyle = levelColor(here, snowy, volcanic)
   ctx.fillRect(px, py, TILE, TILE)

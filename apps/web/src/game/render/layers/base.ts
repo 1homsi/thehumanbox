@@ -5,6 +5,7 @@ import { LOW_PERF } from '../../../shared/perf'
 import { TILE } from '../../model/palette'
 
 import { drawTreeSway } from '.././decorations'
+import { cfOwns } from '../cf/ownership'
 import type { DrawFrame } from './frame'
 
 /** The cached terrain canvas, then swaying trees. */
@@ -20,7 +21,7 @@ export function draw_base(f: DrawFrame) {
   } else {
     ctx.drawImage(base, 0, 0)
   }
-  if (!overview && !LOW_PERF && renderScale >= 1) {
+  if (!overview && !LOW_PERF && renderScale >= 1 && !cfOwns('vegetation')) {
     drawTreeSway(
       ctx,
       t,

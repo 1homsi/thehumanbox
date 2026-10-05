@@ -23,10 +23,11 @@ export function paintWorldTexture(
   renderWindow: ReturnType<typeof worldRenderWindow>,
   zoom: number,
   scale: number,
+  phase: 'all' | 'below' | 'above' = 'all',
   terrain?: { sync: TerrainSyncFn | null },
 ) {
   const probing = terrainProbe.enabled
-  if (terrain) {
+  if (terrain && phase !== 'above') {
     const t0 = probing ? performance.now() : 0
     const g = world.grid
     const result = terrain.sync?.({
@@ -51,9 +52,26 @@ export function paintWorldTexture(
     r0: Math.max(0, Math.floor(renderWindow.y / TILE)),
     r1: Math.min(world.grid.height, Math.ceil((renderWindow.y + renderWindow.height) / TILE)),
   }
+  // The transparent top canvas is rebuilt from scratch each time.
+  if (phase === 'above') {
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+  }
   const started = performance.now()
   ctx.setTransform(scale, 0, 0, scale, -renderWindow.x * scale, -renderWindow.y * scale)
-  drawWorldOnCanvas(ctx, world, selectedOrgId, overlay, focus, viewFlags, bounds, zoom, scale, !terrain)
+  drawWorldOnCanvas(
+    ctx,
+    world,
+    selectedOrgId,
+    overlay,
+    focus,
+    viewFlags,
+    bounds,
+    zoom,
+    scale,
+    phase,
+    !terrain,
+  )
   const ms = performance.now() - started
   cfPerf.canvasPaints++
   cfPerf.canvasPaintMs += ms

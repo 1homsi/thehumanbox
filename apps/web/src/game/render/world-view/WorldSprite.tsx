@@ -1,7 +1,7 @@
 import type { AnimalInterpCache, OrgInterpCache } from '../draw-helpers'
 import { worldRenderScale, worldRenderWindow, interpolationFactor, shouldRenderFrame } from '../render-timing'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Transform, Sprite, useEntity, useGame, useDynamicCanvas } from 'cubeforge'
+import { Entity, Transform, Sprite, useEntity, useGame, useDynamicCanvas } from 'cubeforge'
 import type { SpriteComponent, TransformComponent } from 'cubeforge'
 import type { WorldState } from '../../../shared/types'
 import type { InterpRefs } from '../../../simulation/useSimulation'
@@ -13,6 +13,7 @@ import { logger } from '../../../shared/logger'
 import { zoomDetailLevel } from '../character-visuals'
 import { TILE } from '../../model/palette'
 import { paintWorldTexture } from './paint-texture'
+import { cfSplitCanvas } from '../cf/ownership'
 import { terrainBackend } from '../terrain-backend'
 import { TerrainTileLayer } from '../terrain-tiles/TerrainTileLayer'
 import type { TerrainSyncFn } from '../terrain-tiles/TerrainTileLayer'
@@ -48,6 +49,8 @@ export function WorldSprite({
 }) {
   const entityId = useEntity()
   const engine = useGame()
+  // Dev builds only: cf-compare.html reads the engine's stats.
+  if (import.meta.env.DEV) (window as unknown as { __thbEngine?: unknown }).__thbEngine = engine
   // With the TileLayer backend the ground is a cubeforge layer under this sprite, and the canvas
   // painted here keeps only what goes on top of it (a transparent texture).
   const tileTerrain = terrainBackend() === 'tilelayer'
@@ -73,6 +76,10 @@ export function WorldSprite({
   const dynW = Math.max(TILE, Math.round((renderWindow.width * renderScale) / 2) * 2)
   const dynH = Math.max(TILE, Math.round((renderWindow.height * renderScale) / 2) * 2)
   const dyn = useDynamicCanvas(dynW, dynH)
+  // With cubeforge layers (?cf=) between the terrain and the actors, the canvas is
+  // painted as two sprites: terrain below the layers, actors and HUD above them.
+  const split = cfSplitCanvas()
+  const dynAbove = useDynamicCanvas(split ? dynW : 2, split ? dynH : 2)
 
   const hasDrawn = useRef(false)
   const cachedDepth = useRef<number[][] | null>(null)
@@ -114,6 +121,27 @@ export function WorldSprite({
   overlayRef.current = overlay
   focusRef.current = focus
   viewFlagsRef.current = viewFlags
+  const paint = (w: WorldState, zoom: number) => {
+    const args = [
+      selectedOrgIdRef.current,
+      overlayRef.current,
+      focusRef.current,
+      viewFlagsRef.current,
+      renderWindow,
+      zoom,
+      renderScale,
+    ] as const
+    const terrain = tileTerrain ? { sync: terrainSyncRef.current } : undefined
+    paintWorldTexture(dyn.ctx, w, ...args, split ? 'below' : 'all', terrain)
+    if (split) {
+      paintWorldTexture(dynAbove.ctx, w, ...args, 'above', terrain)
+      dynAbove.markDirty()
+    }
+  }
+  // The entity of the top canvas sprite (?cf= only), whose geometry is synced like the main one.
+  const aboveId = useRef<number | null>(null)
+  const paintRef = useRef(paint)
+  paintRef.current = paint
 
   // A window/scale change can allocate a new canvas and move the Cubeforge
   // sprite in the same React commit. Paint that canvas and update its ECS
@@ -129,27 +157,19 @@ export function WorldSprite({
       biomes: cachedBiomes.current ?? w.grid.biomes,
     }
     const zoom = cameraStateRef?.current.zoom ?? 1
-    paintWorldTexture(
-      dyn.ctx,
-      { ...w, grid },
-      selectedOrgIdRef.current,
-      overlayRef.current,
-      focusRef.current,
-      viewFlagsRef.current,
-      renderWindow,
-      zoom,
-      renderScale,
-      tileTerrain ? { sync: terrainSyncRef.current } : undefined,
-    )
-    const sprite = engine.ecs.getComponent<SpriteComponent>(entityId, 'Sprite')
-    if (sprite) {
-      sprite.width = renderWindow.width
-      sprite.height = renderWindow.height
-    }
-    const transform = engine.ecs.getComponent<TransformComponent>(entityId, 'Transform')
-    if (transform) {
-      transform.x = atX - W / 2 + renderWindow.x + renderWindow.width / 2
-      transform.y = atY - H / 2 + renderWindow.y + renderWindow.height / 2
+    paintRef.current({ ...w, grid }, zoom)
+    for (const id of [entityId, aboveId.current]) {
+      if (id === null) continue
+      const sprite = engine.ecs.getComponent<SpriteComponent>(id, 'Sprite')
+      if (sprite) {
+        sprite.width = renderWindow.width
+        sprite.height = renderWindow.height
+      }
+      const transform = engine.ecs.getComponent<TransformComponent>(id, 'Transform')
+      if (transform) {
+        transform.x = atX - W / 2 + renderWindow.x + renderWindow.width / 2
+        transform.y = atY - H / 2 + renderWindow.y + renderWindow.height / 2
+      }
     }
     dyn.markDirty()
     if (!interp && !hasDrawn.current) {
@@ -328,18 +348,7 @@ export function WorldSprite({
       // Paint the entire padded texture, so camera movement within it never
       // exposes culled strips or requires an extra CPU redraw.
       try {
-        paintWorldTexture(
-          dyn.ctx,
-          enrichedWorld,
-          selectedOrgIdRef.current,
-          overlayRef.current,
-          focusRef.current,
-          viewFlagsRef.current,
-          renderWindow,
-          renderZoom,
-          renderScale,
-          tileTerrain ? { sync: terrainSyncRef.current } : undefined,
-        )
+        paintRef.current(enrichedWorld, renderZoom)
       } catch (error) {
         stopped = true
         cancelAnimationFrame(raf)
@@ -404,6 +413,28 @@ export function WorldSprite({
         color="#ffffff"
         zIndex={0}
       />
+      {split && (
+        <Entity>
+          <Transform
+            x={atX - W / 2 + renderWindow.x + renderWindow.width / 2}
+            y={atY - H / 2 + renderWindow.y + renderWindow.height / 2}
+          />
+          <Sprite
+            width={renderWindow.width}
+            height={renderWindow.height}
+            dynamicSrc={dynAbove.id}
+            color="#ffffff"
+            zIndex={25}
+          />
+          <AboveEntity idRef={aboveId} />
+        </Entity>
+      )}
     </>
   )
+}
+
+/** Reports the enclosing entity's id, so its geometry can be synced with the painted texture. */
+function AboveEntity({ idRef }: { idRef: React.MutableRefObject<number | null> }) {
+  idRef.current = useEntity()
+  return null
 }

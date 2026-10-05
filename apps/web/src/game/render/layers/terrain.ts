@@ -17,6 +17,7 @@ import { TILE } from '../../model/palette'
 
 import { firstCellAtRow, specialTileIndex } from '.././special-tiles'
 import { emitShimmerRects, emitWaveletRects, waterCellIndex } from '.././water-fx'
+import { cfOwns } from '../cf/ownership'
 import type { DrawFrame } from './frame'
 
 // Structure strength arrives as whole percents, so a frame draws thousands of tiles
@@ -124,6 +125,8 @@ export function draw_terrain(f: DrawFrame) {
     const glowStyle = `rgba(255,215,110,${glowAlpha})`
     const hutNight = Math.max(0, Math.min(3, Math.round(nightFactor * 3)))
     const smokeAlpha = !world.is_day && !overview ? 0.25 : 0
+    // ?cf=buildings: huts, fires and campfires are SpriteLayer sprites instead.
+    const cfSpecial = cfOwns('buildings')
     const hutSprites: Array<ReturnType<typeof getBuildingSprite> | undefined> = new Array(8)
     for (let i = firstCellAtRow(cells, r0); i < cells.length; i += 2) {
       const row = cells[i]
@@ -142,6 +145,8 @@ export function draw_terrain(f: DrawFrame) {
       if (!bakedDecor && tile === TILE_ID.MINERAL) {
         drawMineralOutcrop(ctx, px, py, seed)
       }
+
+      if (cfSpecial && tile !== TILE_ID.FOOD && tile !== TILE_ID.MINERAL) continue
 
       if (tile === TILE_ID.FIRE || tile === TILE_ID.CAMPFIRE) {
         const fi = fire_intensity?.[row]?.[col] ?? 1
@@ -205,7 +210,7 @@ export function draw_terrain(f: DrawFrame) {
   // is animated per frame.
   {
     const hutPositions = hutTileList(tiles)
-    if (hutPositions.length >= 3) {
+    if (hutPositions.length >= 3 && !cfOwns('buildings')) {
       const clusters = cachedHutClusters(hutPositions)
       for (const { cx: cx2, cy: cy2, count: clusterLength } of clusters) {
         const px2 = cx2 * TILE + TILE / 2

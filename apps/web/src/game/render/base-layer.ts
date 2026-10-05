@@ -8,6 +8,7 @@ import { TILE } from '../model/palette'
 import { drawTrees, drawNaturalDecor } from './decorations'
 import { paintTileBlock } from './base-parts/tile-paint'
 import { buildFoamPaths } from './base-parts/terrain-scans'
+import { cfOwns } from './cf/ownership'
 import type { FoamPaths } from './base-parts/terrain-scans'
 
 // The terrain base layer's cache and builders live here; noise, tile painting, terrain scans
@@ -269,12 +270,21 @@ export function terrainSeason(world: Pick<WorldState, 'hard_winter' | 'season'>)
   return world.hard_winter && world.season === 'scarcity' ? 'hard_winter' : world.season
 }
 
+// Whether the cached base canvas was painted without trees, scattered decor and
+// mountains (?cf=vegetation draws those as cubeforge sprites instead).
+let _builtWithoutVegetation = false
+
 /**
  * The cached base canvas: ground, natural decor, trees and mountains. With `ground` false the
  * ground pixels are left out (the canvas is transparent where nothing is drawn) because the
  * TileLayer terrain draws them underneath.
  */
 export function getBaseLayerCanvas(world: WorldState, ground = true): HTMLCanvasElement | null {
+  const cfVegetation = cfOwns('vegetation')
+  if (cfVegetation !== _builtWithoutVegetation) {
+    _builtWithoutVegetation = cfVegetation
+    _baseKey = null
+  }
   const { width, height, tiles, biomes } = world.grid
   if (!tiles || tiles.length < height) return null
   const depth_map = world.grid.depth_map as number[][] | undefined
@@ -397,12 +407,12 @@ export function getBaseLayerCanvas(world: WorldState, ground = true): HTMLCanvas
       baseCtx.rect(bx0 * TILE, by0 * TILE, (bx1 - bx0 + 1) * TILE, (by1 - by0 + 1) * TILE)
       baseCtx.clip()
       if (biomes) {
-        drawNaturalDecor(baseCtx, width, height, tiles, biomes, origin_x, origin_y, only)
+        drawNaturalDecor(baseCtx, width, height, tiles, biomes, origin_x, origin_y, only, !cfVegetation)
       }
-      if (biomes && ATLAS_TOWN.complete) {
+      if (biomes && ATLAS_TOWN.complete && !cfVegetation) {
         drawTrees(baseCtx, width, height, tiles, biomes, origin_x, origin_y, only, season)
       }
-      drawMountains(baseCtx, width, height, tiles, biomes, origin_x, origin_y, only)
+      if (!cfVegetation) drawMountains(baseCtx, width, height, tiles, biomes, origin_x, origin_y, only)
       baseCtx.restore()
       // Refresh derived layers for the affected region.
       updateScaledBaseRegion(bx0, by0, bx1, by1)
@@ -444,12 +454,12 @@ export function getBaseLayerCanvas(world: WorldState, ground = true): HTMLCanvas
     _imgBuf = null
   }
   if (biomes) {
-    drawNaturalDecor(baseCtx, width, height, tiles, biomes, origin_x, origin_y)
+    drawNaturalDecor(baseCtx, width, height, tiles, biomes, origin_x, origin_y, undefined, !cfVegetation)
   }
-  if (biomes && ATLAS_TOWN.complete) {
+  if (biomes && ATLAS_TOWN.complete && !cfVegetation) {
     drawTrees(baseCtx, width, height, tiles, biomes, origin_x, origin_y, undefined, season)
   }
-  drawMountains(baseCtx, width, height, tiles, biomes, origin_x, origin_y)
+  if (!cfVegetation) drawMountains(baseCtx, width, height, tiles, biomes, origin_x, origin_y)
   _baseCanvas = canvas
   _baseKey = {
     width,

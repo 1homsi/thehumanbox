@@ -20,6 +20,7 @@ import { getBuildingState } from '../../model/building-state'
 
 import { zoomDetailLevel } from '.././character-visuals'
 import { TILE } from '../../model/palette'
+import { cfOwns } from '../cf/ownership'
 
 import type { DrawFrame } from './frame'
 
@@ -41,11 +42,15 @@ export function draw_buildings(f: DrawFrame) {
     const bdp = world.day_progress ?? 0.5
     const bNight = world.is_day ? 0 : Math.max(0, Math.min(1, 1 - Math.abs(bdp - 0.5) * 2))
     const buildingDetail = zoomDetailLevel(cameraZoom)
-    const sorted = sortBuildingsByDepth(
-      world.buildings.filter(
-        (b) => b.x - ox >= cxLo && b.x - ox <= cxHi && b.y - oy >= ryLo && b.y - oy <= ryHi,
-      ),
-    )
+    // With ?cf=buildings the cubeforge SpriteLayer draws the buildings themselves;
+    // the labels and caravans below still come from this pass.
+    const sorted = cfOwns('buildings')
+      ? []
+      : sortBuildingsByDepth(
+          world.buildings.filter(
+            (b) => b.x - ox >= cxLo && b.x - ox <= cxHi && b.y - oy >= ryLo && b.y - oy <= ryHi,
+          ),
+        )
     const tiers = lineageEraTiers(world.lineage_eras)
     for (const b of sorted) {
       if (typeof b.x !== 'number' || typeof b.y !== 'number') continue
