@@ -8,9 +8,7 @@ import { DECAL_CELL, FAUNA_CELL, GLYPH_CELL, PIXEL_FAUNA_CELL } from '../atlas-b
 import { useSpriteClock } from '../frame-clock'
 import { cfPerf, registerAnimalLayer } from '../people/bridge'
 import { AnimalSprites } from './animal-sprites'
-
-/** Agreed order of cubeforge layers: animals 30, people 40. */
-export const ANIMAL_Z = { shadow: 29, body: 30, sleep: 31 } as const
+import { ANIMAL_Z } from '../people/z-order'
 
 interface Props {
   world: WorldState

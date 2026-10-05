@@ -10,11 +10,9 @@ import { useBoatAtlas, useDecalAtlas, useEmoteAtlas, useGlyphAtlas, usePeopleAtl
 import { useSpriteClock } from '../frame-clock'
 import { cfPerf, registerPeopleLayer } from './bridge'
 import { PeopleSprites } from './people-sprites'
+import { PEOPLE_Z } from './z-order'
 import { HUMAN_ATLAS_CELL } from '../../character-visuals'
 import { BOAT_CELL, DECAL_CELL, EMOTE_CELL, GLYPH_CELL } from '../atlas-bake'
-
-/** Agreed order of cubeforge layers: animals 30, people 40, effects 50. */
-export const PEOPLE_Z = { soft: 39, body: 40, over: 41, emote: 41.5 } as const
 
 interface Props {
   world: WorldState
