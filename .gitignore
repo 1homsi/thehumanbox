@@ -22,3 +22,8 @@ simulation-py/
 
 .vscode/
 worlds/
+
+# Benchmark output (apps/web/bench): generated worlds and results
+apps/web/bench/.cache/
+apps/web/bench/results/
+apps/web/dist-prof/

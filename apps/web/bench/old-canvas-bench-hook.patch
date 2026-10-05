@@ -1,0 +1,31 @@
+diff --git a/apps/web/src/game/render/WorldView.tsx b/apps/web/src/game/render/WorldView.tsx
+index 973578d1..e2a72892 100644
+--- a/apps/web/src/game/render/WorldView.tsx
++++ b/apps/web/src/game/render/WorldView.tsx
+@@ -63,6 +63,26 @@ export function WorldView({
+   const containerRef = useRef<HTMLDivElement>(null)
+   const commandRef = useRef<MapCommand | null>(null)
+   const cameraStateRef = useRef({ x: cx, y: cy, zoom: 1.5 })
++  // Benchmark hook (same API as the new renderer's `bench-hooks.ts`).
++  const benchWorld = useRef(world)
++  benchWorld.current = world
++  useEffect(() => {
++    if (!new URLSearchParams(location.search).has('bench')) return
++    ;(window as unknown as { __thbBench?: unknown }).__thbBench = {
++      tile: TILE,
++      camera: () => ({ ...cameraStateRef.current }),
++      command: (c: MapCommand) => {
++        commandRef.current = c
++      },
++      info: () => ({
++        gridW: benchWorld.current.grid.width,
++        gridH: benchWorld.current.grid.height,
++        originX: benchWorld.current.grid.origin_x ?? 0,
++        originY: benchWorld.current.grid.origin_y ?? 0,
++        people: benchWorld.current.organisms.filter((o) => o.alive).length,
++      }),
++    }
++  }, [])
+   // Other panels (the prayer list) ask the camera to look at a tile.
+   const focusRequest = useCameraFocus((s) => s.request)
+   useEffect(() => {
