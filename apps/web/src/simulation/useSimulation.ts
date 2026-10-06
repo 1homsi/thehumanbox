@@ -4,6 +4,7 @@ import { WS_BASE, API_BASE, IS_LOCAL_SERVER } from '../shared/config'
 import { useWorldStore } from '../state/worldStore'
 import { binaryFramesReady, fetchSnapshotWithProgress, loadBinaryFrameDecoder, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
+import { signalSimFrame } from './frame-signal'
 import { logger } from '../shared/logger'
 import {
   type LocalWorldReloadDetail,
@@ -289,6 +290,7 @@ export function useSimulation(source: WorldSource = 'native'): {
       }
 
       if (latest === null) return
+      signalSimFrame()
 
       pendingSetWorldRef.current = latest
       const sinceLast = performance.now() - lastSetWorldAtRef.current

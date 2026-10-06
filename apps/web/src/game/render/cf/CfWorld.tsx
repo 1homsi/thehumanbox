@@ -10,6 +10,7 @@ import { TerrainTileLayer, type TerrainSyncFn } from '../terrain-tiles/TerrainTi
 import { makeFrame } from './frame'
 import { CfRegistry } from './registry'
 import { wakeEngine } from './frame-clock'
+import { SleepyLoop } from './render-loop'
 import { CfBuildings } from './buildings/CfBuildings'
 import { CfGround } from './ground/CfGround'
 import { CfLanduse } from './landuse/CfLanduse'
@@ -116,37 +117,30 @@ export function CfWorld({
 
   useEffect(() => {
     if (rendererPaused) return
-    let raf = 0
     let last = -Infinity
-    let stopped = false
     let lastKey = ''
-    const tick = (now: number) => {
-      if (stopped) return
-      raf = requestAnimationFrame(tick)
-      if (document.hidden || now - last < 1000 / 30) return
+    const loop = new SleepyLoop((now) => {
+      if (document.hidden || now - last < 1000 / 30) return true
       last = now
       const w = interp?.current.current ?? worldRef.current
-      if (!w) return
-      // A paused map with a still camera stays as it is (fires stop flickering, trees stop swaying),
-      // so the engine can sleep. A new frame, a pan or a zoom wakes it.
+      if (!w) return true
+      // A paused map with a still camera stays as it is (fires stop flickering, trees stop swaying):
+      // the loop sleeps, and a new frame, a pan or a zoom wakes it.
       const cam = cameraStateRef.current
       const key = `${interp?.currentServerAt.current ?? 0}|${cam.x}|${cam.y}|${cam.zoom}|${viewportDims.w}x${viewportDims.h}`
-      if (interp && key === lastKey && isSettled(interp, now)) return
+      if (interp && key === lastKey && isSettled(interp, now)) return false
       lastKey = key
       try {
         step(w)
       } catch (error) {
-        stopped = true
-        cancelAnimationFrame(raf)
         logger.error('2d-world', 'GPU world drawing failed', error)
         onDrawErrorRef.current('The world could not be drawn. Retry the renderer to restore the map.')
+        return false
       }
-    }
-    raf = requestAnimationFrame(tick)
-    return () => {
-      stopped = true
-      cancelAnimationFrame(raf)
-    }
+      return true
+    })
+    loop.wake()
+    return () => loop.stop()
   }, [interp, rendererPaused, step, cameraStateRef, viewportDims])
 
   useEffect(() => {
