@@ -22,6 +22,7 @@
 //   --shots             save a screenshot of every scenario
 //   --alloc-profile     sample every allocation in the window (what makes garbage), written as .heapprofile
 //   --eval <js>         evaluate an expression in the page after the window, stored as result.eval
+//   --startup-profile   CPU profile of the page from navigation to the first frame (<fixture>-startup-run<n>.cpuprofile)
 //   --gl-log           record live WebGL textures by size and texture upload sizes (metrics pass)
 //   --headed            show the Chrome window (the default is headless)
 //
@@ -72,6 +73,7 @@ const wantShots = opt('shots', false) === true
 const headed = opt('headed', false) === true
 const wantGl = opt('gl-log', false) === true
 const wantAlloc = opt('alloc-profile', false) === true
+const wantStartup = opt('startup-profile', false) === true
 const evalExpr = opt('eval', null)
 
 /** Zoom of each named view. `fit` is the opening view that shows the whole world. */
@@ -277,11 +279,25 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
     }
 
     // 2. Open the app on it and wait for the first drawn frame.
+    const startupOn = wantStartup && pass === 'metrics'
+    if (startupOn) {
+      await page.send('Profiler.enable')
+      await page.send('Profiler.setSamplingInterval', { interval: 200 })
+      await page.send('Profiler.start')
+    }
     await page.send('Page.navigate', { url: `${origin}/?bench=1` })
     let firstFrame = null
     for (let i = 0; i < 900 && firstFrame === null; i++) {
       await sleep(100)
       firstFrame = await page.evaluate('window.__benchFirstFrame ?? null').catch(() => null)
+    }
+    if (startupOn) {
+      const { profile } = await page.send('Profiler.stop')
+      mkdirSync(outDir, { recursive: true })
+      writeFileSync(
+        path.join(outDir, `${fixture}-startup-run${runIndex}.cpuprofile`),
+        JSON.stringify(profile),
+      )
     }
     if (firstFrame === null) throw new Error('the map never drew its first frame')
     result.firstFrameMs = Math.round(firstFrame)
