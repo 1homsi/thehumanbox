@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest'
-import type { OrganismState } from '../../../../shared/types'
+import { afterEach, describe, expect, it } from 'vitest'
+import type { FaithInfo, OrganismState, PrayerInfo, VehicleInfo } from '../../../../shared/types'
+import { resetPrayerFeedback, updatePrayerFeedback } from '../../prayer-feedback'
 import { paintPeopleLabels, type PeopleLabelInput, type PeopleLabelSource } from './people-labels'
+import { paintPeopleLabelsReference } from './people-labels.reference.test-util'
 
 interface Call {
   fn: string
@@ -161,4 +163,132 @@ describe('people labels', () => {
     )
     expect(quiet.calls.filter((c) => c.fn === 'fillRect')).toHaveLength(0)
   })
+})
+
+/** Deterministic random numbers, so a failing scenario can be replayed. */
+function rng(seed: number) {
+  let a = seed
+  return () => {
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+const THOUGHTS = [
+  '',
+  'observing',
+  'exploring',
+  'looking for water',
+  'chopping wood',
+  'mining stone',
+  'harvesting crops',
+  'fishing',
+  'resting',
+  'foraging',
+  'building a hut',
+  'sounding alarm',
+  '"hello!"',
+]
+
+/** A crowd with every feature the painter reads: names or none, thoughts, lineages, low vitals, ties in y. */
+function randomCrowd(seed: number, n: number) {
+  const rand = rng(seed)
+  const pick = <T>(xs: readonly T[]): T => xs[Math.floor(rand() * xs.length)]
+  const orgs: OrganismState[] = []
+  for (let i = 0; i < n; i++) {
+    // Whole-tile positions now and then, so equal depths exercise the id tie-break.
+    const tied = rand() < 0.3
+    const x = tied ? Math.floor(rand() * 40) + 10 : rand() * 40 + 10
+    const y = tied ? Math.floor(rand() * 30) + 10 : rand() * 30 + 10
+    orgs.push(
+      org(`${pick(['a', 'b', 'c', 'd'])}${Math.floor(rand() * 1e6).toString(16)}${i}`, x, y, {
+        name: rand() < 0.1 ? '' : `Name${i}`,
+        sex: rand() < 0.5 ? 'male' : 'female',
+        thought: pick(THOUGHTS),
+        lineage_id: pick(['L1', 'L2', 'L3']),
+        energy: rand() < 0.1 ? 0.1 : 0.9,
+        hydration: rand() < 0.1 ? 0.1 : 0.9,
+        health: rand() < 0.1 ? 0.1 : 0.9,
+        infection: rand() < 0.2 ? 0.5 : 0,
+        is_elder: rand() < 0.2,
+      }),
+    )
+  }
+  const people: PeopleLabelSource = {
+    orgs,
+    px: orgs.map((o) => o.x * 8 + 4),
+    py: orgs.map((o) => o.y * 8 + 4),
+    hidden: orgs.map(() => (rand() < 0.1 ? 1 : 0)),
+    phase: orgs.map(() => Math.floor(rand() * 1000)),
+    step: {
+      flipped: orgs.map(() => (rand() < 0.5 ? 1 : 0)),
+      movedAt: orgs.map(() => (rand() < 0.3 ? 4950 : -Infinity)),
+    },
+  }
+  return { orgs, people, rand, pick }
+}
+
+describe('people labels, cheap painter against the original', () => {
+  afterEach(() => resetPrayerFeedback())
+
+  const scenarios = [
+    { n: 60, zoom: 3 },
+    { n: 60, zoom: 1.5 },
+    { n: 60, zoom: 0.4 },
+    { n: 700, zoom: 3 },
+    { n: 900, zoom: 5 },
+    { n: 900, zoom: 1.2 },
+  ]
+  for (const { n, zoom } of scenarios) {
+    for (const seed of [1, 2, 3]) {
+      it(`draws exactly what it drew before (${n} people, zoom ${zoom}, seed ${seed})`, () => {
+        const { orgs, people, rand, pick } = randomCrowd(seed * 100 + n, n)
+        const prayers = [
+          { id: 1, lineage_id: 'L1', x: 30, y: 25 },
+          { id: 2, lineage_id: 'L2', x: 15, y: 15 },
+        ] as unknown as PrayerInfo[]
+        const vehicles = orgs
+          .filter(() => rand() < 0.05)
+          .map((o) => ({ kind: 'boat', rider_id: o.id }) as unknown as VehicleInfo)
+        // L3 just had a prayer answered: its people near it dance.
+        updatePrayerFeedback(
+          [{ id: 9, lineage_id: 'L3', x: 30, y: 20 }] as unknown as PrayerInfo[],
+          { blessed: [], despairing: [] } as unknown as FaithInfo,
+          4000,
+        )
+        updatePrayerFeedback([], { blessed: ['L3'], despairing: [] } as unknown as FaithInfo, 4500)
+        const base: PeopleLabelInput = {
+          people,
+          selectedId: rand() < 0.7 ? pick(orgs).id : null,
+          focus: pick(['all', 'all', 'sick', 'lineage:L2', 'hungry']),
+          viewFlags: { names: rand() < 0.8, thoughts: rand() < 0.6, hideUI: rand() < 0.2 },
+          zoom,
+          now: 5000,
+          prayers: rand() < 0.8 ? prayers : undefined,
+          vehicles: rand() < 0.5 ? vehicles : undefined,
+          settlementLabels: [
+            { cx: 200, cy: 200, w: 120, h: 24 } as never,
+            { cx: 300, cy: 260, w: 90, h: 24 } as never,
+          ],
+          window: { c0: 5, c1: 45, r0: 5, r1: 38 },
+          ox: 0,
+          oy: 0,
+        }
+        const fast = recording()
+        const old = recording()
+        paintPeopleLabels(fast.ctx, base)
+        paintPeopleLabelsReference(old.ctx, base)
+        expect(fast.calls).toEqual(old.calls)
+        if (zoom > 1) expect(fast.calls.length).toBeGreaterThan(0)
+        // Again on the same crowd, a moment later: scratch buffers kept from the last frame must not leak in.
+        const again = recording()
+        paintPeopleLabels(again.ctx, { ...base, now: 5030 })
+        const againOld = recording()
+        paintPeopleLabelsReference(againOld.ctx, { ...base, now: 5030 })
+        expect(again.calls).toEqual(againOld.calls)
+      })
+    }
+  }
 })
