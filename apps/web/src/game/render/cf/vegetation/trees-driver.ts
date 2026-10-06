@@ -21,6 +21,12 @@ export const TREE_CLASSES: ReadonlyArray<readonly [number, number]> = [
 
 const SHADOW = rgba(20, 24, 18, Math.round(0.24 * 255))
 
+/**
+ * The wind moves a canopy by whole pixels along a slow sine (a period of four seconds): a pixel flips a
+ * few times a second at most, so the canopies are rewritten about 12 times a second, not every frame.
+ */
+const SWAY_INTERVAL_MS = 80
+
 /** A tree as it will draw: its sprite cell and the pixel position the canvas painter used. */
 interface TreeSprite {
   /** Whole-pixel top-left of the sprite and its size. */
@@ -58,6 +64,11 @@ export class TreesDriver {
   private canopyCells = new Map<string, CellRef>()
   private canopyEpoch = -1
   private cellByKey = new Map<string, CellRef>()
+  private lastSwayAt = -Infinity
+  private swayKey = ''
+  /** Scratch for the visible canopies of one frame: tree index and pixel shift. */
+  private picked = new Int32Array(0)
+  private shifts = new Int8Array(0)
 
   constructor(layer: SpriteLayer, swayLayer: SpriteLayer, atlas: CellAtlas) {
     this.layer = layer
@@ -86,6 +97,8 @@ export class TreesDriver {
     }
     this.stats.rebuilds++
     this.stats.rebuildMs += performance.now() - t0
+    // The sprites the wind copies from are new.
+    this.lastSwayAt = -Infinity
   }
 
   private treeSprite(tree: PlacedTree): TreeSprite | null {
@@ -247,6 +260,10 @@ export class TreesDriver {
       sway.clear()
       return true
     }
+    const windKey = `${win.c0},${win.c1},${win.r0},${win.r1}|${world.weather?.kind}|${(world as WorldState).weather?.wind_x}`
+    if (now - this.lastSwayAt < SWAY_INTERVAL_MS && windKey === this.swayKey) return false
+    this.lastSwayAt = now
+    this.swayKey = windKey
     const t0 = performance.now()
     const view = {
       x0: win.c0 * TILE,
@@ -264,8 +281,13 @@ export class TreesDriver {
     sway.reserve(Math.max(64, sprites.length))
     const epoch = this.atlas.epoch
     // The visible span is a handful of rows: count first so resize happens once.
-    const picked: number[] = []
-    const shifts: number[] = []
+    if (this.picked.length < sprites.length) {
+      this.picked = new Int32Array(sprites.length)
+      this.shifts = new Int8Array(sprites.length)
+    }
+    const picked = this.picked
+    const shifts = this.shifts
+    let count = 0
     for (let i = lo; i < sprites.length; i++) {
       const s = sprites[i]
       if (s.cy > view.y1) {
@@ -277,11 +299,11 @@ export class TreesDriver {
       const gust = 0.6 + 0.4 * Math.sin(now / 2300 + s.cx * 0.01)
       const shift = Math.round((Math.sin(now / 620 + s.phase) * amp + lean) * gust)
       if (shift === 0) continue
-      picked.push(i)
-      shifts.push(shift)
+      picked[count] = i
+      shifts[count++] = shift
     }
-    sway.resize(picked.length)
-    for (let k = 0; k < picked.length; k++) {
+    sway.resize(count)
+    for (let k = 0; k < count; k++) {
       const s = sprites[picked[k]]
       const cell = this.canopyCell(s)
       if (!cell) continue
