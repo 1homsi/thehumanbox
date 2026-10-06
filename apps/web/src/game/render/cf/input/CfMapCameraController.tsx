@@ -11,6 +11,7 @@ import {
   type MapCamera,
   type MapCommand,
 } from '../../camera-controls'
+import { wakeRenderLoops } from '../render-loop'
 import { KEY_ZOOM_STEP, WHEEL_SPEED, commandCamera, keyboardPanDelta, panKey } from './camera-rig'
 
 interface Props {
@@ -95,7 +96,10 @@ export function CfMapCameraController({
     camera.setZoom(bounded.zoom)
     camera.setPosition(bounded.x, bounded.y)
     last.current = { ...bounded }
+    const before = cameraStateRef.current
     cameraStateRef.current = bounded
+    // The render loops sleep while the world is still: a moved camera wakes them.
+    if (before.x !== bounded.x || before.y !== bounded.y || before.zoom !== bounded.zoom) wakeRenderLoops()
   }
   /** Same, from an event: the sleeping loop is woken to draw it. */
   const apply = (next: MapCamera) => {

@@ -9,6 +9,7 @@ import { prayerEffectsActive } from '../../prayer-feedback'
 import { worldMomentsActive } from '../../world-moments'
 import { peopleLabelSource } from '../picking'
 import { makeFrame } from './frame'
+import { SleepyLoop, wakeRenderLoops } from '../render-loop'
 import { engineRenderHost } from './host'
 import { CfOverlayRenderer } from './renderer'
 
@@ -88,16 +89,12 @@ export function CfOverlays({
 
   useEffect(() => {
     if (!renderer || rendererPaused) return
-    let raf = 0
-    let stopped = false
     let lastFrameAt = -Infinity
     let lastKey = ''
-    const tick = (now: number) => {
-      if (stopped) return
-      raf = requestAnimationFrame(tick)
-      if (document.hidden || !shouldRenderFrame(now, lastFrameAt, LOW_PERF ? 24 : 30)) return
+    const loop = new SleepyLoop((now) => {
+      if (document.hidden || !shouldRenderFrame(now, lastFrameAt, LOW_PERF ? 24 : 30)) return true
       const cur = interp?.current.current ?? worldRef.current
-      if (!cur) return
+      if (!cur) return true
       if (cur.grid.depth_map) cachedDepth.current = cur.grid.depth_map as number[][]
       if (cur.grid.biomes) cachedBiomes.current = cur.grid.biomes as number[][]
       const cam = cameraStateRef.current
@@ -110,7 +107,7 @@ export function CfOverlays({
       // A settled map (no new frame, still camera, nobody selected moving) stops repainting.
       const key = `${curServerAt}|${cam.x}|${cam.y}|${cam.zoom}|${overlayRef.current ?? ''}|${focusRef.current}|${selectedRef.current ?? ''}|${JSON.stringify(viewFlagsRef.current)}|${viewportDims.w}x${viewportDims.h}`
       const settled = key === lastKey && !prayerEffectsActive() && !worldMomentsActive()
-      if (interp && settled && now - receivedAt > interval + 160) return
+      if (interp && settled && now - receivedAt > interval + 160) return false
       lastFrameAt = now
       lastKey = key
       const grid =
@@ -142,13 +139,14 @@ export function CfOverlays({
         { people: peopleLabelSource(), selectedId: selectedRef.current },
       )
       onUpdateRef.current?.(result)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => {
-      stopped = true
-      cancelAnimationFrame(raf)
-    }
+      return true
+    })
+    loop.wake()
+    return () => loop.stop()
   }, [renderer, rendererPaused, interp, cameraStateRef, viewportDims])
+
+  // The loop sleeps while nothing changes; what it draws from these is read from refs, so tell it.
+  useEffect(() => wakeRenderLoops(), [selectedOrgId, overlay, focus, viewFlags])
 
   return viewFlags.fps ? <StatsOverlay corner="top-right" /> : null
 }
