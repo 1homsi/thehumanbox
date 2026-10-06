@@ -1,16 +1,25 @@
 import type { LayerAtlas } from 'cubeforge'
 
-/** What the atlas needs from one dynamic canvas (see useDynamicCanvas). */
+/** What the atlas needs from one dynamic canvas (an engine `ManagedDynamicCanvas`). */
 export interface AtlasPage {
   readonly id: string
   readonly canvas: { width: number; height: number }
   readonly ctx: CanvasRenderingContext2D
-  /** The most this page may grow to: it is the size a full page would have. */
-  readonly maxWidth: number
-  readonly maxHeight: number
   /** Change the canvas size in place, keeping what is painted (top-left, unscaled). */
   resize(width: number, height: number): void
   markDirty(x?: number, y?: number, width?: number, height?: number): void
+  /** Free the texture. */
+  dispose?(): void
+}
+
+/**
+ * A page that may exist: the most it may grow to, and how to create its canvas. Nothing is
+ * allocated (no canvas, no texture) until a cell size claims the slot.
+ */
+export interface AtlasPageSlot {
+  readonly maxWidth: number
+  readonly maxHeight: number
+  open(width: number, height: number): AtlasPage
 }
 
 /** Rows a page starts with when a size class claims it; it doubles when full, up to its limit. */
@@ -28,6 +37,10 @@ export interface CellRef {
 
 /** Transparent border around every cell so NEAREST sampling never reads a neighbour. */
 export const CELL_GUTTER = 1
+
+function emptyPage(): PageState {
+  return { cw: 0, ch: 0, cols: 0, rows: 0, maxRows: 0, capacity: 0, used: 0, keys: [] }
+}
 
 interface PageState {
   /** Cell size of this page (0 until the first cell claims it). */
@@ -61,33 +74,34 @@ export class CellAtlas {
   grows = 0
   private readonly pages: PageState[]
   private readonly cells = new Map<string, CellRef>()
-  private readonly io: readonly AtlasPage[]
+  private readonly slots: readonly AtlasPageSlot[]
+  /** The pages opened so far, by slot (null while a slot is unclaimed). */
+  private readonly io: (AtlasPage | null)[]
   /** Candidate cell sizes (gutter included), smallest first. */
   private readonly classes: ReadonlyArray<readonly [number, number]>
   /** The layer's atlas descriptors, one per page; filled in as pages are claimed. */
   private readonly atlases: LayerAtlas[]
 
   constructor(
-    io: readonly AtlasPage[],
+    slots: readonly AtlasPageSlot[],
     classes: ReadonlyArray<readonly [number, number]>,
     atlases: LayerAtlas[],
   ) {
-    this.io = io
+    this.slots = slots
+    this.io = slots.map(() => null)
     this.classes = classes
     this.atlases = atlases
-    this.pages = io.map(() => ({
-      cw: 0,
-      ch: 0,
-      cols: 0,
-      rows: 0,
-      maxRows: 0,
-      capacity: 0,
-      used: 0,
-      keys: [],
-    }))
-    io.forEach((page, i) => {
-      this.atlases[i] = { dynamicSrc: page.id }
-    })
+    this.pages = slots.map(() => emptyPage())
+  }
+
+  /** Free every page's texture and forget every cell: the atlas is as new again. */
+  dispose(): void {
+    for (const page of this.io) page?.dispose?.()
+    this.io.fill(null)
+    this.cells.clear()
+    this.atlases.length = 0
+    for (let i = 0; i < this.pages.length; i++) this.pages[i] = emptyPage()
+    this.epoch++
   }
 
   get(key: string): CellRef | undefined {
@@ -109,7 +123,8 @@ export class CellAtlas {
       pages++
       used += p.used
       capacity += p.cols * p.maxRows
-      pixels += this.io[i].canvas.width * this.io[i].canvas.height
+      const page = this.io[i]
+      if (page) pixels += page.canvas.width * page.canvas.height
     }
     return { used, capacity, pages, pixels }
   }
@@ -142,7 +157,8 @@ export class CellAtlas {
     const row = Math.floor(slot / page.cols)
     const x0 = col * page.cw
     const y0 = row * page.ch
-    const { ctx } = this.io[index]
+    const io = this.io[index]!
+    const { ctx } = io
     ctx.save()
     ctx.beginPath()
     ctx.rect(x0, y0, page.cw, page.ch)
@@ -155,7 +171,7 @@ export class CellAtlas {
     ctx.imageSmoothingEnabled = false
     paint(ctx)
     ctx.restore()
-    this.io[index].markDirty(x0, y0, page.cw, page.ch)
+    io.markDirty(x0, y0, page.cw, page.ch)
     this.bakes++
     const ref: CellRef = { atlas: index, frame: slot, cw: page.cw, ch: page.ch }
     this.cells.set(key, ref)
@@ -187,9 +203,9 @@ export class CellAtlas {
   }
 
   private claim(index: number, cw: number, ch: number): boolean {
-    const page = this.io[index]
-    const cols = Math.floor(page.maxWidth / cw)
-    const maxRows = Math.floor(page.maxHeight / ch)
+    const slot = this.slots[index]
+    const cols = Math.floor(slot.maxWidth / cw)
+    const maxRows = Math.floor(slot.maxHeight / ch)
     if (cols < 1 || maxRows < 1) return false
     const p = this.pages[index]
     p.cw = cw
@@ -200,13 +216,11 @@ export class CellAtlas {
     p.capacity = cols * p.rows
     p.used = 0
     p.keys = []
-    // The canvas has been a token size until now: it takes the shape of its grid.
-    page.resize(cols * cw, p.rows * ch)
+    // The canvas comes into being with the shape of its grid: the rows it needs first.
+    const page = slot.open(cols * cw, p.rows * ch)
+    this.io[index] = page
     page.markDirty()
-    const at = this.atlases[index]
-    at.frameWidth = cw
-    at.frameHeight = ch
-    at.frameColumns = cols
+    this.atlases[index] = { dynamicSrc: page.id, frameWidth: cw, frameHeight: ch, frameColumns: cols }
     return true
   }
 
@@ -215,8 +229,9 @@ export class CellAtlas {
     const p = this.pages[index]
     p.rows = Math.min(p.maxRows, p.rows * 2)
     p.capacity = p.cols * p.rows
-    this.io[index].resize(p.cols * p.cw, p.rows * p.ch)
-    this.io[index].markDirty()
+    const page = this.io[index]!
+    page.resize(p.cols * p.cw, p.rows * p.ch)
+    page.markDirty()
     this.grows++
   }
 
@@ -225,9 +240,9 @@ export class CellAtlas {
     for (const k of p.keys) this.cells.delete(k)
     p.keys = []
     p.used = 0
-    const { ctx, canvas } = this.io[index]
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    this.io[index].markDirty()
+    const page = this.io[index]!
+    page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height)
+    page.markDirty()
     this.epoch++
     this.resets++
   }

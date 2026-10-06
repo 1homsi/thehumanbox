@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { LayerAtlas } from 'cubeforge'
-import { CELL_GUTTER, CellAtlas, type AtlasPage } from './cell-atlas'
+import { CELL_GUTTER, CellAtlas, type AtlasPage, type AtlasPageSlot } from './cell-atlas'
 
 interface Call {
   op: string
   args: number[]
 }
 
-function page(id: string, size: number): AtlasPage & { calls: Call[]; dirty: number[][] } {
+type FakePage = AtlasPage & { calls: Call[]; dirty: number[][]; disposed: boolean }
+
+function page(id: string, width: number, height: number): FakePage {
   const calls: Call[] = []
   const dirty: number[][] = []
   const rec =
@@ -25,66 +27,76 @@ function page(id: string, size: number): AtlasPage & { calls: Call[]; dirty: num
     translate: rec('translate'),
     imageSmoothingEnabled: true,
   } as unknown as CanvasRenderingContext2D
-  const canvas = { width: 4, height: 4 }
-  return {
+  const canvas = { width, height }
+  const fake: FakePage = {
     id,
     canvas,
     ctx,
-    maxWidth: size,
-    maxHeight: size,
     resize: (w, h) => {
       calls.push({ op: 'resize', args: [w, h] })
       Object.assign(canvas, { width: w, height: h })
     },
     markDirty: (...a: number[]) => dirty.push(a),
+    dispose: () => {
+      fake.disposed = true
+    },
     calls,
     dirty,
+    disposed: false,
   }
+  return fake
 }
 
+/** Slots of the given limits; `opened[i]` is the page once something claims slot i. */
 function make(sizes: number[], classes: Array<[number, number]>) {
-  const pages = sizes.map((s, i) => page(`p${i}`, s))
+  const opened: (FakePage | undefined)[] = sizes.map(() => undefined)
+  const slots: AtlasPageSlot[] = sizes.map((limit, i) => ({
+    maxWidth: limit,
+    maxHeight: limit,
+    open: (w, h) => (opened[i] = page(`p${i}`, w, h)),
+  }))
   const atlases: LayerAtlas[] = []
-  const atlas = new CellAtlas(pages, classes, atlases)
-  return { atlas, pages, atlases }
+  const atlas = new CellAtlas(slots, classes, atlases)
+  return { atlas, opened, atlases }
 }
 
 describe('CellAtlas', () => {
   it('costs nothing until a page is claimed, then only the rows it needs', () => {
-    const { atlas, pages } = make([1024, 1024], [[20, 10]])
-    expect(pages[0].canvas).toEqual({ width: 4, height: 4 })
+    const { atlas, opened } = make([1024, 1024], [[20, 10]])
+    // Nothing exists yet: no canvas, no texture.
+    expect(opened).toEqual([undefined, undefined])
     atlas.bake('a', 18, 8, () => {})
     // 1024 / 20 = 51 columns, a first block of 4 rows.
-    expect(pages[0].canvas).toEqual({ width: 51 * 20, height: 4 * 10 })
-    expect(pages[1].canvas).toEqual({ width: 4, height: 4 })
+    expect(opened[0]?.canvas).toEqual({ width: 51 * 20, height: 4 * 10 })
+    expect(opened[1]).toBeUndefined()
   })
 
-  it('doubles a full page without moving any cell, until the limit, then clears it', () => {
-    const { atlas, pages, atlases } = make([40], [[10, 10]])
+  it('starts a small page at its limit when the limit is the first rows', () => {
+    const { atlas, opened, atlases } = make([40], [[10, 10]])
     // 40 / 10 = 4 columns, 4 rows at most; it starts with 4 rows, the most it can have.
     const refs = Array.from({ length: 16 }, (_, i) => atlas.bake(`k${i}`, 8, 8, () => {}))
     expect(atlas.grows).toBe(0)
-    expect(pages[0].canvas).toEqual({ width: 40, height: 40 })
+    expect(opened[0]?.canvas).toEqual({ width: 40, height: 40 })
     expect(atlas.epoch).toBe(0)
     expect(refs[15]?.frame).toBe(15)
     expect(atlases[0].frameColumns).toBe(4)
   })
 
   it('grows by rows and keeps every cell where it was', () => {
-    const { atlas, pages, atlases } = make([160], [[10, 10]])
+    const { atlas, opened, atlases } = make([160], [[10, 10]])
     // 16 columns, up to 16 rows; 4 rows to start with: 64 cells.
     const first = Array.from({ length: 64 }, (_, i) => atlas.bake(`k${i}`, 8, 8, () => {}))
-    expect(pages[0].canvas).toEqual({ width: 160, height: 40 })
+    expect(opened[0]?.canvas).toEqual({ width: 160, height: 40 })
     const sixtyFifth = atlas.bake('k64', 8, 8, () => {})
     expect(atlas.grows).toBe(1)
-    expect(pages[0].canvas).toEqual({ width: 160, height: 80 })
+    expect(opened[0]?.canvas).toEqual({ width: 160, height: 80 })
     expect(atlas.epoch).toBe(0)
     expect(atlas.get('k0')).toBe(first[0])
     expect(first[63]).toMatchObject({ frame: 63 })
     expect(sixtyFifth?.frame).toBe(64)
     expect(atlases[0].frameColumns).toBe(16)
     // The whole page is marked dirty so the engine re-creates the texture at its new size.
-    expect(pages[0].dirty).toContainEqual([])
+    expect(opened[0]?.dirty).toContainEqual([])
   })
 
   it('claims a page for the first size class and lays cells out row by row', () => {
@@ -95,7 +107,8 @@ describe('CellAtlas', () => {
     expect(b?.frame).toBe(1)
     // 100 / 20 = 5 columns: the descriptor tells the engine how to slice the texture.
     expect(atlases[0]).toMatchObject({ dynamicSrc: 'p0', frameWidth: 20, frameHeight: 10, frameColumns: 5 })
-    expect(atlases[1]).toEqual({ dynamicSrc: 'p1' })
+    // The second page does not exist until a cell size needs it.
+    expect(atlases[1]).toBeUndefined()
   })
 
   it('returns the same cell for a key it already holds and paints once', () => {
@@ -109,13 +122,13 @@ describe('CellAtlas', () => {
   })
 
   it('paints inside the gutter, clipped to the content, and marks only that cell dirty', () => {
-    const { atlas, pages } = make([100], [[20, 10]])
+    const { atlas, opened } = make([100], [[20, 10]])
     atlas.bake('a', 18, 8, () => {})
     atlas.bake('b', 18, 8, () => {})
-    const ops = pages[0].calls.filter((c) => c.op === 'translate')
+    const ops = opened[0]!.calls.filter((c) => c.op === 'translate')
     expect(ops[1].args).toEqual([20 + CELL_GUTTER, 0 + CELL_GUTTER])
     // dirty[0] is the page being claimed; each bake after it marks its own cell.
-    expect(pages[0].dirty.slice(-2)).toEqual([
+    expect(opened[0]!.dirty.slice(-2)).toEqual([
       [0, 0, 20, 10],
       [20, 0, 20, 10],
     ])
@@ -154,6 +167,19 @@ describe('CellAtlas', () => {
     const { atlas } = make([16], [[10, 10]])
     expect(atlas.bake('huge', 40, 40, () => {})).toBeNull()
     expect(atlas.rejected).toBe(1)
+  })
+
+  it('frees every page on dispose and starts over', () => {
+    const { atlas, opened, atlases } = make([100, 100], [[20, 10]])
+    atlas.bake('a', 18, 8, () => {})
+    const first = opened[0]!
+    atlas.dispose()
+    expect(first.disposed).toBe(true)
+    expect(atlases).toEqual([])
+    expect(atlas.get('a')).toBeUndefined()
+    // It can be used again: the next bake claims a new page.
+    expect(atlas.bake('a', 18, 8, () => {})).toMatchObject({ atlas: 0, frame: 0 })
+    expect(opened[0]).not.toBe(first)
   })
 
   it('reports usage across claimed pages', () => {

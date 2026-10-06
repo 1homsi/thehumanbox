@@ -1,67 +1,48 @@
-import { useMemo } from 'react'
-import { useDynamicCanvas } from 'cubeforge'
-import type { LayerAtlas } from 'cubeforge'
-import { CellAtlas, type AtlasPage } from './cell-atlas'
+import { useEffect, useMemo } from 'react'
+import { useGame } from 'cubeforge'
+import type { DynamicCanvasOptions, LayerAtlas, ManagedDynamicCanvas } from 'cubeforge'
+import { CellAtlas, type AtlasPage, type AtlasPageSlot } from './cell-atlas'
 
-/** Change a canvas size in place and keep what was painted on it. The engine re-creates the texture at the new size. */
-export function resizeCanvasKeeping(
-  canvas: HTMLCanvasElement,
-  ctx: CanvasRenderingContext2D,
-  w: number,
-  h: number,
-) {
-  if (canvas.width === w && canvas.height === h) return
-  let backup: HTMLCanvasElement | null = null
-  if (canvas.width > 4 && canvas.height > 4) {
-    backup = document.createElement('canvas')
-    backup.width = canvas.width
-    backup.height = canvas.height
-    backup.getContext('2d')?.drawImage(canvas, 0, 0)
-  }
-  // Setting the size clears the canvas and resets the context.
-  canvas.width = w
-  canvas.height = h
-  if (backup) ctx.drawImage(backup, 0, 0)
+interface CanvasHost {
+  createDynamicCanvas(options: DynamicCanvasOptions): ManagedDynamicCanvas
 }
 
-/** The size an unclaimed page has: it costs next to nothing until a cell size claims it. */
-const IDLE_SIZE = 4
+/** One engine dynamic canvas as an atlas page. */
+function openPage(engine: { activeRenderSystem?: unknown }, width: number, height: number): AtlasPage {
+  const host = engine.activeRenderSystem as CanvasHost | undefined
+  if (!host?.createDynamicCanvas) throw new Error('the engine has no dynamic canvases')
+  const canvas = host.createDynamicCanvas({ width, height })
+  return {
+    id: canvas.id,
+    canvas: canvas.canvas,
+    ctx: canvas.ctx,
+    resize: (w, h) => canvas.resize(w, h),
+    markDirty: (x, y, w, h) => canvas.markDirty(x, y, w, h),
+    dispose: () => canvas.dispose(),
+  }
+}
 
 /**
- * Up to eight dynamic canvases (the most the engine draws per SpriteLayer) as the atlases of one SpriteLayer.
- * `useDynamicCanvas` is a hook with a fixed count per call, so the number of pages is fixed at mount, but a page
- * is a 4x4 canvas until a cell size claims it, and then it grows by rows only as far as it fills: `sizes[i]` is the
- * most page i may become, not what it costs. Sizes beyond `sizes.length` stay 4x4 and are never claimed.
+ * The atlases of one SpriteLayer: up to eight pages (the most the engine draws per layer), each a dynamic
+ * canvas that comes into being when a cell size claims it, with the rows it needs, and grows as it fills.
+ * `sizes[i]` is the most page i may become, not what it costs: an atlas nobody bakes into holds no memory.
  */
 export function useCellAtlas(
   sizes: readonly number[],
   classes: ReadonlyArray<readonly [number, number]>,
 ): { atlas: CellAtlas; atlases: LayerAtlas[] } {
-  const p0 = useDynamicCanvas(IDLE_SIZE, IDLE_SIZE)
-  const p1 = useDynamicCanvas(IDLE_SIZE, IDLE_SIZE)
-  const p2 = useDynamicCanvas(IDLE_SIZE, IDLE_SIZE)
-  const p3 = useDynamicCanvas(IDLE_SIZE, IDLE_SIZE)
-  const p4 = useDynamicCanvas(IDLE_SIZE, IDLE_SIZE)
-  const p5 = useDynamicCanvas(IDLE_SIZE, IDLE_SIZE)
-  const p6 = useDynamicCanvas(IDLE_SIZE, IDLE_SIZE)
-  const p7 = useDynamicCanvas(IDLE_SIZE, IDLE_SIZE)
-  return useMemo(() => {
-    const handles = [p0, p1, p2, p3, p4, p5, p6, p7]
-    const pages: AtlasPage[] = handles.map((h, i) => {
-      const limit = i < sizes.length ? sizes[i] : 0
-      return {
-        id: h.id,
-        canvas: h.canvas,
-        ctx: h.ctx,
-        maxWidth: limit,
-        maxHeight: limit,
-        resize: (w, ht) => resizeCanvasKeeping(h.canvas, h.ctx, w, ht),
-        markDirty: h.markDirty,
-      }
-    })
+  const engine = useGame()
+  const made = useMemo(() => {
     const atlases: LayerAtlas[] = []
-    return { atlas: new CellAtlas(pages, classes, atlases), atlases }
+    const slots: AtlasPageSlot[] = sizes.map((limit) => ({
+      maxWidth: limit,
+      maxHeight: limit,
+      open: (width, height) => openPage(engine, width, height),
+    }))
+    return { atlas: new CellAtlas(slots, classes, atlases), atlases }
     // `sizes` is a module constant at every call site.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p0, p1, p2, p3, p4, p5, p6, p7, classes])
+  }, [engine, classes])
+  useEffect(() => () => made.atlas.dispose(), [made])
+  return made
 }
