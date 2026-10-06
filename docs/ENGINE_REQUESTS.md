@@ -91,6 +91,11 @@ colour without a new style per combination (names: 3 px black, thoughts: 2.5 px 
 - `textureBytes` and the upload counters ignore `TileLayer` textures and tint uploads, and
   `tileLayerStats` is not in `EngineStats`. The map's terrain tileset and tint grid are missing from the
   number the app reports as engine texture memory.
+- `_statTex` counts a dynamic canvas's size when it is registered and never again, so after
+  `ManagedDynamicCanvas.resize()` (the app's atlas pages grow by rows) `stats.textureBytes` is an
+  undercount: 13.6 MB reported against 24 MB of live textures counted by wrapping `texImage2D` /
+  `deleteTexture` (`bench/run.mjs --gl-log`). Do: update the stat in `uploadDynamicCanvas` where the size
+  change is detected (`texW`/`texH` already change there).
 - There is no GPU time. Do: an optional `EXT_disjoint_timer_query_webgl2` query around the frame
   (`stats.gpuMs`, off by default), and a per-layer breakdown (`stats.layers: { name, instances, drawMs }[]`).
   Today the benchmark can only report the GPU process's main-thread busy time from a Chrome trace.
@@ -123,7 +128,7 @@ growth needs no copy.
 
 | 0.12 feature | Adopted | Why |
 |---|---|---|
-| Imperative dynamic canvases (`createDynamicCanvas`, `resize`, `dispose`) | yes | atlas pages are created when a cell size claims them and grow by rows: the 67 MB reserved up front becomes what is used |
+| Imperative dynamic canvases (`createDynamicCanvas`, `resize`, `dispose`) | yes (#288) | atlas pages are created when a cell size claims them and grow by rows: 109 textures / 71 MB of live WebGL textures became 44 / 24 MB, GPU process memory 220 -> 165 MB |
 | TextLayer | after the engine items in 5 | outline per run is needed first |
 | `TileLayer` `minFilter: 'mipmap'` | not yet | the app's flat far-zoom tileset already hides the shimmer; swapping it changes the picture and needs a screenshot review |
 | `useCameraPanZoom` `onChange` | not needed | the camera controller already writes the camera inside the engine frame script that runs only when the loop is awake; the render loops are woken from the same place |
