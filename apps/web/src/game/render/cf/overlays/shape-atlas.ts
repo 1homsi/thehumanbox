@@ -24,7 +24,8 @@ export const FRAME_DISC = 0
  */
 export class ShapeAtlas {
   readonly id = atlasId('shapes')
-  readonly canvas = makeCanvas(CELL * COLS, CELL * ROWS)
+  /** One row of cells to start with; it gets another row each time a frame needs it (8 at most). */
+  readonly canvas = makeCanvas(CELL * COLS, CELL)
   readonly cell = CELL
   readonly cols = COLS
   private readonly ctx = this.canvas.getContext('2d')
@@ -55,10 +56,24 @@ export class ShapeAtlas {
     return { dynamicSrc: this.id, frameWidth: CELL, frameHeight: CELL, frameColumns: COLS }
   }
 
+  /** Make the canvas tall enough for `row`, keeping what is painted (the engine re-creates the texture). */
+  private ensureRow(row: number): void {
+    const g = this.ctx
+    const rows = this.canvas.height / CELL
+    if (!g || row < rows) return
+    const next = Math.min(ROWS, Math.max(row + 1, rows * 2))
+    const backup = makeCanvas(this.canvas.width, this.canvas.height)
+    backup.getContext('2d')?.drawImage(this.canvas, 0, 0)
+    this.canvas.height = next * CELL
+    g.drawImage(backup, 0, 0)
+    this.host.dirty(this.id, 0, 0, this.canvas.width, this.canvas.height)
+  }
+
   private paint(frame: number, draw: (g: CanvasRenderingContext2D) => void): void {
     this.bakes++
     const g = this.ctx
     if (!g) return
+    this.ensureRow(Math.floor(frame / COLS))
     const x = (frame % COLS) * CELL
     const y = Math.floor(frame / COLS) * CELL
     g.save()

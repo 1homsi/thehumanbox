@@ -182,6 +182,24 @@ describe('ShapeAtlas', () => {
   })
 })
 
+describe('ShapeAtlas size', () => {
+  it('starts with one row of cells and takes more only as frames need them', () => {
+    const grown: Array<[number, number, number, number]> = []
+    const a = new ShapeAtlas({
+      register: () => undefined,
+      unregister: () => undefined,
+      dirty: (_id, x, y, w, h) => grown.push([x, y, w, h]),
+    })
+    // The painting context exists only in a real browser; here the atlas keeps its bookkeeping.
+    expect(a.canvas.height).toBe(a.cell)
+    expect(a.canvas.width).toBe(a.cell * a.cols)
+    if (!a.canvas.getContext('2d')) return
+    for (let i = 1; i <= 9; i++) a.ring(0.01 * i + (i > 5 ? 0.3 : 0))
+    expect(a.canvas.height).toBeGreaterThan(a.cell)
+    expect(grown.length).toBeGreaterThan(0)
+  })
+})
+
 describe('outlined text', () => {
   it('writes the outline first, in the stroke colour around the glyphs, then the fill on top', () => {
     ctx.font = '9px monospace'
