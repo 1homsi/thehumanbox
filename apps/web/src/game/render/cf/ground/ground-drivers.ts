@@ -197,9 +197,12 @@ export class StructureDriver implements CfDriver {
   private source: unknown = null
   private revision = -1
   private epoch = -1
-  /** The strength of every tile in whole percents, 0 where nothing is drawn: what the last rebuild drew. */
-  private percent = new Uint16Array(0)
-  private scratch = new Uint16Array(0)
+  /** The tiles drawn by the last rebuild (row-major index) and their strength in whole percents. */
+  private drawnAt = new Int32Array(0)
+  private drawnPct = new Uint16Array(0)
+  private drawnCount = 0
+  private scanAt = new Int32Array(0)
+  private scanPct = new Uint16Array(0)
   /** The baked cell of each percent, valid for `epoch`. */
   private readonly cellOf = new Map<number, CellRef>()
 
@@ -216,7 +219,7 @@ export class StructureDriver implements CfDriver {
       this.layer.clear()
       this.layer.touch()
       this.source = null
-      this.percent = new Uint16Array(0)
+      this.drawnCount = 0
       return true
     }
     if (
@@ -228,66 +231,69 @@ export class StructureDriver implements CfDriver {
       return false
     const t0 = performance.now()
     const { tiles, width, height } = grid
-    // Every simulation frame brings a structure grid, but it changes only where people build: read it
-    // into whole percents (what a tile is drawn from) and rewrite the layer only when something differs.
-    const n = width * height
-    if (this.scratch.length !== n) this.scratch = new Uint16Array(n)
-    const next = this.scratch
-    let drawn = 0
+    // Every simulation frame brings a structure grid, and it changes in a few tiles at a time. Read it
+    // into the list of tiles that show a mark (index and whole percent, which is all a mark is drawn from)
+    // and rewrite the layer only when that list differs.
+    if (this.scanAt.length < width * height) {
+      this.scanAt = new Int32Array(width * height)
+      this.scanPct = new Uint16Array(width * height)
+    }
+    const at = this.scanAt
+    const pct = this.scanPct
+    let count = 0
     for (let y = 0; y < height; y++) {
       const srow = structure[y]
       const trow = tiles[y]
-      const at = y * width
-      if (!srow || !trow) {
-        next.fill(0, at, at + width)
-        continue
-      }
+      if (!srow || !trow) continue
+      const base = y * width
       for (let x = 0; x < width; x++) {
         const s = srow[x]
-        if (s < 0.05 || trow[x] === 8) next[at + x] = 0
-        else {
-          next[at + x] = Math.round(s * 100)
-          drawn++
-        }
+        if (s < 0.05 || trow[x] === 8) continue
+        at[count] = base + x
+        pct[count++] = Math.round(s * 100)
       }
     }
     this.stats.scans++
     this.frame = f.world.frame_id
     this.source = structure
-    const same =
+    if (
       this.revision === f.terrainRevision &&
       this.epoch === this.atlas.epoch &&
-      this.percent.length === n &&
-      this.layer.count === drawn &&
-      sameValues(this.percent, next)
-    if (same) return false
-    this.scratch = this.percent
-    this.percent = next
+      count === this.drawnCount &&
+      this.layer.count === count &&
+      sameList(this.drawnAt, at, count) &&
+      sameList(this.drawnPct, pct, count)
+    )
+      return false
+    // What was scanned is now what is drawn; the old lists become the next scan's scratch.
+    ;[this.drawnAt, this.scanAt] = [at, this.drawnAt]
+    ;[this.drawnPct, this.scanPct] = [pct, this.drawnPct]
+    this.drawnCount = count
     this.revision = f.terrainRevision
     // A page can be cleared while baking (the epoch moves): bake again against the new one.
     for (let pass = 0; pass < 2; pass++) {
       const epoch = this.atlas.epoch
       this.cellOf.clear()
-      for (let i = 0; i < n; i++) {
-        const pct = next[i]
-        if (pct === 0 || this.cellOf.has(pct)) continue
+      for (let k = 0; k < count; k++) {
+        const p = pct[k]
+        if (this.cellOf.has(p)) continue
         const cell =
-          this.atlas.get(`St|${pct}`) ??
-          this.atlas.bake(`St|${pct}`, TILE, TILE, (ctx) =>
-            paintStructureTile(ctx, 0, 0, structureStrength(pct / 100)),
+          this.atlas.get(`St|${p}`) ??
+          this.atlas.bake(`St|${p}`, TILE, TILE, (ctx) =>
+            paintStructureTile(ctx, 0, 0, structureStrength(p / 100)),
           )
-        if (cell) this.cellOf.set(pct, cell)
+        if (cell) this.cellOf.set(p, cell)
       }
       if (epoch === this.atlas.epoch) break
     }
     const layer = this.layer
-    layer.resize(drawn)
+    layer.resize(count)
     let k = 0
-    for (let i = 0; i < n; i++) {
-      const cell = this.cellOf.get(next[i])
+    for (let i = 0; i < count; i++) {
+      const cell = this.cellOf.get(pct[i])
       if (!cell) continue
-      const x = i % width
-      const y = (i - x) / width
+      const x = at[i] % width
+      const y = (at[i] - x) / width
       writeSprite(
         layer,
         k,
@@ -318,8 +324,8 @@ export class StructureDriver implements CfDriver {
   }
 }
 
-function sameValues(a: Uint16Array, b: Uint16Array): boolean {
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false
+function sameList(a: ArrayLike<number>, b: ArrayLike<number>, n: number): boolean {
+  for (let i = 0; i < n; i++) if (a[i] !== b[i]) return false
   return true
 }
 
