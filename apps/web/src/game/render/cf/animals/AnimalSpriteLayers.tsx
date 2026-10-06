@@ -6,6 +6,7 @@ import type { ViewFlags } from '../../../../state/store'
 import { useDecalAtlas, useFaunaAtlas, useGlyphAtlas, usePixelFaunaAtlas } from '../atlas-hooks'
 import { DECAL_CELL, FAUNA_CELL, GLYPH_CELL, PIXEL_FAUNA_CELL } from '../atlas-bake'
 import { useSpriteClock, wakeEngine } from '../frame-clock'
+import { wakeRenderLoops } from '../render-loop'
 import { AnimalSprites } from './animal-sprites'
 import { ANIMAL_Z } from '../people/z-order'
 
@@ -74,12 +75,15 @@ export function AnimalSpriteLayers({ world, interp, viewFlags, rendererPaused }:
     }
     // Fish and birds bob while the simulation runs, at half the display rate once the frame has
     // arrived; a paused world stops with the last pose.
-    if (!rebuilt && frame.settled) return
-    if (frame.t >= 1 && frame.now - lastAnimate.current < 33) return
+    if (!rebuilt && frame.settled) return false
+    if (frame.t >= 1 && frame.now - lastAnimate.current < 33) return true
     lastAnimate.current = frame.now
     sprites.animate(frame.now, frame.t)
     wakeEngine(engine, 30)
+    return true
   })
+
+  useEffect(() => wakeRenderLoops(), [shown])
 
   return null
 }

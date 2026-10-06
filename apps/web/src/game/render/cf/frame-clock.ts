@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { WorldState } from '../../../shared/types'
 import type { InterpRefs } from '../../../simulation/useSimulation'
 import { interpolationFactor, isSettled } from '../render-timing'
+import { SleepyLoop } from './render-loop'
 
 /** What a sprite layer needs to know about "now": the frame, the one before, and how far between them. */
 export interface SpriteFrame {
@@ -41,13 +42,15 @@ export function readSpriteFrame(
 /**
  * Calls `onFrame` once per display frame while mounted and not paused. Unlike
  * the canvas painter's loop this one is not throttled to 30 fps: it only writes
- * typed arrays, so it can follow the display.
+ * typed arrays, so it can follow the display. `onFrame` returns `false` when
+ * nothing is moving and the clock may sleep; a new simulation frame, a camera
+ * move or `wakeRenderLoops()` starts it again.
  */
 export function useSpriteClock(
   interp: InterpRefs | undefined,
   world: WorldState,
   paused: boolean,
-  onFrame: (frame: SpriteFrame) => void,
+  onFrame: (frame: SpriteFrame) => boolean | void,
 ): void {
   const worldRef = useRef(world)
   worldRef.current = world
@@ -55,15 +58,13 @@ export function useSpriteClock(
   onFrameRef.current = onFrame
   useEffect(() => {
     if (paused) return
-    let raf = 0
-    const tick = (rafNow: number) => {
-      raf = requestAnimationFrame(tick)
-      if (document.hidden) return
+    const loop = new SleepyLoop((rafNow) => {
+      if (document.hidden) return true
       const frame = readSpriteFrame(interp, worldRef.current, rafNow, Date.now())
-      if (frame) onFrameRef.current(frame)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+      return frame ? onFrameRef.current(frame) !== false : true
+    })
+    loop.wake()
+    return () => loop.stop()
   }, [interp, paused])
 }
 

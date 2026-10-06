@@ -8,6 +8,7 @@ import { zoomDetailLevel } from '../../character-visuals'
 import { ruinedBuildingTiles } from '../../base-parts/terrain-scans'
 import { useBoatAtlas, useDecalAtlas, useEmoteAtlas, useGlyphAtlas, usePeopleAtlas } from '../atlas-hooks'
 import { useSpriteClock, wakeEngine } from '../frame-clock'
+import { wakeRenderLoops } from '../render-loop'
 import { registerPeopleLayer } from '../picking'
 import { PeopleSprites } from './people-sprites'
 import { PEOPLE_Z } from './z-order'
@@ -173,13 +174,18 @@ export function PeopleSpriteLayers({
     }
     // A quiet world needs no more frames. Only the selected person's turning ring keeps going,
     // and not while the simulation is paused.
-    if (!stale && frame.t >= 1 && !sprites.moving && (selected === null || frame.settled)) return
+    // The clock sleeps until a frame, a camera move or a UI change wakes it.
+    if (!stale && frame.t >= 1 && !sprites.moving && (selected === null || frame.settled)) return false
     // Zoomed out, a person moves a few pixels a second: 20 updates a second are as smooth as 60.
-    if (!stale && detail === 'overview' && frame.now - lastAnimate.current < 50) return
+    if (!stale && detail === 'overview' && frame.now - lastAnimate.current < 50) return true
     lastAnimate.current = frame.now
     sprites.animate(frame.now, frame.t)
     wakeEngine(engine, detail === 'overview' ? 20 : 60)
+    return true
   })
+
+  // Who is selected, the focus and the view flags are read by the clock from refs.
+  useEffect(() => wakeRenderLoops(), [selectedOrgId, focus, viewFlags])
 
   return null
 }
