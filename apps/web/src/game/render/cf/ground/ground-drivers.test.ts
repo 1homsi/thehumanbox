@@ -5,7 +5,7 @@ import type { WorldState } from '../../../../shared/types'
 import { TILE } from '../../../model/palette'
 import { TILE_ID } from '../../../model/terrain-ids'
 import { buildFoamRects } from '../../foam'
-import { CellAtlas, type AtlasPage } from '../atlas/cell-atlas'
+import { CellAtlas, type AtlasPageSlot } from '../atlas/cell-atlas'
 import { makeFrame } from '../frame'
 import { FoamDriver, PatchDriver, ShoreDriver, StructureDriver } from './ground-drivers'
 
@@ -18,15 +18,23 @@ function permissive(): CanvasRenderingContext2D {
 }
 
 function atlas(): CellAtlas {
-  const page = (id: string): AtlasPage => ({
-    id,
-    canvas: { width: 256, height: 256 },
-    ctx: permissive(),
-    markDirty: () => undefined,
+  const slot = (): AtlasPageSlot => ({
+    maxWidth: 256,
+    maxHeight: 256,
+    open: (width, height) => {
+      const canvas = { width, height }
+      return {
+        id: `page${width}x${height}`,
+        canvas,
+        ctx: permissive(),
+        resize: (w, h) => Object.assign(canvas, { width: w, height: h }),
+        markDirty: () => undefined,
+      }
+    },
   })
   const atlases: LayerAtlas[] = []
   return new CellAtlas(
-    [page('a'), page('b')],
+    [slot(), slot()],
     [
       [TILE + 2, TILE + 2],
       [TILE + 6, TILE + 6],

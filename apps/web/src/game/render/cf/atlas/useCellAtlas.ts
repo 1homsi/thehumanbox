@@ -1,29 +1,48 @@
-import { useMemo } from 'react'
-import { useDynamicCanvas } from 'cubeforge'
-import type { LayerAtlas } from 'cubeforge'
-import { CellAtlas, type AtlasPage } from './cell-atlas'
+import { useEffect, useMemo } from 'react'
+import { useGame } from 'cubeforge'
+import type { DynamicCanvasOptions, LayerAtlas, ManagedDynamicCanvas } from 'cubeforge'
+import { CellAtlas, type AtlasPage, type AtlasPageSlot } from './cell-atlas'
+
+interface CanvasHost {
+  createDynamicCanvas(options: DynamicCanvasOptions): ManagedDynamicCanvas
+}
+
+/** One engine dynamic canvas as an atlas page. */
+function openPage(engine: { activeRenderSystem?: unknown }, width: number, height: number): AtlasPage {
+  const host = engine.activeRenderSystem as CanvasHost | undefined
+  if (!host?.createDynamicCanvas) throw new Error('the engine has no dynamic canvases')
+  const canvas = host.createDynamicCanvas({ width, height })
+  return {
+    id: canvas.id,
+    canvas: canvas.canvas,
+    ctx: canvas.ctx,
+    resize: (w, h) => canvas.resize(w, h),
+    markDirty: (x, y, w, h) => canvas.markDirty(x, y, w, h),
+    dispose: () => canvas.dispose(),
+  }
+}
 
 /**
- * Up to eight dynamic canvases (the most the engine draws per SpriteLayer) as the atlases of one SpriteLayer. `useDynamicCanvas`
- * is a hook with a fixed size per call, so the page count and sizes are fixed at
- * mount: sizes beyond `sizes.length` stay 4x4 and are never claimed.
+ * The atlases of one SpriteLayer: up to eight pages (the most the engine draws per layer), each a dynamic
+ * canvas that comes into being when a cell size claims it, with the rows it needs, and grows as it fills.
+ * `sizes[i]` is the most page i may become, not what it costs: an atlas nobody bakes into holds no memory.
  */
 export function useCellAtlas(
   sizes: readonly number[],
   classes: ReadonlyArray<readonly [number, number]>,
 ): { atlas: CellAtlas; atlases: LayerAtlas[] } {
-  const s = (i: number) => (i < sizes.length ? sizes[i] : 4)
-  const p0 = useDynamicCanvas(s(0), s(0))
-  const p1 = useDynamicCanvas(s(1), s(1))
-  const p2 = useDynamicCanvas(s(2), s(2))
-  const p3 = useDynamicCanvas(s(3), s(3))
-  const p4 = useDynamicCanvas(s(4), s(4))
-  const p5 = useDynamicCanvas(s(5), s(5))
-  const p6 = useDynamicCanvas(s(6), s(6))
-  const p7 = useDynamicCanvas(s(7), s(7))
-  return useMemo(() => {
-    const pages: AtlasPage[] = [p0, p1, p2, p3, p4, p5, p6, p7]
+  const engine = useGame()
+  const made = useMemo(() => {
     const atlases: LayerAtlas[] = []
-    return { atlas: new CellAtlas(pages, classes, atlases), atlases }
-  }, [p0, p1, p2, p3, p4, p5, p6, p7, classes])
+    const slots: AtlasPageSlot[] = sizes.map((limit) => ({
+      maxWidth: limit,
+      maxHeight: limit,
+      open: (width, height) => openPage(engine, width, height),
+    }))
+    return { atlas: new CellAtlas(slots, classes, atlases), atlases }
+    // `sizes` is a module constant at every call site.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine, classes])
+  useEffect(() => () => made.atlas.dispose(), [made])
+  return made
 }
