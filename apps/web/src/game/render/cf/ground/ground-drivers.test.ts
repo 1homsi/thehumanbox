@@ -18,12 +18,18 @@ function permissive(): CanvasRenderingContext2D {
 }
 
 function atlas(): CellAtlas {
-  const page = (id: string): AtlasPage => ({
-    id,
-    canvas: { width: 256, height: 256 },
-    ctx: permissive(),
-    markDirty: () => undefined,
-  })
+  const page = (id: string): AtlasPage => {
+    const canvas = { width: 4, height: 4 }
+    return {
+      id,
+      canvas,
+      ctx: permissive(),
+      maxWidth: 256,
+      maxHeight: 256,
+      resize: (w, h) => Object.assign(canvas, { width: w, height: h }),
+      markDirty: () => undefined,
+    }
+  }
   const atlases: LayerAtlas[] = []
   return new CellAtlas(
     [page('a'), page('b')],

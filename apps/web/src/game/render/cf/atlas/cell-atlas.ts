@@ -5,8 +5,16 @@ export interface AtlasPage {
   readonly id: string
   readonly canvas: { width: number; height: number }
   readonly ctx: CanvasRenderingContext2D
+  /** The most this page may grow to: it is the size a full page would have. */
+  readonly maxWidth: number
+  readonly maxHeight: number
+  /** Change the canvas size in place, keeping what is painted (top-left, unscaled). */
+  resize(width: number, height: number): void
   markDirty(x?: number, y?: number, width?: number, height?: number): void
 }
+
+/** Rows a page starts with when a size class claims it; it doubles when full, up to its limit. */
+export const INITIAL_ROWS = 4
 
 /** A baked cell: which atlas of the layer it lives in and its frame index. */
 export interface CellRef {
@@ -26,6 +34,10 @@ interface PageState {
   cw: number
   ch: number
   cols: number
+  /** Rows the canvas has now, and the most it may have. */
+  rows: number
+  maxRows: number
+  /** Cells the canvas holds now. */
   capacity: number
   used: number
   keys: string[]
@@ -34,8 +46,11 @@ interface PageState {
 /**
  * Packs baked sprites into the textures of one SpriteLayer. SpriteLayer atlases
  * are uniform grids, so every page serves one cell size class, claimed lazily by
- * the first sprite that fits; a full page is cleared and its sprites re-baked on
- * demand (`epoch` changes so callers drop any cell they cached).
+ * the first sprite that fits. A page costs nothing until it is claimed, and then
+ * only the rows it needs: its width is fixed (so every cell keeps its frame
+ * number) and its height doubles when it fills, up to the page's limit. A page
+ * full at its limit is cleared and its sprites re-baked on demand (`epoch`
+ * changes so callers drop any cell they cached).
  */
 export class CellAtlas {
   /** Bumped when a page is cleared: cached CellRefs are no longer valid. */
@@ -43,6 +58,7 @@ export class CellAtlas {
   resets = 0
   bakes = 0
   rejected = 0
+  grows = 0
   private readonly pages: PageState[]
   private readonly cells = new Map<string, CellRef>()
   private readonly io: readonly AtlasPage[]
@@ -59,7 +75,16 @@ export class CellAtlas {
     this.io = io
     this.classes = classes
     this.atlases = atlases
-    this.pages = io.map(() => ({ cw: 0, ch: 0, cols: 0, capacity: 0, used: 0, keys: [] }))
+    this.pages = io.map(() => ({
+      cw: 0,
+      ch: 0,
+      cols: 0,
+      rows: 0,
+      maxRows: 0,
+      capacity: 0,
+      used: 0,
+      keys: [],
+    }))
     io.forEach((page, i) => {
       this.atlases[i] = { dynamicSrc: page.id }
     })
@@ -73,18 +98,20 @@ export class CellAtlas {
     return this.cells.size
   }
 
-  /** Cells in use and capacity across claimed pages. */
-  usage(): { used: number; capacity: number; pages: number } {
+  /** Cells in use, the most the claimed pages can hold, and the pixels their canvases take now. */
+  usage(): { used: number; capacity: number; pages: number; pixels: number } {
     let used = 0
     let capacity = 0
     let pages = 0
-    for (const p of this.pages) {
+    let pixels = 0
+    for (const [i, p] of this.pages.entries()) {
       if (p.cw === 0) continue
       pages++
       used += p.used
-      capacity += p.capacity
+      capacity += p.cols * p.maxRows
+      pixels += this.io[i].canvas.width * this.io[i].canvas.height
     }
-    return { used, capacity, pages }
+    return { used, capacity, pages, pixels }
   }
 
   /**
@@ -103,8 +130,11 @@ export class CellAtlas {
     }
     let page = this.pages[index]
     if (page.used >= page.capacity) {
-      this.clearPage(index)
-      page = this.pages[index]
+      if (page.rows < page.maxRows) this.growPage(index)
+      else {
+        this.clearPage(index)
+        page = this.pages[index]
+      }
     }
     const slot = page.used++
     page.keys.push(key)
@@ -140,7 +170,7 @@ export class CellAtlas {
       const p = this.pages[i]
       if (p.cw === 0 || p.cw < needW || p.ch < needH) continue
       // Prefer the tightest class, then a page that still has room.
-      const area = p.cw * p.ch + (p.used >= p.capacity ? 1e9 : 0)
+      const area = p.cw * p.ch + (p.used >= p.cols * p.maxRows ? 1e9 : 0)
       if (area < bestArea) {
         best = i
         bestArea = area
@@ -148,7 +178,7 @@ export class CellAtlas {
     }
     // A fitting page that still has room, unless a tighter class could be claimed.
     const klass = this.classes.find(([cw, ch]) => cw >= needW && ch >= needH) ?? [needW, needH]
-    if (best >= 0 && this.pages[best].used < this.pages[best].capacity) {
+    if (best >= 0 && this.pages[best].used < this.pages[best].cols * this.pages[best].maxRows) {
       if (this.pages[best].cw * this.pages[best].ch <= klass[0] * klass[1] * 1.5) return best
     }
     const free = this.pages.findIndex((p) => p.cw === 0)
@@ -157,22 +187,37 @@ export class CellAtlas {
   }
 
   private claim(index: number, cw: number, ch: number): boolean {
-    const { canvas } = this.io[index]
-    const cols = Math.floor(canvas.width / cw)
-    const rows = Math.floor(canvas.height / ch)
-    if (cols < 1 || rows < 1) return false
+    const page = this.io[index]
+    const cols = Math.floor(page.maxWidth / cw)
+    const maxRows = Math.floor(page.maxHeight / ch)
+    if (cols < 1 || maxRows < 1) return false
     const p = this.pages[index]
     p.cw = cw
     p.ch = ch
     p.cols = cols
-    p.capacity = cols * rows
+    p.maxRows = maxRows
+    p.rows = Math.min(maxRows, INITIAL_ROWS)
+    p.capacity = cols * p.rows
     p.used = 0
     p.keys = []
+    // The canvas has been a token size until now: it takes the shape of its grid.
+    page.resize(cols * cw, p.rows * ch)
+    page.markDirty()
     const at = this.atlases[index]
     at.frameWidth = cw
     at.frameHeight = ch
     at.frameColumns = cols
     return true
+  }
+
+  /** Double a full page's rows (to its limit). Cells keep their frames: the width does not change. */
+  private growPage(index: number): void {
+    const p = this.pages[index]
+    p.rows = Math.min(p.maxRows, p.rows * 2)
+    p.capacity = p.cols * p.rows
+    this.io[index].resize(p.cols * p.cw, p.rows * p.ch)
+    this.io[index].markDirty()
+    this.grows++
   }
 
   private clearPage(index: number): void {

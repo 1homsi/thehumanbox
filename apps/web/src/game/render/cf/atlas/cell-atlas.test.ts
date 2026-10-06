@@ -25,10 +25,17 @@ function page(id: string, size: number): AtlasPage & { calls: Call[]; dirty: num
     translate: rec('translate'),
     imageSmoothingEnabled: true,
   } as unknown as CanvasRenderingContext2D
+  const canvas = { width: 4, height: 4 }
   return {
     id,
-    canvas: { width: size, height: size },
+    canvas,
     ctx,
+    maxWidth: size,
+    maxHeight: size,
+    resize: (w, h) => {
+      calls.push({ op: 'resize', args: [w, h] })
+      Object.assign(canvas, { width: w, height: h })
+    },
     markDirty: (...a: number[]) => dirty.push(a),
     calls,
     dirty,
@@ -43,6 +50,43 @@ function make(sizes: number[], classes: Array<[number, number]>) {
 }
 
 describe('CellAtlas', () => {
+  it('costs nothing until a page is claimed, then only the rows it needs', () => {
+    const { atlas, pages } = make([1024, 1024], [[20, 10]])
+    expect(pages[0].canvas).toEqual({ width: 4, height: 4 })
+    atlas.bake('a', 18, 8, () => {})
+    // 1024 / 20 = 51 columns, a first block of 4 rows.
+    expect(pages[0].canvas).toEqual({ width: 51 * 20, height: 4 * 10 })
+    expect(pages[1].canvas).toEqual({ width: 4, height: 4 })
+  })
+
+  it('doubles a full page without moving any cell, until the limit, then clears it', () => {
+    const { atlas, pages, atlases } = make([40], [[10, 10]])
+    // 40 / 10 = 4 columns, 4 rows at most; it starts with 4 rows, the most it can have.
+    const refs = Array.from({ length: 16 }, (_, i) => atlas.bake(`k${i}`, 8, 8, () => {}))
+    expect(atlas.grows).toBe(0)
+    expect(pages[0].canvas).toEqual({ width: 40, height: 40 })
+    expect(atlas.epoch).toBe(0)
+    expect(refs[15]?.frame).toBe(15)
+    expect(atlases[0].frameColumns).toBe(4)
+  })
+
+  it('grows by rows and keeps every cell where it was', () => {
+    const { atlas, pages, atlases } = make([160], [[10, 10]])
+    // 16 columns, up to 16 rows; 4 rows to start with: 64 cells.
+    const first = Array.from({ length: 64 }, (_, i) => atlas.bake(`k${i}`, 8, 8, () => {}))
+    expect(pages[0].canvas).toEqual({ width: 160, height: 40 })
+    const sixtyFifth = atlas.bake('k64', 8, 8, () => {})
+    expect(atlas.grows).toBe(1)
+    expect(pages[0].canvas).toEqual({ width: 160, height: 80 })
+    expect(atlas.epoch).toBe(0)
+    expect(atlas.get('k0')).toBe(first[0])
+    expect(first[63]).toMatchObject({ frame: 63 })
+    expect(sixtyFifth?.frame).toBe(64)
+    expect(atlases[0].frameColumns).toBe(16)
+    // The whole page is marked dirty so the engine re-creates the texture at its new size.
+    expect(pages[0].dirty).toContainEqual([])
+  })
+
   it('claims a page for the first size class and lays cells out row by row', () => {
     const { atlas, atlases } = make([100, 100], [[20, 10]])
     const a = atlas.bake('a', 18, 8, () => {})
@@ -70,7 +114,11 @@ describe('CellAtlas', () => {
     atlas.bake('b', 18, 8, () => {})
     const ops = pages[0].calls.filter((c) => c.op === 'translate')
     expect(ops[1].args).toEqual([20 + CELL_GUTTER, 0 + CELL_GUTTER])
-    expect(pages[0].dirty[1]).toEqual([20, 0, 20, 10])
+    // dirty[0] is the page being claimed; each bake after it marks its own cell.
+    expect(pages[0].dirty.slice(-2)).toEqual([
+      [0, 0, 20, 10],
+      [20, 0, 20, 10],
+    ])
   })
 
   it('puts different sizes on different pages, tightest class first', () => {
@@ -111,6 +159,7 @@ describe('CellAtlas', () => {
   it('reports usage across claimed pages', () => {
     const { atlas } = make([40, 40], [[10, 10]])
     atlas.bake('a', 8, 8, () => {})
-    expect(atlas.usage()).toEqual({ used: 1, capacity: 16, pages: 1 })
+    // Capacity is what the page may hold; its canvas is only as big as its first rows.
+    expect(atlas.usage()).toEqual({ used: 1, capacity: 16, pages: 1, pixels: 40 * 40 })
   })
 })
