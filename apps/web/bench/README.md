@@ -65,6 +65,13 @@ node bench/profile-summary.mjs bench/results/prof/crowd-close-playing-run1.cpupr
 `--profile` writes a CPU profile of the window; `profile-summary.mjs` maps it back to `src/` and
 `node_modules/` through the source maps and prints self and inclusive time by file and function.
 `--gl-log` adds the live WebGL textures by size and the texture upload sizes to the results.
+`--alloc-profile` samples every allocation in the window (what makes garbage) into a `.heapprofile` that
+`profile-summary.mjs` reads the same way; `--startup-profile` profiles the page from navigation to the first
+frame; `--eval '<js>'` stores the value of an expression evaluated in the page after the window (for example
+`JSON.stringify(window.__thbCf.registry.stats())`, the world drivers' own timings and counts);
+`profile-summary.mjs <profile> --callers <name>` shows who calls a function and how long it ran under each caller.
+
+Numbers measured with this harness on the previous canvas map and on the cubeforge map are in [RESULTS.md](RESULTS.md).
 
 ## Reading the numbers
 
