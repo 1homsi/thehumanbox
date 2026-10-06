@@ -4,7 +4,7 @@ import { TILE_ID } from '../../../model/terrain-ids'
 import { paintReed, paintShoreTile, reedAt, shoreTileKey } from '../../decorations'
 import { drawFoodPatch, drawMineralOutcrop, visualTileHash } from '../../draw-helpers'
 import { buildFoamRects } from '../../foam'
-import { paintStructureTile, structureCellKey, structureStrength } from '../../structure-marks'
+import { paintStructureTile, structureStrength } from '../../structure-marks'
 import { CELL_GUTTER, type CellAtlas, type CellRef } from '../atlas/cell-atlas'
 import { WHITE, writeSprite, type CfDriver, type CfFrame } from '../frame'
 import { packRgba } from '../overlays/color'
@@ -190,13 +190,21 @@ export class PatchDriver {
  * per distinct strength. The grid arrives with each simulation frame.
  */
 export class StructureDriver implements CfDriver {
-  stats = { sprites: 0, rebuilds: 0, rebuildMs: 0 }
+  stats = { sprites: 0, rebuilds: 0, rebuildMs: 0, scans: 0 }
   private readonly layer: SpriteLayer
   private readonly atlas: CellAtlas
   private frame = -1
   private source: unknown = null
   private revision = -1
   private epoch = -1
+  /** The tiles drawn by the last rebuild (row-major index) and their strength in whole percents. */
+  private drawnAt = new Int32Array(0)
+  private drawnPct = new Uint16Array(0)
+  private drawnCount = 0
+  private scanAt = new Int32Array(0)
+  private scanPct = new Uint16Array(0)
+  /** The baked cell of each percent, valid for `epoch`. */
+  private readonly cellOf = new Map<number, CellRef>()
 
   constructor(layer: SpriteLayer, atlas: CellAtlas) {
     this.layer = layer
@@ -211,6 +219,7 @@ export class StructureDriver implements CfDriver {
       this.layer.clear()
       this.layer.touch()
       this.source = null
+      this.drawnCount = 0
       return true
     }
     if (
@@ -222,42 +231,102 @@ export class StructureDriver implements CfDriver {
       return false
     const t0 = performance.now()
     const { tiles, width, height } = grid
-    const cells: CellRef[] = []
-    const pos: number[] = []
+    // Every simulation frame brings a structure grid, and it changes in a few tiles at a time. Read it
+    // into the list of tiles that show a mark (index and whole percent, which is all a mark is drawn from)
+    // and rewrite the layer only when that list differs.
+    if (this.scanAt.length < width * height) {
+      this.scanAt = new Int32Array(width * height)
+      this.scanPct = new Uint16Array(width * height)
+    }
+    const at = this.scanAt
+    const pct = this.scanPct
+    let count = 0
+    for (let y = 0; y < height; y++) {
+      const srow = structure[y]
+      const trow = tiles[y]
+      if (!srow || !trow) continue
+      const base = y * width
+      for (let x = 0; x < width; x++) {
+        const s = srow[x]
+        if (s < 0.05 || trow[x] === 8) continue
+        at[count] = base + x
+        pct[count++] = Math.round(s * 100)
+      }
+    }
+    this.stats.scans++
+    this.frame = f.world.frame_id
+    this.source = structure
+    if (
+      this.revision === f.terrainRevision &&
+      this.epoch === this.atlas.epoch &&
+      count === this.drawnCount &&
+      this.layer.count === count &&
+      sameList(this.drawnAt, at, count) &&
+      sameList(this.drawnPct, pct, count)
+    )
+      return false
+    // What was scanned is now what is drawn; the old lists become the next scan's scratch.
+    ;[this.drawnAt, this.scanAt] = [at, this.drawnAt]
+    ;[this.drawnPct, this.scanPct] = [pct, this.drawnPct]
+    this.drawnCount = count
+    this.revision = f.terrainRevision
+    // A page can be cleared while baking (the epoch moves): bake again against the new one.
     for (let pass = 0; pass < 2; pass++) {
       const epoch = this.atlas.epoch
-      cells.length = 0
-      pos.length = 0
-      for (let y = 0; y < height; y++) {
-        const srow = structure[y]
-        const trow = tiles[y]
-        if (!srow || !trow) continue
-        for (let x = 0; x < width; x++) {
-          const s = srow[x]
-          if (s < 0.05 || trow[x] === 8) continue
-          const key = structureCellKey(s)
-          const cell =
-            this.atlas.get(key) ??
-            this.atlas.bake(key, TILE, TILE, (ctx) => paintStructureTile(ctx, 0, 0, structureStrength(s)))
-          if (!cell) continue
-          cells.push(cell)
-          pos.push(x * TILE, y * TILE)
-        }
+      this.cellOf.clear()
+      for (let k = 0; k < count; k++) {
+        const p = pct[k]
+        if (this.cellOf.has(p)) continue
+        const cell =
+          this.atlas.get(`St|${p}`) ??
+          this.atlas.bake(`St|${p}`, TILE, TILE, (ctx) =>
+            paintStructureTile(ctx, 0, 0, structureStrength(p / 100)),
+          )
+        if (cell) this.cellOf.set(p, cell)
       }
       if (epoch === this.atlas.epoch) break
     }
-    writeCells(this.layer, cells, pos, 0, 0)
-    this.frame = f.world.frame_id
-    this.source = structure
-    this.revision = f.terrainRevision
+    const layer = this.layer
+    layer.resize(count)
+    let k = 0
+    for (let i = 0; i < count; i++) {
+      const cell = this.cellOf.get(pct[i])
+      if (!cell) continue
+      const x = at[i] % width
+      const y = (at[i] - x) / width
+      writeSprite(
+        layer,
+        k,
+        x * TILE - CELL_GUTTER + cell.cw / 2,
+        y * TILE - CELL_GUTTER + cell.ch / 2,
+        cell.cw,
+        cell.ch,
+        cell.atlas,
+        cell.frame,
+        WHITE,
+        0,
+        0,
+        k,
+      )
+      k++
+    }
+    // A tile whose cell could not be baked (the atlas is full) is skipped, as before.
+    layer.resize(k)
+    layer.touch()
     this.epoch = this.atlas.epoch
     this.stats = {
-      sprites: cells.length,
+      sprites: k,
       rebuilds: this.stats.rebuilds + 1,
       rebuildMs: this.stats.rebuildMs + performance.now() - t0,
+      scans: this.stats.scans,
     }
     return true
   }
+}
+
+function sameList(a: ArrayLike<number>, b: ArrayLike<number>, n: number): boolean {
+  for (let i = 0; i < n; i++) if (a[i] !== b[i]) return false
+  return true
 }
 
 /** Whitecaps on the shore: a thin line that stays, and thick breakers that pulse in four phases. */

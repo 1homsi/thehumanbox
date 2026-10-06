@@ -152,6 +152,49 @@ describe('structure driver', () => {
     expect(l.count).toBe(2)
   })
 
+  it('leaves the layer alone when a new simulation frame brings the same structure', () => {
+    const structure = Array.from({ length: H }, () => Array(W).fill(0))
+    structure[3][3] = 0.9
+    structure[5][7] = 0.5
+    const l = layer()
+    const driver = new StructureDriver(l, atlas())
+    const w = world({ structure })
+    expect(driver.update(frame(w, 1))).toBe(true)
+    const before = {
+      x: Array.from(l.x.slice(0, 2)),
+      frame: Array.from(l.frame.slice(0, 2)),
+      version: l.version,
+    }
+    // Every frame arrives with a new grid object holding the same numbers.
+    const copy = structure.map((row) => [...row])
+    expect(driver.update(frame({ ...w, frame_id: 2, grid: { ...w.grid, structure: copy } }, 1))).toBe(false)
+    expect(driver.stats.rebuilds).toBe(1)
+    expect(driver.stats.scans).toBe(2)
+    expect(l.version).toBe(before.version)
+    // A different strength on one tile does rebuild, with that tile's own cell.
+    copy[5][7] = 0.9
+    expect(driver.update(frame({ ...w, frame_id: 3, grid: { ...w.grid, structure: copy } }, 1))).toBe(true)
+    expect(driver.stats.rebuilds).toBe(2)
+    expect(Array.from(l.x.slice(0, 2))).toEqual(before.x)
+    // Row-major: the first sprite is the tile at (3, 3), the second the one at (7, 5).
+    expect(l.frame[0]).toBe(l.frame[1])
+  })
+
+  it('writes sprites at the tile each mark belongs to, in row order', () => {
+    const structure = Array.from({ length: H }, () => Array(W).fill(0))
+    structure[2][9] = 0.8
+    structure[6][1] = 0.4
+    const l = layer()
+    new StructureDriver(l, atlas()).update(frame(world({ structure }), 1))
+    expect(l.count).toBe(2)
+    const cell = TILE + 2
+    expect(l.x[0] + 0).toBe(9 * TILE - 1 + cell / 2)
+    expect(l.y[0]).toBe(2 * TILE - 1 + cell / 2)
+    expect(l.x[1]).toBe(1 * TILE - 1 + cell / 2)
+    expect(l.y[1]).toBe(6 * TILE - 1 + cell / 2)
+    expect(l.ids[1]).toBe(1)
+  })
+
   it('clears when the grid has no structure', () => {
     const l = layer()
     const driver = new StructureDriver(l, atlas())
