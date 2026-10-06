@@ -4,9 +4,8 @@ import { Camera2D, Game, World, useCamera } from 'cubeforge'
 import { engineHarness, type EngineHarness } from './engine-harness.test-util'
 
 /**
- * Behaviours of cubeforge 0.11.0 the cf glue has to work around, pinned as
- * tests so a fixed engine shows up as a failing expectation to delete. Each
- * is a minimal repro for the engine owner (see the draft PR description).
+ * Camera behaviours that were bugs in cubeforge 0.11.0 and are fixed in 0.12.0 (#27). They stay as
+ * tests so the fix cannot quietly go away; the cf camera controller no longer has to work around them.
  */
 
 let h: EngineHarness | null = null
@@ -15,8 +14,8 @@ afterEach(async () => {
   h = null
 })
 
-describe('cubeforge 0.11.0 behaviours the camera work routes around', () => {
-  it('Camera2D bounds pin a view bigger than the bounds to the top-left instead of centring it', async () => {
+describe('cubeforge camera fixes the map relies on', () => {
+  it('Camera2D centres a view bigger than its bounds instead of pinning it to the top-left', async () => {
     h = engineHarness()
     let camera: ReturnType<typeof useCamera> | null = null
     function Probe() {
@@ -33,12 +32,11 @@ describe('cubeforge 0.11.0 behaviours the camera work routes around', () => {
       </Game>,
     )
     await h.frame(3)
-    // The middle of the world is (50, 50). The engine clamps to (400, 250): the left/top edge
-    // of the bounds plus half the viewport.
-    expect(camera!.getPosition()).toEqual({ x: 400, y: 250 })
+    // The middle of the world is (50, 50).
+    expect(camera!.getPosition()).toEqual({ x: 50, y: 50 })
   })
 
-  it('Camera2D resets the camera whenever an object prop such as bounds changes identity', async () => {
+  it('Camera2D keeps the pan when an object prop such as bounds changes identity', async () => {
     h = engineHarness()
     let camera: ReturnType<typeof useCamera> | null = null
     function Probe() {
@@ -61,7 +59,7 @@ describe('cubeforge 0.11.0 behaviours the camera work routes around', () => {
     expect(camera!.getPosition()).toEqual({ x: 3000, y: 3000 })
     await h.renderRaw(tree())
     await h.frame(2)
-    // The player's pan is gone: back to the x/y props.
-    expect(camera!.getPosition()).toEqual({ x: 2000, y: 2000 })
+    // The pan survives the re-render.
+    expect(camera!.getPosition()).toEqual({ x: 3000, y: 3000 })
   })
 })
