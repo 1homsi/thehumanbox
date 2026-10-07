@@ -200,7 +200,8 @@ const ENGINE_SNAPSHOT = `(() => {
   const pick = (o, keys) => Object.fromEntries(keys.filter((k) => typeof o[k] === 'number').map((k) => [k, o[k]]))
   return {
     engine: pick(stats, ['frame', 'frameIntervalMs', 'updateMs', 'systemsMs', 'scriptMs', 'physicsMs', 'renderMs', 'entityCount']),
-    render: pick(r, ['drawCalls', 'instances', 'batches', 'spritesConsidered', 'spritesCulled', 'textureUploads', 'textureUploadBytes', 'textureCount', 'textureBytes', 'textCacheHits', 'textCacheMisses', 'textureCacheHits', 'textureCacheMisses', 'frames']),
+    render: pick(r, ['drawCalls', 'instances', 'batches', 'spritesConsidered', 'spritesCulled', 'textureUploads', 'textureUploadBytes', 'textureCount', 'textureBytes', 'textCacheHits', 'textCacheMisses', 'textureCacheHits', 'textureCacheMisses', 'frames', 'gpuMs', 'gpuMsAvg']),
+    gpuTimerSupported: r.gpuTimerSupported ?? null,
   }
 })()`
 
@@ -377,6 +378,14 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
       })
       await sleep(300)
     }
+    if (pass === 'metrics')
+      // Engine GPU frame timing (timer queries): costs nothing while off, and a little while on.
+      await page
+        .evaluate(
+          `Promise.resolve(window.__thbCf?.engine?.activeRenderSystem?.setGpuTiming?.(true)).then(() => true, () => false)`,
+        )
+        .catch(() => null)
+    await sleep(600)
     await page.evaluate(`performance.mark('bench-start')`)
     const m0 = metricsOf(await page.send('Performance.getMetrics'))
     const p0 = await processCpu(browser)
@@ -438,6 +447,8 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
       if (snapshot) {
         result.engine = snapshot.engine
         result.render = snapshot.render
+        result.gpuMsAvg = snapshot.render.gpuMsAvg ?? null
+        result.gpuTimerSupported = snapshot.gpuTimerSupported
         result.textureMB = (snapshot.render.textureBytes ?? 0) / 1048576
       }
       if (wantGl) result.glTextures = await page.evaluate('window.__benchGlSummary()')
