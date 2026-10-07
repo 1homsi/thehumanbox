@@ -14,7 +14,7 @@ import {
 } from '../../character-visuals'
 import { boatFrame, DECAL, DEGREE_EMOJI, SICK_EMOJI, emoteFrame, glyphFrame } from '../atlas-bake'
 import { emoteFor } from '../../activity-emotes'
-import { AttachedSprites } from '../attached'
+import { AttachedSprites, storeChanged } from '../attached'
 import { cssToRgba32, rgba32, withAlpha } from '../colors'
 import { MotionStore } from '../motion'
 import { labelFlagsOf } from './people-labels'
@@ -111,11 +111,18 @@ export class PeopleSprites {
   private lastMoved = -Infinity
   moving = false
 
-  constructor(layers: { body: SpriteLayer; soft: SpriteLayer; over: SpriteLayer; emote: SpriteLayer }) {
+  /** Every frame touches every sprite (the reference the tests compare the default against). */
+  private readonly touchAll: boolean
+
+  constructor(
+    layers: { body: SpriteLayer; soft: SpriteLayer; over: SpriteLayer; emote: SpriteLayer },
+    options: { touchAll?: boolean } = {},
+  ) {
     this.body = layers.body
     this.soft = new AttachedSprites(layers.soft)
     this.over = new AttachedSprites(layers.over)
     this.emotes = new AttachedSprites(layers.emote)
+    this.touchAll = options.touchAll ?? false
   }
 
   private reserve(n: number): void {
@@ -494,7 +501,12 @@ export class PeopleSprites {
     const bf = body.frame
     const bflags = body.flags
     const bkey = body.sortKey
+    const touchAll = this.touchAll
     let anyMoved = false
+    // Slots whose drawn values changed this frame: the body is touched from the first to the last of them,
+    // so a person standing still costs no write and no repack.
+    let lo = n
+    let hi = -1
     for (let j = 0; j < n; j++) {
       const x = fromX[j] + (toX[j] - fromX[j]) * t
       const y = fromY[j] + (toY[j] - fromY[j]) * t
@@ -508,25 +520,41 @@ export class PeopleSprites {
       const resting = restCandidate[j] === 1 && !recent
       hidden[j] = resting ? 1 : 0
       const rider = boatIdx[j]
-      bx[j] = Math.round(cx - s / 2) + s / 2
-      by[j] = Math.round(cy - s * 0.78) + s / 2
-      bf[j] =
-        row[j] * HUMAN_ATLAS_FRAMES + (rider >= 0 ? 0 : motion.frame(j, now, phase[j], HUMAN_ATLAS_FRAMES))
-      bflags[j] = (motion.flipped[j] ? SPRITE_FLIP_X : 0) | (resting ? SPRITE_HIDDEN : 0)
-      bkey[j] = y
+      let changed = storeChanged(bx, j, Math.round(cx - s / 2) + s / 2)
+      changed = storeChanged(by, j, Math.round(cy - s * 0.78) + s / 2) || changed
+      changed =
+        storeChanged(
+          bf,
+          j,
+          row[j] * HUMAN_ATLAS_FRAMES + (rider >= 0 ? 0 : motion.frame(j, now, phase[j], HUMAN_ATLAS_FRAMES)),
+        ) || changed
+      changed =
+        storeChanged(bflags, j, (motion.flipped[j] ? SPRITE_FLIP_X : 0) | (resting ? SPRITE_HIDDEN : 0)) ||
+        changed
+      changed = storeChanged(bkey, j, y) || changed
+      if (changed || touchAll) {
+        if (j < lo) lo = j
+        if (j > hi) hi = j
+      }
       if (rider >= 0) {
         const moving = !this.boatBuilding[j] && recent
-        bx[rider] = Math.round(cx)
-        by[rider] = Math.round(cy) + 3
-        bf[rider] = boatFrame(moving, this.boatBuilding[j] === 1, now)
-        bflags[rider] = resting ? SPRITE_HIDDEN : 0
-        bkey[rider] = y + 0.0004
+        let riderChanged = storeChanged(bx, rider, Math.round(cx))
+        riderChanged = storeChanged(by, rider, Math.round(cy) + 3) || riderChanged
+        riderChanged =
+          storeChanged(bf, rider, boatFrame(moving, this.boatBuilding[j] === 1, now)) || riderChanged
+        riderChanged = storeChanged(bflags, rider, resting ? SPRITE_HIDDEN : 0) || riderChanged
+        riderChanged = storeChanged(bkey, rider, y + 0.0004) || riderChanged
+        if (riderChanged || touchAll) {
+          if (rider < lo) lo = rider
+          if (rider > hi) hi = rider
+        }
       }
     }
-    body.touch()
-    this.soft.place(px, py, hidden, now)
-    this.over.place(px, py, hidden, now)
-    this.emotes.place(px, py, hidden, now)
+    if (touchAll) body.touch()
+    else if (hi >= lo) body.touchRange(lo, hi)
+    this.soft.place(px, py, hidden, now, touchAll)
+    this.over.place(px, py, hidden, now, touchAll)
+    this.emotes.place(px, py, hidden, now, touchAll)
     if (anyMoved) this.lastMoved = now
     // Keep animating a moment after the last step so the walk settles on frame 0.
     this.moving = now - this.lastMoved < 400
