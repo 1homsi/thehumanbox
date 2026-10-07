@@ -32,10 +32,10 @@ describe('cubeforge 0.11.0 SpriteLayer behaviours the people/animals layers rout
       layer.sortKey[i] = key
     }
     expect(Array.from(layer.drawOrder().subarray(0, 3))).toEqual([0, 1, 2])
-    // and the key is float32: two depths a ten-thousandth apart at y = 4000 collapse
+    // (since 0.13 the key is float64: two depths a ten-thousandth apart at y = 4000 stay apart)
     layer.sortKey[0] = 4000.0001
     layer.sortKey[1] = 4000.00005
-    expect(layer.sortKey[0]).toBe(layer.sortKey[1])
+    expect(layer.sortKey[0]).not.toBe(layer.sortKey[1])
   })
 
   it('hidden sprites still take part in the depth sort and pick order bookkeeping', () => {
