@@ -318,3 +318,180 @@ describe('sprite layer bridge', () => {
     expect(sprites.px[1]).toBeCloseTo(8 * 8 + 4)
   })
 })
+
+/** The writes a layer was told about through its public mutators, since the last draw. */
+function recordWrites(layer: SpriteLayer) {
+  const rec = { all: false, slots: new Set<number>() }
+  const touch = layer.touch.bind(layer)
+  const touchRange = layer.touchRange.bind(layer)
+  const add = layer.add.bind(layer)
+  layer.touch = () => {
+    rec.all = true
+    touch()
+  }
+  layer.touchRange = (i0: number, i1 = i0) => {
+    for (let i = i0; i <= i1; i++) rec.slots.add(i)
+    touchRange(i0, i1)
+  }
+  layer.add = (...args: Parameters<SpriteLayer['add']>) => {
+    const i = add(...args)
+    rec.slots.add(i)
+    return i
+  }
+  return rec
+}
+
+const SLOT_FIELDS = [
+  'x',
+  'y',
+  'w',
+  'h',
+  'rotation',
+  'frame',
+  'atlas',
+  'color',
+  'flags',
+  'sortKey',
+  'ids',
+] as const
+
+/** Everything the engine packs for slot i, as text. */
+function slotText(layer: SpriteLayer, i: number): string {
+  return SLOT_FIELDS.map((f) => String(layer[f][i])).join(',')
+}
+
+function snapshot(layer: SpriteLayer) {
+  return {
+    count: layer.count,
+    capacity: layer.capacity,
+    rows: Array.from({ length: layer.count }, (_, i) => slotText(layer, i)),
+  }
+}
+
+/**
+ * The engine repacks a slot when it was touched since the last draw. So every slot whose values changed
+ * since the snapshot must be among the recorded writes, or the drawn sprite would be stale.
+ */
+function uncoveredChanges(
+  layer: SpriteLayer,
+  rec: ReturnType<typeof recordWrites>,
+  before: ReturnType<typeof snapshot>,
+): number[] {
+  if (layer.capacity !== before.capacity) return [] // grown: the engine repacks the whole layer
+  const missed: number[] = []
+  for (let i = 0; i < layer.count; i++) {
+    const changed = i >= before.count || before.rows[i] !== slotText(layer, i)
+    if (changed && !rec.all && !rec.slots.has(i)) missed.push(i)
+  }
+  return missed
+}
+
+function mulberry32(seed: number) {
+  let s = seed >>> 0
+  return () => {
+    s = (s + 0x6d2b79f5) >>> 0
+    let t = s
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+describe('PeopleSprites touch ranges', () => {
+  it('draws what a full rewrite draws over random frames, touching every slot that changed', () => {
+    const rng = mulberry32(20261007)
+    const incremental = setup()
+    const reference = setup()
+    const ref = new PeopleSprites(
+      { body: reference.body, soft: reference.soft, over: reference.over, emote: reference.emote },
+      { touchAll: true },
+    )
+    const layersOf = (s: ReturnType<typeof setup>) => [s.body, s.soft, s.over, s.emote] as const
+    const recs = layersOf(incremental).map(recordWrites)
+    const befores = layersOf(incremental).map(snapshot)
+    const thoughts = [
+      'exploring',
+      'exploring',
+      '"hello"',
+      'sounding alarm',
+      'challenging',
+      'gathering',
+      'resting',
+    ]
+    const people = Array.from({ length: 60 }, (_, k) =>
+      org(`p${k}`, 10 + rng() * 40, 10 + rng() * 40, {
+        sex: rng() < 0.5 ? 'male' : 'female',
+        home_x: 10 + rng() * 40,
+        home_y: 10 + rng() * 40,
+      }),
+    )
+    const alive = people.map(() => true)
+    let prev: OrganismState[] | null = null
+    let frameNo = 0
+    const checkDraw = (label: string) => {
+      layersOf(incremental).forEach((layer, li) => {
+        const missed = uncoveredChanges(layer, recs[li], befores[li])
+        expect(missed, `${label} layer ${li}`).toEqual([])
+        recs[li].all = false
+        recs[li].slots.clear()
+        befores[li] = snapshot(layer)
+      })
+      const a = layersOf(incremental)
+      const b = layersOf(reference)
+      a.forEach((layer, li) => {
+        expect(layer.count, `${label} count ${li}`).toBe(b[li].count)
+        for (let i = 0; i < layer.count; i++) {
+          expect(slotText(layer, i), `${label} layer ${li} slot ${i}`).toBe(slotText(b[li], i))
+        }
+      })
+    }
+
+    for (let frame = 0; frame < 150; frame++) {
+      frameNo++
+      // The simulation moves some people, changes others' rest and thoughts, and kills a few.
+      const orgs = people.map((o, k) => {
+        if (rng() < 0.02) alive[k] = false
+        if (rng() < 0.3) {
+          o.x += (rng() - 0.5) * 1.5
+          o.y += (rng() - 0.5) * 1.5
+        }
+        if (rng() < 0.05) o.sleep_debt = rng() < 0.5 ? 0.6 : 0
+        if (rng() < 0.05) o.thought = thoughts[Math.floor(rng() * thoughts.length)]
+        if (rng() < 0.03) o.infection = rng() * 0.5
+        return { ...o, alive: alive[k] } as OrganismState
+      })
+      const selectedId = frame % 30 < 10 ? null : `p${(frame * 7) % people.length}`
+      const focus = frame % 50 < 25 ? 'all' : 'sick'
+      const viewFlags = { ...flags, health: frame % 40 < 8, fear: frame % 3 === 0 }
+      const zoom = [0.5, 1, 3][frame % 3]
+      const sim = input(orgs, { prevOrgs: prev, selectedId, focus, viewFlags, zoom })
+      if (rng() < 0.7) {
+        incremental.sprites.rebuild(sim)
+        ref.rebuild(sim)
+      }
+      prev = orgs
+      for (let k = 1; k <= 3; k++) {
+        const now = 1000 + frameNo * 100 + k * 16
+        const t = k / 3
+        incremental.sprites.animate(now, t)
+        ref.animate(now, t)
+        checkDraw(`frame ${frame} step ${k}`)
+      }
+    }
+  })
+
+  it('touches nothing when nobody moved since the last frame', () => {
+    const { body, soft, over, emote, sprites } = setup()
+    const people = Array.from({ length: 40 }, (_, k) =>
+      org(`s${k}`, 10 + (k % 8) * 3, 10 + Math.floor(k / 8) * 3),
+    )
+    sprites.rebuild(input(people))
+    sprites.animate(1000, 1)
+    const recs = [body, soft, over, emote].map(recordWrites)
+    sprites.animate(60000, 1)
+    for (const rec of recs) {
+      expect(rec.all).toBe(false)
+      expect(rec.slots.size).toBe(0)
+    }
+  })
+})
