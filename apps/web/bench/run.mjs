@@ -22,6 +22,7 @@
 //   --shots             save a screenshot of every scenario
 //   --alloc-profile     sample every allocation in the window (what makes garbage), written as .heapprofile
 //   --eval <js>         evaluate an expression in the page after the window, stored as result.eval
+//   --startup-profile   CPU profile of the page from navigation to the first frame (<fixture>-startup-run<n>.cpuprofile)
 //   --gl-log           record live WebGL textures by size and texture upload sizes (metrics pass)
 //   --headed            show the Chrome window (the default is headless)
 //
@@ -72,6 +73,7 @@ const wantShots = opt('shots', false) === true
 const headed = opt('headed', false) === true
 const wantGl = opt('gl-log', false) === true
 const wantAlloc = opt('alloc-profile', false) === true
+const wantStartup = opt('startup-profile', false) === true
 const evalExpr = opt('eval', null)
 
 /** Zoom of each named view. `fit` is the opening view that shows the whole world. */
@@ -198,7 +200,8 @@ const ENGINE_SNAPSHOT = `(() => {
   const pick = (o, keys) => Object.fromEntries(keys.filter((k) => typeof o[k] === 'number').map((k) => [k, o[k]]))
   return {
     engine: pick(stats, ['frame', 'frameIntervalMs', 'updateMs', 'systemsMs', 'scriptMs', 'physicsMs', 'renderMs', 'entityCount']),
-    render: pick(r, ['drawCalls', 'instances', 'batches', 'spritesConsidered', 'spritesCulled', 'textureUploads', 'textureUploadBytes', 'textureCount', 'textureBytes', 'textCacheHits', 'textCacheMisses', 'textureCacheHits', 'textureCacheMisses', 'frames']),
+    render: pick(r, ['drawCalls', 'instances', 'batches', 'spritesConsidered', 'spritesCulled', 'textureUploads', 'textureUploadBytes', 'textureCount', 'textureBytes', 'textCacheHits', 'textCacheMisses', 'textureCacheHits', 'textureCacheMisses', 'frames', 'gpuMs', 'gpuMsAvg']),
+    gpuTimerSupported: r.gpuTimerSupported ?? null,
   }
 })()`
 
@@ -277,11 +280,25 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
     }
 
     // 2. Open the app on it and wait for the first drawn frame.
+    const startupOn = wantStartup && pass === 'metrics'
+    if (startupOn) {
+      await page.send('Profiler.enable')
+      await page.send('Profiler.setSamplingInterval', { interval: 200 })
+      await page.send('Profiler.start')
+    }
     await page.send('Page.navigate', { url: `${origin}/?bench=1` })
     let firstFrame = null
     for (let i = 0; i < 900 && firstFrame === null; i++) {
       await sleep(100)
       firstFrame = await page.evaluate('window.__benchFirstFrame ?? null').catch(() => null)
+    }
+    if (startupOn) {
+      const { profile } = await page.send('Profiler.stop')
+      mkdirSync(outDir, { recursive: true })
+      writeFileSync(
+        path.join(outDir, `${fixture}-startup-run${runIndex}.cpuprofile`),
+        JSON.stringify(profile),
+      )
     }
     if (firstFrame === null) throw new Error('the map never drew its first frame')
     result.firstFrameMs = Math.round(firstFrame)
@@ -361,6 +378,14 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
       })
       await sleep(300)
     }
+    if (pass === 'metrics')
+      // Engine GPU frame timing (timer queries): costs nothing while off, and a little while on.
+      await page
+        .evaluate(
+          `Promise.resolve(window.__thbCf?.engine?.activeRenderSystem?.setGpuTiming?.(true)).then(() => true, () => false)`,
+        )
+        .catch(() => null)
+    await sleep(600)
     await page.evaluate(`performance.mark('bench-start')`)
     const m0 = metricsOf(await page.send('Performance.getMetrics'))
     const p0 = await processCpu(browser)
@@ -422,6 +447,8 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
       if (snapshot) {
         result.engine = snapshot.engine
         result.render = snapshot.render
+        result.gpuMsAvg = snapshot.render.gpuMsAvg ?? null
+        result.gpuTimerSupported = snapshot.gpuTimerSupported
         result.textureMB = (snapshot.render.textureBytes ?? 0) / 1048576
       }
       if (wantGl) result.glTextures = await page.evaluate('window.__benchGlSummary()')

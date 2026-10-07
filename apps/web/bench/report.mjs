@@ -59,6 +59,7 @@ export function summarize(rows) {
       cpu: median(col('mainCpuPct', 'metrics')),
       jsPerFrame: fps && scriptMs !== null ? scriptMs / (fps * windowSec) : null,
       gpuProc: median(col('gpuMainBusyPct', 'trace')),
+      gpuMs: median(col('gpuMsAvg', 'metrics')),
       gpuProcCpu: median(col('gpuProcessCpuPct', 'metrics')),
       rendererCpu: median(col('rendererProcessCpuPct', 'metrics')),
       gcPerSec:
@@ -92,13 +93,13 @@ const sorted = (rows) =>
 function table(label, summary) {
   const lines = [`### ${label}`, '']
   lines.push(
-    '| world | zoom | mode | runs | fps | main busy % (min-max) | JS ms/frame | GPU proc busy % | GC ms/s (max pause) | JS heap after GC MB | heap pre-GC MB | engine texture MB | GPU proc MB | renderer MB | draws / instances | uploads/s | first frame ms |',
+    '| world | zoom | mode | runs | fps | main busy % (min-max) | main CPU % | JS ms/frame | GPU proc busy % | GPU ms/frame | GC ms/s (max pause) | JS heap after GC MB | heap pre-GC MB | engine texture MB | GPU proc MB | renderer MB | draws / instances | uploads/s | first frame ms |',
   )
-  lines.push('|---|---|---|' + '--:|'.repeat(14))
+  lines.push('|---|---|---|' + '--:|'.repeat(16))
   for (const s of sorted(summary)) {
     const range = s.busyRange ? ` (${f(s.busyRange[0])}-${f(s.busyRange[1])})` : ''
     lines.push(
-      `| ${s.fixture} | ${s.zoom} | ${s.mode} | ${s.runs} | ${f(s.fps, 0)} | ${f(s.busy)}${range} | ${f(s.jsPerFrame, 2)} | ${f(s.gpuProc)} | ${f(s.gcPerSec)} (${f(s.gcMax)}) | ${f(s.heapGc, 0)} | ${f(s.heapEnd, 0)} | ${f(s.textureMB, 1)} | ${f(s.gpuMB, 0)} | ${f(s.rendererMB, 0)} | ${s.drawCalls === null ? '-' : `${f(s.drawCalls, 0)} / ${f(s.instances, 0)}`} | ${f(s.uploads, 1)} | ${f(s.firstFrame, 0)} |`,
+      `| ${s.fixture} | ${s.zoom} | ${s.mode} | ${s.runs} | ${f(s.fps, 0)} | ${f(s.busy)}${range} | ${f(s.cpu)} | ${f(s.jsPerFrame, 2)} | ${f(s.gpuProc)} | ${f(s.gpuMs, 2)} | ${f(s.gcPerSec)} (${f(s.gcMax)}) | ${f(s.heapGc, 0)} | ${f(s.heapEnd, 0)} | ${f(s.textureMB, 1)} | ${f(s.gpuMB, 0)} | ${f(s.rendererMB, 0)} | ${s.drawCalls === null ? '-' : `${f(s.drawCalls, 0)} / ${f(s.instances, 0)}`} | ${f(s.uploads, 1)} | ${f(s.firstFrame, 0)} |`,
     )
   }
   return lines.join('\n')
@@ -107,16 +108,16 @@ function table(label, summary) {
 function compare(a, b) {
   const lines = [`### ${b.label} against ${a.label}`, '']
   lines.push(
-    '| world | zoom | mode | fps | main busy % | JS ms/frame | GPU proc % | heap after GC MB | texture MB | first frame ms |',
+    '| world | zoom | mode | fps | main busy % | main CPU % | JS ms/frame | GPU proc % | heap after GC MB | texture MB | first frame ms |',
   )
-  lines.push('|---|---|---|---|---|---|---|---|---|---|')
+  lines.push('|---|---|---|---|---|---|---|---|---|---|---|')
   const base = new Map(a.summary.map((s) => [`${s.fixture}|${s.zoom}|${s.mode}`, s]))
   const pair = (x, y, d = 1) => `${f(x, d)} → ${f(y, d)}`
   for (const s of sorted(b.summary)) {
     const o = base.get(`${s.fixture}|${s.zoom}|${s.mode}`)
     if (!o) continue
     lines.push(
-      `| ${s.fixture} | ${s.zoom} | ${s.mode} | ${pair(o.fps, s.fps, 0)} | ${pair(o.busy, s.busy)} | ${pair(o.jsPerFrame, s.jsPerFrame, 2)} | ${pair(o.gpuProc, s.gpuProc)} | ${pair(o.heapGc, s.heapGc, 0)} | ${pair(o.textureMB, s.textureMB)} | ${pair(o.firstFrame, s.firstFrame, 0)} |`,
+      `| ${s.fixture} | ${s.zoom} | ${s.mode} | ${pair(o.fps, s.fps, 0)} | ${pair(o.busy, s.busy)} | ${pair(o.cpu, s.cpu)} | ${pair(o.jsPerFrame, s.jsPerFrame, 2)} | ${pair(o.gpuProc, s.gpuProc)} | ${pair(o.heapGc, s.heapGc, 0)} | ${pair(o.textureMB, s.textureMB)} | ${pair(o.firstFrame, s.firstFrame, 0)} |`,
     )
   }
   return lines.join('\n')
