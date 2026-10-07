@@ -17,6 +17,7 @@ import { emoteFor } from '../../activity-emotes'
 import { AttachedSprites } from '../attached'
 import { cssToRgba32, rgba32, withAlpha } from '../colors'
 import { MotionStore } from '../motion'
+import { labelFlagsOf } from './people-labels'
 
 /** Atlas slots, by layer. */
 export const BODY_ATLAS = { people: 0, boats: 1 } as const
@@ -97,6 +98,8 @@ export class PeopleSprites {
   private boatIdx = new Int32Array(0)
   private boatBuilding = new Uint8Array(0)
   hidden = new Uint8Array(0)
+  /** `LABEL_*` bits of each slot, worked out once per rebuild for the label painter. */
+  labelFlags = new Uint8Array(0)
   private motion = new MotionStore()
   private oldMotion = new MotionStore()
   private index = new Map<string, number>()
@@ -140,6 +143,7 @@ export class PeopleSprites {
     this.boatIdx = grow(this.boatIdx, Int32Array)
     this.boatBuilding = grow(this.boatBuilding, Uint8Array)
     this.hidden = grow(this.hidden, Uint8Array)
+    this.labelFlags = grow(this.labelFlags, Uint8Array)
     this.motion.reserve(cap)
     this.oldMotion.reserve(cap)
     this.cap = cap
@@ -218,6 +222,7 @@ export class PeopleSprites {
       if (old !== undefined) this.motion.copyFrom(this.oldMotion, old, j)
       else this.motion.init(j, this.fromX[j], this.fromY[j])
       this.phase[j] = orgAnimPhase(id)
+      this.labelFlags[j] = labelFlagsOf(org)
 
       const isSelected = id === selectedId
       const focused = isFocused(org, focus)
