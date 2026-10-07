@@ -133,6 +133,30 @@ describe('people labels', () => {
     expect(picked.texts()).toContain('looking for water')
   })
 
+  it('writes a work pose straight into the sprite sink when it is given one, and still names the worker', () => {
+    const worker = org('ada', 10, 10, { thought: 'chopping wood' })
+    const solids: number[][] = []
+    const poses = { solid: (...args: number[]) => solids.push(args) }
+    const flags = { names: false, thoughts: false, hideUI: false }
+    const quiet = recording()
+    paintPeopleLabels(quiet.ctx, input({ people: source([worker]), viewFlags: flags, poses }))
+    // A handle and a head, with no canvas calls for them.
+    expect(solids).toHaveLength(2)
+    expect(quiet.calls.filter((c) => c.fn === 'fillRect' || c.fn === 'rotate')).toHaveLength(0)
+    // Fishing is strokes: it still goes through the canvas painter.
+    const fisher = org('ada', 10, 10, { thought: 'fishing' })
+    const strokes = recording()
+    paintPeopleLabels(strokes.ctx, input({ people: source([fisher]), viewFlags: flags, poses }))
+    expect(strokes.calls.some((c) => c.fn === 'stroke')).toBe(true)
+    // The name still draws through the canvas calls beside the pose.
+    const named = recording()
+    paintPeopleLabels(
+      named.ctx,
+      input({ people: source([worker]), poses, viewFlags: { names: true, thoughts: false, hideUI: false } }),
+    )
+    expect(named.texts()).toEqual(['ADA'])
+  })
+
   it('draws a work pose for someone working, and the prayer glyph for a praying tribe', () => {
     const worker = org('ada', 10, 10, { thought: 'chopping wood' })
     const poses = recording()

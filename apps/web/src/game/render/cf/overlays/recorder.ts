@@ -305,6 +305,21 @@ export class SpriteRecorder {
     this.stats.rects++
   }
 
+  /**
+   * An untextured quad in layer pixels, no transform: what a painter that works out its own geometry (the work
+   * poses) writes instead of going through the canvas calls. Colour is packed 0xRRGGBBAA.
+   */
+  solid(cx: number, cy: number, w: number, h: number, rotation: number, color: number): void {
+    const layer = this.shapeLayer
+    const i = layer.add(cx, cy, 0, 0)
+    layer.w[i] = w
+    layer.h[i] = h
+    layer.rotation[i] = rotation
+    layer.color[i] = color
+    layer.flags[i] = SPRITE_UNTEXTURED
+    this.stats.rects++
+  }
+
   private pushShape(
     cx: number,
     cy: number,

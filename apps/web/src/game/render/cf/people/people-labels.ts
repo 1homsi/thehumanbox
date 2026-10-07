@@ -12,6 +12,7 @@ import {
 } from '../../prayer-feedback'
 import type { PlacedLabel } from '../../settlement-labels'
 import { isFocused } from './people-sprites'
+import { emitWorkPose, isFastPose, type PoseSink } from './work-poses'
 
 /** What the labels need of the people layer: who is drawn where, and how they last moved. */
 export interface PeopleLabelSource {
@@ -69,6 +70,11 @@ export interface PeopleLabelInput {
   window: { c0: number; c1: number; r0: number; r1: number }
   ox: number
   oy: number
+  /**
+   * Where work poses may be written as sprites directly, skipping the canvas calls. Without it every pose goes
+   * through `ctx` (what the tests compare against).
+   */
+  poses?: PoseSink
 }
 
 /** What a person has to draw above their sprite this frame (a bit mask). */
@@ -102,7 +108,7 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
   const detail = zoomDetailLevel(zoom)
   if (detail === 'overview' && selectedId == null) return
   const { c0, c1, r0, r1 } = input.window
-  const { ox, oy } = input
+  const { ox, oy, poses } = input
   const orgs = people.orgs
   const n = orgs.length
   if (onScreenScratch.length < n) {
@@ -183,6 +189,38 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
   for (const j of candidates) {
     const org = orgs[j]
     const mask = flags[j]
+    const alpha = isFocused(org, focus) ? 1 : 0.12
+
+    if (mask & WORK) {
+      const activity = workActivity(org.thought ?? '', now - people.step.movedAt[j] <= 120)
+      if (poses && isFastPose(activity))
+        emitWorkPose(
+          poses,
+          activity,
+          people.px[j],
+          people.py[j],
+          people.step.flipped[j] === 1,
+          now,
+          people.phase[j],
+          alpha,
+        )
+      else {
+        ctx.globalAlpha = alpha
+        drawWorkActivity(
+          ctx,
+          activity,
+          people.px[j],
+          people.py[j],
+          people.step.flipped[j] === 1,
+          now,
+          people.phase[j],
+        )
+      }
+      // A person with only a pose to draw has nothing to place.
+      if (mask === WORK) continue
+    }
+
+    ctx.globalAlpha = alpha
     const isSelected = org.id === selectedId
     const px = people.px[j]
     const py = people.py[j]
@@ -190,20 +228,6 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
     const bodyR = variant.bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
     const spriteSize = Math.round(Math.max(19, bodyR * 3.8))
     const spriteTop = py - spriteSize * 0.78
-    const focused = isFocused(org, focus)
-    ctx.globalAlpha = focused ? 1 : 0.12
-
-    if (mask & WORK) {
-      drawWorkActivity(
-        ctx,
-        workActivity(org.thought ?? '', now - people.step.movedAt[j] <= 120),
-        px,
-        py,
-        people.step.flipped[j] === 1,
-        now,
-        people.phase[j],
-      )
-    }
 
     const showVitals = isSelected || org.energy < 0.22 || org.hydration < 0.22 || org.health < 0.22
     const labelY = spriteTop - (showVitals ? 10 : 2)

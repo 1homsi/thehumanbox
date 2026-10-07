@@ -281,6 +281,7 @@ export class CfOverlayRenderer {
         window: f.bounds,
         ox: f.ox,
         oy: f.oy,
+        poses: this.labels,
       })
     }
     this.labels.end()
