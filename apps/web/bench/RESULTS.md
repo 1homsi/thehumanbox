@@ -1,52 +1,71 @@
-# Results: old canvas map against the cubeforge map
+# Results: old canvas map against the current cubeforge map
 
-Headless Chrome 154 with the GPU (Metal), 1280x800 at DPR 1, 8 s windows after a 3 s warm-up, 2 alternated runs
-per scenario, medians. Worlds: `standard` (seed 42, tick 9000, 172 people) and `crowd` (the same plus 3,000 people).
-**old** = commit `45a1ee5a`, the last canvas-painted map (with the `?bench` hook patch). **after** = main at
-`8044af46` (cubeforge 0.13.0 with the optimisations of #284-#289). The machine was shared with other jobs
-(load average 90-180 for the whole run), so every absolute number is inflated alike; builds ran interleaved
-scenario by scenario, so the comparison holds. Reproduce: `node bench/run.mjs --builds old=<dist>,after=dist --runs 2`.
+Headless Chrome 155 with the GPU (Metal), 1280x800 at DPR 1, 8 s windows after a 3 s warm-up, 2 runs per scenario,
+interleaved build by build. Worlds: `standard` (seed 42, tick 9000, 172 people) and `crowd` (the same plus 3,000
+people). **old** = commit `45a1ee5a`, the last canvas-painted map (with the `?bench` hook). **main** = `e6f0740f`
+(cubeforge 0.14.0; the squash of #296, #297 and #298 is on main). The 1-minute load average while these runs were
+going was 6-8 (the earlier results in this file were taken at 90-180, so they are not comparable with these).
 
-## Frames delivered, main thread, JS, GPU, memory (old -> after)
+Reproduce: `node bench/run.mjs --builds old=<dist-old>,main=dist --runs 2` (default passes: metrics, trace, memory),
+then `node bench/report.mjs bench/results/old bench/results/main`.
 
-| world | zoom | mode | fps | main busy % | main CPU % | JS ms/frame | GPU proc % | heap after GC MB | first frame ms |
-|---|---|---|---|---|---|---|---|---|---|
-| standard | overview | paused | 0 → 0 | 1.0 → 0.0 | 1.2 → 0.1 | - | 0.0 → 0.0 | 23 → 26 | 1505 → 1718 |
-| standard | overview | playing | 30 → 56 | 26.2 → 28.1 | 32.5 → 24.3 | 8.24 → 4.50 | 49.7 → 11.4 | 26 → 29 | 1685 → 1559 |
-| standard | mid | paused | 0 → 0 | 0.9 → 0.0 | 1.0 → 0.1 | - | 0.0 → 0.0 | 24 → 26 | 1628 → 1523 |
-| standard | mid | playing | 30 → 59 | 24.1 → 18.0 | 29.7 → 17.8 | 7.48 → 2.79 | 34.8 → 8.5 | 28 → 30 | 1639 → 1477 |
-| standard | close | paused | 0 → 0 | 1.0 → 0.1 | 1.2 → 0.1 | - | 0.0 → 0.0 | 24 → 26 | 1526 → 1561 |
-| standard | close | playing | 30 → 59 | 17.3 → 15.6 | 20.0 → 15.5 | 5.37 → 2.37 | 23.7 → 7.5 | 27 → 29 | 1402 → 1353 |
-| crowd | overview | paused | 0 → 0 | 1.1 → 0.1 | 1.2 → 0.1 | - | 0.0 → 0.0 | 86 → 86 | 2831 → 2494 |
-| crowd | overview | playing | 30 → 60 | 44.3 → 17.7 | 59.2 → 17.2 | 14.04 → 2.69 | 58.8 → 8.2 | 91 → 88 | 2412 → 2197 |
-| crowd | mid | paused | 0 → 0 | 1.0 → 0.0 | 1.1 → 0.1 | - | 0.0 → 0.0 | 87 → 87 | 2192 → 2058 |
-| crowd | mid | playing | 30 → 56 | 44.9 → 25.3 | 59.8 → 25.4 | 14.51 → 4.28 | 72.4 → 9.0 | 89 → 88 | 2084 → 2044 |
-| crowd | close | paused | 0 → 0 | 1.4 → 0.1 | 1.5 → 0.1 | - | 0.0 → 0.0 | 87 → 88 | 2543 → 2418 |
-| crowd | close | playing | 30 → 60 | 51.2 → 25.5 | 66.7 → 25.6 | 16.33 → 4.05 | 63.9 → 7.4 | 89 → 88 | 2445 → 2182 |
+## Frames, main thread, JS and GPU (old -> main, playing and paused)
 
-main busy % is wall time in main-thread tasks; main CPU % is thread CPU time; JS ms/frame is script time per
-frame drawn; GPU proc % is the GPU process main thread busy in a Chrome trace.
+| world | zoom | mode | fps | main busy % | JS ms/frame | GPU proc busy % | heap after GC MB | first frame ms |
+|---|---|---|---|---|---|---|---|---|
+| standard | overview | paused | 0 → 0 | 1.4 → 0.1 | - | 0.0 → 0.0 | 23 → 26 | 1071 → 1030 |
+| standard | overview | playing | 30 → 56 | 20.5 → 12.9 | 6.53 → 2.06 | 42.1 → 5.2 | 26 → 29 | 1062 → 1029 |
+| standard | mid | paused | 0 → 0 | 1.8 → 0.1 | - | 0.0 → 0.0 | 24 → 27 | 1064 → 1024 |
+| standard | mid | playing | 29 → 59 | 18.1 → 12.3 | 5.64 → 1.81 | 34.8 → 6.5 | 26 → 30 | 1072 → 1322 |
+| standard | close | paused | 0 → 0 | 1.4 → 0.1 | - | 0.0 → 0.0 | 24 → 27 | 1158 → 1054 |
+| standard | close | playing | 30 → 60 | 13.9 → 11.6 | 4.13 → 1.71 | 21.9 → 5.4 | 26 → 29 | 1066 → 1028 |
+| crowd | overview | paused | 0 → 0 | 1.9 → 0.1 | - | 0.0 → 0.0 | 87 → 88 | 2105 → 2083 |
+| crowd | overview | playing | 30 → 60 | 36.2 → 8.5 | 11.42 → 1.17 | 54.8 → 4.8 | 88 → 89 | 2091 → 2059 |
+| crowd | mid | paused | 0 → 0 | 1.6 → 0.1 | - | 0.0 → 0.0 | 87 → 88 | 2126 → 2058 |
+| crowd | mid | playing | 30 → 60 | 45.3 → 13.1 | 14.47 → 1.97 | 67.6 → 4.3 | 89 → 89 | 2130 → 2074 |
+| crowd | close | paused | 0 → 0 | 1.5 → 0.1 | - | 0.0 → 0.0 | 87 → 88 | 2110 → 2071 |
+| crowd | close | playing | 30 → 60 | 43.0 → 13.5 | 13.87 → 2.05 | 64.9 → 4.0 | 89 → 89 | 2117 → 2080 |
 
-## Memory (Chrome memory dump, playing, mid zoom, MB)
+main busy % is wall time in main-thread tasks (the median of two runs; the two runs agree within about 0.5 point
+except where noted in the raw report). JS ms/frame is script time per frame drawn. GPU proc busy % is the GPU
+process main thread busy in a Chrome trace. The old map is capped at 30 drawn frames a second; the main map draws
+56-60.
 
-| build | world | GPU process | renderer process |
-|---|---|---|---|
-| old canvas | standard | 166 | 302 |
-| cubeforge before the optimisations (main at #279) | standard | 220 | 340 |
-| cubeforge after | standard | 150 | 263 |
-| old canvas | crowd | 167 | 550 |
-| cubeforge before | crowd | 219 | 549 |
-| cubeforge after | crowd | 171 | 478 |
+**Against the crowd target** (3 % main-thread busy at 60 fps with 3,000 people): not reached. Main draws the crowd
+at 8.5 % (overview), 13.1 % (mid) and 13.5 % (close) of a core while playing.
+
+## Memory (Chrome memory dump, MB)
+
+| build | world | zoom | GPU process | renderer process |
+|---|---|---|---|---|
+| old canvas | standard | mid, playing | 184 | 310 |
+| main | standard | mid, playing | 135 | 277 |
+| old canvas | crowd | mid, playing | 167 | 572 |
+| main | crowd | mid, playing | 127 | 511 |
+
+Main's engine textures (the map's atlases and text glyphs, from the engine's texture count) are about 22 MB in every
+scenario. The old canvas map is not measured with that counter.
+
+## What changed since the last table in this file
+
+Main went from cubeforge 0.13 to 0.14 and gained three changes measured one at a time:
+
+| change | what it does | crowd main busy % (before -> after) |
+|---|---|---|
+| #296 people touch ranges | people sprites touched only where a value changed | overview 9.1 -> 8.5, mid 17.0 -> 16.6, close 17.6 -> 15.1 (2 runs, noisy) |
+| #297 names as a TextLayer | names and thoughts are text runs, not glyph sprites | mid 14.4 -> 13.8, close 15.3 -> 14.2 |
+| #298 label draw order kept between frames | no full sort of the labels each frame | mid 14.5 -> 13.6, close 15.1 -> 13.5 |
+
+A fourth change (a typed table instead of a Map and a Set for the crowd's name thinning) measured no better and was
+not merged.
 
 ## Reading it
 
-- Frames delivered: the old map was capped at 30 drawn frames a second, the new one draws 56-60.
-- Main-thread CPU at that higher frame rate is lower than the old map's in every playing scenario: standard
-  32.5 → 24.3 % zoomed out, 29.7 → 17.8 % mid, 20.0 → 15.5 % close; crowd 59 → 17 %, 60 → 25 %, 67 → 26 %.
-  JS per frame is 2-4x lower (crowd mid 14.5 → 4.3 ms), GPU process time 5-9x lower.
-- A paused world is 0.0-0.1 % busy (the old map idled at 1.0-1.4 %).
-- Heap after GC is the same (standard 30 MB, crowd 88 MB). First frame is the same or better.
-- Memory: GPU process memory is now below the old canvas map on the standard world (150 vs 166 MB) and about equal on
-  the crowd; the cubeforge map before the atlas change used 220 MB.
-- Not reached: 3 % main-thread busy at 60 fps with 3,000 people (25 % here). What is left is mostly the engine's
-  per-frame sprite packing, see `docs/ENGINE_REQUESTS.md`.
+- Frames: the map now draws 56-60 frames a second in every playing scenario, against 30 for the canvas map.
+- Main-thread time: a paused world is 0.1 % busy (the canvas map used 1.4-1.9 %). A playing crowd is 8.5-13.5 % busy
+  against 36-45 % for the canvas map, a 3-5x reduction at a higher frame rate.
+- JS per frame is 3-8x lower, and GPU process busy time is 5-13x lower.
+- Memory: GPU process memory is 25-27 % below the canvas map, and renderer memory 11 % below it in both worlds.
+- Not reached: 3 % at 60 fps with 3,000 people. The rest is mostly in cubeforge's per-frame layer pass and in the
+  app's per-frame sprite and label passes; the profile and a ranked list for the engine are in
+  `docs/ENGINE_REQUESTS.md`.
