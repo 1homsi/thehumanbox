@@ -6,6 +6,54 @@ and the same world with 3,000 more). Every item says where in the engine, what i
 do, and how to see it. Numbers are from cubeforge 0.11.0 and 0.12.0 (the same code paths); "main thread"
 is the share of one second the page's main thread is busy.
 
+## Status on cubeforge 0.14.0 (October 2026): what is left, ranked
+
+Crowd world at mid and close zoom, playing, on main before #298 (CPU profile of the 8.7 s window, `bench/profile-summary.mjs`).
+The main thread was 14.8 % busy at mid and 15.5 % at close. The overall crowd figure after #296-#298 is 8.5-13.5 % busy
+(`bench/RESULTS.md`). The 3 % target is not reached.
+
+Engine code in the window (self time, share of the main thread's busy time):
+
+| where | function | mid | close |
+|---|---|---|---|
+| `spriteLayerGL.js` | `gather` (every sprite of a dirty layer, culled ones too) | 119 ms, about 9 % | 96 ms, about 7 % |
+| `spriteLayerGL.js` | `gatherBlind` (full pack when most of a layer is dirty) | 21 ms, about 2 % | 22 ms, about 2 % |
+| `spriteLayer.js` | `drawOrder` (insertion sort, every frame on a `sortByKey` layer) | 18 ms, about 1 % | 18 ms, about 1 % |
+| `spriteLayerGL.js` | `bufferSubData` and the uploads | about 13 ms, about 1 % | about 10 ms, about 1 % |
+
+Ranked for the engine owner:
+
+1. **`sortByKey` layers never take the incremental path.** `gatherRange` is skipped for them (`!layer.sortByKey` in the
+   `draw` condition), so any dirty slot walks the whole layer and every sprite is visited, culled or not. The people
+   body layer is the largest case. Ask: an incremental repack for `sortByKey` layers that keeps the draw order between
+   frames, re-sorting only the keys that changed (`touchRange` already says which slots), or a per-span visit that skips
+   culled spans.
+2. **`gatherBlind` packs everything again.** It runs when more than 70 % of a layer is dirty for three frames. For a
+   crowd that is most frames. Ask: a direct copy path for the all-visible case, or a rule that does not switch to blind
+   mode when the dirty range is contiguous.
+3. **`drawOrder` re-sorts every frame** even when no key changed. This is the old item 8 below; the same `touchKeys()`
+   idea would remove it.
+4. **Uploads are whole runs.** `bufferSubData` takes 1 %; a finer upload range would cut it, but it is small.
+
+App-side costs in the same window (for the map, not the engine): the people animate loop over every person (about
+4 % of busy), attached-sprite placement (about 3 %), the overlay's per-frame update (about 3 %), the simulation frame
+merge (`merge.ts`, about 3 %), and the label painter (about 26 % before #298, which cut its per-frame sort; the painter
+was still the largest app-side cost in this window).
+
+Old items, status now:
+
+- Item 1 (a retained layer buffer): `touchRange` is adopted (#296). The per-frame `gather` over the layer remains: see
+  ranked item 1.
+- Item 2 (polling the gamepad every frame): not seen in these profiles.
+- Item 3 (whole-pixel wind): skipped on purpose (the map's trees use a driver).
+- Item 4 (frame tables): not adopted; the app's atlases are full.
+- Item 5 (zoom-aware text): adopted for names and thoughts in #297 (TextLayer, `zoomAware`), with no visible loss of
+  crispness in the paused screenshots compared (mid and close). All engine textures together are about 22 MB.
+- Item 6 (stats): still open. `textureBytes` misses dynamic canvases resized after registration, and `TileLayer`
+  textures are not counted.
+- Item 7 (dynamic canvases hold the pixels twice): `releaseAfterUpload` is in 0.14 but not yet adopted by the app.
+- Item 8 (`drawOrder` every frame): see ranked item 3.
+
 Reproduce a profile:
 
 ```sh
