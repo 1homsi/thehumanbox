@@ -1,10 +1,11 @@
-import { SPRITE_UNTEXTURED, SpriteLayer } from 'cubeforge'
+import { SPRITE_UNTEXTURED, SpriteLayer, TextLayer } from 'cubeforge'
 import { TILE } from '../../../model/palette'
 import { drawTradeNetwork2D } from '../../base-parts/trade-network'
 import { drawRail, drawTrain, trainProgress } from '../../era-traffic'
 import { lineageEraTiers } from '../../draw-helpers'
 import { cachedRailLinks } from '../../rails'
 import { paintPeopleLabels, type PeopleLabelSource } from '../people/people-labels'
+import { PeopleNameLayer } from '../people/people-names'
 import { atmosphereTints, precipitating, writePrecipitation, type Tint } from './atmosphere'
 import { atlasId, makeCanvas } from './atlas-host'
 import { packRgba } from './color'
@@ -101,6 +102,8 @@ export class CfOverlayRenderer {
   private readonly roads: SpriteRecorder
   private readonly traffic: SpriteRecorder
   private readonly labels: SpriteRecorder
+  /** Names and thoughts: text runs above the people (see `PeopleNameLayer`). */
+  private readonly names: PeopleNameLayer
   private readonly effects: SpriteRecorder
   private readonly hud: SpriteRecorder
   private readonly contestedScratch: Uint16Array
@@ -179,6 +182,10 @@ export class CfOverlayRenderer {
     this.roads = new SpriteRecorder(shape(Z.roads), text(Z.roads), this.shapes, this.glyphs)
     this.traffic = new SpriteRecorder(shape(Z.traffic), text(Z.traffic), this.shapes, this.glyphs)
     this.labels = new SpriteRecorder(shape(Z.labels), text(Z.labels), this.shapes, this.glyphs)
+    // Just above the label glyphs (zIndex + 0.5), so the names sit over the poses and prayer marks.
+    const names = new TextLayer({ zIndex: Z.labels + 0.6 })
+    this.host.addTextLayer(names)
+    this.names = new PeopleNameLayer(names)
     this.effects = new SpriteRecorder(shape(Z.effects), text(Z.effects), this.shapes, this.glyphs)
     this.hud = new SpriteRecorder(shape(Z.hud), text(Z.hud), this.shapes, this.glyphs)
   }
@@ -198,6 +205,7 @@ export class CfOverlayRenderer {
 
   dispose(): void {
     for (const l of this.layers) this.host.removeLayer(l)
+    this.host.removeTextLayer(this.names.layer)
     this.host.unregister(this.heatId)
     this.shapes.dispose()
     this.glyphs.dispose()
@@ -267,8 +275,10 @@ export class CfOverlayRenderer {
 
     // Names, thoughts, work poses and prayer glyphs go above the people; town names claim space first.
     this.labels.begin(gv)
+    this.names.begin()
     if (extras.people) {
       paintPeopleLabels(this.labels.asContext(), {
+        names: this.names,
         people: extras.people,
         selectedId: extras.selectedId,
         focus: f.focus,
@@ -284,6 +294,7 @@ export class CfOverlayRenderer {
         poses: this.labels,
       })
     }
+    this.names.end()
     this.labels.end()
     lap('hud')
 

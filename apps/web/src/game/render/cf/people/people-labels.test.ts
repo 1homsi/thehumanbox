@@ -259,6 +259,51 @@ function randomCrowd(seed: number, n: number) {
   return { orgs, people, rand, pick }
 }
 
+describe('people labels as text runs', () => {
+  it('places each name and thought where the canvas painter drew it, in the same order', () => {
+    const people = source([
+      org('ada', 10, 10, { thought: 'chopping wood' }),
+      org('bo', 30, 30, { thought: 'resting' }),
+      org('cy', 50, 12),
+    ])
+    for (const selectedId of [null, 'bo']) {
+      const canvas = recording()
+      paintPeopleLabels(canvas.ctx, input({ people, selectedId }))
+      const drawn = canvas.calls
+        .filter((c) => c.fn === 'fillText')
+        .map((c) => [c.args[0], c.args[1], c.args[2]])
+      const runs: unknown[][] = []
+      const names = {
+        text: (text: string, x: number, y: number, style: string, alpha: number) =>
+          runs.push([text, x, y, style, alpha]),
+      }
+      paintPeopleLabels(recording().ctx, input({ people, selectedId, names }))
+      expect(runs.map((r) => r.slice(0, 3))).toEqual(drawn)
+    }
+  })
+
+  it('gives the selected person the bold name and the full thought, and dims everyone out of focus', () => {
+    const runs: unknown[][] = []
+    const names = {
+      text: (text: string, x: number, y: number, style: string, alpha: number) =>
+        runs.push([text, x, y, style, alpha]),
+    }
+    paintPeopleLabels(
+      recording().ctx,
+      input({
+        people: source([org('ada', 10, 10, { thought: 'chopping wood' }), org('bo', 30, 30)]),
+        selectedId: 'ada',
+        focus: 'hungry',
+        names,
+      }),
+    )
+    expect(runs[0][3]).toBe('nameSelected')
+    expect(runs[1][3]).toBe('thoughtSelected')
+    expect(runs[2][3]).toBe('name')
+    expect(runs[2][4]).toBeCloseTo(0.12)
+  })
+})
+
 describe('people labels, cheap painter against the original', () => {
   afterEach(() => resetPrayerFeedback())
 
