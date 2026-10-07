@@ -4,7 +4,12 @@ import { orgVariant } from '../../../model/org-variant'
 import { drawWorkActivity, workActivity } from '../../activity-visuals'
 import { compareCharacterDepth, zoomDetailLevel } from '../../character-visuals'
 import { LabelPlacer, crowdLabelIdsAt, labelWidth } from '../../crowd-detail'
-import { celebrating, drawCelebrationGlyph, drawPrayingGlyph } from '../../prayer-feedback'
+import {
+  celebrating,
+  drawCelebrationGlyph,
+  drawPrayingGlyph,
+  prayerEffectsActive,
+} from '../../prayer-feedback'
 import type { PlacedLabel } from '../../settlement-labels'
 import { isFocused } from './people-sprites'
 
@@ -19,6 +24,33 @@ export interface PeopleLabelSource {
   hidden: ArrayLike<number>
   phase: ArrayLike<number>
   step: { flipped: ArrayLike<number>; movedAt: ArrayLike<number> }
+  /**
+   * What the people layer worked out about each slot when it rebuilt (`LABEL_*` bits), so a frame need not open
+   * every person to learn they have no name, no thought and no work. Optional: without it the painter reads
+   * the people themselves.
+   */
+  labelFlags?: ArrayLike<number>
+  /** `org.x` and `org.y` of each slot, in tiles (what the window test and the crowd thinning read). */
+  tileX?: ArrayLike<number>
+  tileY?: ArrayLike<number>
+  /** The id of each slot. */
+  ids?: ArrayLike<string>
+}
+
+/** Facts about a person that only change with a simulation frame (see `PeopleLabelSource.labelFlags`). */
+export const LABEL_NAME = 1
+export const LABEL_THOUGHT = 2
+export const LABEL_ACTIVITY = 4
+export const LABEL_SEED_EVEN = 8
+
+export function labelFlagsOf(org: OrganismState): number {
+  const thought = org.thought ?? ''
+  let f = 0
+  if (org.name) f |= LABEL_NAME
+  if (org.thought && org.thought !== 'observing') f |= LABEL_THOUGHT
+  if (workActivity(thought, false)) f |= LABEL_ACTIVITY
+  if (prayerSeed(org.id) % 2 === 0) f |= LABEL_SEED_EVEN
+  return f
 }
 
 export interface PeopleLabelInput {
@@ -52,7 +84,7 @@ let flagsScratch = new Uint8Array(0)
 const candidates: number[] = []
 
 /** A person's prayer glyph seed: whether they join in, and where in the dance they start. */
-function prayerSeed(id: string): number {
+export function prayerSeed(id: string): number {
   return id.charCodeAt(0) + id.charCodeAt(id.length - 1)
 }
 
@@ -79,19 +111,22 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
   }
   const onScreen = onScreenScratch
   const flags = flagsScratch
+  const { tileX, tileY, ids } = people
 
   // Visible, living, drawn people.
   let count = 0
   for (let j = 0; j < n; j++) {
     if (people.hidden[j] === 1) continue
-    const org = orgs[j]
-    const lx = org.x - ox
-    const ly = org.y - oy
+    const lx = (tileX ? tileX[j] : orgs[j].x) - ox
+    const ly = (tileY ? tileY[j] : orgs[j].y) - oy
     if (lx < c0 - 8 || lx > c1 + 8 || ly < r0 - 8 || ly > r1 + 8) continue
     onScreen[count++] = j
   }
   const labelIds =
-    detail !== 'overview' && viewFlags.names ? crowdLabelIdsAt(orgs, onScreen, count, zoom) : null
+    detail !== 'overview' && viewFlags.names
+      ? crowdLabelIdsAt(orgs, onScreen, count, zoom, tileX, tileY, ids)
+      : null
+  const effects = prayerEffectsActive()
   let prayerSpots: Map<string, PrayerInfo> | null = null
   if (input.prayers && input.prayers.length > 0) {
     prayerSpots = new Map()
@@ -104,34 +139,34 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
     }
   }
 
-  // Who has something to draw, and what.
+  // Who has something to draw, and what. The per-slot facts come from the people layer when it has them,
+  // so a person with nothing to show costs a few typed-array reads and no visit to the person.
   const hideUI = viewFlags.hideUI
+  const pre = people.labelFlags
+  const movedAt = people.step.movedAt
   candidates.length = 0
   for (let k = 0; k < count; k++) {
     const j = onScreen[k]
-    const org = orgs[j]
-    const isSelected = org.id === selectedId
+    const f = pre ? pre[j] : labelFlagsOf(orgs[j])
+    const id = ids ? ids[j] : orgs[j].id
+    const isSelected = id === selectedId
     const standard = isSelected || detail !== 'overview'
     const full = isSelected || detail === 'detail'
     let mask = 0
-    if (
-      standard &&
-      !riders?.has(org.id) &&
-      workActivity(org.thought ?? '', now - people.step.movedAt[j] <= 120)
-    )
-      mask |= WORK
+    if (standard && f & LABEL_ACTIVITY && !(now - movedAt[j] <= 120) && !riders?.has(id)) mask |= WORK
     if (standard && !hideUI) {
-      if (celebrating(org.lineage_id, org.x, org.y, now)) mask |= GLYPH_CELEBRATE
-      else if (prayerSpots) {
-        const spot = prayerSpots.get(org.lineage_id)
-        if (spot && prayerSeed(org.id) % 2 === 0 && Math.hypot(org.x - spot.x, org.y - spot.y) <= 8)
-          mask |= GLYPH_PRAY
+      if (effects || (prayerSpots && f & LABEL_SEED_EVEN)) {
+        const org = orgs[j]
+        if (celebrating(org.lineage_id, org.x, org.y, now)) mask |= GLYPH_CELEBRATE
+        else if (prayerSpots && f & LABEL_SEED_EVEN) {
+          const spot = prayerSpots.get(org.lineage_id)
+          if (spot && Math.hypot(org.x - spot.x, org.y - spot.y) <= 8) mask |= GLYPH_PRAY
+        }
       }
     }
-    if (org.name && (isSelected || (standard && viewFlags.names && (!labelIds || labelIds.has(org.id)))))
+    if (f & LABEL_NAME && (isSelected || (standard && viewFlags.names && (!labelIds || labelIds.has(id)))))
       mask |= NAME
-    if ((isSelected || (full && viewFlags.thoughts)) && org.thought && org.thought !== 'observing')
-      mask |= THOUGHT
+    if (f & LABEL_THOUGHT && (isSelected || (full && viewFlags.thoughts))) mask |= THOUGHT
     flags[j] = mask
     if (mask !== 0) candidates.push(j)
   }

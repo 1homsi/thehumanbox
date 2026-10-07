@@ -116,6 +116,18 @@ export function PeopleSpriteLayers({
       get step() {
         return sprites.stepState
       },
+      get labelFlags() {
+        return sprites.labelFlags
+      },
+      get tileX() {
+        return sprites.toX
+      },
+      get tileY() {
+        return sprites.toY
+      },
+      get ids() {
+        return sprites.ids
+      },
     })
     // Force the next frame to rebuild: the buffer is new.
     last.current = null

@@ -36,18 +36,21 @@ export function crowdLabelIdsAt(
   slots: ArrayLike<number>,
   count: number,
   zoom: number,
+  xs?: ArrayLike<number>,
+  ys?: ArrayLike<number>,
+  ids?: ArrayLike<string>,
 ): Set<string> | null {
   if (count <= CROWD_LABEL_LIMIT) return null
   const cells = new Map<number, string>()
   const scale = Math.max(0.1, zoom) * 8
   for (let k = 0; k < count; k++) {
-    const person = people[slots[k]]
-    const key = gridKey(
-      Math.floor((person.x * scale) / LABEL_CELL_W),
-      Math.floor((person.y * scale) / LABEL_CELL_H),
-    )
+    const j = slots[k]
+    const x = xs ? xs[j] : people[j].x
+    const y = ys ? ys[j] : people[j].y
+    const id = ids ? ids[j] : people[j].id
+    const key = gridKey(Math.floor((x * scale) / LABEL_CELL_W), Math.floor((y * scale) / LABEL_CELL_H))
     const previous = cells.get(key)
-    if (previous === undefined || person.id < previous) cells.set(key, person.id)
+    if (previous === undefined || id < previous) cells.set(key, id)
   }
   return new Set(cells.values())
 }

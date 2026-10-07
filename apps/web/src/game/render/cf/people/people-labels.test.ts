@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import type { FaithInfo, OrganismState, PrayerInfo, VehicleInfo } from '../../../../shared/types'
 import { resetPrayerFeedback, updatePrayerFeedback } from '../../prayer-feedback'
-import { paintPeopleLabels, type PeopleLabelInput, type PeopleLabelSource } from './people-labels'
+import {
+  labelFlagsOf,
+  paintPeopleLabels,
+  type PeopleLabelInput,
+  type PeopleLabelSource,
+} from './people-labels'
 import { paintPeopleLabelsReference } from './people-labels.reference.test-util'
 
 interface Call {
@@ -281,6 +286,20 @@ describe('people labels, cheap painter against the original', () => {
         paintPeopleLabels(fast.ctx, base)
         paintPeopleLabelsReference(old.ctx, base)
         expect(fast.calls).toEqual(old.calls)
+        // The same crowd as the people layer hands it over: per-slot facts in typed arrays.
+        const typed: PeopleLabelInput = {
+          ...base,
+          people: {
+            ...people,
+            labelFlags: Uint8Array.from(orgs, labelFlagsOf),
+            tileX: Float64Array.from(orgs, (o) => o.x),
+            tileY: Float64Array.from(orgs, (o) => o.y),
+            ids: orgs.map((o) => o.id),
+          },
+        }
+        const viaFlags = recording()
+        paintPeopleLabels(viaFlags.ctx, typed)
+        expect(viaFlags.calls).toEqual(old.calls)
         if (zoom > 1) expect(fast.calls.length).toBeGreaterThan(0)
         // Again on the same crowd, a moment later: scratch buffers kept from the last frame must not leak in.
         const again = recording()
@@ -288,6 +307,9 @@ describe('people labels, cheap painter against the original', () => {
         const againOld = recording()
         paintPeopleLabelsReference(againOld.ctx, { ...base, now: 5030 })
         expect(again.calls).toEqual(againOld.calls)
+        const againTyped = recording()
+        paintPeopleLabels(againTyped.ctx, { ...typed, now: 5030 })
+        expect(againTyped.calls).toEqual(againOld.calls)
       })
     }
   }
