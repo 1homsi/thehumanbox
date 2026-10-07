@@ -21,8 +21,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       cubeforge:
-        specifier: ^0.12.0
-        version: 0.12.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: ^0.13.0
+        version: 0.13.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       d3-hierarchy:
         specifier: ^3.1.2
         version: 3.1.2
@@ -859,8 +859,8 @@ packages:
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
 
-  cubeforge@0.12.0:
-    resolution: {integrity: sha512-LHj8d38H0eeaokdke1YDAnTPOZwcq9jox7WEwiN14Ci5RZ/K7Zb8I/uBHakVvReVMEpqEBz15hOC0yxvWodZeQ==}
+  cubeforge@0.13.0:
+    resolution: {integrity: sha512-qgicieYKBz2BJLD633zqZJHoavhB8SG6USgmePHDUP5t3+T/TkA2GqcSBtp+4BgmdqJNfsUwansPXOkoMefojQ==}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
@@ -2386,7 +2386,7 @@ snapshots:
 
   csstype@3.2.3: {}
 
-  cubeforge@0.12.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+  cubeforge@0.13.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
