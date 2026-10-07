@@ -275,7 +275,10 @@ describe('CfOverlayRenderer', () => {
     const none = renderer.update(f, { people: null, selectedId: null })
     expect(none.sprites).toBeGreaterThanOrEqual(0)
     renderer.update(f, { people, selectedId: 'p1' })
-    expect(labels.reduce((n, l) => n + l.count, 0)).toBeGreaterThan(20)
+    // Names and thoughts are text runs above the label glyphs, in the order the painter drew them.
+    const names = host.textLayers.find((l) => l.zIndex === Z.labels + 0.6)
+    expect(names?.texts.slice(0, names.count)).toEqual(['Ada', 'chopping wood'])
+    expect(labels.reduce((n, l) => n + l.count, 0)).toBeGreaterThan(0)
     expect(Z.labels).toBeGreaterThan(41.5)
     expect(Z.labels).toBeLessThan(Z.effects)
   })

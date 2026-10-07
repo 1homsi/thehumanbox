@@ -1,9 +1,10 @@
-import type { SpriteLayer } from 'cubeforge'
+import type { SpriteLayer, TextLayer } from 'cubeforge'
 import type { RenderHost } from './host'
 
 /** A render host that records what the renderer asked of the engine, with no GPU behind it. */
 export interface StubHost extends RenderHost {
   layers: SpriteLayer[]
+  textLayers: TextLayer[]
   registered: Map<string, HTMLCanvasElement>
   dirtyRects: { id: string; x: number; y: number; w: number; h: number }[]
   dirtyCount: number
@@ -12,6 +13,7 @@ export interface StubHost extends RenderHost {
 export function stubHost(): StubHost {
   const host: StubHost = {
     layers: [],
+    textLayers: [],
     registered: new Map(),
     dirtyRects: [],
     dirtyCount: 0,
@@ -29,6 +31,12 @@ export function stubHost(): StubHost {
     },
     removeLayer(layer) {
       host.layers = host.layers.filter((l) => l !== layer)
+    },
+    addTextLayer(layer) {
+      host.textLayers.push(layer)
+    },
+    removeTextLayer(layer) {
+      host.textLayers = host.textLayers.filter((l) => l !== layer)
     },
     markDirty() {
       host.dirtyCount++

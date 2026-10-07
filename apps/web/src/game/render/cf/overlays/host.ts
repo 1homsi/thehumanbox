@@ -1,4 +1,4 @@
-import type { SpriteLayer } from 'cubeforge'
+import type { SpriteLayer, TextLayer } from 'cubeforge'
 import { wakeEngine } from '../frame-clock'
 import { engineAtlasHost, type AtlasHost } from './atlas-host'
 
@@ -6,12 +6,16 @@ import { engineAtlasHost, type AtlasHost } from './atlas-host'
 export interface RenderHost extends AtlasHost {
   addLayer(layer: SpriteLayer): void
   removeLayer(layer: SpriteLayer): void
+  addTextLayer(layer: TextLayer): void
+  removeTextLayer(layer: TextLayer): void
   markDirty(): void
 }
 
 interface LayerRenderer {
   addSpriteLayer?: (layer: SpriteLayer) => void
   removeSpriteLayer?: (layer: SpriteLayer) => void
+  addTextLayer?: (layer: TextLayer) => void
+  removeTextLayer?: (layer: TextLayer) => void
 }
 
 export interface EngineLike {
@@ -30,6 +34,13 @@ export function engineRenderHost(engine: EngineLike): RenderHost {
     },
     removeLayer(layer) {
       rs()?.removeSpriteLayer?.(layer)
+    },
+    addTextLayer(layer) {
+      rs()?.addTextLayer?.(layer)
+      engine.loop.markDirty()
+    },
+    removeTextLayer(layer) {
+      rs()?.removeTextLayer?.(layer)
     },
     markDirty() {
       wakeEngine(engine, 30)

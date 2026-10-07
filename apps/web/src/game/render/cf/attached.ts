@@ -1,6 +1,6 @@
 import { SPRITE_HIDDEN, SPRITE_UNTEXTURED, type SpriteLayer } from 'cubeforge'
 
-type Slots = Float32Array | Float64Array | Uint8Array | Uint32Array
+type Slots = Float32Array | Float64Array | Uint8Array | Uint16Array | Uint32Array
 
 /**
  * Write `v` into `arr[i]` and report whether the stored value changed. The write always happens (it is

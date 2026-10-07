@@ -13,6 +13,12 @@ import {
 import type { PlacedLabel } from '../../settlement-labels'
 import { isFocused } from './people-sprites'
 import { emitWorkPose, isFastPose, type PoseSink } from './work-poses'
+import type { NameStyle } from './people-names'
+
+/** Where names and thoughts go instead of the canvas (a `TextLayer`, see `PeopleNameLayer`). */
+export interface NameSink {
+  text(text: string, x: number, y: number, style: NameStyle, alpha: number): void
+}
 
 /** What the labels need of the people layer: who is drawn where, and how they last moved. */
 export interface PeopleLabelSource {
@@ -75,6 +81,11 @@ export interface PeopleLabelInput {
    * through `ctx` (what the tests compare against).
    */
   poses?: PoseSink
+  /**
+   * Where names and thoughts may be written as text runs instead of canvas text. Without it they are drawn with
+   * `ctx` (what the tests compare against).
+   */
+  names?: NameSink
 }
 
 /** What a person has to draw above their sprite this frame (a bit mask). */
@@ -108,7 +119,7 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
   const detail = zoomDetailLevel(zoom)
   if (detail === 'overview' && selectedId == null) return
   const { c0, c1, r0, r1 } = input.window
-  const { ox, oy, poses } = input
+  const { ox, oy, poses, names } = input
   const orgs = people.orgs
   const n = orgs.length
   if (onScreenScratch.length < n) {
@@ -245,25 +256,32 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
       placer.place(px, labelY - (nameShown ? 10 : 0), labelWidth(org.thought ?? '', 8), 9, isSelected)
 
     if (nameShown) {
-      ctx.font = isSelected ? 'bold 10px monospace' : '9px monospace'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'bottom'
-      ctx.lineWidth = 3
-      ctx.strokeStyle = 'rgba(0,0,0,0.85)'
-      ctx.strokeText(org.name, px, labelY)
-      ctx.fillStyle = isSelected ? '#ffffff' : 'rgba(255,255,255,0.95)'
-      ctx.fillText(org.name, px, labelY)
+      if (names) names.text(org.name, px, labelY, isSelected ? 'nameSelected' : 'name', alpha)
+      else {
+        ctx.font = isSelected ? 'bold 10px monospace' : '9px monospace'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'bottom'
+        ctx.lineWidth = 3
+        ctx.strokeStyle = 'rgba(0,0,0,0.85)'
+        ctx.strokeText(org.name, px, labelY)
+        ctx.fillStyle = isSelected ? '#ffffff' : 'rgba(255,255,255,0.95)'
+        ctx.fillText(org.name, px, labelY)
+      }
     }
     if (thoughtShown) {
-      ctx.font = '8px monospace'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'bottom'
-      ctx.lineWidth = 2.5
-      ctx.strokeStyle = 'rgba(0,0,0,0.85)'
       const thoughtY = labelY - (nameShown ? 10 : 0)
-      ctx.strokeText(org.thought, px, thoughtY)
-      ctx.fillStyle = isSelected ? 'rgba(180,220,255,1)' : 'rgba(180,220,255,0.9)'
-      ctx.fillText(org.thought, px, thoughtY)
+      if (names)
+        names.text(org.thought ?? '', px, thoughtY, isSelected ? 'thoughtSelected' : 'thought', alpha)
+      else {
+        ctx.font = '8px monospace'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'bottom'
+        ctx.lineWidth = 2.5
+        ctx.strokeStyle = 'rgba(0,0,0,0.85)'
+        ctx.strokeText(org.thought, px, thoughtY)
+        ctx.fillStyle = isSelected ? 'rgba(180,220,255,1)' : 'rgba(180,220,255,0.9)'
+        ctx.fillText(org.thought, px, thoughtY)
+      }
     }
   }
   ctx.globalAlpha = 1
