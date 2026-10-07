@@ -2,7 +2,7 @@ import type { OrganismState, PrayerInfo, VehicleInfo } from '../../../../shared/
 import type { ViewFlags } from '../../../../state/store'
 import { orgVariant } from '../../../model/org-variant'
 import { drawWorkActivity, workActivity } from '../../activity-visuals'
-import { compareCharacterDepth, zoomDetailLevel } from '../../character-visuals'
+import { zoomDetailLevel } from '../../character-visuals'
 import { LabelPlacer, crowdLabelIdsAt, labelWidth } from '../../crowd-detail'
 import {
   celebrating,
@@ -98,11 +98,53 @@ const THOUGHT = 16
 /** Scratch space reused between frames: the painter runs up to 30 times a second over a crowd. */
 let onScreenScratch = new Int32Array(0)
 let flagsScratch = new Uint8Array(0)
-const candidates: number[] = []
+/** The people with something to draw, in draw order: last frame's (`orderPrev`) and this frame's (`orderNext`). */
+let orderPrev = new Int32Array(0)
+let orderNext = new Int32Array(0)
+let orderPrevCount = 0
+/** Per slot: the frame it was last flagged in, and the frame it was last put in the order. */
+let flaggedAt = new Uint32Array(0)
+let placedAt = new Uint32Array(0)
+let frameStamp = 0
 
 /** A person's prayer glyph seed: whether they join in, and where in the dance they start. */
 export function prayerSeed(id: string): number {
   return id.charCodeAt(0) + id.charCodeAt(id.length - 1)
+}
+
+/**
+ * Sorts `order[0..n)` into `compareCharacterDepth` order (y, then id) in place. The input is nearly sorted (last
+ * frame's order), so an insertion pass is close to linear; if it runs out of budget (a big reshuffle) it falls back
+ * to a full sort.
+ */
+function sortByDepth(
+  order: Int32Array,
+  n: number,
+  orgs: readonly OrganismState[],
+  tileY: ArrayLike<number> | undefined,
+  ids: ArrayLike<string> | undefined,
+): void {
+  const y = (j: number) => (tileY ? tileY[j] : orgs[j].y)
+  const idOf = (j: number) => (ids ? ids[j] : orgs[j].id)
+  let budget = 8 * n + 256
+  for (let i = 1; i < n; i++) {
+    const v = order[i]
+    const yv = y(v)
+    let k = i - 1
+    while (k >= 0) {
+      const u = order[k]
+      const yu = y(u)
+      if (yu < yv || (yu === yv && idOf(u).localeCompare(idOf(v)) <= 0)) break
+      order[k + 1] = u
+      k--
+      if (--budget < 0) {
+        order[k + 1] = v
+        order.subarray(0, n).sort((p, q) => y(p) - y(q) || idOf(p).localeCompare(idOf(q)))
+        return
+      }
+    }
+    order[k + 1] = v
+  }
 }
 
 /**
@@ -123,9 +165,16 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
   const orgs = people.orgs
   const n = orgs.length
   if (onScreenScratch.length < n) {
-    onScreenScratch = new Int32Array(Math.max(n, onScreenScratch.length * 2, 256))
-    flagsScratch = new Uint8Array(onScreenScratch.length)
+    const cap = Math.max(n, onScreenScratch.length * 2, 256)
+    onScreenScratch = new Int32Array(cap)
+    flagsScratch = new Uint8Array(cap)
+    orderPrev = new Int32Array(cap)
+    orderNext = new Int32Array(cap)
+    flaggedAt = new Uint32Array(cap)
+    placedAt = new Uint32Array(cap)
+    orderPrevCount = 0
   }
+  const stamp = ++frameStamp
   const onScreen = onScreenScratch
   const flags = flagsScratch
   const { tileX, tileY, ids } = people
@@ -161,7 +210,6 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
   const hideUI = viewFlags.hideUI
   const pre = people.labelFlags
   const movedAt = people.step.movedAt
-  candidates.length = 0
   for (let k = 0; k < count; k++) {
     const j = onScreen[k]
     const f = pre ? pre[j] : labelFlagsOf(orgs[j])
@@ -185,9 +233,32 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
       mask |= NAME
     if (f & LABEL_THOUGHT && (isSelected || (full && viewFlags.thoughts))) mask |= THOUGHT
     flags[j] = mask
-    if (mask !== 0) candidates.push(j)
+    flaggedAt[j] = stamp
   }
-  if (candidates.length === 0) {
+  // Those with something to draw, in draw order: last frame's order first (people move slowly, so it is
+  // nearly right already), then the newcomers. Then the depth sort fixes what moved.
+  const placed = placedAt
+  const next = orderNext
+  let nc = 0
+  for (let p = 0; p < orderPrevCount; p++) {
+    const j = orderPrev[p]
+    if (flaggedAt[j] === stamp && flags[j] !== 0 && placed[j] !== stamp) {
+      placed[j] = stamp
+      next[nc++] = j
+    }
+  }
+  for (let k = 0; k < count; k++) {
+    const j = onScreen[k]
+    if (flags[j] !== 0 && placed[j] !== stamp) {
+      placed[j] = stamp
+      next[nc++] = j
+    }
+  }
+  sortByDepth(next, nc, orgs, tileY, ids)
+  orderNext = orderPrev
+  orderPrev = next
+  orderPrevCount = nc
+  if (nc === 0) {
     ctx.globalAlpha = 1
     return
   }
@@ -196,8 +267,8 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
   for (const p of input.settlementLabels) placer.place(p.cx, p.cy + p.h / 2, p.w, p.h, true)
 
   // Back to front, the order the placer should claim space in.
-  candidates.sort((a, b) => compareCharacterDepth(orgs[a], orgs[b]))
-  for (const j of candidates) {
+  for (let c = 0; c < nc; c++) {
+    const j = next[c]
     const org = orgs[j]
     const mask = flags[j]
     const alpha = isFocused(org, focus) ? 1 : 0.12

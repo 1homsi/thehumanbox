@@ -304,6 +304,43 @@ describe('people labels as text runs', () => {
   })
 })
 
+describe('people labels, draw order across frames', () => {
+  afterEach(() => resetPrayerFeedback())
+
+  it('draws every frame exactly as the reference while people walk about (last order reused)', () => {
+    const { orgs, people, rand } = randomCrowd(4242, 300)
+    for (let frame = 0; frame < 25; frame++) {
+      for (const o of orgs) {
+        if (rand() < 0.3) {
+          o.x += (rand() - 0.5) * 2
+          o.y += (rand() - 0.5) * 2
+        }
+      }
+      people.px = orgs.map((o) => o.x * 8 + 4)
+      people.py = orgs.map((o) => o.y * 8 + 4)
+      const input: PeopleLabelInput = {
+        people,
+        selectedId: frame % 4 === 0 ? orgs[frame].id : null,
+        focus: 'all',
+        viewFlags: { names: true, thoughts: true, hideUI: false },
+        zoom: 3,
+        now: 5000 + frame,
+        prayers: undefined,
+        vehicles: undefined,
+        settlementLabels: [],
+        window: { c0: 0, c1: 200, r0: 0, r1: 200 },
+        ox: 0,
+        oy: 0,
+      }
+      const drawn = recording()
+      paintPeopleLabels(drawn.ctx, input)
+      const reference = recording()
+      paintPeopleLabelsReference(reference.ctx, input)
+      expect(drawn.calls, `frame ${frame}`).toEqual(reference.calls)
+    }
+  })
+})
+
 describe('people labels, cheap painter against the original', () => {
   afterEach(() => resetPrayerFeedback())
 
