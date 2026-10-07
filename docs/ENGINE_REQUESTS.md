@@ -47,59 +47,53 @@ gamepad. Do: poll only after a `gamepadconnected` event and stop after the last 
 Expected: -0.9 points while moving, 0 for a still map. See it: `getGamepads` / `flush (gamepad.js)` in the
 profile, caller `flush (inputManager.js) < fixedDt (Game.js) < frame (gameLoop.js)`.
 
-## 3. Vertex-shader wind (about 1 % of the main thread, 1 MB/s of garbage)
+## 3. Wind that moves whole pixels (0.13 has the smooth kind)
 
-`packages/renderer/src/spriteLayerGL.ts` (vertex shader and the instance layout), `spriteLayerFlags.ts`.
+`packages/renderer/src/spriteLayerGL.ts` (the `i_sway` branch of the vertex shader), `SpriteLayerWind`.
 
-The app rewrites a second sprite layer of canopy-only sprites about 12 times a second so trees sway by whole
-pixels (`cf/vegetation/trees-driver.ts`, `TreesDriver.update`): 1.1 % of the main thread at 30 Hz before it
-was throttled, and it reallocates. Do: a per-sprite flag `SPRITE_SWAY` plus a per-layer `u_time`, `u_amp`,
-`u_lean` uniform and a per-sprite phase (the existing `rotation` slot can carry it), displacing the top part of
-the sprite by `round(sin(t/620 + phase) * amp + lean)` pixels in the vertex shader. The app then draws trees
-once from the retained buffer (item 1) and the sway layer disappears.
+0.13's `SPRITE_SWAY` bends the top of the quad by a fraction of its height (`top * top * sin(...)`), which
+smears a nearest-sampled pixel-art tree. The map's look is a canopy that shifts by *whole pixels*
+(`cf/vegetation/trees-driver.ts`: `round(sin(t / 620 + phase) * amp + lean)`, trunk fixed), so the app keeps
+rewriting a second layer of canopy-only sprites about 12 times a second (0.4 % of the main thread after the
+throttle, 1.1 % before). Do: `wind.snap: true` (round the displacement to whole device pixels) and a
+`wind.fromY` so only the part above that fraction of the sprite moves while the rest stays. Then the app
+deletes the canopy layer and the driver's per-frame work.
 
-## 4. Atlas frames that are not a uniform grid (about 10 MB, and the start-up bakes)
+## 4. Atlas frames: adopt only if packing gets tighter than the app's own
 
-`packages/renderer/src/spriteLayer.ts` (`LayerAtlas`), `spriteLayerGL.ts` (`uw`, `vh`, `cols`).
+0.13 adds frame tables and up to 256 atlases per layer. The app's `CellAtlas` already packs uniform-cell pages
+that grow by rows (24 MB of live textures for the standard world, down from 71 MB), so a frame table would only
+win the last few MB (buildings, props and shore share a page instead of three; the 1 px gutter goes). Not worth
+the rewrite until the remaining 24 MB matters; the content that is left is real (decor 1.75 MB after sharing
+identical cells, mountains 4.7 MB: 9,770 distinct 10x12 cells).
 
-A layer atlas is a uniform grid of `frameWidth x frameHeight`, so the app keeps one page per cell size and
-leaves a 1 px gutter around every cell. With the map's sprites that is: decor 7,744 cells of 14x14 on two
-1024x1024 pages, mountains 9,770 cells of 10x12 on two, buildings 192 cells of 34x48 and 3 of 50x72 (pages
-of 1024x1024 until the app made them grow on demand). Do: let a layer carry a `frames` table (Float32Array of
-`u0, v0, u1, v1` per frame, or per-sprite UV written into the instance), so the app can shelf-pack mixed sizes
-into one texture with no wasted cells. The app then drops the per-size pages and the gutter logic.
+## 5. Text on the map: TextLayer needs zoom-aware glyph resolution first
 
-Expected: texture memory of the map's atlases down by about a third more than growing pages alone
-(buildings and props share a page), and fewer pages per layer (the limit is 8).
-
-## 5. Text on the map: use TextLayer, and let a run carry two styles (adopt after 0.12)
-
-`packages/renderer/src/textLayer.ts`, `glyphAtlas.ts`.
+`packages/renderer/src/glyphAtlas.ts` (`GlyphAtlasOptions`, the atlas resolution), `textLayer.ts`.
 
 The app draws names and thoughts with its own glyph atlas (`cf/overlays/glyph-atlas.ts`, `recorder.ts`):
-every character is two sprites (a black outline glyph, then a white fill glyph) and the text is re-laid
-out every time. On the crowd at close zoom that is `fillText` 1.1 % + `strokeText` 1.0 % + glyph lookups
-0.3 % of the main thread. `TextLayer` bakes the outline into the glyph (`outlineColor`, `outlineWidth`), so
-a label is one run of one-sprite glyphs, laid out once. Missing for a drop-in: per-run outline width and
-colour without a new style per combination (names: 3 px black, thoughts: 2.5 px black), and `anchorY: 1` with
-`baseline: 'bottom'` text placement matching `ctx.textBaseline = 'bottom'`. Both are small.
+every character is nine sprites (eight shifted outline glyphs and the fill), laid out again every frame; on the
+crowd at close zoom that is `fillText` + `strokeText` + `emitRect` about 2.7 % of the main thread plus their share of
+the sprite pass. `TextLayer` bakes the outline into the glyph (`outlineColor`, `outlineWidth`) and lays a run out
+once, which would cut the text sprites about 9x. It is not adopted because the glyph raster has a fixed
+resolution per style: the map zooms from 0.25 to 8, and the app's atlas keeps text crisp by choosing among four
+raster sizes (9, 14, 22, 36 px per em) for the on-screen size. A `TextLayer` at 9 world px magnified 4x is blurry.
+Do: let a style (or a layer) pick its raster size from a `resolution` the app updates as the camera zooms (rounded
+to buckets so the atlas does not thrash), or draw glyphs from an SDF. Also missing for a drop-in: a per-run
+outline colour/width without a style per combination.
 
-## 6. Stats and timing the benchmark cannot see
+## 6. Stats and timing
 
-`packages/renderer/src/webglRenderSystem.ts` (`stats`, `_statTex`), `packages/core` `EngineStats`.
+0.13 adds `stats.render.gpuMs` / `gpuMsAvg` (`setGpuTiming(true)` on the render system) and per-layer
+numbers; the benchmark now records them (`GPU ms/frame`; 6 ms per frame on the crowd at close zoom). Still open:
 
 - `textureBytes` and the upload counters ignore `TileLayer` textures and tint uploads, and
-  `tileLayerStats` is not in `EngineStats`. The map's terrain tileset and tint grid are missing from the
-  number the app reports as engine texture memory.
+  `tileLayerStats` is not in `EngineStats`.
 - `_statTex` counts a dynamic canvas's size when it is registered and never again, so after
   `ManagedDynamicCanvas.resize()` (the app's atlas pages grow by rows) `stats.textureBytes` is an
   undercount: 13.6 MB reported against 24 MB of live textures counted by wrapping `texImage2D` /
   `deleteTexture` (`bench/run.mjs --gl-log`). Do: update the stat in `uploadDynamicCanvas` where the size
   change is detected (`texW`/`texH` already change there).
-- There is no GPU time. Do: an optional `EXT_disjoint_timer_query_webgl2` query around the frame
-  (`stats.gpuMs`, off by default), and a per-layer breakdown (`stats.layers: { name, instances, drawMs }[]`).
-  Today the benchmark can only report the GPU process's main-thread busy time from a Chrome trace.
-- `engine.stats` is typed optional; make it always present.
 
 ## 7. Dynamic canvases hold the pixels twice
 
@@ -124,13 +118,17 @@ growth needs no copy.
 - Picking: `pickNearest(x, y, radius)` and a per-sprite hit rect (the app keeps a hidden layer of footprint
   rectangles just so `pick` hits a building's footprint rather than its padded cell).
 
-## What The Human Box takes from 0.12.0 now
+## What The Human Box takes from 0.12 and 0.13
 
-| 0.12 feature | Adopted | Why |
+| Feature | Adopted | Why |
 |---|---|---|
 | Imperative dynamic canvases (`createDynamicCanvas`, `resize`, `dispose`) | yes (#288) | atlas pages are created when a cell size claims them and grow by rows: 109 textures / 71 MB of live WebGL textures became 44 / 24 MB, GPU process memory 220 -> 165 MB |
-| TextLayer | after the engine items in 5 | outline per run is needed first |
-| `TileLayer` `minFilter: 'mipmap'` | not yet | the app's flat far-zoom tileset already hides the shimmer; swapping it changes the picture and needs a screenshot review |
-| `useCameraPanZoom` `onChange` | not needed | the camera controller already writes the camera inside the engine frame script that runs only when the loop is awake; the render loops are woken from the same place |
-| Camera follow on a sprite | not yet | the people are `SpriteLayer` sprites, not entities; follow needs `CameraFollowSprite` with a layer + index, which could replace the app's per-frame follow target |
-| Tile layers in the shared z-order | not yet | the heat map is one nearest-sampled sprite (720 KB); a real tile layer would save little |
+| GPU frame time in `EngineStats` | yes (bench) | GPU ms per frame is a column of the benchmark report |
+| TextLayer | no | needs zoom-aware glyph resolution (section 5) |
+| GPU sway (`SPRITE_SWAY`) | no | bends smoothly; the map's trees shift whole pixels (section 3) |
+| Frame tables / 256 atlases | no | the app's grid pages already grow to what they hold (section 4) |
+| `TileLayer` `minFilter: 'mipmap'` | no | the app's flat far-zoom tileset already hides the shimmer; swapping it changes the picture |
+| `useCameraPanZoom` `onChange` | no | the camera controller already writes the camera inside the engine frame script, which runs only when the loop is awake; the render loops are woken from the same place |
+| Picking (`pickNearest`, hit rects, string ids) | later | no performance gain; the app's footprint layer and `cf/picking.ts` work and are tested |
+| `captureFrame` for "save a picture", `renderer="auto"` | later | behaviour, not speed; `renderer="auto"` also needs the canvas fallback to reach parity (it has no weather, heat maps, effects or labels) |
+| Camera follow on a sprite, tile layers in the shared z-order (real heat tile layer) | no | the heat map is one 720 KB sprite; a tile layer would not change cost |
