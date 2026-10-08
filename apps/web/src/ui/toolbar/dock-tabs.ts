@@ -11,6 +11,9 @@ import { SANDBOX_CATEGORIES, type SandboxCategory } from '../../simulation/sandb
  * Adding a category: create it in `sandbox.ts`, then list its id in one tab
  * below. `dock-tabs.test.ts` fails if any tool or category is left out.
  */
+/** Tile columns a tab may take up (two tiles per column): 11 columns of 40px tiles fit beside the time panel at 768 wide. */
+export const MAX_TAB_COLUMNS = 11
+
 export interface DockTab {
   id: string
   label: string
@@ -24,22 +27,43 @@ export const DOCK_TABS: DockTab[] = [
     id: 'life',
     label: 'life',
     icon: '🚶',
-    tip: 'People, animals, and monsters',
-    groups: ['life', 'animals', 'monsters'],
+    tip: 'People and the helpers you send to them',
+    groups: ['life'],
+  },
+  {
+    id: 'animals',
+    label: 'animals',
+    icon: '🦌',
+    tip: 'Wild and tame animals, and monsters',
+    groups: ['animals', 'monsters'],
   },
   {
     id: 'world',
     label: 'world',
     icon: '⛰️',
-    tip: 'Terrain, biomes, resources, and buildings',
-    groups: ['terrain', 'biomes', 'resources', 'build'],
+    tip: 'Terrain and biomes: what the ground is',
+    groups: ['terrain', 'biomes'],
   },
   {
-    id: 'powers',
-    label: 'powers',
-    icon: '⛈️',
-    tip: 'Helpful powers, then deadly ones',
-    groups: ['good', 'bad'],
+    id: 'resources',
+    label: 'resources',
+    icon: '🍎',
+    tip: 'Food, plantings, and buildings',
+    groups: ['resources', 'build'],
+  },
+  {
+    id: 'helpful',
+    label: 'helpful',
+    icon: '✨',
+    tip: 'Blessings, weather you can summon, and healing',
+    groups: ['good'],
+  },
+  {
+    id: 'deadly',
+    label: 'deadly',
+    icon: '💀',
+    tip: 'Disasters, plagues, and war',
+    groups: ['bad'],
   },
   {
     id: 'maps',
@@ -69,10 +93,18 @@ export function groupsFor(tabId: string): SandboxCategory[] {
   return tab.groups.flatMap((id) => SANDBOX_CATEGORIES.filter((c) => c.id === id))
 }
 
-/** Resolve a stored tab id, accepting the category ids older saves used. */
-/** Groups older docks had, mapped to the tab that now holds their tools. */
-const RETIRED_GROUPS: Record<string, string> = { divine: 'powers', nature: 'powers', disasters: 'powers' }
+/**
+ * Tab ids and groups older docks used, mapped to the tab that now holds their tools.
+ * The powers tab was split into helpful and deadly; the old one-tab-per-category dock is covered too.
+ */
+const RETIRED_GROUPS: Record<string, string> = {
+  powers: 'helpful',
+  divine: 'helpful',
+  nature: 'helpful',
+  disasters: 'deadly',
+}
 
+/** Resolve a stored tab id, accepting the category ids older saves used. */
 export function resolveTab(saved: string | null): string {
   const id = saved !== null ? (RETIRED_GROUPS[saved] ?? saved) : null
   const tab = DOCK_TABS.find((t) => t.id === id || (id !== null && t.groups.includes(id)))

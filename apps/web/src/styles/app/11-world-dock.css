@@ -340,6 +340,16 @@
   }
 }
 
+/* Narrow desktop windows: smaller tiles and a slimmer time panel, so every tab's tiles fit beside it. */
+@media (max-width: 1100px) {
+  .sandbox-bar {
+    --dock-tile: 40px;
+  }
+  .dock-time {
+    width: 128px;
+  }
+}
+
 @media (max-width: 767px) {
   .sandbox-bar {
     --dock-tile: 36px;

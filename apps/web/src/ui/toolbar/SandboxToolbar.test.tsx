@@ -27,7 +27,7 @@ describe('SandboxToolbar local save recovery', () => {
     expect(markup).toContain('aria-label="World controls"')
     expect(markup).toContain('aria-label="World tools"')
     expect(markup).toContain('aria-pressed="true"')
-    expect(markup).toContain('aria-label="animals"')
+    expect(markup).toContain('aria-label="life tools"')
     expect(markup).toContain('aria-label="Speed 4×"')
   })
 

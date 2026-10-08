@@ -129,12 +129,12 @@ describe('world dock buttons', () => {
 
   it('remembers the chosen tab', () => {
     render()
-    click(tab('powers'))
-    expect(window.localStorage.getItem('thb-sandbox-category')).toBe('powers')
+    click(tab('helpful'))
+    expect(window.localStorage.getItem('thb-sandbox-category')).toBe('helpful')
     act(() => root.unmount())
     root = createRoot(container)
     render()
-    expect(tab('powers')?.getAttribute('aria-pressed')).toBe('true')
+    expect(tab('helpful')?.getAttribute('aria-pressed')).toBe('true')
   })
 
   it('puts an armed tool away when its tile is clicked again', () => {
