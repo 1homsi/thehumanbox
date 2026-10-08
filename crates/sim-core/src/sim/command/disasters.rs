@@ -130,6 +130,56 @@ impl Simulation {
         true
     }
 
+    /// A tornado: a funnel touches down and tears along a random heading.
+    /// Where it passes it wrecks buildings, strikes down the nearest person or
+    /// animal in its funnel, uproots plantings and flattens fields. Returns
+    /// whether it hit anything.
+    pub(super) fn cmd_tornado(&mut self, x: i32, y: i32, radius: i32) -> bool {
+        use crate::sim::civ::building_damage::{strike_buildings, DamageCause};
+        use std::f32::consts::TAU;
+        let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
+        let length = radius.clamp(4, 24);
+        let heading = self.rng.random::<f32>() * TAU;
+        let (dx, dy) = (heading.cos(), heading.sin());
+        let mut hit = false;
+        for step in 0..=length {
+            let fx = x as f32 + dx * step as f32;
+            let fy = y as f32 + dy * step as f32;
+            let (cx, cy) = (fx.round() as i32, fy.round() as i32);
+            if !WorldGrid::in_bounds(cx, cy) {
+                break;
+            }
+            hit |= strike_buildings(self, cx, cy, 2.5, 0.8, 0.3, DamageCause::Storm) > 0;
+            hit |= self.cmd_smite(fx, fy, 2.0);
+            for ny in cy - 1..=cy + 1 {
+                for nx in cx - 1..=cx + 1 {
+                    if !WorldGrid::in_bounds(nx, ny) {
+                        continue;
+                    }
+                    if self.plantings.remove(&(WorldGrid::idx(nx, ny) as u32)).is_some() {
+                        hit = true;
+                    }
+                    if self.grid.get(nx, ny) == Tile::Food {
+                        self.grid.set(nx, ny, Tile::Grass);
+                        hit = true;
+                    }
+                }
+            }
+        }
+        if hit {
+            self.planting_revision = self.planting_revision.wrapping_add(1);
+        }
+        let now = self.tick_count;
+        push_event(
+            &mut self.events,
+            now,
+            "disaster",
+            "world",
+            &format!("a tornado tore across the land from ({x}, {y})"),
+        );
+        hit
+    }
+
     /// A gale: the wind turns to a random quarter and blows hard. It drifts
     /// back to its usual strength over the following days.
     pub(super) fn cmd_gale(&mut self) -> bool {
