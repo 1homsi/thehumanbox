@@ -111,6 +111,7 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
       return 'bless'
     case 'douse':
     case 'flood':
+    case 'tsunami':
       return 'water'
     case 'banish':
     case 'thunder':

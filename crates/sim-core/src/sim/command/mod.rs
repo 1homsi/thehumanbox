@@ -320,6 +320,13 @@ pub enum Command {
     },
     /// A gale: the wind turns to a random quarter and blows hard.
     Gale,
+    /// A tsunami runs up the coast nearest the point and inland.
+    Tsunami {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
     /// A tornado tears along a random heading from the point.
     Tornado {
         x: i32,
@@ -470,6 +477,8 @@ mod tests;
 mod tornado_tests;
 mod tribes;
 #[cfg(test)]
+mod tsunami_tests;
+#[cfg(test)]
 mod weather_tests;
 
 impl Simulation {
@@ -548,6 +557,7 @@ impl Simulation {
             Command::Restore { x, y, radius } => self.cmd_restore(x, y, radius),
             Command::Gale => self.cmd_gale(),
             Command::Tornado { x, y, radius } => self.cmd_tornado(x, y, radius),
+            Command::Tsunami { x, y, radius } => self.cmd_tsunami(x, y, radius),
             Command::Guide {
                 lineage,
                 strategy,

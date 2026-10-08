@@ -61,6 +61,8 @@ const TOOL_TIPS: Record<string, string> = {
     'Snow falls for a while. It settles on open ground, melts again on warm land, and chills anyone out in it.',
   tornado:
     'Send a tornado tearing along a random heading from the click. It wrecks buildings, strikes down the nearest people and animals in its funnel, and uproots every planting it passes.',
+  tsunami:
+    'Send a wave out of the nearest sea up the coast and inland. Land it reaches floods and drains later; buildings near the shore are wrecked, people in the wave are hurt and land animals drown.',
   restore:
     'Erase your changes to the land in the brush area: water drains, fire and ash cool, and sand or snow goes back to what the biome holds. Rock and buildings stay.',
   place_house:
@@ -174,6 +176,7 @@ export function toolFailure(tool: SandboxTool): string {
     case 'harvest':
     case 'restore':
     case 'tornado':
+    case 'tsunami':
     case 'blight':
     case 'flood':
     case 'blizzard':
