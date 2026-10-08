@@ -21,6 +21,8 @@ export type BuildingLike = Pick<
   state?: string
   /** How far a ruin is toward crumbling away: 0 fresh, 1 about to go. */
   ruinAge?: number
+  /** Winter: snow lies on the roof of a house-like building. */
+  snow?: boolean
 }
 
 export type BuildingVisualDetail = 'overview' | 'standard' | 'detail'

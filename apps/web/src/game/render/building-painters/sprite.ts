@@ -1,6 +1,8 @@
 import { PAD, PAD_BOT, PAD_TOP, mulberry32, px } from './kit'
 import type { P } from './kit'
 import { ARCHETYPE } from './registry'
+import { isHouseLike } from '../building-draw/colors'
+import { paintRoofSnow } from './snow'
 
 const spriteCache = new Map<string, HTMLCanvasElement>()
 
@@ -14,10 +16,13 @@ export function getBuildingSprite(
   condBucket: number,
   tier = 0,
   state = '',
+  snow = false,
 ): HTMLCanvasElement | null {
   const painter = ARCHETYPE[kind]
   if (!painter) return null
-  const key = `${kind}|${fw}x${fh}|${tile}|v${variant}|n${night}|c${condBucket}|t${tier}|s${state}`
+  // Snow only lies on house roofs, so the flag only splits the cache for those.
+  const snowy = snow && isHouseLike(kind)
+  const key = `${kind}|${fw}x${fh}|${tile}|v${variant}|n${night}|c${condBucket}|t${tier}|s${state}|w${snowy ? 1 : 0}`
   const hit = spriteCache.get(key)
   if (hit) return hit
 
@@ -46,6 +51,7 @@ export function getBuildingSprite(
   }
   const ok = painter(p)
   if (ok === false) return null
+  if (snowy) paintRoofSnow(ctx, canvas.width, canvas.height, variant * 31 + fw * 7 + fh)
   if (condBucket === 0) {
     // Tint only opaque sprite pixels, preserving the actual roof silhouette.
     ctx.save()
