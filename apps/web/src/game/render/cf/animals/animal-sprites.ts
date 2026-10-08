@@ -54,6 +54,8 @@ export class AnimalSprites {
   /** 0 nothing to draw, 1 ASCII pixel art, 2 cut from the fauna sheet. */
   private mode = new Uint8Array(0)
   private base = new Uint16Array(0)
+  /** 1 for an animal that holds one pose (a sleeping bear), 0 for one that walks. */
+  private still = new Uint8Array(0)
   private scale = new Uint8Array(0)
   private cols = new Uint8Array(0)
   private rows = new Uint8Array(0)
@@ -99,6 +101,7 @@ export class AnimalSprites {
     this.size = grow(this.size, Uint8Array)
     this.mode = grow(this.mode, Uint8Array)
     this.base = grow(this.base, Uint16Array)
+    this.still = grow(this.still, Uint8Array)
     this.scale = grow(this.scale, Uint8Array)
     this.cols = grow(this.cols, Uint8Array)
     this.rows = grow(this.rows, Uint8Array)
@@ -171,7 +174,8 @@ export class AnimalSprites {
         this.rows[j] = d.rows
         this.offX[j] = off.x
         this.offY[j] = off.y
-        this.base[j] = pixelFaunaFrame(a.kind, 0)
+        this.base[j] = pixelFaunaFrame(a.kind, 0, !!a.sleeping)
+        this.still[j] = a.sleeping ? 1 : 0
         w = h = PIXEL_FAUNA_CELL * scale
         frame = this.base[j]
       } else {
@@ -253,7 +257,7 @@ export class AnimalSprites {
         const left = flip ? PIXEL_FAUNA_CELL - offX[j] - cols[j] : offX[j]
         bx[j] = x0 + (PIXEL_FAUNA_CELL / 2 - left) * sc
         by[j] = y0 + (PIXEL_FAUNA_CELL / 2 - offY[j]) * sc
-        bf[j] = base[j] + step
+        bf[j] = base[j] + (this.still[j] ? 0 : step)
       } else if (mode[j] === 2) {
         const h = cutH[j]
         const top = kind === 'fish' ? cy - h / 2 : cy + s * 0.42 - h
