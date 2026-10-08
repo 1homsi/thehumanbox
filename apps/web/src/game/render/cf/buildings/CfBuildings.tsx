@@ -5,12 +5,15 @@ import type { CfRegistry } from '../registry'
 import { registerBuildingLayer } from '../picking'
 import { BUILDING_CLASSES, BuildingsDriver } from './buildings-driver'
 import { GLOW_CLASSES, PROP_CLASSES, SpecialTilesDriver } from './special-tiles-driver'
+import { YardDriver } from './yard-driver'
 
 /** z-order agreed with the other layers: buildings and props. */
 export const BUILDINGS_Z = 20
 /** Huts, fires and their light sit under the buildings, as they did in the canvas. */
 export const PROPS_Z = 19
 export const GLOW_Z = 18
+/** Home yards (plots and fences) on the ground, under the glow of the fires. */
+export const YARD_Z = 17.5
 
 const BUILDING_PAGES = [1024, 1024, 1024, 1024, 1024, 1024, 1024, 512]
 const PROP_PAGES = [512, 512, 1024]
@@ -37,6 +40,8 @@ export function CfBuildings({ registry }: { registry: CfRegistry }) {
     anchorY: 0,
     zIndex: BUILDINGS_Z,
   })
+  // Yards are untextured rectangles; like the foam, they borrow an atlas to have one.
+  const yards = useSpriteLayer({ atlases: p.atlases, zIndex: YARD_Z, sampling: 'nearest' })
   const g = useCellAtlas(GLOW_PAGES, GLOW_CLASSES)
   const glow = useSpriteLayer({ atlases: g.atlases, sortByKey: true, zIndex: GLOW_Z, sampling: 'linear' })
 
@@ -44,6 +49,7 @@ export function CfBuildings({ registry }: { registry: CfRegistry }) {
     () => new BuildingsDriver(buildings, b.atlas, hits),
     [buildings, b.atlas, hits],
   )
+  const yardDriver = useMemo(() => new YardDriver(yards), [yards])
   const specialDriver = useMemo(
     () => new SpecialTilesDriver(props, p.atlas, glow, g.atlas),
     [props, p.atlas, glow, g.atlas],
@@ -51,5 +57,6 @@ export function CfBuildings({ registry }: { registry: CfRegistry }) {
   useLayoutEffect(() => registry.add('buildings', buildingsDriver), [registry, buildingsDriver])
   useLayoutEffect(() => registerBuildingLayer((x, y) => buildingsDriver.pick(x, y)), [buildingsDriver])
   useLayoutEffect(() => registry.add('special', specialDriver), [registry, specialDriver])
+  useLayoutEffect(() => registry.add('yards', yardDriver), [registry, yardDriver])
   return null
 }
