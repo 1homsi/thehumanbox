@@ -22,6 +22,7 @@ import {
   paintWaterShimmer,
   paintWaterStars,
 } from './paint-ground'
+import { hazeLevels, paintHaze } from './haze'
 import { paintHud } from './paint-hud'
 import { SpriteRecorder } from './recorder'
 import { ShapeAtlas } from './shape-atlas'
@@ -264,6 +265,7 @@ export class CfOverlayRenderer {
       paintWaterShimmer(ground, f)
       paintFireGlow(ground, f)
       paintPuddles(ground, f, wetnessOf(f.world))
+      paintHaze(ground, f, hazeLevels(f.world), f.t)
       this.paintContested(ground, f)
       this.ground.end()
     }
