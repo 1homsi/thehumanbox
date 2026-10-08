@@ -8,6 +8,8 @@ use rustc_hash::FxHashMap as HashMap;
 
 /// Tribes smaller than this are too few people for a share to mean much.
 pub const MIN_TRIBE_FOR_GINI: usize = 4;
+/// A gap at or above this is "stark": the poor of such a tribe may rise up (civ/society/unrest.rs).
+pub const STARK_GINI: f32 = 0.5;
 
 /// The Gini coefficient of `wealth` (0 to 1). Empty or wealthless groups are equal.
 pub fn gini(wealth: &mut [u32]) -> f32 {

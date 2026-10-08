@@ -92,6 +92,8 @@ pub struct SaveState {
     pub(super) lineage_eras: HashMap<String, crate::sim::era::Era>,
     #[serde(default)]
     pub(super) lineage_generations_reached: HashMap<String, u32>,
+    #[serde(default)]
+    pub(super) lineage_unrest: HashMap<String, f32>,
     pub(super) current_era: String,
     pub(super) sex_words: Vec<String>,
     pub(crate) world_seed: u64,

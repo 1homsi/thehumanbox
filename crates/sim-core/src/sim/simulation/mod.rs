@@ -85,6 +85,8 @@ pub struct Simulation {
     pub lineage_eras: HashMap<String, super::era::Era>,
     /// The highest generation born in each tribe, counted from 1 for the founders.
     pub lineage_generations_reached: HashMap<String, u32>,
+    /// Unrest building in each tribe whose wealth gap is stark (civ/society/unrest.rs).
+    pub lineage_unrest: HashMap<String, f32>,
     pub(crate) lineage_aggregates: HashMap<String, LineageAggregate>,
     pub buildings: super::buildings::BuildingList,
     pub next_building_id: u32,
@@ -219,6 +221,7 @@ impl Simulation {
             lineage_homes: HashMap::default(),
             lineage_eras: HashMap::default(),
             lineage_generations_reached: HashMap::default(),
+            lineage_unrest: HashMap::default(),
             lineage_aggregates: HashMap::default(),
             buildings: Default::default(),
             next_building_id: 1,

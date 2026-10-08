@@ -9,5 +9,6 @@ pub mod orphans;
 pub mod refugees;
 pub mod settlements;
 pub mod trade_routes;
+pub mod unrest;
 pub mod vacancy;
 pub mod warfare;
