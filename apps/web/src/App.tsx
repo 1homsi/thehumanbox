@@ -96,6 +96,7 @@ function LiveApp() {
     resume,
     sandboxAvailable,
     sendCommand,
+    undoLastAction,
     pauseSim,
     setSpeed,
     runtimeState,
@@ -450,6 +451,29 @@ function LiveApp() {
     return () => window.removeEventListener('keydown', onGameKey)
   }, [onPickTool, sandboxControlsEnabled, world, handleAnswerPrayer, setTemporarySandboxStatus])
 
+  const onUndo = useCallback(() => {
+    void undoLastAction().then((ok) =>
+      setTemporarySandboxStatus(ok ? 'undid the last action' : 'nothing to undo'),
+    )
+  }, [undoLastAction, setTemporarySandboxStatus])
+
+  useEffect(() => {
+    const onUndoKey = (event: KeyboardEvent) => {
+      if (!sandboxControlsEnabled) return
+      if (event.key.toLowerCase() !== 'z' || !(event.ctrlKey || event.metaKey)) return
+      if (event.shiftKey || event.altKey) return
+      if (
+        event.target instanceof HTMLElement &&
+        (event.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName))
+      )
+        return
+      event.preventDefault()
+      onUndo()
+    }
+    window.addEventListener('keydown', onUndoKey)
+    return () => window.removeEventListener('keydown', onUndoKey)
+  }, [onUndo, sandboxControlsEnabled])
+
   useEffect(() => {
     const togglePlayback = (event: KeyboardEvent) => {
       if (!sandboxControlsEnabled) return
@@ -751,6 +775,7 @@ function LiveApp() {
               ui.setViewFlag('history', false)
               setTemporarySandboxStatus('map layers cleared')
             }}
+            onUndo={isLocalWebWorld ? onUndo : undefined}
             onSave={
               isLocalWebWorld || (desktop && desktopMode === 'local')
                 ? () => void saveLocalWorld()

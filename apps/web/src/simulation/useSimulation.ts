@@ -66,6 +66,8 @@ export function useSimulation(source: WorldSource = 'native'): {
   resume: () => Promise<boolean>
   sandboxAvailable: boolean
   sendCommand: (cmd: SandboxCommand) => Promise<boolean>
+  /** Rewind the world to just before the last player action (browser world only). */
+  undoLastAction: () => Promise<boolean>
   pauseSim: () => Promise<boolean>
   setSpeed: (mult: number) => Promise<boolean>
   runtimeState: RuntimeState
@@ -383,6 +385,7 @@ export function useSimulation(source: WorldSource = 'native'): {
             m.type === 'save_result' ||
             m.type === 'storage_retry_result' ||
             m.type === 'reload_result' ||
+            m.type === 'undo_result' ||
             m.type === 'runtime_result') &&
           m.requestId !== undefined
         ) {
@@ -810,6 +813,7 @@ export function useSimulation(source: WorldSource = 'native'): {
     (
       payload:
         | { type: 'command'; json: string }
+        | { type: 'undo' }
         | { type: 'save' }
         | { type: 'retry_storage' }
         | { type: 'pause' }
@@ -1023,6 +1027,10 @@ export function useSimulation(source: WorldSource = 'native'): {
       } catch {
         return false
       }
+    },
+    undoLastAction: async () => {
+      if (!sandboxAvailable || effectiveSource !== 'wasm') return false
+      return requestFromWasm({ type: 'undo' })
     },
     pauseSim,
     setSpeed,
