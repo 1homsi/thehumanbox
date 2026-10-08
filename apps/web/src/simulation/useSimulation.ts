@@ -21,6 +21,7 @@ import {
 import { canSendSandboxCommand, type SandboxCommand } from './sandbox'
 import { isDesktop } from '../shared/desktop'
 import { localSaveWorkerRequest } from './wasmPersistence'
+import type { SaveSlotInfo } from './saveSlots'
 import {
   fetchRuntimeControlState,
   WASM_BASE_TICK_MS,
@@ -68,6 +69,11 @@ export function useSimulation(source: WorldSource = 'native'): {
   sendCommand: (cmd: SandboxCommand) => Promise<boolean>
   /** Rewind the world to just before the last player action (browser world only). */
   undoLastAction: () => Promise<boolean>
+  /** Keep the world in a named slot (browser world only). */
+  saveSlot: (slot: number) => Promise<boolean>
+  /** Replace the world with a named slot (browser world only). */
+  loadSlot: (slot: number) => Promise<boolean>
+  listSaveSlots: () => Promise<SaveSlotInfo[]>
   pauseSim: () => Promise<boolean>
   setSpeed: (mult: number) => Promise<boolean>
   runtimeState: RuntimeState
@@ -386,6 +392,7 @@ export function useSimulation(source: WorldSource = 'native'): {
             m.type === 'storage_retry_result' ||
             m.type === 'reload_result' ||
             m.type === 'undo_result' ||
+            m.type === 'slot_result' ||
             m.type === 'runtime_result') &&
           m.requestId !== undefined
         ) {
@@ -405,7 +412,7 @@ export function useSimulation(source: WorldSource = 'native'): {
             })
           }
         } else if (
-          (m.type === 'org_detail_result' || m.type === 'org_life_result') &&
+          (m.type === 'org_detail_result' || m.type === 'org_life_result' || m.type === 'slot_list_result') &&
           m.requestId !== undefined
         ) {
           const pending = pendingWorkerDataRequests.get(m.requestId)
@@ -814,6 +821,8 @@ export function useSimulation(source: WorldSource = 'native'): {
       payload:
         | { type: 'command'; json: string }
         | { type: 'undo' }
+        | { type: 'slot_save'; slot: number }
+        | { type: 'slot_load'; slot: number }
         | { type: 'save' }
         | { type: 'retry_storage' }
         | { type: 'pause' }
@@ -861,7 +870,9 @@ export function useSimulation(source: WorldSource = 'native'): {
   )
 
   const requestDataFromWasm = useCallback(
-    <T>(payload: { type: 'org_detail' | 'org_life'; id: string }): Promise<T | null> => {
+    <T>(
+      payload: { type: 'org_detail' | 'org_life'; id: string } | { type: 'slot_list' },
+    ): Promise<T | null> => {
       const worker = wasmWorkerRef.current
       if (!worker) return Promise.resolve(null)
       const requestId = nextWorkerRequestRef.current++
@@ -1031,6 +1042,18 @@ export function useSimulation(source: WorldSource = 'native'): {
     undoLastAction: async () => {
       if (!sandboxAvailable || effectiveSource !== 'wasm') return false
       return requestFromWasm({ type: 'undo' })
+    },
+    saveSlot: (slot: number) => {
+      if (effectiveSource !== 'wasm') return Promise.resolve(false)
+      return requestFromWasm({ type: 'slot_save', slot })
+    },
+    loadSlot: (slot: number) => {
+      if (effectiveSource !== 'wasm') return Promise.resolve(false)
+      return requestFromWasm({ type: 'slot_load', slot })
+    },
+    listSaveSlots: () => {
+      if (effectiveSource !== 'wasm') return Promise.resolve([])
+      return requestDataFromWasm<SaveSlotInfo[]>({ type: 'slot_list' }).then((slots) => slots ?? [])
     },
     pauseSim,
     setSpeed,

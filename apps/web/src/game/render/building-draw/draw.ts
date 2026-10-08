@@ -79,6 +79,7 @@ export function drawBuilding(
       condBucket,
       building.tier ?? 0,
       building.state ?? '',
+      building.snow ?? false,
     )
     if (sprite) {
       ctx.drawImage(sprite, Math.round(px - PAD), Math.round(py + h + PAD_BOT - sprite.height))

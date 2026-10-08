@@ -5,6 +5,8 @@ import { PAD, PAD_TOP } from '../../building-painters/kit'
 import { drawBuilding } from '../../building-draw/draw'
 import { resolveBuildingFootprint } from '../../building-draw/footprints'
 import { lineageEraTiers } from '../../draw-helpers'
+import { terrainSeason } from '../../terrain-season'
+import { vegetationSeason } from '../../landscape-style'
 import type { CellAtlas, CellRef } from '../atlas/cell-atlas'
 import { CELL_GUTTER } from '../atlas/cell-atlas'
 import { WHITE, writeSprite, type CfDriver, type CfFrame } from '../frame'
@@ -89,8 +91,9 @@ export class BuildingsDriver implements CfDriver {
       nightBucket: nightBucketOf(world),
       detail: f.detail,
       tiers: this.tiers,
+      winter: vegetationSeason(terrainSeason(world)) === 'winter',
     }
-    const sig = `${world.frame_id}|${buildings.length}|${world.tick}|${info.nightBucket}|${info.detail}|${win.c0},${win.c1},${win.r0},${win.r1}|${this.atlas.epoch}`
+    const sig = `${world.frame_id}|${buildings.length}|${world.tick}|${info.nightBucket}|${info.detail}|${info.winter ? 1 : 0}|${win.c0},${win.c1},${win.r0},${win.r1}|${this.atlas.epoch}`
     if (sig === this.sig && this.ids.length === this.layer.count) {
       this.stats.skipped++
       return false
