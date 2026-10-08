@@ -62,6 +62,11 @@ const TOOL_TIPS: Record<string, string> = {
   gale: 'A gale: the wind turns to a random quarter and blows hard, carrying rain, smoke and fire before it.',
   snow_weather:
     'Snow falls for a while. It settles on open ground, melts again on warm land, and chills anyone out in it.',
+  dawn: 'Move the clock on to the next dawn. The world keeps its season and year; the light changes at once.',
+  noon: 'Move the clock on to the next noon, when the sun stands highest.',
+  dusk: 'Move the clock on to the next dusk, when the light goes and the night begins.',
+  midnight:
+    'Move the clock on to the next middle of the night. Night is the time people walk home and sleep.',
   tornado:
     'Send a tornado tearing along a random heading from the click. It wrecks buildings, strikes down the nearest people and animals in its funnel, and uproots every planting it passes.',
   tsunami:

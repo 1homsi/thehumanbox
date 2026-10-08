@@ -57,6 +57,10 @@ pub enum Command {
         radius: f32,
         what: String,
     },
+    /// Move the clock forward to the next `dawn`, `noon`, `dusk` or `midnight`.
+    SetTimeOfDay {
+        phase: String,
+    },
     /// Make the grown person nearest the point the ruler of their tribe.
     MakeLeader {
         x: f32,
@@ -516,6 +520,7 @@ mod advance;
 mod blessing_tests;
 mod blessings;
 mod buildings;
+mod clock;
 mod creation;
 mod disasters;
 mod gift;
@@ -573,6 +578,7 @@ impl Simulation {
             Command::HealOne { x, y, radius } => self.cmd_heal_one(x, y, radius),
             Command::Advance { to, max_ticks } => self.cmd_advance(to, max_ticks),
             Command::Gift { x, y, radius, what } => self.cmd_gift(x, y, radius, what),
+            Command::SetTimeOfDay { phase } => self.cmd_set_time_of_day(phase),
             Command::Smite { x, y, radius } => self.cmd_smite(x, y, radius),
             Command::Heal { x, y, radius } => self.cmd_heal(x, y, radius),
             Command::Paint { x, y, tile, radius } => self.cmd_paint(x, y, tile, radius),
