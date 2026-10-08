@@ -7,7 +7,7 @@ export type SandboxCommand =
   | { cmd: 'weather'; kind: 'clear' | 'rain' | 'storm' }
   | { cmd: 'drought'; active: boolean }
   | { cmd: 'outbreak'; count?: number }
-  | { cmd: 'spawn_animal'; x: number; y: number; kind?: string }
+  | { cmd: 'spawn_animal'; x: number; y: number; kind?: string; count?: number; radius?: number }
   | { cmd: 'poison'; x: number; y: number; radius?: number }
   | { cmd: 'meteor'; x: number; y: number; radius?: number }
   | { cmd: 'bless'; x: number; y: number; radius?: number }
@@ -657,91 +657,91 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         label: 'deer',
         icon: '🦌',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'deer' }),
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'deer', count: 1 + b, radius: b }),
       },
       {
         id: 'rabbit',
         label: 'rabbit',
         icon: '🐇',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'rabbit' }),
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'rabbit', count: 1 + b, radius: b }),
       },
       {
         id: 'boar',
         label: 'boar',
         icon: '🐗',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'boar' }),
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'boar', count: 1 + b, radius: b }),
       },
       {
         id: 'wolf',
         label: 'wolf',
         icon: '🐺',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'wolf' }),
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'wolf', count: 1 + b, radius: b }),
       },
       {
         id: 'bird',
         label: 'bird',
         icon: '🐦',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'bird' }),
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'bird', count: 1 + b, radius: b }),
       },
       {
         id: 'fish',
         label: 'fish',
         icon: '🐟',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'fish' }),
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'fish', count: 1 + b, radius: b }),
       },
       {
         id: 'bear',
         label: 'bear',
         icon: '🐻',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'bear' }),
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'bear', count: 1 + b, radius: b }),
       },
       {
         id: 'sheep',
         label: 'sheep',
         icon: '🐑',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'sheep' }),
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'sheep', count: 1 + b, radius: b }),
       },
       {
         id: 'cow',
         label: 'cow',
         icon: '🐄',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'cow' }),
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'cow', count: 1 + b, radius: b }),
       },
       {
         id: 'horse',
         label: 'horse',
         icon: '🐎',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'horse' }),
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'horse', count: 1 + b, radius: b }),
       },
       {
         id: 'chicken',
         label: 'chicken',
         icon: '🐔',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'chicken' }),
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'chicken', count: 1 + b, radius: b }),
       },
       {
         id: 'fox',
         label: 'fox',
         icon: '🦊',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'fox' }),
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'fox', count: 1 + b, radius: b }),
       },
       {
         id: 'cat',
         label: 'cat',
         icon: '🐈',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'cat' }),
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'cat', count: 1 + b, radius: b }),
       },
     ],
   },

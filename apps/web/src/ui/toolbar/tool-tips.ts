@@ -41,19 +41,20 @@ const TOOL_TIPS: Record<string, string> = {
   demolish:
     'Pull down the buildings in the brush area, and clear the huts and campfires there to grass. The people inside stay put.',
   repair: 'Bring every damaged or ruined building in the brush area back to full condition, at once.',
-  deer: 'Release a deer.',
-  rabbit: 'Release a rabbit.',
-  boar: 'Release a boar.',
-  wolf: 'Release a wolf.',
-  bird: 'Release a bird.',
-  fish: 'Release a fish.',
-  bear: 'Release a bear. It hunts, and attacks people when hungry.',
-  sheep: 'Release a sheep. Sheep graze and keep together.',
-  cow: 'Release a cow. Slow, and a big meal for hunters.',
-  horse: 'Release a horse. Fast and skittish.',
-  chicken: 'Release a chicken.',
-  fox: 'Release a fox. Shy and quick: it keeps to woods and grassland, and wolves hunt it.',
-  cat: 'Release a cat. It keeps to itself, slips away from people, and lives anywhere on land.',
+  deer: 'Release a deer. Brush size releases more at once, each on ground it can use.',
+  rabbit: 'Release a rabbit. Brush size releases more at once, each on ground it can use.',
+  boar: 'Release a boar. Brush size releases more at once, each on ground it can use.',
+  wolf: 'Release a wolf. Brush size releases more at once, each on ground it can use.',
+  bird: 'Release a bird. Brush size releases more at once, each on ground it can use.',
+  fish: 'Release a fish. Brush size releases more at once, each on ground it can use.',
+  bear: 'Release a bear. It hunts, and attacks people when hungry. Brush size releases more at once, each on ground it can use.',
+  sheep:
+    'Release a sheep. Sheep graze and keep together. Brush size releases more at once, each on ground it can use.',
+  cow: 'Release a cow. Slow, and a big meal for hunters. Brush size releases more at once, each on ground it can use.',
+  horse: 'Release a horse. Fast and skittish. Brush size releases more at once, each on ground it can use.',
+  chicken: 'Release a chicken. Brush size releases more at once, each on ground it can use.',
+  fox: 'Release a fox. Shy and quick: it keeps to woods and grassland, and wolves hunt it. Brush size releases more at once, each on ground it can use.',
+  cat: 'Release a cat. It keeps to itself, slips away from people, and lives anywhere on land. Brush size releases more at once, each on ground it can use.',
   rain: 'Start rain. Helps dry land recover.',
   storm: 'Summon a storm. Drains energy and can strike with lightning.',
   clear: 'Clear the skies.',
@@ -168,7 +169,7 @@ export function toolFailure(tool: SandboxTool): string {
     case 'dragon':
     case 'alien':
     case 'ufo':
-      return 'too many creatures already'
+      return 'no ground they can use here, or the world is full'
     default:
       if (tool.id.startsWith('biome_')) return 'no land to paint there'
       return 'did not work here'

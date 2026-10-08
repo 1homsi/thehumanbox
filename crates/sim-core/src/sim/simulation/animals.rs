@@ -38,33 +38,17 @@ impl Simulation {
         }
     }
 
-    /// Biomes a wild kind keeps to when it is placed. Kinds without a list,
-    /// and the fallback when none are free, can appear anywhere they can walk.
-    pub(crate) fn habitat(kind: AnimalKind) -> &'static [crate::world::tiles::Biome] {
-        use crate::world::tiles::Biome;
-        match kind {
-            AnimalKind::Fox => &[Biome::Forest, Biome::Taiga, Biome::Grassland, Biome::Savanna],
-            _ => &[],
-        }
-    }
-
     pub(super) fn spawn_animal_of_kind(&mut self, kind: AnimalKind) {
-        let habitat = Self::habitat(kind);
+        let habitat = kind.habitat();
         // Prefer the kind's habitat for a few tries, then take any free tile.
-        // Kinds without a habitat draw exactly as they always did.
         for attempt in 0..60 {
             let x = self.rng.random_range(3..(WIDTH as i32 - 3)) as f32;
             let y = self.rng.random_range(3..(HEIGHT as i32 - 3)) as f32;
             let tile = self.grid.get(x as i32, y as i32);
-            let valid = if kind.aquatic() {
-                tile == Tile::Water
-            } else {
-                !matches!(tile, Tile::Void | Tile::Rock | Tile::Water | Tile::Fire)
-            };
             let at_home = habitat.is_empty()
                 || attempt >= 40
                 || habitat.contains(&self.grid.biome_at(x as i32, y as i32));
-            if valid && at_home {
+            if kind.fits_ground(tile) && at_home {
                 let id = self.next_animal_id;
                 self.next_animal_id += 1;
                 self.animals.push(Animal::new(id, x, y, kind));

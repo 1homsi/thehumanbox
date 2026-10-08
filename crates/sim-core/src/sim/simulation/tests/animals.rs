@@ -366,6 +366,11 @@ fn birds_migrate_and_animals_breed_in_season() {
     let winter = crate::sim::config::SEASON_LENGTH * 2 + 5;
     let mut sim = Simulation::new(14);
     sim.tick_count = winter;
+    // Birds are placed explicitly: which kinds a seed spawns depends on the
+    // habitat rules, so the seed alone no longer guarantees any.
+    for _ in 0..3 {
+        sim.spawn_animal_of_kind(AnimalKind::Bird);
+    }
     let before = sim.animals.iter().filter(|a| a.alive).count();
     let max_id = sim.animals.iter().map(|a| a.id).max().unwrap_or(0);
     for _ in 0..200 {

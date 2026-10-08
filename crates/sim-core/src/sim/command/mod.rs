@@ -58,11 +58,17 @@ pub enum Command {
         #[serde(default)]
         count: u32,
     },
+    /// Release animals of a kind on ground that suits them. `count` animals
+    /// (one per brush step) are spread over the `radius` around the point.
     SpawnAnimal {
         x: f32,
         y: f32,
         #[serde(default)]
         kind: Option<String>,
+        #[serde(default)]
+        count: u32,
+        #[serde(default)]
+        radius: f32,
     },
     /// Infect everyone inside the radius with the existing sickness.
     Poison {
@@ -389,6 +395,8 @@ mod buildings;
 mod creation;
 mod disasters;
 #[cfg(test)]
+mod release_tests;
+#[cfg(test)]
 mod tests;
 mod tribes;
 
@@ -422,7 +430,13 @@ impl Simulation {
             Command::Weather { kind } => self.cmd_weather(kind),
             Command::Drought { active } => self.cmd_drought(active),
             Command::Outbreak { count } => self.cmd_outbreak(count),
-            Command::SpawnAnimal { x, y, kind } => self.cmd_spawn_animal(x, y, kind),
+            Command::SpawnAnimal {
+                x,
+                y,
+                kind,
+                count,
+                radius,
+            } => self.cmd_spawn_animal(x, y, kind, count, radius),
             Command::Poison { x, y, radius } => self.cmd_poison(x, y, radius),
             Command::Bless { x, y, radius } => self.cmd_bless(x, y, radius),
             Command::Inspire { x, y, radius } => self.cmd_inspire(x, y, radius),
