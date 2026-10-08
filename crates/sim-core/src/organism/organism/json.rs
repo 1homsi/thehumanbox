@@ -379,6 +379,12 @@ impl Organism {
             if !self.aspiration.is_empty() {
                 put("aspiration", text(&self.aspiration));
             }
+            // The trade this person works at, and how practised they are at it (0 to 1).
+            if let Some(trade) = &self.specialty {
+                put("specialty", text(trade));
+                let skill = self.practice.get(trade).copied().unwrap_or(0.0);
+                put("skill", r2(skill));
+            }
             put("sleep_debt", r2(self.sleep_debt));
             put("children_count", Value::from(self.children_count));
             put("conversation_count", Value::from(self.conversations.len()));

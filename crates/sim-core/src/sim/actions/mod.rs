@@ -138,7 +138,12 @@ pub fn try_apply(
         None
     };
     let bonus = workshop_bonus(sim, ix, iy, action);
-    let spec_bonus = specialty_bonus(sim.organisms[idx].specialty.as_deref(), action);
+    let trade = sim.organisms[idx].specialty.clone();
+    let trade_practice = trade
+        .as_ref()
+        .and_then(|t| sim.organisms[idx].practice.get(t).copied())
+        .unwrap_or(0.0);
+    let spec_bonus = specialty_bonus(trade.as_deref(), action, trade_practice);
     let asp_bonus = aspiration_bonus(&sim.organisms[idx].aspiration, action);
     if let Some(cat) = category_for(action) {
         *sim.action_counts.entry(cat).or_insert(0) += 1;
@@ -300,6 +305,12 @@ pub fn try_apply(
     } else if let Some(resource) = deferred_resource {
         let _charged = reserve_action_resource(ctx.sim, idx, resource)
             .unwrap_or_else(|| panic!("validated action {action} lost its resource before commit"));
+    }
+    if spec_bonus > 1.0 {
+        if let Some(t) = trade {
+            let p = ctx.sim.organisms[idx].practice.entry(t).or_insert(0.0);
+            *p = bonus::grow_practice(*p);
+        }
     }
     Some(r * spec_bonus * asp_bonus)
 }

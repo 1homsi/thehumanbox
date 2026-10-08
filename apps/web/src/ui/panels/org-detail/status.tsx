@@ -1,6 +1,7 @@
 import { Bar } from './bars'
 import { AGE_STAGE_ICON, ERA_ICON } from './icons'
 import type { OrganismState } from '../../../shared/types'
+import { skillPercent, skillWord } from '../../../game/model/skills'
 
 export function StatusChips({ org }: { org: OrganismState }) {
   return (
@@ -46,6 +47,12 @@ export function StatusChips({ org }: { org: OrganismState }) {
             style={{ background: '#0a1a2a', color: '#88c6e6', cursor: 'default' }}
           >
             ★ {org.specialty}
+            {org.skill != null && org.skill > 0 && (
+              <span style={{ opacity: 0.8 }} title={`skill ${skillPercent(org.skill)}`}>
+                {' '}
+                · {skillWord(org.skill)}
+              </span>
+            )}
           </span>
         )}
         {(org.mounted_vehicle ?? null) !== null && org.mounted_vehicle !== undefined && (

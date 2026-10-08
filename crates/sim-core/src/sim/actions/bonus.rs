@@ -110,7 +110,9 @@ pub(super) fn aspiration_bonus(aspiration: &str, action: usize) -> f32 {
     }
 }
 
-pub(super) fn specialty_bonus(org_specialty: Option<&str>, action: usize) -> f32 {
+/// How much a practised trade adds to a matching action: a novice gets the
+/// old flat 1.4, rising to 1.8 at full practice.
+pub(super) fn specialty_bonus(org_specialty: Option<&str>, action: usize, practice: f32) -> f32 {
     let Some(spec) = org_specialty else { return 1.0 };
     let matches = match action {
         5340..=5449 => spec == "baker",
@@ -131,8 +133,43 @@ pub(super) fn specialty_bonus(org_specialty: Option<&str>, action: usize) -> f32
         _ => false,
     };
     if matches {
-        1.4
+        1.0 + 0.8 * (0.5 + 0.5 * practice.clamp(0.0, 1.0))
     } else {
         1.0
+    }
+}
+
+/// Each attempt at a trade's work closes a little of the gap to mastery.
+pub(crate) fn grow_practice(practice: f32) -> f32 {
+    (practice + PRACTICE_STEP * (1.0 - practice)).min(1.0)
+}
+
+const PRACTICE_STEP: f32 = 0.01;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_novice_gets_the_old_flat_bonus_and_experts_more() {
+        let farmer_action = 336;
+        assert!((specialty_bonus(Some("farmer"), farmer_action, 0.0) - 1.4).abs() < 1e-6);
+        assert!((specialty_bonus(Some("farmer"), farmer_action, 1.0) - 1.8).abs() < 1e-6);
+        assert!(specialty_bonus(Some("farmer"), farmer_action, 0.5) > 1.4);
+        assert_eq!(specialty_bonus(Some("baker"), farmer_action, 1.0), 1.0);
+        assert_eq!(specialty_bonus(None, farmer_action, 1.0), 1.0);
+    }
+
+    #[test]
+    fn practice_grows_with_attempts_and_never_passes_mastery() {
+        let mut p = 0.0;
+        let mut last = p;
+        for _ in 0..400 {
+            p = grow_practice(p);
+            assert!(p >= last && p <= 1.0);
+            last = p;
+        }
+        assert!(p > 0.9, "after 400 attempts practice is {p}");
+        assert!(p <= 1.0);
     }
 }
