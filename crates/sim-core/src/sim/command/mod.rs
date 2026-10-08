@@ -401,9 +401,9 @@ mod blessings;
 mod buildings;
 mod creation;
 mod disasters;
-mod teleport;
 #[cfg(test)]
 mod release_tests;
+mod teleport;
 #[cfg(test)]
 mod tests;
 mod tribes;
