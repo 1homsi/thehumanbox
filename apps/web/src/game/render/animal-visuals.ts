@@ -5,15 +5,19 @@ export function animalSize(kind: string): number {
   const small = kind === 'fish' || kind === 'bird' || kind === 'rabbit'
   return (
     MONSTER_SIZES[kind] ??
-    (kind === 'chicken'
-      ? 10
-      : kind === 'bear' || kind === 'cow' || kind === 'horse'
-        ? 22
-        : small
-          ? 14
-          : kind === 'sheep'
-            ? 18
-            : 20)
+    (kind === 'fox'
+      ? 16
+      : kind === 'cat'
+        ? 14
+        : kind === 'chicken'
+          ? 10
+          : kind === 'bear' || kind === 'cow' || kind === 'horse'
+            ? 22
+            : small
+              ? 14
+              : kind === 'sheep'
+                ? 18
+                : 20)
   )
 }
 

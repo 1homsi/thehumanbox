@@ -7,8 +7,10 @@ impl Simulation {
     pub(super) fn spawn_animals(&mut self, count: usize) {
         for _ in 0..count {
             let r = self.rng.random::<f32>();
-            let kind = if r < 0.24 {
+            let kind = if r < 0.22 {
                 AnimalKind::Rabbit
+            } else if r < 0.24 {
+                AnimalKind::Fox
             } else if r < 0.40 {
                 AnimalKind::Deer
             } else if r < 0.50 {
@@ -27,15 +29,30 @@ impl Simulation {
                 AnimalKind::Cow
             } else if r < 0.97 {
                 AnimalKind::Horse
-            } else {
+            } else if r < 0.99 {
                 AnimalKind::Chicken
+            } else {
+                AnimalKind::Cat
             };
             self.spawn_animal_of_kind(kind);
         }
     }
 
+    /// Biomes a wild kind keeps to when it is placed. Kinds without a list,
+    /// and the fallback when none are free, can appear anywhere they can walk.
+    pub(crate) fn habitat(kind: AnimalKind) -> &'static [crate::world::tiles::Biome] {
+        use crate::world::tiles::Biome;
+        match kind {
+            AnimalKind::Fox => &[Biome::Forest, Biome::Taiga, Biome::Grassland, Biome::Savanna],
+            _ => &[],
+        }
+    }
+
     pub(super) fn spawn_animal_of_kind(&mut self, kind: AnimalKind) {
-        for _ in 0..60 {
+        let habitat = Self::habitat(kind);
+        // Prefer the kind's habitat for a few tries, then take any free tile.
+        // Kinds without a habitat draw exactly as they always did.
+        for attempt in 0..60 {
             let x = self.rng.random_range(3..(WIDTH as i32 - 3)) as f32;
             let y = self.rng.random_range(3..(HEIGHT as i32 - 3)) as f32;
             let tile = self.grid.get(x as i32, y as i32);
@@ -44,7 +61,10 @@ impl Simulation {
             } else {
                 !matches!(tile, Tile::Void | Tile::Rock | Tile::Water | Tile::Fire)
             };
-            if valid {
+            let at_home = habitat.is_empty()
+                || attempt >= 40
+                || habitat.contains(&self.grid.biome_at(x as i32, y as i32));
+            if valid && at_home {
                 let id = self.next_animal_id;
                 self.next_animal_id += 1;
                 self.animals.push(Animal::new(id, x, y, kind));
@@ -79,6 +99,8 @@ impl Simulation {
                 (AnimalKind::Cow, 4),
                 (AnimalKind::Horse, 4),
                 (AnimalKind::Chicken, 4),
+                (AnimalKind::Fox, 4),
+                (AnimalKind::Cat, 3),
             ];
             for &(kind, floor) in PER_KIND_FLOOR {
                 let count = self.animals.iter().filter(|a| a.alive && a.kind == kind).count();
@@ -501,6 +523,8 @@ impl Simulation {
                 AnimalKind::Cow => 70,
                 AnimalKind::Horse => 60,
                 AnimalKind::Chicken => 80,
+                AnimalKind::Fox => 70,
+                AnimalKind::Cat => 60,
                 // Summoned, never born.
                 AnimalKind::Zombie
                 | AnimalKind::Demon
@@ -756,8 +780,10 @@ impl Simulation {
                 AnimalKind::Cow => ("cow", 0.70, 4u8, 0.85f32, 4u8),
                 AnimalKind::Horse => ("horse", 0.55, 3u8, 0.80f32, 3u8),
                 AnimalKind::Chicken => ("chicken", 0.22, 1u8, 0.00f32, 1u8),
+                AnimalKind::Fox => ("fox", 0.25, 1u8, 0.55f32, 1u8),
                 // Never caught: their catch chance above is zero.
-                AnimalKind::Zombie
+                AnimalKind::Cat
+                | AnimalKind::Zombie
                 | AnimalKind::Demon
                 | AnimalKind::Dragon
                 | AnimalKind::Alien
