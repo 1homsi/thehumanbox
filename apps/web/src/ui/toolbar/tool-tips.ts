@@ -4,6 +4,8 @@ import type { SandboxTool } from '../../simulation/sandbox'
 const TOOL_TIPS: Record<string, string> = {
   spawn1: 'Send one grown person. Beside a tribe they join it, as the man or woman it is missing.',
   spawn5: 'Found a new tribe: five young adults, in couples, where you click.',
+  family:
+    'Found a new tribe with a family: a mother and a father who are partners, and two children, where you click.',
   heal: 'Restore the health of every person and animal in the brush area.',
   revive:
     'Raise someone who died within the last season, near where you click. Not the very old, and once per tribe per season.',

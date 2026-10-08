@@ -64,6 +64,7 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
       return 'heal'
     case 'spawn1':
     case 'spawn5':
+    case 'family':
     case 'deer':
     case 'rabbit':
     case 'boar':

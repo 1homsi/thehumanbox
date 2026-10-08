@@ -36,6 +36,7 @@ export type SandboxCommand =
   | { cmd: 'meteor_shower'; x: number; y: number; radius?: number }
   | { cmd: 'love'; x: number; y: number; radius?: number }
   | { cmd: 'tame'; x: number; y: number; radius?: number }
+  | { cmd: 'family'; x: number; y: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
   | { cmd: 'repair'; x: number; y: number; radius?: number }
   | {
@@ -114,6 +115,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '👥',
         mode: 'point',
         build: (x, y) => ({ cmd: 'spawn', x, y, count: 5 }),
+      },
+      {
+        id: 'family',
+        label: 'family',
+        icon: '👪',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'family', x, y }),
       },
     ],
   },
