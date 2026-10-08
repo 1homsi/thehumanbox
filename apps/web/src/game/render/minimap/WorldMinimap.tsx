@@ -46,7 +46,8 @@ export function WorldMinimap({ world, cameraRef, viewport }: Props) {
         canvas.width = boxW
         canvas.height = boxH
       }
-      const image = ctx.createImageData(boxW, boxH)
+      const image = ctx.createImageData?.(boxW, boxH)
+      if (!image?.data) return
       paintMinimapPixels(
         image.data,
         {
@@ -55,7 +56,7 @@ export function WorldMinimap({ world, cameraRef, viewport }: Props) {
           ox,
           oy,
           tiles: world.grid.tiles,
-          organisms: world.organisms,
+          organisms: world.organisms ?? [],
           buildings: world.buildings ?? [],
         },
         boxW,
