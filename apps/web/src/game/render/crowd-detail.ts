@@ -30,29 +30,66 @@ export function crowdLabelIds(
   return new Set(cells.values())
 }
 
-/** `crowdLabelIds` for the people at `slots[0..count)` of `people`, without building a list of them. */
-export function crowdLabelIdsAt(
+const CELL_SMI_HALF = 16384
+/** A cell key that is a small integer (a V8 Smi) for cells within +-CELL_SMI_HALF. */
+const smiCellKey = (cx: number, cy: number): number => (cx + CELL_SMI_HALF) * 32768 + (cy + CELL_SMI_HALF)
+
+/** The cell -> slot winners of the last `crowdLabelWinners` call (reused, so a frame allocates nothing). */
+const winnerCells = new Map<number, number>()
+
+/**
+ * `crowdLabelIds` for the people at `slots[0..count)`, as flags on their slots: `out[j] = 1` for the one person
+ * per screen cell who gets a label, 0 for everyone else among `slots`. Returns false, and writes nothing, when the
+ * crowd is small enough that every label may show. Same choice as `crowdLabelIds`: the smallest id in each cell.
+ */
+export function crowdLabelWinners(
   people: readonly { id: string; x: number; y: number }[],
   slots: ArrayLike<number>,
   count: number,
   zoom: number,
+  out: Uint8Array,
   xs?: ArrayLike<number>,
   ys?: ArrayLike<number>,
   ids?: ArrayLike<string>,
-): Set<string> | null {
-  if (count <= CROWD_LABEL_LIMIT) return null
-  const cells = new Map<number, string>()
+): boolean {
+  if (count <= CROWD_LABEL_LIMIT) return false
   const scale = Math.max(0.1, zoom) * 8
-  for (let k = 0; k < count; k++) {
-    const j = slots[k]
-    const x = xs ? xs[j] : people[j].x
-    const y = ys ? ys[j] : people[j].y
-    const id = ids ? ids[j] : people[j].id
-    const key = gridKey(Math.floor((x * scale) / LABEL_CELL_W), Math.floor((y * scale) / LABEL_CELL_H))
-    const previous = cells.get(key)
-    if (previous === undefined || id < previous) cells.set(key, id)
+  // Cell keys that are small integers keep the Map on its fast path; a crowd far outside that range
+  // (cells beyond +-16384) uses the float key for the whole call. Both keys identify a cell uniquely.
+  let smi = true
+  for (let pass = 0; pass < 2; pass++) {
+    const key = pass === 0 ? smiCellKey : gridKey
+    const cells = winnerCells
+    cells.clear()
+    let wide = false
+    for (let k = 0; k < count && !wide; k++) {
+      const j = slots[k]
+      const x = xs ? xs[j] : people[j].x
+      const y = ys ? ys[j] : people[j].y
+      const cx = Math.floor((x * scale) / LABEL_CELL_W)
+      const cy = Math.floor((y * scale) / LABEL_CELL_H)
+      if (smi && (cx < -CELL_SMI_HALF || cx >= CELL_SMI_HALF || cy < -CELL_SMI_HALF || cy >= CELL_SMI_HALF)) {
+        wide = true
+        break
+      }
+      const cellKey = key(cx, cy)
+      const previous = cells.get(cellKey)
+      if (
+        previous === undefined ||
+        (ids ? ids[j] : people[j].id) < (ids ? ids[previous] : people[previous].id)
+      ) {
+        cells.set(cellKey, j)
+      }
+    }
+    if (wide) {
+      smi = false
+      continue
+    }
+    for (let k = 0; k < count; k++) out[slots[k]] = 0
+    for (const winner of cells.values()) out[winner] = 1
+    return true
   }
-  return new Set(cells.values())
+  return true
 }
 
 /**
