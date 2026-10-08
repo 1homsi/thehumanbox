@@ -13,6 +13,7 @@ import {
   HUMAN_ATLAS_ROWS,
   HUMAN_ATLAS_WIDTH,
   HUMAN_SEX_ORDER,
+  HUMAN_SHEET_APPEARANCES,
   HUMAN_STAGE_ORDER,
   deterministicAppearanceIndex,
   humanAtlasRow,
@@ -26,10 +27,10 @@ describe('character visual atlas contract', () => {
     expect(HUMAN_ATLAS_CELL).toBe(32)
     expect(HUMAN_ATLAS_FRAMES).toBe(4)
     expect(HUMAN_ATLAS_COLS).toBe(4)
-    expect(HUMAN_APPEARANCES).toBe(6)
-    expect(HUMAN_ATLAS_ROWS).toBe(60)
+    expect(HUMAN_APPEARANCES).toBe(24)
+    expect(HUMAN_ATLAS_ROWS).toBe(240)
     expect(HUMAN_ATLAS_WIDTH).toBe(128)
-    expect(HUMAN_ATLAS_HEIGHT).toBe(1920)
+    expect(HUMAN_ATLAS_HEIGHT).toBe(7680)
   })
 
   it('assigns every sex, life stage, and appearance a distinct row', () => {
@@ -46,12 +47,12 @@ describe('character visual atlas contract', () => {
     expect(Math.min(...rows)).toBe(0)
     expect(Math.max(...rows)).toBe(HUMAN_ATLAS_ROWS - 1)
     expect(humanAtlasRow('male', 'infant', 0)).toBe(0)
-    expect(humanAtlasRow('female', 'elder', 5)).toBe(59)
+    expect(humanAtlasRow('female', 'elder', 5)).toBe(HUMAN_ATLAS_ROWS - HUMAN_APPEARANCES + 5)
   })
 
   it('wraps appearance and animation frame indexes', () => {
-    expect(humanAtlasRow('male', 'infant', 6)).toBe(0)
-    expect(humanAtlasRow('male', 'infant', -1)).toBe(5)
+    expect(humanAtlasRow('male', 'infant', HUMAN_APPEARANCES)).toBe(0)
+    expect(humanAtlasRow('male', 'infant', -1)).toBe(HUMAN_APPEARANCES - 1)
     expect(wrapHumanFrame(0)).toBe(0)
     expect(wrapHumanFrame(5)).toBe(1)
     expect(wrapHumanFrame(-1)).toBe(3)
@@ -157,7 +158,8 @@ describe('character motion and draw order', () => {
   })
   it('ships an atlas matching the renderer dimensions and all appearance rows', () => {
     const svg = readFileSync(new URL('../../../public/sprites/people/people.svg', import.meta.url), 'utf8')
-    expect(svg).toContain(`viewBox="0 0 ${HUMAN_ATLAS_WIDTH} ${HUMAN_ATLAS_HEIGHT}"`)
-    expect(svg.match(/<!-- sex /g)?.length).toBe(HUMAN_ATLAS_ROWS)
+    // The sheet holds six figures per sex and stage; the look atlas expands them to every tint.
+    expect(svg).toContain('viewBox="0 0 128 1920"')
+    expect(svg.match(/<!-- sex /g)?.length).toBe(2 * 5 * HUMAN_SHEET_APPEARANCES)
   })
 })

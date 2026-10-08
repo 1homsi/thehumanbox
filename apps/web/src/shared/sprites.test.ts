@@ -16,7 +16,19 @@ beforeAll(async () => {
   )
   vi.stubGlobal('document', {
     createElement: () => {
-      const ctx = { drawImage: vi.fn(), translate: vi.fn(), scale: vi.fn() }
+      const pixels = (w: number, h: number) => ({
+        data: new Uint8ClampedArray(w * h * 4),
+        width: w,
+        height: h,
+      })
+      const ctx = {
+        drawImage: vi.fn(),
+        translate: vi.fn(),
+        scale: vi.fn(),
+        getImageData: (_x: number, _y: number, w: number, h: number) => pixels(w, h),
+        createImageData: (w: number, h: number) => pixels(w, h),
+        putImageData: vi.fn(),
+      }
       const canvas = { width: 0, height: 0, getContext: vi.fn(() => ctx) }
       canvases.push(canvas)
       return canvas

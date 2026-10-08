@@ -1,6 +1,19 @@
 export const HUMAN_ATLAS_CELL = 32
 export const HUMAN_ATLAS_FRAMES = 4
-export const HUMAN_APPEARANCES = 6
+/** Appearances drawn in the people sheet (six base figures per sex and life stage). */
+export const HUMAN_SHEET_APPEARANCES = 6
+/**
+ * Colour looks made from each sheet figure: the clothes' hue turns, and skin is lighter or darker.
+ * The first look is the sheet as drawn. `people-looks.ts` builds the atlas from these.
+ */
+export const HUMAN_LOOK_TINTS: readonly { hue: number; skin: number }[] = [
+  { hue: 0, skin: 1 },
+  { hue: 110, skin: 0.9 },
+  { hue: 200, skin: 1.08 },
+  { hue: 290, skin: 0.8 },
+]
+/** Looks a person can have: every sheet figure in every tint. */
+export const HUMAN_APPEARANCES = HUMAN_SHEET_APPEARANCES * HUMAN_LOOK_TINTS.length
 
 export const HUMAN_STAGE_ORDER = ['infant', 'child', 'teen', 'adult', 'elder'] as const
 export const HUMAN_SEX_ORDER = ['male', 'female'] as const
