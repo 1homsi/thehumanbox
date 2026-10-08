@@ -1,0 +1,31 @@
+// Building tools (demolish, repair): 12x12 pixel art, one string per row, letters index the palette.
+export const buildingSprites = {
+  hammer: [
+    '............',
+    '.oooooo.....',
+    '.ossssso....',
+    '.osssssso...',
+    '.ossssso....',
+    '.oooooo.....',
+    '.....oRo....',
+    '.....oRo....',
+    '.....oRo....',
+    '.....oRo....',
+    '.....oRo....',
+    '............',
+  ],
+  pickaxe: [
+    '............',
+    '.oooooo.....',
+    'oss...sso...',
+    'os.....soo..',
+    'o.....ossso.',
+    '.....osso.o.',
+    '....osso..o.',
+    '...osso..o..',
+    '..oRo.o.....',
+    '.oRo........',
+    'oRo.........',
+    'oo..........',
+  ],
+} as const

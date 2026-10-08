@@ -36,6 +36,9 @@ const TOOL_TIPS: Record<string, string> = {
   thoughts_view: 'Show what people are thinking.',
   animals_view: 'Show or hide animals on the map.',
   grid_view: 'Draw the tile grid.',
+  demolish:
+    'Pull down the buildings in the brush area, and clear the huts and campfires there to grass. The people inside stay put.',
+  repair: 'Bring every damaged or ruined building in the brush area back to full condition, at once.',
   deer: 'Release a deer.',
   rabbit: 'Release a rabbit.',
   boar: 'Release a boar.',

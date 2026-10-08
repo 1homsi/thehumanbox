@@ -120,7 +120,10 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'inspire':
       return 'inspire'
     case 'earthquake':
+    case 'demolish':
       return 'quake'
+    case 'repair':
+      return 'bless'
     case 'war':
       return 'war'
     case 'peace':
