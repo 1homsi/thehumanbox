@@ -107,6 +107,8 @@ export interface OrganismState extends ExtendedEmotions {
   specialty?: string
   /** One word for how the person feels now (calm, content, hungry, grieving, ...). */
   mood?: string
+  /** Personality words from the person's traits (brave, shy, curious, fierce, kind). */
+  personality?: string[]
   /** How practised the person is at their specialty, 0 to 1. */
   skill?: number
   religion_id?: string | null
