@@ -12,6 +12,7 @@ export type SandboxCommand =
   | { cmd: 'long_life'; x: number; y: number; radius?: number }
   | { cmd: 'courage'; x: number; y: number; radius?: number }
   | { cmd: 'wildfire'; x: number; y: number; radius?: number }
+  | { cmd: 'sunshine'; x: number; y: number; radius?: number }
   | { cmd: 'drought'; active: boolean }
   | { cmd: 'outbreak'; count?: number }
   | { cmd: 'restore'; x: number; y: number; radius?: number }
@@ -238,6 +239,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🦁',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'courage', x, y, radius: 3 + b }),
+      },
+      {
+        id: 'sunshine',
+        label: 'sunshine',
+        icon: '🌞',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'sunshine', x, y, radius: 4 + b }),
       },
       {
         id: 'peace',

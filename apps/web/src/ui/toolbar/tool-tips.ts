@@ -74,6 +74,8 @@ const TOOL_TIPS: Record<string, string> = {
   plant_oak: 'Plant oak saplings. They grow for a long time into a broadleaf forest.',
   plant_pine: 'Plant pine saplings. Slow to grow, but they keep growing through winter and make a taiga.',
   plant_palm: 'Plant palms by the water. They take root only near it and grow into jungle.',
+  sunshine:
+    'A bright spell over the fields in the brush area: growing crops, orchards and flowers gain a stretch of growth and ripen sooner.',
   restore:
     'Erase your changes to the land in the brush area: water drains, fire and ash cool, and sand or snow goes back to what the biome holds. Rock and buildings stay.',
   place_house:
@@ -189,6 +191,7 @@ export function toolFailure(tool: SandboxTool): string {
       return 'the lightning hit nothing'
     case 'harvest':
     case 'restore':
+    case 'sunshine':
     case 'tornado':
     case 'tsunami':
     case 'locusts':
