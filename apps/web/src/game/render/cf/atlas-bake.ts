@@ -141,8 +141,10 @@ export function bakeBoats(ctx: CanvasRenderingContext2D): void {
 
 export const PIXEL_FAUNA_CELL = 16
 export const PIXEL_FAUNA_KINDS: readonly string[] = pixelFaunaKinds()
+/** Poses per kind in the atlas: two walk frames, then a still pose (a sleeping bear lies down). */
+export const PIXEL_FAUNA_POSES = 3
 export const PIXEL_FAUNA_SIZE = {
-  width: PIXEL_FAUNA_CELL * PIXEL_FAUNA_KINDS.length * 2,
+  width: PIXEL_FAUNA_CELL * PIXEL_FAUNA_KINDS.length * PIXEL_FAUNA_POSES,
   height: PIXEL_FAUNA_CELL,
 }
 
@@ -155,8 +157,10 @@ export function pixelFaunaOffset(kind: string): { x: number; y: number } {
   }
 }
 
-export function pixelFaunaFrame(kind: string, step: number): number {
-  return PIXEL_FAUNA_KINDS.indexOf(kind) * 2 + (step & 1)
+/** The atlas cell of a kind: its walk frame `step` (0 or 1), or its still pose when `still`. */
+export function pixelFaunaFrame(kind: string, step: number, still = false): number {
+  const pose = still ? 2 : step & 1
+  return PIXEL_FAUNA_KINDS.indexOf(kind) * PIXEL_FAUNA_POSES + pose
 }
 
 /** One texel per sprite pixel: the layer scales a cell up by the same whole number the painter used. */
@@ -164,11 +168,11 @@ export function bakePixelFauna(ctx: CanvasRenderingContext2D): void {
   ctx.clearRect(0, 0, PIXEL_FAUNA_SIZE.width, PIXEL_FAUNA_SIZE.height)
   PIXEL_FAUNA_KINDS.forEach((kind, k) => {
     const d = pixelFaunaDims(kind)!
-    for (let step = 0; step < 2; step++) {
+    for (let pose = 0; pose < PIXEL_FAUNA_POSES; pose++) {
       ctx.save()
-      ctx.translate((k * 2 + step) * PIXEL_FAUNA_CELL, 0)
+      ctx.translate((k * PIXEL_FAUNA_POSES + pose) * PIXEL_FAUNA_CELL, 0)
       // size == cols gives one canvas pixel per sprite pixel; (8, 8) is the cell centre.
-      drawPixelFauna(ctx, kind, PIXEL_FAUNA_CELL / 2, PIXEL_FAUNA_CELL / 2, d.cols, false, step)
+      drawPixelFauna(ctx, kind, PIXEL_FAUNA_CELL / 2, PIXEL_FAUNA_CELL / 2, d.cols, false, pose)
       ctx.restore()
     }
   })

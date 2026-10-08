@@ -127,8 +127,10 @@ describe('animal atlases', () => {
       expect(o.x + d.cols).toBeLessThanOrEqual(16)
       expect(o.y + d.rows).toBeLessThanOrEqual(16)
     }
-    expect(pixelFaunaFrame('bear', 0)).toBe(PIXEL_FAUNA_KINDS.indexOf('bear') * 2)
-    expect(pixelFaunaFrame('bear', 3)).toBe(PIXEL_FAUNA_KINDS.indexOf('bear') * 2 + 1)
+    const bear = PIXEL_FAUNA_KINDS.indexOf('bear') * 3
+    expect(pixelFaunaFrame('bear', 0)).toBe(bear)
+    expect(pixelFaunaFrame('bear', 3)).toBe(bear + 1)
+    expect(pixelFaunaFrame('bear', 0, true)).toBe(bear + 2)
   })
 
   it('cuts fauna at the size fauna-sprites.ts draws them', () => {

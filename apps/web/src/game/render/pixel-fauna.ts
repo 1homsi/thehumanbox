@@ -32,7 +32,8 @@ const PALETTE: Record<string, string> = {
   N: '#4f4a46', // cat stripes, feet
 }
 
-type Frames = [string[], string[]]
+/** Poses of a kind: the walk frames, then (for bears) a lying pose for sleeping. */
+type Frames = readonly (readonly string[])[]
 
 const SPRITES: Record<string, Frames> = {
   bear: [
@@ -56,6 +57,7 @@ const SPRITES: Record<string, Frames> = {
       '...DD..DD...',
       '...DD..DD...',
     ],
+    ['.........DD.', '..BBBBBBBBD.', '.BBBBBBBBBSk', 'BBBBBBBBBBBS', 'BBBBBBBBBBB.', 'DD.D.DD.D.DD'],
   ],
   sheep: [
     [
@@ -303,7 +305,7 @@ export function drawPixelFauna(
 ): boolean {
   const frames = SPRITES[kind]
   if (!frames) return false
-  const rows = frames[frame & 1]
+  const rows = frames[((frame % frames.length) + frames.length) % frames.length]
   const cols = rows[0].length
   const px = Math.max(1, Math.round(size / cols))
   const w = cols * px
