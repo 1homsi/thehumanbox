@@ -397,6 +397,37 @@ impl Simulation {
                     "lineage_inequality".to_string(),
                     serde_json::Value::Array(inequality),
                 );
+                let generations: Vec<serde_json::Value> = {
+                    let mut oldest: HashMap<String, u32> = HashMap::default();
+                    for o in self
+                        .organisms
+                        .iter()
+                        .filter(|o| o.alive && !o.lineage_id.is_empty())
+                    {
+                        let shown = crate::sim::agents::generations::shown_generation(o.generation);
+                        let e = oldest.entry(o.lineage_id.clone()).or_insert(0);
+                        *e = (*e).max(shown);
+                    }
+                    let mut rows: Vec<(String, u32, u32)> = oldest
+                        .into_iter()
+                        .map(|(lid, oldest)| {
+                            let lived = self
+                                .lineage_generations_reached
+                                .get(&lid)
+                                .copied()
+                                .unwrap_or(oldest);
+                            (lid, oldest, lived.max(oldest))
+                        })
+                        .collect();
+                    rows.sort_by(|a, b| a.0.cmp(&b.0));
+                    rows.into_iter()
+                        .map(|(lid, oldest, lived)| json!({ "lineage_id": lid, "oldest": oldest, "lived": lived }))
+                        .collect()
+                };
+                obj.insert(
+                    "lineage_generations".to_string(),
+                    serde_json::Value::Array(generations),
+                );
                 let mut lineage_discoveries: HashMap<String, HashSet<String>> = HashMap::default();
                 let mut lineage_pop: HashMap<String, usize> = HashMap::default();
                 for org in self.organisms.iter().filter(|o| o.alive) {

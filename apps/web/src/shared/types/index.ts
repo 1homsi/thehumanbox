@@ -600,6 +600,8 @@ export interface WorldState {
   lineage_eras?: Array<{ lineage_id: string; era_name: string }> | Record<string, string>
   /** Wealth Gini per tribe (0 even to 1 stark), for tribes of four or more. */
   lineage_inequality?: Array<{ lineage_id: string; gini: number; people: number }>
+  /** Generations per tribe: the oldest living one and how many have been reached. */
+  lineage_generations?: Array<{ lineage_id: string; oldest: number; lived: number }>
   lineage_strategies?: Record<
     string,
     {

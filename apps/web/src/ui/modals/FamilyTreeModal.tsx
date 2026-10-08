@@ -17,6 +17,7 @@ import type { OrganismState } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
 import { useFrozenSnapshot } from '../../shared/hooks/useFrozenSnapshot'
 import { Modal } from './Modal'
+import { shownGeneration } from '../../game/model/generations'
 
 // Namespace shim so the rest of the file keeps using d3.X.* without
 // a sweep; tree-shaking still drops everything we don't list above.
@@ -542,7 +543,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, 
             )}
             <span style={{ color: '#666' }}>
               {' '}
-              · gen {hovered.generation} · {Math.floor(hovered.age / DAY_LENGTH)}d ·{' '}
+              · gen {shownGeneration(hovered.generation)} · {Math.floor(hovered.age / DAY_LENGTH)}d ·{' '}
               {(hovered.lineage_id ?? '').slice(0, 6)}
             </span>
             {hovered.partner_id && <span style={{ color: '#c97' }}> ♥ bonded</span>}
