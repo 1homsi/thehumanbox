@@ -53,6 +53,10 @@ pub struct Organism {
     pub generation: u32,
     pub parent_id: String,
     pub father_id: Option<String>,
+    /// Family name. A child takes its father's (or else its mother's). Empty
+    /// for people saved before families were tracked; `family_name()` derives
+    /// a stable one from the id.
+    pub surname: String,
     pub lineage_id: String,
     pub max_age: u32,
 
@@ -210,6 +214,7 @@ impl Organism {
             generation,
             parent_id,
             father_id: None,
+            surname: String::new(),
             lineage_id,
             max_age,
             food_memory: FxHashMap::default(),

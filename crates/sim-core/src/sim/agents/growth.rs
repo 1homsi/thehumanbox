@@ -506,6 +506,8 @@ pub fn try_reproduce(
     child.alive = false;
     child.age = 0;
     child.father_id = Some(partner_id.clone());
+    child.surname =
+        crate::organism::organism::child_surname(Some(&organisms[partner_idx]), &organisms[org_idx]);
 
     // Collect parent attribute snapshots before mutating child
     let mother_attrs = organisms[org_idx].attributes.clone();

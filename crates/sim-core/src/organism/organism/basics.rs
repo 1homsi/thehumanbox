@@ -117,6 +117,49 @@ impl Sex {
     }
 }
 
+/// A family name derived from a person's id. Used for people who have no
+/// inherited surname (founders, and people saved before surnames existed).
+/// Draws no random numbers, so it never changes a world's rng stream.
+pub fn surname_for_id(id: &str) -> String {
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for b in id.bytes() {
+        h ^= u64::from(b);
+        h = h.wrapping_mul(0x0100_0000_01b3);
+    }
+    let mut s = String::new();
+    for _ in 0..2 {
+        s.push(CONSONANTS[(h % CONSONANTS.len() as u64) as usize] as char);
+        h /= CONSONANTS.len() as u64;
+        s.push(VOWELS[(h % VOWELS.len() as u64) as usize] as char);
+        h /= VOWELS.len() as u64;
+    }
+    let mut c = s.chars();
+    match c.next() {
+        None => s,
+        Some(f) => f.to_uppercase().to_string() + c.as_str(),
+    }
+}
+
+/// The surname a child is born with: the father's family name, or the
+/// mother's when the father is not known.
+pub fn child_surname(father: Option<&Organism>, mother: &Organism) -> String {
+    match father {
+        Some(f) => f.family_name(),
+        None => mother.family_name(),
+    }
+}
+
+impl Organism {
+    /// The person's family name: the inherited one, or one derived from the id.
+    pub fn family_name(&self) -> String {
+        if self.surname.is_empty() {
+            surname_for_id(&self.id)
+        } else {
+            self.surname.clone()
+        }
+    }
+}
+
 pub fn generate_name(rng: &mut impl Rng, sex: Sex) -> String {
     let syllables = rng.random_range(2..=3);
     let mut s = String::new();

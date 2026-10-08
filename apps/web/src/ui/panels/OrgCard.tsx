@@ -59,7 +59,10 @@ function OrgCardImpl({ orgId }: OrgCardProps) {
       style={{ borderLeft: `3px solid ${lineageColor(org.lineage_id)}` }}
     >
       <div className="org-header">
-        <span className="org-name">{org.name}</span>
+        <span className="org-name">
+          {org.name}
+          {org.surname ? <span className="org-surname"> {org.surname}</span> : null}
+        </span>
         {isSick && (
           <Tooltip
             tip={`Infected (${(org.infection * 100).toFixed(0)}%) - illness spreads through close contact with others`}

@@ -85,6 +85,8 @@ export interface OrganismState extends ExtendedEmotions {
   target_y?: number | null
   partner_id?: string | null
   father_id?: string | null
+  /** Family name: inherited from the father, else the mother. */
+  surname?: string
   children_count?: number
   sex?: 'male' | 'female'
   pregnant?: boolean

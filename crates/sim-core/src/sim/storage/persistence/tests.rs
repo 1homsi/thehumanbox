@@ -413,3 +413,29 @@ fn every_animal_kind_survives_a_save() {
         );
     }
 }
+
+#[test]
+fn family_names_survive_a_save_and_old_saves_derive_one() {
+    use crate::organism::organism::surname_for_id;
+    let mut sim = Simulation::new(0xFA11);
+    sim.organisms[0].surname = "Osuri".into();
+    let state = sim.to_save_state();
+    let encoded = serde_json::to_string(&state).expect("serialize save state");
+    let decoded: SaveState = serde_json::from_str(&encoded).expect("deserialize save state");
+    let loaded = Simulation::from_save(sim.world_seed, decoded);
+    assert_eq!(loaded.organisms[0].surname, "Osuri");
+
+    // A save written before surnames existed has no such field: the person
+    // still gets a family name, derived from their id.
+    let mut value: serde_json::Value = serde_json::from_str(&encoded).expect("json");
+    for o in value["organisms"].as_array_mut().expect("organisms") {
+        o.as_object_mut().expect("organism").remove("surname");
+    }
+    let old: SaveState = serde_json::from_value(value).expect("old save");
+    let loaded = Simulation::from_save(sim.world_seed, old);
+    assert!(loaded.organisms[0].surname.is_empty());
+    assert_eq!(
+        loaded.organisms[0].family_name(),
+        surname_for_id(&loaded.organisms[0].id)
+    );
+}
