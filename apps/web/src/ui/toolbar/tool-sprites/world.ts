@@ -248,6 +248,16 @@ export const worldSprites = {
     '..R.R...R.R.',
     '..o.o...o.o.',
   ],
+  locust: [
+    '..gg....gg..',
+    '...gg..gg...',
+    '....gggg....',
+    '...gggggg...',
+    '..gggooggg..',
+    '..gggggggg..',
+    '..gg.gg.gg..',
+    '.g..g..g..g.',
+  ],
   tsunami: [
     '.....sss....',
     '...sssssss..',

@@ -320,6 +320,13 @@ pub enum Command {
     },
     /// A gale: the wind turns to a random quarter and blows hard.
     Gale,
+    /// A swarm of locusts flies from the point and strips the land it crosses.
+    Locusts {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
     /// A tsunami runs up the coast nearest the point and inland.
     Tsunami {
         x: i32,
@@ -464,6 +471,8 @@ mod disasters;
 mod gift;
 mod heal_one;
 mod leader;
+#[cfg(test)]
+mod locust_tests;
 mod place;
 #[cfg(test)]
 mod release_tests;
@@ -558,6 +567,7 @@ impl Simulation {
             Command::Gale => self.cmd_gale(),
             Command::Tornado { x, y, radius } => self.cmd_tornado(x, y, radius),
             Command::Tsunami { x, y, radius } => self.cmd_tsunami(x, y, radius),
+            Command::Locusts { x, y, radius } => self.cmd_locusts(x, y, radius),
             Command::Guide {
                 lineage,
                 strategy,

@@ -472,6 +472,71 @@ impl Simulation {
         maddened > 0
     }
 
+    /// A swarm of locusts flies along a random heading from the point. Where
+    /// it passes it strips every planting and wild food, halves what people carry
+    /// and feeds the birds and chickens. It leaves the soil and people alive, and
+    /// it leaves famine behind it. Returns whether it ate anything.
+    pub(super) fn cmd_locusts(&mut self, x: i32, y: i32, radius: i32) -> bool {
+        use crate::organism::animal::AnimalKind;
+        use std::f32::consts::TAU;
+        let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
+        let length = radius.clamp(6, 30);
+        let heading = self.rng.random::<f32>() * TAU;
+        let (dx, dy) = (heading.cos(), heading.sin());
+        let mut hit = false;
+        for step in 0..=length {
+            let fx = x as f32 + dx * step as f32;
+            let fy = y as f32 + dy * step as f32;
+            let (cx, cy) = (fx.round() as i32, fy.round() as i32);
+            if !WorldGrid::in_bounds(cx, cy) {
+                break;
+            }
+            for ny in cy - 2..=cy + 2 {
+                for nx in cx - 2..=cx + 2 {
+                    if !WorldGrid::in_bounds(nx, ny) || (nx - cx) * (nx - cx) + (ny - cy) * (ny - cy) > 4 {
+                        continue;
+                    }
+                    if self.plantings.remove(&(WorldGrid::idx(nx, ny) as u32)).is_some() {
+                        hit = true;
+                    }
+                    if self.grid.get(nx, ny) == Tile::Food {
+                        self.grid.set(nx, ny, Tile::Grass);
+                        hit = true;
+                    }
+                }
+            }
+            let tick = self.tick_count;
+            for o in self.organisms.iter_mut() {
+                if o.alive && o.inv_food > 0 && (o.x - fx).hypot(o.y - fy) <= 2.0 {
+                    o.inv_food /= 2;
+                    o.think("the locusts ate our stores", tick);
+                    hit = true;
+                }
+            }
+            for a in self.animals.iter_mut() {
+                if a.alive
+                    && matches!(a.kind, AnimalKind::Bird | AnimalKind::Chicken)
+                    && (a.x - fx).hypot(a.y - fy) <= 2.0
+                {
+                    a.energy = (a.energy + 0.3).min(1.0);
+                    hit = true;
+                }
+            }
+        }
+        if hit {
+            self.planting_revision = self.planting_revision.wrapping_add(1);
+            let now = self.tick_count;
+            push_event(
+                &mut self.events,
+                now,
+                "danger",
+                "locusts",
+                "a swarm stripped the fields and stores",
+            );
+        }
+        hit
+    }
+
     /// A tsunami: a wave out of the nearest sea runs up the coast and inland.
     /// Every land tile within `radius` of the coast point floods (and drains
     /// again later); buildings near the shore are wrecked, people in the wave

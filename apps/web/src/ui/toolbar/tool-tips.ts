@@ -63,6 +63,8 @@ const TOOL_TIPS: Record<string, string> = {
     'Send a tornado tearing along a random heading from the click. It wrecks buildings, strikes down the nearest people and animals in its funnel, and uproots every planting it passes.',
   tsunami:
     'Send a wave out of the nearest sea up the coast and inland. Land it reaches floods and drains later; buildings near the shore are wrecked, people in the wave are hurt and land animals drown.',
+  locusts:
+    'Send a swarm of locusts flying from the click. It strips crops and wild food along its path and halves what people carry; birds and chickens feast. It does not kill, but it leaves famine.',
   restore:
     'Erase your changes to the land in the brush area: water drains, fire and ash cool, and sand or snow goes back to what the biome holds. Rock and buildings stay.',
   place_house:
@@ -177,6 +179,7 @@ export function toolFailure(tool: SandboxTool): string {
     case 'restore':
     case 'tornado':
     case 'tsunami':
+    case 'locusts':
     case 'blight':
     case 'flood':
     case 'blizzard':

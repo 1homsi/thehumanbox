@@ -8,6 +8,7 @@ export type SandboxCommand =
   | { cmd: 'gale' }
   | { cmd: 'tornado'; x: number; y: number; radius?: number }
   | { cmd: 'tsunami'; x: number; y: number; radius?: number }
+  | { cmd: 'locusts'; x: number; y: number; radius?: number }
   | { cmd: 'drought'; active: boolean }
   | { cmd: 'outbreak'; count?: number }
   | { cmd: 'restore'; x: number; y: number; radius?: number }
@@ -379,6 +380,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🫧',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'tsunami', x, y, radius: 8 + b }),
+      },
+      {
+        id: 'locusts',
+        label: 'locusts',
+        icon: '🦗',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'locusts', x, y, radius: 10 + b }),
       },
       {
         id: 'meteor',
