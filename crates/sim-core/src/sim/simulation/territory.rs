@@ -36,23 +36,21 @@ impl Simulation {
         }
         let mut evicted: Vec<(i32, i32)> = Vec::new();
         if tiles.len() > MAX_TERRITORY {
-            // The tiles farthest from the claimed center go, ties broken by the
-            // order the set yields them. Only the `excess` farthest are wanted,
-            // so pick them out and order just those rather than sorting all.
-            let mut ranked: Vec<(i32, usize, (i32, i32))> = tiles
+            // The tiles farthest from the claimed center go. Ties at the same
+            // distance are broken by coordinates, never by the order the set
+            // yields them: that order is random per set, so using it would let
+            // the same world evict different tiles from run to run.
+            let mut ranked: Vec<(i32, i32, i32)> = tiles
                 .iter()
-                .enumerate()
-                .map(|(order, &(x, y))| (-((x - cx) * (x - cx) + (y - cy) * (y - cy)), order, (x, y)))
+                .map(|&(x, y)| (-((x - cx) * (x - cx) + (y - cy) * (y - cy)), x, y))
                 .collect();
+            // Only the `excess` farthest are wanted: pick them out rather than sorting all.
             let excess = ranked.len() - MAX_TERRITORY;
-            if excess < ranked.len() {
-                ranked.select_nth_unstable_by_key(excess, |&(distance, order, _)| (distance, order));
-                ranked.truncate(excess);
-            }
-            ranked.sort_unstable_by_key(|&(distance, order, _)| (distance, order));
-            for (_, _, p) in ranked {
-                tiles.remove(&p);
-                evicted.push(p);
+            ranked.select_nth_unstable(excess);
+            ranked.truncate(excess);
+            for (_, x, y) in ranked {
+                tiles.remove(&(x, y));
+                evicted.push((x, y));
             }
         }
         // Update the inverse map. New claims overwrite (most-recent
@@ -109,7 +107,7 @@ impl Simulation {
         let mut evicted: Vec<(i32, i32)> = Vec::new();
         if tiles.len() > MAX_TERRITORY {
             let mut sorted: Vec<(i32, i32)> = tiles.iter().copied().collect();
-            sorted.sort_by_key(|&(x, y)| -((x - cx) * (x - cx) + (y - cy) * (y - cy)));
+            sorted.sort_by_key(|&(x, y)| (-((x - cx) * (x - cx) + (y - cy) * (y - cy)), x, y));
             let excess = sorted.len() - MAX_TERRITORY;
             for p in sorted.into_iter().take(excess) {
                 tiles.remove(&p);
