@@ -14,6 +14,7 @@ const DEFAULTS: ViewFlags = {
   thoughts: false,
   animals: true,
   grid: false,
+  tradeRoutes: true,
   trails: false,
   structures: false,
   fertility: false,
