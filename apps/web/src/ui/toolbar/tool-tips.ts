@@ -14,6 +14,8 @@ const TOOL_TIPS: Record<string, string> = {
     'Heal the person nearest where you click: full health, and no infection or sickness. Only that one person.',
   follow:
     'Keep the camera on the person nearest where you click. Click the map again to follow someone else.',
+  gift_food: 'Give the person nearest where you click a few portions of food for their pack.',
+  gift_tool: 'Give the person nearest where you click a stone tool, so they can work and build.',
   teleport:
     'Pick up the person nearest where you click and set them down there. Nobody is moved onto water or rock.',
   family:
