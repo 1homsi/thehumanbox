@@ -4,6 +4,7 @@ pub mod economy_tick;
 pub mod festivals;
 pub mod government;
 pub mod graves;
+pub mod inequality;
 pub mod orphans;
 pub mod refugees;
 pub mod settlements;
