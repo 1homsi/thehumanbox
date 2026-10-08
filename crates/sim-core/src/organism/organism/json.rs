@@ -161,6 +161,16 @@ impl Organism {
             } else {
                 None
             },
+            personality: if include_cold {
+                Some(
+                    crate::organism::personality::personality_words(&self.traits)
+                        .into_iter()
+                        .map(String::from)
+                        .collect(),
+                )
+            } else {
+                None
+            },
             skill: if include_cold && self.specialty.is_some() {
                 let skill = self
                     .specialty
@@ -407,6 +417,15 @@ impl Organism {
             }
             // The trade this person works at, and how practised they are at it (0 to 1).
             put("mood", text(self.mood()));
+            put(
+                "personality",
+                Value::Array(
+                    crate::organism::personality::personality_words(&self.traits)
+                        .into_iter()
+                        .map(text)
+                        .collect(),
+                ),
+            );
             if let Some(trade) = &self.specialty {
                 put("specialty", text(trade));
                 let skill = self.practice.get(trade).copied().unwrap_or(0.0);
@@ -892,6 +911,8 @@ pub struct OrgJson {
     pub specialty: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mood: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub personality: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skill: Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

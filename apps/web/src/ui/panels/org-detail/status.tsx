@@ -66,6 +66,16 @@ export function StatusChips({ org }: { org: OrganismState }) {
             )}
           </span>
         )}
+        {(org.personality ?? []).map((word) => (
+          <span
+            key={word}
+            className="relation-tag"
+            style={{ background: '#241a14', color: '#e6c9a0', cursor: 'default' }}
+            title="A trait they were born with, passed on from their parents"
+          >
+            {word}
+          </span>
+        ))}
         {org.mood && org.mood !== 'calm' && (
           <span
             className="relation-tag"
