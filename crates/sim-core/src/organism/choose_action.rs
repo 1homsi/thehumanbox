@@ -9,6 +9,12 @@ use crate::world::{
 use super::decision_bias::{directive_action_boost, directive_aligns_action, preferred_action_boost};
 use super::organism::{Organism, QRowExt, ACTION_ID_SPACE, N_ACTIONS};
 
+/// Farthest a person walks home at night, in tiles (Manhattan). Routes to
+/// farther homes outrun the route planner's window and search budget, so the
+/// walk fell back to greedy steps and people paced in front of obstacles. Beyond
+/// this, people sleep in the nearest shelter instead.
+const NIGHT_HOME_REACH: f32 = 16.0;
+
 fn survival_relevant_action(
     action: usize,
     needs_food: bool,
@@ -489,7 +495,7 @@ impl Organism {
             // within reach and rests there, rather than taking any shelter nearby.
             let (hx, hy) = (self.home_x as i32, self.home_y as i32);
             let at_home = (ix - hx).abs() <= 2 && (iy - hy).abs() <= 2;
-            if !at_home && dist_home < 40.0 && self.hydration > 0.25 && self.energy > 0.2 {
+            if !at_home && dist_home < NIGHT_HOME_REACH && self.hydration > 0.25 && self.energy > 0.2 {
                 set_thought!("going home for the night");
                 return (self.toward((hx, hy), grid), thought);
             }
