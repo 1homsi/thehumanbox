@@ -58,6 +58,7 @@ const TOOL_TIPS: Record<string, string> = {
   horse: 'Release a horse. Fast and skittish. Brush size releases more at once, each on ground it can use.',
   chicken: 'Release a chicken. Brush size releases more at once, each on ground it can use.',
   fox: 'Release a fox. Shy and quick: it keeps to woods and grassland, and wolves hunt it. Brush size releases more at once, each on ground it can use.',
+  dog: 'Release a dog. One beside people bonds to the nearest of them: it takes a name, follows them about and keeps them company.',
   cat: 'Release a cat. It keeps to itself, slips away from people, and lives anywhere on land. Brush size releases more at once, each on ground it can use.',
   rain: 'Start rain. Helps dry land recover.',
   storm: 'Summon a storm. Drains energy and can strike with lightning.',
@@ -168,6 +169,7 @@ export function toolFailure(tool: SandboxTool): string {
     case 'chicken':
     case 'fox':
     case 'cat':
+    case 'dog':
     case 'zombie':
     case 'demon':
     case 'dragon':

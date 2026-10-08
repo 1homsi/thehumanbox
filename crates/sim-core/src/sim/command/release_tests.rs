@@ -98,3 +98,37 @@ fn releases_respect_the_animal_cap() {
     }
     assert!(!sim.apply_command_json(r#"{"cmd":"spawn_animal","x":80.0,"y":80.0,"kind":"deer","count":5}"#));
 }
+
+#[test]
+fn a_dog_released_beside_someone_bonds_to_them_and_is_named() {
+    let mut sim = Simulation::new(1);
+    grassy_patch(&mut sim);
+    for o in sim.organisms.iter_mut() {
+        o.x = 20.0;
+        o.y = 20.0;
+    }
+    let owner_id = sim.organisms[0].id.clone();
+    sim.organisms[0].x = 150.0;
+    sim.organisms[0].y = 150.0;
+    let before = sim.animals.len();
+    assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":151.0,"y":150.0,"kind":"dog"}"#));
+    let dog = &sim.animals[before];
+    assert_eq!(dog.bonded_org.as_deref(), Some(owner_id.as_str()));
+    assert!(dog.name.is_some(), "a bonded dog has a name");
+    assert!(sim.organisms[0].discoveries.contains("dog"));
+}
+
+#[test]
+fn a_dog_released_far_from_people_is_a_stray() {
+    let mut sim = Simulation::new(1);
+    grassy_patch(&mut sim);
+    for o in sim.organisms.iter_mut() {
+        o.x = 20.0;
+        o.y = 20.0;
+    }
+    let before = sim.animals.len();
+    assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":150.0,"y":150.0,"kind":"dog"}"#));
+    let dog = &sim.animals[before];
+    assert!(dog.bonded_org.is_none());
+    assert!(dog.name.is_none());
+}

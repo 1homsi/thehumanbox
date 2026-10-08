@@ -195,9 +195,40 @@ impl Simulation {
             let (ix, iy) = pool[self.rng.random_range(0..pool.len())];
             let id = self.next_animal_id;
             self.next_animal_id += 1;
-            self.animals.push(Animal::new(id, ix as f32, iy as f32, k));
+            let mut animal = Animal::new(id, ix as f32, iy as f32, k);
+            if k == AnimalKind::Dog {
+                self.bond_released_dog(&mut animal);
+            }
+            self.animals.push(animal);
         }
         true
+    }
+
+    /// A dog released beside someone bonds to the nearest living person: it
+    /// takes a name, follows them about and keeps them company, as a tamed
+    /// dog does. Released far from anyone, it is a stray.
+    fn bond_released_dog(&mut self, dog: &mut Animal) {
+        let near = self
+            .organisms
+            .iter()
+            .enumerate()
+            .filter(|(_, o)| o.alive)
+            .map(|(i, o)| (i, (o.x - dog.x).abs() + (o.y - dog.y).abs()))
+            .filter(|&(_, d)| d <= 10.0)
+            .min_by(|a, b| a.1.total_cmp(&b.1))
+            .map(|(i, _)| i);
+        let Some(oi) = near else {
+            return;
+        };
+        let name = crate::organism::animal::pick_dog_name(&mut self.rng);
+        dog.bonded_org = Some(self.organisms[oi].id.clone());
+        dog.name = Some(name.clone());
+        let tick = self.tick_count;
+        let owner = &mut self.organisms[oi];
+        owner.discoveries.insert("dog".to_string());
+        owner.joy_ticks = (owner.joy_ticks + 300).min(1200);
+        owner.think(&format!("a dog called {name} chose them"), tick);
+        owner.log_event(format!("named their dog {name}"));
     }
 
     /// Tiles around a point where `kind` can be released: first within the
