@@ -14,7 +14,7 @@ import {
 } from '../../character-visuals'
 import { boatFrame, DECAL, DEGREE_EMOJI, SICK_EMOJI, emoteFrame, glyphFrame } from '../atlas-bake'
 import { emoteFor } from '../../activity-emotes'
-import { AttachedSprites, storeChanged } from '../attached'
+import { AttachedSprites, storeF32, storeF64, storeU32, storeU8 } from '../attached'
 import { cssToRgba32, rgba32, withAlpha } from '../colors'
 import { MotionStore } from '../motion'
 import { labelFlagsOf } from './people-labels'
@@ -93,6 +93,9 @@ export class PeopleSprites {
   private alpha = new Uint8Array(0)
   /** Each person's walk-cycle offset, from their id. */
   phase = new Uint16Array(0)
+  /** Appearance index (from the id) and body radius (from the id), per slot. */
+  private appearance = new Uint32Array(0)
+  private radius = new Float64Array(0)
   private restCandidate = new Uint8Array(0)
   /** Layer index of this rider's boat, or -1. */
   private boatIdx = new Int32Array(0)
@@ -113,7 +116,10 @@ export class PeopleSprites {
 
   /** Every frame touches every sprite (the reference the tests compare the default against). */
   private readonly touchAll: boolean
-  /** Always look people up by id in a map (the reference the tests compare the positional path against). */
+  /**
+   * Always look people up by id in a map and recompute their per-id values (the reference the tests
+   * compare the positional lookups and the per-slot caches against).
+   */
   private readonly mapLookups: boolean
 
   constructor(
@@ -131,7 +137,9 @@ export class PeopleSprites {
   private reserve(n: number): void {
     if (n <= this.cap) return
     const cap = Math.max(n, this.cap * 2, 256)
-    const grow = <T extends Float64Array | Float32Array | Uint8Array | Uint16Array | Int32Array>(
+    const grow = <
+      T extends Float64Array | Float32Array | Uint8Array | Uint16Array | Uint32Array | Int32Array,
+    >(
       old: T,
       make: new (len: number) => T,
     ): T => {
@@ -149,6 +157,8 @@ export class PeopleSprites {
     this.row = grow(this.row, Uint8Array)
     this.alpha = grow(this.alpha, Uint8Array)
     this.phase = grow(this.phase, Uint16Array)
+    this.appearance = grow(this.appearance, Uint32Array)
+    this.radius = grow(this.radius, Float64Array)
     this.restCandidate = grow(this.restCandidate, Uint8Array)
     this.boatIdx = grow(this.boatIdx, Int32Array)
     this.boatBuilding = grow(this.boatBuilding, Uint8Array)
@@ -260,7 +270,13 @@ export class PeopleSprites {
       }
       if (old !== undefined) this.motion.copyFrom(this.oldMotion, old, j)
       else this.motion.init(j, this.fromX[j], this.fromY[j])
-      this.phase[j] = orgAnimPhase(id)
+      // Per-id values (walk phase, appearance, body radius) hash the id: a person still in the same slot
+      // keeps last frame's values, which were computed for this id.
+      if (old !== j || this.mapLookups) {
+        this.phase[j] = orgAnimPhase(id)
+        this.appearance[j] = deterministicAppearanceIndex(id)
+        this.radius[j] = orgVariant(id).bodyRadius
+      }
       this.labelFlags[j] = labelFlagsOf(org)
 
       const isSelected = id === selectedId
@@ -268,13 +284,12 @@ export class PeopleSprites {
       const fa = focused ? 1 : 0.12
       const standard = isSelected || detail !== 'overview'
       const full = isSelected || detail === 'detail'
-      const variant = orgVariant(id)
-      const bodyR = variant.bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
+      const bodyR = this.radius[j] * (org.sex === 'male' ? 1.05 : 0.95)
       const size = Math.round(Math.max(19, bodyR * 3.8))
       const stage = resolveAgeStage(org)
       const sex = org.sex === 'female' ? 'female' : 'male'
       this.size[j] = size
-      this.row[j] = humanAtlasRow(sex, stage, deterministicAppearanceIndex(id))
+      this.row[j] = humanAtlasRow(sex, stage, this.appearance[j])
       this.alpha[j] = Math.round(255 * fa)
 
       // Resting indoors: not drawn unless they moved a moment ago (checked per frame).
@@ -552,30 +567,28 @@ export class PeopleSprites {
       const resting = restCandidate[j] === 1 && !recent
       hidden[j] = resting ? 1 : 0
       const rider = boatIdx[j]
-      let changed = storeChanged(bx, j, Math.round(cx - s / 2) + s / 2)
-      changed = storeChanged(by, j, Math.round(cy - s * 0.78) + s / 2) || changed
+      let changed = storeF32(bx, j, Math.round(cx - s / 2) + s / 2)
+      changed = storeF32(by, j, Math.round(cy - s * 0.78) + s / 2) || changed
       changed =
-        storeChanged(
+        storeU32(
           bf,
           j,
           row[j] * HUMAN_ATLAS_FRAMES + (rider >= 0 ? 0 : motion.frame(j, now, phase[j], HUMAN_ATLAS_FRAMES)),
         ) || changed
       changed =
-        storeChanged(bflags, j, (motion.flipped[j] ? SPRITE_FLIP_X : 0) | (resting ? SPRITE_HIDDEN : 0)) ||
-        changed
-      changed = storeChanged(bkey, j, y) || changed
+        storeU8(bflags, j, (motion.flipped[j] ? SPRITE_FLIP_X : 0) | (resting ? SPRITE_HIDDEN : 0)) || changed
+      changed = storeF64(bkey, j, y) || changed
       if (changed || touchAll) {
         if (j < lo) lo = j
         if (j > hi) hi = j
       }
       if (rider >= 0) {
         const moving = !this.boatBuilding[j] && recent
-        let riderChanged = storeChanged(bx, rider, Math.round(cx))
-        riderChanged = storeChanged(by, rider, Math.round(cy) + 3) || riderChanged
-        riderChanged =
-          storeChanged(bf, rider, boatFrame(moving, this.boatBuilding[j] === 1, now)) || riderChanged
-        riderChanged = storeChanged(bflags, rider, resting ? SPRITE_HIDDEN : 0) || riderChanged
-        riderChanged = storeChanged(bkey, rider, y + 0.0004) || riderChanged
+        let riderChanged = storeF32(bx, rider, Math.round(cx))
+        riderChanged = storeF32(by, rider, Math.round(cy) + 3) || riderChanged
+        riderChanged = storeU32(bf, rider, boatFrame(moving, this.boatBuilding[j] === 1, now)) || riderChanged
+        riderChanged = storeU8(bflags, rider, resting ? SPRITE_HIDDEN : 0) || riderChanged
+        riderChanged = storeF64(bkey, rider, y + 0.0004) || riderChanged
         if (riderChanged || touchAll) {
           if (rider < lo) lo = rider
           if (rider > hi) hi = rider
