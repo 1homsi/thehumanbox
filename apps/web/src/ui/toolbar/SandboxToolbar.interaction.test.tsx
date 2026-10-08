@@ -65,9 +65,11 @@ afterEach(() => {
 })
 
 describe('world dock buttons', () => {
-  it('shows each tab’s tools and picks every tool when clicked', () => {
-    const props = render()
-    for (const dockTab of DOCK_TABS) {
+  // One test per tab, so each tab's clicks get their own time budget. Clicking every tab in
+  // one test took about 5 s, which timed out whenever the full suite ran in parallel.
+  for (const dockTab of DOCK_TABS) {
+    it(`shows the ${dockTab.id} tab's tools and picks each one when clicked`, () => {
+      const props = render()
       click(tab(dockTab.id))
       expect(tab(dockTab.id)?.getAttribute('aria-pressed')).toBe('true')
       const tools = groupsFor(dockTab.id).flatMap((group) => group.tools)
@@ -77,12 +79,14 @@ describe('world dock buttons', () => {
       )
       for (const tool of tools) {
         click(tile(tool.label))
-        expect(props.onPick).toHaveBeenLastCalledWith(tool)
+        // The dice roll their own event when picked, so they are checked by id.
+        if (tool.id === 'dice')
+          expect(props.onPick).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'dice' }))
+        else expect(props.onPick).toHaveBeenLastCalledWith(tool)
       }
-    }
-    const allDockTools = DOCK_TABS.flatMap((t) => groupsFor(t.id)).flatMap((g) => g.tools)
-    expect(props.onPick).toHaveBeenCalledTimes(allDockTools.length)
-  })
+      expect(props.onPick).toHaveBeenCalledTimes(tools.length)
+    })
+  }
 
   it('pins a tool with shift-click, shows it in the memory group, and keeps it across visits', () => {
     window.localStorage.removeItem('thb-sandbox-tool-memory')
