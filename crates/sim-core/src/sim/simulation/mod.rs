@@ -29,6 +29,7 @@ mod helpers;
 mod lineage;
 mod memory;
 mod organism_tick;
+mod separation;
 mod strategy;
 mod territory;
 mod tick;
