@@ -62,6 +62,12 @@ const TOOL_TIPS: Record<string, string> = {
   gale: 'A gale: the wind turns to a random quarter and blows hard, carrying rain, smoke and fire before it.',
   snow_weather:
     'Snow falls for a while. It settles on open ground, melts again on warm land, and chills anyone out in it.',
+  penguin:
+    'Release a penguin, or a few, on snow or tundra. They huddle together and waddle across the ice, and keep clear of people.',
+  camel:
+    'Release a camel, or a few, on desert or badlands. They are tough, need little food, and keep to the dry land.',
+  frog: 'Release a frog, or a few, on wet ground near water, in wetland or jungle. Frogs are small game for wolves and bears.',
+  whale: 'Release a whale, or a few, into deep water. They swim where the sea is and never come ashore.',
   dawn: 'Move the clock on to the next dawn. The world keeps its season and year; the light changes at once.',
   noon: 'Move the clock on to the next noon, when the sun stands highest.',
   dusk: 'Move the clock on to the next dusk, when the light goes and the night begins.',
@@ -230,6 +236,10 @@ export function toolFailure(tool: SandboxTool): string {
     case 'chicken':
     case 'fox':
     case 'cat':
+    case 'penguin':
+    case 'camel':
+    case 'frog':
+    case 'whale':
     case 'dog':
     case 'zombie':
     case 'demon':

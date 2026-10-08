@@ -30,6 +30,14 @@ export function kindIcon(kind: string): string {
       return '🦊'
     case 'cat':
       return '🐈'
+    case 'penguin':
+      return '🐧'
+    case 'camel':
+      return '🐪'
+    case 'frog':
+      return '🐸'
+    case 'whale':
+      return '🐋'
     case 'zombie':
       return '🧟'
     case 'demon':
