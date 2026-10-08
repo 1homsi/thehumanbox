@@ -24,6 +24,7 @@ import {
 } from './paint-ground'
 import { hazeLevels, paintHaze } from './haze'
 import { paintHud } from './paint-hud'
+import { moonLight, nightLevel, paintMoon, paintStars } from './night-sky'
 import { SpriteRecorder } from './recorder'
 import { ShapeAtlas } from './shape-atlas'
 import {
@@ -266,6 +267,7 @@ export class CfOverlayRenderer {
       paintFireGlow(ground, f)
       paintPuddles(ground, f, wetnessOf(f.world))
       paintHaze(ground, f, hazeLevels(f.world), f.t)
+      paintStars(ground, f.bounds, f.ox, f.oy, f.t, nightLevel(f.world))
       this.paintContested(ground, f)
       this.ground.end()
     }
@@ -289,6 +291,7 @@ export class CfOverlayRenderer {
     lap('effects')
 
     this.hud.begin(gv)
+    this.paintMoonInView(this.hud.asContext(), f)
     const { labels: settlementLabels } = paintHud(this.hud.asContext(), f, { grid: f.viewFlags.grid })
     this.hud.end()
 
@@ -386,6 +389,21 @@ export class CfOverlayRenderer {
       this.precipLayer.clear()
       this.precipLayer.touch()
     }
+  }
+
+  /** The moon in the top-right corner of the view at night, at the phase the calendar gives. */
+  private paintMoonInView(ctx: CanvasRenderingContext2D, f: CfFrame): void {
+    const cosmos = f.world.cosmos
+    if (!cosmos || nightLevel(f.world) <= 0) return
+    const view = this.viewOf(f)
+    const zoom = Math.max(0.01, f.zoom)
+    paintMoon(
+      ctx,
+      view.cx + view.hw - 56 / zoom,
+      view.cy - view.hh + 56 / zoom,
+      14 / zoom,
+      moonLight(cosmos.moon_phase, cosmos.moon_illum),
+    )
   }
 
   /** The camera's view in painter coordinates (grid px, origin removed). */
