@@ -42,6 +42,8 @@ const TOOL_TIPS: Record<string, string> = {
   thoughts_view: 'Show what people are thinking.',
   animals_view: 'Show or hide animals on the map.',
   grid_view: 'Draw the tile grid.',
+  restore:
+    'Erase your changes to the land in the brush area: water drains, fire and ash cool, and sand or snow goes back to what the biome holds. Rock and buildings stay.',
   demolish:
     'Pull down the buildings in the brush area, and clear the huts and campfires there to grass. The people inside stay put.',
   repair: 'Bring every damaged or ruined building in the brush area back to full condition, at once.',
@@ -147,6 +149,7 @@ export function toolFailure(tool: SandboxTool): string {
     case 'thunder':
       return 'the lightning hit nothing'
     case 'harvest':
+    case 'restore':
     case 'blight':
     case 'flood':
     case 'blizzard':

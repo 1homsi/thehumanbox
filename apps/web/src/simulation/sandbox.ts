@@ -7,6 +7,7 @@ export type SandboxCommand =
   | { cmd: 'weather'; kind: 'clear' | 'rain' | 'storm' }
   | { cmd: 'drought'; active: boolean }
   | { cmd: 'outbreak'; count?: number }
+  | { cmd: 'restore'; x: number; y: number; radius?: number }
   | { cmd: 'spawn_animal'; x: number; y: number; kind?: string; count?: number; radius?: number }
   | { cmd: 'poison'; x: number; y: number; radius?: number }
   | { cmd: 'meteor'; x: number; y: number; radius?: number }
@@ -402,6 +403,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
     label: 'terrain',
     icon: '⛰️',
     tools: [
+      {
+        id: 'restore',
+        label: 'eraser',
+        icon: '🧽',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'restore', x, y, radius: b }),
+      },
       {
         id: 'grass',
         label: 'grass',

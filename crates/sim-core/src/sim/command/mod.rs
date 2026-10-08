@@ -291,6 +291,15 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// Erase ground changes inside the radius: water drains, fire and ash
+    /// cool, and sand or snow the biome does not hold turns back to its ground.
+    /// Rock, buildings and food stay as they are.
+    Restore {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
     #[serde(alias = "set_strategy")]
     Guide {
         lineage: String,
@@ -411,6 +420,9 @@ mod disasters;
 mod leader;
 #[cfg(test)]
 mod release_tests;
+mod restore;
+#[cfg(test)]
+mod restore_tests;
 mod teleport;
 #[cfg(test)]
 mod tests;
@@ -485,6 +497,7 @@ impl Simulation {
             Command::Tame { x, y, radius } => self.cmd_tame(x, y, radius),
             Command::Demolish { x, y, radius } => self.cmd_demolish(x, y, radius),
             Command::Repair { x, y, radius } => self.cmd_repair(x, y, radius),
+            Command::Restore { x, y, radius } => self.cmd_restore(x, y, radius),
             Command::Guide {
                 lineage,
                 strategy,

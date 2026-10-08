@@ -53,6 +53,14 @@ export const DOCK_TABS: DockTab[] = [
 /** Time controls live in the dock's time panel rather than in a tab. */
 export const TIME_CATEGORY_ID = 'time'
 
+/** Brush presets: the size shown (tiles from the centre to the edge, counting the centre) and the brush value it sets. */
+export const BRUSH_SIZES: ReadonlyArray<readonly [number, number]> = [
+  [1, 0],
+  [2, 1],
+  [3, 2],
+  [5, 4],
+]
+
 /** Speeds offered as buttons under the play control, by time-tool id. */
 export const SPEED_TOOL_IDS = ['normal', 'fast2', 'fast4', 'fast10']
 

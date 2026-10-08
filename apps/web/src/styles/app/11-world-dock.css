@@ -140,6 +140,14 @@
   cursor: pointer;
   clip-path: var(--dock-notch);
 }
+.dock-brush-sizes {
+  display: flex;
+  gap: 2px;
+}
+.dock-brush-sizes button.active {
+  background: #7a5a2a;
+  color: #fff3c4;
+}
 
 /* Tools: two rows of framed tiles, one carved group per category. */
 .dock-tools {
