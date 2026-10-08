@@ -10,6 +10,8 @@ describe('hasYard', () => {
   it('gives yards to homes only, and not to every home', () => {
     expect(hasYard(home(1, 'Market'))).toBe(false)
     expect(hasYard(home(1, 'Wall'))).toBe(false)
+    const tents = Array.from({ length: 300 }, (_, i) => i).filter((id) => hasYard(home(id, 'tent')))
+    expect(tents.length).toBeGreaterThan(100)
     const ids = Array.from({ length: 300 }, (_, i) => i)
     const yards = ids.filter((id) => hasYard(home(id, 'House')))
     expect(yards.length).toBeGreaterThan(150)

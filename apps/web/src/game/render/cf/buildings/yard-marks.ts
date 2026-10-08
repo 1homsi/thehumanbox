@@ -18,7 +18,8 @@ export interface YardRect {
   colour: number
 }
 
-const HOME_KINDS = new Set(['House', 'Hut', 'Cottage'])
+/** Dwellings: houses, huts, cottages and the tents of the early ages. */
+const HOME_KINDS = new Set(['House', 'Hut', 'Cottage', 'Tent'])
 
 /** Packed 0xRRGGBBAA, as the sprite layers take it. */
 function rgba(r: number, g: number, b: number, a = 255): number {
