@@ -30,6 +30,12 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// Run the world toward the next season or year boundary, a chunk of ticks at a time.
+    Advance {
+        to: String,
+        #[serde(default)]
+        max_ticks: u32,
+    },
     /// Make the grown person nearest the point the ruler of their tribe.
     MakeLeader {
         x: f32,
@@ -404,6 +410,7 @@ fn prayer_answers(cmd: &Command) -> Option<PrayerAnswer> {
     })
 }
 
+mod advance;
 mod blessings;
 mod buildings;
 mod creation;
@@ -441,6 +448,7 @@ impl Simulation {
             Command::Family { x, y } => self.cmd_family(x, y),
             Command::Teleport { x, y, radius } => self.cmd_teleport(x, y, radius),
             Command::MakeLeader { x, y, radius } => self.cmd_make_leader(x, y, radius),
+            Command::Advance { to, max_ticks } => self.cmd_advance(to, max_ticks),
             Command::Smite { x, y, radius } => self.cmd_smite(x, y, radius),
             Command::Heal { x, y, radius } => self.cmd_heal(x, y, radius),
             Command::Paint { x, y, tile, radius } => self.cmd_paint(x, y, tile, radius),

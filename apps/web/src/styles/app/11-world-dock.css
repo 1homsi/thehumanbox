@@ -272,6 +272,12 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 4px;
 }
+.dock-advance {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  margin-top: 4px;
+}
 .dock-speed {
   font-size: 11px;
 }

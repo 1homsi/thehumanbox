@@ -4,6 +4,7 @@ import { farmAndPowerSprites } from './farm-and-powers'
 import { creatureAndMarkerSprites } from './creatures-and-markers'
 import { buildingSprites } from './buildings'
 import { peopleSprites } from './people'
+import { timeSprites } from './time'
 
 export { palette } from './palette'
 
@@ -14,4 +15,5 @@ export const sprites = {
   ...creatureAndMarkerSprites,
   ...buildingSprites,
   ...peopleSprites,
+  ...timeSprites,
 }

@@ -118,6 +118,8 @@ export function SandboxToolbar({
   const groups = groupsFor(tabId)
   const timeTools = SANDBOX_CATEGORIES.find((c) => c.id === TIME_CATEGORY_ID)?.tools ?? []
   const speedTools = SPEED_TOOL_IDS.flatMap((id) => timeTools.filter((t) => t.id === id))
+  // Next season and next year run the world on to that boundary; they sit under the speed row.
+  const advanceTools = ['next_season', 'next_year'].flatMap((id) => timeTools.filter((t) => t.id === id))
   const achieved = useAchievedSpeed(runtimePaused)
   // Past what the machine can sustain, say what it is really doing.
   const lagging = !runtimePaused && achieved !== null && runtimeSpeed > 10 && achieved < runtimeSpeed * 0.8
@@ -355,6 +357,23 @@ export function SandboxToolbar({
                   aria-label={`Speed ${tool.label}`}
                 >
                   {tool.label}
+                </button>
+              </Tooltip>
+            ))}
+          </div>
+          <div className="dock-advance">
+            {advanceTools.map((tool) => (
+              <Tooltip
+                key={tool.id}
+                tip={<TipCard title={tool.label} body={toolTip(tool)} how={toolHowTo(tool)} />}
+              >
+                <button
+                  type="button"
+                  className="dock-speed"
+                  aria-label={tool.label}
+                  onClick={() => onPick(tool)}
+                >
+                  {tool.id === 'next_season' ? 'season →' : 'year →'}
                 </button>
               </Tooltip>
             ))}
