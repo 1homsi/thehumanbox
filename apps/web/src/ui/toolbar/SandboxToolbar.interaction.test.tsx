@@ -115,6 +115,18 @@ describe('world dock buttons', () => {
     expect(container.querySelector('.dock-memory .dock-tile[aria-label="tribe"]')).not.toBeNull()
   })
 
+  it('steps the speed one finer step faster or slower from the speed the world runs at', () => {
+    const props = render({ runtimeSpeed: 1 })
+    click(container.querySelector('[aria-label="faster"]') as HTMLElement)
+    expect(props.onPick).toHaveBeenLastCalledWith(
+      expect.objectContaining({ time: { control: 'speed', mult: 2 } }),
+    )
+    click(container.querySelector('[aria-label="slower"]') as HTMLElement)
+    expect(props.onPick).toHaveBeenLastCalledWith(
+      expect.objectContaining({ time: { control: 'speed', mult: 0.5 } }),
+    )
+  })
+
   it('remembers the chosen tab', () => {
     render()
     click(tab('powers'))

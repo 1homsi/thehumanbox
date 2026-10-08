@@ -13,6 +13,7 @@ import {
 } from '../../simulation/sandbox'
 import { DOCK_TABS, SPEED_TOOL_IDS, TIME_CATEGORY_ID, groupsFor, resolveTab } from './dock-tabs'
 import { WASM_BASE_TICK_MS, isRuntimeControlActive } from '../../simulation/runtimeControls'
+import { nextSpeedStep } from '../../simulation/speedSteps'
 import {
   memoryToolIds,
   readToolMemory,
@@ -228,6 +229,48 @@ export function SandboxToolbar({
     )
   }
 
+  // The slower and faster buttons step through the finer speed ladder from the speed the world runs at now.
+  const stepButton = (direction: 1 | -1) => {
+    const label = direction > 0 ? 'faster' : 'slower'
+    const next = nextSpeedStep(runtimeSpeed, direction)
+    return (
+      <Tooltip
+        key={label}
+        tip={
+          <TipCard
+            title={next === null ? label : `${label} · ${formatSpeed(next)}`}
+            body={
+              next === null
+                ? direction > 0
+                  ? 'Already at the fastest step.'
+                  : 'Already at the slowest step.'
+                : `Run time ${formatSpeed(next)}.`
+            }
+          />
+        }
+      >
+        <button
+          type="button"
+          className="dock-speed dock-speed-step"
+          aria-label={label}
+          disabled={next === null}
+          onClick={() => {
+            if (next === null) return
+            onPick({
+              id: `speed-${label}`,
+              label: formatSpeed(next),
+              icon: direction > 0 ? '⏩' : '🐢',
+              mode: 'instant',
+              time: { control: 'speed', mult: next },
+            })
+          }}
+        >
+          {direction > 0 ? '+' : '−'}
+        </button>
+      </Tooltip>
+    )
+  }
+
   return (
     <section className="sandbox-bar" aria-label="World controls">
       <nav className="dock-tabs" aria-label="World tools">
@@ -327,6 +370,7 @@ export function SandboxToolbar({
             </button>
           </Tooltip>
           <div className="dock-speeds">
+            {stepButton(-1)}
             {speedTools.map((tool) => (
               <Tooltip
                 key={tool.id}
@@ -358,6 +402,7 @@ export function SandboxToolbar({
                 </button>
               </Tooltip>
             ))}
+            {stepButton(1)}
           </div>
         </div>
         <div className="dock-utility">
