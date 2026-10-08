@@ -199,6 +199,11 @@ impl Organism {
             } else {
                 None
             },
+            surname: if include_cold {
+                Some(self.family_name())
+            } else {
+                None
+            },
             lineage_id: if include_cold {
                 Some(self.lineage_id.clone())
             } else {
@@ -409,6 +414,7 @@ impl Organism {
             put("generation", Value::from(self.generation));
             put("parent_id", text(&self.parent_id));
             put("father_id", optional(&self.father_id));
+            put("surname", text(&self.family_name()));
             put("lineage_id", text(&self.lineage_id));
             put("max_age", Value::from(self.max_age));
             put("sex", text(self.sex.as_str()));
@@ -893,6 +899,8 @@ pub struct OrgJson {
     pub parent_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub father_id: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub surname: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lineage_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

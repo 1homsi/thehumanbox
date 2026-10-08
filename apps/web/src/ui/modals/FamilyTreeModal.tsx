@@ -531,7 +531,10 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, 
       <div className="tree-tooltip">
         {hovered ? (
           <>
-            <span style={{ color: lineageColor(hovered.lineage_id), fontWeight: 600 }}>{hovered.name}</span>
+            <span style={{ color: lineageColor(hovered.lineage_id), fontWeight: 600 }}>
+              {hovered.name}
+              {hovered.surname ? ` ${hovered.surname}` : ''}
+            </span>
             {sexWords && hovered.sex && (
               <span style={{ color: hovered.sex === 'female' ? '#e09ab0' : '#7ab0e0', marginLeft: 4 }}>
                 {hovered.sex === 'female' ? sexWords[1] : sexWords[0]}
@@ -552,6 +555,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, 
                   <span style={{ color: isCheating ? '#e8b060' : '#7ab0e0' }}>
                     {' · '}
                     {isCheating ? '⚡' : ''}father: {father.name}
+                    {father.surname ? ` ${father.surname}` : ''}
                   </span>
                 ) : null
               })()}

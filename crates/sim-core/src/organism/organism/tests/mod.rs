@@ -34,6 +34,7 @@ pub(super) fn learning_test_org(
 
 mod archive_and_json;
 mod choice;
+mod family;
 mod learning;
 mod movement;
 mod perception;
