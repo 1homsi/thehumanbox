@@ -75,3 +75,17 @@ describe('world-first panels', () => {
     expect(useUIStore.getState().focus).toBe('all')
   })
 })
+
+describe('family tree', () => {
+  it('opens on the whole population by default and on one person when asked', () => {
+    useUIStore.getState().openFamilyTree()
+    expect(useUIStore.getState().showFamilyTree).toBe(true)
+    expect(useUIStore.getState().familyTreeFocus).toBeNull()
+    useUIStore.getState().closeFamilyTree()
+    useUIStore.getState().openFamilyTree('person-7')
+    expect(useUIStore.getState().familyTreeFocus).toBe('person-7')
+    useUIStore.getState().closeFamilyTree()
+    expect(useUIStore.getState().showFamilyTree).toBe(false)
+    expect(useUIStore.getState().familyTreeFocus).toBeNull()
+  })
+})

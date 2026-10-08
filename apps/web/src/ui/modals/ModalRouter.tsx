@@ -42,6 +42,7 @@ export function ModalRouter({ world, lineages, onGuide }: Props) {
   const showLanguages = useUIStore((s) => s.showLanguages)
   const showChronicles = useUIStore((s) => s.showChronicles)
   const showFamilyTree = useUIStore((s) => s.showFamilyTree)
+  const familyTreeFocus = useUIStore((s) => s.familyTreeFocus)
   const showOrgSearch = useUIStore((s) => s.showOrgSearch)
   const showStats = useUIStore((s) => s.showStats)
   const showAllLineages = useUIStore((s) => s.showAllLineages)
@@ -87,6 +88,7 @@ export function ModalRouter({ world, lineages, onGuide }: Props) {
             organisms={world.organisms}
             currentTick={world.tick}
             sexWords={world.sex_words}
+            focusId={familyTreeFocus}
             onClose={closeFamilyTree}
           />
         )}

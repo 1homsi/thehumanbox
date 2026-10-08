@@ -122,6 +122,16 @@ function OrgCardImpl({ orgId }: OrgCardProps) {
               💬{convoCount}
             </button>
           )}
+          <button
+            className="org-action-btn org-tree-btn"
+            title="family tree"
+            onClick={(e) => {
+              e.stopPropagation()
+              useUIStore.getState().openFamilyTree(org.id)
+            }}
+          >
+            🌳
+          </button>
           {onTrack && (
             <button
               className="org-action-btn org-track-btn"

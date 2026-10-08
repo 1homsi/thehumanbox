@@ -6,6 +6,8 @@ export interface ModalsSlice {
   showLanguages: boolean
   showChronicles: boolean
   showFamilyTree: boolean
+  /** The person the family tree opens on, or null for the whole population. */
+  familyTreeFocus: string | null
   showOrgSearch: boolean
   showStats: boolean
   showAllLineages: boolean
@@ -19,7 +21,7 @@ export interface ModalsSlice {
   closeLanguages: () => void
   openChronicles: () => void
   closeChronicles: () => void
-  openFamilyTree: () => void
+  openFamilyTree: (focusId?: string | null) => void
   closeFamilyTree: () => void
   openOrgSearch: () => void
   closeOrgSearch: () => void
@@ -44,6 +46,7 @@ export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (se
   showLanguages: false,
   showChronicles: false,
   showFamilyTree: false,
+  familyTreeFocus: null,
   showOrgSearch: false,
   showStats: false,
   showAllLineages: false,
@@ -63,11 +66,11 @@ export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (se
     set({ showChronicles: true })
   },
   closeChronicles: () => set({ showChronicles: false }),
-  openFamilyTree: () => {
+  openFamilyTree: (focusId = null) => {
     trackEvent('modal_open', { modal: 'family_tree' })
-    set({ showFamilyTree: true })
+    set({ showFamilyTree: true, familyTreeFocus: focusId })
   },
-  closeFamilyTree: () => set({ showFamilyTree: false }),
+  closeFamilyTree: () => set({ showFamilyTree: false, familyTreeFocus: null }),
   openOrgSearch: () => {
     trackEvent('modal_open', { modal: 'org_search' })
     set({ showOrgSearch: true })
@@ -113,6 +116,7 @@ export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (se
       showLanguages: false,
       showChronicles: false,
       showFamilyTree: false,
+      familyTreeFocus: null,
       showOrgSearch: false,
       showStats: false,
       showAllLineages: false,
