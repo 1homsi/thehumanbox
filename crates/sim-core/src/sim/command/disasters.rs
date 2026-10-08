@@ -472,6 +472,81 @@ impl Simulation {
         maddened > 0
     }
 
+    /// A tsunami: a wave out of the nearest sea runs up the coast and inland.
+    /// Every land tile within `radius` of the coast point floods (and drains
+    /// again later); buildings near the shore are wrecked, people in the wave
+    /// are hurt and land animals in it drown. Fails when no sea lies near the
+    /// click.
+    pub(super) fn cmd_tsunami(&mut self, x: i32, y: i32, radius: i32) -> bool {
+        use crate::sim::civ::building_damage::{strike_buildings, DamageCause};
+        let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
+        let mut coast: Option<(i32, i32, i32)> = None;
+        for dx in -12..=12 {
+            for dy in -12..=12 {
+                let (nx, ny) = (x + dx, y + dy);
+                if !WorldGrid::in_bounds(nx, ny) || self.grid.get(nx, ny) != Tile::Water {
+                    continue;
+                }
+                let d = dx * dx + dy * dy;
+                if coast.is_none_or(|(_, _, best)| d < best) {
+                    coast = Some((nx, ny, d));
+                }
+            }
+        }
+        let Some((sx, sy, _)) = coast else {
+            return false;
+        };
+        let r = radius.clamp(6, 20);
+        let mut flooded = 0;
+        for dx in -r..=r {
+            for dy in -r..=r {
+                let (nx, ny) = (sx + dx, sy + dy);
+                if !WorldGrid::in_bounds(nx, ny) || dx * dx + dy * dy > r * r {
+                    continue;
+                }
+                if matches!(
+                    self.grid.get(nx, ny),
+                    Tile::Void | Tile::Rock | Tile::Water | Tile::Mineral | Tile::Hut
+                ) {
+                    continue;
+                }
+                self.grid.set(nx, ny, Tile::Flooded);
+                *self.grid.fire_intensity_mut(nx, ny) = 0.0;
+                if self.flood_tiles.len() < crate::sim::world_events::MAX_FLOOD_TILES {
+                    let stay = crate::sim::world_events::FLOOD_RIM_TICKS;
+                    self.flood_tiles.push((nx, ny, self.tick_count + stay));
+                }
+                flooded += 1;
+            }
+        }
+        if flooded == 0 {
+            return false;
+        }
+        let rf = r as f32;
+        for o in self.organisms.iter_mut() {
+            if o.alive && (o.x - sx as f32).hypot(o.y - sy as f32) <= rf {
+                o.health = (o.health - 0.35).max(0.01);
+                o.mark_harm(crate::organism::organism::Harm::Disaster, self.tick_count);
+                o.fear_level = (o.fear_level + 0.5).min(1.0);
+                o.think("a wave swept us off our feet", self.tick_count);
+            }
+        }
+        for a in self.animals.iter_mut() {
+            if a.alive
+                && !a.kind.aquatic()
+                && !a.kind.flies()
+                && (a.x - sx as f32).hypot(a.y - sy as f32) <= rf
+                && self.grid.get(a.x as i32, a.y as i32) == Tile::Flooded
+            {
+                a.alive = false;
+            }
+        }
+        strike_buildings(self, sx, sy, rf, 0.9, 0.3, DamageCause::Flood);
+        let now = self.tick_count;
+        push_event(&mut self.events, now, "danger", "a tsunami", "ran up the coast");
+        true
+    }
+
     pub(super) fn cmd_flood(&mut self, x: i32, y: i32, radius: i32) -> bool {
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
         let r = if radius <= 0 { 4 } else { radius.min(20) };

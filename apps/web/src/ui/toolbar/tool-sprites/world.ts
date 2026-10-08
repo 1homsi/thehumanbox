@@ -248,6 +248,16 @@ export const worldSprites = {
     '..R.R...R.R.',
     '..o.o...o.o.',
   ],
+  tsunami: [
+    '.....sss....',
+    '...sssssss..',
+    '..ssssssssss',
+    '.ssssssssss.',
+    'bbbbbbbbbbbb',
+    'bBbbbBbbbbBb',
+    'BBbbbbbBbbbB',
+    'BBBBBBBBBBBB',
+  ],
   tornado: [
     '.ssssssssss.',
     '..ssssssss..',
