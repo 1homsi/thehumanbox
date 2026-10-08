@@ -19,6 +19,7 @@ const SEASON_TIPS: Record<string, string> = {
 import { getDesktop } from '../../shared/desktop'
 import { PrayerChip } from '../panels/PrayerChip'
 import { PerilChip } from '../panels/PerilChip'
+import { CalendarChip } from '../panels/CalendarChip'
 
 interface Props {
   world: WorldState | null
@@ -131,6 +132,7 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
         )}
       </div>
       <div className="header-badges">
+        {world && <CalendarChip tick={world.tick} />}
         {world && <PerilChip world={world} />}
         {world && <PrayerChip world={world} onAnswer={onAnswerPrayer} />}
         {world && livePopulation > 0 && (

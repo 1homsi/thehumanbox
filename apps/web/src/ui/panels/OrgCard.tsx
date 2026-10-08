@@ -4,6 +4,7 @@ import { lineageColor, cbColor } from '../../shared/constants'
 import { useUIStore } from '../../state/store'
 import { useOrganism, useWorldStore } from '../../state/worldStore'
 import { Tooltip } from '../toolbar/Tooltip'
+import { ageInYears } from '../../game/model/calendar'
 
 function Bar({ label, value, color, tip }: { label: string; value: number; color: string; tip?: string }) {
   const labelEl = (
@@ -102,10 +103,10 @@ function OrgCardImpl({ orgId }: OrgCardProps) {
           </Tooltip>
         )}
         <Tooltip
-          tip={`Generation ${org.generation} · age ${org.age} ticks (${Math.floor(org.age / 600)} days)`}
+          tip={`Generation ${org.generation} · ${ageInYears(org.age)} old (${org.age.toLocaleString()} ticks)`}
         >
           <span className="org-meta" style={{ cursor: 'default' }}>
-            g{org.generation} · {org.age}
+            g{org.generation} · {ageInYears(org.age)}
           </span>
         </Tooltip>
         <span className="org-action-btns">

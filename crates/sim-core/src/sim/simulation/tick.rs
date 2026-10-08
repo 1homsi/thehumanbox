@@ -52,6 +52,7 @@ impl Simulation {
             );
         }
 
+        self.tick_new_year();
         let season = self.season();
         self.physics.growth_mult = season_growth(season);
         self.physics.food_season = crate::sim::seasons::food_season(season);
