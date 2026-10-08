@@ -96,6 +96,10 @@ export class PeopleSprites {
   /** Appearance index (from the id) and body radius (from the id), per slot. */
   private appearance = new Uint32Array(0)
   private radius = new Float64Array(0)
+  /** Each slot's body radius: `orgVariant(id).bodyRadius` for the id in that slot. */
+  get bodyRadius(): Float64Array {
+    return this.radius
+  }
   private restCandidate = new Uint8Array(0)
   /** Layer index of this rider's boat, or -1. */
   private boatIdx = new Int32Array(0)

@@ -43,6 +43,61 @@ describe('crowd label winners', () => {
   })
 })
 
+describe('label placer keys', () => {
+  it('places the same boxes as a float-keyed reference, near the origin and far beyond the Smi range', () => {
+    // The reference: the same overlap test with every bucket keyed by its float key.
+    class Reference {
+      private cells = new Map<number, number[]>()
+      place(x: number, y: number, w: number, h: number, force = false): boolean {
+        const x0 = x - w / 2
+        const y0 = y - h
+        const x1 = x + w / 2
+        const y1 = y
+        const cx0 = Math.floor(x0 / 48)
+        const cx1 = Math.floor(x1 / 48)
+        const cy0 = Math.floor(y0 / 48)
+        const cy1 = Math.floor(y1 / 48)
+        const key = (cx: number, cy: number) => (cx + 0x100000) * 0x400000 + (cy + 0x100000)
+        if (!force) {
+          for (let cx = cx0; cx <= cx1; cx++)
+            for (let cy = cy0; cy <= cy1; cy++) {
+              const list = this.cells.get(key(cx, cy))
+              if (!list) continue
+              for (let i = 0; i < list.length; i += 4)
+                if (x0 < list[i + 2] && x1 > list[i] && y0 < list[i + 3] && y1 > list[i + 1]) return false
+            }
+        }
+        for (let cx = cx0; cx <= cx1; cx++)
+          for (let cy = cy0; cy <= cy1; cy++) {
+            const list = this.cells.get(key(cx, cy))
+            if (list) list.push(x0, y0, x1, y1)
+            else this.cells.set(key(cx, cy), [x0, y0, x1, y1])
+          }
+        return true
+      }
+    }
+    let seed = 7
+    const rand = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff
+      return seed / 0x7fffffff
+    }
+    for (const [spread, offset] of [
+      [2000, 0],
+      [2000, -1e6],
+      [2000, 5e7],
+    ] as const) {
+      const fast = new LabelPlacer()
+      const ref = new Reference()
+      for (let k = 0; k < 800; k++) {
+        const x = offset + rand() * spread
+        const y = offset + rand() * spread
+        const force = rand() < 0.05
+        expect(fast.place(x, y, 40, 10, force)).toBe(ref.place(x, y, 40, 10, force))
+      }
+    }
+  })
+})
+
 describe('label placer', () => {
   it('skips labels that would overlap and always keeps forced ones', () => {
     const placer = new LabelPlacer()
