@@ -4,7 +4,8 @@ export type SandboxCommand =
   | { cmd: 'heal'; x: number; y: number; radius?: number }
   | { cmd: 'paint'; x: number; y: number; tile: string; radius?: number }
   | { cmd: 'ignite'; x: number; y: number; radius?: number }
-  | { cmd: 'weather'; kind: 'clear' | 'rain' | 'storm' }
+  | { cmd: 'weather'; kind: 'clear' | 'rain' | 'storm' | 'snow' | 'fog' }
+  | { cmd: 'gale' }
   | { cmd: 'drought'; active: boolean }
   | { cmd: 'outbreak'; count?: number }
   | { cmd: 'restore'; x: number; y: number; radius?: number }
@@ -274,6 +275,8 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
       },
       { id: 'rain', label: 'rain', icon: '🌧️', mode: 'instant', fire: { cmd: 'weather', kind: 'rain' } },
       { id: 'clear', label: 'clear', icon: '☀️', mode: 'instant', fire: { cmd: 'weather', kind: 'clear' } },
+      { id: 'fog', label: 'fog', icon: '🌫️', mode: 'instant', fire: { cmd: 'weather', kind: 'fog' } },
+      { id: 'gale', label: 'gale', icon: '🌬️', mode: 'instant', fire: { cmd: 'gale' } },
       {
         id: 'drought_off',
         label: 'end dry',
@@ -381,6 +384,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         build: (x, y, b) => ({ cmd: 'blizzard', x, y, radius: 4 + b }),
       },
       { id: 'storm', label: 'storm', icon: '⛈️', mode: 'instant', fire: { cmd: 'weather', kind: 'storm' } },
+      {
+        id: 'snow_weather',
+        label: 'snowfall',
+        icon: '☃️',
+        mode: 'instant',
+        fire: { cmd: 'weather', kind: 'snow' },
+      },
       {
         id: 'drought_on',
         label: 'drought',

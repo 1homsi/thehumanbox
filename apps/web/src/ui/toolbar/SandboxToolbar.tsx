@@ -142,6 +142,8 @@ export function SandboxToolbar({
   const isStateActive = (tool: SandboxTool) =>
     (tool.id === 'rain' && weather === 'rain') ||
     (tool.id === 'storm' && weather === 'storm') ||
+    (tool.id === 'snow_weather' && weather === 'snow') ||
+    (tool.id === 'fog' && weather === 'fog') ||
     (tool.id === 'drought_on' && drought)
   const tabEngaged = (id: string) =>
     groupsFor(id).some((c) => c.tools.some((t) => armedToolId === t.id || isViewActive(t)))

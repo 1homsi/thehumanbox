@@ -79,6 +79,8 @@ impl WeatherState {
         match self.kind {
             1 => "rain",
             2 => "storm",
+            3 => "snow",
+            4 => "fog",
             _ => "clear",
         }
     }
@@ -86,6 +88,8 @@ impl WeatherState {
         match self.kind {
             2 => "storm",
             1 => "rain",
+            3 => "snow",
+            4 => "fog",
             _ => {
                 if tick < self.wet_until {
                     "wet"
@@ -253,6 +257,21 @@ pub(super) fn apply_weather(
         let idx = WorldGrid::idx(x, y);
         if grid.fertility[idx] < 0.35 {
             grid.fertility[idx] = (grid.fertility[idx] + 0.015 * weather.intensity).min(0.55);
+        }
+    }
+
+    if weather.kind == 3 {
+        // Snow settles on open ground wherever it falls, and melts again on
+        // warm land (the thaw rule in the physics). It chills everyone out in it.
+        for _ in 0..6 {
+            let x = rng.random_range(1..WIDTH as i32 - 1);
+            let y = rng.random_range(1..HEIGHT as i32 - 1);
+            if matches!(grid.get(x, y), Tile::Grass | Tile::Sand) && rng.random::<f32>() < weather.intensity {
+                grid.set(x, y, Tile::Snow);
+            }
+        }
+        for org in organisms.iter_mut().filter(|o| o.alive) {
+            org.energy = (org.energy - 0.0004 * weather.intensity).max(0.0);
         }
     }
 

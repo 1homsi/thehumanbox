@@ -52,6 +52,10 @@ const TOOL_TIPS: Record<string, string> = {
   grid_view: 'Draw the tile grid.',
   plant_berry: 'Plant berry bushes. They fruit, get picked, and fruit again. Asleep through winter.',
   plant_mushroom: 'Scatter mushrooms in the woods. They only take root in shade and come up fast in autumn.',
+  fog: 'Roll in fog: damp, grey air for a while. The ground stays wet; no lightning and no snow.',
+  gale: 'A gale: the wind turns to a random quarter and blows hard, carrying rain, smoke and fire before it.',
+  snow_weather:
+    'Snow falls for a while. It settles on open ground, melts again on warm land, and chills anyone out in it.',
   restore:
     'Erase your changes to the land in the brush area: water drains, fire and ash cool, and sand or snow goes back to what the biome holds. Rock and buildings stay.',
   place_house:
