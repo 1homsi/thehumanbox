@@ -24,6 +24,7 @@ import {
 } from './paint-ground'
 import { hazeLevels, paintHaze } from './haze'
 import { paintFallingLeaves } from './falling-leaves'
+import { FootstepDust } from './footstep-dust'
 import { vegetationSeason } from '../../landscape-style'
 import { terrainSeason } from '../../terrain-season'
 import { paintHud } from './paint-hud'
@@ -136,6 +137,7 @@ export class CfOverlayRenderer {
   private groundFlags: unknown = null
   private groundAt = -Infinity
   private readonly weatherFx: WeatherFxState = newWeatherFxState()
+  private readonly dust = new FootstepDust()
   lastResult: UpdateResult = { times: ZERO_TIMES(), sprites: 0, heatRebuilt: false, unsupported: {} }
 
   private readonly host: RenderHost
@@ -271,6 +273,9 @@ export class CfOverlayRenderer {
       paintPuddles(ground, f, wetnessOf(f.world))
       paintHaze(ground, f, hazeLevels(f.world), f.t)
       paintStars(ground, f.bounds, f.ox, f.oy, f.t, nightLevel(f.world))
+      const { c0, c1, r0, r1 } = f.bounds
+      this.dust.observe(f.organisms, f.t, { x0: c0, y0: r0, x1: c1, y1: r1 })
+      this.dust.paint(ground, f.ox, f.oy, f.t)
       if (vegetationSeason(terrainSeason(f.world)) === 'autumn') {
         const { c0, c1, r0, r1 } = f.bounds
         paintFallingLeaves(
