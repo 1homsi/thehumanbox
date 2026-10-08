@@ -340,6 +340,7 @@ impl Simulation {
                 vehicle.route.clear();
             }
         }
+        self.separate_crowds();
         for i in 0..self.organisms.len() {
             if self.organisms[i].alive {
                 let prev_len = self.organisms.len();
