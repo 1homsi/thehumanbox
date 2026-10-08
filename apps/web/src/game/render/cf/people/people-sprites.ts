@@ -102,10 +102,10 @@ export class PeopleSprites {
   labelFlags = new Uint8Array(0)
   private motion = new MotionStore()
   private oldMotion = new MotionStore()
-  private index = new Map<string, number>()
-  private oldIndex = new Map<string, number>()
-  private prevSource: readonly OrganismState[] | null = null
-  private prevById = new Map<string, OrganismState>()
+  /** Slot-of-id map, built on demand by `slotOf` (the hot path never hashes ids). */
+  private slotMap: Map<string, number> | null = null
+  /** The previous rebuild's ids (slot order), swapped with `ids` each rebuild. */
+  private spareIds: string[] = []
   private ox = 0
   private oy = 0
   private lastMoved = -Infinity
@@ -113,16 +113,19 @@ export class PeopleSprites {
 
   /** Every frame touches every sprite (the reference the tests compare the default against). */
   private readonly touchAll: boolean
+  /** Always look people up by id in a map (the reference the tests compare the positional path against). */
+  private readonly mapLookups: boolean
 
   constructor(
     layers: { body: SpriteLayer; soft: SpriteLayer; over: SpriteLayer; emote: SpriteLayer },
-    options: { touchAll?: boolean } = {},
+    options: { touchAll?: boolean; mapLookups?: boolean } = {},
   ) {
     this.body = layers.body
     this.soft = new AttachedSprites(layers.soft)
     this.over = new AttachedSprites(layers.over)
     this.emotes = new AttachedSprites(layers.emote)
     this.touchAll = options.touchAll ?? false
+    this.mapLookups = options.mapLookups ?? false
   }
 
   private reserve(n: number): void {
@@ -158,7 +161,11 @@ export class PeopleSprites {
 
   /** Slot of a person by id, or -1. */
   slotOf(id: string): number {
-    return this.index.get(id) ?? -1
+    if (this.slotMap === null) {
+      this.slotMap = new Map()
+      for (let j = 0; j < this.ids.length; j++) this.slotMap.set(this.ids[j], j)
+    }
+    return this.slotMap.get(id) ?? -1
   }
 
   /** Walking state per slot: the last step's direction and time, for names and work poses. */
@@ -176,19 +183,19 @@ export class PeopleSprites {
     const { orgs, selectedId, focus, viewFlags, zoom, ox, oy } = input
     this.ox = ox
     this.oy = oy
-    if (input.prevOrgs !== this.prevSource) {
-      this.prevSource = input.prevOrgs
-      this.prevById.clear()
-      if (input.prevOrgs) for (const o of input.prevOrgs) this.prevById.set(o.id, o)
-    }
-    // Swap the motion stores and index maps: the old ones feed the new order.
+    // Swap the motion stores: the old ones feed the new order. The previous ids (slot order) are
+    // kept in `oldIds`, so a person usually finds their old slot at the same index without hashing.
     const tmp = this.oldMotion
     this.oldMotion = this.motion
     this.motion = tmp
-    const tmpIndex = this.oldIndex
-    this.oldIndex = this.index
-    this.index = tmpIndex
-    this.index.clear()
+    const oldIds = this.ids
+    this.ids = this.spareIds
+    this.spareIds = oldIds
+    this.slotMap = null
+    let oldLookup: Map<string, number> | null = null
+    const prevList = input.prevOrgs
+    let prevLookup: Map<string, number> | null = null
+    let prevCursor = 0
 
     let alive = 0
     for (const o of orgs) if (o.alive) alive++
@@ -214,10 +221,26 @@ export class PeopleSprites {
       const id = org.id
       this.ids.push(id)
       this.orgs.push(org)
-      this.index.set(id, j)
       this.toX[j] = org.x
       this.toY[j] = org.y
-      const p = this.prevById.get(id)
+      // The previous frame's copy of this person: the next one in its list if the lists agree (the
+      // usual case: the sim keeps its order), else a lookup by id.
+      let p: OrganismState | undefined
+      if (prevList) {
+        if (!this.mapLookups && prevCursor < prevList.length && prevList[prevCursor].id === id) {
+          p = prevList[prevCursor++]
+        } else {
+          if (prevLookup === null) {
+            prevLookup = new Map()
+            for (let k = 0; k < prevList.length; k++) prevLookup.set(prevList[k].id, k)
+          }
+          const k = prevLookup.get(id)
+          if (k !== undefined) {
+            p = prevList[k]
+            prevCursor = k + 1
+          }
+        }
+      }
       if (p && p.alive) {
         this.fromX[j] = p.x
         this.fromY[j] = p.y
@@ -225,7 +248,16 @@ export class PeopleSprites {
         this.fromX[j] = org.x
         this.fromY[j] = org.y
       }
-      const old = this.oldIndex.get(id)
+      let old: number | undefined
+      if (!this.mapLookups && j < oldIds.length && oldIds[j] === id) {
+        old = j
+      } else {
+        if (oldLookup === null) {
+          oldLookup = new Map()
+          for (let k = 0; k < oldIds.length; k++) oldLookup.set(oldIds[k], k)
+        }
+        old = oldLookup.get(id)
+      }
       if (old !== undefined) this.motion.copyFrom(this.oldMotion, old, j)
       else this.motion.init(j, this.fromX[j], this.fromY[j])
       this.phase[j] = orgAnimPhase(id)
