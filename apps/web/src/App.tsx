@@ -51,6 +51,7 @@ import { WorldFooter } from './ui/panels/WorldFooter'
 import { AppHeader } from './ui/toolbar/AppHeader'
 import { RightPanel } from './ui/panels/RightPanel'
 import { ModalRouter } from './ui/modals/ModalRouter'
+import { SaveSlotsModal } from './ui/modals/SaveSlotsModal'
 import { MobileBanner } from './ui/toasts/MobileBanner'
 import { WelcomeModal } from './ui/modals/WelcomeModal'
 import { UpdateToast } from './ui/toasts/UpdateToast'
@@ -97,6 +98,9 @@ function LiveApp() {
     sandboxAvailable,
     sendCommand,
     undoLastAction,
+    saveSlot,
+    loadSlot,
+    listSaveSlots,
     pauseSim,
     setSpeed,
     runtimeState,
@@ -121,6 +125,8 @@ function LiveApp() {
   const [armedTool, setArmedTool] = useState<SandboxTool | null>(null)
   const [brush, setBrush] = useState(2)
   const [sandboxStatus, setSandboxStatus] = useState<string | null>(null)
+  const showSaveSlots = useUIStore((s) => s.showSaveSlots)
+  const closeSaveSlots = useUIStore((s) => s.closeSaveSlots)
   const sandboxStatusTimer = useRef<number | null>(null)
   const sandboxControlsEnabled = sandboxAvailable && (!desktop || desktopMode === 'local')
 
@@ -776,6 +782,7 @@ function LiveApp() {
               setTemporarySandboxStatus('map layers cleared')
             }}
             onUndo={isLocalWebWorld ? onUndo : undefined}
+            onSaveSlots={isLocalWebWorld ? () => useUIStore.getState().openSaveSlots() : undefined}
             onSave={
               isLocalWebWorld || (desktop && desktopMode === 'local')
                 ? () => void saveLocalWorld()
@@ -813,6 +820,14 @@ function LiveApp() {
             world={world}
             lineages={lineages}
             onGuide={sandboxControlsEnabled ? guideLineage : undefined}
+          />
+        )}
+        {showSaveSlots && isLocalWebWorld && (
+          <SaveSlotsModal
+            listSlots={listSaveSlots}
+            saveSlot={saveSlot}
+            loadSlot={loadSlot}
+            onClose={closeSaveSlots}
           />
         )}
 
