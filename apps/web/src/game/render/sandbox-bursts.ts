@@ -104,10 +104,12 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'restore':
       return 'grow'
     case 'arm':
+    case 'courage':
       return 'inspire'
     case 'bounty':
     case 'ward':
     case 'revive':
+    case 'long_life':
       return 'bless'
     case 'douse':
     case 'flood':
