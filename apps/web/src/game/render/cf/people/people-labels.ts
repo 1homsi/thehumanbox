@@ -3,7 +3,7 @@ import type { ViewFlags } from '../../../../state/store'
 import { orgVariant } from '../../../model/org-variant'
 import { drawWorkActivity, workActivity } from '../../activity-visuals'
 import { zoomDetailLevel } from '../../character-visuals'
-import { LabelPlacer, crowdLabelIdsAt, labelWidth } from '../../crowd-detail'
+import { LabelPlacer, crowdLabelWinners, labelWidth } from '../../crowd-detail'
 import {
   celebrating,
   drawCelebrationGlyph,
@@ -98,6 +98,8 @@ const THOUGHT = 16
 /** Scratch space reused between frames: the painter runs up to 30 times a second over a crowd. */
 let onScreenScratch = new Int32Array(0)
 let flagsScratch = new Uint8Array(0)
+/** Per slot: 1 when the crowd thinning gives this person the name tag of their screen cell. */
+let nameWinnerScratch = new Uint8Array(0)
 /** The people with something to draw, in draw order: last frame's (`orderPrev`) and this frame's (`orderNext`). */
 let orderPrev = new Int32Array(0)
 let orderNext = new Int32Array(0)
@@ -168,6 +170,7 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
     const cap = Math.max(n, onScreenScratch.length * 2, 256)
     onScreenScratch = new Int32Array(cap)
     flagsScratch = new Uint8Array(cap)
+    nameWinnerScratch = new Uint8Array(cap)
     orderPrev = new Int32Array(cap)
     orderNext = new Int32Array(cap)
     flaggedAt = new Uint32Array(cap)
@@ -188,10 +191,12 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
     if (lx < c0 - 8 || lx > c1 + 8 || ly < r0 - 8 || ly > r1 + 8) continue
     onScreen[count++] = j
   }
-  const labelIds =
+  // Crowds over 400 show one name per screen cell (`nameWinnerScratch` marks who); smaller ones show all.
+  const thinNames =
     detail !== 'overview' && viewFlags.names
-      ? crowdLabelIdsAt(orgs, onScreen, count, zoom, tileX, tileY, ids)
-      : null
+      ? crowdLabelWinners(orgs, onScreen, count, zoom, nameWinnerScratch, tileX, tileY, ids)
+      : false
+  const nameWinner = nameWinnerScratch
   const effects = prayerEffectsActive()
   let prayerSpots: Map<string, PrayerInfo> | null = null
   if (input.prayers && input.prayers.length > 0) {
@@ -229,7 +234,10 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
         }
       }
     }
-    if (f & LABEL_NAME && (isSelected || (standard && viewFlags.names && (!labelIds || labelIds.has(id)))))
+    if (
+      f & LABEL_NAME &&
+      (isSelected || (standard && viewFlags.names && (!thinNames || nameWinner[j] === 1)))
+    )
       mask |= NAME
     if (f & LABEL_THOUGHT && (isSelected || (full && viewFlags.thoughts))) mask |= THOUGHT
     flags[j] = mask
