@@ -103,6 +103,8 @@ export interface OrganismState extends ExtendedEmotions {
   degrees?: string[]
   wealth?: number
   specialty?: string
+  /** How practised the person is at their specialty, 0 to 1. */
+  skill?: number
   religion_id?: string | null
   piety?: number
   diseases?: Array<{ kind: string; started_tick: number }>

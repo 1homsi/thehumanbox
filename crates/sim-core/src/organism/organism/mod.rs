@@ -154,6 +154,9 @@ pub struct Organism {
     pub university_ticks: u32,
     pub piety: f32,
     pub specialty: Option<String>,
+    /// Practice in each trade this person has worked at, 0 to 1. Grows with
+    /// every attempt at the trade's actions and is kept when they change job.
+    pub practice: BTreeMap<String, f32>,
     pub religion_id: Option<String>,
     pub degrees: Vec<String>,
     pub tools: BTreeMap<String, u8>,
@@ -283,6 +286,7 @@ impl Organism {
             university_ticks: 0,
             piety: 0.0,
             specialty: None,
+            practice: BTreeMap::new(),
             religion_id: None,
             degrees: Vec::new(),
             tools: BTreeMap::new(),

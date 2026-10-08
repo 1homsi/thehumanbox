@@ -151,6 +151,22 @@ impl Organism {
             } else {
                 None
             },
+            specialty: if include_cold {
+                self.specialty.clone()
+            } else {
+                None
+            },
+            skill: if include_cold && self.specialty.is_some() {
+                let skill = self
+                    .specialty
+                    .as_ref()
+                    .and_then(|t| self.practice.get(t))
+                    .copied()
+                    .unwrap_or(0.0);
+                Some((skill * 100.0).round() / 100.0)
+            } else {
+                None
+            },
             sleep_debt: if include_cold {
                 Some((self.sleep_debt * 100.0).round() / 100.0)
             } else {
@@ -378,6 +394,12 @@ impl Organism {
             put("spiritual", r2(self.spiritual));
             if !self.aspiration.is_empty() {
                 put("aspiration", text(&self.aspiration));
+            }
+            // The trade this person works at, and how practised they are at it (0 to 1).
+            if let Some(trade) = &self.specialty {
+                put("specialty", text(trade));
+                let skill = self.practice.get(trade).copied().unwrap_or(0.0);
+                put("skill", r2(skill));
             }
             put("sleep_debt", r2(self.sleep_debt));
             put("children_count", Value::from(self.children_count));
@@ -854,6 +876,10 @@ pub struct OrgJson {
     pub aspiration: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sleep_debt: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub specialty: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skill: Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub children_count: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

@@ -413,3 +413,14 @@ fn every_animal_kind_survives_a_save() {
         );
     }
 }
+
+#[test]
+fn practice_in_a_trade_survives_a_save() {
+    let mut sim = Simulation::new(0x5C11);
+    sim.organisms[0].specialty = Some("farmer".into());
+    sim.organisms[0].practice.insert("farmer".into(), 0.42);
+    let encoded = serde_json::to_string(&sim.to_save_state()).expect("serialize");
+    let decoded: SaveState = serde_json::from_str(&encoded).expect("deserialize");
+    let loaded = Simulation::from_save(sim.world_seed, decoded);
+    assert_eq!(loaded.organisms[0].practice.get("farmer").copied(), Some(0.42));
+}
