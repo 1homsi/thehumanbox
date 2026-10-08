@@ -450,3 +450,13 @@ fn family_names_survive_a_save_and_old_saves_derive_one() {
         surname_for_id(&loaded.organisms[0].id)
     );
 }
+
+#[test]
+fn generations_reached_survive_a_save() {
+    let mut sim = Simulation::new(0x6E7);
+    sim.lineage_generations_reached.insert("lin-a".into(), 5);
+    let encoded = serde_json::to_string(&sim.to_save_state()).expect("serialize");
+    let decoded: SaveState = serde_json::from_str(&encoded).expect("deserialize");
+    let loaded = Simulation::from_save(sim.world_seed, decoded);
+    assert_eq!(loaded.lineage_generations_reached.get("lin-a"), Some(&5));
+}

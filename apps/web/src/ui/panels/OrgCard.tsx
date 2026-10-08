@@ -5,6 +5,7 @@ import { useUIStore } from '../../state/store'
 import { useOrganism, useWorldStore } from '../../state/worldStore'
 import { Tooltip } from '../toolbar/Tooltip'
 import { ageInYears } from '../../game/model/calendar'
+import { shownGeneration } from '../../game/model/generations'
 
 function Bar({ label, value, color, tip }: { label: string; value: number; color: string; tip?: string }) {
   const labelEl = (
@@ -106,10 +107,10 @@ function OrgCardImpl({ orgId }: OrgCardProps) {
           </Tooltip>
         )}
         <Tooltip
-          tip={`Generation ${org.generation} · ${ageInYears(org.age)} old (${org.age.toLocaleString()} ticks)`}
+          tip={`Generation ${shownGeneration(org.generation)} · ${ageInYears(org.age)} old (${org.age.toLocaleString()} ticks)`}
         >
           <span className="org-meta" style={{ cursor: 'default' }}>
-            g{org.generation} · {ageInYears(org.age)}
+            Generation {shownGeneration(org.generation)} · {ageInYears(org.age)}
           </span>
         </Tooltip>
         <span className="org-action-btns">

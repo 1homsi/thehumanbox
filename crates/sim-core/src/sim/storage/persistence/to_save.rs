@@ -52,6 +52,7 @@ impl Simulation {
                 .collect(),
             lineage_homes: self.lineage_homes.clone(),
             lineage_eras: self.lineage_eras.clone(),
+            lineage_generations_reached: self.lineage_generations_reached.clone(),
             events: self.events.iter().rev().take(200).rev().cloned().collect(),
             organisms: self.organisms.iter().map(org_to_save).collect(),
             animals: self.animals.iter().map(animal_to_save).collect(),

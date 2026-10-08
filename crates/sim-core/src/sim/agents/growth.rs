@@ -587,7 +587,8 @@ pub fn deliver_births(
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
     history: &mut History,
-) {
+) -> Vec<(String, u32)> {
+    let mut born: Vec<(String, u32)> = Vec::new();
     let unborn_map: rustc_hash::FxHashMap<String, usize> = organisms
         .iter()
         .enumerate()
@@ -726,7 +727,9 @@ pub fn deliver_births(
             &format!("gen{} born to {}", generation, parent_name),
         );
         history.births += 1;
+        born.push((organisms[ci].lineage_id.clone(), generation));
     }
+    born
 }
 
 fn find_spawn_near(grid: &WorldGrid, x: i32, y: i32, rng: &mut impl Rng) -> Option<(i32, i32)> {

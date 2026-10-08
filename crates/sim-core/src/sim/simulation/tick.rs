@@ -229,12 +229,13 @@ impl Simulation {
         }
         crate::sim::civ::building_damage::tick_building_damage(self);
 
-        growth::deliver_births(
+        let born = growth::deliver_births(
             &mut self.organisms,
             self.tick_count,
             &mut self.events,
             &mut self.history,
         );
+        self.note_generations(&born);
 
         if self.tick_count.is_multiple_of(DAY_LENGTH) {
             let alive = self.organisms.iter().filter(|o| o.alive).count() as u64;
