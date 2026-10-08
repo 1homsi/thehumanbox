@@ -78,14 +78,14 @@ describe('dock layout stays complete as tools are added', () => {
 
   it('offers gift food and gift tool as life tools that send a gift to the person nearest the click', () => {
     const life = SANDBOX_CATEGORIES.find((c) => c.id === 'life')?.tools ?? []
-    expect(life.find((t) => t.id === 'gift_food')?.build?.(10, 20)).toEqual({
+    expect(life.find((t) => t.id === 'gift_food')?.build?.(10, 20, 1)).toEqual({
       cmd: 'gift',
       x: 10,
       y: 20,
       radius: 4,
       what: 'food',
     })
-    expect(life.find((t) => t.id === 'gift_tool')?.build?.(10, 20)).toEqual({
+    expect(life.find((t) => t.id === 'gift_tool')?.build?.(10, 20, 1)).toEqual({
       cmd: 'gift',
       x: 10,
       y: 20,
