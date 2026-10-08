@@ -1,4 +1,5 @@
 import { TILE } from '../../../model/palette'
+import { TILE_ID } from '../../../model/terrain-ids'
 import { unitHash } from './weather-fx'
 
 type Ctx = CanvasRenderingContext2D
@@ -47,27 +48,28 @@ export function emberAt(seed: number, e: number, t: number, cx: number, cy: numb
   return { x: cx + sway + drift, y: cy - rise, age }
 }
 
-/** Paints the embers of every burning cell in the view. `fire` is the grid's fire_intensity. */
-export function paintEmbers(
+/**
+ * Paints embers over every cell in the view whose heat is at least `heatAt`'s threshold (`heatAt`
+ * returns 0 for a cold cell). Grid coordinates are `row - oy` and `col - ox`.
+ */
+function paintEmberCells(
   ctx: Ctx,
-  fire: ReadonlyArray<ReadonlyArray<number>> | undefined,
+  heatAt: (gridRow: number, gridCol: number) => number,
   view: EmberView,
   t: number,
+  perCell: number,
 ): void {
-  if (!fire) return
   let cells = 0
   ctx.save()
   for (let r = view.r0; r < view.r1 && cells < EMBER_CELL_LIMIT; r++) {
-    const row = fire[r - view.oy]
-    if (!row) continue
     for (let c = view.c0; c < view.c1 && cells < EMBER_CELL_LIMIT; c++) {
-      const heat = row[c - view.ox] ?? 0
+      const heat = heatAt(r - view.oy, c - view.ox)
       if (heat < EMBER_FIRE_MIN) continue
       cells++
       const cx = (c - view.ox) * TILE + TILE / 2
       const cy = (r - view.oy) * TILE + TILE * 0.3
       const seed = c * 7919 + r * 104729
-      for (let e = 0; e < EMBERS_PER_CELL; e++) {
+      for (let e = 0; e < perCell; e++) {
         const pose = emberAt(seed, e, t, cx, cy)
         ctx.globalAlpha = Math.min(1, heat) * (1 - pose.age) * 0.9
         ctx.fillStyle = EMBER_COLOURS[(seed + e) % EMBER_COLOURS.length]
@@ -76,4 +78,36 @@ export function paintEmbers(
     }
   }
   ctx.restore()
+}
+
+/** Paints the embers of every burning cell in the view. `fire` is the grid's fire_intensity. */
+export function paintEmbers(
+  ctx: Ctx,
+  fire: ReadonlyArray<ReadonlyArray<number>> | undefined,
+  view: EmberView,
+  t: number,
+): void {
+  if (!fire) return
+  paintEmberCells(ctx, (row, col) => fire[row]?.[col] ?? 0, view, t, EMBERS_PER_CELL)
+}
+
+/** A campfire is a small fire: it throws two embers a cell at a steady heat, not a wildfire's three. */
+export const CAMPFIRE_HEAT = 0.6
+const CAMPFIRE_EMBERS = 2
+
+/** Paints a few embers over each campfire tile in the view (`tiles` is the grid's tile ids). */
+export function paintCampfireSparks(
+  ctx: Ctx,
+  tiles: ReadonlyArray<ReadonlyArray<number>> | undefined,
+  view: EmberView,
+  t: number,
+): void {
+  if (!tiles) return
+  paintEmberCells(
+    ctx,
+    (row, col) => (tiles[row]?.[col] === TILE_ID.CAMPFIRE ? CAMPFIRE_HEAT : 0),
+    view,
+    t,
+    CAMPFIRE_EMBERS,
+  )
 }
