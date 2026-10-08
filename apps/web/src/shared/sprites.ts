@@ -7,6 +7,7 @@ import {
 } from '../game/render/character-visuals'
 import { pickAnimalTile, SPRITE, TILE_PX, type Tile } from './sprite-layout'
 import { rasterizedAtlas } from './rasterized-atlas'
+import { buildPeopleLookAtlas } from '../game/render/cf/people/people-looks'
 
 export { pickAnimalTile, SPRITE, TILE_PX }
 export type { AgeStage, Tile }
@@ -42,8 +43,18 @@ const mirroredPeople = new WeakMap<HTMLCanvasElement, HTMLCanvasElement>()
 
 /** Resolve the current atlas once per population pass, including load/source changes. */
 export function getPeopleAtlas(): HTMLCanvasElement | null {
-  return rasterizedAtlas(ATLAS_PEOPLE)
+  const sheet = rasterizedAtlas(ATLAS_PEOPLE)
+  if (!sheet) return null
+  let looks = lookAtlases.get(sheet)
+  if (!looks) {
+    looks = buildPeopleLookAtlas(sheet)
+    lookAtlases.set(sheet, looks)
+  }
+  return looks
 }
+
+/** The look atlas (every figure in every tint) per rasterised sheet. */
+const lookAtlases = new WeakMap<HTMLCanvasElement, HTMLCanvasElement>()
 
 export function drawPeopleTile(
   ctx: CanvasRenderingContext2D,
