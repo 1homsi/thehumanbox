@@ -72,6 +72,41 @@ fn mushrooms_only_take_root_in_shade() {
 }
 
 #[test]
+fn palms_take_root_only_near_water() {
+    let mut inland = flat_sim(Biome::Grassland);
+    assert!(!inland.apply_command_json(r#"{"cmd":"plant","x":100,"y":100,"kind":"palm","radius":2}"#));
+    assert!(inland.plantings.is_empty(), "no palms far from water");
+
+    let mut coast = flat_sim(Biome::Grassland);
+    for y in 90..=110 {
+        coast.grid.set(99, y, Tile::Water);
+    }
+    assert!(coast.apply_command_json(r#"{"cmd":"plant","x":100,"y":100,"kind":"palm","radius":2}"#));
+    assert!(!coast.plantings.is_empty(), "palms come up by the water");
+    assert!(coast.plantings.values().all(|p| p.kind == PlantKind::Palm));
+}
+
+#[test]
+fn each_tree_matures_into_the_wood_of_its_own_kind() {
+    for (name, kind, expected) in [
+        ("oak", PlantKind::Oak, Biome::Forest),
+        ("pine", PlantKind::Pine, Biome::Taiga),
+    ] {
+        let mut sim = flat_sim(Biome::Grassland);
+        assert!(sim.apply_command_json(&format!(
+            r#"{{"cmd":"plant","x":100,"y":100,"kind":"{name}","radius":0}}"#
+        )));
+        let i = WorldGrid::idx(100, 100) as u32;
+        assert_eq!(sim.plantings[&i].kind, kind);
+        run(&mut sim, 200);
+        assert!(!sim.plantings.contains_key(&i), "{name} has matured");
+        assert_eq!(sim.grid.biome_at(100, 100), expected, "{name} leaves its wood");
+    }
+    assert_eq!(PlantKind::parse("conifer"), Some(PlantKind::Pine));
+    assert!(PlantKind::Palm.is_tree() && !PlantKind::Mushroom.is_tree());
+}
+
+#[test]
 fn mushrooms_ripen_quicker_than_berries() {
     let mut sim = flat_sim(Biome::Forest);
     sim.apply_command_json(r#"{"cmd":"plant","x":100,"y":100,"kind":"mushroom","radius":0}"#);

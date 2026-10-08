@@ -31,6 +31,12 @@ pub enum PlantKind {
     Berry,
     /// Grows only in shade (woods, taiga, jungle, wetland); fast in autumn.
     Mushroom,
+    /// A broadleaf sapling that grows into a forest of oaks.
+    Oak,
+    /// A conifer sapling that grows into a taiga of pines; slow, but grows in winter.
+    Pine,
+    /// A palm that takes root only near water and grows into jungle.
+    Palm,
 }
 
 impl PlantKind {
@@ -42,6 +48,9 @@ impl PlantKind {
             "flower" | "flowers" => Some(PlantKind::Flower),
             "berry" | "berries" | "bush" => Some(PlantKind::Berry),
             "mushroom" | "mushrooms" => Some(PlantKind::Mushroom),
+            "oak" | "oaks" => Some(PlantKind::Oak),
+            "pine" | "pines" | "conifer" => Some(PlantKind::Pine),
+            "palm" | "palms" | "coconut" => Some(PlantKind::Palm),
             _ => None,
         }
     }
@@ -54,6 +63,9 @@ impl PlantKind {
             PlantKind::Flower => 3,
             PlantKind::Berry => 4,
             PlantKind::Mushroom => 5,
+            PlantKind::Oak => 6,
+            PlantKind::Pine => 7,
+            PlantKind::Palm => 8,
         }
     }
 
@@ -67,6 +79,9 @@ impl PlantKind {
             PlantKind::Flower => 250,
             PlantKind::Berry => 600,
             PlantKind::Mushroom => 400,
+            PlantKind::Oak => 1800,
+            PlantKind::Pine => 1400,
+            PlantKind::Palm => 1200,
         }
     }
 
@@ -79,6 +94,7 @@ impl PlantKind {
             PlantKind::Flower => 0,
             PlantKind::Berry => 200,
             PlantKind::Mushroom => 120,
+            PlantKind::Oak | PlantKind::Pine | PlantKind::Palm => 0,
         }
     }
 }
@@ -151,11 +167,40 @@ fn season_growth(kind: PlantKind, season: &str) -> f32 {
         (_, "abundance") => 1.2,
         (PlantKind::Mushroom, "scarcity") => 0.2,
         (PlantKind::Mushroom, "decline") => 1.5,
+        (PlantKind::Pine, "scarcity") => 0.6,
+        (PlantKind::Oak, "scarcity") => 0.3,
         (PlantKind::Sapling, "scarcity") => 0.3,
         (_, "scarcity") => 0.0,
         (PlantKind::Crop, "decline") => 0.7,
         _ => 1.0,
     }
+}
+
+impl PlantKind {
+    /// Trees grow into a wood of their own kind when they mature.
+    pub fn is_tree(self) -> bool {
+        matches!(
+            self,
+            PlantKind::Sapling | PlantKind::Oak | PlantKind::Pine | PlantKind::Palm
+        )
+    }
+}
+
+/// The biome a tree leaves behind when it matures.
+fn species_biome(kind: PlantKind, biome: Biome) -> Biome {
+    match kind {
+        PlantKind::Oak => Biome::Forest,
+        PlantKind::Pine => Biome::Taiga,
+        PlantKind::Palm => Biome::Jungle,
+        _ => forest_for(biome),
+    }
+}
+
+/// Whether water lies within `r` tiles of a point (palms need it).
+fn near_water(grid: &WorldGrid, x: i32, y: i32, r: i32) -> bool {
+    (-r..=r).any(|dy| {
+        (-r..=r).any(|dx| WorldGrid::in_bounds(x + dx, y + dy) && grid.get(x + dx, y + dy) == Tile::Water)
+    })
 }
 
 /// Woods and wet ground where mushrooms grow.
@@ -199,13 +244,19 @@ impl Simulation {
                 if !WorldGrid::in_bounds(nx, ny) || !plantable(self.grid.get(nx, ny)) {
                     continue;
                 }
+                if kind == PlantKind::Palm && !near_water(&self.grid, nx, ny, 4) {
+                    continue;
+                }
                 if kind == PlantKind::Mushroom && !shaded(self.grid.biome_at(nx, ny)) {
                     continue;
                 }
                 let spaced = match kind {
                     PlantKind::Crop => true,
                     PlantKind::Orchard => (nx + ny) % 2 == 0,
-                    PlantKind::Sapling => r == 0 || self.rng.random::<f32>() < 0.45,
+                    PlantKind::Sapling | PlantKind::Oak | PlantKind::Pine => {
+                        r == 0 || self.rng.random::<f32>() < 0.45
+                    }
+                    PlantKind::Palm => (nx + ny) % 3 == 0,
                     PlantKind::Flower => r == 0 || self.rng.random::<f32>() < 0.7,
                     PlantKind::Berry => (nx + ny) % 2 == 0,
                     PlantKind::Mushroom => r == 0 || self.rng.random::<f32>() < 0.5,
@@ -321,7 +372,7 @@ impl Simulation {
             if p.ripe {
                 if tile == Tile::Food {
                     // Produce left in the field through winter rots away.
-                    if winter && p.kind != PlantKind::Sapling && self.rng.random::<f32>() < 0.003 {
+                    if winter && !p.kind.is_tree() && self.rng.random::<f32>() < 0.003 {
                         self.grid.set(x, y, Tile::Grass);
                         p.ripe = false;
                         p.growth = p.kind.regrow_from();
@@ -375,9 +426,9 @@ impl Simulation {
                     self.grid.set(x, y, Tile::Food);
                 }
                 PlantKind::Flower => p.ripe = true,
-                PlantKind::Sapling => {
+                PlantKind::Sapling | PlantKind::Oak | PlantKind::Pine | PlantKind::Palm => {
                     let idx = i as usize;
-                    self.grid.biome[idx] = forest_for(biome) as u8;
+                    self.grid.biome[idx] = species_biome(p.kind, biome) as u8;
                     self.grid.fertility[idx] = self.grid.fertility[idx].max(0.7);
                     if tile != Tile::Grass {
                         self.grid.set(x, y, Tile::Grass);

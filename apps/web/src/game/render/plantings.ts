@@ -1,7 +1,17 @@
 // Player-planted crops, orchards and saplings. The sim sends them as a flat
 // [x, y, kind, stage, ...] list; stage runs 0-3 while growing and 4 when ripe.
 
-export const PLANT_KIND = { CROP: 0, ORCHARD: 1, SAPLING: 2, FLOWER: 3, BERRY: 4, MUSHROOM: 5 } as const
+export const PLANT_KIND = {
+  CROP: 0,
+  ORCHARD: 1,
+  SAPLING: 2,
+  FLOWER: 3,
+  BERRY: 4,
+  MUSHROOM: 5,
+  OAK: 6,
+  PINE: 7,
+  PALM: 8,
+} as const
 
 export interface PlantingCell {
   x: number
@@ -201,5 +211,7 @@ export function drawPlanting(ctx: Ctx, x: number, y: number, kind: number, stage
   else if (kind === PLANT_KIND.FLOWER) drawFlowers(ctx, x, y, stage)
   else if (kind === PLANT_KIND.BERRY) drawBerry(ctx, x, y, stage)
   else if (kind === PLANT_KIND.MUSHROOM) drawMushroom(ctx, x, y, stage)
+  else if (kind === PLANT_KIND.OAK || kind === PLANT_KIND.PINE || kind === PLANT_KIND.PALM)
+    drawSapling(ctx, x, y, stage)
   else drawSapling(ctx, x, y, stage)
 }

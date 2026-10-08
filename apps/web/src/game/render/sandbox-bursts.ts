@@ -101,6 +101,9 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'harvest':
     case 'plant_berry':
     case 'plant_mushroom':
+    case 'plant_oak':
+    case 'plant_pine':
+    case 'plant_palm':
     case 'restore':
       return 'grow'
     case 'arm':
