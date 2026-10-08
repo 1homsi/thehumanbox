@@ -156,6 +156,11 @@ impl Organism {
             } else {
                 None
             },
+            mood: if include_cold {
+                Some(self.mood().to_string())
+            } else {
+                None
+            },
             skill: if include_cold && self.specialty.is_some() {
                 let skill = self
                     .specialty
@@ -401,6 +406,7 @@ impl Organism {
                 put("aspiration", text(&self.aspiration));
             }
             // The trade this person works at, and how practised they are at it (0 to 1).
+            put("mood", text(self.mood()));
             if let Some(trade) = &self.specialty {
                 put("specialty", text(trade));
                 let skill = self.practice.get(trade).copied().unwrap_or(0.0);
@@ -884,6 +890,8 @@ pub struct OrgJson {
     pub sleep_debt: Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub specialty: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mood: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skill: Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

@@ -18,6 +18,7 @@ mod helpers;
 mod inner;
 mod json;
 mod learning;
+mod mood;
 mod movement;
 mod perception;
 mod records;
