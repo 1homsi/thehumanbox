@@ -30,6 +30,13 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// Make the grown person nearest the point the ruler of their tribe.
+    MakeLeader {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
     Smite {
         x: f32,
         y: f32,
@@ -401,9 +408,10 @@ mod blessings;
 mod buildings;
 mod creation;
 mod disasters;
-mod teleport;
+mod leader;
 #[cfg(test)]
 mod release_tests;
+mod teleport;
 #[cfg(test)]
 mod tests;
 mod tribes;
@@ -432,6 +440,7 @@ impl Simulation {
             Command::Spawn { x, y, count, lineage } => self.cmd_spawn(x, y, count, lineage),
             Command::Family { x, y } => self.cmd_family(x, y),
             Command::Teleport { x, y, radius } => self.cmd_teleport(x, y, radius),
+            Command::MakeLeader { x, y, radius } => self.cmd_make_leader(x, y, radius),
             Command::Smite { x, y, radius } => self.cmd_smite(x, y, radius),
             Command::Heal { x, y, radius } => self.cmd_heal(x, y, radius),
             Command::Paint { x, y, tile, radius } => self.cmd_paint(x, y, tile, radius),
