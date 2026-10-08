@@ -11,6 +11,7 @@ import {
   type VegetationPlacement,
 } from '../../vegetation-sprites'
 import { CELL_GUTTER, type CellAtlas, type CellRef } from '../atlas/cell-atlas'
+import { castSun } from './cast-shadows'
 import { WHITE, rgba, writeSprite, type CfFrame } from '../frame'
 
 /** Cell classes: a tree is at most ~32px square, an acacia 24x20. */
@@ -57,6 +58,9 @@ export class TreesDriver {
   stats = { trees: 0, acacias: 0, sway: 0, rebuilds: 0, rebuildMs: 0, swayMs: 0, placeMs: 0 }
   private readonly layer: SpriteLayer
   private readonly swayLayer: SpriteLayer
+  /** Long shadows thrown by the sun, under the trees (rewritten as the sun moves). */
+  private readonly castLayer: SpriteLayer
+  private castKey = ''
   private readonly atlas: CellAtlas
   private sprites: TreeSprite[] = []
   /** Sorted by bottom edge, for a visible-range scan each frame. */
@@ -70,9 +74,10 @@ export class TreesDriver {
   private picked = new Int32Array(0)
   private shifts = new Int8Array(0)
 
-  constructor(layer: SpriteLayer, swayLayer: SpriteLayer, atlas: CellAtlas) {
+  constructor(layer: SpriteLayer, swayLayer: SpriteLayer, atlas: CellAtlas, castLayer: SpriteLayer) {
     this.layer = layer
     this.swayLayer = swayLayer
+    this.castLayer = castLayer
     this.atlas = atlas
   }
 
@@ -180,6 +185,7 @@ export class TreesDriver {
       if (c) acaciaCells.push({ ...c, key: 1e5 + a.y })
     }
     this.sprites = sprites
+    this.castKey = ''
     this.bottoms = sprites.map((s) => s.sortKey)
     const n = sprites.length * 2 + acaciaCells.length
     layer.resize(n)
@@ -250,6 +256,57 @@ export class TreesDriver {
 
   /** Per-frame wind: canopy-only sprites, shifted whole pixels, for the visible trees. */
   update(f: CfFrame): boolean {
+    const cast = this.updateCast(f.world)
+    const sway = this.updateSway(f)
+    return cast || sway
+  }
+
+  /**
+   * The cast shadows: each tree's shadow stretched away from the sun. Rewritten only when the sun
+   * has moved on (a few times per day) or the trees were rebuilt; none at night.
+   */
+  private updateCast(world: WorldState): boolean {
+    const sun = castSun(world)
+    const key = sun ? `${sun.key}|${this.sprites.length}|${this.atlas.epoch}` : 'night'
+    if (key === this.castKey) return false
+    this.castKey = key
+    const cast = this.castLayer
+    if (!sun) {
+      if (cast.count === 0) return false
+      cast.clear()
+      cast.touch()
+      return true
+    }
+    const sprites = this.sprites
+    cast.resize(sprites.length)
+    const color = rgba(20, 24, 18, Math.round(sun.alpha * 255))
+    for (let i = 0; i < sprites.length; i++) {
+      const s = sprites[i]
+      const length = s.sz * sun.length
+      const x0 = s.cx + s.sz * 0.5
+      const y0 = s.cy + s.sz * 0.92
+      const h = Math.max(1, Math.round(s.sz * 0.22))
+      writeSprite(
+        cast,
+        i,
+        x0 + (sun.dx * length) / 2,
+        y0 + (sun.dy * length) / 2,
+        length,
+        h,
+        0,
+        0,
+        color,
+        SPRITE_UNTEXTURED,
+        -1,
+        0,
+        Math.atan2(sun.dy, sun.dx),
+      )
+    }
+    cast.touch()
+    return true
+  }
+
+  private updateSway(f: CfFrame): boolean {
     const sway = this.swayLayer
     const { camera, world, win, now } = f
     const density = Math.min(LOW_PERF ? 1 : 2, Math.max(1, globalThis.devicePixelRatio || 1))

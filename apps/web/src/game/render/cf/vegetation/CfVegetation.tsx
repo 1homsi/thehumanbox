@@ -15,6 +15,8 @@ export const DECOR_Z = 2
 export const MOUNTAINS_Z = 3
 export const TREES_Z = 4
 export const SWAY_Z = 4.5
+/** Cast shadows: above the mountains, under the trees. */
+export const CAST_Z = 3.5
 
 const DECOR_PAGES = [1024, 1024]
 const MOUNTAIN_PAGES = [1024, 1024]
@@ -30,15 +32,16 @@ export function CfVegetation({ registry }: { registry: CfRegistry }) {
   const trees = useSpriteLayer({ atlases: t.atlases, sortByKey: true, zIndex: TREES_Z, sampling: 'nearest' })
   // The wind overlay draws the same canopy cells, so it shares the trees' atlases.
   const sway = useSpriteLayer({ atlases: t.atlases, sortByKey: true, zIndex: SWAY_Z, sampling: 'nearest' })
+  const cast = useSpriteLayer({ atlases: t.atlases, zIndex: CAST_Z, sampling: 'nearest' })
 
   const driver = useMemo(
     () =>
       new VegetationDriver(
         new DecorDriver(decor, d.atlas),
         new MountainsDriver(mountains, m.atlas),
-        new TreesDriver(trees, sway, t.atlas),
+        new TreesDriver(trees, sway, t.atlas, cast),
       ),
-    [decor, d.atlas, mountains, m.atlas, trees, sway, t.atlas],
+    [decor, d.atlas, mountains, m.atlas, trees, sway, cast, t.atlas],
   )
   useLayoutEffect(() => registry.add('vegetation', driver), [registry, driver])
   return null
