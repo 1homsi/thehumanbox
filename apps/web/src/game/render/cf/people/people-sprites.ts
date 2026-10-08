@@ -12,7 +12,15 @@ import {
   resolveAgeStage,
   zoomDetailLevel,
 } from '../../character-visuals'
-import { boatFrame, DECAL, DEGREE_EMOJI, SICK_EMOJI, emoteFrame, glyphFrame } from '../atlas-bake'
+import {
+  boatFrame,
+  DECAL,
+  DEGREE_EMOJI,
+  ELDER_CANE_EMOJI,
+  SICK_EMOJI,
+  emoteFrame,
+  glyphFrame,
+} from '../atlas-bake'
 import { emoteFor } from '../../activity-emotes'
 import { AttachedSprites, storeF32, storeF64, storeU32, storeU8 } from '../attached'
 import { cssToRgba32, rgba32, withAlpha } from '../colors'
@@ -471,6 +479,8 @@ export class PeopleSprites {
         const tool = pickToolEmoji(org.tools)
         if (tool) glyph(tool, bodyR + 4, bodyR * 0.6, 9)
       }
+      // An elder leans on a cane on the side opposite the sickness glyph.
+      if (standard && stage === 'elder') glyph(ELDER_CANE_EMOJI, -bodyR - 3, bodyR * 0.7, 9)
       if (full && org.degrees && org.degrees.length > 0) glyph(DEGREE_EMOJI, -bodyR - 4, bodyR * 0.6, 8)
 
       if (standard && org.carrying > 0) {
