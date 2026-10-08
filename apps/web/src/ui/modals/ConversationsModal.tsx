@@ -1,3 +1,4 @@
+import { personName } from '../../shared/personName'
 import { memo, useMemo, useState } from 'react'
 import clsx from 'clsx'
 import type { OrganismState, ConversationEntry } from '../../shared/types'
@@ -129,12 +130,18 @@ function ConversationsModalBody({ org, allOrgs, sexWords, onClose }: Props) {
   }, [allConvos])
 
   return (
-    <Modal open onClose={onClose} className="cv-modal" title={`Conversations of ${org.name}`} hideTitle>
+    <Modal
+      open
+      onClose={onClose}
+      className="cv-modal"
+      title={`Conversations of ${personName(org)}`}
+      hideTitle
+    >
       {}
       <div className="cv-modal-head">
         <span className="cv-modal-title">CONVERSATIONS</span>
         <div className="cv-modal-who">
-          <span style={{ color: lineageColor(org.lineage_id), fontWeight: 700 }}>{org.name}</span>
+          <span style={{ color: lineageColor(org.lineage_id), fontWeight: 700 }}>{personName(org)}</span>
           {sexLabel && (
             <span style={{ color: org.sex === 'female' ? '#e09ab0' : '#7ab0e0', marginLeft: 6 }}>
               {sexLabel}
@@ -193,7 +200,7 @@ function ConversationsModalBody({ org, allOrgs, sexWords, onClose }: Props) {
               •••
             </div>
             <div style={{ fontSize: 11, fontStyle: 'italic', color: '#555', textAlign: 'center' }}>
-              loading {org.name}'s conversations…
+              loading {personName(org)}'s conversations…
             </div>
           </div>
         ) : filteredConvos.length === 0 ? (
@@ -202,8 +209,8 @@ function ConversationsModalBody({ org, allOrgs, sexWords, onClose }: Props) {
             <div style={{ fontSize: 11, fontStyle: 'italic', color: '#555', textAlign: 'center' }}>
               {allConvos.length === 0
                 ? org.attracted_to
-                  ? `${org.name} is drawn to someone - a first conversation is coming`
-                  : `${org.name} hasn't spoken with anyone yet`
+                  ? `${personName(org)} is drawn to someone - a first conversation is coming`
+                  : `${personName(org)} hasn't spoken with anyone yet`
                 : `no ${kindFilter} conversations`}
             </div>
           </div>

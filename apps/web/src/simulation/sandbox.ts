@@ -51,6 +51,7 @@ export type SandboxCommand =
   | { cmd: 'meteor_shower'; x: number; y: number; radius?: number }
   | { cmd: 'love'; x: number; y: number; radius?: number }
   | { cmd: 'marry'; ax: number; ay: number; bx: number; by: number }
+  | { cmd: 'rename_person'; id: string; name: string }
   | { cmd: 'tame'; x: number; y: number; radius?: number }
   | { cmd: 'family'; x: number; y: number }
   | { cmd: 'teleport'; x: number; y: number; radius?: number }
@@ -162,6 +163,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         id: 'follow',
         label: 'follow',
         icon: '👣',
+        mode: 'point',
+      },
+      {
+        // Opens the name editor on the person nearest the click. The name is typed on their card.
+        id: 'name',
+        label: 'name',
+        icon: '✏️',
         mode: 'point',
       },
       {

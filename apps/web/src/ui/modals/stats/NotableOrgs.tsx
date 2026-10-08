@@ -1,3 +1,4 @@
+import { personName } from '../../../shared/personName'
 import type { WorldState } from '../../../shared/types'
 import { lineageColor } from '../../../shared/constants'
 import { DAY_LENGTH } from './constants'
@@ -17,7 +18,7 @@ export function NotableOrgs({ organisms }: { organisms: WorldState['organisms'] 
       <span className="notable-list">
         {list.map((o) => (
           <span key={o.id} className="notable-entry" style={{ color: lineageColor(o.lineage_id) }}>
-            {o.name} <span style={{ color: '#666' }}>{pick(o)}</span>
+            {personName(o)} <span style={{ color: '#666' }}>{pick(o)}</span>
           </span>
         ))}
       </span>

@@ -1,3 +1,4 @@
+import { personName } from '../../shared/personName'
 import { useState, useMemo, useRef, useEffect } from 'react'
 import clsx from 'clsx'
 import type { OrganismState } from '../../shared/types'
@@ -243,7 +244,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                 <div className="org-search-entry-top">
                   <span className="org-search-name" style={{ color: org.alive ? '#eee' : '#888' }}>
                     {!org.alive && <span style={{ color: '#555', marginRight: 4 }}>✝</span>}
-                    {org.name}
+                    {personName(org)}
                   </span>
                   <span className="org-search-badges">
                     {org.aspiration && ASPIRATION_EMOJI[org.aspiration] && (

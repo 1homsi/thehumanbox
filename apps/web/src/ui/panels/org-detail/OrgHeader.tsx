@@ -1,3 +1,4 @@
+import { personName } from '../../../shared/personName'
 import clsx from 'clsx'
 import { Tooltip } from '../../toolbar/Tooltip'
 import { DAY_LENGTH, fmt } from './format'
@@ -34,7 +35,7 @@ export function OrgHeader({
     <>
       <div className="org-detail-header">
         <span className="org-detail-dot" style={{ background: color }} />
-        <span className="org-detail-name">{org.name}</span>
+        <span className="org-detail-name">{personName(org)}</span>
         {isSick && <span className="org-sick-badge">sick</span>}
         {carrying && (
           <Tooltip tip="Carrying wood">

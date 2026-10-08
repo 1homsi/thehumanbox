@@ -58,6 +58,8 @@ pub struct Organism {
     /// for people saved before families were tracked; `family_name()` derives
     /// a stable one from the id.
     pub surname: String,
+    /// A name the player gave this person. Shown in place of the generated first name when set.
+    pub custom_name: Option<String>,
     pub lineage_id: String,
     pub max_age: u32,
 
@@ -219,6 +221,7 @@ impl Organism {
             parent_id,
             father_id: None,
             surname: String::new(),
+            custom_name: None,
             lineage_id,
             max_age,
             food_memory: FxHashMap::default(),

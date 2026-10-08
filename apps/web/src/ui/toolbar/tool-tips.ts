@@ -12,6 +12,7 @@ const TOOL_TIPS: Record<string, string> = {
     'Crown the grown person nearest where you click the ruler of their tribe. They keep the crown while they live, unless their tribe has no ruler to crown (a plain band) or they are still a child.',
   heal_one:
     'Heal the person nearest where you click: full health, and no infection or sickness. Only that one person.',
+  name: 'Click a person to give them a name of your own. It shows everywhere their name does.',
   marry:
     'Click one grown person, then another of the other sex. If both are free to wed, they become partners and are ready for children.',
   follow:

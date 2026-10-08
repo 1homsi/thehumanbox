@@ -1,3 +1,4 @@
+import { personName } from '../../../shared/personName'
 import { useEffect, useMemo, useRef } from 'react'
 import { drawPeopleTile, pickHumanSprite } from '../../../shared/sprites'
 import type { SceneContext } from '../core/types'
@@ -426,7 +427,7 @@ function HomeCanvas2D({ ctx: sceneCtx, selectedOrgId, onSelectOrg }: Props) {
 
         hitRef.current.push({ id: occ.org.id, x: px, y: py - 2, r: 14 })
 
-        drawNamePlate(c, occ.org.name, px, py, isHovered || isSelected)
+        drawNamePlate(c, personName(occ.org), px, py, isHovered || isSelected)
       })
 
       drawAmbient(c, sceneCtx.isDay)

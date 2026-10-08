@@ -318,6 +318,11 @@ pub enum Command {
     },
     /// Marry the grown person nearest the first point to the one nearest the second: both must be adults
     /// without a partner, of different sexes.
+    /// Give the person with this id a name of the player's choosing. It shows in place of the generated first name.
+    RenamePerson {
+        id: String,
+        name: String,
+    },
     Marry {
         ax: f32,
         ay: f32,
@@ -522,6 +527,7 @@ mod marry;
 mod place;
 #[cfg(test)]
 mod release_tests;
+mod rename_person;
 mod restore;
 #[cfg(test)]
 mod restore_tests;
@@ -612,6 +618,7 @@ impl Simulation {
             Command::MeteorShower { x, y, radius } => self.cmd_meteor_shower(x, y, radius),
             Command::Love { x, y, radius } => self.cmd_love(x, y, radius),
             Command::Marry { ax, ay, bx, by } => self.cmd_marry(ax, ay, bx, by),
+            Command::RenamePerson { id, name } => self.cmd_rename_person(id, name),
             Command::Tame { x, y, radius } => self.cmd_tame(x, y, radius),
             Command::Demolish { x, y, radius } => self.cmd_demolish(x, y, radius),
             Command::Repair { x, y, radius } => self.cmd_repair(x, y, radius),

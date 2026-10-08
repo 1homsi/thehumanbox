@@ -1,3 +1,4 @@
+import { personName } from '../../../shared/personName'
 import type { SceneContext } from '../core/types'
 import { useUIStore } from '../../../state/store'
 import { HomeCanvas } from './HomeCanvas'
@@ -46,7 +47,7 @@ export function HomeInterior({ ctx, onExit, onFocusOrg }: Props) {
               onClick={() => onFocusOrg(o.org.id)}
             >
               <span className="scene-occupant-role">{o.role}</span>
-              <span className="scene-occupant-name">{o.org.name}</span>
+              <span className="scene-occupant-name">{personName(o.org)}</span>
               <span className="scene-occupant-act">{o.activity}</span>
             </button>
           ))}
@@ -61,7 +62,7 @@ export function HomeInterior({ ctx, onExit, onFocusOrg }: Props) {
               title="Currently out"
             >
               <span className="scene-occupant-role">{o.role} · out</span>
-              <span className="scene-occupant-name">{o.org.name}</span>
+              <span className="scene-occupant-name">{personName(o.org)}</span>
               <span className="scene-occupant-act">{o.activity}</span>
             </button>
           ))}
