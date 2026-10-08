@@ -6,6 +6,8 @@ const TOOL_TIPS: Record<string, string> = {
   spawn5: 'Found a new tribe: five young adults, in couples, where you click.',
   leader:
     'Crown the grown person nearest where you click the ruler of their tribe. They keep the crown while they live, unless their tribe has no ruler to crown (a plain band) or they are still a child.',
+  gift_food: 'Give the person nearest where you click a few portions of food for their pack.',
+  gift_tool: 'Give the person nearest where you click a stone tool, so they can work and build.',
   teleport:
     'Pick up the person nearest where you click and set them down there. Nobody is moved onto water or rock.',
   family:

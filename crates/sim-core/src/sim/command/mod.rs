@@ -30,6 +30,14 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// Give the living person nearest the point a gift: `food` or `tool`.
+    Gift {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+        what: String,
+    },
     /// Make the grown person nearest the point the ruler of their tribe.
     MakeLeader {
         x: f32,
@@ -408,6 +416,7 @@ mod blessings;
 mod buildings;
 mod creation;
 mod disasters;
+mod gift;
 mod leader;
 #[cfg(test)]
 mod release_tests;
@@ -441,6 +450,7 @@ impl Simulation {
             Command::Family { x, y } => self.cmd_family(x, y),
             Command::Teleport { x, y, radius } => self.cmd_teleport(x, y, radius),
             Command::MakeLeader { x, y, radius } => self.cmd_make_leader(x, y, radius),
+            Command::Gift { x, y, radius, what } => self.cmd_gift(x, y, radius, what),
             Command::Smite { x, y, radius } => self.cmd_smite(x, y, radius),
             Command::Heal { x, y, radius } => self.cmd_heal(x, y, radius),
             Command::Paint { x, y, tile, radius } => self.cmd_paint(x, y, tile, radius),
