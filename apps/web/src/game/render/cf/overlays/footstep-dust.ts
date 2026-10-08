@@ -30,12 +30,30 @@ export interface DustOrganism {
   alive?: boolean
 }
 
+/** How a puff looks: people kick up a larger, paler cloud than a hoof or a paw. */
+export interface DustStyle {
+  colour: string
+  /** Radius a puff grows to, in px. */
+  radius: number
+  /** Opacity when it starts. */
+  alpha: number
+}
+
+export const PEOPLE_DUST: DustStyle = { colour: 'rgb(206,186,150)', radius: 2.5, alpha: 0.42 }
+export const ANIMAL_DUST: DustStyle = { colour: 'rgb(186,160,118)', radius: 1.8, alpha: 0.3 }
+
 export class FootstepDust {
   private readonly tracks = new Map<string, Track>()
   private readonly px = new Float64Array(DUST_POOL)
   private readonly py = new Float64Array(DUST_POOL)
   private readonly born = new Float64Array(DUST_POOL).fill(-Infinity)
   private next = 0
+
+  private readonly style: DustStyle
+
+  constructor(style: DustStyle = PEOPLE_DUST) {
+    this.style = style
+  }
 
   /** Notes where each person is now and starts a puff for those who stepped. */
   observe(
@@ -73,16 +91,16 @@ export class FootstepDust {
   /** Paints the live puffs. `ox, oy` is the grid origin (tiles), as for every painter. */
   paint(ctx: Ctx, ox: number, oy: number, t: number): void {
     ctx.save()
-    ctx.fillStyle = 'rgb(206,186,150)'
+    ctx.fillStyle = this.style.colour
     for (let i = 0; i < DUST_POOL; i++) {
       const age = t - this.born[i]
       if (!(age >= 0 && age < DUST_LIFE_MS)) continue
       const k = age / DUST_LIFE_MS
-      ctx.globalAlpha = (1 - k) * 0.42
+      ctx.globalAlpha = (1 - k) * this.style.alpha
       const cx = (this.px[i] - ox) * TILE + TILE / 2
       const cy = (this.py[i] - oy) * TILE + TILE * 0.8
       ctx.beginPath()
-      ctx.arc(cx, cy, 1 + k * 2.5, 0, Math.PI * 2)
+      ctx.arc(cx, cy, 1 + k * this.style.radius, 0, Math.PI * 2)
       ctx.fill()
     }
     ctx.restore()
