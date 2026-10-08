@@ -59,7 +59,7 @@ fn unmaintained_houses_age_into_ruins_and_stone_wonders_last_longer() {
         sim.buildings.push(b);
     }
     // Drive just the once-daily lifecycle, not millions of unrelated AI ticks.
-    for day in 1..=201 * crate::sim::cosmos::YEAR_LENGTH_DAYS {
+    for day in 1..=201 * crate::sim::civ::land::building_damage::exposure::BUILDING_WEAR_DAYS_PER_YEAR {
         sim.tick_count = day * crate::sim::cosmos::DAY_LENGTH;
         tick_building_damage(&mut sim);
     }

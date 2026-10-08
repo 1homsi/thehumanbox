@@ -1,10 +1,15 @@
 use serde::{Deserialize, Serialize};
 
+use crate::sim::config::SEASON_LENGTH;
+
 pub const DAY_LENGTH: u64 = 600;
 pub const LUNAR_CYCLE_DAYS: u64 = 28;
-pub const YEAR_LENGTH_DAYS: u64 = 84;
+/// A year is the four seasons of the world: the same cycle the weather,
+/// food and winters run on. (It was 84 days, which left the calendar and the
+/// seasons disagreeing about when a year ended.)
+pub const YEAR_LENGTH_TICKS: u64 = 4 * SEASON_LENGTH;
+pub const YEAR_LENGTH_DAYS: u64 = YEAR_LENGTH_TICKS / DAY_LENGTH;
 pub const LUNAR_CYCLE_TICKS: u64 = LUNAR_CYCLE_DAYS * DAY_LENGTH;
-pub const YEAR_LENGTH_TICKS: u64 = YEAR_LENGTH_DAYS * DAY_LENGTH;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum MoonPhase {

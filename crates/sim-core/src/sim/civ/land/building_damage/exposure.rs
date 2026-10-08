@@ -1,3 +1,8 @@
+/// Service lives were tuned against an 84-day year before the calendar was
+/// unified with the four seasons (20 days). Wear keeps that pace, so ruins
+/// arrive when they always did; only the calendar's names changed.
+pub(crate) const BUILDING_WEAR_DAYS_PER_YEAR: u64 = 84;
+
 use super::*;
 
 pub(super) fn battle_damage(scale: BattleScale) -> f32 {
@@ -103,8 +108,7 @@ pub(super) fn exposure_for(
         && !building.is_ruined()
     {
         return Some(Exposure {
-            amount: 1.0
-                / (building.kind.service_life_years() as f32 * crate::sim::cosmos::YEAR_LENGTH_DAYS as f32),
+            amount: 1.0 / (building.kind.service_life_years() as f32 * BUILDING_WEAR_DAYS_PER_YEAR as f32),
             cause: DamageCause::Age,
         });
     }

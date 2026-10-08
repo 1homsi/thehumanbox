@@ -616,7 +616,7 @@ pub async fn metrics_handler(State(s): State<AppState>) -> impl IntoResponse {
     );
     let _ = writeln!(body, "# TYPE thb_world_year gauge");
     let _ = writeln!(body, "thb_world_year {}", year);
-    let _ = writeln!(body, "# HELP thb_world_day_of_year Current day of year (0..83)");
+    let _ = writeln!(body, "# HELP thb_world_day_of_year Current day of year (0..19)");
     let _ = writeln!(body, "# TYPE thb_world_day_of_year gauge");
     let _ = writeln!(body, "thb_world_day_of_year {}", day_of_year);
     let _ = writeln!(

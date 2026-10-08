@@ -1,4 +1,5 @@
 pub mod actions;
+pub mod calendar;
 pub mod command;
 pub mod config;
 pub mod cosmos;
