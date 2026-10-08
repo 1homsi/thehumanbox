@@ -6,6 +6,7 @@ export type SandboxCommand =
   | { cmd: 'ignite'; x: number; y: number; radius?: number }
   | { cmd: 'weather'; kind: 'clear' | 'rain' | 'storm' | 'snow' | 'fog' }
   | { cmd: 'gale' }
+  | { cmd: 'tornado'; x: number; y: number; radius?: number }
   | { cmd: 'drought'; active: boolean }
   | { cmd: 'outbreak'; count?: number }
   | { cmd: 'restore'; x: number; y: number; radius?: number }
@@ -363,6 +364,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '〽️',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'earthquake', x, y, radius: 3 + b }),
+      },
+      {
+        id: 'tornado',
+        label: 'tornado',
+        icon: '🌪️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'tornado', x, y, radius: 6 + b }),
       },
       {
         id: 'meteor',

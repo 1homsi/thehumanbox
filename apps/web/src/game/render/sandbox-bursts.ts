@@ -131,6 +131,7 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'leader':
       return 'inspire'
     case 'earthquake':
+    case 'tornado':
     case 'demolish':
       return 'quake'
     case 'repair':

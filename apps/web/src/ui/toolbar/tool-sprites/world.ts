@@ -248,6 +248,16 @@ export const worldSprites = {
     '..R.R...R.R.',
     '..o.o...o.o.',
   ],
+  tornado: [
+    '.ssssssssss.',
+    '..ssssssss..',
+    '...ssssss...',
+    '.....ss.....',
+    '....sss.....',
+    '....ss......',
+    '...sss......',
+    '...s........',
+  ],
   fog: [
     '..wwwwww....',
     '.wwwwwwwwww.',

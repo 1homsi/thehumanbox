@@ -320,6 +320,13 @@ pub enum Command {
     },
     /// A gale: the wind turns to a random quarter and blows hard.
     Gale,
+    /// A tornado tears along a random heading from the point.
+    Tornado {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
     /// Erase ground changes inside the radius: water drains, fire and ash
     /// cool, and sand or snow the biome does not hold turns back to its ground.
     /// Rock, buildings and food stay as they are.
@@ -459,6 +466,8 @@ mod restore_tests;
 mod teleport;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tornado_tests;
 mod tribes;
 #[cfg(test)]
 mod weather_tests;
@@ -538,6 +547,7 @@ impl Simulation {
             Command::Repair { x, y, radius } => self.cmd_repair(x, y, radius),
             Command::Restore { x, y, radius } => self.cmd_restore(x, y, radius),
             Command::Gale => self.cmd_gale(),
+            Command::Tornado { x, y, radius } => self.cmd_tornado(x, y, radius),
             Command::Guide {
                 lineage,
                 strategy,
