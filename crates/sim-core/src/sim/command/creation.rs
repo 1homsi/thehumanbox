@@ -1,6 +1,64 @@
 use super::*;
 
 impl Simulation {
+    /// A family founds a new tribe: a mother and father who are partners, and
+    /// two children of theirs. Children start at about an eighth of a full life.
+    pub(super) fn cmd_family(&mut self, x: f32, y: f32) -> bool {
+        // Four people need room under the sandbox ceiling, or none are added.
+        if crate::sim::growth::population_slots_used(&self.organisms) + 4 > SANDBOX_PEOPLE_LIMIT {
+            return false;
+        }
+        let lid = format!("L{}", crate::sim::agents::spawn::seeded_id(&mut self.rng, 6));
+        let name = crate::organism::organism::generate_tribe_name(&mut self.rng);
+        self.lineage_names.insert(lid.clone(), name);
+        let before = self.organisms.len();
+        let place = |sim: &mut Self| {
+            let jx = (x + sim.rng.random_range(-2.0..2.0)).clamp(2.0, WIDTH as f32 - 2.0);
+            let jy = (y + sim.rng.random_range(-2.0..2.0)).clamp(2.0, HEIGHT as f32 - 2.0);
+            (jx, jy)
+        };
+        use crate::organism::organism::Sex;
+        for sex in [Sex::Female, Sex::Male] {
+            let (jx, jy) = place(self);
+            crate::sim::agents::growth::spawn_organism_as(
+                &self.grid,
+                &mut self.organisms,
+                jx,
+                jy,
+                jx,
+                jy,
+                lid.clone(),
+                Some(sex),
+                &mut self.rng,
+            );
+        }
+        let mother = self.organisms[before].id.clone();
+        let father = self.organisms[before + 1].id.clone();
+        self.organisms[before].partner_id = Some(father.clone());
+        self.organisms[before + 1].partner_id = Some(mother.clone());
+        // The parents are welcomed as adults first; the children keep their own ages below.
+        self.welcome_newcomers(before, &lid);
+        for sex in [Sex::Male, Sex::Female] {
+            let (jx, jy) = place(self);
+            crate::sim::agents::growth::spawn_organism_as(
+                &self.grid,
+                &mut self.organisms,
+                jx,
+                jy,
+                jx,
+                jy,
+                lid.clone(),
+                Some(sex),
+                &mut self.rng,
+            );
+            let child = self.organisms.last_mut().expect("a child was just spawned");
+            child.age = (child.max_age as f32 * 0.12) as u32;
+            child.parent_id = mother.clone();
+            child.father_id = Some(father.clone());
+        }
+        self.organisms.len() > before
+    }
+
     pub(super) fn cmd_spawn(&mut self, x: f32, y: f32, count: u32, lineage: Option<String>) -> bool {
         let n = count.clamp(1, 50);
         let lid = lineage
@@ -172,5 +230,38 @@ impl Simulation {
             }
         }
         painted > 0
+    }
+}
+
+#[cfg(test)]
+mod family_tests {
+    use crate::organism::organism::Sex;
+    use crate::sim::simulation::Simulation;
+
+    #[test]
+    fn family_founds_a_partnered_couple_with_two_children() {
+        let mut sim = Simulation::new(5);
+        let before = sim.organisms.len();
+        assert!(sim.apply_command_json(r#"{"cmd":"family","x":100.0,"y":100.0}"#));
+        let family = &sim.organisms[before..];
+        assert_eq!(family.len(), 4);
+        let lineage = family[0].lineage_id.clone();
+        assert!(family.iter().all(|o| o.lineage_id == lineage), "one new tribe");
+        assert!(sim.lineage_names.contains_key(&lineage), "the tribe has a name");
+
+        let (mother, father) = (&family[0], &family[1]);
+        assert_eq!(mother.sex, Sex::Female);
+        assert_eq!(father.sex, Sex::Male);
+        assert_eq!(mother.partner_id.as_deref(), Some(father.id.as_str()));
+        assert_eq!(father.partner_id.as_deref(), Some(mother.id.as_str()));
+
+        for child in &family[2..] {
+            assert_eq!(child.parent_id, mother.id);
+            assert_eq!(child.father_id.as_deref(), Some(father.id.as_str()));
+            assert!(
+                child.age < child.max_age / 4,
+                "children start in childhood or younger"
+            );
+        }
     }
 }

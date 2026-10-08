@@ -17,6 +17,12 @@ pub enum Command {
         #[serde(default)]
         lineage: Option<String>,
     },
+    /// A family founds a tribe where you click: a partnered mother and father
+    /// and two children of theirs.
+    Family {
+        x: f32,
+        y: f32,
+    },
     Smite {
         x: f32,
         y: f32,
@@ -408,6 +414,7 @@ impl Simulation {
     fn apply_command_inner(&mut self, cmd: Command) -> bool {
         match cmd {
             Command::Spawn { x, y, count, lineage } => self.cmd_spawn(x, y, count, lineage),
+            Command::Family { x, y } => self.cmd_family(x, y),
             Command::Smite { x, y, radius } => self.cmd_smite(x, y, radius),
             Command::Heal { x, y, radius } => self.cmd_heal(x, y, radius),
             Command::Paint { x, y, tile, radius } => self.cmd_paint(x, y, tile, radius),
