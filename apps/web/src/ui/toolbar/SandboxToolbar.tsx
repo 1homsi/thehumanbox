@@ -13,6 +13,18 @@ import {
 } from '../../simulation/sandbox'
 import { DOCK_TABS, SPEED_TOOL_IDS, TIME_CATEGORY_ID, groupsFor, resolveTab } from './dock-tabs'
 import { WASM_BASE_TICK_MS, isRuntimeControlActive } from '../../simulation/runtimeControls'
+import {
+  memoryToolIds,
+  readToolMemory,
+  rememberRecent,
+  togglePinned,
+  writeToolMemory,
+  type ToolMemory,
+} from './tool-memory'
+
+const TOOLS_BY_ID = new Map<string, SandboxTool>(
+  SANDBOX_CATEGORIES.flatMap((c) => c.tools).map((t) => [t.id, t]),
+)
 
 const TAB_STORAGE_KEY = 'thb-sandbox-category'
 
@@ -112,6 +124,14 @@ export function SandboxToolbar({
   const weather = useWorldStore((s) => s.world?.weather?.kind)
   const drought = useWorldStore((s) => s.world?.drought ?? false)
   const [flashId, setFlashId] = useState<string | null>(null)
+  const [memory, setMemory] = useState<ToolMemory>(readToolMemory)
+  const updateMemory = (next: ToolMemory) => {
+    setMemory(next)
+    writeToolMemory(next)
+  }
+  const memoryTools = memoryToolIds(memory, new Set(TOOLS_BY_ID.keys()))
+    .map((id) => TOOLS_BY_ID.get(id))
+    .filter((t): t is SandboxTool => t !== undefined)
   const isViewActive = (tool: SandboxTool) =>
     isSandboxViewControlActive(tool.view, activeOverlay, activeViewFlags)
   // Weather and drought are states of the world, so their tiles light up
@@ -141,6 +161,7 @@ export function SandboxToolbar({
   }
   const pickTool = (tool: SandboxTool) => {
     if (armedToolId === tool.id) return onClearArmed()
+    updateMemory(rememberRecent(memory, tool.id))
     if (tool.mode === 'instant') {
       // Instant tools fire straight away; a flash shows the click landed.
       setFlashId(tool.id)
@@ -167,6 +188,45 @@ export function SandboxToolbar({
       : saveBusy
         ? 'Saving this world on this device'
         : 'Save this world on this device now'
+
+  // One dock tile. Shift-click pins or unpins it; a plain click arms or fires it.
+  const renderTile = (tool: SandboxTool) => {
+    const active = armedToolId === tool.id || isViewActive(tool) || isStateActive(tool)
+    const pinned = memory.pinned.includes(tool.id)
+    return (
+      <Tooltip
+        key={tool.id}
+        tip={
+          <TipCard
+            title={tool.label}
+            body={toolTip(tool)}
+            how={
+              isStateActive(tool)
+                ? 'happening now · click again to end it'
+                : active && !tool.view
+                  ? 'click again or press esc to stop'
+                  : `${toolHowTo(tool)} · shift-click to ${pinned ? 'unpin' : 'pin'}`
+            }
+          />
+        }
+      >
+        <button
+          type="button"
+          className={clsx(
+            'dock-tile',
+            active && 'active',
+            pinned && 'pinned',
+            flashId === tool.id && 'flash',
+          )}
+          aria-label={tool.label}
+          aria-pressed={active}
+          onClick={(e) => (e.shiftKey ? updateMemory(togglePinned(memory, tool.id)) : pickTool(tool))}
+        >
+          <ToolSprite icon={tool.icon} size={36} />
+        </button>
+      </Tooltip>
+    )
+  }
 
   return (
     <section className="sandbox-bar" aria-label="World controls">
@@ -221,39 +281,14 @@ export function SandboxToolbar({
             el.scrollLeft += e.deltaY
         }}
       >
+        {memoryTools.length > 0 && (
+          <div className="dock-group dock-memory" role="group" aria-label="pinned and recent tools">
+            {memoryTools.map(renderTile)}
+          </div>
+        )}
         {groups.map((group) => (
           <div className="dock-group" key={group.id} role="group" aria-label={group.label}>
-            {group.tools.map((tool) => {
-              const active = armedToolId === tool.id || isViewActive(tool) || isStateActive(tool)
-              return (
-                <Tooltip
-                  key={tool.id}
-                  tip={
-                    <TipCard
-                      title={tool.label}
-                      body={toolTip(tool)}
-                      how={
-                        isStateActive(tool)
-                          ? 'happening now · click again to end it'
-                          : active && !tool.view
-                            ? 'click again or press esc to stop'
-                            : toolHowTo(tool)
-                      }
-                    />
-                  }
-                >
-                  <button
-                    type="button"
-                    className={clsx('dock-tile', active && 'active', flashId === tool.id && 'flash')}
-                    aria-label={tool.label}
-                    aria-pressed={active}
-                    onClick={() => pickTool(tool)}
-                  >
-                    <ToolSprite icon={tool.icon} size={36} />
-                  </button>
-                </Tooltip>
-              )
-            })}
+            {group.tools.map(renderTile)}
           </div>
         ))}
       </div>

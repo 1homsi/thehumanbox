@@ -209,6 +209,19 @@
 .dock-mini:active:not(:disabled) svg {
   transform: translateY(1px);
 }
+.dock-tile.pinned {
+  position: relative;
+}
+.dock-tile.pinned::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 5px;
+  height: 5px;
+  background: var(--dock-gold);
+  box-shadow: 0 0 0 1px #2a1f15;
+}
 .dock-tile.active,
 .dock-speed.active {
   background: #5c4527;

@@ -71,7 +71,10 @@ describe('world dock buttons', () => {
       click(tab(dockTab.id))
       expect(tab(dockTab.id)?.getAttribute('aria-pressed')).toBe('true')
       const tools = groupsFor(dockTab.id).flatMap((group) => group.tools)
-      expect(container.querySelectorAll('.dock-tile')).toHaveLength(tools.length)
+      // The pinned-and-recent group repeats tools from other tabs, so count only this tab's own groups.
+      expect(container.querySelectorAll('.dock-group:not(.dock-memory) .dock-tile')).toHaveLength(
+        tools.length,
+      )
       for (const tool of tools) {
         click(tile(tool.label))
         expect(props.onPick).toHaveBeenLastCalledWith(tool)
@@ -79,6 +82,37 @@ describe('world dock buttons', () => {
     }
     const allDockTools = DOCK_TABS.flatMap((t) => groupsFor(t.id)).flatMap((g) => g.tools)
     expect(props.onPick).toHaveBeenCalledTimes(allDockTools.length)
+  })
+
+  it('pins a tool with shift-click, shows it in the memory group, and keeps it across visits', () => {
+    window.localStorage.removeItem('thb-sandbox-tool-memory')
+    const props = render()
+    click(tab('life'))
+    const family = tile('family')
+    expect(family).not.toBeNull()
+    act(() =>
+      (family as HTMLElement).dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true })),
+    )
+    expect(props.onPick).not.toHaveBeenCalled()
+    expect(container.querySelector('.dock-memory .dock-tile[aria-label="family"]')).not.toBeNull()
+    expect(container.querySelector('.dock-tile.pinned[aria-label="family"]')).not.toBeNull()
+    expect(JSON.parse(window.localStorage.getItem('thb-sandbox-tool-memory') ?? '{}').pinned).toEqual([
+      'family',
+    ])
+
+    act(() => root.unmount())
+    root = createRoot(container)
+    render()
+    expect(container.querySelector('.dock-memory .dock-tile.pinned[aria-label="family"]')).not.toBeNull()
+  })
+
+  it('remembers the last tool used in the memory group after a plain click', () => {
+    window.localStorage.removeItem('thb-sandbox-tool-memory')
+    const props = render()
+    click(tab('life'))
+    click(tile('tribe'))
+    expect(props.onPick).toHaveBeenCalled()
+    expect(container.querySelector('.dock-memory .dock-tile[aria-label="tribe"]')).not.toBeNull()
   })
 
   it('remembers the chosen tab', () => {
