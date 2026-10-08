@@ -25,6 +25,7 @@ import {
 import { hazeLevels, paintHaze } from './haze'
 import { paintFallingLeaves } from './falling-leaves'
 import { FootstepDust } from './footstep-dust'
+import { paintTornado, tornadoAt } from './tornado'
 import { vegetationSeason } from '../../landscape-style'
 import { terrainSeason } from '../../terrain-season'
 import { paintHud } from './paint-hud'
@@ -447,6 +448,8 @@ export class CfOverlayRenderer {
     if (kind === 'storm') {
       const strike = strikeAt(t, intensity, view)
       if (strike) paintBolt(ctx, strike, view.cy - view.hh)
+      const tornado = tornadoAt(t, intensity, view)
+      if (tornado) paintTornado(ctx, tornado, t)
     }
     if (kind === 'rain' || kind === 'storm') {
       const { bounds, ox, oy } = f
