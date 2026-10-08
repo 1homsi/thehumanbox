@@ -58,6 +58,7 @@ export type SandboxCommand =
   | { cmd: 'heal_one'; x: number; y: number; radius?: number }
   | { cmd: 'advance'; to: 'season' | 'year'; max_ticks?: number }
   | { cmd: 'gift'; x: number; y: number; radius?: number; what: 'food' | 'tool' }
+  | { cmd: 'time_of_day'; phase: 'dawn' | 'noon' | 'dusk' | 'midnight' }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
   | { cmd: 'repair'; x: number; y: number; radius?: number }
   | { cmd: 'place_building'; x: number; y: number; kind: string }
@@ -575,6 +576,41 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '❄️',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'paint', x, y, tile: 'snow', radius: b }),
+      },
+    ],
+  },
+  {
+    id: 'sky',
+    label: 'sky',
+    icon: '🌅',
+    tools: [
+      {
+        id: 'dawn',
+        label: 'dawn',
+        icon: '🌅',
+        mode: 'instant',
+        fire: { cmd: 'time_of_day', phase: 'dawn' },
+      },
+      {
+        id: 'noon',
+        label: 'noon',
+        icon: '🕛',
+        mode: 'instant',
+        fire: { cmd: 'time_of_day', phase: 'noon' },
+      },
+      {
+        id: 'dusk',
+        label: 'dusk',
+        icon: '🌇',
+        mode: 'instant',
+        fire: { cmd: 'time_of_day', phase: 'dusk' },
+      },
+      {
+        id: 'midnight',
+        label: 'midnight',
+        icon: '🌙',
+        mode: 'instant',
+        fire: { cmd: 'time_of_day', phase: 'midnight' },
       },
     ],
   },

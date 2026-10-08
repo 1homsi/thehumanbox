@@ -41,8 +41,8 @@ export const DOCK_TABS: DockTab[] = [
     id: 'world',
     label: 'world',
     icon: '⛰️',
-    tip: 'Terrain and biomes: what the ground is',
-    groups: ['terrain', 'biomes'],
+    tip: 'Terrain, biomes, and the time of day',
+    groups: ['terrain', 'sky', 'biomes'],
   },
   {
     id: 'resources',
