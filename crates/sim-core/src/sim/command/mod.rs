@@ -467,7 +467,14 @@ fn prayer_answers(cmd: &Command) -> Option<PrayerAnswer> {
         Command::Peace { x, y } => (&[Peace], at(*x, *y)),
         Command::Ward { x, y, .. } => (&[Danger, Peace, Sickness], at(*x, *y)),
         Command::Harvest { x, y, .. } | Command::Bounty { x, y, .. } => (&[Hunger], at(*x, *y)),
-        Command::Plant { x, y, kind, .. } if kind != "sapling" => (&[Hunger], at(*x as f32, *y as f32)),
+        Command::Plant { x, y, kind, .. }
+            if !matches!(
+                kind.as_str(),
+                "sapling" | "tree" | "trees" | "oak" | "pine" | "palm"
+            ) =>
+        {
+            (&[Hunger], at(*x as f32, *y as f32))
+        }
         Command::Paint { x, y, tile, .. } if tile == "food" => (&[Hunger], at(*x as f32, *y as f32)),
         Command::Paint { x, y, tile, .. } if tile == "water" => (&[Thirst], at(*x as f32, *y as f32)),
         Command::Paint { x, y, tile, .. } if tile == "hut" || tile == "campfire" => {

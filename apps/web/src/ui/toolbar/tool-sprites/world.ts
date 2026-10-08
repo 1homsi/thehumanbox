@@ -248,6 +248,17 @@ export const worldSprites = {
     '..R.R...R.R.',
     '..o.o...o.o.',
   ],
+  acorn: ['....gggg....', '...gggggg...', '..gggggggg..', '..GGGGGGGG..', '...ssssss...', '....ssss....'],
+  pine: [
+    '.....g......',
+    '....ggg.....',
+    '...ggggg....',
+    '....ggg.....',
+    '..ggggggg...',
+    '.ggggggggg..',
+    '....sss.....',
+  ],
+  coconut: ['....ssss....', '...sssssss..', '..ssssssssss', '..sssssssss.', '...ssssss...', '....ssss....'],
   log: [
     '..........oo',
     '.........oyy',

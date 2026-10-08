@@ -43,7 +43,7 @@ export type SandboxCommand =
       cmd: 'plant'
       x: number
       y: number
-      kind: 'crop' | 'orchard' | 'sapling' | 'flowers' | 'berry' | 'mushroom'
+      kind: 'crop' | 'orchard' | 'sapling' | 'flowers' | 'berry' | 'mushroom' | 'oak' | 'pine' | 'palm'
       radius?: number
     }
   | { cmd: 'volcano'; x: number; y: number; radius?: number }
@@ -685,6 +685,27 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🍄',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'plant', x, y, kind: 'mushroom', radius: 1 + b }),
+      },
+      {
+        id: 'plant_oak',
+        label: 'oaks',
+        icon: '🌰',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'plant', x, y, kind: 'oak', radius: 2 + b }),
+      },
+      {
+        id: 'plant_pine',
+        label: 'pines',
+        icon: '🎄',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'plant', x, y, kind: 'pine', radius: 2 + b }),
+      },
+      {
+        id: 'plant_palm',
+        label: 'palms',
+        icon: '🥥',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'plant', x, y, kind: 'palm', radius: 1 + b }),
       },
       {
         id: 'plant_flowers',

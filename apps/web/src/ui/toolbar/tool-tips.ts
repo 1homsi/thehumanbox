@@ -71,6 +71,9 @@ const TOOL_TIPS: Record<string, string> = {
     'Drain fear out of everyone in the brush area, so they stop running from what frightened them and hold their ground.',
   wildfire:
     'Light a line of fire across the land at the click, driven by the wind. It catches burnable ground downwind and carries on through the woods; buildings in reach burn too.',
+  plant_oak: 'Plant oak saplings. They grow for a long time into a broadleaf forest.',
+  plant_pine: 'Plant pine saplings. Slow to grow, but they keep growing through winter and make a taiga.',
+  plant_palm: 'Plant palms by the water. They take root only near it and grow into jungle.',
   restore:
     'Erase your changes to the land in the brush area: water drains, fire and ash cool, and sand or snow goes back to what the biome holds. Rock and buildings stay.',
   place_house:
@@ -198,6 +201,8 @@ export function toolFailure(tool: SandboxTool): string {
       return 'nothing here to change'
     case 'plant_mushroom':
       return 'mushrooms need woods or wet ground'
+    case 'plant_palm':
+      return 'palms need water nearby'
     case 'war':
     case 'peace':
       return 'needs two tribes nearby'
