@@ -310,6 +310,8 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// A gale: the wind turns to a random quarter and blows hard.
+    Gale,
     /// Erase ground changes inside the radius: water drains, fire and ash
     /// cool, and sand or snow the biome does not hold turns back to its ground.
     /// Rock, buildings and food stay as they are.
@@ -449,6 +451,8 @@ mod teleport;
 #[cfg(test)]
 mod tests;
 mod tribes;
+#[cfg(test)]
+mod weather_tests;
 
 impl Simulation {
     pub fn apply_command_json(&mut self, json: &str) -> bool {
@@ -523,6 +527,7 @@ impl Simulation {
             Command::Demolish { x, y, radius } => self.cmd_demolish(x, y, radius),
             Command::Repair { x, y, radius } => self.cmd_repair(x, y, radius),
             Command::Restore { x, y, radius } => self.cmd_restore(x, y, radius),
+            Command::Gale => self.cmd_gale(),
             Command::Guide {
                 lineage,
                 strategy,

@@ -539,7 +539,7 @@ export interface WorldState {
   season_progress: number
   drought: boolean
   weather: {
-    kind: 'clear' | 'rain' | 'storm' | 'wet'
+    kind: 'clear' | 'rain' | 'storm' | 'snow' | 'fog' | 'wet'
     intensity: number
     // Wind vector - drifts slowly each tick on the server. The 2D
     // canvas slants rain streaks along (wind_x, wind_y); 3D uses it

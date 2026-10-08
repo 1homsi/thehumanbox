@@ -102,6 +102,18 @@ impl Simulation {
                 self.weather.duration = 1800;
                 self.weather.intensity = 0.7;
             }
+            "snow" => {
+                self.weather.kind = 3;
+                self.weather.start_tick = now;
+                self.weather.duration = 1500;
+                self.weather.intensity = 0.6;
+            }
+            "fog" => {
+                self.weather.kind = 4;
+                self.weather.start_tick = now;
+                self.weather.duration = 1200;
+                self.weather.intensity = 0.5;
+            }
             "storm" => {
                 self.weather.kind = 2;
                 self.weather.start_tick = now;
@@ -115,6 +127,36 @@ impl Simulation {
                 self.weather.wet_until = 0;
             }
         }
+        true
+    }
+
+    /// A gale: the wind turns to a random quarter and blows hard. It drifts
+    /// back to its usual strength over the following days.
+    pub(super) fn cmd_gale(&mut self) -> bool {
+        use std::f32::consts::TAU;
+        let theta = self.rng.random::<f32>() * TAU;
+        self.weather.wind_x = theta.cos() * 0.9;
+        self.weather.wind_y = theta.sin() * 0.9;
+        self.weather.wind_last_tick = self.tick_count;
+        const QUARTERS: [&str; 8] = [
+            "east",
+            "south-east",
+            "south",
+            "south-west",
+            "west",
+            "north-west",
+            "north",
+            "north-east",
+        ];
+        let quarter = QUARTERS[((theta / TAU * 8.0).round() as usize) % 8];
+        let now = self.tick_count;
+        push_event(
+            &mut self.events,
+            now,
+            "weather",
+            "world",
+            &format!("a gale blows toward the {quarter}"),
+        );
         true
     }
 
