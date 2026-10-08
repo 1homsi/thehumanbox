@@ -42,6 +42,7 @@ describe('road style by era', () => {
     expect(roadStyle('classical')).toBe('cobble')
     expect(roadStyle('medieval')).toBe('cobble')
     expect(roadStyle(undefined)).toBe('track')
+    expect(roadStyle('genesis')).toBe('track')
   })
 })
 

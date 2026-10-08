@@ -1,5 +1,5 @@
 import { TILE } from '../../../model/palette'
-import { eraTier } from '../../../model/era-tier'
+import { ERA_TIERS, eraTier } from '../../../model/era-tier'
 
 /** The road kind a cell holds: the simulation's `ROAD_TRACK`. */
 export const ROAD_TRACK = 1
@@ -15,7 +15,8 @@ export type RoadStyle = 'track' | 'cobble'
 
 /** The style of every road on the map in this era: the whole world's roads change together. */
 export function roadStyle(era: string | undefined): RoadStyle {
-  return eraTier(era) >= 2 ? 'cobble' : 'track'
+  const known = era !== undefined && era.toLowerCase().replace(/[-\s]/g, '_') in ERA_TIERS
+  return known && eraTier(era) >= 2 ? 'cobble' : 'track'
 }
 
 /**
