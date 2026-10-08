@@ -485,6 +485,18 @@ impl Organism {
 
         if night {
             let ns = self.near_shelter(grid, buildings);
+            // The family home comes first at night: a person walks home when it is
+            // within reach and rests there, rather than taking any shelter nearby.
+            let (hx, hy) = (self.home_x as i32, self.home_y as i32);
+            let at_home = (ix - hx).abs() <= 2 && (iy - hy).abs() <= 2;
+            if !at_home && dist_home < 40.0 && self.hydration > 0.25 && self.energy > 0.2 {
+                set_thought!("going home for the night");
+                return (self.toward((hx, hy), grid), thought);
+            }
+            if at_home && self.sleep_debt > 0.08 && self.energy > 0.25 && rng.random::<f32>() < 0.65 {
+                set_thought!("sleeping at home");
+                return (17, thought);
+            }
             if ns && self.sleep_debt > 0.08 && self.energy > 0.25 && rng.random::<f32>() < 0.65 {
                 set_thought!("resting");
                 return (17, thought);

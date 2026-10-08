@@ -393,3 +393,73 @@ fn wander_target_biases_tie_without_forcing_action() {
     assert_eq!(action, 3);
     assert_eq!(thought.as_deref(), Some("wandering"));
 }
+
+#[test]
+fn at_night_a_person_walks_home_and_sleeps_there_not_in_any_shelter() {
+    let mut rng = StdRng::seed_from_u64(3);
+    let traits = Traits::random(&mut rng);
+    let mut grid = WorldGrid::new(4);
+    for x in 30..=70 {
+        for y in 30..=70 {
+            grid.set(x, y, Tile::Sand);
+        }
+    }
+    let mut org = Organism::new(
+        "id".into(),
+        "Homeward".into(),
+        50.0,
+        50.0,
+        0,
+        "".into(),
+        "lin".into(),
+        9000,
+        traits,
+    );
+    org.energy = 0.8;
+    org.hydration = 0.8;
+    org.health = 0.9;
+    org.age = 1500;
+    org.sleep_debt = 0.4;
+    org.home_x = 40.0;
+    org.home_y = 50.0;
+    let (action, thought) = org.choose_action(
+        &grid,
+        &BuildingList::new(),
+        100,
+        0.0,
+        &[],
+        true,
+        0,
+        &mut rng,
+        false,
+        "state",
+        &[0, 1, 2, 3, 4, 5, 6, 7, 17],
+    );
+    assert_ne!(action, 17, "not resting where it stands");
+    assert_eq!(thought.as_deref(), Some("going home for the night"));
+
+    // At the door it sleeps.
+    org.x = 40.0;
+    org.y = 50.0;
+    let mut slept = false;
+    for _ in 0..20 {
+        let (a, t) = org.choose_action(
+            &grid,
+            &BuildingList::new(),
+            100,
+            0.0,
+            &[],
+            true,
+            0,
+            &mut rng,
+            false,
+            "state",
+            &[0, 1, 2, 3, 4, 5, 6, 7, 17],
+        );
+        if a == 17 && t.as_deref() == Some("sleeping at home") {
+            slept = true;
+            break;
+        }
+    }
+    assert!(slept, "the person sleeps at home once there");
+}
