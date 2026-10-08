@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TILE } from '../../../model/palette'
-import { EMBER_FIRE_MIN, EMBER_LIFE_MS, emberAt, paintEmbers } from './embers'
+import { TILE_ID } from '../../../model/terrain-ids'
+import { EMBER_FIRE_MIN, EMBER_LIFE_MS, emberAt, paintCampfireSparks, paintEmbers } from './embers'
 
 /** A context that counts the squares it is asked to fill. */
 function countingContext() {
@@ -65,6 +66,19 @@ describe('paintEmbers', () => {
     paintEmbers(ctx, undefined, view, 500)
     paintEmbers(ctx, [[0, EMBER_FIRE_MIN - 0.01]], { ...view, r1: 1 }, 500)
     expect(log.fills).toBe(0)
+  })
+
+  it('throws two embers over each campfire tile and none over other ground', () => {
+    const tiles = [
+      [TILE_ID.GRASS, TILE_ID.CAMPFIRE, TILE_ID.GRASS],
+      [TILE_ID.GRASS, TILE_ID.GRASS, TILE_ID.GRASS],
+    ]
+    const { ctx, log } = countingContext()
+    paintCampfireSparks(ctx, tiles, view, 500)
+    expect(log.fills).toBe(2)
+    const none = countingContext()
+    paintCampfireSparks(none.ctx, [[TILE_ID.GRASS]], { ...view, r1: 1 }, 500)
+    expect(none.log.fills).toBe(0)
   })
 
   it('reads the grid at the offset of the origin', () => {
