@@ -242,6 +242,22 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// Pull down every building the radius touches, and clear the huts and
+    /// campfires there to grass. The people inside stay where they are.
+    Demolish {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
+    /// Restore every damaged or ruined building the radius touches to full
+    /// condition, as if a crew had finished the repairs.
+    Repair {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
     /// Wolves and bears in range become dogs bonded to the nearest person.
     Tame {
         x: f32,
@@ -363,6 +379,7 @@ fn prayer_answers(cmd: &Command) -> Option<PrayerAnswer> {
 }
 
 mod blessings;
+mod buildings;
 mod creation;
 mod disasters;
 #[cfg(test)]
@@ -427,6 +444,8 @@ impl Simulation {
             Command::MeteorShower { x, y, radius } => self.cmd_meteor_shower(x, y, radius),
             Command::Love { x, y, radius } => self.cmd_love(x, y, radius),
             Command::Tame { x, y, radius } => self.cmd_tame(x, y, radius),
+            Command::Demolish { x, y, radius } => self.cmd_demolish(x, y, radius),
+            Command::Repair { x, y, radius } => self.cmd_repair(x, y, radius),
             Command::Guide {
                 lineage,
                 strategy,
