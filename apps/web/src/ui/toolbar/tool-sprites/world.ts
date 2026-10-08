@@ -234,6 +234,15 @@ export const worldSprites = {
     '..R.R...R.R.',
     '..o.o...o.o.',
   ],
+  dog: [
+    '.........s..',
+    '........ssss',
+    '...sssssssso',
+    '.ssssssssss.',
+    '.sssssssss..',
+    '..s.s..s.s..',
+    '..o.o..o.o..',
+  ],
   cat: [
     '........s.s.',
     '........ssss',
