@@ -13,6 +13,29 @@ export function storeChanged(arr: Slots, i: number, v: number): boolean {
   return arr[i] !== old
 }
 
+// The same as storeChanged, one function per slot type: a call site that always passes the same array
+// kind stays monomorphic, so the hot per-person loops do not pay for the generic element access.
+export function storeF32(arr: Float32Array, i: number, v: number): boolean {
+  const old = arr[i]
+  arr[i] = v
+  return arr[i] !== old
+}
+export function storeF64(arr: Float64Array, i: number, v: number): boolean {
+  const old = arr[i]
+  arr[i] = v
+  return arr[i] !== old
+}
+export function storeU8(arr: Uint8Array, i: number, v: number): boolean {
+  const old = arr[i]
+  arr[i] = v
+  return arr[i] !== old
+}
+export function storeU32(arr: Uint32Array, i: number, v: number): boolean {
+  const old = arr[i]
+  arr[i] = v
+  return arr[i] !== old
+}
+
 /**
  * Sprites that ride along with an owner sprite (a shadow, a ring, a health
  * bar). The owner supplies a position every frame; each attached sprite keeps a
@@ -101,7 +124,7 @@ export class AttachedSprites {
       const o = this.owner[k]
       let changed: boolean
       if (hidden[o] !== 0) {
-        changed = storeChanged(flags, k, flags[k] | SPRITE_HIDDEN)
+        changed = storeU8(flags, k, flags[k] | SPRITE_HIDDEN)
       } else {
         let nx: number
         let ny: number
@@ -113,10 +136,10 @@ export class AttachedSprites {
           nx = ownerX[o] + this.offX[k]
           ny = ownerY[o] + this.offY[k]
         }
-        changed = storeChanged(x, k, nx)
-        changed = storeChanged(y, k, ny) || changed
-        changed = storeChanged(flags, k, flags[k] & ~SPRITE_HIDDEN) || changed
-        if (this.spin[k] !== 0) changed = storeChanged(rotation, k, now * this.spin[k]) || changed
+        changed = storeF32(x, k, nx)
+        changed = storeF32(y, k, ny) || changed
+        changed = storeU8(flags, k, flags[k] & ~SPRITE_HIDDEN) || changed
+        if (this.spin[k] !== 0) changed = storeF32(rotation, k, now * this.spin[k]) || changed
       }
       if (changed) {
         if (k < lo) lo = k
