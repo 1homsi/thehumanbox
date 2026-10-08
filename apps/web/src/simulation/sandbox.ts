@@ -44,6 +44,7 @@ export type SandboxCommand =
   | { cmd: 'advance'; to: 'season' | 'year'; max_ticks?: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
   | { cmd: 'repair'; x: number; y: number; radius?: number }
+  | { cmd: 'place_building'; x: number; y: number; kind: string }
   | {
       cmd: 'guide'
       lineage: string
@@ -409,6 +410,20 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🔨',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'repair', x, y, radius: 2 + b }),
+      },
+      {
+        id: 'place_house',
+        label: 'house',
+        icon: '🏠',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'place_building', x, y, kind: 'house' }),
+      },
+      {
+        id: 'place_library',
+        label: 'library',
+        icon: '📖',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'place_building', x, y, kind: 'library' }),
       },
     ],
   },

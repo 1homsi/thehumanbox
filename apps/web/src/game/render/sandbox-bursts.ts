@@ -129,6 +129,8 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'demolish':
       return 'quake'
     case 'repair':
+    case 'place_house':
+    case 'place_library':
       return 'bless'
     case 'war':
       return 'war'
