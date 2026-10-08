@@ -87,6 +87,8 @@ export interface OrganismState extends ExtendedEmotions {
   father_id?: string | null
   /** Family name: inherited from the father, else the mother. */
   surname?: string
+  /** A name the player gave this person; shown in place of `name` when set. */
+  custom_name?: string
   children_count?: number
   sex?: 'male' | 'female'
   pregnant?: boolean

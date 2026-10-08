@@ -1,3 +1,4 @@
+import { personName } from '../../../shared/personName'
 import { _orgLastPos, orgMotion } from '.././draw-helpers'
 import { drawBoat } from '.././boat-sprite'
 import { crowdLabelIds, LabelPlacer, labelWidth } from '.././crowd-detail'
@@ -117,7 +118,7 @@ export function draw_people(f: DrawFrame) {
         (characterDetail !== 'overview' && viewFlags.names && (!labelIds || labelIds.has(org.id))))
     if (
       showName &&
-      placer.place(px, spriteTop - 2, labelWidth(org.name, isSelected ? 10 : 9), 10, isSelected)
+      placer.place(px, spriteTop - 2, labelWidth(personName(org), isSelected ? 10 : 9), 10, isSelected)
     ) {
       drawName(ctx, org, px, spriteTop - 2, isSelected)
     }
@@ -132,7 +133,7 @@ function drawName(ctx: CanvasRenderingContext2D, org: OrganismState, x: number, 
   ctx.textBaseline = 'bottom'
   ctx.lineWidth = 3
   ctx.strokeStyle = 'rgba(0,0,0,0.85)'
-  ctx.strokeText(org.name, x, y)
+  ctx.strokeText(personName(org), x, y)
   ctx.fillStyle = '#ffffff'
-  ctx.fillText(org.name, x, y)
+  ctx.fillText(personName(org), x, y)
 }

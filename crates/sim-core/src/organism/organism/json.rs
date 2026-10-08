@@ -219,6 +219,11 @@ impl Organism {
             } else {
                 None
             },
+            custom_name: if include_cold {
+                self.custom_name.clone()
+            } else {
+                None
+            },
             lineage_id: if include_cold {
                 Some(self.lineage_id.clone())
             } else {
@@ -930,6 +935,8 @@ pub struct OrgJson {
     pub father_id: Option<Option<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub surname: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub custom_name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lineage_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

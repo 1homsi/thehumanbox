@@ -1,3 +1,4 @@
+import { personName } from './shared/personName'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import { lazyWithRetry } from './shared/lazyWithRetry'
 import { useSimulation } from './simulation/useSimulation'
@@ -54,6 +55,7 @@ import { ModalRouter } from './ui/modals/ModalRouter'
 import { SaveSlotsModal } from './ui/modals/SaveSlotsModal'
 import { ScenariosModal } from './ui/modals/ScenariosModal'
 import { type ScenarioPreset } from './simulation/scenarios'
+import { setSandboxSender } from './simulation/commandBus'
 import { MobileBanner } from './ui/toasts/MobileBanner'
 import { WelcomeModal } from './ui/modals/WelcomeModal'
 import { UpdateToast } from './ui/toasts/UpdateToast'
@@ -125,6 +127,10 @@ function LiveApp() {
   const currentScene = useCurrentScene()
 
   const [armedTool, setArmedTool] = useState<SandboxTool | null>(null)
+  useEffect(() => {
+    setSandboxSender(sendCommand)
+    return () => setSandboxSender(null)
+  }, [sendCommand])
   /** The first person chosen by the marry tool, waiting for the second click. */
   const marryFirstRef = useRef<{ x: number; y: number } | null>(null)
   const [brush, setBrush] = useState(2)
@@ -336,7 +342,17 @@ function LiveApp() {
           return
         }
         useUIStore.getState().followOrg(person.id)
-        setTemporarySandboxStatus(`following ${person.name}`)
+        setTemporarySandboxStatus(`following ${personName(person)}`)
+        return
+      }
+      if (armedTool.id === 'name') {
+        const person = nearestLivingPerson(useWorldStore.getState().world?.organisms ?? [], wx, wy, 4)
+        if (!person) {
+          setTemporarySandboxStatus('name · nobody in reach here')
+          return
+        }
+        useUIStore.getState().startRename(person.id)
+        setTemporarySandboxStatus(`name · type a new name for ${personName(person)}`)
         return
       }
       if (armedTool.id === 'marry') {

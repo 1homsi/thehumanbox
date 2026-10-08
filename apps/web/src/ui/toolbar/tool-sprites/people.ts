@@ -1,5 +1,19 @@
 // People tools (family): 12x12 pixel art, one string per row, letters index the palette.
 export const peopleSprites = {
+  pencil: [
+    '............',
+    '..........o.',
+    '.........oy.',
+    '........oy..',
+    '.......oy...',
+    '......oy....',
+    '.....oy.....',
+    '....oy......',
+    '...oy.......',
+    '..oy........',
+    '.oo.........',
+    '............',
+  ],
   ring: [
     '............',
     '....yyyy....',

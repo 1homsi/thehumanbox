@@ -1,3 +1,4 @@
+import { personName } from '../../shared/personName'
 import { useMemo, useRef, useState, useCallback, useEffect } from 'react'
 import { stratify as d3stratify, hierarchy as d3hierarchy, tree as d3tree } from 'd3-hierarchy'
 import type {
@@ -406,7 +407,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, 
         ctx.font = `${isHover ? 600 : 500} 9.5px monospace`
         ctx.fillStyle = isAlive ? (isHover ? '#fff' : '#d0c8c0') : '#555'
         ctx.textAlign = 'center'
-        ctx.fillText(org.name + (isAlive ? '' : ' †'), x, y + NODE_R + 13)
+        ctx.fillText(personName(org) + (isAlive ? '' : ' †'), x, y + NODE_R + 13)
 
         ctx.font = '8px monospace'
         ctx.fillStyle = '#4a3e35'
@@ -425,7 +426,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, 
           ctx.fillStyle = isAlive ? color : '#444'
           ctx.globalAlpha = isAlive ? 0.9 : 0.4
           ctx.textAlign = 'center'
-          ctx.fillText(org.name[0], x, y - 3)
+          ctx.fillText(personName(org)[0], x, y - 3)
           ctx.globalAlpha = 1
         }
 
@@ -533,7 +534,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, 
         {hovered ? (
           <>
             <span style={{ color: lineageColor(hovered.lineage_id), fontWeight: 600 }}>
-              {hovered.name}
+              {personName(hovered)}
               {hovered.surname ? ` ${hovered.surname}` : ''}
             </span>
             {sexWords && hovered.sex && (
@@ -555,7 +556,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, 
                 return father ? (
                   <span style={{ color: isCheating ? '#e8b060' : '#7ab0e0' }}>
                     {' · '}
-                    {isCheating ? '⚡' : ''}father: {father.name}
+                    {isCheating ? '⚡' : ''}father: {personName(father)}
                     {father.surname ? ` ${father.surname}` : ''}
                   </span>
                 ) : null

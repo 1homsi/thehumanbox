@@ -1,3 +1,4 @@
+import { personName } from '../../shared/personName'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import type { OrganismState, WorldState } from '../../shared/types'
@@ -129,7 +130,7 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
                 {(showStarredOnly ? visibleDead : visibleDead.slice(-5)).map((org) => (
                   <div key={org.id} className="org-card dead">
                     <div className="org-header">
-                      <span className="org-name">{org.name}</span>
+                      <span className="org-name">{personName(org)}</span>
                       <span className="org-meta">
                         g{org.generation} · {org.age}
                       </span>

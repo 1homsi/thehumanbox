@@ -1,9 +1,11 @@
+import { personName } from '../../shared/personName'
 import { memo, useCallback } from 'react'
 import clsx from 'clsx'
 import { lineageColor, cbColor } from '../../shared/constants'
 import { useUIStore } from '../../state/store'
 import { useOrganism, useWorldStore } from '../../state/worldStore'
 import { Tooltip } from '../toolbar/Tooltip'
+import { RenameForm } from './RenameForm'
 import { ageInYears } from '../../game/model/calendar'
 import { shownGeneration } from '../../game/model/generations'
 
@@ -44,12 +46,17 @@ function OrgCardImpl({ orgId }: OrgCardProps) {
   const openConvo = useUIStore((s) => s.openConvo)
   const onTrack = useCallback(() => orgId && followOrg(orgId), [orgId, followOrg])
   const onConvos = useCallback(() => orgId && openConvo(orgId), [orgId, openConvo])
+  const renamingOrgId = useUIStore((s) => s.renamingOrgId)
+  const startRename = useUIStore((s) => s.startRename)
 
   if (!org) return null
   if (!org.lineage_id || !org.traits || !org.name) return null
 
   const tn = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
-  const on = (oid: string) => useWorldStore.getState().byId.get(oid)?.name ?? (oid ?? '').slice(0, 5)
+  const on = (oid: string) => {
+    const other = useWorldStore.getState().byId.get(oid)
+    return other ? personName(other) : (oid ?? '').slice(0, 5)
+  }
   const isSick = org.infection > 0.15
   const sexLabel = sexWords ? (org.sex === 'female' ? sexWords[1] : sexWords[0]) : undefined
   const convoCount = org.conversation_count ?? 0
@@ -61,7 +68,7 @@ function OrgCardImpl({ orgId }: OrgCardProps) {
     >
       <div className="org-header">
         <span className="org-name">
-          {org.name}
+          {personName(org)}
           {org.surname ? <span className="org-surname"> {org.surname}</span> : null}
         </span>
         {isSick && (
@@ -114,6 +121,17 @@ function OrgCardImpl({ orgId }: OrgCardProps) {
           </span>
         </Tooltip>
         <span className="org-action-btns">
+          <button
+            className="org-action-btn org-rename-btn"
+            title="give this person a name"
+            aria-label="Rename person"
+            onClick={(e) => {
+              e.stopPropagation()
+              startRename(org.id)
+            }}
+          >
+            ✎
+          </button>
           {convoCount > 0 && onConvos && (
             <button
               className="org-action-btn org-convo-btn"
@@ -151,6 +169,7 @@ function OrgCardImpl({ orgId }: OrgCardProps) {
         </span>
       </div>
 
+      {renamingOrgId === org.id && <RenameForm org={org} />}
       {org.attracted_to && !org.partner_id && (
         <Tooltip tip="This organism is drawn to another - they are building attraction and may bond">
           <div className="org-attraction" style={{ cursor: 'default' }}>

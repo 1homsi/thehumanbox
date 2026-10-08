@@ -93,6 +93,7 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'cure':
     case 'love':
     case 'marry':
+    case 'name':
       return 'heal'
     case 'tame':
       return 'peace'

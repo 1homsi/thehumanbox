@@ -1,3 +1,4 @@
+import { personName } from '../../shared/personName'
 import { useState } from 'react'
 import type { OrganismState } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
@@ -67,7 +68,7 @@ function OrgDetailBody({
 
   return (
     <>
-      {showLife && <LifeModal orgId={org.id} orgName={org.name} onClose={() => setShowLife(false)} />}
+      {showLife && <LifeModal orgId={org.id} orgName={personName(org)} onClose={() => setShowLife(false)} />}
       <div className="org-detail" style={{ borderTop: `3px solid ${color}` }}>
         <OrgHeader
           org={org}

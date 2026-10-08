@@ -1,3 +1,4 @@
+import { personName } from '../../shared/personName'
 import { useMemo, useState } from 'react'
 import { Modal } from './Modal'
 import type { OrganismState } from '../../shared/types'
@@ -215,7 +216,7 @@ export function NotableOrgsModal({ organisms, onClose }: Props) {
                     {(i + 1).toString().padStart(2, '0')}
                   </span>
                   <span>
-                    <span style={{ color, fontWeight: 600 }}>{r.org.name}</span>
+                    <span style={{ color, fontWeight: 600 }}>{personName(r.org)}</span>
                     {r.org.is_elder && <span style={{ color: '#ffcf6a', marginLeft: 6 }}>◈</span>}
                     {r.org.sex && (
                       <span
