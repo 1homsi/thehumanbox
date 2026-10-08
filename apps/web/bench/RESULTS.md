@@ -69,3 +69,14 @@ not merged.
 - Not reached: 3 % at 60 fps with 3,000 people. The rest is mostly in cubeforge's per-frame layer pass and in the
   app's per-frame sprite and label passes; the profile and a ranked list for the engine are in
   `docs/ENGINE_REQUESTS.md`.
+
+## Art streams: main against the commit before #307
+
+Same harness, close zoom, playing, 3 runs, the two builds interleaved (`node bench/run.mjs --builds pre307=...,main=... --fixtures standard,crowd --zooms close --modes playing --runs 3`). `pre307` is the parent of #307 (the 24-look villagers). Medians of the runs.
+
+| world | pre307 busy % | main busy % | JS ms/frame | GPU ms/frame | fps | texture MB | GPU process MB | instances |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|
+| standard | 9.3 | 9.2 | 1.36 → 1.38 | 1.70 → 1.81 | 60 → 59 | 22.3 → 25.2 | 141 → 160 | 2,868 → 3,654 |
+| crowd | 12.0 | 12.1 | 1.77 → 1.78 | 4.51 → 4.31 | 60 → 60 | 22.3 → 25.2 | 135 → 154 | 13,489 → 14,300 |
+
+Main-thread and GPU time are flat within noise. The texture increase is the people atlas (about 1 MB to 3.9 MB, now 240 looks). The GPU process memory increase (about 19 MB in both worlds) is the texture plus the buffers of the new layers (tree dressing, cast shadows, yards); it is not split further. The instance count rises with the new layers.
