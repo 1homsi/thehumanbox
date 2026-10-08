@@ -14,4 +14,18 @@ export const peopleSprites = {
     '....orro....',
     '....oo.oo...',
   ],
+  teleport: [
+    '.....pp.....',
+    '...pp..pp...',
+    '..p......p..',
+    '.p...bb...p.',
+    '.p..bBBb..p.',
+    'p...bBBb...p',
+    'p...bBBb...p',
+    '.p..bBBb..p.',
+    '.p...bb...p.',
+    '..p......p..',
+    '...pp..pp...',
+    '.....pp.....',
+  ],
 } as const

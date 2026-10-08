@@ -37,6 +37,7 @@ export type SandboxCommand =
   | { cmd: 'love'; x: number; y: number; radius?: number }
   | { cmd: 'tame'; x: number; y: number; radius?: number }
   | { cmd: 'family'; x: number; y: number }
+  | { cmd: 'teleport'; x: number; y: number; radius?: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
   | { cmd: 'repair'; x: number; y: number; radius?: number }
   | {
@@ -122,6 +123,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '👪',
         mode: 'point',
         build: (x, y) => ({ cmd: 'family', x, y }),
+      },
+      {
+        id: 'teleport',
+        label: 'teleport',
+        icon: '🌀',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'teleport', x, y, radius: 4 }),
       },
     ],
   },
