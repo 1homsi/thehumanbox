@@ -12,6 +12,7 @@ import {
 } from '../../vegetation-sprites'
 import { CELL_GUTTER, type CellAtlas, type CellRef } from '../atlas/cell-atlas'
 import { castSun } from './cast-shadows'
+import { crownSpeck, dressingFor } from './tree-dressing'
 import { WHITE, rgba, writeSprite, type CfFrame } from '../frame'
 
 /** Cell classes: a tree is at most ~32px square, an acacia 24x20. */
@@ -61,6 +62,9 @@ export class TreesDriver {
   /** Long shadows thrown by the sun, under the trees (rewritten as the sun moves). */
   private readonly castLayer: SpriteLayer
   private castKey = ''
+  /** Seasonal specks on the crowns (blossom, leaves, snow), above the trees. */
+  private readonly dressLayer: SpriteLayer
+  private season = ''
   private readonly atlas: CellAtlas
   private sprites: TreeSprite[] = []
   /** Sorted by bottom edge, for a visible-range scan each frame. */
@@ -74,10 +78,17 @@ export class TreesDriver {
   private picked = new Int32Array(0)
   private shifts = new Int8Array(0)
 
-  constructor(layer: SpriteLayer, swayLayer: SpriteLayer, atlas: CellAtlas, castLayer: SpriteLayer) {
+  constructor(
+    layer: SpriteLayer,
+    swayLayer: SpriteLayer,
+    atlas: CellAtlas,
+    castLayer: SpriteLayer,
+    dressLayer: SpriteLayer,
+  ) {
     this.layer = layer
     this.swayLayer = swayLayer
     this.castLayer = castLayer
+    this.dressLayer = dressLayer
     this.atlas = atlas
   }
 
@@ -88,6 +99,7 @@ export class TreesDriver {
 
   rebuild(f: CfFrame, season: string): void {
     const t0 = performance.now()
+    this.season = season
     const biomes = f.biomes
     const { tiles, width, height } = f.world.grid
     if (!biomes) return
@@ -231,8 +243,31 @@ export class TreesDriver {
       )
     }
     layer.touch()
+    this.buildDressing(sprites)
     this.stats.trees = sprites.length
     this.stats.acacias = acaciaCells.length
+  }
+
+  /** The season's specks on every tree that sways (cacti and dead trees have no crown to dress). */
+  private buildDressing(sprites: TreeSprite[]): void {
+    const layer = this.dressLayer
+    const dressing = dressingFor(this.season)
+    const crowns = dressing ? sprites.filter((s) => s.sways) : []
+    if (!dressing) {
+      layer.resize(0)
+      layer.touch()
+      return
+    }
+    layer.resize(crowns.length * dressing.count)
+    let i = 0
+    for (const s of crowns) {
+      const seed = Math.round(s.cx) * 1009 + Math.round(s.cy)
+      for (let k = 0; k < dressing.count; k++) {
+        const sp = crownSpeck(dressing, seed, k, s.cx, s.cy, s.sz)
+        writeSprite(layer, i++, sp.x, sp.y, sp.size, sp.size, 0, 0, sp.colour, SPRITE_UNTEXTURED, -1, 0)
+      }
+    }
+    layer.touch()
   }
 
   /** The canopy of a tree without its trunk: the top 62% of the box, as the canvas sway clip. */

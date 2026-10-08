@@ -14,7 +14,7 @@ function driverWithTrees() {
     epoch: 0,
     bake: () => ({ atlas: 0, frame: 1, cw: 18, ch: 12 }),
   } as unknown as CellAtlas
-  const driver = new TreesDriver(new SpriteLayer(), sway, atlas, new SpriteLayer())
+  const driver = new TreesDriver(new SpriteLayer(), sway, atlas, new SpriteLayer(), new SpriteLayer())
   const trees = [0, 1, 2].map((i) => ({
     dx: 40 + i * 20,
     dy: 40,
