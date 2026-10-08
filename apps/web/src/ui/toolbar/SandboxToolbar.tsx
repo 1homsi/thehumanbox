@@ -11,7 +11,7 @@ import {
   type SandboxTool,
   type SandboxViewFlag,
 } from '../../simulation/sandbox'
-import { DOCK_TABS, SPEED_TOOL_IDS, TIME_CATEGORY_ID, groupsFor, resolveTab } from './dock-tabs'
+import { BRUSH_SIZES, DOCK_TABS, SPEED_TOOL_IDS, TIME_CATEGORY_ID, groupsFor, resolveTab } from './dock-tabs'
 import { WASM_BASE_TICK_MS, isRuntimeControlActive } from '../../simulation/runtimeControls'
 import { nextSpeedStep } from '../../simulation/speedSteps'
 import {
@@ -309,6 +309,21 @@ export function SandboxToolbar({
             <button type="button" aria-label="Larger brush" onClick={() => onBrush(Math.min(20, brush + 1))}>
               +
             </button>
+            <span className="dock-brush-sizes" role="group" aria-label="Brush sizes">
+              {BRUSH_SIZES.map(([size, value]) => (
+                <button
+                  key={size}
+                  type="button"
+                  title={`Brush ${size} tile${size === 1 ? '' : 's'} across`}
+                  aria-label={`Brush size ${size}`}
+                  aria-pressed={brush === value}
+                  className={brush === value ? 'active' : undefined}
+                  onClick={() => onBrush(value)}
+                >
+                  {size}
+                </button>
+              ))}
+            </span>
           </span>
         )}
       </div>

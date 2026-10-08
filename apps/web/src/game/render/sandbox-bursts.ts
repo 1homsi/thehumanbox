@@ -95,6 +95,7 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'meteor_shower':
       return 'meteor'
     case 'harvest':
+    case 'restore':
       return 'grow'
     case 'arm':
       return 'inspire'
