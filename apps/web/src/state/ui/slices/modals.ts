@@ -7,6 +7,7 @@ export interface ModalsSlice {
   showChronicles: boolean
   showFamilyTree: boolean
   showSaveSlots: boolean
+  showAchievements: boolean
   /** The person the family tree opens on, or null for the whole population. */
   familyTreeFocus: string | null
   showOrgSearch: boolean
@@ -25,6 +26,8 @@ export interface ModalsSlice {
   openFamilyTree: (focusId?: string | null) => void
   openSaveSlots: () => void
   closeSaveSlots: () => void
+  openAchievements: () => void
+  closeAchievements: () => void
   closeFamilyTree: () => void
   openOrgSearch: () => void
   closeOrgSearch: () => void
@@ -51,6 +54,7 @@ export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (se
   showFamilyTree: false,
   familyTreeFocus: null,
   showSaveSlots: false,
+  showAchievements: false,
   showOrgSearch: false,
   showStats: false,
   showAllLineages: false,
@@ -80,6 +84,11 @@ export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (se
     set({ showSaveSlots: true })
   },
   closeSaveSlots: () => set({ showSaveSlots: false }),
+  openAchievements: () => {
+    trackEvent('modal_open', { modal: 'achievements' })
+    set({ showAchievements: true })
+  },
+  closeAchievements: () => set({ showAchievements: false }),
   openOrgSearch: () => {
     trackEvent('modal_open', { modal: 'org_search' })
     set({ showOrgSearch: true })
@@ -127,6 +136,7 @@ export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (se
       showFamilyTree: false,
       familyTreeFocus: null,
       showSaveSlots: false,
+      showAchievements: false,
       showOrgSearch: false,
       showStats: false,
       showAllLineages: false,
