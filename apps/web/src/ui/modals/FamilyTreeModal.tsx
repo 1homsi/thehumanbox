@@ -44,6 +44,8 @@ interface Props {
   organisms: OrganismState[]
   currentTick: number
   sexWords?: [string, string]
+  /** Open centred on this person; the whole population when absent. */
+  focusId?: string | null
   onClose: () => void
 }
 
@@ -116,7 +118,7 @@ function layoutTree(orgs: OrganismState[]): { nodes: NodePos[]; w: number; h: nu
   }
 }
 
-export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props) {
+export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, onClose }: Props) {
   const { frozen: organisms, reload } = useFrozenSnapshot(() => livOrgs)
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -230,6 +232,16 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
       if (n.y < minY) minY = n.y
       if (n.y > maxY) maxY = n.y
     }
+    const focus = focusId != null ? nodes.find((n) => n.org.id === focusId) : undefined
+    if (focus) {
+      // Open on the chosen person at a readable scale, with them highlighted.
+      const kFocus = 1.2
+      const tx = vw / 2 - focus.x * kFocus
+      const ty = vh / 2 - focus.y * kFocus
+      setHoverId(focus.org.id)
+      d3.select(canvas).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(kFocus))
+      return
+    }
     const PAD = 80
     const treeW = maxX - minX + NODE_R * 2 + PAD * 2
     const treeH = maxY - minY + NODE_R * 2 + PAD * 2
@@ -240,7 +252,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     const tx = vw / 2 - cx * kClamped
     const ty = vh / 2 - cy * kClamped
     d3.select(canvas).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(kClamped))
-  }, [nodes])
+  }, [nodes, focusId])
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current
