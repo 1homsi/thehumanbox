@@ -119,6 +119,7 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'frenzy':
       return 'war'
     case 'blight':
+    case 'locusts':
       return 'blight'
     case 'blizzard':
       return 'frost'
