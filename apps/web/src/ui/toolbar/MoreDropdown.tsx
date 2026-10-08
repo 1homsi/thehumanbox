@@ -14,6 +14,7 @@ export function MoreDropdown() {
   const openLanguages = useUIStore((s) => s.openLanguages)
   const openFamilyTree = useUIStore((s) => s.openFamilyTree)
   const openAchievements = useUIStore((s) => s.openAchievements)
+  const openScenarios = useUIStore((s) => s.openScenarios)
   const openNotable = useUIStore((s) => s.openNotable)
   const pauseOnPeril = useUIStore((s) => s.pauseOnPeril)
   const setPauseOnPeril = useUIStore((s) => s.setPauseOnPeril)
@@ -217,6 +218,17 @@ export function MoreDropdown() {
             }}
           >
             ⌖ lang
+          </button>
+        </Tooltip>
+        <Tooltip tip="Add a ready-made group of people or animals to the world you are watching">
+          <button
+            className="lang-btn"
+            onClick={() => {
+              openScenarios()
+              closeMore()
+            }}
+          >
+            ✦ scenes
           </button>
         </Tooltip>
         <Tooltip tip="What your world has achieved so far">
