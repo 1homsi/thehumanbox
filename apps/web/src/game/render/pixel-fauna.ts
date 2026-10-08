@@ -27,6 +27,9 @@ const PALETTE: Record<string, string> = {
   A: '#5d9a52', // alien suit
   q: '#aab4bf', // ufo hull
   c: '#8fd8ff', // ufo dome
+  f: '#c96a2c', // fox red
+  n: '#8f8a84', // cat grey
+  N: '#4f4a46', // cat stripes, feet
 }
 
 type Frames = [string[], string[]]
@@ -123,6 +126,50 @@ const SPRITES: Record<string, Frames> = {
   chicken: [
     ['.....rr.', '....www.', '....wowy', '.wwwwww.', 'wwwwwww.', '.wwwww..', '..y.y...'],
     ['.....rr.', '....www.', '....wowy', '.wwwwww.', 'wwwwwww.', '.wwwww..', '...yy...'],
+  ],
+  fox: [
+    [
+      '.........f.f',
+      '........ffff',
+      'wwffffffffoo',
+      'wwffffffffff',
+      '.ffffffffff.',
+      '..ffffffff..',
+      '..f.f..f.f..',
+      '..k.k..k.k..',
+    ],
+    [
+      '.........f.f',
+      '........ffff',
+      'wwffffffffoo',
+      'wwffffffffff',
+      '.ffffffffff.',
+      '..ffffffff..',
+      '.f..f..f..f.',
+      '.k..k..k..k.',
+    ],
+  ],
+  cat: [
+    [
+      '........n.n.',
+      '.......nnnn.',
+      'n......nonnn',
+      'nn.nnnnnnnnn',
+      '.nNnnNnnnnn.',
+      '..nnnnnnnn..',
+      '..n.n..n.n..',
+      '..N.N..N.N..',
+    ],
+    [
+      '........n.n.',
+      '.......nnnn.',
+      'n......nonnn',
+      'nn.nnnnnnnnn',
+      '.nNnnNnnnnn.',
+      '..nnnnnnnn..',
+      '.n..n..n..n.',
+      '.N..N..N..N.',
+    ],
   ],
   zombie: [
     [

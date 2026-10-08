@@ -31,6 +31,9 @@ pub enum AnimalKind {
     Cow,
     Horse,
     Chicken,
+    // Small wild animals: a fox is shy prey for wolves, a cat keeps to itself.
+    Fox,
+    Cat,
     // Monsters: summoned with god powers, never born or spawned naturally.
     Zombie,
     Demon,
@@ -41,7 +44,7 @@ pub enum AnimalKind {
 
 impl AnimalKind {
     /// Every kind, for tables and tests.
-    pub const ALL: [AnimalKind; 17] = [
+    pub const ALL: [AnimalKind; 19] = [
         AnimalKind::Rabbit,
         AnimalKind::Deer,
         AnimalKind::Boar,
@@ -54,6 +57,8 @@ impl AnimalKind {
         AnimalKind::Cow,
         AnimalKind::Horse,
         AnimalKind::Chicken,
+        AnimalKind::Fox,
+        AnimalKind::Cat,
         AnimalKind::Zombie,
         AnimalKind::Demon,
         AnimalKind::Dragon,
@@ -81,6 +86,8 @@ impl AnimalKind {
             AnimalKind::Cow => 0.0004,
             AnimalKind::Horse => 0.0005,
             AnimalKind::Chicken => 0.0006,
+            AnimalKind::Fox => 0.0006,
+            AnimalKind::Cat => 0.0005,
             // Monsters do not eat. A UFO's energy is its visit: it leaves
             // after roughly 1200 ticks.
             // Zombies slowly rot (about 2500 ticks), so outbreaks burn out.
@@ -103,6 +110,8 @@ impl AnimalKind {
             AnimalKind::Cow => 2.5,
             AnimalKind::Horse => 5.0,
             AnimalKind::Chicken => 3.0,
+            AnimalKind::Fox => 5.0,
+            AnimalKind::Cat => 3.5,
             AnimalKind::Zombie
             | AnimalKind::Demon
             | AnimalKind::Dragon
@@ -124,6 +133,8 @@ impl AnimalKind {
             AnimalKind::Cow => 1,
             AnimalKind::Horse => 3,
             AnimalKind::Chicken => 1,
+            AnimalKind::Fox => 2,
+            AnimalKind::Cat => 2,
             AnimalKind::Zombie => 1,
             AnimalKind::Demon => 2,
             AnimalKind::Dragon => 3,
@@ -163,6 +174,7 @@ impl AnimalKind {
                 | AnimalKind::Cow
                 | AnimalKind::Horse
                 | AnimalKind::Chicken
+                | AnimalKind::Fox
         )
     }
     /// Grazers stop to eat; herd animals drift toward others.
@@ -202,6 +214,8 @@ impl AnimalKind {
             AnimalKind::Cow => "cow",
             AnimalKind::Horse => "horse",
             AnimalKind::Chicken => "chicken",
+            AnimalKind::Fox => "fox",
+            AnimalKind::Cat => "cat",
             AnimalKind::Zombie => "zombie",
             AnimalKind::Demon => "demon",
             AnimalKind::Dragon => "dragon",

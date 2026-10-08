@@ -465,6 +465,8 @@ pub(super) fn animal_to_save(a: &Animal) -> AnimalSave {
         AnimalKind::Dragon => 14,
         AnimalKind::Alien => 15,
         AnimalKind::Ufo => 16,
+        AnimalKind::Fox => 17,
+        AnimalKind::Cat => 18,
     };
     AnimalSave {
         id: a.id,
@@ -498,6 +500,8 @@ pub(super) fn animal_from_save(s: AnimalSave) -> Animal {
         14 => AnimalKind::Dragon,
         15 => AnimalKind::Alien,
         16 => AnimalKind::Ufo,
+        17 => AnimalKind::Fox,
+        18 => AnimalKind::Cat,
         _ => AnimalKind::Rabbit,
     };
     let mut a = Animal::new(s.id, s.x, s.y, kind);

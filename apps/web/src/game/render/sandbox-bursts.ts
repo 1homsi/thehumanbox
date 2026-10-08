@@ -75,6 +75,8 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'cow':
     case 'horse':
     case 'chicken':
+    case 'fox':
+    case 'cat':
     case 'zombie':
     case 'demon':
     case 'dragon':
