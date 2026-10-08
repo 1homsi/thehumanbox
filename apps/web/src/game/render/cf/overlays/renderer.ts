@@ -263,7 +263,7 @@ export class CfOverlayRenderer {
       paintWaterStars(ground, f)
       paintWaterShimmer(ground, f)
       paintFireGlow(ground, f)
-      paintPuddles(ground, f, wetnessOf(f.world, f.t))
+      paintPuddles(ground, f, wetnessOf(f.world))
       this.paintContested(ground, f)
       this.ground.end()
     }

@@ -100,8 +100,7 @@ export function boltPath(seed: number, x: number, y: number, top: number): numbe
 }
 
 /** How wet the ground looks (0..1): rain fills puddles, and they stay a while after it stops. */
-export function wetnessOf(world: WorldState, t: number): number {
-  void t
+export function wetnessOf(world: WorldState): number {
   const kind = world.weather?.kind
   const intensity = Math.max(0, Math.min(1, world.weather?.intensity ?? 0))
   if (kind === 'storm') return 1
