@@ -598,6 +598,8 @@ export interface WorldState {
   vehicles?: VehicleInfo[]
   festivals?: FestivalInfo[]
   lineage_eras?: Array<{ lineage_id: string; era_name: string }> | Record<string, string>
+  /** Wealth Gini per tribe (0 even to 1 stark), for tribes of four or more. */
+  lineage_inequality?: Array<{ lineage_id: string; gini: number; people: number }>
   lineage_strategies?: Record<
     string,
     {

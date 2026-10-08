@@ -386,6 +386,17 @@ impl Simulation {
                     .map(|(lid, era)| json!({ "lineage_id": lid, "era_name": era.name() }))
                     .collect();
                 obj.insert("lineage_eras".to_string(), serde_json::Value::Array(eras_json));
+                let inequality: Vec<serde_json::Value> =
+                    crate::sim::civ::society::inequality::lineage_inequality(&self.organisms)
+                        .into_iter()
+                        .map(|(lid, gini, people)| {
+                            json!({ "lineage_id": lid, "gini": (gini * 1000.0).round() / 1000.0, "people": people })
+                        })
+                        .collect();
+                obj.insert(
+                    "lineage_inequality".to_string(),
+                    serde_json::Value::Array(inequality),
+                );
                 let mut lineage_discoveries: HashMap<String, HashSet<String>> = HashMap::default();
                 let mut lineage_pop: HashMap<String, usize> = HashMap::default();
                 for org in self.organisms.iter().filter(|o| o.alive) {

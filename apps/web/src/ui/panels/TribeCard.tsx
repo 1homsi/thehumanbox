@@ -12,6 +12,7 @@ import { relationsLine, relationsOf } from '../../game/model/diplomacy'
 import { leadershipOf } from '../../game/model/leadership'
 import { festivalLabel } from '../../game/render/festivals'
 import { tribeStatus } from '../../game/model/tribe-status'
+import { wealthGapOf } from '../../game/model/inequality'
 import { ToolSprite } from '../toolbar/ToolSprite'
 
 interface Props {
@@ -67,6 +68,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
   if (!focus.startsWith('lineage:')) return null
   const status = tribeStatus(world, focus.slice('lineage:'.length))
   if (!status) return null
+  const gap = wealthGapOf(world.lineage_inequality, status.id)
   const prayer = status.prayer
   const enemies = enemiesOf(world.battles, status.id).map((l) => world.lineage_names?.[l] ?? l.slice(0, 6))
   const field = activeBattles(world.battles).find(
@@ -143,6 +145,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
       <div className="tribe-card-sub">
         {status.people} {status.people === 1 ? 'person' : 'people'}
         {status.era && ` · ${status.era} age`}
+        {gap && ` · wealth ${gap}`}
       </div>
       {peril && help && (
         <div className="tribe-peril" role="alert">
