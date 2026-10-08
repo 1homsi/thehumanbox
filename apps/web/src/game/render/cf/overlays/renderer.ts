@@ -25,6 +25,20 @@ import {
 import { paintHud } from './paint-hud'
 import { SpriteRecorder } from './recorder'
 import { ShapeAtlas } from './shape-atlas'
+import {
+  lightningFlash,
+  newWeatherFxState,
+  observeWeather,
+  paintBolt,
+  paintPuddles,
+  paintRainbow,
+  paintSplashes,
+  rainbowStrength,
+  strikeAt,
+  wetnessOf,
+  type StrikeView,
+  type WeatherFxState,
+} from './weather-fx'
 
 /**
  * Draw order of what this renderer adds. The rest of the map: ground detail 2.5 to 5.6, then
@@ -116,6 +130,7 @@ export class CfOverlayRenderer {
   private groundKey = ''
   private groundFlags: unknown = null
   private groundAt = -Infinity
+  private readonly weatherFx: WeatherFxState = newWeatherFxState()
   lastResult: UpdateResult = { times: ZERO_TIMES(), sprites: 0, heatRebuilt: false, unsupported: {} }
 
   private readonly host: RenderHost
@@ -248,6 +263,7 @@ export class CfOverlayRenderer {
       paintWaterStars(ground, f)
       paintWaterShimmer(ground, f)
       paintFireGlow(ground, f)
+      paintPuddles(ground, f, wetnessOf(f.world))
       this.paintContested(ground, f)
       this.ground.end()
     }
@@ -266,6 +282,7 @@ export class CfOverlayRenderer {
 
     this.effects.begin(gv)
     paintEffects(this.effects.asContext(), f)
+    this.paintWeather(this.effects.asContext(), f)
     this.effects.end()
     lap('effects')
 
@@ -359,12 +376,53 @@ export class CfOverlayRenderer {
     const tints = atmosphereTints(world, t)
     this.tintLayer.clear()
     for (const tint of tints) this.addTint(tint, W, H)
+    const flash = lightningFlash(world, t, this.viewOf(f))
+    if (flash > 0) this.addTint({ r: 226, g: 236, b: 255, a: 0.34 * flash }, W, H)
     this.tintLayer.touch()
     if (precipitating(world)) writePrecipitation(this.precipLayer, this.shapes.softLine(), world, t, W, H)
     else if (this.precipLayer.count > 0) {
       this.precipLayer.clear()
       this.precipLayer.touch()
     }
+  }
+
+  /** The camera's view in painter coordinates (grid px, origin removed). */
+  private viewOf(f: CfFrame): StrikeView {
+    const zoom = Math.max(0.01, f.zoom)
+    return {
+      cx: f.cam.x - f.ox * TILE,
+      cy: f.cam.y - f.oy * TILE,
+      hw: f.viewport.w / zoom / 2,
+      hh: f.viewport.h / zoom / 2,
+    }
+  }
+
+  /** Lightning, rain splashes and the rainbow after a storm (the effects layer, drawn each frame). */
+  private paintWeather(ctx: CanvasRenderingContext2D, f: CfFrame): void {
+    const { world, t } = f
+    const kind = world.weather?.kind ?? 'clear'
+    observeWeather(this.weatherFx, kind, t)
+    const view = this.viewOf(f)
+    const intensity = Math.max(0, Math.min(1, world.weather?.intensity ?? 0))
+    if (kind === 'storm') {
+      const strike = strikeAt(t, intensity, view)
+      if (strike) paintBolt(ctx, strike, view.cy - view.hh)
+    }
+    if (kind === 'rain' || kind === 'storm') {
+      const { bounds, ox, oy } = f
+      paintSplashes(
+        ctx,
+        {
+          x0: (bounds.c0 - ox) * TILE,
+          y0: (bounds.r0 - oy) * TILE,
+          x1: (bounds.c1 - ox) * TILE,
+          y1: (bounds.r1 - oy) * TILE,
+        },
+        t,
+        intensity,
+      )
+    }
+    paintRainbow(ctx, view, rainbowStrength(this.weatherFx, t, world.is_day))
   }
 
   private addTint(tint: Tint, W: number, H: number): void {
