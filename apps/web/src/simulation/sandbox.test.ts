@@ -63,3 +63,12 @@ describe('sandbox map controls', () => {
     expect(isSandboxViewControlActive(borders, 'density', { territory: false })).toBe(false)
   })
 })
+
+describe('marry tool', () => {
+  it('sits with the life tools and takes two clicks, not one command', () => {
+    const life = SANDBOX_CATEGORIES.find((c) => c.id === 'life')?.tools ?? []
+    const marry = life.find((t) => t.id === 'marry')
+    expect(marry?.mode).toBe('point')
+    expect(marry?.build).toBeUndefined()
+  })
+})

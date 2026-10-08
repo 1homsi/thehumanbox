@@ -55,7 +55,7 @@ describe('dock layout stays complete as tools are added', () => {
 
   it('makes every tool do something when used', () => {
     // Follow is a camera action, not a world command, so it has no command to build.
-    const clientOnly = new Set(['follow'])
+    const clientOnly = new Set(['follow', 'marry'])
     for (const tool of dockTools) {
       if (tool.mode === 'point') {
         if (!clientOnly.has(tool.id)) {
