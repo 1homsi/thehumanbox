@@ -27,6 +27,8 @@ const TOOL_TIPS: Record<string, string> = {
     'Raise someone who died within the last season, near where you click. Not the very old, and once per tribe per season.',
   smite: 'Strike down the nearest person or animal inside the brush area.',
   shelter: 'Build a hut on one tile.',
+  road: 'Lay a road over open ground in the brush area: a dirt track, cobbled once the tribes reach the bronze age.',
+  road_erase: 'Clear the roads in the brush area. Only the road goes: the ground under it stays as it is.',
   campfire: 'Light a campfire on one tile.',
   grass: 'Paint grassland.',
   water: 'Paint water.',
