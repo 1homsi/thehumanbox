@@ -111,6 +111,20 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// Give everyone in the radius more years to live.
+    LongLife {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// Drain fear out of everyone in the radius.
+    Courage {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
     /// Infect everyone inside the radius with the existing sickness.
     Poison {
         x: f32,
@@ -464,6 +478,8 @@ fn prayer_answers(cmd: &Command) -> Option<PrayerAnswer> {
 }
 
 mod advance;
+#[cfg(test)]
+mod blessing_tests;
 mod blessings;
 mod buildings;
 mod creation;
@@ -535,6 +551,8 @@ impl Simulation {
             } => self.cmd_spawn_animal(x, y, kind, count, radius),
             Command::Poison { x, y, radius } => self.cmd_poison(x, y, radius),
             Command::Bless { x, y, radius } => self.cmd_bless(x, y, radius),
+            Command::LongLife { x, y, radius } => self.cmd_long_life(x, y, radius),
+            Command::Courage { x, y, radius } => self.cmd_courage(x, y, radius),
             Command::Inspire { x, y, radius } => self.cmd_inspire(x, y, radius),
             Command::Earthquake { x, y, radius } => self.cmd_earthquake(x, y, radius),
             Command::War { x, y } => self.cmd_war(x, y),

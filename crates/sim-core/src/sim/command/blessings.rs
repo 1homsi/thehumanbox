@@ -22,6 +22,61 @@ impl Simulation {
         healed > 0
     }
 
+    /// Long life: the gods lengthen the days of everyone in the radius. Each
+    /// blessing adds to the span allotted, up to a ceiling, and the people
+    /// feel it in their hope.
+    pub(super) fn cmd_long_life(&mut self, x: f32, y: f32, radius: f32) -> bool {
+        const GAIN: u32 = 900;
+        // Natural spans run from about 9,000 to 26,000 ticks; the blessing stops
+        // lengthening anyone past a span no natural birth reaches.
+        const CEILING: u32 = 24_000;
+        let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
+        let mut blessed = 0;
+        for o in self.organisms.iter_mut() {
+            if o.alive && (o.x - x).hypot(o.y - y) <= r && o.max_age < CEILING {
+                o.max_age = (o.max_age + GAIN).min(CEILING);
+                o.hope = (o.hope + 0.2).min(1.0);
+                o.think("the gods have given us more days", self.tick_count);
+                blessed += 1;
+            }
+        }
+        if blessed > 0 {
+            push_event(
+                &mut self.events,
+                self.tick_count,
+                "bless",
+                "the gods",
+                &format!("gave {blessed} people more years"),
+            );
+        }
+        blessed > 0
+    }
+
+    /// Courage: fear drains out of everyone in the radius, so they stop fleeing
+    /// the danger that frightened them and hold their ground.
+    pub(super) fn cmd_courage(&mut self, x: f32, y: f32, radius: f32) -> bool {
+        let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
+        let mut braced = 0;
+        for o in self.organisms.iter_mut() {
+            if o.alive && (o.x - x).hypot(o.y - y) <= r && o.fear_level > 0.05 {
+                o.fear_level = (o.fear_level - 0.6).max(0.0);
+                o.hope = (o.hope + 0.15).min(1.0);
+                o.think("the gods gave us courage", self.tick_count);
+                braced += 1;
+            }
+        }
+        if braced > 0 {
+            push_event(
+                &mut self.events,
+                self.tick_count,
+                "bless",
+                "the gods",
+                &format!("steadied {braced} people"),
+            );
+        }
+        braced > 0
+    }
+
     pub(super) fn cmd_bless(&mut self, x: f32, y: f32, radius: f32) -> bool {
         let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
         let mut blessed = 0;

@@ -65,6 +65,10 @@ const TOOL_TIPS: Record<string, string> = {
     'Send a wave out of the nearest sea up the coast and inland. Land it reaches floods and drains later; buildings near the shore are wrecked, people in the wave are hurt and land animals drown.',
   locusts:
     'Send a swarm of locusts flying from the click. It strips crops and wild food along its path and halves what people carry; birds and chickens feast. It does not kill, but it leaves famine.',
+  long_life:
+    'Give everyone in the brush area more years to live. Each blessing adds to the span the gods allot, up to a ceiling no natural birth reaches.',
+  courage:
+    'Drain fear out of everyone in the brush area, so they stop running from what frightened them and hold their ground.',
   restore:
     'Erase your changes to the land in the brush area: water drains, fire and ash cool, and sand or snow goes back to what the biome holds. Rock and buildings stay.',
   place_house:
@@ -163,8 +167,11 @@ export function toolFailure(tool: SandboxTool): string {
     case 'arm':
     case 'bounty':
     case 'frenzy':
+    case 'long_life':
     case 'love':
       return 'no one there'
+    case 'courage':
+      return 'no one afraid there'
     case 'tame':
       return 'no wolves or bears there'
     case 'banish':
