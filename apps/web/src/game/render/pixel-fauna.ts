@@ -57,14 +57,7 @@ const SPRITES: Record<string, Frames> = {
       '...DD..DD...',
       '...DD..DD...',
     ],
-    [
-      '.........DD.',
-      '..BBBBBBBBD.',
-      '.BBBBBBBBBSk',
-      'BBBBBBBBBBBS',
-      'BBBBBBBBBBB.',
-      'DD.D.DD.D.DD',
-    ],
+    ['.........DD.', '..BBBBBBBBD.', '.BBBBBBBBBSk', 'BBBBBBBBBBBS', 'BBBBBBBBBBB.', 'DD.D.DD.D.DD'],
   ],
   sheep: [
     [
