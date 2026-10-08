@@ -1,7 +1,7 @@
 // Player-planted crops, orchards and saplings. The sim sends them as a flat
 // [x, y, kind, stage, ...] list; stage runs 0-3 while growing and 4 when ripe.
 
-export const PLANT_KIND = { CROP: 0, ORCHARD: 1, SAPLING: 2, FLOWER: 3 } as const
+export const PLANT_KIND = { CROP: 0, ORCHARD: 1, SAPLING: 2, FLOWER: 3, BERRY: 4, MUSHROOM: 5 } as const
 
 export interface PlantingCell {
   x: number
@@ -160,9 +160,46 @@ function drawFlowers(ctx: Ctx, x: number, y: number, stage: number) {
   })
 }
 
+// A berry bush: a green mound that greys out as it grows, hung with red berries when ripe.
+function drawBerry(ctx: Ctx, x: number, y: number, stage: number) {
+  drawShadow(ctx, x, y, 6)
+  if (stage <= 0) {
+    px(ctx, x + 3, y + 5, 2, 2, '#4f8a3c')
+    return
+  }
+  const leaf = stage >= 3 ? '#4e8a3c' : '#6fa64c'
+  px(ctx, x + 1, y + 6 - stage, 6, stage + 1, leaf)
+  px(ctx, x + 2, y + 2, 4, 1, '#8cc060')
+  if (stage === 4) {
+    for (const [bx, by] of [
+      [2, 3],
+      [5, 3],
+      [3, 5],
+      [6, 5],
+    ] as const)
+      px(ctx, x + bx, y + by, 1, 1, '#d8463a')
+  }
+}
+
+// A mushroom: a red cap with white spots on a pale stalk; stays small until autumn.
+function drawMushroom(ctx: Ctx, x: number, y: number, stage: number) {
+  if (stage <= 0) {
+    px(ctx, x + 4, y + 6, 1, 1, '#e8dcc2')
+    return
+  }
+  const cap = stage >= 3 ? 4 : 2
+  px(ctx, x + 4, y + 4, 1, 3, '#e8dcc2')
+  px(ctx, x + 2 - (cap === 4 ? 1 : 0), y + 2, cap + 2, 2, '#c0493a')
+  px(ctx, x + 2, y + 4, 4, 1, '#c0493a')
+  px(ctx, x + 3, y + 2, 1, 1, '#f4efe1')
+  px(ctx, x + 5, y + 3, 1, 1, '#f4efe1')
+}
+
 export function drawPlanting(ctx: Ctx, x: number, y: number, kind: number, stage: number) {
   if (kind === PLANT_KIND.CROP) drawCrop(ctx, x, y, stage)
   else if (kind === PLANT_KIND.ORCHARD) drawOrchard(ctx, x, y, stage)
   else if (kind === PLANT_KIND.FLOWER) drawFlowers(ctx, x, y, stage)
+  else if (kind === PLANT_KIND.BERRY) drawBerry(ctx, x, y, stage)
+  else if (kind === PLANT_KIND.MUSHROOM) drawMushroom(ctx, x, y, stage)
   else drawSapling(ctx, x, y, stage)
 }

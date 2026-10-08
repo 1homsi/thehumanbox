@@ -46,6 +46,8 @@ const TOOL_TIPS: Record<string, string> = {
   thoughts_view: 'Show what people are thinking.',
   animals_view: 'Show or hide animals on the map.',
   grid_view: 'Draw the tile grid.',
+  plant_berry: 'Plant berry bushes. They fruit, get picked, and fruit again. Asleep through winter.',
+  plant_mushroom: 'Scatter mushrooms in the woods. They only take root in shade and come up fast in autumn.',
   restore:
     'Erase your changes to the land in the brush area: water drains, fire and ash cool, and sand or snow goes back to what the biome holds. Rock and buildings stay.',
   demolish:
@@ -160,6 +162,8 @@ export function toolFailure(tool: SandboxTool): string {
     case 'volcano':
     case 'meteor_shower':
       return 'nothing here to change'
+    case 'plant_mushroom':
+      return 'mushrooms need woods or wet ground'
     case 'war':
     case 'peace':
       return 'needs two tribes nearby'

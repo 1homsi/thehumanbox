@@ -27,6 +27,10 @@ pub enum PlantKind {
     Sapling,
     /// Blooms in place instead of fruiting; people nearby are happier.
     Flower,
+    /// A bush that fruits, is picked and fruits again; it sleeps through winter.
+    Berry,
+    /// Grows only in shade (woods, taiga, jungle, wetland); fast in autumn.
+    Mushroom,
 }
 
 impl PlantKind {
@@ -36,6 +40,8 @@ impl PlantKind {
             "orchard" | "fruit" => Some(PlantKind::Orchard),
             "sapling" | "tree" | "trees" => Some(PlantKind::Sapling),
             "flower" | "flowers" => Some(PlantKind::Flower),
+            "berry" | "berries" | "bush" => Some(PlantKind::Berry),
+            "mushroom" | "mushrooms" => Some(PlantKind::Mushroom),
             _ => None,
         }
     }
@@ -46,6 +52,8 @@ impl PlantKind {
             PlantKind::Orchard => 1,
             PlantKind::Sapling => 2,
             PlantKind::Flower => 3,
+            PlantKind::Berry => 4,
+            PlantKind::Mushroom => 5,
         }
     }
 
@@ -57,6 +65,8 @@ impl PlantKind {
             PlantKind::Orchard => 1100,
             PlantKind::Sapling => 1600,
             PlantKind::Flower => 250,
+            PlantKind::Berry => 600,
+            PlantKind::Mushroom => 400,
         }
     }
 
@@ -67,6 +77,8 @@ impl PlantKind {
             PlantKind::Orchard => 700,
             PlantKind::Sapling => 0,
             PlantKind::Flower => 0,
+            PlantKind::Berry => 200,
+            PlantKind::Mushroom => 120,
         }
     }
 }
@@ -137,11 +149,21 @@ fn season_growth(kind: PlantKind, season: &str) -> f32 {
     match (kind, season) {
         (PlantKind::Flower, "abundance" | "recovery") => 1.4,
         (_, "abundance") => 1.2,
+        (PlantKind::Mushroom, "scarcity") => 0.2,
+        (PlantKind::Mushroom, "decline") => 1.5,
         (PlantKind::Sapling, "scarcity") => 0.3,
         (_, "scarcity") => 0.0,
         (PlantKind::Crop, "decline") => 0.7,
         _ => 1.0,
     }
+}
+
+/// Woods and wet ground where mushrooms grow.
+fn shaded(biome: Biome) -> bool {
+    matches!(
+        biome,
+        Biome::Forest | Biome::Taiga | Biome::Jungle | Biome::Wetland
+    )
 }
 
 fn biome_growth(biome: Biome) -> f32 {
@@ -177,11 +199,16 @@ impl Simulation {
                 if !WorldGrid::in_bounds(nx, ny) || !plantable(self.grid.get(nx, ny)) {
                     continue;
                 }
+                if kind == PlantKind::Mushroom && !shaded(self.grid.biome_at(nx, ny)) {
+                    continue;
+                }
                 let spaced = match kind {
                     PlantKind::Crop => true,
                     PlantKind::Orchard => (nx + ny) % 2 == 0,
                     PlantKind::Sapling => r == 0 || self.rng.random::<f32>() < 0.45,
                     PlantKind::Flower => r == 0 || self.rng.random::<f32>() < 0.7,
+                    PlantKind::Berry => (nx + ny) % 2 == 0,
+                    PlantKind::Mushroom => r == 0 || self.rng.random::<f32>() < 0.5,
                 };
                 if !spaced || self.plantings.len() >= MAX_PLANTINGS {
                     continue;
@@ -343,7 +370,7 @@ impl Simulation {
             }
             changed = true;
             match p.kind {
-                PlantKind::Crop | PlantKind::Orchard => {
+                PlantKind::Crop | PlantKind::Orchard | PlantKind::Berry | PlantKind::Mushroom => {
                     p.ripe = true;
                     self.grid.set(x, y, Tile::Food);
                 }
