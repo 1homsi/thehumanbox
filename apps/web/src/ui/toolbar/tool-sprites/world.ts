@@ -248,6 +248,15 @@ export const worldSprites = {
     '..R.R...R.R.',
     '..o.o...o.o.',
   ],
+  log: [
+    '..........oo',
+    '.........oyy',
+    '.........oyy',
+    '.yyyyyyyyoyy',
+    'oyyyyyyyyyyo',
+    'oooooooooooo',
+    '..........oo',
+  ],
   lion: [
     '...yyyy.....',
     '..yyyyyy....',
