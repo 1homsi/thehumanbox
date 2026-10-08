@@ -56,6 +56,8 @@ pub(crate) struct OrgSave {
     pub(super) conversations: Vec<crate::organism::organism::ConversationEntry>,
     pub(super) father_id: Option<String>,
     #[serde(default)]
+    pub(super) surname: String,
+    #[serde(default)]
     pub(super) attributes: Vec<String>,
     // ── Emotional / cognitive state (previously dropped on save) ──────
     #[serde(default)]
@@ -248,6 +250,7 @@ pub(super) fn org_to_save(o: &Organism) -> OrgSave {
         pregnancy_start: o.pregnancy_start,
         conversations: o.conversations.iter().cloned().collect(),
         father_id: o.father_id.clone(),
+        surname: o.surname.clone(),
         attributes: o.attributes.iter().cloned().collect(),
         is_elder: o.is_elder,
         loneliness: o.loneliness,
@@ -380,6 +383,7 @@ pub(super) fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
     o.pregnancy_start = s.pregnancy_start;
     o.conversations = s.conversations.into_iter().collect();
     o.father_id = s.father_id;
+    o.surname = s.surname;
     o.attributes = s.attributes.into_iter().collect();
     o.is_elder = s.is_elder;
     o.loneliness = s.loneliness;

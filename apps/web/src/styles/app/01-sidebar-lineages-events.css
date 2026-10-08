@@ -256,6 +256,10 @@
   font-weight: 600;
   color: #fff;
 }
+.org-surname {
+  font-weight: 400;
+  color: #c9bfd8;
+}
 .org-role {
   font-size: 8px;
   color: #8899cc;
