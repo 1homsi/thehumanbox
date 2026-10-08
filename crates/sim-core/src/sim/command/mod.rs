@@ -111,6 +111,13 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// A bright spell over the fields: growing plantings gain growth.
+    Sunshine {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
     /// Give everyone in the radius more years to live.
     LongLife {
         x: f32,
@@ -569,6 +576,7 @@ impl Simulation {
             Command::Bless { x, y, radius } => self.cmd_bless(x, y, radius),
             Command::LongLife { x, y, radius } => self.cmd_long_life(x, y, radius),
             Command::Courage { x, y, radius } => self.cmd_courage(x, y, radius),
+            Command::Sunshine { x, y, radius } => self.cmd_sunshine(x, y, radius),
             Command::Inspire { x, y, radius } => self.cmd_inspire(x, y, radius),
             Command::Earthquake { x, y, radius } => self.cmd_earthquake(x, y, radius),
             Command::War { x, y } => self.cmd_war(x, y),

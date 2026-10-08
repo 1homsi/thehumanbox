@@ -77,6 +77,25 @@ impl Simulation {
         braced > 0
     }
 
+    /// Sunshine: a bright spell over the fields in the brush area. Growing crops,
+    /// orchards and flowers gain a stretch of growth and ripen sooner. Fails when
+    /// nothing is growing there.
+    pub(super) fn cmd_sunshine(&mut self, x: i32, y: i32, radius: i32) -> bool {
+        let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
+        let warmed = self.warm_plantings(x, y, radius.clamp(2, 24));
+        if warmed > 0 {
+            let now = self.tick_count;
+            push_event(
+                &mut self.events,
+                now,
+                "bless",
+                "the sun",
+                &format!("warmed {warmed} growing plantings"),
+            );
+        }
+        warmed > 0
+    }
+
     pub(super) fn cmd_bless(&mut self, x: f32, y: f32, radius: f32) -> bool {
         let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
         let mut blessed = 0;

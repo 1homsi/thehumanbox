@@ -300,6 +300,30 @@ impl Simulation {
         ripened
     }
 
+    /// Sunshine on the fields: every planting in the disc that is still growing
+    /// gains a stretch of growth. It never ripens one by itself.
+    pub(crate) fn warm_plantings(&mut self, x: i32, y: i32, radius: i32) -> usize {
+        let mut warmed = 0;
+        let keys: Vec<u32> = self.plantings.keys().copied().collect();
+        for i in keys {
+            let (px, py) = xy(i);
+            if !in_disc(px - x, py - y, radius) {
+                continue;
+            }
+            if let Some(p) = self.plantings.get_mut(&i) {
+                let cap = p.kind.ripe_at() - 1;
+                if !p.ripe && p.growth < cap {
+                    p.growth = (p.growth + 150).min(cap);
+                    warmed += 1;
+                }
+            }
+        }
+        if warmed > 0 {
+            self.planting_revision = self.planting_revision.wrapping_add(1);
+        }
+        warmed
+    }
+
     /// Kill every planting inside the radius.
     pub(crate) fn wither_plantings(&mut self, x: i32, y: i32, radius: i32) -> usize {
         let before = self.plantings.len();
