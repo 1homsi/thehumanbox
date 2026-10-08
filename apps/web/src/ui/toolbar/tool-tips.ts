@@ -4,6 +4,10 @@ import type { SandboxTool } from '../../simulation/sandbox'
 const TOOL_TIPS: Record<string, string> = {
   spawn1: 'Send one grown person. Beside a tribe they join it, as the man or woman it is missing.',
   spawn5: 'Found a new tribe: five young adults, in couples, where you click.',
+  next_season:
+    'Run the world on to the next season change, in quick steps. Nobody is harmed; the seasons turn as they would.',
+  next_year:
+    'Run the world on to the start of the next year, in quick steps. The seasons turn as they would.',
   leader:
     'Crown the grown person nearest where you click the ruler of their tribe. They keep the crown while they live, unless their tribe has no ruler to crown (a plain band) or they are still a child.',
   teleport:

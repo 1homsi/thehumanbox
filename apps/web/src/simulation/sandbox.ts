@@ -40,6 +40,7 @@ export type SandboxCommand =
   | { cmd: 'family'; x: number; y: number }
   | { cmd: 'teleport'; x: number; y: number; radius?: number }
   | { cmd: 'make_leader'; x: number; y: number; radius?: number }
+  | { cmd: 'advance'; to: 'season' | 'year'; max_ticks?: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
   | { cmd: 'repair'; x: number; y: number; radius?: number }
   | {
@@ -63,7 +64,12 @@ export function canSendSandboxCommand(
   return source === 'wasm' || (desktop && localServer)
 }
 
-export type TimeControl = { control: 'pause' | 'resume' | 'speed'; mult?: number }
+export type TimeControl = {
+  control: 'pause' | 'resume' | 'speed' | 'advance'
+  mult?: number
+  /** For `advance`: run to the next season or year boundary. */
+  to?: 'season' | 'year'
+}
 
 export type SandboxOverlay = 'density' | 'hazard' | 'fertility' | 'structures' | 'trails' | 'age' | 'threat'
 
@@ -825,6 +831,20 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
     tools: [
       { id: 'pause', label: 'pause', icon: '⏸️', mode: 'instant', time: { control: 'pause' } },
       { id: 'play', label: 'play', icon: '▶️', mode: 'instant', time: { control: 'resume' } },
+      {
+        id: 'next_season',
+        label: 'next season',
+        icon: '🍂',
+        mode: 'instant',
+        time: { control: 'advance', to: 'season' },
+      },
+      {
+        id: 'next_year',
+        label: 'next year',
+        icon: '📅',
+        mode: 'instant',
+        time: { control: 'advance', to: 'year' },
+      },
       { id: 'slow', label: 'slow', icon: '🐢', mode: 'instant', time: { control: 'speed', mult: 0.5 } },
       { id: 'normal', label: '1×', icon: '⏱️', mode: 'instant', time: { control: 'speed', mult: 1 } },
       { id: 'fast2', label: '2×', icon: '⏩', mode: 'instant', time: { control: 'speed', mult: 2 } },

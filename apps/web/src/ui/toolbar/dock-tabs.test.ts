@@ -66,6 +66,12 @@ describe('dock layout stays complete as tools are added', () => {
     }
   })
 
+  it('offers next season and next year as time tools that run the world on to that boundary', () => {
+    const time = SANDBOX_CATEGORIES.find((c) => c.id === TIME_CATEGORY_ID)?.tools ?? []
+    expect(time.find((t) => t.id === 'next_season')?.time).toEqual({ control: 'advance', to: 'season' })
+    expect(time.find((t) => t.id === 'next_year')?.time).toEqual({ control: 'advance', to: 'year' })
+  })
+
   it('offers only speeds that exist as time tools', () => {
     const time = SANDBOX_CATEGORIES.find((c) => c.id === TIME_CATEGORY_ID)?.tools ?? []
     for (const id of SPEED_TOOL_IDS)

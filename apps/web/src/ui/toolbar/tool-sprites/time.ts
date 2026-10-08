@@ -1,0 +1,31 @@
+// Time tools (next season, next year): 12x12 pixel art, one string per row, letters index the palette.
+export const timeSprites = {
+  leaf: [
+    '............',
+    '........oo..',
+    '.......ogGo.',
+    '......ogGGo.',
+    '.....ogGGo..',
+    '....ogGGo...',
+    '...ogGGo....',
+    '..ogGGo.....',
+    '.ogGGo......',
+    'oGGo........',
+    'oo..........',
+    '............',
+  ],
+  calendar: [
+    '............',
+    '.oooooooooo.',
+    '.orrrrrrrro.',
+    '.oooooooooo.',
+    '.owwowwowwo.',
+    '.owwowwowwo.',
+    '.oooooooooo.',
+    '.owwowwowwo.',
+    '.owwowwowwo.',
+    '.oooooooooo.',
+    '............',
+    '............',
+  ],
+} as const
