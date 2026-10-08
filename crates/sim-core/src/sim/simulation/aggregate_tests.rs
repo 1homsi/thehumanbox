@@ -110,20 +110,29 @@ fn lineage_aggregates_match_the_cloning_version() {
 }
 
 /// Territory as the maps hold it: lineages, their tiles and the tile owners,
-/// each in the order the maps yield them, because later claims read that order.
+/// each sorted. A map's iteration order is random per map (every `HashMap`
+/// has its own hasher state), so two identical maps can yield their entries
+/// in different orders; the claims must match as sets, not as orders.
 type TerritoryState = (Vec<(String, Vec<(i32, i32)>)>, Vec<((i32, i32), String)>);
 
 fn territory_state(sim: &Simulation) -> TerritoryState {
-    (
-        sim.territory
-            .iter()
-            .map(|(lineage, tiles)| (lineage.clone(), tiles.iter().copied().collect()))
-            .collect(),
-        sim.tile_owner
-            .iter()
-            .map(|(&tile, owner)| (tile, owner.clone()))
-            .collect(),
-    )
+    let mut lineages: Vec<(String, Vec<(i32, i32)>)> = sim
+        .territory
+        .iter()
+        .map(|(lineage, tiles)| {
+            let mut sorted: Vec<(i32, i32)> = tiles.iter().copied().collect();
+            sorted.sort_unstable();
+            (lineage.clone(), sorted)
+        })
+        .collect();
+    lineages.sort();
+    let mut owners: Vec<((i32, i32), String)> = sim
+        .tile_owner
+        .iter()
+        .map(|(&tile, owner)| (tile, owner.clone()))
+        .collect();
+    owners.sort();
+    (lineages, owners)
 }
 
 #[test]
