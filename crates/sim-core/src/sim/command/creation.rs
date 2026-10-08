@@ -101,17 +101,70 @@ impl Simulation {
         true
     }
 
-    pub(super) fn cmd_spawn_animal(&mut self, x: f32, y: f32, kind: Option<String>) -> bool {
-        if self.animals.iter().filter(|a| a.alive).count() >= SANDBOX_ANIMAL_CAP {
+    /// Release animals of one kind on ground they can use. `count` is how many
+    /// (a missing count releases one, as before); they are spread over the
+    /// `radius` around the point. Their own habitat is preferred when some of
+    /// the ground around is theirs, so wolves go to the woods and fish to water.
+    pub(super) fn cmd_spawn_animal(
+        &mut self,
+        x: f32,
+        y: f32,
+        kind: Option<String>,
+        count: u32,
+        radius: f32,
+    ) -> bool {
+        let k = kind.as_deref().map(animal_from_name).unwrap_or(AnimalKind::Deer);
+        let alive = self.animals.iter().filter(|a| a.alive).count();
+        let room = SANDBOX_ANIMAL_CAP.saturating_sub(alive);
+        let n = (count.clamp(1, 12) as usize).min(room);
+        if n == 0 {
             return false;
         }
-        let k = kind.as_deref().map(animal_from_name).unwrap_or(AnimalKind::Deer);
         let cx = x.clamp(2.0, WIDTH as f32 - 2.0);
         let cy = y.clamp(2.0, HEIGHT as f32 - 2.0);
-        let id = self.next_animal_id;
-        self.next_animal_id += 1;
-        self.animals.push(Animal::new(id, cx, cy, k));
+        let spots = self.release_spots(k, cx, cy, radius);
+        if spots.is_empty() {
+            return false;
+        }
+        let habitat = k.habitat();
+        let at_home: Vec<(i32, i32)> = spots
+            .iter()
+            .copied()
+            .filter(|&(ix, iy)| habitat.contains(&self.grid.biome_at(ix, iy)))
+            .collect();
+        let pool = if at_home.is_empty() { spots } else { at_home };
+        for _ in 0..n {
+            let (ix, iy) = pool[self.rng.random_range(0..pool.len())];
+            let id = self.next_animal_id;
+            self.next_animal_id += 1;
+            self.animals.push(Animal::new(id, ix as f32, iy as f32, k));
+        }
         true
+    }
+
+    /// Tiles around a point where `kind` can be released: first within the
+    /// brush radius (at least two tiles), then out to twelve if none fit there.
+    fn release_spots(&self, kind: AnimalKind, cx: f32, cy: f32, radius: f32) -> Vec<(i32, i32)> {
+        let near = radius.clamp(2.0, 12.0).ceil() as i32;
+        let (ox, oy) = (cx as i32, cy as i32);
+        for reach in [near, 12] {
+            let mut spots = Vec::new();
+            for dx in -reach..=reach {
+                for dy in -reach..=reach {
+                    let (ix, iy) = (ox + dx, oy + dy);
+                    if dx * dx + dy * dy <= reach * reach
+                        && WorldGrid::in_bounds(ix, iy)
+                        && kind.fits_ground(self.grid.get(ix, iy))
+                    {
+                        spots.push((ix, iy));
+                    }
+                }
+            }
+            if !spots.is_empty() {
+                return spots;
+            }
+        }
+        Vec::new()
     }
 
     pub(super) fn cmd_plant(&mut self, x: i32, y: i32, kind: String, radius: i32) -> bool {

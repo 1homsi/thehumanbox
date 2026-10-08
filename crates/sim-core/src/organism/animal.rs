@@ -1,6 +1,6 @@
 use crate::world::{
     grid::{WorldGrid, HEIGHT, WIDTH},
-    tiles::Tile,
+    tiles::{Biome, Tile},
 };
 use rand::{Rng, RngExt};
 use serde::Serialize;
@@ -189,6 +189,29 @@ impl AnimalKind {
             self,
             AnimalKind::Deer | AnimalKind::Sheep | AnimalKind::Cow | AnimalKind::Horse
         )
+    }
+    /// Biomes this kind keeps to when it is placed (player releases and
+    /// natural spawns alike). Empty means it does not mind where it is.
+    pub fn habitat(self) -> &'static [Biome] {
+        match self {
+            AnimalKind::Rabbit => &[Biome::Grassland, Biome::Savanna, Biome::Forest],
+            AnimalKind::Deer => &[Biome::Forest, Biome::Grassland, Biome::Taiga, Biome::Savanna],
+            AnimalKind::Boar => &[Biome::Forest, Biome::Jungle, Biome::Wetland],
+            AnimalKind::Wolf => &[Biome::Forest, Biome::Taiga, Biome::Tundra, Biome::Grassland],
+            AnimalKind::Fox => &[Biome::Forest, Biome::Taiga, Biome::Grassland, Biome::Savanna],
+            AnimalKind::Bear => &[Biome::Forest, Biome::Taiga, Biome::Tundra, Biome::Jungle],
+            AnimalKind::Sheep | AnimalKind::Cow | AnimalKind::Horse => &[Biome::Grassland, Biome::Savanna],
+            AnimalKind::Chicken => &[Biome::Grassland, Biome::Savanna, Biome::Forest],
+            _ => &[],
+        }
+    }
+    /// Whether this kind can stand (or swim) on a tile.
+    pub fn fits_ground(self, tile: Tile) -> bool {
+        if self.aquatic() {
+            tile == Tile::Water
+        } else {
+            !matches!(tile, Tile::Void | Tile::Rock | Tile::Water | Tile::Fire)
+        }
     }
     /// The name with "a" or "an", for event and thought text.
     pub fn a_name(self) -> String {
