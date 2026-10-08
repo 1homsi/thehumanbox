@@ -334,6 +334,13 @@ pub enum Command {
     },
     /// A gale: the wind turns to a random quarter and blows hard.
     Gale,
+    /// A line of fire lit across the land at the point, driven by the wind.
+    Wildfire {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
     /// A swarm of locusts flies from the point and strips the land it crosses.
     Locusts {
         x: i32,
@@ -505,6 +512,8 @@ mod tribes;
 mod tsunami_tests;
 #[cfg(test)]
 mod weather_tests;
+#[cfg(test)]
+mod wildfire_tests;
 
 impl Simulation {
     pub fn apply_command_json(&mut self, json: &str) -> bool {
@@ -586,6 +595,7 @@ impl Simulation {
             Command::Tornado { x, y, radius } => self.cmd_tornado(x, y, radius),
             Command::Tsunami { x, y, radius } => self.cmd_tsunami(x, y, radius),
             Command::Locusts { x, y, radius } => self.cmd_locusts(x, y, radius),
+            Command::Wildfire { x, y, radius } => self.cmd_wildfire(x, y, radius),
             Command::Guide {
                 lineage,
                 strategy,

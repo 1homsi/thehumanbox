@@ -731,6 +731,55 @@ impl Simulation {
         frozen > 0
     }
 
+    /// A wildfire: a line of fire lit across the land at the click and driven
+    /// by the wind. Burnable ground downwind of the click catches; ground behind
+    /// the line only catches here and there, and the fire physics carries the
+    /// rest. Buildings in reach burn too. Returns whether anything caught.
+    pub(super) fn cmd_wildfire(&mut self, x: i32, y: i32, radius: i32) -> bool {
+        use crate::sim::civ::building_damage::{strike_buildings, DamageCause};
+        let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
+        let r = radius.clamp(4, 20);
+        let (wx, wy) = (self.weather.wind_x, self.weather.wind_y);
+        let m = wx.hypot(wy);
+        let (dirx, diry) = if m > 0.05 { (wx / m, wy / m) } else { (1.0, 0.0) };
+        let mut lit = 0;
+        for dx in -r..=r {
+            for dy in -r..=r {
+                let (nx, ny) = (x + dx, y + dy);
+                if !WorldGrid::in_bounds(nx, ny) || dx * dx + dy * dy > r * r {
+                    continue;
+                }
+                if !self.grid.get(nx, ny).flammable() {
+                    continue;
+                }
+                let (fx, fy) = (dx as f32, dy as f32);
+                let along = fx * dirx + fy * diry;
+                let across = (-fx * diry + fy * dirx).abs();
+                let chance = if along >= 0.0 && across <= 2.5 {
+                    0.85
+                } else if along >= -1.0 {
+                    0.25
+                } else {
+                    0.0
+                };
+                if chance == 0.0 || self.rng.random::<f32>() >= chance {
+                    continue;
+                }
+                self.grid.set(nx, ny, Tile::Fire);
+                *self.grid.fire_intensity_mut(nx, ny) = 1.0;
+                self.physics.register_fire(nx, ny);
+                lit += 1;
+            }
+        }
+        if lit == 0 {
+            return false;
+        }
+        strike_buildings(self, x, y, r as f32, 0.7, 0.2, DamageCause::Fire);
+        let now = self.tick_count;
+        push_event(&mut self.events, now, "danger", "a wildfire", "ran with the wind");
+        true
+    }
+
     pub(super) fn cmd_thunder(&mut self, x: f32, y: f32, radius: f32) -> bool {
         let r = if radius <= 0.0 { 8.0 } else { radius.min(32.0) };
         let mut struck = false;

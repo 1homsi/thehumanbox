@@ -69,6 +69,8 @@ const TOOL_TIPS: Record<string, string> = {
     'Give everyone in the brush area more years to live. Each blessing adds to the span the gods allot, up to a ceiling no natural birth reaches.',
   courage:
     'Drain fear out of everyone in the brush area, so they stop running from what frightened them and hold their ground.',
+  wildfire:
+    'Light a line of fire across the land at the click, driven by the wind. It catches burnable ground downwind and carries on through the woods; buildings in reach burn too.',
   restore:
     'Erase your changes to the land in the brush area: water drains, fire and ash cool, and sand or snow goes back to what the biome holds. Rock and buildings stay.',
   place_house:
@@ -187,6 +189,7 @@ export function toolFailure(tool: SandboxTool): string {
     case 'tornado':
     case 'tsunami':
     case 'locusts':
+    case 'wildfire':
     case 'blight':
     case 'flood':
     case 'blizzard':
