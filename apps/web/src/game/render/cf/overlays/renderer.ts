@@ -23,6 +23,9 @@ import {
   paintWaterStars,
 } from './paint-ground'
 import { hazeLevels, paintHaze } from './haze'
+import { paintFallingLeaves } from './falling-leaves'
+import { vegetationSeason } from '../../landscape-style'
+import { terrainSeason } from '../../terrain-season'
 import { paintHud } from './paint-hud'
 import { moonLight, nightLevel, paintMoon, paintStars } from './night-sky'
 import { SpriteRecorder } from './recorder'
@@ -268,6 +271,15 @@ export class CfOverlayRenderer {
       paintPuddles(ground, f, wetnessOf(f.world))
       paintHaze(ground, f, hazeLevels(f.world), f.t)
       paintStars(ground, f.bounds, f.ox, f.oy, f.t, nightLevel(f.world))
+      if (vegetationSeason(terrainSeason(f.world)) === 'autumn') {
+        const { c0, c1, r0, r1 } = f.bounds
+        paintFallingLeaves(
+          ground,
+          { x0: (c0 - f.ox) * TILE, y0: (r0 - f.oy) * TILE, x1: (c1 - f.ox) * TILE, y1: (r1 - f.oy) * TILE },
+          f.t,
+          1,
+        )
+      }
       this.paintContested(ground, f)
       this.ground.end()
     }
