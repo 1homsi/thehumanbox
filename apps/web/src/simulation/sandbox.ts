@@ -40,6 +40,7 @@ export type SandboxCommand =
   | { cmd: 'family'; x: number; y: number }
   | { cmd: 'teleport'; x: number; y: number; radius?: number }
   | { cmd: 'make_leader'; x: number; y: number; radius?: number }
+  | { cmd: 'heal_one'; x: number; y: number; radius?: number }
   | { cmd: 'advance'; to: 'season' | 'year'; max_ticks?: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
   | { cmd: 'repair'; x: number; y: number; radius?: number }
@@ -131,6 +132,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '👪',
         mode: 'point',
         build: (x, y) => ({ cmd: 'family', x, y }),
+      },
+      {
+        id: 'heal_one',
+        label: 'heal one',
+        icon: '💚',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'heal_one', x, y, radius: 4 }),
       },
       {
         id: 'teleport',

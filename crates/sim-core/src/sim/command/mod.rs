@@ -36,6 +36,13 @@ pub enum Command {
         #[serde(default)]
         max_ticks: u32,
     },
+    /// Heal the living person nearest the point (within the radius): full health, no infection or sickness.
+    HealOne {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
     /// Make the grown person nearest the point the ruler of their tribe.
     MakeLeader {
         x: f32,
@@ -424,6 +431,7 @@ mod blessings;
 mod buildings;
 mod creation;
 mod disasters;
+mod heal_one;
 mod leader;
 #[cfg(test)]
 mod release_tests;
@@ -460,6 +468,7 @@ impl Simulation {
             Command::Family { x, y } => self.cmd_family(x, y),
             Command::Teleport { x, y, radius } => self.cmd_teleport(x, y, radius),
             Command::MakeLeader { x, y, radius } => self.cmd_make_leader(x, y, radius),
+            Command::HealOne { x, y, radius } => self.cmd_heal_one(x, y, radius),
             Command::Advance { to, max_ticks } => self.cmd_advance(to, max_ticks),
             Command::Smite { x, y, radius } => self.cmd_smite(x, y, radius),
             Command::Heal { x, y, radius } => self.cmd_heal(x, y, radius),

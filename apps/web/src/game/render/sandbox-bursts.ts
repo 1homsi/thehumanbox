@@ -61,6 +61,7 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'smite':
       return 'bolt'
     case 'heal':
+    case 'heal_one':
       return 'heal'
     case 'spawn1':
     case 'spawn5':

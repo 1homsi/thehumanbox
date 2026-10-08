@@ -10,6 +10,8 @@ const TOOL_TIPS: Record<string, string> = {
     'Run the world on to the start of the next year, in quick steps. The seasons turn as they would.',
   leader:
     'Crown the grown person nearest where you click the ruler of their tribe. They keep the crown while they live, unless their tribe has no ruler to crown (a plain band) or they are still a child.',
+  heal_one:
+    'Heal the person nearest where you click: full health, and no infection or sickness. Only that one person.',
   teleport:
     'Pick up the person nearest where you click and set them down there. Nobody is moved onto water or rock.',
   family:
