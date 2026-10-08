@@ -128,6 +128,9 @@ export function PeopleSpriteLayers({
       get ids() {
         return sprites.ids
       },
+      get radius() {
+        return sprites.bodyRadius
+      },
     })
     // Force the next frame to rebuild: the buffer is new.
     last.current = null

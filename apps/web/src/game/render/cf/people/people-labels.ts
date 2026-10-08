@@ -42,6 +42,8 @@ export interface PeopleLabelSource {
   tileY?: ArrayLike<number>
   /** The id of each slot. */
   ids?: ArrayLike<string>
+  /** Each slot's body radius (what `orgVariant(id).bodyRadius` gives for its id), when the layer has it. */
+  radius?: ArrayLike<number>
 }
 
 /** Facts about a person that only change with a simulation frame (see `PeopleLabelSource.labelFlags`). */
@@ -314,8 +316,8 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
     const isSelected = org.id === selectedId
     const px = people.px[j]
     const py = people.py[j]
-    const variant = orgVariant(org.id)
-    const bodyR = variant.bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
+    const bodyRadius = people.radius ? people.radius[j] : orgVariant(org.id).bodyRadius
+    const bodyR = bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
     const spriteSize = Math.round(Math.max(19, bodyR * 3.8))
     const spriteTop = py - spriteSize * 0.78
 

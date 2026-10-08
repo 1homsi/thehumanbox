@@ -98,11 +98,29 @@ export function crowdLabelWinners(
  * grid so a crowd of hundreds stays cheap.
  */
 export class LabelPlacer {
-  /** Per bucket, the boxes claimed in it as flat [x0, y0, x1, y1, ...]. */
+  /**
+   * Per bucket, the boxes claimed in it as flat [x0, y0, x1, y1, ...]. Buckets within the Smi cell range are
+   * keyed by a small integer; any other bucket is keyed by the float key in `wide`. A bucket is in exactly one
+   * of the two maps, decided by its coordinates alone, so the split changes no lookup.
+   */
   private cells = new Map<number, number[]>()
+  private wide = new Map<number, number[]>()
   private readonly cell: number
   constructor(cell = 48) {
     this.cell = cell
+  }
+
+  /** The boxes claimed in bucket (cx, cy), created when `create` is set; undefined when there are none. */
+  private bucket(cx: number, cy: number, create: boolean): number[] | undefined {
+    const inSmi = cx >= -CELL_SMI_HALF && cx < CELL_SMI_HALF && cy >= -CELL_SMI_HALF && cy < CELL_SMI_HALF
+    const map = inSmi ? this.cells : this.wide
+    const key = inSmi ? smiCellKey(cx, cy) : gridKey(cx, cy)
+    let list = map.get(key)
+    if (list === undefined && create) {
+      list = []
+      map.set(key, list)
+    }
+    return list
   }
 
   /** Claim a box centred on `x` with its bottom at `y`; false if it would overlap. */
@@ -119,7 +137,7 @@ export class LabelPlacer {
     if (!force) {
       for (let cx = cx0; cx <= cx1; cx++) {
         for (let cy = cy0; cy <= cy1; cy++) {
-          const list = this.cells.get(gridKey(cx, cy))
+          const list = this.bucket(cx, cy, false)
           if (!list) continue
           for (let i = 0; i < list.length; i += 4) {
             if (x0 < list[i + 2] && x1 > list[i] && y0 < list[i + 3] && y1 > list[i + 1]) return false
@@ -129,10 +147,7 @@ export class LabelPlacer {
     }
     for (let cx = cx0; cx <= cx1; cx++) {
       for (let cy = cy0; cy <= cy1; cy++) {
-        const key = gridKey(cx, cy)
-        const list = this.cells.get(key)
-        if (list) list.push(x0, y0, x1, y1)
-        else this.cells.set(key, [x0, y0, x1, y1])
+        this.bucket(cx, cy, true)!.push(x0, y0, x1, y1)
       }
     }
     return true
