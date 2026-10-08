@@ -736,6 +736,7 @@ function LiveApp() {
               thoughts: viewFlags.thoughts,
               animals: viewFlags.animals,
               grid: viewFlags.grid,
+              tradeRoutes: viewFlags.tradeRoutes,
             }}
             onBrush={setBrush}
             onPick={onPickTool}

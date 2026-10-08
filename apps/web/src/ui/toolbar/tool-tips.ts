@@ -43,6 +43,7 @@ const TOOL_TIPS: Record<string, string> = {
   hazard_map: 'Show dangerous ground.',
   routes_map: 'Show the paths people walk most.',
   migration_map: 'Show where lineages have travelled over time.',
+  trade_map: 'Show or hide the trade roads, rails and caravans.',
   fertility_map: 'Show how fertile the soil is.',
   age_map: 'Colour people by age.',
   threat_map: 'Show where predators and monsters threaten people.',

@@ -4,6 +4,7 @@ export interface ViewFlags {
   thoughts: boolean
   animals: boolean
   grid: boolean
+  tradeRoutes: boolean
   trails: boolean
   structures: boolean
   fertility: boolean

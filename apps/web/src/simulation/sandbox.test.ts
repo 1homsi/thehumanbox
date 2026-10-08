@@ -26,6 +26,7 @@ describe('sandbox map controls', () => {
       'hazard_map',
       'routes_map',
       'migration_map',
+      'trade_map',
       'fertility_map',
       'age_map',
       'threat_map',
@@ -44,6 +45,16 @@ describe('sandbox map controls', () => {
     expect(isSandboxViewControlActive(population, 'density', {})).toBe(true)
     expect(isSandboxViewControlActive(population, 'hazard', {})).toBe(false)
     expect(isSandboxViewControlActive(population, null, {})).toBe(false)
+  })
+
+  it('shows trade routes on by default and toggles them as a map flag', () => {
+    const maps = SANDBOX_CATEGORIES.find((category) => category.id === 'maps')
+    const trade = maps?.tools.find((tool) => tool.id === 'trade_map')
+    expect(trade?.view).toEqual({ control: 'flag', value: 'tradeRoutes' })
+    expect(
+      isSandboxViewControlActive({ control: 'flag', value: 'tradeRoutes' }, null, { tradeRoutes: true }),
+    ).toBe(true)
+    expect(isSandboxViewControlActive({ control: 'flag', value: 'tradeRoutes' }, null, {})).toBe(false)
   })
 
   it('reads map flags independently from overlays', () => {

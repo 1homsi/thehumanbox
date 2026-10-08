@@ -81,7 +81,8 @@ export type TimeControl = {
 
 export type SandboxOverlay = 'density' | 'hazard' | 'fertility' | 'structures' | 'trails' | 'age' | 'threat'
 
-export type SandboxViewFlag = 'territory' | 'history' | 'names' | 'thoughts' | 'animals' | 'grid'
+export type SandboxViewFlag =
+  'territory' | 'history' | 'names' | 'thoughts' | 'animals' | 'grid' | 'tradeRoutes'
 
 export type SandboxViewControl =
   { control: 'overlay'; value: SandboxOverlay } | { control: 'flag'; value: SandboxViewFlag }
@@ -667,6 +668,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🧭',
         mode: 'instant',
         view: { control: 'flag', value: 'history' },
+      },
+      {
+        id: 'trade_map',
+        label: 'trade',
+        icon: '🐫',
+        mode: 'instant',
+        view: { control: 'flag', value: 'tradeRoutes' },
       },
       {
         id: 'fertility_map',

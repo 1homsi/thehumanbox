@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { OrganismState, WorldState } from '../../../../shared/types'
 import type { ViewFlags } from '../../../../state/store'
 import { resetPrayerFeedback } from '../../prayer-feedback'
@@ -7,6 +7,12 @@ import { resetWorldMoments } from '../../world-moments'
 import { makeFrame } from './frame'
 import { CfOverlayRenderer, Z } from './renderer'
 import { stubHost, type StubHost } from './test-support'
+import { drawTradeNetwork2D } from '../../base-parts/trade-network'
+
+vi.mock('../../base-parts/trade-network', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../base-parts/trade-network')>()
+  return { ...actual, drawTradeNetwork2D: vi.fn(actual.drawTradeNetwork2D) }
+})
 
 const GW = 40
 const GH = 24
@@ -63,6 +69,7 @@ const flags = {
   trails: false,
   structures: false,
   grid: false,
+  tradeRoutes: true,
   hideUI: false,
   partners: false,
   history: false,
@@ -109,6 +116,28 @@ describe('CfOverlayRenderer', () => {
     renderer.dispose()
     expect(host.layers).toHaveLength(0)
     expect(host.registered.size).toBe(0)
+  })
+
+  it('draws trade roads, rails and caravans only while the trade routes view is on', () => {
+    make()
+    const trade = vi.mocked(drawTradeNetwork2D)
+    trade.mockClear()
+    renderer.update(frameOf(world()))
+    expect(trade).toHaveBeenCalledTimes(2)
+    trade.mockClear()
+    const hidden = makeFrame({
+      world: world(),
+      t: 5100,
+      zoom: 2,
+      cam: { x: 12 * 8, y: 10 * 8 },
+      viewport: { w: 400, h: 240 },
+      dpr: 1,
+      overlay: null,
+      focus: 'all',
+      viewFlags: { ...flags, tradeRoutes: false },
+    })
+    renderer.update(hidden)
+    expect(trade).not.toHaveBeenCalled()
   })
 
   it('draws the atmosphere as tint quads between the ground and everything built', () => {

@@ -275,12 +275,15 @@ export class CfOverlayRenderer {
     lap('ground')
 
     // Trade roads and the rails and trains that run along them.
+    const showTrade = f.viewFlags.tradeRoutes
     this.roads.begin(gv)
-    drawTradeNetwork2D(this.roads.asContext(), f.world, f.bounds, f.t, 'roads')
-    this.paintRails(this.roads.asContext(), f)
+    if (showTrade) {
+      drawTradeNetwork2D(this.roads.asContext(), f.world, f.bounds, f.t, 'roads')
+      this.paintRails(this.roads.asContext(), f)
+    }
     this.roads.end()
     this.traffic.begin(gv)
-    drawTradeNetwork2D(this.traffic.asContext(), f.world, f.bounds, f.t, 'caravans')
+    if (showTrade) drawTradeNetwork2D(this.traffic.asContext(), f.world, f.bounds, f.t, 'caravans')
     this.traffic.end()
     lap('roads')
 
