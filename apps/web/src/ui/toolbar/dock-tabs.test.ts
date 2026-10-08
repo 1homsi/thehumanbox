@@ -76,6 +76,24 @@ describe('dock layout stays complete as tools are added', () => {
     expect(time.find((t) => t.id === 'next_year')?.time).toEqual({ control: 'advance', to: 'year' })
   })
 
+  it('offers gift food and gift tool as life tools that send a gift to the person nearest the click', () => {
+    const life = SANDBOX_CATEGORIES.find((c) => c.id === 'life')?.tools ?? []
+    expect(life.find((t) => t.id === 'gift_food')?.build?.(10, 20)).toEqual({
+      cmd: 'gift',
+      x: 10,
+      y: 20,
+      radius: 4,
+      what: 'food',
+    })
+    expect(life.find((t) => t.id === 'gift_tool')?.build?.(10, 20)).toEqual({
+      cmd: 'gift',
+      x: 10,
+      y: 20,
+      radius: 4,
+      what: 'tool',
+    })
+  })
+
   it('offers only speeds that exist as time tools', () => {
     const time = SANDBOX_CATEGORIES.find((c) => c.id === TIME_CATEGORY_ID)?.tools ?? []
     for (const id of SPEED_TOOL_IDS)
