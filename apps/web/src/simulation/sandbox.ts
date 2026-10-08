@@ -147,6 +147,12 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         build: (x, y) => ({ cmd: 'heal_one', x, y, radius: 4 }),
       },
       {
+        id: 'follow',
+        label: 'follow',
+        icon: '👣',
+        mode: 'point',
+      },
+      {
         id: 'teleport',
         label: 'teleport',
         icon: '🌀',
