@@ -43,6 +43,12 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// Place a finished building of the named kind with its top-left tile at (x, y), if the footprint is free.
+    PlaceBuilding {
+        x: i32,
+        y: i32,
+        kind: String,
+    },
     /// Make the grown person nearest the point the ruler of their tribe.
     MakeLeader {
         x: f32,
@@ -433,6 +439,7 @@ mod creation;
 mod disasters;
 mod heal_one;
 mod leader;
+mod place;
 #[cfg(test)]
 mod release_tests;
 mod restore;
@@ -468,6 +475,7 @@ impl Simulation {
             Command::Family { x, y } => self.cmd_family(x, y),
             Command::Teleport { x, y, radius } => self.cmd_teleport(x, y, radius),
             Command::MakeLeader { x, y, radius } => self.cmd_make_leader(x, y, radius),
+            Command::PlaceBuilding { x, y, kind } => self.cmd_place_building(x, y, kind),
             Command::HealOne { x, y, radius } => self.cmd_heal_one(x, y, radius),
             Command::Advance { to, max_ticks } => self.cmd_advance(to, max_ticks),
             Command::Smite { x, y, radius } => self.cmd_smite(x, y, radius),

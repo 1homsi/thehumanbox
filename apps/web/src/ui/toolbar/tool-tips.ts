@@ -54,6 +54,10 @@ const TOOL_TIPS: Record<string, string> = {
   plant_mushroom: 'Scatter mushrooms in the woods. They only take root in shade and come up fast in autumn.',
   restore:
     'Erase your changes to the land in the brush area: water drains, fire and ash cool, and sand or snow goes back to what the biome holds. Rock and buildings stay.',
+  place_house:
+    'Raise a finished house on the tiles where you click, if the ground is clear of water, rock and other buildings. Nobody owns it yet, so a family nearby can move in.',
+  place_library:
+    'Raise a finished library where you click, if the ground is clear of water, rock and other buildings. It is unowned, so the first tribe nearby can take it.',
   demolish:
     'Pull down the buildings in the brush area, and clear the huts and campfires there to grass. The people inside stay put.',
   repair: 'Bring every damaged or ruined building in the brush area back to full condition, at once.',
