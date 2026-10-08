@@ -67,10 +67,19 @@ export const TOOL_EMOJI = [
 ]
 export const SICK_EMOJI = '\u{1F912}'
 export const DEGREE_EMOJI = '\u{1F393}'
+/** The white cane an elder leans on. */
+export const ELDER_CANE_EMOJI = '\u{1F9AF}'
 export const SLEEP_GLYPH = 'z'
 
 export const GLYPHS: readonly string[] = Array.from(
-  new Set([...Object.values(SPECIALTY_EMOJI), ...TOOL_EMOJI, SICK_EMOJI, DEGREE_EMOJI, SLEEP_GLYPH]),
+  new Set([
+    ...Object.values(SPECIALTY_EMOJI),
+    ...TOOL_EMOJI,
+    SICK_EMOJI,
+    DEGREE_EMOJI,
+    ELDER_CANE_EMOJI,
+    SLEEP_GLYPH,
+  ]),
 )
 const glyphIndex = new Map(GLYPHS.map((g, i) => [g, i] as const))
 
