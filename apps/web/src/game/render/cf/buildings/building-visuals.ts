@@ -8,6 +8,7 @@ import { normKind, resolveBuildingFootprint } from '../../building-draw/footprin
 import { RUIN_CRUMBLE_TICKS } from '../../building-draw/ruins'
 import type { BuildingLike, BuildingVisualDetail } from '../../building-draw/types'
 import { padEmpty } from '../../era-traffic'
+import { isHouseLike } from '../../building-draw/colors'
 
 /** Everything about the frame that changes how a building looks. */
 export interface BuildingFrameInfo {
@@ -16,6 +17,8 @@ export interface BuildingFrameInfo {
   nightBucket: number
   detail: BuildingVisualDetail
   tiers: ReadonlyMap<string, number>
+  /** It is winter on the ground: house roofs carry snow. */
+  winter: boolean
 }
 
 /** Construction progress and ruin age are quantised so a site does not bake a cell per tick. */
@@ -60,6 +63,7 @@ export function describeBuilding(b: Building, info: BuildingFrameInfo): Building
       ? Math.max(0, (info.tick - b.ruined_at_tick) / RUIN_CRUMBLE_TICKS)
       : 0
   const state = b.kind === 'Spaceport' && padEmpty(b.id, info.tick) ? 'empty' : undefined
+  const snow = info.winter && isHouseLike(k)
   const base = `${b.kind}|${fw}x${fh}|t${tier}`
   const identity = `${b.id}@${b.x},${b.y}`
   const record: BuildingLike = {
@@ -78,6 +82,7 @@ export function describeBuilding(b: Building, info: BuildingFrameInfo): Building
     tier,
     ruinAge,
     state,
+    snow,
   }
   const { w: contentW, h: contentH } = contentSize(fw, fh)
   const out = (key: string, night: number, detail: BuildingVisualDetail): BuildingVisual => ({
@@ -113,10 +118,12 @@ export function describeBuilding(b: Building, info: BuildingFrameInfo): Building
   const damaged = structural.isDamaged
   const night = sprite ? info.nightBucket : 0
   const cond = structural.integrity < 0.45 ? 0 : 1
+  // Snow changes the sprite (only on sprites that paint a roof), so it joins every sprite key.
+  const snowKey = sprite ? `|w${snow ? 1 : 0}` : ''
   if (!damaged) {
     // The emoji fallback does not look at the variant or the night.
     return out(
-      sprite ? `S|${base}|v${variant}|n${night}|c${cond}|s${state ?? ''}` : `E|${base}`,
+      sprite ? `S|${base}|v${variant}|n${night}|c${cond}|s${state ?? ''}${snowKey}` : `E|${base}`,
       night / 3,
       info.detail,
     )
@@ -126,7 +133,7 @@ export function describeBuilding(b: Building, info: BuildingFrameInfo): Building
   record.damage = Math.min(1, severity / DAMAGE_STEPS)
   record.integrity = integrity / DAMAGE_STEPS
   return out(
-    `D|${base}|${identity}|v${variant}|n${night}|c${cond}|s${state ?? ''}|d${severity}|i${integrity}|r${structural.isRepairing ? 1 : 0}|${info.detail}`,
+    `D|${base}|${identity}|v${variant}|n${night}|c${cond}|s${state ?? ''}|d${severity}|i${integrity}|r${structural.isRepairing ? 1 : 0}${snowKey}|${info.detail}`,
     night / 3,
     info.detail,
   )

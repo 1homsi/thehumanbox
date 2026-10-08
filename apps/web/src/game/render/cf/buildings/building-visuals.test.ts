@@ -15,6 +15,7 @@ const info = (over: Partial<BuildingFrameInfo> = {}): BuildingFrameInfo => ({
   nightBucket: 0,
   detail: 'standard',
   tiers: new Map(),
+  winter: false,
   ...over,
 })
 
@@ -119,5 +120,23 @@ describe('nightBucketOf', () => {
     expect(nightBucketOf({ is_day: false, day_progress: 0.85 })).toBe(1)
     expect(nightBucketOf({ is_day: false, day_progress: 0.55 })).toBe(3)
     expect(nightBucketOf({ is_day: false, day_progress: 1 })).toBe(0)
+  })
+})
+
+describe('winter roofs', () => {
+  it('gives a house its own winter cell, and leaves the summer cell as it was', () => {
+    const hut = house({ id: 7, kind: 'Hut' })
+    const summer = describeBuilding(hut, info())
+    const winter = describeBuilding(hut, info({ winter: true }))
+    expect(winter.key).not.toBe(summer.key)
+    expect(winter.record.snow).toBe(true)
+    expect(summer.record.snow).toBe(false)
+  })
+
+  it('does not split the cell of a building that has no roof snow', () => {
+    const fountain = house({ id: 7, kind: 'Fountain' })
+    expect(describeBuilding(fountain, info({ winter: true })).key).toBe(
+      describeBuilding(fountain, info()).key,
+    )
   })
 })
