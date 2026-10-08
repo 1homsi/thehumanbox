@@ -52,6 +52,8 @@ import { AppHeader } from './ui/toolbar/AppHeader'
 import { RightPanel } from './ui/panels/RightPanel'
 import { ModalRouter } from './ui/modals/ModalRouter'
 import { SaveSlotsModal } from './ui/modals/SaveSlotsModal'
+import { ScenariosModal } from './ui/modals/ScenariosModal'
+import { type ScenarioPreset } from './simulation/scenarios'
 import { MobileBanner } from './ui/toasts/MobileBanner'
 import { WelcomeModal } from './ui/modals/WelcomeModal'
 import { UpdateToast } from './ui/toasts/UpdateToast'
@@ -127,6 +129,8 @@ function LiveApp() {
   const [sandboxStatus, setSandboxStatus] = useState<string | null>(null)
   const showSaveSlots = useUIStore((s) => s.showSaveSlots)
   const closeSaveSlots = useUIStore((s) => s.closeSaveSlots)
+  const showScenarios = useUIStore((s) => s.showScenarios)
+  const closeScenarios = useUIStore((s) => s.closeScenarios)
   const sandboxStatusTimer = useRef<number | null>(null)
   const sandboxControlsEnabled = sandboxAvailable && (!desktop || desktopMode === 'local')
 
@@ -456,6 +460,25 @@ function LiveApp() {
     window.addEventListener('keydown', onGameKey)
     return () => window.removeEventListener('keydown', onGameKey)
   }, [onPickTool, sandboxControlsEnabled, world, handleAnswerPrayer, setTemporarySandboxStatus])
+
+  const runScenario = useCallback(
+    (preset: ScenarioPreset, width: number, height: number) => {
+      const steps = preset.steps(width, height)
+      setTemporarySandboxStatus(`${preset.title} · starting`)
+      void (async () => {
+        let worked = 0
+        for (const step of steps) {
+          if (await sendCommand(step)) worked += 1
+        }
+        setTemporarySandboxStatus(
+          worked === steps.length
+            ? `${preset.title} is in the world`
+            : `${preset.title}: ${worked} of ${steps.length} steps worked`,
+        )
+      })()
+    },
+    [sendCommand, setTemporarySandboxStatus],
+  )
 
   const onUndo = useCallback(() => {
     void undoLastAction().then((ok) =>
@@ -820,6 +843,12 @@ function LiveApp() {
             world={world}
             lineages={lineages}
             onGuide={sandboxControlsEnabled ? guideLineage : undefined}
+          />
+        )}
+        {showScenarios && isLocalWebWorld && sandboxControlsEnabled && world && (
+          <ScenariosModal
+            onStart={(preset) => runScenario(preset, world.grid.width, world.grid.height)}
+            onClose={closeScenarios}
           />
         )}
         {showSaveSlots && isLocalWebWorld && (
