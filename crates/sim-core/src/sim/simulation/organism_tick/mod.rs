@@ -4,6 +4,7 @@ mod act;
 mod ageing;
 mod bonds;
 mod decide;
+mod home_heir;
 mod learning;
 mod mortality;
 mod pairing;

@@ -230,6 +230,7 @@ impl Simulation {
             }
         }
 
+        self.pass_family_home(idx);
         if let Some((dx, dy, dlid)) = death_grief {
             let dead_name = self.organisms[idx].name.clone();
             let dead_id_str = self.organisms[idx].id.clone();
