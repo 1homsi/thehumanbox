@@ -50,6 +50,7 @@ export type SandboxCommand =
   | { cmd: 'volcano'; x: number; y: number; radius?: number }
   | { cmd: 'meteor_shower'; x: number; y: number; radius?: number }
   | { cmd: 'love'; x: number; y: number; radius?: number }
+  | { cmd: 'marry'; ax: number; ay: number; bx: number; by: number }
   | { cmd: 'tame'; x: number; y: number; radius?: number }
   | { cmd: 'family'; x: number; y: number }
   | { cmd: 'teleport'; x: number; y: number; radius?: number }
@@ -161,6 +162,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         id: 'follow',
         label: 'follow',
         icon: '👣',
+        mode: 'point',
+      },
+      {
+        // Two clicks: the first person, then the second. Sent by the app, not by a single click.
+        id: 'marry',
+        label: 'marry',
+        icon: '💍',
         mode: 'point',
       },
       {

@@ -316,6 +316,14 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// Marry the grown person nearest the first point to the one nearest the second: both must be adults
+    /// without a partner, of different sexes.
+    Marry {
+        ax: f32,
+        ay: f32,
+        bx: f32,
+        by: f32,
+    },
     /// Pull down every building the radius touches, and clear the huts and
     /// campfires there to grass. The people inside stay where they are.
     Demolish {
@@ -510,6 +518,7 @@ mod heal_one;
 mod leader;
 #[cfg(test)]
 mod locust_tests;
+mod marry;
 mod place;
 #[cfg(test)]
 mod release_tests;
@@ -602,6 +611,7 @@ impl Simulation {
             Command::Volcano { x, y, radius } => self.cmd_volcano(x, y, radius),
             Command::MeteorShower { x, y, radius } => self.cmd_meteor_shower(x, y, radius),
             Command::Love { x, y, radius } => self.cmd_love(x, y, radius),
+            Command::Marry { ax, ay, bx, by } => self.cmd_marry(ax, ay, bx, by),
             Command::Tame { x, y, radius } => self.cmd_tame(x, y, radius),
             Command::Demolish { x, y, radius } => self.cmd_demolish(x, y, radius),
             Command::Repair { x, y, radius } => self.cmd_repair(x, y, radius),

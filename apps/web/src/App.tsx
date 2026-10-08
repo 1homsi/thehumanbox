@@ -125,6 +125,8 @@ function LiveApp() {
   const currentScene = useCurrentScene()
 
   const [armedTool, setArmedTool] = useState<SandboxTool | null>(null)
+  /** The first person chosen by the marry tool, waiting for the second click. */
+  const marryFirstRef = useRef<{ x: number; y: number } | null>(null)
   const [brush, setBrush] = useState(2)
   const [sandboxStatus, setSandboxStatus] = useState<string | null>(null)
   const showSaveSlots = useUIStore((s) => s.showSaveSlots)
@@ -217,6 +219,7 @@ function LiveApp() {
 
   const onPickTool = useCallback(
     (tool: SandboxTool) => {
+      marryFirstRef.current = null
       if (tool.view) {
         setArmedTool(null)
         const ui = useUIStore.getState()
@@ -334,6 +337,23 @@ function LiveApp() {
         }
         useUIStore.getState().followOrg(person.id)
         setTemporarySandboxStatus(`following ${person.name}`)
+        return
+      }
+      if (armedTool.id === 'marry') {
+        const first = marryFirstRef.current
+        if (!first) {
+          marryFirstRef.current = { x: wx, y: wy }
+          setTemporarySandboxStatus('marry · now click the other person')
+          return
+        }
+        marryFirstRef.current = null
+        void sendCommand({ cmd: 'marry', ax: first.x, ay: first.y, bx: wx, by: wy }).then((ok) =>
+          setTemporarySandboxStatus(
+            ok
+              ? 'married · they are partners now'
+              : 'marry · both must be grown, free to wed, of different sexes, and close to the clicks',
+          ),
+        )
         return
       }
       if (!armedTool.build) return
