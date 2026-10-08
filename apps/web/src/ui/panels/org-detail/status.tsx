@@ -3,6 +3,17 @@ import { AGE_STAGE_ICON, ERA_ICON } from './icons'
 import type { OrganismState } from '../../../shared/types'
 import { skillPercent, skillWord } from '../../../game/model/skills'
 
+/** A glyph for each mood word the simulation sends. */
+const MOOD_ICON: Record<string, string> = {
+  grieving: '✝',
+  afraid: '!',
+  hungry: '◌',
+  thirsty: '◌',
+  angry: '✶',
+  joyful: '♪',
+  content: '☺',
+}
+
 export function StatusChips({ org }: { org: OrganismState }) {
   return (
     <>
@@ -53,6 +64,15 @@ export function StatusChips({ org }: { org: OrganismState }) {
                 · {skillWord(org.skill)}
               </span>
             )}
+          </span>
+        )}
+        {org.mood && org.mood !== 'calm' && (
+          <span
+            className="relation-tag"
+            style={{ background: '#1a1a24', color: '#c8c2d8', cursor: 'default' }}
+            title="How they feel right now, from what they are going through"
+          >
+            {MOOD_ICON[org.mood] ?? '·'} feels {org.mood}
           </span>
         )}
         {(org.mounted_vehicle ?? null) !== null && org.mounted_vehicle !== undefined && (
