@@ -54,11 +54,15 @@ describe('dock layout stays complete as tools are added', () => {
   })
 
   it('makes every tool do something when used', () => {
+    // Follow is a camera action, not a world command, so it has no command to build.
+    const clientOnly = new Set(['follow'])
     for (const tool of dockTools) {
       if (tool.mode === 'point') {
-        const command = tool.build?.(120, 80, 2)
-        expect(command, `point tool ${tool.id} builds a command`).toBeDefined()
-        expect(command).toMatchObject({ x: 120, y: 80 })
+        if (!clientOnly.has(tool.id)) {
+          const command = tool.build?.(120, 80, 2)
+          expect(command, `point tool ${tool.id} builds a command`).toBeDefined()
+          expect(command).toMatchObject({ x: 120, y: 80 })
+        }
         expect(burstForTool(tool.id), `point tool ${tool.id} plays an effect`).not.toBeNull()
       } else {
         expect(tool.fire ?? tool.time ?? tool.view, `instant tool ${tool.id} has an action`).toBeDefined()

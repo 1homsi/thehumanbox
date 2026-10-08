@@ -32,6 +32,7 @@ import { trackEvent } from './shared/observability'
 import { reconcileViewerSelection } from './shared/viewerSelection'
 import { useUIStore } from './state/store'
 import { useWorldStore } from './state/worldStore'
+import { nearestLivingPerson } from './simulation/nearestPerson'
 import { SEASON_TICKS, YEAR_TICKS } from './game/model/calendar'
 import { IS_LOCAL_SERVER } from './shared/config'
 import { getDesktop, type SimMode } from './shared/desktop'
@@ -312,7 +313,19 @@ function LiveApp() {
 
   const handleSandboxApply = useCallback(
     (wx: number, wy: number) => {
-      if (!sandboxControlsEnabled || !armedTool?.build) return
+      if (!sandboxControlsEnabled || !armedTool) return
+      if (armedTool.id === 'follow') {
+        // Following is the camera's business, not a world command: keep the nearest person in view.
+        const person = nearestLivingPerson(useWorldStore.getState().world?.organisms ?? [], wx, wy, 4)
+        if (!person) {
+          setTemporarySandboxStatus('follow · nobody in reach here')
+          return
+        }
+        useUIStore.getState().followOrg(person.id)
+        setTemporarySandboxStatus(`following ${person.name}`)
+        return
+      }
+      if (!armedTool.build) return
       const label = armedTool.label
       const x = Math.round(wx)
       const y = Math.round(wy)

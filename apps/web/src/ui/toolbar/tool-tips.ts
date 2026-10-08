@@ -12,6 +12,8 @@ const TOOL_TIPS: Record<string, string> = {
     'Crown the grown person nearest where you click the ruler of their tribe. They keep the crown while they live, unless their tribe has no ruler to crown (a plain band) or they are still a child.',
   heal_one:
     'Heal the person nearest where you click: full health, and no infection or sickness. Only that one person.',
+  follow:
+    'Keep the camera on the person nearest where you click. Click the map again to follow someone else.',
   teleport:
     'Pick up the person nearest where you click and set them down there. Nobody is moved onto water or rock.',
   family:
