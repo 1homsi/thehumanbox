@@ -12,6 +12,8 @@ export interface TribeStatus {
   food: number
   /** Measures of grain in the tribe's granaries. */
   stores: number
+  /** Livestock the tribe keeps in its pens. */
+  livestock: number
   water: number
   health: number
   sick: number
@@ -61,6 +63,7 @@ export function tribeStatus(world: WorldState, id: string): TribeStatus | null {
   return {
     id,
     stores: Math.max(0, world.lineage_food_stores?.find((r) => r.lineage_id === id)?.stock ?? 0),
+    livestock: Math.max(0, world.lineage_livestock?.find((r) => r.lineage_id === id)?.head ?? 0),
     name: world.lineage_names?.[id] ?? id.slice(0, 6),
     era: eraOf(world, id)?.replace(/[-_]/g, ' ') ?? null,
     people: members.length,

@@ -432,6 +432,21 @@ impl Simulation {
                     "lineage_food_stores".to_string(),
                     serde_json::Value::Array(stores),
                 );
+                // Livestock each tribe keeps in its pens, for the tribe card.
+                let mut herds: std::collections::BTreeMap<String, u32> = std::collections::BTreeMap::new();
+                for a in self.animals.iter().filter(|a| a.alive && a.is_kept()) {
+                    if let Some(owner) = a.keeper.as_deref() {
+                        *herds.entry(owner.to_string()).or_insert(0) += 1;
+                    }
+                }
+                let livestock: Vec<serde_json::Value> = herds
+                    .into_iter()
+                    .map(|(lid, head)| json!({ "lineage_id": lid, "head": head }))
+                    .collect();
+                obj.insert(
+                    "lineage_livestock".to_string(),
+                    serde_json::Value::Array(livestock),
+                );
                 let mut crime_rows: Vec<(&String, &crate::sim::civ::society::crime::CrimeTally)> =
                     self.lineage_crime.iter().filter(|(_, t)| t.thefts > 0).collect();
                 crime_rows.sort_by(|a, b| a.0.cmp(b.0));

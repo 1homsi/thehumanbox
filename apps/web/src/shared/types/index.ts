@@ -677,6 +677,8 @@ export interface WorldState {
   lineage_inequality?: Array<{ lineage_id: string; gini: number; people: number }>
   /** Grain in each tribe's granaries (measures), for the tribe card and the trade agent. */
   lineage_food_stores?: Array<{ lineage_id: string; stock: number }>
+  /** Livestock kept in each tribe's pens (head), for the tribe card. */
+  lineage_livestock?: Array<{ lineage_id: string; head: number }>
   lineage_crime?: Array<{ lineage_id: string; thefts: number; murders: number; punished: number }>
   /** Generations per tribe: the oldest living one and how many have been reached. */
   lineage_generations?: Array<{ lineage_id: string; oldest: number; lived: number }>
@@ -905,6 +907,7 @@ export type BuildingKind =
   | 'Greenhouse2'
   | 'MushroomFarm'
   | 'Aquaculture'
+  | 'Pen'
 
 export type BuildingFunction =
   | 'Housing'

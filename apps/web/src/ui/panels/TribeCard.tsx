@@ -181,6 +181,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
       <Sparkline lineage={status.id} />
       <Need label="food" value={status.food} />
       {status.stores > 0 && <p className="tribe-stores">granary: {status.stores} measures of grain</p>}
+      {status.livestock > 0 && <p className="tribe-stores">pen: {status.livestock} head of livestock</p>}
       <Need label="water" value={status.water} />
       <Need label="health" value={status.health} />
       {losses && <div className="tribe-card-losses">lost lately: {losses}</div>}

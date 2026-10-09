@@ -199,6 +199,11 @@ pub(crate) struct AnimalSave {
     pub(super) bonded_org: Option<String>,
     #[serde(default, skip_serializing_if = "is_zero_tick")]
     pub(super) born_tick: u64,
+    /// Livestock: the keeping tribe and its pen (old saves have neither: the animal is wild).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) keeper: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) pen: Option<(i32, i32)>,
 }
 
 fn is_zero_tick(t: &u64) -> bool {
@@ -576,6 +581,8 @@ pub(super) fn animal_to_save(a: &Animal) -> AnimalSave {
         name: a.name.clone(),
         bonded_org: a.bonded_org.clone(),
         born_tick: a.born_tick,
+        keeper: a.keeper.clone(),
+        pen: a.pen,
     }
 }
 
@@ -588,5 +595,7 @@ pub(super) fn animal_from_save(s: AnimalSave) -> Animal {
     a.name = s.name;
     a.bonded_org = s.bonded_org;
     a.born_tick = s.born_tick;
+    a.keeper = s.keeper;
+    a.pen = s.pen;
     a
 }

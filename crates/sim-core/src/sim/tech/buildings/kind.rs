@@ -176,6 +176,8 @@ pub enum BuildingKind {
     Greenhouse2,
     MushroomFarm,
     Aquaculture,
+    /// A fenced pasture beside the houses, where a tribe keeps its livestock.
+    Pen,
 }
 
 impl BuildingKind {
@@ -355,6 +357,7 @@ impl BuildingKind {
             BuildingKind::Greenhouse2 => "biolab",
             BuildingKind::MushroomFarm => "mushroom_farm",
             BuildingKind::Aquaculture => "aquaculture",
+            BuildingKind::Pen => "pen",
         }
     }
 
@@ -535,6 +538,7 @@ impl BuildingKind {
             Greenhouse2,
             MushroomFarm,
             Aquaculture,
+            Pen,
         ]
     }
 }

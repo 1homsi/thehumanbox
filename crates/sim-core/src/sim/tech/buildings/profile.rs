@@ -82,6 +82,7 @@ impl BuildingKind {
             WindTurbine | SolarPanel | ChargingStation | RoboticArm | Drone => Era::Information,
             HoloBoard | NeonSign | ArcadeBox | Fountain2 | FoodTruck => Era::Modern,
             Greenhouse2 | MushroomFarm | Aquaculture => Era::Modern,
+            Pen => Era::Bronze,
         }
     }
 
@@ -104,7 +105,7 @@ impl BuildingKind {
             | Lighthouse2 | Drydock | Crane | RadioTower | WindTurbine | Pyramid | Ziggurat
             | TriumphalArch | Pagoda | Fountain2 | MushroomFarm | Aquaculture | Greenhouse | Greenhouse2
             | Vineyard | Ranch | WaterTower | Reservoir | Substation | Refinery | PowerPlant | MusicHall
-            | CityHall => (2, 2),
+            | CityHall | Pen => (2, 2),
             TownHouse => (2, 3),
             Market | School | Hospital | Plaza | Temple | Theatre | Barracks | Museum | TrainStation
             | Port | Spaceport | OrbitalLift | SolarArray | WindFarm | FusionPlant | NeuralHub | AiCore
@@ -166,7 +167,7 @@ impl BuildingKind {
             | Spaceport | OrbitalLift | SolarArray | WindFarm | FusionPlant | NeuralHub | AiCore
             | Biodome | Cryolab | NanoFab | Hyperloop | Maglev | Megastructure | SolarPanel | WindTurbine
             | RoboticArm | Drone | Greenhouse | Greenhouse2 | Vineyard | Ranch | Stable | Kennel
-            | Dovecote | MushroomFarm | Aquaculture | Hangar | Silo | Warehouse | Crane => Industry,
+            | Dovecote | MushroomFarm | Aquaculture | Pen | Hangar | Silo | Warehouse | Crane => Industry,
             Hospital | Pharmacy | Clinic | Spa | Bathhouse | Hospital2 => Healthcare,
             Barracks | Wall | Tower | Watchtower | Gallows | PoliceStation | FireStation => Military,
             Plaza | Statue | Fountain | Fountain2 | Lighthouse | Lighthouse2 | Courthouse | CityHall
