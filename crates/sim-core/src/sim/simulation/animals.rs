@@ -616,6 +616,7 @@ impl Simulation {
                 AnimalKind::Elephant => 25,
                 AnimalKind::Lion => 25,
                 AnimalKind::Zebra => 40,
+                AnimalKind::PolarBear => 15,
                 // Summoned, never born.
                 AnimalKind::Zombie
                 | AnimalKind::Demon
@@ -891,6 +892,7 @@ impl Simulation {
                 | AnimalKind::Elephant
                 | AnimalKind::Lion
                 | AnimalKind::Zebra
+                | AnimalKind::PolarBear
                 | AnimalKind::Zombie
                 | AnimalKind::Demon
                 | AnimalKind::Dragon

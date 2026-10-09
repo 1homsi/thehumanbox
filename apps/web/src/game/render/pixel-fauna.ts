@@ -362,6 +362,26 @@ const SPRITES: Record<string, Frames> = {
       '.k.k....k.k.',
     ],
   ],
+  polar_bear: [
+    [
+      '...wwwww....',
+      '..wwwwwwww..',
+      '.wwwwwwwwwwo',
+      '.WWWWWWWWWW.',
+      '.wwwwwwwwwww',
+      '..w.w....w.w',
+      '..o.o....o.o',
+    ],
+    [
+      '...wwwww....',
+      '..wwwwwwww..',
+      '.wwwwwwwwwwo',
+      '.WWWWWWWWWW.',
+      '.wwwwwwwwwww',
+      '.w.w....w.w.',
+      '.o.o....o.o.',
+    ],
+  ],
   owl: [
     [
       '.O.......O.',
