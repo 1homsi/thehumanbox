@@ -46,12 +46,13 @@ export class LanduseDriver implements CfDriver {
       const stage = farmStage(farm, world.tick)
       const grown = Math.max(1, Math.round(1 + farmProgress(farm, world.tick) * 4))
       const color = farmCropColor(farm.crop)
-      const offset = (farm.crop?.length ?? 0) % 2
-      const key = `F|${stage}|${grown}|${color}|${offset}`
+      const crop = farm.crop ?? ''
+      const variant = crop.length % 2
+      const key = `F|${stage}|${grown}|${crop}|${variant}`
       const cell =
         this.atlas.get(key) ??
         this.atlas.bake(key, TILE, TILE, (ctx) =>
-          paintFarmTile(ctx, 0, 0, stage, (grown - 1) / 4, color, offset),
+          paintFarmTile(ctx, 0, 0, stage, (grown - 1) / 4, color, crop, variant),
         )
       if (!cell) continue
       writeSprite(
