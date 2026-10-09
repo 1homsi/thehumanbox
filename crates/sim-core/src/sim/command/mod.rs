@@ -30,12 +30,6 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
-    /// Run the world toward the next season or year boundary, a chunk of ticks at a time.
-    Advance {
-        to: String,
-        #[serde(default)]
-        max_ticks: u32,
-    },
     /// Heal the living person nearest the point (within the radius): full health, no infection or sickness.
     HealOne {
         x: f32,
@@ -650,7 +644,6 @@ fn prayer_answers(cmd: &Command) -> Option<PrayerAnswer> {
     })
 }
 
-mod advance;
 #[cfg(test)]
 mod blessing_tests;
 mod blessings;
@@ -726,7 +719,6 @@ impl Simulation {
             Command::MakeLeader { x, y, radius } => self.cmd_make_leader(x, y, radius),
             Command::PlaceBuilding { x, y, kind } => self.cmd_place_building(x, y, kind),
             Command::HealOne { x, y, radius } => self.cmd_heal_one(x, y, radius),
-            Command::Advance { to, max_ticks } => self.cmd_advance(to, max_ticks),
             Command::Gift { x, y, radius, what } => self.cmd_gift(x, y, radius, what),
             Command::SetTimeOfDay { phase } => self.cmd_set_time_of_day(phase),
             Command::Hail { x, y, radius } => self.cmd_hail(x, y, radius),

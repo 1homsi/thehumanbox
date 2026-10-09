@@ -218,9 +218,6 @@
 .dock-mini:active:not(:disabled) svg {
   transform: translateY(1px);
 }
-.dock-tile.pinned {
-  position: relative;
-}
 .dock-tile-count {
   position: absolute;
   right: -3px;
@@ -235,16 +232,6 @@
   background: var(--dock-gold);
   box-shadow: 0 0 0 1px #2a1f15;
   pointer-events: none;
-}
-.dock-tile.pinned::after {
-  content: '';
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  width: 5px;
-  height: 5px;
-  background: var(--dock-gold);
-  box-shadow: 0 0 0 1px #2a1f15;
 }
 .dock-tile.active,
 .dock-speed.active {
@@ -310,12 +297,6 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 4px;
-}
-.dock-advance {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 4px;
-  margin-top: 4px;
 }
 .dock-speed {
   font-size: 11px;
@@ -385,17 +366,12 @@
     font-size: 11px;
   }
 }
-/* Around 768 px the pinned-and-recent group takes one column and its tab's eleven columns still fit. The
- * tools it repeats stay in their own tabs; the group keeps its two most recent tiles here. */
 @media (max-width: 900px) {
   .sandbox-bar {
     --dock-tile: 38px;
   }
   .dock-group {
     padding: 0 10px;
-  }
-  .dock-memory .dock-tile:nth-child(n + 3) {
-    display: none;
   }
 }
 

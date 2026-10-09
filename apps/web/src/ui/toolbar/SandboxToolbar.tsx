@@ -27,21 +27,7 @@ import { hotkeysFor, toolForHotkey } from './tool-hotkeys'
 import { typingTarget } from '../../game/model/shortcuts'
 import { WASM_BASE_TICK_MS, isRuntimeControlActive } from '../../simulation/runtimeControls'
 import { nextSpeedStep } from '../../simulation/speedSteps'
-import {
-  PINNED_LIMIT,
-  memoryToolIds,
-  readToolMemory,
-  rememberRecent,
-  togglePinned,
-  writeToolMemory,
-  type ToolMemory,
-  isPinListFull,
-} from './tool-memory'
 import { spawnsWith, useSpawnCounts } from './spawn-counts'
-
-const TOOLS_BY_ID = new Map<string, SandboxTool>(
-  SANDBOX_CATEGORIES.flatMap((c) => c.tools).map((t) => [t.id, t]),
-)
 
 const TAB_STORAGE_KEY = 'thb-sandbox-category'
 
@@ -140,8 +126,6 @@ export function SandboxToolbar({
   const groups = groupsFor(tabId)
   const timeTools = SANDBOX_CATEGORIES.find((c) => c.id === TIME_CATEGORY_ID)?.tools ?? []
   const speedTools = SPEED_TOOL_IDS.flatMap((id) => timeTools.filter((t) => t.id === id))
-  // Next season and next year run the world on to that boundary; they sit under the speed row.
-  const advanceTools = ['next_season', 'next_year'].flatMap((id) => timeTools.filter((t) => t.id === id))
   const achieved = useAchievedSpeed(runtimePaused)
   // Past what the machine can sustain, say what it is really doing.
   const lagging = !runtimePaused && achieved !== null && runtimeSpeed > 10 && achieved < runtimeSpeed * 0.8
@@ -149,14 +133,6 @@ export function SandboxToolbar({
   const weather = useWorldStore((s) => s.world?.weather?.kind)
   const drought = useWorldStore((s) => s.world?.drought ?? false)
   const [flashId, setFlashId] = useState<string | null>(null)
-  const [memory, setMemory] = useState<ToolMemory>(readToolMemory)
-  const updateMemory = (next: ToolMemory) => {
-    setMemory(next)
-    writeToolMemory(next)
-  }
-  const memoryTools = memoryToolIds(memory, new Set(TOOLS_BY_ID.keys()))
-    .map((id) => TOOLS_BY_ID.get(id))
-    .filter((t): t is SandboxTool => t !== undefined)
   const spawnCounts = useSpawnCounts((s) => s.counts)
   const isViewActive = (tool: SandboxTool) =>
     isSandboxViewControlActive(tool.view, activeOverlay, activeViewFlags)
@@ -195,7 +171,6 @@ export function SandboxToolbar({
       picked.id === 'dice'
         ? { ...picked, fire: rollRandomEvent(worldGrid?.width ?? 600, worldGrid?.height ?? 300) }
         : picked
-    updateMemory(rememberRecent(memory, tool.id))
     if (tool.mode === 'instant') {
       // Instant tools fire straight away; a flash shows the click landed.
       setFlashId(tool.id)
@@ -238,10 +213,9 @@ export function SandboxToolbar({
         ? 'Saving this world on this device'
         : 'Save this world on this device now'
 
-  // One dock tile. Shift-click pins or unpins it; a plain click arms or fires it.
+  // One dock tile: a click arms or fires it.
   const renderTile = (tool: SandboxTool) => {
     const active = armedToolId === tool.id || isViewActive(tool) || isStateActive(tool)
-    const pinned = memory.pinned.includes(tool.id)
     const spawned = spawnsWith(tool) ? (spawnCounts[tool.id] ?? 0) : 0
     return (
       <Tooltip
@@ -255,23 +229,18 @@ export function SandboxToolbar({
                 ? 'happening now · click again to end it'
                 : active && !tool.view
                   ? 'click again or press esc to stop'
-                  : `${hotkeys.has(tool.id) ? `press ${hotkeys.get(tool.id)} · ` : ''}${toolHowTo(tool, brush)} · shift-click to ${pinned ? 'unpin' : isPinListFull(memory) ? `pin (the list is full at ${PINNED_LIMIT}: unpin one first)` : 'pin'}`
+                  : `${hotkeys.has(tool.id) ? `press ${hotkeys.get(tool.id)} · ` : ''}${toolHowTo(tool, brush)}`
             }
           />
         }
       >
         <button
           type="button"
-          className={clsx(
-            'dock-tile',
-            active && 'active',
-            pinned && 'pinned',
-            flashId === tool.id && 'flash',
-          )}
+          className={clsx('dock-tile', active && 'active', flashId === tool.id && 'flash')}
           aria-label={tool.label}
           aria-keyshortcuts={hotkeys.get(tool.id)}
           aria-pressed={active}
-          onClick={(e) => (e.shiftKey ? updateMemory(togglePinned(memory, tool.id)) : pickTool(tool))}
+          onClick={() => pickTool(tool)}
         >
           <ToolSprite icon={tool.icon} size={36} />
           {spawned > 0 && (
@@ -399,11 +368,6 @@ export function SandboxToolbar({
             el.scrollLeft += e.deltaY
         }}
       >
-        {memoryTools.length > 0 && (
-          <div className="dock-group dock-memory" role="group" aria-label="pinned and recent tools">
-            {memoryTools.map(renderTile)}
-          </div>
-        )}
         {groups.map((group) => (
           <div className="dock-group" key={group.id} role="group" aria-label={group.label}>
             {group.tools.map(renderTile)}
@@ -478,23 +442,6 @@ export function SandboxToolbar({
               </Tooltip>
             ))}
             {stepButton(1)}
-          </div>
-          <div className="dock-advance">
-            {advanceTools.map((tool) => (
-              <Tooltip
-                key={tool.id}
-                tip={<TipCard title={tool.label} body={toolTip(tool)} how={toolHowTo(tool, brush)} />}
-              >
-                <button
-                  type="button"
-                  className="dock-speed"
-                  aria-label={tool.label}
-                  onClick={() => onPick(tool)}
-                >
-                  {tool.id === 'next_season' ? 'season →' : 'year →'}
-                </button>
-              </Tooltip>
-            ))}
           </div>
         </div>
         <div className="dock-utility">
