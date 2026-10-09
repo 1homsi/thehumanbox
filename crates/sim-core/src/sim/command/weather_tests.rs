@@ -58,3 +58,21 @@ fn a_gale_blows_hard_from_a_new_quarter() {
         "the wind turned"
     );
 }
+
+#[test]
+fn a_monsoon_is_a_long_heavy_rain() {
+    let mut sim = Simulation::new(3);
+    assert!(sim.apply_command_json(r#"{"cmd":"weather","kind":"monsoon"}"#));
+    assert_eq!(sim.weather.kind, 1, "it rains");
+    assert!(sim.weather.duration >= 5000, "for days, not an afternoon");
+    assert!(sim.weather.intensity >= 0.99, "as heavy as the weather goes");
+}
+
+#[test]
+fn a_cold_snap_is_a_short_hard_snowfall() {
+    let mut sim = Simulation::new(3);
+    assert!(sim.apply_command_json(r#"{"cmd":"weather","kind":"cold_snap"}"#));
+    assert_eq!(sim.weather.kind, 3, "it snows");
+    assert!(sim.weather.duration < 1500, "and it ends sooner than a snowfall");
+    assert!(sim.weather.intensity >= 0.99);
+}

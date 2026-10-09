@@ -4,7 +4,7 @@ export type SandboxCommand =
   | { cmd: 'heal'; x: number; y: number; radius?: number }
   | { cmd: 'paint'; x: number; y: number; tile: string; radius?: number }
   | { cmd: 'ignite'; x: number; y: number; radius?: number }
-  | { cmd: 'weather'; kind: 'clear' | 'rain' | 'storm' | 'snow' | 'fog' }
+  | { cmd: 'weather'; kind: 'clear' | 'rain' | 'storm' | 'snow' | 'fog' | 'monsoon' | 'cold_snap' }
   | { cmd: 'gale' }
   | { cmd: 'tornado'; x: number; y: number; radius?: number }
   | { cmd: 'tsunami'; x: number; y: number; radius?: number }
@@ -748,6 +748,20 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🌑',
         mode: 'instant',
         fire: { cmd: 'eclipse' },
+      },
+      {
+        id: 'monsoon',
+        label: 'monsoon',
+        icon: '☔',
+        mode: 'instant',
+        fire: { cmd: 'weather', kind: 'monsoon' },
+      },
+      {
+        id: 'cold_snap',
+        label: 'cold snap',
+        icon: '🥶',
+        mode: 'instant',
+        fire: { cmd: 'weather', kind: 'cold_snap' },
       },
       {
         id: 'comet',

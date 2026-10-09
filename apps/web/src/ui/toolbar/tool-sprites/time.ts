@@ -1,5 +1,33 @@
 // Time tools (next season, next year): 12x12 pixel art, one string per row, letters index the palette.
 export const timeSprites = {
+  monsoon: [
+    '............',
+    '............',
+    '.bbbbbbbbbb.',
+    'bBBbbbbbbbbb',
+    'BbbbbbbbBBbb',
+    'bbbbBBBbbbbB',
+    '............',
+    '.bbbbbbbbbb.',
+    'bBBbbbbbbbbb',
+    'BbbbbbbbBBbb',
+    '............',
+    '............',
+  ],
+  snowflake: [
+    '.....w......',
+    '..w..w..w...',
+    '...w.w.w....',
+    '....wwwww...',
+    '.wwwwwwwwwww',
+    '....wwwww...',
+    '.wwwwwwwwwww',
+    '....wwwww...',
+    '...w.w.w....',
+    '..w..w..w...',
+    '.....w......',
+    '............',
+  ],
   leaf: [
     '............',
     '........oo..',

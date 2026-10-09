@@ -92,6 +92,10 @@ const TOOL_TIPS: Record<string, string> = {
   nuke: 'Drop a bomb where you click: a crater like a meteor leaves, fallout that poisons everyone across a wide ring, and blight on the plantings there. Only a tribe that has reached the Industrial age can build one.',
   eclipse:
     'The sun goes dark for a while. Everyone alive is frightened and a little awed by it, and the omen is written into the chronicle.',
+  monsoon:
+    'Rain falls for days in a row, as heavy as the weather goes. Rivers rise and the land stays soaked; the sim does the rest.',
+  cold_snap:
+    'A short, hard fall of snow. Everyone out in it is chilled, and it ends sooner than a snowfall does.',
   comet:
     'A comet streaks across the sky over where you click. Everyone who can see it, within the reach, is awed; the awe lasts and the omen is written into the chronicle.',
   dice: 'Roll for fate: one random event lands at a random spot. It may bless, bring rain or a gale, or be a disaster such as a tornado, a wildfire or an earthquake.',
