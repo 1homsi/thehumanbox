@@ -202,6 +202,7 @@ impl Simulation {
                             tc,
                         );
                         self.organisms[idx].partner_id = Some(pid.clone());
+                        self.share_home(idx, pi);
                         self.organisms[idx].attracted_to = None;
                         self.organisms[pi].partner_id = Some(oid.clone());
                         self.organisms[pi].attracted_to = None;
