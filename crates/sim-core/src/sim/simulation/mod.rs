@@ -25,6 +25,7 @@ use std::collections::VecDeque;
 
 /// Preserve population order while limiting lineage-wide reads to its members.
 mod animals;
+mod census;
 mod helpers;
 mod lineage;
 mod memory;
@@ -148,6 +149,9 @@ pub struct Simulation {
     pub sex_words: [String; 2],
     pub world_seed: u64,
     pub(crate) next_animal_id: usize,
+    /// Wild animals of each censused kind at the last census (not saved: a
+    /// reload takes a fresh census before it announces anything).
+    pub(crate) animal_census: Vec<u32>,
     pub(crate) rng: ChaCha8Rng,
     pub last_immigration_tick: u64,
     pub(crate) cached_tribal_relations: serde_json::Value,
@@ -273,6 +277,7 @@ impl Simulation {
             sex_words,
             world_seed: seed,
             next_animal_id: 0,
+            animal_census: Vec::new(),
             rng,
             last_immigration_tick: 0,
             cached_tribal_relations: serde_json::Value::Array(vec![]),

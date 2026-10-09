@@ -206,6 +206,7 @@ impl Simulation {
             },
             world_seed: seed,
             next_animal_id,
+            animal_census: Vec::new(),
             lineage_names: state.lineage_names,
             rng: state
                 .rng

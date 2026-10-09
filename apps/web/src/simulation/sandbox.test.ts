@@ -88,6 +88,18 @@ describe('marry tool', () => {
   })
 })
 
+describe('sky tools', () => {
+  it('eclipse and aurora each draw their own sky overlay once they land', () => {
+    const tools = SANDBOX_CATEGORIES.flatMap((c) => c.tools)
+    expect(tools.find((t) => t.id === 'eclipse')?.overlay).toBe('eclipse')
+    expect(tools.find((t) => t.id === 'aurora')).toMatchObject({
+      mode: 'instant',
+      fire: { cmd: 'aurora' },
+      overlay: 'aurora',
+    })
+  })
+})
+
 describe('tribe tools', () => {
   it('merge takes two clicks and sends both places as one command', () => {
     const cmd = PAIR_TOOLS.merge_tribes.build({ x: 10, y: 12 }, { x: 40, y: 41 })
