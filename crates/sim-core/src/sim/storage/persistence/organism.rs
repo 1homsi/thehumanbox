@@ -168,6 +168,8 @@ pub(crate) struct OrgSave {
     pub(super) mounted_vehicle: Option<u32>,
     #[serde(default)]
     pub(super) is_leader: bool,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub(super) death_cause: String,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -307,6 +309,7 @@ pub(super) fn org_to_save(o: &Organism) -> OrgSave {
         disease_immunity: o.disease_immunity.clone(),
         mounted_vehicle: o.mounted_vehicle,
         is_leader: o.is_leader,
+        death_cause: o.death_cause.clone(),
     }
 }
 
@@ -337,6 +340,7 @@ pub(super) fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
     o.health = s.health;
     o.age = s.age;
     o.alive = s.alive;
+    o.death_cause = s.death_cause;
     o.thought = s.thought;
     o.food_memory = mem_decode(s.food_memory);
     o.water_memory = mem_decode(s.water_memory);

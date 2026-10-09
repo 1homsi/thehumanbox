@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SANDBOX_CATEGORIES, canSendSandboxCommand, isSandboxViewControlActive } from './sandbox'
+import { PAIR_TOOLS, SANDBOX_CATEGORIES, canSendSandboxCommand, isSandboxViewControlActive } from './sandbox'
 
 describe('sandbox command permission', () => {
   it('allows commands for a browser-owned world', () => {
@@ -97,5 +97,19 @@ describe('sky tools', () => {
       fire: { cmd: 'aurora' },
       overlay: 'aurora',
     })
+  })
+})
+
+describe('tribe tools', () => {
+  it('merge takes two clicks and sends both places as one command', () => {
+    const cmd = PAIR_TOOLS.merge_tribes.build({ x: 10, y: 12 }, { x: 40, y: 41 })
+    expect(cmd).toEqual({ cmd: 'merge_tribes', ax: 10, ay: 12, bx: 40, by: 41 })
+  })
+
+  it('split founds a tribe from the people near the click, a bigger brush takes more', () => {
+    const life = SANDBOX_CATEGORIES.find((c) => c.id === 'life')?.tools ?? []
+    const split = life.find((t) => t.id === 'split_tribe')
+    expect(split?.build?.(30, 31, 1)).toEqual({ cmd: 'split_tribe', x: 30, y: 31, radius: 4 })
+    expect(split?.build?.(30, 31, 3)).toEqual({ cmd: 'split_tribe', x: 30, y: 31, radius: 6 })
   })
 })

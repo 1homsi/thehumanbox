@@ -80,6 +80,12 @@ impl Simulation {
                 }
             };
             noted = Some((org.lineage_id.clone(), cause));
+            org.death_cause = cause.to_string();
+            org.log_life(
+                self.tick_count,
+                "death",
+                format!("died of {cause} at age {}", org.age),
+            );
             if matches!(
                 crate::sim::agents::age_stage::AgeStage::from_age(org.age, org.max_age),
                 crate::sim::agents::age_stage::AgeStage::Adult
@@ -114,6 +120,12 @@ impl Simulation {
             org.think("died of old age", self.tick_count);
             self.history.deaths_old_age += 1;
             noted = Some((org.lineage_id.clone(), "old_age"));
+            org.death_cause = "old age".to_string();
+            org.log_life(
+                self.tick_count,
+                "death",
+                format!("died of old age at {}", org.age),
+            );
             grave = Some((org.lineage_id.clone(), org.x, org.y));
             let msg = format!("gen{} age {} - old age", org.generation, org.age);
             let name = org.name.clone();
@@ -122,6 +134,7 @@ impl Simulation {
 
         if let Some((lineage, cause)) = noted {
             self.note_death(&lineage, cause);
+            self.history.record_death(self.tick_count);
             let id = self.organisms[idx].id.clone();
             self.fallen.push_back((id, self.tick_count));
             while self.fallen.len() > 96 {
@@ -416,6 +429,31 @@ impl Simulation {
             if self.rng.random::<f32>() < 0.25 && matches!(self.grid.get(dx, dy), Tile::Grass | Tile::Ash) {
                 self.grid.set(dx, dy, Tile::Food);
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod death_cause_tests {
+    use super::*;
+
+    /// A person who dies in the sim records why. Unborn children also sit
+    /// with `alive == false` until their birth, so only a recorded cause
+    /// counts as a death here.
+    #[test]
+    fn deaths_record_their_cause() {
+        let mut sim = Simulation::new(42);
+        for _ in 0..4000 {
+            sim.tick();
+        }
+        let caused: Vec<&Organism> = sim
+            .organisms
+            .iter()
+            .filter(|o| !o.death_cause.is_empty())
+            .collect();
+        assert!(!caused.is_empty(), "someone dies within 4000 ticks");
+        for o in caused {
+            assert!(!o.alive, "{} has a cause of death but is alive", o.name);
         }
     }
 }

@@ -10,7 +10,7 @@ import { OrgHeader } from './org-detail/OrgHeader'
 import { StatusChips, Vitals } from './org-detail/status'
 import { MentalState } from './org-detail/MentalState'
 import { AspirationSection, LearningSection, TraitsSection, ZodiacSection } from './org-detail/character'
-import { PersonalBondsSection, RelationsSection } from './org-detail/relations'
+import { KinSection, PersonalBondsSection, RelationsSection } from './org-detail/relations'
 import {
   DiseasesSection,
   EducationSection,
@@ -19,7 +19,9 @@ import {
   WealthSection,
 } from './org-detail/background'
 import {
+  DeathSection,
   InnerLifeSection,
+  LifeStorySection,
   MemoryCountsSection,
   RecentLifeSection,
   WitnessedSection,
@@ -84,6 +86,8 @@ function OrgDetailBody({
           tn={tn}
         />
         <StatusChips org={org} />
+        <LifeStorySection org={org} organisms={organisms} detail={detail} />
+        <DeathSection org={org} />
         <Vitals org={org} isSick={isSick} />
         <MentalState org={org} />
         <AspirationSection org={org} />
@@ -92,6 +96,7 @@ function OrgDetailBody({
         <TraitsSection org={org} />
         <RelationsSection org={org} tn={tn} />
         <PersonalBondsSection org={org} on={on} />
+        <KinSection org={org} organisms={organisms} onSelectOrg={onSelectOrg} />
         <EducationSection org={org} />
         <WealthSection org={org} />
         <InventorySection org={org} />

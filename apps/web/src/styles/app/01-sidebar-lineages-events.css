@@ -97,6 +97,12 @@
 .lineage-faith.low {
   color: #8f8579;
 }
+.lineage-eldest {
+  color: #9fb7c9;
+  font-size: 9px;
+  white-space: nowrap;
+  cursor: default;
+}
 .lineage-faith.blessed {
   color: #ffe08a;
   text-shadow: 0 0 4px rgba(255, 214, 110, 0.75);

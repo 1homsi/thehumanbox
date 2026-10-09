@@ -51,6 +51,8 @@ export type SandboxCommand =
   | { cmd: 'meteor_shower'; x: number; y: number; radius?: number }
   | { cmd: 'love'; x: number; y: number; radius?: number }
   | { cmd: 'marry'; ax: number; ay: number; bx: number; by: number }
+  | { cmd: 'merge_tribes'; ax: number; ay: number; bx: number; by: number }
+  | { cmd: 'split_tribe'; x: number; y: number; radius?: number }
   | { cmd: 'rename_person'; id: string; name: string }
   | { cmd: 'tame'; x: number; y: number; radius?: number }
   | { cmd: 'family'; x: number; y: number }
@@ -67,6 +69,7 @@ export type SandboxCommand =
   | { cmd: 'nuke'; x: number; y: number }
   | { cmd: 'eclipse' }
   | { cmd: 'aurora' }
+  | { cmd: 'clear_region'; x: number; y: number; radius?: number }
   | { cmd: 'comet'; x: number; y: number; radius?: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
   | { cmd: 'repair'; x: number; y: number; radius?: number }
@@ -248,6 +251,20 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         label: 'marry',
         icon: '💍',
         mode: 'point',
+      },
+      {
+        // Two clicks: a person of one tribe, then a person of another. Sent by the app (see PAIR_TOOLS).
+        id: 'merge_tribes',
+        label: 'merge tribes',
+        icon: '🤝',
+        mode: 'point',
+      },
+      {
+        id: 'split_tribe',
+        label: 'split tribe',
+        icon: '🪓',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'split_tribe', x, y, radius: 3 + b }),
       },
       {
         id: 'teleport',
@@ -640,6 +657,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
     label: 'terrain',
     icon: '⛰️',
     tools: [
+      {
+        id: 'clear_region',
+        label: 'clear',
+        icon: '🧹',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'clear_region', x, y, radius: 2 + b }),
+      },
       {
         id: 'restore',
         label: 'eraser',
@@ -1246,3 +1270,27 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
     ],
   },
 ]
+
+/** A tool that takes two clicks: the first picks one thing, the second the other, then the app sends the command. */
+export interface PairTool {
+  /** Shown while waiting for the second click. */
+  next: string
+  build: (first: { x: number; y: number }, second: { x: number; y: number }) => SandboxCommand
+  done: string
+  failed: string
+}
+
+export const PAIR_TOOLS: Record<string, PairTool> = {
+  marry: {
+    next: 'marry · now click the other person',
+    build: (a, b) => ({ cmd: 'marry', ax: a.x, ay: a.y, bx: b.x, by: b.y }),
+    done: 'married · they are partners now',
+    failed: 'marry · both must be grown, free to wed, of different sexes, and close to the clicks',
+  },
+  merge_tribes: {
+    next: 'merge · now click a person of the other tribe',
+    build: (a, b) => ({ cmd: 'merge_tribes', ax: a.x, ay: a.y, bx: b.x, by: b.y }),
+    done: 'merged · the second tribe joined the first',
+    failed: 'merge · click two people of different tribes, close to the clicks',
+  },
+}

@@ -25,9 +25,13 @@ import {
 import { hazeLevels, paintHaze } from './haze'
 import { paintFallingLeaves } from './falling-leaves'
 import { paintCampfireSparks, paintEmbers } from './embers'
+import { paintEruption } from './eruption'
+import { paintGroundSnow } from './ground-snow'
 import { paintFloodFront } from './flood-front'
 import { paintPlagueHaze } from './plague-haze'
-import { FootstepDust } from './footstep-dust'
+import { ANIMAL_DUST, FootstepDust } from './footstep-dust'
+import { paintWaterRipples } from './water-ripples'
+import { zoomDetailLevel } from '../../character-visuals'
 import { paintTornado, tornadoAt } from './tornado'
 import { vegetationSeason } from '../../landscape-style'
 import { terrainSeason } from '../../terrain-season'
@@ -142,6 +146,7 @@ export class CfOverlayRenderer {
   private groundAt = -Infinity
   private readonly weatherFx: WeatherFxState = newWeatherFxState()
   private readonly dust = new FootstepDust()
+  private readonly animalDust = new FootstepDust(ANIMAL_DUST)
   lastResult: UpdateResult = { times: ZERO_TIMES(), sprites: 0, heatRebuilt: false, unsupported: {} }
 
   private readonly host: RenderHost
@@ -274,8 +279,15 @@ export class CfOverlayRenderer {
       paintWaterStars(ground, f)
       paintWaterShimmer(ground, f)
       paintPlagueHaze(ground, f.organisms, f.bounds, f.ox, f.oy, f.t)
+      const vents = { ...f.bounds, ox: f.ox, oy: f.oy }
+      paintEruption(ground, f.world.grid.tiles, f.world.grid.biomes, vents, f.t, !f.world.is_day)
+      const snowView = { ...f.bounds, ox: f.ox, oy: f.oy }
+      paintGroundSnow(ground, f.world.grid.tiles, snowView, terrainSeason(f.world), f.world.season_progress)
       const floodView = { ...f.bounds, ox: f.ox, oy: f.oy }
       paintFloodFront(ground, f.world.grid.tiles, floodView, f.t)
+      if (zoomDetailLevel(f.zoom) !== 'overview') {
+        paintWaterRipples(ground, f.world.grid.tiles, { ...f.bounds, ox: f.ox, oy: f.oy }, f.t)
+      }
       paintFireGlow(ground, f)
       const emberView = { ...f.bounds, ox: f.ox, oy: f.oy }
       paintEmbers(ground, f.world.grid.fire_intensity, emberView, f.t)
@@ -284,8 +296,16 @@ export class CfOverlayRenderer {
       paintHaze(ground, f, hazeLevels(f.world), f.t)
       paintStars(ground, f.bounds, f.ox, f.oy, f.t, nightLevel(f.world))
       const { c0, c1, r0, r1 } = f.bounds
-      this.dust.observe(f.organisms, f.t, { x0: c0, y0: r0, x1: c1, y1: r1 })
+      const win = { x0: c0, y0: r0, x1: c1, y1: r1 }
+      this.dust.observe(f.organisms, f.t, win)
       this.dust.paint(ground, f.ox, f.oy, f.t)
+      const animals = f.world.viewport_animals ?? f.world.animals ?? []
+      this.animalDust.observe(
+        animals.map((a) => ({ id: String(a.id), x: a.x, y: a.y })),
+        f.t,
+        win,
+      )
+      this.animalDust.paint(ground, f.ox, f.oy, f.t)
       if (vegetationSeason(terrainSeason(f.world)) === 'autumn') {
         const { c0, c1, r0, r1 } = f.bounds
         paintFallingLeaves(

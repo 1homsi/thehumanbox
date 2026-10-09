@@ -1,3 +1,5 @@
+import { deathLine } from '../../../game/model/death'
+import { lifeStory } from '../../../game/model/life-story'
 import { Tooltip } from '../../toolbar/Tooltip'
 import type { OrganismState, OrgDetail } from '../../../shared/types'
 
@@ -22,6 +24,44 @@ export function MemoryCountsSection({ org }: { org: OrganismState }) {
           <span style={{ cursor: 'default' }}>danger ×{org.memory_count?.danger ?? 0}</span>
         </Tooltip>
       </div>
+    </>
+  )
+}
+
+export function DeathSection({ org }: { org: OrganismState }) {
+  const line = deathLine(org)
+  if (!line) return null
+  return (
+    <>
+      <div className="org-detail-section">DEATH</div>
+      <div className="thought-row" style={{ marginBottom: 6 }}>
+        <span className="thought-text">{line}</span>
+      </div>
+    </>
+  )
+}
+
+/** The person's story in a few plain sentences, from what the card already knows. */
+export function LifeStorySection({
+  org,
+  organisms,
+  detail,
+}: {
+  org: OrganismState
+  organisms?: OrganismState[]
+  detail: OrgDetail | null
+}) {
+  const lines = lifeStory(org, organisms ?? [], detail?.life_log ?? [])
+  return (
+    <>
+      <div className="org-detail-section">STORY</div>
+      <ul className="life-story">
+        {lines.map((line, i) => (
+          <li key={i} className="thought-text">
+            {line}
+          </li>
+        ))}
+      </ul>
     </>
   )
 }

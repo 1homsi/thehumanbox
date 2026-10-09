@@ -19,7 +19,7 @@ import { PrayerHint } from './ui/panels/PrayerHint'
 import { TribeCard } from './ui/panels/TribeCard'
 import { askConfirm } from './shared/confirm'
 import { toolFailure } from './ui/toolbar/tool-tips'
-import { SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
+import { PAIR_TOOLS, SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
 import { newPerils } from './game/model/peril-watch'
 import { prayerRows, prayerTool } from './game/model/prayers'
 import { shortcutFor, typingTarget } from './game/model/shortcuts'
@@ -132,8 +132,8 @@ function LiveApp() {
     setSandboxSender(sendCommand)
     return () => setSandboxSender(null)
   }, [sendCommand])
-  /** The first person chosen by the marry tool, waiting for the second click. */
-  const marryFirstRef = useRef<{ x: number; y: number } | null>(null)
+  /** The first click of a two-click tool (see PAIR_TOOLS), waiting for the second. */
+  const pairFirstRef = useRef<{ x: number; y: number } | null>(null)
   const [brush, setBrush] = useState(2)
   const [sandboxStatus, setSandboxStatus] = useState<string | null>(null)
   const showSaveSlots = useUIStore((s) => s.showSaveSlots)
@@ -226,7 +226,7 @@ function LiveApp() {
 
   const onPickTool = useCallback(
     (tool: SandboxTool) => {
-      marryFirstRef.current = null
+      pairFirstRef.current = null
       if (tool.view) {
         setArmedTool(null)
         const ui = useUIStore.getState()
@@ -357,20 +357,17 @@ function LiveApp() {
         setTemporarySandboxStatus(`name · type a new name for ${personName(person)}`)
         return
       }
-      if (armedTool.id === 'marry') {
-        const first = marryFirstRef.current
+      const pair = PAIR_TOOLS[armedTool.id]
+      if (pair) {
+        const first = pairFirstRef.current
         if (!first) {
-          marryFirstRef.current = { x: wx, y: wy }
-          setTemporarySandboxStatus('marry · now click the other person')
+          pairFirstRef.current = { x: wx, y: wy }
+          setTemporarySandboxStatus(pair.next)
           return
         }
-        marryFirstRef.current = null
-        void sendCommand({ cmd: 'marry', ax: first.x, ay: first.y, bx: wx, by: wy }).then((ok) =>
-          setTemporarySandboxStatus(
-            ok
-              ? 'married · they are partners now'
-              : 'marry · both must be grown, free to wed, of different sexes, and close to the clicks',
-          ),
+        pairFirstRef.current = null
+        void sendCommand(pair.build(first, { x: wx, y: wy })).then((ok) =>
+          setTemporarySandboxStatus(ok ? pair.done : pair.failed),
         )
         return
       }

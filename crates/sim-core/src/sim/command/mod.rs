@@ -86,6 +86,27 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// Two tribes become one: the second click's tribe joins the first click's tribe.
+    MergeTribes {
+        ax: f32,
+        ay: f32,
+        bx: f32,
+        by: f32,
+    },
+    /// Part of the tribe nearest the click founds a new tribe of its own.
+    SplitTribe {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// Wipes everything living in the brush area: people, animals, plantings and wild food.
+    ClearRegion {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
     /// The sun goes dark for a while: everyone alive is frightened and awed.
     Eclipse,
     /// Lights dance across the night sky: everyone alive is awed and a little less afraid.
@@ -578,6 +599,7 @@ mod advance;
 mod blessing_tests;
 mod blessings;
 mod buildings;
+mod clear_region;
 mod clock;
 mod creation;
 mod disasters;
@@ -607,6 +629,7 @@ mod teleport;
 mod tests;
 #[cfg(test)]
 mod tornado_tests;
+mod tribe_regroup;
 mod tribes;
 #[cfg(test)]
 mod tsunami_tests;
@@ -649,7 +672,10 @@ impl Simulation {
             Command::Nuke { x, y } => self.cmd_nuke(x, y),
             Command::Eclipse => self.cmd_eclipse(),
             Command::Aurora => self.cmd_aurora(),
+            Command::ClearRegion { x, y, radius } => self.cmd_clear_region(x, y, radius),
             Command::Mutate { x, y, radius } => self.cmd_mutate(x, y, radius),
+            Command::MergeTribes { ax, ay, bx, by } => self.cmd_merge_tribes(ax, ay, bx, by),
+            Command::SplitTribe { x, y, radius } => self.cmd_split_tribe(x, y, radius),
             Command::TeachNearby { x, y, radius } => self.cmd_teach_nearby(x, y, radius),
             Command::Curse { x, y, radius } => self.cmd_curse(x, y, radius),
             Command::Comet { x, y, radius } => self.cmd_comet(x, y, radius),

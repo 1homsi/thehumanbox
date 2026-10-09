@@ -43,6 +43,7 @@ export interface OrganismState extends ExtendedEmotions {
   health: number
   age: number
   alive: boolean
+  death_cause?: string
   thought: string
   generation: number
   parent_id: string
@@ -466,6 +467,9 @@ export interface TribalRelation {
 
 export interface WorldHistory {
   births: number
+  /** Births and deaths in each calendar year from year 0 (see sim History). */
+  births_by_year?: number[]
+  deaths_by_year?: number[]
   deaths_old_age: number
   deaths_starvation: number
   deaths_dehydration: number

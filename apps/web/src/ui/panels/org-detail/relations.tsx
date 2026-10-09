@@ -1,5 +1,64 @@
 import { Tooltip } from '../../toolbar/Tooltip'
+import { hasKin, kinLinks, type KinLink } from '../../../game/model/kin-links'
 import type { OrganismState } from '../../../shared/types'
+
+/** One tie on the card: a name that selects that person when clicked. */
+function KinTag({
+  label,
+  link,
+  cls,
+  onSelectOrg,
+}: {
+  label: string
+  link: KinLink
+  cls: string
+  onSelectOrg?: (id: string) => void
+}) {
+  return (
+    <button
+      type="button"
+      className={`relation-tag ${cls}`}
+      style={{ fontSize: '9px', opacity: link.alive ? 1 : 0.6 }}
+      title={`${label}: ${link.name}${link.alive ? '' : ' (dead)'}. Click to select them.`}
+      onClick={() => onSelectOrg?.(link.id)}
+    >
+      {label} {link.name}
+    </button>
+  )
+}
+
+/** Partner, parents, children, friends and rivals, each one clickable. */
+export function KinSection({
+  org,
+  organisms,
+  onSelectOrg,
+}: {
+  org: OrganismState
+  organisms?: OrganismState[]
+  onSelectOrg?: (id: string) => void
+}) {
+  const k = kinLinks(org, organisms ?? [])
+  if (!hasKin(k)) return null
+  return (
+    <>
+      <div className="org-detail-section">KIN &amp; FRIENDS</div>
+      <div className="relation-list">
+        {k.partner && <KinTag label="♥" link={k.partner} cls="ally" onSelectOrg={onSelectOrg} />}
+        {k.mother && <KinTag label="mother" link={k.mother} cls="ally" onSelectOrg={onSelectOrg} />}
+        {k.father && <KinTag label="father" link={k.father} cls="ally" onSelectOrg={onSelectOrg} />}
+        {k.children.map((c) => (
+          <KinTag key={c.id} label="child" link={c} cls="ally" onSelectOrg={onSelectOrg} />
+        ))}
+        {k.friends.map((f) => (
+          <KinTag key={f.id} label="friend" link={f} cls="ally" onSelectOrg={onSelectOrg} />
+        ))}
+        {k.rivals.map((r) => (
+          <KinTag key={r.id} label="rival" link={r} cls="enemy" onSelectOrg={onSelectOrg} />
+        ))}
+      </div>
+    </>
+  )
+}
 
 export function RelationsSection({ org, tn }: { org: OrganismState; tn: (lid: string) => string }) {
   const allies = Object.entries(org.attitudes ?? {})
