@@ -172,7 +172,9 @@ impl Simulation {
                 // The owner's era picks the hull the boat is drawn with; cargo is the goods on deck.
                 "era": self.era(&v.owner_lineage).name(), "cargo": v.cargo,
                 // A boat with a voyage to make is under way (its wake shows); a fishing boat is moored at its harbour.
-                "sailing": !v.route.is_empty(), "harbour": v.harbour.map(|(x, y)| json!([x, y]))
+                "sailing": !v.route.is_empty(), "harbour": v.harbour.map(|(x, y)| json!([x, y])),
+                // The way to the dry land beside the harbour: a pier runs that way.
+                "shore": v.harbour.and_then(|h| crate::sim::tech::fleet::harbour_shore(&self.grid, h)).map(|(dx, dy)| json!([dx, dy]))
             })).collect()));
             // Remains of prey, where birds gather: a few at a time, so the list is short.
             obj.insert(

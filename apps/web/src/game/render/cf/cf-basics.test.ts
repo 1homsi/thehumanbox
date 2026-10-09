@@ -5,8 +5,11 @@ import { cssToRgba32, rgba32, withAlpha } from './colors'
 import { MotionStore } from './motion'
 import {
   BOAT_COLUMNS,
+  BOAT_SIZE,
+  BOAT_CELL,
   DEGREE_EMOJI,
   boatColumn,
+  pierColumn,
   boatVariantOf,
   FAUNA_KINDS,
   GLYPHS,
@@ -116,6 +119,21 @@ describe('boat frames', () => {
     for (let t = 0; t < 4000; t += 5) seen.add(boatFrame(true, false, t))
     expect([...seen].sort()).toEqual([2, 3, 4, 5, 6, 7])
     expect(BOAT_COLUMNS).toBe(64)
+  })
+
+  it('steps a boat under way with the clock, and leaves a moored one still', () => {
+    const at = (t: number) => boatFrame(true, false, t)
+    expect(new Set([0, 180, 360, 540, 720, 900].map(at)).size).toBeGreaterThan(2)
+    expect(boatFrame(false, false, 540)).toBe(0)
+  })
+
+  it('gives each pier direction its own column after the boats, and none for a diagonal', () => {
+    expect(pierColumn(1, 0)).toBe(BOAT_COLUMNS)
+    expect(pierColumn(-1, 0)).toBe(BOAT_COLUMNS + 1)
+    expect(pierColumn(0, 1)).toBe(BOAT_COLUMNS + 2)
+    expect(pierColumn(0, -1)).toBe(BOAT_COLUMNS + 3)
+    expect(pierColumn(1, 1)).toBe(-1)
+    expect(BOAT_SIZE.width).toBe(BOAT_CELL.width * (BOAT_COLUMNS + 4))
   })
 
   it('gives each era tier its hull and marks laden boats', () => {
