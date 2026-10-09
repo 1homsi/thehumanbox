@@ -125,21 +125,20 @@
   }
 }
 
-body.thb-colorblind .season-badge.season-abundance {
-  background: #001a33;
-  color: #3a86ff;
+body.thb-colorblind .header .time-tag.season-abundance {
+  --season-dot: #3a86ff;
 }
-body.thb-colorblind .season-badge.season-decline {
-  background: #1a1400;
-  color: #ffd166;
+body.thb-colorblind .header .time-tag.season-decline {
+  --season-dot: #ffd166;
 }
-body.thb-colorblind .season-badge.season-scarcity {
-  background: #2a1500;
-  color: #fb8500;
+body.thb-colorblind .header .time-tag.season-scarcity {
+  --season-dot: #fb8500;
 }
-body.thb-colorblind .season-badge.season-recovery {
-  background: #001a1a;
-  color: #55ccdd;
+body.thb-colorblind .header .time-tag.season-recovery {
+  --season-dot: #55ccdd;
+}
+body.thb-colorblind .header .time-tag.hard-winter {
+  --season-dot: #b9e2ff;
 }
 body.thb-colorblind .org-sick-badge {
   background: #fb8500;

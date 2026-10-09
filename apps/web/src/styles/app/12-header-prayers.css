@@ -57,11 +57,8 @@
 .header :is(.drought-badge, .weather-badge, .sick-badge) {
   order: 1;
 }
-.header .season-badge {
-  order: 2;
-}
-.header .daynight {
-  order: 3;
+.header .time-tag {
+  order: 0;
 }
 .header .era-badge {
   order: 4;
@@ -95,11 +92,10 @@
   background: #1a130d;
   color: #e7d8bc;
 }
-.header .hdr-chip.moon-badge,
-.header .hdr-chip.daynight {
+.header .hdr-chip.moon-badge {
   text-transform: lowercase;
 }
-.header .hdr-chip:not(.moon-badge):not(.daynight) {
+.header .hdr-chip:not(.moon-badge):not(.time-tag) {
   text-transform: uppercase;
 }
 .header .hdr-dim {
@@ -108,6 +104,59 @@
 }
 .header .hdr-chip.population-badge .hdr-dim {
   margin-left: -2px;
+}
+
+/* The calendar and the light in one tag: "Y15 · SUMMER · night". The season's
+ * colour is the dot in front of its name, so the tag stays one chip. */
+.header .hdr-chip.time-tag {
+  --season-dot: #88ee55;
+  gap: 5px;
+  padding: 0 8px 0 7px;
+  color: #e7d8bc;
+  text-transform: uppercase;
+}
+.header .time-tag-year {
+  color: #f3d17a;
+}
+.header .time-tag-sep {
+  color: #6f604a;
+}
+.header .time-tag-season {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.header .time-tag-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  background: var(--season-dot);
+  box-shadow: 0 0 0 1px #000;
+}
+.header .time-tag-phase {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-transform: lowercase;
+}
+.header .time-tag.season-decline {
+  --season-dot: #ddbb55;
+}
+.header .time-tag.season-scarcity {
+  --season-dot: #ee7733;
+}
+.header .time-tag.season-recovery {
+  --season-dot: #55ccdd;
+}
+.header .time-tag.hard-winter {
+  --season-dot: #b9e2ff;
+  color: #b9e2ff;
+  text-shadow: 0 0 4px rgba(170, 220, 255, 0.55);
+}
+.header .time-tag-omen {
+  margin-left: 2px;
+  color: #b9e2ff;
+  text-shadow: 0 0 4px rgba(170, 220, 255, 0.6);
 }
 
 .header .header-actions,
@@ -201,7 +250,6 @@
   }
 }
 @media (max-width: 1080px) {
-  .header .daynight .hdr-chip-label,
   .header .era-badge,
   .header .github-link {
     display: none;

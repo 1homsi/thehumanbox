@@ -5,21 +5,10 @@ import { useUIStore } from '../../state/store'
 import { Tooltip } from './Tooltip'
 import { MoreDropdown } from './MoreDropdown'
 import { ToolSprite } from './ToolSprite'
-import { vegetationSeason } from '../../game/render/landscape-style'
-
-// The simulation names seasons by what they do to food; the header shows
-// the calendar name (autumn used to read as "decline", as if the world
-// were dying) and explains the effect in the tooltip.
-const SEASON_TIPS: Record<string, string> = {
-  recovery: 'The land is recovering. Food starts growing back.',
-  abundance: 'Food is plentiful.',
-  decline: 'Food growth is slowing ahead of winter.',
-  scarcity: 'Food is scarce. Winter is the hardest season.',
-}
 import { getDesktop } from '../../shared/desktop'
 import { PrayerChip } from '../panels/PrayerChip'
 import { PerilChip } from '../panels/PerilChip'
-import { CalendarChip } from '../panels/CalendarChip'
+import { CalendarTag } from '../panels/CalendarTag'
 
 interface Props {
   world: WorldState | null
@@ -132,7 +121,7 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
         )}
       </div>
       <div className="header-badges">
-        {world && <CalendarChip tick={world.tick} />}
+        {world && <CalendarTag world={world} />}
         {world && <PerilChip world={world} />}
         {world && <PrayerChip world={world} onAnswer={onAnswerPrayer} />}
         {world && livePopulation > 0 && (
@@ -148,57 +137,6 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
             <span className={clsx('hdr-chip', 'population-badge')}>
               <ToolSprite icon="🚶" size={16} />
               {livePopulation.toLocaleString()}
-            </span>
-          </Tooltip>
-        )}
-        {world && (
-          <Tooltip
-            tip={tip(
-              world.is_day ? 'daytime' : 'nighttime',
-              `${Math.round((world.day_progress ?? 0) * 100)}% through the day.`,
-            )}
-          >
-            <span className="hdr-chip daynight">
-              <ToolSprite icon={world.is_day ? '☀️' : '🌙'} size={16} />
-              <span className="hdr-chip-label">{world.is_day ? 'day' : 'night'}</span>
-            </span>
-          </Tooltip>
-        )}
-        {world && (
-          <Tooltip
-            tip={
-              world.hard_winter
-                ? tip(
-                    'hard winter',
-                    'Colder than usual. Wild food dies back fast and fevers spread.',
-                    'Tribes will pray for food and cures.',
-                  )
-                : world.hard_winter_ahead
-                  ? tip(
-                      `${vegetationSeason(world.season)} · hard winter ahead`,
-                      'The elders fear a hard winter. Wild food will be scarce and fevers will spread.',
-                      'Plant crops and orchards now, before the cold comes.',
-                    )
-                  : tip(
-                      vegetationSeason(world.season),
-                      SEASON_TIPS[world.season] ?? 'Affects food growth and drought risk.',
-                    )
-            }
-          >
-            <span
-              className={clsx(
-                'hdr-chip',
-                'season-badge',
-                `season-${world.season}`,
-                world.hard_winter && 'hard-winter',
-              )}
-            >
-              {world.hard_winter ? 'hard winter' : vegetationSeason(world.season)}
-              {world.hard_winter_ahead && !world.hard_winter && (
-                <span className="season-omen" aria-label="hard winter ahead">
-                  ❄
-                </span>
-              )}
             </span>
           </Tooltip>
         )}

@@ -234,10 +234,21 @@
   /* Minimal mobile: hide everything except the brand + a live dot. */
   .github-link,
   .tick,
-  .header-badges,
   .header-actions,
   .fullscreen-btn,
   .panel-toggle-btn {
+    display: none !important;
+  }
+  /* Phones keep one readout, the time tag (year, season, time of day), so the brand
+   * drops its word and keeps its sprite to leave room for the tag. */
+  .header h1 > span {
+    display: none;
+  }
+  .header-badges {
+    display: flex !important;
+    justify-content: flex-end;
+  }
+  .header-badges > :not(.time-tag) {
     display: none !important;
   }
 

@@ -397,14 +397,6 @@ body.thb-photo-mode .headline-ticker {
   border-radius: 4px;
 }
 
-.daynight {
-  font-size: 11px;
-  color: #ccc;
-  padding: 2px 6px;
-  background: #32271f;
-  border-radius: 4px;
-}
-
 .population-badge {
   font-size: 11px;
   color: #b8d6a1;
@@ -418,41 +410,6 @@ body.thb-photo-mode .headline-ticker {
   color: #f0c860;
   background: #2a2110;
   border-color: #665128;
-}
-
-.season-badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 600;
-}
-.season-badge.season-abundance {
-  background: #0d2200;
-  color: #88ee55;
-}
-.season-badge.season-decline {
-  background: #1a1400;
-  color: #ddbb55;
-}
-.season-badge.season-scarcity {
-  background: #220800;
-  color: #ee7733;
-}
-.season-omen {
-  margin-left: 4px;
-  color: #b9e2ff;
-  text-shadow: 0 0 4px rgba(170, 220, 255, 0.6);
-}
-.season-badge.season-scarcity.hard-winter {
-  background: #0d1824;
-  color: #b9e2ff;
-  text-shadow: 0 0 4px rgba(170, 220, 255, 0.55);
-}
-.season-badge.season-recovery {
-  background: #001a1a;
-  color: #55ccdd;
 }
 
 .lineage-chips {
