@@ -22,6 +22,7 @@ import {
 } from './modern'
 import { paintGlassTower } from './home-forms'
 import { paintEraHome } from './era-home'
+import { paintWorkshop } from './workshop'
 
 export const ARCHETYPE: Record<string, (p: P) => void | boolean> = {}
 
@@ -35,7 +36,6 @@ reg(paintCottage, [
   'House',
   'Bakery',
   'Inn',
-  'Workshop',
   'Cobbler',
   'Herbalist',
   'Mill',
@@ -161,6 +161,7 @@ reg(paintProp, [
 ])
 
 reg(paintDwelling, ['House'])
+reg(paintWorkshop, ['Workshop'])
 reg(paintEarlyHome, ['Hut'])
 reg(paintFortress, ['Castle'])
 
