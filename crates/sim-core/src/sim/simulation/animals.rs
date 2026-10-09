@@ -173,6 +173,8 @@ impl Simulation {
             );
         }
 
+        self.tick_fish_schools();
+
         let prey_positions: Vec<(usize, f32, f32, AnimalKind)> = self
             .animals
             .iter()

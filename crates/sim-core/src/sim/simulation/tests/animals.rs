@@ -450,3 +450,48 @@ fn family_dogs_walk_home_and_sleep_by_the_hearth_at_night() {
     sim.tick_animals(&resident_indices);
     assert!(!sim.animals[0].sleeping);
 }
+
+#[test]
+fn fish_with_schoolmates_drift_together_through_the_water() {
+    let mut sim = Simulation::new(0x5C00);
+    for x in 40..=60 {
+        for y in 40..=60 {
+            sim.grid.set(x, y, Tile::Water);
+        }
+    }
+    sim.animals.clear();
+    for (id, x) in [(1usize, 46.0f32), (2, 50.0), (3, 54.0)] {
+        sim.animals.push(Animal::new(id, x, 50.0, AnimalKind::Fish));
+    }
+    let spread = |sim: &Simulation| {
+        let xs: Vec<f32> = sim.animals.iter().map(|a| a.x).collect();
+        xs.iter().cloned().fold(f32::MIN, f32::max) - xs.iter().cloned().fold(f32::MAX, f32::min)
+    };
+    let before = spread(&sim);
+    for _ in 0..40 {
+        sim.tick_fish_schools();
+    }
+    assert!(
+        spread(&sim) < before,
+        "the shoal should close up ({} -> {})",
+        before,
+        spread(&sim)
+    );
+    assert!(sim
+        .animals
+        .iter()
+        .all(|a| sim.grid.get(a.x as i32, a.y as i32) == Tile::Water));
+}
+
+#[test]
+fn fishing_a_shoal_lands_a_fish_from_it() {
+    let mut sim = Simulation::new(0xF15);
+    sim.animals.clear();
+    for i in 0..6usize {
+        sim.animals
+            .push(Animal::new(i + 1, 30.0 + i as f32, 30.0, AnimalKind::Fish));
+    }
+    assert_eq!(sim.fish_school_near(30.0, 30.0), 6);
+    sim.take_nearest_fish(30.0, 30.0);
+    assert_eq!(sim.animals.iter().filter(|a| a.alive).count(), 5);
+}
