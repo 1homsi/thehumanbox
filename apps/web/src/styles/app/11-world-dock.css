@@ -354,6 +354,19 @@
     font-size: 11px;
   }
 }
+/* Around 768 px the pinned-and-recent group takes one column and its tab's eleven columns still fit. The
+ * tools it repeats stay in their own tabs; the group keeps its two most recent tiles here. */
+@media (max-width: 900px) {
+  .sandbox-bar {
+    --dock-tile: 38px;
+  }
+  .dock-group {
+    padding: 0 10px;
+  }
+  .dock-memory .dock-tile:nth-child(n + 3) {
+    display: none;
+  }
+}
 
 @media (max-width: 767px) {
   .sandbox-bar {
