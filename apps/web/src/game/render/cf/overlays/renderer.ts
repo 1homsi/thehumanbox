@@ -318,7 +318,7 @@ export class CfOverlayRenderer {
       paintStars(ground, f.bounds, f.ox, f.oy, f.t, nightLevel(f.world))
       const { c0, c1, r0, r1 } = f.bounds
       const win = { x0: c0, y0: r0, x1: c1, y1: r1 }
-      this.dust.observe(f.organisms, f.t, win)
+      if (extras.people) this.dust.observeSlots(extras.people, f.t, win)
       this.dust.paint(ground, f.ox, f.oy, f.t)
       const animals = f.world.viewport_animals ?? f.world.animals ?? []
       this.animalDust.observe(

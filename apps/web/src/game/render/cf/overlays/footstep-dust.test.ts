@@ -83,3 +83,49 @@ describe('FootstepDust', () => {
     expect(arcs()).toBe(0)
   })
 })
+
+describe('FootstepDust from the people layer', () => {
+  const slots = (orgs: { id: string; x: number; y: number }[], movedAt: number[], hidden: number[] = []) => ({
+    orgs,
+    tileX: orgs.map((o) => o.x),
+    tileY: orgs.map((o) => o.y),
+    hidden: orgs.map((_, j) => hidden[j] ?? 0),
+    step: { movedAt },
+  })
+
+  it('puffs for a person whose step the layer recorded just now, and not for one who has stood still', () => {
+    const dust = new FootstepDust()
+    const orgs = [
+      { id: 'a', x: 10, y: 10 },
+      { id: 'b', x: 12, y: 10 },
+    ]
+    dust.observeSlots(slots(orgs, [1000, -Infinity]), 1050, WIN)
+    const { ctx, arcs } = arcCounter()
+    dust.paint(ctx, 0, 0, 1050)
+    expect(arcs()).toBe(1)
+  })
+
+  it('ignores steps older than a ground pass can see, the indoors and the people out of view', () => {
+    const dust = new FootstepDust()
+    const orgs = [
+      { id: 'old', x: 10, y: 10 },
+      { id: 'indoors', x: 11, y: 10 },
+      { id: 'away', x: 500, y: 10 },
+    ]
+    dust.observeSlots(slots(orgs, [100, 1000, 1000], [0, 1, 0]), 1050, WIN)
+    const { ctx, arcs } = arcCounter()
+    dust.paint(ctx, 0, 0, 1050)
+    expect(arcs()).toBe(0)
+  })
+
+  it('starts at most one puff per person in the spawn interval', () => {
+    const dust = new FootstepDust()
+    const orgs = [{ id: 'a', x: 10, y: 10 }]
+    dust.observeSlots(slots(orgs, [1000]), 1000, WIN)
+    dust.observeSlots(slots(orgs, [1066]), 1066, WIN)
+    dust.observeSlots(slots(orgs, [1132]), 1132, WIN)
+    const { ctx, arcs } = arcCounter()
+    dust.paint(ctx, 0, 0, 1132)
+    expect(arcs()).toBe(1)
+  })
+})
