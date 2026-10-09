@@ -152,7 +152,7 @@ pub(crate) fn build_stores(sim: &mut Simulation, tribe: &Tribe) {
     }
 }
 
-fn place(sim: &mut Simulation, tribe: &Tribe, kind: BuildingKind) {
+pub(crate) fn place(sim: &mut Simulation, tribe: &Tribe, kind: BuildingKind) {
     let occupied: FxHashSet<(i32, i32)> = sim
         .farms
         .iter()
@@ -178,10 +178,10 @@ fn place(sim: &mut Simulation, tribe: &Tribe, kind: BuildingKind) {
         .get(&tribe.lineage)
         .cloned()
         .unwrap_or_else(|| "a tribe".to_string());
-    let what = if kind == BuildingKind::Granary {
-        "built a granary beside the houses to keep the harvest dry"
-    } else {
-        "raised a windmill to grind the grain"
+    let what = match kind {
+        BuildingKind::Granary => "built a granary beside the houses to keep the harvest dry",
+        BuildingKind::Pen => "fenced a pasture beside the houses for the wild animals",
+        _ => "raised a windmill to grind the grain",
     };
     crate::sim::world_events::push_event(&mut sim.events, tick, "build", &name, what);
 }

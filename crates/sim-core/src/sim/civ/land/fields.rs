@@ -50,6 +50,7 @@ fn raid_crops(sim: &mut Simulation, living: &FxHashSet<String>) {
         .filter(|a| {
             a.alive
                 && a.bonded_org.is_none()
+                && !a.is_kept()
                 && !a.sleeping
                 && !a.away
                 && matches!(

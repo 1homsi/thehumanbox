@@ -413,7 +413,17 @@ pub struct Animal {
     /// Tick the animal was born, when it came from a parent (0 for animals
     /// placed by the world or by a god power, which count as grown).
     pub born_tick: u64,
+    /// The tribe (lineage) that keeps this animal as livestock. A kept animal
+    /// grazes on the pasture round its pen and is no longer wild.
+    pub keeper: Option<String>,
+    /// The pen the kept animal grazes round (its tile).
+    pub pen: Option<(i32, i32)>,
 }
+
+/// How far a kept animal may wander from its pen, in tiles.
+pub const PASTURE_REACH: i32 = 4;
+/// Chance each tick that a kept animal takes a step on its pasture.
+const GRAZE_STEP_CHANCE: f32 = 0.05;
 
 /// Ticks a newborn animal stays young (drawn smaller, nothing else changes).
 pub const YOUNG_ANIMAL_TICKS: u64 = 1000;
@@ -439,6 +449,38 @@ impl Animal {
             sleeping: false,
             away: false,
             born_tick: 0,
+            keeper: None,
+            pen: None,
+        }
+    }
+
+    /// True for livestock kept in a pen.
+    pub fn is_kept(&self) -> bool {
+        self.keeper.is_some() && self.pen.is_some()
+    }
+
+    /// Livestock grazes on the pasture round its pen: it wanders a step now and then,
+    /// never further than `PASTURE_REACH` tiles from the pen, and does not flee people.
+    /// Its keepers feed it, so its energy holds.
+    pub fn graze(&mut self, grid: &WorldGrid, rng: &mut impl Rng) {
+        let Some((px, py)) = self.pen else {
+            return;
+        };
+        if !self.alive {
+            return;
+        }
+        self.energy = self.energy.max(0.6);
+        if rng.random::<f32>() >= GRAZE_STEP_CHANCE {
+            return;
+        }
+        let (ix, iy) = (self.x as i32, self.y as i32);
+        let (dx, dy) = DIRS[rng.random_range(0..DIRS.len())];
+        let (nx, ny) = (ix + dx, iy + dy);
+        let inside = (nx - px).abs().max((ny - py).abs()) <= PASTURE_REACH;
+        let can_stand = WorldGrid::in_bounds(nx, ny) && self.kind.fits_ground(grid.get(nx, ny));
+        if inside && can_stand {
+            self.x = nx as f32;
+            self.y = ny as f32;
         }
     }
 

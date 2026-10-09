@@ -154,6 +154,11 @@ impl Simulation {
             }
         }
         for animal in &mut self.animals {
+            // Livestock grazes on its pasture: it does not flee people or join the herds.
+            if animal.is_kept() {
+                animal.graze(&self.grid, &mut self.rng);
+                continue;
+            }
             if animal.sleeping || animal.away {
                 animal.energy = animal.energy.max(0.5);
                 continue;
@@ -815,7 +820,7 @@ impl Simulation {
             animal_spatial.query_into(ox, oy, 3, &mut nearby_animals);
             for &ai in &nearby_animals {
                 let animal = &self.animals[ai];
-                if !animal.alive || animal.away {
+                if !animal.alive || animal.away || animal.is_kept() {
                     continue;
                 }
                 let (ax, ay) = (animal.x as i32, animal.y as i32);

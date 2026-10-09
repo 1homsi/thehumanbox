@@ -25,4 +25,11 @@ describe('tribe food stores', () => {
   it('reads zero when the frame has no stores yet (an older world)', () => {
     expect(tribeStatus(base, 'a')?.stores).toBe(0)
   })
+
+  it('shows the livestock each tribe keeps in its pens, and none for a tribe without a pen', () => {
+    const world = { ...base, lineage_livestock: [{ lineage_id: 'a', head: 5 }] } as WorldState
+    expect(tribeStatus(world, 'a')?.livestock).toBe(5)
+    expect(tribeStatus(world, 'b')?.livestock).toBe(0)
+    expect(tribeStatus(base, 'a')?.livestock).toBe(0)
+  })
 })

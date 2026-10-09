@@ -61,7 +61,9 @@ impl BuildingKind {
                 &[("steel", 80), ("concrete", 60)]
             }
             Greenhouse | Greenhouse2 | Vineyard | Ranch | Stable | Kennel | Dovecote | Garden | Orchard
-            | Pond | MushroomFarm | Aquaculture | PlayGround | Cemetery => &[("wood", 12), ("stone", 4)],
+            | Pond | MushroomFarm | Aquaculture | Pen | PlayGround | Cemetery => {
+                &[("wood", 12), ("stone", 4)]
+            }
             Quarry | Mine | SawMill | Tannery => &[("wood", 18), ("stone", 12)],
             Spaceport | OrbitalLift | FusionPlant | NeuralHub | AiCore | Biodome | Cryolab | NanoFab
             | Hyperloop | Maglev | Hospital2 | ResearchLab | Megastructure => {

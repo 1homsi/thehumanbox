@@ -36,7 +36,7 @@ impl Simulation {
         let grazers: Vec<usize> = (0..self.animals.len())
             .filter(|&i| {
                 let a = &self.animals[i];
-                a.alive && herding(a.kind) && !a.sleeping && !a.away && a.bonded_org.is_none()
+                a.alive && herding(a.kind) && !a.sleeping && !a.away && a.bonded_org.is_none() && !a.is_kept()
             })
             .collect();
         let snap: Vec<(usize, AnimalKind, f32, f32)> = grazers

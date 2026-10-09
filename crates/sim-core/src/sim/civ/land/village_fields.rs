@@ -8,6 +8,7 @@
 //! order, so the same seed still gives the same world.
 
 use crate::sim::actions::agriculture::farm_ops::{crop_for_plot, harvest_crop, plant_crop};
+use crate::sim::civ::land::village_livestock;
 use crate::sim::civ::land::village_stores;
 use crate::sim::config::SEASON_LENGTH;
 use crate::sim::simulation::Simulation;
@@ -141,6 +142,7 @@ pub(crate) fn tick_village_fields(sim: &mut Simulation) {
         sow_fields(sim, tribe, now);
         village_stores::ration(sim, tribe);
         village_stores::build_stores(sim, tribe);
+        village_livestock::tick_livestock(sim, tribe);
     }
 }
 
