@@ -18,12 +18,14 @@ import { typingTarget } from '../../game/model/shortcuts'
 import { WASM_BASE_TICK_MS, isRuntimeControlActive } from '../../simulation/runtimeControls'
 import { nextSpeedStep } from '../../simulation/speedSteps'
 import {
+  PINNED_LIMIT,
   memoryToolIds,
   readToolMemory,
   rememberRecent,
   togglePinned,
   writeToolMemory,
   type ToolMemory,
+  isPinListFull,
 } from './tool-memory'
 import { spawnsWith, useSpawnCounts } from './spawn-counts'
 
@@ -241,7 +243,7 @@ export function SandboxToolbar({
                 ? 'happening now · click again to end it'
                 : active && !tool.view
                   ? 'click again or press esc to stop'
-                  : `${hotkeys.has(tool.id) ? `press ${hotkeys.get(tool.id)} · ` : ''}${toolHowTo(tool)} · shift-click to ${pinned ? 'unpin' : 'pin'}`
+                  : `${hotkeys.has(tool.id) ? `press ${hotkeys.get(tool.id)} · ` : ''}${toolHowTo(tool)} · shift-click to ${pinned ? 'unpin' : isPinListFull(memory) ? `pin (the list is full at ${PINNED_LIMIT}: unpin one first)` : 'pin'}`
             }
           />
         }
