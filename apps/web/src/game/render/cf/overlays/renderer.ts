@@ -29,6 +29,8 @@ import { paintEruption } from './eruption'
 import { paintFloodFront } from './flood-front'
 import { paintPlagueHaze } from './plague-haze'
 import { ANIMAL_DUST, FootstepDust } from './footstep-dust'
+import { paintWaterRipples } from './water-ripples'
+import { zoomDetailLevel } from '../../character-visuals'
 import { paintTornado, tornadoAt } from './tornado'
 import { vegetationSeason } from '../../landscape-style'
 import { terrainSeason } from '../../terrain-season'
@@ -280,6 +282,9 @@ export class CfOverlayRenderer {
       paintEruption(ground, f.world.grid.tiles, f.world.grid.biomes, vents, f.t, !f.world.is_day)
       const floodView = { ...f.bounds, ox: f.ox, oy: f.oy }
       paintFloodFront(ground, f.world.grid.tiles, floodView, f.t)
+      if (zoomDetailLevel(f.zoom) !== 'overview') {
+        paintWaterRipples(ground, f.world.grid.tiles, { ...f.bounds, ox: f.ox, oy: f.oy }, f.t)
+      }
       paintFireGlow(ground, f)
       const emberView = { ...f.bounds, ox: f.ox, oy: f.oy }
       paintEmbers(ground, f.world.grid.fire_intensity, emberView, f.t)
