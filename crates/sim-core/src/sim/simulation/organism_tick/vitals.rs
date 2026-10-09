@@ -162,8 +162,9 @@ impl Simulation {
             (1.0, 1.0)
         };
 
+        let hunger = self.goals.difficulty.hunger_mult();
         self.organisms[idx].energy =
-            (self.organisms[idx].energy - 0.0022 * shelter_drain_mult * heat_tire).max(0.0);
+            (self.organisms[idx].energy - 0.0022 * shelter_drain_mult * heat_tire * hunger).max(0.0);
         self.organisms[idx].hydration =
             (self.organisms[idx].hydration - 0.0014 * hydration_mult * heat_thirst).max(0.0);
 

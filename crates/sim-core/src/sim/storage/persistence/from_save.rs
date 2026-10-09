@@ -268,6 +268,7 @@ impl Simulation {
             lineage_peak_pop: state.lineage_peak_pop,
             tribe_peril: HashMap::default(),
             festival_last: HashMap::default(),
+            goals: state.goals,
             evening_places: Default::default(),
             fallen: Default::default(),
             revive_cooldown: HashMap::default(),

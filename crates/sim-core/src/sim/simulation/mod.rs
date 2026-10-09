@@ -127,6 +127,8 @@ pub struct Simulation {
     pub(crate) tribe_peril: HashMap<String, super::civ::peril::Peril>,
     /// When each tribe last began a festival (runtime).
     pub(crate) festival_last: HashMap<String, u64>,
+    /// The player's goals, difficulty and whether the world is lost (saved).
+    pub goals: crate::sim::goals::GoalBook,
     /// Where each tribe gathers this evening (runtime; worked out at dusk).
     pub(crate) evening_places: std::collections::BTreeMap<String, (i32, i32)>,
     /// The recently dead, newest last: who died and when (runtime).
@@ -267,6 +269,7 @@ impl Simulation {
             lineage_peak_pop: HashMap::default(),
             tribe_peril: HashMap::default(),
             festival_last: HashMap::default(),
+            goals: Default::default(),
             evening_places: Default::default(),
             fallen: VecDeque::new(),
             revive_cooldown: HashMap::default(),

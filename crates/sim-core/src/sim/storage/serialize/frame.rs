@@ -379,6 +379,12 @@ impl Simulation {
                     self.cached_tribal_relations.clone(),
                 );
                 obj.insert("lineage_sizes".to_string(), self.cached_lineage_sizes.clone());
+                obj.insert(
+                    "goals".to_string(),
+                    serde_json::to_value(self.goals.statuses()).unwrap(),
+                );
+                obj.insert("difficulty".to_string(), json!(self.goals.difficulty.name()));
+                obj.insert("lost_tick".to_string(), json!(self.goals.lost_tick));
                 obj.insert("territory".to_string(), self.cached_territory.clone());
                 obj.insert(
                     "lineage_names".to_string(),

@@ -175,7 +175,7 @@ pub(in crate::sim::civ) fn tick_meteor_shower(sim: &mut Simulation) {
         return;
     }
     let r: f32 = sim.rng.random();
-    if r > 0.015 {
+    if r > 0.015 * sim.goals.difficulty.disaster_mult() {
         return;
     }
     let alive_count = sim.organisms.iter().filter(|o| o.alive).count();
