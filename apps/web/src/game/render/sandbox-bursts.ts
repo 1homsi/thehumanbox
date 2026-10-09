@@ -138,6 +138,8 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
       return 'frost'
     case 'mutate':
       return 'bless'
+    case 'clear_region':
+      return 'quake'
     case 'merge_tribes':
       return 'peace'
     case 'split_tribe':

@@ -68,6 +68,7 @@ export type SandboxCommand =
   | { cmd: 'hail'; x: number; y: number; radius?: number }
   | { cmd: 'nuke'; x: number; y: number }
   | { cmd: 'eclipse' }
+  | { cmd: 'clear_region'; x: number; y: number; radius?: number }
   | { cmd: 'comet'; x: number; y: number; radius?: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
   | { cmd: 'repair'; x: number; y: number; radius?: number }
@@ -650,6 +651,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
     label: 'terrain',
     icon: '⛰️',
     tools: [
+      {
+        id: 'clear_region',
+        label: 'clear',
+        icon: '🧹',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'clear_region', x, y, radius: 2 + b }),
+      },
       {
         id: 'restore',
         label: 'eraser',
