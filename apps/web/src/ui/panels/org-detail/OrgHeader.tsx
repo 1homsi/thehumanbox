@@ -1,4 +1,5 @@
 import { personName } from '../../../shared/personName'
+import { personTitles } from '../../../game/model/titles'
 import clsx from 'clsx'
 import { Tooltip } from '../../toolbar/Tooltip'
 import { DAY_LENGTH, fmt } from './format'
@@ -36,6 +37,11 @@ export function OrgHeader({
       <div className="org-detail-header">
         <span className="org-detail-dot" style={{ background: color }} />
         <span className="org-detail-name">{personName(org)}</span>
+        {personTitles(org).map((title) => (
+          <span key={title} className="org-title-badge">
+            {title}
+          </span>
+        ))}
         {isSick && <span className="org-sick-badge">sick</span>}
         {carrying && (
           <Tooltip tip="Carrying wood">

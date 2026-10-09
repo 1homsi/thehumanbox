@@ -59,6 +59,14 @@
   padding: 1px 4px;
   border-radius: 2px;
 }
+.org-title-badge {
+  font-size: 9px;
+  color: #e8c46a;
+  background: rgba(232, 196, 106, 0.1);
+  padding: 1px 5px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
 .org-sex-badge {
   font-size: 8px;
   font-family: monospace;
