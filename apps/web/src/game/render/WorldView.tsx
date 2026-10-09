@@ -11,6 +11,7 @@ import { World2DErrorBoundary } from './World2DErrorBoundary'
 import { WorldMapHud } from './WorldMapHud'
 import { WorldMinimap } from './minimap/WorldMinimap'
 import { HoverOutline } from './hover/HoverOutline'
+import { TerritoryHoverCard } from './hover/TerritoryHoverCard'
 import { installBenchHooks } from './bench-hooks'
 import { SandboxBursts } from './SandboxBursts'
 import { useSandboxBursts } from './sandbox-bursts'
@@ -328,6 +329,16 @@ export function WorldView({
           viewport={dims}
           container={containerRef.current}
           enabled={!sandboxArmed}
+        />
+      )}
+      {mapReady && !viewFlags.hideUI && (
+        <TerritoryHoverCard
+          world={world}
+          cameraRef={cameraStateRef}
+          viewport={dims}
+          container={containerRef.current}
+          enabled={!sandboxArmed}
+          territoryIndex={territoryIndex}
         />
       )}
     </div>
