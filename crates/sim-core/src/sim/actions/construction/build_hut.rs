@@ -1,5 +1,7 @@
 use super::super::ctx::ActionCtx;
 use super::{start_project, ProjectSpec};
+use crate::sim::civ::civ_tick::lineage_can_afford_construction;
+use crate::sim::era::Era;
 use crate::sim::tech::buildings::BuildingKind;
 use crate::world::tiles::Tile;
 
@@ -25,10 +27,23 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     };
     let health_bonus = if health < 0.5 { (0.5 - health) * 0.08 } else { 0.0 };
 
+    // A tribe whose era has houses raises the best home it can pay for; a hut
+    // is the fallback while it cannot, so growth never waits on timber and stone.
+    let lid = ctx.lid.clone();
+    let era = ctx.sim.lineage_eras.get(&lid).copied().unwrap_or(Era::PreStone);
+    let kind = [
+        BuildingKind::Apartment,
+        BuildingKind::TownHouse,
+        BuildingKind::House,
+    ]
+    .into_iter()
+    .find(|kind| era >= kind.era_unlock() && lineage_can_afford_construction(ctx.sim, &lid, *kind))
+    .unwrap_or(BuildingKind::Hut);
+
     start_project(
         ctx,
         ProjectSpec {
-            kind: BuildingKind::Hut,
+            kind,
             thought: "building shelter",
             reward: 0.04 + storm_bonus + health_bonus,
         },
