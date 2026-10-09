@@ -24,14 +24,32 @@ describe('territory card trade line', () => {
       { id: 2, lineage_a: 'green', lineage_b: 'blue', volume: 4, deliveries: 1 },
     ],
     caravans: [
-      { id: 7, route_id: 1, sender_lineage: 'blue', receiver_lineage: 'red' },
-      { id: 8, route_id: 2, sender_lineage: 'green', receiver_lineage: 'blue' },
+      {
+        id: 7,
+        route_id: 1,
+        sender_lineage: 'blue',
+        receiver_lineage: 'red',
+        cargo: 'food',
+        unit_price: 4,
+      },
+      {
+        id: 8,
+        route_id: 2,
+        sender_lineage: 'green',
+        receiver_lineage: 'blue',
+        cargo: 'wood',
+        unit_price: 2,
+      },
     ],
   } as unknown as Partial<WorldState>)
 
   it('says how many routes a tribe is on, the goods they carried, and the caravans on the road', () => {
-    expect(tradeOfTribe(traded, 'red')).toBe('1 route · 9 goods · 1 caravan on the road')
-    expect(tradeOfTribe(traded, 'blue')).toBe('2 routes · 13 goods · 2 caravans on the road')
+    expect(tradeOfTribe(traded, 'red')).toBe(
+      '1 route · 9 goods · 1 caravan on the road · buying food at 4 each',
+    )
+    expect(tradeOfTribe(traded, 'blue')).toBe(
+      '2 routes · 13 goods · 2 caravans on the road · buying wood at 2 each',
+    )
   })
 
   it('is absent for a tribe with no route, and drops the road part when no caravan is out', () => {
@@ -48,7 +66,9 @@ describe('territory card trade line', () => {
     expect(tradeOfTribe({ trade_routes: traded.trade_routes, caravans: [] }, 'green')).toBe(
       '1 route · 4 goods',
     )
-    expect(territoryCardFacts(traded, 'red', false).trade).toBe('1 route · 9 goods · 1 caravan on the road')
+    expect(territoryCardFacts(traded, 'red', false).trade).toBe(
+      '1 route · 9 goods · 1 caravan on the road · buying food at 4 each',
+    )
   })
 })
 
