@@ -54,6 +54,9 @@ pub struct Building {
     /// buildings and wonders are permanent world history.
     #[serde(default)]
     pub decorative: bool,
+    /// Grain kept in a granary, in measures. Other buildings keep none.
+    #[serde(default)]
+    pub stock: u32,
 }
 
 impl Building {
@@ -72,6 +75,7 @@ impl Building {
             last_damage_tick: None,
             last_repair_tick: None,
             decorative: false,
+            stock: 0,
         }
     }
 
