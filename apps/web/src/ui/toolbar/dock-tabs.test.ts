@@ -77,12 +77,6 @@ describe('dock layout stays complete as tools are added', () => {
     }
   })
 
-  it('offers next season and next year as time tools that run the world on to that boundary', () => {
-    const time = SANDBOX_CATEGORIES.find((c) => c.id === TIME_CATEGORY_ID)?.tools ?? []
-    expect(time.find((t) => t.id === 'next_season')?.time).toEqual({ control: 'advance', to: 'season' })
-    expect(time.find((t) => t.id === 'next_year')?.time).toEqual({ control: 'advance', to: 'year' })
-  })
-
   it('offers gift food and gift tool as life tools that send a gift to the person nearest the click', () => {
     const life = SANDBOX_CATEGORIES.find((c) => c.id === 'life')?.tools ?? []
     expect(life.find((t) => t.id === 'gift_food')?.build?.(10, 20, 1)).toEqual({

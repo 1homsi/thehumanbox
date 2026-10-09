@@ -34,7 +34,6 @@ import { reconcileViewerSelection } from './shared/viewerSelection'
 import { useUIStore } from './state/store'
 import { useWorldStore } from './state/worldStore'
 import { nearestLivingPerson } from './simulation/nearestPerson'
-import { SEASON_TICKS, YEAR_TICKS } from './game/model/calendar'
 import { IS_LOCAL_SERVER } from './shared/config'
 import { getDesktop, type SimMode } from './shared/desktop'
 import {
@@ -191,33 +190,6 @@ function LiveApp() {
     setTemporarySandboxStatus(null)
   }, [sandboxControlsEnabled, setTemporarySandboxStatus])
 
-  // Run the world on to the next season or year: pause the clock, send short advance commands until the
-  // calendar moves past the boundary, then resume if it was running. Each command's frame arrives before its
-  // reply, so the tick read after it is current.
-  const fastForward = useCallback(
-    async (to: 'season' | 'year'): Promise<boolean> => {
-      const wasPaused = runtimeState.paused
-      if (!wasPaused) await pauseSim()
-      try {
-        const start = useWorldStore.getState().world?.tick
-        if (start === undefined) return false
-        const period = to === 'season' ? SEASON_TICKS : YEAR_TICKS
-        const first = Math.floor(start / period)
-        // Short chunks: each command must come back well inside the worker request timeout.
-        for (let i = 0; i < 200; i++) {
-          const ok = await sendCommand({ cmd: 'advance', to, max_ticks: 150 })
-          if (!ok) return false
-          const now = useWorldStore.getState().world?.tick
-          if (now !== undefined && Math.floor(now / period) > first) return true
-        }
-        return false
-      } finally {
-        if (!wasPaused) await resume()
-      }
-    },
-    [pauseSim, resume, runtimeState.paused, sendCommand],
-  )
-
   const onPickTool = useCallback(
     (tool: SandboxTool) => {
       pairFirstRef.current = null
@@ -253,9 +225,7 @@ function LiveApp() {
                 ? resume()
                 : tool.time.control === 'speed' && tool.time.mult
                   ? setSpeed(tool.time.mult)
-                  : tool.time.control === 'advance' && tool.time.to
-                    ? fastForward(tool.time.to)
-                    : Promise.resolve(false)
+                  : Promise.resolve(false)
           void result.then((ok) =>
             setTemporarySandboxStatus(ok ? `${tool.label} applied` : `${tool.label} failed`),
           )
@@ -280,7 +250,7 @@ function LiveApp() {
         return next
       })
     },
-    [pauseSim, resume, setSpeed, fastForward, sendCommand, setTemporarySandboxStatus],
+    [pauseSim, resume, setSpeed, sendCommand, setTemporarySandboxStatus],
   )
 
   // Answering a prayer: look at the tribe and pick up the power that helps.
