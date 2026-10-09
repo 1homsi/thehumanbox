@@ -46,6 +46,10 @@ pub enum AnimalKind {
     // Birds of prey, released by the player only: an owl keeps to the woods, an eagle circles the highlands.
     Owl,
     Eagle,
+    // Reptiles, released by the player only: a snake slips over the sand, badlands and jungle; a crocodile
+    // lurks in the swamps and, when hungry, hunts people as a bear does.
+    Snake,
+    Crocodile,
     // Monsters: summoned with god powers, never born or spawned naturally.
     Zombie,
     Demon,
@@ -56,7 +60,7 @@ pub enum AnimalKind {
 
 impl AnimalKind {
     /// Every kind, for tables and tests.
-    pub const ALL: [AnimalKind; 27] = [
+    pub const ALL: [AnimalKind; 29] = [
         AnimalKind::Rabbit,
         AnimalKind::Deer,
         AnimalKind::Boar,
@@ -79,6 +83,8 @@ impl AnimalKind {
         AnimalKind::Bee,
         AnimalKind::Owl,
         AnimalKind::Eagle,
+        AnimalKind::Snake,
+        AnimalKind::Crocodile,
         AnimalKind::Zombie,
         AnimalKind::Demon,
         AnimalKind::Dragon,
@@ -116,6 +122,8 @@ impl AnimalKind {
             AnimalKind::Bee => 0.0008,
             AnimalKind::Owl => 0.0006,
             AnimalKind::Eagle => 0.0006,
+            AnimalKind::Snake => 0.0005,
+            AnimalKind::Crocodile => 0.0004,
             // Monsters do not eat. A UFO's energy is its visit: it leaves
             // after roughly 1200 ticks.
             // Zombies slowly rot (about 2500 ticks), so outbreaks burn out.
@@ -148,6 +156,8 @@ impl AnimalKind {
             AnimalKind::Bee => 0.0,
             AnimalKind::Owl => 3.0,
             AnimalKind::Eagle => 0.0,
+            AnimalKind::Snake => 3.0,
+            AnimalKind::Crocodile => 2.0,
             AnimalKind::Zombie
             | AnimalKind::Demon
             | AnimalKind::Dragon
@@ -179,6 +189,8 @@ impl AnimalKind {
             AnimalKind::Bee => 2,
             AnimalKind::Owl => 2,
             AnimalKind::Eagle => 3,
+            AnimalKind::Snake => 1,
+            AnimalKind::Crocodile => 1,
             AnimalKind::Zombie => 1,
             AnimalKind::Demon => 2,
             AnimalKind::Dragon => 3,
@@ -191,7 +203,7 @@ impl AnimalKind {
     }
     /// Hunts other animals, and people when hungry.
     pub fn predator(self) -> bool {
-        matches!(self, AnimalKind::Wolf | AnimalKind::Bear)
+        matches!(self, AnimalKind::Wolf | AnimalKind::Bear | AnimalKind::Crocodile)
     }
     /// Summoned creatures that hunt people whether or not they are hungry.
     pub fn monster(self) -> bool {
@@ -263,6 +275,8 @@ impl AnimalKind {
             AnimalKind::Bee => &[Biome::Grassland, Biome::Forest, Biome::Savanna],
             AnimalKind::Owl => &[Biome::Forest, Biome::Taiga],
             AnimalKind::Eagle => &[Biome::Badlands, Biome::Tundra, Biome::Grassland],
+            AnimalKind::Snake => &[Biome::Desert, Biome::Badlands, Biome::Jungle],
+            AnimalKind::Crocodile => &[Biome::Wetland, Biome::Jungle],
             _ => &[],
         }
     }
@@ -308,6 +322,8 @@ impl AnimalKind {
             AnimalKind::Bee => "bee",
             AnimalKind::Owl => "owl",
             AnimalKind::Eagle => "eagle",
+            AnimalKind::Snake => "snake",
+            AnimalKind::Crocodile => "crocodile",
             AnimalKind::Zombie => "zombie",
             AnimalKind::Demon => "demon",
             AnimalKind::Dragon => "dragon",
