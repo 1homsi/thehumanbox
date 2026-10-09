@@ -275,3 +275,35 @@ pub(super) fn next_target_building(
     }
     wishlist.into_iter().find(|&k| !existing.contains(&k))
 }
+
+/// A stone-age workshop is where a tribe makes things by hand (carved bowls,
+/// spoons, pipes, dolls, kites), and the workshop workplace gate needs one
+/// nearby. A tribe of six raises its first one before its next home.
+pub(super) fn first_workshop_target(
+    era: Era,
+    pop: usize,
+    existing: &HashSet<BuildingKind>,
+) -> Option<BuildingKind> {
+    let ready = era >= Era::Stone && pop >= 6;
+    (ready && !existing.contains(&BuildingKind::Workshop)).then_some(BuildingKind::Workshop)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use BuildingKind::*;
+
+    #[test]
+    fn a_tribe_of_six_raises_its_first_workshop_before_its_next_home() {
+        let built: HashSet<BuildingKind> = [Hut, Tent, Well].into_iter().collect();
+        assert_eq!(first_workshop_target(Era::Stone, 6, &built), Some(Workshop));
+        // Below six people a tribe has no room for a workshop yet.
+        assert_eq!(first_workshop_target(Era::Stone, 5, &built), None);
+    }
+
+    #[test]
+    fn a_tribe_with_a_workshop_does_not_raise_another_one_in_the_stone_age() {
+        let built: HashSet<BuildingKind> = [Hut, Workshop].into_iter().collect();
+        assert_eq!(first_workshop_target(Era::Stone, 40, &built), None);
+    }
+}

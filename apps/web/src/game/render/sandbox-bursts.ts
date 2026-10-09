@@ -208,6 +208,7 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'road':
     case 'bridge':
     case 'road_erase':
+    case 'boat':
       return 'paint'
     case 'repair':
     case 'place_house':
