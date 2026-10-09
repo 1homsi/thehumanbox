@@ -171,6 +171,8 @@ pub struct Organism {
     pub disease_immunity: BTreeMap<String, u64>,
     pub mounted_vehicle: Option<u32>,
     pub is_leader: bool,
+    /// What killed this person ("starvation", "combat", "old age", ...). Empty while alive.
+    pub death_cause: String,
 
     pub conversations: VecDeque<ConversationEntry>,
 
@@ -303,6 +305,7 @@ impl Organism {
             disease_immunity: BTreeMap::new(),
             mounted_vehicle: None,
             is_leader: false,
+            death_cause: String::new(),
             conversations: VecDeque::new(),
             friends: BTreeMap::new(),
             attributes: BTreeSet::new(),

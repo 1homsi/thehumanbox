@@ -43,6 +43,7 @@ export interface OrganismState extends ExtendedEmotions {
   health: number
   age: number
   alive: boolean
+  death_cause?: string
   thought: string
   generation: number
   parent_id: string

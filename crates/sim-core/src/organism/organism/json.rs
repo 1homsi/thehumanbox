@@ -36,6 +36,7 @@ impl Organism {
             health: (self.health * 1000.0).round() / 1000.0,
             age: self.age,
             alive: self.alive,
+            death_cause: (!self.death_cause.is_empty()).then(|| self.death_cause.clone()),
             thought: self.thought.clone(),
             infection: (self.infection * 1000.0).round() / 1000.0,
             fear_level: (self.fear_level * 100.0).round() / 100.0,
@@ -865,6 +866,9 @@ pub struct OrgJson {
     pub health: f32,
     pub age: u32,
     pub alive: bool,
+    /// Why the person died; absent while alive.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub death_cause: Option<String>,
     pub thought: String,
     pub infection: f32,
     pub fear_level: f32,

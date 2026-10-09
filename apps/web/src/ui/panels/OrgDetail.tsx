@@ -19,6 +19,7 @@ import {
   WealthSection,
 } from './org-detail/background'
 import {
+  DeathSection,
   InnerLifeSection,
   MemoryCountsSection,
   RecentLifeSection,
@@ -84,6 +85,7 @@ function OrgDetailBody({
           tn={tn}
         />
         <StatusChips org={org} />
+        <DeathSection org={org} />
         <Vitals org={org} isSick={isSick} />
         <MentalState org={org} />
         <AspirationSection org={org} />
