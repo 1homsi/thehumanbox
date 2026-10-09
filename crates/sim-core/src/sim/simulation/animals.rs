@@ -103,11 +103,25 @@ impl Simulation {
         // Wild bears sleep the winter through: they keep still, need little
         // and neither hunt nor frighten anyone until spring.
         let winter = self.season() == "scarcity";
+        // Family dogs sleep by their owner's hearth at night, once they have
+        // walked home (see the owner loop below).
+        let night = self.is_night();
         for animal in &mut self.animals {
             let wild = animal.alive && animal.bonded_org.is_none();
             animal.sleeping = winter && wild && animal.kind == AnimalKind::Bear;
             // Birds fly south for the winter and come back with the spring.
             animal.away = winter && wild && animal.kind == AnimalKind::Bird;
+            if night && animal.alive && animal.kind == AnimalKind::Dog {
+                let home = animal
+                    .bonded_org
+                    .as_ref()
+                    .and_then(|bid| org_idx_by_id.get(bid))
+                    .map(|&oi| &self.organisms[oi])
+                    .filter(|o| o.alive);
+                animal.sleeping = home
+                    .map(|o| (o.home_x - animal.x).abs() + (o.home_y - animal.y).abs() <= 1.0)
+                    .unwrap_or(false);
+            }
         }
 
         // Animals only react to people within their chase/flee radius. Build
@@ -262,10 +276,14 @@ impl Simulation {
                     if !o.alive || o.id != bid {
                         continue;
                     }
-                    let dist = (o.x - ax).abs() + (o.y - ay).abs();
-                    if dist > 3.0 {
-                        let dx = (o.x - ax).signum();
-                        let dy = (o.y - ay).signum();
+                    // At night the dog heads for the family hearth instead of
+                    // the owner, who may be out and about.
+                    let owner_dist = (o.x - ax).abs() + (o.y - ay).abs();
+                    let (gx, gy) = if night { (o.home_x, o.home_y) } else { (o.x, o.y) };
+                    let reach = if night { 1.0 } else { 3.0 };
+                    if (gx - ax).abs() + (gy - ay).abs() > reach {
+                        let dx = (gx - ax).signum();
+                        let dy = (gy - ay).signum();
                         let nx = (ax + dx).max(1.0).min(WIDTH as f32 - 2.0);
                         let ny = (ay + dy).max(1.0).min(HEIGHT as f32 - 2.0);
                         let t = self.grid.get(nx as i32, ny as i32);
@@ -274,7 +292,7 @@ impl Simulation {
                             self.animals[ai].y = ny;
                         }
                     }
-                    if dist < 5.0 {
+                    if owner_dist < 5.0 {
                         owner_idx = Some(oi);
                     }
                 }

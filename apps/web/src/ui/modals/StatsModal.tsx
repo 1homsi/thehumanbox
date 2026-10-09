@@ -3,6 +3,7 @@ import { useFrozenSnapshot } from '../../shared/hooks/useFrozenSnapshot'
 import { Modal } from './Modal'
 import { DAY_LENGTH, kindIcon } from './stats/constants'
 import { PopChart } from './stats/PopChart'
+import { YearlyChart } from './stats/YearlyChart'
 import { RelationsTable } from './stats/RelationsTable'
 import { DiscoveryTimeline } from './stats/DiscoveryTimeline'
 import { AgePyramid } from './stats/AgePyramid'
@@ -110,6 +111,14 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
         <div className="stats-section-title">POPULATION OVER TIME</div>
         <div className="stats-chart-wrap">
           <PopChart history={world.pop_history ?? []} />
+        </div>
+
+        <div className="stats-section-title">BIRTHS AND DEATHS BY YEAR</div>
+        <div className="stats-chart-wrap">
+          <YearlyChart
+            births={world.history.births_by_year ?? []}
+            deaths={world.history.deaths_by_year ?? []}
+          />
         </div>
 
         <div className="stats-grid">

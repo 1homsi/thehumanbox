@@ -21,6 +21,7 @@ import {
 import {
   DeathSection,
   InnerLifeSection,
+  LifeStorySection,
   MemoryCountsSection,
   RecentLifeSection,
   WitnessedSection,
@@ -85,6 +86,7 @@ function OrgDetailBody({
           tn={tn}
         />
         <StatusChips org={org} />
+        <LifeStorySection org={org} organisms={organisms} detail={detail} />
         <DeathSection org={org} />
         <Vitals org={org} isSick={isSick} />
         <MentalState org={org} />
