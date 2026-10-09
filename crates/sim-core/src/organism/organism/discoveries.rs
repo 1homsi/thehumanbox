@@ -49,6 +49,7 @@ hot_discoveries! {
     Textiles => "textiles",
     Torch => "torch",
     Trap => "trap",
+    Medicine => "medicine",
 }
 
 /// What an organism has discovered. Reads go through `Deref` to the ordered

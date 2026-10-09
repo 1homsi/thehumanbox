@@ -11,6 +11,7 @@ import { DiscoveryTimeline } from './stats/DiscoveryTimeline'
 import { AgePyramid } from './stats/AgePyramid'
 import { GenerationBars } from './stats/GenerationBars'
 import { OldestList } from './stats/OldestList'
+import { longevityLines, longevityOf } from '../../game/model/longevity'
 import { TraitAverages } from './stats/TraitAverages'
 import { DiscoveryRollup } from './stats/DiscoveryRollup'
 import { BondStats } from './stats/BondStats'
@@ -171,6 +172,23 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
               organisms={world.organisms.filter((o) => o.alive)}
               lineageNames={world.lineage_names}
             />
+          </section>
+
+          <section>
+            <div className="stats-section-title">LONGEVITY</div>
+            {longevityLines(
+              longevityOf(world.organisms),
+              (l) => world.lineage_names?.[l] ?? l.slice(0, 6),
+            ).map((line) => (
+              <div key={line} style={{ fontSize: 11, lineHeight: 1.6 }}>
+                {line}
+              </div>
+            ))}
+            {longevityOf(world.organisms).deaths === 0 && (
+              <div style={{ color: '#444', fontSize: 11, textAlign: 'center', padding: '4px 0' }}>
+                nobody has died of old age yet
+              </div>
+            )}
           </section>
 
           <section>
