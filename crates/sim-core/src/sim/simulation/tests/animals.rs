@@ -400,3 +400,53 @@ fn birds_migrate_and_animals_breed_in_season() {
         "birds return in spring"
     );
 }
+
+#[test]
+fn family_dogs_walk_home_and_sleep_by_the_hearth_at_night() {
+    let mut sim = Simulation::new(0xD06);
+    flatten_test_area(&mut sim, 50, 50);
+    sim.organisms.clear();
+    let mut owner = Organism::new(
+        "owner".into(),
+        "Owner".into(),
+        58.0,
+        56.0,
+        1,
+        String::new(),
+        "lineage-a".into(),
+        10_000,
+        crate::organism::traits::Traits::default(),
+    );
+    // The owner is out at the edge of the village; the family hearth is at (50, 50).
+    owner.home_x = 50.0;
+    owner.home_y = 50.0;
+    sim.organisms.push(owner);
+    sim.animals.clear();
+    let mut dog = Animal::new(1, 44.0, 44.0, AnimalKind::Dog);
+    dog.bonded_org = Some("owner".into());
+    sim.animals.push(dog);
+    // Night: the last 30 percent of the day.
+    sim.tick_count = 500;
+
+    let resident_indices = alive_resident_indices(&sim);
+    let mut slept = false;
+    for _ in 0..80 {
+        sim.tick_animals(&resident_indices);
+        let dog = &sim.animals[0];
+        if dog.sleeping {
+            slept = true;
+            assert!(
+                (dog.x - 50.0).abs() + (dog.y - 50.0).abs() <= 1.0,
+                "a sleeping dog lies by the hearth, not at ({}, {})",
+                dog.x,
+                dog.y
+            );
+        }
+    }
+    assert!(slept, "the dog should reach the hearth and sleep there at night");
+
+    // Morning: the dog wakes and goes back to following its owner.
+    sim.tick_count = 100;
+    sim.tick_animals(&resident_indices);
+    assert!(!sim.animals[0].sleeping);
+}
