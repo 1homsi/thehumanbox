@@ -25,6 +25,7 @@ import {
   writeToolMemory,
   type ToolMemory,
 } from './tool-memory'
+import { spawnsWith, useSpawnCounts } from './spawn-counts'
 
 const TOOLS_BY_ID = new Map<string, SandboxTool>(
   SANDBOX_CATEGORIES.flatMap((c) => c.tools).map((t) => [t.id, t]),
@@ -143,6 +144,7 @@ export function SandboxToolbar({
   const memoryTools = memoryToolIds(memory, new Set(TOOLS_BY_ID.keys()))
     .map((id) => TOOLS_BY_ID.get(id))
     .filter((t): t is SandboxTool => t !== undefined)
+  const spawnCounts = useSpawnCounts((s) => s.counts)
   const isViewActive = (tool: SandboxTool) =>
     isSandboxViewControlActive(tool.view, activeOverlay, activeViewFlags)
   // Weather and drought are states of the world, so their tiles light up
@@ -226,6 +228,7 @@ export function SandboxToolbar({
   const renderTile = (tool: SandboxTool) => {
     const active = armedToolId === tool.id || isViewActive(tool) || isStateActive(tool)
     const pinned = memory.pinned.includes(tool.id)
+    const spawned = spawnsWith(tool) ? (spawnCounts[tool.id] ?? 0) : 0
     return (
       <Tooltip
         key={tool.id}
@@ -257,6 +260,11 @@ export function SandboxToolbar({
           onClick={(e) => (e.shiftKey ? updateMemory(togglePinned(memory, tool.id)) : pickTool(tool))}
         >
           <ToolSprite icon={tool.icon} size={36} />
+          {spawned > 0 && (
+            <span className="dock-tile-count" aria-hidden="true">
+              {spawned}
+            </span>
+          )}
         </button>
       </Tooltip>
     )
