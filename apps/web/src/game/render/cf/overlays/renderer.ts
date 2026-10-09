@@ -25,6 +25,7 @@ import {
 import { hazeLevels, paintHaze } from './haze'
 import { paintFallingLeaves } from './falling-leaves'
 import { paintCampfireSparks, paintEmbers } from './embers'
+import { paintFloodFront } from './flood-front'
 import { FootstepDust } from './footstep-dust'
 import { paintTornado, tornadoAt } from './tornado'
 import { vegetationSeason } from '../../landscape-style'
@@ -271,6 +272,8 @@ export class CfOverlayRenderer {
       paintLines(ground, f)
       paintWaterStars(ground, f)
       paintWaterShimmer(ground, f)
+      const floodView = { ...f.bounds, ox: f.ox, oy: f.oy }
+      paintFloodFront(ground, f.world.grid.tiles, floodView, f.t)
       paintFireGlow(ground, f)
       const emberView = { ...f.bounds, ox: f.ox, oy: f.oy }
       paintEmbers(ground, f.world.grid.fire_intensity, emberView, f.t)
