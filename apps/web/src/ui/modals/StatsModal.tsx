@@ -8,6 +8,7 @@ import { WealthGapChart } from './stats/WealthGapChart'
 import { RelationsTable } from './stats/RelationsTable'
 import { DiscoveryTimeline } from './stats/DiscoveryTimeline'
 import { AgePyramid } from './stats/AgePyramid'
+import { OldestList } from './stats/OldestList'
 import { TraitAverages } from './stats/TraitAverages'
 import { DiscoveryRollup } from './stats/DiscoveryRollup'
 import { BondStats } from './stats/BondStats'
@@ -150,6 +151,14 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
           <section>
             <div className="stats-section-title">DISCOVERY ROLLUP</div>
             <DiscoveryRollup organisms={world.organisms.filter((o) => o.alive)} />
+          </section>
+
+          <section>
+            <div className="stats-section-title">OLDEST LIVING</div>
+            <OldestList
+              organisms={world.organisms.filter((o) => o.alive)}
+              lineageNames={world.lineage_names}
+            />
           </section>
 
           <section>
