@@ -1,5 +1,6 @@
 import { deathLine } from '../../../game/model/death'
 import { lifeStory } from '../../../game/model/life-story'
+import { familySentence } from '../../../game/model/family-lines'
 import { Tooltip } from '../../toolbar/Tooltip'
 import type { OrganismState, OrgDetail } from '../../../shared/types'
 
@@ -52,6 +53,7 @@ export function LifeStorySection({
   detail: OrgDetail | null
 }) {
   const lines = lifeStory(org, organisms ?? [], detail?.life_log ?? [])
+  const family = familySentence(org, organisms ?? [])
   return (
     <>
       <div className="org-detail-section">STORY</div>
@@ -61,6 +63,11 @@ export function LifeStorySection({
             {line}
           </li>
         ))}
+        {family && (
+          <li className="thought-text" style={{ color: '#9fb7c9' }}>
+            {family}
+          </li>
+        )}
       </ul>
     </>
   )
