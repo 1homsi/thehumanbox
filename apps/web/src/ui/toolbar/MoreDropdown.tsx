@@ -14,6 +14,7 @@ export function MoreDropdown() {
   const openLanguages = useUIStore((s) => s.openLanguages)
   const openFamilyTree = useUIStore((s) => s.openFamilyTree)
   const openAchievements = useUIStore((s) => s.openAchievements)
+  const openGoals = useUIStore((s) => s.openGoals)
   const openScenarios = useUIStore((s) => s.openScenarios)
   const openNotable = useUIStore((s) => s.openNotable)
   const pauseOnPeril = useUIStore((s) => s.pauseOnPeril)
@@ -240,6 +241,17 @@ export function MoreDropdown() {
             }}
           >
             ★ feats
+          </button>
+        </Tooltip>
+        <Tooltip tip="The goals this world is playing for, and its difficulty">
+          <button
+            className="lang-btn"
+            onClick={() => {
+              openGoals()
+              closeMore()
+            }}
+          >
+            ◎ goals
           </button>
         </Tooltip>
         <Tooltip tip="Family tree of bloodlines and descent">

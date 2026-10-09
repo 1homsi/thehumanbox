@@ -168,6 +168,9 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     lineage_names: reuseIfEqual(incomingLineageNames, base?.lineage_names),
     lineage_centroid_history: parsed.lineage_centroid_history ?? base?.lineage_centroid_history,
     lineage_homes: parsed.lineage_homes ?? base?.lineage_homes,
+    goals: parsed.goals ?? base?.goals ?? [],
+    difficulty: parsed.difficulty ?? base?.difficulty ?? 'normal',
+    lost_tick: parsed.lost_tick ?? base?.lost_tick ?? null,
     current_era: parsed.current_era ?? base?.current_era,
     featured_org_id: parsed.featured_org_id ?? base?.featured_org_id,
     sex_words: reuseArrayIfShallowEqual(

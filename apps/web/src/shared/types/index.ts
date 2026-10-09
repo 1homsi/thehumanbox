@@ -565,6 +565,17 @@ export interface GridWire {
   roads?: [number, number, number][]
 }
 
+export type Difficulty = 'calm' | 'normal' | 'harsh'
+
+/** One goal as the Goals panel shows it (sim/goals.rs). */
+export interface GoalStatus {
+  id: string
+  title: string
+  progress: number
+  target: number
+  done: boolean
+}
+
 export interface WorldState {
   frame_id: number
   server_sent_at_ms: number
@@ -600,6 +611,11 @@ export interface WorldState {
   lineage_sizes: { id: string; count: number }[]
   lineage_names?: Record<string, string>
   lineage_centroid_history?: Record<string, [number, number, number][]>
+  /** The player's goals and how far they have got (sim/goals.rs). */
+  goals?: GoalStatus[]
+  difficulty?: Difficulty
+  /** The tick the last person died, once the world is lost. */
+  lost_tick?: number | null
   lineage_homes?: Record<string, [number, number, number]>
   current_era?: string
   featured_org_id?: string
