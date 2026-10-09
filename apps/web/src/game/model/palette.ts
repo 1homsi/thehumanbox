@@ -23,6 +23,7 @@ export const TILE_COLORS: Record<number, string> = {
   12: '#e2edf0',
   13: '#dec48c',
   14: '#d9461c',
+  15: '#c4e2ec',
 }
 
 export const BIOME_OVERLAYS: Record<number, string> = {

@@ -19,6 +19,7 @@ describe('terrain wire IDs', () => {
       SNOW: 12,
       SAND: 13,
       LAVA: 14,
+      ICE: 15,
     })
   })
 

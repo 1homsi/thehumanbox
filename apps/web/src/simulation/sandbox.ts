@@ -38,6 +38,7 @@ export type SandboxCommand =
   | { cmd: 'frenzy'; x: number; y: number; radius?: number }
   | { cmd: 'flood'; x: number; y: number; radius?: number }
   | { cmd: 'blizzard'; x: number; y: number; radius?: number }
+  | { cmd: 'freeze'; x: number; y: number; radius?: number }
   | { cmd: 'thunder'; x: number; y: number; radius?: number }
   | { cmd: 'paint_biome'; x: number; y: number; biome: string; radius?: number }
   | {
@@ -804,6 +805,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🥶',
         mode: 'instant',
         fire: { cmd: 'weather', kind: 'cold_snap' },
+      },
+      {
+        id: 'frost',
+        label: 'frost',
+        icon: '🔷',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'freeze', x, y, radius: 2 + b }),
       },
       {
         id: 'comet',

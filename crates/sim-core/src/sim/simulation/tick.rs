@@ -128,6 +128,8 @@ impl Simulation {
             &mut self.events,
             &mut self.rng,
         );
+        let temperature = self.season_temperature_now();
+        tick_ice(&mut self.grid, temperature, self.tick_count, &mut self.rng);
         crate::sim::agriculture::tick_farm_weather(
             &mut self.farms,
             self.tick_count,

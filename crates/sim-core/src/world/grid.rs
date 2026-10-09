@@ -1304,7 +1304,8 @@ mod tests {
                 | Tile::Fire
                 | Tile::Scorched
                 | Tile::Mineral
-                | Tile::Lava => {
+                | Tile::Lava
+                | Tile::Ice => {
                     land += 1;
                     harsh += 1;
                 }

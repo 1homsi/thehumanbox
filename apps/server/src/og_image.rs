@@ -97,6 +97,7 @@ fn tile_color(t: Tile, biome: u8, day_t: f32) -> [u8; 3] {
         Tile::Snow => [232, 236, 244],
         Tile::Sand => [206, 188, 138],
         Tile::Lava => [214, 70, 28],
+        Tile::Ice => [196, 226, 236],
         Tile::Void => [12, 12, 20],
     };
 

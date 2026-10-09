@@ -139,6 +139,7 @@ export const NEW_TOOL_IDS: readonly string[] = [
   'elephant',
   'monkey',
   'lava',
+  'frost',
 ]
 
 const SEEN_NEW_STORAGE_KEY = 'thb-seen-new-tools'
