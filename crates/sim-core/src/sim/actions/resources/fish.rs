@@ -15,6 +15,8 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         if school > 0 {
             ctx.sim.take_nearest_fish(x, y);
         }
+        // Sea salt is panned from the shallows as well as fished.
+        ctx.yield_land_good("salt", 0.15);
         ctx.think("caught a fish");
         ctx.discover("fishing", "learned to fish");
         0.02

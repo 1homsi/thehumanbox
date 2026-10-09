@@ -258,6 +258,7 @@ impl PriceTable {
             "iron" => self.iron,
             "cloth" => self.cloth,
             "bread" => self.bread,
+            _ if is_land_good(good) => land_good_price(era, good),
             _ => tools_price(era, good),
         }
     }
@@ -283,6 +284,30 @@ pub const TRADABLE_TOOLS: &[&str] = &[
     "coffee",
     "stock",
 ];
+
+/// Goods the land gives to the people who work it. A tribe makes the ones its
+/// ground and water allow (clay in the marsh, salt on the coast, ore from the
+/// mines, spice in the jungle, ochre in the badlands, furs in the cold), and
+/// caravans carry them between tribes that lack them.
+pub const LAND_GOODS: &[&str] = &["clay", "salt", "ore", "spice", "ochre", "fur"];
+
+pub fn is_land_good(good: &str) -> bool {
+    LAND_GOODS.contains(&good)
+}
+
+/// The era's price of one unit of a land good (before scarcity), rising with the era.
+pub fn land_good_price(era: Era, good: &str) -> u32 {
+    let base: u32 = match good {
+        "clay" => 1,
+        "salt" => 2,
+        "ore" => 3,
+        "spice" => 4,
+        "ochre" => 2,
+        "fur" => 3,
+        _ => return 0,
+    };
+    base + (era as u32).min(8) / 2
+}
 
 pub fn tools_price(era: Era, good: &str) -> u32 {
     let base: u32 = match good {

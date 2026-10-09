@@ -120,6 +120,7 @@ export function drawCaravanSprite(
   tier: number,
   color: string,
   tile: number,
+  load = '#8a6a48',
 ) {
   // Sized to read beside a person at close zoom: the cart is about one and a half tiles long.
   const u = Math.max(1, tile / 5)
@@ -152,7 +153,7 @@ export function drawCaravanSprite(
     ctx.fillStyle = '#3a2a1c'
     ctx.fillRect(-u * 4, u, u * 2, u * 2)
     ctx.fillRect(-u, u, u * 2, u * 2)
-    ctx.fillStyle = '#8a6a48'
+    ctx.fillStyle = load
     ctx.fillRect(u * 2, -u * 2, u * 4, u * 3)
     ctx.fillRect(u * 5, -u * 3, u * 2, u * 2)
     ctx.fillStyle = '#3a2a1c'

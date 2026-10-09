@@ -4,6 +4,7 @@ pub(super) fn cargo_room(sim: &Simulation, organism_idx: usize, cargo: &str) -> 
     let organism = &sim.organisms[organism_idx];
     match cargo {
         "food" | "water" | "wood" | "stone" => organism.carry_room(),
+        land if is_land_good(land) => organism.land_good_room(land),
         tool => u32::from(u8::MAX.saturating_sub(organism.tools.get(tool).copied().unwrap_or(0))),
     }
 }
@@ -16,6 +17,9 @@ pub(super) fn add_cargo(sim: &mut Simulation, organism_idx: usize, cargo: &str, 
     }
     let accepted_u8 = accepted as u8;
     let organism = &mut sim.organisms[organism_idx];
+    if is_land_good(cargo) {
+        return u32::from(organism.add_land_good(cargo, accepted_u8));
+    }
     match cargo {
         "food" => organism.inv_food = organism.inv_food.saturating_add(accepted_u8),
         "water" => organism.inv_water = organism.inv_water.saturating_add(accepted_u8),

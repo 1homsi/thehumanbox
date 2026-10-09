@@ -10,6 +10,12 @@ pub(super) fn cargo_candidate(sim: &Simulation, actor_idx: usize) -> Option<(Str
     ];
     let mut tool_names: Vec<&String> = actor.tools.keys().collect();
     tool_names.sort();
+    candidates.extend(
+        actor
+            .goods
+            .iter()
+            .map(|(name, &count)| (name.clone(), u32::from(count), 5u8)),
+    );
     candidates.extend(tool_names.into_iter().map(|name| {
         (
             name.clone(),
@@ -33,6 +39,9 @@ pub(super) fn consume_cargo(sim: &mut Simulation, actor_idx: usize, cargo: &str,
         return false;
     };
     let amount = u8::try_from(amount).unwrap_or(u8::MAX);
+    if is_land_good(cargo) {
+        return actor.take_land_good(cargo, amount);
+    }
     let slot = match cargo {
         "food" => &mut actor.inv_food,
         "water" => &mut actor.inv_water,

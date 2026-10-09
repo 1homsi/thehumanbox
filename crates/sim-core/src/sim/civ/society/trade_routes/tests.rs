@@ -342,3 +342,72 @@ fn no_caravan_leaves_without_a_merchant_or_a_spare_good() {
     run_merchant_caravans(&mut sim);
     assert!(sim.caravans.is_empty(), "one unit is the donor's own food");
 }
+
+#[test]
+fn a_merchant_carries_a_land_good_the_other_tribe_lacks() {
+    let mut sim = neighbouring_trade_sim();
+    sim.organisms[0].specialty = Some("merchant".into());
+    // The river tribe makes clay in the marsh; the hill tribe has none.
+    sim.organisms[1].add_land_good("clay", 4);
+    open_merchant_routes(&mut sim);
+
+    run_merchant_caravans(&mut sim);
+    assert_eq!(sim.caravans.len(), 1);
+    let caravan = &sim.caravans[0];
+    assert_eq!(caravan.cargo, "clay", "clay is the good the tribe has to spare");
+    assert_eq!(caravan.amount, MERCHANT_LOAD);
+    assert!(caravan.unit_price >= 1, "clay has a price");
+    assert_eq!(
+        sim.organisms[1].land_good_count("clay"),
+        1,
+        "the donor gives clay away, keeping none back"
+    );
+    assert_eq!(
+        sim.organisms[0].land_good_count("clay"),
+        0,
+        "the merchant carries it off"
+    );
+
+    sim.tick_count = sim.caravans[0].arrives_tick;
+    assert!(receive_due_for_lineage(&mut sim, "hill"));
+    let received: u32 = sim
+        .organisms
+        .iter()
+        .filter(|organism| organism.lineage_id == "hill")
+        .map(|organism| u32::from(organism.land_good_count("clay")))
+        .sum();
+    assert_eq!(received, MERCHANT_LOAD, "the hill tribe receives the clay");
+}
+
+#[test]
+fn land_goods_are_held_up_to_the_cap_per_person() {
+    let mut organism = trade_sim().organisms.swap_remove(0);
+    assert_eq!(organism.add_land_good("salt", 5), 5);
+    assert_eq!(organism.add_land_good("salt", 9), 3, "the cap is eight per good");
+    assert_eq!(organism.land_good_count("salt"), 8);
+    assert!(organism.take_land_good("salt", 8));
+    assert_eq!(organism.land_good_count("salt"), 0);
+    assert!(!organism.take_land_good("salt", 1));
+}
+
+#[test]
+fn staples_go_before_land_goods_when_both_are_spare() {
+    let mut sim = neighbouring_trade_sim();
+    sim.organisms[0].specialty = Some("merchant".into());
+    // The river tribe has food and clay to spare; the hill tribe lacks both.
+    sim.organisms[1].inv_food = 6;
+    sim.organisms[1].add_land_good("clay", 6);
+    open_merchant_routes(&mut sim);
+
+    run_merchant_caravans(&mut sim);
+    assert_eq!(sim.caravans.len(), 1);
+    assert_eq!(
+        sim.caravans[0].cargo, "food",
+        "a staple takes the caravan before a land good"
+    );
+    assert_eq!(
+        sim.organisms[1].land_good_count("clay"),
+        6,
+        "the clay stays at home this time"
+    );
+}

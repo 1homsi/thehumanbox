@@ -179,8 +179,16 @@ impl<'a> ActionCtx<'a> {
             _ => 1,
         };
         self.sim.animals[i].alive = false;
+        let cold = matches!(
+            self.sim.grid.biome_at(self.ix, self.iy),
+            crate::world::tiles::Biome::Tundra | crate::world::tiles::Biome::Taiga
+        );
         let o = &mut self.sim.organisms[self.idx];
         o.inv_food = o.inv_food.saturating_add(food);
+        if cold {
+            // The hide of a kill in the cold is a good: furs are traded south.
+            o.add_land_good("fur", 1);
+        }
         food
     }
 
@@ -208,6 +216,27 @@ impl<'a> ActionCtx<'a> {
         } else {
             base * 0.3
         }
+    }
+
+    /// Whether the person's tribe has reached `era` (Stone when unknown).
+    pub fn lineage_era_at_least(&self, era: crate::sim::era::Era) -> bool {
+        self.sim
+            .lineage_eras
+            .get(&self.lid)
+            .is_some_and(|&lineage_era| lineage_era >= era)
+    }
+
+    /// The biome under the person.
+    pub fn biome(&self) -> crate::world::tiles::Biome {
+        self.sim.grid.biome_at(self.ix, self.iy)
+    }
+
+    /// Lets the land give one unit of a land good to the person, with chance `p`.
+    pub fn yield_land_good(&mut self, good: &str, p: f32) -> bool {
+        if !self.chance(p) {
+            return false;
+        }
+        self.org_mut().add_land_good(good, 1) > 0
     }
 
     pub fn chance(&mut self, p: f32) -> bool {

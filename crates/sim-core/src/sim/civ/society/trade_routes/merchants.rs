@@ -15,8 +15,16 @@ pub(super) const MERCHANT_LOAD: u32 = 3;
 const DONOR_KEEP: u32 = 2;
 /// A tribe sends a good only when it has at least this many units per person to spare.
 const SPARE_PER_PERSON: f32 = 2.0;
-/// Goods a merchant can carry between tribes. Tools and water stay at home.
-const TRADE_GOODS: [&str; 3] = ["food", "wood", "stone"];
+/// Land goods are made a few at a time, so a tribe that makes one sends it at a lower bar.
+const LAND_SPARE_PER_PERSON: f32 = 0.1;
+/// A tribe with this many units of a land good per person pays the era's price for it.
+const LAND_FULL_PER_PERSON: f32 = 1.0;
+/// Goods a merchant can carry between tribes: the staples, then what the land gives
+/// (see `economy::LAND_GOODS`). Tools and water stay at home.
+const TRADE_GOOD_COUNT: usize = 9;
+const TRADE_GOODS: [&str; TRADE_GOOD_COUNT] = [
+    "food", "wood", "stone", "clay", "salt", "ore", "spice", "ochre", "fur",
+];
 
 fn is_merchant(org: &crate::organism::organism::Organism) -> bool {
     org.alive && org.specialty.as_deref() == Some("merchant")
@@ -27,7 +35,17 @@ fn stock_of(org: &crate::organism::organism::Organism, good: &str) -> u32 {
         "food" => u32::from(org.inv_food),
         "wood" => u32::from(org.inv_wood),
         "stone" => u32::from(org.inv_stone),
+        land if is_land_good(land) => u32::from(org.land_good_count(land)),
         _ => 0,
+    }
+}
+
+/// The units per person a tribe must have before it sends a good.
+fn spare_per_person(good: &str) -> f32 {
+    if is_land_good(good) {
+        LAND_SPARE_PER_PERSON
+    } else {
+        SPARE_PER_PERSON
     }
 }
 
@@ -91,33 +109,54 @@ pub(super) fn open_merchant_routes(sim: &mut Simulation) {
     }
 }
 
-/// The good a tribe has most to spare of, that the other tribe is short of.
-/// Stock is compared per person, so a big tribe is not a rich one by size alone.
-fn surplus_good(sim: &Simulation, sender: &str, receiver: &str) -> Option<&'static str> {
+/// The goods a tribe has to spare that the other tribe is short of, with the
+/// gap per person between the two tribes. Stock is compared per person, so a
+/// big tribe is not a rich one by size alone.
+fn surplus_goods(sim: &Simulation, sender: &str, receiver: &str) -> Vec<(&'static str, f32)> {
     let (sender_people, sender_stock) = lineage_stock(sim, sender);
     let (receiver_people, receiver_stock) = lineage_stock(sim, receiver);
     if sender_people == 0 || receiver_people == 0 {
+        return Vec::new();
+    }
+    TRADE_GOODS
+        .iter()
+        .enumerate()
+        .filter_map(|(index, good)| {
+            let sends = sender_stock[index] as f32 / sender_people as f32;
+            let gets = receiver_stock[index] as f32 / receiver_people as f32;
+            (sends >= spare_per_person(good) && gets < sends * 0.5).then_some((*good, sends - gets))
+        })
+        .collect()
+}
+
+/// The good for the next caravan on a route. The staples go first, by the largest
+/// gap, as they always have: food, wood and stone are what a short tribe needs
+/// most, so a land good never takes a caravan from them. A land good travels only
+/// when no staple is spare and the other tribe is short of it; those goods then
+/// take turns, by the route's history.
+fn surplus_good(sim: &Simulation, route_index: usize, sender: &str, receiver: &str) -> Option<&'static str> {
+    let goods = surplus_goods(sim, sender, receiver);
+    let mut best_staple: Option<(f32, &'static str)> = None;
+    for &(good, gap) in goods.iter().filter(|(good, _)| !is_land_good(good)) {
+        if best_staple.is_none_or(|(best_gap, _)| gap > best_gap) {
+            best_staple = Some((gap, good));
+        }
+    }
+    if let Some((_, good)) = best_staple {
+        return Some(good);
+    }
+    if goods.is_empty() {
         return None;
     }
-    let mut best: Option<(f32, &'static str)> = None;
-    for (index, good) in TRADE_GOODS.iter().enumerate() {
-        let sends = sender_stock[index] as f32 / sender_people as f32;
-        let gets = receiver_stock[index] as f32 / receiver_people as f32;
-        if sends < SPARE_PER_PERSON || gets >= sends * 0.5 {
-            continue;
-        }
-        let gap = sends - gets;
-        if best.is_none_or(|(best_gap, _)| gap > best_gap) {
-            best = Some((gap, good));
-        }
-    }
-    best.map(|(_, good)| good)
+    let route = &sim.trade_routes[route_index];
+    let turn = (route.deliveries as usize).wrapping_add((sim.tick_count / CARAVAN_INTERVAL_TICKS) as usize);
+    goods.get(turn % goods.len()).map(|(good, _)| *good)
 }
 
 /// Living people in a tribe and their combined stock of each trade good.
-fn lineage_stock(sim: &Simulation, lineage: &str) -> (u32, [u32; 3]) {
+fn lineage_stock(sim: &Simulation, lineage: &str) -> (u32, [u32; TRADE_GOOD_COUNT]) {
     let mut people = 0u32;
-    let mut stock = [0u32; 3];
+    let mut stock = [0u32; TRADE_GOOD_COUNT];
     for org in sim
         .organisms
         .iter()
@@ -151,7 +190,9 @@ fn gather_for_merchant(sim: &mut Simulation, sender: &str, merchant_idx: usize, 
         if need == 0 {
             break;
         }
-        let spare = stock_of(&sim.organisms[donor_idx], good).saturating_sub(DONOR_KEEP);
+        // Staples keep a small reserve at home; land goods are all for trade.
+        let keep = if is_land_good(good) { 0 } else { DONOR_KEEP };
+        let spare = stock_of(&sim.organisms[donor_idx], good).saturating_sub(keep);
         let take = spare.min(need).min(cargo_room(sim, merchant_idx, good));
         if take == 0 || !consume_cargo(sim, donor_idx, good, take) {
             continue;
@@ -172,7 +213,7 @@ fn send_merchant_caravan(sim: &mut Simulation, route_index: usize, sender: &str,
     else {
         return false;
     };
-    let Some(good) = surplus_good(sim, sender, receiver) else {
+    let Some(good) = surplus_good(sim, route_index, sender, receiver) else {
         return false;
     };
     gather_for_merchant(sim, sender, merchant_idx, good, MERCHANT_LOAD);
@@ -188,7 +229,12 @@ fn send_merchant_caravan(sim: &mut Simulation, route_index: usize, sender: &str,
     let (receiver_people, receiver_stock) = lineage_stock(sim, receiver);
     let index = TRADE_GOODS.iter().position(|name| *name == good).unwrap_or(0);
     let per_person = receiver_stock[index] as f32 / receiver_people.max(1) as f32;
-    let scarcity = (1.0 - per_person).clamp(0.0, 1.0);
+    let full = if is_land_good(good) {
+        LAND_FULL_PER_PERSON
+    } else {
+        1.0
+    };
+    let scarcity = (1.0 - per_person / full).clamp(0.0, 1.0);
     if let Some(caravan) = sim.caravans.last_mut() {
         let base = caravan.unit_price as f32;
         caravan.unit_price = (base * (1.0 + scarcity)).round().clamp(1.0, 200.0) as u32;

@@ -18,6 +18,8 @@ export interface BenchHooks {
     people: number
     tick: number
     boats: { x: number; y: number; era?: string; cargo?: number; rider: boolean }[]
+    /** Where each caravan is on the road now, in tiles, with its cargo. */
+    caravans: { x: number; y: number; cargo: string; progress: number }[]
   }
 }
 
@@ -28,6 +30,13 @@ interface BenchSource {
     tick: number
     grid: { width: number; height: number; origin_x?: number; origin_y?: number }
     organisms: readonly { alive?: boolean }[]
+    caravans?: readonly {
+      from: [number, number]
+      to: [number, number]
+      departed_tick: number
+      arrives_tick: number
+      cargo: string
+    }[]
     vehicles?: readonly {
       kind: string
       x: number
@@ -70,6 +79,16 @@ export function installBenchHooks(source: BenchSource, force = import.meta.env.D
         boats: (world.vehicles ?? [])
           .filter((v) => v.kind === 'boat')
           .map((v) => ({ x: v.x, y: v.y, era: v.era, cargo: v.cargo, rider: !!v.rider_id })),
+        caravans: (world.caravans ?? []).map((c) => {
+          const duration = Math.max(1, c.arrives_tick - c.departed_tick)
+          const t = Math.max(0, Math.min(1, (world.tick - c.departed_tick) / duration))
+          return {
+            x: c.from[0] + (c.to[0] - c.from[0]) * t,
+            y: c.from[1] + (c.to[1] - c.from[1]) * t,
+            cargo: c.cargo,
+            progress: t,
+          }
+        }),
       }
     },
   }
