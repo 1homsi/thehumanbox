@@ -64,7 +64,9 @@ afterEach(() => {
   container.remove()
 })
 
-describe('world dock buttons', () => {
+// Every test renders the dock, whose first tab (life, with every animal) builds many sprites in
+// happy-dom; the default 5 s budget is too little on a loaded machine.
+describe('world dock buttons', { timeout: 20_000 }, () => {
   // One test per tab, so each tab's clicks get their own time budget. Clicking every tab in
   // one test took about 5 s, which timed out whenever the full suite ran in parallel. Most of
   // a tab's time is the first render (happy-dom building every sprite's rects), so the budget
@@ -101,12 +103,12 @@ describe('world dock buttons', () => {
 
   it('remembers the chosen tab', () => {
     render()
-    click(tab('helpful'))
-    expect(window.localStorage.getItem('thb-sandbox-category')).toBe('helpful')
+    click(tab('resources'))
+    expect(window.localStorage.getItem('thb-sandbox-category')).toBe('resources')
     act(() => root.unmount())
     root = createRoot(container)
     render()
-    expect(tab('helpful')?.getAttribute('aria-pressed')).toBe('true')
+    expect(tab('resources')?.getAttribute('aria-pressed')).toBe('true')
   })
 
   it('puts an armed tool away when its tile is clicked again', () => {
@@ -121,11 +123,11 @@ describe('world dock buttons', () => {
 
   it('marks active map layers on their tiles and tab', () => {
     render({ activeOverlay: 'density', activeViewFlags: { territory: true } })
-    click(tab('maps'))
+    click(tab('world'))
     expect(tile('borders')?.getAttribute('aria-pressed')).toBe('true')
     expect(tile('people')?.getAttribute('aria-pressed')).toBe('true')
     expect(tile('towns')?.getAttribute('aria-pressed')).toBe('false')
-    expect(tab('maps')?.classList.contains('engaged')).toBe(true)
+    expect(tab('world')?.classList.contains('engaged')).toBe(true)
   })
 
   it('pauses, resumes, and sets every offered speed', () => {

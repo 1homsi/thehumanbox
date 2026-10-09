@@ -42,7 +42,8 @@ afterEach(() => {
   container.remove()
 })
 
-describe('brush size presets', () => {
+// The dock's first tab (life, with every animal) builds many sprites in happy-dom on first render.
+describe('brush size presets', { timeout: 20_000 }, () => {
   it('offers the sizes 1, 2, 3 and 5 while a tool is armed', () => {
     render()
     expect(BRUSH_SIZES.map(([size]) => size)).toEqual([1, 2, 3, 5])
