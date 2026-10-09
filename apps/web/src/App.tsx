@@ -56,6 +56,7 @@ import { SaveSlotsModal } from './ui/modals/SaveSlotsModal'
 import { ScenariosModal } from './ui/modals/ScenariosModal'
 import { type ScenarioPreset } from './simulation/scenarios'
 import { setSandboxSender } from './simulation/commandBus'
+import { useSkyOverlay } from './game/render/sky-overlay'
 import { MobileBanner } from './ui/toasts/MobileBanner'
 import { WelcomeModal } from './ui/modals/WelcomeModal'
 import { UpdateToast } from './ui/toasts/UpdateToast'
@@ -265,9 +266,10 @@ function LiveApp() {
             setTemporarySandboxStatus(ok ? `${tool.label} applied` : `${tool.label} failed`),
           )
         } else if (tool.fire) {
-          void sendCommand(tool.fire).then((ok) =>
-            setTemporarySandboxStatus(ok ? `${tool.label} applied` : `${tool.label} failed`),
-          )
+          void sendCommand(tool.fire).then((ok) => {
+            if (ok && tool.overlay) useSkyOverlay.getState().start(tool.overlay)
+            setTemporarySandboxStatus(ok ? `${tool.label} applied` : `${tool.label} failed`)
+          })
         } else {
           handled = false
         }

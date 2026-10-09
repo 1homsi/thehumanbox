@@ -66,6 +66,7 @@ export type SandboxCommand =
   | { cmd: 'hail'; x: number; y: number; radius?: number }
   | { cmd: 'nuke'; x: number; y: number }
   | { cmd: 'eclipse' }
+  | { cmd: 'aurora' }
   | { cmd: 'comet'; x: number; y: number; radius?: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
   | { cmd: 'repair'; x: number; y: number; radius?: number }
@@ -141,11 +142,16 @@ export type SandboxViewFlag =
 export type SandboxViewControl =
   { control: 'overlay'; value: SandboxOverlay } | { control: 'flag'; value: SandboxViewFlag }
 
+/** The sky effects a tool can draw over the map once it lands. */
+export type SkyOverlayKind = 'eclipse' | 'aurora'
+
 export interface SandboxTool {
   id: string
   label: string
   icon: string
   mode: 'point' | 'instant'
+  /** A sky effect drawn over the map for a while once the command lands (see game/render/sky-overlay.ts). */
+  overlay?: SkyOverlayKind
   build?: (x: number, y: number, brush: number) => SandboxCommand
   fire?: SandboxCommand
   time?: TimeControl
@@ -724,6 +730,15 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🌑',
         mode: 'instant',
         fire: { cmd: 'eclipse' },
+        overlay: 'eclipse',
+      },
+      {
+        id: 'aurora',
+        label: 'aurora',
+        icon: '🌌',
+        mode: 'instant',
+        fire: { cmd: 'aurora' },
+        overlay: 'aurora',
       },
       {
         id: 'comet',

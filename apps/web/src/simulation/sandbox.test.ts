@@ -87,3 +87,15 @@ describe('marry tool', () => {
     expect(marry?.build).toBeUndefined()
   })
 })
+
+describe('sky tools', () => {
+  it('eclipse and aurora each draw their own sky overlay once they land', () => {
+    const tools = SANDBOX_CATEGORIES.flatMap((c) => c.tools)
+    expect(tools.find((t) => t.id === 'eclipse')?.overlay).toBe('eclipse')
+    expect(tools.find((t) => t.id === 'aurora')).toMatchObject({
+      mode: 'instant',
+      fire: { cmd: 'aurora' },
+      overlay: 'aurora',
+    })
+  })
+})

@@ -14,6 +14,7 @@ import { HoverOutline } from './hover/HoverOutline'
 import { TerritoryHoverCard } from './hover/TerritoryHoverCard'
 import { installBenchHooks } from './bench-hooks'
 import { SandboxBursts } from './SandboxBursts'
+import { SkyOverlay } from './SkyOverlay'
 import { useSandboxBursts } from './sandbox-bursts'
 import type { MapCommand } from './camera-controls'
 import { CanvasWorldFallback } from './world-view/CanvasWorldFallback'
@@ -309,6 +310,7 @@ export function WorldView({
         </div>
       )}
       <SandboxBursts bursts={bursts} width={dims.w} height={dims.h} />
+      <SkyOverlay />
       {mapReady && !viewFlags.hideUI && (
         <WorldMapHud
           world={world}
