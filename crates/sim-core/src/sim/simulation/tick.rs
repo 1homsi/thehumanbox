@@ -294,7 +294,8 @@ impl Simulation {
             for (lid, (id, _)) in candidates {
                 self.lineage_elders.insert(lid, id);
             }
-            let elder_ids: rustc_hash::FxHashSet<String> = self.lineage_elders.values().cloned().collect();
+            let elder_ids: crate::hashing::FxHashSet<String> =
+                self.lineage_elders.values().cloned().collect();
             let tc = self.tick_count;
             for org in self.organisms.iter_mut() {
                 let was_elder = org.is_elder;

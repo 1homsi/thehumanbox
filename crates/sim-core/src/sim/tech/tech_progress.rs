@@ -1,6 +1,6 @@
+use crate::hashing::{FxHashMap as HashMap, FxHashSet as HashSet};
 use rand::RngExt;
 use rand_chacha::ChaCha8Rng;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use std::collections::VecDeque;
 
 use super::tech_tree::all_tech;

@@ -74,8 +74,8 @@ pub(super) fn pick_food_recipient_reference(
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let (ox, oy) = (organisms[org_idx].x, organisms[org_idx].y);
 
-    let friend_ids: rustc_hash::FxHashSet<String> = organisms[org_idx].friends.keys().cloned().collect();
-    let high_trust: rustc_hash::FxHashSet<String> = organisms[org_idx]
+    let friend_ids: crate::hashing::FxHashSet<String> = organisms[org_idx].friends.keys().cloned().collect();
+    let high_trust: crate::hashing::FxHashSet<String> = organisms[org_idx]
         .org_trust
         .iter()
         .filter(|(_, &v)| v >= 0.55)

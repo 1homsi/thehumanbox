@@ -1,8 +1,8 @@
 use super::*;
 
 pub(in crate::sim::civ) fn tick_grudge_recall(sim: &mut Simulation) {
+    use crate::hashing::FxHashSet as HashSet;
     use crate::organism::memory::MemoryKind;
-    use rustc_hash::FxHashSet as HashSet;
     let n = sim.organisms.len();
     if n == 0 {
         return;
@@ -85,14 +85,14 @@ pub(in crate::sim::civ) fn tick_partner_pillow_talk(sim: &mut Simulation) {
     use crate::organism::memory::{MemoryEntry, MemoryKind};
     let tick = sim.tick_count;
     let pairs: Vec<(usize, usize)> = {
-        let mut by_id: rustc_hash::FxHashMap<&str, usize> = rustc_hash::FxHashMap::default();
+        let mut by_id: crate::hashing::FxHashMap<&str, usize> = crate::hashing::FxHashMap::default();
         for (i, o) in sim.organisms.iter().enumerate() {
             if o.alive {
                 by_id.insert(o.id.as_str(), i);
             }
         }
         let mut out: Vec<(usize, usize)> = Vec::new();
-        let mut seen: rustc_hash::FxHashSet<(usize, usize)> = rustc_hash::FxHashSet::default();
+        let mut seen: crate::hashing::FxHashSet<(usize, usize)> = crate::hashing::FxHashSet::default();
         for (i, o) in sim.organisms.iter().enumerate() {
             if !o.alive {
                 continue;

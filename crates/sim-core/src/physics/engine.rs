@@ -1,6 +1,6 @@
+use crate::hashing::FxHashSet as HashSet;
 use crate::world::{grid::WorldGrid, tiles::Tile};
 use rand::{Rng, RngExt};
-use rustc_hash::FxHashSet as HashSet;
 
 /// Tiles whose usual temperature is below this hold snow all year: the
 /// same line world generation draws snow on the foothills with.

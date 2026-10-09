@@ -90,21 +90,21 @@ impl EligibilityContext {
     }
 }
 
-pub(super) fn stable_action_phase(id: &str, tick: u64) -> usize {
+pub(super) fn stable_action_phase(id: &str, tick: u64) -> u64 {
     let hash = id.bytes().fold(2_166_136_261u32, |hash, byte| {
         (hash ^ u32::from(byte)).wrapping_mul(16_777_619)
     });
-    (u64::from(hash) + tick / 30) as usize
+    u64::from(hash) + tick / 30
 }
 
 #[cfg(test)]
-pub(super) fn extend_rotating_candidates(actions: &mut Vec<usize>, candidates: &[usize], phase: usize) {
+pub(super) fn extend_rotating_candidates(actions: &mut Vec<usize>, candidates: &[usize], phase: u64) {
     let len = candidates.len();
     if len == 0 {
         return;
     }
     let take = ACTIONS_PER_BAND.min(len);
-    let offset = phase % len;
+    let offset = (phase % len as u64) as usize;
     for step in 0..take {
         actions.push(candidates[(offset + step) % len]);
     }
@@ -127,7 +127,7 @@ pub(super) fn mark_eligible_family_band(families: &mut [u64; ACTION_FAMILY_COUNT
 pub(super) fn extend_rotating_family_masks(
     actions: &mut Vec<usize>,
     families: &[u64; ACTION_FAMILY_COUNT],
-    phase: usize,
+    phase: u64,
 ) {
     let mut candidates = [0usize; ACTION_FAMILY_WIDTH];
     for (family, &mask) in families.iter().enumerate() {

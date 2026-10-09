@@ -167,13 +167,14 @@ pub(super) fn tick_religion_adherents(sim: &mut Simulation) {
     if sim.religions.is_empty() {
         return;
     }
-    let mut adherents_by_id: rustc_hash::FxHashMap<String, u32> = rustc_hash::FxHashMap::default();
+    let mut adherents_by_id: crate::hashing::FxHashMap<String, u32> = crate::hashing::FxHashMap::default();
     for o in sim.organisms.iter().filter(|o| o.alive) {
         if let Some(rid) = o.religion_id.as_ref() {
             *adherents_by_id.entry(rid.clone()).or_insert(0) += 1;
         }
     }
-    let mut religion_by_lineage: rustc_hash::FxHashMap<String, String> = rustc_hash::FxHashMap::default();
+    let mut religion_by_lineage: crate::hashing::FxHashMap<String, String> =
+        crate::hashing::FxHashMap::default();
     for r in sim.religions.iter() {
         religion_by_lineage
             .entry(r.founder_lineage.clone())

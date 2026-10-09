@@ -1,4 +1,5 @@
 use super::Simulation;
+use crate::math::DetMath;
 use crate::sim::world_events::push_event;
 use rand::RngExt;
 
@@ -82,7 +83,7 @@ impl Simulation {
             .iter()
             .enumerate()
             .filter(|(_, o)| o.alive)
-            .map(|(i, o)| (i, (o.x - x).hypot(o.y - y)))
+            .map(|(i, o)| (i, (o.x - x).det_hypot(o.y - y)))
             .filter(|&(_, d)| d <= reach)
             .min_by(|a, b| a.1.total_cmp(&b.1))
             .map(|(i, _)| i)

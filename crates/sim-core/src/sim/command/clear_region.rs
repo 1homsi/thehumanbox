@@ -1,4 +1,5 @@
 use super::Simulation;
+use crate::math::DetMath;
 use crate::organism::organism::Harm;
 use crate::sim::world_events::push_event;
 use crate::world::grid::WorldGrid;
@@ -24,7 +25,7 @@ impl Simulation {
         let now = self.tick_count;
         let mut people = 0usize;
         for o in self.organisms.iter_mut().filter(|o| o.alive) {
-            if (o.x - x).hypot(o.y - y) <= reach {
+            if (o.x - x).det_hypot(o.y - y) <= reach {
                 o.health = -1.0;
                 o.mark_harm(Harm::Disaster, now);
                 people += 1;
@@ -32,7 +33,7 @@ impl Simulation {
         }
         let mut animals = 0usize;
         for a in self.animals.iter_mut().filter(|a| a.alive) {
-            if (a.x - x).hypot(a.y - y) <= reach {
+            if (a.x - x).det_hypot(a.y - y) <= reach {
                 a.alive = false;
                 animals += 1;
             }

@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::DetMath;
 
 /// A finished house on open grass, with nobody near enough to be the
 /// nearest living thing for lightning.
@@ -9,7 +10,8 @@ fn house_world() -> (Simulation, u32) {
             sim.grid.set(x, y, Tile::Grass);
         }
     }
-    sim.organisms.retain(|o| (o.x - 102.0).hypot(o.y - 102.0) > 40.0);
+    sim.organisms
+        .retain(|o| (o.x - 102.0).det_hypot(o.y - 102.0) > 40.0);
     sim.animals.clear();
     let mut house = Building::new(900, BuildingKind::House, 101, 101, None, 1);
     house.condition = 1.0;

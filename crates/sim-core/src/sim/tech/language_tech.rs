@@ -156,8 +156,8 @@ pub const BOOK_TITLE_TOPIC: &[&str] = &[
 ];
 
 pub fn pick_book_title(seed: u64) -> String {
-    let p = BOOK_TITLE_PREFIX[(seed as usize) % BOOK_TITLE_PREFIX.len()];
-    let t = BOOK_TITLE_TOPIC[((seed / 7) as usize) % BOOK_TITLE_TOPIC.len()];
+    let p = BOOK_TITLE_PREFIX[(seed % BOOK_TITLE_PREFIX.len() as u64) as usize];
+    let t = BOOK_TITLE_TOPIC[((seed / 7) % BOOK_TITLE_TOPIC.len() as u64) as usize];
     format!("{} {}", p, t)
 }
 

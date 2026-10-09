@@ -1,11 +1,12 @@
+use crate::math::DetMath;
 use rand::RngExt;
 
+use crate::hashing::FxHashMap;
 use crate::sim::config::{lineage_overcrowding_threshold, DEFAULT_MAX_POPULATION};
 use crate::sim::simulation::Simulation;
 use crate::sim::spatial::SpatialIndex;
 use crate::world::grid::{HEIGHT, WIDTH};
 use crate::world::tiles::Tile;
-use rustc_hash::FxHashMap;
 
 impl Simulation {
     pub(crate) fn validate_or_assign_wander_target_indexed(
@@ -149,8 +150,8 @@ impl Simulation {
             let len = (dx * dx + dy * dy).sqrt();
             if len < 0.5 {
                 let a = self.rng.random::<f32>() * std::f32::consts::TAU;
-                dx = a.cos();
-                dy = a.sin();
+                dx = a.det_cos();
+                dy = a.det_sin();
             } else {
                 dx /= len;
                 dy /= len;

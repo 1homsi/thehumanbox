@@ -221,8 +221,9 @@ pub(super) fn try_enact_law(g: &mut Government, era: Era, tick: u64) {
 }
 
 pub(super) fn tick_leader_influence(sim: &mut Simulation) {
-    let leader_attitudes: rustc_hash::FxHashMap<String, Vec<(String, f32)>> = {
-        let mut out: rustc_hash::FxHashMap<String, Vec<(String, f32)>> = rustc_hash::FxHashMap::default();
+    let leader_attitudes: crate::hashing::FxHashMap<String, Vec<(String, f32)>> = {
+        let mut out: crate::hashing::FxHashMap<String, Vec<(String, f32)>> =
+            crate::hashing::FxHashMap::default();
         for o in sim.organisms.iter() {
             if !o.alive || !o.is_leader {
                 continue;

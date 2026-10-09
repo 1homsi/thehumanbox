@@ -1,4 +1,5 @@
 use super::Simulation;
+use crate::math::DetMath;
 use crate::sim::world_events::push_event;
 use crate::world::grid::WorldGrid;
 use crate::world::tiles::Tile;
@@ -39,7 +40,7 @@ impl Simulation {
         }
         let mut drinkers = 0usize;
         for o in self.organisms.iter_mut().filter(|o| o.alive) {
-            if (o.x - x).hypot(o.y - y) <= reach {
+            if (o.x - x).det_hypot(o.y - y) <= reach {
                 o.hydration = (o.hydration + DRINK).min(1.0);
                 drinkers += 1;
             }

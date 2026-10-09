@@ -1,4 +1,5 @@
 use super::Simulation;
+use crate::math::DetMath;
 use crate::sim::age_stage::AgeStage;
 
 /// How far from the clicked point a person may be and still be the one made leader, in tiles.
@@ -24,7 +25,7 @@ impl Simulation {
             .iter()
             .enumerate()
             .filter(|(_, o)| o.alive && matches!(o.age_stage(), AgeStage::Adult | AgeStage::Elder))
-            .map(|(i, o)| (i, (o.x - x).hypot(o.y - y)))
+            .map(|(i, o)| (i, (o.x - x).det_hypot(o.y - y)))
             .filter(|&(_, d)| d <= reach)
             .min_by(|a, b| a.1.total_cmp(&b.1))
             .map(|(i, _)| i);

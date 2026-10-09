@@ -171,7 +171,7 @@ impl Simulation {
             for &t in &taken {
                 wset.insert(t);
             }
-            let taken_set: rustc_hash::FxHashSet<(i32, i32)> = taken.iter().copied().collect();
+            let taken_set: crate::hashing::FxHashSet<(i32, i32)> = taken.iter().copied().collect();
             let mut buildings_captured = false;
             for b in self.buildings.iter_mut() {
                 if taken_set.contains(&(b.x, b.y)) {

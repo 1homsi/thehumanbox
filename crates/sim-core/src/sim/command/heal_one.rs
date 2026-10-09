@@ -1,4 +1,5 @@
 use super::Simulation;
+use crate::math::DetMath;
 
 /// How far from the clicked point a person may be and still be the one healed, in tiles.
 const DEFAULT_REACH: f32 = 4.0;
@@ -21,7 +22,7 @@ impl Simulation {
             .iter()
             .enumerate()
             .filter(|(_, o)| o.alive)
-            .map(|(i, o)| (i, (o.x - x).hypot(o.y - y)))
+            .map(|(i, o)| (i, (o.x - x).det_hypot(o.y - y)))
             .filter(|&(_, d)| d <= reach)
             .min_by(|a, b| a.1.total_cmp(&b.1));
         let Some((i, _)) = nearest else {

@@ -183,6 +183,7 @@ impl Simulation {
 
 #[cfg(test)]
 mod tests {
+    use crate::math::DetMath;
     use crate::sim::simulation::Simulation;
 
     fn alone_except(sim: &mut Simulation, keep: &[usize]) {
@@ -229,7 +230,7 @@ mod tests {
         assert!(sim.apply_command_json(r#"{"cmd":"migrate_tribe","x":103.0,"y":100.0,"radius":6.0}"#));
         for o in [&sim.organisms[0], &sim.organisms[1]] {
             assert!(
-                (o.x - 103.0).hypot(o.y - 100.0) <= 3.5,
+                (o.x - 103.0).det_hypot(o.y - 100.0) <= 3.5,
                 "the tribe is near the click"
             );
         }

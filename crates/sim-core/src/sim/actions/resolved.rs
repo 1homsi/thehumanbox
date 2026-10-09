@@ -7,7 +7,7 @@
 //! specialty gates become a couple of AND/compare operations. `qualifies` stays
 //! as the reference implementation and a test pins the two together.
 use super::*;
-use rustc_hash::FxHashMap;
+use crate::hashing::FxHashMap;
 use std::sync::OnceLock;
 
 use crate::organism::organism::{DiscoveryMask as DiscMask, DISCOVERY_MASK_WORDS as DISC_WORDS};
@@ -382,7 +382,7 @@ mod tests {
             org.specialty = match next() % 4 {
                 0 => None,
                 1 => Some("not-in-any-band".to_string()),
-                _ => Some(specialties[(next() as usize) % specialties.len()].to_string()),
+                _ => Some(specialties[(next() % specialties.len() as u64) as usize].to_string()),
             };
             org.is_leader = next() % 3 == 0;
             org.literacy = (next() % 101) as f32 / 100.0;

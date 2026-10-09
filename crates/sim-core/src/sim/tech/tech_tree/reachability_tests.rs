@@ -1,6 +1,6 @@
 use super::*;
+use crate::hashing::FxHashSet;
 use crate::sim::civ::eras::LADDER;
-use rustc_hash::FxHashSet;
 
 /// Every secret an age asks for must be a real node whose prerequisites,
 /// all the way back, are real nodes too: otherwise no tribe can ever

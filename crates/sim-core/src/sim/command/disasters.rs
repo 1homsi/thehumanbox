@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::DetMath;
 
 impl Simulation {
     pub(super) fn cmd_smite(&mut self, x: f32, y: f32, radius: f32) -> bool {
@@ -11,7 +12,7 @@ impl Simulation {
             .iter()
             .enumerate()
             .filter(|(_, o)| o.alive)
-            .map(|(i, o)| (i, (o.x - x).hypot(o.y - y)))
+            .map(|(i, o)| (i, (o.x - x).det_hypot(o.y - y)))
             .filter(|&(_, d)| d <= r)
             .min_by(|a, b| a.1.total_cmp(&b.1));
         let nearest_animal = self
@@ -19,7 +20,7 @@ impl Simulation {
             .iter()
             .enumerate()
             .filter(|(_, a)| a.alive)
-            .map(|(i, a)| (i, (a.x - x).hypot(a.y - y)))
+            .map(|(i, a)| (i, (a.x - x).det_hypot(a.y - y)))
             .filter(|&(_, d)| d <= r)
             .min_by(|a, b| a.1.total_cmp(&b.1));
         // Lightning also cracks roofs where it lands, and sometimes
@@ -154,7 +155,7 @@ impl Simulation {
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
         let length = radius.clamp(4, 24);
         let heading = self.rng.random::<f32>() * TAU;
-        let (dx, dy) = (heading.cos(), heading.sin());
+        let (dx, dy) = (heading.det_cos(), heading.det_sin());
         let mut hit = false;
         for step in 0..=length {
             let fx = x as f32 + dx * step as f32;
@@ -199,8 +200,8 @@ impl Simulation {
     pub(super) fn cmd_gale(&mut self) -> bool {
         use std::f32::consts::TAU;
         let theta = self.rng.random::<f32>() * TAU;
-        self.weather.wind_x = theta.cos() * 0.9;
-        self.weather.wind_y = theta.sin() * 0.9;
+        self.weather.wind_x = theta.det_cos() * 0.9;
+        self.weather.wind_y = theta.det_sin() * 0.9;
         self.weather.wind_last_tick = self.tick_count;
         const QUARTERS: [&str; 8] = [
             "east",
@@ -260,7 +261,7 @@ impl Simulation {
         let r = if radius <= 0.0 { 3.0 } else { radius.min(32.0) };
         let mut poisoned = 0;
         for o in self.organisms.iter_mut() {
-            if o.alive && (o.x - x).hypot(o.y - y) <= r {
+            if o.alive && (o.x - x).det_hypot(o.y - y) <= r {
                 o.infection = o.infection.max(0.85);
                 poisoned += 1;
             }
@@ -301,7 +302,7 @@ impl Simulation {
         let (fx, fy, fr) = (x as f32, y as f32, r as f32);
         let mut hurt = 0;
         for o in self.organisms.iter_mut() {
-            let d = (o.x - fx).hypot(o.y - fy);
+            let d = (o.x - fx).det_hypot(o.y - fy);
             if o.alive && d <= fr {
                 o.health -= 0.25 + 0.35 * (1.0 - d / fr);
                 o.mark_harm(crate::organism::organism::Harm::Disaster, self.tick_count);
@@ -328,7 +329,7 @@ impl Simulation {
         let (fx, fy, fr) = (x as f32, y as f32, r as f32);
         let mut killed = 0;
         for o in self.organisms.iter_mut() {
-            if o.alive && (o.x - fx).hypot(o.y - fy) <= fr {
+            if o.alive && (o.x - fx).det_hypot(o.y - fy) <= fr {
                 o.health = -1.0;
                 o.mark_harm(crate::organism::organism::Harm::Disaster, self.tick_count);
                 killed += 1;
@@ -351,7 +352,7 @@ impl Simulation {
         );
         self.wither_plantings(x, y, r + 2);
         for a in self.animals.iter_mut() {
-            if a.alive && (a.x - fx).hypot(a.y - fy) <= fr {
+            if a.alive && (a.x - fx).det_hypot(a.y - fy) <= fr {
                 a.alive = false;
             }
         }
@@ -402,7 +403,7 @@ impl Simulation {
         let r = if radius <= 0.0 { 6.0 } else { radius.min(32.0) };
         let mut banished = 0;
         for a in self.animals.iter_mut() {
-            if a.alive && a.kind.hostile() && (a.x - x).hypot(a.y - y) <= r {
+            if a.alive && a.kind.hostile() && (a.x - x).det_hypot(a.y - y) <= r {
                 a.alive = false;
                 banished += 1;
             }
@@ -441,7 +442,7 @@ impl Simulation {
         withered += self.wither_plantings(x, y, r);
         let rf = r as f32;
         for o in self.organisms.iter_mut() {
-            if o.alive && (o.x - x as f32).hypot(o.y - y as f32) <= rf {
+            if o.alive && (o.x - x as f32).det_hypot(o.y - y as f32) <= rf {
                 o.inv_food = 0;
                 o.think("our food rotted", self.tick_count);
                 withered += 1;
@@ -463,7 +464,7 @@ impl Simulation {
         let r = if radius <= 0.0 { 4.0 } else { radius.min(24.0) };
         let mut maddened = 0;
         for o in self.organisms.iter_mut() {
-            if !o.alive || (o.x - x).hypot(o.y - y) > r {
+            if !o.alive || (o.x - x).det_hypot(o.y - y) > r {
                 continue;
             }
             let hurt = 0.15 + self.rng.random::<f32>() * 0.25;
@@ -496,7 +497,7 @@ impl Simulation {
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
         let length = radius.clamp(6, 30);
         let heading = self.rng.random::<f32>() * TAU;
-        let (dx, dy) = (heading.cos(), heading.sin());
+        let (dx, dy) = (heading.det_cos(), heading.det_sin());
         let mut hit = false;
         for step in 0..=length {
             let fx = x as f32 + dx * step as f32;
@@ -521,7 +522,7 @@ impl Simulation {
             }
             let tick = self.tick_count;
             for o in self.organisms.iter_mut() {
-                if o.alive && o.inv_food > 0 && (o.x - fx).hypot(o.y - fy) <= 2.0 {
+                if o.alive && o.inv_food > 0 && (o.x - fx).det_hypot(o.y - fy) <= 2.0 {
                     o.inv_food /= 2;
                     o.think("the locusts ate our stores", tick);
                     hit = true;
@@ -530,7 +531,7 @@ impl Simulation {
             for a in self.animals.iter_mut() {
                 if a.alive
                     && matches!(a.kind, AnimalKind::Bird | AnimalKind::Chicken)
-                    && (a.x - fx).hypot(a.y - fy) <= 2.0
+                    && (a.x - fx).det_hypot(a.y - fy) <= 2.0
                 {
                     a.energy = (a.energy + 0.3).min(1.0);
                     hit = true;
@@ -604,7 +605,7 @@ impl Simulation {
         self.grid.wash_roads(sx, sy, r);
         let rf = r as f32;
         for o in self.organisms.iter_mut() {
-            if o.alive && (o.x - sx as f32).hypot(o.y - sy as f32) <= rf {
+            if o.alive && (o.x - sx as f32).det_hypot(o.y - sy as f32) <= rf {
                 o.health = (o.health - 0.35).max(0.01);
                 o.mark_harm(crate::organism::organism::Harm::Disaster, self.tick_count);
                 o.fear_level = (o.fear_level + 0.5).min(1.0);
@@ -615,7 +616,7 @@ impl Simulation {
             if a.alive
                 && !a.kind.aquatic()
                 && !a.kind.flies()
-                && (a.x - sx as f32).hypot(a.y - sy as f32) <= rf
+                && (a.x - sx as f32).det_hypot(a.y - sy as f32) <= rf
                 && self.grid.get(a.x as i32, a.y as i32) == Tile::Flooded
             {
                 a.alive = false;
@@ -664,7 +665,7 @@ impl Simulation {
         self.grid.wash_roads(x, y, r);
         let rf = r as f32;
         for o in self.organisms.iter_mut() {
-            if o.alive && (o.x - x as f32).hypot(o.y - y as f32) <= rf {
+            if o.alive && (o.x - x as f32).det_hypot(o.y - y as f32) <= rf {
                 o.health = (o.health - 0.2).max(0.01);
                 o.mark_harm(crate::organism::organism::Harm::Disaster, self.tick_count);
                 o.fear_level = (o.fear_level + 0.3).min(1.0);
@@ -718,7 +719,7 @@ impl Simulation {
         }
         let rf = r as f32;
         for o in self.organisms.iter_mut() {
-            if o.alive && (o.x - x as f32).hypot(o.y - y as f32) <= rf {
+            if o.alive && (o.x - x as f32).det_hypot(o.y - y as f32) <= rf {
                 o.energy = (o.energy - 0.35).max(0.05);
                 o.health = (o.health - 0.1).max(0.01);
                 o.mark_harm(crate::organism::organism::Harm::Disaster, self.tick_count);
@@ -756,7 +757,7 @@ impl Simulation {
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
         let r = radius.clamp(4, 20);
         let (wx, wy) = (self.weather.wind_x, self.weather.wind_y);
-        let m = wx.hypot(wy);
+        let m = wx.det_hypot(wy);
         let (dirx, diry) = if m > 0.05 { (wx / m, wy / m) } else { (1.0, 0.0) };
         let mut lit = 0;
         for dx in -r..=r {
@@ -802,7 +803,7 @@ impl Simulation {
         for _ in 0..6 {
             let angle = self.rng.random::<f32>() * std::f32::consts::TAU;
             let dist = self.rng.random::<f32>().sqrt() * r;
-            let (sx, sy) = (x + angle.cos() * dist, y + angle.sin() * dist);
+            let (sx, sy) = (x + angle.det_cos() * dist, y + angle.det_sin() * dist);
             struck |= self.apply_command(Command::Smite {
                 x: sx,
                 y: sy,
@@ -859,14 +860,14 @@ impl Simulation {
         }
         let mut killed = 0;
         for o in self.organisms.iter_mut() {
-            if o.alive && (o.x - x as f32).hypot(o.y - y as f32) < rf * 0.6 {
+            if o.alive && (o.x - x as f32).det_hypot(o.y - y as f32) < rf * 0.6 {
                 o.health = -1.0;
                 o.mark_harm(crate::organism::organism::Harm::Disaster, self.tick_count);
                 killed += 1;
             }
         }
         for a in self.animals.iter_mut() {
-            if a.alive && (a.x - x as f32).hypot(a.y - y as f32) < rf * 0.6 {
+            if a.alive && (a.x - x as f32).det_hypot(a.y - y as f32) < rf * 0.6 {
                 a.alive = false;
             }
         }
@@ -897,7 +898,10 @@ impl Simulation {
         for _ in 0..5 {
             let angle = self.rng.random::<f32>() * std::f32::consts::TAU;
             let dist = self.rng.random::<f32>().sqrt() * r;
-            let (mx, my) = ((x + angle.cos() * dist) as i32, (y + angle.sin() * dist) as i32);
+            let (mx, my) = (
+                (x + angle.det_cos() * dist) as i32,
+                (y + angle.det_sin() * dist) as i32,
+            );
             hit |= self.apply_command(Command::Meteor {
                 x: mx,
                 y: my,

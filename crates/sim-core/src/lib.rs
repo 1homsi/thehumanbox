@@ -1,4 +1,6 @@
 #![allow(clippy::needless_range_loop)]
+pub mod hashing;
+pub mod math;
 pub mod organism;
 pub mod physics;
 pub mod sim;

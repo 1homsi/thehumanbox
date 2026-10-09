@@ -1,4 +1,5 @@
 use super::Simulation;
+use crate::math::DetMath;
 
 /// How far from a clicked point a person may be and still be the one married, in tiles.
 const REACH: f32 = 4.0;
@@ -35,7 +36,7 @@ impl Simulation {
             .iter()
             .enumerate()
             .filter(|(i, o)| Some(*i) != exclude && o.alive && o.age >= 700 && o.partner_id.is_none())
-            .map(|(i, o)| (i, (o.x - x).hypot(o.y - y)))
+            .map(|(i, o)| (i, (o.x - x).det_hypot(o.y - y)))
             .filter(|&(_, d)| d <= REACH)
             .min_by(|a, b| a.1.total_cmp(&b.1))
             .map(|(i, _)| i)

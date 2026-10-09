@@ -1,5 +1,5 @@
-use rustc_hash::FxHashMap;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use crate::hashing::FxHashMap;
+use crate::hashing::{FxHashMap as HashMap, FxHashSet as HashSet};
 use std::io;
 
 use rand::SeedableRng;

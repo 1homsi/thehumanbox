@@ -124,7 +124,7 @@ fn small_lineage_cannot_advance_before_living_world_meets_population_gate() {
 }
 
 fn prepare_technological_era_boundary(sim: &mut Simulation, era: crate::sim::era::Era) {
-    let alive_lineages: rustc_hash::FxHashSet<String> = sim
+    let alive_lineages: crate::hashing::FxHashSet<String> = sim
         .organisms
         .iter()
         .filter(|org| org.alive)

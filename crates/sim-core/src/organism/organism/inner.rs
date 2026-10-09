@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::DetMath;
 
 impl Organism {
     pub fn tick_inner_state(
@@ -161,8 +162,8 @@ impl Organism {
                 // given person pointed the same way.
                 let angle = ((hash ^ tick.wrapping_mul(0x9E37_79B9_7F4A_7C15)) % 6283) as f32 * 0.001;
                 let dist = 120.0 + self.traits.curiosity * 380.0;
-                let tx = (self.x + angle.sin() * dist).round() as i32;
-                let ty = (self.y + angle.cos() * dist).round() as i32;
+                let tx = (self.x + angle.det_sin() * dist).round() as i32;
+                let ty = (self.y + angle.det_cos() * dist).round() as i32;
                 self.wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
             }
         } else {
@@ -211,8 +212,8 @@ impl Organism {
             if tick % period == offset {
                 let angle = ((id_hash ^ tick.wrapping_mul(0x9E37_79B9_7F4A_7C15)) % 6283) as f32 * 0.001;
                 let dist = 150.0 + self.traits.curiosity * 400.0;
-                let tx = (self.x + angle.sin() * dist).round() as i32;
-                let ty = (self.y + angle.cos() * dist).round() as i32;
+                let tx = (self.x + angle.det_sin() * dist).round() as i32;
+                let ty = (self.y + angle.det_cos() * dist).round() as i32;
                 self.wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
             }
         }

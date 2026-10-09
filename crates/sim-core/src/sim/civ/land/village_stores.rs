@@ -9,6 +9,7 @@
 //! world. Everything here walks buildings and people in a fixed order and draws no
 //! random numbers.
 
+use crate::hashing::FxHashSet;
 use crate::sim::civ::land::village_fields::Tribe;
 use crate::sim::civ::land::village_livestock;
 use crate::sim::era::Era;
@@ -16,7 +17,6 @@ use crate::sim::simulation::Simulation;
 use crate::sim::tech::buildings::{Building, BuildingKind};
 use crate::world::grid::{HEIGHT, WIDTH};
 use crate::world::tiles::Tile;
-use rustc_hash::FxHashSet;
 
 /// Measures of grain one granary holds.
 pub(crate) const GRANARY_CAP: u32 = 60;

@@ -1,6 +1,7 @@
 mod worldgen;
 
 use super::tiles::{Biome, Tile};
+use crate::math::DetMath;
 use rand::{Rng, RngExt};
 use serde::Serialize;
 
@@ -44,7 +45,7 @@ pub struct WorldGrid {
     /// a HashSet so leave_trail can `insert` without worrying about
     /// duplicates; decay passes compact entries that decay back to
     /// zero so the set self-prunes.
-    pub trail_dirty: rustc_hash::FxHashSet<u32>,
+    pub trail_dirty: crate::hashing::FxHashSet<u32>,
 }
 
 impl WorldGrid {
@@ -66,7 +67,7 @@ impl WorldGrid {
             elevation: vec![0.0f32; size],
             depth: vec![0.0f32; size],
             road: vec![ROAD_NONE; size],
-            trail_dirty: rustc_hash::FxHashSet::default(),
+            trail_dirty: crate::hashing::FxHashSet::default(),
         };
         g.generate(seed);
         g.enforce_ocean_border();
@@ -139,7 +140,7 @@ impl WorldGrid {
                 let noise_b = Self::fbm(nx * 14.0, ny * 14.0, 0x000C_0A57_8765_4321);
                 let noise = noise_a * 0.65 + noise_b * 0.35;
 
-                let waterness = (1.0 - prog).powf(1.6) + noise * 0.45 - 0.10;
+                let waterness = (1.0 - prog).det_powf(1.6) + noise * 0.45 - 0.10;
                 if waterness > 0.55 {
                     self.water_out(i);
                 }
@@ -375,7 +376,7 @@ impl WorldGrid {
     /// the given factors, and removes the index from the dirty set
     /// once all three layers are within `TRAIL_EPS` of zero.
     fn decay_dirty(
-        dirty: &mut rustc_hash::FxHashSet<u32>,
+        dirty: &mut crate::hashing::FxHashSet<u32>,
         food: &mut [f32],
         water: &mut [f32],
         path: &mut [f32],

@@ -1,4 +1,5 @@
 use super::{clamp_cmd_coord, Simulation};
+use crate::math::DetMath;
 use crate::organism::organism::Harm;
 use crate::sim::civ::building_damage::{strike_buildings, DamageCause};
 use crate::sim::world_events::push_event;
@@ -47,7 +48,7 @@ impl Simulation {
 
         let tick = self.tick_count;
         for o in self.organisms.iter_mut().filter(|o| o.alive) {
-            let d = (o.x - x as f32).hypot(o.y - y as f32);
+            let d = (o.x - x as f32).det_hypot(o.y - y as f32);
             if d <= rf {
                 o.health -= CENTRE_HARM * (1.0 - d / (rf + 1.0));
                 o.mark_harm(Harm::Disaster, tick);
@@ -59,7 +60,7 @@ impl Simulation {
             .animals
             .iter()
             .enumerate()
-            .filter(|(_, a)| a.alive && (a.x - x as f32).hypot(a.y - y as f32) <= rf)
+            .filter(|(_, a)| a.alive && (a.x - x as f32).det_hypot(a.y - y as f32) <= rf)
             .map(|(i, _)| i)
             .collect();
         for i in caught {

@@ -8,6 +8,8 @@ use super::world_events::{
     tick_world_evolution, DroughtState, WeatherState,
 };
 use super::{courtship, growth, social};
+use crate::hashing::FxHashMap;
+use crate::hashing::{FxHashMap as HashMap, FxHashSet as HashSet};
 use crate::organism::animal::{Animal, AnimalKind};
 use crate::organism::attributes::check_earned_attributes;
 use crate::organism::decision_bias::directive_aligns_action;
@@ -19,8 +21,6 @@ use crate::world::{
 };
 use rand::{RngExt, SeedableRng};
 use rand_chacha::ChaCha8Rng;
-use rustc_hash::FxHashMap;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 

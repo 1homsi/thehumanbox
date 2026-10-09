@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::DetMath;
 
 pub(in crate::sim::civ) fn tick_mood(sim: &mut Simulation) {
     use crate::organism::memory::{MemoryEntry, MemoryKind};
@@ -155,8 +156,8 @@ pub(in crate::sim::civ) fn tick_curiosity_exploration(sim: &mut Simulation) {
                 .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
         let angle = ((hash ^ sim.tick_count) as f32) * 0.0000014;
         let dist = 200.0 + o.curiosity_drive * 350.0;
-        let tx = (o.x + angle.sin() * dist).round() as i32;
-        let ty = (o.y + angle.cos() * dist).round() as i32;
+        let tx = (o.x + angle.det_sin() * dist).round() as i32;
+        let ty = (o.y + angle.det_cos() * dist).round() as i32;
         o.wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
         o.curiosity_drive = (o.curiosity_drive * 0.4).max(0.0);
     }

@@ -275,7 +275,7 @@ impl Simulation {
             //         + named friends regardless of distance
             // Without these, a parent's death didn't reach their
             // distant children or cross-tribe friends.
-            let mut griever_set: rustc_hash::FxHashSet<usize> = rustc_hash::FxHashSet::default();
+            let mut griever_set: crate::hashing::FxHashSet<usize> = crate::hashing::FxHashSet::default();
             for (i, o) in self.organisms.iter().enumerate() {
                 if i == idx || !o.alive {
                     continue;

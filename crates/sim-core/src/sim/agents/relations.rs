@@ -8,10 +8,10 @@
 //! have drifted apart walk to each other now and then.
 
 use super::family_outings::chebyshev;
+use crate::hashing::FxHashMap;
 use crate::sim::simulation::Simulation;
 use crate::sim::spatial::SpatialIndex;
 use crate::world::grid::{HEIGHT, WIDTH};
-use rustc_hash::FxHashMap;
 
 /// Personal trust at or below this is a rivalry.
 pub(crate) const RIVAL_TRUST: f32 = -0.2;

@@ -1,4 +1,5 @@
 use super::Simulation;
+use crate::math::DetMath;
 use crate::sim::world_events::push_event;
 
 /// How far from the click a comet is seen, in tiles, unless the radius says otherwise.
@@ -73,7 +74,7 @@ impl Simulation {
         };
         let mut seen = 0usize;
         for o in self.organisms.iter_mut().filter(|o| o.alive) {
-            if (o.x - x).hypot(o.y - y) <= reach {
+            if (o.x - x).det_hypot(o.y - y) <= reach {
                 o.awe = (o.awe + COMET_AWE).min(1.0);
                 seen += 1;
             }

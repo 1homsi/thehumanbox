@@ -7,8 +7,8 @@
 
 use super::age_stage::AgeStage;
 use super::family_outings::chebyshev;
+use crate::hashing::FxHashMap;
 use crate::sim::simulation::Simulation;
-use rustc_hash::FxHashMap;
 
 /// An elder with less energy than this is brought food by a grown child.
 const ELDER_HUNGRY: f32 = 0.45;

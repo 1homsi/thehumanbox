@@ -1,6 +1,7 @@
 //! A tornado: what its funnel takes with it.
 
 use super::*;
+use crate::math::DetMath;
 use crate::organism::animal::{Animal, AnimalKind};
 use crate::world::tiles::Tile;
 
@@ -26,8 +27,8 @@ fn a_tornado_strikes_down_the_animals_in_its_funnel() {
         let angle = k as f32 * std::f32::consts::FRAC_PI_4;
         let deer = Animal::new(
             sim.next_animal_id,
-            150.0 + angle.cos(),
-            150.0 + angle.sin(),
+            150.0 + angle.det_cos(),
+            150.0 + angle.det_sin(),
             AnimalKind::Deer,
         );
         sim.next_animal_id += 1;

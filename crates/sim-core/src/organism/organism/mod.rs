@@ -1,5 +1,7 @@
 use super::traits::Traits;
 use super::vocabulary::Vocabulary;
+use crate::hashing::FxHashMap;
+use crate::hashing::FxHashMap as HashMap;
 use crate::sim::buildings::BuildingList;
 use crate::world::{
     grid::{TrailKind, WorldGrid},
@@ -7,8 +9,6 @@ use crate::world::{
 };
 pub use discoveries::{Discoveries, DiscoveryMask, Hot, DISCOVERY_MASK_WORDS};
 use rand::{Rng, RngExt};
-use rustc_hash::FxHashMap;
-use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
@@ -242,7 +242,7 @@ impl Organism {
             infection: 0.0,
             carrying: 0,
             carrying_type: 0,
-            vocabulary: Vocabulary::from_hashmap(&rustc_hash::FxHashMap::default()),
+            vocabulary: Vocabulary::from_hashmap(&crate::hashing::FxHashMap::default()),
             last_story_tick: 0,
             life_log: VecDeque::new(),
             discoveries: Discoveries::new(),

@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::DetMath;
 
 impl Simulation {
     pub(super) fn cmd_war(&mut self, x: f32, y: f32) -> bool {
@@ -65,7 +66,7 @@ impl Simulation {
             .iter()
             .filter(|o| o.alive && !o.lineage_id.is_empty())
         {
-            let d = (o.x - x).hypot(o.y - y);
+            let d = (o.x - x).det_hypot(o.y - y);
             match by_lineage.iter_mut().find(|(lid, _)| *lid == o.lineage_id) {
                 Some((_, best)) => *best = best.min(d),
                 None => by_lineage.push((o.lineage_id.clone(), d)),
@@ -104,7 +105,7 @@ impl Simulation {
         self.organisms
             .iter()
             .filter(|o| o.alive && !o.lineage_id.is_empty())
-            .map(|o| (o, (o.x - x).hypot(o.y - y)))
+            .map(|o| (o, (o.x - x).det_hypot(o.y - y)))
             .filter(|&(_, d)| d <= radius)
             .min_by(|a, b| a.1.total_cmp(&b.1))
             .map(|(o, _)| o.lineage_id.clone())

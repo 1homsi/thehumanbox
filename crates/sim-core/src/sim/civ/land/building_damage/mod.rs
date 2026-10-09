@@ -1,4 +1,4 @@
-use rustc_hash::FxHashSet as HashSet;
+use crate::hashing::FxHashSet as HashSet;
 
 use crate::sim::age_stage::AgeStage;
 use crate::sim::buildings::{Building, BuildingKind, REPAIR_ACTIVITY_TICKS};

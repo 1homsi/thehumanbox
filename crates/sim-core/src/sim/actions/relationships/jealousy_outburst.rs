@@ -20,7 +20,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         .iter()
         .map(|&k| ctx.sim.organisms[k].lineage_id.clone())
         .filter(|l| *l != lid)
-        .collect::<rustc_hash::FxHashSet<_>>()
+        .collect::<crate::hashing::FxHashSet<_>>()
         .into_iter()
         .collect();
     for fl in &foreign_lids {

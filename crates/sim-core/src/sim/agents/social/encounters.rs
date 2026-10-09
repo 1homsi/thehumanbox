@@ -146,8 +146,8 @@ pub fn groom(
     let (ox, oy) = (organisms[org_idx].x, organisms[org_idx].y);
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let org_id = organisms[org_idx].id.clone();
-    let friend_ids: rustc_hash::FxHashSet<String> = organisms[org_idx].friends.keys().cloned().collect();
-    let high_trust: rustc_hash::FxHashSet<String> = organisms[org_idx]
+    let friend_ids: crate::hashing::FxHashSet<String> = organisms[org_idx].friends.keys().cloned().collect();
+    let high_trust: crate::hashing::FxHashSet<String> = organisms[org_idx]
         .org_trust
         .iter()
         .filter(|(_, &v)| v >= 0.55)

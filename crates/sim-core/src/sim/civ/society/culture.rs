@@ -187,7 +187,7 @@ pub const RELIGION_NAMES: &[&str] = &[
 ];
 
 pub fn pick_religion_name(seed: u64) -> &'static str {
-    RELIGION_NAMES[(seed as usize) % RELIGION_NAMES.len()]
+    RELIGION_NAMES[(seed % RELIGION_NAMES.len() as u64) as usize]
 }
 
 #[cfg(test)]

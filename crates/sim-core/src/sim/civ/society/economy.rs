@@ -1,5 +1,5 @@
+use crate::hashing::FxHashMap as HashMap;
 use crate::sim::era::Era;
-use rustc_hash::FxHashMap as HashMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]

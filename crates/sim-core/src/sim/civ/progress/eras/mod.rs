@@ -1,4 +1,4 @@
-use rustc_hash::FxHashSet as HashSet;
+use crate::hashing::FxHashSet as HashSet;
 use serde::{Deserialize, Serialize};
 
 pub mod akashic;

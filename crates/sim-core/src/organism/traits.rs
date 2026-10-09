@@ -1,5 +1,5 @@
+use crate::math::DetMath;
 use rand::{Rng, RngExt};
-use rand_distr::{Distribution, Normal};
 use serde::Serialize;
 
 /// `#[serde(default)]` is load-bearing: this struct sits inside every
@@ -34,11 +34,14 @@ fn clamp_trait(v: f32) -> f32 {
     v.clamp(0.1, 0.9)
 }
 
-fn gauss(rng: &mut impl Rng, std: f32) -> f32 {
-    match Normal::new(0.0f32, std) {
-        Ok(d) => d.sample(rng),
-        Err(_) => 0.0,
-    }
+/// Normal sample with mean 0 and standard deviation `sigma`, by Box-Muller on
+/// the deterministic `DetMath` functions. rand_distr's ziggurat calls the
+/// platform's exp and ln, so its samples differed between native and wasm.
+fn gauss(rng: &mut impl Rng, sigma: f32) -> f32 {
+    // u1 in (0, 1] keeps ln finite; u2 in [0, 1) gives the angle.
+    let u1 = 1.0 - rng.random::<f32>();
+    let u2 = rng.random::<f32>();
+    sigma * (-2.0 * u1.det_ln()).sqrt() * (std::f32::consts::TAU * u2).det_cos()
 }
 
 impl Traits {

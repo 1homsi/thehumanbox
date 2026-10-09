@@ -1,4 +1,4 @@
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use crate::hashing::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use serde_json::json;
 

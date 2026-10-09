@@ -4,11 +4,12 @@
 //! this every hut ever raised stood forever, and an old world was a carpet
 //! of empty villages.
 
+use crate::hashing::{FxHashMap, FxHashSet};
+use crate::math::DetMath;
 use crate::sim::cosmos::DAY_LENGTH;
 use crate::sim::simulation::Simulation;
 use crate::sim::tech::buildings::BuildingKind;
 use crate::sim::world_events::push_event;
-use rustc_hash::{FxHashMap, FxHashSet};
 
 /// Days an empty hut stands before it falls in. Sturdier homes last longer
 /// in proportion to their service life.
@@ -91,7 +92,7 @@ pub(crate) fn empty_homes(sim: &Simulation) -> FxHashSet<usize> {
         }
         match b.owner_lineage.as_deref().and_then(|l| tribes.get_key_value(l)) {
             Some((&lineage, t)) => {
-                let d = (b.x as f32 - t.x).hypot(b.y as f32 - t.y);
+                let d = (b.x as f32 - t.x).det_hypot(b.y as f32 - t.y);
                 by_tribe.entry(lineage).or_default().push((d, i));
             }
             None => {
@@ -132,7 +133,7 @@ fn take_over(
         .enumerate()
         .filter(|(_, b)| !b.decorative && b.is_complete() && !b.is_ruined() && wanted(b.kind))
         .filter(|(_, b)| b.owner_lineage.as_deref().is_none_or(|l| !tribes.contains_key(l)))
-        .map(|(i, b)| ((b.x as f32 - cx).hypot(b.y as f32 - cy), i))
+        .map(|(i, b)| ((b.x as f32 - cx).det_hypot(b.y as f32 - cy), i))
         .filter(|(d, _)| *d <= MOVE_IN_RADIUS as f32)
         .min_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
     drop(tribes);
