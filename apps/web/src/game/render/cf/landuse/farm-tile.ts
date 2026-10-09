@@ -76,13 +76,23 @@ export function paintFarmTile(
   const autumn = season === 'decline'
   const height = fallow ? 0 : Math.max(1, Math.round(1 + look.progress * 4))
   const offset = variant % 2
+  // A paddy drains as its rice ripens: the water goes off it in autumn, whether or not the
+  // harvest is due yet, so an autumn paddy never looks like a spring one.
+  const drained = ripe || (autumn && look.progress >= 0.5)
 
   // Soil. A planted field is dark tilled loam; a fallow one shows its season: bare furrows in spring
   // and summer, golden stubble after the autumn harvest, and snow over the ground in winter.
   if (style === 'paddy' && !fallow) {
     fill(0, 0, TILE, TILE, '#3f2c21')
-    fill(0, 0, TILE, TILE, ripe ? '#c9b26a' : '#4f7f86')
-    for (const row of [2, 5]) fill(0, row, TILE, 1, ripe ? '#b39a55' : '#3d6b72')
+    fill(0, 0, TILE, TILE, drained ? '#a88a4c' : '#4f7f86')
+    for (const row of [2, 5]) fill(0, row, TILE, 1, drained ? '#7d6231' : '#3d6b72')
+  } else if (style === 'paddy') {
+    // A harvested paddy: drained mud with the cut rice stubble standing in rows.
+    fill(0, 0, TILE, TILE, '#5a3f24')
+    fill(0, 0, TILE, TILE, '#8a6a3a')
+    for (let row = 1; row < TILE; row += 2) {
+      for (let c = 1 + offset; c < TILE - 1; c += 2) fill(c, row, 1, 1, '#d9bd72')
+    }
   } else {
     fill(0, 0, TILE, TILE, '#3a2719')
     fill(0, 0, TILE, TILE, fallow ? '#6b4c32' : '#5e4128')
@@ -108,7 +118,13 @@ export function paintFarmTile(
         break
       case 'paddy':
         for (let c = 2 + offset; c < TILE - 1; c += 3) {
-          fill(c, TILE - height - 1, 1, height, ripe ? '#e0c46a' : '#8fc26a')
+          if (drained) {
+            // Ripe rice: a golden head two pixels deep on a straw stem, the look of the harvest.
+            fill(c, TILE - height - 1, 1, height, '#8c6d2a')
+            fill(c - 1, TILE - height - 1, 3, 2, ripe ? '#f2c94c' : '#d9b04a')
+          } else {
+            fill(c, TILE - height - 1, 1, height, '#8fc26a')
+          }
         }
         break
       case 'stalk': {
