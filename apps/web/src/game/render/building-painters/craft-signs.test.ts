@@ -99,6 +99,16 @@ describe('trade signs', () => {
     expect(ink.length).toBe(lit)
   })
 
+  it('paints the tavern glyph in its own dark ink on the gold board', () => {
+    const { ctx, rects } = recorder()
+    paintCraftHome(shop('Tavern', ctx))
+    const ink = CRAFT_SIGNS.Tavern.ink
+    expect(ink).toBeDefined()
+    const glyphPixels = rects.filter((r) => r.color === ink && r.w === 1 && r.h === 1)
+    const lit = CRAFT_SIGNS.Tavern.glyph.join('').split('1').length - 1
+    expect(glyphPixels.length).toBe(lit)
+  })
+
   it('declines a kind without a sign so the caller keeps the plain cottage', () => {
     const { ctx } = recorder()
     expect(paintCraftHome(shop('House', ctx))).toBe(false)

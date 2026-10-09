@@ -10,6 +10,8 @@ import { paintCottage } from './dwellings'
 interface CraftSign {
   board: string
   glyph: readonly string[]
+  /** Glyph colour; cream unless the board is light. */
+  ink?: string
 }
 
 const GLYPH_INK = '#f4e6c2'
@@ -17,8 +19,8 @@ const GLYPH_INK = '#f4e6c2'
 export const CRAFT_SIGNS: Readonly<Record<string, CraftSign>> = {
   // A loaf of bread.
   Bakery: { board: '#c98a3a', glyph: ['.1.', '111', '11.'] },
-  // A tankard.
-  Tavern: { board: '#8c3b2a', glyph: ['11.', '111', '111'] },
+  // A tankard on a gold board: the one trade sign light enough to read against a red roof.
+  Tavern: { board: '#d9a441', glyph: ['11.', '111', '111'], ink: '#3a2412' },
   // A bed for travellers.
   Inn: { board: '#3d6b99', glyph: ['1.1', '111', '1.1'] },
   // Sails of a mill.
@@ -66,7 +68,7 @@ export function paintCraftHome(p: P): boolean {
   const gy = by + Math.floor((bh - 3) / 2)
   sign.glyph.forEach((row, r) => {
     for (let c = 0; c < row.length; c++) {
-      if (row[c] === '1') px(p.ctx, gx + c, gy + r, 1, 1, GLYPH_INK)
+      if (row[c] === '1') px(p.ctx, gx + c, gy + r, 1, 1, sign.ink ?? GLYPH_INK)
     }
   })
   return true
