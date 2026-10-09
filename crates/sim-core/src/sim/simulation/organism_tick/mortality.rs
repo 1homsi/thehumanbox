@@ -1,5 +1,16 @@
 use super::*;
 
+/// The age at which old age takes a person. Everyone is born with a lifespan (`max_age`); a
+/// person who knows medicine lives a fifth longer, so a tribe that has learned it keeps its
+/// elders for longer.
+pub(super) fn lifespan(org: &crate::organism::organism::Organism) -> u32 {
+    if org.max_age > 0 && org.discoveries.has(crate::organism::organism::Hot::Medicine) {
+        org.max_age + org.max_age / 5
+    } else {
+        org.max_age
+    }
+}
+
 impl Simulation {
     /// Death: starvation, thirst, injury and old age, graves, grief for the dead, and the effects on the living.
     pub(super) fn org_mortality(&mut self, f: &mut OrgFrame<'_>) {
@@ -10,7 +21,7 @@ impl Simulation {
             let dying = org.energy <= 0.0
                 || org.hydration <= 0.0
                 || org.health <= 0.0
-                || (org.max_age > 0 && org.age >= org.max_age);
+                || (org.max_age > 0 && org.age >= lifespan(org));
             if dying {
                 Some((org.x as i32, org.y as i32, org.lineage_id.clone()))
             } else {
@@ -123,7 +134,7 @@ impl Simulation {
                     &format!("died {} tiles from home, far from where they were born", dist),
                 );
             }
-        } else if org.max_age > 0 && org.age >= org.max_age {
+        } else if org.max_age > 0 && org.age >= lifespan(org) {
             org.alive = false;
             org.think("died of old age", self.tick_count);
             self.history.deaths_old_age += 1;
@@ -478,6 +489,44 @@ impl Simulation {
                 self.grid.set(dx, dy, Tile::Food);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod lifespan_tests {
+    use super::*;
+    use crate::organism::organism::Organism;
+    use crate::organism::traits::Traits;
+
+    fn person(max_age: u32) -> Organism {
+        let mut o = Organism::new(
+            "p".into(),
+            "p".into(),
+            0.0,
+            0.0,
+            0,
+            String::new(),
+            "clan".into(),
+            9000,
+            Traits::default(),
+        );
+        o.max_age = max_age;
+        o
+    }
+
+    #[test]
+    fn knowing_medicine_adds_a_fifth_to_the_lifespan() {
+        let mut plain = person(1000);
+        assert_eq!(lifespan(&plain), 1000);
+        plain.discover("medicine");
+        assert_eq!(lifespan(&plain), 1200);
+        let mut no_lifespan = person(0);
+        no_lifespan.discover("medicine");
+        assert_eq!(
+            lifespan(&no_lifespan),
+            0,
+            "a person with no lifespan never dies of age"
+        );
     }
 }
 
