@@ -70,4 +70,7 @@ pub struct Vehicle {
     pub route: Vec<(i32, i32)>,
     #[serde(default)]
     pub ready_tick: u64,
+    /// The mooring of a fishing boat (see `fleet.rs`); `None` for a boat built for a crossing.
+    #[serde(default)]
+    pub harbour: Option<(i32, i32)>,
 }

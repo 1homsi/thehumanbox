@@ -536,6 +536,24 @@ pub(super) fn print_progress(sim: &Simulation) {
         let parts: Vec<String> = row.iter().map(|(k, n)| format!("{}={}", k, n)).collect();
         println!("Animals alive at end: {}  ({})", total, parts.join(" "));
     }
+    {
+        use sim::transportation::TransportKind;
+        let boats: Vec<_> = sim
+            .vehicles
+            .iter()
+            .filter(|v| v.kind == TransportKind::Boat)
+            .collect();
+        let fishing = boats.iter().filter(|v| v.harbour.is_some()).count();
+        let under_way = boats.iter().filter(|v| !v.route.is_empty()).count();
+        let carrying = boats.iter().filter(|v| !v.occupants.is_empty()).count();
+        println!(
+            "Boats at end: {}  (fishing from a harbour {}, under way {}, carrying passengers {})",
+            boats.len(),
+            fishing,
+            under_way,
+            carrying
+        );
+    }
 
     let mut lineage_alive: HashMap<&str, usize> = HashMap::new();
     for org in sim.organisms.iter().filter(|o| o.alive) {

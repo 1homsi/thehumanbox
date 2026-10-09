@@ -359,7 +359,8 @@ impl Simulation {
         }
         for vehicle in &mut self.vehicles {
             vehicle.occupants.retain(|id| org_idx_by_id.contains_key(id));
-            if vehicle.occupants.is_empty() {
+            // A fishing boat keeps its voyage with nobody aboard; a crossing ends when its passenger is gone.
+            if vehicle.occupants.is_empty() && vehicle.harbour.is_none() {
                 vehicle.route.clear();
             }
         }
@@ -504,6 +505,7 @@ impl Simulation {
 
         self.tick_animals(&org_idx_by_id);
         self.tick_colonization();
+        self.tick_fleet();
         self.tick_plantings();
         self.tick_prayers();
         self.tick_wards();

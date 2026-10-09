@@ -170,7 +170,9 @@ impl Simulation {
                 "id": v.id, "kind": v.kind.name(), "x": v.x, "y": v.y,
                 "rider_id": v.occupants.first(), "building": self.tick_count < v.ready_tick && !v.occupants.is_empty(),
                 // The owner's era picks the hull the boat is drawn with; cargo is the goods on deck.
-                "era": self.era(&v.owner_lineage).name(), "cargo": v.cargo
+                "era": self.era(&v.owner_lineage).name(), "cargo": v.cargo,
+                // A boat with a voyage to make is under way (its wake shows); a fishing boat is moored at its harbour.
+                "sailing": !v.route.is_empty(), "harbour": v.harbour.map(|(x, y)| json!([x, y]))
             })).collect()));
             // Remains of prey, where birds gather: a few at a time, so the list is short.
             obj.insert(

@@ -8,6 +8,7 @@ pub mod tools;
 pub mod transportation;
 
 pub mod boats;
+pub mod fleet;
 #[cfg(test)]
 mod plant_kinds_tests;
 pub mod plantings;
