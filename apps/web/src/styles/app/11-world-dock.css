@@ -254,6 +254,21 @@
     inset 2px 2px 0 #9c7a3e,
     inset -2px -3px 0 #3a2a15;
 }
+/* A tab holding a tool the player has not seen yet (see NEW_TOOL_IDS in dock-tabs.ts). */
+.dock-tab-new {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: var(--dock-gold);
+  color: #2a1b0c;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+  pointer-events: none;
+}
 .dock-tile:focus-visible,
 .dock-tab:focus-visible,
 .dock-play:focus-visible,

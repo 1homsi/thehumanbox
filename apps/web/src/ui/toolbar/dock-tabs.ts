@@ -101,6 +101,44 @@ export function groupsFor(tabId: string): SandboxCategory[] {
 }
 
 /**
+ * Tools added since the last release. A tab that holds one the player has not seen shows a
+ * "new" mark; opening the tab marks its new tools seen. Remove an id once it is old news.
+ */
+export const NEW_TOOL_IDS: readonly string[] = ['heat_wave', 'owl', 'eagle', 'snake', 'crocodile']
+
+const SEEN_NEW_STORAGE_KEY = 'thb-seen-new-tools'
+
+/** The new tools a tab holds that the player has not seen yet. */
+export function unseenNewTools(tabId: string, seen: ReadonlySet<string>): string[] {
+  const here = new Set(groupsFor(tabId).flatMap((c) => c.tools.map((t) => t.id)))
+  return NEW_TOOL_IDS.filter((id) => here.has(id) && !seen.has(id))
+}
+
+/** The new tools seen so far, from browser storage (empty when storage is unavailable). */
+export function readSeenNewTools(): Set<string> {
+  try {
+    const raw = window.localStorage.getItem(SEEN_NEW_STORAGE_KEY)
+    const ids: unknown = raw ? JSON.parse(raw) : []
+    return new Set(Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : [])
+  } catch {
+    return new Set()
+  }
+}
+
+/** Marks the new tools in a tab as seen, and returns the updated set. */
+export function markNewToolsSeen(tabId: string, seen: ReadonlySet<string>): Set<string> {
+  const next = new Set(seen)
+  for (const id of unseenNewTools(tabId, seen)) next.add(id)
+  if (next.size === seen.size) return next
+  try {
+    window.localStorage.setItem(SEEN_NEW_STORAGE_KEY, JSON.stringify([...next]))
+  } catch {
+    // The mark simply shows again next visit when storage is unavailable.
+  }
+  return next
+}
+
+/**
  * Tab ids and groups older docks used, mapped to the tab that now holds their tools.
  * The powers tab was split into helpful and deadly; the old one-tab-per-category dock is covered too.
  */
