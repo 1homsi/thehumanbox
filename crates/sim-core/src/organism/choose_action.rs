@@ -171,7 +171,15 @@ impl Organism {
         // them when no dry step makes progress. Sending every hydrated wader
         // straight back ashore made people bounce between shore and water.
         let deep = grid.depth_at(ix, iy) > 0.18;
+        // A planned route that wades a shallow strip is a crossing, not an
+        // accident: pulling out of it every tick walked people back and forth
+        // along the bank. Deep water still gets people out.
+        let crossing = {
+            let route = self.route.borrow();
+            !deep && route.steps.len() > route.next
+        };
         if grid.is_wet(tile, ix, iy)
+            && !crossing
             && ((deep && self.hydration >= 0.75)
                 || self.water_ticks > 5
                 || self.energy < 0.55
@@ -233,7 +241,10 @@ impl Organism {
             && (self.health < 0.80 || self.sleep_debt > 0.12)
             && !self.near_shelter(grid, buildings)
         {
-            if let Some(s) = self.find_shelter_tile(grid, buildings, 14) {
+            if let Some(s) = self
+                .find_shelter_tile(grid, buildings, 14)
+                .filter(|&s| !self.route.borrow().recently_blocked(s))
+            {
                 set_thought!("returning to shelter");
                 return (self.toward(s, grid), thought);
             }
@@ -258,7 +269,9 @@ impl Organism {
                 self.y,
                 &self.danger_memory,
                 urgency,
-            ) {
+            )
+            .filter(|&t| !self.route.borrow().recently_blocked(t))
+            {
                 set_thought!("moving to known water");
                 return (self.toward(t, grid), thought);
             }
@@ -298,7 +311,9 @@ impl Organism {
                 self.y,
                 &self.danger_memory,
                 urgency,
-            ) {
+            )
+            .filter(|&t| !self.route.borrow().recently_blocked(t))
+            {
                 set_thought!("moving to known food");
                 return (self.toward(t, grid), thought);
             }
@@ -333,7 +348,12 @@ impl Organism {
         });
 
         if needs_easy && !night && !fire_dangerous {
-            if self.carrying > 0 && self.carrying_type != 2 {
+            // A home no route reaches (walled in by other huts or water) is not worth carrying wood toward.
+            let home_unreachable = self
+                .route
+                .borrow()
+                .recently_blocked((self.home_x as i32, self.home_y as i32));
+            if self.carrying > 0 && self.carrying_type != 2 && !home_unreachable {
                 if at_home_zone {
                     let hx = self.home_x as i32;
                     let hy = self.home_y as i32;
@@ -434,7 +454,11 @@ impl Organism {
                     return (29, thought);
                 }
                 let reach = if fetching_stone { 28 } else { 14 };
-                if let Some(t) = self.nearest_visible(grid, Tile::Rock, reach) {
+                // A rock no route reaches (over a cliff or water) is no quarry.
+                if let Some(t) = self
+                    .nearest_visible(grid, Tile::Rock, reach)
+                    .filter(|&t| !self.route.borrow().recently_blocked(t))
+                {
                     set_thought!("heading to the quarry");
                     return (self.toward(t, grid), thought);
                 }
@@ -487,10 +511,18 @@ impl Organism {
             }
         }
 
-        if weather_kind >= 2 && !self.near_shelter(grid, buildings) {
-            if let Some(v) = self.find_shelter_tile(grid, buildings, 14) {
+        if weather_kind >= 2 {
+            if !self.near_shelter(grid, buildings) {
+                if let Some(v) = self.find_shelter_tile(grid, buildings, 14) {
+                    set_thought!("sheltering from storm");
+                    return (self.toward(v, grid), thought);
+                }
+            } else {
+                // Under cover: stay until the storm passes. Going back to the
+                // journey stepped people just out of cover, and the storm
+                // walked them straight back in, one tick at a time.
                 set_thought!("sheltering from storm");
-                return (self.toward(v, grid), thought);
+                return (17, thought);
             }
         }
 
@@ -680,10 +712,12 @@ impl Organism {
         }
 
         if let Some(ref aid) = self.attracted_to {
+            // Someone across water or walls: no way there, so no pull toward them.
             let target = organisms
                 .iter()
                 .find(|o| o.alive && &o.id == aid)
-                .map(|o| (o.x as i32, o.y as i32));
+                .map(|o| (o.x as i32, o.y as i32))
+                .filter(|&tp| !self.route.borrow().recently_blocked(tp));
             if let Some(tp) = target {
                 let dist = (tp.0 - ix).abs() + (tp.1 - iy).abs();
                 // Hysteresis: set out only from a little way off, then keep
@@ -703,7 +737,7 @@ impl Organism {
                     .iter()
                     .find(|o| o.alive && &o.id == pid)
                     .map(|o| (o.x as i32, o.y as i32));
-                if let Some(pp) = partner {
+                if let Some(pp) = partner.filter(|&pp| !self.route.borrow().recently_blocked(pp)) {
                     let dist = (pp.0 - ix).abs() + (pp.1 - iy).abs();
                     let walking = self.thought == "walking with partner";
                     if dist > if walking { 2 } else { 6 }

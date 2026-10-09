@@ -46,35 +46,19 @@ impl Organism {
         if let Some(action) = self.route.borrow_mut().follow(grid, (ix, iy), target) {
             return action;
         }
-        if blocked && distance > 1 {
+        // Where the walker stood at its last decision, and where it stood before that.
+        let moved = {
             let mut route = self.route.borrow_mut();
-            let plan = if route.skip_blocked(target) {
-                None
-            } else {
-                crate::organism::navigation::plan_route(grid, (ix, iy), target)
-            };
-            match plan {
-                Some(steps) => {
-                    route.goal = target;
-                    route.steps = steps;
-                    route.next = 0;
-                    if let Some(action) = route.follow(grid, (ix, iy), target) {
-                        return action;
-                    }
-                }
-                None => {
-                    if !route.recently_blocked(target) {
-                        route.mark_blocked(target);
-                    }
-                    drop(route);
-                    if let Some(action) = crate::organism::navigation::detour_step(grid, (ix, iy), target) {
-                        return action;
-                    }
-                }
+            let moved = route.here != Some((ix, iy));
+            if moved {
+                route.before = route.here;
+                route.here = Some((ix, iy));
             }
-        }
+            moved
+        };
         let mut best_action = 0;
         let mut best_score = f32::NEG_INFINITY;
+        let mut best_progress = 0;
         for (i, (adx, ady)) in DIRECTIONS.iter().enumerate() {
             let nx = ix + adx;
             let ny = iy + ady;
@@ -122,6 +106,62 @@ impl Organism {
             if score > best_score {
                 best_score = score;
                 best_action = i;
+                best_progress = progress;
+            }
+        }
+        // The greedy step is not enough when it gets no closer at all (a local minimum behind a
+        // wall, water or a hut), or when it steps straight back onto the tile the walker came from.
+        // One such step is ordinary wiggling; a run of them is pacing between two tiles.
+        let (bdx, bdy) = DIRECTIONS[best_action];
+        let reversal = self.route.borrow().before == Some((ix + bdx, iy + bdy));
+        if moved {
+            let mut route = self.route.borrow_mut();
+            route.reversals = if reversal {
+                route.reversals.saturating_add(1)
+            } else {
+                0
+            };
+        }
+        let pacing = self.route.borrow().reversals >= 2;
+        // First a short local detour, one step at a time: it gets round a small obstacle far more cheaply
+        // than a full route. A detour that steps back onto the tile just left is not trusted.
+        if distance > 1 && !blocked && (pacing || best_progress <= 0) {
+            if let Some(action) = crate::organism::navigation::detour_step(grid, (ix, iy), target) {
+                let (ddx, ddy) = DIRECTIONS[action];
+                if self.route.borrow().before != Some((ix + ddx, iy + ddy)) {
+                    return action;
+                }
+            }
+        }
+        // Otherwise plan a route round it, or give the goal up for a while when there is none.
+        if distance > 1 && (blocked || pacing || best_progress <= 0) {
+            let mut route = self.route.borrow_mut();
+            let plan = if route.skip_blocked(target) {
+                None
+            } else {
+                crate::organism::navigation::plan_route(grid, (ix, iy), target)
+            };
+            match plan {
+                Some(steps) => {
+                    route.goal = target;
+                    route.steps = steps;
+                    route.next = 0;
+                    if let Some(action) = route.follow(grid, (ix, iy), target) {
+                        return action;
+                    }
+                }
+                None => {
+                    if !route.recently_blocked(target) {
+                        route.mark_blocked(target);
+                    }
+                    drop(route);
+                    if blocked {
+                        if let Some(action) = crate::organism::navigation::detour_step(grid, (ix, iy), target)
+                        {
+                            return action;
+                        }
+                    }
+                }
             }
         }
         best_action
