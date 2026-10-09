@@ -27,7 +27,6 @@ import {
   paintWaterShimmer,
   paintWaterStars,
 } from './paint-ground'
-import { hazeLevels, paintHaze } from './haze'
 import { paintChimneySmoke } from './chimney-smoke'
 import { paintDew, dewLevel } from './dew'
 import { paintFallingBlossoms } from './falling-blossoms'
@@ -40,15 +39,13 @@ import { paintSkyFlyers } from './sky-flyers'
 import { paintGroundIce } from './ground-ice'
 import { paintPlagueHaze } from './plague-haze'
 import { ANIMAL_DUST, FootstepDust } from './footstep-dust'
-import { paintWaterRipples } from './water-ripples'
 import { zoomDetailLevel } from '../../character-visuals'
 import { paintTornado, tornadoAt } from './tornado'
 import { vegetationSeason } from '../../landscape-style'
 import { terrainSeason } from '../../terrain-season'
 import { paintHud } from './paint-hud'
 import { paintFireflies } from './fireflies'
-import { moonLight, nightLevel, paintMoon, paintStars } from './night-sky'
-import { paintSun, sunSide, sunStrength } from './sun-glow'
+import { nightLevel, paintStars } from './night-sky'
 import { SpriteRecorder } from './recorder'
 import { ShapeAtlas } from './shape-atlas'
 import {
@@ -312,15 +309,11 @@ export class CfOverlayRenderer {
       paintGroundIce(ground, f.world.grid.tiles, snowView, terrainSeason(f.world), f.world.season_progress)
       const floodView = { ...f.bounds, ox: f.ox, oy: f.oy }
       paintFloodFront(ground, f.world.grid.tiles, floodView, f.t)
-      if (zoomDetailLevel(f.zoom) !== 'overview') {
-        paintWaterRipples(ground, f.world.grid.tiles, { ...f.bounds, ox: f.ox, oy: f.oy }, f.t)
-      }
       paintFireGlow(ground, f)
       const emberView = { ...f.bounds, ox: f.ox, oy: f.oy }
       paintEmbers(ground, f.world.grid.fire_intensity, emberView, f.t)
       paintCampfireSparks(ground, f.world.grid.tiles, emberView, f.t)
       paintPuddles(ground, f, wetnessOf(f.world))
-      if (detailed) paintHaze(ground, f, hazeLevels(f.world), f.t)
       paintStars(ground, f.bounds, f.ox, f.oy, f.t, nightLevel(f.world))
       const { c0, c1, r0, r1 } = f.bounds
       const win = { x0: c0, y0: r0, x1: c1, y1: r1 }
@@ -396,8 +389,6 @@ export class CfOverlayRenderer {
     lap('effects')
 
     this.hud.begin(gv)
-    this.paintMoonInView(this.hud.asContext(), f)
-    this.paintSunInView(this.hud.asContext(), f)
     const { labels: settlementLabels } = paintHud(this.hud.asContext(), f, { grid: f.viewFlags.grid })
     this.hud.end()
 
@@ -495,38 +486,6 @@ export class CfOverlayRenderer {
       this.precipLayer.clear()
       this.precipLayer.touch()
     }
-  }
-
-  /** The moon in the top-right corner of the view at night, at the phase the calendar gives. */
-  private paintMoonInView(ctx: CanvasRenderingContext2D, f: CfFrame): void {
-    const cosmos = f.world.cosmos
-    if (!cosmos || nightLevel(f.world) <= 0) return
-    const view = this.viewOf(f)
-    const zoom = Math.max(0.01, f.zoom)
-    paintMoon(
-      ctx,
-      view.cx + view.hw - 56 / zoom,
-      view.cy - view.hh + 56 / zoom,
-      14 / zoom,
-      moonLight(cosmos.moon_phase, cosmos.moon_illum),
-    )
-  }
-
-  /** The sun low in the east (left) corner at dawn and the west (right) corner at dusk. */
-  private paintSunInView(ctx: CanvasRenderingContext2D, f: CfFrame): void {
-    const strength = sunStrength(f.world)
-    if (strength <= 0) return
-    const view = this.viewOf(f)
-    const zoom = Math.max(0.01, f.zoom)
-    const side = sunSide(f.world.day_progress)
-    paintSun(
-      ctx,
-      view.cx + side * (view.hw - 56 / zoom),
-      view.cy - view.hh + 56 / zoom,
-      10 / zoom,
-      f.t,
-      strength,
-    )
   }
 
   /** The camera's view in painter coordinates (grid px, origin removed). */
