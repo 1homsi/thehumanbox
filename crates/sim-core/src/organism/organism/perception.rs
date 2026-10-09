@@ -130,7 +130,7 @@ impl Organism {
                     kin_near = 1;
                 }
             }
-            if other.lineage_id != self.lineage_id && distance < nearest_d {
+            if distance < nearest_d && other.lineage_id != self.lineage_id {
                 nearest_d = distance;
                 nearest_lid = Some(&other.lineage_id);
             }

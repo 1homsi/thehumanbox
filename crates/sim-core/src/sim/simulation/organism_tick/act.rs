@@ -342,8 +342,8 @@ impl Simulation {
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
             let kin: Vec<usize> = spatial
                 .ordered_nearby(&self.organisms, sx, sy, 5)
-                .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid)
                 .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() <= 5.0)
+                .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid)
                 .map(|(i, _)| i)
                 .collect();
             if !kin.is_empty() {
