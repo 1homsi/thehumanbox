@@ -301,6 +301,8 @@ fn a_merchant_opens_a_route_and_loads_a_spare_good_from_their_tribe() {
     let caravan = &sim.caravans[0];
     assert_eq!(caravan.cargo, "food");
     assert_eq!(caravan.amount, MERCHANT_LOAD);
+    // The receiving tribe has no food at all, so the Iron-age price for food (2) is doubled.
+    assert_eq!(caravan.unit_price, 4, "scarcity doubles the price of the good");
     assert_eq!(caravan.sender_org_id, sim.organisms[0].id);
     assert_eq!(
         sim.organisms[1].inv_food, 2,

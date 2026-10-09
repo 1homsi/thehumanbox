@@ -180,7 +180,20 @@ fn send_merchant_caravan(sim: &mut Simulation, route_index: usize, sender: &str,
     if carried == 0 {
         return false;
     }
-    dispatch_cargo_on_route_index(sim, merchant_idx, route_index, good.to_string(), carried)
+    if !dispatch_cargo_on_route_index(sim, merchant_idx, route_index, good.to_string(), carried) {
+        return false;
+    }
+    // The price rises with scarcity: a tribe with none of the good in store pays
+    // up to double the era's price for it.
+    let (receiver_people, receiver_stock) = lineage_stock(sim, receiver);
+    let index = TRADE_GOODS.iter().position(|name| *name == good).unwrap_or(0);
+    let per_person = receiver_stock[index] as f32 / receiver_people.max(1) as f32;
+    let scarcity = (1.0 - per_person).clamp(0.0, 1.0);
+    if let Some(caravan) = sim.caravans.last_mut() {
+        let base = caravan.unit_price as f32;
+        caravan.unit_price = (base * (1.0 + scarcity)).round().clamp(1.0, 200.0) as u32;
+    }
+    true
 }
 
 /// Each route with no caravan on the road and a full interval since its last
