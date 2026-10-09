@@ -563,6 +563,7 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
             .filter(|o| o.lineage_id == lid && can_work_on_construction(o))
             .count();
         let project_limit = workers.div_ceil(6).clamp(1, 3);
+        relocate_stalled_projects(sim, &lid);
         let pending = sim
             .buildings
             .iter()
@@ -1036,6 +1037,45 @@ pub(super) fn tick_building_progress(sim: &mut Simulation) {
                 sim.headlines.pop_front();
             }
         }
+    }
+}
+
+/// Moves a tribe's unfinished projects that no worker can reach to a site near
+/// the tribe's present centre. A project keeps the materials and labour it has.
+/// Before this, a site its builders had walked away from kept counting against
+/// the lineage's project limit, so a tribe whose projects were all stranded
+/// could never start another one.
+pub(super) fn relocate_stalled_projects(sim: &mut Simulation, lineage: &str) {
+    let (cx, cy) = lineage_center(sim, lineage);
+    if (cx, cy) == (0, 0) {
+        return;
+    }
+    let stalled: Vec<usize> = sim
+        .buildings
+        .iter()
+        .enumerate()
+        .filter(|(_, b)| {
+            !b.decorative
+                && !b.is_complete()
+                && b.owner_lineage.as_deref() == Some(lineage)
+                && !sim.organisms.iter().any(|org| {
+                    org.lineage_id == lineage
+                        && can_work_on_construction(org)
+                        && (org.x - b.x as f32).abs() + (org.y - b.y as f32).abs()
+                            <= CONSTRUCTION_WORKER_REACH
+                })
+        })
+        .map(|(index, _)| index)
+        .collect();
+    for index in stalled {
+        let kind = sim.buildings[index].kind;
+        let Some((x, y)) = find_construction_site(sim, lineage, kind, cx, cy) else {
+            continue;
+        };
+        let building = &mut sim.buildings[index];
+        building.x = x;
+        building.y = y;
+        sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
     }
 }
 
