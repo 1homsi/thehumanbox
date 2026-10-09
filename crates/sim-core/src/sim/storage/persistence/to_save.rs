@@ -144,6 +144,7 @@ impl Simulation {
             caravans: self.caravans.clone(),
             next_trade_route_id: self.next_trade_route_id,
             next_caravan_id: self.next_caravan_id,
+            trade_income: self.trade_income.clone(),
             water_use: self
                 .water_use
                 .iter()

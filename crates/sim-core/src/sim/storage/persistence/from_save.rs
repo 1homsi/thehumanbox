@@ -286,6 +286,7 @@ impl Simulation {
             caravans: state.caravans,
             next_trade_route_id,
             next_caravan_id,
+            trade_income: state.trade_income,
             water_use: state
                 .water_use
                 .into_iter()

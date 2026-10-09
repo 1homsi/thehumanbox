@@ -125,6 +125,12 @@ pub(super) fn deliver_caravan(sim: &mut Simulation, caravan_id: u32) -> bool {
         0
     };
 
+    if paid > 0 {
+        *sim.trade_income
+            .entry(caravan.sender_lineage.clone())
+            .or_insert(0) += u64::from(paid);
+    }
+
     let buyer_id = sim.organisms[primary_recipient].id.clone();
     let buyer_name = sim.organisms[primary_recipient].name.clone();
     let seller_id = sender_idx

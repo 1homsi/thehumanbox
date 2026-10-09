@@ -157,3 +157,14 @@ describe('territory card agreement and embargo', () => {
     expect(tradeOfTribe(plain, 'red')).toBe('1 route')
   })
 })
+
+describe('territory card trade income', () => {
+  it('names what a tribe has earned from trade', () => {
+    const earning = world({
+      trade_routes: [{ id: 1, lineage_a: 'red', lineage_b: 'blue', volume: 3, deliveries: 1 }],
+      trade_income: { red: 42 },
+    } as Partial<WorldState>)
+    expect(tradeOfTribe(earning, 'red')).toContain('earned 42 from trade')
+    expect(tradeOfTribe(earning, 'blue')).not.toContain('earned')
+  })
+})

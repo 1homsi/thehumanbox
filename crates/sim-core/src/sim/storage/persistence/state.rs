@@ -191,6 +191,8 @@ pub struct SaveState {
     #[serde(default)]
     pub(super) next_caravan_id: u32,
     #[serde(default)]
+    pub(super) trade_income: std::collections::BTreeMap<String, u64>,
+    #[serde(default)]
     pub(super) water_use: Vec<WaterUseSave>,
     #[serde(default)]
     pub(super) field_fortifications: Vec<crate::sim::warfare::FieldFortification>,
