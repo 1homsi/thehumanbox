@@ -27,7 +27,7 @@ const LESSON_RANGE: i32 = 3;
 /// Literacy a child gains per lesson by the fire. Small on purpose.
 const LESSON_LITERACY: f32 = 0.0006;
 
-fn chebyshev(a: (i32, i32), b: (i32, i32)) -> i32 {
+pub(crate) fn chebyshev(a: (i32, i32), b: (i32, i32)) -> i32 {
     (a.0 - b.0).abs().max((a.1 - b.1).abs())
 }
 
@@ -181,7 +181,7 @@ impl Simulation {
     }
 
     /// Sets a walk toward `target` when it is a reachable land tile and the person has not just been blocked on the way.
-    fn set_outing_target(&mut self, idx: usize, target: (i32, i32)) -> bool {
+    pub(crate) fn set_outing_target(&mut self, idx: usize, target: (i32, i32)) -> bool {
         if !self.is_good_land_target(target.0, target.1)
             || self.organisms[idx].route.borrow().recently_blocked(target)
         {
