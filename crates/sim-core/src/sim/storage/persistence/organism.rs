@@ -172,6 +172,17 @@ pub(crate) struct OrgSave {
     pub(super) death_cause: String,
 }
 
+/// A carcass a predator left where it made a kill (`sim::simulation::carcasses`).
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
+pub(crate) struct CarcassSave {
+    pub(super) x: f32,
+    pub(super) y: f32,
+    pub(super) kind: u8,
+    pub(super) age: u32,
+    pub(super) picked: u32,
+}
+
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub(crate) struct AnimalSave {
@@ -462,8 +473,9 @@ pub(super) fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
     o
 }
 
-pub(super) fn animal_to_save(a: &Animal) -> AnimalSave {
-    let kind = match a.kind {
+/// The number an animal kind is saved as. Stable: a save keeps its meaning across versions.
+pub(super) fn kind_code(kind: AnimalKind) -> u8 {
+    match kind {
         AnimalKind::Rabbit => 0,
         AnimalKind::Deer => 1,
         AnimalKind::Boar => 2,
@@ -493,22 +505,12 @@ pub(super) fn animal_to_save(a: &Animal) -> AnimalSave {
         AnimalKind::Eagle => 31,
         AnimalKind::Snake => 32,
         AnimalKind::Crocodile => 33,
-    };
-    AnimalSave {
-        id: a.id,
-        x: a.x,
-        y: a.y,
-        alive: a.alive,
-        energy: a.energy,
-        kind,
-        last_reproduced: a.last_reproduced,
-        name: a.name.clone(),
-        bonded_org: a.bonded_org.clone(),
     }
 }
 
-pub(super) fn animal_from_save(s: AnimalSave) -> Animal {
-    let kind = match s.kind {
+/// The animal kind a saved number stands for; an unknown number is a rabbit.
+pub(super) fn kind_from_code(code: u8) -> AnimalKind {
+    match code {
         0 => AnimalKind::Rabbit,
         1 => AnimalKind::Deer,
         2 => AnimalKind::Boar,
@@ -539,7 +541,25 @@ pub(super) fn animal_from_save(s: AnimalSave) -> Animal {
         32 => AnimalKind::Snake,
         33 => AnimalKind::Crocodile,
         _ => AnimalKind::Rabbit,
-    };
+    }
+}
+
+pub(super) fn animal_to_save(a: &Animal) -> AnimalSave {
+    AnimalSave {
+        id: a.id,
+        x: a.x,
+        y: a.y,
+        alive: a.alive,
+        energy: a.energy,
+        kind: kind_code(a.kind),
+        last_reproduced: a.last_reproduced,
+        name: a.name.clone(),
+        bonded_org: a.bonded_org.clone(),
+    }
+}
+
+pub(super) fn animal_from_save(s: AnimalSave) -> Animal {
+    let kind = kind_from_code(s.kind);
     let mut a = Animal::new(s.id, s.x, s.y, kind);
     a.alive = s.alive;
     a.energy = s.energy;

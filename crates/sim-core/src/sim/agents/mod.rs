@@ -3,6 +3,7 @@ pub mod courtship;
 pub mod family_outings;
 pub mod generations;
 pub mod growth;
+pub mod households;
 pub mod memory_pressure;
 pub mod newcomers;
 pub mod relations;

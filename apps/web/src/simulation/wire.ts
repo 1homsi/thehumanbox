@@ -92,6 +92,7 @@ export type IncomingWorldFrame = Pick<
   smog?: WorldState['smog']
   settlements?: WorldState['settlements']
   vehicles?: WorldState['vehicles']
+  carcasses?: WorldState['carcasses']
   festivals?: WorldState['festivals']
   governments?: WorldState['governments']
   artworks?: WorldState['artworks']
