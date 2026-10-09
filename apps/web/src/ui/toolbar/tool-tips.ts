@@ -10,6 +10,8 @@ const TOOL_TIPS: Record<string, string> = {
     'Run the world on to the start of the next year, in quick steps. The seasons turn as they would.',
   leader:
     'Crown the grown person nearest where you click the ruler of their tribe. They keep the crown while they live, unless their tribe has no ruler to crown (a plain band) or they are still a child.',
+  clear_region:
+    'Sweep the brush area clean: the people in it die (their kin grieve), the animals are swept away, and plantings and wild food are cleared. Buildings stay; demolish takes those.',
   merge_tribes:
     'Two clicks: a person of one tribe, then a person of another. The second tribe joins the first, everyone in it.',
   split_tribe:
@@ -228,6 +230,8 @@ export function toolFailure(tool: SandboxTool): string {
       return 'no fire there'
     case 'thunder':
       return 'the lightning hit nothing'
+    case 'clear_region':
+      return 'nothing living or planted there to clear'
     case 'merge_tribes':
       return 'pick two people of different tribes'
     case 'split_tribe':
