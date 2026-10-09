@@ -1,6 +1,6 @@
 import type { WorldState } from '../../../../shared/types'
 import { TILE } from '../../../model/palette'
-import type { CfFrame } from './frame'
+import { painterView, type CfFrame } from './frame'
 import { unitHash } from './weather-fx'
 
 type Ctx = CanvasRenderingContext2D
@@ -54,6 +54,9 @@ export function paintHaze(ctx: Ctx, f: CfFrame, levels: HazeLevels, t: number): 
   const cell = Math.max(TILE * 20, Math.sqrt((W * H) / MAX_CELLS))
   const cols = Math.max(1, Math.ceil(W / cell))
   const rows = Math.max(1, Math.ceil(H / cell))
+  // Only the banks the camera can see are painted: a blob is one gradient fill, and the world holds
+  // about seventy of them.
+  const view = painterView(f, TILE * 2)
   ctx.save()
   if (levels.fog > 0) {
     for (let r = 0; r < rows; r++) {
@@ -64,6 +67,7 @@ export function paintHaze(ctx: Ctx, f: CfFrame, levels: HazeLevels, t: number): 
         const x = wrap((c + unitHash(i, 11)) * cell + t * speed, W)
         const y = (r + unitHash(i, 23)) * cell
         const rx = cell * (0.7 + unitHash(i, 37) * 0.5)
+        if (!inView(view, x, y, rx, rx * 0.4)) continue
         const a = levels.fog * (0.2 + unitHash(i, 41) * 0.14)
         paintBlob(ctx, x, y, rx, rx * 0.4, `rgba(${MIST},${a.toFixed(3)})`, `rgba(${MIST},0)`)
       }
@@ -78,12 +82,24 @@ export function paintHaze(ctx: Ctx, f: CfFrame, levels: HazeLevels, t: number): 
         const x = wrap((c + unitHash(i, 13)) * cell + t * speed, W)
         const y = (r + unitHash(i, 29)) * cell
         const rx = cell * (0.4 + unitHash(i, 43) * 0.4)
+        if (!inView(view, x, y, rx, rx * 0.3)) continue
         const a = levels.dust * (0.14 + unitHash(i, 53) * 0.14)
         paintBlob(ctx, x, y, rx, rx * 0.3, `rgba(${DUST},${a.toFixed(3)})`, `rgba(${DUST},0)`)
       }
     }
   }
   ctx.restore()
+}
+
+/** Whether a blob centred at (x, y) with radii (rx, ry) can reach the view. */
+function inView(
+  v: { x0: number; y0: number; x1: number; y1: number },
+  x: number,
+  y: number,
+  rx: number,
+  ry: number,
+): boolean {
+  return x + rx >= v.x0 && x - rx <= v.x1 && y + ry >= v.y0 && y - ry <= v.y1
 }
 
 function wrap(x: number, size: number): number {

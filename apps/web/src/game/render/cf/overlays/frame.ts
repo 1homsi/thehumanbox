@@ -62,6 +62,23 @@ export function visibleWindow(
   }
 }
 
+/**
+ * The camera's rectangle in the painters' space (grid px, the grid origin removed), grown by `margin`
+ * px on every side: what a painter may skip when an object's extent does not reach it. The camera is
+ * converted the same way `CfOverlayRenderer.viewOf` converts it.
+ */
+export function painterView(
+  f: Pick<CfFrame, 'cam' | 'zoom' | 'viewport' | 'ox' | 'oy'>,
+  margin: number,
+): { x0: number; y0: number; x1: number; y1: number } {
+  const zoom = Math.max(0.01, f.zoom)
+  const cx = f.cam.x - f.ox * TILE
+  const cy = f.cam.y - f.oy * TILE
+  const hw = f.viewport.w / zoom / 2 + margin
+  const hh = f.viewport.h / zoom / 2 + margin
+  return { x0: cx - hw, y0: cy - hh, x1: cx + hw, y1: cy + hh }
+}
+
 export function makeFrame(input: FrameInput): CfFrame {
   const { world } = input
   const { width, height } = world.grid
