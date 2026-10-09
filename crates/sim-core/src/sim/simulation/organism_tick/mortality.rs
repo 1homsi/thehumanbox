@@ -122,6 +122,7 @@ impl Simulation {
 
         if let Some((lineage, cause)) = noted {
             self.note_death(&lineage, cause);
+            self.history.record_death(self.tick_count);
             let id = self.organisms[idx].id.clone();
             self.fallen.push_back((id, self.tick_count));
             while self.fallen.len() > 96 {
