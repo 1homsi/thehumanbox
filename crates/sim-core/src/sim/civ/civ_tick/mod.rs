@@ -57,6 +57,11 @@ use watches::*;
 pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
     let tick = sim.tick_count;
 
+    if tick.is_multiple_of(crate::sim::cosmos::YEAR_LENGTH_TICKS) {
+        let gap = crate::sim::civ::society::inequality::average_wealth_gap(&sim.organisms);
+        sim.history.record_wealth_gap(tick, gap);
+    }
+
     if tick.is_multiple_of(60) {
         tick_age_stages(sim);
     }

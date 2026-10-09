@@ -4,6 +4,7 @@ import { Modal } from './Modal'
 import { DAY_LENGTH, kindIcon } from './stats/constants'
 import { PopChart } from './stats/PopChart'
 import { YearlyChart } from './stats/YearlyChart'
+import { WealthGapChart } from './stats/WealthGapChart'
 import { RelationsTable } from './stats/RelationsTable'
 import { DiscoveryTimeline } from './stats/DiscoveryTimeline'
 import { AgePyramid } from './stats/AgePyramid'
@@ -119,6 +120,11 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
             births={world.history.births_by_year ?? []}
             deaths={world.history.deaths_by_year ?? []}
           />
+        </div>
+
+        <div className="stats-section-title">WEALTH GAP BY YEAR</div>
+        <div className="stats-chart-wrap">
+          <WealthGapChart values={world.history.wealth_gap_by_year ?? []} />
         </div>
 
         <div className="stats-grid">

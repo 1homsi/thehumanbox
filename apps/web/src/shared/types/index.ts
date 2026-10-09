@@ -470,6 +470,8 @@ export interface WorldHistory {
   /** Births and deaths in each calendar year from year 0 (see sim History). */
   births_by_year?: number[]
   deaths_by_year?: number[]
+  /** The average tribe wealth gap (Gini) sampled at the start of each year. */
+  wealth_gap_by_year?: number[]
   deaths_old_age: number
   deaths_starvation: number
   deaths_dehydration: number

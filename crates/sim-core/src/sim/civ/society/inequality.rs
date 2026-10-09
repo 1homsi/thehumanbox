@@ -52,6 +52,15 @@ pub fn lineage_inequality(organisms: &[Organism]) -> Vec<(String, f32, usize)> {
     rows
 }
 
+/// The average of the tribes' Gini coefficients (0 when no tribe is big enough).
+pub fn average_wealth_gap(organisms: &[Organism]) -> f32 {
+    let rows = lineage_inequality(organisms);
+    if rows.is_empty() {
+        return 0.0;
+    }
+    rows.iter().map(|r| r.1).sum::<f32>() / rows.len() as f32
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
