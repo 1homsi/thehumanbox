@@ -467,6 +467,20 @@ pub(super) fn housing_target(
         .find(|kind| era >= kind.era_unlock() && construction_cost_available(sim, lineage, *kind))
 }
 
+/// True when a tribe whose era has houses cannot yet pay for one, so the next
+/// home it raises is a hut (two people) rather than a house (four). The stone
+/// fetch then starts, so the house comes sooner.
+pub(super) fn home_waits_for_house(sim: &Simulation, lineage: &str, era: Era) -> bool {
+    use BuildingKind::*;
+    if era < House.era_unlock() {
+        return false;
+    }
+    let other_home_affordable = [Apartment, TownHouse, House]
+        .into_iter()
+        .any(|kind| era >= kind.era_unlock() && construction_cost_available(sim, lineage, kind));
+    !other_home_affordable
+}
+
 /// Fences in a tribe's palisade, and the radius of the ring they stand on.
 pub(super) const PALISADE_FENCES: usize = 12;
 const PALISADE_RADIUS: f32 = 5.0;
@@ -635,7 +649,9 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
             .any(|o| o.alive && o.lineage_id == lid && o.discoveries.contains("agriculture"));
         // Set when a craft or civic project the tribe wants waits on stone it
         // does not hold. The lineage's people then fetch stone for the next pass.
-        let mut stone_short = false;
+        // A tribe waiting on stone for its next house fetches it too.
+        let mut stone_short = home_waits_for_house(sim, &lid, era)
+            && lineage_stone(sim, &lid) < u32::from(BuildingKind::House.construction_cost().stone);
         // A growing tribe is always a few homes short, so housing would take
         // every pass. After a home, the next pass goes to the craft or civic
         // building the tribe lacks, whenever it can pay for one.

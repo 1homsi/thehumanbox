@@ -160,3 +160,40 @@ fn housing_demand_counts_pending_homes_but_not_ruins_or_scenery() {
     );
     assert_eq!(housing_target(&sim, &owner, Era::PreStone, 4), None);
 }
+
+#[test]
+fn a_tribe_that_can_pay_for_a_house_raises_one_and_fetches_stone_until_then() {
+    let mut sim = Simulation::new(704);
+    sim.buildings.clear();
+    let owner = sim.organisms[0].lineage_id.clone();
+    for org in sim.organisms.iter_mut().filter(|o| o.lineage_id == owner) {
+        org.inv_wood = 0;
+        org.inv_stone = 0;
+        org.wealth = 0;
+    }
+    // Bronze has houses but the tribe holds no wood or stone: it fetches stone,
+    // and no home is affordable until it has the materials for one.
+    assert!(home_waits_for_house(&sim, &owner, Era::Bronze));
+    assert_eq!(housing_target(&sim, &owner, Era::Bronze, 40), None);
+    // With wood but no stone, a hut is the home raised while the stone is fetched.
+    sim.organisms[0].inv_wood = 100;
+    assert!(home_waits_for_house(&sim, &owner, Era::Bronze));
+    assert_eq!(
+        housing_target(&sim, &owner, Era::Bronze, 40),
+        Some(BuildingKind::Hut)
+    );
+    // Wood and stone pay for a house, and the house is chosen.
+    sim.organisms[0].inv_stone = 8;
+    assert!(!home_waits_for_house(&sim, &owner, Era::Bronze));
+    assert_eq!(
+        housing_target(&sim, &owner, Era::Bronze, 40),
+        Some(BuildingKind::House)
+    );
+    // The stone age never had houses, so a hut is still the home.
+    sim.organisms[0].inv_stone = 0;
+    assert!(!home_waits_for_house(&sim, &owner, Era::Stone));
+    assert_eq!(
+        housing_target(&sim, &owner, Era::Stone, 40),
+        Some(BuildingKind::Hut)
+    );
+}
