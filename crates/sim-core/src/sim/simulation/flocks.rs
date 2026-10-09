@@ -8,7 +8,7 @@ use super::*;
 pub(super) const FLOCK_RANGE: f32 = 6.0;
 
 /// The eight headings in the order `organism::animal` uses for `Animal::heading`.
-const HEADINGS: [(i32, i32); 8] = [
+pub(super) const HEADINGS: [(i32, i32); 8] = [
     (0, -1),
     (0, 1),
     (-1, 0),

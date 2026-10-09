@@ -146,6 +146,17 @@ impl Simulation {
             physics,
             organisms,
             animals: state.animals.into_iter().map(animal_from_save).collect(),
+            carcasses: state
+                .carcasses
+                .into_iter()
+                .map(|c| Carcass {
+                    x: c.x,
+                    y: c.y,
+                    kind: kind_from_code(c.kind),
+                    age: c.age,
+                    picked: c.picked,
+                })
+                .collect(),
             tick_count: state.tick_count,
             population_limit: crate::sim::config::DEFAULT_MAX_POPULATION,
             events: state.events.into_iter().collect(),

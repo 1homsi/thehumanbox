@@ -172,6 +172,20 @@ impl Simulation {
                 // The owner's era picks the hull the boat is drawn with; cargo is the goods on deck.
                 "era": self.era(&v.owner_lineage).name(), "cargo": v.cargo
             })).collect()));
+            // Remains of prey, where birds gather: a few at a time, so the list is short.
+            obj.insert(
+                "carcasses".into(),
+                serde_json::Value::Array(
+                    self.carcasses
+                        .iter()
+                        .map(|c| {
+                            json!({
+                                "x": c.x, "y": c.y, "kind": c.kind.name(), "age": c.age, "picked": c.picked
+                            })
+                        })
+                        .collect(),
+                ),
+            );
             obj.insert(
                 "population_limit".to_string(),
                 serde_json::to_value(self.population_limit()).unwrap(),

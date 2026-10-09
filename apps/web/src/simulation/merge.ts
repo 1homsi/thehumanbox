@@ -209,6 +209,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     smog: parsed.smog ?? base?.smog,
     settlements: parsed.settlements ?? base?.settlements,
     vehicles: parsed.vehicles ?? base?.vehicles,
+    carcasses: parsed.carcasses ?? base?.carcasses,
     festivals: parsed.festivals ?? base?.festivals,
     lineage_eras: (parsed.lineage_eras as Record<string, string> | undefined) ?? base?.lineage_eras,
     lineage_strategies: parsed.lineage_strategies ?? base?.lineage_strategies,

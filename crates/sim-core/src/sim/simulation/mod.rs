@@ -26,6 +26,7 @@ use std::collections::VecDeque;
 
 /// Preserve population order while limiting lineage-wide reads to its members.
 mod animals;
+mod carcasses;
 mod census;
 mod flocks;
 mod helpers;
@@ -43,6 +44,7 @@ mod world;
 
 pub use types::*;
 
+pub(crate) use carcasses::Carcass;
 use helpers::*;
 use memory::read_self_rss_kb_local;
 
@@ -51,6 +53,8 @@ pub struct Simulation {
     pub physics: PhysicsEngine,
     pub organisms: Vec<Organism>,
     pub animals: Vec<Animal>,
+    /// Where predators made kills, and what is left of the prey (see `carcasses`).
+    pub carcasses: Vec<Carcass>,
     pub tick_count: u64,
     pub(crate) population_limit: usize,
     pub events: VecDeque<Event>,
@@ -208,6 +212,7 @@ impl Simulation {
             physics,
             organisms: Vec::new(),
             animals: Vec::new(),
+            carcasses: Vec::new(),
             tick_count: 0,
             population_limit: DEFAULT_MAX_POPULATION,
             events: VecDeque::new(),
