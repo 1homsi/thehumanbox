@@ -107,6 +107,13 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// A rain cloud bursts over a patch of the land: fires in it go out and people in it drink.
+    RainPatch {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
     /// The sun goes dark for a while: everyone alive is frightened and awed.
     Eclipse,
     /// Lights dance across the night sky: everyone alive is awed and a little less afraid.
@@ -614,6 +621,7 @@ mod marry;
 mod mutation;
 mod nuke;
 mod place;
+mod rain_patch;
 #[cfg(test)]
 mod release_tests;
 mod rename_person;
@@ -671,6 +679,7 @@ impl Simulation {
             Command::Hail { x, y, radius } => self.cmd_hail(x, y, radius),
             Command::Nuke { x, y } => self.cmd_nuke(x, y),
             Command::Eclipse => self.cmd_eclipse(),
+            Command::RainPatch { x, y, radius } => self.cmd_rain_patch(x, y, radius),
             Command::Aurora => self.cmd_aurora(),
             Command::ClearRegion { x, y, radius } => self.cmd_clear_region(x, y, radius),
             Command::Mutate { x, y, radius } => self.cmd_mutate(x, y, radius),

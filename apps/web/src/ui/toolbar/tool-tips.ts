@@ -94,6 +94,8 @@ const TOOL_TIPS: Record<string, string> = {
     'The sun goes dark for a while. Everyone alive is frightened and a little awed by it, and the omen is written into the chronicle.',
   aurora:
     'Lights dance across the night sky over the whole world. Everyone alive is awed and a little calmer, and the omen is written into the chronicle.',
+  rain_patch:
+    'A rain cloud bursts over the brush area: fires in it go out (leaving ash), and the people in it drink from the rain. The brush sets how wide the patch is.',
   comet:
     'A comet streaks across the sky over where you click. Everyone who can see it, within the reach, is awed; the awe lasts and the omen is written into the chronicle.',
   dice: 'Roll for fate: one random event lands at a random spot. It may bless, bring rain or a gale, or be a disaster such as a tornado, a wildfire or an earthquake.',
@@ -234,6 +236,8 @@ export function toolFailure(tool: SandboxTool): string {
       return 'the lightning hit nothing'
     case 'clear_region':
       return 'nothing living or planted there to clear'
+    case 'rain_patch':
+      return 'no fire to put out and nobody there to drink'
     case 'merge_tribes':
       return 'pick two people of different tribes'
     case 'split_tribe':

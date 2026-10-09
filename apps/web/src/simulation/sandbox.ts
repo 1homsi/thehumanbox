@@ -68,6 +68,8 @@ export type SandboxCommand =
   | { cmd: 'hail'; x: number; y: number; radius?: number }
   | { cmd: 'nuke'; x: number; y: number }
   | { cmd: 'eclipse' }
+  | { cmd: 'rain_patch'; x: number; y: number; radius?: number }
+  | { cmd: 'rain_patch'; x: number; y: number; radius?: number }
   | { cmd: 'aurora' }
   | { cmd: 'clear_region'; x: number; y: number; radius?: number }
   | { cmd: 'comet'; x: number; y: number; radius?: number }
@@ -755,6 +757,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         mode: 'instant',
         fire: { cmd: 'eclipse' },
         overlay: 'eclipse',
+      },
+      {
+        id: 'rain_patch',
+        label: 'rain patch',
+        icon: '🌂',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'rain_patch', x, y, radius: 4 + b }),
       },
       {
         id: 'aurora',
