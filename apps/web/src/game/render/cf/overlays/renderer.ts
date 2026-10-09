@@ -13,6 +13,7 @@ import type { CfFrame } from './frame'
 import { GlyphSet } from './glyph-atlas'
 import { HeatGrid, type HeatSettings } from './heatmap'
 import type { RenderHost } from './host'
+import { paintCarcasses } from './paint-carcasses'
 import { paintEffects } from './paint-effects'
 import { paintEraFlourish } from './paint-era-flourish'
 import { EraWatch } from '../../../model/era-flourish'
@@ -350,6 +351,8 @@ export class CfOverlayRenderer {
     }
     // Artworks lie on the ground where their makers stood: under the buildings and the people.
     paintArtworks(this.roads.asContext(), f)
+    // Remains of prey lie on the ground too, under the buildings and the people.
+    paintCarcasses(this.roads.asContext(), f)
     this.roads.end()
     this.traffic.begin(gv)
     if (showTrade) drawTradeNetwork2D(this.traffic.asContext(), f.world, f.bounds, f.t, 'caravans')

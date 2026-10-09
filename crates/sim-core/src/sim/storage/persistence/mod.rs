@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::organism::animal::{Animal, AnimalKind};
 use crate::organism::organism::Organism;
 use crate::physics::engine::PhysicsEngine;
-use crate::sim::simulation::{Event, History, Simulation, StoryEntry, SAVE_SCHEMA_VERSION};
+use crate::sim::simulation::{Carcass, Event, History, Simulation, StoryEntry, SAVE_SCHEMA_VERSION};
 use crate::sim::world_events::{DroughtState, WeatherState};
 use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
 use crate::world::tiles::Tile;

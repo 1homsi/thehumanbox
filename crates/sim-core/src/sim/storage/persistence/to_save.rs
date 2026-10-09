@@ -58,6 +58,17 @@ impl Simulation {
             events: self.events.iter().rev().take(200).rev().cloned().collect(),
             organisms: self.organisms.iter().map(org_to_save).collect(),
             animals: self.animals.iter().map(animal_to_save).collect(),
+            carcasses: self
+                .carcasses
+                .iter()
+                .map(|c| CarcassSave {
+                    x: c.x,
+                    y: c.y,
+                    kind: kind_code(c.kind),
+                    age: c.age,
+                    picked: c.picked,
+                })
+                .collect(),
             story_history: self.story_history.iter().rev().take(120).rev().cloned().collect(),
             grid: GridSave {
                 tiles: self.grid.tiles.clone(),

@@ -6,6 +6,11 @@ pub(super) const MAX_ZOMBIES: usize = 250;
 /// Chance each tick that a wild cat within reach of a person takes to them (see the cat bonds below).
 const CAT_BOND_CHANCE: f32 = 0.002;
 
+/// How close (Manhattan tiles) a second predator of its kind must be to make a hunter a pack.
+const PACK_RANGE: f32 = 4.0;
+/// How far (Manhattan tiles) a predator in a pack reaches prey; alone it reaches 1.5.
+const PACK_REACH: f32 = 3.0;
+
 impl Simulation {
     pub(super) fn spawn_animals(&mut self, count: usize) {
         for _ in 0..count {
@@ -178,6 +183,7 @@ impl Simulation {
 
         self.tick_fish_schools();
         self.tick_bird_flocks();
+        self.tick_scavengers();
         self.tick_herds();
 
         let prey_positions: Vec<(usize, f32, f32, AnimalKind)> = self
@@ -188,6 +194,15 @@ impl Simulation {
             .map(|(i, a)| (i, a.x, a.y, a.kind))
             .collect();
         let mut kills: Vec<(usize, usize)> = Vec::new();
+        // A hungry wolf or bear with another of its kind close by hunts as a pack: the pair runs prey
+        // down from a little further off than one predator alone can reach.
+        let hunters: Vec<(usize, f32, f32, AnimalKind)> = self
+            .animals
+            .iter()
+            .enumerate()
+            .filter(|(_, a)| a.alive && a.kind.predator() && !a.sleeping)
+            .map(|(i, a)| (i, a.x, a.y, a.kind))
+            .collect();
         for (pi, pred) in self.animals.iter().enumerate() {
             if !pred.alive || !pred.kind.predator() || pred.sleeping {
                 continue;
@@ -195,12 +210,16 @@ impl Simulation {
             if pred.energy > 0.85 {
                 continue;
             }
+            let packed = hunters.iter().any(|&(oi, ox, oy, okind)| {
+                oi != pi && okind == pred.kind && (ox - pred.x).abs() + (oy - pred.y).abs() <= PACK_RANGE
+            });
+            let reach = if packed { PACK_REACH } else { 1.5 };
             for (vi, vx, vy, _) in prey_positions.iter().copied() {
                 if vi == pi {
                     continue;
                 }
                 let d = (vx - pred.x).abs() + (vy - pred.y).abs();
-                if d <= 1.5 {
+                if d <= reach {
                     kills.push((pi, vi));
                     break;
                 }
@@ -216,7 +235,15 @@ impl Simulation {
                 AnimalKind::Cow | AnimalKind::Horse => 0.80,
                 _ => 0.20,
             };
+            let (px, py, pkind) = (self.animals[vi].x, self.animals[vi].y, self.animals[vi].kind);
             self.animals[vi].alive = false;
+            self.carcasses.push(Carcass {
+                x: px,
+                y: py,
+                kind: pkind,
+                age: 0,
+                picked: 0,
+            });
             self.animals[pi].energy = (self.animals[pi].energy + gain).min(1.0);
         }
 

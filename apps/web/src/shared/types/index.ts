@@ -273,6 +273,17 @@ export interface SettlementInfo {
   score: number
 }
 
+export interface CarcassInfo {
+  x: number
+  y: number
+  /** The prey's kind (`deer`, `rabbit`, ...). */
+  kind: string
+  /** Ticks since the kill. */
+  age: number
+  /** Bird-ticks spent feeding on it so far. */
+  picked: number
+}
+
 export interface VehicleInfo {
   building?: boolean
   /** The owner's era name (`pre-stone`, `bronze`, ...): picks the boat's hull. */
@@ -625,6 +636,8 @@ export interface WorldState {
   tribes_in_peril?: TribePeril[]
   settlements?: SettlementInfo[]
   vehicles?: VehicleInfo[]
+  /** Prey a predator killed, where birds gather: how long ago, and how much is picked over (0 to 40). */
+  carcasses?: CarcassInfo[]
   festivals?: FestivalInfo[]
   lineage_eras?: Array<{ lineage_id: string; era_name: string }> | Record<string, string>
   /** Wealth Gini per tribe (0 even to 1 stark), for tribes of four or more. */

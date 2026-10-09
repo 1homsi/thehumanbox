@@ -88,6 +88,8 @@ pub struct SaveState {
     pub(super) events: Vec<Event>,
     pub(crate) organisms: Vec<OrgSave>,
     pub(crate) animals: Vec<AnimalSave>,
+    #[serde(default)]
+    pub(crate) carcasses: Vec<CarcassSave>,
     pub(crate) grid: GridSave,
     pub(super) story_history: Vec<StoryEntry>,
     pub(super) pop_history: Vec<[u64; 2]>,
