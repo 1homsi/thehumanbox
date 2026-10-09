@@ -159,3 +159,55 @@ world reaches; it is the stress case for the bench and for any "1,000+ people" g
 **How the numbers were checked.** The baseline build was run twice and gave the same state hash each time (the save JSON,
 sha256). #470 changed no hash on five runs (seed 42 at ticks 1500 and 4000 and with the crowd at tick 9020, seed 1337 at
 4000, seed 7 at 3000). #466 changes the world on purpose; its own test covers the living-parent case.
+
+## Performance stream: the client regressions from the audit, what was fixed
+
+Continues the audit above. Every change below was measured on its own, on the bench's close-zoom playing windows (8 s), with instrumented section timings (`update()` sections and the painters' own marks, summed over the window with `--eval`), two or three runs per world, the two sides interleaved. The machine's 1-minute load average was 14 to 61 during these runs, so the section sums are inflated; the pairs were measured in the same run, and the ratios are what each PR claims. Main-thread busy % is not used as evidence for a single change: it swung by 6 to 9 points between identical builds that run.
+
+| PR | change | standard, base -> after (ms per 8 s) | crowd, base -> after (ms per 8 s) |
+|---|---|--:|--:|
+| #476 | footstep dust reads the people's step clock, not a map of every person | observe 6-9 -> 3 | observe 88-105 -> 15-20 |
+| #479 | look atlas: each colour's tint worked once (startup) | tint pass 49-73 -> 10-28 ms in Node, identical bytes | the same |
+| #480 | heat map refreshes at most every 500 ms (the data changes, a setting does not) | heat 61-77 -> 15-21 | heat 8 -> 6-9 |
+| #481 | haze paints only the banks the camera can reach | haze + stars 29-31 -> 4 | 19-26 -> 5 |
+| #482 | effects (festivals, battles, wards, smog, beacons) and prayer bubbles only where the camera sees them | effects 39-42 -> 23-26; HUD 42 -> 27-28 | effects 48-49 -> 30-33; HUD 42-43 -> 28-33 |
+
+Together the overlay's standard-world sections fall by about 105 to 125 ms per 8 s, against the audit's measured overlay growth of about 250 ms per 8.7 s. The crowd's labels (about 240 ms per 8 s) are untouched: that cost is per person in view, see below.
+
+### Before and after (old 4675e754 against main at the end of this stream)
+
+Close zoom, playing, 3 runs, the two builds interleaved, 1280x800 at DPR 1, Chrome 155 with the GPU. The 1-minute load average was 29 to 33 during the runs.
+
+| world | metric | old 4675e754 | main (this stream) | change |
+|---|---|--:|--:|--:|
+| standard | main busy % (median, min-max) | 14.1 (10.4-15.1) | 11.5 (10.8-15.1) | -18% |
+| crowd | main busy % (median, min-max) | 15.5 (13.4-15.8) | 16.8 (13.2-19.8) | +8%, within the spread |
+| standard | fps (trace pass) | 59 | 59 | |
+| crowd | fps (trace pass) | 60 | 60 | |
+| standard | GPU process busy % (trace pass) | 5.0 | 4.8 | -4% |
+| crowd | GPU process busy % (trace pass) | 6.4 | 5.2 | -19% |
+| standard | GC ms per s, max pause ms (trace pass) | 2.4, 5.9 | 1.3, 1.9 | -46%, max -68% |
+| crowd | GC ms per s, max pause ms (trace pass) | 2.0, 6.9 | 1.8, 3.3 | -10%, max -52% |
+| standard | engine texture MB | 22.3 | 25.9 | +16% (the look atlas, not changed here) |
+| crowd | engine texture MB | 22.3 | 25.9 | +16% |
+| standard | first frame ms (median) | 1450 | 1843 | +0.4 s (not reproduced cleanly at this load, see below) |
+| crowd | first frame ms | 2751 | 2886 | +0.1 s |
+
+The main-thread busy numbers at this load are not precise enough to show a 1-point change; the section sums above are.
+
+Bundles (`pnpm run build`, gzip in brackets): `index` JS 168,265 B (52.8 kB) at 4675e754, 259,621 B (80.8 kB) now; `WorldView` JS 312,456 B (110.7 kB) to 370,852 B (131.0 kB); the wasm simulation is unchanged at 3.82 MB.
+
+### What was not fixed, and why
+
+- **Crowd labels** (`people-labels.ts`, about 240 ms per 8 s with 3,000 people in view): the flags, thinning and drawing run for about 1,660 people per frame at 30 Hz. The per-frame work is per person, so it needs the label set to change less often, which moves what is shown. Not done.
+- **Startup and first frame** (1450 to 1843 ms standard, noisy): the startup profile of main (57% busy in the first 1.4 s) has its largest named item in a grid-wide vegetation `rebuild` (a whole-grid mask pass, about 114 ms inclusive; the build is minified, so the source is not identified yet). The look atlas memo removes about 50 ms of the tint pass. A first-frame fix needs that item traced to its source and its own profile on a quiet machine.
+- **Texture memory** (22.3 to 25.9 MB): the look atlas is 128 x 7680 RGBA (3.9 MB) for 240 looks. Shrinking it means fewer looks or palette rows, which changes the art. Not done.
+- **Bundle** (index 168 to 260 kB): the index chunk is mostly the toolbar (tooltips, tool sprites, about 79 kB) and the panels (31 kB); the modals were already lazy. Moving the toolbar or panels later would delay the first paint of the controls. Not done.
+- **React re-renders**: the React runtime is 2.9% of the startup profile and 0.1% of steady state (`react-vendor`), so there is no re-render storm to fix in the measured windows.
+- **Engine gather** (`drawSpriteLayer`, 2.6% of wall time in the crowd profile): every overlay repaint still does `clear()` and `touch()` on its recorder layers, which makes cubeforge re-gather each one. A cubeforge change would be the fix; it does not clear the 3% bar on its own, so no engine PR.
+- **Dew** (25 to 35 ms standard): a per-tile hash and `sin` over the visible grass at 15 Hz. Caching the glint positions per terrain revision would cut it; not done.
+- **Route search** (`movement::toward`, the road heuristic): not attempted in this stream. Making the heuristic admissible changes routes, and the world-health check (mean alive at tick 9000 over 8 seeds) was not run.
+
+### Rules this stream kept
+
+Each change was measured on its own against the build it changed; the section sums were taken from instrumented builds that never shipped (the timing hooks were applied to a copy and reverted); the bench's own `busy %` was reported only where it was not the evidence.
