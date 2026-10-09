@@ -168,7 +168,9 @@ impl Simulation {
         if let Some(obj) = payload.as_object_mut() {
             obj.insert("vehicles".into(), serde_json::Value::Array(self.vehicles.iter().map(|v| json!({
                 "id": v.id, "kind": v.kind.name(), "x": v.x, "y": v.y,
-                "rider_id": v.occupants.first(), "building": self.tick_count < v.ready_tick && !v.occupants.is_empty()
+                "rider_id": v.occupants.first(), "building": self.tick_count < v.ready_tick && !v.occupants.is_empty(),
+                // The owner's era picks the hull the boat is drawn with; cargo is the goods on deck.
+                "era": self.era(&v.owner_lineage).name(), "cargo": v.cargo
             })).collect()));
             obj.insert(
                 "population_limit".to_string(),

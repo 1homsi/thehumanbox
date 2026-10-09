@@ -4,7 +4,8 @@
  * is `frameWidth x frameHeight` cells indexed row-major.
  */
 import { SPECIALTY_EMOJI } from '../draw-helpers'
-import { drawBoat } from '../boat-sprite'
+import { BOAT_HULLS, drawBoatHull } from '../boat-sprite'
+import { eraTier } from '../../model/era-tier'
 import { drawPixelFauna, pixelFaunaDims, pixelFaunaKinds } from '../pixel-fauna'
 import { FAUNA_RECTS } from '../fauna-layout'
 import { animalSize } from '../animal-visuals'
@@ -112,10 +113,14 @@ export function bakeGlyphs(ctx: CanvasRenderingContext2D): void {
 
 // ---- Boats -------------------------------------------------------------------
 
-export const BOAT_CELL = { width: 32, height: 16 }
-/** Where the canvas painter's boat origin sits inside a cell. */
-export const BOAT_ORIGIN = { x: 16, y: 5 }
-export const BOAT_COLUMNS = 8
+export const BOAT_CELL = { width: 32, height: 32 }
+/** Where the canvas painter's boat origin sits inside a cell (the hull sits where it always did; the cell is taller for a mast and a funnel). */
+export const BOAT_ORIGIN = { x: 16, y: 13 }
+/** Frames per boat variant: idle, under construction, then six moving frames (stroke and wake). */
+export const BOAT_FRAMES = 8
+/** Variants: each hull without goods, then with goods on deck. */
+export const BOAT_VARIANTS = BOAT_HULLS.length * 2
+export const BOAT_COLUMNS = BOAT_FRAMES * BOAT_VARIANTS
 export const BOAT_SIZE = { width: BOAT_CELL.width * BOAT_COLUMNS, height: BOAT_CELL.height }
 
 /** 0 idle, 1 under construction, then moving frames by stroke (0..1) and wake (0..2). */
@@ -127,6 +132,18 @@ export function boatFrame(moving: boolean, building: boolean, time: number): num
   return 2 + stroke * 3 + wake
 }
 
+/** The variant of a boat from its owner's era tier and the goods on its deck (an index into `BOAT_HULLS`, doubled when laden). */
+export function boatVariantOf(era: string | undefined, cargo: number | undefined): number {
+  const tier = eraTier(era)
+  const hull = tier <= 0 ? 0 : tier === 1 ? 1 : tier <= 4 ? 2 : 3
+  return hull * 2 + (cargo && cargo > 0 ? 1 : 0)
+}
+
+/** The atlas column of one frame of a variant. */
+export function boatColumn(variant: number, frame: number): number {
+  return variant * BOAT_FRAMES + frame
+}
+
 export function bakeBoats(ctx: CanvasRenderingContext2D): void {
   ctx.clearRect(0, 0, BOAT_SIZE.width, BOAT_SIZE.height)
   const timeFor = (wake: number, stroke: number): number => {
@@ -134,16 +151,20 @@ export function bakeBoats(ctx: CanvasRenderingContext2D): void {
       if (Math.floor(t / 180) % 3 === wake && Math.floor(t / 220) % 2 === stroke) return t
     return 0
   }
-  const paint = (frame: number, moving: boolean, building: boolean, time: number) => {
-    ctx.save()
-    ctx.translate(frame * BOAT_CELL.width, 0)
-    drawBoat(ctx, BOAT_ORIGIN.x, BOAT_ORIGIN.y, time, moving, building)
-    ctx.restore()
+  for (let variant = 0; variant < BOAT_VARIANTS; variant++) {
+    const hull = BOAT_HULLS[variant >> 1]!
+    const cargo = (variant & 1) === 1
+    const paint = (frame: number, moving: boolean, building: boolean, time: number) => {
+      ctx.save()
+      ctx.translate(boatColumn(variant, frame) * BOAT_CELL.width, 0)
+      drawBoatHull(ctx, BOAT_ORIGIN.x, BOAT_ORIGIN.y, time, moving, building, hull, cargo)
+      ctx.restore()
+    }
+    paint(0, false, false, 0)
+    paint(1, false, true, 0)
+    for (let stroke = 0; stroke < 2; stroke++)
+      for (let wake = 0; wake < 3; wake++) paint(2 + stroke * 3 + wake, true, false, timeFor(wake, stroke))
   }
-  paint(0, false, false, 0)
-  paint(1, false, true, 0)
-  for (let stroke = 0; stroke < 2; stroke++)
-    for (let wake = 0; wake < 3; wake++) paint(2 + stroke * 3 + wake, true, false, timeFor(wake, stroke))
 }
 
 // ---- Animals made of ASCII pixel art -----------------------------------------

@@ -1,9 +1,16 @@
 //! Small, bounded coastal voyages. Boat passengers still run normal metabolism.
+use crate::organism::organism::Organism;
 use crate::sim::simulation::Simulation;
 use crate::sim::transportation::{TransportKind, Vehicle};
 use crate::world::{grid::WorldGrid, tiles::Tile};
 
 const CARDINAL: [(i32, i32); 4] = [(0, -1), (0, 1), (-1, 0), (1, 0)];
+
+/// Goods a passenger brings aboard: what they carry in hand (wood, stone and food).
+/// Shown on the deck; it does not change how the crossing goes.
+fn goods_carried(person: &Organism) -> u32 {
+    u32::from(person.inv_wood) + u32::from(person.inv_stone) + u32::from(person.inv_food)
+}
 
 // Routes cross water to a dry shore; never cut across land or mountains.
 fn crossing(grid: &WorldGrid, start: (i32, i32), minimum: i32) -> Option<Vec<(i32, i32)>> {
@@ -307,12 +314,14 @@ impl Simulation {
             if let Some(i) = reusable {
                 self.vehicles[i].occupants.push(id);
                 self.vehicles[i].route = route;
+                self.vehicles[i].cargo = goods_carried(person);
                 i
             } else {
                 let lineage = person.lineage_id.clone();
                 self.organisms[idx].inv_wood -= 4;
                 self.organisms[idx].discover("raft_building");
                 self.organisms[idx].log_event("built a wooden boat for a coastal crossing".into());
+                let cargo = goods_carried(&self.organisms[idx]);
                 let i = self.vehicles.len();
                 self.vehicles.push(Vehicle {
                     id: self.next_vehicle_id,
@@ -321,7 +330,7 @@ impl Simulation {
                     x: pos.0,
                     y: pos.1,
                     occupants: vec![id],
-                    cargo: 0,
+                    cargo,
                     route,
                     ready_tick: self.tick_count + 24,
                 });
@@ -535,5 +544,52 @@ mod storm_tests {
         sim.weather.kind = 0;
         let (_, thought, _) = sim.boat_action(0).expect("the passenger is aboard");
         assert_ne!(thought.as_deref(), Some("sheltering from the storm"));
+    }
+}
+
+#[cfg(test)]
+mod deck_tests {
+    use super::*;
+
+    #[test]
+    fn a_boat_takes_on_its_passengers_goods_and_the_frame_names_its_owners_era() {
+        let mut sim = Simulation::new(42);
+        sim.organisms.truncate(1);
+        sim.animals.clear();
+        for y in 95..=105 {
+            for x in 95..=120 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        for x in 101..=110 {
+            sim.grid.set(x, 100, Tile::Water);
+        }
+        let lineage = sim.organisms[0].lineage_id.clone();
+        let person = &mut sim.organisms[0];
+        person.x = 100.;
+        person.y = 100.;
+        person.age = person.max_age / 2;
+        person.energy = 1.;
+        person.hydration = 1.;
+        person.health = 1.;
+        person.inv_wood = 2;
+        person.inv_food = 1;
+        sim.vehicles.push(Vehicle {
+            id: 7,
+            kind: TransportKind::Boat,
+            owner_lineage: lineage,
+            x: 100,
+            y: 100,
+            occupants: Vec::new(),
+            cargo: 0,
+            route: Vec::new(),
+            ready_tick: 0,
+        });
+        let (_, _, origin) = sim.boat_action(0).expect("a resident takes the moored boat");
+        assert_eq!(origin, "boat_travel");
+        assert_eq!(sim.vehicles[0].cargo, 3, "wood and food come aboard");
+        let frame = sim.state_json();
+        assert_eq!(frame["vehicles"][0]["era"], "pre-stone");
+        assert_eq!(frame["vehicles"][0]["cargo"], 3);
     }
 }

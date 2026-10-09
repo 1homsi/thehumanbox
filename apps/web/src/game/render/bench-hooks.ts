@@ -9,8 +9,16 @@ export interface BenchHooks {
   camera: () => MapCamera
   /** Hands the camera a request ("fit", "zoom by", "look at"), exactly like the toolbar does. */
   command: (command: MapCommand) => void
-  /** Grid size, grid origin, the number of living people and the world tick. */
-  info: () => { gridW: number; gridH: number; originX: number; originY: number; people: number; tick: number }
+  /** Grid size, grid origin, the number of living people, the world tick and the boats the frame carries. */
+  info: () => {
+    gridW: number
+    gridH: number
+    originX: number
+    originY: number
+    people: number
+    tick: number
+    boats: { x: number; y: number; era?: string; cargo?: number; rider: boolean }[]
+  }
 }
 
 interface BenchSource {
@@ -20,6 +28,14 @@ interface BenchSource {
     tick: number
     grid: { width: number; height: number; origin_x?: number; origin_y?: number }
     organisms: readonly { alive?: boolean }[]
+    vehicles?: readonly {
+      kind: string
+      x: number
+      y: number
+      era?: string
+      cargo?: number
+      rider_id?: string | null
+    }[]
   }
 }
 
@@ -51,6 +67,9 @@ export function installBenchHooks(source: BenchSource, force = import.meta.env.D
         originY: world.grid.origin_y ?? 0,
         people: world.organisms.filter((o) => o.alive).length,
         tick: world.tick,
+        boats: (world.vehicles ?? [])
+          .filter((v) => v.kind === 'boat')
+          .map((v) => ({ x: v.x, y: v.y, era: v.era, cargo: v.cargo, rider: !!v.rider_id })),
       }
     },
   }

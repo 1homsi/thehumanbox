@@ -275,6 +275,10 @@ export interface SettlementInfo {
 
 export interface VehicleInfo {
   building?: boolean
+  /** The owner's era name (`pre-stone`, `bronze`, ...): picks the boat's hull. */
+  era?: string
+  /** Goods on deck. */
+  cargo?: number
   id: number
   kind: string
   x: number
