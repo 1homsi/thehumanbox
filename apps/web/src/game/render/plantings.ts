@@ -142,6 +142,120 @@ function drawSapling(ctx: Ctx, x: number, y: number, stage: number) {
   px(ctx, x + 5, y + 3, 1, 2, '#36672c')
 }
 
+// An oak sapling: a pair of broad leaves, then a round crown on a short trunk, the
+// crown full and dark-edged once it is grown.
+function drawOak(ctx: Ctx, x: number, y: number, stage: number) {
+  const trunk = '#6b4a30'
+  const leaf = '#4f8a3c'
+  if (stage <= 0) {
+    px(ctx, x + 3, y + 5, 1, 2, trunk)
+    px(ctx, x + 1, y + 3, 2, 2, '#6fa64c')
+    px(ctx, x + 4, y + 3, 2, 2, '#6fa64c')
+    return
+  }
+  if (stage === 1) {
+    drawShadow(ctx, x, y, 2)
+    px(ctx, x + 3, y + 4, 1, 3, trunk)
+    px(ctx, x + 2, y + 2, 3, 2, leaf)
+    px(ctx, x + 2, y + 2, 1, 1, '#7fb04e')
+    return
+  }
+  drawShadow(ctx, x, y, stage === 2 ? 4 : 5)
+  px(ctx, x + 3, y + 5, 1, 2, trunk)
+  if (stage === 2) {
+    px(ctx, x + 2, y + 1, 4, 1, leaf)
+    px(ctx, x + 1, y + 2, 5, 2, leaf)
+    px(ctx, x + 2, y + 4, 3, 1, '#3b6e2e')
+    px(ctx, x + 2, y + 2, 2, 1, '#7fb04e')
+    return
+  }
+  // A full broadleaf crown: round, lit from the top left, shaded underneath.
+  px(ctx, x + 2, y + 0, 4, 1, leaf)
+  px(ctx, x + 1, y + 1, 6, 3, leaf)
+  px(ctx, x + 2, y + 4, 4, 1, leaf)
+  px(ctx, x + 2, y + 1, 3, 1, '#6fa64c')
+  px(ctx, x + 2, y + 2, 1, 1, '#6fa64c')
+  px(ctx, x + 4, y + 3, 3, 1, '#3b6e2e')
+  px(ctx, x + 3, y + 5, 2, 1, '#3b6e2e')
+}
+
+// A pine sapling: a dark spire of needles that grows tier by tier into a
+// stacked cone, the lowest tier the widest.
+function drawPine(ctx: Ctx, x: number, y: number, stage: number) {
+  const trunk = '#5a3e2a'
+  const dark = '#2f5e3b'
+  const mid = '#3d7449'
+  if (stage <= 0) {
+    px(ctx, x + 3, y + 4, 2, 2, dark)
+    px(ctx, x + 3, y + 3, 1, 1, mid)
+    return
+  }
+  if (stage === 1) {
+    drawShadow(ctx, x, y, 2)
+    px(ctx, x + 3, y + 4, 1, 3, trunk)
+    px(ctx, x + 3, y + 1, 1, 3, dark)
+    px(ctx, x + 2, y + 3, 1, 1, mid)
+    return
+  }
+  drawShadow(ctx, x, y, stage === 2 ? 4 : 5)
+  px(ctx, x + 3, y + 5, 1, 2, trunk)
+  if (stage === 2) {
+    px(ctx, x + 3, y + 0, 1, 1, dark)
+    px(ctx, x + 2, y + 1, 3, 1, dark)
+    px(ctx, x + 2, y + 2, 3, 1, mid)
+    px(ctx, x + 1, y + 3, 5, 1, dark)
+    px(ctx, x + 1, y + 4, 2, 1, mid)
+    return
+  }
+  // A full cone: four tiers, each a shaded row, the lowest the widest.
+  px(ctx, x + 3, y + 0, 1, 1, dark)
+  px(ctx, x + 2, y + 1, 3, 1, dark)
+  px(ctx, x + 2, y + 2, 3, 1, mid)
+  px(ctx, x + 1, y + 3, 5, 1, dark)
+  px(ctx, x + 1, y + 4, 5, 1, mid)
+  px(ctx, x + 0, y + 4, 1, 1, '#5a8f5d')
+  px(ctx, x + 0, y + 3, 1, 1, '#5a8f5d')
+  px(ctx, x + 3, y + 1, 1, 1, '#5a8f5d')
+  px(ctx, x + 6, y + 4, 1, 1, dark)
+}
+
+// A palm sapling: a thin trunk that leans over, with a crown of drooping fronds
+// and a coconut once it is a few stages old.
+function drawPalm(ctx: Ctx, x: number, y: number, stage: number) {
+  const trunk = '#8a6a44'
+  const frond = '#3f8f4a'
+  const shade = '#2f7a3c'
+  if (stage <= 0) {
+    px(ctx, x + 3, y + 6, 1, 1, trunk)
+    px(ctx, x + 2, y + 4, 1, 1, frond)
+    px(ctx, x + 4, y + 4, 1, 1, frond)
+    px(ctx, x + 3, y + 3, 1, 1, shade)
+    return
+  }
+  const top = stage === 1 ? 4 : stage === 2 ? 3 : 2
+  drawShadow(ctx, x, y, stage === 1 ? 2 : 4)
+  // The trunk leans right as it climbs.
+  for (let yy = top + 1; yy <= 6; yy++) {
+    const lean = yy <= top + 1 ? 1 : yy <= top + 3 ? 0 : -1
+    px(ctx, x + 3 + lean, y + yy, 1, 1, trunk)
+  }
+  const cx = x + 3
+  const cy = y + top
+  // Fronds: an arch of pixels, the ends drooping one row.
+  px(ctx, cx - 2, cy + 1, 1, 1, frond)
+  px(ctx, cx - 1, cy, 1, 1, frond)
+  px(ctx, cx, cy - 1, 1, 1, shade)
+  px(ctx, cx + 1, cy, 1, 1, frond)
+  px(ctx, cx + 2, cy + 1, 1, 1, frond)
+  px(ctx, cx - 1, cy + 1, 1, 1, shade)
+  px(ctx, cx + 1, cy + 1, 1, 1, shade)
+  if (stage >= 3) {
+    px(ctx, cx - 3, cy + 2, 1, 1, frond)
+    px(ctx, cx + 3, cy + 2, 1, 1, frond)
+    px(ctx, cx, cy + 1, 1, 1, '#6b4a2a')
+  }
+}
+
 const PETALS = ['#e85d75', '#f2c64a', '#b48ae6', '#f4f1ea', '#ff9a52']
 
 // A small bed of flowers: shoots, then leaves and buds, then bright blooms
@@ -211,7 +325,8 @@ export function drawPlanting(ctx: Ctx, x: number, y: number, kind: number, stage
   else if (kind === PLANT_KIND.FLOWER) drawFlowers(ctx, x, y, stage)
   else if (kind === PLANT_KIND.BERRY) drawBerry(ctx, x, y, stage)
   else if (kind === PLANT_KIND.MUSHROOM) drawMushroom(ctx, x, y, stage)
-  else if (kind === PLANT_KIND.OAK || kind === PLANT_KIND.PINE || kind === PLANT_KIND.PALM)
-    drawSapling(ctx, x, y, stage)
+  else if (kind === PLANT_KIND.OAK) drawOak(ctx, x, y, stage)
+  else if (kind === PLANT_KIND.PINE) drawPine(ctx, x, y, stage)
+  else if (kind === PLANT_KIND.PALM) drawPalm(ctx, x, y, stage)
   else drawSapling(ctx, x, y, stage)
 }
