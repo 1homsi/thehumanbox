@@ -401,6 +401,13 @@ fn staples_go_before_land_goods_when_both_are_spare() {
 
     run_merchant_caravans(&mut sim);
     assert_eq!(sim.caravans.len(), 1);
-    assert_eq!(sim.caravans[0].cargo, "food", "a staple takes the caravan before a land good");
-    assert_eq!(sim.organisms[1].land_good_count("clay"), 6, "the clay stays at home this time");
+    assert_eq!(
+        sim.caravans[0].cargo, "food",
+        "a staple takes the caravan before a land good"
+    );
+    assert_eq!(
+        sim.organisms[1].land_good_count("clay"),
+        6,
+        "the clay stays at home this time"
+    );
 }
