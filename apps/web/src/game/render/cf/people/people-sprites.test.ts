@@ -3,7 +3,7 @@ import { SPRITE_FLIP_X, SPRITE_HIDDEN, SPRITE_UNTEXTURED, SpriteLayer } from 'xi
 import type { OrganismState } from '../../../../shared/types'
 import { orgVariant } from '../../../model/org-variant'
 import { deterministicAppearanceIndex, humanAtlasRow, HUMAN_ATLAS_FRAMES } from '../../character-visuals'
-import { BODY_ATLAS, PeopleSprites, isFocused, type PeopleFrameInput } from './people-sprites'
+import { BODY_ATLAS, PeopleSprites, glideTile, isFocused, type PeopleFrameInput } from './people-sprites'
 import { emoteFor } from '../../activity-emotes'
 import { peopleLabelSource, pickPersonAt, registerPeopleLayer } from '../picking'
 
@@ -493,5 +493,43 @@ describe('PeopleSprites touch ranges', () => {
       expect(rec.all).toBe(false)
       expect(rec.slots.size).toBe(0)
     }
+  })
+})
+
+describe('boats under way glide between simulation frames', () => {
+  it('moves a boat from its last tile to its next one, and holds it there after the frame', () => {
+    const g = { bi: 0, fx: 10, fy: 4, tx: 11, ty: 4 }
+    expect(glideTile(g, 0)).toEqual([10, 4])
+    expect(glideTile(g, 0.5)).toEqual([10.5, 4])
+    expect(glideTile(g, 1)).toEqual([11, 4])
+    // Past the frame it stays at the next tile, and before it at the last one.
+    expect(glideTile(g, 3)).toEqual([11, 4])
+    expect(glideTile(g, -1)).toEqual([10, 4])
+  })
+
+  it('glides a sailing boat from its last frame tile to the next as the frame advances', () => {
+    const { body, sprites } = setup()
+    const boat = (x: number, y: number) => ({
+      id: 7,
+      kind: 'boat',
+      x,
+      y,
+      sailing: true,
+      era: 'pre-stone',
+      rider_id: null,
+    })
+    sprites.rebuild(input([], { vehicles: [boat(10, 4)] }))
+    sprites.rebuild(input([], { vehicles: [boat(11, 4)] }))
+    // Find the boat's body slot: the only body entry.
+    const slot = 0
+    const at = (t: number) => {
+      sprites.animate(1000, t)
+      return body.x[slot]
+    }
+    const start = at(0)
+    const mid = at(0.5)
+    const end = at(1)
+    expect(mid - start).toBeCloseTo((end - start) / 2, 0)
+    expect(end - start).toBeCloseTo(8, 0)
   })
 })
