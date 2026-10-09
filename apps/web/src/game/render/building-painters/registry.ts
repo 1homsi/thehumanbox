@@ -24,6 +24,7 @@ import { paintGlassTower } from './home-forms'
 import { paintEraHome } from './era-home'
 import { paintWorkshop } from './workshop'
 import { paintPen } from './pasture'
+import { CRAFT_SIGNS, paintCraftHome } from './craft-signs'
 
 export const ARCHETYPE: Record<string, (p: P) => void | boolean> = {}
 
@@ -33,19 +34,9 @@ function reg(painter: (p: P) => void | boolean, kinds: string[]) {
 
 reg(paintHut, ['Hut', 'Dovecote'])
 reg(paintTent, ['Tent', 'Pavilion', 'Gazebo', 'Bandstand'])
-reg(paintCottage, [
-  'House',
-  'Bakery',
-  'Inn',
-  'Cobbler',
-  'Herbalist',
-  'Mill',
-  'Tavern',
-  'Brewery',
-  'Bathhouse',
-  'Spa',
-  'Kennel',
-])
+reg(paintCottage, ['House'])
+// Trades keep a cottage body but show their sign on the shop window (craft-signs.ts).
+reg(paintCraftHome, Object.keys(CRAFT_SIGNS))
 reg(
   (p) => paintTownhouse(p, false),
   [

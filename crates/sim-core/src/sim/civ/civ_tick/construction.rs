@@ -6,6 +6,9 @@ pub(super) const BUILDINGS_SOFT_CAP: usize = 1500;
 
 pub(super) const RUIN_RETENTION_TICKS: u64 = 1_200;
 
+/// Ticks between building passes (see `tick_buildings_construct`).
+pub(super) const BUILD_PASS_TICKS: u64 = 240;
+
 pub(super) const REPAIR_GRACE_TICKS: u64 = 600;
 
 pub(super) const BASELINE_MAX_BUILDING_REQUIREMENT: usize = 450;
@@ -464,6 +467,34 @@ pub(super) fn housing_target(
         .find(|kind| era >= kind.era_unlock() && construction_cost_available(sim, lineage, *kind))
 }
 
+/// Fences in a tribe's palisade, and the radius of the ring they stand on.
+pub(super) const PALISADE_FENCES: usize = 12;
+const PALISADE_RADIUS: f32 = 5.0;
+
+/// Where the next fence of the palisade stands: evenly spaced round the centre.
+pub(super) fn palisade_post(cx: i32, cy: i32, index: usize) -> (i32, i32) {
+    let angle = index as f32 * std::f32::consts::TAU / PALISADE_FENCES as f32;
+    (
+        cx + (PALISADE_RADIUS * angle.cos()).round() as i32,
+        cy + (PALISADE_RADIUS * angle.sin()).round() as i32,
+    )
+}
+
+/// How long after a battle a tribe still counts as at war, so its palisade
+/// stands between one construction pass and the next (passes run every 240 ticks).
+pub(super) const WAR_MEMORY_TICKS: u64 = 600;
+
+/// True while a battle a tribe takes part in is being fought, or ended within
+/// `WAR_MEMORY_TICKS`.
+pub(super) fn at_war(sim: &Simulation, lineage: &str) -> bool {
+    sim.battles.iter().any(|battle| {
+        let last_fought = battle.ended_tick.unwrap_or(sim.tick_count);
+        last_fought + WAR_MEMORY_TICKS >= sim.tick_count
+            && (battle.attackers.iter().any(|l| l == lineage)
+                || battle.defenders.iter().any(|l| l == lineage))
+    })
+}
+
 pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
     let functional_count = sim
         .buildings
@@ -505,6 +536,25 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
         if pop < 3 {
             continue;
         }
+        // A tribe at war raises its palisade before anything else, outside the
+        // project limit: fences are cheap and a battle's defence bonus counts them.
+        if functional_slots > 0 && at_war(sim, &lid) {
+            let fences = sim
+                .buildings
+                .iter()
+                .filter(|b| {
+                    !b.decorative && b.kind == BuildingKind::Fence && b.owner_lineage.as_deref() == Some(&lid)
+                })
+                .count();
+            let (cx, cy) = lineage_center(sim, &lid);
+            if fences < PALISADE_FENCES && (cx, cy) != (0, 0) {
+                let (px, py) = palisade_post(cx, cy, fences);
+                let mut palisade_sites = FailedSites::default();
+                if try_start_building_with(sim, &lid, BuildingKind::Fence, px, py, &mut palisade_sites) {
+                    functional_slots -= 1;
+                }
+            }
+        }
         // Finish a manageable number of projects before reserving more land
         // and materials. Children and exhausted residents are not a workforce.
         let workers = sim
@@ -513,6 +563,7 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
             .filter(|o| o.lineage_id == lid && can_work_on_construction(o))
             .count();
         let project_limit = workers.div_ceil(6).clamp(1, 3);
+        relocate_stalled_projects(sim, &lid);
         let pending = sim
             .buildings
             .iter()
@@ -568,6 +619,40 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
             .filter(|b| !b.decorative && b.owner_lineage.as_deref() == Some(&lid))
             .map(|b| b.kind)
             .collect();
+        // Held and reserved craft or civic buildings, standing or not: a
+        // project under way already counts toward what the tribe has.
+        let mut craft_held: HashMap<BuildingKind, usize> = HashMap::default();
+        for b in sim
+            .buildings
+            .iter()
+            .filter(|b| !b.decorative && !b.is_ruined() && b.owner_lineage.as_deref() == Some(lid.as_str()))
+        {
+            *craft_held.entry(b.kind).or_insert(0) += 1;
+        }
+        let agriculture = sim
+            .organisms
+            .iter()
+            .any(|o| o.alive && o.lineage_id == lid && o.discoveries.contains("agriculture"));
+        // Set when a craft or civic project the tribe wants waits on stone it
+        // does not hold. The lineage's people then fetch stone for the next pass.
+        let mut stone_short = false;
+        // A growing tribe is always a few homes short, so housing would take
+        // every pass. After a home, the next pass goes to the craft or civic
+        // building the tribe lacks, whenever it can pay for one.
+        let newest_is_home = sim
+            .buildings
+            .iter()
+            .filter(|b| !b.decorative && b.owner_lineage.as_deref() == Some(lid.as_str()))
+            .max_by_key(|b| b.id)
+            .is_some_and(|b| {
+                matches!(
+                    b.kind,
+                    BuildingKind::Hut
+                        | BuildingKind::House
+                        | BuildingKind::TownHouse
+                        | BuildingKind::Apartment
+                )
+            });
         for project_index in 0..builds_this_pass.min(available_projects) {
             if functional_slots == 0 {
                 break;
@@ -585,7 +670,12 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                         started = Some(kind);
                     }
                 }
-                if let Some(kind) = housing_target(sim, &lid, era, pop).filter(|_| started.is_none()) {
+                let craft_turn = newest_is_home
+                    && most_lacking_craft(era, pop, agriculture, &craft_held, &considered)
+                        .is_some_and(|kind| construction_cost_available(sim, &lid, kind));
+                if let Some(kind) =
+                    housing_target(sim, &lid, era, pop).filter(|_| started.is_none() && !craft_turn)
+                {
                     // Move into a home a vanished tribe left before raising one.
                     if !crate::sim::civ::vacancy::move_into_empty_home(sim, &lid) {
                         let (cx, cy) = lineage_center(sim, &lid);
@@ -609,9 +699,21 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                 }
             }
             while started.is_none() {
-                let Some(kind) = next_target_building(era, pop, sim.population_limit(), &considered) else {
+                // The craft or civic building the tribe lacks most comes before
+                // the rest of the wishlist; a project it cannot pay for yet
+                // leaves the stone it needs on the lineage's wants.
+                let craft = most_lacking_craft(era, pop, agriculture, &craft_held, &considered);
+                let Some(kind) =
+                    craft.or_else(|| next_target_building(era, pop, sim.population_limit(), &considered))
+                else {
                     break;
                 };
+                if craft == Some(kind)
+                    && !construction_cost_available(sim, &lid, kind)
+                    && u32::from(kind.construction_cost().stone) > lineage_stone(sim, &lid)
+                {
+                    stone_short = true;
+                }
                 // Existing civic projects retain their era and population gates.
                 considered.insert(kind);
                 // A vanished tribe's empty hall nearby serves as well as a new one.
@@ -632,10 +734,32 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
             }
             let Some(kind) = started else { break };
             existing.insert(kind);
+            if CRAFT_CIVIC.iter().any(|need| need.kind == kind) {
+                *craft_held.entry(kind).or_insert(0) += 1;
+            }
             functional_slots -= 1;
+        }
+        if stone_short {
+            let until = sim.tick_count + BUILD_PASS_TICKS;
+            for org in sim
+                .organisms
+                .iter_mut()
+                .filter(|org| org.alive && org.lineage_id == lid)
+            {
+                org.fetch_stone_until = until;
+            }
         }
     }
     cap_buildings(sim);
+}
+
+/// Stone held across a lineage's living members, the pool construction draws on.
+pub(super) fn lineage_stone(sim: &Simulation, lineage: &str) -> u32 {
+    sim.organisms
+        .iter()
+        .filter(|org| org.alive && org.lineage_id == lineage)
+        .map(|org| u32::from(org.inv_stone))
+        .sum()
 }
 
 pub(super) fn is_wonder(kind: BuildingKind) -> bool {
@@ -916,10 +1040,107 @@ pub(super) fn tick_building_progress(sim: &mut Simulation) {
     }
 }
 
+/// Moves a tribe's unfinished projects that no worker can reach to a site near
+/// the tribe's present centre. A project keeps the materials and labour it has.
+/// Before this, a site its builders had walked away from kept counting against
+/// the lineage's project limit, so a tribe whose projects were all stranded
+/// could never start another one.
+pub(super) fn relocate_stalled_projects(sim: &mut Simulation, lineage: &str) {
+    let (cx, cy) = lineage_center(sim, lineage);
+    if (cx, cy) == (0, 0) {
+        return;
+    }
+    let stalled: Vec<usize> = sim
+        .buildings
+        .iter()
+        .enumerate()
+        .filter(|(_, b)| {
+            !b.decorative
+                && !b.is_complete()
+                && b.owner_lineage.as_deref() == Some(lineage)
+                && !sim.organisms.iter().any(|org| {
+                    org.lineage_id == lineage
+                        && can_work_on_construction(org)
+                        && (org.x - b.x as f32).abs() + (org.y - b.y as f32).abs()
+                            <= CONSTRUCTION_WORKER_REACH
+                })
+        })
+        .map(|(index, _)| index)
+        .collect();
+    for index in stalled {
+        let kind = sim.buildings[index].kind;
+        let Some((x, y)) = find_construction_site(sim, lineage, kind, cx, cy) else {
+            continue;
+        };
+        let building = &mut sim.buildings[index];
+        building.x = x;
+        building.y = y;
+        sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
+    }
+}
+
 pub(super) fn is_research_building(kind: BuildingKind) -> bool {
     use BuildingKind::*;
     matches!(
         kind,
         School | Library | Observatory | University | Datacenter | ResearchLab
     )
+}
+
+#[cfg(test)]
+mod palisade_tests {
+    use super::*;
+    use crate::sim::civ::society::warfare::{Battle, BattleScale};
+
+    fn battle(attackers: &[&str], defenders: &[&str], ended: Option<u64>) -> Battle {
+        Battle {
+            id: "b".into(),
+            attackers: attackers.iter().map(|s| s.to_string()).collect(),
+            defenders: defenders.iter().map(|s| s.to_string()).collect(),
+            attacker_orgs: Vec::new(),
+            defender_orgs: Vec::new(),
+            scale: BattleScale::Skirmish,
+            location: (0, 0),
+            started_tick: 1,
+            ended_tick: ended,
+            casualties_a: 0,
+            casualties_d: 0,
+            outcome: None,
+            initial_a: 1,
+            initial_d: 1,
+        }
+    }
+
+    fn sim_with_battles(battles: Vec<Battle>) -> Simulation {
+        let mut sim = Simulation::new(1);
+        sim.battles = battles;
+        sim
+    }
+
+    #[test]
+    fn the_palisade_stands_on_a_ring_of_distinct_posts() {
+        let posts: HashSet<(i32, i32)> = (0..PALISADE_FENCES).map(|i| palisade_post(100, 100, i)).collect();
+        assert_eq!(posts.len(), PALISADE_FENCES);
+        for (x, y) in posts {
+            let d = (((x - 100).pow(2) + (y - 100).pow(2)) as f32).sqrt();
+            assert!((d - PALISADE_RADIUS).abs() < 1.0, "post at distance {d}");
+        }
+    }
+
+    #[test]
+    fn a_tribe_is_at_war_while_it_fights_and_for_a_while_after() {
+        let battles = vec![
+            battle(&["river"], &["hill"], None),
+            battle(&["sea"], &["lake"], Some(950)),
+            battle(&["old"], &["ruin"], Some(100)),
+        ];
+        let mut sim = sim_with_battles(battles);
+        sim.tick_count = 1000;
+        assert!(at_war(&sim, "river"));
+        assert!(at_war(&sim, "hill"));
+        // A battle that ended recently keeps its tribes at war a while; an old one does not.
+        assert!(at_war(&sim, "sea"));
+        assert!(!at_war(&sim, "old"));
+        assert!(!at_war(&sim, "forest"));
+    }
 }

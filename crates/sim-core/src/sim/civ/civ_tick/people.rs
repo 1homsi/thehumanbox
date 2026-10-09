@@ -295,6 +295,19 @@ pub(super) fn tick_merchant_drift(sim: &mut Simulation) {
             Some((b.x as f32 + fw as f32 / 2.0, b.y as f32 + fh as f32 / 2.0, lid))
         })
         .collect();
+    // A village (a settlement of tier 1 or more) has its market square at its
+    // centre, so its people can take up trade there even before a stall stands.
+    let mut anchors = anchors;
+    for settlement in crate::sim::civ::settlements::snapshots(sim)
+        .iter()
+        .filter(|settlement| settlement.tier >= 1)
+    {
+        anchors.push((
+            settlement.center[0] as f32,
+            settlement.center[1] as f32,
+            settlement.lineage_id.clone(),
+        ));
+    }
     if anchors.is_empty() {
         return;
     }

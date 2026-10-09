@@ -16,8 +16,9 @@ export interface TerritoryCardFacts {
 
 /**
  * A tribe's trade in a few words: the routes it is on, the goods those routes
- * have carried, and the caravans on the road to or from it. Null while the tribe
- * has no route, so a tribe that does not trade shows nothing.
+ * have carried, the caravans on the road to or from it, and the price of the
+ * goods on their way in (a scarce good sells dearer). Null while the tribe has
+ * no route, so a tribe that does not trade shows nothing.
  */
 export function tradeOfTribe(
   world: Pick<WorldState, 'trade_routes' | 'caravans'>,
@@ -28,14 +29,16 @@ export function tradeOfTribe(
   )
   if (routes.length === 0) return null
   const goods = routes.reduce((sum, route) => sum + route.volume, 0)
-  const onRoad = (world.caravans ?? []).filter(
+  const caravans = (world.caravans ?? []).filter(
     (caravan) => caravan.sender_lineage === lineage || caravan.receiver_lineage === lineage,
-  ).length
+  )
+  const inbound = caravans.find((caravan) => caravan.receiver_lineage === lineage)
   const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
   const parts = [plural(routes.length, 'route', 'routes')]
   // A first caravan still on the road has delivered nothing yet, so no goods are named.
   if (goods > 0) parts.push(plural(goods, 'good', 'goods'))
-  if (onRoad > 0) parts.push(`${plural(onRoad, 'caravan', 'caravans')} on the road`)
+  if (caravans.length > 0) parts.push(`${plural(caravans.length, 'caravan', 'caravans')} on the road`)
+  if (inbound) parts.push(`buying ${inbound.cargo} at ${inbound.unit_price} each`)
   return parts.join(' · ')
 }
 

@@ -141,6 +141,8 @@ pub(crate) struct OrgSave {
     #[serde(default)]
     pub(super) nursing_until: u64,
     #[serde(default)]
+    pub(super) fetch_stone_until: u64,
+    #[serde(default)]
     pub(super) wealth: u32,
     #[serde(default)]
     pub(super) literacy: f32,
@@ -317,6 +319,7 @@ pub(super) fn org_to_save(o: &Organism) -> OrgSave {
         last_area_cell: [o.last_area_cell.0, o.last_area_cell.1],
         wander_target: o.wander_target.map(|(x, y)| [x, y]),
         nursing_until: o.nursing_until,
+        fetch_stone_until: o.fetch_stone_until,
         wealth: o.wealth,
         literacy: o.literacy,
         schooling_ticks: o.schooling_ticks,
@@ -460,6 +463,7 @@ pub(super) fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
         o.last_area_cell = (s.last_area_cell[0], s.last_area_cell[1]);
         o.wander_target = s.wander_target.map(|[x, y]| (x, y));
         o.nursing_until = s.nursing_until;
+        o.fetch_stone_until = s.fetch_stone_until;
         o.wealth = s.wealth;
         o.literacy = s.literacy;
         o.schooling_ticks = s.schooling_ticks;

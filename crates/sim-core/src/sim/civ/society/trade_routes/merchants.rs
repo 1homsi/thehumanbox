@@ -13,6 +13,8 @@ pub(super) const CARAVAN_INTERVAL_TICKS: u64 = 240;
 pub(super) const MERCHANT_LOAD: u32 = 3;
 /// Units of a good a donor keeps for their own needs.
 const DONOR_KEEP: u32 = 2;
+/// A tribe sends a good only when it has at least this many units per person to spare.
+const SPARE_PER_PERSON: f32 = 2.0;
 /// Goods a merchant can carry between tribes. Tools and water stay at home.
 const TRADE_GOODS: [&str; 3] = ["food", "wood", "stone"];
 
@@ -101,7 +103,7 @@ fn surplus_good(sim: &Simulation, sender: &str, receiver: &str) -> Option<&'stat
     for (index, good) in TRADE_GOODS.iter().enumerate() {
         let sends = sender_stock[index] as f32 / sender_people as f32;
         let gets = receiver_stock[index] as f32 / receiver_people as f32;
-        if sends < 1.0 || gets >= sends * 0.5 {
+        if sends < SPARE_PER_PERSON || gets >= sends * 0.5 {
             continue;
         }
         let gap = sends - gets;
@@ -178,7 +180,20 @@ fn send_merchant_caravan(sim: &mut Simulation, route_index: usize, sender: &str,
     if carried == 0 {
         return false;
     }
-    dispatch_cargo_on_route_index(sim, merchant_idx, route_index, good.to_string(), carried)
+    if !dispatch_cargo_on_route_index(sim, merchant_idx, route_index, good.to_string(), carried) {
+        return false;
+    }
+    // The price rises with scarcity: a tribe with none of the good in store pays
+    // up to double the era's price for it.
+    let (receiver_people, receiver_stock) = lineage_stock(sim, receiver);
+    let index = TRADE_GOODS.iter().position(|name| *name == good).unwrap_or(0);
+    let per_person = receiver_stock[index] as f32 / receiver_people.max(1) as f32;
+    let scarcity = (1.0 - per_person).clamp(0.0, 1.0);
+    if let Some(caravan) = sim.caravans.last_mut() {
+        let base = caravan.unit_price as f32;
+        caravan.unit_price = (base * (1.0 + scarcity)).round().clamp(1.0, 200.0) as u32;
+    }
+    true
 }
 
 /// Each route with no caravan on the road and a full interval since its last

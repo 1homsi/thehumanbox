@@ -276,6 +276,117 @@ pub(super) fn next_target_building(
     wishlist.into_iter().find(|&k| !existing.contains(&k))
 }
 
+/// A craft or civic building a tribe keeps a share of once its homes cover
+/// its people. `per_people` is how many people one building serves, so a
+/// tribe of twenty wants two smithies and a tribe of four wants none.
+pub(super) struct CraftNeed {
+    pub(super) kind: BuildingKind,
+    pub(super) era: Era,
+    pub(super) min_pop: usize,
+    pub(super) per_people: usize,
+    /// A bakery only has grain to bake once the tribe has learned to farm.
+    pub(super) needs_agriculture: bool,
+}
+
+/// Craft and civic buildings, in the order a tribe prefers them when it lacks
+/// the same share of each (see `most_lacking_craft`). Housing takes the first
+/// project slot whenever homes fall short, so these used to wait until a tribe
+/// had no empty house left, which never happened while it grew.
+pub(super) const CRAFT_CIVIC: [CraftNeed; 9] = [
+    CraftNeed {
+        kind: BuildingKind::Workshop,
+        era: Era::Stone,
+        min_pop: 6,
+        per_people: 6,
+        needs_agriculture: false,
+    },
+    CraftNeed {
+        kind: BuildingKind::Forge,
+        era: Era::Bronze,
+        min_pop: 5,
+        per_people: 8,
+        needs_agriculture: false,
+    },
+    CraftNeed {
+        kind: BuildingKind::Smithy,
+        era: Era::Iron,
+        min_pop: 6,
+        per_people: 12,
+        needs_agriculture: false,
+    },
+    CraftNeed {
+        kind: BuildingKind::Bakery,
+        era: Era::Bronze,
+        min_pop: 6,
+        per_people: 10,
+        needs_agriculture: true,
+    },
+    CraftNeed {
+        kind: BuildingKind::Tavern,
+        era: Era::Iron,
+        min_pop: 6,
+        per_people: 12,
+        needs_agriculture: false,
+    },
+    CraftNeed {
+        kind: BuildingKind::Temple,
+        era: Era::Bronze,
+        min_pop: 8,
+        per_people: 16,
+        needs_agriculture: false,
+    },
+    CraftNeed {
+        kind: BuildingKind::Market,
+        era: Era::Iron,
+        min_pop: 8,
+        per_people: 16,
+        needs_agriculture: false,
+    },
+    CraftNeed {
+        kind: BuildingKind::GuildHall,
+        era: Era::Medieval,
+        min_pop: 12,
+        per_people: 30,
+        needs_agriculture: false,
+    },
+    CraftNeed {
+        kind: BuildingKind::CityHall,
+        era: Era::Renaissance,
+        min_pop: 20,
+        per_people: 40,
+        needs_agriculture: false,
+    },
+];
+
+/// The craft or civic kind a tribe lacks most, among those its era, size and
+/// knowledge allow and that are not yet in `considered`. The lack is the
+/// ratio of buildings held to buildings wanted, so a tribe with one workshop
+/// and six people (wants one) lacks nothing, and one with two smithies and
+/// a town of forty (wants three) lacks the third. Ties keep table order.
+pub(super) fn most_lacking_craft(
+    era: Era,
+    pop: usize,
+    agriculture: bool,
+    owned: &HashMap<BuildingKind, usize>,
+    considered: &HashSet<BuildingKind>,
+) -> Option<BuildingKind> {
+    CRAFT_CIVIC
+        .iter()
+        .filter(|need| {
+            era >= need.era
+                && pop >= need.min_pop
+                && (agriculture || !need.needs_agriculture)
+                && !considered.contains(&need.kind)
+        })
+        .filter_map(|need| {
+            let wanted = (pop / need.per_people).max(1);
+            let held = owned.get(&need.kind).copied().unwrap_or(0);
+            (held < wanted).then_some((held * 1000 / wanted, need.kind))
+        })
+        .min_by_key(|&(ratio, _)| ratio)
+        .map(|(_, kind)| kind)
+}
+
 /// A stone-age workshop is where a tribe makes things by hand (carved bowls,
 /// spoons, pipes, dolls, kites), and the workshop workplace gate needs one
 /// nearby. A tribe of six raises its first one before its next home.
@@ -299,6 +410,43 @@ mod tests {
         assert_eq!(first_workshop_target(Era::Stone, 6, &built), Some(Workshop));
         // Below six people a tribe has no room for a workshop yet.
         assert_eq!(first_workshop_target(Era::Stone, 5, &built), None);
+    }
+
+    #[test]
+    fn a_tribe_lacking_a_smithy_raises_one_before_another_shrine() {
+        let owned: HashMap<BuildingKind, usize> = [(Workshop, 2), (Forge, 1), (Hut, 9)].into_iter().collect();
+        let considered = HashSet::default();
+        // Forty people want five forges' worth of work, but only one forge stands.
+        assert_eq!(
+            most_lacking_craft(Era::Iron, 40, true, &owned, &considered),
+            Some(Smithy)
+        );
+    }
+
+    #[test]
+    fn a_tribe_that_has_no_grain_to_bake_does_not_raise_a_bakery() {
+        // Workshop and forge already stand, so the bakery is the lack a farming tribe has.
+        let owned: HashMap<BuildingKind, usize> = [(Workshop, 2), (Forge, 1)].into_iter().collect();
+        let considered = HashSet::default();
+        assert_ne!(
+            most_lacking_craft(Era::Bronze, 12, false, &owned, &considered),
+            Some(Bakery)
+        );
+        assert_eq!(
+            most_lacking_craft(Era::Bronze, 12, true, &owned, &considered),
+            Some(Bakery)
+        );
+    }
+
+    #[test]
+    fn a_small_tribe_wants_no_more_craft_than_its_size_allows() {
+        let owned: HashMap<BuildingKind, usize> = [(Workshop, 1)].into_iter().collect();
+        let considered = HashSet::default();
+        // Five people are too few for any craft beyond the first workshop.
+        assert_eq!(
+            most_lacking_craft(Era::Stone, 5, false, &owned, &considered),
+            None
+        );
     }
 
     #[test]
