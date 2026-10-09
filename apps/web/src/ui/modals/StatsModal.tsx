@@ -5,6 +5,7 @@ import { DAY_LENGTH, kindIcon } from './stats/constants'
 import { PopChart } from './stats/PopChart'
 import { YearlyChart } from './stats/YearlyChart'
 import { WealthGapChart } from './stats/WealthGapChart'
+import { LegendsList } from './stats/LegendsList'
 import { RelationsTable } from './stats/RelationsTable'
 import { DiscoveryTimeline } from './stats/DiscoveryTimeline'
 import { AgePyramid } from './stats/AgePyramid'
@@ -150,6 +151,11 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
           <section>
             <div className="stats-section-title">DISCOVERY ROLLUP</div>
             <DiscoveryRollup organisms={world.organisms.filter((o) => o.alive)} />
+          </section>
+
+          <section>
+            <div className="stats-section-title">LEGENDS</div>
+            <LegendsList events={world.events ?? []} />
           </section>
 
           <section>
