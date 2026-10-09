@@ -10,6 +10,10 @@ const TOOL_TIPS: Record<string, string> = {
     'Run the world on to the start of the next year, in quick steps. The seasons turn as they would.',
   leader:
     'Crown the grown person nearest where you click the ruler of their tribe. They keep the crown while they live, unless their tribe has no ruler to crown (a plain band) or they are still a child.',
+  cure_tribe:
+    'Cure the whole tribe of the person nearest where you click: every sick member of that tribe is cured and kept safe from the same sickness for a while, wherever they are.',
+  guardian:
+    'A guardian dog appears beside the person nearest where you click and bonds to them, keeping to them the way a released dog does.',
   merge_tribes:
     'Two clicks: a person of one tribe, then a person of another. The second tribe joins the first, everyone in it.',
   split_tribe:
@@ -228,6 +232,10 @@ export function toolFailure(tool: SandboxTool): string {
       return 'no fire there'
     case 'thunder':
       return 'the lightning hit nothing'
+    case 'cure_tribe':
+      return 'nobody near is sick in their tribe'
+    case 'guardian':
+      return 'nobody is near enough to guard'
     case 'merge_tribes':
       return 'pick two people of different tribes'
     case 'split_tribe':
