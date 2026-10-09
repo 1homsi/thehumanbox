@@ -108,6 +108,29 @@ fn route_caravan_and_delayed_credit_state_survive_reload() {
 }
 
 #[test]
+fn the_tribe_that_sells_earns_the_coin_and_keeps_it_across_a_reload() {
+    let mut sim = neighbouring_trade_sim();
+    sim.organisms[0].specialty = Some("merchant".into());
+    sim.organisms[1].inv_food = 5;
+    open_merchant_routes(&mut sim);
+    run_merchant_caravans(&mut sim);
+    assert_eq!(sim.caravans.len(), 1);
+    assert!(
+        sim.trade_income.is_empty(),
+        "nothing is earned until the goods arrive"
+    );
+
+    sim.tick_count = sim.caravans[0].arrives_tick;
+    assert!(receive_due_for_lineage(&mut sim, "hill"));
+    let earned = sim.trade_income.get("river").copied().unwrap_or(0);
+    assert!(earned > 0, "the river tribe sold food and was paid for it");
+    assert!(!sim.trade_income.contains_key("hill"), "the buyer earns nothing");
+
+    let loaded = Simulation::from_save(sim.world_seed, sim.to_save_state());
+    assert_eq!(loaded.trade_income.get("river").copied(), Some(earned));
+}
+
+#[test]
 fn overdue_full_destination_returns_cargo_and_frees_the_route() {
     let mut sim = trade_sim();
     sim.organisms[0].inv_stone = 3;

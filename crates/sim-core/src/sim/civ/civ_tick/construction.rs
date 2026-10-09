@@ -102,6 +102,26 @@ pub(super) fn building_footprints_overlap(
 }
 
 pub(crate) fn construction_site_is_valid(sim: &Simulation, kind: BuildingKind, x: i32, y: i32) -> bool {
+    let (width, height) = kind.footprint();
+    construction_terrain_is_valid(sim, kind, x, y)
+        && !sim.buildings.iter().any(|building| {
+            !building.decorative
+                && building_footprints_overlap(
+                    x,
+                    y,
+                    width,
+                    height,
+                    building.x,
+                    building.y,
+                    building.footprint().0,
+                    building.footprint().1,
+                )
+        })
+}
+
+/// The ground part of `construction_site_is_valid`: bounds and terrain, not the
+/// buildings already standing there.
+fn construction_terrain_is_valid(sim: &Simulation, kind: BuildingKind, x: i32, y: i32) -> bool {
     use crate::world::grid::{HEIGHT, WIDTH};
     use crate::world::tiles::Tile;
 
@@ -150,19 +170,7 @@ pub(crate) fn construction_site_is_valid(sim: &Simulation, kind: BuildingKind, x
             }
         }
     }
-    !sim.buildings.iter().any(|building| {
-        !building.decorative
-            && building_footprints_overlap(
-                x,
-                y,
-                width,
-                height,
-                building.x,
-                building.y,
-                building.footprint().0,
-                building.footprint().1,
-            )
-    })
+    true
 }
 
 pub(super) fn apply_completed_building_effect(sim: &mut Simulation, kind: BuildingKind, x: i32, y: i32) {
@@ -236,11 +244,18 @@ pub(super) fn construction_site_has_reachable_worker(
 // Automatic settlements leave a lane between structures. Exact player/action
 // placement still uses the strict footprint check; connected infrastructure
 // such as walls and bridges must remain possible.
-pub(super) fn automatic_site_has_clearance(sim: &Simulation, kind: BuildingKind, x: i32, y: i32) -> bool {
-    if matches!(
+fn clearance_exempt(kind: BuildingKind) -> bool {
+    matches!(
         kind,
         BuildingKind::Bridge | BuildingKind::Wall | BuildingKind::Gate | BuildingKind::Aqueduct
-    ) {
+    )
+}
+
+/// The clearance rule for one site, as the reference the site search is
+/// tested against. The search applies the same rule through `SiteSearch`.
+#[cfg(test)]
+pub(super) fn automatic_site_has_clearance(sim: &Simulation, kind: BuildingKind, x: i32, y: i32) -> bool {
+    if clearance_exempt(kind) {
         return true;
     }
     let (w, h) = kind.footprint();
@@ -250,6 +265,123 @@ pub(super) fn automatic_site_has_clearance(sim: &Simulation, kind: BuildingKind,
     })
 }
 
+/// Ring radius, in tiles, that a site search covers around its preferred point.
+const SITE_SEARCH_RADIUS: i32 = 12;
+
+/// Tiles the occupancy window extends past the search ring on every side. It
+/// covers the clearance lane too (one tile west, two north, and the far edge of
+/// the footprint plus the lane), so each candidate's tests stay inside it.
+const SITE_WINDOW_MARGIN: i32 = 16;
+
+/// The buildings and workers a site search tests, gathered once per search.
+/// Each candidate then reads a few cells of the window instead of scanning
+/// every building once for overlap and again for clearance. The tests are the
+/// same as `construction_site_is_valid`, `automatic_site_has_clearance` and
+/// `construction_site_has_reachable_worker`, so each tile gets the same answer.
+struct SiteSearch<'a> {
+    sim: &'a Simulation,
+    kind: BuildingKind,
+    width: u8,
+    height: u8,
+    window_x: i32,
+    window_y: i32,
+    window_width: i32,
+    window_height: i32,
+    /// Cells covered by a standing non-decorative building, inside the window.
+    occupied: Vec<bool>,
+    /// Positions of the lineage's workers who can work on a site.
+    workers: Vec<(f32, f32)>,
+}
+
+impl<'a> SiteSearch<'a> {
+    fn new(
+        sim: &'a Simulation,
+        lineage: &str,
+        kind: BuildingKind,
+        preferred_x: i32,
+        preferred_y: i32,
+    ) -> Self {
+        let (width, height) = kind.footprint();
+        let window_x = preferred_x - SITE_WINDOW_MARGIN;
+        let window_y = preferred_y - SITE_WINDOW_MARGIN;
+        let window_width = 2 * SITE_WINDOW_MARGIN + i32::from(width) + 4;
+        let window_height = 2 * SITE_WINDOW_MARGIN + i32::from(height) + 4;
+        let mut occupied = vec![false; (window_width * window_height) as usize];
+        for building in sim.buildings.iter().filter(|building| !building.decorative) {
+            let (building_width, building_height) = building.footprint();
+            let left = building.x.max(window_x);
+            let top = building.y.max(window_y);
+            let right = (building.x + i32::from(building_width)).min(window_x + window_width);
+            let bottom = (building.y + i32::from(building_height)).min(window_y + window_height);
+            for y in top..bottom {
+                for x in left..right {
+                    occupied[((y - window_y) * window_width + (x - window_x)) as usize] = true;
+                }
+            }
+        }
+        let workers = sim
+            .organisms
+            .iter()
+            .filter(|org| org.lineage_id == lineage && can_work_on_construction(org))
+            .map(|org| (org.x, org.y))
+            .collect();
+        Self {
+            sim,
+            kind,
+            width,
+            height,
+            window_x,
+            window_y,
+            window_width,
+            window_height,
+            occupied,
+            workers,
+        }
+    }
+
+    /// Whether a `width` by `height` footprint at (x, y) overlaps a standing
+    /// building. A rectangle that leaves the window falls back to the scan.
+    fn touches_building(&self, x: i32, y: i32, width: u8, height: u8) -> bool {
+        let (w, h) = (i32::from(width), i32::from(height));
+        let inside = x >= self.window_x
+            && y >= self.window_y
+            && x + w <= self.window_x + self.window_width
+            && y + h <= self.window_y + self.window_height;
+        if !inside {
+            return self.sim.buildings.iter().any(|building| {
+                !building.decorative && {
+                    let (building_width, building_height) = building.footprint();
+                    building_footprints_overlap(
+                        x,
+                        y,
+                        width,
+                        height,
+                        building.x,
+                        building.y,
+                        building_width,
+                        building_height,
+                    )
+                }
+            });
+        }
+        (y..y + h).any(|cy| {
+            let row = (cy - self.window_y) * self.window_width - self.window_x;
+            (x..x + w).any(|cx| self.occupied[(row + cx) as usize])
+        })
+    }
+
+    /// Whether the search would start this kind at (x, y).
+    fn accepts(&self, x: i32, y: i32) -> bool {
+        construction_terrain_is_valid(self.sim, self.kind, x, y)
+            && !self.touches_building(x, y, self.width, self.height)
+            && (clearance_exempt(self.kind)
+                || !self.touches_building(x - 1, y - 2, self.width + 2, self.height + 4))
+            && self.workers.iter().any(|&(worker_x, worker_y)| {
+                (worker_x - x as f32).abs() + (worker_y - y as f32).abs() <= CONSTRUCTION_WORKER_REACH
+            })
+    }
+}
+
 pub(super) fn find_construction_site(
     sim: &Simulation,
     lineage: &str,
@@ -257,16 +389,14 @@ pub(super) fn find_construction_site(
     preferred_x: i32,
     preferred_y: i32,
 ) -> Option<(i32, i32)> {
-    if construction_site_is_valid(sim, kind, preferred_x, preferred_y)
-        && automatic_site_has_clearance(sim, kind, preferred_x, preferred_y)
-        && construction_site_has_reachable_worker(sim, lineage, preferred_x, preferred_y)
-    {
+    let search = SiteSearch::new(sim, lineage, kind, preferred_x, preferred_y);
+    if search.accepts(preferred_x, preferred_y) {
         return Some((preferred_x, preferred_y));
     }
     // Automatic plans use a preferred settlement offset. Search a compact
     // ring around it so water or another structure delays only this site,
     // rather than charging resources or permanently blocking construction.
-    for radius in 1i32..=12 {
+    for radius in 1i32..=SITE_SEARCH_RADIUS {
         for dy in -radius..=radius {
             for dx in -radius..=radius {
                 if dx.abs() != radius && dy.abs() != radius {
@@ -274,10 +404,7 @@ pub(super) fn find_construction_site(
                 }
                 let x = preferred_x + dx;
                 let y = preferred_y + dy;
-                if construction_site_is_valid(sim, kind, x, y)
-                    && automatic_site_has_clearance(sim, kind, x, y)
-                    && construction_site_has_reachable_worker(sim, lineage, x, y)
-                {
+                if search.accepts(x, y) {
                     return Some((x, y));
                 }
             }

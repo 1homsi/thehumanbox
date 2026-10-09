@@ -148,7 +148,8 @@ impl Simulation {
             .filter(|animal| animal.alive && !animal.sleeping && !animal.away)
         {
             match animal.kind {
-                kind if kind.is_prey() => prey_pos_for_chase.push((animal.x, animal.y)),
+                // Livestock in a pen is not game: the rails keep the wolves out.
+                kind if kind.is_prey() && !animal.is_kept() => prey_pos_for_chase.push((animal.x, animal.y)),
                 kind if kind.hostile() => wolf_pos_for_flee.push((animal.x, animal.y)),
                 _ => {}
             }
@@ -195,7 +196,7 @@ impl Simulation {
             .animals
             .iter()
             .enumerate()
-            .filter(|(_, a)| a.alive && !a.away && a.kind.is_prey())
+            .filter(|(_, a)| a.alive && !a.away && a.kind.is_prey() && !a.is_kept())
             .map(|(i, a)| (i, a.x, a.y, a.kind))
             .collect();
         let mut kills: Vec<(usize, usize)> = Vec::new();

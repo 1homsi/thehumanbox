@@ -221,6 +221,12 @@ pub struct RouteCache {
     /// per tick).
     pub blocked: Option<(i32, i32)>,
     pub blocked_for: u16,
+    /// The tile this walker last made a route decision from, and the tile it came from before that.
+    /// A greedy step straight back onto the latter is a reversal: the walker is stuck between two tiles.
+    pub here: Option<(i32, i32)>,
+    pub before: Option<(i32, i32)>,
+    /// Steps in a row straight back onto the tile before.
+    pub reversals: u8,
 }
 
 fn near(a: (i32, i32), b: (i32, i32)) -> bool {
@@ -233,13 +239,14 @@ impl RouteCache {
         self.blocked_for > 0 && self.blocked.is_some_and(|b| near(b, goal))
     }
 
-    /// Spend one skipped replan on a recently failed goal.
+    /// True when a recently failed goal should not be replanned.
     pub fn skip_blocked(&mut self, goal: (i32, i32)) -> bool {
-        if self.recently_blocked(goal) {
-            self.blocked_for -= 1;
-            return true;
-        }
-        false
+        self.recently_blocked(goal)
+    }
+
+    /// Run down the memory of a failed goal, once per decision.
+    pub fn decay_blocked(&mut self) {
+        self.blocked_for = self.blocked_for.saturating_sub(1);
     }
 
     pub fn mark_blocked(&mut self, goal: (i32, i32)) {

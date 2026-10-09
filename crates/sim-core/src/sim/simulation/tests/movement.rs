@@ -2,7 +2,6 @@
 //! targets, land targets and obstacles.
 
 use super::*;
-use crate::math::DetMath;
 
 fn autonomy_test_organism(id: &str, x: f32, y: f32) -> Organism {
     let mut org = Organism::new(
@@ -349,18 +348,24 @@ fn deep_water_fatigue_causes_panic_and_marks_danger() {
 
 /// People used to pace between two tiles in front of mountains, walls of
 /// huts and lake shores because each greedy step undid the last. Routing
-/// around obstacles keeps the share of people stuck pacing small.
-///
-/// Known broken on the deterministic world since the platform-independent hash
-/// maps (PR #531): 41 of 107 people pace, against a limit of 12. Before that
-/// change the macOS world happened to pass (7 of 111) while Linux CI failed
-/// (34 of 107). The behaviour is the bug, so the threshold stays as it is. The
-/// fix belongs to the pacing PR (flip-flop between "avoiding danger" and goal
-/// actions next to remembered danger). Remove this `ignore` with that fix.
-#[ignore = "known broken: people pace in place; fixed by the pacing PR, see the note above"]
+/// around obstacles keeps the share of people stuck pacing small on every
+/// seed checked: the original one and the ones that paced before the fix.
 #[test]
 fn few_people_pace_in_place_in_front_of_obstacles() {
-    let mut sim = Simulation::new(42);
+    for seed in [42, 5, 8, 13, 24, 45] {
+        let (tracked, pacing) = pacing_share(seed);
+        assert!(tracked > 50, "seed {seed}: enough people to judge: {tracked}");
+        assert!(
+            pacing * 100 < tracked * 12,
+            "seed {seed}: {pacing} of {tracked} people pace in place"
+        );
+    }
+}
+
+/// Runs `seed` for 1500 ticks, then counts how many people pace over the next 40.
+/// Returns (people tracked through the window, people who paced).
+fn pacing_share(seed: u64) -> (usize, usize) {
+    let mut sim = Simulation::new(seed);
     for _ in 0..1500 {
         sim.tick();
     }
@@ -380,22 +385,18 @@ fn few_people_pace_in_place_in_front_of_obstacles() {
         let mut last: Option<(f32, f32)> = None;
         for w in t.windows(2) {
             let (dx, dy) = (w[1].0 - w[0].0, w[1].1 - w[0].1);
-            if dx.det_hypot(dy) > 0.01 {
-                path += dx.det_hypot(dy);
+            if dx.hypot(dy) > 0.01 {
+                path += dx.hypot(dy);
                 if last.is_some_and(|(lx, ly)| lx * dx + ly * dy < 0.0) {
                     reversals += 1;
                 }
                 last = Some((dx, dy));
             }
         }
-        let net = (t[window - 1].0 - t[0].0).det_hypot(t[window - 1].1 - t[0].1);
+        let net = (t[window - 1].0 - t[0].0).hypot(t[window - 1].1 - t[0].1);
         if path >= 0.3 && net < path * 0.25 && reversals > 6 {
             pacing += 1;
         }
     }
-    assert!(tracked > 50, "enough people to judge: {tracked}");
-    assert!(
-        pacing * 100 < tracked * 12,
-        "{pacing} of {tracked} people pace in place"
-    );
+    (tracked, pacing)
 }

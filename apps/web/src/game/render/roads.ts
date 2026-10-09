@@ -130,7 +130,7 @@ export function drawCaravanSprite(
   const flip = Math.cos(angle) < 0
   if (flip) ctx.scale(-1, 1)
   ctx.fillStyle = 'rgba(0,0,0,0.25)'
-  ctx.fillRect(-u * 5, u * 2, u * 11, u)
+  ctx.fillRect(-u * 9, u * 2, u * 21, u)
   if (tier >= 5) {
     // Truck: a box in the sender's colour behind a cab.
     ctx.fillStyle = color
@@ -145,28 +145,37 @@ export function drawCaravanSprite(
     ctx.fillRect(-u * 4, u, u * 2, u * 2)
     ctx.fillRect(u * 2, u, u * 2, u * 2)
   } else {
-    // Ox cart: a load under a tribe-coloured cloth, wheels, and the ox.
+    // The ox, from the front: a brown body on four legs, a head with horns, a yoke to the cart.
+    ctx.fillStyle = '#5a3a22'
+    ctx.fillRect(u * 4, u, u, u * 2)
+    ctx.fillRect(u * 7, u, u, u * 2)
+    ctx.fillStyle = '#8a5a34'
+    ctx.fillRect(u * 3, -u * 2, u * 6, u * 3)
+    ctx.fillStyle = '#6e4424'
+    ctx.fillRect(u * 3, 0, u * 6, u)
+    ctx.fillStyle = '#8a5a34'
+    ctx.fillRect(u * 9, -u * 3, u * 2, u * 3)
+    ctx.fillStyle = '#e8dcc0'
+    ctx.fillRect(u * 9, -u * 4, u, u)
+    ctx.fillStyle = '#5a3a22'
+    ctx.fillRect(u, -u, u * 2, u)
+    // The cart: the bed, the load in the goods' colour under the sender's cloth, the wheel.
     ctx.fillStyle = '#7a5636'
-    ctx.fillRect(-u * 5, -u * 2, u * 6, u * 3)
-    ctx.fillStyle = color
-    ctx.fillRect(-u * 5, -u * 4, u * 6, u * 2)
-    ctx.fillStyle = '#3a2a1c'
-    ctx.fillRect(-u * 4, u, u * 2, u * 2)
-    ctx.fillRect(-u, u, u * 2, u * 2)
+    ctx.fillRect(-u * 6, -u, u * 7, u * 2)
     ctx.fillStyle = load
-    ctx.fillRect(u * 2, -u * 2, u * 4, u * 3)
-    ctx.fillRect(u * 5, -u * 3, u * 2, u * 2)
-    ctx.fillStyle = '#3a2a1c'
-    ctx.fillRect(u * 2, u, u, u * 2)
-    ctx.fillRect(u * 5, u, u, u * 2)
-    // The driver walks at the rear, with a head and a tunic in the sender's colour.
-    ctx.fillStyle = '#e0b48a'
-    ctx.fillRect(-u * 8, -u * 6, u * 2, u * 2)
+    ctx.fillRect(-u * 6, -u * 4, u * 6, u * 3)
     ctx.fillStyle = color
-    ctx.fillRect(-u * 8, -u * 4, u * 2, u * 3)
+    ctx.fillRect(-u * 6, -u * 4, u * 6, u)
     ctx.fillStyle = '#3a2a1c'
-    ctx.fillRect(-u * 8, -u, u, u * 2)
-    ctx.fillRect(-u * 7, -u, u, u * 2)
+    ctx.fillRect(-u * 4, 0, u * 2, u * 2)
+    // The driver walks at the rear: a head, a tunic in the sender's colour, two legs.
+    ctx.fillStyle = '#e0b48a'
+    ctx.fillRect(-u * 9, -u * 3, u * 2, u * 2)
+    ctx.fillStyle = color
+    ctx.fillRect(-u * 9, -u, u * 2, u * 2)
+    ctx.fillStyle = '#3a2a1c'
+    ctx.fillRect(-u * 9, u, u, u)
+    ctx.fillRect(-u * 8, u, u, u)
   }
   ctx.restore()
 }

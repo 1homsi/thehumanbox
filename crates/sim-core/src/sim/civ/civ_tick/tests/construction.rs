@@ -490,3 +490,99 @@ fn a_project_no_builder_can_reach_moves_to_where_the_tribe_lives() {
     );
     assert_eq!(moved.condition, 0.0, "no progress was made, none is lost");
 }
+
+/// The site search as it ran before it gathered its buildings once: each ring
+/// tile goes through the single-site rules in turn.
+fn reference_site(
+    sim: &Simulation,
+    lineage: &str,
+    kind: BuildingKind,
+    preferred_x: i32,
+    preferred_y: i32,
+) -> Option<(i32, i32)> {
+    let ok = |x: i32, y: i32| {
+        construction_site_is_valid(sim, kind, x, y)
+            && automatic_site_has_clearance(sim, kind, x, y)
+            && construction_site_has_reachable_worker(sim, lineage, x, y)
+    };
+    if ok(preferred_x, preferred_y) {
+        return Some((preferred_x, preferred_y));
+    }
+    for radius in 1i32..=12 {
+        for dy in -radius..=radius {
+            for dx in -radius..=radius {
+                if dx.abs() != radius && dy.abs() != radius {
+                    continue;
+                }
+                if ok(preferred_x + dx, preferred_y + dy) {
+                    return Some((preferred_x + dx, preferred_y + dy));
+                }
+            }
+        }
+    }
+    None
+}
+
+#[test]
+fn site_search_picks_the_same_tile_as_the_single_site_rules() {
+    let kinds = [
+        BuildingKind::House,
+        BuildingKind::Hut,
+        BuildingKind::Fence,
+        BuildingKind::Wall,
+        BuildingKind::Bridge,
+        BuildingKind::Temple,
+        BuildingKind::Manor,
+        BuildingKind::Castle,
+    ];
+    let mut compared = 0;
+    let mut found = 0;
+    for seed in [42u64, 1337] {
+        let mut sim = Simulation::new(seed);
+        while sim.tick_count < 1_500 {
+            sim.tick();
+        }
+        let mut lineages: Vec<String> = sim
+            .organisms
+            .iter()
+            .filter(|o| o.alive)
+            .map(|o| o.lineage_id.clone())
+            .collect();
+        lineages.sort();
+        lineages.dedup();
+        // Probe around each tribe's centre and beside standing buildings, where
+        // overlap, clearance and the ring edge all decide the answer.
+        let mut probes: Vec<(String, i32, i32)> = Vec::new();
+        for lid in &lineages {
+            let (cx, cy) = lineage_center(&sim, lid);
+            if (cx, cy) == (0, 0) {
+                continue;
+            }
+            for dy in (-14..=14).step_by(7) {
+                for dx in (-14..=14).step_by(7) {
+                    probes.push((lid.clone(), cx + dx, cy + dy));
+                }
+            }
+        }
+        for building in sim.buildings.iter().filter(|b| !b.decorative).take(40) {
+            if let Some(lid) = lineages.first() {
+                probes.push((lid.clone(), building.x + 1, building.y));
+                probes.push((lid.clone(), building.x, building.y + 2));
+            }
+        }
+        for (lid, x, y) in &probes {
+            for &kind in &kinds {
+                let expected = reference_site(&sim, lid, kind, *x, *y);
+                assert_eq!(
+                    find_construction_site(&sim, lid, kind, *x, *y),
+                    expected,
+                    "seed {seed} lineage {lid} {kind:?} preferred ({x}, {y})"
+                );
+                compared += 1;
+                found += usize::from(expected.is_some());
+            }
+        }
+    }
+    assert!(compared > 1_000, "compared {compared} sites");
+    assert!(found > 0 && found < compared, "found {found} of {compared}");
+}
