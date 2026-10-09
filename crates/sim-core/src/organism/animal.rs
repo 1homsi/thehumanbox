@@ -60,6 +60,8 @@ pub enum AnimalKind {
     Lion,
     // Released by the player only: a zebra grazes the savanna and grass, and runs from lions and people.
     Zebra,
+    // Released by the player only: a polar bear walks the tundra and taiga, and when hungry it hunts people.
+    PolarBear,
     // Monsters: summoned with god powers, never born or spawned naturally.
     Zombie,
     Demon,
@@ -70,7 +72,7 @@ pub enum AnimalKind {
 
 impl AnimalKind {
     /// Every kind, for tables and tests.
-    pub const ALL: [AnimalKind; 34] = [
+    pub const ALL: [AnimalKind; 35] = [
         AnimalKind::Rabbit,
         AnimalKind::Deer,
         AnimalKind::Boar,
@@ -99,6 +101,7 @@ impl AnimalKind {
         AnimalKind::Elephant,
         AnimalKind::Lion,
         AnimalKind::Zebra,
+        AnimalKind::PolarBear,
         AnimalKind::Monkey,
         AnimalKind::Zombie,
         AnimalKind::Demon,
@@ -144,6 +147,7 @@ impl AnimalKind {
             AnimalKind::Elephant => 0.0004,
             AnimalKind::Lion => 0.0008,
             AnimalKind::Zebra => 0.0005,
+            AnimalKind::PolarBear => 0.0009,
             // Monsters do not eat. A UFO's energy is its visit: it leaves
             // after roughly 1200 ticks.
             // Zombies slowly rot (about 2500 ticks), so outbreaks burn out.
@@ -183,6 +187,7 @@ impl AnimalKind {
             AnimalKind::Elephant => 4.0,
             AnimalKind::Lion => 0.0,
             AnimalKind::Zebra => 4.5,
+            AnimalKind::PolarBear => 0.0,
             AnimalKind::Zombie
             | AnimalKind::Demon
             | AnimalKind::Dragon
@@ -221,6 +226,7 @@ impl AnimalKind {
             AnimalKind::Elephant => 1,
             AnimalKind::Lion => 2,
             AnimalKind::Zebra => 2,
+            AnimalKind::PolarBear => 1,
             AnimalKind::Zombie => 1,
             AnimalKind::Demon => 2,
             AnimalKind::Dragon => 3,
@@ -316,6 +322,7 @@ impl AnimalKind {
             AnimalKind::Elephant => &[Biome::Savanna, Biome::Grassland],
             AnimalKind::Lion => &[Biome::Savanna, Biome::Grassland],
             AnimalKind::Zebra => &[Biome::Savanna, Biome::Grassland],
+            AnimalKind::PolarBear => &[Biome::Tundra, Biome::Taiga],
             _ => &[],
         }
     }
@@ -368,6 +375,7 @@ impl AnimalKind {
             AnimalKind::Elephant => "elephant",
             AnimalKind::Lion => "lion",
             AnimalKind::Zebra => "zebra",
+            AnimalKind::PolarBear => "polar_bear",
             AnimalKind::Zombie => "zombie",
             AnimalKind::Demon => "demon",
             AnimalKind::Dragon => "dragon",

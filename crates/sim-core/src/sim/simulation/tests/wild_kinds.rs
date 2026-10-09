@@ -448,3 +448,31 @@ fn released_zebras_keep_to_their_habitat() {
         );
     }
 }
+
+#[test]
+fn released_polar_bears_keep_to_their_habitat() {
+    assert!(AnimalKind::PolarBear.drain() > 0.0 && AnimalKind::PolarBear.step_size() > 0);
+    assert_eq!(AnimalKind::PolarBear.name(), "polar_bear");
+    let mut sim = Simulation::new(33);
+    sim.animals.clear();
+    for x in 0..WIDTH as i32 {
+        for y in 0..HEIGHT as i32 {
+            let home = x < WIDTH as i32 / 2;
+            sim.grid.biome[WorldGrid::idx(x, y)] = if home { Biome::Tundra } else { Biome::Savanna } as u8;
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
+    assert!(sim.apply_command_json(
+        r#"{"cmd":"spawn_animal","x":60.0,"y":60.0,"kind":"polar_bear","count":12,"radius":12}"#
+    ));
+    assert!(sim.animals.len() >= 12);
+    for a in &sim.animals {
+        assert_eq!(
+            sim.grid.biome_at(a.x as i32, a.y as i32),
+            Biome::Tundra,
+            "polar_bear at ({}, {})",
+            a.x,
+            a.y
+        );
+    }
+}
