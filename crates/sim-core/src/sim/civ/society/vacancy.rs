@@ -212,17 +212,52 @@ pub(crate) fn abandoned_buildings(sim: &Simulation) -> Vec<usize> {
         .collect()
 }
 
+/// Wear on the empty homes of a village that is dying out is multiplied by this,
+/// so its homes fall in within about two weeks rather than six.
+const DECLINE_WEAR: f32 = 3.0;
+/// A tribe has to have reached this many people before losing most of them counts as decline.
+const DECLINE_MIN_PEAK: u32 = 8;
+
+/// True when a home's owner has died out (or it has no owner), or a tribe that
+/// once reached `DECLINE_MIN_PEAK` now has under a third of its peak.
+fn declining_village(sim: &Simulation, people: &FxHashMap<String, u32>, owner: Option<&str>) -> bool {
+    let Some(lineage) = owner else {
+        return true;
+    };
+    let now = people.get(lineage).copied().unwrap_or(0);
+    if now == 0 {
+        return true;
+    }
+    let peak = sim.lineage_peak_pop.get(lineage).copied().unwrap_or(0);
+    peak >= DECLINE_MIN_PEAK && now * 3 <= peak
+}
+
 /// Once a day: empty homes weather without anyone to mend them, and the
 /// ruins of homes nobody needs crumble away.
 pub(crate) fn tick_vacancy(sim: &mut Simulation) {
     let now = sim.tick_count;
     let mut neglected: Vec<usize> = empty_homes(sim).into_iter().collect();
     neglected.extend(abandoned_buildings(sim));
+    let mut people: FxHashMap<String, u32> = FxHashMap::default();
+    for o in sim.organisms.iter().filter(|o| o.alive) {
+        *people.entry(o.lineage_id.clone()).or_insert(0) += 1;
+    }
+    // Empty homes of a village that is dying out fall in sooner, so its ruins show.
+    let fast: Vec<bool> = neglected
+        .iter()
+        .map(|&i| {
+            let b = &sim.buildings[i];
+            is_home(b.kind) && declining_village(sim, &people, b.owner_lineage.as_deref())
+        })
+        .collect();
     let mut changed = false;
-    for &i in &neglected {
+    for (&i, &hurried) in neglected.iter().zip(&fast) {
         let b = &mut sim.buildings[i];
         let life = f32::from(b.kind.service_life_years().max(1));
-        let wear = 1.0 / (HUT_NEGLECT_DAYS * life / 50.0);
+        let mut wear = 1.0 / (HUT_NEGLECT_DAYS * life / 50.0);
+        if hurried {
+            wear *= DECLINE_WEAR;
+        }
         b.damage = (b.damage_fraction() + wear).min(1.0);
         b.last_damage_tick = Some(now);
         if b.damage >= 1.0 && b.ruined_at_tick.is_none() {
@@ -336,9 +371,19 @@ mod tests {
         sim.buildings.push(house);
 
         days(&mut sim, HUT_NEGLECT_DAYS as u64 + 1);
-        assert!(sim.buildings[0].is_ruined(), "the empty hut still stands");
+        // The hut has fallen in by now, and may already have crumbled away; the house has not.
         assert!(
-            !sim.buildings[1].is_ruined(),
+            sim.buildings
+                .iter()
+                .find(|b| b.id == 1)
+                .is_none_or(|b| b.is_ruined()),
+            "the empty hut still stands"
+        );
+        assert!(
+            sim.buildings
+                .iter()
+                .find(|b| b.id == 2)
+                .is_some_and(|b| !b.is_ruined()),
             "a sturdy house fell as fast as a hut"
         );
 
@@ -351,6 +396,40 @@ mod tests {
             .events
             .iter()
             .any(|e| e.detail.contains("crumbled back into the earth")));
+    }
+
+    #[test]
+    fn the_empty_homes_of_a_dying_village_fall_in_sooner() {
+        let mut sim = world();
+        // Two people left of a village that once had twelve: four beds are wanted, six huts stand.
+        sim.lineage_peak_pop.insert("dying".into(), 12);
+        sim.lineage_peak_pop.insert("steady".into(), 2);
+        for lineage in ["dying", "steady"] {
+            for i in 0..2 {
+                sim.organisms
+                    .push(person(&format!("{lineage}{i}"), lineage, 50.0, 50.0));
+            }
+        }
+        for i in 0..6 {
+            sim.buildings.push(hut(1 + i, 40 + 3 * i as i32, 40, "dying"));
+            sim.buildings.push(hut(10 + i, 40 + 3 * i as i32, 60, "steady"));
+        }
+        days(&mut sim, 14);
+        let ruined = |owner: &str| {
+            sim.buildings
+                .iter()
+                .filter(|b| b.owner_lineage.as_deref() == Some(owner) && b.is_ruined())
+                .count()
+        };
+        assert!(
+            ruined("dying") >= 2,
+            "a dying village's empty homes stand two weeks on"
+        );
+        assert_eq!(
+            ruined("steady"),
+            0,
+            "a village that has not lost its people fell in as fast"
+        );
     }
 
     #[test]
