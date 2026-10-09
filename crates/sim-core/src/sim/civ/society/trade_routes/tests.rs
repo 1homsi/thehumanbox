@@ -523,3 +523,23 @@ fn a_war_stops_caravans_and_raids_the_ones_on_the_road() {
         .iter()
         .any(|event| event.etype == "trade" && event.detail.contains("bandits in the war")));
 }
+
+#[test]
+fn a_road_stays_closed_for_a_while_after_the_last_battle_so_the_barrier_can_be_seen() {
+    let mut sim = neighbouring_trade_sim();
+    sim.tick_count = 5_000;
+    let mut battle = ongoing_battle("river", "hill");
+    battle.ended_tick = Some(4_950);
+    sim.battles.push(battle);
+    assert!(
+        route_is_embargoed(&sim, "river", "hill"),
+        "a battle that ended 50 ticks ago still closes the road"
+    );
+    assert!(!route_is_embargoed(&sim, "river", "river"));
+
+    sim.tick_count = 4_950 + WAR_ROAD_TICKS;
+    assert!(
+        !route_is_embargoed(&sim, "river", "hill"),
+        "the road reopens once the window after the last battle has passed"
+    );
+}

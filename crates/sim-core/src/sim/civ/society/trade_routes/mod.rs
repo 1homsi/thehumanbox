@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::sim::civ::economy::{is_land_good, PriceTable, Trade};
 use crate::sim::civ::settlements;
-use crate::sim::civ::warfare::{has_active_battle_between, TreatyKind};
+use crate::sim::civ::warfare::TreatyKind;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
 use crate::world::grid::{TrailKind, HEIGHT, WIDTH};
