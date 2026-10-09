@@ -130,6 +130,7 @@ const TOOL_TIPS: Record<string, string> = {
     'Release a snake, or a few, over the sand, badlands or jungle. They slip about in the heat and keep clear of people.',
   crocodile:
     'Release a crocodile into the wetlands or jungle. Hungry ones hunt the animals there, and people who wade too close, as a bear does.',
+  goat: 'Release a goat, or a few, over the badlands or grass. They climb the rocks and keep clear of people.',
   monkey:
     'Release a monkey, or a few, into the jungle. They swing through the canopy and forage for fruit, and keep clear of people.',
   rain_patch:
