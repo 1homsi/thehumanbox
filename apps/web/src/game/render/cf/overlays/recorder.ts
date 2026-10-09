@@ -1,4 +1,4 @@
-import { SPRITE_UNTEXTURED, type SpriteLayer } from 'cubeforge'
+import { SPRITE_UNTEXTURED, type SpriteLayer } from 'xipjs'
 import { packRgba, parseColor } from './color'
 import { CELL, FILL, FRAME_DISC, type GradientStop, type ShapeAtlas } from './shape-atlas'
 import { fontMetrics, type GlyphSet, type Weight } from './glyph-atlas'
@@ -80,7 +80,7 @@ const FONT_RE = /^(?:(?:italic|oblique)\s+)?(bold|\d{3})?\s*(\d+(?:\.\d+)?)px/
 
 /**
  * A stand-in for `CanvasRenderingContext2D` that records what the existing painters draw as
- * cubeforge sprites instead of rasterising it. The painters stay the single source of truth for
+ * xipjs sprites instead of rasterising it. The painters stay the single source of truth for
  * the art; the engine batches the result on the GPU.
  *
  * Supported: fillRect/strokeRect, transforms (translate/scale/rotate/setTransform), globalAlpha,

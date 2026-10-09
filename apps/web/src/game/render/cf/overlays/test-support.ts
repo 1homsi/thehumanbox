@@ -1,4 +1,4 @@
-import type { SpriteLayer, TextLayer } from 'cubeforge'
+import type { SpriteLayer, TextLayer } from 'xipjs'
 import type { RenderHost } from './host'
 
 /** A render host that records what the renderer asked of the engine, with no GPU behind it. */

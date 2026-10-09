@@ -10,7 +10,7 @@ import { residentOf, resolveMapClick, type MapClickInput, type MapClickOutcome }
 /**
  * What a click on the map does used to live inside `useMapPointer`'s click
  * handler, mixed with its side effects. `resolveMapClick` is that decision
- * lifted out so the cubeforge tap and the old click share it. `legacy` below
+ * lifted out so the xipjs tap and the old click share it. `legacy` below
  * is the old handler, with each side effect turned into the outcome it
  * produced, kept verbatim as the reference the refactor must agree with.
  */

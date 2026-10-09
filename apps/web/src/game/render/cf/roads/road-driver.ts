@@ -1,4 +1,4 @@
-import type { SpriteLayer } from 'cubeforge'
+import type { SpriteLayer } from 'xipjs'
 import { TILE } from '../../../model/palette'
 import { CELL_GUTTER, type CellAtlas } from '../atlas/cell-atlas'
 import { WHITE, writeSprite, type CfDriver, type CfFrame } from '../frame'

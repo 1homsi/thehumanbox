@@ -9,7 +9,7 @@ import { setWorldGPUForTests } from '../../world-view/gpu'
 import { engineHarness, pointer, wheel, type EngineHarness } from '../engine-harness.test-util'
 
 /**
- * The whole map on cubeforge, and the 2D fallback: a tap or click on a person selects them,
+ * The whole map on xipjs, and the 2D fallback: a tap or click on a person selects them,
  * a drag pans and selects nobody. Runs the real WorldView with the real engine
  * (no GPU), so it covers the hook-up in WorldView as well as the controller.
  */
@@ -125,7 +125,7 @@ function personOnScreen(camera: { x: number; y: number; zoom: number }) {
   }
 }
 
-describe('the map on cubeforge', () => {
+describe('the map on xipjs', () => {
   it('opens on the whole world, on both cameras', async () => {
     const h = await open()
     expect(document.querySelector('.map2d-world canvas')).not.toBeNull()
@@ -176,7 +176,7 @@ describe('the map on cubeforge', () => {
   })
 })
 
-describe('placing a tool on the cubeforge map', () => {
+describe('placing a tool on the xipjs map', () => {
   it('a tap applies the armed tool where it landed; a drag pans and applies nothing', async () => {
     const onSandboxApply = vi.fn()
     const h = await open({ sandboxArmed: true, onSandboxApply, sandboxToolId: null })

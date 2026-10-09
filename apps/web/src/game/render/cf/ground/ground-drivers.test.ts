@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
-import { SPRITE_UNTEXTURED, SpriteLayer, type LayerAtlas } from 'cubeforge'
+import { SPRITE_UNTEXTURED, SpriteLayer, type LayerAtlas } from 'xipjs'
 import type { WorldState } from '../../../../shared/types'
 import { TILE } from '../../../model/palette'
 import { TILE_ID } from '../../../model/terrain-ids'

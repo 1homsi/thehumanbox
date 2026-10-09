@@ -21,7 +21,7 @@ import type { DrawFrame } from './frame'
 
 /**
  * The population in the 2D fallback: shadow, sprite, boat, a ring under the selected person,
- * vitals and name tags. (On cubeforge the people are sprite layers with far more detail.)
+ * vitals and name tags. (On xipjs the people are sprite layers with far more detail.)
  */
 export function draw_people(f: DrawFrame) {
   const { ctx, world, selectedOrgId, focus, viewFlags, cameraZoom, ox, oy, r0, r1, c0, c1, organisms, t } = f

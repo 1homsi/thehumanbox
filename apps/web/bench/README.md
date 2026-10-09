@@ -71,7 +71,7 @@ frame; `--eval '<js>'` stores the value of an expression evaluated in the page a
 `JSON.stringify(window.__thbCf.registry.stats())`, the world drivers' own timings and counts);
 `profile-summary.mjs <profile> --callers <name>` shows who calls a function and how long it ran under each caller.
 
-Numbers measured with this harness on the previous canvas map and on the cubeforge map are in [RESULTS.md](RESULTS.md).
+Numbers measured with this harness on the previous canvas map and on the xipjs map are in [RESULTS.md](RESULTS.md).
 
 ## Reading the numbers
 

@@ -1,4 +1,4 @@
-import { SPRITE_FLIP_X, SPRITE_HIDDEN, type SpriteLayer } from 'cubeforge'
+import { SPRITE_FLIP_X, SPRITE_HIDDEN, type SpriteLayer } from 'xipjs'
 import type { OrganismState, VehicleInfo } from '../../../../shared/types'
 import type { ViewFlags } from '../../../../state/store'
 import { lineageColor } from '../../../../shared/constants'

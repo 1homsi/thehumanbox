@@ -11,7 +11,7 @@ import { tileColor } from './base-parts/tile-paint'
 import { terrainSeason } from './terrain-season'
 
 // The ground of the 2D fallback (browsers without WebGL2): one cached bitmap of the whole map with
-// flat-coloured tiles, scattered detail, shores, trees and mountains. On cubeforge the ground is a
+// flat-coloured tiles, scattered detail, shores, trees and mountains. On xipjs the ground is a
 // TileLayer and the rest are sprite layers, so none of this runs there.
 
 interface BaseKey {

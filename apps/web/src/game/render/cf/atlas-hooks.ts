@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from 'react'
-import { useDynamicCanvas } from 'cubeforge'
+import { useDynamicCanvas } from 'xipjs'
 import { ATLAS_PEOPLE, getPeopleAtlas, loadAtlas } from '../../../shared/sprites'
 import {
   BOAT_SIZE,

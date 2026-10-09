@@ -1,10 +1,10 @@
-import type { SpriteLayer } from 'cubeforge'
+import type { SpriteLayer } from 'xipjs'
 import type { WorldState } from '../../../shared/types'
 import { TILE } from '../../model/palette'
 import { zoomDetailLevel } from '../character-visuals'
 import type { BuildingVisualDetail } from '../building-draw/types'
 
-/** One frame's inputs for every cubeforge layer driver. */
+/** One frame's inputs for every xipjs layer driver. */
 export interface CfFrame {
   world: WorldState
   /** Wire grids are delta-merged, so biomes and depth are cached by the caller. */

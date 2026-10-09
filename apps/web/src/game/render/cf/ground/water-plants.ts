@@ -1,4 +1,4 @@
-import { SPRITE_UNTEXTURED, type SpriteLayer } from 'cubeforge'
+import { SPRITE_UNTEXTURED, type SpriteLayer } from 'xipjs'
 import { TILE } from '../../../model/palette'
 import { TILE_ID } from '../../../model/terrain-ids'
 import { landscapeHash } from '../../landscape-style'

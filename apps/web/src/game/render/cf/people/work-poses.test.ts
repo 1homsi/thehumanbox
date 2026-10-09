@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { SpriteLayer } from 'cubeforge'
+import { SpriteLayer } from 'xipjs'
 import { describe, expect, it } from 'vitest'
 import { drawWorkActivity, type WorkActivity } from '../../activity-visuals'
 import { GlyphSet } from '../overlays/glyph-atlas'

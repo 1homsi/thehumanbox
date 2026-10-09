@@ -1,4 +1,4 @@
-import type { SpriteLayer } from 'cubeforge'
+import type { SpriteLayer } from 'xipjs'
 import { farmCropColor, farmProgress, farmStage } from '../../../model/farms'
 import { TILE } from '../../../model/palette'
 import { paintFarmTile } from './farm-tile'

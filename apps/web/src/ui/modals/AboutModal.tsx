@@ -112,8 +112,8 @@ export function AboutModal({ onClose }: Props) {
 
         <div className="about-section">BUILT WITH</div>
         <div className="about-links">
-          <a href="https://github.com/1homsi/cubeforge" target="_blank" rel="noreferrer">
-            cubeforge
+          <a href="https://github.com/1homsi/xip" target="_blank" rel="noreferrer">
+            xipjs
           </a>
           <span className="about-built-with-detail">
             React-first 2D browser game engine. The world canvas, camera, input handling, and WebGL pipeline

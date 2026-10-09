@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SPRITE_HIDDEN, SpriteLayer } from 'cubeforge'
+import { SPRITE_HIDDEN, SpriteLayer } from 'xipjs'
 
 /**
  * cubeforge 0.11.0 SpriteLayer behaviours the people/animals spike works around.

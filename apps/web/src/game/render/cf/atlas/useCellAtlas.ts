@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
-import { useGame } from 'cubeforge'
-import type { DynamicCanvasOptions, LayerAtlas, ManagedDynamicCanvas } from 'cubeforge'
+import { useGame } from 'xipjs'
+import type { DynamicCanvasOptions, LayerAtlas, ManagedDynamicCanvas } from 'xipjs'
 import { CellAtlas, type AtlasPage, type AtlasPageSlot } from './cell-atlas'
 
 interface CanvasHost {

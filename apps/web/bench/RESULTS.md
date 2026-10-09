@@ -1,5 +1,7 @@
 # Results: old canvas map against the current cubeforge map
 
+> The engine is called xipjs from 0.15.0; every "cubeforge" below is the same engine under its old name (0.14.0 and earlier).
+
 Headless Chrome 155 with the GPU (Metal), 1280x800 at DPR 1, 8 s windows after a 3 s warm-up, 2 runs per scenario,
 interleaved build by build. Worlds: `standard` (seed 42, tick 9000, 172 people) and `crowd` (the same plus 3,000
 people). **old** = commit `45a1ee5a`, the last canvas-painted map (with the `?bench` hook). **main** = `e6f0740f`

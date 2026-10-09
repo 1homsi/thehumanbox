@@ -1,4 +1,4 @@
-import { SPRITE_UNTEXTURED, type SpriteLayer } from 'cubeforge'
+import { SPRITE_UNTEXTURED, type SpriteLayer } from 'xipjs'
 import type { CfDriver, CfFrame } from '../frame'
 import { writeSprite } from '../frame'
 import { yardRects } from './yard-marks'

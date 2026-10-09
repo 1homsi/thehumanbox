@@ -1,5 +1,5 @@
 /**
- * A picture of a cubeforge canvas.
+ * A picture of a xipjs canvas.
  *
  * The engine draws with WebGL and does not keep the drawing buffer, so
  * `canvas.toBlob()` called between frames reads a cleared buffer: an

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SPRITE_FLIP_X, SPRITE_HIDDEN, SPRITE_UNTEXTURED, SpriteLayer } from 'cubeforge'
+import { SPRITE_FLIP_X, SPRITE_HIDDEN, SPRITE_UNTEXTURED, SpriteLayer } from 'xipjs'
 import type { OrganismState } from '../../../../shared/types'
 import { orgVariant } from '../../../model/org-variant'
 import { deterministicAppearanceIndex, humanAtlasRow, HUMAN_ATLAS_FRAMES } from '../../character-visuals'

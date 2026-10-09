@@ -1,5 +1,5 @@
-import type { SpriteLayer } from 'cubeforge'
-import { SPRITE_UNTEXTURED } from 'cubeforge'
+import type { SpriteLayer } from 'xipjs'
+import { SPRITE_UNTEXTURED } from 'xipjs'
 import type { WorldState } from '../../../../shared/types'
 import { LOW_PERF } from '../../../../shared/perf'
 import { packRgba } from './color'

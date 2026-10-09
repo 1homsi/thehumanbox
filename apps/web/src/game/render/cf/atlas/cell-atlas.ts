@@ -1,4 +1,4 @@
-import type { LayerAtlas } from 'cubeforge'
+import type { LayerAtlas } from 'xipjs'
 
 /** What the atlas needs from one dynamic canvas (an engine `ManagedDynamicCanvas`). */
 export interface AtlasPage {

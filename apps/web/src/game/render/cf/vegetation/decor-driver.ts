@@ -1,4 +1,4 @@
-import type { SpriteLayer } from 'cubeforge'
+import type { SpriteLayer } from 'xipjs'
 import { TILE } from '../../../model/palette'
 import { paintDecorTile } from '../../decorations'
 import { CELL_GUTTER, type CellAtlas, type CellRef } from '../atlas/cell-atlas'

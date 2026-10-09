@@ -38,7 +38,7 @@ private world in WebAssembly, `headless` runs it flat out for measurement.
 | `crates/sim-core/src/physics/` | fire, water and weather physics on the grid |
 | `crates/headless/` | `headless` binary: deterministic runs, `--profile`, `--sweep-seeds`, gates |
 | `apps/server/src/` | `main`, `config`, `tick_loop`, `broadcaster`, `router`/`routes`, `transport`, `world_store`/`world_archive`, `rollover`, `memory_watch` |
-| `apps/web/src/` | `game/render` (the world view on cubeforge layers, see below), `game/model`, `game/scenes`, `simulation` (wasm worker, frame decode, runtime controls), `ui/` (panels, modals, toolbar), `state`, `styles/app/*.css` |
+| `apps/web/src/` | `game/render` (the world view on xipjs layers, see below), `game/model`, `game/scenes`, `simulation` (wasm worker, frame decode, runtime controls), `ui/` (panels, modals, toolbar), `state`, `styles/app/*.css` |
 | `apps/desktop/` | Electron main process (`main/`), preload, installer config |
 | `scripts/` | perf gate, installer, helpers; `docs/` is this folder |
 
@@ -98,7 +98,7 @@ dispatched by id range in `actions/mod.rs` and gated by the band tables; ids
 
 ## The world view
 
-The map in `apps/web/src/game/render/` runs on the [cubeforge](https://github.com/1homsi/cubeforge)
+The map in `apps/web/src/game/render/` runs on the [xipjs](https://github.com/1homsi/xip)
 engine (WebGL2). `WorldView.tsx` mounts one `<Game mode="onDemand">`: the engine sleeps until a
 layer asks for a frame, so a paused world costs nothing. Inside its `<World>` the map is a stack of
 layers, bottom to top (z is the engine's `zIndex`):
@@ -134,7 +134,7 @@ People and animals are written from typed arrays by `cf/people/people-sprites.ts
 `animate` every display frame for interpolation, walk frame and depth sort. Everything stops when
 the simulation pauses (`render-timing.ts` `isSettled`).
 
-Input and picking: `cf/input/CfMapCameraController.tsx` wires cubeforge's `useCameraPanZoom` to
+Input and picking: `cf/input/CfMapCameraController.tsx` wires xipjs's `useCameraPanZoom` to
 the map (clamping, fit, focus, follow, keyboard) and keeps `cameraStateRef` for the HUD.
 `cf/input/map-click.ts` holds the click rules; a tap asks `cf/picking.ts` for the person under the
 pointer (`SpriteLayer.pick` on the body layer), then the nearest person in reach, then the building

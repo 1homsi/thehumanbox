@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { SPRITE_UNTEXTURED, SpriteLayer } from 'cubeforge'
+import { SPRITE_UNTEXTURED, SpriteLayer } from 'xipjs'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { GlyphSet } from './glyph-atlas'
 import { SpriteRecorder } from './recorder'

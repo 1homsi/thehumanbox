@@ -496,7 +496,7 @@ function HomeCanvas2D({ ctx: sceneCtx, selectedOrgId, onSelectOrg }: Props) {
   )
 }
 
-/** The look of a home for the cubeforge room view: era palette, fixtures, hearth and sconce light. */
+/** The look of a home for the xipjs room view: era palette, fixtures, hearth and sconce light. */
 function homePainter(sceneCtx: SceneContext): RoomPainter {
   const host = sceneCtx.world.organisms.find(
     (o) => o.id === (sceneCtx.scene.kind === 'home' ? sceneCtx.scene.orgId : ''),
@@ -520,10 +520,10 @@ function homePainter(sceneCtx: SceneContext): RoomPainter {
   }
 }
 
-/** A home interior on cubeforge; browsers without WebGL2 get the 2D canvas. */
+/** A home interior on xipjs; browsers without WebGL2 get the 2D canvas. */
 export function HomeCanvas(props: Props) {
-  const onCubeforge = canUseWorldGPU()
-  const painter = useMemo(() => (onCubeforge ? homePainter(props.ctx) : null), [onCubeforge, props.ctx])
+  const onxipjs = canUseWorldGPU()
+  const painter = useMemo(() => (onxipjs ? homePainter(props.ctx) : null), [onxipjs, props.ctx])
   if (painter)
     return (
       <CfRoomView

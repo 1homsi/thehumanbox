@@ -142,7 +142,7 @@ export function residentOf(world: WorldState, buildingId: number): string | null
  * mistaken for open water or an empty hut.
  *
  * This is the one place that answers "who is under the cursor". When people
- * move onto a cubeforge SpriteLayer, replace the loop with `layer.pick()` and
+ * move onto a xipjs SpriteLayer, replace the loop with `layer.pick()` and
  * keep the rest.
  */
 export function nearestOrganism(

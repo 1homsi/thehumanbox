@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo } from 'react'
-import { TileLayer, useTileLayer } from 'cubeforge'
-import type { TileLayerData } from 'cubeforge'
+import { TileLayer, useTileLayer } from 'xipjs'
+import type { TileLayerData } from 'xipjs'
 import { TILE } from '../../model/palette'
 import { TERRAIN_VARIANTS, getTerrainTileset } from './atlas'
 import { createTerrainSyncState, syncTerrainLayer } from './sync'
@@ -9,7 +9,7 @@ import type { TerrainSource, TerrainSyncResult } from './sync'
 export type TerrainSyncFn = (src: TerrainSource) => TerrainSyncResult
 
 /**
- * The terrain ground as a cubeforge TileLayer, one tile per grid cell at world (0, 0).
+ * The terrain ground as a xipjs TileLayer, one tile per grid cell at world (0, 0).
  *
  * It draws nothing by itself from React: the owner calls the function published through `syncRef`
  * with each frame's terrain (before painting the canvas that goes over it) and the layer updates

@@ -172,13 +172,13 @@ function RoomCanvas2D({
   )
 }
 
-/** A room interior on cubeforge; browsers without WebGL2 get the 2D canvas. */
+/** A room interior on xipjs; browsers without WebGL2 get the 2D canvas. */
 export function RoomCanvas(props: Props) {
   const { ctx, palette, drawFurniture, occupantSlots, selectedOrgId, onSelectOrg } = props
-  const onCubeforge = canUseWorldGPU()
+  const onxipjs = canUseWorldGPU()
   const painter = useMemo(
-    () => (onCubeforge ? roomPainter({ ctx, palette, drawFurniture, occupantSlots }) : null),
-    [onCubeforge, ctx, palette, drawFurniture, occupantSlots],
+    () => (onxipjs ? roomPainter({ ctx, palette, drawFurniture, occupantSlots }) : null),
+    [onxipjs, ctx, palette, drawFurniture, occupantSlots],
   )
   if (painter)
     return <CfRoomView ctx={ctx} painter={painter} selectedOrgId={selectedOrgId} onSelectOrg={onSelectOrg} />

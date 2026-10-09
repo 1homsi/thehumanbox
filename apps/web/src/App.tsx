@@ -66,7 +66,7 @@ import clsx from 'clsx'
 import './App.css'
 import './pixel-theme.css'
 
-// The map renderer (the CubeForge engine plus every draw layer and sprite painter) is a
+// The map renderer (the xipjs engine plus every draw layer and sprite painter) is a
 // third of the app's JavaScript and is only needed once the first world frame has
 // arrived, which takes seconds of WebAssembly start-up. It is its own chunk, fetched in
 // parallel with the entry through a modulepreload hint (see vite.config.ts), so the app

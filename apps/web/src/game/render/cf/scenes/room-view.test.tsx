@@ -7,7 +7,7 @@ import { CfRoomView } from './CfRoomView'
 import type { RoomPainter } from './room-model'
 
 /**
- * A room on cubeforge, with a real engine and no GPU: it paints its backdrop
+ * A room on xipjs, with a real engine and no GPU: it paints its backdrop
  * every frame, shows the cursor and ring state of whoever is hovered, and
  * selects on a tap, through the engine's own coordinate conversion and
  * SpriteLayer.pick().
@@ -57,7 +57,7 @@ const onScreen = (x: number, y: number) => ({
   y: (y - CANVAS_H / 2) * SCALE + (CANVAS_H * SCALE) / 2,
 })
 
-describe('the room on cubeforge', () => {
+describe('the room on xipjs', () => {
   it('is the size of the 2D canvas and paints its backdrop every frame', async () => {
     const { h, paintBack } = await open()
     const canvas = h.canvas()

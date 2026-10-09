@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
-import { SpriteLayer } from 'cubeforge'
+import { SpriteLayer } from 'xipjs'
 import type { WorldState } from '../../../../shared/types'
 import type { CellAtlas } from '../atlas/cell-atlas'
 import { makeFrame } from '../frame'

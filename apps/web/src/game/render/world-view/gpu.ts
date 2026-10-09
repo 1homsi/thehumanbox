@@ -1,6 +1,6 @@
 let cached: boolean | null = null
 
-/** Whether this browser can run the cubeforge renderer (WebGL2). `?renderer=canvas` forces the 2D fallback. */
+/** Whether this browser can run the xipjs renderer (WebGL2). `?renderer=canvas` forces the 2D fallback. */
 export function canUseWorldGPU(): boolean {
   cached ??= probe()
   return cached

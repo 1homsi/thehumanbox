@@ -1,5 +1,5 @@
 // CSS colour strings (the canvas painters' language) to the packed 0xRRGGBBAA
-// that cubeforge's SpriteLayer and TileLayer tint arrays take.
+// that xipjs's SpriteLayer and TileLayer tint arrays take.
 
 export interface Rgba {
   r: number
