@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TILE } from '../../../model/palette'
 import { TILE_ID } from '../../../model/terrain-ids'
-import { buildWaterPlantRects, isOpenWater } from './water-plants'
+import { buildWaterPlantRects, isOpenWater, lakeCells, LAKE_MAX_CELLS } from './water-plants'
 
 const W = 40
 const H = 40
@@ -74,18 +74,35 @@ describe('buildWaterPlantRects', () => {
   })
 
   it('floats a pad on roughly one open water cell in six', () => {
-    const g = lake(1, 1, 38)
+    const g = lake(1, 1, 30)
     const out = buildWaterPlantRects(g, W, H, 0, 0)
     const pads = out.body.length / 4
-    const open = 36 * 36
+    const open = 28 * 28
     expect(pads / open).toBeGreaterThan(0.1)
     expect(pads / open).toBeLessThan(0.25)
   })
 
   it('puts a bloom on some pads only, above the pad', () => {
-    const out = buildWaterPlantRects(lake(1, 1, 38), W, H, 0, 0)
+    const out = buildWaterPlantRects(lake(1, 1, 30), W, H, 0, 0)
     expect(out.bloom.length).toBeGreaterThan(0)
     expect(out.bloom.length).toBeLessThan(out.body.length)
     for (let i = 0; i < out.bloom.length; i += 4) expect(out.bloom[i + 3]).toBe(2)
+  })
+
+  it('puts no pads on the sea: a water body over the lake size is left bare', () => {
+    expect(LAKE_MAX_CELLS).toBeLessThan(W * H)
+    const out = buildWaterPlantRects(grid(TILE_ID.WATER), W, H, 0, 0)
+    expect(out.body).toHaveLength(0)
+  })
+})
+
+describe('lakeCells', () => {
+  it('marks a small body of water, and not a big one', () => {
+    // A pond at rows 2 to 5, then two rows of land, then a sea of 32 rows (1280 cells, over the lake size).
+    const g = lake(3, 2, 4)
+    for (let y = 8; y < 40; y++) for (let x = 0; x < W; x++) g[y]![x] = TILE_ID.WATER
+    const mark = lakeCells(g, W, H)
+    expect(mark[3 * W + 4]).toBe(1)
+    expect(mark[30 * W + 5]).toBe(0)
   })
 })
