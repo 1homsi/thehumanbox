@@ -11,8 +11,10 @@ describe('new tool marks on the dock tabs', () => {
   })
 
   it('marks the tab that holds each new tool until the tool has been seen', () => {
-    expect(unseenNewTools('heavens', NONE)).toEqual(expect.arrayContaining(['heat_wave', 'owl', 'eagle']))
-    expect(unseenNewTools('world', NONE)).toEqual(expect.arrayContaining(['snake', 'crocodile']))
+    expect(unseenNewTools('heavens', NONE)).toEqual(expect.arrayContaining(['heat_wave']))
+    expect(unseenNewTools('wild', NONE)).toEqual(
+      expect.arrayContaining(['owl', 'eagle', 'snake', 'crocodile']),
+    )
     expect(unseenNewTools('life', NONE)).toEqual([])
   })
 
@@ -22,9 +24,9 @@ describe('new tool marks on the dock tabs', () => {
   })
 
   it('marks a tab seen without touching the others', () => {
-    const next = markNewToolsSeen('heavens', NONE)
+    const next = markNewToolsSeen('wild', NONE)
     expect(next.has('owl')).toBe(true)
-    expect(next.has('snake')).toBe(false)
-    expect(unseenNewTools('world', next)).toEqual(expect.arrayContaining(['snake', 'crocodile']))
+    expect(next.has('heat_wave')).toBe(false)
+    expect(unseenNewTools('heavens', next)).toEqual(expect.arrayContaining(['heat_wave']))
   })
 })
