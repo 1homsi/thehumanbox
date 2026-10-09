@@ -217,10 +217,24 @@ export function toolTip(tool: SandboxTool): string {
   return TOOL_TIPS[tool.id] ?? tool.label
 }
 
-export function toolHowTo(tool: SandboxTool): string {
+export function toolHowTo(tool: SandboxTool, brush = 0): string {
   if (tool.view) return 'click to toggle this layer'
   if (tool.mode === 'instant') return 'click to apply at once'
-  return 'click the world · [ ] brush · esc to stop'
+  return `click the world · ${toolReach(tool, brush)}[ ] brush · esc to stop`
+}
+
+/**
+ * What a point tool reaches at this brush size: its radius in tiles, and how many it brings when
+ * it has a count (animals, people). Read from the command the tool builds, so it follows the
+ * tool's own rule. Empty for tools that take no brush.
+ */
+export function toolReach(tool: SandboxTool, brush: number): string {
+  if (!tool.build) return ''
+  const cmd = tool.build(0, 0, brush) as { radius?: number; count?: number }
+  const bits: string[] = []
+  if (typeof cmd.radius === 'number') bits.push(`reaches ${Math.round(cmd.radius)} tiles`)
+  if (typeof cmd.count === 'number') bits.push(`brings ${cmd.count}`)
+  return bits.length ? `${bits.join(' · ')} · ` : ''
 }
 
 /** Why a tool did nothing when the simulation rejects it. */

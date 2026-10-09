@@ -243,7 +243,7 @@ export function SandboxToolbar({
                 ? 'happening now · click again to end it'
                 : active && !tool.view
                   ? 'click again or press esc to stop'
-                  : `${hotkeys.has(tool.id) ? `press ${hotkeys.get(tool.id)} · ` : ''}${toolHowTo(tool)} · shift-click to ${pinned ? 'unpin' : isPinListFull(memory) ? `pin (the list is full at ${PINNED_LIMIT}: unpin one first)` : 'pin'}`
+                  : `${hotkeys.has(tool.id) ? `press ${hotkeys.get(tool.id)} · ` : ''}${toolHowTo(tool, brush)} · shift-click to ${pinned ? 'unpin' : isPinListFull(memory) ? `pin (the list is full at ${PINNED_LIMIT}: unpin one first)` : 'pin'}`
             }
           />
         }
@@ -466,7 +466,7 @@ export function SandboxToolbar({
             {advanceTools.map((tool) => (
               <Tooltip
                 key={tool.id}
-                tip={<TipCard title={tool.label} body={toolTip(tool)} how={toolHowTo(tool)} />}
+                tip={<TipCard title={tool.label} body={toolTip(tool)} how={toolHowTo(tool, brush)} />}
               >
                 <button
                   type="button"
