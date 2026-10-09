@@ -6,6 +6,7 @@ import {
   DOCK_TABS,
   MAX_TAB_COLUMNS,
   SPEED_TOOL_IDS,
+  WIDE_TABS,
   TIME_CATEGORY_ID,
   groupsFor,
   resolveTab,
@@ -104,19 +105,31 @@ describe('dock layout stays complete as tools are added', () => {
       ).toBe(true)
   })
 
-  it('keeps the dock to ten tabs, with the animals in two of them', () => {
-    expect(DOCK_TABS).toHaveLength(10)
-    expect(
-      DOCK_TABS.filter((t) => t.groups.some((g) => ['animals', 'birds', 'reptiles', 'safari'].includes(g))),
-    ).toHaveLength(2)
+  it('keeps the dock to nine tabs, with every animal in the one animals tab', () => {
+    expect(DOCK_TABS).toHaveLength(9)
+    const animalTabs = DOCK_TABS.filter((t) =>
+      t.groups.some((g) => ['animals', 'birds', 'reptiles', 'safari'].includes(g)),
+    )
+    expect(animalTabs.map((t) => t.id)).toEqual(['animals'])
+    expect(DOCK_TABS.some((t) => t.id === 'wild')).toBe(false)
   })
 
   it('fits every tab in the columns the narrow dock can show without sideways scrolling', () => {
-    // Each group is two tiles per column, so a group takes ceil(tools / 2) columns.
+    // Each group is two tiles per column, so a group takes ceil(tools / 2) columns. Only the
+    // listed wide tabs may scroll sideways.
     for (const tab of DOCK_TABS) {
+      if (WIDE_TABS.includes(tab.id)) continue
       const columns = groupsFor(tab.id).reduce((sum, g) => sum + Math.ceil(g.tools.length / 2), 0)
       expect(columns, `tab ${tab.id} needs ${columns} columns`).toBeLessThanOrEqual(MAX_TAB_COLUMNS)
     }
+  })
+
+  it('names only real tabs as wide', () => {
+    for (const id of WIDE_TABS)
+      expect(
+        DOCK_TABS.some((t) => t.id === id),
+        id,
+      ).toBe(true)
   })
 
   it('restores tabs saved by the older one-tab-per-category dock', () => {
@@ -125,7 +138,9 @@ describe('dock layout stays complete as tools are added', () => {
     expect(resolveTab('disasters')).toBe('deadly')
     expect(resolveTab('powers')).toBe('helpful')
     expect(resolveTab('maps')).toBe('maps')
-    expect(resolveTab('safari')).toBe('wild')
+    expect(resolveTab('safari')).toBe('animals')
+    expect(resolveTab('wild')).toBe('animals')
+    expect(resolveTab('birds')).toBe('animals')
     expect(resolveTab('miracles')).toBe('heavens')
     expect(resolveTab('nonsense')).toBe('life')
     expect(resolveTab(null)).toBe('life')

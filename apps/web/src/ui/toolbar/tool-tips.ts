@@ -264,7 +264,8 @@ export function toolReach(tool: SandboxTool, brush: number): string {
   const cmd = tool.build(0, 0, brush) as { radius?: number; count?: number }
   const bits: string[] = []
   if (typeof cmd.radius === 'number') bits.push(`reaches ${Math.round(cmd.radius)} tiles`)
-  if (typeof cmd.count === 'number') bits.push(`brings ${cmd.count}`)
+  // One animal per click is the norm and not worth saying; only a tool that brings several does.
+  if (typeof cmd.count === 'number' && cmd.count > 1) bits.push(`brings ${cmd.count}`)
   return bits.length ? `${bits.join(' · ')} · ` : ''
 }
 

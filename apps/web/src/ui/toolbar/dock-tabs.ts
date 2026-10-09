@@ -14,6 +14,12 @@ import { SANDBOX_CATEGORIES, type SandboxCategory } from '../../simulation/sandb
 /** Tile columns a tab may take up (two tiles per column): 11 columns of 40px tiles fit beside the time panel at 768 wide. */
 export const MAX_TAB_COLUMNS = 11
 
+/**
+ * Tabs allowed to run wider than that: the row scrolls sideways. The animals tab holds every
+ * animal in one place rather than spreading them over several tabs.
+ */
+export const WIDE_TABS: readonly string[] = ['animals']
+
 export interface DockTab {
   id: string
   label: string
@@ -34,15 +40,8 @@ export const DOCK_TABS: DockTab[] = [
     id: 'animals',
     label: 'animals',
     icon: '🦌',
-    tip: 'Wild and tame animals, from foxes to whales',
-    groups: ['animals'],
-  },
-  {
-    id: 'wild',
-    label: 'wild',
-    icon: '🐒',
-    tip: 'Animals of far lands and the wild: monkeys, goats and elephants, birds of prey, snakes and crocodiles',
-    groups: ['birds', 'reptiles', 'safari'],
+    tip: 'Every animal, wild and tame, from foxes to whales, with birds of prey, snakes and the beasts of far lands; the row scrolls sideways',
+    groups: ['animals', 'birds', 'reptiles', 'safari'],
   },
   {
     id: 'world',
@@ -188,7 +187,10 @@ const RETIRED_GROUPS: Record<string, string> = {
   nature: 'helpful',
   disasters: 'deadly',
   // Tab ids that were merged: their groups now sit in the tabs named here.
-  safari: 'wild',
+  safari: 'animals',
+  wild: 'animals',
+  birds: 'animals',
+  reptiles: 'animals',
   miracles: 'heavens',
 }
 
