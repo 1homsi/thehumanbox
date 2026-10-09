@@ -230,6 +230,40 @@ mod tests {
         );
     }
 
+    /// Runs one tick with a hungry wolf at (50, 50) and a sheep beside it at (51, 50); `kept` puts the
+    /// sheep in a pen. Returns whether the sheep is still alive and the carcasses left.
+    fn wolf_beside_sheep(kept: bool) -> (bool, usize) {
+        let mut sim = Simulation::new(42);
+        sim.organisms.clear();
+        sim.animals.clear();
+        let mut wolf = Animal::new(0, 50.0, 50.0, AnimalKind::Wolf);
+        wolf.energy = 0.3;
+        sim.animals.push(wolf);
+        let mut sheep = Animal::new(1, 51.0, 50.0, AnimalKind::Sheep);
+        if kept {
+            sheep.keeper = Some("herders".to_string());
+            sheep.pen = Some((51, 50));
+        }
+        sim.animals.push(sheep);
+        sim.tick_animals(&Default::default());
+        let sheep_alive = sim.animals.iter().any(|a| a.kind == AnimalKind::Sheep && a.alive);
+        (sheep_alive, sim.carcasses.len())
+    }
+
+    #[test]
+    fn a_wolf_does_not_take_livestock_in_a_pen_but_takes_a_wild_sheep() {
+        assert_eq!(
+            wolf_beside_sheep(false),
+            (false, 1),
+            "a wild sheep beside a hungry wolf is killed"
+        );
+        assert_eq!(
+            wolf_beside_sheep(true),
+            (true, 0),
+            "a sheep kept in a pen is not prey, so the wolf leaves it alone"
+        );
+    }
+
     #[test]
     fn a_carcass_survives_a_save_and_load_with_its_kind_and_age() {
         let mut sim = Simulation::new(42);
