@@ -98,6 +98,13 @@ const TOOL_TIPS: Record<string, string> = {
     'A forest surges: wild food sprouts on the open ground among the trees, and the plantings there grow on. Needs woods within reach.',
   talent:
     'A rare gift for the living person nearest the point: a talent that lifts one of their traits (memory, curiosity, resilience or kindness) for good. A person keeps one talent.',
+  tribe_food:
+    'Every living member of the tribe nearest the click gets a portion of food, whether they are hungry or not.',
+  tribe_tools: 'Every living member of the tribe nearest the click is handed a stone tool.',
+  migrate_tribe:
+    'The tribe nearest the click moves to it: its people are set down around the click, at once. The brush sets how far the tribe is found.',
+  trade_gift:
+    'Two clicks: the tribe of the first sends food to the tribe of the second. Its people with food to spare each give a portion, and the other tribe warms toward it.',
   era_stone:
     'A family settles where you click, already knowing what the stone age knew: the stone tools and the fire. A tribe of its own, with the discoveries of that age.',
   era_bronze:

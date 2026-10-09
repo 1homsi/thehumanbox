@@ -73,6 +73,13 @@ export const DOCK_TABS: DockTab[] = [
     groups: ['miracles', 'eras'],
   },
   {
+    id: 'tribes',
+    label: 'tribes',
+    icon: '👥',
+    tip: 'Gifts and moves for whole tribes: food and tools for every member, a forced migration, and a trade of food between two tribes',
+    groups: ['tribes'],
+  },
+  {
     id: 'deadly',
     label: 'deadly',
     icon: '💀',
@@ -124,6 +131,10 @@ export const NEW_TOOL_IDS: readonly string[] = [
   'era_bronze',
   'era_medieval',
   'era_modern',
+  'tribe_food',
+  'tribe_tools',
+  'migrate_tribe',
+  'trade_gift',
 ]
 
 const SEEN_NEW_STORAGE_KEY = 'thb-seen-new-tools'

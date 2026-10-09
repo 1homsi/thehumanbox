@@ -165,6 +165,13 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'era_medieval':
     case 'era_modern':
       return 'bless'
+    case 'tribe_food':
+    case 'tribe_tools':
+      return 'heal'
+    case 'migrate_tribe':
+      return 'spawn'
+    case 'trade_gift':
+      return 'peace'
     case 'merge_tribes':
       return 'peace'
     case 'split_tribe':
