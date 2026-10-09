@@ -313,3 +313,66 @@ fn defense_bonus_requires_completed_defender_owned_fortifications() {
         &sim.grid,
     ));
 }
+
+#[test]
+fn battle_deaths_are_counted_in_their_year_and_written_into_the_life_story() {
+    let mut sim = Simulation::new(91);
+    sim.organisms.truncate(4);
+    for (index, organism) in sim.organisms.iter_mut().enumerate() {
+        organism.alive = true;
+        organism.health = 0.01;
+        organism.lineage_id = if index < 2 { "river".into() } else { "hill".into() };
+    }
+    let ids: Vec<String> = sim.organisms.iter().map(|o| o.id.clone()).collect();
+    let mut battles = vec![Battle {
+        id: "river-hill".into(),
+        attackers: vec!["river".into()],
+        defenders: vec!["hill".into()],
+        attacker_orgs: ids[..2].to_vec(),
+        defender_orgs: ids[2..].to_vec(),
+        scale: BattleScale::Skirmish,
+        location: (50, 50),
+        started_tick: 0,
+        ended_tick: None,
+        casualties_a: 0,
+        casualties_d: 0,
+        outcome: None,
+        initial_a: 2,
+        initial_d: 2,
+    }];
+    let lineage_eras = HashMap::default();
+    let governments = HashMap::default();
+    let mut treaties = Vec::new();
+    let mut events = std::collections::VecDeque::new();
+    let mut rng = <rand_chacha::ChaCha8Rng as SeedableRng>::seed_from_u64(7);
+    let tick = 3 * crate::sim::cosmos::YEAR_LENGTH_TICKS + 40;
+    tick_battles(
+        tick,
+        &mut rng,
+        &mut battles,
+        &mut treaties,
+        &mut sim.organisms,
+        &mut events,
+        &mut sim.history,
+        BattleInstitutions {
+            lineage_eras: &lineage_eras,
+            governments: &governments,
+            buildings: &[],
+            field_fortifications: &[],
+            grid: &sim.grid,
+        },
+    );
+
+    assert!(sim.organisms.iter().all(|o| !o.alive));
+    assert_eq!(sim.history.deaths_combat, 4);
+    let yearly: u64 = sim.history.deaths_by_year.iter().map(|&n| u64::from(n)).sum();
+    assert_eq!(yearly, 4);
+    assert_eq!(sim.history.deaths_by_year.get(3).copied(), Some(4));
+    for organism in &sim.organisms {
+        assert_eq!(organism.death_cause, "war");
+        assert!(organism
+            .life_log
+            .iter()
+            .any(|e| e.category == "death" && e.text.starts_with("fell in battle")));
+    }
+}

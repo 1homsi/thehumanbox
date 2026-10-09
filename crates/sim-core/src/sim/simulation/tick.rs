@@ -205,7 +205,7 @@ impl Simulation {
                 &mut self.treaties,
                 &mut self.organisms,
                 &mut self.events,
-                &mut self.history.deaths_combat,
+                &mut self.history,
                 crate::sim::warfare::BattleInstitutions {
                     lineage_eras: &self.lineage_eras,
                     governments: &self.governments,

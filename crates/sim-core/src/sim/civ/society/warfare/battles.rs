@@ -8,6 +8,21 @@ pub struct BattleInstitutions<'a> {
     pub grid: &'a WorldGrid,
 }
 
+/// A person killed in a battle. Battle deaths skip the mortality phase, so
+/// this does the bookkeeping that phase does: the cause, the life story, and
+/// the death counts (totals and the year the stats panel charts them in).
+fn fall_in_battle(
+    org: &mut crate::organism::organism::Organism,
+    tick: u64,
+    history: &mut crate::sim::simulation::History,
+) {
+    org.alive = false;
+    org.death_cause = "war".to_string();
+    org.log_life(tick, "death", format!("fell in battle at age {}", org.age));
+    history.deaths_combat += 1;
+    history.record_death(tick);
+}
+
 pub fn tick_battles(
     tick: u64,
     rng: &mut rand_chacha::ChaCha8Rng,
@@ -15,7 +30,7 @@ pub fn tick_battles(
     treaties: &mut Vec<Treaty>,
     organisms: &mut [crate::organism::organism::Organism],
     events: &mut std::collections::VecDeque<crate::sim::simulation::Event>,
-    history_combat_deaths: &mut u64,
+    history: &mut crate::sim::simulation::History,
     institutions: BattleInstitutions<'_>,
 ) {
     use rand::RngExt;
@@ -97,18 +112,14 @@ pub fn tick_battles(
             organisms[di].health = (organisms[di].health - a_dmg).max(0.0);
             organisms[di].mark_harm(crate::organism::organism::Harm::War, tick);
             if organisms[di].health <= 0.0 && organisms[di].alive {
-                organisms[di].alive = false;
-                organisms[di].death_cause = "war".to_string();
+                fall_in_battle(&mut organisms[di], tick, history);
                 battle.casualties_d += 1;
-                *history_combat_deaths += 1;
             }
             organisms[ai].health = (organisms[ai].health - d_dmg).max(0.0);
             organisms[ai].mark_harm(crate::organism::organism::Harm::War, tick);
             if organisms[ai].health <= 0.0 && organisms[ai].alive {
-                organisms[ai].alive = false;
-                organisms[ai].death_cause = "war".to_string();
+                fall_in_battle(&mut organisms[ai], tick, history);
                 battle.casualties_a += 1;
-                *history_combat_deaths += 1;
             }
         }
 
