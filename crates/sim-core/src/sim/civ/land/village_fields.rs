@@ -73,7 +73,7 @@ fn tribes_with_dwellings(sim: &Simulation) -> Vec<Tribe> {
     let mut tribes: Vec<Tribe> = by_lineage
         .into_iter()
         .filter_map(|(lineage, members)| {
-            let mut spots = dwellings.remove(lineage)?;
+            let mut spots = dwellings.swap_remove(lineage)?;
             spots.sort_unstable();
             Some(Tribe {
                 lineage: lineage.to_string(),

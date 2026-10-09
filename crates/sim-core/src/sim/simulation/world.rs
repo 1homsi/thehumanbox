@@ -44,7 +44,7 @@ impl Simulation {
             }
             if water_neighbours <= 1 {
                 self.grid.set(cx, cy, Tile::Sand);
-                self.water_use.remove(&(cx, cy));
+                self.water_use.swap_remove(&(cx, cy));
                 push_event(
                     &mut self.events,
                     self.tick_count,

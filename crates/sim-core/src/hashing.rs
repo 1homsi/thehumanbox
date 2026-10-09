@@ -1,23 +1,28 @@
 //! Hash maps and sets whose iteration order is the same on every target.
 //!
-//! The simulation walks some hash maps and sets while it decides things, so
-//! the iteration order changes the outcome. `rustc_hash::FxHasher` uses
-//! different multiplier, rotation and word size on 32-bit targets, so the
-//! browser build (wasm32) iterated the same keys in a different order than the
-//! native build and the two worlds diverged on tick 0.
+//! The simulation walks some maps and sets while it decides things, so the
+//! iteration order changes the outcome. Two things made `std`/`rustc-hash`
+//! maps iterate differently by target:
 //!
-//! The hasher below is the 64-bit `FxHasher` algorithm from rustc-hash 2.1.3
-//! (MIT or Apache-2.0), with every word size fixed to 64 bits, so the output
-//! no longer depends on the target's pointer width. On 64-bit targets it
-//! produces the same hashes as rustc-hash did before this module existed.
+//! - `rustc_hash::FxHasher` uses a different multiplier, rotation and word size
+//!   on 32-bit targets (wasm32).
+//! - hashbrown probes in groups whose width is set by the target's SIMD: 16
+//!   bytes with SSE2 on x86_64, 8 bytes on aarch64 and wasm32. The bucket layout
+//!   and so the iteration order differ even with the same hasher.
+//!
+//! So these are insertion-ordered maps (`indexmap`), with the 64-bit Fx
+//! hasher fixed for every target. Insertion order depends only on the sequence
+//! of operations, not on the hash layout, so every target iterates the same way.
+//! The hasher is the 64-bit `FxHasher` algorithm from rustc-hash 2.1.3
+//! (MIT or Apache-2.0), with every word size fixed to 64 bits.
 
 use std::hash::{BuildHasherDefault, Hasher};
 
-/// `HashMap` with the platform-independent Fx hasher.
-pub type FxHashMap<K, V> = std::collections::HashMap<K, V, BuildHasherDefault<FxHasher>>;
+/// Insertion-ordered map with the platform-independent Fx hasher.
+pub type FxHashMap<K, V> = indexmap::IndexMap<K, V, BuildHasherDefault<FxHasher>>;
 
-/// `HashSet` with the platform-independent Fx hasher.
-pub type FxHashSet<T> = std::collections::HashSet<T, BuildHasherDefault<FxHasher>>;
+/// Insertion-ordered set with the platform-independent Fx hasher.
+pub type FxHashSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
 
 const K: u64 = 0xf1357aea2e62a9c5;
 const ROTATE: u32 = 26;

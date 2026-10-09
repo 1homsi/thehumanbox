@@ -288,8 +288,8 @@ impl Simulation {
             .collect();
 
         for (lineage_id, mut objective) in extinct_objectives {
-            self.lineage_strategy_objectives.remove(&lineage_id);
-            self.lineage_strategies.remove(&lineage_id);
+            self.lineage_strategy_objectives.swap_remove(&lineage_id);
+            self.lineage_strategies.swap_remove(&lineage_id);
             if objective.completed_tick.is_some() || objective.failed_tick.is_some() {
                 continue;
             }

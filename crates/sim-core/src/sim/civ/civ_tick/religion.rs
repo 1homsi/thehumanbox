@@ -253,7 +253,7 @@ pub(super) fn forget_empty_faiths(sim: &mut Simulation) {
     let mut forgotten: Vec<String> = Vec::new();
     for r in &sim.religions {
         if r.adherents > 0 {
-            sim.faith_empty_since.remove(&r.id);
+            sim.faith_empty_since.swap_remove(&r.id);
             continue;
         }
         let since = *sim.faith_empty_since.entry(r.id.clone()).or_insert(now);
@@ -272,7 +272,7 @@ pub(super) fn forget_empty_faiths(sim: &mut Simulation) {
         .collect();
     sim.religions.retain(|r| !forgotten.contains(&r.id));
     for id in &forgotten {
-        sim.faith_empty_since.remove(id);
+        sim.faith_empty_since.swap_remove(id);
     }
     for name in names {
         push_event(

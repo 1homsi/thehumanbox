@@ -93,7 +93,7 @@ pub(super) fn tick_dynasty_watch(sim: &mut Simulation) {
             while sim.headlines.len() > 80 {
                 sim.headlines.pop_front();
             }
-            sim.lineage_peak_pop.remove(&lid);
+            sim.lineage_peak_pop.swap_remove(&lid);
         }
     }
     for (lid, n) in pop_now {

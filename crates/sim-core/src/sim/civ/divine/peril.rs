@@ -212,7 +212,7 @@ impl Simulation {
                             c.population
                         ),
                     ));
-                    self.tribe_peril.remove(lineage);
+                    self.tribe_peril.swap_remove(lineage);
                 }
                 Some(peril) => {
                     peril.population = c.population;

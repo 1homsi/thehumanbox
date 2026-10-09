@@ -291,7 +291,7 @@ impl Organism {
                 let mut e: Vec<_> = mem.iter().map(|(k, v)| (*k, *v)).collect();
                 e.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
                 for (k, _) in &e[..e.len() - max] {
-                    mem.remove(k);
+                    mem.swap_remove(k);
                 }
             }
         }
@@ -310,7 +310,7 @@ impl Organism {
         const Q_MAX: usize = 120;
         const Q_TRIM: usize = 80;
         if self.q_table.len() > Q_MAX {
-            let mut entries: Vec<(String, QRow)> = self.q_table.drain().collect();
+            let mut entries: Vec<(String, QRow)> = self.q_table.drain(..).collect();
             entries.sort_by(|a, b| {
                 let va = a.1.max_q();
                 let vb = b.1.max_q();

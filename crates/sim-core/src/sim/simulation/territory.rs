@@ -49,7 +49,7 @@ impl Simulation {
             ranked.select_nth_unstable(excess);
             ranked.truncate(excess);
             for (_, x, y) in ranked {
-                tiles.remove(&(x, y));
+                tiles.swap_remove(&(x, y));
                 evicted.push((x, y));
             }
         }
@@ -72,7 +72,7 @@ impl Simulation {
         for p in evicted {
             if let Some(owner) = self.tile_owner.get(&p) {
                 if owner == lid {
-                    self.tile_owner.remove(&p);
+                    self.tile_owner.swap_remove(&p);
                 }
             }
         }
@@ -110,7 +110,7 @@ impl Simulation {
             sorted.sort_by_key(|&(x, y)| (-((x - cx) * (x - cx) + (y - cy) * (y - cy)), x, y));
             let excess = sorted.len() - MAX_TERRITORY;
             for p in sorted.into_iter().take(excess) {
-                tiles.remove(&p);
+                tiles.swap_remove(&p);
                 evicted.push(p);
             }
         }
@@ -124,7 +124,7 @@ impl Simulation {
         for p in evicted {
             if let Some(owner) = self.tile_owner.get(&p) {
                 if owner == lid {
-                    self.tile_owner.remove(&p);
+                    self.tile_owner.swap_remove(&p);
                 }
             }
         }
@@ -164,7 +164,7 @@ impl Simulation {
             }
             if let Some(lset) = self.territory.get_mut(&loser) {
                 for t in &taken {
-                    lset.remove(t);
+                    lset.swap_remove(t);
                 }
             }
             let wset = self.territory.entry(winner.clone()).or_default();

@@ -142,7 +142,7 @@ impl Simulation {
                 let (_, oldest) = mine[0];
                 if let Some(old) = self.buildings.iter().find(|b| b.id == oldest) {
                     for cell in footprint_cells(old.kind, old.x, old.y) {
-                        occupied.remove(&cell);
+                        occupied.swap_remove(&cell);
                     }
                 }
                 self.buildings.retain(|b| b.id != oldest);

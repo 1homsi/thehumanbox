@@ -90,8 +90,8 @@ impl Simulation {
                 o.begin_journey((hx, hy), "seeking refuge", now);
             }
             // They were taken in, not wiped out: no dynasty-death notice.
-            self.lineage_peak_pop.remove(&lineage);
-            self.tribe_peril.remove(&lineage);
+            self.lineage_peak_pop.swap_remove(&lineage);
+            self.tribe_peril.swap_remove(&lineage);
             let from = self
                 .lineage_names
                 .get(&lineage)

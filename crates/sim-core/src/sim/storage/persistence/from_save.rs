@@ -355,7 +355,7 @@ impl Simulation {
             }
         }
         for (lineage_id, strategy, expires_tick) in legacy_objectives {
-            sim.lineage_strategy_objectives.remove(&lineage_id);
+            sim.lineage_strategy_objectives.swap_remove(&lineage_id);
             sim.start_strategy_objective(&lineage_id, &strategy, expires_tick);
         }
         sim.resolve_strategy_objective_expirations();

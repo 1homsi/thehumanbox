@@ -551,7 +551,7 @@ impl Simulation {
                 }
             }
             for (x, y) in to_remove {
-                self.active_structure_tiles.remove(&(x, y));
+                self.active_structure_tiles.swap_remove(&(x, y));
                 self.field_fortifications
                     .retain(|fortification| fortification.x != x || fortification.y != y);
             }
