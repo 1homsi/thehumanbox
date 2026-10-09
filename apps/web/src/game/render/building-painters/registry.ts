@@ -25,6 +25,7 @@ import { paintEraHome } from './era-home'
 import { paintWorkshop } from './workshop'
 import { paintPen } from './pasture'
 import { CRAFT_SIGNS, paintCraftHome } from './craft-signs'
+import { paintBarn, paintWatermill } from './farm-buildings'
 
 export const ARCHETYPE: Record<string, (p: P) => void | boolean> = {}
 
@@ -86,7 +87,8 @@ reg(paintManor, [
 reg(paintTemple, ['Temple', 'Cathedral', 'Mosque', 'Synagogue', 'Pagoda', 'Stupa', 'Mausoleum'])
 reg(paintCastle, ['Castle', 'Barracks', 'Watchtower', 'Tower', 'Wall', 'Gate', 'PoliceStation'])
 reg(paintTowerTall, ['Lighthouse', 'Lighthouse2', 'ClockTower', 'Observatory', 'WaterTower', 'RadioTower'])
-reg(paintWindmill, ['Windmill', 'Watermill'])
+reg(paintWindmill, ['Windmill'])
+reg(paintWatermill, ['Watermill'])
 reg(paintIndustrial, [
   'Factory',
   'Forge',
@@ -107,6 +109,7 @@ reg(paintIndustrial, [
 ])
 reg(paintFarm, ['Granary', 'Silo', 'Stable', 'Ranch', 'Greenhouse', 'Greenhouse2', 'Vineyard', 'Orchard'])
 reg(paintPen, ['Pen'])
+reg(paintBarn, ['Barn'])
 reg(paintModern, [
   'Apartment',
   'OfficeTower',

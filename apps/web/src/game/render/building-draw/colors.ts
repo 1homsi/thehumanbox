@@ -21,6 +21,7 @@ const WALL_COLORS: Record<string, string> = {
   Workshop: '#8a6a48',
   Granary: '#b88848',
   Pen: '#8a6440',
+  Barn: '#8a3a2e',
   Barracks: '#5a5a5a',
   Lighthouse: '#e8e0d0',
   Windmill: '#a07854',

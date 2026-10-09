@@ -40,6 +40,7 @@ impl BuildingKind {
             | Cafe | Restaurant | Hotel | Pharmacy | Clinic => &[("wood", 25), ("stone", 10)],
             Bank => &[("stone", 60), ("iron", 20), ("gold", 10)],
             Granary | Silo | Warehouse => &[("wood", 30), ("stone", 10)],
+            Barn => &[("wood", 24), ("stone", 4)],
             Barracks => &[("wood", 40), ("stone", 30), ("iron", 12)],
             Lighthouse | Lighthouse2 => &[("stone", 50), ("wood", 15)],
             Aqueduct => &[("stone", 80)],

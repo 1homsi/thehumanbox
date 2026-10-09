@@ -220,15 +220,21 @@ fn breed(sim: &mut Simulation, tribe: &Tribe, now: u64) {
 /// The herd's food for the pass goes to the granaries (the first with room). What does
 /// not fit goes to people with no food of their own, up to a few measures each.
 fn yield_food(sim: &mut Simulation, tribe: &Tribe) {
-    let total: u32 = sim
+    let head: u32 = sim
         .animals
         .iter()
         .filter(|a| a.alive && a.keeper.as_deref() == Some(tribe.lineage.as_str()))
         .map(|a| food_per_head(a.kind))
         .sum();
-    if total == 0 {
+    if head == 0 {
         return;
     }
+    // A barn's fodder and tools raise the herd's yield by half.
+    let total = if village_stores::owns(sim, &tribe.lineage, BuildingKind::Barn) {
+        head + head / 2
+    } else {
+        head
+    };
     let mut left = village_stores::deposit(sim, &tribe.lineage, total);
     for &idx in &tribe.members {
         if left == 0 {
@@ -360,6 +366,40 @@ mod tests {
             .map(|&i| sim.organisms[i].inv_food as u32)
             .sum();
         assert!(fed >= 3, "a sheep and a cow give food to the people with none");
+    }
+
+    #[test]
+    fn a_barn_raises_the_herds_yield_by_half() {
+        let (mut sim, tribe) = herding_tribe(5_107);
+        for a in sim.animals.iter_mut().take(2) {
+            a.keeper = Some(tribe.lineage.clone());
+            a.pen = Some((120, 120));
+        }
+        let mut granary = Building::new(
+            700,
+            BuildingKind::Granary,
+            130,
+            130,
+            Some(tribe.lineage.clone()),
+            0,
+        );
+        granary.condition = 1.0;
+        sim.buildings.push(granary);
+        yield_food(&mut sim, &tribe);
+        assert_eq!(
+            village_stores::stock_of(&sim, &tribe.lineage),
+            3,
+            "a sheep and a cow give three measures"
+        );
+        let mut barn = Building::new(701, BuildingKind::Barn, 132, 130, Some(tribe.lineage.clone()), 0);
+        barn.condition = 1.0;
+        sim.buildings.push(barn);
+        yield_food(&mut sim, &tribe);
+        assert_eq!(
+            village_stores::stock_of(&sim, &tribe.lineage),
+            3 + 4,
+            "a barn gives half as much again"
+        );
     }
 
     #[test]

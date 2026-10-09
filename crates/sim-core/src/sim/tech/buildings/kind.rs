@@ -178,6 +178,8 @@ pub enum BuildingKind {
     Aquaculture,
     /// A fenced pasture beside the houses, where a tribe keeps its livestock.
     Pen,
+    /// A barn by the granary: fodder and tools for the herd and the fields.
+    Barn,
 }
 
 impl BuildingKind {
@@ -358,6 +360,7 @@ impl BuildingKind {
             BuildingKind::MushroomFarm => "mushroom_farm",
             BuildingKind::Aquaculture => "aquaculture",
             BuildingKind::Pen => "pen",
+            BuildingKind::Barn => "barn",
         }
     }
 
@@ -539,6 +542,7 @@ impl BuildingKind {
             MushroomFarm,
             Aquaculture,
             Pen,
+            Barn,
         ]
     }
 }
