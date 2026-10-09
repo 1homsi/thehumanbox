@@ -82,6 +82,36 @@ fn roads_survive_a_save_and_load() {
 }
 
 #[test]
+fn a_flood_washes_away_the_roads_it_covers_and_not_the_rest() {
+    let mut sim = Simulation::new(2);
+    square(&mut sim, Tile::Grass);
+    for x in 96..=104 {
+        sim.grid.road[WorldGrid::idx(x, 100)] = ROAD_TRACK;
+    }
+    sim.grid.road[WorldGrid::idx(93, 93)] = ROAD_TRACK;
+    assert!(sim.apply_command_json(r#"{"cmd":"flood","x":100,"y":100,"radius":4}"#));
+    assert_eq!(sim.grid.road_at(100, 100), ROAD_NONE, "under the flood");
+    assert_eq!(sim.grid.road_at(93, 93), ROAD_TRACK, "beyond the flood");
+}
+
+#[test]
+fn a_bridge_is_not_washed_away_by_a_flood_over_its_water() {
+    let mut sim = Simulation::new(2);
+    square(&mut sim, Tile::Grass);
+    for y in 92..=108 {
+        sim.grid.set(100, y, Tile::Water);
+        sim.grid.depth[WorldGrid::idx(100, y)] = 0.5;
+    }
+    sim.grid.road[WorldGrid::idx(100, 100)] = ROAD_BRIDGE;
+    assert!(sim.apply_command_json(r#"{"cmd":"flood","x":100,"y":100,"radius":4}"#));
+    assert_eq!(
+        sim.grid.road_at(100, 100),
+        ROAD_BRIDGE,
+        "the flood leaves the water and the bridge over it"
+    );
+}
+
+#[test]
 fn a_bridge_goes_on_water_and_nowhere_else() {
     let mut sim = Simulation::new(1);
     square(&mut sim, Tile::Grass);
