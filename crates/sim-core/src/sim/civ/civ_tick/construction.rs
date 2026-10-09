@@ -535,12 +535,24 @@ pub(super) fn raise_palisade(sim: &mut Simulation, lineage: &str) -> usize {
         return 0;
     }
     let radius = palisade_radius(sim, lineage, cx, cy);
+    // Tiles a building covers, looked up once, so a tile a home already holds
+    // costs a set lookup rather than a scan of every building.
+    let mut covered: HashSet<(i32, i32)> = HashSet::default();
+    for building in sim.buildings.iter().filter(|b| !b.decorative) {
+        let (width, height) = building.footprint();
+        for dy in 0..i32::from(height) {
+            for dx in 0..i32::from(width) {
+                covered.insert((building.x + dx, building.y + dy));
+            }
+        }
+    }
     let mut started = 0;
     for (x, y) in palisade_ring(cx, cy, radius) {
         if started == PALISADE_FENCES_PER_PASS {
             break;
         }
-        if construction_site_is_valid(sim, BuildingKind::Fence, x, y)
+        if !covered.contains(&(x, y))
+            && construction_site_is_valid(sim, BuildingKind::Fence, x, y)
             && start_building_at_valid_site(sim, lineage, BuildingKind::Fence, x, y)
         {
             started += 1;
