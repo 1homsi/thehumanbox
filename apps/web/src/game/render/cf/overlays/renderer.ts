@@ -37,7 +37,6 @@ import { paintEruption } from './eruption'
 import { paintGroundSnow } from './ground-snow'
 import { paintFloodFront } from './flood-front'
 import { paintSkyFlyers } from './sky-flyers'
-import { paintFairCloudsFrame } from './fair-clouds'
 import { paintGroundIce } from './ground-ice'
 import { paintPlagueHaze } from './plague-haze'
 import { ANIMAL_DUST, FootstepDust } from './footstep-dust'
@@ -280,6 +279,9 @@ export class CfOverlayRenderer {
     // Ground effects: clouds, lines, water glints and fire light. They drift slowly, so they are
     // rewritten about 15 times a second, at once when the view or the settings change.
     const gv = { zoom: f.zoom, dpr: f.dpr }
+    // The small effects (sea sparkle, mist, birds, petals, leaves, fireflies) are for close zoom: at the
+    // overview they read as clutter over the whole map, so they are not drawn there.
+    const detailed = zoomDetailLevel(f.zoom) !== 'overview'
     const { c0, c1, r0, r1 } = f.bounds
     const groundKey = `${c0},${c1},${r0},${r1}|${f.zoom}|${f.world.frame_id}`
     if (
@@ -292,11 +294,10 @@ export class CfOverlayRenderer {
       this.groundAt = f.t
       this.ground.begin(gv)
       const ground = this.ground.asContext()
-      paintFairCloudsFrame(ground, f)
       paintClouds(ground, f)
       paintLines(ground, f)
-      paintWaterStars(ground, f)
-      paintWaterShimmer(ground, f)
+      if (detailed) paintWaterStars(ground, f)
+      if (detailed) paintWaterShimmer(ground, f)
       paintPlagueHaze(ground, f.organisms, f.bounds, f.ox, f.oy, f.t)
       const vents = { ...f.bounds, ox: f.ox, oy: f.oy }
       paintEruption(ground, f.world.grid.tiles, f.world.grid.biomes, vents, f.t, !f.world.is_day)
@@ -313,7 +314,7 @@ export class CfOverlayRenderer {
       paintEmbers(ground, f.world.grid.fire_intensity, emberView, f.t)
       paintCampfireSparks(ground, f.world.grid.tiles, emberView, f.t)
       paintPuddles(ground, f, wetnessOf(f.world))
-      paintHaze(ground, f, hazeLevels(f.world), f.t)
+      if (detailed) paintHaze(ground, f, hazeLevels(f.world), f.t)
       paintStars(ground, f.bounds, f.ox, f.oy, f.t, nightLevel(f.world))
       const { c0, c1, r0, r1 } = f.bounds
       const win = { x0: c0, y0: r0, x1: c1, y1: r1 }
@@ -326,7 +327,7 @@ export class CfOverlayRenderer {
         win,
       )
       this.animalDust.paint(ground, f.ox, f.oy, f.t)
-      if (vegetationSeason(terrainSeason(f.world)) === 'autumn') {
+      if (detailed && vegetationSeason(terrainSeason(f.world)) === 'autumn') {
         const { c0, c1, r0, r1 } = f.bounds
         paintFallingLeaves(
           ground,
@@ -335,7 +336,7 @@ export class CfOverlayRenderer {
           1,
         )
       }
-      if (vegetationSeason(terrainSeason(f.world)) === 'spring') {
+      if (detailed && vegetationSeason(terrainSeason(f.world)) === 'spring') {
         const { c0, c1, r0, r1 } = f.bounds
         paintFallingBlossoms(
           ground,
@@ -349,7 +350,7 @@ export class CfOverlayRenderer {
         paintDew(ground, f.bounds, f.ox, f.oy, f.t, dew, f.world.grid.tiles)
       }
       const night = nightLevel(f.world)
-      if (night > 0 && vegetationSeason(terrainSeason(f.world)) === 'summer') {
+      if (detailed && night > 0 && vegetationSeason(terrainSeason(f.world)) === 'summer') {
         paintFireflies(ground, f.bounds, f.ox, f.oy, f.t, night, f.world.grid.tiles)
       }
       this.paintContested(ground, f)
@@ -384,7 +385,7 @@ export class CfOverlayRenderer {
     this.eraWatch.update(f.world)
     paintEraFlourish(this.effects.asContext(), f, this.eraWatch.active(f.world.tick))
     this.paintWeather(this.effects.asContext(), f)
-    paintSkyFlyers(this.effects.asContext(), f)
+    if (detailed) paintSkyFlyers(this.effects.asContext(), f)
     this.effects.end()
     lap('effects')
 
