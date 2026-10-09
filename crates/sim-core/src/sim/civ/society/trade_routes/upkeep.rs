@@ -122,6 +122,7 @@ pub fn tick(sim: &mut Simulation) {
     if sim.tick_count.is_multiple_of(MERCHANT_ROUTE_SCAN_TICKS) {
         open_merchant_routes(sim);
     }
+    super::specialty::update_specialties(sim);
     if sim.tick_count.is_multiple_of(MERCHANT_DISPATCH_SCAN_TICKS) {
         raid_embargoed_caravans(sim);
         run_merchant_caravans(sim);

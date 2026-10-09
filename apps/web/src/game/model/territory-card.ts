@@ -34,14 +34,34 @@ export function goodsOfTribe(world: Pick<WorldState, 'land_goods'>, lineage: str
  * goods on their way in (a scarce good sells dearer). Null while the tribe has
  * no route, so a tribe that does not trade shows nothing.
  */
+/** The town a tribe is known for, in words ("a mining town"), or null when it has no specialty. */
+export function specialtyOfTribe(world: Pick<WorldState, 'specialties'>, lineage: string): string | null {
+  const good = world.specialties?.[lineage]
+  if (!good) return null
+  const towns: Record<string, string> = {
+    ore: 'a mining town',
+    salt: 'a salt town',
+    clay: 'a pottery town',
+    spice: 'a spice town',
+    ochre: 'an ochre town',
+    fur: 'a fur town',
+  }
+  return towns[good] ?? null
+}
+
 export function tradeOfTribe(
-  world: Pick<WorldState, 'trade_routes' | 'caravans' | 'trade_income'>,
+  world: Pick<
+    WorldState,
+    'trade_routes' | 'caravans' | 'trade_income' | 'trade_barter' | 'lineage_currencies'
+  >,
   lineage: string,
 ): string | null {
   const routes = (world.trade_routes ?? []).filter(
     (route) => route.lineage_a === lineage || route.lineage_b === lineage,
   )
   if (routes.length === 0) return null
+  // The coin of the tribe's age ("beads" in the Bronze age, "coins" in the Iron age), when known.
+  const unit = world.lineage_currencies?.[lineage] ? ` ${world.lineage_currencies[lineage]}` : ''
   const goods = routes.reduce((sum, route) => sum + route.volume, 0)
   const caravans = (world.caravans ?? []).filter(
     (caravan) => caravan.sender_lineage === lineage || caravan.receiver_lineage === lineage,
@@ -54,9 +74,11 @@ export function tradeOfTribe(
   // A first caravan still on the road has delivered nothing yet, so no goods are named.
   if (goods > 0) parts.push(plural(goods, 'good', 'goods'))
   if (caravans.length > 0) parts.push(`${plural(caravans.length, 'caravan', 'caravans')} on the road`)
-  if (inbound) parts.push(`buying ${inbound.cargo} at ${inbound.unit_price} each`)
+  if (inbound) parts.push(`buying ${inbound.cargo} at ${inbound.unit_price}${unit} each`)
   const earned = world.trade_income?.[lineage] ?? 0
-  if (earned > 0) parts.push(`earned ${earned} from trade`)
+  if (earned > 0) parts.push(`earned ${earned}${unit} from trade`)
+  const bartered = world.trade_barter?.[lineage] ?? 0
+  if (bartered > 0) parts.push(`bartered ${bartered} in kind`)
   return parts.join(' · ')
 }
 
@@ -82,7 +104,8 @@ export function territoryCardFacts(
     government: leadership?.government ?? null,
     era: eraNameOf(world, lineage),
     wealthGap: wealthGapOf(world.lineage_inequality, lineage),
-    trade: tradeOfTribe(world, lineage),
+    trade:
+      [specialtyOfTribe(world, lineage), tradeOfTribe(world, lineage)].filter(Boolean).join(' · ') || null,
     goods: goodsOfTribe(world, lineage),
     contested,
   }

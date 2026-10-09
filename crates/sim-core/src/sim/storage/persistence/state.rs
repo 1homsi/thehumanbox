@@ -192,6 +192,10 @@ pub struct SaveState {
     pub(super) next_caravan_id: u32,
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub(super) trade_income: std::collections::BTreeMap<String, u64>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub(super) trade_barter: std::collections::BTreeMap<String, u64>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub(super) specialties: std::collections::BTreeMap<String, String>,
     #[serde(default)]
     pub(super) water_use: Vec<WaterUseSave>,
     #[serde(default)]

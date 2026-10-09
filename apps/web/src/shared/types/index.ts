@@ -656,6 +656,10 @@ export interface WorldState {
   land_goods?: Record<string, Record<string, number>>
   /** Coin each tribe has earned by selling goods to other tribes, by lineage. */
   trade_income?: Record<string, number>
+  /** Units a tribe has taken in kind before money (the Stone age), by lineage. */
+  trade_barter?: Record<string, number>
+  /** The land good each tribe is known for ("ore", "salt"...), by lineage. */
+  specialties?: Record<string, string>
   governments?: GovernmentInfo[]
   artworks?: ArtworkInfo[]
   farms?: FarmInfo[]

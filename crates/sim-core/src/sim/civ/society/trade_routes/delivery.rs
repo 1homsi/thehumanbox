@@ -1,5 +1,27 @@
 use super::*;
 
+/// Before money a buyer pays in kind: food first, then stone, then wood, whichever it holds.
+/// Returns the units handed over (the seller gets them).
+fn barter_in_kind(sim: &mut Simulation, buyer: usize, seller: usize, owed: u32) -> u32 {
+    let mut owed = owed;
+    let mut total = 0u32;
+    let take = owed.min(u32::from(sim.organisms[buyer].inv_food));
+    sim.organisms[buyer].inv_food -= take as u8;
+    sim.organisms[seller].inv_food = sim.organisms[seller].inv_food.saturating_add(take as u8);
+    owed -= take;
+    total += take;
+    let take = owed.min(u32::from(sim.organisms[buyer].inv_stone));
+    sim.organisms[buyer].inv_stone -= take as u8;
+    sim.organisms[seller].inv_stone = sim.organisms[seller].inv_stone.saturating_add(take as u8);
+    owed -= take;
+    total += take;
+    let take = owed.min(u32::from(sim.organisms[buyer].inv_wood));
+    sim.organisms[buyer].inv_wood -= take as u8;
+    sim.organisms[seller].inv_wood = sim.organisms[seller].inv_wood.saturating_add(take as u8);
+    total += take;
+    total
+}
+
 pub(super) fn cargo_room(sim: &Simulation, organism_idx: usize, cargo: &str) -> u32 {
     let organism = &sim.organisms[organism_idx];
     match cargo {
@@ -114,13 +136,29 @@ pub(super) fn deliver_caravan(sim: &mut Simulation, caravan_id: u32) -> bool {
         .unit_price
         .saturating_mul(delivered)
         .min(MAX_PAYMENT_PER_DELIVERY);
+    // Before money (the Bronze age) a tribe trades in kind: the buyer hands over food instead of
+    // coin, and no coin changes hands.
+    let bartering = sim
+        .lineage_eras
+        .get(&caravan.sender_lineage)
+        .is_none_or(|era| *era < crate::sim::era::Era::Bronze);
     let paid = if let Some(sender_idx) = sender_idx {
-        let available = sim.organisms[primary_recipient].wealth;
-        let paid = requested_payment.min(available);
-        sim.organisms[primary_recipient].wealth =
-            sim.organisms[primary_recipient].wealth.saturating_sub(paid);
-        sim.organisms[sender_idx].wealth = sim.organisms[sender_idx].wealth.saturating_add(paid);
-        paid
+        if bartering {
+            let taken = barter_in_kind(sim, primary_recipient, sender_idx, requested_payment);
+            if taken > 0 {
+                *sim.trade_barter
+                    .entry(caravan.sender_lineage.clone())
+                    .or_insert(0) += u64::from(taken);
+            }
+            0
+        } else {
+            let available = sim.organisms[primary_recipient].wealth;
+            let paid = requested_payment.min(available);
+            sim.organisms[primary_recipient].wealth =
+                sim.organisms[primary_recipient].wealth.saturating_sub(paid);
+            sim.organisms[sender_idx].wealth = sim.organisms[sender_idx].wealth.saturating_add(paid);
+            paid
+        }
     } else {
         0
     };

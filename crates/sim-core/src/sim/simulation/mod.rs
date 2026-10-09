@@ -160,6 +160,11 @@ pub struct Simulation {
     /// Coin a tribe has earned by selling goods to other tribes, by lineage (what the
     /// caravans paid its merchants and people). Read by the wealth view and the houses.
     pub trade_income: std::collections::BTreeMap<String, u64>,
+    /// Goods a tribe has taken in exchange for its own before money (the Stone age trades
+    /// in kind), by lineage. Counted in units of food.
+    pub trade_barter: std::collections::BTreeMap<String, u64>,
+    /// The land good each tribe is known for (a mining town, a salt town...), by lineage.
+    pub specialties: std::collections::BTreeMap<String, String>,
     pub water_use: HashMap<(i32, i32), u32>,
     pub current_era: String,
     pub sex_words: [String; 2],
@@ -293,6 +298,8 @@ impl Simulation {
             next_trade_route_id: 1,
             next_caravan_id: 1,
             trade_income: Default::default(),
+            trade_barter: Default::default(),
+            specialties: Default::default(),
             water_use: HashMap::default(),
             current_era: "genesis".to_string(),
             sex_words,

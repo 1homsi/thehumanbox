@@ -15,6 +15,7 @@ mod dispatch;
 mod merchants;
 mod model;
 mod routes;
+mod specialty;
 #[cfg(test)]
 mod tests;
 mod upkeep;
@@ -25,4 +26,5 @@ use merchants::*;
 pub use merchants::{route_has_agreement, route_is_embargoed};
 pub use model::*;
 pub use routes::*;
+pub use specialty::{specialty_good_of, specialty_town, SPECIALTY_BONUS};
 pub use upkeep::*;
