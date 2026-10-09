@@ -105,13 +105,10 @@ describe('dock layout stays complete as tools are added', () => {
       ).toBe(true)
   })
 
-  it('keeps the dock to nine tabs, with every animal in the one animals tab', () => {
-    expect(DOCK_TABS).toHaveLength(9)
-    const animalTabs = DOCK_TABS.filter((t) =>
-      t.groups.some((g) => ['animals', 'birds', 'reptiles', 'safari'].includes(g)),
-    )
-    expect(animalTabs.map((t) => t.id)).toEqual(['animals'])
-    expect(DOCK_TABS.some((t) => t.id === 'wild')).toBe(false)
+  it('keeps the dock to five tabs, with people and every animal in the life tab', () => {
+    expect(DOCK_TABS.map((t) => t.id)).toEqual(['life', 'nature', 'resources', 'deadly', 'world'])
+    const life = DOCK_TABS.find((t) => t.id === 'life')
+    for (const g of ['life', 'animals', 'birds', 'reptiles', 'safari']) expect(life?.groups).toContain(g)
   })
 
   it('fits every tab in the columns the narrow dock can show without sideways scrolling', () => {
@@ -132,16 +129,18 @@ describe('dock layout stays complete as tools are added', () => {
       ).toBe(true)
   })
 
-  it('restores tabs saved by the older one-tab-per-category dock', () => {
-    expect(resolveTab('animals')).toBe('animals')
-    expect(resolveTab('terrain')).toBe('world')
+  it('restores tabs saved by older docks', () => {
+    expect(resolveTab('animals')).toBe('life')
+    expect(resolveTab('wild')).toBe('life')
+    expect(resolveTab('birds')).toBe('life')
+    expect(resolveTab('terrain')).toBe('nature')
+    expect(resolveTab('heavens')).toBe('nature')
+    expect(resolveTab('miracles')).toBe('nature')
+    expect(resolveTab('helpful')).toBe('resources')
+    expect(resolveTab('powers')).toBe('resources')
     expect(resolveTab('disasters')).toBe('deadly')
-    expect(resolveTab('powers')).toBe('helpful')
-    expect(resolveTab('maps')).toBe('maps')
-    expect(resolveTab('safari')).toBe('animals')
-    expect(resolveTab('wild')).toBe('animals')
-    expect(resolveTab('birds')).toBe('animals')
-    expect(resolveTab('miracles')).toBe('heavens')
+    expect(resolveTab('tribes')).toBe('world')
+    expect(resolveTab('maps')).toBe('world')
     expect(resolveTab('nonsense')).toBe('life')
     expect(resolveTab(null)).toBe('life')
   })

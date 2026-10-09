@@ -15,10 +15,10 @@ import { SANDBOX_CATEGORIES, type SandboxCategory } from '../../simulation/sandb
 export const MAX_TAB_COLUMNS = 11
 
 /**
- * Tabs allowed to run wider than that: the row scrolls sideways. The animals tab holds every
- * animal in one place rather than spreading them over several tabs.
+ * Tabs allowed to run wider than that: the row scrolls sideways. The dock keeps few tabs, so the
+ * big ones hold several groups each rather than spreading them over more tabs.
  */
-export const WIDE_TABS: readonly string[] = ['animals']
+export const WIDE_TABS: readonly string[] = ['life', 'nature', 'resources']
 
 export interface DockTab {
   id: string
@@ -33,50 +33,22 @@ export const DOCK_TABS: DockTab[] = [
     id: 'life',
     label: 'life',
     icon: '🚶',
-    tip: 'People, their helpers, and the monsters that stalk them',
-    groups: ['life', 'monsters'],
+    tip: 'People, their helpers, the monsters that stalk them, and every animal from foxes to whales',
+    groups: ['life', 'monsters', 'animals', 'birds', 'reptiles', 'safari'],
   },
   {
-    id: 'animals',
-    label: 'animals',
-    icon: '🦌',
-    tip: 'Every animal, wild and tame, from foxes to whales, with birds of prey, snakes and the beasts of far lands; the row scrolls sideways',
-    groups: ['animals', 'birds', 'reptiles', 'safari'],
-  },
-  {
-    id: 'world',
-    label: 'world',
+    id: 'nature',
+    label: 'nature',
     icon: '⛰️',
-    tip: 'Terrain and biomes: what the ground is',
-    groups: ['terrain', 'biomes'],
-  },
-  {
-    id: 'heavens',
-    label: 'sky',
-    icon: '🌅',
-    tip: 'The time of day, eclipses and comets, dice, the bomb, the eras, and blessings of the land and of one person',
-    groups: ['sky', 'miracles', 'eras'],
+    tip: 'Terrain and biomes, the sky and the time of day, eclipses and comets, the eras, and blessings of the land',
+    groups: ['terrain', 'biomes', 'sky', 'miracles', 'eras'],
   },
   {
     id: 'resources',
     label: 'resources',
     icon: '🍎',
-    tip: 'Food, plantings, and buildings',
-    groups: ['resources', 'build'],
-  },
-  {
-    id: 'helpful',
-    label: 'helpful',
-    icon: '✨',
-    tip: 'Blessings, weather you can summon, and healing',
-    groups: ['good'],
-  },
-  {
-    id: 'tribes',
-    label: 'tribes',
-    icon: '👥',
-    tip: 'Gifts and moves for whole tribes: food and tools for every member, a forced migration, and a trade of food between two tribes',
-    groups: ['tribes'],
+    tip: 'Food, plantings and buildings, and the blessings, weather and healing you can give',
+    groups: ['resources', 'build', 'good'],
   },
   {
     id: 'deadly',
@@ -86,11 +58,11 @@ export const DOCK_TABS: DockTab[] = [
     groups: ['bad'],
   },
   {
-    id: 'maps',
-    label: 'maps',
+    id: 'world',
+    label: 'world',
     icon: '🗺️',
-    tip: 'Map layers and what the map shows',
-    groups: ['maps', 'view'],
+    tip: 'Whole tribes (food and tools for every member, a forced migration, a trade of food) and the map layers',
+    groups: ['tribes', 'maps', 'view'],
   },
 ]
 
@@ -180,19 +152,21 @@ export function markNewToolsSeen(tabId: string, seen: ReadonlySet<string>): Set<
 
 /**
  * Tab ids and groups older docks used, mapped to the tab that now holds their tools.
- * The powers tab was split into helpful and deadly; the old one-tab-per-category dock is covered too.
+ * The dock went from many small tabs to five; the old one-tab-per-category dock is covered too.
  */
 const RETIRED_GROUPS: Record<string, string> = {
-  powers: 'helpful',
-  divine: 'helpful',
-  nature: 'helpful',
+  powers: 'resources',
+  divine: 'resources',
+  helpful: 'resources',
   disasters: 'deadly',
   // Tab ids that were merged: their groups now sit in the tabs named here.
-  safari: 'animals',
-  wild: 'animals',
-  birds: 'animals',
-  reptiles: 'animals',
-  miracles: 'heavens',
+  animals: 'life',
+  wild: 'life',
+  safari: 'life',
+  heavens: 'nature',
+  miracles: 'nature',
+  tribes: 'world',
+  maps: 'world',
 }
 
 /** Resolve a stored tab id, accepting the category ids older saves used. */
