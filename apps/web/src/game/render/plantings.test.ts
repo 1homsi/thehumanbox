@@ -41,3 +41,59 @@ describe('plantings', () => {
     }
   })
 })
+
+/** The pixels a painter draws: each rectangle with the colour it was filled in. */
+function pixelsOf(kind: number, stage: number, x = 16, y = 24): string[] {
+  const out: string[] = []
+  let fill = ''
+  const ctx = {
+    get fillStyle() {
+      return fill
+    },
+    set fillStyle(v: string) {
+      fill = v
+    },
+    fillRect(rx: number, ry: number, w: number, h: number) {
+      out.push(`${rx - x},${ry - y},${w},${h},${fill}`)
+    },
+  } as unknown as CanvasRenderingContext2D
+  drawPlanting(ctx, x, y, kind, stage)
+  return out
+}
+
+describe('tree species', () => {
+  const SAPLING = PLANT_KIND.SAPLING
+  const SPECIES = [PLANT_KIND.OAK, PLANT_KIND.PINE, PLANT_KIND.PALM] as const
+
+  it('each species looks different from the others and from the generic sapling once grown', () => {
+    const grown = [...SPECIES, SAPLING].map((k) => pixelsOf(k, 3).join('|'))
+    expect(new Set(grown).size).toBe(4)
+  })
+
+  it('each species changes as it grows, stage by stage', () => {
+    for (const kind of SPECIES) {
+      const stages = [0, 1, 2, 3].map((s) => pixelsOf(kind, s).join('|'))
+      expect(new Set(stages).size).toBe(4)
+    }
+  })
+
+  it('stays inside its own 8 px tile at every stage', () => {
+    for (const kind of SPECIES) {
+      for (let stage = 0; stage <= 4; stage++) {
+        for (const rect of pixelsOf(kind, stage)) {
+          const [rx, ry, w, h] = rect.split(',').map(Number) as [number, number, number, number]
+          expect(rx).toBeGreaterThanOrEqual(0)
+          expect(ry).toBeGreaterThanOrEqual(0)
+          expect(rx + w).toBeLessThanOrEqual(8)
+          expect(ry + h).toBeLessThanOrEqual(8)
+        }
+      }
+    }
+  })
+
+  it('palms carry coconuts once grown, and pines carry dark needles', () => {
+    expect(pixelsOf(PLANT_KIND.PALM, 3).some((r) => r.endsWith('#6b4a2a'))).toBe(true)
+    expect(pixelsOf(PLANT_KIND.PALM, 1).some((r) => r.endsWith('#6b4a2a'))).toBe(false)
+    expect(pixelsOf(PLANT_KIND.PINE, 3).some((r) => r.endsWith('#2f5e3b'))).toBe(true)
+  })
+})
