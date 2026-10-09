@@ -20,6 +20,7 @@ export const TILE_ID = {
   SNOW: 12,
   SAND: 13,
   LAVA: 14,
+  ICE: 15,
 } as const
 
 export const BIOME_ID = {

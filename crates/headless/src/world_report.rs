@@ -133,7 +133,8 @@ pub(super) fn build_world_report(seed: u64) -> WorldReport {
                 | Tile::Fire
                 | Tile::Scorched
                 | Tile::Mineral
-                | Tile::Lava => {
+                | Tile::Lava
+                | Tile::Ice => {
                     land_tiles += 1;
                     harsh_tiles += 1;
                 }

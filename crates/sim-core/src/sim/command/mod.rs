@@ -128,6 +128,13 @@ pub enum Command {
     Aurora,
     /// A heat wave settles over the land for a while: shore water dries, people drink more, crops wilt.
     HeatWave,
+    /// Freeze the water inside the radius into ice: people can walk across it until it melts.
+    Freeze {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
     /// The river blesses the land: fish gather in the water nearest the point.
     BlessRiver {
         x: f32,
@@ -679,6 +686,7 @@ mod clock;
 mod creation;
 mod disasters;
 mod era_tribe;
+mod frost;
 mod gift;
 mod hail;
 mod heal_one;
@@ -756,6 +764,7 @@ impl Simulation {
             Command::Guardian { x, y } => self.cmd_guardian(x, y),
             Command::Aurora => self.cmd_aurora(),
             Command::HeatWave => self.cmd_heat_wave(),
+            Command::Freeze { x, y, radius } => self.cmd_freeze(x, y, radius),
             Command::BlessRiver { x, y, radius } => self.cmd_bless_river(x, y, radius),
             Command::BlessForest { x, y, radius } => self.cmd_bless_forest(x, y, radius),
             Command::Talent { x, y, radius } => self.cmd_talent(x, y, radius),

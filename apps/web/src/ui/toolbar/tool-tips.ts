@@ -50,6 +50,8 @@ const TOOL_TIPS: Record<string, string> = {
   rock: 'Paint rock.',
   sand: 'Paint sand.',
   snow: 'Paint snow. On warm land it melts away again.',
+  frost:
+    'Freeze the water in the brush area into ice: people can walk across it. It melts back to water when the warm seasons come.',
   lava: 'Paint molten rock. It runs downhill slowly, sets fire to what burns, kills whoever it touches, and cools to rock.',
   food: 'Scatter food for humans and animals to gather.',
   drink: 'Add fresh drinking water.',
@@ -333,6 +335,8 @@ export function toolFailure(tool: SandboxTool): string {
       return 'mushrooms need woods or wet ground'
     case 'plant_palm':
       return 'palms need water nearby'
+    case 'frost':
+      return 'no water here to freeze'
     case 'war':
     case 'peace':
       return 'needs two tribes nearby'

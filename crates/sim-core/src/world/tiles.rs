@@ -99,6 +99,8 @@ pub enum Tile {
     Sand = 13,
     /// Molten rock: flows downhill slowly, sets fire to what burns, kills what it touches, cools to rock.
     Lava = 14,
+    /// Frozen water: people walk across it; it melts back to water when the cold lets go.
+    Ice = 15,
 }
 
 impl Tile {
@@ -118,6 +120,7 @@ impl Tile {
             12 => Tile::Snow,
             13 => Tile::Sand,
             14 => Tile::Lava,
+            15 => Tile::Ice,
             _ => Tile::Void,
         }
     }

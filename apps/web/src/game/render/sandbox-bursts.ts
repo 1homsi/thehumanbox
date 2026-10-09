@@ -144,6 +144,7 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
       return 'blight'
     case 'blizzard':
     case 'hail':
+    case 'frost':
       return 'frost'
     case 'mutate':
       return 'bless'
