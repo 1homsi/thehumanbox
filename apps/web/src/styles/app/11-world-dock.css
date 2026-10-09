@@ -348,6 +348,11 @@
   .dock-time {
     width: 128px;
   }
+  /* Eight tabs must still fit in a 768 window's tab row. */
+  .dock-tab {
+    padding: 0 8px 0 6px;
+    font-size: 11px;
+  }
 }
 
 @media (max-width: 767px) {

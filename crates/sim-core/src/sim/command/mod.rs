@@ -65,6 +65,15 @@ pub enum Command {
         #[serde(default)]
         radius: i32,
     },
+    /// The sun goes dark for a while: everyone alive is frightened and awed.
+    Eclipse,
+    /// A comet streaks across the sky over the point: everyone within the reach is awed.
+    Comet {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
     /// A bomb falls on the point: a crater, fallout that poisons a wide ring, and blight. Only once a
     /// tribe has reached the Industrial age.
     Nuke {
@@ -552,6 +561,7 @@ mod disasters;
 mod gift;
 mod hail;
 mod heal_one;
+mod heavens;
 mod leader;
 #[cfg(test)]
 mod locust_tests;
@@ -612,6 +622,8 @@ impl Simulation {
             Command::SetTimeOfDay { phase } => self.cmd_set_time_of_day(phase),
             Command::Hail { x, y, radius } => self.cmd_hail(x, y, radius),
             Command::Nuke { x, y } => self.cmd_nuke(x, y),
+            Command::Eclipse => self.cmd_eclipse(),
+            Command::Comet { x, y, radius } => self.cmd_comet(x, y, radius),
             Command::Smite { x, y, radius } => self.cmd_smite(x, y, radius),
             Command::Heal { x, y, radius } => self.cmd_heal(x, y, radius),
             Command::Paint { x, y, tile, radius } => self.cmd_paint(x, y, tile, radius),
