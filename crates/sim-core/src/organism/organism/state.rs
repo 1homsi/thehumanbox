@@ -1,5 +1,8 @@
 use super::*;
 
+/// Most of one land good a person holds at once.
+pub const LAND_GOOD_CAP: u8 = 8;
+
 impl Organism {
     /// Remember what just hurt this person.
     pub fn mark_harm(&mut self, harm: Harm, tick: u64) {
@@ -38,6 +41,39 @@ impl Organism {
         if cur < 8 {
             self.tools.insert(tool.to_string(), cur + 1);
         }
+    }
+
+    /// How many of a land good this person holds (see `LAND_GOOD_CAP`).
+    pub fn land_good_count(&self, good: &str) -> u8 {
+        self.goods.get(good).copied().unwrap_or(0)
+    }
+
+    /// Room left for a land good: each good is held up to `LAND_GOOD_CAP` per person.
+    pub fn land_good_room(&self, good: &str) -> u32 {
+        u32::from(LAND_GOOD_CAP.saturating_sub(self.land_good_count(good)))
+    }
+
+    /// Adds up to `amount` of a land good and returns how many were taken.
+    pub fn add_land_good(&mut self, good: &str, amount: u8) -> u8 {
+        let take = amount.min(LAND_GOOD_CAP.saturating_sub(self.land_good_count(good)));
+        if take > 0 {
+            *self.goods.entry(good.to_string()).or_insert(0) += take;
+        }
+        take
+    }
+
+    /// Takes `amount` of a land good when the person holds that many.
+    pub fn take_land_good(&mut self, good: &str, amount: u8) -> bool {
+        let held = self.land_good_count(good);
+        if held < amount {
+            return false;
+        }
+        if held == amount {
+            self.goods.remove(good);
+        } else {
+            self.goods.insert(good.to_string(), held - amount);
+        }
+        true
     }
 
     pub fn has_tool(&self, tool: &str) -> bool {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { WorldState } from '../../shared/types'
-import { eraNameOf, territoryCardFacts, tradeOfTribe } from './territory-card'
+import { eraNameOf, goodsOfTribe, territoryCardFacts, tradeOfTribe } from './territory-card'
 
 function world(extra: Partial<WorldState> = {}): WorldState {
   return {
@@ -99,5 +99,26 @@ describe('territory card facts', () => {
     expect(eraNameOf({ lineage_eras: { red: 'bronze' } }, 'red')).toBe('bronze')
     expect(eraNameOf({ lineage_eras: { red: 'bronze' } }, 'blue')).toBeNull()
     expect(eraNameOf({}, 'red')).toBeNull()
+  })
+})
+
+describe('territory card goods line', () => {
+  it('names the land goods a tribe holds, most first', () => {
+    const held = { land_goods: { red: { salt: 2, clay: 5, fur: 0 } } }
+    expect(goodsOfTribe(held, 'red')).toBe('holds 5 clay, 2 salt')
+  })
+
+  it('shows nothing for a tribe that holds no land goods', () => {
+    expect(goodsOfTribe({ land_goods: { red: {} } }, 'red')).toBeNull()
+    expect(goodsOfTribe({}, 'blue')).toBeNull()
+  })
+
+  it('puts the goods line in the card facts', () => {
+    const facts = territoryCardFacts(
+      world({ land_goods: { red: { ore: 3 } } } as Partial<WorldState>),
+      'red',
+      false,
+    )
+    expect(facts.goods).toBe('holds 3 ore')
   })
 })

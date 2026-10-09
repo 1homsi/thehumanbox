@@ -4,6 +4,7 @@ import { lineageColor } from '../../../shared/constants'
 import { drawCaravanSprite, drawRoad, drawTraffic } from '../roads'
 import { motionTime } from '../../../shared/motion'
 import { TILE } from '../../model/palette'
+import { cargoColorOf } from '../../model/cargo'
 
 export const MAX_TRADE_ROUTES_2D = 48
 export const MAX_CARAVANS_2D = 64
@@ -95,6 +96,15 @@ export function drawTradeNetwork2D(
     const py = (localY + 0.5) * TILE + Math.sin(now / 170 + caravan.id * 0.73) * 0.6
     const angle = Math.atan2(caravan.to[1] - caravan.from[1], caravan.to[0] - caravan.from[0])
     const tier = tiers.get(caravan.sender_lineage) ?? 0
-    drawCaravanSprite(ctx, px, py, angle, tier, lineageColor(caravan.sender_lineage), TILE)
+    drawCaravanSprite(
+      ctx,
+      px,
+      py,
+      angle,
+      tier,
+      lineageColor(caravan.sender_lineage),
+      TILE,
+      cargoColorOf(caravan.cargo),
+    )
   }
 }

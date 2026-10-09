@@ -358,6 +358,26 @@ impl Simulation {
                 })
                 .collect();
             obj.insert("caravans".to_string(), serde_json::Value::Array(caravans));
+            // The land goods each tribe holds, summed over its living people, so
+            // the tribe card can name what its ground has given it.
+            let mut land_goods: std::collections::BTreeMap<&str, std::collections::BTreeMap<&str, u32>> =
+                std::collections::BTreeMap::new();
+            for org in self.organisms.iter().filter(|org| org.alive) {
+                for (good, &held) in &org.goods {
+                    if held > 0 {
+                        let total = land_goods
+                            .entry(org.lineage_id.as_str())
+                            .or_default()
+                            .entry(good.as_str())
+                            .or_insert(0);
+                        *total += u32::from(held);
+                    }
+                }
+            }
+            obj.insert(
+                "land_goods".to_string(),
+                serde_json::to_value(&land_goods).unwrap_or_default(),
+            );
         }
         if include_cold {
             if let Some(obj) = payload.as_object_mut() {

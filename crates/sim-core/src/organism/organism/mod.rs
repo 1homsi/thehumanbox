@@ -170,6 +170,10 @@ pub struct Organism {
     pub religion_id: Option<String>,
     pub degrees: Vec<String>,
     pub tools: BTreeMap<String, u8>,
+    /// Goods the land gave this person (clay, salt, ore, spice, ochre, fur), each
+    /// held up to `LAND_GOOD_CAP`. They ride caravans between tribes; see
+    /// `sim::civ::society::economy::LAND_GOODS`.
+    pub goods: BTreeMap<String, u8>,
     pub diseases: Vec<(String, u64)>,
     pub disease_immunity: BTreeMap<String, u64>,
     pub mounted_vehicle: Option<u32>,
@@ -305,6 +309,7 @@ impl Organism {
             religion_id: None,
             degrees: Vec::new(),
             tools: BTreeMap::new(),
+            goods: BTreeMap::new(),
             diseases: Vec::new(),
             disease_immunity: BTreeMap::new(),
             mounted_vehicle: None,

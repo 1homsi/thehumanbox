@@ -11,7 +11,21 @@ export interface TerritoryCardFacts {
   era: string | null
   wealthGap: string | null
   trade: string | null
+  goods: string | null
   contested: boolean
+}
+
+/**
+ * The land goods a tribe holds (clay, salt, ore, ...), most first, in a few words. Null when
+ * its people hold none, so a tribe whose ground gives nothing shows nothing.
+ */
+export function goodsOfTribe(world: Pick<WorldState, 'land_goods'>, lineage: string): string | null {
+  const held = world.land_goods?.[lineage] ?? {}
+  const parts = Object.entries(held)
+    .filter(([, count]) => count > 0)
+    .sort(([nameA, countA], [nameB, countB]) => countB - countA || nameA.localeCompare(nameB))
+    .map(([good, count]) => `${count} ${good}`)
+  return parts.length > 0 ? `holds ${parts.join(', ')}` : null
 }
 
 /**
@@ -65,6 +79,7 @@ export function territoryCardFacts(
     era: eraNameOf(world, lineage),
     wealthGap: wealthGapOf(world.lineage_inequality, lineage),
     trade: tradeOfTribe(world, lineage),
+    goods: goodsOfTribe(world, lineage),
     contested,
   }
 }

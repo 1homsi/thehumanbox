@@ -83,6 +83,7 @@ export type IncomingWorldFrame = Pick<
   trades?: WorldState['trades']
   trade_routes?: WorldState['trade_routes']
   caravans?: WorldState['caravans']
+  land_goods?: WorldState['land_goods']
   farms?: WorldState['farms']
   plantings?: WorldState['plantings']
   prayers?: WorldState['prayers']
