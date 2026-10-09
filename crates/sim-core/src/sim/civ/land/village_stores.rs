@@ -70,7 +70,7 @@ pub(crate) fn owns(sim: &Simulation, lineage: &str, kind: BuildingKind) -> bool 
 }
 
 /// The factor a tribe's harvest is multiplied by: a granary adds a quarter, a barn a fifth
-/// (fodder and tools), and a mill, windmill or watermill half again.
+/// (fodder and tools), and each mill half again: a watermill and a windmill grind separately.
 pub(crate) fn yield_factor(sim: &Simulation, lineage: &str) -> f32 {
     let mut factor = 1.0;
     if owns(sim, lineage, BuildingKind::Granary) {
@@ -79,7 +79,10 @@ pub(crate) fn yield_factor(sim: &Simulation, lineage: &str) -> f32 {
     if owns(sim, lineage, BuildingKind::Barn) {
         factor += 0.2;
     }
-    if owns(sim, lineage, BuildingKind::Windmill) || owns(sim, lineage, BuildingKind::Watermill) {
+    if owns(sim, lineage, BuildingKind::Windmill) {
+        factor += 0.5;
+    }
+    if owns(sim, lineage, BuildingKind::Watermill) {
         factor += 0.5;
     }
     factor
@@ -172,11 +175,12 @@ pub(crate) fn build_stores(sim: &mut Simulation, tribe: &Tribe) {
     {
         return;
     }
+    // A windmill comes once the Medieval era does, beside a watermill too: a river village that
+    // built its watermill in the Iron age still grinds with a windmill (each mill adds its own share).
     if plots >= MILL_MIN_PLOTS
         && era >= Era::Medieval
         && has(sim, BuildingKind::Granary)
         && !has(sim, BuildingKind::Windmill)
-        && !has(sim, BuildingKind::Watermill)
     {
         place(sim, tribe, BuildingKind::Windmill);
     }
@@ -528,5 +532,45 @@ mod tests {
         barn.condition = 1.0;
         sim.buildings.push(barn);
         assert!((yield_factor(&sim, &tribe.lineage) - 1.45).abs() < 1e-6);
+    }
+
+    #[test]
+    fn a_medieval_farming_village_with_a_watermill_still_gets_a_windmill() {
+        let (mut sim, tribe) = tribe_by_a_house(5_204, &[(124, 120), (124, 121)]);
+        sim.buildings.push(granary(1, &tribe.lineage, 0));
+        for i in 0..MILL_MIN_PLOTS as u32 {
+            sim.farms.push(crate::sim::agriculture::Farm {
+                id: i + 1,
+                x: 116 + i as i32,
+                y: 116,
+                owner_lineage: tribe.lineage.clone(),
+                crop: crate::sim::agriculture::CropKind::Wheat,
+                planted_tick: 0,
+                ready_tick: 100,
+                harvested: false,
+                prepared: false,
+                season_timed: false,
+            });
+        }
+        // The Iron-age watermill comes first, on the river bank.
+        sim.lineage_eras.insert(tribe.lineage.clone(), Era::Iron);
+        build_stores(&mut sim, &tribe);
+        assert!(owns(&sim, &tribe.lineage, BuildingKind::Watermill));
+        assert!(!owns(&sim, &tribe.lineage, BuildingKind::Windmill));
+        // The Medieval era brings the windmill beside it, and each mill adds its own half.
+        sim.lineage_eras.insert(tribe.lineage.clone(), Era::Medieval);
+        build_stores(&mut sim, &tribe);
+        assert!(owns(&sim, &tribe.lineage, BuildingKind::Windmill));
+        assert!((yield_factor(&sim, &tribe.lineage) - 2.25).abs() < 1e-6);
+        build_stores(&mut sim, &tribe);
+        let mills = sim
+            .buildings
+            .iter()
+            .filter(|b| matches!(b.kind, BuildingKind::Windmill | BuildingKind::Watermill))
+            .count();
+        assert_eq!(
+            mills, 2,
+            "one windmill and one watermill, however often the pass runs"
+        );
     }
 }
