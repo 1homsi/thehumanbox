@@ -415,12 +415,16 @@ impl Organism {
             }
             // Stone only comes from quarrying next to rock, and nothing sent
             // people there, so tribes on grassland held no stone and could
-            // build nothing but huts. Toolmakers now fetch some.
+            // build nothing but huts. Toolmakers now fetch some. A lineage whose
+            // craft or civic project waits on stone sends its people further
+            // and more often, and they carry more back.
+            let fetching_stone = self.fetch_stone_until > tick;
             if has_blade
                 && !journeying
-                && self.inv_stone < 2
+                && self.inv_stone < if fetching_stone { 4 } else { 2 }
                 && self.energy > 0.55
-                && (self.thought == "heading to the quarry" || rng.random::<f32>() < 0.15)
+                && (self.thought == "heading to the quarry"
+                    || rng.random::<f32>() < if fetching_stone { 0.55 } else { 0.15 })
             {
                 let rock_adjacent = crate::organism::organism::DIRECTIONS
                     .iter()
@@ -429,7 +433,8 @@ impl Organism {
                     set_thought!("quarrying stone");
                     return (29, thought);
                 }
-                if let Some(t) = self.nearest_visible(grid, Tile::Rock, 14) {
+                let reach = if fetching_stone { 28 } else { 14 };
+                if let Some(t) = self.nearest_visible(grid, Tile::Rock, reach) {
                     set_thought!("heading to the quarry");
                     return (self.toward(t, grid), thought);
                 }
