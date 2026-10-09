@@ -9,14 +9,15 @@ export interface BenchHooks {
   camera: () => MapCamera
   /** Hands the camera a request ("fit", "zoom by", "look at"), exactly like the toolbar does. */
   command: (command: MapCommand) => void
-  /** Grid size, grid origin and the number of living people. */
-  info: () => { gridW: number; gridH: number; originX: number; originY: number; people: number }
+  /** Grid size, grid origin, the number of living people and the world tick. */
+  info: () => { gridW: number; gridH: number; originX: number; originY: number; people: number; tick: number }
 }
 
 interface BenchSource {
   camera: MutableRefObject<MapCamera>
   command: MutableRefObject<MapCommand | null>
   world: () => {
+    tick: number
     grid: { width: number; height: number; origin_x?: number; origin_y?: number }
     organisms: readonly { alive?: boolean }[]
   }
@@ -49,6 +50,7 @@ export function installBenchHooks(source: BenchSource, force = import.meta.env.D
         originX: world.grid.origin_x ?? 0,
         originY: world.grid.origin_y ?? 0,
         people: world.organisms.filter((o) => o.alive).length,
+        tick: world.tick,
       }
     },
   }
