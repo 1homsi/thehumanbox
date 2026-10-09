@@ -64,6 +64,11 @@ pub struct History {
     pub births_by_year: Vec<u32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub deaths_by_year: Vec<u32>,
+    /// The average wealth gap across the tribes (their Gini, see
+    /// `civ/society/inequality.rs`), sampled once at the start of each year.
+    /// Zero in a year with no tribe big enough to measure.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub wealth_gap_by_year: Vec<f32>,
 }
 
 impl History {
@@ -75,6 +80,15 @@ impl History {
     /// Counts a death in the year `tick` falls in.
     pub fn record_death(&mut self, tick: u64) {
         bump_year(&mut self.deaths_by_year, tick);
+    }
+
+    /// Stores the wealth gap sampled at the start of the year `tick` falls in.
+    pub fn record_wealth_gap(&mut self, tick: u64, gap: f32) {
+        let year = (tick / crate::sim::cosmos::YEAR_LENGTH_TICKS) as usize;
+        if self.wealth_gap_by_year.len() <= year {
+            self.wealth_gap_by_year.resize(year + 1, 0.0);
+        }
+        self.wealth_gap_by_year[year] = gap;
     }
 }
 
@@ -190,5 +204,31 @@ mod history_year_tests {
                         + sim.history.deaths_disaster
                         + sim.history.deaths_combat
         );
+    }
+}
+
+#[cfg(test)]
+mod wealth_gap_year_tests {
+    use super::*;
+    use crate::sim::cosmos::YEAR_LENGTH_TICKS;
+
+    #[test]
+    fn the_gap_is_stored_against_the_year_it_was_sampled_in() {
+        let mut h = History::default();
+        h.record_wealth_gap(0, 0.2);
+        h.record_wealth_gap(2 * YEAR_LENGTH_TICKS, 0.6);
+        assert_eq!(h.wealth_gap_by_year, vec![0.2, 0.0, 0.6]);
+    }
+
+    #[test]
+    fn a_run_samples_one_gap_per_year_within_range() {
+        let mut sim = Simulation::new(42);
+        for _ in 0..(2 * YEAR_LENGTH_TICKS + 10) {
+            sim.tick();
+        }
+        assert_eq!(sim.history.wealth_gap_by_year.len(), 3);
+        for g in &sim.history.wealth_gap_by_year {
+            assert!((0.0..=1.0).contains(g), "gap {g} is a Gini in range");
+        }
     }
 }
