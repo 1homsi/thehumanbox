@@ -1277,6 +1277,27 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
     ],
   },
   {
+    id: 'reptiles',
+    label: 'reptiles',
+    icon: '🐍',
+    tools: [
+      {
+        id: 'snake',
+        label: 'snake',
+        icon: '🐍',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'snake', count: 1 + b, radius: b }),
+      },
+      {
+        id: 'crocodile',
+        label: 'crocodile',
+        icon: '🐊',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'crocodile', count: 1 + b, radius: b }),
+      },
+    ],
+  },
+  {
     id: 'monsters',
     label: 'monsters',
     icon: '🧟',

@@ -109,6 +109,10 @@ const TOOL_TIPS: Record<string, string> = {
   owl: 'Release an owl, or a few, in the forest or taiga. They fly the woods and keep clear of people.',
   eagle:
     'Release an eagle, or a few, over the badlands, tundra or grass. They circle high over the land and keep clear of people.',
+  snake:
+    'Release a snake, or a few, over the sand, badlands or jungle. They slip about in the heat and keep clear of people.',
+  crocodile:
+    'Release a crocodile into the wetlands or jungle. Hungry ones hunt the animals there, and people who wade too close, as a bear does.',
   rain_patch:
     'A rain cloud bursts over the brush area: fires in it go out (leaving ash), and the people in it drink from the rain. The brush sets how wide the patch is.',
   comet:

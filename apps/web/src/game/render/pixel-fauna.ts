@@ -47,6 +47,11 @@ const PALETTE: Record<string, string> = {
   G: '#4a3a2a', // owl wing shade
   Z: '#4a3626', // eagle brown
   H: '#f6f2e6', // eagle head
+  K: '#7a9a3a', // snake olive
+  J: '#d8c35a', // snake band
+  C: '#5d6b3c', // crocodile green
+  P: '#cfc38f', // crocodile belly
+  U: '#2f3a22', // crocodile ridges
 }
 
 /** Poses of a kind: the walk frames, then (for bears) a lying pose for sleeping. */
@@ -215,6 +220,14 @@ const SPRITES: Record<string, Frames> = {
   duck: [
     ['.....YYY...', '....YYYYY..', '...YYYYYYQQ', '.YYYYYYYYY.', '.YYYYYYYYY.', '..YYYYYYY..', '...Q...Q...'],
     ['.....YYY...', '....YYYYY..', '...YYYYYYQQ', '.YYYYYYYYY.', '.YYYYYYYYY.', '..YYYYYYY..', '..Q....Q...'],
+  ],
+  snake: [
+    ['.KKKKKKKK...', 'KJKKJKKKKKoo', '.KKKKKKK..KK', '...KK.....K.'],
+    ['..KKKKKKKK..', '.JKKJKKKKKoo', 'KKKKKK..KKK.', '....KK...K..'],
+  ],
+  crocodile: [
+    ['..UU..UU......', 'CCCCCCCCCCCCCo', 'CPPPPPPPPPPPCC', '.CCCCCCCCCCCC.', '.C.C.....C.C..'],
+    ['..UU..UU......', 'CCCCCCCCCCCCCo', 'CPPPPPPPPPPPCC', '.CCCCCCCCCCCC.', '..C.C....C.C..'],
   ],
   owl: [
     [

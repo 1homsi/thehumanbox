@@ -250,3 +250,48 @@ fn released_owls_and_eagles_are_placed_in_their_habitat() {
     assert!(!sim.animals.is_empty(), "eagles are released");
     assert!(sim.animals.iter().all(|a| matches!(a.kind, AnimalKind::Eagle)));
 }
+
+#[test]
+fn snakes_keep_to_the_ground_and_a_hungry_crocodile_is_dangerous() {
+    for kind in [AnimalKind::Snake, AnimalKind::Crocodile] {
+        assert!(!kind.flies(), "{} walks the ground", kind.name());
+        assert!(!kind.habitat().is_empty(), "{} keeps to a habitat", kind.name());
+        assert!(kind.drain() > 0.0 && kind.step_size() > 0);
+    }
+    assert!(!AnimalKind::Snake.hostile(), "a snake keeps out of people's way");
+    assert!(
+        AnimalKind::Crocodile.predator(),
+        "a crocodile hunts, as a bear does"
+    );
+    assert!(
+        AnimalKind::Crocodile.hostile(),
+        "a hungry crocodile is a danger to people"
+    );
+    assert_eq!(AnimalKind::Snake.a_name(), "a snake");
+    assert_eq!(AnimalKind::Crocodile.a_name(), "a crocodile");
+}
+
+#[test]
+fn released_crocodiles_are_placed_in_the_swamp() {
+    let mut sim = Simulation::new(9);
+    sim.animals.clear();
+    for x in 0..WIDTH as i32 {
+        for y in 0..HEIGHT as i32 {
+            let biome = if x < WIDTH as i32 / 2 {
+                Biome::Wetland
+            } else {
+                Biome::Tundra
+            };
+            sim.grid.biome[WorldGrid::idx(x, y)] = biome as u8;
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
+    assert!(sim.apply_command_json(
+        r#"{"cmd":"spawn_animal","x":40.0,"y":60.0,"kind":"crocodile","count":4,"radius":8}"#
+    ));
+    assert!(!sim.animals.is_empty(), "crocodiles are released");
+    assert!(sim
+        .animals
+        .iter()
+        .all(|a| matches!(a.kind, AnimalKind::Crocodile)));
+}
