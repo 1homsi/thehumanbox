@@ -6,6 +6,8 @@ import { MotionStore } from './motion'
 import {
   BOAT_COLUMNS,
   DEGREE_EMOJI,
+  boatColumn,
+  boatVariantOf,
   FAUNA_KINDS,
   GLYPHS,
   GLYPH_COLUMNS,
@@ -113,7 +115,20 @@ describe('boat frames', () => {
     const seen = new Set<number>()
     for (let t = 0; t < 4000; t += 5) seen.add(boatFrame(true, false, t))
     expect([...seen].sort()).toEqual([2, 3, 4, 5, 6, 7])
-    expect(BOAT_COLUMNS).toBe(8)
+    expect(BOAT_COLUMNS).toBe(64)
+  })
+
+  it('gives each era tier its hull and marks laden boats', () => {
+    expect(boatVariantOf(undefined, 0)).toBe(0)
+    expect(boatVariantOf('pre-stone', 0)).toBe(0)
+    expect(boatVariantOf('bronze', 0)).toBe(2)
+    expect(boatVariantOf('bronze', 3)).toBe(3)
+    expect(boatVariantOf('classical', 0)).toBe(4)
+    expect(boatVariantOf('renaissance', 0)).toBe(4)
+    expect(boatVariantOf('modern', 0)).toBe(6)
+    expect(boatVariantOf('industrial', 0)).toBe(6)
+    expect(boatVariantOf('industrial', 1)).toBe(7)
+    expect(boatColumn(7, 7)).toBe(BOAT_COLUMNS - 1)
   })
 })
 

@@ -13,7 +13,10 @@ import {
   zoomDetailLevel,
 } from '../../character-visuals'
 import {
+  BOAT_CELL,
+  boatColumn,
   boatFrame,
+  boatVariantOf,
   DECAL,
   DEGREE_EMOJI,
   ELDER_CANE_EMOJI,
@@ -112,6 +115,8 @@ export class PeopleSprites {
   /** Layer index of this rider's boat, or -1. */
   private boatIdx = new Int32Array(0)
   private boatBuilding = new Uint8Array(0)
+  /** The rider's boat variant (hull and laden), see `boatVariantOf`. */
+  private boatVariant = new Uint8Array(0)
   hidden = new Uint8Array(0)
   /** `LABEL_*` bits of each slot, worked out once per rebuild for the label painter. */
   labelFlags = new Uint8Array(0)
@@ -174,6 +179,7 @@ export class PeopleSprites {
     this.restCandidate = grow(this.restCandidate, Uint8Array)
     this.boatIdx = grow(this.boatIdx, Int32Array)
     this.boatBuilding = grow(this.boatBuilding, Uint8Array)
+    this.boatVariant = grow(this.boatVariant, Uint8Array)
     this.hidden = grow(this.hidden, Uint8Array)
     this.labelFlags = grow(this.labelFlags, Uint8Array)
     this.motion.reserve(cap)
@@ -329,6 +335,7 @@ export class PeopleSprites {
       this.boatIdx[j] = -1
       const boat = boats.get(id)
       this.boatBuilding[j] = boat?.building ? 1 : 0
+      this.boatVariant[j] = boatVariantOf(boat?.era, boat?.cargo)
 
       const spriteTopOff = -size * 0.78
       // Shadows only when the world is close enough to see them.
@@ -528,7 +535,7 @@ export class PeopleSprites {
     // Rider boats follow the people in the layer, so a person's layer index is its slot.
     for (let r = 0; r < riders.length; r += 2) {
       const owner = riders[r]
-      const bi = body.add(0, 0, 32, 16, 0, owner)
+      const bi = body.add(0, 0, BOAT_CELL.width, BOAT_CELL.height, 0, owner)
       body.atlas[bi] = BODY_ATLAS.boats
       body.color[bi] = withAlpha(WHITE, riders[r + 1])
       body.flags[bi] = 0
@@ -541,7 +548,15 @@ export class PeopleSprites {
       if (v.kind !== 'boat' || v.rider_id) continue
       const x = Math.round((v.x - ox) * TILE + TILE / 2)
       const y = Math.round((v.y - oy) * TILE + TILE / 2)
-      const bi = body.add(x, y + 3, 32, 16, boatFrame(false, !!v.building, 0), -1)
+      const variant = boatVariantOf(v.era, v.cargo)
+      const bi = body.add(
+        x,
+        y + 3,
+        BOAT_CELL.width,
+        BOAT_CELL.height,
+        boatColumn(variant, boatFrame(false, !!v.building, 0)),
+        -1,
+      )
       body.atlas[bi] = BODY_ATLAS.boats
       body.sortKey[bi] = -10000 + v.y
     }
@@ -600,7 +615,8 @@ export class PeopleSprites {
         const moving = !this.boatBuilding[j] && recent
         let riderChanged = storeF32(bx, rider, Math.round(cx))
         riderChanged = storeF32(by, rider, Math.round(cy) + 3) || riderChanged
-        riderChanged = storeU32(bf, rider, boatFrame(moving, this.boatBuilding[j] === 1, now)) || riderChanged
+        const column = boatColumn(this.boatVariant[j], boatFrame(moving, this.boatBuilding[j] === 1, now))
+        riderChanged = storeU32(bf, rider, column) || riderChanged
         riderChanged = storeU8(bflags, rider, resting ? SPRITE_HIDDEN : 0) || riderChanged
         riderChanged = storeF64(bkey, rider, y + 0.0004) || riderChanged
         if (riderChanged || touchAll) {

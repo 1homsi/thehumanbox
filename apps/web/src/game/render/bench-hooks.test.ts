@@ -46,7 +46,15 @@ describe('bench hooks', () => {
     expect(src.camera.current.zoom).toBe(2)
     hooks.command({ kind: 'fit' })
     expect(src.command.current).toEqual({ kind: 'fit' })
-    expect(hooks.info()).toEqual({ gridW: 600, gridH: 300, originX: 4, originY: 0, people: 2, tick: 4321 })
+    expect(hooks.info()).toEqual({
+      gridW: 600,
+      gridH: 300,
+      originX: 4,
+      originY: 0,
+      people: 2,
+      tick: 4321,
+      boats: [],
+    })
     off()
     expect(holder.window.__thbBench).toBeUndefined()
   })
