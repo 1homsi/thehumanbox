@@ -12,7 +12,17 @@ import {
   type SandboxTool,
   type SandboxViewFlag,
 } from '../../simulation/sandbox'
-import { BRUSH_SIZES, DOCK_TABS, SPEED_TOOL_IDS, TIME_CATEGORY_ID, groupsFor, resolveTab } from './dock-tabs'
+import {
+  BRUSH_SIZES,
+  DOCK_TABS,
+  SPEED_TOOL_IDS,
+  TIME_CATEGORY_ID,
+  groupsFor,
+  markNewToolsSeen,
+  readSeenNewTools,
+  resolveTab,
+  unseenNewTools,
+} from './dock-tabs'
 import { hotkeysFor, toolForHotkey } from './tool-hotkeys'
 import { typingTarget } from '../../game/model/shortcuts'
 import { WASM_BASE_TICK_MS, isRuntimeControlActive } from '../../simulation/runtimeControls'
@@ -126,6 +136,7 @@ export function SandboxToolbar({
   saveRetryable = false,
 }: Props) {
   const [tabId, setTabId] = useState(readInitialTab)
+  const [seenNew, setSeenNew] = useState(readSeenNewTools)
   const groups = groupsFor(tabId)
   const timeTools = SANDBOX_CATEGORIES.find((c) => c.id === TIME_CATEGORY_ID)?.tools ?? []
   const speedTools = SPEED_TOOL_IDS.flatMap((id) => timeTools.filter((t) => t.id === id))
@@ -170,6 +181,7 @@ export function SandboxToolbar({
     })
   const selectTab = (id: string) => {
     setTabId(id)
+    setSeenNew((seen) => markNewToolsSeen(id, seen))
     try {
       window.localStorage.setItem(TAB_STORAGE_KEY, id)
     } catch {
@@ -336,6 +348,11 @@ export function SandboxToolbar({
             >
               <ToolSprite icon={tab.icon} size={24} />
               <span>{tab.label}</span>
+              {unseenNewTools(tab.id, seenNew).length > 0 && (
+                <span className="dock-tab-new" aria-label="new tools here">
+                  new
+                </span>
+              )}
             </button>
           </Tooltip>
         ))}
