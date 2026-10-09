@@ -14,6 +14,8 @@ import { GlyphSet } from './glyph-atlas'
 import { HeatGrid, type HeatSettings } from './heatmap'
 import type { RenderHost } from './host'
 import { paintEffects } from './paint-effects'
+import { paintEraFlourish } from './paint-era-flourish'
+import { EraWatch } from '../../../model/era-flourish'
 import {
   paintClouds,
   paintFireGlow,
@@ -149,6 +151,8 @@ export class CfOverlayRenderer {
   private groundFlags: unknown = null
   private groundAt = -Infinity
   private readonly weatherFx: WeatherFxState = newWeatherFxState()
+  /** Tribes that entered a new era, marked on the map for a while. */
+  private readonly eraWatch = new EraWatch()
   private readonly dust = new FootstepDust()
   private readonly animalDust = new FootstepDust(ANIMAL_DUST)
   lastResult: UpdateResult = { times: ZERO_TIMES(), sprites: 0, heatRebuilt: false, unsupported: {} }
@@ -351,6 +355,8 @@ export class CfOverlayRenderer {
 
     this.effects.begin(gv)
     paintEffects(this.effects.asContext(), f)
+    this.eraWatch.update(f.world)
+    paintEraFlourish(this.effects.asContext(), f, this.eraWatch.active(f.world.tick))
     this.paintWeather(this.effects.asContext(), f)
     paintSkyFlyers(this.effects.asContext(), f)
     this.effects.end()

@@ -8,6 +8,7 @@ function source() {
   const camera = { current: { x: 10, y: 20, zoom: 2 } as MapCamera }
   const command = { current: null as MapCommand | null }
   const world = {
+    tick: 4321,
     grid: { width: 600, height: 300, origin_x: 4 },
     organisms: [{ alive: true }, { alive: false }, { alive: true }, {}],
   }
@@ -45,7 +46,7 @@ describe('bench hooks', () => {
     expect(src.camera.current.zoom).toBe(2)
     hooks.command({ kind: 'fit' })
     expect(src.command.current).toEqual({ kind: 'fit' })
-    expect(hooks.info()).toEqual({ gridW: 600, gridH: 300, originX: 4, originY: 0, people: 2 })
+    expect(hooks.info()).toEqual({ gridW: 600, gridH: 300, originX: 4, originY: 0, people: 2, tick: 4321 })
     off()
     expect(holder.window.__thbBench).toBeUndefined()
   })
