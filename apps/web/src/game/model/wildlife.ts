@@ -35,6 +35,7 @@ const GROUPS: Array<{ label: string; kinds: readonly string[]; danger?: boolean 
   { label: 'lions', kinds: ['lion'] },
   { label: 'zebras', kinds: ['zebra'] },
   { label: 'polar bears', kinds: ['polar_bear'] },
+  { label: 'kangaroos', kinds: ['kangaroo'] },
   { label: 'bears', kinds: ['bear'], danger: true },
 ]
 

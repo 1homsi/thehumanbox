@@ -499,6 +499,7 @@ pub(super) fn kind_code(kind: AnimalKind) -> u8 {
         AnimalKind::Lion => 37,
         AnimalKind::Zebra => 38,
         AnimalKind::PolarBear => 39,
+        AnimalKind::Kangaroo => 40,
         AnimalKind::Zombie => 12,
         AnimalKind::Demon => 13,
         AnimalKind::Dragon => 14,
@@ -558,6 +559,7 @@ pub(super) fn kind_from_code(code: u8) -> AnimalKind {
         37 => AnimalKind::Lion,
         38 => AnimalKind::Zebra,
         39 => AnimalKind::PolarBear,
+        40 => AnimalKind::Kangaroo,
         _ => AnimalKind::Rabbit,
     }
 }

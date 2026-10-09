@@ -617,6 +617,7 @@ impl Simulation {
                 AnimalKind::Lion => 25,
                 AnimalKind::Zebra => 40,
                 AnimalKind::PolarBear => 15,
+                AnimalKind::Kangaroo => 30,
                 // Summoned, never born.
                 AnimalKind::Zombie
                 | AnimalKind::Demon
@@ -893,6 +894,7 @@ impl Simulation {
                 | AnimalKind::Lion
                 | AnimalKind::Zebra
                 | AnimalKind::PolarBear
+                | AnimalKind::Kangaroo
                 | AnimalKind::Zombie
                 | AnimalKind::Demon
                 | AnimalKind::Dragon

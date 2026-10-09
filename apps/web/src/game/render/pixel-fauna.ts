@@ -382,6 +382,26 @@ const SPRITES: Record<string, Frames> = {
       '.o.o....o.o.',
     ],
   ],
+  kangaroo: [
+    [
+      '..h...h.....',
+      '..hhhhh.....',
+      '.hhhhhhh....',
+      'hhhhhhhhhh..',
+      '.hhhhhhhhh..',
+      '..D..D...D..',
+      '..D..D...D..',
+    ],
+    [
+      '..h...h.....',
+      '..hhhhh.....',
+      '.hhhhhhh....',
+      'hhhhhhhhhh..',
+      '.hhhhhhhhh..',
+      '...D.D..D.D.',
+      '...D.D..D.D.',
+    ],
+  ],
   owl: [
     [
       '.O.......O.',
