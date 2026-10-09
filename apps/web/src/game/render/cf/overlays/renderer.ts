@@ -111,6 +111,8 @@ export interface OverlayExtras {
 
 /** The ground effects are rewritten at most this often when nothing else changed. */
 const GROUND_INTERVAL_MS = 66
+/** The heat map follows new world data at most this often (a setting change is shown at once). */
+const HEAT_INTERVAL_MS = 500
 
 const ZERO_TIMES = (): SectionTimes => ({
   atmosphere: 0,
@@ -150,7 +152,11 @@ export class CfOverlayRenderer {
   private readonly hud: SpriteRecorder
   private readonly contestedScratch: Uint16Array
   private contestedTiles: number[] = []
-  private heatKey = ''
+  /** The settings and world frame the heat map was last computed for, and when (see `updateHeat`). */
+  private heatSettings = ''
+  private heatFrame = -1
+  private heatAt = -Infinity
+  private heatPending = false
   private staticKey = ''
   private outlineFrame = -1
   private territoryRef: unknown = null
@@ -578,9 +584,10 @@ export class CfOverlayRenderer {
     const { world, viewFlags } = f
     const settings: HeatSettings = { overlay: f.overlay, viewFlags, focus: f.focus }
     const g = world.grid
-    // Everything the heat map reads changes only with a new frame of data or a setting.
-    const key = [
-      world.frame_id,
+    // A setting change is shown at once. New frames of data (worn paths, claims, the crowd's
+    // moods) refresh the map at most every HEAT_INTERVAL_MS: the map is a slow field, and the
+    // full-grid recompute and texture upload are the costliest part of it.
+    const settingsKey = [
       f.overlay ?? '',
       f.focus,
       viewFlags.territory ? 1 : 0,
@@ -590,23 +597,37 @@ export class CfOverlayRenderer {
       g.width,
       g.height,
     ].join('|')
-    let rebuilt = false
-    if (key !== this.heatKey) {
-      this.heatKey = key
-      const shown = this.heat.compute(world, settings, f.organisms)
-      this.heatShown = shown > 0
-      this.heatLayer.visible = this.heatShown
-      if (this.heatShown) {
-        const ctx = this.heatCanvas.getContext('2d')
-        if (ctx) {
-          const image = new ImageData(new Uint8ClampedArray(this.heat.rgba), g.width, g.height)
-          ctx.putImageData(image, 0, 0)
-          this.host.dirty(this.heatId, 0, 0, g.width, g.height)
-        }
-      }
-      rebuilt = true
+    if (settingsKey === this.heatSettings && world.frame_id === this.heatFrame) {
+      this.heatPending = false
+      return false
     }
-    return rebuilt
+    const changed = settingsKey !== this.heatSettings
+    if (!changed && f.t - this.heatAt < HEAT_INTERVAL_MS) {
+      // Newer data is waiting: the renderer stays awake until the interval has passed (see `pending`).
+      this.heatPending = true
+      return false
+    }
+    this.heatSettings = settingsKey
+    this.heatFrame = world.frame_id
+    this.heatAt = f.t
+    this.heatPending = false
+    const shown = this.heat.compute(world, settings, f.organisms)
+    this.heatShown = shown > 0
+    this.heatLayer.visible = this.heatShown
+    if (this.heatShown) {
+      const ctx = this.heatCanvas.getContext('2d')
+      if (ctx) {
+        const image = new ImageData(new Uint8ClampedArray(this.heat.rgba), g.width, g.height)
+        ctx.putImageData(image, 0, 0)
+        this.host.dirty(this.heatId, 0, 0, g.width, g.height)
+      }
+    }
+    return true
+  }
+
+  /** True while a heat map refresh is waiting for its interval, so the overlay loop must keep running. */
+  get pending(): boolean {
+    return this.heatPending
   }
 
   /** The contested border pulses white over the tiles two tribes both claim. */
