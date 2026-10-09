@@ -2,6 +2,7 @@ import { lineageColor } from '../../../../shared/constants'
 import { motionTime } from '../../../../shared/motion'
 import { TILE } from '../../../model/palette'
 import { strategyBeaconPositions, strategyTimeLabel } from '../../../model/strategy-visuals'
+import { zoomDetailLevel } from '../../character-visuals'
 import { battleAge, drawBattle } from '../../battles'
 import { drawFestival } from '../../festivals'
 import { drawEraTraffic } from '../../rails'
@@ -62,7 +63,8 @@ export function paintEffects(ctx: Ctx, f: CfFrame): void {
   for (const source of world.smog ?? []) {
     drawSmog(ctx, source, (source.x - ox) * TILE, (source.y - oy) * TILE, TILE, motionTime(t))
   }
-  drawEraTraffic(ctx, world, ox, oy, W, H, zoom, t)
+  // Aircraft and rockets are small moving marks: they are for close zoom, not the whole-map view.
+  if (zoomDetailLevel(zoom) !== 'overview') drawEraTraffic(ctx, world, ox, oy, W, H, zoom, t)
   for (const battle of world.battles ?? []) {
     const age = battleAge(battle, world.tick)
     if (age === null) continue

@@ -111,7 +111,7 @@ layers, bottom to top (z is the engine's `zIndex`):
 | 5 | day/night, season and weather tint (translucent quads: darkens the land, not what stands on it) | `cf/overlays/` | overlay renderer |
 | 5.2 to 5.6 | shore foam, food and mineral patches, settlement marks | `cf/ground/` | `CfWorld` registry |
 | 6, 10 | rain and snow; the heat map (one nearest-sampled sprite, 1 px per tile) | `cf/overlays/` | overlay renderer |
-| 11 to 15 | territory borders, clouds, water glints, trade roads, rails and trains, farms | `cf/overlays/`, `cf/landuse/` | |
+| 11 to 15 | territory borders, storm clouds, water glints (close zoom), trade roads, rails and trains, farms | `cf/overlays/`, `cf/landuse/` | |
 | 18 to 20 | fires, huts, buildings (and a hidden layer of footprints for picking) | `cf/buildings/` | `CfWorld` registry |
 | 25 | caravans | `cf/overlays/` | |
 | 29 to 31 | animals | `cf/animals/` | 60 Hz sprite clock |
