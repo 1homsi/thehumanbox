@@ -95,6 +95,7 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'crocodile':
     case 'goat':
     case 'elephant':
+    case 'lion':
     case 'monkey':
     case 'dog':
     case 'zombie':
