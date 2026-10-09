@@ -133,7 +133,7 @@ impl Simulation {
             }
             let mut animals_json: Vec<serde_json::Value> = Vec::with_capacity(self.animals.len());
             for a in self.animals.iter() {
-                animals_json.push(serde_json::to_value(a.to_json()).unwrap());
+                animals_json.push(serde_json::to_value(a.to_json(self.tick_count)).unwrap());
             }
             self.entity_head(
                 grid_json,
@@ -155,7 +155,7 @@ impl Simulation {
             let mut animals_json: Vec<serde_json::Value> = Vec::with_capacity(self.animals.len());
             for a in self.animals.iter() {
                 if in_view(a.x, a.y) {
-                    animals_json.push(serde_json::to_value(a.to_json()).unwrap());
+                    animals_json.push(serde_json::to_value(a.to_json(self.tick_count)).unwrap());
                 }
             }
             self.entity_head(

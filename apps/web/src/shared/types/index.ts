@@ -394,6 +394,8 @@ export interface AnimalState {
   sleeping?: boolean
   /** Flown south for the winter (wild birds); not drawn. */
   away?: boolean
+  /** Born recently (a newborn is drawn smaller); see `YOUNG_ANIMAL_TICKS` in the sim. */
+  young?: boolean
 }
 
 export interface WardInfo {

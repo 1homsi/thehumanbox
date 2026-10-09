@@ -350,9 +350,20 @@ pub struct Animal {
     pub sleeping: bool,
     /// Flown south for the winter (wild birds). Recomputed every tick.
     pub away: bool,
+    /// Tick the animal was born, when it came from a parent (0 for animals
+    /// placed by the world or by a god power, which count as grown).
+    pub born_tick: u64,
 }
 
+/// Ticks a newborn animal stays young (drawn smaller, nothing else changes).
+pub const YOUNG_ANIMAL_TICKS: u64 = 1000;
+
 impl Animal {
+    /// True for an animal born from a parent less than `YOUNG_ANIMAL_TICKS` ago.
+    pub fn is_young(&self, tick: u64) -> bool {
+        self.born_tick > 0 && tick.saturating_sub(self.born_tick) < YOUNG_ANIMAL_TICKS
+    }
+
     pub fn new(id: usize, x: f32, y: f32, kind: AnimalKind) -> Self {
         Animal {
             id,
@@ -367,6 +378,7 @@ impl Animal {
             heading: (id % 8) as u8,
             sleeping: false,
             away: false,
+            born_tick: 0,
         }
     }
 
@@ -585,10 +597,12 @@ pub struct AnimalJson {
     pub sleeping: bool,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub away: bool,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub young: bool,
 }
 
 impl Animal {
-    pub fn to_json(&self) -> AnimalJson {
+    pub fn to_json(&self, tick: u64) -> AnimalJson {
         AnimalJson {
             id: self.id,
             x: (self.x * 10.0).round() / 10.0,
@@ -597,6 +611,7 @@ impl Animal {
             name: self.name.clone(),
             sleeping: self.sleeping,
             away: self.away,
+            young: self.is_young(tick),
         }
     }
 }
@@ -627,6 +642,25 @@ mod tests {
         animal.tick(&grid, &[], &[], &[], &mut rng);
 
         assert_ne!((animal.x as i32, animal.y as i32), (120, 120));
+    }
+
+    #[test]
+    fn a_newborn_is_young_until_it_has_grown_and_placed_animals_never_are() {
+        let mut child = Animal::new(9, 10.0, 10.0, AnimalKind::Deer);
+        assert!(!child.is_young(5_000), "an animal placed by the world is grown");
+        child.born_tick = 4_000;
+        assert!(child.is_young(4_000));
+        assert!(child.is_young(4_000 + YOUNG_ANIMAL_TICKS - 1));
+        assert!(!child.is_young(4_000 + YOUNG_ANIMAL_TICKS));
+        assert!(child.to_json(4_500).young);
+        assert!(!child.to_json(20_000).young);
+        let json = serde_json::to_value(child.to_json(4_500)).unwrap();
+        assert_eq!(json["young"], serde_json::json!(true));
+        let grown = serde_json::to_value(child.to_json(20_000)).unwrap();
+        assert!(
+            grown.get("young").is_none(),
+            "grown animals leave the flag out of the frame"
+        );
     }
 
     #[test]

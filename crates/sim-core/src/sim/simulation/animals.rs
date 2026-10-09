@@ -697,7 +697,9 @@ impl Simulation {
                 let oy = self.rng.random_range(-3.0..3.0f32);
                 let nx = (px + ox).max(1.0).min(WIDTH as f32 - 2.0);
                 let ny = (py + oy).max(1.0).min(HEIGHT as f32 - 2.0);
-                self.animals.push(Animal::new(nid, nx, ny, kind));
+                let mut young = Animal::new(nid, nx, ny, kind);
+                young.born_tick = self.tick_count.max(1);
+                self.animals.push(young);
                 *kind_alive.entry(kind).or_insert(0) += 1;
                 if let Some(p) = self.animals.iter_mut().find(|a| a.id == pid) {
                     p.last_reproduced = self.tick_count;

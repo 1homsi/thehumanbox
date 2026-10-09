@@ -1,7 +1,16 @@
 import { SPRITE_FLIP_X, SPRITE_HIDDEN, type SpriteLayer } from 'cubeforge'
 import type { AnimalState } from '../../../../shared/types'
 import { TILE } from '../../../model/palette'
-import { animalBob, animalMoving, animalSize, animalStep, isFlyer } from '../../animal-visuals'
+import {
+  animalBob,
+  animalGrazing,
+  animalGrowth,
+  animalMoving,
+  animalSize,
+  animalStep,
+  isFlyer,
+  isGrazer,
+} from '../../animal-visuals'
 import { pixelFaunaDims, hasPixelFauna } from '../../pixel-fauna'
 import {
   DECAL,
@@ -50,12 +59,19 @@ export class AnimalSprites {
   private fromY = new Float64Array(0)
   private toX = new Float64Array(0)
   private toY = new Float64Array(0)
-  private size = new Uint8Array(0)
+  /** Drawn size in world pixels, grown size for a newborn. */
+  private size = new Float32Array(0)
+  /** 1 for a grown animal, `YOUNG_ANIMAL_SCALE` for a newborn. */
+  private grow = new Float32Array(0)
   /** 0 nothing to draw, 1 ASCII pixel art, 2 cut from the fauna sheet. */
   private mode = new Uint8Array(0)
   private base = new Uint16Array(0)
   /** 1 for an animal that holds one pose (a sleeping bear), 0 for one that walks. */
   private still = new Uint8Array(0)
+  /** 1 for a kind with a grazing pose, when it is not asleep. */
+  private grazer = new Uint8Array(0)
+  /** Atlas frame of the resting pose (the grazing pose for grazers, the lying pose for sleepers). */
+  private rest = new Uint16Array(0)
   private scale = new Uint8Array(0)
   private cols = new Uint8Array(0)
   private rows = new Uint8Array(0)
@@ -98,10 +114,13 @@ export class AnimalSprites {
     this.fromY = grow(this.fromY, Float64Array)
     this.toX = grow(this.toX, Float64Array)
     this.toY = grow(this.toY, Float64Array)
-    this.size = grow(this.size, Uint8Array)
+    this.size = grow(this.size, Float32Array)
+    this.grow = grow(this.grow, Float32Array)
     this.mode = grow(this.mode, Uint8Array)
     this.base = grow(this.base, Uint16Array)
     this.still = grow(this.still, Uint8Array)
+    this.grazer = grow(this.grazer, Uint8Array)
+    this.rest = grow(this.rest, Uint16Array)
     this.scale = grow(this.scale, Uint8Array)
     this.cols = grow(this.cols, Uint8Array)
     this.rows = grow(this.rows, Uint8Array)
@@ -158,15 +177,19 @@ export class AnimalSprites {
       if (old !== undefined) this.motion.copyFrom(this.oldMotion, old, j)
       else this.motion.init(j, this.fromX[j], this.fromY[j])
 
-      const size = animalSize(a.kind)
+      const adult = animalSize(a.kind)
+      const growth = animalGrowth(a.young)
+      const size = adult * growth
+      this.grow[j] = growth
       this.size[j] = size
       let w = 0
       let h = 0
       let frame = 0
       let atlas: number = ANIMAL_ATLAS.pixel
+      this.grazer[j] = 0
       if (hasPixelFauna(a.kind)) {
         const d = pixelFaunaDims(a.kind)!
-        const scale = Math.max(1, Math.round(size / d.cols))
+        const scale = Math.max(1, Math.round(adult / d.cols))
         const off = pixelFaunaOffset(a.kind)
         this.mode[j] = 1
         this.scale[j] = scale
@@ -176,7 +199,9 @@ export class AnimalSprites {
         this.offY[j] = off.y
         this.base[j] = pixelFaunaFrame(a.kind, 0, !!a.sleeping)
         this.still[j] = a.sleeping ? 1 : 0
-        w = h = PIXEL_FAUNA_CELL * scale
+        this.grazer[j] = a.sleeping || !isGrazer(a.kind) ? 0 : 1
+        this.rest[j] = pixelFaunaFrame(a.kind, 0, true)
+        w = h = PIXEL_FAUNA_CELL * scale * growth
         frame = this.base[j]
       } else {
         const cut = faunaCellKind(a.kind, a.id)
@@ -185,7 +210,7 @@ export class AnimalSprites {
           this.mode[j] = 2
           this.cutH[j] = d.h
           this.base[j] = FAUNA_KINDS.indexOf(cut)
-          w = h = FAUNA_CELL
+          w = h = FAUNA_CELL * growth
           frame = this.base[j]
           atlas = ANIMAL_ATLAS.fauna
         } else this.mode[j] = 0
@@ -226,9 +251,11 @@ export class AnimalSprites {
     const n = this.n
     const { body, motion, fromX, fromY, toX, toY, px, py, size, mode, base, scale, cols, rows, offX, offY } =
       this
-    const { cutH, kinds, animalIds, hiddenArr } = this
+    const { cutH, kinds, animalIds, hiddenArr, grow, grazer, rest } = this
     const bx = body.x
     const by = body.y
+    const bw = body.w
+    const bh = body.h
     const bf = body.frame
     const bflags = body.flags
     const ox = this.ox
@@ -248,8 +275,9 @@ export class AnimalSprites {
       const flip = motion.flipped[j] === 1
       const step = animalStep(animalIds[j], moving, now)
       hiddenArr[j] = 0
+      const g = grow[j]
       if (mode[j] === 1) {
-        const sc = scale[j]
+        const sc = scale[j] * g
         const W = cols[j] * sc
         const H = rows[j] * sc
         const x0 = Math.round(cx - W / 2)
@@ -257,12 +285,15 @@ export class AnimalSprites {
         const left = flip ? PIXEL_FAUNA_CELL - offX[j] - cols[j] : offX[j]
         bx[j] = x0 + (PIXEL_FAUNA_CELL / 2 - left) * sc
         by[j] = y0 + (PIXEL_FAUNA_CELL / 2 - offY[j]) * sc
-        bf[j] = base[j] + (this.still[j] ? 0 : step)
+        bw[j] = bh[j] = PIXEL_FAUNA_CELL * sc
+        const grazing = grazer[j] === 1 && animalGrazing(kind, animalIds[j], moving, now)
+        bf[j] = this.still[j] ? base[j] : grazing ? rest[j] : base[j] + step
       } else if (mode[j] === 2) {
-        const h = cutH[j]
+        const h = cutH[j] * g
         const top = kind === 'fish' ? cy - h / 2 : cy + s * 0.42 - h
         bx[j] = Math.round(cx)
         by[j] = Math.round(top) + Math.round(h / 2)
+        bw[j] = bh[j] = FAUNA_CELL * g
         bf[j] = base[j]
       }
       bflags[j] = flip ? SPRITE_FLIP_X : mode[j] === 0 ? SPRITE_HIDDEN : 0

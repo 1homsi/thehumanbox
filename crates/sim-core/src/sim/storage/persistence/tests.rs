@@ -460,3 +460,19 @@ fn generations_reached_survive_a_save() {
     let loaded = Simulation::from_save(sim.world_seed, decoded);
     assert_eq!(loaded.lineage_generations_reached.get("lin-a"), Some(&5));
 }
+
+#[test]
+fn a_newborn_animal_keeps_its_birth_tick_through_a_save_and_old_saves_load_as_grown() {
+    use crate::organism::animal::{Animal, AnimalKind};
+    let mut child = Animal::new(7, 3.0, 4.0, AnimalKind::Deer);
+    child.born_tick = 1234;
+    let back = super::organism::animal_from_save(super::organism::animal_to_save(&child));
+    assert_eq!(back.born_tick, 1234);
+
+    // A save written before this field existed has no born_tick: the animal loads as grown.
+    let old: AnimalSave = serde_json::from_str(
+        r#"{"id":7,"x":3.0,"y":4.0,"alive":true,"energy":0.5,"kind":0,"last_reproduced":0}"#,
+    )
+    .unwrap();
+    assert_eq!(super::organism::animal_from_save(old).born_tick, 0);
+}
