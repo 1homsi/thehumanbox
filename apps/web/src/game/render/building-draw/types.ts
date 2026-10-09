@@ -25,6 +25,8 @@ export type BuildingLike = Pick<
   snow?: boolean
   /** The land a stone-age home stands on (see HomeLand in building-painters/land-homes.ts). */
   land?: string
+  /** The owning tribe's roof colour (see building-painters/tribe-palette.ts). */
+  roofTint?: string
 }
 
 export type BuildingVisualDetail = 'overview' | 'standard' | 'detail'

@@ -9,6 +9,7 @@ import { RUIN_CRUMBLE_TICKS } from '../../building-draw/ruins'
 import type { BuildingLike, BuildingVisualDetail } from '../../building-draw/types'
 import { padEmpty } from '../../era-traffic'
 import { isHouseLike } from '../../building-draw/colors'
+import { roofTintFor, tribeTintIndex } from '../../building-painters/tribe-palette'
 
 /** Everything about the frame that changes how a building looks. */
 export interface BuildingFrameInfo {
@@ -69,6 +70,9 @@ export function describeBuilding(b: Building, info: BuildingFrameInfo): Building
   // Only stone-age huts change shape with the land; the land joins their look.
   const land = k === 'Hut' && tier === 0 ? (info.landAt?.(b.x, b.y) ?? '') : ''
   const landKey = land ? `|l${land}` : ''
+  // A tribe's homes carry its roof colour, so the tint splits their look (and cell) by tribe.
+  const roofTint = roofTintFor(k, b.owner_lineage ?? b.lineage_id ?? '')
+  const tintKey = roofTint ? `|r${tribeTintIndex(b.owner_lineage ?? b.lineage_id ?? '')}` : ''
   const base = `${b.kind}|${fw}x${fh}|t${tier}`
   const identity = `${b.id}@${b.x},${b.y}`
   const record: BuildingLike = {
@@ -89,6 +93,7 @@ export function describeBuilding(b: Building, info: BuildingFrameInfo): Building
     state,
     snow,
     land,
+    roofTint,
   }
   const { w: contentW, h: contentH } = contentSize(fw, fh)
   const out = (key: string, night: number, detail: BuildingVisualDetail): BuildingVisual => ({
@@ -129,7 +134,9 @@ export function describeBuilding(b: Building, info: BuildingFrameInfo): Building
   if (!damaged) {
     // The emoji fallback does not look at the variant or the night.
     return out(
-      sprite ? `S|${base}|v${variant}|n${night}|c${cond}|s${state ?? ''}${snowKey}${landKey}` : `E|${base}`,
+      sprite
+        ? `S|${base}|v${variant}|n${night}|c${cond}|s${state ?? ''}${snowKey}${landKey}${tintKey}`
+        : `E|${base}`,
       night / 3,
       info.detail,
     )
@@ -139,7 +146,7 @@ export function describeBuilding(b: Building, info: BuildingFrameInfo): Building
   record.damage = Math.min(1, severity / DAMAGE_STEPS)
   record.integrity = integrity / DAMAGE_STEPS
   return out(
-    `D|${base}|${identity}|v${variant}|n${night}|c${cond}|s${state ?? ''}|d${severity}|i${integrity}|r${structural.isRepairing ? 1 : 0}${snowKey}${landKey}|${info.detail}`,
+    `D|${base}|${identity}|v${variant}|n${night}|c${cond}|s${state ?? ''}|d${severity}|i${integrity}|r${structural.isRepairing ? 1 : 0}${snowKey}${landKey}${tintKey}|${info.detail}`,
     night / 3,
     info.detail,
   )

@@ -1,6 +1,7 @@
 import { shade, hueShift } from '../sprite-colors'
 import {
   OUTLINE,
+  tintRoof,
   chimney,
   cracks,
   door,
@@ -26,7 +27,7 @@ export function paintHut(p: P) {
   px(p.ctx, cx - rw / 2, y1 - wallH, rw, 1, '#b08a5e')
   px(p.ctx, cx - rw / 2, y1 - 2, rw, 2, '#7a5e3e')
   outline(p.ctx, cx - rw / 2, y1 - wallH, rw, wallH)
-  const thatch = hueShift('#b89a4a', (p.rng() - 0.5) * 24, 1, 0.94 + p.rng() * 0.12)
+  const thatch = tintRoof(p, hueShift('#b89a4a', (p.rng() - 0.5) * 24, 1, 0.94 + p.rng() * 0.12))
   if (timber) {
     for (let row = 2; row < wallH; row += 3) px(p.ctx, cx - rw / 2, y1 - row, rw, 1, '#54422f')
   }
