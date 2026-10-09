@@ -219,7 +219,7 @@ fn twelve_hundred_tick_boundary_emits_only_real_technological_era_advances() {
             .filter(|event| event.etype == "era")
             .map(|event| event.detail.as_str())
             .collect::<Vec<_>>(),
-        vec!["the stone era begins"]
+        vec![format!("the stone era begins: {}", Era::Stone.flavour())]
     );
     assert!(!sim
         .headlines

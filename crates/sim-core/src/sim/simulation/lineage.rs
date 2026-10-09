@@ -193,7 +193,12 @@ impl Simulation {
                     .get(lid)
                     .cloned()
                     .unwrap_or_else(|| lid.clone());
-                let detail = format!("{} entered the {} era", lname, new_era.name());
+                let detail = format!(
+                    "{} entered the {} era: {}",
+                    lname,
+                    new_era.name(),
+                    new_era.flavour()
+                );
                 push_event(&mut self.events, self.tick_count, "era_advance", &lname, &detail);
             }
             self.lineage_eras.insert(lid.clone(), new_era);
@@ -224,7 +229,7 @@ impl Simulation {
                     self.tick_count,
                     "era",
                     "world",
-                    &format!("the {} era begins", mname),
+                    &format!("the {} era begins: {}", mname, m.flavour()),
                 );
                 self.current_era = mname;
             }
