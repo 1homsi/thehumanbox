@@ -495,3 +495,36 @@ fn fishing_a_shoal_lands_a_fish_from_it() {
     sim.take_nearest_fish(30.0, 30.0);
     assert_eq!(sim.animals.iter().filter(|a| a.alive).count(), 5);
 }
+
+#[test]
+fn birds_that_fly_close_together_settle_on_one_heading() {
+    let mut sim = Simulation::new(0xB12D);
+    flatten_test_area(&mut sim, 50, 50);
+    sim.animals.clear();
+    for i in 0..8usize {
+        let mut bird = Animal::new(
+            i + 1,
+            46.0 + (i % 4) as f32,
+            46.0 + (i / 4) as f32,
+            AnimalKind::Bird,
+        );
+        bird.heading = i as u8;
+        sim.animals.push(bird);
+    }
+    let majority = |sim: &Simulation| {
+        let mut votes = [0usize; 8];
+        for a in &sim.animals {
+            votes[usize::from(a.heading % 8)] += 1;
+        }
+        votes.into_iter().max().unwrap_or(0)
+    };
+    assert!(majority(&sim) <= 2);
+    for _ in 0..30 {
+        sim.tick_bird_flocks();
+    }
+    assert!(
+        majority(&sim) >= 6,
+        "a flock should fly one way (majority {})",
+        majority(&sim)
+    );
+}

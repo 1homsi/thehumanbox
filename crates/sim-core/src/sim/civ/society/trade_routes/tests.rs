@@ -230,3 +230,38 @@ fn id_allocator_wraps_around_exhausting_imported_ids() {
     assert_eq!(allocate_available_id(&mut next, &used), Some(2));
     assert_eq!(next, 3);
 }
+
+#[test]
+fn snow_holds_caravans_back_on_the_road() {
+    let mut sim = Simulation::new(0x5A0E);
+    sim.caravans.clear();
+    sim.caravans.push(Caravan {
+        id: 1,
+        route_id: 1,
+        sender_lineage: "river".into(),
+        receiver_lineage: "hill".into(),
+        sender_org_id: "sender".into(),
+        cargo: "wood".into(),
+        amount: 1,
+        unit_price: 1,
+        departed_tick: 100,
+        arrives_tick: 200,
+        from: [10, 10],
+        to: [40, 10],
+        dispatch_state: String::new(),
+    });
+    sim.tick_count = 150;
+    sim.weather.kind = 3;
+    super::upkeep::slow_caravans_in_snow(&mut sim);
+    assert_eq!(
+        sim.caravans[0].arrives_tick, 201,
+        "one tick of snow adds one tick of journey"
+    );
+
+    sim.weather.kind = 0;
+    super::upkeep::slow_caravans_in_snow(&mut sim);
+    assert_eq!(
+        sim.caravans[0].arrives_tick, 201,
+        "clear weather leaves the journey alone"
+    );
+}

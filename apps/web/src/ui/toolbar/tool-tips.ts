@@ -10,6 +10,10 @@ const TOOL_TIPS: Record<string, string> = {
     'Run the world on to the start of the next year, in quick steps. The seasons turn as they would.',
   leader:
     'Crown the grown person nearest where you click the ruler of their tribe. They keep the crown while they live, unless their tribe has no ruler to crown (a plain band) or they are still a child.',
+  cure_tribe:
+    'Cure the whole tribe of the person nearest where you click: every sick member of that tribe is cured and kept safe from the same sickness for a while, wherever they are.',
+  guardian:
+    'A guardian dog appears beside the person nearest where you click and bonds to them, keeping to them the way a released dog does.',
   clear_region:
     'Sweep the brush area clean: the people in it die (their kin grieve), the animals are swept away, and plantings and wild food are cleared. Buildings stay; demolish takes those.',
   merge_tribes:
@@ -92,6 +96,10 @@ const TOOL_TIPS: Record<string, string> = {
   nuke: 'Drop a bomb where you click: a crater like a meteor leaves, fallout that poisons everyone across a wide ring, and blight on the plantings there. Only a tribe that has reached the Industrial age can build one.',
   eclipse:
     'The sun goes dark for a while. Everyone alive is frightened and a little awed by it, and the omen is written into the chronicle.',
+  monsoon:
+    'Rain falls for days in a row, as heavy as the weather goes. Rivers rise and the land stays soaked; the sim does the rest.',
+  cold_snap:
+    'A short, hard fall of snow. Everyone out in it is chilled, and it ends sooner than a snowfall does.',
   aurora:
     'Lights dance across the night sky over the whole world. Everyone alive is awed and a little calmer, and the omen is written into the chronicle.',
   rain_patch:
@@ -234,6 +242,10 @@ export function toolFailure(tool: SandboxTool): string {
       return 'no fire there'
     case 'thunder':
       return 'the lightning hit nothing'
+    case 'cure_tribe':
+      return 'nobody near is sick in their tribe'
+    case 'guardian':
+      return 'nobody is near enough to guard'
     case 'clear_region':
       return 'nothing living or planted there to clear'
     case 'rain_patch':

@@ -94,7 +94,24 @@ pub(super) fn expire_stranded_caravans(sim: &mut Simulation) {
     }
 }
 
+/// Snow holds the caravans back: while it snows, every caravan still on the
+/// road loses a tick of its journey.
+pub(super) fn slow_caravans_in_snow(sim: &mut Simulation) {
+    if sim.weather.kind != 3 {
+        return;
+    }
+    let tick = sim.tick_count;
+    for caravan in sim
+        .caravans
+        .iter_mut()
+        .filter(|caravan| caravan.departed_tick <= tick && tick < caravan.arrives_tick)
+    {
+        caravan.arrives_tick += 1;
+    }
+}
+
 pub fn tick(sim: &mut Simulation) {
+    slow_caravans_in_snow(sim);
     if sim.tick_count.is_multiple_of(ROAD_MARK_TICKS) {
         mark_caravan_roads(sim);
     }

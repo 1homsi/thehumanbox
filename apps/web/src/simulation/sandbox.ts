@@ -4,7 +4,7 @@ export type SandboxCommand =
   | { cmd: 'heal'; x: number; y: number; radius?: number }
   | { cmd: 'paint'; x: number; y: number; tile: string; radius?: number }
   | { cmd: 'ignite'; x: number; y: number; radius?: number }
-  | { cmd: 'weather'; kind: 'clear' | 'rain' | 'storm' | 'snow' | 'fog' }
+  | { cmd: 'weather'; kind: 'clear' | 'rain' | 'storm' | 'snow' | 'fog' | 'monsoon' | 'cold_snap' }
   | { cmd: 'gale' }
   | { cmd: 'tornado'; x: number; y: number; radius?: number }
   | { cmd: 'tsunami'; x: number; y: number; radius?: number }
@@ -69,7 +69,8 @@ export type SandboxCommand =
   | { cmd: 'nuke'; x: number; y: number }
   | { cmd: 'eclipse' }
   | { cmd: 'rain_patch'; x: number; y: number; radius?: number }
-  | { cmd: 'rain_patch'; x: number; y: number; radius?: number }
+  | { cmd: 'cure_tribe'; x: number; y: number }
+  | { cmd: 'guardian'; x: number; y: number }
   | { cmd: 'aurora' }
   | { cmd: 'clear_region'; x: number; y: number; radius?: number }
   | { cmd: 'comet'; x: number; y: number; radius?: number }
@@ -367,6 +368,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         build: (x, y, b) => ({ cmd: 'cure', x, y, radius: 6 + b }),
       },
       {
+        id: 'cure_tribe',
+        label: 'cure tribe',
+        icon: '🩹',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'cure_tribe', x, y }),
+      },
+      {
         id: 'harvest',
         label: 'harvest',
         icon: '🌾',
@@ -414,13 +422,6 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '💞',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'love', x, y, radius: 4 + b }),
-      },
-      {
-        id: 'tame',
-        label: 'tame',
-        icon: '🦮',
-        mode: 'point',
-        build: (x, y, b) => ({ cmd: 'tame', x, y, radius: 4 + b }),
       },
       { id: 'rain', label: 'rain', icon: '🌧️', mode: 'instant', fire: { cmd: 'weather', kind: 'rain' } },
       { id: 'clear', label: 'clear', icon: '☀️', mode: 'instant', fire: { cmd: 'weather', kind: 'clear' } },
@@ -772,6 +773,20 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         mode: 'instant',
         fire: { cmd: 'aurora' },
         overlay: 'aurora',
+      },
+      {
+        id: 'monsoon',
+        label: 'monsoon',
+        icon: '☔',
+        mode: 'instant',
+        fire: { cmd: 'weather', kind: 'monsoon' },
+      },
+      {
+        id: 'cold_snap',
+        label: 'cold snap',
+        icon: '🥶',
+        mode: 'instant',
+        fire: { cmd: 'weather', kind: 'cold_snap' },
       },
       {
         id: 'comet',
@@ -1194,6 +1209,20 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🐋',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'whale', count: 1 + b, radius: b }),
+      },
+      {
+        id: 'tame',
+        label: 'tame',
+        icon: '🦮',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'tame', x, y, radius: 4 + b }),
+      },
+      {
+        id: 'guardian',
+        label: 'guardian',
+        icon: '🐶',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'guardian', x, y }),
       },
       {
         id: 'dog',
