@@ -32,7 +32,7 @@ pub(crate) fn chebyshev(a: (i32, i32), b: (i32, i32)) -> i32 {
 }
 
 /// A deterministic offset in `-range..=range`, different for each person and tick.
-fn spread(idx: usize, tick: u64, salt: u64, range: i32) -> i32 {
+pub(crate) fn spread(idx: usize, tick: u64, salt: u64, range: i32) -> i32 {
     let h = (idx as u64)
         .wrapping_mul(0x9E37_79B9_7F4A_7C15)
         .wrapping_add(tick.wrapping_mul(31))

@@ -2,6 +2,7 @@ pub mod culture;
 pub mod economy;
 pub mod economy_tick;
 pub mod festivals;
+pub mod gatherings;
 pub mod government;
 pub mod graves;
 pub mod inequality;
