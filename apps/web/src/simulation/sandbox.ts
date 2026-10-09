@@ -59,6 +59,7 @@ export type SandboxCommand =
   | { cmd: 'heal_one'; x: number; y: number; radius?: number }
   | { cmd: 'mutate'; x: number; y: number; radius?: number }
   | { cmd: 'curse'; x: number; y: number; radius?: number }
+  | { cmd: 'teach_nearby'; x: number; y: number; radius?: number }
   | { cmd: 'advance'; to: 'season' | 'year'; max_ticks?: number }
   | { cmd: 'gift'; x: number; y: number; radius?: number; what: 'food' | 'tool' }
   | { cmd: 'time_of_day'; phase: 'dawn' | 'noon' | 'dusk' | 'midnight' }
@@ -214,6 +215,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🧿',
         mode: 'point',
         build: (x, y) => ({ cmd: 'curse', x, y, radius: 4 }),
+      },
+      {
+        id: 'teach_tribe',
+        label: 'teach',
+        icon: '📜',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'teach_nearby', x, y, radius: 4 }),
       },
       {
         id: 'follow',

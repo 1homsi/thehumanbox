@@ -65,6 +65,13 @@ pub enum Command {
         #[serde(default)]
         radius: i32,
     },
+    /// The tribe of the nearest person in reach is taught the next secret it lacks for its age.
+    TeachNearby {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
     /// The nearest person in reach gains a mutation: one trait jumps.
     Mutate {
         x: f32,
@@ -592,6 +599,7 @@ mod restore_tests;
 mod roads;
 #[cfg(test)]
 mod roads_tests;
+mod teach_nearby;
 mod teleport;
 #[cfg(test)]
 mod tests;
@@ -639,6 +647,7 @@ impl Simulation {
             Command::Nuke { x, y } => self.cmd_nuke(x, y),
             Command::Eclipse => self.cmd_eclipse(),
             Command::Mutate { x, y, radius } => self.cmd_mutate(x, y, radius),
+            Command::TeachNearby { x, y, radius } => self.cmd_teach_nearby(x, y, radius),
             Command::Curse { x, y, radius } => self.cmd_curse(x, y, radius),
             Command::Comet { x, y, radius } => self.cmd_comet(x, y, radius),
             Command::Smite { x, y, radius } => self.cmd_smite(x, y, radius),
