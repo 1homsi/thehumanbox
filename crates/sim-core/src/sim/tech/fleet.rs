@@ -430,7 +430,11 @@ mod tests {
         let frame = sim.state_json();
         assert_eq!(frame["vehicles"][0]["sailing"], true);
         assert_eq!(frame["vehicles"][0]["harbour"], serde_json::json!([90, 100]));
-        assert_eq!(frame["vehicles"][0]["shore"], serde_json::json!([-1, 0]), "the grass lies to the west");
+        assert_eq!(
+            frame["vehicles"][0]["shore"],
+            serde_json::json!([-1, 0]),
+            "the grass lies to the west"
+        );
         sim.vehicles[0].route.clear();
         let frame = sim.state_json();
         assert_eq!(frame["vehicles"][0]["sailing"], false);
