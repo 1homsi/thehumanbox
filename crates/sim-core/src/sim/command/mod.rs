@@ -148,6 +148,28 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// Every living member of the tribe nearest the point gets food (a portion each) or a stone tool.
+    TribeGift {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+        what: String,
+    },
+    /// The tribe nearest the point moves to it: its living members are set down around the click.
+    MigrateTribe {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// Two tribes trade: the tribe of the first click sends food to the tribe of the second.
+    TradeGift {
+        ax: f32,
+        ay: f32,
+        bx: f32,
+        by: f32,
+    },
     /// A tribe of the named age settles where you click, already knowing the discoveries of that age.
     EraTribe {
         x: f32,
@@ -690,6 +712,7 @@ mod tests;
 #[cfg(test)]
 mod tornado_tests;
 mod tribe_care;
+mod tribe_gifts;
 mod tribe_regroup;
 mod tribes;
 #[cfg(test)]
@@ -741,6 +764,9 @@ impl Simulation {
             Command::BlessForest { x, y, radius } => self.cmd_bless_forest(x, y, radius),
             Command::Talent { x, y, radius } => self.cmd_talent(x, y, radius),
             Command::EraTribe { x, y, era } => self.cmd_era_tribe(x, y, era),
+            Command::TribeGift { x, y, radius, what } => self.cmd_tribe_gift(x, y, radius, what),
+            Command::MigrateTribe { x, y, radius } => self.cmd_migrate_tribe(x, y, radius),
+            Command::TradeGift { ax, ay, bx, by } => self.cmd_trade_gift(ax, ay, bx, by),
             Command::ClearRegion { x, y, radius } => self.cmd_clear_region(x, y, radius),
             Command::Mutate { x, y, radius } => self.cmd_mutate(x, y, radius),
             Command::MergeTribes { ax, ay, bx, by } => self.cmd_merge_tribes(ax, ay, bx, by),

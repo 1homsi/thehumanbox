@@ -78,6 +78,9 @@ export type SandboxCommand =
   | { cmd: 'bless_forest'; x: number; y: number; radius?: number }
   | { cmd: 'talent'; x: number; y: number; radius?: number }
   | { cmd: 'era_tribe'; x: number; y: number; era: string }
+  | { cmd: 'tribe_gift'; x: number; y: number; radius?: number; what: 'food' | 'tool' }
+  | { cmd: 'migrate_tribe'; x: number; y: number; radius?: number }
+  | { cmd: 'trade_gift'; ax: number; ay: number; bx: number; by: number }
   | { cmd: 'clear_region'; x: number; y: number; radius?: number }
   | { cmd: 'comet'; x: number; y: number; radius?: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
@@ -1366,6 +1369,40 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
     ],
   },
   {
+    id: 'tribes',
+    label: 'tribes',
+    icon: '👥',
+    tools: [
+      {
+        id: 'tribe_food',
+        label: 'tribe food',
+        icon: '🌾',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'tribe_gift', x, y, radius: 6 + b, what: 'food' }),
+      },
+      {
+        id: 'tribe_tools',
+        label: 'tribe tools',
+        icon: '🔨',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'tribe_gift', x, y, radius: 6 + b, what: 'tool' }),
+      },
+      {
+        id: 'migrate_tribe',
+        label: 'migrate tribe',
+        icon: '🧭',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'migrate_tribe', x, y, radius: 6 + b }),
+      },
+      {
+        id: 'trade_gift',
+        label: 'trade food',
+        icon: '🪙',
+        mode: 'point',
+      },
+    ],
+  },
+  {
     id: 'monsters',
     label: 'monsters',
     icon: '🧟',
@@ -1456,6 +1493,12 @@ export const PAIR_TOOLS: Record<string, PairTool> = {
     build: (a, b) => ({ cmd: 'marry', ax: a.x, ay: a.y, bx: b.x, by: b.y }),
     done: 'married · they are partners now',
     failed: 'marry · both must be grown, free to wed, of different sexes, and close to the clicks',
+  },
+  trade_gift: {
+    next: 'trade · now click a person of the tribe to trade with',
+    build: (a, b) => ({ cmd: 'trade_gift', ax: a.x, ay: a.y, bx: b.x, by: b.y }),
+    done: 'traded · the second tribe received food',
+    failed: 'trade · click a person of each tribe, and the first tribe needs food to spare',
   },
   merge_tribes: {
     next: 'merge · now click a person of the other tribe',
