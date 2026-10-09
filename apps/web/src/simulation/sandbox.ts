@@ -70,6 +70,39 @@ export type SandboxCommand =
       duration_ticks?: number
     }
 
+/**
+ * The dice tool's events: a mix of kind and cruel things, each landing at a
+ * place it is given (weather and the wind ignore the place).
+ */
+const DICE_EVENTS: ReadonlyArray<(x: number, y: number) => SandboxCommand> = [
+  () => ({ cmd: 'weather', kind: 'rain' }),
+  () => ({ cmd: 'gale' }),
+  (x, y) => ({ cmd: 'bless', x, y, radius: 6 }),
+  (x, y) => ({ cmd: 'harvest', x, y, radius: 6 }),
+  (x, y) => ({ cmd: 'spawn', x, y, count: 5 }),
+  (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'deer', count: 4, radius: 4 }),
+  (x, y) => ({ cmd: 'meteor', x, y, radius: 3 }),
+  (x, y) => ({ cmd: 'tornado', x, y, radius: 12 }),
+  (x, y) => ({ cmd: 'wildfire', x, y, radius: 10 }),
+  (x, y) => ({ cmd: 'earthquake', x, y, radius: 5 }),
+  (x, y) => ({ cmd: 'locusts', x, y, radius: 12 }),
+]
+
+/**
+ * Roll the dice: one random event at a random place on a world of the given
+ * size. `random` is injectable so the roll can be tested.
+ */
+export function rollRandomEvent(
+  width: number,
+  height: number,
+  random: () => number = Math.random,
+): SandboxCommand {
+  const event = DICE_EVENTS[Math.floor(random() * DICE_EVENTS.length) % DICE_EVENTS.length]
+  const x = Math.floor(random() * Math.max(1, width))
+  const y = Math.floor(random() * Math.max(1, height))
+  return event(x, y)
+}
+
 export type LineageStrategy = 'hunt' | 'explore' | 'settle' | 'trade' | 'defend'
 
 /**
@@ -620,6 +653,8 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         mode: 'instant',
         fire: { cmd: 'time_of_day', phase: 'midnight' },
       },
+      // The fire command is a placeholder: the toolbar rolls a random event when it is picked.
+      { id: 'dice', label: 'dice', icon: '🎲', mode: 'instant', fire: { cmd: 'gale' } },
     ],
   },
   {

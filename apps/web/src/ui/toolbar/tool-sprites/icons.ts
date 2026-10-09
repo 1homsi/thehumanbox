@@ -27,6 +27,7 @@ export const icons: Record<string, keyof typeof sprites> = {
   '🌅': 'sunrise',
   '🌇': 'sunset',
   '🕛': 'noon',
+  '🎲': 'dice',
   '📅': 'calendar',
   '⛏️': 'pickaxe',
   '🟩': 'grass',

@@ -68,6 +68,7 @@ const TOOL_TIPS: Record<string, string> = {
     'Release a camel, or a few, on desert or badlands. They are tough, need little food, and keep to the dry land.',
   frog: 'Release a frog, or a few, on wet ground near water, in wetland or jungle. Frogs are small game for wolves and bears.',
   whale: 'Release a whale, or a few, into deep water. They swim where the sea is and never come ashore.',
+  dice: 'Roll for fate: one random event lands at a random spot. It may bless, bring rain or a gale, or be a disaster such as a tornado, a wildfire or an earthquake.',
   dawn: 'Move the clock on to the next dawn. The world keeps its season and year; the light changes at once.',
   noon: 'Move the clock on to the next noon, when the sun stands highest.',
   dusk: 'Move the clock on to the next dusk, when the light goes and the night begins.',
