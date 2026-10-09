@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Building } from '../../../../shared/types'
 import { sortBuildingsByDepth } from '../../buildings2d'
+import { tribeTintIndex } from '../../building-painters/tribe-palette'
 import {
   buildingSortKey,
   contentOrigin,
@@ -60,6 +61,24 @@ describe('describeBuilding', () => {
     // Past the stone age the tribe's era style wins, so the land stays out of the look.
     const bronze = info({ landAt: () => 'snow', tiers: new Map([['', 1]]) })
     expect(describeBuilding(house({ kind: 'House' }), bronze).record.land).toBe('')
+  })
+
+  it('gives each tribe its own roof colour on its homes, and leaves other buildings alone', () => {
+    const first = 'a78d6ac1'
+    const other = ['fb8ca075', 'b0bcf3c0', '38023c20', 'f1605508', '2853f5c8'].find(
+      (id) => tribeTintIndex(id) !== tribeTintIndex(first),
+    )
+    if (other === undefined) throw new Error('need a tribe with another roof colour')
+    const tribeA = describeBuilding(house({ kind: 'House', owner_lineage: first }), info())
+    const tribeB = describeBuilding(house({ kind: 'House', owner_lineage: other }), info())
+    expect(tribeA.record.roofTint).toBeDefined()
+    expect(tribeA.record.roofTint).not.toBe(tribeB.record.roofTint)
+    expect(tribeA.key).not.toBe(tribeB.key)
+    // The same tribe's house, a different one of the same kind, shares its tint.
+    const sameTribe = describeBuilding(house({ id: 9, kind: 'House', owner_lineage: 'a78d6ac1' }), info())
+    expect(sameTribe.record.roofTint).toBe(tribeA.record.roofTint)
+    const shrine = describeBuilding(house({ kind: 'Shrine', owner_lineage: 'a78d6ac1' }), info())
+    expect(shrine.record.roofTint).toBeUndefined()
   })
 
   it('keys construction sites by position and quantised progress', () => {

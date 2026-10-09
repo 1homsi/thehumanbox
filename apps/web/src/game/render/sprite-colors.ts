@@ -16,6 +16,13 @@ function hexToRgb(hex: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
 }
 
+/** Blends two '#rrggbb' colours: `t` of `b` over `a` (0 keeps `a`, 1 gives `b`). */
+export function mixHex(a: string, b: string, t: number): string {
+  const [ar, ag, ab] = hexToRgb(a)
+  const [br, bg, bb] = hexToRgb(b)
+  return rgbHex([ar + (br - ar) * t, ag + (bg - ag) * t, ab + (bb - ab) * t])
+}
+
 export function shade(hex: string, f: number): string {
   const [r, g, b] = hexToRgb(hex)
   if (f >= 1) {

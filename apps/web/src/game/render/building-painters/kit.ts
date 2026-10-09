@@ -1,4 +1,4 @@
-import { shade } from '../sprite-colors'
+import { mixHex, shade } from '../sprite-colors'
 
 export const PAD = 8
 export const PAD_TOP = 26
@@ -38,7 +38,17 @@ export interface P {
   state: string
   /** The land a stone-age home stands on (see HomeLand in land-homes.ts). */
   land?: string
+  /** A tribe's roof colour, blended into the roofs of its homes (see tribe-palette.ts). */
+  roofTint?: string
 }
+
+/** A roof colour, shifted toward the tribe's tint when the home has one. */
+export function tintRoof(p: P, c: string): string {
+  return p.roofTint ? mixHex(c, p.roofTint, ROOF_TINT_SHARE) : c
+}
+
+/** How much of a tribe's roof colour goes into its roofs. */
+export const ROOF_TINT_SHARE = 0.6
 
 export function px(ctx: Ctx, x: number, y: number, w: number, h: number, c: string) {
   ctx.fillStyle = c
@@ -72,8 +82,9 @@ export function door(p: P, cx: number, gy: number, w: number, h: number, c = '#3
   if (w >= 4) px(p.ctx, cx + w / 2 - 2, gy - h / 2, 1, 1, '#d8b860')
 }
 
-export function gableRoof(p: P, x: number, y: number, w: number, rh: number, c: string, over = 2) {
+export function gableRoof(p: P, x: number, y: number, w: number, rh: number, colour: string, over = 2) {
   const { ctx } = p
+  const c = tintRoof(p, colour)
   ctx.fillStyle = c
   ctx.beginPath()
   ctx.moveTo(Math.round(x - over), Math.round(y) + 0.5)
@@ -93,9 +104,10 @@ export function gableRoof(p: P, x: number, y: number, w: number, rh: number, c: 
   ctx.fill()
 }
 
-export function hipRoof(p: P, x: number, y: number, w: number, rh: number, c: string) {
+export function hipRoof(p: P, x: number, y: number, w: number, rh: number, colour: string) {
   const { ctx } = p
   const inset = Math.min(w * 0.22, 8)
+  const c = tintRoof(p, colour)
   ctx.fillStyle = c
   ctx.beginPath()
   ctx.moveTo(Math.round(x - 2), Math.round(y) + 0.5)
