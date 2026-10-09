@@ -29,6 +29,8 @@ const TOOL_TIPS: Record<string, string> = {
   smite: 'Strike down the nearest person or animal inside the brush area.',
   shelter: 'Build a hut on one tile.',
   road: 'Lay a road over open ground in the brush area: a dirt track, cobbled once the tribes reach the bronze age.',
+  bridge:
+    'Lay a bridge across the river or lake in the brush area. People and caravans cross it; the deep water beside it stays closed to them.',
   road_erase: 'Clear the roads in the brush area. Only the road goes: the ground under it stays as it is.',
   campfire: 'Light a campfire on one tile.',
   grass: 'Paint grassland.',

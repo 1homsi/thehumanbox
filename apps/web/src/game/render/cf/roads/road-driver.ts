@@ -2,15 +2,28 @@ import type { SpriteLayer } from 'cubeforge'
 import { TILE } from '../../../model/palette'
 import { CELL_GUTTER, type CellAtlas } from '../atlas/cell-atlas'
 import { WHITE, writeSprite, type CfDriver, type CfFrame } from '../frame'
-import { ROAD_TRACK, paintRoadCell, roadCellKey, roadMask, roadStyle } from './road-art'
+import {
+  ROAD_BRIDGE,
+  ROAD_TRACK,
+  bridgeCellKey,
+  bridgeIsVertical,
+  paintBridgeCell,
+  paintRoadCell,
+  roadCellKey,
+  roadMask,
+  roadStyle,
+} from './road-art'
 
 /** Road cells are one tile each, gutter included (the atlas adds the gutter to the class). */
 export const ROAD_CLASSES: ReadonlyArray<readonly [number, number]> = [[TILE + 2, TILE + 2]]
 
+/** A drawn cell's code: its road kind above the four join bits. */
+const JOIN_BITS = 0xf
+
 /**
- * Roads on the ground: one tile sprite per road cell in the visible window, joined to its neighbours
- * and drawn in the style of the era. The simulation sends the road kinds on each static frame, so the
- * layer is rewritten only when that revision, the era, the window or the atlas changes.
+ * Roads and bridges on the ground: one tile sprite per road cell in the visible window, joined to its
+ * neighbours and drawn in the style of the era. The simulation sends the road kinds on each static
+ * frame, so the layer is rewritten only when that revision, the era, the window or the atlas changes.
  */
 export class RoadDriver implements CfDriver {
   stats = { roads: 0, rebuilds: 0, ms: 0 }
@@ -18,7 +31,7 @@ export class RoadDriver implements CfDriver {
   private readonly atlas: CellAtlas
   private sig = ''
   private cells: number[] = []
-  private masks: number[] = []
+  private codes: number[] = []
 
   constructor(layer: SpriteLayer, atlas: CellAtlas) {
     this.layer = layer
@@ -43,28 +56,39 @@ export class RoadDriver implements CfDriver {
     const t0 = performance.now()
     this.sig = sig
     const cells = this.cells
-    const masks = this.masks
+    const codes = this.codes
     cells.length = 0
-    masks.length = 0
+    codes.length = 0
     for (let r = Math.max(0, r0); r < Math.min(grid.height, r1); r++) {
       const row = roads[r]
       if (!row) continue
       for (let c = Math.max(0, c0); c < Math.min(grid.width, c1); c++) {
-        if (row[c] !== ROAD_TRACK) continue
+        const kind = row[c]
+        if (kind !== ROAD_TRACK && kind !== ROAD_BRIDGE) continue
         cells.push(r * grid.width + c)
-        masks.push(roadMask(roads, r, c))
+        codes.push((kind << 4) | roadMask(roads, r, c))
       }
     }
     this.layer.resize(cells.length)
     let n = 0
     for (let i = 0; i < cells.length; i++) {
       const idx = cells[i]!
-      const mask = masks[i]!
+      const code = codes[i]!
+      const kind = code >> 4
+      const mask = code & JOIN_BITS
       const r = Math.floor(idx / grid.width)
       const c = idx - r * grid.width
-      const key = roadCellKey(style, mask)
-      const cell =
-        this.atlas.get(key) ?? this.atlas.bake(key, TILE, TILE, (ctx) => paintRoadCell(ctx, style, mask))
+      let key: string
+      let paint: (ctx: CanvasRenderingContext2D) => void
+      if (kind === ROAD_BRIDGE) {
+        const vertical = bridgeIsVertical(mask)
+        key = bridgeCellKey(vertical)
+        paint = (ctx) => paintBridgeCell(ctx, vertical)
+      } else {
+        key = roadCellKey(style, mask)
+        paint = (ctx) => paintRoadCell(ctx, style, mask)
+      }
+      const cell = this.atlas.get(key) ?? this.atlas.bake(key, TILE, TILE, paint)
       if (!cell) continue
       writeSprite(
         this.layer,

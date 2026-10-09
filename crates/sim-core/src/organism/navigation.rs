@@ -5,7 +5,10 @@ use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 
 use super::organism::DIRECTIONS;
-use crate::world::{grid::WorldGrid, tiles::Tile};
+use crate::world::{
+    grid::{WorldGrid, ROAD_NONE},
+    tiles::Tile,
+};
 
 /// Frontier entries as one integer whose numeric order is the order of the
 /// tuple `(estimate, cost, x, y, first)` they stand for: every field sits in its
@@ -87,6 +90,20 @@ thread_local! {
     static PLAN: RefCell<Scratch> = RefCell::new(Scratch::new(PLAN_SIDE * PLAN_SIDE));
 }
 
+/// What a step onto open ground costs in a route search. A road costs less (people walk the roads
+/// they can reach rather than cut across them), and hazard adds on top.
+const OPEN_STEP_COST: i32 = 10;
+const ROAD_STEP_COST: i32 = 6;
+
+fn step_cost(grid: &WorldGrid, x: i32, y: i32) -> i32 {
+    let base = if grid.road_at(x, y) != ROAD_NONE {
+        ROAD_STEP_COST
+    } else {
+        OPEN_STEP_COST
+    };
+    base + (grid.hazard_at(x, y) * 30.0) as i32
+}
+
 const DETOUR_RADIUS: i32 = 16;
 const DETOUR_SIDE: usize = (DETOUR_RADIUS * 2 + 1) as usize;
 
@@ -149,10 +166,13 @@ fn detour_step_in(
             }
             // Seeking water permits entering the requested water tile only,
             // not taking a shortcut across a lake on the way to it.
-            if tile == Tile::Water && grid.depth_at(nx, ny) > 0.18 && !(target_water && (nx, ny) == target) {
+            if grid.is_wet(tile, nx, ny)
+                && grid.depth_at(nx, ny) > 0.18
+                && !(target_water && (nx, ny) == target)
+            {
                 continue;
             }
-            let next_cost = cost + 10 + (grid.hazard_at(nx, ny) * 30.0) as i32;
+            let next_cost = cost + step_cost(grid, nx, ny);
             let idx = index(nx, ny);
             if next_cost >= scratch.cost(idx) {
                 continue;
@@ -302,10 +322,13 @@ fn plan_route_in(
             if !tile.walkable() || tile == Tile::Fire {
                 continue;
             }
-            if tile == Tile::Water && grid.depth_at(nx, ny) > 0.18 && !(target_water && (nx, ny) == target) {
+            if grid.is_wet(tile, nx, ny)
+                && grid.depth_at(nx, ny) > 0.18
+                && !(target_water && (nx, ny) == target)
+            {
                 continue;
             }
-            let next_cost = cost + 10 + (grid.hazard_at(nx, ny) * 30.0) as i32;
+            let next_cost = cost + step_cost(grid, nx, ny);
             let idx = index(nx, ny);
             if next_cost >= scratch.cost(idx) {
                 continue;
@@ -391,13 +414,13 @@ mod wide {
                 }
                 // Seeking water permits entering the requested water tile only,
                 // not taking a shortcut across a lake on the way to it.
-                if tile == Tile::Water
+                if grid.is_wet(tile, nx, ny)
                     && grid.depth_at(nx, ny) > 0.18
                     && !(target_water && (nx, ny) == target)
                 {
                     continue;
                 }
-                let next_cost = cost + 10 + (grid.hazard_at(nx, ny) * 30.0) as i32;
+                let next_cost = cost + step_cost(grid, nx, ny);
                 let idx = index(nx, ny);
                 if next_cost >= costs[idx] {
                     continue;
@@ -461,13 +484,13 @@ mod wide {
                 if !tile.walkable() || tile == Tile::Fire {
                     continue;
                 }
-                if tile == Tile::Water
+                if grid.is_wet(tile, nx, ny)
                     && grid.depth_at(nx, ny) > 0.18
                     && !(target_water && (nx, ny) == target)
                 {
                     continue;
                 }
-                let next_cost = cost + 10 + (grid.hazard_at(nx, ny) * 30.0) as i32;
+                let next_cost = cost + step_cost(grid, nx, ny);
                 let idx = index(nx, ny);
                 if next_cost >= costs[idx] {
                     continue;
@@ -515,6 +538,74 @@ mod tests {
             grid.set(x, 110, Tile::Rock);
         }
         grid
+    }
+
+    /// A block of rock between the walker and the target, open rows above and below it. Either way round
+    /// is the same length on open ground.
+    fn blocked_middle() -> WorldGrid {
+        let mut grid = WorldGrid::new(1);
+        for y in 60..140 {
+            for x in 60..140 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+        for y in 99..=101 {
+            for x in 95..=105 {
+                grid.set(x, y, Tile::Rock);
+            }
+        }
+        grid
+    }
+
+    #[test]
+    fn a_road_round_the_block_is_taken_over_open_ground() {
+        let mut grid = blocked_middle();
+        // The walk along the row below the block is a road, from the walker's side to the target's.
+        for x in 92..=108 {
+            grid.road[WorldGrid::idx(x, 102)] = crate::world::grid::ROAD_TRACK;
+        }
+        grid.road[WorldGrid::idx(91, 101)] = crate::world::grid::ROAD_TRACK;
+        grid.road[WorldGrid::idx(109, 101)] = crate::world::grid::ROAD_TRACK;
+        let steps = plan_route(&grid, (90, 100), (110, 100)).expect("a route");
+        assert_eq!(steps.last(), Some(&(110, 100)));
+        assert!(
+            steps
+                .iter()
+                .filter(|&&(x, y)| y == 102 && (92..=108).contains(&x))
+                .count()
+                > 10,
+            "the route runs along the road below the block: {steps:?}"
+        );
+    }
+
+    /// A deep river down column 100, from end to end of the open region, with a bridge at (100, 100) when asked.
+    fn river(bridge: bool) -> WorldGrid {
+        let mut grid = WorldGrid::new(1);
+        for y in 60..140 {
+            for x in 60..140 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+        for y in 60..140 {
+            grid.set(100, y, Tile::Water);
+            grid.depth[WorldGrid::idx(100, y)] = 0.5;
+        }
+        if bridge {
+            grid.road[WorldGrid::idx(100, 100)] = crate::world::grid::ROAD_BRIDGE;
+        }
+        grid
+    }
+
+    #[test]
+    fn a_river_is_crossed_only_by_the_bridge() {
+        let without = plan_route(&river(false), (90, 100), (110, 100));
+        assert!(
+            without.is_none_or(|steps| steps.iter().all(|&(x, _)| x < 100)),
+            "no way over the deep river without a bridge"
+        );
+        let with = plan_route(&river(true), (90, 100), (110, 100)).expect("a route over the bridge");
+        assert_eq!(with.last(), Some(&(110, 100)));
+        assert!(with.contains(&(100, 100)), "the route goes over the bridge");
     }
 
     #[test]

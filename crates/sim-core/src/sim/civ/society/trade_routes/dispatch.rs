@@ -181,9 +181,13 @@ pub(super) fn dispatch_caravan_on_route_index(
         return false;
     }
 
-    let travel_ticks = manhattan_distance(from, to)
+    // A caravan on a road makes better time: a route that runs entirely on road takes
+    // `CARAVAN_ROAD_HASTE` less time than the same distance over open ground.
+    let open_ticks = manhattan_distance(from, to)
         .saturating_mul(4)
         .clamp(60, MAX_CARAVAN_TRAVEL_TICKS);
+    let on_road = f64::from(sim.grid.road_share(from, to)) * CARAVAN_ROAD_HASTE;
+    let travel_ticks = ((open_ticks as f64) * (1.0 - on_road)).round() as u64;
     let era = sim
         .lineage_eras
         .get(&actor_lineage)

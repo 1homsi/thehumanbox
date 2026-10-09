@@ -71,6 +71,8 @@ describe('road tools', () => {
     const erase = build.find((t) => t.id === 'road_erase')
     expect(road?.build?.(10, 20, 3)).toEqual({ cmd: 'road', x: 10, y: 20, radius: 3, kind: 'road' })
     expect(erase?.build?.(10, 20, 2)).toEqual({ cmd: 'road', x: 10, y: 20, radius: 2, kind: 'erase' })
+    const bridge = build.find((t) => t.id === 'bridge')
+    expect(bridge?.build?.(10, 20, 1)).toEqual({ cmd: 'road', x: 10, y: 20, radius: 1, kind: 'bridge' })
   })
 })
 

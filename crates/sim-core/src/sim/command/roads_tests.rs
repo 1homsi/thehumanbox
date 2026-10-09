@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::sim::storage::persistence::SaveState;
-use crate::world::grid::{ROAD_NONE, ROAD_TRACK};
+use crate::world::grid::{ROAD_BRIDGE, ROAD_NONE, ROAD_TRACK};
 use crate::world::tiles::Tile;
 
 /// A square of `tile` around (100, 100).
@@ -79,6 +79,40 @@ fn roads_survive_a_save_and_load() {
     let back = Simulation::from_save(5, loaded);
     assert_eq!(back.grid.road_at(100, 100), ROAD_TRACK);
     assert_eq!(back.grid.road_at(103, 100), ROAD_NONE);
+}
+
+#[test]
+fn a_bridge_goes_on_water_and_nowhere_else() {
+    let mut sim = Simulation::new(1);
+    square(&mut sim, Tile::Grass);
+    for y in 92..=108 {
+        sim.grid.set(100, y, Tile::Water);
+    }
+    assert!(sim.apply_command_json(r#"{"cmd":"road","x":100,"y":100,"radius":2,"kind":"bridge"}"#));
+    assert_eq!(sim.grid.road_at(100, 100), ROAD_BRIDGE);
+    assert_eq!(sim.grid.road_at(102, 100), ROAD_NONE, "bridges do not go on land");
+    assert!(
+        !sim.grid.wet_at(100, 100),
+        "a bridged cell is not water to walk through"
+    );
+    assert!(sim.grid.wet_at(100, 92), "the water beyond the brush stays wet");
+    assert!(!sim.apply_command_json(r#"{"cmd":"road","x":95,"y":95,"radius":0,"kind":"bridge"}"#));
+}
+
+#[test]
+fn road_share_measures_how_much_of_a_line_is_road() {
+    let mut sim = Simulation::new(1);
+    square(&mut sim, Tile::Grass);
+    // The first half of the row from (92, 100) to (108, 100) is road.
+    for x in 92..=100 {
+        sim.grid.road[WorldGrid::idx(x, 100)] = ROAD_TRACK;
+    }
+    let share = sim.grid.road_share([92, 100], [108, 100]);
+    assert!(
+        (0.5..0.7).contains(&share),
+        "about half the line is road, got {share}"
+    );
+    assert_eq!(sim.grid.road_share([92, 104], [108, 104]), 0.0);
 }
 
 #[test]
