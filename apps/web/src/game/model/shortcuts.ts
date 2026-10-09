@@ -1,6 +1,10 @@
 /** What a game key does, or null for keys the game does not use. */
 export type ShortcutAction =
-  { kind: 'speed'; tool: 'normal' | 'fast2' | 'fast4' | 'fast10' } | { kind: 'prayer' } | { kind: 'brink' }
+  | { kind: 'speed'; tool: 'normal' | 'fast2' | 'fast4' | 'fast10' }
+  | { kind: 'prayer' }
+  | { kind: 'brink' }
+  | { kind: 'brush'; delta: 1 | -1 }
+  | { kind: 'help' }
 
 const SPEEDS = { '1': 'normal', '2': 'fast2', '3': 'fast4', '4': 'fast10' } as const
 
@@ -15,6 +19,9 @@ export function shortcutFor(event: {
   if (key in SPEEDS) return { kind: 'speed', tool: SPEEDS[key as keyof typeof SPEEDS] }
   if (key === 'p') return { kind: 'prayer' }
   if (key === 'b') return { kind: 'brink' }
+  if (key === '-') return { kind: 'brush', delta: -1 }
+  if (key === '=' || key === '+') return { kind: 'brush', delta: 1 }
+  if (key === '?') return { kind: 'help' }
   return null
 }
 
@@ -33,6 +40,8 @@ export const SHORTCUT_HELP: ReadonlyArray<[string, string]> = [
   ['P', 'answer the most urgent prayer'],
   ['B', 'go to the next tribe on the brink'],
   ['[ ]', 'previous or next person'],
+  ['- =', 'smaller or larger brush'],
+  ['?', 'show or hide this list'],
   ['H', 'hide the interface'],
   ['0', 'fit the world'],
   ['Q E R T Y U I O F G', 'pick the first ten tools of the open tab'],

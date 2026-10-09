@@ -326,7 +326,7 @@ export function SandboxToolbar({
       <div className="dock-hint" role="status" aria-live="polite">
         {hint && <span>{hint}</span>}
         {armedToolId && (
-          <span className="dock-brush" title="Brush size · also [ and ]">
+          <span className="dock-brush" title="Brush size · also - and =">
             <button type="button" aria-label="Smaller brush" onClick={() => onBrush(Math.max(0, brush - 1))}>
               −
             </button>

@@ -430,3 +430,49 @@
     transition: none;
   }
 }
+
+/* The keys list (? key): a card over the map, closed by ? or Escape. */
+.hotkey-help {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgba(10, 6, 2, 0.55);
+}
+.hotkey-help-card {
+  min-width: 260px;
+  max-width: min(92vw, 380px);
+  padding: 14px 16px;
+  background: var(--dock-wood);
+  color: #e7d8bc;
+  box-shadow:
+    inset 2px 2px 0 #9c7a3e,
+    inset -2px -3px 0 #3a2a15;
+}
+.hotkey-help-title {
+  color: #f3d17a;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.hotkey-help-list {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+.hotkey-help-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px;
+  font-size: 12px;
+}
+.hotkey-help-row dt {
+  color: #f3d17a;
+  font-weight: 700;
+}
+.hotkey-help-row dd {
+  margin: 0;
+}
+.hotkey-help-close {
+  margin-top: 10px;
+}
