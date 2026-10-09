@@ -333,6 +333,10 @@ impl Simulation {
         if self.tick_count < boat.ready_tick {
             return Some((22, Some("building a wooden boat".into()), "boat_build"));
         }
+        // A storm keeps a boat that is out on the water in harbour until it passes.
+        if self.weather.kind == 2 && !boat.route.is_empty() {
+            return Some((22, Some("sheltering from the storm".into()), "boat_wait"));
+        }
         if let Some(&(x, y)) = boat.route.last() {
             let tile = self.grid.get(x, y);
             if (x - pos.0).abs() + (y - pos.1).abs() != 1 || !tile.walkable() || tile == Tile::Fire {
@@ -491,5 +495,45 @@ mod tests {
         assert_eq!(sim.vehicles[0].x, 108);
         let frame = sim.state_json();
         assert_eq!(frame["vehicles"][0]["kind"], "boat");
+    }
+}
+
+#[cfg(test)]
+mod storm_tests {
+    use super::*;
+
+    #[test]
+    fn a_boat_on_the_water_sits_out_a_storm_then_sails_on() {
+        let mut sim = Simulation::new(0x5708);
+        let person = sim.organisms[0].id.clone();
+        let lineage = sim.organisms[0].lineage_id.clone();
+        sim.organisms[0].x = 45.0;
+        sim.organisms[0].y = 45.0;
+        sim.vehicles.clear();
+        sim.vehicles.push(Vehicle {
+            id: 1,
+            kind: TransportKind::Boat,
+            owner_lineage: lineage,
+            x: 45,
+            y: 45,
+            occupants: vec![person],
+            cargo: 0,
+            route: vec![(46, 45)],
+            ready_tick: 0,
+        });
+        sim.tick_count = 500;
+        sim.weather.kind = 2;
+        let (_, thought, origin) = sim.boat_action(0).expect("the passenger is aboard");
+        assert_eq!(origin, "boat_wait");
+        assert_eq!(thought.as_deref(), Some("sheltering from the storm"));
+        assert_eq!(
+            (sim.vehicles[0].x, sim.vehicles[0].y),
+            (45, 45),
+            "the boat holds still"
+        );
+
+        sim.weather.kind = 0;
+        let (_, thought, _) = sim.boat_action(0).expect("the passenger is aboard");
+        assert_ne!(thought.as_deref(), Some("sheltering from the storm"));
     }
 }
