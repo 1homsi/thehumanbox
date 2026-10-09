@@ -575,7 +575,17 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
             let mut considered = existing.clone();
             let mut started = None;
             if project_index == 0 {
-                if let Some(kind) = housing_target(sim, &lid, era, pop) {
+                // A tribe of six raises its workshop before its next home: craft
+                // work needs one, and housing would otherwise always come first.
+                if let Some(kind) = first_workshop_target(era, pop, &existing) {
+                    let (cx, cy) = lineage_center(sim, &lid);
+                    if (cx, cy) != (0, 0)
+                        && try_start_building_with(sim, &lid, kind, cx, cy, &mut failed_sites)
+                    {
+                        started = Some(kind);
+                    }
+                }
+                if let Some(kind) = housing_target(sim, &lid, era, pop).filter(|_| started.is_none()) {
                     // Move into a home a vanished tribe left before raising one.
                     if !crate::sim::civ::vacancy::move_into_empty_home(sim, &lid) {
                         let (cx, cy) = lineage_center(sim, &lid);

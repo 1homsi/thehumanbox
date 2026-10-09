@@ -170,6 +170,10 @@ struct ResearchProfile {
     research_sites: f32,
     laboratory_capacity: f32,
     recent_experiments: usize,
+    /// Operational dwellings the tribe owns per member, capped at one. A tribe
+    /// that lives in houses has ground to sow near them, so farming discoveries
+    /// come easier to settled tribes than to camps that only forage.
+    settled: f32,
 }
 
 fn research_profile(
@@ -218,6 +222,15 @@ fn research_profile(
         .filter(|building| building.owner_lineage.as_deref() == Some(lineage_id) && building.is_operational())
         .map(|building| laboratory_weight(building.kind))
         .sum::<f32>();
+    let dwellings = buildings
+        .iter()
+        .filter(|building| {
+            building.owner_lineage.as_deref() == Some(lineage_id)
+                && building.is_operational()
+                && matches!(building.kind, BuildingKind::Hut | BuildingKind::House)
+        })
+        .count() as f32;
+    let settled = (dwellings / count).min(1.0);
     let treasury_factor = government
         .map(|government| (government.treasury as f32 / (count * 30.0)).min(0.35))
         .unwrap_or(0.0);
@@ -261,6 +274,7 @@ fn research_profile(
         research_sites,
         laboratory_capacity,
         recent_experiments,
+        settled,
     }
 }
 
@@ -329,7 +343,8 @@ fn evidence_multiplier(discovery: &str, profile: &ResearchProfile) -> f32 {
         || lower.contains("food")
         || lower.contains("agri")
     {
-        profile.food_workers as f32 * 0.06
+        // Settled tribes (a house for most of the people) learn to sow.
+        profile.food_workers as f32 * 0.06 + profile.settled * 0.6
     } else if lower.contains("engine")
         || lower.contains("machine")
         || lower.contains("space")

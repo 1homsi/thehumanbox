@@ -144,6 +144,13 @@ impl Simulation {
         {
             crate::sim::civ::fields::tick_fields(self);
         }
+        if self.tick_count > 0
+            && self
+                .tick_count
+                .is_multiple_of(crate::sim::civ::land::village_fields::SOW_STEP)
+        {
+            crate::sim::civ::land::village_fields::tick_village_fields(self);
+        }
 
         if self.tick_count.is_multiple_of(300) {
             let ignited_fires = tick_world_evolution(
