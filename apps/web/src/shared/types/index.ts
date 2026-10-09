@@ -205,6 +205,10 @@ export interface TradeRouteInfo {
   last_dispatch_tick: number
   deliveries: number
   volume: number
+  /** A trade or alliance treaty holds between the two tribes. */
+  agreement?: boolean
+  /** The two tribes are at war, so no caravan passes. */
+  embargoed?: boolean
 }
 
 export interface CaravanInfo {

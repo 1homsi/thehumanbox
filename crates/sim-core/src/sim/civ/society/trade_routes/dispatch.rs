@@ -106,6 +106,7 @@ pub(super) fn dispatch_route_index(
             };
             if partner_lineage.is_some_and(|requested| requested != receiver_lineage)
                 || settlement_endpoints(sim, &actor_lineage, receiver_lineage).is_none()
+                || route_is_embargoed(sim, &actor_lineage, receiver_lineage)
             {
                 return None;
             }

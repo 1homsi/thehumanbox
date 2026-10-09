@@ -88,6 +88,25 @@ export function drawTradeNetwork2D(
         motionTime(now),
         Math.round(route.a_center[0] * 31 + route.b_center[1]),
       )
+      if (route.embargoed) {
+        // A road closed by war carries a red barrier at its midpoint.
+        const mx = (startX + endX) / 2
+        const my = (startY + endY) / 2
+        ctx.fillStyle = '#7a1f1a'
+        ctx.fillRect(
+          Math.round(mx - TILE * 0.4),
+          Math.round(my - TILE * 0.4),
+          Math.round(TILE * 0.8),
+          Math.round(TILE * 0.8),
+        )
+        ctx.fillStyle = '#e04b3a'
+        ctx.fillRect(
+          Math.round(mx - TILE * 0.3),
+          Math.round(my - TILE * 0.3),
+          Math.round(TILE * 0.6),
+          Math.round(TILE * 0.6),
+        )
+      }
     }
     return
   }

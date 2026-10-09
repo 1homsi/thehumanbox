@@ -49,6 +49,8 @@ export function tradeOfTribe(
   const inbound = caravans.find((caravan) => caravan.receiver_lineage === lineage)
   const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
   const parts = [plural(routes.length, 'route', 'routes')]
+  if (routes.some((route) => route.embargoed)) parts.push('embargoed by war')
+  else if (routes.some((route) => route.agreement)) parts.push('trade agreement')
   // A first caravan still on the road has delivered nothing yet, so no goods are named.
   if (goods > 0) parts.push(plural(goods, 'good', 'goods'))
   if (caravans.length > 0) parts.push(`${plural(caravans.length, 'caravan', 'caravans')} on the road`)
