@@ -38,6 +38,7 @@ impl Simulation {
                 wind_x: self.weather.wind_x,
                 wind_y: self.weather.wind_y,
                 wind_last_tick: self.weather.wind_last_tick,
+                heat_until: self.weather.heat_until,
             },
             // Cap unbounded VecDeques on save. Their in-memory caps
             // are larger than what makes sense to persist; if we ship

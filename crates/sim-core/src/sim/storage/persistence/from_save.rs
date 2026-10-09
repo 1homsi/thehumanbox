@@ -160,6 +160,7 @@ impl Simulation {
                 wind_x: state.weather.wind_x,
                 wind_y: state.weather.wind_y,
                 wind_last_tick: state.weather.wind_last_tick,
+                heat_until: state.weather.heat_until,
             },
             flood_tiles: state.flood_tiles,
             wards: state.wards,

@@ -48,6 +48,8 @@ pub(crate) struct WeatherSave {
     pub(super) wind_x: f32,
     pub(super) wind_y: f32,
     pub(super) wind_last_tick: u64,
+    #[serde(default)]
+    pub(super) heat_until: u64,
 }
 
 impl Default for WeatherSave {
@@ -61,6 +63,7 @@ impl Default for WeatherSave {
             wind_x: 0.4,
             wind_y: 0.0,
             wind_last_tick: 0,
+            heat_until: 0,
         }
     }
 }

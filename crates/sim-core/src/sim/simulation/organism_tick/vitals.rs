@@ -155,9 +155,17 @@ impl Simulation {
             }
         }
         let hydration_mult = if water_near { 0.5 } else { 1.0 };
+        // A heat wave: people drink more and tire faster.
+        let (heat_thirst, heat_tire) = if self.weather.heat_active(self.tick_count) {
+            (1.6, 1.25)
+        } else {
+            (1.0, 1.0)
+        };
 
-        self.organisms[idx].energy = (self.organisms[idx].energy - 0.0022 * shelter_drain_mult).max(0.0);
-        self.organisms[idx].hydration = (self.organisms[idx].hydration - 0.0014 * hydration_mult).max(0.0);
+        self.organisms[idx].energy =
+            (self.organisms[idx].energy - 0.0022 * shelter_drain_mult * heat_tire).max(0.0);
+        self.organisms[idx].hydration =
+            (self.organisms[idx].hydration - 0.0014 * hydration_mult * heat_thirst).max(0.0);
 
         let (used_food_reserve, _) = use_needed_reserves(&mut self.organisms[idx], self.tick_count);
         if used_food_reserve {
