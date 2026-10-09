@@ -96,6 +96,8 @@ pub struct Simulation {
     pub lineage_generations_reached: HashMap<String, u32>,
     /// Unrest building in each tribe whose wealth gap is stark (civ/society/unrest.rs).
     pub lineage_unrest: HashMap<String, f32>,
+    /// Thefts, killings and punishments in each tribe (civ/society/crime.rs).
+    pub lineage_crime: HashMap<String, crate::sim::civ::society::crime::CrimeTally>,
     pub(crate) lineage_aggregates: HashMap<String, LineageAggregate>,
     pub buildings: super::buildings::BuildingList,
     pub next_building_id: u32,
@@ -241,6 +243,7 @@ impl Simulation {
             lineage_eras: HashMap::default(),
             lineage_generations_reached: HashMap::default(),
             lineage_unrest: HashMap::default(),
+            lineage_crime: HashMap::default(),
             lineage_aggregates: HashMap::default(),
             buildings: Default::default(),
             next_building_id: 1,

@@ -1,3 +1,4 @@
+pub mod crime;
 pub mod culture;
 pub mod economy;
 pub mod economy_tick;
