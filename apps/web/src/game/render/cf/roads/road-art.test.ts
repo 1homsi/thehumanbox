@@ -6,6 +6,9 @@ import {
   ROAD_S,
   ROAD_TRACK,
   ROAD_W,
+  RAIL_COLOR,
+  bridgeCellPixels,
+  bridgeIsVertical,
   isRoadPixel,
   roadCellPixels,
   roadMask,
@@ -43,6 +46,25 @@ describe('road style by era', () => {
     expect(roadStyle('medieval')).toBe('cobble')
     expect(roadStyle(undefined)).toBe('track')
     expect(roadStyle('genesis')).toBe('track')
+  })
+})
+
+describe('bridges', () => {
+  it('crosses the way the road goes: vertical when it joins from above or below only', () => {
+    expect(bridgeIsVertical(ROAD_N | ROAD_S)).toBe(true)
+    expect(bridgeIsVertical(ROAD_E | ROAD_W)).toBe(false)
+    expect(bridgeIsVertical(ROAD_N | ROAD_E)).toBe(false)
+    expect(bridgeIsVertical(0)).toBe(false)
+  })
+
+  it('paints rails along both sides and planks across the crossing', () => {
+    const horizontal = bridgeCellPixels(false)
+    expect(horizontal.length).toBe(TILE * TILE)
+    // A horizontal bridge has its rails on the top and bottom rows.
+    expect(horizontal.find(([x, y]) => x === 3 && y === 0)?.[2]).toBe(RAIL_COLOR)
+    expect(horizontal.find(([x, y]) => x === 3 && y === 3)?.[2]).not.toBe(RAIL_COLOR)
+    const vertical = bridgeCellPixels(true)
+    expect(vertical.find(([x, y]) => x === 0 && y === 3)?.[2]).toBe(RAIL_COLOR)
   })
 })
 

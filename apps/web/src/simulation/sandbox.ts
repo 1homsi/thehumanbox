@@ -66,7 +66,7 @@ export type SandboxCommand =
   | { cmd: 'comet'; x: number; y: number; radius?: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
   | { cmd: 'repair'; x: number; y: number; radius?: number }
-  | { cmd: 'road'; x: number; y: number; radius?: number; kind: 'road' | 'erase' }
+  | { cmd: 'road'; x: number; y: number; radius?: number; kind: 'road' | 'bridge' | 'erase' }
   | { cmd: 'place_building'; x: number; y: number; kind: string }
   | {
       cmd: 'guide'
@@ -573,6 +573,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🛤️',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'road', x, y, radius: b, kind: 'road' }),
+      },
+      {
+        id: 'bridge',
+        label: 'bridge',
+        icon: '🌉',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'road', x, y, radius: b, kind: 'bridge' }),
       },
       {
         id: 'road_erase',

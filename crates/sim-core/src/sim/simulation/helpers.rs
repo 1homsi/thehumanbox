@@ -103,7 +103,7 @@ pub(super) fn fallback_walkable_step(
         }
         let alignment = (dx * rdx + dy * rdy) as f32;
         let mut score = alignment * 10.0;
-        if tile == Tile::Water {
+        if grid.is_wet(tile, nx, ny) {
             let depth = grid.depth_at(nx, ny);
             if depth > 0.18 {
                 score -= 40.0;
@@ -160,7 +160,7 @@ pub(super) fn safe_flee_target(
                     ((tx - start.0) as f32 * away_dx + (ty - start.1) as f32 * away_dy) / flee_dist.max(1.0);
                 let mut score = progress * 10.0;
                 score -= ((tx - raw_tx).abs() + (ty - raw_ty).abs()) as f32 * 0.12;
-                if tile == Tile::Water {
+                if grid.is_wet(tile, tx, ty) {
                     score -= 5.0 + grid.depth_at(tx, ty) * 12.0;
                 }
                 score -= grid.hazard_at(tx, ty) * 18.0;
@@ -208,7 +208,7 @@ pub(super) fn movement_step_feedback(
     }
 
     let moved_tile = grid.get(mx, my);
-    if moved_tile == Tile::Water {
+    if grid.is_wet(moved_tile, mx, my) {
         let depth = grid.depth_at(mx, my);
         feedback -= 0.003 + depth * 0.012;
     }

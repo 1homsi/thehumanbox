@@ -17,6 +17,8 @@ pub const VP_H: usize = HEIGHT;
 pub const ROAD_NONE: u8 = 0;
 /// A trodden road: dirt in the early ages, cobbles once the tribes reach the later ones.
 pub const ROAD_TRACK: u8 = 1;
+/// A bridge over water: walkable across a river or lake, the only way over deep water.
+pub const ROAD_BRIDGE: u8 = 2;
 
 pub struct WorldGrid {
     pub tiles: Vec<i8>,
@@ -182,6 +184,33 @@ impl WorldGrid {
         } else {
             ROAD_NONE
         }
+    }
+
+    /// Water a walker wades or swims through: water with no bridge over it. `tile` is the cell's tile,
+    /// which the caller already has (this is checked for every step a walker considers).
+    #[inline]
+    pub fn is_wet(&self, tile: Tile, x: i32, y: i32) -> bool {
+        tile == Tile::Water && self.road_at(x, y) != ROAD_BRIDGE
+    }
+
+    /// Water a walker wades or swims through: water with no bridge over it.
+    pub fn wet_at(&self, x: i32, y: i32) -> bool {
+        self.is_wet(self.get(x, y), x, y)
+    }
+
+    /// The share (0 to 1) of the straight line from `a` to `b`, sampled once per tile, that runs on road.
+    pub fn road_share(&self, a: [i32; 2], b: [i32; 2]) -> f32 {
+        let steps = (b[0] - a[0]).abs().max((b[1] - a[1]).abs()).max(1);
+        let mut on_road = 0;
+        for s in 0..=steps {
+            let t = s as f32 / steps as f32;
+            let x = (a[0] as f32 + (b[0] - a[0]) as f32 * t).round() as i32;
+            let y = (a[1] as f32 + (b[1] - a[1]) as f32 * t).round() as i32;
+            if self.road_at(x, y) != ROAD_NONE {
+                on_road += 1;
+            }
+        }
+        on_road as f32 / (steps + 1) as f32
     }
 
     pub fn fire_intensity(&self, x: i32, y: i32) -> f32 {

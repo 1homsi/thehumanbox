@@ -1,5 +1,8 @@
 use super::*;
 
+/// The pull of a road on a step that also makes progress, in tiles of progress (see `toward`).
+const ROAD_PULL: f32 = 1.0;
+
 impl Organism {
     pub(crate) fn begin_journey(&mut self, target: (i32, i32), description: &str, tick: u64) {
         // Don't set out again for somewhere we just found no way to reach.
@@ -34,7 +37,9 @@ impl Organism {
         let direct = (ix + dx.signum(), iy + dy.signum());
         let direct_tile = grid.get(direct.0, direct.1);
         let blocked = !direct_tile.walkable()
-            || (!target_is_water && direct_tile == Tile::Water && grid.depth_at(direct.0, direct.1) > 0.18);
+            || (!target_is_water
+                && grid.is_wet(direct_tile, direct.0, direct.1)
+                && grid.depth_at(direct.0, direct.1) > 0.18);
         let distance = dx.abs().max(dy.abs());
         // Already routing around something toward this goal: keep to the
         // route, or the greedy step below walks straight back into it.
@@ -89,7 +94,7 @@ impl Organism {
             if !t.walkable() || t == Tile::Fire {
                 score = f32::NEG_INFINITY;
             }
-            if t == Tile::Water {
+            if grid.is_wet(t, nx, ny) {
                 let depth = grid.depth_at(nx, ny);
                 if target_is_water {
                     score -= depth * 8.0;
@@ -108,6 +113,11 @@ impl Organism {
                 } else {
                     score -= hazard_penalty.min(progress as f32 - 0.25);
                 }
+            }
+            // People keep to the roads they pass: a step onto one that also gets them closer is preferred
+            // over the same step across open ground.
+            if progress > 0 && grid.road_at(nx, ny) != crate::world::grid::ROAD_NONE {
+                score += ROAD_PULL;
             }
             if score > best_score {
                 best_score = score;

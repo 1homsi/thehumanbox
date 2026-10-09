@@ -171,7 +171,7 @@ impl Organism {
         // them when no dry step makes progress. Sending every hydrated wader
         // straight back ashore made people bounce between shore and water.
         let deep = grid.depth_at(ix, iy) > 0.18;
-        if tile == Tile::Water
+        if grid.is_wet(tile, ix, iy)
             && ((deep && self.hydration >= 0.75)
                 || self.water_ticks > 5
                 || self.energy < 0.55
