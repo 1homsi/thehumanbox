@@ -108,6 +108,20 @@ impl Simulation {
                 self.weather.duration = 1500;
                 self.weather.intensity = 0.6;
             }
+            // A monsoon is a long, heavy rain: the rivers rise and the land stays soaked for days.
+            "monsoon" => {
+                self.weather.kind = 1;
+                self.weather.start_tick = now;
+                self.weather.duration = 6000;
+                self.weather.intensity = 1.0;
+            }
+            // A cold snap is a short, hard fall of snow that chills everyone out in it.
+            "cold_snap" => {
+                self.weather.kind = 3;
+                self.weather.start_tick = now;
+                self.weather.duration = 900;
+                self.weather.intensity = 1.0;
+            }
             "fog" => {
                 self.weather.kind = 4;
                 self.weather.start_tick = now;
