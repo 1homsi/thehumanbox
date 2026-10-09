@@ -1,11 +1,11 @@
 import { personName } from '../../shared/personName'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import type { OrganismState } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
 import { useOrgDetail } from '../../shared/hooks/useOrgDetail'
+import { lazyWithRetry } from '../../shared/lazyWithRetry'
 import { WithQueryClient } from '../../shared/query'
 import { useUIStore } from '../../state/store'
-import { LifeModal } from '../modals/LifeModal'
 import { OrgHeader } from './org-detail/OrgHeader'
 import { StatusChips, Vitals } from './org-detail/status'
 import { MentalState } from './org-detail/MentalState'
@@ -28,6 +28,9 @@ import {
 } from './org-detail/life-log'
 import { BondsRememberedSection, MemoriesSection } from './org-detail/memories'
 import { LanguageSection } from './org-detail/LanguageSection'
+
+// The life story dialog is opened from this panel on demand; its `Modal` pulls Radix Dialog in.
+const LifeModal = lazyWithRetry(() => import('../modals/LifeModal').then((m) => ({ default: m.LifeModal })))
 
 interface Props {
   org: OrganismState
@@ -70,7 +73,11 @@ function OrgDetailBody({
 
   return (
     <>
-      {showLife && <LifeModal orgId={org.id} orgName={personName(org)} onClose={() => setShowLife(false)} />}
+      {showLife && (
+        <Suspense fallback={null}>
+          <LifeModal orgId={org.id} orgName={personName(org)} onClose={() => setShowLife(false)} />
+        </Suspense>
+      )}
       <div className="org-detail" style={{ borderTop: `3px solid ${color}` }}>
         <OrgHeader
           org={org}
