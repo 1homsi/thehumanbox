@@ -146,8 +146,25 @@ pub fn share_food(
 
     let org_id2 = organisms[org_idx].id.clone();
     let org_name = organisms[org_idx].name.clone();
-    let t = organisms[ti].org_trust.entry(org_id2).or_insert(0.0);
+    let target_id = organisms[ti].id.clone();
+    let t = organisms[ti].org_trust.entry(org_id2.clone()).or_insert(0.0);
     *t = (*t + 0.10).min(1.0);
+    let received_trust = *t;
+    // A shared meal builds trust both ways, so people who eat together become
+    // friends (the friend line is the same one the other bonds use).
+    let g = organisms[org_idx]
+        .org_trust
+        .entry(target_id.clone())
+        .or_insert(0.0);
+    *g = (*g + 0.04).min(1.0);
+    let given_trust = *g;
+    const FRIEND_THRESHOLD: f32 = 0.55;
+    if received_trust >= FRIEND_THRESHOLD {
+        organisms[ti].add_friend(&org_id2, &org_name, tick);
+    }
+    if given_trust >= FRIEND_THRESHOLD {
+        organisms[org_idx].add_friend(&target_id, &target_name, tick);
+    }
 
     organisms[org_idx].think(
         &format!("sharing food with {}", &target_name[..4.min(target_name.len())]),

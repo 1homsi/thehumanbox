@@ -1,4 +1,5 @@
 use super::*;
+use crate::sim::agents::relations::RIVAL_TRUST;
 
 impl Simulation {
     /// Partnership and family: friend-seeking, courtship and conversation, partners, and reproduction.
@@ -34,7 +35,13 @@ impl Simulation {
             let target = spatial
                 .ordered_nearby(&self.organisms, ox, oy, MATE_SEEK_MAX_TILES as i32)
                 .map(|(_, o)| o)
-                .filter(|o| o.alive && o.sex != my_sex && o.age > 1000 && o.partner_id.is_none())
+                .filter(|o| {
+                    o.alive
+                        && o.sex != my_sex
+                        && o.age > 1000
+                        && o.partner_id.is_none()
+                        && my_trust.get(&o.id).is_none_or(|&t| t > RIVAL_TRUST)
+                })
                 .map(|o| {
                     let dist = (o.x - ox).hypot(o.y - oy);
                     (o, dist)
@@ -63,7 +70,9 @@ impl Simulation {
                 .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
                 .map(|(o, _)| (o.x as i32, o.y as i32));
             if let Some((tx, ty)) = target {
-                self.organisms[idx].wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
+                let mate_at = (tx.clamp(5, 595), ty.clamp(5, 295));
+                self.organisms[idx].wander_target = Some(mate_at);
+                self.mark_mate_rivals(idx, mate_at, spatial);
             }
         }
 
@@ -124,6 +133,10 @@ impl Simulation {
                         && o.attracted_to.is_none()
                         && o.age > 1000
                         && o.sex != my_sex
+                        && self.organisms[idx]
+                            .org_trust
+                            .get(&o.id)
+                            .is_none_or(|&t| t > RIVAL_TRUST)
                         && (o.x - ox).hypot(o.y - oy) < 120.0
                 })
                 .map(|(i, _)| i);
