@@ -121,7 +121,8 @@ export function drawCaravanSprite(
   color: string,
   tile: number,
 ) {
-  const u = Math.max(1, tile / 8)
+  // Sized to read beside a person at close zoom: the cart is about one and a half tiles long.
+  const u = Math.max(1, tile / 5)
   ctx.save()
   ctx.translate(Math.round(x), Math.round(y))
   // Face the way it travels, but never upside down.
@@ -157,6 +158,14 @@ export function drawCaravanSprite(
     ctx.fillStyle = '#3a2a1c'
     ctx.fillRect(u * 2, u, u, u * 2)
     ctx.fillRect(u * 5, u, u, u * 2)
+    // The driver walks at the rear, with a head and a tunic in the sender's colour.
+    ctx.fillStyle = '#e0b48a'
+    ctx.fillRect(-u * 8, -u * 6, u * 2, u * 2)
+    ctx.fillStyle = color
+    ctx.fillRect(-u * 8, -u * 4, u * 2, u * 3)
+    ctx.fillStyle = '#3a2a1c'
+    ctx.fillRect(-u * 8, -u, u, u * 2)
+    ctx.fillRect(-u * 7, -u, u, u * 2)
   }
   ctx.restore()
 }
