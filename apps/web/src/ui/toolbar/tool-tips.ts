@@ -102,6 +102,8 @@ const TOOL_TIPS: Record<string, string> = {
     'A short, hard fall of snow. Everyone out in it is chilled, and it ends sooner than a snowfall does.',
   aurora:
     'Lights dance across the night sky over the whole world. Everyone alive is awed and a little calmer, and the omen is written into the chronicle.',
+  duck: 'Release a duck, or a few, on wet ground or grass. They flock together and waddle about, and keep clear of people.',
+  bee: 'Release a bee, or a few, over the grass, forest or savanna. They hum over the flowers and keep clear of people.',
   comet:
     'A comet streaks across the sky over where you click. Everyone who can see it, within the reach, is awed; the awe lasts and the omen is written into the chronicle.',
   dice: 'Roll for fate: one random event lands at a random spot. It may bless, bring rain or a gale, or be a disaster such as a tornado, a wildfire or an earthquake.',

@@ -536,6 +536,8 @@ impl Simulation {
                 AnimalKind::Camel => 40,
                 AnimalKind::Frog => 90,
                 AnimalKind::Whale => 40,
+                AnimalKind::Duck => 70,
+                AnimalKind::Bee => 60,
                 // Summoned, never born.
                 AnimalKind::Zombie
                 | AnimalKind::Demon
@@ -795,9 +797,11 @@ impl Simulation {
                 AnimalKind::Penguin => ("penguin", 0.25, 1u8, 0.10f32, 1u8),
                 AnimalKind::Camel => ("camel", 0.50, 3u8, 0.85f32, 3u8),
                 AnimalKind::Frog => ("frog", 0.25, 1u8, 0.00f32, 1u8),
+                AnimalKind::Duck => ("duck", 0.25, 1u8, 0.00f32, 1u8),
                 // Never caught: their catch chance above is zero.
                 AnimalKind::Cat
                 | AnimalKind::Whale
+                | AnimalKind::Bee
                 | AnimalKind::Zombie
                 | AnimalKind::Demon
                 | AnimalKind::Dragon
