@@ -67,7 +67,7 @@ export const DOCK_TABS: DockTab[] = [
   },
   {
     id: 'miracles',
-    label: 'miracles',
+    label: 'divine',
     icon: '🔮',
     tip: 'Blessings of the land and of one person: a river full of fish, a forest that surges, a rare gift',
     groups: ['miracles', 'eras'],

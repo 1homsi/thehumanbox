@@ -244,8 +244,8 @@
 /* A tab holding a tool the player has not seen yet (see NEW_TOOL_IDS in dock-tabs.ts). */
 .dock-tab-new {
   position: absolute;
-  top: 2px;
-  right: 3px;
+  top: -5px;
+  right: -3px;
   padding: 1px 3px;
   border-radius: 3px;
   background: var(--dock-gold);
