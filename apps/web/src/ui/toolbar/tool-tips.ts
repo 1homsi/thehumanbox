@@ -10,6 +10,10 @@ const TOOL_TIPS: Record<string, string> = {
     'Run the world on to the start of the next year, in quick steps. The seasons turn as they would.',
   leader:
     'Crown the grown person nearest where you click the ruler of their tribe. They keep the crown while they live, unless their tribe has no ruler to crown (a plain band) or they are still a child.',
+  merge_tribes:
+    'Two clicks: a person of one tribe, then a person of another. The second tribe joins the first, everyone in it.',
+  split_tribe:
+    'Click a tribe where its people stand together: the ones near the click (the brush sets how many) found a new tribe of their own, with a new name.',
   mutate:
     'Change the person nearest where you click: one of their traits (curiosity, aggression, fear, memory, sociability or resilience) jumps far beyond their people. The change is written into the chronicle.',
   teach_tribe:
@@ -224,6 +228,10 @@ export function toolFailure(tool: SandboxTool): string {
       return 'no fire there'
     case 'thunder':
       return 'the lightning hit nothing'
+    case 'merge_tribes':
+      return 'pick two people of different tribes'
+    case 'split_tribe':
+      return 'the group needs at least two people to go and two to stay'
     case 'mutate':
     case 'curse':
       return 'nobody is near enough to change'
