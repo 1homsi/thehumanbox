@@ -1,4 +1,4 @@
-import { SPRITE_UNTEXTURED, type SpriteLayer } from 'cubeforge'
+import { SPRITE_UNTEXTURED, type SpriteLayer } from 'xipjs'
 import { LOW_PERF } from '../../../../shared/perf'
 import { ATLAS_TOWN, SPRITE, drawTile } from '../../../../shared/sprites'
 import type { WorldState } from '../../../../shared/types'

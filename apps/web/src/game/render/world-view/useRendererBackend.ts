@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { GameControls } from 'cubeforge'
+import type { GameControls } from 'xipjs'
 import { syncRendererLoopPause } from '../../../shared/desktopVisibility'
 import { canUseWorldGPU } from './gpu'
 
@@ -43,7 +43,7 @@ export function useRendererBackend({
 
   useEffect(() => {
     if (renderBackend !== 'gpu' || mapReady || dims.w === 0 || dims.h === 0) return
-    // Cubeforge reports some WebGL setup failures inside Game instead of
+    // xipjs reports some WebGL setup failures inside Game instead of
     // throwing. Its error UI sits behind the startup cover, so recover if a
     // first frame never arrives.
     const timeout = window.setTimeout(handleGPUFailure, 10_000)

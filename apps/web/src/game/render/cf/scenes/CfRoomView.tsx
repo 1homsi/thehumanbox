@@ -11,7 +11,7 @@ import {
   useDynamicCanvas,
   useGame,
   useSpriteLayer,
-} from 'cubeforge'
+} from 'xipjs'
 import type { SceneContext } from '../../../scenes/core/types'
 import { CANVAS_H, CANVAS_W, SCALE } from '../../../scenes/shared/room-constants'
 import {
@@ -54,7 +54,7 @@ const FRAME: CSSProperties = {
 }
 
 /**
- * A room interior on cubeforge: the room (floor, furniture, walls, the night
+ * A room interior on xipjs: the room (floor, furniture, walls, the night
  * dim) is a Canvas2D picture shown as one sprite, the occupants are a
  * `SpriteLayer` of the people atlas with `pick()` for hover and click, and the
  * name plates are a second transparent picture that is only repainted when

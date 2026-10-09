@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { StatsOverlay, useGame } from 'cubeforge'
+import { StatsOverlay, useGame } from 'xipjs'
 import type { WorldState } from '../../../../shared/types'
 import type { InterpRefs } from '../../../../simulation/useSimulation'
 import type { ViewFlags } from '../../../../state/store'

@@ -1,4 +1,6 @@
-# What The Human Box needs from cubeforge
+# What The Human Box needs from xipjs
+
+> The engine was called cubeforge up to 0.14.0 and is published as `xipjs` from 0.15.0 (same code, same API). Version numbers below that mention cubeforge are the old name.
 
 Ranked by what they would win on the map, from profiles of the real app (`apps/web/bench`: a production
 build in headless Chrome with the GPU, 1280x800, a saved world of seed 42 at tick 9000 with 172 people

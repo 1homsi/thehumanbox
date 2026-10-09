@@ -1,4 +1,4 @@
-import { TextLayer } from 'cubeforge'
+import { TextLayer } from 'xipjs'
 import { storeChanged } from '../attached'
 
 /** The four looks of a name tag and a thought, as the canvas painter drew them. */
@@ -23,7 +23,7 @@ const LOOKS: Record<NameStyle, NameLook> = {
 }
 
 /**
- * Names and thoughts above the people, drawn by a cubeforge `TextLayer` instead of canvas text: one run per
+ * Names and thoughts above the people, drawn by a xipjs `TextLayer` instead of canvas text: one run per
  * label, laid out once and rasterised crisply at the zoom (`zoomAware`), where the canvas painter sent nine
  * sprites per character every frame.
  *

@@ -40,7 +40,7 @@ export interface HeatSettings {
  * Per-tile colour for every map overlay (hazard, fertility, structures, trails, age, threat,
  * density, territory fill, and the always-on worn paths), composited source-over in the same
  * order `layers/overlays.ts` painted them. The result is one straight-alpha RGBA per tile, the
- * shape a cubeforge `TileLayer` tint layer takes, plus the tile ids (1 where anything shows).
+ * shape a xipjs `TileLayer` tint layer takes, plus the tile ids (1 where anything shows).
  *
  * It is a pure function of the world and the settings, so it only has to run when the grids,
  * the claims or the settings change, not every frame.

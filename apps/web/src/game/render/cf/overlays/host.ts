@@ -1,4 +1,4 @@
-import type { SpriteLayer, TextLayer } from 'cubeforge'
+import type { SpriteLayer, TextLayer } from 'xipjs'
 import { wakeEngine } from '../frame-clock'
 import { engineAtlasHost, type AtlasHost } from './atlas-host'
 
@@ -23,7 +23,7 @@ export interface EngineLike {
   loop: { markDirty(): void }
 }
 
-/** The cubeforge engine behind the `RenderHost` interface. */
+/** The xipjs engine behind the `RenderHost` interface. */
 export function engineRenderHost(engine: EngineLike): RenderHost {
   const rs = () => engine.activeRenderSystem as LayerRenderer | undefined
   return {

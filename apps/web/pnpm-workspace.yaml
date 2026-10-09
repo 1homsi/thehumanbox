@@ -1,4 +1,4 @@
 allowBuilds:
   core-js: false
 minimumReleaseAgeExclude:
-  - cubeforge@0.14.0
+  - xipjs@0.15.0

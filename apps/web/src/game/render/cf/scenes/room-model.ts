@@ -63,7 +63,7 @@ export function idleBob(time: number, index: number): 0 | -1 {
 
 /**
  * The first person whose circle holds the point: the rule the 2D scenes always
- * used. The cubeforge views find candidates with `SpriteLayer.pick()` and then
+ * used. The xipjs views find candidates with `SpriteLayer.pick()` and then
  * apply the same circle, so a click lands where it always did.
  */
 export function occupantAt(placed: readonly PlacedOccupant[], x: number, y: number): string | null {
@@ -76,7 +76,7 @@ function inHitCircle(o: PlacedOccupant, x: number, y: number): boolean {
 }
 
 /**
- * The same answer through a cubeforge `SpriteLayer`: its `pick()` finds the
+ * The same answer through a xipjs `SpriteLayer`: its `pick()` finds the
  * box over the point (the layer holds one HIT_RADIUS * 2 square per person,
  * in `placed` order) and the circle inside it decides. People stand at least
  * two tiles apart, so no two boxes overlap and the result equals `occupantAt`.

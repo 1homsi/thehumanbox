@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SpriteLayer } from 'cubeforge'
+import { SpriteLayer } from 'xipjs'
 import type { OrganismState } from '../../../../shared/types'
 import { PeopleSprites, type PeopleFrameInput } from './people-sprites'
 

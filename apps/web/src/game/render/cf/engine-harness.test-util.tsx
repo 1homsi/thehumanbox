@@ -1,10 +1,10 @@
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { vi } from 'vitest'
-import { Game, World, Camera2D } from 'cubeforge'
+import { Game, World, Camera2D } from 'xipjs'
 
 /**
- * A real cubeforge engine inside happy-dom, for tests of the cf glue.
+ * A real xipjs engine inside happy-dom, for tests of the cf glue.
  *
  * There is no WebGL here, so `getContext('webgl2')` returns a permissive stub
  * (every constant is 1, every call returns an empty object) and `'2d'` a stub

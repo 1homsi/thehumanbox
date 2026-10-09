@@ -8,8 +8,8 @@ import { draw_people } from './layers/people'
 
 /**
  * The 2D canvas painter, used only by the fallback for browsers without WebGL2 (the map runs on
- * cubeforge everywhere else). It draws the ground, buildings, animals and people; weather, heat
- * maps, effects and labels exist only on the cubeforge path.
+ * xipjs everywhere else). It draws the ground, buildings, animals and people; weather, heat
+ * maps, effects and labels exist only on the xipjs path.
  */
 export function drawWorldOnCanvas(
   ctx: CanvasRenderingContext2D,

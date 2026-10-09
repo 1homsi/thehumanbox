@@ -1,4 +1,4 @@
-import { SPRITE_FLIP_X, SPRITE_HIDDEN, type SpriteLayer } from 'cubeforge'
+import { SPRITE_FLIP_X, SPRITE_HIDDEN, type SpriteLayer } from 'xipjs'
 import type { AnimalState } from '../../../../shared/types'
 import { TILE } from '../../../model/palette'
 import {

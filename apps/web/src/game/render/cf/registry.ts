@@ -1,6 +1,6 @@
 import type { CfDriver, CfFrame } from './frame'
 
-/** The drivers of the cubeforge layers that are mounted; CfWorld's loop updates them each frame. */
+/** The drivers of the xipjs layers that are mounted; CfWorld's loop updates them each frame. */
 export class CfRegistry {
   private readonly drivers = new Map<string, CfDriver>()
   frameMs = 0

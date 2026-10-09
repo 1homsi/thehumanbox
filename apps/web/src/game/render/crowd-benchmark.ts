@@ -31,7 +31,7 @@ button.onclick = async () => {
       thoughts: false,
     }
     const ctx = canvas.getContext('2d')!
-    output.textContent = 'Canvas painting only (CubeForge excluded), warm mean/p95 milliseconds:\n'
+    output.textContent = 'Canvas painting only (xipjs excluded), warm mean/p95 milliseconds:\n'
     const requestedCount = Number(new URLSearchParams(location.search).get('count'))
     const requestedSamples = Number(new URLSearchParams(location.search).get('samples'))
     const sampleCount =

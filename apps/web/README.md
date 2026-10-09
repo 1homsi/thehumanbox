@@ -15,7 +15,7 @@ simulation never stops, even when nobody's watching.
 ## Stack
 
 - **React + TypeScript + Vite (rolldown)**
-- **[cubeforge](https://github.com/1homsi/cubeforge)** (WebGL2) for the world view — a
+- **[xipjs](https://github.com/1homsi/xip)** (WebGL2) for the world view — a
   `TileLayer` ground, `SpriteLayer`s for trees, buildings, animals and people,
   and an overlay renderer for weather, heat maps, effects and labels. A plain
   2D canvas painter remains only as the fallback for browsers without WebGL2

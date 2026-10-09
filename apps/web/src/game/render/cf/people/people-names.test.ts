@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TextLayer } from 'cubeforge'
+import { TextLayer } from 'xipjs'
 import { PeopleNameLayer } from './people-names'
 
 function frame(layer: PeopleNameLayer, runs: [string, number, number, 'name' | 'thought', number][]) {

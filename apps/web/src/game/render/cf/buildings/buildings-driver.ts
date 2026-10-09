@@ -1,4 +1,4 @@
-import type { SpriteLayer } from 'cubeforge'
+import type { SpriteLayer } from 'xipjs'
 import type { Building } from '../../../../shared/types'
 import { TILE } from '../../../model/palette'
 import { PAD, PAD_TOP } from '../../building-painters/kit'

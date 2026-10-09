@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { LayerAtlas } from 'cubeforge'
+import type { LayerAtlas } from 'xipjs'
 import { CELL_GUTTER, CellAtlas, type AtlasPage, type AtlasPageSlot } from './cell-atlas'
 
 interface Call {

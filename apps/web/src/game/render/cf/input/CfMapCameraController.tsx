@@ -1,5 +1,5 @@
 import { useEffect, useRef, type MutableRefObject } from 'react'
-import { Entity, Script, useCamera, useCameraPanZoom, useGame } from 'cubeforge'
+import { Entity, Script, useCamera, useCameraPanZoom, useGame } from 'xipjs'
 import { useUIStore } from '../../../../state/store'
 import {
   clampMapCamera,
@@ -35,7 +35,7 @@ interface CameraLike {
 }
 
 /**
- * The map camera on cubeforge: `useCameraPanZoom` does the pointer work (mouse
+ * The map camera on xipjs: `useCameraPanZoom` does the pointer work (mouse
  * and touch pan, wheel and pinch zoom around the cursor or fingers, tap
  * detection) and the Camera2D entity is the one camera. This component adds
  * what the engine does not have: keeping the camera inside the world, the

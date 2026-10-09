@@ -126,7 +126,7 @@ export function useMapPointer({
     )
   }
   /**
-   * A tap reported by the cubeforge camera (`useCameraPanZoom` onTap): the map
+   * A tap reported by the xipjs camera (`useCameraPanZoom` onTap): the map
    * point and the container point it landed on. Same rules as a click.
    */
   const handleTap = (tap: { worldX: number; worldY: number; screenX: number; screenY: number }) => {

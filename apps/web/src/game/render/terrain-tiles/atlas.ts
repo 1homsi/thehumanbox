@@ -1,4 +1,4 @@
-import type { Tileset } from 'cubeforge'
+import type { Tileset } from 'xipjs'
 import { TILE } from '../../model/palette'
 import { buildFlatTilesetPixels, terrainTilesetPixels, terrainVariants } from './tileset'
 import type { TilesetPixels } from './tileset'
@@ -16,7 +16,7 @@ function toTileset(px: TilesetPixels): Tileset {
 }
 
 /**
- * The terrain tileset as a cubeforge `Tileset` backed by a canvas. One shared object: TileLayer
+ * The terrain tileset as a xipjs `Tileset` backed by a canvas. One shared object: TileLayer
  * syncs the tileset by identity, so every layer must be given this same instance.
  */
 export function getTerrainTileset(): Tileset {

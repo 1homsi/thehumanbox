@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { useGame } from 'cubeforge'
+import { useGame } from 'xipjs'
 import type { WorldState } from '../../../shared/types'
 import type { InterpRefs } from '../../../simulation/useSimulation'
 import { logger } from '../../../shared/logger'
@@ -30,7 +30,7 @@ interface Props {
 }
 
 /**
- * The static world on cubeforge: the terrain TileLayer and the SpriteLayers for ground detail,
+ * The static world on xipjs: the terrain TileLayer and the SpriteLayers for ground detail,
  * vegetation, land use, huts and buildings. One loop (30 Hz, like the simulation's frames)
  * feeds them the current world; they rewrite only what changed. Renders nothing itself.
  */

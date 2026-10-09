@@ -12,7 +12,7 @@ import { zoomDetailLevel } from '../../character-visuals'
 /**
  * The town and city names `layers/buildings.ts` collects as it draws buildings, rebuilt from the
  * world alone so the HUD can place them without the building painter running (the buildings are
- * moving to cubeforge in another change). Only the authoritative `settlements` list is read; the
+ * moving to xipjs in another change). Only the authoritative `settlements` list is read; the
  * legacy cluster fallback for old snapshots is left out.
  */
 export function collectSettlementLabels(

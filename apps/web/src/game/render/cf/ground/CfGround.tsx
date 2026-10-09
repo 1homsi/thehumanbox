@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo } from 'react'
-import { useSpriteLayer } from 'cubeforge'
+import { useSpriteLayer } from 'xipjs'
 import { useCellAtlas } from '../atlas/useCellAtlas'
 import type { CfRegistry } from '../registry'
 import { FoamDriver, GROUND_CLASSES, PatchDriver, ShoreDriver, StructureDriver } from './ground-drivers'

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Game, World, Camera2D } from 'cubeforge'
+import { Game, World, Camera2D } from 'xipjs'
 import type { PrayerInfo, WorldState } from '../../shared/types'
 import type { InterpRefs } from '../../simulation/useSimulation'
 import { useUIStore } from '../../state/store'
@@ -173,7 +173,7 @@ export function WorldView({
         // gets the events instead.
         touchAction: 'none',
       }}
-      // On the GPU path cubeforge's camera reports taps; the 2D fallback reads clicks itself.
+      // On the GPU path xipjs's camera reports taps; the 2D fallback reads clicks itself.
       onPointerDown={renderBackend === 'gpu' ? undefined : handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerCancel={handlePointerCancel}

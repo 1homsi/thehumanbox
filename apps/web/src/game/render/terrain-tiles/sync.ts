@@ -1,4 +1,4 @@
-import type { TileLayerData } from 'cubeforge'
+import type { TileLayerData } from 'xipjs'
 import { tileColor } from '../base-parts/tile-paint'
 import { TILE } from '../../model/palette'
 import { getFlatTerrainTileset, getTerrainTileset } from './atlas'

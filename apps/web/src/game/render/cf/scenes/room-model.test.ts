@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
-import { SpriteLayer } from 'cubeforge'
+import { SpriteLayer } from 'xipjs'
 import type { SceneOccupant } from '../../../scenes/core/types'
 import { HUMAN_ATLAS_COLS } from '../../character-visuals'
 import {

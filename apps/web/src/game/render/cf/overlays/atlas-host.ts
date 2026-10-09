@@ -12,7 +12,7 @@ interface DynamicCanvasRenderer {
   markDynamicCanvasDirty?: (id: string, x?: number, y?: number, w?: number, h?: number) => void
 }
 
-/** Adapter over cubeforge's active render system (what `useDynamicCanvas` does, minus React). */
+/** Adapter over xipjs's active render system (what `useDynamicCanvas` does, minus React). */
 export function engineAtlasHost(engine: {
   activeRenderSystem?: unknown
   loop: { markDirty(): void }

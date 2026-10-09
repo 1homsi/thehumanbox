@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { useGame, useSpriteLayer } from 'cubeforge'
+import { useGame, useSpriteLayer } from 'xipjs'
 import type { WorldState } from '../../../../shared/types'
 import type { InterpRefs } from '../../../../simulation/useSimulation'
 import type { ViewFlags } from '../../../../state/store'

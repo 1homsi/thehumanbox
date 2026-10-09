@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { TileLayerData } from 'cubeforge'
+import { TileLayerData } from 'xipjs'
 import { TILE } from '../../model/palette'
 import { TILE_ID } from '../../model/terrain-ids'
 import { terrainSeason } from '../terrain-season'

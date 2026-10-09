@@ -1,4 +1,4 @@
-import { SPRITE_UNTEXTURED, SpriteLayer, TextLayer } from 'cubeforge'
+import { SPRITE_UNTEXTURED, SpriteLayer, TextLayer } from 'xipjs'
 import { TILE } from '../../../model/palette'
 import { drawTradeNetwork2D } from '../../base-parts/trade-network'
 import { drawRail, drawTrain, trainProgress } from '../../era-traffic'
@@ -125,7 +125,7 @@ const ZERO_TIMES = (): SectionTimes => ({
 })
 
 /**
- * The non-sprite world visuals on cubeforge: owns the SpriteLayers, atlases and
+ * The non-sprite world visuals on xipjs: owns the SpriteLayers, atlases and
  * recorders, and `update()` rewrites them from a frame of world data. No React and no GPU of its
  * own: it talks to the engine through a `RenderHost`.
  */

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from 'vitest'
-import { Camera2D, Game, World, useCamera } from 'cubeforge'
+import { Camera2D, Game, World, useCamera } from 'xipjs'
 import { engineHarness, type EngineHarness } from './engine-harness.test-util'
 
 /**
@@ -14,7 +14,7 @@ afterEach(async () => {
   h = null
 })
 
-describe('cubeforge camera fixes the map relies on', () => {
+describe('xipjs camera fixes the map relies on', () => {
   it('Camera2D centres a view bigger than its bounds instead of pinning it to the top-left', async () => {
     h = engineHarness()
     let camera: ReturnType<typeof useCamera> | null = null
