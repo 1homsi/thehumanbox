@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { familyLineText, familyLines } from './family-lines'
+import { familyLineText, familyLines, familySentence } from './family-lines'
 
 const p = (surname: string | undefined, lineage_id: string, age: number, alive = true) => ({
   alive,
@@ -48,5 +48,14 @@ describe('familyLines', () => {
     expect(familyLineText({ surname: 'Tomas', living: 2, eldestDays: 9, longestLived: false })).toBe(
       'Tomas ×2',
     )
+  })
+
+  it('tells the family of a person in their tribe, or nothing without one', () => {
+    const orgs = [p('Mira', 'a', 600 * 41), p('Mira', 'a', 600), p('Tomas', 'a', 600 * 9)]
+    expect(familySentence({ surname: 'Mira', lineage_id: 'a' }, orgs)).toBe(
+      'The Mira family in this tribe: 2 living, the eldest 41 days old.',
+    )
+    expect(familySentence({ lineage_id: 'a' }, orgs)).toBeNull()
+    expect(familySentence({ surname: 'Nobody', lineage_id: 'a' }, orgs)).toBeNull()
   })
 })
