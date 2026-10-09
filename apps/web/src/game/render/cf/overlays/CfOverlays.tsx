@@ -106,7 +106,8 @@ export function CfOverlays({
       const k = interp && cur && prev ? interpolationFactor(now, receivedAt, interval) : 1
       // A settled map (no new frame, still camera, nobody selected moving) stops repainting.
       const key = `${curServerAt}|${cam.x}|${cam.y}|${cam.zoom}|${overlayRef.current ?? ''}|${focusRef.current}|${selectedRef.current ?? ''}|${JSON.stringify(viewFlagsRef.current)}|${viewportDims.w}x${viewportDims.h}`
-      const settled = key === lastKey && !prayerEffectsActive() && !worldMomentsActive()
+      // A repaint the renderer deferred (the heat map's refresh interval) keeps the loop awake until it runs.
+      const settled = key === lastKey && !prayerEffectsActive() && !worldMomentsActive() && !renderer.pending
       if (interp && settled && now - receivedAt > interval + 160) return false
       lastFrameAt = now
       lastKey = key

@@ -166,7 +166,18 @@ describe('CfOverlayRenderer', () => {
     expect(renderer.update(frameOf(w, 'hazard')).heatRebuilt).toBe(true)
     expect(renderer.update(frameOf(w, 'hazard', 5100)).heatRebuilt).toBe(false)
     expect(renderer.update(frameOf(w, 'fertility', 5200)).heatRebuilt).toBe(true)
-    expect(renderer.update(frameOf({ ...w, frame_id: 2 }, 'fertility', 5300)).heatRebuilt).toBe(true)
+    // New data within the refresh interval waits for it (the renderer reports it as pending) ...
+    expect(renderer.update(frameOf({ ...w, frame_id: 2 }, 'fertility', 5300)).heatRebuilt).toBe(false)
+    expect(renderer.pending).toBe(true)
+    // ... and is shown once the interval has passed.
+    expect(renderer.update(frameOf({ ...w, frame_id: 2 }, 'fertility', 5800)).heatRebuilt).toBe(true)
+    expect(renderer.pending).toBe(false)
+  })
+
+  it('shows a setting change at once, even inside the refresh interval', () => {
+    make()
+    expect(renderer.update(frameOf(world(), 'hazard', 5000)).heatRebuilt).toBe(true)
+    expect(renderer.update(frameOf(world(), 'fertility', 5050)).heatRebuilt).toBe(true)
   })
 
   it('shows the heat map as one sprite above the trees, and hides it when nothing is tinted', () => {
@@ -184,6 +195,7 @@ describe('CfOverlayRenderer', () => {
           grid: { ...world().grid, hazard: Array.from({ length: GH }, () => Array(GW).fill(0)) },
         }),
         'hazard',
+        6000,
       ),
     )
     expect(heat.visible).toBe(false)
