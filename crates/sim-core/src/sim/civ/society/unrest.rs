@@ -4,6 +4,7 @@
 //! wealth is halved and shared among the poor, and the chronicle records it.
 //! A tribe that is not stark (or no longer mostly poor) calms down.
 
+use super::government::Government;
 use super::inequality::{lineage_inequality, STARK_GINI};
 use crate::sim::simulation::Simulation;
 use rustc_hash::FxHashMap as HashMap;
@@ -95,12 +96,60 @@ fn rise_up(sim: &mut Simulation, lid: &str, poor: &[usize], tick: u64) {
         .get(lid)
         .cloned()
         .unwrap_or_else(|| "a tribe".into());
-    let detail = format!("the poor of {tribe} rose up and shared out the wealth of {rich_name}");
+    let rich_id = sim.organisms[rich].id.clone();
+    let new_leader = reform_after_rising(sim, lid, &rich_id, poor);
+    let detail = match new_leader {
+        Some(name) => format!(
+            "the poor of {tribe} rose up, shared out the wealth of {rich_name}, and raised {name} to lead"
+        ),
+        None => format!("the poor of {tribe} rose up and shared out the wealth of {rich_name}"),
+    };
     crate::sim::world_events::push_event(&mut sim.events, tick, "rebellion", &tribe, &detail);
     sim.headlines.push_back((tick, format!("\u{270A} {detail}.")));
     while sim.headlines.len() > 80 {
         sim.headlines.pop_front();
     }
+}
+
+/// The first reform after a rising: the tax is cut by a quarter, and if the person whose wealth was
+/// taken was the tribe's leader, one of the poor who rose takes the post (the most suited by the same
+/// personal score the leader election uses). Returns that person's name when the leader changed.
+fn reform_after_rising(sim: &mut Simulation, lid: &str, deposed_id: &str, poor: &[usize]) -> Option<String> {
+    let government: &mut Government = sim.governments.get_mut(lid)?;
+    government.tax_rate *= 0.75;
+    if government.leader_id.as_deref() != Some(deposed_id) {
+        return None;
+    }
+    let suited = |o: &crate::organism::organism::Organism| {
+        o.traits.social_tendency + o.traits.memory_strength + o.traits.curiosity + o.literacy * 0.5
+    };
+    let next = poor
+        .iter()
+        .copied()
+        .filter(|&i| sim.organisms[i].alive && sim.organisms[i].id != deposed_id)
+        .max_by(|&a, &b| {
+            suited(&sim.organisms[a])
+                .partial_cmp(&suited(&sim.organisms[b]))
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then(b.cmp(&a))
+        })?;
+    let next_id = sim.organisms[next].id.clone();
+    let next_name = sim.organisms[next].name.clone();
+    government.leader_id = Some(next_id.clone());
+    let tick = sim.tick_count;
+    if let Some(old) = sim.organisms.iter_mut().find(|o| o.id == deposed_id) {
+        old.is_leader = false;
+    }
+    let next_org = &mut sim.organisms[next];
+    next_org.is_leader = true;
+    next_org.log_life_rel(
+        tick,
+        "leadership",
+        "raised to lead by the rising".to_string(),
+        None,
+        None,
+    );
+    Some(next_name)
 }
 
 #[cfg(test)]
@@ -166,5 +215,42 @@ mod tests {
         }
         assert!(!sim.events.iter().any(|e| e.etype == "rebellion"));
         assert!(sim.lineage_unrest.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod reform_tests {
+    use super::*;
+    use crate::sim::civ::government::GovernmentKind;
+    use crate::sim::simulation::Simulation;
+
+    #[test]
+    fn a_rising_deposes_a_rich_leader_for_one_of_the_poor_and_cuts_the_tax() {
+        let mut sim = Simulation::new(107);
+        sim.organisms.truncate(8);
+        for (i, o) in sim.organisms.iter_mut().enumerate() {
+            o.alive = true;
+            o.lineage_id = "clan".into();
+            o.age = 2000;
+            o.max_age = 4000;
+            o.wealth = if i == 0 { 40 } else { 0 };
+        }
+        let rich_id = sim.organisms[0].id.clone();
+        sim.organisms[0].is_leader = true;
+        let mut government = Government::new("clan".into(), GovernmentKind::Republic, 0);
+        government.leader_id = Some(rich_id.clone());
+        government.tax_rate = 0.2;
+        sim.governments.insert("clan".into(), government);
+        let poor: Vec<usize> = (1..8).collect();
+
+        rise_up(&mut sim, "clan", &poor, 500);
+
+        let government = &sim.governments["clan"];
+        let new_leader = government.leader_id.clone().expect("a new leader is raised");
+        assert_ne!(new_leader, rich_id);
+        assert!(poor.iter().any(|&i| sim.organisms[i].id == new_leader));
+        assert!((government.tax_rate - 0.15).abs() < 1e-6);
+        assert!(!sim.organisms[0].is_leader);
+        assert!(sim.events.iter().any(|e| e.detail.contains("raised")));
     }
 }
