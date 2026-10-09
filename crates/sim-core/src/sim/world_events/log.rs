@@ -23,6 +23,7 @@ pub fn is_news(etype: &str) -> bool {
             | "danger"
             | "theft"
             | "murder"
+            | "trade_route"
     )
 }
 

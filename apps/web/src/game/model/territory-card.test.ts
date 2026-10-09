@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { WorldState } from '../../shared/types'
-import { eraNameOf, territoryCardFacts } from './territory-card'
+import { eraNameOf, territoryCardFacts, tradeOfTribe } from './territory-card'
 
 function world(extra: Partial<WorldState> = {}): WorldState {
   return {
@@ -16,6 +16,41 @@ function world(extra: Partial<WorldState> = {}): WorldState {
     ...extra,
   } as unknown as WorldState
 }
+
+describe('territory card trade line', () => {
+  const traded = world({
+    trade_routes: [
+      { id: 1, lineage_a: 'red', lineage_b: 'blue', volume: 9, deliveries: 3 },
+      { id: 2, lineage_a: 'green', lineage_b: 'blue', volume: 4, deliveries: 1 },
+    ],
+    caravans: [
+      { id: 7, route_id: 1, sender_lineage: 'blue', receiver_lineage: 'red' },
+      { id: 8, route_id: 2, sender_lineage: 'green', receiver_lineage: 'blue' },
+    ],
+  } as unknown as Partial<WorldState>)
+
+  it('says how many routes a tribe is on, the goods they carried, and the caravans on the road', () => {
+    expect(tradeOfTribe(traded, 'red')).toBe('1 route · 9 goods · 1 caravan on the road')
+    expect(tradeOfTribe(traded, 'blue')).toBe('2 routes · 13 goods · 2 caravans on the road')
+  })
+
+  it('is absent for a tribe with no route, and drops the road part when no caravan is out', () => {
+    expect(tradeOfTribe(world(), 'red')).toBeNull()
+    expect(
+      tradeOfTribe(
+        {
+          trade_routes: [{ id: 3, lineage_a: 'red', lineage_b: 'blue', volume: 0, deliveries: 0 }],
+          caravans: [],
+        } as unknown as Pick<WorldState, 'trade_routes' | 'caravans'>,
+        'red',
+      ),
+    ).toBe('1 route')
+    expect(tradeOfTribe({ trade_routes: traded.trade_routes, caravans: [] }, 'green')).toBe(
+      '1 route · 4 goods',
+    )
+    expect(territoryCardFacts(traded, 'red', false).trade).toBe('1 route · 9 goods · 1 caravan on the road')
+  })
+})
 
 describe('territory card facts', () => {
   it('names the tribe, counts the living, and says who leads it', () => {

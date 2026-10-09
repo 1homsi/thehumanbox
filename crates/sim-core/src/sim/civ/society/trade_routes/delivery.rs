@@ -151,6 +151,7 @@ pub(super) fn deliver_caravan(sim: &mut Simulation, caravan_id: u32) -> bool {
     }
 
     let completed = delivered >= caravan.amount;
+    let mut first_arrival = false;
     if completed {
         sim.caravans.remove(caravan_index);
         if let Some(route) = sim
@@ -158,6 +159,7 @@ pub(super) fn deliver_caravan(sim: &mut Simulation, caravan_id: u32) -> bool {
             .iter_mut()
             .find(|route| route.id == caravan.route_id)
         {
+            first_arrival = route.deliveries == 0;
             route.deliveries = route.deliveries.saturating_add(1);
         }
         sim.record_strategy_progress(&caravan.sender_lineage, "trade");
@@ -192,6 +194,25 @@ pub(super) fn deliver_caravan(sim: &mut Simulation, caravan_id: u32) -> bool {
             caravan.cargo
         ),
     );
+    if first_arrival {
+        // The chronicle's news view shows this once per route: the first time
+        // two tribes' caravans have really reached each other.
+        let sender_name = sim
+            .lineage_names
+            .get(&caravan.sender_lineage)
+            .cloned()
+            .unwrap_or_else(|| caravan.sender_lineage.clone());
+        push_event(
+            &mut sim.events,
+            sim.tick_count,
+            "trade_route",
+            &sender_name,
+            &format!(
+                "the first caravan from {sender_name} reached {receiver_name}, bringing {delivered} {}",
+                caravan.cargo
+            ),
+        );
+    }
     true
 }
 
