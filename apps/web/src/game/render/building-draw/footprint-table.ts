@@ -173,4 +173,5 @@ export const FOOTPRINTS: Record<string, [number, number]> = {
   MushroomFarm: [3, 3],
   Aquaculture: [3, 3],
   Pen: [2, 2],
+  Barn: [2, 2],
 }

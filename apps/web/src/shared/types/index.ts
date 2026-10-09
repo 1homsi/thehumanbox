@@ -908,6 +908,7 @@ export type BuildingKind =
   | 'MushroomFarm'
   | 'Aquaculture'
   | 'Pen'
+  | 'Barn'
 
 export type BuildingFunction =
   | 'Housing'
