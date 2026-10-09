@@ -56,6 +56,7 @@ export function WorldMinimap({ world, cameraRef, viewport }: Props) {
           ox,
           oy,
           tiles: world.grid.tiles,
+          roads: world.grid.roads,
           organisms: world.organisms ?? [],
           buildings: world.buildings ?? [],
         },
