@@ -208,9 +208,10 @@ fn food_recipient_matches_the_original_in_a_lived_in_world() {
     use crate::sim::simulation::Simulation;
     let mut sim = Simulation::new(7);
     sim.tick_n(900);
-    // Starve a share of the living so there is someone to feed.
+    // Starve a share of the living so there is someone to feed. Half, not a third: the route search
+    // changes where people are at tick 900, and a third of them left too few recipients for the check.
     for (i, o) in sim.organisms.iter_mut().enumerate() {
-        if o.alive && i % 3 == 0 {
+        if o.alive && i % 2 == 0 {
             o.energy = 0.12 + (i % 5) as f32 * 0.03;
         }
     }
