@@ -7,6 +7,7 @@ import { useUIStore } from '../../state/store'
 
 const LanguageModal = lazy(() => import('./LanguageModal').then((m) => ({ default: m.LanguageModal })))
 const ChroniclesModal = lazy(() => import('./ChroniclesModal').then((m) => ({ default: m.ChroniclesModal })))
+const GoalsModal = lazy(() => import('./GoalsModal').then((m) => ({ default: m.GoalsModal })))
 const AchievementsModal = lazy(() =>
   import('./AchievementsModal').then((m) => ({ default: m.AchievementsModal })),
 )
@@ -47,6 +48,8 @@ export function ModalRouter({ world, lineages, onGuide }: Props) {
   const showFamilyTree = useUIStore((s) => s.showFamilyTree)
   const showAchievements = useUIStore((s) => s.showAchievements)
   const closeAchievements = useUIStore((s) => s.closeAchievements)
+  const showGoals = useUIStore((s) => s.showGoals)
+  const closeGoals = useUIStore((s) => s.closeGoals)
   const familyTreeFocus = useUIStore((s) => s.familyTreeFocus)
   const showOrgSearch = useUIStore((s) => s.showOrgSearch)
   const showStats = useUIStore((s) => s.showStats)
@@ -89,6 +92,7 @@ export function ModalRouter({ world, lineages, onGuide }: Props) {
           />
         )}
         {showAchievements && <AchievementsModal world={world} onClose={closeAchievements} />}
+        {showGoals && <GoalsModal world={world} onClose={closeGoals} />}
         {showFamilyTree && (
           <FamilyTreeModal
             organisms={world.organisms}
