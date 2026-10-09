@@ -154,6 +154,9 @@ pub struct Organism {
     pub inv_stone: u8,
 
     pub nursing_until: u64,
+    /// Until this tick, a lineage whose craft or civic project lacks stone sends
+    /// its people further to the rock face. Set by the building scheduler.
+    pub fetch_stone_until: u64,
 
     pub wealth: u32,
     pub literacy: f32,
@@ -291,6 +294,7 @@ impl Organism {
             inv_wood: 0,
             inv_stone: 0,
             nursing_until: 0,
+            fetch_stone_until: 0,
             wealth: 5,
             literacy: 0.0,
             schooling_ticks: 0,
