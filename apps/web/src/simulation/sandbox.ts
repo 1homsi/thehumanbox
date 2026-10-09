@@ -87,6 +87,7 @@ export type SandboxCommand =
   | { cmd: 'repair'; x: number; y: number; radius?: number }
   | { cmd: 'road'; x: number; y: number; radius?: number; kind: 'road' | 'bridge' | 'erase' }
   | { cmd: 'place_building'; x: number; y: number; kind: string }
+  | { cmd: 'place_boat'; x: number; y: number }
   | {
       cmd: 'guide'
       lineage: string
@@ -656,6 +657,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '📖',
         mode: 'point',
         build: (x, y) => ({ cmd: 'place_building', x, y, kind: 'library' }),
+      },
+      {
+        id: 'boat',
+        label: 'boat',
+        icon: '🛶',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'place_boat', x, y }),
       },
     ],
   },

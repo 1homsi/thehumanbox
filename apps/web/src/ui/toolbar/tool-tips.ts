@@ -140,6 +140,7 @@ const TOOL_TIPS: Record<string, string> = {
   zebra: 'Release a zebra, or a few, over the savanna or grass. They graze the grass and run from predators.',
   polar_bear:
     'Release a polar bear, or a few, over the tundra or taiga. They hunt seals and, when hungry, people.',
+  boat: "Set a boat on the water beside the shore. It moors there and fishes the coast by day, and it takes its hull from the nearest tribe's era.",
   kangaroo:
     'Release a kangaroo, or a few, over the savanna, grass or badlands. They bound off and keep clear of people.',
   monkey:
@@ -293,6 +294,8 @@ export function toolFailure(tool: SandboxTool): string {
       return 'no wolves or bears there'
     case 'banish':
       return 'nothing to banish'
+    case 'boat':
+      return 'needs water by the shore'
     case 'revive':
       return 'no one who died lately lies here'
     case 'douse':
