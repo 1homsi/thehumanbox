@@ -104,6 +104,13 @@ describe('dock layout stays complete as tools are added', () => {
       ).toBe(true)
   })
 
+  it('keeps the dock to ten tabs, with the animals in two of them', () => {
+    expect(DOCK_TABS).toHaveLength(10)
+    expect(
+      DOCK_TABS.filter((t) => t.groups.some((g) => ['animals', 'birds', 'reptiles', 'safari'].includes(g))),
+    ).toHaveLength(2)
+  })
+
   it('fits every tab in the columns the narrow dock can show without sideways scrolling', () => {
     // Each group is two tiles per column, so a group takes ceil(tools / 2) columns.
     for (const tab of DOCK_TABS) {
@@ -118,6 +125,8 @@ describe('dock layout stays complete as tools are added', () => {
     expect(resolveTab('disasters')).toBe('deadly')
     expect(resolveTab('powers')).toBe('helpful')
     expect(resolveTab('maps')).toBe('maps')
+    expect(resolveTab('safari')).toBe('wild')
+    expect(resolveTab('miracles')).toBe('heavens')
     expect(resolveTab('nonsense')).toBe('life')
     expect(resolveTab(null)).toBe('life')
   })

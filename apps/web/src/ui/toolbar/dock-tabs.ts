@@ -38,25 +38,25 @@ export const DOCK_TABS: DockTab[] = [
     groups: ['animals'],
   },
   {
-    id: 'safari',
-    label: 'safari',
+    id: 'wild',
+    label: 'wild',
     icon: '🐒',
-    tip: 'Wild animals of far lands: monkeys that swing through the jungle canopy',
-    groups: ['safari'],
+    tip: 'Animals of far lands and the wild: monkeys, goats and elephants, birds of prey, snakes and crocodiles',
+    groups: ['birds', 'reptiles', 'safari'],
   },
   {
     id: 'world',
     label: 'world',
     icon: '⛰️',
-    tip: 'Terrain and biomes: what the ground is, and the reptiles that suit the sand and swamps',
-    groups: ['terrain', 'biomes', 'reptiles'],
+    tip: 'Terrain and biomes: what the ground is',
+    groups: ['terrain', 'biomes'],
   },
   {
     id: 'heavens',
     label: 'sky',
     icon: '🌅',
-    tip: 'The time of day, eclipses and comets, dice, the bomb, and the birds of prey that soar over the land',
-    groups: ['sky', 'birds'],
+    tip: 'The time of day, eclipses and comets, dice, the bomb, the eras, and blessings of the land and of one person',
+    groups: ['sky', 'miracles', 'eras'],
   },
   {
     id: 'resources',
@@ -71,13 +71,6 @@ export const DOCK_TABS: DockTab[] = [
     icon: '✨',
     tip: 'Blessings, weather you can summon, and healing',
     groups: ['good'],
-  },
-  {
-    id: 'miracles',
-    label: 'divine',
-    icon: '🔮',
-    tip: 'Blessings of the land and of one person: a river full of fish, a forest that surges, a rare gift',
-    groups: ['miracles', 'eras'],
   },
   {
     id: 'tribes',
@@ -188,6 +181,9 @@ const RETIRED_GROUPS: Record<string, string> = {
   divine: 'helpful',
   nature: 'helpful',
   disasters: 'deadly',
+  // Tab ids that were merged: their groups now sit in the tabs named here.
+  safari: 'wild',
+  miracles: 'heavens',
 }
 
 /** Resolve a stored tab id, accepting the category ids older saves used. */
