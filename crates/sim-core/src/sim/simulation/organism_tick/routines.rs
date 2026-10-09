@@ -38,6 +38,7 @@ impl Simulation {
         self.keep_away_from_rivals(idx, org_idx_by_id);
         self.walk_to_a_friend(idx, org_idx_by_id);
         self.fall_in_behind_leader(idx, spatial);
+        self.care_for_elder_parent(idx, org_idx_by_id);
 
         if self.tick_count % 2000 == (idx as u64 % 2000) {
             {
