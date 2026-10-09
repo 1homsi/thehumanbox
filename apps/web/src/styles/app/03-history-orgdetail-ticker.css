@@ -97,6 +97,15 @@
   background: #1a0a0a;
   color: #ff5544;
 }
+.life-story {
+  margin: 0 0 6px;
+  padding-left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+  line-height: 1.35;
+}
 .thought-history {
   display: flex;
   flex-direction: column;
