@@ -56,3 +56,77 @@ fn wild_foxes_are_placed_in_their_habitat_and_cats_anywhere() {
     assert!(biomes.contains(&Biome::Desert), "cats reach the desert");
     assert!(biomes.contains(&Biome::Forest), "cats reach the forest");
 }
+
+#[test]
+fn penguins_camels_frogs_and_whales_keep_to_their_own_ground() {
+    assert!(AnimalKind::Whale.aquatic(), "whales swim");
+    assert!(AnimalKind::Whale.fits_ground(Tile::Water));
+    assert!(
+        !AnimalKind::Whale.fits_ground(Tile::Grass),
+        "whales stay in the water"
+    );
+    assert!(
+        !AnimalKind::Penguin.fits_ground(Tile::Water),
+        "penguins walk on snow, not water"
+    );
+    assert!(AnimalKind::Penguin.fits_ground(Tile::Snow));
+    assert!(AnimalKind::Penguin.herds(), "penguins huddle together");
+    assert!(AnimalKind::Frog.is_prey(), "wolves and bears eat frogs");
+    for kind in [
+        AnimalKind::Penguin,
+        AnimalKind::Camel,
+        AnimalKind::Frog,
+        AnimalKind::Whale,
+    ] {
+        assert!(!kind.hostile(), "{} is not a danger to people", kind.name());
+        assert!(kind.drain() > 0.0 && kind.step_size() > 0);
+    }
+    assert_eq!(AnimalKind::Camel.name(), "camel");
+    assert_eq!(AnimalKind::Whale.a_name(), "a whale");
+}
+
+#[test]
+fn released_camels_land_in_the_desert_and_whales_only_in_water() {
+    let mut sim = Simulation::new(5);
+    sim.animals.clear();
+    // Sand desert on the western half, grass on the eastern half, with a lake in the middle of the desert.
+    for x in 0..WIDTH as i32 {
+        for y in 0..HEIGHT as i32 {
+            let desert = x < WIDTH as i32 / 2;
+            sim.grid.biome[WorldGrid::idx(x, y)] =
+                if desert { Biome::Desert } else { Biome::Grassland } as u8;
+            sim.grid.set(x, y, if desert { Tile::Sand } else { Tile::Grass });
+        }
+    }
+    for x in 40..46 {
+        for y in 40..46 {
+            sim.grid.set(x, y, Tile::Water);
+        }
+    }
+    assert!(sim.apply_command_json(
+        r#"{"cmd":"spawn_animal","x":60.0,"y":60.0,"kind":"camel","count":12,"radius":12}"#
+    ));
+    assert!(sim.animals.len() >= 12);
+    for camel in &sim.animals {
+        assert_eq!(
+            sim.grid.biome_at(camel.x as i32, camel.y as i32),
+            Biome::Desert,
+            "camel at ({}, {})",
+            camel.x,
+            camel.y
+        );
+    }
+
+    sim.animals.clear();
+    assert!(sim.apply_command_json(
+        r#"{"cmd":"spawn_animal","x":43.0,"y":43.0,"kind":"whale","count":3,"radius":4}"#
+    ));
+    assert!(!sim.animals.is_empty(), "a whale finds the lake");
+    for whale in &sim.animals {
+        assert_eq!(
+            sim.grid.get(whale.x as i32, whale.y as i32),
+            Tile::Water,
+            "whale stays in water"
+        );
+    }
+}
