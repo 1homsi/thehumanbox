@@ -143,6 +143,7 @@ export const NEW_TOOL_IDS: readonly string[] = [
   'migrate_tribe',
   'trade_gift',
   'goat',
+  'elephant',
   'monkey',
 ]
 

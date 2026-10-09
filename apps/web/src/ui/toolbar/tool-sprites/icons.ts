@@ -45,6 +45,7 @@ export const icons: Record<string, keyof typeof sprites> = {
   '🐍': 'snake',
   '🐊': 'crocodile',
   '🐐': 'goat',
+  '🐘': 'elephant',
   '🐒': 'monkey',
   '🌂': 'rain_cloud',
   '🩹': 'bandage',

@@ -386,6 +386,7 @@ export interface AnimalState {
     | 'crocodile'
     | 'monkey'
     | 'goat'
+    | 'elephant'
     | 'zombie'
     | 'demon'
     | 'dragon'

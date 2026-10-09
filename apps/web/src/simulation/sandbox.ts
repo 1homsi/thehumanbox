@@ -1318,6 +1318,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'goat', count: 1 + b, radius: b }),
       },
+      {
+        id: 'elephant',
+        label: 'elephant',
+        icon: '🐘',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'elephant', count: 1 + b, radius: b }),
+      },
     ],
   },
   {
