@@ -196,6 +196,7 @@
   transition: background 90ms ease;
 }
 .dock-tile {
+  position: relative;
   width: var(--dock-tile);
   height: var(--dock-tile);
 }
@@ -219,6 +220,21 @@
 }
 .dock-tile.pinned {
   position: relative;
+}
+.dock-tile-count {
+  position: absolute;
+  right: -3px;
+  bottom: -4px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  font-size: 10px;
+  line-height: 13px;
+  text-align: center;
+  color: #2a1f15;
+  background: var(--dock-gold);
+  box-shadow: 0 0 0 1px #2a1f15;
+  pointer-events: none;
 }
 .dock-tile.pinned::after {
   content: '';
