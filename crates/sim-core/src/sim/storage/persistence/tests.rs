@@ -215,6 +215,7 @@ fn legacy_default_counters_advance_past_all_persisted_ids() {
         route: Vec::new(),
         ready_tick: 0,
         harbour: None,
+        bound_for: None,
     });
     state.battles.push(saved_battle("legacy-battle-a"));
     state.battles.push(saved_battle("legacy-battle-b"));

@@ -48,6 +48,7 @@ impl Simulation {
             route: Vec::new(),
             ready_tick: 0,
             harbour: Some((x, y)),
+            bound_for: None,
         });
         self.next_vehicle_id += 1;
         true
