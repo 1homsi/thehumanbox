@@ -265,6 +265,7 @@ mod tests {
             ready_tick: ready,
             harvested,
             prepared: false,
+            season_timed: false,
         }
     }
 

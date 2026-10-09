@@ -203,6 +203,7 @@ fn legacy_default_counters_advance_past_all_persisted_ids() {
         ready_tick: 100,
         harvested: false,
         prepared: false,
+        season_timed: false,
     });
     state.vehicles.push(Vehicle {
         id: 111,

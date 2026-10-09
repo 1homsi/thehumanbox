@@ -26,39 +26,75 @@ export function farmCropStyle(crop: string | undefined): CropStyle {
   return STYLE[crop?.toLowerCase() ?? ''] ?? 'grain'
 }
 
+/** Bits for the sides of a field tile that face open ground (no field next to it). */
+export const EDGE_TOP = 1
+export const EDGE_RIGHT = 2
+export const EDGE_BOTTOM = 4
+export const EDGE_LEFT = 8
+
+/** Everything a field tile's picture depends on. The atlas keys on it, so equal looks bake once. */
+export interface FarmLook {
+  /** fallow | seeded | growing | mature (see `farmStage`). */
+  stage: string
+  /** Growth from 0 to 1. */
+  progress: number
+  cropColor: string
+  crop: string
+  /** 0 or 1: staggers the rows so neighbouring fields do not repeat. */
+  variant: number
+  /** The world's season: recovery (spring), abundance (summer), decline (autumn), scarcity (winter). */
+  season: string
+  /** EDGE_* bits for the sides that face open ground. */
+  edges: number
+}
+
+export function farmLookKey(look: FarmLook): string {
+  return `F|${look.stage}|${Math.round(look.progress * 4)}|${look.crop}|${look.variant}|${look.season}|${look.edges}`
+}
+
 /**
- * One farm tile. Painted with its top-left at (x, y); also used to bake the tile into a sprite
- * atlas, so it must depend only on its arguments. `variant` (0 or 1) staggers the rows.
+ * One farm tile: furrowed soil, the crop in its style, a field edge on the open sides. Painted with
+ * its top-left at (x, y); also used to bake the tile into a sprite atlas, so it must depend only on
+ * its arguments.
  */
 export function paintFarmTile(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
-  stage: string,
-  progress: number,
-  cropColor: string,
-  crop: string,
-  variant: number,
+  look: FarmLook,
+  cropColor = look.cropColor,
 ) {
+  const { stage, season, crop, variant, edges } = look
   const style = farmCropStyle(crop)
   const fill = (dx: number, dy: number, w: number, h: number, color: string) => {
     ctx.fillStyle = color
     ctx.fillRect(x + dx, y + dy, w, h)
   }
   const ripe = stage === 'mature'
-  const height = stage === 'fallow' ? 0 : Math.max(1, Math.round(1 + progress * 4))
+  const fallow = stage === 'fallow'
+  const winter = season === 'scarcity'
+  const autumn = season === 'decline'
+  const height = fallow ? 0 : Math.max(1, Math.round(1 + look.progress * 4))
   const offset = variant % 2
 
-  if (style === 'paddy' && stage !== 'fallow') {
-    // A flooded paddy: water between the rows, golden once the grain is ready.
+  // Soil. A planted field is dark tilled loam; a fallow one shows its season: bare furrows in spring
+  // and summer, golden stubble after the autumn harvest, and snow over the ground in winter.
+  if (style === 'paddy' && !fallow) {
     fill(0, 0, TILE, TILE, '#3f2c21')
-    fill(1, 1, TILE - 2, TILE - 2, ripe ? '#c9b26a' : '#4f7f86')
-    for (const row of [2, 5]) fill(1, row, TILE - 2, 1, ripe ? '#b39a55' : '#3d6b72')
+    fill(0, 0, TILE, TILE, ripe ? '#c9b26a' : '#4f7f86')
+    for (const row of [2, 5]) fill(0, row, TILE, 1, ripe ? '#b39a55' : '#3d6b72')
   } else {
-    fill(0, 0, TILE, TILE, '#3f2c21')
-    fill(1, 1, TILE - 2, TILE - 2, stage === 'fallow' ? '#6b4c32' : '#705335')
+    fill(0, 0, TILE, TILE, '#3a2719')
+    fill(0, 0, TILE, TILE, fallow ? '#6b4c32' : '#5e4128')
+    // Furrows: a dark cut and a lit ridge on every third row, so a field reads as rows.
     for (let row = 2; row < TILE - 1; row += 3) {
-      fill(1, row, TILE - 2, 1, ripe ? '#b98b45' : '#4a3326')
+      fill(0, row, TILE, 1, ripe ? '#b98b45' : '#3a2719')
+      fill(0, row + 1, TILE, 1, fallow ? '#8a6239' : '#7a5232')
+    }
+    if (fallow && autumn) {
+      for (let row = 1; row < TILE; row += 3) {
+        for (let c = 1 + offset; c < TILE - 1; c += 2) fill(c, row, 1, 2, '#c9a45c')
+      }
     }
   }
 
@@ -132,6 +168,19 @@ export function paintFarmTile(
         break
     }
   }
+
+  // Winter: snow lies on the ground and on the lower crop.
+  if (winter) {
+    fill(0, 0, TILE, 2, '#e6eef2')
+    for (let c = 1 + offset; c < TILE - 1; c += 3) fill(c, 3, 1, 1, '#eef4f7')
+  }
+
+  // Field edges: a dark boundary on each side that faces open ground, so a field reads as a plot.
+  const EDGE = '#2b1e14'
+  if (edges & EDGE_TOP) fill(0, 0, TILE, 1, EDGE)
+  if (edges & EDGE_BOTTOM) fill(0, TILE - 1, TILE, 1, EDGE)
+  if (edges & EDGE_LEFT) fill(0, 0, 1, TILE, EDGE)
+  if (edges & EDGE_RIGHT) fill(TILE - 1, 0, 1, TILE, EDGE)
 
   if (ripe) {
     ctx.fillStyle = 'rgba(255, 232, 145, 0.9)'

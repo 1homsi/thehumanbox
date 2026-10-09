@@ -1,7 +1,15 @@
 import type { SpriteLayer } from 'xipjs'
 import { farmCropColor, farmProgress, farmStage } from '../../../model/farms'
 import { TILE } from '../../../model/palette'
-import { paintFarmTile } from './farm-tile'
+import {
+  EDGE_BOTTOM,
+  EDGE_LEFT,
+  EDGE_RIGHT,
+  EDGE_TOP,
+  farmLookKey,
+  paintFarmTile,
+  type FarmLook,
+} from './farm-tile'
 import { PLANT_KIND, drawPlanting } from '../../plantings'
 import { CELL_GUTTER, type CellAtlas } from '../atlas/cell-atlas'
 import { WHITE, writeSprite, type CfDriver, type CfFrame } from '../frame'
@@ -39,21 +47,30 @@ export class LanduseDriver implements CfDriver {
     let n = 0
     let nf = 0
     let np = 0
+    // A field edge is drawn only on the sides that face open ground, so neighbouring plots join.
+    const taken = new Set(farms.map((farm) => `${farm.x},${farm.y}`))
     for (const farm of farms) {
       const lx = farm.x - ox
       const ly = farm.y - oy
       if (lx < c0 - 1 || lx > c1 || ly < r0 - 1 || ly > r1) continue
-      const stage = farmStage(farm, world.tick)
-      const grown = Math.max(1, Math.round(1 + farmProgress(farm, world.tick) * 4))
-      const color = farmCropColor(farm.crop)
       const crop = farm.crop ?? ''
-      const variant = crop.length % 2
-      const key = `F|${stage}|${grown}|${crop}|${variant}`
+      const edges =
+        (taken.has(`${farm.x},${farm.y - 1}`) ? 0 : EDGE_TOP) |
+        (taken.has(`${farm.x + 1},${farm.y}`) ? 0 : EDGE_RIGHT) |
+        (taken.has(`${farm.x},${farm.y + 1}`) ? 0 : EDGE_BOTTOM) |
+        (taken.has(`${farm.x - 1},${farm.y}`) ? 0 : EDGE_LEFT)
+      const look: FarmLook = {
+        stage: farmStage(farm, world.tick),
+        progress: farmProgress(farm, world.tick),
+        cropColor: farmCropColor(farm.crop),
+        crop,
+        variant: crop.length % 2,
+        season: world.season ?? '',
+        edges,
+      }
+      const key = farmLookKey(look)
       const cell =
-        this.atlas.get(key) ??
-        this.atlas.bake(key, TILE, TILE, (ctx) =>
-          paintFarmTile(ctx, 0, 0, stage, (grown - 1) / 4, color, crop, variant),
-        )
+        this.atlas.get(key) ?? this.atlas.bake(key, TILE, TILE, (ctx) => paintFarmTile(ctx, 0, 0, look))
       if (!cell) continue
       writeSprite(
         layer,

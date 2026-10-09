@@ -8,6 +8,7 @@
 //! order, so the same seed still gives the same world.
 
 use crate::sim::actions::agriculture::farm_ops::{crop_for_plot, harvest_crop, plant_crop};
+use crate::sim::config::SEASON_LENGTH;
 use crate::sim::simulation::Simulation;
 use crate::sim::tech::buildings::BuildingKind;
 use crate::sim::world_events::push_event;
@@ -17,6 +18,21 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 /// Ticks between village farming passes.
 pub(crate) const SOW_STEP: u64 = 600;
+/// The season a village sows in: spring (the world calls it "recovery").
+const SOWING_SEASON: &str = "recovery";
+/// Ticks after the autumn season starts when a village field is ripe.
+const AUTUMN_LEAD: u64 = 300;
+
+/// The first autumn (the world's "decline" season) after `now`: a field sown in
+/// spring is timed to ripen then, so the year reads sow, grow, harvest.
+pub(crate) fn next_autumn(now: u64) -> u64 {
+    let year = SEASON_LENGTH * 4;
+    let mut start = now - now % year + SEASON_LENGTH;
+    if start <= now {
+        start += year;
+    }
+    start
+}
 /// Closest and furthest a new field may lie from a dwelling, in tiles.
 const SOW_MIN_REACH: i32 = 2;
 const SOW_MAX_REACH: i32 = 6;
@@ -140,11 +156,18 @@ fn harvest_ripe(sim: &mut Simulation, tribe: &Tribe) {
         }) else {
             continue;
         };
-        harvest_crop(sim, actor, x, y);
+        if harvest_crop(sim, actor, x, y).is_some() {
+            let tick = sim.tick_count;
+            sim.organisms[actor].think("harvesting the field", tick);
+        }
     }
 }
 
 fn sow_fields(sim: &mut Simulation, tribe: &Tribe, now: u64) {
+    // Fields are sown in spring only; a fallow plot waits for the next spring.
+    if sim.season() != SOWING_SEASON {
+        return;
+    }
     let cap = (tribe.dwellings.len() * PLOTS_PER_DWELLING).max(1);
     let mut sowed = 0usize;
     let mut first_ever = false;
@@ -188,6 +211,13 @@ fn sow_fields(sim: &mut Simulation, tribe: &Tribe, now: u64) {
         if plant_crop(sim, actor, x, y, crop, false).is_none() {
             break;
         }
+        // The field is timed to the autumn harvest, and the planter is seen sowing it.
+        let ready = next_autumn(now) + AUTUMN_LEAD;
+        if let Some(farm) = sim.farms.iter_mut().find(|f| f.x == x && f.y == y) {
+            farm.ready_tick = ready;
+            farm.season_timed = true;
+        }
+        sim.organisms[actor].think("sowing the field", now);
         if plots == 0 {
             first_ever = true;
         }
@@ -216,9 +246,9 @@ mod tests {
     use crate::sim::tech::buildings::Building;
     use crate::world::grid::WorldGrid;
 
-    #[test]
-    fn a_tribe_that_knows_farming_and_has_houses_sows_and_brings_in_a_field() {
-        let mut sim = Simulation::new(4_242);
+    /// A tribe that knows farming, with one house and open grass round it.
+    fn farming_tribe(seed: u64) -> (Simulation, String, (i32, i32)) {
+        let mut sim = Simulation::new(seed);
         let lineage = sim.organisms[0].lineage_id.clone();
         for o in sim.organisms.iter_mut().filter(|o| o.lineage_id == lineage) {
             o.discoveries.insert("agriculture".to_string());
@@ -237,42 +267,117 @@ mod tests {
         let mut house = Building::new(900, BuildingKind::Hut, hx, hy, Some(lineage.clone()), 0);
         house.condition = 1.0;
         sim.buildings.push(house);
+        (sim, lineage, (hx, hy))
+    }
 
-        sim.tick_count = SOW_STEP;
-        tick_village_fields(&mut sim);
-        assert!(!sim.farms.is_empty(), "a farming tribe with a house sows a field");
-        let (fx, fy) = (sim.farms[0].x, sim.farms[0].y);
-        assert!(
-            (fx - hx).abs().max((fy - hy).abs()) >= SOW_MIN_REACH,
-            "the field is beside the house, not on it"
+    /// Tick of the first spring pass in the second year (season "recovery").
+    const SPRING: u64 = 9_000;
+
+    #[test]
+    fn the_autumn_after_a_tick_is_the_next_decline_season() {
+        assert_eq!(next_autumn(SPRING), 15_000);
+        assert_eq!(next_autumn(14_999), 15_000);
+        assert_eq!(
+            next_autumn(15_000),
+            27_000,
+            "the autumn that starts a year is already past"
         );
-        assert_eq!(sim.farms[0].owner_lineage, lineage);
+        assert_eq!(next_autumn(0), 3_000);
+    }
 
-        // Once the first field ripens, the next pass brings it in and sows it again.
-        sim.tick_count = sim.farms[0].ready_tick;
-        let before = sim
-            .organisms
-            .iter()
-            .filter(|o| o.alive && o.lineage_id == lineage)
-            .map(|o| o.inv_food as u32)
-            .sum::<u32>();
+    #[test]
+    fn a_tribe_sows_its_first_field_in_spring_and_times_it_to_autumn() {
+        let (mut sim, lineage, (hx, hy)) = farming_tribe(4_242);
+        sim.tick_count = SPRING;
+        assert_eq!(sim.season(), SOWING_SEASON);
         tick_village_fields(&mut sim);
-        let after = sim
+        assert!(
+            !sim.farms.is_empty(),
+            "a farming tribe with a house sows a field in spring"
+        );
+        let farm = &sim.farms[0];
+        assert!(
+            (farm.x - hx).abs().max((farm.y - hy).abs()) >= SOW_MIN_REACH,
+            "beside the house, not on it"
+        );
+        assert_eq!(farm.owner_lineage, lineage);
+        assert!(farm.season_timed);
+        assert_eq!(farm.ready_tick, next_autumn(SPRING) + AUTUMN_LEAD);
+        assert!(
+            farm.progress(SPRING + 1_000) < 1.0,
+            "a spring field is still growing"
+        );
+    }
+
+    #[test]
+    fn a_calendar_timed_field_ignores_weather_and_tending() {
+        let (mut sim, _, _) = farming_tribe(4_243);
+        sim.tick_count = SPRING;
+        tick_village_fields(&mut sim);
+        let ready = sim.farms[0].ready_tick;
+        assert_eq!(sim.farms[0].adjust_ready_tick(SPRING + 100, -500), 0);
+        assert_eq!(
+            sim.farms[0].ready_tick, ready,
+            "the autumn harvest stays on its date"
+        );
+    }
+
+    #[test]
+    fn nothing_is_sown_outside_spring() {
+        let (mut sim, _, _) = farming_tribe(4_244);
+        for tick in [0, 3_000, 6_000] {
+            sim.tick_count = tick;
+            tick_village_fields(&mut sim);
+        }
+        assert!(sim.farms.is_empty(), "summer, autumn and winter sow nothing");
+    }
+
+    #[test]
+    fn the_field_is_brought_in_in_autumn_then_sown_again_next_spring() {
+        let (mut sim, lineage, _) = farming_tribe(4_245);
+        sim.tick_count = SPRING;
+        tick_village_fields(&mut sim);
+        let ripe = sim.farms[0].ready_tick;
+        let food_before: u32 = sim
             .organisms
             .iter()
             .filter(|o| o.alive && o.lineage_id == lineage)
             .map(|o| o.inv_food as u32)
-            .sum::<u32>();
-        assert!(after > before, "the harvest adds food to the tribe");
-        assert!(sim.farms.iter().any(|f| !f.harvested), "the plot is sown again");
+            .sum();
+
+        sim.tick_count = ripe;
+        tick_village_fields(&mut sim);
+        let food_after: u32 = sim
+            .organisms
+            .iter()
+            .filter(|o| o.alive && o.lineage_id == lineage)
+            .map(|o| o.inv_food as u32)
+            .sum();
+        assert!(sim.farms[0].harvested, "the ripe field is brought in");
+        assert!(food_after > food_before, "the harvest adds food to the tribe");
+        assert!(
+            sim.organisms.iter().any(|o| o.thought == "harvesting the field"),
+            "a person is seen working the harvest"
+        );
+
+        // Autumn and winter: the stubble stays fallow.
+        sim.tick_count = ripe + 3_000;
+        tick_village_fields(&mut sim);
+        assert!(sim.farms[0].harvested);
+
+        // The next spring the plot is sown again.
+        sim.tick_count = SPRING + 12_000;
+        tick_village_fields(&mut sim);
+        assert!(!sim.farms[0].harvested, "the next spring re-sows the plot");
+        assert!(sim.organisms.iter().any(|o| o.thought == "sowing the field"));
     }
 
     #[test]
     fn a_tribe_without_the_discovery_or_a_house_sows_nothing() {
-        let mut sim = Simulation::new(4_243);
+        let mut sim = Simulation::new(4_246);
         sim.farms.clear();
         sim.buildings.clear();
-        sim.tick_count = SOW_STEP;
+        sim.tick_count = SPRING;
         tick_village_fields(&mut sim);
         assert!(sim.farms.is_empty());
     }
