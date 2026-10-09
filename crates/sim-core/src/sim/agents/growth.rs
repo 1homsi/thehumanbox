@@ -727,6 +727,7 @@ pub fn deliver_births(
             &format!("gen{} born to {}", generation, parent_name),
         );
         history.births += 1;
+        history.record_birth(tick);
         born.push((organisms[ci].lineage_id.clone(), generation));
     }
     born

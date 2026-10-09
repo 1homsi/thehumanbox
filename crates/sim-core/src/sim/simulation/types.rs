@@ -57,6 +57,33 @@ pub struct History {
     pub outbreaks: u64,
     #[serde(default)]
     pub era_history: VecDeque<EraEntry>,
+    /// Births and deaths in each year of the calendar (index 0 is the first
+    /// year), for the stats panel. Counted where `births` and the death
+    /// causes are counted; they never change what happens in the world.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub births_by_year: Vec<u32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub deaths_by_year: Vec<u32>,
+}
+
+impl History {
+    /// Counts a birth in the year `tick` falls in.
+    pub fn record_birth(&mut self, tick: u64) {
+        bump_year(&mut self.births_by_year, tick);
+    }
+
+    /// Counts a death in the year `tick` falls in.
+    pub fn record_death(&mut self, tick: u64) {
+        bump_year(&mut self.deaths_by_year, tick);
+    }
+}
+
+fn bump_year(years: &mut Vec<u32>, tick: u64) {
+    let year = (tick / crate::sim::cosmos::YEAR_LENGTH_TICKS) as usize;
+    if years.len() <= year {
+        years.resize(year + 1, 0);
+    }
+    years[year] = years[year].saturating_add(1);
 }
 
 /// Read-mostly lineage facts collected once at the start of every tick.
@@ -122,4 +149,46 @@ pub struct StrategyCampaignRecord {
     pub target: u32,
     pub outcome: String,
     pub reason: Option<String>,
+}
+
+#[cfg(test)]
+mod history_year_tests {
+    use super::*;
+    use crate::sim::cosmos::YEAR_LENGTH_TICKS;
+
+    #[test]
+    fn births_and_deaths_are_counted_in_the_year_they_happen() {
+        let mut h = History::default();
+        h.record_birth(0);
+        h.record_birth(YEAR_LENGTH_TICKS - 1);
+        h.record_birth(YEAR_LENGTH_TICKS);
+        h.record_death(3 * YEAR_LENGTH_TICKS + 5);
+        assert_eq!(h.births_by_year, vec![2, 1]);
+        assert_eq!(h.deaths_by_year, vec![0, 0, 0, 1]);
+    }
+
+    #[test]
+    fn a_run_counts_every_birth_in_some_year() {
+        let mut sim = Simulation::new(42);
+        for _ in 0..(YEAR_LENGTH_TICKS + 500) {
+            sim.tick();
+        }
+        assert!(sim.history.births > 0);
+        let counted: u64 = sim.history.births_by_year.iter().map(|&n| u64::from(n)).sum();
+        assert_eq!(counted, sim.history.births, "every birth lands in a year");
+        let deaths: u64 = sim.history.deaths_by_year.iter().map(|&n| u64::from(n)).sum();
+        assert!(
+            deaths > 0
+                && deaths
+                    <= sim.history.deaths_old_age
+                        + sim.history.deaths_starvation
+                        + sim.history.deaths_dehydration
+                        + sim.history.deaths_sickness
+                        + sim.history.deaths_beasts
+                        + sim.history.deaths_drowning
+                        + sim.history.deaths_fire
+                        + sim.history.deaths_disaster
+                        + sim.history.deaths_combat
+        );
+    }
 }
