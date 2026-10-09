@@ -102,6 +102,8 @@ pub struct SaveState {
     pub(super) lineage_generations_reached: HashMap<String, u32>,
     #[serde(default)]
     pub(super) lineage_unrest: HashMap<String, f32>,
+    #[serde(default)]
+    pub(super) goals: crate::sim::goals::GoalBook,
     pub(super) current_era: String,
     pub(super) sex_words: Vec<String>,
     pub(crate) world_seed: u64,

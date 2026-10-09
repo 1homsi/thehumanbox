@@ -8,6 +8,7 @@ pub struct DroughtState {
     pub rain_relief: u64,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn tick_drought(
     drought: &mut DroughtState,
     grid: &mut WorldGrid,
@@ -15,6 +16,7 @@ pub fn tick_drought(
     weather: &WeatherState,
     tick: u64,
     season: &str,
+    disaster_mult: f32,
     history: &mut crate::sim::simulation::History,
     events: &mut std::collections::VecDeque<crate::sim::simulation::Event>,
     rng: &mut impl Rng,
@@ -29,7 +31,7 @@ pub fn tick_drought(
         }
         return;
     }
-    let prob = DROUGHT_BASE_PROB * if season == "scarcity" { 3.0 } else { 1.0 };
+    let prob = DROUGHT_BASE_PROB * disaster_mult * if season == "scarcity" { 3.0 } else { 1.0 };
     if rng.random::<f32>() < prob {
         start_drought(drought, grid, tick, history, events, rng);
     }
@@ -200,12 +202,14 @@ pub fn tick_outbreak(
     grid: &mut WorldGrid,
     tick: u64,
     season: &str,
+    disaster_mult: f32,
     history: &mut crate::sim::simulation::History,
     events: &mut std::collections::VecDeque<crate::sim::simulation::Event>,
     rng: &mut impl Rng,
 ) {
     use crate::world::grid::{HEIGHT, WIDTH};
     let prob = OUTBREAK_BASE_PROB
+        * disaster_mult
         * if season == "scarcity" || season == "recovery" {
             2.0
         } else {

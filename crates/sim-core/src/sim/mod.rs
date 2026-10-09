@@ -3,6 +3,7 @@ pub mod calendar;
 pub mod command;
 pub mod config;
 pub mod cosmos;
+pub mod goals;
 pub mod seasons;
 pub mod simulation;
 pub mod spatial;

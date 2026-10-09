@@ -65,6 +65,10 @@ pub enum Command {
         #[serde(default)]
         radius: i32,
     },
+    /// Sets the world's difficulty: `calm`, `normal` or `harsh` (see `sim/goals.rs`).
+    SetDifficulty {
+        level: String,
+    },
     /// The tribe of the nearest person in reach is taught the next secret it lacks for its age.
     TeachNearby {
         x: f32,
@@ -707,6 +711,13 @@ impl Simulation {
             Command::MergeTribes { ax, ay, bx, by } => self.cmd_merge_tribes(ax, ay, bx, by),
             Command::SplitTribe { x, y, radius } => self.cmd_split_tribe(x, y, radius),
             Command::TeachNearby { x, y, radius } => self.cmd_teach_nearby(x, y, radius),
+            Command::SetDifficulty { level } => match crate::sim::goals::Difficulty::parse(&level) {
+                Some(d) => {
+                    self.set_difficulty(d);
+                    true
+                }
+                None => false,
+            },
             Command::Curse { x, y, radius } => self.cmd_curse(x, y, radius),
             Command::Comet { x, y, radius } => self.cmd_comet(x, y, radius),
             Command::Smite { x, y, radius } => self.cmd_smite(x, y, radius),

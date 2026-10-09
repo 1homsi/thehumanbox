@@ -9,6 +9,7 @@ impl Simulation {
 
     pub fn tick(&mut self) {
         self.tick_count += 1;
+        self.tick_goals();
         self.resolve_strategy_objective_expirations();
         if self.tick_count.is_multiple_of(60) {
             self.resolve_extinct_strategy_objectives();
@@ -76,6 +77,7 @@ impl Simulation {
             &self.weather,
             self.tick_count,
             season_str,
+            self.goals.difficulty.disaster_mult(),
             &mut self.history,
             &mut self.events,
             &mut self.rng,
@@ -94,6 +96,7 @@ impl Simulation {
             &mut self.grid,
             self.tick_count,
             season_str,
+            self.goals.difficulty.disaster_mult(),
             &mut self.history,
             &mut self.events,
             &mut self.rng,
