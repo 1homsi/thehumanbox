@@ -423,6 +423,15 @@ impl Simulation {
                     "lineage_inequality".to_string(),
                     serde_json::Value::Array(inequality),
                 );
+                // Grain in each tribe's granaries, for the tribe card and the trade agent.
+                let stores: Vec<serde_json::Value> = crate::sim::civ::land::village_stores::food_stores(self)
+                    .into_iter()
+                    .map(|(lid, stock)| json!({ "lineage_id": lid, "stock": stock }))
+                    .collect();
+                obj.insert(
+                    "lineage_food_stores".to_string(),
+                    serde_json::Value::Array(stores),
+                );
                 let mut crime_rows: Vec<(&String, &crate::sim::civ::society::crime::CrimeTally)> =
                     self.lineage_crime.iter().filter(|(_, t)| t.thefts > 0).collect();
                 crime_rows.sort_by(|a, b| a.0.cmp(b.0));

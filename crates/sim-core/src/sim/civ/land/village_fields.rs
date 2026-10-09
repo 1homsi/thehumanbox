@@ -8,6 +8,7 @@
 //! order, so the same seed still gives the same world.
 
 use crate::sim::actions::agriculture::farm_ops::{crop_for_plot, harvest_crop, plant_crop};
+use crate::sim::civ::land::village_stores;
 use crate::sim::config::SEASON_LENGTH;
 use crate::sim::simulation::Simulation;
 use crate::sim::tech::buildings::BuildingKind;
@@ -46,10 +47,10 @@ const SOW_MIN_FERTILITY: f32 = 0.30;
 
 /// Living members of each tribe, in index order, and the tribe's operational
 /// dwellings sorted by position.
-struct Tribe {
-    lineage: String,
-    members: Vec<usize>,
-    dwellings: Vec<(i32, i32)>,
+pub(crate) struct Tribe {
+    pub(crate) lineage: String,
+    pub(crate) members: Vec<usize>,
+    pub(crate) dwellings: Vec<(i32, i32)>,
 }
 
 fn tribes_with_dwellings(sim: &Simulation) -> Vec<Tribe> {
@@ -138,6 +139,8 @@ pub(crate) fn tick_village_fields(sim: &mut Simulation) {
         }
         harvest_ripe(sim, tribe);
         sow_fields(sim, tribe, now);
+        village_stores::ration(sim, tribe);
+        village_stores::build_stores(sim, tribe);
     }
 }
 
@@ -156,7 +159,16 @@ fn harvest_ripe(sim: &mut Simulation, tribe: &Tribe) {
         }) else {
             continue;
         };
-        if harvest_crop(sim, actor, x, y).is_some() {
+        if let Some(result) = harvest_crop(sim, actor, x, y) {
+            // The harvest was credited to the hands that brought it in; it goes into the
+            // granary instead (with the granary and windmill bonus), and only what does not
+            // fit stays with them.
+            let grain = (result.yield_units as f32 * village_stores::yield_factor(sim, &tribe.lineage))
+                .round() as u32;
+            let person = &mut sim.organisms[actor];
+            person.inv_food = person.inv_food.saturating_sub(result.yield_units);
+            let left = village_stores::deposit(sim, &tribe.lineage, grain);
+            sim.organisms[actor].inv_food = sim.organisms[actor].inv_food.saturating_add(left.min(255) as u8);
             let tick = sim.tick_count;
             sim.organisms[actor].think("harvesting the field", tick);
         }
@@ -343,7 +355,8 @@ mod tests {
             .iter()
             .filter(|o| o.alive && o.lineage_id == lineage)
             .map(|o| o.inv_food as u32)
-            .sum();
+            .sum::<u32>()
+            + crate::sim::civ::land::village_stores::stock_of(&sim, &lineage);
 
         sim.tick_count = ripe;
         tick_village_fields(&mut sim);
@@ -352,7 +365,8 @@ mod tests {
             .iter()
             .filter(|o| o.alive && o.lineage_id == lineage)
             .map(|o| o.inv_food as u32)
-            .sum();
+            .sum::<u32>()
+            + crate::sim::civ::land::village_stores::stock_of(&sim, &lineage);
         assert!(sim.farms[0].harvested, "the ripe field is brought in");
         assert!(food_after > food_before, "the harvest adds food to the tribe");
         assert!(

@@ -10,6 +10,8 @@ export interface TribeStatus {
   people: number
   /** Averages over living members, 0..1. */
   food: number
+  /** Measures of grain in the tribe's granaries. */
+  stores: number
   water: number
   health: number
   sick: number
@@ -58,6 +60,7 @@ export function tribeStatus(world: WorldState, id: string): TribeStatus | null {
   const faith = world.faith
   return {
     id,
+    stores: Math.max(0, world.lineage_food_stores?.find((r) => r.lineage_id === id)?.stock ?? 0),
     name: world.lineage_names?.[id] ?? id.slice(0, 6),
     era: eraOf(world, id)?.replace(/[-_]/g, ' ') ?? null,
     people: members.length,
