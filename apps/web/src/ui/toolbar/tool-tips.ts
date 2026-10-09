@@ -100,8 +100,7 @@ const TOOL_TIPS: Record<string, string> = {
     'A rare gift for the living person nearest the point: a talent that lifts one of their traits (memory, curiosity, resilience or kindness) for good. A person keeps one talent.',
   tribe_food:
     'Every living member of the tribe nearest the click gets a portion of food, whether they are hungry or not.',
-  tribe_tools:
-    'Every living member of the tribe nearest the click is handed a stone tool.',
+  tribe_tools: 'Every living member of the tribe nearest the click is handed a stone tool.',
   migrate_tribe:
     'The tribe nearest the click moves to it: its people are set down around the click, at once. The brush sets how far the tribe is found.',
   trade_gift:
