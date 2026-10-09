@@ -467,6 +467,34 @@ pub(super) fn housing_target(
         .find(|kind| era >= kind.era_unlock() && construction_cost_available(sim, lineage, *kind))
 }
 
+/// Fences in a tribe's palisade, and the radius of the ring they stand on.
+pub(super) const PALISADE_FENCES: usize = 12;
+const PALISADE_RADIUS: f32 = 5.0;
+
+/// Where the next fence of the palisade stands: evenly spaced round the centre.
+pub(super) fn palisade_post(cx: i32, cy: i32, index: usize) -> (i32, i32) {
+    let angle = index as f32 * std::f32::consts::TAU / PALISADE_FENCES as f32;
+    (
+        cx + (PALISADE_RADIUS * angle.cos()).round() as i32,
+        cy + (PALISADE_RADIUS * angle.sin()).round() as i32,
+    )
+}
+
+/// How long after a battle a tribe still counts as at war, so its palisade
+/// stands between one construction pass and the next (passes run every 240 ticks).
+pub(super) const WAR_MEMORY_TICKS: u64 = 600;
+
+/// True while a battle a tribe takes part in is being fought, or ended within
+/// `WAR_MEMORY_TICKS`.
+pub(super) fn at_war(sim: &Simulation, lineage: &str) -> bool {
+    sim.battles.iter().any(|battle| {
+        let last_fought = battle.ended_tick.unwrap_or(sim.tick_count);
+        last_fought + WAR_MEMORY_TICKS >= sim.tick_count
+            && (battle.attackers.iter().any(|l| l == lineage)
+                || battle.defenders.iter().any(|l| l == lineage))
+    })
+}
+
 pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
     let functional_count = sim
         .buildings
@@ -507,6 +535,25 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
         let pop = lineage_pop(sim, &lid);
         if pop < 3 {
             continue;
+        }
+        // A tribe at war raises its palisade before anything else, outside the
+        // project limit: fences are cheap and a battle's defence bonus counts them.
+        if functional_slots > 0 && at_war(sim, &lid) {
+            let fences = sim
+                .buildings
+                .iter()
+                .filter(|b| {
+                    !b.decorative && b.kind == BuildingKind::Fence && b.owner_lineage.as_deref() == Some(&lid)
+                })
+                .count();
+            let (cx, cy) = lineage_center(sim, &lid);
+            if fences < PALISADE_FENCES && (cx, cy) != (0, 0) {
+                let (px, py) = palisade_post(cx, cy, fences);
+                let mut palisade_sites = FailedSites::default();
+                if try_start_building_with(sim, &lid, BuildingKind::Fence, px, py, &mut palisade_sites) {
+                    functional_slots -= 1;
+                }
+            }
         }
         // Finish a manageable number of projects before reserving more land
         // and materials. Children and exhausted residents are not a workforce.
@@ -998,4 +1045,62 @@ pub(super) fn is_research_building(kind: BuildingKind) -> bool {
         kind,
         School | Library | Observatory | University | Datacenter | ResearchLab
     )
+}
+
+#[cfg(test)]
+mod palisade_tests {
+    use super::*;
+    use crate::sim::civ::society::warfare::{Battle, BattleScale};
+
+    fn battle(attackers: &[&str], defenders: &[&str], ended: Option<u64>) -> Battle {
+        Battle {
+            id: "b".into(),
+            attackers: attackers.iter().map(|s| s.to_string()).collect(),
+            defenders: defenders.iter().map(|s| s.to_string()).collect(),
+            attacker_orgs: Vec::new(),
+            defender_orgs: Vec::new(),
+            scale: BattleScale::Skirmish,
+            location: (0, 0),
+            started_tick: 1,
+            ended_tick: ended,
+            casualties_a: 0,
+            casualties_d: 0,
+            outcome: None,
+            initial_a: 1,
+            initial_d: 1,
+        }
+    }
+
+    fn sim_with_battles(battles: Vec<Battle>) -> Simulation {
+        let mut sim = Simulation::new(1);
+        sim.battles = battles;
+        sim
+    }
+
+    #[test]
+    fn the_palisade_stands_on_a_ring_of_distinct_posts() {
+        let posts: HashSet<(i32, i32)> = (0..PALISADE_FENCES).map(|i| palisade_post(100, 100, i)).collect();
+        assert_eq!(posts.len(), PALISADE_FENCES);
+        for (x, y) in posts {
+            let d = (((x - 100).pow(2) + (y - 100).pow(2)) as f32).sqrt();
+            assert!((d - PALISADE_RADIUS).abs() < 1.0, "post at distance {d}");
+        }
+    }
+
+    #[test]
+    fn a_tribe_is_at_war_while_it_fights_and_for_a_while_after() {
+        let battles = vec![
+            battle(&["river"], &["hill"], None),
+            battle(&["sea"], &["lake"], Some(950)),
+            battle(&["old"], &["ruin"], Some(100)),
+        ];
+        let mut sim = sim_with_battles(battles);
+        sim.tick_count = 1000;
+        assert!(at_war(&sim, "river"));
+        assert!(at_war(&sim, "hill"));
+        // A battle that ended recently keeps its tribes at war a while; an old one does not.
+        assert!(at_war(&sim, "sea"));
+        assert!(!at_war(&sim, "old"));
+        assert!(!at_war(&sim, "forest"));
+    }
 }
