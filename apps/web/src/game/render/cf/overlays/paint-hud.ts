@@ -5,20 +5,21 @@ import { drawPrayerFeedback, updatePrayerFeedback } from '../../prayer-feedback'
 import { drawSettlementLabels, subFont, titleFont, type PlacedLabel } from '../../settlement-labels'
 import { drawBlessings, drawFireworks, updateWorldMoments } from '../../world-moments'
 import type { CfFrame } from './frame'
+import { painterView } from './frame'
 import { collectSettlementLabels, placeLabels } from './settlement-label-list'
 
 type Ctx = CanvasRenderingContext2D
 
 /** Settlement names, world moments, prayer bubbles and effects, and the tile grid (the old `draw_hud`). */
 export function paintHud(ctx: Ctx, f: CfFrame, opts: { grid: boolean }): { labels: PlacedLabel[] } {
-  const { world, viewFlags, zoom, ox, oy, W, H, t, bounds } = f
+  const { world, viewFlags, zoom, ox, oy, t, bounds } = f
   let placed: PlacedLabel[] = []
   if (!viewFlags.hideUI) {
     const measure = (text: string, kind: 'major' | 'minor' | 'sub') => {
       ctx.font = kind === 'sub' ? subFont(1) : titleFont(kind === 'major', 1)
       return ctx.measureText(text).width
     }
-    placed = placeLabels(collectSettlementLabels(world, bounds, zoom), zoom, measure, W, H)
+    placed = placeLabels(collectSettlementLabels(world, bounds, zoom), zoom, measure, f.W, f.H)
   }
   if (placed.length > 0) drawSettlementLabels(ctx, placed)
 
@@ -47,8 +48,11 @@ export function paintHud(ctx: Ctx, f: CfFrame, opts: { grid: boolean }): { label
       })),
       16 * bubbleScale,
     )
+    // A bubble is drawn only where the camera sees it (the merge above is over every prayer, so
+    // which bubbles merge does not depend on the view).
+    const view = painterView(f, TILE * 6)
     for (const { x, y, prayer, left, count } of merged) {
-      if (x < -32 || x > W + 32 || y < -32 || y > H + 32) continue
+      if (x < view.x0 || x > view.x1 || y < view.y0 || y > view.y1) continue
       ctx.save()
       ctx.translate(Math.round(x), Math.round(y - 8))
       ctx.scale(bubbleScale, bubbleScale)

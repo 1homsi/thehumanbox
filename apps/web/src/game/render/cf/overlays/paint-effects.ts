@@ -10,12 +10,22 @@ import { labelScale } from '../../settlement-labels'
 import { drawSmog } from '../../smog'
 import { drawWard } from '../../wards'
 import type { CfFrame } from './frame'
+import { painterView } from './frame'
 
 type Ctx = CanvasRenderingContext2D
 
+/**
+ * Objects are painted only where the camera can see them. Each one's own extent (a beacon's label is
+ * the widest) is allowed for in the margin, so an object just off the edge still draws the part that
+ * reaches the screen.
+ */
+const EXTENT_MARGIN = TILE * 24
+
 /** Strategy beacons, smog, era traffic, battles, festivals and wards (the old `draw_effects`). */
 export function paintEffects(ctx: Ctx, f: CfFrame): void {
-  const { world, zoom, ox, oy, organisms, W, H, t } = f
+  const { world, zoom, ox, oy, organisms, t } = f
+  const view = painterView(f, EXTENT_MARGIN)
+  const seen = (x: number, y: number) => x >= view.x0 && x <= view.x1 && y >= view.y0 && y <= view.y1
   if (world.lineage_strategies) {
     const beacons = strategyBeaconPositions(
       world.lineage_strategies,
@@ -27,7 +37,7 @@ export function paintEffects(ctx: Ctx, f: CfFrame): void {
     for (const { strategy, x: wx, y: wy } of beacons) {
       const centerX = (wx - ox) * TILE + TILE / 2
       const centerY = (wy - oy) * TILE + TILE / 2
-      if (centerX < -32 || centerX > W + 32 || centerY < -32 || centerY > H + 32) continue
+      if (!seen(centerX, centerY)) continue
       const pulse = 22 + Math.sin(t * 0.003 + wx * 0.11 + wy * 0.07) * 4
       ctx.save()
       ctx.globalAlpha = 0.82
@@ -61,19 +71,25 @@ export function paintEffects(ctx: Ctx, f: CfFrame): void {
   }
 
   for (const source of world.smog ?? []) {
-    drawSmog(ctx, source, (source.x - ox) * TILE, (source.y - oy) * TILE, TILE, motionTime(t))
+    const sx = (source.x - ox) * TILE
+    const sy = (source.y - oy) * TILE
+    if (!seen(sx, sy)) continue
+    drawSmog(ctx, source, sx, sy, TILE, motionTime(t))
   }
   // Aircraft and rockets are small moving marks: they are for close zoom, not the whole-map view.
-  if (zoomDetailLevel(zoom) !== 'overview') drawEraTraffic(ctx, world, ox, oy, W, H, zoom, t)
+  if (zoomDetailLevel(zoom) !== 'overview') drawEraTraffic(ctx, world, ox, oy, f.W, f.H, zoom, t)
   for (const battle of world.battles ?? []) {
     const age = battleAge(battle, world.tick)
     if (age === null) continue
     const [bx, by] = battle.location
+    const cx = (bx - ox) * TILE + TILE / 2
+    const cy = (by - oy) * TILE + TILE / 2
+    if (!seen(cx, cy)) continue
     drawBattle(
       ctx,
       battle,
-      (bx - ox) * TILE + TILE / 2,
-      (by - oy) * TILE + TILE / 2,
+      cx,
+      cy,
       TILE,
       labelScale(zoom),
       lineageColor(battle.attackers[0]),
@@ -84,26 +100,15 @@ export function paintEffects(ctx: Ctx, f: CfFrame): void {
   }
   for (const fest of world.festivals ?? []) {
     if (fest.x === undefined || fest.y === undefined) continue
-    drawFestival(
-      ctx,
-      fest,
-      (fest.x - ox) * TILE + TILE / 2,
-      (fest.y - oy) * TILE + TILE / 2,
-      TILE,
-      world.tick,
-      motionTime(t),
-      lineageColor(fest.lineage_id),
-    )
+    const cx = (fest.x - ox) * TILE + TILE / 2
+    const cy = (fest.y - oy) * TILE + TILE / 2
+    if (!seen(cx, cy)) continue
+    drawFestival(ctx, fest, cx, cy, TILE, world.tick, motionTime(t), lineageColor(fest.lineage_id))
   }
   for (const ward of world.wards ?? []) {
-    drawWard(
-      ctx,
-      ward,
-      (ward.x - ox) * TILE + TILE / 2,
-      (ward.y - oy) * TILE + TILE / 2,
-      TILE,
-      world.tick,
-      motionTime(t),
-    )
+    const cx = (ward.x - ox) * TILE + TILE / 2
+    const cy = (ward.y - oy) * TILE + TILE / 2
+    if (!seen(cx, cy)) continue
+    drawWard(ctx, ward, cx, cy, TILE, world.tick, motionTime(t))
   }
 }
