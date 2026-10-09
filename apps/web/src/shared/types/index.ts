@@ -295,6 +295,10 @@ export interface VehicleInfo {
   x: number
   y: number
   rider_id?: string | null
+  /** A boat with a voyage to make (its wake shows). */
+  sailing?: boolean
+  /** The harbour of a fishing boat, where it is moored at night. */
+  harbour?: [number, number] | null
 }
 
 export interface FestivalInfo {

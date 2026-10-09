@@ -554,7 +554,7 @@ export class PeopleSprites {
         y + 3,
         BOAT_CELL.width,
         BOAT_CELL.height,
-        boatColumn(variant, boatFrame(false, !!v.building, 0)),
+        boatColumn(variant, boatFrame(!!v.sailing, !!v.building, 0)),
         -1,
       )
       body.atlas[bi] = BODY_ATLAS.boats

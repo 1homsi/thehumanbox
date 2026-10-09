@@ -254,6 +254,7 @@ impl Simulation {
                 cargo: 0,
                 route,
                 ready_tick: self.tick_count + 24,
+                harbour: None,
             });
             self.next_vehicle_id += 1;
             self.organisms[idx].discover("raft_building");
@@ -333,6 +334,7 @@ impl Simulation {
                     cargo,
                     route,
                     ready_tick: self.tick_count + 24,
+                    harbour: None,
                 });
                 self.next_vehicle_id += 1;
                 i
@@ -529,6 +531,7 @@ mod storm_tests {
             cargo: 0,
             route: vec![(46, 45)],
             ready_tick: 0,
+            harbour: None,
         });
         sim.tick_count = 500;
         sim.weather.kind = 2;
@@ -584,6 +587,7 @@ mod deck_tests {
             cargo: 0,
             route: Vec::new(),
             ready_tick: 0,
+            harbour: None,
         });
         let (_, _, origin) = sim.boat_action(0).expect("a resident takes the moored boat");
         assert_eq!(origin, "boat_travel");
