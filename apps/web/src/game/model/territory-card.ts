@@ -35,7 +35,7 @@ export function goodsOfTribe(world: Pick<WorldState, 'land_goods'>, lineage: str
  * no route, so a tribe that does not trade shows nothing.
  */
 export function tradeOfTribe(
-  world: Pick<WorldState, 'trade_routes' | 'caravans'>,
+  world: Pick<WorldState, 'trade_routes' | 'caravans' | 'trade_income'>,
   lineage: string,
 ): string | null {
   const routes = (world.trade_routes ?? []).filter(
@@ -55,6 +55,8 @@ export function tradeOfTribe(
   if (goods > 0) parts.push(plural(goods, 'good', 'goods'))
   if (caravans.length > 0) parts.push(`${plural(caravans.length, 'caravan', 'caravans')} on the road`)
   if (inbound) parts.push(`buying ${inbound.cargo} at ${inbound.unit_price} each`)
+  const earned = world.trade_income?.[lineage] ?? 0
+  if (earned > 0) parts.push(`earned ${earned} from trade`)
   return parts.join(' · ')
 }
 

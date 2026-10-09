@@ -388,6 +388,10 @@ impl Simulation {
                 "land_goods".to_string(),
                 serde_json::to_value(&land_goods).unwrap_or_default(),
             );
+            obj.insert(
+                "trade_income".to_string(),
+                serde_json::to_value(&self.trade_income).unwrap_or_default(),
+            );
         }
         if include_cold {
             if let Some(obj) = payload.as_object_mut() {

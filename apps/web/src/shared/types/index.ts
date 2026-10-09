@@ -654,6 +654,8 @@ export interface WorldState {
   caravans?: CaravanInfo[]
   /** The land goods each tribe holds, by lineage then good (clay, salt, ...). */
   land_goods?: Record<string, Record<string, number>>
+  /** Coin each tribe has earned by selling goods to other tribes, by lineage. */
+  trade_income?: Record<string, number>
   governments?: GovernmentInfo[]
   artworks?: ArtworkInfo[]
   farms?: FarmInfo[]
