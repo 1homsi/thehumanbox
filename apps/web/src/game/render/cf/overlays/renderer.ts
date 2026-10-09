@@ -28,6 +28,7 @@ import {
   paintWaterStars,
 } from './paint-ground'
 import { hazeLevels, paintHaze } from './haze'
+import { paintChimneySmoke } from './chimney-smoke'
 import { paintDew, dewLevel } from './dew'
 import { paintFallingBlossoms } from './falling-blossoms'
 import { paintFallingLeaves } from './falling-leaves'
@@ -80,6 +81,7 @@ export const Z = {
   ground: 12,
   roads: 15,
   traffic: 25,
+  smoke: 25.5,
   labels: 45,
   effects: 50,
   hud: 60,
@@ -141,6 +143,7 @@ export class CfOverlayRenderer {
   private readonly ground: SpriteRecorder
   private readonly roads: SpriteRecorder
   private readonly traffic: SpriteRecorder
+  private readonly smoke: SpriteRecorder
   private readonly labels: SpriteRecorder
   /** Names and thoughts: text runs above the people (see `PeopleNameLayer`). */
   private readonly names: PeopleNameLayer
@@ -226,6 +229,7 @@ export class CfOverlayRenderer {
     this.ground = new SpriteRecorder(shape(Z.ground), text(Z.ground), this.shapes, this.glyphs)
     this.roads = new SpriteRecorder(shape(Z.roads), text(Z.roads), this.shapes, this.glyphs)
     this.traffic = new SpriteRecorder(shape(Z.traffic), text(Z.traffic), this.shapes, this.glyphs)
+    this.smoke = new SpriteRecorder(shape(Z.smoke), text(Z.smoke), this.shapes, this.glyphs)
     this.labels = new SpriteRecorder(shape(Z.labels), text(Z.labels), this.shapes, this.glyphs)
     // Just above the label glyphs (zIndex + 0.5), so the names sit over the poses and prayer marks.
     const names = new TextLayer({ zIndex: Z.labels + 0.6 })
@@ -369,6 +373,9 @@ export class CfOverlayRenderer {
     this.traffic.begin(gv)
     if (showTrade) drawTradeNetwork2D(this.traffic.asContext(), f.world, f.bounds, f.t, 'caravans')
     this.traffic.end()
+    this.smoke.begin(gv)
+    paintChimneySmoke(this.smoke.asContext(), f.bounds, f.ox, f.oy, f.world.buildings, f.t)
+    this.smoke.end()
     lap('roads')
 
     this.effects.begin(gv)
