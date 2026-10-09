@@ -4,9 +4,12 @@ import { Modal } from './Modal'
 import { DAY_LENGTH, kindIcon } from './stats/constants'
 import { PopChart } from './stats/PopChart'
 import { YearlyChart } from './stats/YearlyChart'
+import { WealthGapChart } from './stats/WealthGapChart'
+import { LegendsList } from './stats/LegendsList'
 import { RelationsTable } from './stats/RelationsTable'
 import { DiscoveryTimeline } from './stats/DiscoveryTimeline'
 import { AgePyramid } from './stats/AgePyramid'
+import { GenerationBars } from './stats/GenerationBars'
 import { TraitAverages } from './stats/TraitAverages'
 import { DiscoveryRollup } from './stats/DiscoveryRollup'
 import { BondStats } from './stats/BondStats'
@@ -121,6 +124,11 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
           />
         </div>
 
+        <div className="stats-section-title">WEALTH GAP BY YEAR</div>
+        <div className="stats-chart-wrap">
+          <WealthGapChart values={world.history.wealth_gap_by_year ?? []} />
+        </div>
+
         <div className="stats-grid">
           <section>
             <div className="stats-section-title">AGE PYRAMID</div>
@@ -144,6 +152,16 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
           <section>
             <div className="stats-section-title">DISCOVERY ROLLUP</div>
             <DiscoveryRollup organisms={world.organisms.filter((o) => o.alive)} />
+          </section>
+
+          <section>
+            <div className="stats-section-title">LEGENDS</div>
+            <LegendsList events={world.events ?? []} />
+          </section>
+
+          <section>
+            <div className="stats-section-title">GENERATIONS ALIVE</div>
+            <GenerationBars organisms={world.organisms.filter((o) => o.alive)} />
           </section>
 
           <section>

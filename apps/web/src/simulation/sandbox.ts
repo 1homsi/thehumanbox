@@ -68,6 +68,9 @@ export type SandboxCommand =
   | { cmd: 'hail'; x: number; y: number; radius?: number }
   | { cmd: 'nuke'; x: number; y: number }
   | { cmd: 'eclipse' }
+  | { cmd: 'cure_tribe'; x: number; y: number }
+  | { cmd: 'guardian'; x: number; y: number }
+  | { cmd: 'aurora' }
   | { cmd: 'clear_region'; x: number; y: number; radius?: number }
   | { cmd: 'comet'; x: number; y: number; radius?: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
@@ -144,11 +147,16 @@ export type SandboxViewFlag =
 export type SandboxViewControl =
   { control: 'overlay'; value: SandboxOverlay } | { control: 'flag'; value: SandboxViewFlag }
 
+/** The sky effects a tool can draw over the map once it lands. */
+export type SkyOverlayKind = 'eclipse' | 'aurora'
+
 export interface SandboxTool {
   id: string
   label: string
   icon: string
   mode: 'point' | 'instant'
+  /** A sky effect drawn over the map for a while once the command lands (see game/render/sky-overlay.ts). */
+  overlay?: SkyOverlayKind
   build?: (x: number, y: number, brush: number) => SandboxCommand
   fire?: SandboxCommand
   time?: TimeControl
@@ -359,6 +367,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         build: (x, y, b) => ({ cmd: 'cure', x, y, radius: 6 + b }),
       },
       {
+        id: 'cure_tribe',
+        label: 'cure tribe',
+        icon: '🩹',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'cure_tribe', x, y }),
+      },
+      {
         id: 'harvest',
         label: 'harvest',
         icon: '🌾',
@@ -406,13 +421,6 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '💞',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'love', x, y, radius: 4 + b }),
-      },
-      {
-        id: 'tame',
-        label: 'tame',
-        icon: '🦮',
-        mode: 'point',
-        build: (x, y, b) => ({ cmd: 'tame', x, y, radius: 4 + b }),
       },
       { id: 'rain', label: 'rain', icon: '🌧️', mode: 'instant', fire: { cmd: 'weather', kind: 'rain' } },
       { id: 'clear', label: 'clear', icon: '☀️', mode: 'instant', fire: { cmd: 'weather', kind: 'clear' } },
@@ -748,6 +756,15 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🌑',
         mode: 'instant',
         fire: { cmd: 'eclipse' },
+        overlay: 'eclipse',
+      },
+      {
+        id: 'aurora',
+        label: 'aurora',
+        icon: '🌌',
+        mode: 'instant',
+        fire: { cmd: 'aurora' },
+        overlay: 'aurora',
       },
       {
         id: 'monsoon',
@@ -1184,6 +1201,20 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🐋',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'whale', count: 1 + b, radius: b }),
+      },
+      {
+        id: 'tame',
+        label: 'tame',
+        icon: '🦮',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'tame', x, y, radius: 4 + b }),
+      },
+      {
+        id: 'guardian',
+        label: 'guardian',
+        icon: '🐶',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'guardian', x, y }),
       },
       {
         id: 'dog',

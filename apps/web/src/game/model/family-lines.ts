@@ -46,3 +46,20 @@ export function familyLineText(f: FamilyLine): string {
   const tail = f.longestLived ? `, eldest ${f.eldestDays} days (longest-lived)` : ''
   return `${f.surname} ×${f.living}${tail}`
 }
+
+/**
+ * One sentence on the person's family in their tribe: how many of their
+ * surname are alive and how old the eldest is. Null when they have no surname
+ * or no living kin of it are counted.
+ */
+export function familySentence(
+  org: { surname?: string; lineage_id?: string },
+  organisms: ReadonlyArray<{ alive: boolean; lineage_id?: string; surname?: string; age: number }>,
+): string | null {
+  if (!org.surname) return null
+  const line = familyLines(organisms, org.lineage_id ?? '', Number.MAX_SAFE_INTEGER).find(
+    (f) => f.surname === org.surname,
+  )
+  if (!line) return null
+  return `The ${line.surname} family in this tribe: ${line.living} living, the eldest ${line.eldestDays} days old.`
+}

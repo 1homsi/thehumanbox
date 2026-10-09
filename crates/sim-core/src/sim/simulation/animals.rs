@@ -58,6 +58,7 @@ impl Simulation {
     }
 
     pub(super) fn tick_animals(&mut self, org_idx_by_id: &FxHashMap<String, usize>) {
+        self.tick_animal_census();
         // Passive respawn floor. Without this, a transient extinction
         // (drought + hunting + wolves eating prey then starving) leaves
         // the world animal-less forever, since reproduction requires
@@ -171,6 +172,9 @@ impl Simulation {
                 &mut self.rng,
             );
         }
+
+        self.tick_fish_schools();
+        self.tick_bird_flocks();
 
         let prey_positions: Vec<(usize, f32, f32, AnimalKind)> = self
             .animals
