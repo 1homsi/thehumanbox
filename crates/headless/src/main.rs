@@ -195,6 +195,14 @@ fn main() {
         sim.grid.road.iter().filter(|&&k| k != 0).count(),
         sim.village_roads.len()
     );
+    println!(
+        "markets:     {} standing, {} towns with a plaza",
+        sim.buildings
+            .iter()
+            .filter(|b| b.kind.name() == "market" && b.is_operational())
+            .count(),
+        sim.town_plazas.len()
+    );
     print_history(&sim, thought_freq);
     print_economy(&sim);
     print_coverage(&sim);

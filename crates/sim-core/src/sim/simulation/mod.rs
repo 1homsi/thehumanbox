@@ -155,6 +155,8 @@ pub struct Simulation {
     pub caravans: Vec<super::civ::trade_routes::Caravan>,
     /// Roads villages have laid to their wells, fields and neighbouring villages (see `civ::land::village_roads`).
     pub village_roads: Vec<super::civ::land::village_roads::VillageRoad>,
+    /// Each town's plaza and streets (see `civ::civ_tick::town`).
+    pub town_plazas: Vec<super::civ::civ_tick::town::TownPlaza>,
     pub next_trade_route_id: u32,
     pub next_caravan_id: u32,
     /// Coin a tribe has earned by selling goods to other tribes, by lineage (what the
@@ -289,6 +291,7 @@ impl Simulation {
             trades: VecDeque::new(),
             trade_routes: Vec::new(),
             village_roads: Vec::new(),
+            town_plazas: Vec::new(),
             caravans: Vec::new(),
             next_trade_route_id: 1,
             next_caravan_id: 1,

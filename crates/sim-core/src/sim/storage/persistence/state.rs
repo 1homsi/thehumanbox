@@ -198,4 +198,6 @@ pub struct SaveState {
     pub(super) field_fortifications: Vec<crate::sim::warfare::FieldFortification>,
     #[serde(default)]
     pub(super) village_roads: Vec<crate::sim::civ::land::village_roads::VillageRoad>,
+    #[serde(default)]
+    pub(super) town_plazas: Vec<crate::sim::civ::civ_tick::town::TownPlaza>,
 }

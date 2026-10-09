@@ -32,6 +32,7 @@ mod religion;
 mod targets;
 #[cfg(test)]
 mod tests;
+pub mod town;
 mod watches;
 
 use arts::*;

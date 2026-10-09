@@ -266,7 +266,7 @@ pub(super) fn automatic_site_has_clearance(sim: &Simulation, kind: BuildingKind,
 }
 
 /// Ring radius, in tiles, that a site search covers around its preferred point.
-const SITE_SEARCH_RADIUS: i32 = 12;
+pub(super) const SITE_SEARCH_RADIUS: i32 = 12;
 
 /// Tiles the occupancy window extends past the search ring on every side. It
 /// covers the clearance lane too (one tile west, two north, and the far edge of
@@ -289,6 +289,8 @@ struct SiteSearch<'a> {
     window_height: i32,
     /// Cells covered by a standing non-decorative building, inside the window.
     occupied: Vec<bool>,
+    /// Cells a town keeps open (its plaza and streets), inside the window.
+    reserved: Vec<bool>,
     /// Positions of the lineage's workers who can work on a site.
     workers: Vec<(f32, f32)>,
 }
@@ -319,6 +321,17 @@ impl<'a> SiteSearch<'a> {
                 }
             }
         }
+        let mut reserved = vec![false; occupied.len()];
+        for town in &sim.town_plazas {
+            let tiles = town.reserved_tiles();
+            for (x, y) in tiles {
+                if (window_x..window_x + window_width).contains(&x)
+                    && (window_y..window_y + window_height).contains(&y)
+                {
+                    reserved[((y - window_y) * window_width + (x - window_x)) as usize] = true;
+                }
+            }
+        }
         let workers = sim
             .organisms
             .iter()
@@ -335,6 +348,7 @@ impl<'a> SiteSearch<'a> {
             window_width,
             window_height,
             occupied,
+            reserved,
             workers,
         }
     }
@@ -370,10 +384,25 @@ impl<'a> SiteSearch<'a> {
         })
     }
 
+    /// Whether a footprint at (x, y) covers a tile a town keeps open.
+    fn touches_reserved(&self, x: i32, y: i32, width: u8, height: u8) -> bool {
+        (y..y + i32::from(height)).any(|cy| {
+            (x..x + i32::from(width)).any(|cx| {
+                let (wx, wy) = (cx - self.window_x, cy - self.window_y);
+                if (0..self.window_width).contains(&wx) && (0..self.window_height).contains(&wy) {
+                    self.reserved[(wy * self.window_width + wx) as usize]
+                } else {
+                    super::town::town_reserved(self.sim, cx, cy)
+                }
+            })
+        })
+    }
+
     /// Whether the search would start this kind at (x, y).
     fn accepts(&self, x: i32, y: i32) -> bool {
         construction_terrain_is_valid(self.sim, self.kind, x, y)
             && !self.touches_building(x, y, self.width, self.height)
+            && !self.touches_reserved(x, y, self.width, self.height)
             && (clearance_exempt(self.kind)
                 || !self.touches_building(x - 1, y - 2, self.width + 2, self.height + 4))
             && self.workers.iter().any(|&(worker_x, worker_y)| {
@@ -742,6 +771,7 @@ pub(super) fn at_war(sim: &Simulation, lineage: &str) -> bool {
 }
 
 pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
+    super::town::tick_town_plazas(sim);
     let functional_count = sim
         .buildings
         .iter()
@@ -904,6 +934,24 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                         started = Some(kind);
                     }
                 }
+                // A town raises its market on the plaza before any more homes, once it can pay for one.
+                if started.is_none() && super::town::town_market_due(sim, &lid, era, pop) {
+                    let center = lineage_center(sim, &lid);
+                    if center != (0, 0) {
+                        let (cx, cy) =
+                            super::town::placement_point(sim, &lid, BuildingKind::Market, center, (0, 0));
+                        if try_start_building_with(sim, &lid, BuildingKind::Market, cx, cy, &mut failed_sites)
+                        {
+                            started = Some(BuildingKind::Market);
+                        }
+                    }
+                }
+                // A town waiting for the stone its market needs sends its people to fetch it.
+                if super::town::town_market_wanted(sim, &lid, era, pop)
+                    && lineage_stone(sim, &lid) < u32::from(BuildingKind::Market.construction_cost().stone)
+                {
+                    stone_short = true;
+                }
                 let craft_turn = newest_is_home
                     && most_lacking_craft(era, pop, agriculture, &craft_held, &considered)
                         .is_some_and(|kind| construction_cost_available(sim, &lid, kind));
@@ -912,7 +960,8 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                 {
                     // Move into a home a vanished tribe left before raising one.
                     if !crate::sim::civ::vacancy::move_into_empty_home(sim, &lid) {
-                        let (cx, cy) = lineage_center(sim, &lid);
+                        let center = lineage_center(sim, &lid);
+                        let (cx, cy) = super::town::placement_point(sim, &lid, kind, center, (0, 0));
                         if try_start_building_with(sim, &lid, kind, cx, cy, &mut failed_sites) {
                             started = Some(kind);
                         }
@@ -923,7 +972,8 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
             if started.is_none() {
                 if let Some(kind) = devout_target(sim, &lid, era, pop, &considered) {
                     considered.insert(kind);
-                    let (cx, cy) = lineage_center(sim, &lid);
+                    let center = lineage_center(sim, &lid);
+                    let (cx, cy) = super::town::placement_point(sim, &lid, kind, center, (0, 0));
                     if crate::sim::civ::vacancy::take_over_empty(sim, &lid, kind)
                         || ((cx, cy) != (0, 0)
                             && try_start_building_with(sim, &lid, kind, cx, cy, &mut failed_sites))
@@ -955,13 +1005,14 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                     started = Some(kind);
                     break;
                 }
-                let (cx, cy) = lineage_center(sim, &lid);
-                if cx == 0 && cy == 0 {
+                let center = lineage_center(sim, &lid);
+                if center == (0, 0) {
                     break;
                 }
                 let offset_x = (sim.next_building_id as i32 * 3) % 16 - 8;
                 let offset_y = (sim.next_building_id as i32 * 5) % 14 - 7;
-                if try_start_building_with(sim, &lid, kind, cx + offset_x, cy + offset_y, &mut failed_sites) {
+                let (cx, cy) = super::town::placement_point(sim, &lid, kind, center, (offset_x, offset_y));
+                if try_start_building_with(sim, &lid, kind, cx, cy, &mut failed_sites) {
                     started = Some(kind);
                     break;
                 }
