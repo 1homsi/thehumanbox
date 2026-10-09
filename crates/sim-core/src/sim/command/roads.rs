@@ -1,14 +1,6 @@
 use super::*;
 use crate::world::grid::{ROAD_BRIDGE, ROAD_NONE, ROAD_TRACK};
 
-/// Ground a road can be laid on. Water, rock, fire and built things stay as they are.
-fn can_road(tile: Tile) -> bool {
-    matches!(
-        tile,
-        Tile::Grass | Tile::Sand | Tile::Snow | Tile::Ash | Tile::Food
-    )
-}
-
 impl Simulation {
     /// Lay a road (`kind` "road"), a bridge over water (`kind` "bridge"), or clear the roads (`kind`
     /// "erase") over every cell inside the radius. A road goes on open ground only, a bridge on river and
@@ -19,7 +11,7 @@ impl Simulation {
         let want_for = |sim: &Simulation, nx: i32, ny: i32| -> Option<u8> {
             match kind.as_str() {
                 "erase" => Some(ROAD_NONE),
-                "road" if can_road(sim.grid.get(nx, ny)) => Some(ROAD_TRACK),
+                "road" if sim.grid.get(nx, ny).road_ground() => Some(ROAD_TRACK),
                 "bridge" if sim.grid.get(nx, ny) == Tile::Water && !WorldGrid::is_edge_border(nx, ny) => {
                     Some(ROAD_BRIDGE)
                 }

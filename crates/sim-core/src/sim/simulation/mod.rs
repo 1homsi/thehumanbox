@@ -138,6 +138,8 @@ pub struct Simulation {
     pub trades: VecDeque<super::civ::economy::Trade>,
     pub trade_routes: Vec<super::civ::trade_routes::TradeRoute>,
     pub caravans: Vec<super::civ::trade_routes::Caravan>,
+    /// Roads villages have laid to their wells, fields and neighbouring villages (see `civ::land::village_roads`).
+    pub village_roads: Vec<super::civ::land::village_roads::VillageRoad>,
     pub next_trade_route_id: u32,
     pub next_caravan_id: u32,
     pub water_use: HashMap<(i32, i32), u32>,
@@ -261,6 +263,7 @@ impl Simulation {
             headlines: VecDeque::new(),
             trades: VecDeque::new(),
             trade_routes: Vec::new(),
+            village_roads: Vec::new(),
             caravans: Vec::new(),
             next_trade_route_id: 1,
             next_caravan_id: 1,

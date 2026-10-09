@@ -190,6 +190,11 @@ fn main() {
         "final alive: {}",
         sim.organisms.iter().filter(|o| o.alive).count()
     );
+    println!(
+        "roads:       {} cells, {} village links",
+        sim.grid.road.iter().filter(|&&k| k != 0).count(),
+        sim.village_roads.len()
+    );
     print_history(&sim, thought_freq);
     print_economy(&sim);
     print_coverage(&sim);

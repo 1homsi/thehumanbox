@@ -123,6 +123,14 @@ impl Tile {
         !matches!(self, Tile::Rock | Tile::Void | Tile::Hut | Tile::Mineral)
     }
 
+    /// Ground a road can be laid on: open land, not water, rock, fire or built things.
+    pub fn road_ground(self) -> bool {
+        matches!(
+            self,
+            Tile::Grass | Tile::Sand | Tile::Snow | Tile::Ash | Tile::Food
+        )
+    }
+
     pub fn flammable(self) -> bool {
         matches!(self, Tile::Grass | Tile::Food)
     }
