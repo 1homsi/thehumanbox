@@ -72,6 +72,7 @@ export type SandboxCommand =
   | { cmd: 'cure_tribe'; x: number; y: number }
   | { cmd: 'guardian'; x: number; y: number }
   | { cmd: 'aurora' }
+  | { cmd: 'heat_wave' }
   | { cmd: 'clear_region'; x: number; y: number; radius?: number }
   | { cmd: 'comet'; x: number; y: number; radius?: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
@@ -773,6 +774,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         mode: 'instant',
         fire: { cmd: 'aurora' },
         overlay: 'aurora',
+      },
+      {
+        id: 'heat_wave',
+        label: 'heat wave',
+        icon: '🥵',
+        mode: 'instant',
+        fire: { cmd: 'heat_wave' },
       },
       {
         id: 'monsoon',

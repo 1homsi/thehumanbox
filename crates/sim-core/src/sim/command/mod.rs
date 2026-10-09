@@ -128,6 +128,8 @@ pub enum Command {
     Eclipse,
     /// Lights dance across the night sky: everyone alive is awed and a little less afraid.
     Aurora,
+    /// A heat wave settles over the land for a while: shore water dries, people drink more, crops wilt.
+    HeatWave,
     /// A comet streaks across the sky over the point: everyone within the reach is awed.
     Comet {
         x: f32,
@@ -625,6 +627,7 @@ mod disasters;
 mod gift;
 mod hail;
 mod heal_one;
+mod heat_wave;
 mod heavens;
 mod leader;
 #[cfg(test)]
@@ -696,6 +699,7 @@ impl Simulation {
             Command::CureTribe { x, y } => self.cmd_cure_tribe(x, y),
             Command::Guardian { x, y } => self.cmd_guardian(x, y),
             Command::Aurora => self.cmd_aurora(),
+            Command::HeatWave => self.cmd_heat_wave(),
             Command::ClearRegion { x, y, radius } => self.cmd_clear_region(x, y, radius),
             Command::Mutate { x, y, radius } => self.cmd_mutate(x, y, radius),
             Command::MergeTribes { ax, ay, bx, by } => self.cmd_merge_tribes(ax, ay, bx, by),

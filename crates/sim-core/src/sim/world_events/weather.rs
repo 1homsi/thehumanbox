@@ -14,6 +14,9 @@ pub struct WeatherState {
     /// Last-updated tick for the wind drift, used to clamp the
     /// integration step so paused/laggy worlds don't fling wind.
     pub wind_last_tick: u64,
+    /// A heat wave runs until this tick (0 when none is on). Kept apart from `kind`, because the
+    /// storm and rain checks read `kind` as a threshold.
+    pub heat_until: u64,
 }
 
 impl Default for WeatherState {
@@ -27,6 +30,7 @@ impl Default for WeatherState {
             wind_x: 0.4,
             wind_y: 0.0,
             wind_last_tick: 0,
+            heat_until: 0,
         }
     }
 }

@@ -96,6 +96,8 @@ const TOOL_TIPS: Record<string, string> = {
   nuke: 'Drop a bomb where you click: a crater like a meteor leaves, fallout that poisons everyone across a wide ring, and blight on the plantings there. Only a tribe that has reached the Industrial age can build one.',
   eclipse:
     'The sun goes dark for a while. Everyone alive is frightened and a little awed by it, and the omen is written into the chronicle.',
+  heat_wave:
+    'A heat wave settles over the land for a while. Shore water dries to sand, people drink more and tire sooner, and crops are held back. Calling it again starts the count over.',
   monsoon:
     'Rain falls for days in a row, as heavy as the weather goes. Rivers rise and the land stays soaked; the sim does the rest.',
   cold_snap:
