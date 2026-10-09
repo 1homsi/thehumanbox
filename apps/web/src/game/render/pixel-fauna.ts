@@ -52,6 +52,8 @@ const PALETTE: Record<string, string> = {
   C: '#5d6b3c', // crocodile green
   P: '#cfc38f', // crocodile belly
   U: '#2f3a22', // crocodile ridges
+  M: '#7b5234', // monkey fur
+  T: '#e7c79a', // monkey face
 }
 
 /** Poses of a kind: the walk frames, then (for bears) a lying pose for sleeping. */
@@ -249,6 +251,30 @@ const SPRITES: Record<string, Frames> = {
   crocodile: [
     ['..UU..UU......', 'CCCCCCCCCCCCCo', 'CPPPPPPPPPPPCC', '.CCCCCCCCCCCC.', '.C.C.....C.C..'],
     ['..UU..UU......', 'CCCCCCCCCCCCCo', 'CPPPPPPPPPPPCC', '.CCCCCCCCCCCC.', '..C.C....C.C..'],
+  ],
+  monkey: [
+    [
+      '......MMMM..',
+      '.....MMMMMM.',
+      '....MMMMMMTT',
+      '....MMMoMMTT',
+      '..MMMMMMMMMT',
+      '.M.MMMMMMMM.',
+      'M..MMMMMMM..',
+      '...MM..MM...',
+      '...M....M...',
+    ],
+    [
+      '......MMMM..',
+      '.....MMMMMM.',
+      '....MMMMMMTT',
+      '....MMMoMMTT',
+      '..MMMMMMMMMT',
+      '.M.MMMMMMMM.',
+      'M..MMMMMMM..',
+      '..MM....MM..',
+      '..M......M..',
+    ],
   ],
   owl: [
     [

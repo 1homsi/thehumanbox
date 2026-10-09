@@ -1300,6 +1300,20 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
     ],
   },
   {
+    id: 'safari',
+    label: 'safari',
+    icon: '🐒',
+    tools: [
+      {
+        id: 'monkey',
+        label: 'monkey',
+        icon: '🐒',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'monkey', count: 1 + b, radius: b }),
+      },
+    ],
+  },
+  {
     id: 'miracles',
     label: 'miracles',
     icon: '🔮',

@@ -50,6 +50,8 @@ export function kindIcon(kind: string): string {
       return '🐍'
     case 'crocodile':
       return '🐊'
+    case 'monkey':
+      return '🐒'
     case 'zombie':
       return '🧟'
     case 'demon':

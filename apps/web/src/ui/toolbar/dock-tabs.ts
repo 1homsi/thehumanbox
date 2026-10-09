@@ -38,6 +38,13 @@ export const DOCK_TABS: DockTab[] = [
     groups: ['animals'],
   },
   {
+    id: 'safari',
+    label: 'safari',
+    icon: '🐒',
+    tip: 'Wild animals of far lands: monkeys that swing through the jungle canopy',
+    groups: ['safari'],
+  },
+  {
     id: 'world',
     label: 'world',
     icon: '⛰️',
@@ -135,6 +142,7 @@ export const NEW_TOOL_IDS: readonly string[] = [
   'tribe_tools',
   'migrate_tribe',
   'trade_gift',
+  'monkey',
 ]
 
 const SEEN_NEW_STORAGE_KEY = 'thb-seen-new-tools'
