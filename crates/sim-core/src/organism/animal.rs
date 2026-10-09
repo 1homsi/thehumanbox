@@ -420,8 +420,9 @@ pub struct Animal {
     pub pen: Option<(i32, i32)>,
 }
 
-/// How far a kept animal may wander from its pen, in tiles.
-pub const PASTURE_REACH: i32 = 4;
+/// How far a kept animal may wander from its pen, in tiles: right beside it, inside the fence or
+/// just outside the rails.
+pub const PASTURE_REACH: i32 = 2;
 /// Chance each tick that a kept animal takes a step on its pasture.
 const GRAZE_STEP_CHANCE: f32 = 0.05;
 
