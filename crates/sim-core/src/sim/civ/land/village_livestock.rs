@@ -131,6 +131,14 @@ fn wild_livestock_near(sim: &Simulation, dwellings: &[(i32, i32)]) -> bool {
     })
 }
 
+/// Whether a wild animal is in herding range of a pen: within `CAPTURE_REACH` of the pen or of
+/// one of the houses. Pens are fenced where wild livestock roams near the houses (see
+/// `wild_livestock_near`), and a pen sits a few tiles off its houses, so the houses set the
+/// range too: an animal that was in reach at placement is still taken in.
+fn in_herding_range(a: &Animal, pen: (i32, i32), dwellings: &[(i32, i32)]) -> bool {
+    reach(a, pen) <= CAPTURE_REACH || dwellings.iter().any(|&h| reach(a, h) <= CAPTURE_REACH)
+}
+
 /// Takes the nearest wild livestock into pens with room, a couple of animals per pass.
 fn capture(sim: &mut Simulation, tribe: &Tribe) {
     let mut taken = 0usize;
@@ -155,7 +163,7 @@ fn capture(sim: &mut Simulation, tribe: &Tribe) {
                         && a.bonded_org.is_none()
                         && a.keeper.is_none()
                         && is_livestock(a.kind)
-                        && reach(a, pen) <= CAPTURE_REACH
+                        && in_herding_range(a, pen, &tribe.dwellings)
                 })
                 .min_by_key(|(i, a)| (reach(a, pen), *i))
                 .map(|(i, _)| i);
@@ -306,6 +314,22 @@ mod tests {
             "the sheep and the cow are kept"
         );
         assert!(head_of(&sim, &tribe.lineage) >= 2);
+    }
+
+    #[test]
+    fn an_animal_in_reach_of_the_houses_is_taken_into_a_pen_near_them() {
+        // Pens are fenced where wild livestock roams within reach of the houses, and a pen sits a
+        // few tiles off them: the herd must reach an animal that is far from the pen but near the
+        // houses (16 tiles from the house at (120, 120), 20 from the pen at (100, 120)).
+        let (mut sim, tribe) = herding_tribe(5_108);
+        sim.animals.clear();
+        sim.animals.push(Animal::new(7, 136.0, 120.0, AnimalKind::Sheep));
+        let mut pen = Building::new(702, BuildingKind::Pen, 100, 120, Some(tribe.lineage.clone()), 0);
+        pen.condition = 1.0;
+        sim.buildings.push(pen);
+        capture(&mut sim, &tribe);
+        assert!(sim.animals[0].is_kept(), "the sheep near the houses is herded in");
+        assert_eq!(sim.animals[0].pen, Some((100, 120)));
     }
 
     #[test]
