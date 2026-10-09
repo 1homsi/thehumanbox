@@ -43,6 +43,10 @@ pub struct Journey {
 pub enum Harm {
     /// A brawl, duel or thrown stone between neighbours.
     Fight,
+    /// Killed by a thief getting away with the goods (civ/society/crime.rs).
+    Murder,
+    /// Put to death by the state for a killing (civ/society/crime.rs).
+    Execution,
     /// A battle between tribes at war.
     War,
     /// A wolf, bear or monster.
@@ -60,6 +64,8 @@ impl Harm {
     pub fn name(self) -> &'static str {
         match self {
             Harm::Fight => "combat",
+            Harm::Murder => "murder",
+            Harm::Execution => "executed",
             Harm::War => "war",
             Harm::Beast => "beasts",
             Harm::Drowning => "drowning",

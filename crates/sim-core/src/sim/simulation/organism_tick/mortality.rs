@@ -62,6 +62,14 @@ impl Simulation {
                     self.history.deaths_combat += 1;
                     "combat"
                 }
+                Some(Harm::Murder) => {
+                    self.history.deaths_combat += 1;
+                    "murder"
+                }
+                Some(Harm::Execution) => {
+                    self.history.deaths_combat += 1;
+                    "executed"
+                }
                 None if org.health <= 0.0 && org.infection > 0.3 => {
                     self.history.deaths_sickness += 1;
                     "sickness"

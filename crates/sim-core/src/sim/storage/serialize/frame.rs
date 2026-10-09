@@ -419,6 +419,16 @@ impl Simulation {
                     "lineage_inequality".to_string(),
                     serde_json::Value::Array(inequality),
                 );
+                let mut crime_rows: Vec<(&String, &crate::sim::civ::society::crime::CrimeTally)> =
+                    self.lineage_crime.iter().filter(|(_, t)| t.thefts > 0).collect();
+                crime_rows.sort_by(|a, b| a.0.cmp(b.0));
+                let crime: Vec<serde_json::Value> = crime_rows
+                    .into_iter()
+                    .map(|(lid, t)| {
+                        json!({ "lineage_id": lid, "thefts": t.thefts, "murders": t.murders, "punished": t.punished })
+                    })
+                    .collect();
+                obj.insert("lineage_crime".to_string(), serde_json::Value::Array(crime));
                 let generations: Vec<serde_json::Value> = {
                     let mut oldest: HashMap<String, u32> = HashMap::default();
                     for o in self

@@ -13,6 +13,7 @@ import { leadershipOf } from '../../game/model/leadership'
 import { festivalLabel } from '../../game/render/festivals'
 import { tribeStatus } from '../../game/model/tribe-status'
 import { wealthGapOf } from '../../game/model/inequality'
+import { crimeLineOf } from '../../game/model/crime'
 import { generationLine, generationsOf } from '../../game/model/generations'
 import { familyLineText, familyLines } from '../../game/model/family-lines'
 import { eldestByLineage, eldestLine } from '../../game/model/tribe-eldest'
@@ -73,6 +74,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
   if (!status) return null
   const gap = wealthGapOf(world.lineage_inequality, status.id)
   const gens = generationsOf(world.lineage_generations, status.id)
+  const crime = crimeLineOf(world.lineage_crime, status.id)
   const prayer = status.prayer
   const enemies = enemiesOf(world.battles, status.id).map((l) => world.lineage_names?.[l] ?? l.slice(0, 6))
   const field = activeBattles(world.battles).find(
@@ -153,6 +155,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
         {status.era && ` · ${status.era} age`}
         {gap && ` · wealth ${gap}`}
         {gens && ` · ${generationLine(gens)}`}
+        {crime && ` · ${crime}`}
       </div>
       {peril && help && (
         <div className="tribe-peril" role="alert">

@@ -103,6 +103,8 @@ pub struct SaveState {
     #[serde(default)]
     pub(super) lineage_unrest: HashMap<String, f32>,
     #[serde(default)]
+    pub(super) lineage_crime: HashMap<String, crate::sim::civ::society::crime::CrimeTally>,
+    #[serde(default)]
     pub(super) goals: crate::sim::goals::GoalBook,
     pub(super) current_era: String,
     pub(super) sex_words: Vec<String>,

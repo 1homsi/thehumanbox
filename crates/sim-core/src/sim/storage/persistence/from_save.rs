@@ -196,6 +196,7 @@ impl Simulation {
             lineage_eras: state.lineage_eras,
             lineage_generations_reached: state.lineage_generations_reached,
             lineage_unrest: state.lineage_unrest,
+            lineage_crime: state.lineage_crime,
             lineage_aggregates: HashMap::default(),
             current_era: if state.current_era.is_empty() {
                 "genesis".to_string()

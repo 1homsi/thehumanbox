@@ -24,6 +24,7 @@ pub fn tick_economy(sim: &mut Simulation, tick: u64) {
     }
     if tick.is_multiple_of(crate::sim::cosmos::DAY_LENGTH) {
         super::unrest::tick_unrest(sim, tick);
+        super::crime::tick_crime(sim, tick);
     }
     if tick.is_multiple_of(180) {
         run_barter(sim, tick);
