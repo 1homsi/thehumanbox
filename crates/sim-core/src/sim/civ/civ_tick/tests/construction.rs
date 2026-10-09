@@ -461,3 +461,32 @@ fn incomplete_buildings_grant_no_aura() {
     assert_eq!(sim.organisms[0].infection, 0.8);
     assert_eq!(sim.organisms[0].health, 0.5);
 }
+
+#[test]
+fn a_project_no_builder_can_reach_moves_to_where_the_tribe_lives() {
+    let mut sim = Simulation::new(0x57A1);
+    sim.buildings.clear();
+    sim.organisms.clear();
+    let mut builder = test_org("builder", "Builder", "lineage-a", 60.0, 60.0);
+    builder.age = 10_000;
+    sim.organisms.push(builder);
+    // A workshop its builders started long ago, far from everyone now.
+    sim.buildings.push(Building::new(
+        1,
+        BuildingKind::Workshop,
+        10,
+        10,
+        Some("lineage-a".into()),
+        1,
+    ));
+
+    relocate_stalled_projects(&mut sim, "lineage-a");
+
+    let moved = &sim.buildings[0];
+    let distance = (moved.x - 60).abs() + (moved.y - 60).abs();
+    assert!(
+        distance <= CONSTRUCTION_WORKER_REACH as i32,
+        "stalled project still {distance} tiles from the tribe"
+    );
+    assert_eq!(moved.condition, 0.0, "no progress was made, none is lost");
+}
