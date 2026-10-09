@@ -342,6 +342,26 @@ const SPRITES: Record<string, Frames> = {
       '.3.3....3.3.',
     ],
   ],
+  zebra: [
+    [
+      '..wwwwwwww..',
+      '.wwkkkwwkkw.',
+      'wkkkwwkkkwww',
+      'kkwwkkkwwkkw',
+      '.wkkwwkkwwk.',
+      '..k.k...k.k.',
+      '..k.k...k.k.',
+    ],
+    [
+      '..wwwwwwww..',
+      '.wwkkkwwkkw.',
+      'wkkkwwkkkwww',
+      'kkwwkkkwwkkw',
+      '.wkkwwkkwwk.',
+      '.k.k....k.k.',
+      '.k.k....k.k.',
+    ],
+  ],
   owl: [
     [
       '.O.......O.',
