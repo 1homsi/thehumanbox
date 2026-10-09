@@ -15,6 +15,7 @@ import { HeatGrid, type HeatSettings } from './heatmap'
 import type { RenderHost } from './host'
 import { paintCarcasses } from './paint-carcasses'
 import { paintEffects } from './paint-effects'
+import { paintPower } from './paint-power'
 import { paintEraFlourish } from './paint-era-flourish'
 import { EraWatch } from '../../../model/era-flourish'
 import { paintArtworks } from './paint-artworks'
@@ -361,6 +362,7 @@ export class CfOverlayRenderer {
 
     this.effects.begin(gv)
     paintEffects(this.effects.asContext(), f)
+    paintPower(this.effects.asContext(), f)
     this.eraWatch.update(f.world)
     paintEraFlourish(this.effects.asContext(), f, this.eraWatch.active(f.world.tick))
     this.paintWeather(this.effects.asContext(), f)
