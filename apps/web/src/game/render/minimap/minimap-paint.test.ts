@@ -98,4 +98,14 @@ describe('paintMinimapPixels', () => {
   it('refuses a buffer that is too small for its size', () => {
     expect(() => paintMinimapPixels(new Uint8ClampedArray(4), source(), 3, 2, colors)).toThrow()
   })
+
+  it('paints roads over the terrain: a dirt track, and a darker bridge', () => {
+    const out = new Uint8ClampedArray(3 * 2 * 4)
+    paintMinimapPixels(out, source({ roads: [[0, 1, 2]] }), 3, 2, colors)
+    // No road keeps the terrain colour; a track and a bridge take their own; the row below has no road.
+    expect(pixel(out, 3, 0, 0).slice(0, 3)).toEqual(rgbOf(TILE_ID.GRASS))
+    expect(pixel(out, 3, 1, 0).slice(0, 3)).toEqual([168, 138, 92])
+    expect(pixel(out, 3, 2, 0).slice(0, 3)).toEqual([120, 92, 58])
+    expect(pixel(out, 3, 1, 1).slice(0, 3)).toEqual(rgbOf(TILE_ID.SAND))
+  })
 })
