@@ -57,6 +57,8 @@ export type SandboxCommand =
   | { cmd: 'teleport'; x: number; y: number; radius?: number }
   | { cmd: 'make_leader'; x: number; y: number; radius?: number }
   | { cmd: 'heal_one'; x: number; y: number; radius?: number }
+  | { cmd: 'mutate'; x: number; y: number; radius?: number }
+  | { cmd: 'curse'; x: number; y: number; radius?: number }
   | { cmd: 'advance'; to: 'season' | 'year'; max_ticks?: number }
   | { cmd: 'gift'; x: number; y: number; radius?: number; what: 'food' | 'tool' }
   | { cmd: 'time_of_day'; phase: 'dawn' | 'noon' | 'dusk' | 'midnight' }
@@ -197,6 +199,20 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '💚',
         mode: 'point',
         build: (x, y) => ({ cmd: 'heal_one', x, y, radius: 4 }),
+      },
+      {
+        id: 'mutate',
+        label: 'mutate',
+        icon: '🧬',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'mutate', x, y, radius: 4 }),
+      },
+      {
+        id: 'curse',
+        label: 'curse one',
+        icon: '🧿',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'curse', x, y, radius: 4 }),
       },
       {
         id: 'follow',
