@@ -54,3 +54,5 @@ class CellNoise {
 }
 export const macroNoise = new CellNoise()
 export const macroNoiseFine = new CellNoise()
+/** Slow patches (about 70 cells across) that vary how strongly a biome tints its own land. */
+export const biomePatchNoise = new CellNoise()
