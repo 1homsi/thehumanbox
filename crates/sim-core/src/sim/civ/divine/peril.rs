@@ -2,11 +2,11 @@
 //! is killing it, so its god has time to act. Before this the world only
 //! spoke up once a dynasty had already died out.
 
+use crate::hashing::FxHashMap;
 use crate::organism::organism::Sex;
 use crate::sim::agents::age_stage::AgeStage;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
-use rustc_hash::FxHashMap;
 
 /// Ticks of a tribe's deaths that its peril looks back over.
 pub(crate) const DEATH_WINDOW: u64 = 3_000;
@@ -212,7 +212,7 @@ impl Simulation {
                             c.population
                         ),
                     ));
-                    self.tribe_peril.remove(lineage);
+                    self.tribe_peril.swap_remove(lineage);
                 }
                 Some(peril) => {
                     peril.population = c.population;

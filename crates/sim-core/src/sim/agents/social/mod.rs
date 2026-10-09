@@ -1,10 +1,10 @@
+use crate::hashing::FxHashMap;
 use crate::organism::organism::Organism;
 use crate::sim::simulation::{Event, History};
 use crate::sim::spatial::SpatialIndex;
 use crate::sim::world_events::push_event;
 use crate::world::tiles::Tile;
 use rand::{Rng, RngExt};
-use rustc_hash::FxHashMap;
 
 mod encounters;
 mod food;

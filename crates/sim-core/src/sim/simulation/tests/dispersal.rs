@@ -1,6 +1,7 @@
 //! Founders, tribes, expeditions and how the population spreads out.
 
 use super::*;
+use crate::math::DetMath;
 
 #[test]
 fn curious_adults_choose_distant_land_expeditions() {
@@ -81,7 +82,7 @@ fn founders_spread_across_world_sectors() {
             HEIGHT
         );
 
-        use rustc_hash::FxHashMap as HashMap;
+        use crate::hashing::FxHashMap as HashMap;
         let mut by_lid: HashMap<String, Vec<(f32, f32)>> = HashMap::default();
         for o in &alive {
             by_lid.entry(o.lineage_id.clone()).or_default().push((o.x, o.y));
@@ -134,8 +135,8 @@ fn population_stays_dispersed_after_many_days() {
         let n = alive.len() as f32;
         let mx = alive.iter().map(|o| o.x).sum::<f32>() / n;
         let my = alive.iter().map(|o| o.y).sum::<f32>() / n;
-        let varx = alive.iter().map(|o| (o.x - mx).powi(2)).sum::<f32>() / n;
-        let vary = alive.iter().map(|o| (o.y - my).powi(2)).sum::<f32>() / n;
+        let varx = alive.iter().map(|o| (o.x - mx).det_powi(2)).sum::<f32>() / n;
+        let vary = alive.iter().map(|o| (o.y - my).det_powi(2)).sum::<f32>() / n;
         let stdx = varx.sqrt();
         let stdy = vary.sqrt();
 
@@ -172,7 +173,7 @@ fn population_does_not_reconverge_after_growth_window() {
 
     let cw = 60i32;
     let ch = 60i32;
-    let mut buckets: rustc_hash::FxHashMap<(i32, i32), u32> = Default::default();
+    let mut buckets: crate::hashing::FxHashMap<(i32, i32), u32> = Default::default();
     for o in &alive {
         let cx = (o.x as i32) / cw;
         let cy = (o.y as i32) / ch;

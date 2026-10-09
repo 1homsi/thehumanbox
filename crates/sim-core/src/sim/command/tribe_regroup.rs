@@ -1,4 +1,5 @@
 use super::Simulation;
+use crate::math::DetMath;
 use crate::sim::world_events::push_event;
 
 /// How far from a click a split takes the people of a tribe, in tiles, unless the radius says otherwise.
@@ -81,7 +82,7 @@ impl Simulation {
         let movers: Vec<usize> = living
             .iter()
             .copied()
-            .filter(|&i| (self.organisms[i].x - x).hypot(self.organisms[i].y - y) <= reach)
+            .filter(|&i| (self.organisms[i].x - x).det_hypot(self.organisms[i].y - y) <= reach)
             .collect();
         if movers.len() < MIN_SPLIT || living.len() - movers.len() < MIN_LEFT_BEHIND {
             return false;

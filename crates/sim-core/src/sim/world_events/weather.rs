@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::DetMath;
 
 pub struct WeatherState {
     pub kind: u8,
@@ -59,7 +60,7 @@ impl WeatherState {
         };
         // Small random nudge on direction (≈ ±5° per tick) + a tiny
         // seasonal pull toward `bias_theta`.
-        let cur_theta = self.wind_y.atan2(self.wind_x);
+        let cur_theta = self.wind_y.det_atan2(self.wind_x);
         let mut delta_theta = (rng.random::<f32>() - 0.5) * 0.08;
         let theta_err = (bias_theta - cur_theta + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU)
             - std::f32::consts::PI;
@@ -68,8 +69,8 @@ impl WeatherState {
         // Magnitude drifts toward the season-specific baseline.
         let m = (self.wind_x * self.wind_x + self.wind_y * self.wind_y).sqrt();
         let new_m = (m + (target_m - m) * 0.02 + (rng.random::<f32>() - 0.5) * 0.04).clamp(0.05, 1.0);
-        self.wind_x = theta.cos() * new_m;
-        self.wind_y = theta.sin() * new_m;
+        self.wind_x = theta.det_cos() * new_m;
+        self.wind_y = theta.det_sin() * new_m;
         self.wind_last_tick = tick;
     }
 

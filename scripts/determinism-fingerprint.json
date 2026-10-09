@@ -1,0 +1,6 @@
+{
+  "seed": 42,
+  "tick": 3000,
+  "save_fnv1a64": "0x09fc99c5dd8be0c1",
+  "note": "FNV-1a 64 of the serialized save state. Checked natively by sim-core tests and in the browser wasm build by scripts/check-wasm-determinism.mjs. Update only when a change is meant to alter the world."
+}

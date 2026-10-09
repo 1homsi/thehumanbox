@@ -55,7 +55,7 @@ impl Simulation {
                 while self.lineage_strategy_history.len() > 16 {
                     self.lineage_strategy_history.pop_front();
                 }
-                let alive_lineages: rustc_hash::FxHashSet<String> = self
+                let alive_lineages: crate::hashing::FxHashSet<String> = self
                     .organisms
                     .iter()
                     .filter(|o| o.alive)

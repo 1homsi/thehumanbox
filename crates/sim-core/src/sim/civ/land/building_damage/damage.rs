@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::DetMath;
 
 pub(super) fn apply_damage(sim: &mut Simulation) -> HashSet<usize> {
     let fire_stations: Vec<(Option<&str>, i32, i32)> = sim
@@ -100,7 +101,7 @@ pub(crate) fn strike_buildings(
             continue;
         }
         let (nx, ny) = building.closest_footprint_tile(x, y);
-        let d = ((nx - x) as f32).hypot((ny - y) as f32);
+        let d = ((nx - x) as f32).det_hypot((ny - y) as f32);
         if d > r {
             continue;
         }

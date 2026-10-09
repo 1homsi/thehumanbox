@@ -168,7 +168,7 @@ mod tests {
         });
         let mut fed = false;
         for _ in 0..80 {
-            sim.tick_animals(&rustc_hash::FxHashMap::default());
+            sim.tick_animals(&crate::hashing::FxHashMap::default());
             if sim.carcasses.first().is_none_or(|c| c.picked > 0) {
                 fed = true;
                 break;
@@ -212,7 +212,7 @@ mod tests {
         }
         let deer = Animal::new(sim.animals.len(), 53.0, 50.0, AnimalKind::Deer);
         sim.animals.push(deer);
-        sim.tick_animals(&rustc_hash::FxHashMap::default());
+        sim.tick_animals(&crate::hashing::FxHashMap::default());
         sim.carcasses.len()
     }
 

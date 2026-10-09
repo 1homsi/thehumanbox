@@ -314,7 +314,7 @@ impl Plan {
 }
 
 /// `extend_rotating_family_masks` for a plan: the same rotation, as unit ranges.
-fn plan_rotating_family_masks(plan: &mut Plan, families: &[u64; ACTION_FAMILY_COUNT], phase: usize) {
+fn plan_rotating_family_masks(plan: &mut Plan, families: &[u64; ACTION_FAMILY_COUNT], phase: u64) {
     let mut candidates = [0usize; ACTION_FAMILY_WIDTH];
     for (family, &mask) in families.iter().enumerate() {
         let mut remaining = mask;
@@ -328,7 +328,7 @@ fn plan_rotating_family_masks(plan: &mut Plan, families: &[u64; ACTION_FAMILY_CO
             continue;
         }
         let take = ACTIONS_PER_BAND.min(len);
-        let offset = phase % len;
+        let offset = (phase % len as u64) as usize;
         for step in 0..take {
             let id = candidates[(offset + step) % len];
             plan.range(id, id);

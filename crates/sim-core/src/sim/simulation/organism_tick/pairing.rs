@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::DetMath;
 use crate::sim::agents::relations::RIVAL_TRUST;
 
 impl Simulation {
@@ -43,7 +44,7 @@ impl Simulation {
                         && my_trust.get(&o.id).is_none_or(|&t| t > RIVAL_TRUST)
                 })
                 .map(|o| {
-                    let dist = (o.x - ox).hypot(o.y - oy);
+                    let dist = (o.x - ox).det_hypot(o.y - oy);
                     (o, dist)
                 })
                 .filter(|(_, d)| *d <= MATE_SEEK_MAX_TILES)
@@ -97,7 +98,7 @@ impl Simulation {
                         .map(|&i| &self.organisms[i])
                         .filter(|o| o.alive)
                 })
-                .map(|o| (o, (o.x - ox).hypot(o.y - oy)))
+                .map(|o| (o, (o.x - ox).det_hypot(o.y - oy)))
                 .filter(|(_, d)| *d <= FRIEND_SEEK_MAX_TILES)
                 .min_by_key(|(_, d)| (*d * 10.0) as i32)
                 .map(|(o, _)| (o.x as i32, o.y as i32, o.name.clone()));
@@ -137,7 +138,7 @@ impl Simulation {
                             .org_trust
                             .get(&o.id)
                             .is_none_or(|&t| t > RIVAL_TRUST)
-                        && (o.x - ox).hypot(o.y - oy) < 120.0
+                        && (o.x - ox).det_hypot(o.y - oy) < 120.0
                 })
                 .map(|(i, _)| i);
             if let Some(ci) = candidate {
@@ -160,7 +161,7 @@ impl Simulation {
                 let attraction_age = tc.saturating_sub(self.organisms[idx].attraction_tick);
                 let partner_close = org_idx_by_id.get(&aid).is_some_and(|&i| {
                     let o = &self.organisms[i];
-                    o.alive && (o.x - ox).hypot(o.y - oy) < 8.0
+                    o.alive && (o.x - ox).det_hypot(o.y - oy) < 8.0
                 });
                 if partner_close && attraction_age >= 150 && self.rng.random::<f32>() < 0.08 {
                     if let Some(pi) = org_idx_by_id
@@ -237,7 +238,7 @@ impl Simulation {
                     .copied()
                     .filter(|&i| self.organisms[i].alive)
                 {
-                    if (self.organisms[pi].x - ox).hypot(self.organisms[pi].y - oy) < 8.0 {
+                    if (self.organisms[pi].x - ox).det_hypot(self.organisms[pi].y - oy) < 8.0 {
                         let (conv_a, conv_b) = courtship::generate_conversation_pair(
                             &self.organisms[idx],
                             &self.organisms[pi],
@@ -275,11 +276,11 @@ impl Simulation {
                             *i != idx
                                 && o.alive
                                 && partner_id.as_deref() != Some(&o.id)
-                                && (o.x - ox).hypot(o.y - oy) < 6.0
+                                && (o.x - ox).det_hypot(o.y - oy) < 6.0
                         })
                         .min_by(|(_, a), (_, b)| {
-                            let da = (a.x - ox).hypot(a.y - oy);
-                            let db = (b.x - ox).hypot(b.y - oy);
+                            let da = (a.x - ox).det_hypot(a.y - oy);
+                            let db = (b.x - ox).det_hypot(b.y - oy);
                             da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
                         })
                         .map(|(i, _)| i)

@@ -3,8 +3,8 @@
 //! approaching 1 when one person holds almost all of it. It is worked out from
 //! the people alive in each frame, so nothing is stored and saves are unaffected.
 
+use crate::hashing::FxHashMap as HashMap;
 use crate::organism::organism::Organism;
-use rustc_hash::FxHashMap as HashMap;
 
 /// Tribes smaller than this are too few people for a share to mean much.
 pub const MIN_TRIBE_FOR_GINI: usize = 4;

@@ -3,6 +3,7 @@
 //! restraint: only the dead of the last season answer the call, nobody
 //! whose time simply ran out, and a tribe is raised for only once a season.
 
+use crate::math::DetMath;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
 
@@ -28,7 +29,7 @@ impl Simulation {
                     !o.alive && (o.max_age == 0 || o.age < o.max_age)
                 })
             })
-            .map(|i| (i, (self.organisms[i].x - x).hypot(self.organisms[i].y - y)))
+            .map(|i| (i, (self.organisms[i].x - x).det_hypot(self.organisms[i].y - y)))
             .filter(|&(_, d)| d <= REACH)
             .min_by(|a, b| a.1.total_cmp(&b.1));
         let Some((i, _)) = candidate else {

@@ -5,10 +5,11 @@
 //! generations has a graveyard to show for it and not a scatter of stones
 //! across its streets.
 
+use crate::hashing::FxHashSet;
+use crate::math::DetMath;
 use crate::sim::civ::civ_tick::{footprint_cells, prop_site_is_clear};
 use crate::sim::simulation::Simulation;
 use crate::sim::tech::buildings::{Building, BuildingKind};
-use rustc_hash::FxHashSet;
 
 /// Ticks between burials.
 pub(crate) const GRAVE_STEP: u64 = 120;
@@ -60,8 +61,8 @@ impl Simulation {
         for step in 0..8 {
             let a = start + step as f32 * std::f32::consts::FRAC_PI_4;
             let c = (
-                (home.0 + a.cos() * CEMETERY_DISTANCE).round() as i32,
-                (home.1 + a.sin() * CEMETERY_DISTANCE).round() as i32,
+                (home.0 + a.det_cos() * CEMETERY_DISTANCE).round() as i32,
+                (home.1 + a.det_sin() * CEMETERY_DISTANCE).round() as i32,
             );
             if !prop_site_is_clear(&self.grid, occupied, BuildingKind::Shrine, c.0, c.1) {
                 continue;
@@ -100,7 +101,7 @@ impl Simulation {
             else {
                 continue;
             };
-            if (x - home.0).hypot(y - home.1) > HOME_RANGE {
+            if (x - home.0).det_hypot(y - home.1) > HOME_RANGE {
                 continue;
             }
             let Some((cx, cy)) = self.cemetery_site(&lineage, home, &occupied) else {
@@ -141,7 +142,7 @@ impl Simulation {
                 let (_, oldest) = mine[0];
                 if let Some(old) = self.buildings.iter().find(|b| b.id == oldest) {
                     for cell in footprint_cells(old.kind, old.x, old.y) {
-                        occupied.remove(&cell);
+                        occupied.swap_remove(&cell);
                     }
                 }
                 self.buildings.retain(|b| b.id != oldest);
@@ -215,7 +216,7 @@ mod tests {
             .collect();
         assert_eq!(shrines.len(), 1, "a cemetery has one shrine");
         let (cx, cy) = (shrines[0].x, shrines[0].y);
-        let away = (f64::from(cx - 100).powi(2) + f64::from(cy - 100).powi(2)).sqrt();
+        let away = (f64::from(cx - 100).det_powi(2) + f64::from(cy - 100).det_powi(2)).sqrt();
         assert!(away > 8.0, "the cemetery sits on the houses: {away}");
         for (x, y) in &stones {
             assert!(

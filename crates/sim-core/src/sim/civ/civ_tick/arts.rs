@@ -137,5 +137,5 @@ pub(super) fn pick_topic(era: Era, seed: u64) -> BookTopic {
             BookTopic::Drama,
         ]);
     }
-    opts[(seed as usize) % opts.len()]
+    opts[(seed % opts.len() as u64) as usize]
 }

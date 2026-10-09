@@ -10,7 +10,7 @@ impl Simulation {
     ) -> FramePayload {
         let needs_slow = self.tick_count == 0 || self.tick_count.saturating_sub(self.slow_compute_tick) >= 60;
         if needs_slow {
-            let alive_lineages: rustc_hash::FxHashSet<String> = self
+            let alive_lineages: crate::hashing::FxHashSet<String> = self
                 .organisms
                 .iter()
                 .filter(|o| o.alive)
@@ -743,7 +743,7 @@ impl Simulation {
                     .collect();
                 obj.insert("trades".to_string(), serde_json::Value::Array(trades_json));
 
-                let currencies: rustc_hash::FxHashMap<String, &str> = self
+                let currencies: crate::hashing::FxHashMap<String, &str> = self
                     .lineage_eras
                     .iter()
                     .map(|(lid, era)| (lid.clone(), crate::sim::economy::currency_unit_for_era(*era)))

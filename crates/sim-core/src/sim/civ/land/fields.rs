@@ -4,10 +4,11 @@
 //! it has fewer plots than mouths. Before this every plot ever dug stayed on
 //! the map: an old world had four for every person, most of them bare.
 
+use crate::hashing::{FxHashMap, FxHashSet};
+use crate::math::DetMath;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
 use crate::world::tiles::Tile;
-use rustc_hash::{FxHashMap, FxHashSet};
 
 /// Ticks between field upkeep passes.
 pub(crate) const FIELD_STEP: u64 = 300;
@@ -74,7 +75,7 @@ fn raid_crops(sim: &mut Simulation, living: &FxHashSet<String>) {
         }
         let near = grazers
             .iter()
-            .any(|&(gx, gy)| (gx - f.x as f32).hypot(gy - f.y as f32) <= RAID_REACH);
+            .any(|&(gx, gy)| (gx - f.x as f32).det_hypot(gy - f.y as f32) <= RAID_REACH);
         if near && !fenced(sim, f.x, f.y, &f.owner_lineage) {
             // Deterministic per plot and time, so reruns agree.
             let roll = ((f.id as u64)

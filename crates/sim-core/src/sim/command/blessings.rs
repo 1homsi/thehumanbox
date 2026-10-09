@@ -1,11 +1,12 @@
 use super::*;
+use crate::math::DetMath;
 
 impl Simulation {
     pub(super) fn cmd_heal(&mut self, x: f32, y: f32, radius: f32) -> bool {
         let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
         let mut healed = 0;
         for o in self.organisms.iter_mut() {
-            if o.alive && (o.x - x).hypot(o.y - y) <= r {
+            if o.alive && (o.x - x).det_hypot(o.y - y) <= r {
                 o.health = 1.0;
                 o.energy = 1.0;
                 o.hydration = 1.0;
@@ -14,7 +15,7 @@ impl Simulation {
             }
         }
         for a in self.animals.iter_mut() {
-            if a.alive && (a.x - x).hypot(a.y - y) <= r {
+            if a.alive && (a.x - x).det_hypot(a.y - y) <= r {
                 a.energy = 1.0;
                 healed += 1;
             }
@@ -33,7 +34,7 @@ impl Simulation {
         let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
         let mut blessed = 0;
         for o in self.organisms.iter_mut() {
-            if o.alive && (o.x - x).hypot(o.y - y) <= r && o.max_age < CEILING {
+            if o.alive && (o.x - x).det_hypot(o.y - y) <= r && o.max_age < CEILING {
                 o.max_age = (o.max_age + GAIN).min(CEILING);
                 o.hope = (o.hope + 0.2).min(1.0);
                 o.think("the gods have given us more days", self.tick_count);
@@ -58,7 +59,7 @@ impl Simulation {
         let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
         let mut braced = 0;
         for o in self.organisms.iter_mut() {
-            if o.alive && (o.x - x).hypot(o.y - y) <= r && o.fear_level > 0.05 {
+            if o.alive && (o.x - x).det_hypot(o.y - y) <= r && o.fear_level > 0.05 {
                 o.fear_level = (o.fear_level - 0.6).max(0.0);
                 o.hope = (o.hope + 0.15).min(1.0);
                 o.think("the gods gave us courage", self.tick_count);
@@ -100,7 +101,7 @@ impl Simulation {
         let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
         let mut blessed = 0;
         for o in self.organisms.iter_mut() {
-            if o.alive && (o.x - x).hypot(o.y - y) <= r {
+            if o.alive && (o.x - x).det_hypot(o.y - y) <= r {
                 o.health = 1.0;
                 o.energy = 1.0;
                 o.hydration = 1.0;
@@ -131,7 +132,7 @@ impl Simulation {
         let mut inspired = 0;
         for i in 0..self.organisms.len() {
             let o = &self.organisms[i];
-            if !o.alive || (o.x - x).hypot(o.y - y) > r {
+            if !o.alive || (o.x - x).det_hypot(o.y - y) > r {
                 continue;
             }
             let ready: Vec<&str> = tech
@@ -203,7 +204,7 @@ impl Simulation {
         let until = self.tick_count + 6_000;
         let mut cured = 0;
         for o in self.organisms.iter_mut() {
-            if !o.alive || (o.x - x).hypot(o.y - y) > r {
+            if !o.alive || (o.x - x).det_hypot(o.y - y) > r {
                 continue;
             }
             if o.infection <= 0.0 && o.diseases.is_empty() {
@@ -233,7 +234,7 @@ impl Simulation {
         let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
         let mut armed = 0;
         for o in self.organisms.iter_mut() {
-            if !o.alive || o.age < 700 || (o.x - x).hypot(o.y - y) > r {
+            if !o.alive || o.age < 700 || (o.x - x).det_hypot(o.y - y) > r {
                 continue;
             }
             for skill in ["stone_tools", "hunting", "spear", "bow"] {
@@ -259,7 +260,7 @@ impl Simulation {
         let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
         let mut gifted = 0;
         for o in self.organisms.iter_mut() {
-            if !o.alive || (o.x - x).hypot(o.y - y) > r {
+            if !o.alive || (o.x - x).det_hypot(o.y - y) > r {
                 continue;
             }
             o.inv_food = o.inv_food.saturating_add(5).min(9);
@@ -315,7 +316,7 @@ impl Simulation {
         let in_range: Vec<usize> = (0..self.organisms.len())
             .filter(|&i| {
                 let o = &self.organisms[i];
-                o.alive && o.age >= 700 && (o.x - x).hypot(o.y - y) <= r
+                o.alive && o.age >= 700 && (o.x - x).det_hypot(o.y - y) <= r
             })
             .collect();
         let mut paired = 0;
@@ -361,7 +362,7 @@ impl Simulation {
             let a = &self.animals[ai];
             if !a.alive
                 || !matches!(a.kind, AnimalKind::Wolf | AnimalKind::Bear)
-                || (a.x - x).hypot(a.y - y) > r
+                || (a.x - x).det_hypot(a.y - y) > r
             {
                 continue;
             }
@@ -370,7 +371,11 @@ impl Simulation {
                 .organisms
                 .iter()
                 .filter(|o| o.alive)
-                .min_by(|p, q| (p.x - ax).hypot(p.y - ay).total_cmp(&(q.x - ax).hypot(q.y - ay)))
+                .min_by(|p, q| {
+                    (p.x - ax)
+                        .det_hypot(p.y - ay)
+                        .total_cmp(&(q.x - ax).det_hypot(q.y - ay))
+                })
                 .map(|o| o.id.clone());
             let a = &mut self.animals[ai];
             a.kind = AnimalKind::Dog;

@@ -3,11 +3,12 @@
 //! hate them, and live out their lives among it. A god who wants the old
 //! tribe to go on has to send it newcomers first.
 
+use crate::hashing::FxHashMap;
+use crate::math::DetMath;
 use crate::organism::organism::Sex;
 use crate::sim::agents::age_stage::AgeStage;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
-use rustc_hash::FxHashMap;
 
 /// Ticks between checks.
 pub(crate) const REFUGE_STEP: u64 = 600;
@@ -69,7 +70,7 @@ impl Simulation {
             let host = tribes
                 .iter()
                 .filter(|(l, t)| *l != lineage && t.members.len() >= HOST_MIN)
-                .map(|(l, t)| (l, (t.x - remnant.x).hypot(t.y - remnant.y)))
+                .map(|(l, t)| (l, (t.x - remnant.x).det_hypot(t.y - remnant.y)))
                 .filter(|&(l, d)| d <= REFUGE_RANGE && goodwill(l) >= MIN_GOODWILL)
                 .min_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(b.0)));
             if let Some((host, _)) = host {
@@ -89,8 +90,8 @@ impl Simulation {
                 o.begin_journey((hx, hy), "seeking refuge", now);
             }
             // They were taken in, not wiped out: no dynasty-death notice.
-            self.lineage_peak_pop.remove(&lineage);
-            self.tribe_peril.remove(&lineage);
+            self.lineage_peak_pop.swap_remove(&lineage);
+            self.tribe_peril.swap_remove(&lineage);
             let from = self
                 .lineage_names
                 .get(&lineage)

@@ -1,4 +1,4 @@
-use rustc_hash::FxHashMap as HashMap;
+use crate::hashing::FxHashMap as HashMap;
 use std::collections::BTreeMap;
 
 use crate::sim::buildings::BuildingFunction;

@@ -7,6 +7,7 @@
 //! The pass draws no random numbers and walks tribes and tiles in a fixed
 //! order, so the same seed still gives the same world.
 
+use crate::hashing::{FxHashMap, FxHashSet};
 use crate::sim::actions::agriculture::farm_ops::{crop_for_plot, harvest_crop, plant_crop};
 use crate::sim::civ::land::village_livestock;
 use crate::sim::civ::land::village_stores;
@@ -16,7 +17,6 @@ use crate::sim::tech::buildings::BuildingKind;
 use crate::sim::world_events::push_event;
 use crate::world::grid::{HEIGHT, ROAD_NONE, WIDTH};
 use crate::world::tiles::Tile;
-use rustc_hash::{FxHashMap, FxHashSet};
 
 /// Ticks between village farming passes.
 pub(crate) const SOW_STEP: u64 = 600;
@@ -73,7 +73,7 @@ fn tribes_with_dwellings(sim: &Simulation) -> Vec<Tribe> {
     let mut tribes: Vec<Tribe> = by_lineage
         .into_iter()
         .filter_map(|(lineage, members)| {
-            let mut spots = dwellings.remove(lineage)?;
+            let mut spots = dwellings.swap_remove(lineage)?;
             spots.sort_unstable();
             Some(Tribe {
                 lineage: lineage.to_string(),

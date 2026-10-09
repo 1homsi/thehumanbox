@@ -145,8 +145,8 @@ fn semantic_validation_lookup_matches_band_tables() {
 #[test]
 fn rotating_family_sample_stays_bounded_and_eventually_exposes_every_action() {
     let candidates: Vec<usize> = (1200..=1249).collect();
-    let mut seen = rustc_hash::FxHashSet::default();
-    for phase in 0..candidates.len() {
+    let mut seen = crate::hashing::FxHashSet::default();
+    for phase in 0..candidates.len() as u64 {
         let mut actions = Vec::new();
         extend_rotating_candidates(&mut actions, &candidates, phase);
         assert_eq!(actions.len(), ACTIONS_PER_BAND);

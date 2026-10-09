@@ -861,7 +861,7 @@ impl Simulation {
             }
         }
 
-        let mut caught: rustc_hash::FxHashSet<usize> = rustc_hash::FxHashSet::default();
+        let mut caught: crate::hashing::FxHashSet<usize> = crate::hashing::FxHashSet::default();
         for (oi, ai) in to_catch {
             if caught.contains(&ai) {
                 continue;

@@ -159,8 +159,8 @@ pub fn teach(
 
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let (ox, oy) = (organisms[org_idx].x, organisms[org_idx].y);
-    let friend_ids: rustc_hash::FxHashSet<String> = organisms[org_idx].friends.keys().cloned().collect();
-    let high_trust: rustc_hash::FxHashSet<String> = organisms[org_idx]
+    let friend_ids: crate::hashing::FxHashSet<String> = organisms[org_idx].friends.keys().cloned().collect();
+    let high_trust: crate::hashing::FxHashSet<String> = organisms[org_idx]
         .org_trust
         .iter()
         .filter(|(_, &v)| v >= 0.55)
@@ -372,8 +372,8 @@ pub fn social_knowledge_share(
         return;
     }
 
-    let friend_ids: rustc_hash::FxHashSet<String> = organisms[org_idx].friends.keys().cloned().collect();
-    let high_trust: rustc_hash::FxHashSet<String> = organisms[org_idx]
+    let friend_ids: crate::hashing::FxHashSet<String> = organisms[org_idx].friends.keys().cloned().collect();
+    let high_trust: crate::hashing::FxHashSet<String> = organisms[org_idx]
         .org_trust
         .iter()
         .filter(|(_, &v)| v >= 0.50)
@@ -482,7 +482,7 @@ pub fn social_knowledge_share(
     // `words`, not `as_hashmap`: `converge_with` only ever looks a real
     // concept up in these maps, so carrying the reserved clock blob would
     // cost a ~400-number string per peer per conversation for nothing.
-    let peer_snapshots: Vec<rustc_hash::FxHashMap<String, String>> = share_targets
+    let peer_snapshots: Vec<crate::hashing::FxHashMap<String, String>> = share_targets
         .iter()
         .map(|&(ki, _)| organisms[ki].vocabulary.words())
         .collect();

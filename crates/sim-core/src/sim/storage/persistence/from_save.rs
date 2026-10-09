@@ -236,7 +236,7 @@ impl Simulation {
                 .into_iter()
                 .map(|(lid, tiles)| (lid, tiles.into_iter().map(|[x, y]| (x, y)).collect()))
                 .collect(),
-            tile_owner: rustc_hash::FxHashMap::default(),
+            tile_owner: crate::hashing::FxHashMap::default(),
             cached_territory: serde_json::Value::Null,
             building_state_revision: 1,
             serialized_building_state_revision: 0,
@@ -298,7 +298,7 @@ impl Simulation {
         // semantics - order is unstable but the next claim_territory
         // call refreshes it deterministically).
         {
-            let mut owner = rustc_hash::FxHashMap::default();
+            let mut owner = crate::hashing::FxHashMap::default();
             for (lid, tiles) in sim.territory.iter() {
                 for &p in tiles {
                     owner.insert(p, lid.clone());
@@ -311,7 +311,7 @@ impl Simulation {
         // Strategy guidance existed before campaign objectives. Upgrade active
         // legacy guidance in-place so an imported local world immediately
         // gains a real target instead of displaying 0/0 forever.
-        let living_lineages: rustc_hash::FxHashSet<String> = sim
+        let living_lineages: crate::hashing::FxHashSet<String> = sim
             .organisms
             .iter()
             .filter(|organism| organism.alive || crate::sim::agents::growth::is_pending_birth(organism))
@@ -355,7 +355,7 @@ impl Simulation {
             }
         }
         for (lineage_id, strategy, expires_tick) in legacy_objectives {
-            sim.lineage_strategy_objectives.remove(&lineage_id);
+            sim.lineage_strategy_objectives.swap_remove(&lineage_id);
             sim.start_strategy_objective(&lineage_id, &strategy, expires_tick);
         }
         sim.resolve_strategy_objective_expirations();

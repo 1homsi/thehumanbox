@@ -15,10 +15,10 @@ pub mod religious_schism;
 pub mod sacred_dance;
 
 use super::ctx::ActionCtx;
+use crate::hashing::{FxHashMap as HashMap, FxHashSet as HashSet};
 use crate::sim::culture::{pick_religion_name, Religion, ReligionKind};
 use crate::sim::era::Era;
 use crate::sim::simulation::Simulation;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 pub(super) const MIN_SCHISM_AGE_TICKS: u64 = 2_000;
 pub(super) const MIN_SCHISM_MEMBERS: usize = 3;

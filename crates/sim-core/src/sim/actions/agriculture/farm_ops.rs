@@ -65,11 +65,12 @@ pub(crate) fn crop_for_plot(sim: &Simulation, idx: usize, x: i32, y: i32, water_
     let hash = (x as i64)
         .wrapping_mul(73_856_093)
         .wrapping_add((y as i64).wrapping_mul(19_349_663))
-        .unsigned_abs() as usize;
+        .unsigned_abs();
     if water_near && unlocked.contains(&CropKind::Rice) && hash.is_multiple_of(3) {
         CropKind::Rice
     } else {
-        unlocked[hash % unlocked.len()]
+        // Computed in u64: a usize here would truncate on 32-bit wasm and pick a different crop.
+        unlocked[(hash % unlocked.len() as u64) as usize]
     }
 }
 

@@ -2,6 +2,7 @@
 //! person of their tribe, who feeds them and keeps them close. Before this
 //! grief was the only thing an orphan got, and orphans starved.
 
+use crate::math::DetMath;
 use crate::sim::agents::age_stage::AgeStage;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
@@ -18,7 +19,7 @@ const GUARDIAN_RANGE: f32 = 40.0;
 impl Simulation {
     pub(crate) fn tick_orphans(&mut self) {
         let now = self.tick_count;
-        let alive_ids: rustc_hash::FxHashSet<&str> = self
+        let alive_ids: crate::hashing::FxHashSet<&str> = self
             .organisms
             .iter()
             .filter(|o| o.alive)
@@ -62,7 +63,7 @@ impl Simulation {
                 .iter()
                 .copied()
                 .filter(|&g| self.organisms[g].lineage_id == lineage)
-                .map(|g| (g, (self.organisms[g].x - ox).hypot(self.organisms[g].y - oy)))
+                .map(|g| (g, (self.organisms[g].x - ox).det_hypot(self.organisms[g].y - oy)))
                 .filter(|&(_, d)| d <= GUARDIAN_RANGE)
                 .min_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)));
             let Some((g, dist)) = guardian else {
@@ -97,7 +98,7 @@ impl Simulation {
             }
         }
         // Forget orphans who have grown up or died.
-        let still: rustc_hash::FxHashSet<&str> = self
+        let still: crate::hashing::FxHashSet<&str> = self
             .organisms
             .iter()
             .filter(|o| {

@@ -1,5 +1,5 @@
+use crate::hashing::FxHashMap as HashMap;
 use rand::{Rng, RngExt};
-use rustc_hash::FxHashMap as HashMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::sync::OnceLock;
 
@@ -957,7 +957,7 @@ mod tests {
     /// is overwritten on every save. Guard the invariant directly.
     #[test]
     fn concepts_are_unique() {
-        let mut seen = rustc_hash::FxHashSet::default();
+        let mut seen = crate::hashing::FxHashSet::default();
         let dupes: Vec<&str> = CONCEPTS.iter().filter(|c| !seen.insert(**c)).copied().collect();
         assert!(dupes.is_empty(), "duplicate concepts in CONCEPTS: {dupes:?}");
         // `concept_index` is the reverse map; a duplicate breaks its 1:1
@@ -978,7 +978,7 @@ mod tests {
                 serde_json::to_vec(&serde_json::to_value(v.words()).unwrap()).unwrap()
             );
             for (n, concept) in CONCEPTS.iter().enumerate() {
-                if n % (seed as usize % 5 + 2) == 0 {
+                if n % ((seed % 5) as usize + 2) == 0 {
                     v.touch_concept(concept, 500 + n as u64);
                 }
             }
@@ -1045,7 +1045,7 @@ mod tests {
             );
 
             for (n, concept) in CONCEPTS.iter().enumerate() {
-                if n % (seed as usize % 7 + 2) == 0 {
+                if n % ((seed % 7) as usize + 2) == 0 {
                     v.touch_concept(concept, 1_000 + n as u64 * (seed + 1));
                 }
             }

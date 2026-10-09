@@ -1,3 +1,5 @@
+use crate::hashing::FxHashMap;
+use crate::math::DetMath;
 use crate::organism::attributes::{
     assign_birth_attributes, check_earned_attributes, inherit_attributes_from_parents,
 };
@@ -12,7 +14,6 @@ use crate::world::{
     tiles::{Biome, Tile},
 };
 use rand::{Rng, RngExt};
-use rustc_hash::FxHashMap;
 
 pub fn is_pending_birth(organism: &Organism) -> bool {
     !organism.alive && organism.age == 0 && !organism.parent_id.is_empty() && organism.father_id.is_some()
@@ -25,8 +26,8 @@ pub fn population_slots_used(organisms: &[Organism]) -> usize {
         .count()
 }
 
-pub fn lineage_population_slots(organisms: &[Organism]) -> rustc_hash::FxHashMap<String, usize> {
-    let mut counts: rustc_hash::FxHashMap<String, usize> = rustc_hash::FxHashMap::default();
+pub fn lineage_population_slots(organisms: &[Organism]) -> crate::hashing::FxHashMap<String, usize> {
+    let mut counts: crate::hashing::FxHashMap<String, usize> = crate::hashing::FxHashMap::default();
     for organism in organisms
         .iter()
         .filter(|organism| organism.alive || is_pending_birth(organism))
@@ -136,11 +137,11 @@ fn reproduction_partner_index(
                 o.alive
                     && o.sex == Sex::Male
                     && o.age > 1000
-                    && (o.x - org.x).hypot(o.y - org.y) < partner_dist
+                    && (o.x - org.x).det_hypot(o.y - org.y) < partner_dist
             })
             .min_by(|(_, a), (_, b)| {
-                let da = (a.x - org.x).hypot(a.y - org.y);
-                let db = (b.x - org.x).hypot(b.y - org.y);
+                let da = (a.x - org.x).det_hypot(a.y - org.y);
+                let db = (b.x - org.x).det_hypot(b.y - org.y);
                 da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
             })
             .map(|(idx, _)| idx)
@@ -151,7 +152,7 @@ fn reproduction_partner_index(
         // between residents' decisions. Recheck the partner's current state.
         (partner.alive
             && partner.sex == Sex::Male
-            && (partner.x - org.x).hypot(partner.y - org.y) < partner_dist)
+            && (partner.x - org.x).det_hypot(partner.y - org.y) < partner_dist)
             .then_some(partner_idx)
     }
 }
@@ -483,7 +484,7 @@ pub fn try_reproduce(
         } else {
             0.65
         };
-        let chance = 1.0 - (1.0f32 - per_parent).powi(i32::from(knowers));
+        let chance = 1.0 - (1.0f32 - per_parent).det_powi(i32::from(knowers));
         if chance >= 1.0 || rng.random::<f32>() < chance {
             child.discoveries.insert(d.to_string());
         }
@@ -542,7 +543,7 @@ fn unborn_cancellations(organisms: &[Organism], any_unborn: bool) -> Vec<(usize,
     }
     // Only needed to find the mothers of unborn children, and only for the
     // length of this lookup: borrow the ids instead of copying them.
-    let mother_map: rustc_hash::FxHashMap<&str, usize> = organisms
+    let mother_map: crate::hashing::FxHashMap<&str, usize> = organisms
         .iter()
         .enumerate()
         .filter(|(_, organism)| organism.sex == Sex::Female)
@@ -564,7 +565,7 @@ fn unborn_cancellations(organisms: &[Organism], any_unborn: bool) -> Vec<(usize,
 /// to check the lazy borrowing one against.
 #[cfg(test)]
 fn unborn_cancellations_reference(organisms: &[Organism]) -> Vec<(usize, Option<usize>)> {
-    let mother_map: rustc_hash::FxHashMap<String, usize> = organisms
+    let mother_map: crate::hashing::FxHashMap<String, usize> = organisms
         .iter()
         .enumerate()
         .filter(|(_, organism)| organism.sex == Sex::Female)
@@ -589,7 +590,7 @@ pub fn deliver_births(
     history: &mut History,
 ) -> Vec<(String, u32)> {
     let mut born: Vec<(String, u32)> = Vec::new();
-    let unborn_map: rustc_hash::FxHashMap<String, usize> = organisms
+    let unborn_map: crate::hashing::FxHashMap<String, usize> = organisms
         .iter()
         .enumerate()
         .filter(|(_, organism)| is_pending_birth(organism))
@@ -909,16 +910,19 @@ mod tests {
         let child = &organisms[2];
         let mut attributes: Vec<_> = child.attributes.iter().collect();
         attributes.sort();
-        // Captured from the population-scan implementation with the same seed.
+        // Captured from the population-scan implementation with the same seed,
+        // and recaptured when the Gaussian sampler became the deterministic
+        // Box-Muller in organism/traits.rs (rand_distr's ziggurat is not
+        // identical across platforms).
         // Covers both genetic inheritance and the father's innate attributes,
         // and guards against changing subsequent random decisions.
         for (actual, expected) in [
-            (child.traits.curiosity, 0.53371954),
-            (child.traits.aggression, 0.5322892),
-            (child.traits.fear, 0.46756086),
-            (child.traits.memory_strength, 0.52452236),
-            (child.traits.social_tendency, 0.85434127),
-            (child.traits.resilience, 0.6086737),
+            (child.traits.curiosity, 0.5063064),
+            (child.traits.aggression, 0.5182168),
+            (child.traits.fear, 0.54495406),
+            (child.traits.memory_strength, 0.40637338),
+            (child.traits.social_tendency, 0.8231731),
+            (child.traits.resilience, 0.5024683),
         ] {
             assert!((actual - expected).abs() < 1e-6);
         }

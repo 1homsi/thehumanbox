@@ -11,10 +11,10 @@
 //! first: the learning bonus is small.
 
 use super::age_stage::AgeStage;
+use crate::hashing::FxHashMap;
 use crate::sim::simulation::Simulation;
 use crate::sim::spatial::SpatialIndex;
 use crate::world::tiles::Tile;
-use rustc_hash::FxHashMap;
 
 /// A child further than this from its anchor (mother, father or home) is walked back to it.
 const KEEP_CLOSE: i32 = 4;

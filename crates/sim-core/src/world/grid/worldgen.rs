@@ -16,6 +16,7 @@
 //!    warm coasts.
 
 use super::{WorldGrid, HEIGHT, WIDTH};
+use crate::math::DetMath;
 use crate::world::tiles::{Biome, Tile};
 use rand::rngs::StdRng;
 use rand::{RngExt, SeedableRng};
@@ -86,11 +87,11 @@ struct Blob {
 impl Blob {
     fn lift(&self, u: f32, v: f32) -> f32 {
         let (dx, dy) = (u - self.cx, v - self.cy);
-        let (cos, sin) = (self.angle.cos(), self.angle.sin());
+        let (cos, sin) = (self.angle.det_cos(), self.angle.det_sin());
         let rx = (cos * dx + sin * dy) / self.long;
         let ry = (-sin * dx + cos * dy) / self.short;
         let d = (rx * rx + ry * ry).sqrt();
-        (1.0 - d.min(1.0)).powf(0.9) * self.strength
+        (1.0 - d.min(1.0)).det_powf(0.9) * self.strength
     }
 }
 
@@ -100,7 +101,7 @@ fn blobs_for(shape: WorldShape, rng: &mut StdRng) -> Vec<Blob> {
         for _ in 0..40 {
             let cx = rng.random_range(area.0..area.1);
             let cy = rng.random_range(area.2..area.3);
-            if blobs.iter().all(|b| (b.cx - cx).hypot(b.cy - cy) >= min_gap) {
+            if blobs.iter().all(|b| (b.cx - cx).det_hypot(b.cy - cy) >= min_gap) {
                 return Some((cx, cy));
             }
         }
@@ -138,8 +139,8 @@ fn blobs_for(shape: WorldShape, rng: &mut StdRng) -> Vec<Blob> {
                 let a = rng.random_range(0.0..tau);
                 let r = rng.random_range(0.25..0.45);
                 blobs.push(Blob {
-                    cx: cx + a.cos() * r * 1.4,
-                    cy: (cy + a.sin() * r * 0.7).clamp(0.2, 0.8),
+                    cx: cx + a.det_cos() * r * 1.4,
+                    cy: (cy + a.det_sin() * r * 0.7).clamp(0.2, 0.8),
                     short: rng.random_range(0.15..0.22),
                     long: rng.random_range(0.24..0.38),
                     angle: rng.random_range(0.0..tau),
@@ -229,7 +230,7 @@ fn segment_distance(px: f32, py: f32, a: (f32, f32), b: (f32, f32)) -> (f32, f32
     let len2 = (dx * dx + dy * dy).max(1e-6);
     let t = (((px - a.0) * dx + (py - a.1) * dy) / len2).clamp(0.0, 1.0);
     let (cx, cy) = (a.0 + t * dx, a.1 + t * dy);
-    ((px - cx).hypot(py - cy), t)
+    ((px - cx).det_hypot(py - cy), t)
 }
 
 /// Land tiles grouped into connected landmasses.
@@ -410,7 +411,7 @@ impl WorldGrid {
                 }
                 let base = ((raw[i] - sea) / (hi - sea).max(1e-5)).clamp(0.0, 1.0);
                 let inland = (coast[i] as f32 / 40.0).min(1.0);
-                (base.powf(0.85) * 0.45 + inland * 0.08).min(0.5)
+                (base.det_powf(0.85) * 0.45 + inland * 0.08).min(0.5)
             })
             .collect();
 
@@ -438,7 +439,7 @@ impl WorldGrid {
                     vec![(px, py, rng.random_range(0.75..1.0), rng.random_range(9.0..15.0))];
                 for _ in 0..segments {
                     angle += rng.random_range(-0.4..0.4);
-                    let (nx, ny) = (px + angle.cos() * step, py + angle.sin() * step);
+                    let (nx, ny) = (px + angle.det_cos() * step, py + angle.det_sin() * step);
                     let (ix, iy) = (nx as i32, ny as i32);
                     if !Self::in_bounds(ix, iy) || coast[Self::idx(ix, iy)] < 4 {
                         // Turn back inland rather than ending at the coast.
@@ -475,7 +476,7 @@ impl WorldGrid {
                             let (u, v) = (x as f32 / HEIGHT as f32, y as f32 / HEIGHT as f32);
                             let ridge =
                                 1.0 - Self::fbm(u * 4.0 + 5.1, v * 4.0 + 9.7, seed ^ 0x51ed).abs() * 2.0;
-                            let profile = (1.0 - d / width).powf(1.2);
+                            let profile = (1.0 - d / width).det_powf(1.2);
                             let m = profile * height * (0.75 + ridge.clamp(0.0, 1.0) * 0.4);
                             mountain[i] = mountain[i].max(m);
                         }
@@ -569,7 +570,7 @@ impl WorldGrid {
         for i in 0..SIZE {
             let (x, y) = ((i % WIDTH) as f32, (i / WIDTH) as f32);
             let (u, v) = (x / HEIGHT as f32, y / HEIGHT as f32);
-            let near_sea = (1.0 - (coast[i] as f32 / 70.0).min(1.0)).powf(1.3);
+            let near_sea = (1.0 - (coast[i] as f32 / 70.0).min(1.0)).det_powf(1.3);
             let noise = Self::fbm(u * 1.4 + 21.0, v * 1.4 + 4.0, seed ^ 0x3c9);
             let lat = (v - 0.5).abs() * 2.0;
             // Subtropical high pressure dries the band around 30 degrees.
@@ -940,7 +941,7 @@ mod tests {
 
     #[test]
     fn every_shape_appears_across_seeds() {
-        let mut seen = rustc_hash::FxHashSet::default();
+        let mut seen = crate::hashing::FxHashSet::default();
         for seed in 0..60u64 {
             let mut rng = StdRng::seed_from_u64(seed);
             seen.insert(format!("{:?}", WorldShape::pick(&mut rng)));

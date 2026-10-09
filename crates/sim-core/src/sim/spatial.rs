@@ -1,6 +1,6 @@
+use crate::hashing::FxHashMap as HashMap;
 use crate::organism::animal::Animal;
 use crate::organism::organism::Organism;
-use rustc_hash::FxHashMap as HashMap;
 
 /// More buckets than any real world needs (600x300 tiles in 10-tile buckets is
 /// 1,800); beyond this a sparse map is used instead of a dense grid.

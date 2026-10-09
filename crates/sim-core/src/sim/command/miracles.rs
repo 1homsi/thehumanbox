@@ -1,4 +1,5 @@
 use super::Simulation;
+use crate::math::DetMath;
 use crate::sim::world_events::push_event;
 use crate::world::grid::{WorldGrid, WIDTH};
 use crate::world::tiles::Tile;
@@ -92,7 +93,7 @@ impl Simulation {
         let mut grown = 0usize;
         for (&idx, planting) in self.plantings.iter_mut() {
             let (px, py) = ((idx as usize % WIDTH) as f32, (idx as usize / WIDTH) as f32);
-            if (px - x).hypot(py - y) <= reach {
+            if (px - x).det_hypot(py - y) <= reach {
                 planting.growth = planting.growth.saturating_add(SURGE_GROWTH);
                 grown += 1;
             }
@@ -119,7 +120,7 @@ impl Simulation {
             .iter()
             .enumerate()
             .filter(|(_, o)| o.alive && !TALENTS.iter().any(|t| o.attributes.contains(*t)))
-            .map(|(i, o)| (i, (o.x - x).hypot(o.y - y)))
+            .map(|(i, o)| (i, (o.x - x).det_hypot(o.y - y)))
             .filter(|&(_, d)| d <= reach)
             .min_by(|a, b| a.1.total_cmp(&b.1));
         let Some((i, _)) = nearest else {

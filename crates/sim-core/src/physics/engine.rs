@@ -1,6 +1,6 @@
+use crate::hashing::FxHashSet as HashSet;
 use crate::world::{grid::WorldGrid, tiles::Tile};
 use rand::{Rng, RngExt};
-use rustc_hash::FxHashSet as HashSet;
 
 /// Tiles whose usual temperature is below this hold snow all year: the
 /// same line world generation draws snow on the foothills with.
@@ -223,14 +223,14 @@ impl PhysicsEngine {
         let new_fires = std::mem::take(&mut self.new_fires);
 
         for (x, y) in &burn_out {
-            self.active_fire_tiles.remove(&(*x, *y));
+            self.active_fire_tiles.swap_remove(&(*x, *y));
             if grid.get(*x, *y) == Tile::Fire {
                 grid.set(*x, *y, Tile::Ash);
                 *grid.fire_intensity_mut(*x, *y) = 0.0;
             }
         }
         for (x, y) in &campfire_burn_out {
-            self.active_fire_tiles.remove(&(*x, *y));
+            self.active_fire_tiles.swap_remove(&(*x, *y));
             grid.set(*x, *y, Tile::Ash);
             *grid.fire_intensity_mut(*x, *y) = 0.0;
         }

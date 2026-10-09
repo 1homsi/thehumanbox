@@ -1,6 +1,7 @@
 //! Snow, fog and gales from the sandbox.
 
 use super::*;
+use crate::math::DetMath;
 use crate::world::grid::{HEIGHT, WIDTH};
 use crate::world::tiles::Tile;
 
@@ -50,7 +51,7 @@ fn a_gale_blows_hard_from_a_new_quarter() {
     let mut sim = Simulation::new(3);
     let before = (sim.weather.wind_x, sim.weather.wind_y);
     assert!(sim.apply_command_json(r#"{"cmd":"gale"}"#));
-    let strength = sim.weather.wind_x.hypot(sim.weather.wind_y);
+    let strength = sim.weather.wind_x.det_hypot(sim.weather.wind_y);
     assert!((strength - 0.9).abs() < 1e-4, "gale strength {strength}");
     assert_ne!(
         (sim.weather.wind_x, sim.weather.wind_y),

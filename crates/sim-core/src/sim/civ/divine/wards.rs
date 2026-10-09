@@ -3,6 +3,7 @@
 //! within it or finds a way in. It is how a player
 //! shields a tribe on the brink without killing anyone to do it.
 
+use crate::math::DetMath;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
 use serde::{Deserialize, Serialize};
@@ -23,7 +24,7 @@ pub struct Ward {
 
 impl Ward {
     pub fn covers(&self, x: f32, y: f32) -> bool {
-        (x - self.x).hypot(y - self.y) <= self.radius
+        (x - self.x).det_hypot(y - self.y) <= self.radius
     }
 }
 
@@ -43,7 +44,7 @@ impl Simulation {
         };
         let now = self.tick_count;
         self.wards
-            .retain(|w| !(w.covers(x, y) && (w.x - x).hypot(w.y - y) < radius * 0.5));
+            .retain(|w| !(w.covers(x, y) && (w.x - x).det_hypot(w.y - y) < radius * 0.5));
         self.wards.push(Ward {
             x,
             y,
@@ -55,7 +56,7 @@ impl Simulation {
             let mut tribes: Vec<String> = self
                 .organisms
                 .iter()
-                .filter(|o| o.alive && (o.x - x).hypot(o.y - y) <= radius)
+                .filter(|o| o.alive && (o.x - x).det_hypot(o.y - y) <= radius)
                 .map(|o| o.lineage_id.clone())
                 .collect();
             tribes.sort();
@@ -65,7 +66,7 @@ impl Simulation {
         for o in self
             .organisms
             .iter_mut()
-            .filter(|o| o.alive && (o.x - x).hypot(o.y - y) <= radius)
+            .filter(|o| o.alive && (o.x - x).det_hypot(o.y - y) <= radius)
         {
             o.fear_level = (o.fear_level - 0.3).max(0.0);
             o.think("felt the gods' ward settle over us", now);

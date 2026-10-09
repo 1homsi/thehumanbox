@@ -212,6 +212,10 @@ jobs:
       - name: Build wasm sim-core
         if: steps.wasm-cache.outputs.cache-hit != 'true'
         run: scripts/build-wasm.sh
+      # Runs on cached and fresh builds: the browser sim must reproduce the
+      # committed native fingerprint (see scripts/determinism-fingerprint.json).
+      - name: Check wasm determinism fingerprint
+        run: node scripts/check-wasm-determinism.mjs apps/web/src/wasm/sim-core
       - uses: actions/upload-artifact@v7
         with:
           name: sim-core-wasm

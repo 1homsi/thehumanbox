@@ -1,4 +1,5 @@
 use super::moments::*;
+use crate::hashing::{FxHashMap as HashMap, FxHashSet as HashSet};
 use crate::sim::age_stage::AgeStage;
 use crate::sim::buildings::{Building, BuildingKind};
 use crate::sim::config::natural_lineage_limit;
@@ -13,7 +14,6 @@ use crate::sim::spatial::SpatialIndex;
 use crate::sim::world_events::push_event;
 use crate::sim::world_milestones::Milestone;
 use rand::RngExt;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 mod arts;
 mod construction;

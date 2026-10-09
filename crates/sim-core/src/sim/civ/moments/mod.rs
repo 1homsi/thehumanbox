@@ -1,8 +1,8 @@
+use crate::hashing::{FxHashMap as HashMap, FxHashSet as HashSet};
 use crate::sim::age_stage::AgeStage;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
 use rand::RngExt;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 mod ceremonies;
 mod furniture;

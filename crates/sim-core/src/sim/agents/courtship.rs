@@ -424,7 +424,7 @@ fn concept_gloss(concept: &str) -> &'static str {
 }
 
 fn pick_concept_and_word<'a>(
-    vocab: &'a rustc_hash::FxHashMap<String, String>,
+    vocab: &'a crate::hashing::FxHashMap<String, String>,
     concepts: &[&'a str],
     rng: &mut impl Rng,
 ) -> (&'a str, &'a str) {

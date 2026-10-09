@@ -4,6 +4,7 @@
 //! come are cheered and less lonely, and the tribe comes together at the
 //! very times of year it is hardest to feel together.
 
+use crate::math::DetMath;
 use crate::sim::civ::culture::{Festival, FestivalKind};
 use crate::sim::config::SEASON_LENGTH;
 use crate::sim::simulation::Simulation;
@@ -101,7 +102,7 @@ impl Simulation {
                 if !o.alive || o.lineage_id != lineage {
                     continue;
                 }
-                let dist = (o.x - cx).hypot(o.y - cy);
+                let dist = (o.x - cx).det_hypot(o.y - cy);
                 if dist > REACH {
                     continue;
                 }

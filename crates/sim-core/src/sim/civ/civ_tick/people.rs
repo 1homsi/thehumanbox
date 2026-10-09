@@ -635,7 +635,7 @@ pub(super) fn pick_degree(era: Era, seed: u64) -> &'static str {
     if era >= Era::Modern {
         opts.push("science");
     }
-    opts[(seed as usize) % opts.len()]
+    opts[(seed % opts.len() as u64) as usize]
 }
 
 #[cfg(test)]

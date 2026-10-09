@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::DetMath;
 
 pub(super) const FUNCTIONAL_BUILDINGS_CAP: usize = 1200;
 
@@ -489,8 +490,8 @@ const PALISADE_RADIUS: f32 = 5.0;
 pub(super) fn palisade_post(cx: i32, cy: i32, index: usize) -> (i32, i32) {
     let angle = index as f32 * std::f32::consts::TAU / PALISADE_FENCES as f32;
     (
-        cx + (PALISADE_RADIUS * angle.cos()).round() as i32,
-        cy + (PALISADE_RADIUS * angle.sin()).round() as i32,
+        cx + (PALISADE_RADIUS * angle.det_cos()).round() as i32,
+        cy + (PALISADE_RADIUS * angle.det_sin()).round() as i32,
     )
 }
 

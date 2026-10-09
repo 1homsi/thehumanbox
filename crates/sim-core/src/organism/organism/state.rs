@@ -138,7 +138,7 @@ impl Organism {
     pub fn trim_cognitive_state(&mut self, critical: bool) {
         fn trim_mem(mem: &mut FxHashMap<(i32, i32), f32>, keep: usize) {
             if mem.len() > keep {
-                let mut entries: Vec<_> = mem.drain().collect();
+                let mut entries: Vec<_> = mem.drain(..).collect();
                 entries.sort_unstable_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
                 entries.truncate(keep);
                 mem.extend(entries);
@@ -154,7 +154,7 @@ impl Organism {
         trim_mem(&mut self.danger_memory, danger_keep);
 
         if self.q_table.len() > q_keep {
-            let mut entries: Vec<(String, QRow)> = self.q_table.drain().collect();
+            let mut entries: Vec<(String, QRow)> = self.q_table.drain(..).collect();
             entries.sort_unstable_by(|a, b| {
                 let strength = |row: &QRow| row.iter().map(|(_, value)| value.abs()).fold(0.0f32, f32::max);
                 strength(&b.1)

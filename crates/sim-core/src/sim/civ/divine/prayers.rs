@@ -3,6 +3,7 @@
 //! dwindling numbers) and asks the gods for help. A power that meets the
 //! need near the tribe answers the prayer: the tribe gives thanks and its
 //! faith grows. A prayer left unanswered leaves the tribe feeling forsaken.
+use crate::math::DetMath;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
 use rand::RngExt;
@@ -174,7 +175,9 @@ impl Simulation {
             let beasts = self
                 .animals
                 .iter()
-                .filter(|a| a.alive && !a.sleeping && a.kind.hostile() && (a.x - cx).hypot(a.y - cy) < 16.0)
+                .filter(|a| {
+                    a.alive && !a.sleeping && a.kind.hostile() && (a.x - cx).det_hypot(a.y - cy) < 16.0
+                })
                 .map(|a| if a.kind.monster() { 3 } else { 1 })
                 .sum::<u32>();
             let mut best: Option<(f32, PrayerKind)> = None;
@@ -403,7 +406,7 @@ impl Simulation {
                 if !o.alive || o.lineage_id != lineage || o.journey.is_some() {
                     continue;
                 }
-                let d = (o.x - x as f32).hypot(o.y - y as f32);
+                let d = (o.x - x as f32).det_hypot(o.y - y as f32);
                 if !(3.0..=25.0).contains(&d) || o.energy < 0.5 || o.hydration < 0.5 {
                     continue;
                 }
@@ -437,7 +440,7 @@ impl Simulation {
             .filter(|(lid, a)| {
                 let (cx, cy) = a.center();
                 a.population > 0
-                    && (cx as f32 - x).hypot(cy as f32 - y) <= ANSWER_RADIUS
+                    && (cx as f32 - x).det_hypot(cy as f32 - y) <= ANSWER_RADIUS
                     && !answered.contains(lid)
                     && !self.prayers.active.iter().any(|p| &p.lineage == *lid)
                     && self.prayers.gift_quiet_until.get(*lid).is_none_or(|&t| now >= t)
@@ -512,7 +515,7 @@ impl Simulation {
             .into_iter()
             .partition(|p| {
                 kinds.contains(&p.kind)
-                    && at.is_none_or(|(x, y)| (x - p.x as f32).hypot(y - p.y as f32) <= ANSWER_RADIUS)
+                    && at.is_none_or(|(x, y)| (x - p.x as f32).det_hypot(y - p.y as f32) <= ANSWER_RADIUS)
             });
         self.prayers.active = kept;
         let mut answered_lineages: Vec<String> = Vec::new();

@@ -3,6 +3,7 @@
 //! down. Woodland drinks the smoke in, so a tribe or a god who plants trees
 //! around its mills breathes easier, and the later ages learn to build clean.
 
+use crate::math::DetMath;
 use crate::sim::civ::eras::Era;
 use crate::sim::cosmos::DAY_LENGTH;
 use crate::sim::simulation::Simulation;
@@ -54,7 +55,7 @@ impl Simulation {
         self.smog
             .iter()
             .map(|s| {
-                let d = (s.x - x).hypot(s.y - y);
+                let d = (s.x - x).det_hypot(s.y - y);
                 if d >= SMOG_REACH {
                     0.0
                 } else {

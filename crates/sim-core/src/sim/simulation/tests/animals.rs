@@ -1,6 +1,7 @@
 //! Animals: wolves and packs, dogs and their owners, breeding and seasons.
 
 use super::*;
+use crate::math::DetMath;
 
 fn alive_resident_indices(sim: &Simulation) -> FxHashMap<String, usize> {
     sim.organisms
@@ -341,7 +342,8 @@ fn wild_bears_hibernate_through_winter() {
             sim.grid.set(x, y, Tile::Grass);
         }
     }
-    sim.organisms.retain(|o| (o.x - 25.0).hypot(o.y - 25.0) > 60.0);
+    sim.organisms
+        .retain(|o| (o.x - 25.0).det_hypot(o.y - 25.0) > 60.0);
     sim.animals.push(Animal::new(9001, 25.0, 25.0, AnimalKind::Bear));
     sim.tick_count = crate::sim::config::SEASON_LENGTH * 2 + 5;
     for _ in 0..30 {

@@ -1,4 +1,4 @@
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use crate::hashing::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::sim::civ::economy::{
     currency_unit_for_era, military_issue_for_era, PriceTable, Trade, MILITARY_EQUIPMENT_COST, TRADABLE_TOOLS,

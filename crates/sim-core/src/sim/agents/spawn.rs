@@ -1,3 +1,4 @@
+use crate::math::DetMath;
 use rand::RngExt;
 
 /// Mint a short organism/lineage id from the *seeded* stream.
@@ -99,7 +100,8 @@ impl Simulation {
         }
         anchors.truncate(N_TRIBES);
 
-        let mut tribe_anchor: rustc_hash::FxHashMap<String, (f32, f32)> = rustc_hash::FxHashMap::default();
+        let mut tribe_anchor: crate::hashing::FxHashMap<String, (f32, f32)> =
+            crate::hashing::FxHashMap::default();
         for &(ax, ay) in &anchors {
             let lineage_id = seeded_id(&mut self.rng, 8);
             let tribe_name = generate_tribe_name(&mut self.rng);
@@ -223,7 +225,7 @@ impl Simulation {
                     .organisms
                     .iter()
                     .filter(|o| o.alive)
-                    .map(|o| (o.x - x as f32).powi(2) + (o.y - y as f32).powi(2))
+                    .map(|o| (o.x - x as f32).det_powi(2) + (o.y - y as f32).det_powi(2))
                     .fold(f32::INFINITY, f32::min);
                 let dist = if nearest_org_d2.is_finite() {
                     nearest_org_d2.sqrt()
@@ -375,12 +377,12 @@ impl Simulation {
                     && o.alive
                     && o.lineage_id == old_lid
                     && o.age >= 700
-                    && (o.x - fx).hypot(o.y - fy) <= 10.0
+                    && (o.x - fx).det_hypot(o.y - fy) <= 10.0
             })
             .map(|(i, o)| {
                 (
                     partner.as_deref() != Some(o.id.as_str()),
-                    (o.x - fx).hypot(o.y - fy),
+                    (o.x - fx).det_hypot(o.y - fy),
                     i,
                 )
             })

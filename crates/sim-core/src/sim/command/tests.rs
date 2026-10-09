@@ -1,3 +1,4 @@
+use crate::math::DetMath;
 use crate::sim::simulation::Simulation;
 
 struct ZeroRng;
@@ -37,7 +38,7 @@ fn spawned_tribe_shares_one_generated_lineage() {
     let before = sim.organisms.len();
     assert!(sim.apply_command_json(r#"{"cmd":"spawn","x":100.0,"y":100.0,"count":5}"#));
 
-    let lineages: rustc_hash::FxHashSet<&str> = sim.organisms[before..]
+    let lineages: crate::hashing::FxHashSet<&str> = sim.organisms[before..]
         .iter()
         .map(|organism| organism.lineage_id.as_str())
         .collect();
@@ -122,7 +123,7 @@ fn poison_infects_only_people_in_range() {
     let reached_far = sim
         .organisms
         .iter()
-        .any(|o| o.alive && (o.x - x - 90.0).hypot(o.y - y - 90.0) <= 0.5);
+        .any(|o| o.alive && (o.x - x - 90.0).det_hypot(o.y - y - 90.0) <= 0.5);
     assert_eq!(sim.apply_command_json(&miss), reached_far);
 
     let hit = format!(r#"{{"cmd":"poison","x":{x},"y":{y},"radius":0.5}}"#);
@@ -168,7 +169,7 @@ fn guiding_a_lineage_to_explore_sends_adults_on_one_shared_journey() {
     let cmd =
         format!(r#"{{"cmd":"guide","lineage":"{lineage}","strategy":"explore","duration_ticks":1200}}"#);
     assert!(sim.apply_command_json(&cmd));
-    let targets: rustc_hash::FxHashSet<(i32, i32)> = sim
+    let targets: crate::hashing::FxHashSet<(i32, i32)> = sim
         .organisms
         .iter()
         .filter(|o| o.alive && o.lineage_id == lineage && o.age >= 700)

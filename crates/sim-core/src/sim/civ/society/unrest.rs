@@ -6,8 +6,8 @@
 
 use super::government::Government;
 use super::inequality::{lineage_inequality, STARK_GINI};
+use crate::hashing::FxHashMap as HashMap;
 use crate::sim::simulation::Simulation;
-use rustc_hash::FxHashMap as HashMap;
 
 /// Unrest a stark, mostly-poor tribe builds up each day.
 pub const UNREST_PER_DAY: f32 = 0.2;
