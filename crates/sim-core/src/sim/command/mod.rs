@@ -57,6 +57,20 @@ pub enum Command {
         radius: f32,
         what: String,
     },
+    /// Hail beats down on the radius: plantings and wild food are flattened, people are hurt and some
+    /// animals are killed.
+    Hail {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
+    /// A bomb falls on the point: a crater, fallout that poisons a wide ring, and blight. Only once a
+    /// tribe has reached the Industrial age.
+    Nuke {
+        x: i32,
+        y: i32,
+    },
     /// Move the clock forward to the next `dawn`, `noon`, `dusk` or `midnight`.
     SetTimeOfDay {
         phase: String,
@@ -536,11 +550,13 @@ mod clock;
 mod creation;
 mod disasters;
 mod gift;
+mod hail;
 mod heal_one;
 mod leader;
 #[cfg(test)]
 mod locust_tests;
 mod marry;
+mod nuke;
 mod place;
 #[cfg(test)]
 mod release_tests;
@@ -594,6 +610,8 @@ impl Simulation {
             Command::Advance { to, max_ticks } => self.cmd_advance(to, max_ticks),
             Command::Gift { x, y, radius, what } => self.cmd_gift(x, y, radius, what),
             Command::SetTimeOfDay { phase } => self.cmd_set_time_of_day(phase),
+            Command::Hail { x, y, radius } => self.cmd_hail(x, y, radius),
+            Command::Nuke { x, y } => self.cmd_nuke(x, y),
             Command::Smite { x, y, radius } => self.cmd_smite(x, y, radius),
             Command::Heal { x, y, radius } => self.cmd_heal(x, y, radius),
             Command::Paint { x, y, tile, radius } => self.cmd_paint(x, y, tile, radius),

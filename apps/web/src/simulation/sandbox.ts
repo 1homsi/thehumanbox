@@ -60,6 +60,8 @@ export type SandboxCommand =
   | { cmd: 'advance'; to: 'season' | 'year'; max_ticks?: number }
   | { cmd: 'gift'; x: number; y: number; radius?: number; what: 'food' | 'tool' }
   | { cmd: 'time_of_day'; phase: 'dawn' | 'noon' | 'dusk' | 'midnight' }
+  | { cmd: 'hail'; x: number; y: number; radius?: number }
+  | { cmd: 'nuke'; x: number; y: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
   | { cmd: 'repair'; x: number; y: number; radius?: number }
   | { cmd: 'road'; x: number; y: number; radius?: number; kind: 'road' | 'erase' }
@@ -506,6 +508,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'blizzard', x, y, radius: 4 + b }),
       },
+      {
+        id: 'hail',
+        label: 'hail',
+        icon: '☁️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'hail', x, y, radius: 5 + b }),
+      },
       { id: 'storm', label: 'storm', icon: '⛈️', mode: 'instant', fire: { cmd: 'weather', kind: 'storm' } },
       {
         id: 'snow_weather',
@@ -667,6 +676,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🌙',
         mode: 'instant',
         fire: { cmd: 'time_of_day', phase: 'midnight' },
+      },
+      {
+        id: 'nuke',
+        label: 'bomb',
+        icon: '☢️',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'nuke', x, y }),
       },
       // The fire command is a placeholder: the toolbar rolls a random event when it is picked.
       { id: 'dice', label: 'dice', icon: '🎲', mode: 'instant', fire: { cmd: 'gale' } },
