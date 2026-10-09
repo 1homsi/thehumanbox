@@ -28,6 +28,7 @@ import {
   paintWaterStars,
 } from './paint-ground'
 import { hazeLevels, paintHaze } from './haze'
+import { paintDew, dewLevel } from './dew'
 import { paintFallingBlossoms } from './falling-blossoms'
 import { paintFallingLeaves } from './falling-leaves'
 import { paintCampfireSparks, paintEmbers } from './embers'
@@ -337,6 +338,10 @@ export class CfOverlayRenderer {
           f.t,
           1,
         )
+      }
+      const dew = dewLevel(f.world)
+      if (dew > 0 && vegetationSeason(terrainSeason(f.world)) !== 'winter') {
+        paintDew(ground, f.bounds, f.ox, f.oy, f.t, dew, f.world.grid.tiles)
       }
       const night = nightLevel(f.world)
       if (night > 0 && vegetationSeason(terrainSeason(f.world)) === 'summer') {
