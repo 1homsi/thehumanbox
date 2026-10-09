@@ -8,4 +8,5 @@ pub mod newcomers;
 pub mod relations;
 pub mod social;
 pub mod spawn;
+pub mod travel_groups;
 pub mod wander;

@@ -37,6 +37,7 @@ impl Simulation {
         self.assign_family_outing(idx, spatial, org_idx_by_id);
         self.keep_away_from_rivals(idx, org_idx_by_id);
         self.walk_to_a_friend(idx, org_idx_by_id);
+        self.fall_in_behind_leader(idx, spatial);
 
         if self.tick_count % 2000 == (idx as u64 % 2000) {
             {
