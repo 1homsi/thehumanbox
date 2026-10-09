@@ -38,6 +38,10 @@ export function kindIcon(kind: string): string {
       return '🐸'
     case 'whale':
       return '🐋'
+    case 'duck':
+      return '🦆'
+    case 'bee':
+      return '🐝'
     case 'zombie':
       return '🧟'
     case 'demon':

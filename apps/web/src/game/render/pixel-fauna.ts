@@ -36,6 +36,11 @@ const PALETTE: Record<string, string> = {
   V: '#3f7a32', // frog shade
   u: '#4b6e8f', // whale blue
   z: '#dfe7ec', // whale belly
+  Y: '#f2d45c', // duck yellow
+  Q: '#e0803a', // duck bill, feet
+  i: '#f5c93d', // bee gold
+  I: '#2a2420', // bee stripes
+  j: '#dfe9f2', // bee wings
 }
 
 /** Poses of a kind: the walk frames, then (for bears) a lying pose for sleeping. */
@@ -200,6 +205,14 @@ const SPRITES: Record<string, Frames> = {
       '..kkkkkk..',
       '.yy....yy.',
     ],
+  ],
+  duck: [
+    ['.....YYY...', '....YYYYY..', '...YYYYYYQQ', '.YYYYYYYYY.', '.YYYYYYYYY.', '..YYYYYYY..', '...Q...Q...'],
+    ['.....YYY...', '....YYYYY..', '...YYYYYYQQ', '.YYYYYYYYY.', '.YYYYYYYYY.', '..YYYYYYY..', '..Q....Q...'],
+  ],
+  bee: [
+    ['.jj...jj.', '..jjjjj..', '.iIiIiIi.', '.IiIiIiI.', '....o....'],
+    ['.j.....j.', '.jjjjjjj.', '.iIiIiIi.', '.IiIiIiI.', '....o....'],
   ],
   camel: [
     [
