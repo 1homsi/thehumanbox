@@ -2,6 +2,7 @@ import type { SpriteLayer } from 'xipjs'
 import type { Building } from '../../../../shared/types'
 import { TILE } from '../../../model/palette'
 import { PAD, PAD_TOP } from '../../building-painters/kit'
+import { homeLandOfBiome } from '../../building-painters/land-homes'
 import { drawBuilding } from '../../building-draw/draw'
 import { resolveBuildingFootprint } from '../../building-draw/footprints'
 import { lineageEraTiers } from '../../draw-helpers'
@@ -92,6 +93,7 @@ export class BuildingsDriver implements CfDriver {
       detail: f.detail,
       tiers: this.tiers,
       winter: vegetationSeason(terrainSeason(world)) === 'winter',
+      landAt: (x, y) => homeLandOfBiome(f.biomes?.[y - f.oy]?.[x - f.ox] ?? 0),
     }
     const sig = `${world.frame_id}|${buildings.length}|${world.tick}|${info.nightBucket}|${info.detail}|${info.winter ? 1 : 0}|${win.c0},${win.c1},${win.r0},${win.r1}|${this.atlas.epoch}`
     if (sig === this.sig && this.ids.length === this.layer.count) {

@@ -1,6 +1,7 @@
 import type { P } from './kit'
 import { paintCottage, paintDwelling, paintEarlyHome, paintManor, paintTownhouse } from './dwellings'
 import { paintModern } from './modern'
+import { paintLandHome } from './land-homes'
 import {
   paintBungalow,
   paintCapsuleTower,
@@ -34,6 +35,8 @@ const HOME_KIND_TIER: Record<string, number> = {
 /** Homes in their tribe's style; a kind never drops below its own tier. */
 export function paintEraHome(p: P) {
   const tier = Math.max(HOME_KIND_TIER[p.kind] ?? 0, p.tier)
+  // Stone-age huts take their shape from the land (igloo, adobe, stilt, longhouse).
+  if (tier === 0 && p.land && paintLandHome(p)) return true
   // Each era has several house forms; the building's stable variant picks
   // one, so a street of the same era still mixes shapes.
   const form = p.variant
