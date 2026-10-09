@@ -9,7 +9,6 @@ import { TILE } from '../model/palette'
 import { CanvasCameraController } from './CanvasCameraController'
 import { World2DErrorBoundary } from './World2DErrorBoundary'
 import { WorldMapHud } from './WorldMapHud'
-import { WorldMinimap } from './minimap/WorldMinimap'
 import { HoverOutline } from './hover/HoverOutline'
 import { TerritoryHoverCard } from './hover/TerritoryHoverCard'
 import { installBenchHooks } from './bench-hooks'
@@ -320,9 +319,6 @@ export function WorldView({
           toolLabel={sandboxArmed ? sandboxLabel : null}
           toolRadius={sandboxRadius}
         />
-      )}
-      {mapReady && !viewFlags.hideUI && dims.w > 0 && (
-        <WorldMinimap world={world} cameraRef={cameraStateRef} viewport={dims} />
       )}
       {mapReady && !viewFlags.hideUI && (
         <HoverOutline

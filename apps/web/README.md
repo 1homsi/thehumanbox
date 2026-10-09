@@ -47,7 +47,7 @@ simulation never stops, even when nobody's watching.
   they've furnished it (the AI picks the furniture).
 - **Overlays** — hazard, fertility, structures, trails, age, threat
   density.
-- **Modes** — photo mode, action ticker, mini-map, random tour,
+- **Modes** — photo mode, action ticker, random tour,
   slow/fast-mo, color-blind palette, immersive.
 
 ## Running locally
