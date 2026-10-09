@@ -199,6 +199,12 @@ const PLAN_SIDE: usize = (PLAN_RADIUS * 2 + 1) as usize;
 /// Most tiles one plan may expand; bounded so a crowd of blocked walkers
 /// cannot stall a tick.
 const PLAN_BUDGET: usize = 3000;
+/// The route search's estimate per tile of distance to the target: a weighted A* (1.4 times the open-ground
+/// step). The admissible estimate (the road step, 6) was measured slower: 4 to 12% more instructions, because
+/// it weakens the pull toward the goal across open ground. At 10 (the open step) the estimate overshoots along
+/// roads, so the search expands toward its node budget. At 14 the search does fewer expansions (4 to 5% fewer
+/// instructions over 3000 ticks) and the 8-seed mean alive at tick 9000 rose from 138.9 to 142.5.
+const ESTIMATE_PER_TILE: i32 = 14;
 
 /// A remembered route toward a goal, followed one waypoint per step so the
 /// next tick cannot undo the last one (the cause of people pacing between
@@ -291,7 +297,7 @@ fn plan_route_in(
     scratch.begin();
     scratch.set_cost(index(start.0, start.1), 0);
     scratch.frontier.push(Reverse(pack(
-        distance(start.0, start.1) * 10,
+        distance(start.0, start.1) * ESTIMATE_PER_TILE,
         0,
         start.0,
         start.1,
@@ -336,7 +342,7 @@ fn plan_route_in(
             scratch.set_cost(idx, next_cost);
             scratch.parent[idx] = index(x, y) as u32;
             scratch.frontier.push(Reverse(pack(
-                next_cost + distance(nx, ny) * 10,
+                next_cost + distance(nx, ny) * ESTIMATE_PER_TILE,
                 next_cost,
                 nx,
                 ny,
@@ -459,7 +465,12 @@ mod wide {
         let mut parent = vec![u32::MAX; SIDE * SIDE];
         let mut frontier = BinaryHeap::new();
         costs[index(start.0, start.1)] = 0;
-        frontier.push(Reverse((distance(start.0, start.1) * 10, 0, start.0, start.1)));
+        frontier.push(Reverse((
+            distance(start.0, start.1) * ESTIMATE_PER_TILE,
+            0,
+            start.0,
+            start.1,
+        )));
         let start_distance = distance(start.0, start.1);
         let mut best = (start_distance, 0, start);
         let mut expanded = 0;
@@ -497,7 +508,12 @@ mod wide {
                 }
                 costs[idx] = next_cost;
                 parent[idx] = index(x, y) as u32;
-                frontier.push(Reverse((next_cost + distance(nx, ny) * 10, next_cost, nx, ny)));
+                frontier.push(Reverse((
+                    next_cost + distance(nx, ny) * ESTIMATE_PER_TILE,
+                    next_cost,
+                    nx,
+                    ny,
+                )));
             }
         }
         // Only worth walking when it ends clearly closer than we started.
