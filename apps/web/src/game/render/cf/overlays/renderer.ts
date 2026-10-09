@@ -25,6 +25,7 @@ import {
 import { hazeLevels, paintHaze } from './haze'
 import { paintFallingLeaves } from './falling-leaves'
 import { paintCampfireSparks, paintEmbers } from './embers'
+import { paintEruption } from './eruption'
 import { paintFloodFront } from './flood-front'
 import { paintPlagueHaze } from './plague-haze'
 import { ANIMAL_DUST, FootstepDust } from './footstep-dust'
@@ -275,6 +276,8 @@ export class CfOverlayRenderer {
       paintWaterStars(ground, f)
       paintWaterShimmer(ground, f)
       paintPlagueHaze(ground, f.organisms, f.bounds, f.ox, f.oy, f.t)
+      const vents = { ...f.bounds, ox: f.ox, oy: f.oy }
+      paintEruption(ground, f.world.grid.tiles, f.world.grid.biomes, vents, f.t, !f.world.is_day)
       const floodView = { ...f.bounds, ox: f.ox, oy: f.oy }
       paintFloodFront(ground, f.world.grid.tiles, floodView, f.t)
       paintFireGlow(ground, f)
