@@ -363,6 +363,8 @@ export interface AnimalState {
     | 'camel'
     | 'frog'
     | 'whale'
+    | 'duck'
+    | 'bee'
     | 'zombie'
     | 'demon'
     | 'dragon'

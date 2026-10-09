@@ -104,6 +104,8 @@ const TOOL_TIPS: Record<string, string> = {
     'A short, hard fall of snow. Everyone out in it is chilled, and it ends sooner than a snowfall does.',
   aurora:
     'Lights dance across the night sky over the whole world. Everyone alive is awed and a little calmer, and the omen is written into the chronicle.',
+  duck: 'Release a duck, or a few, on wet ground or grass. They flock together and waddle about, and keep clear of people.',
+  bee: 'Release a bee, or a few, over the grass, forest or savanna. They hum over the flowers and keep clear of people.',
   rain_patch:
     'A rain cloud bursts over the brush area: fires in it go out (leaving ash), and the people in it drink from the rain. The brush sets how wide the patch is.',
   comet:

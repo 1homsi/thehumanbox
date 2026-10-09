@@ -297,7 +297,36 @@ impl Simulation {
                 let is_child = (self.organisms[*gi].parent_id == dead_id_str
                     || self.organisms[*gi].father_id.as_deref() == Some(dead_id_str.as_str()))
                     && self.organisms[*gi].age < 1000;
-                let grief_base = if is_child { 200 } else { 80 };
+                // A friend who is no family still mourns, longer than a
+                // neighbour would, and remembers the loss by name.
+                let friend_only = {
+                    let m = &self.organisms[*gi];
+                    !is_child
+                        && m.friends.contains_key(&dead_id_str)
+                        && m.parent_id != dead_id_str
+                        && m.father_id.as_deref() != Some(dead_id_str.as_str())
+                        && m.partner_id.as_deref() != Some(dead_id_str.as_str())
+                };
+                let grief_base = if is_child {
+                    200
+                } else if friend_only {
+                    120
+                } else {
+                    80
+                };
+                if friend_only {
+                    use crate::organism::memory::{MemoryEntry, MemoryKind};
+                    self.organisms[*gi].memories.insert(
+                        MemoryEntry::new(
+                            MemoryKind::Bond,
+                            format!("I lost my friend {}", dead_name),
+                            self.tick_count,
+                        )
+                        .with_salience(0.8)
+                        .with_emotion(-2)
+                        .with_related(dead_id.clone()),
+                    );
+                }
                 if is_child {
                     self.organisms[*gi].orphaned_tick = self.tick_count;
                     self.organisms[*gi].add_anchor(
@@ -321,7 +350,14 @@ impl Simulation {
                     );
                 }
                 self.organisms[*gi].grief_ticks = grief_base + self.rng.random_range(0u32..40);
-                self.organisms[*gi].think("mourning kin", self.tick_count);
+                self.organisms[*gi].think(
+                    if friend_only {
+                        "mourning a friend"
+                    } else {
+                        "mourning kin"
+                    },
+                    self.tick_count,
+                );
                 let tc = self.tick_count;
                 let dn = dead_name.clone();
                 let di = dead_id.clone();

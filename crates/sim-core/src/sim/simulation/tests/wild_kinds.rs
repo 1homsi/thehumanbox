@@ -130,3 +130,82 @@ fn released_camels_land_in_the_desert_and_whales_only_in_water() {
         );
     }
 }
+
+#[test]
+fn ducks_and_bees_are_harmless_and_keep_to_their_own_ground() {
+    assert!(AnimalKind::Duck.is_prey(), "wolves and foxes eat ducks");
+    assert!(AnimalKind::Duck.herds(), "ducks flock together");
+    assert!(AnimalKind::Duck.fits_ground(Tile::Grass));
+    assert!(AnimalKind::Bee.flies(), "bees fly over the land");
+    assert!(!AnimalKind::Bee.is_prey(), "bees are left alone by predators");
+    for kind in [AnimalKind::Duck, AnimalKind::Bee] {
+        assert!(!kind.hostile(), "{} is not a danger to people", kind.name());
+        assert!(kind.drain() > 0.0 && kind.step_size() > 0);
+    }
+    assert_eq!(AnimalKind::Bee.a_name(), "a bee");
+    assert_eq!(AnimalKind::Duck.name(), "duck");
+}
+
+#[test]
+fn released_ducks_and_bees_are_placed_when_the_ground_suits_them() {
+    let mut sim = Simulation::new(6);
+    sim.animals.clear();
+    for x in 0..WIDTH as i32 {
+        for y in 0..HEIGHT as i32 {
+            let wet = x < WIDTH as i32 / 2;
+            sim.grid.biome[WorldGrid::idx(x, y)] = if wet { Biome::Wetland } else { Biome::Desert } as u8;
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
+    assert!(sim.apply_command_json(
+        r#"{"cmd":"spawn_animal","x":40.0,"y":60.0,"kind":"duck","count":6,"radius":8}"#
+    ));
+    assert!(sim.animals.len() >= 6, "ducks are released");
+    assert!(sim.animals.iter().all(|a| matches!(a.kind, AnimalKind::Duck)));
+    sim.animals.clear();
+    assert!(sim.apply_command_json(
+        r#"{"cmd":"spawn_animal","x":200.0,"y":60.0,"kind":"bee","count":4,"radius":6}"#
+    ));
+    assert!(!sim.animals.is_empty(), "bees are released");
+    assert!(sim.animals.iter().all(|a| matches!(a.kind, AnimalKind::Bee)));
+}
+
+#[test]
+fn a_wild_cat_that_stays_by_a_person_takes_to_them() {
+    let mut sim = Simulation::new(7);
+    for o in sim.organisms.iter_mut() {
+        o.alive = false;
+    }
+    sim.organisms[0].alive = true;
+    sim.organisms[0].x = 100.0;
+    sim.organisms[0].y = 100.0;
+    sim.organisms[0].health = 1.0;
+    sim.animals.clear();
+    sim.animals.push(crate::organism::animal::Animal::new(
+        9_001,
+        101.0,
+        100.0,
+        AnimalKind::Cat,
+    ));
+    let owner = sim.organisms[0].id.clone();
+    for _ in 0..4000 {
+        // Keep the person and the cat beside each other, so only the chance decides the bond.
+        sim.organisms[0].x = 100.0;
+        sim.organisms[0].y = 100.0;
+        sim.organisms[0].alive = true;
+        sim.animals[0].alive = true;
+        sim.animals[0].x = 101.0;
+        sim.animals[0].y = 100.0;
+        sim.tick();
+        if sim.animals[0].bonded_org.is_some() {
+            break;
+        }
+    }
+    assert_eq!(
+        sim.animals[0].bonded_org.as_deref(),
+        Some(owner.as_str()),
+        "the cat took to the person beside it"
+    );
+    assert!(matches!(sim.animals[0].kind, AnimalKind::Cat), "it stays a cat");
+    assert!(sim.animals[0].name.is_some(), "the cat has a name");
+}

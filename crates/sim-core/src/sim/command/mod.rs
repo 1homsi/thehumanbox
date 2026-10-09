@@ -557,6 +557,8 @@ fn animal_from_name(name: &str) -> AnimalKind {
         "camel" => AnimalKind::Camel,
         "frog" => AnimalKind::Frog,
         "whale" => AnimalKind::Whale,
+        "duck" => AnimalKind::Duck,
+        "bee" => AnimalKind::Bee,
         "zombie" => AnimalKind::Zombie,
         "demon" => AnimalKind::Demon,
         "dragon" => AnimalKind::Dragon,
