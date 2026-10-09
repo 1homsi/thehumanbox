@@ -376,6 +376,88 @@ pub(in crate::sim::civ) fn tick_birth_celebrations(sim: &mut Simulation) {
     }
 }
 
+/// Ticks between checks for a coming of age. A person's first adult ticks are the six ages
+/// just past the teen years, and exactly one of any six consecutive ticks is checked.
+const COMING_OF_AGE_STEP: u32 = 6;
+
+/// A teen grows into an adult with a rite: the kin who are close by gather round, and the
+/// young one hears the year and the company in the life story. Nothing is chronicled, so the
+/// tribe's own memory of each rite is the biography and the joy of those who gathered.
+pub(in crate::sim::civ) fn tick_coming_of_age(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    use crate::sim::age_stage::AgeStage;
+    use crate::sim::spatial::SpatialIndex;
+    let tick = sim.tick_count;
+    let arrivals: Vec<(usize, String, f32, f32)> = sim
+        .organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| {
+            o.alive
+                && o.age >= COMING_OF_AGE_STEP
+                && o.age_stage() == AgeStage::Adult
+                && AgeStage::from_age(o.age - COMING_OF_AGE_STEP, o.max_age) != AgeStage::Adult
+        })
+        .map(|(i, o)| (i, o.lineage_id.clone(), o.x, o.y))
+        .collect();
+    if arrivals.is_empty() {
+        return;
+    }
+    let spatial = SpatialIndex::build(&sim.organisms, 8);
+    let mut buf: Vec<usize> = Vec::with_capacity(32);
+    for (idx, lid, x, y) in arrivals {
+        spatial.query_into(x as i32, y as i32, 8, &mut buf);
+        let mut gathered: Vec<usize> = Vec::new();
+        for &j in buf.iter() {
+            if j == idx {
+                continue;
+            }
+            let o = &sim.organisms[j];
+            if !o.alive || o.lineage_id != lid || (o.x - x).abs() + (o.y - y).abs() > 8.0 {
+                continue;
+            }
+            gathered.push(j);
+            if gathered.len() >= 6 {
+                break;
+            }
+        }
+        for &j in gathered.iter() {
+            let witness = &mut sim.organisms[j];
+            witness.joy_ticks = (witness.joy_ticks + 30).min(1200);
+            witness.memories.insert(
+                MemoryEntry::new(
+                    MemoryKind::Episode,
+                    "a young one of our people came of age, and we gathered to see them stand",
+                    tick,
+                )
+                .with_salience(0.6)
+                .with_emotion(2),
+            );
+        }
+        let years = crate::sim::calendar::whole_years_of(u64::from(sim.organisms[idx].age));
+        let o = &mut sim.organisms[idx];
+        o.joy_ticks = (o.joy_ticks + 60).min(1200);
+        o.memories.insert(
+            MemoryEntry::new(
+                MemoryKind::Episode,
+                "I came of age, and my people gathered for me",
+                tick,
+            )
+            .with_salience(0.8)
+            .with_emotion(2),
+        );
+        let line = if gathered.is_empty() {
+            format!("came of age at {years} years, alone")
+        } else {
+            format!(
+                "came of age at {years} years, with {} of their people gathered round",
+                gathered.len()
+            )
+        };
+        o.log_life(tick, "life", line);
+    }
+}
+
 pub(in crate::sim::civ) fn tick_evening_gathering(sim: &mut Simulation) {
     let tick = sim.tick_count;
     let phase = tick % crate::sim::cosmos::DAY_LENGTH;
@@ -462,5 +544,79 @@ pub(in crate::sim::civ) fn tick_anniversaries(sim: &mut Simulation) {
             o.memories.insert(entry);
             o.joy_ticks = (o.joy_ticks + 60).min(1200);
         }
+    }
+}
+
+#[cfg(test)]
+mod coming_of_age_tests {
+    use super::*;
+    use crate::organism::organism::Organism;
+    use crate::organism::traits::Traits;
+
+    fn person(id: &str, x: f32, age: u32) -> Organism {
+        let mut o = Organism::new(
+            id.into(),
+            id.into(),
+            x,
+            50.0,
+            0,
+            String::new(),
+            "clan".into(),
+            20_000,
+            Traits::default(),
+        );
+        o.alive = true;
+        o.age = age;
+        o
+    }
+
+    fn has_rite(o: &Organism) -> bool {
+        o.life_log
+            .iter()
+            .any(|e| e.category == "life" && e.text.contains("came of age"))
+    }
+
+    #[test]
+    fn a_teen_who_grows_up_is_welcomed_by_the_kin_close_by() {
+        let mut sim = Simulation::new(7);
+        sim.organisms.clear();
+        sim.tick_count = 6_000;
+        sim.organisms.push(person("young", 60.0, 7_000));
+        sim.organisms.push(person("kin1", 61.0, 9_000));
+        sim.organisms.push(person("kin2", 62.0, 9_000));
+        sim.organisms.push(person("far", 200.0, 9_000));
+        tick_coming_of_age(&mut sim);
+        let young = &sim.organisms[0];
+        assert!(has_rite(young), "the rite is in the life story");
+        assert!(young.joy_ticks >= 60);
+        assert!(young
+            .memories
+            .entries
+            .iter()
+            .any(|m| m.text.contains("came of age")));
+        assert!(sim.organisms[1].joy_ticks >= 30 && sim.organisms[2].joy_ticks >= 30);
+        assert_eq!(sim.organisms[3].joy_ticks, 0, "kin out of reach do not gather");
+    }
+
+    #[test]
+    fn only_the_first_adult_ticks_are_a_rite() {
+        let mut sim = Simulation::new(7);
+        sim.organisms.clear();
+        sim.tick_count = 6_000;
+        sim.organisms.push(person("still_teen", 60.0, 6_900));
+        sim.organisms.push(person("grown", 61.0, 7_006));
+        tick_coming_of_age(&mut sim);
+        assert!(!has_rite(&sim.organisms[0]));
+        assert!(!has_rite(&sim.organisms[1]));
+    }
+
+    #[test]
+    fn a_lone_young_one_still_comes_of_age() {
+        let mut sim = Simulation::new(7);
+        sim.organisms.clear();
+        sim.tick_count = 6_000;
+        sim.organisms.push(person("alone", 60.0, 7_002));
+        tick_coming_of_age(&mut sim);
+        assert!(sim.organisms[0].life_log.iter().any(|e| e.text.contains("alone")));
     }
 }

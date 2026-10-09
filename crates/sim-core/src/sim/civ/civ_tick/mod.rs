@@ -193,6 +193,9 @@ pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
     if tick > 0 && tick.is_multiple_of(6) {
         tick_birth_celebrations(sim);
     }
+    if tick > 0 && tick.is_multiple_of(6) {
+        tick_coming_of_age(sim);
+    }
     if tick > 0 && tick.is_multiple_of(20) {
         tick_funerals(sim);
     }
