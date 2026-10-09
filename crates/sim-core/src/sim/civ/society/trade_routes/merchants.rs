@@ -38,9 +38,27 @@ pub fn route_has_agreement(sim: &Simulation, first: &str, second: &str) -> bool 
     })
 }
 
-/// Two tribes at war: a battle between them is still on, so no caravan passes between them.
+/// How long a war keeps its road closed after its last battle between the two tribes ends.
+/// A battle lasts about fifteen ticks, far less than a caravan takes to cross, so without
+/// this the closed road (and the bandits on it) would be gone before anyone could see it.
+pub const WAR_ROAD_TICKS: u64 = 240;
+
+/// Two tribes at war: a battle between them is still on, or ended less than `WAR_ROAD_TICKS`
+/// ago, so no caravan passes between them.
 pub fn route_is_embargoed(sim: &Simulation, first: &str, second: &str) -> bool {
-    has_active_battle_between(&sim.battles, first, second)
+    if first.is_empty() || second.is_empty() || first == second {
+        return false;
+    }
+    let tick = sim.tick_count;
+    sim.battles.iter().any(|battle| {
+        let between = (battle.attackers.iter().any(|l| l == first)
+            && battle.defenders.iter().any(|l| l == second))
+            || (battle.attackers.iter().any(|l| l == second) && battle.defenders.iter().any(|l| l == first));
+        between
+            && battle
+                .ended_tick
+                .is_none_or(|ended| tick < ended.saturating_add(WAR_ROAD_TICKS))
+    })
 }
 
 /// Caravans between tribes under an agreement leave twice as often.
