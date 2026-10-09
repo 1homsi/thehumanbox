@@ -295,3 +295,44 @@ fn released_crocodiles_are_placed_in_the_swamp() {
         .iter()
         .all(|a| matches!(a.kind, AnimalKind::Crocodile)));
 }
+
+#[test]
+fn released_monkeys_swing_through_the_jungle_and_no_other_ground() {
+    assert!(
+        !AnimalKind::Monkey.hostile(),
+        "monkeys are not a danger to people"
+    );
+    assert!(!AnimalKind::Monkey.is_prey(), "monkeys are not game");
+    assert!(
+        AnimalKind::Monkey.flee_radius() > 0.0,
+        "monkeys keep away from people"
+    );
+    assert!(AnimalKind::Monkey.drain() > 0.0 && AnimalKind::Monkey.step_size() > 0);
+    assert_eq!(AnimalKind::Monkey.name(), "monkey");
+    assert_eq!(AnimalKind::Monkey.a_name(), "a monkey");
+    assert_eq!(AnimalKind::Monkey.habitat(), &[Biome::Jungle]);
+
+    let mut sim = Simulation::new(19);
+    sim.animals.clear();
+    // Jungle on the western half, desert on the eastern half, all of it grass.
+    for x in 0..WIDTH as i32 {
+        for y in 0..HEIGHT as i32 {
+            let jungle = x < WIDTH as i32 / 2;
+            sim.grid.biome[WorldGrid::idx(x, y)] = if jungle { Biome::Jungle } else { Biome::Desert } as u8;
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
+    assert!(sim.apply_command_json(
+        r#"{"cmd":"spawn_animal","x":60.0,"y":60.0,"kind":"monkey","count":12,"radius":12}"#
+    ));
+    assert!(sim.animals.len() >= 12);
+    for monkey in &sim.animals {
+        assert_eq!(
+            sim.grid.biome_at(monkey.x as i32, monkey.y as i32),
+            Biome::Jungle,
+            "monkey at ({}, {})",
+            monkey.x,
+            monkey.y
+        );
+    }
+}
