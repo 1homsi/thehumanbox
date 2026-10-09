@@ -9,6 +9,8 @@ import { getDesktop } from '../../shared/desktop'
 import { PrayerChip } from '../panels/PrayerChip'
 import { PerilChip } from '../panels/PerilChip'
 import { CalendarTag } from '../panels/CalendarTag'
+import { PopulationChip } from '../panels/PopulationChip'
+import { WeatherChip } from '../panels/WeatherChip'
 
 interface Props {
   world: WorldState | null
@@ -36,7 +38,6 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
 
   const moreRef = useRef<HTMLDivElement>(null)
   const livePopulation = world?.lineage_sizes?.reduce((total, lineage) => total + lineage.count, 0) ?? 0
-  const nextPopulationMilestone = [100, 250, 500, 1000, 2500, 5000].find((target) => target > livePopulation)
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -124,22 +125,7 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
         {world && <CalendarTag world={world} />}
         {world && <PerilChip world={world} />}
         {world && <PrayerChip world={world} onAnswer={onAnswerPrayer} />}
-        {world && livePopulation > 0 && (
-          <Tooltip
-            tip={tip(
-              'people',
-              `${livePopulation.toLocaleString()} alive.`,
-              nextPopulationMilestone
-                ? `next milestone ${nextPopulationMilestone.toLocaleString()}`
-                : undefined,
-            )}
-          >
-            <span className={clsx('hdr-chip', 'population-badge')}>
-              <ToolSprite icon="🚶" size={16} />
-              {livePopulation.toLocaleString()}
-            </span>
-          </Tooltip>
-        )}
+        {world && <PopulationChip population={livePopulation} sick={sickOrgs} />}
         {world?.cosmos &&
           (() => {
             const label = world.cosmos.moon_phase.replace(/_/g, ' ')
@@ -164,43 +150,7 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
             </span>
           </Tooltip>
         )}
-        {world?.drought && (
-          <Tooltip tip={tip('drought', 'Water is shrinking and thirst deaths are rising.')}>
-            <span className="hdr-chip drought-badge">
-              <ToolSprite icon="🏜️" size={16} />
-              drought
-            </span>
-          </Tooltip>
-        )}
-        {world?.weather?.kind === 'rain' && (
-          <Tooltip tip={tip('rain', 'Helps dry land recover faster.')}>
-            <span className="hdr-chip weather-badge rain">
-              <ToolSprite icon="🌧️" size={16} />
-              rain
-            </span>
-          </Tooltip>
-        )}
-        {world?.weather?.kind === 'storm' && (
-          <Tooltip tip={tip('storm', 'Drains energy. Lightning can strike.')}>
-            <span className="hdr-chip weather-badge storm">
-              <ToolSprite icon="⛈️" size={16} />
-              storm
-            </span>
-          </Tooltip>
-        )}
-        {sickOrgs > 0 && (
-          <Tooltip
-            tip={tip(
-              'sickness',
-              `${sickOrgs} ${sickOrgs > 1 ? 'people are' : 'person is'} sick. It spreads through close contact.`,
-            )}
-          >
-            <span className="hdr-chip sick-badge">
-              <ToolSprite icon="🦠" size={16} />
-              {sickOrgs}
-            </span>
-          </Tooltip>
-        )}
+        {world && <WeatherChip world={world} />}
       </div>
       {world && (
         <div className="header-actions">

@@ -81,24 +81,6 @@
   }
 }
 
-/* ── Weather badges ─────────────────────────────────────────────────── */
-.weather-badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-.weather-badge.rain {
-  background: #0a1a30;
-  color: #66aaff;
-}
-.weather-badge.storm {
-  background: #0d0d22;
-  color: #aabbff;
-  animation: pulse-drought 1.2s ease-in-out infinite;
-}
-
 /* ── Stats modal ─────────────────────────────────────────────────────── */
 .stats-modal,
 .notable-modal,

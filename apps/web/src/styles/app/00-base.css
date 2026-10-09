@@ -389,14 +389,6 @@ body.thb-photo-mode .headline-ticker {
   border-radius: 4px;
 }
 
-.sick-badge {
-  font-size: 11px;
-  color: #bbff44;
-  padding: 2px 8px;
-  background: #1a2200;
-  border-radius: 4px;
-}
-
 .population-badge {
   font-size: 11px;
   color: #b8d6a1;
@@ -461,17 +453,6 @@ body.thb-photo-mode .headline-ticker {
   opacity: 0.85;
 }
 
-.drought-badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: #2a1600;
-  color: #dd9944;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 600;
-  animation: pulse-drought 1.5s ease-in-out infinite;
-}
 @keyframes pulse-drought {
   0%,
   100% {
