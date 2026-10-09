@@ -388,6 +388,33 @@
     max-width: 70%;
   }
 }
+
+/* Phones (375 px and up to 480): no sideways scroll. Each group wraps its tiles into rows of six, the
+ * groups of a tab wrap beneath one another, and the tools area scrolls up and down instead. */
+@media (max-width: 480px) {
+  .sandbox-bar {
+    --dock-tile: 34px;
+  }
+  .dock-tools {
+    flex-wrap: wrap;
+    align-content: flex-start;
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: 196px;
+  }
+  .dock-group {
+    grid-template-rows: none;
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    grid-template-columns: repeat(5, var(--dock-tile));
+    padding: 0 6px;
+    margin: 0 0 6px;
+    box-shadow: none;
+  }
+  .dock-group:first-child {
+    padding-left: 0;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .dock-tile,
   .dock-play,
