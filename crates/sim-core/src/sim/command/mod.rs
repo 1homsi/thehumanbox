@@ -148,6 +148,12 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// A tribe of the named age settles where you click, already knowing the discoveries of that age.
+    EraTribe {
+        x: f32,
+        y: f32,
+        era: String,
+    },
     /// A rare gift for the living person nearest the point: a talent that lifts one of their traits for good.
     Talent {
         x: f32,
@@ -653,6 +659,7 @@ mod clear_region;
 mod clock;
 mod creation;
 mod disasters;
+mod era_tribe;
 mod gift;
 mod hail;
 mod heal_one;
@@ -733,6 +740,7 @@ impl Simulation {
             Command::BlessRiver { x, y, radius } => self.cmd_bless_river(x, y, radius),
             Command::BlessForest { x, y, radius } => self.cmd_bless_forest(x, y, radius),
             Command::Talent { x, y, radius } => self.cmd_talent(x, y, radius),
+            Command::EraTribe { x, y, era } => self.cmd_era_tribe(x, y, era),
             Command::ClearRegion { x, y, radius } => self.cmd_clear_region(x, y, radius),
             Command::Mutate { x, y, radius } => self.cmd_mutate(x, y, radius),
             Command::MergeTribes { ax, ay, bx, by } => self.cmd_merge_tribes(ax, ay, bx, by),

@@ -70,7 +70,7 @@ export const DOCK_TABS: DockTab[] = [
     label: 'miracles',
     icon: '🔮',
     tip: 'Blessings of the land and of one person: a river full of fish, a forest that surges, a rare gift',
-    groups: ['miracles'],
+    groups: ['miracles', 'eras'],
   },
   {
     id: 'deadly',
@@ -120,6 +120,10 @@ export const NEW_TOOL_IDS: readonly string[] = [
   'bless_river',
   'bless_forest',
   'talent',
+  'era_stone',
+  'era_bronze',
+  'era_medieval',
+  'era_modern',
 ]
 
 const SEEN_NEW_STORAGE_KEY = 'thb-seen-new-tools'

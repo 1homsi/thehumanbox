@@ -160,6 +160,11 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
       return 'grow'
     case 'talent':
       return 'bless'
+    case 'era_stone':
+    case 'era_bronze':
+    case 'era_medieval':
+    case 'era_modern':
+      return 'bless'
     case 'merge_tribes':
       return 'peace'
     case 'split_tribe':
