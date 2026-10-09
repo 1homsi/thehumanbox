@@ -48,6 +48,7 @@ import { terrainSeason } from '../../terrain-season'
 import { paintHud } from './paint-hud'
 import { paintFireflies } from './fireflies'
 import { moonLight, nightLevel, paintMoon, paintStars } from './night-sky'
+import { paintSun, sunSide, sunStrength } from './sun-glow'
 import { SpriteRecorder } from './recorder'
 import { ShapeAtlas } from './shape-atlas'
 import {
@@ -382,6 +383,7 @@ export class CfOverlayRenderer {
 
     this.hud.begin(gv)
     this.paintMoonInView(this.hud.asContext(), f)
+    this.paintSunInView(this.hud.asContext(), f)
     const { labels: settlementLabels } = paintHud(this.hud.asContext(), f, { grid: f.viewFlags.grid })
     this.hud.end()
 
@@ -493,6 +495,23 @@ export class CfOverlayRenderer {
       view.cy - view.hh + 56 / zoom,
       14 / zoom,
       moonLight(cosmos.moon_phase, cosmos.moon_illum),
+    )
+  }
+
+  /** The sun low in the east (left) corner at dawn and the west (right) corner at dusk. */
+  private paintSunInView(ctx: CanvasRenderingContext2D, f: CfFrame): void {
+    const strength = sunStrength(f.world)
+    if (strength <= 0) return
+    const view = this.viewOf(f)
+    const zoom = Math.max(0.01, f.zoom)
+    const side = sunSide(f.world.day_progress)
+    paintSun(
+      ctx,
+      view.cx + side * (view.hw - 56 / zoom),
+      view.cy - view.hh + 56 / zoom,
+      10 / zoom,
+      f.t,
+      strength,
     )
   }
 
