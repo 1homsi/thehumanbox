@@ -192,17 +192,30 @@ fn place_watermill(sim: &mut Simulation, tribe: &Tribe) -> bool {
     true
 }
 
+/// Every tile a field or a building covers. A 2x2 pen or barn takes all four of its tiles, so a
+/// new building cannot stand over a neighbour's footprint (its sheep graze there).
 fn occupied_tiles(sim: &Simulation) -> FxHashSet<(i32, i32)> {
-    sim.farms
-        .iter()
-        .map(|f| (f.x, f.y))
-        .chain(sim.buildings.iter().map(|b| (b.x, b.y)))
-        .collect()
+    let mut tiles: FxHashSet<(i32, i32)> = sim.farms.iter().map(|f| (f.x, f.y)).collect();
+    for b in &sim.buildings {
+        let (fw, fh) = b.kind.footprint();
+        for dy in 0..fh as i32 {
+            for dx in 0..fw as i32 {
+                tiles.insert((b.x + dx, b.y + dy));
+            }
+        }
+    }
+    tiles
+}
+
+/// True when every tile a building of `kind` would cover, from its origin `(x, y)`, is open grass.
+fn fits(sim: &Simulation, x: i32, y: i32, kind: BuildingKind, occupied: &FxHashSet<(i32, i32)>) -> bool {
+    let (fw, fh) = kind.footprint();
+    (0..fh as i32).all(|dy| (0..fw as i32).all(|dx| open_grass(sim, x + dx, y + dy, occupied)))
 }
 
 pub(crate) fn place(sim: &mut Simulation, tribe: &Tribe, kind: BuildingKind) {
     let occupied = occupied_tiles(sim);
-    let Some((x, y)) = site(sim, &tribe.dwellings, &occupied) else {
+    let Some((x, y)) = site(sim, &tribe.dwellings, kind, &occupied) else {
         return;
     };
     place_at(sim, tribe, kind, x, y);
@@ -251,7 +264,7 @@ fn water_site(
                         continue;
                     }
                     let (x, y) = (hx + dx, hy + dy);
-                    if open_grass(sim, x, y, occupied) && water_within(sim, x, y, 2) {
+                    if fits(sim, x, y, BuildingKind::Watermill, occupied) && water_within(sim, x, y, 2) {
                         return Some((x, y));
                     }
                 }
@@ -277,7 +290,12 @@ fn open_grass(sim: &Simulation, x: i32, y: i32, occupied: &FxHashSet<(i32, i32)>
 }
 
 /// The first open grass tile 2 to 4 tiles from a house, off the roads and off the fields.
-fn site(sim: &Simulation, dwellings: &[(i32, i32)], occupied: &FxHashSet<(i32, i32)>) -> Option<(i32, i32)> {
+fn site(
+    sim: &Simulation,
+    dwellings: &[(i32, i32)],
+    kind: BuildingKind,
+    occupied: &FxHashSet<(i32, i32)>,
+) -> Option<(i32, i32)> {
     let (near, far) = BUILD_REACH;
     for &(hx, hy) in dwellings {
         for reach in near..=far {
@@ -287,16 +305,9 @@ fn site(sim: &Simulation, dwellings: &[(i32, i32)], occupied: &FxHashSet<(i32, i
                         continue;
                     }
                     let (x, y) = (hx + dx, hy + dy);
-                    if x < 0 || y < 0 || (x as usize) >= WIDTH || (y as usize) >= HEIGHT {
-                        continue;
+                    if fits(sim, x, y, kind, occupied) {
+                        return Some((x, y));
                     }
-                    if occupied.contains(&(x, y))
-                        || !matches!(sim.grid.get(x, y), Tile::Grass)
-                        || sim.grid.road_at(x, y) != crate::world::grid::ROAD_NONE
-                    {
-                        continue;
-                    }
-                    return Some((x, y));
                 }
             }
         }
@@ -307,6 +318,29 @@ fn site(sim: &Simulation, dwellings: &[(i32, i32)], occupied: &FxHashSet<(i32, i
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_new_barn_never_stands_over_a_standing_pen() {
+        // A 2x2 pen at (10, 10) covers (10..=11, 10..=11). A barn (2x2) starting at (9, 10) or
+        // (11, 11) would overlap it: those sites must not fit. A clear site must still fit.
+        let mut sim = Simulation::new(9);
+        sim.farms.clear();
+        sim.buildings.clear();
+        for y in 8..16 {
+            for x in 8..24 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        sim.buildings
+            .push(Building::new(1, BuildingKind::Pen, 10, 10, None, 0));
+        let occupied = occupied_tiles(&sim);
+        for tile in [(10, 10), (11, 10), (10, 11), (11, 11)] {
+            assert!(occupied.contains(&tile), "the pen covers {tile:?}");
+        }
+        assert!(!fits(&sim, 9, 10, BuildingKind::Barn, &occupied));
+        assert!(!fits(&sim, 11, 11, BuildingKind::Barn, &occupied));
+        assert!(fits(&sim, 13, 13, BuildingKind::Barn, &occupied));
+    }
 
     fn granary(id: u32, owner: &str, stock: u32) -> Building {
         let mut b = Building::new(
