@@ -37,9 +37,15 @@ impl Simulation {
                     (1, 1) => 7,
                     _ => 0,
                 };
-                // Set a distant flee target so they keep running after the wolf leaves range
+                // Set a distant flee target so they keep running after the wolf leaves range.
+                // When home is near and lies on the far side from the threat, they run for home.
                 let flee_dist = 20.0 + fear_trait * 30.0;
-                let (tx, ty) = safe_flee_target(&self.grid, ox, oy, fdx, fdy, flee_dist);
+                let (hx, hy) = (self.organisms[idx].home_x, self.organisms[idx].home_y);
+                let (tx, ty) = if home_is_the_way_out((hx, hy), (ox, oy), (wx, wy)) {
+                    (hx.round() as i32, hy.round() as i32)
+                } else {
+                    safe_flee_target(&self.grid, ox, oy, fdx, fdy, flee_dist)
+                };
                 self.organisms[idx].wander_target = Some((tx, ty));
                 self.organisms[idx].fear_level =
                     (self.organisms[idx].fear_level + 0.07 + (2.5 - dist) * 0.02).min(1.0);
@@ -154,5 +160,28 @@ impl Simulation {
         f.action = action;
         f.decision_origin = decision_origin;
         f.new_thought = new_thought;
+    }
+}
+
+/// True when home is within 40 tiles and lies on the far side of the threat from the person, so running for home is running away.
+pub(super) fn home_is_the_way_out(home: (f32, f32), me: (f32, f32), threat: (f32, f32)) -> bool {
+    let (hx, hy) = home;
+    let (ox, oy) = me;
+    let (wx, wy) = threat;
+    (hx - ox).abs().max((hy - oy).abs()) <= 40.0 && (hx - ox) * (ox - wx) + (hy - oy) * (oy - wy) > 0.0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::home_is_the_way_out;
+
+    #[test]
+    fn home_behind_you_is_the_way_out_and_home_past_the_wolf_is_not() {
+        // A wolf to the west: home to the east is away from it.
+        assert!(home_is_the_way_out((30.0, 10.0), (20.0, 10.0), (15.0, 10.0)));
+        // Home to the west is past the wolf.
+        assert!(!home_is_the_way_out((12.0, 10.0), (20.0, 10.0), (15.0, 10.0)));
+        // Home far away is not an escape, even on the far side.
+        assert!(!home_is_the_way_out((90.0, 10.0), (20.0, 10.0), (15.0, 10.0)));
     }
 }
