@@ -12,6 +12,17 @@ describe('every tool appears exactly once on the dock', () => {
     }
   })
 
+  it('gives every tile its own name, so no two read the same on the dock', () => {
+    const names = new Map<string, string>()
+    for (const tab of DOCK_TABS) {
+      for (const tool of groupsFor(tab.id).flatMap((g) => g.tools)) {
+        const other = names.get(tool.label)
+        expect(other, `${tool.label} names both ${other} and ${tool.id}`).toBeUndefined()
+        names.set(tool.label, tool.id)
+      }
+    }
+  })
+
   it('lists no tool in two tabs', () => {
     const home = new Map<string, string>()
     for (const tab of DOCK_TABS) {

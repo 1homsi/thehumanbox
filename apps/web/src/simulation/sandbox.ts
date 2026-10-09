@@ -662,7 +662,7 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
     tools: [
       {
         id: 'clear_region',
-        label: 'clear',
+        label: 'sweep',
         icon: '🧹',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'clear_region', x, y, radius: 2 + b }),
@@ -1037,7 +1037,7 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
       },
       {
         id: 'food_map',
-        label: 'food',
+        label: 'food map',
         icon: '🍎',
         mode: 'instant',
         view: { control: 'overlay', value: 'food' },
