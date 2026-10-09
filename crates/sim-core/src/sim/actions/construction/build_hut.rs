@@ -1,6 +1,6 @@
 use super::super::ctx::ActionCtx;
 use super::{start_project, ProjectSpec};
-use crate::sim::civ::civ_tick::lineage_can_afford_construction;
+use crate::sim::civ::civ_tick::{lineage_can_afford_construction, wants_manor};
 use crate::sim::era::Era;
 use crate::sim::tech::buildings::BuildingKind;
 use crate::world::tiles::Tile;
@@ -31,14 +31,25 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     // is the fallback while it cannot, so growth never waits on timber and stone.
     let lid = ctx.lid.clone();
     let era = ctx.sim.lineage_eras.get(&lid).copied().unwrap_or(Era::PreStone);
-    let kind = [
-        BuildingKind::Apartment,
-        BuildingKind::TownHouse,
-        BuildingKind::House,
-    ]
-    .into_iter()
-    .find(|kind| era >= kind.era_unlock() && lineage_can_afford_construction(ctx.sim, &lid, *kind))
-    .unwrap_or(BuildingKind::Hut);
+    // A rich tribe of the Medieval age or later raises a manor first.
+    let population = ctx
+        .sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive && o.lineage_id == lid)
+        .count();
+    let kind = if wants_manor(ctx.sim, &lid, era, population) {
+        BuildingKind::Manor
+    } else {
+        [
+            BuildingKind::Apartment,
+            BuildingKind::TownHouse,
+            BuildingKind::House,
+        ]
+        .into_iter()
+        .find(|kind| era >= kind.era_unlock() && lineage_can_afford_construction(ctx.sim, &lid, *kind))
+        .unwrap_or(BuildingKind::Hut)
+    };
 
     start_project(
         ctx,

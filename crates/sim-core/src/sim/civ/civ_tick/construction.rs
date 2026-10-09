@@ -575,6 +575,41 @@ pub(super) fn try_start_building_with(
     started
 }
 
+/// Average wealth per person at which a tribe counts as rich enough for a
+/// manor. A person starts with five, and furnishing a home from a cupboard
+/// up to a four-poster bed already asks for more than eight.
+pub(super) const MANOR_WEALTH_PER_PERSON: u32 = 8;
+/// A manor houses twelve, so a tribe raises one per this many people and its
+/// homes stay mostly houses.
+pub(super) const PEOPLE_PER_MANOR: usize = 24;
+
+/// True when a tribe is rich enough, and large enough, to raise a manor
+/// (the home of its richest families) rather than the houses and huts of
+/// the rest. Poorer tribes keep to the cheaper homes.
+pub(crate) fn wants_manor(sim: &Simulation, lineage: &str, era: Era, population: usize) -> bool {
+    if era < BuildingKind::Manor.era_unlock() || population < PEOPLE_PER_MANOR {
+        return false;
+    }
+    let (wealth, people) = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive && o.lineage_id == lineage)
+        .fold((0u64, 0u64), |(wealth, people), o| {
+            (wealth + u64::from(o.wealth), people + 1)
+        });
+    if people == 0 || wealth < people * u64::from(MANOR_WEALTH_PER_PERSON) {
+        return false;
+    }
+    // Manors standing or under way, so projects in progress count toward the limit.
+    let manors = sim
+        .buildings
+        .iter()
+        .filter(|b| !b.decorative && !b.is_ruined() && b.kind == BuildingKind::Manor)
+        .filter(|b| b.owner_lineage.as_deref() == Some(lineage))
+        .count();
+    manors * PEOPLE_PER_MANOR < population && construction_cost_available(sim, lineage, BuildingKind::Manor)
+}
+
 pub(super) fn housing_target(
     sim: &Simulation,
     lineage: &str,
@@ -589,6 +624,9 @@ pub(super) fn housing_target(
         .map(|b| usize::from(b.kind.capacity())).sum();
     if capacity >= population {
         return None;
+    }
+    if wants_manor(sim, lineage, era, population) {
+        return Some(Manor);
     }
     [Apartment, TownHouse, House, Hut]
         .into_iter()
