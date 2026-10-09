@@ -233,6 +233,14 @@ impl<'a> ActionCtx<'a> {
 
     /// Lets the land give one unit of a land good to the person, with chance `p`.
     pub fn yield_land_good(&mut self, good: &str, p: f32) -> bool {
+        // A tribe known for this good (see trade_routes::specialty) finds more of it.
+        let known_for =
+            crate::sim::civ::society::trade_routes::specialty_good_of(self.sim, &self.lid) == Some(good);
+        let p = if known_for {
+            (p * crate::sim::civ::society::trade_routes::SPECIALTY_BONUS).min(1.0)
+        } else {
+            p
+        };
         if !self.chance(p) {
             return false;
         }

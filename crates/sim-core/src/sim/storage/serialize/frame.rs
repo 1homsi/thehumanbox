@@ -392,6 +392,14 @@ impl Simulation {
                 "trade_income".to_string(),
                 serde_json::to_value(&self.trade_income).unwrap_or_default(),
             );
+            obj.insert(
+                "trade_barter".to_string(),
+                serde_json::to_value(&self.trade_barter).unwrap_or_default(),
+            );
+            obj.insert(
+                "specialties".to_string(),
+                serde_json::to_value(&self.specialties).unwrap_or_default(),
+            );
         }
         if include_cold {
             if let Some(obj) = payload.as_object_mut() {

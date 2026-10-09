@@ -9,6 +9,11 @@ fn completed_hut(id: u32, lineage_id: &str, x: i32, y: i32) -> Building {
 
 fn trade_sim() -> Simulation {
     let mut sim = Simulation::new(0x7ADE);
+    // Both tribes are in the Bronze age, so their trade is paid in coin (the Stone age barters).
+    sim.lineage_eras
+        .insert("river".into(), crate::sim::era::Era::Bronze);
+    sim.lineage_eras
+        .insert("hill".into(), crate::sim::era::Era::Bronze);
     sim.organisms.truncate(4);
     for (index, organism) in sim.organisms.iter_mut().enumerate() {
         let river = index < 2;
@@ -541,5 +546,67 @@ fn a_road_stays_closed_for_a_while_after_the_last_battle_so_the_barrier_can_be_s
     assert!(
         !route_is_embargoed(&sim, "river", "hill"),
         "the road reopens once the window after the last battle has passed"
+    );
+}
+
+#[test]
+fn before_money_a_tribe_is_paid_in_food_and_no_coin_changes_hands() {
+    let mut sim = neighbouring_trade_sim();
+    sim.lineage_eras
+        .insert("river".into(), crate::sim::era::Era::Stone);
+    sim.organisms[0].specialty = Some("merchant".into());
+    sim.organisms[1].inv_food = 5;
+    open_merchant_routes(&mut sim);
+    run_merchant_caravans(&mut sim);
+    sim.tick_count = sim.caravans[0].arrives_tick;
+    // The buyers want food but hold some of their own to give in exchange.
+    for organism in sim.organisms.iter_mut().filter(|o| o.lineage_id == "hill") {
+        organism.inv_food = 0;
+        organism.inv_stone = 3;
+        organism.wealth = 0;
+    }
+    assert!(receive_due_for_lineage(&mut sim, "hill"));
+    assert!(sim.trade_income.is_empty(), "no coin is earned before money");
+    assert!(
+        sim.trade_barter.get("river").copied().unwrap_or(0) > 0,
+        "the river tribe was paid in food"
+    );
+    assert!(
+        !sim.trade_barter.contains_key("hill"),
+        "the buyer gives food and gets none back"
+    );
+}
+
+#[test]
+fn a_tribe_holding_most_of_one_land_good_becomes_known_for_it() {
+    use super::specialty::{update_specialties, SPECIALTY_TICKS};
+    let mut sim = trade_sim();
+    sim.organisms[0].add_land_good("ore", 8);
+    sim.organisms[1].add_land_good("ore", 8);
+    sim.tick_count = SPECIALTY_TICKS;
+    update_specialties(&mut sim);
+    assert_eq!(specialty_good_of(&sim, "river"), Some("ore"));
+    assert_eq!(
+        specialty_good_of(&sim, "hill"),
+        None,
+        "a tribe with no land goods has no specialty"
+    );
+    assert!(
+        sim.events
+            .iter()
+            .any(|event| event.etype == "trade" && event.detail.contains("mining town")),
+        "the chronicle names the new specialty"
+    );
+
+    for index in 0..2 {
+        assert!(sim.organisms[index].take_land_good("ore", 8));
+        sim.organisms[index].add_land_good("salt", 8);
+    }
+    sim.tick_count = 2 * SPECIALTY_TICKS;
+    update_specialties(&mut sim);
+    assert_eq!(
+        specialty_good_of(&sim, "river"),
+        Some("salt"),
+        "a tribe that comes to hold mostly another good changes its specialty"
     );
 }
