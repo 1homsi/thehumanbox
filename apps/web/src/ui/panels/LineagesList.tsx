@@ -4,6 +4,7 @@ import { lineageColor } from '../../shared/constants'
 import { useUIStore } from '../../state/store'
 import { useWorldStore } from '../../state/worldStore'
 import { PERIL_HELP, remainingLine, visibleLineages } from '../../game/model/tribe-peril'
+import { eldestByLineage, eldestLine, type Eldest } from '../../game/model/tribe-eldest'
 import type { PerilCause } from '../../shared/types'
 
 interface LineageRow {
@@ -14,6 +15,8 @@ interface LineageRow {
   maxGen: number
   /** Set while the tribe is on the brink. */
   peril?: PerilCause
+  /** The tribe's oldest living member. */
+  eldest?: Eldest
 }
 
 /**
@@ -69,11 +72,23 @@ function LineagesListImpl() {
       return out
     }),
   )
+  // The eldest living member per tribe, as "name|days": days change once a
+  // day, so the row does not re-render on every tick.
+  const eldest = useWorldStore(
+    useShallow((s) => {
+      const out: Record<string, string> = {}
+      for (const [lid, e] of Object.entries(eldestByLineage(s.world?.organisms ?? []))) {
+        out[lid] = `${e.name}|${e.days}`
+      }
+      return out
+    }),
+  )
 
   const rows = useMemo((): LineageRow[] => {
     const out: LineageRow[] = []
     for (const lid in stamps) {
       const [count, minGen, maxGen] = stamps[lid].split(',').map(Number)
+      const e = eldest[lid]?.split('|')
       out.push({
         id: lid,
         name: lineageNames?.[lid] ?? lid.slice(0, 6),
@@ -81,10 +96,11 @@ function LineagesListImpl() {
         minGen,
         maxGen,
         peril: peril[lid],
+        eldest: e ? { name: e[0], days: Number(e[1]) } : undefined,
       })
     }
     return out
-  }, [stamps, lineageNames, peril])
+  }, [stamps, lineageNames, peril, eldest])
   const shown = visibleLineages(rows)
 
   return (
@@ -116,6 +132,11 @@ function LineagesListImpl() {
                 {r.count}
               </span>
               <FaithMark stamp={faith[r.id]} />
+              {r.eldest && (
+                <span className="lineage-eldest" title={`Oldest living: ${eldestLine(r.eldest)}`}>
+                  ⌛{r.eldest.days}d
+                </span>
+              )}
               <span className="lineage-gen">
                 g{r.minGen}
                 {r.maxGen > r.minGen ? `-${r.maxGen}` : ''}
