@@ -546,12 +546,14 @@ pub(super) fn print_progress(sim: &Simulation) {
         let fishing = boats.iter().filter(|v| v.harbour.is_some()).count();
         let under_way = boats.iter().filter(|v| !v.route.is_empty()).count();
         let carrying = boats.iter().filter(|v| !v.occupants.is_empty()).count();
+        let trading = boats.iter().filter(|v| v.cargo > 0).count();
         println!(
-            "Boats at end: {}  (fishing from a harbour {}, under way {}, carrying passengers {})",
+            "Boats at end: {}  (fishing from a harbour {}, under way {}, carrying passengers {}, trading {})",
             boats.len(),
             fishing,
             under_way,
-            carrying
+            carrying,
+            trading
         );
     }
 

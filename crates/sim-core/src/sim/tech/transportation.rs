@@ -73,4 +73,7 @@ pub struct Vehicle {
     /// The mooring of a fishing boat (see `fleet.rs`); `None` for a boat built for a crossing.
     #[serde(default)]
     pub harbour: Option<(i32, i32)>,
+    /// The harbour a trade boat is sailing to with its cargo (see `fleet.rs`).
+    #[serde(default)]
+    pub bound_for: Option<(i32, i32)>,
 }

@@ -2,6 +2,7 @@
 //! loops over the water near the harbour by day, and makes for its mooring at night and in storms.
 //! A boat set down on dry land by a crossing (see `boats.rs`) puts back out to its harbour.
 //! Fleet boats carry no passengers, so the crossings in `boats.rs` never take one.
+use crate::organism::organism::Organism;
 use crate::sim::simulation::Simulation;
 use crate::sim::transportation::{TransportKind, Vehicle};
 use crate::world::{grid::WorldGrid, tiles::Tile};
@@ -27,6 +28,14 @@ const HOME_RANGE: i32 = 40;
 const STEP_TICKS: u64 = 3;
 /// Ticks between two attempts to plan a voyage for one boat (keeps stranded boats cheap).
 const PLAN_TICKS: u64 = 6;
+/// Ticks between two looks for a trade voyage, in fair weather.
+const TRADE_CHECK_TICKS: u64 = 200;
+/// Food a trade boat carries on one voyage, at most.
+const TRADE_LOAD: u32 = 3;
+/// How far by water a trade voyage may reach from its harbour, in tiles.
+const TRADE_RANGE: i32 = 40;
+/// How close to a harbour a person must stand to load or receive a trade boat's food, in tiles.
+const QUAY_RANGE: i32 = 6;
 
 /// A breadth-first search over water inside a square box: how many steps each tile lies from the
 /// start, and which tile it was reached from.
@@ -126,6 +135,11 @@ pub(crate) fn harbour_shore(grid: &WorldGrid, harbour: (i32, i32)) -> Option<(i3
     })
 }
 
+/// Whether a person stands close enough to a harbour to load or receive from its boat.
+fn on_quay(o: &Organism, quay: (i32, i32)) -> bool {
+    (o.x as i32 - quay.0).abs().max((o.y as i32 - quay.1).abs()) <= QUAY_RANGE
+}
+
 /// A water tile beside `p`, for a boat that was set down on dry land.
 fn water_beside(grid: &WorldGrid, p: (i32, i32)) -> Option<(i32, i32)> {
     CARDINAL
@@ -135,12 +149,101 @@ fn water_beside(grid: &WorldGrid, p: (i32, i32)) -> Option<(i32, i32)> {
 }
 
 impl Simulation {
-    /// Launches fleet boats for coastal tribes and moves the unmanned ones.
+    /// Launches fleet boats for coastal tribes, sends trade boats out, and moves the unmanned ones.
     pub(crate) fn tick_fleet(&mut self) {
         if self.tick_count.is_multiple_of(LAUNCH_CHECK_TICKS) {
             self.launch_fleet_boats();
         }
+        self.tick_trade();
         self.move_fleet_boats();
+    }
+
+    /// In fair weather a moored fishing boat takes food from the people on its quay and sails to the
+    /// nearest harbour of another tribe that the water reaches (see `unload_at`).
+    fn tick_trade(&mut self) {
+        if !self.tick_count.is_multiple_of(TRADE_CHECK_TICKS) || self.is_night() || self.weather.kind == 2 {
+            return;
+        }
+        for i in 0..self.vehicles.len() {
+            let v = &self.vehicles[i];
+            if v.kind != TransportKind::Boat
+                || !v.occupants.is_empty()
+                || v.bound_for.is_some()
+                || v.cargo > 0
+                || !v.route.is_empty()
+            {
+                continue;
+            }
+            let Some(home) = v.harbour else { continue };
+            if (v.x, v.y) != home {
+                continue;
+            }
+            let owner = v.owner_lineage.clone();
+            let Some(chart) = WaterChart::new(&self.grid, home, home, TRADE_RANGE) else {
+                continue;
+            };
+            // The nearest harbour of another tribe that the water reaches.
+            let mut dest: Option<((i32, i32), u32)> = None;
+            for w in &self.vehicles {
+                let Some(h) = w.harbour else { continue };
+                if w.owner_lineage == owner || h == home {
+                    continue;
+                }
+                let Some(k) = chart.index(h) else { continue };
+                let steps = chart.steps[k];
+                if steps != u32::MAX && dest.is_none_or(|(_, best)| steps < best) {
+                    dest = Some((h, steps));
+                }
+            }
+            let Some((dest, _)) = dest else { continue };
+            // Food from the people on the quay, up to the hold's size.
+            let mut loaded = 0u32;
+            for o in self
+                .organisms
+                .iter_mut()
+                .filter(|o| o.alive && o.lineage_id == owner && on_quay(o, home))
+            {
+                while o.inv_food > 0 && loaded < TRADE_LOAD {
+                    o.inv_food -= 1;
+                    loaded += 1;
+                }
+                if loaded >= TRADE_LOAD {
+                    break;
+                }
+            }
+            if loaded == 0 {
+                continue;
+            }
+            let Some(route) = chart.route_to(dest) else {
+                continue;
+            };
+            let v = &mut self.vehicles[i];
+            v.cargo = loaded;
+            v.bound_for = Some(dest);
+            v.route = route;
+        }
+    }
+
+    /// A trade boat has reached the far harbour: its food goes to the nearest person on that quay,
+    /// and the boat sails home.
+    fn unload_at(&mut self, i: usize, quay: (i32, i32), harbour: (i32, i32)) {
+        let cargo = self.vehicles[i].cargo;
+        let receiver = self
+            .organisms
+            .iter()
+            .enumerate()
+            .filter(|(_, o)| o.alive && on_quay(o, quay))
+            .min_by_key(|(_, o)| (o.x as i32 - quay.0).abs() + (o.y as i32 - quay.1).abs())
+            .map(|(k, _)| k);
+        if let Some(k) = receiver {
+            let o = &mut self.organisms[k];
+            o.inv_food = (u32::from(o.inv_food) + cargo).min(u32::from(u8::MAX)) as u8;
+            o.log_event("food came to the quay by boat from another tribe".into());
+        }
+        let v = &mut self.vehicles[i];
+        v.cargo = 0;
+        v.bound_for = None;
+        self.route_home(i, quay, harbour);
     }
 
     /// A tribe with a fisher and a harbour near its homes gets one boat, then up to one more per
@@ -195,6 +298,7 @@ impl Simulation {
                 route: Vec::new(),
                 ready_tick: 0,
                 harbour: Some((hx, hy)),
+                bound_for: None,
             });
             self.next_vehicle_id += 1;
             fleet_total += 1;
@@ -227,7 +331,13 @@ impl Simulation {
                     self.route_home(i, at, harbour);
                 }
             } else if may_plan && self.vehicles[i].route.is_empty() {
-                self.plan_loop(i, at, harbour);
+                match self.vehicles[i].bound_for {
+                    Some(dest) if at == dest => self.unload_at(i, dest, harbour),
+                    Some(dest) => {
+                        self.plan_route(i, at, dest, TRADE_RANGE * 2);
+                    }
+                    None => self.plan_loop(i, at, harbour),
+                }
             }
             if (now + id as u64).is_multiple_of(STEP_TICKS) {
                 if let Some(&next) = self.vehicles[i].route.last() {
@@ -336,6 +446,7 @@ mod tests {
             route: Vec::new(),
             ready_tick: 0,
             harbour: Some((90, 100)),
+            bound_for: None,
         }
     }
 
@@ -438,5 +549,70 @@ mod tests {
         sim.vehicles[0].route.clear();
         let frame = sim.state_json();
         assert_eq!(frame["vehicles"][0]["sailing"], false);
+    }
+
+    #[test]
+    fn a_trade_boat_carries_food_across_the_water_to_another_tribe() {
+        let mut sim = lake_sim();
+        for y in 88..=112 {
+            for x in 121..=130 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        sim.organisms.truncate(4);
+        for (k, o) in sim.organisms.iter_mut().enumerate() {
+            o.alive = true;
+            if k < 2 {
+                o.lineage_id = "a".into();
+                o.x = 89.0;
+                o.y = 100.0;
+                o.inv_food = 5;
+            } else {
+                o.lineage_id = "b".into();
+                o.x = 121.0;
+                o.y = 100.0;
+                o.inv_food = 0;
+            }
+        }
+        sim.vehicles = vec![
+            boat("a".into(), (90, 100)),
+            Vehicle {
+                id: 6,
+                kind: TransportKind::Boat,
+                owner_lineage: "b".into(),
+                x: 120,
+                y: 100,
+                occupants: Vec::new(),
+                cargo: 0,
+                route: Vec::new(),
+                ready_tick: 0,
+                harbour: Some((120, 100)),
+                bound_for: None,
+            },
+        ];
+        sim.weather.kind = 0;
+        sim.tick_count = 3_000;
+        sim.tick_trade();
+        assert_eq!(
+            sim.vehicles[0].cargo, TRADE_LOAD,
+            "the boat takes food from its quay"
+        );
+        assert_eq!(sim.vehicles[0].bound_for, Some((120, 100)));
+        assert_eq!(
+            u32::from(sim.organisms[0].inv_food + sim.organisms[1].inv_food),
+            10 - TRADE_LOAD,
+            "the food leaves the home quay"
+        );
+        for _ in 0..400 {
+            sim.tick_count += 1;
+            sim.move_fleet_boats();
+        }
+        assert_eq!(
+            u32::from(sim.organisms[2].inv_food + sim.organisms[3].inv_food),
+            TRADE_LOAD,
+            "the far quay receives the food"
+        );
+        assert_eq!(sim.vehicles[0].cargo, 0, "the hold is empty once it is delivered");
+        assert_eq!(sim.vehicles[0].bound_for, None);
     }
 }
