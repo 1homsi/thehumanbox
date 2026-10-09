@@ -41,6 +41,12 @@ const PALETTE: Record<string, string> = {
   i: '#f5c93d', // bee gold
   I: '#2a2420', // bee stripes
   j: '#dfe9f2', // bee wings
+  O: '#8a6a4a', // owl brown
+  L: '#eadcc0', // owl face and belly
+  E: '#ffc93c', // owl eyes
+  G: '#4a3a2a', // owl wing shade
+  Z: '#4a3626', // eagle brown
+  H: '#f6f2e6', // eagle head
 }
 
 /** Poses of a kind: the walk frames, then (for bears) a lying pose for sleeping. */
@@ -209,6 +215,50 @@ const SPRITES: Record<string, Frames> = {
   duck: [
     ['.....YYY...', '....YYYYY..', '...YYYYYYQQ', '.YYYYYYYYY.', '.YYYYYYYYY.', '..YYYYYYY..', '...Q...Q...'],
     ['.....YYY...', '....YYYYY..', '...YYYYYYQQ', '.YYYYYYYYY.', '.YYYYYYYYY.', '..YYYYYYY..', '..Q....Q...'],
+  ],
+  owl: [
+    [
+      '.O.......O.',
+      '.OO.....OO.',
+      'OOLLLLLLLOO',
+      'OLEELLLEELO',
+      'OLLLyLLLLLO',
+      'OOLLLLLLLOO',
+      'OGOOOOOOOGO',
+      '..y.....y..',
+    ],
+    [
+      '.O.......O.',
+      '.OO.....OO.',
+      'OOLLLLLLLOO',
+      'OLEELLLEELO',
+      'OLLLyLLLLLO',
+      'OOLLLLLLLOO',
+      'GGOOOOOOOGG',
+      '..y.....y..',
+    ],
+  ],
+  eagle: [
+    [
+      '.ZZ.......ZZ.',
+      'ZZZZ.HHH.ZZZZ',
+      'ZZZZZHHHHZZZZ',
+      'ZZZZZHHyHZZZZ',
+      'ZZZZZZZZZZZZZ',
+      '.ZZZZZZZZZZZ.',
+      '..ZZZ...ZZZ..',
+      '..y.....y....',
+    ],
+    [
+      '.............',
+      '.ZZ.......ZZ.',
+      'ZZZZ.HHH.ZZZZ',
+      'ZZZZZHHHHZZZZ',
+      'ZZZZZHHyHZZZZ',
+      'ZZZZZZZZZZZZZ',
+      '.ZZZZZZZZZZZ.',
+      '..y.....y....',
+    ],
   ],
   bee: [
     ['.jj...jj.', '..jjjjj..', '.iIiIiIi.', '.IiIiIiI.', '....o....'],

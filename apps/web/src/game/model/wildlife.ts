@@ -24,6 +24,8 @@ const GROUPS: Array<{ label: string; kinds: readonly string[]; danger?: boolean 
   { label: 'whales', kinds: ['whale'] },
   { label: 'ducks', kinds: ['duck'] },
   { label: 'bees', kinds: ['bee'] },
+  { label: 'owls', kinds: ['owl'] },
+  { label: 'eagles', kinds: ['eagle'] },
   { label: 'wolves', kinds: ['wolf'], danger: true },
   { label: 'bears', kinds: ['bear'], danger: true },
 ]

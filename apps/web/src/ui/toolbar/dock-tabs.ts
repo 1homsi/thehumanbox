@@ -48,8 +48,8 @@ export const DOCK_TABS: DockTab[] = [
     id: 'heavens',
     label: 'sky',
     icon: '🌅',
-    tip: 'The time of day, eclipses and comets, dice, and the bomb',
-    groups: ['sky'],
+    tip: 'The time of day, eclipses and comets, dice, the bomb, and the birds of prey that soar over the land',
+    groups: ['sky', 'birds'],
   },
   {
     id: 'resources',

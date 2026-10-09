@@ -580,6 +580,8 @@ impl Simulation {
                 AnimalKind::Whale => 40,
                 AnimalKind::Duck => 70,
                 AnimalKind::Bee => 60,
+                AnimalKind::Owl => 30,
+                AnimalKind::Eagle => 24,
                 // Summoned, never born.
                 AnimalKind::Zombie
                 | AnimalKind::Demon
@@ -844,6 +846,8 @@ impl Simulation {
                 AnimalKind::Cat
                 | AnimalKind::Whale
                 | AnimalKind::Bee
+                | AnimalKind::Owl
+                | AnimalKind::Eagle
                 | AnimalKind::Zombie
                 | AnimalKind::Demon
                 | AnimalKind::Dragon
