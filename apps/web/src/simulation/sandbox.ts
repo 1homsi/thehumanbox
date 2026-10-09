@@ -129,7 +129,8 @@ export type TimeControl = {
   to?: 'season' | 'year'
 }
 
-export type SandboxOverlay = 'density' | 'hazard' | 'fertility' | 'structures' | 'trails' | 'age' | 'threat'
+export type SandboxOverlay =
+  'density' | 'hazard' | 'fertility' | 'structures' | 'trails' | 'age' | 'threat' | 'food' | 'wealth' | 'mood'
 
 export type SandboxViewFlag =
   'territory' | 'history' | 'names' | 'thoughts' | 'animals' | 'grid' | 'tradeRoutes'
@@ -939,6 +940,27 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '⚠️',
         mode: 'instant',
         view: { control: 'overlay', value: 'threat' },
+      },
+      {
+        id: 'food_map',
+        label: 'food',
+        icon: '🍎',
+        mode: 'instant',
+        view: { control: 'overlay', value: 'food' },
+      },
+      {
+        id: 'wealth_map',
+        label: 'wealth',
+        icon: '🪙',
+        mode: 'instant',
+        view: { control: 'overlay', value: 'wealth' },
+      },
+      {
+        id: 'mood_map',
+        label: 'moods',
+        icon: '💚',
+        mode: 'instant',
+        view: { control: 'overlay', value: 'mood' },
       },
     ],
   },

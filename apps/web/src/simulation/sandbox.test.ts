@@ -30,6 +30,9 @@ describe('sandbox map controls', () => {
       'fertility_map',
       'age_map',
       'threat_map',
+      'food_map',
+      'wealth_map',
+      'mood_map',
     ])
     const view = SANDBOX_CATEGORIES.find((category) => category.id === 'view')
     expect(view?.tools.map((tool) => tool.id)).toEqual([

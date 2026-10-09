@@ -9,7 +9,18 @@ export interface OverlaySlice {
 }
 
 const OVERLAY_STORAGE_KEY = 'thb-map-overlay'
-const VALID_OVERLAYS = new Set(['density', 'hazard', 'fertility', 'structures', 'trails', 'age', 'threat'])
+const VALID_OVERLAYS = new Set([
+  'density',
+  'hazard',
+  'fertility',
+  'structures',
+  'trails',
+  'age',
+  'threat',
+  'food',
+  'wealth',
+  'mood',
+])
 
 function initialOverlay(): string | null {
   if (typeof window === 'undefined') return null

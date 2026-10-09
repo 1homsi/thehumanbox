@@ -56,6 +56,10 @@ const TOOL_TIPS: Record<string, string> = {
   fertility_map: 'Show how fertile the soil is.',
   age_map: 'Colour people by age.',
   threat_map: 'Show where predators and monsters threaten people.',
+  food_map: 'Show where food grows (green) and where food is carried along the paths (gold).',
+  wealth_map: 'Show where people carry the most goods and tools. Warmer gold means more.',
+  mood_map:
+    'Show how people feel around each place: gold where they are content or joyful, red where they grieve, fear or are hungry.',
   names_view: 'Show people’s names over their heads.',
   thoughts_view: 'Show what people are thinking.',
   animals_view: 'Show or hide animals on the map.',
