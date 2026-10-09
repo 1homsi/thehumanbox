@@ -27,7 +27,6 @@ import { hotkeysFor, toolForHotkey } from './tool-hotkeys'
 import { typingTarget } from '../../game/model/shortcuts'
 import { WASM_BASE_TICK_MS, isRuntimeControlActive } from '../../simulation/runtimeControls'
 import { nextSpeedStep } from '../../simulation/speedSteps'
-import { spawnsWith, useSpawnCounts } from './spawn-counts'
 
 const TAB_STORAGE_KEY = 'thb-sandbox-category'
 
@@ -104,7 +103,6 @@ interface DockTileProps {
   tool: SandboxTool
   active: boolean
   flashed: boolean
-  spawned: number
   hotkey: string | undefined
   body: string
   how: string
@@ -115,16 +113,7 @@ interface DockTileProps {
  * One dock tile. Memoized: a pick re-renders the dock to flash its tile, and only that tile's props
  * change, so the other tiles (each with its tooltip and sprite) are not reconciled again.
  */
-const DockTile = memo(function DockTile({
-  tool,
-  active,
-  flashed,
-  spawned,
-  hotkey,
-  body,
-  how,
-  onPick,
-}: DockTileProps) {
+const DockTile = memo(function DockTile({ tool, active, flashed, hotkey, body, how, onPick }: DockTileProps) {
   return (
     <Tooltip tip={<TipCard title={tool.label} body={body} how={how} />}>
       <button
@@ -136,11 +125,6 @@ const DockTile = memo(function DockTile({
         onClick={() => onPick(tool)}
       >
         <ToolSprite icon={tool.icon} size={36} />
-        {spawned > 0 && (
-          <span className="dock-tile-count" aria-hidden="true">
-            {spawned}
-          </span>
-        )}
       </button>
     </Tooltip>
   )
@@ -175,7 +159,6 @@ export function SandboxToolbar({
   const weather = useWorldStore((s) => s.world?.weather?.kind)
   const drought = useWorldStore((s) => s.world?.drought ?? false)
   const [flashId, setFlashId] = useState<string | null>(null)
-  const spawnCounts = useSpawnCounts((s) => s.counts)
   const isViewActive = (tool: SandboxTool) =>
     isSandboxViewControlActive(tool.view, activeOverlay, activeViewFlags)
   // Weather and drought are states of the world, so their tiles light up
@@ -276,7 +259,6 @@ export function SandboxToolbar({
         tool={tool}
         active={active}
         flashed={flashId === tool.id}
-        spawned={spawnsWith(tool) ? (spawnCounts[tool.id] ?? 0) : 0}
         hotkey={hotkeys.get(tool.id)}
         body={toolTip(tool)}
         how={how}

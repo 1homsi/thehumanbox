@@ -15,8 +15,9 @@ describe('a point tool says what the brush reaches', () => {
     expect(toolReach(rain, 3)).toContain('reaches 7 tiles')
   })
 
-  it('gives how many a spawn tool brings at this brush size', () => {
-    expect(toolReach(toolById('owl'), 2)).toContain('brings 3')
+  it('says how many a tool brings only when it brings several', () => {
+    expect(toolReach(toolById('spawn5'), 2)).toContain('brings 5')
+    expect(toolReach(toolById('owl'), 2)).not.toContain('brings')
   })
 
   it('puts the reach in the hint line of a point tool', () => {

@@ -55,7 +55,6 @@ import { ModalRouter } from './ui/modals/ModalRouter'
 import { type ScenarioPreset } from './simulation/scenarios'
 import { setSandboxSender } from './simulation/commandBus'
 import { useSkyOverlay } from './game/render/sky-overlay'
-import { spawnsWith, useSpawnCounts } from './ui/toolbar/spawn-counts'
 import { MobileBanner } from './ui/toasts/MobileBanner'
 import { WelcomeModal } from './ui/modals/WelcomeModal'
 import { UpdateToast } from './ui/toasts/UpdateToast'
@@ -348,7 +347,6 @@ function LiveApp() {
       setSandboxStatus(`${label} -> ${x}, ${y}`)
       const tool = armedTool
       void sendCommand(tool.build!(x, y, brush)).then((ok) => {
-        if (ok && spawnsWith(tool)) useSpawnCounts.getState().bump(tool.id)
         setTemporarySandboxStatus(ok ? `${label} applied at ${x}, ${y}` : `${label} · ${toolFailure(tool)}`)
       })
     },
