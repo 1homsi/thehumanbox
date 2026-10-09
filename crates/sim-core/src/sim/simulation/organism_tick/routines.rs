@@ -33,6 +33,9 @@ impl Simulation {
             );
         }
 
+        // Children keep close to their mother and play near home; elders sit by the fire after dark.
+        self.assign_family_outing(idx, spatial, org_idx_by_id);
+
         if self.tick_count % 2000 == (idx as u64 % 2000) {
             {
                 let org = &mut self.organisms[idx];
