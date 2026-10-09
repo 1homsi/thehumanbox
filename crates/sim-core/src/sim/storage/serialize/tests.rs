@@ -281,6 +281,7 @@ fn full_payload_exposes_farm_lifecycle_contract() {
         ready_tick: 1_300,
         harvested: false,
         prepared: false,
+        season_timed: false,
     });
 
     let payload = sim.state_json();

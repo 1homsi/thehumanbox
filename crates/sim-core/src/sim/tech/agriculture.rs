@@ -125,6 +125,11 @@ pub struct Farm {
     /// unprepared; the general planting action can still reclaim them.
     #[serde(default)]
     pub prepared: bool,
+    /// A field the village sowed in spring is timed to ripen in autumn: its
+    /// deadline is set by the calendar, so weather and tending leave it alone.
+    /// Older saves load as false and keep their weather-driven deadlines.
+    #[serde(default)]
+    pub season_timed: bool,
 }
 
 impl Farm {
@@ -185,7 +190,7 @@ impl Farm {
     /// the actual signed movement makes repeated tending deterministic and
     /// prevents it from accelerating forever.
     pub fn adjust_ready_tick(&mut self, tick: u64, delta: i64) -> i64 {
-        if self.harvested || tick >= self.ready_tick {
+        if self.harvested || tick >= self.ready_tick || self.season_timed {
             return 0;
         }
         let base = self.crop.growth_ticks() as u64;
@@ -260,6 +265,7 @@ mod tests {
             ready_tick: 100 + crop.growth_ticks() as u64,
             harvested: false,
             prepared: false,
+            season_timed: false,
         }
     }
 
