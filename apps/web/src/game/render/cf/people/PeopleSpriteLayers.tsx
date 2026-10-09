@@ -174,6 +174,7 @@ export function PeopleSpriteLayers({
         ruinedTiles: ruinedBuildingTiles(w.buildings),
         ox,
         oy,
+        clock: (w.tick ?? 0) * 100,
       })
       last.current = {
         orgs,

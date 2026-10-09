@@ -118,6 +118,14 @@ fn harbour_near(grid: &WorldGrid, x: i32, y: i32) -> Option<(i32, i32)> {
     best.map(|(p, _)| p)
 }
 
+/// The way from a harbour to the dry land beside it (a cardinal step), for the pier drawn there.
+pub(crate) fn harbour_shore(grid: &WorldGrid, harbour: (i32, i32)) -> Option<(i32, i32)> {
+    CARDINAL.iter().copied().find(|&(dx, dy)| {
+        let (x, y) = (harbour.0 + dx, harbour.1 + dy);
+        WorldGrid::in_bounds(x, y) && grid.get(x, y).walkable() && grid.get(x, y) != Tile::Water
+    })
+}
+
 /// A water tile beside `p`, for a boat that was set down on dry land.
 fn water_beside(grid: &WorldGrid, p: (i32, i32)) -> Option<(i32, i32)> {
     CARDINAL
@@ -422,6 +430,11 @@ mod tests {
         let frame = sim.state_json();
         assert_eq!(frame["vehicles"][0]["sailing"], true);
         assert_eq!(frame["vehicles"][0]["harbour"], serde_json::json!([90, 100]));
+        assert_eq!(
+            frame["vehicles"][0]["shore"],
+            serde_json::json!([-1, 0]),
+            "the grass lies to the west"
+        );
         sim.vehicles[0].route.clear();
         let frame = sim.state_json();
         assert_eq!(frame["vehicles"][0]["sailing"], false);

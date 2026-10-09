@@ -17,6 +17,7 @@ import {
   boatColumn,
   boatFrame,
   boatVariantOf,
+  pierColumn,
   DECAL,
   DEGREE_EMOJI,
   ELDER_CANE_EMOJI,
@@ -47,6 +48,8 @@ export interface PeopleFrameInput {
   ruinedTiles: ReadonlySet<string>
   ox: number
   oy: number
+  /** The clock for boats under way (ms): their wake and stroke step with it. Omitted, they stay still. */
+  clock?: number
 }
 
 export function isFocused(org: OrganismState, focus: string): boolean {
@@ -554,11 +557,32 @@ export class PeopleSprites {
         y + 3,
         BOAT_CELL.width,
         BOAT_CELL.height,
-        boatColumn(variant, boatFrame(!!v.sailing, !!v.building, 0)),
+        boatColumn(variant, boatFrame(!!v.sailing, !!v.building, input.clock ?? 0)),
         -1,
       )
       body.atlas[bi] = BODY_ATLAS.boats
       body.sortKey[bi] = -10000 + v.y
+    }
+    // A pier where boats are moored: two tiles of plank from the dry land out over the water. One per harbour.
+    const piers = new Set<string>()
+    for (const v of input.vehicles) {
+      if (v.kind !== 'boat' || !v.harbour || !v.shore) continue
+      const [hx, hy] = v.harbour
+      const key = `${hx},${hy}`
+      const column = pierColumn(v.shore[0], v.shore[1])
+      if (piers.has(key) || column < 0) continue
+      piers.add(key)
+      const pi = body.add(
+        Math.round((hx - ox) * TILE + TILE / 2),
+        Math.round((hy - oy) * TILE + TILE / 2),
+        BOAT_CELL.width,
+        BOAT_CELL.height,
+        column,
+        -1,
+      )
+      body.atlas[pi] = BODY_ATLAS.boats
+      // Behind the boats moored at it.
+      body.sortKey[pi] = -10000 + hy - 0.5
     }
     this.lastMoved = -Infinity
     this.moving = true

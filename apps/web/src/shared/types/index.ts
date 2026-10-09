@@ -299,6 +299,8 @@ export interface VehicleInfo {
   sailing?: boolean
   /** The harbour of a fishing boat, where it is moored at night. */
   harbour?: [number, number] | null
+  /** The way (a cardinal step) from the harbour to the dry land beside it: a pier runs that way. */
+  shore?: [number, number] | null
 }
 
 export interface FestivalInfo {

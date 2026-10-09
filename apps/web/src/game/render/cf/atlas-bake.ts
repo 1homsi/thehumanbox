@@ -121,7 +121,17 @@ export const BOAT_FRAMES = 8
 /** Variants: each hull without goods, then with goods on deck. */
 export const BOAT_VARIANTS = BOAT_HULLS.length * 2
 export const BOAT_COLUMNS = BOAT_FRAMES * BOAT_VARIANTS
-export const BOAT_SIZE = { width: BOAT_CELL.width * BOAT_COLUMNS, height: BOAT_CELL.height }
+/** The four ways a pier can run from its harbour to the dry land: right, left, down, up (after the boat columns). */
+export const PIER_DIRECTIONS: ReadonlyArray<readonly [number, number]> = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+]
+export const BOAT_SIZE = {
+  width: BOAT_CELL.width * (BOAT_COLUMNS + PIER_DIRECTIONS.length),
+  height: BOAT_CELL.height,
+}
 
 /** 0 idle, 1 under construction, then moving frames by stroke (0..1) and wake (0..2). */
 export function boatFrame(moving: boolean, building: boolean, time: number): number {
@@ -142,6 +152,40 @@ export function boatVariantOf(era: string | undefined, cargo: number | undefined
 /** The atlas column of one frame of a variant. */
 export function boatColumn(variant: number, frame: number): number {
   return variant * BOAT_FRAMES + frame
+}
+
+/** The atlas column of a pier running towards (dx, dy) from its harbour, or -1 for no such way. */
+export function pierColumn(dx: number, dy: number): number {
+  const k = PIER_DIRECTIONS.findIndex(([x, y]) => x === dx && y === dy)
+  return k < 0 ? -1 : BOAT_COLUMNS + k
+}
+
+/**
+ * A pier from the dry land (12 px from the harbour's centre) out over the water (6 px past it): a
+ * three-pixel deck on posts, drawn in the wood colours of the hulls. `(dx, dy)` is the way to the land.
+ */
+function drawPier(ctx: CanvasRenderingContext2D, dx: number, dy: number): void {
+  const c = 16
+  const d = dx !== 0 ? dx : dy
+  const from = c + 12 * d
+  const to = c - 6 * d
+  const lo = Math.min(from, to)
+  const len = Math.abs(from - to)
+  const across =
+    dx !== 0
+      ? (rx: number, ry: number, w: number, h: number) => ctx.fillRect(rx, ry, w, h)
+      : (rx: number, ry: number, w: number, h: number) => ctx.fillRect(ry, rx, h, w)
+  // The deck: a lit top row, the planks, a dark edge.
+  ctx.fillStyle = '#a07843'
+  across(lo, 15, len, 3)
+  ctx.fillStyle = '#d0a668'
+  across(lo, 15, len, 1)
+  ctx.fillStyle = '#5a3d27'
+  across(lo, 17, len, 1)
+  // Posts under the deck, at both ends and in the middle.
+  for (const p of [lo, lo + Math.floor(len / 2), lo + len - 1]) {
+    across(p, 18, 1, 2)
+  }
 }
 
 export function bakeBoats(ctx: CanvasRenderingContext2D): void {
@@ -165,6 +209,12 @@ export function bakeBoats(ctx: CanvasRenderingContext2D): void {
     for (let stroke = 0; stroke < 2; stroke++)
       for (let wake = 0; wake < 3; wake++) paint(2 + stroke * 3 + wake, true, false, timeFor(wake, stroke))
   }
+  PIER_DIRECTIONS.forEach(([dx, dy], k) => {
+    ctx.save()
+    ctx.translate((BOAT_COLUMNS + k) * BOAT_CELL.width, 0)
+    drawPier(ctx, dx, dy)
+    ctx.restore()
+  })
 }
 
 // ---- Animals made of ASCII pixel art -----------------------------------------
