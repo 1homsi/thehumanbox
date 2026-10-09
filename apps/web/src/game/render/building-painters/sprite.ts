@@ -17,12 +17,13 @@ export function getBuildingSprite(
   tier = 0,
   state = '',
   snow = false,
+  land = '',
 ): HTMLCanvasElement | null {
   const painter = ARCHETYPE[kind]
   if (!painter) return null
   // Snow only lies on house roofs, so the flag only splits the cache for those.
   const snowy = snow && isHouseLike(kind)
-  const key = `${kind}|${fw}x${fh}|${tile}|v${variant}|n${night}|c${condBucket}|t${tier}|s${state}|w${snowy ? 1 : 0}`
+  const key = `${kind}|${fw}x${fh}|${tile}|v${variant}|n${night}|c${condBucket}|t${tier}|s${state}|w${snowy ? 1 : 0}|l${land}`
   const hit = spriteCache.get(key)
   if (hit) return hit
 
@@ -48,6 +49,7 @@ export function getBuildingSprite(
     variant,
     tier,
     state,
+    land,
   }
   const ok = painter(p)
   if (ok === false) return null

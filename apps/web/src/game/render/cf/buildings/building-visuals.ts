@@ -19,6 +19,8 @@ export interface BuildingFrameInfo {
   tiers: ReadonlyMap<string, number>
   /** It is winter on the ground: house roofs carry snow. */
   winter: boolean
+  /** The local home style at a world tile ('' for none; see homeLandOfBiome). */
+  landAt?: (x: number, y: number) => string
 }
 
 /** Construction progress and ruin age are quantised so a site does not bake a cell per tick. */
@@ -64,6 +66,9 @@ export function describeBuilding(b: Building, info: BuildingFrameInfo): Building
       : 0
   const state = b.kind === 'Spaceport' && padEmpty(b.id, info.tick) ? 'empty' : undefined
   const snow = info.winter && isHouseLike(k)
+  // Only stone-age huts change shape with the land; the land joins their look.
+  const land = k === 'Hut' && tier === 0 ? (info.landAt?.(b.x, b.y) ?? '') : ''
+  const landKey = land ? `|l${land}` : ''
   const base = `${b.kind}|${fw}x${fh}|t${tier}`
   const identity = `${b.id}@${b.x},${b.y}`
   const record: BuildingLike = {
@@ -83,6 +88,7 @@ export function describeBuilding(b: Building, info: BuildingFrameInfo): Building
     ruinAge,
     state,
     snow,
+    land,
   }
   const { w: contentW, h: contentH } = contentSize(fw, fh)
   const out = (key: string, night: number, detail: BuildingVisualDetail): BuildingVisual => ({
@@ -123,7 +129,7 @@ export function describeBuilding(b: Building, info: BuildingFrameInfo): Building
   if (!damaged) {
     // The emoji fallback does not look at the variant or the night.
     return out(
-      sprite ? `S|${base}|v${variant}|n${night}|c${cond}|s${state ?? ''}${snowKey}` : `E|${base}`,
+      sprite ? `S|${base}|v${variant}|n${night}|c${cond}|s${state ?? ''}${snowKey}${landKey}` : `E|${base}`,
       night / 3,
       info.detail,
     )
@@ -133,7 +139,7 @@ export function describeBuilding(b: Building, info: BuildingFrameInfo): Building
   record.damage = Math.min(1, severity / DAMAGE_STEPS)
   record.integrity = integrity / DAMAGE_STEPS
   return out(
-    `D|${base}|${identity}|v${variant}|n${night}|c${cond}|s${state ?? ''}|d${severity}|i${integrity}|r${structural.isRepairing ? 1 : 0}${snowKey}|${info.detail}`,
+    `D|${base}|${identity}|v${variant}|n${night}|c${cond}|s${state ?? ''}|d${severity}|i${integrity}|r${structural.isRepairing ? 1 : 0}${snowKey}${landKey}|${info.detail}`,
     night / 3,
     info.detail,
   )

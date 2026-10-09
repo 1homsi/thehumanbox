@@ -36,6 +36,8 @@ export interface P {
   tier: number
   /** A passing visual state ('empty' for a spaceport whose rocket is away). */
   state: string
+  /** The land a stone-age home stands on (see HomeLand in land-homes.ts). */
+  land?: string
 }
 
 export function px(ctx: Ctx, x: number, y: number, w: number, h: number, c: string) {

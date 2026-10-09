@@ -23,6 +23,8 @@ export type BuildingLike = Pick<
   ruinAge?: number
   /** Winter: snow lies on the roof of a house-like building. */
   snow?: boolean
+  /** The land a stone-age home stands on (see HomeLand in building-painters/land-homes.ts). */
+  land?: string
 }
 
 export type BuildingVisualDetail = 'overview' | 'standard' | 'detail'

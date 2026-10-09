@@ -80,6 +80,7 @@ export function drawBuilding(
       building.tier ?? 0,
       building.state ?? '',
       building.snow ?? false,
+      building.land ?? '',
     )
     if (sprite) {
       ctx.drawImage(sprite, Math.round(px - PAD), Math.round(py + h + PAD_BOT - sprite.height))
