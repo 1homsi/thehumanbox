@@ -12,6 +12,8 @@ const TOOL_TIPS: Record<string, string> = {
     'Crown the grown person nearest where you click the ruler of their tribe. They keep the crown while they live, unless their tribe has no ruler to crown (a plain band) or they are still a child.',
   mutate:
     'Change the person nearest where you click: one of their traits (curiosity, aggression, fear, memory, sociability or resilience) jumps far beyond their people. The change is written into the chronicle.',
+  teach_tribe:
+    'Teach the tribe of the person nearest where you click the next secret it still lacks for its age, so every grown member learns it. A tribe can be taught only now and then.',
   curse:
     'Curse the person nearest where you click: bad luck hurts them, fear grips them and sickness takes hold. Only that one person.',
   heal_one:
@@ -225,6 +227,8 @@ export function toolFailure(tool: SandboxTool): string {
     case 'mutate':
     case 'curse':
       return 'nobody is near enough to change'
+    case 'teach_tribe':
+      return 'no one is near, or their tribe has no secret left to learn right now'
     case 'nuke':
       return 'no tribe has reached the Industrial age yet'
     case 'eclipse':

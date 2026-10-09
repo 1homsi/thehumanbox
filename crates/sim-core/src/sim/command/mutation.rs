@@ -69,7 +69,7 @@ impl Simulation {
     }
 
     /// The living person nearest the point, if any is within the reach (default four tiles, sixteen at most).
-    fn nearest_in_reach(&self, x: f32, y: f32, radius: f32) -> Option<usize> {
+    pub(super) fn nearest_in_reach(&self, x: f32, y: f32, radius: f32) -> Option<usize> {
         if !x.is_finite() || !y.is_finite() {
             return None;
         }

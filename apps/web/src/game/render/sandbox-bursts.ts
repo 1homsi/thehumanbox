@@ -138,6 +138,8 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
       return 'frost'
     case 'mutate':
       return 'bless'
+    case 'teach_tribe':
+      return 'inspire'
     case 'curse':
       return 'plague'
     case 'nuke':
