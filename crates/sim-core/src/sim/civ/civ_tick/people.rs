@@ -268,6 +268,62 @@ pub(super) fn tick_specialties(sim: &mut Simulation) {
     }
 }
 
+/// How far a teen can be from a working parent and still learn their trade.
+const APPRENTICE_REACH: f32 = 20.0;
+
+/// Teens take up the trade of a working parent who lives within reach. A
+/// teen with no trade of their own looks at their parents each pass, and
+/// with a chance joins the nearer parent's trade, logged in their biography.
+pub(super) fn tick_apprenticeships(sim: &mut Simulation) {
+    let tick = sim.tick_count;
+    for i in 0..sim.organisms.len() {
+        let teen = &sim.organisms[i];
+        if !teen.alive || teen.age_stage() != AgeStage::Teen || teen.specialty.is_some() {
+            continue;
+        }
+        let (tx, ty) = (teen.x, teen.y);
+        let parent_id = teen.parent_id.clone();
+        let father_id = teen.father_id.clone();
+        let mut best: Option<(f32, usize)> = None;
+        for (j, k) in sim.organisms.iter().enumerate() {
+            let is_parent = k.id == parent_id || father_id.as_deref() == Some(k.id.as_str());
+            if j == i || !k.alive || !is_parent || k.specialty.is_none() {
+                continue;
+            }
+            if !matches!(k.age_stage(), AgeStage::Adult | AgeStage::Elder) {
+                continue;
+            }
+            let d = (k.x - tx).abs() + (k.y - ty).abs();
+            if d > APPRENTICE_REACH {
+                continue;
+            }
+            if best.is_none_or(|(bd, _)| d < bd) {
+                best = Some((d, j));
+            }
+        }
+        let Some((_, j)) = best else { continue };
+        let trade = sim.organisms[j].specialty.clone().unwrap_or_default();
+        let parent_name = sim.organisms[j].name.clone();
+        let parent_id = sim.organisms[j].id.clone();
+        let name = sim.organisms[i].name.clone();
+        sim.organisms[i].specialty = Some(trade.clone());
+        sim.organisms[i].log_life_rel(
+            tick,
+            "apprenticeship",
+            format!("apprenticed to {parent_name} and took up their trade as a {trade}"),
+            Some(parent_id),
+            Some(parent_name.clone()),
+        );
+        push_event(
+            &mut sim.events,
+            tick,
+            "specialty",
+            &name,
+            &format!("{name} apprenticed to {parent_name} as a {trade}"),
+        );
+    }
+}
+
 /// Assign a long-term life aspiration when an org reaches adulthood.
 /// Once set, persists for the rest of the org's life — drives behaviour
 /// via specialty + Q-reward biases downstream.
@@ -482,4 +538,70 @@ pub(super) fn pick_degree(era: Era, seed: u64) -> &'static str {
         opts.push("science");
     }
     opts[(seed as usize) % opts.len()]
+}
+
+#[cfg(test)]
+mod apprentice_tests {
+    use super::*;
+    use crate::organism::organism::Organism;
+    use crate::organism::traits::Traits;
+
+    fn person(id: &str, age: u32, x: f32, y: f32) -> Organism {
+        let mut o = Organism::new(
+            id.into(),
+            id.into(),
+            x,
+            y,
+            0,
+            String::new(),
+            "lin".into(),
+            9000,
+            Traits::default(),
+        );
+        o.alive = true;
+        o.max_age = 10_000;
+        o.age = age;
+        o
+    }
+
+    #[test]
+    fn a_teen_takes_up_the_trade_of_a_working_parent_nearby() {
+        let mut sim = Simulation::new(8);
+        sim.organisms.clear();
+        let mut parent = person("parent", 6000, 10.0, 10.0);
+        parent.specialty = Some("baker".into());
+        sim.organisms.push(parent);
+        let mut teen = person("teen", 3000, 14.0, 10.0);
+        teen.parent_id = "parent".into();
+        sim.organisms.push(teen);
+        for _ in 0..200 {
+            tick_apprenticeships(&mut sim);
+            sim.tick_count += 1;
+            if sim.organisms[1].specialty.is_some() {
+                break;
+            }
+        }
+        assert_eq!(sim.organisms[1].specialty.as_deref(), Some("baker"));
+        assert!(sim.organisms[1]
+            .life_log
+            .iter()
+            .any(|e| e.text.contains("apprenticed to parent")));
+    }
+
+    #[test]
+    fn a_parent_out_of_reach_teaches_nobody() {
+        let mut sim = Simulation::new(8);
+        sim.organisms.clear();
+        let mut parent = person("parent", 6000, 10.0, 10.0);
+        parent.specialty = Some("baker".into());
+        sim.organisms.push(parent);
+        let mut teen = person("teen", 3000, 90.0, 90.0);
+        teen.parent_id = "parent".into();
+        sim.organisms.push(teen);
+        for _ in 0..200 {
+            tick_apprenticeships(&mut sim);
+            sim.tick_count += 1;
+        }
+        assert!(sim.organisms[1].specialty.is_none());
+    }
 }

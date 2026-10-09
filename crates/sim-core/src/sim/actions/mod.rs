@@ -308,8 +308,13 @@ pub fn try_apply(
     }
     if spec_bonus > 1.0 {
         if let Some(t) = trade {
+            // An apprentice (a teen with a trade) practises twice as fast.
+            let teen = ctx.sim.organisms[idx].age_stage() == AgeStage::Teen;
             let p = ctx.sim.organisms[idx].practice.entry(t).or_insert(0.0);
             *p = bonus::grow_practice(*p);
+            if teen {
+                *p = bonus::grow_practice(*p);
+            }
         }
     }
     Some(r * spec_bonus * asp_bonus)
