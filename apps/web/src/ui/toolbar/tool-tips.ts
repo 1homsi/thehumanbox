@@ -102,6 +102,14 @@ const TOOL_TIPS: Record<string, string> = {
     'A forest surges: wild food sprouts on the open ground among the trees, and the plantings there grow on. Needs woods within reach.',
   talent:
     'A rare gift for the living person nearest the point: a talent that lifts one of their traits (memory, curiosity, resilience or kindness) for good. A person keeps one talent.',
+  era_stone:
+    'A family settles where you click, already knowing what the stone age knew: the stone tools and the fire. A tribe of its own, with the discoveries of that age.',
+  era_bronze:
+    'A family settles where you click, already knowing the stone and bronze ages: the tools, the metal and the trade that came with them.',
+  era_medieval:
+    'A family settles where you click, already knowing the ages up to the medieval: the castles, the crafts and the learning of that time.',
+  era_modern:
+    'A family settles where you click, already knowing the ages up to the modern: the railways, the factories and the science of today.',
   heat_wave:
     'A heat wave settles over the land for a while. Shore water dries to sand, people drink more and tire sooner, and crops are held back. Calling it again starts the count over.',
   monsoon:

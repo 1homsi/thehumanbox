@@ -77,6 +77,7 @@ export type SandboxCommand =
   | { cmd: 'bless_river'; x: number; y: number; radius?: number }
   | { cmd: 'bless_forest'; x: number; y: number; radius?: number }
   | { cmd: 'talent'; x: number; y: number; radius?: number }
+  | { cmd: 'era_tribe'; x: number; y: number; era: string }
   | { cmd: 'clear_region'; x: number; y: number; radius?: number }
   | { cmd: 'comet'; x: number; y: number; radius?: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
@@ -1326,6 +1327,41 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🌟',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'talent', x, y, radius: 3 + b }),
+      },
+    ],
+  },
+  {
+    id: 'eras',
+    label: 'ages',
+    icon: '🪓',
+    tools: [
+      {
+        id: 'era_stone',
+        label: 'stone-age tribe',
+        icon: '🪓',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'era_tribe', x, y, era: 'stone' }),
+      },
+      {
+        id: 'era_bronze',
+        label: 'bronze-age tribe',
+        icon: '⚔️',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'era_tribe', x, y, era: 'bronze' }),
+      },
+      {
+        id: 'era_medieval',
+        label: 'medieval tribe',
+        icon: '🏰',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'era_tribe', x, y, era: 'medieval' }),
+      },
+      {
+        id: 'era_modern',
+        label: 'modern tribe',
+        icon: '🚂',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'era_tribe', x, y, era: 'modern' }),
       },
     ],
   },
