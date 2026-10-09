@@ -333,6 +333,14 @@ pub enum Command {
         bx: f32,
         by: f32,
     },
+    /// Lay a road over open ground inside the radius (`kind` "road"), or clear the roads there (`kind` "erase").
+    Road {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+        kind: String,
+    },
     /// Pull down every building the radius touches, and clear the huts and
     /// campfires there to grass. The people inside stay where they are.
     Demolish {
@@ -540,6 +548,9 @@ mod rename_person;
 mod restore;
 #[cfg(test)]
 mod restore_tests;
+mod roads;
+#[cfg(test)]
+mod roads_tests;
 mod teleport;
 #[cfg(test)]
 mod tests;
@@ -630,6 +641,7 @@ impl Simulation {
             Command::Marry { ax, ay, bx, by } => self.cmd_marry(ax, ay, bx, by),
             Command::RenamePerson { id, name } => self.cmd_rename_person(id, name),
             Command::Tame { x, y, radius } => self.cmd_tame(x, y, radius),
+            Command::Road { x, y, radius, kind } => self.cmd_road(x, y, radius, kind),
             Command::Demolish { x, y, radius } => self.cmd_demolish(x, y, radius),
             Command::Repair { x, y, radius } => self.cmd_repair(x, y, radius),
             Command::Restore { x, y, radius } => self.cmd_restore(x, y, radius),

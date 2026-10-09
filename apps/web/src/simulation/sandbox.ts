@@ -62,6 +62,7 @@ export type SandboxCommand =
   | { cmd: 'time_of_day'; phase: 'dawn' | 'noon' | 'dusk' | 'midnight' }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
   | { cmd: 'repair'; x: number; y: number; radius?: number }
+  | { cmd: 'road'; x: number; y: number; radius?: number; kind: 'road' | 'erase' }
   | { cmd: 'place_building'; x: number; y: number; kind: string }
   | {
       cmd: 'guide'
@@ -554,6 +555,20 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🔨',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'repair', x, y, radius: 2 + b }),
+      },
+      {
+        id: 'road',
+        label: 'road',
+        icon: '🛤️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'road', x, y, radius: b, kind: 'road' }),
+      },
+      {
+        id: 'road_erase',
+        label: 'unroad',
+        icon: '🧽',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'road', x, y, radius: b, kind: 'erase' }),
       },
       {
         id: 'place_house',

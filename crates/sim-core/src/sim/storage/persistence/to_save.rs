@@ -70,6 +70,7 @@ impl Simulation {
                 fertility: self.grid.fertility.clone(),
                 hazard: self.grid.hazard.clone(),
                 pressure: self.grid.pressure.clone(),
+                road: self.grid.road.clone(),
             },
             current_era: self.current_era.clone(),
             sex_words: self.sex_words.to_vec(),

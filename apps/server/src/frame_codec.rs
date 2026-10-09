@@ -179,6 +179,7 @@ fn write_grid(out: &mut Vec<u8>, grid: &GridJson) {
         height,
         origin_x,
         origin_y,
+        roads,
         structure,
         tiles,
         trails,
@@ -190,6 +191,7 @@ fn write_grid(out: &mut Vec<u8>, grid: &GridJson) {
         fertility.is_some(),
         fertility_dense.is_some(),
         hazard.is_some(),
+        roads.is_some(),
         tiles.is_some(),
         trails.is_some(),
     ];
@@ -224,6 +226,10 @@ fn write_grid(out: &mut Vec<u8>, grid: &GridJson) {
     write_sint(out, i64::from(*origin_x));
     write_str(out, "origin_y");
     write_sint(out, i64::from(*origin_y));
+    if let Some(rows) = roads {
+        write_str(out, "roads");
+        write_u16_rows(out, rows);
+    }
     write_str(out, "structure");
     write_u16_rows(out, structure);
     if let Some(rows) = tiles {
@@ -417,7 +423,7 @@ mod tests {
     /// the width boundaries, in a hand-built grid.
     #[test]
     fn grid_layers_match_rmp_serde_in_every_combination() {
-        for mask in 0..128u32 {
+        for mask in 0..256u32 {
             let has = |bit: u32| mask & (1 << bit) != 0;
             let grid = GridJson {
                 biomes: has(0).then(|| vec![vec![0, 127, 128, 255]; 3]),
@@ -429,6 +435,7 @@ mod tests {
                 height: 300,
                 origin_x: -17,
                 origin_y: 70_000,
+                roads: has(7).then(|| vec![[0, 1, 1], [299, 599, 2]]),
                 structure: Vec::new(),
                 tiles: has(5).then(|| vec![vec![-128, -33, -32, -1, 0, 1, 127]; 4]),
                 trails: has(6).then(|| vec![[1, 2, 3, 4, 65_535]]),

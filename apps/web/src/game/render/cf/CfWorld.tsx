@@ -14,6 +14,7 @@ import { SleepyLoop } from './render-loop'
 import { CfBuildings } from './buildings/CfBuildings'
 import { CfGround } from './ground/CfGround'
 import { CfLanduse } from './landuse/CfLanduse'
+import { CfRoads } from './roads/CfRoads'
 import { CfVegetation } from './vegetation/CfVegetation'
 import { TerrainWatch } from './vegetation/terrain-watch'
 
@@ -155,6 +156,7 @@ export function CfWorld({
     <>
       <TerrainTileLayer width={gw} height={gh} syncRef={terrainSyncRef} />
       <CfVegetation registry={registry} />
+      <CfRoads registry={registry} />
       <CfGround registry={registry} />
       <CfLanduse registry={registry} />
       <CfBuildings registry={registry} />

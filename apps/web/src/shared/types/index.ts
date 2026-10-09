@@ -512,6 +512,10 @@ export interface GridState {
   path_trail_hot?: Int32Array
   fertility?: number[][]
   hazard?: number[][]
+  /** Road kind per cell (0 none, see `ROAD_TRACK` in the simulation); absent before the first static frame. */
+  roads?: number[][]
+  /** Bumped when the road cells change, so the renderer re-reads them only then. */
+  road_revision?: number
 }
 
 /** Path traffic at or above this is drawn as a worn track on the map. */
@@ -531,6 +535,7 @@ export interface GridWire {
   fertility?: [number, number, number][]
   fertility_dense?: number[] | Uint8Array
   hazard?: [number, number, number][]
+  roads?: [number, number, number][]
 }
 
 export interface WorldState {

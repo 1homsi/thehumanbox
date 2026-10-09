@@ -149,6 +149,9 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'tornado':
     case 'demolish':
       return 'quake'
+    case 'road':
+    case 'road_erase':
+      return 'paint'
     case 'repair':
     case 'place_house':
     case 'place_library':

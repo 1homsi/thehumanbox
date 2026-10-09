@@ -64,6 +64,16 @@ describe('sandbox map controls', () => {
   })
 })
 
+describe('road tools', () => {
+  it('sit with the build tools and send a road or an erase over the brush', () => {
+    const build = SANDBOX_CATEGORIES.find((c) => c.id === 'build')?.tools ?? []
+    const road = build.find((t) => t.id === 'road')
+    const erase = build.find((t) => t.id === 'road_erase')
+    expect(road?.build?.(10, 20, 3)).toEqual({ cmd: 'road', x: 10, y: 20, radius: 3, kind: 'road' })
+    expect(erase?.build?.(10, 20, 2)).toEqual({ cmd: 'road', x: 10, y: 20, radius: 2, kind: 'erase' })
+  })
+})
+
 describe('marry tool', () => {
   it('sits with the life tools and takes two clicks, not one command', () => {
     const life = SANDBOX_CATEGORIES.find((c) => c.id === 'life')?.tools ?? []

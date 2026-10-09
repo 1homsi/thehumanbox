@@ -13,6 +13,11 @@ pub const SOIL_SETTLE: f32 = 0.002;
 pub const VP_W: usize = WIDTH;
 pub const VP_H: usize = HEIGHT;
 
+/// No road on the cell.
+pub const ROAD_NONE: u8 = 0;
+/// A trodden road: dirt in the early ages, cobbles once the tribes reach the later ones.
+pub const ROAD_TRACK: u8 = 1;
+
 pub struct WorldGrid {
     pub tiles: Vec<i8>,
     pub fire_intensity: Vec<f32>,
@@ -28,6 +33,9 @@ pub struct WorldGrid {
     pub pressure: Vec<f32>,
     pub elevation: Vec<f32>,
     pub depth: Vec<f32>,
+    /// Roads laid by the player or built by the tribes, one of the `ROAD_*` kinds per cell. A road is
+    /// a surface on the ground: the tile underneath (grass, sand, food) stays as it is.
+    pub road: Vec<u8>,
     /// Indices of tiles with non-zero trail values across any of the
     /// three trail layers. Lets `decay_trails*` skip the empty 99% of
     /// the grid that was wasting 540k multiplies per pass. Tracked as
@@ -55,6 +63,7 @@ impl WorldGrid {
             pressure: vec![0.0f32; size],
             elevation: vec![0.0f32; size],
             depth: vec![0.0f32; size],
+            road: vec![ROAD_NONE; size],
             trail_dirty: rustc_hash::FxHashSet::default(),
         };
         g.generate(seed);
@@ -163,6 +172,15 @@ impl WorldGrid {
     pub fn set(&mut self, x: i32, y: i32, tile: Tile) {
         if Self::in_bounds(x, y) {
             self.tiles[Self::idx(x, y)] = tile as i8;
+        }
+    }
+
+    /// The road kind on a cell (`ROAD_NONE` outside the map).
+    pub fn road_at(&self, x: i32, y: i32) -> u8 {
+        if Self::in_bounds(x, y) {
+            self.road[Self::idx(x, y)]
+        } else {
+            ROAD_NONE
         }
     }
 
@@ -805,6 +823,14 @@ impl WorldGrid {
             None
         };
 
+        let roads: Option<Vec<[u16; 3]>> = if include_static {
+            let mut v: Vec<[u16; 3]> = Vec::new();
+            push_roads(&mut v, &self.road, window);
+            Some(v)
+        } else {
+            None
+        };
+
         let (biomes, depth_map) = if include_terrain {
             let b = (oy..oy + vh).map(|y| slice_u8(&self.biome, y)).collect();
             let d = (oy..oy + vh)
@@ -843,6 +869,7 @@ impl WorldGrid {
             fertility,
             fertility_dense,
             hazard,
+            roads,
         }
     }
 
@@ -944,6 +971,21 @@ impl WorldGrid {
             None
         };
 
+        let roads: Option<Vec<[u16; 3]>> = if include_static {
+            let mut v: Vec<[u16; 3]> = Vec::new();
+            for y in oy..oy + vh {
+                let row = &self.road[y * WIDTH + ox..y * WIDTH + ox + vw];
+                for (col_off, &kind) in row.iter().enumerate() {
+                    if kind != ROAD_NONE {
+                        v.push([(y - oy) as u16, col_off as u16, u16::from(kind)]);
+                    }
+                }
+            }
+            Some(v)
+        } else {
+            None
+        };
+
         let (biomes, depth_map) = if include_terrain {
             let b = (oy..oy + vh).map(|y| slice_u8(&self.biome, y)).collect();
             let d = (oy..oy + vh)
@@ -982,6 +1024,7 @@ impl WorldGrid {
             fertility,
             fertility_dense,
             hazard,
+            roads,
         }
     }
 
@@ -1024,6 +1067,18 @@ fn top_bits(block: &[f32]) -> i32 {
 
 /// `0.10_f32` as a bit pattern, the trail layers' threshold.
 const TRAIL_BITS: i32 = 0.10_f32.to_bits() as i32;
+
+/// Append `[row, col, kind]` for every road cell of the viewport window, in row-major order.
+fn push_roads(out: &mut Vec<[u16; 3]>, road: &[u8], w: Window) {
+    for y in w.oy..w.oy + w.vh {
+        let row = &road[y * WIDTH + w.ox..y * WIDTH + w.ox + w.vw];
+        for (col, &kind) in row.iter().enumerate() {
+            if kind != ROAD_NONE {
+                out.push([(y - w.oy) as u16, col as u16, u16::from(kind)]);
+            }
+        }
+    }
+}
 
 /// Append `[row, col, scaled value]` for every tile of the viewport window
 /// whose layer value exceeds `threshold`, in row-major order.
@@ -1079,6 +1134,9 @@ pub struct GridJson {
     pub height: usize,
     pub origin_x: i32,
     pub origin_y: i32,
+    /// Road cells as `[row, col, kind]` (see `ROAD_*`), absent on frames without static layers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub roads: Option<Vec<[u16; 3]>>,
     pub structure: Vec<[u16; 3]>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tiles: Option<Vec<Vec<i8>>>,
