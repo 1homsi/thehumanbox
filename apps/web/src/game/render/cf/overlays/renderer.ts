@@ -23,6 +23,7 @@ import {
   paintWaterStars,
 } from './paint-ground'
 import { hazeLevels, paintHaze } from './haze'
+import { paintFallingBlossoms } from './falling-blossoms'
 import { paintFallingLeaves } from './falling-leaves'
 import { paintCampfireSparks, paintEmbers } from './embers'
 import { paintEruption } from './eruption'
@@ -314,6 +315,15 @@ export class CfOverlayRenderer {
       if (vegetationSeason(terrainSeason(f.world)) === 'autumn') {
         const { c0, c1, r0, r1 } = f.bounds
         paintFallingLeaves(
+          ground,
+          { x0: (c0 - f.ox) * TILE, y0: (r0 - f.oy) * TILE, x1: (c1 - f.ox) * TILE, y1: (r1 - f.oy) * TILE },
+          f.t,
+          1,
+        )
+      }
+      if (vegetationSeason(terrainSeason(f.world)) === 'spring') {
+        const { c0, c1, r0, r1 } = f.bounds
+        paintFallingBlossoms(
           ground,
           { x0: (c0 - f.ox) * TILE, y0: (r0 - f.oy) * TILE, x1: (c1 - f.ox) * TILE, y1: (r1 - f.oy) * TILE },
           f.t,
