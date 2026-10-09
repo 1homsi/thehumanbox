@@ -336,3 +336,31 @@ fn released_monkeys_swing_through_the_jungle_and_no_other_ground() {
         );
     }
 }
+
+#[test]
+fn released_goats_keep_to_their_habitat() {
+    assert!(AnimalKind::Goat.drain() > 0.0 && AnimalKind::Goat.step_size() > 0);
+    assert_eq!(AnimalKind::Goat.name(), "goat");
+    let mut sim = Simulation::new(23);
+    sim.animals.clear();
+    for x in 0..WIDTH as i32 {
+        for y in 0..HEIGHT as i32 {
+            let home = x < WIDTH as i32 / 2;
+            sim.grid.biome[WorldGrid::idx(x, y)] = if home { Biome::Badlands } else { Biome::Jungle } as u8;
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
+    assert!(sim.apply_command_json(
+        r#"{"cmd":"spawn_animal","x":60.0,"y":60.0,"kind":"goat","count":12,"radius":12}"#
+    ));
+    assert!(sim.animals.len() >= 12);
+    for a in &sim.animals {
+        assert_eq!(
+            sim.grid.biome_at(a.x as i32, a.y as i32),
+            Biome::Badlands,
+            "goat at ({}, {})",
+            a.x,
+            a.y
+        );
+    }
+}

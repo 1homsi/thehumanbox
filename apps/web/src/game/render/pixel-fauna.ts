@@ -52,6 +52,8 @@ const PALETTE: Record<string, string> = {
   C: '#5d6b3c', // crocodile green
   P: '#cfc38f', // crocodile belly
   U: '#2f3a22', // crocodile ridges
+  b: '#9c7a52',
+  s: '#e6dcc6',
   M: '#7b5234', // monkey fur
   T: '#e7c79a', // monkey face
 }
@@ -274,6 +276,26 @@ const SPRITES: Record<string, Frames> = {
       'M..MMMMMMM..',
       '..MM....MM..',
       '..M......M..',
+    ],
+  ],
+  goat: [
+    [
+      '.........s..',
+      '........bbb.',
+      '.bbbbbbbbbbb',
+      'bbbbbbbbbbbb',
+      '.bbbbbbbbbb.',
+      '.b.b....b.b.',
+      '.o.o....o.o.',
+    ],
+    [
+      '.........s..',
+      '........bbb.',
+      '.bbbbbbbbbbb',
+      'bbbbbbbbbbbb',
+      '.bbbbbbbbbb.',
+      '..b.b..b.b..',
+      '..o.o..o.o..',
     ],
   ],
   owl: [

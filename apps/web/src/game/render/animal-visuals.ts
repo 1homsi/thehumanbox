@@ -5,41 +5,43 @@ export function animalSize(kind: string): number {
   const small = kind === 'fish' || kind === 'bird' || kind === 'rabbit'
   return (
     MONSTER_SIZES[kind] ??
-    (kind === 'monkey'
+    (kind === 'goat'
       ? 14
-      : kind === 'snake'
-        ? 12
-        : kind === 'crocodile'
-          ? 22
-          : kind === 'owl'
-            ? 10
-            : kind === 'eagle'
-              ? 16
-              : kind === 'duck'
-                ? 11
-                : kind === 'bee'
-                  ? 8
-                  : kind === 'fox'
-                    ? 16
-                    : kind === 'penguin'
-                      ? 12
-                      : kind === 'frog'
-                        ? 11
-                        : kind === 'camel'
-                          ? 22
-                          : kind === 'whale'
-                            ? 30
-                            : kind === 'cat'
-                              ? 14
-                              : kind === 'chicken'
-                                ? 10
-                                : kind === 'bear' || kind === 'cow' || kind === 'horse'
-                                  ? 22
-                                  : small
-                                    ? 14
-                                    : kind === 'sheep'
-                                      ? 18
-                                      : 20)
+      : kind === 'monkey'
+        ? 14
+        : kind === 'snake'
+          ? 12
+          : kind === 'crocodile'
+            ? 22
+            : kind === 'owl'
+              ? 10
+              : kind === 'eagle'
+                ? 16
+                : kind === 'duck'
+                  ? 11
+                  : kind === 'bee'
+                    ? 8
+                    : kind === 'fox'
+                      ? 16
+                      : kind === 'penguin'
+                        ? 12
+                        : kind === 'frog'
+                          ? 11
+                          : kind === 'camel'
+                            ? 22
+                            : kind === 'whale'
+                              ? 30
+                              : kind === 'cat'
+                                ? 14
+                                : kind === 'chicken'
+                                  ? 10
+                                  : kind === 'bear' || kind === 'cow' || kind === 'horse'
+                                    ? 22
+                                    : small
+                                      ? 14
+                                      : kind === 'sheep'
+                                        ? 18
+                                        : 20)
   )
 }
 

@@ -52,6 +52,8 @@ pub enum AnimalKind {
     Crocodile,
     // A monkey (released by the player only) swings through the jungle canopy and forages there.
     Monkey,
+    // Released by the player only: a goat climbs the badlands and grass, and keeps clear of people.
+    Goat,
     // Monsters: summoned with god powers, never born or spawned naturally.
     Zombie,
     Demon,
@@ -62,7 +64,7 @@ pub enum AnimalKind {
 
 impl AnimalKind {
     /// Every kind, for tables and tests.
-    pub const ALL: [AnimalKind; 30] = [
+    pub const ALL: [AnimalKind; 31] = [
         AnimalKind::Rabbit,
         AnimalKind::Deer,
         AnimalKind::Boar,
@@ -87,6 +89,7 @@ impl AnimalKind {
         AnimalKind::Eagle,
         AnimalKind::Snake,
         AnimalKind::Crocodile,
+        AnimalKind::Goat,
         AnimalKind::Monkey,
         AnimalKind::Zombie,
         AnimalKind::Demon,
@@ -128,6 +131,7 @@ impl AnimalKind {
             AnimalKind::Snake => 0.0005,
             AnimalKind::Crocodile => 0.0004,
             AnimalKind::Monkey => 0.0006,
+            AnimalKind::Goat => 0.0005,
             // Monsters do not eat. A UFO's energy is its visit: it leaves
             // after roughly 1200 ticks.
             // Zombies slowly rot (about 2500 ticks), so outbreaks burn out.
@@ -163,6 +167,7 @@ impl AnimalKind {
             AnimalKind::Snake => 3.0,
             AnimalKind::Crocodile => 2.0,
             AnimalKind::Monkey => 3.0,
+            AnimalKind::Goat => 3.5,
             AnimalKind::Zombie
             | AnimalKind::Demon
             | AnimalKind::Dragon
@@ -197,6 +202,7 @@ impl AnimalKind {
             AnimalKind::Snake => 1,
             AnimalKind::Crocodile => 1,
             AnimalKind::Monkey => 2,
+            AnimalKind::Goat => 2,
             AnimalKind::Zombie => 1,
             AnimalKind::Demon => 2,
             AnimalKind::Dragon => 3,
@@ -284,6 +290,7 @@ impl AnimalKind {
             AnimalKind::Snake => &[Biome::Desert, Biome::Badlands, Biome::Jungle],
             AnimalKind::Crocodile => &[Biome::Wetland, Biome::Jungle],
             AnimalKind::Monkey => &[Biome::Jungle],
+            AnimalKind::Goat => &[Biome::Badlands, Biome::Grassland],
             _ => &[],
         }
     }
@@ -332,6 +339,7 @@ impl AnimalKind {
             AnimalKind::Snake => "snake",
             AnimalKind::Crocodile => "crocodile",
             AnimalKind::Monkey => "monkey",
+            AnimalKind::Goat => "goat",
             AnimalKind::Zombie => "zombie",
             AnimalKind::Demon => "demon",
             AnimalKind::Dragon => "dragon",
