@@ -67,6 +67,7 @@ pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
     }
     if tick.is_multiple_of(120) {
         tick_specialties(sim);
+        tick_merchant_drift(sim);
         tick_apprenticeships(sim);
         tick_aspirations(sim);
     }

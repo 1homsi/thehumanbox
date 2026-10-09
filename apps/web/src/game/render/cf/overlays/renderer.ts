@@ -364,8 +364,9 @@ export class CfOverlayRenderer {
     // Remains of prey lie on the ground too, under the buildings and the people.
     paintCarcasses(this.roads.asContext(), f)
     this.roads.end()
+    // Caravans travel the roads at every zoom; the trade roads and rails above show only with the lens.
     this.traffic.begin(gv)
-    if (showTrade) drawTradeNetwork2D(this.traffic.asContext(), f.world, f.bounds, f.t, 'caravans')
+    drawTradeNetwork2D(this.traffic.asContext(), f.world, f.bounds, f.t, 'caravans')
     this.traffic.end()
     this.smoke.begin(gv)
     paintChimneySmoke(this.smoke.asContext(), f.bounds, f.ox, f.oy, f.world.buildings, f.t)

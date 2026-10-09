@@ -119,6 +119,12 @@ pub fn tick(sim: &mut Simulation) {
         expire_stranded_caravans(sim);
         refresh_route_centers(sim);
     }
+    if sim.tick_count.is_multiple_of(MERCHANT_ROUTE_SCAN_TICKS) {
+        open_merchant_routes(sim);
+    }
+    if sim.tick_count.is_multiple_of(MERCHANT_DISPATCH_SCAN_TICKS) {
+        run_merchant_caravans(sim);
+    }
     if sim.tick_count < AUTO_UNLOAD_GRACE_TICKS {
         return;
     }
