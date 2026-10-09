@@ -91,4 +91,56 @@ describe('expandPeopleSheet', () => {
     expandPeopleSheet(blank, HUMAN_ATLAS_WIDTH, out)
     expect(out.every((v) => v === 0)).toBe(true)
   })
+
+  it('gives every pixel the tint of its own colour, however many colours the sheet has', () => {
+    // A sheet of many colours, with some transparent pixels: the colour cache must not change any pixel.
+    const noisy = new Uint8ClampedArray(src.length)
+    let seed = 7
+    const rand = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff
+      return seed / 0x7fffffff
+    }
+    for (let i = 0; i < noisy.length; i += 4) {
+      noisy[i] = Math.floor(rand() * 256)
+      noisy[i + 1] = Math.floor(rand() * 256)
+      noisy[i + 2] = Math.floor(rand() * 256)
+      noisy[i + 3] = rand() < 0.1 ? 0 : 255
+    }
+    const out = new Uint8ClampedArray(dst.length)
+    expandPeopleSheet(noisy, HUMAN_ATLAS_WIDTH, out)
+    const perRow = HUMAN_ATLAS_CELL * HUMAN_ATLAS_WIDTH
+    let mismatches = 0
+    for (let sex = 0; sex < 2; sex++) {
+      for (let stage = 0; stage < 5; stage++) {
+        for (let look = 0; look < 24; look++) {
+          const figure = look % HUMAN_SHEET_APPEARANCES
+          const tint = [
+            { hue: 0, skin: 1 },
+            { hue: 110, skin: 0.9 },
+            { hue: 200, skin: 1.08 },
+            { hue: 290, skin: 0.8 },
+          ][Math.floor(look / HUMAN_SHEET_APPEARANCES)]
+          const sheetRow = (sex * 5 + stage) * HUMAN_SHEET_APPEARANCES + figure
+          const outRow = (sex * 5 + stage) * 24 + look
+          for (let p = 0; p < perRow; p++) {
+            const si = (sheetRow * perRow + p) * 4
+            const oi = (outRow * perRow + p) * 4
+            const a = noisy[si + 3]
+            const want =
+              a === 0 || tint.hue === 0
+                ? [noisy[si], noisy[si + 1], noisy[si + 2]]
+                : tintPixel(noisy[si], noisy[si + 1], noisy[si + 2], tint)
+            if (
+              out[oi] !== want[0] ||
+              out[oi + 1] !== want[1] ||
+              out[oi + 2] !== want[2] ||
+              out[oi + 3] !== a
+            )
+              mismatches++
+          }
+        }
+      }
+    }
+    expect(mismatches).toBe(0)
+  })
 })

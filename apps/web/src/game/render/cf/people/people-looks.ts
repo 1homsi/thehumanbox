@@ -92,11 +92,16 @@ export function expandPeopleSheet(src: Uint8ClampedArray, srcWidth: number, dst:
   const sexes = HUMAN_SEX_ORDER.length
   const dstWidth = srcWidth
   const rowBytes = cell * dstWidth * 4
+  // A tint depends on a pixel's colour alone (not its place or alpha), and a sheet has only a few
+  // hundred colours, so each tint works a colour out once and reuses it for every pixel that has it.
+  const tintedByColour = HUMAN_LOOK_TINTS.map(() => new Map<number, [number, number, number]>())
   for (let sex = 0; sex < sexes; sex++) {
     for (let stage = 0; stage < stages; stage++) {
       for (let look = 0; look < rowsPerStage; look++) {
         const figure = look % HUMAN_SHEET_APPEARANCES
-        const tint = HUMAN_LOOK_TINTS[Math.floor(look / HUMAN_SHEET_APPEARANCES)]
+        const tintIndex = Math.floor(look / HUMAN_SHEET_APPEARANCES)
+        const tint = HUMAN_LOOK_TINTS[tintIndex]
+        const tinted = tintedByColour[tintIndex]
         const srcRow = (sex * stages + stage) * HUMAN_SHEET_APPEARANCES + figure
         const dstRow = (sex * stages + stage) * rowsPerStage + look
         const srcBase = srcRow * rowBytes
@@ -115,10 +120,15 @@ export function expandPeopleSheet(src: Uint8ClampedArray, srcWidth: number, dst:
               dst[o + 3] = a
               continue
             }
-            const [r, g, b] = tintPixel(src[i], src[i + 1], src[i + 2], tint)
-            dst[o] = r
-            dst[o + 1] = g
-            dst[o + 2] = b
+            const colour = (src[i] << 16) | (src[i + 1] << 8) | src[i + 2]
+            let rgb = tinted.get(colour)
+            if (rgb === undefined) {
+              rgb = tintPixel(src[i], src[i + 1], src[i + 2], tint)
+              tinted.set(colour, rgb)
+            }
+            dst[o] = rgb[0]
+            dst[o + 1] = rgb[1]
+            dst[o + 2] = rgb[2]
             dst[o + 3] = a
           }
         }
