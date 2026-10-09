@@ -26,6 +26,32 @@ const TRADE_GOODS: [&str; TRADE_GOOD_COUNT] = [
     "food", "wood", "stone", "clay", "salt", "ore", "spice", "ochre", "fur",
 ];
 
+/// Two tribes with a trade or alliance treaty between them (and it still in force).
+pub fn route_has_agreement(sim: &Simulation, first: &str, second: &str) -> bool {
+    let tick = sim.tick_count;
+    sim.treaties.iter().any(|treaty| {
+        treaty.signed_tick <= tick
+            && treaty.expires_tick > tick
+            && matches!(treaty.kind, TreatyKind::Trade | TreatyKind::Alliance)
+            && ((treaty.lineage_a == first && treaty.lineage_b == second)
+                || (treaty.lineage_a == second && treaty.lineage_b == first))
+    })
+}
+
+/// Two tribes at war: a battle between them is still on, so no caravan passes between them.
+pub fn route_is_embargoed(sim: &Simulation, first: &str, second: &str) -> bool {
+    has_active_battle_between(&sim.battles, first, second)
+}
+
+/// Caravans between tribes under an agreement leave twice as often.
+fn caravan_interval(sim: &Simulation, first: &str, second: &str) -> u64 {
+    if route_has_agreement(sim, first, second) {
+        CARAVAN_INTERVAL_TICKS / 2
+    } else {
+        CARAVAN_INTERVAL_TICKS
+    }
+}
+
 fn is_merchant(org: &crate::organism::organism::Organism) -> bool {
     org.alive && org.specialty.as_deref() == Some("merchant")
 }
@@ -84,11 +110,20 @@ pub(super) fn open_merchant_routes(sim: &mut Simulation) {
         };
         let mut best: Option<(u64, &String)> = None;
         for (other, other_center) in &centers {
-            if *other == lineage || has_route_between(sim, &lineage, other) {
+            if *other == lineage
+                || has_route_between(sim, &lineage, other)
+                || route_is_embargoed(sim, &lineage, other)
+            {
                 continue;
             }
             let distance = manhattan_distance(center, *other_center);
-            if distance > MERCHANT_ROUTE_REACH {
+            // Friends reach further: a tribe under an agreement is worth the longer road.
+            let reach = if route_has_agreement(sim, &lineage, other) {
+                MERCHANT_ROUTE_REACH * 2
+            } else {
+                MERCHANT_ROUTE_REACH
+            };
+            if distance > reach {
                 continue;
             }
             if best.is_none_or(|(best_distance, _)| distance < best_distance) {
@@ -253,7 +288,11 @@ pub(super) fn run_merchant_caravans(sim: &mut Simulation) {
         let route = &sim.trade_routes[route_index];
         let (route_id, last_dispatch) = (route.id, route.last_dispatch_tick);
         let (lineage_a, lineage_b) = (route.lineage_a.clone(), route.lineage_b.clone());
-        if last_dispatch != 0 && tick.saturating_sub(last_dispatch) < CARAVAN_INTERVAL_TICKS {
+        if route_is_embargoed(sim, &lineage_a, &lineage_b) {
+            continue;
+        }
+        let interval = caravan_interval(sim, &lineage_a, &lineage_b);
+        if last_dispatch != 0 && tick.saturating_sub(last_dispatch) < interval {
             continue;
         }
         if sim.caravans.iter().any(|caravan| caravan.route_id == route_id) {
@@ -271,5 +310,49 @@ pub(super) fn run_merchant_caravans(sim: &mut Simulation) {
                 break;
             }
         }
+    }
+}
+
+/// Bandits raid caravans on the road while their two tribes are at war: each
+/// caravan in transit between them is seized with a one-in-four chance at each scan.
+pub(super) fn raid_embargoed_caravans(sim: &mut Simulation) {
+    use rand::RngExt;
+    let tick = sim.tick_count;
+    let exposed: Vec<usize> = sim
+        .caravans
+        .iter()
+        .enumerate()
+        .filter(|(_, caravan)| {
+            caravan.departed_tick <= tick
+                && tick < caravan.arrives_tick
+                && route_is_embargoed(sim, &caravan.sender_lineage, &caravan.receiver_lineage)
+        })
+        .map(|(index, _)| index)
+        .collect();
+    for index in exposed.into_iter().rev() {
+        if sim.rng.random::<f32>() >= 0.25 {
+            continue;
+        }
+        let caravan = sim.caravans.remove(index);
+        let name_of = |lineage: &str| {
+            sim.lineage_names
+                .get(lineage)
+                .cloned()
+                .unwrap_or_else(|| lineage.to_string())
+        };
+        let detail = format!(
+            "bandits in the war between {} and {} seized {} {} from a caravan",
+            name_of(&caravan.sender_lineage),
+            name_of(&caravan.receiver_lineage),
+            caravan.amount,
+            caravan.cargo
+        );
+        push_event(
+            &mut sim.events,
+            tick,
+            "trade",
+            &name_of(&caravan.sender_lineage),
+            &detail,
+        );
     }
 }

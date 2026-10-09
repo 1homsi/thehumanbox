@@ -122,3 +122,38 @@ describe('territory card goods line', () => {
     expect(facts.goods).toBe('holds 3 ore')
   })
 })
+
+describe('territory card agreement and embargo', () => {
+  it('names a trade agreement on a route between two tribes', () => {
+    const agreed = world({
+      trade_routes: [
+        { id: 1, lineage_a: 'red', lineage_b: 'blue', volume: 0, deliveries: 0, agreement: true },
+      ],
+    } as Partial<WorldState>)
+    expect(tradeOfTribe(agreed, 'red')).toBe('1 route · trade agreement')
+  })
+
+  it('names a war that closes the route, which outranks the agreement', () => {
+    const war = world({
+      trade_routes: [
+        {
+          id: 1,
+          lineage_a: 'red',
+          lineage_b: 'blue',
+          volume: 0,
+          deliveries: 0,
+          agreement: true,
+          embargoed: true,
+        },
+      ],
+    } as Partial<WorldState>)
+    expect(tradeOfTribe(war, 'red')).toBe('1 route · embargoed by war')
+  })
+
+  it('says nothing about agreements when the route is an ordinary one', () => {
+    const plain = world({
+      trade_routes: [{ id: 1, lineage_a: 'red', lineage_b: 'blue', volume: 0, deliveries: 0 }],
+    } as Partial<WorldState>)
+    expect(tradeOfTribe(plain, 'red')).toBe('1 route')
+  })
+})

@@ -333,6 +333,16 @@ impl Simulation {
                         "last_dispatch_tick": route.last_dispatch_tick,
                         "deliveries": route.deliveries,
                         "volume": route.volume,
+                        "agreement": crate::sim::civ::trade_routes::route_has_agreement(
+                            self,
+                            &route.lineage_a,
+                            &route.lineage_b,
+                        ),
+                        "embargoed": crate::sim::civ::trade_routes::route_is_embargoed(
+                            self,
+                            &route.lineage_a,
+                            &route.lineage_b,
+                        ),
                     })
                 })
                 .collect();

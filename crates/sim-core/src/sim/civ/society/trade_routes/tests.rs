@@ -411,3 +411,92 @@ fn staples_go_before_land_goods_when_both_are_spare() {
         "the clay stays at home this time"
     );
 }
+
+/// A battle between two tribes that is still on.
+fn ongoing_battle(a: &str, b: &str) -> crate::sim::civ::warfare::Battle {
+    use crate::sim::civ::warfare::{Battle, BattleScale};
+    Battle {
+        id: "war".into(),
+        attackers: vec![a.into()],
+        defenders: vec![b.into()],
+        attacker_orgs: Vec::new(),
+        defender_orgs: Vec::new(),
+        scale: BattleScale::Raid,
+        location: (0, 0),
+        started_tick: 0,
+        ended_tick: None,
+        casualties_a: 0,
+        casualties_d: 0,
+        outcome: None,
+        initial_a: 0,
+        initial_d: 0,
+    }
+}
+
+#[test]
+fn a_trade_agreement_halves_the_wait_between_caravans() {
+    use crate::sim::civ::warfare::{establish_treaty, TreatyKind};
+    let mut sim = neighbouring_trade_sim();
+    sim.organisms[0].specialty = Some("merchant".into());
+    open_merchant_routes(&mut sim);
+    assert!(establish_treaty(
+        &mut sim.treaties,
+        &mut sim.organisms,
+        "river",
+        "hill",
+        TreatyKind::Trade,
+        0,
+        100_000,
+    ));
+    sim.tick_count = 1_000;
+    sim.organisms[1].inv_food = 5;
+    run_merchant_caravans(&mut sim);
+    assert_eq!(sim.caravans.len(), 1);
+    sim.caravans.clear();
+
+    sim.tick_count += CARAVAN_INTERVAL_TICKS / 2;
+    sim.organisms[1].inv_food = 5;
+    run_merchant_caravans(&mut sim);
+    assert_eq!(
+        sim.caravans.len(),
+        1,
+        "a tribe under a trade agreement sends again sooner"
+    );
+}
+
+#[test]
+fn a_war_stops_caravans_and_raids_the_ones_on_the_road() {
+    let mut sim = neighbouring_trade_sim();
+    sim.organisms[0].specialty = Some("merchant".into());
+    sim.organisms[1].inv_food = 5;
+    open_merchant_routes(&mut sim);
+    sim.battles.push(ongoing_battle("river", "hill"));
+
+    run_merchant_caravans(&mut sim);
+    assert!(
+        sim.caravans.is_empty(),
+        "no caravan leaves while the two tribes are at war"
+    );
+
+    sim.battles.clear();
+    run_merchant_caravans(&mut sim);
+    assert_eq!(sim.caravans.len(), 1, "the road opens again once the war is over");
+    let departed = sim.caravans[0].departed_tick;
+    sim.caravans[0].arrives_tick = departed + 1_000;
+    sim.battles.push(ongoing_battle("river", "hill"));
+    for _ in 0..200 {
+        sim.tick_count += MERCHANT_DISPATCH_SCAN_TICKS;
+        raid_embargoed_caravans(&mut sim);
+        if sim.caravans.is_empty() {
+            break;
+        }
+    }
+    assert!(
+        sim.caravans.is_empty(),
+        "bandits seize a caravan on a road closed by war"
+    );
+    assert!(sim
+        .events
+        .iter()
+        .any(|event| event.etype == "trade" && event.detail.contains("bandits in the war")));
+}
