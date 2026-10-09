@@ -136,6 +136,10 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'blizzard':
     case 'hail':
       return 'frost'
+    case 'mutate':
+      return 'bless'
+    case 'curse':
+      return 'plague'
     case 'nuke':
     case 'comet':
       return 'meteor'

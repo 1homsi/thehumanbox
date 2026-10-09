@@ -10,6 +10,10 @@ const TOOL_TIPS: Record<string, string> = {
     'Run the world on to the start of the next year, in quick steps. The seasons turn as they would.',
   leader:
     'Crown the grown person nearest where you click the ruler of their tribe. They keep the crown while they live, unless their tribe has no ruler to crown (a plain band) or they are still a child.',
+  mutate:
+    'Change the person nearest where you click: one of their traits (curiosity, aggression, fear, memory, sociability or resilience) jumps far beyond their people. The change is written into the chronicle.',
+  curse:
+    'Curse the person nearest where you click: bad luck hurts them, fear grips them and sickness takes hold. Only that one person.',
   heal_one:
     'Heal the person nearest where you click: full health, and no infection or sickness. Only that one person.',
   name: 'Click a person to give them a name of your own. It shows everywhere their name does.',
@@ -214,6 +218,9 @@ export function toolFailure(tool: SandboxTool): string {
       return 'no fire there'
     case 'thunder':
       return 'the lightning hit nothing'
+    case 'mutate':
+    case 'curse':
+      return 'nobody is near enough to change'
     case 'nuke':
       return 'no tribe has reached the Industrial age yet'
     case 'eclipse':

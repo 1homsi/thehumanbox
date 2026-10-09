@@ -65,6 +65,20 @@ pub enum Command {
         #[serde(default)]
         radius: i32,
     },
+    /// The nearest person in reach gains a mutation: one trait jumps.
+    Mutate {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// A curse falls on the nearest person in reach: they are hurt, frightened and sick.
+    Curse {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
     /// The sun goes dark for a while: everyone alive is frightened and awed.
     Eclipse,
     /// A comet streaks across the sky over the point: everyone within the reach is awed.
@@ -566,6 +580,7 @@ mod leader;
 #[cfg(test)]
 mod locust_tests;
 mod marry;
+mod mutation;
 mod nuke;
 mod place;
 #[cfg(test)]
@@ -623,6 +638,8 @@ impl Simulation {
             Command::Hail { x, y, radius } => self.cmd_hail(x, y, radius),
             Command::Nuke { x, y } => self.cmd_nuke(x, y),
             Command::Eclipse => self.cmd_eclipse(),
+            Command::Mutate { x, y, radius } => self.cmd_mutate(x, y, radius),
+            Command::Curse { x, y, radius } => self.cmd_curse(x, y, radius),
             Command::Comet { x, y, radius } => self.cmd_comet(x, y, radius),
             Command::Smite { x, y, radius } => self.cmd_smite(x, y, radius),
             Command::Heal { x, y, radius } => self.cmd_heal(x, y, radius),
