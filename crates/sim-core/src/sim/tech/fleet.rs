@@ -36,6 +36,8 @@ const TRADE_LOAD: u32 = 3;
 const TRADE_RANGE: i32 = 40;
 /// How close to a harbour a person must stand to load or receive a trade boat's food, in tiles.
 const QUAY_RANGE: i32 = 6;
+/// Food a fishing boat lands on the quay when it comes home from a loop.
+const CATCH: u32 = 2;
 
 /// A breadth-first search over water inside a square box: how many steps each tile lies from the
 /// start, and which tile it was reached from.
@@ -224,6 +226,22 @@ impl Simulation {
         }
     }
 
+    /// A fishing boat that comes home lands its catch on the quay: food for the nearest person there.
+    fn land_catch(&mut self, quay: (i32, i32)) {
+        let receiver = self
+            .organisms
+            .iter()
+            .enumerate()
+            .filter(|(_, o)| o.alive && on_quay(o, quay))
+            .min_by_key(|(_, o)| (o.x as i32 - quay.0).abs() + (o.y as i32 - quay.1).abs())
+            .map(|(k, _)| k);
+        if let Some(k) = receiver {
+            let o = &mut self.organisms[k];
+            o.inv_food = (u32::from(o.inv_food) + CATCH).min(u32::from(u8::MAX)) as u8;
+            o.log_event("the boat came in with fish for the quay".into());
+        }
+    }
+
     /// A trade boat has reached the far harbour: its food goes to the nearest person on that quay,
     /// and the boat sails home.
     fn unload_at(&mut self, i: usize, quay: (i32, i32), harbour: (i32, i32)) {
@@ -346,6 +364,12 @@ impl Simulation {
                         self.vehicles[i].route.pop();
                         self.vehicles[i].x = next.0;
                         self.vehicles[i].y = next.1;
+                        let home = self.vehicles[i].route.is_empty()
+                            && self.vehicles[i].bound_for.is_none()
+                            && (next.0, next.1) == harbour;
+                        if home {
+                            self.land_catch(harbour);
+                        }
                     } else {
                         self.vehicles[i].route.clear();
                     }
@@ -614,5 +638,31 @@ mod tests {
         );
         assert_eq!(sim.vehicles[0].cargo, 0, "the hold is empty once it is delivered");
         assert_eq!(sim.vehicles[0].bound_for, None);
+    }
+
+    #[test]
+    fn a_fishing_boat_that_comes_home_lands_its_catch_on_the_quay() {
+        let mut sim = lake_sim();
+        let lineage = coastal_tribe(&mut sim);
+        for o in sim.organisms.iter_mut() {
+            o.inv_food = 0;
+        }
+        sim.organisms[0].x = 89.0;
+        sim.organisms[0].y = 100.0;
+        sim.vehicles = vec![boat(lineage, (91, 100))];
+        sim.vehicles[0].route = vec![(90, 100)];
+        sim.weather.kind = 0;
+        // Tick 1 is daylight, and this boat's step falls on it.
+        sim.tick_count = 1;
+        sim.move_fleet_boats();
+        assert_eq!(
+            (sim.vehicles[0].x, sim.vehicles[0].y),
+            (90, 100),
+            "the boat is home"
+        );
+        assert_eq!(
+            sim.organisms[0].inv_food as u32, CATCH,
+            "the catch lands on the quay"
+        );
     }
 }
