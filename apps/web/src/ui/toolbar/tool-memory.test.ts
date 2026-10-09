@@ -3,6 +3,7 @@ import {
   EMPTY_TOOL_MEMORY,
   PINNED_LIMIT,
   RECENT_LIMIT,
+  isPinListFull,
   memoryToolIds,
   parseToolMemory,
   rememberRecent,
@@ -29,6 +30,13 @@ describe('recent tools', () => {
 })
 
 describe('pinned tools', () => {
+  it('says when the pin list has no room left', () => {
+    const full = { pinned: Array.from({ length: PINNED_LIMIT }, (_, i) => `t${i}`), recent: [] }
+    expect(isPinListFull(EMPTY_TOOL_MEMORY)).toBe(false)
+    expect(isPinListFull(full)).toBe(true)
+    expect(isPinListFull(togglePinned(full, 't0'))).toBe(false)
+  })
+
   it('pins and unpins, and refuses pins past the limit', () => {
     let memory = togglePinned(EMPTY_TOOL_MEMORY, 'family')
     expect(memory.pinned).toEqual(['family'])

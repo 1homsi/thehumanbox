@@ -19,10 +19,15 @@ export function rememberRecent(memory: ToolMemory, id: string): ToolMemory {
   return { ...memory, recent: [id, ...memory.recent.filter((x) => x !== id)].slice(0, RECENT_LIMIT) }
 }
 
+/** Whether the pin list has no room left: a new pin would be refused until one is unpinned. */
+export function isPinListFull(memory: ToolMemory): boolean {
+  return memory.pinned.length >= PINNED_LIMIT
+}
+
 /** Pins `id` if it is not pinned, unpins it if it is. A full pin list refuses new pins. */
 export function togglePinned(memory: ToolMemory, id: string): ToolMemory {
   if (memory.pinned.includes(id)) return { ...memory, pinned: memory.pinned.filter((x) => x !== id) }
-  if (memory.pinned.length >= PINNED_LIMIT) return memory
+  if (isPinListFull(memory)) return memory
   return { ...memory, pinned: [...memory.pinned, id] }
 }
 
