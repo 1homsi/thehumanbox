@@ -15,6 +15,7 @@ import { tribeStatus } from '../../game/model/tribe-status'
 import { wealthGapOf } from '../../game/model/inequality'
 import { generationLine, generationsOf } from '../../game/model/generations'
 import { familyLineText, familyLines } from '../../game/model/family-lines'
+import { eldestByLineage, eldestLine } from '../../game/model/tribe-eldest'
 import { ToolSprite } from '../toolbar/ToolSprite'
 
 interface Props {
@@ -83,6 +84,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
   const peril = perilOf(world, status.id)
   const losses = lossLine(world.tribe_losses?.[status.id])
   const families = familyLines(world.organisms, status.id)
+  const eldest = eldestByLineage(world.organisms)[status.id]
   const help = peril ? PERIL_HELP[peril.cause] : null
   const lookAtTribe = (tool: string) => {
     const home = world.settlements?.find((s) => s.lineage_id === status.id)
@@ -179,6 +181,11 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
       <Need label="health" value={status.health} />
       {losses && <div className="tribe-card-losses">lost lately: {losses}</div>}
       {relations && <div className="tribe-card-relations">{relations}</div>}
+      {eldest && (
+        <div className="tribe-card-relations" title="The oldest living member of this tribe">
+          oldest living: {eldestLine(eldest)}
+        </div>
+      )}
       {families.length > 0 && (
         <div className="tribe-card-relations" title="The families of this tribe's living people">
           families: {families.map(familyLineText).join(' · ')}
