@@ -134,6 +134,27 @@ pub enum Command {
     Aurora,
     /// A heat wave settles over the land for a while: shore water dries, people drink more, crops wilt.
     HeatWave,
+    /// The river blesses the land: fish gather in the water nearest the point.
+    BlessRiver {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// A forest surges: wild food sprouts among the trees, and the plantings there grow on.
+    BlessForest {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// A rare gift for the living person nearest the point: a talent that lifts one of their traits for good.
+    Talent {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
     /// A comet streaks across the sky over the point: everyone within the reach is awed.
     Comet {
         x: f32,
@@ -641,6 +662,7 @@ mod leader;
 #[cfg(test)]
 mod locust_tests;
 mod marry;
+mod miracles;
 mod mutation;
 mod nuke;
 mod place;
@@ -708,6 +730,9 @@ impl Simulation {
             Command::Guardian { x, y } => self.cmd_guardian(x, y),
             Command::Aurora => self.cmd_aurora(),
             Command::HeatWave => self.cmd_heat_wave(),
+            Command::BlessRiver { x, y, radius } => self.cmd_bless_river(x, y, radius),
+            Command::BlessForest { x, y, radius } => self.cmd_bless_forest(x, y, radius),
+            Command::Talent { x, y, radius } => self.cmd_talent(x, y, radius),
             Command::ClearRegion { x, y, radius } => self.cmd_clear_region(x, y, radius),
             Command::Mutate { x, y, radius } => self.cmd_mutate(x, y, radius),
             Command::MergeTribes { ax, ay, bx, by } => self.cmd_merge_tribes(ax, ay, bx, by),

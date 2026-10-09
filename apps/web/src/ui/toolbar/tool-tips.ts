@@ -96,6 +96,12 @@ const TOOL_TIPS: Record<string, string> = {
   nuke: 'Drop a bomb where you click: a crater like a meteor leaves, fallout that poisons everyone across a wide ring, and blight on the plantings there. Only a tribe that has reached the Industrial age can build one.',
   eclipse:
     'The sun goes dark for a while. Everyone alive is frightened and a little awed by it, and the omen is written into the chronicle.',
+  bless_river:
+    'The river blesses the land: fish gather in the water nearest the point, as many as the brush brings. Needs water within reach.',
+  bless_forest:
+    'A forest surges: wild food sprouts on the open ground among the trees, and the plantings there grow on. Needs woods within reach.',
+  talent:
+    'A rare gift for the living person nearest the point: a talent that lifts one of their traits (memory, curiosity, resilience or kindness) for good. A person keeps one talent.',
   heat_wave:
     'A heat wave settles over the land for a while. Shore water dries to sand, people drink more and tire sooner, and crops are held back. Calling it again starts the count over.',
   monsoon:
