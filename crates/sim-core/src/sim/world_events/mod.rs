@@ -10,6 +10,7 @@ use rand::{Rng, RngExt};
 mod disasters;
 mod evolution;
 mod heat;
+mod lava;
 mod log;
 #[cfg(test)]
 mod tests;
@@ -18,5 +19,6 @@ mod weather;
 pub use disasters::*;
 pub use evolution::*;
 pub use heat::*;
+pub use lava::*;
 pub use log::*;
 pub use weather::*;

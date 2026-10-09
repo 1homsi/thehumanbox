@@ -712,6 +712,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'paint', x, y, tile: 'snow', radius: b }),
       },
+      {
+        id: 'lava',
+        label: 'lava',
+        icon: '🟧',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'paint', x, y, tile: 'lava', radius: b }),
+      },
     ],
   },
   {

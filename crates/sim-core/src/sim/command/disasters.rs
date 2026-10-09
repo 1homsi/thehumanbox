@@ -836,13 +836,14 @@ impl Simulation {
                 let i = WorldGrid::idx(nx, ny);
                 let d = ((dx * dx + dy * dy) as f32).sqrt();
                 if d <= 1.5 {
-                    self.grid.set(nx, ny, Tile::Fire);
-                    *self.grid.fire_intensity_mut(nx, ny) = 1.0;
-                    self.physics.register_fire(nx, ny);
+                    // The crater is molten: it spills onto the ash apron and runs downhill.
+                    self.grid.set(nx, ny, Tile::Lava);
+                    *self.grid.fire_intensity_mut(nx, ny) = 0.0;
                 } else if d < rf * 0.6 {
                     self.grid.set(nx, ny, Tile::Rock);
                 } else if d < rf * 1.2 {
-                    self.grid.set(nx, ny, Tile::Ash);
+                    let spill = self.rng.random::<f32>() < 0.2;
+                    self.grid.set(nx, ny, if spill { Tile::Lava } else { Tile::Ash });
                 } else if d < rf * 1.5 && self.grid.get(nx, ny).flammable() && self.rng.random::<f32>() < 0.3
                 {
                     self.grid.set(nx, ny, Tile::Fire);

@@ -127,7 +127,13 @@ pub(super) fn build_world_report(seed: u64) -> WorldReport {
                     land_tiles += 1;
                     livable_tiles += 1;
                 }
-                Tile::Rock | Tile::Snow | Tile::Sand | Tile::Fire | Tile::Scorched | Tile::Mineral => {
+                Tile::Rock
+                | Tile::Snow
+                | Tile::Sand
+                | Tile::Fire
+                | Tile::Scorched
+                | Tile::Mineral
+                | Tile::Lava => {
                     land_tiles += 1;
                     harsh_tiles += 1;
                 }

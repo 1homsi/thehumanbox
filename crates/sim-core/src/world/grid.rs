@@ -1298,7 +1298,13 @@ mod tests {
                     land += 1;
                     livable += 1;
                 }
-                Tile::Rock | Tile::Snow | Tile::Sand | Tile::Fire | Tile::Scorched | Tile::Mineral => {
+                Tile::Rock
+                | Tile::Snow
+                | Tile::Sand
+                | Tile::Fire
+                | Tile::Scorched
+                | Tile::Mineral
+                | Tile::Lava => {
                     land += 1;
                     harsh += 1;
                 }

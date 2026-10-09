@@ -45,6 +45,7 @@ export const TERRAIN_KINDS: readonly TerrainKind[] = [
   { tid: TILE_ID.SCORCHED, ref: meanChannel(TILE_RGB[TILE_ID.SCORCHED]) },
   { tid: TILE_ID.SNOW, ref: meanChannel(TILE_RGB[TILE_ID.SNOW]) },
   { tid: TILE_ID.SAND, ref: meanChannel(TILE_RGB[TILE_ID.SAND]) },
+  { tid: TILE_ID.LAVA, ref: meanChannel(TILE_RGB[TILE_ID.LAVA]) },
 ]
 
 const KIND_OF_TILE = new Map<number, number>([
@@ -57,6 +58,7 @@ const KIND_OF_TILE = new Map<number, number>([
   [TILE_ID.SCORCHED, 5],
   [TILE_ID.SNOW, 6],
   [TILE_ID.SAND, 7],
+  [TILE_ID.LAVA, 8],
 ])
 
 /** The kind of a base terrain id (what `baseTerrainTile` returns). Unknown ids paint as void. */

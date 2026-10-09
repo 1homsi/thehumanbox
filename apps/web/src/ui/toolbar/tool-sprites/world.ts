@@ -149,6 +149,18 @@ export const worldSprites = {
     '..w..w..w...',
     '.....w......',
   ],
+  lava: [
+    '............',
+    '.....o......',
+    '....orr.....',
+    '..oorryo....',
+    '.orryyyro...',
+    'oryyyyyrro..',
+    'oRyyyyyyRo..',
+    'oRRRRRRRRo..',
+    '.oooooooo...',
+    '............',
+  ],
   drop: [
     '.....b......',
     '....bbb.....',

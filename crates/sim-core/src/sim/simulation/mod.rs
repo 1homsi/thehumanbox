@@ -4,7 +4,7 @@ use super::config::{
 };
 use super::spatial::SpatialIndex;
 use super::world_events::{
-    push_event, tick_drought, tick_heat_wave, tick_outbreak, tick_weather, tick_world_evolution,
+    push_event, tick_drought, tick_heat_wave, tick_lava, tick_outbreak, tick_weather, tick_world_evolution,
     DroughtState, WeatherState,
 };
 use super::{courtship, growth, social};

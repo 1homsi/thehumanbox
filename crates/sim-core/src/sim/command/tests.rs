@@ -650,7 +650,7 @@ fn biome_brush_volcano_love_and_tame() {
     assert_eq!(sim.organisms[target].last_reproduced, 0);
 
     assert!(sim.apply_command_json(r#"{"cmd":"volcano","x":100,"y":100,"radius":6}"#));
-    assert_eq!(sim.grid.get(100, 100), Tile::Fire);
+    assert_eq!(sim.grid.get(100, 100), Tile::Lava);
     assert_eq!(sim.grid.get(102, 100), Tile::Rock);
     assert_eq!(sim.grid.biome_at(105, 100), Biome::Volcanic);
     assert!(sim.organisms[target].health < 0.0);
