@@ -62,6 +62,8 @@ export type SandboxCommand =
   | { cmd: 'time_of_day'; phase: 'dawn' | 'noon' | 'dusk' | 'midnight' }
   | { cmd: 'hail'; x: number; y: number; radius?: number }
   | { cmd: 'nuke'; x: number; y: number }
+  | { cmd: 'eclipse' }
+  | { cmd: 'comet'; x: number; y: number; radius?: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
   | { cmd: 'repair'; x: number; y: number; radius?: number }
   | { cmd: 'road'; x: number; y: number; radius?: number; kind: 'road' | 'erase' }
@@ -683,6 +685,20 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '☢️',
         mode: 'point',
         build: (x, y) => ({ cmd: 'nuke', x, y }),
+      },
+      {
+        id: 'eclipse',
+        label: 'eclipse',
+        icon: '🌑',
+        mode: 'instant',
+        fire: { cmd: 'eclipse' },
+      },
+      {
+        id: 'comet',
+        label: 'comet',
+        icon: '💫',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'comet', x, y, radius: 12 + b * 4 }),
       },
       // The fire command is a placeholder: the toolbar rolls a random event when it is picked.
       { id: 'dice', label: 'dice', icon: '🎲', mode: 'instant', fire: { cmd: 'gale' } },

@@ -72,6 +72,10 @@ const TOOL_TIPS: Record<string, string> = {
   whale: 'Release a whale, or a few, into deep water. They swim where the sea is and never come ashore.',
   hail: 'Hail beats down on the brush area. It flattens plantings and wild food, hurts the people under it (most at the centre), cracks roofs a little, and kills some small animals.',
   nuke: 'Drop a bomb where you click: a crater like a meteor leaves, fallout that poisons everyone across a wide ring, and blight on the plantings there. Only a tribe that has reached the Industrial age can build one.',
+  eclipse:
+    'The sun goes dark for a while. Everyone alive is frightened and a little awed by it, and the omen is written into the chronicle.',
+  comet:
+    'A comet streaks across the sky over where you click. Everyone who can see it, within the reach, is awed; the awe lasts and the omen is written into the chronicle.',
   dice: 'Roll for fate: one random event lands at a random spot. It may bless, bring rain or a gale, or be a disaster such as a tornado, a wildfire or an earthquake.',
   dawn: 'Move the clock on to the next dawn. The world keeps its season and year; the light changes at once.',
   noon: 'Move the clock on to the next noon, when the sun stands highest.',
@@ -210,6 +214,10 @@ export function toolFailure(tool: SandboxTool): string {
       return 'the lightning hit nothing'
     case 'nuke':
       return 'no tribe has reached the Industrial age yet'
+    case 'eclipse':
+      return 'there is no one alive to see it'
+    case 'comet':
+      return 'nobody is in reach to see it'
     case 'hail':
     case 'harvest':
     case 'restore':
