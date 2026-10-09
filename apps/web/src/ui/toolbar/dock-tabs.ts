@@ -143,6 +143,7 @@ export const NEW_TOOL_IDS: readonly string[] = [
   'polar_bear',
   'kangaroo',
   'frost',
+  'boat',
 ]
 
 const SEEN_NEW_STORAGE_KEY = 'thb-seen-new-tools'

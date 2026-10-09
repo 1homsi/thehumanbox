@@ -37,6 +37,11 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// Set a boat down on the water beside the shore at (x, y): a fishing boat of the nearest tribe.
+    PlaceBoat {
+        x: i32,
+        y: i32,
+    },
     /// Place a finished building of the named kind with its top-left tile at (x, y), if the footprint is free.
     PlaceBuilding {
         x: i32,
@@ -684,6 +689,7 @@ fn prayer_answers(cmd: &Command) -> Option<PrayerAnswer> {
 #[cfg(test)]
 mod blessing_tests;
 mod blessings;
+mod boat;
 mod buildings;
 mod clear_region;
 mod clock;
@@ -757,6 +763,7 @@ impl Simulation {
             Command::Teleport { x, y, radius } => self.cmd_teleport(x, y, radius),
             Command::MakeLeader { x, y, radius } => self.cmd_make_leader(x, y, radius),
             Command::PlaceBuilding { x, y, kind } => self.cmd_place_building(x, y, kind),
+            Command::PlaceBoat { x, y } => self.cmd_place_boat(x, y),
             Command::HealOne { x, y, radius } => self.cmd_heal_one(x, y, radius),
             Command::Gift { x, y, radius, what } => self.cmd_gift(x, y, radius, what),
             Command::SetTimeOfDay { phase } => self.cmd_set_time_of_day(phase),
