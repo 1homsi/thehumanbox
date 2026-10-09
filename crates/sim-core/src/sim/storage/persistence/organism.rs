@@ -494,6 +494,7 @@ pub(super) fn kind_code(kind: AnimalKind) -> u8 {
         AnimalKind::Cow => 9,
         AnimalKind::Horse => 10,
         AnimalKind::Chicken => 11,
+        AnimalKind::Goat => 35,
         AnimalKind::Zombie => 12,
         AnimalKind::Demon => 13,
         AnimalKind::Dragon => 14,
@@ -548,6 +549,7 @@ pub(super) fn kind_from_code(code: u8) -> AnimalKind {
         32 => AnimalKind::Snake,
         33 => AnimalKind::Crocodile,
         34 => AnimalKind::Monkey,
+        35 => AnimalKind::Goat,
         _ => AnimalKind::Rabbit,
     }
 }
