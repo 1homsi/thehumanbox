@@ -169,3 +169,43 @@ fn released_ducks_and_bees_are_placed_when_the_ground_suits_them() {
     assert!(!sim.animals.is_empty(), "bees are released");
     assert!(sim.animals.iter().all(|a| matches!(a.kind, AnimalKind::Bee)));
 }
+
+#[test]
+fn a_wild_cat_that_stays_by_a_person_takes_to_them() {
+    let mut sim = Simulation::new(7);
+    for o in sim.organisms.iter_mut() {
+        o.alive = false;
+    }
+    sim.organisms[0].alive = true;
+    sim.organisms[0].x = 100.0;
+    sim.organisms[0].y = 100.0;
+    sim.organisms[0].health = 1.0;
+    sim.animals.clear();
+    sim.animals.push(crate::organism::animal::Animal::new(
+        9_001,
+        101.0,
+        100.0,
+        AnimalKind::Cat,
+    ));
+    let owner = sim.organisms[0].id.clone();
+    for _ in 0..4000 {
+        // Keep the person and the cat beside each other, so only the chance decides the bond.
+        sim.organisms[0].x = 100.0;
+        sim.organisms[0].y = 100.0;
+        sim.organisms[0].alive = true;
+        sim.animals[0].alive = true;
+        sim.animals[0].x = 101.0;
+        sim.animals[0].y = 100.0;
+        sim.tick();
+        if sim.animals[0].bonded_org.is_some() {
+            break;
+        }
+    }
+    assert_eq!(
+        sim.animals[0].bonded_org.as_deref(),
+        Some(owner.as_str()),
+        "the cat took to the person beside it"
+    );
+    assert!(matches!(sim.animals[0].kind, AnimalKind::Cat), "it stays a cat");
+    assert!(sim.animals[0].name.is_some(), "the cat has a name");
+}

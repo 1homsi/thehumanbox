@@ -3,6 +3,9 @@ use super::*;
 /// Safety ceiling on a zombie outbreak; past it, victims stay dead.
 pub(super) const MAX_ZOMBIES: usize = 250;
 
+/// Chance each tick that a wild cat within reach of a person takes to them (see the cat bonds below).
+const CAT_BOND_CHANCE: f32 = 0.002;
+
 impl Simulation {
     pub(super) fn spawn_animals(&mut self, count: usize) {
         for _ in 0..count {
@@ -111,7 +114,7 @@ impl Simulation {
             animal.sleeping = winter && wild && animal.kind == AnimalKind::Bear;
             // Birds fly south for the winter and come back with the spring.
             animal.away = winter && wild && animal.kind == AnimalKind::Bird;
-            if night && animal.alive && animal.kind == AnimalKind::Dog {
+            if night && animal.alive && matches!(animal.kind, AnimalKind::Dog | AnimalKind::Cat) {
                 let home = animal
                     .bonded_org
                     .as_ref()
@@ -244,6 +247,45 @@ impl Simulation {
                 }
             }
         }
+        // A wild cat that wanders up to a person now and then takes to them: it stays a cat, bonds to that
+        // person and keeps near them, as a dog does.
+        let mut cat_bonds: Vec<(usize, usize)> = Vec::new();
+        for (ai, a) in self.animals.iter().enumerate() {
+            if !a.alive || a.kind != AnimalKind::Cat || a.bonded_org.is_some() {
+                continue;
+            }
+            ordered_human_candidates(&human_spatial, a.x, a.y, 3, &mut wolf_candidates);
+            for &oi in &wolf_candidates {
+                let o = &self.organisms[oi];
+                if !o.alive || (o.x - a.x).abs() + (o.y - a.y).abs() > 2.5 {
+                    continue;
+                }
+                if self.rng.random::<f32>() < CAT_BOND_CHANCE {
+                    cat_bonds.push((ai, oi));
+                    break;
+                }
+            }
+        }
+        for (ai, oi) in cat_bonds {
+            if self.animals[ai].bonded_org.is_some() {
+                continue;
+            }
+            let owner_id = self.organisms[oi].id.clone();
+            let cat_name = crate::organism::animal::pick_dog_name(&mut self.rng);
+            self.animals[ai].bonded_org = Some(owner_id);
+            self.animals[ai].name = Some(cat_name.clone());
+            self.animals[ai].energy = (self.animals[ai].energy + 0.20).min(1.0);
+            let oname = self.organisms[oi].name.clone();
+            self.organisms[oi].joy_ticks = (self.organisms[oi].joy_ticks + 200).min(1200);
+            self.organisms[oi].log_event(format!("took in a cat named {}", cat_name));
+            push_event(
+                &mut self.events,
+                self.tick_count,
+                "life",
+                &oname,
+                &format!("took in a cat named {}", cat_name),
+            );
+        }
         for (ai, oi) in tames {
             self.animals[ai].kind = AnimalKind::Dog;
             self.animals[ai].bonded_org = Some(self.organisms[oi].id.clone());
@@ -268,7 +310,7 @@ impl Simulation {
             if !self.animals[ai].alive {
                 continue;
             }
-            if !matches!(self.animals[ai].kind, AnimalKind::Dog) {
+            if !matches!(self.animals[ai].kind, AnimalKind::Dog | AnimalKind::Cat) {
                 continue;
             }
             let bonded = self.animals[ai].bonded_org.clone();
