@@ -345,6 +345,9 @@ impl Organism {
         put("health", r3(self.health));
         put("age", Value::from(self.age));
         put("alive", Value::Bool(self.alive));
+        if !self.death_cause.is_empty() {
+            put("death_cause", text(&self.death_cause));
+        }
         put("thought", text(&self.thought));
         put("infection", r3(self.infection));
         put("fear_level", r2(self.fear_level));
