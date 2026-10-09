@@ -609,17 +609,83 @@ pub(super) fn home_waits_for_house(sim: &Simulation, lineage: &str, era: Era) ->
     !other_home_affordable
 }
 
-/// Fences in a tribe's palisade, and the radius of the ring they stand on.
-pub(super) const PALISADE_FENCES: usize = 12;
-const PALISADE_RADIUS: f32 = 5.0;
+/// Most fences one construction pass adds to a palisade.
+pub(super) const PALISADE_FENCES_PER_PASS: usize = 6;
+/// The palisade stands between these distances from the tribe's centre.
+const PALISADE_MIN_RADIUS: f32 = 6.0;
+const PALISADE_MAX_RADIUS: f32 = 12.0;
 
-/// Where the next fence of the palisade stands: evenly spaced round the centre.
-pub(super) fn palisade_post(cx: i32, cy: i32, index: usize) -> (i32, i32) {
-    let angle = index as f32 * std::f32::consts::TAU / PALISADE_FENCES as f32;
-    (
-        cx + (PALISADE_RADIUS * angle.det_cos()).round() as i32,
-        cy + (PALISADE_RADIUS * angle.det_sin()).round() as i32,
-    )
+/// The tiles of the ring of `radius` round (cx, cy), in angle order. A tile is
+/// on the ring when its centre lies within half a tile of the circle, so the
+/// fences of a whole ring touch one another all the way round.
+pub(super) fn palisade_ring(cx: i32, cy: i32, radius: f32) -> Vec<(i32, i32)> {
+    let reach = radius.ceil() as i32 + 1;
+    let mut tiles: Vec<(i32, i32)> = (-reach..=reach)
+        .flat_map(|dy| (-reach..=reach).map(move |dx| (dx, dy)))
+        .filter(|&(dx, dy)| (((dx * dx + dy * dy) as f32).sqrt() - radius).abs() < 0.5)
+        .map(|(dx, dy)| (cx + dx, cy + dy))
+        .collect();
+    let angle = |&(x, y): &(i32, i32)| ((y - cy) as f32).det_atan2((x - cx) as f32);
+    tiles.sort_by(|a, b| angle(a).total_cmp(&angle(b)));
+    tiles
+}
+
+/// The radius a tribe's palisade stands on. A tribe with fences keeps the ring
+/// it has; one without takes the reach of its homes plus a tile, so the wall
+/// stands round the town rather than through it.
+pub(super) fn palisade_radius(sim: &Simulation, lineage: &str, cx: i32, cy: i32) -> f32 {
+    let dist = |b: &Building| (((b.x - cx).pow(2) + (b.y - cy).pow(2)) as f32).sqrt();
+    let owned = || {
+        sim.buildings
+            .iter()
+            .filter(|b| !b.decorative && b.owner_lineage.as_deref() == Some(lineage))
+    };
+    let fences: Vec<f32> = owned()
+        .filter(|b| b.kind == BuildingKind::Fence)
+        .map(dist)
+        .collect();
+    let radius = if fences.is_empty() {
+        owned().map(dist).fold(0.0, f32::max) + 1.0
+    } else {
+        fences.iter().sum::<f32>() / fences.len() as f32
+    };
+    radius.clamp(PALISADE_MIN_RADIUS, PALISADE_MAX_RADIUS)
+}
+
+/// Starts up to `PALISADE_FENCES_PER_PASS` fences on the free tiles of a
+/// tribe's ring and returns how many it started. A tile a home, a road or the
+/// water already holds is skipped, so the wall runs round the buildings
+/// instead of being scattered wherever a site happens to be free.
+pub(super) fn raise_palisade(sim: &mut Simulation, lineage: &str) -> usize {
+    let (cx, cy) = lineage_center(sim, lineage);
+    if (cx, cy) == (0, 0) {
+        return 0;
+    }
+    let radius = palisade_radius(sim, lineage, cx, cy);
+    // Tiles a building covers, looked up once, so a tile a home already holds
+    // costs a set lookup rather than a scan of every building.
+    let mut covered: HashSet<(i32, i32)> = HashSet::default();
+    for building in sim.buildings.iter().filter(|b| !b.decorative) {
+        let (width, height) = building.footprint();
+        for dy in 0..i32::from(height) {
+            for dx in 0..i32::from(width) {
+                covered.insert((building.x + dx, building.y + dy));
+            }
+        }
+    }
+    let mut started = 0;
+    for (x, y) in palisade_ring(cx, cy, radius) {
+        if started == PALISADE_FENCES_PER_PASS {
+            break;
+        }
+        if !covered.contains(&(x, y))
+            && construction_site_is_valid(sim, BuildingKind::Fence, x, y)
+            && start_building_at_valid_site(sim, lineage, BuildingKind::Fence, x, y)
+        {
+            started += 1;
+        }
+    }
+    started
 }
 
 /// How long after a battle a tribe still counts as at war, so its palisade
@@ -681,21 +747,7 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
         // A tribe at war raises its palisade before anything else, outside the
         // project limit: fences are cheap and a battle's defence bonus counts them.
         if functional_slots > 0 && at_war(sim, &lid) {
-            let fences = sim
-                .buildings
-                .iter()
-                .filter(|b| {
-                    !b.decorative && b.kind == BuildingKind::Fence && b.owner_lineage.as_deref() == Some(&lid)
-                })
-                .count();
-            let (cx, cy) = lineage_center(sim, &lid);
-            if fences < PALISADE_FENCES && (cx, cy) != (0, 0) {
-                let (px, py) = palisade_post(cx, cy, fences);
-                let mut palisade_sites = FailedSites::default();
-                if try_start_building_with(sim, &lid, BuildingKind::Fence, px, py, &mut palisade_sites) {
-                    functional_slots -= 1;
-                }
-            }
+            functional_slots = functional_slots.saturating_sub(raise_palisade(sim, &lid));
         }
         // Finish a manageable number of projects before reserving more land
         // and materials. Children and exhausted residents are not a workforce.
@@ -1262,13 +1314,109 @@ mod palisade_tests {
     }
 
     #[test]
-    fn the_palisade_stands_on_a_ring_of_distinct_posts() {
-        let posts: HashSet<(i32, i32)> = (0..PALISADE_FENCES).map(|i| palisade_post(100, 100, i)).collect();
-        assert_eq!(posts.len(), PALISADE_FENCES);
-        for (x, y) in posts {
+    fn the_palisade_ring_is_a_closed_wall_of_touching_tiles() {
+        let ring = palisade_ring(100, 100, 7.0);
+        assert!(
+            (40..=48).contains(&ring.len()),
+            "{} tiles on the ring",
+            ring.len()
+        );
+        for &(x, y) in &ring {
             let d = (((x - 100).pow(2) + (y - 100).pow(2)) as f32).sqrt();
-            assert!((d - PALISADE_RADIUS).abs() < 1.0, "post at distance {d}");
+            assert!((d - 7.0).abs() < 0.5, "tile at distance {d}");
         }
+        // Taken in angle order, every tile touches the next, the last touching the first.
+        for i in 0..ring.len() {
+            let (a, b) = (ring[i], ring[(i + 1) % ring.len()]);
+            assert!(
+                (a.0 - b.0).abs() <= 1 && (a.1 - b.1).abs() <= 1,
+                "gap between {a:?} and {b:?}"
+            );
+        }
+    }
+
+    fn clansman(id: usize, x: f32, y: f32) -> crate::organism::organism::Organism {
+        use crate::organism::{organism::Organism, traits::Traits};
+        let mut org = Organism::new(
+            format!("clan-{id}"),
+            "Clansman".into(),
+            x,
+            y,
+            0,
+            String::new(),
+            "clan".into(),
+            20_000,
+            Traits::default(),
+        );
+        org.alive = true;
+        org.age = 10_000;
+        org.energy = 0.8;
+        org.loneliness = 0.85;
+        org.inv_wood = 20;
+        org.inv_stone = 20;
+        org
+    }
+
+    #[test]
+    fn a_tribe_at_war_fences_a_ring_round_its_homes() {
+        use crate::world::tiles::Tile;
+        let mut sim = Simulation::new(0x9A11);
+        sim.organisms.clear();
+        sim.buildings.clear();
+        for y in 30..=70 {
+            for x in 30..=70 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        // Homes stand on and about the ring a palisade would take, as they do in a grown town.
+        let homes = [
+            (46, 46),
+            (54, 46),
+            (46, 54),
+            (54, 54),
+            (50, 42),
+            (50, 58),
+            (49, 44),
+            (55, 49),
+            (45, 50),
+            (53, 56),
+            (44, 46),
+            (56, 53),
+        ];
+        for (id, (x, y)) in homes.into_iter().enumerate() {
+            let hut = Building::new(id as u32 + 1, BuildingKind::Hut, x, y, Some("clan".into()), 0);
+            sim.buildings.push(hut);
+        }
+        for i in 0..12 {
+            sim.organisms
+                .push(clansman(i, 48.0 + (i % 4) as f32, 48.0 + (i / 4) as f32));
+        }
+        sim.battles.push(battle(&["clan"], &["raiders"], None));
+        for _ in 0..40 {
+            tick_buildings_construct(&mut sim);
+        }
+        let fences: Vec<(i32, i32)> = sim
+            .buildings
+            .iter()
+            .filter(|b| b.kind == BuildingKind::Fence)
+            .map(|b| (b.x, b.y))
+            .collect();
+        // A ring round a town of this size is about 2 pi r tiles long.
+        assert!(fences.len() >= 40, "only {} fences stand", fences.len());
+        // Fences surround the centre: no direction is left open by more than 45 degrees.
+        let mut angles: Vec<f32> = fences
+            .iter()
+            .map(|&(x, y)| ((y - 49) as f32).atan2((x - 49) as f32))
+            .collect();
+        angles.sort_by(|a, b| a.total_cmp(b));
+        let mut widest = angles[0] + std::f32::consts::TAU - angles[angles.len() - 1];
+        for pair in angles.windows(2) {
+            widest = widest.max(pair[1] - pair[0]);
+        }
+        assert!(
+            widest < std::f32::consts::FRAC_PI_4,
+            "the widest gap is {widest} radians"
+        );
     }
 
     #[test]
