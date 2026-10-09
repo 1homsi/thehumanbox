@@ -1,14 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  STRIKE_SLOT_MS,
-  boltPath,
-  newWeatherFxState,
-  observeWeather,
-  rainbowStrength,
-  strikeAt,
-  strikeEnvelope,
-  unitHash,
-} from './weather-fx'
+import { STRIKE_SLOT_MS, boltPath, strikeAt, strikeEnvelope, unitHash } from './weather-fx'
 
 const VIEW = { cx: 500, cy: 400, hw: 300, hh: 200 }
 
@@ -48,26 +39,6 @@ describe('lightning', () => {
     expect(pts).toHaveLength(18)
     expect([pts[0], pts[1]]).toEqual([100, 50])
     expect([pts[16], pts[17]]).toEqual([100, 300])
-  })
-})
-
-describe('rainbows', () => {
-  it('appears after rain stops in daylight and fades out', () => {
-    const state = newWeatherFxState()
-    observeWeather(state, 'rain', 0)
-    observeWeather(state, 'clear', 10_000)
-    expect(rainbowStrength(state, 10_000, true)).toBe(0)
-    expect(rainbowStrength(state, 11_500, true)).toBeCloseTo(0.5, 1)
-    expect(rainbowStrength(state, 20_000, true)).toBe(1)
-    expect(rainbowStrength(state, 10_000 + 60_000, true)).toBe(0)
-    expect(rainbowStrength(state, 20_000, false)).toBe(0)
-  })
-
-  it('never shows while it still rains', () => {
-    const state = newWeatherFxState()
-    observeWeather(state, 'storm', 0)
-    observeWeather(state, 'rain', 1000)
-    expect(rainbowStrength(state, 50_000, true)).toBe(0)
   })
 })
 

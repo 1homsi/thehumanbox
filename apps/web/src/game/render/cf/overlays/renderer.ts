@@ -50,17 +50,12 @@ import { SpriteRecorder } from './recorder'
 import { ShapeAtlas } from './shape-atlas'
 import {
   lightningFlash,
-  newWeatherFxState,
-  observeWeather,
   paintBolt,
   paintPuddles,
-  paintRainbow,
   paintSplashes,
-  rainbowStrength,
   strikeAt,
   wetnessOf,
   type StrikeView,
-  type WeatherFxState,
 } from './weather-fx'
 
 /**
@@ -161,7 +156,6 @@ export class CfOverlayRenderer {
   private groundKey = ''
   private groundFlags: unknown = null
   private groundAt = -Infinity
-  private readonly weatherFx: WeatherFxState = newWeatherFxState()
   /** Tribes that entered a new era, marked on the map for a while. */
   private readonly eraWatch = new EraWatch()
   private readonly dust = new FootstepDust()
@@ -499,11 +493,10 @@ export class CfOverlayRenderer {
     }
   }
 
-  /** Lightning, rain splashes and the rainbow after a storm (the effects layer, drawn each frame). */
+  /** Lightning and rain splashes (the effects layer, drawn each frame). */
   private paintWeather(ctx: CanvasRenderingContext2D, f: CfFrame): void {
     const { world, t } = f
     const kind = world.weather?.kind ?? 'clear'
-    observeWeather(this.weatherFx, kind, t)
     const view = this.viewOf(f)
     const intensity = Math.max(0, Math.min(1, world.weather?.intensity ?? 0))
     if (kind === 'storm') {
@@ -526,7 +519,6 @@ export class CfOverlayRenderer {
         intensity,
       )
     }
-    paintRainbow(ctx, view, rainbowStrength(this.weatherFx, t, world.is_day))
   }
 
   private addTint(tint: Tint, W: number, H: number): void {
