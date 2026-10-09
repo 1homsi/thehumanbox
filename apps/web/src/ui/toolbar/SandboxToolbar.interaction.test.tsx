@@ -66,7 +66,9 @@ afterEach(() => {
 
 describe('world dock buttons', () => {
   // One test per tab, so each tab's clicks get their own time budget. Clicking every tab in
-  // one test took about 5 s, which timed out whenever the full suite ran in parallel.
+  // one test took about 5 s, which timed out whenever the full suite ran in parallel. Most of
+  // a tab's time is the first render (happy-dom building every sprite's rects), so the budget
+  // is explicit: the default 5 s is too little on a loaded machine.
   for (const dockTab of DOCK_TABS) {
     it(`shows the ${dockTab.id} tab's tools and picks each one when clicked`, () => {
       const props = render()
@@ -82,7 +84,7 @@ describe('world dock buttons', () => {
         else expect(props.onPick).toHaveBeenLastCalledWith(tool)
       }
       expect(props.onPick).toHaveBeenCalledTimes(tools.length)
-    })
+    }, 20_000)
   }
 
   it('steps the speed one finer step faster or slower from the speed the world runs at', () => {
