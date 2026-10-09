@@ -98,6 +98,7 @@ pub fn tick_battles(
             organisms[di].mark_harm(crate::organism::organism::Harm::War, tick);
             if organisms[di].health <= 0.0 && organisms[di].alive {
                 organisms[di].alive = false;
+                organisms[di].death_cause = "war".to_string();
                 battle.casualties_d += 1;
                 *history_combat_deaths += 1;
             }
@@ -105,6 +106,7 @@ pub fn tick_battles(
             organisms[ai].mark_harm(crate::organism::organism::Harm::War, tick);
             if organisms[ai].health <= 0.0 && organisms[ai].alive {
                 organisms[ai].alive = false;
+                organisms[ai].death_cause = "war".to_string();
                 battle.casualties_a += 1;
                 *history_combat_deaths += 1;
             }

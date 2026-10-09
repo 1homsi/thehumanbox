@@ -1,3 +1,4 @@
+import { deathLine } from '../../../game/model/death'
 import { Tooltip } from '../../toolbar/Tooltip'
 import type { OrganismState, OrgDetail } from '../../../shared/types'
 
@@ -21,6 +22,19 @@ export function MemoryCountsSection({ org }: { org: OrganismState }) {
         >
           <span style={{ cursor: 'default' }}>danger ×{org.memory_count?.danger ?? 0}</span>
         </Tooltip>
+      </div>
+    </>
+  )
+}
+
+export function DeathSection({ org }: { org: OrganismState }) {
+  const line = deathLine(org)
+  if (!line) return null
+  return (
+    <>
+      <div className="org-detail-section">DEATH</div>
+      <div className="thought-row" style={{ marginBottom: 6 }}>
+        <span className="thought-text">{line}</span>
       </div>
     </>
   )
