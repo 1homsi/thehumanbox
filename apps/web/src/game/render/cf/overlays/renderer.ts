@@ -45,6 +45,7 @@ import { paintTornado, tornadoAt } from './tornado'
 import { vegetationSeason } from '../../landscape-style'
 import { terrainSeason } from '../../terrain-season'
 import { paintHud } from './paint-hud'
+import { paintFireflies } from './fireflies'
 import { moonLight, nightLevel, paintMoon, paintStars } from './night-sky'
 import { SpriteRecorder } from './recorder'
 import { ShapeAtlas } from './shape-atlas'
@@ -336,6 +337,10 @@ export class CfOverlayRenderer {
           f.t,
           1,
         )
+      }
+      const night = nightLevel(f.world)
+      if (night > 0 && vegetationSeason(terrainSeason(f.world)) === 'summer') {
+        paintFireflies(ground, f.bounds, f.ox, f.oy, f.t, night, f.world.grid.tiles)
       }
       this.paintContested(ground, f)
       this.ground.end()
