@@ -54,7 +54,7 @@
 .header .population-badge {
   order: 0;
 }
-.header :is(.drought-badge, .weather-badge, .sick-badge) {
+.header .weather-chip {
   order: 1;
 }
 .header .time-tag {
@@ -159,6 +159,41 @@
   text-shadow: 0 0 4px rgba(170, 220, 255, 0.6);
 }
 
+/* Weather: icons only, tinted by the most severe condition; the tooltip names them. */
+.header .hdr-chip.weather-chip {
+  gap: 4px;
+  padding: 0 7px;
+}
+.header .weather-chip.rain {
+  background: #0a1a30;
+  color: #66aaff;
+}
+.header .weather-chip.drought {
+  background: #2a1600;
+  color: #dd9944;
+  animation: pulse-drought 1.5s ease-in-out infinite;
+}
+.header .weather-chip.storm {
+  background: #0d0d22;
+  color: #aabbff;
+  animation: pulse-drought 1.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .header .weather-chip.drought,
+  .header .weather-chip.storm {
+    animation: none;
+  }
+}
+
+/* People: the living count, with the sick count beside it while anyone is ill. */
+.header .population-badge .pop-sick {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+  color: #bbff44;
+}
+
 .header .header-actions,
 .header .header-panels {
   display: flex;
@@ -235,8 +270,10 @@
   text-align: center;
 }
 
+/* Below 1480 px the moon chip would be an icon with no words, so it goes; its phase
+ * stays in the time tag's tooltip. */
 @media (max-width: 1480px) {
-  .header .moon-badge .hdr-chip-label {
+  .header .moon-badge {
     display: none;
   }
 }

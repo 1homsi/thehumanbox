@@ -97,6 +97,18 @@ describe('CalendarTag: one tag for year, season and time of day', () => {
     expect(ahead.querySelector('.time-tag-omen')?.getAttribute('aria-label')).toBe('hard winter ahead')
   })
 
+  it('keeps the moon phase in the tooltip, since its chip is hidden on narrower screens', () => {
+    const tag = renderTag(
+      worldFor(0, 0.5, {
+        cosmos: { moon_phase: 'waxing_gibbous', year: 14, day_of_year: 4 },
+      } as Partial<WorldState>),
+    )
+    act(() => tag.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })))
+    const body = text(document.querySelector('.ui-tooltip'))
+    expect(body).toContain('moon: waxing gibbous')
+    expect(body).toContain('Year 15, day 5.')
+  })
+
   it('explains the full date, the season and the time in its tooltip', () => {
     const tag = renderTag(worldFor(0, 0.8))
     act(() => tag.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })))

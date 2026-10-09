@@ -27,6 +27,14 @@ export function CalendarTag({ world }: { world: WorldState }) {
       <span className="tip-how">
         {DAY_PHASE_TITLE[parts.phase]}, {parts.dayPercent}% through the day.
       </span>
+      {world.cosmos && (
+        <>
+          <span className="tip-title">moon: {world.cosmos.moon_phase.replace(/_/g, ' ')}</span>
+          <span className="tip-how">
+            Year {world.cosmos.year + 1}, day {world.cosmos.day_of_year + 1}.
+          </span>
+        </>
+      )}
     </span>
   )
   return (
