@@ -32,7 +32,7 @@ impl Simulation {
                     return false;
                 }
                 let o = &self.organisms[i];
-                o.alive && o.lineage_id == lineage && (o.x - ox).abs() + (o.y - oy).abs() <= 4.0
+                (o.x - ox).abs() + (o.y - oy).abs() <= 4.0 && o.alive && o.lineage_id == lineage
             })
             .count();
         reward += 0.004 * (kin_count.min(1) as f32) * (0.5 + soc);
@@ -71,10 +71,10 @@ impl Simulation {
                             return false;
                         }
                         let o = &self.organisms[i];
-                        o.alive
+                        (o.x - ox).abs() + (o.y - oy).abs() <= 2.5
+                            && o.alive
                             && o.lineage_id == lineage
                             && o.infection > 0.20
-                            && (o.x - ox).abs() + (o.y - oy).abs() <= 2.5
                     })
                     .collect();
                 if !sick_kin.is_empty() {
@@ -100,7 +100,7 @@ impl Simulation {
             .copied()
             .filter(|&i| {
                 let o = &self.organisms[i];
-                i != idx && o.alive && o.lineage_id != lineage && (o.x - ox).abs() + (o.y - oy).abs() <= 4.0
+                i != idx && (o.x - ox).abs() + (o.y - oy).abs() <= 4.0 && o.alive && o.lineage_id != lineage
             })
             .map(|i| {
                 (

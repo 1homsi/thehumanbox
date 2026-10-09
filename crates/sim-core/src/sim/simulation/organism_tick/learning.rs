@@ -32,7 +32,7 @@ impl Simulation {
                         return false;
                     }
                     let o = &self.organisms[i];
-                    o.alive && o.lineage_id == lineage && (o.x - ox).abs() + (o.y - oy).abs() <= 3.0
+                    (o.x - ox).abs() + (o.y - oy).abs() <= 3.0 && o.alive && o.lineage_id == lineage
                 })
                 .count();
             let nearby_stranger_count = spatial_buf
@@ -43,7 +43,7 @@ impl Simulation {
                         return false;
                     }
                     let o = &self.organisms[i];
-                    o.alive && o.lineage_id != lineage && (o.x - ox).abs() + (o.y - oy).abs() <= 3.0
+                    (o.x - ox).abs() + (o.y - oy).abs() <= 3.0 && o.alive && o.lineage_id != lineage
                 })
                 .count();
             // Read the current thought once: each branch below changes it.
@@ -65,7 +65,7 @@ impl Simulation {
                 );
             } else if nearby_stranger_count >= 1 && open_to_strangers {
                 ordered_nearby_filtered(&self.organisms, spatial, ox, oy, 3, spatial_buf, |_, o| {
-                    o.alive && o.lineage_id != lineage && (o.x - ox).abs() + (o.y - oy).abs() <= 3.0
+                    (o.x - ox).abs() + (o.y - oy).abs() <= 3.0 && o.alive && o.lineage_id != lineage
                 });
                 let nearest_lid: Option<String> = spatial_buf
                     .iter()

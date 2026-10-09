@@ -203,9 +203,9 @@ pub(crate) fn first_unknown_nearby_lineage(
             continue;
         }
         let other = &organisms[i];
-        if other.alive
+        if (other.x - org.x).abs() + (other.y - org.y).abs() <= 5.0
+            && other.alive
             && other.lineage_id != org.lineage_id
-            && (other.x - org.x).abs() + (other.y - org.y).abs() <= 5.0
             && !org.lineage_attitudes.contains_key(&other.lineage_id)
         {
             first = Some(i);

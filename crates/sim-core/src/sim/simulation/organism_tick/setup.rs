@@ -32,11 +32,14 @@ impl Simulation {
                     continue;
                 }
                 let dist = (o.x - org.x).abs() + (o.y - org.y).abs();
-                if o.lineage_id == org.lineage_id {
-                    if dist <= 5.0 {
-                        kin_near += 1;
-                    }
-                } else if !hostile_near && dist <= 6.0 && org.attitude_toward(&o.lineage_id) < -0.2 {
+                // The distance test comes first: the lineage compare is a string compare.
+                if dist <= 5.0 && o.lineage_id == org.lineage_id {
+                    kin_near += 1;
+                } else if !hostile_near
+                    && dist <= 6.0
+                    && o.lineage_id != org.lineage_id
+                    && org.attitude_toward(&o.lineage_id) < -0.2
+                {
                     hostile_near = true;
                 }
             }

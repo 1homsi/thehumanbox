@@ -33,8 +33,8 @@ pub fn challenge_stranger(
     let kin_backing = spatial
         .ordered_nearby(organisms, organisms[org_idx].x, organisms[org_idx].y, 4)
         .map(|(_, o)| o)
-        .filter(|o| o.alive && o.lineage_id == org_lineage)
         .filter(|o| (o.x - organisms[org_idx].x).abs() + (o.y - organisms[org_idx].y).abs() <= 4.0)
+        .filter(|o| o.alive && o.lineage_id == org_lineage)
         .count()
         .saturating_sub(1);
 
@@ -81,8 +81,8 @@ pub fn challenge_stranger(
     let target_kin = spatial
         .ordered_nearby(organisms, organisms[ti].x, organisms[ti].y, 4)
         .map(|(_, o)| o)
-        .filter(|o| o.alive && o.lineage_id == target_lid)
         .filter(|o| (o.x - organisms[ti].x).abs() + (o.y - organisms[ti].y).abs() <= 4.0)
+        .filter(|o| o.alive && o.lineage_id == target_lid)
         .count()
         .saturating_sub(1);
 
