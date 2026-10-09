@@ -15,7 +15,8 @@ export const GLOW_Z = 18
 /** Home yards (plots and fences) on the ground, under the glow of the fires. */
 export const YARD_Z = 17.5
 
-const BUILDING_PAGES = [1024, 1024, 1024, 1024, 1024, 1024, 1024, 512]
+// 2048 wide: a page only takes the rows it fills, and a town on screen never needs a clear.
+const BUILDING_PAGES = [2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048]
 const PROP_PAGES = [512, 512, 1024]
 const GLOW_PAGES = [128, 128]
 

@@ -68,6 +68,10 @@ interface PageState {
 export class CellAtlas {
   /** Bumped when a page is cleared: cached CellRefs are no longer valid. */
   epoch = 0
+  /** The frame being built (see beginFrame); 0 until a driver marks one. */
+  private frame = 0
+  /** The frame each key was last looked up or baked in. */
+  private readonly lastUsed = new Map<string, number>()
   resets = 0
   bakes = 0
   rejected = 0
@@ -99,13 +103,24 @@ export class CellAtlas {
     for (const page of this.io) page?.dispose?.()
     this.io.fill(null)
     this.cells.clear()
+    this.lastUsed.clear()
     this.atlases.length = 0
     for (let i = 0; i < this.pages.length; i++) this.pages[i] = emptyPage()
     this.epoch++
   }
 
+  /**
+   * Starts a frame of lookups. A page that holds a cell used in the current frame is
+   * never cleared, so the CellRefs one frame hands out stay valid until the next.
+   */
+  beginFrame(): void {
+    this.frame++
+  }
+
   get(key: string): CellRef | undefined {
-    return this.cells.get(key)
+    const hit = this.cells.get(key)
+    if (hit && this.frame > 0) this.lastUsed.set(key, this.frame)
+    return hit
   }
 
   get cellCount(): number {
@@ -134,7 +149,7 @@ export class CellAtlas {
    * content's top-left and is clipped to the content rectangle.
    */
   bake(key: string, w: number, h: number, paint: (ctx: CanvasRenderingContext2D) => void): CellRef | null {
-    const hit = this.cells.get(key)
+    const hit = this.get(key)
     if (hit) return hit
     const needW = w + CELL_GUTTER * 2
     const needH = h + CELL_GUTTER * 2
@@ -146,7 +161,11 @@ export class CellAtlas {
     let page = this.pages[index]
     if (page.used >= page.capacity) {
       if (page.rows < page.maxRows) this.growPage(index)
-      else {
+      else if (this.inUseThisFrame(page)) {
+        // Clearing now would hand this frame's earlier CellRefs to other sprites.
+        this.rejected++
+        return null
+      } else {
         this.clearPage(index)
         page = this.pages[index]
       }
@@ -175,7 +194,12 @@ export class CellAtlas {
     this.bakes++
     const ref: CellRef = { atlas: index, frame: slot, cw: page.cw, ch: page.ch }
     this.cells.set(key, ref)
+    if (this.frame > 0) this.lastUsed.set(key, this.frame)
     return ref
+  }
+
+  private inUseThisFrame(page: PageState): boolean {
+    return this.frame > 0 && page.keys.some((k) => this.lastUsed.get(k) === this.frame)
   }
 
   /** The page that will hold a `needW` x `needH` cell, claiming one if needed. */
@@ -237,7 +261,10 @@ export class CellAtlas {
 
   private clearPage(index: number): void {
     const p = this.pages[index]
-    for (const k of p.keys) this.cells.delete(k)
+    for (const k of p.keys) {
+      this.cells.delete(k)
+      this.lastUsed.delete(k)
+    }
     p.keys = []
     p.used = 0
     const page = this.io[index]!

@@ -101,6 +101,8 @@ export class BuildingsDriver implements CfDriver {
       return false
     }
     const t0 = performance.now()
+    // Every look this rebuild hands out stays valid until the next one (see CellAtlas.beginFrame).
+    this.atlas.beginFrame()
     const { c0, c1, r0, r1 } = win
     const ox = f.ox
     const oy = f.oy
