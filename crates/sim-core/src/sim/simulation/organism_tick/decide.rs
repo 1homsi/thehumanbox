@@ -3,6 +3,7 @@ use super::*;
 impl Simulation {
     /// Choose this tick's action (learned policy, directives, storm needs), drop goals walled off by terrain, and commit to a retreat from danger.
     pub(super) fn org_decide(&mut self, f: &mut OrgFrame<'_>) {
+        self.organisms[f.idx].route.get_mut().decay_blocked();
         let animal_near = f.animal_near;
         let available_buf = &mut *f.available_buf;
         let epsilon = f.epsilon;
@@ -132,10 +133,10 @@ impl Simulation {
                 }
             }
         }
-        // A single step away from remembered danger was undone by the next
-        // tick's routine, so people flip-flopped on the spot. Commit to the
+        // A single step away from remembered danger or fire was undone by the
+        // next tick's routine, so people flip-flopped on the spot. Commit to the
         // retreat by aiming the wander target further along the flee step.
-        if action < 8 && new_thought.as_deref() == Some("avoiding danger") {
+        if action < 8 && matches!(new_thought.as_deref(), Some("avoiding danger" | "heat dangerous")) {
             let (dx, dy) = DIRECTIONS[action];
             let o = &mut self.organisms[idx];
             let (ox, oy) = (o.x as i32, o.y as i32);
