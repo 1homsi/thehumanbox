@@ -28,6 +28,7 @@ import { paintCampfireSparks, paintEmbers } from './embers'
 import { paintEruption } from './eruption'
 import { paintGroundSnow } from './ground-snow'
 import { paintFloodFront } from './flood-front'
+import { paintSkyFlyers } from './sky-flyers'
 import { paintPlagueHaze } from './plague-haze'
 import { ANIMAL_DUST, FootstepDust } from './footstep-dust'
 import { paintWaterRipples } from './water-ripples'
@@ -337,6 +338,7 @@ export class CfOverlayRenderer {
     this.effects.begin(gv)
     paintEffects(this.effects.asContext(), f)
     this.paintWeather(this.effects.asContext(), f)
+    paintSkyFlyers(this.effects.asContext(), f)
     this.effects.end()
     lap('effects')
 
