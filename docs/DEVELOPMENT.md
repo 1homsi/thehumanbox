@@ -68,6 +68,11 @@ sample $! 25 -file sample.txt          # macOS; use perf on Linux
   the per-organism pipeline (see [ARCHITECTURE.md](ARCHITECTURE.md)), not any
   single leaf.
 
+Dense crowds are the worst case for the per-person pipeline. The bench's crowd world (3,000 more people spawned
+in 60 clusters around the busiest spot at tick 9000) takes a tick from about 3.5 ms to 300 to 600 ms; measure it
+by running to tick 9000 without the spawn, then to 9020 with it, and taking the difference in instructions. The
+headless runner has no spawn flag: add the same `{"cmd":"spawn",...}` commands `apps/web/bench/gen-world.mjs` sends.
+
 ## Proving a refactor or optimisation changed nothing
 
 For anything in `crates/sim-core` that must not change behaviour, compare saved
