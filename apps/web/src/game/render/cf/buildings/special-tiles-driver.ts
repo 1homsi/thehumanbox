@@ -96,6 +96,9 @@ export class SpecialTilesDriver implements CfDriver {
 
   update(f: CfFrame): boolean {
     const t0 = performance.now()
+    // The props and glow sprites this rebuild hands out stay valid until the next one.
+    this.propAtlas.beginFrame()
+    this.glowAtlas.beginFrame()
     const { world, win, ox, oy, now } = f
     const tiles = world.grid.tiles
     if (!tiles) return false

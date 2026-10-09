@@ -182,6 +182,29 @@ describe('CellAtlas', () => {
     expect(opened[0]).not.toBe(first)
   })
 
+  it('never clears a page whose cells this frame already handed out', () => {
+    // Regression: a clear in the middle of a frame gave the earlier sprites' frames to other
+    // sprites, so buildings showed each other's looks (the houses flickered).
+    const { atlas } = make([20], [[10, 10]])
+    atlas.beginFrame()
+    const held = Array.from({ length: 4 }, (_, i) => atlas.bake(`k${i}`, 8, 8, () => {}))
+    expect(atlas.bake('k4', 8, 8, () => {})).toBeNull()
+    expect(atlas.epoch).toBe(0)
+    expect(atlas.rejected).toBe(1)
+    expect(held.map((r) => atlas.get(`k${held.indexOf(r)}`))).toEqual(held)
+  })
+
+  it('clears a full page once the next frame no longer uses its cells', () => {
+    const { atlas } = make([20], [[10, 10]])
+    atlas.beginFrame()
+    for (let i = 0; i < 4; i++) atlas.bake(`k${i}`, 8, 8, () => {})
+    atlas.beginFrame()
+    const fifth = atlas.bake('k4', 8, 8, () => {})
+    expect(atlas.epoch).toBe(1)
+    expect(fifth?.frame).toBe(0)
+    expect(atlas.get('k0')).toBeUndefined()
+  })
+
   it('reports usage across claimed pages', () => {
     const { atlas } = make([40, 40], [[10, 10]])
     atlas.bake('a', 8, 8, () => {})
