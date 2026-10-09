@@ -144,6 +144,8 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
       return 'bless'
     case 'clear_region':
       return 'quake'
+    case 'rain_patch':
+      return 'water'
     case 'merge_tribes':
       return 'peace'
     case 'split_tribe':
