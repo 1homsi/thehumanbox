@@ -109,6 +109,8 @@ pub enum Command {
     },
     /// The sun goes dark for a while: everyone alive is frightened and awed.
     Eclipse,
+    /// Lights dance across the night sky: everyone alive is awed and a little less afraid.
+    Aurora,
     /// A comet streaks across the sky over the point: everyone within the reach is awed.
     Comet {
         x: f32,
@@ -669,6 +671,7 @@ impl Simulation {
             Command::Hail { x, y, radius } => self.cmd_hail(x, y, radius),
             Command::Nuke { x, y } => self.cmd_nuke(x, y),
             Command::Eclipse => self.cmd_eclipse(),
+            Command::Aurora => self.cmd_aurora(),
             Command::ClearRegion { x, y, radius } => self.cmd_clear_region(x, y, radius),
             Command::Mutate { x, y, radius } => self.cmd_mutate(x, y, radius),
             Command::MergeTribes { ax, ay, bx, by } => self.cmd_merge_tribes(ax, ay, bx, by),

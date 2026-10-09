@@ -92,6 +92,8 @@ const TOOL_TIPS: Record<string, string> = {
   nuke: 'Drop a bomb where you click: a crater like a meteor leaves, fallout that poisons everyone across a wide ring, and blight on the plantings there. Only a tribe that has reached the Industrial age can build one.',
   eclipse:
     'The sun goes dark for a while. Everyone alive is frightened and a little awed by it, and the omen is written into the chronicle.',
+  aurora:
+    'Lights dance across the night sky over the whole world. Everyone alive is awed and a little calmer, and the omen is written into the chronicle.',
   comet:
     'A comet streaks across the sky over where you click. Everyone who can see it, within the reach, is awed; the awe lasts and the omen is written into the chronicle.',
   dice: 'Roll for fate: one random event lands at a random spot. It may bless, bring rain or a gale, or be a disaster such as a tornado, a wildfire or an earthquake.',
@@ -245,6 +247,8 @@ export function toolFailure(tool: SandboxTool): string {
       return 'no tribe has reached the Industrial age yet'
     case 'eclipse':
       return 'there is no one alive to see it'
+    case 'aurora':
+      return 'there is no one alive to see the lights'
     case 'comet':
       return 'nobody is in reach to see it'
     case 'hail':
