@@ -41,6 +41,30 @@ export function animalSize(kind: string): number {
   )
 }
 
+/** A newborn (the sim's `young` flag) is drawn at this share of its grown size. */
+export const YOUNG_ANIMAL_SCALE = 0.62
+
+/** Size factor for an animal: 1 when grown, `YOUNG_ANIMAL_SCALE` while young. */
+export function animalGrowth(young: boolean | undefined): number {
+  return young ? YOUNG_ANIMAL_SCALE : 1
+}
+
+/** Kinds that stop now and then to graze with their head down (pixel sprites with a grazing pose). */
+const GRAZING_KINDS = new Set(['sheep', 'cow'])
+
+export function isGrazer(kind: string): boolean {
+  return GRAZING_KINDS.has(kind)
+}
+
+/**
+ * True while an idle grazer shows its head-down pose. It alternates with standing about every
+ * four seconds, and only while it is not stepping.
+ */
+export function animalGrazing(kind: string, id: number, moving: boolean, t: number): boolean {
+  if (moving || !isGrazer(kind)) return false
+  return (t / 4000 + id * 0.37) % 1 < 0.5
+}
+
 export function isFlyer(kind: string): boolean {
   return kind === 'dragon' || kind === 'ufo'
 }

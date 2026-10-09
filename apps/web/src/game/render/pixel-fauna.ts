@@ -100,6 +100,16 @@ const SPRITES: Record<string, Frames> = {
       '...k.k..k...',
       '...k.k..k...',
     ],
+    // Grazing: the head is down by the grass.
+    [
+      '..WwwWwW....',
+      '.wwwwwwwww..',
+      'Wwwwwwwwww..',
+      'wwwwwwwwwkk.',
+      '.wWwwwWwwkok',
+      '..k..k.k.k..',
+      '..k..k.k....',
+    ],
   ],
   cow: [
     [
@@ -121,6 +131,17 @@ const SPRITES: Record<string, Frames> = {
       '.wwwwkkwww..',
       '..k.k...kk..',
       '..o.o...oo..',
+    ],
+    // Grazing: the head is down by the grass.
+    [
+      '............',
+      '.wwwwwwwww..',
+      'wkkwwwwkwww.',
+      'wkkwwwwwwww.',
+      'wwwwwkkwwkkk',
+      '.wwwwkkwwkok',
+      '.k..k..k.kpp',
+      '.o..o..o.o..',
     ],
   ],
   horse: [

@@ -470,7 +470,7 @@ fn entity_head_matches_the_deep_copy_reference() {
     let animals: Vec<serde_json::Value> = sim
         .animals
         .iter()
-        .map(|a| serde_json::to_value(a.to_json()).unwrap())
+        .map(|a| serde_json::to_value(a.to_json(0)).unwrap())
         .collect();
     let animals = serde_json::Value::Array(animals);
 

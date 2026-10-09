@@ -197,6 +197,12 @@ pub(crate) struct AnimalSave {
     pub(super) name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(super) bonded_org: Option<String>,
+    #[serde(default, skip_serializing_if = "is_zero_tick")]
+    pub(super) born_tick: u64,
+}
+
+fn is_zero_tick(t: &u64) -> bool {
+    *t == 0
 }
 
 pub(super) fn mem_encode(m: &FxHashMap<(i32, i32), f32>) -> HashMap<String, f32> {
@@ -555,6 +561,7 @@ pub(super) fn animal_to_save(a: &Animal) -> AnimalSave {
         last_reproduced: a.last_reproduced,
         name: a.name.clone(),
         bonded_org: a.bonded_org.clone(),
+        born_tick: a.born_tick,
     }
 }
 
@@ -566,5 +573,6 @@ pub(super) fn animal_from_save(s: AnimalSave) -> Animal {
     a.last_reproduced = s.last_reproduced;
     a.name = s.name;
     a.bonded_org = s.bonded_org;
+    a.born_tick = s.born_tick;
     a
 }
