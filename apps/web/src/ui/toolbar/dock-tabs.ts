@@ -66,6 +66,13 @@ export const DOCK_TABS: DockTab[] = [
     groups: ['good'],
   },
   {
+    id: 'miracles',
+    label: 'miracles',
+    icon: '🔮',
+    tip: 'Blessings of the land and of one person: a river full of fish, a forest that surges, a rare gift',
+    groups: ['miracles'],
+  },
+  {
     id: 'deadly',
     label: 'deadly',
     icon: '💀',
@@ -104,7 +111,16 @@ export function groupsFor(tabId: string): SandboxCategory[] {
  * Tools added since the last release. A tab that holds one the player has not seen shows a
  * "new" mark; opening the tab marks its new tools seen. Remove an id once it is old news.
  */
-export const NEW_TOOL_IDS: readonly string[] = ['heat_wave', 'owl', 'eagle', 'snake', 'crocodile']
+export const NEW_TOOL_IDS: readonly string[] = [
+  'heat_wave',
+  'owl',
+  'eagle',
+  'snake',
+  'crocodile',
+  'bless_river',
+  'bless_forest',
+  'talent',
+]
 
 const SEEN_NEW_STORAGE_KEY = 'thb-seen-new-tools'
 

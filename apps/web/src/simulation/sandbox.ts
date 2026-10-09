@@ -74,6 +74,9 @@ export type SandboxCommand =
   | { cmd: 'guardian'; x: number; y: number }
   | { cmd: 'aurora' }
   | { cmd: 'heat_wave' }
+  | { cmd: 'bless_river'; x: number; y: number; radius?: number }
+  | { cmd: 'bless_forest'; x: number; y: number; radius?: number }
+  | { cmd: 'talent'; x: number; y: number; radius?: number }
   | { cmd: 'clear_region'; x: number; y: number; radius?: number }
   | { cmd: 'comet'; x: number; y: number; radius?: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
@@ -1295,6 +1298,34 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🐊',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'crocodile', count: 1 + b, radius: b }),
+      },
+    ],
+  },
+  {
+    id: 'miracles',
+    label: 'miracles',
+    icon: '🔮',
+    tools: [
+      {
+        id: 'bless_river',
+        label: 'bless river',
+        icon: '🐟',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'bless_river', x, y, radius: 4 + b }),
+      },
+      {
+        id: 'bless_forest',
+        label: 'bless forest',
+        icon: '🌳',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'bless_forest', x, y, radius: 4 + b }),
+      },
+      {
+        id: 'talent',
+        label: 'rare gift',
+        icon: '🌟',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'talent', x, y, radius: 3 + b }),
       },
     ],
   },
