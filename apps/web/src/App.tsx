@@ -52,7 +52,6 @@ import { WorldFooter } from './ui/panels/WorldFooter'
 import { AppHeader } from './ui/toolbar/AppHeader'
 import { RightPanel } from './ui/panels/RightPanel'
 import { ModalRouter } from './ui/modals/ModalRouter'
-import { ScenariosModal } from './ui/modals/ScenariosModal'
 import { type ScenarioPreset } from './simulation/scenarios'
 import { setSandboxSender } from './simulation/commandBus'
 import { useSkyOverlay } from './game/render/sky-overlay'
@@ -82,6 +81,11 @@ function WorldViewPending() {
 
 const SceneView = lazyWithRetry(() =>
   import('./game/scenes/components/SceneView').then((m) => ({ default: m.SceneView })),
+)
+// Opened from the toolbar only; its dialog pulls in Radix Dialog through `Modal`, which would
+// otherwise sit in the entry chunk.
+const ScenariosModal = lazyWithRetry(() =>
+  import('./ui/modals/ScenariosModal').then((m) => ({ default: m.ScenariosModal })),
 )
 function App() {
   return <LiveApp />
@@ -827,10 +831,12 @@ function LiveApp() {
           />
         )}
         {showScenarios && isLocalWebWorld && sandboxControlsEnabled && world && (
-          <ScenariosModal
-            onStart={(preset) => runScenario(preset, world.grid.width, world.grid.height)}
-            onClose={closeScenarios}
-          />
+          <Suspense fallback={null}>
+            <ScenariosModal
+              onStart={(preset) => runScenario(preset, world.grid.width, world.grid.height)}
+              onClose={closeScenarios}
+            />
+          </Suspense>
         )}
 
         {hotkeysOpen && <HotkeyHelp onClose={() => setHotkeysOpen(false)} />}
