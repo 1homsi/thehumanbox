@@ -100,6 +100,16 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// The whole tribe of the person nearest the click is cured of its sickness.
+    CureTribe {
+        x: f32,
+        y: f32,
+    },
+    /// A guardian dog appears beside the person nearest the click and bonds to them.
+    Guardian {
+        x: f32,
+        y: f32,
+    },
     /// Wipes everything living in the brush area: people, animals, plantings and wild food.
     ClearRegion {
         x: f32,
@@ -629,6 +639,7 @@ mod teleport;
 mod tests;
 #[cfg(test)]
 mod tornado_tests;
+mod tribe_care;
 mod tribe_regroup;
 mod tribes;
 #[cfg(test)]
@@ -671,6 +682,8 @@ impl Simulation {
             Command::Hail { x, y, radius } => self.cmd_hail(x, y, radius),
             Command::Nuke { x, y } => self.cmd_nuke(x, y),
             Command::Eclipse => self.cmd_eclipse(),
+            Command::CureTribe { x, y } => self.cmd_cure_tribe(x, y),
+            Command::Guardian { x, y } => self.cmd_guardian(x, y),
             Command::Aurora => self.cmd_aurora(),
             Command::ClearRegion { x, y, radius } => self.cmd_clear_region(x, y, radius),
             Command::Mutate { x, y, radius } => self.cmd_mutate(x, y, radius),
