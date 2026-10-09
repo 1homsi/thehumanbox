@@ -118,12 +118,12 @@ describe('CfOverlayRenderer', () => {
     expect(host.registered.size).toBe(0)
   })
 
-  it('draws trade roads, rails and caravans only while the trade routes view is on', () => {
+  it('draws caravans at every zoom, and the trade roads and rails only while the trade routes view is on', () => {
     make()
     const trade = vi.mocked(drawTradeNetwork2D)
     trade.mockClear()
     renderer.update(frameOf(world()))
-    expect(trade).toHaveBeenCalledTimes(2)
+    expect(trade.mock.calls.map((call) => call[4])).toEqual(['roads', 'caravans'])
     trade.mockClear()
     const hidden = makeFrame({
       world: world(),
@@ -137,7 +137,7 @@ describe('CfOverlayRenderer', () => {
       viewFlags: { ...flags, tradeRoutes: false },
     })
     renderer.update(hidden)
-    expect(trade).not.toHaveBeenCalled()
+    expect(trade.mock.calls.map((call) => call[4])).toEqual(['caravans'])
   })
 
   it('draws the atmosphere as tint quads between the ground and everything built', () => {

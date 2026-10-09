@@ -11,6 +11,7 @@ use crate::world::grid::{TrailKind, HEIGHT, WIDTH};
 
 mod delivery;
 mod dispatch;
+mod merchants;
 mod model;
 mod routes;
 #[cfg(test)]
@@ -19,6 +20,7 @@ mod upkeep;
 
 pub use delivery::*;
 pub use dispatch::*;
+use merchants::*;
 pub use model::*;
 pub use routes::*;
 pub use upkeep::*;

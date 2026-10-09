@@ -128,6 +128,20 @@ pub(super) fn dispatch_caravan_on_route_index(
     actor_idx: usize,
     route_index: usize,
 ) -> bool {
+    let Some((cargo, amount)) = cargo_candidate(sim, actor_idx) else {
+        return false;
+    };
+    dispatch_cargo_on_route_index(sim, actor_idx, route_index, cargo, amount)
+}
+
+/// Sends `amount` of `cargo` from the actor's own inventory on the route.
+pub(super) fn dispatch_cargo_on_route_index(
+    sim: &mut Simulation,
+    actor_idx: usize,
+    route_index: usize,
+    cargo: String,
+    amount: u32,
+) -> bool {
     let Some(actor) = sim.organisms.get(actor_idx).filter(|organism| organism.alive) else {
         return false;
     };
@@ -157,9 +171,9 @@ pub(super) fn dispatch_caravan_on_route_index(
     if route.lineage_a != canonical_a || route.lineage_b != canonical_b {
         return false;
     }
-    let Some((cargo, amount)) = cargo_candidate(sim, actor_idx) else {
+    if amount == 0 {
         return false;
-    };
+    }
     let used_caravan_ids: HashSet<u32> = sim.caravans.iter().map(|caravan| caravan.id).collect();
     let Some(id) = allocate_available_id(&mut sim.next_caravan_id, &used_caravan_ids) else {
         return false;

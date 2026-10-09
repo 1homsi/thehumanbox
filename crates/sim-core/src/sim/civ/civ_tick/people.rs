@@ -268,6 +268,91 @@ pub(super) fn tick_specialties(sim: &mut Simulation) {
     }
 }
 
+/// How close a person must live to a trading building of their tribe to take up trade.
+const MERCHANT_DRIFT_REACH: f32 = 14.0;
+/// Chance per specialty pass that a sociable person near a stall or market becomes a merchant.
+const MERCHANT_DRIFT_CHANCE: f32 = 0.08;
+/// How sociable a person must be to take up trade.
+const MERCHANT_DRIFT_SOCIAL: f32 = 0.4;
+/// Farmers a tribe keeps on the land before any of them may take up trade.
+const MERCHANT_DRIFT_FARMERS_KEPT: usize = 4;
+
+/// People who work a non-essential trade (or none) drift into trade when a
+/// stall, market or other trading building of their tribe stands nearby. Farmers,
+/// hunters and miners keep their work: food and metal come first.
+pub(super) fn tick_merchant_drift(sim: &mut Simulation) {
+    let anchors: Vec<(f32, f32, String)> = sim
+        .buildings
+        .iter()
+        .filter(|b| {
+            let stall = b.decorative && b.kind == crate::sim::tech::buildings::BuildingKind::MarketStall;
+            (b.is_operational() || stall)
+                && b.kind.function() == crate::sim::tech::buildings::BuildingFunction::Trade
+        })
+        .filter_map(|b| {
+            let lid = b.owner_lineage.clone()?;
+            let (fw, fh) = b.kind.footprint();
+            Some((b.x as f32 + fw as f32 / 2.0, b.y as f32 + fh as f32 / 2.0, lid))
+        })
+        .collect();
+    if anchors.is_empty() {
+        return;
+    }
+    let tick = sim.tick_count;
+    // Farmers are only drawn into trade where the tribe has food to spare: a
+    // tribe keeps at least this many farmers, whatever their social pull.
+    let mut farmers: HashMap<String, usize> = HashMap::default();
+    for org in sim
+        .organisms
+        .iter()
+        .filter(|org| org.alive && org.specialty.as_deref() == Some("farmer"))
+    {
+        *farmers.entry(org.lineage_id.clone()).or_insert(0) += 1;
+    }
+    for i in 0..sim.organisms.len() {
+        let org = &sim.organisms[i];
+        if !org.alive
+            || org.age_stage() != AgeStage::Adult
+            || org.traits.social_tendency < MERCHANT_DRIFT_SOCIAL
+        {
+            continue;
+        }
+        let drifts = match org.specialty.as_deref() {
+            None => true,
+            Some("farmer") => {
+                farmers.get(&org.lineage_id).copied().unwrap_or(0) > MERCHANT_DRIFT_FARMERS_KEPT
+            }
+            Some("artist" | "priest" | "carpenter" | "builder" | "weaver" | "baker" | "smith" | "brewer") => {
+                true
+            }
+            _ => false,
+        };
+        if !drifts {
+            continue;
+        }
+        let near = anchors.iter().any(|(bx, by, lid)| {
+            *lid == org.lineage_id && (org.x - bx).abs() + (org.y - by).abs() <= MERCHANT_DRIFT_REACH
+        });
+        if !near || sim.rng.random::<f32>() >= MERCHANT_DRIFT_CHANCE {
+            continue;
+        }
+        let name = sim.organisms[i].name.clone();
+        let previous = sim.organisms[i].specialty.clone();
+        sim.organisms[i].specialty = Some("merchant".to_string());
+        let detail = match previous {
+            Some(old) => format!("left {old} work to trade"),
+            None => "became a merchant".to_string(),
+        };
+        push_event(
+            &mut sim.events,
+            tick,
+            "specialty",
+            &name,
+            &format!("{name} {detail} at the market"),
+        );
+    }
+}
+
 /// How far a teen can be from a working parent and still learn their trade.
 const APPRENTICE_REACH: f32 = 20.0;
 

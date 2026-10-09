@@ -265,3 +265,64 @@ fn snow_holds_caravans_back_on_the_road() {
         "clear weather leaves the journey alone"
     );
 }
+
+/// Moves the hill tribe close enough to the river tribe for a merchant route.
+fn neighbouring_trade_sim() -> Simulation {
+    let mut sim = trade_sim();
+    for (index, organism) in sim.organisms.iter_mut().enumerate() {
+        if organism.lineage_id == "hill" {
+            organism.x = 140.0 + (index % 2) as f32;
+            organism.y = 110.0;
+            organism.home_x = organism.x;
+            organism.home_y = organism.y;
+        }
+    }
+    sim.buildings.clear();
+    sim.buildings.push(completed_hut(1, "river", 100, 100));
+    sim.buildings.push(completed_hut(2, "hill", 140, 110));
+    sim
+}
+
+#[test]
+fn a_merchant_opens_a_route_and_loads_a_spare_good_from_their_tribe() {
+    let mut sim = neighbouring_trade_sim();
+    sim.organisms[0].specialty = Some("merchant".into());
+    sim.organisms[1].inv_food = 5;
+
+    open_merchant_routes(&mut sim);
+    assert_eq!(
+        sim.trade_routes.len(),
+        1,
+        "a merchant opens a route to a tribe nearby"
+    );
+
+    run_merchant_caravans(&mut sim);
+    assert_eq!(sim.caravans.len(), 1);
+    let caravan = &sim.caravans[0];
+    assert_eq!(caravan.cargo, "food");
+    assert_eq!(caravan.amount, MERCHANT_LOAD);
+    assert_eq!(caravan.sender_org_id, sim.organisms[0].id);
+    assert_eq!(
+        sim.organisms[1].inv_food, 2,
+        "the donor keeps a reserve of two food"
+    );
+    assert_eq!(sim.organisms[0].inv_food, 0, "the merchant carries it away");
+
+    run_merchant_caravans(&mut sim);
+    assert_eq!(sim.caravans.len(), 1, "a route waits between caravans");
+}
+
+#[test]
+fn no_caravan_leaves_without_a_merchant_or_a_spare_good() {
+    let mut sim = neighbouring_trade_sim();
+    sim.organisms[1].inv_food = 5;
+    open_merchant_routes(&mut sim);
+    assert!(sim.trade_routes.is_empty(), "no merchant, no route");
+
+    sim.organisms[0].specialty = Some("merchant".into());
+    open_merchant_routes(&mut sim);
+    assert_eq!(sim.trade_routes.len(), 1);
+    sim.organisms[1].inv_food = 1;
+    run_merchant_caravans(&mut sim);
+    assert!(sim.caravans.is_empty(), "one unit is the donor's own food");
+}
