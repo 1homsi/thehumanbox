@@ -140,6 +140,8 @@ const TOOL_TIPS: Record<string, string> = {
   zebra: 'Release a zebra, or a few, over the savanna or grass. They graze the grass and run from predators.',
   polar_bear:
     'Release a polar bear, or a few, over the tundra or taiga. They hunt seals and, when hungry, people.',
+  kangaroo:
+    'Release a kangaroo, or a few, over the savanna, grass or badlands. They bound off and keep clear of people.',
   monkey:
     'Release a monkey, or a few, into the jungle. They swing through the canopy and forage for fruit, and keep clear of people.',
   rain_patch:

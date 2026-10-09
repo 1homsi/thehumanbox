@@ -476,3 +476,31 @@ fn released_polar_bears_keep_to_their_habitat() {
         );
     }
 }
+
+#[test]
+fn released_kangaroos_keep_to_their_habitat() {
+    assert!(AnimalKind::Kangaroo.drain() > 0.0 && AnimalKind::Kangaroo.step_size() > 0);
+    assert_eq!(AnimalKind::Kangaroo.name(), "kangaroo");
+    let mut sim = Simulation::new(34);
+    sim.animals.clear();
+    for x in 0..WIDTH as i32 {
+        for y in 0..HEIGHT as i32 {
+            let home = x < WIDTH as i32 / 2;
+            sim.grid.biome[WorldGrid::idx(x, y)] = if home { Biome::Savanna } else { Biome::Tundra } as u8;
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
+    assert!(sim.apply_command_json(
+        r#"{"cmd":"spawn_animal","x":60.0,"y":60.0,"kind":"kangaroo","count":12,"radius":12}"#
+    ));
+    assert!(sim.animals.len() >= 12);
+    for a in &sim.animals {
+        assert_eq!(
+            sim.grid.biome_at(a.x as i32, a.y as i32),
+            Biome::Savanna,
+            "kangaroo at ({}, {})",
+            a.x,
+            a.y
+        );
+    }
+}

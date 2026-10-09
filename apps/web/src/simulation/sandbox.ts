@@ -1361,6 +1361,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'polar_bear', count: 1 + b, radius: b }),
       },
+      {
+        id: 'kangaroo',
+        label: 'kangaroo',
+        icon: '🦘',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'kangaroo', count: 1 + b, radius: b }),
+      },
     ],
   },
   {

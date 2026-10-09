@@ -390,6 +390,7 @@ export interface AnimalState {
     | 'lion'
     | 'zebra'
     | 'polar_bear'
+    | 'kangaroo'
     | 'zombie'
     | 'demon'
     | 'dragon'

@@ -142,6 +142,7 @@ export const NEW_TOOL_IDS: readonly string[] = [
   'lion',
   'zebra',
   'polar_bear',
+  'kangaroo',
   'frost',
 ]
 
