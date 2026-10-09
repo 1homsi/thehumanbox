@@ -36,6 +36,8 @@ export const BODY_ATLAS = { people: 0, boats: 1 } as const
 
 /** A boat under way between two simulation frames: its body slot, and the tiles it glides from and to. */
 export interface BoatGlide {
+  /** The layer the boat sits in (the afloat layer); the body layer when omitted. */
+  layer?: SpriteLayer
   bi: number
   fx: number
   fy: number
@@ -101,6 +103,8 @@ const CROWN = cssToRgba32('#f2c84b')
  */
 export class PeopleSprites {
   readonly body: SpriteLayer
+  /** Unmanned boats and piers: their own layer under the buildings; the body layer when not given. */
+  readonly afloat: SpriteLayer
   readonly soft: AttachedSprites
   readonly over: AttachedSprites
   readonly emotes: AttachedSprites
@@ -162,10 +166,17 @@ export class PeopleSprites {
   private readonly mapLookups: boolean
 
   constructor(
-    layers: { body: SpriteLayer; soft: SpriteLayer; over: SpriteLayer; emote: SpriteLayer },
+    layers: {
+      body: SpriteLayer
+      afloat?: SpriteLayer
+      soft: SpriteLayer
+      over: SpriteLayer
+      emote: SpriteLayer
+    },
     options: { touchAll?: boolean; mapLookups?: boolean } = {},
   ) {
     this.body = layers.body
+    this.afloat = layers.afloat ?? layers.body
     this.soft = new AttachedSprites(layers.soft)
     this.over = new AttachedSprites(layers.over)
     this.emotes = new AttachedSprites(layers.emote)
@@ -256,8 +267,10 @@ export class PeopleSprites {
     for (const v of input.vehicles) if (v.kind === 'boat' && v.rider_id) boats.set(v.rider_id, v)
 
     const body = this.body
+    const afloat = this.afloat
     const { soft, over, emotes } = this
     body.clear()
+    if (afloat !== body) afloat.clear()
     soft.begin()
     over.begin()
     emotes.begin()
@@ -565,8 +578,9 @@ export class PeopleSprites {
       this.boatIdx[owner] = bi
     }
 
-    // Boats nobody is in sit on the water, drawn beneath the people. A boat under way glides from the
-    // tile it had at the last simulation frame (a step or two at most; a new boat or a jump is not gliding).
+    // Boats nobody is in sit on the water, under the buildings and beneath the people. A boat under way
+    // glides from the tile it had at the last simulation frame (a step or two at most; a new boat or a
+    // jump is not gliding).
     const tiles = new Map<number, [number, number]>()
     this.gliding = []
     for (const v of input.vehicles) {
@@ -574,7 +588,7 @@ export class PeopleSprites {
       const x = Math.round((v.x - ox) * TILE + TILE / 2)
       const y = Math.round((v.y - oy) * TILE + TILE / 2)
       const variant = boatVariantOf(v.era, v.cargo)
-      const bi = body.add(
+      const bi = afloat.add(
         x,
         y + 3,
         BOAT_CELL.width,
@@ -582,12 +596,12 @@ export class PeopleSprites {
         boatColumn(variant, boatFrame(!!v.sailing, !!v.building, input.clock ?? 0)),
         -1,
       )
-      body.atlas[bi] = BODY_ATLAS.boats
-      body.sortKey[bi] = -10000 + v.y
+      afloat.atlas[bi] = BODY_ATLAS.boats
+      afloat.sortKey[bi] = -10000 + v.y
       tiles.set(v.id, [v.x, v.y])
       const before = this.boatTiles.get(v.id)
       if (v.sailing && before && Math.abs(before[0] - v.x) + Math.abs(before[1] - v.y) <= 2) {
-        this.gliding.push({ bi, fx: before[0], fy: before[1], tx: v.x, ty: v.y })
+        this.gliding.push({ layer: afloat, bi, fx: before[0], fy: before[1], tx: v.x, ty: v.y })
       }
     }
     this.boatTiles = tiles
@@ -600,7 +614,7 @@ export class PeopleSprites {
       const column = pierColumn(v.shore[0], v.shore[1])
       if (piers.has(key) || column < 0) continue
       piers.add(key)
-      const pi = body.add(
+      const pi = afloat.add(
         Math.round((hx - ox) * TILE + TILE / 2),
         Math.round((hy - oy) * TILE + TILE / 2),
         BOAT_CELL.width,
@@ -608,9 +622,9 @@ export class PeopleSprites {
         column,
         -1,
       )
-      body.atlas[pi] = BODY_ATLAS.boats
+      afloat.atlas[pi] = BODY_ATLAS.boats
       // Behind the boats moored at it.
-      body.sortKey[pi] = -10000 + hy - 0.5
+      afloat.sortKey[pi] = -10000 + hy - 0.5
     }
     this.lastMoved = -Infinity
     this.moving = true
@@ -680,12 +694,14 @@ export class PeopleSprites {
     // Boats under way glide between simulation frames (a few per world, so this is cheap).
     for (const g of this.gliding) {
       const [gx, gy] = glideTile(g, t)
-      const moved = storeF32(bx, g.bi, Math.round((gx - ox) * TILE + TILE / 2))
-      const turned = storeF32(by, g.bi, Math.round((gy - oy) * TILE + TILE / 2) + 3)
-      if (moved || turned) body.touchRange(g.bi)
+      const layer = g.layer ?? body
+      const moved = storeF32(layer.x, g.bi, Math.round((gx - ox) * TILE + TILE / 2))
+      const turned = storeF32(layer.y, g.bi, Math.round((gy - oy) * TILE + TILE / 2) + 3)
+      if (moved || turned) layer.touchRange(g.bi)
     }
     if (touchAll) body.touch()
     else if (hi >= lo) body.touchRange(lo, hi)
+    if (touchAll && this.afloat !== body) this.afloat.touch()
     this.soft.place(px, py, hidden, now, touchAll)
     this.over.place(px, py, hidden, now, touchAll)
     this.emotes.place(px, py, hidden, now, touchAll)

@@ -241,6 +241,31 @@ describe('PeopleSprites', () => {
     expect(body.sortKey[empty]).toBeLessThan(0)
   })
 
+  it('draws empty boats and piers in their own layer under the buildings, rider boats with the people', () => {
+    const body = new SpriteLayer({ sortByKey: true, atlases: [{}, {}] })
+    const afloat = new SpriteLayer({ sortByKey: true, atlases: [{}, {}] })
+    const soft = new SpriteLayer({ atlases: [{}] })
+    const over = new SpriteLayer({ atlases: [{}] })
+    const emote = new SpriteLayer({ atlases: [{}] })
+    const sprites = new PeopleSprites({ body, afloat, soft, over, emote })
+    sprites.rebuild(
+      input([org('r', 10, 10)], {
+        vehicles: [
+          { id: 1, kind: 'boat', x: 10, y: 10, rider_id: 'r' },
+          { id: 2, kind: 'boat', x: 50, y: 20 },
+          { id: 3, kind: 'boat', x: 60, y: 20, harbour: [60, 21], shore: [0, -1] },
+        ],
+      }),
+    )
+    sprites.animate(1000, 1)
+    // the rider's boat (and the person) stay in the body layer
+    expect(body.count).toBe(2)
+    expect(body.atlas[1]).toBe(BODY_ATLAS.boats)
+    // the empty boat and the pier of the mooring sit in the afloat layer, all on the boat atlas
+    expect(afloat.count).toBe(3)
+    expect([0, 1, 2].every((i) => afloat.atlas[i] === BODY_ATLAS.boats)).toBe(true)
+  })
+
   it('answers picks with the person drawn there and nothing for ground', () => {
     const { sprites } = setup()
     const a = org('a', 10, 10)

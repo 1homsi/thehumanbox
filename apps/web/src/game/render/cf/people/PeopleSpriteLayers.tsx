@@ -71,12 +71,22 @@ export function PeopleSpriteLayers({
     zIndex: PEOPLE_Z.body,
     sampling: 'nearest',
   })
+  // Unmanned boats and piers: on the water, under the buildings.
+  const afloat = useSpriteLayer({
+    atlases: bodyAtlases,
+    sortByKey: true,
+    zIndex: PEOPLE_Z.afloat,
+    sampling: 'nearest',
+  })
   const soft = useSpriteLayer({ atlases: softAtlases, zIndex: PEOPLE_Z.soft, sampling: 'linear' })
   const over = useSpriteLayer({ atlases: overAtlases, zIndex: PEOPLE_Z.over, sampling: 'linear' })
 
   const emote = useSpriteLayer({ atlases: emoteAtlases, zIndex: PEOPLE_Z.emote, sampling: 'nearest' })
 
-  const sprites = useMemo(() => new PeopleSprites({ body, soft, over, emote }), [body, soft, over, emote])
+  const sprites = useMemo(
+    () => new PeopleSprites({ body, afloat, soft, over, emote }),
+    [body, afloat, soft, over, emote],
+  )
 
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
