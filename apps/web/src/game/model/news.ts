@@ -26,6 +26,7 @@ const NEWS_EVENT_TYPES = new Set([
   'danger',
   'theft',
   'murder',
+  'trade_route',
 ])
 
 export function isNewsEvent(e: { type: string; news?: boolean }): boolean {

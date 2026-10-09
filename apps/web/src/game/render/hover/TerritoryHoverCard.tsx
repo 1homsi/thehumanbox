@@ -124,6 +124,7 @@ function TribeFacts({ facts, lineage }: { facts: TerritoryCardFacts; lineage: st
         {facts.government ? ` (${facts.government})` : ''}
       </div>
       {facts.wealthGap && <div>wealth: {facts.wealthGap}</div>}
+      {facts.trade && <div>trade: {facts.trade}</div>}
       {facts.contested && <div style={{ color: '#ffb36b' }}>disputed land</div>}
     </>
   )

@@ -310,6 +310,20 @@ fn a_merchant_opens_a_route_and_loads_a_spare_good_from_their_tribe() {
 
     run_merchant_caravans(&mut sim);
     assert_eq!(sim.caravans.len(), 1, "a route waits between caravans");
+
+    let arrival = sim.caravans[0].arrives_tick;
+    sim.tick_count = arrival;
+    assert!(receive_due_for_lineage(&mut sim, "hill"));
+    let first: Vec<_> = sim
+        .events
+        .iter()
+        .filter(|event| event.etype == "trade_route")
+        .collect();
+    assert_eq!(first.len(), 1, "the first arrival on a route is chronicled once");
+    assert!(first[0].news, "the first caravan is news");
+    assert!(first[0]
+        .detail
+        .starts_with("the first caravan from River Folk reached Hill Folk"));
 }
 
 #[test]
