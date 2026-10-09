@@ -586,3 +586,46 @@ fn site_search_picks_the_same_tile_as_the_single_site_rules() {
     assert!(compared > 1_000, "compared {compared} sites");
     assert!(found > 0 && found < compared, "found {found} of {compared}");
 }
+
+#[test]
+fn a_rich_town_raises_a_manor_and_a_poor_one_does_not() {
+    let mut sim = Simulation::new(0x3A);
+    sim.organisms.clear();
+    sim.buildings.clear();
+    for (lineage, wealth) in [("rich", 12), ("poor", 5)] {
+        for i in 0..30 {
+            let mut org = test_org(&format!("{lineage}-{i}"), "Person", lineage, 10.0, 10.0);
+            org.wealth = wealth;
+            org.inv_wood = 10;
+            org.inv_stone = 10;
+            sim.organisms.push(org);
+        }
+    }
+    assert!(
+        wants_manor(&sim, "rich", Era::Medieval, 30),
+        "a rich town of thirty wants a manor"
+    );
+    assert!(
+        !wants_manor(&sim, "poor", Era::Medieval, 30),
+        "a poor town keeps to cheaper homes"
+    );
+    assert!(
+        !wants_manor(&sim, "rich", Era::Iron, 30),
+        "no manors before the Medieval age"
+    );
+    assert!(
+        !wants_manor(&sim, "rich", Era::Medieval, 12),
+        "a village of twelve builds no manor"
+    );
+    // One manor per twenty-four people: a second waits until the town has grown.
+    sim.buildings.push(Building::new(
+        1,
+        BuildingKind::Manor,
+        20,
+        20,
+        Some("rich".into()),
+        0,
+    ));
+    assert!(wants_manor(&sim, "rich", Era::Medieval, 30));
+    assert!(!wants_manor(&sim, "rich", Era::Medieval, 24));
+}

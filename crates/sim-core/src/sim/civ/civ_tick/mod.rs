@@ -38,7 +38,7 @@ use arts::*;
 use construction::*;
 pub(crate) use construction::{
     construction_site_is_valid, lineage_can_afford_construction, reconcile_operational_infrastructure,
-    try_start_building_at,
+    try_start_building_at, wants_manor,
 };
 #[cfg(test)]
 pub(crate) use disease::tick_disease_spread_for_test;

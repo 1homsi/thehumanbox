@@ -21,7 +21,7 @@ impl BuildingKind {
         match self {
             Hut => &[("wood", 8), ("grass", 4)],
             House => &[("wood", 20), ("stone", 8)],
-            Manor => &[("wood", 60), ("stone", 40), ("iron", 6)],
+            Manor => &[("wood", 120), ("stone", 100), ("iron", 40)],
             TownHouse => &[("wood", 40), ("stone", 28)],
             Apartment => &[("concrete", 200), ("steel", 60), ("glass", 40)],
             School => &[("wood", 40), ("stone", 30), ("paper", 10)],

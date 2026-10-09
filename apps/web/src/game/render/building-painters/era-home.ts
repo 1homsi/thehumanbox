@@ -35,6 +35,9 @@ const HOME_KIND_TIER: Record<string, number> = {
 /** Homes in their tribe's style; a kind never drops below its own tier. */
 export function paintEraHome(p: P) {
   const tier = Math.max(HOME_KIND_TIER[p.kind] ?? 0, p.tier)
+  // A manor keeps its Medieval shape until the tribe builds in the Renaissance
+  // style, when it becomes a villa with a colonnaded front.
+  if (p.kind === 'Manor' && tier >= 4) return paintVilla(p)
   // Stone-age huts take their shape from the land (igloo, adobe, stilt, longhouse).
   if (tier === 0 && p.land && paintLandHome(p)) return true
   // Each era has several house forms; the building's stable variant picks
