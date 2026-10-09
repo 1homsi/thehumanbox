@@ -117,4 +117,31 @@ mod tests {
         sim.pass_family_home(0);
         assert_eq!((sim.organisms[1].home_x, sim.organisms[1].home_y), (12.0, 9.0));
     }
+
+    #[test]
+    fn a_living_parent_keeps_the_home_while_the_child_lives() {
+        let mut sim = Simulation::new(8);
+        sim.organisms.clear();
+        let mut parent = person("parent", 5000, (30.0, 40.0));
+        parent.energy = 1.0;
+        parent.hydration = 1.0;
+        parent.health = 1.0;
+        let mut child = person("child", 1500, (5.0, 5.0));
+        child.parent_id = "parent".into();
+        child.energy = 1.0;
+        child.hydration = 1.0;
+        child.health = 1.0;
+        sim.organisms.push(parent);
+        sim.organisms.push(child);
+        sim.tick();
+        assert!(sim.organisms[0].alive && sim.organisms[1].alive);
+        assert_eq!((sim.organisms[1].home_x, sim.organisms[1].home_y), (5.0, 5.0));
+        assert!(
+            !sim.organisms[1]
+                .life_log
+                .iter()
+                .any(|e| e.text.contains("inherited the family home")),
+            "nothing was inherited while the parent lives"
+        );
+    }
 }

@@ -243,7 +243,11 @@ impl Simulation {
             }
         }
 
-        self.pass_family_home(idx);
+        // The home passes on once, when its owner dies. Every living person
+        // reaches this point each tick, so the call is gated on the death.
+        if !self.organisms[idx].alive {
+            self.pass_family_home(idx);
+        }
         if let Some((dx, dy, dlid)) = death_grief {
             let dead_name = self.organisms[idx].name.clone();
             let dead_id_str = self.organisms[idx].id.clone();
