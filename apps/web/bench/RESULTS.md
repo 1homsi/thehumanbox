@@ -211,3 +211,53 @@ Bundles (`pnpm run build`, gzip in brackets): `index` JS 168,265 B (52.8 kB) at 
 ### Rules this stream kept
 
 Each change was measured on its own against the build it changed; the section sums were taken from instrumented builds that never shipped (the timing hooks were applied to a copy and reverted); the bench's own `busy %` was reported only where it was not the evidence.
+
+## Performance stream, fourth shift: final numbers (#476 to #489)
+
+The machine's 1-minute load average was 15 to 72 for every run in this section (other sessions shared it), so wall-clock figures are given as ranges and the deterministic counts carry the decisions. A full Chrome before/after bench was not re-run under that load; the busy and texture numbers below are from one profiled bench pass at 9a1a6e03.
+
+### Merged in this shift
+
+| PR | change | measured |
+|--|--|--|
+| #476 to #482 | overlay and effect passes (dust, atlas tint, heat map, haze, festival culling) | see the section above: standard overlay -105 to -125 ms per 8 s |
+| #486 | scenarios and life-story dialogs load when opened, so Radix Dialog leaves the entry chunk | entry `index` JS 260,094 B to 215,711 B (raw -17%), gzip 81.3 to 66.6 kB; `WorldView` unchanged at 371 kB |
+| #487 | dock tiles are memoized and the pick they call is stable; per-tab toolbar tests get an explicit 20 s budget | one click on a tile 2.6 to 3.2 ms to 0.08 to 0.10 ms (happy-dom); first render about 350 ms, unchanged; index +0.8 kB |
+| #489 | route planner estimate 10 to 14 per tile of distance (weighted A*) | instructions over 3000 ticks -3.4% (seed 42) and -5.6% (seed 1337), three interleaved runs each; 8-seed mean alive at tick 9000: 138.9 to 142.5 (seeds 42 to 49), 143.0 to 143.8 (seeds 1337 to 1344); no extinctions, no unhealthy seed |
+
+Interleaved wall-clock tick times for #489 (seed 42, 8000 ticks, three pairs, the same load): mean 9.95, 10.03, 11.65 ms for the baseline and 6.78, 7.09, 7.89 ms with the change; p95 25.3, 29.4, 34.8 against 14.8, 16.5, 13.8; max 49.9, 50.3, 148.4 against 38.3, 44.3, 82.9. These are the same runs under the same load, but the load was not controlled, so the instruction counts are the evidence and these only support them.
+
+The admissible estimate (6 per tile, the road step) was measured first and rejected: 4 to 12% more instructions, because it weakens the pull toward the goal across open ground. The food-recipient test in `sim/agents/social/tests.rs` starved every third person to find recipients at tick 900; the new routes leave fewer in reach, so it now starves every second. The comparison and its threshold are unchanged.
+
+### Where the time is now (busy and textures, 9a1a6e03, close zoom, playing, profiled pass)
+
+| world | main busy % (two runs) | engine texture MB | first frame ms (two runs) |
+|--|--:|--:|--:|
+| standard | 13.6, 11.0 | 25.9 | 1997, 1263 |
+
+### Startup profile (standard world, 9a1a6e03, `--startup-profile`, 2.04 s sampled, 56.7% busy)
+
+The first frame's largest named items, from the sourcemapped build (inclusive, per the CPU profile):
+
+- vegetation `update`: 219 ms (10.7%). Its parts: mountains `rebuild` 87 ms, trees `rebuild` 81 ms, decor `rebuild` about 11 ms self.
+- cell atlas `bake`: 126 ms inclusive, of which canvas growth (`growPage` to `resize`) is 61 ms: trees 45 ms, mountains 16 ms. Each doubling copies the whole page.
+- `gpu.ts` WebGL2 probe: 61 ms self. The probe creates a context and loses it before the engine creates its own.
+
+Why these are not fixed: the mountains key includes the tile's absolute position, so no two tiles share a cell and a presize would be an exact count with no reuse. The trees' distinct variants are only known after the placement pass, so presizing them would over-allocate texture memory. The probe context can only be reused with a cubeforge change. Each item is about 3% of the sample, and each fix costs memory or an engine change, so none was made.
+
+### Bundle, after #486 (attributed through the sourcemap, index chunk)
+
+`sandbox.ts` 22 kB (minified), `tool-tips.ts` 20 kB, tool sprites about 24 kB across five files, `useSimulation.ts` 12.6 kB, `wire.ts` 9.9 kB. The tool sprites and tooltips are needed by the first toolbar render; moving them later needs the sprites painted asynchronously. Not done.
+
+### Items not done, with the measurement that decides each
+
+- **Texture memory (engine 25.9 MB):** the look atlas is 128 x 7680 RGBA, 3.9 MB, for 240 looks (24 villager looks plus pose frames). Shrinking it means fewer looks or palette rows, which changes the art.
+- **Dew (25 to 35 ms per 8 s, standard):** only painted in the first fifth of the day, so it is 3% of a window's main-thread time only in morning windows. Caching the glints per terrain revision would help; below the 3% bar overall.
+- **Crowd labels (about 240 ms per 8 s, 3,000 people):** the flags, the depth order and the name thinning are already cached between frames. No change that keeps every drawn label identical was found.
+- **Wasm (3.82 MB in this copy):** the module has no name section and no producer debug data, so strip and panic settings have nothing to remove (panic on this target is not tested here). Code is 3.50 MB (92%). The data section is 310 KB: about 160 KB of gameplay text, 22 KB of panic-location paths and a few kB of messages; there are no debug or formatting strings. Smaller opt levels or `wasm-opt -Oz` trade tick speed, which the brief rules out.
+- **Admissible route estimate (6 per tile):** 4 to 12% more instructions. Rejected in favour of #489.
+- **Startup, GPU probe and atlas growth:** described above.
+
+### Rules this stream kept
+
+Every number above is from a build that was measured against its own baseline in the same run. Instruction counts (`/usr/bin/time -l`) were the decision for the simulation; cycle counts were not used, because under this load they moved in both directions by more than the change. The sweeps used the brief's world-health check (mean final alive at tick 9000 over eight seeds, no extinctions).
