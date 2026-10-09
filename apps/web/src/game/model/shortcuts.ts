@@ -25,13 +25,13 @@ export function shortcutFor(event: {
   return null
 }
 
-/** Keys typed into a field or a dialog belong to it, not to the game. */
+/**
+ * Keys typed into a field or a dialog belong to it, not to the game. A button is not a field: it keeps
+ * focus after a click, and the game keys (? and the tool hotkeys) must still answer after one.
+ */
 export function typingTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null
-  return (
-    !!el &&
-    (!!el.closest?.('input, textarea, select, button, [role="dialog"]') || el.isContentEditable === true)
-  )
+  return !!el && (!!el.closest?.('input, textarea, select, [role="dialog"]') || el.isContentEditable === true)
 }
 
 export const SHORTCUT_HELP: ReadonlyArray<[string, string]> = [
