@@ -13,6 +13,8 @@ pub(super) const CARAVAN_INTERVAL_TICKS: u64 = 240;
 pub(super) const MERCHANT_LOAD: u32 = 3;
 /// Units of a good a donor keeps for their own needs.
 const DONOR_KEEP: u32 = 2;
+/// A tribe sends a good only when it has at least this many units per person to spare.
+const SPARE_PER_PERSON: f32 = 2.0;
 /// Goods a merchant can carry between tribes. Tools and water stay at home.
 const TRADE_GOODS: [&str; 3] = ["food", "wood", "stone"];
 
@@ -101,7 +103,7 @@ fn surplus_good(sim: &Simulation, sender: &str, receiver: &str) -> Option<&'stat
     for (index, good) in TRADE_GOODS.iter().enumerate() {
         let sends = sender_stock[index] as f32 / sender_people as f32;
         let gets = receiver_stock[index] as f32 / receiver_people as f32;
-        if sends < 1.0 || gets >= sends * 0.5 {
+        if sends < SPARE_PER_PERSON || gets >= sends * 0.5 {
             continue;
         }
         let gap = sends - gets;
