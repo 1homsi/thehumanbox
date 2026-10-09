@@ -109,9 +109,10 @@ pub(super) fn open_merchant_routes(sim: &mut Simulation) {
     }
 }
 
-/// The goods a tribe has to spare that the other tribe is short of. Stock is
-/// compared per person, so a big tribe is not a rich one by size alone.
-fn surplus_goods(sim: &Simulation, sender: &str, receiver: &str) -> Vec<&'static str> {
+/// The goods a tribe has to spare that the other tribe is short of, with the
+/// gap per person between the two tribes. Stock is compared per person, so a
+/// big tribe is not a rich one by size alone.
+fn surplus_goods(sim: &Simulation, sender: &str, receiver: &str) -> Vec<(&'static str, f32)> {
     let (sender_people, sender_stock) = lineage_stock(sim, sender);
     let (receiver_people, receiver_stock) = lineage_stock(sim, receiver);
     if sender_people == 0 || receiver_people == 0 {
@@ -123,22 +124,33 @@ fn surplus_goods(sim: &Simulation, sender: &str, receiver: &str) -> Vec<&'static
         .filter_map(|(index, good)| {
             let sends = sender_stock[index] as f32 / sender_people as f32;
             let gets = receiver_stock[index] as f32 / receiver_people as f32;
-            (sends >= spare_per_person(good) && gets < sends * 0.5).then_some(*good)
+            (sends >= spare_per_person(good) && gets < sends * 0.5).then_some((*good, sends - gets))
         })
         .collect()
 }
 
-/// The good for the next caravan on a route. The staples have far more per
-/// person than the land's goods, so a largest-gap choice would never send a
-/// land good; instead the eligible goods take turns, by the route's history.
+/// The good for the next caravan on a route. The staples go first, by the largest
+/// gap, as they always have: food, wood and stone are what a short tribe needs
+/// most, so a land good never takes a caravan from them. A land good travels only
+/// when no staple is spare and the other tribe is short of it; those goods then
+/// take turns, by the route's history.
 fn surplus_good(sim: &Simulation, route_index: usize, sender: &str, receiver: &str) -> Option<&'static str> {
     let goods = surplus_goods(sim, sender, receiver);
+    let mut best_staple: Option<(f32, &'static str)> = None;
+    for &(good, gap) in goods.iter().filter(|(good, _)| !is_land_good(good)) {
+        if best_staple.is_none_or(|(best_gap, _)| gap > best_gap) {
+            best_staple = Some((gap, good));
+        }
+    }
+    if let Some((_, good)) = best_staple {
+        return Some(good);
+    }
     if goods.is_empty() {
         return None;
     }
     let route = &sim.trade_routes[route_index];
     let turn = (route.deliveries as usize).wrapping_add((sim.tick_count / CARAVAN_INTERVAL_TICKS) as usize);
-    goods.get(turn % goods.len()).copied()
+    goods.get(turn % goods.len()).map(|(good, _)| *good)
 }
 
 /// Living people in a tribe and their combined stock of each trade good.

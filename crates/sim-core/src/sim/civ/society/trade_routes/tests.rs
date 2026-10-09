@@ -389,3 +389,18 @@ fn land_goods_are_held_up_to_the_cap_per_person() {
     assert_eq!(organism.land_good_count("salt"), 0);
     assert!(!organism.take_land_good("salt", 1));
 }
+
+#[test]
+fn staples_go_before_land_goods_when_both_are_spare() {
+    let mut sim = neighbouring_trade_sim();
+    sim.organisms[0].specialty = Some("merchant".into());
+    // The river tribe has food and clay to spare; the hill tribe lacks both.
+    sim.organisms[1].inv_food = 6;
+    sim.organisms[1].add_land_good("clay", 6);
+    open_merchant_routes(&mut sim);
+
+    run_merchant_caravans(&mut sim);
+    assert_eq!(sim.caravans.len(), 1);
+    assert_eq!(sim.caravans[0].cargo, "food", "a staple takes the caravan before a land good");
+    assert_eq!(sim.organisms[1].land_good_count("clay"), 6, "the clay stays at home this time");
+}

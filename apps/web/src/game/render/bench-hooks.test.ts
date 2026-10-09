@@ -54,6 +54,7 @@ describe('bench hooks', () => {
       people: 2,
       tick: 4321,
       boats: [],
+      caravans: [],
     })
     off()
     expect(holder.window.__thbBench).toBeUndefined()
