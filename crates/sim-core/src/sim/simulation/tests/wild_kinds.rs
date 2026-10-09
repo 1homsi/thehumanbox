@@ -209,3 +209,44 @@ fn a_wild_cat_that_stays_by_a_person_takes_to_them() {
     assert!(matches!(sim.animals[0].kind, AnimalKind::Cat), "it stays a cat");
     assert!(sim.animals[0].name.is_some(), "the cat has a name");
 }
+
+#[test]
+fn owls_and_eagles_are_harmless_fliers_that_are_never_caught() {
+    for kind in [AnimalKind::Owl, AnimalKind::Eagle] {
+        assert!(kind.flies(), "{} flies over the land", kind.name());
+        assert!(!kind.is_prey(), "{} is not hunted as prey", kind.name());
+        assert!(!kind.hostile(), "{} is no danger to people", kind.name());
+        assert!(kind.drain() > 0.0 && kind.step_size() > 0);
+        assert!(!kind.habitat().is_empty(), "{} keeps to a habitat", kind.name());
+    }
+    assert!(AnimalKind::Owl.fits_ground(Tile::Grass));
+    assert_eq!(AnimalKind::Owl.a_name(), "an owl");
+    assert_eq!(AnimalKind::Eagle.a_name(), "an eagle");
+}
+
+#[test]
+fn released_owls_and_eagles_are_placed_in_their_habitat() {
+    let mut sim = Simulation::new(8);
+    sim.animals.clear();
+    for x in 0..WIDTH as i32 {
+        for y in 0..HEIGHT as i32 {
+            let biome = if x < WIDTH as i32 / 2 {
+                Biome::Forest
+            } else {
+                Biome::Badlands
+            };
+            sim.grid.biome[WorldGrid::idx(x, y)] = biome as u8;
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
+    assert!(sim
+        .apply_command_json(r#"{"cmd":"spawn_animal","x":40.0,"y":60.0,"kind":"owl","count":5,"radius":8}"#));
+    assert!(sim.animals.len() >= 5, "owls are released");
+    assert!(sim.animals.iter().all(|a| matches!(a.kind, AnimalKind::Owl)));
+    sim.animals.clear();
+    assert!(sim.apply_command_json(
+        r#"{"cmd":"spawn_animal","x":200.0,"y":60.0,"kind":"eagle","count":4,"radius":6}"#
+    ));
+    assert!(!sim.animals.is_empty(), "eagles are released");
+    assert!(sim.animals.iter().all(|a| matches!(a.kind, AnimalKind::Eagle)));
+}

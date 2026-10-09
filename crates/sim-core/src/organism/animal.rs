@@ -43,6 +43,9 @@ pub enum AnimalKind {
     // Released by the player only too: a duck waddles the wetlands and grass, a bee hums over the flowers.
     Duck,
     Bee,
+    // Birds of prey, released by the player only: an owl keeps to the woods, an eagle circles the highlands.
+    Owl,
+    Eagle,
     // Monsters: summoned with god powers, never born or spawned naturally.
     Zombie,
     Demon,
@@ -53,7 +56,7 @@ pub enum AnimalKind {
 
 impl AnimalKind {
     /// Every kind, for tables and tests.
-    pub const ALL: [AnimalKind; 25] = [
+    pub const ALL: [AnimalKind; 27] = [
         AnimalKind::Rabbit,
         AnimalKind::Deer,
         AnimalKind::Boar,
@@ -74,6 +77,8 @@ impl AnimalKind {
         AnimalKind::Whale,
         AnimalKind::Duck,
         AnimalKind::Bee,
+        AnimalKind::Owl,
+        AnimalKind::Eagle,
         AnimalKind::Zombie,
         AnimalKind::Demon,
         AnimalKind::Dragon,
@@ -109,6 +114,8 @@ impl AnimalKind {
             AnimalKind::Whale => 0.0004,
             AnimalKind::Duck => 0.0005,
             AnimalKind::Bee => 0.0008,
+            AnimalKind::Owl => 0.0006,
+            AnimalKind::Eagle => 0.0006,
             // Monsters do not eat. A UFO's energy is its visit: it leaves
             // after roughly 1200 ticks.
             // Zombies slowly rot (about 2500 ticks), so outbreaks burn out.
@@ -139,6 +146,8 @@ impl AnimalKind {
             AnimalKind::Whale => 0.0,
             AnimalKind::Duck => 3.0,
             AnimalKind::Bee => 0.0,
+            AnimalKind::Owl => 3.0,
+            AnimalKind::Eagle => 0.0,
             AnimalKind::Zombie
             | AnimalKind::Demon
             | AnimalKind::Dragon
@@ -168,6 +177,8 @@ impl AnimalKind {
             AnimalKind::Whale => 1,
             AnimalKind::Duck => 2,
             AnimalKind::Bee => 2,
+            AnimalKind::Owl => 2,
+            AnimalKind::Eagle => 3,
             AnimalKind::Zombie => 1,
             AnimalKind::Demon => 2,
             AnimalKind::Dragon => 3,
@@ -195,7 +206,10 @@ impl AnimalKind {
     }
     /// Crosses water and rock.
     pub fn flies(self) -> bool {
-        matches!(self, AnimalKind::Dragon | AnimalKind::Ufo | AnimalKind::Bee)
+        matches!(
+            self,
+            AnimalKind::Dragon | AnimalKind::Ufo | AnimalKind::Bee | AnimalKind::Owl | AnimalKind::Eagle
+        )
     }
     /// Animals predators hunt, and which flee from them.
     pub fn is_prey(self) -> bool {
@@ -247,6 +261,8 @@ impl AnimalKind {
             AnimalKind::Frog => &[Biome::Wetland, Biome::Jungle],
             AnimalKind::Duck => &[Biome::Wetland, Biome::Grassland],
             AnimalKind::Bee => &[Biome::Grassland, Biome::Forest, Biome::Savanna],
+            AnimalKind::Owl => &[Biome::Forest, Biome::Taiga],
+            AnimalKind::Eagle => &[Biome::Badlands, Biome::Tundra, Biome::Grassland],
             _ => &[],
         }
     }
@@ -290,6 +306,8 @@ impl AnimalKind {
             AnimalKind::Whale => "whale",
             AnimalKind::Duck => "duck",
             AnimalKind::Bee => "bee",
+            AnimalKind::Owl => "owl",
+            AnimalKind::Eagle => "eagle",
             AnimalKind::Zombie => "zombie",
             AnimalKind::Demon => "demon",
             AnimalKind::Dragon => "dragon",

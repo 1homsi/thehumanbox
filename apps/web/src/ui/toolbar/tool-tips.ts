@@ -106,6 +106,9 @@ const TOOL_TIPS: Record<string, string> = {
     'Lights dance across the night sky over the whole world. Everyone alive is awed and a little calmer, and the omen is written into the chronicle.',
   duck: 'Release a duck, or a few, on wet ground or grass. They flock together and waddle about, and keep clear of people.',
   bee: 'Release a bee, or a few, over the grass, forest or savanna. They hum over the flowers and keep clear of people.',
+  owl: 'Release an owl, or a few, in the forest or taiga. They fly the woods and keep clear of people.',
+  eagle:
+    'Release an eagle, or a few, over the badlands, tundra or grass. They circle high over the land and keep clear of people.',
   rain_patch:
     'A rain cloud bursts over the brush area: fires in it go out (leaving ash), and the people in it drink from the rain. The brush sets how wide the patch is.',
   comet:
