@@ -100,6 +100,9 @@ pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
         tick_dynasty_watch(sim);
         forget_vanished_tribes(sim);
     }
+    if tick > 0 && tick.is_multiple_of(crate::sim::civ::land::village_roads::ROAD_STEP) {
+        crate::sim::civ::land::village_roads::tick_village_roads(sim);
+    }
     if tick > 0 && tick.is_multiple_of(super::festivals::FESTIVAL_STEP) {
         sim.tick_festivals();
     }

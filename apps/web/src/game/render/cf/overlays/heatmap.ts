@@ -4,6 +4,31 @@ import { lineageColor } from '../../../../shared/constants'
 import { PATH_TRAIL_HOT } from '../../../../shared/types'
 import { territoryEmphasis, territoryStanding } from '../../../model/territory'
 import { parseColor } from './color'
+import { TILE_ID } from '../../../model/terrain-ids'
+
+/** How well a person's mood word sits: -1 grieving, 0 neutral, 1 joyful. Unknown words score nothing. */
+const MOOD_SCORE: Record<string, number> = {
+  joyful: 1,
+  content: 0.5,
+  calm: 0.2,
+  hungry: -0.5,
+  thirsty: -0.5,
+  afraid: -0.7,
+  angry: -0.8,
+  grieving: -1,
+}
+
+export function moodScore(mood: string | undefined): number | null {
+  if (!mood) return null
+  return MOOD_SCORE[mood] ?? null
+}
+
+/** What a person holds: the goods they carry and the tools they have made. */
+export function wealthOf(org: { carrying?: number; tools?: Record<string, number> }): number {
+  let tools = 0
+  for (const count of Object.values(org.tools ?? {})) tools += count
+  return (org.carrying ?? 0) + tools
+}
 
 export interface HeatSettings {
   overlay: string | null
@@ -97,6 +122,15 @@ export class HeatGrid {
         break
       case 'density':
         this.densityOverlay(organisms, ox, oy)
+        break
+      case 'food':
+        this.foodOverlay(g)
+        break
+      case 'wealth':
+        this.wealthOverlay(organisms, ox, oy)
+        break
+      case 'mood':
+        this.moodOverlay(organisms, ox, oy)
         break
       default:
         break
@@ -280,6 +314,86 @@ export class HeatGrid {
         Math.round(60 - t * 40),
         Number((0.3 + t * 0.4).toFixed(2)),
       )
+    }
+  }
+
+  /** Food: the cells that grow food, and the food carried along the paths. */
+  private foodOverlay(g: WorldState['grid']): void {
+    const { width, height } = this
+    for (let row = 0; row < height; row++) {
+      const r = g.tiles[row]
+      if (!r) continue
+      for (let col = 0; col < width; col++) {
+        if (r[col] === TILE_ID.FOOD) this.blend(row * width + col, 120, 210, 70, 0.5)
+      }
+    }
+    this.scan(g.food_trail, 0.1, (i, v) => this.blend(i, 240, 220, 80, Math.min(0.6, v * 0.6)))
+  }
+
+  /** Wealth: what each person carries and the tools they hold, spread a little around them. */
+  private wealthOverlay(organisms: WorldState['organisms'], ox: number, oy: number): void {
+    const { width, height } = this
+    this.begin()
+    const R = 2
+    for (const org of organisms) {
+      if (!org.alive) continue
+      const wealth = wealthOf(org)
+      if (wealth <= 0) continue
+      const tx = Math.round(org.x - ox)
+      const ty = Math.round(org.y - oy)
+      for (let dy = -R; dy <= R; dy++) {
+        for (let dx = -R; dx <= R; dx++) {
+          const d = Math.abs(dx) + Math.abs(dy)
+          if (d > R) continue
+          const nx = tx + dx
+          const ny = ty + dy
+          if (nx >= 0 && ny >= 0 && ny < height && nx < width) this.touch(ny * width + nx, wealth, false)
+        }
+      }
+    }
+    let maxW = 1
+    for (let k = 0; k < this.touchedCount; k++) maxW = Math.max(maxW, this.heat[this.touched[k]])
+    for (let k = 0; k < this.touchedCount; k++) {
+      const idx = this.touched[k]
+      const t = Math.min(this.heat[idx] / maxW, 1)
+      this.blend(
+        idx,
+        245,
+        Math.round(215 - t * 40),
+        Math.round(90 - t * 60),
+        Number((0.2 + t * 0.5).toFixed(2)),
+      )
+    }
+  }
+
+  /** Mood: the average mood of the people around each cell, sad red and content gold. */
+  private moodOverlay(organisms: WorldState['organisms'], ox: number, oy: number): void {
+    const { width, height } = this
+    this.begin()
+    const R = 2
+    for (const org of organisms) {
+      const score = moodScore(org.mood)
+      if (!org.alive || score === null) continue
+      const tx = Math.round(org.x - ox)
+      const ty = Math.round(org.y - oy)
+      for (let dy = -R; dy <= R; dy++) {
+        for (let dx = -R; dx <= R; dx++) {
+          const d = Math.abs(dx) + Math.abs(dy)
+          if (d > R) continue
+          const nx = tx + dx
+          const ny = ty + dy
+          if (nx >= 0 && ny >= 0 && ny < height && nx < width) this.touch(ny * width + nx, score, true)
+        }
+      }
+    }
+    for (let k = 0; k < this.touchedCount; k++) {
+      const idx = this.touched[k]
+      const count = this.count[idx]
+      if (count === 0) continue
+      const average = this.heat[idx] / count
+      if (Math.abs(average) < 0.05) continue
+      if (average > 0) this.blend(idx, 250, 210, 80, Math.min(0.5, 0.15 + average * 0.4))
+      else this.blend(idx, 220, 70, 60, Math.min(0.55, 0.15 - average * 0.45))
     }
   }
 

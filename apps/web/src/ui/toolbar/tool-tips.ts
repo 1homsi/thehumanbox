@@ -10,8 +10,15 @@ const TOOL_TIPS: Record<string, string> = {
     'Run the world on to the start of the next year, in quick steps. The seasons turn as they would.',
   leader:
     'Crown the grown person nearest where you click the ruler of their tribe. They keep the crown while they live, unless their tribe has no ruler to crown (a plain band) or they are still a child.',
+  mutate:
+    'Change the person nearest where you click: one of their traits (curiosity, aggression, fear, memory, sociability or resilience) jumps far beyond their people. The change is written into the chronicle.',
+  curse:
+    'Curse the person nearest where you click: bad luck hurts them, fear grips them and sickness takes hold. Only that one person.',
   heal_one:
     'Heal the person nearest where you click: full health, and no infection or sickness. Only that one person.',
+  name: 'Click a person to give them a name of your own. It shows everywhere their name does.',
+  marry:
+    'Click one grown person, then another of the other sex. If both are free to wed, they become partners and are ready for children.',
   follow:
     'Keep the camera on the person nearest where you click. Click the map again to follow someone else.',
   gift_food: 'Give the person nearest where you click a few portions of food for their pack.',
@@ -25,6 +32,10 @@ const TOOL_TIPS: Record<string, string> = {
     'Raise someone who died within the last season, near where you click. Not the very old, and once per tribe per season.',
   smite: 'Strike down the nearest person or animal inside the brush area.',
   shelter: 'Build a hut on one tile.',
+  road: 'Lay a road over open ground in the brush area: a dirt track, cobbled once the tribes reach the bronze age.',
+  bridge:
+    'Lay a bridge across the river or lake in the brush area. People and caravans cross it; the deep water beside it stays closed to them.',
+  road_erase: 'Clear the roads in the brush area. Only the road goes: the ground under it stays as it is.',
   campfire: 'Light a campfire on one tile.',
   grass: 'Paint grassland.',
   water: 'Paint water.',
@@ -49,6 +60,10 @@ const TOOL_TIPS: Record<string, string> = {
   fertility_map: 'Show how fertile the soil is.',
   age_map: 'Colour people by age.',
   threat_map: 'Show where predators and monsters threaten people.',
+  food_map: 'Show where food grows (green) and where food is carried along the paths (gold).',
+  wealth_map: 'Show where people carry the most goods and tools. Warmer gold means more.',
+  mood_map:
+    'Show how people feel around each place: gold where they are content or joyful, red where they grieve, fear or are hungry.',
   names_view: 'Show people’s names over their heads.',
   thoughts_view: 'Show what people are thinking.',
   animals_view: 'Show or hide animals on the map.',
@@ -59,6 +74,24 @@ const TOOL_TIPS: Record<string, string> = {
   gale: 'A gale: the wind turns to a random quarter and blows hard, carrying rain, smoke and fire before it.',
   snow_weather:
     'Snow falls for a while. It settles on open ground, melts again on warm land, and chills anyone out in it.',
+  penguin:
+    'Release a penguin, or a few, on snow or tundra. They huddle together and waddle across the ice, and keep clear of people.',
+  camel:
+    'Release a camel, or a few, on desert or badlands. They are tough, need little food, and keep to the dry land.',
+  frog: 'Release a frog, or a few, on wet ground near water, in wetland or jungle. Frogs are small game for wolves and bears.',
+  whale: 'Release a whale, or a few, into deep water. They swim where the sea is and never come ashore.',
+  hail: 'Hail beats down on the brush area. It flattens plantings and wild food, hurts the people under it (most at the centre), cracks roofs a little, and kills some small animals.',
+  nuke: 'Drop a bomb where you click: a crater like a meteor leaves, fallout that poisons everyone across a wide ring, and blight on the plantings there. Only a tribe that has reached the Industrial age can build one.',
+  eclipse:
+    'The sun goes dark for a while. Everyone alive is frightened and a little awed by it, and the omen is written into the chronicle.',
+  comet:
+    'A comet streaks across the sky over where you click. Everyone who can see it, within the reach, is awed; the awe lasts and the omen is written into the chronicle.',
+  dice: 'Roll for fate: one random event lands at a random spot. It may bless, bring rain or a gale, or be a disaster such as a tornado, a wildfire or an earthquake.',
+  dawn: 'Move the clock on to the next dawn. The world keeps its season and year; the light changes at once.',
+  noon: 'Move the clock on to the next noon, when the sun stands highest.',
+  dusk: 'Move the clock on to the next dusk, when the light goes and the night begins.',
+  midnight:
+    'Move the clock on to the next middle of the night. Night is the time people walk home and sleep.',
   tornado:
     'Send a tornado tearing along a random heading from the click. It wrecks buildings, strikes down the nearest people and animals in its funnel, and uproots every planting it passes.',
   tsunami:
@@ -74,6 +107,8 @@ const TOOL_TIPS: Record<string, string> = {
   plant_oak: 'Plant oak saplings. They grow for a long time into a broadleaf forest.',
   plant_pine: 'Plant pine saplings. Slow to grow, but they keep growing through winter and make a taiga.',
   plant_palm: 'Plant palms by the water. They take root only near it and grow into jungle.',
+  sunshine:
+    'A bright spell over the fields in the brush area: growing crops, orchards and flowers gain a stretch of growth and ripen sooner.',
   restore:
     'Erase your changes to the land in the brush area: water drains, fire and ash cool, and sand or snow goes back to what the biome holds. Rock and buildings stay.',
   place_house:
@@ -187,8 +222,19 @@ export function toolFailure(tool: SandboxTool): string {
       return 'no fire there'
     case 'thunder':
       return 'the lightning hit nothing'
+    case 'mutate':
+    case 'curse':
+      return 'nobody is near enough to change'
+    case 'nuke':
+      return 'no tribe has reached the Industrial age yet'
+    case 'eclipse':
+      return 'there is no one alive to see it'
+    case 'comet':
+      return 'nobody is in reach to see it'
+    case 'hail':
     case 'harvest':
     case 'restore':
+    case 'sunshine':
     case 'tornado':
     case 'tsunami':
     case 'locusts':
@@ -219,6 +265,10 @@ export function toolFailure(tool: SandboxTool): string {
     case 'chicken':
     case 'fox':
     case 'cat':
+    case 'penguin':
+    case 'camel':
+    case 'frog':
+    case 'whale':
     case 'dog':
     case 'zombie':
     case 'demon':

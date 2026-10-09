@@ -111,8 +111,14 @@ export function paintProp(p: P): boolean {
     case 'FoodCart':
     case 'Kiosk': {
       const stripes = ['#c84848', '#3a6ea8', '#3f8a4f'][Math.floor(p.rng() * 3)]
+      const cream = '#e8e0d0'
       px(p.ctx, cx - 4, y1 - 4, 8, 4, '#7a5e3e')
-      for (let i = 0; i < 3; i++) px(p.ctx, cx - 5 + i * 4, y1 - 7, 4, 3, i % 2 === 0 ? stripes : '#e8e0d0')
+      // The awning, with a scalloped valance: each stripe hangs one pixel lower at its middle.
+      for (let i = 0; i < 3; i++) {
+        const c = i % 2 === 0 ? stripes : cream
+        px(p.ctx, cx - 5 + i * 4, y1 - 7, 4, 3, c)
+        px(p.ctx, cx - 4 + i * 4, y1 - 4, 2, 1, c)
+      }
       px(p.ctx, cx - 4, y1 - 4, 1, 4, '#4a3828')
       px(p.ctx, cx + 3, y1 - 4, 1, 4, '#4a3828')
       return true

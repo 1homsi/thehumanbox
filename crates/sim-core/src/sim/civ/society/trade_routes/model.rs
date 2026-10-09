@@ -11,6 +11,8 @@ pub(super) const ROUTE_REFRESH_TICKS: u64 = 120;
 pub(super) const ROAD_MARK_TICKS: u64 = 10;
 pub(super) const MAX_PAYMENT_PER_DELIVERY: u32 = 250;
 pub(super) const MAX_CARAVAN_TRAVEL_TICKS: u64 = 1_200;
+/// The share of travel time a caravan saves on a route that is all road (see `dispatch`).
+pub(super) const CARAVAN_ROAD_HASTE: f64 = 0.35;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default)]

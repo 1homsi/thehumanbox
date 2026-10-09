@@ -30,6 +30,12 @@ const PALETTE: Record<string, string> = {
   f: '#c96a2c', // fox red
   n: '#8f8a84', // cat grey
   N: '#4f4a46', // cat stripes, feet
+  x: '#c9a46a', // camel tan
+  X: '#8a6a3e', // camel shade, legs
+  v: '#6aa84f', // frog green
+  V: '#3f7a32', // frog shade
+  u: '#4b6e8f', // whale blue
+  z: '#dfe7ec', // whale belly
 }
 
 /** Poses of a kind: the walk frames, then (for bears) a lying pose for sleeping. */
@@ -171,6 +177,74 @@ const SPRITES: Record<string, Frames> = {
       '..nnnnnnnn..',
       '.n..n..n..n.',
       '.N..N..N..N.',
+    ],
+  ],
+  penguin: [
+    [
+      '...kkkk...',
+      '..kkkkkk..',
+      '..kkowkk..',
+      '..kkwwkky.',
+      '..kwwwwk..',
+      '..kwwwwk..',
+      '..kkkkkk..',
+      '..yy..yy..',
+    ],
+    [
+      '...kkkk...',
+      '..kkkkkk..',
+      '..kkowkk..',
+      '..kkwwkky.',
+      '..kwwwwk..',
+      '..kwwwwk..',
+      '..kkkkkk..',
+      '.yy....yy.',
+    ],
+  ],
+  camel: [
+    [
+      '..xx....xx..',
+      '.xxxx..xxxx.',
+      '.xxxxxxxxxxx',
+      'xxxxxxxxxxxx',
+      'xxxxxxxxxxxx',
+      '..XX....XX..',
+      '..XX....XX..',
+      '..X.X..X.X..',
+    ],
+    [
+      '..xx....xx..',
+      '.xxxx..xxxx.',
+      '.xxxxxxxxxxx',
+      'xxxxxxxxxxxx',
+      'xxxxxxxxxxxx',
+      '..XX....XX..',
+      '.XX.....XX..',
+      '.X..X.X..X..',
+    ],
+  ],
+  frog: [
+    ['.vv....vv.', '.vwv..vwv.', 'vvvvvvvvvv', 'vVvvvvvvVv', '.vvvvvvvv.', 'V.V....V.V'],
+    ['.vv....vv.', '.vwv..vwv.', 'vvvvvvvvvv', 'vVvvvvvvVv', '.vvvvvvvv.', 'VV.VVVV.VV'],
+  ],
+  whale: [
+    [
+      '......w.........',
+      '....uuuuu.......',
+      '..uuuuuuuuuu..u.',
+      '.uuuuuuuuuuuu.uu',
+      'uuouuuuuuuuuuuuu',
+      '.uuzzzzzzzzzuu..',
+      '...zzzzzzz......',
+    ],
+    [
+      '......w.........',
+      '....uuuuu.......',
+      '..uuuuuuuuuu..u.',
+      '.uuuuuuuuuuuu.uu',
+      'uuouuuuuuuuuuuuu',
+      '.uuzzzzzzzzzuu..',
+      '...zzzzzzz......',
     ],
   ],
   zombie: [

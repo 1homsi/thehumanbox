@@ -36,6 +36,9 @@ impl Simulation {
             if !state.grid.pressure.is_empty() && state.grid.pressure.len() == expected {
                 grid.pressure = state.grid.pressure;
             }
+            if state.grid.road.len() == expected {
+                grid.road = state.grid.road;
+            }
             grid.trail_dirty = (0..expected)
                 .filter(|&i| {
                     grid.food_trail[i] > 0.0 || grid.water_trail[i] > 0.0 || grid.path_trail[i] > 0.0
@@ -263,6 +266,7 @@ impl Simulation {
             headlines: state.headlines.into_iter().collect(),
             trades: state.trades.into_iter().collect(),
             trade_routes: state.trade_routes,
+            village_roads: state.village_roads,
             caravans: state.caravans,
             next_trade_route_id,
             next_caravan_id,

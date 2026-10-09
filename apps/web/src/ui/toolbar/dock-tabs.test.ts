@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createElement } from 'react'
 import { SANDBOX_CATEGORIES } from '../../simulation/sandbox'
-import { DOCK_TABS, SPEED_TOOL_IDS, TIME_CATEGORY_ID, groupsFor, resolveTab } from './dock-tabs'
+import {
+  DOCK_TABS,
+  MAX_TAB_COLUMNS,
+  SPEED_TOOL_IDS,
+  TIME_CATEGORY_ID,
+  groupsFor,
+  resolveTab,
+} from './dock-tabs'
 import { toolTip, toolFailure } from './tool-tips'
 import { ToolSprite } from './ToolSprite'
 import { burstForTool } from '../../game/render/sandbox-bursts'
@@ -55,7 +62,7 @@ describe('dock layout stays complete as tools are added', () => {
 
   it('makes every tool do something when used', () => {
     // Follow is a camera action, not a world command, so it has no command to build.
-    const clientOnly = new Set(['follow'])
+    const clientOnly = new Set(['follow', 'marry', 'name'])
     for (const tool of dockTools) {
       if (tool.mode === 'point') {
         if (!clientOnly.has(tool.id)) {
@@ -103,10 +110,19 @@ describe('dock layout stays complete as tools are added', () => {
       ).toBe(true)
   })
 
+  it('fits every tab in the columns the narrow dock can show without sideways scrolling', () => {
+    // Each group is two tiles per column, so a group takes ceil(tools / 2) columns.
+    for (const tab of DOCK_TABS) {
+      const columns = groupsFor(tab.id).reduce((sum, g) => sum + Math.ceil(g.tools.length / 2), 0)
+      expect(columns, `tab ${tab.id} needs ${columns} columns`).toBeLessThanOrEqual(MAX_TAB_COLUMNS)
+    }
+  })
+
   it('restores tabs saved by the older one-tab-per-category dock', () => {
-    expect(resolveTab('animals')).toBe('life')
+    expect(resolveTab('animals')).toBe('animals')
     expect(resolveTab('terrain')).toBe('world')
-    expect(resolveTab('disasters')).toBe('powers')
+    expect(resolveTab('disasters')).toBe('deadly')
+    expect(resolveTab('powers')).toBe('helpful')
     expect(resolveTab('maps')).toBe('maps')
     expect(resolveTab('nonsense')).toBe('life')
     expect(resolveTab(null)).toBe('life')

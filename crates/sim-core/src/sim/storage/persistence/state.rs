@@ -22,6 +22,9 @@ pub(crate) struct GridSave {
     pub(super) fertility: Vec<f32>,
     pub(super) hazard: Vec<f32>,
     pub(super) pressure: Vec<f32>,
+    /// Road kinds per cell (`ROAD_*`). Saves from before roads load with none.
+    #[serde(default)]
+    pub(super) road: Vec<u8>,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -182,4 +185,6 @@ pub struct SaveState {
     pub(super) water_use: Vec<WaterUseSave>,
     #[serde(default)]
     pub(super) field_fortifications: Vec<crate::sim::warfare::FieldFortification>,
+    #[serde(default)]
+    pub(super) village_roads: Vec<crate::sim::civ::land::village_roads::VillageRoad>,
 }

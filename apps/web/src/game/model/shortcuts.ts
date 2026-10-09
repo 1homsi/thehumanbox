@@ -35,4 +35,5 @@ export const SHORTCUT_HELP: ReadonlyArray<[string, string]> = [
   ['[ ]', 'previous or next person'],
   ['H', 'hide the interface'],
   ['0', 'fit the world'],
+  ['Q E R T Y U I O F G', 'pick the first ten tools of the open tab'],
 ]

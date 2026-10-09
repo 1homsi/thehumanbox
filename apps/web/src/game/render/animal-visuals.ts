@@ -7,17 +7,25 @@ export function animalSize(kind: string): number {
     MONSTER_SIZES[kind] ??
     (kind === 'fox'
       ? 16
-      : kind === 'cat'
-        ? 14
-        : kind === 'chicken'
-          ? 10
-          : kind === 'bear' || kind === 'cow' || kind === 'horse'
+      : kind === 'penguin'
+        ? 12
+        : kind === 'frog'
+          ? 11
+          : kind === 'camel'
             ? 22
-            : small
-              ? 14
-              : kind === 'sheep'
-                ? 18
-                : 20)
+            : kind === 'whale'
+              ? 30
+              : kind === 'cat'
+                ? 14
+                : kind === 'chicken'
+                  ? 10
+                  : kind === 'bear' || kind === 'cow' || kind === 'horse'
+                    ? 22
+                    : small
+                      ? 14
+                      : kind === 'sheep'
+                        ? 18
+                        : 20)
   )
 }
 

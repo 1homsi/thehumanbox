@@ -57,6 +57,8 @@ pub(crate) struct OrgSave {
     pub(super) father_id: Option<String>,
     #[serde(default)]
     pub(super) surname: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) custom_name: Option<String>,
     #[serde(default)]
     pub(super) attributes: Vec<String>,
     // ── Emotional / cognitive state (previously dropped on save) ──────
@@ -251,6 +253,7 @@ pub(super) fn org_to_save(o: &Organism) -> OrgSave {
         conversations: o.conversations.iter().cloned().collect(),
         father_id: o.father_id.clone(),
         surname: o.surname.clone(),
+        custom_name: o.custom_name.clone(),
         attributes: o.attributes.iter().cloned().collect(),
         is_elder: o.is_elder,
         loneliness: o.loneliness,
@@ -384,6 +387,7 @@ pub(super) fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
     o.conversations = s.conversations.into_iter().collect();
     o.father_id = s.father_id;
     o.surname = s.surname;
+    o.custom_name = s.custom_name;
     o.attributes = s.attributes.into_iter().collect();
     o.is_elder = s.is_elder;
     o.loneliness = s.loneliness;
@@ -475,6 +479,10 @@ pub(super) fn animal_to_save(a: &Animal) -> AnimalSave {
         AnimalKind::Ufo => 16,
         AnimalKind::Fox => 17,
         AnimalKind::Cat => 18,
+        AnimalKind::Penguin => 19,
+        AnimalKind::Camel => 20,
+        AnimalKind::Frog => 21,
+        AnimalKind::Whale => 22,
     };
     AnimalSave {
         id: a.id,
@@ -510,6 +518,10 @@ pub(super) fn animal_from_save(s: AnimalSave) -> Animal {
         16 => AnimalKind::Ufo,
         17 => AnimalKind::Fox,
         18 => AnimalKind::Cat,
+        19 => AnimalKind::Penguin,
+        20 => AnimalKind::Camel,
+        21 => AnimalKind::Frog,
+        22 => AnimalKind::Whale,
         _ => AnimalKind::Rabbit,
     };
     let mut a = Animal::new(s.id, s.x, s.y, kind);

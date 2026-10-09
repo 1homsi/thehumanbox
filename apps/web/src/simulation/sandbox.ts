@@ -12,6 +12,7 @@ export type SandboxCommand =
   | { cmd: 'long_life'; x: number; y: number; radius?: number }
   | { cmd: 'courage'; x: number; y: number; radius?: number }
   | { cmd: 'wildfire'; x: number; y: number; radius?: number }
+  | { cmd: 'sunshine'; x: number; y: number; radius?: number }
   | { cmd: 'drought'; active: boolean }
   | { cmd: 'outbreak'; count?: number }
   | { cmd: 'restore'; x: number; y: number; radius?: number }
@@ -49,15 +50,25 @@ export type SandboxCommand =
   | { cmd: 'volcano'; x: number; y: number; radius?: number }
   | { cmd: 'meteor_shower'; x: number; y: number; radius?: number }
   | { cmd: 'love'; x: number; y: number; radius?: number }
+  | { cmd: 'marry'; ax: number; ay: number; bx: number; by: number }
+  | { cmd: 'rename_person'; id: string; name: string }
   | { cmd: 'tame'; x: number; y: number; radius?: number }
   | { cmd: 'family'; x: number; y: number }
   | { cmd: 'teleport'; x: number; y: number; radius?: number }
   | { cmd: 'make_leader'; x: number; y: number; radius?: number }
   | { cmd: 'heal_one'; x: number; y: number; radius?: number }
+  | { cmd: 'mutate'; x: number; y: number; radius?: number }
+  | { cmd: 'curse'; x: number; y: number; radius?: number }
   | { cmd: 'advance'; to: 'season' | 'year'; max_ticks?: number }
   | { cmd: 'gift'; x: number; y: number; radius?: number; what: 'food' | 'tool' }
+  | { cmd: 'time_of_day'; phase: 'dawn' | 'noon' | 'dusk' | 'midnight' }
+  | { cmd: 'hail'; x: number; y: number; radius?: number }
+  | { cmd: 'nuke'; x: number; y: number }
+  | { cmd: 'eclipse' }
+  | { cmd: 'comet'; x: number; y: number; radius?: number }
   | { cmd: 'demolish'; x: number; y: number; radius?: number }
   | { cmd: 'repair'; x: number; y: number; radius?: number }
+  | { cmd: 'road'; x: number; y: number; radius?: number; kind: 'road' | 'bridge' | 'erase' }
   | { cmd: 'place_building'; x: number; y: number; kind: string }
   | {
       cmd: 'guide'
@@ -65,6 +76,39 @@ export type SandboxCommand =
       strategy: LineageStrategy
       duration_ticks?: number
     }
+
+/**
+ * The dice tool's events: a mix of kind and cruel things, each landing at a
+ * place it is given (weather and the wind ignore the place).
+ */
+const DICE_EVENTS: ReadonlyArray<(x: number, y: number) => SandboxCommand> = [
+  () => ({ cmd: 'weather', kind: 'rain' }),
+  () => ({ cmd: 'gale' }),
+  (x, y) => ({ cmd: 'bless', x, y, radius: 6 }),
+  (x, y) => ({ cmd: 'harvest', x, y, radius: 6 }),
+  (x, y) => ({ cmd: 'spawn', x, y, count: 5 }),
+  (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'deer', count: 4, radius: 4 }),
+  (x, y) => ({ cmd: 'meteor', x, y, radius: 3 }),
+  (x, y) => ({ cmd: 'tornado', x, y, radius: 12 }),
+  (x, y) => ({ cmd: 'wildfire', x, y, radius: 10 }),
+  (x, y) => ({ cmd: 'earthquake', x, y, radius: 5 }),
+  (x, y) => ({ cmd: 'locusts', x, y, radius: 12 }),
+]
+
+/**
+ * Roll the dice: one random event at a random place on a world of the given
+ * size. `random` is injectable so the roll can be tested.
+ */
+export function rollRandomEvent(
+  width: number,
+  height: number,
+  random: () => number = Math.random,
+): SandboxCommand {
+  const event = DICE_EVENTS[Math.floor(random() * DICE_EVENTS.length) % DICE_EVENTS.length]
+  const x = Math.floor(random() * Math.max(1, width))
+  const y = Math.floor(random() * Math.max(1, height))
+  return event(x, y)
+}
 
 export type LineageStrategy = 'hunt' | 'explore' | 'settle' | 'trade' | 'defend'
 
@@ -87,7 +131,8 @@ export type TimeControl = {
   to?: 'season' | 'year'
 }
 
-export type SandboxOverlay = 'density' | 'hazard' | 'fertility' | 'structures' | 'trails' | 'age' | 'threat'
+export type SandboxOverlay =
+  'density' | 'hazard' | 'fertility' | 'structures' | 'trails' | 'age' | 'threat' | 'food' | 'wealth' | 'mood'
 
 export type SandboxViewFlag =
   'territory' | 'history' | 'names' | 'thoughts' | 'animals' | 'grid' | 'tradeRoutes'
@@ -157,9 +202,37 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         build: (x, y) => ({ cmd: 'heal_one', x, y, radius: 4 }),
       },
       {
+        id: 'mutate',
+        label: 'mutate',
+        icon: '🧬',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'mutate', x, y, radius: 4 }),
+      },
+      {
+        id: 'curse',
+        label: 'curse one',
+        icon: '🧿',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'curse', x, y, radius: 4 }),
+      },
+      {
         id: 'follow',
         label: 'follow',
         icon: '👣',
+        mode: 'point',
+      },
+      {
+        // Opens the name editor on the person nearest the click. The name is typed on their card.
+        id: 'name',
+        label: 'name',
+        icon: '✏️',
+        mode: 'point',
+      },
+      {
+        // Two clicks: the first person, then the second. Sent by the app, not by a single click.
+        id: 'marry',
+        label: 'marry',
+        icon: '💍',
         mode: 'point',
       },
       {
@@ -238,6 +311,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🦁',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'courage', x, y, radius: 3 + b }),
+      },
+      {
+        id: 'sunshine',
+        label: 'sunshine',
+        icon: '🌞',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'sunshine', x, y, radius: 4 + b }),
       },
       {
         id: 'peace',
@@ -447,6 +527,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'blizzard', x, y, radius: 4 + b }),
       },
+      {
+        id: 'hail',
+        label: 'hail',
+        icon: '☁️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'hail', x, y, radius: 5 + b }),
+      },
       { id: 'storm', label: 'storm', icon: '⛈️', mode: 'instant', fire: { cmd: 'weather', kind: 'storm' } },
       {
         id: 'snow_weather',
@@ -496,6 +583,27 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🔨',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'repair', x, y, radius: 2 + b }),
+      },
+      {
+        id: 'road',
+        label: 'road',
+        icon: '🛤️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'road', x, y, radius: b, kind: 'road' }),
+      },
+      {
+        id: 'bridge',
+        label: 'bridge',
+        icon: '🌉',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'road', x, y, radius: b, kind: 'bridge' }),
+      },
+      {
+        id: 'road_erase',
+        label: 'unroad',
+        icon: '🧽',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'road', x, y, radius: b, kind: 'erase' }),
       },
       {
         id: 'place_house',
@@ -560,6 +668,64 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'paint', x, y, tile: 'snow', radius: b }),
       },
+    ],
+  },
+  {
+    id: 'sky',
+    label: 'sky',
+    icon: '🌅',
+    tools: [
+      {
+        id: 'dawn',
+        label: 'dawn',
+        icon: '🌅',
+        mode: 'instant',
+        fire: { cmd: 'time_of_day', phase: 'dawn' },
+      },
+      {
+        id: 'noon',
+        label: 'noon',
+        icon: '🕛',
+        mode: 'instant',
+        fire: { cmd: 'time_of_day', phase: 'noon' },
+      },
+      {
+        id: 'dusk',
+        label: 'dusk',
+        icon: '🌇',
+        mode: 'instant',
+        fire: { cmd: 'time_of_day', phase: 'dusk' },
+      },
+      {
+        id: 'midnight',
+        label: 'midnight',
+        icon: '🌙',
+        mode: 'instant',
+        fire: { cmd: 'time_of_day', phase: 'midnight' },
+      },
+      {
+        id: 'nuke',
+        label: 'bomb',
+        icon: '☢️',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'nuke', x, y }),
+      },
+      {
+        id: 'eclipse',
+        label: 'eclipse',
+        icon: '🌑',
+        mode: 'instant',
+        fire: { cmd: 'eclipse' },
+      },
+      {
+        id: 'comet',
+        label: 'comet',
+        icon: '💫',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'comet', x, y, radius: 12 + b * 4 }),
+      },
+      // The fire command is a placeholder: the toolbar rolls a random event when it is picked.
+      { id: 'dice', label: 'dice', icon: '🎲', mode: 'instant', fire: { cmd: 'gale' } },
     ],
   },
   {
@@ -791,6 +957,27 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         mode: 'instant',
         view: { control: 'overlay', value: 'threat' },
       },
+      {
+        id: 'food_map',
+        label: 'food',
+        icon: '🍎',
+        mode: 'instant',
+        view: { control: 'overlay', value: 'food' },
+      },
+      {
+        id: 'wealth_map',
+        label: 'wealth',
+        icon: '🪙',
+        mode: 'instant',
+        view: { control: 'overlay', value: 'wealth' },
+      },
+      {
+        id: 'mood_map',
+        label: 'moods',
+        icon: '💚',
+        mode: 'instant',
+        view: { control: 'overlay', value: 'mood' },
+      },
     ],
   },
   {
@@ -923,6 +1110,34 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🐈',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'cat', count: 1 + b, radius: b }),
+      },
+      {
+        id: 'penguin',
+        label: 'penguin',
+        icon: '🐧',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'penguin', count: 1 + b, radius: b }),
+      },
+      {
+        id: 'camel',
+        label: 'camel',
+        icon: '🐪',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'camel', count: 1 + b, radius: b }),
+      },
+      {
+        id: 'frog',
+        label: 'frog',
+        icon: '🐸',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'frog', count: 1 + b, radius: b }),
+      },
+      {
+        id: 'whale',
+        label: 'whale',
+        icon: '🐋',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'whale', count: 1 + b, radius: b }),
       },
       {
         id: 'dog',

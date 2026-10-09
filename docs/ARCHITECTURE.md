@@ -106,6 +106,7 @@ layers, bottom to top (z is the engine's `zIndex`):
 | z | What | Lives in | Fed by |
 |---|---|---|---|
 | 0 | ground: one `TileLayer` tile per grid cell, tinted per tile | `terrain-tiles/` | `CfWorld` |
+| 2.2 | roads and bridges the people built, joined to their neighbours (a dirt track, cobbled from the bronze age) | `cf/roads/` | `CfWorld` registry |
 | 2 to 4.5 | ground decor, shore banks and reeds, mountains, trees (and their wind) | `cf/vegetation/`, `cf/ground/` | `CfWorld` registry |
 | 5 | day/night, season and weather tint (translucent quads: darkens the land, not what stands on it) | `cf/overlays/` | overlay renderer |
 | 5.2 to 5.6 | shore foam, food and mineral patches, settlement marks | `cf/ground/` | `CfWorld` registry |

@@ -30,6 +30,9 @@ describe('sandbox map controls', () => {
       'fertility_map',
       'age_map',
       'threat_map',
+      'food_map',
+      'wealth_map',
+      'mood_map',
     ])
     const view = SANDBOX_CATEGORIES.find((category) => category.id === 'view')
     expect(view?.tools.map((tool) => tool.id)).toEqual([
@@ -61,5 +64,26 @@ describe('sandbox map controls', () => {
     const borders = { control: 'flag' as const, value: 'territory' as const }
     expect(isSandboxViewControlActive(borders, null, { territory: true })).toBe(true)
     expect(isSandboxViewControlActive(borders, 'density', { territory: false })).toBe(false)
+  })
+})
+
+describe('road tools', () => {
+  it('sit with the build tools and send a road or an erase over the brush', () => {
+    const build = SANDBOX_CATEGORIES.find((c) => c.id === 'build')?.tools ?? []
+    const road = build.find((t) => t.id === 'road')
+    const erase = build.find((t) => t.id === 'road_erase')
+    expect(road?.build?.(10, 20, 3)).toEqual({ cmd: 'road', x: 10, y: 20, radius: 3, kind: 'road' })
+    expect(erase?.build?.(10, 20, 2)).toEqual({ cmd: 'road', x: 10, y: 20, radius: 2, kind: 'erase' })
+    const bridge = build.find((t) => t.id === 'bridge')
+    expect(bridge?.build?.(10, 20, 1)).toEqual({ cmd: 'road', x: 10, y: 20, radius: 1, kind: 'bridge' })
+  })
+})
+
+describe('marry tool', () => {
+  it('sits with the life tools and takes two clicks, not one command', () => {
+    const life = SANDBOX_CATEGORIES.find((c) => c.id === 'life')?.tools ?? []
+    const marry = life.find((t) => t.id === 'marry')
+    expect(marry?.mode).toBe('point')
+    expect(marry?.build).toBeUndefined()
   })
 })

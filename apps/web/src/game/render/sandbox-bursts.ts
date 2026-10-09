@@ -83,6 +83,10 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'chicken':
     case 'fox':
     case 'cat':
+    case 'penguin':
+    case 'camel':
+    case 'frog':
+    case 'whale':
     case 'dog':
     case 'zombie':
     case 'demon':
@@ -92,6 +96,8 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
       return 'spawn'
     case 'cure':
     case 'love':
+    case 'marry':
+    case 'name':
       return 'heal'
     case 'tame':
       return 'peace'
@@ -99,6 +105,7 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'meteor_shower':
       return 'meteor'
     case 'harvest':
+    case 'sunshine':
     case 'plant_berry':
     case 'plant_mushroom':
     case 'plant_oak':
@@ -127,7 +134,15 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'locusts':
       return 'blight'
     case 'blizzard':
+    case 'hail':
       return 'frost'
+    case 'mutate':
+      return 'bless'
+    case 'curse':
+      return 'plague'
+    case 'nuke':
+    case 'comet':
+      return 'meteor'
     case 'fire':
     case 'wildfire':
       return 'fire'
@@ -142,6 +157,10 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'tornado':
     case 'demolish':
       return 'quake'
+    case 'road':
+    case 'bridge':
+    case 'road_erase':
+      return 'paint'
     case 'repair':
     case 'place_house':
     case 'place_library':

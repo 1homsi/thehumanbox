@@ -34,6 +34,27 @@ fn long_life_stops_at_its_ceiling() {
 }
 
 #[test]
+fn sunshine_moves_growing_fields_on_but_never_ripens_them_alone() {
+    use crate::world::grid::WorldGrid;
+    use crate::world::tiles::Tile;
+    let mut sim = Simulation::new(3);
+    for x in 95..=105 {
+        for y in 95..=105 {
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
+    sim.plantings.clear();
+    assert!(sim.apply_command_json(r#"{"cmd":"plant","x":100,"y":100,"kind":"crop","radius":0}"#));
+    let i = WorldGrid::idx(100, 100) as u32;
+    assert_eq!(sim.plantings[&i].growth, 0);
+    assert!(sim.apply_command_json(r#"{"cmd":"sunshine","x":100,"y":100,"radius":3}"#));
+    assert_eq!(sim.plantings[&i].growth, 150, "a stretch of growth");
+    assert!(!sim.plantings[&i].ripe, "sunshine alone does not ripen a crop");
+    // Nothing growing far away: the command fails.
+    assert!(!sim.apply_command_json(r#"{"cmd":"sunshine","x":10,"y":10,"radius":3}"#));
+}
+
+#[test]
 fn courage_drains_fear_and_leaves_calm_people_alone() {
     let mut sim = Simulation::new(3);
     one_person_at_100(&mut sim);

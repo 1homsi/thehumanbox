@@ -87,6 +87,8 @@ export interface OrganismState extends ExtendedEmotions {
   father_id?: string | null
   /** Family name: inherited from the father, else the mother. */
   surname?: string
+  /** A name the player gave this person; shown in place of `name` when set. */
+  custom_name?: string
   children_count?: number
   sex?: 'male' | 'female'
   pregnant?: boolean
@@ -356,6 +358,10 @@ export interface AnimalState {
     | 'chicken'
     | 'fox'
     | 'cat'
+    | 'penguin'
+    | 'camel'
+    | 'frog'
+    | 'whale'
     | 'zombie'
     | 'demon'
     | 'dragon'
@@ -506,6 +512,10 @@ export interface GridState {
   path_trail_hot?: Int32Array
   fertility?: number[][]
   hazard?: number[][]
+  /** Road kind per cell (0 none, see `ROAD_TRACK` in the simulation); absent before the first static frame. */
+  roads?: number[][]
+  /** Bumped when the road cells change, so the renderer re-reads them only then. */
+  road_revision?: number
 }
 
 /** Path traffic at or above this is drawn as a worn track on the map. */
@@ -525,6 +535,7 @@ export interface GridWire {
   fertility?: [number, number, number][]
   fertility_dense?: number[] | Uint8Array
   hazard?: [number, number, number][]
+  roads?: [number, number, number][]
 }
 
 export interface WorldState {

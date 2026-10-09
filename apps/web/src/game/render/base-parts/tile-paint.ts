@@ -2,7 +2,7 @@ import { TILE_ID, isPermanentWaterTile, isWaterTile } from '../../model/terrain-
 import { baseTerrainTile, permanentWaterDepth } from '../../model/terrain-visuals'
 import { oceanColor } from '../landscape-style'
 import { TILE_RGB, BIOME_RGBA, SEASON_LAND_TINT } from '../../model/palette'
-import { macroNoise, macroNoiseFine } from './noise'
+import { biomePatchNoise, macroNoise, macroNoiseFine } from './noise'
 
 export function varAmountForTile(tid: number): number {
   if (tid === 2 || tid === 9) return 2
@@ -12,6 +12,65 @@ export function varAmountForTile(tid: number): number {
   if (tid === 12) return 3
   if (tid === 13) return 2
   return 4
+}
+
+/**
+ * How much each cell of the biome kernel counts, centre first. Every cell takes the overlay of its
+ * own biome and of the eight around it, so a border between two biomes fades over about three
+ * cells instead of a hard line. The weights sum to 16.
+ */
+const BIOME_KERNEL: ReadonlyArray<readonly [number, number, number]> = [
+  [-1, -1, 1],
+  [0, -1, 2],
+  [1, -1, 1],
+  [-1, 0, 2],
+  [0, 0, 4],
+  [1, 0, 2],
+  [-1, 1, 1],
+  [0, 1, 2],
+  [1, 1, 1],
+]
+const BIOME_KERNEL_WEIGHT = 16
+
+/** Scratch for `biomeOverlayAt`: r, g, b and the alpha of the blended overlay. */
+const biomeScratch = new Float64Array(4)
+
+/**
+ * The blended biome overlay at (row, col), written into `out` as `[r, g, b, a]`. Edges of the grid
+ * count their own biome for the cells that fall outside it, so the map border does not fade. Where
+ * all nine cells share one biome this is that biome's overlay exactly (before the patch noise).
+ * Neighbouring biome patches vary the strength by a slow noise so big areas are not one flat tint.
+ */
+export function biomeOverlayAt(
+  out: Float64Array,
+  biomes: number[][] | undefined,
+  row: number,
+  col: number,
+): void {
+  const own = biomes?.[row]?.[col] ?? 0
+  let alpha = 0
+  let rSum = 0
+  let gSum = 0
+  let bSum = 0
+  for (const [dc, dr, w] of BIOME_KERNEL) {
+    const v = biomes?.[row + dr]?.[col + dc]
+    const bo = BIOME_RGBA[v === undefined ? own : v]
+    if (!bo || bo[3] <= 0) continue
+    const wa = w * bo[3]
+    alpha += wa
+    rSum += wa * bo[0]
+    gSum += wa * bo[1]
+    bSum += wa * bo[2]
+  }
+  if (alpha <= 0) {
+    out[3] = 0
+    return
+  }
+  const strength = 0.8 + biomePatchNoise.at(col / 70, row / 70) * 0.4
+  out[0] = rSum / alpha
+  out[1] = gSum / alpha
+  out[2] = bSum / alpha
+  out[3] = (alpha / BIOME_KERNEL_WEIGHT) * strength
 }
 
 /**
@@ -32,7 +91,6 @@ export function tileColor(
 ): number {
   const height = tiles.length
   const tileRow = tiles[row]
-  const biomeRow = biomes?.[row]
   const depthRow = depth_map?.[row]
   const tileRowPrev = row > 0 ? tiles[row - 1] : undefined
   const tileRowNext = row + 1 < height ? tiles[row + 1] : undefined
@@ -70,16 +128,13 @@ export function tileColor(
   }
 
   if (!isWater && tid !== TILE_ID.ROCK && tid !== TILE_ID.SNOW) {
-    const bm = biomeRow?.[col] ?? 0
-    const bo = BIOME_RGBA[bm]
-    if (bo) {
-      const a = bo[3]
-      if (a > 0) {
-        const ia = 1 - a
-        r = (r * ia + bo[0] * a) | 0
-        g = (g * ia + bo[1] * a) | 0
-        b = (b * ia + bo[2] * a) | 0
-      }
+    biomeOverlayAt(biomeScratch, biomes, row, col)
+    const a = biomeScratch[3]
+    if (a > 0) {
+      const ia = 1 - a
+      r = (r * ia + biomeScratch[0] * a) | 0
+      g = (g * ia + biomeScratch[1] * a) | 0
+      b = (b * ia + biomeScratch[2] * a) | 0
     }
   }
 

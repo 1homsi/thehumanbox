@@ -57,6 +57,47 @@ pub enum Command {
         radius: f32,
         what: String,
     },
+    /// Hail beats down on the radius: plantings and wild food are flattened, people are hurt and some
+    /// animals are killed.
+    Hail {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
+    /// The nearest person in reach gains a mutation: one trait jumps.
+    Mutate {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// A curse falls on the nearest person in reach: they are hurt, frightened and sick.
+    Curse {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// The sun goes dark for a while: everyone alive is frightened and awed.
+    Eclipse,
+    /// A comet streaks across the sky over the point: everyone within the reach is awed.
+    Comet {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// A bomb falls on the point: a crater, fallout that poisons a wide ring, and blight. Only once a
+    /// tribe has reached the Industrial age.
+    Nuke {
+        x: i32,
+        y: i32,
+    },
+    /// Move the clock forward to the next `dawn`, `noon`, `dusk` or `midnight`.
+    SetTimeOfDay {
+        phase: String,
+    },
     /// Make the grown person nearest the point the ruler of their tribe.
     MakeLeader {
         x: f32,
@@ -110,6 +151,13 @@ pub enum Command {
         count: u32,
         #[serde(default)]
         radius: f32,
+    },
+    /// A bright spell over the fields: growing plantings gain growth.
+    Sunshine {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
     },
     /// Give everyone in the radius more years to live.
     LongLife {
@@ -309,6 +357,27 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// Marry the grown person nearest the first point to the one nearest the second: both must be adults
+    /// without a partner, of different sexes.
+    /// Give the person with this id a name of the player's choosing. It shows in place of the generated first name.
+    RenamePerson {
+        id: String,
+        name: String,
+    },
+    Marry {
+        ax: f32,
+        ay: f32,
+        bx: f32,
+        by: f32,
+    },
+    /// Lay a road over open ground inside the radius (`kind` "road"), or clear the roads there (`kind` "erase").
+    Road {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+        kind: String,
+    },
     /// Pull down every building the radius touches, and clear the huts and
     /// campfires there to grass. The people inside stay where they are.
     Demolish {
@@ -435,6 +504,10 @@ fn animal_from_name(name: &str) -> AnimalKind {
         "chicken" => AnimalKind::Chicken,
         "fox" => AnimalKind::Fox,
         "cat" => AnimalKind::Cat,
+        "penguin" => AnimalKind::Penguin,
+        "camel" => AnimalKind::Camel,
+        "frog" => AnimalKind::Frog,
+        "whale" => AnimalKind::Whale,
         "zombie" => AnimalKind::Zombie,
         "demon" => AnimalKind::Demon,
         "dragon" => AnimalKind::Dragon,
@@ -496,19 +569,29 @@ mod advance;
 mod blessing_tests;
 mod blessings;
 mod buildings;
+mod clock;
 mod creation;
 mod disasters;
 mod gift;
+mod hail;
 mod heal_one;
+mod heavens;
 mod leader;
 #[cfg(test)]
 mod locust_tests;
+mod marry;
+mod mutation;
+mod nuke;
 mod place;
 #[cfg(test)]
 mod release_tests;
+mod rename_person;
 mod restore;
 #[cfg(test)]
 mod restore_tests;
+mod roads;
+#[cfg(test)]
+mod roads_tests;
 mod teleport;
 #[cfg(test)]
 mod tests;
@@ -551,6 +634,13 @@ impl Simulation {
             Command::HealOne { x, y, radius } => self.cmd_heal_one(x, y, radius),
             Command::Advance { to, max_ticks } => self.cmd_advance(to, max_ticks),
             Command::Gift { x, y, radius, what } => self.cmd_gift(x, y, radius, what),
+            Command::SetTimeOfDay { phase } => self.cmd_set_time_of_day(phase),
+            Command::Hail { x, y, radius } => self.cmd_hail(x, y, radius),
+            Command::Nuke { x, y } => self.cmd_nuke(x, y),
+            Command::Eclipse => self.cmd_eclipse(),
+            Command::Mutate { x, y, radius } => self.cmd_mutate(x, y, radius),
+            Command::Curse { x, y, radius } => self.cmd_curse(x, y, radius),
+            Command::Comet { x, y, radius } => self.cmd_comet(x, y, radius),
             Command::Smite { x, y, radius } => self.cmd_smite(x, y, radius),
             Command::Heal { x, y, radius } => self.cmd_heal(x, y, radius),
             Command::Paint { x, y, tile, radius } => self.cmd_paint(x, y, tile, radius),
@@ -569,6 +659,7 @@ impl Simulation {
             Command::Bless { x, y, radius } => self.cmd_bless(x, y, radius),
             Command::LongLife { x, y, radius } => self.cmd_long_life(x, y, radius),
             Command::Courage { x, y, radius } => self.cmd_courage(x, y, radius),
+            Command::Sunshine { x, y, radius } => self.cmd_sunshine(x, y, radius),
             Command::Inspire { x, y, radius } => self.cmd_inspire(x, y, radius),
             Command::Earthquake { x, y, radius } => self.cmd_earthquake(x, y, radius),
             Command::War { x, y } => self.cmd_war(x, y),
@@ -594,7 +685,10 @@ impl Simulation {
             Command::Volcano { x, y, radius } => self.cmd_volcano(x, y, radius),
             Command::MeteorShower { x, y, radius } => self.cmd_meteor_shower(x, y, radius),
             Command::Love { x, y, radius } => self.cmd_love(x, y, radius),
+            Command::Marry { ax, ay, bx, by } => self.cmd_marry(ax, ay, bx, by),
+            Command::RenamePerson { id, name } => self.cmd_rename_person(id, name),
             Command::Tame { x, y, radius } => self.cmd_tame(x, y, radius),
+            Command::Road { x, y, radius, kind } => self.cmd_road(x, y, radius, kind),
             Command::Demolish { x, y, radius } => self.cmd_demolish(x, y, radius),
             Command::Repair { x, y, radius } => self.cmd_repair(x, y, radius),
             Command::Restore { x, y, radius } => self.cmd_restore(x, y, radius),

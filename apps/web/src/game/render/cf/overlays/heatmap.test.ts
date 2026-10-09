@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
 import type { WorldState } from '../../../../shared/types'
-import { HeatGrid } from './heatmap'
+import { HeatGrid, moodScore, wealthOf } from './heatmap'
 
 const W = 24
 const H = 16
@@ -129,5 +129,57 @@ describe('heat map', () => {
     const out = new Uint16Array(W * H)
     expect(heat.contestedTiles(world, 0, 0, out)).toBe(1)
     expect(out[3 * W + 3]).toBe(1)
+  })
+})
+
+describe('food, wealth and mood lenses', () => {
+  it('food tints the cells that grow food, and nothing on bare grass', () => {
+    const world = makeWorld()
+    world.grid.food_trail = undefined
+    world.grid.path_trail = undefined
+    const bare = new HeatGrid(W, H)
+    expect(bare.compute(world, { overlay: 'food', viewFlags: none, focus: 'all' }, [])).toBe(0)
+    world.grid.tiles = Array.from({ length: H }, (_, y) =>
+      Array.from({ length: W }, (_, x) => (x === 5 && y === 5 ? 3 : 1)),
+    )
+    const food = new HeatGrid(W, H)
+    expect(food.compute(world, { overlay: 'food', viewFlags: none, focus: 'all' }, [])).toBe(1)
+    expect(food.tiles[5 * W + 5]).toBe(1)
+  })
+
+  it('wealth tints where people carry goods and tools, and not where they hold nothing', () => {
+    const world = makeWorld()
+    const organisms = world.viewport_organisms!.map((o, i) => ({
+      ...o,
+      carrying: i % 2 === 0 ? 3 : 0,
+      tools: { axe: 1 },
+    }))
+    const heat = new HeatGrid(W, H)
+    expect(
+      heat.compute(world, { overlay: 'wealth', viewFlags: none, focus: 'all' }, organisms),
+    ).toBeGreaterThan(0)
+    const bare = organisms.map((o) => ({ ...o, carrying: 0, tools: {} }))
+    world.grid.path_trail = undefined
+    const empty = new HeatGrid(W, H)
+    expect(empty.compute(world, { overlay: 'wealth', viewFlags: none, focus: 'all' }, bare)).toBe(0)
+  })
+
+  it('mood tints the places where people are content or grieve', () => {
+    const world = makeWorld()
+    const moods = ['joyful', 'content', 'grieving', 'afraid']
+    const organisms = world.viewport_organisms!.map((o, i) => ({ ...o, mood: moods[i % moods.length] }))
+    const heat = new HeatGrid(W, H)
+    expect(
+      heat.compute(world, { overlay: 'mood', viewFlags: none, focus: 'all' }, organisms),
+    ).toBeGreaterThan(0)
+  })
+
+  it('scores mood words and sums what a person holds', () => {
+    expect(moodScore('joyful')).toBe(1)
+    expect(moodScore('grieving')).toBe(-1)
+    expect(moodScore('weird')).toBeNull()
+    expect(moodScore(undefined)).toBeNull()
+    expect(wealthOf({ carrying: 2, tools: { axe: 1, spear: 2 } })).toBe(5)
+    expect(wealthOf({})).toBe(0)
   })
 })

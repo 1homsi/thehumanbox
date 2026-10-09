@@ -8,10 +8,13 @@ import clsx from 'clsx'
 import {
   SANDBOX_CATEGORIES,
   isSandboxViewControlActive,
+  rollRandomEvent,
   type SandboxTool,
   type SandboxViewFlag,
 } from '../../simulation/sandbox'
 import { BRUSH_SIZES, DOCK_TABS, SPEED_TOOL_IDS, TIME_CATEGORY_ID, groupsFor, resolveTab } from './dock-tabs'
+import { hotkeysFor, toolForHotkey } from './tool-hotkeys'
+import { typingTarget } from '../../game/model/shortcuts'
 import { WASM_BASE_TICK_MS, isRuntimeControlActive } from '../../simulation/runtimeControls'
 import { nextSpeedStep } from '../../simulation/speedSteps'
 import {
@@ -128,6 +131,7 @@ export function SandboxToolbar({
   const achieved = useAchievedSpeed(runtimePaused)
   // Past what the machine can sustain, say what it is really doing.
   const lagging = !runtimePaused && achieved !== null && runtimeSpeed > 10 && achieved < runtimeSpeed * 0.8
+  const worldGrid = useWorldStore((s) => s.world?.grid)
   const weather = useWorldStore((s) => s.world?.weather?.kind)
   const drought = useWorldStore((s) => s.world?.drought ?? false)
   const [flashId, setFlashId] = useState<string | null>(null)
@@ -168,8 +172,13 @@ export function SandboxToolbar({
       // The toolbar still works when browser storage is unavailable.
     }
   }
-  const pickTool = (tool: SandboxTool) => {
-    if (armedToolId === tool.id) return onClearArmed()
+  const pickTool = (picked: SandboxTool) => {
+    if (armedToolId === picked.id) return onClearArmed()
+    // The dice roll a new random event, at a new spot, every time they are picked.
+    const tool: SandboxTool =
+      picked.id === 'dice'
+        ? { ...picked, fire: rollRandomEvent(worldGrid?.width ?? 600, worldGrid?.height ?? 300) }
+        : picked
     updateMemory(rememberRecent(memory, tool.id))
     if (tool.mode === 'instant') {
       // Instant tools fire straight away; a flash shows the click landed.
@@ -185,6 +194,21 @@ export function SandboxToolbar({
     }
     onPick(tool)
   }
+
+  // Q to G pick the first ten tools of the open tab, as the tooltips say.
+  const tabTools = groups.flatMap((group) => group.tools)
+  const hotkeys = hotkeysFor(tabTools)
+  useEffect(() => {
+    const onHotkey = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey || event.repeat || typingTarget(event.target)) return
+      const tool = toolForHotkey(tabTools, event.key)
+      if (!tool) return
+      event.preventDefault()
+      pickTool(tool)
+    }
+    window.addEventListener('keydown', onHotkey)
+    return () => window.removeEventListener('keydown', onHotkey)
+  })
 
   // Tooltips describe tools and the world view explains the armed one, so
   // the hint line only carries transient status and the brush size.
@@ -214,7 +238,7 @@ export function SandboxToolbar({
                 ? 'happening now · click again to end it'
                 : active && !tool.view
                   ? 'click again or press esc to stop'
-                  : `${toolHowTo(tool)} · shift-click to ${pinned ? 'unpin' : 'pin'}`
+                  : `${hotkeys.has(tool.id) ? `press ${hotkeys.get(tool.id)} · ` : ''}${toolHowTo(tool)} · shift-click to ${pinned ? 'unpin' : 'pin'}`
             }
           />
         }
@@ -228,6 +252,7 @@ export function SandboxToolbar({
             flashId === tool.id && 'flash',
           )}
           aria-label={tool.label}
+          aria-keyshortcuts={hotkeys.get(tool.id)}
           aria-pressed={active}
           onClick={(e) => (e.shiftKey ? updateMemory(togglePinned(memory, tool.id)) : pickTool(tool))}
         >

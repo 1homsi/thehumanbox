@@ -7,11 +7,18 @@ export interface SelectionSlice {
   followOrgId: string | null
   selectOrg: (id: string | null) => void
   followOrg: (id: string | null) => void
+  /** The person whose name is being edited on their card, if any. */
+  renamingOrgId: string | null
+  startRename: (id: string) => void
+  stopRename: () => void
 }
 
 export const createSelectionSlice: StateCreator<UIState, [], [], SelectionSlice> = (set, get) => ({
   selectedOrgId: null,
   followOrgId: null,
+  renamingOrgId: null,
+  startRename: (id) => set({ renamingOrgId: id, selectedOrgId: id, panelOpen: true }),
+  stopRename: () => set({ renamingOrgId: null }),
   selectOrg: (id) => {
     const prev = get().selectedOrgId
     if (id != null && id !== prev) {
