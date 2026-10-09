@@ -237,7 +237,7 @@ export function toolTip(tool: SandboxTool): string {
 export function toolHowTo(tool: SandboxTool, brush = 0): string {
   if (tool.view) return 'click to toggle this layer'
   if (tool.mode === 'instant') return 'click to apply at once'
-  return `click the world · ${toolReach(tool, brush)}[ ] brush · esc to stop`
+  return `click the world · ${toolReach(tool, brush)}- = brush · esc to stop`
 }
 
 /**

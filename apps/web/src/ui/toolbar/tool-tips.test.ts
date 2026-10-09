@@ -21,7 +21,7 @@ describe('a point tool says what the brush reaches', () => {
 
   it('puts the reach in the hint line of a point tool', () => {
     expect(toolHowTo(toolById('rain_patch'), 1)).toContain('reaches 5 tiles')
-    expect(toolHowTo(toolById('rain_patch'), 1)).toContain('[ ] brush')
+    expect(toolHowTo(toolById('rain_patch'), 1)).toContain('- = brush')
   })
 
   it('says nothing about a reach for an instant tool or a layer', () => {

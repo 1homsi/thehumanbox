@@ -11,6 +11,7 @@ import {
 } from './simulation/worldSource'
 import { SimulationDataProvider } from './simulation/SimulationDataProvider'
 import { SandboxToolbar } from './ui/toolbar/SandboxToolbar'
+import { HotkeyHelp } from './ui/toolbar/HotkeyHelp'
 import { PhotoModeExit } from './ui/toolbar/PhotoModeExit'
 import { ConfirmHost } from './ui/modals/ConfirmDialog'
 import './ui/modals/modal-theme.css'
@@ -130,6 +131,7 @@ function LiveApp() {
   /** The first click of a two-click tool (see PAIR_TOOLS), waiting for the second. */
   const pairFirstRef = useRef<{ x: number; y: number } | null>(null)
   const [brush, setBrush] = useState(2)
+  const [hotkeysOpen, setHotkeysOpen] = useState(false)
   const [sandboxStatus, setSandboxStatus] = useState<string | null>(null)
   const showScenarios = useUIStore((s) => s.showScenarios)
   const closeScenarios = useUIStore((s) => s.closeScenarios)
@@ -440,6 +442,10 @@ function LiveApp() {
       if (action.kind === 'speed') {
         const tool = SANDBOX_CATEGORIES.flatMap((c) => c.tools).find((t) => t.id === action.tool)
         if (tool) onPickTool(tool)
+      } else if (action.kind === 'brush') {
+        setBrush((b) => Math.max(0, Math.min(20, b + action.delta)))
+      } else if (action.kind === 'help') {
+        setHotkeysOpen((open) => !open)
       } else if (action.kind === 'prayer') {
         const prayers = world?.prayers ?? []
         const first = prayerRows(prayers, world?.tick ?? 0)[0]
@@ -826,6 +832,8 @@ function LiveApp() {
             onClose={closeScenarios}
           />
         )}
+
+        {hotkeysOpen && <HotkeyHelp onClose={() => setHotkeysOpen(false)} />}
 
         <MobileBanner />
         {world && <WelcomeModal />}

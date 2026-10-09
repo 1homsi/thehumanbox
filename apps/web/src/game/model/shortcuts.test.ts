@@ -12,6 +12,12 @@ describe('game shortcuts', () => {
     expect(shortcutFor({ key: 'B' })).toEqual({ kind: 'brink' })
   })
 
+  it('maps - and = to the brush, and ? to this list', () => {
+    expect(shortcutFor({ key: '-' })).toEqual({ kind: 'brush', delta: -1 })
+    expect(shortcutFor({ key: '=' })).toEqual({ kind: 'brush', delta: 1 })
+    expect(shortcutFor({ key: '?' })).toEqual({ kind: 'help' })
+  })
+
   it('leaves browser and other keys alone', () => {
     expect(shortcutFor({ key: 'p', ctrlKey: true })).toBeNull()
     expect(shortcutFor({ key: 'x' })).toBeNull()
@@ -20,6 +26,6 @@ describe('game shortcuts', () => {
 
   it('documents every key it uses', () => {
     const help = SHORTCUT_HELP.map(([k]) => k).join(' ')
-    for (const k of ['1', 'P', 'B']) expect(help).toContain(k)
+    for (const k of ['1', 'P', 'B', '- =', '?']) expect(help).toContain(k)
   })
 })
