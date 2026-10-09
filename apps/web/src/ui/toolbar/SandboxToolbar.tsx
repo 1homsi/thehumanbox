@@ -2,7 +2,7 @@ import { WorldToolSearch } from './WorldToolSearch'
 import { ToolSprite } from './ToolSprite'
 import { Tooltip } from './Tooltip'
 import { toolHowTo, toolTip } from './tool-tips'
-import { useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useWorldStore } from '../../state/worldStore'
 import clsx from 'clsx'
 import {
@@ -99,6 +99,52 @@ function useAchievedSpeed(paused: boolean): number | null {
   }, [tick, paused])
   return speed
 }
+
+interface DockTileProps {
+  tool: SandboxTool
+  active: boolean
+  flashed: boolean
+  spawned: number
+  hotkey: string | undefined
+  body: string
+  how: string
+  onPick: (tool: SandboxTool) => void
+}
+
+/**
+ * One dock tile. Memoized: a pick re-renders the dock to flash its tile, and only that tile's props
+ * change, so the other tiles (each with its tooltip and sprite) are not reconciled again.
+ */
+const DockTile = memo(function DockTile({
+  tool,
+  active,
+  flashed,
+  spawned,
+  hotkey,
+  body,
+  how,
+  onPick,
+}: DockTileProps) {
+  return (
+    <Tooltip tip={<TipCard title={tool.label} body={body} how={how} />}>
+      <button
+        type="button"
+        className={clsx('dock-tile', active && 'active', flashed && 'flash')}
+        aria-label={tool.label}
+        aria-keyshortcuts={hotkey}
+        aria-pressed={active}
+        onClick={() => onPick(tool)}
+      >
+        <ToolSprite icon={tool.icon} size={36} />
+        {spawned > 0 && (
+          <span className="dock-tile-count" aria-hidden="true">
+            {spawned}
+          </span>
+        )}
+      </button>
+    </Tooltip>
+  )
+})
 
 export function SandboxToolbar({
   armedToolId,
@@ -209,43 +255,33 @@ export function SandboxToolbar({
         ? 'Saving this world on this device'
         : 'Save this world on this device now'
 
+  // The tiles are memoized, so they get one pick function that never changes and calls this render's pick.
+  const pickRef = useRef(pickTool)
+  useLayoutEffect(() => {
+    pickRef.current = pickTool
+  })
+  const pickStable = useCallback((tool: SandboxTool) => pickRef.current(tool), [])
+
   // One dock tile: a click arms or fires it.
   const renderTile = (tool: SandboxTool) => {
     const active = armedToolId === tool.id || isViewActive(tool) || isStateActive(tool)
-    const spawned = spawnsWith(tool) ? (spawnCounts[tool.id] ?? 0) : 0
+    const how = isStateActive(tool)
+      ? 'happening now · click again to end it'
+      : active && !tool.view
+        ? 'click again or press esc to stop'
+        : `${hotkeys.has(tool.id) ? `press ${hotkeys.get(tool.id)} · ` : ''}${toolHowTo(tool, brush)}`
     return (
-      <Tooltip
+      <DockTile
         key={tool.id}
-        tip={
-          <TipCard
-            title={tool.label}
-            body={toolTip(tool)}
-            how={
-              isStateActive(tool)
-                ? 'happening now · click again to end it'
-                : active && !tool.view
-                  ? 'click again or press esc to stop'
-                  : `${hotkeys.has(tool.id) ? `press ${hotkeys.get(tool.id)} · ` : ''}${toolHowTo(tool, brush)}`
-            }
-          />
-        }
-      >
-        <button
-          type="button"
-          className={clsx('dock-tile', active && 'active', flashId === tool.id && 'flash')}
-          aria-label={tool.label}
-          aria-keyshortcuts={hotkeys.get(tool.id)}
-          aria-pressed={active}
-          onClick={() => pickTool(tool)}
-        >
-          <ToolSprite icon={tool.icon} size={36} />
-          {spawned > 0 && (
-            <span className="dock-tile-count" aria-hidden="true">
-              {spawned}
-            </span>
-          )}
-        </button>
-      </Tooltip>
+        tool={tool}
+        active={active}
+        flashed={flashId === tool.id}
+        spawned={spawnsWith(tool) ? (spawnCounts[tool.id] ?? 0) : 0}
+        hotkey={hotkeys.get(tool.id)}
+        body={toolTip(tool)}
+        how={how}
+        onPick={pickStable}
+      />
     )
   }
 
