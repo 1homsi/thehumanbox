@@ -14,6 +14,8 @@ const TOOL_TIPS: Record<string, string> = {
     'Cure the whole tribe of the person nearest where you click: every sick member of that tribe is cured and kept safe from the same sickness for a while, wherever they are.',
   guardian:
     'A guardian dog appears beside the person nearest where you click and bonds to them, keeping to them the way a released dog does.',
+  clear_region:
+    'Sweep the brush area clean: the people in it die (their kin grieve), the animals are swept away, and plantings and wild food are cleared. Buildings stay; demolish takes those.',
   merge_tribes:
     'Two clicks: a person of one tribe, then a person of another. The second tribe joins the first, everyone in it.',
   split_tribe:
@@ -94,6 +96,8 @@ const TOOL_TIPS: Record<string, string> = {
   nuke: 'Drop a bomb where you click: a crater like a meteor leaves, fallout that poisons everyone across a wide ring, and blight on the plantings there. Only a tribe that has reached the Industrial age can build one.',
   eclipse:
     'The sun goes dark for a while. Everyone alive is frightened and a little awed by it, and the omen is written into the chronicle.',
+  aurora:
+    'Lights dance across the night sky over the whole world. Everyone alive is awed and a little calmer, and the omen is written into the chronicle.',
   comet:
     'A comet streaks across the sky over where you click. Everyone who can see it, within the reach, is awed; the awe lasts and the omen is written into the chronicle.',
   dice: 'Roll for fate: one random event lands at a random spot. It may bless, bring rain or a gale, or be a disaster such as a tornado, a wildfire or an earthquake.',
@@ -236,6 +240,8 @@ export function toolFailure(tool: SandboxTool): string {
       return 'nobody near is sick in their tribe'
     case 'guardian':
       return 'nobody is near enough to guard'
+    case 'clear_region':
+      return 'nothing living or planted there to clear'
     case 'merge_tribes':
       return 'pick two people of different tribes'
     case 'split_tribe':
@@ -249,6 +255,8 @@ export function toolFailure(tool: SandboxTool): string {
       return 'no tribe has reached the Industrial age yet'
     case 'eclipse':
       return 'there is no one alive to see it'
+    case 'aurora':
+      return 'there is no one alive to see the lights'
     case 'comet':
       return 'nobody is in reach to see it'
     case 'hail':

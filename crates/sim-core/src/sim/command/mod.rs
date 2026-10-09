@@ -110,8 +110,17 @@ pub enum Command {
         x: f32,
         y: f32,
     },
+    /// Wipes everything living in the brush area: people, animals, plantings and wild food.
+    ClearRegion {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
     /// The sun goes dark for a while: everyone alive is frightened and awed.
     Eclipse,
+    /// Lights dance across the night sky: everyone alive is awed and a little less afraid.
+    Aurora,
     /// A comet streaks across the sky over the point: everyone within the reach is awed.
     Comet {
         x: f32,
@@ -600,6 +609,7 @@ mod advance;
 mod blessing_tests;
 mod blessings;
 mod buildings;
+mod clear_region;
 mod clock;
 mod creation;
 mod disasters;
@@ -674,6 +684,8 @@ impl Simulation {
             Command::Eclipse => self.cmd_eclipse(),
             Command::CureTribe { x, y } => self.cmd_cure_tribe(x, y),
             Command::Guardian { x, y } => self.cmd_guardian(x, y),
+            Command::Aurora => self.cmd_aurora(),
+            Command::ClearRegion { x, y, radius } => self.cmd_clear_region(x, y, radius),
             Command::Mutate { x, y, radius } => self.cmd_mutate(x, y, radius),
             Command::MergeTribes { ax, ay, bx, by } => self.cmd_merge_tribes(ax, ay, bx, by),
             Command::SplitTribe { x, y, radius } => self.cmd_split_tribe(x, y, radius),

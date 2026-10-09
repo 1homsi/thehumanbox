@@ -400,3 +400,98 @@ fn birds_migrate_and_animals_breed_in_season() {
         "birds return in spring"
     );
 }
+
+#[test]
+fn family_dogs_walk_home_and_sleep_by_the_hearth_at_night() {
+    let mut sim = Simulation::new(0xD06);
+    flatten_test_area(&mut sim, 50, 50);
+    sim.organisms.clear();
+    let mut owner = Organism::new(
+        "owner".into(),
+        "Owner".into(),
+        58.0,
+        56.0,
+        1,
+        String::new(),
+        "lineage-a".into(),
+        10_000,
+        crate::organism::traits::Traits::default(),
+    );
+    // The owner is out at the edge of the village; the family hearth is at (50, 50).
+    owner.home_x = 50.0;
+    owner.home_y = 50.0;
+    sim.organisms.push(owner);
+    sim.animals.clear();
+    let mut dog = Animal::new(1, 44.0, 44.0, AnimalKind::Dog);
+    dog.bonded_org = Some("owner".into());
+    sim.animals.push(dog);
+    // Night: the last 30 percent of the day.
+    sim.tick_count = 500;
+
+    let resident_indices = alive_resident_indices(&sim);
+    let mut slept = false;
+    for _ in 0..80 {
+        sim.tick_animals(&resident_indices);
+        let dog = &sim.animals[0];
+        if dog.sleeping {
+            slept = true;
+            assert!(
+                (dog.x - 50.0).abs() + (dog.y - 50.0).abs() <= 1.0,
+                "a sleeping dog lies by the hearth, not at ({}, {})",
+                dog.x,
+                dog.y
+            );
+        }
+    }
+    assert!(slept, "the dog should reach the hearth and sleep there at night");
+
+    // Morning: the dog wakes and goes back to following its owner.
+    sim.tick_count = 100;
+    sim.tick_animals(&resident_indices);
+    assert!(!sim.animals[0].sleeping);
+}
+
+#[test]
+fn fish_with_schoolmates_drift_together_through_the_water() {
+    let mut sim = Simulation::new(0x5C00);
+    for x in 40..=60 {
+        for y in 40..=60 {
+            sim.grid.set(x, y, Tile::Water);
+        }
+    }
+    sim.animals.clear();
+    for (id, x) in [(1usize, 46.0f32), (2, 50.0), (3, 54.0)] {
+        sim.animals.push(Animal::new(id, x, 50.0, AnimalKind::Fish));
+    }
+    let spread = |sim: &Simulation| {
+        let xs: Vec<f32> = sim.animals.iter().map(|a| a.x).collect();
+        xs.iter().cloned().fold(f32::MIN, f32::max) - xs.iter().cloned().fold(f32::MAX, f32::min)
+    };
+    let before = spread(&sim);
+    for _ in 0..40 {
+        sim.tick_fish_schools();
+    }
+    assert!(
+        spread(&sim) < before,
+        "the shoal should close up ({} -> {})",
+        before,
+        spread(&sim)
+    );
+    assert!(sim
+        .animals
+        .iter()
+        .all(|a| sim.grid.get(a.x as i32, a.y as i32) == Tile::Water));
+}
+
+#[test]
+fn fishing_a_shoal_lands_a_fish_from_it() {
+    let mut sim = Simulation::new(0xF15);
+    sim.animals.clear();
+    for i in 0..6usize {
+        sim.animals
+            .push(Animal::new(i + 1, 30.0 + i as f32, 30.0, AnimalKind::Fish));
+    }
+    assert_eq!(sim.fish_school_near(30.0, 30.0), 6);
+    sim.take_nearest_fish(30.0, 30.0);
+    assert_eq!(sim.animals.iter().filter(|a| a.alive).count(), 5);
+}

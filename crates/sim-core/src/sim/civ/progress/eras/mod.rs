@@ -12,6 +12,7 @@ pub mod digital;
 pub mod dyson;
 pub mod eldritch;
 pub mod entropic;
+mod flavour;
 pub mod fusion;
 pub mod galactic;
 pub mod genetic;
