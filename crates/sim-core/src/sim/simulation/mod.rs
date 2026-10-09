@@ -28,6 +28,7 @@ mod animals;
 mod census;
 mod flocks;
 mod helpers;
+mod herds;
 mod lineage;
 mod memory;
 mod organism_tick;

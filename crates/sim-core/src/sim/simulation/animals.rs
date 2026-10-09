@@ -175,6 +175,7 @@ impl Simulation {
 
         self.tick_fish_schools();
         self.tick_bird_flocks();
+        self.tick_herds();
 
         let prey_positions: Vec<(usize, f32, f32, AnimalKind)> = self
             .animals
