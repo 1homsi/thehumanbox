@@ -11,8 +11,14 @@ interface Props {
 /** What the world has achieved so far. Read live from the world, so nothing here is saved or replayed. */
 export function AchievementsModal({ world, onClose }: Props) {
   const list = useMemo(
-    () => achievementsFor({ tick: world.tick, organisms: world.organisms, settlements: world.settlements }),
-    [world.tick, world.organisms, world.settlements],
+    () =>
+      achievementsFor({
+        tick: world.tick,
+        organisms: world.organisms,
+        settlements: world.settlements,
+        grid: world.grid,
+      }),
+    [world.tick, world.organisms, world.settlements, world.grid],
   )
   const earned = list.filter((a) => a.unlocked).length
 

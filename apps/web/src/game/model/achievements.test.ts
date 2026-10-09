@@ -35,6 +35,31 @@ function unlocked(list: ReturnType<typeof achievementsFor>, id: string) {
   return list.find((a) => a.id === id)?.unlocked
 }
 
+/** A world whose grid holds the given road kinds (1 track, 2 bridge). */
+function withRoads(roads: number[][]) {
+  return { ...(world() as object), grid: { roads } } as unknown as Parameters<typeof achievementsFor>[0]
+}
+
+describe('road achievements', () => {
+  it('unlocks the first road and the first bridge from the road kinds in the grid', () => {
+    const none = achievementsFor(withRoads([[0, 0]]))
+    expect(unlocked(none, 'first-road')).toBe(false)
+    expect(unlocked(none, 'over-the-water')).toBe(false)
+    const some = achievementsFor(withRoads([[0, 1, 0]]))
+    expect(unlocked(some, 'first-road')).toBe(true)
+    expect(unlocked(some, 'over-the-water')).toBe(false)
+    expect(unlocked(achievementsFor(withRoads([[2]])), 'over-the-water')).toBe(true)
+  })
+
+  it('shows progress towards a road network until sixty cells are laid', () => {
+    const row = Array.from({ length: 30 }, () => 1)
+    const short = achievementsFor(withRoads([row])).find((a) => a.id === 'road-network')
+    expect(short?.unlocked).toBe(false)
+    expect(short?.progress).toBe('30 of 60')
+    expect(unlocked(achievementsFor(withRoads([row, row])), 'road-network')).toBe(true)
+  })
+})
+
 describe('achievements', () => {
   it('starts with everything locked in an empty new world', () => {
     const list = achievementsFor(world())
