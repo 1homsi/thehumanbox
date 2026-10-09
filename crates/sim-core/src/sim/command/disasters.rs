@@ -587,6 +587,7 @@ impl Simulation {
         if flooded == 0 {
             return false;
         }
+        self.grid.wash_roads(sx, sy, r);
         let rf = r as f32;
         for o in self.organisms.iter_mut() {
             if o.alive && (o.x - sx as f32).hypot(o.y - sy as f32) <= rf {
@@ -646,6 +647,7 @@ impl Simulation {
                 flooded += 1;
             }
         }
+        self.grid.wash_roads(x, y, r);
         let rf = r as f32;
         for o in self.organisms.iter_mut() {
             if o.alive && (o.x - x as f32).hypot(o.y - y as f32) <= rf {

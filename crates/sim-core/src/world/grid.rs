@@ -193,6 +193,33 @@ impl WorldGrid {
         tile == Tile::Water && self.road_at(x, y) != ROAD_BRIDGE
     }
 
+    /// Roads a flood or a wave has washed away inside the radius: a road on ground that is no longer open
+    /// goes, and a bridge goes once the water under it is gone. Roads on land that stays land stay.
+    pub fn wash_roads(&mut self, x: i32, y: i32, radius: i32) {
+        let r = radius.clamp(0, 40);
+        for dy in -r..=r {
+            for dx in -r..=r {
+                if dx * dx + dy * dy > r * r {
+                    continue;
+                }
+                let (nx, ny) = (x + dx, y + dy);
+                if !Self::in_bounds(nx, ny) {
+                    continue;
+                }
+                let i = Self::idx(nx, ny);
+                let tile = Tile::from_i8(self.tiles[i]);
+                let keep = match self.road[i] {
+                    ROAD_TRACK => tile.road_ground(),
+                    ROAD_BRIDGE => matches!(tile, Tile::Water | Tile::Flooded),
+                    _ => true,
+                };
+                if !keep {
+                    self.road[i] = ROAD_NONE;
+                }
+            }
+        }
+    }
+
     /// Water a walker wades or swims through: water with no bridge over it.
     pub fn wet_at(&self, x: i32, y: i32) -> bool {
         self.is_wet(self.get(x, y), x, y)
