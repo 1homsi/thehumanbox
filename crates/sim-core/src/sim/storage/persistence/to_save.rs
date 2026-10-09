@@ -126,6 +126,7 @@ impl Simulation {
             headlines: self.headlines.iter().rev().take(160).rev().cloned().collect(),
             trades: self.trades.iter().rev().take(500).rev().cloned().collect(),
             trade_routes: self.trade_routes.clone(),
+            village_roads: self.village_roads.clone(),
             caravans: self.caravans.clone(),
             next_trade_route_id: self.next_trade_route_id,
             next_caravan_id: self.next_caravan_id,

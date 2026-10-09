@@ -266,6 +266,7 @@ impl Simulation {
             headlines: state.headlines.into_iter().collect(),
             trades: state.trades.into_iter().collect(),
             trade_routes: state.trade_routes,
+            village_roads: state.village_roads,
             caravans: state.caravans,
             next_trade_route_id,
             next_caravan_id,

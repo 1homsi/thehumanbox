@@ -185,4 +185,6 @@ pub struct SaveState {
     pub(super) water_use: Vec<WaterUseSave>,
     #[serde(default)]
     pub(super) field_fortifications: Vec<crate::sim::warfare::FieldFortification>,
+    #[serde(default)]
+    pub(super) village_roads: Vec<crate::sim::civ::land::village_roads::VillageRoad>,
 }
