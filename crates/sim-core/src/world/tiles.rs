@@ -97,6 +97,8 @@ pub enum Tile {
     Scorched = 11,
     Snow = 12,
     Sand = 13,
+    /// Molten rock: flows downhill slowly, sets fire to what burns, kills what it touches, cools to rock.
+    Lava = 14,
 }
 
 impl Tile {
@@ -115,12 +117,16 @@ impl Tile {
             11 => Tile::Scorched,
             12 => Tile::Snow,
             13 => Tile::Sand,
+            14 => Tile::Lava,
             _ => Tile::Void,
         }
     }
 
     pub fn walkable(self) -> bool {
-        !matches!(self, Tile::Rock | Tile::Void | Tile::Hut | Tile::Mineral)
+        !matches!(
+            self,
+            Tile::Rock | Tile::Void | Tile::Hut | Tile::Mineral | Tile::Lava
+        )
     }
 
     /// Ground a road can be laid on: open land, not water, rock, fire or built things.

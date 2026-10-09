@@ -119,6 +119,15 @@ impl Simulation {
             &mut self.events,
             &mut self.rng,
         );
+        tick_lava(
+            &mut self.grid,
+            &mut self.physics,
+            &mut self.organisms,
+            &mut self.animals,
+            self.tick_count,
+            &mut self.events,
+            &mut self.rng,
+        );
         crate::sim::agriculture::tick_farm_weather(
             &mut self.farms,
             self.tick_count,

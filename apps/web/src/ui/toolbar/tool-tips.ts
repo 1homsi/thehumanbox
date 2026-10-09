@@ -50,6 +50,7 @@ const TOOL_TIPS: Record<string, string> = {
   rock: 'Paint rock.',
   sand: 'Paint sand.',
   snow: 'Paint snow. On warm land it melts away again.',
+  lava: 'Paint molten rock. It runs downhill slowly, sets fire to what burns, kills whoever it touches, and cools to rock.',
   food: 'Scatter food for humans and animals to gather.',
   drink: 'Add fresh drinking water.',
   plant_crop:

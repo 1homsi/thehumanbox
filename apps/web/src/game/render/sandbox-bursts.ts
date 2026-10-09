@@ -219,6 +219,7 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'rock':
     case 'sand':
     case 'snow':
+    case 'lava':
     case 'food':
     case 'drink':
     case 'shelter':

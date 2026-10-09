@@ -574,6 +574,7 @@ fn tile_from_name(name: &str) -> Option<Tile> {
         "food" => Tile::Food,
         "rock" => Tile::Rock,
         "sand" => Tile::Sand,
+        "lava" => Tile::Lava,
         "snow" => Tile::Snow,
         "ash" => Tile::Ash,
         "fire" => Tile::Fire,
