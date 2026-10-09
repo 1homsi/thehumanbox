@@ -16,6 +16,7 @@ import type { RenderHost } from './host'
 import { paintEffects } from './paint-effects'
 import { paintEraFlourish } from './paint-era-flourish'
 import { EraWatch } from '../../../model/era-flourish'
+import { paintArtworks } from './paint-artworks'
 import {
   paintClouds,
   paintFireGlow,
@@ -347,6 +348,8 @@ export class CfOverlayRenderer {
       drawTradeNetwork2D(this.roads.asContext(), f.world, f.bounds, f.t, 'roads')
       this.paintRails(this.roads.asContext(), f)
     }
+    // Artworks lie on the ground where their makers stood: under the buildings and the people.
+    paintArtworks(this.roads.asContext(), f)
     this.roads.end()
     this.traffic.begin(gv)
     if (showTrade) drawTradeNetwork2D(this.traffic.asContext(), f.world, f.bounds, f.t, 'caravans')
