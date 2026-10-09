@@ -6,7 +6,6 @@ export interface ModalsSlice {
   showLanguages: boolean
   showChronicles: boolean
   showFamilyTree: boolean
-  showSaveSlots: boolean
   showAchievements: boolean
   showGoals: boolean
   showScenarios: boolean
@@ -26,8 +25,6 @@ export interface ModalsSlice {
   openChronicles: () => void
   closeChronicles: () => void
   openFamilyTree: (focusId?: string | null) => void
-  openSaveSlots: () => void
-  closeSaveSlots: () => void
   openAchievements: () => void
   closeAchievements: () => void
   openGoals: () => void
@@ -59,7 +56,6 @@ export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (se
   showChronicles: false,
   showFamilyTree: false,
   familyTreeFocus: null,
-  showSaveSlots: false,
   showAchievements: false,
   showGoals: false,
   showScenarios: false,
@@ -87,11 +83,6 @@ export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (se
     set({ showFamilyTree: true, familyTreeFocus: focusId })
   },
   closeFamilyTree: () => set({ showFamilyTree: false, familyTreeFocus: null }),
-  openSaveSlots: () => {
-    trackEvent('modal_open', { modal: 'save_slots' })
-    set({ showSaveSlots: true })
-  },
-  closeSaveSlots: () => set({ showSaveSlots: false }),
   openAchievements: () => {
     trackEvent('modal_open', { modal: 'achievements' })
     set({ showAchievements: true })
@@ -153,7 +144,6 @@ export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (se
       showChronicles: false,
       showFamilyTree: false,
       familyTreeFocus: null,
-      showSaveSlots: false,
       showAchievements: false,
       showGoals: false,
       showScenarios: false,

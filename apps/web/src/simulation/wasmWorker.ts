@@ -1,6 +1,4 @@
 import init, { Sim } from '../wasm/sim-core/sim_core.js'
-import { isUndoableCommand } from './undo'
-import { SAVE_SLOT_COUNT, isSaveSlot, slotWorldId, type SaveSlotInfo } from './saveSlots'
 import wasmUrl from '../wasm/sim-core/sim_core_bg.wasm?url'
 import {
   archiveAndDeleteWorld,
@@ -46,10 +44,6 @@ type InMsg =
   | { type: 'prepare_reload'; requestId: number; deadlineAt: number }
   | { type: 'stop' }
   | { type: 'command'; json: string; requestId: number }
-  | { type: 'undo'; requestId: number }
-  | { type: 'slot_save'; slot: number; requestId: number }
-  | { type: 'slot_load'; slot: number; requestId: number }
-  | { type: 'slot_list'; requestId: number }
   | { type: 'org_detail'; id: string; requestId: number }
   | { type: 'org_life'; id: string; requestId: number }
   | {
@@ -70,8 +64,6 @@ const DEFAULT_AUTOSAVE_MS = 30_000
 const LOCK_WAIT_MS = 4_000
 
 let sim: Sim | null = null
-/** The world as it was just before the last player action, for one step of undo. */
-let undoSnapshot: { blob: Uint8Array; tick: number } | null = null
 let worldId = 'browser-own'
 let seed = '0'
 let tickMs = WASM_BASE_TICK_MS
@@ -183,64 +175,7 @@ function replaceSimulation(candidate: Sim, nextSeed: string) {
   const previous = sim
   sim = candidate
   seed = nextSeed
-  // A snapshot belongs to the world it was taken from; it is stale once the world is replaced.
-  undoSnapshot = null
   previous?.free()
-}
-
-/** Rewind to the snapshot taken before the last action. Returns false when there is nothing to undo. */
-function undoLastCommand(): boolean {
-  if (!sim || reloadPreparing || !undoSnapshot) return false
-  const snapshot = undoSnapshot
-  const candidate = Sim.fromSerialized(BigInt(seed), snapshot.blob)
-  if (Number(candidate.tickCount()) !== snapshot.tick) {
-    candidate.free()
-    return false
-  }
-  replaceSimulation(candidate, seed)
-  emit(true)
-  void persist()
-  return true
-}
-
-/** Keep the world as it is now in a named slot, next to the autosave. */
-async function saveSlot(slot: number): Promise<boolean> {
-  if (!sim || reloadPreparing || !isSaveSlot(slot)) return false
-  const blob = sim.serialize()
-  if (blob.byteLength === 0) return false
-  await saveWorld(slotWorldId(worldId, slot), {
-    blob,
-    seed,
-    tick: Number(sim.tickCount()),
-    savedAt: Date.now(),
-  })
-  return true
-}
-
-/** Replace the world with a saved slot. A slot that cannot be restored leaves the current world alone. */
-async function loadSlot(slot: number): Promise<boolean> {
-  if (!sim || reloadPreparing || !isSaveSlot(slot)) return false
-  const saved = await loadWorld(slotWorldId(worldId, slot))
-  if (!saved) return false
-  let candidate: Sim
-  try {
-    candidate = restoreSavedWorld(saved)
-  } catch {
-    return false
-  }
-  replaceSimulation(candidate, saved.seed)
-  emit(true)
-  void persist()
-  return true
-}
-
-async function listSlots(): Promise<SaveSlotInfo[]> {
-  const found: SaveSlotInfo[] = []
-  for (let slot = 1; slot <= SAVE_SLOT_COUNT; slot++) {
-    const saved = await loadWorld(slotWorldId(worldId, slot))
-    if (saved) found.push({ slot, tick: saved.tick, savedAt: saved.savedAt })
-  }
-  return found
 }
 
 function markStorageReady(restored: boolean) {
@@ -715,13 +650,8 @@ self.onmessage = (e: MessageEvent) => {
       break
     case 'command':
       if (sim && !reloadPreparing) {
-        // Snapshot the world first, so undo can return to exactly this moment.
-        const undoable = isUndoableCommand(msg.json)
-        const before = undoable ? sim.serialize() : null
-        const tickBefore = Number(sim.tickCount())
         const ok = sim.command(msg.json)
         if (ok) {
-          if (before) undoSnapshot = { blob: before, tick: tickBefore }
           emit(true)
           // Player actions are important checkpoints. Save them immediately
           // so terrain edits, disasters, and spawned life survive a reload.
@@ -731,20 +661,6 @@ self.onmessage = (e: MessageEvent) => {
       } else {
         post({ type: 'command_result', requestId: msg.requestId, ok: false })
       }
-      break
-    case 'undo':
-      post({ type: 'undo_result', requestId: msg.requestId, ok: undoLastCommand() })
-      break
-    case 'slot_save':
-      void saveSlot(msg.slot).then((ok) => post({ type: 'slot_result', requestId: msg.requestId, ok }))
-      break
-    case 'slot_load':
-      void loadSlot(msg.slot).then((ok) => post({ type: 'slot_result', requestId: msg.requestId, ok }))
-      break
-    case 'slot_list':
-      void listSlots().then((slots) =>
-        post({ type: 'slot_list_result', requestId: msg.requestId, json: JSON.stringify(slots) }),
-      )
       break
     case 'org_detail':
       post({

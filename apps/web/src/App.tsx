@@ -52,7 +52,6 @@ import { WorldFooter } from './ui/panels/WorldFooter'
 import { AppHeader } from './ui/toolbar/AppHeader'
 import { RightPanel } from './ui/panels/RightPanel'
 import { ModalRouter } from './ui/modals/ModalRouter'
-import { SaveSlotsModal } from './ui/modals/SaveSlotsModal'
 import { ScenariosModal } from './ui/modals/ScenariosModal'
 import { type ScenarioPreset } from './simulation/scenarios'
 import { setSandboxSender } from './simulation/commandBus'
@@ -103,10 +102,6 @@ function LiveApp() {
     resume,
     sandboxAvailable,
     sendCommand,
-    undoLastAction,
-    saveSlot,
-    loadSlot,
-    listSaveSlots,
     pauseSim,
     setSpeed,
     runtimeState,
@@ -137,8 +132,6 @@ function LiveApp() {
   const pairFirstRef = useRef<{ x: number; y: number } | null>(null)
   const [brush, setBrush] = useState(2)
   const [sandboxStatus, setSandboxStatus] = useState<string | null>(null)
-  const showSaveSlots = useUIStore((s) => s.showSaveSlots)
-  const closeSaveSlots = useUIStore((s) => s.closeSaveSlots)
   const showScenarios = useUIStore((s) => s.showScenarios)
   const closeScenarios = useUIStore((s) => s.closeScenarios)
   const sandboxStatusTimer = useRef<number | null>(null)
@@ -517,29 +510,6 @@ function LiveApp() {
     [sendCommand, setTemporarySandboxStatus],
   )
 
-  const onUndo = useCallback(() => {
-    void undoLastAction().then((ok) =>
-      setTemporarySandboxStatus(ok ? 'undid the last action' : 'nothing to undo'),
-    )
-  }, [undoLastAction, setTemporarySandboxStatus])
-
-  useEffect(() => {
-    const onUndoKey = (event: KeyboardEvent) => {
-      if (!sandboxControlsEnabled) return
-      if (event.key.toLowerCase() !== 'z' || !(event.ctrlKey || event.metaKey)) return
-      if (event.shiftKey || event.altKey) return
-      if (
-        event.target instanceof HTMLElement &&
-        (event.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName))
-      )
-        return
-      event.preventDefault()
-      onUndo()
-    }
-    window.addEventListener('keydown', onUndoKey)
-    return () => window.removeEventListener('keydown', onUndoKey)
-  }, [onUndo, sandboxControlsEnabled])
-
   useEffect(() => {
     const togglePlayback = (event: KeyboardEvent) => {
       if (!sandboxControlsEnabled) return
@@ -841,8 +811,6 @@ function LiveApp() {
               ui.setViewFlag('history', false)
               setTemporarySandboxStatus('map layers cleared')
             }}
-            onUndo={isLocalWebWorld ? onUndo : undefined}
-            onSaveSlots={isLocalWebWorld ? () => useUIStore.getState().openSaveSlots() : undefined}
             onSave={
               isLocalWebWorld || (desktop && desktopMode === 'local')
                 ? () => void saveLocalWorld()
@@ -886,14 +854,6 @@ function LiveApp() {
           <ScenariosModal
             onStart={(preset) => runScenario(preset, world.grid.width, world.grid.height)}
             onClose={closeScenarios}
-          />
-        )}
-        {showSaveSlots && isLocalWebWorld && (
-          <SaveSlotsModal
-            listSlots={listSaveSlots}
-            saveSlot={saveSlot}
-            loadSlot={loadSlot}
-            onClose={closeSaveSlots}
           />
         )}
 

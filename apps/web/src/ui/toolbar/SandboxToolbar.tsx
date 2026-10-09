@@ -58,8 +58,6 @@ interface Props {
   onPick: (tool: SandboxTool) => void
   onClearArmed: () => void
   onClearView?: () => void
-  onUndo?: () => void
-  onSaveSlots?: () => void
   onSave?: () => void
   saveStatus?: string
   saveBusy?: boolean
@@ -127,8 +125,6 @@ export function SandboxToolbar({
   onBrush,
   onPick,
   onClearArmed,
-  onUndo,
-  onSaveSlots,
   onSave,
   saveStatus,
   saveBusy = false,
@@ -499,44 +495,6 @@ export function SandboxToolbar({
         </div>
         <div className="dock-utility">
           <WorldToolSearch onPick={onPick} />
-          {onUndo && (
-            <Tooltip
-              tip={
-                <TipCard
-                  title="undo"
-                  body="Rewind to just before your last action (a gift, a spawn, a disaster, an edit). One step. The world also goes back to that moment, so anything since is lost. Ctrl+Z."
-                />
-              }
-            >
-              <button
-                type="button"
-                className="dock-mini sandbox-undo-button"
-                onClick={onUndo}
-                aria-label="Undo last action"
-              >
-                <ToolSprite icon="↩️" size={24} />
-              </button>
-            </Tooltip>
-          )}
-          {onSaveSlots && (
-            <Tooltip
-              tip={
-                <TipCard
-                  title="save slots"
-                  body="Keep this world in one of three named saves, next to the autosave. Loading a slot replaces the world you are watching."
-                />
-              }
-            >
-              <button
-                type="button"
-                className="dock-mini sandbox-slots-button"
-                onClick={onSaveSlots}
-                aria-label="Save slots"
-              >
-                <ToolSprite icon="🗂️" size={24} />
-              </button>
-            </Tooltip>
-          )}
           {onSave && (
             <Tooltip tip={<TipCard title={saveActionLabel} body={saveTitle} />}>
               <div className={clsx('sandbox-save', saveError && 'error')}>
