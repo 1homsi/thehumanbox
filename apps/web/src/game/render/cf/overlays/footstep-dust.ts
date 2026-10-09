@@ -42,8 +42,26 @@ export interface DustStyle {
 export const PEOPLE_DUST: DustStyle = { colour: 'rgb(206,186,150)', radius: 2.5, alpha: 0.42 }
 export const ANIMAL_DUST: DustStyle = { colour: 'rgb(186,160,118)', radius: 1.8, alpha: 0.3 }
 
+/**
+ * What `observeSlots` reads of the people layer, by slot: where each person stands in tiles (the
+ * simulation's position when the layer has it), whether they are indoors, and when they last stepped
+ * (the people layer's clock, the frame clock). `PeopleLabelSource` has all of these.
+ */
+export interface DustSlots {
+  readonly orgs: readonly DustOrganism[]
+  readonly tileX?: ArrayLike<number>
+  readonly tileY?: ArrayLike<number>
+  readonly hidden: ArrayLike<number>
+  readonly step: { readonly movedAt: ArrayLike<number> }
+}
+
+/** A step is seen by a ground pass when it was taken within this long (the passes are 66 ms apart). */
+const STEP_SEEN_MS = 120
+
 export class FootstepDust {
   private readonly tracks = new Map<string, Track>()
+  /** Per slot of the people layer: when that slot last started a puff (see `observeSlots`). */
+  private slotSpawned = new Float64Array(0)
   private readonly px = new Float64Array(DUST_POOL)
   private readonly py = new Float64Array(DUST_POOL)
   private readonly born = new Float64Array(DUST_POOL).fill(-Infinity)
@@ -53,6 +71,30 @@ export class FootstepDust {
 
   constructor(style: DustStyle = PEOPLE_DUST) {
     this.style = style
+  }
+
+  /**
+   * Starts puffs for the people who stepped since the last look, reading the people layer's own step
+   * clock: no per-person map and no visit to anyone who stood still, so a crowd costs one typed-array
+   * pass. A person starts at most one puff per SPAWN_EVERY_MS.
+   */
+  observeSlots(slots: DustSlots, t: number, win: { x0: number; y0: number; x1: number; y1: number }): void {
+    const n = slots.orgs.length
+    if (this.slotSpawned.length < n) {
+      const grown = new Float64Array(Math.max(n, this.slotSpawned.length * 2, 256)).fill(-Infinity)
+      grown.set(this.slotSpawned)
+      this.slotSpawned = grown
+    }
+    for (let j = 0; j < n; j++) {
+      if (slots.hidden[j] === 1) continue
+      if (t - slots.step.movedAt[j] > STEP_SEEN_MS) continue
+      const x = slots.tileX ? slots.tileX[j] : slots.orgs[j].x
+      const y = slots.tileY ? slots.tileY[j] : slots.orgs[j].y
+      if (x < win.x0 || x > win.x1 || y < win.y0 || y > win.y1) continue
+      if (t - this.slotSpawned[j] < SPAWN_EVERY_MS) continue
+      this.spawn(x, y, t)
+      this.slotSpawned[j] = t
+    }
   }
 
   /** Notes where each person is now and starts a puff for those who stepped. */
