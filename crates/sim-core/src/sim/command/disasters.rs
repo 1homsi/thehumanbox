@@ -1,5 +1,6 @@
 use super::*;
 use crate::math::DetMath;
+use crate::sim::civ::land::village_failure::{self, Blow};
 
 impl Simulation {
     pub(super) fn cmd_smite(&mut self, x: f32, y: f32, radius: f32) -> bool {
@@ -440,6 +441,8 @@ impl Simulation {
             }
         }
         withered += self.wither_plantings(x, y, r);
+        // The village fields and the granaries are ruined too: the blight is in the fields, not only the wild.
+        withered += village_failure::ruin(self, &[(x, y)], r, Blow::Blight);
         let rf = r as f32;
         for o in self.organisms.iter_mut() {
             if o.alive && (o.x - x as f32).det_hypot(o.y - y as f32) <= rf {
@@ -499,6 +502,7 @@ impl Simulation {
         let heading = self.rng.random::<f32>() * TAU;
         let (dx, dy) = (heading.det_cos(), heading.det_sin());
         let mut hit = false;
+        let mut path: Vec<(i32, i32)> = Vec::new();
         for step in 0..=length {
             let fx = x as f32 + dx * step as f32;
             let fy = y as f32 + dy * step as f32;
@@ -506,6 +510,7 @@ impl Simulation {
             if !WorldGrid::in_bounds(cx, cy) {
                 break;
             }
+            path.push((cx, cy));
             for ny in cy - 2..=cy + 2 {
                 for nx in cx - 2..=cx + 2 {
                     if !WorldGrid::in_bounds(nx, ny) || (nx - cx) * (nx - cx) + (ny - cy) * (ny - cy) > 4 {
@@ -537,6 +542,10 @@ impl Simulation {
                     hit = true;
                 }
             }
+        }
+        // The swarm strips the village fields on its road and empties the granaries there.
+        if village_failure::ruin(self, &path, 2, Blow::Locusts) > 0 {
+            hit = true;
         }
         if hit {
             self.planting_revision = self.planting_revision.wrapping_add(1);
@@ -631,6 +640,7 @@ impl Simulation {
     pub(super) fn cmd_flood(&mut self, x: i32, y: i32, radius: i32) -> bool {
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
         let r = if radius <= 0 { 4 } else { radius.min(20) };
+        let ruined = village_failure::ruin(self, &[(x, y)], r, Blow::Flood);
         let mut flooded = 0;
         for dx in -r..=r {
             for dy in -r..=r {
@@ -690,7 +700,7 @@ impl Simulation {
                 crate::sim::civ::building_damage::DamageCause::Flood,
             );
         }
-        flooded > 0
+        flooded > 0 || ruined > 0
     }
 
     pub(super) fn cmd_blizzard(&mut self, x: i32, y: i32, radius: i32) -> bool {

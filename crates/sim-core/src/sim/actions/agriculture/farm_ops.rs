@@ -221,6 +221,7 @@ pub(crate) fn prepare_plot(sim: &mut Simulation, idx: usize, x: i32, y: i32) -> 
         harvested: true,
         prepared: true,
         season_timed: false,
+        withered: false,
     });
     Some(id)
 }
@@ -283,6 +284,7 @@ pub(crate) fn plant_crop(
             harvested: false,
             prepared: false,
             season_timed: false,
+            withered: false,
         });
         Some(id)
     }

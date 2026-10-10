@@ -1,6 +1,7 @@
 pub mod building_damage;
 pub mod fields;
 pub mod smog;
+pub mod village_failure;
 pub mod village_fields;
 pub mod village_livestock;
 pub mod village_roads;

@@ -608,6 +608,7 @@ impl Simulation {
                             "planted_tick": farm.planted_tick,
                             "ready_tick": farm.ready_tick,
                             "harvested": farm.harvested,
+                            "withered": farm.withered,
                             "stage": farm.stage(self.tick_count),
                             "progress": farm.progress(self.tick_count).clamp(0.0, 1.0),
                             "yield": if farm.harvested {

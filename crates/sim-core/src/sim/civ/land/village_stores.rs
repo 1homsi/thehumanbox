@@ -449,6 +449,7 @@ mod tests {
                 harvested: false,
                 prepared: false,
                 season_timed: false,
+                withered: false,
             });
         }
         let tribe = Tribe {
@@ -550,6 +551,7 @@ mod tests {
                 harvested: false,
                 prepared: false,
                 season_timed: false,
+                withered: false,
             });
         }
         // The Iron-age watermill comes first, on the river bank.

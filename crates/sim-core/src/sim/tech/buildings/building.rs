@@ -57,6 +57,10 @@ pub struct Building {
     /// Grain kept in a granary, in measures. Other buildings keep none.
     #[serde(default)]
     pub stock: u32,
+    /// The tick a blight, locusts, a flood or a dry spell last ruined this tribe's fields or
+    /// grain. A granary left empty after one, with people going hungry, is a famine.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spoiled_tick: Option<u64>,
 }
 
 impl Building {
@@ -76,6 +80,7 @@ impl Building {
             last_repair_tick: None,
             decorative: false,
             stock: 0,
+            spoiled_tick: None,
         }
     }
 

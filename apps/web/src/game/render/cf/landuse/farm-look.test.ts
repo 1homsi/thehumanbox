@@ -18,3 +18,11 @@ describe('farmLookKey', () => {
     expect(farmLookKey(look)).not.toBe(farmLookKey({ ...look, edges: EDGE_TOP }))
   })
 })
+
+describe('a ruined field', () => {
+  const ripe: FarmLook = { ...look, stage: 'mature', progress: 1, season: 'decline', crop: 'wheat' }
+  it('gets its own look, so a blighted field never bakes as a ripe one', () => {
+    expect(farmLookKey({ ...ripe, withered: true })).not.toBe(farmLookKey(ripe))
+    expect(farmLookKey({ ...ripe, withered: false })).toBe(farmLookKey(ripe))
+  })
+})

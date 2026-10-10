@@ -9,6 +9,7 @@
 
 use crate::hashing::{FxHashMap, FxHashSet};
 use crate::sim::actions::agriculture::farm_ops::{crop_for_plot, harvest_crop, plant_crop};
+use crate::sim::civ::land::village_failure;
 use crate::sim::civ::land::village_livestock;
 use crate::sim::civ::land::village_stores;
 use crate::sim::config::SEASON_LENGTH;
@@ -121,7 +122,7 @@ fn in_bounds(x: i32, y: i32) -> bool {
     x >= 0 && y >= 0 && (x as usize) < WIDTH && (y as usize) < HEIGHT
 }
 
-fn water_within(sim: &Simulation, x: i32, y: i32, reach: i32) -> bool {
+pub(crate) fn water_within(sim: &Simulation, x: i32, y: i32, reach: i32) -> bool {
     (-reach..=reach).any(|dy| (-reach..=reach).any(|dx| matches!(sim.grid.get(x + dx, y + dy), Tile::Water)))
 }
 
@@ -138,22 +139,24 @@ pub(crate) fn tick_village_fields(sim: &mut Simulation) {
         if !knows {
             continue;
         }
+        village_failure::dry_spell(sim, tribe);
         harvest_ripe(sim, tribe);
         sow_fields(sim, tribe, now);
         village_stores::ration(sim, tribe);
+        village_failure::famine(sim, tribe);
         village_stores::build_stores(sim, tribe);
         village_livestock::tick_livestock(sim, tribe);
     }
 }
 
 fn harvest_ripe(sim: &mut Simulation, tribe: &Tribe) {
-    let ripe: Vec<(i32, i32)> = sim
+    let ripe: Vec<(i32, i32, bool)> = sim
         .farms
         .iter()
         .filter(|f| f.owner_lineage == tribe.lineage && f.is_mature(sim.tick_count))
-        .map(|f| (f.x, f.y))
+        .map(|f| (f.x, f.y, f.withered))
         .collect();
-    for (x, y) in ripe {
+    for (x, y, ruined) in ripe {
         // The person nearest the field brings it in.
         let Some(&actor) = tribe.members.iter().min_by_key(|&&i| {
             let o = &sim.organisms[i];
@@ -161,6 +164,17 @@ fn harvest_ripe(sim: &mut Simulation, tribe: &Tribe) {
         }) else {
             continue;
         };
+        if ruined {
+            // A ruined field gives nothing: it is cut down and lies fallow until the next spring.
+            let tick = sim.tick_count;
+            if let Some(farm) = sim.farms.iter_mut().find(|f| f.x == x && f.y == y) {
+                farm.harvested = true;
+                farm.prepared = false;
+                farm.withered = false;
+            }
+            sim.organisms[actor].think("cutting down a ruined field", tick);
+            continue;
+        }
         if let Some(result) = harvest_crop(sim, actor, x, y) {
             // The harvest was credited to the hands that brought it in; it goes into the
             // granary instead (with the granary and windmill bonus), and only what does not
