@@ -261,6 +261,8 @@ export interface FarmInfo {
   planted_tick?: number
   ready_tick?: number
   harvested?: boolean
+  /** Ruined by a blight, locusts, a flood or a dry spell: it stands dead until it is brought in. */
+  withered?: boolean
   stage?: 'fallow' | 'seeded' | 'growing' | 'mature' | 'harvested'
   progress?: number
 }

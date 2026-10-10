@@ -130,6 +130,10 @@ pub struct Farm {
     /// Older saves load as false and keep their weather-driven deadlines.
     #[serde(default)]
     pub season_timed: bool,
+    /// A field a blight, a locust swarm, a flood or a dry spell ruined. It keeps its place and
+    /// shows dead stalks until it is due, then it is brought in with nothing to show for it.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub withered: bool,
 }
 
 impl Farm {
@@ -266,6 +270,7 @@ mod tests {
             harvested: false,
             prepared: false,
             season_timed: false,
+            withered: false,
         }
     }
 

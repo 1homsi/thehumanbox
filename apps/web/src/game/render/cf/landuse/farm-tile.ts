@@ -46,10 +46,12 @@ export interface FarmLook {
   season: string
   /** EDGE_* bits for the sides that face open ground. */
   edges: number
+  /** Ruined by a blight, locusts, a flood or a dry spell: the crop stands dead until it is cut down. */
+  withered?: boolean
 }
 
 export function farmLookKey(look: FarmLook): string {
-  return `F|${look.stage}|${Math.round(look.progress * 4)}|${look.crop}|${look.variant}|${look.season}|${look.edges}`
+  return `F|${look.stage}|${Math.round(look.progress * 4)}|${look.crop}|${look.variant}|${look.season}|${look.edges}|${look.withered ? 'w' : ''}`
 }
 
 /**
@@ -66,11 +68,15 @@ export function paintFarmTile(
 ) {
   const { stage, season, crop, variant, edges } = look
   const style = farmCropStyle(crop)
+  // A ruined field is dead: no ripe gold edge, and every green stalk goes straw-brown.
+  const withered = !!look.withered && stage !== 'fallow'
+  const green = (color: string) => (withered ? '#8b6a3a' : color)
+  const head = withered ? '#9a7a4a' : cropColor
   const fill = (dx: number, dy: number, w: number, h: number, color: string) => {
     ctx.fillStyle = color
     ctx.fillRect(x + dx, y + dy, w, h)
   }
-  const ripe = stage === 'mature'
+  const ripe = stage === 'mature' && !withered
   const fallow = stage === 'fallow'
   const winter = season === 'scarcity'
   const autumn = season === 'decline'
@@ -112,73 +118,73 @@ export function paintFarmTile(
     switch (style) {
       case 'grain':
         for (let c = 2 + offset; c < TILE - 1; c += 3) {
-          fill(c, TILE - height - 1, 1, height, '#9dbb48')
-          if (height >= 3) fill(c + 1, TILE - height, 1, 1, cropColor)
+          fill(c, TILE - height - 1, 1, height, green('#9dbb48'))
+          if (height >= 3) fill(c + 1, TILE - height, 1, 1, head)
         }
         break
       case 'paddy':
         for (let c = 2 + offset; c < TILE - 1; c += 3) {
           if (drained) {
             // Ripe rice: a golden head two pixels deep on a straw stem, the look of the harvest.
-            fill(c, TILE - height - 1, 1, height, '#8c6d2a')
-            fill(c - 1, TILE - height - 1, 3, 2, ripe ? '#f2c94c' : '#d9b04a')
+            fill(c, TILE - height - 1, 1, height, green('#8c6d2a'))
+            fill(c - 1, TILE - height - 1, 3, 2, ripe ? green('#f2c94c') : green('#d9b04a'))
           } else {
-            fill(c, TILE - height - 1, 1, height, '#8fc26a')
+            fill(c, TILE - height - 1, 1, height, green('#8fc26a'))
           }
         }
         break
       case 'stalk': {
         const tall = Math.min(TILE - 1, height + 2)
         for (let c = 2 + offset; c < TILE - 1; c += 3) {
-          fill(c, TILE - tall - 1, 1, tall, '#6f9b3c')
-          if (ripe) fill(c + 1, TILE - tall, 1, 2, cropColor)
+          fill(c, TILE - tall - 1, 1, tall, green('#6f9b3c'))
+          if (ripe) fill(c + 1, TILE - tall, 1, 2, head)
         }
         break
       }
       case 'mound':
         for (const row of [3, 6]) {
           for (let c = 1 + offset; c < TILE - 2; c += 3) {
-            fill(c, row - Math.min(height, 2), 2, Math.min(height, 2) + 1, '#4f7a3a')
-            if (ripe) fill(c, row, 1, 1, '#8a6a3e')
+            fill(c, row - Math.min(height, 2), 2, Math.min(height, 2) + 1, green('#4f7a3a'))
+            if (ripe) fill(c, row, 1, 1, green('#8a6a3e'))
           }
         }
         break
       case 'vine':
         for (const row of [2, 5]) {
-          fill(1, row, TILE - 2, 1, '#4f8a3f')
+          fill(1, row, TILE - 2, 1, green('#4f8a3f'))
           for (let c = 2 + offset; c < TILE - 1; c += 3) {
-            fill(c, row - 1, 1, 1, '#6fae52')
-            if (ripe) fill(c, row + 1, 1, 1, cropColor)
+            fill(c, row - 1, 1, 1, green('#6fae52'))
+            if (ripe) fill(c, row + 1, 1, 1, head)
           }
         }
         break
       case 'tuft':
         for (let c = 1 + offset; c < TILE - 2; c += 3) {
           for (const row of [2, 5]) {
-            fill(c, row, 2, 2, '#6aa04f')
-            if (ripe) fill(c, row, 2, 1, cropColor)
+            fill(c, row, 2, 2, green('#6aa04f'))
+            if (ripe) fill(c, row, 2, 1, head)
           }
         }
         break
       case 'leaf':
         for (const row of [1, 4]) {
           for (let c = 1 + offset; c < TILE - 2; c += 3) {
-            fill(c, row + (height > 2 ? 0 : 1), 2, 2, ripe ? '#a88a4a' : '#7f9a4a')
+            fill(c, row + (height > 2 ? 0 : 1), 2, 2, ripe ? green('#a88a4a') : green('#7f9a4a'))
           }
         }
         break
       case 'cane':
         for (let c = 1 + offset; c < TILE - 1; c += 2) {
           const tall = Math.min(TILE - 1, height + 3)
-          fill(c, TILE - tall - 1, 1, tall, '#5f8f3a')
-          if (ripe) fill(c, TILE - tall - 1, 1, 1, cropColor)
+          fill(c, TILE - tall - 1, 1, tall, green('#5f8f3a'))
+          if (ripe) fill(c, TILE - tall - 1, 1, 1, head)
         }
         break
       case 'shrub':
         for (const row of [2, 5]) {
           for (let c = 1 + offset; c < TILE - 2; c += 4) {
-            fill(c, row, 3, 2, ripe ? '#4d7d43' : '#3e6b3a')
-            if (ripe) fill(c + 1, row - 1, 1, 1, cropColor)
+            fill(c, row, 3, 2, ripe ? green('#4d7d43') : green('#3e6b3a'))
+            if (ripe) fill(c + 1, row - 1, 1, 1, head)
           }
         }
         break

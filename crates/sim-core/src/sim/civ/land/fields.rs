@@ -268,6 +268,7 @@ mod tests {
             harvested,
             prepared: false,
             season_timed: false,
+            withered: false,
         }
     }
 
