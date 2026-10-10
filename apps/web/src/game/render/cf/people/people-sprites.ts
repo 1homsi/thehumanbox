@@ -4,7 +4,7 @@ import type { ViewFlags } from '../../../../state/store'
 import { lineageColor } from '../../../../shared/constants'
 import { THOUGHT_COLORS, TILE } from '../../../model/palette'
 import { orgVariant } from '../../../model/org-variant'
-import { ERA_STRIPE_COLOR, SPECIALTY_EMOJI, orgAnimPhase, pickToolEmoji } from '../../draw-helpers'
+import { ERA_STRIPE_COLOR, orgAnimPhase, pickToolEmoji } from '../../draw-helpers'
 import {
   HUMAN_ATLAS_FRAMES,
   deterministicAppearanceIndex,
@@ -30,6 +30,7 @@ import { AttachedSprites, storeF32, storeF64, storeU32, storeU8 } from '../attac
 import { cssToRgba32, rgba32, withAlpha } from '../colors'
 import { MotionStore } from '../motion'
 import { labelFlagsOf } from './people-labels'
+import { professionMarks } from './profession-marks'
 
 /** Atlas slots, by layer. */
 export const BODY_ATLAS = { people: 0, boats: 1 } as const
@@ -83,6 +84,12 @@ export function isFocused(org: OrganismState, focus: string): boolean {
   return true
 }
 
+/**
+ * The people sheet draws a figure in a 32-pixel cell: the top of the hair is at cell row 4, the body's middle
+ * (where a held tool sits) at row 16. The sprite is `size` pixels tall, so these rows scale with it.
+ */
+const SHEET_HEAD_ROW = 4
+const SHEET_HAND_ROW = 16
 const WHITE = 0xffffffff
 const BLACK = rgba32(0, 0, 0)
 const CROWN = cssToRgba32('#f2c84b')
@@ -378,6 +385,9 @@ export class PeopleSprites {
       this.boatVariant[j] = boatVariantOf(boat?.era, boat?.cargo)
 
       const spriteTopOff = -size * 0.78
+      // Where the marks start: the top of the head, and the hand (see SHEET_HEAD_ROW).
+      const headTop = spriteTopOff + (size * SHEET_HEAD_ROW) / 32
+      const handTop = spriteTopOff + (size * SHEET_HAND_ROW) / 32
       // Shadows only when the world is close enough to see them.
       if (detail !== 'overview' && !crowded) {
         soft.push(j, 1, size * 0.2, size * 0.54, size * 0.2, DECAL.disc, 0, withAlpha(BLACK, 0.4 * fa))
@@ -519,8 +529,21 @@ export class PeopleSprites {
         const f = glyphFrame(g)
         if (f >= 0) over.push(j, dx, dy, px, px, f, 0, withAlpha(WHITE, fa))
       }
-      const specEmoji = SPECIALTY_EMOJI[org.specialty ?? ''] ?? ''
-      if (full && specEmoji) glyph(specEmoji, bodyR + 1, -bodyR * 0.4, 8)
+      // The trade shows on the figure: a hat on the head, a tool at hand height (see profession-marks).
+      if (standard && org.specialty) {
+        const { worn, held } = professionMarks(org.specialty, bodyR + 2)
+        for (const [marks, top] of [
+          [worn, headTop],
+          [held, handTop],
+        ] as const) {
+          for (const m of marks) {
+            over.push(j, m.x, top + m.y, m.w, m.h, 0, 0, withAlpha(cssToRgba32(m.color), fa), {
+              untextured: true,
+              snap: true,
+            })
+          }
+        }
+      }
       if (standard && org.diseases && org.diseases.length > 0) glyph(SICK_EMOJI, -bodyR - 1, -bodyR * 0.4, 8)
       if (full && org.tools) {
         const tool = pickToolEmoji(org.tools)
