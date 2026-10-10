@@ -26,6 +26,7 @@ mod homes;
 mod knowledge;
 mod milestones;
 mod people;
+pub(crate) use people::workshop_pull;
 mod politics;
 mod props;
 mod religion;

@@ -138,7 +138,7 @@ pub(super) fn tick_age_stages(sim: &mut Simulation) {
     }
 }
 
-pub(super) fn workshop_pull(kind: BuildingKind) -> Option<Specialty> {
+pub(crate) fn workshop_pull(kind: BuildingKind) -> Option<Specialty> {
     use BuildingKind::*;
     Some(match kind {
         Forge | Smithy => Specialty::Smith,

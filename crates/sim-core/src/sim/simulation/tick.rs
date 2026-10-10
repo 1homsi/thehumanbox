@@ -25,6 +25,7 @@ impl Simulation {
             .then(|| SpatialIndex::build(&self.organisms, 8));
         crate::sim::civ_tick::tick_civ(self, civ_spatial.as_ref());
         self.tick_evening_gatherings();
+        self.tick_school_places();
 
         if self.tick_count.is_multiple_of(6000) {
             let alive = self.organisms.iter().filter(|o| o.alive).count();

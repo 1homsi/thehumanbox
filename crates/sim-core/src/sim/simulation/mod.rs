@@ -135,6 +135,8 @@ pub struct Simulation {
     pub goals: crate::sim::goals::GoalBook,
     /// Where each tribe gathers this evening (runtime; worked out at dusk).
     pub(crate) evening_places: std::collections::BTreeMap<String, (i32, i32)>,
+    /// Where each tribe's children go to school this hour (runtime; empty outside school hours).
+    pub(crate) school_places: std::collections::BTreeMap<String, (i32, i32)>,
     /// The recently dead, newest last: who died and when (runtime).
     pub(crate) fallen: VecDeque<(String, u64)>,
     /// When each tribe last had someone raised from the dead (runtime).
@@ -287,6 +289,7 @@ impl Simulation {
             festival_last: HashMap::default(),
             goals: Default::default(),
             evening_places: Default::default(),
+            school_places: Default::default(),
             fallen: VecDeque::new(),
             revive_cooldown: HashMap::default(),
             teach_cooldown: HashMap::default(),

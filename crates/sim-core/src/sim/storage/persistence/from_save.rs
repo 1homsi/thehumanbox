@@ -272,6 +272,7 @@ impl Simulation {
             festival_last: HashMap::default(),
             goals: state.goals,
             evening_places: Default::default(),
+            school_places: Default::default(),
             fallen: Default::default(),
             revive_cooldown: HashMap::default(),
             teach_cooldown: HashMap::default(),
