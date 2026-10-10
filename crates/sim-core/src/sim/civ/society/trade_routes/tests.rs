@@ -610,3 +610,61 @@ fn a_tribe_holding_most_of_one_land_good_becomes_known_for_it() {
         "a tribe that comes to hold mostly another good changes its specialty"
     );
 }
+
+#[test]
+fn a_market_day_brings_coin_to_a_tribe_with_a_working_market() {
+    use super::market::{market_days, MARKET_DAY_TICKS};
+    let mut sim = Simulation::new(0x7ADE);
+    for (index, organism) in sim.organisms.iter_mut().enumerate() {
+        organism.alive = true;
+        organism.lineage_id = if index < 8 { "river" } else { "hill" }.into();
+    }
+    let mut market = Building::new(1, BuildingKind::Market, 100, 100, Some("river".into()), 1);
+    market.condition = 1.0;
+    sim.buildings.clear();
+    sim.buildings.push(market);
+
+    sim.tick_count = MARKET_DAY_TICKS;
+    market_days(&mut sim);
+    assert_eq!(
+        sim.trade_income.get("river"),
+        Some(&1),
+        "a market day brings in coin for the tribe that holds the market"
+    );
+    assert!(
+        !sim.trade_income.contains_key("hill"),
+        "a tribe without a market takes nothing on a market day"
+    );
+
+    sim.tick_count = MARKET_DAY_TICKS + 1;
+    market_days(&mut sim);
+    assert_eq!(
+        sim.trade_income.get("river"),
+        Some(&1),
+        "no market day between market days"
+    );
+
+    for index in 5..8 {
+        sim.organisms[index].alive = false;
+    }
+    sim.tick_count = 2 * MARKET_DAY_TICKS;
+    market_days(&mut sim);
+    assert_eq!(
+        sim.trade_income.get("river"),
+        Some(&1),
+        "a tribe with too few people left takes nothing on its market day"
+    );
+
+    for index in 5..8 {
+        sim.organisms[index].alive = true;
+    }
+    sim.tick_count = 4 * MARKET_DAY_TICKS;
+    market_days(&mut sim);
+    assert_eq!(sim.trade_income.get("river"), Some(&2));
+    assert!(
+        sim.events
+            .iter()
+            .any(|event| event.etype == "trade" && event.detail.contains("market day")),
+        "every fourth market day is named in the chronicle"
+    );
+}

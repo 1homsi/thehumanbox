@@ -123,6 +123,7 @@ pub fn tick(sim: &mut Simulation) {
         open_merchant_routes(sim);
     }
     super::specialty::update_specialties(sim);
+    market::market_days(sim);
     if sim.tick_count.is_multiple_of(MERCHANT_DISPATCH_SCAN_TICKS) {
         raid_embargoed_caravans(sim);
         run_merchant_caravans(sim);

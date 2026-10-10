@@ -191,6 +191,14 @@ fn main() {
         sim.organisms.iter().filter(|o| o.alive).count()
     );
     println!(
+        "markets:     {} standing, {} trade coin earned",
+        sim.buildings
+            .iter()
+            .filter(|b| b.kind == sim_core::sim::tech::buildings::BuildingKind::Market && b.is_operational())
+            .count(),
+        sim.trade_income.values().sum::<u64>()
+    );
+    println!(
         "roads:       {} cells, {} village links",
         sim.grid.road.iter().filter(|&&k| k != 0).count(),
         sim.village_roads.len()
