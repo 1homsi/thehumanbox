@@ -232,21 +232,42 @@ pub(super) fn town_anchor(sim: &Simulation, lineage: &str, kind: BuildingKind) -
         Some(anchor)
     } else if CIVIC_KINDS.contains(&kind) {
         let corner = owned_count(sim, lineage, &CIVIC_KINDS) % 4;
-        let [cx, cy] = town.center;
-        let x = if corner & 1 == 0 {
-            cx + CORNER_DISTANCE
-        } else {
-            cx - CORNER_DISTANCE - (width - 1)
-        };
-        let y = if corner & 2 == 0 {
-            cy - CORNER_DISTANCE - (height - 1)
-        } else {
-            cy + CORNER_DISTANCE
-        };
-        Some((x, y))
+        Some(corner_anchor(town, kind, corner))
     } else {
         None
     }
+}
+
+/// The point a civic building of `kind` is searched from at one corner of the
+/// plaza (0 north-east, 1 north-west, 2 south-east, 3 south-west).
+fn corner_anchor(town: &TownPlaza, kind: BuildingKind, corner: usize) -> (i32, i32) {
+    let (width, height) = kind.footprint();
+    let (width, height) = (i32::from(width), i32::from(height));
+    let [cx, cy] = town.center;
+    let x = if corner & 1 == 0 {
+        cx + CORNER_DISTANCE
+    } else {
+        cx - CORNER_DISTANCE - (width - 1)
+    };
+    let y = if corner & 2 == 0 {
+        cy - CORNER_DISTANCE - (height - 1)
+    } else {
+        cy + CORNER_DISTANCE
+    };
+    (x, y)
+}
+
+/// Every corner a civic building of `kind` may be searched from in this town,
+/// the next free corner first, so a corner boxed in by its neighbours does not
+/// hold the square back.
+pub(super) fn civic_anchors(sim: &Simulation, lineage: &str, kind: BuildingKind) -> Vec<(i32, i32)> {
+    let Some(town) = sim.town_plazas.iter().find(|town| town.lineage == lineage) else {
+        return Vec::new();
+    };
+    let first = owned_count(sim, lineage, &CIVIC_KINDS) % 4;
+    (0..4)
+        .map(|k| corner_anchor(town, kind, (first + k) % 4))
+        .collect()
 }
 
 /// The point automatic placement searches from for `kind`: the town's frontage

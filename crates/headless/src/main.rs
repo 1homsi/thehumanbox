@@ -196,10 +196,14 @@ fn main() {
         sim.village_roads.len()
     );
     println!(
-        "markets:     {} standing, {} towns with a plaza",
+        "markets:     {} standing, {} started, {} towns with a plaza",
         sim.buildings
             .iter()
             .filter(|b| b.kind.name() == "market" && b.is_operational())
+            .count(),
+        sim.buildings
+            .iter()
+            .filter(|b| b.kind.name() == "market" && !b.decorative && !b.is_ruined())
             .count(),
         sim.town_plazas.len()
     );

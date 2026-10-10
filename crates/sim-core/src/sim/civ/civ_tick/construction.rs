@@ -33,11 +33,37 @@ pub(super) fn construction_cost_available(sim: &Simulation, lineage: &str, kind:
     lineage_can_afford_construction(sim, lineage, kind)
 }
 
+/// Wood and stone an open-air market of stalls costs. A lineage that has not
+/// reached the iron age raises stalls on its plaza, not a market hall.
+pub(super) const STALL_MARKET_WOOD: u16 = 6;
+pub(super) const STALL_MARKET_STONE: u16 = 2;
+/// Labour an open-air market takes: about a house's, not a market hall's.
+pub(super) const STALL_MARKET_LABOR: u16 = 16;
+
+/// What a project of `kind` costs the lineage now. Before the iron age a market
+/// is the cheap open-air kind; from the iron age it costs the full market hall.
+pub(super) fn project_cost(
+    sim: &Simulation,
+    lineage: &str,
+    kind: BuildingKind,
+) -> crate::sim::buildings::ConstructionCost {
+    let cost = kind.construction_cost();
+    if kind == BuildingKind::Market && lineage_era(sim, lineage) < BuildingKind::Market.era_unlock() {
+        return crate::sim::buildings::ConstructionCost {
+            wood: STALL_MARKET_WOOD,
+            stone: STALL_MARKET_STONE,
+            labor: STALL_MARKET_LABOR,
+            ..cost
+        };
+    }
+    cost
+}
+
 pub(super) fn reserve_construction_cost(sim: &mut Simulation, lineage: &str, kind: BuildingKind) -> bool {
     if !construction_cost_available(sim, lineage, kind) {
         return false;
     }
-    let cost = kind.construction_cost();
+    let cost = project_cost(sim, lineage, kind);
 
     let mut wood_left = u32::from(cost.wood);
     let mut stone_left = u32::from(cost.stone);
@@ -70,7 +96,7 @@ pub(super) fn reserve_construction_cost(sim: &mut Simulation, lineage: &str, kin
 /// without mutating inventory. Action selection can therefore avoid offering
 /// a project that its effect would immediately reject for missing inputs.
 pub(crate) fn lineage_can_afford_construction(sim: &Simulation, lineage: &str, kind: BuildingKind) -> bool {
-    let cost = kind.construction_cost();
+    let cost = project_cost(sim, lineage, kind);
     let (wood, stone, wealth) = sim
         .organisms
         .iter()
@@ -504,7 +530,7 @@ pub(super) fn start_building_at_valid_site(
         sim.tick_count,
     ));
     sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
-    let cost = kind.construction_cost();
+    let cost = project_cost(sim, lineage, kind);
     push_event(
         &mut sim.events,
         sim.tick_count,
@@ -864,6 +890,36 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                 }
             }
         }
+        // A town's market goes ahead of the project queue, so a town busy with homes
+        // still raises the market on its plaza. Its people fetch the stone while they wait.
+        if super::town::town_market_wanted(sim, &lid, era, pop) {
+            if workers > 0 && functional_slots > 0 && super::town::town_market_due(sim, &lid, era, pop) {
+                let anchors = super::town::civic_anchors(sim, &lid, BuildingKind::Market);
+                for (cx, cy) in anchors {
+                    if try_start_building_with(
+                        sim,
+                        &lid,
+                        BuildingKind::Market,
+                        cx,
+                        cy,
+                        &mut FailedSites::default(),
+                    ) {
+                        functional_slots -= 1;
+                        break;
+                    }
+                }
+            }
+            if lineage_stone(sim, &lid) < u32::from(project_cost(sim, &lid, BuildingKind::Market).stone) {
+                let until = sim.tick_count + BUILD_PASS_TICKS;
+                for org in sim
+                    .organisms
+                    .iter_mut()
+                    .filter(|org| org.alive && org.lineage_id == lid)
+                {
+                    org.fetch_stone_until = until;
+                }
+            }
+        }
         if workers == 0 || available_projects == 0 {
             continue;
         }
@@ -934,24 +990,6 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                         started = Some(kind);
                     }
                 }
-                // A town raises its market on the plaza before any more homes, once it can pay for one.
-                if started.is_none() && super::town::town_market_due(sim, &lid, era, pop) {
-                    let center = lineage_center(sim, &lid);
-                    if center != (0, 0) {
-                        let (cx, cy) =
-                            super::town::placement_point(sim, &lid, BuildingKind::Market, center, (0, 0));
-                        if try_start_building_with(sim, &lid, BuildingKind::Market, cx, cy, &mut failed_sites)
-                        {
-                            started = Some(BuildingKind::Market);
-                        }
-                    }
-                }
-                // A town waiting for the stone its market needs sends its people to fetch it.
-                if super::town::town_market_wanted(sim, &lid, era, pop)
-                    && lineage_stone(sim, &lid) < u32::from(BuildingKind::Market.construction_cost().stone)
-                {
-                    stone_short = true;
-                }
                 let craft_turn = newest_is_home
                     && most_lacking_craft(era, pop, agriculture, &craft_held, &considered)
                         .is_some_and(|kind| construction_cost_available(sim, &lid, kind));
@@ -994,7 +1032,7 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                 };
                 if craft == Some(kind)
                     && !construction_cost_available(sim, &lid, kind)
-                    && u32::from(kind.construction_cost().stone) > lineage_stone(sim, &lid)
+                    && u32::from(project_cost(sim, &lid, kind).stone) > lineage_stone(sim, &lid)
                 {
                     stone_short = true;
                 }
@@ -1255,7 +1293,15 @@ pub(super) fn tick_building_progress(sim: &mut Simulation) {
             if effort == 0.0 {
                 continue;
             }
-            let labor = f32::from(building.kind.construction_cost().labor);
+            // A stall market a lineage raised before the iron age takes the stall's labour.
+            let stall = building.kind == BuildingKind::Market
+                && sim.lineage_eras.get(owner).copied().unwrap_or(Era::PreStone)
+                    < BuildingKind::Market.era_unlock();
+            let labor = if stall {
+                f32::from(STALL_MARKET_LABOR)
+            } else {
+                f32::from(building.kind.construction_cost().labor)
+            };
             building.condition = (building.condition + effort / labor).min(1.0);
             building_changed = true;
             if building.is_complete() {
