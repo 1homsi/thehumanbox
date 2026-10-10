@@ -198,6 +198,8 @@ pub(super) fn dispatch_cargo_on_route_index(
     else {
         return false;
     };
+    // A town with a working market takes its caravans at the market, not at the town centre.
+    let to = market_square(sim, &receiver_lineage).unwrap_or(to);
     if !valid_world_point(from) || !valid_world_point(to) {
         return false;
     }

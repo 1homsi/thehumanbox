@@ -13,6 +13,7 @@ use crate::world::grid::{TrailKind, HEIGHT, WIDTH};
 mod delivery;
 mod dispatch;
 mod market;
+use market::market_square;
 mod merchants;
 mod model;
 mod routes;

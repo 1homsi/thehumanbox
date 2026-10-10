@@ -668,3 +668,129 @@ fn a_market_day_brings_coin_to_a_tribe_with_a_working_market() {
         "every fourth market day is named in the chronicle"
     );
 }
+
+/// Open grass round a market at (100, 100), and a tribe of `count` grown people who are fed, rested and free.
+fn market_town(count: usize) -> Simulation {
+    use crate::world::tiles::Tile;
+    let mut sim = Simulation::new(0x3A6E);
+    sim.organisms.truncate(count);
+    for x in 80..=125 {
+        for y in 80..=125 {
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
+    sim.lineage_eras
+        .insert("river".into(), crate::sim::era::Era::Bronze);
+    for organism in sim.organisms.iter_mut() {
+        organism.alive = true;
+        organism.lineage_id = "river".into();
+        organism.age = 2000;
+        organism.max_age = 4000;
+        organism.energy = 0.9;
+        organism.hydration = 0.9;
+        organism.health = 0.9;
+        organism.journey = None;
+        organism.wander_target = None;
+        organism.inv_food = 0;
+        organism.wealth = 0;
+    }
+    let mut market = Building::new(1, BuildingKind::Market, 100, 100, Some("river".into()), 1);
+    market.condition = 1.0;
+    sim.buildings.clear();
+    sim.buildings.push(market);
+    sim
+}
+
+#[test]
+fn on_a_market_day_people_called_to_the_market_walk_to_it_and_the_far_stay_home() {
+    use super::market::{market_square, MARKET_DAY_TICKS};
+    use crate::sim::agents::family_outings::chebyshev;
+    let mut sim = market_town(8);
+    for organism in sim.organisms.iter_mut() {
+        organism.x = 105.0;
+        organism.y = 100.0;
+    }
+    sim.organisms[0].x = 160.0;
+    let square = market_square(&sim, "river").expect("the market has a centre");
+    // On day five a person is called when (day + index) is a multiple of three: indexes 1, 4 and 7.
+    let day = 5;
+    for t in 0..60 {
+        sim.tick_count = day * MARKET_DAY_TICKS + t;
+        sim.tick_market_crowds();
+    }
+    let called: Vec<usize> = (1..8)
+        .filter(|&i| sim.organisms[i].wander_target.is_some())
+        .collect();
+    assert!(!called.is_empty(), "some of the tribe walks to market");
+    for i in called {
+        let target = sim.organisms[i].wander_target.unwrap();
+        assert!(
+            chebyshev(target, (square[0], square[1])) <= 3,
+            "person {i} walks to {target:?}, not the market at {square:?}"
+        );
+        assert_eq!(sim.organisms[i].thought, "heading to the market");
+    }
+    assert!(
+        sim.organisms[0].wander_target.is_none(),
+        "someone too far away is not called"
+    );
+}
+
+#[test]
+fn a_market_crowd_that_breaks_up_trades_food_for_coin_and_logs_it() {
+    use super::market::{market_days, market_square, MARKET_CROWD_TICKS, MARKET_DAY_TICKS};
+    // Eight people, so the tribe is big enough to hold a market day.
+    let mut sim = market_town(8);
+    let square = market_square(&sim, "river").expect("a market");
+    for organism in sim.organisms.iter_mut() {
+        organism.x = square[0] as f32;
+        organism.y = square[1] as f32;
+    }
+    sim.organisms[0].inv_food = 5;
+    sim.organisms[1].wealth = 3;
+    sim.organisms[3].wealth = 2;
+    let trades_before = sim.trades.len();
+    let day = 7 * MARKET_DAY_TICKS;
+
+    sim.tick_count = day + MARKET_CROWD_TICKS - 2;
+    sim.tick_market_crowds();
+    assert_eq!(
+        sim.trades.len(),
+        trades_before,
+        "the crowd trades only as it breaks up"
+    );
+
+    sim.tick_count = day + MARKET_CROWD_TICKS - 1;
+    sim.tick_market_crowds();
+    assert_eq!(sim.organisms[0].inv_food, 4, "the seller hands one measure over");
+    assert_eq!(sim.organisms[0].wealth, 1, "and is paid one coin");
+    assert_eq!(sim.organisms[1].inv_food, 1, "the buyer takes it home");
+    assert_eq!(sim.organisms[1].wealth, 2);
+    assert_eq!(sim.organisms[2].inv_food, 0, "a person with no coin buys nothing");
+    assert_eq!(sim.trades.len(), trades_before + 1);
+    assert_eq!(sim.trades.back().map(|t| t.good.as_str()), Some("food"));
+
+    // The market day itself still brings the tribe its coin, as before.
+    sim.tick_count = day;
+    market_days(&mut sim);
+    assert!(sim.trade_income.contains_key("river"));
+}
+
+#[test]
+fn a_caravan_for_a_town_with_a_market_unloads_at_the_market() {
+    use super::market::market_square;
+    let mut sim = trade_sim();
+    sim.lineage_eras
+        .insert("hill".into(), crate::sim::era::Era::Bronze);
+    let mut market = Building::new(3, BuildingKind::Market, 230, 170, Some("hill".into()), 1);
+    market.condition = 1.0;
+    sim.buildings.push(market);
+    let square = market_square(&sim, "hill").expect("the hill market");
+    sim.organisms[0].inv_wood = 3;
+    assert!(establish_route(&mut sim, 0, 2));
+    assert!(dispatch_caravan_on_route(&mut sim, 0));
+    assert_eq!(
+        sim.caravans[0].to, square,
+        "the caravan is bound for the market, not the town centre"
+    );
+}

@@ -511,6 +511,8 @@ impl Simulation {
             }
         }
 
+        // After the people have chosen their actions, so the market crowd's thoughts and walks show in this tick's frame.
+        self.tick_market_crowds();
         self.tick_animals(&org_idx_by_id);
         self.tick_colonization();
         self.tick_fleet();
