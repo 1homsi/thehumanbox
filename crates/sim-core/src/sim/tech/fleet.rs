@@ -317,6 +317,7 @@ impl Simulation {
                 ready_tick: 0,
                 harbour: Some((hx, hy)),
                 bound_for: None,
+                ferry: None,
             });
             self.next_vehicle_id += 1;
             fleet_total += 1;
@@ -471,6 +472,7 @@ mod tests {
             ready_tick: 0,
             harbour: Some((90, 100)),
             bound_for: None,
+            ferry: None,
         }
     }
 
@@ -612,6 +614,7 @@ mod tests {
                 ready_tick: 0,
                 harbour: Some((120, 100)),
                 bound_for: None,
+                ferry: None,
             },
         ];
         sim.weather.kind = 0;

@@ -57,7 +57,7 @@ node apps/web/bench/capture-feature.mjs --seed 42 --tick 18000 --feature caravan
 ```
 
 - Features: `building:<kind>` (or a bare kind: `market`, `gate`, `watchtower`), `caravan[:<cargo>]` (on the
-  road at the tick), `boat`, `field` (a farm plot). `--index N` picks another candidate; candidates are
+  road at the tick), `boat`, `ferry` (a ferry at its landing or under way), `field` (a farm plot). `--index N` picks another candidate; candidates are
   ordered by distance to the nearest settlement, so the default is a town's, and the same every run.
 - Output: `<out>/<tag>-<feature>-close.png`, `-overview.png` and `-close-crop.png` (the centre at 2x). The last
   stdout line is JSON with the tile and the files. `--zooms` takes `close`, `mid` and `overview`.

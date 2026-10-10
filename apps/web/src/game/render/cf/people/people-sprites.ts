@@ -264,7 +264,12 @@ export class PeopleSprites {
     const detail = zoomDetailLevel(zoom)
     const crowded = alive > 400
     const boats = new Map<string, VehicleInfo>()
-    for (const v of input.vehicles) if (v.kind === 'boat' && v.rider_id) boats.set(v.rider_id, v)
+    for (const v of input.vehicles) {
+      if (v.kind !== 'boat') continue
+      if (v.rider_id) boats.set(v.rider_id, v)
+      // A ferry's passengers sit in it too.
+      for (const id of v.passenger_ids ?? []) boats.set(id, v)
+    }
 
     const body = this.body
     const afloat = this.afloat
@@ -605,14 +610,13 @@ export class PeopleSprites {
       }
     }
     this.boatTiles = tiles
-    // A pier where boats are moored: two tiles of plank from the dry land out over the water. One per harbour.
+    // A pier where boats are moored: two tiles of plank from the dry land out over the water. One per harbour,
+    // and one at each landing of a ferry.
     const piers = new Set<string>()
-    for (const v of input.vehicles) {
-      if (v.kind !== 'boat' || !v.harbour || !v.shore) continue
-      const [hx, hy] = v.harbour
+    const pierAt = (hx: number, hy: number, shore: [number, number] | null | undefined) => {
       const key = `${hx},${hy}`
-      const column = pierColumn(v.shore[0], v.shore[1])
-      if (piers.has(key) || column < 0) continue
+      const column = shore ? pierColumn(shore[0], shore[1]) : -1
+      if (piers.has(key) || column < 0) return
       piers.add(key)
       const pi = afloat.add(
         Math.round((hx - ox) * TILE + TILE / 2),
@@ -625,6 +629,11 @@ export class PeopleSprites {
       afloat.atlas[pi] = BODY_ATLAS.boats
       // Behind the boats moored at it.
       afloat.sortKey[pi] = -10000 + hy - 0.5
+    }
+    for (const v of input.vehicles) {
+      if (v.kind !== 'boat') continue
+      if (v.harbour && v.shore) pierAt(v.harbour[0], v.harbour[1], v.shore)
+      for (const l of v.ferry ?? []) pierAt(l.at[0], l.at[1], l.shore)
     }
     this.lastMoved = -Infinity
     this.moving = true
