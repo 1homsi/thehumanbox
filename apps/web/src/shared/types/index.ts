@@ -290,6 +290,9 @@ export interface CarcassInfo {
   picked: number
 }
 
+/** A vehicle that floats: a boat, or a ship (a sailing ship or a steamship). */
+export const isFloatingKind = (kind: string): boolean => kind === 'boat' || kind === 'ship'
+
 export interface VehicleInfo {
   building?: boolean
   /** The owner's era name (`pre-stone`, `bronze`, ...): picks the boat's hull. */

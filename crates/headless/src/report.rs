@@ -541,8 +541,14 @@ pub(super) fn print_progress(sim: &Simulation) {
         let boats: Vec<_> = sim
             .vehicles
             .iter()
-            .filter(|v| v.kind == TransportKind::Boat)
+            .filter(|v| matches!(v.kind, TransportKind::Boat | TransportKind::Ship))
             .collect();
+        let steamships = boats
+            .iter()
+            .filter(|v| {
+                v.kind == TransportKind::Ship && sim.era(&v.owner_lineage) >= sim::era::Era::Industrial
+            })
+            .count();
         let fishing = boats.iter().filter(|v| v.harbour.is_some()).count();
         let under_way = boats.iter().filter(|v| !v.route.is_empty()).count();
         let carrying = boats.iter().filter(|v| !v.occupants.is_empty()).count();
@@ -563,6 +569,7 @@ pub(super) fn print_progress(sim: &Simulation) {
             .map(|v| v.occupants.len())
             .sum();
         println!("Ferries at end: {ferries}  (passengers aboard {ferry_riders})");
+        println!("Steamships at end: {steamships}");
     }
 
     let mut lineage_alive: HashMap<&str, usize> = HashMap::new();

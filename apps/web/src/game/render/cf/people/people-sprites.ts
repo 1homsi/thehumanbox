@@ -1,5 +1,5 @@
 import { SPRITE_FLIP_X, SPRITE_HIDDEN, type SpriteLayer } from 'xipjs'
-import type { OrganismState, VehicleInfo } from '../../../../shared/types'
+import { isFloatingKind, type OrganismState, type VehicleInfo } from '../../../../shared/types'
 import type { ViewFlags } from '../../../../state/store'
 import { lineageColor } from '../../../../shared/constants'
 import { THOUGHT_COLORS, TILE } from '../../../model/palette'
@@ -139,6 +139,8 @@ export class PeopleSprites {
   private boatBuilding = new Uint8Array(0)
   /** The rider's boat variant (hull and laden), see `boatVariantOf`. */
   private boatVariant = new Uint8Array(0)
+  /** The rider's seat across the boat, in pixels from the middle (passengers of a ferry sit either side). */
+  private boatSeat = new Float32Array(0)
   /** Each unmanned boat's tile at the last simulation frame, by vehicle id: where it glides from. */
   private boatTiles = new Map<number, [number, number]>()
   /** Unmanned boats under way: their body slot and the tiles they glide between. */
@@ -213,6 +215,7 @@ export class PeopleSprites {
     this.boatIdx = grow(this.boatIdx, Int32Array)
     this.boatBuilding = grow(this.boatBuilding, Uint8Array)
     this.boatVariant = grow(this.boatVariant, Uint8Array)
+    this.boatSeat = grow(this.boatSeat, Float32Array)
     this.hidden = grow(this.hidden, Uint8Array)
     this.labelFlags = grow(this.labelFlags, Uint8Array)
     this.motion.reserve(cap)
@@ -264,11 +267,16 @@ export class PeopleSprites {
     const detail = zoomDetailLevel(zoom)
     const crowded = alive > 400
     const boats = new Map<string, VehicleInfo>()
+    const seats = new Map<string, number>()
     for (const v of input.vehicles) {
-      if (v.kind !== 'boat') continue
+      if (!isFloatingKind(v.kind)) continue
       if (v.rider_id) boats.set(v.rider_id, v)
-      // A ferry's passengers sit in it too.
-      for (const id of v.passenger_ids ?? []) boats.set(id, v)
+      // A ferry's passengers sit in it too, one either side of the rider, further out as more board.
+      const pax = v.passenger_ids ?? []
+      pax.forEach((id, k) => {
+        boats.set(id, v)
+        seats.set(id, (k % 2 === 0 ? 1 : -1) * (Math.floor(k / 2) + 1) * 5)
+      })
     }
 
     const body = this.body
@@ -376,6 +384,7 @@ export class PeopleSprites {
       const boat = boats.get(id)
       this.boatBuilding[j] = boat?.building ? 1 : 0
       this.boatVariant[j] = boatVariantOf(boat?.era, boat?.cargo)
+      this.boatSeat[j] = seats.get(id) ?? 0
 
       const spriteTopOff = -size * 0.78
       // Shadows only when the world is close enough to see them.
@@ -589,7 +598,7 @@ export class PeopleSprites {
     const tiles = new Map<number, [number, number]>()
     this.gliding = []
     for (const v of input.vehicles) {
-      if (v.kind !== 'boat' || v.rider_id) continue
+      if (!isFloatingKind(v.kind) || v.rider_id) continue
       const x = Math.round((v.x - ox) * TILE + TILE / 2)
       const y = Math.round((v.y - oy) * TILE + TILE / 2)
       const variant = boatVariantOf(v.era, v.cargo)
@@ -631,7 +640,7 @@ export class PeopleSprites {
       afloat.sortKey[pi] = -10000 + hy - 0.5
     }
     for (const v of input.vehicles) {
-      if (v.kind !== 'boat') continue
+      if (!isFloatingKind(v.kind)) continue
       if (v.harbour && v.shore) pierAt(v.harbour[0], v.harbour[1], v.shore)
       for (const l of v.ferry ?? []) pierAt(l.at[0], l.at[1], l.shore)
     }
@@ -688,7 +697,7 @@ export class PeopleSprites {
       }
       if (rider >= 0) {
         const moving = !this.boatBuilding[j] && recent
-        let riderChanged = storeF32(bx, rider, Math.round(cx))
+        let riderChanged = storeF32(bx, rider, Math.round(cx) + this.boatSeat[j])
         riderChanged = storeF32(by, rider, Math.round(cy) + 3) || riderChanged
         const column = boatColumn(this.boatVariant[j], boatFrame(moving, this.boatBuilding[j] === 1, now))
         riderChanged = storeU32(bf, rider, column) || riderChanged
