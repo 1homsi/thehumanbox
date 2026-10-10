@@ -169,6 +169,7 @@ impl Simulation {
         }
         self.tick_trade();
         self.move_fleet_boats();
+        self.tick_stranded_boats();
     }
 
     /// In fair weather a moored fishing boat takes food from the people on its quay and sails to the

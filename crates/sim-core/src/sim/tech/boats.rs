@@ -43,8 +43,56 @@ const COLONY_CHECK_TICKS: u64 = 400;
 const MAX_VOYAGE: i32 = 260;
 /// Smallest landmass worth settling, in walkable tiles.
 const MIN_COLONY_LAND: usize = 25;
+/// How often idle boats left on a shore are looked at (see `tick_stranded_boats`).
+const STRAND_CHECK_TICKS: u64 = 300;
+/// How near (in tiles) a person must be to claim a stranded boat.
+const CLAIM_RANGE: i32 = 4;
+/// Ticks after a boat was last used before a boat nobody claims is broken up.
+const SCRAP_AFTER: u64 = 1200;
 
 impl Simulation {
+    /// A boat left on a shore after its crossing (or a colonists' boat) belongs to nobody. The tribe
+    /// living nearest claims it, so it is theirs to take the next crossing; a boat nobody lives near
+    /// is broken up after a while, so the boats of a long-settled coast do not fill the fleet's space.
+    pub(crate) fn tick_stranded_boats(&mut self) {
+        let now = self.tick_count;
+        if !now.is_multiple_of(STRAND_CHECK_TICKS) {
+            return;
+        }
+        let mut claims: Vec<(usize, String)> = Vec::new();
+        let mut scrap: Vec<usize> = Vec::new();
+        for (i, v) in self.vehicles.iter().enumerate() {
+            if v.kind != TransportKind::Boat
+                || v.harbour.is_some()
+                || v.ferry.is_some()
+                || !v.occupants.is_empty()
+                || !v.route.is_empty()
+                || now < v.ready_tick
+            {
+                continue;
+            }
+            let nearest = self
+                .organisms
+                .iter()
+                .filter(|o| o.alive && (o.x as i32 - v.x).abs().max((o.y as i32 - v.y).abs()) <= CLAIM_RANGE)
+                .min_by_key(|o| (o.x as i32 - v.x).abs().max((o.y as i32 - v.y).abs()));
+            match nearest {
+                Some(o) if o.lineage_id != v.owner_lineage => claims.push((i, o.lineage_id.clone())),
+                Some(_) => {}
+                None if now >= v.ready_tick + SCRAP_AFTER => scrap.push(i),
+                None => {}
+            }
+        }
+        for (i, lineage) in claims {
+            let v = &mut self.vehicles[i];
+            v.owner_lineage = lineage;
+            v.ready_tick = now;
+        }
+        for i in scrap.into_iter().rev() {
+            self.vehicles.remove(i);
+        }
+    }
+
     /// Coastal tribes send small flotillas to land nobody lives on (an
     /// island across the sea, or one the player raised). Each colonist
     /// sails their own boat along a water route that may bend around
@@ -611,5 +659,59 @@ mod deck_tests {
         let frame = sim.state_json();
         assert_eq!(frame["vehicles"][0]["era"], "pre-stone");
         assert_eq!(frame["vehicles"][0]["cargo"], 3);
+    }
+}
+
+#[cfg(test)]
+mod stranded_tests {
+    use super::*;
+
+    fn stranded(owner: &str, at: (i32, i32)) -> Vehicle {
+        Vehicle {
+            id: 77,
+            kind: TransportKind::Boat,
+            owner_lineage: owner.to_string(),
+            x: at.0,
+            y: at.1,
+            occupants: Vec::new(),
+            cargo: 0,
+            route: Vec::new(),
+            ready_tick: 0,
+            harbour: None,
+            bound_for: None,
+            ferry: None,
+        }
+    }
+
+    #[test]
+    fn a_stranded_boat_is_claimed_by_the_tribe_living_nearest_to_it() {
+        let mut sim = Simulation::new(42);
+        for o in sim.organisms.iter_mut() {
+            o.alive = false;
+        }
+        sim.organisms[0].alive = true;
+        sim.organisms[0].x = 200.0;
+        sim.organisms[0].y = 150.0;
+        sim.organisms[0].lineage_id = "locals".to_string();
+        sim.vehicles = vec![stranded("sailors", (202, 150))];
+        sim.tick_count = 300;
+        sim.tick_stranded_boats();
+        assert_eq!(sim.vehicles.len(), 1);
+        assert_eq!(sim.vehicles[0].owner_lineage, "locals");
+    }
+
+    #[test]
+    fn a_stranded_boat_nobody_lives_near_is_broken_up_after_a_while() {
+        let mut sim = Simulation::new(42);
+        for o in sim.organisms.iter_mut() {
+            o.alive = false;
+        }
+        sim.vehicles = vec![stranded("sailors", (5, 5))];
+        sim.tick_count = 300;
+        sim.tick_stranded_boats();
+        assert_eq!(sim.vehicles.len(), 1, "a boat is kept for a while after landing");
+        sim.tick_count = 1500;
+        sim.tick_stranded_boats();
+        assert!(sim.vehicles.is_empty());
     }
 }
