@@ -49,6 +49,7 @@ impl Simulation {
             ready_tick: 0,
             harbour: Some((x, y)),
             bound_for: None,
+            ferry: None,
         });
         self.next_vehicle_id += 1;
         true

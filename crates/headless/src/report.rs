@@ -555,6 +555,14 @@ pub(super) fn print_progress(sim: &Simulation) {
             carrying,
             trading
         );
+        let ferries = sim.vehicles.iter().filter(|v| v.ferry.is_some()).count();
+        let ferry_riders: usize = sim
+            .vehicles
+            .iter()
+            .filter(|v| v.ferry.is_some())
+            .map(|v| v.occupants.len())
+            .sum();
+        println!("Ferries at end: {ferries}  (passengers aboard {ferry_riders})");
     }
 
     let mut lineage_alive: HashMap<&str, usize> = HashMap::new();

@@ -76,4 +76,15 @@ pub struct Vehicle {
     /// The harbour a trade boat is sailing to with its cargo (see `fleet.rs`).
     #[serde(default)]
     pub bound_for: Option<(i32, i32)>,
+    /// The two water tiles a ferry is moored at, one on each shore of a strait (see `ferry.rs`).
+    /// `None` for every other boat.
+    #[serde(default)]
+    pub ferry: Option<FerryLine>,
+}
+
+/// A ferry line: the water tile at each landing of a strait.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FerryLine {
+    pub a: (i32, i32),
+    pub b: (i32, i32),
 }

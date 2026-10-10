@@ -256,6 +256,7 @@ impl Simulation {
                 ready_tick: self.tick_count + 24,
                 harbour: None,
                 bound_for: None,
+                ferry: None,
             });
             self.next_vehicle_id += 1;
             self.organisms[idx].discover("raft_building");
@@ -283,10 +284,17 @@ impl Simulation {
     pub(crate) fn boat_action(&mut self, idx: usize) -> Option<(usize, Option<String>, &'static str)> {
         let person = &self.organisms[idx];
         let pos = (person.x as i32, person.y as i32);
-        let existing = self
+        // A passenger on a ferry rests while the ferry carries them (see `ferry.rs`).
+        if self
             .vehicles
             .iter()
-            .position(|v| v.kind == TransportKind::Boat && v.occupants.first() == Some(&person.id));
+            .any(|v| v.ferry.is_some() && v.occupants.contains(&person.id))
+        {
+            return Some((22, Some("riding the ferry".into()), "ferry_ride"));
+        }
+        let existing = self.vehicles.iter().position(|v| {
+            v.kind == TransportKind::Boat && v.ferry.is_none() && v.occupants.first() == Some(&person.id)
+        });
         let boat_idx = if let Some(i) = existing {
             i
         } else {
@@ -302,6 +310,7 @@ impl Simulation {
             }
             let reusable = self.vehicles.iter().position(|v| {
                 v.kind == TransportKind::Boat
+                    && v.ferry.is_none()
                     && v.occupants.is_empty()
                     && v.owner_lineage == person.lineage_id
                     && v.x == pos.0
@@ -337,6 +346,7 @@ impl Simulation {
                     ready_tick: self.tick_count + 24,
                     harbour: None,
                     bound_for: None,
+                    ferry: None,
                 });
                 self.next_vehicle_id += 1;
                 i
@@ -535,6 +545,7 @@ mod storm_tests {
             ready_tick: 0,
             harbour: None,
             bound_for: None,
+            ferry: None,
         });
         sim.tick_count = 500;
         sim.weather.kind = 2;
@@ -592,6 +603,7 @@ mod deck_tests {
             ready_tick: 0,
             harbour: None,
             bound_for: None,
+            ferry: None,
         });
         let (_, _, origin) = sim.boat_action(0).expect("a resident takes the moored boat");
         assert_eq!(origin, "boat_travel");

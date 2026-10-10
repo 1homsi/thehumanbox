@@ -516,6 +516,7 @@ impl Simulation {
         self.tick_animals(&org_idx_by_id);
         self.tick_colonization();
         self.tick_fleet();
+        self.tick_ferries();
         self.tick_plantings();
         self.tick_prayers();
         self.tick_wards();

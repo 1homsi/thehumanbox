@@ -299,6 +299,10 @@ export interface VehicleInfo {
   x: number
   y: number
   rider_id?: string | null
+  /** Everyone aboard after the rider (a ferry carries several). */
+  passenger_ids?: string[]
+  /** A ferry's two landings: the water tile it is moored at and the way to the dry shore beside it. */
+  ferry?: { at: [number, number]; shore: [number, number] | null }[] | null
   /** A boat with a voyage to make (its wake shows). */
   sailing?: boolean
   /** The harbour of a fishing boat, where it is moored at night. */

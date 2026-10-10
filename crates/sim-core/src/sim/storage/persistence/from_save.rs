@@ -261,6 +261,7 @@ impl Simulation {
             next_farm_id,
             vehicles: state.vehicles,
             next_vehicle_id,
+            ferry_survey: Default::default(),
             battles: state.battles,
             next_battle_id,
             treaties,

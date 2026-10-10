@@ -174,7 +174,13 @@ impl Simulation {
                 // A boat with a voyage to make is under way (its wake shows); a fishing boat is moored at its harbour.
                 "sailing": !v.route.is_empty(), "harbour": v.harbour.map(|(x, y)| json!([x, y])),
                 // The way to the dry land beside the harbour: a pier runs that way.
-                "shore": v.harbour.and_then(|h| crate::sim::tech::fleet::harbour_shore(&self.grid, h)).map(|(dx, dy)| json!([dx, dy]))
+                "shore": v.harbour.and_then(|h| crate::sim::tech::fleet::harbour_shore(&self.grid, h)).map(|(dx, dy)| json!([dx, dy])),
+                // Everyone aboard after the first (who is `rider_id`), and a ferry's two landings with the way to each shore.
+                "passenger_ids": v.occupants.iter().skip(1).collect::<Vec<_>>(),
+                "ferry": v.ferry.map(|f| json!([
+                    {"at": [f.a.0, f.a.1], "shore": crate::sim::tech::fleet::harbour_shore(&self.grid, f.a)},
+                    {"at": [f.b.0, f.b.1], "shore": crate::sim::tech::fleet::harbour_shore(&self.grid, f.b)}
+                ]))
             })).collect()));
             // Remains of prey, where birds gather: a few at a time, so the list is short.
             obj.insert(

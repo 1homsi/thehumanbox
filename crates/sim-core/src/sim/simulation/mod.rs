@@ -118,6 +118,8 @@ pub struct Simulation {
     pub next_farm_id: u32,
     pub vehicles: Vec<super::transportation::Vehicle>,
     pub next_vehicle_id: u32,
+    /// The last land survey for ferries (see `tech/ferry.rs`); rebuilt every few hundred ticks, not saved.
+    pub(crate) ferry_survey: crate::sim::tech::ferry::FerrySurvey,
     pub battles: Vec<super::warfare::Battle>,
     pub next_battle_id: u32,
     pub treaties: Vec<super::warfare::Treaty>,
@@ -274,6 +276,7 @@ impl Simulation {
             next_farm_id: 1,
             vehicles: Vec::new(),
             next_vehicle_id: 1,
+            ferry_survey: Default::default(),
             battles: Vec::new(),
             next_battle_id: 1,
             treaties: Vec::new(),
