@@ -186,6 +186,95 @@ fn a_lone_crew_works_the_school_before_older_huts_and_wonders() {
 }
 
 #[test]
+fn a_lone_crew_finishes_the_market_before_an_older_wall_or_house() {
+    let mut sim = Simulation::new(0x5C02);
+    sim.organisms.clear();
+    sim.buildings.clear();
+    let mut worker = test_org("worker", "Worker", "lineage-a", 10.0, 10.0);
+    worker.age = 10_000;
+    sim.organisms.push(worker);
+    // A wall and a house were started first; the market came after them.
+    sim.buildings.push(Building::new(
+        1,
+        BuildingKind::Wall,
+        10,
+        10,
+        Some("lineage-a".into()),
+        0,
+    ));
+    sim.buildings.push(Building::new(
+        2,
+        BuildingKind::House,
+        12,
+        10,
+        Some("lineage-a".into()),
+        0,
+    ));
+    sim.buildings.push(Building::new(
+        3,
+        BuildingKind::Market,
+        11,
+        10,
+        Some("lineage-a".into()),
+        10,
+    ));
+    sim.tick_count = 20;
+    tick_building_progress(&mut sim);
+    assert!(sim.buildings[2].condition > 0.0, "the market got no crew");
+    assert_eq!(sim.buildings[0].condition, 0.0, "the wall took the only worker");
+    assert_eq!(sim.buildings[1].condition, 0.0, "the house took the only worker");
+}
+
+#[test]
+fn a_started_craft_or_civic_project_comes_first_until_it_is_too_old() {
+    let mut sim = Simulation::new(0x5C03);
+    sim.organisms.clear();
+    sim.buildings.clear();
+    sim.tick_count = 1_000;
+    assert!(!civic_project_first(&sim, "lineage-a"), "nothing started yet");
+    sim.buildings.push(Building::new(
+        1,
+        BuildingKind::Market,
+        10,
+        10,
+        Some("lineage-a".into()),
+        1_000,
+    ));
+    assert!(
+        civic_project_first(&sim, "lineage-a"),
+        "a fresh market holds back homes"
+    );
+    assert!(
+        !civic_project_first(&sim, "lineage-b"),
+        "another tribe's market does not"
+    );
+    sim.buildings[0].condition = 1.0;
+    assert!(
+        !civic_project_first(&sim, "lineage-a"),
+        "a finished market no longer holds back homes"
+    );
+    sim.buildings[0].condition = 0.5;
+    sim.buildings[0].built_at_tick = 1_000 - CIVIC_FIRST_TICKS - 1;
+    assert!(
+        !civic_project_first(&sim, "lineage-a"),
+        "a project no builder finishes cannot stop housing"
+    );
+    sim.buildings[0].built_at_tick = 1_000 - CIVIC_FIRST_TICKS;
+    assert!(civic_project_first(&sim, "lineage-a"));
+    assert!(!is_civic_project(BuildingKind::House));
+    assert!(is_home_kind(BuildingKind::House) && !is_home_kind(BuildingKind::Temple));
+}
+
+#[test]
+fn builders_hand_out_crews_research_first_then_civic_then_the_rest() {
+    assert_eq!(crew_rank(BuildingKind::School), 0);
+    assert_eq!(crew_rank(BuildingKind::Temple), 1);
+    assert_eq!(crew_rank(BuildingKind::Workshop), 1);
+    assert_eq!(crew_rank(BuildingKind::Wall), 2);
+    assert_eq!(crew_rank(BuildingKind::House), 2);
+}
+
+#[test]
 fn the_research_building_a_tribe_lacks_is_always_next() {
     let mut have: HashSet<BuildingKind> = HashSet::default();
     for expect in [
