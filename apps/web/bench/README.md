@@ -41,6 +41,37 @@ Three passes per scenario, because tracing slows the page down a little:
 First-frame time is the moment the startup cover comes off, measured from navigation start (local server, so
 network time is about zero).
 
+## Visual check of one feature
+
+`capture-feature.mjs` is the tool for "does this feature look right on the map". It takes a seed and a tick,
+simulates the world if the cache has no save for it (in this checkout's wasm, so build it first with
+`scripts/build-wasm.sh`), finds a tile of the feature in the saved frame, opens the production build in
+headless Chrome with the GPU, pauses it, centres the camera on the tile and writes PNGs.
+
+```sh
+cd apps/web && pnpm run build && cd -                       # the dist the tool serves
+node apps/web/bench/capture-feature.mjs --seed 42 --tick 18000 --list          # what the world holds
+node apps/web/bench/capture-feature.mjs --seed 42 --tick 18000 --feature building:market \
+  --out apps/web/bench/results/capture --tag mine
+node apps/web/bench/capture-feature.mjs --seed 42 --tick 18000 --feature caravan:stone --zooms close,overview
+```
+
+- Features: `building:<kind>` (or a bare kind: `market`, `gate`, `watchtower`), `caravan[:<cargo>]` (on the
+  road at the tick), `boat`, `field` (a farm plot). `--index N` picks another candidate; candidates are
+  ordered by distance to the nearest settlement, so the default is a town's, and the same every run.
+- Output: `<out>/<tag>-<feature>-close.png`, `-overview.png` and `-close-crop.png` (the centre at 2x). The last
+  stdout line is JSON with the tile and the files. `--zooms` takes `close`, `mid` and `overview`.
+- Limits: the browser is killed after `--limit` seconds (default 110) even if the page hangs, and a simulation
+  runs in a child process killed after `--gen-limit` seconds (default 900). Nothing opens a window; Chrome is
+  headless. Run long captures in the background and read the PNGs with an image viewer after they finish.
+- The camera centres on the tile's centre; the top bar and dock cover part of the view, so the feature can sit
+  a tile or two off the crop's middle. Check the overview shot for context before judging the placement.
+- Saves are cached in `bench/.cache` as `s<seed>-t<tick>.bin/.json/.frame.json` (the frame is the full
+  `fullFrame` JSON, kept for the feature search). The first run for a new seed and tick takes minutes.
+- `find-feature.test.mjs` tests the feature search: `node --test apps/web/bench/find-feature.test.mjs`.
+
+`gen-save.mjs --seed N --tick T` writes a save on its own.
+
 ## Comparing two builds
 
 Pass several builds; scenarios alternate between them so a busy machine hurts both alike:
