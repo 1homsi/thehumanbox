@@ -94,9 +94,17 @@ impl Simulation {
     ) {
         let tick = self.tick_count;
         let here = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
-        let anchor = match self.living_guardian(idx, org_idx_by_id) {
-            Some(g) => (self.organisms[g].x as i32, self.organisms[g].y as i32),
-            None => (
+        // In school hours a child's anchor is the school of its tribe (see `working_day`), not its mother.
+        let lid = self.organisms[idx].lineage_id.clone();
+        let school = if may_play {
+            self.school_places.get(&lid).copied()
+        } else {
+            None
+        };
+        let anchor = match (school, self.living_guardian(idx, org_idx_by_id)) {
+            (Some(s), _) => s,
+            (None, Some(g)) => (self.organisms[g].x as i32, self.organisms[g].y as i32),
+            (None, None) => (
                 self.organisms[idx].home_x as i32,
                 self.organisms[idx].home_y as i32,
             ),
@@ -106,13 +114,14 @@ impl Simulation {
                 anchor.0 + spread(idx, tick, 1, 1),
                 anchor.1 + spread(idx, tick, 2, 1),
             );
-            self.set_outing_target(idx, target);
+            if self.set_outing_target(idx, target) && school.is_some() {
+                self.organisms[idx].think("going to school", tick);
+            }
             return;
         }
         if !may_play || tick % 120 != idx as u64 % 120 {
             return;
         }
-        let lid = self.organisms[idx].lineage_id.clone();
         let mate = spatial
             .query(anchor.0, anchor.1, PLAY_RANGE + 2)
             .into_iter()
