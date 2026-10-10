@@ -733,10 +733,7 @@ pub(super) fn palisade_radius(sim: &Simulation, lineage: &str, cx: i32, cy: i32)
             .iter()
             .filter(|b| !b.decorative && b.owner_lineage.as_deref() == Some(lineage))
     };
-    let fences: Vec<f32> = owned()
-        .filter(|b| b.kind == BuildingKind::Fence)
-        .map(dist)
-        .collect();
+    let fences: Vec<f32> = owned().filter(|b| is_palisade_piece(b.kind)).map(dist).collect();
     let radius = if fences.is_empty() {
         owned().map(dist).fold(0.0, f32::max) + 1.0
     } else {
@@ -745,16 +742,36 @@ pub(super) fn palisade_radius(sim: &Simulation, lineage: &str, cx: i32, cy: i32)
     radius.clamp(PALISADE_MIN_RADIUS, PALISADE_MAX_RADIUS)
 }
 
-/// Starts up to `PALISADE_FENCES_PER_PASS` fences on the free tiles of a
-/// tribe's ring and returns how many it started. A tile a home, a road or the
-/// water already holds is skipped, so the wall runs round the buildings
-/// instead of being scattered wherever a site happens to be free.
+/// The pieces a palisade is built from: fences, and once a tribe has stone and
+/// the bronze age, walls with gates across its roads and towers at the points.
+pub(super) fn is_palisade_piece(kind: BuildingKind) -> bool {
+    matches!(
+        kind,
+        BuildingKind::Fence | BuildingKind::Wall | BuildingKind::Gate | BuildingKind::Tower
+    )
+}
+
+/// Towers a palisade stands at the four cardinal points of its ring.
+const PALISADE_TOWERS: usize = 4;
+
+/// Starts a tribe's palisade on its ring and returns how many pieces it
+/// started. A tile a home, a road or the water already holds is skipped, so the
+/// wall runs round the buildings instead of being scattered wherever a site
+/// happens to be free. A tribe in the bronze age with stone raises stone walls,
+/// a gate on each road that crosses the ring and a few towers, and upgrades the
+/// fences it already has to walls.
 pub(super) fn raise_palisade(sim: &mut Simulation, lineage: &str) -> usize {
     let (cx, cy) = lineage_center(sim, lineage);
     if (cx, cy) == (0, 0) {
         return 0;
     }
     let radius = palisade_radius(sim, lineage, cx, cy);
+    let ring = palisade_ring(cx, cy, radius);
+    let stone_walls = lineage_era(sim, lineage) >= BuildingKind::Wall.era_unlock();
+    let mut started = 0;
+    if stone_walls {
+        started += raise_towers(sim, lineage, &ring);
+    }
     // Tiles a building covers, looked up once, so a tile a home already holds
     // costs a set lookup rather than a scan of every building.
     let mut covered: HashSet<(i32, i32)> = HashSet::default();
@@ -766,15 +783,106 @@ pub(super) fn raise_palisade(sim: &mut Simulation, lineage: &str) -> usize {
             }
         }
     }
-    let mut started = 0;
-    for (x, y) in palisade_ring(cx, cy, radius) {
-        if started == PALISADE_FENCES_PER_PASS {
+    for (x, y) in ring {
+        if started >= PALISADE_FENCES_PER_PASS {
             break;
         }
+        let on_road = stone_walls && sim.grid.road_at(x, y) != crate::world::grid::ROAD_NONE;
+        let desired = if on_road {
+            BuildingKind::Gate
+        } else if stone_walls {
+            BuildingKind::Wall
+        } else {
+            BuildingKind::Fence
+        };
+        let fence = sim.buildings.iter().position(|b| {
+            b.kind == BuildingKind::Fence
+                && b.x == x
+                && b.y == y
+                && b.owner_lineage.as_deref() == Some(lineage)
+        });
+        if let Some(index) = fence {
+            // An old fence becomes stone, once the tribe can pay for the piece.
+            if desired != BuildingKind::Fence
+                && construction_cost_available(sim, lineage, desired)
+                && construction_site_has_reachable_worker(sim, lineage, x, y)
+            {
+                sim.buildings.remove(index);
+                if start_building_at_valid_site(sim, lineage, desired, x, y) {
+                    started += 1;
+                }
+            }
+            continue;
+        }
         if !covered.contains(&(x, y))
-            && construction_site_is_valid(sim, BuildingKind::Fence, x, y)
-            && start_building_at_valid_site(sim, lineage, BuildingKind::Fence, x, y)
+            && construction_site_is_valid(sim, desired, x, y)
+            && start_building_at_valid_site(sim, lineage, desired, x, y)
         {
+            started += 1;
+        }
+    }
+    started
+}
+
+/// Starts a palisade's towers, one at each cardinal point of the ring that has
+/// no tower near it, and returns how many it started. A tower is two tiles
+/// square, so the fences, walls and gates its footprint holds give way to it
+/// once the tribe can pay for the tower.
+fn raise_towers(sim: &mut Simulation, lineage: &str, ring: &[(i32, i32)]) -> usize {
+    let standing = sim
+        .buildings
+        .iter()
+        .filter(|b| {
+            !b.decorative && b.kind == BuildingKind::Tower && b.owner_lineage.as_deref() == Some(lineage)
+        })
+        .count();
+    if ring.is_empty() || standing >= PALISADE_TOWERS {
+        return 0;
+    }
+    let mut started = 0;
+    for point in 0..PALISADE_TOWERS {
+        // The nearest ring tile from the cardinal point whose tower footprint
+        // holds no road, so a gate on a road never has its tower standing on it.
+        let base = point * ring.len() / PALISADE_TOWERS;
+        let (tower_w, tower_h) = BuildingKind::Tower.footprint();
+        let (x, y) = (0..ring.len())
+            .map(|k| ring[(base + k) % ring.len()])
+            .find(|&(x, y)| {
+                (0..i32::from(tower_h)).all(|dy| {
+                    (0..i32::from(tower_w))
+                        .all(|dx| sim.grid.road_at(x + dx, y + dy) == crate::world::grid::ROAD_NONE)
+                })
+            })
+            .unwrap_or(ring[base]);
+        let towered = sim.buildings.iter().any(|b| {
+            b.kind == BuildingKind::Tower
+                && b.owner_lineage.as_deref() == Some(lineage)
+                && (b.x - x).abs() <= 3
+                && (b.y - y).abs() <= 3
+        });
+        if towered
+            || !construction_cost_available(sim, lineage, BuildingKind::Tower)
+            || !construction_site_has_reachable_worker(sim, lineage, x, y)
+        {
+            continue;
+        }
+        let (width, height) = BuildingKind::Tower.footprint();
+        let blockers: Vec<usize> = sim
+            .buildings
+            .iter()
+            .enumerate()
+            .filter(|(_, b)| {
+                is_palisade_piece(b.kind) && b.owner_lineage.as_deref() == Some(lineage) && {
+                    let (bw, bh) = b.footprint();
+                    building_footprints_overlap(x, y, width, height, b.x, b.y, bw, bh)
+                }
+            })
+            .map(|(i, _)| i)
+            .collect();
+        for &index in blockers.iter().rev() {
+            sim.buildings.remove(index);
+        }
+        if start_building_at_valid_site(sim, lineage, BuildingKind::Tower, x, y) {
             started += 1;
         }
     }
@@ -1490,6 +1598,83 @@ mod palisade_tests {
         org.inv_wood = 20;
         org.inv_stone = 20;
         org
+    }
+
+    /// A bronze-age clan at war with stone, a road running east and west through its ring.
+    fn stone_clan_sim() -> Simulation {
+        use crate::world::grid::ROAD_TRACK;
+        use crate::world::tiles::Tile;
+        let mut sim = Simulation::new(0x57_0E);
+        sim.organisms.clear();
+        sim.buildings.clear();
+        for y in 30..=70 {
+            for x in 30..=70 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        for x in 30..=70 {
+            sim.grid.road[crate::world::grid::WorldGrid::idx(x, 49)] = ROAD_TRACK;
+        }
+        for i in 0..12 {
+            sim.organisms
+                .push(clansman(i, 48.0 + (i % 4) as f32, 48.0 + (i / 4) as f32));
+        }
+        for org in sim.organisms.iter_mut() {
+            org.inv_wood = 40;
+        }
+        sim.battles.push(battle(&["clan"], &["raiders"], None));
+        sim.lineage_eras.insert("clan".into(), Era::Stone);
+        sim
+    }
+
+    fn palisade_count(sim: &Simulation, kind: BuildingKind) -> usize {
+        sim.buildings
+            .iter()
+            .filter(|b| b.kind == kind && b.owner_lineage.as_deref() == Some("clan"))
+            .count()
+    }
+
+    #[test]
+    fn a_bronze_tribe_at_war_builds_stone_walls_with_gates_and_towers() {
+        let mut sim = stone_clan_sim();
+        // Stone age first: the ring is fences.
+        for _ in 0..8 {
+            tick_buildings_construct(&mut sim);
+            for b in sim.buildings.iter_mut() {
+                b.condition = 1.0;
+            }
+        }
+        assert!(
+            palisade_count(&sim, BuildingKind::Fence) > 0,
+            "the stone-age ring is fences"
+        );
+        assert_eq!(palisade_count(&sim, BuildingKind::Wall), 0);
+        // Bronze age: the fences become walls, the road crossings gates, and towers stand at the points.
+        sim.lineage_eras.insert("clan".into(), Era::Bronze);
+        for _ in 0..60 {
+            tick_buildings_construct(&mut sim);
+            for b in sim.buildings.iter_mut() {
+                b.condition = 1.0;
+            }
+        }
+        assert!(
+            palisade_count(&sim, BuildingKind::Wall) >= 10,
+            "walls stand on the ring"
+        );
+        assert!(
+            palisade_count(&sim, BuildingKind::Gate) >= 2,
+            "the road through the ring has gates"
+        );
+        assert_eq!(
+            palisade_count(&sim, BuildingKind::Tower),
+            PALISADE_TOWERS,
+            "four towers"
+        );
+        assert!(
+            palisade_count(&sim, BuildingKind::Fence) < 4,
+            "old fences were upgraded to walls, {} fences left",
+            palisade_count(&sim, BuildingKind::Fence)
+        );
     }
 
     #[test]
