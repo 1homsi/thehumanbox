@@ -22,6 +22,12 @@ use crate::world::tiles::Tile;
 pub(crate) const GRANARY_CAP: u32 = 60;
 /// Most rations one village takes from its stores in one pass.
 const RATIONS_PER_PASS: usize = 4;
+/// Loaves a bakery keeps at most.
+pub(crate) const BAKERY_CAP: u32 = 12;
+/// Measures of grain a bakery bakes in one pass; each measure becomes one loaf.
+const BAKE_GRAIN: u32 = 2;
+/// Meals one loaf feeds: a loaf is worth two measures of raw grain eaten whole.
+const LOAF_MEALS: u8 = 2;
 /// Fields a village needs before it builds a granary.
 const GRANARY_MIN_PLOTS: usize = 1;
 /// Fields a village needs before it builds a windmill (and the era for it).
@@ -46,6 +52,33 @@ pub(crate) fn stock_of(sim: &Simulation, lineage: &str) -> u32 {
         })
         .map(|b| b.stock)
         .sum()
+}
+
+/// Loaves in a tribe's operational bakeries.
+pub(crate) fn bread_of(sim: &Simulation, lineage: &str) -> u32 {
+    sim.buildings
+        .iter()
+        .filter(|b| {
+            b.kind == BuildingKind::Bakery
+                && b.is_operational()
+                && b.owner_lineage.as_deref() == Some(lineage)
+        })
+        .map(|b| b.stock)
+        .sum()
+}
+
+/// The loaves every tribe holds, as (lineage, loaves), sorted by lineage. Only tribes
+/// with any bread are listed.
+pub(crate) fn bread_stores(sim: &Simulation) -> Vec<(String, u32)> {
+    let mut by_tribe: std::collections::BTreeMap<String, u32> = std::collections::BTreeMap::new();
+    for b in sim.buildings.iter() {
+        if b.kind == BuildingKind::Bakery && b.is_operational() && b.stock > 0 {
+            if let Some(owner) = b.owner_lineage.as_deref() {
+                *by_tribe.entry(owner.to_string()).or_insert(0) += b.stock;
+            }
+        }
+    }
+    by_tribe.into_iter().collect()
 }
 
 /// The stock every tribe holds, as (lineage, measures), sorted by lineage. Only tribes
@@ -111,9 +144,10 @@ pub(crate) fn deposit(sim: &mut Simulation, lineage: &str, mut grain: u32) -> u3
     grain
 }
 
-/// People with no food of their own take a ration from the stores, lowest index first.
+/// People with no food of their own take a ration, lowest index first: a loaf from the bakery
+/// when there is one (two meals), otherwise a measure of grain from the granary (one meal).
 pub(crate) fn ration(sim: &mut Simulation, tribe: &Tribe) {
-    if stock_of(sim, &tribe.lineage) == 0 {
+    if stock_of(sim, &tribe.lineage) == 0 && bread_of(sim, &tribe.lineage) == 0 {
         return;
     }
     let mut taken = 0usize;
@@ -121,13 +155,81 @@ pub(crate) fn ration(sim: &mut Simulation, tribe: &Tribe) {
         if taken >= RATIONS_PER_PASS {
             break;
         }
-        if sim.organisms[idx].inv_food > 0 || !take_one(sim, &tribe.lineage) {
+        if sim.organisms[idx].inv_food > 0 {
             continue;
         }
         let tick = sim.tick_count;
-        sim.organisms[idx].inv_food = 1;
-        sim.organisms[idx].think("eating from the granary", tick);
+        if take_loaf(sim, &tribe.lineage) {
+            sim.organisms[idx].inv_food = LOAF_MEALS;
+            sim.organisms[idx].think("eating bread from the bakery", tick);
+        } else if take_one(sim, &tribe.lineage) {
+            sim.organisms[idx].inv_food = 1;
+            sim.organisms[idx].think("eating from the granary", tick);
+        } else {
+            continue;
+        }
         taken += 1;
+    }
+}
+
+fn take_loaf(sim: &mut Simulation, lineage: &str) -> bool {
+    for b in sim.buildings.iter_mut() {
+        if b.kind == BuildingKind::Bakery
+            && b.is_operational()
+            && b.owner_lineage.as_deref() == Some(lineage)
+            && b.stock > 0
+        {
+            b.stock -= 1;
+            return true;
+        }
+    }
+    false
+}
+
+/// A bakery bakes the tribe's grain into loaves, once it has a mill to grind for it (a windmill or
+/// a watermill). Two measures of grain become two loaves, kept by the bakery up to its cap.
+pub(crate) fn bake(sim: &mut Simulation, tribe: &Tribe) {
+    let milled = owns(sim, &tribe.lineage, BuildingKind::Windmill)
+        || owns(sim, &tribe.lineage, BuildingKind::Watermill);
+    if !milled
+        || !owns(sim, &tribe.lineage, BuildingKind::Bakery)
+        || stock_of(sim, &tribe.lineage) < BAKE_GRAIN
+    {
+        return;
+    }
+    let before = bread_of(sim, &tribe.lineage);
+    if before >= BAKERY_CAP {
+        return;
+    }
+    let mut baked = 0u32;
+    for _ in 0..BAKE_GRAIN {
+        if take_one(sim, &tribe.lineage) {
+            baked += 1;
+        }
+    }
+    let Some(oven) = sim.buildings.iter_mut().find(|b| {
+        b.kind == BuildingKind::Bakery
+            && b.is_operational()
+            && b.owner_lineage.as_deref() == Some(tribe.lineage.as_str())
+    }) else {
+        return;
+    };
+    let loaves = baked.min(BAKERY_CAP - before);
+    oven.stock += loaves;
+    if before == 0 && loaves > 0 {
+        let name = sim
+            .lineage_names
+            .get(&tribe.lineage)
+            .cloned()
+            .unwrap_or_else(|| "a tribe".to_string());
+        let tick = sim.tick_count;
+        crate::sim::world_events::push_event(
+            &mut sim.events,
+            tick,
+            "build",
+            &name,
+            "the bakery began baking bread from the granary's grain",
+        );
     }
 }
 
@@ -583,5 +685,126 @@ mod tests {
             mills, 2,
             "one windmill and one watermill, however often the pass runs"
         );
+    }
+}
+
+#[cfg(test)]
+mod bread_tests {
+    use super::*;
+    use crate::sim::era::Era;
+    use crate::world::tiles::Tile;
+
+    /// A farming tribe with a house, a granary holding `grain`, and optionally a bakery and a mill.
+    fn village(seed: u64, grain: u32, bakery: bool, mill: Option<BuildingKind>) -> (Simulation, Tribe) {
+        let mut sim = Simulation::new(seed);
+        let lineage = sim.organisms[0].lineage_id.clone();
+        for o in sim.organisms.iter_mut().filter(|o| o.lineage_id == lineage) {
+            o.discoveries.insert("agriculture".to_string());
+            o.inv_food = 0;
+        }
+        sim.lineage_eras.insert(lineage.clone(), Era::Medieval);
+        for dy in -6..=6 {
+            for dx in -6..=6 {
+                sim.grid.set(120 + dx, 120 + dy, Tile::Grass);
+            }
+        }
+        sim.farms.clear();
+        sim.buildings.clear();
+        let mut house = Building::new(900, BuildingKind::House, 120, 120, Some(lineage.clone()), 0);
+        house.condition = 1.0;
+        sim.buildings.push(house);
+        let mut granary = Building::new(901, BuildingKind::Granary, 121, 121, Some(lineage.clone()), 0);
+        granary.condition = 1.0;
+        granary.stock = grain;
+        sim.buildings.push(granary);
+        if bakery {
+            let mut oven = Building::new(902, BuildingKind::Bakery, 117, 117, Some(lineage.clone()), 0);
+            oven.condition = 1.0;
+            sim.buildings.push(oven);
+        }
+        if let Some(kind) = mill {
+            let mut m = Building::new(903, kind, 117, 121, Some(lineage.clone()), 0);
+            m.condition = 1.0;
+            sim.buildings.push(m);
+        }
+        let tribe = Tribe {
+            lineage: lineage.clone(),
+            members: sim
+                .organisms
+                .iter()
+                .enumerate()
+                .filter(|(_, o)| o.lineage_id == lineage)
+                .map(|(i, _)| i)
+                .collect(),
+            dwellings: vec![(120, 120)],
+        };
+        (sim, tribe)
+    }
+
+    fn grain(sim: &Simulation) -> u32 {
+        sim.buildings
+            .iter()
+            .find(|b| b.kind == BuildingKind::Granary)
+            .map_or(0, |b| b.stock)
+    }
+
+    fn loaves(sim: &Simulation) -> u32 {
+        sim.buildings
+            .iter()
+            .find(|b| b.kind == BuildingKind::Bakery)
+            .map_or(0, |b| b.stock)
+    }
+
+    #[test]
+    fn a_bakery_bakes_nothing_without_a_mill() {
+        let (mut sim, tribe) = village(7_001, 10, true, None);
+        bake(&mut sim, &tribe);
+        assert_eq!(grain(&sim), 10, "no grain ground, no grain baked");
+        assert_eq!(loaves(&sim), 0);
+    }
+
+    #[test]
+    fn a_mill_lets_the_bakery_turn_two_measures_into_two_loaves() {
+        let (mut sim, tribe) = village(7_002, 10, true, Some(BuildingKind::Windmill));
+        bake(&mut sim, &tribe);
+        assert_eq!(grain(&sim), 8);
+        assert_eq!(loaves(&sim), 2);
+        assert_eq!(bread_of(&sim, &tribe.lineage), 2);
+    }
+
+    #[test]
+    fn a_loaf_feeds_two_meals_so_a_hungry_person_takes_bread_before_grain() {
+        let (mut sim, tribe) = village(7_003, 10, true, Some(BuildingKind::Watermill));
+        sim.buildings.iter_mut().for_each(|b| {
+            if b.kind == BuildingKind::Bakery {
+                b.stock = 3;
+            }
+        });
+        let hungry = tribe.members[0];
+        for &m in &tribe.members[1..] {
+            sim.organisms[m].inv_food = 1;
+        }
+        sim.organisms[hungry].inv_food = 0;
+        ration(&mut sim, &tribe);
+        assert_eq!(
+            sim.organisms[hungry].inv_food, LOAF_MEALS,
+            "two meals from one loaf"
+        );
+        assert_eq!(loaves(&sim), 2, "the loaf came off the bakery shelf");
+        assert_eq!(grain(&sim), 10, "the granary was left alone");
+        assert!(sim.organisms[hungry].thought.contains("bread"));
+    }
+
+    #[test]
+    fn a_full_bakery_bakes_no_more() {
+        let (mut sim, tribe) = village(7_004, 10, true, Some(BuildingKind::Windmill));
+        sim.buildings.iter_mut().for_each(|b| {
+            if b.kind == BuildingKind::Bakery {
+                b.stock = BAKERY_CAP;
+            }
+        });
+        bake(&mut sim, &tribe);
+        assert_eq!(grain(&sim), 10);
+        assert_eq!(loaves(&sim), BAKERY_CAP);
     }
 }
