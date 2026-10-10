@@ -79,14 +79,26 @@ const HELD: Record<string, ProfessionPixels[]> = {
   ],
 }
 
+/** The worn and held marks of one person: worn marks are measured from the top of the head, held ones from the hand. */
+export interface ProfessionMarks {
+  worn: ProfessionPixels[]
+  held: ProfessionPixels[]
+}
+
 /**
  * The marks a person of `specialty` wears (on the head) and holds (at the side of the body, `handX` pixels
- * from the centre). Returns nothing for a person with no trade or one with no mark.
+ * from the centre). Nothing for a person with no trade or one with no mark.
  */
+export function professionMarks(specialty: string | undefined, handX: number): ProfessionMarks {
+  if (!specialty) return { worn: [], held: [] }
+  return {
+    worn: HAT[specialty] ?? [],
+    held: (HELD[specialty] ?? []).map((p) => ({ ...p, x: p.x + Math.round(handX) })),
+  }
+}
+
+/** Every mark of a person, worn and held together. */
 export function professionPixels(specialty: string | undefined, handX: number): ProfessionPixels[] {
-  if (!specialty) return []
-  const worn = HAT[specialty] ?? []
-  const held = HELD[specialty] ?? []
-  if (held.length === 0) return worn
-  return worn.concat(held.map((p) => ({ ...p, x: p.x + Math.round(handX) })))
+  const { worn, held } = professionMarks(specialty, handX)
+  return worn.concat(held)
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { professionPixels } from './profession-marks'
+import { professionMarks, professionPixels } from './profession-marks'
 
 describe('professionPixels', () => {
   it('draws nothing for a person with no trade', () => {
@@ -29,6 +29,14 @@ describe('professionPixels', () => {
     const handFar = far.filter((m) => m.x >= 5)
     expect(handNear.length).toBeGreaterThan(0)
     expect(handFar.length).toBe(handNear.length)
+  })
+
+  it('keeps worn marks and held marks apart, so the held tool can sit at hand height', () => {
+    const smith = professionMarks('smith', 4)
+    expect(smith.worn.length).toBeGreaterThan(0)
+    expect(smith.held.length).toBeGreaterThan(0)
+    expect(professionMarks('farmer', 4).held).toEqual([])
+    expect(professionMarks(undefined, 4)).toEqual({ worn: [], held: [] })
   })
 
   it('gives every mark a colour in #rrggbb form', () => {
