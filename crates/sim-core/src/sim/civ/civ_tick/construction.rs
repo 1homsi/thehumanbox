@@ -1087,6 +1087,9 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
             }
             let mut considered = existing.clone();
             let mut started = None;
+            // A started market, temple or other craft and civic project is finished before
+            // a new home is begun (see `civic_project_first`).
+            let civic_first = civic_project_first(sim, &lid);
             if project_index == 0 {
                 // A tribe of six raises its workshop before its next home: craft
                 // work needs one, and housing would otherwise always come first.
@@ -1101,8 +1104,8 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                 let craft_turn = newest_is_home
                     && most_lacking_craft(era, pop, agriculture, &craft_held, &considered)
                         .is_some_and(|kind| construction_cost_available(sim, &lid, kind));
-                if let Some(kind) =
-                    housing_target(sim, &lid, era, pop).filter(|_| started.is_none() && !craft_turn)
+                if let Some(kind) = housing_target(sim, &lid, era, pop)
+                    .filter(|_| started.is_none() && !craft_turn && !civic_first)
                 {
                     // Move into a home a vanished tribe left before raising one.
                     if !crate::sim::civ::vacancy::move_into_empty_home(sim, &lid) {
@@ -1138,6 +1141,10 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                 else {
                     break;
                 };
+                if civic_first && is_home_kind(kind) {
+                    considered.insert(kind);
+                    continue;
+                }
                 if craft == Some(kind)
                     && !construction_cost_available(sim, &lid, kind)
                     && u32::from(project_cost(sim, &lid, kind).stone) > lineage_stone(sim, &lid)
@@ -1330,9 +1337,11 @@ pub(super) fn tick_building_progress(sim: &mut Simulation) {
         // Schools and laboratories get their crews first: handing hands out
         // in build order left the newest research project with no one while
         // older huts and wonders kept every worker, and a tribe without a lab
-        // never learns anything past the Industrial age.
+        // never learns anything past the Industrial age. Craft and civic
+        // projects come next, so a market or temple is finished before the
+        // walls and houses started after it take the workers.
         let mut order: Vec<usize> = (0..sim.buildings.len()).collect();
-        order.sort_by_key(|&i| (!is_research_building(sim.buildings[i].kind), i));
+        order.sort_by_key(|&i| (crew_rank(sim.buildings[i].kind), i));
         for building_index in order {
             let building = &mut sim.buildings[building_index];
             if building.is_complete() || building.decorative {
@@ -1524,6 +1533,48 @@ pub(super) fn is_research_building(kind: BuildingKind) -> bool {
         kind,
         School | Library | Observatory | University | Datacenter | ResearchLab
     )
+}
+
+/// A craft or civic building (the kinds in `CRAFT_CIVIC`): a workshop, forge,
+/// bakery, temple, market, guild hall or city hall.
+pub(super) fn is_civic_project(kind: BuildingKind) -> bool {
+    CRAFT_CIVIC.iter().any(|need| need.kind == kind)
+}
+
+/// How long a started craft or civic project holds back the next home (three build passes).
+/// After that the tribe builds homes again, so a project nobody can finish cannot stop housing.
+pub(super) const CIVIC_FIRST_TICKS: u64 = 3 * BUILD_PASS_TICKS;
+
+/// True while a craft or civic project the lineage started is unfinished and no older than
+/// `CIVIC_FIRST_TICKS`. Its builders come before the other sites, and the tribe starts no new home
+/// meanwhile, so a market or temple is finished instead of waiting behind a row of houses.
+pub(super) fn civic_project_first(sim: &Simulation, lineage: &str) -> bool {
+    sim.buildings.iter().any(|b| {
+        !b.decorative
+            && !b.is_ruined()
+            && !b.is_complete()
+            && b.owner_lineage.as_deref() == Some(lineage)
+            && is_civic_project(b.kind)
+            && sim.tick_count.saturating_sub(b.built_at_tick) <= CIVIC_FIRST_TICKS
+    })
+}
+
+/// Homes a tribe builds for its people.
+pub(super) fn is_home_kind(kind: BuildingKind) -> bool {
+    use BuildingKind::*;
+    matches!(kind, Hut | House | Manor | TownHouse | Apartment | Skyscraper)
+}
+
+/// The order builders are handed sites in: research buildings, then craft and civic projects,
+/// then everything else, each group in build order.
+pub(super) fn crew_rank(kind: BuildingKind) -> u8 {
+    if is_research_building(kind) {
+        0
+    } else if is_civic_project(kind) {
+        1
+    } else {
+        2
+    }
 }
 
 #[cfg(test)]
