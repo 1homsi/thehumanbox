@@ -6,7 +6,7 @@
 export const TRIBE_ROOF_TINTS = ['#9a4a32', '#4f5f73', '#5f7040', '#b58a3c'] as const
 
 /** Kinds that take their tribe's roof colour: the homes with pitched or thatched roofs. */
-const TINTED_HOMES = new Set(['Hut', 'House', 'TownHouse', 'Manor'])
+const TINTED_HOMES = new Set(['Hut', 'House', 'Longhouse', 'TownHouse', 'Manor'])
 
 /** A 32-bit FNV-1a hash of a string: the same id always gives the same number. */
 export function hashId(id: string): number {

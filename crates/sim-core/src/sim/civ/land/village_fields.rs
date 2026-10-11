@@ -64,7 +64,12 @@ fn tribes_with_dwellings(sim: &Simulation) -> Vec<Tribe> {
     }
     let mut dwellings: FxHashMap<&str, Vec<(i32, i32)>> = FxHashMap::default();
     for b in sim.buildings.iter() {
-        if !b.is_operational() || !matches!(b.kind, BuildingKind::Hut | BuildingKind::House) {
+        if !b.is_operational()
+            || !matches!(
+                b.kind,
+                BuildingKind::Hut | BuildingKind::House | BuildingKind::Longhouse
+            )
+        {
             continue;
         }
         if let Some(owner) = b.owner_lineage.as_deref() {

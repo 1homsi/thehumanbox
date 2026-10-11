@@ -24,9 +24,10 @@ const STREET_LENGTH: i32 = 9;
 /// Distance from the plaza centre to the nearest edge of a civic corner building.
 const CORNER_DISTANCE: i32 = STREET_START + 1;
 /// The homes a town builds along its streets.
-const HOME_KINDS: [BuildingKind; 5] = [
+const HOME_KINDS: [BuildingKind; 6] = [
     BuildingKind::Hut,
     BuildingKind::House,
+    BuildingKind::Longhouse,
     BuildingKind::Manor,
     BuildingKind::TownHouse,
     BuildingKind::Apartment,

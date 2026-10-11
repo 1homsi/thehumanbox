@@ -24,7 +24,10 @@ const MOVE_IN_RADIUS: i32 = 30;
 /// Buildings people live in.
 pub(crate) fn is_home(kind: BuildingKind) -> bool {
     use BuildingKind::*;
-    matches!(kind, Hut | House | Manor | TownHouse | Apartment | Skyscraper)
+    matches!(
+        kind,
+        Hut | House | Longhouse | Manor | TownHouse | Apartment | Skyscraper
+    )
 }
 
 /// Spare beds a tribe keeps beyond one per person, so newlyweds and

@@ -83,6 +83,7 @@ impl BuildingKind {
             HoloBoard | NeonSign | ArcadeBox | Fountain2 | FoodTruck => Era::Modern,
             Greenhouse2 | MushroomFarm | Aquaculture => Era::Modern,
             Pen | Barn => Era::Bronze,
+            Longhouse => Era::Iron,
         }
     }
 
@@ -107,6 +108,7 @@ impl BuildingKind {
             | Vineyard | Ranch | WaterTower | Reservoir | Substation | Refinery | PowerPlant | MusicHall
             | CityHall | Pen | Barn => (2, 2),
             TownHouse => (2, 3),
+            Longhouse => (4, 2),
             Market | School | Hospital | Plaza | Temple | Theatre | Barracks | Museum | TrainStation
             | Port | Spaceport | OrbitalLift | SolarArray | WindFarm | FusionPlant | NeuralHub | AiCore
             | Biodome | Cryolab | NanoFab | Hyperloop | Maglev | Hospital2 | ResearchLab | OfficeTower
@@ -123,7 +125,7 @@ impl BuildingKind {
         match self {
             Tent | Fence | Cart | MarketStall => 20,
             Hut | Dovecote | Kennel => 50,
-            House | Inn | Workshop | Granary | Barn | Stable | Windmill | Watermill => 200,
+            House | Longhouse | Inn | Workshop | Granary | Barn | Stable | Windmill | Watermill => 200,
             Castle | Cathedral | Temple | Pyramid | Ziggurat | Monument | Coliseum => 600,
             _ => 300,
         }
@@ -137,6 +139,7 @@ impl BuildingKind {
             | Jeweler | Apothecary | Herbalist | Barbershop | Butcher | Fishmonger | Cheesemonger
             | Scribe | BookStore | Brewery | Smithy | Goldsmith | Pharmacy | Clinic | Restaurant => 4,
             TownHouse | Hotel | Spa | Bathhouse | ArtGallery | MusicHall => 6,
+            Longhouse => 8,
             Manor | Apartment | Hospital2 | Skyscraper => 12,
             School | University | Library | Temple | Market | Hospital | Cathedral | Theatre | Museum
             | GuildHall | Courthouse | CityHall | Coliseum | Pyramid | Ziggurat | Mosque | Synagogue
@@ -153,7 +156,8 @@ impl BuildingKind {
         use BuildingFunction::*;
         use BuildingKind::*;
         match self {
-            Hut | House | Manor | TownHouse | Apartment | Castle | Inn | Hotel | Tent | Skyscraper => Housing,
+            Hut | House | Longhouse | Manor | TownHouse | Apartment | Castle | Inn | Hotel | Tent
+            | Skyscraper => Housing,
             School | University | Library | Museum | Observatory | ResearchLab | Scribe | BookStore
             | Studio => Education,
             Temple | Cathedral | Shrine | Mosque | Synagogue | Pagoda | Stupa | Mausoleum | Pyramid

@@ -42,6 +42,7 @@ impl BuildingKind {
             Granary | Silo | Warehouse => &[("wood", 30), ("stone", 10)],
             Shipyard => &[("wood", 40), ("stone", 10)],
             Barn => &[("wood", 24), ("stone", 4)],
+            Longhouse => &[("wood", 60), ("stone", 12)],
             Barracks => &[("wood", 40), ("stone", 30), ("iron", 12)],
             Lighthouse | Lighthouse2 => &[("stone", 50), ("wood", 15)],
             Aqueduct => &[("stone", 80)],

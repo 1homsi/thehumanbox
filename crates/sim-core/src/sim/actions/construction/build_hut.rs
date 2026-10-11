@@ -1,6 +1,6 @@
 use super::super::ctx::ActionCtx;
 use super::{start_project, ProjectSpec};
-use crate::sim::civ::civ_tick::{lineage_can_afford_construction, wants_manor};
+use crate::sim::civ::civ_tick::{lineage_can_afford_construction, wants_longhouse, wants_manor};
 use crate::sim::era::Era;
 use crate::sim::tech::buildings::BuildingKind;
 use crate::world::tiles::Tile;
@@ -40,6 +40,8 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         .count();
     let kind = if wants_manor(ctx.sim, &lid, era, population) {
         BuildingKind::Manor
+    } else if wants_longhouse(ctx.sim, &lid, era, population) {
+        BuildingKind::Longhouse
     } else {
         [
             BuildingKind::Apartment,
