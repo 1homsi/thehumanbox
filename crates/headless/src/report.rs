@@ -608,6 +608,19 @@ pub(super) fn print_progress(sim: &Simulation) {
             .iter()
             .filter(|&&k| k == crate::world::grid::ROAD_RAIL)
             .count();
+        let waiting: u32 = sim.cart_grain.iter().map(|w| w.grain).sum();
+        let cart_list = || {
+            sim.vehicles
+                .iter()
+                .filter(|v| v.kind == sim::transportation::TransportKind::Cart)
+        };
+        println!(
+            "Village carts at end: {}, harvest waiting at the fields {}, loads aboard {}, under way {}",
+            cart_list().count(),
+            waiting,
+            cart_list().map(|v| v.cargo).sum::<u32>(),
+            cart_list().filter(|v| !v.route.is_empty()).count()
+        );
         let stations = sim
             .buildings
             .iter()

@@ -9,6 +9,7 @@
 
 use crate::hashing::{FxHashMap, FxHashSet};
 use crate::sim::actions::agriculture::farm_ops::{crop_for_plot, harvest_crop, plant_crop};
+use crate::sim::civ::land::village_carts;
 use crate::sim::civ::land::village_failure;
 use crate::sim::civ::land::village_livestock;
 use crate::sim::civ::land::village_stores;
@@ -184,8 +185,12 @@ fn harvest_ripe(sim: &mut Simulation, tribe: &Tribe) {
                 .round() as u32;
             let person = &mut sim.organisms[actor];
             person.inv_food = person.inv_food.saturating_sub(result.yield_units);
-            let left = village_stores::deposit(sim, &tribe.lineage, grain);
-            sim.organisms[actor].inv_food = sim.organisms[actor].inv_food.saturating_add(left.min(255) as u8);
+            // With a cart on its roads the harvest waits at the field for it; otherwise it is brought in by hand.
+            if !village_carts::haul_harvest(sim, &tribe.lineage, (x, y), grain) {
+                let left = village_stores::deposit(sim, &tribe.lineage, grain);
+                sim.organisms[actor].inv_food =
+                    sim.organisms[actor].inv_food.saturating_add(left.min(255) as u8);
+            }
             let tick = sim.tick_count;
             sim.organisms[actor].think("harvesting the field", tick);
         }

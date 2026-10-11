@@ -193,3 +193,44 @@ export function drawTrain(
   }
   ctx.restore()
 }
+
+/**
+ * A village ox cart at (x, y) in map pixels, its ox at the front along `heading` (the step to the next road
+ * cell, or east while it stands still). Loaded carts show the grain on the bed; the ox's legs step while it
+ * is under way.
+ */
+export function drawCart(
+  ctx: Ctx,
+  x: number,
+  y: number,
+  heading: readonly [number, number] | null,
+  loaded: boolean,
+  moving: boolean,
+  t: number,
+) {
+  const angle = heading ? Math.atan2(heading[1], heading[0]) : 0
+  ctx.save()
+  ctx.translate(Math.round(x), Math.round(y))
+  ctx.rotate(angle)
+  // The bed and its wheels, behind the ox.
+  ctx.fillStyle = '#8a5a34'
+  ctx.fillRect(-5, -2.5, 5, 4)
+  if (loaded) {
+    ctx.fillStyle = '#e0c050'
+    ctx.fillRect(-5, -3.5, 5, 1)
+  }
+  ctx.fillStyle = '#3a2a1a'
+  ctx.fillRect(-4, 2, 2, 1)
+  ctx.fillRect(-1, 2, 2, 1)
+  // The ox: a body, a head and a pale horn, its legs stepping while it walks.
+  ctx.fillStyle = '#a06c40'
+  ctx.fillRect(1, -2, 4, 3)
+  ctx.fillRect(4, -3, 2, 2)
+  ctx.fillStyle = '#f2ead8'
+  ctx.fillRect(5, -4, 1, 1)
+  const step = moving ? Math.floor(t / 150) % 2 : 0
+  ctx.fillStyle = '#6a4424'
+  ctx.fillRect(1 + step, 1, 1, 2)
+  ctx.fillRect(3 - step, 1, 1, 2)
+  ctx.restore()
+}
