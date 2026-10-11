@@ -69,7 +69,7 @@ pub(crate) struct Passenger {
     id: String,
     /// Where the journey they joined the queue on was taking them, and what it was called.
     goal: (i32, i32),
-    description: String,
+    description: Option<String>,
     /// The tick they joined the queue.
     since: u64,
 }
@@ -96,11 +96,14 @@ struct Pier {
     there: u32,
 }
 
+/// A person who joins a pier's queue: the organism, the pier, the errand's goal and its journey (if any).
+type Join = (usize, usize, (i32, i32), Option<String>);
+
 /// Where a passenger stepped ashore, and the errand they were on when they boarded.
 struct Landing {
     shore: (i32, i32),
     bank: u32,
-    errand: Option<((i32, i32), String)>,
+    errand: Option<((i32, i32), Option<String>)>,
 }
 
 /// The landmass beside a water tile (the first dry neighbour), or `u32::MAX`.
@@ -547,7 +550,11 @@ impl Simulation {
                     if WorldGrid::in_bounds(goal.0, goal.1)
                         && survey.landmass[WorldGrid::idx(goal.0, goal.1)] == l.bank
                     {
-                        o.begin_journey(*goal, description, now);
+                        match description {
+                            Some(description) => o.begin_journey(*goal, description, now),
+                            // A visit carries on as the walk it was: toward the friend's place.
+                            None => o.wander_target = Some(*goal),
+                        }
                     }
                 }
             }
@@ -580,20 +587,24 @@ impl Simulation {
             .flatten()
             .map(|p| p.id.as_str())
             .collect();
-        let mut joins: Vec<(usize, usize, (i32, i32), String)> = Vec::new();
+        let mut joins: Vec<Join> = Vec::new();
         let mut refused: Vec<usize> = Vec::new();
         for (oi, o) in self.organisms.iter().enumerate() {
             if !o.alive || queued.contains(o.id.as_str()) {
                 continue;
             }
-            let Some(journey) = &o.journey else {
-                continue;
+            // The errand is where the person's walk is taking them: their journey, or else the
+            // wander target of a visit (to a friend or kin) that has no journey of its own.
+            let (goal, errand) = match (&o.journey, o.wander_target) {
+                (Some(j), _) => (j.target, Some(j.description.clone())),
+                (None, Some(t)) => (t, None),
+                (None, None) => continue,
             };
             let here = survey.landmass[WorldGrid::idx(o.x as i32, o.y as i32)];
-            if here == u32::MAX || !WorldGrid::in_bounds(journey.target.0, journey.target.1) {
+            if here == u32::MAX || !WorldGrid::in_bounds(goal.0, goal.1) {
                 continue;
             }
-            let there = survey.landmass[WorldGrid::idx(journey.target.0, journey.target.1)];
+            let there = survey.landmass[WorldGrid::idx(goal.0, goal.1)];
             if there == u32::MAX || there == here {
                 continue;
             }
@@ -633,7 +644,7 @@ impl Simulation {
                 continue;
             };
             fill[pi] += 1;
-            joins.push((oi, pi, journey.target, journey.description.clone()));
+            joins.push((oi, pi, goal, errand));
         }
         drop(queued);
         for oi in refused {
@@ -805,6 +816,36 @@ mod tests {
                 "a passenger carries on with the errand that brought them to the water"
             );
         }
+    }
+
+    #[test]
+    fn a_visit_across_the_water_takes_the_ferry_and_resumes_as_a_walk() {
+        let mut sim = strait_world();
+        // A visit to kin on the far shore: a wander target, with no journey of its own.
+        sim.organisms[0].wander_target = Some((105, 100));
+        sim.tick_count = 200;
+        sim.tick_ferries();
+        run(&mut sim, 201, 204);
+        let vid = sim.vehicles[0].id;
+        assert_eq!(
+            sim.ferry_queues.piers.get(&(vid, 0)).map(|q| q.len()),
+            Some(1),
+            "the visitor queues at the pier"
+        );
+        // Arriving on the quay ends the walk to it.
+        sim.organisms[0].x = 95.0;
+        sim.organisms[0].y = 90.0;
+        sim.organisms[0].journey = None;
+        sim.organisms[0].wander_target = None;
+        run(&mut sim, 205, 520);
+        let v = &sim.vehicles[0];
+        assert!(v.occupants.is_empty(), "the visitor landed");
+        assert!(sim.organisms[0].x >= 100.0, "on the far shore");
+        assert_eq!(
+            sim.organisms[0].wander_target,
+            Some((105, 100)),
+            "and the visit carries on toward the friend"
+        );
     }
 
     #[test]
