@@ -186,6 +186,95 @@ fn a_lone_crew_works_the_school_before_older_huts_and_wonders() {
 }
 
 #[test]
+fn a_lone_crew_finishes_the_market_before_an_older_wall_or_house() {
+    let mut sim = Simulation::new(0x5C02);
+    sim.organisms.clear();
+    sim.buildings.clear();
+    let mut worker = test_org("worker", "Worker", "lineage-a", 10.0, 10.0);
+    worker.age = 10_000;
+    sim.organisms.push(worker);
+    // A wall and a house were started first; the market came after them.
+    sim.buildings.push(Building::new(
+        1,
+        BuildingKind::Wall,
+        10,
+        10,
+        Some("lineage-a".into()),
+        0,
+    ));
+    sim.buildings.push(Building::new(
+        2,
+        BuildingKind::House,
+        12,
+        10,
+        Some("lineage-a".into()),
+        0,
+    ));
+    sim.buildings.push(Building::new(
+        3,
+        BuildingKind::Market,
+        11,
+        10,
+        Some("lineage-a".into()),
+        10,
+    ));
+    sim.tick_count = 20;
+    tick_building_progress(&mut sim);
+    assert!(sim.buildings[2].condition > 0.0, "the market got no crew");
+    assert_eq!(sim.buildings[0].condition, 0.0, "the wall took the only worker");
+    assert_eq!(sim.buildings[1].condition, 0.0, "the house took the only worker");
+}
+
+#[test]
+fn a_started_craft_or_civic_project_comes_first_until_it_is_too_old() {
+    let mut sim = Simulation::new(0x5C03);
+    sim.organisms.clear();
+    sim.buildings.clear();
+    sim.tick_count = 1_000;
+    assert!(!civic_project_first(&sim, "lineage-a"), "nothing started yet");
+    sim.buildings.push(Building::new(
+        1,
+        BuildingKind::Market,
+        10,
+        10,
+        Some("lineage-a".into()),
+        1_000,
+    ));
+    assert!(
+        civic_project_first(&sim, "lineage-a"),
+        "a fresh market holds back homes"
+    );
+    assert!(
+        !civic_project_first(&sim, "lineage-b"),
+        "another tribe's market does not"
+    );
+    sim.buildings[0].condition = 1.0;
+    assert!(
+        !civic_project_first(&sim, "lineage-a"),
+        "a finished market no longer holds back homes"
+    );
+    sim.buildings[0].condition = 0.5;
+    sim.buildings[0].built_at_tick = 1_000 - CIVIC_FIRST_TICKS - 1;
+    assert!(
+        !civic_project_first(&sim, "lineage-a"),
+        "a project no builder finishes cannot stop housing"
+    );
+    sim.buildings[0].built_at_tick = 1_000 - CIVIC_FIRST_TICKS;
+    assert!(civic_project_first(&sim, "lineage-a"));
+    assert!(!is_civic_project(BuildingKind::House));
+    assert!(is_home_kind(BuildingKind::House) && !is_home_kind(BuildingKind::Temple));
+}
+
+#[test]
+fn builders_hand_out_crews_research_first_then_civic_then_the_rest() {
+    assert_eq!(crew_rank(BuildingKind::School), 0);
+    assert_eq!(crew_rank(BuildingKind::Temple), 1);
+    assert_eq!(crew_rank(BuildingKind::Workshop), 1);
+    assert_eq!(crew_rank(BuildingKind::Wall), 2);
+    assert_eq!(crew_rank(BuildingKind::House), 2);
+}
+
+#[test]
 fn the_research_building_a_tribe_lacks_is_always_next() {
     let mut have: HashSet<BuildingKind> = HashSet::default();
     for expect in [
@@ -500,9 +589,12 @@ fn reference_site(
     preferred_x: i32,
     preferred_y: i32,
 ) -> Option<(i32, i32)> {
+    let (width, height) = kind.footprint();
     let ok = |x: i32, y: i32| {
         construction_site_is_valid(sim, kind, x, y)
             && automatic_site_has_clearance(sim, kind, x, y)
+            && !(y..y + i32::from(height))
+                .any(|cy| (x..x + i32::from(width)).any(|cx| super::super::town::town_reserved(sim, cx, cy)))
             && construction_site_has_reachable_worker(sim, lineage, x, y)
     };
     if ok(preferred_x, preferred_y) {
@@ -523,8 +615,12 @@ fn reference_site(
     None
 }
 
-#[test]
-fn site_search_picks_the_same_tile_as_the_single_site_rules() {
+/// Runs `seed` and, every `every` ticks from `from` to `to`, checks that the
+/// site search picks the tile the single-site rules pick. Probes sit around
+/// each tribe's centre and beside standing buildings, where overlap, clearance,
+/// the ring edge and town plazas and streets all decide the answer. Returns
+/// (sites compared, sites found, checkpoints where some town had a plaza).
+fn check_site_search_parity(seed: u64, from: u64, to: u64, every: u64) -> (usize, usize, usize) {
     let kinds = [
         BuildingKind::House,
         BuildingKind::Hut,
@@ -532,15 +628,19 @@ fn site_search_picks_the_same_tile_as_the_single_site_rules() {
         BuildingKind::Wall,
         BuildingKind::Bridge,
         BuildingKind::Temple,
+        BuildingKind::Market,
         BuildingKind::Manor,
         BuildingKind::Castle,
     ];
-    let mut compared = 0;
-    let mut found = 0;
-    for seed in [42u64, 1337] {
-        let mut sim = Simulation::new(seed);
-        while sim.tick_count < 1_500 {
-            sim.tick();
+    let mut sim = Simulation::new(seed);
+    let (mut compared, mut found, mut with_plazas) = (0, 0, 0);
+    while sim.tick_count < to {
+        sim.tick();
+        if sim.tick_count < from || !sim.tick_count.is_multiple_of(every) {
+            continue;
+        }
+        if !sim.town_plazas.is_empty() {
+            with_plazas += 1;
         }
         let mut lineages: Vec<String> = sim
             .organisms
@@ -550,8 +650,6 @@ fn site_search_picks_the_same_tile_as_the_single_site_rules() {
             .collect();
         lineages.sort();
         lineages.dedup();
-        // Probe around each tribe's centre and beside standing buildings, where
-        // overlap, clearance and the ring edge all decide the answer.
         let mut probes: Vec<(String, i32, i32)> = Vec::new();
         for lid in &lineages {
             let (cx, cy) = lineage_center(&sim, lid);
@@ -576,15 +674,89 @@ fn site_search_picks_the_same_tile_as_the_single_site_rules() {
                 assert_eq!(
                     find_construction_site(&sim, lid, kind, *x, *y),
                     expected,
-                    "seed {seed} lineage {lid} {kind:?} preferred ({x}, {y})"
+                    "seed {seed} tick {} lineage {lid} {kind:?} preferred ({x}, {y})",
+                    sim.tick_count
                 );
                 compared += 1;
                 found += usize::from(expected.is_some());
             }
         }
     }
+    (compared, found, with_plazas)
+}
+
+#[test]
+fn site_search_picks_the_same_tile_as_the_single_site_rules() {
+    // Tick 1500 is before any town has a plaza. The checkpoints from 1680 to
+    // 3000 have plazas and streets, which the single-site rules keep open.
+    let (mut compared, mut found, mut with_plazas) = (0, 0, 0);
+    for seed in [42u64, 1337] {
+        let (c, f, p) = check_site_search_parity(seed, 1_500, 3_000, 240);
+        compared += c;
+        found += f;
+        with_plazas += p;
+    }
+    assert!(with_plazas > 0, "no checkpoint had a town plaza");
     assert!(compared > 1_000, "compared {compared} sites");
     assert!(found > 0 && found < compared, "found {found} of {compared}");
+}
+
+/// The long run: four seeds to tick 18000, checked every 240 ticks. It takes
+/// several minutes in release, so run it on demand with
+/// `cargo test --release -p sim-core site_search_matches_the_single_site_rules_to_tick_18000 -- --ignored --nocapture`.
+#[test]
+#[ignore = "several minutes in release, run on demand"]
+fn site_search_matches_the_single_site_rules_to_tick_18000() {
+    for seed in [42u64, 1337, 2026, 7] {
+        let (compared, found, with_plazas) = check_site_search_parity(seed, 1_500, 18_000, 240);
+        eprintln!("seed {seed}: compared {compared}, found {found}, checkpoints with a plaza {with_plazas}");
+        assert!(with_plazas > 0, "seed {seed} never had a town plaza");
+    }
+}
+
+#[test]
+fn a_house_site_skips_the_plaza_it_was_placed_on() {
+    // A tribe of ten standing on its own plaza centre, with no buildings. The
+    // single-site rules keep the plaza open, so the house goes beside it.
+    let mut sim = Simulation::new(0x5117);
+    sim.organisms.clear();
+    sim.buildings.clear();
+    // The first open ground with a clear square around it, so the plaza sits on land.
+    let (cx, cy) = (30..270)
+        .flat_map(|y| (30..570).map(move |x| (x, y)))
+        .find(|&(x, y)| (-3..=3).all(|dy| (-3..=3).all(|dx| sim.grid.get(x + dx, y + dy).road_ground())))
+        .expect("open ground for a plaza");
+    for i in 0..10 {
+        let mut org = test_org(
+            &format!("plaza-{i}"),
+            "Person",
+            "plaza-town",
+            cx as f32,
+            cy as f32,
+        );
+        org.age = 10_000;
+        org.inv_wood = 10;
+        org.inv_stone = 10;
+        sim.organisms.push(org);
+    }
+    sim.town_plazas.push(super::super::town::TownPlaza {
+        lineage: "plaza-town".into(),
+        center: [cx, cy],
+        streets: Vec::new(),
+    });
+    let expected = reference_site(&sim, "plaza-town", BuildingKind::House, cx, cy);
+    let found = find_construction_site(&sim, "plaza-town", BuildingKind::House, cx, cy);
+    assert_eq!(found, expected);
+    let (x, y) = found.expect("a house site beside the plaza");
+    let (width, height) = BuildingKind::House.footprint();
+    for cy in y..y + i32::from(height) {
+        for cx in x..x + i32::from(width) {
+            assert!(
+                !super::super::town::town_reserved(&sim, cx, cy),
+                "house at ({x}, {y}) covers plaza tile ({cx}, {cy})"
+            );
+        }
+    }
 }
 
 #[test]

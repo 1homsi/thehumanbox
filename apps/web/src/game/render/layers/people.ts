@@ -2,7 +2,7 @@ import { personName } from '../../../shared/personName'
 import { _orgLastPos, orgMotion } from '.././draw-helpers'
 import { drawBoat } from '.././boat-sprite'
 import { crowdLabelIds, LabelPlacer, labelWidth } from '.././crowd-detail'
-import type { OrganismState } from '../../../shared/types'
+import { isFloatingKind, type OrganismState } from '../../../shared/types'
 
 import { drawPeopleTile, getPeopleAtlas, pickHumanSprite } from '../../../shared/sprites'
 
@@ -37,7 +37,7 @@ export function draw_people(f: DrawFrame) {
       org.y - oy <= r1 + 8,
   )
   const boatsByRider = new Map(
-    (world.vehicles ?? []).filter((v) => v.kind === 'boat' && v.rider_id).map((v) => [v.rider_id!, v]),
+    (world.vehicles ?? []).filter((v) => isFloatingKind(v.kind) && v.rider_id).map((v) => [v.rider_id!, v]),
   )
   const labelIds =
     characterDetail !== 'overview' && viewFlags.names ? crowdLabelIds(visible, cameraZoom) : null
@@ -46,7 +46,7 @@ export function draw_people(f: DrawFrame) {
     for (const id of _orgLastPos.keys()) if (!ids.has(id)) _orgLastPos.delete(id)
   }
   for (const boat of world.vehicles ?? []) {
-    if (boat.kind !== 'boat' || boat.rider_id) continue
+    if (!isFloatingKind(boat.kind) || boat.rider_id) continue
     if (boat.x - ox < c0 - 3 || boat.x - ox > c1 + 3 || boat.y - oy < r0 - 3 || boat.y - oy > r1 + 3) continue
     drawBoat(ctx, (boat.x - ox) * TILE + TILE / 2, (boat.y - oy) * TILE + TILE / 2, t, false)
   }

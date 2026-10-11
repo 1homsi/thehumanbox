@@ -1,3 +1,4 @@
+import { isFloatingKind } from '../../../../shared/types'
 import type { OrganismState, PrayerInfo, VehicleInfo } from '../../../../shared/types'
 import type { ViewFlags } from '../../../../state/store'
 import { orgVariant } from '../../../model/org-variant'
@@ -208,7 +209,7 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
   let riders: Set<string> | null = null
   if (input.vehicles) {
     for (const v of input.vehicles) {
-      if (v.kind === 'boat' && v.rider_id) (riders ??= new Set()).add(v.rider_id)
+      if (isFloatingKind(v.kind) && v.rider_id) (riders ??= new Set()).add(v.rider_id)
     }
   }
 

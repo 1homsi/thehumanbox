@@ -120,6 +120,8 @@ pub struct Simulation {
     pub next_vehicle_id: u32,
     /// The last land survey for ferries (see `tech/ferry.rs`); rebuilt every few hundred ticks, not saved.
     pub(crate) ferry_survey: crate::sim::tech::ferry::FerrySurvey,
+    /// The people queued at each ferry pier, and the passengers aboard (see `tech/ferry.rs`); not saved.
+    pub(crate) ferry_queues: crate::sim::tech::ferry::FerryQueues,
     pub battles: Vec<super::warfare::Battle>,
     pub next_battle_id: u32,
     pub treaties: Vec<super::warfare::Treaty>,
@@ -135,6 +137,8 @@ pub struct Simulation {
     pub goals: crate::sim::goals::GoalBook,
     /// Where each tribe gathers this evening (runtime; worked out at dusk).
     pub(crate) evening_places: std::collections::BTreeMap<String, (i32, i32)>,
+    /// Where each tribe's children go to school this hour (runtime; empty outside school hours).
+    pub(crate) school_places: std::collections::BTreeMap<String, (i32, i32)>,
     /// The recently dead, newest last: who died and when (runtime).
     pub(crate) fallen: VecDeque<(String, u64)>,
     /// When each tribe last had someone raised from the dead (runtime).
@@ -277,6 +281,7 @@ impl Simulation {
             vehicles: Vec::new(),
             next_vehicle_id: 1,
             ferry_survey: Default::default(),
+            ferry_queues: Default::default(),
             battles: Vec::new(),
             next_battle_id: 1,
             treaties: Vec::new(),
@@ -287,6 +292,7 @@ impl Simulation {
             festival_last: HashMap::default(),
             goals: Default::default(),
             evening_places: Default::default(),
+            school_places: Default::default(),
             fallen: VecDeque::new(),
             revive_cooldown: HashMap::default(),
             teach_cooldown: HashMap::default(),

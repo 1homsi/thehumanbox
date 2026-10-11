@@ -6,6 +6,7 @@
 //   caravan[:<cargo>] a caravan on the road at the frame's tick (its straight line from -> to)
 //   boat              a boat (any era, sailing or moored)
 //   ferry             a ferry at its landing or under way, with the people aboard it
+//   ship              a ship (a sailing ship or a steamship, by the owner's era)
 //   field             a farm plot (the frame's `farms`)
 //
 // Candidates are sorted by distance to the nearest settlement centre, then by x, then by y, so
@@ -81,6 +82,12 @@ export function candidatesFor(frame, feature, tick = frame.tick) {
       .map((v) => ({ entity: v, kind: 'ferry', name: `ferry-${v.era ?? 'any'}`, x: v.x, y: v.y }))
       .sort(sortBy)
   }
+  if (head === 'ship') {
+    return (frame.vehicles ?? [])
+      .filter((v) => v.kind === 'ship')
+      .map((v) => ({ entity: v, kind: 'ship', name: `ship-${v.era ?? 'any'}`, x: v.x, y: v.y }))
+      .sort(sortBy)
+  }
   if (head === 'field') {
     return (frame.farms ?? [])
       .map((f) => ({ entity: f, kind: 'field', name: `field-${f.crop ?? 'plot'}`, x: f.x, y: f.y }))
@@ -104,7 +111,7 @@ export function findFeature(frame, feature, { index = 0, tick = frame.tick } = {
     throw new Error(
       `no "${feature}" in this world at tick ${frame.tick} (buildings: ${JSON.stringify(have.buildings)}, ` +
         `caravans: ${have.caravans.count}, boats: ${have.boats}, fields: ${have.fields}). ` +
-        `Features: building:<kind>, caravan[:<cargo>], boat, ferry, field.`,
+        `Features: building:<kind>, caravan[:<cargo>], boat, ferry, ship, field.`,
     )
   }
   if (index < 0 || index >= list.length) {

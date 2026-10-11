@@ -4,20 +4,19 @@
 //! Fleet boats carry no passengers, so the crossings in `boats.rs` never take one.
 use crate::organism::organism::Organism;
 use crate::sim::simulation::Simulation;
-use crate::sim::transportation::{TransportKind, Vehicle};
+use crate::sim::tech::ports::{take_from_warehouse, unload_into_warehouse};
+use crate::sim::transportation::TransportKind;
 use crate::world::{grid::WorldGrid, tiles::Tile};
 use rand::RngExt;
 
 const CARDINAL: [(i32, i32); 4] = [(0, -1), (0, 1), (-1, 0), (1, 0)];
 
-/// How often the tribes are checked for a boat to launch, in ticks.
-const LAUNCH_CHECK_TICKS: u64 = 50;
 /// Boats a tribe keeps at most.
-const MAX_PER_TRIBE: usize = 3;
+pub(crate) const MAX_PER_TRIBE: usize = 3;
 /// Boats in the whole world at most.
-const MAX_FLEET: usize = 40;
+pub(crate) const MAX_FLEET: usize = 40;
 /// Tribe members needed before a harbour is worth a boat.
-const MIN_TRIBE_FOR_BOAT: usize = 6;
+pub(crate) const MIN_TRIBE_FOR_BOAT: usize = 6;
 /// How far from a home a harbour may lie, in tiles.
 const HARBOUR_RANGE: i32 = 5;
 /// How far from its harbour a boat fishes, in tiles (a square search box).
@@ -32,6 +31,14 @@ const PLAN_TICKS: u64 = 6;
 const TRADE_CHECK_TICKS: u64 = 200;
 /// Food a trade boat carries on one voyage, at most.
 const TRADE_LOAD: u32 = 3;
+/// A ship (a sailing ship from the classical age, a steamship from the industrial age) carries this much food.
+const SHIP_LOAD: u32 = 8;
+/// How far a ship's water reaches for a trade voyage, in tiles of sea (boats reach `TRADE_RANGE`).
+const SHIP_RANGE: i32 = 90;
+/// How often a moored boat is refitted as a ship, once its tribe has reached the classical age.
+const REFIT_TICKS: u64 = 500;
+/// The earliest age a tribe refits its boats as ships.
+const SHIP_ERA: crate::sim::era::Era = crate::sim::era::Era::Classical;
 /// How far by water a trade voyage may reach from its harbour, in tiles.
 const TRADE_RANGE: i32 = 40;
 /// How close to a harbour a person must stand to load or receive a trade boat's food, in tiles.
@@ -108,7 +115,7 @@ impl WaterChart {
 }
 
 /// The water tile nearest to (x, y) that lies beside dry land, within `HARBOUR_RANGE`.
-fn harbour_near(grid: &WorldGrid, x: i32, y: i32) -> Option<(i32, i32)> {
+pub(crate) fn harbour_near(grid: &WorldGrid, x: i32, y: i32) -> Option<(i32, i32)> {
     let mut best: Option<((i32, i32), i32)> = None;
     for dy in -HARBOUR_RANGE..=HARBOUR_RANGE {
         for dx in -HARBOUR_RANGE..=HARBOUR_RANGE {
@@ -138,7 +145,7 @@ pub(crate) fn harbour_shore(grid: &WorldGrid, harbour: (i32, i32)) -> Option<(i3
 }
 
 /// Whether a person stands close enough to a harbour to load or receive from its boat.
-fn on_quay(o: &Organism, quay: (i32, i32)) -> bool {
+pub(crate) fn on_quay(o: &Organism, quay: (i32, i32)) -> bool {
     (o.x as i32 - quay.0).abs().max((o.y as i32 - quay.1).abs()) <= QUAY_RANGE
 }
 
@@ -153,22 +160,42 @@ fn water_beside(grid: &WorldGrid, p: (i32, i32)) -> Option<(i32, i32)> {
 impl Simulation {
     /// Launches fleet boats for coastal tribes, sends trade boats out, and moves the unmanned ones.
     pub(crate) fn tick_fleet(&mut self) {
-        if self.tick_count.is_multiple_of(LAUNCH_CHECK_TICKS) {
-            self.launch_fleet_boats();
+        crate::sim::tech::ports::tick_ports(self);
+        if self.tick_count.is_multiple_of(REFIT_TICKS) {
+            self.refit_ships();
         }
         self.tick_trade();
         self.move_fleet_boats();
+        self.tick_stranded_boats();
     }
 
     /// In fair weather a moored fishing boat takes food from the people on its quay and sails to the
     /// nearest harbour of another tribe that the water reaches (see `unload_at`).
+    /// A moored fishing boat whose tribe has reached the classical age is refitted as a ship: a
+    /// sailing ship from then on, a steamship once the tribe is industrial (the hull follows the era).
+    fn refit_ships(&mut self) {
+        for i in 0..self.vehicles.len() {
+            let v = &self.vehicles[i];
+            if v.kind != TransportKind::Boat
+                || v.harbour.is_none()
+                || !v.occupants.is_empty()
+                || !v.route.is_empty()
+                || self.era(&v.owner_lineage) < SHIP_ERA
+            {
+                continue;
+            }
+            self.vehicles[i].kind = TransportKind::Ship;
+        }
+    }
+
     fn tick_trade(&mut self) {
         if !self.tick_count.is_multiple_of(TRADE_CHECK_TICKS) || self.is_night() || self.weather.kind == 2 {
             return;
         }
         for i in 0..self.vehicles.len() {
             let v = &self.vehicles[i];
-            if v.kind != TransportKind::Boat
+            let ship = v.kind == TransportKind::Ship;
+            if !(ship || v.kind == TransportKind::Boat)
                 || !v.occupants.is_empty()
                 || v.bound_for.is_some()
                 || v.cargo > 0
@@ -181,7 +208,12 @@ impl Simulation {
                 continue;
             }
             let owner = v.owner_lineage.clone();
-            let Some(chart) = WaterChart::new(&self.grid, home, home, TRADE_RANGE) else {
+            let (range, load) = if ship {
+                (SHIP_RANGE, SHIP_LOAD)
+            } else {
+                (TRADE_RANGE, TRADE_LOAD)
+            };
+            let Some(chart) = WaterChart::new(&self.grid, home, home, range) else {
                 continue;
             };
             // The nearest harbour of another tribe that the water reaches.
@@ -198,27 +230,27 @@ impl Simulation {
                 }
             }
             let Some((dest, _)) = dest else { continue };
-            // Food from the people on the quay, up to the hold's size.
-            let mut loaded = 0u32;
+            let Some(route) = chart.route_to(dest) else {
+                continue;
+            };
+            // Goods from the warehouse at home first, then food from the people on the quay, up to the hold's size.
+            let mut loaded = take_from_warehouse(self, &owner, home, load);
             for o in self
                 .organisms
                 .iter_mut()
                 .filter(|o| o.alive && o.lineage_id == owner && on_quay(o, home))
             {
-                while o.inv_food > 0 && loaded < TRADE_LOAD {
+                while o.inv_food > 0 && loaded < load {
                     o.inv_food -= 1;
                     loaded += 1;
                 }
-                if loaded >= TRADE_LOAD {
+                if loaded >= load {
                     break;
                 }
             }
             if loaded == 0 {
                 continue;
             }
-            let Some(route) = chart.route_to(dest) else {
-                continue;
-            };
             let v = &mut self.vehicles[i];
             v.cargo = loaded;
             v.bound_for = Some(dest);
@@ -245,83 +277,27 @@ impl Simulation {
     /// A trade boat has reached the far harbour: its food goes to the nearest person on that quay,
     /// and the boat sails home.
     fn unload_at(&mut self, i: usize, quay: (i32, i32), harbour: (i32, i32)) {
-        let cargo = self.vehicles[i].cargo;
-        let receiver = self
-            .organisms
-            .iter()
-            .enumerate()
-            .filter(|(_, o)| o.alive && on_quay(o, quay))
-            .min_by_key(|(_, o)| (o.x as i32 - quay.0).abs() + (o.y as i32 - quay.1).abs())
-            .map(|(k, _)| k);
-        if let Some(k) = receiver {
-            let o = &mut self.organisms[k];
-            o.inv_food = (u32::from(o.inv_food) + cargo).min(u32::from(u8::MAX)) as u8;
-            o.log_event("food came to the quay by boat from another tribe".into());
+        let owner = self.vehicles[i].owner_lineage.clone();
+        // Goods go into a warehouse of the tribe at the quay first; food that does not fit comes ashore.
+        let cargo = unload_into_warehouse(self, &owner, quay, self.vehicles[i].cargo);
+        if cargo > 0 {
+            let receiver = self
+                .organisms
+                .iter()
+                .enumerate()
+                .filter(|(_, o)| o.alive && on_quay(o, quay))
+                .min_by_key(|(_, o)| (o.x as i32 - quay.0).abs() + (o.y as i32 - quay.1).abs())
+                .map(|(k, _)| k);
+            if let Some(k) = receiver {
+                let o = &mut self.organisms[k];
+                o.inv_food = (u32::from(o.inv_food) + cargo).min(u32::from(u8::MAX)) as u8;
+                o.log_event("food came to the quay by boat from another tribe".into());
+            }
         }
         let v = &mut self.vehicles[i];
         v.cargo = 0;
         v.bound_for = None;
         self.route_home(i, quay, harbour);
-    }
-
-    /// A tribe with a fisher and a harbour near its homes gets one boat, then up to one more per
-    /// twelve members (at most `MAX_PER_TRIBE`), moored at the harbour.
-    fn launch_fleet_boats(&mut self) {
-        let mut fleet_total = self.vehicles.iter().filter(|v| v.harbour.is_some()).count();
-        let mut tribes: Vec<String> = Vec::new();
-        for o in self.organisms.iter().filter(|o| o.alive) {
-            if !tribes.contains(&o.lineage_id) {
-                tribes.push(o.lineage_id.clone());
-            }
-        }
-        for tribe in tribes {
-            if fleet_total >= MAX_FLEET {
-                break;
-            }
-            let members: Vec<usize> = self
-                .organisms
-                .iter()
-                .enumerate()
-                .filter(|(_, o)| o.alive && o.lineage_id == tribe)
-                .map(|(i, _)| i)
-                .collect();
-            if members.len() < MIN_TRIBE_FOR_BOAT
-                || !members
-                    .iter()
-                    .any(|&i| self.organisms[i].discoveries.contains("fishing"))
-            {
-                continue;
-            }
-            let owned = self
-                .vehicles
-                .iter()
-                .filter(|v| v.harbour.is_some() && v.owner_lineage == tribe)
-                .count();
-            if owned >= MAX_PER_TRIBE.min(1 + members.len() / 12) {
-                continue;
-            }
-            let harbour = members.iter().find_map(|&i| {
-                let o = &self.organisms[i];
-                harbour_near(&self.grid, o.home_x.round() as i32, o.home_y.round() as i32)
-            });
-            let Some((hx, hy)) = harbour else { continue };
-            self.vehicles.push(Vehicle {
-                id: self.next_vehicle_id,
-                kind: TransportKind::Boat,
-                owner_lineage: tribe,
-                x: hx,
-                y: hy,
-                occupants: Vec::new(),
-                cargo: 0,
-                route: Vec::new(),
-                ready_tick: 0,
-                harbour: Some((hx, hy)),
-                bound_for: None,
-                ferry: None,
-            });
-            self.next_vehicle_id += 1;
-            fleet_total += 1;
-        }
     }
 
     /// Steps each unmanned fleet boat along its route, and plans its next voyage when the route is done.
@@ -330,7 +306,7 @@ impl Simulation {
         let now = self.tick_count;
         for i in 0..self.vehicles.len() {
             let v = &self.vehicles[i];
-            if v.kind != TransportKind::Boat || !v.occupants.is_empty() {
+            if !(v.kind == TransportKind::Boat || v.kind == TransportKind::Ship) || !v.occupants.is_empty() {
                 continue;
             }
             let Some(harbour) = v.harbour else { continue };
@@ -427,6 +403,7 @@ impl Simulation {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::sim::transportation::Vehicle;
 
     /// A lake with a grass shore on its western edge.
     fn lake_sim() -> Simulation {
@@ -459,6 +436,22 @@ mod tests {
         lineage
     }
 
+    /// Raises a tribe's shipyard in the Bronze age and gives its people wood, then runs the harbour
+    /// works every fifty ticks until the first hull is launched.
+    fn build_first_boat(sim: &mut Simulation, lineage: &str) {
+        sim.lineage_eras
+            .insert(lineage.to_string(), crate::sim::era::Era::Bronze);
+        for o in sim.organisms.iter_mut() {
+            o.inv_wood = 4;
+            o.x = 89.0;
+            o.y = 100.0;
+        }
+        for t in (0..=600).step_by(50) {
+            sim.tick_count = t;
+            crate::sim::tech::ports::tick_ports(sim);
+        }
+    }
+
     fn boat(lineage: String, at: (i32, i32)) -> Vehicle {
         Vehicle {
             id: 5,
@@ -479,9 +472,9 @@ mod tests {
     #[test]
     fn a_coastal_tribe_moors_a_boat_at_its_harbour() {
         let mut sim = lake_sim();
-        coastal_tribe(&mut sim);
+        let lineage = coastal_tribe(&mut sim);
         sim.vehicles.clear();
-        sim.launch_fleet_boats();
+        build_first_boat(&mut sim, &lineage);
         let fleet: Vec<&Vehicle> = sim.vehicles.iter().filter(|v| v.harbour.is_some()).collect();
         assert_eq!(fleet.len(), 1, "one boat for a tribe of eight");
         assert_eq!(fleet[0].harbour, Some((90, 100)));
@@ -667,5 +660,57 @@ mod tests {
             sim.organisms[0].inv_food as u32, CATCH,
             "the catch lands on the quay"
         );
+    }
+}
+
+#[cfg(test)]
+mod ship_tests {
+    use super::*;
+    use crate::sim::era::Era;
+    use crate::sim::transportation::Vehicle;
+
+    fn moored(sim: &mut Simulation, lineage: &str) {
+        sim.vehicles.push(Vehicle {
+            id: sim.next_vehicle_id,
+            kind: TransportKind::Boat,
+            owner_lineage: lineage.to_string(),
+            x: 90,
+            y: 100,
+            occupants: Vec::new(),
+            cargo: 0,
+            route: Vec::new(),
+            ready_tick: 0,
+            harbour: Some((90, 100)),
+            bound_for: None,
+            ferry: None,
+        });
+        sim.next_vehicle_id += 1;
+    }
+
+    #[test]
+    fn a_moored_boat_is_refitted_as_a_ship_once_its_tribe_reaches_the_classical_age() {
+        let mut sim = Simulation::new(42);
+        sim.vehicles.clear();
+        moored(&mut sim, "old");
+        moored(&mut sim, "young");
+        sim.lineage_eras.insert("old".to_string(), Era::Classical);
+        sim.lineage_eras.insert("young".to_string(), Era::Iron);
+        sim.refit_ships();
+        assert_eq!(sim.vehicles[0].kind, TransportKind::Ship);
+        assert_eq!(sim.vehicles[1].kind, TransportKind::Boat);
+        let frame = sim.state_json();
+        assert_eq!(frame["vehicles"][0]["kind"], "ship");
+    }
+
+    #[test]
+    fn a_steamship_is_drawn_with_the_steam_hull_of_its_industrial_owner() {
+        let mut sim = Simulation::new(42);
+        sim.vehicles.clear();
+        moored(&mut sim, "iron");
+        sim.lineage_eras.insert("iron".to_string(), Era::Industrial);
+        sim.refit_ships();
+        let frame = sim.state_json();
+        assert_eq!(frame["vehicles"][0]["kind"], "ship");
+        assert_eq!(frame["vehicles"][0]["era"], Era::Industrial.name());
     }
 }

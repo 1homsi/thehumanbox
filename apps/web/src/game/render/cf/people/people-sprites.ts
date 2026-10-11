@@ -1,10 +1,10 @@
 import { SPRITE_FLIP_X, SPRITE_HIDDEN, type SpriteLayer } from 'xipjs'
-import type { OrganismState, VehicleInfo } from '../../../../shared/types'
+import { isFloatingKind, type OrganismState, type VehicleInfo } from '../../../../shared/types'
 import type { ViewFlags } from '../../../../state/store'
 import { lineageColor } from '../../../../shared/constants'
 import { THOUGHT_COLORS, TILE } from '../../../model/palette'
 import { orgVariant } from '../../../model/org-variant'
-import { ERA_STRIPE_COLOR, SPECIALTY_EMOJI, orgAnimPhase, pickToolEmoji } from '../../draw-helpers'
+import { ERA_STRIPE_COLOR, orgAnimPhase, pickToolEmoji } from '../../draw-helpers'
 import {
   HUMAN_ATLAS_FRAMES,
   deterministicAppearanceIndex,
@@ -30,6 +30,7 @@ import { AttachedSprites, storeF32, storeF64, storeU32, storeU8 } from '../attac
 import { cssToRgba32, rgba32, withAlpha } from '../colors'
 import { MotionStore } from '../motion'
 import { labelFlagsOf } from './people-labels'
+import { professionMarks } from './profession-marks'
 
 /** Atlas slots, by layer. */
 export const BODY_ATLAS = { people: 0, boats: 1 } as const
@@ -83,6 +84,12 @@ export function isFocused(org: OrganismState, focus: string): boolean {
   return true
 }
 
+/**
+ * The people sheet draws a figure in a 32-pixel cell: the top of the hair is at cell row 4, the body's middle
+ * (where a held tool sits) at row 16. The sprite is `size` pixels tall, so these rows scale with it.
+ */
+const SHEET_HEAD_ROW = 4
+const SHEET_HAND_ROW = 16
 const WHITE = 0xffffffff
 const BLACK = rgba32(0, 0, 0)
 const CROWN = cssToRgba32('#f2c84b')
@@ -139,6 +146,8 @@ export class PeopleSprites {
   private boatBuilding = new Uint8Array(0)
   /** The rider's boat variant (hull and laden), see `boatVariantOf`. */
   private boatVariant = new Uint8Array(0)
+  /** The rider's seat across the boat, in pixels from the middle (passengers of a ferry sit either side). */
+  private boatSeat = new Float32Array(0)
   /** Each unmanned boat's tile at the last simulation frame, by vehicle id: where it glides from. */
   private boatTiles = new Map<number, [number, number]>()
   /** Unmanned boats under way: their body slot and the tiles they glide between. */
@@ -213,6 +222,7 @@ export class PeopleSprites {
     this.boatIdx = grow(this.boatIdx, Int32Array)
     this.boatBuilding = grow(this.boatBuilding, Uint8Array)
     this.boatVariant = grow(this.boatVariant, Uint8Array)
+    this.boatSeat = grow(this.boatSeat, Float32Array)
     this.hidden = grow(this.hidden, Uint8Array)
     this.labelFlags = grow(this.labelFlags, Uint8Array)
     this.motion.reserve(cap)
@@ -264,11 +274,16 @@ export class PeopleSprites {
     const detail = zoomDetailLevel(zoom)
     const crowded = alive > 400
     const boats = new Map<string, VehicleInfo>()
+    const seats = new Map<string, number>()
     for (const v of input.vehicles) {
-      if (v.kind !== 'boat') continue
+      if (!isFloatingKind(v.kind)) continue
       if (v.rider_id) boats.set(v.rider_id, v)
-      // A ferry's passengers sit in it too.
-      for (const id of v.passenger_ids ?? []) boats.set(id, v)
+      // A ferry's passengers sit in it too, one either side of the rider, further out as more board.
+      const pax = v.passenger_ids ?? []
+      pax.forEach((id, k) => {
+        boats.set(id, v)
+        seats.set(id, (k % 2 === 0 ? 1 : -1) * (Math.floor(k / 2) + 1) * 5)
+      })
     }
 
     const body = this.body
@@ -376,8 +391,12 @@ export class PeopleSprites {
       const boat = boats.get(id)
       this.boatBuilding[j] = boat?.building ? 1 : 0
       this.boatVariant[j] = boatVariantOf(boat?.era, boat?.cargo)
+      this.boatSeat[j] = seats.get(id) ?? 0
 
       const spriteTopOff = -size * 0.78
+      // Where the marks start: the top of the head, and the hand (see SHEET_HEAD_ROW).
+      const headTop = spriteTopOff + (size * SHEET_HEAD_ROW) / 32
+      const handTop = spriteTopOff + (size * SHEET_HAND_ROW) / 32
       // Shadows only when the world is close enough to see them.
       if (detail !== 'overview' && !crowded) {
         soft.push(j, 1, size * 0.2, size * 0.54, size * 0.2, DECAL.disc, 0, withAlpha(BLACK, 0.4 * fa))
@@ -519,8 +538,21 @@ export class PeopleSprites {
         const f = glyphFrame(g)
         if (f >= 0) over.push(j, dx, dy, px, px, f, 0, withAlpha(WHITE, fa))
       }
-      const specEmoji = SPECIALTY_EMOJI[org.specialty ?? ''] ?? ''
-      if (full && specEmoji) glyph(specEmoji, bodyR + 1, -bodyR * 0.4, 8)
+      // The trade shows on the figure: a hat on the head, a tool at hand height (see profession-marks).
+      if (standard && org.specialty) {
+        const { worn, held } = professionMarks(org.specialty, bodyR + 2)
+        for (const [marks, top] of [
+          [worn, headTop],
+          [held, handTop],
+        ] as const) {
+          for (const m of marks) {
+            over.push(j, m.x, top + m.y, m.w, m.h, 0, 0, withAlpha(cssToRgba32(m.color), fa), {
+              untextured: true,
+              snap: true,
+            })
+          }
+        }
+      }
       if (standard && org.diseases && org.diseases.length > 0) glyph(SICK_EMOJI, -bodyR - 1, -bodyR * 0.4, 8)
       if (full && org.tools) {
         const tool = pickToolEmoji(org.tools)
@@ -589,7 +621,7 @@ export class PeopleSprites {
     const tiles = new Map<number, [number, number]>()
     this.gliding = []
     for (const v of input.vehicles) {
-      if (v.kind !== 'boat' || v.rider_id) continue
+      if (!isFloatingKind(v.kind) || v.rider_id) continue
       const x = Math.round((v.x - ox) * TILE + TILE / 2)
       const y = Math.round((v.y - oy) * TILE + TILE / 2)
       const variant = boatVariantOf(v.era, v.cargo)
@@ -610,29 +642,36 @@ export class PeopleSprites {
       }
     }
     this.boatTiles = tiles
-    // A pier where boats are moored: two tiles of plank from the dry land out over the water. One per harbour,
-    // and one at each landing of a ferry.
+    // A pier where boats are moored: two tiles of plank from the dry land out over the water. A harbour has one
+    // pier per berth (a town's growth adds more, a tile apart along the shore), and one at each landing of a ferry.
     const piers = new Set<string>()
-    const pierAt = (hx: number, hy: number, shore: [number, number] | null | undefined) => {
-      const key = `${hx},${hy}`
+    const pierAt = (hx: number, hy: number, shore: [number, number] | null | undefined, count = 1) => {
       const column = shore ? pierColumn(shore[0], shore[1]) : -1
-      if (piers.has(key) || column < 0) return
-      piers.add(key)
-      const pi = afloat.add(
-        Math.round((hx - ox) * TILE + TILE / 2),
-        Math.round((hy - oy) * TILE + TILE / 2),
-        BOAT_CELL.width,
-        BOAT_CELL.height,
-        column,
-        -1,
-      )
-      afloat.atlas[pi] = BODY_ATLAS.boats
-      // Behind the boats moored at it.
-      afloat.sortKey[pi] = -10000 + hy - 0.5
+      if (column < 0) return
+      for (let k = 0; k < Math.min(count, 4); k++) {
+        // Piers fan out along the shore: 0, +1, -1, +2 tiles from the harbour.
+        const side = k === 0 ? 0 : (k % 2 === 1 ? 1 : -1) * Math.ceil(k / 2)
+        const key = `${hx},${hy},${side}`
+        if (piers.has(key)) continue
+        piers.add(key)
+        const alongX = shore && shore[0] === 0 ? side : 0
+        const alongY = shore && shore[0] !== 0 ? side : 0
+        const pi = afloat.add(
+          Math.round((hx - ox) * TILE + TILE / 2 + alongX * TILE),
+          Math.round((hy - oy) * TILE + TILE / 2 + alongY * TILE),
+          BOAT_CELL.width,
+          BOAT_CELL.height,
+          column,
+          -1,
+        )
+        afloat.atlas[pi] = BODY_ATLAS.boats
+        // Behind the boats moored at it.
+        afloat.sortKey[pi] = -10000 + hy - 0.5
+      }
     }
     for (const v of input.vehicles) {
-      if (v.kind !== 'boat') continue
-      if (v.harbour && v.shore) pierAt(v.harbour[0], v.harbour[1], v.shore)
+      if (!isFloatingKind(v.kind)) continue
+      if (v.harbour && v.shore) pierAt(v.harbour[0], v.harbour[1], v.shore, v.piers ?? 1)
       for (const l of v.ferry ?? []) pierAt(l.at[0], l.at[1], l.shore)
     }
     this.lastMoved = -Infinity
@@ -688,7 +727,7 @@ export class PeopleSprites {
       }
       if (rider >= 0) {
         const moving = !this.boatBuilding[j] && recent
-        let riderChanged = storeF32(bx, rider, Math.round(cx))
+        let riderChanged = storeF32(bx, rider, Math.round(cx) + this.boatSeat[j])
         riderChanged = storeF32(by, rider, Math.round(cy) + 3) || riderChanged
         const column = boatColumn(this.boatVariant[j], boatFrame(moving, this.boatBuilding[j] === 1, now))
         riderChanged = storeU32(bf, rider, column) || riderChanged
