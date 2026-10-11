@@ -9,6 +9,7 @@ import {
   paintTownhouse,
 } from './dwellings'
 import { paintCastle, paintFortress, paintTemple, paintTowerTall, paintWindmill } from './civic'
+import { paintGate, paintTower } from './fortifications'
 import { paintFarm, paintIndustrial, paintUtility } from './industry'
 import { paintLandmark, paintProp } from './landmarks'
 import { paintCrossing, paintLandscape } from './landscape'
@@ -85,7 +86,9 @@ reg(paintManor, [
   'TrainStation',
 ])
 reg(paintTemple, ['Temple', 'Cathedral', 'Mosque', 'Synagogue', 'Pagoda', 'Stupa', 'Mausoleum'])
-reg(paintCastle, ['Castle', 'Barracks', 'Watchtower', 'Tower', 'Wall', 'Gate', 'PoliceStation'])
+reg(paintCastle, ['Castle', 'Barracks', 'Watchtower', 'Wall', 'PoliceStation'])
+reg(paintGate, ['Gate'])
+reg(paintTower, ['Tower'])
 reg(paintTowerTall, ['Lighthouse', 'Lighthouse2', 'ClockTower', 'Observatory', 'WaterTower', 'RadioTower'])
 reg(paintWindmill, ['Windmill'])
 reg(paintWatermill, ['Watermill'])
