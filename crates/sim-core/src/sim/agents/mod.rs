@@ -7,6 +7,7 @@ pub mod households;
 pub mod memory_pressure;
 pub mod newcomers;
 pub mod relations;
+pub mod service;
 pub mod social;
 pub mod spawn;
 pub mod travel_groups;
