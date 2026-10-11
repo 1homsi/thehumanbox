@@ -11,4 +11,5 @@ pub mod social;
 pub mod spawn;
 pub mod travel_groups;
 pub mod wander;
+pub mod weddings;
 pub mod working_day;
