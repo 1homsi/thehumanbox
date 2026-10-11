@@ -416,8 +416,32 @@ fn typed_buildings_match_the_value_reference() {
         }
         sim.buildings.push(b);
     }
+    // Shipyards with a hull at each stage on the slip, and one with an empty slip.
+    for (n, work) in [None, Some(300), Some(150), Some(0)].into_iter().enumerate() {
+        let id = sim.buildings.len() as u32 + 1;
+        let mut b = Building::new(
+            id,
+            BuildingKind::Shipyard,
+            10 + n as i32 * 4,
+            20,
+            Some("lineage-1".into()),
+            12,
+        );
+        b.condition = 1.0;
+        b.hull_work = work;
+        sim.buildings.push(b);
+    }
     assert!(sim.buildings.len() > 50);
     let reference = sim.buildings_value_reference();
+    let slips: Vec<_> = reference.as_array().unwrap()[sim.buildings.len() - 4..]
+        .iter()
+        .map(|b| b.get("slip").cloned())
+        .collect();
+    assert_eq!(
+        slips,
+        vec![None, Some(json!(1)), Some(json!(2)), Some(json!(3))],
+        "an empty slip sends nothing; a hull sends its stage"
+    );
     let frame = sim.state_frame().into_value();
     assert_eq!(frame["buildings"], reference);
     assert_eq!(

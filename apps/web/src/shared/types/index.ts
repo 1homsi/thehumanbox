@@ -977,4 +977,6 @@ export interface Building {
   occupants?: string[]
   owner_lineage?: string | null
   lineage_id?: string | null
+  /** A shipyard's hull on the slip: 1 a keel, 2 its ribs, 3 planked. Absent when the slip is empty. */
+  slip?: number
 }

@@ -54,6 +54,10 @@ pub struct BuildingJson {
     repairing: bool,
     ruined: bool,
     ruined_at_tick: Option<u64>,
+    /// A shipyard's hull on the slip, by stage (see `ports::slip_stage`); absent when the slip is
+    /// empty and on every other building, so it costs the frame nothing there.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    slip: Option<u8>,
     x: i32,
     y: i32,
 }
@@ -77,6 +81,7 @@ impl BuildingJson {
             repairing: b.is_repairing_at(tick),
             ruined: b.is_ruined(),
             ruined_at_tick: b.ruined_at_tick,
+            slip: crate::sim::tech::ports::slip_stage(b.hull_work),
             x: b.x,
             y: b.y,
         }
