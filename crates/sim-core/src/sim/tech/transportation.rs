@@ -80,6 +80,10 @@ pub struct Vehicle {
     /// `None` for every other boat.
     #[serde(default)]
     pub ferry: Option<FerryLine>,
+    /// The railway line a train runs on (see `railways.rs`); `None` for every other vehicle. Left out of a
+    /// save when empty, so a world with no railway saves exactly as before.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rail_line: Option<u32>,
 }
 
 /// A ferry line: the water tile at each landing of a strait.

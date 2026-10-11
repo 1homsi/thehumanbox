@@ -594,6 +594,35 @@ pub(super) fn print_progress(sim: &Simulation) {
             harbours.len()
         );
     }
+    {
+        let trains: Vec<&sim::transportation::Vehicle> = sim
+            .vehicles
+            .iter()
+            .filter(|v| v.kind == sim::transportation::TransportKind::Train)
+            .collect();
+        let riders: usize = trains.iter().map(|v| v.occupants.len()).sum();
+        let carrying: u32 = trains.iter().map(|v| v.cargo).sum();
+        let rail_cells = sim
+            .grid
+            .road
+            .iter()
+            .filter(|&&k| k == crate::world::grid::ROAD_RAIL)
+            .count();
+        let stations = sim
+            .buildings
+            .iter()
+            .filter(|b| b.kind == sim::tech::buildings::BuildingKind::TrainStation && b.is_operational())
+            .count();
+        println!(
+            "Railways at end: lines {}, trains {}, riders aboard {}, grain on trains {}, track cells {}, stations {}",
+            sim.rail_lines.len(),
+            trains.len(),
+            riders,
+            carrying,
+            rail_cells,
+            stations
+        );
+    }
 
     let mut lineage_alive: HashMap<&str, usize> = HashMap::new();
     for org in sim.organisms.iter().filter(|o| o.alive) {

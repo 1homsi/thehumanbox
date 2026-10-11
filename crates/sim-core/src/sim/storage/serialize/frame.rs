@@ -168,7 +168,7 @@ impl Simulation {
         if let Some(obj) = payload.as_object_mut() {
             obj.insert("vehicles".into(), serde_json::Value::Array(self.vehicles.iter().map(|v| json!({
                 "id": v.id, "kind": v.kind.name(), "x": v.x, "y": v.y,
-                "rider_id": v.occupants.first(), "building": self.tick_count < v.ready_tick && !v.occupants.is_empty(),
+                "rider_id": v.occupants.first(), "building": self.tick_count < v.ready_tick && !v.occupants.is_empty() && v.rail_line.is_none(),
                 // The owner's era picks the hull the boat is drawn with; cargo is the goods on deck.
                 "era": self.era(&v.owner_lineage).name(), "cargo": v.cargo,
                 // A boat with a voyage to make is under way (its wake shows); a fishing boat is moored at its harbour.
@@ -179,6 +179,8 @@ impl Simulation {
                 "shore": v.harbour.and_then(|h| crate::sim::tech::fleet::harbour_shore(&self.grid, h)).map(|(dx, dy)| json!([dx, dy])),
                 // Everyone aboard after the first (who is `rider_id`), and a ferry's two landings with the way to each shore.
                 "passenger_ids": v.occupants.iter().skip(1).collect::<Vec<_>>(),
+                // A train's next track cell: its heading (see `tech/railways.rs`).
+                "next": if v.rail_line.is_some() { self.train_next_cell(v).map(|(x, y)| json!([x, y])) } else { None },
                 "ferry": v.ferry.map(|f| json!([
                     {"at": [f.a.0, f.a.1], "shore": crate::sim::tech::fleet::harbour_shore(&self.grid, f.a)},
                     {"at": [f.b.0, f.b.1], "shore": crate::sim::tech::fleet::harbour_shore(&self.grid, f.b)}

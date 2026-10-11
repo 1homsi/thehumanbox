@@ -219,6 +219,7 @@ fn legacy_default_counters_advance_past_all_persisted_ids() {
         harbour: None,
         bound_for: None,
         ferry: None,
+        rail_line: None,
     });
     state.battles.push(saved_battle("legacy-battle-a"));
     state.battles.push(saved_battle("legacy-battle-b"));

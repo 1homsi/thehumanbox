@@ -1,9 +1,8 @@
 import { SPRITE_UNTEXTURED, SpriteLayer, TextLayer } from 'xipjs'
 import { TILE } from '../../../model/palette'
 import { drawTradeNetwork2D } from '../../base-parts/trade-network'
-import { drawRail, drawTrain, trainProgress } from '../../era-traffic'
-import { lineageEraTiers } from '../../draw-helpers'
-import { cachedRailLinks } from '../../rails'
+import { drawTrain } from '../../era-traffic'
+import { eraTier } from '../../../model/era-tier'
 import { paintPeopleLabels, type PeopleLabelSource } from '../people/people-labels'
 import { PeopleNameLayer } from '../people/people-names'
 import { atmosphereTints, precipitating, writePrecipitation, type Tint } from './atmosphere'
@@ -352,12 +351,11 @@ export class CfOverlayRenderer {
     this.updateTerritoryBorders(f)
     lap('ground')
 
-    // Trade roads and the rails and trains that run along them.
+    // Trade roads, and the railway track the tribes laid along them (the road layer draws the track).
     const showTrade = f.viewFlags.tradeRoutes
     this.roads.begin(gv)
     if (showTrade) {
       drawTradeNetwork2D(this.roads.asContext(), f.world, f.bounds, f.t, 'roads')
-      this.paintRails(this.roads.asContext(), f)
     }
     // Artworks lie on the ground where their makers stood: under the buildings and the people.
     paintArtworks(this.roads.asContext(), f)
@@ -367,6 +365,7 @@ export class CfOverlayRenderer {
     // Caravans travel the roads at every zoom; the trade roads and rails above show only with the lens.
     this.traffic.begin(gv)
     drawTradeNetwork2D(this.traffic.asContext(), f.world, f.bounds, f.t, 'caravans')
+    this.paintTrains(this.traffic.asContext(), f)
     this.traffic.end()
     this.smoke.begin(gv)
     paintChimneySmoke(this.smoke.asContext(), f.bounds, f.ox, f.oy, f.world.buildings, f.t)
@@ -430,34 +429,18 @@ export class CfOverlayRenderer {
     return this.lastResult
   }
 
-  // ── rails ──────────────────────────────────────────────────────────────────
+  // ── trains ─────────────────────────────────────────────────────────────────
 
-  /** Railways between each tribe's train stations, with trains shuttling along them in the tribe's age. */
-  private paintRails(ctx: CanvasRenderingContext2D, f: CfFrame): void {
-    const { world, ox, oy, t } = f
-    const links = cachedRailLinks(world.buildings)
-    if (links.length === 0) return
-    const tiers = lineageEraTiers(world.lineage_eras)
-    for (const link of links) {
-      drawRail(
-        ctx,
-        (link.a.x - ox) * TILE,
-        (link.a.y - oy) * TILE,
-        (link.b.x - ox) * TILE,
-        (link.b.y - oy) * TILE,
-      )
-    }
-    for (const link of links) {
-      drawTrain(
-        ctx,
-        (link.a.x - ox) * TILE,
-        (link.a.y - oy) * TILE,
-        (link.b.x - ox) * TILE,
-        (link.b.y - oy) * TILE,
-        trainProgress(link, world.tick),
-        tiers.get(link.owner) ?? 5,
-        t,
-      )
+  /** The trains the simulation runs on the railway lines (`vehicles` of kind `train`), at every zoom. */
+  private paintTrains(ctx: CanvasRenderingContext2D, f: CfFrame): void {
+    const { world, ox, oy, t, bounds } = f
+    for (const v of world.vehicles ?? []) {
+      if (v.kind !== 'train') continue
+      const x = (v.x - ox + 0.5) * TILE
+      const y = (v.y - oy + 0.5) * TILE
+      if (v.x < bounds.c0 - 2 || v.x > bounds.c1 + 2 || v.y < bounds.r0 - 2 || v.y > bounds.r1 + 2) continue
+      const heading = v.next ? ([v.next[0] - v.x, v.next[1] - v.y] as const) : null
+      drawTrain(ctx, x, y, heading, eraTier(v.era), !!v.sailing, t)
     }
   }
 

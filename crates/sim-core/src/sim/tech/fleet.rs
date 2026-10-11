@@ -466,6 +466,7 @@ mod tests {
             harbour: Some((90, 100)),
             bound_for: None,
             ferry: None,
+            rail_line: None,
         }
     }
 
@@ -608,6 +609,7 @@ mod tests {
                 harbour: Some((120, 100)),
                 bound_for: None,
                 ferry: None,
+                rail_line: None,
             },
         ];
         sim.weather.kind = 0;
@@ -683,6 +685,7 @@ mod ship_tests {
             harbour: Some((90, 100)),
             bound_for: None,
             ferry: None,
+            rail_line: None,
         });
         sim.next_vehicle_id += 1;
     }
