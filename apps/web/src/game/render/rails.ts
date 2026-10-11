@@ -6,6 +6,8 @@ import { drawLaunch, drawPlane, flightPosition, launchProgress } from './era-tra
 
 import { TILE } from '../model/palette'
 
+import { normKind } from './building-draw/footprints'
+
 /** Rockets lifting off from spaceports and aircraft over modern tribes. */
 export function drawEraTraffic(
   ctx: CanvasRenderingContext2D,
@@ -18,7 +20,9 @@ export function drawEraTraffic(
   t: number,
 ) {
   for (const b of world.buildings ?? []) {
-    if (b.kind !== 'Spaceport' || b.ruined || (b.construction_progress ?? b.condition ?? 1) < 1) continue
+    // The sim names kinds in snake case ('spaceport'); compare the normalised name.
+    if (normKind(b.kind) !== 'Spaceport' || b.ruined || (b.construction_progress ?? b.condition ?? 1) < 1)
+      continue
     const p = launchProgress(b.id, world.tick)
     if (p === null) continue
     const fw = b.fw ?? 3
