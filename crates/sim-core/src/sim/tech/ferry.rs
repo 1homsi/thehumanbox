@@ -370,6 +370,7 @@ impl Simulation {
             harbour: None,
             bound_for: None,
             ferry: Some(FerryLine { a, b }),
+            rail_line: None,
         });
         self.next_vehicle_id += 1;
         let name = self

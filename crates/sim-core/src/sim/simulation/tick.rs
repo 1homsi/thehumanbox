@@ -518,6 +518,7 @@ impl Simulation {
         self.tick_colonization();
         self.tick_fleet();
         self.tick_ferries();
+        self.tick_rails();
         self.tick_plantings();
         self.tick_prayers();
         self.tick_wards();

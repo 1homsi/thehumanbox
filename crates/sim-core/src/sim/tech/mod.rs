@@ -14,3 +14,4 @@ pub mod fleet;
 mod plant_kinds_tests;
 pub mod plantings;
 pub mod ports;
+pub mod railways;

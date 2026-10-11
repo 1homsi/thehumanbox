@@ -161,6 +161,8 @@ pub struct Simulation {
     pub caravans: Vec<super::civ::trade_routes::Caravan>,
     /// Roads villages have laid to their wells, fields and neighbouring villages (see `civ::land::village_roads`).
     pub village_roads: Vec<super::civ::land::village_roads::VillageRoad>,
+    /// Railway lines between a tribe's stations, each with one train (see `tech/railways.rs`).
+    pub rail_lines: Vec<super::tech::railways::RailLine>,
     /// Each town's plaza and streets (see `civ::civ_tick::town`).
     pub town_plazas: Vec<super::civ::civ_tick::town::TownPlaza>,
     pub next_trade_route_id: u32,
@@ -305,6 +307,7 @@ impl Simulation {
             trades: VecDeque::new(),
             trade_routes: Vec::new(),
             village_roads: Vec::new(),
+            rail_lines: Vec::new(),
             town_plazas: Vec::new(),
             caravans: Vec::new(),
             next_trade_route_id: 1,

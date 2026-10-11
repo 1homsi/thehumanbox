@@ -305,6 +305,7 @@ impl Simulation {
                 harbour: None,
                 bound_for: None,
                 ferry: None,
+                rail_line: None,
             });
             self.next_vehicle_id += 1;
             self.organisms[idx].discover("raft_building");
@@ -395,6 +396,7 @@ impl Simulation {
                     harbour: None,
                     bound_for: None,
                     ferry: None,
+                    rail_line: None,
                 });
                 self.next_vehicle_id += 1;
                 i
@@ -594,6 +596,7 @@ mod storm_tests {
             harbour: None,
             bound_for: None,
             ferry: None,
+            rail_line: None,
         });
         sim.tick_count = 500;
         sim.weather.kind = 2;
@@ -652,6 +655,7 @@ mod deck_tests {
             harbour: None,
             bound_for: None,
             ferry: None,
+            rail_line: None,
         });
         let (_, _, origin) = sim.boat_action(0).expect("a resident takes the moored boat");
         assert_eq!(origin, "boat_travel");
@@ -680,6 +684,7 @@ mod stranded_tests {
             harbour: None,
             bound_for: None,
             ferry: None,
+            rail_line: None,
         }
     }
 
