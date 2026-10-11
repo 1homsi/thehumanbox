@@ -10,6 +10,7 @@
 //   train             a train on its railway line (the frame's `vehicles`, kind train)
 //   rail              a railway cell on the track between two towns (the frame's `roads`, kind 3)
 //   field             a farm plot (the frame's `farms`)
+//   pier              a harbour's pier (a boat's harbour with piers) or a ferry landing, one per tile
 //
 // Candidates are sorted by distance to the nearest settlement centre, then by x, then by y, so
 // `index` picks the same one every time. Pass `index` to pick another candidate.
@@ -103,6 +104,20 @@ export function candidatesFor(frame, feature, tick = frame.tick) {
       .map(([row, col, kind]) => ({ entity: { row, col, kind }, kind: 'rail', name: 'rail', x: col, y: row }))
       .sort(sortBy)
   }
+  if (head === 'pier') {
+    // A pier stands at a harbour's berth (the vehicle's `harbour`, when the owner has piers there) and at
+    // each landing of a ferry. One candidate per tile, however many boats share the harbour.
+    const seen = new Map()
+    const add = (x, y, entity, name) => {
+      const key = `${x},${y}`
+      if (!seen.has(key)) seen.set(key, { entity, kind: 'pier', name, x, y })
+    }
+    for (const v of frame.vehicles ?? []) {
+      if (v.harbour && (v.piers ?? 0) > 0) add(v.harbour[0], v.harbour[1], v, `pier-${v.era ?? 'any'}`)
+      for (const landing of v.ferry ?? []) add(landing.at[0], landing.at[1], v, `pier-ferry-${v.era ?? 'any'}`)
+    }
+    return [...seen.values()].sort(sortBy)
+  }
   if (head === 'field') {
     return (frame.farms ?? [])
       .map((f) => ({ entity: f, kind: 'field', name: `field-${f.crop ?? 'plot'}`, x: f.x, y: f.y }))
@@ -126,7 +141,7 @@ export function findFeature(frame, feature, { index = 0, tick = frame.tick } = {
     throw new Error(
       `no "${feature}" in this world at tick ${frame.tick} (buildings: ${JSON.stringify(have.buildings)}, ` +
         `caravans: ${have.caravans.count}, boats: ${have.boats}, fields: ${have.fields}). ` +
-        `Features: building:<kind>, caravan[:<cargo>], boat, ferry, ship, train, rail, field.`,
+        `Features: building:<kind>, caravan[:<cargo>], boat, ferry, ship, train, rail, field, pier.`,
     )
   }
   if (index < 0 || index >= list.length) {

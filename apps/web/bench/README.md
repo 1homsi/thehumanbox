@@ -57,15 +57,22 @@ node apps/web/bench/capture-feature.mjs --seed 42 --tick 18000 --feature caravan
 ```
 
 - Features: `building:<kind>` (or a bare kind: `market`, `gate`, `watchtower`), `caravan[:<cargo>]` (on the
-  road at the tick), `boat`, `ferry` (a ferry at its landing or under way), `ship` (a sailing ship or steamship), `field` (a farm plot). `--index N` picks another candidate; candidates are
+  road at the tick), `boat`, `ferry` (a ferry at its landing or under way), `ship` (a sailing ship or steamship), `field` (a farm plot), `pier` (a harbour's berth or a ferry landing, one per tile). `--index N` picks another candidate; candidates are
   ordered by distance to the nearest settlement, so the default is a town's, and the same every run.
 - Output: `<out>/<tag>-<feature>-close.png`, `-overview.png` and `-close-crop.png` (the centre at 2x). The last
   stdout line is JSON with the tile and the files. `--zooms` takes `close`, `mid` and `overview`.
-- Limits: the browser is killed after `--limit` seconds (default 110) even if the page hangs, and a simulation
-  runs in a child process killed after `--gen-limit` seconds (default 900). Nothing opens a window; Chrome is
-  headless. Run long captures in the background and read the PNGs with an image viewer after they finish.
-- The camera centres on the tile's centre; the top bar and dock cover part of the view, so the feature can sit
-  a tile or two off the crop's middle. Check the overview shot for context before judging the placement.
+- Readiness: the page is ready when the map has drawn its first frame (the startup cover fades out, `page-init.mjs`),
+  not after a fixed wait. Each wait has its own deadline and the log says what it was waiting for; every CDP call
+  has a timeout. A failure says which phase it was in.
+- Limits: the whole browser part is killed after `--limit` seconds (default 240). Chrome runs in its own process
+  group, and it is killed on every exit path (normal end, a failure, the time limit, Ctrl-C, SIGTERM), so no headless
+  Chrome is left behind. A simulation runs in a child process killed after `--gen-limit` seconds (default 900); that
+  step is silent until it ends, so a first run for a new seed and tick can look stalled for minutes. Nothing opens a
+  window; Chrome is headless. Run long captures in the background and read the PNGs after they finish.
+- `--mark 1` (the default) draws a thin magenta square at the map's centre in the close shots, where the camera puts
+  the target tile, so the tile can be found in the picture. It is added to the page for the capture only.
+- The camera centres on the map canvas, which is not the whole window (the top bar and dock take space); the
+  crosshair and the close crop follow the canvas centre. Check the overview shot for context before judging the placement.
 - Saves are cached in `bench/.cache` as `s<seed>-t<tick>.bin/.json/.frame.json` (the frame is the full
   `fullFrame` JSON, kept for the feature search). The first run for a new seed and tick takes minutes.
 - `find-feature.test.mjs` tests the feature search: `node --test apps/web/bench/find-feature.test.mjs`.
