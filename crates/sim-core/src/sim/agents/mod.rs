@@ -10,6 +10,7 @@ pub mod relations;
 pub mod service;
 pub mod social;
 pub mod spawn;
+pub mod speeches;
 pub mod travel_groups;
 pub mod wander;
 pub mod weddings;
