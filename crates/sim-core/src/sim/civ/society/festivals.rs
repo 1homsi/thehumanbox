@@ -6,6 +6,7 @@
 
 use crate::math::DetMath;
 use crate::sim::civ::culture::{Festival, FestivalKind};
+use crate::sim::civ::land::village_stores;
 use crate::sim::config::SEASON_LENGTH;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
@@ -22,6 +23,11 @@ const REACH: f32 = 30.0;
 const JOY: u32 = 50;
 const LONELINESS_RELIEF: f32 = 0.03;
 const FEAR_RELIEF: f32 = 0.02;
+/// The Harvest Feast waits until the year's fields are in (they ripen about 300 ticks into autumn).
+pub(crate) const HARVEST_FEAST_AT: u64 = 600;
+/// Measures of grain a tribe must have in its granaries for a feast after the harvest. A thin harvest
+/// holds no feast.
+pub(crate) const GOOD_HARVEST_STOCK: u32 = 10;
 
 /// What a season's turning is celebrated as, by season index (the sim's
 /// order: abundance, decline, scarcity, recovery).
@@ -42,9 +48,14 @@ impl Simulation {
         let into_season = now % SEASON_LENGTH;
         let season = ((now / SEASON_LENGTH) % 4) as usize;
 
-        // A new season has just begun: settled tribes call a festival.
-        if into_season < FESTIVAL_STEP * 2 {
-            let (kind, name) = festival_for_season(season);
+        // A new season has just begun: settled tribes call a festival. The Harvest Feast waits for the grain.
+        let (kind, name) = festival_for_season(season);
+        let window = if kind == FestivalKind::Harvest {
+            HARVEST_FEAST_AT
+        } else {
+            0
+        };
+        if into_season >= window && into_season < window + FESTIVAL_STEP * 2 {
             let mut tribes: Vec<(String, usize)> = {
                 let mut counts: std::collections::BTreeMap<String, usize> = Default::default();
                 for o in self.organisms.iter().filter(|o| o.alive) {
@@ -59,6 +70,11 @@ impl Simulation {
                     .get(&lineage)
                     .is_some_and(|&t| now.saturating_sub(t) < SEASON_LENGTH / 2);
                 if held_lately || self.festivals.iter().any(|f| f.lineage_id == lineage) {
+                    continue;
+                }
+                // A harvest feast is held only after a good harvest: the grain in the granaries shows it.
+                let stock = village_stores::stock_of(self, &lineage);
+                if kind == FestivalKind::Harvest && stock < GOOD_HARVEST_STOCK {
                     continue;
                 }
                 let home = self.lineage_homes[&lineage];
@@ -79,13 +95,12 @@ impl Simulation {
                     .get(&lineage)
                     .cloned()
                     .unwrap_or_else(|| "a tribe".to_string());
-                push_event(
-                    &mut self.events,
-                    now,
-                    "life",
-                    &tribe,
-                    &format!("hold their {name}"),
-                );
+                let what = if kind == FestivalKind::Harvest {
+                    format!("hold their {name} after a good harvest of {stock} measures in the granaries")
+                } else {
+                    format!("hold their {name}")
+                };
+                push_event(&mut self.events, now, "life", &tribe, &what);
             }
         }
 
@@ -127,6 +142,7 @@ impl Simulation {
 mod tests {
     use super::*;
     use crate::organism::organism::Organism;
+    use crate::sim::tech::buildings::{Building, BuildingKind};
 
     fn world(people: usize) -> Simulation {
         let mut sim = Simulation::new(77);
@@ -135,6 +151,11 @@ mod tests {
         sim.events.clear();
         sim.lineage_homes.insert("clan".into(), [100, 100, 0]);
         sim.lineage_names.insert("clan".into(), "Ashfolk".into());
+        // A granary of the harvest: a good one (12 measures) unless a test thins it.
+        let mut granary = Building::new(900, BuildingKind::Granary, 101, 101, Some("clan".into()), 0);
+        granary.condition = 1.0;
+        granary.stock = 12;
+        sim.buildings.push(granary);
         for i in 0..people {
             let mut o = Organism::new(
                 format!("p{i}"),
@@ -159,11 +180,15 @@ mod tests {
     fn a_settled_tribe_holds_a_festival_when_the_season_turns_and_is_cheered_by_it() {
         let mut sim = world(10);
         // The start of autumn: the harvest.
-        sim.tick_count = SEASON_LENGTH + 60;
+        sim.tick_count = SEASON_LENGTH + HARVEST_FEAST_AT + 60;
         sim.tick_festivals();
         assert_eq!(sim.festivals.len(), 1);
         assert_eq!(sim.festivals[0].name, "Harvest Feast");
-        assert!(sim.events.iter().any(|e| e.detail == "hold their Harvest Feast"));
+        assert!(sim
+            .events
+            .iter()
+            .any(|e| e.detail
+                == "hold their Harvest Feast after a good harvest of 12 measures in the granaries"));
         assert!(sim
             .organisms
             .iter()
@@ -175,20 +200,47 @@ mod tests {
     }
 
     #[test]
+    fn a_thin_harvest_holds_no_harvest_feast_and_a_good_one_does() {
+        let mut thin = world(10);
+        for b in thin.buildings.iter_mut() {
+            b.stock = GOOD_HARVEST_STOCK - 7;
+        }
+        thin.tick_count = SEASON_LENGTH + HARVEST_FEAST_AT + 60;
+        thin.tick_festivals();
+        assert!(thin.festivals.is_empty(), "a thin harvest still held a feast");
+
+        // The feast waits for the grain: at the very start of autumn, before the fields come in, none is held.
+        let mut early = world(10);
+        early.tick_count = SEASON_LENGTH + 60;
+        early.tick_festivals();
+        assert!(early.festivals.is_empty(), "the feast came before the harvest");
+
+        // Other feasts do not need a harvest: midwinter is held whatever the granaries hold.
+        let mut winter = world(10);
+        for b in winter.buildings.iter_mut() {
+            b.stock = 0;
+        }
+        winter.tick_count = 2 * SEASON_LENGTH + 60;
+        winter.tick_festivals();
+        assert_eq!(winter.festivals.len(), 1);
+        assert_eq!(winter.festivals[0].name, "Midwinter Feast");
+    }
+
+    #[test]
     fn small_or_homeless_tribes_hold_none_and_festivals_end() {
         let mut sim = world(3);
-        sim.tick_count = SEASON_LENGTH + 60;
+        sim.tick_count = SEASON_LENGTH + HARVEST_FEAST_AT + 60;
         sim.tick_festivals();
         assert!(sim.festivals.is_empty(), "a hamlet held a festival");
 
         let mut sim = world(10);
         sim.lineage_homes.clear();
-        sim.tick_count = SEASON_LENGTH + 60;
+        sim.tick_count = SEASON_LENGTH + HARVEST_FEAST_AT + 60;
         sim.tick_festivals();
         assert!(sim.festivals.is_empty());
 
         let mut sim = world(10);
-        sim.tick_count = SEASON_LENGTH + 60;
+        sim.tick_count = SEASON_LENGTH + HARVEST_FEAST_AT + 60;
         sim.tick_festivals();
         assert_eq!(sim.festivals.len(), 1);
         sim.tick_count += u64::from(FESTIVAL_TICKS) + 1;
@@ -213,7 +265,7 @@ mod tests {
     #[test]
     fn festivals_are_sent_to_the_client_while_they_last() {
         let mut sim = world(10);
-        sim.tick_count = SEASON_LENGTH + 60;
+        sim.tick_count = SEASON_LENGTH + HARVEST_FEAST_AT + 60;
         sim.tick_festivals();
         let payload = sim.state_json();
         let f = &payload["festivals"][0];
