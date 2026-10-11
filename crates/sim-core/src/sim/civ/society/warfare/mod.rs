@@ -8,6 +8,7 @@ use crate::sim::world_events::push_event;
 use crate::world::grid::WorldGrid;
 
 mod battles;
+mod march;
 mod spawning;
 #[cfg(test)]
 mod tests;
