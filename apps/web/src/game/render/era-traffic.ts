@@ -138,143 +138,58 @@ export function drawPlane(ctx: Ctx, x: number, y: number, angle: number, scale: 
   ctx.restore()
 }
 
-export interface RailLink {
-  owner: string
-  a: { x: number; y: number; id: number }
-  b: { x: number; y: number; id: number }
-}
-
-/** Longest stretch of track a tribe lays between two stations, in tiles. */
-const MAX_RAIL = 120
+/** Length of an engine or a car, in map pixels: the engine's front is at +CAR / 2 along the heading. */
+const CAR = 7
 
 /**
- * Each tribe's train stations, chained nearest-first into a line. Station
- * points are the middle of each station's footprint, in tiles.
+ * A train at (x, y) in map pixels, its engine facing along `heading` (the step to the next track cell), or
+ * east while it stands with nothing ahead. The engine and its cars are coloured by the owner's era tier;
+ * a moving train puffs steam from its funnel, which trails back along the track as it rises.
  */
-export function railLinks(
-  buildings: readonly {
-    id: number
-    kind: string
-    x: number
-    y: number
-    fw?: number
-    fh?: number
-    ruined?: boolean
-    owner?: string
-  }[],
-): RailLink[] {
-  const byOwner = new Map<string, { x: number; y: number; id: number }[]>()
-  for (const b of buildings) {
-    if (b.kind !== 'TrainStation' || b.ruined || !b.owner) continue
-    const list = byOwner.get(b.owner) ?? []
-    list.push({ x: b.x + (b.fw ?? 2) / 2, y: b.y + (b.fh ?? 2), id: b.id })
-    byOwner.set(b.owner, list)
-  }
-  const links: RailLink[] = []
-  for (const [owner, stations] of byOwner) {
-    stations.sort((p, q) => p.id - q.id)
-    const linked = [stations[0]!]
-    const rest = stations.slice(1)
-    while (rest.length > 0) {
-      let best = -1
-      let bestD = Infinity
-      let from = linked[0]!
-      for (const l of linked) {
-        rest.forEach((s, i) => {
-          const d = Math.hypot(s.x - l.x, s.y - l.y)
-          if (d < bestD) {
-            bestD = d
-            best = i
-            from = l
-          }
-        })
-      }
-      const next = rest.splice(best, 1)[0]!
-      if (bestD <= MAX_RAIL) links.push({ owner, a: from, b: next })
-      linked.push(next)
-    }
-  }
-  return links
-}
-
-/** Where a link's train is: 0 at station a, 1 at b, pausing at each end. */
-export function trainProgress(link: RailLink, tick: number): number {
-  const length = Math.hypot(link.b.x - link.a.x, link.b.y - link.a.y)
-  const travel = Math.max(60, length * 6)
-  const dwell = 90
-  const period = (travel + dwell) * 2
-  const ph = (tick + ((link.a.id * 131 + link.b.id * 17) % period)) % period
-  if (ph < dwell) return 0
-  if (ph < dwell + travel) return (ph - dwell) / travel
-  if (ph < dwell * 2 + travel) return 1
-  return 1 - (ph - dwell * 2 - travel) / travel
-}
-
-/** A straight line of track with sleepers, between two points in map pixels. */
-export function drawRail(ctx: Ctx, ax: number, ay: number, bx: number, by: number) {
-  const len = Math.hypot(bx - ax, by - ay)
-  if (len < 1) return
-  ctx.save()
-  ctx.translate(ax, ay)
-  ctx.rotate(Math.atan2(by - ay, bx - ax))
-  ctx.fillStyle = 'rgba(70,52,36,0.85)'
-  for (let s = 2; s < len; s += 4) ctx.fillRect(s, -3, 2, 6)
-  ctx.fillStyle = '#5b6066'
-  ctx.fillRect(0, -2, len, 1)
-  ctx.fillRect(0, 1, len, 1)
-  ctx.restore()
-}
-
-/** A train at `progress` along a line, styled for its tribe's era tier. */
 export function drawTrain(
   ctx: Ctx,
-  ax: number,
-  ay: number,
-  bx: number,
-  by: number,
-  progress: number,
+  x: number,
+  y: number,
+  heading: readonly [number, number] | null,
   tier: number,
+  moving: boolean,
   t: number,
 ) {
-  const len = Math.hypot(bx - ax, by - ay)
-  if (len < 1) return
   const style =
     tier >= 7
-      ? { engine: '#e9f4f8', car: '#d6e6ee', trim: '#36d6ff', smoke: false }
+      ? { engine: '#e9f4f8', car: '#d6e6ee', trim: '#36d6ff' }
       : tier >= 6
-        ? { engine: '#eef1f4', car: '#dfe3e6', trim: '#c8392b', smoke: false }
-        : { engine: '#2f3236', car: '#7a4f34', trim: '#c9a043', smoke: true }
+        ? { engine: '#eef1f4', car: '#dfe3e6', trim: '#c8392b' }
+        : { engine: '#2f3236', car: '#7a4f34', trim: '#c9a043' }
+  const angle = heading ? Math.atan2(heading[1], heading[0]) : 0
   ctx.save()
-  ctx.translate(ax, ay)
-  ctx.rotate(Math.atan2(by - ay, bx - ax))
-  const head = progress * len
+  ctx.translate(Math.round(x), Math.round(y))
+  ctx.rotate(angle)
   const cars = 3
-  const unit = 7
   for (let i = 0; i < cars; i++) {
-    const x = head - (i + 2) * unit
-    if (x < -unit) break
+    const cx = -CAR / 2 - (i + 1) * CAR
     ctx.fillStyle = style.car
-    ctx.fillRect(x, -2.5, unit - 1, 5)
+    ctx.fillRect(cx, -2.5, CAR - 1, 5)
     ctx.fillStyle = style.trim
-    ctx.fillRect(x, 1, unit - 1, 1)
+    ctx.fillRect(cx, 1, CAR - 1, 1)
     ctx.fillStyle = 'rgba(255,224,150,0.85)'
-    ctx.fillRect(x + 1, -1.5, 1, 1)
-    ctx.fillRect(x + 4, -1.5, 1, 1)
+    ctx.fillRect(cx + 1, -1.5, 1, 1)
+    ctx.fillRect(cx + 4, -1.5, 1, 1)
   }
   ctx.fillStyle = style.engine
-  ctx.fillRect(head - unit, -3, unit, 6)
+  ctx.fillRect(-CAR / 2, -3, CAR, 6)
   ctx.fillStyle = style.trim
-  ctx.fillRect(head - 1, -3, 1, 6)
-  if (style.smoke) {
-    ctx.fillStyle = '#1f2124'
-    ctx.fillRect(head - 3, -5, 2, 2)
+  ctx.fillRect(CAR / 2 - 1, -3, 1, 6)
+  // The funnel, and the steam it gives off while the engine is under way.
+  const funnelX = CAR / 2 - 3
+  ctx.fillStyle = '#1f2124'
+  ctx.fillRect(funnelX, -5, 2, 2)
+  if (moving) {
     for (let k = 0; k < 4; k++) {
+      const rise = Math.floor(t / 120 + k) % 2
       ctx.fillStyle = `rgba(210,210,210,${0.45 - k * 0.1})`
-      ctx.fillRect(head - 4 - k * 4, -8 - k - (Math.floor(t / 120 + k) % 2), 3 + k, 2)
+      ctx.fillRect(funnelX - 2 - k * 4, -8 - k - rise, 3 + k, 2)
     }
-  } else if (tier >= 7) {
-    ctx.fillStyle = 'rgba(54,214,255,0.35)'
-    ctx.fillRect(head - unit * (cars + 1), 3, unit * (cars + 1), 1)
   }
   ctx.restore()
 }

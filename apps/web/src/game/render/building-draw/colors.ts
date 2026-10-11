@@ -151,6 +151,7 @@ const WALL_COLORS: Record<string, string> = {
   Marina: '#5878a0',
   Lighthouse2: '#e0d8c8',
   Drydock: '#606870',
+  Shipyard: '#8a6440',
   Crane: '#a8a020',
   RadioTower: '#c84040',
   SatelliteDish: '#a0a0a0',

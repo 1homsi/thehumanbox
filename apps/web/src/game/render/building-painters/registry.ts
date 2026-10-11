@@ -9,6 +9,7 @@ import {
   paintTownhouse,
 } from './dwellings'
 import { paintCastle, paintFortress, paintTemple, paintTowerTall, paintWindmill } from './civic'
+import { paintGate, paintTower } from './fortifications'
 import { paintFarm, paintIndustrial, paintUtility } from './industry'
 import { paintLandmark, paintProp } from './landmarks'
 import { paintCrossing, paintLandscape } from './landscape'
@@ -26,6 +27,7 @@ import { paintWorkshop } from './workshop'
 import { paintPen } from './pasture'
 import { CRAFT_SIGNS, paintCraftHome } from './craft-signs'
 import { paintBarn, paintWatermill } from './farm-buildings'
+import { paintShipyard } from './shipyard'
 
 export const ARCHETYPE: Record<string, (p: P) => void | boolean> = {}
 
@@ -85,7 +87,9 @@ reg(paintManor, [
   'TrainStation',
 ])
 reg(paintTemple, ['Temple', 'Cathedral', 'Mosque', 'Synagogue', 'Pagoda', 'Stupa', 'Mausoleum'])
-reg(paintCastle, ['Castle', 'Barracks', 'Watchtower', 'Tower', 'Wall', 'Gate', 'PoliceStation'])
+reg(paintCastle, ['Castle', 'Barracks', 'Watchtower', 'Wall', 'PoliceStation'])
+reg(paintGate, ['Gate'])
+reg(paintTower, ['Tower'])
 reg(paintTowerTall, ['Lighthouse', 'Lighthouse2', 'ClockTower', 'Observatory', 'WaterTower', 'RadioTower'])
 reg(paintWindmill, ['Windmill'])
 reg(paintWatermill, ['Watermill'])
@@ -110,6 +114,7 @@ reg(paintIndustrial, [
 reg(paintFarm, ['Granary', 'Silo', 'Stable', 'Ranch', 'Greenhouse', 'Greenhouse2', 'Vineyard', 'Orchard'])
 reg(paintPen, ['Pen'])
 reg(paintBarn, ['Barn'])
+reg(paintShipyard, ['Shipyard'])
 reg(paintModern, [
   'Apartment',
   'OfficeTower',

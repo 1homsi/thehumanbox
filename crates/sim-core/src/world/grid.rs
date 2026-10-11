@@ -20,6 +20,9 @@ pub const ROAD_NONE: u8 = 0;
 pub const ROAD_TRACK: u8 = 1;
 /// A bridge over water: walkable across a river or lake, the only way over deep water.
 pub const ROAD_BRIDGE: u8 = 2;
+/// Railway track laid by a tribe between its own towns (see `sim/tech/railways.rs`). People walk on it
+/// like a road; trains run along it.
+pub const ROAD_RAIL: u8 = 3;
 
 pub struct WorldGrid {
     pub tiles: Vec<i8>,
@@ -210,7 +213,7 @@ impl WorldGrid {
                 let i = Self::idx(nx, ny);
                 let tile = Tile::from_i8(self.tiles[i]);
                 let keep = match self.road[i] {
-                    ROAD_TRACK => tile.road_ground(),
+                    ROAD_TRACK | ROAD_RAIL => tile.road_ground(),
                     ROAD_BRIDGE => matches!(tile, Tile::Water | Tile::Flooded),
                     _ => true,
                 };

@@ -642,29 +642,36 @@ export class PeopleSprites {
       }
     }
     this.boatTiles = tiles
-    // A pier where boats are moored: two tiles of plank from the dry land out over the water. One per harbour,
-    // and one at each landing of a ferry.
+    // A pier where boats are moored: two tiles of plank from the dry land out over the water. A harbour has one
+    // pier per berth (a town's growth adds more, a tile apart along the shore), and one at each landing of a ferry.
     const piers = new Set<string>()
-    const pierAt = (hx: number, hy: number, shore: [number, number] | null | undefined) => {
-      const key = `${hx},${hy}`
+    const pierAt = (hx: number, hy: number, shore: [number, number] | null | undefined, count = 1) => {
       const column = shore ? pierColumn(shore[0], shore[1]) : -1
-      if (piers.has(key) || column < 0) return
-      piers.add(key)
-      const pi = afloat.add(
-        Math.round((hx - ox) * TILE + TILE / 2),
-        Math.round((hy - oy) * TILE + TILE / 2),
-        BOAT_CELL.width,
-        BOAT_CELL.height,
-        column,
-        -1,
-      )
-      afloat.atlas[pi] = BODY_ATLAS.boats
-      // Behind the boats moored at it.
-      afloat.sortKey[pi] = -10000 + hy - 0.5
+      if (column < 0) return
+      for (let k = 0; k < Math.min(count, 4); k++) {
+        // Piers fan out along the shore: 0, +1, -1, +2 tiles from the harbour.
+        const side = k === 0 ? 0 : (k % 2 === 1 ? 1 : -1) * Math.ceil(k / 2)
+        const key = `${hx},${hy},${side}`
+        if (piers.has(key)) continue
+        piers.add(key)
+        const alongX = shore && shore[0] === 0 ? side : 0
+        const alongY = shore && shore[0] !== 0 ? side : 0
+        const pi = afloat.add(
+          Math.round((hx - ox) * TILE + TILE / 2 + alongX * TILE),
+          Math.round((hy - oy) * TILE + TILE / 2 + alongY * TILE),
+          BOAT_CELL.width,
+          BOAT_CELL.height,
+          column,
+          -1,
+        )
+        afloat.atlas[pi] = BODY_ATLAS.boats
+        // Behind the boats moored at it.
+        afloat.sortKey[pi] = -10000 + hy - 0.5
+      }
     }
     for (const v of input.vehicles) {
       if (!isFloatingKind(v.kind)) continue
-      if (v.harbour && v.shore) pierAt(v.harbour[0], v.harbour[1], v.shore)
+      if (v.harbour && v.shore) pierAt(v.harbour[0], v.harbour[1], v.shore, v.piers ?? 1)
       for (const l of v.ferry ?? []) pierAt(l.at[0], l.at[1], l.shore)
     }
     this.lastMoved = -Infinity

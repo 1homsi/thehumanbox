@@ -202,6 +202,8 @@ pub struct SaveState {
     pub(super) field_fortifications: Vec<crate::sim::warfare::FieldFortification>,
     #[serde(default)]
     pub(super) village_roads: Vec<crate::sim::civ::land::village_roads::VillageRoad>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(super) rail_lines: Vec<crate::sim::tech::railways::RailLine>,
     #[serde(default)]
     pub(super) town_plazas: Vec<crate::sim::civ::civ_tick::town::TownPlaza>,
 }

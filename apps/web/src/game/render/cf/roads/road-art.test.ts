@@ -13,6 +13,10 @@ import {
   roadCellPixels,
   roadMask,
   roadStyle,
+  RAIL_STEEL,
+  RAIL_TIE,
+  railCellKey,
+  railCellPixels,
 } from './road-art'
 
 describe('road joins', () => {
@@ -65,6 +69,27 @@ describe('bridges', () => {
     expect(horizontal.find(([x, y]) => x === 3 && y === 3)?.[2]).not.toBe(RAIL_COLOR)
     const vertical = bridgeCellPixels(true)
     expect(vertical.find(([x, y]) => x === 0 && y === 3)?.[2]).toBe(RAIL_COLOR)
+  })
+})
+
+describe('railway track', () => {
+  it('lays two steel rails along the way the track runs, with sleepers between them', () => {
+    const across = (vertical: boolean) => {
+      const steel = railCellPixels(vertical).filter(([, , c]) => c === RAIL_STEEL)
+      return [...new Set(steel.map(([x, y]) => (vertical ? x : y)))].sort((a, b) => a - b)
+    }
+    const v = across(true)
+    expect(v.length).toBe(2)
+    expect(v[1]! - v[0]!).toBeGreaterThan(4)
+    expect(across(false).length).toBe(2)
+    // Sleepers lie across the track between the rails, not outside them.
+    const ties = railCellPixels(true).filter(([, , c]) => c === RAIL_TIE)
+    expect(ties.length).toBeGreaterThan(0)
+    expect(ties.every(([x]) => x > v[0]! && x < v[1]!)).toBe(true)
+  })
+
+  it('keys a track cell by the way it runs', () => {
+    expect(railCellKey(true)).not.toBe(railCellKey(false))
   })
 })
 

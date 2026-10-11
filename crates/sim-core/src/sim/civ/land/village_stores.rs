@@ -35,12 +35,12 @@ const BARN_MIN_HEAD: usize = 2;
 /// How far from a house a watermill may stand on a river bank, in tiles.
 const WATER_REACH: i32 = 8;
 
-/// Grain in a tribe's operational granaries.
+/// Grain in a tribe's operational granaries and warehouses (a harbour's warehouse holds trade food too).
 pub(crate) fn stock_of(sim: &Simulation, lineage: &str) -> u32 {
     sim.buildings
         .iter()
         .filter(|b| {
-            b.kind == BuildingKind::Granary
+            matches!(b.kind, BuildingKind::Granary | BuildingKind::Warehouse)
                 && b.is_operational()
                 && b.owner_lineage.as_deref() == Some(lineage)
         })
@@ -53,7 +53,10 @@ pub(crate) fn stock_of(sim: &Simulation, lineage: &str) -> u32 {
 pub(crate) fn food_stores(sim: &Simulation) -> Vec<(String, u32)> {
     let mut by_tribe: std::collections::BTreeMap<String, u32> = std::collections::BTreeMap::new();
     for b in sim.buildings.iter() {
-        if b.kind == BuildingKind::Granary && b.is_operational() && b.stock > 0 {
+        if matches!(b.kind, BuildingKind::Granary | BuildingKind::Warehouse)
+            && b.is_operational()
+            && b.stock > 0
+        {
             if let Some(owner) = b.owner_lineage.as_deref() {
                 *by_tribe.entry(owner.to_string()).or_insert(0) += b.stock;
             }
@@ -130,7 +133,7 @@ pub(crate) fn ration(sim: &mut Simulation, tribe: &Tribe) {
 
 fn take_one(sim: &mut Simulation, lineage: &str) -> bool {
     for b in sim.buildings.iter_mut() {
-        if b.kind == BuildingKind::Granary
+        if matches!(b.kind, BuildingKind::Granary | BuildingKind::Warehouse)
             && b.is_operational()
             && b.owner_lineage.as_deref() == Some(lineage)
             && b.stock > 0
@@ -198,7 +201,7 @@ fn place_watermill(sim: &mut Simulation, tribe: &Tribe) -> bool {
 
 /// Every tile a field or a building covers. A 2x2 pen or barn takes all four of its tiles, so a
 /// new building cannot stand over a neighbour's footprint (its sheep graze there).
-fn occupied_tiles(sim: &Simulation) -> FxHashSet<(i32, i32)> {
+pub(crate) fn occupied_tiles(sim: &Simulation) -> FxHashSet<(i32, i32)> {
     let mut tiles: FxHashSet<(i32, i32)> = sim.farms.iter().map(|f| (f.x, f.y)).collect();
     for b in &sim.buildings {
         let (fw, fh) = b.kind.footprint();
@@ -212,7 +215,13 @@ fn occupied_tiles(sim: &Simulation) -> FxHashSet<(i32, i32)> {
 }
 
 /// True when every tile a building of `kind` would cover, from its origin `(x, y)`, is open grass.
-fn fits(sim: &Simulation, x: i32, y: i32, kind: BuildingKind, occupied: &FxHashSet<(i32, i32)>) -> bool {
+pub(crate) fn fits(
+    sim: &Simulation,
+    x: i32,
+    y: i32,
+    kind: BuildingKind,
+    occupied: &FxHashSet<(i32, i32)>,
+) -> bool {
     let (fw, fh) = kind.footprint();
     (0..fh as i32).all(|dy| (0..fw as i32).all(|dx| open_grass(sim, x + dx, y + dy, occupied)))
 }

@@ -570,6 +570,58 @@ pub(super) fn print_progress(sim: &Simulation) {
             .sum();
         println!("Ferries at end: {ferries}  (passengers aboard {ferry_riders})");
         println!("Steamships at end: {steamships}");
+        let working = |kind: sim::tech::buildings::BuildingKind| {
+            sim.buildings
+                .iter()
+                .filter(|b| b.kind == kind && b.is_operational())
+                .count()
+        };
+        let mut harbours: Vec<((i32, i32), String)> = boats
+            .iter()
+            .filter_map(|v| v.harbour.map(|h| (h, v.owner_lineage.clone())))
+            .collect();
+        harbours.sort();
+        harbours.dedup();
+        let piers: u32 = harbours
+            .iter()
+            .map(|(h, owner)| sim::tech::ports::piers_at(sim, *h, owner))
+            .sum();
+        println!(
+            "Harbour works at end: shipyards {}, warehouses {}, piers {} on {} harbours",
+            working(sim::tech::buildings::BuildingKind::Shipyard),
+            working(sim::tech::buildings::BuildingKind::Warehouse),
+            piers,
+            harbours.len()
+        );
+    }
+    {
+        let trains: Vec<&sim::transportation::Vehicle> = sim
+            .vehicles
+            .iter()
+            .filter(|v| v.kind == sim::transportation::TransportKind::Train)
+            .collect();
+        let riders: usize = trains.iter().map(|v| v.occupants.len()).sum();
+        let carrying: u32 = trains.iter().map(|v| v.cargo).sum();
+        let rail_cells = sim
+            .grid
+            .road
+            .iter()
+            .filter(|&&k| k == crate::world::grid::ROAD_RAIL)
+            .count();
+        let stations = sim
+            .buildings
+            .iter()
+            .filter(|b| b.kind == sim::tech::buildings::BuildingKind::TrainStation && b.is_operational())
+            .count();
+        println!(
+            "Railways at end: lines {}, trains {}, riders aboard {}, grain on trains {}, track cells {}, stations {}",
+            sim.rail_lines.len(),
+            trains.len(),
+            riders,
+            carrying,
+            rail_cells,
+            stations
+        );
     }
 
     let mut lineage_alive: HashMap<&str, usize> = HashMap::new();

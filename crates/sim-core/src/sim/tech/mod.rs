@@ -13,3 +13,5 @@ pub mod fleet;
 #[cfg(test)]
 mod plant_kinds_tests;
 pub mod plantings;
+pub mod ports;
+pub mod railways;

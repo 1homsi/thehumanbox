@@ -7,6 +7,8 @@
 //   boat              a boat (any era, sailing or moored)
 //   ferry             a ferry at its landing or under way, with the people aboard it
 //   ship              a ship (a sailing ship or a steamship, by the owner's era)
+//   train             a train on its railway line (the frame's `vehicles`, kind train)
+//   rail              a railway cell on the track between two towns (the frame's `roads`, kind 3)
 //   field             a farm plot (the frame's `farms`)
 //
 // Candidates are sorted by distance to the nearest settlement centre, then by x, then by y, so
@@ -88,6 +90,19 @@ export function candidatesFor(frame, feature, tick = frame.tick) {
       .map((v) => ({ entity: v, kind: 'ship', name: `ship-${v.era ?? 'any'}`, x: v.x, y: v.y }))
       .sort(sortBy)
   }
+  if (head === 'train') {
+    return (frame.vehicles ?? [])
+      .filter((v) => v.kind === 'train')
+      .map((v) => ({ entity: v, kind: 'train', name: `train-${v.era ?? 'any'}`, x: v.x, y: v.y }))
+      .sort(sortBy)
+  }
+  if (head === 'rail') {
+    // Track cells: the frame lists road cells as [row, col, kind], and kind 3 is railway track (ROAD_RAIL).
+    return (frame.grid?.roads ?? [])
+      .filter(([, , kind]) => kind === 3)
+      .map(([row, col, kind]) => ({ entity: { row, col, kind }, kind: 'rail', name: 'rail', x: col, y: row }))
+      .sort(sortBy)
+  }
   if (head === 'field') {
     return (frame.farms ?? [])
       .map((f) => ({ entity: f, kind: 'field', name: `field-${f.crop ?? 'plot'}`, x: f.x, y: f.y }))
@@ -111,7 +126,7 @@ export function findFeature(frame, feature, { index = 0, tick = frame.tick } = {
     throw new Error(
       `no "${feature}" in this world at tick ${frame.tick} (buildings: ${JSON.stringify(have.buildings)}, ` +
         `caravans: ${have.caravans.count}, boats: ${have.boats}, fields: ${have.fields}). ` +
-        `Features: building:<kind>, caravan[:<cargo>], boat, ferry, ship, field.`,
+        `Features: building:<kind>, caravan[:<cargo>], boat, ferry, ship, train, rail, field.`,
     )
   }
   if (index < 0 || index >= list.length) {

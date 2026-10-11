@@ -314,6 +314,10 @@ export interface VehicleInfo {
   harbour?: [number, number] | null
   /** The way (a cardinal step) from the harbour to the dry land beside it: a pier runs that way. */
   shore?: [number, number] | null
+  /** The piers at the harbour (its berths): more of them as the town grows (see `tech/ports.rs`). */
+  piers?: number | null
+  /** A train's next track cell (its heading is the step from here to there, see `tech/railways.rs`). */
+  next?: [number, number] | null
 }
 
 export interface FestivalInfo {
@@ -912,6 +916,7 @@ export type BuildingKind =
   | 'Marina'
   | 'Lighthouse2'
   | 'Drydock'
+  | 'Shipyard'
   | 'Crane'
   | 'RadioTower'
   | 'SatelliteDish'

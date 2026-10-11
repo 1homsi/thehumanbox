@@ -50,6 +50,7 @@ impl Simulation {
             harbour: Some((x, y)),
             bound_for: None,
             ferry: None,
+            rail_line: None,
         });
         self.next_vehicle_id += 1;
         true

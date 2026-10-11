@@ -60,7 +60,7 @@ impl BuildingKind {
             | CityHall | PostOffice => Era::Renaissance,
             PoliceStation | FireStation | Pharmacy | Clinic | Spa | Bathhouse => Era::Industrial,
             Greenhouse | Vineyard | Ranch | Stable | Kennel | Dovecote => Era::Medieval,
-            Quarry | Mine | SawMill | Tannery => Era::Bronze,
+            Quarry | Mine | SawMill | Tannery | Shipyard => Era::Bronze,
             Refinery | PowerPlant | Substation | WaterTower | Reservoir => Era::Industrial,
             GasStation | AutoShop | Garage | MallShop | Supermarket => Era::Modern,
             OfficeTower | Skyscraper | Datacenter | Studio => Era::Information,
@@ -102,7 +102,7 @@ impl BuildingKind {
             | Courthouse | PoliceStation | FireStation | MallShop | Supermarket | Studio | GasStation
             | AutoShop | Garage | Cemetery | Garden | Orchard | PlayGround | ParkingLot | ClockTower
             | Mosque | Synagogue | Stupa | Mausoleum | Hangar | Silo | Warehouse | Dock | Marina
-            | Lighthouse2 | Drydock | Crane | RadioTower | WindTurbine | Pyramid | Ziggurat
+            | Lighthouse2 | Drydock | Shipyard | Crane | RadioTower | WindTurbine | Pyramid | Ziggurat
             | TriumphalArch | Pagoda | Fountain2 | MushroomFarm | Aquaculture | Greenhouse | Greenhouse2
             | Vineyard | Ranch | WaterTower | Reservoir | Substation | Refinery | PowerPlant | MusicHall
             | CityHall | Pen | Barn => (2, 2),
@@ -176,8 +176,8 @@ impl BuildingKind {
             | PostOffice | Monument | Obelisk | TriumphalArch | ClockTower | FlagPole | Signpost | Bench
             | Lamppost | StreetLight | TelephonePole | RadioTower | SatelliteDish | HoloBoard | NeonSign
             | BillBoard | Well | Garden | Orchard | Pond => Civic,
-            Aqueduct | Bridge | TrainStation | Airport | Dock | Marina | Drydock | BusStop | ParkingLot
-            | Crosswalk | Gate | Fence | ChargingStation | Cart => Infrastructure,
+            Aqueduct | Bridge | TrainStation | Airport | Dock | Marina | Drydock | Shipyard | BusStop
+            | ParkingLot | Crosswalk | Gate | Fence | ChargingStation | Cart => Infrastructure,
             Stadium | Theatre | MusicHall | Coliseum | PlayGround | Bandstand | Gazebo | Pavilion
             | ArcadeBox => Recreation,
             WaterTower | Reservoir => Infrastructure,

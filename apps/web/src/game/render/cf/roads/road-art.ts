@@ -1,9 +1,10 @@
 import { TILE } from '../../../model/palette'
 import { ERA_TIERS, eraTier } from '../../../model/era-tier'
 
-/** The road kinds a cell holds: the simulation's `ROAD_TRACK` and `ROAD_BRIDGE`. */
+/** The road kinds a cell holds: the simulation's `ROAD_TRACK`, `ROAD_BRIDGE` and `ROAD_RAIL`. */
 export const ROAD_TRACK = 1
 export const ROAD_BRIDGE = 2
+export const ROAD_RAIL = 3
 
 /** Which way a road continues from a cell. */
 export const ROAD_N = 1
@@ -115,6 +116,42 @@ export function bridgeCellPixels(vertical: boolean): [number, number, string][] 
     }
   }
   return out
+}
+
+export const RAIL_STEEL = '#8d9399'
+export const RAIL_TIE = '#5b4430'
+
+/**
+ * Every painted pixel of a railway cell, as `[x, y, colour]`: two steel rails running along the way the track
+ * goes (north to south when it joins from above or below and not from the sides, otherwise east to west),
+ * with sleepers across them.
+ */
+export function railCellPixels(vertical: boolean): [number, number, string][] {
+  const out: [number, number, string][] = []
+  const lo = Math.floor(TILE / 3) - 1
+  const hi = TILE - 1 - lo
+  for (let y = 0; y < TILE; y++) {
+    for (let x = 0; x < TILE; x++) {
+      const across = vertical ? x : y
+      const along = vertical ? y : x
+      if (across === lo || across === hi) out.push([x, y, RAIL_STEEL])
+      else if (along % 3 === 1 && across > lo && across < hi) out.push([x, y, RAIL_TIE])
+    }
+  }
+  return out
+}
+
+/** Paint one railway cell at the context origin. */
+export function paintRailCell(ctx: CanvasRenderingContext2D, vertical: boolean): void {
+  for (const [x, y, color] of railCellPixels(vertical)) {
+    ctx.fillStyle = color
+    ctx.fillRect(x, y, 1, 1)
+  }
+}
+
+/** The atlas key of a railway cell: which way its track runs. */
+export function railCellKey(vertical: boolean): string {
+  return vertical ? 'L|v' : 'L|h'
 }
 
 /** Paint one road cell at the context origin (one canvas pixel per tile pixel). */

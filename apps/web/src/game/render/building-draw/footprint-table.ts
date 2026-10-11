@@ -156,6 +156,7 @@ export const FOOTPRINTS: Record<string, [number, number]> = {
   Marina: [4, 3],
   Lighthouse2: [2, 3],
   Drydock: [4, 3],
+  Shipyard: [2, 2],
   Crane: [2, 2],
   RadioTower: [2, 2],
   SatelliteDish: [1, 1],

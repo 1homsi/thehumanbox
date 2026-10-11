@@ -120,6 +120,8 @@ pub struct Simulation {
     pub next_vehicle_id: u32,
     /// The last land survey for ferries (see `tech/ferry.rs`); rebuilt every few hundred ticks, not saved.
     pub(crate) ferry_survey: crate::sim::tech::ferry::FerrySurvey,
+    /// The people queued at each ferry pier, and the passengers aboard (see `tech/ferry.rs`); not saved.
+    pub(crate) ferry_queues: crate::sim::tech::ferry::FerryQueues,
     pub battles: Vec<super::warfare::Battle>,
     pub next_battle_id: u32,
     pub treaties: Vec<super::warfare::Treaty>,
@@ -159,6 +161,8 @@ pub struct Simulation {
     pub caravans: Vec<super::civ::trade_routes::Caravan>,
     /// Roads villages have laid to their wells, fields and neighbouring villages (see `civ::land::village_roads`).
     pub village_roads: Vec<super::civ::land::village_roads::VillageRoad>,
+    /// Railway lines between a tribe's stations, each with one train (see `tech/railways.rs`).
+    pub rail_lines: Vec<super::tech::railways::RailLine>,
     /// Each town's plaza and streets (see `civ::civ_tick::town`).
     pub town_plazas: Vec<super::civ::civ_tick::town::TownPlaza>,
     pub next_trade_route_id: u32,
@@ -279,6 +283,7 @@ impl Simulation {
             vehicles: Vec::new(),
             next_vehicle_id: 1,
             ferry_survey: Default::default(),
+            ferry_queues: Default::default(),
             battles: Vec::new(),
             next_battle_id: 1,
             treaties: Vec::new(),
@@ -302,6 +307,7 @@ impl Simulation {
             trades: VecDeque::new(),
             trade_routes: Vec::new(),
             village_roads: Vec::new(),
+            rail_lines: Vec::new(),
             town_plazas: Vec::new(),
             caravans: Vec::new(),
             next_trade_route_id: 1,

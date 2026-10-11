@@ -12,6 +12,10 @@ use crate::sim::world_events::push_event;
 
 const TICK_INTERVAL: u64 = 40;
 const BASE_RATE: f32 = 0.012;
+/// Tiles between a tribe's dwellings and a farming tribe's dwellings for the farming to carry over.
+const FARMING_NEIGHBOUR_REACH: i32 = 24;
+/// How much faster a tribe with a farming neighbour makes the discovery of agriculture.
+const FARMING_NEIGHBOUR_BOOST: f32 = 1.6;
 
 pub fn tick_tech_progress(
     tick: u64,
@@ -68,6 +72,7 @@ pub fn tick_tech_progress(
     // further down also drew from `rng`, so the number of draws depended
     // on `max_by`'s internal comparison pattern; that is hoisted out too.)
     tribes.sort_by(|a, b| a.0.cmp(&b.0));
+    let neighbours_farm = farming_neighbours(&tribes, buildings);
     for (lid, disc, members) in &tribes {
         let pop = members.len();
         if pop == 0 {
@@ -89,7 +94,15 @@ pub fn tick_tech_progress(
             }
 
             let evidence = evidence_multiplier(node.name, &profile);
-            let p = (BASE_RATE * node.discovery_rate * pop_factor * profile.capacity * evidence).min(0.85);
+            let learned_from_neighbours =
+                node.name == "agriculture" && neighbours_farm.contains(lid.as_str());
+            let boost = if learned_from_neighbours {
+                FARMING_NEIGHBOUR_BOOST
+            } else {
+                1.0
+            };
+            let p = (BASE_RATE * node.discovery_rate * pop_factor * profile.capacity * evidence * boost)
+                .min(0.85);
             if rng.random::<f32>() >= p {
                 continue;
             }
@@ -118,12 +131,61 @@ pub fn tick_tech_progress(
             organisms[pick].discoveries.insert(node.name.to_string());
             let name = organisms[pick].name.clone();
             let lname = lineage_names.get(lid).cloned().unwrap_or_else(|| lid.clone());
-            let detail = format!("{} discovered {}", lname, node.name.replace('_', " "));
+            let detail = if learned_from_neighbours {
+                format!("{lname} learned farming from its neighbours")
+            } else {
+                format!("{} discovered {}", lname, node.name.replace('_', " "))
+            };
             push_event(events, tick, "build", &name, &detail);
         }
 
         spread_tribal_knowledge(rng, organisms, members, disc, profile.literacy);
     }
+}
+
+/// The tribes that have no farming of their own but live within `FARMING_NEIGHBOUR_REACH` tiles
+/// of a tribe that farms. Farming crosses a border like a fence does not: a neighbour's fields
+/// are seen, and their seed and their tools are traded over the hedge. Walks tribes in sorted
+/// order and only asks whether a dwelling is near, so the same seed gives the same answer.
+fn farming_neighbours(
+    tribes: &[(String, HashSet<String>, Vec<usize>)],
+    buildings: &[Building],
+) -> HashSet<String> {
+    let mut dwellings: std::collections::BTreeMap<&str, Vec<(i32, i32)>> = std::collections::BTreeMap::new();
+    for b in buildings {
+        if !b.is_operational() || !matches!(b.kind, BuildingKind::Hut | BuildingKind::House) {
+            continue;
+        }
+        if let Some(owner) = b.owner_lineage.as_deref() {
+            dwellings.entry(owner).or_default().push((b.x, b.y));
+        }
+    }
+    let farmers: Vec<&str> = tribes
+        .iter()
+        .filter(|(_, known, _)| known.contains("agriculture"))
+        .map(|(lid, _, _)| lid.as_str())
+        .collect();
+    let mut near = HashSet::default();
+    for (lid, known, _) in tribes {
+        if known.contains("agriculture") {
+            continue;
+        }
+        let Some(mine) = dwellings.get(lid.as_str()) else {
+            continue;
+        };
+        let touches = farmers.iter().filter(|&&f| f != lid.as_str()).any(|&f| {
+            dwellings.get(f).is_some_and(|theirs| {
+                theirs.iter().any(|&(tx, ty)| {
+                    mine.iter()
+                        .any(|&(mx, my)| (tx - mx).abs().max((ty - my).abs()) <= FARMING_NEIGHBOUR_REACH)
+                })
+            })
+        });
+        if touches {
+            near.insert(lid.clone());
+        }
+    }
+    near
 }
 
 /// What one member of a tribe knows slowly becomes common knowledge: each
@@ -433,6 +495,20 @@ fn tick_tech_progress_reference(
     // on `max_by`'s internal comparison pattern; that is hoisted out too.)
     let mut lineage_ids: Vec<&String> = lineage_discoveries.keys().collect();
     lineage_ids.sort();
+    let neighbours_farm = {
+        let mut all: Vec<(String, HashSet<String>, Vec<usize>)> = lineage_discoveries
+            .iter()
+            .map(|(l, d)| {
+                (
+                    l.clone(),
+                    d.clone(),
+                    lineage_members.get(l).cloned().unwrap_or_default(),
+                )
+            })
+            .collect();
+        all.sort_by(|a, b| a.0.cmp(&b.0));
+        farming_neighbours(&all, buildings)
+    };
     for lid in lineage_ids {
         let Some(disc) = lineage_discoveries.get(lid) else {
             continue;
@@ -461,7 +537,15 @@ fn tick_tech_progress_reference(
             }
 
             let evidence = evidence_multiplier(node.name, &profile);
-            let p = (BASE_RATE * node.discovery_rate * pop_factor * profile.capacity * evidence).min(0.85);
+            let learned_from_neighbours =
+                node.name == "agriculture" && neighbours_farm.contains(lid.as_str());
+            let boost = if learned_from_neighbours {
+                FARMING_NEIGHBOUR_BOOST
+            } else {
+                1.0
+            };
+            let p = (BASE_RATE * node.discovery_rate * pop_factor * profile.capacity * evidence * boost)
+                .min(0.85);
             if rng.random::<f32>() >= p {
                 continue;
             }
@@ -490,7 +574,11 @@ fn tick_tech_progress_reference(
             organisms[pick].discoveries.insert(node.name.to_string());
             let name = organisms[pick].name.clone();
             let lname = lineage_names.get(lid).cloned().unwrap_or_else(|| lid.clone());
-            let detail = format!("{} discovered {}", lname, node.name.replace('_', " "));
+            let detail = if learned_from_neighbours {
+                format!("{lname} learned farming from its neighbours")
+            } else {
+                format!("{} discovered {}", lname, node.name.replace('_', " "))
+            };
             push_event(events, tick, "build", &name, &detail);
         }
 
@@ -803,5 +891,38 @@ mod tests {
             inventions > 20,
             "too few inventions to mean anything: {inventions}"
         );
+    }
+}
+
+#[cfg(test)]
+mod farming_neighbour_tests {
+    use super::*;
+
+    fn hut(id: u32, x: i32, y: i32, owner: &str) -> Building {
+        let mut b = Building::new(id, BuildingKind::Hut, x, y, Some(owner.to_string()), 0);
+        b.condition = 1.0;
+        b
+    }
+
+    fn tribe(lineage: &str, farms: bool) -> (String, HashSet<String>, Vec<usize>) {
+        let mut known = HashSet::default();
+        if farms {
+            known.insert("agriculture".to_string());
+        }
+        (lineage.to_string(), known, Vec::new())
+    }
+
+    #[test]
+    fn a_tribe_within_reach_of_a_farming_tribe_is_near_farming_and_a_far_one_is_not() {
+        let tribes = vec![tribe("a", true), tribe("b", false), tribe("c", false)];
+        let buildings = vec![
+            hut(1, 100, 100, "a"),
+            hut(2, 110, 100, "b"),
+            hut(3, 300, 300, "c"),
+        ];
+        let near = farming_neighbours(&tribes, &buildings);
+        assert!(near.contains("b"), "ten tiles from a farming tribe");
+        assert!(!near.contains("c"), "far beyond the reach");
+        assert!(!near.contains("a"), "a farming tribe does not learn from itself");
     }
 }
