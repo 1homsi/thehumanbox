@@ -92,6 +92,28 @@ fn tribe_of(sim: &Simulation, lineage: &str, dwelling: (i32, i32)) -> Tribe {
 }
 
 #[test]
+fn a_plough_sows_more_plots_in_a_spring_than_the_hand() {
+    let sown = |era: Era| -> usize {
+        let (mut sim, lineage, _) = farming_village(6_006, 10);
+        // Someone must have food to carry the seed (the helper leaves everyone hungry).
+        for o in sim.organisms.iter_mut().filter(|o| o.lineage_id == lineage) {
+            o.inv_food = 5;
+        }
+        sim.lineage_eras.insert(lineage.clone(), era);
+        sim.tick_count = SPRING;
+        tick_village_fields(&mut sim);
+        sim.farms.iter().filter(|f| f.owner_lineage == lineage).count()
+    };
+    let (hand, ox, tractor) = (sown(Era::Bronze), sown(Era::Classical), sown(Era::Industrial));
+    assert_eq!(
+        hand, 2,
+        "the hand sows two plots in a pass (ox {ox}, tractor {tractor})"
+    );
+    assert_eq!(ox, 3, "an ox sows three (hand {hand}, tractor {tractor})");
+    assert_eq!(tractor, 4, "a tractor sows four (hand {hand}, ox {ox})");
+}
+
+#[test]
 fn a_blight_ruins_a_village_field_and_halves_the_granary() {
     let (mut sim, lineage, (hx, hy)) = farming_village(6_001, 40);
     sim.tick_count = 12_000;

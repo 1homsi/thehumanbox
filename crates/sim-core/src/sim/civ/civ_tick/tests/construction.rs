@@ -950,3 +950,56 @@ fn a_bronze_town_has_no_fountain_yet() {
         "no fountain before the classical age"
     );
 }
+
+#[test]
+fn a_clan_short_of_beds_in_the_iron_age_raises_a_longhouse() {
+    let mut sim = Simulation::new(0x4C);
+    sim.organisms.clear();
+    sim.buildings.clear();
+    for i in 0..12 {
+        let mut org = test_org(&format!("clan-{i}"), "Person", "clan", 10.0, 10.0);
+        org.inv_wood = 200;
+        org.inv_stone = 200;
+        sim.organisms.push(org);
+    }
+    assert!(
+        wants_longhouse(&sim, "clan", Era::Iron, 12),
+        "a clan of twelve with no beds raises a longhouse"
+    );
+    assert!(
+        !wants_longhouse(&sim, "clan", Era::Bronze, 12),
+        "no longhouses before the Iron age"
+    );
+    // Two houses seat eight, four short of twelve: still a longhouse.
+    for id in 1..=2 {
+        sim.buildings.push(Building::new(
+            id,
+            BuildingKind::House,
+            20,
+            20,
+            Some("clan".into()),
+            0,
+        ));
+    }
+    assert!(wants_longhouse(&sim, "clan", Era::Iron, 12));
+    // Three houses seat twelve: nobody is four beds short, so no longhouse.
+    sim.buildings.push(Building::new(
+        3,
+        BuildingKind::House,
+        24,
+        20,
+        Some("clan".into()),
+        0,
+    ));
+    assert!(
+        !wants_longhouse(&sim, "clan", Era::Iron, 12),
+        "a clan with beds for all does not"
+    );
+}
+
+#[test]
+fn a_longhouse_seats_eight_under_one_roof() {
+    assert_eq!(BuildingKind::Longhouse.capacity(), 8);
+    assert_eq!(BuildingKind::Longhouse.footprint(), (4, 2));
+    assert_eq!(BuildingKind::Longhouse.era_unlock(), Era::Iron);
+}

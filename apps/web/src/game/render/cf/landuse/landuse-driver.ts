@@ -68,6 +68,7 @@ export class LanduseDriver implements CfDriver {
         season: world.season ?? '',
         edges,
         withered: !!farm.withered,
+        plough: farm.plough ?? null,
       }
       const key = farmLookKey(look)
       const cell =

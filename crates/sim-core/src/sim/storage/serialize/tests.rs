@@ -298,6 +298,7 @@ fn full_payload_exposes_farm_lifecycle_contract() {
         "ready_tick",
         "harvested",
         "withered",
+        "plough",
         "stage",
         "progress",
         "yield",

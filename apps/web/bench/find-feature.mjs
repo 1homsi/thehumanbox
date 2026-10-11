@@ -9,6 +9,7 @@
 //   ship              a ship (a sailing ship or a steamship, by the owner's era)
 //   train             a train on its railway line (the frame's `vehicles`, kind train)
 //   rail              a railway cell on the track between two towns (the frame's `roads`, kind 3)
+//   bridge            a bridge cell over water (the frame's `roads`, kind 2)
 //   cart              a village ox cart on its road (the frame's `vehicles`, kind cart)
 //   field             a farm plot (the frame's `farms`)
 //   pier              a harbour's pier (a boat's harbour with piers) or a ferry landing, one per tile
@@ -105,6 +106,13 @@ export function candidatesFor(frame, feature, tick = frame.tick) {
       .map((v) => ({ entity: v, kind: 'cart', name: `cart-${(v.cargo ?? 0) > 0 ? 'loaded' : 'empty'}`, x: v.x, y: v.y }))
       .sort(sortBy)
   }
+  if (head === 'bridge') {
+    // Bridge cells (road kind 2, sim ROAD_BRIDGE) the villages built over water.
+    return (frame.grid?.roads ?? [])
+      .filter(([, , kind]) => kind === 2)
+      .map(([row, col, kind]) => ({ entity: { row, col, kind }, kind: 'bridge', name: 'bridge', x: col, y: row }))
+      .sort(sortBy)
+  }
   if (head === 'rail') {
     // Track cells: the frame lists road cells as [row, col, kind], and kind 3 is railway track (ROAD_RAIL).
     return (frame.grid?.roads ?? [])
@@ -126,6 +134,13 @@ export function candidatesFor(frame, feature, tick = frame.tick) {
     }
     return [...seen.values()].sort(sortBy)
   }
+  if (head === 'festival') {
+    // A festival in the frame: its centre is the tribe's home. `festival:harvest` (or any kind word) filters by name.
+    return (frame.festivals ?? [])
+      .filter((f) => !arg || String(f.name).toLowerCase().includes(arg))
+      .map((f) => ({ entity: f, kind: 'festival', name: `festival-${String(f.name).toLowerCase().replace(/\s+/g, '-')}`, x: f.x, y: f.y }))
+      .sort(sortBy)
+  }
   if (head === 'canal') {
     // A dug irrigation channel cell (road kind 4, `ROAD_CANAL`). Candidates are cells, nearest the town first.
     return (frame.grid?.roads ?? [])
@@ -134,7 +149,9 @@ export function candidatesFor(frame, feature, tick = frame.tick) {
       .sort(sortBy)
   }
   if (head === 'field') {
+    // `field` is any farm plot; `field:ox` or `field:tractor` only those a plough broke while they grow.
     return (frame.farms ?? [])
+      .filter((f) => !arg || f.plough === arg)
       .map((f) => ({ entity: f, kind: 'field', name: `field-${f.crop ?? 'plot'}`, x: f.x, y: f.y }))
       .sort(sortBy)
   }

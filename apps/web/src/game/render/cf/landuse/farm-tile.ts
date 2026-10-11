@@ -48,10 +48,12 @@ export interface FarmLook {
   edges: number
   /** Ruined by a blight, locusts, a flood or a dry spell: the crop stands dead until it is cut down. */
   withered?: boolean
+  /** The plough that broke a field sown just now (an ox or a tractor), drawn in the furrows. */
+  plough?: string | null
 }
 
 export function farmLookKey(look: FarmLook): string {
-  return `F|${look.stage}|${Math.round(look.progress * 4)}|${look.crop}|${look.variant}|${look.season}|${look.edges}|${look.withered ? 'w' : ''}`
+  return `F|${look.stage}|${Math.round(look.progress * 4)}|${look.crop}|${look.variant}|${look.season}|${look.edges}|${look.withered ? 'w' : ''}|${look.plough ?? ''}`
 }
 
 /**
@@ -211,4 +213,37 @@ export function paintFarmTile(
     ctx.fillRect(x, y, 1, TILE)
     ctx.fillRect(x + TILE - 1, y, 1, TILE)
   }
+
+  // The plough that broke a field just sown: an ox or a tractor standing in the furrows.
+  if (look.plough) {
+    for (const [dx, dy, color] of ploughPixels(look.plough)) fill(dx, dy, 1, 1, color)
+  }
+}
+
+/** The ox is the village cart's ox (era-traffic.ts drawCart), so the two read as the same animal. */
+const PLOUGH_COLORS: Record<string, string> = {
+  b: '#a06c40',
+  h: '#f2ead8',
+  k: '#3a2a1a',
+  g: '#3f7a3a',
+  r: '#b8432f',
+}
+
+/** A 6 by 4 pixel ox (brown, pale head, dark hooves) or tractor (green body, red cab, black wheels). */
+const PLOUGH_SHAPES: Record<string, readonly string[]> = {
+  ox: ['....hh', 'bbbbbh', 'bbbbbb', 'k.k..k'],
+  tractor: ['rr....', 'rgggg.', 'gggggg', 'k.kkk.'],
+}
+
+/** Where each pixel of the plough sits on the tile (one pixel in from the left, two down) and its colour. */
+export function ploughPixels(plough: string): [number, number, string][] {
+  const rows = PLOUGH_SHAPES[plough] ?? []
+  const out: [number, number, string][] = []
+  rows.forEach((row, r) => {
+    for (let c = 0; c < row.length; c++) {
+      const color = PLOUGH_COLORS[row[c]!]
+      if (color) out.push([1 + c, 2 + r, color])
+    }
+  })
+  return out
 }

@@ -110,6 +110,46 @@ impl CropKind {
     }
 }
 
+/// What breaks the ground for a sowing pass: an ox pulls a plough from the plough age, a tractor from the
+/// industrial age. With one, a tribe sows more plots in a pass and can keep more of them.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum Plough {
+    Ox,
+    Tractor,
+}
+
+impl Plough {
+    pub fn name(self) -> &'static str {
+        match self {
+            Plough::Ox => "ox",
+            Plough::Tractor => "tractor",
+        }
+    }
+    /// Plots a sowing pass sows with this plough (the hand sows two).
+    pub fn sows_per_pass(self) -> usize {
+        match self {
+            Plough::Ox => 3,
+            Plough::Tractor => 4,
+        }
+    }
+    /// Plots one more per dwelling that the tribe may keep under the plough (the hand keeps two).
+    pub fn extra_plots_per_dwelling(self) -> usize {
+        match self {
+            Plough::Ox => 1,
+            Plough::Tractor => 2,
+        }
+    }
+}
+
+/// The plough a tribe of this era works with, if any.
+pub fn plough_for(era: Era) -> Option<Plough> {
+    match AgriEra::from_era(era) {
+        AgriEra::Plough | AgriEra::CropRotation => Some(Plough::Ox),
+        AgriEra::Industrial | AgriEra::Genetic => Some(Plough::Tractor),
+        AgriEra::Foraging | AgriEra::Horticulture | AgriEra::Subsistence => None,
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Farm {
     pub id: u32,

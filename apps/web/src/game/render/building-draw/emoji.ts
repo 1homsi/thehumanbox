@@ -177,6 +177,7 @@ export const BUILDING_EMOJI: Record<string, string> = {
   Aquaculture: '\u{1F420}',
   Pen: '\u{1F411}',
   Barn: '\u{1F414}',
+  Longhouse: '\u{1F3E1}',
 }
 
 export function buildingEmoji(kind: string): string {

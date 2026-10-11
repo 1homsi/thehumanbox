@@ -181,6 +181,8 @@ pub enum BuildingKind {
     Pen,
     /// A barn by the granary: fodder and tools for the herd and the fields.
     Barn,
+    /// A long hall under one roof for a big clan, with a door at each end.
+    Longhouse,
 }
 
 impl BuildingKind {
@@ -363,6 +365,7 @@ impl BuildingKind {
             BuildingKind::Aquaculture => "aquaculture",
             BuildingKind::Pen => "pen",
             BuildingKind::Barn => "barn",
+            BuildingKind::Longhouse => "longhouse",
         }
     }
 
@@ -546,6 +549,7 @@ impl BuildingKind {
             Aquaculture,
             Pen,
             Barn,
+            Longhouse,
         ]
     }
 }
