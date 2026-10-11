@@ -87,7 +87,7 @@ fn plan_cart_route(sim: &Simulation, from: [i32; 2], to: [i32; 2]) -> Option<Vec
     let occupied = occupied_tiles(sim);
     let blocked = |x: i32, y: i32| occupied.contains(&(x, y));
     let cheap = |x: i32, y: i32| is_busy_way(sim, x, y);
-    let path = plan_road_avoiding(&sim.grid, from, to, &blocked, &cheap)?;
+    let path = plan_road_avoiding(&sim.grid, from, to, &blocked, &cheap, None)?;
     if path.len() > MAX_CART_PATH {
         return None;
     }
