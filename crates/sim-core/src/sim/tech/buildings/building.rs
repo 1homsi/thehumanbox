@@ -49,6 +49,11 @@ pub struct Building {
     pub last_damage_tick: Option<u64>,
     #[serde(default)]
     pub last_repair_tick: Option<u64>,
+    /// The last tick a builder put labour into this site. A site nobody has worked on for a
+    /// while is abandoned (palisade pieces, see `PALISADE_STALL_TICKS`). Not saved: a loaded
+    /// site counts from its start tick, so the saved world and its fingerprint are unchanged.
+    #[serde(skip)]
+    pub last_work_tick: Option<u64>,
     /// True only for ambient settlement scenery. Decorative buildings
     /// may be rotated out to keep long-running worlds fast; functional
     /// buildings and wonders are permanent world history.
@@ -81,6 +86,7 @@ impl Building {
             ruined_at_tick: None,
             last_damage_tick: None,
             last_repair_tick: None,
+            last_work_tick: None,
             decorative: false,
             stock: 0,
             spoiled_tick: None,

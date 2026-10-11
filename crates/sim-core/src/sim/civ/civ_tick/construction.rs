@@ -702,8 +702,12 @@ pub(super) fn home_waits_for_house(sim: &Simulation, lineage: &str, era: Era) ->
     !other_home_affordable
 }
 
-/// Most fences one construction pass adds to a palisade.
-pub(super) const PALISADE_FENCES_PER_PASS: usize = 6;
+/// Most palisade pieces a tribe keeps unfinished at once. A small batch is finished before the
+/// next one is started, so stone and labour are not sunk into pieces no builder reaches.
+pub(super) const PALISADE_ACTIVE_PIECES: usize = 6;
+/// A palisade piece nobody has worked on for this long is abandoned and its materials go back to
+/// the tribe. Work on a piece resets the clock, so one a builder is raising is never dropped.
+pub(super) const PALISADE_STALL_TICKS: u64 = 4 * BUILD_PASS_TICKS;
 /// The palisade stands between these distances from the tribe's centre.
 const PALISADE_MIN_RADIUS: f32 = 6.0;
 const PALISADE_MAX_RADIUS: f32 = 12.0;
@@ -765,12 +769,27 @@ pub(super) fn raise_palisade(sim: &mut Simulation, lineage: &str) -> usize {
     if (cx, cy) == (0, 0) {
         return 0;
     }
+    let unfinished = sim
+        .buildings
+        .iter()
+        .filter(|b| {
+            !b.decorative
+                && !b.is_ruined()
+                && !b.is_complete()
+                && b.owner_lineage.as_deref() == Some(lineage)
+                && is_palisade_piece(b.kind)
+        })
+        .count();
+    let budget = PALISADE_ACTIVE_PIECES.saturating_sub(unfinished);
+    if budget == 0 {
+        return 0;
+    }
     let radius = palisade_radius(sim, lineage, cx, cy);
     let ring = palisade_ring(cx, cy, radius);
     let stone_walls = lineage_era(sim, lineage) >= BuildingKind::Wall.era_unlock();
     let mut started = 0;
     if stone_walls {
-        started += raise_towers(sim, lineage, &ring);
+        started += raise_towers(sim, lineage, &ring, budget);
     }
     // Tiles a building covers, looked up once, so a tile a home already holds
     // costs a set lookup rather than a scan of every building.
@@ -784,7 +803,7 @@ pub(super) fn raise_palisade(sim: &mut Simulation, lineage: &str) -> usize {
         }
     }
     for (x, y) in ring {
-        if started >= PALISADE_FENCES_PER_PASS {
+        if started >= budget {
             break;
         }
         let on_road = stone_walls && sim.grid.road_at(x, y) != crate::world::grid::ROAD_NONE;
@@ -795,10 +814,12 @@ pub(super) fn raise_palisade(sim: &mut Simulation, lineage: &str) -> usize {
         } else {
             BuildingKind::Fence
         };
+        // Only a finished fence is upgraded: an unfinished one keeps its labour until it stands.
         let fence = sim.buildings.iter().position(|b| {
             b.kind == BuildingKind::Fence
                 && b.x == x
                 && b.y == y
+                && b.is_complete()
                 && b.owner_lineage.as_deref() == Some(lineage)
         });
         if let Some(index) = fence {
@@ -824,11 +845,61 @@ pub(super) fn raise_palisade(sim: &mut Simulation, lineage: &str) -> usize {
     started
 }
 
+/// Gives a palisade piece's wood and stone back to the tribe's living members, for a piece
+/// abandoned before it stood. Labour was never paid for, so only the materials return.
+fn refund_palisade_piece(sim: &mut Simulation, lineage: &str, kind: BuildingKind) {
+    let cost = project_cost(sim, lineage, kind);
+    let mut wood_back = u32::from(cost.wood);
+    let mut stone_back = u32::from(cost.stone);
+    for org in sim
+        .organisms
+        .iter_mut()
+        .filter(|org| org.alive && org.lineage_id == lineage)
+    {
+        if wood_back == 0 && stone_back == 0 {
+            break;
+        }
+        let wood = wood_back.min(u32::from(u8::MAX - org.inv_wood));
+        org.inv_wood += wood as u8;
+        wood_back -= wood;
+        let stone = stone_back.min(u32::from(u8::MAX - org.inv_stone));
+        org.inv_stone += stone as u8;
+        stone_back -= stone;
+    }
+}
+
+/// Abandons palisade pieces, of every tribe, that stood unfinished for `PALISADE_STALL_TICKS`,
+/// refunding their materials. A piece no builder reached would otherwise hold one of its tribe's
+/// few palisade slots for ever.
+fn abandon_stalled_palisade(sim: &mut Simulation) {
+    let now = sim.tick_count;
+    let stalled: Vec<(usize, String, BuildingKind)> = sim
+        .buildings
+        .iter()
+        .enumerate()
+        .filter(|(_, b)| {
+            !b.decorative
+                && !b.is_ruined()
+                && !b.is_complete()
+                && is_palisade_piece(b.kind)
+                && now.saturating_sub(b.last_work_tick.unwrap_or(b.built_at_tick)) >= PALISADE_STALL_TICKS
+        })
+        .filter_map(|(index, b)| Some((index, b.owner_lineage.clone()?, b.kind)))
+        .collect();
+    for (index, lineage, kind) in stalled.iter().rev() {
+        refund_palisade_piece(sim, lineage, *kind);
+        sim.buildings.remove(*index);
+    }
+    if !stalled.is_empty() {
+        sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
+    }
+}
+
 /// Starts a palisade's towers, one at each cardinal point of the ring that has
 /// no tower near it, and returns how many it started. A tower is two tiles
 /// square, so the fences, walls and gates its footprint holds give way to it
 /// once the tribe can pay for the tower.
-fn raise_towers(sim: &mut Simulation, lineage: &str, ring: &[(i32, i32)]) -> usize {
+fn raise_towers(sim: &mut Simulation, lineage: &str, ring: &[(i32, i32)], budget: usize) -> usize {
     let standing = sim
         .buildings
         .iter()
@@ -841,6 +912,9 @@ fn raise_towers(sim: &mut Simulation, lineage: &str, ring: &[(i32, i32)]) -> usi
     }
     let mut started = 0;
     for point in 0..PALISADE_TOWERS {
+        if started >= budget {
+            break;
+        }
         // The nearest ring tile from the cardinal point whose tower footprint
         // holds no road, so a gate on a road never has its tower standing on it.
         let base = point * ring.len() / PALISADE_TOWERS;
@@ -879,7 +953,18 @@ fn raise_towers(sim: &mut Simulation, lineage: &str, ring: &[(i32, i32)]) -> usi
             })
             .map(|(i, _)| i)
             .collect();
+        // A piece already under way keeps its labour: the tower waits for a point it can take.
+        if blockers
+            .iter()
+            .any(|&i| sim.buildings[i].condition > 0.0 && !sim.buildings[i].is_complete())
+        {
+            continue;
+        }
         for &index in blockers.iter().rev() {
+            let piece = sim.buildings[index].kind;
+            if !sim.buildings[index].is_complete() {
+                refund_palisade_piece(sim, lineage, piece);
+            }
             sim.buildings.remove(index);
         }
         if start_building_at_valid_site(sim, lineage, BuildingKind::Tower, x, y) {
@@ -906,6 +991,7 @@ pub(super) fn at_war(sim: &Simulation, lineage: &str) -> bool {
 
 pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
     super::town::tick_town_plazas(sim);
+    abandon_stalled_palisade(sim);
     let functional_count = sim
         .buildings
         .iter()
@@ -960,10 +1046,17 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
             .count();
         let project_limit = workers.div_ceil(6).clamp(1, 3);
         relocate_stalled_projects(sim, &lid);
+        // Palisade pieces have their own small batch (PALISADE_ACTIVE_PIECES), so an unfinished
+        // wall does not use up a project slot and stop the tribe's homes and workshops.
         let pending = sim
             .buildings
             .iter()
-            .filter(|b| !b.decorative && !b.is_complete() && b.owner_lineage.as_deref() == Some(lid.as_str()))
+            .filter(|b| {
+                !b.decorative
+                    && !b.is_complete()
+                    && !is_palisade_piece(b.kind)
+                    && b.owner_lineage.as_deref() == Some(lid.as_str())
+            })
             .count();
         let available_projects = project_limit.saturating_sub(pending);
         // Labs come before everything: a stalled wonder or a run of huts must
@@ -1420,6 +1513,7 @@ pub(super) fn tick_building_progress(sim: &mut Simulation) {
                 f32::from(building.kind.construction_cost().labor)
             };
             building.condition = (building.condition + effort / labor).min(1.0);
+            building.last_work_tick = Some(sim.tick_count);
             building_changed = true;
             if building.is_complete() {
                 building.built_at_tick = sim.tick_count;
@@ -1505,6 +1599,7 @@ pub(super) fn relocate_stalled_projects(sim: &mut Simulation, lineage: &str) {
         .filter(|(_, b)| {
             !b.decorative
                 && !b.is_complete()
+                && !is_palisade_piece(b.kind)
                 && b.owner_lineage.as_deref() == Some(lineage)
                 && !sim.organisms.iter().any(|org| {
                     org.lineage_id == lineage
@@ -1763,8 +1858,12 @@ mod palisade_tests {
                 .push(clansman(i, 48.0 + (i % 4) as f32, 48.0 + (i / 4) as f32));
         }
         sim.battles.push(battle(&["clan"], &["raiders"], None));
+        // A small batch goes up per pass, and builders finish it before the next pass.
         for _ in 0..40 {
             tick_buildings_construct(&mut sim);
+            for b in sim.buildings.iter_mut() {
+                b.condition = 1.0;
+            }
         }
         let fences: Vec<(i32, i32)> = sim
             .buildings
@@ -1788,6 +1887,46 @@ mod palisade_tests {
             widest < std::f32::consts::FRAC_PI_4,
             "the widest gap is {widest} radians"
         );
+    }
+
+    #[test]
+    fn a_tribe_at_war_keeps_a_small_batch_and_drops_pieces_nobody_builds() {
+        let mut sim = stone_clan_sim();
+        sim.lineage_eras.insert("clan".into(), Era::Bronze);
+        // Nobody works on the pieces here, so each one waits until it is abandoned.
+        let mut peak = 0;
+        for _ in 0..30 {
+            sim.tick_count += BUILD_PASS_TICKS;
+            tick_buildings_construct(&mut sim);
+            let unfinished = sim
+                .buildings
+                .iter()
+                .filter(|b| is_palisade_piece(b.kind) && !b.is_complete())
+                .count();
+            peak = peak.max(unfinished);
+        }
+        assert!(peak >= 1, "the tribe started no palisade piece");
+        assert!(
+            peak <= PALISADE_ACTIVE_PIECES,
+            "{peak} palisade pieces wait for builders at once"
+        );
+    }
+
+    fn clan_stone(sim: &Simulation) -> u32 {
+        sim.organisms
+            .iter()
+            .filter(|o| o.alive && o.lineage_id == "clan")
+            .map(|o| u32::from(o.inv_stone))
+            .sum()
+    }
+
+    #[test]
+    fn a_dropped_palisade_piece_returns_its_stone_to_the_tribe() {
+        let mut sim = stone_clan_sim();
+        sim.organisms[0].inv_stone = 0;
+        let before = clan_stone(&sim);
+        refund_palisade_piece(&mut sim, "clan", BuildingKind::Wall);
+        assert_eq!(clan_stone(&sim), before + 2, "a wall costs two stone");
     }
 
     #[test]
