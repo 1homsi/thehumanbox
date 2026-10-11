@@ -887,6 +887,8 @@ impl Simulation {
             "burst from the ground".to_string()
         };
         push_event(&mut self.events, self.tick_count, "danger", "a volcano", &detail);
+        // The cone stands on the map from now on (see `WorldGrid::raise_volcano`).
+        self.grid.raise_volcano(x, y, r);
         // The cone buries what it rises under; the ash fall cracks
         // roofs further out.
         let hit = crate::sim::civ::building_damage::strike_buildings(

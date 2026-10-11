@@ -27,6 +27,18 @@ pub const ROAD_RAIL: u8 = 3;
 /// field within two cells of it is watered. Walking in it is no quicker than open ground.
 pub const ROAD_CANAL: u8 = 4;
 
+/// Most volcanoes the god tool keeps on the map; raising another past this forgets the oldest one's cone.
+pub const MAX_PLACED_VOLCANOES: usize = 48;
+
+/// A volcano's cone: its crater at (`x`, `y`) and its radius in tiles. The ground under it is the sim's
+/// (rock, ash, lava, the raised elevation); this is what tells the map a cone stands there.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize)]
+pub struct Volcano {
+    pub x: i32,
+    pub y: i32,
+    pub r: i32,
+}
+
 pub struct WorldGrid {
     pub tiles: Vec<i8>,
     pub fire_intensity: Vec<f32>,
@@ -37,6 +49,10 @@ pub struct WorldGrid {
     pub temperature: Vec<f32>,
     pub structure: Vec<f32>,
     pub pool_centers: Vec<(i32, i32)>,
+    /// The volcanoes world generation raised (regenerated from the seed on load).
+    pub volcanoes: Vec<Volcano>,
+    /// The volcanoes raised with the god tool since, oldest first (kept in the save).
+    pub placed_volcanoes: Vec<Volcano>,
     pub fertility: Vec<f32>,
     pub hazard: Vec<f32>,
     pub pressure: Vec<f32>,
@@ -67,6 +83,8 @@ impl WorldGrid {
             temperature: vec![22.0f32; size],
             structure: vec![0.0f32; size],
             pool_centers: Vec::new(),
+            volcanoes: Vec::new(),
+            placed_volcanoes: Vec::new(),
             fertility: vec![0.5f32; size],
             hazard: vec![0.0f32; size],
             pressure: vec![0.0f32; size],
@@ -78,6 +96,23 @@ impl WorldGrid {
         g.generate(seed);
         g.enforce_ocean_border();
         g
+    }
+
+    /// Every volcano on the map: those of world generation, then those raised since.
+    pub fn all_volcanoes(&self) -> impl Iterator<Item = &Volcano> {
+        self.volcanoes.iter().chain(self.placed_volcanoes.iter())
+    }
+
+    /// Records a volcano raised at (`x`, `y`) with radius `r`. One raised on top of another (its crater
+    /// within the older cone) replaces it, and past `MAX_PLACED_VOLCANOES` the oldest is forgotten.
+    pub fn raise_volcano(&mut self, x: i32, y: i32, r: i32) {
+        let on_top = |v: &Volcano| (v.x - x).pow(2) + (v.y - y).pow(2) <= v.r.max(r).pow(2);
+        self.placed_volcanoes.retain(|v| !on_top(v));
+        self.volcanoes.retain(|v| !on_top(v));
+        if self.placed_volcanoes.len() >= MAX_PLACED_VOLCANOES {
+            self.placed_volcanoes.remove(0);
+        }
+        self.placed_volcanoes.push(Volcano { x, y, r });
     }
 
     pub fn enforce_ocean_border(&mut self) {

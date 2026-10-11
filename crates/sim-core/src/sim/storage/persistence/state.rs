@@ -25,6 +25,9 @@ pub(crate) struct GridSave {
     /// Road kinds per cell (`ROAD_*`). Saves from before roads load with none.
     #[serde(default)]
     pub(super) road: Vec<u8>,
+    /// Volcanoes raised with the god tool; world generation's own come back from the seed.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(super) placed_volcanoes: Vec<crate::world::grid::Volcano>,
 }
 
 #[derive(Default, Serialize, Deserialize)]

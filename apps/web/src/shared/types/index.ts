@@ -692,6 +692,8 @@ export interface WorldState {
   wards?: WardInfo[]
   /** Smoke from industry. */
   smog?: SmogInfo[]
+  /** Volcano cones as [x, y, radius] in tiles: world generation's, then those raised with the god tool. */
+  volcanoes?: [number, number, number][]
   /** Tribes on the brink, and what is killing them. */
   tribes_in_peril?: TribePeril[]
   settlements?: SettlementInfo[]
