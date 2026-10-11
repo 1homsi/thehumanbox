@@ -158,6 +158,7 @@ export const BUILDING_EMOJI: Record<string, string> = {
   Marina: '\u{26F5}',
   Lighthouse2: '\u{1F5FC}',
   Drydock: '\u{2693}',
+  Shipyard: '\u{1F6A2}',
   Crane: '\u{1F3D7}\u{FE0F}',
   RadioTower: '\u{1F4E1}',
   SatelliteDish: '\u{1F4E1}',

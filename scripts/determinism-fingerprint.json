@@ -1,6 +1,6 @@
 {
   "seed": 42,
   "tick": 3000,
-  "save_fnv1a64": "0x65fa5e83df8fe356",
-  "note": "FNV-1a 64 of the serialized save state. Checked natively by sim-core tests and in the browser wasm build by scripts/check-wasm-determinism.mjs. Update only when a change is meant to alter the world. Regenerated for ferries (sim-core tech/ferry.rs now moors a ferry across a strait in seed 42)."
+  "save_fnv1a64": "0x3b2ee50efb088e7b",
+  "note": "FNV-1a 64 of the serialized save state. Checked natively by sim-core tests and in the browser wasm build by scripts/check-wasm-determinism.mjs. Update only when a change is meant to alter the world. Regenerated for harbour works (tech/ports.rs: boats are built at a shipyard and moor at piers)."
 }
