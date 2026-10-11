@@ -34,7 +34,7 @@ export interface P {
   variant: number
   /** Architectural era of the owning tribe (see ERA_TIERS). */
   tier: number
-  /** A passing visual state ('empty' for a spaceport whose rocket is away). */
+  /** A passing visual state (see passingState: a spaceport's 'empty' pad, a shipyard's 'hull1'..'hull3'). */
   state: string
   /** The land a stone-age home stands on (see HomeLand in land-homes.ts). */
   land?: string

@@ -7,7 +7,7 @@ import { buildingDepthKey } from '../../building-draw/depth'
 import { normKind, resolveBuildingFootprint } from '../../building-draw/footprints'
 import { RUIN_CRUMBLE_TICKS } from '../../building-draw/ruins'
 import type { BuildingLike, BuildingVisualDetail } from '../../building-draw/types'
-import { padEmpty } from '../../era-traffic'
+import { passingState } from '../../building-draw/passing-state'
 import { isHouseLike } from '../../building-draw/colors'
 import { roofTintFor, tribeTintIndex } from '../../building-painters/tribe-palette'
 
@@ -65,7 +65,7 @@ export function describeBuilding(b: Building, info: BuildingFrameInfo): Building
     b.ruined && b.ruined_at_tick != null
       ? Math.max(0, (info.tick - b.ruined_at_tick) / RUIN_CRUMBLE_TICKS)
       : 0
-  const state = b.kind === 'Spaceport' && padEmpty(b.id, info.tick) ? 'empty' : undefined
+  const state = passingState(b, info.tick)
   const snow = info.winter && isHouseLike(k)
   // Only stone-age huts change shape with the land; the land joins their look.
   const land = k === 'Hut' && tier === 0 ? (info.landAt?.(b.x, b.y) ?? '') : ''
