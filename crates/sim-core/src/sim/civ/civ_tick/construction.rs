@@ -204,9 +204,10 @@ pub(super) fn apply_completed_building_effect(sim: &mut Simulation, kind: Buildi
     use crate::world::tiles::Tile;
 
     match kind {
-        BuildingKind::Well => {
+        BuildingKind::Well | BuildingKind::Fountain => {
             // Groundwater is a completed well's effect, not a free side
-            // effect of selecting the action that opened its project.
+            // effect of selecting the action that opened its project. A
+            // fountain's basin holds the same water in the middle of its plaza.
             sim.grid.set(x, y, Tile::Water);
             sim.grid.depth[WorldGrid::idx(x, y)] = 0.0;
         }
@@ -241,7 +242,11 @@ pub(crate) fn reconcile_operational_infrastructure(sim: &mut Simulation) {
         .buildings
         .iter()
         .filter(|building| {
-            building.is_operational() && matches!(building.kind, BuildingKind::Well | BuildingKind::Bridge)
+            building.is_operational()
+                && matches!(
+                    building.kind,
+                    BuildingKind::Well | BuildingKind::Fountain | BuildingKind::Bridge
+                )
         })
         .map(|building| (building.kind, building.x, building.y))
         .collect();
@@ -1166,6 +1171,15 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
             && start_lacking_craft_outside_limit(sim, &lid, era, pop)
         {
             functional_slots -= 1;
+        }
+        // A town's fountain goes in the middle of its plaza from the classical age. It is cheap
+        // (one stone), so it does not take a project slot.
+        if workers > 0 && functional_slots > 0 {
+            if let Some((fx, fy)) = super::town::town_fountain_site(sim, &lid, era) {
+                if start_building_at_valid_site(sim, &lid, BuildingKind::Fountain, fx, fy) {
+                    functional_slots -= 1;
+                }
+            }
         }
         if workers == 0 || available_projects == 0 {
             continue;
