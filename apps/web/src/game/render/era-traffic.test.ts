@@ -4,6 +4,7 @@ import {
   LAUNCH_TICKS,
   flightPosition,
   launchProgress,
+  drawCart,
   drawTrain,
   padEmpty,
 } from './era-traffic'
@@ -69,6 +70,16 @@ describe('trains', () => {
       r.rects.filter((q) => q.fill.startsWith('rgba(210')).length
     expect(steam(idle)).toBe(0)
     expect(steam(moving)).toBeGreaterThan(0)
+  })
+
+  it('shows the grain on the bed of a loaded village cart only', () => {
+    const empty = recorder()
+    drawCart(empty.ctx, 0, 0, [1, 0], false, false, 0)
+    const loaded = recorder()
+    drawCart(loaded.ctx, 0, 0, [1, 0], true, false, 0)
+    const grain = (r: ReturnType<typeof recorder>) => r.rects.filter((q) => q.fill === '#e0c050').length
+    expect(grain(empty)).toBe(0)
+    expect(grain(loaded)).toBeGreaterThan(0)
   })
 
   it('draws the same engine and cars whichever way it faces', () => {

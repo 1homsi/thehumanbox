@@ -1,7 +1,7 @@
 import { SPRITE_UNTEXTURED, SpriteLayer, TextLayer } from 'xipjs'
 import { TILE } from '../../../model/palette'
 import { drawTradeNetwork2D } from '../../base-parts/trade-network'
-import { drawTrain } from '../../era-traffic'
+import { drawCart, drawTrain } from '../../era-traffic'
 import { eraTier } from '../../../model/era-tier'
 import { paintPeopleLabels, type PeopleLabelSource } from '../people/people-labels'
 import { PeopleNameLayer } from '../people/people-names'
@@ -431,16 +431,17 @@ export class CfOverlayRenderer {
 
   // ── trains ─────────────────────────────────────────────────────────────────
 
-  /** The trains the simulation runs on the railway lines (`vehicles` of kind `train`), at every zoom. */
+  /** The trains on the railway lines and the village carts on the roads (`vehicles`), at every zoom. */
   private paintTrains(ctx: CanvasRenderingContext2D, f: CfFrame): void {
     const { world, ox, oy, t, bounds } = f
     for (const v of world.vehicles ?? []) {
-      if (v.kind !== 'train') continue
+      if (v.kind !== 'train' && v.kind !== 'cart') continue
       const x = (v.x - ox + 0.5) * TILE
       const y = (v.y - oy + 0.5) * TILE
       if (v.x < bounds.c0 - 2 || v.x > bounds.c1 + 2 || v.y < bounds.r0 - 2 || v.y > bounds.r1 + 2) continue
       const heading = v.next ? ([v.next[0] - v.x, v.next[1] - v.y] as const) : null
-      drawTrain(ctx, x, y, heading, eraTier(v.era), !!v.sailing, t)
+      if (v.kind === 'cart') drawCart(ctx, x, y, heading, (v.cargo ?? 0) > 0, !!v.sailing, t)
+      else drawTrain(ctx, x, y, heading, eraTier(v.era), !!v.sailing, t)
     }
   }
 

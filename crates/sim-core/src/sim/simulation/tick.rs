@@ -519,6 +519,7 @@ impl Simulation {
         self.tick_fleet();
         self.tick_ferries();
         self.tick_rails();
+        crate::sim::civ::land::village_carts::tick_carts(self);
         self.tick_plantings();
         self.tick_prayers();
         self.tick_wards();
