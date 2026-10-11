@@ -124,7 +124,8 @@ const { startStaticServer } = await import(pathToFileURL(path.join(here, 'static
 const { launchChrome, sleep } = await import(pathToFileURL(path.join(here, 'cdp.mjs')).href)
 const { PAGE_INIT } = await import(pathToFileURL(path.join(here, 'page-init.mjs')).href)
 mkdirSync(out, { recursive: true })
-const ZOOMS = { overview: 'fit', mid: 1, close: 3 }
+// `--close-zoom` sets the close shot (3 by default; the crosshair and crop follow it).
+const ZOOMS = { overview: 'fit', mid: 1, close: Number(opt('close-zoom', '3')) }
 const CALL_MS = 15_000 // one evaluate or one screenshot
 const SHOT_MS = 30_000
 

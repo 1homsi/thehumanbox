@@ -9,6 +9,7 @@
 
 use crate::hashing::{FxHashMap, FxHashSet};
 use crate::sim::actions::agriculture::farm_ops::{crop_for_plot, harvest_crop, plant_crop};
+use crate::sim::agriculture::{plough_for, Plough};
 use crate::sim::civ::land::village_carts;
 use crate::sim::civ::land::village_failure;
 use crate::sim::civ::land::village_livestock;
@@ -218,10 +219,14 @@ fn sow_fields(sim: &mut Simulation, tribe: &Tribe, now: u64) {
     if sim.season() != SOWING_SEASON {
         return;
     }
-    let cap = (tribe.dwellings.len() * PLOTS_PER_DWELLING).max(1);
+    // A plough breaks more ground in a pass and lets each dwelling keep more plots.
+    let plough = plough_for(sim.era(&tribe.lineage));
+    let per_dwelling = PLOTS_PER_DWELLING + plough.map_or(0, Plough::extra_plots_per_dwelling);
+    let cap = (tribe.dwellings.len() * per_dwelling).max(1);
+    let per_pass = plough.map_or(SOW_PER_PASS, Plough::sows_per_pass);
     let mut sowed = 0usize;
     let mut first_ever = false;
-    for _ in 0..SOW_PER_PASS {
+    for _ in 0..per_pass {
         let plots = sim
             .farms
             .iter()

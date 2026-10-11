@@ -263,6 +263,8 @@ export interface FarmInfo {
   harvested?: boolean
   /** Ruined by a blight, locusts, a flood or a dry spell: it stands dead until it is brought in. */
   withered?: boolean
+  /** The plough that broke a village field while it grows: an ox or a tractor, by the owner's era. */
+  plough?: string | null
   stage?: 'fallow' | 'seeded' | 'growing' | 'mature' | 'harvested'
   progress?: number
 }

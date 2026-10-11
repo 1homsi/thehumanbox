@@ -1,4 +1,5 @@
 use super::*;
+use crate::sim::agriculture::plough_for;
 
 impl Simulation {
     pub(super) fn state_frame_inner(
@@ -618,6 +619,12 @@ impl Simulation {
                     .map(|farm| {
                         let fertility = self.grid.fertility_at(farm.x, farm.y);
                         let era = self.era(&farm.owner_lineage);
+                        // A field the village sowed in spring was broken by its plough: the ox or tractor is drawn
+                        // in it while it grows.
+                        let plough = (!farm.harvested && farm.season_timed)
+                            .then(|| plough_for(era))
+                            .flatten()
+                            .map(|p| p.name());
                         json!({
                             "id": farm.id,
                             "x": farm.x,
@@ -628,6 +635,7 @@ impl Simulation {
                             "ready_tick": farm.ready_tick,
                             "harvested": farm.harvested,
                             "withered": farm.withered,
+                            "plough": plough,
                             "stage": farm.stage(self.tick_count),
                             "progress": farm.progress(self.tick_count).clamp(0.0, 1.0),
                             "yield": if farm.harvested {
