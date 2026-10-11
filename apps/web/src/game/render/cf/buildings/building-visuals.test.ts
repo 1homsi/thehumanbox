@@ -82,13 +82,13 @@ describe('describeBuilding', () => {
   })
 
   it('gives a shipyard a cell for each hull stage on its slip, and one for the empty slip', () => {
-    const yard = (slip?: number) => describeBuilding(house({ kind: 'Shipyard', slip }), info())
+    const yard = (slip?: number) => describeBuilding(house({ kind: 'shipyard', slip }), info())
     const keys = [yard(), yard(1), yard(2), yard(3)].map((v) => v.key)
     expect(new Set(keys).size).toBe(4)
     expect(yard().record.state).toBeUndefined()
     expect(yard(2).record.state).toBe('hull2')
     // The same stage shares its cell between yards (no per-building key for a finished yard).
-    expect(describeBuilding(house({ id: 1, kind: 'Shipyard', slip: 3 }), info()).key).toBe(yard(3).key)
+    expect(describeBuilding(house({ id: 1, kind: 'shipyard', slip: 3 }), info()).key).toBe(yard(3).key)
   })
 
   it('keys construction sites by position and quantised progress', () => {
