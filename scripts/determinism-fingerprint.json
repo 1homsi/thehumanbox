@@ -1,6 +1,6 @@
 {
   "seed": 42,
   "tick": 3000,
-  "save_fnv1a64": "0x10ac36bbb4a86acf",
+  "save_fnv1a64": "0x4ecec3679c5ad357",
   "note": "FNV-1a 64 of the serialized save state. Checked natively by sim-core tests and in the browser wasm build by scripts/check-wasm-determinism.mjs. Update only when a change is meant to alter the world. Regenerated for weddings (pairing.rs: a new couple's tribe-mates walk to the home when they pair)."
 }
