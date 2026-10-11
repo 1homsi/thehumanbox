@@ -153,7 +153,12 @@ fn farming_neighbours(
 ) -> HashSet<String> {
     let mut dwellings: std::collections::BTreeMap<&str, Vec<(i32, i32)>> = std::collections::BTreeMap::new();
     for b in buildings {
-        if !b.is_operational() || !matches!(b.kind, BuildingKind::Hut | BuildingKind::House) {
+        if !b.is_operational()
+            || !matches!(
+                b.kind,
+                BuildingKind::Hut | BuildingKind::House | BuildingKind::Longhouse
+            )
+        {
             continue;
         }
         if let Some(owner) = b.owner_lineage.as_deref() {
@@ -289,7 +294,10 @@ fn research_profile(
         .filter(|building| {
             building.owner_lineage.as_deref() == Some(lineage_id)
                 && building.is_operational()
-                && matches!(building.kind, BuildingKind::Hut | BuildingKind::House)
+                && matches!(
+                    building.kind,
+                    BuildingKind::Hut | BuildingKind::House | BuildingKind::Longhouse
+                )
         })
         .count() as f32;
     let settled = (dwellings / count).min(1.0);

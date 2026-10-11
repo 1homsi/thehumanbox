@@ -22,6 +22,7 @@ const WALL_COLORS: Record<string, string> = {
   Granary: '#b88848',
   Pen: '#8a6440',
   Barn: '#8a3a2e',
+  Longhouse: '#9a7650',
   Barracks: '#5a5a5a',
   Lighthouse: '#e8e0d0',
   Windmill: '#a07854',
@@ -183,6 +184,7 @@ const ROOF_COLORS: Record<string, string> = {
   Hut: '#4a3018',
   House: '#7a3a20',
   Manor: '#4a2018',
+  Longhouse: '#5e4a2a',
   TownHouse: '#5a2818',
   Apartment: '#3a3a3e',
   School: '#a83020',
@@ -216,6 +218,7 @@ export function roofColor(kind: string): string | null {
 const HOUSE_LIKE = new Set([
   'Hut',
   'House',
+  'Longhouse',
   'Manor',
   'TownHouse',
   'School',

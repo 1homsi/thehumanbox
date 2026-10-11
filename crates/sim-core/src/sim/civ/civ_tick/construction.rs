@@ -670,6 +670,18 @@ pub(crate) fn wants_manor(sim: &Simulation, lineage: &str, era: Era, population:
     manors * PEOPLE_PER_MANOR < population && construction_cost_available(sim, lineage, BuildingKind::Manor)
 }
 
+/// A clan too big for one roof: a tribe of the Iron age or later that is at least this many
+/// beds short raises a longhouse for its kin rather than two more houses.
+pub(crate) const LONGHOUSE_SHORTFALL: usize = 4;
+
+/// True when a tribe is short of beds for a whole family and can pay for a longhouse, which
+/// seats eight under one roof (see `BuildingKind::capacity`).
+pub(crate) fn wants_longhouse(sim: &Simulation, lineage: &str, era: Era, population: usize) -> bool {
+    era >= BuildingKind::Longhouse.era_unlock()
+        && population >= crate::sim::civ::vacancy::housing_capacity(sim, lineage) + LONGHOUSE_SHORTFALL
+        && construction_cost_available(sim, lineage, BuildingKind::Longhouse)
+}
+
 pub(super) fn housing_target(
     sim: &Simulation,
     lineage: &str,
@@ -679,7 +691,7 @@ pub(super) fn housing_target(
     use BuildingKind::*;
     let capacity: usize = sim.buildings.iter()
         .filter(|b| !b.decorative && !b.is_ruined() && b.owner_lineage.as_deref() == Some(lineage))
-        .filter(|b| matches!(b.kind, Hut | House | Manor | TownHouse | Apartment | Skyscraper))
+        .filter(|b| matches!(b.kind, Hut | House | Longhouse | Manor | TownHouse | Apartment | Skyscraper))
         // Reserved homes count too, so unfinished projects cannot cause a building flood.
         .map(|b| usize::from(b.kind.capacity())).sum();
     if capacity >= population {
@@ -687,6 +699,9 @@ pub(super) fn housing_target(
     }
     if wants_manor(sim, lineage, era, population) {
         return Some(Manor);
+    }
+    if wants_longhouse(sim, lineage, era, population) {
+        return Some(Longhouse);
     }
     [Apartment, TownHouse, House, Hut]
         .into_iter()
@@ -1230,6 +1245,7 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                     b.kind,
                     BuildingKind::Hut
                         | BuildingKind::House
+                        | BuildingKind::Longhouse
                         | BuildingKind::TownHouse
                         | BuildingKind::Apartment
                 )
@@ -1717,7 +1733,10 @@ pub(super) fn civic_project_first(sim: &Simulation, lineage: &str) -> bool {
 /// Homes a tribe builds for its people.
 pub(super) fn is_home_kind(kind: BuildingKind) -> bool {
     use BuildingKind::*;
-    matches!(kind, Hut | House | Manor | TownHouse | Apartment | Skyscraper)
+    matches!(
+        kind,
+        Hut | House | Longhouse | Manor | TownHouse | Apartment | Skyscraper
+    )
 }
 
 /// The order builders are handed sites in: research buildings, then craft and civic projects,
