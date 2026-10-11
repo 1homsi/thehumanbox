@@ -118,44 +118,124 @@ fn founders_spread_across_world_sectors() {
     }
 }
 
+/// The seeds the dispersal guard runs on: the two it always used, and six more.
+const DISPERSAL_SEEDS: [u64; 8] = [42, 99, 1, 2, 3, 5, 7, 13];
+/// The most of the living who may stand within 10 tiles of any one person. Towns read well under
+/// half; a tribe clumped on one tile reads at, or near, the whole population.
+const CROWD_CAP: f32 = 0.5;
+/// The most of the living who may be walking to one journey destination (a pier, a shore). A
+/// healthy world sends a few people to each spot; a funnel sends most of a tribe to one.
+const HERD_CAP: f32 = 0.25;
+/// Floor for one seed's spread (std of x as a share of WIDTH): only a collapse falls under it.
+const STDX_FLOOR: f32 = 0.05;
+/// Floor for the mean spread over the seeds, x and y (shares of WIDTH and HEIGHT).
+const STDX_MEAN: f32 = 0.12;
+const STDY_MEAN: f32 = 0.08;
+
+/// Where the living population stands at one tick of one seed.
+struct Spread {
+    alive: usize,
+    /// Std of x and y, as shares of WIDTH and HEIGHT.
+    stdx: f32,
+    stdy: f32,
+    /// Most of the living within 10 tiles of any one person, as a share of the living.
+    crowd: f32,
+    /// Most of the living walking to one journey destination, as a share of the living.
+    herd: f32,
+}
+
+fn spread_after(seed: u64, ticks: u64) -> Spread {
+    let mut sim = Simulation::new(seed);
+    for _ in 0..ticks {
+        sim.tick();
+    }
+    let alive: Vec<_> = sim.organisms.iter().filter(|o| o.alive).collect();
+    if alive.is_empty() {
+        return Spread {
+            alive: 0,
+            stdx: 0.0,
+            stdy: 0.0,
+            crowd: 1.0,
+            herd: 1.0,
+        };
+    }
+    let n = alive.len() as f32;
+    let mx = alive.iter().map(|o| o.x).sum::<f32>() / n;
+    let my = alive.iter().map(|o| o.y).sum::<f32>() / n;
+    let varx = alive.iter().map(|o| (o.x - mx).det_powi(2)).sum::<f32>() / n;
+    let vary = alive.iter().map(|o| (o.y - my).det_powi(2)).sum::<f32>() / n;
+    let mut most_near = 0usize;
+    for a in &alive {
+        let near = alive
+            .iter()
+            .filter(|b| (a.x - b.x).det_powi(2) + (a.y - b.y).det_powi(2) <= 100.0)
+            .count();
+        most_near = most_near.max(near);
+    }
+    let mut destinations: crate::hashing::FxHashMap<(i32, i32), usize> = Default::default();
+    for o in &alive {
+        if let Some(journey) = &o.journey {
+            *destinations.entry(journey.target).or_insert(0) += 1;
+        }
+    }
+    let most_bound = destinations.values().copied().max().unwrap_or(0);
+    Spread {
+        alive: alive.len(),
+        stdx: varx.sqrt() / WIDTH as f32,
+        stdy: vary.sqrt() / HEIGHT as f32,
+        crowd: most_near as f32 / n,
+        herd: most_bound as f32 / n,
+    }
+}
+
+/// Anti-collapse guard, run after 9000 ticks (about 1.5 sim-days) on eight seeds. Each seed must
+/// keep a living population, must not be clumped (no one has half the people within 10 tiles),
+/// and must not funnel a quarter of the living to one destination; a seed's spread may not fall
+/// under a floor that only a collapse reaches; and across the seeds the mean spread stays above
+/// the original floors (`0.12` of WIDTH, `0.08` of HEIGHT). Single seeds swing with the world's
+/// chaos, so the seeds are judged together where a floor is a mean.
 #[test]
 fn population_stays_dispersed_after_many_days() {
-    for seed in [42u64, 99] {
-        let mut sim = Simulation::new(seed);
-        for _ in 0..9_000 {
-            sim.tick();
-        }
-        let alive: Vec<_> = sim.organisms.iter().filter(|o| o.alive).collect();
+    let mut stdx_sum = 0.0;
+    let mut stdy_sum = 0.0;
+    for seed in DISPERSAL_SEEDS {
+        let s = spread_after(seed, 9_000);
         assert!(
-            alive.len() >= 80,
+            s.alive >= 80,
             "seed {seed} population collapsed to {} after 3 days",
-            alive.len()
-        );
-
-        let n = alive.len() as f32;
-        let mx = alive.iter().map(|o| o.x).sum::<f32>() / n;
-        let my = alive.iter().map(|o| o.y).sum::<f32>() / n;
-        let varx = alive.iter().map(|o| (o.x - mx).det_powi(2)).sum::<f32>() / n;
-        let vary = alive.iter().map(|o| (o.y - my).det_powi(2)).sum::<f32>() / n;
-        let stdx = varx.sqrt();
-        let stdy = vary.sqrt();
-
-        // Anti-collapse guard: the world must stay meaningfully spread,
-        // not clump to a single point. Threshold kept well below the
-        // natural operating point (~0.20 of WIDTH on the test seeds) so
-        // it (a) still catches a real collapse — which reads as <0.08 —
-        // and (b) tolerates both cross-architecture float drift (arm
-        // dev vs x86 CI diverge over 9000 chaotic ticks) and the
-        // intended village-clustering from the social-gravitation ticks.
-        assert!(
-            stdx >= WIDTH as f32 * 0.12,
-            "seed {seed} stdx {stdx} too small (clustered) - WIDTH={WIDTH}"
+            s.alive
         );
         assert!(
-            stdy >= HEIGHT as f32 * 0.08,
-            "seed {seed} stdy {stdy} too small (clustered) - HEIGHT={HEIGHT}"
+            s.crowd <= CROWD_CAP,
+            "seed {seed}: {:.0}% of the living stand within 10 tiles of one person (clumped)",
+            s.crowd * 100.0
         );
+        assert!(
+            s.herd <= HERD_CAP,
+            "seed {seed}: {:.0}% of the living are walking to one spot (a pier everyone is drawn to)",
+            s.herd * 100.0
+        );
+        assert!(
+            s.stdx >= STDX_FLOOR,
+            "seed {seed} stdx {:.3} of WIDTH too small (clustered)",
+            s.stdx
+        );
+        stdx_sum += s.stdx;
+        stdy_sum += s.stdy;
     }
+    let seeds = DISPERSAL_SEEDS.len() as f32;
+    assert!(
+        stdx_sum / seeds >= STDX_MEAN,
+        "mean stdx {:.3} of WIDTH over {} seeds (clustered)",
+        stdx_sum / seeds,
+        DISPERSAL_SEEDS.len()
+    );
+    assert!(
+        stdy_sum / seeds >= STDY_MEAN,
+        "mean stdy {:.3} of HEIGHT over {} seeds (clustered)",
+        stdy_sum / seeds,
+        DISPERSAL_SEEDS.len()
+    );
 }
 
 #[test]

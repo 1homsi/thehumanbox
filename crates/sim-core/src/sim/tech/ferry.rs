@@ -1,12 +1,16 @@
 //! Ferries. Where a narrow strait of water (at most `MAX_STRAIT` tiles) cuts off two landmasses
 //! whose people are kin, a tribe on one shore sets up a ferry: a boat moored at a landing on each
-//! shore. Kin who want to cross walk to the pier and wait (`WAIT_FOR_FERRY`); when the ferry is moored
-//! there and they stand by it, they board (up to `FERRY_CAP`), it sails across, and they land on
-//! the far shore. A ferry sails only when someone is aboard it, and it holds in storms. Passengers
-//! are carried, not steered: `boat_action` answers their turn with a quiet rest while the ferry moves
-//! them, and the frame lists them so the client draws them in the boat.
-use std::collections::{BTreeMap, HashMap, VecDeque};
+//! shore. A person whose errand takes them across the water (a journey whose goal lies on the far
+//! shore, which no road reaches) walks to the nearest pier that carries that crossing and joins its
+//! queue. A pier queues at most two boatloads; anyone who finds it full goes on with their own life
+//! and may try again later. When the ferry is moored there and a queued person stands on the quay,
+//! they board (up to `FERRY_CAP`), it sails across, and they land on the far shore and carry on to
+//! where they were going. A ferry sails only when someone waits for it, and it holds in storms.
+//! Passengers are carried, not steered: `boat_action` answers their turn with a quiet rest while the
+//! ferry moves them, and the frame lists them so the client draws them in the boat.
+use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 
+use crate::organism::organism::Organism;
 use crate::sim::simulation::Simulation;
 use crate::sim::transportation::{FerryLine, TransportKind, Vehicle};
 use crate::world::{
@@ -19,10 +23,10 @@ use super::fleet::harbour_shore;
 const CARDINAL: [(i32, i32); 4] = [(0, -1), (0, 1), (-1, 0), (1, 0)];
 
 /// The journey description of a person walking to a ferry pier.
-pub(crate) const WAIT_FOR_FERRY: &str = "going to the ferry to see kin";
+pub(crate) const WAIT_FOR_FERRY: &str = "going to the ferry";
 /// How often the land is surveyed and a new ferry line is planned, in ticks.
 const SURVEY_TICKS: u64 = 200;
-/// A ferry moves one tile of water every this many ticks.
+/// A ferry moves one tile of water every this many ticks; the piers are served on the same beat.
 const STEP_TICKS: u64 = 3;
 /// Widest strait a ferry crosses, in tiles of water.
 const MAX_STRAIT: i32 = 8;
@@ -32,21 +36,71 @@ const MIN_STRAIT: i32 = 2;
 const MAX_FERRIES: usize = 8;
 /// Most passengers aboard a ferry at once.
 const FERRY_CAP: usize = 6;
+/// Most people queued at one pier: about two boatloads, so a boat finds people on the quay when it
+/// comes in, and a pier never holds a crowd.
+const QUEUE_CAP: usize = 2 * FERRY_CAP;
+/// How long someone queues at a pier for the boat before giving up, in ticks.
+const PATIENCE_TICKS: u64 = 600;
+/// How long someone who gave up waits before they may queue at a pier again, in ticks.
+const COOLDOWN_TICKS: u64 = 600;
 /// A tribe must have this many members, and a seafaring one, before it sets up a ferry.
 const MIN_TRIBE_FOR_FERRY: usize = 6;
 /// Most water tiles a ferry's route search visits.
 const SEARCH_LIMIT: usize = 1500;
-/// How near (in tiles, Chebyshev) a person must stand to a landing to board the ferry there.
+/// How near (in tiles, Chebyshev) a person must stand to the quay to board, or to count as on it.
+/// The same reach ends a walk to the quay, so a person who arrives is on the quay.
 const BOARD_REACH: i32 = 2;
 /// Ticks a new ferry needs before it is ready to sail.
 const BUILD_TICKS: u64 = 24;
 
 /// What the last survey found: the landmass each walkable tile belongs to (`u32::MAX` for water and
-/// rock), and for each tribe the landmasses where its members live.
+/// rock), and for each tribe the landmasses where its members live (the tribes a ferry is planned for).
 #[derive(Default, Debug, Clone)]
 pub(crate) struct FerrySurvey {
     landmass: Vec<u32>,
     kin: BTreeMap<String, Vec<u32>>,
+}
+
+/// A person in a pier's queue or aboard a ferry, and the errand that brought them to the water.
+#[derive(Clone, Debug)]
+pub(crate) struct Passenger {
+    /// Where the person stood in `Simulation::organisms` when last checked (see `locate`).
+    idx: usize,
+    id: String,
+    /// Where the journey they joined the queue on was taking them, and what it was called.
+    goal: (i32, i32),
+    description: String,
+    /// The tick they joined the queue.
+    since: u64,
+}
+
+/// The ferry queues. They are not saved: the errands are, through the people's journeys.
+/// `piers` holds, per pier (a ferry's id and side, 0 at its `a` landing and 1 at `b`), the people
+/// queued for it in the order they joined. `aboard` holds, per ferry, the passengers it carries.
+#[derive(Default, Debug, Clone)]
+pub(crate) struct FerryQueues {
+    piers: BTreeMap<(u32, usize), Vec<Passenger>>,
+    aboard: BTreeMap<u32, Vec<Passenger>>,
+    /// Ticks until which a person who gave up waiting may not queue again.
+    cooldown: BTreeMap<String, u64>,
+}
+
+/// One pier: a ferry's landing on one shore, the dry quay beside it, and the landmasses it joins.
+#[derive(Clone, Copy, Debug)]
+struct Pier {
+    vehicle: u32,
+    side: usize,
+    quay: (i32, i32),
+    /// The landmass of this shore, and of the shore across.
+    here: u32,
+    there: u32,
+}
+
+/// Where a passenger stepped ashore, and the errand they were on when they boarded.
+struct Landing {
+    shore: (i32, i32),
+    bank: u32,
+    errand: Option<((i32, i32), String)>,
 }
 
 /// The landmass beside a water tile (the first dry neighbour), or `u32::MAX`.
@@ -63,6 +117,60 @@ fn bank(survey: &FerrySurvey, p: (i32, i32)) -> u32 {
 /// The dry tile a passenger steps onto when a ferry lands at `at`.
 fn quay(grid: &WorldGrid, at: (i32, i32)) -> Option<(i32, i32)> {
     harbour_shore(grid, at).map(|(dx, dy)| (at.0 + dx, at.1 + dy))
+}
+
+/// Chebyshev distance between two tiles.
+fn reach(a: (i32, i32), b: (i32, i32)) -> i32 {
+    (a.0 - b.0).abs().max((a.1 - b.1).abs())
+}
+
+/// The tile a person stands on.
+fn tile_of(o: &Organism) -> (i32, i32) {
+    (o.x as i32, o.y as i32)
+}
+
+/// Whether a queued passenger is still alive and stands on the quay.
+fn on_quay(organisms: &[Organism], p: &Passenger, quay: (i32, i32)) -> bool {
+    organisms
+        .get(p.idx)
+        .is_some_and(|o| o.alive && o.id == p.id && reach(tile_of(o), quay) <= BOARD_REACH)
+}
+
+/// Finds a passenger among the organisms, refreshing the index they were last seen at.
+fn locate(organisms: &[Organism], p: &mut Passenger) -> Option<usize> {
+    if organisms.get(p.idx).is_some_and(|o| o.alive && o.id == p.id) {
+        return Some(p.idx);
+    }
+    let found = organisms.iter().position(|o| o.alive && o.id == p.id)?;
+    p.idx = found;
+    Some(found)
+}
+
+/// Every pier of every ferry line whose two shores are both known, in ferry order.
+fn piers_of(grid: &WorldGrid, survey: &FerrySurvey, vehicles: &[Vehicle]) -> Vec<Pier> {
+    let mut out = Vec::new();
+    for v in vehicles {
+        let Some(f) = v.ferry else {
+            continue;
+        };
+        for (side, at, other) in [(0, f.a, f.b), (1, f.b, f.a)] {
+            let Some(dock) = quay(grid, at) else {
+                continue;
+            };
+            let (here, there) = (bank(survey, at), bank(survey, other));
+            if here == u32::MAX || there == u32::MAX || here == there {
+                continue;
+            }
+            out.push(Pier {
+                vehicle: v.id,
+                side,
+                quay: dock,
+                here,
+                there,
+            });
+        }
+    }
+    out
 }
 
 /// The water route from `from` to `to` (both included), breadth first, or `None` when the water does not join them.
@@ -100,17 +208,18 @@ fn water_path(grid: &WorldGrid, from: (i32, i32), to: (i32, i32)) -> Option<Vec<
 }
 
 impl Simulation {
-    /// Surveys the land every `SURVEY_TICKS`, plans at most one new ferry line, and walks the people
-    /// who need to cross to their pier. Every `STEP_TICKS` the ferries board and sail.
+    /// Surveys the land every `SURVEY_TICKS` and plans at most one new ferry line. Every `STEP_TICKS`
+    /// the queues are kept, the ferries board and sail, and the people who need to cross join a queue.
     pub(crate) fn tick_ferries(&mut self) {
         let now = self.tick_count;
         if now.is_multiple_of(SURVEY_TICKS) {
             self.survey_landmasses();
             self.plan_ferries();
-            self.send_kin_to_the_pier();
         }
         if now.is_multiple_of(STEP_TICKS) && !self.ferry_survey.landmass.is_empty() {
-            self.ferry_step();
+            self.drop_stale_passengers();
+            self.board_and_sail();
+            self.admit_passengers();
         }
     }
 
@@ -273,52 +382,44 @@ impl Simulation {
             now,
             "discovery",
             &name,
-            "moored a ferry at a strait, to carry kin across the water",
+            "moored a ferry at a strait, to carry people across the water",
         );
     }
 
-    /// People whose kin live across a ferry's strait walk to the pier on their shore and wait there.
-    fn send_kin_to_the_pier(&mut self) {
+    /// Takes off the queues anyone who has died or has waited too long for the boat. Those who gave
+    /// up go back to their own lives, and may not queue again for a while.
+    fn drop_stale_passengers(&mut self) {
         let now = self.tick_count;
-        let ferries: Vec<FerryLine> = self.vehicles.iter().filter_map(|v| v.ferry).collect();
-        if ferries.is_empty() {
-            return;
-        }
-        let survey = &self.ferry_survey;
-        let mut walks: Vec<(usize, (i32, i32))> = Vec::new();
-        for (oi, o) in self.organisms.iter().enumerate() {
-            if !o.alive {
-                continue;
-            }
-            let here = survey.landmass[WorldGrid::idx(o.x as i32, o.y as i32)];
-            let Some(list) = survey.kin.get(&o.lineage_id) else {
-                continue;
-            };
-            for f in &ferries {
-                for (shore, other, at) in [(f.a, f.b, f.a), (f.b, f.a, f.b)] {
-                    let (ca, cb) = (bank(survey, shore), bank(survey, other));
-                    if here == ca && list.contains(&cb) {
-                        if let Some(q) = quay(&self.grid, at) {
-                            walks.push((oi, q));
-                        }
-                    }
+        let organisms = &mut self.organisms;
+        let queues = &mut self.ferry_queues;
+        queues.cooldown.retain(|_, until| *until > now);
+        for queue in queues.piers.values_mut() {
+            let mut kept = Vec::with_capacity(queue.len());
+            for mut p in std::mem::take(queue) {
+                let Some(oi) = locate(organisms, &mut p) else {
+                    continue;
+                };
+                if now.saturating_sub(p.since) <= PATIENCE_TICKS {
+                    kept.push(p);
+                    continue;
                 }
+                let o = &mut organisms[oi];
+                if o.journey
+                    .as_ref()
+                    .is_some_and(|j| j.description == WAIT_FOR_FERRY)
+                {
+                    o.journey = None;
+                    o.wander_target = None;
+                }
+                queues.cooldown.insert(p.id, now + COOLDOWN_TICKS);
             }
-        }
-        for (oi, q) in walks {
-            let o = &mut self.organisms[oi];
-            if o.journey
-                .as_ref()
-                .is_some_and(|j| j.description == WAIT_FOR_FERRY)
-            {
-                continue;
-            }
-            o.begin_journey(q, WAIT_FOR_FERRY, now);
+            *queue = kept;
         }
     }
 
-    /// Boards the waiting people, sails ferries across, and lands the passengers.
-    fn ferry_step(&mut self) {
+    /// Boards the queued people who stand on the quay of a moored ferry, sails ferries across when
+    /// someone is waiting on either shore, and lands the passengers.
+    fn board_and_sail(&mut self) {
         let now = self.tick_count;
         let storm = self.weather.kind == 2;
         let lines: Vec<usize> = self
@@ -332,51 +433,34 @@ impl Simulation {
             return;
         }
         let survey = &self.ferry_survey;
-        // Everyone standing by a landing, by ferry and side.
-        let mut near: Vec<(usize, usize, usize)> = Vec::new();
-        for (oi, o) in self.organisms.iter().enumerate() {
-            if !o.alive
-                || !o
-                    .journey
-                    .as_ref()
-                    .is_some_and(|j| j.description == WAIT_FOR_FERRY)
-            {
-                continue;
-            }
-            for &vi in &lines {
-                let f = self.vehicles[vi]
-                    .ferry
-                    .unwrap_or(FerryLine { a: (0, 0), b: (0, 0) });
-                for (side, at) in [f.a, f.b].into_iter().enumerate() {
-                    if (o.x as i32 - at.0).abs().max((o.y as i32 - at.1).abs()) <= BOARD_REACH {
-                        near.push((vi, side, oi));
-                    }
-                }
-            }
-        }
-        // Whoever is aboard any ferry, by id.
+        let grid = &self.grid;
+        // Passengers still on the water, by id, and the landings they step ashore at.
         let mut riding: BTreeMap<String, (i32, i32)> = BTreeMap::new();
-        let mut landed: BTreeMap<String, (i32, i32)> = BTreeMap::new();
+        let mut landed: BTreeMap<String, Landing> = BTreeMap::new();
         for &vi in &lines {
             let Some(f) = self.vehicles[vi].ferry else {
                 continue;
             };
-            let other_of = |side: usize| if side == 0 { f.b } else { f.a };
+            let vid = self.vehicles[vi].id;
             if !self.vehicles[vi].route.is_empty() {
                 if storm {
                     continue;
                 }
-                let next = self.vehicles[vi]
-                    .route
-                    .pop()
-                    .unwrap_or((self.vehicles[vi].x, self.vehicles[vi].y));
+                let here = (self.vehicles[vi].x, self.vehicles[vi].y);
+                let next = self.vehicles[vi].route.pop().unwrap_or(here);
                 self.vehicles[vi].x = next.0;
                 self.vehicles[vi].y = next.1;
                 if self.vehicles[vi].route.is_empty() {
-                    // Landed: everyone aboard steps ashore on this side.
-                    let shore = quay(&self.grid, next).unwrap_or(next);
+                    // Landed: everyone aboard steps ashore on this side, and carries on with their errand.
+                    let shore = quay(grid, next).unwrap_or(next);
+                    let bank = survey.landmass[WorldGrid::idx(shore.0, shore.1)];
+                    let riders = self.ferry_queues.aboard.remove(&vid).unwrap_or_default();
                     for id in std::mem::take(&mut self.vehicles[vi].occupants) {
-                        landed.insert(id, shore);
+                        let errand = riders
+                            .iter()
+                            .find(|p| p.id == id)
+                            .map(|p| (p.goal, p.description.clone()));
+                        landed.insert(id, Landing { shore, bank, errand });
                     }
                 } else {
                     for id in &self.vehicles[vi].occupants {
@@ -396,56 +480,55 @@ impl Simulation {
             if storm {
                 continue;
             }
-            let other = other_of(side);
-            let bank_here = bank(survey, here);
-            let bank_there = bank(survey, other);
-            let wants = |oi: usize| -> bool {
-                let o = &self.organisms[oi];
-                o.alive
-                    && survey.landmass[WorldGrid::idx(o.x as i32, o.y as i32)]
-                        == if side == 0 { bank_here } else { bank_there }
-                    && survey
-                        .kin
-                        .get(&o.lineage_id)
-                        .is_some_and(|l| l.contains(if side == 0 { &bank_there } else { &bank_here }))
+            let other = if side == 0 { f.b } else { f.a };
+            let (Some(dock), Some(other_dock)) = (quay(grid, here), quay(grid, other)) else {
+                continue;
             };
+            // Who boards: the people queued here who stand on the quay, first in line first, up to the room aboard.
             let room = FERRY_CAP.saturating_sub(self.vehicles[vi].occupants.len());
-            let mut boarding: Vec<usize> = Vec::new();
-            for &(nvi, nside, oi) in &near {
-                if nvi != vi || nside != side || boarding.len() >= room || !wants(oi) {
-                    continue;
-                }
-                let id = &self.organisms[oi].id;
-                let aboard = self
-                    .vehicles
-                    .iter()
-                    .any(|v| v.ferry.is_some() && v.occupants.contains(id));
-                if !aboard && !boarding.contains(&oi) {
-                    boarding.push(oi);
+            let mut take: Vec<usize> = Vec::new();
+            if let Some(queue) = self.ferry_queues.piers.get(&(vid, side)) {
+                for (k, p) in queue.iter().enumerate() {
+                    if take.len() >= room {
+                        break;
+                    }
+                    if on_quay(&self.organisms, p, dock) {
+                        take.push(k);
+                    }
                 }
             }
-            let other_waits = near.iter().any(|&(nvi, nside, oi)| {
-                nvi == vi
-                    && nside != side
-                    && wants_other(&self.organisms, oi, survey, bank_here, bank_there, nside)
-            });
-            if boarding.is_empty() && !other_waits {
+            let other_waits = self
+                .ferry_queues
+                .piers
+                .get(&(vid, 1 - side))
+                .is_some_and(|q| q.iter().any(|p| on_quay(&self.organisms, p, other_dock)));
+            if take.is_empty() && !other_waits {
                 continue;
             }
-            let Some(mut path) = water_path(&self.grid, here, other) else {
+            let Some(mut path) = water_path(grid, here, other) else {
                 continue;
             };
             path.remove(0);
             path.reverse();
             self.vehicles[vi].route = path;
-            for oi in boarding {
-                let o = &mut self.organisms[oi];
+            if take.is_empty() {
+                continue;
+            }
+            let mut boarded: Vec<Passenger> = Vec::with_capacity(take.len());
+            if let Some(queue) = self.ferry_queues.piers.get_mut(&(vid, side)) {
+                for &k in take.iter().rev() {
+                    boarded.push(queue.remove(k));
+                }
+            }
+            boarded.reverse();
+            for p in boarded {
+                let o = &mut self.organisms[p.idx];
                 o.journey = None;
                 o.wander_target = None;
                 o.x = here.0 as f32;
                 o.y = here.1 as f32;
-                let id = o.id.clone();
-                self.vehicles[vi].occupants.push(id);
+                self.vehicles[vi].occupants.push(o.id.clone());
+                self.ferry_queues.aboard.entry(vid).or_default().push(p);
             }
         }
         if riding.is_empty() && landed.is_empty() {
@@ -455,31 +538,150 @@ impl Simulation {
             if let Some(&(x, y)) = riding.get(&o.id) {
                 o.x = x as f32;
                 o.y = y as f32;
-            } else if let Some(&(x, y)) = landed.get(&o.id) {
-                o.x = x as f32;
-                o.y = y as f32;
+            } else if let Some(l) = landed.get(&o.id) {
+                o.x = l.shore.0 as f32;
+                o.y = l.shore.1 as f32;
                 o.journey = None;
                 o.wander_target = None;
+                if let Some((goal, description)) = &l.errand {
+                    if WorldGrid::in_bounds(goal.0, goal.1)
+                        && survey.landmass[WorldGrid::idx(goal.0, goal.1)] == l.bank
+                    {
+                        o.begin_journey(*goal, description, now);
+                    }
+                }
             }
         }
     }
-}
 
-/// Whether the person at `oi` on the far side of a strait waits to be carried back over it.
-fn wants_other(
-    organisms: &[crate::organism::organism::Organism],
-    oi: usize,
-    survey: &FerrySurvey,
-    bank_here: u32,
-    bank_there: u32,
-    side: usize,
-) -> bool {
-    let o = &organisms[oi];
-    let on = if side == 0 { bank_here } else { bank_there };
-    let across = if side == 0 { bank_there } else { bank_here };
-    o.alive
-        && survey.landmass[WorldGrid::idx(o.x as i32, o.y as i32)] == on
-        && survey.kin.get(&o.lineage_id).is_some_and(|l| l.contains(&across))
+    /// Queues the people whose errand takes them across a ferry's strait, at the nearest pier that
+    /// carries them and that has room, and walks each queued person back to the quay if they have
+    /// strayed from it. A person who finds no room keeps their own journey.
+    fn admit_passengers(&mut self) {
+        let now = self.tick_count;
+        let piers = piers_of(&self.grid, &self.ferry_survey, &self.vehicles);
+        if piers.is_empty() {
+            return;
+        }
+        let survey = &self.ferry_survey;
+        let mut fill: Vec<usize> = piers
+            .iter()
+            .map(|p| {
+                self.ferry_queues
+                    .piers
+                    .get(&(p.vehicle, p.side))
+                    .map_or(0, |q| q.len())
+            })
+            .collect();
+        let queued: BTreeSet<&str> = self
+            .ferry_queues
+            .piers
+            .values()
+            .flatten()
+            .map(|p| p.id.as_str())
+            .collect();
+        let mut joins: Vec<(usize, usize, (i32, i32), String)> = Vec::new();
+        let mut refused: Vec<usize> = Vec::new();
+        for (oi, o) in self.organisms.iter().enumerate() {
+            if !o.alive || queued.contains(o.id.as_str()) {
+                continue;
+            }
+            let Some(journey) = &o.journey else {
+                continue;
+            };
+            let here = survey.landmass[WorldGrid::idx(o.x as i32, o.y as i32)];
+            if here == u32::MAX || !WorldGrid::in_bounds(journey.target.0, journey.target.1) {
+                continue;
+            }
+            let there = survey.landmass[WorldGrid::idx(journey.target.0, journey.target.1)];
+            if there == u32::MAX || there == here {
+                continue;
+            }
+            // The errand is refused for now when this person is cooling off, or every pier that carries
+            // it is full. A refused errand is dropped, so the person goes on with their life and is not
+            // stalled at the shore by a walk that cannot end there.
+            let cooling = self
+                .ferry_queues
+                .cooldown
+                .get(&o.id)
+                .is_some_and(|&until| now < until);
+            let carried = piers
+                .iter()
+                .enumerate()
+                .filter(|(_, p)| p.here == here && p.there == there)
+                .map(|(pi, _)| pi)
+                .collect::<Vec<usize>>();
+            let pick = if cooling {
+                None
+            } else {
+                carried
+                    .iter()
+                    .copied()
+                    .filter(|&pi| fill[pi] < QUEUE_CAP)
+                    .min_by_key(|&pi| {
+                        (
+                            reach(tile_of(o), piers[pi].quay),
+                            piers[pi].vehicle,
+                            piers[pi].side,
+                        )
+                    })
+            };
+            let Some(pi) = pick else {
+                if cooling || !carried.is_empty() {
+                    refused.push(oi);
+                }
+                continue;
+            };
+            fill[pi] += 1;
+            joins.push((oi, pi, journey.target, journey.description.clone()));
+        }
+        drop(queued);
+        for oi in refused {
+            let o = &mut self.organisms[oi];
+            o.journey = None;
+            o.wander_target = None;
+        }
+        for (oi, pi, goal, description) in joins {
+            let pier = piers[pi];
+            let o = &mut self.organisms[oi];
+            o.begin_journey(pier.quay, WAIT_FOR_FERRY, now);
+            // A walk the person may not make (the quay is walled off to them) leaves their own journey in place.
+            if o.journey.as_ref().is_none_or(|j| j.description != WAIT_FOR_FERRY) {
+                continue;
+            }
+            let passenger = Passenger {
+                idx: oi,
+                id: o.id.clone(),
+                goal,
+                description,
+                since: now,
+            };
+            self.ferry_queues
+                .piers
+                .entry((pier.vehicle, pier.side))
+                .or_default()
+                .push(passenger);
+        }
+        // A queued person is either walking to the quay or standing on it. One who has gone off about
+        // their own life leaves the queue: they are not pulled back, so nobody is held from their work.
+        for pier in &piers {
+            let Some(queue) = self.ferry_queues.piers.get_mut(&(pier.vehicle, pier.side)) else {
+                continue;
+            };
+            let organisms = &self.organisms;
+            queue.retain_mut(|p| {
+                let Some(oi) = locate(organisms, p) else {
+                    return false;
+                };
+                let o = &organisms[oi];
+                let walking = o
+                    .journey
+                    .as_ref()
+                    .is_some_and(|j| j.description == WAIT_FOR_FERRY);
+                walking || reach(tile_of(o), pier.quay) <= BOARD_REACH
+            });
+        }
+    }
 }
 
 #[cfg(test)]
@@ -521,33 +723,54 @@ mod tests {
             };
             o.y = 100.0;
             o.discover("fishing");
+            o.journey = None;
+            o.wander_target = None;
         }
         sim.tick_count = 200;
         sim
     }
 
+    /// Runs the ferries from `from` to `to` (inclusive), one tick at a time.
+    fn run(sim: &mut Simulation, from: u64, to: u64) {
+        for t in from..=to {
+            sim.tick_count = t;
+            sim.tick_ferries();
+        }
+    }
+
     #[test]
-    fn a_ferry_carries_kin_across_a_strait_and_lands_them_on_the_far_shore() {
+    fn a_traveller_queues_at_the_pier_boards_when_the_boat_comes_and_lands_on_the_far_shore() {
         let mut sim = strait_world();
+        for o in sim.organisms.iter_mut().take(4) {
+            o.begin_journey((105, 100), "exploring distant land", 200);
+        }
+        sim.tick_count = 200;
         sim.tick_ferries();
         assert_eq!(sim.vehicles.len(), 1, "a ferry is moored at the strait");
         let line = sim.vehicles[0].ferry.expect("a ferry line");
         assert_eq!((line.a, line.b), ((96, 90), (99, 90)));
-        assert!(sim.organisms[0]
-            .journey
-            .as_ref()
-            .is_some_and(|j| j.description == WAIT_FOR_FERRY));
-        // They walk to the piers (the test does not run the walk itself).
-        for (i, o) in sim.organisms.iter_mut().take(8).enumerate() {
-            o.x = if i < 4 { 95.0 } else { 100.0 };
-            o.y = 90.0;
+        run(&mut sim, 201, 204);
+        let vid = sim.vehicles[0].id;
+        assert_eq!(
+            sim.ferry_queues.piers.get(&(vid, 0)).map(|q| q.len()),
+            Some(4),
+            "the four who need the far shore queue at its pier"
+        );
+        for o in sim.organisms.iter().take(4) {
+            assert!(o
+                .journey
+                .as_ref()
+                .is_some_and(|j| j.description == WAIT_FOR_FERRY && j.target == (95, 90)));
         }
-        let frame = sim.state_json();
-        assert_eq!(frame["vehicles"][0]["ferry"].as_array().map(|a| a.len()), Some(2));
-
+        // The walk to the quay is not run here: they arrive, which clears the walk.
+        for o in sim.organisms.iter_mut().take(4) {
+            o.x = 95.0;
+            o.y = 90.0;
+            o.journey = None;
+        }
         let mut boarded = false;
         let mut sailed = false;
-        for t in 201..=520 {
+        for t in 205..=520 {
             sim.tick_count = t;
             sim.tick_ferries();
             let v = &sim.vehicles[0];
@@ -567,14 +790,135 @@ mod tests {
                 sailed = true;
             }
         }
-        assert!(boarded && sailed, "kin board the ferry and it sails");
+        assert!(
+            boarded && sailed,
+            "the queued people board the ferry and it sails"
+        );
         let v = &sim.vehicles[0];
         assert!(v.occupants.is_empty(), "every passenger landed");
         assert_eq!((v.x, v.y), (99, 90), "the ferry came to rest at the far landing");
-        let far_side = sim.organisms.iter().filter(|o| o.alive && o.x >= 100.0).count();
+        for o in sim.organisms.iter().take(4) {
+            assert!(o.x >= 100.0, "landed on the far shore, at x {}", o.x);
+            assert_eq!(
+                o.journey.as_ref().map(|j| j.target),
+                Some((105, 100)),
+                "a passenger carries on with the errand that brought them to the water"
+            );
+        }
+    }
+
+    #[test]
+    fn a_full_pier_queue_leaves_the_rest_to_their_own_lives() {
+        let mut sim = strait_world();
+        // Sixteen more people on the west shore: with the four already there, twenty want the far shore.
+        for (k, o) in sim.organisms.iter_mut().filter(|o| !o.alive).take(16).enumerate() {
+            o.alive = true;
+            o.lineage_id = "kin".to_string();
+            o.discover("fishing");
+            o.journey = None;
+            o.wander_target = None;
+            o.x = 86.0 + (k % 8) as f32;
+            o.y = 95.0 + (k / 8) as f32;
+        }
+        for o in sim.organisms.iter_mut().filter(|o| o.alive && o.x < 100.0) {
+            o.begin_journey((105, 100), "exploring distant land", 200);
+        }
+        let living_west = sim.organisms.iter().filter(|o| o.alive && o.x < 100.0).count();
+        assert_eq!(living_west, 20);
+        sim.tick_count = 200;
+        sim.tick_ferries();
+        run(&mut sim, 201, 204);
+        let vid = sim.vehicles[0].id;
+        assert_eq!(
+            sim.ferry_queues.piers.get(&(vid, 0)).map(|q| q.len()),
+            Some(QUEUE_CAP),
+            "a pier queues about two boatloads"
+        );
+        let waiting = sim
+            .organisms
+            .iter()
+            .filter(|o| {
+                o.alive
+                    && o.journey
+                        .as_ref()
+                        .is_some_and(|j| j.description == WAIT_FOR_FERRY)
+            })
+            .count();
+        assert_eq!(waiting, QUEUE_CAP, "only the queued walk to the pier");
+        // Those who find no room give up the crossing for now and go on with their own life.
+        let refused_and_free = sim
+            .organisms
+            .iter()
+            .filter(|o| o.alive && o.x < 100.0 && o.journey.is_none())
+            .count();
+        assert_eq!(
+            refused_and_free,
+            20 - QUEUE_CAP,
+            "the rest are free to carry on with their lives"
+        );
+    }
+
+    #[test]
+    fn people_with_no_errand_across_the_water_do_not_walk_to_the_pier() {
+        let mut sim = strait_world();
+        sim.tick_count = 200;
+        sim.tick_ferries();
+        run(&mut sim, 201, 600);
+        assert_eq!(sim.vehicles.len(), 1, "the ferry is moored");
+        assert!(sim.ferry_queues.piers.values().all(|q| q.is_empty()));
+        assert!(sim
+            .organisms
+            .iter()
+            .filter(|o| o.alive)
+            .all(|o| o.journey.is_none()));
+    }
+
+    #[test]
+    fn someone_who_waits_too_long_gives_up_and_may_not_queue_again_at_once() {
+        let mut sim = strait_world();
+        sim.organisms[0].begin_journey((105, 100), "exploring distant land", 200);
+        let id = sim.organisms[0].id.clone();
+        sim.tick_count = 200;
+        sim.tick_ferries();
+        run(&mut sim, 201, 204);
+        assert!(sim.organisms[0]
+            .journey
+            .as_ref()
+            .is_some_and(|j| j.description == WAIT_FOR_FERRY));
+        // Nobody comes to fetch the boat: the walk never ends, and the patience runs out.
+        let gave_up = 204 + PATIENCE_TICKS + 3;
+        sim.organisms[0].x = 88.0;
+        sim.organisms[0].y = 100.0;
+        run(&mut sim, 205, gave_up);
+        let vid = sim.vehicles[0].id;
+        assert!(sim
+            .ferry_queues
+            .piers
+            .get(&(vid, 0))
+            .is_some_and(|q| q.is_empty()));
+        assert!(sim.organisms[0].journey.is_none(), "back to their own life");
+        assert!(sim.ferry_queues.cooldown.contains_key(&id));
+        // Their errand still takes them across, but they may not queue again until the cooldown ends:
+        // while they cool off, the errand is refused and dropped, so they go on with their life.
+        sim.organisms[0].begin_journey((105, 100), "exploring distant land", gave_up);
+        run(&mut sim, gave_up + 1, gave_up + 30);
+        assert!(sim
+            .ferry_queues
+            .piers
+            .get(&(vid, 0))
+            .is_some_and(|q| q.is_empty()));
+        assert!(sim.organisms[0].journey.is_none(), "refused while cooling off");
+        // The cooldown ends: the same errand is taken up again and they queue once more.
+        let cooled = gave_up + COOLDOWN_TICKS;
+        run(&mut sim, gave_up + 31, cooled - 1);
+        sim.organisms[0].begin_journey((105, 100), "exploring distant land", cooled);
+        run(&mut sim, cooled, cooled + 3);
         assert!(
-            far_side >= 4,
-            "the crossing moved people to the far shore, found {far_side}"
+            sim.ferry_queues
+                .piers
+                .get(&(vid, 0))
+                .is_some_and(|q| q.iter().any(|p| p.id == id)),
+            "after the cooldown they queue again"
         );
     }
 
