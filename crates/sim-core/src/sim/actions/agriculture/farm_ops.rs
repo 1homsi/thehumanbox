@@ -1,9 +1,12 @@
 use crate::sim::agriculture::{CropKind, Farm};
+use crate::sim::civ::land::village_fields::irrigated;
 use crate::sim::era::Era;
 use crate::sim::simulation::Simulation;
 use crate::world::tiles::Tile;
 
 const MIN_FARM_FERTILITY: f32 = 0.20;
+/// The harvest of a watered field, against the same field without water.
+pub(crate) const IRRIGATED_YIELD: f32 = 1.3;
 const FOOD_CROP_ROTATION: [CropKind; 6] = [
     CropKind::Wheat,
     CropKind::Barley,
@@ -333,8 +336,16 @@ pub(crate) fn harvest_crop(sim: &mut Simulation, idx: usize, x: i32, y: i32) -> 
 
     let era = sim.era(&lineage_id);
     let fertility = sim.grid.fertility_at(x, y);
+    let base = farm.projected_yield(era, fertility);
+    // A plot that water reaches (a river, a lake, a dug channel) gives a fuller harvest.
+    let yield_units = if irrigated(sim, x, y) {
+        (base as f32 * IRRIGATED_YIELD).round().clamp(1.0, 64.0) as u8
+    } else {
+        base
+    };
+    let farm = &sim.farms[farm_idx];
     let result = HarvestResult {
-        yield_units: farm.projected_yield(era, fertility),
+        yield_units,
         soil_depletion: farm.soil_depletion(era, fertility),
     };
     let farm = &mut sim.farms[farm_idx];
@@ -401,6 +412,35 @@ mod tests {
         );
         assert_eq!(sim.farms.len(), 1);
         assert!(!sim.organisms[idx].tools.contains_key("seeds"));
+    }
+
+    #[test]
+    fn a_canal_beside_a_field_gives_a_fuller_harvest() {
+        let harvest_with = |canal: bool| -> u8 {
+            let (mut sim, idx, x, y) = farm_sim();
+            // Clear grass around the plot so no natural water reaches it.
+            for dy in -3..=3 {
+                for dx in -3..=3 {
+                    sim.grid.set(x + dx, y + dy, Tile::Grass);
+                }
+            }
+            if canal {
+                sim.grid.road[WorldGrid::idx(x + 1, y)] = crate::world::grid::ROAD_CANAL;
+            }
+            prepare_plot(&mut sim, idx, x, y).expect("plow creates plot");
+            plant_crop(&mut sim, idx, x, y, CropKind::Wheat, true).expect("sow");
+            sim.tick_count = sim.farms[0].ready_tick;
+            harvest_crop(&mut sim, idx, x, y)
+                .expect("mature crop harvests")
+                .yield_units
+        };
+        let dry = harvest_with(false);
+        let watered = harvest_with(true);
+        assert!(
+            watered > dry,
+            "the watered field gave no more ({watered} against {dry})"
+        );
+        assert_eq!(watered, (dry as f32 * IRRIGATED_YIELD).round() as u8);
     }
 
     #[test]

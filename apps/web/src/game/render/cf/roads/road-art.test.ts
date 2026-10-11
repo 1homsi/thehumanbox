@@ -17,7 +17,31 @@ import {
   RAIL_TIE,
   railCellKey,
   railCellPixels,
+  CANAL_BANK,
+  CANAL_WATER,
+  canalCellKey,
+  canalCellPixels,
 } from './road-art'
+
+describe('dug irrigation channels', () => {
+  const colourAt = (pixels: [number, number, string][], x: number, y: number) =>
+    pixels.find(([px, py]) => px === x && py === y)?.[2]
+
+  it('is water down the middle with a bank of earth beside it, and runs to the edge where it joins', () => {
+    const north = canalCellPixels(ROAD_N)
+    expect(colourAt(north, Math.floor(TILE / 2), Math.floor(TILE / 2))).toMatch(/^#(3f7fa8|7fb4d2)$/)
+    expect(colourAt(north, Math.floor(TILE / 2), 0)).toMatch(/^#(3f7fa8|7fb4d2)$/)
+    expect(colourAt(north, 1, Math.floor(TILE / 2))).toBe(CANAL_BANK)
+    expect(colourAt(north, 0, Math.floor(TILE / 2))).toBeUndefined()
+  })
+
+  it('a channel with no joins is a square of water, and keys by its joins', () => {
+    const alone = canalCellPixels(0)
+    expect(alone.some(([, , c]) => c === CANAL_WATER || c === '#7fb4d2')).toBe(true)
+    expect(colourAt(alone, 0, 0)).toBeUndefined()
+    expect(canalCellKey(ROAD_N)).not.toBe(canalCellKey(0))
+  })
+})
 
 describe('road joins', () => {
   // A plus of road around (1, 1) on a 3x3 grid.

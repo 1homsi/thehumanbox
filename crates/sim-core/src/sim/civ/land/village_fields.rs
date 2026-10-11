@@ -9,6 +9,7 @@
 
 use crate::hashing::{FxHashMap, FxHashSet};
 use crate::sim::actions::agriculture::farm_ops::{crop_for_plot, harvest_crop, plant_crop};
+use crate::sim::civ::land::village_carts;
 use crate::sim::civ::land::village_failure;
 use crate::sim::civ::land::village_livestock;
 use crate::sim::civ::land::village_stores;
@@ -131,6 +132,16 @@ pub(crate) fn water_within(sim: &Simulation, x: i32, y: i32, reach: i32) -> bool
     (-reach..=reach).any(|dy| (-reach..=reach).any(|dx| matches!(sim.grid.get(x + dx, y + dy), Tile::Water)))
 }
 
+/// Water reaches a field: a river, a lake or the sea within two cells, or a dug irrigation channel
+/// within two cells. Such a field yields more (see `farm_ops::harvest_crop`) and lives through a dry spell.
+pub(crate) fn irrigated(sim: &Simulation, x: i32, y: i32) -> bool {
+    const REACH: i32 = 2;
+    water_within(sim, x, y, REACH)
+        || (-REACH..=REACH).any(|dy| {
+            (-REACH..=REACH).any(|dx| sim.grid.road_at(x + dx, y + dy) == crate::world::grid::ROAD_CANAL)
+        })
+}
+
 /// Harvest the ripe fields of every tribe that farms, then open or re-sow a
 /// couple of plots for each tribe that has the ground and the seed for them.
 pub(crate) fn tick_village_fields(sim: &mut Simulation) {
@@ -147,6 +158,7 @@ pub(crate) fn tick_village_fields(sim: &mut Simulation) {
         village_failure::dry_spell(sim, tribe);
         harvest_ripe(sim, tribe);
         sow_fields(sim, tribe, now);
+        crate::sim::civ::land::village_irrigation::dig_for_fields(sim, tribe);
         village_stores::bake(sim, tribe);
         village_stores::ration(sim, tribe);
         village_failure::famine(sim, tribe);
@@ -189,8 +201,12 @@ fn harvest_ripe(sim: &mut Simulation, tribe: &Tribe) {
                 .round() as u32;
             let person = &mut sim.organisms[actor];
             person.inv_food = person.inv_food.saturating_sub(result.yield_units);
-            let left = village_stores::deposit(sim, &tribe.lineage, grain);
-            sim.organisms[actor].inv_food = sim.organisms[actor].inv_food.saturating_add(left.min(255) as u8);
+            // With a cart on its roads the harvest waits at the field for it; otherwise it is brought in by hand.
+            if !village_carts::haul_harvest(sim, &tribe.lineage, (x, y), grain) {
+                let left = village_stores::deposit(sim, &tribe.lineage, grain);
+                sim.organisms[actor].inv_food =
+                    sim.organisms[actor].inv_food.saturating_add(left.min(255) as u8);
+            }
             let tick = sim.tick_count;
             sim.organisms[actor].think("harvesting the field", tick);
         }
@@ -240,7 +256,7 @@ fn sow_fields(sim: &mut Simulation, tribe: &Tribe, now: u64) {
         }) else {
             break;
         };
-        let water = water_within(sim, x, y, 2);
+        let water = irrigated(sim, x, y);
         let crop = crop_for_plot(sim, actor, x, y, water);
         if plant_crop(sim, actor, x, y, crop, false).is_none() {
             break;

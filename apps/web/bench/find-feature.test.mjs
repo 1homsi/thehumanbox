@@ -106,3 +106,28 @@ test('a pier is a harbour berth or a ferry landing, one candidate per tile', () 
   )
   assert.equal(findFeature(piers, 'pier', { index: 1 }).x, 40)
 })
+
+test('a canal is a channel cell of the road layer, nearest the town first', () => {
+  const canals = {
+    tick: 1000,
+    settlements: [{ center: [50, 50] }],
+    grid: {
+      roads: [
+        [10, 10, 4],
+        [49, 53, 4],
+        [49, 54, 1],
+        [48, 52, 4],
+      ],
+    },
+  }
+  const list = candidatesFor(canals, 'canal')
+  assert.deepEqual(
+    list.map((c) => [c.x, c.y]),
+    [
+      [52, 48],
+      [53, 49],
+      [10, 10],
+    ],
+  )
+  assert.equal(findFeature(canals, 'canal', { index: 1 }).y, 49)
+})
