@@ -39,11 +39,22 @@ impl Simulation {
             }
         }
         guests.sort_unstable();
+        let mut came = 0usize;
         for (_, i) in guests.into_iter().take(GUESTS) {
             let target = (home.0 + spread(i, tick, 11, 2), home.1 + spread(i, tick, 12, 2));
             if self.set_outing_target(i, target) {
                 self.organisms[i].think("at a wedding", tick);
+                came += 1;
             }
+        }
+        if came > 0 {
+            let name = self
+                .lineage_names
+                .get(&lineage)
+                .cloned()
+                .unwrap_or_else(|| "A tribe".to_string());
+            let detail = format!("a wedding at home: {came} came to see the couple wed");
+            crate::sim::world_events::push_event(&mut self.events, tick, "wedding", &name, &detail);
         }
     }
 }
