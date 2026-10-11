@@ -115,6 +115,20 @@ fn next_goal(
 /// `to`. Roads are preferred (cost 1 against 2 on open ground); water, rock and buildings are not walked,
 /// except that the two ends may sit on anything walkable (a village centre is on a hut).
 pub fn plan_road(grid: &WorldGrid, from: [i32; 2], to: [i32; 2]) -> Option<Vec<[i32; 2]>> {
+    plan_road_avoiding(grid, from, to, &|_, _| false, &|x, y| {
+        grid.road_at(x, y) != ROAD_NONE
+    })
+}
+
+/// `plan_road` that also keeps off the cells `blocked` names (building footprints, say), and walks the cells
+/// `cheap` names at cost 1 (open ground costs 2). The end cell is always allowed.
+pub fn plan_road_avoiding(
+    grid: &WorldGrid,
+    from: [i32; 2],
+    to: [i32; 2],
+    blocked: &dyn Fn(i32, i32) -> bool,
+    cheap: &dyn Fn(i32, i32) -> bool,
+) -> Option<Vec<[i32; 2]>> {
     let x0 = from[0].min(to[0]) - SEARCH_PAD;
     let y0 = from[1].min(to[1]) - SEARCH_PAD;
     let x1 = from[0].max(to[0]) + SEARCH_PAD;
@@ -162,7 +176,10 @@ pub fn plan_road(grid: &WorldGrid, from: [i32; 2], to: [i32; 2]) -> Option<Vec<[
                 if !(target || tile.road_ground() || grid.road_at(nx, ny) == ROAD_TRACK) {
                     continue;
                 }
-                let step = if grid.road_at(nx, ny) != ROAD_NONE { 1 } else { 2 };
+                if !target && blocked(nx, ny) {
+                    continue;
+                }
+                let step = if cheap(nx, ny) { 1 } else { 2 };
                 let next = g + step;
                 let idx = index(nx, ny);
                 if next < cost[idx] {
@@ -182,7 +199,7 @@ fn lay(grid: &mut WorldGrid, path: &[[i32; 2]]) -> usize {
     let mut changed = 0;
     for &[x, y] in path {
         let tile = grid.get(x, y);
-        if !tile.road_ground() || grid.road_at(x, y) == ROAD_TRACK {
+        if !tile.road_ground() || grid.road_at(x, y) != ROAD_NONE {
             continue;
         }
         grid.road[WorldGrid::idx(x, y)] = ROAD_TRACK;

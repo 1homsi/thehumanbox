@@ -266,6 +266,7 @@ fn launch_boat(sim: &mut Simulation, lineage: &str, harbour: (i32, i32)) {
         harbour: Some(harbour),
         bound_for: None,
         ferry: None,
+        rail_line: None,
     });
     sim.next_vehicle_id += 1;
     let tick = sim.tick_count;

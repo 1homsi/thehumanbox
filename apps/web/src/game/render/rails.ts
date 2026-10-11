@@ -2,38 +2,9 @@ import { lineageEraTiers } from './draw-helpers'
 
 import type { WorldState } from '../../shared/types'
 
-import {
-  drawLaunch,
-  drawPlane,
-  flightPosition,
-  launchProgress,
-  railLinks,
-  type RailLink,
-} from './era-traffic'
+import { drawLaunch, drawPlane, flightPosition, launchProgress } from './era-traffic'
 
 import { TILE } from '../model/palette'
-
-export let _railSource: WorldState['buildings'] | undefined
-export let _rails: RailLink[] = []
-/** Rail links only change when the building list does. */
-export function cachedRailLinks(buildings: WorldState['buildings']): RailLink[] {
-  if (buildings !== _railSource) {
-    _railSource = buildings
-    _rails = railLinks(
-      (buildings ?? []).map((b) => ({
-        id: b.id,
-        kind: b.kind,
-        x: b.x,
-        y: b.y,
-        fw: b.fw,
-        fh: b.fh,
-        ruined: b.ruined,
-        owner: b.owner_lineage ?? b.lineage_id ?? undefined,
-      })),
-    )
-  }
-  return _rails
-}
 
 /** Rockets lifting off from spaceports and aircraft over modern tribes. */
 export function drawEraTraffic(

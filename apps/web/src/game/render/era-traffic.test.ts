@@ -4,9 +4,8 @@ import {
   LAUNCH_TICKS,
   flightPosition,
   launchProgress,
+  drawTrain,
   padEmpty,
-  railLinks,
-  trainProgress,
 } from './era-traffic'
 
 describe('era traffic', () => {
@@ -38,37 +37,45 @@ describe('era traffic', () => {
   })
 })
 
-describe('railways', () => {
-  const station = (id: number, owner: string, x: number, y: number) => ({
-    id,
-    kind: 'TrainStation',
-    x,
-    y,
-    fw: 2,
-    fh: 2,
-    owner,
+describe('trains', () => {
+  /** A context that records every rectangle painted, with its colour. */
+  function recorder() {
+    const rects: { x: number; y: number; w: number; h: number; fill: string }[] = []
+    let fill = ''
+    const ctx = {
+      save() {},
+      restore() {},
+      translate() {},
+      rotate() {},
+      fillRect(x: number, y: number, w: number, h: number) {
+        rects.push({ x, y, w, h, fill })
+      },
+      set fillStyle(v: string) {
+        fill = v
+      },
+      get fillStyle() {
+        return fill
+      },
+    }
+    return { ctx: ctx as unknown as CanvasRenderingContext2D, rects }
+  }
+
+  it('puffs steam only while it is under way', () => {
+    const idle = recorder()
+    drawTrain(idle.ctx, 0, 0, [1, 0], 4, false, 0)
+    const moving = recorder()
+    drawTrain(moving.ctx, 0, 0, [1, 0], 4, true, 0)
+    const steam = (r: ReturnType<typeof recorder>) =>
+      r.rects.filter((q) => q.fill.startsWith('rgba(210')).length
+    expect(steam(idle)).toBe(0)
+    expect(steam(moving)).toBeGreaterThan(0)
   })
 
-  it('chains each tribe’s stations nearest-first and skips long gaps', () => {
-    const links = railLinks([
-      station(1, 'a', 0, 0),
-      station(2, 'a', 100, 0),
-      station(3, 'a', 40, 0),
-      station(4, 'a', 500, 0),
-      station(5, 'b', 0, 50),
-      { id: 6, kind: 'House', x: 1, y: 1, owner: 'a' },
-    ])
-    expect(links.map((l) => [l.a.id, l.b.id])).toEqual([
-      [1, 3],
-      [3, 2],
-    ])
-  })
-
-  it('shuttles a train between the two ends, pausing at each', () => {
-    const [link] = railLinks([station(1, 'a', 0, 0), station(2, 'a', 50, 0)])
-    const samples = [...Array(4000).keys()].map((t) => trainProgress(link!, t))
-    expect(Math.min(...samples)).toBe(0)
-    expect(Math.max(...samples)).toBe(1)
-    expect(samples.filter((p) => p === 0).length).toBeGreaterThan(50)
+  it('draws the same engine and cars whichever way it faces', () => {
+    const east = recorder()
+    drawTrain(east.ctx, 0, 0, [1, 0], 4, false, 0)
+    const none = recorder()
+    drawTrain(none.ctx, 0, 0, null, 4, false, 0)
+    expect(east.rects.length).toBe(none.rects.length)
   })
 })
