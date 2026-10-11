@@ -75,3 +75,34 @@ test('summary counts non-ruined buildings and boats only', () => {
   assert.equal(s.people, 1)
   assert.equal(s.caravans.count, 2)
 })
+
+test('a pier is a harbour berth or a ferry landing, one candidate per tile', () => {
+  const piers = {
+    tick: 1000,
+    settlements: [{ center: [50, 50] }],
+    vehicles: [
+      { kind: 'boat', x: 21, y: 31, era: 'iron', harbour: [20, 30], piers: 2 },
+      { kind: 'boat', x: 22, y: 30, era: 'iron', harbour: [20, 30], piers: 2 },
+      { kind: 'boat', x: 8, y: 8, era: 'iron', harbour: [9, 9], piers: 0 },
+      {
+        kind: 'ferry',
+        x: 40,
+        y: 40,
+        era: 'iron',
+        ferry: [
+          { at: [40, 41], shore: [1, 0] },
+          { at: [44, 41], shore: [-1, 0] },
+        ],
+      },
+    ],
+  }
+  assert.deepEqual(
+    candidatesFor(piers, 'pier').map((c) => [c.x, c.y]),
+    [
+      [44, 41],
+      [40, 41],
+      [20, 30],
+    ],
+  )
+  assert.equal(findFeature(piers, 'pier', { index: 1 }).x, 40)
+})

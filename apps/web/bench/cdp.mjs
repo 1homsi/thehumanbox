@@ -135,11 +135,21 @@ export async function launchChrome({ port, width, height, dpr, extraArgs = [], h
     ...extraArgs,
     'about:blank',
   ]
-  const child = spawn(bin, args, { stdio: ['ignore', 'ignore', 'ignore'] })
+  // Own process group, so killing it also takes the GPU and renderer helpers Chrome starts.
+  const child = spawn(bin, args, { stdio: ['ignore', 'ignore', 'ignore'], detached: true })
   let exited = false
   child.on('exit', () => {
     exited = true
   })
+  // Chrome must never outlive this script: kill its group on any exit of this process.
+  const killGroup = () => {
+    try {
+      process.kill(-child.pid, 'SIGKILL')
+    } catch {
+      /* already gone */
+    }
+  }
+  process.once('exit', killGroup)
   let version
   for (let i = 0; i < 100 && !version; i++) {
     await sleep(150)
@@ -166,10 +176,16 @@ export async function launchChrome({ port, width, height, dpr, extraArgs = [], h
     browser,
     page,
     version: version.Browser,
+    /** Kills Chrome and its helpers right now, without waiting. Safe to call more than once. */
+    killNow() {
+      browser.close()
+      page.close()
+      killGroup()
+    },
     async kill() {
       browser.close()
       page.close()
-      child.kill('SIGKILL')
+      killGroup()
       await sleep(200)
       try {
         rmSync(profile, { recursive: true, force: true })
