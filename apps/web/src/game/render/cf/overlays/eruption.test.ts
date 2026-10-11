@@ -1,7 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import { TILE } from '../../../model/palette'
 import { BIOME_ID, TILE_ID } from '../../../model/terrain-ids'
-import { PUFFS, VENT_LIMIT, findVents, isVent, paintEruption, plumePuff, type VentView } from './eruption'
+import {
+  PUFFS,
+  VENT_LIMIT,
+  coneErupting,
+  coneGeometry,
+  conesInView,
+  findVents,
+  isCraterMouth,
+  isVent,
+  paintEruption,
+  plumePuff,
+  type VentView,
+} from './eruption'
 
 /** Records the circles drawn, the gradients made and the specks painted. */
 function recordingContext() {
@@ -127,5 +139,112 @@ describe('paintEruption', () => {
     const { ctx, log } = recordingContext()
     paintEruption(ctx, tiles, biomes, { c0: 0, c1: 40, r0: 0, r1: 40, ox: 0, oy: 0 }, 500, true)
     expect(log.arcs + log.gradients + log.specks).toBe(0)
+  })
+})
+
+describe('crater mouths', () => {
+  /** Volcanic rock with a 3x3 molten crater whose middle is at (row 10, col 10). */
+  function crater() {
+    const g = volcanic(24, 24)
+    for (let r = 9; r <= 11; r++) for (let c = 9; c <= 11; c++) g.tiles[r]![c] = TILE_ID.LAVA
+    return g
+  }
+  const view: VentView = { c0: 0, c1: 24, r0: 0, r1: 24, ox: 0, oy: 0 }
+
+  it('makes the middle of a molten crater a vent', () => {
+    const { tiles, biomes } = crater()
+    expect(isCraterMouth(tiles, biomes, 10, 10)).toBe(true)
+    expect(findVents(tiles, biomes, view)[0]).toEqual({ row: 10, col: 10 })
+  })
+
+  it('does not smoke over a crater rim, a thin lava flow or lava off volcanic ground', () => {
+    const { tiles, biomes } = crater()
+    expect(isCraterMouth(tiles, biomes, 9, 10)).toBe(false)
+    for (let c = 2; c < 8; c++) tiles[3]![c] = TILE_ID.LAVA
+    expect(isCraterMouth(tiles, biomes, 3, 4)).toBe(false)
+    biomes[10]![10] = BIOME_ID.VOLCANIC + 1
+    expect(isCraterMouth(tiles, biomes, 10, 10)).toBe(false)
+  })
+
+  it('stops smoking once the crater cools to rock', () => {
+    const { tiles, biomes } = crater()
+    tiles[10]![10] = TILE_ID.ROCK
+    expect(findVents(tiles, biomes, view).some((v) => v.row === 10 && v.col === 10)).toBe(false)
+  })
+
+  it('keeps a crater mouth when the scattered vents fill the limit', () => {
+    const { tiles, biomes } = volcanic(200, 200)
+    for (let r = 189; r <= 191; r++) for (let c = 189; c <= 191; c++) tiles[r]![c] = TILE_ID.LAVA
+    const vents = findVents(tiles, biomes, { c0: 0, c1: 200, r0: 0, r1: 200, ox: 0, oy: 0 })
+    expect(vents).toHaveLength(VENT_LIMIT)
+    expect(vents[0]).toEqual({ row: 190, col: 190 })
+  })
+})
+
+describe('volcano cones', () => {
+  /** A context that records each pixel row's colour and counts the glows. */
+  function pixels() {
+    const fills: string[] = []
+    let glows = 0
+    const ctx = {
+      save() {},
+      restore() {},
+      globalAlpha: 1,
+      fillStyle: '' as unknown,
+      beginPath() {},
+      fill() {},
+      arc() {},
+      fillRect() {
+        fills.push(String(ctx.fillStyle))
+      },
+      createRadialGradient() {
+        glows++
+        return { addColorStop() {} }
+      },
+    }
+    return { ctx: ctx as unknown as CanvasRenderingContext2D, fills, glows: () => glows }
+  }
+  /** Grassland (not volcanic), so no scattered vents: only the cone's own. */
+  function grass(centre: number) {
+    const tiles = Array.from({ length: 60 }, () => Array.from({ length: 60 }, (): number => TILE_ID.ROCK))
+    const biomes = Array.from({ length: 60 }, () => Array.from({ length: 60 }, () => 0))
+    tiles[30]![30] = centre
+    return { tiles, biomes }
+  }
+  const view: VentView = { c0: 0, c1: 60, r0: 0, r1: 60, ox: 0, oy: 0 }
+  const cone = [30, 30, 6] as const
+
+  it('stands a cone over the crater, its peak above it and its base below', () => {
+    const g = coneGeometry(cone, view)
+    const crater = 30 * TILE + TILE / 2
+    expect(g.peakY).toBeLessThan(crater)
+    expect(g.baseY).toBeGreaterThan(crater)
+    expect(g.baseHalf).toBeGreaterThan(g.topHalf)
+  })
+
+  it('paints a dormant cone with a dark crater, no lava and no plume', () => {
+    const { tiles, biomes } = grass(TILE_ID.ROCK)
+    const { ctx, fills, glows } = pixels()
+    paintEruption(ctx, tiles, biomes, view, 500, false, [cone])
+    expect(fills).toContain('#6f625a')
+    expect(fills).toContain('#2e2522')
+    expect(fills).not.toContain('#e2572c')
+    expect(glows()).toBe(0)
+  })
+
+  it('runs lava down an erupting cone and sends its plume up from the peak', () => {
+    for (const centre of [TILE_ID.LAVA, TILE_ID.FIRE]) {
+      const { tiles, biomes } = grass(centre)
+      expect(coneErupting(cone, tiles, view)).toBe(true)
+      const { ctx, fills, glows } = pixels()
+      paintEruption(ctx, tiles, biomes, view, 500, false, [cone])
+      expect(fills).toContain('#e2572c')
+      expect(glows()).toBe(1)
+    }
+  })
+
+  it('leaves out cones outside the view', () => {
+    expect(conesInView([cone, [200, 30, 6]], view)).toEqual([cone])
+    expect(conesInView(undefined, view)).toEqual([])
   })
 })

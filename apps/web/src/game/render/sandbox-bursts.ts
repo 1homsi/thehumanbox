@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 export type BurstKind =
   | 'bolt'
   | 'meteor'
+  | 'eruption'
   | 'heal'
   | 'bless'
   | 'inspire'
@@ -39,6 +40,7 @@ export interface Burst {
 const LIFETIME_MS: Record<BurstKind, number> = {
   bolt: 650,
   meteor: 900,
+  eruption: 1600,
   bless: 1000,
   inspire: 1000,
   quake: 900,
@@ -115,6 +117,7 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'tame':
       return 'peace'
     case 'volcano':
+      return 'eruption'
     case 'meteor_shower':
       return 'meteor'
     case 'harvest':

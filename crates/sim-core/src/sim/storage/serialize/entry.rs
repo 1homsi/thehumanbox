@@ -144,7 +144,7 @@ impl Simulation {
             self.buildings
                 .iter()
                 .map(|b| {
-                    json!({
+                    let mut v = json!({
                         "id": b.id,
                         "kind": b.kind.name(),
                         "x": b.x,
@@ -162,7 +162,11 @@ impl Simulation {
                         "fw": b.kind.footprint().0,
                         "fh": b.kind.footprint().1,
                         "function": format!("{:?}", b.kind.function()).to_lowercase(),
-                    })
+                    });
+                    if let Some(stage) = crate::sim::tech::ports::slip_stage(b.hull_work) {
+                        v["slip"] = json!(stage);
+                    }
+                    v
                 })
                 .collect(),
         )

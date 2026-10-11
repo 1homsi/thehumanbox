@@ -719,3 +719,62 @@ fn monsters_are_never_born_or_hunted_for_meat() {
         );
     }
 }
+
+#[test]
+fn a_volcano_leaves_a_cone_on_the_map_that_a_save_keeps() {
+    use crate::world::grid::{Volcano, MAX_PLACED_VOLCANOES};
+    let mut sim = Simulation::new(42);
+    let generated = sim.grid.volcanoes.clone();
+    assert!(sim.apply_command_json(r#"{"cmd":"volcano","x":120,"y":110,"radius":6}"#));
+    assert_eq!(sim.grid.placed_volcanoes, vec![Volcano { x: 120, y: 110, r: 6 }]);
+    // Another raised on top of the first replaces its cone; one elsewhere stands beside it.
+    assert!(sim.apply_command_json(r#"{"cmd":"volcano","x":122,"y":111,"radius":5}"#));
+    assert!(sim.apply_command_json(r#"{"cmd":"volcano","x":300,"y":150,"radius":7}"#));
+    assert_eq!(
+        sim.grid.placed_volcanoes,
+        vec![Volcano { x: 122, y: 111, r: 5 }, Volcano { x: 300, y: 150, r: 7 }]
+    );
+    assert_eq!(sim.grid.all_volcanoes().count(), generated.len() + 2);
+
+    let frame = sim.state_frame().into_value();
+    let cones = frame["volcanoes"]
+        .as_array()
+        .expect("the frame lists the volcanoes");
+    assert!(cones.contains(&serde_json::json!([300, 150, 7])));
+
+    let loaded = Simulation::from_save(sim.world_seed, sim.to_save_state());
+    assert_eq!(loaded.grid.placed_volcanoes, sim.grid.placed_volcanoes);
+    assert_eq!(loaded.grid.volcanoes, sim.grid.volcanoes);
+
+    for i in 0..MAX_PLACED_VOLCANOES as i32 + 5 {
+        sim.grid.raise_volcano(20 + i * 10, 20, 3);
+    }
+    assert_eq!(
+        sim.grid.placed_volcanoes.len(),
+        MAX_PLACED_VOLCANOES,
+        "the oldest cones are forgotten"
+    );
+}
+
+#[test]
+fn world_generation_records_its_volcanoes_on_volcanic_ground() {
+    use crate::world::tiles::Biome;
+    let with: Vec<_> = (1..=20u64)
+        .map(Simulation::new)
+        .filter(|sim| !sim.grid.volcanoes.is_empty())
+        .collect();
+    assert!(!with.is_empty(), "some of twenty worlds have a volcano");
+    for sim in &with {
+        for v in &sim.grid.volcanoes {
+            assert_eq!(
+                sim.grid.biome_at(v.x, v.y),
+                Biome::Volcanic,
+                "the crater of {v:?} is volcanic"
+            );
+            assert!((5..=8).contains(&v.r));
+        }
+    }
+    // An empty list stays out of the save, so a world nobody raised a volcano in saves as before.
+    let json = serde_json::to_string(&with[0].to_save_state()).unwrap();
+    assert!(!json.contains("placed_volcanoes"));
+}

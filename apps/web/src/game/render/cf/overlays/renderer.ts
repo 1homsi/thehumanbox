@@ -296,7 +296,15 @@ export class CfOverlayRenderer {
       if (detailed) paintWaterShimmer(ground, f)
       paintPlagueHaze(ground, f.organisms, f.bounds, f.ox, f.oy, f.t)
       const vents = { ...f.bounds, ox: f.ox, oy: f.oy }
-      paintEruption(ground, f.world.grid.tiles, f.world.grid.biomes, vents, f.t, !f.world.is_day)
+      paintEruption(
+        ground,
+        f.world.grid.tiles,
+        f.world.grid.biomes,
+        vents,
+        f.t,
+        !f.world.is_day,
+        f.world.volcanoes,
+      )
       const snowView = { ...f.bounds, ox: f.ox, oy: f.oy }
       paintGroundSnow(ground, f.world.grid.tiles, snowView, terrainSeason(f.world), f.world.season_progress)
       paintGroundIce(ground, f.world.grid.tiles, snowView, terrainSeason(f.world), f.world.season_progress)

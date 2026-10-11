@@ -39,6 +39,9 @@ impl Simulation {
             if state.grid.road.len() == expected {
                 grid.road = state.grid.road;
             }
+            for v in state.grid.placed_volcanoes {
+                grid.raise_volcano(v.x, v.y, v.r);
+            }
             grid.trail_dirty = (0..expected)
                 .filter(|&i| {
                     grid.food_trail[i] > 0.0 || grid.water_trail[i] > 0.0 || grid.path_trail[i] > 0.0

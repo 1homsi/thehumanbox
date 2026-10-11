@@ -17,7 +17,7 @@ export type BuildingLike = Pick<
 > & {
   /** Architectural tier of the owning tribe's era (see ERA_TIERS). */
   tier?: number
-  /** A passing visual state, such as a spaceport whose rocket is away. */
+  /** A passing visual state, such as a spaceport whose rocket is away or a hull on a shipyard's slip. */
   state?: string
   /** How far a ruin is toward crumbling away: 0 fresh, 1 about to go. */
   ruinAge?: number

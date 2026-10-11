@@ -892,6 +892,10 @@ impl WorldGrid {
                 .map(|i| ((i % WIDTH) as i32, (i / WIDTH) as i32)),
         );
         self.pool_centers = pools;
+        self.volcanoes = craters
+            .iter()
+            .map(|&(x, y, r)| super::Volcano { x, y, r })
+            .collect();
 
         // Sea depth: distance from shore blended with how far the seabed
         // sits below sea level, so shelves and trenches read smoothly.
