@@ -61,6 +61,9 @@ pub struct Building {
     /// grain. A granary left empty after one, with people going hungry, is a famine.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub spoiled_tick: Option<u64>,
+    /// Ticks of work a hull on a shipyard's slip still needs (see `tech/ports.rs`). `None` when no hull is on the slip.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hull_work: Option<u64>,
 }
 
 impl Building {
@@ -81,6 +84,7 @@ impl Building {
             decorative: false,
             stock: 0,
             spoiled_tick: None,
+            hull_work: None,
         }
     }
 

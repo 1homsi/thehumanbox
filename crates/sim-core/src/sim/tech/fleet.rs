@@ -4,20 +4,19 @@
 //! Fleet boats carry no passengers, so the crossings in `boats.rs` never take one.
 use crate::organism::organism::Organism;
 use crate::sim::simulation::Simulation;
-use crate::sim::transportation::{TransportKind, Vehicle};
+use crate::sim::tech::ports::{take_from_warehouse, unload_into_warehouse};
+use crate::sim::transportation::TransportKind;
 use crate::world::{grid::WorldGrid, tiles::Tile};
 use rand::RngExt;
 
 const CARDINAL: [(i32, i32); 4] = [(0, -1), (0, 1), (-1, 0), (1, 0)];
 
-/// How often the tribes are checked for a boat to launch, in ticks.
-const LAUNCH_CHECK_TICKS: u64 = 50;
 /// Boats a tribe keeps at most.
-const MAX_PER_TRIBE: usize = 3;
+pub(crate) const MAX_PER_TRIBE: usize = 3;
 /// Boats in the whole world at most.
-const MAX_FLEET: usize = 40;
+pub(crate) const MAX_FLEET: usize = 40;
 /// Tribe members needed before a harbour is worth a boat.
-const MIN_TRIBE_FOR_BOAT: usize = 6;
+pub(crate) const MIN_TRIBE_FOR_BOAT: usize = 6;
 /// How far from a home a harbour may lie, in tiles.
 const HARBOUR_RANGE: i32 = 5;
 /// How far from its harbour a boat fishes, in tiles (a square search box).
@@ -116,7 +115,7 @@ impl WaterChart {
 }
 
 /// The water tile nearest to (x, y) that lies beside dry land, within `HARBOUR_RANGE`.
-fn harbour_near(grid: &WorldGrid, x: i32, y: i32) -> Option<(i32, i32)> {
+pub(crate) fn harbour_near(grid: &WorldGrid, x: i32, y: i32) -> Option<(i32, i32)> {
     let mut best: Option<((i32, i32), i32)> = None;
     for dy in -HARBOUR_RANGE..=HARBOUR_RANGE {
         for dx in -HARBOUR_RANGE..=HARBOUR_RANGE {
@@ -146,7 +145,7 @@ pub(crate) fn harbour_shore(grid: &WorldGrid, harbour: (i32, i32)) -> Option<(i3
 }
 
 /// Whether a person stands close enough to a harbour to load or receive from its boat.
-fn on_quay(o: &Organism, quay: (i32, i32)) -> bool {
+pub(crate) fn on_quay(o: &Organism, quay: (i32, i32)) -> bool {
     (o.x as i32 - quay.0).abs().max((o.y as i32 - quay.1).abs()) <= QUAY_RANGE
 }
 
@@ -161,9 +160,7 @@ fn water_beside(grid: &WorldGrid, p: (i32, i32)) -> Option<(i32, i32)> {
 impl Simulation {
     /// Launches fleet boats for coastal tribes, sends trade boats out, and moves the unmanned ones.
     pub(crate) fn tick_fleet(&mut self) {
-        if self.tick_count.is_multiple_of(LAUNCH_CHECK_TICKS) {
-            self.launch_fleet_boats();
-        }
+        crate::sim::tech::ports::tick_ports(self);
         if self.tick_count.is_multiple_of(REFIT_TICKS) {
             self.refit_ships();
         }
@@ -233,8 +230,11 @@ impl Simulation {
                 }
             }
             let Some((dest, _)) = dest else { continue };
-            // Food from the people on the quay, up to the hold's size.
-            let mut loaded = 0u32;
+            let Some(route) = chart.route_to(dest) else {
+                continue;
+            };
+            // Goods from the warehouse at home first, then food from the people on the quay, up to the hold's size.
+            let mut loaded = take_from_warehouse(self, &owner, home, load);
             for o in self
                 .organisms
                 .iter_mut()
@@ -251,9 +251,6 @@ impl Simulation {
             if loaded == 0 {
                 continue;
             }
-            let Some(route) = chart.route_to(dest) else {
-                continue;
-            };
             let v = &mut self.vehicles[i];
             v.cargo = loaded;
             v.bound_for = Some(dest);
@@ -280,83 +277,27 @@ impl Simulation {
     /// A trade boat has reached the far harbour: its food goes to the nearest person on that quay,
     /// and the boat sails home.
     fn unload_at(&mut self, i: usize, quay: (i32, i32), harbour: (i32, i32)) {
-        let cargo = self.vehicles[i].cargo;
-        let receiver = self
-            .organisms
-            .iter()
-            .enumerate()
-            .filter(|(_, o)| o.alive && on_quay(o, quay))
-            .min_by_key(|(_, o)| (o.x as i32 - quay.0).abs() + (o.y as i32 - quay.1).abs())
-            .map(|(k, _)| k);
-        if let Some(k) = receiver {
-            let o = &mut self.organisms[k];
-            o.inv_food = (u32::from(o.inv_food) + cargo).min(u32::from(u8::MAX)) as u8;
-            o.log_event("food came to the quay by boat from another tribe".into());
+        let owner = self.vehicles[i].owner_lineage.clone();
+        // Goods go into a warehouse of the tribe at the quay first; food that does not fit comes ashore.
+        let cargo = unload_into_warehouse(self, &owner, quay, self.vehicles[i].cargo);
+        if cargo > 0 {
+            let receiver = self
+                .organisms
+                .iter()
+                .enumerate()
+                .filter(|(_, o)| o.alive && on_quay(o, quay))
+                .min_by_key(|(_, o)| (o.x as i32 - quay.0).abs() + (o.y as i32 - quay.1).abs())
+                .map(|(k, _)| k);
+            if let Some(k) = receiver {
+                let o = &mut self.organisms[k];
+                o.inv_food = (u32::from(o.inv_food) + cargo).min(u32::from(u8::MAX)) as u8;
+                o.log_event("food came to the quay by boat from another tribe".into());
+            }
         }
         let v = &mut self.vehicles[i];
         v.cargo = 0;
         v.bound_for = None;
         self.route_home(i, quay, harbour);
-    }
-
-    /// A tribe with a fisher and a harbour near its homes gets one boat, then up to one more per
-    /// twelve members (at most `MAX_PER_TRIBE`), moored at the harbour.
-    fn launch_fleet_boats(&mut self) {
-        let mut fleet_total = self.vehicles.iter().filter(|v| v.harbour.is_some()).count();
-        let mut tribes: Vec<String> = Vec::new();
-        for o in self.organisms.iter().filter(|o| o.alive) {
-            if !tribes.contains(&o.lineage_id) {
-                tribes.push(o.lineage_id.clone());
-            }
-        }
-        for tribe in tribes {
-            if fleet_total >= MAX_FLEET {
-                break;
-            }
-            let members: Vec<usize> = self
-                .organisms
-                .iter()
-                .enumerate()
-                .filter(|(_, o)| o.alive && o.lineage_id == tribe)
-                .map(|(i, _)| i)
-                .collect();
-            if members.len() < MIN_TRIBE_FOR_BOAT
-                || !members
-                    .iter()
-                    .any(|&i| self.organisms[i].discoveries.contains("fishing"))
-            {
-                continue;
-            }
-            let owned = self
-                .vehicles
-                .iter()
-                .filter(|v| v.harbour.is_some() && v.owner_lineage == tribe)
-                .count();
-            if owned >= MAX_PER_TRIBE.min(1 + members.len() / 12) {
-                continue;
-            }
-            let harbour = members.iter().find_map(|&i| {
-                let o = &self.organisms[i];
-                harbour_near(&self.grid, o.home_x.round() as i32, o.home_y.round() as i32)
-            });
-            let Some((hx, hy)) = harbour else { continue };
-            self.vehicles.push(Vehicle {
-                id: self.next_vehicle_id,
-                kind: TransportKind::Boat,
-                owner_lineage: tribe,
-                x: hx,
-                y: hy,
-                occupants: Vec::new(),
-                cargo: 0,
-                route: Vec::new(),
-                ready_tick: 0,
-                harbour: Some((hx, hy)),
-                bound_for: None,
-                ferry: None,
-            });
-            self.next_vehicle_id += 1;
-            fleet_total += 1;
-        }
     }
 
     /// Steps each unmanned fleet boat along its route, and plans its next voyage when the route is done.
@@ -462,6 +403,7 @@ impl Simulation {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::sim::transportation::Vehicle;
 
     /// A lake with a grass shore on its western edge.
     fn lake_sim() -> Simulation {
@@ -494,6 +436,22 @@ mod tests {
         lineage
     }
 
+    /// Raises a tribe's shipyard in the Bronze age and gives its people wood, then runs the harbour
+    /// works every fifty ticks until the first hull is launched.
+    fn build_first_boat(sim: &mut Simulation, lineage: &str) {
+        sim.lineage_eras
+            .insert(lineage.to_string(), crate::sim::era::Era::Bronze);
+        for o in sim.organisms.iter_mut() {
+            o.inv_wood = 4;
+            o.x = 89.0;
+            o.y = 100.0;
+        }
+        for t in (0..=600).step_by(50) {
+            sim.tick_count = t;
+            crate::sim::tech::ports::tick_ports(sim);
+        }
+    }
+
     fn boat(lineage: String, at: (i32, i32)) -> Vehicle {
         Vehicle {
             id: 5,
@@ -514,9 +472,9 @@ mod tests {
     #[test]
     fn a_coastal_tribe_moors_a_boat_at_its_harbour() {
         let mut sim = lake_sim();
-        coastal_tribe(&mut sim);
+        let lineage = coastal_tribe(&mut sim);
         sim.vehicles.clear();
-        sim.launch_fleet_boats();
+        build_first_boat(&mut sim, &lineage);
         let fleet: Vec<&Vehicle> = sim.vehicles.iter().filter(|v| v.harbour.is_some()).collect();
         assert_eq!(fleet.len(), 1, "one boat for a tribe of eight");
         assert_eq!(fleet[0].harbour, Some((90, 100)));
@@ -709,6 +667,7 @@ mod tests {
 mod ship_tests {
     use super::*;
     use crate::sim::era::Era;
+    use crate::sim::transportation::Vehicle;
 
     fn moored(sim: &mut Simulation, lineage: &str) {
         sim.vehicles.push(Vehicle {

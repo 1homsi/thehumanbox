@@ -570,6 +570,29 @@ pub(super) fn print_progress(sim: &Simulation) {
             .sum();
         println!("Ferries at end: {ferries}  (passengers aboard {ferry_riders})");
         println!("Steamships at end: {steamships}");
+        let working = |kind: sim::tech::buildings::BuildingKind| {
+            sim.buildings
+                .iter()
+                .filter(|b| b.kind == kind && b.is_operational())
+                .count()
+        };
+        let mut harbours: Vec<((i32, i32), String)> = boats
+            .iter()
+            .filter_map(|v| v.harbour.map(|h| (h, v.owner_lineage.clone())))
+            .collect();
+        harbours.sort();
+        harbours.dedup();
+        let piers: u32 = harbours
+            .iter()
+            .map(|(h, owner)| sim::tech::ports::piers_at(sim, *h, owner))
+            .sum();
+        println!(
+            "Harbour works at end: shipyards {}, warehouses {}, piers {} on {} harbours",
+            working(sim::tech::buildings::BuildingKind::Shipyard),
+            working(sim::tech::buildings::BuildingKind::Warehouse),
+            piers,
+            harbours.len()
+        );
     }
 
     let mut lineage_alive: HashMap<&str, usize> = HashMap::new();

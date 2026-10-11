@@ -173,6 +173,8 @@ impl Simulation {
                 "era": self.era(&v.owner_lineage).name(), "cargo": v.cargo,
                 // A boat with a voyage to make is under way (its wake shows); a fishing boat is moored at its harbour.
                 "sailing": !v.route.is_empty(), "harbour": v.harbour.map(|(x, y)| json!([x, y])),
+                // The piers of the owner's harbour: one for each berth a boat can moor at (see `tech/ports.rs`).
+                "piers": v.harbour.map(|h| crate::sim::tech::ports::piers_at(self, h, &v.owner_lineage)),
                 // The way to the dry land beside the harbour: a pier runs that way.
                 "shore": v.harbour.and_then(|h| crate::sim::tech::fleet::harbour_shore(&self.grid, h)).map(|(dx, dy)| json!([dx, dy])),
                 // Everyone aboard after the first (who is `rider_id`), and a ferry's two landings with the way to each shore.
