@@ -328,6 +328,16 @@ fn a_full_project_limit_does_not_keep_a_farming_tribe_from_the_bakery_it_lacks()
         Some("lineage-a".into()),
         0,
     ));
+    // A craft goes on the town's plaza corners, and a plaza starts its market first: a finished
+    // market means no civic project is waiting, so the bakery is the one that goes outside the limit.
+    sim.town_plazas.push(super::super::town::TownPlaza {
+        lineage: "lineage-a".into(),
+        center: [36, 36],
+        streets: Vec::new(),
+    });
+    let mut market = Building::new(7, BuildingKind::Market, 36, 36, Some("lineage-a".into()), 0);
+    market.condition = 1.0;
+    sim.buildings.push(market);
     sim.tick_count = 1_000;
     tick_buildings_construct(&mut sim);
     assert!(
