@@ -102,7 +102,8 @@ pub(crate) fn dig_for_fields(sim: &mut Simulation, tribe: &Tribe) {
     for &(tx, ty) in shores.iter().take(SHORES_TRIED) {
         // A channel is cut through open ground only: it keeps off roads and buildings.
         let blocked = |x: i32, y: i32| blocked_tiles.contains(&(x, y)) || sim.grid.road_at(x, y) != ROAD_NONE;
-        let Some(path) = plan_road_avoiding(&sim.grid, [fx, fy], [tx, ty], &blocked, &|_, _| false) else {
+        let Some(path) = plan_road_avoiding(&sim.grid, [fx, fy], [tx, ty], &blocked, &|_, _| false, None)
+        else {
             continue;
         };
         if path.len() > MAX_CHANNEL {

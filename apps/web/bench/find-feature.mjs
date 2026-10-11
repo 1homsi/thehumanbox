@@ -9,6 +9,7 @@
 //   ship              a ship (a sailing ship or a steamship, by the owner's era)
 //   train             a train on its railway line (the frame's `vehicles`, kind train)
 //   rail              a railway cell on the track between two towns (the frame's `roads`, kind 3)
+//   bridge            a bridge cell over water (the frame's `roads`, kind 2)
 //   cart              a village ox cart on its road (the frame's `vehicles`, kind cart)
 //   field             a farm plot (the frame's `farms`)
 //   pier              a harbour's pier (a boat's harbour with piers) or a ferry landing, one per tile
@@ -103,6 +104,13 @@ export function candidatesFor(frame, feature, tick = frame.tick) {
     return (frame.vehicles ?? [])
       .filter((v) => v.kind === 'cart')
       .map((v) => ({ entity: v, kind: 'cart', name: `cart-${(v.cargo ?? 0) > 0 ? 'loaded' : 'empty'}`, x: v.x, y: v.y }))
+      .sort(sortBy)
+  }
+  if (head === 'bridge') {
+    // Bridge cells (road kind 2, sim ROAD_BRIDGE) the villages built over water.
+    return (frame.grid?.roads ?? [])
+      .filter(([, , kind]) => kind === 2)
+      .map(([row, col, kind]) => ({ entity: { row, col, kind }, kind: 'bridge', name: 'bridge', x: col, y: row }))
       .sort(sortBy)
   }
   if (head === 'rail') {

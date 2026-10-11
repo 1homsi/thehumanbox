@@ -13,7 +13,8 @@ use serde::{Deserialize, Serialize};
 use crate::sim::civ::settlements::{self, SettlementSnapshot};
 use crate::sim::simulation::Simulation;
 use crate::sim::tech::buildings::BuildingKind;
-use crate::world::grid::{WorldGrid, ROAD_NONE, ROAD_TRACK};
+use crate::world::grid::{WorldGrid, ROAD_BRIDGE, ROAD_NONE, ROAD_TRACK};
+use crate::world::tiles::Tile;
 
 /// Ticks between road passes.
 pub const ROAD_STEP: u64 = 300;
@@ -115,19 +116,58 @@ fn next_goal(
 /// `to`. Roads are preferred (cost 1 against 2 on open ground); water, rock and buildings are not walked,
 /// except that the two ends may sit on anything walkable (a village centre is on a hut).
 pub fn plan_road(grid: &WorldGrid, from: [i32; 2], to: [i32; 2]) -> Option<Vec<[i32; 2]>> {
-    plan_road_avoiding(grid, from, to, &|_, _| false, &|x, y| {
-        grid.road_at(x, y) != ROAD_NONE
-    })
+    plan_road_avoiding(
+        grid,
+        from,
+        to,
+        &|_, _| false,
+        &|x, y| grid.road_at(x, y) != ROAD_NONE,
+        None,
+    )
+}
+
+/// Cost of a step onto water when a bridge is planned (open ground costs 2, a road 1).
+const BRIDGE_WATER_COST: u32 = 3;
+/// The widest stretch of water a bridge crosses, in tiles.
+pub(crate) const MAX_SPAN: usize = 6;
+
+/// A way from `from` to `to` that crosses water on bridges: each stretch of water it crosses is at most
+/// `MAX_SPAN` tiles wide. `None` when the way is dry (`plan_road` already finds it) or no such crossing exists.
+pub fn plan_bridge(grid: &WorldGrid, from: [i32; 2], to: [i32; 2]) -> Option<Vec<[i32; 2]>> {
+    let path = plan_road_avoiding(
+        grid,
+        from,
+        to,
+        &|_, _| false,
+        &|x, y| grid.road_at(x, y) != ROAD_NONE,
+        Some(BRIDGE_WATER_COST),
+    )?;
+    let mut run = 0;
+    let mut crosses = false;
+    for &[x, y] in &path {
+        if grid.get(x, y) == Tile::Water && grid.road_at(x, y) != ROAD_BRIDGE {
+            run += 1;
+            crosses = true;
+            if run > MAX_SPAN {
+                return None;
+            }
+        } else {
+            run = 0;
+        }
+    }
+    crosses.then_some(path)
 }
 
 /// `plan_road` that also keeps off the cells `blocked` names (building footprints, say), and walks the cells
-/// `cheap` names at cost 1 (open ground costs 2). The end cell is always allowed.
+/// `cheap` names at cost 1 (open ground costs 2). With `water` set, water may be walked at that cost (a
+/// bridge's way). The end cell is always allowed.
 pub fn plan_road_avoiding(
     grid: &WorldGrid,
     from: [i32; 2],
     to: [i32; 2],
     blocked: &dyn Fn(i32, i32) -> bool,
     cheap: &dyn Fn(i32, i32) -> bool,
+    water: Option<u32>,
 ) -> Option<Vec<[i32; 2]>> {
     let x0 = from[0].min(to[0]) - SEARCH_PAD;
     let y0 = from[1].min(to[1]) - SEARCH_PAD;
@@ -173,13 +213,20 @@ pub fn plan_road_avoiding(
                 }
                 let target = [nx, ny] == to;
                 let tile = grid.get(nx, ny);
-                if !(target || tile.road_ground() || grid.road_at(nx, ny) == ROAD_TRACK) {
+                let wet = water.is_some() && tile == Tile::Water;
+                if !(target || tile.road_ground() || grid.road_at(nx, ny) == ROAD_TRACK || wet) {
                     continue;
                 }
                 if !target && blocked(nx, ny) {
                     continue;
                 }
-                let step = if cheap(nx, ny) { 1 } else { 2 };
+                let step = if cheap(nx, ny) {
+                    1
+                } else if let (true, Some(cost)) = (wet, water) {
+                    cost
+                } else {
+                    2
+                };
                 let next = g + step;
                 let idx = index(nx, ny);
                 if next < cost[idx] {
@@ -204,6 +251,18 @@ fn lay(grid: &mut WorldGrid, path: &[[i32; 2]]) -> usize {
         }
         grid.road[WorldGrid::idx(x, y)] = ROAD_TRACK;
         changed += 1;
+    }
+    changed
+}
+
+/// Lays a bridge on each water cell of `path`. Returns how many cells changed.
+fn lay_bridges(grid: &mut WorldGrid, path: &[[i32; 2]]) -> usize {
+    let mut changed = 0;
+    for &[x, y] in path {
+        if grid.get(x, y) == Tile::Water && grid.road_at(x, y) != ROAD_BRIDGE {
+            grid.road[WorldGrid::idx(x, y)] = ROAD_BRIDGE;
+            changed += 1;
+        }
     }
     changed
 }
@@ -233,10 +292,21 @@ pub(crate) fn tick_village_roads(sim: &mut Simulation) {
         let Some(goal) = next_goal(sim, village, &villages) else {
             continue;
         };
-        let Some(path) = plan_road(&sim.grid, village.center, goal.point) else {
-            continue;
+        // A link with no dry way is bridged over the water between the two, when the water is narrow.
+        let (path, bridged) = match plan_road(&sim.grid, village.center, goal.point) {
+            Some(path) => (path, false),
+            None => match plan_bridge(&sim.grid, village.center, goal.point) {
+                Some(path) => (path, true),
+                None => continue,
+            },
         };
-        if lay(&mut sim.grid, &path) == 0 {
+        let cells = lay(&mut sim.grid, &path)
+            + if bridged {
+                lay_bridges(&mut sim.grid, &path)
+            } else {
+                0
+            };
+        if cells == 0 {
             continue;
         }
         sim.village_roads.push(VillageRoad {
@@ -244,7 +314,14 @@ pub(crate) fn tick_village_roads(sim: &mut Simulation) {
             from: village.center,
             to: goal.point,
         });
-        let line = format!("The people of {} laid a road to {}.", village.name, goal.label);
+        let line = if bridged {
+            format!(
+                "The people of {} built a bridge on the way to {}.",
+                village.name, goal.label
+            )
+        } else {
+            format!("The people of {} laid a road to {}.", village.name, goal.label)
+        };
         sim.headlines.push_back((sim.tick_count, line));
         laid += 1;
     }
@@ -311,6 +388,59 @@ mod tests {
             lay(&mut grid, &[[91, 100]]),
             0,
             "a road already there is not counted twice"
+        );
+    }
+
+    /// Grass on both banks, and a river `width` tiles wide running north to south at x = 100.
+    fn river(width: i32) -> WorldGrid {
+        let mut grid = WorldGrid::new(1);
+        for y in 60..140 {
+            for x in 60..140 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+        for y in 60..140 {
+            for x in 100..100 + width {
+                grid.set(x, y, Tile::Water);
+                grid.depth[WorldGrid::idx(x, y)] = 0.5;
+            }
+        }
+        grid
+    }
+
+    #[test]
+    fn a_narrow_river_is_crossed_on_a_bridge() {
+        let mut grid = river(4);
+        assert!(
+            plan_road(&grid, [90, 100], [110, 100]).is_none(),
+            "no dry way across"
+        );
+        let path = plan_bridge(&grid, [90, 100], [110, 100]).expect("a bridge over the river");
+        assert_eq!(path.last(), Some(&[110, 100]));
+        let laid = lay_bridges(&mut grid, &path);
+        let wet: Vec<[i32; 2]> = path
+            .iter()
+            .copied()
+            .filter(|p| grid.get(p[0], p[1]) == Tile::Water)
+            .collect();
+        assert_eq!(
+            laid,
+            wet.len(),
+            "one bridge cell on each tile of water the way crosses"
+        );
+        assert!(!wet.is_empty());
+        for &[x, y] in &wet {
+            assert_eq!(grid.road_at(x, y), ROAD_BRIDGE);
+            assert!(!grid.wet_at(x, y), "a bridge is walked, not waded");
+        }
+    }
+
+    #[test]
+    fn a_wide_river_is_not_bridged() {
+        let grid = river(MAX_SPAN as i32 + 2);
+        assert!(
+            plan_bridge(&grid, [90, 100], [120, 100]).is_none(),
+            "too wide for a bridge"
         );
     }
 

@@ -266,7 +266,7 @@ impl Simulation {
         }
         let blocked = |x: i32, y: i32| occupied.contains(&(x, y)) || extra.contains(&(x, y));
         let cheap = |x: i32, y: i32| self.is_busy_way(x, y);
-        let Some(path) = plan_road_avoiding(&self.grid, sa_stop, sb_stop, &blocked, &cheap) else {
+        let Some(path) = plan_road_avoiding(&self.grid, sa_stop, sb_stop, &blocked, &cheap, None) else {
             return false;
         };
         if path.len() > MAX_PATH {
