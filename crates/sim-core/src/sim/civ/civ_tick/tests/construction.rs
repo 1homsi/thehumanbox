@@ -311,10 +311,11 @@ fn a_full_project_limit_does_not_keep_a_farming_tribe_from_the_bakery_it_lacks()
         b.condition = 1.0;
         sim.buildings.push(b);
     }
-    // Two walls nobody has built: the project limit for twelve builders is full.
+    // Two houses nobody has built: the project limit for twelve builders is full. (Palisade
+    // pieces have their own small batch and do not count against it.)
     sim.buildings.push(Building::new(
         5,
-        BuildingKind::Wall,
+        BuildingKind::House,
         20,
         20,
         Some("lineage-a".into()),
@@ -322,7 +323,7 @@ fn a_full_project_limit_does_not_keep_a_farming_tribe_from_the_bakery_it_lacks()
     ));
     sim.buildings.push(Building::new(
         6,
-        BuildingKind::Wall,
+        BuildingKind::House,
         21,
         20,
         Some("lineage-a".into()),
