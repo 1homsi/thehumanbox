@@ -224,7 +224,10 @@
   .burst-bolt,
   .burst-impact,
   .burst-ring,
-  .burst-spark {
+  .burst-spark,
+  .burst-vent,
+  .burst-lava,
+  .burst-ash {
     animation-duration: 1ms;
     animation-delay: 0ms;
   }
@@ -260,6 +263,93 @@
   100% {
     transform: translate(0, 0);
     opacity: 0;
+  }
+}
+/* A volcano erupts from the ground: the vent flares, lava bombs are thrown up and fall back
+   round it, and a column of ash climbs and spreads. Nothing falls from the sky. */
+.burst-vent {
+  position: absolute;
+  width: 12px;
+  height: 8px;
+  margin: -4px 0 0 -6px;
+  background: #ffd36a;
+  box-shadow:
+    -6px 2px 0 #f0702e,
+    6px 2px 0 #f0702e,
+    0 -4px 0 #ff9a3c,
+    -10px 4px 0 #8e3a24,
+    10px 4px 0 #8e3a24;
+  animation: burst-vent 1600ms steps(8, end) forwards;
+}
+@keyframes burst-vent {
+  0%,
+  60% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  15%,
+  45% {
+    transform: scale(1.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+.burst-lava {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  background: #ff8a3d;
+  box-shadow: 0 -4px 0 #ffd36a;
+  opacity: 0;
+  animation: burst-lava 900ms steps(9, end) forwards;
+  animation-delay: calc(var(--i) * 70ms);
+}
+@keyframes burst-lava {
+  0% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  45% {
+    opacity: 1;
+    translate: calc(var(--dx) * 0.55) -46px;
+  }
+  90% {
+    opacity: 1;
+    translate: var(--dx) 4px;
+    background: #8e3a24;
+  }
+  100% {
+    opacity: 0;
+    translate: var(--dx) 4px;
+    background: #4a3a34;
+  }
+}
+.burst-ash {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  background: rgba(64, 60, 58, 0.85);
+  box-shadow:
+    -6px 4px 0 rgba(64, 60, 58, 0.7),
+    6px 4px 0 rgba(92, 86, 80, 0.7);
+  opacity: 0;
+  animation: burst-ash 1400ms steps(10, end) forwards;
+  animation-delay: calc(120ms + var(--i) * 110ms);
+}
+@keyframes burst-ash {
+  0% {
+    opacity: 0.9;
+    translate: 0 -6px;
+    scale: 0.8;
+  }
+  100% {
+    opacity: 0;
+    translate: calc((var(--i) - 2) * 6px + 14px) -96px;
+    scale: 2.4;
   }
 }
 .burst-flash-late {

@@ -282,6 +282,16 @@ impl Simulation {
                         .collect(),
                 ),
             );
+            // Volcano cones, as [x, y, radius] in tiles (a handful, so they ride every frame of this block).
+            obj.insert(
+                "volcanoes".to_string(),
+                serde_json::Value::Array(
+                    self.grid
+                        .all_volcanoes()
+                        .map(|v| json!([v.x, v.y, v.r]))
+                        .collect(),
+                ),
+            );
             obj.insert(
                 "festivals".to_string(),
                 serde_json::Value::Array(
