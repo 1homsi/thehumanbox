@@ -275,6 +275,70 @@ fn builders_hand_out_crews_research_first_then_civic_then_the_rest() {
 }
 
 #[test]
+fn a_full_project_limit_does_not_keep_a_farming_tribe_from_the_bakery_it_lacks() {
+    let mut sim = Simulation::new(0xBA4E);
+    sim.organisms.clear();
+    sim.buildings.clear();
+    for y in 10..=40 {
+        for x in 10..=40 {
+            sim.grid.set(x, y, crate::world::tiles::Tile::Grass);
+        }
+    }
+    for i in 0..12 {
+        let mut o = test_org(
+            &format!("p{i}"),
+            "Person",
+            "lineage-a",
+            20.0 + (i % 4) as f32,
+            20.0 + (i / 4) as f32,
+        );
+        o.age = 10_000;
+        o.inv_wood = 60;
+        o.inv_stone = 60;
+        o.wealth = 1_000;
+        o.discover("agriculture");
+        sim.organisms.push(o);
+    }
+    sim.lineage_eras.insert("lineage-a".into(), Era::Bronze);
+    // The craft and civic buildings it has, so a bakery is the one it lacks.
+    for (id, kind) in [
+        (1, BuildingKind::Workshop),
+        (2, BuildingKind::Workshop),
+        (3, BuildingKind::Forge),
+        (4, BuildingKind::Temple),
+    ] {
+        let mut b = Building::new(id, kind, 30, 30, Some("lineage-a".into()), 0);
+        b.condition = 1.0;
+        sim.buildings.push(b);
+    }
+    // Two walls nobody has built: the project limit for twelve builders is full.
+    sim.buildings.push(Building::new(
+        5,
+        BuildingKind::Wall,
+        20,
+        20,
+        Some("lineage-a".into()),
+        0,
+    ));
+    sim.buildings.push(Building::new(
+        6,
+        BuildingKind::Wall,
+        21,
+        20,
+        Some("lineage-a".into()),
+        0,
+    ));
+    sim.tick_count = 1_000;
+    tick_buildings_construct(&mut sim);
+    assert!(
+        sim.buildings
+            .iter()
+            .any(|b| b.kind == BuildingKind::Bakery && b.owner_lineage.as_deref() == Some("lineage-a")),
+        "the bakery was not raised outside the full project limit"
+    );
+}
+
+#[test]
 fn the_research_building_a_tribe_lacks_is_always_next() {
     let mut have: HashSet<BuildingKind> = HashSet::default();
     for expect in [
