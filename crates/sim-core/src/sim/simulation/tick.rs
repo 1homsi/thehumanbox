@@ -216,6 +216,7 @@ impl Simulation {
                 &mut self.events,
             );
             let new_battles = self.turn_away_warded(new_battles);
+            self.march_warbands(&new_battles);
             self.battles.extend(new_battles);
             let new_wars = crate::sim::warfare::try_spawn_border_wars(
                 self.tick_count,
@@ -227,6 +228,7 @@ impl Simulation {
                 &mut self.events,
             );
             let new_wars = self.turn_away_warded(new_wars);
+            self.march_warbands(&new_wars);
             self.battles.extend(new_wars);
             let standing: Vec<bool> = self.organisms.iter().map(|o| o.alive).collect();
             crate::sim::warfare::tick_battles(
