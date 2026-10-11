@@ -35,8 +35,39 @@ export function paintFortress(p: P) {
   paintCastle({ ...p, h: h * 0.58 })
 }
 
+/**
+ * A timber temple, the first one a tribe raises (stone and bronze ages): a plank hall on a low
+ * plinth, a steep thatched gable, a plank door between two carved posts. It becomes the stone
+ * colonnade of `paintTemple` from the classical age.
+ */
+export function paintWoodenTemple(p: P) {
+  const { x0, y1, w, h, rng } = p
+  const plinth = 2
+  px(p.ctx, x0 - 1, y1 - plinth, w + 2, plinth, '#6a4a2c')
+  const wallH = h * 0.5
+  const wallY = y1 - plinth - wallH
+  px(p.ctx, x0, wallY, w, wallH, '#9a7040')
+  // Vertical planks, a shade darker at each joint.
+  for (let x = x0 + 2; x < x0 + w - 1; x += 3) px(p.ctx, x, wallY + 1, 1, wallH - 1, '#7a5430')
+  px(p.ctx, x0, wallY, w, 1, '#5a4028')
+  outline(p.ctx, x0, wallY, w, wallH)
+  gableRoof(p, x0 - 2, wallY, w + 4, h * 0.42, hueShift('#c4a456', (rng() - 0.5) * 10), 3)
+  // Carved posts at the corners, with a finial on each.
+  for (const px0 of [x0 - 1, x0 + w - 1]) {
+    px(p.ctx, px0, wallY, 2, wallH + plinth, '#5a4028')
+    px(p.ctx, px0, wallY - 2, 2, 2, '#3a2a18')
+  }
+  const cx = x0 + w / 2
+  door(p, cx, y1 - plinth, Math.max(3, w * 0.2), wallH * 0.62, '#3a2414')
+}
+
 export function paintTemple(p: P) {
   const { x0, y1, w, h, rng, kind } = p
+  // A timber temple until the classical age, when the stone colonnade begins.
+  if (kind === 'Temple' && p.tier <= 1) {
+    paintWoodenTemple(p)
+    return
+  }
   if (kind === 'Mosque') {
     const wallH = h * 0.5
     const wallY = y1 - wallH
@@ -84,7 +115,8 @@ export function paintTemple(p: P) {
   }
   px(p.ctx, x0 - 1, colY - 3, w + 2, 3, '#cfc4aa')
   gableRoof(p, x0 - 1, colY - 3, w + 2, h * 0.26, hueShift('#b89048', (rng() - 0.5) * 16))
-  if (kind === 'Cathedral') {
+  // A temple of the medieval age and later has the cathedral's spire.
+  if (kind === 'Cathedral' || (kind === 'Temple' && p.tier >= 3)) {
     const towerTop = Math.max(10, colY - h * 0.55)
     const spireTip = Math.max(3, towerTop - h * 0.27)
     px(p.ctx, x0 + w / 2 - 2, towerTop, 4, colY - 3 - towerTop, '#cfc4aa')

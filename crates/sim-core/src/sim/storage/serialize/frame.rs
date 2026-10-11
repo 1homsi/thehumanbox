@@ -180,7 +180,7 @@ impl Simulation {
                 // Everyone aboard after the first (who is `rider_id`), and a ferry's two landings with the way to each shore.
                 "passenger_ids": v.occupants.iter().skip(1).collect::<Vec<_>>(),
                 // A train's next track cell: its heading (see `tech/railways.rs`).
-                "next": if v.rail_line.is_some() { self.train_next_cell(v).map(|(x, y)| json!([x, y])) } else { None },
+                "next": if v.rail_line.is_some() { self.train_next_cell(v).map(|(x, y)| json!([x, y])) } else { v.route.last().map(|&(x, y)| json!([x, y])) },
                 "ferry": v.ferry.map(|f| json!([
                     {"at": [f.a.0, f.a.1], "shore": crate::sim::tech::fleet::harbour_shore(&self.grid, f.a)},
                     {"at": [f.b.0, f.b.1], "shore": crate::sim::tech::fleet::harbour_shore(&self.grid, f.b)}

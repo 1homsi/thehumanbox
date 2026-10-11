@@ -302,6 +302,21 @@ pub(super) fn town_market_due(sim: &Simulation, lineage: &str, era: Era, pop: us
         && construction_cost_available(sim, lineage, BuildingKind::Market)
 }
 
+/// The era a town raises its fountain in.
+const FOUNTAIN_ERA: Era = Era::Classical;
+
+/// The plaza centre a town wants its fountain on: the town has a plaza, has reached the classical
+/// age, and has no fountain yet. The fountain's basin becomes water in the middle of the square.
+pub(super) fn town_fountain_site(sim: &Simulation, lineage: &str, era: Era) -> Option<(i32, i32)> {
+    if era < FOUNTAIN_ERA || owned_count(sim, lineage, &[BuildingKind::Fountain]) > 0 {
+        return None;
+    }
+    sim.town_plazas
+        .iter()
+        .find(|town| town.lineage == lineage)
+        .map(|town| (town.center[0], town.center[1]))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

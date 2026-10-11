@@ -876,3 +876,77 @@ fn a_rich_town_raises_a_manor_and_a_poor_one_does_not() {
     assert!(wants_manor(&sim, "rich", Era::Medieval, 30));
     assert!(!wants_manor(&sim, "rich", Era::Medieval, 24));
 }
+
+/// A tribe of ten with a plaza on open ground, in the given era.
+fn plaza_town(seed: u64, lineage: &str, era: Era) -> Simulation {
+    let mut sim = Simulation::new(seed);
+    sim.organisms.clear();
+    sim.buildings.clear();
+    let (cx, cy) = (30..270)
+        .flat_map(|y| (30..570).map(move |x| (x, y)))
+        .find(|&(x, y)| (-3..=3).all(|dy| (-3..=3).all(|dx| sim.grid.get(x + dx, y + dy).road_ground())))
+        .expect("open ground for a plaza");
+    for i in 0..10 {
+        let mut org = test_org(&format!("{lineage}-{i}"), "Person", lineage, cx as f32, cy as f32);
+        org.age = 10_000;
+        org.inv_wood = 10;
+        org.inv_stone = 10;
+        sim.organisms.push(org);
+    }
+    sim.town_plazas.push(super::super::town::TownPlaza {
+        lineage: lineage.into(),
+        center: [cx, cy],
+        streets: Vec::new(),
+    });
+    sim.lineage_eras.insert(lineage.into(), era);
+    sim
+}
+
+#[test]
+fn a_classical_town_puts_a_fountain_in_its_plaza_and_the_basin_holds_water() {
+    use crate::world::tiles::Tile;
+    let mut sim = plaza_town(0xF0_07, "fountain-town", Era::Classical);
+    let (cx, cy) = (sim.town_plazas[0].center[0], sim.town_plazas[0].center[1]);
+    tick_buildings_construct(&mut sim);
+    let fountain = sim
+        .buildings
+        .iter()
+        .find(|b| b.kind == BuildingKind::Fountain)
+        .expect("a fountain is started on the plaza");
+    assert_eq!(
+        (fountain.x, fountain.y),
+        (cx, cy),
+        "the fountain stands on the plaza centre"
+    );
+    for _ in 0..40 {
+        tick_building_progress(&mut sim);
+    }
+    assert!(
+        sim.buildings
+            .iter()
+            .any(|b| b.kind == BuildingKind::Fountain && b.is_complete()),
+        "the fountain is finished by the people on the plaza"
+    );
+    assert_eq!(sim.grid.get(cx, cy), Tile::Water, "the finished basin is water");
+    // One fountain per town: a later pass starts no second one.
+    tick_buildings_construct(&mut sim);
+    assert_eq!(
+        sim.buildings
+            .iter()
+            .filter(|b| b.kind == BuildingKind::Fountain)
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn a_bronze_town_has_no_fountain_yet() {
+    let mut sim = plaza_town(0xF0_08, "bronze-town", Era::Bronze);
+    for _ in 0..4 {
+        tick_buildings_construct(&mut sim);
+    }
+    assert!(
+        !sim.buildings.iter().any(|b| b.kind == BuildingKind::Fountain),
+        "no fountain before the classical age"
+    );
+}
