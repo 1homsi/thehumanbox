@@ -972,13 +972,25 @@ fn a_clan_short_of_beds_in_the_iron_age_raises_a_longhouse() {
     );
     // Two houses seat eight, four short of twelve: still a longhouse.
     for id in 1..=2 {
-        sim.buildings
-            .push(Building::new(id, BuildingKind::House, 20, 20, Some("clan".into()), 0));
+        sim.buildings.push(Building::new(
+            id,
+            BuildingKind::House,
+            20,
+            20,
+            Some("clan".into()),
+            0,
+        ));
     }
     assert!(wants_longhouse(&sim, "clan", Era::Iron, 12));
     // Three houses seat twelve: nobody is four beds short, so no longhouse.
-    sim.buildings
-        .push(Building::new(3, BuildingKind::House, 24, 20, Some("clan".into()), 0));
+    sim.buildings.push(Building::new(
+        3,
+        BuildingKind::House,
+        24,
+        20,
+        Some("clan".into()),
+        0,
+    ));
     assert!(
         !wants_longhouse(&sim, "clan", Era::Iron, 12),
         "a clan with beds for all does not"
