@@ -4,11 +4,14 @@ import { CELL_GUTTER, type CellAtlas } from '../atlas/cell-atlas'
 import { WHITE, writeSprite, type CfDriver, type CfFrame } from '../frame'
 import {
   ROAD_BRIDGE,
+  ROAD_CANAL,
   ROAD_RAIL,
   ROAD_TRACK,
   bridgeCellKey,
   bridgeIsVertical,
+  canalCellKey,
   paintBridgeCell,
+  paintCanalCell,
   paintRailCell,
   paintRoadCell,
   railCellKey,
@@ -67,7 +70,7 @@ export class RoadDriver implements CfDriver {
       if (!row) continue
       for (let c = Math.max(0, c0); c < Math.min(grid.width, c1); c++) {
         const kind = row[c]
-        if (kind !== ROAD_TRACK && kind !== ROAD_BRIDGE && kind !== ROAD_RAIL) continue
+        if (kind !== ROAD_TRACK && kind !== ROAD_BRIDGE && kind !== ROAD_RAIL && kind !== ROAD_CANAL) continue
         cells.push(r * grid.width + c)
         codes.push((kind << 4) | roadMask(roads, r, c))
       }
@@ -91,6 +94,9 @@ export class RoadDriver implements CfDriver {
         const vertical = bridgeIsVertical(mask)
         key = railCellKey(vertical)
         paint = (ctx) => paintRailCell(ctx, vertical)
+      } else if (kind === ROAD_CANAL) {
+        key = canalCellKey(mask)
+        paint = (ctx) => paintCanalCell(ctx, mask)
       } else {
         key = roadCellKey(style, mask)
         paint = (ctx) => paintRoadCell(ctx, style, mask)

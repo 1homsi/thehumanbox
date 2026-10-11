@@ -5,10 +5,7 @@ use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 
 use super::organism::DIRECTIONS;
-use crate::world::{
-    grid::{WorldGrid, ROAD_NONE},
-    tiles::Tile,
-};
+use crate::world::{grid::WorldGrid, tiles::Tile};
 
 /// Frontier entries as one integer whose numeric order is the order of the
 /// tuple `(estimate, cost, x, y, first)` they stand for: every field sits in its
@@ -96,7 +93,7 @@ const OPEN_STEP_COST: i32 = 10;
 const ROAD_STEP_COST: i32 = 6;
 
 fn step_cost(grid: &WorldGrid, x: i32, y: i32) -> i32 {
-    let base = if grid.road_at(x, y) != ROAD_NONE {
+    let base = if grid.is_road(x, y) {
         ROAD_STEP_COST
     } else {
         OPEN_STEP_COST

@@ -4,6 +4,7 @@ pub mod smog;
 pub mod village_carts;
 pub mod village_failure;
 pub mod village_fields;
+pub mod village_irrigation;
 pub mod village_livestock;
 pub mod village_roads;
 pub mod village_stores;

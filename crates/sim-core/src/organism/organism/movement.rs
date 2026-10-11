@@ -100,7 +100,7 @@ impl Organism {
             }
             // People keep to the roads they pass: a step onto one that also gets them closer is preferred
             // over the same step across open ground.
-            if progress > 0 && grid.road_at(nx, ny) != crate::world::grid::ROAD_NONE {
+            if progress > 0 && grid.is_road(nx, ny) {
                 score += ROAD_PULL;
             }
             if score > best_score {

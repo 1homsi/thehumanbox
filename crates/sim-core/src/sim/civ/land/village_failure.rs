@@ -9,7 +9,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::sim::civ::land::village_fields::{water_within, Tribe, SOW_STEP};
+use crate::sim::civ::land::village_fields::{irrigated, Tribe, SOW_STEP};
 use crate::sim::simulation::Simulation;
 use crate::sim::tech::buildings::BuildingKind;
 use crate::sim::world_events::push_event;
@@ -113,7 +113,7 @@ pub(crate) fn dry_spell(sim: &mut Simulation, tribe: &Tribe) {
         .collect();
     let mut wilted = 0usize;
     for (i, x, y, id) in plots {
-        if water_within(sim, x, y, 2) {
+        if irrigated(sim, x, y) {
             continue;
         }
         let roll = ((id as u64).wrapping_mul(2_654_435_761).wrapping_add(pass)) % 100;
