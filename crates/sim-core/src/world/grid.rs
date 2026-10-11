@@ -23,6 +23,9 @@ pub const ROAD_BRIDGE: u8 = 2;
 /// Railway track laid by a tribe between its own towns (see `sim/tech/railways.rs`). People walk on it
 /// like a road; trains run along it.
 pub const ROAD_RAIL: u8 = 3;
+/// A dug irrigation channel (see `sim/actions/construction/build_irrigation_canal.rs`): water runs in it, and a
+/// field within two cells of it is watered. Walking in it is no quicker than open ground.
+pub const ROAD_CANAL: u8 = 4;
 
 pub struct WorldGrid {
     pub tiles: Vec<i8>,
@@ -190,6 +193,13 @@ impl WorldGrid {
         }
     }
 
+    /// A cell with a road the people walk quicker on (a track, a bridge, a railway), not a dug channel.
+    #[inline]
+    pub fn is_road(&self, x: i32, y: i32) -> bool {
+        let kind = self.road_at(x, y);
+        kind != ROAD_NONE && kind != ROAD_CANAL
+    }
+
     /// Water a walker wades or swims through: water with no bridge over it. `tile` is the cell's tile,
     /// which the caller already has (this is checked for every step a walker considers).
     #[inline]
@@ -237,7 +247,7 @@ impl WorldGrid {
             let t = s as f32 / steps as f32;
             let x = (a[0] as f32 + (b[0] - a[0]) as f32 * t).round() as i32;
             let y = (a[1] as f32 + (b[1] - a[1]) as f32 * t).round() as i32;
-            if self.road_at(x, y) != ROAD_NONE {
+            if self.is_road(x, y) {
                 on_road += 1;
             }
         }

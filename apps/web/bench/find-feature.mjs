@@ -11,6 +11,7 @@
 //   rail              a railway cell on the track between two towns (the frame's `roads`, kind 3)
 //   field             a farm plot (the frame's `farms`)
 //   pier              a harbour's pier (a boat's harbour with piers) or a ferry landing, one per tile
+//   canal             a dug irrigation channel cell (the frame's road kind 4)
 //
 // Candidates are sorted by distance to the nearest settlement centre, then by x, then by y, so
 // `index` picks the same one every time. Pass `index` to pick another candidate.
@@ -117,6 +118,13 @@ export function candidatesFor(frame, feature, tick = frame.tick) {
       for (const landing of v.ferry ?? []) add(landing.at[0], landing.at[1], v, `pier-ferry-${v.era ?? 'any'}`)
     }
     return [...seen.values()].sort(sortBy)
+  }
+  if (head === 'canal') {
+    // A dug irrigation channel cell (road kind 4, `ROAD_CANAL`). Candidates are cells, nearest the town first.
+    return (frame.grid?.roads ?? [])
+      .filter(([, , kind]) => kind === 4)
+      .map(([row, col, kind]) => ({ entity: { row, col, kind }, kind: 'canal', name: 'canal', x: col, y: row }))
+      .sort(sortBy)
   }
   if (head === 'field') {
     return (frame.farms ?? [])

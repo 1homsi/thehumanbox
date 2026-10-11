@@ -126,6 +126,16 @@ pub(crate) fn water_within(sim: &Simulation, x: i32, y: i32, reach: i32) -> bool
     (-reach..=reach).any(|dy| (-reach..=reach).any(|dx| matches!(sim.grid.get(x + dx, y + dy), Tile::Water)))
 }
 
+/// Water reaches a field: a river, a lake or the sea within two cells, or a dug irrigation channel
+/// within two cells. Such a field yields more (see `farm_ops::harvest_crop`) and lives through a dry spell.
+pub(crate) fn irrigated(sim: &Simulation, x: i32, y: i32) -> bool {
+    const REACH: i32 = 2;
+    water_within(sim, x, y, REACH)
+        || (-REACH..=REACH).any(|dy| {
+            (-REACH..=REACH).any(|dx| sim.grid.road_at(x + dx, y + dy) == crate::world::grid::ROAD_CANAL)
+        })
+}
+
 /// Harvest the ripe fields of every tribe that farms, then open or re-sow a
 /// couple of plots for each tribe that has the ground and the seed for them.
 pub(crate) fn tick_village_fields(sim: &mut Simulation) {
@@ -142,6 +152,7 @@ pub(crate) fn tick_village_fields(sim: &mut Simulation) {
         village_failure::dry_spell(sim, tribe);
         harvest_ripe(sim, tribe);
         sow_fields(sim, tribe, now);
+        crate::sim::civ::land::village_irrigation::dig_for_fields(sim, tribe);
         village_stores::bake(sim, tribe);
         village_stores::ration(sim, tribe);
         village_failure::famine(sim, tribe);
@@ -235,7 +246,7 @@ fn sow_fields(sim: &mut Simulation, tribe: &Tribe, now: u64) {
         }) else {
             break;
         };
-        let water = water_within(sim, x, y, 2);
+        let water = irrigated(sim, x, y);
         let crop = crop_for_plot(sim, actor, x, y, water);
         if plant_crop(sim, actor, x, y, crop, false).is_none() {
             break;

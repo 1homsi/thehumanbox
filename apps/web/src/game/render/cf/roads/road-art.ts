@@ -179,3 +179,61 @@ export function roadCellKey(style: RoadStyle, mask: number): string {
 export function bridgeCellKey(vertical: boolean): string {
   return vertical ? 'B|v' : 'B|h'
 }
+
+/** The simulation's `ROAD_CANAL`: a dug irrigation channel. */
+export const ROAD_CANAL = 4
+export const CANAL_WATER = '#3f7fa8'
+export const CANAL_SHINE = '#7fb4d2'
+export const CANAL_BANK = '#6b5a3e'
+
+/**
+ * Whether a canal cell's pixel (x, y) is water: a 4-pixel channel down the middle of the cell, running to
+ * the edge on each side the channel continues to. Coordinates one step outside the cell follow the same
+ * rule, so the banks of neighbouring cells meet without a seam.
+ */
+function canalWater(mask: number, x: number, y: number): boolean {
+  const lo = 2
+  const hi = TILE - 2
+  const inX = x >= lo && x < hi
+  const inY = y >= lo && y < hi
+  if (inX && inY) return true
+  if (inX && y < lo && mask & ROAD_N) return true
+  if (inX && y >= hi && mask & ROAD_S) return true
+  if (inY && x >= hi && mask & ROAD_E) return true
+  if (inY && x < lo && mask & ROAD_W) return true
+  return false
+}
+
+/** Every painted pixel of a canal cell, as `[x, y, colour]`: water with a bank of earth on either side. */
+export function canalCellPixels(mask: number): [number, number, string][] {
+  const out: [number, number, string][] = []
+  for (let y = 0; y < TILE; y++) {
+    for (let x = 0; x < TILE; x++) {
+      if (canalWater(mask, x, y)) {
+        // A lighter pixel every few along the water gives it a moving look without any animation.
+        out.push([x, y, (x + y) % 4 === 0 ? CANAL_SHINE : CANAL_WATER])
+      } else if (
+        canalWater(mask, x - 1, y) ||
+        canalWater(mask, x + 1, y) ||
+        canalWater(mask, x, y - 1) ||
+        canalWater(mask, x, y + 1)
+      ) {
+        out.push([x, y, CANAL_BANK])
+      }
+    }
+  }
+  return out
+}
+
+/** Paint one canal cell at the context origin. */
+export function paintCanalCell(ctx: CanvasRenderingContext2D, mask: number): void {
+  for (const [x, y, color] of canalCellPixels(mask)) {
+    ctx.fillStyle = color
+    ctx.fillRect(x, y, 1, 1)
+  }
+}
+
+/** The atlas key of a canal cell: the way it joins. */
+export function canalCellKey(mask: number): string {
+  return `C|${mask}`
+}

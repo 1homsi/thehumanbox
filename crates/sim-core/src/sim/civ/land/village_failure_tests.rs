@@ -153,6 +153,33 @@ fn a_dry_spell_wilts_unwatered_fields_and_spares_the_ones_by_water() {
 }
 
 #[test]
+fn a_dug_channel_waters_a_field_through_a_dry_spell() {
+    let (mut sim, lineage, (hx, hy)) = farming_village(6_004, 0);
+    sim.drought.active = true;
+    sim.tick_count = SPRING;
+    let ready = SPRING + 6_000;
+    // A field with no river near it, but a dug channel two tiles away.
+    let (fx, fy) = (hx - 5, hy + 5);
+    for dy in -4..=4 {
+        for dx in -4..=4 {
+            sim.grid.set(fx + dx, fy + dy, Tile::Grass);
+        }
+    }
+    sim.grid.road[crate::world::grid::WorldGrid::idx(fx + 2, fy)] = crate::world::grid::ROAD_CANAL;
+    sim.farms.push(field(1, fx, fy, &lineage, ready));
+    assert!(crate::sim::civ::land::village_fields::irrigated(&sim, fx, fy));
+    let tribe = tribe_of(&sim, &lineage, (hx, hy));
+    for _ in 0..5 {
+        sim.tick_count += SOW_STEP;
+        dry_spell(&mut sim, &tribe);
+    }
+    assert!(
+        !sim.farms[0].withered,
+        "a field the channel waters wilted in the drought"
+    );
+}
+
+#[test]
 fn a_ruined_field_gives_nothing_and_lies_fallow_until_it_is_sown_again() {
     let (mut sim, lineage, (hx, hy)) = farming_village(6_004, 0);
     let ready = 15_000;
