@@ -142,7 +142,9 @@ export function candidatesFor(frame, feature, tick = frame.tick) {
       .sort(sortBy)
   }
   if (head === 'field') {
+    // `field` is any farm plot; `field:ox` or `field:tractor` only those a plough broke while they grow.
     return (frame.farms ?? [])
+      .filter((f) => !arg || f.plough === arg)
       .map((f) => ({ entity: f, kind: 'field', name: `field-${f.crop ?? 'plot'}`, x: f.x, y: f.y }))
       .sort(sortBy)
   }
