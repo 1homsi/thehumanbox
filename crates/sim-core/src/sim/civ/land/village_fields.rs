@@ -142,6 +142,7 @@ pub(crate) fn tick_village_fields(sim: &mut Simulation) {
         village_failure::dry_spell(sim, tribe);
         harvest_ripe(sim, tribe);
         sow_fields(sim, tribe, now);
+        village_stores::bake(sim, tribe);
         village_stores::ration(sim, tribe);
         village_failure::famine(sim, tribe);
         village_stores::build_stores(sim, tribe);
