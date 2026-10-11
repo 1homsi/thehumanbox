@@ -188,10 +188,13 @@ fn landmark(kind: BuildingKind) -> bool {
     )
 }
 
-/// Wells and bridges reshape the land and serve whoever comes by; they are
-/// never left to fall in.
+/// Wells, fountains and bridges reshape the land and serve whoever comes by;
+/// they are never left to fall in.
 fn weathers(kind: BuildingKind) -> bool {
-    !matches!(kind, BuildingKind::Well | BuildingKind::Bridge)
+    !matches!(
+        kind,
+        BuildingKind::Well | BuildingKind::Fountain | BuildingKind::Bridge
+    )
 }
 
 /// Indices of standing buildings other than homes whose tribe has died out.
