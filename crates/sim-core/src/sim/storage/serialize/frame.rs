@@ -484,6 +484,15 @@ impl Simulation {
                     "lineage_food_stores".to_string(),
                     serde_json::Value::Array(stores),
                 );
+                // Loaves in each tribe's bakeries, for the tribe card.
+                let bread: Vec<serde_json::Value> = crate::sim::civ::land::village_stores::bread_stores(self)
+                    .into_iter()
+                    .map(|(lid, loaves)| json!({ "lineage_id": lid, "loaves": loaves }))
+                    .collect();
+                obj.insert(
+                    "lineage_bread_stores".to_string(),
+                    serde_json::Value::Array(bread),
+                );
                 // Livestock each tribe keeps in its pens, for the tribe card.
                 let mut herds: std::collections::BTreeMap<String, u32> = std::collections::BTreeMap::new();
                 for a in self.animals.iter().filter(|a| a.alive && a.is_kept()) {

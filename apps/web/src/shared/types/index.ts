@@ -702,6 +702,8 @@ export interface WorldState {
   lineage_inequality?: Array<{ lineage_id: string; gini: number; people: number }>
   /** Grain in each tribe's granaries (measures), for the tribe card and the trade agent. */
   lineage_food_stores?: Array<{ lineage_id: string; stock: number }>
+  /** Loaves in each tribe's bakeries, for the tribe card. */
+  lineage_bread_stores?: Array<{ lineage_id: string; loaves: number }>
   /** Livestock kept in each tribe's pens (head), for the tribe card. */
   lineage_livestock?: Array<{ lineage_id: string; head: number }>
   lineage_crime?: Array<{ lineage_id: string; thefts: number; murders: number; punished: number }>
