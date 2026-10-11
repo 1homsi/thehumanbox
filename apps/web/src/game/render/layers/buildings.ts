@@ -2,7 +2,7 @@ import { lineageEraTiers } from '.././draw-helpers'
 
 import { drawBuilding, RUIN_CRUMBLE_TICKS, sortBuildingsByDepth } from '.././buildings2d'
 
-import { padEmpty } from '.././era-traffic'
+import { passingState } from '.././building-draw/passing-state'
 
 import { zoomDetailLevel } from '.././character-visuals'
 import { TILE } from '../../model/palette'
@@ -51,7 +51,7 @@ export function draw_buildings(f: DrawFrame) {
         tier: tiers.get(b.owner_lineage ?? b.lineage_id ?? '') ?? 0,
         ruinAge:
           b.ruined && b.ruined_at_tick != null ? (world.tick - b.ruined_at_tick) / RUIN_CRUMBLE_TICKS : 0,
-        state: b.kind === 'Spaceport' && padEmpty(b.id, world.tick) ? 'empty' : undefined,
+        state: passingState(b, world.tick),
       },
       ox,
       oy,

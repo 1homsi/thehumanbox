@@ -36,6 +36,17 @@ const HULL_WOOD: u32 = 6;
 /// Ticks of work a hull takes on the slip before the boat is launched. The work is done only while
 /// someone of the tribe stands on the quay (the labour), so an empty quay stops the hull.
 const HULL_TICKS: u64 = 300;
+/// The stages a hull shows on the slip, from a bare keel to a planked hull waiting for a berth.
+pub(crate) const SLIP_STAGES: u64 = 3;
+
+/// What a shipyard's slip shows: `None` when it is empty, else the hull's stage, 1 (the keel is
+/// laid) to `SLIP_STAGES` (planked, ready to launch). A hull counts as planked once its work is done,
+/// so one waiting for a free berth stays on the slip whole.
+pub(crate) fn slip_stage(hull_work: Option<u64>) -> Option<u8> {
+    let done = HULL_TICKS.saturating_sub(hull_work?.min(HULL_TICKS));
+    Some(1 + (done * SLIP_STAGES / HULL_TICKS).min(SLIP_STAGES - 1) as u8)
+}
+
 /// Wood the people on a quay hew into a canoe, the first boat of a tribe (no yard needed for it).
 const CANOE_WOOD: u32 = 4;
 /// Wood a shipyard takes from its quay at each check, at most.
@@ -164,6 +175,7 @@ pub(crate) fn tick_ports(sim: &mut Simulation) {
         let Some(yard) = building_within(sim, BuildingKind::Shipyard, &tribe, harbour, PORT_REACH) else {
             continue;
         };
+        let slip_before = slip_stage(sim.buildings[yard].hull_work);
         if era >= WAREHOUSE_ERA
             && building_within(sim, BuildingKind::Warehouse, &tribe, harbour, PORT_REACH).is_none()
         {
@@ -220,6 +232,10 @@ pub(crate) fn tick_ports(sim: &mut Simulation) {
             launch_boat(sim, &tribe, harbour);
             fleet_total += 1;
             sim.buildings[yard].hull_work = None;
+        }
+        // The slip is drawn from the frame's buildings, so a hull laid, grown or launched resends them.
+        if slip_stage(sim.buildings[yard].hull_work) != slip_before {
+            sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
         }
     }
 }
@@ -435,6 +451,73 @@ mod tests {
             .all(|b| b.harbour == Some((90, 100)) && b.owner_lineage == lineage));
         let i = building_within(&sim, BuildingKind::Shipyard, &lineage, (90, 100), PORT_REACH).unwrap();
         assert!(sim.buildings[i].hull_work.is_none());
+    }
+
+    #[test]
+    fn the_slip_shows_a_keel_then_ribs_then_a_planked_hull() {
+        assert_eq!(slip_stage(None), None, "an empty slip shows no hull");
+        assert_eq!(
+            slip_stage(Some(HULL_TICKS)),
+            Some(1),
+            "a hull just laid is a keel"
+        );
+        assert_eq!(slip_stage(Some(HULL_TICKS - 50)), Some(1));
+        assert_eq!(
+            slip_stage(Some(HULL_TICKS / 2)),
+            Some(2),
+            "half done, the ribs stand"
+        );
+        assert_eq!(slip_stage(Some(50)), Some(3), "nearly done, the hull is planked");
+        assert_eq!(
+            slip_stage(Some(0)),
+            Some(3),
+            "a finished hull waiting for a berth stays planked"
+        );
+        assert_eq!(
+            slip_stage(Some(HULL_TICKS * 4)),
+            Some(1),
+            "more work than a hull takes is still a keel"
+        );
+    }
+
+    #[test]
+    fn laying_growing_and_launching_a_hull_resend_the_buildings() {
+        let (mut sim, lineage) = coastal_sim();
+        sim.lineage_eras.insert(lineage.clone(), Era::Bronze);
+        for o in sim.organisms.iter_mut() {
+            o.inv_wood = 10;
+        }
+        run_works(&mut sim, 0, 50);
+        let yard = building_within(&sim, BuildingKind::Shipyard, &lineage, (90, 100), PORT_REACH).unwrap();
+        assert!(
+            sim.buildings[yard].hull_work.is_none(),
+            "no hull yet: the store is short of wood"
+        );
+        let mut stages = vec![];
+        let mut revision = sim.building_state_revision;
+        for t in (100..=350).step_by(50) {
+            sim.tick_count = t;
+            tick_ports(&mut sim);
+            let stage = slip_stage(sim.buildings[yard].hull_work);
+            if stages.last() != Some(&stage) {
+                assert_ne!(
+                    sim.building_state_revision, revision,
+                    "a new slip stage at tick {t} resends the buildings"
+                );
+                stages.push(stage);
+            } else {
+                assert_eq!(
+                    sim.building_state_revision, revision,
+                    "an unchanged slip at tick {t} sends nothing"
+                );
+            }
+            revision = sim.building_state_revision;
+        }
+        assert_eq!(
+            stages,
+            vec![Some(1), Some(2), Some(3), None],
+            "the hull goes keel, ribs, planks, and the slip empties at the launch"
+        );
     }
 
     #[test]
