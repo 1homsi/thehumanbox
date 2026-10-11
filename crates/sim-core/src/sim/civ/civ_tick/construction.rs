@@ -889,6 +889,43 @@ fn raise_towers(sim: &mut Simulation, lineage: &str, ring: &[(i32, i32)]) -> usi
     started
 }
 
+/// Starts the craft or civic building a tribe lacks most, outside the project limit, when the
+/// limit is full of other sites. Only when no craft or civic project of the tribe is already
+/// waiting (see `civic_project_first`), so the slot is not stacked. Returns true if one started.
+fn start_lacking_craft_outside_limit(sim: &mut Simulation, lineage: &str, era: Era, pop: usize) -> bool {
+    if civic_project_first(sim, lineage) {
+        return false;
+    }
+    let agriculture = sim
+        .organisms
+        .iter()
+        .any(|o| o.alive && o.lineage_id == lineage && o.discoveries.contains("agriculture"));
+    let mut craft_held: HashMap<BuildingKind, usize> = HashMap::default();
+    for b in sim
+        .buildings
+        .iter()
+        .filter(|b| !b.decorative && !b.is_ruined() && b.owner_lineage.as_deref() == Some(lineage))
+    {
+        *craft_held.entry(b.kind).or_insert(0) += 1;
+    }
+    let mut considered: HashSet<BuildingKind> = HashSet::default();
+    while let Some(kind) = most_lacking_craft(era, pop, agriculture, &craft_held, &considered) {
+        considered.insert(kind);
+        // Markets keep their own path (the town's market on its plaza), so they are not taken here.
+        if kind == BuildingKind::Market || !construction_cost_available(sim, lineage, kind) {
+            continue;
+        }
+        // On the town's plaza corners only: a craft raised at the tribe's centre pulls its people
+        // into one knot, and a town without a plaza has no corner to give it.
+        for (cx, cy) in super::town::civic_anchors(sim, lineage, kind) {
+            if try_start_building_with(sim, lineage, kind, cx, cy, &mut FailedSites::default()) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 /// How long after a battle a tribe still counts as at war, so its palisade
 /// stands between one construction pass and the next (passes run every 240 ticks).
 pub(super) const WAR_MEMORY_TICKS: u64 = 600;
@@ -1027,6 +1064,15 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                     org.fetch_stone_until = until;
                 }
             }
+        }
+        // A full project limit (walls, fences and homes waiting for builders) must not keep a
+        // tribe from the craft and civic building it lacks: that one gets a slot of its own.
+        if workers > 0
+            && functional_slots > 0
+            && available_projects == 0
+            && start_lacking_craft_outside_limit(sim, &lid, era, pop)
+        {
+            functional_slots -= 1;
         }
         if workers == 0 || available_projects == 0 {
             continue;

@@ -199,6 +199,19 @@ fn main() {
         sim.trade_income.values().sum::<u64>()
     );
     println!(
+        "bakeries:    {} standing, {} started",
+        sim.buildings
+            .iter()
+            .filter(|b| b.kind == sim_core::sim::tech::buildings::BuildingKind::Bakery && b.is_operational())
+            .count(),
+        sim.buildings
+            .iter()
+            .filter(|b| b.kind == sim_core::sim::tech::buildings::BuildingKind::Bakery
+                && !b.decorative
+                && !b.is_ruined())
+            .count(),
+    );
+    println!(
         "roads:       {} cells, {} village links",
         sim.grid.road.iter().filter(|&&k| k != 0).count(),
         sim.village_roads.len()
