@@ -2,5 +2,5 @@
   "seed": 42,
   "tick": 3000,
   "save_fnv1a64": "0x3745b0a2c7fa995f",
-  "note": "FNV-1a 64 of the serialized save state. Checked natively by sim-core tests and in the browser wasm build by scripts/check-wasm-determinism.mjs. Update only when a change is meant to alter the world. Regenerated for the harvest feast (society/festivals.rs: a Harvest Feast is held only after a good harvest, from 600 ticks into autumn, so none is held at the start of autumn in seed 42 at tick 3000)."
+  "note": "FNV-1a 64 of the serialized save state. Checked natively by sim-core tests and in the browser wasm build by scripts/check-wasm-determinism.mjs. Update only when a change is meant to alter the world. Regenerated for speeches (agents/speeches.rs: the leader of a tribe with a plaza speaks there on every second day, and the adults near the plaza walk over to listen)."
 }
