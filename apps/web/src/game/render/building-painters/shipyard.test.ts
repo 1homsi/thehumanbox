@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { hasBuildingSprite } from './registry'
 import type { P } from './kit'
-import { paintShipyard } from './shipyard'
+import { HULL_FRAME, HULL_KEEL, HULL_PLANK, paintShipyard } from './shipyard'
 
 /** A canvas context stand-in that records every pixel fill. */
 function recorder() {
@@ -37,8 +37,14 @@ function paint(state: string) {
     state,
   }
   paintShipyard(p)
-  const count = (c: string) => pixels.filter((q) => q.color === c).length
-  return { planks: count('#c59a5e'), keel: count('#8a6440'), frames: count('#5a4028') }
+  const hull = pixels.filter((q) => [HULL_PLANK, HULL_KEEL, HULL_FRAME].includes(q.color))
+  const count = (c: string) => hull.filter((q) => q.color === c).length
+  return {
+    planks: count(HULL_PLANK),
+    keel: count(HULL_KEEL),
+    frames: count(HULL_FRAME),
+    xs: hull.map((q) => q.x),
+  }
 }
 
 describe('paintShipyard', () => {
@@ -60,5 +66,15 @@ describe('paintShipyard', () => {
     expect(ribs.planks).toBe(0)
     expect(ribs.frames).toBeGreaterThan(keel.frames)
     expect(planked.planks).toBeGreaterThan(0)
+    expect(planked.keel).toBeGreaterThan(0)
+  })
+
+  it('builds the hull beside the slip and inside the yard', () => {
+    for (const state of ['hull1', 'hull2', 'hull3']) {
+      const { xs } = paint(state)
+      // The slip covers x 10..12 of the yard at x0 8, which is 24 wide.
+      expect(Math.min(...xs)).toBeGreaterThanOrEqual(14)
+      expect(Math.max(...xs)).toBeLessThanOrEqual(30)
+    }
   })
 })
