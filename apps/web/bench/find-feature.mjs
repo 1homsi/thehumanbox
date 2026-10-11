@@ -134,6 +134,13 @@ export function candidatesFor(frame, feature, tick = frame.tick) {
     }
     return [...seen.values()].sort(sortBy)
   }
+  if (head === 'festival') {
+    // A festival in the frame: its centre is the tribe's home. `festival:harvest` (or any kind word) filters by name.
+    return (frame.festivals ?? [])
+      .filter((f) => !arg || String(f.name).toLowerCase().includes(arg))
+      .map((f) => ({ entity: f, kind: 'festival', name: `festival-${String(f.name).toLowerCase().replace(/\s+/g, '-')}`, x: f.x, y: f.y }))
+      .sort(sortBy)
+  }
   if (head === 'canal') {
     // A dug irrigation channel cell (road kind 4, `ROAD_CANAL`). Candidates are cells, nearest the town first.
     return (frame.grid?.roads ?? [])

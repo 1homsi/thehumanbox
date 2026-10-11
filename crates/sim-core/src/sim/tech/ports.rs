@@ -17,6 +17,10 @@ use crate::sim::transportation::{TransportKind, Vehicle};
 const PORT_CHECK_TICKS: u64 = 50;
 /// How close to a harbour a yard or a warehouse stands, in tiles (a square search box).
 pub(crate) const PORT_REACH: i32 = 6;
+/// One shipyard serves a harbour town: a yard of any tribe within this reach of a quay is the town's yard, so
+/// a coast with several quays, or several tribes at one quay, does not get a yard at each. The other tribes
+/// keep to their canoes.
+const YARD_TOWN_REACH: i32 = 12;
 /// The ring of tiles around a harbour a yard or a warehouse is built on, in tiles from the harbour.
 const BUILD_RING: (i32, i32) = (2, 4);
 /// How far from a harbour a home may be and still count among its town, in tiles.
@@ -71,6 +75,15 @@ pub fn piers_at(sim: &Simulation, harbour: (i32, i32), lineage: &str) -> u32 {
         })
         .count();
     (1 + (town / PEOPLE_PER_PIER) as u32).min(MAX_PIERS)
+}
+
+/// Whether a shipyard of any tribe already stands in the town of `harbour`.
+fn yard_in_town(sim: &Simulation, harbour: (i32, i32)) -> bool {
+    sim.buildings.iter().any(|b| {
+        b.kind == BuildingKind::Shipyard
+            && b.is_operational()
+            && (b.x - harbour.0).abs().max((b.y - harbour.1).abs()) <= YARD_TOWN_REACH
+    })
 }
 
 /// Index of an operational building of `kind` that `lineage` owns within `reach` of `at`.
@@ -167,12 +180,11 @@ pub(crate) fn tick_ports(sim: &mut Simulation) {
             fleet_total += 1;
         }
         let era = sim.era(&tribe);
-        if era >= YARD_ERA
-            && building_within(sim, BuildingKind::Shipyard, &tribe, harbour, PORT_REACH).is_none()
-        {
+        if era >= YARD_ERA && !yard_in_town(sim, harbour) {
             build_port_work(sim, &tribe, harbour, BuildingKind::Shipyard);
         }
-        let Some(yard) = building_within(sim, BuildingKind::Shipyard, &tribe, harbour, PORT_REACH) else {
+        let Some(yard) = building_within(sim, BuildingKind::Shipyard, &tribe, harbour, YARD_TOWN_REACH)
+        else {
             continue;
         };
         let slip_before = slip_stage(sim.buildings[yard].hull_work);
@@ -392,6 +404,31 @@ mod tests {
     fn yard_stock(sim: &Simulation, lineage: &str) -> u32 {
         let i = building_within(sim, BuildingKind::Shipyard, lineage, (90, 100), PORT_REACH).unwrap();
         sim.buildings[i].stock
+    }
+
+    #[test]
+    fn a_harbour_town_shares_one_shipyard() {
+        let (mut sim, lineage) = coastal_sim();
+        sim.lineage_eras.insert(lineage.clone(), Era::Bronze);
+        for o in sim.organisms.iter_mut() {
+            o.inv_wood = 9;
+        }
+        // A second quay of the same tribe a few tiles along the shore, with its own yard already there.
+        let mut yard = Building::new(900, BuildingKind::Shipyard, 80, 100, Some(lineage.clone()), 0);
+        yard.condition = 1.0;
+        sim.buildings.push(yard);
+        run_works(&mut sim, 0, 600);
+        let yards = sim
+            .buildings
+            .iter()
+            .filter(|b| {
+                b.kind == BuildingKind::Shipyard && b.owner_lineage.as_deref() == Some(lineage.as_str())
+            })
+            .count();
+        assert_eq!(
+            yards, 1,
+            "the quay in reach of the yard uses it: no second yard in the same town"
+        );
     }
 
     #[test]
