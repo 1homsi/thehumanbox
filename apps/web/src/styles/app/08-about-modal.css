@@ -285,6 +285,11 @@ body.thb-colorblind .org-sick-badge {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   color: #d8cdb6;
 }
+@media (max-width: 767px) {
+  .civ-modal {
+    padding-bottom: calc(18px + var(--safe-bottom));
+  }
+}
 .civ-modal > [data-radix-dialog-title],
 .civ-modal h2 {
   font-size: 11px;

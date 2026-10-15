@@ -23,7 +23,7 @@
 /* First-prayer hint: bottom-left, clear of the update toast. */
 .update-toast.prayer-hint {
   right: auto;
-  left: 20px;
+  left: calc(20px + var(--safe-left));
 }
 
 /* ── Focused tribe card ────────────────────────────────────────────── */

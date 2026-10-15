@@ -226,7 +226,7 @@ body.thb-photo-mode {
   }
   .panel-left,
   .panel-left.open {
-    left: 0;
+    left: var(--safe-left);
     bottom: var(--dock-tab-clear, 0px);
     width: 240px;
     transform: translateX(-100%);
@@ -237,7 +237,7 @@ body.thb-photo-mode {
   }
   .panel-right,
   .panel-right.open {
-    right: 0;
+    right: var(--safe-right);
     width: 320px;
     transform: translateX(100%);
     border-left: 2px solid var(--px-ink);
