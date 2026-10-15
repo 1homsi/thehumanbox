@@ -129,7 +129,13 @@ export function describeProcess(pid: number): ProcessIdentity | null {
   try {
     if (process.platform === "win32") {
       const out = execFileSync(
-        "powershell.exe",
+        path.join(
+          process.env.SystemRoot ?? "C:\\Windows",
+          "System32",
+          "WindowsPowerShell",
+          "v1.0",
+          "powershell.exe",
+        ),
         [
           "-NoProfile",
           "-NonInteractive",
@@ -145,7 +151,7 @@ export function describeProcess(pid: number): ProcessIdentity | null {
         : null;
     }
     const run = (column: string): string =>
-      execFileSync("ps", ["-p", String(pid), "-o", `${column}=`], {
+      execFileSync("/bin/ps", ["-p", String(pid), "-o", `${column}=`], {
         encoding: "utf8",
         timeout: 5_000,
         stdio: ["ignore", "pipe", "ignore"],
@@ -161,7 +167,7 @@ export function describeProcess(pid: number): ProcessIdentity | null {
 // How much later than the lock's own timestamp a process may have started
 // before it cannot be the lock owner. The owner necessarily started before it
 // wrote the lock; the margin only has to absorb clock adjustments.
-const OWNER_START_MARGIN_MS = 2 * 60_000;
+const OWNER_START_MARGIN_MS = 10 * 60_000;
 
 function executableKey(name: string): string {
   return path.basename(name).replace(/\.exe$/i, "").toLowerCase();

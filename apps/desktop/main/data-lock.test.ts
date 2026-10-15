@@ -230,7 +230,7 @@ test("a lock owner pid recycled by an unrelated program is stale", () => {
 test("pid recycling needs a later start time AND a different program", () => {
   const exe = "/Applications/The Human Box.app/Contents/MacOS/The Human Box";
   const t = 1_700_000_000_000;
-  const later = t + 10 * 60_000;
+  const later = t + 30 * 60_000;
   const id = (name: string, startedAt: number) => () => ({ name, startedAt });
   assert.equal(pidWasRecycled(7, t, id("firefox", later), exe), true);
   assert.equal(pidWasRecycled(7, t, id("The Human Box", later), exe), false);
