@@ -1,4 +1,4 @@
-use super::Simulation;
+use super::{cmd_tile, Simulation};
 use crate::math::DetMath;
 use crate::sim::world_events::push_event;
 use crate::world::grid::{WorldGrid, WIDTH};
@@ -37,7 +37,7 @@ impl Simulation {
         }
         let reach = reach_of(radius);
         let r = reach.ceil() as i32;
-        let (cx, cy) = (x as i32, y as i32);
+        let (cx, cy) = (cmd_tile(x), cmd_tile(y));
         let water_in_reach = (-r..=r).any(|dx| {
             (-r..=r).any(|dy| {
                 (dx * dx + dy * dy) as f32 <= reach * reach && self.grid.get(cx + dx, cy + dy) == Tile::Water
@@ -68,7 +68,7 @@ impl Simulation {
         }
         let reach = reach_of(radius);
         let r = reach.ceil() as i32;
-        let (cx, cy) = (x as i32, y as i32);
+        let (cx, cy) = (cmd_tile(x), cmd_tile(y));
         let mut sprouted = 0usize;
         let mut wooded = 0usize;
         for dx in -r..=r {

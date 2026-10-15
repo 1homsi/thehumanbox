@@ -1,4 +1,4 @@
-use super::Simulation;
+use super::{cmd_tile, Simulation};
 use crate::math::DetMath;
 use crate::sim::world_events::push_event;
 use crate::world::grid::WorldGrid;
@@ -22,7 +22,7 @@ impl Simulation {
         } else {
             DEFAULT_RADIUS
         };
-        let (cx, cy) = (x as i32, y as i32);
+        let (cx, cy) = (cmd_tile(x), cmd_tile(y));
         let r = reach.ceil() as i32;
         let mut doused = 0usize;
         for dx in -r..=r {

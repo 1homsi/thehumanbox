@@ -106,7 +106,11 @@ impl WorldGrid {
     /// Records a volcano raised at (`x`, `y`) with radius `r`. One raised on top of another (its crater
     /// within the older cone) replaces it, and past `MAX_PLACED_VOLCANOES` the oldest is forgotten.
     pub fn raise_volcano(&mut self, x: i32, y: i32, r: i32) {
-        let on_top = |v: &Volcano| (v.x - x).pow(2) + (v.y - y).pow(2) <= v.r.max(r).pow(2);
+        // Widened: `x`/`y` come from a clamped command point, whose square can pass i32::MAX.
+        let on_top = |v: &Volcano| {
+            let (dx, dy, reach) = (i64::from(v.x - x), i64::from(v.y - y), i64::from(v.r.max(r)));
+            dx * dx + dy * dy <= reach * reach
+        };
         self.placed_volcanoes.retain(|v| !on_top(v));
         self.volcanoes.retain(|v| !on_top(v));
         if self.placed_volcanoes.len() >= MAX_PLACED_VOLCANOES {

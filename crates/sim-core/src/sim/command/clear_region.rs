@@ -1,4 +1,4 @@
-use super::Simulation;
+use super::{cmd_tile, Simulation};
 use crate::math::DetMath;
 use crate::organism::organism::Harm;
 use crate::sim::world_events::push_event;
@@ -38,7 +38,7 @@ impl Simulation {
                 animals += 1;
             }
         }
-        let (cx, cy) = (x as i32, y as i32);
+        let (cx, cy) = (cmd_tile(x), cmd_tile(y));
         let r = reach.ceil() as i32;
         let mut plants = 0usize;
         for dx in -r..=r {
