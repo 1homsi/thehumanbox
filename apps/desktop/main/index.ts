@@ -12,6 +12,11 @@ import {
 } from "electron";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import {
+  externalHttpUrl,
+  isAllowedRendererPermission,
+  isRendererNavigation,
+} from "./navigation-guard";
 import { registerIpc } from "./ipc";
 import { startWhenReady } from "./startup-lifecycle";
 import { runExclusiveDesktopOperation } from "./exclusive-operation";
@@ -208,8 +213,52 @@ async function createWindow(): Promise<void> {
     win?.webContents.send("app:visibility", "restored");
   });
 
+  const rendererFile = path.resolve(__dirname, "..", "renderer", "index.html");
+  win.webContents.on("will-navigate", (event, url) => {
+    if (isRendererNavigation(url, rendererFile)) return;
+    event.preventDefault();
+    const externalUrl = externalHttpUrl(url);
+    if (externalUrl) shell.openExternal(externalUrl).catch(() => {});
+  });
+  win.webContents.on("will-frame-navigate", (details) => {
+    if (!isRendererNavigation(details.url, rendererFile)) details.preventDefault();
+  });
+  win.webContents.on(
+    "will-redirect",
+    (event, url, _isInPlace, isMainFrame) => {
+      if (isRendererNavigation(url, rendererFile)) return;
+      event.preventDefault();
+      if (isMainFrame) {
+        const externalUrl = externalHttpUrl(url);
+        if (externalUrl) shell.openExternal(externalUrl).catch(() => {});
+      }
+    },
+  );
+  win.webContents.session.setPermissionCheckHandler(
+    (_webContents, permission, _origin, details) =>
+      isAllowedRendererPermission(
+        permission,
+        details.requestingUrl,
+        details.isMainFrame,
+        rendererFile,
+      ),
+  );
+  win.webContents.session.setPermissionRequestHandler(
+    (_webContents, permission, callback, details) => {
+      callback(
+        isAllowedRendererPermission(
+          permission,
+          details.requestingUrl,
+          details.isMainFrame,
+          rendererFile,
+        ),
+      );
+    },
+  );
+
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url).catch(() => {});
+    const externalUrl = externalHttpUrl(url);
+    if (externalUrl) shell.openExternal(externalUrl).catch(() => {});
     return { action: "deny" };
   });
 
@@ -225,10 +274,9 @@ async function createWindow(): Promise<void> {
   if (bootErrorUrl) {
     await win.loadURL(bootErrorUrl);
   } else {
-    const indexFile = path.join(__dirname, "..", "renderer", "index.html");
     const query: Record<string, string> = { desktop: "1" };
     if (apiBase) query.api = apiBase;
-    await win.loadFile(indexFile, { query });
+    await win.loadFile(rendererFile, { query });
     if (isDev) win.webContents.openDevTools({ mode: "detach" });
   }
 

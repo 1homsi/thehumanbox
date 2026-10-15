@@ -13,6 +13,10 @@ test('replacing a window retains the new window and routes old events to their o
     webContents = {
       send: (...args: unknown[]) => this.messages.push(args),
       setWindowOpenHandler: () => {},
+      session: {
+        setPermissionCheckHandler: () => {},
+        setPermissionRequestHandler: () => {},
+      },
       on: () => {},
     }
     constructor() { super(); windows.push(this) }
