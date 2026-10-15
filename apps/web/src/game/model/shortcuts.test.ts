@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { shortcutFor, SHORTCUT_HELP, typingTarget } from './shortcuts'
+import { escapeHandledElsewhere, shortcutFor, SHORTCUT_HELP, typingTarget } from './shortcuts'
 
 /** A stand-in element: `closest` matches the tags it was given, the way the DOM does for a tag selector. */
 function element(tags: string[], editable = false): EventTarget {
@@ -28,6 +28,23 @@ describe('typingTarget', () => {
   it('treats the map and no target as a game target', () => {
     expect(typingTarget(element(['canvas']))).toBe(false)
     expect(typingTarget(null)).toBe(false)
+  })
+})
+
+describe('escapeHandledElsewhere', () => {
+  const esc = (target: EventTarget | null, defaultPrevented = false) => ({ defaultPrevented, target })
+
+  it('leaves Escape to a dialog, the palette, a field, a native dialog or the open key help', () => {
+    expect(escapeHandledElsewhere(esc(null, true), false)).toBe(true)
+    expect(escapeHandledElsewhere(esc(element(['input'])), false)).toBe(true)
+    expect(escapeHandledElsewhere(esc(element(['[role="dialog"]'])), false)).toBe(true)
+    expect(escapeHandledElsewhere(esc(element(['dialog'])), false)).toBe(true)
+    expect(escapeHandledElsewhere(esc(null), true)).toBe(true)
+  })
+
+  it('lets a bare Escape on the map or the page disarm the tool', () => {
+    expect(escapeHandledElsewhere(esc(element(['canvas'])), false)).toBe(false)
+    expect(escapeHandledElsewhere(esc(null), false)).toBe(false)
   })
 })
 

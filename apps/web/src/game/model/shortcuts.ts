@@ -34,6 +34,18 @@ export function typingTarget(target: EventTarget | null): boolean {
   return !!el && (!!el.closest?.('input, textarea, select, [role="dialog"]') || el.isContentEditable === true)
 }
 
+/**
+ * Escape that something else already used: a Radix dialog or the palette (they `preventDefault`), a field,
+ * a dialog the player is typing in, or the open key help. It must not also disarm the tool or leave photo mode.
+ */
+export function escapeHandledElsewhere(
+  event: { defaultPrevented: boolean; target: EventTarget | null },
+  helpOpen: boolean,
+): boolean {
+  if (event.defaultPrevented || helpOpen || typingTarget(event.target)) return true
+  return !!(event.target as HTMLElement | null)?.closest?.('dialog')
+}
+
 export const SHORTCUT_HELP: ReadonlyArray<[string, string]> = [
   ['1 2 3 4', 'speed 1× 2× 4× 10×'],
   ['space', 'pause or play'],

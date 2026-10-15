@@ -23,7 +23,7 @@ import { toolFailure } from './ui/toolbar/tool-tips'
 import { PAIR_TOOLS, SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
 import { newPerils } from './game/model/peril-watch'
 import { prayerRows, prayerTool } from './game/model/prayers'
-import { shortcutFor, typingTarget } from './game/model/shortcuts'
+import { escapeHandledElsewhere, shortcutFor, typingTarget } from './game/model/shortcuts'
 import { tribeHome } from './game/model/tribe-peril'
 import { useCameraFocus } from './state/camera-focus'
 import type { PrayerInfo } from './shared/types'
@@ -508,7 +508,7 @@ function LiveApp() {
 
   useEffect(() => {
     const clearTool = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !escapeHandledElsewhere(event, hotkeysOpen)) {
         setArmedTool(null)
         setTemporarySandboxStatus(null)
         // Esc also leaves photo mode, which hides every other way out.
@@ -518,7 +518,7 @@ function LiveApp() {
     }
     window.addEventListener('keydown', clearTool)
     return () => window.removeEventListener('keydown', clearTool)
-  }, [setTemporarySandboxStatus])
+  }, [hotkeysOpen, setTemporarySandboxStatus])
 
   useEffect(() => {
     // H toggles immersive mode (hides panels + bottom dock). Matches
