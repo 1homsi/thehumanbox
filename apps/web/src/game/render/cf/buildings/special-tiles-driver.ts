@@ -86,6 +86,24 @@ export class SpecialTilesDriver implements CfDriver {
   private readonly propAtlas: CellAtlas
   private readonly glow: SpriteLayer
   private readonly glowAtlas: CellAtlas
+  /**
+   * What the last rebuild was made from. By day nothing here moves between the fires' animation
+   * steps (no flicker, no smoke, a fixed hut glow), so the same inputs would write the same sprites.
+   */
+  private built: {
+    day: boolean
+    tiles: unknown
+    ruined: unknown
+    fireSig: number
+    c0: number
+    c1: number
+    r0: number
+    r1: number
+    overview: boolean
+    step: number
+    propEpoch: number
+    glowEpoch: number
+  } | null = null
 
   constructor(props: SpriteLayer, propAtlas: CellAtlas, glow: SpriteLayer, glowAtlas: CellAtlas) {
     this.props = props
@@ -96,9 +114,6 @@ export class SpecialTilesDriver implements CfDriver {
 
   update(f: CfFrame): boolean {
     const t0 = performance.now()
-    // The props and glow sprites this rebuild hands out stay valid until the next one.
-    this.propAtlas.beginFrame()
-    this.glowAtlas.beginFrame()
     const { world, win, ox, oy, now } = f
     const tiles = world.grid.tiles
     if (!tiles) return false
@@ -120,12 +135,42 @@ export class SpecialTilesDriver implements CfDriver {
 
     // Upper bound on sprites: a hut is a rect, a sprite and three smoke puffs.
     let propCount = 0
+    let fireSig = 2166136261
     const start = firstCellAtRow(cells, r0)
     for (let i = start; i < cells.length; i += 2) {
       if (cells[i] >= r1) break
       const col = cells[i + 1]
-      if (col >= c0 && col < c1) propCount += 5
+      if (col < c0 || col >= c1) continue
+      propCount += 5
+      const tile = tiles[cells[i]][col]
+      if (tile === TILE_ID.FIRE || tile === TILE_ID.CAMPFIRE) {
+        // A fire's picture depends on its intensity bucket and, by night, on the intensity itself.
+        const fi = fireIntensity?.[cells[i]]?.[col] ?? 1
+        fireSig = Math.imul(fireSig ^ Math.round(Math.max(0, Math.min(1, fi)) * 255), 16777619)
+      }
     }
+    const step = Math.floor(now / 170)
+    const b = this.built
+    if (
+      b &&
+      !night &&
+      b.day &&
+      b.tiles === tiles &&
+      b.ruined === ruined &&
+      b.fireSig === fireSig &&
+      b.c0 === c0 &&
+      b.c1 === c1 &&
+      b.r0 === r0 &&
+      b.r1 === r1 &&
+      b.overview === overview &&
+      b.step === step &&
+      b.propEpoch === this.propAtlas.epoch &&
+      b.glowEpoch === this.glowAtlas.epoch
+    )
+      return false
+    // The props and glow sprites this rebuild hands out stay valid until the next one.
+    this.propAtlas.beginFrame()
+    this.glowAtlas.beginFrame()
     props.resize(propCount)
     glow.resize(propCount)
     let np = 0
@@ -312,6 +357,20 @@ export class SpecialTilesDriver implements CfDriver {
     this.stats.townHalls = halls
     this.stats.bakes = this.propAtlas.bakes + this.glowAtlas.bakes
     this.stats.resets = this.propAtlas.resets + this.glowAtlas.resets
+    this.built = {
+      day: !night,
+      tiles,
+      ruined,
+      fireSig,
+      c0,
+      c1,
+      r0,
+      r1,
+      overview,
+      step,
+      propEpoch: this.propAtlas.epoch,
+      glowEpoch: this.glowAtlas.epoch,
+    }
     this.stats.updates++
     this.stats.ms += performance.now() - t0
     return true
