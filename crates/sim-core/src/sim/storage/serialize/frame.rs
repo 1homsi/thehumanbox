@@ -129,7 +129,7 @@ impl Simulation {
             let mut organisms_json: Vec<serde_json::Value> = Vec::with_capacity(self.organisms.len());
             for o in self.organisms.iter() {
                 if o.alive {
-                    organisms_json.push(o.to_json_value_with(per_org_cold));
+                    organisms_json.push(o.to_frame_json_value_with(per_org_cold));
                 }
             }
             let mut animals_json: Vec<serde_json::Value> = Vec::with_capacity(self.animals.len());
@@ -166,6 +166,14 @@ impl Simulation {
                 false,
             )
         };
+        if include_cold {
+            if let Some(obj) = payload.as_object_mut() {
+                obj.insert(
+                    "lineage_words".to_string(),
+                    serde_json::Value::Object(lineage_words(&self.organisms)),
+                );
+            }
+        }
         if let Some(obj) = payload.as_object_mut() {
             obj.insert("vehicles".into(), serde_json::Value::Array(self.vehicles.iter().map(|v| json!({
                 "id": v.id, "kind": v.kind.name(), "x": v.x, "y": v.y,
@@ -871,4 +879,55 @@ impl Simulation {
         }
         payload
     }
+}
+
+/// The language modal needs one most-common word per concept and lineage.
+/// Keep words borrowed from the simulation while counting, then allocate
+/// only the much smaller per-lineage result sent on a cold frame.
+fn lineage_words(
+    organisms: &[crate::organism::organism::Organism],
+) -> serde_json::Map<String, serde_json::Value> {
+    #[derive(Default)]
+    struct WordCount {
+        count: usize,
+        first_seen: usize,
+    }
+
+    use crate::hashing::FxHashMap;
+    use crate::organism::vocabulary::CONCEPTS;
+
+    let mut counts: FxHashMap<&str, FxHashMap<&str, FxHashMap<&str, WordCount>>> = FxHashMap::default();
+    for (order, org) in organisms.iter().filter(|org| org.alive).enumerate() {
+        let concepts = counts.entry(org.lineage_id.as_str()).or_default();
+        for &concept in CONCEPTS {
+            if let Some(word) = org.vocabulary.known_word(concept) {
+                let word_counts = concepts.entry(concept).or_default();
+                let word_count = word_counts.entry(word).or_insert(WordCount {
+                    count: 0,
+                    first_seen: order,
+                });
+                word_count.count += 1;
+            }
+        }
+    }
+
+    counts
+        .into_iter()
+        .map(|(lineage, concepts)| {
+            let words = concepts
+                .into_iter()
+                .filter_map(|(concept, word_counts)| {
+                    word_counts
+                        .into_iter()
+                        .max_by(|a, b| {
+                            a.1.count
+                                .cmp(&b.1.count)
+                                .then_with(|| b.1.first_seen.cmp(&a.1.first_seen))
+                        })
+                        .map(|(word, _)| (concept.to_string(), serde_json::Value::String(word.to_string())))
+                })
+                .collect();
+            (lineage.to_string(), serde_json::Value::Object(words))
+        })
+        .collect()
 }

@@ -166,6 +166,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     tribal_relations: parsed.tribal_relations ?? base?.tribal_relations ?? [],
     lineage_sizes: parsed.lineage_sizes ?? base?.lineage_sizes ?? [],
     lineage_names: reuseIfEqual(incomingLineageNames, base?.lineage_names),
+    lineage_words: parsed.lineage_words ?? base?.lineage_words,
     lineage_centroid_history: parsed.lineage_centroid_history ?? base?.lineage_centroid_history,
     lineage_homes: parsed.lineage_homes ?? base?.lineage_homes,
     goals: parsed.goals ?? base?.goals ?? [],

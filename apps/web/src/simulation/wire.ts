@@ -65,6 +65,7 @@ export type IncomingWorldFrame = Pick<
   tribal_relations?: WorldState['tribal_relations']
   lineage_sizes?: WorldState['lineage_sizes']
   lineage_names?: WorldState['lineage_names']
+  lineage_words?: WorldState['lineage_words']
   lineage_centroid_history?: WorldState['lineage_centroid_history']
   goals?: WorldState['goals']
   difficulty?: WorldState['difficulty']

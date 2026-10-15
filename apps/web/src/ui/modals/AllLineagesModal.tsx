@@ -14,13 +14,14 @@ interface LineageInfo {
 
 interface Props {
   lineages: Record<string, LineageInfo>
+  lineageWords?: Record<string, Record<string, string>>
   lineageNames?: Record<string, string>
   peril?: TribePeril[]
   facts?: Record<string, LineageFacts>
   onClose: () => void
 }
 
-export function AllLineagesModal({ lineages, lineageNames, peril, facts, onClose }: Props) {
+export function AllLineagesModal({ lineages, lineageWords, lineageNames, peril, facts, onClose }: Props) {
   const setFocus = useUIStore((s) => s.setFocus)
   const tribeName = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
   const brink = new Map((peril ?? []).map((p) => [p.lineage_id, p.cause]))
@@ -71,7 +72,11 @@ export function AllLineagesModal({ lineages, lineageNames, peril, facts, onClose
                 {info.maxGen > info.minGen ? `–${info.maxGen}` : ''}
               </span>
               <span className="lineage-strat">
-                {lineageWord(info.orgs, 'home') || lineageWord(info.orgs, 'food') || ''}
+                {lineageWords?.[lid]?.home ||
+                  lineageWords?.[lid]?.food ||
+                  lineageWord(info.orgs, 'home') ||
+                  lineageWord(info.orgs, 'food') ||
+                  ''}
               </span>
               <span className="lineage-facts">{factsLine(facts?.[lid])}</span>
             </div>

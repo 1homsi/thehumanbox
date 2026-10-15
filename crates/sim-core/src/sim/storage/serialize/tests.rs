@@ -52,6 +52,21 @@ fn delta_payload_has_expected_top_level_keys() {
 }
 
 #[test]
+fn full_frame_sends_lineage_words_instead_of_per_organism_vocabularies() {
+    let mut sim = Simulation::new(42);
+    let payload = sim.state_json();
+    let organisms = payload["organisms"].as_array().expect("full organism list");
+    assert!(!organisms.is_empty());
+    assert!(organisms.iter().all(|org| org.get("vocabulary").is_none()));
+
+    let words = payload["lineage_words"]
+        .as_object()
+        .expect("lineage word summaries");
+    assert!(!words.is_empty());
+    assert!(words.values().all(serde_json::Value::is_object));
+}
+
+#[test]
 fn building_wire_contract_separates_construction_from_damage() {
     use crate::sim::buildings::{Building, BuildingKind};
 
