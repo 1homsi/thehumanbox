@@ -40,7 +40,7 @@ impl TickLoop {
         let runtime_control = runtime_control.clone();
         let save_gate = save_gate.clone();
         let mut shutdown = shutdown_rx.clone();
-        tokio::spawn(async move {
+        let tick_task = tokio::spawn(async move {
             loop {
                 if *shutdown.borrow() {
                     break;
@@ -155,6 +155,18 @@ impl TickLoop {
                 }
             }
             tracing::info!(target: "shutdown", "simulation tick loop stopped");
+        });
+        // A panic inside `tick_n` only ends the tick task: HTTP, the socket and
+        // `/save` would keep serving a frozen world. Supervise it so the failure
+        // is logged, and on the desktop profile end the process so the app sees
+        // the exit instead of a silently dead simulation.
+        tokio::spawn(async move {
+            if let Err(error) = tick_task.await {
+                tracing::error!(target: "tick", "tick loop terminated: {}", error);
+                if error.is_panic() && exit_on_tick_failure() {
+                    std::process::exit(101);
+                }
+            }
         })
     }
 }

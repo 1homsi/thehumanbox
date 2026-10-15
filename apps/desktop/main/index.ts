@@ -25,7 +25,7 @@ import { appVersionArgument } from "./app-version-arg";
 import { registerIpc } from "./ipc";
 import { startWhenReady } from "./startup-lifecycle";
 import { runExclusiveDesktopOperation } from "./exclusive-operation";
-import { startSim, stopSim, activeSim } from "./sim-process";
+import { startSim, stopSim, activeSim, onUnexpectedSimExit } from "./sim-process";
 import { loadSettings, prepareDataRoot, type Settings } from "./settings";
 import {
   checkForUpdatesNow,
@@ -291,15 +291,6 @@ function buildMenu(): void {
     } else {
       mainWindow.webContents.openDevTools({ mode: "detach" });
     }
-  };
-
-  const restartSimulation = async (): Promise<void> => {
-    await runExclusiveDesktopOperation("restart the simulation", async () => {
-      await stopSim(5_000, true);
-      if (mainWindow) {
-        await createWindowReplace();
-      }
-    });
   };
 
   const template: Electron.MenuItemConstructorOptions[] = [
@@ -601,6 +592,55 @@ function registerAppIpcHandlers(): void {
   });
 }
 
+async function restartSimulation(): Promise<void> {
+  await runExclusiveDesktopOperation("restart the simulation", async () => {
+    await stopSim(5_000, true);
+    if (mainWindow) {
+      await createWindowReplace();
+    }
+  });
+}
+
+let simExitDialogOpen = false;
+
+// The sim child died on its own (crash, OOM, or the server ending itself after
+// its tick loop panicked). The window would otherwise sit on a frozen map.
+async function offerSimRestart(
+  code: number | null,
+  signal: NodeJS.Signals | null,
+): Promise<void> {
+  if (simExitDialogOpen || isQuitting) return;
+  simExitDialogOpen = true;
+  try {
+    const options: Electron.MessageBoxOptions = {
+      type: "error",
+      title: "The Human Box",
+      message: "The simulation stopped unexpectedly",
+      detail:
+        `Exit ${signal ?? `code ${code}`}. Your world was last saved at its most ` +
+        "recent checkpoint (about a minute of play at most is lost). Restart the " +
+        "simulation to continue.",
+      buttons: ["Restart simulation", "Not now"],
+      defaultId: 0,
+      cancelId: 1,
+    };
+    const { response } =
+      mainWindow && !mainWindow.isDestroyed()
+        ? await dialog.showMessageBox(mainWindow, options)
+        : await dialog.showMessageBox(options);
+    if (response === 0 && !isQuitting) {
+      await restartSimulation().catch((err) => {
+        dialog.showErrorBox(
+          "Could not restart the simulation",
+          (err as Error)?.message ?? String(err),
+        );
+      });
+    }
+  } finally {
+    simExitDialogOpen = false;
+  }
+}
+
 async function boot(): Promise<void> {
   registerIpc(ipcMain, () => mainWindow);
   registerAppIpcHandlers();
@@ -609,6 +649,7 @@ async function boot(): Promise<void> {
   buildTray();
   applyAutoLaunch();
   initUpdater(() => mainWindow);
+  onUnexpectedSimExit(({ code, signal }) => void offerSimRestart(code, signal));
 
   // System-wide, so keep it to a combo other apps do not use. DevTools and
   // screenshot are menu accelerators only: registering them globally stole
