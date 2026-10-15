@@ -3,17 +3,14 @@
 // here: it is tiny and must keep loading before the app styles that override it.
 import 'shepherd.js/dist/css/shepherd.css'
 import { logger } from '../../shared/logger'
+import { isPhoneViewport } from '../../shared/phone'
 import type { PlayerWorldKind } from '../../simulation/worldSource'
 
 const TOUR_KEY = 'thb-tour-completed-v1'
 
 export function isTourSupported(): boolean {
   if (typeof window === 'undefined') return false
-  try {
-    return !window.matchMedia('(max-width: 767px)').matches
-  } catch {
-    return true
-  }
+  return !isPhoneViewport()
 }
 
 export function markSeen() {
