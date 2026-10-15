@@ -15,6 +15,25 @@ Quick look at one scenario while working on something:
 node bench/run.mjs --builds main=dist --fixtures crowd --zooms close --modes playing --runs 1
 ```
 
+## Mobile touch checks
+
+`mobile.mjs` opens a production build in headless Chrome with touch emulation and checks horizontal overflow
+at 360x740, 390x844, 844x390, 768x1024 and 1280x800. On touch sizes it opens the Stats modal and checks its
+bounds, then verifies one-finger pan, two-finger pinch and tapping the seeded population at 390x844. It also
+reports visible touch targets smaller than 44x44; pass `--strict-targets` to make those findings fail the run.
+The target-size gate is informational by default because the existing header and dock controls are below 44px;
+mobile layout changes can turn it on as they bring those controls up to size.
+
+```sh
+pnpm build
+node bench/mobile.mjs
+node bench/mobile.mjs --shots /tmp/mobile-shots --strict-targets
+node bench/mobile.mjs --viewports 390x844
+```
+
+The first run generates and caches the seeded worlds under `bench/.cache`. `--shots` writes one screenshot per
+viewport. Use `--build <dist>` for another production build and `--fixture crowd` for the 3,204-person world.
+
 ## What it loads
 
 `gen-world.mjs` runs the wasm simulation once (about two minutes, then cached in `bench/.cache`) and writes
