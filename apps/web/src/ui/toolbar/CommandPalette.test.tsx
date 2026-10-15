@@ -25,7 +25,8 @@ function mount() {
   return map
 }
 
-const key = (init: KeyboardEventInit) => act(() => void document.dispatchEvent(new KeyboardEvent('keydown', init)))
+const key = (init: KeyboardEventInit) =>
+  act(() => void document.dispatchEvent(new KeyboardEvent('keydown', init)))
 
 describe('CommandPalette focus', () => {
   it('returns focus to the map when it closes, so the map keys keep working', () => {
