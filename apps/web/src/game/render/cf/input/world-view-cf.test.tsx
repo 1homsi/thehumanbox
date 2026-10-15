@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import type { ComponentProps } from 'react'
+import { act, type ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { WorldState } from '../../../../shared/types'
 import { useCameraFocus } from '../../../../state/camera-focus'
@@ -154,6 +154,17 @@ describe('the map on xipjs', () => {
     const camera = probeCamera()
     expect(camera.x).toBe((80 * TILE) / 2)
     expect(camera.y).toBe((50 * TILE) / 2)
+  })
+
+  it('following a person centres the camera on the sprite, the middle of their tile', async () => {
+    const bigWorld = world(80, 50)
+    bigWorld.organisms[0] = { ...bigWorld.organisms[0], x: 30, y: 20 }
+    const h = await open({ world: bigWorld })
+    await act(async () => useUIStore.setState({ followOrgId: 'p1' }))
+    await h.frame(6)
+    const camera = probeCamera()
+    expect(camera.x).toBeCloseTo(30.5 * TILE, 3)
+    expect(camera.y).toBeCloseTo(20.5 * TILE, 3)
   })
 
   it('a tap on a person selects them', async () => {
