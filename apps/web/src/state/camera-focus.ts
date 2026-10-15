@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-/** A one-shot request for the world camera to centre on a tile. */
+/** A one-shot request for the world camera to centre on a tile; the map clears it once queued. */
 interface CameraFocusState {
   request: { x: number; y: number; n: number } | null
   focusTile: (x: number, y: number) => void
