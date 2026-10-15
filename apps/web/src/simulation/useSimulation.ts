@@ -140,8 +140,9 @@ export function useSimulation(source: WorldSource = 'native'): {
     function enqueueMessage(raw: ArrayBuffer | Uint8Array | string) {
       // A hidden or minimized window gets no animation frames, so nothing drains the queue
       // while a local server keeps broadcasting. Buffering would overflow it and re-download
-      // the snapshot in a loop; drop the frame and let the visibility handler resync once.
-      if (document.hidden) {
+      // the snapshot in a loop; drop the frame and let the visibility handler resync once
+      // (the wasm worker pauses itself when hidden and never fetches snapshots).
+      if (effectiveSource !== 'wasm' && document.hidden) {
         frameSequenceRef.current.markAwaitingFullFrame()
         return
       }

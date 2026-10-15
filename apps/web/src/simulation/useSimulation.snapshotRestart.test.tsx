@@ -216,8 +216,10 @@ describe('useSimulation snapshot recovery', () => {
     expect(fetchSnapshot).toHaveBeenCalledTimes(1)
 
     let hidden = true
-    vi.spyOn(document, 'hidden', 'get').mockImplementation(() => hidden)
-    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => (hidden ? 'hidden' : 'visible'))
+    const spies = [
+      vi.spyOn(document, 'hidden', 'get').mockImplementation(() => hidden),
+      vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => (hidden ? 'hidden' : 'visible')),
+    ]
     for (let round = 0; round < 10; round += 1) {
       await act(async () => {
         for (let i = 0; i < 40; i += 1) socket.sendFrame('delta')
@@ -233,5 +235,6 @@ describe('useSimulation snapshot recovery', () => {
       await flushMicrotasks()
     })
     expect(fetchSnapshot).toHaveBeenCalledTimes(2)
+    for (const spy of spies) spy.mockRestore()
   })
 })
