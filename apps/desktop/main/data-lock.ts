@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
+import { execFileSync } from "node:child_process";
 
 const LOCK_DIR_NAME = ".thehumanbox-data.lock";
 
@@ -112,10 +113,96 @@ function liveSimulationPidRecord(root: string): { pid: number; token: string | n
   }
 }
 
+export interface ProcessIdentity {
+  /** Executable name: no directory, no `.exe`. */
+  name: string;
+  /** When the process started, epoch ms. */
+  startedAt: number;
+}
+
+/**
+ * Name and start time of a live pid, or null when they cannot be determined.
+ * Only called when a stale-looking lock names a live pid, so a normal launch
+ * never spawns anything here.
+ */
+export function describeProcess(pid: number): ProcessIdentity | null {
+  try {
+    if (process.platform === "win32") {
+      const out = execFileSync(
+        path.join(
+          process.env.SystemRoot ?? "C:\\Windows",
+          "System32",
+          "WindowsPowerShell",
+          "v1.0",
+          "powershell.exe",
+        ),
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          `$p = Get-Process -Id ${pid} -ErrorAction Stop; $p.ProcessName + '|' + $p.StartTime.ToUniversalTime().ToString('o')`,
+        ],
+        { encoding: "utf8", windowsHide: true, timeout: 10_000 },
+      ).trim();
+      const split = out.lastIndexOf("|");
+      const startedAt = Date.parse(out.slice(split + 1));
+      return split > 0 && Number.isFinite(startedAt)
+        ? { name: out.slice(0, split), startedAt }
+        : null;
+    }
+    const run = (column: string): string =>
+      execFileSync("/bin/ps", ["-p", String(pid), "-o", `${column}=`], {
+        encoding: "utf8",
+        timeout: 5_000,
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+    const name = path.basename(run("comm"));
+    const startedAt = Date.parse(run("lstart"));
+    return name !== "" && Number.isFinite(startedAt) ? { name, startedAt } : null;
+  } catch {
+    return null;
+  }
+}
+
+// How much later than the lock's own timestamp a process may have started
+// before it cannot be the lock owner. The owner necessarily started before it
+// wrote the lock; the margin only has to absorb clock adjustments.
+const OWNER_START_MARGIN_MS = 10 * 60_000;
+
+function executableKey(name: string): string {
+  return path.basename(name).replace(/\.exe$/i, "").toLowerCase();
+}
+
+/**
+ * Pids are recycled (aggressively on Windows, and after any reboot), so a live
+ * pid named by a stale lock is only treated as a recycled stranger when BOTH
+ * independent signals agree: it started after the lock was written (the real
+ * owner cannot have), and it runs a different executable than this process.
+ * If either cannot be established the pid is assumed to be the owner: failing
+ * closed never lets two writers open one world.
+ */
+export function pidWasRecycled(
+  pid: number,
+  acquiredAt: number,
+  describe: (pid: number) => ProcessIdentity | null = describeProcess,
+  ownExecutable: string = process.execPath,
+): boolean {
+  if (!(acquiredAt > 0)) return false;
+  const identity = describe(pid);
+  if (!identity) return false;
+  const startedAfterLock = identity.startedAt > acquiredAt + OWNER_START_MARGIN_MS;
+  const own = executableKey(ownExecutable);
+  const other = executableKey(identity.name);
+  // `ps comm` truncates to 15 characters on Linux.
+  const sameProgram = other === own || (other.length >= 15 && own.startsWith(other));
+  return startedAfterLock && !sameProgram;
+}
+
 export function acquireDataRootLock(
   root: string,
   ownerPid = process.pid,
   allowOrphanRecovery = false,
+  identify: (pid: number) => ProcessIdentity | null = describeProcess,
 ): DataRootLock {
   fs.mkdirSync(root, { recursive: true });
   const lockDir = path.join(root, LOCK_DIR_NAME);
@@ -173,7 +260,11 @@ export function acquireDataRootLock(
       }
 
       const owner = readOwner(lockDir);
-      if (owner && processIsAlive(owner.pid)) {
+      if (
+        owner &&
+        processIsAlive(owner.pid) &&
+        !pidWasRecycled(owner.pid, owner.acquiredAt, identify)
+      ) {
         throw new Error(
           `this save folder is already open by another The Human Box process (pid ${owner.pid})`,
         );

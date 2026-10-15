@@ -12,6 +12,7 @@ import * as path from "node:path";
 import test from "node:test";
 import {
   acquireDataRootLock,
+  pidWasRecycled,
   processIsAlive,
   removePidRecordIfOwned,
   writePidRecordAtomically,
@@ -186,4 +187,62 @@ test("recovery refuses a live pid whose token differs from the stale lock", () =
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("a lock owner pid recycled by an unrelated program is stale", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "thb-lock-test-"));
+  try {
+    const lockDir = path.join(root, ".thehumanbox-data.lock");
+    mkdirSync(lockDir);
+    const acquiredAt = Date.now() - 3_600_000;
+    // The recorded owner pid is alive (our own), as a recycled pid would be.
+    writeFileSync(
+      path.join(lockDir, "owner.json"),
+      JSON.stringify({ pid: process.pid, token: "old-token", acquiredAt }),
+    );
+    const own = path.basename(process.execPath).replace(/\.exe$/i, "");
+    const identity = (name: string, startedAt: number) => () => ({ name, startedAt });
+
+    // started before the lock, same program: really another instance
+    assert.throws(
+      () => acquireDataRootLock(root, process.pid, false, identity(own, acquiredAt - 5_000)),
+      /already open by another/,
+    );
+    // identity unknown: fail closed
+    assert.throws(
+      () => acquireDataRootLock(root, process.pid, false, () => null),
+      /already open by another/,
+    );
+    // different name but it started before the lock: could be a wrapper/alias, keep refusing
+    assert.throws(
+      () => acquireDataRootLock(root, process.pid, false, identity("chrome", acquiredAt - 5_000)),
+      /already open by another/,
+    );
+    // started long after the lock and runs another program: a recycled pid
+    const lock = acquireDataRootLock(root, process.pid, false, identity("chrome", Date.now()));
+    assert.equal(lock.recoveredToken, "old-token");
+    lock.release();
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("pid recycling needs a later start time AND a different program", () => {
+  const exe = "/Applications/The Human Box.app/Contents/MacOS/The Human Box";
+  const t = 1_700_000_000_000;
+  const later = t + 30 * 60_000;
+  const id = (name: string, startedAt: number) => () => ({ name, startedAt });
+  assert.equal(pidWasRecycled(7, t, id("firefox", later), exe), true);
+  assert.equal(pidWasRecycled(7, t, id("The Human Box", later), exe), false);
+  assert.equal(pidWasRecycled(7, t, id("the human box", later), exe), false);
+  assert.equal(pidWasRecycled(7, t, id("The Human Box.exe", later), exe), false);
+  assert.equal(pidWasRecycled(7, t, id("firefox", t + 30_000), exe), false);
+  assert.equal(pidWasRecycled(7, t, id("firefox", t - 1), exe), false);
+  assert.equal(pidWasRecycled(7, 0, id("firefox", later), exe), false);
+  assert.equal(pidWasRecycled(7, t, () => null, exe), false);
+  // ps truncates comm to 15 characters on Linux
+  assert.equal(
+    pidWasRecycled(7, t, id("the-human-box-a", later), "/opt/the-human-box-app/the-human-box-app"),
+    false,
+  );
 });
