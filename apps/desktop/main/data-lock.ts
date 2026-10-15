@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
+import * as os from "node:os";
 
 const LOCK_DIR_NAME = ".thehumanbox-data.lock";
 
@@ -112,10 +113,24 @@ function liveSimulationPidRecord(root: string): { pid: number; token: string | n
   }
 }
 
+// A process cannot outlive a reboot, so a lock taken before the machine booted
+// names a pid that now belongs to something unrelated (pids are recycled
+// aggressively, especially on Windows). The margin absorbs clock adjustments
+// and uptime clocks that disagree about time spent asleep.
+const BOOT_TIME_MARGIN_MS = 5 * 60_000;
+
+export function ownerPredatesBoot(
+  owner: { acquiredAt: number },
+  bootTimeMs: number,
+): boolean {
+  return owner.acquiredAt > 0 && owner.acquiredAt < bootTimeMs - BOOT_TIME_MARGIN_MS;
+}
+
 export function acquireDataRootLock(
   root: string,
   ownerPid = process.pid,
   allowOrphanRecovery = false,
+  bootTimeMs = Date.now() - os.uptime() * 1000,
 ): DataRootLock {
   fs.mkdirSync(root, { recursive: true });
   const lockDir = path.join(root, LOCK_DIR_NAME);
@@ -173,7 +188,11 @@ export function acquireDataRootLock(
       }
 
       const owner = readOwner(lockDir);
-      if (owner && processIsAlive(owner.pid)) {
+      if (
+        owner &&
+        processIsAlive(owner.pid) &&
+        !ownerPredatesBoot(owner, bootTimeMs)
+      ) {
         throw new Error(
           `this save folder is already open by another The Human Box process (pid ${owner.pid})`,
         );

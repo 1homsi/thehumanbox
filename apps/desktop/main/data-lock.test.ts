@@ -12,6 +12,7 @@ import * as path from "node:path";
 import test from "node:test";
 import {
   acquireDataRootLock,
+  ownerPredatesBoot,
   processIsAlive,
   removePidRecordIfOwned,
   writePidRecordAtomically,
@@ -186,4 +187,42 @@ test("recovery refuses a live pid whose token differs from the stale lock", () =
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("a lock whose owner pid was recycled after a reboot is stale", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "thb-lock-test-"));
+  try {
+    const lockDir = path.join(root, ".thehumanbox-data.lock");
+    mkdirSync(lockDir);
+    // The recorded owner pid is alive (our own), as a recycled pid would be.
+    const writeOwner = (acquiredAt: number) =>
+      writeFileSync(
+        path.join(lockDir, "owner.json"),
+        JSON.stringify({ pid: process.pid, token: "old-token", acquiredAt }),
+      );
+    const hour = 3_600_000;
+    const boot = Date.now() - hour;
+
+    // taken during this boot: genuinely held by a live process
+    writeOwner(Date.now() - 1_000);
+    assert.throws(
+      () => acquireDataRootLock(root, process.pid, false, boot),
+      /already open by another/,
+    );
+
+    // taken two hours ago, before the machine booted: the pid is a stranger
+    writeOwner(Date.now() - 2 * hour);
+    const lock = acquireDataRootLock(root, process.pid, false, boot);
+    assert.equal(lock.recoveredToken, "old-token");
+    lock.release();
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("boot-time staleness needs a recorded time and clears the margin", () => {
+  const boot = 1_000_000_000;
+  assert.equal(ownerPredatesBoot({ acquiredAt: 0 }, boot), false);
+  assert.equal(ownerPredatesBoot({ acquiredAt: boot - 60_000 }, boot), false);
+  assert.equal(ownerPredatesBoot({ acquiredAt: boot - 10 * 60_000 }, boot), true);
 });
