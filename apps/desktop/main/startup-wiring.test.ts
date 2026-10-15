@@ -22,6 +22,7 @@ test("boot registers app IPC before creating the window and stops the sim on fat
   const app = {
     setName() {},
     isPackaged: true,
+    getVersion: () => "0.0.0-test",
     on() {},
     whenReady: () => new Promise<void>(() => {}),
     getPath: () => "/tmp/thehumanbox-test",
@@ -76,6 +77,7 @@ test("boot registers app IPC before creating the window and stops the sim on fat
       if (id === "./settings") return { loadSettings: () => ({}), prepareDataRoot() {} };
       if (id === "./updater") return {};
       if (id === "node:fs") return { readFileSync: () => { throw new Error("no saved bounds"); } };
+      if (id === "./app-version-arg") return { appVersionArgument: (v: string) => `--thb-app-version=${v}` };
       if (id === "node:path") return path;
       return {};
     },
