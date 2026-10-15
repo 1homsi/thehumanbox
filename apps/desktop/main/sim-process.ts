@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import * as net from "node:net";
 import * as path from "node:path";
 import { app } from "electron";
+import { openRotatingLog, type SimLog } from "./sim-log";
 
 import type { Settings } from "./settings";
 import { effectiveDataRoot, prepareDataRoot } from "./settings";
@@ -357,6 +358,10 @@ export async function quiesceRecoveredDataRoot(
 function installExitHandlersOnce(): void {
   if (exitHandlersInstalled) return;
   exitHandlersInstalled = true;
+  // A closed terminal or pipe makes writes to stdout/stderr fail with
+  // EPIPE/EIO; that must not surface as an uncaughtException and quit the app.
+  process.stdout.on("error", () => {});
+  process.stderr.on("error", () => {});
   const signalCurrent = (): void => {
     const c = current;
     if (!c) return;
@@ -586,15 +591,26 @@ async function startSimOnce(
     );
   }
 
+  // Sim output goes to a rotating file under the app's logs folder (the one
+  // "Open logs folder" shows), and is echoed to the terminal only in dev.
+  let simLog: SimLog | null = null;
+  try {
+    simLog = openRotatingLog(path.join(app.getPath("logs"), "sim.log"));
+  } catch {
+    simLog = null;
+  }
+  child.once("close", () => simLog?.close());
   child.stdout?.on("data", (b: Buffer) => {
     const s = b.toString();
     pushTail(s);
-    process.stdout.write("[sim] " + s);
+    simLog?.write(b);
+    if (!app.isPackaged) process.stdout.write("[sim] " + s);
   });
   child.stderr?.on("data", (b: Buffer) => {
     const s = b.toString();
     pushTail(s);
-    process.stderr.write("[sim] " + s);
+    simLog?.write(b);
+    if (!app.isPackaged) process.stderr.write("[sim] " + s);
   });
   try {
     await waitForPort(port, 15000, () => alive);
