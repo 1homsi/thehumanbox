@@ -124,7 +124,20 @@ export function CommandPalette() {
   }, [open, filtered, highlight])
 
   useEffect(() => {
-    if (open) inputRef.current?.focus()
+    if (!open) return
+    const previous = document.activeElement
+    inputRef.current?.focus()
+    // The focused input unmounts with the palette and focus falls to <body>, which silences the map's
+    // keyboard controls: hand it back to what had it (or the map), unless a command moved it elsewhere.
+    return () => {
+      const active = document.activeElement
+      if (active && active !== document.body) return
+      const target =
+        previous instanceof HTMLElement && previous.isConnected && previous !== document.body
+          ? previous
+          : document.querySelector<HTMLElement>('.map2d-world')
+      target?.focus({ preventScroll: true })
+    }
   }, [open])
 
   useEffect(() => {
