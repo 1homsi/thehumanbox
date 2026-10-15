@@ -16,18 +16,37 @@ fn read_save(path: &str) -> io::Result<Vec<u8>> {
 }
 
 fn is_transient_read_error(error: &io::Error) -> bool {
-    matches!(
+    let kind_is_transient = matches!(
         error.kind(),
         io::ErrorKind::PermissionDenied | io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted
-    ) || matches!(error.raw_os_error(), Some(16 | 32 | 33))
+    );
+    #[cfg(unix)]
+    let os_error_is_transient = error.raw_os_error() == Some(16);
+    #[cfg(windows)]
+    let os_error_is_transient = matches!(error.raw_os_error(), Some(32 | 33));
+    #[cfg(not(any(unix, windows)))]
+    let os_error_is_transient = false;
+
+    kind_is_transient || os_error_is_transient
 }
 
-fn backup_timestamp() -> u64 {
+fn backup_timestamp() -> u128 {
     use std::time::{SystemTime, UNIX_EPOCH};
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs())
+        .map(|duration| duration.as_nanos())
         .unwrap_or(0)
+}
+
+fn backup_path(path: &str, reason: &str) -> String {
+    let base = format!("{path}.{reason}-{}", backup_timestamp());
+    let mut candidate = base.clone();
+    let mut suffix = 1;
+    while std::path::Path::new(&candidate).exists() {
+        candidate = format!("{base}-{suffix}");
+        suffix += 1;
+    }
+    candidate
 }
 
 /// Standalone IO so it can be called from a blocking task off the
@@ -77,7 +96,7 @@ impl Simulation {
                 Self::new(seed)
             }
             Err(e) => {
-                let backup = format!("{}.unreadable-{}", path, backup_timestamp());
+                let backup = backup_path(path, "unreadable");
                 std::fs::rename(path, &backup).unwrap_or_else(|backup_error| {
                     panic!(
                         "Save at {} is unreadable ({}), and could not be preserved at {} ({}); refusing to start a fresh world",
@@ -97,8 +116,13 @@ impl Simulation {
                     if state.version != 0 && state.version > SAVE_SCHEMA_VERSION {
                         // Newer schema than this binary supports - back up and
                         // start fresh rather than silently filling with defaults.
-                        let backup = format!("{}.future-v{}", path, state.version);
-                        let _ = std::fs::rename(path, &backup);
+                        let backup = backup_path(path, &format!("future-v{}", state.version));
+                        std::fs::rename(path, &backup).unwrap_or_else(|backup_error| {
+                            panic!(
+                                "Save at {} uses unsupported schema v{} ({}), and could not be preserved at {} ({}); refusing to start a fresh world",
+                                path, state.version, SAVE_SCHEMA_VERSION, backup, backup_error
+                            )
+                        });
                         tracing::warn!(
                             "Save at {} is schema v{} but this binary only supports v{}. \
                              Backed up to {} and starting fresh world.",
@@ -131,7 +155,7 @@ impl Simulation {
                     // Don't overwrite a possibly-recoverable save on the next
                     // `save()`. Back it up with a timestamp so the operator
                     // can inspect it.
-                    let backup = format!("{}.corrupt-{}", path, backup_timestamp());
+                    let backup = backup_path(path, "corrupt");
                     std::fs::rename(path, &backup).unwrap_or_else(|backup_error| {
                         panic!(
                             "Save at {} is corrupt ({}), and could not be preserved at {} ({}); refusing to start a fresh world",

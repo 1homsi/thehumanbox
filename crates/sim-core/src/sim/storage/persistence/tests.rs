@@ -69,6 +69,38 @@ fn invalid_utf8_save_is_backed_up_before_starting_fresh() {
     let _ = std::fs::remove_file(backup);
 }
 
+#[cfg(unix)]
+#[test]
+fn unreadable_save_path_is_backed_up_before_starting_fresh() {
+    let mut path = std::env::temp_dir();
+    path.push(format!(
+        "thehumanbox-unreadable-save-test-{}.json",
+        std::process::id()
+    ));
+    let path_s = path.to_string_lossy().to_string();
+    let _ = std::fs::remove_dir_all(&path);
+    std::fs::create_dir(&path).unwrap();
+
+    let _sim = Simulation::load_or_new(7, &path_s);
+
+    assert!(!path.exists());
+    let parent = path.parent().unwrap();
+    let file_name = path.file_name().unwrap().to_string_lossy();
+    let backup = std::fs::read_dir(parent)
+        .unwrap()
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .find(|candidate| {
+            candidate.file_name().is_some_and(|name| {
+                name.to_string_lossy()
+                    .starts_with(&format!("{file_name}.unreadable-"))
+            })
+        })
+        .expect("unreadable save path should be preserved as a backup");
+    assert!(backup.is_dir());
+    std::fs::remove_dir_all(backup).unwrap();
+}
+
 #[test]
 fn mutable_depth_wind_and_operational_infrastructure_survive_reload() {
     use crate::sim::buildings::{Building, BuildingKind};
