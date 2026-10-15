@@ -618,7 +618,7 @@ async function offerSimRestart(
         `Exit ${signal ?? `code ${code}`}. Your world was last saved at its most ` +
         "recent checkpoint (about a minute of play at most is lost). Restart the " +
         "simulation to continue.",
-      buttons: ["Restart simulation", "Close"],
+      buttons: ["Restart simulation", "Not now"],
       defaultId: 0,
       cancelId: 1,
     };

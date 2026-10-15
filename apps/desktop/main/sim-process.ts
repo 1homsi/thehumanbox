@@ -688,6 +688,9 @@ async function stopSimOnce(
   if (!current) return;
   const { child } = current;
   const port = current.port;
+  // From here the child's exit is ours (the checkpoint can take seconds). The
+  // mark is withdrawn if we refuse to stop, so a later real crash still counts.
+  intentionalStops.add(child);
 
   // Checkpoint over loopback before relying on platform signal semantics.
   // Windows does not reliably deliver a Ctrl-C/SIGTERM equivalent to the
@@ -699,16 +702,13 @@ async function stopSimOnce(
     ))
   ) {
     if (requireCheckpoint) {
+      intentionalStops.delete(child);
       throw new Error(
         "could not checkpoint the active world; it remains open so the operation can be retried",
       );
     }
     console.warn("[sim] checkpoint before stop was unavailable");
   }
-
-  // The checkpoint gate above passed (or was waived), so from here the child's
-  // exit is ours.
-  intentionalStops.add(child);
 
   if (childTerminationConfirmed(child)) {
     // Clear `current` here rather than returning early. `releaseOwnership`
