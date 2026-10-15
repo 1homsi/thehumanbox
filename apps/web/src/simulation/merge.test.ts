@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { mergeFrame, type MergeCaches } from './merge'
-import type { IncomingWorldFrame } from './wire'
+import type { IncomingWorldFrame, OrgsHotSoa } from './wire'
 import type { OrganismState, AnimalState, Building } from '../shared/types'
 
 function emptyCaches(): MergeCaches {
@@ -501,5 +501,111 @@ describe('mergeFrame civilization state handling', () => {
     expect(cleared.next.governments).toEqual([])
     expect(cleared.next.artworks).toEqual([])
     expect(cleared.next.buildings).toEqual([])
+  })
+})
+
+describe('mergeFrame SoA columns', () => {
+  const seedOrg = (id: string, extra: Record<string, unknown> = {}) =>
+    ({ id, name: id, x: 0, y: 0, vx: 0, vy: 0, age: 7, alive: true, ...extra }) as unknown as OrganismState
+
+  function seeded(...orgs: OrganismState[]): MergeCaches {
+    const caches = emptyCaches()
+    mergeFrame(baseFrame({ frame_kind: 'full', organisms_complete: true, organisms: orgs }), caches)
+    return caches
+  }
+
+  const soa = (over: Partial<OrgsHotSoa>): IncomingWorldFrame =>
+    baseFrame({ frame_id: 2, organisms_hot: { ids: [], thoughts: [], ...over } as unknown as OrgsHotSoa })
+
+  it('scales the columns and keeps `age` and `alive` when the SoA omits them', () => {
+    const caches = seeded(seedOrg('a'))
+    const res = mergeFrame(
+      soa({
+        ids: ['a'],
+        xs: [100],
+        ys: [200],
+        vxs: [5],
+        vys: [-5],
+        energies: [80],
+        hydrations: [80],
+        healths: [90],
+        infections: [0],
+        fear_levels: [0],
+        carryings: [0],
+        carrying_types: [0],
+        pregnants: [false],
+        partner_ids: [],
+        attracted_tos: [],
+      }),
+      caches,
+    )
+    const org = caches.organisms.get('a')!
+    expect(org.x).toBeCloseTo(10, 5)
+    expect(org.y).toBeCloseTo(20, 5)
+    expect(org.vx).toBeCloseTo(0.5, 5)
+    expect(org.energy).toBeCloseTo(0.8, 5)
+    expect(org.health).toBeCloseTo(0.9, 5)
+    // age and alive are not on the wire: the cached values persist.
+    expect(org.age).toBe(7)
+    expect(org.alive).toBe(true)
+    expect('thought' in org).toBe(false)
+    expect(org.partner_id).toBeUndefined()
+    expect(res.next.viewport_organisms).toEqual([org])
+  })
+
+  it('honours ages, alives and dense thoughts when the SoA carries them (legacy)', () => {
+    const caches = seeded(seedOrg('b'))
+    mergeFrame(
+      soa({
+        ids: ['b'],
+        ages: [1234],
+        alives: [false],
+        thoughts: ['exploring'],
+        partner_ids: [null],
+        attracted_tos: [null],
+      }),
+      caches,
+    )
+    const org = caches.organisms.get('b')!
+    expect(org.age).toBe(1234)
+    expect(org.alive).toBe(false)
+    expect(org.thought).toBe('exploring')
+    expect(org.partner_id).toBeUndefined()
+  })
+
+  it('reads sparse thought / partner / attracted entries by index', () => {
+    const caches = seeded(seedOrg('a'), seedOrg('b'), seedOrg('c'))
+    mergeFrame(
+      soa({
+        ids: ['a', 'b', 'c'],
+        thoughts: [[1, 'wandering']],
+        partner_ids: [[0, 'b']],
+        attracted_tos: [[2, 'a']],
+      }),
+      caches,
+    )
+    expect(caches.organisms.get('a')!.partner_id).toBe('b')
+    expect(caches.organisms.get('b')!.partner_id).toBeUndefined()
+    expect(caches.organisms.get('b')!.thought).toBe('wandering')
+    expect(caches.organisms.get('c')!.attracted_to).toBe('a')
+  })
+
+  it('reuses unchanged records and the organism list, replacing only the one that moved', () => {
+    const caches = seeded(seedOrg('a', { x: 1 }), seedOrg('b', { x: 2 }))
+    const first = mergeFrame(soa({ ids: ['a', 'b'], xs: [10, 20] }), caches)
+    caches.prevWorld = first.next
+    const a1 = caches.organisms.get('a')!
+    const b1 = caches.organisms.get('b')!
+
+    const same = mergeFrame(soa({ ids: ['a', 'b'], xs: [10, 20] }), caches)
+    expect(caches.organisms.get('a')).toBe(a1)
+    expect(same.next.organisms).toBe(first.next.organisms)
+    caches.prevWorld = same.next
+
+    const moved = mergeFrame(soa({ ids: ['a', 'b'], xs: [10, 30] }), caches)
+    expect(caches.organisms.get('a')).toBe(a1)
+    expect(caches.organisms.get('b')).not.toBe(b1)
+    expect(moved.next.organisms).not.toBe(same.next.organisms)
+    expect(moved.next.viewport_organisms).toEqual([a1, caches.organisms.get('b')])
   })
 })
