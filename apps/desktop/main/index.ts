@@ -21,6 +21,7 @@ import {
 } from "./navigation-guard";
 import { sanitizeWindowState, type WindowState } from "./window-state";
 import { atomicReplaceFile } from "./world-safety";
+import { appVersionArgument } from "./app-version-arg";
 import { registerIpc } from "./ipc";
 import { startWhenReady } from "./startup-lifecycle";
 import { runExclusiveDesktopOperation } from "./exclusive-operation";
@@ -167,6 +168,7 @@ async function createWindow(): Promise<void> {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      additionalArguments: [appVersionArgument(app.getVersion())],
     },
   });
   mainWindow = win;

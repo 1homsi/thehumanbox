@@ -58,10 +58,19 @@ export interface DesktopBridge {
   ): () => void;
 }
 
+// Passed by the main process (webPreferences.additionalArguments); see
+// main/app-version-arg.ts, which must keep the same prefix.
+const APP_VERSION_ARG_PREFIX = "--thb-app-version=";
+const appVersionArg = process.argv.find((a) =>
+  a.startsWith(APP_VERSION_ARG_PREFIX),
+);
+
 const bridge: DesktopBridge = {
   isDesktop: true,
   platform: process.platform,
-  appVersion: process.env.npm_package_version ?? "",
+  appVersion: appVersionArg
+    ? appVersionArg.slice(APP_VERSION_ARG_PREFIX.length)
+    : "",
 
   settings: {
     get: () => ipcRenderer.invoke("settings:get"),

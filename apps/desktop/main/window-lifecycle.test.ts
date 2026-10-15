@@ -31,6 +31,7 @@ test('replacing a window retains the new window and routes old events to their o
   const app = {
     setName() {},
     isPackaged: true,
+    getVersion: () => "0.0.0-test",
     on() {},
     whenReady: () => new Promise<void>(() => {}),
   }
@@ -42,6 +43,7 @@ test('replacing a window retains the new window and routes old events to their o
       if (id === './settings') return { loadSettings: () => ({}) }
       if (id === './sim-process') return { startSim: async () => ({ port: 8000 }) }
       if (id === 'node:fs') return { readFileSync: () => { throw new Error('no saved bounds') } }
+      if (id === './app-version-arg') return { appVersionArgument: (v: string) => `--thb-app-version=${v}` }
       if (id === 'node:path') return path
       return {}
     },
