@@ -44,6 +44,38 @@ test("the log rotates once and stays bounded", async () => {
   }
 });
 
+test("raw chunks keep a multibyte character that was split across reads intact", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "thb-log-test-"));
+  try {
+    const file = path.join(dir, "sim.log");
+    const log = openRotatingLog(file);
+    const bytes = Buffer.from("héllo ✓\n");
+    log.write(bytes.subarray(0, 2));
+    log.write(bytes.subarray(2));
+    log.close();
+    await flush();
+    assert.equal(readFileSync(file, "utf8"), "héllo ✓\n");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a chunk larger than the cap keeps the previous generation instead of rotating an empty file", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "thb-log-test-"));
+  try {
+    const file = path.join(dir, "sim.log");
+    const log = openRotatingLog(file, 100);
+    log.write("big " + "x".repeat(300) + "\n"); // first write into an empty log
+    log.write("next\n");
+    log.close();
+    await flush();
+    assert.ok(readFileSync(`${file}.1`, "utf8").startsWith("big "));
+    assert.equal(readFileSync(file, "utf8"), "next\n");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("an oversized existing log is rotated on open and an unwritable path never throws", async () => {
   const dir = mkdtempSync(path.join(tmpdir(), "thb-log-test-"));
   try {

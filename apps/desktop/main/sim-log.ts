@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 export interface SimLog {
-  write(text: string): void;
+  write(chunk: string | Buffer): void;
   close(): void;
 }
 
@@ -43,7 +43,13 @@ export function openRotatingLog(file: string, maxBytes = 5 * 1024 * 1024): SimLo
     try {
       fs.renameSync(file, `${file}.1`);
     } catch {
-      /* the next open appends to the old file instead */
+      // Cannot keep the old generation (e.g. held open on Windows); drop it so
+      // the log still stays bounded.
+      try {
+        fs.truncateSync(file, 0);
+      } catch {
+        /* the next write retries */
+      }
     }
     written = 0;
   };
@@ -51,11 +57,11 @@ export function openRotatingLog(file: string, maxBytes = 5 * 1024 * 1024): SimLo
   open();
 
   return {
-    write(text: string): void {
+    write(chunk: string | Buffer): void {
       if (fd === null) return;
-      const bytes = Buffer.from(text);
+      const bytes = typeof chunk === "string" ? Buffer.from(chunk) : chunk;
       try {
-        if (written + bytes.length > maxBytes) {
+        if (written > 0 && written + bytes.length > maxBytes) {
           close();
           rotate();
           open();

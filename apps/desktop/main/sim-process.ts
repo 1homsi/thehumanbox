@@ -603,13 +603,13 @@ async function startSimOnce(
   child.stdout?.on("data", (b: Buffer) => {
     const s = b.toString();
     pushTail(s);
-    simLog?.write(s);
+    simLog?.write(b);
     if (!app.isPackaged) process.stdout.write("[sim] " + s);
   });
   child.stderr?.on("data", (b: Buffer) => {
     const s = b.toString();
     pushTail(s);
-    simLog?.write(s);
+    simLog?.write(b);
     if (!app.isPackaged) process.stderr.write("[sim] " + s);
   });
   try {
