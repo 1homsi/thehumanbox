@@ -5,6 +5,7 @@ import {
   externalHttpUrl,
   isAllowedRendererPermission,
   isRendererNavigation,
+  shouldShowLoadError,
 } from "./navigation-guard";
 
 test("only the renderer document can load in the main window", () => {
@@ -45,4 +46,17 @@ test("external navigation accepts only valid HTTP and HTTPS URLs", () => {
   assert.equal(externalHttpUrl("smb://server/share"), null);
   assert.equal(externalHttpUrl("javascript:alert(1)"), null);
   assert.equal(externalHttpUrl("not a URL"), null);
+});
+
+test("only a real main-frame load failure shows the boot error page", () => {
+  const url = "file:///app/renderer/index.html";
+  assert.equal(shouldShowLoadError(-105, url, true), true);
+  // the bundled index.html is missing
+  assert.equal(shouldShowLoadError(-6, url, true), true);
+  // superseded by a newer navigation
+  assert.equal(shouldShowLoadError(-3, url, true), false);
+  // sub-frame / iframe failures must not replace the app
+  assert.equal(shouldShowLoadError(-105, "https://example.com", false), false);
+  // the error page itself failing must not loop
+  assert.equal(shouldShowLoadError(-2, "data:text/html;charset=utf-8,x", true), false);
 });
