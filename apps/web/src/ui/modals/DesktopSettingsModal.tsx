@@ -356,8 +356,13 @@ export function DesktopSettingsModal({ onClose }: Props) {
       window.dispatchEvent(
         new CustomEvent(DESKTOP_PAUSE_WHEN_HIDDEN_EVENT, { detail: saved.pauseWhenHidden }),
       )
-      await desktop.app.applyAutoLaunch()
       setSavedAt(Date.now())
+      // Persisted already; only the OS login-item update can still fail.
+      try {
+        await desktop.app.applyAutoLaunch()
+      } catch (error) {
+        setActionError(`saved, but could not update launch at login: ${errorText(error)}`)
+      }
     } catch (error) {
       setActionError(`could not save settings: ${errorText(error)}`)
     } finally {
@@ -392,6 +397,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
 
   async function migrateSaveFolder(targetDir: string | null) {
     if (!desktop || !settings) return
+    setActionError(null)
     const label = targetDir ?? 'the default app data folder'
     const confirmed = await askConfirm({
       title: 'Move the save folder?',
@@ -418,6 +424,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
 
   async function exportDesktopWorld() {
     if (!desktop) return
+    setActionError(null)
     setSafetyMessage('checkpointing world for export…')
     try {
       const result = await desktop.world.exportActive()
@@ -429,6 +436,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
 
   async function resetDesktopWorld() {
     if (!desktop) return
+    setActionError(null)
     setSafetyMessage(null)
     setBusy(true)
     try {
