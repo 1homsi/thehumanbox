@@ -39,6 +39,37 @@ fn empty_save_json_loads_as_default_state() {
 }
 
 #[test]
+fn invalid_utf8_save_is_backed_up_before_starting_fresh() {
+    let mut path = std::env::temp_dir();
+    path.push(format!(
+        "thehumanbox-invalid-utf8-save-test-{}.json",
+        std::process::id()
+    ));
+    let path_s = path.to_string_lossy().to_string();
+    let _ = std::fs::remove_file(&path_s);
+    std::fs::write(&path_s, [b'{', 0xff, b'}']).unwrap();
+
+    let _sim = Simulation::load_or_new(7, &path_s);
+
+    assert!(!std::path::Path::new(&path_s).exists());
+    let parent = path.parent().unwrap();
+    let file_name = path.file_name().unwrap().to_string_lossy();
+    let backup = std::fs::read_dir(parent)
+        .unwrap()
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .find(|candidate| {
+            candidate.file_name().is_some_and(|name| {
+                name.to_string_lossy()
+                    .starts_with(&format!("{file_name}.corrupt-"))
+            })
+        })
+        .expect("invalid UTF-8 save should be preserved as a corrupt backup");
+    assert_eq!(std::fs::read(&backup).unwrap(), [b'{', 0xff, b'}']);
+    let _ = std::fs::remove_file(backup);
+}
+
+#[test]
 fn mutable_depth_wind_and_operational_infrastructure_survive_reload() {
     use crate::sim::buildings::{Building, BuildingKind};
 

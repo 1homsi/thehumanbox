@@ -1,5 +1,35 @@
 use super::*;
 
+fn read_save(path: &str) -> io::Result<Vec<u8>> {
+    const MAX_RETRIES: u32 = 3;
+
+    for attempt in 0..=MAX_RETRIES {
+        match std::fs::read(path) {
+            Err(error) if is_transient_read_error(&error) && attempt < MAX_RETRIES => {
+                std::thread::sleep(std::time::Duration::from_millis(10 << attempt));
+            }
+            result => return result,
+        }
+    }
+
+    unreachable!("save read loop always returns after the final attempt")
+}
+
+fn is_transient_read_error(error: &io::Error) -> bool {
+    matches!(
+        error.kind(),
+        io::ErrorKind::PermissionDenied | io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted
+    ) || matches!(error.raw_os_error(), Some(16 | 32 | 33))
+}
+
+fn backup_timestamp() -> u64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .unwrap_or(0)
+}
+
 /// Standalone IO so it can be called from a blocking task off the
 /// main runtime. Atomic rename + parent-dir fsync mirror the
 /// previous in-line behaviour.
@@ -41,16 +71,28 @@ pub fn write_save_to_disk(state: &SaveState, path: &str) -> io::Result<()> {
 
 impl Simulation {
     pub fn load_or_new(seed: u64, path: &str) -> Self {
-        match std::fs::read_to_string(path) {
+        match read_save(path) {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                 tracing::info!("No save at {} - starting fresh world", path);
                 Self::new(seed)
             }
             Err(e) => {
-                tracing::warn!("Save at {} unreadable ({}) - starting fresh world", path, e);
+                let backup = format!("{}.unreadable-{}", path, backup_timestamp());
+                std::fs::rename(path, &backup).unwrap_or_else(|backup_error| {
+                    panic!(
+                        "Save at {} is unreadable ({}), and could not be preserved at {} ({}); refusing to start a fresh world",
+                        path, e, backup, backup_error
+                    )
+                });
+                tracing::warn!(
+                    "Backed up unreadable save at {} to {} ({}) - starting fresh world",
+                    path,
+                    backup,
+                    e
+                );
                 Self::new(seed)
             }
-            Ok(data) => match serde_json::from_str::<SaveState>(&data) {
+            Ok(data) => match serde_json::from_slice::<SaveState>(&data) {
                 Ok(state) => {
                     if state.version != 0 && state.version > SAVE_SCHEMA_VERSION {
                         // Newer schema than this binary supports - back up and
@@ -89,17 +131,14 @@ impl Simulation {
                     // Don't overwrite a possibly-recoverable save on the next
                     // `save()`. Back it up with a timestamp so the operator
                     // can inspect it.
-                    use std::time::{SystemTime, UNIX_EPOCH};
-                    let ts = SystemTime::now()
-                        .duration_since(UNIX_EPOCH)
-                        .map(|d| d.as_secs())
-                        .unwrap_or(0);
-                    let backup = format!("{}.corrupt-{}", path, ts);
-                    if let Err(re) = std::fs::rename(path, &backup) {
-                        tracing::warn!("Failed to back up corrupt save to {}: {}", backup, re);
-                    } else {
-                        tracing::warn!("Backed up corrupt save to {}", backup);
-                    }
+                    let backup = format!("{}.corrupt-{}", path, backup_timestamp());
+                    std::fs::rename(path, &backup).unwrap_or_else(|backup_error| {
+                        panic!(
+                            "Save at {} is corrupt ({}), and could not be preserved at {} ({}); refusing to start a fresh world",
+                            path, e, backup, backup_error
+                        )
+                    });
+                    tracing::warn!("Backed up corrupt save to {}", backup);
                     tracing::warn!(
                         "Save at {} could not be deserialized ({}) - starting fresh world.",
                         path,
