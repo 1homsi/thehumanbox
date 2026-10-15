@@ -367,21 +367,8 @@
     padding: 0 var(--safe-right) 0 var(--safe-left);
   }
 
-  /* `[class]` and the `:is()` list keep this above the per-modal widths in pixel-theme.css without !important. */
-  .thb-modal[class]:is(
-      .lang-modal,
-      .chronicles-modal,
-      .tree-modal,
-      .org-search-modal,
-      .stats-modal,
-      .about-modal,
-      .cv-modal,
-      .life-modal,
-      .civ-modal,
-      .notable-modal,
-      .settings-modal,
-      .worlds-modal
-    ) {
+  /* `[class]` + `--sheet` keep this above the per-modal widths in pixel-theme.css without !important. */
+  .thb-modal[class].thb-modal--sheet {
     position: fixed;
     top: auto;
     bottom: 0;
@@ -395,8 +382,11 @@
     border-left: none;
     border-right: none;
     border-bottom: none;
-    padding-bottom: var(--safe-bottom);
     transition: transform 0.15s ease-out;
+  }
+  /* Low specificity on purpose: a modal with its own padding rule (.civ-modal) keeps it. */
+  .thb-modal--sheet {
+    padding-bottom: var(--safe-bottom);
   }
 
   /* Org search: stack list above detail on mobile */

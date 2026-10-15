@@ -15,18 +15,21 @@ interface ModalProps {
 const DISMISS_DRAG_PX = 90
 
 export function Modal({ open, onClose, className, title, hideTitle = false, children }: ModalProps) {
+  // Confirmations stay a centred dialog on phones; everything else is a bottom sheet there.
+  const sheet = !className?.includes('confirm-modal')
   const contentRef = useRef<HTMLDivElement>(null)
-  const drag = useRef<{ startY: number; dy: number } | null>(null)
+  const drag = useRef<{ id: number; startY: number; dy: number } | null>(null)
 
   // The grabber only exists on phones (see modal-theme.css): drag the sheet down to dismiss it.
   const onGrabStart = (e: PointerEvent<HTMLDivElement>) => {
+    if (drag.current || e.button !== 0) return
     e.currentTarget.setPointerCapture(e.pointerId)
-    drag.current = { startY: e.clientY, dy: 0 }
+    drag.current = { id: e.pointerId, startY: e.clientY, dy: 0 }
     if (contentRef.current) contentRef.current.style.transition = 'none'
   }
   const onGrabMove = (e: PointerEvent<HTMLDivElement>) => {
     const d = drag.current
-    if (!d || !contentRef.current) return
+    if (!d || d.id !== e.pointerId || !contentRef.current) return
     d.dy = Math.max(0, e.clientY - d.startY)
     contentRef.current.style.transform = `translateY(${d.dy}px)`
   }
@@ -54,20 +57,22 @@ export function Modal({ open, onClose, className, title, hideTitle = false, chil
         <Dialog.Overlay className="lang-modal-backdrop" />
         <Dialog.Content
           ref={contentRef}
-          className={`thb-modal ${className ?? ''}`}
+          className={`thb-modal${sheet ? ' thb-modal--sheet' : ''} ${className ?? ''}`}
           aria-describedby={undefined}
           onOpenAutoFocus={(e) => {
             e.preventDefault()
           }}
         >
-          <div
-            className="thb-modal-grabber"
-            aria-hidden="true"
-            onPointerDown={onGrabStart}
-            onPointerMove={onGrabMove}
-            onPointerUp={onGrabEnd}
-            onPointerCancel={onGrabEnd}
-          />
+          {sheet && (
+            <div
+              className="thb-modal-grabber"
+              aria-hidden="true"
+              onPointerDown={onGrabStart}
+              onPointerMove={onGrabMove}
+              onPointerUp={onGrabEnd}
+              onPointerCancel={onGrabEnd}
+            />
+          )}
           {title &&
             (hideTitle ? (
               <Dialog.Title

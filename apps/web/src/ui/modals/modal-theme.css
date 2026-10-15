@@ -87,34 +87,20 @@
   text-align: center;
 }
 
-/* Phone sheets (see the media block in 07-stats-details-and-mobile.css) get a grabber to drag down. */
+/* Phone sheets (`thb-modal--sheet`, see the media block in 07-stats-details-and-mobile.css) get a grabber to drag down. */
 .thb-modal-grabber {
   display: none;
 }
 @media (max-width: 767px) {
-  .thb-modal[class]:is(
-      .lang-modal,
-      .chronicles-modal,
-      .tree-modal,
-      .org-search-modal,
-      .stats-modal,
-      .about-modal,
-      .cv-modal,
-      .life-modal,
-      .civ-modal,
-      .notable-modal,
-      .settings-modal,
-      .worlds-modal
-    )
-    > .thb-modal-grabber {
+  .thb-modal[class].thb-modal--sheet > .thb-modal-grabber {
     display: block;
     position: absolute;
     top: 0;
     left: 50%;
     z-index: 2;
-    width: 96px;
-    height: 24px;
-    margin-left: -48px;
+    width: 120px;
+    height: 32px;
+    margin-left: -60px;
     touch-action: none;
     cursor: grab;
   }
