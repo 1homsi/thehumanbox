@@ -16,6 +16,7 @@ import {
   externalHttpUrl,
   isAllowedRendererPermission,
   isRendererNavigation,
+  shouldShowLoadError,
 } from "./navigation-guard";
 import { registerIpc } from "./ipc";
 import { startWhenReady } from "./startup-lifecycle";
@@ -269,7 +270,8 @@ async function createWindow(): Promise<void> {
     return { action: "deny" };
   });
 
-  win.webContents.on("did-fail-load", (_e, code, desc, url) => {
+  win.webContents.on("did-fail-load", (_e, code, desc, url, isMainFrame) => {
+    if (!shouldShowLoadError(code, url, isMainFrame)) return;
     console.error(`[main] did-fail-load code=${code} desc=${desc} url=${url}`);
     win?.loadURL(
       renderBootError(
