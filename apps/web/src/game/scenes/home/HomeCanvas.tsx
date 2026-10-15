@@ -17,6 +17,7 @@ import {
 import type { RoomPainter } from '../../render/cf/scenes/room-model'
 import { CfRoomView } from '../../render/cf/scenes/CfRoomView'
 import { canUseWorldGPU } from '../../render/world-view/gpu'
+import { RoomGPUBoundary } from '../shared/RoomGPUBoundary'
 
 const ERA_PALETTE: Record<
   string,
@@ -526,12 +527,14 @@ export function HomeCanvas(props: Props) {
   const painter = useMemo(() => (onxipjs ? homePainter(props.ctx) : null), [onxipjs, props.ctx])
   if (painter)
     return (
-      <CfRoomView
-        ctx={props.ctx}
-        painter={painter}
-        selectedOrgId={props.selectedOrgId}
-        onSelectOrg={props.onSelectOrg}
-      />
+      <RoomGPUBoundary fallback={<HomeCanvas2D {...props} />}>
+        <CfRoomView
+          ctx={props.ctx}
+          painter={painter}
+          selectedOrgId={props.selectedOrgId}
+          onSelectOrg={props.onSelectOrg}
+        />
+      </RoomGPUBoundary>
     )
   return <HomeCanvas2D {...props} />
 }

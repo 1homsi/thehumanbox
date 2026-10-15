@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GameControls } from 'xipjs'
 import { syncRendererLoopPause } from '../../../shared/desktopVisibility'
-import { canUseWorldGPU } from './gpu'
+import { canUseWorldGPU, markWorldGPUFailed } from './gpu'
 import { watchForGpuStartupFailure } from './gpuStartupWatchdog'
 import { watchForWebGLContextRecovery } from './webglContextRecovery'
 import { wakeRenderLoopsAfterContextRestore } from '../cf/render-loop'
@@ -29,6 +29,7 @@ export function useRendererBackend({
   const startupWatchdogRef = useRef<ReturnType<typeof watchForGpuStartupFailure> | null>(null)
   const contextRecoveryRef = useRef<ReturnType<typeof watchForWebGLContextRecovery> | null>(null)
   const handleGPUFailure = useCallback(() => {
+    markWorldGPUFailed()
     gameControlsRef.current = null
     setMapReady(false)
     setRenderBackend('canvas')
