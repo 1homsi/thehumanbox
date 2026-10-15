@@ -104,14 +104,19 @@ function activeWorld(settings: Settings): {
 
 async function loadLocalRenderer(
   getWindow: () => BrowserWindow | null,
-  port: number,
+  sim: { port: number; commandToken: string },
   extra?: Record<string, string>,
 ) {
   const win = getWindow();
   if (!win) return;
   const indexFile = path.join(__dirname, "..", "renderer", "index.html");
   await win.loadFile(indexFile, {
-    query: { desktop: "1", api: `127.0.0.1:${port}`, ...extra },
+    query: {
+      desktop: "1",
+      api: `127.0.0.1:${sim.port}`,
+      token: sim.commandToken,
+      ...extra,
+    },
   });
 }
 
@@ -222,7 +227,7 @@ export function registerIpc(
       const settings = loadSettings();
       try {
         const sim = await startSim(settings);
-        await loadLocalRenderer(getWindow, sim.port);
+        await loadLocalRenderer(getWindow, sim);
         return { running: true, port: sim.port };
       } catch (error) {
         return {
@@ -353,7 +358,7 @@ export function registerIpc(
           }
           markSaveFolderMigrationVerified(targetRoot, token);
           saveSettings(nextSettings);
-          await loadLocalRenderer(getWindow, sim.port, { migrated: "1" });
+          await loadLocalRenderer(getWindow, sim, { migrated: "1" });
           if (!finishSaveFolderMigration(targetRoot, token)) {
             throw new Error(
               "save migration journal changed before the migration could commit",
@@ -507,7 +512,7 @@ export function registerIpc(
         operationLock = null;
         const sim = await startSimWithDataRootLock(settings, handedLock);
         await verifyFreshWorldLoaded(sim.port, settings, world.hash);
-        await loadLocalRenderer(getWindow, sim.port, { reset: "1" });
+        await loadLocalRenderer(getWindow, sim, { reset: "1" });
         fs.unlinkSync(parkedMarker);
         syncDirectoryBestEffort(path.dirname(world.markerPath));
         return {

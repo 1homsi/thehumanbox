@@ -121,6 +121,7 @@ function renderBootError(
 async function createWindow(): Promise<void> {
   let settings: Settings | null = null;
   let apiBase: string | null = null;
+  let apiToken: string | null = null;
   let bootErrorUrl: string | null = null;
 
   // `loadSettings` throws on a corrupt or unreadable settings.json rather
@@ -145,6 +146,7 @@ async function createWindow(): Promise<void> {
     try {
       const sim = await startSim(settings);
       apiBase = `127.0.0.1:${sim.port}`;
+      apiToken = sim.commandToken;
     } catch (err) {
       const msg = (err as Error).message ?? String(err);
       console.error("[main] failed to start local sim:", err);
@@ -288,6 +290,7 @@ async function createWindow(): Promise<void> {
   } else {
     const query: Record<string, string> = { desktop: "1" };
     if (apiBase) query.api = apiBase;
+    if (apiToken) query.token = apiToken;
     await win.loadFile(rendererFile, { query });
     if (isDev) win.webContents.openDevTools({ mode: "detach" });
   }

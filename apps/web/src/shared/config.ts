@@ -11,6 +11,26 @@ function readRuntimeOverride(): string | null {
   return null
 }
 
+/**
+ * The desktop app's per-launch secret for the local sim, passed in the renderer URL. The sim requires it
+ * on mutating requests from this `file://` page (whose `Origin: null` any sandboxed iframe shares).
+ */
+function readCommandToken(): string | null {
+  if (typeof window === 'undefined' || !window.thbDesktop) return null
+  try {
+    return new URLSearchParams(window.location.search).get('token')?.trim() || null
+  } catch {
+    return null
+  }
+}
+
+const COMMAND_TOKEN = readCommandToken()
+
+/** Headers for the local sim's mutating routes (`/command`, `POST /runtime`, `/save`). */
+export function sandboxHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  return COMMAND_TOKEN ? { ...extra, 'x-thb-token': COMMAND_TOKEN } : extra
+}
+
 const RAW_BASE = (readRuntimeOverride() ?? '127.0.0.1:8000')
   .replace(/^https?:\/\//, '')
   .replace(/^wss?:\/\//, '')
