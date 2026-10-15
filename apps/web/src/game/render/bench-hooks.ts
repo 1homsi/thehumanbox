@@ -16,6 +16,8 @@ export interface BenchHooks {
     originX: number
     originY: number
     people: number
+    /** Living people in tile coordinates, for deterministic touch-target checks. */
+    peoplePositions: { x: number; y: number }[]
     tick: number
     boats: { x: number; y: number; era?: string; cargo?: number; rider: boolean }[]
     /** Where each caravan is on the road now, in tiles, with its cargo. */
@@ -29,7 +31,7 @@ interface BenchSource {
   world: () => {
     tick: number
     grid: { width: number; height: number; origin_x?: number; origin_y?: number }
-    organisms: readonly { alive?: boolean }[]
+    organisms: readonly { alive?: boolean; x: number; y: number }[]
     caravans?: readonly {
       from: [number, number]
       to: [number, number]
@@ -69,12 +71,14 @@ export function installBenchHooks(source: BenchSource, force = import.meta.env.D
     },
     info: () => {
       const world = source.world()
+      const people = world.organisms.filter((o) => o.alive)
       return {
         gridW: world.grid.width,
         gridH: world.grid.height,
         originX: world.grid.origin_x ?? 0,
         originY: world.grid.origin_y ?? 0,
-        people: world.organisms.filter((o) => o.alive).length,
+        people: people.length,
+        peoplePositions: people.map(({ x, y }) => ({ x, y })),
         tick: world.tick,
         boats: (world.vehicles ?? [])
           .filter((v) => v.kind === 'boat')
