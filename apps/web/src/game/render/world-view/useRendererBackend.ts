@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GameControls } from 'xipjs'
 import { syncRendererLoopPause } from '../../../shared/desktopVisibility'
 import { canUseWorldGPU } from './gpu'
+import { watchForGpuStartupFailure } from './gpuStartupWatchdog'
 
 /** Which backend draws the map, whether its first frame has arrived, and recovery from failures. */
 export function useRendererBackend({
@@ -23,6 +24,7 @@ export function useRendererBackend({
   // callback - an inline arrow restarted that loop on every publish.
   const handleFirstDraw = useCallback(() => setMapReady(true), [])
   const gameControlsRef = useRef<GameControls | null>(null)
+  const startupWatchdogRef = useRef<ReturnType<typeof watchForGpuStartupFailure> | null>(null)
   const handleGPUFailure = useCallback(() => {
     gameControlsRef.current = null
     setMapReady(false)
@@ -45,10 +47,19 @@ export function useRendererBackend({
     if (renderBackend !== 'gpu' || mapReady || dims.w === 0 || dims.h === 0) return
     // xipjs reports some WebGL setup failures inside Game instead of
     // throwing. Its error UI sits behind the startup cover, so recover if a
-    // first frame never arrives.
-    const timeout = window.setTimeout(handleGPUFailure, 10_000)
-    return () => window.clearTimeout(timeout)
+    // first frame never arrives. A hidden tab or paused desktop window cannot
+    // schedule that frame, so do not count that time against startup.
+    const watchdog = watchForGpuStartupFailure(document, rendererPausedRef.current, handleGPUFailure)
+    startupWatchdogRef.current = watchdog
+    return () => {
+      watchdog.dispose()
+      startupWatchdogRef.current = null
+    }
   }, [renderBackend, mapReady, dims.w, dims.h, handleGPUFailure])
+
+  useEffect(() => {
+    startupWatchdogRef.current?.setPaused(rendererPaused)
+  }, [rendererPaused])
 
   useEffect(() => {
     const container = containerRef.current
