@@ -621,31 +621,14 @@ async function boot(): Promise<void> {
   applyAutoLaunch();
   initUpdater(() => mainWindow);
 
-  globalShortcut.register(
-    process.platform === "darwin" ? "Cmd+Alt+I" : "Ctrl+Shift+I",
-    () => {
-      if (!mainWindow) return;
-      if (mainWindow.webContents.isDevToolsOpened())
-        mainWindow.webContents.closeDevTools();
-      else mainWindow.webContents.openDevTools({ mode: "detach" });
-    },
-  );
-
-  globalShortcut.register(
-    process.platform === "darwin" ? "Cmd+Shift+H" : "Ctrl+Shift+H",
-    toggleWindow,
-  );
-  globalShortcut.register(
-    process.platform === "darwin" ? "Cmd+Shift+S" : "Ctrl+Shift+S",
-    () => {
-      void captureScreenshot().then((fp) => {
-        if (fp) {
-          notifyMilestone("Screenshot saved", fp);
-          shell.showItemInFolder(fp);
-        }
-      });
-    },
-  );
+  // System-wide, so keep it to a combo other apps do not use. DevTools and
+  // screenshot are menu accelerators only: registering them globally stole
+  // Ctrl+Shift+I / Ctrl+Shift+S from every other application.
+  const toggleKey =
+    process.platform === "darwin" ? "Cmd+Alt+Shift+H" : "Ctrl+Alt+Shift+H";
+  if (!globalShortcut.register(toggleKey, toggleWindow)) {
+    console.warn(`[main] could not register global shortcut ${toggleKey}`);
+  }
 }
 
 // Backstop for any boot step that rejects. Without this the boot chain's
