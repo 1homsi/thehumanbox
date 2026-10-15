@@ -7,7 +7,7 @@ export const SIM_SERVICE_NAME = "simulation-rs";
 // big save on a slow disk legitimately takes a long time. A dead child is
 // detected immediately through `isAlive`, so this only bounds a live but
 // stuck one.
-export const SIM_START_TIMEOUT_MS = 120_000;
+export const SIM_START_TIMEOUT_MS = 60_000;
 
 export function tcpAccepts(port: number): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
@@ -82,6 +82,6 @@ export async function waitForSimulation(
     await sleep(100);
   }
   throw new Error(
-    `simulation-rs did not start listening on 127.0.0.1:${port} within ${timeoutMs}ms`,
+    `simulation-rs did not start serving on 127.0.0.1:${port} within ${timeoutMs}ms`,
   );
 }
