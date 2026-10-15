@@ -1,5 +1,6 @@
-export const IS_MOBILE: boolean =
-  typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 767px)').matches
+import { isPhoneViewport } from './phone'
+
+export const IS_MOBILE: boolean = isPhoneViewport()
 
 export const LOW_PERF: boolean = (() => {
   if (typeof window === 'undefined') return false
