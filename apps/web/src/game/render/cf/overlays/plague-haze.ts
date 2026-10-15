@@ -42,19 +42,19 @@ export interface PlagueView {
   r1: number
 }
 
+/** Outer radius in sim tiles of a sick person's cloud at clock `t` (ms), swelling on its own phase. */
+function plagueRadius(o: PlagueOrganism, level: number, t: number): number {
+  // Each cloud swells on its own phase, from where the person stands (stable while they stay put).
+  const phase = unitHash(Math.floor(o.x * 3), Math.floor(o.y * 3)) * Math.PI * 2
+  const swell = 1 + 0.14 * Math.sin(t * 0.0013 + phase)
+  return (1.6 + 1.6 * level) * swell
+}
+
 /** One sick person's cloud at clock `t` (ms), or null when they are not sick. */
 export function plagueSpot(o: PlagueOrganism, t: number): PlagueSpot | null {
   if (!o.alive || !(o.infection >= PLAGUE_MIN_INFECTION)) return null
   const level = Math.min(1, o.infection)
-  // Each cloud swells on its own phase, from where the person stands (stable while they stay put).
-  const phase = unitHash(Math.floor(o.x * 3), Math.floor(o.y * 3)) * Math.PI * 2
-  const swell = 1 + 0.14 * Math.sin(t * 0.0013 + phase)
-  return {
-    x: o.x,
-    y: o.y,
-    r: (1.6 + 1.6 * level) * swell,
-    strength: level,
-  }
+  return { x: o.x, y: o.y, r: plagueRadius(o, level, t), strength: level }
 }
 
 /** Paints a sickly haze round every sick person in the view, at most `PLAGUE_SPOT_LIMIT` clouds. */
@@ -67,17 +67,18 @@ export function paintPlagueHaze(
   t: number,
 ): void {
   let painted = 0
-  ctx.save()
   for (let i = 0; i < organisms.length && painted < PLAGUE_SPOT_LIMIT; i++) {
     const o = organisms[i]
     if (o.x < view.c0 - 3 || o.x > view.c1 + 3 || o.y < view.r0 - 3 || o.y > view.r1 + 3) continue
-    const spot = plagueSpot(o, t)
-    if (!spot) continue
+    if (!o.alive || !(o.infection >= PLAGUE_MIN_INFECTION)) continue
+    // Nothing is saved or restored until someone in view is actually sick.
+    if (painted === 0) ctx.save()
     painted++
-    const cx = (spot.x - ox) * TILE + TILE / 2
-    const cy = (spot.y - oy) * TILE + TILE / 2
-    const r = spot.r * TILE
-    ctx.globalAlpha = 0.4 + 0.6 * spot.strength
+    const level = Math.min(1, o.infection)
+    const cx = (o.x - ox) * TILE + TILE / 2
+    const cy = (o.y - oy) * TILE + TILE / 2
+    const r = plagueRadius(o, level, t) * TILE
+    ctx.globalAlpha = 0.4 + 0.6 * level
     ctx.fillStyle = HAZE_OUTER
     ctx.beginPath()
     ctx.arc(cx, cy, r, 0, Math.PI * 2)
@@ -87,5 +88,5 @@ export function paintPlagueHaze(
     ctx.arc(cx, cy, r * 0.55, 0, Math.PI * 2)
     ctx.fill()
   }
-  ctx.restore()
+  if (painted > 0) ctx.restore()
 }

@@ -11,9 +11,14 @@ import {
 /** Records every circle drawn. */
 function recordingContext() {
   const arcs: { x: number; y: number; r: number; alpha: number }[] = []
+  const saves = { save: 0, restore: 0 }
   const ctx = {
-    save() {},
-    restore() {},
+    save() {
+      saves.save++
+    },
+    restore() {
+      saves.restore++
+    },
     globalAlpha: 1,
     fillStyle: '',
     beginPath() {},
@@ -22,7 +27,7 @@ function recordingContext() {
       arcs.push({ x, y, r, alpha: this.globalAlpha })
     },
   }
-  return { ctx: ctx as unknown as CanvasRenderingContext2D, arcs }
+  return { ctx: ctx as unknown as CanvasRenderingContext2D, arcs, saves }
 }
 
 const VIEW = { c0: 0, c1: 50, r0: 0, r1: 50 }
@@ -61,6 +66,15 @@ describe('paintPlagueHaze', () => {
     const people = [person(10, 10, 0.6), person(20, 20, 0), person(30, 30, 0.4)]
     paintPlagueHaze(ctx, people, VIEW, 0, 0, 0)
     expect(arcs).toHaveLength(4)
+  })
+
+  it('saves and restores the context once when someone is sick, and not at all when nobody is', () => {
+    const sick = recordingContext()
+    paintPlagueHaze(sick.ctx, [person(10, 10, 0.6), person(12, 12, 0.8)], VIEW, 0, 0, 0)
+    expect(sick.saves).toEqual({ save: 1, restore: 1 })
+    const well = recordingContext()
+    paintPlagueHaze(well.ctx, [person(10, 10, 0), person(500, 500, 0.9)], VIEW, 0, 0, 0)
+    expect(well.saves).toEqual({ save: 0, restore: 0 })
   })
 
   it('skips the sick who are far outside the window', () => {
