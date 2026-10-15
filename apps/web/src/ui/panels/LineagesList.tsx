@@ -4,7 +4,13 @@ import { lineageColor } from '../../shared/constants'
 import { useUIStore } from '../../state/store'
 import { useWorldStore } from '../../state/worldStore'
 import { PERIL_HELP, remainingLine, visibleLineages } from '../../game/model/tribe-peril'
-import { eldestByLineage, eldestLine, packEldest, unpackEldest, type Eldest } from '../../game/model/tribe-eldest'
+import {
+  eldestByLineage,
+  eldestLine,
+  packEldest,
+  unpackEldest,
+  type Eldest,
+} from '../../game/model/tribe-eldest'
 import type { PerilCause } from '../../shared/types'
 
 interface LineageRow {
