@@ -778,3 +778,57 @@ fn world_generation_records_its_volcanoes_on_volcanic_ground() {
     let json = serde_json::to_string(&with[0].to_save_state()).unwrap();
     assert!(!json.contains("placed_volcanoes"));
 }
+
+/// Squared distances to a clamped coordinate exceed `i32`: 65536 tiles away wraps to
+/// zero in release and panics in debug, so a far-off click must not reach anything.
+#[test]
+fn far_off_command_points_do_not_overflow_or_alias_onto_nearby_things() {
+    use crate::sim::buildings::{Building, BuildingKind};
+    use crate::sim::tech::plantings::{PlantKind, Planting};
+    use crate::world::grid::WorldGrid;
+
+    let mut sim = Simulation::new(3);
+    sim.buildings.clear();
+    sim.plantings.clear();
+    let tick = sim.tick_count;
+    sim.buildings.push(Building::new(
+        1,
+        BuildingKind::Hut,
+        100,
+        100,
+        Some("tribe".into()),
+        tick,
+    ));
+    sim.buildings[0].damage = 0.5;
+    let key = WorldGrid::idx(100, 100) as u32;
+    sim.plantings.insert(key, Planting::new(PlantKind::Crop));
+
+    for cmd in [
+        r#"{"cmd":"demolish","x":65636,"y":100,"radius":3}"#,
+        r#"{"cmd":"repair","x":65636,"y":100,"radius":3}"#,
+        r#"{"cmd":"blight","x":-65436,"y":100,"radius":5}"#,
+        r#"{"cmd":"blizzard","x":-65436,"y":100,"radius":5}"#,
+    ] {
+        assert!(!sim.apply_command_json(cmd), "{cmd} reaches nothing");
+    }
+    assert_eq!(sim.buildings.len(), 1, "the hut was not demolished");
+    assert!(sim.buildings[0].is_damaged(), "the hut was not repaired");
+    assert!(sim.plantings.contains_key(&key), "the crop was not withered");
+
+    // None of the extremes may panic (debug builds check overflow).
+    for cmd in [
+        r#"{"cmd":"demolish","x":100000,"y":100,"radius":100}"#,
+        r#"{"cmd":"repair","x":100000,"y":100,"radius":100}"#,
+        r#"{"cmd":"volcano","x":100000,"y":100,"radius":100}"#,
+        r#"{"cmd":"blight","x":100000,"y":100,"radius":5}"#,
+        r#"{"cmd":"smite","x":-1e10,"y":-1e10,"radius":5}"#,
+        r#"{"cmd":"thunder","x":-1e10,"y":-1e10,"radius":5}"#,
+        r#"{"cmd":"bless_forest","x":1e10,"y":1e10,"radius":5}"#,
+        r#"{"cmd":"bless_river","x":1e10,"y":1e10,"radius":5}"#,
+        r#"{"cmd":"clear_region","x":1e10,"y":1e10,"radius":5}"#,
+        r#"{"cmd":"harvest","x":1e10,"y":1e10,"radius":5}"#,
+        r#"{"cmd":"rain_patch","x":1e10,"y":1e10,"radius":5}"#,
+    ] {
+        sim.apply_command_json(cmd);
+    }
+}

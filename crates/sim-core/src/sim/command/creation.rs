@@ -235,7 +235,7 @@ impl Simulation {
     /// brush radius (at least two tiles), then out to twelve if none fit there.
     fn release_spots(&self, kind: AnimalKind, cx: f32, cy: f32, radius: f32) -> Vec<(i32, i32)> {
         let near = radius.clamp(2.0, 12.0).ceil() as i32;
-        let (ox, oy) = (cx as i32, cy as i32);
+        let (ox, oy) = (cmd_tile(cx), cmd_tile(cy));
         for reach in [near, 12] {
             let mut spots = Vec::new();
             for dx in -reach..=reach {

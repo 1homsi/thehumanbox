@@ -26,7 +26,7 @@ impl Simulation {
             .min_by(|a, b| a.1.total_cmp(&b.1));
         // Lightning also cracks roofs where it lands, and sometimes
         // sets them alight.
-        let (bx, by) = (x as i32, y as i32);
+        let (bx, by) = (cmd_tile(x), cmd_tile(y));
         let roofs = crate::sim::civ::building_damage::strike_buildings(
             self,
             bx,

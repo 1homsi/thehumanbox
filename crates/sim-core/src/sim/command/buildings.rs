@@ -8,8 +8,8 @@ fn footprint_touches(building: &Building, x: i32, y: i32, radius: i32) -> bool {
     let (width, height) = building.footprint();
     let nearest_x = x.clamp(building.x, building.x + i32::from(width) - 1);
     let nearest_y = y.clamp(building.y, building.y + i32::from(height) - 1);
-    let (dx, dy) = (nearest_x - x, nearest_y - y);
-    dx * dx + dy * dy <= radius * radius
+    let (dx, dy) = (i64::from(nearest_x - x), i64::from(nearest_y - y));
+    dx * dx + dy * dy <= i64::from(radius) * i64::from(radius)
 }
 
 impl Simulation {

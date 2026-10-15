@@ -164,7 +164,7 @@ impl Simulation {
 
     pub(super) fn cmd_harvest(&mut self, x: f32, y: f32, radius: f32) -> bool {
         let r = if radius <= 0.0 { 5.0 } else { radius.min(24.0) };
-        let (cx, cy, ri) = (x as i32, y as i32, r.ceil() as i32);
+        let (cx, cy, ri) = (cmd_tile(x), cmd_tile(y), r.ceil() as i32);
         let mut grown = 0;
         for dx in -ri..=ri {
             for dy in -ri..=ri {

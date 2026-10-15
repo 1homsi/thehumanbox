@@ -579,6 +579,12 @@ fn clamp_cmd_coord(v: i32) -> i32 {
     v.clamp(-100_000, 100_000)
 }
 
+/// The tile under a float command coordinate, clamped like `clamp_cmd_coord`: a bare `as i32`
+/// saturates at `i32::MAX`, and the handlers then add a radius-sized offset to it.
+fn cmd_tile(v: f32) -> i32 {
+    clamp_cmd_coord(v as i32)
+}
+
 fn tile_from_name(name: &str) -> Option<Tile> {
     Some(match name {
         "grass" => Tile::Grass,

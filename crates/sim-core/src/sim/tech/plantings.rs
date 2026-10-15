@@ -131,6 +131,8 @@ impl Planting {
 /// A round brush: slightly fuller than a strict circle so small radii
 /// don't come out as plus signs.
 fn in_disc(dx: i32, dy: i32, r: i32) -> bool {
+    // Widened: command points are clamped to +/-100_000, so dx*dx can pass i32::MAX.
+    let (dx, dy, r) = (i64::from(dx), i64::from(dy), i64::from(r));
     dx * dx + dy * dy <= r * r + r / 2
 }
 
