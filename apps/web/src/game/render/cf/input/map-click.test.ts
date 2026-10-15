@@ -12,7 +12,9 @@ import { residentOf, resolveMapClick, type MapClickInput, type MapClickOutcome }
  * handler, mixed with its side effects. `resolveMapClick` is that decision
  * lifted out so the xipjs tap and the old click share it. `legacy` below
  * is the old handler, with each side effect turned into the outcome it
- * produced, kept verbatim as the reference the refactor must agree with.
+ * produced, kept as the reference the refactor must agree with. The one deliberate
+ * difference: people are drawn at the middle of their tile, so the reach is measured
+ * from (x + 0.5, y + 0.5), not from (x, y).
  */
 function legacy(input: MapClickInput): MapClickOutcome {
   const { world, ox, oy, viewFlags, focus, zoom } = input
@@ -65,7 +67,7 @@ function legacy(input: MapClickInput): MapClickOutcome {
   let nearestOrgDist = Math.min(5, Math.max(1.2, (input.coarsePointer ? 26 : 16) / (TILE * zoom)))
   for (const org of world.viewport_organisms?.length ? world.viewport_organisms : world.organisms) {
     if (!org.alive) continue
-    const d = Math.hypot(org.x - worldX, org.y - worldY)
+    const d = Math.hypot(org.x + 0.5 - worldX, org.y + 0.5 - worldY)
     if (d < nearestOrgDist) {
       nearestOrgDist = d
       nearestOrg = { id: org.id, dist: d }
@@ -208,7 +210,8 @@ describe('resolveMapClick', () => {
       zoom: 1,
     }
     const at = (tiles: number, coarsePointer: boolean) =>
-      resolveMapClick({ ...base, mapX: (5 + tiles) * TILE, mapY: 5 * TILE, coarsePointer })
+      resolveMapClick({ ...base, mapX: (5.5 + tiles) * TILE, mapY: 5.5 * TILE, coarsePointer })
+    // People are drawn at the middle of their tile, (5.5, 5.5) here.
     // At zoom 1 a mouse reaches 2 tiles, a finger 3.25.
     expect(at(1.1, false)).toEqual({ kind: 'select', orgId: 'a' })
     expect(at(1.9, false)).toEqual({ kind: 'select', orgId: 'a' })

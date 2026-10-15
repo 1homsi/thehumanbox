@@ -121,7 +121,8 @@ export function WorldView({
   const followTarget = followOrgId
     ? (() => {
         const org = world.organisms.find((o) => o.id === followOrgId && o.alive)
-        return org ? { x: (org.x - ox) * TILE, y: (org.y - oy) * TILE } : null
+        // People are drawn at the middle of their tile, half a tile past (x, y).
+        return org ? { x: (org.x - ox + 0.5) * TILE, y: (org.y - oy + 0.5) * TILE } : null
       })()
     : null
 

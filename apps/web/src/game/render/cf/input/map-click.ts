@@ -156,7 +156,8 @@ export function nearestOrganism(
   let nearestDist = Math.min(5, Math.max(1.2, (coarsePointer ? 26 : 16) / (TILE * zoom)))
   for (const org of world.viewport_organisms?.length ? world.viewport_organisms : world.organisms) {
     if (!org.alive) continue
-    const d = Math.hypot(org.x - worldX, org.y - worldY)
+    // The sprite is drawn at the middle of its tile, half a tile past (x, y).
+    const d = Math.hypot(org.x + 0.5 - worldX, org.y + 0.5 - worldY)
     if (d < nearestDist) {
       nearestDist = d
       nearest = { id: org.id, dist: d }
