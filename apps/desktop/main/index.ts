@@ -42,6 +42,8 @@ let tray: Tray | null = null;
 // True for the first window only, when the OS launched us at login with
 // "start minimized" on: it is created hidden and lives in the tray.
 let startHiddenOnce = false;
+// A hidden first window that should be maximized when the user first shows it.
+let pendingMaximize = false;
 
 function windowStateFile(): string {
   return path.join(app.getPath("userData"), "window-state.json");
@@ -179,7 +181,14 @@ async function createWindow(): Promise<void> {
     },
   });
   mainWindow = win;
-  if (winState.maximized) win.maximize();
+  // maximize() would also show a window that is meant to start hidden. A boot
+  // failure must never be hidden, so that case shows the window as well.
+  if (startHidden && !bootErrorUrl) {
+    pendingMaximize = winState.maximized === true;
+  } else {
+    if (winState.maximized) win.maximize();
+    if (startHidden) win.show();
+  }
 
   const persistDebounced = (() => {
     let t: NodeJS.Timeout | null = null;
@@ -495,6 +504,15 @@ function buildTray(): void {
   }
 }
 
+function revealWindow(win: BrowserWindow): void {
+  if (pendingMaximize) {
+    pendingMaximize = false;
+    win.maximize();
+  }
+  win.show();
+  win.focus();
+}
+
 function toggleWindow(): void {
   if (!mainWindow) {
     void createWindow();
@@ -508,8 +526,7 @@ function toggleWindow(): void {
   if (mainWindow.isVisible()) {
     mainWindow.hide();
   } else {
-    mainWindow.show();
-    mainWindow.focus();
+    revealWindow(mainWindow);
   }
 }
 
@@ -662,7 +679,7 @@ async function boot(): Promise<void> {
   buildMenu();
   buildTray();
   // Hidden start needs the tray as the way back in; without it show the window.
-  if (!tray && mainWindow && !mainWindow.isVisible()) mainWindow.show();
+  if (!tray && mainWindow && !mainWindow.isVisible()) revealWindow(mainWindow);
   applyAutoLaunch();
   initUpdater(() => mainWindow);
   onUnexpectedSimExit(({ code, signal }) => void offerSimRestart(code, signal));
@@ -770,5 +787,8 @@ app.on("before-quit", (e) => {
 app.on("activate", async () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     await createWindow();
+  } else if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+    // A dock click on an app that started hidden (tray only).
+    toggleWindow();
   }
 });
