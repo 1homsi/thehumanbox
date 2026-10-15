@@ -70,4 +70,19 @@ describe('GPU startup watchdog', () => {
     expect(onFailure).toHaveBeenCalledOnce()
     watchdog.dispose()
   })
+
+  it('removes the visibility listener and cancels the timeout when disposed', () => {
+    vi.useFakeTimers()
+    const visibility = visibilitySource()
+    const onFailure = vi.fn()
+    const watchdog = watchForGpuStartupFailure(visibility.source, false, onFailure)
+
+    vi.advanceTimersByTime(9_000)
+    watchdog.dispose()
+    visibility.setHidden(true)
+    visibility.setHidden(false)
+    vi.advanceTimersByTime(20_000)
+
+    expect(onFailure).not.toHaveBeenCalled()
+  })
 })

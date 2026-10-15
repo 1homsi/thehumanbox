@@ -24,6 +24,7 @@ export function useRendererBackend({
   // callback - an inline arrow restarted that loop on every publish.
   const handleFirstDraw = useCallback(() => setMapReady(true), [])
   const gameControlsRef = useRef<GameControls | null>(null)
+  const startupWatchdogRef = useRef<ReturnType<typeof watchForGpuStartupFailure> | null>(null)
   const handleGPUFailure = useCallback(() => {
     gameControlsRef.current = null
     setMapReady(false)
@@ -50,11 +51,19 @@ export function useRendererBackend({
     // schedule that frame, so do not count that time against startup.
     const watchdog = watchForGpuStartupFailure(
       document,
-      rendererPaused,
+      rendererPausedRef.current,
       handleGPUFailure,
     )
-    return () => watchdog.dispose()
-  }, [renderBackend, mapReady, dims.w, dims.h, rendererPaused, handleGPUFailure])
+    startupWatchdogRef.current = watchdog
+    return () => {
+      watchdog.dispose()
+      startupWatchdogRef.current = null
+    }
+  }, [renderBackend, mapReady, dims.w, dims.h, handleGPUFailure])
+
+  useEffect(() => {
+    startupWatchdogRef.current?.setPaused(rendererPaused)
+  }, [rendererPaused])
 
   useEffect(() => {
     const container = containerRef.current
