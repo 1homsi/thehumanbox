@@ -1,17 +1,21 @@
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig, type Plugin, type ResolvedConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { readdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 function emitVersionJson(): Plugin {
+  let outDir: string
   return {
     name: 'thb-emit-version-json',
     apply: 'build',
-    async closeBundle() {
+    configResolved(config: ResolvedConfig) {
+      outDir = path.resolve(config.root, config.build.outDir)
+    },
+    async writeBundle() {
       const sha = process.env.VITE_GIT_SHA  ?? 'dev'
       const ts  = process.env.VITE_BUILD_TS ?? String(Math.floor(Date.now() / 1000))
       const payload = JSON.stringify({ sha, built_at: Number(ts) })
-      const out = path.resolve(__dirname, 'dist', 'version.json')
+      const out = path.join(outDir, 'version.json')
       await writeFile(out, payload, 'utf8')
     },
   }
@@ -25,16 +29,20 @@ function emitVersionJson(): Plugin {
  * parallel with everything else. This cuts several seconds off first
  * load on typical connections.
  *
- * Runs in closeBundle (post-build) because rolldown-vite does not fire
+ * Runs in writeBundle (post-build) because rolldown-vite does not fire
  * generateBundle for config-level JS plugins.
  */
 function preloadSimAssets(): Plugin {
   const base = process.env.VITE_DESKTOP === '1' ? './' : '/'
+  let outDir: string
   return {
     name: 'thb-preload-sim-assets',
     apply: 'build',
-    async closeBundle() {
-      const distDir = path.resolve(__dirname, 'dist')
+    configResolved(config: ResolvedConfig) {
+      outDir = path.resolve(config.root, config.build.outDir)
+    },
+    async writeBundle() {
+      const distDir = outDir
       const htmlPath = path.join(distDir, 'index.html')
       let html: string
       try {
