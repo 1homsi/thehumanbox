@@ -351,12 +351,12 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                     const canEnterTavern = hasEnterableBuilding(world, TAVERN_BUILDINGS, l.id)
                     return (
                       <tr key={l.id}>
-                        <td>{lineageById(l.id)}</td>
-                        <td>
+                        <td data-label="Name">{lineageById(l.id)}</td>
+                        <td data-label="Lineage Era">
                           {ERA_EMOJI[era] ?? ''} {era}
                         </td>
-                        <td>{l.count}</td>
-                        <td>
+                        <td data-label="Pop">{l.count}</td>
+                        <td data-label="Next">
                           {progress?.next_era ? (
                             <div className="civ-era-progress">
                               <span className={progress.ready ? 'civ-era-ready' : 'civ-era-next'}>
@@ -378,9 +378,9 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                             <span className="civ-era-next">-</span>
                           )}
                         </td>
-                        <td>{gov ? `${GOV_EMOJI[gov.kind] ?? ''} ${gov.kind}` : '-'}</td>
-                        <td>{currencies[l.id] ?? '-'}</td>
-                        <td>
+                        <td data-label="Gov">{gov ? `${GOV_EMOJI[gov.kind] ?? ''} ${gov.kind}` : '-'}</td>
+                        <td data-label="Currency">{currencies[l.id] ?? '-'}</td>
+                        <td data-label="Actions" className="civ-cell-actions">
                           <div className="civ-lineage-actions">
                             {activeStrategy && (
                               <span
