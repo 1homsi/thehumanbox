@@ -22,6 +22,7 @@ import {
 import { sanitizeWindowState, type WindowState } from "./window-state";
 import { atomicReplaceFile } from "./world-safety";
 import { appVersionArgument } from "./app-version-arg";
+import { loginItemSettings, shouldStartHidden } from "./login-launch";
 import { registerIpc } from "./ipc";
 import { startWhenReady } from "./startup-lifecycle";
 import { runExclusiveDesktopOperation } from "./exclusive-operation";
@@ -38,6 +39,9 @@ app.setName("The Human Box");
 const isDev = !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
+// True for the first window only, when the OS launched us at login with
+// "start minimized" on: it is created hidden and lives in the tray.
+let startHiddenOnce = false;
 
 function windowStateFile(): string {
   return path.join(app.getPath("userData"), "window-state.json");
@@ -146,7 +150,10 @@ async function createWindow(): Promise<void> {
   }
 
   const winState = loadWindowState();
+  const startHidden = startHiddenOnce;
+  startHiddenOnce = false;
   const win = new BrowserWindow({
+    show: !startHidden,
     x: winState.x,
     y: winState.y,
     width: winState.width,
@@ -516,10 +523,7 @@ function notifyMilestone(title: string, body: string): void {
 function applyAutoLaunch(): void {
   try {
     const s = loadSettings();
-    app.setLoginItemSettings({
-      openAtLogin: s.autoLaunch,
-      openAsHidden: s.startMinimized,
-    });
+    app.setLoginItemSettings(loginItemSettings(s.autoLaunch, s.startMinimized));
   } catch (e) {
     console.warn("[main] setLoginItemSettings failed:", e);
   }
@@ -644,9 +648,21 @@ async function offerSimRestart(
 async function boot(): Promise<void> {
   registerIpc(ipcMain, () => mainWindow);
   registerAppIpcHandlers();
+  try {
+    startHiddenOnce = shouldStartHidden({
+      startMinimized: loadSettings().startMinimized,
+      argv: process.argv,
+      wasOpenedAtLogin: app.getLoginItemSettings().wasOpenedAtLogin,
+      platform: process.platform,
+    });
+  } catch {
+    startHiddenOnce = false;
+  }
   await createWindow();
   buildMenu();
   buildTray();
+  // Hidden start needs the tray as the way back in; without it show the window.
+  if (!tray && mainWindow && !mainWindow.isVisible()) mainWindow.show();
   applyAutoLaunch();
   initUpdater(() => mainWindow);
   onUnexpectedSimExit(({ code, signal }) => void offerSimRestart(code, signal));
