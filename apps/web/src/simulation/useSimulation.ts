@@ -249,7 +249,10 @@ export function useSimulation(source: WorldSource = 'native'): {
           if (frameSequenceRef.current.isStale(parsed.frame_id)) {
             continue
           }
-          if (frameSequenceRef.current.lastFrameId > 0 && parsed.frame_id > frameSequenceRef.current.lastFrameId + 1) {
+          if (
+            frameSequenceRef.current.lastFrameId > 0 &&
+            parsed.frame_id > frameSequenceRef.current.lastFrameId + 1
+          ) {
             const gap = parsed.frame_id - frameSequenceRef.current.lastFrameId - 1
             if (gap > 2 && !frameSequenceRef.current.awaitingFullFrame) {
               markAwaitingFullFrame()
