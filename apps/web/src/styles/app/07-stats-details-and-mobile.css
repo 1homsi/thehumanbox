@@ -300,6 +300,7 @@
     width: 80vw;
     max-width: 320px;
     height: 100vh;
+    height: 100dvh;
     transform: translateX(-100%);
     transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 70;
@@ -332,6 +333,7 @@
     right: 0;
     width: 100%;
     height: 68vh;
+    height: 68dvh;
     transform: translateY(100%);
     transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 70;
@@ -377,10 +379,11 @@
   .notable-modal,
   .settings-modal,
   .worlds-modal {
-    width: 100vw !important;
-    max-width: 100vw !important;
+    width: 100% !important;
+    max-width: 100% !important;
     border-radius: 14px 14px 0 0 !important;
     max-height: 90vh !important;
+    max-height: 90dvh !important;
     border-left: none;
     border-right: none;
     border-bottom: none;
@@ -396,21 +399,24 @@
     border-right: none;
     border-bottom: 1px solid #372a21;
     max-height: 40vh;
+    max-height: 40dvh;
   }
   .org-search-detail {
     flex: 1;
     min-height: 0;
     max-height: 35vh;
+    max-height: 35dvh;
   }
 
   /* Family/tree modal: touch-friendly */
   .tree-modal {
     height: 90vh;
+    height: 90dvh;
   }
 
   /* Stats modal */
   .stats-modal {
-    width: 100vw !important;
+    width: 100% !important;
   }
 
   /* Chronicles: readable on small screens */
