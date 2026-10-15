@@ -21,6 +21,11 @@ export interface CfFrame {
   win: { c0: number; c1: number; r0: number; r1: number }
   /** Bumped whenever the terrain (tiles, biomes, season) changes in a way the ground sprites show. */
   terrainRevision: number
+  /**
+   * `performance.now()` after which a driver that can put its rebuild off to the next frame should
+   * (the registry sets it; Infinity when nothing needs spreading).
+   */
+  deadline: number
 }
 
 export function makeFrame(
@@ -46,6 +51,7 @@ export function makeFrame(
     oy: world.grid.origin_y ?? 0,
     detail: zoomDetailLevel(camera.zoom),
     terrainRevision,
+    deadline: Infinity,
     win: {
       c0: Math.max(0, Math.floor((camera.x - halfW) / TILE) - margin),
       c1: Math.min(width, Math.ceil((camera.x + halfW) / TILE) + margin),
@@ -58,6 +64,8 @@ export function makeFrame(
 /** A layer driver writes world data into a SpriteLayer; true means sprites changed. */
 export interface CfDriver {
   update(f: CfFrame): boolean
+  /** Set by a driver that stopped a rebuild at `f.deadline`: it has more to do on the next frame. */
+  pending?: boolean
 }
 
 /** Pack 0..255 channels into the layer's 0xRRGGBBAA tint. */

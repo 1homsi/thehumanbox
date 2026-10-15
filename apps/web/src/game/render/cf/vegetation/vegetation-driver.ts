@@ -16,6 +16,8 @@ export class VegetationDriver implements CfDriver {
   /** Revision each part last built for, so a late atlas image retries without a terrain change. */
   private built = { decor: -1, mountains: -1, trees: -1 }
   stats: Record<string, unknown> = {}
+  /** True while a rebuild stopped at the frame's deadline has parts left. */
+  pending = false
 
   constructor(decor: DecorDriver, mountains: MountainsDriver, trees: TreesDriver) {
     this.decor = decor
@@ -26,18 +28,22 @@ export class VegetationDriver implements CfDriver {
   update(f: CfFrame): boolean {
     const rev = f.terrainRevision
     let changed = false
+    this.pending = false
     if (rev === 0) return false
+    // Each part is its own few-ms rebuild: past the frame's deadline the rest waits for the next frame.
     if (this.built.mountains !== rev) {
       this.mountains.rebuild(f)
       this.built.mountains = rev
       changed = true
     }
     if (this.built.decor !== rev) {
+      if (performance.now() > f.deadline) return this.defer(changed)
       this.decor.rebuild(f)
       this.built.decor = rev
       changed = true
     }
     if (this.built.trees !== rev && this.trees.ready()) {
+      if (performance.now() > f.deadline) return this.defer(changed)
       this.trees.rebuild(f, vegetationSeason(terrainSeason(f.world)))
       this.built.trees = rev
       changed = true
@@ -49,6 +55,11 @@ export class VegetationDriver implements CfDriver {
       mountains: this.mountains.stats,
       trees: this.trees.stats,
     }
+    return changed
+  }
+
+  private defer(changed: boolean): boolean {
+    this.pending = true
     return changed
   }
 }
