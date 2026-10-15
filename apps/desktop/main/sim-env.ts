@@ -21,5 +21,15 @@ export function buildLocalSimEnv(
     THB_SANDBOX: '1',
   }
 
+  // The server's default RSS watchdog (320/480 MB) is tuned for a small hosted
+  // box. Past those, memory pressure permanently trims a world: dead
+  // organisms, life logs, the chronicle and extinct tribes' names are deleted
+  // and the trimmed state is saved. A player's machine has far more memory
+  // (the cap alone allows 5000 people), so disable the per-process limits here
+  // (0 = off). The host-wide available-memory floors stay as the OOM guard.
+  // An explicit value in the environment still wins.
+  env.MEM_RSS_ELEVATED_MB ??= '0'
+  env.MEM_RSS_CRITICAL_MB ??= '0'
+
   return env
 }
