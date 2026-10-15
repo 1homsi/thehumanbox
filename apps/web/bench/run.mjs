@@ -11,7 +11,9 @@
 //   --runs <n>          repetitions of every scenario (default 3); the report takes medians
 //   --fixtures a,b      standard,crowd (default both): seed 42 at tick 9000, and with 3,000 more people
 //   --zooms a,b         overview,mid,close (default all): fit, zoom 1, zoom 3
-//   --modes a,b         paused,playing (default both)
+//   --modes a,b         paused,playing,panning (default paused,playing). `panning` is `playing` with the camera
+//                       moving the whole window: arrow keys held down in a square, so it covers new ground
+//                       the way a player dragging the map does (see PAN_PATH). Not in the default set.
 //   --passes a,b        metrics,trace,memory (default all). `metrics` reads the browser's own counters and
 //                       adds nothing to the page; `trace` records a Chrome trace for frames
 //                       delivered, GPU process time, GC pauses and long tasks; `memory` takes a Chrome
@@ -68,6 +70,8 @@ const runs = Number(opt('runs', 3))
 const fixtures = list('fixtures', ['standard', 'crowd'])
 const zooms = list('zooms', ['overview', 'mid', 'close'])
 const modes = list('modes', ['paused', 'playing'])
+for (const m of modes)
+  if (!['paused', 'playing', 'panning'].includes(m)) throw new Error(`--modes takes paused, playing or panning, not ${m}`)
 const passes = list('passes', ['metrics', 'trace', 'memory'])
 const windowMs = Number(opt('window', 8000))
 const warmupMs = Number(opt('warmup', 3000))
@@ -257,6 +261,40 @@ async function focusView(page, focus, zoom) {
   return cam()
 }
 
+/**
+ * `panning`: the camera moves for the whole window. Holds the map's own arrow-key pan (480 screen px/s,
+ * so 480 / zoom world px/s) along a square, d s a w, one leg after the other; every leg is long enough to
+ * reach ground the previous frames did not draw, and the path ends where it began. Keys are real
+ * `Input.dispatchKeyEvent`s, so the app's own camera code runs.
+ */
+const PAN_KEYS = [
+  { key: 'd', code: 'KeyD', vk: 68 },
+  { key: 's', code: 'KeyS', vk: 83 },
+  { key: 'a', code: 'KeyA', vk: 65 },
+  { key: 'w', code: 'KeyW', vk: 87 },
+]
+const PAN_LEG_MS = 1500
+
+/** Pans until `stop.done`; returns how far the camera travelled, in world px (sum of the leg steps). */
+async function panUntil(page, stop) {
+  await page.evaluate(`document.querySelector('.map2d-world')?.focus({ preventScroll: true })`)
+  const cam = () => page.evaluate('window.__thbBench.camera()')
+  let last = await cam()
+  let travelled = 0
+  for (let leg = 0; !stop.done; leg++) {
+    const k = PAN_KEYS[leg % PAN_KEYS.length]
+    const ev = { key: k.key, code: k.code, windowsVirtualKeyCode: k.vk }
+    await page.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...ev })
+    const until = Date.now() + PAN_LEG_MS
+    while (!stop.done && Date.now() < until) await sleep(50)
+    await page.send('Input.dispatchKeyEvent', { type: 'keyUp', ...ev })
+    const now = await cam()
+    travelled += Math.hypot(now.x - last.x, now.y - last.y)
+    last = now
+  }
+  return travelled
+}
+
 async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mode, pass, port, runIndex }) {
   const chrome = await launchChrome({
     port,
@@ -409,6 +447,9 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
           `Promise.resolve(window.__thbCf?.engine?.activeRenderSystem?.setGpuTiming?.(true)).then(() => true, () => false)`,
         )
         .catch(() => null)
+    // Panning starts before the window so the first frame of it is already a moving one.
+    const pan = { done: false }
+    const panning = mode === 'panning' ? panUntil(page, pan).catch(() => null) : null
     await sleep(600)
     await page.evaluate(`performance.mark('bench-start')`)
     const m0 = metricsOf(await page.send('Performance.getMetrics'))
@@ -417,10 +458,16 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
     const t0 = Date.now()
     await sleep(windowMs)
     const elapsed = Date.now() - t0
+    pan.done = true
     const s1 = await page.evaluate(PAGE_STATS)
     const p1 = await processCpu(browser)
     const m1 = metricsOf(await page.send('Performance.getMetrics'))
     await page.evaluate(`performance.mark('bench-end')`)
+    if (panning) {
+      const travelled = await panning
+      if (travelled === null) throw new Error('the camera pan failed')
+      result.panPx = Math.round(travelled)
+    }
 
     const wall = (m1.Timestamp - m0.Timestamp) * 1000
     result.windowMs = Math.round(wall)

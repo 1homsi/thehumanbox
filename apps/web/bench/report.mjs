@@ -17,7 +17,7 @@ if (!inputs.length) {
 }
 
 const f = (v, d = 1) => (v === null || v === undefined ? '-' : Number(v).toFixed(d))
-const ORDER = { overview: 0, mid: 1, close: 2, paused: 0, playing: 1, standard: 0, crowd: 1 }
+const ORDER = { overview: 0, mid: 1, close: 2, paused: 0, playing: 1, panning: 2, standard: 0, crowd: 1 }
 const sorted = (rows) =>
   [...rows].sort(
     (a, b) =>
