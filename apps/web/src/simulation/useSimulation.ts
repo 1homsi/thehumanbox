@@ -21,7 +21,7 @@ import {
 import { canSendSandboxCommand, type SandboxCommand } from './sandbox'
 import { isDesktop } from '../shared/desktop'
 import { localSaveWorkerRequest } from './wasmPersistence'
-import { failedSnapshotFrameId, shouldRetrySnapshot } from './snapshotResync'
+import { FrameSequence } from './frameSequence'
 import {
   fetchRuntimeControlState,
   WASM_BASE_TICK_MS,
@@ -109,8 +109,7 @@ export function useSimulation(source: WorldSource = 'native'): {
   const prevServerAtRef = useRef<number>(0)
   const currentServerAtRef = useRef<number>(0)
   const currentReceivedAtRef = useRef<number>(0)
-  const lastFrameIdRef = useRef<number>(0)
-  const awaitingFullFrameRef = useRef(false)
+  const frameSequenceRef = useRef(new FrameSequence())
   const snapshotPendingRef = useRef(false)
   const bootstrapPendingRef = useRef(true)
 
@@ -151,12 +150,12 @@ export function useSimulation(source: WorldSource = 'native'): {
 
     function markAwaitingFullFrame() {
       if (effectiveSource === 'wasm') return
-      awaitingFullFrameRef.current = true
+      frameSequenceRef.current.markAwaitingFullFrame()
       if (snapshotFetchTimerRef.current !== null) return
       snapshotFetchTimerRef.current = setTimeout(() => {
         snapshotFetchTimerRef.current = null
         if (destroyed) return
-        if (!awaitingFullFrameRef.current) return
+        if (!frameSequenceRef.current.awaitingFullFrame) return
         requestSnapshotResync()
       }, SNAPSHOT_FETCH_GRACE_MS)
     }
@@ -182,13 +181,13 @@ export function useSimulation(source: WorldSource = 'native'): {
       bootstrapPendingRef.current = true
       const ctl = new AbortController()
       snapshotAbort = ctl
-      lastFrameIdRef.current = 0
+      frameSequenceRef.current.beginSnapshotRequest()
       const scheduleSnapshotRetry = () => {
         const retryMs = 600 + Math.round(Math.random() * 600)
         setTimeout(() => {
           if (destroyed) return
           if (snapshotPendingRef.current) return
-          if (!shouldRetrySnapshot(currentWorldRef.current !== null, awaitingFullFrameRef.current)) return
+          if (!frameSequenceRef.current.shouldRetrySnapshot(currentWorldRef.current !== null)) return
           requestSnapshotResync(true)
         }, retryMs)
       }
@@ -196,7 +195,7 @@ export function useSimulation(source: WorldSource = 'native'): {
         .then((buf) => {
           if (destroyed || ctl.signal.aborted) return
           if (buf == null) {
-            lastFrameIdRef.current = failedSnapshotFrameId()
+            frameSequenceRef.current.failSnapshotRequest()
             if (bootstrapPendingRef.current) {
               bootstrapPendingRef.current = false
               scheduleFlush()
@@ -210,7 +209,7 @@ export function useSimulation(source: WorldSource = 'native'): {
         })
         .catch(() => {
           if (ctl.signal.aborted) return
-          lastFrameIdRef.current = failedSnapshotFrameId()
+          frameSequenceRef.current.failSnapshotRequest()
           if (bootstrapPendingRef.current) {
             bootstrapPendingRef.current = false
             scheduleFlush()
@@ -247,12 +246,12 @@ export function useSimulation(source: WorldSource = 'native'): {
         }
         try {
           const parsed = parseResult.value
-          if (lastFrameIdRef.current > 0 && parsed.frame_id <= lastFrameIdRef.current) {
+          if (frameSequenceRef.current.isStale(parsed.frame_id)) {
             continue
           }
-          if (lastFrameIdRef.current > 0 && parsed.frame_id > lastFrameIdRef.current + 1) {
-            const gap = parsed.frame_id - lastFrameIdRef.current - 1
-            if (gap > 2 && !awaitingFullFrameRef.current) {
+          if (frameSequenceRef.current.lastFrameId > 0 && parsed.frame_id > frameSequenceRef.current.lastFrameId + 1) {
+            const gap = parsed.frame_id - frameSequenceRef.current.lastFrameId - 1
+            if (gap > 2 && !frameSequenceRef.current.awaitingFullFrame) {
               markAwaitingFullFrame()
             }
           }
@@ -273,9 +272,8 @@ export function useSimulation(source: WorldSource = 'native'): {
           currentWorldRef.current = next
           currentServerAtRef.current = parsed.server_sent_at_ms
           currentReceivedAtRef.current = performance.now()
-          lastFrameIdRef.current = parsed.frame_id
+          frameSequenceRef.current.acceptFrame(parsed.frame_id, parsed.frame_kind === 'full')
           if (parsed.frame_kind === 'full') {
-            awaitingFullFrameRef.current = false
             cancelPendingSnapshotFetch()
           }
           latest = next
@@ -705,7 +703,7 @@ export function useSimulation(source: WorldSource = 'native'): {
       scheduleAfkCheck()
       reconnectDelayMs = 1000
       bootstrapPendingRef.current = true
-      awaitingFullFrameRef.current = true
+      frameSequenceRef.current.markAwaitingFullFrame()
       connect()
     }
 
@@ -742,7 +740,7 @@ export function useSimulation(source: WorldSource = 'native'): {
         rafPending.current = null
       }
       queuedMsgs.current = []
-      awaitingFullFrameRef.current = true
+      frameSequenceRef.current.markAwaitingFullFrame()
       const ws = wsRef.current
       const dead = !ws || ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED
       if (dead) {
