@@ -125,6 +125,7 @@ export class CfOverlayRenderer {
   readonly glyphs: GlyphSet
   private readonly heat: HeatGrid
   private readonly heatCanvas: HTMLCanvasElement
+  private heatImage: ImageData | null = null
   private readonly heatId = atlasId('heat')
   private readonly heatLayer: SpriteLayer
   private heatShown = false
@@ -561,8 +562,9 @@ export class CfOverlayRenderer {
     if (this.heatShown) {
       const ctx = this.heatCanvas.getContext('2d')
       if (ctx) {
-        const image = new ImageData(new Uint8ClampedArray(this.heat.rgba), g.width, g.height)
-        ctx.putImageData(image, 0, 0)
+        // One ImageData over the grid's own buffer: nothing to copy per refresh.
+        this.heatImage ??= new ImageData(this.heat.rgba, this.heat.width, this.heat.height)
+        ctx.putImageData(this.heatImage, 0, 0)
         this.host.dirty(this.heatId, 0, 0, g.width, g.height)
       }
     }

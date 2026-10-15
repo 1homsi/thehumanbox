@@ -72,7 +72,7 @@ describe('path_trail_hot', () => {
 })
 
 describe('worn-path overlay', () => {
-  function heatOf(grid: ReturnType<typeof applyGridWire>): Uint8Array {
+  function heatOf(grid: ReturnType<typeof applyGridWire>): Uint8ClampedArray {
     const heat = new HeatGrid(grid.width, grid.height)
     const world = { grid, weather: undefined } as unknown as WorldState
     heat.compute(

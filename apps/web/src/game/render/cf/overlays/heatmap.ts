@@ -47,7 +47,7 @@ export interface HeatSettings {
  */
 export class HeatGrid {
   readonly tiles: Uint16Array
-  readonly rgba: Uint8Array
+  readonly rgba: Uint8ClampedArray<ArrayBuffer>
   private readonly pr: Float32Array
   private readonly pg: Float32Array
   private readonly pb: Float32Array
@@ -66,7 +66,7 @@ export class HeatGrid {
     this.height = height
     const n = width * height
     this.tiles = new Uint16Array(n)
-    this.rgba = new Uint8Array(n * 4)
+    this.rgba = new Uint8ClampedArray(n * 4)
     this.pr = new Float32Array(n)
     this.pg = new Float32Array(n)
     this.pb = new Float32Array(n)
