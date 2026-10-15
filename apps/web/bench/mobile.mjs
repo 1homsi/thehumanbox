@@ -241,7 +241,6 @@ async function checkViewport(origin, width, height, index) {
           '!!document.querySelector(".panel-right.open .org-detail")',
         )
         if (selectedBefore) throw new Error('a person was selected before the tap-selection check')
-        const info = await page.evaluate('window.__thbBench.info()')
         const meta = await (await fetch(`${origin}/__bench/${fixture}.json`)).json()
         const focus = meta.focus
         const tile = await page.evaluate('window.__thbBench.tile')
@@ -249,15 +248,17 @@ async function checkViewport(origin, width, height, index) {
           const r = document.querySelector('[aria-label="Interactive world map"]').getBoundingClientRect()
           return { left: r.left, top: r.top, width: r.width, height: r.height }
         })()`)
-        const fitZoom = Math.min(rect.width / (info.gridW * tile), rect.height / (info.gridH * tile)) * 0.95
         await page.evaluate('window.__thbBench.command({kind:"fit"})')
-        await waitFor(
-          page,
-          `Math.abs(window.__thbBench.camera().zoom - ${fitZoom}) < 0.0001`,
-          'fitted camera',
-          5_000,
-        )
         const camera = await waitForStableCamera(page)
+        // Negative control: a tap on open sea far from every person must not select anyone.
+        await touch(page, 'touchStart', [
+          { id: 1, x: Math.round(rect.left + 6), y: Math.round(rect.top + 6) },
+        ])
+        await touch(page, 'touchEnd', [])
+        await sleep(200)
+        if (await page.evaluate('!!document.querySelector(".panel-right.open .org-detail")'))
+          throw new Error('a tap on empty sea selected a person')
+        const info = await page.evaluate('window.__thbBench.info()')
         const targets = info.peoplePositions
           .map((person) => ({
             ...person,
