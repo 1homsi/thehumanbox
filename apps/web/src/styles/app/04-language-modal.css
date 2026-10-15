@@ -30,6 +30,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
   z-index: 100;
 }
 .idle-resume-backdrop {

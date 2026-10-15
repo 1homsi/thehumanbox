@@ -10,7 +10,7 @@
     z-index: 59;
     align-items: center;
     gap: 10px;
-    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    padding: 10px calc(14px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(14px + var(--safe-left));
     background: linear-gradient(180deg, rgba(28, 22, 18, 0.96), rgba(16, 12, 10, 0.98));
     border-top: 1px solid rgba(160, 130, 90, 0.35);
     color: #e5ddc7;
@@ -63,7 +63,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: calc(20px + var(--safe-top)) calc(20px + var(--safe-right)) calc(20px + var(--safe-bottom))
+    calc(20px + var(--safe-left));
   animation: welcome-fade 220ms ease;
 }
 @keyframes welcome-fade {

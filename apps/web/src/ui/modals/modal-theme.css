@@ -9,8 +9,8 @@
   border: 2px solid var(--px-ink);
   border-radius: 0;
   font-family: var(--dialog-font);
-  max-width: calc(100vw - 24px);
-  max-height: calc(100dvh - 32px);
+  max-width: calc(100vw - 24px - var(--safe-left) - var(--safe-right));
+  max-height: calc(100dvh - 32px - var(--safe-top) - var(--safe-bottom));
   box-shadow: var(--px-frame-shadow);
   scrollbar-color: var(--px-brass) var(--dialog-inset);
   scrollbar-width: thin;

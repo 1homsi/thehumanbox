@@ -306,14 +306,14 @@
     z-index: 70;
     border-right: 1px solid #443329;
     background: #28201a;
-    padding: 14px 12px 24px;
+    padding: calc(14px + var(--safe-top)) 12px calc(24px + var(--safe-bottom)) calc(12px + var(--safe-left));
     overflow-y: auto;
   }
   .panel-left.open {
     width: 80vw;
     max-width: 320px;
     transform: translateX(0);
-    padding: 14px 12px 24px;
+    padding: calc(14px + var(--safe-top)) 12px calc(24px + var(--safe-bottom)) calc(12px + var(--safe-left));
   }
 
   .panel-overlay,
@@ -342,7 +342,7 @@
     border-top: 1px solid #443329;
     border-radius: 14px 14px 0 0;
     background: #28201a;
-    padding: 14px 14px 24px;
+    padding: 14px calc(14px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(14px + var(--safe-left));
   }
   .panel-right::before {
     content: '';
@@ -357,14 +357,14 @@
   .panel-right.open {
     width: 100%;
     transform: translateY(0);
-    padding: 14px 14px 24px;
+    padding: 14px calc(14px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(14px + var(--safe-left));
     border-left: none;
   }
 
   /* Modals as bottom sheets */
   .lang-modal-backdrop {
     align-items: flex-end;
-    padding: 0;
+    padding: 0 var(--safe-right) 0 var(--safe-left);
   }
 
   .lang-modal,
@@ -387,6 +387,7 @@
     border-left: none;
     border-right: none;
     border-bottom: none;
+    padding-bottom: var(--safe-bottom);
   }
 
   /* Org search: stack list above detail on mobile */
