@@ -7,6 +7,7 @@ import {
   Menu,
   nativeImage,
   Notification,
+  screen,
   shell,
   Tray,
 } from "electron";
@@ -18,6 +19,8 @@ import {
   isRendererNavigation,
   shouldShowLoadError,
 } from "./navigation-guard";
+import { sanitizeWindowState, type WindowState } from "./window-state";
+import { atomicReplaceFile } from "./world-safety";
 import { registerIpc } from "./ipc";
 import { startWhenReady } from "./startup-lifecycle";
 import { runExclusiveDesktopOperation } from "./exclusive-operation";
@@ -35,35 +38,17 @@ const isDev = !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 
-interface WindowState {
-  x?: number;
-  y?: number;
-  width: number;
-  height: number;
-  maximized?: boolean;
-}
-
 function windowStateFile(): string {
   return path.join(app.getPath("userData"), "window-state.json");
 }
 
 function loadWindowState(): WindowState {
   try {
-    const raw = fs.readFileSync(windowStateFile(), "utf8");
-    const parsed = JSON.parse(raw) as Partial<WindowState>;
-    return {
-      x: parsed.x,
-      y: parsed.y,
-      width:
-        typeof parsed.width === "number" && parsed.width >= 800
-          ? parsed.width
-          : 1400,
-      height:
-        typeof parsed.height === "number" && parsed.height >= 600
-          ? parsed.height
-          : 900,
-      maximized: parsed.maximized === true,
-    };
+    const parsed: unknown = JSON.parse(fs.readFileSync(windowStateFile(), "utf8"));
+    return sanitizeWindowState(
+      parsed,
+      screen.getAllDisplays().map((d) => d.workArea),
+    );
   } catch {
     return { width: 1400, height: 900 };
   }
@@ -93,7 +78,7 @@ function persistWindowState(win: BrowserWindow): void {
       height: bounds.height,
       maximized: win.isMaximized(),
     };
-    fs.writeFileSync(windowStateFile(), JSON.stringify(state, null, 2), "utf8");
+    atomicReplaceFile(windowStateFile(), JSON.stringify(state, null, 2));
   } catch (e) {
     console.warn("[main] could not persist window state:", e);
   }
