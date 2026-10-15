@@ -457,9 +457,12 @@ async function startSimOnce(
     suppliedLock?.release();
     throw error;
   }
-  const workdir = prepareDataRoot(settings);
+  let workdir: string;
   let dataLock: DataRootLock;
   try {
+    // prepareDataRoot throws for a custom save folder that is gone or whose
+    // identity file is unreadable; a handed-over lock must not outlive that.
+    workdir = prepareDataRoot(settings);
     dataLock = suppliedLock ?? acquireDataRootLock(workdir, process.pid, true);
   } catch (error) {
     suppliedLock?.release();
