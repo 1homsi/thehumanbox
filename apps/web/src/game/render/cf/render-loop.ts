@@ -42,6 +42,19 @@ export class SleepyLoop {
 }
 
 const loops = new Set<SleepyLoop>()
+const contextRestoreWakers = new Set<() => void>()
+
+/** Register a callback that marks an on-demand GPU frame dirty after context restoration. */
+export function registerContextRestoreWake(wake: () => void): () => void {
+  contextRestoreWakers.add(wake)
+  return () => contextRestoreWakers.delete(wake)
+}
+
+/** Repaint restored GPU canvases and wake the app's other render loops. */
+export function wakeRenderLoopsAfterContextRestore(): void {
+  for (const wake of contextRestoreWakers) wake()
+  wakeRenderLoops()
+}
 
 /** Wake every loop that has gone to sleep: something it watches may have changed. */
 export function wakeRenderLoops(): void {

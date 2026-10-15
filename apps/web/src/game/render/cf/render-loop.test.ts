@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { signalSimFrame } from '../../../simulation/frame-signal'
-import { SleepyLoop, wakeRenderLoops } from './render-loop'
+import {
+  registerContextRestoreWake,
+  SleepyLoop,
+  wakeRenderLoops,
+  wakeRenderLoopsAfterContextRestore,
+} from './render-loop'
 
 /** A requestAnimationFrame the test steps by hand. */
 function fakeFrames() {
@@ -82,6 +87,18 @@ describe('SleepyLoop', () => {
     expect(frames.pending()).toBe(0)
     wakeRenderLoops()
     expect(frames.pending()).toBe(1)
+  })
+
+  it('marks registered GPU renderers dirty after a context restore', () => {
+    const markDirty = vi.fn()
+    const unregister = registerContextRestoreWake(markDirty)
+
+    wakeRenderLoopsAfterContextRestore()
+    expect(markDirty).toHaveBeenCalledOnce()
+
+    unregister()
+    wakeRenderLoopsAfterContextRestore()
+    expect(markDirty).toHaveBeenCalledOnce()
   })
 
   it('stays stopped once stopped, and a stopped loop ignores wakes', () => {

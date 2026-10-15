@@ -10,7 +10,7 @@ import { TerrainTileLayer, type TerrainSyncFn } from '../terrain-tiles/TerrainTi
 import { makeFrame } from './frame'
 import { CfRegistry } from './registry'
 import { wakeEngine } from './frame-clock'
-import { SleepyLoop } from './render-loop'
+import { registerContextRestoreWake, SleepyLoop } from './render-loop'
 import { CfBuildings } from './buildings/CfBuildings'
 import { CfGround } from './ground/CfGround'
 import { CfLanduse } from './landuse/CfLanduse'
@@ -143,6 +143,8 @@ export function CfWorld({
     loop.wake()
     return () => loop.stop()
   }, [interp, rendererPaused, step, cameraStateRef, viewportDims])
+
+  useEffect(() => registerContextRestoreWake(() => engine.loop.markDirty()), [engine])
 
   useEffect(() => {
     const handle = { registry, engine }
