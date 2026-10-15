@@ -27,6 +27,7 @@ pub(super) fn build_app(state: AppState) -> Router {
             }
         }
     }
+    let guard = sandbox_guard::SandboxGuard::new(allowed.clone(), std::env::var("THB_COMMAND_TOKEN").ok());
     let cors = CorsLayer::new()
         .allow_origin(AllowOrigin::list(allowed))
         .allow_methods(Any)
@@ -52,13 +53,20 @@ pub(super) fn build_app(state: AppState) -> Router {
         .route("/worlds/{hash}/save", get(routes::world_save_handler));
 
     if std::env::var("THB_SANDBOX").ok().as_deref() == Some("1") {
-        app = app
-            .route("/command", post(routes::command_handler))
-            .route(
-                "/runtime",
-                get(routes::runtime_status_handler).post(routes::runtime_handler),
-            )
-            .route("/save", post(routes::save_handler));
+        // Mutating sandbox requests from a browser must come from an allowed origin (see `sandbox_guard`).
+        app = app.merge(
+            Router::new()
+                .route("/command", post(routes::command_handler))
+                .route(
+                    "/runtime",
+                    get(routes::runtime_status_handler).post(routes::runtime_handler),
+                )
+                .route("/save", post(routes::save_handler))
+                .route_layer(axum::middleware::from_fn_with_state(
+                    guard,
+                    sandbox_guard::sandbox_guard,
+                )),
+        );
         tracing::info!(
             "sandbox enabled: local game controls expose POST /command, GET/POST /runtime, and POST /save"
         );

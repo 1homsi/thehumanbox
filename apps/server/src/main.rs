@@ -10,6 +10,7 @@ mod frame_codec;
 mod rollover;
 mod router;
 mod runtime;
+mod sandbox_guard;
 mod startup;
 mod state;
 #[cfg(test)]
