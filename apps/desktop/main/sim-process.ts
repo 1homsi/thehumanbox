@@ -6,6 +6,7 @@ import { app } from "electron";
 import { openRotatingLog, type SimLog } from "./sim-log";
 
 import type { Settings } from "./settings";
+import { SIM_START_TIMEOUT_MS, waitForSimulation } from "./sim-ready";
 import { effectiveDataRoot, prepareDataRoot } from "./settings";
 import { buildLocalSimEnv } from "./sim-env";
 import {
@@ -105,34 +106,6 @@ async function pickFreePort(): Promise<number> {
       }
     });
   });
-}
-
-async function waitForPort(
-  port: number,
-  timeoutMs: number,
-  isAlive: () => boolean,
-): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (!isAlive())
-      throw new Error("simulation-rs exited before binding the port");
-    const ok = await new Promise<boolean>((resolve) => {
-      const socket = net.connect({ host: "127.0.0.1", port }, () => {
-        socket.end();
-        resolve(true);
-      });
-      socket.on("error", () => resolve(false));
-      socket.setTimeout(500, () => {
-        socket.destroy();
-        resolve(false);
-      });
-    });
-    if (ok) return;
-    await new Promise((r) => setTimeout(r, 100));
-  }
-  throw new Error(
-    `simulation-rs did not start listening on 127.0.0.1:${port} within ${timeoutMs}ms`,
-  );
 }
 
 function pidFilePath(settings: Settings): string {
@@ -613,7 +586,11 @@ async function startSimOnce(
     if (!app.isPackaged) process.stderr.write("[sim] " + s);
   });
   try {
-    await waitForPort(port, 15000, () => alive);
+    await waitForSimulation({
+      port,
+      timeoutMs: SIM_START_TIMEOUT_MS,
+      isAlive: () => alive,
+    });
   } catch (err) {
     try {
       child.kill("SIGKILL");
@@ -634,7 +611,7 @@ async function startSimOnce(
     );
   }
 
-  // Re-check liveness: the child can exit during the `waitForPort` window,
+  // Re-check liveness: the child can exit during the `waitForSimulation` window,
   // in which case its `exit`/`close` handler ran `releaseOwnership` while
   // `current` was still null, and installing it now would register a dead
   // process as the running simulation. `activeSim()` would then report
