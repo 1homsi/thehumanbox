@@ -9,6 +9,15 @@ const MAX_TOOLTIP_W = 320
 const EDGE_PAD = 8
 const LONG_PRESS_MS = 400
 
+/** Whether focus on this element should look like keyboard focus (`:focus-visible`); true where unsupported. */
+function focusFromKeyboard(el: HTMLElement): boolean {
+  try {
+    return el.matches(':focus-visible')
+  } catch {
+    return true
+  }
+}
+
 interface Props {
   tip: ReactNode
   children: ReactElement<Record<string, unknown>>
@@ -49,7 +58,9 @@ export function Tooltip({ tip, children }: Props) {
       ;(children.props.onMouseLeave as ((e: React.MouseEvent) => void) | undefined)?.(e)
     },
     onFocus: (e: React.FocusEvent) => {
-      show(e.currentTarget as HTMLElement)
+      // Radix hands focus back to the trigger when a modal closes: that is not the pointer or keyboard
+      // visiting it, so only a keyboard-style focus shows the tip.
+      if (focusFromKeyboard(e.currentTarget as HTMLElement)) show(e.currentTarget as HTMLElement)
       ;(children.props.onFocus as ((e: React.FocusEvent) => void) | undefined)?.(e)
     },
     onBlur: (e: React.FocusEvent) => {
