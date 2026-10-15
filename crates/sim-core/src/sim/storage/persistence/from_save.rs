@@ -40,6 +40,10 @@ impl Simulation {
                 grid.road = state.grid.road;
             }
             for v in state.grid.placed_volcanoes {
+                // Saves written before off-map volcano posts were rejected may hold stray cones.
+                if !WorldGrid::in_bounds(v.x, v.y) {
+                    continue;
+                }
                 grid.raise_volcano(v.x, v.y, v.r);
             }
             grid.trail_dirty = (0..expected)
