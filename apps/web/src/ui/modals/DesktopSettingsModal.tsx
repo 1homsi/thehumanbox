@@ -316,18 +316,40 @@ export function DesktopSettingsModal({ onClose }: Props) {
   const [busy, setBusy] = useState(false)
   const [savedAt, setSavedAt] = useState<number | null>(null)
   const [safetyMessage, setSafetyMessage] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadAttempt, setLoadAttempt] = useState(0)
 
   useEffect(() => {
     if (!desktop) return
-    void desktop.settings.get().then(setSettings)
-    void desktop.sim.status().then(setStatus)
-  }, [desktop])
+    let cancelled = false
+    setLoadError(null)
+    desktop.settings
+      .get()
+      .then((loaded) => {
+        if (!cancelled) setSettings(loaded)
+      })
+      .catch((error) => {
+        if (!cancelled) setLoadError(`could not load settings: ${errorText(error)}`)
+      })
+    // The status line is informational; failing to read it must not block the tab.
+    desktop.sim
+      .status()
+      .then((next) => {
+        if (!cancelled) setStatus(next)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [desktop, loadAttempt])
 
   const update = (patch: Partial<DesktopSettings>) => setSettings((s) => (s ? { ...s, ...patch } : s))
 
   async function save() {
     if (!settings || !desktop) return
     setBusy(true)
+    setActionError(null)
     try {
       const saved = await desktop.settings.set(settings)
       setSettings(saved)
@@ -336,6 +358,8 @@ export function DesktopSettingsModal({ onClose }: Props) {
       )
       await desktop.app.applyAutoLaunch()
       setSavedAt(Date.now())
+    } catch (error) {
+      setActionError(`could not save settings: ${errorText(error)}`)
     } finally {
       setBusy(false)
     }
@@ -345,6 +369,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
     if (!settings || !desktop) return
     setBusy(true)
     setStatus(null)
+    setActionError(null)
     try {
       const saved = await desktop.settings.set(settings)
       window.dispatchEvent(
@@ -353,6 +378,13 @@ export function DesktopSettingsModal({ onClose }: Props) {
       const next = await desktop.sim.restart()
       setStatus(next)
       setSavedAt(Date.now())
+    } catch (error) {
+      setActionError(`could not restart the simulation: ${errorText(error)}`)
+      // The restart may have left the sim stopped or still running; show the truth.
+      desktop.sim
+        .status()
+        .then(setStatus)
+        .catch(() => {})
     } finally {
       setBusy(false)
     }
@@ -484,7 +516,15 @@ export function DesktopSettingsModal({ onClose }: Props) {
             </Section>
           )}
 
-          {desktopTab && desktop && !settings && <div className="settings-note">loading…</div>}
+          {desktopTab && desktop && !settings && !loadError && <div className="settings-note">loading…</div>}
+          {desktopTab && desktop && !settings && loadError && (
+            <div className="settings-note" role="alert">
+              {loadError}{' '}
+              <button className="lang-btn" onClick={() => setLoadAttempt((n) => n + 1)}>
+                retry
+              </button>
+            </div>
+          )}
           {desktopTab && desktop && settings && (
             <>
               {tab === 'simulation' && (
@@ -637,6 +677,11 @@ export function DesktopSettingsModal({ onClose }: Props) {
                   {busy ? 'saving…' : 'save settings'}
                 </button>
                 {justSaved && <span className="settings-saved">saved</span>}
+                {actionError && (
+                  <span className="settings-note" role="alert">
+                    {actionError}
+                  </span>
+                )}
                 <span className="settings-note">Tick changes apply after a restart.</span>
               </div>
             </>
@@ -645,6 +690,10 @@ export function DesktopSettingsModal({ onClose }: Props) {
       </div>
     </Modal>
   )
+}
+
+function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
 }
 
 function updateCheckMessage(result: UpdateCheckResult | null): string {
