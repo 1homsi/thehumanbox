@@ -9,13 +9,15 @@ const MAX_TOOLTIP_W = 320
 const EDGE_PAD = 8
 const LONG_PRESS_MS = 400
 
-/** Whether focus on this element should look like keyboard focus (`:focus-visible`); true where unsupported. */
-function focusFromKeyboard(el: HTMLElement): boolean {
-  try {
-    return el.matches(':focus-visible')
-  } catch {
-    return true
-  }
+/**
+ * Whether the focus that just landed came from the player tabbing to the element. Radix hands focus back to the
+ * trigger when a modal closes (by click, Enter or Escape); that is not a visit, and showing a tip for it leaves one
+ * stuck over the header. `:focus-visible` alone is not enough: after an Escape it matches.
+ */
+let lastKeyWasTab = false
+if (typeof document !== 'undefined') {
+  document.addEventListener('keydown', (e) => (lastKeyWasTab = e.key === 'Tab'), true)
+  document.addEventListener('pointerdown', () => (lastKeyWasTab = false), true)
 }
 
 interface Props {
@@ -58,9 +60,7 @@ export function Tooltip({ tip, children }: Props) {
       ;(children.props.onMouseLeave as ((e: React.MouseEvent) => void) | undefined)?.(e)
     },
     onFocus: (e: React.FocusEvent) => {
-      // Radix hands focus back to the trigger when a modal closes: that is not the pointer or keyboard
-      // visiting it, so only a keyboard-style focus shows the tip.
-      if (focusFromKeyboard(e.currentTarget as HTMLElement)) show(e.currentTarget as HTMLElement)
+      if (lastKeyWasTab) show(e.currentTarget as HTMLElement)
       ;(children.props.onFocus as ((e: React.FocusEvent) => void) | undefined)?.(e)
     },
     onBlur: (e: React.FocusEvent) => {

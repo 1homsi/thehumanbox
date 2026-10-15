@@ -29,30 +29,29 @@ function mount() {
   return host.querySelector('button') as HTMLButtonElement
 }
 
-const focusVisible = (value: boolean) => {
-  const matches = Element.prototype.matches
-  vi.spyOn(Element.prototype, 'matches').mockImplementation(function (this: Element, selector: string) {
-    return selector === ':focus-visible' ? value : matches.call(this, selector)
-  })
-}
+const press = (key: string) =>
+  act(() => void document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true })))
 
 describe('Tooltip on focus', () => {
-  it('shows for keyboard focus', () => {
-    focusVisible(true)
+  it('shows when the player tabs to it', () => {
     const button = mount()
+    press('Tab')
     act(() => button.focus())
     expect(document.querySelector('.ui-tooltip')).not.toBeNull()
   })
 
-  it('stays hidden when focus is only handed back after a modal closes', () => {
-    focusVisible(false)
+  it('stays hidden when focus is only handed back after a modal closes, by Escape or a click', () => {
     const button = mount()
+    press('Escape')
+    act(() => button.focus())
+    expect(document.querySelector('.ui-tooltip')).toBeNull()
+    act(() => button.blur())
+    act(() => void document.dispatchEvent(new Event('pointerdown', { bubbles: true })))
     act(() => button.focus())
     expect(document.querySelector('.ui-tooltip')).toBeNull()
   })
 
   it('still shows on hover', () => {
-    focusVisible(false)
     const button = mount()
     act(() => button.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })))
     expect(document.querySelector('.ui-tooltip')).not.toBeNull()
