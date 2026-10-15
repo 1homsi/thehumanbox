@@ -163,7 +163,7 @@ impl TickLoop {
         tokio::spawn(async move {
             if let Err(error) = tick_task.await {
                 tracing::error!(target: "tick", "tick loop terminated: {}", error);
-                if exit_on_tick_failure() {
+                if error.is_panic() && exit_on_tick_failure() {
                     std::process::exit(101);
                 }
             }
