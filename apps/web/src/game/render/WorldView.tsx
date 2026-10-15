@@ -90,14 +90,20 @@ export function WorldView({
   )
   // Other panels (the prayer list) ask the camera to look at a tile.
   const focusRequest = useCameraFocus((s) => s.request)
+  // The request is one-shot: consume it so remounting the map (back from a
+  // home interior) or a new world origin does not replay it.
+  const originRef = useRef({ ox, oy })
+  originRef.current = { ox, oy }
   useEffect(() => {
     if (!focusRequest) return
+    const { ox, oy } = originRef.current
     commandRef.current = {
       kind: 'focus',
       x: (focusRequest.x - ox + 0.5) * TILE,
       y: (focusRequest.y - oy + 0.5) * TILE,
     }
-  }, [focusRequest, ox, oy])
+    useCameraFocus.setState({ request: null })
+  }, [focusRequest])
   const [dims, setDims] = useState({ w: 0, h: 0 })
   const {
     mapReady,

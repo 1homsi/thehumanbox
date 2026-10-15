@@ -2,6 +2,7 @@
 import type { ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { WorldState } from '../../../../shared/types'
+import { useCameraFocus } from '../../../../state/camera-focus'
 import { useUIStore } from '../../../../state/store'
 import { TILE } from '../../../model/palette'
 import { WorldView } from '../../WorldView'
@@ -17,12 +18,12 @@ import { engineHarness, pointer, wheel, type EngineHarness } from '../engine-har
 const WIDTH = 16
 const HEIGHT = 10
 
-function world(): WorldState {
-  const matrix = (value: number) => Array.from({ length: HEIGHT }, () => Array(WIDTH).fill(value))
+function world(width = WIDTH, height = HEIGHT): WorldState {
+  const matrix = (value: number) => Array.from({ length: height }, () => Array(width).fill(value))
   return {
     grid: {
-      width: WIDTH,
-      height: HEIGHT,
+      width,
+      height,
       tiles: matrix(1),
       fertility: matrix(0.7),
       structure: matrix(0),
@@ -78,6 +79,7 @@ afterEach(async () => {
   await harness?.unmount()
   harness = null
   useUIStore.setState({ selectedOrgId: null })
+  useCameraFocus.setState({ request: null })
   setWorldGPUForTests(null)
 })
 
@@ -134,6 +136,24 @@ describe('the map on xipjs', () => {
     expect(camera.y).toBe((HEIGHT * TILE) / 2)
     expect(camera.zoom).toBeCloseTo(Math.min(800 / (WIDTH * TILE), 500 / (HEIGHT * TILE)) * 0.95, 9)
     void h
+  })
+
+  it('a camera-focus request moves the camera once and is not replayed when the map remounts', async () => {
+    // Big enough that centring on a far tile is not clamped back to the middle.
+    const bigWorld = world(80, 50)
+    useCameraFocus.getState().focusTile(60, 10)
+    const h = await open({ world: bigWorld })
+    await h.frame(6)
+    expect(useCameraFocus.getState().request).toBeNull()
+    expect(probeCamera().x).toBeGreaterThan((80 * TILE) / 2)
+    await h.unmount()
+    harness = null
+    // Back from a home interior: the map opens on the whole world again.
+    const reopened = await open({ world: bigWorld })
+    await reopened.frame(6)
+    const camera = probeCamera()
+    expect(camera.x).toBe((80 * TILE) / 2)
+    expect(camera.y).toBe((50 * TILE) / 2)
   })
 
   it('a tap on a person selects them', async () => {
