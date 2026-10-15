@@ -23,7 +23,7 @@ test('replacing a window retains the new window and routes old events to their o
   // `whenReady` never settles: this test drives `createWindow` /
   // `createWindowReplace` directly and is not about the boot chain, so
   // letting it run would only add unrelated side effects (it needs a real
-  // Promise, since the module attaches a `.catch` backstop to it).
+  // Promise, since the module attaches boot to it).
   const app = {
     setName() {},
     isPackaged: true,
@@ -34,6 +34,7 @@ test('replacing a window retains the new window and routes old events to their o
     exports: {}, __dirname, process, console, setTimeout, clearTimeout,
     require: (id: string) => {
       if (id === 'electron') return { app, BrowserWindow: FakeWindow }
+      if (id === './startup-lifecycle') return { startWhenReady: () => {} }
       if (id === './settings') return { loadSettings: () => ({}) }
       if (id === './sim-process') return { startSim: async () => ({ port: 8000 }) }
       if (id === 'node:fs') return { readFileSync: () => { throw new Error('no saved bounds') } }

@@ -13,6 +13,7 @@ import {
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { registerIpc } from "./ipc";
+import { startWhenReady } from "./startup-lifecycle";
 import { runExclusiveDesktopOperation } from "./exclusive-operation";
 import { startSim, stopSim, activeSim } from "./sim-process";
 import { loadSettings, prepareDataRoot, type Settings } from "./settings";
@@ -127,10 +128,8 @@ async function createWindow(): Promise<void> {
   // than reverting to defaults, which would reset `saveLocationOverride` and
   // could orphan existing worlds. This read therefore has to sit inside the
   // boot error path: it used to run *outside* the try below, so the throw
-  // rejected `createWindow` before any BrowserWindow existed — and
-  // `app.whenReady().then(...)` had no catch — leaving a corrupt settings
-  // file to produce a silently windowless app instead of the actionable
-  // message the throw was written to deliver.
+  // rejected `createWindow` before any BrowserWindow existed, leaving a
+  // corrupt settings file without the actionable message intended here.
   try {
     settings = loadSettings();
   } catch (err) {
@@ -507,40 +506,7 @@ async function captureScreenshot(): Promise<string | null> {
   }
 }
 
-app.whenReady().then(async () => {
-  registerIpc(ipcMain, () => mainWindow);
-  await createWindow();
-  buildMenu();
-  buildTray();
-  applyAutoLaunch();
-  initUpdater(() => mainWindow);
-
-  globalShortcut.register(
-    process.platform === "darwin" ? "Cmd+Alt+I" : "Ctrl+Shift+I",
-    () => {
-      if (!mainWindow) return;
-      if (mainWindow.webContents.isDevToolsOpened())
-        mainWindow.webContents.closeDevTools();
-      else mainWindow.webContents.openDevTools({ mode: "detach" });
-    },
-  );
-
-  globalShortcut.register(
-    process.platform === "darwin" ? "Cmd+Shift+H" : "Ctrl+Shift+H",
-    toggleWindow,
-  );
-  globalShortcut.register(
-    process.platform === "darwin" ? "Cmd+Shift+S" : "Ctrl+Shift+S",
-    () => {
-      void captureScreenshot().then((fp) => {
-        if (fp) {
-          notifyMilestone("Screenshot saved", fp);
-          shell.showItemInFolder(fp);
-        }
-      });
-    },
-  );
-
+function registerAppIpcHandlers(): void {
   ipcMain.handle(
     "app:notify",
     (_e, payload: { title: string; body: string }) => {
@@ -589,23 +555,81 @@ app.whenReady().then(async () => {
     if (res.canceled || res.filePaths.length === 0) return null;
     return res.filePaths[0];
   });
-});
+}
 
-// Backstop for any boot step that rejects. Without this the `.then` chain's
+async function boot(): Promise<void> {
+  registerIpc(ipcMain, () => mainWindow);
+  registerAppIpcHandlers();
+  await createWindow();
+  buildMenu();
+  buildTray();
+  applyAutoLaunch();
+  initUpdater(() => mainWindow);
+
+  globalShortcut.register(
+    process.platform === "darwin" ? "Cmd+Alt+I" : "Ctrl+Shift+I",
+    () => {
+      if (!mainWindow) return;
+      if (mainWindow.webContents.isDevToolsOpened())
+        mainWindow.webContents.closeDevTools();
+      else mainWindow.webContents.openDevTools({ mode: "detach" });
+    },
+  );
+
+  globalShortcut.register(
+    process.platform === "darwin" ? "Cmd+Shift+H" : "Ctrl+Shift+H",
+    toggleWindow,
+  );
+  globalShortcut.register(
+    process.platform === "darwin" ? "Cmd+Shift+S" : "Ctrl+Shift+S",
+    () => {
+      void captureScreenshot().then((fp) => {
+        if (fp) {
+          notifyMilestone("Screenshot saved", fp);
+          shell.showItemInFolder(fp);
+        }
+      });
+    },
+  );
+}
+
+// Backstop for any boot step that rejects. Without this the boot chain's
 // rejection was unhandled: the app stayed running with no window, no tray,
 // no shortcuts, and no IPC handlers, which reads as a silent hang rather than
 // a startup failure. `dialog` is used because by this point every step above
 // it may not have run.
-void app.whenReady().catch((err: unknown) => {
+async function fatalStartupFailure(err: unknown): Promise<void> {
   const msg = (err as Error)?.message ?? String(err);
   console.error("[main] startup failed:", err);
+  let stopTimeout: NodeJS.Timeout | undefined;
+  try {
+    await Promise.race([
+      stopSim(1500, false),
+      new Promise<never>((_, reject) => {
+        stopTimeout = setTimeout(
+          () => reject(new Error("simulation shutdown exceeded 6 seconds")),
+          6000,
+        );
+      }),
+    ]);
+  } catch (stopError) {
+    console.error("[main] could not stop simulation after startup failure:", stopError);
+  } finally {
+    if (stopTimeout) clearTimeout(stopTimeout);
+  }
   try {
     dialog.showErrorBox("The Human Box couldn't start", msg);
   } catch {
     // No GUI available (e.g. headless CI); the log line above is all we have.
   }
   app.exit(1);
-});
+}
+
+function reportStartupFailure(err: unknown): Promise<void> {
+  return fatalStartupFailure(err);
+}
+
+startWhenReady(app.whenReady(), boot, reportStartupFailure);
 
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
