@@ -434,12 +434,16 @@ body.thb-colorblind .org-sick-badge {
     color: #f0e6cf;
     font-weight: 700;
   }
-  .civ-table td.civ-cell-actions:has(> .civ-lineage-actions:empty) {
+  .civ-table td.civ-cell-actions--empty {
     display: none;
   }
-  .civ-era-progress {
+  .civ-table .civ-era-progress {
     min-width: 0;
     max-width: none;
+  }
+  .civ-table .civ-lineage-actions {
+    min-width: 0;
+    justify-content: flex-start;
   }
 }
 .civ-era-progress {
