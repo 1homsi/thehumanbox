@@ -217,7 +217,10 @@ export function useSimulation(source: WorldSource = 'native'): {
           scheduleSnapshotRetry()
         })
         .finally(() => {
-          if (snapshotAbort === ctl) snapshotAbort = null
+          // A forced resync aborts this request and starts its replacement; the
+          // replacement owns the pending flag now, so it must not be cleared here.
+          if (snapshotAbort !== null && snapshotAbort !== ctl) return
+          snapshotAbort = null
           snapshotPendingRef.current = false
         })
     }
