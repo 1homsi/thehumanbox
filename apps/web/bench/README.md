@@ -102,6 +102,9 @@ Three flags make the same scenarios harder, to see how the map holds up on a wea
 | `--mobile` | phone preset: 390x844 at DPR 3, touch emulation, mobile user agent (`--size` and `--dpr` still override the viewport) |
 | `--gpu-off` | renders with SwiftShader (software WebGL) instead of the GPU; very slow at phone DPR, so combine it with a small `--size` or `--dpr 1` |
 
+A 390 px wide viewport also switches the app to its mobile layout (the banner, welcome modal and toolbar differ), so
+`--mobile` measures that UI, not just a smaller canvas.
+
 The conditions are recorded in every `results.json` row. `report.mjs` prints them in the table heading (and in a
 `conditions` column when a directory mixes several); comparisons only pair rows measured under the same conditions.
 Use one `--out` directory per condition:

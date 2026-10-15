@@ -77,7 +77,8 @@ const [width, height] = String(opt('size', mobile ? '390x844' : '1280x800'))
   .split('x')
   .map(Number)
 const cpuThrottle = Number(opt('cpu-throttle', 1))
-if (!(cpuThrottle >= 1)) throw new Error('--cpu-throttle takes a factor of 1 or more')
+if (!(cpuThrottle >= 1) || opt('cpu-throttle', 1) === true)
+  throw new Error('--cpu-throttle takes a factor of 1 or more, for example --cpu-throttle 6')
 const gpuOff = opt('gpu-off', false) === true
 const wantProfile = opt('profile', false) === true
 const wantShots = opt('shots', false) === true

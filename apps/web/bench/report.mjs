@@ -49,6 +49,8 @@ function compare(a, b) {
   lines.push('|---|---|---|---|---|---|---|---|---|---|---|')
   const key = (s) => `${s.fixture}|${s.zoom}|${s.mode}|${s.condition}`
   const base = new Map(a.summary.map((s) => [key(s), s]))
+  if (!b.summary.some((s) => base.has(key(s))))
+    return `${lines[0]}\n\nNo rows measured under the same conditions (${a.label}: ${[...new Set(a.summary.map((s) => s.condition))].join(' | ')}; ${b.label}: ${[...new Set(b.summary.map((s) => s.condition))].join(' | ')}).`
   const pair = (x, y, d = 1) => `${f(x, d)} → ${f(y, d)}`
   for (const s of sorted(b.summary)) {
     const o = base.get(key(s))
