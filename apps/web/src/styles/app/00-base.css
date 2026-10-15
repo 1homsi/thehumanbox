@@ -9,6 +9,7 @@ body {
   color: #ccc;
   font-family: monospace;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -191,6 +192,7 @@ body.thb-photo-mode .headline-ticker {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
 }
 
 .header {
