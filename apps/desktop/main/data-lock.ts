@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
-import * as os from "node:os";
+import { execFileSync } from "node:child_process";
 
 const LOCK_DIR_NAME = ".thehumanbox-data.lock";
 
@@ -113,24 +113,64 @@ function liveSimulationPidRecord(root: string): { pid: number; token: string | n
   }
 }
 
-// A process cannot outlive a reboot, so a lock taken before the machine booted
-// names a pid that now belongs to something unrelated (pids are recycled
-// aggressively, especially on Windows). The margin absorbs clock adjustments
-// and uptime clocks that disagree about time spent asleep.
-const BOOT_TIME_MARGIN_MS = 5 * 60_000;
+/**
+ * Executable name (no directory, no `.exe`) of a live pid, or null when it
+ * cannot be determined. Only called when a stale-looking lock names a live pid.
+ */
+export function executableNameOfPid(pid: number): string | null {
+  try {
+    let name: string;
+    if (process.platform === "win32") {
+      const listing = execFileSync(
+        "tasklist",
+        ["/FI", `PID eq ${pid}`, "/FO", "CSV", "/NH"],
+        { encoding: "utf8", windowsHide: true, timeout: 5_000 },
+      );
+      // "Image Name","PID",... ; "INFO: No tasks..." has no quoted fields.
+      const match = /^"([^"]+)","(\d+)"/m.exec(listing);
+      if (!match || Number(match[2]) !== pid) return null;
+      name = match[1];
+    } else {
+      name = path.basename(
+        execFileSync("ps", ["-p", String(pid), "-o", "comm="], {
+          encoding: "utf8",
+          timeout: 5_000,
+        }).trim(),
+      );
+    }
+    name = name.replace(/\.exe$/i, "");
+    return name === "" ? null : name;
+  } catch {
+    return null;
+  }
+}
 
-export function ownerPredatesBoot(
-  owner: { acquiredAt: number },
-  bootTimeMs: number,
+/**
+ * A pid named by a stale lock is only "another The Human Box" if that process
+ * runs the same executable as this one. Pids are recycled (aggressively on
+ * Windows, and after any reboot), so an unrelated program holding the old pid
+ * must not lock the player out of their save folder. When the executable
+ * cannot be identified the pid is assumed to be the owner: failing closed
+ * never lets two writers open one world.
+ */
+export function pidRunsDifferentProgram(
+  pid: number,
+  describe: (pid: number) => string | null = executableNameOfPid,
+  ownExecutable: string = process.execPath,
 ): boolean {
-  return owner.acquiredAt > 0 && owner.acquiredAt < bootTimeMs - BOOT_TIME_MARGIN_MS;
+  const other = describe(pid)?.toLowerCase();
+  if (!other) return false;
+  const own = path.basename(ownExecutable).replace(/\.exe$/i, "").toLowerCase();
+  // `ps comm` truncates to 15 characters on Linux.
+  const same = other === own || (other.length >= 15 && own.startsWith(other));
+  return !same;
 }
 
 export function acquireDataRootLock(
   root: string,
   ownerPid = process.pid,
   allowOrphanRecovery = false,
-  bootTimeMs = Date.now() - os.uptime() * 1000,
+  describeProcess: (pid: number) => string | null = executableNameOfPid,
 ): DataRootLock {
   fs.mkdirSync(root, { recursive: true });
   const lockDir = path.join(root, LOCK_DIR_NAME);
@@ -191,7 +231,7 @@ export function acquireDataRootLock(
       if (
         owner &&
         processIsAlive(owner.pid) &&
-        !ownerPredatesBoot(owner, bootTimeMs)
+        !pidRunsDifferentProgram(owner.pid, describeProcess)
       ) {
         throw new Error(
           `this save folder is already open by another The Human Box process (pid ${owner.pid})`,

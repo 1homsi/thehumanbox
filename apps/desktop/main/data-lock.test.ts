@@ -12,7 +12,7 @@ import * as path from "node:path";
 import test from "node:test";
 import {
   acquireDataRootLock,
-  ownerPredatesBoot,
+  pidRunsDifferentProgram,
   processIsAlive,
   removePidRecordIfOwned,
   writePidRecordAtomically,
@@ -189,30 +189,30 @@ test("recovery refuses a live pid whose token differs from the stale lock", () =
   }
 });
 
-test("a lock whose owner pid was recycled after a reboot is stale", () => {
+test("a lock owner pid recycled by an unrelated program is stale", () => {
   const root = mkdtempSync(path.join(tmpdir(), "thb-lock-test-"));
   try {
     const lockDir = path.join(root, ".thehumanbox-data.lock");
     mkdirSync(lockDir);
     // The recorded owner pid is alive (our own), as a recycled pid would be.
-    const writeOwner = (acquiredAt: number) =>
-      writeFileSync(
-        path.join(lockDir, "owner.json"),
-        JSON.stringify({ pid: process.pid, token: "old-token", acquiredAt }),
-      );
-    const hour = 3_600_000;
-    const boot = Date.now() - hour;
+    writeFileSync(
+      path.join(lockDir, "owner.json"),
+      JSON.stringify({ pid: process.pid, token: "old-token", acquiredAt: Date.now() - 3_600_000 }),
+    );
+    const own = path.basename(process.execPath).replace(/\.exe$/i, "");
 
-    // taken during this boot: genuinely held by a live process
-    writeOwner(Date.now() - 1_000);
+    // really the same program: still another instance
     assert.throws(
-      () => acquireDataRootLock(root, process.pid, false, boot),
+      () => acquireDataRootLock(root, process.pid, false, () => own),
       /already open by another/,
     );
-
-    // taken two hours ago, before the machine booted: the pid is a stranger
-    writeOwner(Date.now() - 2 * hour);
-    const lock = acquireDataRootLock(root, process.pid, false, boot);
+    // identity unknown: fail closed
+    assert.throws(
+      () => acquireDataRootLock(root, process.pid, false, () => null),
+      /already open by another/,
+    );
+    // a different program owns the pid now
+    const lock = acquireDataRootLock(root, process.pid, false, () => "chrome");
     assert.equal(lock.recoveredToken, "old-token");
     lock.release();
   } finally {
@@ -220,9 +220,18 @@ test("a lock whose owner pid was recycled after a reboot is stale", () => {
   }
 });
 
-test("boot-time staleness needs a recorded time and clears the margin", () => {
-  const boot = 1_000_000_000;
-  assert.equal(ownerPredatesBoot({ acquiredAt: 0 }, boot), false);
-  assert.equal(ownerPredatesBoot({ acquiredAt: boot - 60_000 }, boot), false);
-  assert.equal(ownerPredatesBoot({ acquiredAt: boot - 10 * 60_000 }, boot), true);
+test("program identity comparison tolerates .exe, case and ps truncation", () => {
+  const exe = "/Applications/The Human Box.app/Contents/MacOS/The Human Box";
+  assert.equal(pidRunsDifferentProgram(7, () => "The Human Box", exe), false);
+  assert.equal(pidRunsDifferentProgram(7, () => "the human box", exe), false);
+  assert.equal(pidRunsDifferentProgram(7, () => "firefox", exe), true);
+  assert.equal(pidRunsDifferentProgram(7, () => null, exe), false);
+  assert.equal(
+    pidRunsDifferentProgram(7, () => "The Human Box", "The Human Box.exe"),
+    false,
+  );
+  assert.equal(
+    pidRunsDifferentProgram(7, () => "the-human-box-a", "/opt/the-human-box-app/the-human-box-appimage"),
+    false,
+  );
 });
