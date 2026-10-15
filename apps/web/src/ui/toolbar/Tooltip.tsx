@@ -9,6 +9,17 @@ const MAX_TOOLTIP_W = 320
 const EDGE_PAD = 8
 const LONG_PRESS_MS = 400
 
+/**
+ * Whether the focus that just landed came from the player tabbing to the element. Radix hands focus back to the
+ * trigger when a modal closes (by click, Enter or Escape); that is not a visit, and showing a tip for it leaves one
+ * stuck over the header. `:focus-visible` alone is not enough: after an Escape it matches.
+ */
+let lastKeyWasTab = false
+if (typeof document !== 'undefined') {
+  document.addEventListener('keydown', (e) => (lastKeyWasTab = e.key === 'Tab'), true)
+  document.addEventListener('pointerdown', () => (lastKeyWasTab = false), true)
+}
+
 interface Props {
   tip: ReactNode
   children: ReactElement<Record<string, unknown>>
@@ -49,7 +60,7 @@ export function Tooltip({ tip, children }: Props) {
       ;(children.props.onMouseLeave as ((e: React.MouseEvent) => void) | undefined)?.(e)
     },
     onFocus: (e: React.FocusEvent) => {
-      show(e.currentTarget as HTMLElement)
+      if (lastKeyWasTab) show(e.currentTarget as HTMLElement)
       ;(children.props.onFocus as ((e: React.FocusEvent) => void) | undefined)?.(e)
     },
     onBlur: (e: React.FocusEvent) => {
