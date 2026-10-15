@@ -92,6 +92,29 @@ node bench/report.mjs bench/results/old bench/results/main   # tables and a comp
 `git worktree add --detach ../old 45a1ee5a && cd ../old && git apply apps/web/bench/old-canvas-bench-hook.patch`
 (copy the patch out first, it is not in that commit), install, `pnpm build`.
 
+## Toaster and mobile conditions
+
+Three flags make the same scenarios harder, to see how the map holds up on a weak machine or a phone:
+
+| flag | what it does |
+|---|---|
+| `--cpu-throttle <n>` | slows the page's CPU `n` times (`Emulation.setCPUThrottlingRate`, applied before navigation). 4 is a decent laptop on battery, 6 a mid-range phone |
+| `--mobile` | phone preset: 390x844 at DPR 3, touch emulation, mobile user agent (`--size` and `--dpr` still override the viewport) |
+| `--gpu-off` | renders with SwiftShader (software WebGL) instead of the GPU; very slow at phone DPR, so combine it with a small `--size` or `--dpr 1` |
+
+The conditions are recorded in every `results.json` row. `report.mjs` prints them in the table heading (and in a
+`conditions` column when a directory mixes several); comparisons only pair rows measured under the same conditions.
+Use one `--out` directory per condition:
+
+```sh
+/Users/mhomsi/dev/extra/overnight/bench-lock.sh node bench/run.mjs --builds main=dist --fixtures crowd --zooms mid \
+  --modes playing --passes metrics --runs 2 --out bench/results/cpu6 --cpu-throttle 6
+node bench/score.mjs bench/results/cpu6       # one line per scenario
+```
+
+`score.mjs` prints one line per scenario (fps, main busy %, JS ms/frame, JS heap) for pasting into a PR. With only
+the `metrics` pass, fps is the engine's own rendered-frame count; with the `trace` pass it is the frames delivered.
+
 ## Profiling
 
 ```sh

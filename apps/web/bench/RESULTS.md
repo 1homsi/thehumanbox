@@ -263,3 +263,28 @@ Why these are not fixed: the mountains key includes the tile's absolute position
 ### Rules this stream kept
 
 Every number above is from a build that was measured against its own baseline in the same run. Instruction counts (`/usr/bin/time -l`) were the decision for the simulation; cycle counts were not used, because under this load they moved in both directions by more than the change. The sweeps used the brief's world-health check (mean final alive at tick 9000 over eight seeds, no extinctions).
+
+## Toaster and mobile baseline
+
+Current main (`4675e754`, cubeforge 0.14), mid zoom, playing, metrics pass, 2 runs, Chrome 155 with the GPU, 8 s
+windows after a 3 s warm-up. fps is the engine's own rendered-frame count (no trace pass). The 1-minute load average
+was 28-95 while these ran, so absolute busy % is inflated against the table above (it was 6-8 there); compare
+conditions with each other, and A/B builds interleaved.
+
+| condition | world | fps | main busy % (min-max) | main CPU % | JS ms/frame | JS heap after GC MB | load avg |
+|---|---|--:|--:|--:|--:|--:|--:|
+| default (1280x800, DPR 1) | standard | 60 | 8.1 (7.9-8.3) | 8.3 | 1.16 | 30 | 96 |
+| default (1280x800, DPR 1) | crowd | 60 | 10.0 (9.7-10.3) | 10.2 | 1.49 | 89 | 95 |
+| `--cpu-throttle 6` (1280x800, DPR 1) | standard | 58 | 41.7 (40.6-42.9) | 91.2 | 6.42 | 30 | 52 |
+| `--cpu-throttle 6` (1280x800, DPR 1) | crowd | 55 | 57.1 (56.0-58.2) | 93.6 | 9.48 | 89 | 62 |
+| `--mobile` (390x844, DPR 3, touch) | standard | 59 | 7.4 (7.3-7.6) | 7.7 | 1.06 | 31 | 28 |
+| `--mobile` (390x844, DPR 3, touch) | crowd | 60 | 8.6 (7.9-9.3) | 8.8 | 1.23 | 89 | 30 |
+
+Reproduce, one `--out` per condition (under `bench-lock.sh` when the machine is shared):
+`node bench/run.mjs --builds main=dist --fixtures crowd,standard --zooms mid --modes playing --passes metrics --runs 2 --out bench/results/<name> [--cpu-throttle 6 | --mobile]`,
+then `node bench/score.mjs bench/results/<name>/main`.
+
+- At 6x CPU throttle the crowd needs 57 % of a core and the frame rate slips to 55 fps: this is the toaster number
+  to beat.
+- The phone viewport is cheaper than the desktop one here (fewer tiles on screen, same simulation), so the phone's
+  real problem is likely CPU speed, covered by combining `--mobile --cpu-throttle 6`.

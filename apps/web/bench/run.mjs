@@ -18,6 +18,11 @@
 //                       memory dump (GPU process, renderer process, canvas and V8 heap).
 //   --window <ms>       measured window (default 8000); --warmup <ms> before it (default 3000)
 //   --dpr <n>           device pixel ratio (default 1); --size 1280x800
+//   --cpu-throttle <n>  slow the page's CPU n times (CDP Emulation.setCPUThrottlingRate), set before
+//                       navigation; 6 is about a mid-range phone. Recorded in results.json.
+//   --mobile            phone preset: 390x844 at DPR 3, touch emulation, mobile user agent
+//                       (--size and --dpr still override the viewport)
+//   --gpu-off           render with SwiftShader (software WebGL) instead of the GPU
 //   --profile           also write a CPU profile of each metrics scenario next to the results
 //   --shots             save a screenshot of every scenario
 //   --alloc-profile     sample every allocation in the window (what makes garbage), written as .heapprofile
@@ -66,8 +71,14 @@ const modes = list('modes', ['paused', 'playing'])
 const passes = list('passes', ['metrics', 'trace', 'memory'])
 const windowMs = Number(opt('window', 8000))
 const warmupMs = Number(opt('warmup', 3000))
-const dpr = Number(opt('dpr', 1))
-const [width, height] = String(opt('size', '1280x800')).split('x').map(Number)
+const mobile = opt('mobile', false) === true
+const dpr = Number(opt('dpr', mobile ? 3 : 1))
+const [width, height] = String(opt('size', mobile ? '390x844' : '1280x800'))
+  .split('x')
+  .map(Number)
+const cpuThrottle = Number(opt('cpu-throttle', 1))
+if (!(cpuThrottle >= 1)) throw new Error('--cpu-throttle takes a factor of 1 or more')
+const gpuOff = opt('gpu-off', false) === true
 const wantProfile = opt('profile', false) === true
 const wantShots = opt('shots', false) === true
 const headed = opt('headed', false) === true
@@ -246,7 +257,16 @@ async function focusView(page, focus, zoom) {
 }
 
 async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mode, pass, port, runIndex }) {
-  const chrome = await launchChrome({ port, width, height, dpr, headless: !headed })
+  const chrome = await launchChrome({
+    port,
+    width,
+    height,
+    dpr,
+    headless: !headed,
+    mobile,
+    cpuThrottle,
+    gpuOff,
+  })
   const { page, browser } = chrome
   const result = {
     label,
@@ -256,6 +276,9 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
     pass,
     run: runIndex,
     viewport: `${width}x${height}@${dpr}`,
+    mobile,
+    cpuThrottle,
+    gpuOff,
     chrome: chrome.version,
     loadAvg1m: Math.round(loadavg()[0] * 10) / 10,
   }

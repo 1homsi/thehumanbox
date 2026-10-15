@@ -101,11 +101,27 @@ export class CdpConnection {
   }
 }
 
+/** Chrome for Android's user agent, sent by the `mobile` emulation. */
+export const MOBILE_UA =
+  'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Mobile Safari/537.36'
+
 /**
  * Starts a headless Google Chrome with its own throw-away profile and GPU acceleration.
+ * `mobile` emulates a phone (touch, mobile user agent, mobile viewport), `cpuThrottle` slows the page's
+ * CPU by that factor (6 = a slow phone) and `gpuOff` renders with SwiftShader instead of the GPU.
  * Returns the browser connection, a page connection and a `kill()` that removes the profile.
  */
-export async function launchChrome({ port, width, height, dpr, extraArgs = [], headless = true }) {
+export async function launchChrome({
+  port,
+  width,
+  height,
+  dpr,
+  extraArgs = [],
+  headless = true,
+  mobile = false,
+  cpuThrottle = 1,
+  gpuOff = false,
+}) {
   const bin = CHROME_PATHS[0]
   if (!bin) throw new Error('no Chrome found; set CHROME_BIN')
   const profile = mkdtempSync(path.join(tmpdir(), 'thb-bench-chrome-'))
@@ -126,10 +142,11 @@ export async function launchChrome({ port, width, height, dpr, extraArgs = [], h
     '--disable-background-timer-throttling',
     '--disable-renderer-backgrounding',
     '--disable-backgrounding-occluded-windows',
-    // Real GPU: Metal through ANGLE on macOS.
-    '--enable-gpu-rasterization',
-    '--ignore-gpu-blocklist',
-    '--enable-zero-copy',
+    ...(gpuOff
+      ? // No GPU: ANGLE's software renderer, the way a machine with a weak or blocked GPU runs WebGL.
+        ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-gpu-rasterization']
+      : // Real GPU: Metal through ANGLE on macOS.
+        ['--enable-gpu-rasterization', '--ignore-gpu-blocklist', '--enable-zero-copy']),
     '--enable-precise-memory-info',
     '--js-flags=--expose-gc',
     ...extraArgs,
@@ -170,8 +187,13 @@ export async function launchChrome({ port, width, height, dpr, extraArgs = [], h
     width,
     height,
     deviceScaleFactor: dpr,
-    mobile: false,
+    mobile,
   })
+  if (mobile) {
+    await page.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 })
+    await page.send('Emulation.setUserAgentOverride', { userAgent: MOBILE_UA, platform: 'Linux armv81' })
+  }
+  if (cpuThrottle > 1) await page.send('Emulation.setCPUThrottlingRate', { rate: cpuThrottle })
   return {
     browser,
     page,
