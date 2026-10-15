@@ -237,4 +237,73 @@ describe('useSimulation snapshot recovery', () => {
     expect(fetchSnapshot).toHaveBeenCalledTimes(2)
     for (const spy of spies) spy.mockRestore()
   })
+
+  describe('reconnect backoff', () => {
+    function dropSocket(socket: MockWebSocket): void {
+      act(() => {
+        socket.readyState = MockWebSocket.CLOSED
+        socket.onclose?.()
+      })
+    }
+
+    beforeEach(() => {
+      vi.spyOn(Math, 'random').mockReturnValue(1)
+      fetchSnapshot.mockResolvedValue(null)
+    })
+
+    afterEach(() => {
+      vi.mocked(Math.random).mockRestore()
+    })
+
+    it('keeps backing off when the server accepts the socket and closes it at once', async () => {
+      const openAndDrop = async (): Promise<void> => {
+        const socket = MockWebSocket.instances[MockWebSocket.instances.length - 1]
+        await act(async () => {
+          socket.open()
+          await flushMicrotasks()
+        })
+        dropSocket(socket)
+      }
+      const wait = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms))
+
+      // The reconnect delay doubles across open/close cycles: 1 s, 2 s, 4 s.
+      await openAndDrop()
+      await wait(1_000)
+      expect(MockWebSocket.instances.length).toBe(2)
+      await openAndDrop()
+      await wait(1_000)
+      expect(MockWebSocket.instances.length).toBe(2)
+      await wait(1_000)
+      expect(MockWebSocket.instances.length).toBe(3)
+      await openAndDrop()
+      await wait(3_000)
+      expect(MockWebSocket.instances.length).toBe(3)
+      await wait(1_000)
+      expect(MockWebSocket.instances.length).toBe(4)
+    })
+
+    it('resets the backoff once a connection has stayed open', async () => {
+      const wait = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms))
+      // Two quick drops raise the next delay to 4 s.
+      for (let i = 0; i < 2; i += 1) {
+        const socket = MockWebSocket.instances[MockWebSocket.instances.length - 1]
+        await act(async () => {
+          socket.open()
+          await flushMicrotasks()
+        })
+        dropSocket(socket)
+        await wait(i === 0 ? 1_000 : 2_000)
+      }
+      expect(MockWebSocket.instances.length).toBe(3)
+      // A socket that survives past the healthy threshold resets the delay to 1 s.
+      const stable = MockWebSocket.instances[2]
+      await act(async () => {
+        stable.open()
+        await vi.advanceTimersByTimeAsync(6_000)
+      })
+      dropSocket(stable)
+      await wait(1_000)
+      expect(MockWebSocket.instances.length).toBe(4)
+    })
+  })
 })
