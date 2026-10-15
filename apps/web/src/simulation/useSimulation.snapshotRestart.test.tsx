@@ -202,4 +202,36 @@ describe('useSimulation snapshot recovery', () => {
     })
     expect(fetchSnapshot).toHaveBeenCalledTimes(2)
   })
+
+  it('does not re-download the snapshot in a loop while the window is hidden', async () => {
+    // A hidden window gets no animation frames, so the queue is never drained.
+    parsedFrames.set('snapshot', { frame_id: 1, frame_kind: 'full' })
+    fetchSnapshot.mockResolvedValue('snapshot')
+    const socket = MockWebSocket.instances[0]
+    await act(async () => {
+      socket.open()
+      await flushMicrotasks()
+    })
+    await flushAnimationFrame()
+    expect(fetchSnapshot).toHaveBeenCalledTimes(1)
+
+    let hidden = true
+    vi.spyOn(document, 'hidden', 'get').mockImplementation(() => hidden)
+    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => (hidden ? 'hidden' : 'visible'))
+    for (let round = 0; round < 10; round += 1) {
+      await act(async () => {
+        for (let i = 0; i < 40; i += 1) socket.sendFrame('delta')
+        await vi.advanceTimersByTimeAsync(300)
+        await flushMicrotasks()
+      })
+    }
+    expect(fetchSnapshot).toHaveBeenCalledTimes(1)
+
+    hidden = false
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+      await flushMicrotasks()
+    })
+    expect(fetchSnapshot).toHaveBeenCalledTimes(2)
+  })
 })
