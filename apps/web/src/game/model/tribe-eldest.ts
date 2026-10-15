@@ -40,3 +40,17 @@ export function eldestByLineage(
 export function eldestLine(e: Eldest): string {
   return `${e.name}, ${e.days} day${e.days === 1 ? '' : 's'} old`
 }
+
+/**
+ * An eldest as one string, for a `useShallow` selector that must compare by value. The name is free text and
+ * may hold any character, so it goes last and the days first: the split is at the first `|`.
+ */
+export function packEldest(e: Eldest): string {
+  return `${e.days}|${e.name}`
+}
+
+export function unpackEldest(packed: string | undefined): Eldest | undefined {
+  if (packed === undefined) return undefined
+  const bar = packed.indexOf('|')
+  return { days: Number(packed.slice(0, bar)), name: packed.slice(bar + 1) }
+}

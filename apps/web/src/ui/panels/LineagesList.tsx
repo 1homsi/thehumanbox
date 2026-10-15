@@ -4,7 +4,7 @@ import { lineageColor } from '../../shared/constants'
 import { useUIStore } from '../../state/store'
 import { useWorldStore } from '../../state/worldStore'
 import { PERIL_HELP, remainingLine, visibleLineages } from '../../game/model/tribe-peril'
-import { eldestByLineage, eldestLine, type Eldest } from '../../game/model/tribe-eldest'
+import { eldestByLineage, eldestLine, packEldest, unpackEldest, type Eldest } from '../../game/model/tribe-eldest'
 import type { PerilCause } from '../../shared/types'
 
 interface LineageRow {
@@ -72,13 +72,13 @@ function LineagesListImpl() {
       return out
     }),
   )
-  // The eldest living member per tribe, as "name|days": days change once a
+  // The eldest living member per tribe, packed as a string: days change once a
   // day, so the row does not re-render on every tick.
   const eldest = useWorldStore(
     useShallow((s) => {
       const out: Record<string, string> = {}
       for (const [lid, e] of Object.entries(eldestByLineage(s.world?.organisms ?? []))) {
-        out[lid] = `${e.name}|${e.days}`
+        out[lid] = packEldest(e)
       }
       return out
     }),
@@ -88,7 +88,7 @@ function LineagesListImpl() {
     const out: LineageRow[] = []
     for (const lid in stamps) {
       const [count, minGen, maxGen] = stamps[lid].split(',').map(Number)
-      const e = eldest[lid]?.split('|')
+      const e = unpackEldest(eldest[lid])
       out.push({
         id: lid,
         name: lineageNames?.[lid] ?? lid.slice(0, 6),
@@ -96,7 +96,7 @@ function LineagesListImpl() {
         minGen,
         maxGen,
         peril: peril[lid],
-        eldest: e ? { name: e[0], days: Number(e[1]) } : undefined,
+        eldest: e,
       })
     }
     return out

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { eldestByLineage, eldestLine } from './tribe-eldest'
+import { eldestByLineage, eldestLine, packEldest, unpackEldest } from './tribe-eldest'
 
 const p = (name: string, lineage_id: string, age: number, alive = true, custom_name?: string) => ({
   name,
@@ -34,5 +34,14 @@ describe('eldestLine', () => {
   it('reads the age in days, singular for one day', () => {
     expect(eldestLine({ name: 'Anna', days: 41 })).toBe('Anna, 41 days old')
     expect(eldestLine({ name: 'Bo', days: 1 })).toBe('Bo, 1 day old')
+  })
+})
+
+describe('packEldest', () => {
+  it('round-trips a name holding the separator', () => {
+    for (const name of ['Anna', 'a|b', '|', '||x|', '']) {
+      expect(unpackEldest(packEldest({ name, days: 41 }))).toEqual({ name, days: 41 })
+    }
+    expect(unpackEldest(undefined)).toBeUndefined()
   })
 })
