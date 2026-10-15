@@ -1,11 +1,14 @@
 import { useEffect } from 'react'
-import { SHORTCUT_HELP } from '../../game/model/shortcuts'
+import { SHORTCUT_HELP, typingTarget } from '../../game/model/shortcuts'
 
 /** The keys the game answers to, from the same list the More menu shows. Press ? or Escape to close it. */
 export function HotkeyHelp({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' || event.key === '?') onClose()
+      if (event.key === 'Escape') onClose()
+      // App's game-key handler toggles the list on ? (and closes it); both acting on one press reopened it.
+      // Only when focus is inside the list, where that handler stands aside, does this close it.
+      else if (event.key === '?' && typingTarget(event.target)) onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
