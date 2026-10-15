@@ -4,6 +4,7 @@ import { useUIStore } from './index'
 const initialSelection = {
   selectedOrgId: null,
   followOrgId: null,
+  renamingOrgId: null,
   panelOpen: false,
   leftOpen: false,
 }
@@ -14,6 +15,30 @@ afterEach(() => {
     focus: 'all',
     viewFlags: { ...state.viewFlags, territory: false, territoryMap: false },
   }))
+})
+
+describe('renaming a person', () => {
+  it('is abandoned when someone else, or no one, is selected', () => {
+    useUIStore.getState().startRename('a')
+    expect(useUIStore.getState().renamingOrgId).toBe('a')
+    useUIStore.getState().selectOrg('b')
+    expect(useUIStore.getState().renamingOrgId).toBeNull()
+    // ... so selecting the first person again does not bring the form back.
+    useUIStore.getState().selectOrg('a')
+    expect(useUIStore.getState().renamingOrgId).toBeNull()
+
+    useUIStore.getState().startRename('a')
+    useUIStore.getState().selectOrg(null)
+    expect(useUIStore.getState().renamingOrgId).toBeNull()
+  })
+
+  it('survives re-selecting the same person, and ends when the details panel closes', () => {
+    useUIStore.getState().startRename('a')
+    useUIStore.getState().selectOrg('a')
+    expect(useUIStore.getState().renamingOrgId).toBe('a')
+    useUIStore.getState().togglePanel()
+    expect(useUIStore.getState().renamingOrgId).toBeNull()
+  })
 })
 
 describe('world-first panels', () => {
