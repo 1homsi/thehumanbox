@@ -23,6 +23,15 @@ test("a window with only a sliver on screen is treated as off-screen", () => {
   assert.equal(s.x, undefined);
 });
 
+test("a window whose title bar is off the top of the display is dropped", () => {
+  // the body overlaps the display but the title bar cannot be grabbed
+  const s = sanitizeWindowState({ x: 100, y: -850, width: 1400, height: 900 }, [primary]);
+  assert.equal(s.x, undefined);
+  assert.equal(sanitizeWindowState({ x: -1300, y: 10, width: 1400, height: 900 }, [primary]).x, -1300);
+  assert.equal(sanitizeWindowState({ x: -1301, y: 10, width: 1400, height: 900 }, [primary]).x, undefined);
+  assert.equal(sanitizeWindowState({ x: 5, y: 5, width: 1400, height: 900 }, []).x, 5);
+});
+
 test("malformed state never produces values the BrowserWindow constructor rejects", () => {
   for (const bad of [null, "x", 3, [], { x: "10", y: 5 }, { x: NaN, y: 0 }, { x: 5 }, { width: Infinity, height: -1 }]) {
     const s = sanitizeWindowState(bad, [primary]);

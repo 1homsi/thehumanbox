@@ -15,10 +15,12 @@ export interface Rect {
 
 const DEFAULT_STATE: WindowState = { width: 1400, height: 900 };
 
-// How much of the window must overlap a display for it to count as reachable:
-// enough of the title bar to grab and drag it back.
+// The window counts as reachable when its title-bar strip (the top 32px) is on
+// a display for at least 100px of its width, so it can always be grabbed and
+// dragged back. The body being on screen is not enough: a window whose title
+// bar sits above the top edge cannot be moved.
+const TITLE_BAR_H = 32;
 const MIN_VISIBLE_W = 100;
-const MIN_VISIBLE_H = 50;
 
 function finite(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n);
@@ -26,8 +28,8 @@ function finite(n: unknown): n is number {
 
 function overlaps(a: Rect, b: Rect): boolean {
   const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
-  const h = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
-  return w >= MIN_VISIBLE_W && h >= MIN_VISIBLE_H;
+  const h = Math.min(a.y + TITLE_BAR_H, b.y + b.height) - Math.max(a.y, b.y);
+  return w >= MIN_VISIBLE_W && h >= TITLE_BAR_H;
 }
 
 /**
