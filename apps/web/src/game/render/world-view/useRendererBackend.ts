@@ -4,7 +4,7 @@ import { syncRendererLoopPause } from '../../../shared/desktopVisibility'
 import { canUseWorldGPU } from './gpu'
 import { watchForGpuStartupFailure } from './gpuStartupWatchdog'
 import { watchForWebGLContextRecovery } from './webglContextRecovery'
-import { wakeRenderLoops } from '../cf/render-loop'
+import { wakeRenderLoopsAfterContextRestore } from '../cf/render-loop'
 
 /** Which backend draws the map, whether its first frame has arrived, and recovery from failures. */
 export function useRendererBackend({
@@ -72,7 +72,7 @@ export function useRendererBackend({
       container,
       rendererPausedRef.current,
       handleGPUFailure,
-      wakeRenderLoops,
+      wakeRenderLoopsAfterContextRestore,
     )
     contextRecoveryRef.current = recovery
     return () => {

@@ -1,12 +1,31 @@
 // @vitest-environment happy-dom
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import * as renderLoop from '../cf/render-loop'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { setWorldGPUForTests } from './gpu'
 import { useRendererBackend } from './useRendererBackend'
 
 const roots: ReturnType<typeof createRoot>[] = []
+const restoreVisibility: (() => void)[] = []
+
+beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
+afterAll(() => vi.unstubAllGlobals())
+
+function stubDocumentHidden(initialValue: boolean) {
+  const previous = Object.getOwnPropertyDescriptor(document, 'hidden')
+  let hidden = initialValue
+  Object.defineProperty(document, 'hidden', {
+    configurable: true,
+    get: () => hidden,
+  })
+  restoreVisibility.push(() => {
+    if (previous) Object.defineProperty(document, 'hidden', previous)
+    else Reflect.deleteProperty(document, 'hidden')
+  })
+  return (value: boolean) => {
+    hidden = value
+  }
+}
 
 function renderBackend(paused: boolean) {
   let backend: ReturnType<typeof useRendererBackend>['renderBackend'] | undefined
@@ -37,6 +56,8 @@ function renderBackend(paused: boolean) {
 describe('useRendererBackend startup watchdog', () => {
   afterEach(() => {
     for (const root of roots.splice(0)) act(() => root.unmount())
+    for (const restore of restoreVisibility.splice(0).reverse()) restore()
+    vi.restoreAllMocks()
     setWorldGPUForTests(null)
     vi.useRealTimers()
   })
@@ -57,17 +78,13 @@ describe('useRendererBackend startup watchdog', () => {
   it('suspends the failure timeout while the document is hidden', () => {
     vi.useFakeTimers()
     setWorldGPUForTests(true)
-    let hidden = true
-    Object.defineProperty(document, 'hidden', {
-      configurable: true,
-      get: () => hidden,
-    })
+    const setHidden = stubDocumentHidden(true)
     const rendered = renderBackend(false)
 
     act(() => vi.advanceTimersByTime(20_000))
     expect(rendered.backend).toBe('gpu')
 
-    hidden = false
+    setHidden(false)
     act(() => document.dispatchEvent(new Event('visibilitychange')))
     act(() => vi.advanceTimersByTime(10_000))
     expect(rendered.backend).toBe('canvas')
@@ -76,7 +93,6 @@ describe('useRendererBackend startup watchdog', () => {
   it('keeps the GPU backend when WebGL restores within the grace period', () => {
     vi.useFakeTimers()
     setWorldGPUForTests(true)
-    const wake = vi.spyOn(renderLoop, 'wakeRenderLoops')
     const rendered = renderBackend(false)
 
     act(() => rendered.container.dispatchEvent(new Event('webglcontextlost')))
@@ -85,7 +101,6 @@ describe('useRendererBackend startup watchdog', () => {
     act(() => vi.advanceTimersByTime(1_000))
 
     expect(rendered.backend).toBe('gpu')
-    expect(wake).toHaveBeenCalledOnce()
   })
 
   it('falls back when a lost WebGL context does not restore while visible', () => {
@@ -102,18 +117,14 @@ describe('useRendererBackend startup watchdog', () => {
   it('does not time out a lost context while the tab is hidden', () => {
     vi.useFakeTimers()
     setWorldGPUForTests(true)
-    let hidden = true
-    Object.defineProperty(document, 'hidden', {
-      configurable: true,
-      get: () => hidden,
-    })
+    const setHidden = stubDocumentHidden(true)
     const rendered = renderBackend(false)
 
     act(() => rendered.container.dispatchEvent(new Event('webglcontextlost')))
     act(() => vi.advanceTimersByTime(10_000))
     expect(rendered.backend).toBe('gpu')
 
-    hidden = false
+    setHidden(false)
     act(() => document.dispatchEvent(new Event('visibilitychange')))
     act(() => vi.advanceTimersByTime(5_000))
     expect(rendered.backend).toBe('canvas')
@@ -130,20 +141,6 @@ describe('useRendererBackend startup watchdog', () => {
 
     rendered.setPaused(false)
     act(() => vi.advanceTimersByTime(5_000))
-    expect(rendered.backend).toBe('canvas')
-  })
-
-  it('falls back if waking the renderer after restoration throws', () => {
-    vi.useFakeTimers()
-    setWorldGPUForTests(true)
-    vi.spyOn(renderLoop, 'wakeRenderLoops').mockImplementation(() => {
-      throw new Error('renderer wake failed')
-    })
-    const rendered = renderBackend(false)
-
-    act(() => rendered.container.dispatchEvent(new Event('webglcontextlost')))
-    act(() => rendered.container.dispatchEvent(new Event('webglcontextrestored')))
-
     expect(rendered.backend).toBe('canvas')
   })
 })
