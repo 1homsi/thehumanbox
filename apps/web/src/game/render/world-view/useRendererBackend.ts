@@ -3,6 +3,8 @@ import type { GameControls } from 'xipjs'
 import { syncRendererLoopPause } from '../../../shared/desktopVisibility'
 import { canUseWorldGPU } from './gpu'
 import { watchForGpuStartupFailure } from './gpuStartupWatchdog'
+import { watchForWebGLContextRecovery } from './webglContextRecovery'
+import { wakeRenderLoops } from '../cf/render-loop'
 
 /** Which backend draws the map, whether its first frame has arrived, and recovery from failures. */
 export function useRendererBackend({
@@ -25,6 +27,7 @@ export function useRendererBackend({
   const handleFirstDraw = useCallback(() => setMapReady(true), [])
   const gameControlsRef = useRef<GameControls | null>(null)
   const startupWatchdogRef = useRef<ReturnType<typeof watchForGpuStartupFailure> | null>(null)
+  const contextRecoveryRef = useRef<ReturnType<typeof watchForWebGLContextRecovery> | null>(null)
   const handleGPUFailure = useCallback(() => {
     gameControlsRef.current = null
     setMapReady(false)
@@ -64,10 +67,23 @@ export function useRendererBackend({
   useEffect(() => {
     const container = containerRef.current
     if (renderBackend !== 'gpu' || !container) return
-    const lost = () => handleGPUFailure()
-    container.addEventListener('webglcontextlost', lost, true)
-    return () => container.removeEventListener('webglcontextlost', lost, true)
+    const recovery = watchForWebGLContextRecovery(
+      document,
+      container,
+      rendererPausedRef.current,
+      handleGPUFailure,
+      wakeRenderLoops,
+    )
+    contextRecoveryRef.current = recovery
+    return () => {
+      recovery.dispose()
+      contextRecoveryRef.current = null
+    }
   }, [renderBackend, handleGPUFailure, containerRef])
+
+  useEffect(() => {
+    contextRecoveryRef.current?.setPaused(rendererPaused)
+  }, [rendererPaused])
 
   return {
     mapReady,
