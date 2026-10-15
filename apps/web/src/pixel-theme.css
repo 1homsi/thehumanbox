@@ -143,6 +143,13 @@
   background: #6a2d24;
   color: #ffd9cf;
 }
+@media (pointer: coarse) {
+  .close-btn,
+  .thb-modal .close-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
 :is(.lang-btn, .close-btn, .welcome-btn, .thb-shepherd .shepherd-button):focus-visible {
   outline: 2px solid var(--px-gold);
   outline-offset: -4px;
