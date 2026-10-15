@@ -91,7 +91,7 @@ async function flushAnimationFrame(): Promise<void> {
   })
 }
 
-describe('useSimulation snapshot recovery after a server restart', () => {
+describe('useSimulation snapshot recovery', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.stubGlobal('WebSocket', MockWebSocket)
@@ -167,5 +167,39 @@ describe('useSimulation snapshot recovery after a server restart', () => {
       await flushMicrotasks()
     })
     expect(fetchSnapshot).toHaveBeenCalledTimes(3)
+  })
+
+  it('does not start a second download while the replacement of an aborted snapshot is in flight', async () => {
+    // Like the real fetch, an aborted request resolves null.
+    const signals: AbortSignal[] = []
+    fetchSnapshot.mockImplementation(
+      (_url: string, signal: AbortSignal) =>
+        new Promise<string | null>((resolve) => {
+          signals.push(signal)
+          signal.addEventListener('abort', () => resolve(null))
+        }),
+    )
+
+    const socket = MockWebSocket.instances[0]
+    await act(async () => {
+      socket.open()
+      await flushMicrotasks()
+    })
+    expect(fetchSnapshot).toHaveBeenCalledTimes(1)
+
+    // Tab returns to the foreground: the forced resync aborts download A and starts B.
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+      await flushMicrotasks()
+    })
+    expect(fetchSnapshot).toHaveBeenCalledTimes(2)
+    expect(signals[0].aborted).toBe(true)
+
+    // A non-forced request (socket reopen, awaiting-full-frame timer) must see B as pending.
+    await act(async () => {
+      socket.onopen?.()
+      await flushMicrotasks()
+    })
+    expect(fetchSnapshot).toHaveBeenCalledTimes(2)
   })
 })
