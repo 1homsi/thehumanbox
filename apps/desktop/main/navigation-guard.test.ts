@@ -51,6 +51,8 @@ test("external navigation accepts only valid HTTP and HTTPS URLs", () => {
 test("only a real main-frame load failure shows the boot error page", () => {
   const url = "file:///app/renderer/index.html";
   assert.equal(shouldShowLoadError(-105, url, true), true);
+  // the bundled index.html is missing
+  assert.equal(shouldShowLoadError(-6, url, true), true);
   // superseded by a newer navigation
   assert.equal(shouldShowLoadError(-3, url, true), false);
   // sub-frame / iframe failures must not replace the app
