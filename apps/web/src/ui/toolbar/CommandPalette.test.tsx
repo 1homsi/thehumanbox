@@ -45,6 +45,24 @@ describe('CommandPalette focus', () => {
     expect(document.activeElement).toBe(map)
   })
 
+  it('after a command, gives focus back to the map unless the command opened a dialog', async () => {
+    const map = mount()
+    map.focus()
+    key({ key: 'k', ctrlKey: true })
+    key({ key: 'Enter' })
+    await act(() => new Promise((resolve) => setTimeout(resolve, 40)))
+    expect(document.activeElement).toBe(map)
+
+    map.blur()
+    key({ key: 'k', ctrlKey: true })
+    const dialog = document.createElement('div')
+    dialog.setAttribute('role', 'dialog')
+    document.body.append(dialog)
+    key({ key: 'Enter' })
+    await act(() => new Promise((resolve) => setTimeout(resolve, 40)))
+    expect(document.activeElement).not.toBe(map)
+  })
+
   it('leaves focus alone when something else took it', () => {
     const map = mount()
     const other = document.createElement('button')
