@@ -576,8 +576,8 @@ function buildLineageVocabs(
 }
 
 export function LanguageModal({ organisms, lineageWords, sexWords, onClose, lineageNames }: Props) {
-  const { frozen, reload } = useFrozenSnapshot(() => organisms)
-  const lineages = buildLineageVocabs(frozen, lineageWords)
+  const { frozen, reload } = useFrozenSnapshot(() => ({ organisms, lineageWords }))
+  const lineages = buildLineageVocabs(frozen.organisms, frozen.lineageWords)
   const tn = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
 
   const [query, setQuery] = useState('')
