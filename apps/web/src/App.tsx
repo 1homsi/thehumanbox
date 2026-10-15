@@ -31,7 +31,7 @@ import { DesktopDownloadToast } from './ui/toasts/DesktopDownloadToast'
 import { CommandPalette } from './ui/toolbar/CommandPalette'
 import { HeadlineTicker } from './ui/panels/HeadlineTicker'
 import { trackEvent } from './shared/observability'
-import { reconcileViewerSelection } from './shared/viewerSelection'
+import { reconcileFocus, reconcileViewerSelection } from './shared/viewerSelection'
 import { useUIStore } from './state/store'
 import { useWorldStore } from './state/worldStore'
 import { nearestLivingPerson } from './simulation/nearestPerson'
@@ -546,6 +546,14 @@ function LiveApp() {
       useUIStore.getState().selectOrg(reconciledSelection)
     }
   }, [world, selectedOrgId])
+
+  // A focused tribe that dies out would leave every living person dimmed and no tribe card to leave it by.
+  const focus = useUIStore((s) => s.focus)
+  useEffect(() => {
+    if (!world) return
+    const reconciled = reconcileFocus(focus, world)
+    if (reconciled !== focus) useUIStore.getState().setFocus(reconciled)
+  }, [world, focus])
 
   // Optionally stop the clock when a tribe newly falls on the brink.
   const seenPerils = useRef(new Set<string>())
