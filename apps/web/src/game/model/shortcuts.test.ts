@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { escapeHandledElsewhere, shortcutFor, SHORTCUT_HELP, typingTarget } from './shortcuts'
+import {
+  escapeHandledElsewhere,
+  mapOwnsZoomKeys,
+  shortcutFor,
+  SHORTCUT_HELP,
+  typingTarget,
+} from './shortcuts'
 
 /** A stand-in element: `closest` matches the tags it was given, the way the DOM does for a tag selector. */
 function element(tags: string[], editable = false): EventTarget {
@@ -45,6 +51,18 @@ describe('escapeHandledElsewhere', () => {
   it('lets a bare Escape on the map or the page disarm the tool', () => {
     expect(escapeHandledElsewhere(esc(element(['canvas'])), false)).toBe(false)
     expect(escapeHandledElsewhere(esc(null), false)).toBe(false)
+  })
+})
+
+describe('mapOwnsZoomKeys', () => {
+  it('leaves + = - to the map camera while the map has focus, and to the brush elsewhere', () => {
+    expect(
+      mapOwnsZoomKeys({
+        classList: { contains: (c: string) => c === 'map2d-world' },
+      } as unknown as EventTarget),
+    ).toBe(true)
+    expect(mapOwnsZoomKeys({ classList: { contains: () => false } } as unknown as EventTarget)).toBe(false)
+    expect(mapOwnsZoomKeys(null)).toBe(false)
   })
 })
 

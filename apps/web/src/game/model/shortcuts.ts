@@ -46,13 +46,21 @@ export function escapeHandledElsewhere(
   return !!(event.target as HTMLElement | null)?.closest?.('dialog')
 }
 
+/**
+ * With the map itself focused (a button inside it is not the map) its camera takes `+`, `=` and `-` as zoom, so the brush keys leave them alone;
+ * anywhere else they resize the brush.
+ */
+export function mapOwnsZoomKeys(target: EventTarget | null): boolean {
+  return !!(target as HTMLElement | null)?.classList?.contains('map2d-world')
+}
+
 export const SHORTCUT_HELP: ReadonlyArray<[string, string]> = [
   ['1 2 3 4', 'speed 1× 2× 4× 10×'],
   ['space', 'pause or play'],
   ['P', 'answer the most urgent prayer'],
   ['B', 'go to the next tribe on the brink'],
   ['[ ]', 'previous or next person'],
-  ['- =', 'smaller or larger brush'],
+  ['- =', 'smaller or larger brush (zoom out or in while the map has focus)'],
   ['?', 'show or hide this list'],
   ['H', 'hide the interface'],
   ['0', 'fit the world'],
