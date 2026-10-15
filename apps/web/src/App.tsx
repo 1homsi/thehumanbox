@@ -23,7 +23,7 @@ import { toolFailure } from './ui/toolbar/tool-tips'
 import { PAIR_TOOLS, SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
 import { newPerils } from './game/model/peril-watch'
 import { prayerRows, prayerTool } from './game/model/prayers'
-import { escapeHandledElsewhere, shortcutFor, typingTarget } from './game/model/shortcuts'
+import { escapeHandledElsewhere, mapOwnsZoomKeys, shortcutFor, typingTarget } from './game/model/shortcuts'
 import { tribeHome } from './game/model/tribe-peril'
 import { useCameraFocus } from './state/camera-focus'
 import type { PrayerInfo } from './shared/types'
@@ -440,6 +440,7 @@ function LiveApp() {
       if (!sandboxControlsEnabled || event.repeat || typingTarget(event.target)) return
       const action = shortcutFor(event)
       if (!action) return
+      if (action.kind === 'brush' && mapOwnsZoomKeys(event.target)) return
       event.preventDefault()
       if (action.kind === 'speed') {
         const tool = SANDBOX_CATEGORIES.flatMap((c) => c.tools).find((t) => t.id === action.tool)
