@@ -10,7 +10,12 @@ function source() {
   const world = {
     tick: 4321,
     grid: { width: 600, height: 300, origin_x: 4 },
-    organisms: [{ alive: true }, { alive: false }, { alive: true }, {}],
+    organisms: [
+      { alive: true, x: 1, y: 2 },
+      { alive: false, x: 3, y: 4 },
+      { alive: true, x: 5, y: 6 },
+      { alive: false, x: 0, y: 0 },
+    ],
   }
   return { camera, command, world: () => world }
 }
@@ -52,6 +57,10 @@ describe('bench hooks', () => {
       originX: 4,
       originY: 0,
       people: 2,
+      peoplePositions: [
+        { x: 1, y: 2 },
+        { x: 5, y: 6 },
+      ],
       tick: 4321,
       boats: [],
       caravans: [],
