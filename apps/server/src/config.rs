@@ -101,6 +101,19 @@ pub(super) fn monthly_rollover_enabled() -> bool {
     )
 }
 
+/// The desktop app owns the sim as a child process and can restart it, so a
+/// dead tick loop should end the process there. Hosted servers keep running
+/// (and keep serving /health, which flips to 503) exactly as before.
+pub(super) fn exit_on_tick_failure_for(profile: Option<&str>) -> bool {
+    profile
+        .map(|value| value.trim().eq_ignore_ascii_case("local"))
+        .unwrap_or(false)
+}
+
+pub(super) fn exit_on_tick_failure() -> bool {
+    exit_on_tick_failure_for(std::env::var("THB_PROFILE").ok().as_deref())
+}
+
 pub(super) fn population_limit_from_env_value(value: Option<&str>) -> Option<usize> {
     value.and_then(|raw| raw.trim().parse::<usize>().ok())
 }

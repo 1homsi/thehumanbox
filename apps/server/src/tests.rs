@@ -1,6 +1,6 @@
 use super::{
-    bounded_interval_ms, claim_desktop_data_lock_at, default_cors_origins, monthly_rollover_enabled_for,
-    population_limit_from_env_value, RuntimeControl, MIN_RUNTIME_TICK_MS,
+    bounded_interval_ms, claim_desktop_data_lock_at, default_cors_origins, exit_on_tick_failure_for,
+    monthly_rollover_enabled_for, population_limit_from_env_value, RuntimeControl, MIN_RUNTIME_TICK_MS,
 };
 
 fn temporary_lock_root(label: &str) -> std::path::PathBuf {
@@ -74,6 +74,14 @@ fn hosted_rollover_defaults_on_and_honors_explicit_off() {
     assert!(monthly_rollover_enabled_for(None, None));
     assert!(monthly_rollover_enabled_for(Some("hosted"), Some("yes")));
     assert!(!monthly_rollover_enabled_for(Some("hosted"), Some("0")));
+}
+
+#[test]
+fn only_the_local_profile_exits_when_the_tick_loop_dies() {
+    assert!(exit_on_tick_failure_for(Some("local")));
+    assert!(exit_on_tick_failure_for(Some(" LOCAL ")));
+    assert!(!exit_on_tick_failure_for(None));
+    assert!(!exit_on_tick_failure_for(Some("hosted")));
 }
 
 #[test]

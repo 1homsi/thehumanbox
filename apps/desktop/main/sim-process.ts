@@ -360,6 +360,7 @@ function installExitHandlersOnce(): void {
   const signalCurrent = (): void => {
     const c = current;
     if (!c) return;
+    intentionalStops.add(c.child);
     try {
       c.child.kill("SIGTERM");
     } catch {
@@ -543,7 +544,20 @@ async function startSimOnce(
     alive = false;
     exitCode = code;
     console.log(`[sim] exited code=${code} signal=${signal}`);
+    // Only a sim that was installed as `current` and not being stopped by us
+    // counts; startup failures are reported through startSim's own rejection.
+    const unexpected =
+      current?.child === child && !intentionalStops.has(child);
     releaseOwnership();
+    if (unexpected) {
+      for (const listener of unexpectedExitListeners) {
+        try {
+          listener({ code, signal });
+        } catch (error) {
+          console.warn("[sim] exit listener failed:", error);
+        }
+      }
+    }
   });
   child.once("close", () => {
     alive = false;
@@ -692,6 +706,10 @@ async function stopSimOnce(
     console.warn("[sim] checkpoint before stop was unavailable");
   }
 
+  // The checkpoint gate above passed (or was waived), so from here the child's
+  // exit is ours.
+  intentionalStops.add(child);
+
   if (childTerminationConfirmed(child)) {
     // Clear `current` here rather than returning early. `releaseOwnership`
     // is normally driven by the exit/close listeners, but the startup path
@@ -721,6 +739,20 @@ async function stopSimOnce(
     `simulation-rs did not exit within ${timeoutMs}ms and SIGKILL was not confirmed; ` +
       "pid record and data lock retained to prevent a second writer",
   );
+}
+
+type UnexpectedExit = { code: number | null; signal: NodeJS.Signals | null };
+const unexpectedExitListeners = new Set<(exit: UnexpectedExit) => void>();
+// Children we are deliberately stopping (restart, reset, quit): their exit is
+// not a crash.
+const intentionalStops = new WeakSet<ChildProcess>();
+
+/** Called when the running simulation exits without us having asked it to. */
+export function onUnexpectedSimExit(
+  listener: (exit: UnexpectedExit) => void,
+): () => void {
+  unexpectedExitListeners.add(listener);
+  return () => unexpectedExitListeners.delete(listener);
 }
 
 export function activeSim(): RunningSim | null {
