@@ -49,11 +49,7 @@ export function useRendererBackend({
     // throwing. Its error UI sits behind the startup cover, so recover if a
     // first frame never arrives. A hidden tab or paused desktop window cannot
     // schedule that frame, so do not count that time against startup.
-    const watchdog = watchForGpuStartupFailure(
-      document,
-      rendererPausedRef.current,
-      handleGPUFailure,
-    )
+    const watchdog = watchForGpuStartupFailure(document, rendererPausedRef.current, handleGPUFailure)
     startupWatchdogRef.current = watchdog
     return () => {
       watchdog.dispose()
