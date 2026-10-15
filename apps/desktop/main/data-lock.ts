@@ -113,64 +113,90 @@ function liveSimulationPidRecord(root: string): { pid: number; token: string | n
   }
 }
 
+export interface ProcessIdentity {
+  /** Executable name: no directory, no `.exe`. */
+  name: string;
+  /** When the process started, epoch ms. */
+  startedAt: number;
+}
+
 /**
- * Executable name (no directory, no `.exe`) of a live pid, or null when it
- * cannot be determined. Only called when a stale-looking lock names a live pid.
+ * Name and start time of a live pid, or null when they cannot be determined.
+ * Only called when a stale-looking lock names a live pid, so a normal launch
+ * never spawns anything here.
  */
-export function executableNameOfPid(pid: number): string | null {
+export function describeProcess(pid: number): ProcessIdentity | null {
   try {
-    let name: string;
     if (process.platform === "win32") {
-      const listing = execFileSync(
-        "tasklist",
-        ["/FI", `PID eq ${pid}`, "/FO", "CSV", "/NH"],
-        { encoding: "utf8", windowsHide: true, timeout: 5_000 },
-      );
-      // "Image Name","PID",... ; "INFO: No tasks..." has no quoted fields.
-      const match = /^"([^"]+)","(\d+)"/m.exec(listing);
-      if (!match || Number(match[2]) !== pid) return null;
-      name = match[1];
-    } else {
-      name = path.basename(
-        execFileSync("ps", ["-p", String(pid), "-o", "comm="], {
-          encoding: "utf8",
-          timeout: 5_000,
-        }).trim(),
-      );
+      const out = execFileSync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          `$p = Get-Process -Id ${pid} -ErrorAction Stop; $p.ProcessName + '|' + $p.StartTime.ToUniversalTime().ToString('o')`,
+        ],
+        { encoding: "utf8", windowsHide: true, timeout: 10_000 },
+      ).trim();
+      const split = out.lastIndexOf("|");
+      const startedAt = Date.parse(out.slice(split + 1));
+      return split > 0 && Number.isFinite(startedAt)
+        ? { name: out.slice(0, split), startedAt }
+        : null;
     }
-    name = name.replace(/\.exe$/i, "");
-    return name === "" ? null : name;
+    const run = (column: string): string =>
+      execFileSync("ps", ["-p", String(pid), "-o", `${column}=`], {
+        encoding: "utf8",
+        timeout: 5_000,
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+    const name = path.basename(run("comm"));
+    const startedAt = Date.parse(run("lstart"));
+    return name !== "" && Number.isFinite(startedAt) ? { name, startedAt } : null;
   } catch {
     return null;
   }
 }
 
+// How much later than the lock's own timestamp a process may have started
+// before it cannot be the lock owner. The owner necessarily started before it
+// wrote the lock; the margin only has to absorb clock adjustments.
+const OWNER_START_MARGIN_MS = 2 * 60_000;
+
+function executableKey(name: string): string {
+  return path.basename(name).replace(/\.exe$/i, "").toLowerCase();
+}
+
 /**
- * A pid named by a stale lock is only "another The Human Box" if that process
- * runs the same executable as this one. Pids are recycled (aggressively on
- * Windows, and after any reboot), so an unrelated program holding the old pid
- * must not lock the player out of their save folder. When the executable
- * cannot be identified the pid is assumed to be the owner: failing closed
- * never lets two writers open one world.
+ * Pids are recycled (aggressively on Windows, and after any reboot), so a live
+ * pid named by a stale lock is only treated as a recycled stranger when BOTH
+ * independent signals agree: it started after the lock was written (the real
+ * owner cannot have), and it runs a different executable than this process.
+ * If either cannot be established the pid is assumed to be the owner: failing
+ * closed never lets two writers open one world.
  */
-export function pidRunsDifferentProgram(
+export function pidWasRecycled(
   pid: number,
-  describe: (pid: number) => string | null = executableNameOfPid,
+  acquiredAt: number,
+  describe: (pid: number) => ProcessIdentity | null = describeProcess,
   ownExecutable: string = process.execPath,
 ): boolean {
-  const other = describe(pid)?.toLowerCase();
-  if (!other) return false;
-  const own = path.basename(ownExecutable).replace(/\.exe$/i, "").toLowerCase();
+  if (!(acquiredAt > 0)) return false;
+  const identity = describe(pid);
+  if (!identity) return false;
+  const startedAfterLock = identity.startedAt > acquiredAt + OWNER_START_MARGIN_MS;
+  const own = executableKey(ownExecutable);
+  const other = executableKey(identity.name);
   // `ps comm` truncates to 15 characters on Linux.
-  const same = other === own || (other.length >= 15 && own.startsWith(other));
-  return !same;
+  const sameProgram = other === own || (other.length >= 15 && own.startsWith(other));
+  return startedAfterLock && !sameProgram;
 }
 
 export function acquireDataRootLock(
   root: string,
   ownerPid = process.pid,
   allowOrphanRecovery = false,
-  describeProcess: (pid: number) => string | null = executableNameOfPid,
+  identify: (pid: number) => ProcessIdentity | null = describeProcess,
 ): DataRootLock {
   fs.mkdirSync(root, { recursive: true });
   const lockDir = path.join(root, LOCK_DIR_NAME);
@@ -231,7 +257,7 @@ export function acquireDataRootLock(
       if (
         owner &&
         processIsAlive(owner.pid) &&
-        !pidRunsDifferentProgram(owner.pid, describeProcess)
+        !pidWasRecycled(owner.pid, owner.acquiredAt, identify)
       ) {
         throw new Error(
           `this save folder is already open by another The Human Box process (pid ${owner.pid})`,

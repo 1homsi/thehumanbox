@@ -12,7 +12,7 @@ import * as path from "node:path";
 import test from "node:test";
 import {
   acquireDataRootLock,
-  pidRunsDifferentProgram,
+  pidWasRecycled,
   processIsAlive,
   removePidRecordIfOwned,
   writePidRecordAtomically,
@@ -194,16 +194,18 @@ test("a lock owner pid recycled by an unrelated program is stale", () => {
   try {
     const lockDir = path.join(root, ".thehumanbox-data.lock");
     mkdirSync(lockDir);
+    const acquiredAt = Date.now() - 3_600_000;
     // The recorded owner pid is alive (our own), as a recycled pid would be.
     writeFileSync(
       path.join(lockDir, "owner.json"),
-      JSON.stringify({ pid: process.pid, token: "old-token", acquiredAt: Date.now() - 3_600_000 }),
+      JSON.stringify({ pid: process.pid, token: "old-token", acquiredAt }),
     );
     const own = path.basename(process.execPath).replace(/\.exe$/i, "");
+    const identity = (name: string, startedAt: number) => () => ({ name, startedAt });
 
-    // really the same program: still another instance
+    // started before the lock, same program: really another instance
     assert.throws(
-      () => acquireDataRootLock(root, process.pid, false, () => own),
+      () => acquireDataRootLock(root, process.pid, false, identity(own, acquiredAt - 5_000)),
       /already open by another/,
     );
     // identity unknown: fail closed
@@ -211,8 +213,13 @@ test("a lock owner pid recycled by an unrelated program is stale", () => {
       () => acquireDataRootLock(root, process.pid, false, () => null),
       /already open by another/,
     );
-    // a different program owns the pid now
-    const lock = acquireDataRootLock(root, process.pid, false, () => "chrome");
+    // different name but it started before the lock: could be a wrapper/alias, keep refusing
+    assert.throws(
+      () => acquireDataRootLock(root, process.pid, false, identity("chrome", acquiredAt - 5_000)),
+      /already open by another/,
+    );
+    // started long after the lock and runs another program: a recycled pid
+    const lock = acquireDataRootLock(root, process.pid, false, identity("chrome", Date.now()));
     assert.equal(lock.recoveredToken, "old-token");
     lock.release();
   } finally {
@@ -220,18 +227,22 @@ test("a lock owner pid recycled by an unrelated program is stale", () => {
   }
 });
 
-test("program identity comparison tolerates .exe, case and ps truncation", () => {
+test("pid recycling needs a later start time AND a different program", () => {
   const exe = "/Applications/The Human Box.app/Contents/MacOS/The Human Box";
-  assert.equal(pidRunsDifferentProgram(7, () => "The Human Box", exe), false);
-  assert.equal(pidRunsDifferentProgram(7, () => "the human box", exe), false);
-  assert.equal(pidRunsDifferentProgram(7, () => "firefox", exe), true);
-  assert.equal(pidRunsDifferentProgram(7, () => null, exe), false);
+  const t = 1_700_000_000_000;
+  const later = t + 10 * 60_000;
+  const id = (name: string, startedAt: number) => () => ({ name, startedAt });
+  assert.equal(pidWasRecycled(7, t, id("firefox", later), exe), true);
+  assert.equal(pidWasRecycled(7, t, id("The Human Box", later), exe), false);
+  assert.equal(pidWasRecycled(7, t, id("the human box", later), exe), false);
+  assert.equal(pidWasRecycled(7, t, id("The Human Box.exe", later), exe), false);
+  assert.equal(pidWasRecycled(7, t, id("firefox", t + 30_000), exe), false);
+  assert.equal(pidWasRecycled(7, t, id("firefox", t - 1), exe), false);
+  assert.equal(pidWasRecycled(7, 0, id("firefox", later), exe), false);
+  assert.equal(pidWasRecycled(7, t, () => null, exe), false);
+  // ps truncates comm to 15 characters on Linux
   assert.equal(
-    pidRunsDifferentProgram(7, () => "The Human Box", "The Human Box.exe"),
-    false,
-  );
-  assert.equal(
-    pidRunsDifferentProgram(7, () => "the-human-box-a", "/opt/the-human-box-app/the-human-box-appimage"),
+    pidWasRecycled(7, t, id("the-human-box-a", later), "/opt/the-human-box-app/the-human-box-app"),
     false,
   );
 });
