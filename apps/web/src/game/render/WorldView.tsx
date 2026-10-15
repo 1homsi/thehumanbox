@@ -102,7 +102,7 @@ export function WorldView({
       x: (focusRequest.x - ox + 0.5) * TILE,
       y: (focusRequest.y - oy + 0.5) * TILE,
     }
-    useCameraFocus.setState({ request: null })
+    useCameraFocus.setState((s) => (s.request === focusRequest ? { request: null } : s))
   }, [focusRequest])
   const [dims, setDims] = useState({ w: 0, h: 0 })
   const {
