@@ -32,6 +32,24 @@ a,
   outline: none;
 }
 
+/* iOS Safari zooms the page into any text field under 16px on focus. The viewport no longer
+ * forbids scaling, so keep fields at 16px on touch devices instead. The two excluded fields
+ * have fixed-size frames (a 22px select, a 260px card) that 16px would overflow. */
+@media (pointer: coarse) {
+  :is(input, textarea, select):not(
+    [type='checkbox'],
+    [type='radio'],
+    [type='range'],
+    [type='button'],
+    [type='submit'],
+    [type='color'],
+    .civ-guide-select,
+    .tribe-card-name-input
+  ) {
+    font-size: 16px !important;
+  }
+}
+
 button:focus-visible,
 a:focus-visible,
 [role='button']:focus-visible,
