@@ -327,6 +327,16 @@ impl Organism {
     /// output stay as they are for the detail API; the tests keep the two in
     /// step.
     pub fn to_json_value_with(&self, include_cold: bool) -> serde_json::Value {
+        self.to_json_value_with_options(include_cold, true)
+    }
+
+    /// Frame organisms carry the aggregate lineage vocabulary separately so
+    /// the same per-person word map is not repeated in every full frame.
+    pub fn to_frame_json_value_with(&self, include_cold: bool) -> serde_json::Value {
+        self.to_json_value_with_options(include_cold, false)
+    }
+
+    fn to_json_value_with_options(&self, include_cold: bool, include_vocabulary: bool) -> serde_json::Value {
         use serde_json::Value;
         let r1 = |v: f32| Value::from((v * 10.0).round() / 10.0);
         let r2 = |v: f32| Value::from((v * 100.0).round() / 100.0);
@@ -468,7 +478,9 @@ impl Organism {
                     .collect(),
                 ),
             );
-            put("vocabulary", self.vocabulary.words_value());
+            if include_vocabulary {
+                put("vocabulary", self.vocabulary.words_value());
+            }
             put(
                 "discoveries",
                 Value::Array(self.discoveries.iter().map(|d| text(d)).collect()),

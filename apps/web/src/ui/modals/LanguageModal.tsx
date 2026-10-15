@@ -529,6 +529,7 @@ const ALL_CONCEPTS = CONCEPT_SECTIONS.flatMap((s) => s.concepts)
 
 interface Props {
   organisms: OrganismState[]
+  lineageWords?: Record<string, Record<string, string>>
   sexWords?: [string, string]
   onClose: () => void
   lineageNames?: Record<string, string>
@@ -540,7 +541,10 @@ interface LineageVocab {
   count: number
 }
 
-function buildLineageVocabs(organisms: OrganismState[]): LineageVocab[] {
+function buildLineageVocabs(
+  organisms: OrganismState[],
+  lineageWords?: Record<string, Record<string, string>>,
+): LineageVocab[] {
   const byLineage: Record<string, OrganismState[]> = {}
   for (const org of organisms) {
     if (!byLineage[org.lineage_id]) byLineage[org.lineage_id] = []
@@ -550,25 +554,30 @@ function buildLineageVocabs(organisms: OrganismState[]): LineageVocab[] {
   return Object.entries(byLineage)
     .sort((a, b) => b[1].length - a[1].length)
     .map(([lid, orgs]) => {
-      const words: Record<string, string> = {}
-      for (const concept of ALL_CONCEPTS) {
-        const counts: Record<string, number> = {}
-        for (const org of orgs) {
-          const w = org.vocabulary?.[concept]
-          if (w) counts[w] = (counts[w] ?? 0) + 1
-        }
-        const entries = Object.entries(counts)
-        if (entries.length) {
-          words[concept] = entries.sort((a, b) => b[1] - a[1])[0][0]
-        }
-      }
+      const words =
+        lineageWords?.[lid] ??
+        (() => {
+          const legacyWords: Record<string, string> = {}
+          for (const concept of ALL_CONCEPTS) {
+            const counts: Record<string, number> = {}
+            for (const org of orgs) {
+              const w = org.vocabulary?.[concept]
+              if (w) counts[w] = (counts[w] ?? 0) + 1
+            }
+            const entries = Object.entries(counts)
+            if (entries.length) {
+              legacyWords[concept] = entries.sort((a, b) => b[1] - a[1])[0][0]
+            }
+          }
+          return legacyWords
+        })()
       return { lineageId: lid, words, count: orgs.length }
     })
 }
 
-export function LanguageModal({ organisms, sexWords, onClose, lineageNames }: Props) {
+export function LanguageModal({ organisms, lineageWords, sexWords, onClose, lineageNames }: Props) {
   const { frozen, reload } = useFrozenSnapshot(() => organisms)
-  const lineages = buildLineageVocabs(frozen)
+  const lineages = buildLineageVocabs(frozen, lineageWords)
   const tn = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
 
   const [query, setQuery] = useState('')

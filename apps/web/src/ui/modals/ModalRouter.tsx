@@ -79,6 +79,7 @@ export function ModalRouter({ world, lineages, onGuide }: Props) {
         {showLanguages && (
           <LanguageModal
             organisms={world.organisms.filter((o) => o.alive)}
+            lineageWords={world.lineage_words}
             sexWords={world.sex_words}
             onClose={closeLanguages}
             lineageNames={world.lineage_names}
@@ -136,6 +137,7 @@ export function ModalRouter({ world, lineages, onGuide }: Props) {
         <Suspense fallback={null}>
           <AllLineagesModal
             lineages={lineages}
+            lineageWords={world.lineage_words}
             lineageNames={world.lineage_names}
             peril={world.tribes_in_peril}
             facts={lineageFacts(world)}

@@ -644,6 +644,8 @@ export interface WorldState {
   tribal_relations: TribalRelation[]
   lineage_sizes: { id: string; count: number }[]
   lineage_names?: Record<string, string>
+  /** Most common vocabulary words by lineage, included in cold/full frames. */
+  lineage_words?: Record<string, Record<string, string>>
   lineage_centroid_history?: Record<string, [number, number, number][]>
   /** The player's goals and how far they have got (sim/goals.rs). */
   goals?: GoalStatus[]
