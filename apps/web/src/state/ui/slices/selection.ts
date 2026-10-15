@@ -24,13 +24,16 @@ export const createSelectionSlice: StateCreator<UIState, [], [], SelectionSlice>
     if (id != null && id !== prev) {
       trackEvent('org_select', { org_id: id })
     }
+    // An edit belongs to the person it started on: selecting anyone else abandons it.
+    const renamingOrgId = id === get().renamingOrgId ? id : null
     set(
       id == null
-        ? { selectedOrgId: null, followOrgId: null }
+        ? { selectedOrgId: null, followOrgId: null, renamingOrgId }
         : {
             selectedOrgId: id,
             followOrgId: get().followOrgId === id ? id : null,
             panelOpen: true,
+            renamingOrgId,
           },
     )
   },
