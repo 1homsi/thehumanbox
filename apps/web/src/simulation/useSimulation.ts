@@ -21,6 +21,7 @@ import {
 import { canSendSandboxCommand, type SandboxCommand } from './sandbox'
 import { isDesktop } from '../shared/desktop'
 import { localSaveWorkerRequest } from './wasmPersistence'
+import { failedSnapshotFrameId, shouldRetrySnapshot } from './snapshotResync'
 import {
   fetchRuntimeControlState,
   WASM_BASE_TICK_MS,
@@ -181,14 +182,13 @@ export function useSimulation(source: WorldSource = 'native'): {
       bootstrapPendingRef.current = true
       const ctl = new AbortController()
       snapshotAbort = ctl
-      const savedLastFrameId = lastFrameIdRef.current
       lastFrameIdRef.current = 0
       const scheduleSnapshotRetry = () => {
         const retryMs = 600 + Math.round(Math.random() * 600)
         setTimeout(() => {
           if (destroyed) return
           if (snapshotPendingRef.current) return
-          if (currentWorldRef.current !== null) return
+          if (!shouldRetrySnapshot(currentWorldRef.current !== null, awaitingFullFrameRef.current)) return
           requestSnapshotResync(true)
         }, retryMs)
       }
@@ -196,7 +196,7 @@ export function useSimulation(source: WorldSource = 'native'): {
         .then((buf) => {
           if (destroyed || ctl.signal.aborted) return
           if (buf == null) {
-            lastFrameIdRef.current = savedLastFrameId
+            lastFrameIdRef.current = failedSnapshotFrameId()
             if (bootstrapPendingRef.current) {
               bootstrapPendingRef.current = false
               scheduleFlush()
@@ -210,7 +210,7 @@ export function useSimulation(source: WorldSource = 'native'): {
         })
         .catch(() => {
           if (ctl.signal.aborted) return
-          lastFrameIdRef.current = savedLastFrameId
+          lastFrameIdRef.current = failedSnapshotFrameId()
           if (bootstrapPendingRef.current) {
             bootstrapPendingRef.current = false
             scheduleFlush()
