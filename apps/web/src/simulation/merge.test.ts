@@ -33,6 +33,21 @@ function baseFrame(overrides: Partial<IncomingWorldFrame> = {}): IncomingWorldFr
 }
 
 describe('mergeFrame organism handling', () => {
+  it('carries lineage word summaries across deltas without organism vocabularies', () => {
+    const caches = emptyCaches()
+    const words = { lineage: { food: 'mara', home: 'tora' } }
+    const first = mergeFrame(
+      baseFrame({ frame_kind: 'full', organisms_complete: true, lineage_words: words }),
+      caches,
+    )
+    caches.prevWorld = first.next
+    const next = mergeFrame(baseFrame({ frame_id: 2 }), caches)
+
+    expect(first.next.lineage_words).toEqual(words)
+    expect(next.next.lineage_words).toEqual(words)
+    expect(next.next.organisms).toEqual([])
+  })
+
   it('drops a delta-only org that has no prior cache entry', () => {
     // SoA delta arrives carrying an id the cache has never seen. The
     // cold fields (name, lineage_id, traits) aren't on the wire, so
