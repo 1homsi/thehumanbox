@@ -18,6 +18,7 @@ import { TILE_PX, SCALE, ROOM_COLS, ROOM_ROWS, CANVAS_W, CANVAS_H } from './room
 import { roomPainter } from '../../render/cf/scenes/room-painters'
 import { CfRoomView } from '../../render/cf/scenes/CfRoomView'
 import { canUseWorldGPU } from '../../render/world-view/gpu'
+import { RoomGPUBoundary } from './RoomGPUBoundary'
 
 export { TILE_PX, SCALE, ROOM_COLS, ROOM_ROWS, CANVAS_W, CANVAS_H }
 
@@ -181,6 +182,10 @@ export function RoomCanvas(props: Props) {
     [onxipjs, ctx, palette, drawFurniture, occupantSlots],
   )
   if (painter)
-    return <CfRoomView ctx={ctx} painter={painter} selectedOrgId={selectedOrgId} onSelectOrg={onSelectOrg} />
+    return (
+      <RoomGPUBoundary fallback={<RoomCanvas2D {...props} />}>
+        <CfRoomView ctx={ctx} painter={painter} selectedOrgId={selectedOrgId} onSelectOrg={onSelectOrg} />
+      </RoomGPUBoundary>
+    )
   return <RoomCanvas2D {...props} />
 }

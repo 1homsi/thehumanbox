@@ -6,6 +6,11 @@ export function canUseWorldGPU(): boolean {
   return cached
 }
 
+/** The GPU renderer failed at runtime: later interiors must start on the 2D canvas, not the same broken context. */
+export function markWorldGPUFailed(): void {
+  cached = false
+}
+
 function probe(): boolean {
   try {
     if (new URLSearchParams(window.location.search).get('renderer') === 'canvas') return false
