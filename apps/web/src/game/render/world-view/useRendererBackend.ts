@@ -79,7 +79,7 @@ export function useRendererBackend({
       recovery.dispose()
       contextRecoveryRef.current = null
     }
-  }, [renderBackend, handleGPUFailure, containerRef])
+  }, [renderBackend, rendererKey, handleGPUFailure, containerRef])
 
   useEffect(() => {
     contextRecoveryRef.current?.setPaused(rendererPaused)
