@@ -308,9 +308,9 @@ pub async fn archive_and_reset(
         return None;
     }
     *sim = next;
-    drop(sim);
 
-    // Dead-organism memories of the new world belong in its own folder, not the old live one.
+    // Dead-organism memories of the new world belong in its own folder, not the old live one. Swapped
+    // under the sim lock, with the sim, so the tick loop never pairs a world with the other one's store.
     world_store.replace(match crate::world_store::WorldStore::open(&new_hash) {
         Ok(store) => Some(store),
         Err(e) => {
@@ -319,6 +319,7 @@ pub async fn archive_and_reset(
             None
         }
     });
+    drop(sim);
 
     let _ = std::fs::remove_file(save_path);
     tracing::warn!(target: "archive",

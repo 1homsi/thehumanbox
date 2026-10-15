@@ -89,13 +89,15 @@ impl TickLoop {
                             )
                             .is_ok();
 
+                    // Take the store with the flushes, under the sim lock: a world reset swaps both
+                    // under that lock, so these memories reach the world they came from.
                     let pending_flushes = std::mem::take(&mut s.pending_memory_flushes);
-                    (pending_save, pending_flushes)
+                    (pending_save, pending_flushes, world_store.get())
                 };
 
-                let (pending_save, pending_flushes) = tick_outputs;
+                let (pending_save, pending_flushes, flush_store) = tick_outputs;
                 if !pending_flushes.is_empty() {
-                    if let Some(ws) = world_store.get() {
+                    if let Some(ws) = flush_store {
                         tokio::task::spawn_blocking(move || {
                             for f in pending_flushes {
                                 let refs: Vec<&crate::organism::memory::MemoryEntry> =
