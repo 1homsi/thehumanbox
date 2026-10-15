@@ -9,9 +9,10 @@
   flex-wrap: nowrap;
   gap: 12px;
   min-height: 48px;
-  padding-top: 6px;
+  padding-top: calc(6px + var(--safe-top));
   padding-bottom: 8px;
-  padding-right: 12px;
+  padding-right: calc(12px + var(--safe-right));
+  padding-left: calc(16px + var(--safe-left));
   background: repeating-linear-gradient(0deg, #2b2118 0 22px, #231a13 22px 24px);
   border-bottom: 2px solid var(--hdr-ink);
   box-shadow:
@@ -442,5 +443,11 @@
 @media (prefers-reduced-motion: reduce) {
   .header .hdr-chip.prayer-chip.urgent {
     animation: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .header {
+    padding-left: calc(12px + var(--safe-left));
   }
 }

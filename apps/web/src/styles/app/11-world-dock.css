@@ -19,7 +19,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+  padding: 8px calc(10px + var(--safe-right)) calc(8px + var(--safe-bottom)) calc(10px + var(--safe-left));
   background: repeating-linear-gradient(0deg, var(--dock-wood) 0 22px, var(--dock-wood-dark) 22px 24px);
   border-top: 2px solid var(--dock-ink);
   box-shadow:
@@ -33,11 +33,11 @@
 .dock-tabs {
   position: absolute;
   bottom: 100%;
-  left: 0;
+  left: var(--safe-left);
   display: flex;
   align-items: flex-end;
   gap: 2px;
-  max-width: calc(100% - 20px);
+  max-width: calc(100% - 20px - var(--safe-left) - var(--safe-right));
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -364,7 +364,7 @@
   .sandbox-bar {
     --dock-tile: 36px;
     gap: 8px;
-    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    padding: 6px calc(6px + var(--safe-right)) calc(6px + var(--safe-bottom)) calc(6px + var(--safe-left));
   }
   .dock-tab span {
     display: none;

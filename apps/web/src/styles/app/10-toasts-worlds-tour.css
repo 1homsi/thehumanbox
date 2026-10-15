@@ -1,7 +1,7 @@
 /* ── Update-available toast ────────────────────────────────────────────── */
 .update-toast {
   position: fixed;
-  right: 20px;
+  right: calc(20px + var(--safe-right));
   bottom: 150px;
   z-index: 9700;
   display: flex;
@@ -120,8 +120,8 @@
     bottom: calc(116px + env(safe-area-inset-bottom, 0px));
   }
   .update-toast {
-    left: 12px;
-    right: 12px;
+    left: calc(12px + var(--safe-left));
+    right: calc(12px + var(--safe-right));
     max-width: none;
   }
 }

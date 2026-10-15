@@ -30,6 +30,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
   z-index: 100;
 }
 .idle-resume-backdrop {
@@ -127,7 +128,7 @@
 .desktop-toast {
   position: fixed;
   bottom: 150px;
-  left: 16px;
+  left: calc(16px + var(--safe-left));
   z-index: 90;
   width: 340px;
   max-width: calc(100vw - 32px);
