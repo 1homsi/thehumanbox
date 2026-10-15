@@ -12,7 +12,28 @@ pub type LatestFull = Arc<std::sync::RwLock<Option<Arc<Vec<u8>>>>>;
 /// PNG encode without blocking the world-broadcast tasks.
 pub type OgCache = Arc<tokio::sync::Mutex<Option<(u64, Arc<Vec<u8>>)>>>;
 
-pub type SharedWorldStore = Arc<crate::world_store::WorldStore>;
+/// The live world's dead-organism memory DB. It is a cell because a world reset (`archive_and_reset`)
+/// moves the live world to a new folder, and the store must follow it: the tick loop and the routes
+/// read the current store through `get`, and the reset swaps it with `replace`.
+#[derive(Clone, Default)]
+pub struct SharedWorldStore(Arc<std::sync::RwLock<Option<Arc<crate::world_store::WorldStore>>>>);
+
+impl SharedWorldStore {
+    pub fn new(store: Option<crate::world_store::WorldStore>) -> Self {
+        Self(Arc::new(std::sync::RwLock::new(store.map(Arc::new))))
+    }
+
+    pub fn get(&self) -> Option<Arc<crate::world_store::WorldStore>> {
+        self.0
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone()
+    }
+
+    pub fn replace(&self, store: Option<crate::world_store::WorldStore>) {
+        *self.0.write().unwrap_or_else(|poisoned| poisoned.into_inner()) = store.map(Arc::new);
+    }
+}
 
 #[derive(Clone)]
 pub struct AppState {
@@ -31,7 +52,7 @@ pub struct AppState {
     pub memory_watch: crate::memory_watch::SharedMemoryWatch,
     pub og_cache: OgCache,
     pub start_ms: u64,
-    pub world_store: Option<SharedWorldStore>,
+    pub world_store: SharedWorldStore,
     pub world_started_at: Arc<AtomicU64>,
     pub peak_pop: Arc<AtomicU64>,
     pub population_limit: Option<usize>,

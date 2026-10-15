@@ -10,7 +10,7 @@ pub(super) struct TickLoop {
     pub(super) memory_watch: crate::memory_watch::SharedMemoryWatch,
     pub(super) transport_stats: SharedTransportStats,
     pub(super) last_tick_at: Arc<std::sync::atomic::AtomicU64>,
-    pub(super) world_store: Option<SharedWorldStore>,
+    pub(super) world_store: SharedWorldStore,
     pub(super) pending_save_task: PendingSave,
     pub(super) runtime_control: SharedRuntimeControl,
     pub(super) save_gate: SaveGate,
@@ -95,7 +95,7 @@ impl TickLoop {
 
                 let (pending_save, pending_flushes) = tick_outputs;
                 if !pending_flushes.is_empty() {
-                    if let Some(ws) = world_store.clone() {
+                    if let Some(ws) = world_store.get() {
                         tokio::task::spawn_blocking(move || {
                             for f in pending_flushes {
                                 let refs: Vec<&crate::organism::memory::MemoryEntry> =
