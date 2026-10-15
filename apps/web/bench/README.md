@@ -57,6 +57,16 @@ camera at a zoom (`overview` = the whole world, `mid` = zoom 1, `close` = zoom 3
 simulation run (`playing`) or pauses it (`paused`), waits 3 s, and measures an 8 s window. The camera is steered
 through `window.__thbBench`, which the app publishes when the address has `?bench` (`src/game/render/bench-hooks.ts`).
 
+`--modes panning` is `playing` with the camera moving for the whole window (not in the default modes): the map's
+own arrow-key pan (`d`, `s`, `a`, `w` held for 1.5 s each, a square that ends where it began) sent as real key events,
+so every rebuild keyed on the camera window (buildings, trees, decor, overlay key) runs the way it does when a
+player drags the map. `results.json` has `panPx`, the world px the camera travelled (0 at `overview`, where the
+whole world fits and nothing can pan; use `mid` or `close`).
+
+```sh
+node bench/run.mjs --builds main=dist --fixtures crowd --zooms mid --modes playing,panning --passes metrics --runs 3
+```
+
 Three passes per scenario, because tracing slows the page down a little:
 
 | pass | how | gives |
