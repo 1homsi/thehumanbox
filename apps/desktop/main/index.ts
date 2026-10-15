@@ -221,7 +221,14 @@ async function createWindow(): Promise<void> {
     if (externalUrl) shell.openExternal(externalUrl).catch(() => {});
   });
   win.webContents.on("will-frame-navigate", (details) => {
-    if (!isRendererNavigation(details.url, rendererFile)) details.preventDefault();
+    if (isRendererNavigation(details.url, rendererFile)) return;
+    details.preventDefault();
+    // Electron emits this before `will-navigate`, and cancelling here stops
+    // that event, so the main frame hands off to the browser from here too.
+    if (details.isMainFrame) {
+      const externalUrl = externalHttpUrl(details.url);
+      if (externalUrl) shell.openExternal(externalUrl).catch(() => {});
+    }
   });
   win.webContents.on(
     "will-redirect",

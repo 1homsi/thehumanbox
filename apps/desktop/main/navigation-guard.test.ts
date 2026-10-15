@@ -9,7 +9,7 @@ import {
 
 test("only the renderer document can load in the main window", () => {
   const rendererFile = "/Applications/The Human Box.app/Contents/Resources/app/dist/renderer/index.html";
-  const allowed = "file:///Applications/The%20Human%20Box.app/Contents/Resources/app/dist/renderer/index.html?desktop=1";
+  const allowed = `${pathToFileURL(rendererFile).toString()}?desktop=1&api=http%3A%2F%2F127.0.0.1%3A1`;
 
   assert.equal(isRendererNavigation(allowed, rendererFile), true);
   assert.equal(isRendererNavigation(pathToFileURL(rendererFile).toString(), rendererFile), true);
