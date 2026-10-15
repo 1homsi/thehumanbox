@@ -9,6 +9,7 @@ pub(super) fn spawn_monthly_rollover(
     peak_pop: Arc<AtomicU64>,
     population_limit: Option<usize>,
     save_gate: SaveGate,
+    world_store: SharedWorldStore,
 ) {
     if monthly_rollover_enabled() {
         let sim_arch = sim.clone();
@@ -43,6 +44,7 @@ pub(super) fn spawn_monthly_rollover(
                         &active_save_str,
                         population_limit_arch,
                         save_gate_arch.clone(),
+                        &world_store,
                     )
                     .await
                     {
