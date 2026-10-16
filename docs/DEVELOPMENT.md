@@ -28,7 +28,7 @@ runs everything on `main`.
 | Rust | `cargo fmt --all` then `cargo clippy --workspace --all-targets --locked --release -- -D warnings` then `cargo test --release --locked --workspace` |
 | Web (`apps/web`) | `pnpm exec prettier --check "src/**/*.{ts,tsx,js,jsx,json,css}"`, `pnpm exec tsc -b --noEmit`, `pnpm exec eslint src`, `pnpm exec vitest run`, `pnpm run build` |
 | Desktop (`apps/desktop`) | `pnpm exec tsc -p tsconfig.json --noEmit` and `pnpm run test:main` |
-| Performance budget | `make perf-gate` (`scripts/perf-gate.sh`): three seeds, a time-per-tick and memory budget |
+| Performance budget | `make perf-gate` (`scripts/perf-gate.sh`): three seeds at 8,000 ticks and one 25,000-tick run; max, p99 and mean time per tick, and memory |
 
 Run prettier and `cargo fmt` last, after every edit.
 
