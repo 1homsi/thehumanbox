@@ -133,4 +133,40 @@ describe('DesktopSettingsModal failures', () => {
     expect(status).toHaveBeenCalledTimes(2)
     expect(document.body.textContent).toContain('Not running.')
   })
+
+  it('blames the save, not the restart, when the settings cannot be written before restarting', async () => {
+    const restart = vi.fn(() => Promise.resolve({ running: true, port: 1 }))
+    const m = await mount(bridge({ set: () => Promise.reject(new Error('read-only file')), restart }))
+    await m.openSimulationTab()
+    await m.flush()
+    await act(async () => {
+      m.button('apply + restart').click()
+    })
+    await m.flush()
+    expect(document.body.textContent).toContain('could not save settings: read-only file')
+    expect(document.body.textContent).not.toContain('could not restart the simulation')
+    expect(restart).not.toHaveBeenCalled()
+  })
+
+  it('clears the error on the next attempt', async () => {
+    let attempt = 0
+    const m = await mount(
+      bridge({
+        set: () =>
+          ++attempt === 1 ? Promise.reject(new Error('read-only file')) : Promise.resolve(SETTINGS),
+      }),
+    )
+    await m.openSimulationTab()
+    await m.flush()
+    await act(async () => {
+      m.button('save settings').click()
+    })
+    await m.flush()
+    expect(document.body.textContent).toContain('could not save settings: read-only file')
+    await act(async () => {
+      m.button('save settings').click()
+    })
+    await m.flush()
+    expect(document.body.textContent).not.toContain('could not save settings')
+  })
 })

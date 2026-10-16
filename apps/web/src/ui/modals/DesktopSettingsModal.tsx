@@ -364,6 +364,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
         setActionError(`saved, but could not update launch at login: ${errorText(error)}`)
       }
     } catch (error) {
+      setSavedAt(null)
       setActionError(`could not save settings: ${errorText(error)}`)
     } finally {
       setBusy(false)
@@ -376,7 +377,13 @@ export function DesktopSettingsModal({ onClose }: Props) {
     setStatus(null)
     setActionError(null)
     try {
-      const saved = await desktop.settings.set(settings)
+      let saved: DesktopSettings
+      try {
+        saved = await desktop.settings.set(settings)
+      } catch (error) {
+        setActionError(`could not save settings: ${errorText(error)}`)
+        return
+      }
       window.dispatchEvent(
         new CustomEvent(DESKTOP_PAUSE_WHEN_HIDDEN_EVENT, { detail: saved.pauseWhenHidden }),
       )
@@ -384,6 +391,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
       setStatus(next)
       setSavedAt(Date.now())
     } catch (error) {
+      setSavedAt(null)
       setActionError(`could not restart the simulation: ${errorText(error)}`)
       // The restart may have left the sim stopped or still running; show the truth.
       desktop.sim
