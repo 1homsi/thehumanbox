@@ -32,7 +32,7 @@ import { toolFailure } from './ui/toolbar/tool-tips'
 import { PAIR_TOOLS, SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
 import { newPerils } from './game/model/peril-watch'
 import { prayerRows, prayerTool } from './game/model/prayers'
-import { escapeHandledElsewhere, mapOwnsZoomKeys, shortcutFor, typingTarget } from './game/model/shortcuts'
+import { escapeHandledElsewhere, gameKeyAction, mapOwnsZoomKeys, typingTarget } from './game/model/shortcuts'
 import { tribeHome } from './game/model/tribe-peril'
 import { useCameraFocus } from './state/camera-focus'
 import type { PrayerInfo } from './shared/types'
@@ -458,8 +458,8 @@ function LiveApp() {
   const brinkIndex = useRef(0)
   useEffect(() => {
     const onGameKey = (event: KeyboardEvent) => {
-      if (!sandboxControlsEnabled || event.repeat || typingTarget(event.target)) return
-      const action = shortcutFor(event)
+      if (event.repeat || typingTarget(event.target)) return
+      const action = gameKeyAction(event, sandboxControlsEnabled)
       if (!action) return
       if (action.kind === 'brush' && mapOwnsZoomKeys(event.target)) return
       event.preventDefault()
