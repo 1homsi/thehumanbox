@@ -59,9 +59,14 @@ async function mount(b: DesktopBridge) {
   await act(async () => {
     root.render(<DesktopSettingsModal onClose={() => {}} />)
   })
-  const flush = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)) })
+  const flush = () =>
+    act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
   const button = (label: string) =>
-    [...document.querySelectorAll('button')].find((el) => el.textContent?.trim() === label) as HTMLButtonElement
+    [...document.querySelectorAll('button')].find(
+      (el) => el.textContent?.trim() === label,
+    ) as HTMLButtonElement
   const openSimulationTab = async () => {
     await act(async () => {
       button('simulation')?.click()
