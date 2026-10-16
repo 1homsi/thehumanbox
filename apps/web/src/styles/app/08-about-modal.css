@@ -401,6 +401,51 @@ body.thb-colorblind .org-sick-badge {
   color: #8a8170;
   font-weight: 600;
 }
+/* Phones: one card per lineage instead of a table wider than the sheet (Gov, Currency and the actions
+   column were scrolled out of sight). The labels come from each cell's data-label. */
+@media (max-width: 720px) {
+  .civ-table,
+  .civ-table tbody,
+  .civ-table tr,
+  .civ-table td {
+    display: block;
+    width: 100%;
+  }
+  .civ-table thead {
+    display: none;
+  }
+  .civ-table tr {
+    padding: 6px 0;
+    border-bottom: 1px solid #4a3829;
+  }
+  .civ-table td {
+    display: grid;
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 8px;
+    padding: 4px 2px;
+    border-bottom: none;
+  }
+  .civ-table td::before {
+    content: attr(data-label);
+    color: #8a8170;
+    font-weight: 600;
+  }
+  .civ-table td:first-child {
+    color: #f0e6cf;
+    font-weight: 700;
+  }
+  .civ-table td.civ-cell-actions--empty {
+    display: none;
+  }
+  .civ-table .civ-era-progress {
+    min-width: 0;
+    max-width: none;
+  }
+  .civ-table .civ-lineage-actions {
+    min-width: 0;
+    justify-content: flex-start;
+  }
+}
 .civ-era-progress {
   display: flex;
   flex-direction: column;

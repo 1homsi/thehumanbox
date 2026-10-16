@@ -310,19 +310,19 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
           <section className="civ-section civ-section--span">
             <h3>Lineages</h3>
             <div className="civ-table-wrap">
-              <table className="civ-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Lineage Era</th>
-                    <th>Pop</th>
-                    <th>Next</th>
-                    <th>Gov</th>
-                    <th>Currency</th>
-                    <th></th>
+              <table className="civ-table" role="table">
+                <thead role="rowgroup">
+                  <tr role="row">
+                    <th role="columnheader">Name</th>
+                    <th role="columnheader">Lineage Era</th>
+                    <th role="columnheader">Pop</th>
+                    <th role="columnheader">Next</th>
+                    <th role="columnheader">Gov</th>
+                    <th role="columnheader">Currency</th>
+                    <th role="columnheader" aria-label="Actions"></th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody role="rowgroup">
                   {lineages.slice(0, 12).map((l) => {
                     const era = lineageEras[l.id] ?? 'pre-stone'
                     const progress = eraProgress.get(l.id)
@@ -350,13 +350,17 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                     )
                     const canEnterTavern = hasEnterableBuilding(world, TAVERN_BUILDINGS, l.id)
                     return (
-                      <tr key={l.id}>
-                        <td>{lineageById(l.id)}</td>
-                        <td>
+                      <tr key={l.id} role="row">
+                        <td role="cell" data-label="Name">
+                          {lineageById(l.id)}
+                        </td>
+                        <td role="cell" data-label="Lineage Era">
                           {ERA_EMOJI[era] ?? ''} {era}
                         </td>
-                        <td>{l.count}</td>
-                        <td>
+                        <td role="cell" data-label="Pop">
+                          {l.count}
+                        </td>
+                        <td role="cell" data-label="Next">
                           {progress?.next_era ? (
                             <div className="civ-era-progress">
                               <span className={progress.ready ? 'civ-era-ready' : 'civ-era-next'}>
@@ -378,9 +382,21 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                             <span className="civ-era-next">-</span>
                           )}
                         </td>
-                        <td>{gov ? `${GOV_EMOJI[gov.kind] ?? ''} ${gov.kind}` : '-'}</td>
-                        <td>{currencies[l.id] ?? '-'}</td>
-                        <td>
+                        <td role="cell" data-label="Gov">
+                          {gov ? `${GOV_EMOJI[gov.kind] ?? ''} ${gov.kind}` : '-'}
+                        </td>
+                        <td role="cell" data-label="Currency">
+                          {currencies[l.id] ?? '-'}
+                        </td>
+                        <td
+                          role="cell"
+                          data-label="Actions"
+                          className={
+                            activeStrategy || (hasBrewing && canEnterTavern)
+                              ? 'civ-cell-actions'
+                              : 'civ-cell-actions civ-cell-actions--empty'
+                          }
+                        >
                           <div className="civ-lineage-actions">
                             {activeStrategy && (
                               <span
