@@ -48,6 +48,10 @@ pub(crate) use carcasses::Carcass;
 use helpers::*;
 use memory::read_self_rss_kb_local;
 
+/// The structure layer the last stream frame described, and the viewport window it covered
+/// (`origin_x`, `origin_y`, `width`, `height`).
+pub(crate) type StructureBase = ((i32, i32, usize, usize), Vec<[u16; 3]>);
+
 pub struct Simulation {
     pub grid: WorldGrid,
     pub physics: PhysicsEngine,
@@ -198,6 +202,9 @@ pub struct Simulation {
     /// Bumped whenever a planting is added, removed or changes stage.
     pub(crate) planting_revision: u64,
     pub(crate) serialized_planting_revision: u64,
+    /// The structure layer the last stream frame described, so a hot frame can send only what
+    /// changed.
+    pub(crate) serialized_structure: Option<StructureBase>,
     pub(crate) active_structure_tiles: HashSet<(i32, i32)>,
     pub(crate) field_fortifications: Vec<super::warfare::FieldFortification>,
     pub(crate) settlement_tiers: HashMap<String, u8>,
@@ -333,6 +340,7 @@ impl Simulation {
             serialized_building_state_revision: 0,
             planting_revision: 0,
             serialized_planting_revision: 0,
+            serialized_structure: None,
             active_structure_tiles: HashSet::default(),
             field_fortifications: Vec::new(),
             settlement_tiers: HashMap::default(),

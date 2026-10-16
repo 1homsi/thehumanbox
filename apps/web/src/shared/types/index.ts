@@ -560,6 +560,8 @@ export interface GridState {
   tiles: number[][]
   fire_intensity: number[][]
   structure: number[][]
+  /** Bumped when a frame carried a new `structure` layer, so the renderer re-reads it only then. */
+  structure_revision?: number
   biomes?: number[][]
   depth_map?: number[][]
   food_trail?: number[][]
@@ -589,7 +591,10 @@ export interface GridWire {
   origin_y: number
   tiles?: number[][]
   fire: [number, number, number][]
-  structure: [number, number, number][]
+  /** Absent on a hot frame whose structure layer is unchanged: keep the one already held. */
+  structure?: [number, number, number][]
+  /** Cell updates on hot frames; value 0 clears a previous structure mark. */
+  structure_delta?: [number, number, number][]
   biomes?: number[][]
   depth_map?: number[][]
   trails?: [number, number, number, number, number][]
