@@ -658,6 +658,11 @@ pub async fn metrics_handler(State(s): State<AppState>) -> impl IntoResponse {
         "thb_transport_frames_total{{kind=\"resync\"}} {}",
         transport.resync_frames
     );
+    let _ = writeln!(
+        body,
+        "thb_transport_frames_total{{kind=\"encode_failed\"}} {}",
+        transport.encode_failures
+    );
 
     (
         [
