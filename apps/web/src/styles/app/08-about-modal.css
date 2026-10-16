@@ -111,7 +111,7 @@
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 720px) {
   .desktop-toast {
     bottom: calc(116px + env(safe-area-inset-bottom, 0px));
     left: calc(12px + var(--safe-left));
