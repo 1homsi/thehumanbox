@@ -4,6 +4,7 @@ import * as net from "node:net";
 import * as path from "node:path";
 import { app } from "electron";
 import { openRotatingLog, type SimLog } from "./sim-log";
+import { CHECKPOINT_FAILED_ERROR } from "./sim-errors";
 
 import type { Settings } from "./settings";
 import { SIM_START_TIMEOUT_MS, waitForSimulation } from "./sim-ready";
@@ -696,9 +697,7 @@ async function stopSimOnce(
   ) {
     if (requireCheckpoint) {
       intentionalStops.delete(child);
-      throw new Error(
-        "could not checkpoint the active world; it remains open so the operation can be retried",
-      );
+      throw new Error(CHECKPOINT_FAILED_ERROR);
     }
     console.warn("[sim] checkpoint before stop was unavailable");
   }
