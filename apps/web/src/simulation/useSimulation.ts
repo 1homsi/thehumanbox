@@ -591,7 +591,11 @@ export function useSimulation(source: WorldSource = 'native'): {
 
     let reconnectDelayMs = 1000
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+    let healthyTimer: ReturnType<typeof setTimeout> | null = null
     let attempts = 0
+    // A socket only counts as reachable once it has stayed open this long; a server that
+    // accepts and immediately closes (overload shedding, proxy idle kill) keeps its backoff.
+    const HEALTHY_AFTER_MS = 5_000
 
     function scheduleReconnect() {
       if (destroyed) return
@@ -643,16 +647,25 @@ export function useSimulation(source: WorldSource = 'native'): {
 
       ws.onopen = () => {
         if (destroyed) return
-        reconnectDelayMs = 1000
-        attempts = 0
         setConnected(true)
-        setFailedAttempts(0)
+        if (healthyTimer !== null) clearTimeout(healthyTimer)
+        healthyTimer = setTimeout(() => {
+          healthyTimer = null
+          if (destroyed || wsRef.current !== ws) return
+          reconnectDelayMs = 1000
+          attempts = 0
+          setFailedAttempts(0)
+        }, HEALTHY_AFTER_MS)
         requestSnapshotResync()
       }
       ws.onclose = () => {
         if (destroyed) return
         // Ignore a close event from a socket we have already replaced.
         if (wsRef.current !== ws) return
+        if (healthyTimer !== null) {
+          clearTimeout(healthyTimer)
+          healthyTimer = null
+        }
         setConnected(false)
         attempts += 1
         setFailedAttempts(attempts)
@@ -790,6 +803,10 @@ export function useSimulation(source: WorldSource = 'native'): {
       if (reconnectTimer !== null) {
         clearTimeout(reconnectTimer)
         reconnectTimer = null
+      }
+      if (healthyTimer !== null) {
+        clearTimeout(healthyTimer)
+        healthyTimer = null
       }
       if (snapshotAbort) {
         snapshotAbort.abort()
