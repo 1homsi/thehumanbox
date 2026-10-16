@@ -47,13 +47,28 @@ use transport::{
     encode_frame, next_frame_id, now_ms, FrameClock, FrameKind, SharedTransportStats, TransportStats,
 };
 
+/// Whether this process may read a developer `.env` for configuration.
+///
+/// `.env` is a convenience for standalone runs. The desktop app passes a full
+/// environment to its child (`apps/desktop/main/sim-env.ts`) and runs it with
+/// the save folder as the working directory; `dotenvy::dotenv()` searches the
+/// cwd and every ancestor, so a stray `.env` in e.g. the home directory would
+/// otherwise inject the variables the desktop does not set itself —
+/// `THB_ADMIN_TOKEN`, `THB_LOW_MEMORY`, `DAILY_EGRESS_MB` — into a
+/// desktop-managed simulation.
+pub(crate) fn should_load_dev_dotenv(desktop_parent_pid: Option<&std::ffi::OsStr>) -> bool {
+    desktop_parent_pid.is_none()
+}
+
 #[tokio::main]
 async fn main() {
     if let Err(error) = claim_desktop_data_lock_from_env() {
         eprintln!("simulation-rs refused desktop data ownership: {error}");
         std::process::exit(1);
     }
-    dotenvy::dotenv().ok();
+    if should_load_dev_dotenv(std::env::var_os("THB_DESKTOP_PARENT_PID").as_deref()) {
+        dotenvy::dotenv().ok();
+    }
 
     startup::init_tracing();
 
