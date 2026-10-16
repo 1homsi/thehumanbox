@@ -92,6 +92,18 @@ describe('WelcomeModal', () => {
     expect(document.activeElement).toBe(field)
   })
 
+  it('leaves keys alone inside another dialog (a Radix modal or palette) opened over the card', () => {
+    mount()
+    const dialog = document.createElement('div')
+    dialog.setAttribute('role', 'dialog')
+    const control = document.createElement('button')
+    dialog.append(control)
+    document.body.append(dialog)
+    act(() => control.focus())
+    press(control, 'Escape')
+    expect(document.querySelector('.welcome-modal')).not.toBeNull()
+  })
+
   it('Escape from the page behind the card still skips it, e.g. after a palette closes', () => {
     mount()
     const map = document.createElement('button')
