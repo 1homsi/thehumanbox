@@ -28,6 +28,11 @@ class FakeChild extends EventEmitter {
 // startup dependencies replaced. The child never binds its port, so the start
 // stays in flight until something stops it.
 function loadSimProcess(child: FakeChild, onSpawn: () => void) {
+  const spawnCalls: Array<{
+    bin: string;
+    args: string[];
+    options: { cwd?: string; stdio?: unknown; windowsHide?: boolean };
+  }> = [];
   const fakeProcess = {
     pid: process.pid,
     platform: process.platform,
@@ -69,7 +74,12 @@ function loadSimProcess(child: FakeChild, onSpawn: () => void) {
           };
         case "node:child_process":
           return {
-            spawn: () => {
+            spawn: (
+              bin: string,
+              args: string[],
+              options: { cwd?: string; stdio?: unknown; windowsHide?: boolean },
+            ) => {
+              spawnCalls.push({ bin, args, options });
               onSpawn();
               return child;
             },
@@ -153,6 +163,7 @@ function loadSimProcess(child: FakeChild, onSpawn: () => void) {
   return {
     ...(context.exports as typeof import("./sim-process")),
     lock,
+    spawnCalls,
   };
 }
 
@@ -183,4 +194,30 @@ test("quit stops a simulation that is still loading instead of leaving it runnin
   assert.equal(sim.activeSim(), null);
   assert.equal(sim.simLifecyclePending(), false);
   assert.equal(sim.lock.released, 1);
+});
+
+test("the simulation child is spawned with its console hidden", { timeout: 5000 }, async () => {
+  const child = new FakeChild();
+  let spawned!: () => void;
+  const spawnedPromise = new Promise<void>((resolve) => {
+    spawned = resolve;
+  });
+  const sim = loadSimProcess(child, spawned);
+
+  const starting = sim.startSim({} as never);
+  const rejected = assert.rejects(starting, /exited before binding the port/);
+  await spawnedPromise;
+
+  // A console-subsystem sim (simulation-rs.exe) would otherwise open its own
+  // console window on Windows, and closing that window terminates the sim.
+  assert.equal(sim.spawnCalls.length, 1);
+  assert.equal(sim.spawnCalls[0].options.windowsHide, true);
+  assert.equal(sim.spawnCalls[0].options.cwd, "/tmp/thb-test-data");
+  assert.deepEqual(
+    [...(sim.spawnCalls[0].options.stdio as string[])],
+    ["ignore", "pipe", "pipe"],
+  );
+
+  await sim.stopSim();
+  await rejected;
 });
