@@ -1,4 +1,5 @@
 let cached: boolean | null = null
+const failureListeners = new Set<() => void>()
 
 /** Whether this browser can run the xipjs renderer (WebGL2). `?renderer=canvas` forces the 2D fallback. */
 export function canUseWorldGPU(): boolean {
@@ -6,9 +7,19 @@ export function canUseWorldGPU(): boolean {
   return cached
 }
 
-/** The GPU renderer failed at runtime: later interiors must start on the 2D canvas, not the same broken context. */
+/** The GPU renderer failed at runtime: mark it unusable and tell mounted interiors to fall back. */
 export function markWorldGPUFailed(): void {
+  const wasUsable = cached !== false
   cached = false
+  if (wasUsable) {
+    for (const listener of failureListeners) listener()
+  }
+}
+
+/** Subscribe to a runtime GPU failure so an interior already on screen can switch to the 2D canvas. */
+export function onWorldGPUFailed(listener: () => void): () => void {
+  failureListeners.add(listener)
+  return () => failureListeners.delete(listener)
 }
 
 function probe(): boolean {
