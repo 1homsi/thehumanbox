@@ -42,13 +42,16 @@ impl Broadcaster {
                             let frame_id = next_frame_id(&frame_clock_w);
                             (frame_id, tokio::task::block_in_place(|| s.state_frame()))
                         };
-                        let full = Arc::new(tokio::task::block_in_place(|| {
+                        let full = tokio::task::block_in_place(|| {
                             encode_frame(snapshot, frame_id, now_ms(), "full")
-                        }));
-                        if let Ok(mut slot) = latest_full_w.write() {
-                            *slot = Some(full);
+                        })
+                        .map(Arc::new);
+                        if let Some(full) = full {
+                            if let Ok(mut slot) = latest_full_w.write() {
+                                *slot = Some(full);
+                            }
+                            latest_full_at_w.store(now_ms(), std::sync::atomic::Ordering::Relaxed);
                         }
-                        latest_full_at_w.store(now_ms(), std::sync::atomic::Ordering::Relaxed);
                     }
                     sleep_until_period_end(cycle_started, *NETWORK_MS).await;
                     continue;
@@ -72,14 +75,16 @@ impl Broadcaster {
                     latest_full_at_w.store(transport::now_ms(), std::sync::atomic::Ordering::Relaxed);
                 }
                 let receivers = tx_clone.receiver_count() as u64;
-                let frame_len = frame.len() as u64;
-                let _ = tx_clone.send(frame);
+                if let Some(frame) = frame {
+                    let frame_len = frame.len() as u64;
+                    let _ = tx_clone.send(frame);
 
-                // Egress this cycle is the frame size times every subscriber
-                // it fans out to. Accumulate it into the rolling-24h window
-                // and widen the cadence as we approach the daily budget — a
-                // graceful, non-disconnecting cap on the data-transfer bill.
-                transport_stats_w.record_egress(frame_len.saturating_mul(receivers), now_ms());
+                    // Egress this cycle is the frame size times every subscriber
+                    // it fans out to. Accumulate it into the rolling-24h window
+                    // and widen the cadence as we approach the daily budget — a
+                    // graceful, non-disconnecting cap on the data-transfer bill.
+                    transport_stats_w.record_egress(frame_len.saturating_mul(receivers), now_ms());
+                }
                 let budget = *DAILY_EGRESS_BYTES;
                 let cadence_mult = if budget == 0 {
                     1
@@ -111,6 +116,10 @@ pub(super) struct FrameCadence {
     last_broadcast_tick: u64,
     last_deep_full_tick: u64,
 }
+
+/// One encoded frame, shared by every subscriber (a refcounted clone).
+/// `None` from the encoder means the frame was refused and must be dropped.
+pub(super) type EncodedFrame = Arc<Vec<u8>>;
 
 /// The JSON values one broadcast cycle builds while it holds the sim lock.
 pub(super) struct CycleValues {
@@ -155,12 +164,14 @@ impl FrameCadence {
 }
 
 /// Encode a cycle's values into wire frames and record the main frame's
-/// generation stats. Runs without the sim lock.
+/// generation stats. Runs without the sim lock. Either frame is `None` when
+/// the encoder refused it: the caller drops it instead of broadcasting an
+/// empty message.
 pub(super) fn encode_cycle(
     values: CycleValues,
     stats: &SharedTransportStats,
     mut now: impl FnMut() -> u64,
-) -> (Arc<Vec<u8>>, Option<Arc<Vec<u8>>>) {
+) -> (Option<EncodedFrame>, Option<EncodedFrame>) {
     let CycleValues {
         frame_id,
         main,
@@ -173,14 +184,29 @@ pub(super) fn encode_cycle(
         FrameKind::Full => "full",
         FrameKind::Delta => "delta",
     };
-    let bytes = encode_frame(main, frame_id, now(), label);
-    stats.record_generated_kind(
-        bytes.len(),
-        (main_build + encode_started.elapsed()).as_millis() as u64,
-        Some(kind),
-    );
-    let heavy = deep_full.map(|v| Arc::new(encode_frame(v, frame_id, now(), "full")));
-    (Arc::new(bytes), heavy)
+    let frame = match encode_frame(main, frame_id, now(), label) {
+        Some(bytes) => {
+            stats.record_generated_kind(
+                bytes.len(),
+                (main_build + encode_started.elapsed()).as_millis() as u64,
+                Some(kind),
+            );
+            Some(Arc::new(bytes))
+        }
+        None => {
+            stats.record_encode_failure();
+            None
+        }
+    };
+    let heavy = deep_full.and_then(|v| {
+        encode_frame(v, frame_id, now(), "full")
+            .map(Arc::new)
+            .or_else(|| {
+                stats.record_encode_failure();
+                None
+            })
+    });
+    (frame, heavy)
 }
 
 #[cfg(test)]
@@ -195,7 +221,7 @@ mod tests {
         last_deep_full_tick: &mut u64,
         frame_id: u64,
         now: u64,
-    ) -> (Vec<u8>, FrameKind, Option<Vec<u8>>) {
+    ) -> (Option<Vec<u8>>, FrameKind, Option<Vec<u8>>) {
         let is_full_frame = s.tick_count.saturating_sub(*last_broadcast_tick) >= FULL_FRAME_EVERY_TICKS;
         let is_deep_full = s.tick_count.saturating_sub(*last_deep_full_tick) >= 300;
         if is_full_frame {
@@ -216,7 +242,7 @@ mod tests {
             )
         };
         let heavy = if is_deep_full {
-            Some(encode_frame(s.state_json(), frame_id, now, "full"))
+            encode_frame(s.state_json(), frame_id, now, "full")
         } else {
             None
         };
@@ -304,7 +330,11 @@ mod tests {
             let values = cadence.build(&mut new_world, cycle);
             let (got, got_deep) = encode_cycle(values, &stats, || 777);
 
-            assert_eq!(*got, want, "cycle {cycle}: main frame differs");
+            assert_eq!(
+                got.as_deref().map(Vec::as_slice),
+                want.as_deref(),
+                "cycle {cycle}: main frame differs"
+            );
             assert_eq!(
                 got_deep.as_deref().map(Vec::as_slice),
                 want_deep.as_deref(),

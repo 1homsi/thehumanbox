@@ -94,10 +94,11 @@ async fn main() {
         let mut s = sim.lock().await;
         let frame_started = std::time::Instant::now();
         let frame_id = next_frame_id(&frame_clock);
-        let full = Arc::new(encode_frame(s.state_json(), frame_id, now_ms(), "full"));
-        transport_stats.record_generated(full.len(), frame_started.elapsed().as_millis() as u64);
-        if let Ok(mut slot) = latest_full.write() {
-            *slot = Some(full);
+        if let Some(bytes) = encode_frame(s.state_json(), frame_id, now_ms(), "full") {
+            transport_stats.record_generated(bytes.len(), frame_started.elapsed().as_millis() as u64);
+            if let Ok(mut slot) = latest_full.write() {
+                *slot = Some(Arc::new(bytes));
+            }
         }
     }
 
