@@ -10,7 +10,7 @@ pub(super) struct TickLoop {
     pub(super) memory_watch: crate::memory_watch::SharedMemoryWatch,
     pub(super) transport_stats: SharedTransportStats,
     pub(super) last_tick_at: Arc<std::sync::atomic::AtomicU64>,
-    pub(super) world_store: Option<SharedWorldStore>,
+    pub(super) world_store: SharedWorldStore,
     pub(super) pending_save_task: PendingSave,
     pub(super) runtime_control: SharedRuntimeControl,
     pub(super) save_gate: SaveGate,
@@ -89,13 +89,15 @@ impl TickLoop {
                             )
                             .is_ok();
 
+                    // Take the store with the flushes, under the sim lock: a world reset swaps both
+                    // under that lock, so these memories reach the world they came from.
                     let pending_flushes = std::mem::take(&mut s.pending_memory_flushes);
-                    (pending_save, pending_flushes)
+                    (pending_save, pending_flushes, world_store.get())
                 };
 
-                let (pending_save, pending_flushes) = tick_outputs;
+                let (pending_save, pending_flushes, flush_store) = tick_outputs;
                 if !pending_flushes.is_empty() {
-                    if let Some(ws) = world_store.clone() {
+                    if let Some(ws) = flush_store {
                         tokio::task::spawn_blocking(move || {
                             for f in pending_flushes {
                                 let refs: Vec<&crate::organism::memory::MemoryEntry> =

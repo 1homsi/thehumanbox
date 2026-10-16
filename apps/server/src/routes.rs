@@ -51,6 +51,7 @@ pub async fn admin_reset_world_handler(
         &active_save_str,
         s.population_limit,
         s.save_gate.clone(),
+        &s.world_store,
     )
     .await;
 
@@ -412,7 +413,7 @@ pub async fn org_detail_handler(
     State(s): State<AppState>,
 ) -> Result<impl IntoResponse, StatusCode> {
     use crate::organism::organism::OrgDetailJson;
-    let (mut detail, was_dead_with_empty_memories): (OrgDetailJson, bool) = {
+    let (mut detail, was_dead_with_empty_memories, world_store): (OrgDetailJson, bool, _) = {
         let sim = s.sim.lock().await;
         let org = sim
             .organisms
@@ -420,10 +421,10 @@ pub async fn org_detail_handler(
             .find(|o| o.id == id)
             .ok_or(StatusCode::NOT_FOUND)?;
         let needs_fallback = !org.alive && org.memories.is_empty();
-        (org.to_detail_json(), needs_fallback)
+        (org.to_detail_json(), needs_fallback, s.world_store.get())
     };
     if was_dead_with_empty_memories && detail.memories.is_empty() {
-        if let Some(ws) = s.world_store.clone() {
+        if let Some(ws) = world_store {
             // rusqlite behind a std Mutex; query off the reactor.
             if let Ok(rows) = tokio::task::spawn_blocking(move || ws.load_memories_for(&id, 20))
                 .await
@@ -486,7 +487,7 @@ pub async fn org_life_handler(
     State(s): State<AppState>,
 ) -> Result<impl IntoResponse, StatusCode> {
     use crate::organism::organism::OrgLifeJson;
-    let (mut life, was_dead_with_empty_memories): (OrgLifeJson, bool) = {
+    let (mut life, was_dead_with_empty_memories, world_store): (OrgLifeJson, bool, _) = {
         let sim = s.sim.lock().await;
         let org = sim
             .organisms
@@ -494,10 +495,10 @@ pub async fn org_life_handler(
             .find(|o| o.id == id)
             .ok_or(StatusCode::NOT_FOUND)?;
         let needs_fallback = !org.alive && org.memories.is_empty();
-        (org.to_life_json(), needs_fallback)
+        (org.to_life_json(), needs_fallback, s.world_store.get())
     };
     if was_dead_with_empty_memories && life.memories.is_empty() {
-        if let Some(ws) = s.world_store.clone() {
+        if let Some(ws) = world_store {
             // rusqlite behind a std Mutex; query off the reactor.
             if let Ok(rows) = tokio::task::spawn_blocking(move || ws.load_memories_for(&id, 20))
                 .await

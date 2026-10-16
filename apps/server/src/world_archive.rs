@@ -205,6 +205,7 @@ pub async fn archive_and_reset(
     save_path: &str,
     population_limit: Option<usize>,
     save_gate: crate::SaveGate,
+    world_store: &crate::SharedWorldStore,
 ) -> Option<String> {
     ensure_worlds_dir();
     let _save_guard = save_gate.lock().await;
@@ -307,6 +308,17 @@ pub async fn archive_and_reset(
         return None;
     }
     *sim = next;
+
+    // Dead-organism memories of the new world belong in its own folder, not the old live one. Swapped
+    // under the sim lock, with the sim, so the tick loop never pairs a world with the other one's store.
+    world_store.replace(match crate::world_store::WorldStore::open(&new_hash) {
+        Ok(store) => Some(store),
+        Err(e) => {
+            tracing::warn!(target: "archive",
+                "could not open worlds/{}/world.sqlite: {} - dead-org memory archive disabled", new_hash, e);
+            None
+        }
+    });
     drop(sim);
 
     let _ = std::fs::remove_file(save_path);
@@ -327,4 +339,50 @@ fn write_file_atomic(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
         f.sync_all()?;
     }
     std::fs::rename(tmp, path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A reset moves the live world to a new folder; the dead-organism memory store has to move with it,
+    /// or the new world's memories are written into (and read back from) the archived world's database.
+    #[test]
+    fn reset_points_the_memory_store_at_the_new_live_world() {
+        let _cwd = crate::world_store::CWD_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let root = std::env::temp_dir().join(format!("thb_reset_store_test_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        let previous = std::env::current_dir().unwrap();
+        std::env::set_current_dir(&root).unwrap();
+
+        let old_hash = "0123456789ab";
+        crate::world_store::set_live_world_hash(old_hash).unwrap();
+        let store =
+            crate::SharedWorldStore::new(Some(crate::world_store::WorldStore::open(old_hash).unwrap()));
+        let mut world = Simulation::new(7);
+        world.tick_count = 600;
+        let sim = Arc::new(tokio::sync::Mutex::new(world));
+
+        let runtime = tokio::runtime::Builder::new_current_thread().build().unwrap();
+        let archived = runtime.block_on(archive_and_reset(
+            sim,
+            0,
+            0,
+            "worlds/0123456789ab/world.save",
+            None,
+            Arc::new(tokio::sync::Mutex::new(())),
+            &store,
+        ));
+        let new_hash = crate::world_store::live_world_hash();
+        let store_hash = store.get().map(|s| s.hash().to_string());
+        std::env::set_current_dir(previous).unwrap();
+        let _ = std::fs::remove_dir_all(&root);
+
+        assert!(archived.is_some(), "the world was archived");
+        assert_ne!(new_hash.as_deref(), Some(old_hash), "a new live world was minted");
+        assert_eq!(store_hash, new_hash, "the memory store follows the live world");
+    }
 }

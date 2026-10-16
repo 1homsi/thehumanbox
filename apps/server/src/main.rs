@@ -68,15 +68,15 @@ async fn main() {
         applied
     });
     let sim = Arc::new(Mutex::new(loaded_sim));
-    let world_store: Option<SharedWorldStore> = match crate::world_store::WorldStore::open(&live_hash) {
-        Ok(s) => Some(Arc::new(s)),
+    let world_store = SharedWorldStore::new(match crate::world_store::WorldStore::open(&live_hash) {
+        Ok(s) => Some(s),
         Err(e) => {
             tracing::warn!(target: "world",
                 "could not open worlds/{}/world.sqlite: {} — dead-org memory archive disabled",
                 live_hash, e);
             None
         }
-    };
+    });
     let (tx, _rx) = broadcast::channel::<Arc<Vec<u8>>>(WS_BROADCAST_BUFFER);
     let latest_full: LatestFull = Arc::new(std::sync::RwLock::new(None));
     let latest_full_at: Arc<std::sync::atomic::AtomicU64> = Arc::new(std::sync::atomic::AtomicU64::new(0));
@@ -140,6 +140,7 @@ async fn main() {
         peak_pop.clone(),
         population_limit,
         save_gate.clone(),
+        world_store.clone(),
     );
 
     let state = AppState {

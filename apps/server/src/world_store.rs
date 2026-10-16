@@ -55,6 +55,7 @@ pub fn mint_world_hash(seed: u64, born_at_ms: u64) -> String {
 }
 
 pub struct WorldStore {
+    hash: String,
     conn: Mutex<Connection>,
 }
 
@@ -85,8 +86,14 @@ impl WorldStore {
             ",
         )?;
         Ok(WorldStore {
+            hash: hash.to_string(),
             conn: Mutex::new(conn),
         })
+    }
+
+    /// The world folder this store lives in.
+    pub fn hash(&self) -> &str {
+        &self.hash
     }
 
     pub fn flush_dead_org_memories(
