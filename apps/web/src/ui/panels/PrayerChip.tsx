@@ -25,13 +25,14 @@ export function PrayerChip({ world, onAnswer }: Props) {
 
   useEffect(() => {
     if (!open) return
-    const close = (e: MouseEvent) => {
+    // pointerdown covers a tap on the map, where iOS Safari skips the emulated mouse events.
+    const close = (e: PointerEvent) => {
       const target = e.target as Node
       if (ref.current?.contains(target) || listRef.current?.contains(target)) return
       setOpen(false)
     }
-    document.addEventListener('mousedown', close)
-    return () => document.removeEventListener('mousedown', close)
+    document.addEventListener('pointerdown', close)
+    return () => document.removeEventListener('pointerdown', close)
   }, [open])
 
   useEffect(() => {

@@ -56,11 +56,12 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
 
   useEffect(() => {
     if (!tribeOpen) return
-    const handler = (e: MouseEvent) => {
+    // pointerdown, not mousedown, so a touch tap dismisses the same way a mouse click does.
+    const handler = (e: PointerEvent) => {
       if (tribeRef.current && !tribeRef.current.contains(e.target as Node)) setTribeOpen(false)
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
   }, [tribeOpen])
 
   const tn = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)

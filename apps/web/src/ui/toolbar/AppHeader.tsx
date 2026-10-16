@@ -61,13 +61,15 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
 
   useEffect(() => {
     if (!showMore) return
-    const handler = (e: MouseEvent) => {
+    // pointerdown, not mousedown: a tap on a non-clickable surface like the map canvas makes iOS
+    // Safari skip the emulated mouse events, so this dismisser never fired on touch.
+    const handler = (e: PointerEvent) => {
       if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
         useUIStore.setState({ showMore: false })
       }
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
   }, [showMore])
 
   const tip = (title: string, body?: string, how?: string) => (
