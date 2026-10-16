@@ -183,9 +183,8 @@ async function createWindow(): Promise<void> {
   mainWindow = win;
   // maximize() would also show a window that is meant to start hidden. A boot
   // failure must never be hidden, so that case shows the window as well.
-  if (startHidden && !bootErrorUrl) {
-    pendingMaximize = winState.maximized === true;
-  } else {
+  pendingMaximize = startHidden && !bootErrorUrl && winState.maximized === true;
+  if (!startHidden || bootErrorUrl) {
     if (winState.maximized) win.maximize();
     if (startHidden) win.show();
   }
@@ -666,8 +665,10 @@ async function boot(): Promise<void> {
   registerIpc(ipcMain, () => mainWindow);
   registerAppIpcHandlers();
   try {
+    const s = loadSettings();
     startHiddenOnce = shouldStartHidden({
-      startMinimized: loadSettings().startMinimized,
+      autoLaunch: s.autoLaunch,
+      startMinimized: s.startMinimized,
       argv: process.argv,
       wasOpenedAtLogin: app.getLoginItemSettings().wasOpenedAtLogin,
       platform: process.platform,
