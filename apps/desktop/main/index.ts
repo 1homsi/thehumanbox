@@ -23,6 +23,10 @@ import { sanitizeWindowState, type WindowState } from "./window-state";
 import { atomicReplaceFile } from "./world-safety";
 import { appVersionArgument } from "./app-version-arg";
 import { loginItemSettings, shouldStartHidden } from "./login-launch";
+import {
+  NO_CHECKPOINT_BUTTON,
+  restartFailurePrompt,
+} from "./restart-recovery";
 import { registerIpc } from "./ipc";
 import { startWhenReady } from "./startup-lifecycle";
 import { runExclusiveDesktopOperation } from "./exclusive-operation";
@@ -343,7 +347,7 @@ function buildMenu(): void {
         },
         {
           label: "Restart simulation",
-          click: () => void restartSimulation().catch(console.error),
+          click: () => void restartSimulationFromMenu(),
         },
         isMac ? { role: "close" as const } : { role: "quit" as const },
       ],
@@ -612,13 +616,44 @@ function registerAppIpcHandlers(): void {
   });
 }
 
-async function restartSimulation(): Promise<void> {
+async function restartSimulation(options: { requireCheckpoint?: boolean } = {}): Promise<void> {
   await runExclusiveDesktopOperation("restart the simulation", async () => {
-    await stopSim(5_000, true);
+    await stopSim(5_000, options.requireCheckpoint ?? true);
     if (mainWindow) {
       await createWindowReplace();
     }
   });
+}
+
+// BUG-13: the menu restart used to `catch(console.error)`, so a failed
+// checkpoint (a hung or slow sim) did nothing at all and the sim could never be
+// killed from the menu. Report the failure and, when the checkpoint is what
+// failed, offer a restart that gives it up.
+async function restartSimulationFromMenu(): Promise<void> {
+  try {
+    await restartSimulation();
+  } catch (error) {
+    const prompt = restartFailurePrompt(error);
+    const box: Electron.MessageBoxOptions = {
+      type: "error",
+      ...prompt,
+      defaultId: 0,
+      cancelId: prompt.buttons.length - 1,
+    };
+    const { response } =
+      mainWindow && !mainWindow.isDestroyed()
+        ? await dialog.showMessageBox(mainWindow, box)
+        : await dialog.showMessageBox(box);
+    if (response !== 0 || prompt.buttons[0] !== NO_CHECKPOINT_BUTTON) return;
+    try {
+      await restartSimulation({ requireCheckpoint: false });
+    } catch (retryError) {
+      dialog.showErrorBox(
+        "Could not restart the simulation",
+        (retryError as Error)?.message ?? String(retryError),
+      );
+    }
+  }
 }
 
 let simExitDialogOpen = false;
