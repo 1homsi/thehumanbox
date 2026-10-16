@@ -12,6 +12,10 @@ const model = vi.hoisted(() => ({
   ),
   serialize: vi.fn(() => new Uint8Array([1])),
   saveWorld: vi.fn(async () => {}),
+  archiveAndDeleteWorld: vi.fn(async () => 'recovery-1'),
+  restoreRecoveryWorld: vi.fn(async () => 'previous-1'),
+  listRecoveryWorlds: vi.fn(async () => [] as { id: string }[]),
+  recoveryPrefix: vi.fn((worldId: string) => `recovery:${worldId}:`),
 }))
 vi.mock('../wasm/sim-core/sim_core.js', () => ({
   default: model.init,
@@ -46,10 +50,10 @@ vi.mock('../wasm/sim-core/sim_core.js', () => ({
 vi.mock('./wasmDb', () => ({
   loadWorld: model.loadWorld,
   saveWorld: model.saveWorld,
-  archiveAndDeleteWorld: vi.fn(),
-  listRecoveryWorlds: vi.fn(),
-  recoveryPrefix: vi.fn(),
-  restoreRecoveryWorld: vi.fn(),
+  archiveAndDeleteWorld: model.archiveAndDeleteWorld,
+  listRecoveryWorlds: model.listRecoveryWorlds,
+  recoveryPrefix: model.recoveryPrefix,
+  restoreRecoveryWorld: model.restoreRecoveryWorld,
 }))
 
 let worker: {
@@ -58,6 +62,43 @@ let worker: {
   close: ReturnType<typeof vi.fn>
 }
 const send = (data: unknown) => worker.onmessage?.({ data })
+
+/** A `navigator.locks` that grants the lock right away and reports when it is released. */
+function heldLock() {
+  const state = { released: false }
+  const locks = {
+    request: vi.fn(
+      async (_name: string, _options: unknown, callback: (lock: object | null) => Promise<void>) => {
+        await callback({})
+        state.released = true
+      },
+    ),
+  }
+  return { locks, released: () => state.released }
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((res) => {
+    resolve = res
+  })
+  return { promise, resolve }
+}
+
+/** Clean up the worker from `beforeEach` and start a fresh one with a chosen navigator and world ops. */
+async function restartWorker(navigator: object) {
+  send({ type: 'stop' })
+  await vi.advanceTimersByTimeAsync(0)
+  await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalledWith({ type: 'stopped' }))
+  // Drop the previous worker's call history so a `waitFor` on a world op only
+  // matches the worker this test is about to start.
+  vi.clearAllMocks()
+  vi.stubGlobal('navigator', navigator)
+  vi.resetModules()
+  worker = { onmessage: null, postMessage: vi.fn(), close: vi.fn() }
+  vi.stubGlobal('self', worker)
+  await import('./wasmWorker')
+}
 
 beforeEach(async () => {
   vi.resetModules()
@@ -69,6 +110,10 @@ beforeEach(async () => {
   model.init.mockReset().mockResolvedValue(undefined)
   model.serialize.mockClear()
   model.saveWorld.mockClear()
+  model.archiveAndDeleteWorld.mockReset().mockResolvedValue('recovery-1')
+  model.restoreRecoveryWorld.mockReset().mockResolvedValue('previous-1')
+  model.listRecoveryWorlds.mockReset().mockResolvedValue([])
+  model.recoveryPrefix.mockReset().mockImplementation((worldId: string) => `recovery:${worldId}:`)
   worker = { onmessage: null, postMessage: vi.fn(), close: vi.fn() }
   vi.stubGlobal('self', worker)
   vi.stubGlobal('navigator', {})
@@ -224,6 +269,91 @@ describe('browser simulation scheduling', () => {
     expect(worker.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ready' }))
     expect(model.saveWorld).toHaveBeenCalledOnce()
     expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('holds the world lock until an in-flight reset transaction finishes', async () => {
+    const lock = heldLock()
+    const archive = deferred<string>()
+    model.archiveAndDeleteWorld.mockImplementationOnce(() => archive.promise)
+    await restartWorker({ locks: lock.locks })
+    send({ type: 'start', id: 'test', seed: '42', reset: true })
+    await vi.waitFor(() => expect(model.archiveAndDeleteWorld).toHaveBeenCalledOnce())
+
+    send({ type: 'prepare_reload', requestId: 20, deadlineAt: Date.now() + 1000 })
+    await vi.advanceTimersByTimeAsync(0)
+    // The reset is still writing: the reload must not release the lock under it.
+    expect(lock.released()).toBe(false)
+    expect(worker.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'reload_result' }))
+
+    archive.resolve('recovery-1')
+    await vi.advanceTimersByTimeAsync(0)
+    expect(lock.released()).toBe(true)
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'reload_result', requestId: 20, ok: true })
+    expect(worker.close).toHaveBeenCalledOnce()
+    expect(worker.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ready' }))
+  })
+
+  it('holds the world lock until an in-flight recovery read finishes', async () => {
+    const lock = heldLock()
+    const read = deferred<{ blob: Uint8Array; seed: string; tick: number; savedAt: number } | null>()
+    // The recovery read is the first world op start() makes.
+    model.loadWorld.mockImplementationOnce(() => read.promise)
+    await restartWorker({ locks: lock.locks })
+    send({ type: 'start', id: 'test', seed: '42', recoveryId: 'recovery:test:rec-1' })
+    await vi.waitFor(() => expect(model.loadWorld).toHaveBeenCalledWith('recovery:test:rec-1'))
+
+    send({ type: 'prepare_reload', requestId: 21, deadlineAt: Date.now() + 1000 })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(lock.released()).toBe(false)
+
+    read.resolve(null)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(lock.released()).toBe(true)
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'reload_result', requestId: 21, ok: true })
+    expect(worker.close).toHaveBeenCalledOnce()
+    expect(worker.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ready' }))
+  })
+
+  it('holds the world lock until an in-flight recovery restore finishes', async () => {
+    const lock = heldLock()
+    const restore = deferred<string>()
+    model.loadWorld.mockResolvedValue({ blob: new Uint8Array([2]), seed: '7', tick: 3, savedAt: 1 })
+    model.fromSerialized.mockReturnValue({ tickCount: () => 3n, free: () => {} })
+    model.restoreRecoveryWorld.mockImplementationOnce(() => restore.promise)
+    await restartWorker({ locks: lock.locks })
+    send({ type: 'start', id: 'test', seed: '42', recoveryId: 'recovery:test:rec-1' })
+    await vi.waitFor(() => expect(model.restoreRecoveryWorld).toHaveBeenCalledOnce())
+
+    send({ type: 'prepare_reload', requestId: 22, deadlineAt: Date.now() + 1000 })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(lock.released()).toBe(false)
+
+    restore.resolve('previous-1')
+    await vi.advanceTimersByTimeAsync(0)
+    expect(lock.released()).toBe(true)
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'reload_result', requestId: 22, ok: true })
+    expect(worker.close).toHaveBeenCalledOnce()
+    expect(worker.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ready' }))
+  })
+
+  it('holds the world lock until an in-flight local save read finishes', async () => {
+    const lock = heldLock()
+    const read = deferred<{ blob: Uint8Array; seed: string; tick: number; savedAt: number } | null>()
+    model.loadWorld.mockImplementation(() => read.promise)
+    await restartWorker({ locks: lock.locks })
+    send({ type: 'start', id: 'test', seed: '42' })
+    await vi.waitFor(() => expect(model.loadWorld).toHaveBeenCalledWith('test'))
+
+    send({ type: 'prepare_reload', requestId: 23, deadlineAt: Date.now() + 1000 })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(lock.released()).toBe(false)
+
+    read.resolve(null)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(lock.released()).toBe(true)
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'reload_result', requestId: 23, ok: true })
+    expect(worker.close).toHaveBeenCalledOnce()
+    expect(worker.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ready' }))
   })
 
   it('autosaves every five minutes instead of serializing on the old 30-second cadence', async () => {
