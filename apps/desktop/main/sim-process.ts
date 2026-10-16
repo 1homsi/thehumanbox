@@ -1,4 +1,5 @@
 import { spawn, ChildProcess, execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as net from "node:net";
 import * as path from "node:path";
@@ -39,6 +40,8 @@ let stopInFlight: {
 
 export interface RunningSim {
   port: number;
+  /** Per-launch secret the renderer sends as `x-thb-token`; the sim requires it from `Origin: null` pages. */
+  commandToken: string;
   child: ChildProcess;
   pidFile: string;
   pidToken: string;
@@ -484,6 +487,8 @@ async function startSimOnce(
   const env = buildLocalSimEnv(settings, port);
   env.THB_DATA_LOCK_TOKEN = dataLock.token;
   env.THB_DESKTOP_PARENT_PID = String(process.pid);
+  const commandToken = randomUUID();
+  env.THB_COMMAND_TOKEN = commandToken;
 
   let alive = true;
   let exitCode: number | null = null;
@@ -641,7 +646,7 @@ async function startSimOnce(
     );
   }
 
-  current = { port, child, pidFile, pidToken, dataLock };
+  current = { port, commandToken, child, pidFile, pidToken, dataLock };
   return current!;
 }
 

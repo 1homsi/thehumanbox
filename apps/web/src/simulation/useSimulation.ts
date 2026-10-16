@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { WorldState, GridState, OrganismState, AnimalState, OrgDetail, OrgLife } from '../shared/types'
-import { WS_BASE, API_BASE, IS_LOCAL_SERVER } from '../shared/config'
+import { WS_BASE, API_BASE, IS_LOCAL_SERVER, sandboxHeaders } from '../shared/config'
 import { useWorldStore } from '../state/worldStore'
 import { binaryFramesReady, fetchSnapshotWithProgress, loadBinaryFrameDecoder, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
@@ -924,7 +924,7 @@ export function useSimulation(source: WorldSource = 'native'): {
       if (!isDesktop()) return { ok: false }
       return fetchRuntimeControlState(`${API_BASE}/runtime`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: sandboxHeaders({ 'content-type': 'application/json' }),
         body: JSON.stringify({ control, mult }),
       })
     },
@@ -983,7 +983,7 @@ export function useSimulation(source: WorldSource = 'native'): {
     const tick = currentWorldRef.current?.tick ?? 0
     setLocalSaveStatus({ phase: 'saving', tick })
     try {
-      const response = await fetch(`${API_BASE}/save`, { method: 'POST' })
+      const response = await fetch(`${API_BASE}/save`, { method: 'POST', headers: sandboxHeaders() })
       if (!response.ok) throw new Error(`save failed (${response.status})`)
       const result = (await response.json()) as { tick?: number; saved_at?: number }
       setLocalSaveStatus({
@@ -1045,7 +1045,7 @@ export function useSimulation(source: WorldSource = 'native'): {
       try {
         const res = await fetch(`${API_BASE}/command`, {
           method: 'POST',
-          headers: { 'content-type': 'application/json' },
+          headers: sandboxHeaders({ 'content-type': 'application/json' }),
           body: JSON.stringify(cmd),
         })
         return res.ok
