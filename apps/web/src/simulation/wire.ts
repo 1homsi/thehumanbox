@@ -183,6 +183,7 @@ function isSparseStringArray(a: unknown): a is Array<[number, string]> {
   return Array.isArray(first) && first.length === 2 && typeof first[0] === 'number'
 }
 
+/** Visit each decoded row synchronously. The callback must not retain `org`, which is reused. */
 export function forEachOrgSoa(soa: OrgsHotSoa, visit: (org: ExpandedOrgDelta) => void): void {
   const n = soa.ids.length
   const hasAges = Array.isArray(soa.ages)
