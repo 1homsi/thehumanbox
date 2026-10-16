@@ -445,6 +445,10 @@
   .org-search-filters > * {
     flex: 0 0 auto;
   }
+  /* The dot before the tribe dropdown would dangle at the end of the scrolled row. */
+  .org-search-filters > .filter-sep:last-child {
+    display: none;
+  }
   .org-search-modal .filter-chip,
   .org-search-modal .tribe-dropdown-btn {
     min-height: 44px;

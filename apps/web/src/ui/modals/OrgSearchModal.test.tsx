@@ -43,9 +43,9 @@ function render(organisms: OrganismState[]) {
 const el = <T extends Element = HTMLElement>(selector: string) => document.querySelector<T>(selector)!
 
 describe('OrgSearchModal', () => {
-  it('ends the filter row on a chip, not on a dangling separator before the tribe dropdown', () => {
+  it('keeps the group separator before the tribe dropdown (a phone hides it in CSS, not in the markup)', () => {
     render([organism('a')])
-    expect(el('.org-search-filters').lastElementChild?.classList.contains('filter-sep')).toBe(false)
+    expect(el('.org-search-filters').lastElementChild?.classList.contains('filter-sep')).toBe(true)
   })
 
   it('returning from a person to the list starts the list at the top', () => {

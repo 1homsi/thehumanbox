@@ -198,6 +198,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                 {ASPIRATION_EMOJI[a]}
               </button>
             ))}
+            <span className="filter-sep">·</span>
           </div>
           <div className="tribe-dropdown" ref={tribeRef}>
             <button
