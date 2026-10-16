@@ -31,8 +31,13 @@ import {
 } from "./error-dialog";
 import { registerIpc } from "./ipc";
 import { startWhenReady } from "./startup-lifecycle";
-import { runExclusiveDesktopOperation, currentDesktopOperation } from "./exclusive-operation";
+import {
+  RESTART_SIMULATION_OPERATION,
+  runExclusiveDesktopOperation,
+  currentDesktopOperation,
+} from "./exclusive-operation";
 import { startSim, stopSim, activeSim, onUnexpectedSimExit } from "./sim-process";
+import { restartFailureStillRelevant, simExitStillRelevant } from "./prompt-relevance";
 import { loadSettings, prepareDataRoot, type Settings } from "./settings";
 import {
   checkForUpdatesNow,
@@ -633,13 +638,8 @@ function registerAppIpcHandlers(): void {
   });
 }
 
-// The control-plane operation a File-menu restart runs under. Named once so the
-// deferred unexpected-exit prompt can tell an in-flight restart (the sim is
-// coming back) from an unrelated operation (a migration, say).
-const RESTART_OPERATION = "restart the simulation";
-
 async function restartSimulation(options: { requireCheckpoint?: boolean } = {}): Promise<void> {
-  await runExclusiveDesktopOperation(RESTART_OPERATION, async () => {
+  await runExclusiveDesktopOperation(RESTART_SIMULATION_OPERATION, async () => {
     await stopSim(5_000, options.requireCheckpoint ?? true);
     if (mainWindow) {
       await createWindowReplace();
@@ -697,7 +697,8 @@ async function showRestartFailure(error: unknown): Promise<void> {
           console.error("[main] deferred restart failure prompt failed:", err),
         );
       },
-      isStillRelevant: () => !isQuitting && activeSim() === failedSim,
+      isStillRelevant: () =>
+        restartFailureStillRelevant({ quitting: isQuitting, activeSim: activeSim(), failedSim }),
     });
     // No-op while the other dialog still holds the slot; closes the window if
     // it released between the failed claim and this defer.
@@ -759,9 +760,11 @@ async function offerSimRestart(
       );
     },
     isStillRelevant: () =>
-      !isQuitting &&
-      activeSim() === null &&
-      currentDesktopOperation() !== RESTART_OPERATION,
+      simExitStillRelevant({
+        quitting: isQuitting,
+        activeSim: activeSim(),
+        operation: currentDesktopOperation(),
+      }),
   });
   // No-op while the other dialog still holds the slot; closes the window if it
   // released between the failed claim and this defer.
