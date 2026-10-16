@@ -577,7 +577,12 @@ function toggleWindow(): void {
 function notifyMilestone(title: string, body: string): void {
   if (!Notification.isSupported()) return;
   const n = new Notification({ title, body, silent: false });
-  n.on("click", () => toggleWindow());
+  // A click brings the game forward. It must not hide a window that is
+  // already visible, which is what the tray and hotkey toggle does.
+  n.on("click", () => {
+    if (mainWindow && !mainWindow.isDestroyed()) showExistingWindow();
+    else void createWindow();
+  });
   n.show();
 }
 
