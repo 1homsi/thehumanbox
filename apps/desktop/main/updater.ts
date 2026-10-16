@@ -52,6 +52,9 @@ export function initUpdater(getWindow: () => BrowserWindow | null): void {
   autoUpdater.autoInstallOnAppQuit = !usesUnsignedMacInstall()
 
   autoUpdater.on('update-available', (info: UpdateInfo) => {
+    // electron-updater announces a cached version again before it reuses the
+    // installer; keep the held download instead of showing "downloading" again.
+    if (latestStatus.status === 'downloaded' && latestStatus.version === info.version) return
     latestStatus = {
       status: 'available',
       version: info.version,
@@ -102,7 +105,8 @@ export function initUpdater(getWindow: () => BrowserWindow | null): void {
   })
 
   autoUpdater.on('error', (err) => {
-    latestStatus = { status: 'error', message: err.message }
+    // A failed check does not invalidate an installer that is already held.
+    if (latestStatus.status !== 'downloaded') latestStatus = { status: 'error', message: err.message }
     console.error('[updater]', err)
     getWindow()?.webContents.send('updater:error', { message: err.message })
   })
@@ -152,9 +156,10 @@ export async function checkForUpdatesNow(): Promise<UpdateCheckResult> {
     return latestStatus
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    latestStatus = { status: 'error', message }
+    const failure: UpdateCheckResult = { status: 'error', message }
+    if (latestStatus.status !== 'downloaded') latestStatus = failure
     console.error('[updater] check failed:', err)
-    return latestStatus
+    return failure
   }
 }
 
