@@ -124,7 +124,8 @@ function OrgDetailBody({
 export function OrgDetail(props: Props) {
   return (
     <WithQueryClient>
-      <OrgDetailBody {...props} />
+      {/* Keyed by person: open dialogs such as Life belong to the person they were opened for. */}
+      <OrgDetailBody key={props.org.id} {...props} />
     </WithQueryClient>
   )
 }
