@@ -53,6 +53,8 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [tribeOpen, setTribeOpen] = useState(false)
   const tribeRef = useRef<HTMLDivElement>(null)
+  // Focusing the search box on a touch screen raises the keyboard over the list before anyone asked for it.
+  const [autoFocus] = useState(() => !window.matchMedia?.('(pointer: coarse)').matches)
 
   useEffect(() => {
     if (!tribeOpen) return
@@ -116,77 +118,79 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
       </div>
 
       {}
-      <div className="org-search-toolbar">
+      <div className={clsx('org-search-toolbar', selectedOrg && 'org-search-toolbar--behind-detail')}>
         <input
           className="org-search-input"
           placeholder="search by name, thought, lineage id…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          autoFocus
+          autoFocus={autoFocus}
         />
-        <div className="org-search-filters">
-          {(['all', 'alive', 'dead'] as StatusFilter[]).map((s) => (
+        <div className="org-search-filterbar">
+          <div className="org-search-filters">
+            {(['all', 'alive', 'dead'] as StatusFilter[]).map((s) => (
+              <button
+                key={s}
+                className={clsx('filter-chip', status === s && 'active')}
+                onClick={() => setStatus(s)}
+              >
+                {s}
+              </button>
+            ))}
+            <span className="filter-sep">·</span>
             <button
-              key={s}
-              className={clsx('filter-chip', status === s && 'active')}
-              onClick={() => setStatus(s)}
+              className={clsx('filter-chip', discF === 'fire' && 'active')}
+              onClick={() => setDiscF(discF === 'fire' ? 'all' : 'fire')}
             >
-              {s}
+              🔥 fire
             </button>
-          ))}
-          <span className="filter-sep">·</span>
-          <button
-            className={clsx('filter-chip', discF === 'fire' && 'active')}
-            onClick={() => setDiscF(discF === 'fire' ? 'all' : 'fire')}
-          >
-            🔥 fire
-          </button>
-          <button
-            className={clsx('filter-chip', discF === 'shelter' && 'active')}
-            onClick={() => setDiscF(discF === 'shelter' ? 'all' : 'shelter')}
-          >
-            🏠 shelter
-          </button>
-          <span className="filter-sep">·</span>
-          <button
-            className={clsx('filter-chip', sexF === 'female' && 'active')}
-            onClick={() => setSexF(sexF === 'female' ? 'all' : 'female')}
-            style={{ color: sexF === 'female' ? '#e09ab0' : undefined }}
-          >
-            ♀
-          </button>
-          <button
-            className={clsx('filter-chip', sexF === 'male' && 'active')}
-            onClick={() => setSexF(sexF === 'male' ? 'all' : 'male')}
-            style={{ color: sexF === 'male' ? '#7ab0e0' : undefined }}
-          >
-            ♂
-          </button>
-          <span className="filter-sep">·</span>
-          {(
-            [
-              'seeker',
-              'wanderer',
-              'warrior',
-              'connector',
-              'builder',
-              'devout',
-              'sage',
-              'provider',
-              'artist',
-              'healer',
-            ] as AspirationFilter[]
-          ).map((a) => (
             <button
-              key={a}
-              className={clsx('filter-chip', aspirationF === a && 'active')}
-              onClick={() => setAspirationF(aspirationF === a ? 'all' : a)}
-              title={a}
+              className={clsx('filter-chip', discF === 'shelter' && 'active')}
+              onClick={() => setDiscF(discF === 'shelter' ? 'all' : 'shelter')}
             >
-              {ASPIRATION_EMOJI[a]}
+              🏠 shelter
             </button>
-          ))}
-          <span className="filter-sep">·</span>
+            <span className="filter-sep">·</span>
+            <button
+              className={clsx('filter-chip', sexF === 'female' && 'active')}
+              onClick={() => setSexF(sexF === 'female' ? 'all' : 'female')}
+              style={{ color: sexF === 'female' ? '#e09ab0' : undefined }}
+            >
+              ♀
+            </button>
+            <button
+              className={clsx('filter-chip', sexF === 'male' && 'active')}
+              onClick={() => setSexF(sexF === 'male' ? 'all' : 'male')}
+              style={{ color: sexF === 'male' ? '#7ab0e0' : undefined }}
+            >
+              ♂
+            </button>
+            <span className="filter-sep">·</span>
+            {(
+              [
+                'seeker',
+                'wanderer',
+                'warrior',
+                'connector',
+                'builder',
+                'devout',
+                'sage',
+                'provider',
+                'artist',
+                'healer',
+              ] as AspirationFilter[]
+            ).map((a) => (
+              <button
+                key={a}
+                className={clsx('filter-chip', aspirationF === a && 'active')}
+                onClick={() => setAspirationF(aspirationF === a ? 'all' : a)}
+                title={a}
+              >
+                {ASPIRATION_EMOJI[a]}
+              </button>
+            ))}
+            <span className="filter-sep">·</span>
+          </div>
           <div className="tribe-dropdown" ref={tribeRef}>
             <button
               className={clsx('filter-chip', 'tribe-dropdown-btn', lineageF !== 'all' && 'active')}
@@ -228,7 +232,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
       </div>
 
       {}
-      <div className="org-search-body">
+      <div className={clsx('org-search-body', selectedOrg && 'has-selection')}>
         <div className="org-search-list">
           {filtered.length === 0 && <div className="org-search-empty">no organisms match</div>}
           {filtered.map((org) => {
@@ -316,15 +320,20 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
 
         <div className="org-search-detail">
           {selectedOrg ? (
-            <OrgDetail
-              org={selectedOrg}
-              onClose={() => setSelectedId(null)}
-              onFollow={() => {}}
-              following={false}
-              lineageNames={lineageNames}
-              organisms={organisms}
-              onSelectOrg={(id) => setSelectedId(id)}
-            />
+            <>
+              <button className="org-search-back" onClick={() => setSelectedId(null)}>
+                ← all organisms
+              </button>
+              <OrgDetail
+                org={selectedOrg}
+                onClose={() => setSelectedId(null)}
+                onFollow={() => {}}
+                following={false}
+                lineageNames={lineageNames}
+                organisms={organisms}
+                onSelectOrg={(id) => setSelectedId(id)}
+              />
+            </>
           ) : (
             <div className="org-search-placeholder">← select an organism to view details</div>
           )}
