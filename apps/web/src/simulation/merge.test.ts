@@ -334,6 +334,54 @@ describe('mergeFrame null-clear identity stability', () => {
     expect('target_y' in second).toBe(false)
   })
 
+  it('clears a dissolved partner and a faded attraction on the next delta', () => {
+    const caches = emptyCaches()
+    mergeFrame(
+      baseFrame({
+        frame_kind: 'full',
+        organisms_complete: true,
+        organisms: [
+          { id: 'a', name: 'Alia', partner_id: 'b', attracted_to: 'b' } as unknown as OrganismState,
+        ],
+      }),
+      caches,
+    )
+    expect(caches.organisms.get('a')).toMatchObject({ partner_id: 'b', attracted_to: 'b' })
+
+    // The partner died / the bond dissolved: the sparse lists omit the
+    // index (empty here), which is the server's "now unpartnered" signal.
+    mergeFrame(
+      baseFrame({
+        frame_id: 2,
+        organisms_hot: {
+          ids: ['a'],
+          xs: [50],
+          ys: [50],
+          vxs: [0],
+          vys: [0],
+          energies: [60],
+          hydrations: [60],
+          healths: [90],
+          thoughts: [],
+          infections: [0],
+          fear_levels: [0],
+          carryings: [0],
+          carrying_types: [0],
+          pregnants: [false],
+          partner_ids: [],
+          attracted_tos: [],
+          target_xs: [-32768],
+          target_ys: [-32768],
+        },
+      }),
+      caches,
+    )
+
+    const after = caches.organisms.get('a')!
+    expect('partner_id' in after).toBe(false)
+    expect('attracted_to' in after).toBe(false)
+  })
+
   it('reuses the cached organism when the wire clears a never-set field', () => {
     const { caches, org } = seed()
     expect('target_x' in org).toBe(false)

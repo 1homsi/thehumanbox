@@ -203,25 +203,35 @@ export function forEachOrgSoa(soa: OrgsHotSoa, visit: (org: ExpandedOrgDelta) =>
   const sparsePartners = isSparseStringArray(soa.partner_ids) ? soa.partner_ids : null
   const sparseAttracted = isSparseStringArray(soa.attracted_tos) ? soa.attracted_tos : null
   const thoughtAt: (string | undefined)[] = new Array(n)
-  const partnerAt: (string | undefined)[] = new Array(n)
-  const attractedAt: (string | undefined)[] = new Array(n)
+  const partnerAt: (string | null | undefined)[] = new Array(n)
+  const attractedAt: (string | null | undefined)[] = new Array(n)
   if (sparseThoughts) {
     for (const [i, s] of sparseThoughts) thoughtAt[i] = s
   } else if (Array.isArray(soa.thoughts)) {
     const dense = soa.thoughts as string[]
     for (let i = 0; i < n; i++) thoughtAt[i] = dense[i]
   }
+  // partner_ids / attracted_tos are sparse with "absent -> unset"
+  // semantics: the server always ships the array and omits an index that
+  // has no partner (or no current attraction). So when the field is
+  // present, an index missing from the list must become an explicit
+  // `null` (a clear), not `undefined` (the merge's "unchanged"). The
+  // empty/sparse list previously left the cached partner in place until
+  // the next cold frame, so a dissolved couple kept its bond line for
+  // ~36 s.
+  const hasPartners = Array.isArray(soa.partner_ids)
+  const hasAttracted = Array.isArray(soa.attracted_tos)
   if (sparsePartners) {
     for (const [i, s] of sparsePartners) partnerAt[i] = s
-  } else if (Array.isArray(soa.partner_ids)) {
+  } else if (hasPartners) {
     const dense = soa.partner_ids as (string | null)[]
-    for (let i = 0; i < n; i++) partnerAt[i] = dense[i] ?? undefined
+    for (let i = 0; i < n; i++) partnerAt[i] = dense[i] ?? null
   }
   if (sparseAttracted) {
     for (const [i, s] of sparseAttracted) attractedAt[i] = s
-  } else if (Array.isArray(soa.attracted_tos)) {
+  } else if (hasAttracted) {
     const dense = soa.attracted_tos as (string | null)[]
-    for (let i = 0; i < n; i++) attractedAt[i] = dense[i] ?? undefined
+    for (let i = 0; i < n; i++) attractedAt[i] = dense[i] ?? null
   }
 
   // Each numeric SoA field is also optional now - the server omits
@@ -294,8 +304,8 @@ export function forEachOrgSoa(soa: OrgsHotSoa, visit: (org: ExpandedOrgDelta) =>
     if (hasCarrying) entry.carrying = soa.carryings![i]
     if (hasCarryT) entry.carrying_type = soa.carrying_types![i]
     if (hasPreg) entry.pregnant = soa.pregnants![i]
-    if (partnerAt[i] !== undefined) entry.partner_id = partnerAt[i]
-    if (attractedAt[i] !== undefined) entry.attracted_to = attractedAt[i]
+    if (hasPartners) entry.partner_id = partnerAt[i] ?? null
+    if (hasAttracted) entry.attracted_to = attractedAt[i] ?? null
     // `alive` dropped from deltas (server filters to alive on push);
     // when present (legacy server) honour it. Cached value persists
     // otherwise - see merge.ts.
