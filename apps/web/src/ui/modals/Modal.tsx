@@ -33,17 +33,24 @@ export function Modal({ open, onClose, className, title, hideTitle = false, chil
     d.dy = Math.max(0, e.clientY - d.startY)
     contentRef.current.style.transform = `translateY(${d.dy}px)`
   }
-  const onGrabEnd = () => {
+  const resetGrab = (e?: PointerEvent<HTMLDivElement>) => {
+    if (e && drag.current?.id !== e.pointerId) return
     const d = drag.current
     drag.current = null
     const el = contentRef.current
     if (!d || !el) return
+    el.style.transition = ''
+    el.style.transform = ''
+  }
+  const onGrabEnd = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current
+    if (!d || d.id !== e.pointerId) return
     if (d.dy > DISMISS_DRAG_PX) {
+      drag.current = null
       onClose()
       return
     }
-    el.style.transition = ''
-    el.style.transform = ''
+    resetGrab()
   }
 
   return (
@@ -70,7 +77,7 @@ export function Modal({ open, onClose, className, title, hideTitle = false, chil
               onPointerDown={onGrabStart}
               onPointerMove={onGrabMove}
               onPointerUp={onGrabEnd}
-              onPointerCancel={onGrabEnd}
+              onPointerCancel={resetGrab}
             />
           )}
           {title &&
