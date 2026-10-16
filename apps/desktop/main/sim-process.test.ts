@@ -167,6 +167,33 @@ function loadSimProcess(child: FakeChild, onSpawn: () => void) {
   };
 }
 
+test("the dev binary path points at the workspace target directory", () => {
+  const sim = loadSimProcess(new FakeChild(), () => {});
+  const name = process.platform === "win32" ? "simulation-rs.exe" : "simulation-rs";
+
+  // Anchor the expectation to a real marker rather than the same
+  // parent-directory count the source uses: the workspace root is the nearest
+  // ancestor whose Cargo.toml declares the workspace.
+  const isWorkspaceRoot = (dir: string): boolean => {
+    const manifest = path.join(dir, "Cargo.toml");
+    return (
+      fs.existsSync(manifest) &&
+      fs.readFileSync(manifest, "utf8").includes("[workspace]")
+    );
+  };
+  let workspaceRoot = __dirname;
+  while (!isWorkspaceRoot(workspaceRoot) && path.dirname(workspaceRoot) !== workspaceRoot) {
+    workspaceRoot = path.dirname(workspaceRoot);
+  }
+  assert.ok(isWorkspaceRoot(workspaceRoot));
+
+  const resolved = sim.devBinaryPath();
+  assert.equal(resolved, path.join(workspaceRoot, "target", "release", name));
+  // The pre-fix path pointed at `apps/simulation/target/release`, which does
+  // not exist in this repository.
+  assert.equal(resolved.includes(`${path.sep}simulation${path.sep}`), false);
+});
+
 test("quit stops a simulation that is still loading instead of leaving it running", { timeout: 5000 }, async () => {
   const child = new FakeChild();
   let spawned!: () => void;
