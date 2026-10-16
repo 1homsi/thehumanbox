@@ -8,7 +8,8 @@ import type { Session } from "electron";
  * bridge's `world.migrateDataRoot`.
  *
  * `'wasm-unsafe-eval'` is required by the WebAssembly sim; PostHog is the only
- * remote origin (and its failure is not fatal).
+ * remote origin (and its failure is not fatal). The loopback forms are the
+ * ones `apps/web/src/shared/config.ts` accepts for an `?api=` override.
  */
 export function rendererContentSecurityPolicy(): string {
   return [
@@ -18,7 +19,16 @@ export function rendererContentSecurityPolicy(): string {
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
     "media-src 'self' data: blob:",
-    "connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:* https://*.posthog.com",
+    [
+      "connect-src 'self'",
+      "http://127.0.0.1:*",
+      "ws://127.0.0.1:*",
+      "http://localhost:*",
+      "ws://localhost:*",
+      "http://[::1]:*",
+      "ws://[::1]:*",
+      "https://*.posthog.com",
+    ].join(" "),
     "worker-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",

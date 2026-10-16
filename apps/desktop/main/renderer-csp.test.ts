@@ -19,8 +19,11 @@ test("the renderer policy keeps local script and the wasm sim working", () => {
   assert.ok(directive("style-src").includes("'unsafe-inline'"));
   assert.ok(directive("img-src").includes("data:"));
   // The renderer opens a websocket and fetches frames from the local sim.
-  assert.ok(directive("connect-src").includes("http://127.0.0.1:*"));
-  assert.ok(directive("connect-src").includes("ws://127.0.0.1:*"));
+  // config.ts accepts an ?api= override of 127.0.0.1, localhost or [::1].
+  for (const host of ["127.0.0.1", "localhost", "[::1]"]) {
+    assert.ok(directive("connect-src").includes(`http://${host}:*`), host);
+    assert.ok(directive("connect-src").includes(`ws://${host}:*`), host);
+  }
   assert.ok(directive("connect-src").includes("https://*.posthog.com"));
   assert.ok(directive("object-src").includes("'none'"));
   assert.ok(directive("frame-ancestors").includes("'none'"));
