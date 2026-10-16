@@ -36,7 +36,13 @@ import {
   runExclusiveDesktopOperation,
   currentDesktopOperation,
 } from "./exclusive-operation";
-import { startSim, stopSim, activeSim, onUnexpectedSimExit } from "./sim-process";
+import {
+  startSim,
+  stopSim,
+  activeSim,
+  onUnexpectedSimExit,
+  simLifecyclePending,
+} from "./sim-process";
 import { restartFailureStillRelevant, simExitStillRelevant } from "./prompt-relevance";
 import { loadSettings, prepareDataRoot, type Settings } from "./settings";
 import {
@@ -172,6 +178,8 @@ async function createWindow(): Promise<void> {
       bootErrorUrl = renderBootError(msg);
     }
   }
+  // Quitting during a load makes the start fail on purpose; no error window.
+  if (isQuitting) return;
 
   const winState = loadWindowState();
   const startHidden = startHiddenOnce;
@@ -787,6 +795,7 @@ async function boot(): Promise<void> {
     startHiddenOnce = false;
   }
   await createWindow();
+  if (isQuitting) return;
   buildMenu();
   buildTray();
   // Hidden start needs the tray as the way back in; without it show the window.
@@ -889,7 +898,7 @@ app.on("before-quit", (e) => {
   // `shutdownThenQuit` issued. Do not preventDefault them, or the quit can
   // never complete.
   if (isQuitting) return;
-  if (activeSim()) {
+  if (simLifecyclePending()) {
     e.preventDefault();
     shutdownThenQuit();
   }
