@@ -68,11 +68,15 @@ class MockWebSocket {
 
 let root: Root
 let container: HTMLDivElement
+let observedRuntimeState = { paused: false, speed: 1 }
+let pauseRuntime: (() => Promise<boolean>) | null = null
 const animationFrames = new Map<number, FrameRequestCallback>()
 let nextAnimationFrame = 1
 
 function Harness(): null {
-  useSimulation('native')
+  const simulation = useSimulation('native')
+  observedRuntimeState = simulation.runtimeState
+  pauseRuntime = simulation.pauseSim
   useEffect(() => undefined, [])
   return null
 }
@@ -103,6 +107,8 @@ describe('useSimulation snapshot recovery', () => {
     vi.stubGlobal('cancelAnimationFrame', (id: number) => animationFrames.delete(id))
     MockWebSocket.instances = []
     animationFrames.clear()
+    observedRuntimeState = { paused: false, speed: 1 }
+    pauseRuntime = null
     mergedFrames.length = 0
     parsedFrames.clear()
     fetchSnapshot.mockReset()
@@ -116,6 +122,8 @@ describe('useSimulation snapshot recovery', () => {
     act(() => root.unmount())
     vi.useRealTimers()
     vi.unstubAllGlobals()
+    delete window.thbDesktop
+    pauseRuntime = null
     container.remove()
   })
 
@@ -167,6 +175,88 @@ describe('useSimulation snapshot recovery', () => {
       await flushMicrotasks()
     })
     expect(fetchSnapshot).toHaveBeenCalledTimes(3)
+  })
+
+  it('rehydrates desktop runtime state after a websocket reconnect', async () => {
+    act(() => root.unmount())
+    Object.defineProperty(window, 'thbDesktop', { configurable: true, value: { isDesktop: true } })
+    const states = [
+      { ok: false },
+      { ok: true, paused: true, speed: 5 },
+      { ok: true, paused: false, speed: 1 },
+    ]
+    fetchSnapshot.mockResolvedValue(null)
+    const runtimeFetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => states.shift(),
+    }))
+    vi.stubGlobal('fetch', runtimeFetch)
+    root = createRoot(container)
+    act(() => root.render(<Harness />))
+
+    expect(observedRuntimeState).toEqual({ paused: false, speed: 1 })
+    expect(runtimeFetch).not.toHaveBeenCalled()
+
+    const firstSocket = MockWebSocket.instances.at(-1)!
+    await act(async () => {
+      firstSocket.open()
+      await vi.advanceTimersByTimeAsync(250)
+      await flushMicrotasks()
+    })
+    expect(runtimeFetch).toHaveBeenCalledTimes(2)
+    expect(observedRuntimeState).toEqual({ paused: true, speed: 5 })
+
+    act(() => {
+      firstSocket.readyState = MockWebSocket.CLOSED
+      firstSocket.onclose?.()
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_200)
+      await flushMicrotasks()
+    })
+    const restartedSocket = MockWebSocket.instances.at(-1)!
+    await act(async () => {
+      restartedSocket.open()
+      await flushMicrotasks()
+    })
+
+    expect(observedRuntimeState).toEqual({ paused: false, speed: 1 })
+    expect(runtimeFetch).toHaveBeenCalledTimes(3)
+  })
+
+  it('queues a runtime control behind desktop runtime hydration', async () => {
+    act(() => root.unmount())
+    Object.defineProperty(window, 'thbDesktop', { configurable: true, value: { isDesktop: true } })
+    fetchSnapshot.mockResolvedValue(null)
+    type RuntimeResponse = { ok: boolean; json: () => Promise<unknown> }
+    let resolveHydration: ((response: RuntimeResponse) => void) | null = null
+    const runtimeFetch = vi.fn((_url: string, init?: RequestInit): Promise<RuntimeResponse> => {
+      if (init?.method === 'POST') {
+        return Promise.resolve({ ok: true, json: async () => ({ ok: true, paused: true, speed: 1 }) })
+      }
+      return new Promise((resolve) => {
+        resolveHydration = resolve
+      })
+    })
+    vi.stubGlobal('fetch', runtimeFetch)
+    root = createRoot(container)
+    act(() => root.render(<Harness />))
+    const socket = MockWebSocket.instances.at(-1)!
+    await act(async () => {
+      socket.open()
+      await flushMicrotasks()
+    })
+    const pendingPause = pauseRuntime!()
+
+    expect(runtimeFetch).toHaveBeenCalledTimes(1)
+    expect(runtimeFetch.mock.calls[0]?.[1]?.method).toBeUndefined()
+    await act(async () => {
+      resolveHydration?.({ ok: true, json: async () => ({ ok: true, paused: false, speed: 1 }) })
+      expect(await pendingPause).toBe(true)
+    })
+    expect(runtimeFetch).toHaveBeenCalledTimes(2)
+    expect(runtimeFetch.mock.calls[1]?.[1]?.method).toBe('POST')
+    expect(observedRuntimeState).toEqual({ paused: true, speed: 1 })
   })
 
   it('does not start a second download while the replacement of an aborted snapshot is in flight', async () => {
