@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SceneContext } from '../../../scenes/core/types'
 import { CANVAS_H, CANVAS_W, SCALE } from '../../../scenes/shared/room-constants'
+import { canUseWorldGPU, setWorldGPUForTests } from '../../world-view/gpu'
 import { engineHarness, pointer, type EngineHarness } from '../engine-harness.test-util'
 import { CfRoomView } from './CfRoomView'
 import type { RoomPainter } from './room-model'
@@ -17,6 +18,8 @@ let harness: EngineHarness | null = null
 afterEach(async () => {
   await harness?.unmount()
   harness = null
+  vi.useRealTimers()
+  setWorldGPUForTests(null)
 })
 
 function scene(): SceneContext {
@@ -106,5 +109,41 @@ describe('the room on xipjs', () => {
     canvas.dispatchEvent(pointer('pointerdown', inside.x, inside.y))
     canvas.dispatchEvent(pointer('pointerup', inside.x, inside.y))
     expect(onSelectOrg).toHaveBeenCalledWith('a')
+  })
+
+  // Fake timers so the watchdog can be advanced without waiting ten seconds.
+  // The engine harness drives frames by hand, so the render is flushed here.
+  async function renderWithoutFrames() {
+    // Fake only the timers the watchdog uses: React's act and the engine's rAF
+    // need the real scheduler.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
+    const h = engineHarness()
+    harness = h
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(CANVAS_W * SCALE)
+    const painter: RoomPainter = { slots: [[7, 5]], paintBack: vi.fn(), nightLights: [] }
+    const rendering = h.renderRaw(
+      <CfRoomView ctx={scene()} painter={painter} selectedOrgId={null} onSelectOrg={vi.fn()} />,
+    )
+    // renderRaw flushes the engine's asset wait with a setTimeout(0), which
+    // under fake timers only fires when the clock is ticked.
+    for (let i = 0; i < 5; i++) await vi.advanceTimersByTimeAsync(1)
+    await rendering
+    return h
+  }
+
+  it('falls back to the 2D interior when xipjs never draws a first frame', async () => {
+    setWorldGPUForTests(true)
+    await renderWithoutFrames()
+    // xipjs failed to start either renderer, so the room's script never runs.
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(canUseWorldGPU()).toBe(false)
+  })
+
+  it('keeps the GPU interior when the room draws its first frame', async () => {
+    setWorldGPUForTests(true)
+    const h = await renderWithoutFrames()
+    await h.frame(1)
+    await vi.advanceTimersByTimeAsync(20_000)
+    expect(canUseWorldGPU()).toBe(true)
   })
 })
