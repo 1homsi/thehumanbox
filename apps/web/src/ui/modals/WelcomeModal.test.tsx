@@ -81,15 +81,24 @@ describe('WelcomeModal', () => {
     expect(window.localStorage.getItem('thb-welcome-seen-v1')).toBe('1')
   })
 
-  it('leaves keys alone while another control outside the card has focus', () => {
+  it('leaves keys alone while a field outside the card has focus', () => {
     mount()
-    const other = document.createElement('button')
-    document.body.append(other)
-    act(() => other.focus())
-    press(other, 'Escape')
-    press(other, 'Tab')
+    const field = document.createElement('input')
+    document.body.append(field)
+    act(() => field.focus())
+    press(field, 'Escape')
+    press(field, 'Tab')
     expect(document.querySelector('.welcome-modal')).not.toBeNull()
-    expect(document.activeElement).toBe(other)
+    expect(document.activeElement).toBe(field)
+  })
+
+  it('Escape from the page behind the card still skips it, e.g. after a palette closes', () => {
+    mount()
+    const map = document.createElement('button')
+    document.body.append(map)
+    act(() => map.focus())
+    press(map, 'Escape')
+    expect(document.querySelector('.welcome-modal')).toBeNull()
   })
 
   it('Escape skips the welcome and does not show it again', () => {

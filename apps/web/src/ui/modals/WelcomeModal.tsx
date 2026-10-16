@@ -51,23 +51,25 @@ export function WelcomeModal() {
   useEffect(() => {
     if (!open) return
     const onKey = (e: globalThis.KeyboardEvent) => {
-      // Keys typed in another overlay or field belong to it; only the card and the bare page are ours.
+      // Keys typed into a field or another dialog belong to it; anything else on the page is ours.
       const target = e.target
-      const ours =
-        target === document.body ||
-        target === document.documentElement ||
-        (target instanceof Node && cardRef.current?.contains(target))
-      if (e.defaultPrevented || !ours) return
+      const card = cardRef.current
+      if (!card) return
+      const owned =
+        target instanceof Element &&
+        !card.contains(target) &&
+        target.closest('[role="dialog"], dialog, input, textarea, select, [contenteditable="true"]') !== null
+      if (owned) return
       if (e.key === 'Escape') {
         e.preventDefault()
         finish(false)
         return
       }
-      if (e.key !== 'Tab' || !cardRef.current) return
-      const buttons = cardRef.current.querySelectorAll<HTMLButtonElement>('button')
+      if (e.key !== 'Tab') return
+      const buttons = card.querySelectorAll<HTMLButtonElement>('button')
       const first = buttons[0]
       const last = buttons[buttons.length - 1]
-      if (!cardRef.current.contains(document.activeElement)) {
+      if (!card.contains(document.activeElement)) {
         e.preventDefault()
         ;(e.shiftKey ? last : first).focus()
       } else if (e.shiftKey && document.activeElement === first) {
