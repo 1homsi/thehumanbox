@@ -382,6 +382,40 @@ describe('mergeFrame null-clear identity stability', () => {
     expect('attracted_to' in after).toBe(false)
   })
 
+  it('keeps a cached partner when the delta omits the partner columns', () => {
+    const caches = emptyCaches()
+    mergeFrame(
+      baseFrame({
+        frame_kind: 'full',
+        organisms_complete: true,
+        organisms: [
+          { id: 'a', name: 'Alia', partner_id: 'b', attracted_to: 'b' } as unknown as OrganismState,
+        ],
+      }),
+      caches,
+    )
+
+    // A frame with no partner column at all means "unchanged"; only a present
+    // list that omits the index means "unset".
+    mergeFrame(
+      baseFrame({
+        frame_id: 2,
+        organisms_hot: {
+          ids: ['a'],
+          xs: [50],
+          ys: [50],
+          target_xs: [-32768],
+          target_ys: [-32768],
+        },
+      } as Partial<IncomingWorldFrame>),
+      caches,
+    )
+
+    const after = caches.organisms.get('a')!
+    expect(after.partner_id).toBe('b')
+    expect(after.attracted_to).toBe('b')
+  })
+
   it('reuses the cached organism when the wire clears a never-set field', () => {
     const { caches, org } = seed()
     expect('target_x' in org).toBe(false)
