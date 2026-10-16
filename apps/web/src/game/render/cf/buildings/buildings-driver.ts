@@ -128,7 +128,8 @@ export class BuildingsDriver implements CfDriver {
       slow = (Math.imul(slow, 31) + Math.round(age * RUIN_AGE_STEPS) + 1) | 0
     }
     // A multiply-per-entry fold, not a shift: a long list must not overflow the bits already hashed in.
-    for (const id of this.spaceports) slow = (Math.imul(slow, 31) + (padEmpty(id, world.tick) ? 1 : 0) + 1) | 0
+    for (const id of this.spaceports)
+      slow = (Math.imul(slow, 31) + (padEmpty(id, world.tick) ? 1 : 0) + 1) | 0
     const sig = `${this.buildingsEpoch}|${buildings.length}|${slow}|${this.tiersEpoch}|${nightBucket}|${f.detail}|${winter ? 1 : 0}|${win.c0},${win.c1},${win.r0},${win.r1}|${f.terrainRevision}`
     if (sig === this.sig && this.atlas.epoch === this.sigAtlasEpoch && this.ids.length === this.layer.count) {
       this.stats.skipped++

@@ -87,10 +87,7 @@ function world(buildings: Building[], over: { tick?: number; frame_id?: number }
   } as unknown as WorldState
 }
 
-function frame(
-  w: WorldState,
-  over: { now?: number; revision?: number; zoom?: number } = {},
-): CfFrame {
+function frame(w: WorldState, over: { now?: number; revision?: number; zoom?: number } = {}): CfFrame {
   return makeFrame(
     w,
     w.grid.biomes,
