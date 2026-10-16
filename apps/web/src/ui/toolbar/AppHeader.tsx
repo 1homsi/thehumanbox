@@ -61,13 +61,15 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
 
   useEffect(() => {
     if (!showMore) return
-    const handler = (e: MouseEvent) => {
+    // pointerdown, not mousedown: the engine cancels touchstart on its canvas, so a tap on the map
+    // never produces the emulated mouse events this outside-click dismisser used to wait for.
+    const handler = (e: PointerEvent) => {
       if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
         useUIStore.setState({ showMore: false })
       }
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
   }, [showMore])
 
   const tip = (title: string, body?: string, how?: string) => (

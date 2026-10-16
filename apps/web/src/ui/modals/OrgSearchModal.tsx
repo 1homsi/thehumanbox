@@ -56,11 +56,13 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
 
   useEffect(() => {
     if (!tribeOpen) return
-    const handler = (e: MouseEvent) => {
+    // pointerdown, not mousedown: the engine cancels touchstart on its canvas, so a tap on the map
+    // never produces the emulated mouse events this used to wait for.
+    const handler = (e: PointerEvent) => {
       if (tribeRef.current && !tribeRef.current.contains(e.target as Node)) setTribeOpen(false)
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
   }, [tribeOpen])
 
   const tn = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)

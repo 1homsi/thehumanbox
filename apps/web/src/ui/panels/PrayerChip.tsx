@@ -25,13 +25,14 @@ export function PrayerChip({ world, onAnswer }: Props) {
 
   useEffect(() => {
     if (!open) return
-    const close = (e: MouseEvent) => {
+    // pointerdown covers taps on touch devices, where the emulated mousedown never arrives.
+    const close = (e: PointerEvent) => {
       const target = e.target as Node
       if (ref.current?.contains(target) || listRef.current?.contains(target)) return
       setOpen(false)
     }
-    document.addEventListener('mousedown', close)
-    return () => document.removeEventListener('mousedown', close)
+    document.addEventListener('pointerdown', close)
+    return () => document.removeEventListener('pointerdown', close)
   }, [open])
 
   useEffect(() => {
