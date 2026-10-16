@@ -5,6 +5,7 @@ import * as path from 'node:path'
 import test from 'node:test'
 import * as vm from 'node:vm'
 import * as redactUrl from './redact-url'
+import * as rendererLoad from './renderer-load'
 
 test('replacing a window retains the new window and routes old events to their owner', async () => {
   const windows: FakeWindow[] = []
@@ -48,6 +49,7 @@ test('replacing a window retains the new window and routes old events to their o
       if (id === './app-version-arg') return { appVersionArgument: (v: string) => `--thb-app-version=${v}` }
       if (id === './app-icon') return { appIconPath: () => '/tmp/icon.png' }
       if (id === 'node:path') return path
+      if (id === './renderer-load') return rendererLoad
       return {}
     },
   })
@@ -101,6 +103,7 @@ test('a renderer that fails to load does not carry the command token in its erro
       if (id === './app-icon') return { appIconPath: () => '/tmp/icon.png' }
       if (id === 'node:path') return path
       if (id === './redact-url') return redactUrl
+      if (id === './renderer-load') return rendererLoad
       return {}
     },
   })
@@ -110,4 +113,76 @@ test('a renderer that fails to load does not carry the command token in its erro
     assert.ok(error.message.includes('ERR_FILE_NOT_FOUND'))
     return true
   })
+})
+
+test('the failed-load log line and boot page never show the command token', async () => {
+  const logged: string[] = []
+  const openedUrls: string[] = []
+  class FakeWindow extends EventEmitter {
+    destroyed = false
+    handlers: Record<string, Array<(...args: unknown[]) => void>> = {}
+    webContents = {
+      send: () => {},
+      setWindowOpenHandler: () => {},
+      session: {
+        setPermissionCheckHandler: () => {},
+        setPermissionRequestHandler: () => {},
+      },
+      on: (event: string, handler: (...args: unknown[]) => void) => {
+        ;(this.handlers[event] ??= []).push(handler)
+      },
+    }
+    constructor() { super() }
+    async loadFile(file: string, options?: { query?: Record<string, string> }) {
+      const query = new URLSearchParams(options?.query ?? {}).toString()
+      this.rendererUrl = `${file}?${query}`
+    }
+    rendererUrl = ''
+    loadURL(url: string) { openedUrls.push(url); return Promise.resolve() }
+    isDestroyed() { return this.destroyed }
+  }
+  const app = {
+    setName() {},
+    isPackaged: true,
+    getVersion: () => '0.0.0-test',
+    on() {},
+    requestSingleInstanceLock: () => true,
+    whenReady: () => new Promise<void>(() => {}),
+  }
+  const context = vm.createContext({
+    exports: {}, __dirname, process, setTimeout, clearTimeout,
+    console: { log() {}, warn() {}, error: (...args: unknown[]) => logged.push(args.map(String).join(' ')) },
+    require: (id: string) => {
+      if (id === 'electron') {
+        return {
+          app,
+          BrowserWindow: FakeWindow,
+          shell: { openExternal: () => Promise.resolve() },
+        }
+      }
+      if (id === './startup-lifecycle') return { startWhenReady: () => {} }
+      if (id === './settings') return { loadSettings: () => ({}) }
+      if (id === './sim-process') return { startSim: async () => ({ port: 8000, commandToken: 'SECRET-TOKEN' }) }
+      if (id === 'node:fs') return { readFileSync: () => { throw new Error('no saved bounds') } }
+      if (id === './app-version-arg') return { appVersionArgument: (v: string) => `--thb-app-version=${v}` }
+      if (id === './app-icon') return { appIconPath: () => '/tmp/icon.png' }
+      if (id === 'node:path') return path
+      if (id === './redact-url') return redactUrl
+      if (id === './renderer-load') return rendererLoad
+      if (id === './navigation-guard') return require(path.join(__dirname, 'navigation-guard'))
+      return {}
+    },
+  })
+  vm.runInContext(readFileSync(path.join(__dirname, 'index.js'), 'utf8'), context)
+  await vm.runInContext('createWindow()', context)
+
+  const win = vm.runInContext('mainWindow', context) as FakeWindow
+  assert.ok(win.rendererUrl.includes('token=SECRET-TOKEN'))
+  const failedLoad = win.handlers['did-fail-load'][0]
+  failedLoad({}, -6, 'ERR_FILE_NOT_FOUND', `${win.rendererUrl}&extra=1`, true)
+
+  assert.equal(logged.join('\n').includes('SECRET-TOKEN'), false)
+  assert.equal(openedUrls.length, 1)
+  assert.equal(decodeURIComponent(openedUrls[0]).includes('SECRET-TOKEN'), false)
+  assert.ok(decodeURIComponent(openedUrls[0]).includes('Renderer failed to load.'))
 })

@@ -20,6 +20,7 @@ import {
   stopSim,
 } from "./sim-process";
 import { acquireDataRootLock, type DataRootLock } from "./data-lock";
+import { loadRenderer } from "./renderer-load";
 import {
   RESTART_SIMULATION_OPERATION,
   runExclusiveDesktopOperation,
@@ -113,13 +114,11 @@ async function loadLocalRenderer(
   const win = getWindow();
   if (!win) return;
   const indexFile = path.join(__dirname, "..", "renderer", "index.html");
-  await win.loadFile(indexFile, {
-    query: {
-      desktop: "1",
-      api: `127.0.0.1:${sim.port}`,
-      token: sim.commandToken,
-      ...extra,
-    },
+  await loadRenderer(win, indexFile, {
+    desktop: "1",
+    api: `127.0.0.1:${sim.port}`,
+    token: sim.commandToken,
+    ...extra,
   });
 }
 

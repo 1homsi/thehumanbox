@@ -24,7 +24,8 @@ import { atomicReplaceFile } from "./world-safety";
 import { appVersionArgument } from "./app-version-arg";
 import { loginItemSettings, shouldStartHidden } from "./login-launch";
 import { appIconPath } from "./app-icon";
-import { redactUrlForDisplay, redactUrlsInText } from "./redact-url";
+import { redactUrlForDisplay } from "./redact-url";
+import { loadRenderer } from "./renderer-load";
 import { restartFailurePrompt } from "./restart-recovery";
 import {
   deferErrorDialog,
@@ -321,12 +322,7 @@ async function createWindow(): Promise<void> {
     const query: Record<string, string> = { desktop: "1" };
     if (apiBase) query.api = apiBase;
     if (apiToken) query.token = apiToken;
-    try {
-      await win.loadFile(rendererFile, { query });
-    } catch (err) {
-      // The load error names the full URL, token included.
-      throw new Error(redactUrlsInText((err as Error)?.message ?? String(err)));
-    }
+    await loadRenderer(win, rendererFile, query);
     if (isDev) win.webContents.openDevTools({ mode: "detach" });
   }
 
