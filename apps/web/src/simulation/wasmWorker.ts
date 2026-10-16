@@ -89,6 +89,7 @@ let recoveryFallbackRetry: StorageRetry<SavedWorld> | null = null
 let storageRetryInFlight: Promise<boolean> | null = null
 let worldLockAcquired = true
 let releaseWorldLock: (() => void) | null = null
+let startup: Promise<void> | null = null
 
 function post(msg: unknown) {
   ;(self as unknown as Worker).postMessage(msg)
@@ -146,6 +147,19 @@ async function releaseLocalWorldLock() {
   // The Web Locks API releases only after its async callback returns. Yield a
   // task so a freshly reloaded worker cannot race the previous callback.
   await new Promise((resolve) => setTimeout(resolve, 0))
+}
+
+async function releaseWorldLockAfterStartup() {
+  // A reload can arrive while start() is between acquiring the world lock and
+  // finishing its reset/restore transaction. Releasing the lock then would let
+  // another tab acquire it and race the same IndexedDB record, so keep the lock
+  // until the in-flight startup has bailed out of its transaction: start()
+  // checks reloadPreparing right after each storage await and returns, and this
+  // releases once it has. A bail before the lock is acquired (boot, lock wait)
+  // has no transaction to protect, so release straight away.
+  const startupHoldsLock = releaseWorldLock !== null
+  if (startupHoldsLock) await startup?.catch(() => {})
+  await releaseLocalWorldLock()
 }
 
 function emit(deepFull: boolean) {
@@ -592,7 +606,9 @@ self.onmessage = (e: MessageEvent) => {
   const msg = e.data as InMsg
   switch (msg.type) {
     case 'start':
-      void start(msg)
+      // Only the first start() runs (`started` guards the rest); don't let a
+      // duplicate message replace the promise a pending reload waits on.
+      startup ??= start(msg)
       break
     case 'pause':
       if (sim) manuallyPaused = true
@@ -647,7 +663,7 @@ self.onmessage = (e: MessageEvent) => {
         }
         reloadPreparing = true
         stopTimers()
-        void releaseLocalWorldLock().then(() => {
+        void releaseWorldLockAfterStartup().then(() => {
           post({ type: 'reload_result', requestId: msg.requestId, ok: true })
           self.close()
         })
