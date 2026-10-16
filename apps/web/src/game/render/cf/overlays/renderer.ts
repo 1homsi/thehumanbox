@@ -102,6 +102,8 @@ export interface OverlayExtras {
 
 /** The ground effects are rewritten at most this often when nothing else changed. */
 const GROUND_INTERVAL_MS = 66
+/** Time-driven overlay layers need at most 15 updates per second. */
+const ANIMATED_SECTION_INTERVAL_MS = 66
 /** The heat map follows new world data at most this often (a setting change is shown at once). */
 const HEAT_INTERVAL_MS = 500
 
@@ -155,6 +157,15 @@ export class CfOverlayRenderer {
   private groundKey = ''
   private groundFlags: unknown = null
   private groundAt = -Infinity
+  private atmosphereKey = ''
+  private roadsKey = ''
+  private trafficKey = ''
+  private smokeKey = ''
+  private effectsKey = ''
+  private hudKey = ''
+  private labelsKey = ''
+  private labelsPeople: PeopleLabelSource | null = null
+  private settlementLabels: ReturnType<typeof paintHud>['labels'] = []
   /** Tribes that entered a new era, marked on the map for a while. */
   private readonly eraWatch = new EraWatch()
   private readonly dust = new FootstepDust()
@@ -266,7 +277,16 @@ export class CfOverlayRenderer {
       mark = now
     }
 
-    this.updateAtmosphere(f)
+    const { c0, c1, r0, r1 } = f.bounds
+    const viewKey = [c0, c1, r0, r1, f.ox, f.oy, f.cam.x, f.cam.y, f.zoom, f.dpr, f.W, f.H].join('|')
+    const frameKey = `${f.world.frame_id}|${viewKey}`
+    const animatedKey = `${frameKey}|${Math.floor(f.t / ANIMATED_SECTION_INTERVAL_MS)}`
+
+    const atmosphereKey = `${f.world.frame_id}|${Math.floor(f.t / ANIMATED_SECTION_INTERVAL_MS)}|${f.W}|${f.H}`
+    if (atmosphereKey !== this.atmosphereKey) {
+      this.atmosphereKey = atmosphereKey
+      this.updateAtmosphere(f)
+    }
     lap('atmosphere')
 
     const heatRebuilt = this.updateHeat(f)
@@ -278,7 +298,6 @@ export class CfOverlayRenderer {
     // The small effects (sea sparkle, mist, birds, petals, leaves, fireflies) are for close zoom: at the
     // overview they read as clutter over the whole map, so they are not drawn there.
     const detailed = zoomDetailLevel(f.zoom) !== 'overview'
-    const { c0, c1, r0, r1 } = f.bounds
     const groundKey = `${c0},${c1},${r0},${r1}|${f.zoom}|${f.world.frame_id}`
     if (
       groundKey !== this.groundKey ||
@@ -361,62 +380,85 @@ export class CfOverlayRenderer {
 
     // Trade roads, and the railway track the tribes laid along them (the road layer draws the track).
     const showTrade = f.viewFlags.tradeRoutes
-    this.roads.begin(gv)
-    if (showTrade) {
-      drawTradeNetwork2D(this.roads.asContext(), f.world, f.bounds, f.t, 'roads')
+    const roadsKey = `${animatedKey}|${showTrade ? 1 : 0}`
+    if (roadsKey !== this.roadsKey) {
+      this.roadsKey = roadsKey
+      this.roads.begin(gv)
+      if (showTrade) {
+        drawTradeNetwork2D(this.roads.asContext(), f.world, f.bounds, f.t, 'roads')
+      }
+      // Artworks lie on the ground where their makers stood: under the buildings and the people.
+      paintArtworks(this.roads.asContext(), f)
+      // Remains of prey lie on the ground too, under the buildings and the people.
+      paintCarcasses(this.roads.asContext(), f)
+      this.roads.end()
     }
-    // Artworks lie on the ground where their makers stood: under the buildings and the people.
-    paintArtworks(this.roads.asContext(), f)
-    // Remains of prey lie on the ground too, under the buildings and the people.
-    paintCarcasses(this.roads.asContext(), f)
-    this.roads.end()
     // Caravans travel the roads at every zoom; the trade roads and rails above show only with the lens.
-    this.traffic.begin(gv)
-    drawTradeNetwork2D(this.traffic.asContext(), f.world, f.bounds, f.t, 'caravans')
-    this.paintTrains(this.traffic.asContext(), f)
-    this.traffic.end()
-    this.smoke.begin(gv)
-    paintChimneySmoke(this.smoke.asContext(), f.bounds, f.ox, f.oy, f.world.buildings, f.t)
-    this.smoke.end()
+    if (animatedKey !== this.trafficKey) {
+      this.trafficKey = animatedKey
+      this.traffic.begin(gv)
+      drawTradeNetwork2D(this.traffic.asContext(), f.world, f.bounds, f.t, 'caravans')
+      this.paintTrains(this.traffic.asContext(), f)
+      this.traffic.end()
+    }
+    if (animatedKey !== this.smokeKey) {
+      this.smokeKey = animatedKey
+      this.smoke.begin(gv)
+      paintChimneySmoke(this.smoke.asContext(), f.bounds, f.ox, f.oy, f.world.buildings, f.t)
+      this.smoke.end()
+    }
     lap('roads')
 
-    this.effects.begin(gv)
-    paintEffects(this.effects.asContext(), f)
-    paintPower(this.effects.asContext(), f)
     this.eraWatch.update(f.world)
-    paintEraFlourish(this.effects.asContext(), f, this.eraWatch.active(f.world.tick))
-    this.paintWeather(this.effects.asContext(), f)
-    if (detailed) paintSkyFlyers(this.effects.asContext(), f)
-    this.effects.end()
+    if (animatedKey !== this.effectsKey) {
+      this.effectsKey = animatedKey
+      this.effects.begin(gv)
+      paintEffects(this.effects.asContext(), f)
+      paintPower(this.effects.asContext(), f)
+      paintEraFlourish(this.effects.asContext(), f, this.eraWatch.active(f.world.tick))
+      this.paintWeather(this.effects.asContext(), f)
+      if (detailed) paintSkyFlyers(this.effects.asContext(), f)
+      this.effects.end()
+    }
     lap('effects')
 
-    this.hud.begin(gv)
-    const { labels: settlementLabels } = paintHud(this.hud.asContext(), f, { grid: f.viewFlags.grid })
-    this.hud.end()
+    const hudKey = `${animatedKey}|${f.viewFlags.grid ? 1 : 0}|${f.viewFlags.hideUI ? 1 : 0}`
+    if (hudKey !== this.hudKey) {
+      this.hudKey = hudKey
+      this.hud.begin(gv)
+      this.settlementLabels = paintHud(this.hud.asContext(), f, { grid: f.viewFlags.grid }).labels
+      this.hud.end()
+    }
+    const settlementLabels = this.settlementLabels
 
     // Names, thoughts, work poses and prayer glyphs go above the people; town names claim space first.
-    this.labels.begin(gv)
-    this.names.begin()
-    if (extras.people) {
-      paintPeopleLabels(this.labels.asContext(), {
-        names: this.names,
-        people: extras.people,
-        selectedId: extras.selectedId,
-        focus: f.focus,
-        viewFlags: f.viewFlags,
-        zoom: f.zoom,
-        now: f.t,
-        prayers: f.world.prayers,
-        vehicles: f.world.vehicles,
-        settlementLabels,
-        window: f.bounds,
-        ox: f.ox,
-        oy: f.oy,
-        poses: this.labels,
-      })
+    const labelsKey = `${animatedKey}|${extras.selectedId ?? ''}|${f.focus}|${f.viewFlags.names ? 1 : 0}|${f.viewFlags.thoughts ? 1 : 0}|${f.viewFlags.hideUI ? 1 : 0}`
+    if (labelsKey !== this.labelsKey || extras.people !== this.labelsPeople) {
+      this.labelsKey = labelsKey
+      this.labelsPeople = extras.people
+      this.labels.begin(gv)
+      this.names.begin()
+      if (extras.people) {
+        paintPeopleLabels(this.labels.asContext(), {
+          names: this.names,
+          people: extras.people,
+          selectedId: extras.selectedId,
+          focus: f.focus,
+          viewFlags: f.viewFlags,
+          zoom: f.zoom,
+          now: f.t,
+          prayers: f.world.prayers,
+          vehicles: f.world.vehicles,
+          settlementLabels,
+          window: f.bounds,
+          ox: f.ox,
+          oy: f.oy,
+          poses: this.labels,
+        })
+      }
+      this.names.end()
+      this.labels.end()
     }
-    this.names.end()
-    this.labels.end()
     lap('hud')
 
     times.total = performance.now() - t0
