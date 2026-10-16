@@ -1,5 +1,44 @@
 //! Environment-driven configuration: tick rate, speed, limits, CORS.
 
+use std::ffi::OsStr;
+use std::path::{Path, PathBuf};
+
+/// Whether this process was started by the desktop app.
+///
+/// The desktop sets both `THB_DATA_LOCK_TOKEN` (the value
+/// `claim_desktop_data_lock_from_env` keys the lock claim off) and
+/// `THB_DESKTOP_PARENT_PID`. Either one means the app built this child's
+/// environment itself.
+pub(super) fn desktop_owned_environment(
+    data_lock_token: Option<&OsStr>,
+    desktop_parent_pid: Option<&OsStr>,
+) -> bool {
+    data_lock_token.is_some() || desktop_parent_pid.is_some()
+}
+
+/// The `.env` a standalone run should load: the file in `cwd` or the nearest
+/// ancestor, which is the search `dotenvy::dotenv()` performs.
+///
+/// A desktop-owned simulation gets `None`. The desktop runs the child with
+/// the save folder as its cwd (e.g. `~/Library/Application Support/The Human
+/// Box`), so that search reaches the user's home directory, and a stray
+/// `~/.env` would inject the variables the desktop does not set itself:
+/// `THB_ADMIN_TOKEN` (which opens `POST /admin/reset-world`), `THB_LOW_MEMORY`
+/// or `DAILY_EGRESS_MB`.
+pub(super) fn dev_dotenv_path(desktop_owned: bool, cwd: Option<&Path>) -> Option<PathBuf> {
+    if desktop_owned {
+        return None;
+    }
+    let mut dir = cwd?;
+    loop {
+        let candidate = dir.join(".env");
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+        dir = dir.parent()?;
+    }
+}
+
 pub(super) const LEGACY_SAVE_PATH: &str = "world.save";
 pub(super) const WS_BROADCAST_BUFFER: usize = 40;
 pub const WS_RESYNC_LAG_THRESHOLD: u64 = 3;

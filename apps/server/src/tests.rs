@@ -1,7 +1,7 @@
 use super::{
-    bounded_interval_ms, claim_desktop_data_lock_at, default_cors_origins, exit_on_tick_failure_for,
-    monthly_rollover_enabled_for, population_limit_from_env_value, should_load_dev_dotenv, RuntimeControl,
-    MIN_RUNTIME_TICK_MS,
+    bounded_interval_ms, claim_desktop_data_lock_at, default_cors_origins, desktop_owned_environment,
+    dev_dotenv_path, exit_on_tick_failure_for, monthly_rollover_enabled_for, population_limit_from_env_value,
+    RuntimeControl, MIN_RUNTIME_TICK_MS,
 };
 
 fn temporary_lock_root(label: &str) -> std::path::PathBuf {
@@ -150,13 +150,24 @@ fn runtime_control_rejects_unbounded_speeds() {
 }
 
 #[test]
-fn a_desktop_owned_simulation_ignores_a_developer_dotenv() {
+fn a_parent_dotenv_stays_out_of_a_desktop_owned_simulation() {
     use std::ffi::OsStr;
 
-    // Standalone runs (and the hosted server) still read `.env`.
-    assert!(should_load_dev_dotenv(None));
-    // The desktop app sets THB_DESKTOP_PARENT_PID and runs the child with the
-    // save folder as its cwd, so dotenvy's walk up to the home directory must
-    // not be consulted.
-    assert!(!should_load_dev_dotenv(Some(OsStr::new("12345"))));
+    // A `.env` above the working directory is exactly what dotenvy's walk-up
+    // finds when the desktop runs the child in the save folder.
+    let root = temporary_lock_root("dotenv");
+    let cwd = root.join("child");
+    std::fs::create_dir_all(&cwd).unwrap();
+    std::fs::write(root.join(".env"), "THB_ADMIN_TOKEN=leaked\n").unwrap();
+
+    // A standalone run still selects that ancestor file...
+    assert_eq!(dev_dotenv_path(false, Some(&cwd)), Some(root.join(".env")));
+    // ...while a desktop-owned child selects nothing at all.
+    assert_eq!(dev_dotenv_path(true, Some(&cwd)), None);
+
+    // Either desktop marker is enough (the lock token is the one
+    // `claim_desktop_data_lock_from_env` keys off).
+    assert!(desktop_owned_environment(Some(OsStr::new("lock-token")), None));
+    assert!(desktop_owned_environment(None, Some(OsStr::new("4242"))));
+    assert!(!desktop_owned_environment(None, None));
 }
