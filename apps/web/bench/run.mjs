@@ -12,8 +12,8 @@
 //   --fixtures a,b      standard,crowd (default both): seed 42 at tick 9000, and with 3,000 more people
 //   --zooms a,b         overview,mid,close (default all): fit, zoom 1, zoom 3
 //   --modes a,b         paused,playing,panning (default paused,playing). `panning` is `playing` with the camera
-//                       moving the whole window: arrow keys held down in a square, so it covers new ground
-//                       the way a player dragging the map does. Not in the default set.
+//                       moving through four directions over the measured window, like a player moving the map.
+//                       Not in the default set.
 //   --passes a,b        metrics,trace,memory (default all). `metrics` reads the browser's own counters and
 //                       adds nothing to the page; `trace` records a Chrome trace for frames
 //                       delivered, GPU process time, GC pauses and long tasks; `memory` takes a Chrome
@@ -261,12 +261,7 @@ async function focusView(page, focus, zoom) {
   return cam()
 }
 
-/**
- * `panning`: the camera moves for the whole window. Holds the map's own arrow-key pan (480 screen px/s,
- * so 480 / zoom world px/s) along a square, d s a w, one leg after the other; every leg is long enough to
- * reach ground the previous frames did not draw, and the path ends where it began. Keys are real
- * `Input.dispatchKeyEvent`s, so the app's own camera code runs.
- */
+/** `panning`: move the camera around a square using the map's real keyboard controls. */
 const PAN_KEYS = [
   { key: 'd', code: 'KeyD', vk: 68 },
   { key: 's', code: 'KeyS', vk: 83 },
@@ -470,8 +465,11 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
     if (panning) {
       const travelled = await panning
       if (travelled?.error) throw travelled.error
-      if (zoomName !== 'overview' && travelled < 100)
-        throw new Error(`camera moved only ${Math.round(travelled)}px during panning`)
+      if (zoomName !== 'overview') {
+        const expected = (480 / ZOOMS[zoomName]) * (windowMs / 1000)
+        if (travelled < expected / 2)
+          throw new Error(`camera moved ${Math.round(travelled)}px; expected at least ${Math.round(expected / 2)}px`)
+      }
       result.panPx = Math.round(travelled)
     }
 

@@ -57,13 +57,14 @@ camera at a zoom (`overview` = the whole world, `mid` = zoom 1, `close` = zoom 3
 simulation run (`playing`) or pauses it (`paused`), waits 3 s, and measures an 8 s window. The camera is steered
 through `window.__thbBench`, which the app publishes when the address has `?bench` (`src/game/render/bench-hooks.ts`).
 
-`--modes panning` is `playing` with the camera moving for the measured window (not in the default modes): the map's
-own arrow-key pan (`d`, `s`, `a`, `w`, each held for one quarter of the window) sent as real key events along a
-square that ends where it began. This exercises rebuilds keyed on the camera window (buildings, trees, decor,
-overlays) as a player pans. `results.json` has `panPx`, the world px the camera travelled (0 at `overview`, where
-the whole world fits and nothing can pan; use `mid` or `close`). Because camera movement is capped per rendered
-frame, comparisons must use the same CPU throttle: slower frame rates reduce `panPx` and can sample less new ground.
-The `memory` pass is skipped for panning because it takes an instantaneous snapshot without a measured window.
+`--modes panning` is `playing` with the camera moving through four directions over the measured window (not in the
+default modes): it sends real `d`, `s`, `a`, `w` key events to the map along a roughly closed square around its
+starting camera position. This exercises camera movement for workloads that depend on the visible window. `results.json`
+has `panPx`, the world px the camera travelled (0 at `overview`, where the whole world fits and nothing can pan;
+use `mid` or `close`). The value confirms camera movement; it does not prove any particular renderer rebuilt.
+Because camera movement is capped per rendered frame, comparisons must use the same CPU throttle: slower frame
+rates reduce `panPx` and can sample less new ground. The `memory` pass is skipped for panning because it takes an
+instantaneous snapshot without a measured window.
 
 ```sh
 node bench/run.mjs --builds main=dist --fixtures crowd --zooms mid --modes playing,panning --passes metrics --runs 3
