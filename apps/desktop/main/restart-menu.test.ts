@@ -24,6 +24,9 @@ test('File > Restart simulation brings the window back when no window is open', 
     close() { this.destroyed = true; this.emit('closed') }
     isDestroyed() { return this.destroyed }
     isAlwaysOnTop() { return false }
+    show() {}
+    isVisible() { return true }
+    maximize() {}
   }
   // macOS: closing the last window stops the sim and the app stays in the
   // dock, so the menu restart runs with mainWindow === null and no sim.

@@ -58,6 +58,7 @@ app.setName("The Human Box");
 
 const isDev = !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
+let windowStartup: Promise<void> | null = null;
 let tray: Tray | null = null;
 // Rebuilds the tray's context menu from the tracked window (visible? always on
 // top?). Set once the tray exists; null before that and when tray creation
@@ -151,9 +152,8 @@ function renderBootError(
 }
 
 async function createWindow(): Promise<void> {
+  windowStartup = null;
   let settings: Settings | null = null;
-  let apiBase: string | null = null;
-  let apiToken: string | null = null;
   let bootErrorUrl: string | null = null;
 
   // `loadSettings` throws on a corrupt or unreadable settings.json rather
@@ -174,25 +174,13 @@ async function createWindow(): Promise<void> {
     );
   }
 
-  if (settings) {
-    try {
-      const sim = await startSim(settings);
-      apiBase = `127.0.0.1:${sim.port}`;
-      apiToken = sim.commandToken;
-    } catch (err) {
-      const msg = (err as Error).message ?? String(err);
-      console.error("[main] failed to start local sim:", err);
-      bootErrorUrl = renderBootError(msg);
-    }
-  }
-  // Quitting during a load makes the start fail on purpose; no error window.
   if (isQuitting) return;
 
   const winState = loadWindowState();
   const startHidden = startHiddenOnce;
   startHiddenOnce = false;
   const win = new BrowserWindow({
-    show: !startHidden,
+    show: false,
     x: winState.x,
     y: winState.y,
     width: winState.width,
@@ -252,6 +240,10 @@ async function createWindow(): Promise<void> {
   });
   win.on("show", () => {
     win?.webContents.send("app:visibility", "restored");
+  });
+  win.on("closed", () => {
+    if (mainWindow === win) mainWindow = null;
+    if (!mainWindow) rebuildWindowMenus();
   });
 
   const rendererFile = path.resolve(__dirname, "..", "renderer", "index.html");
@@ -324,19 +316,42 @@ async function createWindow(): Promise<void> {
   if (bootErrorUrl) {
     await win.loadURL(bootErrorUrl);
   } else {
-    const query: Record<string, string> = { desktop: "1" };
-    if (apiBase) query.api = apiBase;
-    if (apiToken) query.token = apiToken;
-    await loadRenderer(win, rendererFile, query);
+    // Paint the renderer's splash before starting the simulation. Add the
+    // runtime query with a second load once the listener is ready.
+    await loadRenderer(win, rendererFile, { desktop: "1" });
     if (isDev) win.webContents.openDevTools({ mode: "detach" });
   }
 
-  win.on("closed", () => {
-    if (mainWindow === win) mainWindow = null;
-    // With no window left the menus describe nothing: the tray offers "Show
-    // window" and the View checkbox is clear.
-    if (!mainWindow) rebuildWindowMenus();
-  });
+  if (isQuitting || win.isDestroyed()) return;
+  if (!startHidden || bootErrorUrl) {
+    if (winState.maximized) win.maximize();
+    win.show();
+  }
+
+  if (!settings || bootErrorUrl) return;
+  const startup = startSim(settings)
+    .then(async (sim) => {
+      if (isQuitting || win.isDestroyed()) return;
+      await loadRenderer(win, rendererFile, {
+        desktop: "1",
+        api: `127.0.0.1:${sim.port}`,
+        token: sim.commandToken,
+      });
+    })
+    .catch(async (err: unknown) => {
+      if (isQuitting || win.isDestroyed()) return;
+      const msg = (err as Error).message ?? String(err);
+      console.error("[main] failed to start local sim:", err);
+      try {
+        await win.loadURL(renderBootError(msg));
+        if (!win.isVisible()) win.show();
+      } catch (loadError) {
+        console.error("[main] could not show startup failure:", loadError);
+      }
+      throw err;
+    });
+  windowStartup = startup;
+  void startup.catch(() => {});
 }
 
 // The tray menu and the View menu read their state (is the window visible? is
@@ -479,6 +494,7 @@ function buildMenu(): void {
 async function createWindowReplace(): Promise<void> {
   const old = mainWindow;
   await createWindow();
+  await windowStartup;
   if (old && !old.isDestroyed()) old.close();
 }
 
@@ -868,13 +884,9 @@ async function boot(): Promise<void> {
   } catch {
     startHiddenOnce = false;
   }
-  await openWindow();
-  if (isQuitting) return;
-  // The menu and tray are built for the window that exists here; createWindow
-  // built the menu alongside it, so only the tray is left to add.
+
+  // Set up controls and update checks before the simulation load begins.
   buildTray();
-  // Hidden start needs the tray as the way back in; without it show the window.
-  if (!tray && mainWindow && !mainWindow.isVisible()) revealWindow(mainWindow);
   applyAutoLaunch();
   initUpdater(() => mainWindow);
   onUnexpectedSimExit(({ code, signal }) =>
@@ -882,15 +894,16 @@ async function boot(): Promise<void> {
       console.error("[main] sim exit prompt failed:", err),
     ),
   );
-
-  // System-wide, so keep it to a combo other apps do not use. DevTools and
-  // screenshot are menu accelerators only: registering them globally stole
-  // Ctrl+Shift+I / Ctrl+Shift+S from every other application.
   const toggleKey =
     process.platform === "darwin" ? "Cmd+Alt+Shift+H" : "Ctrl+Alt+Shift+H";
   if (!globalShortcut.register(toggleKey, toggleWindow)) {
     console.warn(`[main] could not register global shortcut ${toggleKey}`);
   }
+
+  await openWindow();
+  if (isQuitting) return;
+  // Hidden start needs the tray as the way back; without it show the window.
+  if (!tray && mainWindow && !mainWindow.isVisible()) revealWindow(mainWindow);
 }
 
 // Backstop for any boot step that rejects. Without this the boot chain's

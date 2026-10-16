@@ -51,6 +51,7 @@ import {
 import { useWorldStore } from './state/worldStore'
 import { nearestLivingPerson } from './simulation/nearestPerson'
 import { IS_LOCAL_SERVER } from './shared/config'
+import { isDesktopStartupPending } from './shared/desktopStartup'
 import { getDesktop, type SimMode } from './shared/desktop'
 import { pickNewHeadline } from './shared/desktopHeadlines'
 import {
@@ -109,6 +110,10 @@ function App() {
 function LiveApp() {
   const worldSourceRef = useRef(getWorldSource())
   const desktop = getDesktop()
+  const desktopStartupPending = isDesktopStartupPending(
+    !!desktop,
+    window.location.search,
+  )
   const isLocalWebWorld = !desktop && worldSourceRef.current === 'wasm'
   const [desktopMode, setDesktopMode] = useState<SimMode | null>(desktop ? null : 'local')
   const [desktopPauseWhenHidden, setDesktopPauseWhenHidden] = useState(true)
@@ -611,6 +616,7 @@ function LiveApp() {
 
   const splashHiddenRef = useRef(false)
   useEffect(() => {
+    if (desktopStartupPending) return
     if ((!world && !localStartupFailed) || splashHiddenRef.current) return
     splashHiddenRef.current = true
     window.dispatchEvent(new Event('thb-world-ready'))
@@ -620,7 +626,7 @@ function LiveApp() {
         alive: world.organisms.filter((o) => o.alive).length,
       })
     }
-  }, [localStartupFailed, world])
+  }, [desktopStartupPending, localStartupFailed, world])
 
   useEffect(() => {
     if (viewFlags.photoMode) document.body.classList.add('thb-photo-mode')

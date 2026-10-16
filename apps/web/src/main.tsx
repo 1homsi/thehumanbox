@@ -4,6 +4,7 @@ import App from './App.tsx'
 import { ErrorBoundary } from './ui/ErrorBoundary'
 import { initAnalytics } from './shared/observability'
 import { reloadAppSafely } from './simulation/worldSource'
+import { isDesktopStartupPending } from './shared/desktopStartup'
 
 initAnalytics()
 
@@ -28,9 +29,16 @@ setTimeout(() => {
   if (hint && !document.getElementById('thb-splash')?.classList.contains('hide')) {
     hint.classList.add('show')
   }
-  reload?.addEventListener('click', () => reloadAppSafely())
+  const startupPending = isDesktopStartupPending(
+    !!window.thbDesktop,
+    window.location.search,
+  )
+  if (startupPending && reload) reload.hidden = true
+  if (!startupPending) reload?.addEventListener('click', () => reloadAppSafely())
 }, 15_000)
-setTimeout(hideSplash, 30_000)
+if (!isDesktopStartupPending(!!window.thbDesktop, window.location.search)) {
+  setTimeout(hideSplash, 30_000)
+}
 
 type SnapshotProgress = { loaded: number; total: number | null }
 window.addEventListener('thb-snapshot-progress', (e: Event) => {
