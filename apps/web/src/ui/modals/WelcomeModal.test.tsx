@@ -65,6 +65,22 @@ describe('WelcomeModal', () => {
     expect(document.activeElement).toBe(controls()[controls().length - 1])
   })
 
+  it('Tab with focus on the page body pulls focus back into the card', () => {
+    mount()
+    // A click on the card's text leaves focus on the body, outside the card.
+    act(() => (document.activeElement as HTMLElement | null)?.blur())
+    press(document.body, 'Tab')
+    expect(document.activeElement).toBe(controls()[0])
+  })
+
+  it('Escape with focus on the page body still skips the welcome', () => {
+    mount()
+    act(() => (document.activeElement as HTMLElement | null)?.blur())
+    press(document.body, 'Escape')
+    expect(document.querySelector('.welcome-modal')).toBeNull()
+    expect(window.localStorage.getItem('thb-welcome-seen-v1')).toBe('1')
+  })
+
   it('Escape skips the welcome and does not show it again', () => {
     mount()
     press(document.querySelector('.welcome-modal')!, 'Escape')

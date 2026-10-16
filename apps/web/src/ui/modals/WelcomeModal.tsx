@@ -1,4 +1,4 @@
-import { useEffect, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { startTour, isTourSupported, preloadTour } from '../tour/tour'
 import { useIsMobile } from '../../shared/hooks/useIsMobile'
 import { useSimulationData } from '../../simulation/simulationData'
@@ -13,6 +13,7 @@ export function WelcomeModal() {
   const tourAvailable = !isMobile && isTourSupported()
   const { playerWorldKind } = useSimulationData()
   const steps = welcomeStepsFor(playerWorldKind)
+  const cardRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let seen = true
@@ -29,22 +30,55 @@ export function WelcomeModal() {
     if (open && tourAvailable) preloadTour()
   }, [open, tourAvailable])
 
+  const finish = useCallback(
+    (withTour: boolean) => {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, '1')
+      } catch {
+        /* ignore */
+      }
+      setOpen(false)
+      if (withTour) {
+        window.setTimeout(() => startTour(playerWorldKind), 350)
+      }
+    },
+    [playerWorldKind],
+  )
+
+  // The card is a modal: Escape skips it, and Tab cycles between its buttons instead of
+  // leaving for the page behind the backdrop. The keys listen on the document because a
+  // click on the card's text leaves focus on the body, outside the card.
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        finish(false)
+        return
+      }
+      if (e.key !== 'Tab' || !cardRef.current) return
+      const buttons = cardRef.current.querySelectorAll<HTMLButtonElement>('button')
+      const first = buttons[0]
+      const last = buttons[buttons.length - 1]
+      if (!cardRef.current.contains(document.activeElement)) {
+        e.preventDefault()
+        ;(e.shiftKey ? last : first).focus()
+      } else if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open, finish])
+
   if (!open) return null
 
   const isLast = step >= steps.length - 1
   const current = steps[step]
-
-  const finish = (withTour: boolean) => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, '1')
-    } catch {
-      /* ignore */
-    }
-    setOpen(false)
-    if (withTour) {
-      window.setTimeout(() => startTour(playerWorldKind), 350)
-    }
-  }
 
   const next = () => {
     if (isLast) finish(tourAvailable)
@@ -55,36 +89,9 @@ export function WelcomeModal() {
     if (step > 0) setStep((s) => s - 1)
   }
 
-  // The card is a modal: Escape skips it, and Tab cycles between its buttons instead of
-  // leaving for the page behind the backdrop.
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Escape') {
-      e.preventDefault()
-      finish(false)
-      return
-    }
-    if (e.key !== 'Tab') return
-    const buttons = e.currentTarget.querySelectorAll<HTMLButtonElement>('button')
-    const first = buttons[0]
-    const last = buttons[buttons.length - 1]
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault()
-      last.focus()
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault()
-      first.focus()
-    }
-  }
-
   return (
-    <div
-      className="welcome-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="welcome-title"
-      onKeyDown={onKeyDown}
-    >
-      <div className="welcome-modal">
+    <div className="welcome-backdrop" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+      <div className="welcome-modal" ref={cardRef}>
         <div className="welcome-step-indicator">
           {steps.map((_, i) => (
             <span key={i} className={'welcome-dot' + (i === step ? ' active' : i < step ? ' done' : '')} />
