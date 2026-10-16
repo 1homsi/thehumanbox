@@ -507,6 +507,9 @@ async function startSimOnce(
       cwd: workdir,
       env,
       stdio: ["ignore", "pipe", "pipe"],
+      // Windows gives a console-subsystem child its own console window unless
+      // this is set; closing that window would kill the sim.
+      windowsHide: true,
     });
   } catch (error) {
     dataLock.release();
