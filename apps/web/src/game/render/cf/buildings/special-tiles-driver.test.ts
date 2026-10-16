@@ -105,6 +105,17 @@ describe('special tiles driver', () => {
     expect(d.update(moved)).toBe(true)
   })
 
+  it('rewrites by day when the world origin changes with the same tile array', () => {
+    const d = driver()
+    const w = world(true)
+    const tiles = w.grid.tiles
+    expect(d.update(frame(w, 1020))).toBe(true)
+    w.grid.origin_x = 1
+    expect(w.grid.tiles).toBe(tiles)
+    expect(d.update(frame(w, 1053))).toBe(true)
+    expect(d.stats.updates).toBe(2)
+  })
+
   it('rewrites every step by night, when the fires flicker and the huts smoke', () => {
     const d = driver()
     const w = world(false)

@@ -95,6 +95,8 @@ export class SpecialTilesDriver implements CfDriver {
     tiles: unknown
     ruined: unknown
     fireSig: number
+    ox: number
+    oy: number
     c0: number
     c1: number
     r0: number
@@ -158,6 +160,8 @@ export class SpecialTilesDriver implements CfDriver {
       b.tiles === tiles &&
       b.ruined === ruined &&
       b.fireSig === fireSig &&
+      b.ox === ox &&
+      b.oy === oy &&
       b.c0 === c0 &&
       b.c1 === c1 &&
       b.r0 === r0 &&
@@ -362,6 +366,8 @@ export class SpecialTilesDriver implements CfDriver {
       tiles,
       ruined,
       fireSig,
+      ox,
+      oy,
       c0,
       c1,
       r0,
