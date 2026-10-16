@@ -8,6 +8,7 @@ import {
   nativeImage,
   Notification,
   screen,
+  session,
   shell,
   Tray,
 } from "electron";
@@ -24,6 +25,7 @@ import { atomicReplaceFile } from "./world-safety";
 import { appVersionArgument } from "./app-version-arg";
 import { loginItemSettings, shouldStartHidden } from "./login-launch";
 import { appIconPath } from "./app-icon";
+import { installRendererCsp } from "./renderer-csp";
 import { restartFailurePrompt } from "./restart-recovery";
 import {
   deferErrorDialog,
@@ -822,6 +824,9 @@ async function offerSimRestart(
 }
 
 async function boot(): Promise<void> {
+  // Before any renderer load: the file:// page gets a CSP so injected script
+  // cannot reach the network or the preload bridge.
+  installRendererCsp(session.defaultSession);
   registerIpc(ipcMain, () => mainWindow);
   registerAppIpcHandlers();
   try {
