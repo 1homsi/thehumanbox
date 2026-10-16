@@ -229,6 +229,33 @@ async function checkViewport(origin, width, height, index) {
     if (touchDevice) collectTargetViolations(layout.targets, label, 'page')
     checkModalBounds(layout.modals, width, height, label)
 
+    // MOB-07: the dock publishes its measured height, and toasts sit above the dock and the folder
+    // tabs that stick up from it.
+    const dock = await page.evaluate(`(() => {
+      const el = document.querySelector('.sandbox-bar')
+      const tabs = document.querySelector('.dock-tabs')
+      const probe = document.createElement('div')
+      probe.style.cssText =
+        'position:fixed;left:0;bottom:var(--toast-clearance);width:1px;height:1px;visibility:hidden'
+      document.body.append(probe)
+      const bottomGap = innerHeight - probe.getBoundingClientRect().bottom
+      probe.remove()
+      return {
+        measured: el ? el.offsetHeight : null,
+        published: getComputedStyle(document.documentElement).getPropertyValue('--dock-h').trim(),
+        bottomGap,
+        tabsTop: tabs ? tabs.getBoundingClientRect().top : null,
+      }
+    })()`)
+    if (!(dock.measured > 0)) viewportFailures.push('no measurable .sandbox-bar')
+    else if (dock.published !== `${dock.measured}px`)
+      viewportFailures.push(`--dock-h is ${dock.published}, expected ${dock.measured}px`)
+    if (dock.tabsTop === null) viewportFailures.push('no .dock-tabs found for the toast-clearance check')
+    else if (dock.bottomGap < height - dock.tabsTop - 1)
+      viewportFailures.push(
+        `a toast at --toast-clearance would cover the dock tabs (${dock.bottomGap}px up, tabs start ${height - dock.tabsTop}px up)`,
+      )
+
     if (touchDevice) {
       // MOB-08 touch hygiene: no page rubber-band, and buttons react on the touch.
       // (-webkit-touch-callout is iOS-only and not exposed in Chrome, so it is not checked here.)
