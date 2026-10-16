@@ -124,6 +124,13 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, 
   const { frozen: organisms, reload } = useFrozenSnapshot(() => livOrgs)
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  // The canvas sits in a Radix portal that mounts a commit after the first render, so the
+  // zoom setup has to key on the element arriving rather than run once on mount.
+  const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null)
+  const setCanvas = useCallback((el: HTMLCanvasElement | null) => {
+    canvasRef.current = el
+    setCanvasEl(el)
+  }, [])
   // Stash the d3 zoom behavior in a ref instead of monkey-patching
   // the DOM node via (canvas as any).__d3zoom__. The DOM hack broke
   // if two FamilyTreeModal instances ever mounted, or if React
@@ -199,9 +206,8 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, 
   )
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const sel = d3.select<HTMLCanvasElement, unknown>(canvas)
+    if (!canvasEl) return
+    const sel = d3.select<HTMLCanvasElement, unknown>(canvasEl)
 
     const zoom = d3
       .zoom<HTMLCanvasElement, unknown>()
@@ -215,7 +221,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, 
     return () => {
       sel.on('.zoom', null)
     }
-  }, [])
+  }, [canvasEl])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -254,7 +260,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, 
     const tx = vw / 2 - cx * kClamped
     const ty = vh / 2 - cy * kClamped
     d3.select(canvas).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(kClamped))
-  }, [nodes, focusId])
+  }, [nodes, focusId, canvasEl])
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current
@@ -582,7 +588,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, 
         style={{ overflow: 'hidden', cursor: 'grab', position: 'relative' }}
       >
         <canvas
-          ref={canvasRef}
+          ref={setCanvas}
           onMouseMove={onMouseMove}
           onMouseLeave={() => setHoverId(null)}
           style={{
