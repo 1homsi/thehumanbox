@@ -350,7 +350,7 @@ export function useSimulation(source: WorldSource = 'native'): {
         if (destroyed) return
         const m = e.data as {
           type: string
-          frame?: string
+          frame?: string | Uint8Array
           message?: string
           restored?: boolean
           tick?: number
@@ -365,7 +365,7 @@ export function useSimulation(source: WorldSource = 'native'): {
           tickMs?: number
           speed?: number
         }
-        if (m.type === 'frame' && typeof m.frame === 'string') {
+        if (m.type === 'frame' && (typeof m.frame === 'string' || m.frame instanceof Uint8Array)) {
           if (!announced) {
             announced = true
             setConnected(true)
