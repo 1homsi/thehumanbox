@@ -61,12 +61,57 @@ function Sparkline({ lineage }: { lineage: string }) {
 }
 
 /**
+ * The tribe's name, with its rename field. The draft lives here, keyed by tribe, so it is dropped when the
+ * card moves to another tribe or hides (the card unmounts this with it).
+ */
+function TribeName({
+  lineage,
+  name,
+  onRename,
+}: {
+  lineage: string
+  name: string
+  onRename: Props['onRename']
+}) {
+  const [editing, setEditing] = useState<string | null>(null)
+  if (editing === null) {
+    return (
+      <button
+        className="tribe-card-name tribe-card-rename"
+        title="Rename this tribe"
+        onClick={() => setEditing(name)}
+      >
+        {name} <span aria-hidden="true">✎</span>
+      </button>
+    )
+  }
+  return (
+    <input
+      className="tribe-card-name-input"
+      autoFocus
+      maxLength={24}
+      value={editing}
+      aria-label="Tribe name"
+      onChange={(e) => setEditing(e.target.value)}
+      onBlur={() => setEditing(null)}
+      onKeyDown={(e) => {
+        e.stopPropagation()
+        if (e.key === 'Enter') {
+          const next = editing.trim()
+          if (next && next !== name) onRename(lineage, next)
+          setEditing(null)
+        } else if (e.key === 'Escape') setEditing(null)
+      }}
+    />
+  )
+}
+
+/**
  * The focused tribe at a glance: what they need, how they feel about the
  * gods, and what they are praying for. Appears when a tribe is focused from
  * the tribe list or the territory map.
  */
 export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props) {
-  const [editing, setEditing] = useState<string | null>(null)
   const focus = useUIStore((s) => s.focus)
   const setFocus = useUIStore((s) => s.setFocus)
   if (!focus.startsWith('lineage:')) return null
@@ -97,33 +142,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
     <div className="tribe-card" role="region" aria-label={`${status.name} tribe`}>
       <div className="tribe-card-head">
         <span className="lineage-dot" style={{ background: lineageColor(status.id) }} />
-        {editing === null ? (
-          <button
-            className="tribe-card-name tribe-card-rename"
-            title="Rename this tribe"
-            onClick={() => setEditing(status.name)}
-          >
-            {status.name} <span aria-hidden="true">✎</span>
-          </button>
-        ) : (
-          <input
-            className="tribe-card-name-input"
-            autoFocus
-            maxLength={24}
-            value={editing}
-            aria-label="Tribe name"
-            onChange={(e) => setEditing(e.target.value)}
-            onBlur={() => setEditing(null)}
-            onKeyDown={(e) => {
-              e.stopPropagation()
-              if (e.key === 'Enter') {
-                const name = editing.trim()
-                if (name && name !== status.name) onRename(status.id, name)
-                setEditing(null)
-              } else if (e.key === 'Escape') setEditing(null)
-            }}
-          />
-        )}
+        <TribeName key={status.id} lineage={status.id} name={status.name} onRename={onRename} />
         <button className="tribe-card-close" aria-label="Close" onClick={() => setFocus('all')}>
           ×
         </button>
