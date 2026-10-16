@@ -41,7 +41,7 @@ type InMsg =
   | { type: 'visibility'; hidden: boolean }
   | { type: 'save'; requestId?: number }
   | { type: 'retry_storage'; requestId?: number }
-  | { type: 'prepare_reload'; requestId: number; deadlineAt: number }
+  | { type: 'prepare_reload'; requestId: number; deadlineAt: number; requireLocalWorld?: boolean }
   | { type: 'stop' }
   | { type: 'command'; json: string; requestId: number }
   | { type: 'org_detail'; id: string; requestId: number }
@@ -519,6 +519,7 @@ async function start(msg: StartMsg) {
       message: `could not read local save: ${e instanceof Error ? e.message : String(e)}`,
     })
   }
+  if (reloadPreparing) return
   if (saved) {
     try {
       if (saved.blob.byteLength === 0) throw new Error('save is empty')
@@ -636,6 +637,10 @@ self.onmessage = (e: MessageEvent) => {
         break
       }
       if (!sim || !worldLockAcquired) {
+        if (msg.requireLocalWorld) {
+          post({ type: 'reload_result', requestId: msg.requestId, ok: false })
+          break
+        }
         reloadPreparing = true
         stopTimers()
         void releaseLocalWorldLock().then(() => {

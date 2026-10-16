@@ -467,7 +467,7 @@ export function useSimulation(source: WorldSource = 'native'): {
         })
       }
       let reloadPreparation: Promise<boolean> | null = null
-      const prepareWorkerReload = (): Promise<boolean> => {
+      const prepareWorkerReload = (requireLocalWorld: boolean): Promise<boolean> => {
         if (reloadPreparation) return reloadPreparation
         const requestId = nextWorkerRequestRef.current++
         const deadlineAt = Date.now() + RELOAD_CHECKPOINT_DEADLINE_MS
@@ -477,7 +477,7 @@ export function useSimulation(source: WorldSource = 'native'): {
             resolve(false)
           }, RELOAD_CHECKPOINT_TIMEOUT_MS)
           pendingWorkerRequests.set(requestId, { resolve: (result) => resolve(result.ok), timer })
-          worker.postMessage({ type: 'prepare_reload', requestId, deadlineAt })
+          worker.postMessage({ type: 'prepare_reload', requestId, deadlineAt, requireLocalWorld })
         })
         reloadPreparation = preparation
         void preparation.then((ok) => {
@@ -506,7 +506,7 @@ export function useSimulation(source: WorldSource = 'native'): {
           window.location.reload()
           return
         }
-        void prepareWorkerReload().then((ok) => {
+        void prepareWorkerReload(request.detail?.operation !== 'reload').then((ok) => {
           if (ok) {
             window.location.reload()
           } else {
