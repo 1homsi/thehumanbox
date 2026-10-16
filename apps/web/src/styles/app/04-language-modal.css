@@ -43,6 +43,12 @@
   justify-content: center;
   z-index: 100000;
 }
+@media (pointer: coarse), (max-width: 767px) {
+  .idle-resume-backdrop {
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: none;
+  }
+}
 .idle-resume-panel {
   background: #28201a;
   border: 1px solid #443329;
