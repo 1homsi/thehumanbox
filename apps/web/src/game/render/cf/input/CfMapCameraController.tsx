@@ -12,6 +12,7 @@ import {
   type MapCommand,
 } from '../../camera-controls'
 import { wakeRenderLoops } from '../render-loop'
+import { drawnPersonAt } from '../picking'
 import { KEY_ZOOM_STEP, WHEEL_SPEED, commandCamera, keyboardPanDelta, panKey } from './camera-rig'
 
 interface Props {
@@ -23,6 +24,9 @@ interface Props {
   /** The camera the rest of the map reads (HUD, sprite window, hit tests). Kept in step with Camera2D. */
   cameraStateRef: MutableRefObject<MapCamera>
   commandRef: MutableRefObject<MapCommand | null>
+  /** The person the camera follows, if any. */
+  followOrgId: string | null
+  /** Where the simulation has them (tile middle, world pixels): the fallback until the people layer draws them. */
   followTarget: { x: number; y: number } | null
   /** A press released without dragging: map point and container point. Primary button only. */
   onTap?: (tap: { worldX: number; worldY: number; screenX: number; screenY: number }) => void
@@ -54,6 +58,7 @@ export function CfMapCameraController({
   containerEl,
   cameraStateRef,
   commandRef,
+  followOrgId,
   followTarget,
   onTap,
 }: Props) {
@@ -120,11 +125,17 @@ export function CfMapCameraController({
   const stopFollowRef = useRef(stopFollow)
   stopFollowRef.current = stopFollow
 
+  // A follow starts (or moves to another person): centre on them, zoomed in unless we were already following.
+  // Not on every simulation frame: `frame` keeps the camera on the person as they are drawn between those.
+  const followTargetRef = useRef(followTarget)
+  followTargetRef.current = followTarget
+  const following = followTarget !== null
   useEffect(() => {
-    if (initialized.current && followTarget)
-      applyRef.current({ ...followTarget, zoom: previousFollow.current ? cameraStateRef.current.zoom : 3.5 })
-    previousFollow.current = !!followTarget
-  }, [followTarget, cameraStateRef])
+    const target = followTargetRef.current
+    if (initialized.current && target)
+      applyRef.current({ ...target, zoom: previousFollow.current ? cameraStateRef.current.zoom : 3.5 })
+    previousFollow.current = following
+  }, [followOrgId, following, cameraStateRef])
 
   // A new viewport or world: draw once so the camera is clamped to it (the loop sleeps until woken).
   useEffect(() => {
@@ -213,6 +224,12 @@ export function CfMapCameraController({
     if (seen && (live.x !== seen.x || live.y !== seen.y || liveZoom !== seen.zoom)) stopFollowRef.current()
 
     let next: MapCamera = { x: live.x, y: live.y, zoom: liveZoom }
+    // Following: where the people layer draws the person now. The simulation moves them once per frame, the
+    // layer glides them between frames; the camera follows the glide.
+    if (followOrgId) {
+      const at = drawnPersonAt(followOrgId) ?? followTarget
+      if (at) next = { ...next, x: at.x, y: at.y }
+    }
     const command = commandRef.current
     if (command) {
       commandRef.current = null

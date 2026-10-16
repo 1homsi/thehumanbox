@@ -270,6 +270,7 @@ export function WorldView({
                   containerH={dims.h}
                   containerEl={containerRef.current}
                   cameraStateRef={cameraStateRef}
+                  followOrgId={followOrgId}
                   followTarget={followTarget}
                   onTap={handleTap}
                 />
