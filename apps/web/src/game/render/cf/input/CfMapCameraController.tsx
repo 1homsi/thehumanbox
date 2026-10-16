@@ -221,14 +221,17 @@ export function CfMapCameraController({
     const live = camera.getPosition()
     const liveZoom = camera.getZoom()
     const seen = last.current
-    if (seen && (live.x !== seen.x || live.y !== seen.y || liveZoom !== seen.zoom)) stopFollowRef.current()
+    // The player moved the camera (drag, wheel, keys): the follow ends, and the store says so a render later, so
+    // this frame must not snap back to the person.
+    const moved = !!seen && (live.x !== seen.x || live.y !== seen.y || liveZoom !== seen.zoom)
+    if (moved) stopFollowRef.current()
 
     let next: MapCamera = { x: live.x, y: live.y, zoom: liveZoom }
     // Following: where the people layer draws the person now. The simulation moves them once per frame, the
     // layer glides them between frames; the camera follows the glide.
-    if (followOrgId) {
+    if (followOrgId && followTarget && !moved && keys.current.size === 0) {
       const at = drawnPersonAt(followOrgId) ?? followTarget
-      if (at) next = { ...next, x: at.x, y: at.y }
+      next = { ...next, x: at.x, y: at.y }
     }
     const command = commandRef.current
     if (command) {

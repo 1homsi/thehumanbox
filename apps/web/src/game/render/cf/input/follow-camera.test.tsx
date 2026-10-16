@@ -5,7 +5,7 @@ import type { MapCamera, MapCommand } from '../../camera-controls'
 import { TILE } from '../../../model/palette'
 import type { PeopleLabelSource } from '../people/people-labels'
 import { registerPeopleLayer } from '../picking'
-import { engineHarness, type EngineHarness } from '../engine-harness.test-util'
+import { engineHarness, pointer, type EngineHarness } from '../engine-harness.test-util'
 import { CfMapCameraController } from './CfMapCameraController'
 
 /**
@@ -126,6 +126,22 @@ describe('following a person on the xipjs map', () => {
     // The next simulation frame places her at the tile's start; the layer has drawn her a quarter in.
     await rig.simFrame(30 * TILE, 20 * TILE)
     expect(rig.camera().x).toBeCloseTo(30.75 * TILE, 3)
+  })
+
+  it('a drag by the player moves the camera away from the followed person, not back to them', async () => {
+    const person = personLayer(30.5 * TILE, 20.5 * TILE)
+    unregister = registerPeopleLayer(() => null, person.source)
+    const rig = await mount()
+    await rig.follow(30.5 * TILE, 20.5 * TILE)
+    const before = rig.camera().x
+    const canvas = rig.h.canvas()
+    canvas.dispatchEvent(pointer('pointerdown', 400, 250))
+    canvas.dispatchEvent(pointer('pointermove', 340, 250))
+    canvas.dispatchEvent(pointer('pointerup', 340, 250))
+    await rig.h.frame(3)
+    // The drag pans the map; the follow must not snap the view back onto the person in the frames before the store says it stopped.
+    expect(rig.camera().x).not.toBeCloseTo(30.5 * TILE, 1)
+    expect(rig.camera().x).not.toBeCloseTo(before, 1)
   })
 
   it('falls back to the simulation position when the layer does not draw the person', async () => {
