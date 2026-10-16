@@ -542,6 +542,12 @@ function revealWindow(win: BrowserWindow): void {
   win.focus();
 }
 
+function showExistingWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  revealWindow(mainWindow);
+}
+
 function toggleWindow(): void {
   if (!mainWindow) {
     void createWindow();
@@ -841,7 +847,15 @@ function reportStartupFailure(err: unknown): Promise<void> {
   return fatalStartupFailure(err);
 }
 
-startWhenReady(app.whenReady(), boot, reportStartupFailure);
+// One app per save folder. A second launch must not boot: it would fail on
+// the data-root lock and show a startup error. Quit it and focus the running
+// window instead.
+if (app.requestSingleInstanceLock()) {
+  app.on("second-instance", showExistingWindow);
+  startWhenReady(app.whenReady(), boot, reportStartupFailure);
+} else {
+  app.quit();
+}
 
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
