@@ -411,6 +411,8 @@ function startTickTimer() {
 }
 
 function beginLoop(autosaveEveryMs: number) {
+  stopTimers()
+  if (!sim) return
   startTickTimer()
   saveTimer = setInterval(() => {
     if (!manuallyPaused && !hiddenPaused) void persist()
@@ -437,7 +439,13 @@ async function start(msg: StartMsg) {
     return
   }
 
+  if (reloadPreparing) return
+
   worldLockAcquired = await acquireWorldLock(worldId)
+  if (reloadPreparing) {
+    await releaseLocalWorldLock()
+    return
+  }
   if (!worldLockAcquired) {
     storageReady = false
     post({
@@ -627,6 +635,15 @@ self.onmessage = (e: MessageEvent) => {
         post({ type: 'reload_result', requestId: msg.requestId, ok: false })
         break
       }
+      if (!sim || !worldLockAcquired) {
+        reloadPreparing = true
+        stopTimers()
+        void releaseLocalWorldLock().then(() => {
+          post({ type: 'reload_result', requestId: msg.requestId, ok: true })
+          self.close()
+        })
+        break
+      }
       // Freeze ticks before serializing. Previously the world kept advancing
       // while IndexedDB committed an older snapshot, then freed the newer
       // in-memory state, losing every tick in between on reload.
@@ -636,7 +653,7 @@ self.onmessage = (e: MessageEvent) => {
         persist,
         resume: () => {
           reloadPreparing = false
-          beginLoop(autosaveEveryMs)
+          if (sim) beginLoop(autosaveEveryMs)
         },
       }).then(async (ok) => {
         if (ok) {
