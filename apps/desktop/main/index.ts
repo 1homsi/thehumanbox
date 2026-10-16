@@ -59,6 +59,10 @@ app.setName("The Human Box");
 const isDev = !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
+// Rebuilds the tray's context menu from the tracked window (visible? always on
+// top?). Set once the tray exists; null before that and when tray creation
+// failed, so the callers below can use it unconditionally.
+let rebuildTrayMenu: (() => void) | null = null;
 // True for the first window only, when the OS launched us at login with
 // "start minimized" on: it is created hidden and lives in the tray.
 let startHiddenOnce = false;
@@ -214,6 +218,7 @@ async function createWindow(): Promise<void> {
     },
   });
   mainWindow = win;
+  bindWindowMenus(win);
   // maximize() would also show a window that is meant to start hidden. A boot
   // failure must never be hidden, so that case shows the window as well.
   pendingMaximize = startHidden && !bootErrorUrl && winState.maximized === true;
@@ -328,7 +333,32 @@ async function createWindow(): Promise<void> {
 
   win.on("closed", () => {
     if (mainWindow === win) mainWindow = null;
+    // With no window left the menus describe nothing: the tray offers "Show
+    // window" and the View checkbox is clear.
+    if (!mainWindow) rebuildWindowMenus();
   });
+}
+
+// The tray menu and the View menu read their state (is the window visible? is
+// it always on top?) from the window they were built for. `mainWindow` changes
+// when a window is replaced (File > Restart simulation) or opened again after
+// its predecessor closed, so rebind them there: built once at boot they keep
+// describing the window that is gone.
+function bindWindowMenus(win: BrowserWindow): void {
+  const update = (): void => {
+    // A replaced window outlives its own events (its `hide` can still arrive
+    // after the swap); only the window we track may drive the menus.
+    if (mainWindow === win) rebuildWindowMenus();
+  };
+  win.on("show", update);
+  win.on("hide", update);
+  win.on("always-on-top-changed", update);
+  update();
+}
+
+function rebuildWindowMenus(): void {
+  rebuildTrayMenu?.();
+  buildMenu();
 }
 
 function buildMenu(): void {
@@ -537,9 +567,8 @@ function buildTray(): void {
       );
     };
     update();
+    rebuildTrayMenu = update;
     tray.on("click", () => toggleWindow());
-    mainWindow?.on("show", update);
-    mainWindow?.on("hide", update);
   } catch (e) {
     console.warn("[main] tray init failed:", e);
   }
@@ -841,7 +870,8 @@ async function boot(): Promise<void> {
   }
   await openWindow();
   if (isQuitting) return;
-  buildMenu();
+  // The menu and tray are built for the window that exists here; createWindow
+  // built the menu alongside it, so only the tray is left to add.
   buildTray();
   // Hidden start needs the tray as the way back in; without it show the window.
   if (!tray && mainWindow && !mainWindow.isVisible()) revealWindow(mainWindow);

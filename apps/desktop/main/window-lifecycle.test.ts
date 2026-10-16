@@ -25,6 +25,7 @@ test('replacing a window retains the new window and routes old events to their o
     async loadFile() {}
     close() { this.destroyed = true; this.emit('closed') }
     isDestroyed() { return this.destroyed }
+    isAlwaysOnTop() { return false }
   }
   // `whenReady` never settles: this test drives `createWindow` /
   // `createWindowReplace` directly and is not about the boot chain, so
@@ -41,7 +42,7 @@ test('replacing a window retains the new window and routes old events to their o
   const context = vm.createContext({
     exports: {}, __dirname, process, console, setTimeout, clearTimeout,
     require: (id: string) => {
-      if (id === 'electron') return { app, BrowserWindow: FakeWindow }
+      if (id === 'electron') return { app, BrowserWindow: FakeWindow, Menu: { setApplicationMenu() {}, buildFromTemplate: () => ({}) } }
       if (id === './startup-lifecycle') return { startWhenReady: () => {} }
       if (id === './settings') return { loadSettings: () => ({}) }
       if (id === './sim-process') return { startSim: async () => ({ port: 8000 }) }
@@ -82,6 +83,7 @@ test('a renderer that fails to load does not carry the command token in its erro
       throw new Error("ERR_FILE_NOT_FOUND (-6) loading 'file:///r/index.html?desktop=1&api=127.0.0.1:8000&token=SECRET-TOKEN'")
     }
     isDestroyed() { return this.destroyed }
+    isAlwaysOnTop() { return false }
   }
   const app = {
     setName() {},
@@ -94,7 +96,7 @@ test('a renderer that fails to load does not carry the command token in its erro
   const context = vm.createContext({
     exports: {}, __dirname, process, console, setTimeout, clearTimeout,
     require: (id: string) => {
-      if (id === 'electron') return { app, BrowserWindow: FakeWindow }
+      if (id === 'electron') return { app, BrowserWindow: FakeWindow, Menu: { setApplicationMenu() {}, buildFromTemplate: () => ({}) } }
       if (id === './startup-lifecycle') return { startWhenReady: () => {} }
       if (id === './settings') return { loadSettings: () => ({}) }
       if (id === './sim-process') return { startSim: async () => ({ port: 8000 }) }
@@ -140,6 +142,7 @@ test('the failed-load log line and boot page never show the command token', asyn
     rendererUrl = ''
     loadURL(url: string) { openedUrls.push(url); return Promise.resolve() }
     isDestroyed() { return this.destroyed }
+    isAlwaysOnTop() { return false }
   }
   const app = {
     setName() {},
@@ -157,6 +160,7 @@ test('the failed-load log line and boot page never show the command token', asyn
         return {
           app,
           BrowserWindow: FakeWindow,
+          Menu: { setApplicationMenu() {}, buildFromTemplate: () => ({}) },
           shell: { openExternal: () => Promise.resolve() },
         }
       }
