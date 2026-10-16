@@ -113,7 +113,6 @@
 
 @media (max-width: 600px) {
   .desktop-toast {
-    bottom: calc(116px + env(safe-area-inset-bottom, 0px));
     left: calc(12px + var(--safe-left));
     right: calc(12px + var(--safe-right));
     width: auto;
