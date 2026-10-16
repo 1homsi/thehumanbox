@@ -1,0 +1,104 @@
+/* ── On-screen camera controls (touch) ───────────────────────────────────
+ * 44px buttons in the map's bottom-right corner: zoom in/out, fit the world, and centre on
+ * the selected person. Shown on coarse pointers and on the phone breakpoint, where the
+ * wheel and the keyboard do not exist. */
+
+.map-controls {
+  position: absolute;
+  right: calc(10px + var(--safe-right));
+  bottom: 10px;
+  z-index: 15;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (pointer: coarse), (max-width: 767px) {
+  .map-controls {
+    display: flex;
+  }
+}
+
+.map-control-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: #2b2118;
+  border: 2px solid var(--px-ink);
+  box-shadow:
+    inset 2px 2px 0 #6a5439,
+    inset -2px -3px 0 #2a1f15,
+    0 3px 0 rgb(0 0 0 / 45%);
+  color: #e7d8bc;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.map-control-btn:active {
+  background: #54422f;
+}
+
+.map-control-btn:focus-visible {
+  outline: 2px solid #e8b64c;
+  outline-offset: 2px;
+}
+
+/* The glyphs are drawn, not typed: a text +, - or target is a different size in every
+ * platform font, and the app has no sprite this far out on the map. */
+.map-control-icon {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  color: #e7d8bc;
+}
+
+.map-control-icon--in::before,
+.map-control-icon--out::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 18px;
+  height: 3px;
+  margin-top: -1.5px;
+  background: currentcolor;
+}
+
+.map-control-icon--in::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 3px;
+  height: 18px;
+  margin-left: -1.5px;
+  background: currentcolor;
+}
+
+.map-control-icon--fit {
+  width: 14px;
+  height: 14px;
+  margin: 2px;
+  border: 3px solid currentcolor;
+}
+
+.map-control-icon--locate {
+  border: 3px solid currentcolor;
+  border-radius: 50%;
+}
+
+.map-control-icon--locate::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  background: currentcolor;
+  border-radius: 50%;
+}
