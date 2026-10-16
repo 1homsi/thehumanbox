@@ -153,31 +153,58 @@ describe('BuildingsDriver frame skipping', () => {
     expect(d.update(frame(world(buildings, { tick: 780, frame_id: 3 })))).toBe(true)
   })
 
-  it('rebuilds when the night bucket, detail or window changes', () => {
+  it('rebuilds when the night bucket, detail, window or terrain changes (one at a time)', () => {
+    const buildings = [house()]
+    // Each dimension gets its own driver and a baseline skip, so a pass cannot come from another change.
+    const changes = (mutation: (f: CfFrame, w: WorldState) => void) => {
+      const { d } = driver()
+      expect(d.update(frame(world(buildings)))).toBe(true)
+      expect(d.update(frame(world(buildings, { frame_id: 2 })))).toBe(false)
+      const w = world(buildings, { frame_id: 3 })
+      const f = frame(w)
+      mutation(f, w)
+      expect(d.update(f)).toBe(true)
+    }
+    changes((f) => {
+      f.win = { ...f.win, c0: f.win.c0 + 1 }
+    })
+    changes((f) => {
+      f.detail = 'overview'
+    })
+    changes((_f, w) => {
+      const night = w as unknown as { is_day: boolean; day_progress: number }
+      night.is_day = false
+      night.day_progress = 0.55
+    })
+    changes((f) => {
+      f.terrainRevision = 3
+    })
+    changes((f) => {
+      f.world.lineage_eras = { a: 'bronze' }
+    })
+    changes((_f, w) => {
+      // The ground turns to winter, so a house's roof changes.
+      ;(w as unknown as { season: string }).season = 'scarcity'
+    })
+  })
+
+  it('skips when a winter frame is repeated', () => {
+    const buildings = [house()]
+    const { d } = driver()
+    const w = world(buildings)
+    const winter = w as unknown as { season: string; is_day: boolean; day_progress: number }
+    winter.season = 'scarcity'
+    winter.is_day = false
+    winter.day_progress = 0.2
+    expect(d.update(frame(w))).toBe(true)
+    expect(d.update(frame(w, { now: 1001 }))).toBe(false)
+  })
+
+  it('rebuilds when the list empties and refills', () => {
     const buildings = [house()]
     const { d } = driver()
     expect(d.update(frame(world(buildings)))).toBe(true)
-
-    const moved = frame(world(buildings, { frame_id: 2 }))
-    moved.win = { ...moved.win, c0: moved.win.c0 + 1 }
-    expect(d.update(moved)).toBe(true)
-
-    const night = world(buildings, { frame_id: 3 }) as unknown as {
-      is_day: boolean
-      day_progress: number
-    }
-    night.is_day = false
-    night.day_progress = 0.55
-    expect(d.update(frame(night as unknown as WorldState))).toBe(true)
-
-    expect(d.update(frame(world(buildings, { frame_id: 4 }), { zoom: 3 }))).toBe(true)
-  })
-
-  it('rebuilds when terrain changes under a stone-age hut', () => {
-    const buildings = [house({ kind: 'Hut' })]
-    const { d } = driver()
-    expect(d.update(frame(world(buildings), { revision: 1 }))).toBe(true)
-    expect(d.update(frame(world(buildings, { frame_id: 2 }), { revision: 1 }))).toBe(false)
-    expect(d.update(frame(world(buildings, { frame_id: 3 }), { revision: 2 }))).toBe(true)
+    expect(d.update(frame(world([], { frame_id: 2 })))).toBe(true)
+    expect(d.update(frame(world(buildings, { frame_id: 3 })))).toBe(true)
   })
 })
