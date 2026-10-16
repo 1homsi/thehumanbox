@@ -413,13 +413,17 @@
   .org-search-toolbar--behind-detail {
     display: none;
   }
+  /* Sticky within the detail pane, so the way back stays put while a long person scrolls under it. */
   .org-search-back {
     display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 1;
     align-items: center;
     width: 100%;
     min-height: 44px;
     padding: 0 14px;
-    background: transparent;
+    background: #28201a;
     border: none;
     border-bottom: 1px solid #372a21;
     color: #d8b270;
