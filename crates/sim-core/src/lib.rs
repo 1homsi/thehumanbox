@@ -6,8 +6,31 @@ pub mod physics;
 pub mod sim;
 pub mod world;
 
+#[cfg(any(target_arch = "wasm32", test))]
+use crate::sim::serialize::FramePayload;
+
+#[cfg(any(target_arch = "wasm32", test))]
+fn frame_is_complete(frame: &mut FramePayload) -> bool {
+    frame
+        .as_object_mut()
+        .and_then(|object| object.get("organisms_complete"))
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false)
+}
+
+#[cfg(any(target_arch = "wasm32", test))]
+fn stamp_frame(frame: &mut FramePayload, frame_id: u32, now_ms: f64, full: bool) {
+    frame.insert("frame_id", serde_json::json!(frame_id));
+    frame.insert("server_sent_at_ms", serde_json::json!(now_ms));
+    frame.insert(
+        "frame_kind",
+        serde_json::json!(if full { "full" } else { "delta" }),
+    );
+}
+
 #[cfg(target_arch = "wasm32")]
 mod wasm_facade {
+    use super::{frame_is_complete, stamp_frame};
     use crate::sim::persistence::SaveState;
     use crate::sim::simulation::Simulation;
     use wasm_bindgen::prelude::*;
@@ -60,20 +83,17 @@ mod wasm_facade {
 
         #[wasm_bindgen(js_name = fullFrame)]
         pub fn full_frame(&mut self, frame_id: u32, now_ms: f64) -> String {
-            let mut v = self.inner.state_json();
-            stamp(&mut v, frame_id, now_ms, true);
-            v.to_string()
+            let mut frame = self.inner.state_frame();
+            stamp_frame(&mut frame, frame_id, now_ms, true);
+            serde_json::to_string(&frame).expect("frame payload serialization cannot fail")
         }
 
         #[wasm_bindgen(js_name = deltaFrame)]
         pub fn delta_frame(&mut self, frame_id: u32, now_ms: f64) -> String {
-            let mut v = self.inner.state_json_incremental();
-            let full = v
-                .get("organisms_complete")
-                .and_then(|b| b.as_bool())
-                .unwrap_or(false);
-            stamp(&mut v, frame_id, now_ms, full);
-            v.to_string()
+            let mut frame = self.inner.state_frame_incremental();
+            let full = frame_is_complete(&mut frame);
+            stamp_frame(&mut frame, frame_id, now_ms, full);
+            serde_json::to_string(&frame).expect("frame payload serialization cannot fail")
         }
 
         pub fn serialize(&self) -> Vec<u8> {
@@ -110,17 +130,67 @@ mod wasm_facade {
         }
     }
 
-    fn stamp(v: &mut serde_json::Value, frame_id: u32, now_ms: f64, full: bool) {
-        if let Some(o) = v.as_object_mut() {
-            o.insert("frame_id".into(), serde_json::json!(frame_id));
-            o.insert("server_sent_at_ms".into(), serde_json::json!(now_ms));
-            o.insert(
-                "frame_kind".into(),
-                serde_json::json!(if full { "full" } else { "delta" }),
-            );
-        }
-    }
-
     #[wasm_bindgen(start)]
     pub fn __start() {}
+}
+
+#[cfg(test)]
+mod wasm_frame_tests {
+    use super::{frame_is_complete, stamp_frame};
+    use crate::sim::simulation::Simulation;
+
+    #[test]
+    fn stamped_typed_wasm_frames_match_value_frames() {
+        let mut typed_world = Simulation::new(17);
+        let mut value_world = Simulation::new(17);
+        for _ in 0..400 {
+            typed_world.tick();
+            value_world.tick();
+        }
+
+        let mut typed_deep = typed_world.state_frame();
+        let mut value_deep = value_world.state_json();
+        assert_stamped_equal(&mut typed_deep, &mut value_deep, 1, true);
+
+        let mut typed_periodic = typed_world.state_frame_periodic_full();
+        let mut value_periodic = value_world.state_json_periodic_full();
+        assert_stamped_equal(&mut typed_periodic, &mut value_periodic, 2, true);
+
+        for _ in 0..3 {
+            typed_world.tick();
+            value_world.tick();
+        }
+        let mut typed_delta = typed_world.state_frame_incremental();
+        let mut value_delta = value_world.state_json_incremental();
+        assert!(!frame_is_complete(&mut typed_delta));
+        assert!(value_delta["organisms_hot"].is_object());
+        assert_stamped_equal(&mut typed_delta, &mut value_delta, 3, false);
+    }
+
+    fn assert_stamped_equal(
+        typed: &mut crate::sim::serialize::FramePayload,
+        value: &mut serde_json::Value,
+        frame_id: u32,
+        expected_full: bool,
+    ) {
+        let full = frame_is_complete(typed);
+        assert_eq!(full, expected_full);
+        assert_eq!(
+            value["organisms_complete"].as_bool().unwrap_or(false),
+            expected_full
+        );
+        stamp_frame(typed, frame_id, 1_700_000_000_000.0, full);
+        let object = value.as_object_mut().unwrap();
+        object.insert("frame_id".into(), serde_json::json!(frame_id));
+        object.insert("server_sent_at_ms".into(), serde_json::json!(1_700_000_000_000.0));
+        object.insert(
+            "frame_kind".into(),
+            serde_json::json!(if full { "full" } else { "delta" }),
+        );
+        assert_eq!(
+            serde_json::to_string(typed).unwrap(),
+            value.to_string(),
+            "stamped frame id {frame_id}"
+        );
+    }
 }
