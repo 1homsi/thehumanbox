@@ -16,10 +16,30 @@ export async function loadRenderer(
   try {
     await win.loadFile(file, { query });
   } catch (error) {
-    if (error instanceof Error) {
-      error.message = redactUrlsInText(error.message);
-      throw error;
-    }
-    throw new Error(redactUrlsInText(String(error)));
+    throw redactedLoadError(error);
   }
+}
+
+/**
+ * Redact a load failure while keeping its identity, so `code`/`errno` and the
+ * stack still say what failed. The redaction happens before the message is
+ * read anywhere else, which is also when V8 builds the stack header.
+ */
+function redactedLoadError(error: unknown): Error {
+  const message = redactUrlsInText(errorMessage(error));
+  if (error instanceof Error) {
+    try {
+      error.message = message;
+      return error;
+    } catch {
+      // A frozen message must not replace the failure with a TypeError.
+      return Object.assign(new Error(message), { cause: error });
+    }
+  }
+  return new Error(message);
+}
+
+function errorMessage(error: unknown): string {
+  const message = (error as { message?: unknown } | null | undefined)?.message;
+  return typeof message === "string" ? message : String(error);
 }
