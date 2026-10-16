@@ -57,10 +57,12 @@ type InMsg =
 // Terrain and cold metadata refresh at the same real-time cadence at every speed.
 // A simulation-tick cadence makes fast-forward serialize huge snapshots 50x more often.
 const DEEP_FULL_EVERY_MS = 300 * WASM_BASE_TICK_MS
-// Full world saves can be tens of megabytes. Commands and shutdowns
-// checkpoint immediately; this slower cadence covers passive play without
-// repeatedly stalling the simulation worker on JSON serialization.
-const DEFAULT_AUTOSAVE_MS = 30_000
+// Full world saves can be tens of megabytes and serialize synchronously on
+// this worker, pausing ticks and frame delivery. Commands and shutdowns still
+// checkpoint immediately; hidden/pagehide handlers also request a save.
+// Five minutes bounds passive-play loss while avoiding a large write every
+// 30 seconds.
+const DEFAULT_AUTOSAVE_MS = 5 * 60_000
 const LOCK_WAIT_MS = 4_000
 
 let sim: Sim | null = null

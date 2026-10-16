@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const model = vi.hoisted(() => ({ tick: 0n, tickN: vi.fn(), deltaFrame: vi.fn(), fullFrame: vi.fn() }))
+const model = vi.hoisted(() => ({
+  tick: 0n,
+  tickN: vi.fn(),
+  deltaFrame: vi.fn(),
+  fullFrame: vi.fn(),
+  serialize: vi.fn(() => new Uint8Array([1])),
+  saveWorld: vi.fn(async () => {}),
+}))
 vi.mock('../wasm/sim-core/sim_core.js', () => ({
   default: async () => {},
   Sim: class {
@@ -23,14 +30,14 @@ vi.mock('../wasm/sim-core/sim_core.js', () => ({
       return true
     }
     serialize() {
-      return new Uint8Array([1])
+      return model.serialize()
     }
     free() {}
   },
 }))
 vi.mock('./wasmDb', () => ({
   loadWorld: async () => null,
-  saveWorld: async () => {},
+  saveWorld: model.saveWorld,
   archiveAndDeleteWorld: vi.fn(),
   listRecoveryWorlds: vi.fn(),
   recoveryPrefix: vi.fn(),
@@ -49,6 +56,8 @@ beforeEach(async () => {
   vi.useFakeTimers()
   vi.clearAllMocks()
   model.tick = 0n
+  model.serialize.mockClear()
+  model.saveWorld.mockClear()
   worker = { onmessage: null, postMessage: vi.fn(), close: vi.fn() }
   vi.stubGlobal('self', worker)
   vi.stubGlobal('navigator', {})
@@ -64,6 +73,19 @@ afterEach(() => {
 })
 
 describe('browser simulation scheduling', () => {
+  it('autosaves every five minutes instead of serializing on the old 30-second cadence', async () => {
+    // Startup writes a baseline save immediately; isolate the periodic timer.
+    model.serialize.mockClear()
+    model.saveWorld.mockClear()
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(model.serialize).not.toHaveBeenCalled()
+    expect(model.saveWorld).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(4 * 60_000 + 30_000)
+    expect(model.serialize).toHaveBeenCalledTimes(1)
+    expect(model.saveWorld).toHaveBeenCalledTimes(1)
+  })
+
   it('fast-forward advances ticks without flooding the renderer with frames', async () => {
     send({ type: 'speed', tickMs: 24, stepsPerEmit: 10, speed: 50 })
     await vi.advanceTimersByTimeAsync(1200)
