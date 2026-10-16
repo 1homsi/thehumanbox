@@ -72,6 +72,9 @@ function packagedBinaryPath(): string {
 /**
  * Where a developer build of the sim lands: the workspace's own `target`
  * directory at the repository root (the crate is `apps/server`).
+ *
+ * This assumes the compiled layout `apps/desktop/dist/main`, which is what
+ * `pnpm run dev`/`pack` produce; the parent-directory count is for that depth.
  */
 export function devBinaryPath(): string {
   return path.join(
@@ -435,8 +438,13 @@ async function startSimOnce(
   const bin = locateSimBinary();
   if (!bin) {
     suppliedLock?.release();
+    // A packaged build only has `resources/bin`; naming the dev path there
+    // would point an end user at a directory inside app.asar.
+    const expected = app.isPackaged
+      ? packagedBinaryPath()
+      : `${devBinaryPath()} (dev) or ${packagedBinaryPath()} (packaged, resources/bin)`;
     throw new Error(
-      `simulation binary not found. Expected at ${packagedBinaryPath()} (packaged) or ${devBinaryPath()} (dev): build it with \`cargo build --release --bin simulation-rs\` at the repository root (or \`make build-sim\`).`,
+      `simulation binary not found. Expected at ${expected}: build it with \`cargo build --release --bin simulation-rs\` at the repository root (or \`make build-sim\`).`,
     );
   }
 

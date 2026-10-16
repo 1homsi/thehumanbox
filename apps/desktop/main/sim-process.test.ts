@@ -158,11 +158,24 @@ function loadSimProcess(child: FakeChild, onSpawn: () => void) {
 
 test("the dev binary path points at the workspace target directory", () => {
   const sim = loadSimProcess(new FakeChild(), () => {});
-  const repoRoot = path.resolve(__dirname, "..", "..", "..", "..");
   const name = process.platform === "win32" ? "simulation-rs.exe" : "simulation-rs";
 
+  // Anchor the expectation to a real marker rather than the same
+  // parent-directory count the source uses.
+  let workspaceRoot = __dirname;
+  while (
+    !fs.existsSync(path.join(workspaceRoot, "Cargo.toml")) &&
+    path.dirname(workspaceRoot) !== workspaceRoot
+  ) {
+    workspaceRoot = path.dirname(workspaceRoot);
+  }
+  assert.ok(fs.existsSync(path.join(workspaceRoot, "Cargo.toml")));
+  assert.ok(
+    fs.readFileSync(path.join(workspaceRoot, "Cargo.toml"), "utf8").includes("[workspace]"),
+  );
+
   const resolved = sim.devBinaryPath();
-  assert.equal(resolved, path.join(repoRoot, "target", "release", name));
+  assert.equal(resolved, path.join(workspaceRoot, "target", "release", name));
   // The pre-fix path pointed at `apps/simulation/target/release`, which does
   // not exist in this repository.
   assert.equal(resolved.includes(`${path.sep}simulation${path.sep}`), false);
