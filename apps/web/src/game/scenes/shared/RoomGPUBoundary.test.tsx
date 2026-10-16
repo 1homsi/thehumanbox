@@ -52,8 +52,8 @@ describe('RoomGPUBoundary', () => {
     )
     expect(container.textContent).toBe('')
 
-    const host = container.firstElementChild as HTMLElement
-    act(() => host.dispatchEvent(new Event('webglcontextlost')))
+    const canvas = container.querySelector('canvas')!
+    act(() => canvas.dispatchEvent(new Event('webglcontextlost')))
     act(() => vi.advanceTimersByTime(5_000))
 
     expect(container.textContent).toBe('2d')
@@ -74,10 +74,10 @@ describe('RoomGPUBoundary', () => {
         </RoomGPUBoundary>,
       ),
     )
-    const host = container.firstElementChild as HTMLElement
-    act(() => host.dispatchEvent(new Event('webglcontextlost')))
+    const canvas = container.querySelector('canvas')!
+    act(() => canvas.dispatchEvent(new Event('webglcontextlost')))
     act(() => vi.advanceTimersByTime(1_000))
-    act(() => host.dispatchEvent(new Event('webglcontextrestored')))
+    act(() => canvas.dispatchEvent(new Event('webglcontextrestored')))
     act(() => vi.advanceTimersByTime(10_000))
 
     expect(container.textContent).toBe('')

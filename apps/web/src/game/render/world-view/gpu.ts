@@ -12,7 +12,13 @@ export function markWorldGPUFailed(): void {
   const wasUsable = cached !== false
   cached = false
   if (wasUsable) {
-    for (const listener of failureListeners) listener()
+    for (const listener of failureListeners) {
+      try {
+        listener()
+      } catch {
+        // one bad subscriber must not stop the others
+      }
+    }
   }
 }
 

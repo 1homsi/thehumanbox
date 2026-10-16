@@ -1,7 +1,7 @@
 import { Component, createRef, type ErrorInfo, type ReactNode } from 'react'
 import { logger } from '../../../shared/logger'
 import { wakeRenderLoopsAfterContextRestore } from '../../render/cf/render-loop'
-import { markWorldGPUFailed, onWorldGPUFailed } from '../../render/world-view/gpu'
+import { canUseWorldGPU, markWorldGPUFailed, onWorldGPUFailed } from '../../render/world-view/gpu'
 import { watchForWebGLContextRecovery } from '../../render/world-view/webglContextRecovery'
 
 interface Props {
@@ -28,7 +28,14 @@ export class RoomGPUBoundary extends Component<Props, { crashed: boolean }> {
   }
 
   componentDidMount() {
-    this.unsubscribe = onWorldGPUFailed(() => this.setState({ crashed: true }))
+    // Subscribe before the probe: `markWorldGPUFailed` only notifies on the
+    // transition, so a failure that landed between the caller's render and this
+    // commit would otherwise never reach us.
+    this.unsubscribe = onWorldGPUFailed(this.markFailed)
+    if (!canUseWorldGPU()) {
+      this.markFailed()
+      return
+    }
     const host = this.host.current
     if (host) {
       this.recovery = watchForWebGLContextRecovery(
@@ -44,13 +51,24 @@ export class RoomGPUBoundary extends Component<Props, { crashed: boolean }> {
   componentWillUnmount() {
     this.unsubscribe?.()
     this.unsubscribe = null
-    this.recovery?.dispose()
-    this.recovery = null
+    this.disposeRecovery()
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     logger.error('2d-world', 'GPU room renderer failed', error, info.componentStack)
+    this.disposeRecovery()
     markWorldGPUFailed()
+  }
+
+  private disposeRecovery() {
+    this.recovery?.dispose()
+    this.recovery = null
+  }
+
+  private markFailed = () => {
+    if (this.state.crashed) return
+    this.disposeRecovery()
+    this.setState({ crashed: true })
   }
 
   render() {
