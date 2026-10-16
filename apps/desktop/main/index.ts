@@ -23,10 +23,7 @@ import { sanitizeWindowState, type WindowState } from "./window-state";
 import { atomicReplaceFile } from "./world-safety";
 import { appVersionArgument } from "./app-version-arg";
 import { loginItemSettings, shouldStartHidden } from "./login-launch";
-import {
-  NO_CHECKPOINT_BUTTON,
-  restartFailurePrompt,
-} from "./restart-recovery";
+import { restartFailurePrompt } from "./restart-recovery";
 import { registerIpc } from "./ipc";
 import { startWhenReady } from "./startup-lifecycle";
 import { runExclusiveDesktopOperation } from "./exclusive-operation";
@@ -347,7 +344,10 @@ function buildMenu(): void {
         },
         {
           label: "Restart simulation",
-          click: () => void restartSimulationFromMenu(),
+          click: () =>
+            void restartSimulationFromMenu().catch((err) =>
+              console.error("[main] restart menu failed:", err),
+            ),
         },
         isMac ? { role: "close" as const } : { role: "quit" as const },
       ],
@@ -633,18 +633,18 @@ async function restartSimulationFromMenu(): Promise<void> {
   try {
     await restartSimulation();
   } catch (error) {
+    if (isQuitting) return;
     const prompt = restartFailurePrompt(error);
     const box: Electron.MessageBoxOptions = {
       type: "error",
+      title: "The Human Box",
       ...prompt,
-      defaultId: 0,
-      cancelId: prompt.buttons.length - 1,
     };
     const { response } =
       mainWindow && !mainWindow.isDestroyed()
         ? await dialog.showMessageBox(mainWindow, box)
         : await dialog.showMessageBox(box);
-    if (response !== 0 || prompt.buttons[0] !== NO_CHECKPOINT_BUTTON) return;
+    if (response !== 0 || !prompt.canRetryWithoutCheckpoint || isQuitting) return;
     try {
       await restartSimulation({ requireCheckpoint: false });
     } catch (retryError) {

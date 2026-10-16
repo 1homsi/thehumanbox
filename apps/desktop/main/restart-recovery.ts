@@ -3,10 +3,7 @@
 // failure only produced a rejected promise that the menu click swallowed. The
 // decision logic lives here so the menu action can offer a no-checkpoint retry
 // and a test can pin the messages.
-
-// Matches stopSimOnce() in sim-process.ts. Kept here (rather than imported from
-// that module) so this pure helper has no process-wide side effects.
-const CHECKPOINT_FAILED_MARKER = "could not checkpoint the active world";
+import { CHECKPOINT_FAILED_ERROR } from "./sim-errors";
 
 /** The button that restarts without waiting for a checkpoint. */
 export const NO_CHECKPOINT_BUTTON = "Restart without checkpoint";
@@ -15,6 +12,11 @@ export interface RestartFailurePrompt {
   message: string;
   detail: string;
   buttons: string[];
+  /** The focused button. Never the lossy retry: Enter must not lose play. */
+  defaultId: number;
+  cancelId: number;
+  /** True when button 0 restarts without waiting for a checkpoint. */
+  canRetryWithoutCheckpoint: boolean;
 }
 
 function errorText(error: unknown): string {
@@ -22,7 +24,7 @@ function errorText(error: unknown): string {
 }
 
 export function isCheckpointFailure(error: unknown): boolean {
-  return errorText(error).includes(CHECKPOINT_FAILED_MARKER);
+  return errorText(error).includes(CHECKPOINT_FAILED_ERROR);
 }
 
 /**
@@ -39,7 +41,18 @@ export function restartFailurePrompt(error: unknown): RestartFailurePrompt {
         `${detail}\n\nThe simulation may be hung. Restarting without a checkpoint ` +
         "loses up to about a minute of play.",
       buttons: [NO_CHECKPOINT_BUTTON, "Cancel"],
+      // Cancel is the default: the retry gives up up to a minute of play.
+      defaultId: 1,
+      cancelId: 1,
+      canRetryWithoutCheckpoint: true,
     };
   }
-  return { message: "Could not restart the simulation", detail, buttons: ["OK"] };
+  return {
+    message: "Could not restart the simulation",
+    detail,
+    buttons: ["OK"],
+    defaultId: 0,
+    cancelId: 0,
+    canRetryWithoutCheckpoint: false,
+  };
 }
