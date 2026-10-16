@@ -58,9 +58,8 @@ describe('OrgDetail', () => {
     act(() => root.render(panel(org('a'))))
 
     act(() => host.querySelector<HTMLButtonElement>('button[aria-label="Life"]')!.click())
-    // The life modal is lazy-loaded, so give the import time to land.
-    await act(() => new Promise((r) => setTimeout(r, 400)))
-    expect(document.querySelector('.life-modal')).not.toBeNull()
+    // The life modal is lazy-loaded, so poll until the import lands.
+    await vi.waitFor(() => expect(document.querySelector('.life-modal')).not.toBeNull())
 
     act(() => root.render(panel(org('b'))))
     expect(document.querySelector('.life-modal')).toBeNull()
