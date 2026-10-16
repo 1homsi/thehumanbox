@@ -111,7 +111,7 @@
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 600px) {
   .desktop-toast {
     bottom: calc(116px + env(safe-area-inset-bottom, 0px));
     left: calc(12px + var(--safe-left));
@@ -403,7 +403,7 @@ body.thb-colorblind .org-sick-badge {
 }
 /* Phones: one card per lineage instead of a table wider than the sheet (Gov, Currency and the actions
    column were scrolled out of sight). The labels come from each cell's data-label. */
-@media (max-width: 600px) {
+@media (max-width: 720px) {
   .civ-table,
   .civ-table tbody,
   .civ-table tr,
