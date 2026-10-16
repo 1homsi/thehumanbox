@@ -123,7 +123,7 @@ describe('CfOverlayRenderer', () => {
     const trade = vi.mocked(drawTradeNetwork2D)
     trade.mockClear()
     renderer.update(frameOf(world()))
-    expect(trade.mock.calls.map((call) => call[4])).toEqual(['roads', 'caravans'])
+    expect(trade.mock.calls.map((call) => call[4])).toEqual(['bed', 'traffic', 'caravans'])
     trade.mockClear()
     const hidden = makeFrame({
       world: world(),
@@ -138,6 +138,45 @@ describe('CfOverlayRenderer', () => {
     })
     renderer.update(hidden)
     expect(trade.mock.calls.map((call) => call[4])).toEqual(['caravans'])
+  })
+
+  it('records the trade road beds again only when the routes, the view or the eras change', () => {
+    make()
+    const trade = vi.mocked(drawTradeNetwork2D)
+    const route = (over: object = {}) => ({
+      id: 1,
+      lineage_a: 'a',
+      lineage_b: 'b',
+      a_center: [4, 5],
+      b_center: [20, 9],
+      deliveries: 3,
+      volume: 2,
+      embargoed: false,
+      ...over,
+    })
+    const beds = () => trade.mock.calls.filter((call) => call[4] === 'bed').length
+    trade.mockClear()
+    renderer.update(frameOf(world({ trade_routes: [route()] as never })))
+    expect(beds()).toBe(1)
+    // Deliveries and the tick move every frame; the beds do not.
+    renderer.update(frameOf(world({ tick: 1100, trade_routes: [route({ deliveries: 4 })] as never }), null, 5100))
+    expect(beds()).toBe(1)
+    renderer.update(frameOf(world({ tick: 1200, trade_routes: [route({ embargoed: true })] as never }), null, 5200))
+    expect(beds()).toBe(2)
+    renderer.update(
+      makeFrame({
+        world: world({ tick: 1300, trade_routes: [route({ embargoed: true })] as never }),
+        t: 5300,
+        zoom: 2,
+        cam: { x: 30 * 8, y: 10 * 8 },
+        viewport: { w: 400, h: 240 },
+        dpr: 1,
+        overlay: null,
+        focus: 'all',
+        viewFlags: flags,
+      }),
+    )
+    expect(beds()).toBe(3)
   })
 
   it('draws the atmosphere as tint quads between the ground and everything built', () => {

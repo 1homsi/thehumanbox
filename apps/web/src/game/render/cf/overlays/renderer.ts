@@ -1,5 +1,8 @@
 import { SPRITE_UNTEXTURED, SpriteLayer, TextLayer } from 'xipjs'
 import { TILE } from '../../../model/palette'
+import type { WorldState } from '../../../../shared/types'
+import { lineageEraTiers } from '../../draw-helpers'
+import type { TileWindow } from '../../water-fx'
 import { drawTradeNetwork2D } from '../../base-parts/trade-network'
 import { drawCart, drawTrain } from '../../era-traffic'
 import { eraTier } from '../../../model/era-tier'
@@ -69,6 +72,7 @@ export const Z = {
   heat: 10,
   groundStatic: 11,
   ground: 12,
+  roadBed: 14.25,
   roads: 15,
   traffic: 25,
   smoke: 25.5,
@@ -116,6 +120,21 @@ const ZERO_TIMES = (): SectionTimes => ({
 })
 
 /**
+ * What the trade road beds are drawn from: the view, the map origin, and each route's ends, lineages,
+ * era tiers and embargo. A route's deliveries and volume change every tick but are not drawn here, so
+ * they are left out: the beds stay put while the caravans move.
+ */
+function tradeBedKey(world: WorldState, bounds: TileWindow): string {
+  const tiers = lineageEraTiers(world.lineage_eras)
+  let key = `${bounds.c0},${bounds.c1},${bounds.r0},${bounds.r1}|${world.grid.origin_x ?? 0},${world.grid.origin_y ?? 0}`
+  for (const r of world.trade_routes ?? []) {
+    key += `|${r.a_center[0]},${r.a_center[1]},${r.b_center[0]},${r.b_center[1]},${r.lineage_a},${r.lineage_b},`
+    key += `${tiers.get(r.lineage_a) ?? 0},${tiers.get(r.lineage_b) ?? 0},${r.embargoed ? 1 : 0}`
+  }
+  return key
+}
+
+/**
  * The non-sprite world visuals on xipjs: owns the SpriteLayers, atlases and
  * recorders, and `update()` rewrites them from a frame of world data. No React and no GPU of its
  * own: it talks to the engine through a `RenderHost`.
@@ -133,6 +152,9 @@ export class CfOverlayRenderer {
   private readonly precipLayer: SpriteLayer
   private readonly groundStatic: SpriteRecorder
   private readonly ground: SpriteRecorder
+  /** The trade road beds: static until the routes, the view or the eras change (see `tradeBedKey`). */
+  private readonly tradeBed: SpriteRecorder
+  private tradeBedKey = ''
   private readonly roads: SpriteRecorder
   private readonly traffic: SpriteRecorder
   private readonly smoke: SpriteRecorder
@@ -222,6 +244,7 @@ export class CfOverlayRenderer {
       this.glyphs,
     )
     this.ground = new SpriteRecorder(shape(Z.ground), text(Z.ground), this.shapes, this.glyphs)
+    this.tradeBed = new SpriteRecorder(shape(Z.roadBed), text(Z.roadBed), this.shapes, this.glyphs)
     this.roads = new SpriteRecorder(shape(Z.roads), text(Z.roads), this.shapes, this.glyphs)
     this.traffic = new SpriteRecorder(shape(Z.traffic), text(Z.traffic), this.shapes, this.glyphs)
     this.smoke = new SpriteRecorder(shape(Z.smoke), text(Z.smoke), this.shapes, this.glyphs)
@@ -360,10 +383,18 @@ export class CfOverlayRenderer {
     lap('ground')
 
     // Trade roads, and the railway track the tribes laid along them (the road layer draws the track).
+    // The road beds sit under the cars and carts, and are only recorded again when they change.
     const showTrade = f.viewFlags.tradeRoutes
+    const bedKey = showTrade ? tradeBedKey(f.world, f.bounds) : ''
+    if (bedKey !== this.tradeBedKey) {
+      this.tradeBedKey = bedKey
+      this.tradeBed.begin(gv)
+      if (showTrade) drawTradeNetwork2D(this.tradeBed.asContext(), f.world, f.bounds, f.t, 'bed')
+      this.tradeBed.end()
+    }
     this.roads.begin(gv)
     if (showTrade) {
-      drawTradeNetwork2D(this.roads.asContext(), f.world, f.bounds, f.t, 'roads')
+      drawTradeNetwork2D(this.roads.asContext(), f.world, f.bounds, f.t, 'traffic')
     }
     // Artworks lie on the ground where their makers stood: under the buildings and the people.
     paintArtworks(this.roads.asContext(), f)
