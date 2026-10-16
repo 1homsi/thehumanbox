@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useUIStore } from '../../state/store'
+import { canUseFullscreen } from '../../shared/fullscreen'
 import { Modal } from '../modals/Modal'
 import { MoreDropdown } from './MoreDropdown'
 import { ToolSprite } from './ToolSprite'
@@ -35,7 +36,7 @@ export function PhoneMenu({ chronicleCount, isFullscreen, onToggleFullscreen }: 
     close()
     fn()
   }
-  const canFullscreen = typeof document !== 'undefined' && !!document.documentElement.requestFullscreen
+  const canFullscreen = canUseFullscreen()
 
   const row = (icon: string, label: string, onClick: () => void, extra?: ReactNode, pressed?: boolean) => (
     <button
