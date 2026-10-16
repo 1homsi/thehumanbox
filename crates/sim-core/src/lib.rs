@@ -9,6 +9,7 @@ pub mod world;
 #[cfg(target_arch = "wasm32")]
 mod wasm_facade {
     use crate::sim::persistence::SaveState;
+    use crate::sim::serialize::FramePayload;
     use crate::sim::simulation::Simulation;
     use wasm_bindgen::prelude::*;
 
@@ -60,20 +61,21 @@ mod wasm_facade {
 
         #[wasm_bindgen(js_name = fullFrame)]
         pub fn full_frame(&mut self, frame_id: u32, now_ms: f64) -> String {
-            let mut v = self.inner.state_json();
-            stamp(&mut v, frame_id, now_ms, true);
-            v.to_string()
+            let mut frame = self.inner.state_frame();
+            stamp(&mut frame, frame_id, now_ms, true);
+            serde_json::to_string(&frame).unwrap_or_default()
         }
 
         #[wasm_bindgen(js_name = deltaFrame)]
         pub fn delta_frame(&mut self, frame_id: u32, now_ms: f64) -> String {
-            let mut v = self.inner.state_json_incremental();
-            let full = v
-                .get("organisms_complete")
+            let mut frame = self.inner.state_frame_incremental();
+            let full = frame
+                .as_object_mut()
+                .and_then(|object| object.get("organisms_complete"))
                 .and_then(|b| b.as_bool())
                 .unwrap_or(false);
-            stamp(&mut v, frame_id, now_ms, full);
-            v.to_string()
+            stamp(&mut frame, frame_id, now_ms, full);
+            serde_json::to_string(&frame).unwrap_or_default()
         }
 
         pub fn serialize(&self) -> Vec<u8> {
@@ -110,15 +112,13 @@ mod wasm_facade {
         }
     }
 
-    fn stamp(v: &mut serde_json::Value, frame_id: u32, now_ms: f64, full: bool) {
-        if let Some(o) = v.as_object_mut() {
-            o.insert("frame_id".into(), serde_json::json!(frame_id));
-            o.insert("server_sent_at_ms".into(), serde_json::json!(now_ms));
-            o.insert(
-                "frame_kind".into(),
-                serde_json::json!(if full { "full" } else { "delta" }),
-            );
-        }
+    fn stamp(frame: &mut FramePayload, frame_id: u32, now_ms: f64, full: bool) {
+        frame.insert("frame_id", serde_json::json!(frame_id));
+        frame.insert("server_sent_at_ms", serde_json::json!(now_ms));
+        frame.insert(
+            "frame_kind",
+            serde_json::json!(if full { "full" } else { "delta" }),
+        );
     }
 
     #[wasm_bindgen(start)]
