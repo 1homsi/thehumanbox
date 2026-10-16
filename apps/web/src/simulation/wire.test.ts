@@ -93,8 +93,10 @@ describe('expandOrgsSoa', () => {
     expect('alive' in expanded[0]).toBe(false)
     // thoughts is sparse with no entry for this org → no thought field.
     expect('thought' in expanded[0]).toBe(false)
-    expect(expanded[0].partner_id).toBeUndefined()
-    expect(expanded[0].attracted_to).toBeUndefined()
+    // partner/attraction are sparse "absent -> unset": an empty list clears
+    // the cached value rather than leaving it unchanged.
+    expect(expanded[0].partner_id).toBeNull()
+    expect(expanded[0].attracted_to).toBeNull()
   })
 
   it('honours ages and alives when the SoA carries them (legacy)', () => {
@@ -143,8 +145,11 @@ describe('expandOrgsSoa', () => {
       attracted_tos: [[2, 'a']],
     })
     expect(expanded[0].partner_id).toBe('b')
-    expect(expanded[1].partner_id).toBeUndefined()
+    // Sparse: indexes absent from the list are unpartnered, an explicit clear.
+    expect(expanded[1].partner_id).toBeNull()
+    expect(expanded[2].partner_id).toBeNull()
     expect(expanded[1].thought).toBe('wandering')
+    expect(expanded[0].attracted_to).toBeNull()
     expect(expanded[2].attracted_to).toBe('a')
   })
 })
