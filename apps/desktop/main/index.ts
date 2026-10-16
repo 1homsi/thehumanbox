@@ -656,9 +656,9 @@ function registerAppIpcHandlers(): void {
 async function restartSimulation(options: { requireCheckpoint?: boolean } = {}): Promise<void> {
   await runExclusiveDesktopOperation(RESTART_SIMULATION_OPERATION, async () => {
     await stopSim(5_000, options.requireCheckpoint ?? true);
-    if (mainWindow) {
-      await createWindowReplace();
-    }
+    // Also runs with no window open (macOS keeps the app in the dock after
+    // its last window closes): the restart then just opens a fresh one.
+    await createWindowReplace();
   });
 }
 
