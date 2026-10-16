@@ -13,7 +13,7 @@
 //   --zooms a,b         overview,mid,close (default all): fit, zoom 1, zoom 3
 //   --modes a,b         paused,playing,panning (default paused,playing). `panning` is `playing` with the camera
 //                       moving the whole window: arrow keys held down in a square, so it covers new ground
-//                       the way a player dragging the map does (see PAN_PATH). Not in the default set.
+//                       the way a player dragging the map does. Not in the default set.
 //   --passes a,b        metrics,trace,memory (default all). `metrics` reads the browser's own counters and
 //                       adds nothing to the page; `trace` records a Chrome trace for frames
 //                       delivered, GPU process time, GC pauses and long tasks; `memory` takes a Chrome
@@ -273,20 +273,25 @@ const PAN_KEYS = [
   { key: 'a', code: 'KeyA', vk: 65 },
   { key: 'w', code: 'KeyW', vk: 87 },
 ]
-const PAN_LEG_MS = 1500
-
-/** Pans until `stop.done`; returns how far the camera travelled, in world px (sum of the leg steps). */
-async function panUntil(page, stop) {
-  await page.evaluate(`document.querySelector('.map2d-world')?.focus({ preventScroll: true })`)
+/** Pans one square over the measured window; returns camera travel in world px. */
+async function panUntil(page) {
+  const focused = await page.evaluate(`(() => {
+    const map = document.querySelector('.map2d-world')
+    if (!map) return false
+    map.focus({ preventScroll: true })
+    return document.activeElement === map
+  })()`)
+  if (!focused) throw new Error('could not focus the map for panning')
   const cam = () => page.evaluate('window.__thbBench.camera()')
   let last = await cam()
   let travelled = 0
-  for (let leg = 0; !stop.done; leg++) {
+  const legMs = windowMs / 4
+  for (let leg = 0; leg < PAN_KEYS.length; leg++) {
     const k = PAN_KEYS[leg % PAN_KEYS.length]
     const ev = { key: k.key, code: k.code, windowsVirtualKeyCode: k.vk }
     await page.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...ev })
-    const until = Date.now() + PAN_LEG_MS
-    while (!stop.done && Date.now() < until) await sleep(50)
+    const until = Date.now() + legMs
+    while (Date.now() < until) await sleep(50)
     await page.send('Input.dispatchKeyEvent', { type: 'keyUp', ...ev })
     const now = await cam()
     travelled += Math.hypot(now.x - last.x, now.y - last.y)
@@ -447,25 +452,26 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
           `Promise.resolve(window.__thbCf?.engine?.activeRenderSystem?.setGpuTiming?.(true)).then(() => true, () => false)`,
         )
         .catch(() => null)
-    // Panning starts before the window so the first frame of it is already a moving one.
-    const pan = { done: false }
-    const panning = mode === 'panning' ? panUntil(page, pan).catch(() => null) : null
     await sleep(600)
     await page.evaluate(`performance.mark('bench-start')`)
     const m0 = metricsOf(await page.send('Performance.getMetrics'))
     const p0 = await processCpu(browser)
     const s0 = await page.evaluate(PAGE_STATS)
+    // Split the measured window into four equal legs so the camera traces a full square.
+    const panning = mode === 'panning' ? panUntil(page).catch((error) => ({ error })) : null
     const t0 = Date.now()
     await sleep(windowMs)
+    if (panning) await panning
     const elapsed = Date.now() - t0
-    pan.done = true
     const s1 = await page.evaluate(PAGE_STATS)
     const p1 = await processCpu(browser)
     const m1 = metricsOf(await page.send('Performance.getMetrics'))
     await page.evaluate(`performance.mark('bench-end')`)
     if (panning) {
       const travelled = await panning
-      if (travelled === null) throw new Error('the camera pan failed')
+      if (travelled?.error) throw travelled.error
+      if (zoomName !== 'overview' && travelled < 100)
+        throw new Error(`camera moved only ${Math.round(travelled)}px during panning`)
       result.panPx = Math.round(travelled)
     }
 
@@ -581,6 +587,8 @@ async function main() {
         for (const zoomName of zooms) {
           for (const mode of modes) {
             for (const pass of passes) {
+              // A memory dump is an instantaneous snapshot, not a measured panning window.
+              if (mode === 'panning' && pass === 'memory') continue
               for (const b of builds) {
                 const t = Date.now()
                 // A scenario that fails (a Chrome that did not start, a timeout on a loaded machine) is tried again.
