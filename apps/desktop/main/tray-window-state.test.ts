@@ -25,6 +25,13 @@ function trayLabel(tray: { contextMenu: { template: MenuItem[] } | null }): stri
   return item?.label ?? null;
 }
 
+function trayAlwaysOnTopChecked(tray: { contextMenu: { template: MenuItem[] } | null }): boolean | null {
+  const item = (tray.contextMenu?.template ?? []).find(
+    (candidate) => candidate.label === "Always on top",
+  );
+  return item ? (item.checked ?? false) : null;
+}
+
 // Null when no application menu has been set at all, so a missing menu fails
 // the assertion instead of throwing.
 function viewAlwaysOnTopChecked(menu: { template: MenuItem[] } | null): boolean | null {
@@ -202,6 +209,7 @@ test("the tray and the View menu follow the window a restart swaps in", async ()
   // The user turns "Always on top" on, then the window is hidden (tray toggle).
   windows[0].setAlwaysOnTop(true);
   assert.equal(viewAlwaysOnTopChecked(h.appMenu), true);
+  assert.equal(trayAlwaysOnTopChecked(trays[0]), true);
   windows[0].hide();
   assert.equal(trayLabel(trays[0]), "Show window");
 
@@ -217,12 +225,15 @@ test("the tray and the View menu follow the window a restart swaps in", async ()
   // drive the menus of its successor.
   windows[0].emit("show");
   windows[0].emit("always-on-top-changed", true);
+  windows[0].emit("hide");
   assert.equal(trayLabel(trays[0]), "Hide window");
   assert.equal(viewAlwaysOnTopChecked(h.appMenu), false);
+  assert.equal(trayAlwaysOnTopChecked(trays[0]), false);
 
   // The replacement is the window that owns the state now.
   windows[1].setAlwaysOnTop(true);
   assert.equal(viewAlwaysOnTopChecked(h.appMenu), true);
+  assert.equal(trayAlwaysOnTopChecked(trays[0]), true);
   windows[1].hide();
   assert.equal(trayLabel(trays[0]), "Show window");
 });
@@ -239,4 +250,5 @@ test("closing the last window clears the tray and View state", async () => {
   assert.equal(vm.runInContext("mainWindow", context), null);
   assert.equal(trayLabel(trays[0]), "Show window");
   assert.equal(viewAlwaysOnTopChecked(h.appMenu), false);
+  assert.equal(trayAlwaysOnTopChecked(trays[0]), false);
 });
