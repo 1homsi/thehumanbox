@@ -195,6 +195,7 @@ export class StructureDriver implements CfDriver {
   private readonly atlas: CellAtlas
   private frame = -1
   private source: unknown = null
+  private structureRevision: number | undefined
   private revision = -1
   private epoch = -1
   /** The tiles drawn by the last rebuild (row-major index) and their strength in whole percents. */
@@ -222,8 +223,10 @@ export class StructureDriver implements CfDriver {
       this.drawnCount = 0
       return true
     }
+    // A grid that counts its structure revisions is re-read only when one arrives; others once per frame.
+    const revision = grid.structure_revision
     if (
-      this.frame === f.world.frame_id &&
+      (revision === undefined ? this.frame === f.world.frame_id : this.structureRevision === revision) &&
       this.source === structure &&
       this.revision === f.terrainRevision &&
       this.epoch === this.atlas.epoch
@@ -256,6 +259,7 @@ export class StructureDriver implements CfDriver {
     this.stats.scans++
     this.frame = f.world.frame_id
     this.source = structure
+    this.structureRevision = revision
     if (
       this.revision === f.terrainRevision &&
       this.epoch === this.atlas.epoch &&
