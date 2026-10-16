@@ -100,6 +100,7 @@
     width: 120px;
     height: 32px;
     margin: 0 auto -32px;
+    flex-shrink: 0;
     touch-action: none;
     cursor: grab;
   }
