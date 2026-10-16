@@ -1,9 +1,8 @@
 import type { WorldState, GridState, OrganismState, AnimalState } from '../shared/types'
 import {
   type IncomingWorldFrame,
-  type ExpandedOrgDelta,
   applyGridWire,
-  expandOrgsSoa,
+  forEachOrgSoa,
   EMPTY_HISTORY,
 } from './wire'
 
@@ -87,7 +86,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
   // so downstream code can't accidentally read a cold field off a
   // SoA-only record.
   const fullFrameOrgs: OrganismState[] = parsed.organisms ?? []
-  const deltaFrameOrgs: ExpandedOrgDelta[] = parsed.organisms_hot ? expandOrgsSoa(parsed.organisms_hot) : []
+  const deltaOrgIds = parsed.organisms_hot?.ids ?? []
 
   // An `organisms_complete` frame is authoritative, including when it is
   // empty (total extinction). The extra `length > 0` guard meant an empty
@@ -107,11 +106,13 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     // new id appearing in a delta would be missing cold fields (name,
     // lineage_id, traits) so we drop it; the next full frame will
     // include it as AoS and seed the cache properly.
-    for (const org of deltaFrameOrgs) {
-      const existing = caches.organisms.get(org.id)
-      if (existing) {
-        caches.organisms.set(org.id, mergeDefined(existing, org as Partial<OrganismState>))
-      }
+    if (parsed.organisms_hot) {
+      forEachOrgSoa(parsed.organisms_hot, (org) => {
+        const existing = caches.organisms.get(org.id)
+        if (existing) {
+          caches.organisms.set(org.id, mergeDefined(existing, org as Partial<OrganismState>))
+        }
+      })
     }
     // Late-arriving cold fields can still come via a non-SoA full
     // frame in the same parsed payload (very rare, but legal).
@@ -133,12 +134,17 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
   // Build the viewport list from whichever stream populated this frame.
   // Always resolve through the cache so cold fields (name, lineage_id,
   // traits) are present.
-  const viewportSource: { id: string }[] =
-    fullFrameOrgs.length > 0 ? (fullFrameOrgs as { id: string }[]) : (deltaFrameOrgs as { id: string }[])
   const viewportOrgs: OrganismState[] = []
-  for (const o of viewportSource) {
-    const cached = caches.organisms.get(o.id)
-    if (cached) viewportOrgs.push(cached)
+  if (fullFrameOrgs.length > 0) {
+    for (const org of fullFrameOrgs) {
+      const cached = caches.organisms.get(org.id)
+      if (cached) viewportOrgs.push(cached)
+    }
+  } else {
+    for (const id of deltaOrgIds) {
+      const cached = caches.organisms.get(id)
+      if (cached) viewportOrgs.push(cached)
+    }
   }
   const viewportAnimals = parsed.animals.map((a) => caches.animals.get(a.id) ?? a)
   const base = caches.prevWorld
