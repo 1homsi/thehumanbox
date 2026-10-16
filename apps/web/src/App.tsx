@@ -52,6 +52,7 @@ import { useWorldStore } from './state/worldStore'
 import { nearestLivingPerson } from './simulation/nearestPerson'
 import { IS_LOCAL_SERVER } from './shared/config'
 import { getDesktop, type SimMode } from './shared/desktop'
+import { pickNewHeadline } from './shared/desktopHeadlines'
 import {
   DESKTOP_PAUSE_WHEN_HIDDEN_EVENT,
   isDesktopWindowInactive,
@@ -596,17 +597,15 @@ function LiveApp() {
     }
   }, [world, pauseSim, setTemporarySandboxStatus])
 
-  const lastHeadlineTickRef = useRef<number>(0)
+  const headlineSeenTickRef = useRef<number | null>(null)
   useEffect(() => {
+    if (!world?.headlines) return
+    const picked = pickNewHeadline(headlineSeenTickRef.current, world.headlines)
+    headlineSeenTickRef.current = picked.seenTick
     const desk = window.thbDesktop
-    if (!desk) return
-    if (!world?.headlines || world.headlines.length === 0) return
-    const newest = world.headlines[0]
-    if (!newest || typeof newest.tick !== 'number') return
-    if (newest.tick <= lastHeadlineTickRef.current) return
-    lastHeadlineTickRef.current = newest.tick
+    if (!desk || !picked.headline) return
     if (document.visibilityState !== 'visible' || desktopWindowInactiveRef.current) {
-      void desk.app.notify({ title: 'The Human Box', body: newest.text })
+      void desk.app.notify({ title: 'The Human Box', body: picked.headline.text })
     }
   }, [world?.headlines])
 
