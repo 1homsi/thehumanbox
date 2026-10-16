@@ -156,6 +156,18 @@ function loadSimProcess(child: FakeChild, onSpawn: () => void) {
   };
 }
 
+test("the dev binary path points at the workspace target directory", () => {
+  const sim = loadSimProcess(new FakeChild(), () => {});
+  const repoRoot = path.resolve(__dirname, "..", "..", "..", "..");
+  const name = process.platform === "win32" ? "simulation-rs.exe" : "simulation-rs";
+
+  const resolved = sim.devBinaryPath();
+  assert.equal(resolved, path.join(repoRoot, "target", "release", name));
+  // The pre-fix path pointed at `apps/simulation/target/release`, which does
+  // not exist in this repository.
+  assert.equal(resolved.includes(`${path.sep}simulation${path.sep}`), false);
+});
+
 test("quit stops a simulation that is still loading instead of leaving it running", { timeout: 5000 }, async () => {
   const child = new FakeChild();
   let spawned!: () => void;

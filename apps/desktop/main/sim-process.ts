@@ -69,13 +69,17 @@ function packagedBinaryPath(): string {
   return path.join(resourcesDir, "bin", platformBinaryName());
 }
 
-function devBinaryPath(): string {
+/**
+ * Where a developer build of the sim lands: the workspace's own `target`
+ * directory at the repository root (the crate is `apps/server`).
+ */
+export function devBinaryPath(): string {
   return path.join(
     __dirname,
     "..",
     "..",
     "..",
-    "simulation",
+    "..",
     "target",
     "release",
     platformBinaryName(),
@@ -432,7 +436,7 @@ async function startSimOnce(
   if (!bin) {
     suppliedLock?.release();
     throw new Error(
-      `simulation binary not found. Expected at ${packagedBinaryPath()} (packaged) or build it via \`cargo build --release\` in simulation/.`,
+      `simulation binary not found. Expected at ${packagedBinaryPath()} (packaged) or ${devBinaryPath()} (dev): build it with \`cargo build --release --bin simulation-rs\` at the repository root (or \`make build-sim\`).`,
     );
   }
 
