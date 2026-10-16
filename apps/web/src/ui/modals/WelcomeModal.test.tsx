@@ -81,6 +81,17 @@ describe('WelcomeModal', () => {
     expect(window.localStorage.getItem('thb-welcome-seen-v1')).toBe('1')
   })
 
+  it('leaves keys alone while another control outside the card has focus', () => {
+    mount()
+    const other = document.createElement('button')
+    document.body.append(other)
+    act(() => other.focus())
+    press(other, 'Escape')
+    press(other, 'Tab')
+    expect(document.querySelector('.welcome-modal')).not.toBeNull()
+    expect(document.activeElement).toBe(other)
+  })
+
   it('Escape skips the welcome and does not show it again', () => {
     mount()
     press(document.querySelector('.welcome-modal')!, 'Escape')

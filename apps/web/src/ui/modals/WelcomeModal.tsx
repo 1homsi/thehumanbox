@@ -51,6 +51,13 @@ export function WelcomeModal() {
   useEffect(() => {
     if (!open) return
     const onKey = (e: globalThis.KeyboardEvent) => {
+      // Keys typed in another overlay or field belong to it; only the card and the bare page are ours.
+      const target = e.target
+      const ours =
+        target === document.body ||
+        target === document.documentElement ||
+        (target instanceof Node && cardRef.current?.contains(target))
+      if (e.defaultPrevented || !ours) return
       if (e.key === 'Escape') {
         e.preventDefault()
         finish(false)
