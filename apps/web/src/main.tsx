@@ -28,7 +28,7 @@ setTimeout(() => {
   if (hint && !document.getElementById('thb-splash')?.classList.contains('hide')) {
     hint.classList.add('show')
   }
-  reload?.addEventListener('click', () => reloadAppSafely(), { once: true })
+  reload?.addEventListener('click', () => reloadAppSafely())
 }, 15_000)
 setTimeout(hideSplash, 30_000)
 
