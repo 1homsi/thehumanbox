@@ -2,9 +2,13 @@ import { isPhoneViewport } from './phone'
 
 export const IS_MOBILE: boolean = isPhoneViewport()
 
+/** A touch-first device (phone in any orientation, tablet): no mouse or trackpad is the primary input. */
+const IS_TOUCH_DEVICE: boolean =
+  typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse) and (hover: none)').matches
+
 export const LOW_PERF: boolean = (() => {
   if (typeof window === 'undefined') return false
-  if (IS_MOBILE) return true
+  if (IS_MOBILE || IS_TOUCH_DEVICE) return true
   try {
     const params = new URLSearchParams(window.location.search)
     if (params.get('perf') === 'low') return true
