@@ -551,11 +551,26 @@ function revealWindow(win: BrowserWindow): void {
   win.focus();
 }
 
+// Entry points with no caller to receive a rejection (hotkey, dock, tray,
+// second launch). A rejection left unhandled reaches the uncaughtException
+// handler, which quits the app and stops the simulation; report it instead.
+function openWindowOrReport(): Promise<void> {
+  return openWindow().catch((err: unknown) => {
+    console.error("[main] could not open the window:", err);
+    if (!isQuitting) {
+      dialog.showErrorBox(
+        "The Human Box couldn't open its window",
+        (err as Error)?.message ?? String(err),
+      );
+    }
+  });
+}
+
 function showExistingWindow(): void {
   // No window: macOS keeps the app alive after its window closed, or boot is
   // still loading. openWindow joins a creation already in flight.
   if (!mainWindow || mainWindow.isDestroyed()) {
-    void openWindow();
+    void openWindowOrReport();
     return;
   }
   if (mainWindow.isMinimized()) mainWindow.restore();
@@ -577,7 +592,7 @@ function openWindow(): Promise<void> {
 
 function toggleWindow(): void {
   if (!mainWindow) {
-    void openWindow();
+    void openWindowOrReport();
     return;
   }
   if (mainWindow.isMinimized()) {
@@ -597,10 +612,7 @@ function notifyMilestone(title: string, body: string): void {
   const n = new Notification({ title, body, silent: false });
   // A click brings the game forward. It must not hide a window that is
   // already visible, which is what the tray and hotkey toggle does.
-  n.on("click", () => {
-    if (mainWindow && !mainWindow.isDestroyed()) showExistingWindow();
-    else void createWindow();
-  });
+  n.on("click", () => showExistingWindow());
   n.show();
 }
 
@@ -832,7 +844,11 @@ async function boot(): Promise<void> {
   if (!tray && mainWindow && !mainWindow.isVisible()) revealWindow(mainWindow);
   applyAutoLaunch();
   initUpdater(() => mainWindow);
-  onUnexpectedSimExit(({ code, signal }) => void offerSimRestart(code, signal));
+  onUnexpectedSimExit(({ code, signal }) =>
+    void offerSimRestart(code, signal).catch((err) =>
+      console.error("[main] sim exit prompt failed:", err),
+    ),
+  );
 
   // System-wide, so keep it to a combo other apps do not use. DevTools and
   // screenshot are menu accelerators only: registering them globally stole
@@ -944,7 +960,7 @@ app.on("before-quit", (e) => {
 
 app.on("activate", async () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    await openWindow();
+    await openWindowOrReport();
   } else if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
     // A dock click on an app that started hidden (tray only).
     toggleWindow();
