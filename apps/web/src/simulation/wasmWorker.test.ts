@@ -130,10 +130,9 @@ afterEach(() => {
 
 describe('browser simulation scheduling', () => {
   it('transfers binary MessagePack frames from the worker', () => {
-    expect(worker.postMessage).toHaveBeenCalledWith(
-      { type: 'frame', frame: new Uint8Array([0x80]) },
-      [expect.any(ArrayBuffer)],
-    )
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'frame', frame: new Uint8Array([0x80]) }, [
+      expect.any(ArrayBuffer),
+    ])
   })
 
   it('accepts a safe reload while WASM is still booting', async () => {
