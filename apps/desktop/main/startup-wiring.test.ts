@@ -78,6 +78,7 @@ test("boot registers app IPC before creating the window and stops the sim on fat
       if (id === "./updater") return {};
       if (id === "node:fs") return { readFileSync: () => { throw new Error("no saved bounds"); } };
       if (id === "./app-version-arg") return { appVersionArgument: (v: string) => `--thb-app-version=${v}` };
+      if (id === "./app-icon") return { appIconPath: () => "/tmp/icon.png" };
       if (id === "node:path") return path;
       return {};
     },

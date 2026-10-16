@@ -23,6 +23,7 @@ import { sanitizeWindowState, type WindowState } from "./window-state";
 import { atomicReplaceFile } from "./world-safety";
 import { appVersionArgument } from "./app-version-arg";
 import { loginItemSettings, shouldStartHidden } from "./login-launch";
+import { appIconPath } from "./app-icon";
 import { restartFailurePrompt } from "./restart-recovery";
 import {
   deferErrorDialog,
@@ -181,7 +182,7 @@ async function createWindow(): Promise<void> {
     minHeight: 700,
     title: "The Human Box",
     backgroundColor: "#0c0a08",
-    icon: path.join(__dirname, "..", "..", "build", "icon.png"),
+    icon: appIconPath(app.isPackaged, process.resourcesPath, __dirname),
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     titleBarOverlay:
       process.platform !== "darwin"
@@ -438,7 +439,7 @@ async function createWindowReplace(): Promise<void> {
 function buildTray(): void {
   if (tray) return;
   try {
-    const iconPath = path.join(__dirname, "..", "..", "build", "icon.png");
+    const iconPath = appIconPath(app.isPackaged, process.resourcesPath, __dirname);
     let img = nativeImage.createFromPath(iconPath);
     if (process.platform === "darwin") {
       img = img.resize({ width: 18, height: 18 });
