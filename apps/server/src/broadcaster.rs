@@ -45,7 +45,7 @@ impl Broadcaster {
                         let full = tokio::task::block_in_place(|| {
                             encode_frame(snapshot, frame_id, now_ms(), "full")
                         })
-                        .map(Arc::new);
+                        .map(Bytes::from);
                         match full {
                             Some(full) => {
                                 if let Ok(mut slot) = latest_full_w.write() {
@@ -131,7 +131,7 @@ pub(super) struct FrameCadence {
 }
 
 /// One encoded frame, shared by every subscriber (a refcounted clone).
-pub(super) type EncodedFrame = Arc<Vec<u8>>;
+pub(super) type EncodedFrame = Bytes;
 
 /// The JSON values one broadcast cycle builds while it holds the sim lock.
 pub(super) struct CycleValues {
@@ -220,7 +220,7 @@ pub(super) fn encode_cycle(
                 (main_build + encode_started.elapsed()).as_millis() as u64,
                 Some(kind),
             );
-            Some(Arc::new(bytes))
+            Some(Bytes::from(bytes))
         }
         None => {
             stats.record_encode_failure();
@@ -230,7 +230,7 @@ pub(super) fn encode_cycle(
     };
     let heavy = deep_full.and_then(|v| {
         encode_frame(v, frame_id, now(), "full")
-            .map(Arc::new)
+            .map(Bytes::from)
             .or_else(|| {
                 stats.record_encode_failure();
                 None
@@ -389,12 +389,12 @@ mod tests {
                 "cycle {cycle}: the reference frame encoded"
             );
             assert_eq!(
-                encoded.frame.as_deref().map(Vec::as_slice),
+                encoded.frame.as_deref(),
                 want.as_deref(),
                 "cycle {cycle}: main frame differs"
             );
             assert_eq!(
-                encoded.deep_full.as_deref().map(Vec::as_slice),
+                encoded.deep_full.as_deref(),
                 want_deep.as_deref(),
                 "cycle {cycle}: deep full frame differs"
             );

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use axum::body::Bytes;
 use axum::{
     extract::ws::{Message, WebSocket},
     extract::{Path, State, WebSocketUpgrade},
@@ -297,7 +298,7 @@ pub async fn snapshot_handler(State(s): State<AppState>) -> Result<impl IntoResp
                     "public, max-age=2, s-maxage=2".to_string(),
                 ),
             ],
-            arc.as_ref().clone(),
+            arc,
         )),
         None => Err(StatusCode::SERVICE_UNAVAILABLE),
     }
@@ -803,7 +804,7 @@ fn read_self_rss_kb() -> u64 {
 
 async fn handle_socket(
     mut socket: WebSocket,
-    mut rx: broadcast::Receiver<Arc<Vec<u8>>>,
+    mut rx: broadcast::Receiver<Bytes>,
     _sim: SharedSim,
     latest_full: LatestFull,
     transport_stats: SharedTransportStats,
@@ -819,7 +820,7 @@ async fn handle_socket(
             result = rx.recv() => {
                 match result {
                     Ok(msg) => {
-                        if socket.send(Message::Binary(msg.as_ref().clone().into())).await.is_err() { break; }
+                        if socket.send(Message::Binary(msg)).await.is_err() { break; }
                         transport_stats.record_sent();
                     }
                     Err(broadcast::error::RecvError::Lagged(skipped)) => {
@@ -833,14 +834,13 @@ async fn handle_socket(
                             // directly so the laggy client catches up
                             // immediately instead of running stale for
                             // minutes.
-                            // Snapshot the Arc<Vec<u8>> while we hold the
+                            // Snapshot the cached frame (a refcount clone) while we hold the
                             // RwLockReadGuard, then drop the guard before
                             // .await - guards aren't Send across awaits.
-                            let payload: Option<Arc<Vec<u8>>> = latest_full.read().ok()
+                            let payload: Option<Bytes> = latest_full.read().ok()
                                 .and_then(|slot| slot.clone());
                             if let Some(full) = payload {
-                                let bytes: Vec<u8> = full.as_ref().clone();
-                                if socket.send(Message::Binary(bytes.into())).await.is_err() {
+                                if socket.send(Message::Binary(full)).await.is_err() {
                                     break;
                                 }
                                 transport_stats.record_sent();
