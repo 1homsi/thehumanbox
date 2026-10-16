@@ -4,8 +4,13 @@ import * as path from "node:path";
 import test from "node:test";
 import * as vm from "node:vm";
 
-function loadIndex(options: { singleInstance: boolean; calls: string[] }) {
+function loadIndex(options: {
+  singleInstance: boolean;
+  calls: string[];
+  startSim?: () => Promise<{ port: number }>;
+}) {
   const calls = options.calls;
+  let activate: (() => Promise<void>) | undefined;
   let boot: (() => Promise<void>) | undefined;
   let onFailure: ((error: unknown) => Promise<void>) | undefined;
   let exitedWith: number | undefined;
@@ -13,6 +18,10 @@ function loadIndex(options: { singleInstance: boolean; calls: string[] }) {
   let stopBehavior: "resolve" | "reject" | "hang" = "resolve";
 
   class FakeWindow {
+    static getAllWindows() {
+      return [];
+    }
+
     constructor() {
       calls.push("window:create");
       throw new Error("malformed window state");
@@ -23,7 +32,9 @@ function loadIndex(options: { singleInstance: boolean; calls: string[] }) {
     setName() {},
     isPackaged: true,
     getVersion: () => "0.0.0-test",
-    on() {},
+    on(event: string, handler: () => Promise<void>) {
+      if (event === "activate") activate = handler;
+    },
     requestSingleInstanceLock: () => {
       calls.push("app:singleInstanceLock");
       return options.singleInstance;
@@ -69,9 +80,9 @@ function loadIndex(options: { singleInstance: boolean; calls: string[] }) {
       if (id === "./exclusive-operation") return { runExclusiveDesktopOperation: async (fn: () => Promise<void>) => fn() };
       if (id === "./sim-process") {
         return {
-          startSim: async () => {
+          startSim: () => {
             calls.push("sim:start");
-            return { port: 8000 };
+            return options.startSim ? options.startSim() : Promise.resolve({ port: 8000 });
           },
           stopSim: async () => {
             calls.push("sim:stop");
@@ -96,6 +107,9 @@ function loadIndex(options: { singleInstance: boolean; calls: string[] }) {
   return {
     get boot() {
       return boot;
+    },
+    get activate() {
+      return activate;
     },
     get onFailure() {
       return onFailure;
@@ -154,4 +168,23 @@ test("a second launch quits before booting, so it never opens a window or starts
   assert.ok(calls.includes("app:singleInstanceLock"));
   assert.ok(calls.includes("app:quit"));
   assert.equal(calls.some((call) => call === "window:create" || call === "sim:start"), false);
+});
+
+test("a window asked for again while the first is still starting is shared, not duplicated", async () => {
+  const calls: string[] = [];
+  let releaseSim!: (sim: { port: number }) => void;
+  const pendingSim = new Promise<{ port: number }>((resolve) => {
+    releaseSim = resolve;
+  });
+  const wiring = loadIndex({ singleInstance: true, calls, startSim: () => pendingSim });
+  assert.ok(wiring.activate);
+
+  // A dock click and a second click land while startSim is still loading, when
+  // mainWindow is not set yet.
+  const first = wiring.activate!();
+  const second = wiring.activate!();
+  releaseSim({ port: 8000 });
+  await Promise.allSettled([first, second]);
+
+  assert.equal(calls.filter((call) => call === "window:create").length, 1);
 });

@@ -552,14 +552,32 @@ function revealWindow(win: BrowserWindow): void {
 }
 
 function showExistingWindow(): void {
-  if (!mainWindow || mainWindow.isDestroyed()) return;
+  // No window: macOS keeps the app alive after its window closed, or boot is
+  // still loading. openWindow joins a creation already in flight.
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    void openWindow();
+    return;
+  }
   if (mainWindow.isMinimized()) mainWindow.restore();
   revealWindow(mainWindow);
 }
 
+// `mainWindow` is only set once startSim resolves, so a second trigger during
+// that wait (dock click, hotkey, tray) would open another window. Share the
+// creation in flight instead.
+let windowCreation: Promise<void> | null = null;
+function openWindow(): Promise<void> {
+  if (!windowCreation) {
+    windowCreation = createWindow().finally(() => {
+      windowCreation = null;
+    });
+  }
+  return windowCreation;
+}
+
 function toggleWindow(): void {
   if (!mainWindow) {
-    void createWindow();
+    void openWindow();
     return;
   }
   if (mainWindow.isMinimized()) {
@@ -801,7 +819,7 @@ async function boot(): Promise<void> {
   } catch {
     startHiddenOnce = false;
   }
-  await createWindow();
+  await openWindow();
   if (isQuitting) return;
   buildMenu();
   buildTray();
@@ -921,7 +939,7 @@ app.on("before-quit", (e) => {
 
 app.on("activate", async () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    await createWindow();
+    await openWindow();
   } else if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
     // A dock click on an app that started hidden (tray only).
     toggleWindow();
