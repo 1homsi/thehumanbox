@@ -219,6 +219,21 @@ async function checkViewport(origin, width, height, index) {
       try {
         const cx = width / 2
         const cy = Math.round(height * 0.45)
+        // MOB-14: the on-screen zoom control must zoom the map on a touch tap.
+        const zoomBefore = (await page.evaluate('window.__thbBench.camera()')).zoom
+        const zoomBtn = await page.evaluate(`(() => {
+          const el = document.querySelector('.map-controls [aria-label="Zoom in"]')
+          if (!el) return null
+          const r = el.getBoundingClientRect()
+          return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }
+        })()`)
+        if (!zoomBtn) throw new Error('the on-screen zoom-in control is missing on a phone')
+        await touch(page, 'touchStart', [{ id: 1, x: zoomBtn.x, y: zoomBtn.y }])
+        await touch(page, 'touchEnd', [])
+        await sleep(400)
+        const zoomAfter = (await page.evaluate('window.__thbBench.camera()')).zoom
+        if (!(zoomAfter > zoomBefore + 0.001))
+          throw new Error(`the zoom-in control did not zoom (${zoomBefore} -> ${zoomAfter})`)
         // A fit camera has no pan range on the compact standard fixture. Zoom in first.
         await page.evaluate('window.__thbBench.command({kind:"zoom", factor:3})')
         await sleep(300)

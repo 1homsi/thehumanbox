@@ -9,6 +9,7 @@ import { TILE } from '../model/palette'
 import { CanvasCameraController } from './CanvasCameraController'
 import { World2DErrorBoundary } from './World2DErrorBoundary'
 import { WorldMapHud } from './WorldMapHud'
+import { MapControls } from './MapControls'
 import { TerritoryHoverCard } from './hover/TerritoryHoverCard'
 import { installBenchHooks } from './bench-hooks'
 import { SandboxBursts } from './SandboxBursts'
@@ -125,6 +126,20 @@ export function WorldView({
         return org ? { x: (org.x - ox + 0.5) * TILE, y: (org.y - oy + 0.5) * TILE } : null
       })()
     : null
+
+  // The map controls' "centre on the selected person" button; absent when nobody is selected.
+  const selectedOrg = selectedOrgId
+    ? world.organisms.find((o) => o.id === selectedOrgId && o.alive)
+    : undefined
+  const locateSelected = selectedOrg
+    ? () => {
+        commandRef.current = {
+          kind: 'focus',
+          x: (selectedOrg.x - ox + 0.5) * TILE,
+          y: (selectedOrg.y - oy + 0.5) * TILE,
+        }
+      }
+    : undefined
 
   const { overPrayer, handlePointerDown, handlePointerMove, handlePointerCancel, handleClick, handleTap } =
     useMapPointer({
@@ -335,6 +350,9 @@ export function WorldView({
           enabled={!sandboxArmed}
           territoryIndex={territoryIndex}
         />
+      )}
+      {mapReady && !viewFlags.hideUI && (
+        <MapControls commandRef={commandRef} onLocate={locateSelected} />
       )}
     </div>
   )
