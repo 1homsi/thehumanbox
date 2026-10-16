@@ -181,11 +181,14 @@ fn write_grid(out: &mut Vec<u8>, grid: &GridJson) {
         origin_y,
         roads,
         structure,
+        structure_delta,
         tiles,
         trails,
         width,
     } = grid;
     let optional = [
+        structure.is_some(),
+        structure_delta.is_some(),
         biomes.is_some(),
         depth_map.is_some(),
         fertility.is_some(),
@@ -195,8 +198,8 @@ fn write_grid(out: &mut Vec<u8>, grid: &GridJson) {
         tiles.is_some(),
         trails.is_some(),
     ];
-    // fire, height, origin_x, origin_y, structure and width are always present.
-    write_map_len(out, 6 + optional.iter().filter(|present| **present).count());
+    // fire, height, origin_x, origin_y and width are always present.
+    write_map_len(out, 5 + optional.iter().filter(|present| **present).count());
 
     if let Some(rows) = biomes {
         write_str(out, "biomes");
@@ -230,8 +233,14 @@ fn write_grid(out: &mut Vec<u8>, grid: &GridJson) {
         write_str(out, "roads");
         write_u16_rows(out, rows);
     }
-    write_str(out, "structure");
-    write_u16_rows(out, structure);
+    if let Some(rows) = structure {
+        write_str(out, "structure");
+        write_u16_rows(out, rows);
+    }
+    if let Some(rows) = structure_delta {
+        write_str(out, "structure_delta");
+        write_u16_rows(out, rows);
+    }
     if let Some(rows) = tiles {
         write_str(out, "tiles");
         write_i8_rows(out, rows);
@@ -423,7 +432,7 @@ mod tests {
     /// the width boundaries, in a hand-built grid.
     #[test]
     fn grid_layers_match_rmp_serde_in_every_combination() {
-        for mask in 0..256u32 {
+        for mask in 0..1024u32 {
             let has = |bit: u32| mask & (1 << bit) != 0;
             let grid = GridJson {
                 biomes: has(0).then(|| vec![vec![0, 127, 128, 255]; 3]),
@@ -436,7 +445,8 @@ mod tests {
                 origin_x: -17,
                 origin_y: 70_000,
                 roads: has(7).then(|| vec![[0, 1, 1], [299, 599, 2]]),
-                structure: Vec::new(),
+                structure: has(8).then(Vec::new),
+                structure_delta: has(9).then(|| vec![[1, 2, 0]]),
                 tiles: has(5).then(|| vec![vec![-128, -33, -32, -1, 0, 1, 127]; 4]),
                 trails: has(6).then(|| vec![[1, 2, 3, 4, 65_535]]),
                 width: 600,

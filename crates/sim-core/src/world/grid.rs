@@ -971,7 +971,8 @@ impl WorldGrid {
             origin_y: oy as i32,
             tiles,
             fire,
-            structure,
+            structure: Some(structure),
+            structure_delta: None,
             biomes,
             depth_map,
             trails,
@@ -1126,7 +1127,8 @@ impl WorldGrid {
             origin_y: oy as i32,
             tiles,
             fire,
-            structure,
+            structure: Some(structure),
+            structure_delta: None,
             biomes,
             depth_map,
             trails,
@@ -1246,7 +1248,14 @@ pub struct GridJson {
     /// Road cells as `[row, col, kind]` (see `ROAD_*`), absent on frames without static layers.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub roads: Option<Vec<[u16; 3]>>,
-    pub structure: Vec<[u16; 3]>,
+    /// Every cell of the structure layer as `[row, col, percent]`. Absent on a hot frame, which
+    /// sends only `structure_delta`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub structure: Option<Vec<[u16; 3]>>,
+    /// The cells whose percent changed since the previous hot frame (0 = cleared); the client
+    /// patches the layer it holds. Sent instead of `structure` on hot frames.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub structure_delta: Option<Vec<[u16; 3]>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tiles: Option<Vec<Vec<i8>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1254,10 +1263,60 @@ pub struct GridJson {
     pub width: usize,
 }
 
+/// What changed between two structure layers (each `[row, col, percent]` in row-major order):
+/// the cells of `cur` that differ from `prev`, with 0 for cells that dropped out. A cell missing
+/// from a list reads as 0.
+pub fn structure_delta(prev: &[[u16; 3]], cur: &[[u16; 3]]) -> Vec<[u16; 3]> {
+    let mut out = Vec::new();
+    let (mut i, mut j) = (0, 0);
+    while i < prev.len() || j < cur.len() {
+        let order = match (prev.get(i), cur.get(j)) {
+            (Some(p), Some(c)) => (p[0], p[1]).cmp(&(c[0], c[1])),
+            (Some(_), None) => std::cmp::Ordering::Less,
+            _ => std::cmp::Ordering::Greater,
+        };
+        match order {
+            std::cmp::Ordering::Equal => {
+                if prev[i][2] != cur[j][2] {
+                    out.push(cur[j]);
+                }
+                i += 1;
+                j += 1;
+            }
+            std::cmp::Ordering::Less => {
+                if prev[i][2] != 0 {
+                    out.push([prev[i][0], prev[i][1], 0]);
+                }
+                i += 1;
+            }
+            std::cmp::Ordering::Greater => {
+                if cur[j][2] != 0 {
+                    out.push(cur[j]);
+                }
+                j += 1;
+            }
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::collections::VecDeque;
+
+    #[test]
+    fn structure_delta_lists_changed_added_and_dropped_cells() {
+        let prev = [[1, 1, 10], [1, 4, 0], [2, 2, 50], [5, 0, 7]];
+        let cur = [[1, 1, 10], [1, 3, 0], [1, 4, 3], [2, 2, 60], [6, 6, 20]];
+        assert_eq!(
+            structure_delta(&prev, &cur),
+            vec![[1, 4, 3], [2, 2, 60], [5, 0, 0], [6, 6, 20]]
+        );
+        assert!(structure_delta(&cur, &cur).is_empty());
+        assert_eq!(structure_delta(&[], &[[0, 0, 1]]), vec![[0, 0, 1]]);
+        assert_eq!(structure_delta(&[[0, 0, 1]], &[]), vec![[0, 0, 0]]);
+    }
 
     /// The block-skipping layer scans must emit exactly what the per-tile
     /// scans did: same entries, same order, for sparse and dense layers,
