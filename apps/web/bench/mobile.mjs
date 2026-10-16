@@ -229,6 +229,23 @@ async function checkViewport(origin, width, height, index) {
     if (touchDevice) collectTargetViolations(layout.targets, label, 'page')
     checkModalBounds(layout.modals, width, height, label)
 
+    if (touchDevice) {
+      // MOB-08 touch hygiene: no page rubber-band, and buttons react on the touch.
+      // (-webkit-touch-callout is iOS-only and not exposed in Chrome, so it is not checked here.)
+      const hygiene = await page.evaluate(`(() => {
+        const tile = document.querySelector('.dock-tile')
+        return {
+          overflow: getComputedStyle(document.documentElement).overscrollBehavior,
+          touchAction: tile ? getComputedStyle(tile).touchAction : null,
+        }
+      })()`)
+      if (hygiene.overflow !== 'none')
+        viewportFailures.push(`html overscroll-behavior is ${hygiene.overflow}, expected none`)
+      if (hygiene.touchAction === null) viewportFailures.push('no .dock-tile found for the touch-action check')
+      else if (hygiene.touchAction !== 'manipulation')
+        viewportFailures.push(`dock tile touch-action is ${hygiene.touchAction}, expected manipulation`)
+    }
+
     if (width === 390 && height === 844 && !skipInteractions) {
       try {
         const cx = width / 2

@@ -22,10 +22,31 @@ body {
   overflow: hidden;
 }
 
+/* A game, not a document: no pull-to-refresh and no rubber-banding when a drag reaches the
+ * edge. (overflow:hidden does not stop the rubber band on iOS Safari, this does.) */
+html,
+body {
+  overscroll-behavior: none;
+}
+
 button,
 a,
 [role='button'] {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Buttons react on the touch (no double-tap-zoom delay) and do not offer the iOS long-press
+ * callout. touch-action: manipulation still lets a dock tab strip pan. */
+button,
+[role='button'] {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+/* The map is dragged and long-pressed; no callout there. (Dock tiles are buttons, covered
+ * by the rule above.) */
+.map2d-world {
+  -webkit-touch-callout: none;
 }
 
 :focus {
