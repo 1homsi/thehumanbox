@@ -31,6 +31,7 @@ function harness(options: { failWindow?: boolean } = {}) {
     isDestroyed() { return this.destroyed }
     isMinimized() { return false }
     isVisible() { return this.visible }
+    isAlwaysOnTop() { return false }
     show() { this.calls.push('show'); this.visible = true }
     hide() { this.calls.push('hide'); this.visible = false }
     focus() { this.calls.push('focus') }
@@ -59,6 +60,7 @@ function harness(options: { failWindow?: boolean } = {}) {
         return {
           app,
           BrowserWindow: FakeWindow,
+          Menu: { setApplicationMenu() {}, buildFromTemplate: () => ({}) },
           Notification: FakeNotification,
           dialog: { showErrorBox: (title: string) => errorBoxes.push(title) },
         }
