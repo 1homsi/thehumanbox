@@ -29,10 +29,7 @@ setTimeout(() => {
   if (hint && !document.getElementById('thb-splash')?.classList.contains('hide')) {
     hint.classList.add('show')
   }
-  const startupPending = isDesktopStartupPending(
-    !!window.thbDesktop,
-    window.location.search,
-  )
+  const startupPending = isDesktopStartupPending(!!window.thbDesktop, window.location.search)
   if (startupPending && reload) reload.hidden = true
   if (!startupPending) reload?.addEventListener('click', () => reloadAppSafely())
 }, 15_000)

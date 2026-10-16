@@ -502,8 +502,15 @@ function buildMenu(): void {
 
 async function createWindowReplace(): Promise<void> {
   const old = mainWindow;
-  await createWindow();
-  await windowStartup;
+  try {
+    await createWindow();
+    await windowStartup;
+  } catch (error) {
+    // The old renderer is already disconnected from the stopped sim. If a
+    // replacement window was created, keep only its startup error page open.
+    if (old && mainWindow !== old && !old.isDestroyed()) old.close();
+    throw error;
+  }
   if (old && !old.isDestroyed()) old.close();
 }
 

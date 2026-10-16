@@ -110,10 +110,7 @@ function App() {
 function LiveApp() {
   const worldSourceRef = useRef(getWorldSource())
   const desktop = getDesktop()
-  const desktopStartupPending = isDesktopStartupPending(
-    !!desktop,
-    window.location.search,
-  )
+  const desktopStartupPending = isDesktopStartupPending(!!desktop, window.location.search)
   const isLocalWebWorld = !desktop && worldSourceRef.current === 'wasm'
   const [desktopMode, setDesktopMode] = useState<SimMode | null>(desktop ? null : 'local')
   const [desktopPauseWhenHidden, setDesktopPauseWhenHidden] = useState(true)

@@ -18,6 +18,7 @@ function loadIndex(options: {
   let exitedWith: number | undefined;
   let simStopped = false;
   let stopBehavior: "resolve" | "reject" | "hang" = "resolve";
+  let failRuntimeLoad = options.failRuntimeLoad ?? false;
 
   class FakeWindow {
     static getAllWindows() {
@@ -46,6 +47,9 @@ function loadIndex(options: {
     show() {
       calls.push("window:show");
     }
+    close() {
+      calls.push("window:close");
+    }
     isVisible() { return true }
     isDestroyed() { return false }
     isMinimized() { return false }
@@ -71,7 +75,7 @@ function loadIndex(options: {
     calls.push("renderer:splash");
     if (query.api) {
       calls.push("renderer:runtime");
-      if (options.failRuntimeLoad) throw new Error("runtime renderer failed");
+      if (failRuntimeLoad) throw new Error("runtime renderer failed");
     }
   };
 
@@ -174,6 +178,12 @@ function loadIndex(options: {
     get exitedWith() {
       return exitedWith;
     },
+    replaceWindow() {
+      return vm.runInContext("createWindowReplace()", context) as Promise<void>;
+    },
+    setFailRuntimeLoad(value: boolean) {
+      failRuntimeLoad = value;
+    },
     setStopBehavior(mode: "resolve" | "reject" | "hang") {
       stopBehavior = mode;
     },
@@ -262,6 +272,27 @@ test("a failed runtime renderer load stops the simulation behind the error page"
   assert.ok(calls.includes("renderer:runtime"));
   assert.ok(calls.includes("sim:stop"));
   assert.ok(calls.includes("window:error-page"));
+});
+
+test("a failed replacement renderer closes the old window after stopping its sim", async () => {
+  const calls: string[] = [];
+  const wiring = loadIndex({
+    singleInstance: true,
+    calls,
+    allowWindow: true,
+    startSim: async () => ({ port: 8000 }),
+  });
+
+  await wiring.boot!();
+  await new Promise((resolve) => setImmediate(resolve));
+  wiring.setFailRuntimeLoad(true);
+
+  await assert.rejects(wiring.replaceWindow(), /runtime renderer failed/);
+
+  assert.equal(calls.filter((call) => call === "window:create").length, 2);
+  assert.ok(calls.includes("sim:stop"));
+  assert.ok(calls.includes("window:error-page"));
+  assert.equal(calls.filter((call) => call === "window:close").length, 1);
 });
 
 test("a window that fails to open from the dock is reported, not left unhandled", async () => {
