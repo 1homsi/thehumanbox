@@ -290,6 +290,50 @@ describe('mergeFrame null-clear identity stability', () => {
     return { caches, org: caches.organisms.get('a')! }
   }
 
+  it('does not carry sparse values from one reused SoA row into the next', () => {
+    const caches = emptyCaches()
+    mergeFrame(
+      baseFrame({
+        frame_kind: 'full',
+        organisms_complete: true,
+        organisms: [
+          { id: 'a', name: 'Alia' } as unknown as OrganismState,
+          { id: 'b', name: 'Bora' } as unknown as OrganismState,
+        ],
+      }),
+      caches,
+    )
+
+    mergeFrame(
+      baseFrame({
+        frame_id: 2,
+        organisms_hot: {
+          ids: ['a', 'b'],
+          thoughts: [[0, 'wandering']],
+          partner_ids: [[0, 'b']],
+          attracted_tos: [[0, 'b']],
+          target_xs: [120, -32768],
+          target_ys: [130, -32768],
+        },
+      } as Partial<IncomingWorldFrame>),
+      caches,
+    )
+
+    expect(caches.organisms.get('a')).toMatchObject({
+      thought: 'wandering',
+      partner_id: 'b',
+      attracted_to: 'b',
+      target_x: 120,
+      target_y: 130,
+    })
+    const second = caches.organisms.get('b')!
+    expect('thought' in second).toBe(false)
+    expect('partner_id' in second).toBe(false)
+    expect('attracted_to' in second).toBe(false)
+    expect('target_x' in second).toBe(false)
+    expect('target_y' in second).toBe(false)
+  })
+
   it('reuses the cached organism when the wire clears a never-set field', () => {
     const { caches, org } = seed()
     expect('target_x' in org).toBe(false)

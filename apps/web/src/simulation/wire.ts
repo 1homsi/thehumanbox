@@ -183,9 +183,9 @@ function isSparseStringArray(a: unknown): a is Array<[number, string]> {
   return Array.isArray(first) && first.length === 2 && typeof first[0] === 'number'
 }
 
-export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
+/** Visit each decoded row synchronously. The callback must not retain `org`, which is reused. */
+export function forEachOrgSoa(soa: OrgsHotSoa, visit: (org: ExpandedOrgDelta) => void): void {
   const n = soa.ids.length
-  const out: ExpandedOrgDelta[] = new Array(n)
   const hasAges = Array.isArray(soa.ages)
   const hasAlives = Array.isArray(soa.alives)
 
@@ -243,13 +243,39 @@ export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
   const hasCarryT = Array.isArray(soa.carrying_types)
   const hasPreg = Array.isArray(soa.pregnants)
 
+  // Reuse one fixed-shape record for the synchronous merge callback. This
+  // avoids allocating an ExpandedOrgDelta object for every organism on
+  // every hot frame. Clear all optional fields before filling this row so
+  // absent columns retain their existing "unchanged" meaning.
+  const entry: ExpandedOrgDelta = {
+    id: '',
+    x: undefined,
+    y: undefined,
+    vx: undefined,
+    vy: undefined,
+    target_x: undefined,
+    target_y: undefined,
+    energy: undefined,
+    hydration: undefined,
+    health: undefined,
+    infection: undefined,
+    fear_level: undefined,
+    carrying: undefined,
+    carrying_type: undefined,
+    pregnant: undefined,
+    partner_id: undefined,
+    attracted_to: undefined,
+    alive: undefined,
+    age: undefined,
+    thought: undefined,
+  }
   for (let i = 0; i < n; i++) {
-    // Partial<OrganismState> means every field is optional, so we
-    // can build the entry incrementally and skip any SoA column the
-    // server dropped this frame. The cache merge in mergeFrame
-    // preserves the prior value for omitted fields, which is exactly
-    // the no-change semantic the wire intends.
-    const entry: ExpandedOrgDelta = { id: soa.ids[i] }
+    entry.id = soa.ids[i]
+    entry.x = entry.y = entry.vx = entry.vy = undefined
+    entry.target_x = entry.target_y = entry.energy = entry.hydration = undefined
+    entry.health = entry.infection = entry.fear_level = undefined
+    entry.carrying = entry.carrying_type = entry.pregnant = undefined
+    entry.partner_id = entry.attracted_to = entry.alive = entry.age = entry.thought = undefined
     if (hasXs) entry.x = soa.xs![i] / 10
     if (hasYs) entry.y = soa.ys![i] / 10
     if (hasVxs) entry.vx = soa.vxs![i] / 10
@@ -278,8 +304,22 @@ export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
     if (hasAges) entry.age = soa.ages![i]
     // `thought` is sparse - only assign when this org had a change.
     if (thoughtAt[i] !== undefined) entry.thought = thoughtAt[i]
-    out[i] = entry
+    visit(entry)
   }
+}
+
+export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
+  const out: ExpandedOrgDelta[] = []
+  forEachOrgSoa(soa, (org) => {
+    const copy: ExpandedOrgDelta = { id: org.id }
+    const copyRecord = copy as Record<string, unknown>
+    for (const key in org) {
+      if (key !== 'id' && org[key as keyof ExpandedOrgDelta] !== undefined) {
+        copyRecord[key] = org[key as keyof ExpandedOrgDelta]
+      }
+    }
+    out.push(copy)
+  })
   return out
 }
 
