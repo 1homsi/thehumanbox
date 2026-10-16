@@ -9,6 +9,7 @@ function loadIndex(options: {
   calls: string[];
   startSim?: () => Promise<{ port: number }>;
   allowWindow?: boolean;
+  failRuntimeLoad?: boolean;
 }) {
   const calls = options.calls;
   let activate: (() => Promise<void>) | undefined;
@@ -39,7 +40,9 @@ function loadIndex(options: {
       },
     };
     on() {}
-    async loadURL() {}
+    async loadURL() {
+      calls.push("window:error-page");
+    }
     show() {
       calls.push("window:show");
     }
@@ -64,8 +67,12 @@ function loadIndex(options: {
     autoLaunch: false,
     startMinimized: false,
   };
-  const loadRenderer = async () => {
+  const loadRenderer = async (_win: unknown, _file: string, query: Record<string, string>) => {
     calls.push("renderer:splash");
+    if (query.api) {
+      calls.push("renderer:runtime");
+      if (options.failRuntimeLoad) throw new Error("runtime renderer failed");
+    }
   };
 
   const app = {
@@ -134,7 +141,7 @@ function loadIndex(options: {
             if (stopBehavior === "hang") return new Promise<void>(() => {});
             simStopped = true;
           },
-          activeSim: () => null,
+          activeSim: () => ({ port: 8000 }),
           onUnexpectedSimExit() {},
           simLifecyclePending: () => false,
         };
@@ -237,6 +244,24 @@ test("the desktop splash is shown before boot waits for the simulation", async (
   assert.ok(windowShown > splashLoaded);
   assert.ok(simStarted > windowShown);
   assert.ok(calls.indexOf("updater:init") < simStarted);
+});
+
+test("a failed runtime renderer load stops the simulation behind the error page", async () => {
+  const calls: string[] = [];
+  const wiring = loadIndex({
+    singleInstance: true,
+    calls,
+    allowWindow: true,
+    failRuntimeLoad: true,
+    startSim: async () => ({ port: 8000 }),
+  });
+
+  await wiring.boot!();
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.ok(calls.includes("renderer:runtime"));
+  assert.ok(calls.includes("sim:stop"));
+  assert.ok(calls.includes("window:error-page"));
 });
 
 test("a window that fails to open from the dock is reported, not left unhandled", async () => {

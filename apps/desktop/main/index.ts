@@ -332,11 +332,20 @@ async function createWindow(): Promise<void> {
   const startup = startSim(settings)
     .then(async (sim) => {
       if (isQuitting || win.isDestroyed()) return;
-      await loadRenderer(win, rendererFile, {
-        desktop: "1",
-        api: `127.0.0.1:${sim.port}`,
-        token: sim.commandToken,
-      });
+      try {
+        await loadRenderer(win, rendererFile, {
+          desktop: "1",
+          api: `127.0.0.1:${sim.port}`,
+          token: sim.commandToken,
+        });
+      } catch (error) {
+        if (activeSim()?.port === sim.port) {
+          await stopSim().catch((stopError: unknown) =>
+            console.error("[main] could not stop sim after renderer load failure:", stopError),
+          );
+        }
+        throw error;
+      }
     })
     .catch(async (err: unknown) => {
       if (isQuitting || win.isDestroyed()) return;
