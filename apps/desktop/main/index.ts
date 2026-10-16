@@ -24,9 +24,14 @@ import { atomicReplaceFile } from "./world-safety";
 import { appVersionArgument } from "./app-version-arg";
 import { loginItemSettings, shouldStartHidden } from "./login-launch";
 import { restartFailurePrompt } from "./restart-recovery";
+import {
+  deferErrorDialog,
+  drainDeferredErrorDialog,
+  withErrorDialog,
+} from "./error-dialog";
 import { registerIpc } from "./ipc";
 import { startWhenReady } from "./startup-lifecycle";
-import { runExclusiveDesktopOperation } from "./exclusive-operation";
+import { runExclusiveDesktopOperation, currentDesktopOperation } from "./exclusive-operation";
 import { startSim, stopSim, activeSim, onUnexpectedSimExit } from "./sim-process";
 import { loadSettings, prepareDataRoot, type Settings } from "./settings";
 import {
@@ -628,8 +633,13 @@ function registerAppIpcHandlers(): void {
   });
 }
 
+// The control-plane operation a File-menu restart runs under. Named once so the
+// deferred unexpected-exit prompt can tell an in-flight restart (the sim is
+// coming back) from an unrelated operation (a migration, say).
+const RESTART_OPERATION = "restart the simulation";
+
 async function restartSimulation(options: { requireCheckpoint?: boolean } = {}): Promise<void> {
-  await runExclusiveDesktopOperation("restart the simulation", async () => {
+  await runExclusiveDesktopOperation(RESTART_OPERATION, async () => {
     await stopSim(5_000, options.requireCheckpoint ?? true);
     if (mainWindow) {
       await createWindowReplace();
@@ -646,7 +656,16 @@ async function restartSimulationFromMenu(): Promise<void> {
     await restartSimulation();
   } catch (error) {
     if (isQuitting) return;
-    const prompt = restartFailurePrompt(error);
+    await showRestartFailure(error);
+  }
+}
+
+// Shows the restart-failure prompt, or defers it when another error dialog owns
+// the screen (the sim could have died while the user was choosing this menu
+// item). Shared by the menu action and its own deferred re-offer.
+async function showRestartFailure(error: unknown): Promise<void> {
+  const prompt = restartFailurePrompt(error);
+  const shown = await withErrorDialog("restart failure", async () => {
     const box: Electron.MessageBoxOptions = {
       type: "error",
       title: "The Human Box",
@@ -665,10 +684,32 @@ async function restartSimulationFromMenu(): Promise<void> {
         (retryError as Error)?.message ?? String(retryError),
       );
     }
+  });
+  if (shown) return;
+  if (prompt.canRetryWithoutCheckpoint) {
+    // Actionable: the sim is hung and "restart without checkpoint" is the only
+    // escape hatch. Keep it for when the other dialog closes, unless a restart
+    // replaced the hung sim in the meantime.
+    const failedSim = activeSim();
+    deferErrorDialog({
+      show: () => {
+        showRestartFailure(error).catch((err) =>
+          console.error("[main] deferred restart failure prompt failed:", err),
+        );
+      },
+      isStillRelevant: () => !isQuitting && activeSim() === failedSim,
+    });
+    // No-op while the other dialog still holds the slot; closes the window if
+    // it released between the failed claim and this defer.
+    drainDeferredErrorDialog();
+  } else {
+    // Nothing actionable is lost: the dialog that owns the screen already
+    // offers a restart. Log the detail so the swallowed failure is not invisible.
+    console.warn(
+      `[main] restart failure not shown; another error dialog is open: ${prompt.detail}`,
+    );
   }
 }
-
-let simExitDialogOpen = false;
 
 // The sim child died on its own (crash, OOM, or the server ending itself after
 // its tick loop panicked). The window would otherwise sit on a frozen map.
@@ -676,9 +717,10 @@ async function offerSimRestart(
   code: number | null,
   signal: NodeJS.Signals | null,
 ): Promise<void> {
-  if (simExitDialogOpen || isQuitting) return;
-  simExitDialogOpen = true;
-  try {
+  if (isQuitting) return;
+  // Shares the single error-dialog slot with the restart-failure prompt: a
+  // child that dies while that prompt is open must not stack a second box.
+  const shown = await withErrorDialog("unexpected exit", async () => {
     const options: Electron.MessageBoxOptions = {
       type: "error",
       title: "The Human Box",
@@ -703,9 +745,27 @@ async function offerSimRestart(
         );
       });
     }
-  } finally {
-    simExitDialogOpen = false;
-  }
+  });
+  if (shown) return;
+  // Offer once the other dialog closes, unless a restart already brought the
+  // sim back (for example the restart prompt's "restart without checkpoint"),
+  // so a healed sim is not nagged about. A restart merely in flight (no sim
+  // installed yet) is also skipped, since that restart is the answer; any other
+  // operation still shows the prompt, so a crash is never silently dropped.
+  deferErrorDialog({
+    show: () => {
+      offerSimRestart(code, signal).catch((err) =>
+        console.error("[main] deferred sim-exit prompt failed:", err),
+      );
+    },
+    isStillRelevant: () =>
+      !isQuitting &&
+      activeSim() === null &&
+      currentDesktopOperation() !== RESTART_OPERATION,
+  });
+  // No-op while the other dialog still holds the slot; closes the window if it
+  // released between the failed claim and this defer.
+  drainDeferredErrorDialog();
 }
 
 async function boot(): Promise<void> {
