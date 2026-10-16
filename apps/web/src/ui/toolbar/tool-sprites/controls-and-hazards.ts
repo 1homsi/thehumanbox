@@ -101,6 +101,16 @@ export const controlsAndHazardSprites = {
     '.....ss.....',
   ],
   dots: ['.ww..ww..ww.', '.ww..ww..ww.'],
+  menu: [
+    '.wwwwwwwwww.',
+    '.wwwwwwwwww.',
+    '............',
+    '.wwwwwwwwww.',
+    '.wwwwwwwwww.',
+    '............',
+    '.wwwwwwwwww.',
+    '.wwwwwwwwww.',
+  ],
   crown: ['.y...y...y..', '.yy.yyy.yy..', '.yyyyyyyyy..', '.yryybyyry..', '.yyyyyyyyy..', '.RRRRRRRRR..'],
   moon: [
     '...wwww.....',

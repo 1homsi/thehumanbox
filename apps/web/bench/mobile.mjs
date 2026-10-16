@@ -76,6 +76,20 @@ async function pinch(page, cx, cy, from, to, steps = 8) {
   await touch(page, 'touchEnd', [])
 }
 
+/** Real touch tap on the first element matching `selector` (optionally one whose text contains `text`). */
+async function tapElement(page, selector, text) {
+  const point = await page.evaluate(`(() => {
+    const els = [...document.querySelectorAll(${JSON.stringify(selector)})]
+    const el = ${text ? `els.find((e) => (e.textContent || '').trim().toLowerCase().includes(${JSON.stringify(String(text).toLowerCase())}))` : 'els[0]'}
+    if (!el) return null
+    const r = el.getBoundingClientRect()
+    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }
+  })()`)
+  if (!point) throw new Error(`no element for ${selector}${text ? ` matching ${JSON.stringify(text)}` : ''}`)
+  await touch(page, 'touchStart', [{ id: 1, x: point.x, y: point.y }])
+  await touch(page, 'touchEnd', [])
+}
+
 async function waitForStableCamera(page, timeoutMs = 10_000) {
   const until = Date.now() + timeoutMs
   let previous = null
@@ -296,8 +310,32 @@ async function checkViewport(origin, width, height, index) {
 
     if (touchDevice) {
       try {
-        // The current mobile shell hides this opener; MOB-04 will provide its touch-accessible route.
-        await page.evaluate('document.querySelector("[data-tour=stats-btn]")?.click()')
+        // Phones (<=767px) hide the header action row; the phone menu is their route to Stats.
+        const menuVisible = await page.evaluate(
+          `(() => {
+            const btn = document.querySelector('.phone-menu-btn')
+            return !!btn && getComputedStyle(btn).display !== 'none'
+          })()`,
+        )
+        if (menuVisible) {
+          await tapElement(page, '.phone-menu-btn')
+          await waitFor(page, '!!document.querySelector(".phone-menu-modal")', 'phone menu')
+          await captureShot(page, `${label}-phone-menu`)
+          const menuLayout = await inspectLayout(page)
+          if (menuLayout.scrollWidth > menuLayout.innerWidth + 1)
+            viewportFailures.push(
+              `horizontal overflow with the phone menu open: ${menuLayout.scrollWidth}px > ${menuLayout.innerWidth}px`,
+            )
+          checkModalBounds(menuLayout.modals, width, height, `${label} phone menu`, true)
+          collectTargetViolations(menuLayout.targets, label, 'phone menu')
+          for (const row of ['stats', 'civilization', 'chronicles', 'settings'])
+            if (!menuLayout.targets.some((target) => target.label.toLowerCase().includes(row)))
+              viewportFailures.push(`phone menu is missing the ${row} row`)
+          await tapElement(page, '.phone-menu-row', 'stats')
+          await waitFor(page, '!document.querySelector(".phone-menu-modal")', 'phone menu closed')
+        } else {
+          await page.evaluate('document.querySelector("[data-tour=stats-btn]")?.click()')
+        }
         await waitFor(page, '!!document.querySelector(".thb-modal")', 'stats modal')
         const modalLayout = await inspectLayout(page)
         if (modalLayout.scrollWidth > modalLayout.innerWidth + 1)
