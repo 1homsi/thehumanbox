@@ -1,10 +1,5 @@
 import type { WorldState, GridState, OrganismState, AnimalState } from '../shared/types'
-import {
-  type IncomingWorldFrame,
-  applyGridWire,
-  forEachOrgSoa,
-  EMPTY_HISTORY,
-} from './wire'
+import { type IncomingWorldFrame, applyGridWire, forEachOrgSoa, EMPTY_HISTORY } from './wire'
 
 function mergeDefined<T extends object>(target: T, src: Partial<T>): T {
   let changed = false

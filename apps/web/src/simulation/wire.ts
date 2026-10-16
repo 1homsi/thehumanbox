@@ -248,11 +248,26 @@ export function forEachOrgSoa(soa: OrgsHotSoa, visit: (org: ExpandedOrgDelta) =>
   // every hot frame. Clear all optional fields before filling this row so
   // absent columns retain their existing "unchanged" meaning.
   const entry: ExpandedOrgDelta = {
-    id: '', x: undefined, y: undefined, vx: undefined, vy: undefined,
-    target_x: undefined, target_y: undefined, energy: undefined, hydration: undefined,
-    health: undefined, infection: undefined, fear_level: undefined, carrying: undefined,
-    carrying_type: undefined, pregnant: undefined, partner_id: undefined, attracted_to: undefined,
-    alive: undefined, age: undefined, thought: undefined,
+    id: '',
+    x: undefined,
+    y: undefined,
+    vx: undefined,
+    vy: undefined,
+    target_x: undefined,
+    target_y: undefined,
+    energy: undefined,
+    hydration: undefined,
+    health: undefined,
+    infection: undefined,
+    fear_level: undefined,
+    carrying: undefined,
+    carrying_type: undefined,
+    pregnant: undefined,
+    partner_id: undefined,
+    attracted_to: undefined,
+    alive: undefined,
+    age: undefined,
+    thought: undefined,
   }
   for (let i = 0; i < n; i++) {
     entry.id = soa.ids[i]
