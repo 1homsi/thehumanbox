@@ -30,13 +30,13 @@ vi.mock('../wasm/sim-core/sim_core.js', () => ({
     tickCount() {
       return model.tick
     }
-    deltaFrame() {
+    deltaFrameBytes() {
       model.deltaFrame()
-      return '{}'
+      return new Uint8Array([0x80])
     }
-    fullFrame() {
+    fullFrameBytes() {
       model.fullFrame()
-      return '{}'
+      return new Uint8Array([0x80])
     }
     command() {
       return true
@@ -129,6 +129,12 @@ afterEach(() => {
 })
 
 describe('browser simulation scheduling', () => {
+  it('transfers binary MessagePack frames from the worker', () => {
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'frame', frame: new Uint8Array([0x80]) }, [
+      expect.any(ArrayBuffer),
+    ])
+  })
+
   it('accepts a safe reload while WASM is still booting', async () => {
     send({ type: 'stop' })
     await vi.advanceTimersByTimeAsync(0)

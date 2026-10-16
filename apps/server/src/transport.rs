@@ -248,7 +248,7 @@ pub fn encode_frame(
     payload.insert("frame_id", serde_json::json!(frame_id));
     payload.insert("server_sent_at_ms", serde_json::json!(server_sent_at_ms));
     payload.insert("frame_kind", serde_json::json!(frame_kind));
-    let raw = match crate::frame_codec::encode(&payload) {
+    let raw = match crate::sim::serialize::frame_codec::encode(&payload) {
         Ok(v) => v,
         Err(error) => {
             // The counter alone says a frame vanished; the error says why.

@@ -96,6 +96,10 @@ function post(msg: unknown) {
   ;(self as unknown as Worker).postMessage(msg)
 }
 
+function postFrame(frame: Uint8Array) {
+  ;(self as unknown as Worker).postMessage({ type: 'frame', frame }, [frame.buffer as ArrayBuffer])
+}
+
 async function acquireWorldLock(id: string): Promise<boolean> {
   // Web Locks are shared by every tab and worker on this origin. Holding one
   // for the worker lifetime prevents two independently advancing worlds from
@@ -169,8 +173,8 @@ function emit(deepFull: boolean) {
   const now = Date.now()
   lastEmittedAt = performance.now()
   if (deepFull) lastDeepFullAt = lastEmittedAt
-  const frame = deepFull ? sim.fullFrame(frameId, now) : sim.deltaFrame(frameId, now)
-  post({ type: 'frame', frame })
+  const frame = deepFull ? sim.fullFrameBytes(frameId, now) : sim.deltaFrameBytes(frameId, now)
+  postFrame(frame)
 }
 
 function rememberRetry(next: StorageRetry<SavedWorld>) {

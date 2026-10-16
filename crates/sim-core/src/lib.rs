@@ -88,12 +88,29 @@ mod wasm_facade {
             serde_json::to_string(&frame).expect("frame payload serialization cannot fail")
         }
 
+        #[wasm_bindgen(js_name = fullFrameBytes)]
+        pub fn full_frame_bytes(&mut self, frame_id: u32, now_ms: f64) -> Vec<u8> {
+            let mut frame = self.inner.state_frame();
+            stamp_frame(&mut frame, frame_id, now_ms, true);
+            crate::sim::serialize::frame_codec::encode(&frame)
+                .expect("frame payload msgpack serialization cannot fail")
+        }
+
         #[wasm_bindgen(js_name = deltaFrame)]
         pub fn delta_frame(&mut self, frame_id: u32, now_ms: f64) -> String {
             let mut frame = self.inner.state_frame_incremental();
             let full = frame_is_complete(&mut frame);
             stamp_frame(&mut frame, frame_id, now_ms, full);
             serde_json::to_string(&frame).expect("frame payload serialization cannot fail")
+        }
+
+        #[wasm_bindgen(js_name = deltaFrameBytes)]
+        pub fn delta_frame_bytes(&mut self, frame_id: u32, now_ms: f64) -> Vec<u8> {
+            let mut frame = self.inner.state_frame_incremental();
+            let full = frame_is_complete(&mut frame);
+            stamp_frame(&mut frame, frame_id, now_ms, full);
+            crate::sim::serialize::frame_codec::encode(&frame)
+                .expect("frame payload msgpack serialization cannot fail")
         }
 
         pub fn serialize(&self) -> Vec<u8> {
