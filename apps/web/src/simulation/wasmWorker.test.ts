@@ -1,16 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const model = vi.hoisted(() => ({
+  init: vi.fn(async () => {}),
   tick: 0n,
   tickN: vi.fn(),
   deltaFrame: vi.fn(),
   fullFrame: vi.fn(),
+  fromSerialized: vi.fn(),
+  loadWorld: vi.fn(
+    async (): Promise<{ blob: Uint8Array; seed: string; tick: number; savedAt: number } | null> => null,
+  ),
   serialize: vi.fn(() => new Uint8Array([1])),
   saveWorld: vi.fn(async () => {}),
 }))
 vi.mock('../wasm/sim-core/sim_core.js', () => ({
-  default: async () => {},
+  default: model.init,
   Sim: class {
+    static fromSerialized() {
+      return model.fromSerialized()
+    }
     tickN(n: number) {
       model.tickN(n)
       model.tick += BigInt(n)
@@ -36,7 +44,7 @@ vi.mock('../wasm/sim-core/sim_core.js', () => ({
   },
 }))
 vi.mock('./wasmDb', () => ({
-  loadWorld: async () => null,
+  loadWorld: model.loadWorld,
   saveWorld: model.saveWorld,
   archiveAndDeleteWorld: vi.fn(),
   listRecoveryWorlds: vi.fn(),
@@ -56,6 +64,9 @@ beforeEach(async () => {
   vi.useFakeTimers()
   vi.clearAllMocks()
   model.tick = 0n
+  model.loadWorld.mockReset().mockResolvedValue(null)
+  model.fromSerialized.mockReset()
+  model.init.mockReset().mockResolvedValue(undefined)
   model.serialize.mockClear()
   model.saveWorld.mockClear()
   worker = { onmessage: null, postMessage: vi.fn(), close: vi.fn() }
@@ -73,6 +84,148 @@ afterEach(() => {
 })
 
 describe('browser simulation scheduling', () => {
+  it('accepts a safe reload while WASM is still booting', async () => {
+    send({ type: 'stop' })
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalledWith({ type: 'stopped' }))
+    let finishInit!: () => void
+    model.init.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishInit = resolve
+        }),
+    )
+    vi.resetModules()
+    worker = { onmessage: null, postMessage: vi.fn(), close: vi.fn() }
+    vi.stubGlobal('self', worker)
+    await import('./wasmWorker')
+    send({ type: 'start', id: 'test', seed: '42' })
+    await Promise.resolve()
+    send({ type: 'prepare_reload', requestId: 9, deadlineAt: Date.now() + 1000 })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'reload_result', requestId: 9, ok: true })
+    expect(worker.close).toHaveBeenCalledOnce()
+    expect(vi.getTimerCount()).toBe(0)
+    finishInit()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(worker.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ready' }))
+  })
+
+  it('accepts a safe reload when another tab owns the world lock', async () => {
+    send({ type: 'stop' })
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalledWith({ type: 'stopped' }))
+    const locks = { request: vi.fn(async (_name, _options, callback) => callback(null)) }
+    vi.stubGlobal('navigator', { locks })
+    vi.resetModules()
+    worker = { onmessage: null, postMessage: vi.fn(), close: vi.fn() }
+    vi.stubGlobal('self', worker)
+    await import('./wasmWorker')
+    send({ type: 'start', id: 'test', seed: '42' })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(worker.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'ready', persistenceReady: false }),
+    )
+    model.saveWorld.mockClear()
+    send({ type: 'prepare_reload', requestId: 10, deadlineAt: Date.now() + 1000 })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'reload_result', requestId: 10, ok: true })
+    expect(worker.close).toHaveBeenCalledOnce()
+    expect(model.saveWorld).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('releases a world lock granted while reload is waiting for startup', async () => {
+    send({ type: 'stop' })
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalledWith({ type: 'stopped' }))
+    let grantLock!: (lock: object | null) => void
+    let markReleased!: () => void
+    const released = new Promise<void>((resolve) => {
+      markReleased = resolve
+    })
+    const locks = {
+      request: vi.fn(
+        async (_name: string, _options: unknown, callback: (lock: object | null) => Promise<void>) => {
+          const lock = await new Promise<object | null>((resolve) => {
+            grantLock = resolve
+          })
+          await callback(lock)
+          markReleased()
+        },
+      ),
+    }
+    vi.stubGlobal('navigator', { locks })
+    vi.resetModules()
+    worker = { onmessage: null, postMessage: vi.fn(), close: vi.fn() }
+    vi.stubGlobal('self', worker)
+    await import('./wasmWorker')
+    send({ type: 'start', id: 'test', seed: '42' })
+    await vi.waitFor(() => expect(locks.request).toHaveBeenCalledOnce())
+    send({ type: 'prepare_reload', requestId: 13, deadlineAt: Date.now() + 1000 })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'reload_result', requestId: 13, ok: true })
+    grantLock({})
+    await vi.advanceTimersByTimeAsync(0)
+    await released
+    expect(worker.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ready' }))
+  })
+
+  it('refuses a reset reload without the world lock', async () => {
+    send({ type: 'stop' })
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalledWith({ type: 'stopped' }))
+    const locks = { request: vi.fn(async (_name, _options, callback) => callback(null)) }
+    vi.stubGlobal('navigator', { locks })
+    vi.resetModules()
+    worker = { onmessage: null, postMessage: vi.fn(), close: vi.fn() }
+    vi.stubGlobal('self', worker)
+    await import('./wasmWorker')
+    send({ type: 'start', id: 'test', seed: '42' })
+    await vi.advanceTimersByTimeAsync(0)
+    send({ type: 'prepare_reload', requestId: 11, deadlineAt: Date.now() + 1000, requireLocalWorld: true })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'reload_result', requestId: 11, ok: false })
+    expect(worker.close).not.toHaveBeenCalled()
+  })
+
+  it('does not finish startup after a reload during recovery preservation', async () => {
+    send({ type: 'stop' })
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalledWith({ type: 'stopped' }))
+    model.saveWorld.mockClear()
+    let finishPreserve!: () => void
+    model.loadWorld.mockResolvedValueOnce({
+      blob: new Uint8Array([1]),
+      seed: '42',
+      tick: 0,
+      savedAt: 1,
+    })
+    model.fromSerialized.mockImplementationOnce(() => {
+      throw new Error('invalid saved world')
+    })
+    model.saveWorld.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishPreserve = resolve
+        }),
+    )
+    vi.resetModules()
+    worker = { onmessage: null, postMessage: vi.fn(), close: vi.fn() }
+    vi.stubGlobal('self', worker)
+    await import('./wasmWorker')
+    send({ type: 'start', id: 'test', seed: '42' })
+    await vi.waitFor(() => expect(model.saveWorld).toHaveBeenCalledOnce())
+    send({ type: 'prepare_reload', requestId: 12, deadlineAt: Date.now() + 1000 })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'reload_result', requestId: 12, ok: true })
+    finishPreserve()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(worker.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ready' }))
+    expect(model.saveWorld).toHaveBeenCalledOnce()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
   it('autosaves every five minutes instead of serializing on the old 30-second cadence', async () => {
     // Startup writes a baseline save immediately; isolate the periodic timer.
     model.serialize.mockClear()

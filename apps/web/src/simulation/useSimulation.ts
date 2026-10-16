@@ -467,8 +467,12 @@ export function useSimulation(source: WorldSource = 'native'): {
         })
       }
       let reloadPreparation: Promise<boolean> | null = null
-      const prepareWorkerReload = (): Promise<boolean> => {
-        if (reloadPreparation) return reloadPreparation
+      let reloadPreparationRequiresLocalWorld = false
+      const prepareWorkerReload = (requireLocalWorld: boolean): Promise<boolean> => {
+        if (reloadPreparation) {
+          if (requireLocalWorld && !reloadPreparationRequiresLocalWorld) return Promise.resolve(false)
+          return reloadPreparation
+        }
         const requestId = nextWorkerRequestRef.current++
         const deadlineAt = Date.now() + RELOAD_CHECKPOINT_DEADLINE_MS
         const preparation = new Promise<boolean>((resolve) => {
@@ -477,11 +481,15 @@ export function useSimulation(source: WorldSource = 'native'): {
             resolve(false)
           }, RELOAD_CHECKPOINT_TIMEOUT_MS)
           pendingWorkerRequests.set(requestId, { resolve: (result) => resolve(result.ok), timer })
-          worker.postMessage({ type: 'prepare_reload', requestId, deadlineAt })
+          worker.postMessage({ type: 'prepare_reload', requestId, deadlineAt, requireLocalWorld })
         })
         reloadPreparation = preparation
+        reloadPreparationRequiresLocalWorld = requireLocalWorld
         void preparation.then((ok) => {
-          if (!ok && reloadPreparation === preparation) reloadPreparation = null
+          if (!ok && reloadPreparation === preparation) {
+            reloadPreparation = null
+            reloadPreparationRequiresLocalWorld = false
+          }
         })
         return preparation
       }
@@ -506,7 +514,7 @@ export function useSimulation(source: WorldSource = 'native'): {
           window.location.reload()
           return
         }
-        void prepareWorkerReload().then((ok) => {
+        void prepareWorkerReload(request.detail?.operation !== 'reload').then((ok) => {
           if (ok) {
             window.location.reload()
           } else {

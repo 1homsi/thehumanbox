@@ -41,7 +41,7 @@ type InMsg =
   | { type: 'visibility'; hidden: boolean }
   | { type: 'save'; requestId?: number }
   | { type: 'retry_storage'; requestId?: number }
-  | { type: 'prepare_reload'; requestId: number; deadlineAt: number }
+  | { type: 'prepare_reload'; requestId: number; deadlineAt: number; requireLocalWorld?: boolean }
   | { type: 'stop' }
   | { type: 'command'; json: string; requestId: number }
   | { type: 'org_detail'; id: string; requestId: number }
@@ -411,6 +411,8 @@ function startTickTimer() {
 }
 
 function beginLoop(autosaveEveryMs: number) {
+  stopTimers()
+  if (!sim) return
   startTickTimer()
   saveTimer = setInterval(() => {
     if (!manuallyPaused && !hiddenPaused) void persist()
@@ -437,7 +439,13 @@ async function start(msg: StartMsg) {
     return
   }
 
+  if (reloadPreparing) return
+
   worldLockAcquired = await acquireWorldLock(worldId)
+  if (reloadPreparing) {
+    await releaseLocalWorldLock()
+    return
+  }
   if (!worldLockAcquired) {
     storageReady = false
     post({
@@ -452,6 +460,7 @@ async function start(msg: StartMsg) {
   if (msg.reset && storageReady) {
     try {
       const recoveryId = await archiveAndDeleteWorld(worldId)
+      if (reloadPreparing) return
       resetApplied = true
       post({ type: 'reset_done', recoveryId })
     } catch (e) {
@@ -468,6 +477,7 @@ async function start(msg: StartMsg) {
     try {
       if (!msg.recoveryId.startsWith(recoveryPrefix(worldId))) throw new Error('invalid recovery save id')
       const recovery = await loadWorld(msg.recoveryId)
+      if (reloadPreparing) return
       if (!recovery) throw new Error('recovery save no longer exists')
       if (recovery.blob.byteLength === 0) throw new Error('recovery save is empty')
       const candidate = Sim.fromSerialized(BigInt(recovery.seed), recovery.blob)
@@ -477,6 +487,7 @@ async function start(msg: StartMsg) {
         throw new Error(`recovery expected tick ${recovery.tick}, restored tick ${recoveredTick}`)
       }
       const previousBackupId = await restoreRecoveryWorld(worldId, msg.recoveryId)
+      if (reloadPreparing) return
       saved = recovery
       post({
         type: 'recovery_done',
@@ -511,6 +522,7 @@ async function start(msg: StartMsg) {
       message: `could not read local save: ${e instanceof Error ? e.message : String(e)}`,
     })
   }
+  if (reloadPreparing) return
   if (saved) {
     try {
       if (saved.blob.byteLength === 0) throw new Error('save is empty')
@@ -562,6 +574,7 @@ async function start(msg: StartMsg) {
       sim = null
     }
   }
+  if (reloadPreparing) return
   if (!sim) {
     sim = new Sim(BigInt(seed))
   }
@@ -627,6 +640,19 @@ self.onmessage = (e: MessageEvent) => {
         post({ type: 'reload_result', requestId: msg.requestId, ok: false })
         break
       }
+      if (!sim || !worldLockAcquired) {
+        if (msg.requireLocalWorld) {
+          post({ type: 'reload_result', requestId: msg.requestId, ok: false })
+          break
+        }
+        reloadPreparing = true
+        stopTimers()
+        void releaseLocalWorldLock().then(() => {
+          post({ type: 'reload_result', requestId: msg.requestId, ok: true })
+          self.close()
+        })
+        break
+      }
       // Freeze ticks before serializing. Previously the world kept advancing
       // while IndexedDB committed an older snapshot, then freed the newer
       // in-memory state, losing every tick in between on reload.
@@ -636,7 +662,7 @@ self.onmessage = (e: MessageEvent) => {
         persist,
         resume: () => {
           reloadPreparing = false
-          beginLoop(autosaveEveryMs)
+          if (sim) beginLoop(autosaveEveryMs)
         },
       }).then(async (ok) => {
         if (ok) {
