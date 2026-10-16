@@ -33,6 +33,7 @@ test('replacing a window retains the new window and routes old events to their o
     isPackaged: true,
     getVersion: () => "0.0.0-test",
     on() {},
+    requestSingleInstanceLock: () => true,
     whenReady: () => new Promise<void>(() => {}),
   }
   const context = vm.createContext({
@@ -44,6 +45,7 @@ test('replacing a window retains the new window and routes old events to their o
       if (id === './sim-process') return { startSim: async () => ({ port: 8000 }) }
       if (id === 'node:fs') return { readFileSync: () => { throw new Error('no saved bounds') } }
       if (id === './app-version-arg') return { appVersionArgument: (v: string) => `--thb-app-version=${v}` }
+      if (id === './app-icon') return { appIconPath: () => '/tmp/icon.png' }
       if (id === 'node:path') return path
       return {}
     },
