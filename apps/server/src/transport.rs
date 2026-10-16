@@ -250,7 +250,11 @@ pub fn encode_frame(
     payload.insert("frame_kind", serde_json::json!(frame_kind));
     let raw = match crate::frame_codec::encode(&payload) {
         Ok(v) => v,
-        Err(_) => return None,
+        Err(error) => {
+            // The counter alone says a frame vanished; the error says why.
+            tracing::error!(target: "transport", "frame encode failed: {error}");
+            return None;
+        }
     };
     if raw.len() < 2048 {
         let mut out = Vec::with_capacity(raw.len() + 1);
