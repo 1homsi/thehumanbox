@@ -74,7 +74,10 @@ export function Modal({ open, onClose, className, title, hideTitle = false, chil
           className={`thb-modal${sheet ? ' thb-modal--sheet' : ''} ${className ?? ''}`}
           aria-describedby={undefined}
           onOpenAutoFocus={(e) => {
+            // Move focus into the dialog without picking a control, so the trigger behind the overlay
+            // loses it and the focus trap engages. An autoFocus child already holds focus; keep it.
             e.preventDefault()
+            if (!contentRef.current?.contains(document.activeElement)) contentRef.current?.focus()
           }}
         >
           {sheet && (
