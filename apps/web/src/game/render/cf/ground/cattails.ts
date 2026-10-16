@@ -96,7 +96,7 @@ export class CattailDriver implements CfDriver {
   }
 
   update(f: CfFrame): boolean {
-    if (f.terrainRevision === this.built || f.terrainRevision === 0) return false
+    if (f.occupancyRevision === this.built || f.occupancyRevision === 0) return false
     const { tiles, width, height } = f.world.grid
     const plants = buildCattailRects(tiles, f.biomes, width, height, f.ox, f.oy)
     const layer = this.layer
@@ -121,7 +121,7 @@ export class CattailDriver implements CfDriver {
     put(plants.stalk, STALK)
     put(plants.head, HEAD)
     put(plants.headLit, HEAD_LIT)
-    this.built = f.terrainRevision
+    this.built = f.occupancyRevision
     this.stats = { rects: total, rebuilds: this.stats.rebuilds + 1 }
     layer.touch()
     return true

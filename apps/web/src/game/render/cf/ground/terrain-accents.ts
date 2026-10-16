@@ -90,7 +90,7 @@ export class AccentDriver implements CfDriver {
 
   update(f: CfFrame): boolean {
     let changed = false
-    if (f.terrainRevision !== this.built && f.terrainRevision !== 0) {
+    if (f.occupancyRevision !== this.built && f.occupancyRevision !== 0) {
       const { tiles, width, height } = f.world.grid
       const accents = buildAccentRects(tiles, f.biomes, width, height)
       const layer = this.layer
@@ -122,7 +122,7 @@ export class AccentDriver implements CfDriver {
       }
       this.starts[0] = 0
       this.lastAlpha = [-1, -1, -1, -1]
-      this.built = f.terrainRevision
+      this.built = f.occupancyRevision
       this.stats = { rects: total, rebuilds: this.stats.rebuilds + 1 }
       changed = true
     }

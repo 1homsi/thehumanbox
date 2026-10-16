@@ -1,25 +1,34 @@
-import { terrainVisualSignature } from '../../../model/terrain-visuals'
+import { terrainGroundSignature, terrainVisualSignature } from '../../../model/terrain-visuals'
 
 /**
  * Tells when the static ground sprites (trees, decor, mountains) must be rebuilt.
  * The wire re-sends the tile grid every so often with a new array identity but
  * usually identical ground, so identity alone would rebuild needlessly: a changed
- * array is hashed (the same signature the canvas base layer uses) and compared.
+ * array is hashed and compared.
+ *
+ * Two revisions come out of one grid. `revision` moves with the ground (water, rock,
+ * snow, biome, season); `occupancyRevision` also moves when a fire, campfire, hut or
+ * mineral tile changes, which only the trees, decor, patches, cattails and settlement
+ * marks read. A fire lit or a hut raised does not rebuild the shore, the foam or the lilies.
  */
 export class TerrainWatch {
   private tiles: number[][] | null = null
   private biomes: number[][] | null = null
   private season = ''
-  private signature = 0
+  private groundSignature = 0
+  private occupancySignature = 0
   private width = 0
   private height = 0
   private originX = 0
   private originY = 0
-  /** Bumped on every rebuild-worthy change. */
+  /** Bumped on every ground change (and on a biome or season change). */
   revision = 0
+  /** Bumped on every change `revision` sees, and on every occupancy change. */
+  occupancyRevision = 0
   /** Milliseconds spent hashing, for the stats. */
   hashMs = 0
 
+  /** True when either revision moved. */
   update(
     tiles: number[][] | undefined,
     biomes: number[][] | undefined,
@@ -33,29 +42,33 @@ export class TerrainWatch {
     const sameShape =
       this.width === width && this.height === height && this.originX === originX && this.originY === originY
     if (sameShape && tiles === this.tiles && biomes === this.biomes && season === this.season) return false
-    let signature = this.signature
+    let ground = this.groundSignature
+    let occupancy = this.occupancySignature
     if (!sameShape || tiles !== this.tiles) {
       const t0 = performance.now()
-      signature = terrainVisualSignature(tiles, width, height)
+      ground = terrainGroundSignature(tiles, width, height)
+      occupancy = terrainVisualSignature(tiles, width, height)
       this.hashMs += performance.now() - t0
     }
-    const unchanged =
+    const context =
       sameShape &&
       this.tiles !== null &&
-      signature === this.signature &&
       (biomes === this.biomes || sameBiomes(biomes, this.biomes)) &&
       season === this.season
+    const groundUnchanged = context && ground === this.groundSignature
+    const occupancyUnchanged = context && occupancy === this.occupancySignature
     this.tiles = tiles
     this.biomes = biomes
-    this.signature = signature
+    this.groundSignature = ground
+    this.occupancySignature = occupancy
     this.season = season
     this.width = width
     this.height = height
     this.originX = originX
     this.originY = originY
-    if (unchanged) return false
-    this.revision++
-    return true
+    if (!groundUnchanged) this.revision++
+    if (!occupancyUnchanged) this.occupancyRevision++
+    return !groundUnchanged || !occupancyUnchanged
   }
 }
 

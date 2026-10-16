@@ -140,7 +140,7 @@ export class PatchDriver {
   }
 
   update(f: CfFrame): boolean {
-    if (f.terrainRevision === this.built || f.terrainRevision === 0) return false
+    if (f.occupancyRevision === this.built || f.occupancyRevision === 0) return false
     const t0 = performance.now()
     const { tiles, width, height } = f.world.grid
     const { ox, oy } = f
@@ -175,7 +175,7 @@ export class PatchDriver {
       if (epoch === this.atlas.epoch) break
     }
     writeCells(this.layer, cells, pos, 0, 0)
-    this.built = f.terrainRevision
+    this.built = f.occupancyRevision
     this.stats = {
       sprites: cells.length,
       rebuilds: this.stats.rebuilds + 1,
@@ -225,7 +225,7 @@ export class StructureDriver implements CfDriver {
     if (
       this.frame === f.world.frame_id &&
       this.source === structure &&
-      this.revision === f.terrainRevision &&
+      this.revision === f.occupancyRevision &&
       this.epoch === this.atlas.epoch
     )
       return false
@@ -257,7 +257,7 @@ export class StructureDriver implements CfDriver {
     this.frame = f.world.frame_id
     this.source = structure
     if (
-      this.revision === f.terrainRevision &&
+      this.revision === f.occupancyRevision &&
       this.epoch === this.atlas.epoch &&
       count === this.drawnCount &&
       this.layer.count === count &&
@@ -269,7 +269,7 @@ export class StructureDriver implements CfDriver {
     ;[this.drawnAt, this.scanAt] = [at, this.drawnAt]
     ;[this.drawnPct, this.scanPct] = [pct, this.drawnPct]
     this.drawnCount = count
-    this.revision = f.terrainRevision
+    this.revision = f.occupancyRevision
     // A page can be cleared while baking (the epoch moves): bake again against the new one.
     for (let pass = 0; pass < 2; pass++) {
       const epoch = this.atlas.epoch

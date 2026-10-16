@@ -97,7 +97,16 @@ export function CfWorld({
         grid.origin_y ?? 0,
         vegetationSeason(terrainSeason(w)),
       )
-      const frame = makeFrame(w, cachedBiomes.current, camera, viewportDims, Date.now(), 2, watch.revision)
+      const frame = makeFrame(
+        w,
+        cachedBiomes.current,
+        camera,
+        viewportDims,
+        Date.now(),
+        2,
+        watch.revision,
+        watch.occupancyRevision,
+      )
       if (registry.update(frame)) wakeEngine(engine, 30)
       signalFirstDraw()
     },

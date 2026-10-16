@@ -25,18 +25,38 @@ describe('TerrainWatch', () => {
     expect(w.revision).toBe(1)
   })
 
-  it('rebuilds when a tile changes kind, the biomes change, or the season turns', () => {
+  it('rebuilds when the ground changes, the biomes change, or the season turns', () => {
     const w = new TerrainWatch()
     const biomes = grid(0)
     w.update(grid(1), biomes, 6, 4, 0, 0, 'summer')
-    const burnt = grid(1)
-    burnt[1][1] = 4
-    expect(w.update(burnt, biomes, 6, 4, 0, 0, 'summer')).toBe(true)
+    const flooded = grid(1)
+    flooded[1][1] = 2
+    expect(w.update(flooded, biomes, 6, 4, 0, 0, 'summer')).toBe(true)
     const other = grid(0)
     other[0][0] = 1
-    expect(w.update(burnt, other, 6, 4, 0, 0, 'summer')).toBe(true)
-    expect(w.update(burnt, other, 6, 4, 0, 0, 'autumn')).toBe(true)
+    expect(w.update(flooded, other, 6, 4, 0, 0, 'summer')).toBe(true)
+    expect(w.update(flooded, other, 6, 4, 0, 0, 'autumn')).toBe(true)
     expect(w.revision).toBe(4)
+    expect(w.occupancyRevision).toBe(4)
+  })
+
+  it('moves only the occupancy revision when a fire is lit or a hut is raised on the ground', () => {
+    const w = new TerrainWatch()
+    const biomes = grid(0)
+    w.update(grid(1), biomes, 6, 4, 0, 0, 'summer')
+    const burning = grid(1)
+    burning[1][1] = 4
+    expect(w.update(burning, biomes, 6, 4, 0, 0, 'summer')).toBe(true)
+    expect(w.revision).toBe(1)
+    expect(w.occupancyRevision).toBe(2)
+    const hut = grid(1)
+    hut[2][3] = 8
+    expect(w.update(hut, biomes, 6, 4, 0, 0, 'summer')).toBe(true)
+    expect(w.revision).toBe(1)
+    expect(w.occupancyRevision).toBe(3)
+    expect(w.update(grid(1), biomes, 6, 4, 0, 0, 'summer')).toBe(true)
+    expect(w.revision).toBe(1)
+    expect(w.occupancyRevision).toBe(4)
   })
 
   it('waits for tiles and biomes, and rebuilds when the world is resized or moved', () => {

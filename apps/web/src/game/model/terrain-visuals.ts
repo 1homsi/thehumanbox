@@ -22,20 +22,46 @@ export function baseTerrainTile(tile: number | undefined): number {
   }
 }
 
-export function terrainVisualSignature(tiles: number[][], width: number, height: number): number {
+/**
+ * Hashes the grid as the tiles a driver reads it through: `cacheTile` maps each tile to the
+ * value that counts for it. FNV-1a over the row-major cells.
+ */
+function hashTerrain(
+  tiles: number[][],
+  width: number,
+  height: number,
+  cacheTile: (tile: number | undefined) => number,
+): number {
   let hash = 2166136261
   for (let row = 0; row < height; row++) {
     const values = tiles[row]
     for (let col = 0; col < width; col++) {
-      const tile = values?.[col]
-      // Food growth is frequent and uses the same tree/decor substrate as
-      // grass. Structures, fire and minerals still invalidate decorations.
-      const cacheTile = tile === TILE_ID.FOOD ? TILE_ID.GRASS : (tile ?? TILE_ID.VOID)
-      hash ^= cacheTile + ((row * width + col) & 0xff)
+      hash ^= cacheTile(values?.[col]) + ((row * width + col) & 0xff)
       hash = Math.imul(hash, 16777619)
     }
   }
   return hash >>> 0
+}
+
+/**
+ * The grid's visual identity, occupancy included: trees and decoration read it, as do the
+ * settlement marks, the patches and the cattails.
+ */
+export function terrainVisualSignature(tiles: number[][], width: number, height: number): number {
+  // Food growth is frequent and uses the same tree/decor substrate as
+  // grass. Structures, fire and minerals still invalidate decorations.
+  return hashTerrain(tiles, width, height, (tile) =>
+    tile === TILE_ID.FOOD ? TILE_ID.GRASS : (tile ?? TILE_ID.VOID),
+  )
+}
+
+/**
+ * The ground's identity: the same grid with the occupancy tiles read as the grass they cover
+ * (baseTerrainTile). Shore, foam, lily pads and mountains read only water, rock and snow, so a
+ * fire lit or a hut raised leaves them as they are.
+ */
+export function terrainGroundSignature(tiles: number[][], width: number, height: number): number {
+  return hashTerrain(tiles, width, height, baseTerrainTile)
 }
 
 /** Permanent water directly beside a land tile; floods never create beaches. */
