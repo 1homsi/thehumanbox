@@ -430,6 +430,13 @@ export function DesktopSettingsModal({ onClose }: Props) {
     }
   }
 
+  // Fire-and-forget desktop tools. Their rejections used to escape as
+  // unhandled promises and vanish; surface the failure instead.
+  function runDesktopTool(what: string, action: () => Promise<unknown>): void {
+    setActionError(null)
+    action().catch((error) => setActionError(`could not ${what}: ${errorText(error)}`))
+  }
+
   async function exportDesktopWorld() {
     if (!desktop) return
     setActionError(null)
@@ -650,7 +657,15 @@ export function DesktopSettingsModal({ onClose }: Props) {
                       <button
                         className="lang-btn"
                         onClick={async () => {
-                          const dir = await desktop?.app.pickSaveDir()
+                          setActionError(null)
+                          setSafetyMessage(null)
+                          let dir: string | null
+                          try {
+                            dir = await desktop.app.pickSaveDir()
+                          } catch (error) {
+                            setSafetyMessage(`could not choose a save folder: ${errorText(error)}`)
+                            return
+                          }
                           if (dir) await migrateSaveFolder(dir)
                         }}
                         disabled={busy}
@@ -675,13 +690,31 @@ export function DesktopSettingsModal({ onClose }: Props) {
                   </Section>
                   <Section title="Tools">
                     <div className="settings-actions">
-                      <button className="lang-btn" onClick={() => void desktop?.app.screenshot()}>
+                      <button
+                        className="lang-btn"
+                        onClick={() =>
+                          // captureScreenshot() resolves null instead of
+                          // rejecting when the capture or its file write fails,
+                          // so treat a null path as the failure too.
+                          runDesktopTool('take a screenshot', async () => {
+                            if (!(await desktop.app.screenshot())) throw new Error('the capture failed')
+                          })
+                        }
+                      >
                         take screenshot
                       </button>
-                      <button className="lang-btn" onClick={() => void desktop?.app.openWorlds()}>
+                      <button
+                        className="lang-btn"
+                        onClick={() =>
+                          runDesktopTool('open the worlds folder', () => desktop.app.openWorlds())
+                        }
+                      >
                         open worlds folder
                       </button>
-                      <button className="lang-btn" onClick={() => void desktop?.app.openLogs()}>
+                      <button
+                        className="lang-btn"
+                        onClick={() => runDesktopTool('open the logs folder', () => desktop.app.openLogs())}
+                      >
                         open logs folder
                       </button>
                     </div>
@@ -732,6 +765,10 @@ function UpdateCheckButton({ desktop }: { desktop: DesktopBridge }) {
     setResult({ status: 'checking' })
     try {
       setResult(await desktop.app.checkForUpdates())
+    } catch (error) {
+      // Without this the "checking..." message stayed up forever and the
+      // rejection was dropped as an unhandled promise.
+      setResult({ status: 'error', message: `check failed: ${errorText(error)}` })
     } finally {
       setChecking(false)
     }

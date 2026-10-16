@@ -73,6 +73,15 @@ async function openWorldsFolder(): Promise<void> {
   if (error) throw new Error(error);
 }
 
+async function openLogsFolder(): Promise<void> {
+  const logDir = app.getPath("logs");
+  fs.mkdirSync(logDir, { recursive: true });
+  // shell.openPath resolves with an error string rather than rejecting, so a
+  // failure has to be rethrown or the caller sees success.
+  const error = await shell.openPath(logDir);
+  if (error) throw new Error(error);
+}
+
 function persistWindowState(win: BrowserWindow): void {
   if (win.isDestroyed()) return;
   try {
@@ -468,9 +477,13 @@ function buildTray(): void {
           {
             label: "Open logs folder",
             click: () => {
-              const logDir = app.getPath("logs");
-              fs.mkdirSync(logDir, { recursive: true });
-              void shell.openPath(logDir);
+              void openLogsFolder().catch((error) => {
+                console.error("[main] could not open logs folder:", error);
+                notifyMilestone(
+                  "Logs folder unavailable",
+                  (error as Error).message,
+                );
+              });
             },
           },
           { type: "separator" },
@@ -584,11 +597,7 @@ function registerAppIpcHandlers(): void {
     return fp;
   });
 
-  ipcMain.handle("app:openLogs", () => {
-    const logDir = app.getPath("logs");
-    fs.mkdirSync(logDir, { recursive: true });
-    shell.openPath(logDir);
-  });
+  ipcMain.handle("app:openLogs", () => openLogsFolder());
 
   ipcMain.handle("app:openWorlds", () => openWorldsFolder());
 
