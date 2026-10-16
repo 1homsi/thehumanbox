@@ -1,5 +1,8 @@
 import { SPRITE_HIDDEN, SPRITE_UNTEXTURED, type SpriteLayer } from 'xipjs'
 
+export const ATTACHED_SNAP = 1
+export const ATTACHED_UNTEXTURED = 2
+
 type Slots = Float32Array | Float64Array | Uint8Array | Uint16Array | Uint32Array
 
 /**
@@ -74,7 +77,9 @@ export class AttachedSprites {
     frame: number,
     atlas: number,
     color: number,
-    options: { untextured?: boolean; snap?: boolean; spin?: number; bob?: number } = {},
+    options = 0,
+    spin = 0,
+    bob = NaN,
   ): number {
     const i = this.layer.add(0, 0, w, h, frame)
     const k = this.count++
@@ -82,13 +87,13 @@ export class AttachedSprites {
     this.owner[k] = owner
     this.offX[k] = offX
     this.offY[k] = offY
-    this.snap[k] = options.snap ? 1 : 0
-    this.spin[k] = options.spin ?? 0
-    this.bob[k] = options.bob ?? NaN
+    this.snap[k] = options & ATTACHED_SNAP ? 1 : 0
+    this.spin[k] = spin
+    this.bob[k] = bob
     const layer = this.layer
     layer.atlas[i] = atlas
     layer.color[i] = color
-    layer.flags[i] = options.untextured ? SPRITE_UNTEXTURED : 0
+    layer.flags[i] = options & ATTACHED_UNTEXTURED ? SPRITE_UNTEXTURED : 0
     layer.ids[i] = owner
     return i
   }
