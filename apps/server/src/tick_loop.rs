@@ -53,7 +53,7 @@ impl TickLoop {
                     continue;
                 }
                 let tick_started = std::time::Instant::now();
-                let (pending_save, pending_flushes, flush_store) = step_period(
+                let (pending_save, flush_groups) = step_period(
                     &sim_clone,
                     &memory_watch_cl,
                     &save_in_progress,
@@ -61,9 +61,9 @@ impl TickLoop {
                     runtime_control.steps_per_period(),
                 )
                 .await;
-                if !pending_flushes.is_empty() {
-                    if let Some(ws) = flush_store {
-                        tokio::task::spawn_blocking(move || {
+                if !flush_groups.is_empty() {
+                    tokio::task::spawn_blocking(move || {
+                        for (ws, pending_flushes) in flush_groups {
                             for f in pending_flushes {
                                 let refs: Vec<&crate::organism::memory::MemoryEntry> =
                                     f.memories.iter().collect();
@@ -78,8 +78,8 @@ impl TickLoop {
                                         "flush_dead_org_memories({}): {}", f.org_id, e);
                                 }
                             }
-                        });
-                    }
+                        }
+                    });
                 }
                 if pending_save {
                     let save_in_progress = save_in_progress.clone();
@@ -146,10 +146,11 @@ impl TickLoop {
 /// waiting for the whole batch (a batch is up to 64 ticks, and a mature tick is
 /// 5-10 ms with tails over 100 ms).
 ///
-/// Returns whether a checkpoint was reserved, the dead organisms' memories to
-/// flush, and the world store read under the same lock as those flushes: a
-/// world reset swaps both under that lock, so the memories reach the world they
-/// came from.
+/// Returns whether a checkpoint was reserved, and the dead organisms' memories
+/// to flush in groups. A group is taken on the tick that produced it, together
+/// with the world store read under that same lock: a world reset can land
+/// between two ticks of the batch, and each group must reach the world it came
+/// from.
 async fn step_period(
     sim: &SharedSim,
     memory_watch: &crate::memory_watch::SharedMemoryWatch,
@@ -158,14 +159,15 @@ async fn step_period(
     steps: u32,
 ) -> (
     bool,
-    Vec<sim::simulation::PendingMemoryFlush>,
-    Option<Arc<crate::world_store::WorldStore>>,
+    Vec<(
+        Arc<crate::world_store::WorldStore>,
+        Vec<sim::simulation::PendingMemoryFlush>,
+    )>,
 ) {
     let steps = steps.max(1);
     let mut pending_save = false;
-    let mut flushes = Vec::new();
-    let mut store = None;
-    for step in 0..steps {
+    let mut flush_groups = Vec::new();
+    for _ in 0..steps {
         let mut s: tokio::sync::MutexGuard<'_, _> = sim.lock().await;
         let tick_count_before = s.tick_count;
         // The sim tick is a heavy CPU-bound chunk (movement decisions, action
@@ -201,15 +203,17 @@ async fn step_period(
             pending_save = true;
         }
 
-        if step + 1 == steps {
-            // Take the store with the flushes, under the sim lock: a world
-            // reset swaps both under that lock, so these memories reach the
-            // world they came from.
-            flushes = std::mem::take(&mut s.pending_memory_flushes);
-            store = world_store.get();
+        // Take the flushes with the store, under the sim lock: a world reset
+        // swaps both under that lock, so these memories reach the world they
+        // came from even when the reset lands between two ticks of the batch.
+        let flushes = std::mem::take(&mut s.pending_memory_flushes);
+        if !flushes.is_empty() {
+            if let Some(ws) = world_store.get() {
+                flush_groups.push((ws, flushes));
+            }
         }
     }
-    (pending_save, flushes, store)
+    (pending_save, flush_groups)
 }
 
 #[cfg(test)]
@@ -250,7 +254,7 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
         let before = acquisitions.load(std::sync::atomic::Ordering::Relaxed);
-        let (pending_save, flushes, store) =
+        let (pending_save, flush_groups) =
             step_period(&sim, &memory_watch, &save_in_progress, &world_store, 200).await;
         let during = acquisitions.load(std::sync::atomic::Ordering::Relaxed) - before;
 
@@ -258,7 +262,7 @@ mod tests {
         prober.await.ok();
 
         assert!(!pending_save, "600 + 200 ticks is not a checkpoint boundary");
-        assert!(flushes.is_empty() && store.is_none());
+        assert!(flush_groups.is_empty());
         assert!(
             during > 0,
             "the sim lock was held for the whole batch (the prober never got it)"
