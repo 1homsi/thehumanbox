@@ -8,6 +8,8 @@ function loadIndex(options: {
   singleInstance: boolean;
   calls: string[];
   startSim?: () => Promise<{ port: number }>;
+  allowWindow?: boolean;
+  failRuntimeLoad?: boolean;
 }) {
   const calls = options.calls;
   let activate: (() => Promise<void>) | undefined;
@@ -16,6 +18,7 @@ function loadIndex(options: {
   let exitedWith: number | undefined;
   let simStopped = false;
   let stopBehavior: "resolve" | "reject" | "hang" = "resolve";
+  let failRuntimeLoad = options.failRuntimeLoad ?? false;
 
   class FakeWindow {
     static getAllWindows() {
@@ -24,14 +27,64 @@ function loadIndex(options: {
 
     constructor() {
       calls.push("window:create");
-      throw new Error("malformed window state");
+      if (!options.allowWindow) throw new Error("malformed window state");
     }
+
+    webContents = {
+      on() {},
+      send() {},
+      setWindowOpenHandler() {},
+      openDevTools() {},
+      session: {
+        setPermissionCheckHandler() {},
+        setPermissionRequestHandler() {},
+      },
+    };
+    on() {}
+    async loadURL() {
+      calls.push("window:error-page");
+    }
+    show() {
+      calls.push("window:show");
+    }
+    close() {
+      calls.push("window:close");
+    }
+    isVisible() { return true }
+    isDestroyed() { return false }
+    isMinimized() { return false }
+    isAlwaysOnTop() { return false }
+    maximize() {}
+    focus() {}
+    restore() {}
+    getBounds() { return { width: 1400, height: 900 } }
+    isMaximized() { return false }
   }
+
+  const menu = {
+    buildFromTemplate: () => ({}),
+    setApplicationMenu() {},
+  };
+  const startupSettings = {
+    mode: "local",
+    autoUpdate: false,
+    autoLaunch: false,
+    startMinimized: false,
+  };
+  const loadRenderer = async (_win: unknown, _file: string, query: Record<string, string>) => {
+    calls.push("renderer:splash");
+    if (query.api) {
+      calls.push("renderer:runtime");
+      if (failRuntimeLoad) throw new Error("runtime renderer failed");
+    }
+  };
 
   const app = {
     setName() {},
     isPackaged: true,
     getVersion: () => "0.0.0-test",
+    setLoginItemSettings() {},
+    getLoginItemSettings: () => ({ wasOpenedAtLogin: false }),
     on(event: string, handler: () => Promise<void>) {
       if (event === "activate") activate = handler;
     },
@@ -63,12 +116,14 @@ function loadIndex(options: {
         return {
           app,
           BrowserWindow: FakeWindow,
+          Menu: menu,
           dialog: { showErrorBox: () => calls.push("dialog:error") },
-          globalShortcut: { unregisterAll() {} },
+          globalShortcut: { unregisterAll() {}, register: () => true },
           ipcMain,
         };
       }
       if (id === "./ipc") return { registerIpc() {} };
+      if (id === "./renderer-load") return { loadRenderer };
       if (id === "./startup-lifecycle") {
         return {
           startWhenReady: (_ready: Promise<void>, start: () => Promise<void>, fail: (error: unknown) => Promise<void>) => {
@@ -90,14 +145,17 @@ function loadIndex(options: {
             if (stopBehavior === "hang") return new Promise<void>(() => {});
             simStopped = true;
           },
-          activeSim: () => null,
+          activeSim: () => ({ port: 8000 }),
+          onUnexpectedSimExit() {},
+          simLifecyclePending: () => false,
         };
       }
-      if (id === "./settings") return { loadSettings: () => ({}), prepareDataRoot() {} };
-      if (id === "./updater") return {};
-      if (id === "node:fs") return { readFileSync: () => { throw new Error("no saved bounds"); } };
+      if (id === "./settings") return { loadSettings: () => startupSettings, prepareDataRoot() {} };
+      if (id === "./updater") return { initUpdater: () => calls.push("updater:init") };
       if (id === "./app-version-arg") return { appVersionArgument: (v: string) => `--thb-app-version=${v}` };
       if (id === "./app-icon") return { appIconPath: () => "/tmp/icon.png" };
+      if (id === "./login-launch") return { loginItemSettings: () => ({}) };
+      if (id === "node:fs") return { readFileSync: () => { throw new Error("no saved bounds"); } };
       if (id === "node:path") return path;
       return {};
     },
@@ -119,6 +177,12 @@ function loadIndex(options: {
     },
     get exitedWith() {
       return exitedWith;
+    },
+    replaceWindow() {
+      return vm.runInContext("createWindowReplace()", context) as Promise<void>;
+    },
+    setFailRuntimeLoad(value: boolean) {
+      failRuntimeLoad = value;
     },
     setStopBehavior(mode: "resolve" | "reject" | "hang") {
       stopBehavior = mode;
@@ -170,23 +234,65 @@ test("a second launch quits before booting, so it never opens a window or starts
   assert.equal(calls.some((call) => call === "window:create" || call === "sim:start"), false);
 });
 
-test("a window asked for again while the first is still starting is shared, not duplicated", async () => {
+test("the desktop splash is shown before boot waits for the simulation", async () => {
   const calls: string[] = [];
-  let releaseSim!: (sim: { port: number }) => void;
-  const pendingSim = new Promise<{ port: number }>((resolve) => {
-    releaseSim = resolve;
+  const pendingSim = new Promise<{ port: number }>(() => {});
+  const wiring = loadIndex({
+    singleInstance: true,
+    calls,
+    allowWindow: true,
+    startSim: () => pendingSim,
   });
-  const wiring = loadIndex({ singleInstance: true, calls, startSim: () => pendingSim });
-  assert.ok(wiring.activate);
+  await wiring.boot!();
 
-  // A dock click and a second click land while startSim is still loading, when
-  // mainWindow is not set yet.
-  const first = wiring.activate!();
-  const second = wiring.activate!();
-  releaseSim({ port: 8000 });
-  await Promise.allSettled([first, second]);
+  const windowCreated = calls.indexOf("window:create");
+  const splashLoaded = calls.indexOf("renderer:splash");
+  const windowShown = calls.indexOf("window:show");
+  const simStarted = calls.indexOf("sim:start");
+  assert.ok(windowCreated > -1);
+  assert.ok(splashLoaded > windowCreated);
+  assert.ok(windowShown > splashLoaded);
+  assert.ok(simStarted > windowShown);
+  assert.ok(calls.indexOf("updater:init") < simStarted);
+});
 
-  assert.equal(calls.filter((call) => call === "window:create").length, 1);
+test("a failed runtime renderer load stops the simulation behind the error page", async () => {
+  const calls: string[] = [];
+  const wiring = loadIndex({
+    singleInstance: true,
+    calls,
+    allowWindow: true,
+    failRuntimeLoad: true,
+    startSim: async () => ({ port: 8000 }),
+  });
+
+  await wiring.boot!();
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.ok(calls.includes("renderer:runtime"));
+  assert.ok(calls.includes("sim:stop"));
+  assert.ok(calls.includes("window:error-page"));
+});
+
+test("a failed replacement renderer closes the old window after stopping its sim", async () => {
+  const calls: string[] = [];
+  const wiring = loadIndex({
+    singleInstance: true,
+    calls,
+    allowWindow: true,
+    startSim: async () => ({ port: 8000 }),
+  });
+
+  await wiring.boot!();
+  await new Promise((resolve) => setImmediate(resolve));
+  wiring.setFailRuntimeLoad(true);
+
+  await assert.rejects(wiring.replaceWindow(), /runtime renderer failed/);
+
+  assert.equal(calls.filter((call) => call === "window:create").length, 2);
+  assert.ok(calls.includes("sim:stop"));
+  assert.ok(calls.includes("window:error-page"));
+  assert.equal(calls.filter((call) => call === "window:close").length, 1);
 });
 
 test("a window that fails to open from the dock is reported, not left unhandled", async () => {

@@ -26,6 +26,9 @@ test('replacing a window retains the new window and routes old events to their o
     close() { this.destroyed = true; this.emit('closed') }
     isDestroyed() { return this.destroyed }
     isAlwaysOnTop() { return false }
+    show() {}
+    isVisible() { return true }
+    maximize() {}
   }
   // `whenReady` never settles: this test drives `createWindow` /
   // `createWindowReplace` directly and is not about the boot chain, so
@@ -84,6 +87,9 @@ test('a renderer that fails to load does not carry the command token in its erro
     }
     isDestroyed() { return this.destroyed }
     isAlwaysOnTop() { return false }
+    show() {}
+    isVisible() { return true }
+    maximize() {}
   }
   const app = {
     setName() {},
@@ -137,12 +143,15 @@ test('the failed-load log line and boot page never show the command token', asyn
     constructor() { super() }
     async loadFile(file: string, options?: { query?: Record<string, string> }) {
       const query = new URLSearchParams(options?.query ?? {}).toString()
-      this.rendererUrl = `${file}?${query}`
+      this.rendererUrls.push(`${file}?${query}`)
     }
-    rendererUrl = ''
+    rendererUrls: string[] = []
     loadURL(url: string) { openedUrls.push(url); return Promise.resolve() }
     isDestroyed() { return this.destroyed }
     isAlwaysOnTop() { return false }
+    show() {}
+    isVisible() { return true }
+    maximize() {}
   }
   const app = {
     setName() {},
@@ -179,11 +188,13 @@ test('the failed-load log line and boot page never show the command token', asyn
   })
   vm.runInContext(readFileSync(path.join(__dirname, 'index.js'), 'utf8'), context)
   await vm.runInContext('createWindow()', context)
+  await new Promise((resolve) => setImmediate(resolve))
 
   const win = vm.runInContext('mainWindow', context) as FakeWindow
-  assert.ok(win.rendererUrl.includes('token=SECRET-TOKEN'))
+  assert.equal(new URLSearchParams(win.rendererUrls[0].split('?')[1]).has('api'), false)
+  assert.ok(win.rendererUrls.some((url) => url.includes('token=SECRET-TOKEN')))
   const failedLoad = win.handlers['did-fail-load'][0]
-  failedLoad({}, -6, 'ERR_FILE_NOT_FOUND', `${win.rendererUrl}&extra=1`, true)
+  failedLoad({}, -6, 'ERR_FILE_NOT_FOUND', `${win.rendererUrls.at(-1)}&extra=1`, true)
 
   assert.equal(logged.join('\n').includes('SECRET-TOKEN'), false)
   assert.equal(openedUrls.length, 1)

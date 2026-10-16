@@ -20,6 +20,7 @@ import {
 } from './worldSource'
 import { canSendSandboxCommand, type SandboxCommand } from './sandbox'
 import { isDesktop } from '../shared/desktop'
+import { isDesktopStartupPending } from '../shared/desktopStartup'
 import { localSaveWorkerRequest } from './wasmPersistence'
 import { FrameSequence } from './frameSequence'
 import {
@@ -126,6 +127,9 @@ export function useSimulation(source: WorldSource = 'native'): {
   }, [idleParked])
 
   useEffect(() => {
+    // The splash renderer is loaded before Electron starts its local sim. Do
+    // not try the browser-default localhost:8000 endpoint during that window.
+    if (isDesktopStartupPending(isDesktop(), window.location.search)) return
     runtimeSourceGenerationRef.current += 1
     runtimeControlQueueRef.current = Promise.resolve()
     setRuntimeState({ paused: false, speed: 1 })
