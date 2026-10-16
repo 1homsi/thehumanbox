@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type KeyboardEvent } from 'react'
 import { startTour, isTourSupported, preloadTour } from '../tour/tour'
 import { useIsMobile } from '../../shared/hooks/useIsMobile'
 import { useSimulationData } from '../../simulation/simulationData'
@@ -55,8 +55,35 @@ export function WelcomeModal() {
     if (step > 0) setStep((s) => s - 1)
   }
 
+  // The card is a modal: Escape skips it, and Tab cycles between its buttons instead of
+  // leaving for the page behind the backdrop.
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      finish(false)
+      return
+    }
+    if (e.key !== 'Tab') return
+    const buttons = e.currentTarget.querySelectorAll<HTMLButtonElement>('button')
+    const first = buttons[0]
+    const last = buttons[buttons.length - 1]
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault()
+      first.focus()
+    }
+  }
+
   return (
-    <div className="welcome-backdrop" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+    <div
+      className="welcome-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="welcome-title"
+      onKeyDown={onKeyDown}
+    >
       <div className="welcome-modal">
         <div className="welcome-step-indicator">
           {steps.map((_, i) => (
