@@ -76,6 +76,8 @@ afterEach(() => {
 
 describe('browser simulation scheduling', () => {
   it('accepts a safe reload while WASM is still booting', async () => {
+    send({ type: 'stop' })
+    await vi.advanceTimersByTimeAsync(0)
     let finishInit!: () => void
     model.init.mockImplementationOnce(
       () =>
@@ -99,6 +101,8 @@ describe('browser simulation scheduling', () => {
   })
 
   it('accepts a safe reload when another tab owns the world lock', async () => {
+    send({ type: 'stop' })
+    await vi.advanceTimersByTimeAsync(0)
     const locks = { request: vi.fn(async (_name, _options, callback) => callback(null)) }
     vi.stubGlobal('navigator', { locks })
     vi.resetModules()
@@ -116,6 +120,23 @@ describe('browser simulation scheduling', () => {
     expect(worker.postMessage).toHaveBeenCalledWith({ type: 'reload_result', requestId: 10, ok: true })
     expect(worker.close).toHaveBeenCalledOnce()
     expect(model.saveWorld).not.toHaveBeenCalled()
+  })
+
+  it('refuses a reset reload without the world lock', async () => {
+    send({ type: 'stop' })
+    await vi.advanceTimersByTimeAsync(0)
+    const locks = { request: vi.fn(async (_name, _options, callback) => callback(null)) }
+    vi.stubGlobal('navigator', { locks })
+    vi.resetModules()
+    worker = { onmessage: null, postMessage: vi.fn(), close: vi.fn() }
+    vi.stubGlobal('self', worker)
+    await import('./wasmWorker')
+    send({ type: 'start', id: 'test', seed: '42' })
+    await vi.advanceTimersByTimeAsync(0)
+    send({ type: 'prepare_reload', requestId: 11, deadlineAt: Date.now() + 1000, requireLocalWorld: true })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'reload_result', requestId: 11, ok: false })
+    expect(worker.close).not.toHaveBeenCalled()
   })
 
   it('autosaves every five minutes instead of serializing on the old 30-second cadence', async () => {
