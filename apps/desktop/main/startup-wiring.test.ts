@@ -188,3 +188,15 @@ test("a window asked for again while the first is still starting is shared, not 
 
   assert.equal(calls.filter((call) => call === "window:create").length, 1);
 });
+
+test("a window that fails to open from the dock is reported, not left unhandled", async () => {
+  const calls: string[] = [];
+  const wiring = loadIndex({ singleInstance: true, calls });
+
+  // The window constructor throws. If the activate handler lets that reject,
+  // Node routes it to uncaughtException, which quits the app and stops the sim.
+  await wiring.activate!();
+
+  assert.ok(calls.includes("window:create"));
+  assert.ok(calls.includes("dialog:error"));
+});
