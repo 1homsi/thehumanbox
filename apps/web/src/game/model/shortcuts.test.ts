@@ -32,6 +32,10 @@ describe('typingTarget', () => {
     expect(typingTarget(element(['[role="dialog"]']))).toBe(true)
   })
 
+  it('treats a native <dialog> as a typing context, so its buttons do not fire game keys', () => {
+    expect(typingTarget(element(['dialog']))).toBe(true)
+  })
+
   it('treats the map and no target as a game target', () => {
     expect(typingTarget(element(['canvas']))).toBe(false)
     expect(typingTarget(null)).toBe(false)

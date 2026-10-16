@@ -47,7 +47,10 @@ export function gameKeyAction(
  */
 export function typingTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null
-  return !!el && (!!el.closest?.('input, textarea, select, [role="dialog"]') || el.isContentEditable === true)
+  return (
+    !!el &&
+    (!!el.closest?.('input, textarea, select, dialog, [role="dialog"]') || el.isContentEditable === true)
+  )
 }
 
 /**
