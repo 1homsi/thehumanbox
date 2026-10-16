@@ -32,8 +32,15 @@ function redactedLoadError(error: unknown): Error {
       error.message = message;
       return error;
     } catch {
-      // A frozen message must not replace the failure with a TypeError.
-      return Object.assign(new Error(message), { cause: error });
+      // A frozen message must not replace the failure with a TypeError. The
+      // original cannot travel along as `cause` either: its message and stack
+      // still name the token, and callers log the whole error.
+      const original = error as { code?: unknown; errno?: unknown };
+      const replacement: Error & { code?: unknown; errno?: unknown } =
+        new Error(message);
+      if (original.code !== undefined) replacement.code = original.code;
+      if (original.errno !== undefined) replacement.errno = original.errno;
+      return replacement;
     }
   }
   return new Error(message);

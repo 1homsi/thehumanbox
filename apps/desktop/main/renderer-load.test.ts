@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import * as util from "node:util";
 
 import { loadRenderer } from "./renderer-load";
 
@@ -32,7 +33,10 @@ test("a failed renderer load keeps its error code and loses the token", async ()
 
 test("a frozen error message still yields a redacted failure", async () => {
   const failure = Object.freeze(
-    new Error("loading 'file:///r/index.html?desktop=1&token=SECRET-TOKEN'"),
+    Object.assign(
+      new Error("loading 'file:///r/index.html?desktop=1&token=SECRET-TOKEN'"),
+      { code: "ERR_FILE_NOT_FOUND" },
+    ),
   );
   const win = {
     loadFile: async () => {
@@ -42,9 +46,14 @@ test("a frozen error message still yields a redacted failure", async () => {
 
   await assert.rejects(
     loadRenderer(win as never, "/r/index.html", { token: "SECRET-TOKEN" }),
-    (error: Error) => {
+    (error: Error & { code?: string; cause?: unknown }) => {
       assert.equal(error.message.includes("SECRET-TOKEN"), false);
       assert.ok(error.message.includes("loading"));
+      // The frozen original still carries the token in its message and stack,
+      // so it must not tag along where a caller would log it.
+      assert.equal(error.cause, undefined);
+      assert.equal(util.inspect(error).includes("SECRET-TOKEN"), false);
+      assert.equal(error.code, "ERR_FILE_NOT_FOUND");
       return true;
     },
   );
