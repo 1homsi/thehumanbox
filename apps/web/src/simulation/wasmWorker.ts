@@ -460,6 +460,7 @@ async function start(msg: StartMsg) {
   if (msg.reset && storageReady) {
     try {
       const recoveryId = await archiveAndDeleteWorld(worldId)
+      if (reloadPreparing) return
       resetApplied = true
       post({ type: 'reset_done', recoveryId })
     } catch (e) {
@@ -476,6 +477,7 @@ async function start(msg: StartMsg) {
     try {
       if (!msg.recoveryId.startsWith(recoveryPrefix(worldId))) throw new Error('invalid recovery save id')
       const recovery = await loadWorld(msg.recoveryId)
+      if (reloadPreparing) return
       if (!recovery) throw new Error('recovery save no longer exists')
       if (recovery.blob.byteLength === 0) throw new Error('recovery save is empty')
       const candidate = Sim.fromSerialized(BigInt(recovery.seed), recovery.blob)
@@ -485,6 +487,7 @@ async function start(msg: StartMsg) {
         throw new Error(`recovery expected tick ${recovery.tick}, restored tick ${recoveredTick}`)
       }
       const previousBackupId = await restoreRecoveryWorld(worldId, msg.recoveryId)
+      if (reloadPreparing) return
       saved = recovery
       post({
         type: 'recovery_done',
@@ -571,6 +574,7 @@ async function start(msg: StartMsg) {
       sim = null
     }
   }
+  if (reloadPreparing) return
   if (!sim) {
     sim = new Sim(BigInt(seed))
   }
