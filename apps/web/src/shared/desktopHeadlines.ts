@@ -4,20 +4,24 @@ export interface ChronicleHeadline {
 }
 
 export interface HeadlinePick {
-  seenTick: number
+  seenTick: number | null
   headline: ChronicleHeadline | null
 }
 
 // `seenTick` is null before the first world. That world's headlines are the
 // saved chronicle, so they are history: remember the newest tick and announce
-// nothing, or a hidden launch would notify about an old headline.
+// nothing, or a hidden launch would notify about an old headline. An empty
+// chronicle seeds 0, so its first real headline is news. A malformed newest
+// headline leaves the seed unset until a valid one arrives.
 export function pickNewHeadline(
   seenTick: number | null,
   headlines: readonly ChronicleHeadline[] | undefined,
 ): HeadlinePick {
   const newest = headlines?.[0]
   const newestTick = Number.isFinite(newest?.tick) ? (newest?.tick ?? null) : null
-  if (seenTick === null) return { seenTick: newestTick ?? 0, headline: null }
+  if (seenTick === null) {
+    return { seenTick: newest ? newestTick : 0, headline: null }
+  }
   if (!newest || newestTick === null || newestTick <= seenTick) {
     return { seenTick, headline: null }
   }

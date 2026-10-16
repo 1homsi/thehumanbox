@@ -34,4 +34,11 @@ describe('desktop headline notices', () => {
     const malformed = [{ tick: Number.NaN, text: 'x' }]
     expect(pickNewHeadline(40_000, malformed).headline).toBeNull()
   })
+
+  it('does not seed a first world whose newest headline is malformed', () => {
+    const malformed = [{ tick: Number.NaN, text: 'x' }]
+    const first = pickNewHeadline(null, malformed)
+    expect(first).toEqual({ seenTick: null, headline: null })
+    expect(pickNewHeadline(first.seenTick, saved)).toEqual({ seenTick: 40_000, headline: null })
+  })
 })
