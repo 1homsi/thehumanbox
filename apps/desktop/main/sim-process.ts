@@ -55,6 +55,9 @@ interface SimPidRecord {
 }
 
 let current: RunningSim | null = null;
+// The child of a start that has not bound its port yet. `current` stays null
+// until the load finishes, so quit needs this to reach a loading simulation.
+let startingChild: ChildProcess | null = null;
 
 function platformBinaryName(): string {
   return process.platform === "win32" ? "simulation-rs.exe" : "simulation-rs";
@@ -340,11 +343,11 @@ function installExitHandlersOnce(): void {
   process.stdout.on("error", () => {});
   process.stderr.on("error", () => {});
   const signalCurrent = (): void => {
-    const c = current;
+    const c = current?.child ?? startingChild;
     if (!c) return;
-    intentionalStops.add(c.child);
+    intentionalStops.add(c);
     try {
-      c.child.kill("SIGTERM");
+      c.kill("SIGTERM");
     } catch {
       /* noop */
     }
@@ -509,6 +512,7 @@ async function startSimOnce(
     dataLock.release();
     throw error;
   }
+  startingChild = child;
   child.on("error", (error) => {
     alive = false;
     pushTail(error.message);
@@ -523,6 +527,7 @@ async function startSimOnce(
     removePidRecordIfOwned(pidFile, pidToken);
     dataLock.release();
     if (current?.child === child) current = null;
+    if (startingChild === child) startingChild = null;
   };
   child.once("exit", (code, signal) => {
     alive = false;
@@ -646,6 +651,7 @@ async function startSimOnce(
     );
   }
 
+  startingChild = null;
   current = { port, commandToken, child, pidFile, pidToken, dataLock };
   return current!;
 }
@@ -678,6 +684,19 @@ async function stopSimOnce(
   requireCheckpoint: boolean,
 ): Promise<void> {
   if (!current && startInFlight) {
+    // Nothing has bound a port, so there is no checkpoint to take. Stop the
+    // loading child now instead of waiting out the whole load; the start then
+    // rejects and releases its lock.
+    const loading = startingChild;
+    if (loading) {
+      intentionalStops.add(loading);
+      try {
+        if (process.platform === "win32") loading.kill();
+        else loading.kill("SIGTERM");
+      } catch {
+        /* noop */
+      }
+    }
     try {
       await startInFlight;
     } catch {
@@ -754,6 +773,11 @@ export function onUnexpectedSimExit(
 
 export function activeSim(): RunningSim | null {
   return current;
+}
+
+/** True while a simulation is running or still loading; quit must stop it. */
+export function simLifecyclePending(): boolean {
+  return current !== null || startInFlight !== null;
 }
 
 export async function checkpointActiveSim(timeoutMs = 3000): Promise<boolean> {
