@@ -111,8 +111,16 @@ jobs:
       CARGO_NET_RETRY: 10
       RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
       TICKS: 8000
-      MAX_TICK_MS: 80
+      LONG_TICKS: 24000
+      MAX_TICK_MS: 400
+      MAX_P99_MS: 80
+      MAX_MEAN_MS: 12
+      MAX_MEAN_INSTR: 100000000
       MAX_RSS_MB: 256
+      LONG_MAX_TICK_MS: 400
+      LONG_MAX_P99_MS: 60
+      LONG_MAX_LATE_MEAN_MS: 30
+      LONG_MAX_MEAN_INSTR: 150000000
       SEEDS: "42 1337 2026"
       # This also covers the old headless smoke test: seed 42 runs 8000 ticks.
     steps:

@@ -55,3 +55,43 @@ pub(super) fn read_self_rss_kb() -> u64 {
 pub(super) fn read_self_rss_kb() -> u64 {
     0
 }
+
+/// Instructions retired by this process so far (macOS only, via
+/// `proc_pid_rusage`; 0 elsewhere). Unlike wall time it does not move with
+/// machine load, so per-tick deltas give an exact tick-cost tail.
+#[cfg(target_os = "macos")]
+pub(super) fn read_self_instructions() -> u64 {
+    // `rusage_info_v4`, truncated after `ri_cycles` (the kernel fills what
+    // fits in the buffer sized for the full struct).
+    #[repr(C)]
+    struct RusageInfoV4 {
+        ri_uuid: [u8; 16],
+        before_instructions: [u64; 29],
+        ri_instructions: u64,
+        ri_cycles: u64,
+        after_cycles: [u64; 4],
+    }
+    extern "C" {
+        fn getpid() -> i32;
+        fn proc_pid_rusage(pid: i32, flavor: i32, buffer: *mut RusageInfoV4) -> i32;
+    }
+    const RUSAGE_INFO_V4: i32 = 4;
+    let mut info = RusageInfoV4 {
+        ri_uuid: [0; 16],
+        before_instructions: [0; 29],
+        ri_instructions: 0,
+        ri_cycles: 0,
+        after_cycles: [0; 4],
+    };
+    let ok = unsafe { proc_pid_rusage(getpid(), RUSAGE_INFO_V4, &mut info) };
+    if ok == 0 {
+        info.ri_instructions
+    } else {
+        0
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+pub(super) fn read_self_instructions() -> u64 {
+    0
+}

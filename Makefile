@@ -2,6 +2,7 @@ SHELL := /usr/bin/env bash
 
 SEED         ?= 42
 TICKS        ?= 6000
+LONG_TICKS   ?= 24000
 HOST         ?= http://localhost:8000
 OUT          ?= profile.csv
 TAG          ?=
@@ -104,11 +105,12 @@ headless: ## Headless deterministic run — `make headless SEED=42 TICKS=6000`
 profile: ## Headless perf profile CSV — `make profile OUT=a.csv TICKS=12000`
 	$(CARGO_RELEASE) run --release --bin headless -- \
 		--seed $(SEED) --ticks $(TICKS) --every $(TICKS) \
-		--profile $(OUT) --profile-every 100
+		--profile $(OUT) --profile-every 1
 
-perf-gate: ## Multi-seed sim budget — `make perf-gate TICKS=8000 MAX_TICK_MS=80`
+perf-gate: ## Multi-seed + mature-world sim budget — `make perf-gate TICKS=8000 LONG_TICKS=24000 MAX_TICK_MS=400`
 	$(CARGO_RELEASE) build --release --locked --bin headless
-	TICKS=$(TICKS) MAX_TICK_MS=$${MAX_TICK_MS:-80} scripts/perf-gate.sh
+	TICKS=$(TICKS) LONG_TICKS=$(LONG_TICKS) MAX_TICK_MS=$${MAX_TICK_MS:-400} \
+		HEADLESS_BIN="$${CARGO_TARGET_DIR:-target}/release/headless" scripts/perf-gate.sh
 
 metrics: ## Scrape /metrics once from a running sim — `make metrics HOST=...`
 	@curl -s $(HOST)/metrics

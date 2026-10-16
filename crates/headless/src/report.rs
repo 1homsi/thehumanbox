@@ -665,7 +665,13 @@ pub(super) fn print_progress(sim: &Simulation) {
     }
 }
 
-pub(super) fn print_performance(tick_times_us: Vec<u64>, json_sizes_bytes: Vec<usize>) {
+const BLOCK_TICKS: usize = 3000;
+
+pub(super) fn print_performance(
+    tick_times_us: Vec<u64>,
+    tick_instrs: Vec<u64>,
+    json_sizes_bytes: Vec<usize>,
+) {
     if !tick_times_us.is_empty() {
         let mut sorted_us = tick_times_us.clone();
         sorted_us.sort_unstable();
@@ -686,6 +692,37 @@ pub(super) fn print_performance(tick_times_us: Vec<u64>, json_sizes_bytes: Vec<u
             total_ms,
             n as f64 / (total_ms as f64 / 1000.0)
         );
+        // Cost grows with world maturity, so a whole-run mean hides the
+        // late game. One row per 3000-tick block shows where it goes. On
+        // macOS the instruction columns (M instr/tick) are load-independent.
+        let has_instr = tick_instrs.iter().any(|&i| i > 0);
+        if n > BLOCK_TICKS {
+            println!("  per {}-tick block (ms; M instr):", BLOCK_TICKS);
+            for (i, block) in tick_times_us.chunks(BLOCK_TICKS).enumerate() {
+                let mut b = block.to_vec();
+                b.sort_unstable();
+                let len = b.len();
+                let mut row = format!(
+                    "    ticks {:>6}-{:<6} mean={:>7.2}  p99={:>7.2}  max={:>7.2}",
+                    i * BLOCK_TICKS + 1,
+                    i * BLOCK_TICKS + len,
+                    b.iter().sum::<u64>() as f64 / len as f64 / 1000.0,
+                    b[len * 99 / 100] as f64 / 1000.0,
+                    b[len - 1] as f64 / 1000.0,
+                );
+                if has_instr {
+                    let mut ins = tick_instrs[i * BLOCK_TICKS..i * BLOCK_TICKS + len].to_vec();
+                    ins.sort_unstable();
+                    row += &format!(
+                        "  |  mean={:>6.1}  p99={:>6.1}  max={:>6.1}",
+                        ins.iter().sum::<u64>() as f64 / len as f64 / 1e6,
+                        ins[len * 99 / 100] as f64 / 1e6,
+                        ins[len - 1] as f64 / 1e6,
+                    );
+                }
+                println!("{row}");
+            }
+        }
     }
     if !json_sizes_bytes.is_empty() {
         let avg_kb = json_sizes_bytes.iter().sum::<usize>() / json_sizes_bytes.len() / 1024;
