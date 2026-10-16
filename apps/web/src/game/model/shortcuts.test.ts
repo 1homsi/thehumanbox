@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   escapeHandledElsewhere,
+  gameKeyAction,
   mapOwnsZoomKeys,
   shortcutFor,
   SHORTCUT_HELP,
@@ -92,5 +93,20 @@ describe('game shortcuts', () => {
   it('documents every key it uses', () => {
     const help = SHORTCUT_HELP.map(([k]) => k).join(' ')
     for (const k of ['1', 'P', 'B', '- =', '?']) expect(help).toContain(k)
+  })
+})
+
+describe('gameKeyAction', () => {
+  it('answers ? with or without the sandbox controls, so the open list can always close', () => {
+    expect(gameKeyAction({ key: '?' }, true)).toEqual({ kind: 'help' })
+    expect(gameKeyAction({ key: '?' }, false)).toEqual({ kind: 'help' })
+  })
+
+  it('gives every other game key to the sandbox controls only', () => {
+    expect(gameKeyAction({ key: 'p' }, true)).toEqual({ kind: 'prayer' })
+    expect(gameKeyAction({ key: '2' }, false)).toBeNull()
+    expect(gameKeyAction({ key: 'b' }, false)).toBeNull()
+    expect(gameKeyAction({ key: '-' }, false)).toBeNull()
+    expect(gameKeyAction({ key: 'x' }, true)).toBeNull()
   })
 })
