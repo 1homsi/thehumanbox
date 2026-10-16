@@ -170,4 +170,6 @@ fn a_parent_dotenv_stays_out_of_a_desktop_owned_simulation() {
     assert!(desktop_owned_environment(Some(OsStr::new("lock-token")), None));
     assert!(desktop_owned_environment(None, Some(OsStr::new("4242"))));
     assert!(!desktop_owned_environment(None, None));
+
+    std::fs::remove_dir_all(&root).unwrap();
 }

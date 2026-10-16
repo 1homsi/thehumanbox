@@ -17,7 +17,9 @@ pub(super) fn desktop_owned_environment(
 }
 
 /// The `.env` a standalone run should load: the file in `cwd` or the nearest
-/// ancestor, which is the search `dotenvy::dotenv()` performs.
+/// ancestor, which is the search `dotenvy::dotenv()` performs. (One divergence:
+/// a candidate that exists but cannot be read is skipped here, where dotenvy
+/// aborts the search.)
 ///
 /// A desktop-owned simulation gets `None`. The desktop runs the child with
 /// the save folder as its cwd (e.g. `~/Library/Application Support/The Human
