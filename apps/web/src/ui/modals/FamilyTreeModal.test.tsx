@@ -7,9 +7,12 @@ import { FamilyTreeModal } from './FamilyTreeModal'
 import type { OrganismState } from '../../shared/types'
 
 // happy-dom has no 2D canvas; the tree's draw calls only need to be no-ops here.
-const ctx = new Proxy({ measureText: () => ({ width: 0 }) }, {
-  get: (target, key: string) => target[key as keyof typeof target] ?? (() => undefined),
-}) as unknown as CanvasRenderingContext2D
+const ctx = new Proxy(
+  { measureText: () => ({ width: 0 }) },
+  {
+    get: (target, key: string) => target[key as keyof typeof target] ?? (() => undefined),
+  },
+) as unknown as CanvasRenderingContext2D
 
 beforeAll(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
@@ -53,9 +56,7 @@ function mount() {
   document.body.append(host)
   const root = createRoot(host)
   roots.push(root)
-  act(() =>
-    root.render(<FamilyTreeModal organisms={ORGS} currentTick={0} onClose={() => {}} />),
-  )
+  act(() => root.render(<FamilyTreeModal organisms={ORGS} currentTick={0} onClose={() => {}} />))
   return document.querySelector<HTMLCanvasElement>('.tree-modal canvas')!
 }
 
