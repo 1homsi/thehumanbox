@@ -146,12 +146,13 @@ fn the_frame_display_covers_every_branch_the_renderer_takes() {
     let mut house = Building::new(1, BuildingKind::House, 10, 20, Some("lineage-a".into()), 0);
     house.condition = 1.0;
 
-    // The 0.015 "damaged" threshold, inside damage step 0/1.
+    // The 0.015 "damaged" threshold, inside damage step 0 (step 0 is damage
+    // below 1/64, so both sides of the threshold draw the same step).
     house.damage = 0.013;
     let intact = house.display(100);
-    house.damage = 0.016;
+    house.damage = 0.0155;
     let damaged = house.display(100);
-    assert_eq!((intact.damage_step, damaged.damage_step), (0, 1));
+    assert_eq!((intact.damage_step, damaged.damage_step), (0, 0));
     assert!(!intact.damaged && damaged.damaged, "{intact:?} vs {damaged:?}");
 
     // The worn window variant at integrity 0.45, inside one damage step.
