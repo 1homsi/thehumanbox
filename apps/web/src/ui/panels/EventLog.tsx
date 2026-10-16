@@ -6,6 +6,7 @@ import { HIDDEN_EVENT_TYPES } from '../../shared/constants'
 import { useWorldStore } from '../../state/worldStore'
 import { EventRow } from './EventRow'
 import { isNewsEvent } from '../../game/model/news'
+import type { SimEvent } from '../../shared/types'
 
 const FILTER_KEY = 'thb-event-filter-v1'
 
@@ -16,6 +17,22 @@ function savedImportantOnly(): boolean {
   } catch {
     return true
   }
+}
+
+/**
+ * Each event's row key: its tick, type, actor and detail, plus its place among identical events. Unlike
+ * a position in the list, it does not move when newer events arrive, so a focused row stays mounted.
+ */
+function eventKeys(events: readonly SimEvent[] | undefined): Map<SimEvent, string> {
+  const keys = new Map<SimEvent, string>()
+  const seen = new Map<string, number>()
+  for (const e of events ?? []) {
+    const sig = `${e.tick}-${e.type}-${e.actor}-${e.detail}`
+    const n = seen.get(sig) ?? 0
+    seen.set(sig, n + 1)
+    keys.set(e, `${sig}#${n}`)
+  }
+  return keys
 }
 
 function EventLogImpl() {
@@ -45,6 +62,8 @@ function EventLogImpl() {
       }
       return next
     })
+
+  const keys = useMemo(() => eventKeys(events), [events])
 
   const recent = useMemo(() => {
     if (!events) return []
@@ -94,8 +113,8 @@ function EventLogImpl() {
         </button>
       </div>
       <div className="event-log" role="log" aria-live="polite" aria-labelledby="event-log-heading">
-        {recent.map((e, i) => (
-          <EventRow key={`${e.tick}-${i}`} event={e} />
+        {recent.map((e) => (
+          <EventRow key={keys.get(e)!} event={e} />
         ))}
       </div>
     </>
