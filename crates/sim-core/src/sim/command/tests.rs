@@ -831,6 +831,7 @@ fn far_off_command_points_do_not_overflow_or_alias_onto_nearby_things() {
     ] {
         sim.apply_command_json(cmd);
     }
+}
 
 #[test]
 fn a_volcano_off_the_map_is_refused_and_leaves_no_cone() {
