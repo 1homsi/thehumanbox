@@ -29,6 +29,7 @@ mod transport;
 mod world_archive;
 mod world_store;
 
+use axum::body::Bytes;
 use axum::http::HeaderValue;
 use axum::{
     routing::{get, post},
@@ -77,7 +78,7 @@ async fn main() {
             None
         }
     });
-    let (tx, _rx) = broadcast::channel::<Arc<Vec<u8>>>(WS_BROADCAST_BUFFER);
+    let (tx, _rx) = broadcast::channel::<Bytes>(WS_BROADCAST_BUFFER);
     let latest_full: LatestFull = Arc::new(std::sync::RwLock::new(None));
     let latest_full_at: Arc<std::sync::atomic::AtomicU64> = Arc::new(std::sync::atomic::AtomicU64::new(0));
     let last_tick_at: Arc<std::sync::atomic::AtomicU64> = Arc::new(std::sync::atomic::AtomicU64::new(0));
@@ -98,7 +99,7 @@ async fn main() {
             Some(bytes) => {
                 transport_stats.record_generated(bytes.len(), frame_started.elapsed().as_millis() as u64);
                 if let Ok(mut slot) = latest_full.write() {
-                    *slot = Some(Arc::new(bytes));
+                    *slot = Some(Bytes::from(bytes));
                 }
             }
             // No cached full frame until the broadcaster builds one, and
