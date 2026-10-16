@@ -278,7 +278,22 @@ export class CfOverlayRenderer {
     }
 
     const { c0, c1, r0, r1 } = f.bounds
-    const viewKey = [c0, c1, r0, r1, f.ox, f.oy, f.cam.x, f.cam.y, f.zoom, f.dpr, f.W, f.H].join('|')
+    const viewKey = [
+      c0,
+      c1,
+      r0,
+      r1,
+      f.ox,
+      f.oy,
+      f.cam.x,
+      f.cam.y,
+      f.zoom,
+      f.dpr,
+      f.viewport.w,
+      f.viewport.h,
+      f.W,
+      f.H,
+    ].join('|')
     const frameKey = `${f.world.frame_id}|${viewKey}`
     const animatedKey = `${frameKey}|${Math.floor(f.t / ANIMATED_SECTION_INTERVAL_MS)}`
 

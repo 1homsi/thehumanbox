@@ -76,13 +76,13 @@ const flags = {
   fps: false,
 } as unknown as ViewFlags
 
-function frameOf(w: WorldState, overlay: string | null = null, t = 5000) {
+function frameOf(w: WorldState, overlay: string | null = null, t = 5000, viewport = { w: 400, h: 240 }) {
   return makeFrame({
     world: w,
     t,
     zoom: 2,
     cam: { x: 12 * 8, y: 10 * 8 },
-    viewport: { w: 400, h: 240 },
+    viewport,
     dpr: 1,
     overlay,
     focus: 'all',
@@ -154,6 +154,22 @@ describe('CfOverlayRenderer', () => {
     const afterTime = trade.mock.calls.length
     renderer.update(frameOf({ ...w, frame_id: 2 }, null, 5070))
     expect(trade.mock.calls.length).toBeGreaterThan(afterTime)
+  })
+
+  it('re-records view-sized sections after a viewport resize that preserves tile bounds', () => {
+    make()
+    const trade = vi.mocked(drawTradeNetwork2D)
+    trade.mockClear()
+    const w = world()
+    const initial = frameOf(w, null, 5000, { w: 400, h: 240 })
+    const resized = frameOf(w, null, 5010, { w: 401, h: 241 })
+    expect(resized.bounds).toEqual(initial.bounds)
+
+    renderer.update(initial)
+    const first = trade.mock.calls.length
+    renderer.update(resized)
+
+    expect(trade.mock.calls.length).toBeGreaterThan(first)
   })
 
   it('draws the atmosphere as tint quads between the ground and everything built', () => {
