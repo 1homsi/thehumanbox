@@ -15,6 +15,7 @@ export interface UpdateCheckResult {
 let initialized = false
 let latestStatus: UpdateCheckResult = { status: 'up-to-date' }
 let downloadedFile: string | null = null
+let promptedVersion: string | null = null
 
 /** Unsigned macOS builds can't use Squirrel.Mac; see mac-unsigned-install.ts. */
 function usesUnsignedMacInstall(): boolean {
@@ -84,6 +85,10 @@ export function initUpdater(getWindow: () => BrowserWindow | null): void {
     if (win) {
       win.webContents.send('updater:downloaded', { version: info.version })
     }
+    // electron-updater re-emits this for a cached installer on every check, so
+    // ask once per version. A newer version still gets its own prompt.
+    if (promptedVersion === info.version) return
+    promptedVersion = info.version
     const { response } = await dialog.showMessageBox({
       type: 'info',
       buttons: ['Restart and update', 'Later'],
@@ -133,7 +138,8 @@ export async function checkForUpdatesNow(): Promise<UpdateCheckResult> {
     return latestStatus
   }
 
-  latestStatus = { status: 'checking' }
+  // A downloaded update stays held during a check; resetting it would hide the install action.
+  if (latestStatus.status !== 'downloaded') latestStatus = { status: 'checking' }
   try {
     const result = await autoUpdater.checkForUpdates()
     if (latestStatus.status !== 'checking') return latestStatus
