@@ -438,13 +438,15 @@ async function startSimOnce(
   const bin = locateSimBinary();
   if (!bin) {
     suppliedLock?.release();
-    // A packaged build only has `resources/bin`; naming the dev path there
-    // would point an end user at a directory inside app.asar.
     const expected = app.isPackaged
       ? packagedBinaryPath()
       : `${devBinaryPath()} (dev) or ${packagedBinaryPath()} (packaged, resources/bin)`;
+    // A packaged build has no repository or toolchain to point at.
+    const advice = app.isPackaged
+      ? "reinstall The Human Box, or check that the install was not modified"
+      : `build it with \`cargo build --release --bin simulation-rs\` at the repository root (or \`make build-sim\`)`;
     throw new Error(
-      `simulation binary not found. Expected at ${expected}: build it with \`cargo build --release --bin simulation-rs\` at the repository root (or \`make build-sim\`).`,
+      `simulation binary not found. Expected at ${expected}: ${advice}.`,
     );
   }
 

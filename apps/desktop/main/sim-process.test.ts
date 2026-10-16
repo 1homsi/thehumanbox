@@ -161,18 +161,20 @@ test("the dev binary path points at the workspace target directory", () => {
   const name = process.platform === "win32" ? "simulation-rs.exe" : "simulation-rs";
 
   // Anchor the expectation to a real marker rather than the same
-  // parent-directory count the source uses.
+  // parent-directory count the source uses: the workspace root is the nearest
+  // ancestor whose Cargo.toml declares the workspace.
+  const isWorkspaceRoot = (dir: string): boolean => {
+    const manifest = path.join(dir, "Cargo.toml");
+    return (
+      fs.existsSync(manifest) &&
+      fs.readFileSync(manifest, "utf8").includes("[workspace]")
+    );
+  };
   let workspaceRoot = __dirname;
-  while (
-    !fs.existsSync(path.join(workspaceRoot, "Cargo.toml")) &&
-    path.dirname(workspaceRoot) !== workspaceRoot
-  ) {
+  while (!isWorkspaceRoot(workspaceRoot) && path.dirname(workspaceRoot) !== workspaceRoot) {
     workspaceRoot = path.dirname(workspaceRoot);
   }
-  assert.ok(fs.existsSync(path.join(workspaceRoot, "Cargo.toml")));
-  assert.ok(
-    fs.readFileSync(path.join(workspaceRoot, "Cargo.toml"), "utf8").includes("[workspace]"),
-  );
+  assert.ok(isWorkspaceRoot(workspaceRoot));
 
   const resolved = sim.devBinaryPath();
   assert.equal(resolved, path.join(workspaceRoot, "target", "release", name));
