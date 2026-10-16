@@ -466,8 +466,12 @@ export function useSimulation(source: WorldSource = 'native'): {
         })
       }
       let reloadPreparation: Promise<boolean> | null = null
+      let reloadPreparationRequiresLocalWorld = false
       const prepareWorkerReload = (requireLocalWorld: boolean): Promise<boolean> => {
-        if (reloadPreparation) return reloadPreparation
+        if (reloadPreparation) {
+          if (requireLocalWorld && !reloadPreparationRequiresLocalWorld) return Promise.resolve(false)
+          return reloadPreparation
+        }
         const requestId = nextWorkerRequestRef.current++
         const deadlineAt = Date.now() + RELOAD_CHECKPOINT_DEADLINE_MS
         const preparation = new Promise<boolean>((resolve) => {
@@ -479,8 +483,12 @@ export function useSimulation(source: WorldSource = 'native'): {
           worker.postMessage({ type: 'prepare_reload', requestId, deadlineAt, requireLocalWorld })
         })
         reloadPreparation = preparation
+        reloadPreparationRequiresLocalWorld = requireLocalWorld
         void preparation.then((ok) => {
-          if (!ok && reloadPreparation === preparation) reloadPreparation = null
+          if (!ok && reloadPreparation === preparation) {
+            reloadPreparation = null
+            reloadPreparationRequiresLocalWorld = false
+          }
         })
         return preparation
       }
