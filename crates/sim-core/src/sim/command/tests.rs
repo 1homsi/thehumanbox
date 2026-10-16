@@ -832,3 +832,31 @@ fn far_off_command_points_do_not_overflow_or_alias_onto_nearby_things() {
         sim.apply_command_json(cmd);
     }
 }
+
+#[test]
+fn a_volcano_off_the_map_is_refused_and_leaves_no_cone() {
+    use crate::world::grid::Volcano;
+
+    let mut sim = Simulation::new(1);
+    let before = sim.grid.placed_volcanoes.clone();
+    for cmd in [
+        r#"{"cmd":"volcano","x":50000,"y":50000,"radius":5}"#,
+        r#"{"cmd":"volcano","x":-3,"y":10,"radius":5}"#,
+    ] {
+        assert!(!sim.apply_command_json(cmd), "{cmd} is refused");
+    }
+    assert_eq!(sim.grid.placed_volcanoes, before, "no cone is registered");
+
+    // A save from before the refusal may carry stray cones; loading drops them.
+    sim.grid.placed_volcanoes.push(Volcano {
+        x: 50000,
+        y: 50000,
+        r: 5,
+    });
+    sim.grid.placed_volcanoes.push(Volcano { x: 120, y: 110, r: 6 });
+    let loaded = Simulation::from_save(sim.world_seed, sim.to_save_state());
+    assert_eq!(
+        loaded.grid.placed_volcanoes,
+        vec![Volcano { x: 120, y: 110, r: 6 }]
+    );
+}

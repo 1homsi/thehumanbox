@@ -835,6 +835,9 @@ impl Simulation {
     pub(super) fn cmd_volcano(&mut self, x: i32, y: i32, radius: i32) -> bool {
         use crate::world::tiles::Biome;
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
+        if !WorldGrid::in_bounds(x, y) {
+            return false;
+        }
         let r = if radius <= 0 { 6 } else { radius.clamp(3, 12) };
         let rf = r as f32;
         let mut changed = false;
@@ -888,7 +891,9 @@ impl Simulation {
         };
         push_event(&mut self.events, self.tick_count, "danger", "a volcano", &detail);
         // The cone stands on the map from now on (see `WorldGrid::raise_volcano`).
-        self.grid.raise_volcano(x, y, r);
+        if changed {
+            self.grid.raise_volcano(x, y, r);
+        }
         // The cone buries what it rises under; the ash fall cracks
         // roofs further out.
         let hit = crate::sim::civ::building_damage::strike_buildings(
