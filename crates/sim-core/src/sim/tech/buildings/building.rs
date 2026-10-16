@@ -2,6 +2,43 @@ use super::*;
 
 pub const REPAIR_ACTIVITY_TICKS: u64 = 40;
 
+/// The steps the client bakes a building's look at, kept in step with
+/// `PROGRESS_STEPS`, `DAMAGE_STEPS` and `RUIN_AGE_STEPS` in
+/// `apps/web/src/game/render/cf/buildings/building-visuals.ts` and with the
+/// damage threshold in `apps/web/src/game/model/building-state.ts`. A field
+/// that moves by less than one step paints the same pixels.
+const PROGRESS_DISPLAY_STEPS: f32 = 48.0;
+const DAMAGE_DISPLAY_STEPS: f32 = 32.0;
+const RUIN_AGE_DISPLAY_STEPS: f32 = 12.0;
+/// How long a ruin takes to crumble away (see `ruins.ts` in the client).
+const RUIN_CRUMBLE_TICKS: f32 = 12_000.0;
+/// Below this structural damage the client draws a building as undamaged.
+const VISIBLE_DAMAGE: f32 = 0.015;
+
+/// What a frame shows of one building: the wire fields that reach pixels,
+/// quantised to the steps the renderer bakes at, plus the flags and identity
+/// it branches on. Two `BuildingDisplay`s that compare equal draw the same
+/// pixels, so a frame where every building kept its display can leave the
+/// buildings section off the wire.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BuildingDisplay {
+    pub id: u32,
+    pub kind: BuildingKind,
+    pub x: i32,
+    pub y: i32,
+    pub owner: Option<String>,
+    pub fw: u8,
+    pub fh: u8,
+    pub progress_step: u16,
+    pub complete: bool,
+    pub damage_step: u16,
+    pub damaged: bool,
+    pub ruined: bool,
+    pub ruin_age_step: u16,
+    pub repairing: bool,
+    pub slip: Option<u8>,
+}
+
 /// Saves from a short-lived build carried 1,050 named era-home kinds (for
 /// example `MedievalTwinTimberHall`). Those homes now draw their era style
 /// from the owning tribe, so an unknown name loads as the closest plain home
@@ -139,6 +176,41 @@ impl Building {
     }
     pub fn function(&self) -> BuildingFunction {
         self.kind.function()
+    }
+
+    /// The building as a client draws it, for the wire's change tracking: two
+    /// displays that compare equal look identical (see `BuildingDisplay`).
+    pub fn display(&self, tick: u64) -> BuildingDisplay {
+        // A non-finite condition crosses the wire as `null`, which the
+        // client's `unit(value, 1)` reads as a finished building.
+        let progress = if self.condition.is_finite() {
+            self.condition.clamp(0.0, 1.0)
+        } else {
+            1.0
+        };
+        let damage = self.damage_fraction();
+        let ruin_age = match self.ruined_at_tick {
+            Some(at) => (tick.saturating_sub(at) as f32 / RUIN_CRUMBLE_TICKS).clamp(0.0, 1.0),
+            None => 0.0,
+        };
+        let (fw, fh) = self.footprint();
+        BuildingDisplay {
+            id: self.id,
+            kind: self.kind,
+            x: self.x,
+            y: self.y,
+            owner: self.owner_lineage.clone(),
+            fw,
+            fh,
+            progress_step: (progress * PROGRESS_DISPLAY_STEPS).round() as u16,
+            complete: self.is_complete(),
+            damage_step: (damage * DAMAGE_DISPLAY_STEPS).round() as u16,
+            damaged: self.is_ruined() || damage > VISIBLE_DAMAGE,
+            ruined: self.is_ruined(),
+            ruin_age_step: (ruin_age * RUIN_AGE_DISPLAY_STEPS).round() as u16,
+            repairing: self.is_repairing_at(tick),
+            slip: crate::sim::tech::ports::slip_stage(self.hull_work),
+        }
     }
 
     /// A completed housing building can shelter its owning lineage. Buildings
