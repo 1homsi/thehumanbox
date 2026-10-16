@@ -22,6 +22,8 @@ function savedImportantOnly(): boolean {
 /**
  * Each event's row key: its tick, type, actor and detail, plus its place among identical events. Unlike
  * a position in the list, it does not move when newer events arrive, so a focused row stays mounted.
+ * The tick is part of the signature so that trimming the oldest events (the world caps its log) can
+ * only renumber rows that are long gone from the log.
  */
 function eventKeys(events: readonly SimEvent[] | undefined): Map<SimEvent, string> {
   const keys = new Map<SimEvent, string>()
