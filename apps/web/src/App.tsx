@@ -33,6 +33,8 @@ import { HeadlineTicker } from './ui/panels/HeadlineTicker'
 import { trackEvent } from './shared/observability'
 import { reconcileFocus, reconcileViewerSelection } from './shared/viewerSelection'
 import { useUIStore } from './state/store'
+import { isAnyModalOpen } from './state/ui/slices/modals'
+import { useIsMobile } from './shared/hooks/useIsMobile'
 import { useWorldStore } from './state/worldStore'
 import { nearestLivingPerson } from './simulation/nearestPerson'
 import { IS_LOCAL_SERVER } from './shared/config'
@@ -137,6 +139,10 @@ function LiveApp() {
   const [hotkeysOpen, setHotkeysOpen] = useState(false)
   const [sandboxStatus, setSandboxStatus] = useState<string | null>(null)
   const showScenarios = useUIStore((s) => s.showScenarios)
+  // A phone modal is a sheet over most of the map, so the map behind it is not worth drawing.
+  const modalOpen = useUIStore(isAnyModalOpen)
+  const isPhone = useIsMobile()
+  const mapCoveredByModal = modalOpen && isPhone
   const closeScenarios = useUIStore((s) => s.closeScenarios)
   const sandboxStatusTimer = useRef<number | null>(null)
   const sandboxControlsEnabled = sandboxAvailable && (!desktop || desktopMode === 'local')
@@ -707,7 +713,7 @@ function LiveApp() {
                   <WorldView
                     world={world}
                     interp={interp}
-                    rendererPaused={desktopRendererPaused}
+                    rendererPaused={desktopRendererPaused || mapCoveredByModal}
                     sandboxArmed={sandboxControlsEnabled && !!armedTool}
                     sandboxLabel={armedTool?.label}
                     sandboxToolId={armedTool?.id}

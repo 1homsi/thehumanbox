@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { useUIStore } from './index'
+import { isAnyModalOpen } from './slices/modals'
 
 const initialSelection = {
   selectedOrgId: null,
@@ -112,5 +113,21 @@ describe('family tree', () => {
     useUIStore.getState().closeFamilyTree()
     expect(useUIStore.getState().showFamilyTree).toBe(false)
     expect(useUIStore.getState().familyTreeFocus).toBeNull()
+  })
+})
+
+describe('isAnyModalOpen', () => {
+  afterEach(() => useUIStore.getState().closeAllModals())
+
+  it('is true while any modal is open and false once they are all closed', () => {
+    expect(isAnyModalOpen(useUIStore.getState())).toBe(false)
+    useUIStore.getState().openStats()
+    expect(isAnyModalOpen(useUIStore.getState())).toBe(true)
+    useUIStore.getState().closeStats()
+    expect(isAnyModalOpen(useUIStore.getState())).toBe(false)
+    useUIStore.getState().openConvo('someone')
+    expect(isAnyModalOpen(useUIStore.getState())).toBe(true)
+    useUIStore.getState().closeAllModals()
+    expect(isAnyModalOpen(useUIStore.getState())).toBe(false)
   })
 })
