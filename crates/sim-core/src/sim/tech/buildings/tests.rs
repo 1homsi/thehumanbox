@@ -137,3 +137,52 @@ fn saves_with_retired_era_home_kinds_still_load() {
         assert_eq!(loaded.kind, expected, "{name}");
     }
 }
+
+/// `Building::display` backs the wire's change tracking, so every branch the
+/// client's renderer takes has to move it even when the damage stays inside
+/// one of the 32 step buckets it bakes at.
+#[test]
+fn the_frame_display_covers_every_branch_the_renderer_takes() {
+    let mut house = Building::new(1, BuildingKind::House, 10, 20, Some("lineage-a".into()), 0);
+    house.condition = 1.0;
+
+    // The 0.015 "damaged" threshold, inside damage step 0/1.
+    house.damage = 0.013;
+    let intact = house.display(100);
+    house.damage = 0.016;
+    let damaged = house.display(100);
+    assert_eq!((intact.damage_step, damaged.damage_step), (0, 1));
+    assert!(!intact.damaged && damaged.damaged, "{intact:?} vs {damaged:?}");
+
+    // The worn window variant at integrity 0.45, inside one damage step.
+    house.damage = 0.549;
+    let sound = house.display(100);
+    house.damage = 0.552;
+    let worn = house.display(100);
+    assert_eq!(sound.damage_step, worn.damage_step);
+    assert!(!sound.worn && worn.worn, "{sound:?} vs {worn:?}");
+
+    // A ruin draws its crumble and rebuild stages at 48 steps, and flips to
+    // "rebuilding" at integrity 0.08, again inside one damage step.
+    house.ruined_at_tick = Some(50);
+    house.damage = 0.916;
+    let rubble = house.display(100);
+    house.damage = 0.9205;
+    let rebuilding = house.display(100);
+    assert!(rubble.ruined && rebuilding.ruined);
+    assert_eq!(rubble.damage_step, rebuilding.damage_step);
+    assert!(
+        rubble.rebuilding && !rebuilding.rebuilding,
+        "{rubble:?} vs {rebuilding:?}"
+    );
+    assert_eq!(rubble.rebuild_step, rebuilding.rebuild_step);
+
+    // Repairing is a timestamp window, so a day of damage closes it.
+    house.ruined_at_tick = None;
+    house.damage = 0.5;
+    house.last_repair_tick = Some(90);
+    house.last_damage_tick = Some(80);
+    assert!(house.display(100).repairing);
+    house.last_damage_tick = Some(95);
+    assert!(!house.display(100).repairing, "damage after a repair ends it");
+}
