@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { Worker } from "node:worker_threads";
 
 export const MAX_REMOTE_SAVE_BYTES = 256 * 1024 * 1024;
 
@@ -193,6 +194,38 @@ export function validateWorldSaveBytes(bytes: Uint8Array): ValidatedWorldSave {
     tickText,
     seedText,
   };
+}
+
+/** Validate a save away from Electron's main thread for user-triggered file operations. */
+export function validateWorldSaveBytesInWorker(
+  bytes: Uint8Array,
+): Promise<ValidatedWorldSave> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(path.join(__dirname, "save-validation-worker.js"), {
+      workerData: bytes,
+    });
+    let settled = false;
+    worker.once("message", (result: Omit<ValidatedWorldSave, "bytes"> & { error?: string }) => {
+      settled = true;
+      if (result.error) {
+        reject(new Error(result.error));
+        return;
+      }
+      resolve({
+        ...result,
+        bytes: Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+      });
+    });
+    worker.once("error", (error) => {
+      settled = true;
+      reject(error);
+    });
+    worker.once("exit", (code) => {
+      if (!settled) {
+        reject(new Error(`world-save validation worker exited with code ${code}`));
+      }
+    });
+  });
 }
 
 export function assertSameLoadedWorld(

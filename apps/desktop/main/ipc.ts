@@ -36,7 +36,7 @@ import {
   copyWorldsToStaging,
   finishSaveFolderMigration,
   hasRecoverableSaveFolderMigration,
-  inspectSaveFolderMigrationSource,
+  inspectSaveFolderMigrationSourceInWorker,
   initializeDataRootIdentity,
   markSaveFolderMigrationVerified,
   recoverInterruptedSaveFolderMigration,
@@ -46,7 +46,8 @@ import {
   restoreParkedLiveWorld,
   syncDirectoryBestEffort,
   validateWorldSaveBytes,
-  verifySaveFolderMigrationCopy,
+  validateWorldSaveBytesInWorker,
+  verifySaveFolderMigrationCopyInWorker,
 } from "./world-safety";
 
 interface ReplacedFile {
@@ -165,7 +166,9 @@ async function verifyImportedWorldLoaded(
       `simulation activated world ${activeHash}, expected imported world ${importedHash}`,
     );
   }
-  const loaded = validateWorldSaveBytes(fs.readFileSync(savePath));
+  const loaded = await validateWorldSaveBytesInWorker(
+    await fs.promises.readFile(savePath),
+  );
   assertSameLoadedWorld(expected, loaded);
 }
 
@@ -181,7 +184,9 @@ async function verifyFreshWorldLoaded(
       `new-world reset reselected the previous world ${previousHash}`,
     );
   }
-  const loaded = validateWorldSaveBytes(fs.readFileSync(world.savePath));
+  const loaded = await validateWorldSaveBytesInWorker(
+    await fs.promises.readFile(world.savePath),
+  );
   if (loaded.seedText === "0") {
     throw new Error(
       "new local world has no stable seed and cannot be committed",
@@ -328,7 +333,8 @@ export function registerIpc(
           } else {
             initializeDataRootIdentity(targetRoot);
           }
-          const sourceWorld = inspectSaveFolderMigrationSource(sourceRoot);
+          const sourceWorld =
+            await inspectSaveFolderMigrationSourceInWorker(sourceRoot);
           beginSaveFolderMigration(sourceRoot, targetRoot, token);
           journalStarted = true;
           stagingRoot = copyWorldsToStaging(sourceRoot, targetRoot, token);
@@ -339,7 +345,7 @@ export function registerIpc(
           syncDirectoryBestEffort(targetRoot);
           fs.rmdirSync(stagingRoot);
           stagingRoot = null;
-          verifySaveFolderMigrationCopy(targetRoot, sourceWorld);
+          await verifySaveFolderMigrationCopyInWorker(targetRoot, sourceWorld);
 
           // Start from the copied root before making it durable in settings. This
           // proves Rust accepted the same seed/tick and produced a durable
@@ -436,8 +442,8 @@ export function registerIpc(
       });
       if (result.canceled || !result.filePath) return { exported: false };
       assertExportOutsideDataRoot(effectiveDataRoot(settings), result.filePath);
-      const bytes = fs.readFileSync(world.savePath);
-      validateWorldSaveBytes(bytes);
+      const bytes = await fs.promises.readFile(world.savePath);
+      await validateWorldSaveBytesInWorker(bytes);
       const replaced = replaceFileForTransaction(
         result.filePath,
         bytes,
@@ -499,8 +505,8 @@ export function registerIpc(
         operationLock = acquireDataRootLock(effectiveDataRoot(settings));
         if (exportPath) {
           assertExportOutsideDataRoot(effectiveDataRoot(settings), exportPath);
-          const exportBytes = fs.readFileSync(world.savePath);
-          validateWorldSaveBytes(exportBytes);
+          const exportBytes = await fs.promises.readFile(world.savePath);
+          await validateWorldSaveBytesInWorker(exportBytes);
           const replaced = replaceFileForTransaction(
             exportPath,
             exportBytes,
