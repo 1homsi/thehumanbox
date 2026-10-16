@@ -1,6 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import { useRef, type PointerEvent, type ReactNode } from 'react'
+import { useEffect, useRef, type PointerEvent, type ReactNode } from 'react'
 import './modal-theme.css'
+import { registerOpenSheet } from './openSheets'
 
 interface ModalProps {
   open: boolean
@@ -19,6 +20,12 @@ export function Modal({ open, onClose, className, title, hideTitle = false, chil
   const sheet = !className?.includes('confirm-modal')
   const contentRef = useRef<HTMLDivElement>(null)
   const drag = useRef<{ id: number; startY: number; dy: number } | null>(null)
+
+  // A mounted sheet covers most of a phone map; the renderer can stop drawing behind it.
+  useEffect(() => {
+    if (!sheet || !open) return
+    return registerOpenSheet()
+  }, [open, sheet])
 
   // The grabber only exists on phones (see modal-theme.css): drag the sheet down to dismiss it.
   const onGrabStart = (e: PointerEvent<HTMLDivElement>) => {

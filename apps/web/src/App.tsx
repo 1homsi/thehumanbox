@@ -1,5 +1,14 @@
 import { personName } from './shared/personName'
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react'
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  Suspense,
+} from 'react'
 import { lazyWithRetry } from './shared/lazyWithRetry'
 import { useSimulation } from './simulation/useSimulation'
 import {
@@ -33,6 +42,12 @@ import { HeadlineTicker } from './ui/panels/HeadlineTicker'
 import { trackEvent } from './shared/observability'
 import { reconcileFocus, reconcileViewerSelection } from './shared/viewerSelection'
 import { useUIStore } from './state/store'
+import { useIsPhoneSheetViewport } from './shared/hooks/useIsPhoneSheetViewport'
+import {
+  hasOpenSheet as snapshotHasOpenSheet,
+  shouldPauseForPhoneSheet,
+  subscribeToOpenSheets,
+} from './ui/modals/openSheets'
 import { useWorldStore } from './state/worldStore'
 import { nearestLivingPerson } from './simulation/nearestPerson'
 import { IS_LOCAL_SERVER } from './shared/config'
@@ -98,6 +113,12 @@ function LiveApp() {
   const [desktopPauseWhenHidden, setDesktopPauseWhenHidden] = useState(true)
   const [desktopRendererPaused, setDesktopRendererPaused] = useState(false)
   const desktopWindowInactiveRef = useRef(false)
+  // A phone modal sheet covers most of the map, so the map behind it is not worth drawing. This
+  // follows the sheets that are actually mounted (see Modal), not the store flags, so a flag set
+  // while no modal renders cannot leave the map paused.
+  const modalSheetOpen = useSyncExternalStore(subscribeToOpenSheets, snapshotHasOpenSheet, () => false)
+  const phoneSheetViewport = useIsPhoneSheetViewport()
+  const pauseForPhoneSheet = shouldPauseForPhoneSheet(modalSheetOpen, phoneSheetViewport)
   const {
     world,
     connected,
@@ -707,7 +728,7 @@ function LiveApp() {
                   <WorldView
                     world={world}
                     interp={interp}
-                    rendererPaused={desktopRendererPaused}
+                    rendererPaused={desktopRendererPaused || pauseForPhoneSheet}
                     sandboxArmed={sandboxControlsEnabled && !!armedTool}
                     sandboxLabel={armedTool?.label}
                     sandboxToolId={armedTool?.id}
