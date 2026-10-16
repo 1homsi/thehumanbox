@@ -1,3 +1,10 @@
+/**
+ * The operation a File-menu or IPC restart runs under. Named once so the
+ * deferred unexpected-exit prompt can tell an in-flight restart (the sim is
+ * coming back) from an unrelated operation (a migration, say).
+ */
+export const RESTART_SIMULATION_OPERATION = "restart the simulation";
+
 let activeOperation: { token: symbol; name: string } | null = null;
 
 /**

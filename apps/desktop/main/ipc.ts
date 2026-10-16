@@ -20,7 +20,10 @@ import {
   stopSim,
 } from "./sim-process";
 import { acquireDataRootLock, type DataRootLock } from "./data-lock";
-import { runExclusiveDesktopOperation } from "./exclusive-operation";
+import {
+  RESTART_SIMULATION_OPERATION,
+  runExclusiveDesktopOperation,
+} from "./exclusive-operation";
 import {
   atomicWriteNewFile,
   assertEmptyOrIdentifiedDataRoot,
@@ -222,7 +225,7 @@ export function registerIpc(
 
   ipc.handle(
     "sim:restart",
-    exclusiveIpcHandler("restart the simulation", async () => {
+    exclusiveIpcHandler(RESTART_SIMULATION_OPERATION, async () => {
       await stopSim(5_000, true);
       const settings = loadSettings();
       try {
