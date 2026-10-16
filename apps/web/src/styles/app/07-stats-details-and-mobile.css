@@ -367,26 +367,25 @@
     padding: 0 var(--safe-right) 0 var(--safe-left);
   }
 
-  .lang-modal,
-  .chronicles-modal,
-  .tree-modal,
-  .org-search-modal,
-  .stats-modal,
-  .about-modal,
-  .cv-modal,
-  .life-modal,
-  .civ-modal,
-  .notable-modal,
-  .settings-modal,
-  .worlds-modal {
-    width: 100% !important;
-    max-width: 100% !important;
-    border-radius: 14px 14px 0 0 !important;
-    max-height: 90vh !important;
-    max-height: 90dvh !important;
+  /* `[class]` + `--sheet` keep this above the per-modal widths in pixel-theme.css without !important. */
+  .thb-modal[class].thb-modal--sheet {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 14px 14px 0 0;
+    max-height: 90vh;
+    max-height: 90dvh;
     border-left: none;
     border-right: none;
     border-bottom: none;
+    transition: transform 0.15s ease-out;
+  }
+  /* Low specificity on purpose: a modal with its own padding rule (.civ-modal) keeps it. */
+  .thb-modal--sheet {
     padding-bottom: var(--safe-bottom);
   }
 
@@ -413,11 +412,6 @@
   .tree-modal {
     height: 90vh;
     height: 90dvh;
-  }
-
-  /* Stats modal */
-  .stats-modal {
-    width: 100% !important;
   }
 
   /* Chronicles: readable on small screens */

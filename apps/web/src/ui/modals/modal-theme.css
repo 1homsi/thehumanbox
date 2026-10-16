@@ -4,6 +4,11 @@
 
 /* One surface language for shared dialogs; each body retains its own layout. */
 .thb-modal[class] {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 101;
   background: var(--dialog-surface);
   color: var(--dialog-text);
   border: 2px solid var(--px-ink);
@@ -80,4 +85,34 @@
 .thb-modal .org-search-placeholder {
   padding: 24px;
   text-align: center;
+}
+
+/* Phone sheets (`thb-modal--sheet`, see the media block in 07-stats-details-and-mobile.css) get a grabber to drag down. */
+.thb-modal-grabber {
+  display: none;
+}
+@media (max-width: 767px) {
+  .thb-modal[class].thb-modal--sheet > .thb-modal-grabber {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    width: 120px;
+    height: 32px;
+    margin: 0 auto -32px;
+    flex-shrink: 0;
+    touch-action: none;
+    cursor: grab;
+  }
+  .thb-modal-grabber::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    width: 36px;
+    height: 4px;
+    margin-left: -18px;
+    background: var(--px-brass);
+    opacity: 0.8;
+  }
 }
