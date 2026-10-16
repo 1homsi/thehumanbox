@@ -24,6 +24,8 @@ import { atomicReplaceFile } from "./world-safety";
 import { appVersionArgument } from "./app-version-arg";
 import { loginItemSettings, shouldStartHidden } from "./login-launch";
 import { appIconPath } from "./app-icon";
+import { redactUrlForDisplay } from "./redact-url";
+import { loadRenderer } from "./renderer-load";
 import { restartFailurePrompt } from "./restart-recovery";
 import {
   deferErrorDialog,
@@ -305,10 +307,11 @@ async function createWindow(): Promise<void> {
 
   win.webContents.on("did-fail-load", (_e, code, desc, url, isMainFrame) => {
     if (!shouldShowLoadError(code, url, isMainFrame)) return;
-    console.error(`[main] did-fail-load code=${code} desc=${desc} url=${url}`);
+    const shown = redactUrlForDisplay(url);
+    console.error(`[main] did-fail-load code=${code} desc=${desc} url=${shown}`);
     win?.loadURL(
       renderBootError(
-        `Renderer failed to load.\nURL: ${url}\nCode: ${code}\n${desc}`,
+        `Renderer failed to load.\nURL: ${shown}\nCode: ${code}\n${desc}`,
       ),
     );
   });
@@ -319,7 +322,7 @@ async function createWindow(): Promise<void> {
     const query: Record<string, string> = { desktop: "1" };
     if (apiBase) query.api = apiBase;
     if (apiToken) query.token = apiToken;
-    await win.loadFile(rendererFile, { query });
+    await loadRenderer(win, rendererFile, query);
     if (isDev) win.webContents.openDevTools({ mode: "detach" });
   }
 
