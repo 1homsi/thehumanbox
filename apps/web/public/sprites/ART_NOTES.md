@@ -2,7 +2,8 @@
 
 The atlas layouts and draw code live in `src/2d/world`.
 
-- `people/people.svg`: editable native pixel artwork, expanded to six appearances for each sex and life stage. Four walking frames per appearance; 128 × 1920. New outfits add ochre, teal and violet, tunic seams, belts and a satchel. The SVG retains the original age proportions.
+- `people/people.svg`: editable native pixel artwork, expanded to six appearances for each sex and life stage. Four walking frames per appearance; 128 × 1920. New outfits add ochre, teal and violet, tunic seams, belts and a satchel. The SVG retains the original age proportions. The app loads `people/people.png`, not the SVG (a 400 KB SVG rasterised on the main thread at startup).
+- `people/people.png`: the SVG drawn at its natural size in Chrome, saved as PNG and then optimised losslessly (`magick in.png -strip -define png:compression-level=9 -define png:compression-filter=5 out.png`). Regenerate it whenever `people.svg` changes, and check the RGBA is unchanged (drawing the SVG and the PNG to canvases must give identical bytes). Hand-written ImageMagick rasterising of the SVG is not identical (transparent pixels turn opaque), so do not render the PNG with `magick` from the SVG.
 - `fauna-v2.png`: original generated animal artwork. See `fauna-layout.ts` for measured source rectangles. All seven supported animal species are covered, with two bird appearances.
 - `vegetation-v2.png`: original generated vegetation artwork: oak, pine, birch, autumn red and gold trees, bare tree, cactus, and shrub. The tree renderer chooses the seasonal and biome variant.
 - `tiny-town.png` and `tiny-creatures.png`: existing fallback atlases; their original license files remain alongside them.

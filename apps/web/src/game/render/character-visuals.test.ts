@@ -162,4 +162,10 @@ describe('character motion and draw order', () => {
     expect(svg).toContain('viewBox="0 0 128 1920"')
     expect(svg.match(/<!-- sex /g)?.length).toBe(2 * 5 * HUMAN_SHEET_APPEARANCES)
   })
+  it('ships the rasterised sheet at the SVG size (IHDR width and height)', () => {
+    const png = readFileSync(new URL('../../../public/sprites/people/people.png', import.meta.url))
+    expect(png.subarray(1, 4).toString('ascii')).toBe('PNG')
+    expect(png.readUInt32BE(16)).toBe(128)
+    expect(png.readUInt32BE(20)).toBe(1920)
+  })
 })
