@@ -33,6 +33,7 @@ test('replacing a window retains the new window and routes old events to their o
     isPackaged: true,
     getVersion: () => "0.0.0-test",
     on() {},
+    requestSingleInstanceLock: () => true,
     whenReady: () => new Promise<void>(() => {}),
   }
   const context = vm.createContext({

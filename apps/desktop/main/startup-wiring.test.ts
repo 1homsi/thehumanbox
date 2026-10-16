@@ -4,8 +4,8 @@ import * as path from "node:path";
 import test from "node:test";
 import * as vm from "node:vm";
 
-test("boot registers app IPC before creating the window and stops the sim on fatal failure", async () => {
-  const calls: string[] = [];
+function loadIndex(options: { singleInstance: boolean; calls: string[] }) {
+  const calls = options.calls;
   let boot: (() => Promise<void>) | undefined;
   let onFailure: ((error: unknown) => Promise<void>) | undefined;
   let exitedWith: number | undefined;
@@ -24,12 +24,17 @@ test("boot registers app IPC before creating the window and stops the sim on fat
     isPackaged: true,
     getVersion: () => "0.0.0-test",
     on() {},
+    requestSingleInstanceLock: () => {
+      calls.push("app:singleInstanceLock");
+      return options.singleInstance;
+    },
     whenReady: () => new Promise<void>(() => {}),
     getPath: () => "/tmp/thehumanbox-test",
     exit: (code: number) => {
       calls.push("app:exit");
       exitedWith = code;
     },
+    quit: () => calls.push("app:quit"),
   };
   const ipcMain = {
     handle: (channel: string) => calls.push(`ipc:${channel}`),
@@ -64,7 +69,10 @@ test("boot registers app IPC before creating the window and stops the sim on fat
       if (id === "./exclusive-operation") return { runExclusiveDesktopOperation: async (fn: () => Promise<void>) => fn() };
       if (id === "./sim-process") {
         return {
-          startSim: async () => ({ port: 8000 }),
+          startSim: async () => {
+            calls.push("sim:start");
+            return { port: 8000 };
+          },
           stopSim: async () => {
             calls.push("sim:stop");
             if (stopBehavior === "reject") throw new Error("stop failed");
@@ -84,9 +92,31 @@ test("boot registers app IPC before creating the window and stops the sim on fat
   });
 
   vm.runInContext(readFileSync(path.join(__dirname, "index.js"), "utf8"), context);
-  assert.ok(boot);
-  assert.ok(onFailure);
-  await assert.rejects(boot(), /malformed window state/);
+  return {
+    get boot() {
+      return boot;
+    },
+    get onFailure() {
+      return onFailure;
+    },
+    get simStopped() {
+      return simStopped;
+    },
+    get exitedWith() {
+      return exitedWith;
+    },
+    setStopBehavior(mode: "resolve" | "reject" | "hang") {
+      stopBehavior = mode;
+    },
+  };
+}
+
+test("boot registers app IPC before creating the window and stops the sim on fatal failure", async () => {
+  const calls: string[] = [];
+  const wiring = loadIndex({ singleInstance: true, calls });
+  assert.ok(wiring.boot);
+  assert.ok(wiring.onFailure);
+  await assert.rejects(wiring.boot(), /malformed window state/);
 
   const windowCreation = calls.indexOf("window:create");
   assert.ok(windowCreation > -1);
@@ -95,7 +125,7 @@ test("boot registers app IPC before creating the window and stops the sim on fat
 
   const assertFatalOrder = async (error: Error): Promise<void> => {
     const start = calls.length;
-    await onFailure!(error);
+    await wiring.onFailure!(error);
     const events = calls.slice(start);
     assert.ok(events.includes("sim:stop"));
     assert.ok(events.indexOf("sim:stop") < events.indexOf("dialog:error"));
@@ -103,14 +133,24 @@ test("boot registers app IPC before creating the window and stops the sim on fat
   };
 
   await assertFatalOrder(new Error("malformed window state"));
-  assert.equal(simStopped, true);
-  assert.equal(exitedWith, 1);
+  assert.equal(wiring.simStopped, true);
+  assert.equal(wiring.exitedWith, 1);
 
-  stopBehavior = "reject";
+  wiring.setStopBehavior("reject");
   await assertFatalOrder(new Error("second startup failure"));
   assert.equal(calls.filter((call) => call === "app:exit").length, 2);
 
-  stopBehavior = "hang";
+  wiring.setStopBehavior("hang");
   await assertFatalOrder(new Error("third startup failure"));
   assert.equal(calls.filter((call) => call === "app:exit").length, 3);
+});
+
+test("a second launch quits before booting, so it never opens a window or starts a sim", async () => {
+  const calls: string[] = [];
+  const wiring = loadIndex({ singleInstance: false, calls });
+
+  assert.equal(wiring.boot, undefined);
+  assert.ok(calls.includes("app:singleInstanceLock"));
+  assert.ok(calls.includes("app:quit"));
+  assert.equal(calls.some((call) => call === "window:create" || call === "sim:start"), false);
 });
