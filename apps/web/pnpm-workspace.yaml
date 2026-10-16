@@ -1,4 +1,4 @@
 allowBuilds:
   core-js: false
 minimumReleaseAgeExclude:
-  - xipjs@0.15.0
+  - xipjs@0.15.1
