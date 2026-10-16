@@ -108,6 +108,7 @@ function LiveApp() {
     pauseSim,
     setSpeed,
     runtimeState,
+    refreshDesktopRuntimeState,
     localSaveStatus,
     saveLocalWorld,
     loadLocalOrgDetail,
@@ -835,6 +836,7 @@ function LiveApp() {
             world={world}
             lineages={lineages}
             onGuide={sandboxControlsEnabled ? guideLineage : undefined}
+            onSimulationRestart={refreshDesktopRuntimeState}
           />
         )}
         {showScenarios && isLocalWebWorld && sandboxControlsEnabled && world && (

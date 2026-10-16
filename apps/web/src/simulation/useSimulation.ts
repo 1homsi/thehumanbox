@@ -70,6 +70,7 @@ export function useSimulation(source: WorldSource = 'native'): {
   pauseSim: () => Promise<boolean>
   setSpeed: (mult: number) => Promise<boolean>
   runtimeState: RuntimeState
+  refreshDesktopRuntimeState: () => Promise<void>
   localSaveStatus: LocalSaveStatus
   saveLocalWorld: () => Promise<boolean>
   loadLocalOrgDetail: (id: string) => Promise<OrgDetail | null>
@@ -88,6 +89,7 @@ export function useSimulation(source: WorldSource = 'native'): {
   const wsRef = useRef<WebSocket | null>(null)
   const wasmWorkerRef = useRef<Worker | null>(null)
   const runtimeControlQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const runtimeHydrationRef = useRef<() => Promise<void>>(async () => {})
   const runtimeSourceGenerationRef = useRef(0)
   const nextWorkerRequestRef = useRef(1)
   const pendingWorkerRequestsRef = useRef(
@@ -586,7 +588,16 @@ export function useSimulation(source: WorldSource = 'native'): {
         })
         if (!destroyed) setRuntimeState((current) => reconcileRuntimeState(current, result))
       }
-      runtimeControlQueueRef.current = hydrateRuntimeState()
+      const queueRuntimeHydration = (): Promise<void> => {
+        const pending = runtimeControlQueueRef.current.then(hydrateRuntimeState, hydrateRuntimeState)
+        runtimeControlQueueRef.current = pending.then(
+          () => undefined,
+          () => undefined,
+        )
+        return pending
+      }
+      runtimeHydrationRef.current = queueRuntimeHydration
+      void queueRuntimeHydration()
     }
 
     let reconnectDelayMs = 1000
@@ -648,6 +659,7 @@ export function useSimulation(source: WorldSource = 'native'): {
       ws.onopen = () => {
         if (destroyed) return
         setConnected(true)
+        if (isDesktop()) void runtimeHydrationRef.current()
         if (healthyTimer !== null) clearTimeout(healthyTimer)
         healthyTimer = setTimeout(() => {
           healthyTimer = null
@@ -787,6 +799,7 @@ export function useSimulation(source: WorldSource = 'native'): {
     return () => {
       destroyed = true
       runtimeHydrationAbort.abort()
+      runtimeHydrationRef.current = async () => {}
       document.removeEventListener('visibilitychange', onVisibilityChange)
       window.removeEventListener('online', onVisibilityChange)
       window.removeEventListener('mousemove', onInteraction)
@@ -974,6 +987,9 @@ export function useSimulation(source: WorldSource = 'native'): {
   const resume = useCallback(() => applyRuntimeControl('resume'), [applyRuntimeControl])
   const pauseSim = useCallback(() => applyRuntimeControl('pause'), [applyRuntimeControl])
   const setSpeed = useCallback((mult: number) => applyRuntimeControl('speed', mult), [applyRuntimeControl])
+  const refreshDesktopRuntimeState = useCallback((): Promise<void> => {
+    return isDesktop() ? runtimeHydrationRef.current() : Promise.resolve()
+  }, [])
 
   const saveLocalWorld = useCallback(async (): Promise<boolean> => {
     if (wasmWorkerRef.current) {
@@ -1033,6 +1049,7 @@ export function useSimulation(source: WorldSource = 'native'): {
     resume,
     sandboxAvailable,
     runtimeState,
+    refreshDesktopRuntimeState,
     localSaveStatus,
     saveLocalWorld,
     loadLocalOrgDetail,

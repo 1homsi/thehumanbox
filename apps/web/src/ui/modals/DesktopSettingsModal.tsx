@@ -23,6 +23,7 @@ import { DESKTOP_PAUSE_WHEN_HIDDEN_EVENT } from '../../shared/desktopVisibility'
 
 interface Props {
   onClose: () => void
+  onSimulationRestart?: () => Promise<void>
 }
 
 function WorldSourceSection() {
@@ -308,7 +309,7 @@ function HelpTab({ onClose }: { onClose: () => void }) {
   )
 }
 
-export function DesktopSettingsModal({ onClose }: Props) {
+export function DesktopSettingsModal({ onClose, onSimulationRestart }: Props) {
   const desktop = getDesktop()
   const [tab, setTab] = useState<TabId>('world')
   const [settings, setSettings] = useState<DesktopSettings | null>(null)
@@ -390,6 +391,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
       const next = await desktop.sim.restart()
       setStatus(next)
       setSavedAt(Date.now())
+      await onSimulationRestart?.()
     } catch (error) {
       setSavedAt(null)
       setActionError(`could not restart the simulation: ${errorText(error)}`)

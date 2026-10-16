@@ -67,14 +67,14 @@ function bridge(overrides: {
   } as unknown as DesktopBridge
 }
 
-async function mount(b: DesktopBridge) {
+async function mount(b: DesktopBridge, onSimulationRestart?: () => Promise<void>) {
   window.thbDesktop = b
   const container = document.createElement('div')
   document.body.append(container)
   const root = createRoot(container)
   roots.push(root)
   await act(async () => {
-    root.render(<DesktopSettingsModal onClose={() => {}} />)
+    root.render(<DesktopSettingsModal onClose={() => {}} onSimulationRestart={onSimulationRestart} />)
   })
   const flush = () =>
     act(async () => {
@@ -98,6 +98,18 @@ async function mount(b: DesktopBridge) {
 }
 
 describe('DesktopSettingsModal failures', () => {
+  it('refreshes runtime state after a successful simulation restart', async () => {
+    const refreshRuntime = vi.fn(() => Promise.resolve())
+    const m = await mount(bridge({}), refreshRuntime)
+    await m.openSimulationTab()
+    await m.flush()
+    await act(async () => {
+      m.button('apply + restart').click()
+    })
+    await m.flush()
+    expect(refreshRuntime).toHaveBeenCalledOnce()
+  })
+
   it('shows an error and a retry instead of "loading…" forever when settings cannot be read', async () => {
     let attempt = 0
     const m = await mount(

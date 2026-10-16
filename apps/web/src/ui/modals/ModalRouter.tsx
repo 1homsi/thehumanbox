@@ -40,9 +40,10 @@ interface Props {
   world: WorldState
   lineages: Record<string, LineageInfo>
   onGuide?: (lineageId: string, strategy: LineageStrategy) => Promise<boolean>
+  onSimulationRestart?: () => Promise<void>
 }
 
-export function ModalRouter({ world, lineages, onGuide }: Props) {
+export function ModalRouter({ world, lineages, onGuide, onSimulationRestart }: Props) {
   const showLanguages = useUIStore((s) => s.showLanguages)
   const showChronicles = useUIStore((s) => s.showChronicles)
   const showFamilyTree = useUIStore((s) => s.showFamilyTree)
@@ -130,7 +131,9 @@ export function ModalRouter({ world, lineages, onGuide }: Props) {
         {showAbout && <AboutModal onClose={closeAbout} />}
         {showCiv && <CivStatsModal world={world} onClose={closeCiv} onGuide={onGuide} />}
         {showNotable && <NotableOrgsModal organisms={world.organisms} onClose={closeNotable} />}
-        {showDesktopSettings && <DesktopSettingsModal onClose={closeDesktopSettings} />}
+        {showDesktopSettings && (
+          <DesktopSettingsModal onClose={closeDesktopSettings} onSimulationRestart={onSimulationRestart} />
+        )}
       </Suspense>
 
       {showAllLineages && (
