@@ -3,7 +3,11 @@ import * as path from "node:path";
 import { atomicReplaceFile, atomicWriteNewFile, pathEntryExists, syncDirectoryBestEffort, syncFile } from "./atomic-files";
 import { requireExistingDataRootIdentity, resolveActiveWorldFiles } from "./data-root";
 import { rootsOverlap } from "./paths";
-import { validateWorldSaveBytes, type MigrationWorldExpectation } from "./save-validation";
+import {
+  validateWorldSaveBytes,
+  validateWorldSaveBytesInWorker,
+  type MigrationWorldExpectation,
+} from "./save-validation";
 
 const PARKED_WORLDS_PREFIX = ".thehumanbox-migration-parked-worlds-";
 
@@ -60,6 +64,26 @@ export function inspectSaveFolderMigrationSource(
   return { hash, bytes, validated };
 }
 
+export async function inspectSaveFolderMigrationSourceInWorker(
+  sourceRoot: string,
+): Promise<MigrationWorldExpectation | null> {
+  const resolvedSource = path.resolve(sourceRoot);
+  const markerPath = path.join(resolvedSource, "worlds", "_live");
+  assertNoUnmigratedLegacyWorld(resolvedSource);
+  if (!pathEntryExists(markerPath)) return null;
+
+  const activeWorld = resolveActiveWorldFiles(resolvedSource);
+  const hash = activeWorld.hash;
+  const bytes = await fs.promises.readFile(activeWorld.savePath);
+  const validated = await validateWorldSaveBytesInWorker(bytes);
+  if (validated.seedText === "0") {
+    throw new Error(
+      "the active world has no stable seed and cannot be migrated safely",
+    );
+  }
+  return { hash, bytes, validated };
+}
+
 /** Verify the committed destination still contains the exact stopped source. */
 export function verifySaveFolderMigrationCopy(
   targetRoot: string,
@@ -85,6 +109,39 @@ export function verifySaveFolderMigrationCopy(
     path.join(path.resolve(targetRoot), "worlds", expected.hash, "world.save"),
   );
   validateWorldSaveBytes(copiedBytes);
+  if (!copiedBytes.equals(expected.bytes)) {
+    throw new Error(
+      "copied active world does not byte-match the checkpointed source",
+    );
+  }
+}
+
+export async function verifySaveFolderMigrationCopyInWorker(
+  targetRoot: string,
+  expected: MigrationWorldExpectation | null,
+): Promise<void> {
+  const resolvedTarget = path.resolve(targetRoot);
+  const markerPath = path.join(resolvedTarget, "worlds", "_live");
+  if (!expected) {
+    if (fs.existsSync(markerPath)) {
+      throw new Error(
+        "the copied save folder unexpectedly selected a live world",
+      );
+    }
+    return;
+  }
+
+  const copiedHash = await fs.promises.readFile(markerPath, "utf8").then((value) => value.trim());
+  if (copiedHash !== expected.hash) {
+    throw new Error(
+      `copied live-world marker changed from ${expected.hash} to ${copiedHash}`,
+    );
+  }
+  const copiedBytes = await fs.promises.readFile(
+    path.join(resolvedTarget, "worlds", expected.hash, "world.save"),
+  );
+  // The source was validated before copying. Exact byte equality proves the
+  // committed copy has the same structure without parsing the large save again.
   if (!copiedBytes.equals(expected.bytes)) {
     throw new Error(
       "copied active world does not byte-match the checkpointed source",
