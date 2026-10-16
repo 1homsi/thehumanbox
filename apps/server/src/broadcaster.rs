@@ -223,6 +223,61 @@ mod tests {
         (bytes, kind, heavy)
     }
 
+    /// How often the real broadcast cadence carries the buildings section,
+    /// and what a delta costs, over three mature worlds. It takes a few
+    /// minutes in release, so run it on demand with
+    /// `cargo test --release -p simulation-rs measure_frame_egress -- --ignored --nocapture`.
+    ///
+    /// The buildings section follows the state a client draws (see
+    /// `Building::display`): once a mature world settled, the daily weather
+    /// wear chipped every exposed building below one drawn damage step, which
+    /// re-sent all of them on nearly every delta. Only a step the renderer
+    /// bakes at, or a ruin/repair flag, puts them back on the wire now.
+    #[test]
+    #[ignore = "a few minutes in release, run on demand"]
+    fn measure_frame_egress_over_mature_worlds() {
+        for seed in [42u64, 1337, 2026] {
+            let mut sim = Simulation::new(seed);
+            sim.tick_n(12_000);
+            let mut cadence = FrameCadence::default();
+            let (mut full_n, mut full_bytes) = (0u64, 0u64);
+            let (mut delta_n, mut delta_bytes) = (0u64, 0u64);
+            let (mut with_n, mut with_bytes) = (0u64, 0u64);
+            let (mut without_n, mut without_bytes) = (0u64, 0u64);
+            for cycle in 1..=1_200u64 {
+                sim.tick_n(5);
+                let values = cadence.build(&mut sim, cycle);
+                let is_full = matches!(values.kind, FrameKind::Full);
+                let has_buildings = values.main.entries().iter().any(|(k, _)| *k == "buildings");
+                let label = if is_full { "full" } else { "delta" };
+                let bytes = encode_frame(values.main, cycle, 0, label).len() as u64;
+                let _ = values.deep_full;
+                if is_full {
+                    full_n += 1;
+                    full_bytes += bytes;
+                } else {
+                    delta_n += 1;
+                    delta_bytes += bytes;
+                    if has_buildings {
+                        with_n += 1;
+                        with_bytes += bytes;
+                    } else {
+                        without_n += 1;
+                        without_bytes += bytes;
+                    }
+                }
+            }
+            println!(
+                "seed={seed} buildings on {with_n}/{delta_n} deltas; \
+                 delta avg {} B (with {} B, without {} B); egress per 30 ticks = {} B",
+                delta_bytes / delta_n.max(1),
+                with_bytes / with_n.max(1),
+                without_bytes / without_n.max(1),
+                delta_bytes / delta_n.max(1) * 5 + full_bytes / full_n.max(1),
+            );
+        }
+    }
+
     /// Two identical worlds, one driven by the old inline cycle and one by
     /// `FrameCadence::build` + `encode_cycle`, must put identical bytes on the
     /// wire for every cycle: delta, periodic full and deep full alike.
