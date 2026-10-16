@@ -88,6 +88,7 @@ export function useSimulation(source: WorldSource = 'native'): {
   const wsRef = useRef<WebSocket | null>(null)
   const wasmWorkerRef = useRef<Worker | null>(null)
   const runtimeControlQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const runtimeHydrationRef = useRef<() => Promise<void>>(async () => {})
   const runtimeSourceGenerationRef = useRef(0)
   const nextWorkerRequestRef = useRef(1)
   const pendingWorkerRequestsRef = useRef(
@@ -581,12 +582,25 @@ export function useSimulation(source: WorldSource = 'native'): {
     const runtimeHydrationAbort = new AbortController()
     if (isDesktop()) {
       const hydrateRuntimeState = async (): Promise<void> => {
-        const result = await fetchRuntimeControlState(`${API_BASE}/runtime`, {
+        const request = () => fetchRuntimeControlState(`${API_BASE}/runtime`, {
           signal: runtimeHydrationAbort.signal,
         })
+        let result = await request()
+        if (!result.ok && !runtimeHydrationAbort.signal.aborted) {
+          await new Promise<void>((resolve) => setTimeout(resolve, 250))
+          if (!runtimeHydrationAbort.signal.aborted) result = await request()
+        }
         if (!destroyed) setRuntimeState((current) => reconcileRuntimeState(current, result))
       }
-      runtimeControlQueueRef.current = hydrateRuntimeState()
+      const queueRuntimeHydration = (): Promise<void> => {
+        const pending = runtimeControlQueueRef.current.then(hydrateRuntimeState, hydrateRuntimeState)
+        runtimeControlQueueRef.current = pending.then(
+          () => undefined,
+          () => undefined,
+        )
+        return pending
+      }
+      runtimeHydrationRef.current = queueRuntimeHydration
     }
 
     let reconnectDelayMs = 1000
@@ -648,6 +662,7 @@ export function useSimulation(source: WorldSource = 'native'): {
       ws.onopen = () => {
         if (destroyed) return
         setConnected(true)
+        if (isDesktop()) void runtimeHydrationRef.current()
         if (healthyTimer !== null) clearTimeout(healthyTimer)
         healthyTimer = setTimeout(() => {
           healthyTimer = null
@@ -787,6 +802,7 @@ export function useSimulation(source: WorldSource = 'native'): {
     return () => {
       destroyed = true
       runtimeHydrationAbort.abort()
+      runtimeHydrationRef.current = async () => {}
       document.removeEventListener('visibilitychange', onVisibilityChange)
       window.removeEventListener('online', onVisibilityChange)
       window.removeEventListener('mousemove', onInteraction)
@@ -974,7 +990,6 @@ export function useSimulation(source: WorldSource = 'native'): {
   const resume = useCallback(() => applyRuntimeControl('resume'), [applyRuntimeControl])
   const pauseSim = useCallback(() => applyRuntimeControl('pause'), [applyRuntimeControl])
   const setSpeed = useCallback((mult: number) => applyRuntimeControl('speed', mult), [applyRuntimeControl])
-
   const saveLocalWorld = useCallback(async (): Promise<boolean> => {
     if (wasmWorkerRef.current) {
       return requestFromWasm({ type: localSaveWorkerRequest(localSaveStatus) })
