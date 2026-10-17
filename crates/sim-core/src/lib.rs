@@ -1,5 +1,12 @@
 #![allow(clippy::needless_range_loop)]
 pub mod hashing;
+
+// The browser build runs the world in one worker thread. A wasm-tuned allocator
+// has less bookkeeping than the default dlmalloc for the sim's many small,
+// short-lived allocations.
+#[cfg(target_arch = "wasm32")]
+#[global_allocator]
+static ALLOC: talc::TalckWasm = unsafe { talc::TalckWasm::new_global() };
 pub mod math;
 pub mod organism;
 pub mod physics;
