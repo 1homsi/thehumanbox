@@ -1,0 +1,152 @@
+/* The phone menu sheet: the only route to the header chrome on a phone. */
+
+/* Hidden everywhere the phone layout is not in force. */
+.header-phone-menu {
+  display: none;
+}
+
+.phone-menu-modal {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.phone-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.phone-menu-head {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #d8c8a8;
+  padding: 0 2px 2px;
+}
+
+.phone-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+/* Every entry is a real 44 px touch target. */
+.phone-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 2px solid var(--px-ink, #110c08);
+  border-radius: 0;
+  clip-path: var(--px-notch, none);
+  background: #45362a;
+  box-shadow:
+    inset 2px 2px 0 #6a5439,
+    inset -2px -3px 0 #2a1f15;
+  color: #e7d8bc;
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-align: left;
+  cursor: pointer;
+}
+.phone-menu-item:active {
+  box-shadow:
+    inset 2px 3px 0 #2a1f15,
+    inset -2px -2px 0 #6a5439;
+}
+.phone-menu-item.active,
+.phone-menu-item[aria-pressed='true'] {
+  background: #5c4527;
+  border-color: #e8b64c;
+  color: var(--px-gold-text, #f3d17a);
+}
+
+.phone-menu-divider {
+  height: 1px;
+  background: #3b2d22;
+  margin: 2px 0;
+}
+
+.phone-menu-section {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7a6a53;
+  padding: 0 2px;
+}
+
+.phone-menu-tips {
+  margin: 0;
+  padding: 0 2px 0 18px;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #9d8c6e;
+}
+
+/* The "more" dropdown is built to hang off its header button; in the sheet it is
+ * a plain block whose grid narrows to the sheet. */
+.phone-menu-more .more-dropdown {
+  position: static;
+  min-width: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  gap: 6px;
+}
+.phone-menu-more .more-dropdown-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+.phone-menu-more .more-dropdown .lang-btn {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* A real bottom sheet on phones: anchored to the bottom rather than centred. */
+@media (max-width: 767px) {
+  /* The menu button is the phone's only route to the chrome the 767px block hides.
+   * Kept one pixel higher than the header's 48px so it does not grow the bar. */
+  .header .header-phone-menu {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .header .header-phone-menu .hdr-btn {
+    height: 40px;
+    min-height: 40px;
+    min-width: 44px;
+    padding: 0 10px;
+    justify-content: center;
+  }
+  .phone-menu-glyph {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .thb-modal.phone-menu-modal {
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 88dvh !important;
+    border-radius: 14px 14px 0 0 !important;
+    border-bottom: none;
+    padding: 0;
+  }
+  .phone-menu-modal .phone-menu {
+    padding: 12px calc(12px + var(--safe-left, 0px)) calc(4px + var(--safe-bottom, 0px))
+      calc(12px + var(--safe-right, 0px));
+  }
+}

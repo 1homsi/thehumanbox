@@ -296,9 +296,42 @@ async function checkViewport(origin, width, height, index) {
 
     if (touchDevice) {
       try {
-        // The current mobile shell hides this opener; MOB-04 will provide its touch-accessible route.
-        await page.evaluate('document.querySelector("[data-tour=stats-btn]")?.click()')
-        await waitFor(page, '!!document.querySelector(".thb-modal")', 'stats modal')
+        // On a phone the header chrome is hidden; the menu sheet is its only route (MOB-04).
+        if (width < 768) {
+          const menuPos = await page.evaluate(`(() => {
+            const el = document.querySelector('[aria-label="Menu"]')
+            if (!el) return null
+            const r = el.getBoundingClientRect()
+            return {
+              x: Math.round(r.left + r.width / 2),
+              y: Math.round(r.top + r.height / 2),
+              width: r.width,
+              height: r.height,
+            }
+          })()`)
+          if (!menuPos) throw new Error('the phone menu button is missing')
+          if (menuPos.width < 44 || menuPos.height < 40)
+            throw new Error(
+              `the phone menu button is ${Math.round(menuPos.width)}x${Math.round(menuPos.height)}, below 44x40`,
+            )
+          await touch(page, 'touchStart', [{ id: 1, x: menuPos.x, y: menuPos.y }])
+          await touch(page, 'touchEnd', [])
+          await waitFor(page, '!!document.querySelector(".phone-menu-modal .phone-menu")', 'phone menu sheet')
+          const menuLayout = await inspectLayout(page)
+          if (menuLayout.scrollWidth > menuLayout.innerWidth + 1)
+            viewportFailures.push(
+              `horizontal overflow with the phone menu open: ${menuLayout.scrollWidth}px > ${menuLayout.innerWidth}px`,
+            )
+          checkModalBounds(menuLayout.modals, width, height, `${label} phone menu`, true)
+          await captureShot(page, `${label}-menu`)
+        }
+        // Stats is one entry in that sheet on a phone, the hidden header button elsewhere.
+        if (width < 768)
+          await page.evaluate(
+            `(() => { [...document.querySelectorAll('.phone-menu-item')].find((b) => /stats/.test(b.textContent))?.click() })()`,
+          )
+        else await page.evaluate('document.querySelector("[data-tour=stats-btn]")?.click()')
+        await waitFor(page, '!!document.querySelector(".stats-modal")', 'stats modal')
         const modalLayout = await inspectLayout(page)
         if (modalLayout.scrollWidth > modalLayout.innerWidth + 1)
           viewportFailures.push(

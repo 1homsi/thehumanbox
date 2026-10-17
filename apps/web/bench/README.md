@@ -25,8 +25,9 @@ reports visible, unclipped touch targets smaller than 44x44, grouped by viewport
 because the existing header and dock controls are below 44px; mobile layout changes can turn it on as they
 bring those controls up to size. Phone viewports use DPR 3, the tablet uses DPR 2 and desktop uses DPR 1.
 
-The existing mobile shell hides the Stats opener, so this check currently triggers its app action directly to
-test modal geometry. It does not verify menu reachability, which is the separate MOB-04 task. The harness
+On a phone viewport (<768px) the check opens the header menu sheet (MOB-04), asserts the button is at
+least 44x40, the sheet fits the viewport and it contains the Stats entry, then opens Stats from it. On
+wider touch viewports the header's Stats action is triggered directly to test modal geometry. The harness
 checks browser layout and touch behavior; it does not run a CPU throttle or measure real-device performance.
 
 ```sh

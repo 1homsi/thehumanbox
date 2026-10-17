@@ -11,6 +11,7 @@ import { PerilChip } from '../panels/PerilChip'
 import { CalendarTag } from '../panels/CalendarTag'
 import { PopulationChip } from '../panels/PopulationChip'
 import { WeatherChip } from '../panels/WeatherChip'
+import { PhoneMenu } from './PhoneMenu'
 
 interface Props {
   world: WorldState | null
@@ -38,6 +39,7 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
 
   const moreRef = useRef<HTMLDivElement>(null)
   const livePopulation = world?.lineage_sizes?.reduce((total, lineage) => total + lineage.count, 0) ?? 0
+  const [phoneMenuOpen, setPhoneMenuOpen] = useState(false)
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -154,6 +156,21 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
         )}
         {world && <WeatherChip world={world} />}
       </div>
+      {/* The phone's one route to the chrome the phone layout hides (see PhoneMenu). */}
+      <div className="header-phone-menu">
+        <button
+          type="button"
+          className={clsx('hdr-btn', 'phone-menu-btn', phoneMenuOpen && 'active')}
+          onClick={() => setPhoneMenuOpen((v) => !v)}
+          aria-expanded={phoneMenuOpen}
+          aria-label="Menu"
+        >
+          <span className="phone-menu-glyph" aria-hidden="true">
+            ☰
+          </span>
+          <span className="btn-label">menu</span>
+        </button>
+      </div>
       {world && (
         <div className="header-actions">
           <Tooltip tip={tip('stats', 'Population graphs, births and deaths, and lineage growth over time.')}>
@@ -250,6 +267,14 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
             </button>
           </Tooltip>
         </div>
+      )}
+      {phoneMenuOpen && (
+        <PhoneMenu
+          open={phoneMenuOpen}
+          onClose={() => setPhoneMenuOpen(false)}
+          onFullscreen={toggleFullscreen}
+          isFullscreen={isFullscreen}
+        />
       )}
     </header>
   )
