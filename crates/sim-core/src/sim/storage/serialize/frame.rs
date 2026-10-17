@@ -92,7 +92,7 @@ impl Simulation {
         let include_tiles = include_cold || self.tick_count.is_multiple_of(60) || self.tick_count <= 1;
         let include_static = include_cold || self.tick_count.is_multiple_of(60) || self.tick_count <= 1;
         let include_terrain = include_cold;
-        let grid_json = self.grid.to_json_viewport(
+        let mut grid_json = self.grid.to_json_viewport(
             vp_cx,
             vp_cy,
             crate::world::grid::VP_W,
@@ -101,6 +101,25 @@ impl Simulation {
             include_static,
             include_terrain,
         );
+        // The structure layer wears a little every tick but only a few dozen cells change their
+        // percent, so a hot frame sends just those; full and periodic static frames carry the
+        // whole layer (which also heals a client that dropped a frame). The deep full a joiner is
+        // handed (`include_cold`) is not on the broadcast stream, so it leaves the base alone.
+        {
+            let window = (grid_json.origin_x, grid_json.origin_y, grid_json.width, grid_json.height);
+            let cells = grid_json.structure.take().unwrap_or_default();
+            let base = self.serialized_structure.as_ref().filter(|(w, _)| *w == window);
+            if force_full || include_static || base.is_none() {
+                if !include_cold {
+                    self.serialized_structure = Some((window, cells.clone()));
+                }
+                grid_json.structure = Some(cells);
+            } else {
+                let delta = crate::world::grid::structure_delta(&base.expect("checked").1, &cells);
+                grid_json.structure_delta = Some(delta);
+                self.serialized_structure = Some((window, cells));
+            }
+        }
         let include_all_entities = force_full || self.tick_count.is_multiple_of(120) || self.tick_count <= 1;
         // When the viewport spans the whole world (the current config),
         // the centroid-centered window can slide off the map and filter

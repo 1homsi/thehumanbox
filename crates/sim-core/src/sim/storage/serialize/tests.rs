@@ -66,6 +66,52 @@ fn full_frame_sends_lineage_words_instead_of_per_organism_vocabularies() {
     assert!(words.values().all(serde_json::Value::is_object));
 }
 
+/// A client that patches the layer it holds with each hot frame's `structure_delta` must end up
+/// with exactly what a full frame says.
+#[test]
+fn structure_deltas_rebuild_the_full_layer() {
+    use std::collections::BTreeMap;
+    let cells = |v: &serde_json::Value| -> BTreeMap<(u64, u64), u64> {
+        v.as_array()
+            .unwrap()
+            .iter()
+            .map(|c| ((c[0].as_u64().unwrap(), c[1].as_u64().unwrap()), c[2].as_u64().unwrap()))
+            .filter(|(_, pct)| *pct != 0)
+            .collect()
+    };
+    let mut sim = Simulation::new(42);
+    for _ in 0..40 {
+        sim.tick();
+    }
+    let mut held = cells(&sim.state_json_periodic_full()["grid"]["structure"]);
+    let mut deltas = 0;
+    for step in 0..30 {
+        sim.tick();
+        if step % 7 == 3 {
+            sim.grid.add_structure(10 + step, 20, 0.4);
+            *sim.grid.structure_at_mut(30, 30 + step) = 0.0;
+        }
+        let frame = sim.state_json_incremental();
+        let grid = &frame["grid"];
+        if let Some(full) = grid.get("structure") {
+            held = cells(full);
+            continue;
+        }
+        deltas += 1;
+        for (cell, pct) in cells(&serde_json::json!(grid["structure_delta"])) {
+            held.insert(cell, pct);
+        }
+        for c in grid["structure_delta"].as_array().unwrap() {
+            if c[2] == 0 {
+                held.remove(&(c[0].as_u64().unwrap(), c[1].as_u64().unwrap()));
+            }
+        }
+        let truth = cells(&sim.state_json_periodic_full()["grid"]["structure"]);
+        assert_eq!(held, truth, "step {step}");
+    }
+    assert!(deltas > 20, "most hot frames send a delta, not the layer");
+}
+
 #[test]
 fn building_wire_contract_separates_construction_from_damage() {
     use crate::sim::buildings::{Building, BuildingKind};
