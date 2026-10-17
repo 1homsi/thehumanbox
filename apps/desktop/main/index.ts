@@ -57,6 +57,7 @@ app.setName("The Human Box");
 const isDev = !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
+let refreshTrayMenu: (() => void) | null = null;
 // True for the first window only, when the OS launched us at login with
 // "start minimized" on: it is created hidden and lives in the tray.
 let startHiddenOnce = false;
@@ -212,6 +213,7 @@ async function createWindow(): Promise<void> {
     },
   });
   mainWindow = win;
+  bindWindowState(win);
   // maximize() would also show a window that is meant to start hidden. A boot
   // failure must never be hidden, so that case shows the window as well.
   pendingMaximize = startHidden && !bootErrorUrl && winState.maximized === true;
@@ -325,7 +327,18 @@ async function createWindow(): Promise<void> {
 
   win.on("closed", () => {
     if (mainWindow === win) mainWindow = null;
+    refreshTrayMenu?.();
   });
+}
+
+// The tray menu and the View menu read their state from the window they were
+// built for. Bind them to each window, so a restarted or reopened window is
+// the one they show.
+function bindWindowState(win: BrowserWindow): void {
+  win.on("show", () => refreshTrayMenu?.());
+  win.on("hide", () => refreshTrayMenu?.());
+  buildMenu();
+  refreshTrayMenu?.();
 }
 
 function buildMenu(): void {
@@ -534,9 +547,8 @@ function buildTray(): void {
       );
     };
     update();
+    refreshTrayMenu = update;
     tray.on("click", () => toggleWindow());
-    mainWindow?.on("show", update);
-    mainWindow?.on("hide", update);
   } catch (e) {
     console.warn("[main] tray init failed:", e);
   }
