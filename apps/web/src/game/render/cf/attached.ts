@@ -36,6 +36,10 @@ export function storeU32(arr: Uint32Array, i: number, v: number): boolean {
   return arr[i] !== old
 }
 
+/** `push` option bits: a whole-pixel rect rounded in world space, and a flat-colour rect with no texture. */
+export const ATTACH_SNAP = 1
+export const ATTACH_UNTEXTURED = 2
+
 /**
  * Sprites that ride along with an owner sprite (a shadow, a ring, a health
  * bar). The owner supplies a position every frame; each attached sprite keeps a
@@ -74,7 +78,9 @@ export class AttachedSprites {
     frame: number,
     atlas: number,
     color: number,
-    options: { untextured?: boolean; snap?: boolean; spin?: number; bob?: number } = {},
+    options = 0,
+    spin = 0,
+    bob = NaN,
   ): number {
     const i = this.layer.add(0, 0, w, h, frame)
     const k = this.count++
@@ -82,13 +88,13 @@ export class AttachedSprites {
     this.owner[k] = owner
     this.offX[k] = offX
     this.offY[k] = offY
-    this.snap[k] = options.snap ? 1 : 0
-    this.spin[k] = options.spin ?? 0
-    this.bob[k] = options.bob ?? NaN
+    this.snap[k] = options & ATTACH_SNAP ? 1 : 0
+    this.spin[k] = spin
+    this.bob[k] = bob
     const layer = this.layer
     layer.atlas[i] = atlas
     layer.color[i] = color
-    layer.flags[i] = options.untextured ? SPRITE_UNTEXTURED : 0
+    layer.flags[i] = options & ATTACH_UNTEXTURED ? SPRITE_UNTEXTURED : 0
     layer.ids[i] = owner
     return i
   }

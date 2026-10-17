@@ -26,11 +26,19 @@ import {
   glyphFrame,
 } from '../atlas-bake'
 import { emoteFor } from '../../activity-emotes'
-import { AttachedSprites, storeF32, storeF64, storeU32, storeU8 } from '../attached'
+import {
+  ATTACH_SNAP,
+  ATTACH_UNTEXTURED,
+  AttachedSprites,
+  storeF32,
+  storeF64,
+  storeU32,
+  storeU8,
+} from '../attached'
 import { cssToRgba32, rgba32, withAlpha } from '../colors'
 import { MotionStore } from '../motion'
 import { labelFlagsOf } from './people-labels'
-import { professionMarks } from './profession-marks'
+import { professionMarks, type ProfessionPixels } from './profession-marks'
 
 /** Atlas slots, by layer. */
 export const BODY_ATLAS = { people: 0, boats: 1 } as const
@@ -93,6 +101,54 @@ const SHEET_HAND_ROW = 16
 const WHITE = 0xffffffff
 const BLACK = rgba32(0, 0, 0)
 const CROWN = cssToRgba32('#f2c84b')
+// The crown's pixels: dx, dy (from two above the sprite's top), w, h.
+const CROWN_RECTS = [
+  [-4, 0, 8, 2],
+  [-4, -2, 2, 2],
+  [-1, -3, 2, 3],
+  [2, -2, 2, 2],
+] as const
+const SOLID_SNAP = ATTACH_UNTEXTURED | ATTACH_SNAP
+const ENERGY_BAR = cssToRgba32('#55dd55')
+const WATER_BAR = cssToRgba32('#4499ff')
+const HEALTH_BAR = cssToRgba32('#ff665c')
+
+/** An emoji glyph riding on person `j`, `px` pixels square, if the glyph sheet has it. */
+function pushGlyph(
+  over: AttachedSprites,
+  j: number,
+  fa: number,
+  g: string,
+  dx: number,
+  dy: number,
+  px: number,
+) {
+  const f = glyphFrame(g)
+  if (f >= 0) over.push(j, dx, dy, px, px, f, 0, withAlpha(WHITE, fa))
+}
+
+/** The solid rectangles of a profession mark, `top` being the sprite row the mark is measured from. */
+function pushMarks(over: AttachedSprites, j: number, fa: number, marks: ProfessionPixels[], top: number) {
+  for (const m of marks) {
+    over.push(j, m.x, top + m.y, m.w, m.h, 0, 0, withAlpha(cssToRgba32(m.color), fa), SOLID_SNAP)
+  }
+}
+
+/** One vitals bar: `value` (0..1) of the bar's width, `dy` rows below `top`. */
+function pushBar(
+  over: AttachedSprites,
+  j: number,
+  fa: number,
+  left: number,
+  top: number,
+  barW: number,
+  dy: number,
+  value: number,
+  color: number,
+) {
+  const w = Math.round(barW * Math.max(0, Math.min(1, value)))
+  if (w > 0) over.push(j, left, top + dy, w, 1, 0, 0, withAlpha(color, fa), SOLID_SNAP)
+}
 
 /**
  * The population as three SpriteLayers written from typed arrays:
@@ -444,9 +500,7 @@ export class PeopleSprites {
           0,
           withAlpha(rgba32(255, 210, 138), 0.35 * fa),
         )
-        soft.push(j, 0, 2, size * 0.84, size * 0.48, DECAL.dashed, 0, withAlpha(WHITE, 0.95 * fa), {
-          spin: 0.0006,
-        })
+        soft.push(j, 0, 2, size * 0.84, size * 0.48, DECAL.dashed, 0, withAlpha(WHITE, 0.95 * fa), 0, 0.0006)
       }
       if (standard && (!crowded || isSelected) && org.lineage_id) {
         soft.push(
@@ -510,57 +564,57 @@ export class PeopleSprites {
         const emote = emoteFor(org)
         // The painter's bubble: whole-pixel corner at round(x - 3.5) - 1, bottom 2px above the head.
         if (emote)
-          emotes.push(j, -8.5, -bodyR * 2.4 - 12, 16, 16, emoteFrame(emote), 0, withAlpha(WHITE, fa), {
-            snap: true,
-            bob: this.phase[j],
-          })
+          emotes.push(
+            j,
+            -8.5,
+            -bodyR * 2.4 - 12,
+            16,
+            16,
+            emoteFrame(emote),
+            0,
+            withAlpha(WHITE, fa),
+            ATTACH_SNAP,
+            0,
+            this.phase[j],
+          )
       }
 
       const era = input.lineageEras[org.lineage_id] ?? ''
       if (standard && era && era !== 'pre-stone' && era !== 'stone') {
         const color = cssToRgba32(ERA_STRIPE_COLOR[era] ?? 'rgba(255,255,255,0)')
-        over.push(j, -bodyR, bodyR + 1, Math.round(bodyR * 2), 1, 0, 0, withAlpha(color, 0.75 * fa), {
-          untextured: true,
-          snap: true,
-        })
+        over.push(
+          j,
+          -bodyR,
+          bodyR + 1,
+          Math.round(bodyR * 2),
+          1,
+          0,
+          0,
+          withAlpha(color, 0.75 * fa),
+          SOLID_SNAP,
+        )
       }
       if (org.is_leader) {
         const top = spriteTopOff - 2
-        for (const [dx, dy, w, h] of [
-          [-4, 0, 8, 2],
-          [-4, -2, 2, 2],
-          [-1, -3, 2, 3],
-          [2, -2, 2, 2],
-        ])
-          over.push(j, dx, top + dy, w, h, 0, 0, withAlpha(CROWN, fa), { untextured: true, snap: true })
-      }
-      const glyph = (g: string, dx: number, dy: number, px: number) => {
-        const f = glyphFrame(g)
-        if (f >= 0) over.push(j, dx, dy, px, px, f, 0, withAlpha(WHITE, fa))
+        for (const [dx, dy, w, h] of CROWN_RECTS)
+          over.push(j, dx, top + dy, w, h, 0, 0, withAlpha(CROWN, fa), SOLID_SNAP)
       }
       // The trade shows on the figure: a hat on the head, a tool at hand height (see profession-marks).
       if (standard && org.specialty) {
         const { worn, held } = professionMarks(org.specialty, bodyR + 2)
-        for (const [marks, top] of [
-          [worn, headTop],
-          [held, handTop],
-        ] as const) {
-          for (const m of marks) {
-            over.push(j, m.x, top + m.y, m.w, m.h, 0, 0, withAlpha(cssToRgba32(m.color), fa), {
-              untextured: true,
-              snap: true,
-            })
-          }
-        }
+        pushMarks(over, j, fa, worn, headTop)
+        pushMarks(over, j, fa, held, handTop)
       }
-      if (standard && org.diseases && org.diseases.length > 0) glyph(SICK_EMOJI, -bodyR - 1, -bodyR * 0.4, 8)
+      if (standard && org.diseases && org.diseases.length > 0)
+        pushGlyph(over, j, fa, SICK_EMOJI, -bodyR - 1, -bodyR * 0.4, 8)
       if (full && org.tools) {
         const tool = pickToolEmoji(org.tools)
-        if (tool) glyph(tool, bodyR + 4, bodyR * 0.6, 9)
+        if (tool) pushGlyph(over, j, fa, tool, bodyR + 4, bodyR * 0.6, 9)
       }
       // An elder leans on a cane on the side opposite the sickness glyph.
-      if (standard && stage === 'elder') glyph(ELDER_CANE_EMOJI, -bodyR - 3, bodyR * 0.7, 9)
-      if (full && org.degrees && org.degrees.length > 0) glyph(DEGREE_EMOJI, -bodyR - 4, bodyR * 0.6, 8)
+      if (standard && stage === 'elder') pushGlyph(over, j, fa, ELDER_CANE_EMOJI, -bodyR - 3, bodyR * 0.7, 9)
+      if (full && org.degrees && org.degrees.length > 0)
+        pushGlyph(over, j, fa, DEGREE_EMOJI, -bodyR - 4, bodyR * 0.6, 8)
 
       if (standard && org.carrying > 0) {
         over.push(
@@ -572,10 +626,7 @@ export class PeopleSprites {
           0,
           0,
           withAlpha(cssToRgba32(org.carrying_type === 2 ? '#9a9a9a' : '#8b5e3c'), fa),
-          {
-            untextured: true,
-            snap: true,
-          },
+          SOLID_SNAP,
         )
       }
 
@@ -584,21 +635,10 @@ export class PeopleSprites {
         const barW = Math.max(8, Math.round(size * 0.55))
         const left = -barW / 2
         const top = spriteTopOff - 5
-        over.push(j, left - 1, top - 1, barW + 2, 6, 0, 0, withAlpha(BLACK, 0.68 * fa), {
-          untextured: true,
-          snap: true,
-        })
-        const bar = (value: number, dy: number, color: string) => {
-          const w = Math.round(barW * Math.max(0, Math.min(1, value)))
-          if (w > 0)
-            over.push(j, left, top + dy, w, 1, 0, 0, withAlpha(cssToRgba32(color), fa), {
-              untextured: true,
-              snap: true,
-            })
-        }
-        bar(org.energy, 0, '#55dd55')
-        bar(org.hydration, 2, '#4499ff')
-        bar(org.health, 4, '#ff665c')
+        over.push(j, left - 1, top - 1, barW + 2, 6, 0, 0, withAlpha(BLACK, 0.68 * fa), SOLID_SNAP)
+        pushBar(over, j, fa, left, top, barW, 0, org.energy, ENERGY_BAR)
+        pushBar(over, j, fa, left, top, barW, 2, org.hydration, WATER_BAR)
+        pushBar(over, j, fa, left, top, barW, 4, org.health, HEALTH_BAR)
       }
       j++
     }
