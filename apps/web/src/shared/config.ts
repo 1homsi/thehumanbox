@@ -18,7 +18,13 @@ function readRuntimeOverride(): string | null {
 function readCommandToken(): string | null {
   if (typeof window === 'undefined' || !window.thbDesktop) return null
   try {
-    return new URLSearchParams(window.location.search).get('token')?.trim() || null
+    const url = new URL(window.location.href)
+    const token = url.searchParams.get('token')?.trim() || null
+    if (url.searchParams.has('token')) {
+      url.searchParams.delete('token')
+      window.history.replaceState(window.history.state, '', url.href)
+    }
+    return token
   } catch {
     return null
   }
