@@ -62,9 +62,16 @@ impl Organism {
         let mut fire_near = false;
         let fire_r = (2.0 + 2.0 * self.traits.fear) as i32;
 
-        for dx in -scan..=scan {
-            for dy in -scan..=scan {
-                let t = grid.get(ix + dx, iy + dy);
+        // Only the cells on the map are read: off-map cells are Void, which
+        // none of these arms match. Same column-major order as before, so the
+        // first of equally near food or water still wins.
+        let (x_lo, x_hi) = ((ix - scan).max(0), (ix + scan).min(crate::world::grid::WIDTH as i32 - 1));
+        let (y_lo, y_hi) = ((iy - scan).max(0), (iy + scan).min(crate::world::grid::HEIGHT as i32 - 1));
+        for x in x_lo..=x_hi {
+            let dx = x - ix;
+            for y in y_lo..=y_hi {
+                let dy = y - iy;
+                let t = Tile::from_i8(grid.tiles[WorldGrid::idx(x, y)]);
                 let dist = dx.abs() + dy.abs();
                 match t {
                     Tile::Food if dist < food_dist => {
@@ -178,9 +185,11 @@ impl Organism {
 
         let warmth_char = {
             let mut has_warmth = false;
-            'outer: for ddx in -4i32..=4 {
-                for ddy in -4i32..=4 {
-                    if grid.get(ix + ddx, iy + ddy) == crate::world::tiles::Tile::Campfire {
+            let (x_lo, x_hi) = ((ix - 4).max(0), (ix + 4).min(crate::world::grid::WIDTH as i32 - 1));
+            let (y_lo, y_hi) = ((iy - 4).max(0), (iy + 4).min(crate::world::grid::HEIGHT as i32 - 1));
+            'outer: for x in x_lo..=x_hi {
+                for y in y_lo..=y_hi {
+                    if Tile::from_i8(grid.tiles[WorldGrid::idx(x, y)]) == Tile::Campfire {
                         has_warmth = true;
                         break 'outer;
                     }
