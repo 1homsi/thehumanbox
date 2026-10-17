@@ -44,7 +44,8 @@ export function watchForWebGLContextRecovery(
   const onVisibilityChange = () => updateTimeout()
 
   events.addEventListener('webglcontextlost', onContextLost, true)
-  events.addEventListener('webglcontextrestored', onContextRestored, true)
+  // Run after xipjs's canvas listener has rebuilt its GL resources.
+  events.addEventListener('webglcontextrestored', onContextRestored)
   visibility.addEventListener('visibilitychange', onVisibilityChange)
 
   return {
@@ -54,7 +55,7 @@ export function watchForWebGLContextRecovery(
     },
     dispose() {
       events.removeEventListener('webglcontextlost', onContextLost, true)
-      events.removeEventListener('webglcontextrestored', onContextRestored, true)
+      events.removeEventListener('webglcontextrestored', onContextRestored)
       visibility.removeEventListener('visibilitychange', onVisibilityChange)
       clearTimeoutIfSet()
     },
