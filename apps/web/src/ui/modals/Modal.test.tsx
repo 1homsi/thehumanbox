@@ -47,6 +47,21 @@ describe('Modal', () => {
     expect(document.activeElement).not.toBe(trigger)
   })
 
+  it('returns focus to the trigger when the dialog closes', async () => {
+    const host = mount(<Harness />)
+    const trigger = host.querySelector<HTMLButtonElement>('#trigger')!
+    act(() => trigger.focus())
+    act(() => trigger.click())
+    const dialog = document.querySelector('.thb-modal')!
+    act(() => {
+      dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    })
+    // Radix moves focus on close from a timer, after the unmount commit.
+    await act(() => new Promise((r) => setTimeout(r, 0)))
+    expect(document.querySelector('.thb-modal')).toBeNull()
+    expect(document.activeElement).toBe(trigger)
+  })
+
   it('keeps an autoFocus control inside the dialog focused', () => {
     function WithAutoFocus() {
       const [open, setOpen] = useState(true)
