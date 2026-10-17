@@ -4,6 +4,7 @@ import type { PrayerInfo, WorldState } from '../../shared/types'
 import { useUIStore } from '../../state/store'
 import { Tooltip } from './Tooltip'
 import { MoreDropdown } from './MoreDropdown'
+import { PhoneMenu } from './PhoneMenu'
 import { ToolSprite } from './ToolSprite'
 import { getDesktop } from '../../shared/desktop'
 import { PrayerChip } from '../panels/PrayerChip'
@@ -248,6 +249,13 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
             </button>
           </Tooltip>
         </div>
+      )}
+      {world && (
+        <PhoneMenu
+          chronicleCount={world.story_history?.length ?? 0}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={toggleFullscreen}
+        />
       )}
     </header>
   )
