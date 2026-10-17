@@ -85,6 +85,7 @@ function preloadSimAssets(): Plugin {
 
 export default defineConfig({
   plugins: [react(), emitVersionJson(), preloadSimAssets()],
+  resolve: { dedupe: ['react', 'react-dom'] },
 
   // Web is served at root with a Cloudflare SPA-fallback (any deep URL
   // returns /index.html), so absolute /assets/... is the only safe form

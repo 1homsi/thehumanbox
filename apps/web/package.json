@@ -30,7 +30,7 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "shepherd.js": "^15.3.0",
-    "xipjs": "^0.15.0",
+    "xipjs": "file:/Users/mhomsi/dev/extra/overnight/wt/eng-01-four-vertex-strips/integrations/xip",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

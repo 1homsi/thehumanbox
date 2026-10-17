@@ -54,8 +54,8 @@ importers:
         specifier: ^15.3.0
         version: 15.3.0
       xipjs:
-        specifier: ^0.15.0
-        version: 0.15.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: file:/Users/mhomsi/dev/extra/overnight/wt/eng-01-four-vertex-strips/integrations/xip
+        version: file:../../../eng-01-four-vertex-strips/integrations/xip(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zustand:
         specifier: ^5.0.15
         version: 5.0.15(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.6.0(react@19.3.0))
@@ -1634,8 +1634,8 @@ packages:
       utf-8-validate:
         optional: true
 
-  xipjs@0.15.0:
-    resolution: {integrity: sha512-2GlzO/ewUBS0CNgH+crlADAJRnTt7ByE/pEdF/0tAYw2ZJrH7th+fmT8jGqnmYhVs1+oYMELhaPdrY5WT8z7vA==}
+  xipjs@file:../../../eng-01-four-vertex-strips/integrations/xip:
+    resolution: {directory: ../../../eng-01-four-vertex-strips/integrations/xip, type: directory}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
@@ -3028,7 +3028,7 @@ snapshots:
 
   ws@8.22.0: {}
 
-  xipjs@0.15.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+  xipjs@file:../../../eng-01-four-vertex-strips/integrations/xip(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
