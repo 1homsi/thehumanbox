@@ -39,6 +39,19 @@ const RELOAD_CHECKPOINT_TIMEOUT_MS = 7_000
 const WS_URL = `${WS_BASE}/ws`
 const SNAPSHOT_URL = `${API_BASE}/snapshot`
 
+type SimulationMessage = ArrayBuffer | Uint8Array | string
+type BootstrapSnapshotMessage = { kind: 'bootstrap-snapshot'; raw: SimulationMessage }
+type QueuedSimulationMessage = SimulationMessage | BootstrapSnapshotMessage
+
+function isBootstrapSnapshotMessage(message: QueuedSimulationMessage): message is BootstrapSnapshotMessage {
+  return (
+    typeof message === 'object' &&
+    message !== null &&
+    'kind' in message &&
+    message.kind === 'bootstrap-snapshot'
+  )
+}
+
 export interface InterpRefs {
   prev: React.MutableRefObject<WorldState | null>
   current: React.MutableRefObject<WorldState | null>
@@ -101,7 +114,7 @@ export function useSimulation(source: WorldSource = 'native'): {
   )
   const organismCache = useRef<Map<string, OrganismState>>(new Map())
   const animalCache = useRef<Map<number, AnimalState>>(new Map())
-  const queuedMsgs = useRef<Array<ArrayBuffer | Uint8Array | string>>([])
+  const queuedMsgs = useRef<QueuedSimulationMessage[]>([])
   const rafPending = useRef<number | null>(null)
   const gridCache = useRef<GridState | null>(null)
   const prevWorldRef = useRef<WorldState | null>(null)
@@ -138,8 +151,16 @@ export function useSimulation(source: WorldSource = 'native'): {
     }
 
     function enqueueMessage(raw: ArrayBuffer | Uint8Array | string) {
+      if (document.hidden) {
+        frameSequenceRef.current.markAwaitingFullFrame()
+        return
+      }
       if (queuedMsgs.current.length >= MAX_BUFFERED_MESSAGES) {
-        queuedMsgs.current.shift()
+        while (queuedMsgs.current.length >= MAX_BUFFERED_MESSAGES) {
+          const dropIndex = queuedMsgs.current.findIndex((message) => !isBootstrapSnapshotMessage(message))
+          if (dropIndex < 0) break
+          queuedMsgs.current.splice(dropIndex, 1)
+        }
         markAwaitingFullFrame()
       }
       queuedMsgs.current.push(raw)
@@ -203,7 +224,7 @@ export function useSimulation(source: WorldSource = 'native'): {
             scheduleSnapshotRetry()
             return
           }
-          queuedMsgs.current.unshift(buf)
+          queuedMsgs.current.unshift({ kind: 'bootstrap-snapshot', raw: buf })
           bootstrapPendingRef.current = false
           scheduleFlush()
         })
@@ -225,7 +246,12 @@ export function useSimulation(source: WorldSource = 'native'): {
     function flushUpdate() {
       rafPending.current = null
       // Binary frames need their decoder; fetch it and come back, leaving the frames queued.
-      if (!binaryFramesReady() && queuedMsgs.current.some((raw) => typeof raw !== 'string')) {
+      if (
+        !binaryFramesReady() &&
+        queuedMsgs.current.some(
+          (message) => typeof (isBootstrapSnapshotMessage(message) ? message.raw : message) !== 'string',
+        )
+      ) {
         void loadBinaryFrameDecoder().then(
           () => {
             if (!destroyed) scheduleFlush()
@@ -236,7 +262,8 @@ export function useSimulation(source: WorldSource = 'native'): {
       }
       const pending = queuedMsgs.current.splice(0, queuedMsgs.current.length)
       let latest: WorldState | null = null
-      for (const raw of pending) {
+      for (const message of pending) {
+        const raw = isBootstrapSnapshotMessage(message) ? message.raw : message
         const parseResult = parseWorldFrame(raw)
         if (parseResult.isErr()) {
           const e = parseResult.error
