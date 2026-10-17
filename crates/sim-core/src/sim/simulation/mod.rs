@@ -193,8 +193,8 @@ pub struct Simulation {
     /// Incremented whenever construction, ownership, damage, repair, or
     /// eviction changes a building so the wire can publish it immediately
     /// without shipping the entire building list on every hot frame.
-    pub(crate) building_state_revision: u64,
-    pub(crate) serialized_building_state_revision: u64,
+    pub building_state_revision: u64,
+    pub serialized_building_state_revision: u64,
     /// Bumped whenever a planting is added, removed or changes stage.
     pub(crate) planting_revision: u64,
     pub(crate) serialized_planting_revision: u64,

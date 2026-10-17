@@ -26,6 +26,7 @@ pub(super) fn apply_damage(sim: &mut Simulation) -> HashSet<usize> {
         exposed.insert(index);
         let building = &mut sim.buildings[index];
         let was_ruined = building.is_ruined();
+        let shown_before = shown_state(building, sim.tick_count);
         building.damage = (building.damage_fraction() + exposure.amount).min(1.0);
         building.last_damage_tick = Some(sim.tick_count);
         if !was_ruined && building.damage_fraction() >= 1.0 {
@@ -41,13 +42,28 @@ pub(super) fn apply_damage(sim: &mut Simulation) -> HashSet<usize> {
                 exposure.cause,
             ));
         }
-        sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
+        // Wear and weather chip a building every call; only a change a client
+        // would draw differently re-sends the buildings section.
+        if shown_state(&sim.buildings[index], sim.tick_count) != shown_before {
+            sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
+        }
     }
 
     for (lineage, kind, x, y, cause) in ruined_events {
         announce_ruin(sim, lineage, kind, x, y, cause);
     }
     exposed
+}
+
+/// What a frame shows of a building's damage: whole percent of damage (the
+/// renderer quantises to 1/32), and the ruined, damaged and repairing flags.
+fn shown_state(building: &super::Building, tick: u64) -> (i32, bool, bool, bool) {
+    (
+        (building.damage_fraction() * 100.0).round() as i32,
+        building.is_ruined(),
+        building.is_damaged(),
+        building.is_repairing_at(tick),
+    )
 }
 
 pub(super) fn announce_ruin(

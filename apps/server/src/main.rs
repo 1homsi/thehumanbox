@@ -15,6 +15,8 @@ mod state;
 #[cfg(test)]
 mod tests;
 mod tick_loop;
+#[cfg(test)]
+mod scratch_measure;
 
 use config::*;
 use desktop_lock::*;
