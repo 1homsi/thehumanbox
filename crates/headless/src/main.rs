@@ -34,6 +34,16 @@ use sweep::*;
 use trace::*;
 use world_report::*;
 
+/// FNV-1a over the saved world as canonical JSON (a `Value` tree sorts map
+/// keys, so hash-map iteration order cannot change the result).
+fn save_state_hash(sim: &Simulation) -> u64 {
+    let value = serde_json::to_value(sim.to_save_state()).unwrap_or_default();
+    let bytes = serde_json::to_vec(&value).unwrap_or_default();
+    bytes.iter().fold(0xcbf29ce484222325u64, |h, &b| {
+        (h ^ u64::from(b)).wrapping_mul(0x100000001b3)
+    })
+}
+
 fn main() {
     let Args {
         seed,
@@ -50,6 +60,7 @@ fn main() {
         growth_every,
         profile_out,
         profile_every,
+        state_hash,
     } = args::parse();
 
     if world_report {
@@ -95,21 +106,34 @@ fn main() {
     });
 
     let mut tick_times_us: Vec<u64> = Vec::new();
+    let mut tick_instrs: Vec<u64> = Vec::new();
     let mut json_sizes_bytes: Vec<usize> = Vec::new();
     let mut profile_writer = profile_out.as_ref().map(|path| {
         let mut w = BufWriter::new(File::create(path).unwrap_or_else(|err| {
             panic!("failed to create profile file {}: {}", path, err);
         }));
         use std::io::Write as _;
-        writeln!(w, "tick,alive,ms_tick,rss_kb").ok();
+        writeln!(w, "tick,alive,ms_tick,rss_kb,instr").ok();
         w
     });
 
+    let mut rss_kb = 0u64;
     while sim.tick_count < max_ticks {
+        let instr0 = if profile_writer.is_some() {
+            read_self_instructions()
+        } else {
+            0
+        };
         let t0 = std::time::Instant::now();
         sim.tick();
         let tick_us = t0.elapsed().as_micros() as u64;
+        let tick_instr = if profile_writer.is_some() {
+            read_self_instructions().saturating_sub(instr0)
+        } else {
+            0
+        };
         tick_times_us.push(tick_us);
+        tick_instrs.push(tick_instr);
         let t = sim.tick_count;
 
         let alive = sim.organisms.iter().filter(|o| o.alive).count();
@@ -117,13 +141,25 @@ fn main() {
             peak_pop = alive;
         }
 
-        // Profile CSV: every `profile_every` ticks. Reads RSS via
-        // /proc/self/status on Linux; falls back to 0 elsewhere.
+        // Profile CSV: every `profile_every` ticks (1 = every tick, what the
+        // perf gate uses so mean/p99/max are real). RSS is re-read every 100
+        // ticks only; rows in between repeat the last reading. `instr` is the
+        // instructions retired by this tick (macOS only, else 0).
         if let Some(w) = profile_writer.as_mut() {
             if profile_every > 0 && t.is_multiple_of(profile_every) {
                 use std::io::Write as _;
-                let rss_kb = read_self_rss_kb();
-                let _ = writeln!(w, "{},{},{},{}", t, alive, tick_us as f64 / 1000.0, rss_kb,);
+                if t.is_multiple_of(100) || rss_kb == 0 {
+                    rss_kb = read_self_rss_kb();
+                }
+                let _ = writeln!(
+                    w,
+                    "{},{},{},{},{}",
+                    t,
+                    alive,
+                    tick_us as f64 / 1000.0,
+                    rss_kb,
+                    tick_instr
+                );
             }
         }
 
@@ -180,9 +216,19 @@ fn main() {
 
             let json_bytes = sim.state_json().to_string().len();
             json_sizes_bytes.push(json_bytes);
+            if state_hash {
+                println!("state-hash tick={} {:016x}", t, save_state_hash(&sim));
+            }
         }
     }
 
+    if state_hash {
+        println!(
+            "state-hash final tick={} {:016x}",
+            sim.tick_count,
+            save_state_hash(&sim)
+        );
+    }
     println!("\n=== SUMMARY ===");
     println!("ticks run:   {}", sim.tick_count);
     println!("peak pop:    {}", peak_pop);
@@ -235,7 +281,7 @@ fn main() {
     print_institutions(&sim);
     print_society(&sim);
     print_progress(&sim);
-    print_performance(tick_times_us, json_sizes_bytes);
+    print_performance(tick_times_us, tick_instrs, json_sizes_bytes);
     if let Some(writer) = trace_writer.as_mut() {
         writer.flush().ok();
     }

@@ -15,6 +15,7 @@ pub(super) struct Args {
     pub(super) growth_every: u64,
     pub(super) profile_out: Option<String>,
     pub(super) profile_every: u64,
+    pub(super) state_hash: bool,
 }
 
 pub(super) fn parse() -> Args {
@@ -89,6 +90,10 @@ pub(super) fn parse() -> Args {
         .and_then(|i| args.get(i + 1))
         .and_then(|s| s.parse().ok())
         .unwrap_or(100);
+    // --state-hash: print a hash of the saved world at every --every tick and
+    // at the end. Two builds that print the same hashes simulate the same
+    // world, which is how a refactor proves it changed nothing.
+    let state_hash = args.iter().any(|a| a == "--state-hash");
     Args {
         seed,
         max_ticks,
@@ -104,5 +109,6 @@ pub(super) fn parse() -> Args {
         growth_every,
         profile_out,
         profile_every,
+        state_hash,
     }
 }

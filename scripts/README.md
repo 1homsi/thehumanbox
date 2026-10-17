@@ -10,7 +10,7 @@ One-line macOS installer. The README publishes its raw GitHub URL
 Builds the browser WebAssembly engine with the tuned wasm profile (fat LTO, one codegen unit, opt-level 2). `make wasm` and both CI workflows call it; the flags are per invocation, so native builds and tests keep the quick release profile.
 
 ### perf-gate.sh
-Deterministic multi-seed performance budget used by CI (`make perf-gate`).
+Deterministic performance budget used by CI (`make perf-gate`). Several seeds for `TICKS` ticks plus a mature world for `LONG_TICKS`, every tick recorded, judged on mean, p99 and max tick time (the mature world on its last quarter) and peak RSS.
 
 ### rebuild-fresh.sh
 Wipes the local `world.save` (and `.tmp`/`.bak` siblings) and rebuilds the release binaries from scratch.

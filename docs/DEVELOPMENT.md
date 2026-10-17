@@ -28,7 +28,7 @@ runs everything on `main`.
 | Rust | `cargo fmt --all` then `cargo clippy --workspace --all-targets --locked --release -- -D warnings` then `cargo test --release --locked --workspace` |
 | Web (`apps/web`) | `pnpm exec prettier --check "src/**/*.{ts,tsx,js,jsx,json,css}"`, `pnpm exec tsc -b --noEmit`, `pnpm exec eslint src`, `pnpm exec vitest run`, `pnpm run build` |
 | Desktop (`apps/desktop`) | `pnpm exec tsc -p tsconfig.json --noEmit` and `pnpm run test:main` |
-| Performance budget | `make perf-gate` (`scripts/perf-gate.sh`): three seeds, a time-per-tick and memory budget |
+| Performance budget | `make perf-gate` (`scripts/perf-gate.sh`): three seeds plus one mature world (24,000 ticks), every tick recorded, mean / p99 / max time per tick and memory budgets |
 
 Run prettier and `cargo fmt` last, after every edit.
 
@@ -36,11 +36,13 @@ Run prettier and `cargo fmt` last, after every edit.
 
 ```bash
 cargo run --release -p headless -- --seed 42 --ticks 6000 --every 1000
-make profile OUT=profile.csv TICKS=12000      # time per tick and RSS over a run
+make profile OUT=profile.csv TICKS=12000      # every tick: ms, RSS, instructions (macOS)
 cargo run --release -p headless -- --sweep-seeds 8   # world-health sweep
 ```
 
 Runs are deterministic: the same seed and tick count give the same world.
+`--state-hash` prints a hash of the saved world at every `--every` tick; two
+builds that print the same hashes simulate the same world.
 
 ## Measuring performance
 
@@ -52,6 +54,11 @@ counters, and compare against a baseline binary built from the same base commit:
 #   ... instructions retired / cycles elapsed ...
 ```
 
+- The headless timing report has a per-3000-tick block table (mean / p99 / max
+  ms) because tick cost grows with world maturity: a 30,000-tick run costs
+  several times more per tick at the end than at tick 3000. On macOS the same
+  table, and the `instr` column of `--profile`, give per-tick instructions
+  retired, so a tail spike can be measured without wall-clock noise.
 - Take the minimum of several runs and interleave A and B so load affects both.
 - A lower instruction count is not enough: confirm cycles drop too. Code layout
   can move cycles by a few percent, so treat changes under ~3% with suspicion.
