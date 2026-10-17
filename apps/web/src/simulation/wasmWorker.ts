@@ -90,6 +90,7 @@ let storageRetryInFlight: Promise<boolean> | null = null
 let worldLockAcquired = true
 let releaseWorldLock: (() => void) | null = null
 let startup: Promise<void> | null = null
+let startupRunning = false
 
 function post(msg: unknown) {
   ;(self as unknown as Worker).postMessage(msg)
@@ -608,7 +609,12 @@ self.onmessage = (e: MessageEvent) => {
     case 'start':
       // Only the first start() runs (`started` guards the rest); don't let a
       // duplicate message replace the promise a pending reload waits on.
-      startup ??= start(msg)
+      if (!startup) {
+        startupRunning = true
+        startup = start(msg).finally(() => {
+          startupRunning = false
+        })
+      }
       break
     case 'pause':
       if (sim) manuallyPaused = true
@@ -656,7 +662,11 @@ self.onmessage = (e: MessageEvent) => {
         post({ type: 'reload_result', requestId: msg.requestId, ok: false })
         break
       }
-      if (!sim || !worldLockAcquired) {
+      // While start() writes the recovery copy of an unreadable save, sim is the
+      // tick-mismatched restore that is about to be discarded. Checkpointing it
+      // would persist that candidate over the primary record, and a checkpoint
+      // would release the lock under the copy. Wait for startup instead.
+      if (!sim || !worldLockAcquired || startupRunning) {
         if (msg.requireLocalWorld) {
           post({ type: 'reload_result', requestId: msg.requestId, ok: false })
           break
