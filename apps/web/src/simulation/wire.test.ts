@@ -102,7 +102,10 @@ describe('applyGridWire', () => {
 
     const delta = emptyWire(3, 2)
     delete delta.structure
-    delta.structure_delta = [[1, 2, 20], [0, 0, 70]]
+    delta.structure_delta = [
+      [1, 2, 20],
+      [0, 0, 70],
+    ]
     const second = applyGridWire(delta, first)
     expect(second.structure).toBe(first.structure)
     expect(second.structure[1][2]).toBeCloseTo(0.2, 5)

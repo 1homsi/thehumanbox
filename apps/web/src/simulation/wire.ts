@@ -396,7 +396,8 @@ export function parseWorldFrame(
     if (!isNum(g.width)) issues.push('grid.width is not a number')
     if (!isNum(g.height)) issues.push('grid.height is not a number')
     if (!Array.isArray(g.fire)) issues.push('grid.fire is not an array')
-    if (g.structure !== undefined && !Array.isArray(g.structure)) issues.push('grid.structure is not an array')
+    if (g.structure !== undefined && !Array.isArray(g.structure))
+      issues.push('grid.structure is not an array')
     if (g.structure_delta !== undefined && !Array.isArray(g.structure_delta))
       issues.push('grid.structure_delta is not an array')
   }

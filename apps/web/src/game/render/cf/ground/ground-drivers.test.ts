@@ -190,7 +190,9 @@ describe('structure driver', () => {
     expect(driver.update(frame({ ...w, frame_id: 2 }, 1))).toBe(false)
     expect(driver.stats.scans).toBe(1)
     structure[3][3] = 0.4
-    expect(driver.update(frame({ ...w, frame_id: 3, grid: { ...w.grid, structure_revision: 2 } }, 1))).toBe(true)
+    expect(driver.update(frame({ ...w, frame_id: 3, grid: { ...w.grid, structure_revision: 2 } }, 1))).toBe(
+      true,
+    )
     expect(driver.stats.scans).toBe(2)
   })
 
