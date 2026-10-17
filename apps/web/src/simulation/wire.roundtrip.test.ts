@@ -141,7 +141,7 @@ describe('wire round-trip', () => {
     expect(f.grid.fire[0]).toEqual([10, 20, 750])
     expect(f.grid.structure[0]).toEqual([5, 5, 80])
 
-    expect(f.organisms_hot?.ids[0]).toBe('org-1')
+    expect(f.organisms_hot?.ids?.[0]).toBe('org-1')
     expect(f.organisms_hot?.xs[0]).toBe(3000)
     // `ages` was removed from the delta SoA; the wire decoder must
     // accept payloads without it.

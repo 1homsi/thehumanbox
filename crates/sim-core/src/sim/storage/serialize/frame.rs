@@ -153,6 +153,23 @@ impl Simulation {
                     soa.push(o, lookahead);
                 }
             }
+            let roster = soa.ids.take().unwrap_or_default();
+            let window = (
+                grid_json.origin_x,
+                grid_json.origin_y,
+                grid_json.width,
+                grid_json.height,
+            );
+            let changed = self
+                .serialized_org_ids
+                .as_ref()
+                .map_or(true, |(previous_window, previous)| {
+                    *previous_window != window || *previous != roster
+                });
+            if changed {
+                self.serialized_org_ids = Some((window, roster.clone()));
+                soa.ids = Some(roster);
+            }
             let mut animals_json: Vec<serde_json::Value> = Vec::with_capacity(self.animals.len());
             for a in self.animals.iter() {
                 if in_view(a.x, a.y) {

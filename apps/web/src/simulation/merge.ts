@@ -62,6 +62,7 @@ function reuseArrayIfShallowEqual<T>(incoming: T[] | undefined, cached: T[] | un
 
 export interface MergeCaches {
   organisms: Map<string, OrganismState>
+  organismIds: string[]
   animals: Map<number, AnimalState>
   grid: GridState | null
   prevWorld: WorldState | null
@@ -81,7 +82,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
   // so downstream code can't accidentally read a cold field off a
   // SoA-only record.
   const fullFrameOrgs: OrganismState[] = parsed.organisms ?? []
-  const deltaOrgIds = parsed.organisms_hot?.ids ?? []
+  const deltaOrgIds = parsed.organisms_hot?.ids ?? caches.organismIds
 
   // An `organisms_complete` frame is authoritative, including when it is
   // empty (total extinction). The extra `length > 0` guard meant an empty
@@ -96,18 +97,20 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
       next.set(org.id, existing ? mergeDefined(existing, org) : org)
     }
     caches.organisms = next
+    caches.organismIds = fullFrameOrgs.map((org) => org.id)
   } else {
     // Deltas (SoA) only merge onto an existing cache entry - a brand-
     // new id appearing in a delta would be missing cold fields (name,
     // lineage_id, traits) so we drop it; the next full frame will
     // include it as AoS and seed the cache properly.
     if (parsed.organisms_hot) {
+      if (parsed.organisms_hot.ids) caches.organismIds = parsed.organisms_hot.ids
       forEachOrgSoa(parsed.organisms_hot, (org) => {
         const existing = caches.organisms.get(org.id)
         if (existing) {
           caches.organisms.set(org.id, mergeDefined(existing, org as Partial<OrganismState>))
         }
-      })
+      }, deltaOrgIds)
     }
     // Late-arriving cold fields can still come via a non-SoA full
     // frame in the same parsed payload (very rare, but legal).

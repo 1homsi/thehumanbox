@@ -18,6 +18,7 @@ button.onclick = async () => {
     if (parsed.isErr()) throw new Error(String(parsed.error))
     const { next: world } = mergeFrame(parsed.value, {
       organisms: new Map(),
+      organismIds: [],
       animals: new Map(),
       grid: null,
       prevWorld: null,

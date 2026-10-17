@@ -6,7 +6,7 @@ import { PATH_TRAIL_HOT } from '../shared/types'
 export type ParseError = { kind: 'json'; message: string } | { kind: 'schema'; issues: string[] }
 
 export interface OrgsHotSoa {
-  ids: string[]
+  ids?: string[]
   xs: number[]
   ys: number[]
   vxs: number[]
@@ -184,8 +184,13 @@ function isSparseStringArray(a: unknown): a is Array<[number, string]> {
 }
 
 /** Visit each decoded row synchronously. The callback must not retain `org`, which is reused. */
-export function forEachOrgSoa(soa: OrgsHotSoa, visit: (org: ExpandedOrgDelta) => void): void {
-  const n = soa.ids.length
+export function forEachOrgSoa(
+  soa: OrgsHotSoa,
+  visit: (org: ExpandedOrgDelta) => void,
+  cachedIds: string[] = [],
+): void {
+  const ids = soa.ids ?? cachedIds
+  const n = ids.length
   const hasAges = Array.isArray(soa.ages)
   const hasAlives = Array.isArray(soa.alives)
 
@@ -270,7 +275,7 @@ export function forEachOrgSoa(soa: OrgsHotSoa, visit: (org: ExpandedOrgDelta) =>
     thought: undefined,
   }
   for (let i = 0; i < n; i++) {
-    entry.id = soa.ids[i]
+    entry.id = ids[i]
     entry.x = entry.y = entry.vx = entry.vy = undefined
     entry.target_x = entry.target_y = entry.energy = entry.hydration = undefined
     entry.health = entry.infection = entry.fear_level = undefined

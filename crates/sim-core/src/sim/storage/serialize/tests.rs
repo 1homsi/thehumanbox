@@ -212,6 +212,27 @@ fn organisms_hot_does_not_include_ages() {
 }
 
 #[test]
+fn organisms_hot_sends_ids_only_when_the_viewport_roster_changes() {
+    let mut sim = Simulation::new(8);
+    sim.tick_count = 5;
+
+    let first = sim.state_json_incremental();
+    let ids = first["organisms_hot"]["ids"].as_array().unwrap().clone();
+    assert!(!ids.is_empty());
+
+    let unchanged = sim.state_json_incremental();
+    assert!(unchanged["organisms_hot"].get("ids").is_none());
+
+    let removed = ids[0].as_str().unwrap();
+    let org = sim.organisms.iter_mut().find(|org| org.id == removed).unwrap();
+    org.alive = false;
+    let changed = sim.state_json_incremental();
+    let changed_ids = changed["organisms_hot"]["ids"].as_array().unwrap();
+    assert_eq!(changed_ids.len(), ids.len() - 1);
+    assert!(!changed_ids.iter().any(|id| id == removed));
+}
+
+#[test]
 fn every_payload_exposes_only_active_player_guidance() {
     let mut sim = Simulation::new(43);
     let lid = sim

@@ -6,6 +6,7 @@ import type { OrganismState, AnimalState, Building } from '../shared/types'
 function emptyCaches(): MergeCaches {
   return {
     organisms: new Map<string, OrganismState>(),
+    organismIds: [],
     animals: new Map<number, AnimalState>(),
     grid: null,
     prevWorld: null,
@@ -150,6 +151,67 @@ describe('mergeFrame organism handling', () => {
     expect(merged.x).toBeCloseTo(60, 5) // 600 / 10
     expect(merged.thought).toBe('wandering') // sparse thought applied
     expect(merged.energy).toBeCloseTo(0.7, 5)
+  })
+
+  it('reuses the cached roster order when a hot frame omits ids', () => {
+    const caches = emptyCaches()
+    const orgs = [
+      { id: 'a', name: 'Alia', alive: true } as unknown as OrganismState,
+      { id: 'b', name: 'Bora', alive: true } as unknown as OrganismState,
+    ]
+    mergeFrame(baseFrame({ frame_kind: 'full', organisms_complete: true, organisms: orgs }), caches)
+    expect(caches.organismIds).toEqual(['a', 'b'])
+
+    const changedRoster = baseFrame({
+      frame_id: 2,
+      organisms_hot: {
+        ids: ['b'],
+        xs: [250],
+        ys: [500],
+        vxs: [0],
+        vys: [0],
+        energies: [50],
+        hydrations: [50],
+        healths: [50],
+        thoughts: [],
+        infections: [0],
+        fear_levels: [0],
+        carryings: [0],
+        carrying_types: [0],
+        pregnants: [false],
+        partner_ids: [],
+        attracted_tos: [],
+      },
+    })
+    const firstDelta = mergeFrame(changedRoster, caches)
+    expect(caches.organismIds).toEqual(['b'])
+    expect(firstDelta.next.viewport_organisms?.map((org) => org.id)).toEqual(['b'])
+
+    const next = mergeFrame(
+      baseFrame({
+        frame_id: 3,
+        organisms_hot: {
+          xs: [300],
+          ys: [600],
+          vxs: [0],
+          vys: [0],
+          energies: [50],
+          hydrations: [50],
+          healths: [50],
+          thoughts: [],
+          infections: [0],
+          fear_levels: [0],
+          carryings: [0],
+          carrying_types: [0],
+          pregnants: [false],
+          partner_ids: [],
+          attracted_tos: [],
+        },
+      }),
+      caches,
+    )
+    expect(next.next.viewport_organisms?.map((org) => org.id)).toEqual(['b'])
+    expect(caches.organisms.get('b')?.x).toBeCloseTo(30, 5)
   })
 
   it('reuses an unchanged GridState across identical frames (allocator stability)', () => {

@@ -761,7 +761,11 @@ pub struct OrgsHotSoa {
     pub fear_levels: Vec<u8>,
     pub healths: Vec<u8>,
     pub hydrations: Vec<u8>,
-    pub ids: Vec<String>,
+    /// The roster ids are omitted when unchanged from the previous hot frame.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ids: Option<Vec<String>>,
+    #[serde(skip)]
+    org_count: u32,
     pub infections: Vec<u8>,
     /// Sparse: (index into ids, partner_id). Absent → unpartnered.
     pub partner_ids: Vec<(u32, String)>,
@@ -790,7 +794,8 @@ pub(super) fn q_pct(v: f32) -> u8 {
 impl OrgsHotSoa {
     pub fn with_capacity(n: usize) -> Self {
         OrgsHotSoa {
-            ids: Vec::with_capacity(n),
+            ids: Some(Vec::with_capacity(n)),
+            org_count: 0,
             xs: Vec::with_capacity(n),
             ys: Vec::with_capacity(n),
             vxs: Vec::with_capacity(n),
@@ -829,8 +834,12 @@ impl OrgsHotSoa {
             Some((tx, ty)) => (tx as i16, ty as i16),
             None => (i16::MIN, i16::MIN),
         };
-        let idx = self.ids.len() as u32;
-        self.ids.push(o.id.clone());
+        let idx = self.org_count;
+        self.org_count += 1;
+        self.ids
+            .as_mut()
+            .expect("collecting roster ids")
+            .push(o.id.clone());
         self.xs.push(q_pos(pred_x));
         self.ys.push(q_pos(pred_y));
         self.vxs.push(enc_vx);

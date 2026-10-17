@@ -198,6 +198,8 @@ pub struct Simulation {
     /// Bumped whenever a planting is added, removed or changes stage.
     pub(crate) planting_revision: u64,
     pub(crate) serialized_planting_revision: u64,
+    /// The viewport roster last sent in a hot frame, so unchanged ids can be omitted.
+    pub(crate) serialized_org_ids: Option<((i32, i32, usize, usize), Vec<String>)>,
     pub(crate) active_structure_tiles: HashSet<(i32, i32)>,
     pub(crate) field_fortifications: Vec<super::warfare::FieldFortification>,
     pub(crate) settlement_tiers: HashMap<String, u8>,
@@ -333,6 +335,7 @@ impl Simulation {
             serialized_building_state_revision: 0,
             planting_revision: 0,
             serialized_planting_revision: 0,
+            serialized_org_ids: None,
             active_structure_tiles: HashSet::default(),
             field_fortifications: Vec::new(),
             settlement_tiers: HashMap::default(),

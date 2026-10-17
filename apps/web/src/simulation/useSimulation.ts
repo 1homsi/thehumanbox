@@ -101,6 +101,7 @@ export function useSimulation(source: WorldSource = 'native'): {
     new Map<number, { resolve: (json: string | null) => void; timer: ReturnType<typeof setTimeout> }>(),
   )
   const organismCache = useRef<Map<string, OrganismState>>(new Map())
+  const organismIdsCache = useRef<string[]>([])
   const animalCache = useRef<Map<number, AnimalState>>(new Map())
   const queuedMsgs = useRef<Array<ArrayBuffer | Uint8Array | string>>([])
   const rafPending = useRef<number | null>(null)
@@ -273,12 +274,14 @@ export function useSimulation(source: WorldSource = 'native'): {
 
           const caches: MergeCaches = {
             organisms: organismCache.current,
+            organismIds: organismIdsCache.current,
             animals: animalCache.current,
             grid: gridCache.current,
             prevWorld: currentWorldRef.current,
           }
           const { next, grid } = mergeFrame(parsed, caches)
           organismCache.current = caches.organisms
+          organismIdsCache.current = caches.organismIds
           animalCache.current = caches.animals
           gridCache.current = grid
 
