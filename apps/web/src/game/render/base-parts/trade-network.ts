@@ -18,7 +18,7 @@ export function drawTradeNetwork2D(
   world: WorldState,
   bounds: { c0: number; c1: number; r0: number; r1: number },
   now: number,
-  layer: 'roads' | 'caravans',
+  layer: 'roads' | 'traffic',
 ) {
   if (!world.trade_routes?.length && !world.caravans?.length) return
 
@@ -66,7 +66,7 @@ export function drawTradeNetwork2D(
 
   if (visibleRoutes.length === 0 && visibleCaravans.length === 0) return
 
-  // Roads lie on the ground under the towns; carts and trucks travel on top.
+  // Road geometry is static between route, era, or view changes. Keep its moving traffic separate.
   const tiers = lineageEraTiers(world.lineage_eras)
   const tierOf = (a: string, b: string) => Math.max(tiers.get(a) ?? 0, tiers.get(b) ?? 0)
   if (layer === 'roads') {
@@ -77,17 +77,6 @@ export function drawTradeNetwork2D(
       const endY = (route.b_center[1] - oy + 0.5) * TILE
       const tier = tierOf(route.lineage_a, route.lineage_b)
       drawRoad(ctx, startX, startY, endX, endY, tier, TILE)
-      drawTraffic(
-        ctx,
-        startX,
-        startY,
-        endX,
-        endY,
-        tier,
-        TILE,
-        motionTime(now),
-        Math.round(route.a_center[0] * 31 + route.b_center[1]),
-      )
       if (route.embargoed) {
         // A road closed by war carries a red barrier at its midpoint.
         const mx = (startX + endX) / 2
@@ -109,6 +98,24 @@ export function drawTradeNetwork2D(
       }
     }
     return
+  }
+  for (const route of visibleRoutes) {
+    const startX = (route.a_center[0] - ox + 0.5) * TILE
+    const startY = (route.a_center[1] - oy + 0.5) * TILE
+    const endX = (route.b_center[0] - ox + 0.5) * TILE
+    const endY = (route.b_center[1] - oy + 0.5) * TILE
+    const tier = tierOf(route.lineage_a, route.lineage_b)
+    drawTraffic(
+      ctx,
+      startX,
+      startY,
+      endX,
+      endY,
+      tier,
+      TILE,
+      motionTime(now),
+      Math.round(route.a_center[0] * 31 + route.b_center[1]),
+    )
   }
   for (const { caravan, localX, localY } of visibleCaravans) {
     const px = (localX + 0.5) * TILE

@@ -70,6 +70,7 @@ export const Z = {
   groundStatic: 11,
   ground: 12,
   roads: 15,
+  roadDetails: 15.1,
   traffic: 25,
   smoke: 25.5,
   labels: 45,
@@ -136,6 +137,7 @@ export class CfOverlayRenderer {
   private readonly groundStatic: SpriteRecorder
   private readonly ground: SpriteRecorder
   private readonly roads: SpriteRecorder
+  private readonly roadDetails: SpriteRecorder
   private readonly traffic: SpriteRecorder
   private readonly smoke: SpriteRecorder
   private readonly labels: SpriteRecorder
@@ -159,6 +161,9 @@ export class CfOverlayRenderer {
   private groundAt = -Infinity
   private atmosphereKey = ''
   private roadsKey = ''
+  private roadsRoutes: CfFrame['world']['trade_routes'] | null = null
+  private roadsEras: CfFrame['world']['lineage_eras'] | null = null
+  private roadDetailsKey = ''
   private trafficKey = ''
   private smokeKey = ''
   private effectsKey = ''
@@ -234,6 +239,12 @@ export class CfOverlayRenderer {
     )
     this.ground = new SpriteRecorder(shape(Z.ground), text(Z.ground), this.shapes, this.glyphs)
     this.roads = new SpriteRecorder(shape(Z.roads), text(Z.roads), this.shapes, this.glyphs)
+    this.roadDetails = new SpriteRecorder(
+      shape(Z.roadDetails),
+      text(Z.roadDetails),
+      this.shapes,
+      this.glyphs,
+    )
     this.traffic = new SpriteRecorder(shape(Z.traffic), text(Z.traffic), this.shapes, this.glyphs)
     this.smoke = new SpriteRecorder(shape(Z.smoke), text(Z.smoke), this.shapes, this.glyphs)
     this.labels = new SpriteRecorder(shape(Z.labels), text(Z.labels), this.shapes, this.glyphs)
@@ -395,24 +406,35 @@ export class CfOverlayRenderer {
 
     // Trade roads, and the railway track the tribes laid along them (the road layer draws the track).
     const showTrade = f.viewFlags.tradeRoutes
-    const roadsKey = `${animatedKey}|${showTrade ? 1 : 0}`
-    if (roadsKey !== this.roadsKey) {
+    const roadsKey = `${c0},${c1},${r0},${r1}|${f.ox}|${f.oy}|${showTrade ? 1 : 0}`
+    if (
+      f.world.trade_routes !== this.roadsRoutes ||
+      f.world.lineage_eras !== this.roadsEras ||
+      roadsKey !== this.roadsKey
+    ) {
+      this.roadsRoutes = f.world.trade_routes
+      this.roadsEras = f.world.lineage_eras
       this.roadsKey = roadsKey
       this.roads.begin(gv)
       if (showTrade) {
         drawTradeNetwork2D(this.roads.asContext(), f.world, f.bounds, f.t, 'roads')
       }
-      // Artworks lie on the ground where their makers stood: under the buildings and the people.
-      paintArtworks(this.roads.asContext(), f)
-      // Remains of prey lie on the ground too, under the buildings and the people.
-      paintCarcasses(this.roads.asContext(), f)
       this.roads.end()
+    }
+    if (frameKey !== this.roadDetailsKey) {
+      this.roadDetailsKey = frameKey
+      this.roadDetails.begin(gv)
+      // Artworks lie on the ground where their makers stood: under the buildings and the people.
+      paintArtworks(this.roadDetails.asContext(), f)
+      // Remains of prey lie on the ground too, under the buildings and the people.
+      paintCarcasses(this.roadDetails.asContext(), f)
+      this.roadDetails.end()
     }
     // Caravans travel the roads at every zoom; the trade roads and rails above show only with the lens.
     if (animatedKey !== this.trafficKey) {
       this.trafficKey = animatedKey
       this.traffic.begin(gv)
-      drawTradeNetwork2D(this.traffic.asContext(), f.world, f.bounds, f.t, 'caravans')
+      drawTradeNetwork2D(this.traffic.asContext(), f.world, f.bounds, f.t, 'traffic')
       this.paintTrains(this.traffic.asContext(), f)
       this.traffic.end()
     }

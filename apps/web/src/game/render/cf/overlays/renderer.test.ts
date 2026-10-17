@@ -123,7 +123,7 @@ describe('CfOverlayRenderer', () => {
     const trade = vi.mocked(drawTradeNetwork2D)
     trade.mockClear()
     renderer.update(frameOf(world()))
-    expect(trade.mock.calls.map((call) => call[4])).toEqual(['roads', 'caravans'])
+    expect(trade.mock.calls.map((call) => call[4])).toEqual(['roads', 'traffic'])
     trade.mockClear()
     const hidden = makeFrame({
       world: world(),
@@ -137,7 +137,42 @@ describe('CfOverlayRenderer', () => {
       viewFlags: { ...flags, tradeRoutes: false },
     })
     renderer.update(hidden)
-    expect(trade.mock.calls.map((call) => call[4])).toEqual(['caravans'])
+    expect(trade.mock.calls.map((call) => call[4])).toEqual(['traffic'])
+  })
+
+  it('records road geometry only when routes, era tiers, or visible bounds change', () => {
+    make()
+    const trade = vi.mocked(drawTradeNetwork2D)
+    trade.mockClear()
+    const routes = [
+      {
+        id: 1,
+        lineage_a: 'a',
+        lineage_b: 'b',
+        a_center: [8, 8] as [number, number],
+        b_center: [16, 8] as [number, number],
+        established_tick: 0,
+        last_dispatch_tick: 0,
+        deliveries: 0,
+        volume: 1,
+      },
+    ]
+    const eras = [{ lineage_id: 'a', era_name: 'stone_age' }]
+    const w = world({ trade_routes: routes, lineage_eras: eras })
+    renderer.update(frameOf(w))
+    expect(trade.mock.calls.map((call) => call[4])).toEqual(['roads', 'traffic'])
+
+    trade.mockClear()
+    renderer.update(frameOf({ ...w, frame_id: 2 }, null, 5010))
+    expect(trade.mock.calls.map((call) => call[4])).toEqual(['traffic'])
+
+    trade.mockClear()
+    renderer.update(frameOf({ ...w, frame_id: 2, trade_routes: [...routes] }, null, 5010))
+    expect(trade.mock.calls.map((call) => call[4])).toEqual(['roads'])
+
+    trade.mockClear()
+    renderer.update(frameOf({ ...w, frame_id: 2, lineage_eras: [...eras] }, null, 5010))
+    expect(trade.mock.calls.map((call) => call[4])).toEqual(['roads'])
   })
 
   it('re-records the animated overlay sections at 15 Hz and when a world frame changes', () => {
