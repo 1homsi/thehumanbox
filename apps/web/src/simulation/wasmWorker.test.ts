@@ -135,6 +135,42 @@ describe('browser simulation scheduling', () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 
+  it('releases a world lock granted while reload is waiting for startup', async () => {
+    send({ type: 'stop' })
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalledWith({ type: 'stopped' }))
+    let grantLock!: (lock: object | null) => void
+    let markReleased!: () => void
+    const released = new Promise<void>((resolve) => {
+      markReleased = resolve
+    })
+    const locks = {
+      request: vi.fn(
+        async (_name: string, _options: unknown, callback: (lock: object | null) => Promise<void>) => {
+          const lock = await new Promise<object | null>((resolve) => {
+            grantLock = resolve
+          })
+          await callback(lock)
+          markReleased()
+        },
+      ),
+    }
+    vi.stubGlobal('navigator', { locks })
+    vi.resetModules()
+    worker = { onmessage: null, postMessage: vi.fn(), close: vi.fn() }
+    vi.stubGlobal('self', worker)
+    await import('./wasmWorker')
+    send({ type: 'start', id: 'test', seed: '42' })
+    await vi.waitFor(() => expect(locks.request).toHaveBeenCalledOnce())
+    send({ type: 'prepare_reload', requestId: 13, deadlineAt: Date.now() + 1000 })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'reload_result', requestId: 13, ok: true })
+    grantLock({})
+    await vi.advanceTimersByTimeAsync(0)
+    await released
+    expect(worker.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ready' }))
+  })
+
   it('refuses a reset reload without the world lock', async () => {
     send({ type: 'stop' })
     await vi.advanceTimersByTimeAsync(0)
@@ -184,9 +220,10 @@ describe('browser simulation scheduling', () => {
     await vi.advanceTimersByTimeAsync(0)
     expect(worker.postMessage).toHaveBeenCalledWith({ type: 'reload_result', requestId: 12, ok: true })
     finishPreserve()
-    await Promise.resolve()
-    await Promise.resolve()
+    await vi.advanceTimersByTimeAsync(0)
     expect(worker.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ready' }))
+    expect(model.saveWorld).toHaveBeenCalledOnce()
+    expect(vi.getTimerCount()).toBe(0)
   })
 
   it('autosaves every five minutes instead of serializing on the old 30-second cadence', async () => {
