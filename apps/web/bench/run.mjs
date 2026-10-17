@@ -13,7 +13,8 @@
 //   --zooms a,b         overview,mid,close (default all): fit, zoom 1, zoom 3
 //   --modes a,b         paused,playing,panning (default paused,playing). `panning` is `playing` with the camera
 //                       moving the whole window: arrow keys held down in a square, so it covers new ground
-//                       the way a player dragging the map does (see PAN_PATH). Not in the default set.
+//                       the way a player dragging the map does (see PAN_KEYS). Not in the default set;
+//                       the `memory` pass skips it (nothing moves while a memory dump is taken).
 //   --passes a,b        metrics,trace,memory (default all). `metrics` reads the browser's own counters and
 //                       adds nothing to the page; `trace` records a Chrome trace for frames
 //                       delivered, GPU process time, GC pauses and long tasks; `memory` takes a Chrome
@@ -263,9 +264,9 @@ async function focusView(page, focus, zoom) {
 
 /**
  * `panning`: the camera moves for the whole window. Holds the map's own arrow-key pan (480 screen px/s,
- * so 480 / zoom world px/s) along a square, d s a w, one leg after the other; every leg is long enough to
- * reach ground the previous frames did not draw, and the path ends where it began. Keys are real
- * `Input.dispatchKeyEvent`s, so the app's own camera code runs.
+ * so 480 / zoom world px/s) along a square, d s a w, one leg after the other, round and round (a leg is
+ * long enough to reach ground the previous frames did not draw). Keys are real `Input.dispatchKeyEvent`s,
+ * so the app's own camera code runs.
  */
 const PAN_KEYS = [
   { key: 'd', code: 'KeyD', vk: 68 },
@@ -277,7 +278,12 @@ const PAN_LEG_MS = 1500
 
 /** Pans until `stop.done`; returns how far the camera travelled, in world px (sum of the leg steps). */
 async function panUntil(page, stop) {
-  await page.evaluate(`document.querySelector('.map2d-world')?.focus({ preventScroll: true })`)
+  const focused = await page.evaluate(`(() => {
+    const el = document.querySelector('.map2d-world')
+    el?.focus({ preventScroll: true })
+    return !!el && document.activeElement === el
+  })()`)
+  if (!focused) throw new Error('the map did not take keyboard focus')
   const cam = () => page.evaluate('window.__thbBench.camera()')
   let last = await cam()
   let travelled = 0
@@ -307,6 +313,7 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
     gpuOff,
   })
   const { page, browser } = chrome
+  const pan = { done: false, error: null }
   const result = {
     label,
     fixture,
@@ -448,8 +455,13 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
         )
         .catch(() => null)
     // Panning starts before the window so the first frame of it is already a moving one.
-    const pan = { done: false }
-    const panning = mode === 'panning' ? panUntil(page, pan).catch(() => null) : null
+    const panning =
+      mode === 'panning'
+        ? panUntil(page, pan).catch((error) => {
+            pan.error = error
+            return null
+          })
+        : null
     await sleep(600)
     await page.evaluate(`performance.mark('bench-start')`)
     const m0 = metricsOf(await page.send('Performance.getMetrics'))
@@ -465,8 +477,10 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
     await page.evaluate(`performance.mark('bench-end')`)
     if (panning) {
       const travelled = await panning
-      if (travelled === null) throw new Error('the camera pan failed')
+      if (travelled === null) throw new Error(`the camera pan failed: ${pan.error?.message ?? pan.error}`)
       result.panPx = Math.round(travelled)
+      // At the fit zoom the whole world is on screen and the camera cannot move; anywhere else 0 means the keys did nothing.
+      if (result.panPx === 0 && ZOOMS[zoomName] !== 'fit') throw new Error('the camera did not move while panning')
     }
 
     const wall = (m1.Timestamp - m0.Timestamp) * 1000
@@ -551,6 +565,7 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
   } catch (error) {
     result.error = String(error?.message ?? error)
   } finally {
+    pan.done = true
     await chrome.kill()
   }
   return result
@@ -581,6 +596,7 @@ async function main() {
         for (const zoomName of zooms) {
           for (const mode of modes) {
             for (const pass of passes) {
+              if (mode === 'panning' && pass === 'memory') continue
               for (const b of builds) {
                 const t = Date.now()
                 // A scenario that fails (a Chrome that did not start, a timeout on a loaded machine) is tried again.

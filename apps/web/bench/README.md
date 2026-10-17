@@ -31,10 +31,11 @@ simulation run (`playing`) or pauses it (`paused`), waits 3 s, and measures an 8
 through `window.__thbBench`, which the app publishes when the address has `?bench` (`src/game/render/bench-hooks.ts`).
 
 `--modes panning` is `playing` with the camera moving for the whole window (not in the default modes): the map's
-own arrow-key pan (`d`, `s`, `a`, `w` held for 1.5 s each, a square that ends where it began) sent as real key events,
+own arrow-key pan (`d`, `s`, `a`, `w` held for 1.5 s each, round and round) sent as real key events,
 so every rebuild keyed on the camera window (buildings, trees, decor, overlay key) runs the way it does when a
 player drags the map. `results.json` has `panPx`, the world px the camera travelled (0 at `overview`, where the
-whole world fits and nothing can pan; use `mid` or `close`).
+whole world fits and nothing can pan; use `mid` or `close`). It starts about 0.6 s before the window opens. The
+`memory` pass is skipped in this mode.
 
 ```sh
 node bench/run.mjs --builds main=dist --fixtures crowd --zooms mid --modes playing,panning --passes metrics --runs 3
