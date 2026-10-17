@@ -11,7 +11,7 @@ export interface PanelsSlice {
 }
 
 export const createPanelsSlice: StateCreator<UIState, [], [], PanelsSlice> = (set) => ({
-  panelOpen: false,
+  panelOpen: true, // MEASURE-ONLY
   leftOpen: false,
   showMore: false,
   togglePanel: () =>

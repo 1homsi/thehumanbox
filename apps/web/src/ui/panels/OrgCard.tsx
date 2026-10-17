@@ -39,6 +39,8 @@ interface OrgCardProps {
 }
 
 function OrgCardImpl({ orgId }: OrgCardProps) {
+  // MEASURE-ONLY
+  ;((window as any).__cardRenders ??= []).push(performance.now())
   const org = useOrganism(orgId)
   const sexWords = useWorldStore((s) => s.world?.sex_words)
   const lineageNames = useWorldStore((s) => s.world?.lineage_names)
