@@ -15,6 +15,8 @@ import { SandboxBursts } from './SandboxBursts'
 import { SkyOverlay } from './SkyOverlay'
 import { useSandboxBursts } from './sandbox-bursts'
 import type { MapCommand } from './camera-controls'
+import { maxPixelRatio } from './render-timing'
+import { LOW_PERF } from '../../shared/perf'
 import { CanvasWorldFallback } from './world-view/CanvasWorldFallback'
 import { useRendererBackend } from './world-view/useRendererBackend'
 import { useMapPointer } from './world-view/useMapPointer'
@@ -196,6 +198,7 @@ export function WorldView({
             <Game
               mode="onDemand"
               gravity={0}
+              maxPixelRatio={maxPixelRatio(LOW_PERF)}
               width={dims.w}
               height={dims.h}
               onReady={handleGameReady}

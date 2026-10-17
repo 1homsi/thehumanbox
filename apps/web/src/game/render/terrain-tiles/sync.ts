@@ -1,6 +1,8 @@
 import type { TileLayerData } from 'xipjs'
 import { tileColor } from '../base-parts/tile-paint'
 import { TILE } from '../../model/palette'
+import { LOW_PERF } from '../../../shared/perf'
+import { renderPixelRatio } from '../render-timing'
 import { getFlatTerrainTileset, getTerrainTileset } from './atlas'
 import { TERRAIN_KINDS, kindHeadId, terrainKind, terrainTilesetPixels } from './tileset'
 
@@ -47,7 +49,7 @@ export const MAX_INCREMENTAL_TILES = 6000
 export const terrainLod = { enabled: true, flatBelowPx: 7, detailAbovePx: 9 }
 
 function applyLod(layer: TileLayerData, state: TerrainSyncState, zoom: number | undefined) {
-  const dpr = typeof devicePixelRatio === 'number' ? devicePixelRatio : 1
+  const dpr = renderPixelRatio(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, LOW_PERF)
   const px = zoom === undefined ? Infinity : zoom * dpr * TILE
   const wantFlat =
     terrainLod.enabled && (state.flat ? px < terrainLod.detailAbovePx : px < terrainLod.flatBelowPx)

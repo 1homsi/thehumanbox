@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { interpolationFactor, isSettled, shouldRenderFrame, worldRenderScale } from './render-timing'
+import {
+  interpolationFactor,
+  isSettled,
+  renderPixelRatio,
+  shouldRenderFrame,
+  worldRenderScale,
+} from './render-timing'
 
 describe('world render pacing', () => {
   it('caps drawing at 30fps on both 60Hz and 120Hz displays', () => {
@@ -47,5 +53,19 @@ describe('a quiet simulation', () => {
     // A slow simulation keeps the map awake for its whole (longer) interval.
     expect(isSettled(refs(1000, 3000, 2000), 1000 + 1100)).toBe(false)
     expect(isSettled(refs(1000, 3000, 2000), 1000 + 1200)).toBe(true)
+  })
+})
+
+describe('renderPixelRatio', () => {
+  it('caps a dense phone display at 2, or 1.5 in low-performance mode', () => {
+    expect(renderPixelRatio(3, false)).toBe(2)
+    expect(renderPixelRatio(3, true)).toBe(1.5)
+  })
+
+  it('leaves ordinary displays alone and never goes below 1', () => {
+    expect(renderPixelRatio(1, false)).toBe(1)
+    expect(renderPixelRatio(1.25, true)).toBe(1.25)
+    expect(renderPixelRatio(0, false)).toBe(1)
+    expect(renderPixelRatio(Number.NaN, false)).toBe(1)
   })
 })
