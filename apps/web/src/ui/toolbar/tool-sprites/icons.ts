@@ -133,6 +133,7 @@ export const icons: Record<string, keyof typeof sprites> = {
   '📖': 'book',
   '⚙️': 'gear',
   '⋯': 'dots',
+  '☰': 'menu',
   '👑': 'crown',
   '🌙': 'moon',
   '⛶': 'expand',

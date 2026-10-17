@@ -5,7 +5,8 @@ import { saveMapPicture } from '../../shared/mapPicture'
 import { useWorldStore } from '../../state/worldStore'
 import { Tooltip } from './Tooltip'
 
-export function MoreDropdown() {
+/** `onAction` runs after a button that opens a modal or saves something (not after a toggle). */
+export function MoreDropdown({ onAction }: { onAction?: () => void } = {}) {
   const focus = useUIStore((s) => s.focus)
   const leftOpen = useUIStore((s) => s.leftOpen)
   const setFocus = useUIStore((s) => s.setFocus)
@@ -33,7 +34,10 @@ export function MoreDropdown() {
   const history = useViewFlag('history')
   const fps = useViewFlag('fps')
 
-  const closeMore = () => useUIStore.setState({ showMore: false })
+  const closeMore = () => {
+    useUIStore.setState({ showMore: false })
+    onAction?.()
+  }
 
   return (
     <div className="more-dropdown">
