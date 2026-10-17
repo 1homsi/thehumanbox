@@ -37,21 +37,42 @@ for (let i = 0; i < frameCount; i += 1) {
   baseline.tickN(1)
   updated.tickN(1)
 
-  let start = performance.now()
-  const baselineFrame = baseline.deltaFrame(i + 2, timestamp)
-  baselineFrameMs += performance.now() - start
-  start = performance.now()
-  const updatedFrame = updated.deltaFrame(i + 2, timestamp)
-  updatedFrameMs += performance.now() - start
+  let baselineFrame
+  let updatedFrame
+  let start
+  if (i % 2 === 0) {
+    start = performance.now()
+    baselineFrame = baseline.deltaFrame(i + 2, timestamp)
+    baselineFrameMs += performance.now() - start
+    start = performance.now()
+    updatedFrame = updated.deltaFrame(i + 2, timestamp)
+    updatedFrameMs += performance.now() - start
+  } else {
+    start = performance.now()
+    updatedFrame = updated.deltaFrame(i + 2, timestamp)
+    updatedFrameMs += performance.now() - start
+    start = performance.now()
+    baselineFrame = baseline.deltaFrame(i + 2, timestamp)
+    baselineFrameMs += performance.now() - start
+  }
   assert.equal(updatedFrame, baselineFrame, `delta frame ${i} JSON bytes changed`)
   totalBytes += Buffer.byteLength(updatedFrame)
 
-  start = performance.now()
-  JSON.parse(baselineFrame)
-  baselineParseMs += performance.now() - start
-  start = performance.now()
-  JSON.parse(updatedFrame)
-  updatedParseMs += performance.now() - start
+  if (i % 2 === 0) {
+    start = performance.now()
+    JSON.parse(baselineFrame)
+    baselineParseMs += performance.now() - start
+    start = performance.now()
+    JSON.parse(updatedFrame)
+    updatedParseMs += performance.now() - start
+  } else {
+    start = performance.now()
+    JSON.parse(updatedFrame)
+    updatedParseMs += performance.now() - start
+    start = performance.now()
+    JSON.parse(baselineFrame)
+    baselineParseMs += performance.now() - start
+  }
 }
 
 console.log(

@@ -98,6 +98,10 @@ impl FramePayload {
         Some(&mut self.rest)
     }
 
+    pub fn get(&self, key: &str) -> Option<&serde_json::Value> {
+        self.rest.get(key)
+    }
+
     /// Set the typed grid section.
     pub fn set_grid(&mut self, grid: crate::world::grid::GridJson) {
         self.grid = Some(grid);

@@ -10,10 +10,9 @@ pub mod world;
 use crate::sim::serialize::FramePayload;
 
 #[cfg(any(target_arch = "wasm32", test))]
-fn frame_is_complete(frame: &mut FramePayload) -> bool {
+fn frame_is_complete(frame: &FramePayload) -> bool {
     frame
-        .as_object_mut()
-        .and_then(|object| object.get("organisms_complete"))
+        .get("organisms_complete")
         .and_then(serde_json::Value::as_bool)
         .unwrap_or(false)
 }
@@ -91,7 +90,7 @@ mod wasm_facade {
         #[wasm_bindgen(js_name = deltaFrame)]
         pub fn delta_frame(&mut self, frame_id: u32, now_ms: f64) -> String {
             let mut frame = self.inner.state_frame_incremental();
-            let full = frame_is_complete(&mut frame);
+            let full = frame_is_complete(&frame);
             stamp_frame(&mut frame, frame_id, now_ms, full);
             serde_json::to_string(&frame).expect("frame payload serialization cannot fail")
         }
@@ -162,7 +161,7 @@ mod wasm_frame_tests {
         }
         let mut typed_delta = typed_world.state_frame_incremental();
         let mut value_delta = value_world.state_json_incremental();
-        assert!(!frame_is_complete(&mut typed_delta));
+        assert!(!frame_is_complete(&typed_delta));
         assert!(value_delta["organisms_hot"].is_object());
         assert_stamped_equal(&mut typed_delta, &mut value_delta, 3, false);
     }
