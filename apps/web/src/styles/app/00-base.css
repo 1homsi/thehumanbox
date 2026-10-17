@@ -93,6 +93,12 @@ body.thb-app-minimized *::after {
   z-index: 200;
   animation: thb-cmd-fade 120ms ease-out;
 }
+@media (pointer: coarse), (max-width: 767px) {
+  .cmd-backdrop {
+    background: rgba(0, 0, 0, 0.62);
+    backdrop-filter: none;
+  }
+}
 @keyframes thb-cmd-fade {
   from {
     opacity: 0;
