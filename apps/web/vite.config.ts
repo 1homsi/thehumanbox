@@ -93,6 +93,9 @@ export default defineConfig({
   // via VITE_DESKTOP=1 (set by desktop/package.json's build:renderer).
   base: process.env.VITE_DESKTOP === '1' ? './' : '/',
 
+  // Bench only (not committed): a linked engine build must share the app's React.
+  resolve: { dedupe: ['react', 'react-dom'] },
+
   build: {
     chunkSizeWarningLimit: 400,
 

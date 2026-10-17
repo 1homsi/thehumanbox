@@ -35,6 +35,7 @@ export function TerrainTileLayer({
     tinted: true,
     tileWorldWidth: TILE,
     tileWorldHeight: TILE,
+    cache: true,
   })
   // A new layer (the grid changed size) starts with nothing synced.
   const state = useMemo(() => {
