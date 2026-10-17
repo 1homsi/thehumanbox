@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { PHONE_QUERY, isPhoneViewport } from './phone'
+import { PHONE_QUERY, isPhoneSheetWidth, isPhoneViewport } from './phone'
 
 /** Evaluates PHONE_QUERY against a device the way a browser would. */
 function stubDevice(d: { width: number; height: number; coarse: boolean; hoverNone: boolean }) {
@@ -13,6 +13,7 @@ function stubDevice(d: { width: number; height: number; coarse: boolean; hoverNo
     throw new Error(`unhandled clause ${clause}`)
   }
   vi.stubGlobal('window', {
+    innerWidth: d.width,
     matchMedia: (q: string) => ({
       matches: q.split(',').some((alt) => alt.split(' and ').every((c) => has(c))),
     }),
@@ -51,5 +52,14 @@ describe('phone viewport', () => {
 
   it('is false without a window', () => {
     expect(isPhoneViewport()).toBe(false)
+  })
+})
+
+describe('phone sheet breakpoint', () => {
+  it('matches the modal CSS width boundary', () => {
+    expect(isPhoneSheetWidth(767)).toBe(true)
+    expect(isPhoneSheetWidth(768)).toBe(false)
+    expect(isPhoneSheetWidth(844)).toBe(false)
+    expect(isPhoneSheetWidth(740)).toBe(true)
   })
 })

@@ -57,6 +57,10 @@ export function CanvasWorldFallback({
   })
   const latest = useRef({ world, selectedOrgId, overlay, focus, viewFlags })
   latest.current = { world, selectedOrgId, overlay, focus, viewFlags }
+  const rendererPausedRef = useRef(rendererPaused)
+  rendererPausedRef.current = rendererPaused
+  const rafRef = useRef(0)
+  const wakeRef = useRef<() => void>(() => {})
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -74,7 +78,6 @@ export function CanvasWorldFallback({
     const dpr = Math.min(2, window.devicePixelRatio || 1)
     canvas.width = Math.max(1, Math.round(viewportDims.w * dpr))
     canvas.height = Math.max(1, Math.round(viewportDims.h * dpr))
-    let raf = 0
     let stopped = false
     let lastFrameAt = -Infinity
     let lastWorld: WorldState | null = null
@@ -83,8 +86,9 @@ export function CanvasWorldFallback({
     let lastUI = ''
 
     const tick = (now: number) => {
+      rafRef.current = 0
       if (stopped) return
-      if (!rendererPaused) raf = requestAnimationFrame(tick)
+      if (!rendererPausedRef.current) rafRef.current = requestAnimationFrame(tick)
       if (document.hidden || !shouldRenderFrame(now, lastFrameAt, LOW_PERF ? 20 : 30)) return
       lastFrameAt = now
 
@@ -212,7 +216,8 @@ export function CanvasWorldFallback({
         )
       } catch (error) {
         stopped = true
-        cancelAnimationFrame(raf)
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = 0
         logger.error('2d-world', 'Canvas drawing failed', error)
         onDrawError('The world could not be drawn. Retry the renderer to restore the map.')
         return
@@ -227,12 +232,23 @@ export function CanvasWorldFallback({
       }
     }
 
-    raf = requestAnimationFrame(tick)
+    wakeRef.current = () => {
+      if (stopped || rafRef.current !== 0) return
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    wakeRef.current()
     return () => {
       stopped = true
-      cancelAnimationFrame(raf)
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = 0
+      wakeRef.current = () => {}
     }
-  }, [cameraStateRef, interp, onDrawError, onFirstDraw, rendererPaused, viewportDims])
+  }, [cameraStateRef, interp, onDrawError, onFirstDraw, viewportDims])
+
+  useEffect(() => {
+    // Let the already scheduled frame paint once; it will stop rescheduling while paused.
+    if (!rendererPaused) wakeRef.current()
+  }, [rendererPaused])
 
   return (
     <canvas

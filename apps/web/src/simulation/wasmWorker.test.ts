@@ -105,6 +105,19 @@ describe('browser simulation scheduling', () => {
     expect(model.tick).toBeGreaterThan(before)
   })
 
+  it('stops scheduling local ticks while a phone sheet covers the map', async () => {
+    await vi.advanceTimersByTimeAsync(240)
+    const before = model.tick
+    send({ type: 'covered', covered: true })
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(model.tick).toBe(before)
+
+    send({ type: 'covered', covered: false })
+    await vi.advanceTimersByTimeAsync(250)
+    expect(model.tick).toBeGreaterThan(before)
+    expect(model.tick - before).toBeLessThanOrEqual(3n)
+  })
+
   it('yields after an expensive tick instead of running the rest of a fast batch', async () => {
     let clock = 0
     vi.spyOn(performance, 'now').mockImplementation(() => clock)

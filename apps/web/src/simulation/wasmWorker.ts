@@ -39,6 +39,7 @@ type InMsg =
   | { type: 'pause'; requestId?: number }
   | { type: 'resume'; requestId?: number }
   | { type: 'visibility'; hidden: boolean }
+  | { type: 'covered'; covered: boolean }
   | { type: 'save'; requestId?: number }
   | { type: 'retry_storage'; requestId?: number }
   | { type: 'prepare_reload'; requestId: number; deadlineAt: number }
@@ -76,7 +77,9 @@ let lastDeepFullAt = -Infinity
 let started = false
 let manuallyPaused = false
 let hiddenPaused = false
+let coveredPaused = false
 let reloadPreparing = false
+let stopping = false
 let tickTimer: ReturnType<typeof setTimeout> | null = null
 let saveTimer: ReturnType<typeof setInterval> | null = null
 let persistInFlight: Promise<boolean> | null = null
@@ -385,10 +388,24 @@ function stopTimers() {
   }
 }
 
+function shouldRunTicks(): boolean {
+  return !!sim && !stopping && !manuallyPaused && !hiddenPaused && !coveredPaused && !reloadPreparing
+}
+
+function syncTickTimer(): void {
+  if (!shouldRunTicks()) {
+    if (tickTimer !== null) clearTimeout(tickTimer)
+    tickTimer = null
+    return
+  }
+  if (tickTimer === null) startTickTimer()
+}
+
 function tickOnce() {
+  tickTimer = null
   const startedAt = performance.now()
   let completed = 0
-  if (!manuallyPaused && !hiddenPaused && !reloadPreparing && sim) {
+  if (shouldRunTicks() && sim) {
     // Bound a fast-forward batch, yielding between slices for pause/save/input.
     do {
       sim.tickN(1)
@@ -400,7 +417,7 @@ function tickOnce() {
   }
   const workMs = performance.now() - startedAt
   const interval = completed > 0 ? (tickMs * completed) / stepsPerEmit : Math.max(250, tickMs)
-  tickTimer = setTimeout(tickOnce, wasmTickDelay(interval, workMs))
+  if (shouldRunTicks()) tickTimer = setTimeout(tickOnce, wasmTickDelay(interval, workMs))
 }
 
 function startTickTimer() {
@@ -409,9 +426,9 @@ function startTickTimer() {
 }
 
 function beginLoop(autosaveEveryMs: number) {
-  startTickTimer()
+  syncTickTimer()
   saveTimer = setInterval(() => {
-    if (!manuallyPaused && !hiddenPaused) void persist()
+    if (!manuallyPaused && !hiddenPaused && !coveredPaused) void persist()
   }, autosaveEveryMs)
 }
 
@@ -581,6 +598,7 @@ self.onmessage = (e: MessageEvent) => {
       break
     case 'pause':
       if (sim) manuallyPaused = true
+      syncTickTimer()
       if (msg.requestId !== undefined) {
         post({
           type: 'runtime_result',
@@ -594,6 +612,7 @@ self.onmessage = (e: MessageEvent) => {
       break
     case 'resume':
       if (sim) manuallyPaused = false
+      syncTickTimer()
       if (msg.requestId !== undefined) {
         post({
           type: 'runtime_result',
@@ -607,6 +626,11 @@ self.onmessage = (e: MessageEvent) => {
       break
     case 'visibility':
       hiddenPaused = msg.hidden
+      syncTickTimer()
+      break
+    case 'covered':
+      coveredPaused = msg.covered
+      syncTickTimer()
       break
     case 'save':
       void persist().then((ok) => {
@@ -629,6 +653,7 @@ self.onmessage = (e: MessageEvent) => {
       // while IndexedDB committed an older snapshot, then freed the newer
       // in-memory state, losing every tick in between on reload.
       reloadPreparing = true
+      syncTickTimer()
       void runReloadCheckpoint(msg.deadlineAt, {
         quiesce: stopTimers,
         persist,
@@ -707,6 +732,7 @@ self.onmessage = (e: MessageEvent) => {
       }
       break
     case 'stop':
+      stopping = true
       stopTimers()
       void persist().finally(async () => {
         if (sim) {

@@ -57,7 +57,10 @@ export type LocalSaveStatus =
   | { phase: 'saved'; tick: number; savedAt: number }
   | { phase: 'error'; message: string; retryable?: boolean; fatal?: boolean }
 
-export function useSimulation(source: WorldSource = 'native'): {
+export function useSimulation(
+  source: WorldSource = 'native',
+  pauseTicks = false,
+): {
   world: WorldState | null
   connected: boolean
   status: ConnectionStatus
@@ -817,6 +820,11 @@ export function useSimulation(source: WorldSource = 'native'): {
       }
     }
   }, [effectiveSource])
+
+  useEffect(() => {
+    if (effectiveSource !== 'wasm') return
+    wasmWorkerRef.current?.postMessage({ type: 'covered', covered: pauseTicks })
+  }, [effectiveSource, pauseTicks])
 
   const requestFromWasm = useCallback(
     (

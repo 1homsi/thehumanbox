@@ -51,23 +51,6 @@ export interface ModalsSlice {
   closeAllModals: () => void
 }
 
-/** True while any modal dialog is open (on phones each one is a sheet that covers most of the map). */
-export const isAnyModalOpen = (s: ModalsSlice): boolean =>
-  s.showLanguages ||
-  s.showChronicles ||
-  s.showFamilyTree ||
-  s.showAchievements ||
-  s.showGoals ||
-  s.showScenarios ||
-  s.showOrgSearch ||
-  s.showStats ||
-  s.showAllLineages ||
-  s.showAbout ||
-  s.showCiv ||
-  s.showNotable ||
-  s.showDesktopSettings ||
-  s.convoOrgId !== null
-
 export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (set) => ({
   showLanguages: false,
   showChronicles: false,
