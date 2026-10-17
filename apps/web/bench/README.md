@@ -15,6 +15,33 @@ Quick look at one scenario while working on something:
 node bench/run.mjs --builds main=dist --fixtures crowd --zooms close --modes playing --runs 1
 ```
 
+## Mobile touch checks
+
+`mobile.mjs` opens a production build in headless Chrome with touch emulation and checks horizontal overflow
+at 360x740, 390x844, 844x390, 768x1024 and 1280x800. On touch sizes it opens the Stats modal and checks its
+bounds, then verifies one-finger pan, two-finger pinch and tapping the seeded population at 390x844. It also
+reports visible, unclipped touch targets smaller than 44x44, grouped by viewport and page/modal state; pass
+`--strict-targets` to make those findings fail the run. The target-size gate is informational by default
+because the existing header and dock controls are below 44px; mobile layout changes can turn it on as they
+bring those controls up to size. Phone viewports use DPR 3, the tablet uses DPR 2 and desktop uses DPR 1.
+
+The existing mobile shell hides the Stats opener, so this check currently triggers its app action directly to
+test modal geometry. It does not verify menu reachability, which is the separate MOB-04 task. The harness
+checks browser layout and touch behavior; it does not run a CPU throttle or measure real-device performance.
+
+```sh
+pnpm build
+node bench/mobile.mjs
+node bench/mobile.mjs --shots /tmp/mobile-shots --strict-targets
+node bench/mobile.mjs --viewports 390x844
+node bench/mobile.mjs --viewports 360x740 --skip-interactions
+```
+
+The first run generates and caches the seeded worlds under `bench/.cache`. `--shots` writes one screenshot per
+viewport even when a check fails. A custom viewport list must include 390x844 for the interaction checks;
+`--skip-interactions` opts out explicitly. Use `--build <dist>` for another production build and `--fixture crowd`
+for the 3,204-person world.
+
 ## What it loads
 
 `gen-world.mjs` runs the wasm simulation once (about two minutes, then cached in `bench/.cache`) and writes
@@ -29,6 +56,19 @@ A fresh Chrome (own profile, own GPU process) opens the app on a world, waits fo
 camera at a zoom (`overview` = the whole world, `mid` = zoom 1, `close` = zoom 3), then either lets the
 simulation run (`playing`) or pauses it (`paused`), waits 3 s, and measures an 8 s window. The camera is steered
 through `window.__thbBench`, which the app publishes when the address has `?bench` (`src/game/render/bench-hooks.ts`).
+
+`--modes panning` is `playing` with the camera moving through four directions over the measured window (not in the
+default modes): it sends real `d`, `s`, `a`, `w` key events to the map along a roughly closed square around its
+starting camera position. This exercises camera movement for workloads that depend on the visible window. `results.json`
+has `panPx`, the world px the camera travelled (0 at `overview`, where the whole world fits and nothing can pan;
+use `mid` or `close`). The value confirms camera movement; it does not prove any particular renderer rebuilt.
+Because camera movement is capped per rendered frame, comparisons must use the same CPU throttle: slower frame
+rates reduce `panPx` and can sample less new ground. The `memory` pass is skipped for panning because it takes an
+instantaneous snapshot without a measured window.
+
+```sh
+node bench/run.mjs --builds main=dist --fixtures crowd --zooms mid --modes playing,panning --passes metrics --runs 3
+```
 
 Three passes per scenario, because tracing slows the page down a little:
 
@@ -91,6 +131,32 @@ node bench/report.mjs bench/results/old bench/results/main   # tables and a comp
 `old-canvas-bench-hook.patch` adds the `?bench` hook to the last canvas-based commit (`45a1ee5a`):
 `git worktree add --detach ../old 45a1ee5a && cd ../old && git apply apps/web/bench/old-canvas-bench-hook.patch`
 (copy the patch out first, it is not in that commit), install, `pnpm build`.
+
+## Toaster and mobile conditions
+
+Three flags make the same scenarios harder, to see how the map holds up on a weak machine or a phone:
+
+| flag | what it does |
+|---|---|
+| `--cpu-throttle <n>` | slows the page's CPU `n` times (`Emulation.setCPUThrottlingRate`, applied before navigation). 4 is a decent laptop on battery, 6 a mid-range phone |
+| `--mobile` | phone preset: 390x844 at DPR 3, touch emulation, mobile user agent (`--size` and `--dpr` still override the viewport) |
+| `--gpu-off` | renders with SwiftShader (software WebGL) instead of the GPU; very slow at phone DPR, so combine it with a small `--size` or `--dpr 1` |
+
+A 390 px wide viewport also switches the app to its mobile layout (the banner, welcome modal and toolbar differ), so
+`--mobile` measures that UI, not just a smaller canvas.
+
+The conditions are recorded in every `results.json` row. `report.mjs` prints them in the table heading (and in a
+`conditions` column when a directory mixes several); comparisons only pair rows measured under the same conditions.
+Use one `--out` directory per condition:
+
+```sh
+/Users/mhomsi/dev/extra/overnight/bench-lock.sh node bench/run.mjs --builds main=dist --fixtures crowd --zooms mid \
+  --modes playing --passes metrics --runs 2 --out bench/results/cpu6 --cpu-throttle 6
+node bench/score.mjs bench/results/cpu6       # one line per scenario
+```
+
+`score.mjs` prints one line per scenario (fps, main busy %, JS ms/frame, JS heap) for pasting into a PR. With only
+the `metrics` pass, fps is the engine's own rendered-frame count; with the `trace` pass it is the frames delivered.
 
 ## Profiling
 

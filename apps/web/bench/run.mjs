@@ -11,13 +11,20 @@
 //   --runs <n>          repetitions of every scenario (default 3); the report takes medians
 //   --fixtures a,b      standard,crowd (default both): seed 42 at tick 9000, and with 3,000 more people
 //   --zooms a,b         overview,mid,close (default all): fit, zoom 1, zoom 3
-//   --modes a,b         paused,playing (default both)
+//   --modes a,b         paused,playing,panning (default paused,playing). `panning` is `playing` with the camera
+//                       moving through four directions over the measured window, like a player moving the map.
+//                       Not in the default set.
 //   --passes a,b        metrics,trace,memory (default all). `metrics` reads the browser's own counters and
 //                       adds nothing to the page; `trace` records a Chrome trace for frames
 //                       delivered, GPU process time, GC pauses and long tasks; `memory` takes a Chrome
 //                       memory dump (GPU process, renderer process, canvas and V8 heap).
 //   --window <ms>       measured window (default 8000); --warmup <ms> before it (default 3000)
 //   --dpr <n>           device pixel ratio (default 1); --size 1280x800
+//   --cpu-throttle <n>  slow the page's CPU n times (CDP Emulation.setCPUThrottlingRate), set before
+//                       navigation; 6 is about a mid-range phone. Recorded in results.json.
+//   --mobile            phone preset: 390x844 at DPR 3, touch emulation, mobile user agent
+//                       (--size and --dpr still override the viewport)
+//   --gpu-off           render with SwiftShader (software WebGL) instead of the GPU
 //   --profile           also write a CPU profile of each metrics scenario next to the results
 //   --shots             save a screenshot of every scenario
 //   --alloc-profile     sample every allocation in the window (what makes garbage), written as .heapprofile
@@ -63,11 +70,20 @@ const runs = Number(opt('runs', 3))
 const fixtures = list('fixtures', ['standard', 'crowd'])
 const zooms = list('zooms', ['overview', 'mid', 'close'])
 const modes = list('modes', ['paused', 'playing'])
+for (const m of modes)
+  if (!['paused', 'playing', 'panning'].includes(m)) throw new Error(`--modes takes paused, playing or panning, not ${m}`)
 const passes = list('passes', ['metrics', 'trace', 'memory'])
 const windowMs = Number(opt('window', 8000))
 const warmupMs = Number(opt('warmup', 3000))
-const dpr = Number(opt('dpr', 1))
-const [width, height] = String(opt('size', '1280x800')).split('x').map(Number)
+const mobile = opt('mobile', false) === true
+const dpr = Number(opt('dpr', mobile ? 3 : 1))
+const [width, height] = String(opt('size', mobile ? '390x844' : '1280x800'))
+  .split('x')
+  .map(Number)
+const cpuThrottle = Number(opt('cpu-throttle', 1))
+if (!(cpuThrottle >= 1) || opt('cpu-throttle', 1) === true)
+  throw new Error('--cpu-throttle takes a factor of 1 or more, for example --cpu-throttle 6')
+const gpuOff = opt('gpu-off', false) === true
 const wantProfile = opt('profile', false) === true
 const wantShots = opt('shots', false) === true
 const headed = opt('headed', false) === true
@@ -245,8 +261,51 @@ async function focusView(page, focus, zoom) {
   return cam()
 }
 
+/** `panning`: move the camera around a square using the map's real keyboard controls. */
+const PAN_KEYS = [
+  { key: 'd', code: 'KeyD', vk: 68 },
+  { key: 's', code: 'KeyS', vk: 83 },
+  { key: 'a', code: 'KeyA', vk: 65 },
+  { key: 'w', code: 'KeyW', vk: 87 },
+]
+/** Pans one square over the measured window; returns camera travel in world px. */
+async function panUntil(page) {
+  const focused = await page.evaluate(`(() => {
+    const map = document.querySelector('.map2d-world')
+    if (!map) return false
+    map.focus({ preventScroll: true })
+    return document.activeElement === map
+  })()`)
+  if (!focused) throw new Error('could not focus the map for panning')
+  const cam = () => page.evaluate('window.__thbBench.camera()')
+  let last = await cam()
+  let travelled = 0
+  const legMs = windowMs / 4
+  for (let leg = 0; leg < PAN_KEYS.length; leg++) {
+    const k = PAN_KEYS[leg % PAN_KEYS.length]
+    const ev = { key: k.key, code: k.code, windowsVirtualKeyCode: k.vk }
+    await page.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...ev })
+    const until = Date.now() + legMs
+    while (Date.now() < until) await sleep(50)
+    await page.send('Input.dispatchKeyEvent', { type: 'keyUp', ...ev })
+    const now = await cam()
+    travelled += Math.hypot(now.x - last.x, now.y - last.y)
+    last = now
+  }
+  return travelled
+}
+
 async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mode, pass, port, runIndex }) {
-  const chrome = await launchChrome({ port, width, height, dpr, headless: !headed })
+  const chrome = await launchChrome({
+    port,
+    width,
+    height,
+    dpr,
+    headless: !headed,
+    mobile,
+    cpuThrottle,
+    gpuOff,
+  })
   const { page, browser } = chrome
   const result = {
     label,
@@ -256,6 +315,9 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
     pass,
     run: runIndex,
     viewport: `${width}x${height}@${dpr}`,
+    mobile,
+    cpuThrottle,
+    gpuOff,
     chrome: chrome.version,
     loadAvg1m: Math.round(loadavg()[0] * 10) / 10,
   }
@@ -390,13 +452,26 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
     const m0 = metricsOf(await page.send('Performance.getMetrics'))
     const p0 = await processCpu(browser)
     const s0 = await page.evaluate(PAGE_STATS)
+    // Split the measured window into four equal legs so the camera traces a full square.
+    const panning = mode === 'panning' ? panUntil(page).catch((error) => ({ error })) : null
     const t0 = Date.now()
     await sleep(windowMs)
+    if (panning) await panning
     const elapsed = Date.now() - t0
     const s1 = await page.evaluate(PAGE_STATS)
     const p1 = await processCpu(browser)
     const m1 = metricsOf(await page.send('Performance.getMetrics'))
     await page.evaluate(`performance.mark('bench-end')`)
+    if (panning) {
+      const travelled = await panning
+      if (travelled?.error) throw travelled.error
+      if (zoomName !== 'overview') {
+        const expected = (480 / ZOOMS[zoomName]) * (windowMs / 1000)
+        if (travelled < expected / 2)
+          throw new Error(`camera moved ${Math.round(travelled)}px; expected at least ${Math.round(expected / 2)}px`)
+      }
+      result.panPx = Math.round(travelled)
+    }
 
     const wall = (m1.Timestamp - m0.Timestamp) * 1000
     result.windowMs = Math.round(wall)
@@ -510,6 +585,8 @@ async function main() {
         for (const zoomName of zooms) {
           for (const mode of modes) {
             for (const pass of passes) {
+              // A memory dump is an instantaneous snapshot, not a measured panning window.
+              if (mode === 'panning' && pass === 'memory') continue
               for (const b of builds) {
                 const t = Date.now()
                 // A scenario that fails (a Chrome that did not start, a timeout on a loaded machine) is tried again.
