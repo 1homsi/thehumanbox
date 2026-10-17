@@ -1,0 +1,50 @@
+diff --git a/packages/renderer/src/textLayer.ts b/packages/renderer/src/textLayer.ts
+index 1ca5498..6bae78f 100644
+--- a/packages/renderer/src/textLayer.ts
++++ b/packages/renderer/src/textLayer.ts
+@@ -16,6 +16,8 @@ const ALIGN: Record<TextRunAlign, number> = { left: 0, center: 1, right: 2 }
+ 
+ /** Floats per laid-out glyph: x, y, w, h (raster px, block-relative), u0, v0, u1, v1, page. */
+ export const LAYOUT_GLYPH_FLOATS = 9
++/** Most run layouts a layer keeps shared; the oldest is dropped first. */
++const RUN_CACHE_MAX = 2048
+ 
+ export interface TextLayerOptions extends GlyphStyleOptions {
+   /** Initial run capacity; grows automatically. */
+@@ -145,6 +147,9 @@ export class TextLayer {
+   /** Style options; index 0 is the layer's own. */
+   readonly styles: GlyphStyleOptions[]
+   private readonly _layouts: (RunLayout | undefined)[] = []
++  /** Layouts shared by every run with the same text and style, keyed by their inputs (see `layout`). */
++  private readonly _runCache = new Map<string, RunLayout>()
++  private _runCacheGen = -1
+   private readonly _atlasStyles: (AtlasStyle | undefined)[] = []
+   private _atlasGen = -1
+   /** Raster density multiplier chosen from the camera zoom (1, 2 or 4). */
+@@ -406,10 +411,25 @@ export class TextLayer {
+       cur.ref === s
+     )
+       return cur
+-    const out = layoutText(atlas, s, text, wrapW, align, lh, cur)
++    // A miss looks the layout up by its inputs: a run that gets a text seen before (a label that
++    // comes back, or `clear()` + `add()` of the same text) shares that layout, its glyphs included.
++    if (this._runCacheGen !== atlas.generation) {
++      this._runCache.clear()
++      this._runCacheGen = atlas.generation
++    }
++    const key = `${this._k}|${styleId}|${wrapW}|${align}|${lh}|${text}`
++    const hit = this._runCache.get(key)
++    if (hit !== undefined && hit.ref === s && hit.gen === atlas.generation) {
++      this._layouts[i] = hit
++      return hit
++    }
++    // No `reuse`: a shared layout's glyph array must not be rewritten in place.
++    const out = layoutText(atlas, s, text, wrapW, align, lh)
+     out.style = styleId
+     out.ref = s
+     out.text = text
++    if (this._runCache.size >= RUN_CACHE_MAX) this._runCache.delete(this._runCache.keys().next().value!)
++    this._runCache.set(key, out)
+     this._layouts[i] = out
+     return out
+   }

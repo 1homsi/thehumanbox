@@ -1,0 +1,41 @@
+diff --git a/apps/web/src/game/render/cf/people/people-sprites.ts b/apps/web/src/game/render/cf/people/people-sprites.ts
+index fe8e82f9..36924339 100644
+--- a/apps/web/src/game/render/cf/people/people-sprites.ts
++++ b/apps/web/src/game/render/cf/people/people-sprites.ts
+@@ -108,6 +108,15 @@ const CROWN_RECTS = [
+   [2, -2, 2, 2],
+ ] as const
+ 
++/**
++ * The health view's colour: red at no health, green at full. The same colour as the `rgb()` string it used to
++ * build for every person on every rebuild, packed straight to 0xRRGGBBAA.
++ */
++export function healthColor(health: number): number {
++  const h = Math.max(0, Math.min(1, health))
++  return rgba32(220 * (1 - h) + 80 * h, 80 * (1 - h) + 200 * h, 80 * (1 - h) + 100 * h)
++}
++
+ /**
+  * The population as three SpriteLayers written from typed arrays:
+  *  - `soft`  (under the people): shadows, auras and rings
+@@ -511,17 +520,15 @@ export class PeopleSprites {
+       else if ((org.joy_ticks ?? 0) > 30) bodyFill = 'hsl(45,80%,62%)'
+       else if (org.energy < 0.12) bodyFill = 'hsl(38,55%,38%)'
+       else bodyFill = THOUGHT_COLORS[org.thought] ?? '#cccccc'
+-      if (viewFlags.health) {
+-        const h = Math.max(0, Math.min(1, org.health))
+-        bodyFill = `rgb(${Math.round(220 * (1 - h) + 80 * h)},${Math.round(80 * (1 - h) + 200 * h)},${Math.round(80 * (1 - h) + 100 * h)})`
+-      } else if (viewFlags.age) {
++      if (!viewFlags.health && viewFlags.age) {
+         bodyFill =
+           stage === 'elder' ? '#e9c87a' : stage === 'infant' || stage === 'child' ? '#8db5d6' : '#b8b8a8'
+       }
+       if (isSelected || viewFlags.health || viewFlags.age || (standard && !crowded)) {
+         const k = viewFlags.health || viewFlags.age ? 0.3 : standard ? 0.16 : 0.1
+         const d = 2 * (bodyR + 1.5)
+-        soft.push(j, 0, 0, d, d, DECAL.disc, 0, withAlpha(cssToRgba32(bodyFill), k * fa))
++        const fill = viewFlags.health ? healthColor(org.health) : cssToRgba32(bodyFill)
++        soft.push(j, 0, 0, d, d, DECAL.disc, 0, withAlpha(fill, k * fa))
+       }
+       if (standard && viewFlags.fear && (org.fear_level ?? 0) > 0.25) {
+         const d = 2 * (bodyR + 4)

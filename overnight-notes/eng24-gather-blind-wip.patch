@@ -1,0 +1,162 @@
+diff --git a/packages/renderer/src/__tests__/spriteRetained.test.ts b/packages/renderer/src/__tests__/spriteRetained.test.ts
+index 30300e0..7fc357d 100644
+--- a/packages/renderer/src/__tests__/spriteRetained.test.ts
++++ b/packages/renderer/src/__tests__/spriteRetained.test.ts
+@@ -172,6 +172,30 @@ describe('retained SpriteLayer instances', () => {
+     expect(run().uploads).toEqual([])
+   })
+ 
++  it('uses the one-pass pack for a hot layer and keeps retained mappings for sparse updates', () => {
++    const { rs, run } = setup()
++    const l = make()
++    for (let i = 0; i < 100; i++) l.add(i, 5, 8, 8)
++    rs.addSpriteLayer(l)
++    run()
++
++    for (let i = 0; i < l.count; i++) l.x[i] += 1
++    l.touch()
++    const hot = run()
++    expect(hot.uploads.reduce((sum, upload) => sum + upload.floats, 0)).toBe(100 * F)
++
++    for (let i = 0; i < l.count; i++) l.x[i] += 1
++    l.touch()
++    const blind = run()
++    expect(blind.uploads.reduce((sum, upload) => sum + upload.floats, 0)).toBe(100 * F)
++
++    l.x[5] += 1
++    l.touchRange(5)
++    const sparse = run()
++    expect(sparse.uploads).toEqual([{ off: 5 * F * 4, floats: F }])
++    expect(sparse.draws[5 * F]).toBe(8)
++  })
++
+   it('draws like a fresh layer through random edits, hides, removes, rebuilds and view changes', () => {
+     let seed = 99
+     const rnd = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296) as number
+diff --git a/packages/renderer/src/spriteLayerGL.ts b/packages/renderer/src/spriteLayerGL.ts
+index a358803..341c79d 100644
+--- a/packages/renderer/src/spriteLayerGL.ts
++++ b/packages/renderer/src/spriteLayerGL.ts
+@@ -41,10 +41,8 @@ interface Retained {
+   runs: number[]
+   runEnd: number
+   uploadAll: boolean
+-  /** Retained bookkeeping is switched off while (nearly) every sprite changes every frame. */
+-  blind: boolean
+-  /** Consecutive full-dirty frames in which most sprites had changed. */
+-  hot: number
++  /** The last fully dirty frame changed most of its drawn instances. */
++  hotCandidate: boolean
+   /** Sprites repacked by the last full gather. */
+   changed: number
+   sig: Float64Array
+@@ -453,18 +451,10 @@ export class SpriteLayerRenderer {
+       R.vT = viewT
+       R.vB = viewB
+       const hotFrame = dirtyAll || dHi - dLo >= count >> 1
+-      if (R.blind && !hotFrame) {
+-        // updates became sparse again: rebuild the retained state from scratch
+-        R.blind = false
+-        R.hot = 0
+-        R.valid.fill(0)
+-        R.posSlot.fill(-1)
+-        R.slotPos.fill(-1)
+-        R.drawnEpoch.fill(0)
+-      }
+-      if (R.blind) {
++      if (hotFrame && R.hotCandidate) {
+         this.gatherBlind(layer, R, na, usePivots, perSprite, swayAmp)
+         R.uploadAll = true
++        R.hotCandidate = R.n > 0 && R.changed * 10 > R.n * 7
+       } else {
+         let orderKept = true
+         if (layer.sortByKey) {
+@@ -486,12 +476,13 @@ export class SpriteLayerRenderer {
+           if (R.count === count && !dirtyAll && sameView && dHi >= 0 && dHi - dLo < count >> 3 && !layer.sortByKey)
+             R.uploadAll = true
+           this.gather(layer, R, na, usePivots, perSprite, swayAmp, dirtyAll, dLo, dHi, anyDirty)
+-          // Nearly everything changed, repeatedly: the compare and bookkeeping cannot pay off.
+-          if (hotFrame && R.changed * 10 > R.n * 7) {
+-            if (++R.hot >= 3) R.blind = true
+-          } else R.hot = 0
++          R.hotCandidate = R.count >= 0 && hotFrame && R.n > 0 && R.changed * 10 > R.n * 7
++        } else {
++          R.hotCandidate = false
+         }
+       }
++    } else {
++      R.hotCandidate = false
+     }
+     R.count = count
+     this.submit(layer, R, na, white, applySampling)
+@@ -524,8 +515,7 @@ export class SpriteLayerRenderer {
+         runs: [],
+         runEnd: -1000,
+         uploadAll: false,
+-        blind: false,
+-        hot: 0,
++        hotCandidate: false,
+         changed: 0,
+         sig: new Float64Array(5 + MAX_LAYER_ATLASES * 11),
+         sigLen: -1,
+@@ -940,6 +930,16 @@ export class SpriteLayerRenderer {
+   ): void {
+     const order = layer.sortByKey ? layer.drawOrder() : null
+     const total = order ? layer.orderCount : layer.count
++    const previousCount = R.n
++    const epoch = ++R.epoch
++    for (let p = 0; p < previousCount; p++) {
++      const oldSlot = R.posSlot[p]
++      if (oldSlot >= 0) {
++        R.valid[oldSlot] = 0
++        R.slotPos[oldSlot] = -1
++      }
++    }
++    if (order) R.orderVersion = layer.orderVersion
+     const { vL, vR, vT, vB } = R
+     const X = layer.x,
+       Y = layer.y,
+@@ -966,6 +966,8 @@ export class SpriteLayerRenderer {
+     for (let k = 0; k < total; k++) {
+       const i = order ? order[k] : k
+       const flags = FL[i]
++      R.valid[i] = 0
++      R.slotPos[i] = -1
+       if (flags & SPRITE_HIDDEN) continue
+       const x = X[i],
+         y = Y[i],
+@@ -980,12 +982,18 @@ export class SpriteLayerRenderer {
+         uw = 1,
+         vh = 1
+       if (!untextured) {
+-        if (ready[a] === 0) continue
++        if (ready[a] === 0) {
++          R.valid[i] = 2
++          continue
++        }
+         const f = F[i]
+         const table = frameTables[a]
+         if (table !== undefined) {
+           const fr = table[f]
+-          if (fr === undefined) continue
++          if (fr === undefined) {
++            R.valid[i] = 2
++            continue
++          }
+           const iu = insetU[a]
+           const iv = insetV[a]
+           u0 = fr.x * invW[a] + iu
+@@ -1042,10 +1050,13 @@ export class SpriteLayerRenderer {
+       d[b + 18] = swayAmp !== 0 && flags & SPRITE_SWAY ? swayAmp * (swayScale ? swayScale[i] : 1) : 0
+       d[b + 19] = 0
+       d[b + 20] = CA ? CA[i] : 0
++      R.drawnEpoch[i] = epoch
+       n++
+     }
+     if (n > segStart) segs.push(segStart, n, segGroup, segAdd ? 1 : 0)
+     R.n = n
++    R.changed = n
++    R.epoch = epoch
+     R.segCount = segs.length / 4
+     R.endsAdditive = segs.length >= 4 && segs[segs.length - 1] === 1
+   }
