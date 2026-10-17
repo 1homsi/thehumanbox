@@ -310,11 +310,18 @@
 .org-search-input:focus {
   border-color: #3a3a55;
 }
-.org-search-filters {
+.org-search-filterbar {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+}
+/* Only a wrapper so phones can scroll the chips on their own line; the dropdown stays outside the scroller. */
+.org-search-filters {
+  display: contents;
+}
+.org-search-back {
+  display: none;
 }
 .filter-chip {
   background: #32271f;

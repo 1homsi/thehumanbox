@@ -390,23 +390,61 @@
     padding-bottom: var(--safe-bottom);
   }
 
-  /* Org search: stack list above detail on mobile */
+  /* Org search: the list is the page; picking a person swaps it for their details (with a way back). */
   .org-search-body {
     flex-direction: column;
   }
   .org-search-list {
     width: 100%;
-    flex-shrink: 0;
-    border-right: none;
-    border-bottom: 1px solid #372a21;
-    max-height: 40vh;
-    max-height: 40dvh;
-  }
-  .org-search-detail {
     flex: 1;
     min-height: 0;
-    max-height: 35vh;
-    max-height: 35dvh;
+    border-right: none;
+  }
+  .org-search-detail {
+    display: none;
+  }
+  .org-search-body.has-selection .org-search-list {
+    display: none;
+  }
+  .org-search-body.has-selection .org-search-detail {
+    display: block;
+    flex: 1;
+    min-height: 0;
+  }
+  .org-search-toolbar--behind-detail {
+    display: none;
+  }
+  .org-search-back {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 14px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #372a21;
+    color: #d8b270;
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+  }
+  /* The chips scroll on one line instead of wrapping onto four. */
+  .org-search-filters {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 100%;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .org-search-filters > * {
+    flex: 0 0 auto;
+  }
+  .org-search-modal .filter-chip,
+  .org-search-modal .tribe-dropdown-btn {
+    min-height: 44px;
   }
 
   /* Family/tree modal: touch-friendly */
