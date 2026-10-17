@@ -1,6 +1,7 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Game, World, Camera2D } from 'xipjs'
 import type { PrayerInfo, WorldState } from '../../shared/types'
+import { lazyWithRetry } from '../../shared/lazyWithRetry'
 import type { InterpRefs } from '../../simulation/useSimulation'
 import { useUIStore } from '../../state/store'
 import { useCameraFocus } from '../../state/camera-focus'
@@ -16,7 +17,6 @@ import { SandboxBursts } from './SandboxBursts'
 import { SkyOverlay } from './SkyOverlay'
 import { useSandboxBursts } from './sandbox-bursts'
 import type { MapCommand } from './camera-controls'
-import { CanvasWorldFallback } from './world-view/CanvasWorldFallback'
 import { useRendererBackend } from './world-view/useRendererBackend'
 import { useMapPointer } from './world-view/useMapPointer'
 import { CfWorld } from './cf/CfWorld'
@@ -24,6 +24,12 @@ import { CfMapCameraController } from './cf/input/CfMapCameraController'
 import { CfOverlays } from './cf/overlays/CfOverlays'
 import { AnimalSpriteLayers } from './cf/animals/AnimalSpriteLayers'
 import { PeopleSpriteLayers } from './cf/people/PeopleSpriteLayers'
+
+// The 2D canvas renderer only runs when WebGL is unavailable or has failed, so it stays out of the
+// first download and is fetched on that path.
+const CanvasWorldFallback = lazyWithRetry(() =>
+  import('./world-view/CanvasWorldFallback').then((m) => ({ default: m.CanvasWorldFallback })),
+)
 
 interface Props {
   world: WorldState
@@ -278,20 +284,22 @@ export function WorldView({
           </World2DErrorBoundary>
         ) : (
           <>
-            <CanvasWorldFallback
-              key={rendererKey}
-              world={world}
-              interp={interp}
-              selectedOrgId={selectedOrgId}
-              overlay={overlay}
-              focus={focus}
-              viewFlags={viewFlags}
-              rendererPaused={rendererPaused}
-              onFirstDraw={handleFirstDraw}
-              onDrawError={setDrawError}
-              cameraStateRef={cameraStateRef}
-              viewportDims={dims}
-            />
+            <Suspense fallback={null}>
+              <CanvasWorldFallback
+                key={rendererKey}
+                world={world}
+                interp={interp}
+                selectedOrgId={selectedOrgId}
+                overlay={overlay}
+                focus={focus}
+                viewFlags={viewFlags}
+                rendererPaused={rendererPaused}
+                onFirstDraw={handleFirstDraw}
+                onDrawError={setDrawError}
+                cameraStateRef={cameraStateRef}
+                viewportDims={dims}
+              />
+            </Suspense>
             <CanvasCameraController
               commandRef={commandRef}
               worldW={W}
