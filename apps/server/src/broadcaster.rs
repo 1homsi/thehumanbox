@@ -223,6 +223,86 @@ mod tests {
         (bytes, kind, heavy)
     }
 
+    /// Scratch (uncommitted): run the real broadcast cadence over a mature
+    /// world and report how many frames carry the buildings section and how
+    /// many bytes the main frames cost.
+    #[test]
+    #[ignore = "scratch measurement"]
+    fn scratch_measure_broadcast_frames() {
+        for seed in [42u64, 1337, 2026] {
+            let mut s = Simulation::new(seed);
+            for _ in 0..12_000 {
+                s.tick();
+            }
+            let mut cadence = FrameCadence::default();
+            let (mut fulls, mut deltas) = (0u64, 0u64);
+            let (mut full_bytes, mut delta_bytes) = (0u64, 0u64);
+            let (mut dw_bytes, mut dw_n, mut dw_raw, mut dn_bytes, mut dn_n, mut dn_raw) =
+                (0u64, 0u64, 0u64, 0u64, 0u64, 0u64);
+            // Steady deltas exclude the periodic tile (60) and roster (120) ticks.
+            let (mut sw_bytes, mut sw_n, mut sn_bytes, mut sn_n) = (0u64, 0u64, 0u64, 0u64);
+            let (mut dw_with, mut dn_with) = (0u64, 0u64);
+            let mut frame_id = 0u64;
+            for _ in 0..1_200 {
+                for _ in 0..5 {
+                    s.tick();
+                }
+                frame_id += 1;
+                let tick = s.tick_count;
+                let values = cadence.build(&mut s, frame_id);
+                let is_full = matches!(values.kind, FrameKind::Full);
+                let has_buildings = values.main.entries().iter().any(|(k, _)| *k == "buildings");
+                let raw = crate::frame_codec::encode(&values.main).map(|v| v.len() as u64).unwrap_or(0);
+                let label = if is_full { "full" } else { "delta" };
+                let bytes = encode_frame(values.main, frame_id, 0, label).len() as u64;
+                let _ = values.deep_full;
+                if is_full {
+                    fulls += 1;
+                    full_bytes += bytes;
+                } else {
+                    deltas += 1;
+                    delta_bytes += bytes;
+                    if has_buildings {
+                        dw_bytes += bytes;
+                        dw_raw += raw;
+                        dw_n += 1;
+                    } else {
+                        dn_bytes += bytes;
+                        dn_raw += raw;
+                        dn_n += 1;
+                    }
+                    let steady = !tick.is_multiple_of(60);
+                    if steady && has_buildings {
+                        sw_bytes += bytes;
+                        sw_n += 1;
+                        dw_with += 1;
+                    } else if steady {
+                        sn_bytes += bytes;
+                        sn_n += 1;
+                        dn_with += 1;
+                    }
+                }
+            }
+            println!(
+                "seed={seed} fulls={fulls} (avg {} B) deltas={deltas} (avg {} B; with avg {} B raw {} n={dw_n}; without avg {} B raw {} n={dn_n})",
+                full_bytes / fulls.max(1),
+                delta_bytes / deltas.max(1),
+                dw_bytes / dw_n.max(1),
+                dw_raw / dw_n.max(1),
+                dn_bytes / dn_n.max(1),
+                dn_raw / dn_n.max(1),
+            );
+            println!(
+                "  steady deltas: with-buildings avg {} B n={sw_n} ({}); without avg {} B n={sn_n} ({}); egress/30t={} B",
+                sw_bytes / sw_n.max(1),
+                dw_with,
+                sn_bytes / sn_n.max(1),
+                dn_with,
+                5 * (delta_bytes / deltas.max(1)) + full_bytes / fulls.max(1)
+            );
+        }
+    }
+
     /// Two identical worlds, one driven by the old inline cycle and one by
     /// `FrameCadence::build` + `encode_cycle`, must put identical bytes on the
     /// wire for every cycle: delta, periodic full and deep full alike.

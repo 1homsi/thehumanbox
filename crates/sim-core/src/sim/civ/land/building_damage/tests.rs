@@ -210,6 +210,40 @@ fn flood_storm_and_active_battles_leave_distinct_damage() {
 }
 
 #[test]
+fn wear_below_a_drawn_damage_step_does_not_resend_the_buildings() {
+    let mut sim = Simulation::new(773);
+    sim.buildings.clear();
+    let stormed = completed_building(&mut sim, 900, BuildingKind::House, 200, 120);
+    sim.weather.kind = 2;
+    sim.weather.start_tick = 0;
+    sim.weather.duration = 1_000;
+    sim.weather.intensity = 1.0;
+    // Building 900's deterministic storm lane runs at full intensity on
+    // step 23 (tick 115), so each call chips exactly 0.006 off it.
+    sim.tick_count = 115;
+
+    // Two chips inside one of the renderer's 32 damage steps (0.196 is
+    // step 6, 0.202 rounds back to step 6) draw the same, so the frames
+    // keep the last buildings section.
+    sim.buildings[stormed].damage = 0.196;
+    let revision = sim.building_state_revision;
+    tick_building_damage(&mut sim);
+    let worn = sim.buildings[stormed].damage_fraction();
+    assert!(worn > 0.196 && worn < 0.2021, "the storm chipped the house: {worn}");
+    assert_eq!(
+        sim.building_state_revision, revision,
+        "0.196 -> {worn} still draws step 6"
+    );
+
+    // The next chip carries it over a step (0.323 -> 0.329 crosses 10.5/32),
+    // and that is news the next frame has to carry.
+    sim.buildings[stormed].damage = 0.323;
+    tick_building_damage(&mut sim);
+    assert!(sim.buildings[stormed].damage_fraction() > 0.329);
+    assert_eq!(sim.building_state_revision, revision.wrapping_add(1));
+}
+
+#[test]
 fn repair_crews_travel_before_spending_materials() {
     let mut sim = Simulation::new(703);
     sim.buildings.clear();

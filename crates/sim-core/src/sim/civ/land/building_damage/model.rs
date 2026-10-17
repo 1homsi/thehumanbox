@@ -1,6 +1,11 @@
 use super::*;
 
 pub(super) const DAMAGE_TICK_INTERVAL: u64 = 5;
+/// The damage grid the client draws on (see `DAMAGE_STEPS` in
+/// `apps/web/src/game/render/cf/buildings/building-visuals.ts`) and the
+/// threshold below which it draws a building as undamaged.
+pub(super) const DAMAGE_DISPLAY_STEPS: f32 = 32.0;
+pub(super) const VISIBLE_DAMAGE: f32 = 0.015;
 pub(super) const REPAIR_TICK_INTERVAL: u64 = 20;
 pub(super) const REPAIR_TICK_OFFSET: u64 = 10;
 pub(super) const REPAIR_REACH: f32 = 18.0;

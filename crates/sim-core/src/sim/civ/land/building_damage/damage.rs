@@ -26,6 +26,7 @@ pub(super) fn apply_damage(sim: &mut Simulation) -> HashSet<usize> {
         exposed.insert(index);
         let building = &mut sim.buildings[index];
         let was_ruined = building.is_ruined();
+        let shown_before = shown_state(building, sim.tick_count);
         building.damage = (building.damage_fraction() + exposure.amount).min(1.0);
         building.last_damage_tick = Some(sim.tick_count);
         if !was_ruined && building.damage_fraction() >= 1.0 {
@@ -41,13 +42,33 @@ pub(super) fn apply_damage(sim: &mut Simulation) -> HashSet<usize> {
                 exposure.cause,
             ));
         }
-        sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
+        // Wear and weather chip a building every damage tick, but only a
+        // change a client draws differently is news: the damage rounded to
+        // the renderer's step, or the ruined/repairing flags. Bumping the
+        // revision for every sub-step chip re-sent the whole buildings
+        // section (most of a delta) on almost every frame.
+        if shown_state(&sim.buildings[index], sim.tick_count) != shown_before {
+            sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
+        }
     }
 
     for (lineage, kind, x, y, cause) in ruined_events {
         announce_ruin(sim, lineage, kind, x, y, cause);
     }
     exposed
+}
+
+/// The building state a frame shows: damage rounded to the step the renderer
+/// draws on, whether it reads as damaged at all, and the ruined and repairing
+/// flags. Two states that compare equal look identical on screen.
+fn shown_state(building: &Building, tick: u64) -> (i32, bool, bool, bool) {
+    let damage = building.damage_fraction();
+    (
+        (damage * DAMAGE_DISPLAY_STEPS).round() as i32,
+        damage > VISIBLE_DAMAGE,
+        building.is_ruined(),
+        building.is_repairing_at(tick),
+    )
 }
 
 pub(super) fn announce_ruin(
