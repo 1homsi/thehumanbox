@@ -4,7 +4,8 @@ import { createRoot } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { REPO_URL } from '../../shared/links'
 import { useUIStore } from '../../state/store'
-import { STAR_DELAY_MIN_MS, STAR_PROMPT_KEY, STAR_RETRY_MS, StarToast } from './StarToast'
+import { TOAST_RETRY_MS } from './screenBusy'
+import { STAR_DELAY_MIN_MS, STAR_PROMPT_KEY, StarToast } from './StarToast'
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
 afterAll(() => vi.unstubAllGlobals())
@@ -70,14 +71,14 @@ describe('StarToast', () => {
     welcome.className = 'welcome-modal'
     document.body.append(welcome)
     mount()
-    wait(STAR_DELAY_MIN_MS + STAR_RETRY_MS * 3)
+    wait(STAR_DELAY_MIN_MS + TOAST_RETRY_MS * 3)
     expect(toast()).toBeNull()
     welcome.remove()
     act(() => useUIStore.getState().setViewFlag('photoMode', true))
-    wait(STAR_RETRY_MS * 2)
+    wait(TOAST_RETRY_MS * 2)
     expect(toast()).toBeNull()
     act(() => useUIStore.getState().setViewFlag('photoMode', false))
-    wait(STAR_RETRY_MS)
+    wait(TOAST_RETRY_MS)
     expect(toast()).not.toBeNull()
   })
 

@@ -1,17 +1,13 @@
 import { useEffect, useState } from 'react'
 import { REPO_URL } from '../../shared/links'
 import { trackEvent } from '../../shared/observability'
-import { useUIStore } from '../../state/store'
 import { ToolSprite } from '../toolbar/ToolSprite'
+import { screenBusy, TOAST_RETRY_MS } from './screenBusy'
 
 export const STAR_PROMPT_KEY = 'thb-star-prompt-v1'
-export const STAR_DELAY_MIN_MS = 45_000
-export const STAR_DELAY_MAX_MS = 120_000
-/** How often a due prompt looks again while something else holds the screen. */
-export const STAR_RETRY_MS = 5_000
-/** Cards the prompt waits behind, so it never stacks on the welcome, the tour, a dialog or another toast. */
-const BUSY =
-  '.welcome-modal, .thb-shepherd, .thb-modal, .desktop-toast, .update-toast, .mobile-banner, .idle-resume-panel'
+// Late enough that the first minutes belong to the world, not to prompts.
+export const STAR_DELAY_MIN_MS = 3 * 60_000
+export const STAR_DELAY_MAX_MS = 5 * 60_000
 
 function alreadyAsked(): boolean {
   try {
@@ -30,14 +26,9 @@ function remember(outcome: 'shown' | 'starred' | 'dismissed') {
   }
 }
 
-function screenBusy(): boolean {
-  const { photoMode, hideUI } = useUIStore.getState().viewFlags
-  return document.hidden || photoMode || hideUI || document.querySelector(BUSY) !== null
-}
-
 /**
- * Asks once, during the first visit, for a star on GitHub. It turns up at a random moment after the
- * player has had time to watch the world, and only when nothing else is on screen.
+ * Asks once, during the first visit, for a star on GitHub. It turns up at a random moment a few minutes
+ * in, once the player has had time to watch the world, and only when nothing else is on screen.
  */
 export function StarToast() {
   const [visible, setVisible] = useState(false)
@@ -47,7 +38,7 @@ export function StarToast() {
     let timer = 0
     const show = () => {
       if (screenBusy()) {
-        timer = window.setTimeout(show, STAR_RETRY_MS)
+        timer = window.setTimeout(show, TOAST_RETRY_MS)
         return
       }
       remember('shown')

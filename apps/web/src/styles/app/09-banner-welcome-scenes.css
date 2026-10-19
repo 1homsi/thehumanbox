@@ -55,9 +55,10 @@
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: rgba(8, 6, 4, 0.72);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  /* Light enough that the living world shows through behind the card. */
+  background: rgba(8, 6, 4, 0.45);
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -68,7 +69,7 @@
 /* A live canvas repaints behind this backdrop; re-blurring it every frame is costly on phone GPUs. */
 @media (pointer: coarse), (max-width: 767px) {
   .welcome-backdrop {
-    background: rgba(8, 6, 4, 0.8);
+    background: rgba(8, 6, 4, 0.55);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
