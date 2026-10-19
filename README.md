@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="apps/web/public/favicon-32x32.png" alt="The Human Box" width="64" height="64" />
+  <a href="https://thehumanbox.com"><img src="docs/banner.png" alt="The Human Box: a world that writes itself" width="100%" /></a>
 </p>
 
 # The Human Box
