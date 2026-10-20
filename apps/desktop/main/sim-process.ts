@@ -55,6 +55,9 @@ interface SimPidRecord {
 }
 
 let current: RunningSim | null = null;
+// The child of a start that has not bound its port yet. `current` stays null
+// until the load finishes, so quit needs this to reach a loading simulation.
+let startingChild: ChildProcess | null = null;
 
 function platformBinaryName(): string {
   return process.platform === "win32" ? "simulation-rs.exe" : "simulation-rs";
@@ -66,13 +69,20 @@ function packagedBinaryPath(): string {
   return path.join(resourcesDir, "bin", platformBinaryName());
 }
 
-function devBinaryPath(): string {
+/**
+ * Where a developer build of the sim lands: the workspace's own `target`
+ * directory at the repository root (the crate is `apps/server`).
+ *
+ * This assumes the compiled layout `apps/desktop/dist/main`, which is what
+ * `pnpm run dev`/`pack` produce; the parent-directory count is for that depth.
+ */
+export function devBinaryPath(): string {
   return path.join(
     __dirname,
     "..",
     "..",
     "..",
-    "simulation",
+    "..",
     "target",
     "release",
     platformBinaryName(),
@@ -340,11 +350,11 @@ function installExitHandlersOnce(): void {
   process.stdout.on("error", () => {});
   process.stderr.on("error", () => {});
   const signalCurrent = (): void => {
-    const c = current;
+    const c = current?.child ?? startingChild;
     if (!c) return;
-    intentionalStops.add(c.child);
+    intentionalStops.add(c);
     try {
-      c.child.kill("SIGTERM");
+      c.kill("SIGTERM");
     } catch {
       /* noop */
     }
@@ -428,8 +438,15 @@ async function startSimOnce(
   const bin = locateSimBinary();
   if (!bin) {
     suppliedLock?.release();
+    const expected = app.isPackaged
+      ? packagedBinaryPath()
+      : `${devBinaryPath()} (dev) or ${packagedBinaryPath()} (packaged, resources/bin)`;
+    // A packaged build has no repository or toolchain to point at.
+    const advice = app.isPackaged
+      ? "reinstall The Human Box, or check that the install was not modified"
+      : `build it with \`cargo build --release --bin simulation-rs\` at the repository root (or \`make build-sim\`)`;
     throw new Error(
-      `simulation binary not found. Expected at ${packagedBinaryPath()} (packaged) or build it via \`cargo build --release\` in simulation/.`,
+      `simulation binary not found. Expected at ${expected}: ${advice}.`,
     );
   }
 
@@ -504,11 +521,15 @@ async function startSimOnce(
       cwd: workdir,
       env,
       stdio: ["ignore", "pipe", "pipe"],
+      // Windows gives a console-subsystem child its own console window unless
+      // this is set; closing that window would kill the sim.
+      windowsHide: true,
     });
   } catch (error) {
     dataLock.release();
     throw error;
   }
+  startingChild = child;
   child.on("error", (error) => {
     alive = false;
     pushTail(error.message);
@@ -523,6 +544,7 @@ async function startSimOnce(
     removePidRecordIfOwned(pidFile, pidToken);
     dataLock.release();
     if (current?.child === child) current = null;
+    if (startingChild === child) startingChild = null;
   };
   child.once("exit", (code, signal) => {
     alive = false;
@@ -646,6 +668,7 @@ async function startSimOnce(
     );
   }
 
+  startingChild = null;
   current = { port, commandToken, child, pidFile, pidToken, dataLock };
   return current!;
 }
@@ -678,6 +701,19 @@ async function stopSimOnce(
   requireCheckpoint: boolean,
 ): Promise<void> {
   if (!current && startInFlight) {
+    // Nothing has bound a port, so there is no checkpoint to take. Stop the
+    // loading child now instead of waiting out the whole load; the start then
+    // rejects and releases its lock.
+    const loading = startingChild;
+    if (loading) {
+      intentionalStops.add(loading);
+      try {
+        if (process.platform === "win32") loading.kill();
+        else loading.kill("SIGTERM");
+      } catch {
+        /* noop */
+      }
+    }
     try {
       await startInFlight;
     } catch {
@@ -754,6 +790,11 @@ export function onUnexpectedSimExit(
 
 export function activeSim(): RunningSim | null {
   return current;
+}
+
+/** True while a simulation is running or still loading; quit must stop it. */
+export function simLifecyclePending(): boolean {
+  return current !== null || startInFlight !== null;
 }
 
 export async function checkpointActiveSim(timeoutMs = 3000): Promise<boolean> {

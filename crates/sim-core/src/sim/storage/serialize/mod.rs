@@ -7,6 +7,7 @@ use crate::sim::simulation::Simulation;
 
 mod entry;
 mod frame;
+pub mod frame_codec;
 mod helpers;
 mod payload;
 #[cfg(test)]

@@ -15,6 +15,7 @@ export interface UpdateCheckResult {
 let initialized = false
 let latestStatus: UpdateCheckResult = { status: 'up-to-date' }
 let downloadedFile: string | null = null
+let promptedVersion: string | null = null
 
 /** Unsigned macOS builds can't use Squirrel.Mac; see mac-unsigned-install.ts. */
 function usesUnsignedMacInstall(): boolean {
@@ -51,6 +52,9 @@ export function initUpdater(getWindow: () => BrowserWindow | null): void {
   autoUpdater.autoInstallOnAppQuit = !usesUnsignedMacInstall()
 
   autoUpdater.on('update-available', (info: UpdateInfo) => {
+    // electron-updater announces a cached version again before it reuses the
+    // installer; keep the held download instead of showing "downloading" again.
+    if (latestStatus.status === 'downloaded' && latestStatus.version === info.version) return
     latestStatus = {
       status: 'available',
       version: info.version,
@@ -84,6 +88,10 @@ export function initUpdater(getWindow: () => BrowserWindow | null): void {
     if (win) {
       win.webContents.send('updater:downloaded', { version: info.version })
     }
+    // electron-updater re-emits this for a cached installer on every check, so
+    // ask once per version. A newer version still gets its own prompt.
+    if (promptedVersion === info.version) return
+    promptedVersion = info.version
     const { response } = await dialog.showMessageBox({
       type: 'info',
       buttons: ['Restart and update', 'Later'],
@@ -97,7 +105,8 @@ export function initUpdater(getWindow: () => BrowserWindow | null): void {
   })
 
   autoUpdater.on('error', (err) => {
-    latestStatus = { status: 'error', message: err.message }
+    // A failed check does not invalidate an installer that is already held.
+    if (latestStatus.status !== 'downloaded') latestStatus = { status: 'error', message: err.message }
     console.error('[updater]', err)
     getWindow()?.webContents.send('updater:error', { message: err.message })
   })
@@ -133,7 +142,8 @@ export async function checkForUpdatesNow(): Promise<UpdateCheckResult> {
     return latestStatus
   }
 
-  latestStatus = { status: 'checking' }
+  // A downloaded update stays held during a check; resetting it would hide the install action.
+  if (latestStatus.status !== 'downloaded') latestStatus = { status: 'checking' }
   try {
     const result = await autoUpdater.checkForUpdates()
     if (latestStatus.status !== 'checking') return latestStatus
@@ -146,9 +156,10 @@ export async function checkForUpdatesNow(): Promise<UpdateCheckResult> {
     return latestStatus
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    latestStatus = { status: 'error', message }
+    const failure: UpdateCheckResult = { status: 'error', message }
+    if (latestStatus.status !== 'downloaded') latestStatus = failure
     console.error('[updater] check failed:', err)
-    return latestStatus
+    return failure
   }
 }
 

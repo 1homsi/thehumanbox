@@ -46,6 +46,9 @@ pub struct TransportStats {
     lagged_frames: AtomicU64,
     dropped_frames: AtomicU64,
     resync_frames: AtomicU64,
+    /// Frames the encoder refused. The broadcaster skips them instead of
+    /// pushing a zero-byte message every client would fail to decode.
+    encode_failures: AtomicU64,
     overrun_cycles: AtomicU64,
     sim_overrun_ticks: AtomicU64,
     // Rolling 24h egress accounting (bytes actually pushed to clients,
@@ -73,6 +76,7 @@ pub struct TransportStatsSnapshot {
     pub lagged_frames: u64,
     pub dropped_frames: u64,
     pub resync_frames: u64,
+    pub encode_failures: u64,
     pub overrun_cycles: u64,
     pub sim_overrun_ticks: u64,
     pub avg_payload_bytes: u64,
@@ -148,6 +152,13 @@ impl TransportStats {
         self.resync_frames.fetch_add(1, Ordering::Relaxed);
     }
 
+    /// One frame the encoder could not produce. The frame is dropped, not
+    /// broadcast: an empty binary message is not a frame every client can
+    /// decode, and sending it looked like a successful broadcast.
+    pub fn record_encode_failure(&self) {
+        self.encode_failures.fetch_add(1, Ordering::Relaxed);
+    }
+
     pub fn record_broadcaster_overrun(&self) {
         self.overrun_cycles.fetch_add(1, Ordering::Relaxed);
     }
@@ -197,6 +208,7 @@ impl TransportStats {
             lagged_frames: self.lagged_frames.load(Ordering::Relaxed),
             dropped_frames: self.dropped_frames.load(Ordering::Relaxed),
             resync_frames: self.resync_frames.load(Ordering::Relaxed),
+            encode_failures: self.encode_failures.load(Ordering::Relaxed),
             avg_payload_bytes: avg_bytes,
             p95_payload_bytes: p95_bytes,
             avg_full_bytes: avg_full,
@@ -222,25 +234,33 @@ pub fn next_frame_id(frame_clock: &AtomicU64) -> u64 {
     frame_clock.fetch_add(1, Ordering::Relaxed) + 1
 }
 
+/// Encode a frame for the wire: a leading codec tag byte, then either the raw
+/// msgpack or its gzip. `None` only when the payload cannot be encoded at all
+/// — the caller must drop that frame rather than broadcast an empty message
+/// that every client fails to decode.
 pub fn encode_frame(
     payload: impl Into<crate::sim::serialize::FramePayload>,
     frame_id: u64,
     server_sent_at_ms: u64,
     frame_kind: &str,
-) -> Vec<u8> {
+) -> Option<Vec<u8>> {
     let mut payload: crate::sim::serialize::FramePayload = payload.into();
     payload.insert("frame_id", serde_json::json!(frame_id));
     payload.insert("server_sent_at_ms", serde_json::json!(server_sent_at_ms));
     payload.insert("frame_kind", serde_json::json!(frame_kind));
-    let raw = match crate::frame_codec::encode(&payload) {
+    let raw = match crate::sim::serialize::frame_codec::encode(&payload) {
         Ok(v) => v,
-        Err(_) => return Vec::new(),
+        Err(error) => {
+            // The counter alone says a frame vanished; the error says why.
+            tracing::error!(target: "transport", "frame encode failed: {error}");
+            return None;
+        }
     };
     if raw.len() < 2048 {
         let mut out = Vec::with_capacity(raw.len() + 1);
         out.push(0u8);
         out.extend_from_slice(&raw);
-        return out;
+        return Some(out);
     }
     use flate2::write::GzEncoder;
     use std::io::Write;
@@ -249,7 +269,7 @@ pub fn encode_frame(
         let mut out = Vec::with_capacity(raw.len() + 1);
         out.push(0u8);
         out.extend_from_slice(&raw);
-        return out;
+        return Some(out);
     }
     let gz = match encoder.finish() {
         Ok(v) => v,
@@ -257,19 +277,19 @@ pub fn encode_frame(
             let mut out = Vec::with_capacity(raw.len() + 1);
             out.push(0u8);
             out.extend_from_slice(&raw);
-            return out;
+            return Some(out);
         }
     };
     if gz.len() + 1 >= raw.len() {
         let mut out = Vec::with_capacity(raw.len() + 1);
         out.push(0u8);
         out.extend_from_slice(&raw);
-        return out;
+        return Some(out);
     }
     let mut out = Vec::with_capacity(gz.len() + 1);
     out.push(1u8);
     out.extend_from_slice(&gz);
-    out
+    Some(out)
 }
 
 #[cfg(test)]
@@ -295,7 +315,7 @@ mod tests {
     #[test]
     fn encode_frame_adds_transport_metadata() {
         let payload = serde_json::json!({ "tick": 12, "organisms": [], "animals": [] });
-        let encoded = encode_frame(payload, 77, 123_456, "delta");
+        let encoded = encode_frame(payload, 77, 123_456, "delta").expect("delta frame encodes");
         let decoded = decode_for_test(&encoded);
 
         assert_eq!(decoded["frame_id"], 77);
@@ -324,7 +344,7 @@ mod tests {
                 "age": 1234,
             })).collect::<Vec<_>>(),
         });
-        let encoded = encode_frame(payload.clone(), 1, 1, "delta");
+        let encoded = encode_frame(payload.clone(), 1, 1, "delta").expect("delta frame encodes");
         let json = serde_json::to_vec(&payload).unwrap_or_default();
         assert!(
             encoded.len() <= json.len(),
@@ -333,6 +353,34 @@ mod tests {
             json.len()
         );
         let _ = decode_for_test(&encoded);
+    }
+
+    /// A frame that encodes always carries its codec tag. An empty return was
+    /// the old failure signal, and the broadcaster pushed it as a zero-byte
+    /// binary message every client failed to decode.
+    #[test]
+    fn an_encoded_frame_always_carries_its_codec_tag() {
+        for (kind, payload) in [
+            ("full", serde_json::json!({ "tick": 1, "organisms": [] })),
+            ("delta", serde_json::json!({ "tick": 2, "organisms_hot": {} })),
+        ] {
+            let frame = encode_frame(payload, 1, 1, kind).expect("frame encodes");
+            assert!(
+                matches!(frame.first(), Some(0 | 1)),
+                "{kind} frame has no codec tag"
+            );
+            let _ = decode_for_test(&frame);
+        }
+    }
+
+    /// A refused frame is counted, so a run that silently dropped frames is
+    /// visible in `/metrics` instead of looking like a healthy broadcast.
+    #[test]
+    fn dropped_frames_are_counted() {
+        let stats = TransportStats::default();
+        stats.record_encode_failure();
+        stats.record_encode_failure();
+        assert_eq!(stats.snapshot().encode_failures, 2);
     }
 
     #[test]

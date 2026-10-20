@@ -133,7 +133,7 @@
 }
 .desktop-toast {
   position: fixed;
-  bottom: 150px;
+  bottom: var(--toast-clearance);
   left: calc(16px + var(--safe-left));
   z-index: 90;
   width: 340px;

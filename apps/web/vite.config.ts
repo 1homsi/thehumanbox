@@ -32,6 +32,8 @@ function emitVersionJson(): Plugin {
  * Runs in writeBundle (post-build) because rolldown-vite does not fire
  * generateBundle for config-level JS plugins.
  */
+const SPRITE_SHEETS = ['sprites/people/people.png', 'sprites/vegetation-v2.png', 'sprites/fauna-v2.png']
+
 function preloadSimAssets(): Plugin {
   const base = process.env.VITE_DESKTOP === '1' ? './' : '/'
   let outDir: string
@@ -76,6 +78,11 @@ function preloadSimAssets(): Plugin {
       // The map renderer is lazy-loaded; hint it so it downloads alongside the entry.
       if (worldView) {
         tags.push(`<link rel="modulepreload" href="${join(worldView)}" />`)
+      }
+      // The sprite sheets are read on the GPU path as soon as WorldView evaluates. Hint them here, after the wasm, at
+      // low priority so they queue behind it.
+      for (const sheet of SPRITE_SHEETS) {
+        tags.push(`<link rel="preload" href="${base}${sheet}" as="image" fetchpriority="low" />`)
       }
       const next = html.replace('</head>', `  ${tags.join('\n  ')}\n</head>`)
       if (next !== html) await writeFile(htmlPath, next, 'utf8')

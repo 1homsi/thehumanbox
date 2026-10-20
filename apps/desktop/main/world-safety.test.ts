@@ -27,6 +27,7 @@ import {
   finishSaveFolderMigration,
   hasRecoverableSaveFolderMigration,
   inspectSaveFolderMigrationSource,
+  inspectSaveFolderMigrationSourceInWorker,
   initializeDataRootIdentity,
   markSaveFolderMigrationVerified,
   pathsReferToSameLocation,
@@ -38,7 +39,9 @@ import {
   restoreParkedLiveWorld,
   rootsOverlap,
   validateWorldSaveBytes,
+  validateWorldSaveBytesInWorker,
   verifySaveFolderMigrationCopy,
+  verifySaveFolderMigrationCopyInWorker,
 } from "./world-safety";
 
 function validSave(overrides: Record<string, unknown> = {}): Buffer {
@@ -85,6 +88,47 @@ test("validates the required native world-save shape", () => {
   assert.equal(result.seed, 18_000_000_000_000_000_000);
   assert.equal(result.seedText, "18000000000000000000");
   assert.equal(result.tickText, "123");
+});
+
+test("validates a save in a worker without blocking the main event loop", async () => {
+  const bytes = validSave();
+  let settled = false;
+  const validation = validateWorldSaveBytesInWorker(bytes).then((result) => {
+    settled = true;
+    return result;
+  });
+
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(settled, false);
+  const result = await validation;
+  assert.equal(result.tickText, "123");
+  assert.equal(result.seedText, "99");
+  assert.deepEqual(result.bytes, bytes);
+});
+
+test("migration validates the source in a worker and compares the copied bytes", async () => {
+  const source = mkdtempSync(path.join(tmpdir(), "thb-worker-migration-source-"));
+  const target = mkdtempSync(path.join(tmpdir(), "thb-worker-migration-target-"));
+  const save = validSave();
+  const hash = "worker-migration-world";
+  try {
+    writeActiveWorld(source, hash, save);
+    const expected = await inspectSaveFolderMigrationSourceInWorker(source);
+    assert.ok(expected);
+    assert.equal(expected.validated.tickText, "123");
+
+    writeActiveWorld(target, hash, save);
+    await verifySaveFolderMigrationCopyInWorker(target, expected);
+
+    writeFileSync(path.join(target, "worlds", hash, "world.save"), Buffer.from("{}"));
+    await assert.rejects(
+      verifySaveFolderMigrationCopyInWorker(target, expected),
+      /does not byte-match/,
+    );
+  } finally {
+    rmSync(source, { recursive: true, force: true });
+    rmSync(target, { recursive: true, force: true });
+  }
 });
 
 test("reads exact top-level u64 fields instead of matching nested lookalikes", () => {

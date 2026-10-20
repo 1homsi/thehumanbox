@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
 import { getDesktop } from '../../shared/desktop'
 import { trackEvent } from '../../shared/observability'
+import { screenBusy, TOAST_RETRY_MS } from './screenBusy'
 
 const RELEASES_URL = 'https://github.com/1homsi/thehumanbox/releases/latest'
 const INSTALL_CMD =
   'curl -fsSL https://raw.githubusercontent.com/1homsi/thehumanbox/main/scripts/install-desktop.sh | bash'
 const STORAGE_KEY = 'thb-desktop-toast-dismissed-at'
 const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000
-const FIRST_DELAY_MIN_MS = 30_000
-const FIRST_DELAY_MAX_MS = 90_000
+// Well after the star prompt (3-5 min), so a first visit meets at most one ask at a time.
+export const FIRST_DELAY_MIN_MS = 6 * 60_000
+export const FIRST_DELAY_MAX_MS = 10 * 60_000
 
 function isMac(): boolean {
   if (typeof navigator === 'undefined') return false
@@ -42,8 +44,15 @@ export function DesktopDownloadToast() {
 
   useEffect(() => {
     if (!shouldShow()) return
-    const delay = FIRST_DELAY_MIN_MS + Math.random() * (FIRST_DELAY_MAX_MS - FIRST_DELAY_MIN_MS)
-    const timer = window.setTimeout(() => setVisible(true), delay)
+    let timer = 0
+    const show = () => {
+      if (screenBusy()) timer = window.setTimeout(show, TOAST_RETRY_MS)
+      else setVisible(true)
+    }
+    timer = window.setTimeout(
+      show,
+      FIRST_DELAY_MIN_MS + Math.random() * (FIRST_DELAY_MAX_MS - FIRST_DELAY_MIN_MS),
+    )
     return () => window.clearTimeout(timer)
   }, [])
 
