@@ -1,17 +1,37 @@
 <p align="center">
-  <a href="https://thehumanbox.com"><img src="docs/banner.png" alt="The Human Box: a world that writes itself" width="100%" /></a>
+  <a href="https://thehumanbox.com"><img src="docs/readme-hero.gif" alt="The Human Box: tribes think, invent language, build cities, found religions, wage war, sign treaties and invent computers" width="100%" /></a>
 </p>
 
-# The Human Box
+<h1 align="center">The Human Box</h1>
 
-An artificial-life game built first for private, downloadable worlds.
-Run one locally or shape it with sandbox controls while autonomous humans
-learn, form tribes, develop language, build
-cities, found religions, declare wars, sign treaties, invent computers,
-and pass culture across generations. Nothing is scripted. Only world
-laws.
+<p align="center">
+  <b>A free civilization sandbox in your browser.</b><br />
+  Tribes invent their own languages, cultures and wars, from the stone age to computers.<br />
+  Nothing is scripted. Only world laws.
+</p>
 
-Live: [thehumanbox.com](https://thehumanbox.com)
+<p align="center">
+  <a href="https://thehumanbox.com"><b>▶ Play now at thehumanbox.com</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/1homsi/thehumanbox/releases/latest">Desktop app</a>
+  &nbsp;·&nbsp;
+  <a href="docs/ARCHITECTURE.md">How it works</a>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-c9a227" /></a>
+  <img alt="Rust compiled to WebAssembly" src="https://img.shields.io/badge/Rust-%E2%86%92%20WASM-b7410e?logo=rust" />
+  <a href="https://github.com/1homsi/thehumanbox/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/1homsi/thehumanbox?color=c9a227" /></a>
+  <a href="https://github.com/1homsi/thehumanbox/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/1homsi/thehumanbox?style=social" /></a>
+</p>
+
+Autonomous people learn, form tribes, develop language, build cities, found
+religions, declare wars, sign treaties, invent computers and pass culture across
+generations, through 45 eras. Watch, or play god: answer their prayers, reshape
+the land, send blessings, plagues and disasters.
+
+The whole simulation is Rust compiled to WebAssembly and runs on your device: no
+server, no sign-up, no LLM. Your world saves locally and can be exported.
 
 ## Structure
 
