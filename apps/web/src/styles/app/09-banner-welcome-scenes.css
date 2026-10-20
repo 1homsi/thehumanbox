@@ -1,63 +1,12 @@
-/* ── Mobile "better on desktop" banner ─────────────────────────────────── */
-.mobile-banner {
-  display: none;
-}
-@media (max-width: 767px) {
-  .mobile-banner {
-    display: flex;
-    position: relative;
-    flex: 0 0 auto;
-    z-index: 59;
-    align-items: center;
-    gap: 10px;
-    padding: 10px calc(14px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(14px + var(--safe-left));
-    background: linear-gradient(180deg, rgba(28, 22, 18, 0.96), rgba(16, 12, 10, 0.98));
-    border-top: 1px solid rgba(160, 130, 90, 0.35);
-    color: #e5ddc7;
-    font-family: ui-sans-serif, system-ui, sans-serif;
-    font-size: 12px;
-    line-height: 1.35;
-    box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.45);
-  }
-  .mobile-banner__icon {
-    flex: 0 0 auto;
-    font-size: 16px;
-    opacity: 0.85;
-  }
-  .mobile-banner__text {
-    flex: 1 1 auto;
-    min-width: 0;
-    color: #d8cdb6;
-  }
-  .mobile-banner__close {
-    flex: 0 0 auto;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    line-height: 1;
-    background: transparent;
-    color: #8a8170;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 7px;
-    cursor: pointer;
-  }
-  .mobile-banner__close:hover {
-    color: #e5ddc7;
-    background: rgba(255, 255, 255, 0.05);
-  }
-}
-
 /* ── Welcome onboarding modal ──────────────────────────────────────────── */
 .welcome-backdrop {
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: rgba(8, 6, 4, 0.72);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  /* Light enough that the living world shows through behind the card. */
+  background: rgba(8, 6, 4, 0.45);
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -68,7 +17,7 @@
 /* A live canvas repaints behind this backdrop; re-blurring it every frame is costly on phone GPUs. */
 @media (pointer: coarse), (max-width: 767px) {
   .welcome-backdrop {
-    background: rgba(8, 6, 4, 0.8);
+    background: rgba(8, 6, 4, 0.55);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }

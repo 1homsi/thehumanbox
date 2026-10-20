@@ -235,6 +235,17 @@ describe('level of detail', () => {
     syncTerrainLayer(layer, state, { ...makeSource(), zoom: 0.1 })
     expect(state.flat).toBe(false)
   })
+
+  it('counts device pixels on the capped canvas, not the screen DPR', () => {
+    stubDom()
+    vi.stubGlobal('devicePixelRatio', 3)
+    const layer = makeLayer()
+    const state = createTerrainSyncState()
+    // 0.35 zoom x 2 capped px x 8 px tiles = 5.6 device px, below flatBelowPx (7): the flat
+    // tileset. The screen's 3x would make that 8.4 px and keep the detailed one.
+    syncTerrainLayer(layer, state, { ...makeSource(), zoom: 0.35 })
+    expect(state.flat).toBe(true)
+  })
 })
 
 describe('terrain season', () => {

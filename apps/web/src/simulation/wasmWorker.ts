@@ -41,7 +41,7 @@ type InMsg =
   | { type: 'visibility'; hidden: boolean }
   | { type: 'save'; requestId?: number }
   | { type: 'retry_storage'; requestId?: number }
-  | { type: 'prepare_reload'; requestId: number; deadlineAt: number }
+  | { type: 'prepare_reload'; requestId: number; deadlineAt: number; requireLocalWorld?: boolean }
   | { type: 'stop' }
   | { type: 'command'; json: string; requestId: number }
   | { type: 'org_detail'; id: string; requestId: number }
@@ -89,9 +89,15 @@ let recoveryFallbackRetry: StorageRetry<SavedWorld> | null = null
 let storageRetryInFlight: Promise<boolean> | null = null
 let worldLockAcquired = true
 let releaseWorldLock: (() => void) | null = null
+let startup: Promise<void> | null = null
+let startupRunning = false
 
 function post(msg: unknown) {
   ;(self as unknown as Worker).postMessage(msg)
+}
+
+function postFrame(frame: Uint8Array) {
+  ;(self as unknown as Worker).postMessage({ type: 'frame', frame }, [frame.buffer as ArrayBuffer])
 }
 
 async function acquireWorldLock(id: string): Promise<boolean> {
@@ -148,14 +154,27 @@ async function releaseLocalWorldLock() {
   await new Promise((resolve) => setTimeout(resolve, 0))
 }
 
+async function releaseWorldLockAfterStartup() {
+  // A reload can arrive while start() is between acquiring the world lock and
+  // finishing its reset/restore transaction. Releasing the lock then would let
+  // another tab acquire it and race the same IndexedDB record, so keep the lock
+  // until the in-flight startup has bailed out of its transaction: start()
+  // checks reloadPreparing right after each storage await and returns, and this
+  // releases once it has. A bail before the lock is acquired (boot, lock wait)
+  // has no transaction to protect, so release straight away.
+  const startupHoldsLock = releaseWorldLock !== null
+  if (startupHoldsLock) await startup?.catch(() => {})
+  await releaseLocalWorldLock()
+}
+
 function emit(deepFull: boolean) {
   if (!sim) return
   frameId += 1
   const now = Date.now()
   lastEmittedAt = performance.now()
   if (deepFull) lastDeepFullAt = lastEmittedAt
-  const frame = deepFull ? sim.fullFrame(frameId, now) : sim.deltaFrame(frameId, now)
-  post({ type: 'frame', frame })
+  const frame = deepFull ? sim.fullFrameBytes(frameId, now) : sim.deltaFrameBytes(frameId, now)
+  postFrame(frame)
 }
 
 function rememberRetry(next: StorageRetry<SavedWorld>) {
@@ -411,6 +430,8 @@ function startTickTimer() {
 }
 
 function beginLoop(autosaveEveryMs: number) {
+  stopTimers()
+  if (!sim) return
   startTickTimer()
   saveTimer = setInterval(() => {
     if (!manuallyPaused && !hiddenPaused) void persist()
@@ -437,7 +458,13 @@ async function start(msg: StartMsg) {
     return
   }
 
+  if (reloadPreparing) return
+
   worldLockAcquired = await acquireWorldLock(worldId)
+  if (reloadPreparing) {
+    await releaseLocalWorldLock()
+    return
+  }
   if (!worldLockAcquired) {
     storageReady = false
     post({
@@ -452,6 +479,7 @@ async function start(msg: StartMsg) {
   if (msg.reset && storageReady) {
     try {
       const recoveryId = await archiveAndDeleteWorld(worldId)
+      if (reloadPreparing) return
       resetApplied = true
       post({ type: 'reset_done', recoveryId })
     } catch (e) {
@@ -468,6 +496,7 @@ async function start(msg: StartMsg) {
     try {
       if (!msg.recoveryId.startsWith(recoveryPrefix(worldId))) throw new Error('invalid recovery save id')
       const recovery = await loadWorld(msg.recoveryId)
+      if (reloadPreparing) return
       if (!recovery) throw new Error('recovery save no longer exists')
       if (recovery.blob.byteLength === 0) throw new Error('recovery save is empty')
       const candidate = Sim.fromSerialized(BigInt(recovery.seed), recovery.blob)
@@ -477,6 +506,7 @@ async function start(msg: StartMsg) {
         throw new Error(`recovery expected tick ${recovery.tick}, restored tick ${recoveredTick}`)
       }
       const previousBackupId = await restoreRecoveryWorld(worldId, msg.recoveryId)
+      if (reloadPreparing) return
       saved = recovery
       post({
         type: 'recovery_done',
@@ -511,6 +541,7 @@ async function start(msg: StartMsg) {
       message: `could not read local save: ${e instanceof Error ? e.message : String(e)}`,
     })
   }
+  if (reloadPreparing) return
   if (saved) {
     try {
       if (saved.blob.byteLength === 0) throw new Error('save is empty')
@@ -562,6 +593,7 @@ async function start(msg: StartMsg) {
       sim = null
     }
   }
+  if (reloadPreparing) return
   if (!sim) {
     sim = new Sim(BigInt(seed))
   }
@@ -579,7 +611,14 @@ self.onmessage = (e: MessageEvent) => {
   const msg = e.data as InMsg
   switch (msg.type) {
     case 'start':
-      void start(msg)
+      // Only the first start() runs (`started` guards the rest); don't let a
+      // duplicate message replace the promise a pending reload waits on.
+      if (!startup) {
+        startupRunning = true
+        startup = start(msg).finally(() => {
+          startupRunning = false
+        })
+      }
       break
     case 'pause':
       if (sim) manuallyPaused = true
@@ -627,6 +666,21 @@ self.onmessage = (e: MessageEvent) => {
         post({ type: 'reload_result', requestId: msg.requestId, ok: false })
         break
       }
+      // During unreadable-save recovery, `sim` may be assigned while startup is
+      // still preserving the original. Do not checkpoint that candidate.
+      if (!sim || !worldLockAcquired || startupRunning) {
+        if (msg.requireLocalWorld) {
+          post({ type: 'reload_result', requestId: msg.requestId, ok: false })
+          break
+        }
+        reloadPreparing = true
+        stopTimers()
+        void releaseWorldLockAfterStartup().then(() => {
+          post({ type: 'reload_result', requestId: msg.requestId, ok: true })
+          self.close()
+        })
+        break
+      }
       // Freeze ticks before serializing. Previously the world kept advancing
       // while IndexedDB committed an older snapshot, then freed the newer
       // in-memory state, losing every tick in between on reload.
@@ -636,7 +690,7 @@ self.onmessage = (e: MessageEvent) => {
         persist,
         resume: () => {
           reloadPreparing = false
-          beginLoop(autosaveEveryMs)
+          if (sim) beginLoop(autosaveEveryMs)
         },
       }).then(async (ok) => {
         if (ok) {

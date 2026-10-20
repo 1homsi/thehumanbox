@@ -233,6 +233,7 @@
 
   /* Minimal mobile: hide everything except the brand + a live dot. */
   .github-link,
+  .star-link,
   .tick,
   .header-actions,
   .fullscreen-btn,
@@ -413,13 +414,17 @@
   .org-search-toolbar--behind-detail {
     display: none;
   }
+  /* Sticky within the detail pane, so the way back stays put while a long person scrolls under it. */
   .org-search-back {
     display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 1;
     align-items: center;
     width: 100%;
     min-height: 44px;
     padding: 0 14px;
-    background: transparent;
+    background: #28201a;
     border: none;
     border-bottom: 1px solid #372a21;
     color: #d8b270;
@@ -440,6 +445,10 @@
   }
   .org-search-filters > * {
     flex: 0 0 auto;
+  }
+  /* The dot before the tribe dropdown would dangle at the end of the scrolled row. */
+  .org-search-filters > .filter-sep:last-child {
+    display: none;
   }
   .org-search-modal .filter-chip,
   .org-search-modal .tribe-dropdown-btn {

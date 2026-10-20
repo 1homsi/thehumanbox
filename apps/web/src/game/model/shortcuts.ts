@@ -26,12 +26,31 @@ export function shortcutFor(event: {
 }
 
 /**
+ * The shortcut a game key should run, or null. The key list is help, not a
+ * sandbox tool, so `?` still opens and closes it when the sandbox controls are
+ * off (a hosted world, or a desktop profile that changed while the list was
+ * open); every other game key needs them.
+ */
+export function gameKeyAction(
+  event: { key: string; metaKey?: boolean; ctrlKey?: boolean; altKey?: boolean },
+  sandboxControlsEnabled: boolean,
+): ShortcutAction | null {
+  const action = shortcutFor(event)
+  if (!action) return null
+  if (action.kind !== 'help' && !sandboxControlsEnabled) return null
+  return action
+}
+
+/**
  * Keys typed into a field or a dialog belong to it, not to the game. A button is not a field: it keeps
  * focus after a click, and the game keys (? and the tool hotkeys) must still answer after one.
  */
 export function typingTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null
-  return !!el && (!!el.closest?.('input, textarea, select, [role="dialog"]') || el.isContentEditable === true)
+  return (
+    !!el &&
+    (!!el.closest?.('input, textarea, select, dialog, [role="dialog"]') || el.isContentEditable === true)
+  )
 }
 
 /**

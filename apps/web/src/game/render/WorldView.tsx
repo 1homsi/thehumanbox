@@ -9,6 +9,7 @@ import { TILE } from '../model/palette'
 import { CanvasCameraController } from './CanvasCameraController'
 import { World2DErrorBoundary } from './World2DErrorBoundary'
 import { WorldMapHud } from './WorldMapHud'
+import { MapControls } from './MapControls'
 import { TerritoryHoverCard } from './hover/TerritoryHoverCard'
 import { installBenchHooks } from './bench-hooks'
 import { SandboxBursts } from './SandboxBursts'
@@ -23,6 +24,7 @@ import { CfMapCameraController } from './cf/input/CfMapCameraController'
 import { CfOverlays } from './cf/overlays/CfOverlays'
 import { AnimalSpriteLayers } from './cf/animals/AnimalSpriteLayers'
 import { PeopleSpriteLayers } from './cf/people/PeopleSpriteLayers'
+import { WORLD_MAX_DPR } from './world-dpr'
 
 interface Props {
   world: WorldState
@@ -126,6 +128,20 @@ export function WorldView({
       })()
     : null
 
+  // The map controls' "centre on the selected person" button; absent when nobody is selected.
+  const selectedOrg = selectedOrgId
+    ? world.organisms.find((o) => o.id === selectedOrgId && o.alive)
+    : undefined
+  const locateSelected = selectedOrg
+    ? () => {
+        commandRef.current = {
+          kind: 'focus',
+          x: (selectedOrg.x - ox + 0.5) * TILE,
+          y: (selectedOrg.y - oy + 0.5) * TILE,
+        }
+      }
+    : undefined
+
   const { overPrayer, handlePointerDown, handlePointerMove, handlePointerCancel, handleClick, handleTap } =
     useMapPointer({
       containerRef,
@@ -205,6 +221,11 @@ export function WorldView({
               gravity={0}
               width={dims.w}
               height={dims.h}
+              // A DPR-3 phone draws 9 backing pixels per CSS pixel. Cap the canvas at 2, the same
+              // bound the 2D fallback uses; `scale="pixel"` keeps the sprites crisp under the
+              // browser's upscale instead of blurring them.
+              maxDpr={WORLD_MAX_DPR}
+              scale="pixel"
               onReady={handleGameReady}
               style={{ display: 'block' }}
             >
@@ -255,6 +276,7 @@ export function WorldView({
                   containerH={dims.h}
                   containerEl={containerRef.current}
                   cameraStateRef={cameraStateRef}
+                  followOrgId={followOrgId}
                   followTarget={followTarget}
                   onTap={handleTap}
                 />
@@ -336,6 +358,7 @@ export function WorldView({
           territoryIndex={territoryIndex}
         />
       )}
+      {mapReady && !viewFlags.hideUI && <MapControls commandRef={commandRef} onLocate={locateSelected} />}
     </div>
   )
 }

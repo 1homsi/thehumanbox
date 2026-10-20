@@ -13,6 +13,8 @@ import {
   useSpriteLayer,
 } from 'xipjs'
 import type { SceneContext } from '../../../scenes/core/types'
+import { markWorldGPUFailed } from '../../world-view/gpu'
+import { watchForGpuStartupFailure } from '../../world-view/gpuStartupWatchdog'
 import { CANVAS_H, CANVAS_W, SCALE } from '../../../scenes/shared/room-constants'
 import {
   drawAmbient,
@@ -76,13 +78,29 @@ export function CfRoomView(props: Props) {
   // The 2D canvas is CANVAS_W * SCALE wide, shrinking with its container.
   const width = Math.min(available, CANVAS_W * SCALE)
   const height = Math.round((width * CANVAS_H) / CANVAS_W)
+  const [started, setStarted] = useState(false)
+  // When xipjs cannot start WebGL2 or even its own Canvas2D fallback it draws a
+  // "Rendering Not Available" box instead of our world, so no frame of ours
+  // ever runs. Treat a first frame that never arrives like any other GPU
+  // failure: the boundary swaps in the app's 2D interior.
+  useEffect(() => {
+    // A collapsed container unmounts the <Game>; when it comes back it builds a
+    // fresh engine, so clear `started` and arm a new watchdog for it.
+    if (width === 0) {
+      setStarted(false)
+      return
+    }
+    if (started) return
+    const watchdog = watchForGpuStartupFailure(document, false, markWorldGPUFailed)
+    return () => watchdog.dispose()
+  }, [started, width])
   return (
     <div ref={wrap} style={{ width: '100%', maxWidth: CANVAS_W * SCALE, margin: '0 auto' }}>
       {width > 0 && (
         <Game width={width} height={height} gravity={0} style={FRAME}>
           <World background="#000000">
             <Camera2D x={CANVAS_W / 2} y={CANVAS_H / 2} zoom={width / CANVAS_W} pixelSnap />
-            <RoomScene {...props} />
+            <RoomScene {...props} onFirstFrame={() => setStarted(true)} />
           </World>
         </Game>
       )}
@@ -90,7 +108,13 @@ export function CfRoomView(props: Props) {
   )
 }
 
-function RoomScene({ ctx, painter, selectedOrgId, onSelectOrg }: Props) {
+function RoomScene({
+  ctx,
+  painter,
+  selectedOrgId,
+  onSelectOrg,
+  onFirstFrame,
+}: Props & { onFirstFrame: () => void }) {
   const engine = useGame()
   const { screenToWorld } = useCoordinates()
   const back = useDynamicCanvas(CANVAS_W, CANVAS_H)
@@ -187,7 +211,12 @@ function RoomScene({ ctx, painter, selectedOrgId, onSelectOrg }: Props) {
   }, [engine, screenToWorld, hits])
 
   // Every frame, before the renderer draws.
+  const firstFrame = useRef(true)
   const frame = () => {
+    if (firstFrame.current) {
+      firstFrame.current = false
+      onFirstFrame()
+    }
     const t0 = performance.now()
     const { placed: list, painter: look, isDay, selectedOrgId: selected, hovered } = live.current
     const time = t0

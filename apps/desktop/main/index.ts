@@ -23,6 +23,9 @@ import { sanitizeWindowState, type WindowState } from "./window-state";
 import { atomicReplaceFile } from "./world-safety";
 import { appVersionArgument } from "./app-version-arg";
 import { loginItemSettings, shouldStartHidden } from "./login-launch";
+import { appIconPath } from "./app-icon";
+import { redactUrlForDisplay } from "./redact-url";
+import { loadRenderer } from "./renderer-load";
 import { restartFailurePrompt } from "./restart-recovery";
 import {
   deferErrorDialog,
@@ -31,8 +34,19 @@ import {
 } from "./error-dialog";
 import { registerIpc } from "./ipc";
 import { startWhenReady } from "./startup-lifecycle";
-import { runExclusiveDesktopOperation, currentDesktopOperation } from "./exclusive-operation";
-import { startSim, stopSim, activeSim, onUnexpectedSimExit } from "./sim-process";
+import {
+  RESTART_SIMULATION_OPERATION,
+  runExclusiveDesktopOperation,
+  currentDesktopOperation,
+} from "./exclusive-operation";
+import {
+  startSim,
+  stopSim,
+  activeSim,
+  onUnexpectedSimExit,
+  simLifecyclePending,
+} from "./sim-process";
+import { restartFailureStillRelevant, simExitStillRelevant } from "./prompt-relevance";
 import { loadSettings, prepareDataRoot, type Settings } from "./settings";
 import {
   checkForUpdatesNow,
@@ -44,7 +58,12 @@ app.setName("The Human Box");
 
 const isDev = !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
+let windowStartup: Promise<void> | null = null;
 let tray: Tray | null = null;
+// Rebuilds the tray's context menu from the tracked window (visible? always on
+// top?). Set once the tray exists; null before that and when tray creation
+// failed, so the callers below can use it unconditionally.
+let rebuildTrayMenu: (() => void) | null = null;
 // True for the first window only, when the OS launched us at login with
 // "start minimized" on: it is created hidden and lives in the tray.
 let startHiddenOnce = false;
@@ -133,9 +152,8 @@ function renderBootError(
 }
 
 async function createWindow(): Promise<void> {
+  windowStartup = null;
   let settings: Settings | null = null;
-  let apiBase: string | null = null;
-  let apiToken: string | null = null;
   let bootErrorUrl: string | null = null;
 
   // `loadSettings` throws on a corrupt or unreadable settings.json rather
@@ -156,23 +174,13 @@ async function createWindow(): Promise<void> {
     );
   }
 
-  if (settings) {
-    try {
-      const sim = await startSim(settings);
-      apiBase = `127.0.0.1:${sim.port}`;
-      apiToken = sim.commandToken;
-    } catch (err) {
-      const msg = (err as Error).message ?? String(err);
-      console.error("[main] failed to start local sim:", err);
-      bootErrorUrl = renderBootError(msg);
-    }
-  }
+  if (isQuitting) return;
 
   const winState = loadWindowState();
   const startHidden = startHiddenOnce;
   startHiddenOnce = false;
   const win = new BrowserWindow({
-    show: !startHidden,
+    show: false,
     x: winState.x,
     y: winState.y,
     width: winState.width,
@@ -181,7 +189,7 @@ async function createWindow(): Promise<void> {
     minHeight: 700,
     title: "The Human Box",
     backgroundColor: "#0c0a08",
-    icon: path.join(__dirname, "..", "..", "build", "icon.png"),
+    icon: appIconPath(app.isPackaged, process.resourcesPath, __dirname),
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     titleBarOverlay:
       process.platform !== "darwin"
@@ -198,6 +206,7 @@ async function createWindow(): Promise<void> {
     },
   });
   mainWindow = win;
+  bindWindowMenus(win);
   // maximize() would also show a window that is meant to start hidden. A boot
   // failure must never be hidden, so that case shows the window as well.
   pendingMaximize = startHidden && !bootErrorUrl && winState.maximized === true;
@@ -231,6 +240,10 @@ async function createWindow(): Promise<void> {
   });
   win.on("show", () => {
     win?.webContents.send("app:visibility", "restored");
+  });
+  win.on("closed", () => {
+    if (mainWindow === win) mainWindow = null;
+    if (!mainWindow) rebuildWindowMenus();
   });
 
   const rendererFile = path.resolve(__dirname, "..", "renderer", "index.html");
@@ -291,10 +304,11 @@ async function createWindow(): Promise<void> {
 
   win.webContents.on("did-fail-load", (_e, code, desc, url, isMainFrame) => {
     if (!shouldShowLoadError(code, url, isMainFrame)) return;
-    console.error(`[main] did-fail-load code=${code} desc=${desc} url=${url}`);
+    const shown = redactUrlForDisplay(url);
+    console.error(`[main] did-fail-load code=${code} desc=${desc} url=${shown}`);
     win?.loadURL(
       renderBootError(
-        `Renderer failed to load.\nURL: ${url}\nCode: ${code}\n${desc}`,
+        `Renderer failed to load.\nURL: ${shown}\nCode: ${code}\n${desc}`,
       ),
     );
   });
@@ -302,16 +316,73 @@ async function createWindow(): Promise<void> {
   if (bootErrorUrl) {
     await win.loadURL(bootErrorUrl);
   } else {
-    const query: Record<string, string> = { desktop: "1" };
-    if (apiBase) query.api = apiBase;
-    if (apiToken) query.token = apiToken;
-    await win.loadFile(rendererFile, { query });
+    // Paint the renderer's splash before starting the simulation. Add the
+    // runtime query with a second load once the listener is ready.
+    await loadRenderer(win, rendererFile, { desktop: "1" });
     if (isDev) win.webContents.openDevTools({ mode: "detach" });
   }
 
-  win.on("closed", () => {
-    if (mainWindow === win) mainWindow = null;
-  });
+  if (isQuitting || win.isDestroyed()) return;
+  if (!startHidden || bootErrorUrl) {
+    if (winState.maximized) win.maximize();
+    win.show();
+  }
+
+  if (!settings || bootErrorUrl) return;
+  const startup = startSim(settings)
+    .then(async (sim) => {
+      if (isQuitting || win.isDestroyed()) return;
+      try {
+        await loadRenderer(win, rendererFile, {
+          desktop: "1",
+          api: `127.0.0.1:${sim.port}`,
+          token: sim.commandToken,
+        });
+      } catch (error) {
+        if (activeSim()?.port === sim.port) {
+          await stopSim().catch((stopError: unknown) =>
+            console.error("[main] could not stop sim after renderer load failure:", stopError),
+          );
+        }
+        throw error;
+      }
+    })
+    .catch(async (err: unknown) => {
+      if (isQuitting || win.isDestroyed()) return;
+      const msg = (err as Error).message ?? String(err);
+      console.error("[main] failed to start local sim:", err);
+      try {
+        await win.loadURL(renderBootError(msg));
+        if (!win.isVisible()) win.show();
+      } catch (loadError) {
+        console.error("[main] could not show startup failure:", loadError);
+      }
+      throw err;
+    });
+  windowStartup = startup;
+  void startup.catch(() => {});
+}
+
+// The tray menu and the View menu read their state (is the window visible? is
+// it always on top?) from the window they were built for. `mainWindow` changes
+// when a window is replaced (File > Restart simulation) or opened again after
+// its predecessor closed, so rebind them there: built once at boot they keep
+// describing the window that is gone.
+function bindWindowMenus(win: BrowserWindow): void {
+  const update = (): void => {
+    // A replaced window outlives its own events (its `hide` can still arrive
+    // after the swap); only the window we track may drive the menus.
+    if (mainWindow === win) rebuildWindowMenus();
+  };
+  win.on("show", update);
+  win.on("hide", update);
+  win.on("always-on-top-changed", update);
+  update();
+}
+
+function rebuildWindowMenus(): void {
+  rebuildTrayMenu?.();
+  buildMenu();
 }
 
 function buildMenu(): void {
@@ -431,14 +502,22 @@ function buildMenu(): void {
 
 async function createWindowReplace(): Promise<void> {
   const old = mainWindow;
-  await createWindow();
+  try {
+    await createWindow();
+    await windowStartup;
+  } catch (error) {
+    // The old renderer is already disconnected from the stopped sim. If a
+    // replacement window was created, keep only its startup error page open.
+    if (old && mainWindow !== old && !old.isDestroyed()) old.close();
+    throw error;
+  }
   if (old && !old.isDestroyed()) old.close();
 }
 
 function buildTray(): void {
   if (tray) return;
   try {
-    const iconPath = path.join(__dirname, "..", "..", "build", "icon.png");
+    const iconPath = appIconPath(app.isPackaged, process.resourcesPath, __dirname);
     let img = nativeImage.createFromPath(iconPath);
     if (process.platform === "darwin") {
       img = img.resize({ width: 18, height: 18 });
@@ -520,9 +599,8 @@ function buildTray(): void {
       );
     };
     update();
+    rebuildTrayMenu = update;
     tray.on("click", () => toggleWindow());
-    mainWindow?.on("show", update);
-    mainWindow?.on("hide", update);
   } catch (e) {
     console.warn("[main] tray init failed:", e);
   }
@@ -537,9 +615,48 @@ function revealWindow(win: BrowserWindow): void {
   win.focus();
 }
 
+// Entry points with no caller to receive a rejection (hotkey, dock, tray,
+// second launch). A rejection left unhandled reaches the uncaughtException
+// handler, which quits the app and stops the simulation; report it instead.
+function openWindowOrReport(): Promise<void> {
+  return openWindow().catch((err: unknown) => {
+    console.error("[main] could not open the window:", err);
+    if (!isQuitting) {
+      dialog.showErrorBox(
+        "The Human Box couldn't open its window",
+        (err as Error)?.message ?? String(err),
+      );
+    }
+  });
+}
+
+function showExistingWindow(): void {
+  // No window: macOS keeps the app alive after its window closed, or boot is
+  // still loading. openWindow joins a creation already in flight.
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    void openWindowOrReport();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  revealWindow(mainWindow);
+}
+
+// `mainWindow` is only set once startSim resolves, so a second trigger during
+// that wait (dock click, hotkey, tray) would open another window. Share the
+// creation in flight instead.
+let windowCreation: Promise<void> | null = null;
+function openWindow(): Promise<void> {
+  if (!windowCreation) {
+    windowCreation = createWindow().finally(() => {
+      windowCreation = null;
+    });
+  }
+  return windowCreation;
+}
+
 function toggleWindow(): void {
   if (!mainWindow) {
-    void createWindow();
+    void openWindowOrReport();
     return;
   }
   if (mainWindow.isMinimized()) {
@@ -557,7 +674,9 @@ function toggleWindow(): void {
 function notifyMilestone(title: string, body: string): void {
   if (!Notification.isSupported()) return;
   const n = new Notification({ title, body, silent: false });
-  n.on("click", () => toggleWindow());
+  // A click brings the game forward. It must not hide a window that is
+  // already visible, which is what the tray and hotkey toggle does.
+  n.on("click", () => showExistingWindow());
   n.show();
 }
 
@@ -633,17 +752,12 @@ function registerAppIpcHandlers(): void {
   });
 }
 
-// The control-plane operation a File-menu restart runs under. Named once so the
-// deferred unexpected-exit prompt can tell an in-flight restart (the sim is
-// coming back) from an unrelated operation (a migration, say).
-const RESTART_OPERATION = "restart the simulation";
-
 async function restartSimulation(options: { requireCheckpoint?: boolean } = {}): Promise<void> {
-  await runExclusiveDesktopOperation(RESTART_OPERATION, async () => {
+  await runExclusiveDesktopOperation(RESTART_SIMULATION_OPERATION, async () => {
     await stopSim(5_000, options.requireCheckpoint ?? true);
-    if (mainWindow) {
-      await createWindowReplace();
-    }
+    // Also runs with no window open (macOS keeps the app in the dock after
+    // its last window closes): the restart then just opens a fresh one.
+    await createWindowReplace();
   });
 }
 
@@ -697,7 +811,8 @@ async function showRestartFailure(error: unknown): Promise<void> {
           console.error("[main] deferred restart failure prompt failed:", err),
         );
       },
-      isStillRelevant: () => !isQuitting && activeSim() === failedSim,
+      isStillRelevant: () =>
+        restartFailureStillRelevant({ quitting: isQuitting, activeSim: activeSim(), failedSim }),
     });
     // No-op while the other dialog still holds the slot; closes the window if
     // it released between the failed claim and this defer.
@@ -759,9 +874,11 @@ async function offerSimRestart(
       );
     },
     isStillRelevant: () =>
-      !isQuitting &&
-      activeSim() === null &&
-      currentDesktopOperation() !== RESTART_OPERATION,
+      simExitStillRelevant({
+        quitting: isQuitting,
+        activeSim: activeSim(),
+        operation: currentDesktopOperation(),
+      }),
   });
   // No-op while the other dialog still holds the slot; closes the window if it
   // released between the failed claim and this defer.
@@ -783,23 +900,26 @@ async function boot(): Promise<void> {
   } catch {
     startHiddenOnce = false;
   }
-  await createWindow();
-  buildMenu();
+
+  // Set up controls and update checks before the simulation load begins.
   buildTray();
-  // Hidden start needs the tray as the way back in; without it show the window.
-  if (!tray && mainWindow && !mainWindow.isVisible()) revealWindow(mainWindow);
   applyAutoLaunch();
   initUpdater(() => mainWindow);
-  onUnexpectedSimExit(({ code, signal }) => void offerSimRestart(code, signal));
-
-  // System-wide, so keep it to a combo other apps do not use. DevTools and
-  // screenshot are menu accelerators only: registering them globally stole
-  // Ctrl+Shift+I / Ctrl+Shift+S from every other application.
+  onUnexpectedSimExit(({ code, signal }) =>
+    void offerSimRestart(code, signal).catch((err) =>
+      console.error("[main] sim exit prompt failed:", err),
+    ),
+  );
   const toggleKey =
     process.platform === "darwin" ? "Cmd+Alt+Shift+H" : "Ctrl+Alt+Shift+H";
   if (!globalShortcut.register(toggleKey, toggleWindow)) {
     console.warn(`[main] could not register global shortcut ${toggleKey}`);
   }
+
+  await openWindow();
+  if (isQuitting) return;
+  // Hidden start needs the tray as the way back; without it show the window.
+  if (!tray && mainWindow && !mainWindow.isVisible()) revealWindow(mainWindow);
 }
 
 // Backstop for any boot step that rejects. Without this the boot chain's
@@ -838,7 +958,15 @@ function reportStartupFailure(err: unknown): Promise<void> {
   return fatalStartupFailure(err);
 }
 
-startWhenReady(app.whenReady(), boot, reportStartupFailure);
+// One app per save folder. A second launch must not boot: it would fail on
+// the data-root lock and show a startup error. Quit it and focus the running
+// window instead.
+if (app.requestSingleInstanceLock()) {
+  app.on("second-instance", showExistingWindow);
+  startWhenReady(app.whenReady(), boot, reportStartupFailure);
+} else {
+  app.quit();
+}
 
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
@@ -886,7 +1014,7 @@ app.on("before-quit", (e) => {
   // `shutdownThenQuit` issued. Do not preventDefault them, or the quit can
   // never complete.
   if (isQuitting) return;
-  if (activeSim()) {
+  if (simLifecyclePending()) {
     e.preventDefault();
     shutdownThenQuit();
   }
@@ -894,7 +1022,7 @@ app.on("before-quit", (e) => {
 
 app.on("activate", async () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    await createWindow();
+    await openWindowOrReport();
   } else if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
     // A dock click on an app that started hidden (tray only).
     toggleWindow();

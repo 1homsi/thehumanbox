@@ -149,6 +149,21 @@ export function SandboxToolbar({
 }: Props) {
   const [tabId, setTabId] = useState(readInitialTab)
   const [seenNew, setSeenNew] = useState(readSeenNewTools)
+  // Toasts sit above the dock, and the dock's height depends on the viewport and the tab,
+  // so publish it as a CSS variable instead of hard-coding a guess in three stylesheets.
+  const barRef = useRef<HTMLElement>(null)
+  useLayoutEffect(() => {
+    const el = barRef.current
+    if (!el) return
+    const publish = () => document.documentElement.style.setProperty('--dock-h', `${el.offsetHeight}px`)
+    publish()
+    const obs = new ResizeObserver(publish)
+    obs.observe(el)
+    return () => {
+      obs.disconnect()
+      document.documentElement.style.removeProperty('--dock-h')
+    }
+  }, [])
   const groups = groupsFor(tabId)
   const timeTools = SANDBOX_CATEGORIES.find((c) => c.id === TIME_CATEGORY_ID)?.tools ?? []
   const speedTools = SPEED_TOOL_IDS.flatMap((id) => timeTools.filter((t) => t.id === id))
@@ -310,7 +325,7 @@ export function SandboxToolbar({
   }
 
   return (
-    <section className="sandbox-bar" aria-label="World controls">
+    <section className="sandbox-bar" aria-label="World controls" ref={barRef}>
       <nav className="dock-tabs" aria-label="World tools">
         {DOCK_TABS.map((tab) => (
           <Tooltip

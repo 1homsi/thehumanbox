@@ -225,3 +225,4 @@ ${body}
 mkdirSync(outputDir, { recursive: true })
 writeFileSync(outputPath, svg, 'utf8')
 console.log('wrote', outputPath, `${WIDTH}x${HEIGHT}`)
+console.log('people.png is now stale: re-rasterise it as described in public/sprites/ART_NOTES.md')

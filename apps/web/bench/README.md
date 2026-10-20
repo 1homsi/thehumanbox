@@ -18,16 +18,16 @@ node bench/run.mjs --builds main=dist --fixtures crowd --zooms close --modes pla
 ## Mobile touch checks
 
 `mobile.mjs` opens a production build in headless Chrome with touch emulation and checks horizontal overflow
-at 360x740, 390x844, 844x390, 768x1024 and 1280x800. On touch sizes it opens the Stats modal and checks its
-bounds, then verifies one-finger pan, two-finger pinch and tapping the seeded population at 390x844. It also
-reports visible, unclipped touch targets smaller than 44x44, grouped by viewport and page/modal state; pass
+at 360x740, 390x844, 844x390, 768x1024 and 1280x800. The phone shell hides the header action row, so on phone
+viewports (<=767px) it opens the Stats modal through the phone menu: it taps the menu button, checks the sheet
+fits and holds its rows, then taps "stats". Tablet and desktop viewports open Stats from the header button.
+At 390x844 it verifies one-finger pan, two-finger pinch and tapping the seeded population. It also reports
+visible, unclipped touch targets smaller than 44x44, grouped by viewport and page/modal state; pass
 `--strict-targets` to make those findings fail the run. The target-size gate is informational by default
 because the existing header and dock controls are below 44px; mobile layout changes can turn it on as they
-bring those controls up to size. Phone viewports use DPR 3, the tablet uses DPR 2 and desktop uses DPR 1.
-
-The existing mobile shell hides the Stats opener, so this check currently triggers its app action directly to
-test modal geometry. It does not verify menu reachability, which is the separate MOB-04 task. The harness
-checks browser layout and touch behavior; it does not run a CPU throttle or measure real-device performance.
+bring those controls up to size. Phone viewports use DPR 3, the tablet uses DPR 2 and desktop uses DPR 1. The
+harness checks browser layout and touch behavior; it does not run a CPU throttle or measure real-device
+performance.
 
 ```sh
 pnpm build

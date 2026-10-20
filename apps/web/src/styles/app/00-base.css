@@ -5,12 +5,19 @@
 }
 
 /* Notch / home-indicator insets (0 on desktop and in a normal browser tab). The viewport
- * meta has viewport-fit=cover, so anything pinned to an edge adds the matching one. */
+ * meta has viewport-fit=cover, so anything pinned to an edge adds the matching one.
+ * `--dock-h` is the measured world-dock height, published by SandboxToolbar so toasts sit
+ * above it instead of guessing 116px. */
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
+  --dock-h: 0px;
+  /* Where a toast's bottom edge goes: above the dock and the folder tabs that stick up from
+   * it (`--dock-tab-clear`, set in pixel-theme.css while the dock is mounted), and clear of the
+   * home indicator even before the dock mounts. */
+  --toast-clearance: calc(max(var(--dock-h) + var(--dock-tab-clear, 0px), var(--safe-bottom)) + 12px);
 }
 
 body {
@@ -22,10 +29,31 @@ body {
   overflow: hidden;
 }
 
+/* A game, not a document: no pull-to-refresh and no rubber-banding when a drag reaches the
+ * edge. (overflow:hidden does not stop the rubber band on iOS Safari, this does.) */
+html,
+body {
+  overscroll-behavior: none;
+}
+
 button,
 a,
 [role='button'] {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Buttons react on the touch (no double-tap-zoom delay) and do not offer the iOS long-press
+ * callout. touch-action: manipulation still lets a dock tab strip pan. */
+button,
+[role='button'] {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+/* The map is dragged and long-pressed; no callout there. (Dock tiles are buttons, covered
+ * by the rule above.) */
+.map2d-world {
+  -webkit-touch-callout: none;
 }
 
 :focus {

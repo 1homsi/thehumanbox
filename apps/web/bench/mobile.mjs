@@ -76,6 +76,20 @@ async function pinch(page, cx, cy, from, to, steps = 8) {
   await touch(page, 'touchEnd', [])
 }
 
+/** Real touch tap on the first element matching `selector` (optionally one whose text contains `text`). */
+async function tapElement(page, selector, text) {
+  const point = await page.evaluate(`(() => {
+    const els = [...document.querySelectorAll(${JSON.stringify(selector)})]
+    const el = ${text ? `els.find((e) => (e.textContent || '').trim().toLowerCase().includes(${JSON.stringify(String(text).toLowerCase())}))` : 'els[0]'}
+    if (!el) return null
+    const r = el.getBoundingClientRect()
+    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }
+  })()`)
+  if (!point) throw new Error(`no element for ${selector}${text ? ` matching ${JSON.stringify(text)}` : ''}`)
+  await touch(page, 'touchStart', [{ id: 1, x: point.x, y: point.y }])
+  await touch(page, 'touchEnd', [])
+}
+
 async function waitForStableCamera(page, timeoutMs = 10_000) {
   const until = Date.now() + timeoutMs
   let previous = null
@@ -215,10 +229,73 @@ async function checkViewport(origin, width, height, index) {
     if (touchDevice) collectTargetViolations(layout.targets, label, 'page')
     checkModalBounds(layout.modals, width, height, label)
 
+    // MOB-07: the dock publishes its measured height, and toasts sit above the dock and the folder
+    // tabs that stick up from it.
+    const dock = await page.evaluate(`(() => {
+      const el = document.querySelector('.sandbox-bar')
+      const tabs = document.querySelector('.dock-tabs')
+      const probe = document.createElement('div')
+      probe.style.cssText =
+        'position:fixed;left:0;bottom:var(--toast-clearance);width:1px;height:1px;visibility:hidden'
+      document.body.append(probe)
+      const bottomGap = innerHeight - probe.getBoundingClientRect().bottom
+      probe.remove()
+      return {
+        measured: el ? el.offsetHeight : null,
+        published: getComputedStyle(document.documentElement).getPropertyValue('--dock-h').trim(),
+        bottomGap,
+        tabsTop: tabs ? tabs.getBoundingClientRect().top : null,
+      }
+    })()`)
+    if (!(dock.measured > 0)) viewportFailures.push('no measurable .sandbox-bar')
+    else if (dock.published !== `${dock.measured}px`)
+      viewportFailures.push(`--dock-h is ${dock.published}, expected ${dock.measured}px`)
+    if (dock.tabsTop === null) viewportFailures.push('no .dock-tabs found for the toast-clearance check')
+    else if (dock.bottomGap < height - dock.tabsTop - 1)
+      viewportFailures.push(
+        `a toast at --toast-clearance would cover the dock tabs (${dock.bottomGap}px up, tabs start ${height - dock.tabsTop}px up)`,
+      )
+
+    if (touchDevice) {
+      // MOB-08 touch hygiene: no page rubber-band, and buttons react on the touch.
+      // (-webkit-touch-callout is iOS-only and not exposed in Chrome, so it is not checked here.)
+      const hygiene = await page.evaluate(`(() => {
+        const tile = document.querySelector('.dock-tile')
+        return {
+          overflow: getComputedStyle(document.documentElement).overscrollBehavior,
+          touchAction: tile ? getComputedStyle(tile).touchAction : null,
+        }
+      })()`)
+      if (hygiene.overflow !== 'none')
+        viewportFailures.push(`html overscroll-behavior is ${hygiene.overflow}, expected none`)
+      if (hygiene.touchAction === null) viewportFailures.push('no .dock-tile found for the touch-action check')
+      else if (hygiene.touchAction !== 'manipulation')
+        viewportFailures.push(`dock tile touch-action is ${hygiene.touchAction}, expected manipulation`)
+    }
+
     if (width === 390 && height === 844 && !skipInteractions) {
       try {
         const cx = width / 2
         const cy = Math.round(height * 0.45)
+        // MOB-14: the on-screen zoom control must zoom the map on a touch tap.
+        const zoomBefore = (await page.evaluate('window.__thbBench.camera()')).zoom
+        const zoomBtn = await page.evaluate(`(() => {
+          const el = document.querySelector('.map-controls [aria-label="Zoom in"]')
+          if (!el) return null
+          const r = el.getBoundingClientRect()
+          return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }
+        })()`)
+        if (!zoomBtn) throw new Error('the on-screen zoom-in control is missing on a phone')
+        await touch(page, 'touchStart', [{ id: 1, x: zoomBtn.x, y: zoomBtn.y }])
+        await touch(page, 'touchEnd', [])
+        let zoomAfter = zoomBefore
+        const zoomUntil = Date.now() + 3000
+        while (Date.now() < zoomUntil && !(zoomAfter > zoomBefore + 0.001)) {
+          await sleep(100)
+          zoomAfter = (await page.evaluate('window.__thbBench.camera()')).zoom
+        }
+        if (!(zoomAfter > zoomBefore + 0.001))
+          throw new Error(`the zoom-in control did not zoom (${zoomBefore} -> ${zoomAfter})`)
         // A fit camera has no pan range on the compact standard fixture. Zoom in first.
         await page.evaluate('window.__thbBench.command({kind:"zoom", factor:3})')
         await sleep(300)
@@ -296,8 +373,32 @@ async function checkViewport(origin, width, height, index) {
 
     if (touchDevice) {
       try {
-        // The current mobile shell hides this opener; MOB-04 will provide its touch-accessible route.
-        await page.evaluate('document.querySelector("[data-tour=stats-btn]")?.click()')
+        // Phones (<=767px) hide the header action row; the phone menu is their route to Stats.
+        const menuVisible = await page.evaluate(
+          `(() => {
+            const btn = document.querySelector('.phone-menu-btn')
+            return !!btn && getComputedStyle(btn).display !== 'none'
+          })()`,
+        )
+        if (menuVisible) {
+          await tapElement(page, '.phone-menu-btn')
+          await waitFor(page, '!!document.querySelector(".phone-menu-modal")', 'phone menu')
+          await captureShot(page, `${label}-phone-menu`)
+          const menuLayout = await inspectLayout(page)
+          if (menuLayout.scrollWidth > menuLayout.innerWidth + 1)
+            viewportFailures.push(
+              `horizontal overflow with the phone menu open: ${menuLayout.scrollWidth}px > ${menuLayout.innerWidth}px`,
+            )
+          checkModalBounds(menuLayout.modals, width, height, `${label} phone menu`, true)
+          collectTargetViolations(menuLayout.targets, label, 'phone menu')
+          for (const row of ['stats', 'civilization', 'chronicles', 'settings'])
+            if (!menuLayout.targets.some((target) => target.label.toLowerCase().includes(row)))
+              viewportFailures.push(`phone menu is missing the ${row} row`)
+          await tapElement(page, '.phone-menu-row', 'stats')
+          await waitFor(page, '!document.querySelector(".phone-menu-modal")', 'phone menu closed')
+        } else {
+          await page.evaluate('document.querySelector("[data-tour=stats-btn]")?.click()')
+        }
         await waitFor(page, '!!document.querySelector(".thb-modal")', 'stats modal')
         const modalLayout = await inspectLayout(page)
         if (modalLayout.scrollWidth > modalLayout.innerWidth + 1)
