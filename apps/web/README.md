@@ -99,7 +99,7 @@ src/
 │   ├── modals/       Modals, the router, civ stats (stats/)
 │   ├── panels/       Right panel, event log, tribe/org cards, chips
 │   ├── toolbar/      Sandbox toolbar, tool search, command palette, header
-│   ├── toasts/       Update and download toasts, mobile banner
+│   ├── toasts/       Update and download toasts
 │   └── tour/         Shepherd-based desktop onboarding
 ├── state/            UI store (zustand slices), live world store, scene store
 ├── simulation/       useSimulation hook, wasm worker, wire decoding, frame merging

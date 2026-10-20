@@ -4,6 +4,8 @@ import * as path from "node:path";
 import test from "node:test";
 import * as vm from "node:vm";
 
+import * as rendererCsp from "./renderer-csp";
+
 function loadIndex(options: {
   singleInstance: boolean;
   calls: string[];
@@ -103,6 +105,7 @@ function loadIndex(options: {
   const ipcMain = {
     handle: (channel: string) => calls.push(`ipc:${channel}`),
   };
+  let cspInstalled = false;
   const context = vm.createContext({
     exports: {},
     __dirname,
@@ -120,6 +123,16 @@ function loadIndex(options: {
           dialog: { showErrorBox: () => calls.push("dialog:error") },
           globalShortcut: { unregisterAll() {}, register: () => true },
           ipcMain,
+          session: {
+            defaultSession: {
+              webRequest: {
+                onHeadersReceived() {
+                  cspInstalled = true;
+                  calls.push("csp:install");
+                },
+              },
+            },
+          },
         };
       }
       if (id === "./ipc") return { registerIpc() {} };
@@ -157,6 +170,7 @@ function loadIndex(options: {
       if (id === "./login-launch") return { loginItemSettings: () => ({}) };
       if (id === "node:fs") return { readFileSync: () => { throw new Error("no saved bounds"); } };
       if (id === "node:path") return path;
+      if (id === "./renderer-csp") return rendererCsp;
       return {};
     },
   });
@@ -186,6 +200,9 @@ function loadIndex(options: {
     },
     setStopBehavior(mode: "resolve" | "reject" | "hang") {
       stopBehavior = mode;
+    },
+    get cspInstalled() {
+      return cspInstalled;
     },
   };
 }
@@ -222,6 +239,14 @@ test("boot registers app IPC before creating the window and stops the sim on fat
   wiring.setStopBehavior("hang");
   await assertFatalOrder(new Error("third startup failure"));
   assert.equal(calls.filter((call) => call === "app:exit").length, 3);
+});
+
+test("boot installs a content security policy for the renderer file", async () => {
+  const calls: string[] = [];
+  const wiring = loadIndex({ singleInstance: true, calls });
+  await assert.rejects(wiring.boot!(), /malformed window state/);
+  assert.equal(wiring.cspInstalled, true);
+  assert.ok(calls.includes("csp:install"));
 });
 
 test("a second launch quits before booting, so it never opens a window or starts a sim", async () => {

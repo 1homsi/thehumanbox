@@ -73,7 +73,6 @@ import { ModalRouter } from './ui/modals/ModalRouter'
 import { type ScenarioPreset } from './simulation/scenarios'
 import { setSandboxSender } from './simulation/commandBus'
 import { useSkyOverlay } from './game/render/sky-overlay'
-import { MobileBanner } from './ui/toasts/MobileBanner'
 import { WelcomeModal } from './ui/modals/WelcomeModal'
 import { UpdateToast } from './ui/toasts/UpdateToast'
 import { DesktopUpdateToast } from './ui/toasts/DesktopUpdateToast'
@@ -873,7 +872,6 @@ function LiveApp() {
 
         {hotkeysOpen && <HotkeyHelp onClose={() => setHotkeysOpen(false)} />}
 
-        <MobileBanner />
         {world && <WelcomeModal />}
         <UpdateToast />
         <PrayerHint world={world ?? null} onAnswer={handleAnswerPrayer} />
