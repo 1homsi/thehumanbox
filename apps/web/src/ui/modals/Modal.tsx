@@ -20,6 +20,12 @@ export function Modal({ open, onClose, className, title, hideTitle = false, chil
   const sheet = !className?.includes('confirm-modal')
   const contentRef = useRef<HTMLDivElement>(null)
   const drag = useRef<{ id: number; startY: number; dy: number } | null>(null)
+  // The control that had focus when the dialog opened; focus goes back there on close.
+  const opener = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (open) opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+  }, [open])
 
   // A mounted sheet covers most of a phone map; the renderer can stop drawing behind it.
   useEffect(() => {
@@ -74,7 +80,15 @@ export function Modal({ open, onClose, className, title, hideTitle = false, chil
           className={`thb-modal${sheet ? ' thb-modal--sheet' : ''} ${className ?? ''}`}
           aria-describedby={undefined}
           onOpenAutoFocus={(e) => {
+            // Move focus into the dialog without picking a control, so the trigger behind the overlay
+            // loses it and the focus trap engages. An autoFocus child already holds focus; keep it.
             e.preventDefault()
+            if (!contentRef.current?.contains(document.activeElement)) contentRef.current?.focus()
+          }}
+          onCloseAutoFocus={(e) => {
+            // Radix only returns focus to its Trigger, and this modal has none, so return it here.
+            e.preventDefault()
+            opener.current?.focus()
           }}
         >
           {sheet && (

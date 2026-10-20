@@ -4,7 +4,9 @@ import { TILE } from '../../../model/palette'
 import { PAD, PAD_TOP } from '../../building-painters/kit'
 import { homeLandOfBiome } from '../../building-painters/land-homes'
 import { drawBuilding } from '../../building-draw/draw'
-import { resolveBuildingFootprint } from '../../building-draw/footprints'
+import { normKind, resolveBuildingFootprint } from '../../building-draw/footprints'
+import { RUIN_CRUMBLE_TICKS } from '../../building-draw/ruins'
+import { padEmpty } from '../../era-traffic'
 import { lineageEraTiers } from '../../draw-helpers'
 import { terrainSeason } from '../../terrain-season'
 import { vegetationSeason } from '../../landscape-style'
@@ -16,6 +18,7 @@ import {
   contentOrigin,
   describeBuilding,
   nightBucketOf,
+  RUIN_AGE_STEPS,
   type BuildingFrameInfo,
   type BuildingVisual,
 } from './building-visuals'
@@ -55,8 +58,20 @@ export class BuildingsDriver implements CfDriver {
   private visible: Building[] = []
   private cells: CellRef[] = []
   private sig = ''
+  /** The atlas epoch `sig` was taken at (the epoch can move during a rebuild, see the end of update). */
+  private sigAtlasEpoch = -1
   private tiersFor: unknown = null
   private tiers = new Map<string, number>()
+  /** Bumped when the tier map is rebuilt (the `lineage_eras` object changed), so the frame key sees it. */
+  private tiersEpoch = 0
+  /** The building list the cached look inputs were read from (a new array means the sim sent new data). */
+  private buildingsRef: Building[] | null = null
+  /** Bumped when the building list is replaced: the frame key must see the new data. */
+  private buildingsEpoch = 0
+  /** `ruined_at_tick` of every ruined building: their baked look ages with the sim tick. */
+  private ruins: number[] = []
+  /** Ids of the spaceports: their pad empties and refills on the launch clock. */
+  private spaceports: number[] = []
 
   private readonly layer: SpriteLayer
   private readonly atlas: CellAtlas
@@ -81,24 +96,52 @@ export class BuildingsDriver implements CfDriver {
       if (this.layer.count === 0) return false
       this.layer.clear()
       this.sig = ''
+      this.sigAtlasEpoch = -1
       return true
     }
     if (this.tiersFor !== world.lineage_eras) {
       this.tiersFor = world.lineage_eras
       this.tiers = lineageEraTiers(world.lineage_eras)
+      this.tiersEpoch++
+    }
+    // The sim resends the building list only when a building changed, so a new array is the whole of the
+    // per-building change. Re-scan it once for the two looks that age with the tick (ruins crumble, a
+    // spaceport's pad empties) instead of rebuilding every building on every frame.
+    if (this.buildingsRef !== buildings) {
+      this.buildingsRef = buildings
+      this.buildingsEpoch++
+      this.ruins.length = 0
+      this.spaceports.length = 0
+      for (const b of buildings) {
+        if (b.ruined_at_tick != null) this.ruins.push(b.ruined_at_tick)
+        if (normKind(b.kind) === 'Spaceport') this.spaceports.push(b.id)
+      }
+    }
+    const nightBucket = nightBucketOf(world)
+    const winter = vegetationSeason(terrainSeason(world)) === 'winter'
+    // Everything else that reaches pixels is fixed by the frame-level night, season, detail, window and
+    // terrain revision (or the building's own data, resent when it changes), so those plus the aging
+    // looks above are the whole key. The frame id and the raw tick are deliberately not in it.
+    let slow = 0
+    for (const ruinedAt of this.ruins) {
+      const age = Math.max(0, Math.min(1, (world.tick - ruinedAt) / RUIN_CRUMBLE_TICKS))
+      slow = (Math.imul(slow, 31) + Math.round(age * RUIN_AGE_STEPS) + 1) | 0
+    }
+    // A multiply-per-entry fold, not a shift: a long list must not overflow the bits already hashed in.
+    for (const id of this.spaceports)
+      slow = (Math.imul(slow, 31) + (padEmpty(id, world.tick) ? 1 : 0) + 1) | 0
+    const sig = `${this.buildingsEpoch}|${buildings.length}|${slow}|${this.tiersEpoch}|${nightBucket}|${f.detail}|${winter ? 1 : 0}|${win.c0},${win.c1},${win.r0},${win.r1}|${f.terrainRevision}`
+    if (sig === this.sig && this.atlas.epoch === this.sigAtlasEpoch && this.ids.length === this.layer.count) {
+      this.stats.skipped++
+      return false
     }
     const info: BuildingFrameInfo = {
       tick: world.tick,
-      nightBucket: nightBucketOf(world),
+      nightBucket,
       detail: f.detail,
       tiers: this.tiers,
-      winter: vegetationSeason(terrainSeason(world)) === 'winter',
+      winter,
       landAt: (x, y) => homeLandOfBiome(f.biomes?.[y - f.oy]?.[x - f.ox] ?? 0),
-    }
-    const sig = `${world.frame_id}|${buildings.length}|${world.tick}|${info.nightBucket}|${info.detail}|${info.winter ? 1 : 0}|${win.c0},${win.c1},${win.r0},${win.r1}|${this.atlas.epoch}`
-    if (sig === this.sig && this.ids.length === this.layer.count) {
-      this.stats.skipped++
-      return false
     }
     const t0 = performance.now()
     // Every look this rebuild hands out stays valid until the next one (see CellAtlas.beginFrame).
@@ -129,7 +172,10 @@ export class BuildingsDriver implements CfDriver {
       }
       if (epoch === this.atlas.epoch) break
     }
-    this.sig = sig.slice(0, sig.lastIndexOf('|') + 1) + this.atlas.epoch
+    // Baking may clear an atlas page (the epoch moves): record both so the next frame is compared against
+    // the cells this rebuild left behind.
+    this.sig = sig
+    this.sigAtlasEpoch = this.atlas.epoch
     const n = vis.length
     layer.resize(n)
     for (let i = 0; i < n; i++) {

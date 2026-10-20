@@ -54,8 +54,8 @@ importers:
         specifier: ^15.3.0
         version: 15.3.0
       xipjs:
-        specifier: ^0.15.1
-        version: 0.15.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: ^0.15.3
+        version: 0.15.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zustand:
         specifier: ^5.0.15
         version: 5.0.15(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.6.0(react@19.3.0))
@@ -1634,8 +1634,8 @@ packages:
       utf-8-validate:
         optional: true
 
-  xipjs@0.15.1:
-    resolution: {integrity: sha512-HbS4GJFpfQ8abOU3vR03VX0EUv75hEbPqv2c9fkM3/VlZhv4+1kdsRd4HMsc7kRJ9O5RexVdMTB/qlUZWMycWw==}
+  xipjs@0.15.3:
+    resolution: {integrity: sha512-z1wjtcL//vkDRw/WMsMQSQx6c+yUepItTYJgkszKLRGwnBzKKPO3hkfUPAUU/woKo/qcHPN5Pa8bgHfjau0Vqw==}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
@@ -3028,7 +3028,7 @@ snapshots:
 
   ws@8.22.0: {}
 
-  xipjs@0.15.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+  xipjs@0.15.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)

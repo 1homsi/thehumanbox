@@ -21,5 +21,3 @@
 # but a deploy replaces it within a day at worst.
 /sprites/*
   Cache-Control: public, max-age=86400
-/models/*
-  Cache-Control: public, max-age=86400

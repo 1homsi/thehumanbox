@@ -37,6 +37,7 @@ import { tribeHome } from './game/model/tribe-peril'
 import { useCameraFocus } from './state/camera-focus'
 import type { PrayerInfo } from './shared/types'
 import { DesktopDownloadToast } from './ui/toasts/DesktopDownloadToast'
+import { StarToast } from './ui/toasts/StarToast'
 import { CommandPalette } from './ui/toolbar/CommandPalette'
 import { HeadlineTicker } from './ui/panels/HeadlineTicker'
 import { trackEvent } from './shared/observability'
@@ -51,7 +52,9 @@ import {
 import { useWorldStore } from './state/worldStore'
 import { nearestLivingPerson } from './simulation/nearestPerson'
 import { IS_LOCAL_SERVER } from './shared/config'
+import { isDesktopStartupPending } from './shared/desktopStartup'
 import { getDesktop, type SimMode } from './shared/desktop'
+import { pickNewHeadline } from './shared/desktopHeadlines'
 import {
   DESKTOP_PAUSE_WHEN_HIDDEN_EVENT,
   isDesktopWindowInactive,
@@ -70,7 +73,6 @@ import { ModalRouter } from './ui/modals/ModalRouter'
 import { type ScenarioPreset } from './simulation/scenarios'
 import { setSandboxSender } from './simulation/commandBus'
 import { useSkyOverlay } from './game/render/sky-overlay'
-import { MobileBanner } from './ui/toasts/MobileBanner'
 import { WelcomeModal } from './ui/modals/WelcomeModal'
 import { UpdateToast } from './ui/toasts/UpdateToast'
 import { DesktopUpdateToast } from './ui/toasts/DesktopUpdateToast'
@@ -108,6 +110,7 @@ function App() {
 function LiveApp() {
   const worldSourceRef = useRef(getWorldSource())
   const desktop = getDesktop()
+  const desktopStartupPending = isDesktopStartupPending(!!desktop, window.location.search)
   const isLocalWebWorld = !desktop && worldSourceRef.current === 'wasm'
   const [desktopMode, setDesktopMode] = useState<SimMode | null>(desktop ? null : 'local')
   const [desktopPauseWhenHidden, setDesktopPauseWhenHidden] = useState(true)
@@ -596,22 +599,21 @@ function LiveApp() {
     }
   }, [world, pauseSim, setTemporarySandboxStatus])
 
-  const lastHeadlineTickRef = useRef<number>(0)
+  const headlineSeenTickRef = useRef<number | null>(null)
   useEffect(() => {
+    if (!world?.headlines) return
+    const picked = pickNewHeadline(headlineSeenTickRef.current, world.headlines)
+    headlineSeenTickRef.current = picked.seenTick
     const desk = window.thbDesktop
-    if (!desk) return
-    if (!world?.headlines || world.headlines.length === 0) return
-    const newest = world.headlines[0]
-    if (!newest || typeof newest.tick !== 'number') return
-    if (newest.tick <= lastHeadlineTickRef.current) return
-    lastHeadlineTickRef.current = newest.tick
+    if (!desk || !picked.headline) return
     if (document.visibilityState !== 'visible' || desktopWindowInactiveRef.current) {
-      void desk.app.notify({ title: 'The Human Box', body: newest.text })
+      void desk.app.notify({ title: 'The Human Box', body: picked.headline.text })
     }
   }, [world?.headlines])
 
   const splashHiddenRef = useRef(false)
   useEffect(() => {
+    if (desktopStartupPending) return
     if ((!world && !localStartupFailed) || splashHiddenRef.current) return
     splashHiddenRef.current = true
     window.dispatchEvent(new Event('thb-world-ready'))
@@ -621,7 +623,7 @@ function LiveApp() {
         alive: world.organisms.filter((o) => o.alive).length,
       })
     }
-  }, [localStartupFailed, world])
+  }, [desktopStartupPending, localStartupFailed, world])
 
   useEffect(() => {
     if (viewFlags.photoMode) document.body.classList.add('thb-photo-mode')
@@ -696,6 +698,7 @@ function LiveApp() {
         <HeadlineTicker world={world ?? null} enabled={viewFlags.headlineTicker} />
 
         <DesktopDownloadToast />
+        <StarToast />
         <CommandPalette />
         <PhotoModeExit />
         <ConfirmHost />
@@ -869,7 +872,6 @@ function LiveApp() {
 
         {hotkeysOpen && <HotkeyHelp onClose={() => setHotkeysOpen(false)} />}
 
-        <MobileBanner />
         {world && <WelcomeModal />}
         <UpdateToast />
         <PrayerHint world={world ?? null} onAnswer={handleAnswerPrayer} />

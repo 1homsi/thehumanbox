@@ -30,6 +30,7 @@ async function mount(dpr = 1): Promise<Rig> {
       containerEl: h.container,
       cameraStateRef,
       commandRef,
+      followOrgId: null,
       followTarget: null,
     }
     return <CfMapCameraController {...props} />

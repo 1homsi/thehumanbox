@@ -17,6 +17,10 @@ import { packRgba } from '../overlays/color'
 /** Water bodies up to this many cells are lakes; a bigger body is the sea. */
 export const LAKE_MAX_CELLS = 1200
 
+/** The four neighbours of a cell as row and column steps (north, south, west, east). */
+const STEP_ROW = [-1, 1, 0, 0] as const
+const STEP_COL = [0, 0, -1, 1] as const
+
 /**
  * Marks every water cell that belongs to a lake (a connected body of water of at most
  * LAKE_MAX_CELLS cells). Each body is flood-filled once in full, so the sea is measured whole
@@ -44,13 +48,9 @@ export function lakeCells(
       body.push(k)
       const r = Math.floor(k / width)
       const c = k - r * width
-      const neighbours = [
-        [r - 1, c],
-        [r + 1, c],
-        [r, c - 1],
-        [r, c + 1],
-      ] as const
-      for (const [nr, nc] of neighbours) {
+      for (let d = 0; d < 4; d++) {
+        const nr = r + STEP_ROW[d]!
+        const nc = c + STEP_COL[d]!
         if (nr < 0 || nc < 0 || nr >= height || nc >= width) continue
         const n = nr * width + nc
         if (seen[n] || tiles[nr]?.[nc] !== TILE_ID.WATER) continue

@@ -1,6 +1,7 @@
 import type { TileLayerData } from 'xipjs'
 import { tileColor } from '../base-parts/tile-paint'
 import { TILE } from '../../model/palette'
+import { WORLD_MAX_DPR } from '../world-dpr'
 import { getFlatTerrainTileset, getTerrainTileset } from './atlas'
 import { TERRAIN_KINDS, kindHeadId, terrainKind, terrainTilesetPixels } from './tileset'
 
@@ -47,7 +48,9 @@ export const MAX_INCREMENTAL_TILES = 6000
 export const terrainLod = { enabled: true, flatBelowPx: 7, detailAbovePx: 9 }
 
 function applyLod(layer: TileLayerData, state: TerrainSyncState, zoom: number | undefined) {
-  const dpr = typeof devicePixelRatio === 'number' ? devicePixelRatio : 1
+  // The world canvas draws at most WORLD_MAX_DPR backing pixels per CSS pixel, so that is what a
+  // "device pixel" is here, not the screen's devicePixelRatio.
+  const dpr = Math.min(WORLD_MAX_DPR, typeof devicePixelRatio === 'number' ? devicePixelRatio : 1)
   const px = zoom === undefined ? Infinity : zoom * dpr * TILE
   const wantFlat =
     terrainLod.enabled && (state.flat ? px < terrainLod.detailAbovePx : px < terrainLod.flatBelowPx)

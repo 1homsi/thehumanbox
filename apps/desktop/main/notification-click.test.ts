@@ -1,0 +1,115 @@
+import assert from 'node:assert/strict'
+import { EventEmitter } from 'node:events'
+import { readFileSync } from 'node:fs'
+import * as path from 'node:path'
+import test from 'node:test'
+import * as vm from 'node:vm'
+
+function harness(options: { failWindow?: boolean } = {}) {
+  const windows: FakeWindow[] = []
+  const errorBoxes: string[] = []
+  const notifications: FakeNotification[] = []
+  class FakeWindow extends EventEmitter {
+    destroyed = false
+    visible = true
+    calls: string[] = []
+    webContents = {
+      send: () => {},
+      setWindowOpenHandler: () => {},
+      session: {
+        setPermissionCheckHandler: () => {},
+        setPermissionRequestHandler: () => {},
+      },
+      on: () => {},
+    }
+    constructor() {
+      super()
+      if (options.failWindow) throw new Error('window failed to open')
+      windows.push(this)
+    }
+    async loadFile() {}
+    isDestroyed() { return this.destroyed }
+    isMinimized() { return false }
+    isVisible() { return this.visible }
+    isAlwaysOnTop() { return false }
+    show() { this.calls.push('show'); this.visible = true }
+    hide() { this.calls.push('hide'); this.visible = false }
+    focus() { this.calls.push('focus') }
+    restore() { this.calls.push('restore') }
+    maximize() { this.calls.push('maximize') }
+  }
+  class FakeNotification {
+    handlers: Record<string, () => void> = {}
+    static isSupported() { return true }
+    constructor() { notifications.push(this) }
+    on(event: string, handler: () => void) { this.handlers[event] = handler }
+    show() {}
+  }
+  const app = {
+    setName() {},
+    isPackaged: true,
+    getVersion: () => '0.0.0-test',
+    on() {},
+    requestSingleInstanceLock: () => true,
+    whenReady: () => new Promise<void>(() => {}),
+  }
+  const context = vm.createContext({
+    exports: {}, __dirname, process, console, setTimeout, clearTimeout,
+    require: (id: string) => {
+      if (id === 'electron') {
+        return {
+          app,
+          BrowserWindow: FakeWindow,
+          Menu: { setApplicationMenu() {}, buildFromTemplate: () => ({}) },
+          Notification: FakeNotification,
+          dialog: { showErrorBox: (title: string) => errorBoxes.push(title) },
+        }
+      }
+      if (id === './startup-lifecycle') return { startWhenReady: () => {} }
+      if (id === './settings') return { loadSettings: () => ({}) }
+      if (id === './sim-process') return { startSim: async () => ({ port: 8000 }) }
+      if (id === 'node:fs') return { readFileSync: () => { throw new Error('no saved bounds') } }
+      if (id === './app-version-arg') return { appVersionArgument: (v: string) => `--thb-app-version=${v}` }
+      if (id === './app-icon') return { appIconPath: () => '/tmp/icon.png' }
+      if (id === 'node:path') return path
+      if (id === './renderer-load') return require(path.join(__dirname, 'renderer-load'))
+      return {}
+    },
+  })
+  vm.runInContext(readFileSync(path.join(__dirname, 'index.js'), 'utf8'), context)
+  return { context, windows, notifications, errorBoxes }
+}
+
+test('clicking a milestone notification reveals a visible window instead of hiding it', async () => {
+  const { context, windows, notifications } = harness()
+  await vm.runInContext('createWindow()', context)
+  vm.runInContext('notifyMilestone("Headline", "body")', context)
+  notifications[0].handlers.click()
+  assert.equal(windows[0].visible, true)
+  assert.equal(windows[0].calls.includes('hide'), false)
+  assert.ok(windows[0].calls.includes('focus'))
+})
+
+test('clicking a milestone notification with no window open creates one', async () => {
+  const { context, windows, notifications } = harness()
+  vm.runInContext('notifyMilestone("Headline", "body")', context)
+  notifications[0].handlers.click()
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(windows.length, 1)
+})
+
+test('a milestone click that cannot open a window is reported, not an unhandled rejection', async () => {
+  const { context, notifications, errorBoxes } = harness({ failWindow: true })
+  const unhandled: unknown[] = []
+  const onUnhandled = (reason: unknown) => { unhandled.push(reason) }
+  process.on('unhandledRejection', onUnhandled)
+  try {
+    vm.runInContext('notifyMilestone("Headline", "body")', context)
+    notifications[0].handlers.click()
+    await new Promise((resolve) => setImmediate(resolve))
+    assert.deepEqual(unhandled, [])
+    assert.equal(errorBoxes.length, 1)
+  } finally {
+    process.off('unhandledRejection', onUnhandled)
+  }
+})

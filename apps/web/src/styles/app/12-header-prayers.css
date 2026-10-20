@@ -39,6 +39,17 @@
 .header .github-link:hover {
   color: var(--hdr-gold);
 }
+/* The repository link reads as an action: a raised button with a gold star. */
+.header .star-link {
+  gap: 5px;
+  margin-left: 2px;
+  padding: 0 9px 0 7px;
+  text-decoration: none;
+}
+.header .star-link .github-icon {
+  width: 14px;
+  height: 14px;
+}
 
 .header .header-badges {
   gap: 6px;
@@ -290,6 +301,9 @@
 @media (max-width: 1080px) {
   .header .era-badge,
   .header .github-link {
+    display: none;
+  }
+  .header .star-link .btn-label {
     display: none;
   }
 }

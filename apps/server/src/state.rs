@@ -3,9 +3,11 @@
 use super::*;
 
 pub type SharedSim = Arc<Mutex<Simulation>>;
-pub type Tx = broadcast::Sender<Arc<Vec<u8>>>;
+/// Encoded frames travel as `Bytes`: a subscriber's send is a refcount clone,
+/// not a copy of a 90-224 KB frame.
+pub type Tx = broadcast::Sender<Bytes>;
 
-pub type LatestFull = Arc<std::sync::RwLock<Option<Arc<Vec<u8>>>>>;
+pub type LatestFull = Arc<std::sync::RwLock<Option<Bytes>>>;
 
 /// Cached OG image bytes + epoch_ms of the render time. Wrapped in an
 /// async mutex so the route handler can do a brief await across the

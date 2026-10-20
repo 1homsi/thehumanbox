@@ -6,7 +6,6 @@ pub use sim_core::{organism, physics, sim, world};
 mod broadcaster;
 mod config;
 mod desktop_lock;
-mod frame_codec;
 mod rollover;
 mod router;
 mod runtime;
@@ -29,6 +28,7 @@ mod transport;
 mod world_archive;
 mod world_store;
 
+use axum::body::Bytes;
 use axum::http::HeaderValue;
 use axum::{
     routing::{get, post},
@@ -52,7 +52,18 @@ async fn main() {
         eprintln!("simulation-rs refused desktop data ownership: {error}");
         std::process::exit(1);
     }
-    dotenvy::dotenv().ok();
+    // This must stay after the lock claim: a `.env` loaded first could inject
+    // the very token and parent pid the claim validates.
+    let dotenv = dev_dotenv_path(
+        desktop_owned_environment(
+            std::env::var_os("THB_DATA_LOCK_TOKEN").as_deref(),
+            std::env::var_os("THB_DESKTOP_PARENT_PID").as_deref(),
+        ),
+        std::env::current_dir().ok().as_deref(),
+    );
+    if let Some(path) = dotenv {
+        dotenvy::from_path(path).ok();
+    }
 
     startup::init_tracing();
 
@@ -77,7 +88,7 @@ async fn main() {
             None
         }
     });
-    let (tx, _rx) = broadcast::channel::<Arc<Vec<u8>>>(WS_BROADCAST_BUFFER);
+    let (tx, _rx) = broadcast::channel::<Bytes>(WS_BROADCAST_BUFFER);
     let latest_full: LatestFull = Arc::new(std::sync::RwLock::new(None));
     let latest_full_at: Arc<std::sync::atomic::AtomicU64> = Arc::new(std::sync::atomic::AtomicU64::new(0));
     let last_tick_at: Arc<std::sync::atomic::AtomicU64> = Arc::new(std::sync::atomic::AtomicU64::new(0));
@@ -94,10 +105,17 @@ async fn main() {
         let mut s = sim.lock().await;
         let frame_started = std::time::Instant::now();
         let frame_id = next_frame_id(&frame_clock);
-        let full = Arc::new(encode_frame(s.state_json(), frame_id, now_ms(), "full"));
-        transport_stats.record_generated(full.len(), frame_started.elapsed().as_millis() as u64);
-        if let Ok(mut slot) = latest_full.write() {
-            *slot = Some(full);
+        match encode_frame(s.state_json(), frame_id, now_ms(), "full") {
+            Some(bytes) => {
+                transport_stats.record_generated(bytes.len(), frame_started.elapsed().as_millis() as u64);
+                if let Ok(mut slot) = latest_full.write() {
+                    *slot = Some(Bytes::from(bytes));
+                }
+            }
+            // No cached full frame until the broadcaster builds one, and
+            // `/snapshot` answers 503 in the meantime. Count it so a startup
+            // that never produced a snapshot is visible on `/metrics`.
+            None => transport_stats.record_encode_failure(),
         }
     }
 

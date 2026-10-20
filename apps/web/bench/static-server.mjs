@@ -29,7 +29,6 @@ const name = params.get('world')
 const flags = {
   'thb-welcome-seen-v1': '1',
   'thb-tour-completed-v1': '1',
-  'thb-mobile-banner-dismissed': '1',
   'thb-desktop-toast-dismissed-at': String(Date.now()),
   'thb-prayer-hint-seen-v1': '1',
 }

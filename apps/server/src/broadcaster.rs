@@ -42,13 +42,19 @@ impl Broadcaster {
                             let frame_id = next_frame_id(&frame_clock_w);
                             (frame_id, tokio::task::block_in_place(|| s.state_frame()))
                         };
-                        let full = Arc::new(tokio::task::block_in_place(|| {
+                        let full = tokio::task::block_in_place(|| {
                             encode_frame(snapshot, frame_id, now_ms(), "full")
-                        }));
-                        if let Ok(mut slot) = latest_full_w.write() {
-                            *slot = Some(full);
+                        })
+                        .map(Bytes::from);
+                        match full {
+                            Some(full) => {
+                                if let Ok(mut slot) = latest_full_w.write() {
+                                    *slot = Some(full);
+                                }
+                                latest_full_at_w.store(now_ms(), std::sync::atomic::Ordering::Relaxed);
+                            }
+                            None => transport_stats_w.record_encode_failure(),
                         }
-                        latest_full_at_w.store(now_ms(), std::sync::atomic::Ordering::Relaxed);
                     }
                     sleep_until_period_end(cycle_started, *NETWORK_MS).await;
                     continue;
@@ -62,24 +68,36 @@ impl Broadcaster {
                     let frame_id = next_frame_id(&frame_clock_w);
                     tokio::task::block_in_place(|| cadence.build(&mut s, frame_id))
                 };
-                let (frame, full_payload) =
-                    tokio::task::block_in_place(|| encode_cycle(values, &transport_stats_w, now_ms));
+                let EncodedCycle {
+                    frame,
+                    deep_full,
+                    main_dropped,
+                } = tokio::task::block_in_place(|| encode_cycle(values, &transport_stats_w, now_ms));
+                if main_dropped {
+                    // The dropped delta already consumed the world's change
+                    // tracking, and a client that misses one frame keeps its
+                    // stale state until the next full one. Re-send a full frame
+                    // next cycle so the change is not lost for up to 30 ticks.
+                    cadence.recover_with_a_full_frame();
+                }
 
-                if let Some(full) = full_payload {
+                if let Some(full) = deep_full {
                     if let Ok(mut slot) = latest_full_w.write() {
                         *slot = Some(full);
                     }
                     latest_full_at_w.store(transport::now_ms(), std::sync::atomic::Ordering::Relaxed);
                 }
                 let receivers = tx_clone.receiver_count() as u64;
-                let frame_len = frame.len() as u64;
-                let _ = tx_clone.send(frame);
+                if let Some(frame) = frame {
+                    let frame_len = frame.len() as u64;
+                    let _ = tx_clone.send(frame);
 
-                // Egress this cycle is the frame size times every subscriber
-                // it fans out to. Accumulate it into the rolling-24h window
-                // and widen the cadence as we approach the daily budget — a
-                // graceful, non-disconnecting cap on the data-transfer bill.
-                transport_stats_w.record_egress(frame_len.saturating_mul(receivers), now_ms());
+                    // Egress this cycle is the frame size times every subscriber
+                    // it fans out to. Accumulate it into the rolling-24h window
+                    // and widen the cadence as we approach the daily budget — a
+                    // graceful, non-disconnecting cap on the data-transfer bill.
+                    transport_stats_w.record_egress(frame_len.saturating_mul(receivers), now_ms());
+                }
                 let budget = *DAILY_EGRESS_BYTES;
                 let cadence_mult = if budget == 0 {
                     1
@@ -111,6 +129,9 @@ pub(super) struct FrameCadence {
     last_broadcast_tick: u64,
     last_deep_full_tick: u64,
 }
+
+/// One encoded frame, shared by every subscriber (a refcounted clone).
+pub(super) type EncodedFrame = Bytes;
 
 /// The JSON values one broadcast cycle builds while it holds the sim lock.
 pub(super) struct CycleValues {
@@ -152,6 +173,24 @@ impl FrameCadence {
             deep_full,
         }
     }
+
+    /// A dropped frame consumed the world's change tracking without reaching
+    /// any client, so make the next cycle a periodic full frame: it carries
+    /// every entity and the buildings section regardless of revisions.
+    pub(super) fn recover_with_a_full_frame(&mut self) {
+        self.last_broadcast_tick = 0;
+    }
+}
+
+/// What one broadcast cycle encoded. Either frame is `None` when the encoder
+/// refused it: the caller drops it instead of broadcasting an empty message.
+pub(super) struct EncodedCycle {
+    pub(super) frame: Option<EncodedFrame>,
+    pub(super) deep_full: Option<EncodedFrame>,
+    /// The main frame was refused. Its changes are already consumed, so the
+    /// caller must re-send a full frame next cycle (see
+    /// `FrameCadence::recover_with_a_full_frame`).
+    pub(super) main_dropped: bool,
 }
 
 /// Encode a cycle's values into wire frames and record the main frame's
@@ -160,7 +199,7 @@ pub(super) fn encode_cycle(
     values: CycleValues,
     stats: &SharedTransportStats,
     mut now: impl FnMut() -> u64,
-) -> (Arc<Vec<u8>>, Option<Arc<Vec<u8>>>) {
+) -> EncodedCycle {
     let CycleValues {
         frame_id,
         main,
@@ -168,19 +207,40 @@ pub(super) fn encode_cycle(
         main_build,
         deep_full,
     } = values;
+    let mut dropped = false;
     let encode_started = std::time::Instant::now();
     let label = match kind {
         FrameKind::Full => "full",
         FrameKind::Delta => "delta",
     };
-    let bytes = encode_frame(main, frame_id, now(), label);
-    stats.record_generated_kind(
-        bytes.len(),
-        (main_build + encode_started.elapsed()).as_millis() as u64,
-        Some(kind),
-    );
-    let heavy = deep_full.map(|v| Arc::new(encode_frame(v, frame_id, now(), "full")));
-    (Arc::new(bytes), heavy)
+    let frame = match encode_frame(main, frame_id, now(), label) {
+        Some(bytes) => {
+            stats.record_generated_kind(
+                bytes.len(),
+                (main_build + encode_started.elapsed()).as_millis() as u64,
+                Some(kind),
+            );
+            Some(Bytes::from(bytes))
+        }
+        None => {
+            stats.record_encode_failure();
+            dropped = true;
+            None
+        }
+    };
+    let heavy = deep_full.and_then(|v| {
+        encode_frame(v, frame_id, now(), "full")
+            .map(Bytes::from)
+            .or_else(|| {
+                stats.record_encode_failure();
+                None
+            })
+    });
+    EncodedCycle {
+        frame,
+        deep_full: heavy,
+        main_dropped: dropped,
+    }
 }
 
 #[cfg(test)]
@@ -195,7 +255,7 @@ mod tests {
         last_deep_full_tick: &mut u64,
         frame_id: u64,
         now: u64,
-    ) -> (Vec<u8>, FrameKind, Option<Vec<u8>>) {
+    ) -> (Option<Vec<u8>>, FrameKind, Option<Vec<u8>>) {
         let is_full_frame = s.tick_count.saturating_sub(*last_broadcast_tick) >= FULL_FRAME_EVERY_TICKS;
         let is_deep_full = s.tick_count.saturating_sub(*last_deep_full_tick) >= 300;
         if is_full_frame {
@@ -216,11 +276,86 @@ mod tests {
             )
         };
         let heavy = if is_deep_full {
-            Some(encode_frame(s.state_json(), frame_id, now, "full"))
+            encode_frame(s.state_json(), frame_id, now, "full")
         } else {
             None
         };
         (bytes, kind, heavy)
+    }
+
+    /// How often the real broadcast cadence carries the buildings section,
+    /// and what a delta costs, over three mature worlds. It takes a few
+    /// minutes in release, so run it on demand with
+    /// `cargo test --release -p simulation-rs measure_frame_egress -- --ignored --nocapture`.
+    ///
+    /// The buildings section follows the state a client draws (see
+    /// `Building::display`): once a mature world settled, the daily weather
+    /// wear chipped every exposed building below one drawn damage step, which
+    /// re-sent all of them on nearly every delta. Only a step the renderer
+    /// bakes at, or a ruin/repair flag, puts them back on the wire now.
+    #[test]
+    #[ignore = "a few minutes in release, run on demand"]
+    fn measure_frame_egress_over_mature_worlds() {
+        for seed in [42u64, 1337, 2026] {
+            let mut sim = Simulation::new(seed);
+            sim.tick_n(12_000);
+            let mut cadence = FrameCadence::default();
+            let (mut full_n, mut full_bytes) = (0u64, 0u64);
+            let (mut delta_n, mut delta_bytes) = (0u64, 0u64);
+            let (mut with_n, mut with_bytes) = (0u64, 0u64);
+            let (mut without_n, mut without_bytes) = (0u64, 0u64);
+            for cycle in 1..=1_200u64 {
+                sim.tick_n(5);
+                let values = cadence.build(&mut sim, cycle);
+                let is_full = matches!(values.kind, FrameKind::Full);
+                let has_buildings = values.main.entries().iter().any(|(k, _)| *k == "buildings");
+                let label = if is_full { "full" } else { "delta" };
+                let bytes = encode_frame(values.main, cycle, 0, label).map_or(0, |b| b.len() as u64);
+                let _ = values.deep_full;
+                if is_full {
+                    full_n += 1;
+                    full_bytes += bytes;
+                } else {
+                    delta_n += 1;
+                    delta_bytes += bytes;
+                    if has_buildings {
+                        with_n += 1;
+                        with_bytes += bytes;
+                    } else {
+                        without_n += 1;
+                        without_bytes += bytes;
+                    }
+                }
+            }
+            println!(
+                "seed={seed} buildings on {with_n}/{delta_n} deltas; \
+                 delta avg {} B (with {} B, without {} B); egress per 30 ticks = {} B",
+                delta_bytes / delta_n.max(1),
+                with_bytes / with_n.max(1),
+                without_bytes / without_n.max(1),
+                delta_bytes / delta_n.max(1) * 5 + full_bytes / full_n.max(1),
+            );
+        }
+    }
+
+    /// A dropped frame's changes are already consumed by the frame build, and
+    /// a client only resyncs on a gap greater than two, so the next cycle has
+    /// to carry a full frame.
+    #[test]
+    fn a_dropped_frame_makes_the_next_cycle_a_full_one() {
+        let mut sim = Simulation::new(42);
+        sim.tick_n(70);
+        let mut cadence = FrameCadence::default();
+        assert!(matches!(cadence.build(&mut sim, 1).kind, FrameKind::Full));
+        assert!(
+            matches!(cadence.build(&mut sim, 2).kind, FrameKind::Delta),
+            "the next cycle is a delta until the periodic full comes round"
+        );
+        cadence.recover_with_a_full_frame();
+        assert!(
+            matches!(cadence.build(&mut sim, 3).kind, FrameKind::Full),
+            "a dropped frame must be re-sent as a full one"
+        );
     }
 
     /// Two identical worlds, one driven by the old inline cycle and one by
@@ -247,11 +382,19 @@ mod tests {
             let (want, want_kind, want_deep) =
                 reference_cycle(&mut old_world, &mut last_broadcast, &mut last_deep, cycle, 777);
             let values = cadence.build(&mut new_world, cycle);
-            let (got, got_deep) = encode_cycle(values, &stats, || 777);
+            let encoded = encode_cycle(values, &stats, || 777);
 
-            assert_eq!(*got, want, "cycle {cycle}: main frame differs");
+            assert!(
+                !encoded.main_dropped,
+                "cycle {cycle}: the reference frame encoded"
+            );
             assert_eq!(
-                got_deep.as_deref().map(Vec::as_slice),
+                encoded.frame.as_deref(),
+                want.as_deref(),
+                "cycle {cycle}: main frame differs"
+            );
+            assert_eq!(
+                encoded.deep_full.as_deref(),
                 want_deep.as_deref(),
                 "cycle {cycle}: deep full frame differs"
             );

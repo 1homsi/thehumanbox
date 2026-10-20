@@ -31,7 +31,8 @@ export function loadAtlas(url: string): HTMLImageElement {
 
 export const ATLAS_TOWN = loadAtlas(`${import.meta.env.BASE_URL}sprites/tiny-town.png`)
 export const ATLAS_CREATURE = loadAtlas(`${import.meta.env.BASE_URL}sprites/tiny-creatures.png`)
-export const ATLAS_PEOPLE = loadAtlas(`${import.meta.env.BASE_URL}sprites/people/people.svg`)
+// The PNG is people.svg rasterised once (pixel-identical); the SVG stays as the source the generator writes.
+export const ATLAS_PEOPLE = loadAtlas(`${import.meta.env.BASE_URL}sprites/people/people.png`)
 
 export const PEOPLE_CELL = HUMAN_ATLAS_CELL
 

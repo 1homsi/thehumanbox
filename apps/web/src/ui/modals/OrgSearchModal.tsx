@@ -53,8 +53,17 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [tribeOpen, setTribeOpen] = useState(false)
   const tribeRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  // Set by the back button: the list is hidden while a person is open, so its scroll is reset once it shows again.
+  const returningToList = useRef(false)
   // Focusing the search box on a touch screen raises the keyboard over the list before anyone asked for it.
   const [autoFocus] = useState(() => !window.matchMedia?.('(pointer: coarse)').matches)
+
+  useEffect(() => {
+    if (!returningToList.current || !listRef.current) return
+    returningToList.current = false
+    listRef.current.scrollTop = 0
+  }, [selectedId])
 
   useEffect(() => {
     if (!tribeOpen) return
@@ -233,7 +242,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
 
       {}
       <div className={clsx('org-search-body', selectedOrg && 'has-selection')}>
-        <div className="org-search-list">
+        <div className="org-search-list" ref={listRef}>
           {filtered.length === 0 && <div className="org-search-empty">no organisms match</div>}
           {filtered.map((org) => {
             const color = lineageColor(org.lineage_id)
@@ -321,7 +330,13 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
         <div className="org-search-detail">
           {selectedOrg ? (
             <>
-              <button className="org-search-back" onClick={() => setSelectedId(null)}>
+              <button
+                className="org-search-back"
+                onClick={() => {
+                  returningToList.current = true
+                  setSelectedId(null)
+                }}
+              >
                 ← all organisms
               </button>
               <OrgDetail

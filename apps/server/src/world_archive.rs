@@ -238,7 +238,10 @@ pub async fn archive_and_reset(
         process_started_at_ms
     };
     let payload = sim.state_json();
-    let snapshot_bytes = encode_frame(payload, 0, ended_at_ms, "full");
+    let Some(snapshot_bytes) = encode_frame(payload, 0, ended_at_ms, "full") else {
+        tracing::error!(target: "archive", "failed to encode the world snapshot; keeping the live world");
+        return None;
+    };
     let hash_input = format!("{}|{}|{}", started_at_ms, ended_at_ms, final_tick);
     let hash = short_hash(&hash_input);
     let (top_era, lineage_count, _, top_lineage, top_pop, _) = compute_summary(&mut sim, peak_pop);

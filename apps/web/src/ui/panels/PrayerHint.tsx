@@ -21,6 +21,11 @@ function markSeen() {
   }
 }
 
+/** The welcome card or the tour is up. The hint waits for them, so a first visit meets one thing at a time. */
+function onboardingOpen(): boolean {
+  return typeof document !== 'undefined' && document.querySelector('.welcome-modal, .thb-shepherd') !== null
+}
+
 interface Props {
   world: WorldState | null
   onAnswer: (prayer: PrayerInfo) => void
@@ -43,7 +48,7 @@ export function PrayerHint({ world, onAnswer }: Props) {
     }
   }, [answered, done])
 
-  if (done || prayers.length === 0 || !world) return null
+  if (done || prayers.length === 0 || !world || onboardingOpen()) return null
   const close = () => {
     markSeen()
     setDone(true)
