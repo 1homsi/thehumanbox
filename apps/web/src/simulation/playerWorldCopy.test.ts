@@ -6,7 +6,7 @@ describe('local-player copy', () => {
     const steps = welcomeStepsFor('local')
     expect(steps[0].title).toBe('You are their god')
     expect(steps[steps.length - 1].body).toContain('runs and saves on this device')
-    expect(tourWorldCopy('local').closing).toContain('saved on this device')
+    expect(tourWorldCopy('local').closing).toContain('saves on this device')
     expect(worldsIntroCopy('local', true)).toContain('saved on this computer')
   })
 
@@ -14,10 +14,9 @@ describe('local-player copy', () => {
     expect(worldsIntroCopy('local', false)).toContain('never connects to a hosted simulation server')
   })
 
-  it('puts the player at the centre: prayers, peril, the ages', () => {
-    const text = welcomeStepsFor('local')
-      .map((s) => `${s.title} ${s.body}`)
-      .join(' ')
-    for (const idea of ['pray', 'on the brink', 'ages']) expect(text).toContain(idea)
+  it('welcomes in one card that puts the player at the centre', () => {
+    const steps = welcomeStepsFor('local')
+    expect(steps).toHaveLength(1)
+    expect(steps[0].body).toContain('pray')
   })
 })

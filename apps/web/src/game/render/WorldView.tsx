@@ -24,6 +24,7 @@ import { CfMapCameraController } from './cf/input/CfMapCameraController'
 import { CfOverlays } from './cf/overlays/CfOverlays'
 import { AnimalSpriteLayers } from './cf/animals/AnimalSpriteLayers'
 import { PeopleSpriteLayers } from './cf/people/PeopleSpriteLayers'
+import { WORLD_MAX_DPR } from './world-dpr'
 
 interface Props {
   world: WorldState
@@ -220,6 +221,11 @@ export function WorldView({
               gravity={0}
               width={dims.w}
               height={dims.h}
+              // A DPR-3 phone draws 9 backing pixels per CSS pixel. Cap the canvas at 2, the same
+              // bound the 2D fallback uses; `scale="pixel"` keeps the sprites crisp under the
+              // browser's upscale instead of blurring them.
+              maxDpr={WORLD_MAX_DPR}
+              scale="pixel"
               onReady={handleGameReady}
               style={{ display: 'block' }}
             >

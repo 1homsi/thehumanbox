@@ -1,4 +1,6 @@
 import { useState, type ReactNode } from 'react'
+import { REPO_URL } from '../../shared/links'
+import { trackEvent } from '../../shared/observability'
 import { useUIStore } from '../../state/store'
 import { Modal } from '../modals/Modal'
 import { MoreDropdown } from './MoreDropdown'
@@ -34,6 +36,10 @@ export function PhoneMenu({ chronicleCount, isFullscreen, onToggleFullscreen }: 
   const run = (fn: () => void) => () => {
     close()
     fn()
+  }
+  const openRepo = () => {
+    trackEvent('star_link_clicked', { source: 'phone_menu' })
+    window.open(REPO_URL, '_blank', 'noopener,noreferrer')
   }
   const canFullscreen = typeof document !== 'undefined' && !!document.documentElement.requestFullscreen
 
@@ -84,6 +90,7 @@ export function PhoneMenu({ chronicleCount, isFullscreen, onToggleFullscreen }: 
             {row('◨', 'people panel', togglePanel, null, panelOpen)}
             {row('⚙️', 'settings', openSettings)}
             {row('🌼', 'about', openAbout)}
+            {row('⭐', 'star on GitHub', openRepo)}
             {canFullscreen && row('⛶', isFullscreen ? 'exit fullscreen' : 'fullscreen', onToggleFullscreen)}
           </div>
           <div className="phone-menu-section">view</div>

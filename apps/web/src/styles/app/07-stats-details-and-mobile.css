@@ -233,6 +233,7 @@
 
   /* Minimal mobile: hide everything except the brand + a live dot. */
   .github-link,
+  .star-link,
   .tick,
   .header-actions,
   .fullscreen-btn,

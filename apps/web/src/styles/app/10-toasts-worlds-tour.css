@@ -2,7 +2,7 @@
 .update-toast {
   position: fixed;
   right: calc(20px + var(--safe-right));
-  bottom: 150px;
+  bottom: var(--toast-clearance);
   z-index: 9700;
   display: flex;
   align-items: center;
@@ -122,9 +122,6 @@
 }
 
 @media (max-width: 767px) {
-  .update-toast {
-    bottom: calc(116px + env(safe-area-inset-bottom, 0px));
-  }
   .update-toast {
     left: calc(12px + var(--safe-left));
     right: calc(12px + var(--safe-right));

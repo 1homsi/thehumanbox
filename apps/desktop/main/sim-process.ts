@@ -69,13 +69,20 @@ function packagedBinaryPath(): string {
   return path.join(resourcesDir, "bin", platformBinaryName());
 }
 
-function devBinaryPath(): string {
+/**
+ * Where a developer build of the sim lands: the workspace's own `target`
+ * directory at the repository root (the crate is `apps/server`).
+ *
+ * This assumes the compiled layout `apps/desktop/dist/main`, which is what
+ * `pnpm run dev`/`pack` produce; the parent-directory count is for that depth.
+ */
+export function devBinaryPath(): string {
   return path.join(
     __dirname,
     "..",
     "..",
     "..",
-    "simulation",
+    "..",
     "target",
     "release",
     platformBinaryName(),
@@ -431,8 +438,15 @@ async function startSimOnce(
   const bin = locateSimBinary();
   if (!bin) {
     suppliedLock?.release();
+    const expected = app.isPackaged
+      ? packagedBinaryPath()
+      : `${devBinaryPath()} (dev) or ${packagedBinaryPath()} (packaged, resources/bin)`;
+    // A packaged build has no repository or toolchain to point at.
+    const advice = app.isPackaged
+      ? "reinstall The Human Box, or check that the install was not modified"
+      : `build it with \`cargo build --release --bin simulation-rs\` at the repository root (or \`make build-sim\`)`;
     throw new Error(
-      `simulation binary not found. Expected at ${packagedBinaryPath()} (packaged) or build it via \`cargo build --release\` in simulation/.`,
+      `simulation binary not found. Expected at ${expected}: ${advice}.`,
     );
   }
 
@@ -507,6 +521,9 @@ async function startSimOnce(
       cwd: workdir,
       env,
       stdio: ["ignore", "pipe", "pipe"],
+      // Windows gives a console-subsystem child its own console window unless
+      // this is set; closing that window would kill the sim.
+      windowsHide: true,
     });
   } catch (error) {
     dataLock.release();

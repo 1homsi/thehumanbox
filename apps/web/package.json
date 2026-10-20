@@ -1,7 +1,7 @@
 {
   "name": "client",
   "private": true,
-  "version": "0.5.95",
+  "version": "0.6.5",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -30,7 +30,7 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "shepherd.js": "^15.3.0",
-    "xipjs": "^0.15.1",
+    "xipjs": "^0.15.3",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

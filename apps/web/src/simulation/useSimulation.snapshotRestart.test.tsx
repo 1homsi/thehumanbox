@@ -123,8 +123,20 @@ describe('useSimulation snapshot recovery', () => {
     vi.useRealTimers()
     vi.unstubAllGlobals()
     delete window.thbDesktop
+    window.history.replaceState({}, '', '/')
     pauseRuntime = null
     container.remove()
+  })
+
+  it('does not connect to the fallback port before the desktop runtime URL arrives', () => {
+    act(() => root.unmount())
+    MockWebSocket.instances = []
+    window.history.replaceState({}, '', '?desktop=1')
+    window.thbDesktop = { isDesktop: true } as never
+    root = createRoot(container)
+    act(() => root.render(<Harness />))
+
+    expect(MockWebSocket.instances).toHaveLength(0)
   })
 
   it('accepts restarted frame ids and retries a failed snapshot with a cached world', async () => {
@@ -179,6 +191,7 @@ describe('useSimulation snapshot recovery', () => {
 
   it('rehydrates desktop runtime state after a websocket reconnect', async () => {
     act(() => root.unmount())
+    window.history.replaceState({}, '', '?desktop=1&api=127.0.0.1%3A8000')
     Object.defineProperty(window, 'thbDesktop', { configurable: true, value: { isDesktop: true } })
     const states = [
       { ok: false },
@@ -226,6 +239,7 @@ describe('useSimulation snapshot recovery', () => {
 
   it('queues a runtime control behind desktop runtime hydration', async () => {
     act(() => root.unmount())
+    window.history.replaceState({}, '', '?desktop=1&api=127.0.0.1%3A8000')
     Object.defineProperty(window, 'thbDesktop', { configurable: true, value: { isDesktop: true } })
     fetchSnapshot.mockResolvedValue(null)
     type RuntimeResponse = { ok: boolean; json: () => Promise<unknown> }

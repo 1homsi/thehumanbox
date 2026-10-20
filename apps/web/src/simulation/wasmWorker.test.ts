@@ -30,13 +30,13 @@ vi.mock('../wasm/sim-core/sim_core.js', () => ({
     tickCount() {
       return model.tick
     }
-    deltaFrame() {
+    deltaFrameBytes() {
       model.deltaFrame()
-      return '{}'
+      return new Uint8Array([0x80])
     }
-    fullFrame() {
+    fullFrameBytes() {
       model.fullFrame()
-      return '{}'
+      return new Uint8Array([0x80])
     }
     command() {
       return true
@@ -129,6 +129,12 @@ afterEach(() => {
 })
 
 describe('browser simulation scheduling', () => {
+  it('transfers binary MessagePack frames from the worker', () => {
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'frame', frame: new Uint8Array([0x80]) }, [
+      expect.any(ArrayBuffer),
+    ])
+  })
+
   it('accepts a safe reload while WASM is still booting', async () => {
     send({ type: 'stop' })
     await vi.advanceTimersByTimeAsync(0)
@@ -352,6 +358,36 @@ describe('browser simulation scheduling', () => {
     await vi.advanceTimersByTimeAsync(0)
     expect(lock.released()).toBe(true)
     expect(worker.postMessage).toHaveBeenCalledWith({ type: 'reload_result', requestId: 23, ok: true })
+    expect(worker.close).toHaveBeenCalledOnce()
+    expect(worker.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ready' }))
+  })
+
+  it('holds the world lock until an in-flight recovery copy of an unreadable save finishes', async () => {
+    const lock = heldLock()
+    await restartWorker({ locks: lock.locks })
+    const preserve = deferred<void>()
+    model.loadWorld.mockResolvedValueOnce({ blob: new Uint8Array([1]), seed: '42', tick: 5, savedAt: 1 })
+    // A tick mismatch leaves the restored simulation assigned while the recovery copy is written.
+    model.fromSerialized.mockReturnValueOnce({
+      tickCount: () => 0n,
+      serialize: () => new Uint8Array([1]),
+      free: () => {},
+    })
+    model.saveWorld.mockImplementationOnce(() => preserve.promise)
+    send({ type: 'start', id: 'test', seed: '42' })
+    await vi.waitFor(() => expect(model.saveWorld).toHaveBeenCalledOnce())
+
+    send({ type: 'prepare_reload', requestId: 24, deadlineAt: Date.now() + 1000 })
+    await vi.advanceTimersByTimeAsync(0)
+    // The recovery copy is still writing: the reload must not release the lock under it.
+    expect(lock.released()).toBe(false)
+    expect(worker.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'reload_result' }))
+    expect(model.saveWorld).toHaveBeenCalledOnce()
+
+    preserve.resolve()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(lock.released()).toBe(true)
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'reload_result', requestId: 24, ok: true })
     expect(worker.close).toHaveBeenCalledOnce()
     expect(worker.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ready' }))
   })

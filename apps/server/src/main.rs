@@ -6,7 +6,6 @@ pub use sim_core::{organism, physics, sim, world};
 mod broadcaster;
 mod config;
 mod desktop_lock;
-mod frame_codec;
 mod rollover;
 mod router;
 mod runtime;
@@ -53,7 +52,18 @@ async fn main() {
         eprintln!("simulation-rs refused desktop data ownership: {error}");
         std::process::exit(1);
     }
-    dotenvy::dotenv().ok();
+    // This must stay after the lock claim: a `.env` loaded first could inject
+    // the very token and parent pid the claim validates.
+    let dotenv = dev_dotenv_path(
+        desktop_owned_environment(
+            std::env::var_os("THB_DATA_LOCK_TOKEN").as_deref(),
+            std::env::var_os("THB_DESKTOP_PARENT_PID").as_deref(),
+        ),
+        std::env::current_dir().ok().as_deref(),
+    );
+    if let Some(path) = dotenv {
+        dotenvy::from_path(path).ok();
+    }
 
     startup::init_tracing();
 

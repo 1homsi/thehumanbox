@@ -90,7 +90,7 @@ export function WelcomeModal() {
   const current = steps[step]
 
   const next = () => {
-    if (isLast) finish(tourAvailable)
+    if (isLast) finish(false)
     else setStep((s) => s + 1)
   }
 
@@ -98,28 +98,38 @@ export function WelcomeModal() {
     if (step > 0) setStep((s) => s - 1)
   }
 
+  // The last card starts the game; the tour is an offer beside it, never the default.
+  const secondary =
+    isLast && tourAvailable
+      ? { label: 'Quick tour', onClick: () => finish(true) }
+      : step > 0
+        ? { label: 'Back', onClick: back }
+        : isLast
+          ? null
+          : { label: 'Skip', onClick: () => finish(false) }
+
   return (
     <div className="welcome-backdrop" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
       <div className="welcome-modal" ref={cardRef}>
-        <div className="welcome-step-indicator">
-          {steps.map((_, i) => (
-            <span key={i} className={'welcome-dot' + (i === step ? ' active' : i < step ? ' done' : '')} />
-          ))}
-        </div>
+        {steps.length > 1 && (
+          <div className="welcome-step-indicator">
+            {steps.map((_, i) => (
+              <span key={i} className={'welcome-dot' + (i === step ? ' active' : i < step ? ' done' : '')} />
+            ))}
+          </div>
+        )}
         <h2 id="welcome-title" className="welcome-title">
           {current.title}
         </h2>
         <p className="welcome-body">{current.body}</p>
         <div className="welcome-actions">
-          <button
-            type="button"
-            className="welcome-btn welcome-btn--ghost"
-            onClick={step === 0 ? () => finish(false) : back}
-          >
-            {step === 0 ? 'Skip' : 'Back'}
-          </button>
+          {secondary && (
+            <button type="button" className="welcome-btn welcome-btn--ghost" onClick={secondary.onClick}>
+              {secondary.label}
+            </button>
+          )}
           <button type="button" className="welcome-btn welcome-btn--primary" onClick={next} autoFocus>
-            {isLast ? (tourAvailable ? 'Take the tour' : 'Got it') : 'Next'}
+            {isLast ? 'Start' : 'Next'}
           </button>
         </div>
       </div>

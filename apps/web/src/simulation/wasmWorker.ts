@@ -90,9 +90,14 @@ let storageRetryInFlight: Promise<boolean> | null = null
 let worldLockAcquired = true
 let releaseWorldLock: (() => void) | null = null
 let startup: Promise<void> | null = null
+let startupRunning = false
 
 function post(msg: unknown) {
   ;(self as unknown as Worker).postMessage(msg)
+}
+
+function postFrame(frame: Uint8Array) {
+  ;(self as unknown as Worker).postMessage({ type: 'frame', frame }, [frame.buffer as ArrayBuffer])
 }
 
 async function acquireWorldLock(id: string): Promise<boolean> {
@@ -168,8 +173,8 @@ function emit(deepFull: boolean) {
   const now = Date.now()
   lastEmittedAt = performance.now()
   if (deepFull) lastDeepFullAt = lastEmittedAt
-  const frame = deepFull ? sim.fullFrame(frameId, now) : sim.deltaFrame(frameId, now)
-  post({ type: 'frame', frame })
+  const frame = deepFull ? sim.fullFrameBytes(frameId, now) : sim.deltaFrameBytes(frameId, now)
+  postFrame(frame)
 }
 
 function rememberRetry(next: StorageRetry<SavedWorld>) {
@@ -608,7 +613,12 @@ self.onmessage = (e: MessageEvent) => {
     case 'start':
       // Only the first start() runs (`started` guards the rest); don't let a
       // duplicate message replace the promise a pending reload waits on.
-      startup ??= start(msg)
+      if (!startup) {
+        startupRunning = true
+        startup = start(msg).finally(() => {
+          startupRunning = false
+        })
+      }
       break
     case 'pause':
       if (sim) manuallyPaused = true
@@ -656,7 +666,9 @@ self.onmessage = (e: MessageEvent) => {
         post({ type: 'reload_result', requestId: msg.requestId, ok: false })
         break
       }
-      if (!sim || !worldLockAcquired) {
+      // During unreadable-save recovery, `sim` may be assigned while startup is
+      // still preserving the original. Do not checkpoint that candidate.
+      if (!sim || !worldLockAcquired || startupRunning) {
         if (msg.requireLocalWorld) {
           post({ type: 'reload_result', requestId: msg.requestId, ok: false })
           break

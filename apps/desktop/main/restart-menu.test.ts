@@ -23,6 +23,10 @@ test('File > Restart simulation brings the window back when no window is open', 
     async loadFile() {}
     close() { this.destroyed = true; this.emit('closed') }
     isDestroyed() { return this.destroyed }
+    isAlwaysOnTop() { return false }
+    show() {}
+    isVisible() { return true }
+    maximize() {}
   }
   // macOS: closing the last window stops the sim and the app stays in the
   // dock, so the menu restart runs with mainWindow === null and no sim.
@@ -37,7 +41,13 @@ test('File > Restart simulation brings the window back when no window is open', 
   const context = vm.createContext({
     exports: {}, __dirname, process, console, setTimeout, clearTimeout,
     require: (id: string) => {
-      if (id === 'electron') return { app, BrowserWindow: FakeWindow }
+      if (id === 'electron') {
+        return {
+          app,
+          BrowserWindow: FakeWindow,
+          Menu: { setApplicationMenu() {}, buildFromTemplate: () => ({}) },
+        }
+      }
       if (id === './startup-lifecycle') return { startWhenReady: () => {} }
       if (id === './settings') return { loadSettings: () => ({}) }
       if (id === './exclusive-operation') {
@@ -58,6 +68,7 @@ test('File > Restart simulation brings the window back when no window is open', 
       if (id === './app-version-arg') return { appVersionArgument: (v: string) => `--thb-app-version=${v}` }
       if (id === './app-icon') return { appIconPath: () => '/tmp/icon.png' }
       if (id === 'node:path') return path
+      if (id === './renderer-load') return require(path.join(__dirname, 'renderer-load'))
       return {}
     },
   })
