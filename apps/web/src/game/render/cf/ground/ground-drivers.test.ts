@@ -180,6 +180,22 @@ describe('structure driver', () => {
     expect(l.frame[0]).toBe(l.frame[1])
   })
 
+  it('does not even scan between frames while the grid keeps the same structure revision', () => {
+    const structure = Array.from({ length: H }, () => Array(W).fill(0))
+    structure[3][3] = 0.9
+    const l = layer()
+    const driver = new StructureDriver(l, atlas())
+    const w = world({ structure, structure_revision: 1 })
+    expect(driver.update(frame(w, 1))).toBe(true)
+    expect(driver.update(frame({ ...w, frame_id: 2 }, 1))).toBe(false)
+    expect(driver.stats.scans).toBe(1)
+    structure[3][3] = 0.4
+    expect(driver.update(frame({ ...w, frame_id: 3, grid: { ...w.grid, structure_revision: 2 } }, 1))).toBe(
+      true,
+    )
+    expect(driver.stats.scans).toBe(2)
+  })
+
   it('writes sprites at the tile each mark belongs to, in row order', () => {
     const structure = Array.from({ length: H }, () => Array(W).fill(0))
     structure[2][9] = 0.8

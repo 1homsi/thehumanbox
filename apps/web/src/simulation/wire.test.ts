@@ -62,6 +62,70 @@ describe('applyGridWire', () => {
     expect(second.food_trail).toBe(first.food_trail)
     expect(second.food_trail?.[0][0]).toBeCloseTo(0.8, 5)
   })
+
+  it('keeps the structure layer when a frame leaves it out, and counts each one it does carry', () => {
+    const w1 = emptyWire(3, 2)
+    w1.structure = [[1, 2, 60]]
+    const first = applyGridWire(w1, null)
+    expect(first.structure[1][2]).toBeCloseTo(0.6, 5)
+    expect(first.structure_revision).toBe(1)
+
+    const hot = emptyWire(3, 2)
+    delete hot.structure
+    const second = applyGridWire(hot, first)
+    expect(second.structure).toBe(first.structure)
+    expect(second.structure[1][2]).toBeCloseTo(0.6, 5)
+    expect(second.structure_revision).toBe(1)
+
+    const w3 = emptyWire(3, 2)
+    w3.structure = [[0, 0, 100]]
+    const third = applyGridWire(w3, second)
+    expect(third.structure[1][2]).toBe(0)
+    expect(third.structure[0][0]).toBe(1)
+    expect(third.structure_revision).toBe(2)
+  })
+
+  it('builds an empty structure layer when the first frame leaves it out', () => {
+    const wire = emptyWire(3, 2)
+    delete wire.structure
+    const grid = applyGridWire(wire, null)
+    expect(grid.structure).toEqual([
+      [0, 0, 0],
+      [0, 0, 0],
+    ])
+  })
+
+  it('applies sparse structure changes and skips empty deltas', () => {
+    const full = emptyWire(3, 2)
+    full.structure = [[1, 2, 60]]
+    const first = applyGridWire(full, null)
+
+    const delta = emptyWire(3, 2)
+    delete delta.structure
+    delta.structure_delta = [
+      [1, 2, 20],
+      [0, 0, 70],
+    ]
+    const second = applyGridWire(delta, first)
+    expect(second.structure).toBe(first.structure)
+    expect(second.structure[1][2]).toBeCloseTo(0.2, 5)
+    expect(second.structure[0][0]).toBeCloseTo(0.7, 5)
+    expect(second.structure_revision).toBe(2)
+
+    const unchanged = emptyWire(3, 2)
+    delete unchanged.structure
+    unchanged.structure_delta = []
+    const third = applyGridWire(unchanged, second)
+    expect(third.structure).toBe(second.structure)
+    expect(third.structure_revision).toBe(2)
+
+    const clear = emptyWire(3, 2)
+    delete clear.structure
+    clear.structure_delta = [[1, 2, 0]]
+    const fourth = applyGridWire(clear, third)
+    expect(fourth.structure[1][2]).toBe(0)
+    expect(fourth.structure_revision).toBe(3)
+  })
 })
 
 describe('expandOrgsSoa', () => {
