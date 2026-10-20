@@ -406,7 +406,10 @@ export function parseWorldFrame(
     if (!isNum(g.width)) issues.push('grid.width is not a number')
     if (!isNum(g.height)) issues.push('grid.height is not a number')
     if (!Array.isArray(g.fire)) issues.push('grid.fire is not an array')
-    if (!Array.isArray(g.structure)) issues.push('grid.structure is not an array')
+    if (g.structure !== undefined && !Array.isArray(g.structure))
+      issues.push('grid.structure is not an array')
+    if (g.structure_delta !== undefined && !Array.isArray(g.structure_delta))
+      issues.push('grid.structure_delta is not an array')
   }
   if (d.weather == null || typeof d.weather !== 'object') {
     issues.push('weather is not an object')
@@ -599,9 +602,25 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
     if (row < h && col < w) fire[row][col] = v / 1000
   }
 
-  const structure = take2D(cache?.structure, h, w, 0)
-  for (const [row, col, v] of wire.structure) {
-    if (row < h && col < w) structure[row][col] = v / 100
+  // The server omits the full layer on hot frames and sends only changed cells. A full layer
+  // replaces (and resizes) what we hold; a hot frame may only patch a layer of the same shape.
+  let structure = cache?.structure
+  let structure_revision = cache?.structure_revision ?? 0
+  if (wire.structure !== undefined) {
+    structure = take2D(structure, h, w, 0)
+    for (const [row, col, v] of wire.structure) {
+      if (row >= 0 && row < h && col >= 0 && col < w) structure[row][col] = v / 100
+    }
+    structure_revision++
+  } else if (structure && structure.length === h && structure[0]?.length === w) {
+    if (wire.structure_delta?.length) {
+      for (const [row, col, v] of wire.structure_delta) {
+        if (row >= 0 && row < h && col >= 0 && col < w) structure[row][col] = v / 100
+      }
+      structure_revision++
+    }
+  } else {
+    structure = take2D(undefined, h, w, 0)
   }
 
   let food_trail = cache?.food_trail
@@ -671,6 +690,7 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
     depth_map: wire.depth_map ?? cache?.depth_map,
     fire_intensity: fire,
     structure,
+    structure_revision,
     food_trail,
     water_trail,
     path_trail,

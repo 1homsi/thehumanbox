@@ -139,7 +139,7 @@ describe('wire round-trip', () => {
 
     expect(f.grid.width).toBe(600)
     expect(f.grid.fire[0]).toEqual([10, 20, 750])
-    expect(f.grid.structure[0]).toEqual([5, 5, 80])
+    expect(f.grid.structure?.[0]).toEqual([5, 5, 80])
 
     expect(f.organisms_hot?.ids[0]).toBe('org-1')
     expect(f.organisms_hot?.xs[0]).toBe(3000)
