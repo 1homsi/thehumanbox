@@ -7,6 +7,7 @@ import { MoreDropdown } from './MoreDropdown'
 import { PhoneMenu } from './PhoneMenu'
 import { ToolSprite } from './ToolSprite'
 import { getDesktop } from '../../shared/desktop'
+import { canUseFullscreen, toggleElementFullscreen } from '../../shared/fullscreen'
 import { REPO_URL } from '../../shared/links'
 import { trackEvent } from '../../shared/observability'
 import { PrayerChip } from '../panels/PrayerChip'
@@ -41,19 +42,12 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
 
   const moreRef = useRef<HTMLDivElement>(null)
   const livePopulation = world?.lineage_sizes?.reduce((total, lineage) => total + lineage.count, 0) ?? 0
+  // iPhone Safari has no element fullscreen; hide the toggle rather than throw on every tap.
+  const fullscreenAvailable = canUseFullscreen()
 
   const toggleFullscreen = useCallback(() => {
-    if (!document.fullscreenElement) {
-      document.documentElement
-        .requestFullscreen()
-        .then(() => setFullscreen(true))
-        .catch(() => {})
-    } else {
-      document
-        .exitFullscreen()
-        .then(() => setFullscreen(false))
-        .catch(() => {})
-    }
+    // iPhone Safari has no element fullscreen: the toggle is hidden there, but never call it blind.
+    void toggleElementFullscreen().then((on) => setFullscreen(on))
   }, [setFullscreen])
 
   useEffect(() => {
@@ -251,15 +245,17 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
               <span className="btn-label">orgs</span>
             </button>
           </Tooltip>
-          <Tooltip tip={tip(isFullscreen ? 'exit fullscreen' : 'fullscreen')}>
-            <button
-              className={clsx('hdr-btn', 'fullscreen-btn')}
-              onClick={toggleFullscreen}
-              aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-            >
-              <ToolSprite icon="⛶" size={16} />
-            </button>
-          </Tooltip>
+          {fullscreenAvailable && (
+            <Tooltip tip={tip(isFullscreen ? 'exit fullscreen' : 'fullscreen')}>
+              <button
+                className={clsx('hdr-btn', 'fullscreen-btn')}
+                onClick={toggleFullscreen}
+                aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+              >
+                <ToolSprite icon="⛶" size={16} />
+              </button>
+            </Tooltip>
+          )}
         </div>
       )}
       {world && (
