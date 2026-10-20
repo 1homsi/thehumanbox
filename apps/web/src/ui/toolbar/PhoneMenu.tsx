@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { canUseFullscreen } from '../../shared/fullscreen'
 import { REPO_URL } from '../../shared/links'
 import { trackEvent } from '../../shared/observability'
 import { useUIStore } from '../../state/store'
@@ -41,7 +42,7 @@ export function PhoneMenu({ chronicleCount, isFullscreen, onToggleFullscreen }: 
     trackEvent('star_link_clicked', { source: 'phone_menu' })
     window.open(REPO_URL, '_blank', 'noopener,noreferrer')
   }
-  const canFullscreen = typeof document !== 'undefined' && !!document.documentElement.requestFullscreen
+  const canFullscreen = canUseFullscreen()
 
   const row = (icon: string, label: string, onClick: () => void, extra?: ReactNode, pressed?: boolean) => (
     <button
