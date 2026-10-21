@@ -1,0 +1,43 @@
+/* Styles for parts written in this fork. Colours come from the existing theme. */
+
+.language-switch {
+  display: flex;
+  gap: 6px;
+}
+
+/* ── Guided tour (ui/tour/tour-runner.ts) ─────────────────────────────────
+   The card reuses shepherd's class names, so its look comes from the tour
+   theme in pixel-theme.css and 10-toasts-worlds-tour.css; this is layout. */
+.thb-tour {
+  position: fixed;
+  inset: 0;
+  z-index: 9990;
+}
+.thb-tour-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: rgba(8, 6, 4, 0.55);
+}
+.thb-tour .thb-tour-card {
+  position: fixed;
+  width: min(380px, calc(100vw - 24px));
+  margin: 0;
+}
+.thb-tour .shepherd-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.thb-tour .shepherd-title {
+  margin: 0;
+}
+.thb-tour .shepherd-cancel-icon {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 2px;
+}

@@ -1,12 +1,28 @@
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import './styles/fork.css'
 import App from './App.tsx'
 import { ErrorBoundary } from './ui/ErrorBoundary'
 import { initAnalytics } from './shared/observability'
 import { reloadAppSafely } from './simulation/worldSource'
 import { isDesktopStartupPending } from './shared/desktopStartup'
+import { applyDocumentLocale, t } from './i18n'
 
 initAnalytics()
+applyDocumentLocale()
+localizeSplash()
+
+/** index.html carries the Russian loading screen; put it in the chosen language before it is noticed. */
+function localizeSplash() {
+  const set = (id: string, text: string) => {
+    const el = document.getElementById(id)
+    if (el) el.textContent = text
+  }
+  document.getElementById('thb-splash')?.setAttribute('aria-label', t('splash.label'))
+  set('thb-progress-text', t('splash.waking'))
+  set('thb-splash-slow', t('splash.slow'))
+  set('thb-splash-reload', t('common.reload'))
+}
 
 createRoot(document.getElementById('root')!).render(
   <ErrorBoundary>
@@ -50,8 +66,8 @@ window.addEventListener('thb-snapshot-progress', (e: Event) => {
     wrap.classList.remove('indeterminate')
     const pct = Math.min(100, Math.round((detail.loaded / detail.total) * 100))
     bar.style.width = pct + '%'
-    text.textContent = `downloading · ${kb(detail.loaded)} / ${kb(detail.total)} kb`
+    text.textContent = t('splash.downloadingOf', { loaded: kb(detail.loaded), total: kb(detail.total) })
   } else {
-    text.textContent = `downloading · ${kb(detail.loaded)} kb`
+    text.textContent = t('splash.downloading', { loaded: kb(detail.loaded) })
   }
 })

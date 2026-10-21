@@ -3,6 +3,7 @@ import { startTour, isTourSupported, preloadTour } from '../tour/tour'
 import { useIsMobile } from '../../shared/hooks/useIsMobile'
 import { useSimulationData } from '../../simulation/simulationData'
 import { welcomeStepsFor } from '../../simulation/playerWorldCopy'
+import { t } from '../../i18n'
 
 const STORAGE_KEY = 'thb-welcome-seen-v1'
 
@@ -101,12 +102,12 @@ export function WelcomeModal() {
   // The last card starts the game; the tour is an offer beside it, never the default.
   const secondary =
     isLast && tourAvailable
-      ? { label: 'Quick tour', onClick: () => finish(true) }
+      ? { label: t('welcome.quickTour'), onClick: () => finish(true) }
       : step > 0
-        ? { label: 'Back', onClick: back }
+        ? { label: t('common.back'), onClick: back }
         : isLast
           ? null
-          : { label: 'Skip', onClick: () => finish(false) }
+          : { label: t('common.skip'), onClick: () => finish(false) }
 
   return (
     <div className="welcome-backdrop" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
@@ -129,7 +130,7 @@ export function WelcomeModal() {
             </button>
           )}
           <button type="button" className="welcome-btn welcome-btn--primary" onClick={next} autoFocus>
-            {isLast ? 'Start' : 'Next'}
+            {isLast ? t('common.start') : t('common.next')}
           </button>
         </div>
       </div>
