@@ -458,7 +458,6 @@ body.thb-photo-mode {
 /* ── Cards, chips and bars inside drawers and dialogs ────────────────── */
 .org-card,
 .org-detail,
-.civ-summary,
 .stats-num-card {
   background: var(--px-wood);
   border: 2px solid var(--px-ink);
@@ -468,7 +467,6 @@ body.thb-photo-mode {
 .org-card.dead {
   box-shadow: none;
 }
-.civ-summary-chip,
 .attitude-tag,
 .relation-tag,
 .org-tag {
@@ -477,7 +475,6 @@ body.thb-photo-mode {
   border-radius: 0;
   box-shadow: var(--px-sunken-shadow);
 }
-.civ-summary-btn,
 .icon-btn {
   border: 2px solid var(--px-ink);
   border-radius: 0;
@@ -485,7 +482,6 @@ body.thb-photo-mode {
   box-shadow: var(--px-raised-shadow);
   color: var(--px-text);
 }
-.civ-summary-btn:hover,
 .icon-btn:hover {
   background: var(--px-raised-hover);
   color: #fff3d6;
