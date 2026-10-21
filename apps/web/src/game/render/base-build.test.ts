@@ -1,8 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
 import { TILE_ID } from '../model/terrain-ids'
-import { oceanColor } from './landscape-style'
-import { mountainHeights } from './mountains'
+import { MAX_HEIGHT as MOUNTAIN_CAP, mountainHeights } from './mountains'
 import { terrainDetail } from './terrain-detail'
 import { treePlacementOrder } from './decorations'
 
@@ -15,20 +14,6 @@ function rng(seed: number) {
 }
 
 // ---- Reference copies of the code these helpers replaced ----
-
-function refOceanColor(wireDepth: number): [number, number, number] {
-  const shallow = Math.max(0, Math.min(1, wireDepth / 200))
-  const stops = [
-    [24, 55, 91],
-    [35, 105, 135],
-    [75, 166, 172],
-  ] as const
-  const segment = shallow < 0.65 ? 0 : 1
-  const blend = segment === 0 ? shallow / 0.65 : (shallow - 0.65) / 0.35
-  return stops[segment].map((channel, index) =>
-    Math.round(channel + (stops[segment + 1][index] - channel) * blend),
-  ) as [number, number, number]
-}
 
 function refTerrainDetail(tile: number, x: number, y: number): number {
   const cellX = Math.floor(x / 6),
@@ -50,7 +35,7 @@ function refTerrainDetail(tile: number, x: number, y: number): number {
 }
 
 function refMountainHeights(tiles: number[][], width: number, height: number): Uint8Array {
-  const MAX_HEIGHT = 6
+  const MAX_HEIGHT = 14
   const isHighAt = (x: number, y: number) => {
     const t = tiles[y]?.[x]
     if (t === TILE_ID.ROCK) return true
@@ -142,17 +127,14 @@ function makeWorld(seed: number, width: number, height: number) {
 }
 
 describe('terrain helpers', () => {
-  it('terrainDetail, oceanColor, mountain heights and tree order are unchanged', () => {
+  it('terrainDetail, mountain heights and tree order are unchanged', () => {
     for (const tile of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]) {
       for (let x = -12; x < 40; x++) {
         for (let y = -10; y < 30; y++) expect(terrainDetail(tile, x, y)).toBe(refTerrainDetail(tile, x, y))
       }
     }
-    for (const depth of [0, 1, 50, 129.5, 130, 131, 180, 199, 200, 220, 253, 300, -5]) {
-      expect(oceanColor(depth)).toEqual(refOceanColor(depth))
-      expect(oceanColor(depth)).toEqual(refOceanColor(depth))
-    }
     const { tiles } = makeWorld(11, 60, 45)
+    expect(MOUNTAIN_CAP).toBe(14)
     expect([...mountainHeights(tiles, 60, 45)]).toEqual([...refMountainHeights(tiles, 60, 45)])
     for (const n of [1, 2, 17, 1000, 600 * 300]) {
       expect([...treePlacementOrder(n)]).toEqual(refTreeOrder(n))

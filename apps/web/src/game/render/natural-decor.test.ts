@@ -78,11 +78,12 @@ function recorder() {
   return { ctx: ctx as unknown as CanvasRenderingContext2D, log }
 }
 
-// Hashes of the draw-call log recorded from the implementation before the per-tile
+// Hashes of the draw-call log, recorded when the shoreline took the art palette's colours (the
+// surf line and the banks' shade); the calls themselves are those from before the per-tile
 // allocations were removed.
 const GOLDEN: Record<string, string> = {
-  'whole map': '41f77942',
-  'offset origin': 'cb41167b',
+  'whole map': '0c8bc43e',
+  'offset origin': 'a09ea229',
 }
 
 function run(name: string) {

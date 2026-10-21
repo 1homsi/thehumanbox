@@ -574,7 +574,9 @@ export class CfOverlayRenderer {
   private addTint(tint: Tint, W: number, H: number): void {
     if (tint.a <= 0) return
     const layer = this.tintLayer
-    const i = layer.add(W / 2, H / 2, W, H)
+    // The open sea past the map's edge takes the same light, so the edge never shows as a rectangle.
+    const reach = 2 * Math.max(W, H)
+    const i = layer.add(W / 2, H / 2, W + 2 * reach, H + 2 * reach)
     layer.color[i] = packRgba(tint.r, tint.g, tint.b, tint.a)
     layer.flags[i] = SPRITE_UNTEXTURED
   }
