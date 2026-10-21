@@ -4,6 +4,8 @@ import {
   chimney,
   cracks,
   door,
+  cylinder,
+  dome,
   gableRoof,
   hipRoof,
   outline,
@@ -66,11 +68,13 @@ export function paintFarm(p: P) {
     const cx = x0 + w / 2
     const tw = Math.min(w, 12)
     wallTexture(p, cx - tw / 2, y1 - h, tw, h, '#b8a468')
+    cylinder(p, cx - tw / 2, y1 - h, tw, h)
     outline(p.ctx, cx - tw / 2, y1 - h, tw, h)
     p.ctx.fillStyle = '#8a4a3a'
     p.ctx.beginPath()
     p.ctx.arc(cx, y1 - h, tw / 2, Math.PI, 0)
     p.ctx.fill()
+    dome(p, cx, y1 - h, tw / 2)
     p.ctx.strokeStyle = OUTLINE
     p.ctx.stroke()
     return

@@ -23,23 +23,34 @@ export function paintHut(p: P) {
   const wallH = h * 0.42
   const cx = x0 + w / 2
   const rw = w * 0.92
-  px(p.ctx, cx - rw / 2, y1 - wallH, rw, wallH, timber ? '#806346' : '#b59b70')
-  px(p.ctx, cx - rw / 2, y1 - wallH, rw, 1, '#b08a5e')
-  px(p.ctx, cx - rw / 2, y1 - 2, rw, 2, '#7a5e3e')
+  wallTexture(p, cx - rw / 2, y1 - wallH, rw, wallH, timber ? '#806346' : '#b59b70')
   outline(p.ctx, cx - rw / 2, y1 - wallH, rw, wallH)
   const thatch = tintRoof(p, hueShift('#b89a4a', (p.rng() - 0.5) * 24, 1, 0.94 + p.rng() * 0.12))
   if (timber) {
     for (let row = 2; row < wallH; row += 3) px(p.ctx, cx - rw / 2, y1 - row, rw, 1, '#54422f')
   }
   const rh = h * (p.variant % 3 === 2 ? 0.3 : 0.4)
-  p.ctx.fillStyle = thatch
+  // Thatch lit on the left slope and shaded on the right.
+  p.ctx.fillStyle = shade(thatch, 1.1)
   p.ctx.beginPath()
   p.ctx.moveTo(cx - rw / 2 - 2, y1 - wallH + 0.5)
+  p.ctx.lineTo(cx, y1 - wallH + 0.5)
+  p.ctx.lineTo(cx, y1 - wallH - rh)
+  p.ctx.closePath()
+  p.ctx.fill()
+  p.ctx.fillStyle = shade(thatch, 0.76)
+  p.ctx.beginPath()
+  p.ctx.moveTo(cx, y1 - wallH + 0.5)
   p.ctx.lineTo(cx + rw / 2 + 2, y1 - wallH + 0.5)
   p.ctx.lineTo(cx, y1 - wallH - rh)
   p.ctx.closePath()
   p.ctx.fill()
   p.ctx.strokeStyle = OUTLINE
+  p.ctx.beginPath()
+  p.ctx.moveTo(cx - rw / 2 - 2, y1 - wallH + 0.5)
+  p.ctx.lineTo(cx + rw / 2 + 2, y1 - wallH + 0.5)
+  p.ctx.lineTo(cx, y1 - wallH - rh)
+  p.ctx.closePath()
   p.ctx.stroke()
   p.ctx.fillStyle = 'rgba(0,0,0,0.14)'
   for (let i = 1; i < 4; i++) {
@@ -61,16 +72,29 @@ export function paintTent(p: P) {
   const { x0, y1, w, h } = p
   const cx = x0 + w / 2
   const c = hueShift('#b09060', (p.rng() - 0.5) * 40)
-  p.ctx.fillStyle = c
+  // Hide lit on the left of the ridge, in shade on the right.
+  p.ctx.fillStyle = shade(c, 1.1)
   p.ctx.beginPath()
   p.ctx.moveTo(x0, y1)
+  p.ctx.lineTo(cx, y1)
+  p.ctx.lineTo(cx, y1 - h * 0.95)
+  p.ctx.closePath()
+  p.ctx.fill()
+  p.ctx.fillStyle = shade(c, 0.72)
+  p.ctx.beginPath()
+  p.ctx.moveTo(cx, y1)
   p.ctx.lineTo(x0 + w, y1)
   p.ctx.lineTo(cx, y1 - h * 0.95)
   p.ctx.closePath()
   p.ctx.fill()
   p.ctx.strokeStyle = OUTLINE
+  p.ctx.beginPath()
+  p.ctx.moveTo(x0, y1)
+  p.ctx.lineTo(x0 + w, y1)
+  p.ctx.lineTo(cx, y1 - h * 0.95)
+  p.ctx.closePath()
   p.ctx.stroke()
-  p.ctx.fillStyle = 'rgba(0,0,0,0.3)'
+  p.ctx.fillStyle = 'rgba(20,12,6,0.4)'
   p.ctx.beginPath()
   p.ctx.moveTo(cx - w * 0.14, y1)
   p.ctx.lineTo(cx + w * 0.14, y1)
@@ -135,7 +159,7 @@ export function paintTownhouse(p: P, shopfront = false) {
   }
   if (shopfront) {
     const ay = y1 - fh * 0.92
-    const stripes = ['#c84848', '#3a6ea8', '#3f8a4f', '#c87f2a'][Math.floor(rng() * 4)]
+    const stripes = ['#b0503f', '#46688a', '#5b7f46', '#b98332'][Math.floor(rng() * 4)]
     for (let i = 0; i < Math.floor((w + 4) / 4); i++) {
       px(p.ctx, x0 - 2 + i * 4, ay, 4, 3, i % 2 === 0 ? stripes : '#e8e0d0')
     }

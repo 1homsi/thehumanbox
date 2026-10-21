@@ -3,6 +3,7 @@ import type { P } from './kit'
 import { ARCHETYPE } from './registry'
 import { isHouseLike } from '../building-draw/colors'
 import { paintRoofSnow } from './snow'
+import { finishSprite } from './finish'
 
 const spriteCache = new Map<string, HTMLCanvasElement>()
 
@@ -69,6 +70,7 @@ export function getBuildingSprite(
     }
     ctx.restore()
   }
+  finishSprite(ctx, canvas.width, canvas.height, kind)
   if (spriteCache.size > 900) spriteCache.clear()
   spriteCache.set(key, canvas)
   return canvas

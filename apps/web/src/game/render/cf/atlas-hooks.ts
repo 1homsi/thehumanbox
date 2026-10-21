@@ -5,17 +5,19 @@ import {
   BOAT_SIZE,
   EMOTE_SIZE,
   DECAL_SIZE,
+  FAUNA_CELL,
+  FAUNA_KINDS,
   FAUNA_SIZE,
   GLYPH_SIZE,
   PIXEL_FAUNA_SIZE,
   bakeBoats,
   bakeDecals,
   bakeEmotes,
-  bakeFauna,
   bakeGlyphs,
   bakePixelFauna,
 } from './atlas-bake'
 import { HUMAN_ATLAS_HEIGHT, HUMAN_ATLAS_WIDTH } from '../character-visuals'
+import { FAUNA_RECTS, paintFaunaGrid } from '../fauna-layout'
 
 /** A dynamic canvas drawn once by `bake`; returns its id for a layer atlas's `dynamicSrc`. */
 function useBaked(width: number, height: number, bake: (ctx: CanvasRenderingContext2D) => void): string {
@@ -63,16 +65,28 @@ export function usePeopleAtlas(): string {
   return dyn.id
 }
 
-const FAUNA_URL = `${import.meta.env.BASE_URL}sprites/fauna-v2.png`
+const FAUNA_URL = `${import.meta.env.BASE_URL}sprites/fauna.png`
 
-/** The fauna sheet cut into one cell per animal. */
+/** The fauna sheet cut into one 32x32 cell per animal at 1:1 native pixel size. */
 export function useFaunaAtlas(): string {
   const sheet = loadAtlas(FAUNA_URL)
   const ready = useImageReady(sheet)
   const dyn = useDynamicCanvas(FAUNA_SIZE.width, FAUNA_SIZE.height)
   useLayoutEffect(() => {
-    if (!ready) return
-    bakeFauna(dyn.ctx, sheet)
+    const ctx = dyn.ctx
+    ctx.clearRect(0, 0, FAUNA_SIZE.width, FAUNA_SIZE.height)
+    ctx.imageSmoothingEnabled = false
+    for (let i = 0; i < FAUNA_KINDS.length; i++) {
+      const kind = FAUNA_KINDS[i]
+      const [sx, sy, sw, sh] = FAUNA_RECTS[kind]
+      const tx = i * FAUNA_CELL + FAUNA_CELL / 2 - Math.round(sw / 2)
+      const ty = FAUNA_CELL / 2 - Math.round(sh / 2)
+      if (ready) {
+        ctx.drawImage(sheet, sx, sy, sw, sh, tx, ty, sw, sh)
+      } else {
+        paintFaunaGrid(ctx, kind, tx, ty)
+      }
+    }
     dyn.markDirty()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dyn.canvas, ready])

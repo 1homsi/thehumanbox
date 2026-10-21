@@ -1,3 +1,5 @@
+import { SHADOW } from '../art-palette'
+import { PAD, PAD_BOT } from '../building-painters/kit'
 import type { BuildingLike } from './types'
 
 export function visualHash(building: BuildingLike, salt: number): number {
@@ -46,6 +48,10 @@ export function drawPixelLine(
   }
 }
 
+/**
+ * The flat shadow of a footprint with no sprite of its own (a building site, a ruin): one hard-edged,
+ * translucent shape under the base that leans to the bottom-right, away from the light.
+ */
 export function drawBuildingShadow(
   ctx: CanvasRenderingContext2D,
   px: number,
@@ -57,27 +63,13 @@ export function drawBuildingShadow(
   const x = Math.round(px)
   const y = Math.round(py + h)
   const width = Math.max(1, Math.round(w))
-  const outerInset = Math.min(Math.floor(width / 4), Math.max(1, Math.round(tileSize * 0.12)))
-  const innerInset = Math.min(Math.floor(width / 3), Math.max(2, Math.round(tileSize * 0.24)))
-
-  // Three hard-edged bands read as a ground shadow without blurring adjacent
-  // sprites or introducing sub-pixel filtering into the pixel-art layer.
-  ctx.fillStyle = 'rgba(15, 11, 9, 0.18)'
-  ctx.fillRect(x, y - 1, width, Math.max(2, Math.round(tileSize * 0.24)))
-  ctx.fillStyle = 'rgba(15, 11, 9, 0.28)'
-  ctx.fillRect(
-    x + outerInset,
-    y - 2,
-    Math.max(1, width - outerInset * 2),
-    Math.max(2, Math.round(tileSize * 0.18)),
-  )
-  ctx.fillStyle = 'rgba(15, 11, 9, 0.38)'
-  ctx.fillRect(
-    x + innerInset,
-    y - 2,
-    Math.max(1, width - innerInset * 2),
-    Math.max(1, Math.round(tileSize * 0.1)),
-  )
+  const reach = Math.max(2, Math.min(PAD, Math.round(tileSize * 0.5)))
+  ctx.fillStyle = `rgba(${SHADOW.rgb[0]},${SHADOW.rgb[1]},${SHADOW.rgb[2]},${SHADOW.alpha})`
+  for (let i = 0; i < PAD_BOT; i++) {
+    // Each row further down is pushed further right: the shadow is a parallelogram, not a bar.
+    const shift = Math.round((reach * (i + 1)) / PAD_BOT)
+    ctx.fillRect(x + shift, y - 1 + i, width, 1)
+  }
 }
 
 export function drawProgressBar(
@@ -93,7 +85,7 @@ export function drawProgressBar(
   const width = Math.max(3, Math.round(w))
   const height = Math.max(3, Math.round(tileSize * 0.18))
   const y = Math.round(py - Math.max(4, tileSize * 0.28))
-  ctx.fillStyle = 'rgba(18, 12, 10, 0.9)'
+  ctx.fillStyle = 'rgba(43, 33, 23, 0.9)'
   ctx.fillRect(x, y, width, height)
   ctx.fillStyle = color
   ctx.fillRect(

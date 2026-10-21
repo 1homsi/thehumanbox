@@ -93,9 +93,15 @@ export function TerritoryHoverCard({
   }, [container, cameraRef, viewport, enabled])
 
   const facts = hover ? territoryCardFacts(world, hover.lineage, hover.contested) : null
+  const settlement = hover ? world.settlements?.find((item) => item.lineage_id === hover.lineage) : null
   return (
     <div ref={box} aria-hidden="true" style={{ ...CARD, display: 'none' }}>
       {facts && <TribeFacts facts={facts} lineage={hover?.lineage ?? ''} />}
+      {settlement && (
+        <div>
+          {settlement.population} people · {settlement.building_count} buildings
+        </div>
+      )}
     </div>
   )
 }

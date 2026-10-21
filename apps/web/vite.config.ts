@@ -12,8 +12,8 @@ function emitVersionJson(): Plugin {
       outDir = path.resolve(config.root, config.build.outDir)
     },
     async writeBundle() {
-      const sha = process.env.VITE_GIT_SHA  ?? 'dev'
-      const ts  = process.env.VITE_BUILD_TS ?? String(Math.floor(Date.now() / 1000))
+      const sha = process.env.VITE_GIT_SHA ?? 'dev'
+      const ts = process.env.VITE_BUILD_TS ?? String(Math.floor(Date.now() / 1000))
       const payload = JSON.stringify({ sha, built_at: Number(ts) })
       const out = path.join(outDir, 'version.json')
       await writeFile(out, payload, 'utf8')
@@ -32,7 +32,7 @@ function emitVersionJson(): Plugin {
  * Runs in writeBundle (post-build) because rolldown-vite does not fire
  * generateBundle for config-level JS plugins.
  */
-const SPRITE_SHEETS = ['sprites/people/people.png', 'sprites/vegetation-v2.png', 'sprites/fauna-v2.png']
+const SPRITE_SHEETS = ['sprites/people/people.png', 'sprites/fauna.png']
 
 function preloadSimAssets(): Plugin {
   const base = process.env.VITE_DESKTOP === '1' ? './' : '/'
@@ -68,9 +68,7 @@ function preloadSimAssets(): Plugin {
       // crossorigin matches fetch()'s default cors mode so the preload
       // is reused instead of triggering a second download.
       if (wasm) {
-        tags.push(
-          `<link rel="preload" href="${join(wasm)}" as="fetch" crossorigin fetchpriority="high" />`,
-        )
+        tags.push(`<link rel="preload" href="${join(wasm)}" as="fetch" crossorigin fetchpriority="high" />`)
       }
       if (worker) {
         tags.push(`<link rel="modulepreload" href="${join(worker)}" />`)
@@ -114,11 +112,16 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return
-          if (id.includes('/d3-') || id.includes('/d3/'))            return 'd3-vendor'
+          if (id.includes('/d3-') || id.includes('/d3/')) return 'd3-vendor'
           if (id.includes('/react-dom/') || id.includes('/scheduler/')) return 'react-vendor'
-          if (id.includes('/react/'))                                 return 'react-vendor'
-          if (id.includes('/zustand/') || id.includes('/neverthrow/') ||
-              id.includes('/zod/')     || id.includes('/clsx/'))      return 'state-vendor'
+          if (id.includes('/react/')) return 'react-vendor'
+          if (
+            id.includes('/zustand/') ||
+            id.includes('/neverthrow/') ||
+            id.includes('/zod/') ||
+            id.includes('/clsx/')
+          )
+            return 'state-vendor'
         },
       },
     },

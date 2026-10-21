@@ -5,9 +5,12 @@ import type { WorldState } from '../../../../shared/types'
 import { TILE } from '../../../model/palette'
 import { TILE_ID } from '../../../model/terrain-ids'
 import { buildFoamRects } from '../../foam'
+import { OCEAN } from '../../art-palette'
+import { permanentWaterLandEdgeMask } from '../../../model/terrain-visuals'
 import { CellAtlas, type AtlasPageSlot } from '../atlas/cell-atlas'
 import { makeFrame } from '../frame'
 import { FoamDriver, PatchDriver, ShoreDriver, StructureDriver } from './ground-drivers'
+import { SeaChartDriver } from './sea-chart-driver'
 
 /** A canvas context that accepts every call: baking only needs to run the painters. */
 function permissive(): CanvasRenderingContext2D {
@@ -229,19 +232,18 @@ describe('foam driver', () => {
     const driver = new FoamDriver(l)
     expect(driver.update(frame(w, 1, 0))).toBe(true)
     const rects = buildFoamRects(w.grid.tiles, W, H)
-    const expected = rects.thin.length / 4 + rects.thick.reduce((n, b) => n + b.length / 4, 0)
+    const expected = rects.thick.reduce((n, b) => n + b.length / 4, 0)
     expect(l.count).toBe(expected)
-    expect(l.count).toBeGreaterThan(30)
+    expect(l.count).toBeGreaterThan(15)
     for (let i = 0; i < l.count; i++) expect(l.flags[i] & SPRITE_UNTEXTURED).toBeTruthy()
     const alphaAt = (i: number) => l.color[i] & 255
-    const thin = rects.thin.length / 4
-    // The thin line is a constant 30% white.
-    expect(alphaAt(0)).toBe(Math.round(0.3 * 255))
+    // The breakers are surf-coloured, never white.
+    expect(l.color[0] >>> 8).toBe((OCEAN.surf[0] << 16) | (OCEAN.surf[1] << 8) | OCEAN.surf[2])
     // Over one period the thick buckets are not all in the same phase.
     const seen = new Set<number>()
     for (let now = 0; now < 5000; now += 250) {
       driver.update(frame(w, 1, now))
-      let start = thin
+      let start = 0
       for (const bucket of rects.thick) {
         if (bucket.length) seen.add(Math.round(alphaAt(start) / 16))
         start += bucket.length / 4
@@ -250,8 +252,73 @@ describe('foam driver', () => {
     expect(seen.size).toBeGreaterThan(2)
   })
 
-  it('holds the same shape as the canvas foam: every shore edge has a thin line and a thick one', () => {
-    const rects = buildFoamRects(world().grid.tiles, W, H)
-    expect(rects.thin.length / 4).toBe(rects.thick.reduce((n, b) => n + b.length / 4, 0))
+  it('puts one breaker on every shore edge', () => {
+    const tiles = world().grid.tiles
+    let edges = 0
+    for (let row = 0; row < H; row++)
+      for (let col = 0; col < W; col++) {
+        const mask = permanentWaterLandEdgeMask(tiles, row, col)
+        for (let bit = 1; bit <= 8; bit <<= 1) if (mask & bit) edges++
+      }
+    const rects = buildFoamRects(tiles, W, H)
+    expect(rects.thick.reduce((n, b) => n + b.length / 4, 0)).toBe(edges)
+  })
+})
+
+describe('sea chart driver', () => {
+  /** All sea, deep on the west and shallow on the east, with the depth map the frames carry. */
+  function sea(depthAt: (x: number) => number): WorldState {
+    const tiles = Array.from({ length: H }, () => Array(W).fill(TILE_ID.WATER))
+    const depth_map = Array.from({ length: H }, () => Array.from({ length: W }, (_, x) => depthAt(x)))
+    return world({ tiles, depth_map })
+  }
+
+  it('lays one cell where two depth bands meet and none over a single band', () => {
+    const l = layer()
+    const driver = new SeaChartDriver(l, atlas())
+    expect(
+      driver.update(
+        frame(
+          sea((x) => (x < 8 ? 100 : 160)),
+          1,
+        ),
+      ),
+    ).toBe(true)
+    expect(l.count).toBeGreaterThan(0)
+    const flat = layer()
+    new SeaChartDriver(flat, atlas()).update(
+      frame(
+        sea(() => 100),
+        1,
+      ),
+    )
+    // A one-band sea still falls to the abyss at the map's edge; inland of that there is nothing to draw.
+    expect(flat.count).toBeGreaterThan(0)
+    for (let i = 0; i < flat.count; i++) {
+      // A cell's sprite is centred a tile right of and below the tile centre it starts from.
+      const col = flat.x[i] / TILE - 1
+      const row = flat.y[i] / TILE - 1
+      expect(col >= 4 && col <= W - 6 && row >= 4 && row <= H - 6).toBe(false)
+    }
+  })
+
+  it('rebuilds when the terrain or the depth map changes, and keeps the depth of the last full frame', () => {
+    const l = layer()
+    const driver = new SeaChartDriver(l, atlas())
+    const w = sea((x) => (x < 8 ? 100 : 160))
+    expect(driver.update(frame(w, 1))).toBe(true)
+    // A delta frame without a depth map changes nothing.
+    const delta = { ...w, grid: { ...w.grid, depth_map: undefined } } as WorldState
+    expect(driver.update(frame(delta, 1))).toBe(false)
+    expect(
+      driver.update(
+        frame(
+          sea((x) => (x < 4 ? 100 : 160)),
+          1,
+        ),
+      ),
+    ).toBe(true)
+    expect(driver.update(frame(delta, 2))).toBe(true)
+    expect(driver.stats.rebuilds).toBe(3)
   })
 })

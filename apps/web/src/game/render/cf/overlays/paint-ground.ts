@@ -12,6 +12,7 @@ import {
 import { zoomDetailLevel } from '../../character-visuals'
 import { drawClouds } from '../../decorations'
 import { firstCellAtRow, specialTileIndex } from '../../special-tiles'
+import { OCEAN } from '../../art-palette'
 import { emitShimmerRects, emitStarRects, emitWaveletRects, waterCellIndex } from '../../water-fx'
 import type { CfFrame } from './frame'
 
@@ -120,11 +121,17 @@ export function paintTerritoryBorders(ctx: Ctx, world: WorldState, focus: string
   }
 }
 
+// Glints on the sea take the surf's colour, faint enough that the chart's depth bands stay clean.
+const surf = (alpha: number) => `rgba(${OCEAN.surf.join(',')},${alpha})`
+const SURF_GLINT = surf(0.24)
+const SURF_SHIMMER = surf(0.22)
+const SURF_WAVELET = surf(0.14)
+
 /** Star glints on the water at dusk and night (and a faint one by day), as the atmosphere painter made them. */
 export function paintWaterStars(ctx: Ctx, f: CfFrame): void {
   const { world, t, bounds } = f
   if (!(!world.is_day || (world.day_progress ?? 0) > 0.05)) return
-  ctx.fillStyle = world.is_day ? 'rgba(255,255,255,0.55)' : 'rgba(180,200,240,0.30)'
+  ctx.fillStyle = world.is_day ? SURF_GLINT : 'rgba(180,200,240,0.30)'
   emitStarRects(waterCellIndex(world.grid.tiles, world.grid.depth_map), t * 0.001, bounds, (x, y, w, h) =>
     ctx.fillRect(x, y, w, h),
   )
@@ -135,10 +142,10 @@ export function paintWaterShimmer(ctx: Ctx, f: CfFrame): void {
   const { world, t, bounds, zoom } = f
   const cells = waterCellIndex(world.grid.tiles, world.grid.depth_map)
   const shimmerT = t * 0.0015
-  ctx.fillStyle = 'rgba(180,230,255,0.28)'
+  ctx.fillStyle = SURF_SHIMMER
   emitShimmerRects(cells, shimmerT, bounds, (x, y, w, h) => ctx.fillRect(x, y, w, h))
   if (!LOW_PERF && zoomDetailLevel(zoom) !== 'overview') {
-    ctx.fillStyle = 'rgba(140,200,240,0.2)'
+    ctx.fillStyle = SURF_WAVELET
     emitWaveletRects(cells, shimmerT, bounds, (x, y, w, h) => ctx.fillRect(x, y, w, h))
   }
 }

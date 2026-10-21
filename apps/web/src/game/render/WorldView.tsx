@@ -25,6 +25,10 @@ import { CfOverlays } from './cf/overlays/CfOverlays'
 import { AnimalSpriteLayers } from './cf/animals/AnimalSpriteLayers'
 import { PeopleSpriteLayers } from './cf/people/PeopleSpriteLayers'
 import { WORLD_MAX_DPR } from './world-dpr'
+import { OCEAN, hex } from './art-palette'
+
+/** Past the map the sea stays in its deepest band, so the world has no visible edge. */
+const WORLD_EDGE = hex(OCEAN.abyss)
 
 interface Props {
   world: WorldState
@@ -205,7 +209,7 @@ export function WorldView({
         style={{
           position: 'absolute',
           inset: 0,
-          background: '#1a4a80',
+          background: WORLD_EDGE,
           zIndex: 10,
           pointerEvents: 'none',
           opacity: mapReady ? 0 : 1,
@@ -229,7 +233,7 @@ export function WorldView({
               onReady={handleGameReady}
               style={{ display: 'block' }}
             >
-              <World background="#1a4a80">
+              <World background={WORLD_EDGE}>
                 <Camera2D />
 
                 <CfWorld
