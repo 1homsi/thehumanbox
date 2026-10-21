@@ -18,6 +18,9 @@ mod file_io;
 mod from_save;
 mod organism;
 mod repair;
+mod resize;
+#[cfg(test)]
+mod resize_tests;
 mod state;
 #[cfg(test)]
 mod tests;

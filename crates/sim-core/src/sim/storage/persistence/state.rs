@@ -4,6 +4,15 @@ use super::*;
 #[serde(default)]
 pub(crate) struct GridSave {
     pub(super) tiles: Vec<i8>,
+    /// Keep the terrain of migrated worlds instead of regenerating a larger map on reload.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(super) elevation: Vec<f32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(super) temperature: Vec<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) volcanoes: Option<Vec<crate::world::grid::Volcano>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) pool_centers: Option<Vec<(i32, i32)>>,
     /// Water depth changes at runtime as droughts, floods, and completed
     /// infrastructure reshape the map, so it cannot be regenerated from the
     /// world seed on load.

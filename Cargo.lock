@@ -1032,6 +1032,7 @@ dependencies = [
 name = "sim-core"
 version = "0.2.38"
 dependencies = [
+ "flate2",
  "getrandom 0.4.3",
  "indexmap",
  "libm",
