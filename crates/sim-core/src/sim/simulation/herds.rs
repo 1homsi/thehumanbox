@@ -132,7 +132,9 @@ mod tests {
         let mut sim = Simulation::new(0xDEE2);
         grassland(&mut sim);
         sim.animals.clear();
-        for (id, x) in [(1usize, 40.0f32), (2, 46.0), (3, 52.0)] {
+        // Every deer starts within HERD_RANGE of the leader, so it follows the leader itself rather than a
+        // neighbour that may close up first and leave it out of range (which made this depend on the draws).
+        for (id, x) in [(1usize, 40.0f32), (2, 44.0), (3, 48.0)] {
             sim.animals.push(Animal::new(id, x, 50.0, AnimalKind::Deer));
         }
         let spread = |sim: &Simulation| {

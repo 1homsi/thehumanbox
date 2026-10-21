@@ -739,7 +739,12 @@ fn a_volcano_leaves_a_cone_on_the_map_that_a_save_keeps() {
         sim.grid.placed_volcanoes,
         vec![Volcano { x: 122, y: 111, r: 5 }, Volcano { x: 300, y: 150, r: 7 }]
     );
-    assert_eq!(sim.grid.all_volcanoes().count(), generated.len() + 2);
+    // A volcano raised over a generated one replaces it; the rest of the generated ones stand.
+    let replaced = generated
+        .iter()
+        .filter(|v| !sim.grid.volcanoes.contains(v))
+        .count();
+    assert_eq!(sim.grid.all_volcanoes().count(), generated.len() - replaced + 2);
 
     let frame = sim.state_frame().into_value();
     let cones = frame["volcanoes"]
