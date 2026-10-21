@@ -7,22 +7,17 @@ The atlas layouts and draw code live in `src/game/render` and `src/shared`.
 
 ### People atlas
 
-Each cell is 32 × 32 with transparent padding. Draw it at native size on the map: adult silhouettes are 14 px tall, teens and elders 12, children 9 and infants 6. Feet end at row 25 (exclusive). Heads and trade marks follow the age-specific height, not the top of the padded cell.
+Each cell is 32 × 32 with transparent padding. Draw it at native size on the map: adult silhouettes are 14 px tall, teens and elders 12, children 9 and infants 6. Feet end at row 25 (exclusive). Heads and trade marks follow the age-specific height, not the top of the padded cell; held tools sit at `HUMAN_HAND_ROW`.
 
-Rows are `(sex * 5 + stage) * 6 + appearance`, with male/female and infant/child/teen/adult/elder order. Six authored appearances combine skin and hair variety with earthy clothes; no runtime hue rotation is applied. Columns are `clothingEra * 8 + facing * 4 + walkFrame`. Facing 0 looks right, facing 1 looks left; both are independently shaded from the top-left. Do not mirror these cells in the map renderer.
+Every figure is built on the same body plan, counted down from the outline row above the hair (adult rows shown): hair at row 1, a three-row face with two dark eyes and ears at row 3, a chin at row 4, then shoulders at row 5 that are one pixel wider than the head on each side. Arms are one-pixel columns a tone darker than the chest, ending in skin hands at row 9. Two legs two pixels wide with a one-pixel gap run to dark feet at row 13, or a skirt or robe hem replaces the top of the legs. The toe on the facing side shows which way the person walks. Walking frames lift one foot and swing the opposite hand, and frame 2 bobs the body down a pixel. Children have big heads and short legs; elders have grey hair (some are bald), lean toward where they walk and carry a stick; infants are small swaddled figures. The silhouette gets a warm `INK` outline except under the feet, light comes from the top-left, and inner seams use the material's own shade.
 
-The five clothing banks are hides/furs (pre-stone, stone, bronze, iron), tunics/robes (classical, medieval, renaissance), coats/shirts (industrial), suits/uniforms (modern, atomic, information), and sleek suits/spacesuits (space and later eras). Missing era data uses hides. `PeopleSpriteLayers` already normalizes `world.lineage_eras`; `PeopleSprites` resolves the person's lineage into a column bank at rebuild time. The animation loop only adds the facing and walking frame, with one body sprite per person and reusable typed arrays.
+Rows are `(sex * 5 + stage) * 6 + appearance`, with male/female and infant/child/teen/adult/elder order. The six appearances each pair a skin ramp with a hair colour, a hairstyle per sex, and a garment dye with one strong accent, so a crowd of one era doesn't look like clones. No runtime hue rotation is applied. Columns are `clothingEra * 8 + facing * 4 + walkFrame`. Facing 0 looks right, facing 1 looks left; both are independently shaded from the top-left. Do not mirror these cells in the map renderer.
 
-The only new colours are these six skin ramps (lit, mid, shade), defined locally in the generator for later palette integration:
+The five clothing banks are hides/furs (pre-stone, stone, bronze, iron), tunics/robes (classical, medieval, renaissance), coats/shirts (industrial), suits/uniforms (modern, atomic, information), and light suits/spacesuits (space and later eras). Spacesuit helmets have a clear visor that shows the face, and half the appearances have the helmet off. Missing era data uses hides. `PeopleSpriteLayers` already normalizes `world.lineage_eras`; `PeopleSprites` resolves the person's lineage into a column bank at rebuild time. The animation loop only adds the facing and walking frame, with one body sprite per person and reusable typed arrays.
 
-- `#d5a477`, `#b77d56`, `#81513b`
-- `#a97752`, `#825538`, `#593b2c`
-- `#edc6a0`, `#d4a078`, `#a27050`
-- `#c48b60`, `#9e6745`, `#704732`
-- `#916344`, `#70492f`, `#503528`
-- `#e0b38b`, `#bd8c65`, `#8d6044`
+Clothing stays mid to light, with one strong accent per appearance, so people stand out from olive grass, ochre sand and dark roofs. The colours the shared palette lacks are defined at the top of the generator for later palette integration: six skin ramps, six hair colours and two greys, six cloth dyes with trouser tones, six hides and a fur, two suit ramps, a visor glass and seven accents (rust, teal, ochre, indigo, plum, moss, cream). Outlines, shoes, shirts and the stone-grey tones come from `art-palette.ts`.
 
-Trade marks use the shared palette and native integer pixels. Future suits keep their helmet silhouette rather than receiving a historical trade hat. Elder walking sticks are drawn into the atlas.
+Trade marks use the shared palette and native integer pixels, centred on the five-pixel head. Future suits keep their helmet silhouette rather than receiving a historical trade hat. Elder walking sticks are drawn into the atlas.
 
 ### Other atlases
 

@@ -19,32 +19,32 @@ export interface ProfessionPixels {
 const HAT: Record<string, ProfessionPixels[]> = {
   // Straw hat with a wide brim, gold.
   farmer: [
-    { x: -2, y: 1, w: 6, h: 1, color: hex(SAND.dune) },
-    { x: -2, y: -1, w: 4, h: 1, color: hex(SAND.light) },
+    { x: -3, y: 1, w: 7, h: 1, color: hex(SAND.dune) },
+    { x: -2, y: -1, w: 5, h: 2, color: hex(SAND.light) },
   ],
   // Leather cap.
-  smith: [{ x: -2, y: -1, w: 4, h: 1, color: hex(ROCK.deep) }],
+  smith: [{ x: -2, y: -1, w: 5, h: 2, color: hex(ROCK.deep) }],
   // Steel helmet with a brim.
   soldier: [
     { x: -2, y: -2, w: 5, h: 2, color: hex(ROCK.lit) },
-    { x: -2, y: 0, w: 6, h: 1, color: hex(ROCK.shade) },
+    { x: -3, y: 0, w: 7, h: 1, color: hex(ROCK.shade) },
   ],
   // Tall white mitre with a gold band.
   priest: [
-    { x: -2, y: -4, w: 4, h: 3, color: hex(SNOW.lit) },
-    { x: -2, y: -1, w: 6, h: 1, color: hex(SAND.desert) },
+    { x: -2, y: -4, w: 5, h: 3, color: hex(SNOW.lit) },
+    { x: -3, y: -1, w: 7, h: 2, color: hex(SAND.desert) },
   ],
   // White cap with a red cross.
   healer: [
-    { x: -2, y: -1, w: 4, h: 1, color: hex(SNOW.lit) },
+    { x: -2, y: -1, w: 5, h: 2, color: hex(SNOW.lit) },
     { x: 0, y: -1, w: 1, h: 2, color: hex(BIOME_TONES.badlands) },
   ],
   // Brown felt hat.
   merchant: [{ x: -2, y: -1, w: 5, h: 2, color: hex(SAND.dune) }],
   // Dark scholar's cap.
-  scholar: [{ x: -2, y: -1, w: 4, h: 1, color: hex(ROCK.deep) }],
+  scholar: [{ x: -2, y: -1, w: 5, h: 2, color: hex(ROCK.deep) }],
   // White baker's cap.
-  baker: [{ x: -2, y: -1, w: 4, h: 1, color: hex(SNOW.lit) }],
+  baker: [{ x: -2, y: -1, w: 5, h: 2, color: hex(SNOW.lit) }],
   // Yellow hard hat with a lamp.
   miner: [
     { x: -2, y: -1, w: 5, h: 2, color: hex(SAND.desert) },
@@ -56,15 +56,15 @@ const HAT: Record<string, ProfessionPixels[]> = {
   carpenter: [{ x: -2, y: -1, w: 5, h: 2, color: hex(SAND.desert) }],
   // Green hunter's cap with a white feather.
   hunter: [
-    { x: -2, y: -1, w: 4, h: 1, color: hex(FOREST.mid) },
+    { x: -2, y: -1, w: 5, h: 2, color: hex(FOREST.mid) },
     { x: 2, y: -4, w: 1, h: 3, color: hex(SNOW.lit) },
   ],
   // Blue sailor's cap.
-  sailor: [{ x: -2, y: -1, w: 4, h: 1, color: hex(OCEAN.open) }],
+  sailor: [{ x: -2, y: -1, w: 5, h: 2, color: hex(OCEAN.open) }],
   // Beret.
   artist: [{ x: -2, y: -1, w: 5, h: 2, color: hex(BIOME_TONES.badlands) }],
   // Beige cap.
-  brewer: [{ x: -2, y: -1, w: 4, h: 1, color: hex(SAND.light) }],
+  brewer: [{ x: -2, y: -1, w: 5, h: 2, color: hex(SAND.light) }],
   // Headscarf.
   weaver: [{ x: -2, y: -1, w: 5, h: 2, color: hex(BIOME_TONES.badlands) }],
 }

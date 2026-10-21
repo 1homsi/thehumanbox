@@ -8,6 +8,8 @@ export const HUMAN_DIRECTIONS = 2
 /** The padded cell keeps room scenes compatible. Art is drawn at one world pixel per source pixel. */
 export const HUMAN_FEET_ROW = 25
 export const HUMAN_HEIGHT = { infant: 6, child: 9, teen: 12, adult: 14, elder: 12 } as const
+/** The row of the hands, counted down from the top of the figure: where a held tool sits. */
+export const HUMAN_HAND_ROW = { infant: 3, child: 5, teen: 8, adult: 9, elder: 8 } as const
 
 /** Names from the same lineage-era data used by buildings. Unnamed tribes start in hides. */
 export function humanClothingEra(era: string | undefined): number {

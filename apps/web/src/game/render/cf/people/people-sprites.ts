@@ -11,6 +11,7 @@ import {
   HUMAN_ATLAS_CELL,
   HUMAN_FEET_ROW,
   HUMAN_HEIGHT,
+  HUMAN_HAND_ROW,
   humanAtlasColumn,
   deterministicAppearanceIndex,
   humanAtlasRow,
@@ -442,7 +443,7 @@ export class PeopleSprites {
       this.boatSeat[j] = seats.get(id) ?? 0
 
       const headTop = -HUMAN_HEIGHT[stage]
-      const handTop = headTop + 7
+      const handTop = headTop + HUMAN_HAND_ROW[stage]
       // Shadows only when the world is close enough to see them.
       if (detail !== 'overview' && !crowded) {
         soft.push(
@@ -568,7 +569,7 @@ export class PeopleSprites {
       }
       // The trade shows on the figure: a hat on the head, a tool at hand height (see profession-marks).
       if (standard && org.specialty && this.column[j] < 32 && stage !== 'infant') {
-        const { worn, held } = professionMarks(org.specialty, 4)
+        const { worn, held } = professionMarks(org.specialty, 3)
         for (const [marks, top] of [
           [worn, headTop],
           [held, handTop],

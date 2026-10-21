@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { INK, ROCK, SAND, FOREST, OCEAN, SNOW, BIOME_TONES, hex } from '../src/game/render/art-palette.ts'
+import { INK, ROCK, SAND, SNOW, hex } from '../src/game/render/art-palette.ts'
 import {
   HUMAN_ATLAS_CELL as CELL,
   HUMAN_ATLAS_FRAMES as FRAMES,
@@ -13,10 +13,13 @@ import {
   HUMAN_ATLAS_HEIGHT as HEIGHT,
   HUMAN_FEET_ROW as FEET,
   HUMAN_HEIGHT,
+  HUMAN_HAND_ROW,
 } from '../src/game/render/character-visuals.ts'
 
 const outputDir = resolve(dirname(fileURLToPath(import.meta.url)), '../public/sprites/people')
-// Skin needs its own warm ramps; all cloth, hair and outlines use the shared palette.
+
+// Colours the shared palette lacks are defined here for the integrator to move into art-palette.ts: skin and
+// hair ramps, cloth dyes and one strong accent per appearance. Ramps are lit, mid, shade.
 const SKIN = [
   ['#d5a477', '#b77d56', '#81513b'],
   ['#a97752', '#825538', '#593b2c'],
@@ -25,138 +28,176 @@ const SKIN = [
   ['#916344', '#70492f', '#503528'],
   ['#e0b38b', '#bd8c65', '#8d6044'],
 ]
-const cloth = [
-  [SAND.light, SAND.desert, SAND.dune],
-  [FOREST.light, FOREST.mid, FOREST.dark],
-  [ROCK.lit, ROCK.mid, ROCK.shade],
-  [SAND.light, BIOME_TONES.badlands, ROCK.shade],
-  [OCEAN.surf, OCEAN.shallows, OCEAN.deep],
-  [SNOW.lit, SNOW.shade, ROCK.mid],
-].map((ramp) => ramp.map(hex))
-const hairs = [ROCK.deep, INK, SAND.dune, ROCK.shade, INK, SAND.desert].map(hex)
+const HAIR = [
+  ['#7a5438', '#553a28'],
+  ['#55463d', '#2f2620'],
+  ['#c06a3e', '#934a2b'],
+  ['#a87444', '#7a5232'],
+  ['#4b3a30', '#2d231d'],
+  ['#e2c47c', '#bf9b55'],
+]
+const GREY_HAIR = [
+  ['#e4e1d6', '#b5b1a5'],
+  ['#cfc9bb', '#9c968b'],
+]
+const ACCENT = {
+  rust: '#b4492f',
+  teal: '#2f8079',
+  ochre: '#d9a03a',
+  indigo: '#43518f',
+  plum: '#83456f',
+  moss: '#5d7f34',
+  cream: '#f3e8cb',
+}
+// Six dyes per era bank keep a one-era crowd from looking like clones: each appearance has its own garment ramp,
+// trouser tone and accent, all mid to light so people separate from olive, ochre and dark-roof ground.
+const DYES = [
+  { cloth: ['#efe3c3', '#d9c79d', '#ac9872'], legs: ['#8a6f55', '#69523e'], accent: ACCENT.rust },
+  { cloth: ['#e3a07a', '#c87a55', '#94553b'], legs: ['#7e8aa5', '#5d6884'], accent: ACCENT.cream },
+  { cloth: ['#b5cfba', '#8eae9b', '#647f70'], legs: ['#9a8d76', '#766a56'], accent: ACCENT.ochre },
+  { cloth: ['#ecd08a', '#d0aa5f', '#9d7b40'], legs: ['#6f7f9b', '#53607a'], accent: ACCENT.indigo },
+  { cloth: ['#d2a6bb', '#ad8098', '#7e5a6e'], legs: ['#8c826f', '#6b6252'], accent: ACCENT.moss },
+  { cloth: ['#aec0da', '#889dc0', '#627495'], legs: ['#8f7458', '#6c553f'], accent: ACCENT.rust },
+]
+// Hides and furs, each picked to differ from the skin it is paired with: grey wolf, pale doe, red-ochre
+// russet, grey-brown, white fur and a dark pelt.
+const HIDES = [
+  ['#dcd6c8', '#b5ad9d', '#867e70'],
+  ['#efe2c4', '#d6c39c', '#a8956f'],
+  ['#cf805a', '#ab623f', '#7c472d'],
+  ['#bcab90', '#998a72', '#706452'],
+  ['#ece8dc', '#c6c0b1', '#948d80'],
+  ['#a87e5a', '#86633f', '#5f462d'],
+]
+const HIDE_ACCENT = [ACCENT.teal, ACCENT.ochre, ACCENT.rust, ACCENT.indigo, ACCENT.cream, ACCENT.plum]
+const FUR = '#f1e7cf'
+const SUIT = [hex(SNOW.lit), '#d6d9cf', hex(SNOW.shade)]
+const CREAM_SUIT = ['#f4ecd6', '#ddd2b4', '#b5aa8c']
+const SUIT_ACCENT = [ACCENT.rust, ACCENT.teal, ACCENT.ochre, ACCENT.indigo, ACCENT.plum, ACCENT.moss]
+const GLASS = '#d9eee9'
 const ink = hex(INK)
-const deep = hex(ROCK.deep)
-const white = hex(SNOW.lit)
+const shoe = hex(ROCK.deep)
+const shirt = hex(SNOW.lit)
+const stick = '#6e4c30'
+
+/** A material's darkest tone: its shade pulled a third of the way toward ink. */
+function deepen(color) {
+  const c = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16))
+  return (
+    '#' +
+    c
+      .map((v, i) =>
+        Math.round(v + (INK[i] - v) / 3)
+          .toString(16)
+          .padStart(2, '0'),
+      )
+      .join('')
+  )
+}
+
+/**
+ * Rows of each body part, counted from the top of the figure (row 0 is the outline above the hair). The head is
+ * three pixels wide; the shoulder row is five, one pixel wider on each side, which is what makes the figure read
+ * as a person rather than a capsule.
+ */
+const PLAN = {
+  adult: { face: 2, eye: 3, chin: 4, shoulder: 5, hand: HUMAN_HAND_ROW.adult, legs: 10, foot: 13 },
+  teen: { face: 2, eye: 3, chin: 4, shoulder: 5, hand: HUMAN_HAND_ROW.teen, legs: 9, foot: 11 },
+  elder: { face: 2, eye: 3, chin: 4, shoulder: 5, hand: HUMAN_HAND_ROW.elder, legs: 9, foot: 11 },
+  child: { face: 2, eye: 2, chin: 3, shoulder: 4, hand: HUMAN_HAND_ROW.child, legs: 6, foot: 8 },
+}
 
 function drawCell(frame, row, sex, stage, appearance, era, facing) {
   const pixels = new Map()
   const put = (x, y, color) => pixels.set(y * CELL + x, color)
-  const box = (x, y, w, h, color) => {
-    for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) put(xx, yy, color)
-  }
-  const height = HUMAN_HEIGHT[stage]
-  const top = FEET - height
-  const small = stage === 'infant' || stage === 'child'
-  const [skinLight, skin, skinShade] = SKIN[appearance]
-  const [lit, mid, shade] = cloth[appearance]
-  const hair = stage === 'elder' ? hex(appearance % 2 ? ROCK.lit : SNOW.shade) : hairs[appearance]
-  const headY = top + 1
-  const headH = small ? 2 : 3
-  const bodyY = headY + headH + 1
-  const legY = FEET - (stage === 'infant' ? 2 : stage === 'child' ? 3 : 4)
-  const leftStep = frame === 1 ? -1 : frame === 3 ? 1 : 0
-  const rightStep = -leftStep
+  const top = FEET - HUMAN_HEIGHT[stage]
+  // Light comes from the top-left in both facings; `dir` only turns hair, toes and the elder's stick.
+  const dir = facing ? -1 : 1
+  const female = sex === 'female'
+  const skin = SKIN[appearance]
+  const hair = stage === 'elder' ? GREY_HAIR[appearance % 2] : HAIR[appearance]
+  const dye = DYES[appearance]
+  const accent = era === 'hide' ? HIDE_ACCENT[appearance] : dye.accent
 
-  // Feet trade places without moving the ground anchor or rescaling the figure.
-  for (const [x, step, color] of [
-    [14, leftStep, hex(ROCK.mid)],
-    [17, rightStep, deep],
-  ]) {
-    box(x, legY, 1, FEET - 1 - legY - (frame === 2 && x === 14 ? 1 : 0), color)
-    put(x + (small ? 0 : step), FEET - 2 - (frame === 2 && x === 14 ? 1 : 0), color)
-  }
-  box(14, bodyY, 4, Math.max(1, legY - bodyY + 1), mid)
-  box(14, bodyY, 1, Math.max(1, legY - bodyY + 1), lit)
-  box(17, bodyY + 1, 1, Math.max(0, legY - bodyY), shade)
-  const armY = Math.min(legY, bodyY + (frame === 1 ? 1 : 0))
-  box(13, armY, 1, Math.max(1, legY - armY), lit)
-  put(13, Math.max(armY, legY), skinLight)
-  box(18, Math.min(legY, bodyY + (frame === 3 ? 1 : 0)), 1, Math.max(1, legY - bodyY), shade)
-  put(18, legY, skinShade)
+  if (stage === 'infant') drawInfant(put, top, frame, dir, skin, hair, era, appearance)
+  else {
+    const plan = PLAN[stage]
+    const bob = frame === 2 ? 1 : 0
+    // Elders lean toward where they walk, over the stick.
+    const lean = stage === 'elder' ? dir : 0
+    const at = (x, r, color) => put(16 + x, top + r, color)
+    const body = (x, r, color) => at(x, r + bob, color)
+    const head = (x, r, color) => body(x + lean, r, color)
+    const helmet = era === 'spacesuit' && appearance % 2 === 0 && stage !== 'child'
+    const outfit = garment(era, appearance, female, stage)
 
-  if (!small) {
-    if (era === 'hide') {
-      // Uneven fur collar and hem, a leather strap instead of a modern shirt.
-      box(14, bodyY, 4, 1, hex(SAND.wet))
-      put(14, bodyY + 1, hex(SAND.light))
-      put(16, bodyY + 1, hex(SAND.dune))
-      put(15, legY + 1, mid)
-      box(16, bodyY + 2, 1, Math.max(1, legY - bodyY - 1), hex(ROCK.shade))
-    } else if (era === 'robe') {
-      box(14, legY, 4, sex === 'female' || appearance % 2 ? 2 : 1, mid)
-      box(14, bodyY, 1, FEET - bodyY - 2, lit)
-      box(17, bodyY + 1, 1, FEET - bodyY - 3, shade)
-      box(14, legY - 1, 4, 1, hex(SAND.dune))
-      put(15, bodyY, hex(SAND.light))
-    } else if (era === 'coat') {
-      box(15, bodyY, 2, 2, white)
-      box(14, legY, 1, 2, lit)
-      box(17, legY, 1, 2, shade)
-      put(16, legY - 1, hex(SAND.desert))
-    } else if (era === 'uniform') {
-      box(14, bodyY, 4, legY - bodyY + 1, appearance % 2 ? hex(FOREST.dark) : hex(OCEAN.deep))
-      box(14, bodyY, 1, legY - bodyY, appearance % 2 ? hex(FOREST.light) : hex(OCEAN.shallows))
-      box(15, bodyY, 2, 2, white)
-      put(16, bodyY + 1, hex(BIOME_TONES.badlands))
-      put(17, bodyY + 2, hex(SAND.desert))
-    } else {
-      const space = appearance % 2 === 0
-      box(14, bodyY, 4, legY - bodyY + 1, space ? hex(SNOW.shade) : hex(OCEAN.deep))
-      box(14, bodyY, 1, legY - bodyY + 1, space ? white : hex(OCEAN.shallows))
-      box(15, bodyY + 1, 2, 1, hex(OCEAN.open))
-      put(15, bodyY + 1, hex(OCEAN.surf))
-      if (space) box(19, bodyY + 1, 1, 3, hex(ROCK.shade))
+    // Head: hair, a three-row face with the lit side on the left and two dark eyes.
+    for (let r = 1; r <= plan.chin; r++) {
+      head(-1, r, skin[0])
+      head(0, r, skin[1])
+      head(1, r, skin[2])
+    }
+    head(-1, plan.eye, ink)
+    head(1, plan.eye, ink)
+    // Ears keep the eyes off the outline, so they read as eyes and not as notches in the head.
+    head(-2, plan.eye, skin[1])
+    head(2, plan.eye, skin[2])
+    if (helmet) {
+      // A clear visor: the face stays visible inside a light shell with a glint on the lit side.
+      for (const x of [-1, 0, 1]) head(x, 1, x < 0 ? SUIT[0] : x > 0 ? SUIT[2] : SUIT[1])
+      head(-1, plan.face, GLASS)
+      head(0, plan.face, hair[0])
+      for (let r = plan.face; r < plan.chin; r++) {
+        head(-2, r, SUIT[0])
+        head(2, r, SUIT[2])
+      }
+    } else drawHair(head, plan, hair, sex, appearance, stage, dir, accent, era)
+    if (outfit.cap && stage !== 'child') {
+      // A flat cap with its peak toward where the person walks.
+      for (const x of [-1, 0, 1]) head(x, 1, x < 0 ? outfit.cap[0] : outfit.cap[1])
+      head(dir * 2, 1, outfit.cap[1])
+    }
+
+    // Torso, arms and hands. Arms are a step darker than the chest so they separate from it.
+    const swing = (side) => (frame === 1 && side > 0) || (frame === 3 && side < 0)
+    const lowest = plan.legs - 1
+    for (let r = plan.shoulder; r <= lowest; r++) {
+      for (const x of [-1, 0, 1]) body(x, r, outfit.chest(x, r - plan.shoulder, r === lowest))
+      for (const side of [-1, 1]) {
+        const hand = plan.hand - (swing(side) ? 1 : 0)
+        if (r > hand) continue
+        const x = side * 2
+        if (r === hand) body(x, r, side < 0 ? skin[0] : skin[1])
+        else body(x, r, outfit.arm(side, r - plan.shoulder))
+      }
+    }
+
+    // Legs: two columns with a one-pixel gap, or a hem for skirts and robes. Steps lift one foot.
+    const footRow = plan.foot
+    const legTop = plan.legs + bob
+    const hem = outfit.hem ? Math.min(outfit.hem, footRow - legTop - 1) : 0
+    for (let r = legTop; r < legTop + hem; r++)
+      for (let x = -2; x <= 2; x++) at(x, r, outfit.skirt(x, r - legTop))
+    const legW = stage === 'child' ? 1 : hem ? 1 : 2
+    for (const side of [-1, 1]) {
+      const lift = (frame === 1 && side < 0) || (frame === 3 && side > 0) ? 1 : 0
+      const foot = footRow - lift
+      for (let r = legTop + hem; r < foot; r++)
+        for (let w = 0; w < legW; w++) {
+          const x = side * (1 + w)
+          at(x, r, outfit.leg(x, r - legTop, footRow - r))
+        }
+      for (let w = 0; w < legW; w++) at(side * (1 + w), foot, outfit.shoe)
+      if (side === dir) at(side * (1 + legW), foot, outfit.shoe)
+    }
+
+    if (stage === 'elder' && era !== 'spacesuit') {
+      for (let r = plan.shoulder + 1; r <= footRow; r++) at(dir * 4, r, stick)
     }
   }
 
-  if (small && era !== 'hide') {
-    const color = era === 'spacesuit' ? white : era === 'uniform' ? hex(OCEAN.deep) : mid
-    box(14, bodyY, 4, Math.max(1, legY - bodyY + 1), color)
-    put(14, bodyY, era === 'uniform' ? hex(OCEAN.shallows) : lit)
-    if (era === 'robe') put(15, legY, hex(SAND.dune))
-    if (era === 'coat') put(16, bodyY, white)
-    if (era === 'spacesuit') put(16, bodyY, hex(OCEAN.open))
-  }
-
-  // Three-quarter heads: one eye and a nose, with the light fixed in world space.
-  box(15, headY, 3, headH, skin)
-  box(15, headY, 1, headH, skinLight)
-  box(17, headY + 1, 1, headH - 1, skinShade)
-  const faceX = facing ? 14 : 18
-  if (!small) put(faceX, headY + 2, facing ? skinLight : skinShade)
-  box(15, headY, stage === 'infant' ? 1 : 3, 1, hair)
-  if (!small) {
-    put(facing ? 15 : 17, headY + 1, deep)
-    const backX = facing ? 18 : 14
-    box(backX, headY + 1, 1, sex === 'female' ? headH + 1 : 1, hair)
-    if (appearance % 3 === 1) put(backX, headY, hair)
-    if (stage === 'elder') box(15, headY + headH, 3, 1, hair)
-    if (era === 'spacesuit' && appearance % 2 === 0) {
-      box(14, headY, 5, 1, white)
-      box(14, headY, 1, headH + 1, white)
-      box(18, headY, 1, headH + 1, hex(SNOW.shade))
-      box(15, headY, 3, 1, hex(OCEAN.surf))
-    }
-  }
-
-  if (small) {
-    put(facing ? 15 : 17, headY + 1, deep)
-    if (stage === 'child' && sex === 'female') put(facing ? 18 : 14, headY + 2, hair)
-  }
-
-  if (stage === 'elder' && era !== 'spacesuit') {
-    box(20, FEET - 6, 1, 5, hex(SAND.dune))
-    put(19, FEET - 6, hex(SAND.light))
-  }
-
-  if (stage === 'infant') {
-    put(13, FEET - 2, mid)
-    put(18, FEET - 2, shade)
-    put(13, FEET - 2 - (frame === 1 || frame === 2 ? 1 : 0), skinLight)
-    put(18, FEET - 2 - (frame === 2 || frame === 3 ? 1 : 0), skinShade)
-  }
-
-  // Only the silhouette gets ink; internal seams use the material's shade.
+  // Only the silhouette gets ink. Nothing is outlined below the feet, which stand on the ground, or above the
+  // figure's height, where a bun replaces the outline.
   const outline = new Map()
   for (const key of pixels.keys()) {
     const x = key % CELL
@@ -168,7 +209,7 @@ function drawCell(frame, row, sex, stage, appearance, era, facing) {
       [0, 1],
     ]) {
       const k = (y + dy) * CELL + x + dx
-      if (!pixels.has(k)) outline.set(k, ink)
+      if (y + dy < FEET && y + dy >= top && !pixels.has(k)) outline.set(k, ink)
     }
   }
   const col = ERAS.indexOf(era) * FRAMES * 2 + facing * FRAMES + frame
@@ -188,6 +229,213 @@ function drawCell(frame, row, sex, stage, appearance, era, facing) {
       x += w
     }
   return [...paths].map(([color, d]) => `<path fill="${color}" d="${d}"/>`).join('')
+}
+
+/** Six hairstyles per sex, so a crowd of one era still differs at a glance. */
+function drawHair(head, plan, [lit, mid], sex, appearance, stage, dir, accent, era) {
+  const back = -dir
+  const cap = () => {
+    head(-1, 1, lit)
+    head(0, 1, mid)
+    head(1, 1, mid)
+  }
+  if (stage === 'elder' && appearance % 3 === 2) {
+    // Bald crown with grey at the sides.
+    head(-1, 1, lit)
+    head(1, 1, mid)
+    return
+  }
+  cap()
+  if (stage === 'child') {
+    if (sex === 'female') head(back * 2, plan.face, mid)
+    return
+  }
+  if (sex === 'male') {
+    switch (appearance) {
+      case 1:
+        head(back, plan.face, mid)
+        break
+      case 2:
+        head(-1, plan.face, lit)
+        head(1, plan.face, mid)
+        break
+      case 3:
+        head(back * 2, plan.face, mid)
+        break
+      case 5:
+        // A beard along the chin.
+        head(-1, plan.chin, lit)
+        head(0, plan.chin, mid)
+        head(1, plan.chin, mid)
+        break
+      default:
+        break
+    }
+    return
+  }
+  switch (appearance) {
+    case 0:
+      // Bob framing the face.
+      head(-2, plan.face, lit)
+      head(2, plan.face, mid)
+      head(-2, plan.eye, lit)
+      head(2, plan.eye, mid)
+      break
+    case 1:
+      // Ponytail behind.
+      head(back, plan.face, mid)
+      head(back * 2, plan.face, mid)
+      head(back * 2, plan.eye, mid)
+      head(back * 2, plan.chin, mid)
+      break
+    case 2:
+      // Bun on top.
+      head(0, 0, mid)
+      head(back, plan.face, mid)
+      break
+    case 3:
+      // Headscarf in the appearance's accent.
+      for (const x of [-1, 0, 1]) head(x, 1, era === 'spacesuit' ? mid : accent)
+      head(-2, plan.face, era === 'spacesuit' ? lit : accent)
+      head(2, plan.face, era === 'spacesuit' ? mid : accent)
+      break
+    case 4:
+      // Long hair down the back.
+      head(back * 2, plan.face, mid)
+      head(back * 2, plan.eye, mid)
+      head(back * 2, plan.chin, mid)
+      head(back * 2, plan.chin + 1, mid)
+      break
+    default:
+      // Fringe.
+      head(-1, plan.face, lit)
+      head(1, plan.face, mid)
+      break
+  }
+}
+
+/**
+ * The clothes of one era bank: chest colours by column, arm colours by side, an optional skirt or robe hem, leg
+ * colours and shoes. Rows passed in are counted from the shoulder row or the top of the legs.
+ */
+function garment(era, appearance, female, stage) {
+  const dye = DYES[appearance]
+  const [lit, mid, shade] = dye.cloth
+  const accent = era === 'hide' ? HIDE_ACCENT[appearance] : dye.accent
+  const skin = SKIN[appearance]
+  const small = stage === 'child'
+  const legs = (ramp) => (x) => (x < 0 ? ramp[0] : ramp[1])
+  const skirtOf = (ramp) => (x, r) => (x < 0 ? ramp[0] : x > 0 ? ramp[2] : r > 0 ? ramp[2] : ramp[1])
+  const dress = female && !small && appearance % 2 === 0
+  // Sleeves sit a step darker than the chest beside them, so arms separate from the body on both sides.
+  const sleeve = (side, r) => (r === 0 ? (side < 0 ? lit : mid) : side < 0 ? shade : deepen(shade))
+  if (era === 'hide') {
+    // Pelts tied over one shoulder, a fur collar, a bead or tooth on a cord, and wrapped legs in another hide.
+    const hide = HIDES[appearance]
+    const wrap = HIDES[(appearance + 3) % HIDES.length]
+    return {
+      chest: (x, r, waist) => {
+        if (r === 0) return x < 0 ? FUR : x === 0 ? hide[0] : hide[1]
+        if (waist) return (x + r) % 2 ? hide[2] : hide[1]
+        if (r === 1 && x === 0 && !small) return accent
+        return x < 0 ? hide[0] : hide[1]
+      },
+      arm: (side, r) => (r === 0 ? (side < 0 ? FUR : hide[1]) : side < 0 ? skin[0] : skin[1]),
+      hem: female && !small ? 1 : 0,
+      skirt: (x) => ((x & 1) === 0 ? hide[2] : x < 0 ? hide[0] : hide[1]),
+      leg: (x, r, fromFoot) => (fromFoot === 1 ? wrap[2] : x < 0 ? wrap[0] : wrap[1]),
+      shoe: wrap[2],
+    }
+  }
+  if (era === 'robe') {
+    // Tunics and robes in a dyed cloth, belted with the accent.
+    const robe = (female || appearance % 3 === 1) && !small
+    return {
+      chest: (x, r, waist) => (waist ? accent : r === 0 && x === 0 ? shade : x < 0 ? lit : x > 0 ? mid : lit),
+      arm: sleeve,
+      hem: robe ? 3 : 0,
+      skirt: skirtOf(dye.cloth),
+      leg: legs(dye.legs),
+      shoe: hex(SAND.dune),
+    }
+  }
+  if (era === 'coat') {
+    // A white shirt and neckerchief under an open coat whose tails hang over the trousers; some men wear caps.
+    return {
+      chest: (x, r, waist) => (x === 0 ? (r === 0 ? accent : shirt) : waist ? mid : x < 0 ? lit : mid),
+      arm: sleeve,
+      hem: dress ? 3 : small ? 0 : 1,
+      skirt: dress ? skirtOf(dye.cloth) : (x) => (x === 0 ? hex(ROCK.deep) : x < 0 ? lit : shade),
+      leg: legs(dye.legs),
+      shoe,
+      cap: !female && appearance % 3 === 0 ? [hex(ROCK.mid), hex(ROCK.shade)] : null,
+    }
+  }
+  if (era === 'uniform') {
+    // Suits with a collar and tie for half the town; the rest wear a plain uniform shirt with a coloured belt.
+    const suit = appearance % 2 === 0
+    return {
+      chest: suit
+        ? (x, r, waist) =>
+            x === 0 ? (r === 0 ? shirt : waist ? mid : accent) : waist ? mid : x < 0 ? lit : mid
+        : (x, r, waist) =>
+            waist ? accent : r === 0 ? (x === 0 ? shirt : x < 0 ? lit : mid) : x < 0 ? lit : mid,
+      arm: sleeve,
+      hem: dress ? 2 : 0,
+      skirt: skirtOf(dye.cloth),
+      leg: suit ? legs([mid, shade]) : legs(dye.legs),
+      shoe,
+    }
+  }
+  // Light suits with one bold stripe or chest panel; helmets have clear visors, or come off.
+  const suit = appearance % 2 ? CREAM_SUIT : SUIT
+  const stripe = SUIT_ACCENT[appearance]
+  const panel = appearance % 2 === 1
+  return {
+    chest: (x, r, waist) => {
+      if (r === 0) return x < 0 ? suit[0] : suit[1]
+      if (waist) return x === 0 ? stripe : suit[2]
+      if (panel) return r === 1 && x <= 0 ? stripe : x < 0 ? suit[0] : suit[1]
+      return x === 0 ? stripe : x < 0 ? suit[0] : suit[1]
+    },
+    arm: (side, r) => (r === 1 ? stripe : side < 0 ? suit[1] : suit[2]),
+    hem: 0,
+    skirt: skirtOf(suit),
+    leg: (x, r, fromFoot) => (fromFoot === 1 ? stripe : x < 0 ? suit[0] : suit[1]),
+    shoe: hex(ROCK.shade),
+  }
+}
+
+/** Infants are tiny swaddled figures: a head, two arms that wave as they toddle, and a wrap in the era's cloth. */
+function drawInfant(put, top, frame, dir, skin, [hairLit, hairMid], era, appearance) {
+  const at = (x, r, color) => put(16 + x, top + r, color)
+  const dye = DYES[appearance]
+  const wrap =
+    era === 'hide'
+      ? [FUR, HIDES[appearance][1]]
+      : era === 'spacesuit'
+        ? [SUIT[0], SUIT_ACCENT[appearance]]
+        : era === 'uniform'
+          ? [dye.cloth[0], dye.accent]
+          : era === 'coat'
+            ? [shirt, dye.cloth[1]]
+            : [dye.cloth[0], dye.cloth[1]]
+  at(-1, 1, skin[0])
+  at(0, 1, hairMid)
+  at(1, 1, skin[2])
+  if (appearance % 2) at(-1, 1, hairLit)
+  at(-1, 2, ink)
+  at(0, 2, skin[1])
+  at(1, 2, ink)
+  for (const x of [-1, 0, 1]) {
+    at(x, 3, x < 0 ? wrap[0] : x > 0 ? wrap[1] : wrap[0])
+    at(x, 4, x === 0 ? wrap[1] : x < 0 ? wrap[0] : wrap[1])
+  }
+  at(-2, frame === 1 || frame === 2 ? 2 : 3, skin[0])
+  at(2, frame === 2 || frame === 3 ? 2 : 3, skin[1])
+  at(-1, 5, frame === 1 ? wrap[0] : skin[0])
+  at(1, 5, frame === 3 ? wrap[1] : skin[1])
+  if (frame === 0) at(dir * 2, 5, skin[2])
 }
 
 let body = ''

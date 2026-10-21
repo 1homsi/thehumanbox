@@ -49,12 +49,26 @@ describe('authored people pixels', () => {
     }
   })
 
-  it('keeps the skin highlight on the screen-left side when the figure turns', () => {
+  it('keeps the skin highlight on the screen-left side when the figure turns, under two dark eyes', () => {
     const row = 18
     for (const col of [0, 4]) {
       const cell = cells[row * HUMAN_ATLAS_COLS + col]
-      expect(cell.get(14 * 32 + 15)).toBe('#d5a477')
-      expect(cell.get(14 * 32 + 17)).toBe('#81513b')
+      expect(cell.get(13 * 32 + 15)).toBe('#d5a477')
+      expect(cell.get(13 * 32 + 17)).toBe('#81513b')
+      expect(cell.get(14 * 32 + 15)).toBe(hex(INK))
+      expect(cell.get(14 * 32 + 17)).toBe(hex(INK))
+    }
+  })
+
+  it('gives adults shoulders wider than the head, with a neck notch between them', () => {
+    const width = (cell: Map<number, string>, y: number) =>
+      [...cell.keys()].filter((key) => Math.floor(key / HUMAN_ATLAS_CELL) === y).length
+    for (let appearance = 0; appearance < 6; appearance++) {
+      for (const era of [0, 8, 16, 24, 32]) {
+        // Feet at row 25, so the adult chin is row 15 and the shoulders row 16.
+        const cell = cells[(18 + appearance) * HUMAN_ATLAS_COLS + era]
+        expect(width(cell, 16)).toBeGreaterThan(width(cell, 15))
+      }
     }
   })
 })
