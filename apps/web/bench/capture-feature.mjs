@@ -4,7 +4,7 @@
 //   node apps/web/bench/capture-feature.mjs --seed 42 --tick 18000 --feature building:market --out <dir>
 //   node apps/web/bench/capture-feature.mjs --seed 42 --tick 18000 --list          # what the frame holds
 //
-// Features: building:<kind> (or a bare kind such as market, gate, watchtower), caravan[:<cargo>], boat, ferry,
+// Features: world (whole map), building:<kind> (or a bare kind such as market, gate, watchtower), caravan[:<cargo>], boat, ferry,
 //   ship, train, rail, field, pier (a harbour's pier, or a ferry landing).
 // Options: --index N (which candidate, default 0), --zooms close,overview (also mid), --tag name,
 //   --dist apps/web/dist, --cache apps/web/bench/.cache, --wasm apps/web/src/wasm/sim-core,

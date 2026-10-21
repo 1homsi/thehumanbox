@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SANDBOX_CATEGORIES, type SandboxTool } from '../../simulation/sandbox'
 import { DOCK_TABS, SPEED_TOOL_IDS, TIME_CATEGORY_ID, groupsFor } from './dock-tabs'
 import { SandboxToolbar } from './SandboxToolbar'
+import { useWorldStore } from '../../state/worldStore'
+import type { WorldState } from '../../shared/types'
 
 // Every button in the world dock, clicked through the real component.
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -54,6 +56,7 @@ function memoryStorage(): Storage {
 
 beforeEach(() => {
   Object.defineProperty(window, 'localStorage', { value: memoryStorage(), configurable: true })
+  useWorldStore.setState({ world: { grid: { width: 800, height: 400 } } as WorldState })
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
@@ -62,6 +65,8 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount())
   container.remove()
+  useWorldStore.setState({ world: null })
+  vi.restoreAllMocks()
 })
 
 // Every test renders the dock, whose first tab (life, with every animal) builds many sprites in
@@ -88,6 +93,24 @@ describe('world dock buttons', { timeout: 20_000 }, () => {
       expect(props.onPick).toHaveBeenCalledTimes(tools.length)
     }, 20_000)
   }
+
+  it('rolls events using the loaded world dimensions', () => {
+    const props = render()
+    click(tab('nature'))
+    vi.spyOn(Math, 'random').mockReturnValue(0.99).mockReturnValueOnce(0.2)
+    click(tile('dice'))
+    expect(props.onPick).toHaveBeenLastCalledWith(
+      expect.objectContaining({ fire: expect.objectContaining({ x: 792, y: 396 }) }),
+    )
+  })
+
+  it('waits for a world before rolling a random event', () => {
+    useWorldStore.setState({ world: null })
+    const props = render()
+    click(tab('nature'))
+    click(tile('dice'))
+    expect(props.onPick).not.toHaveBeenCalled()
+  })
 
   it('steps the speed one finer step faster or slower from the speed the world runs at', () => {
     const props = render({ runtimeSpeed: 1 })

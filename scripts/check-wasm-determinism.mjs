@@ -5,17 +5,18 @@
 // script checks the wasm build the game ships. Run after scripts/build-wasm.sh:
 //
 //   node scripts/check-wasm-determinism.mjs apps/web/src/wasm/sim-core
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const wasmDir = process.argv[2]
 if (!wasmDir) {
-  console.error('usage: node scripts/check-wasm-determinism.mjs <wasm dir>')
+  console.error('usage: node scripts/check-wasm-determinism.mjs <wasm dir> [--update]')
   process.exit(2)
 }
 
-const golden = JSON.parse(readFileSync(new URL('./determinism-fingerprint.json', import.meta.url), 'utf8'))
+const goldenPath = new URL('./determinism-fingerprint.json', import.meta.url)
+const golden = JSON.parse(readFileSync(goldenPath, 'utf8'))
 
 // FNV-1a 64, the same function the Rust test uses.
 function fnv1a64(bytes) {
@@ -35,7 +36,11 @@ const sim = new mod.Sim(BigInt(golden.seed))
 sim.tickN(golden.tick)
 const got = fnv1a64(sim.serialize())
 
-if (got !== golden.save_fnv1a64) {
+if (process.argv.includes('--update')) {
+  golden.save_fnv1a64 = got
+  writeFileSync(goldenPath, JSON.stringify(golden, null, 2) + '\n')
+  console.log(`updated determinism fingerprint: seed ${golden.seed} tick ${golden.tick} ${got}`)
+} else if (got !== golden.save_fnv1a64) {
   console.error(
     `wasm determinism check failed: seed ${golden.seed} at tick ${golden.tick} gave ${got}, expected ${golden.save_fnv1a64}`,
   )

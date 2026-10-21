@@ -5,11 +5,14 @@ use crate::math::DetMath;
 use rand::{Rng, RngExt};
 use serde::Serialize;
 
-pub const WIDTH: usize = 600;
-pub const HEIGHT: usize = 300;
+pub const WIDTH: usize = 800;
+pub const HEIGHT: usize = 400;
 /// How far enriched soil settles back toward its biome's fertility each
 /// time the world layers decay (every 500 ticks).
 pub const SOIL_SETTLE: f32 = 0.002;
+
+/// A few water tiles keep every coast inside the map.
+pub const OCEAN_MARGIN: i32 = 4;
 
 pub const VP_W: usize = WIDTH;
 pub const VP_H: usize = HEIGHT;
@@ -72,7 +75,11 @@ pub struct WorldGrid {
 
 impl WorldGrid {
     pub fn new(seed: u64) -> Self {
-        let size = WIDTH * HEIGHT;
+        Self::new_sized::<WIDTH, HEIGHT>(seed, false)
+    }
+
+    pub(crate) fn new_sized<const W: usize, const H: usize>(seed: u64, legacy: bool) -> Self {
+        let size = W * H;
         let mut g = WorldGrid {
             tiles: vec![Tile::Grass as i8; size],
             fire_intensity: vec![0.0; size],
@@ -93,8 +100,8 @@ impl WorldGrid {
             road: vec![ROAD_NONE; size],
             trail_dirty: crate::hashing::FxHashSet::default(),
         };
-        g.generate(seed);
-        g.enforce_ocean_border();
+        g.generate_sized::<W, H>(seed, legacy);
+        g.enforce_ocean_border_sized::<W, H>(legacy);
         g
     }
 
@@ -120,17 +127,29 @@ impl WorldGrid {
     }
 
     pub fn enforce_ocean_border(&mut self) {
-        const HARD_X: i32 = (WIDTH as f32 * 0.025) as i32;
-        const HARD_Y: i32 = (HEIGHT as f32 * 0.025) as i32;
+        self.enforce_ocean_border_sized::<WIDTH, HEIGHT>(false);
+    }
+
+    fn enforce_ocean_border_sized<const WIDTH: usize, const HEIGHT: usize>(&mut self, legacy: bool) {
+        let hard_x = if legacy {
+            (WIDTH as f32 * 0.025) as i32
+        } else {
+            OCEAN_MARGIN
+        };
+        let hard_y = if legacy {
+            (HEIGHT as f32 * 0.025) as i32
+        } else {
+            OCEAN_MARGIN
+        };
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
-                if x < HARD_X || x >= WIDTH as i32 - HARD_X || y < HARD_Y || y >= HEIGHT as i32 - HARD_Y {
-                    let i = Self::idx(x, y);
+                if x < hard_x || x >= WIDTH as i32 - hard_x || y < hard_y || y >= HEIGHT as i32 - hard_y {
+                    let i = y as usize * WIDTH + x as usize;
                     self.water_out(i);
                 }
             }
         }
-        self.soften_ocean_coast();
+        self.soften_ocean_coast::<WIDTH, HEIGHT>(legacy);
     }
 
     fn water_out(&mut self, i: usize) {
@@ -144,26 +163,42 @@ impl WorldGrid {
         self.fertility[i] = 0.0;
     }
 
-    fn soften_ocean_coast(&mut self) {
-        const HARD_X: i32 = (WIDTH as f32 * 0.025) as i32;
-        const HARD_Y: i32 = (HEIGHT as f32 * 0.025) as i32;
-        const TRANS_X: i32 = (WIDTH as f32 * 0.10) as i32;
-        const TRANS_Y: i32 = (HEIGHT as f32 * 0.10) as i32;
+    fn soften_ocean_coast<const WIDTH: usize, const HEIGHT: usize>(&mut self, legacy: bool) {
+        let hard_x = if legacy {
+            (WIDTH as f32 * 0.025) as i32
+        } else {
+            OCEAN_MARGIN
+        };
+        let hard_y = if legacy {
+            (HEIGHT as f32 * 0.025) as i32
+        } else {
+            OCEAN_MARGIN
+        };
+        let trans_x = if legacy {
+            (WIDTH as f32 * 0.10) as i32
+        } else {
+            OCEAN_MARGIN + 3
+        };
+        let trans_y = if legacy {
+            (HEIGHT as f32 * 0.10) as i32
+        } else {
+            OCEAN_MARGIN + 3
+        };
         let w = WIDTH as i32;
         let h = HEIGHT as i32;
-        let band_x = (TRANS_X - HARD_X).max(1) as f32;
-        let band_y = (TRANS_Y - HARD_Y).max(1) as f32;
+        let band_x = (trans_x - hard_x).max(1) as f32;
+        let band_y = (trans_y - hard_y).max(1) as f32;
 
-        for y in HARD_Y..(h - HARD_Y) {
-            for x in HARD_X..(w - HARD_X) {
-                let i = Self::idx(x, y);
+        for y in hard_y..(h - hard_y) {
+            for x in hard_x..(w - hard_x) {
+                let i = y as usize * WIDTH + x as usize;
                 if self.tiles[i] == Tile::Water as i8 {
                     continue;
                 }
-                let dx_in = (x - HARD_X).min(w - 1 - HARD_X - x);
-                let dy_in = (y - HARD_Y).min(h - 1 - HARD_Y - y);
-                let in_x = dx_in < (TRANS_X - HARD_X);
-                let in_y = dy_in < (TRANS_Y - HARD_Y);
+                let dx_in = (x - hard_x).min(w - 1 - hard_x - x);
+                let dy_in = (y - hard_y).min(h - 1 - hard_y - y);
+                let in_x = dx_in < (trans_x - hard_x);
+                let in_y = dy_in < (trans_y - hard_y);
                 if !in_x && !in_y {
                     continue;
                 }
@@ -194,8 +229,8 @@ impl WorldGrid {
     }
 
     pub fn is_edge_border(x: i32, y: i32) -> bool {
-        const HARD_X: i32 = (WIDTH as f32 * 0.025) as i32;
-        const HARD_Y: i32 = (HEIGHT as f32 * 0.025) as i32;
+        const HARD_X: i32 = OCEAN_MARGIN;
+        const HARD_Y: i32 = OCEAN_MARGIN;
         x < HARD_X || x >= WIDTH as i32 - HARD_X || y < HARD_Y || y >= HEIGHT as i32 - HARD_Y
     }
 

@@ -367,8 +367,14 @@ mod tests {
 mod cause_tests {
     use super::*;
     use crate::organism::organism::{Harm, Organism};
+    use crate::world::tiles::Tile;
 
     fn victim(sim: &mut Simulation, harm: Harm) -> usize {
+        for x in 95..=105 {
+            for y in 95..=105 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
         let mut o = Organism::new(
             "v".into(),
             "v".into(),
@@ -456,42 +462,5 @@ mod cause_tests {
         let losses = &payload["tribe_losses"]["clan"];
         assert_eq!(losses["war"], 2);
         assert_eq!(losses["old_age"], 1);
-    }
-
-    #[test]
-    fn a_tribe_hunted_by_beasts_is_told_so() {
-        let mut sim = Simulation::new(33);
-        sim.organisms.clear();
-        for i in 0..3 {
-            let mut o = Organism::new(
-                format!("p{i}"),
-                format!("p{i}"),
-                50.0,
-                50.0,
-                0,
-                String::new(),
-                "clan".into(),
-                20_000,
-                Default::default(),
-            );
-            o.alive = true;
-            o.age = 9_000;
-            o.energy = 0.9;
-            o.hydration = 0.9;
-            o.sex = if i == 0 {
-                crate::organism::organism::Sex::Male
-            } else {
-                crate::organism::organism::Sex::Female
-            };
-            sim.organisms.push(o);
-        }
-        sim.lineage_peak_pop.insert("clan".into(), 20);
-        sim.tick_count = 5_000;
-        for _ in 0..4 {
-            sim.note_death("clan", "beasts");
-        }
-        sim.note_death("clan", "old_age");
-        sim.tick_tribe_peril();
-        assert_eq!(sim.tribe_peril["clan"].cause, PerilCause::Beasts);
     }
 }

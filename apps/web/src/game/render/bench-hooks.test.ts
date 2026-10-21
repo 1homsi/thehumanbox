@@ -9,7 +9,7 @@ function source() {
   const command = { current: null as MapCommand | null }
   const world = {
     tick: 4321,
-    grid: { width: 600, height: 300, origin_x: 4 },
+    grid: { width: 800, height: 400, origin_x: 4 },
     organisms: [
       { alive: true, x: 1, y: 2 },
       { alive: false, x: 3, y: 4 },
@@ -52,8 +52,8 @@ describe('bench hooks', () => {
     hooks.command({ kind: 'fit' })
     expect(src.command.current).toEqual({ kind: 'fit' })
     expect(hooks.info()).toEqual({
-      gridW: 600,
-      gridH: 300,
+      gridW: 800,
+      gridH: 400,
       originX: 4,
       originY: 0,
       people: 2,
