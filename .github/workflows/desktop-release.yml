@@ -1,35 +1,28 @@
 name: desktop-release
 
-# Builds the Electron desktop app for macOS (arm64), Windows (x64) and
-# Linux (x64), and uploads each artifact to a GitHub Release. Started:
+# Builds the macOS (Apple Silicon) desktop app and uploads the .dmg and .zip
+# to a GitHub Release of this repository. The app's updater reads the same
+# releases. Started:
 #
-#   - by pipeline.yml's publish-release once it cuts the release, as its own
-#     run so the installers never hold up the next merge's pipeline (the
-#     `release: published` event does not fire for a release made with the
-#     default GITHUB_TOKEN, but a workflow_dispatch does)
-#   - manually (pass a tag name, useful for re-running a failed platform
-#     build without re-cutting the release)
+#   - by pushing a version tag: `git tag v0.1.0 && git push origin v0.1.0`
+#   - manually from the Actions tab (pass the tag; useful for re-running a
+#     failed build without cutting a new tag)
+#
+# The version comes from the tag (v0.1.0 -> 0.1.0) and is stamped into
+# apps/desktop/package.json at build time, so the committed version stays
+# upstream's and upstream merges do not conflict on it.
 
 on:
+  push:
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing release tag to upload to (e.g. v0.2.1)'
+        description: 'Release tag to build and upload to (e.g. v0.1.0)'
         required: true
-      version:
-        description: 'Numeric version to stamp into apps/desktop/package.json (e.g. 0.2.1)'
-        required: true
-      source_sha:
-        description: 'Commit to build (defaults to the branch the run starts on)'
-        required: false
-        default: ''
-      pipeline_run_id:
-        description: 'Pipeline run whose sim-core-wasm artifact to reuse (built here when empty)'
-        required: false
-        default: ''
 
 concurrency:
-  group: desktop-release-${{ inputs.tag }}
+  group: desktop-release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 permissions:
@@ -47,42 +40,51 @@ jobs:
             os: macos-14
             sim_target: aarch64-apple-darwin
             bin_name: simulation-rs
-          - label: Linux-x64
-            os: ubuntu-24.04
-            sim_target: x86_64-unknown-linux-gnu
-            bin_name: simulation-rs
-          - label: Windows-x64
-            os: windows-2022
-            sim_target: x86_64-pc-windows-msvc
-            bin_name: simulation-rs.exe
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.source_sha || github.sha }}
+          ref: ${{ inputs.tag || github.ref }}
 
-      - name: Resolve release tag
+      - name: Resolve release tag and version
         id: tag
         shell: bash
-        run: echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "tag '$TAG' is not vX.Y.Z" >&2; exit 1; }
+          { echo "tag=$TAG"; echo "version=${TAG#v}"; } >> "$GITHUB_OUTPUT"
 
-      # The triggering SHA is the user's push, not the bump-bot's commit
-      # that updated apps/desktop/package.json's version. Stamp the version in
-      # explicitly so electron-builder names artifacts + publishes to the
-      # right release tag.
+      # electron-builder names the artifacts and picks the release from this
+      # version, and the updater compares it with the installed app's.
       - name: Stamp desktop version
         shell: bash
         run: |
           set -euo pipefail
           tmp=$(mktemp)
-          jq --arg v "${{ inputs.version }}" '.version = $v' apps/desktop/package.json > "$tmp"
+          jq --arg v "${{ steps.tag.outputs.version }}" '.version = $v' apps/desktop/package.json > "$tmp"
           mv "$tmp" apps/desktop/package.json
           echo "apps/desktop/package.json version → $(jq -r .version apps/desktop/package.json)"
 
-      # Most releases leave the simulation alone, and compiling it was the
-      # slowest step (about 2.5 minutes on Windows). Key the binary on its
-      # sources (scripts/source-key.sh ignores the release version stamps).
+      - name: Create the release (idempotent)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists"
+          else
+            gh release create "$TAG" --title "$TAG" --verify-tag \
+              --notes "macOS (Apple Silicon) build. The app is not signed: on first launch right-click it and choose Open."
+          fi
+
+      # Most releases leave the simulation alone, and compiling it is the
+      # slowest step. Key the binary on its sources (scripts/source-key.sh
+      # ignores the release version stamps).
       - name: Simulation binary key
         id: sim-key
         shell: bash
@@ -95,22 +97,7 @@ jobs:
           path: target/${{ matrix.sim_target }}/release/${{ matrix.bin_name }}
           key: ${{ steps.sim-key.outputs.key }}
 
-      # The wasm is platform independent and the pipeline already built it;
-      # rebuilding it here cost 5 to 9 minutes per OS. A manual dispatch has
-      # no pipeline run, so it falls back to building.
-      - name: Reuse wasm sim-core from the pipeline
-        id: wasm
-        if: ${{ inputs.pipeline_run_id != '' }}
-        continue-on-error: true
-        uses: actions/download-artifact@v8
-        with:
-          name: sim-core-wasm
-          path: apps/web/src/wasm/sim-core
-          run-id: ${{ inputs.pipeline_run_id }}
-          github-token: ${{ github.token }}
-
       - name: Setup Rust toolchain
-        if: steps.sim-bin.outputs.cache-hit != 'true' || steps.wasm.outcome != 'success'
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown, ${{ matrix.sim_target }}
@@ -133,13 +120,11 @@ jobs:
           cp target/${{ matrix.sim_target }}/release/${{ matrix.bin_name }} apps/desktop/resources/bin/
 
       - name: Install wasm-pack
-        if: steps.wasm.outcome != 'success'
         uses: taiki-e/install-action@v2
         with:
           tool: wasm-pack
 
       - name: Build wasm sim-core (renderer imports it)
-        if: steps.wasm.outcome != 'success'
         shell: bash
         run: scripts/build-wasm.sh
 
@@ -178,9 +163,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           # `pnpm run release` builds the renderer (the client with
           # VITE_DESKTOP=1) itself, so the client is built once, here.
-          VITE_GIT_SHA:      ${{ inputs.source_sha || github.sha }}
-          VITE_POSTHOG_KEY:  ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST || 'https://us.i.posthog.com' }}
+          VITE_GIT_SHA:      ${{ github.sha }}
         run: pnpm run release
 
       - name: Upload artifact (debug, if release upload fails)

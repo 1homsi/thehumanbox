@@ -7,24 +7,18 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# PR runs are cancellable so that pushing new commits to a PR
-# supersedes the prior run. Main runs serialize (bump-version /
-# build / deploy chain must run in order without losing one). The
-# desktop installers run in their own workflow, so a main run is done
-# once the release is cut and never holds the next merge back.
+# Fork CI: checks only. Upstream's version bump, release and Cloudflare deploy
+# jobs are removed; desktop installers are built by desktop-release.yml when a
+# `v*` tag is pushed. PR runs are cancellable so a new push supersedes them.
 concurrency:
   group: pipeline-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # Which suites to run. A PR runs the suites whose inputs it changed. A push
-  # to main normally reruns everything, but a merge whose source the PR run
-  # already verified (same key from scripts/source-key.sh, which ignores the
-  # release bot's version stamps) skips straight to shipping: the tests would
-  # rerun on identical code.
+  # Which suites to run. A PR runs the suites whose inputs it changed; a push
+  # to main runs everything.
   changes:
     name: Detect changed areas
-    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     outputs:
@@ -32,15 +26,8 @@ jobs:
       client: ${{ steps.plan.outputs.client }}
       desktop: ${{ steps.plan.outputs.desktop }}
       build_client: ${{ steps.plan.outputs.build_client }}
-      key: ${{ steps.key.outputs.key }}
-      verified: ${{ steps.verified.outputs.verified }}
-      verified_run: ${{ steps.verified.outputs.run }}
-      verified_bundle: ${{ steps.verified.outputs.bundle }}
     steps:
       - uses: actions/checkout@v7
-      - name: Source key
-        id: key
-        run: echo "key=$(scripts/source-key.sh)" >> "$GITHUB_OUTPUT"
       - uses: dorny/paths-filter@v4
         if: ${{ github.event_name == 'pull_request' }}
         id: filter
@@ -72,52 +59,16 @@ jobs:
               - *ci
               - 'apps/desktop/**'
               - '.node-version'
-      # The PR run for this exact source left a `verified-<key>` artifact (see
-      # pr-verified). Only runs of this workflow on a pull_request from this
-      # repository count, so a fork cannot vouch for a merge.
-      - name: Find the PR run that verified this source
-        id: verified
-        if: ${{ github.event_name == 'push' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          KEY: ${{ steps.key.outputs.key }}
-          REPO_ID: ${{ github.repository_id }}
-        run: |
-          set -uo pipefail
-          # Any API failure falls back to the full run.
-          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=verified-$KEY&per_page=20" --jq "
-            [.artifacts[] | select(.expired == false
-              and .workflow_run.repository_id == $REPO_ID
-              and .workflow_run.head_repository_id == $REPO_ID)]
-            | sort_by(.created_at) | last | .workflow_run.id // empty") || run=""
-          origin=""
-          if [ -n "$run" ]; then
-            origin=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.path + " " + .event') || origin=""
-          fi
-          if [ "$origin" = ".github/workflows/pipeline.yml pull_request" ]; then
-            # The PR run uploads client-dist only when it is the production
-            # bundle (built with the analytics key); ship-web deploys it.
-            bundle=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run/artifacts?name=client-dist" \
-              --jq '[.artifacts[] | select(.expired == false)] | length > 0') || bundle=false
-            echo "Verified by run $run (bundle: $bundle)"
-            { echo "verified=true"; echo "run=$run"; echo "bundle=$bundle"; } >> "$GITHUB_OUTPUT"
-          else
-            echo "No PR run verified source $KEY; running every suite"
-            { echo "verified=false"; echo "bundle=false"; } >> "$GITHUB_OUTPUT"
-          fi
       - name: Plan
         id: plan
         env:
           EVENT: ${{ github.event_name }}
-          VERIFIED: ${{ steps.verified.outputs.verified }}
           SIM: ${{ steps.filter.outputs.sim }}
           CLIENT: ${{ steps.filter.outputs.client }}
           DESKTOP: ${{ steps.filter.outputs.desktop }}
         run: |
           if [ "$EVENT" = pull_request ]; then
             plan=(sim="$SIM" client="$CLIENT" desktop="$DESKTOP" build_client="$CLIENT")
-          elif [ "$VERIFIED" = true ]; then
-            plan=(sim=false client=false desktop=false build_client=true)
           else
             plan=(sim=true client=true desktop=true build_client=true)
           fi
@@ -283,42 +234,26 @@ jobs:
         with:
           path: apps/web/src/wasm/sim-core
           key: ${{ steps.wasm-key.outputs.key }}
-      # PR caches are not visible to main, so a merge that changed sim-core
-      # would rebuild here. The verified PR run already built this exact wasm;
-      # take it (the cache step then saves it for main).
-      - name: Reuse the verified PR's wasm
-        id: wasm-pr
-        if: ${{ steps.wasm-cache.outputs.cache-hit != 'true' && needs.changes.outputs.verified_run != '' }}
-        continue-on-error: true
-        uses: actions/download-artifact@v8
-        with:
-          name: sim-core-wasm
-          path: apps/web/src/wasm/sim-core
-          run-id: ${{ needs.changes.outputs.verified_run }}
-          github-token: ${{ github.token }}
       - uses: dtolnay/rust-toolchain@stable
-        if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
-        if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
         with:
           workspaces: . -> target
       - name: Install wasm-pack
-        if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
         uses: taiki-e/install-action@v2
         with:
           tool: wasm-pack
       - name: Build wasm sim-core
         id: wasm-build
-        if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
         run: scripts/build-wasm.sh
       # The browser sim must reproduce the committed native fingerprint (see
-      # scripts/determinism-fingerprint.json). Runs on cached and fresh builds;
-      # a verified merge skips it unless the wasm was built here, since the PR
-      # run checked this same wasm.
+      # scripts/determinism-fingerprint.json). Runs on cached and fresh builds.
       - name: Check wasm determinism fingerprint
-        if: needs.changes.outputs.verified != 'true' || steps.wasm-build.outcome == 'success'
         run: node scripts/check-wasm-determinism.mjs apps/web/src/wasm/sim-core
       - uses: actions/upload-artifact@v7
         with:
@@ -329,18 +264,13 @@ jobs:
   build-frontend:
     name: Build frontend
     needs: [changes, test-frontend, build-wasm]
-    # A verified merge with the PR's production bundle ships that instead
-    # (ship-web). Main's frontend tests are skipped on a verified merge.
     if: >-
       ${{ !cancelled()
         && needs.changes.outputs.build_client == 'true'
-        && needs.changes.outputs.verified_bundle != 'true'
         && needs.build-wasm.result == 'success'
         && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    env:
-      HAS_ANALYTICS_KEY: ${{ secrets.VITE_POSTHOG_KEY != '' }}
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -370,22 +300,6 @@ jobs:
         env:
           VITE_GIT_SHA:      ${{ github.sha }}
           VITE_BUILD_TS:     ${{ steps.ts.outputs.build_ts }}
-          # PostHog analytics. Token + host pulled from repo secrets so
-          # the key never lands in the repo. Build-time injection means
-          # the bundle only includes them on prod CI builds — local
-          # `pnpm dev` reads the developer's own .env (or simply doesn't
-          # initialize, see analytics.ts).
-          VITE_POSTHOG_KEY:  ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST || 'https://us.i.posthog.com' }}
-
-      # A PR bundle without the analytics key (Dependabot PRs get no secrets)
-      # is not the production bundle, so main rebuilds instead of shipping it.
-      - uses: actions/upload-artifact@v7
-        if: github.event_name != 'pull_request' || env.HAS_ANALYTICS_KEY == 'true'
-        with:
-          name: client-dist
-          path: apps/web/dist
-          retention-days: 7
 
   test-desktop:
     name: Typecheck desktop
@@ -412,255 +326,3 @@ jobs:
       - name: desktop main-process tests
         working-directory: apps/desktop
         run: pnpm run test:main
-
-  bump-version:
-    name: Bump version
-    # Only runs for direct pushes to main (post-merge). PRs go through
-    # the test jobs only — no version bump, no deploy. The gate's own needs
-    # include jobs that skip by design (the suites on a verified merge,
-    # ship-web otherwise), and a skipped ancestor fails the default success()
-    # check, so this and the jobs after it check their needs explicitly.
-    if: ${{ !cancelled() && needs.release-gate.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    needs: [release-gate]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    concurrency:
-      group: pipeline-deploy-main
-      cancel-in-progress: false
-    outputs:
-      new: ${{ steps.bump.outputs.new }}
-    steps:
-      # The tip of main, not this run's commit: a merge that landed before the
-      # previous run's bump would otherwise recompute the same version.
-      - uses: actions/checkout@v7
-        with:
-          ref: main
-          fetch-depth: 0
-          token: ${{ secrets.BUMP_PAT }}
-
-      - name: Compute + apply patch bump
-        id: bump
-        run: |
-          set -euo pipefail
-          CURRENT=$(grep '^version = ' apps/server/Cargo.toml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-          # Rollover scheme: patch increments to 99, then jumps to next
-          # minor with patch reset to 0. e.g. 0.0.99 -> 0.1.0, 0.1.99 -> 0.2.0.
-          # Minor rolls over the same way: 0.99.99 -> 1.0.0.
-          NEW_PATCH=$((PATCH + 1))
-          NEW_MINOR=$MINOR
-          NEW_MAJOR=$MAJOR
-          if [ "$NEW_PATCH" -gt 99 ]; then
-            NEW_PATCH=0
-            NEW_MINOR=$((MINOR + 1))
-            if [ "$NEW_MINOR" -gt 99 ]; then
-              NEW_MINOR=0
-              NEW_MAJOR=$((MAJOR + 1))
-            fi
-          fi
-          NEW="$NEW_MAJOR.$NEW_MINOR.$NEW_PATCH"
-          echo "Bumping $CURRENT -> $NEW"
-          echo "new=$NEW" >> "$GITHUB_OUTPUT"
-
-          sed -i -E "0,/^version = \"[^\"]+\"$/s//version = \"$NEW\"/" apps/server/Cargo.toml
-
-          awk -v new="$NEW" '
-            /^name = "simulation-rs"$/ { hit = 1; print; next }
-            hit && /^version = / { sub(/"[^"]+"/, "\"" new "\""); hit = 0 }
-            { print }
-          ' Cargo.lock > Cargo.lock.tmp
-          mv Cargo.lock.tmp Cargo.lock
-
-          tmp=$(mktemp)
-          jq --arg v "$NEW" '.version = $v' apps/web/package.json > "$tmp" && mv "$tmp" apps/web/package.json
-
-          tmp=$(mktemp)
-          jq --arg v "$NEW" '.version = $v' apps/desktop/package.json > "$tmp" && mv "$tmp" apps/desktop/package.json
-
-      - name: Commit + push as bump bot
-        env:
-          NEW: ${{ steps.bump.outputs.new }}
-        run: |
-          set -euo pipefail
-          git config user.name  "thb-bumpbot"
-          git config user.email "bumpbot@thehumanbox.com"
-          git add apps/server/Cargo.toml Cargo.lock apps/web/package.json apps/desktop/package.json
-          # [skip ci]: a run for this commit would do nothing, and while
-          # queued it would replace (cancel) a merge's pending run.
-          git commit -m "chore: release $NEW [skip-bump] [skip ci]"
-          git pull --rebase origin main
-          git push
-
-  release-gate:
-    name: Release gate (all checks completed)
-    # always() so the gate decides from the results itself. An unverified
-    # push runs every suite, so anything other than success blocks the
-    # release; a verified merge may skip the suites (its PR run passed them)
-    # but still needs the wasm and a shipped frontend.
-    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip-bump]') }}
-    needs: [changes, simulation-lint, simulation-tests, simulation-performance, test-frontend, build-wasm, build-frontend, test-desktop, ship-web]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 2
-    steps:
-      - name: Confirm release prerequisites
-        env:
-          VERIFIED: ${{ needs.changes.outputs.verified }}
-          CHANGES: ${{ needs.changes.result }}
-          WASM: ${{ needs.build-wasm.result }}
-          FRONTEND: ${{ needs.build-frontend.result }}
-          SHIPPED: ${{ needs.ship-web.result }}
-          SUITES: >-
-            ${{ needs.simulation-lint.result }} ${{ needs.simulation-tests.result }}
-            ${{ needs.simulation-performance.result }} ${{ needs.test-frontend.result }}
-            ${{ needs.test-desktop.result }}
-        run: |
-          echo "verified=$VERIFIED changes=$CHANGES wasm=$WASM frontend=$FRONTEND shipped=$SHIPPED suites: $SUITES"
-          fail() { echo "$1" >&2; exit 1; }
-          [ "$CHANGES" = success ] || fail "change detection did not succeed ($CHANGES)"
-          [ "$WASM" = success ] || fail "the wasm build did not succeed ($WASM)"
-          [ "$FRONTEND" = success ] || [ "$SHIPPED" = success ] || fail "no frontend was built or shipped"
-          for result in $SUITES; do
-            [ "$result" = success ] && continue
-            [ "$result" = skipped ] && [ "$VERIFIED" = true ] && continue
-            fail "a required check did not succeed ($result)"
-          done
-          echo "All test, wasm, frontend, and desktop checks completed successfully."
-
-  publish-release:
-    name: Publish desktop release
-    needs: [bump-version]
-    if: ${{ !cancelled() && needs.bump-version.result == 'success' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      contents: write
-      actions: write
-    concurrency:
-      group: pipeline-deploy-main
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v7
-      - name: Create release for desktop installers (idempotent)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NEW:      ${{ needs.bump-version.outputs.new }}
-        run: |
-          set -euo pipefail
-          if gh release view "v$NEW" >/dev/null 2>&1; then
-            echo "Release v$NEW already exists"
-          else
-            echo "Creating release v$NEW"
-            gh release create "v$NEW" \
-              --title "v$NEW" \
-              --notes "Automated desktop release. Native installers run the simulation locally; SHA ${GITHUB_SHA}." \
-              --target main
-          fi
-      # The installers take minutes; as their own run they no longer keep this
-      # run (and with it the next merge's run) waiting. They build this run's
-      # commit and reuse its wasm.
-      - name: Start the desktop installer builds
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NEW:      ${{ needs.bump-version.outputs.new }}
-        run: |
-          gh workflow run desktop-release.yml --ref main \
-            -f tag="v$NEW" -f version="$NEW" \
-            -f source_sha="$GITHUB_SHA" -f pipeline_run_id="$GITHUB_RUN_ID"
-
-  # A verified merge whose PR run built the production bundle deploys that
-  # bundle straight away, before any other job: the merge is live about a
-  # minute after it lands. Only the commit stamp changes (PR builds are
-  # stamped with the PR's merge commit).
-  ship-web:
-    name: Deploy frontend (verified PR bundle)
-    needs: [changes]
-    if: ${{ needs.changes.outputs.verified_bundle == 'true' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      contents:    read
-      actions:     read
-      deployments: write
-    steps:
-      - name: Download the PR's static frontend
-        uses: actions/download-artifact@v8
-        with:
-          name: client-dist
-          path: apps/web/dist
-          run-id: ${{ needs.changes.outputs.verified_run }}
-          github-token: ${{ github.token }}
-
-      # useVersionCheck only prompts open tabs to reload when version.json's
-      # built_at is newer than their own build, and PRs can merge in a
-      # different order than they were built, so built_at becomes the deploy
-      # time. The bundle keeps its build time (the About modal shows it).
-      - name: Stamp this commit
-        working-directory: apps/web/dist
-        run: |
-          set -euo pipefail
-          built=$(jq -r .sha version.json)
-          [[ "$built" =~ ^[0-9a-f]{40}$ ]] || { echo "unexpected build sha '$built'" >&2; exit 1; }
-          grep -rlF "$built" . | xargs -r sed -i "s/$built/$GITHUB_SHA/g"
-          if grep -rqF "$built" .; then echo "the build sha is still in the bundle" >&2; exit 1; fi
-          jq -c --argjson now "$(date -u +%s)" '.built_at = $now' version.json > version.json.tmp
-          mv version.json.tmp version.json
-          echo "stamped $built -> $(cat version.json)"
-
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: apps/web
-          command: pages deploy dist --project-name=thehumanbox --branch=main
-
-  deploy-frontend:
-    name: Deploy frontend (Cloudflare Pages)
-    # The frontend ships once the gate passes; the version bump is not part
-    # of the bundle, so it does not wait for it.
-    needs: [release-gate, build-frontend]
-    if: ${{ !cancelled() && needs.release-gate.result == 'success' && needs.build-frontend.result == 'success' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      contents:    read
-      deployments: write
-    steps:
-      - name: Download static frontend
-        uses: actions/download-artifact@v8
-        with:
-          name: client-dist
-          path: apps/web/dist
-
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: apps/web
-          command: pages deploy dist --project-name=thehumanbox --branch=main
-
-  # Leaves `verified-<source key>` when every suite this PR needed passed.
-  # When the PR merges, main finds it and ships without rerunning them.
-  pr-verified:
-    name: Record the verified source
-    if: >-
-      ${{ always() && github.event_name == 'pull_request'
-        && needs.changes.result == 'success'
-        && !contains(needs.*.result, 'failure')
-        && !contains(needs.*.result, 'cancelled') }}
-    needs: [changes, simulation-lint, simulation-tests, simulation-performance, test-frontend, build-wasm, build-frontend, test-desktop]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 3
-    steps:
-      - name: Write the record
-        env:
-          KEY: ${{ needs.changes.outputs.key }}
-        run: printf 'source %s\nrun %s\nsha %s\n' "$KEY" "$GITHUB_RUN_ID" "$GITHUB_SHA" > verified.txt
-      - uses: actions/upload-artifact@v7
-        with:
-          name: verified-${{ needs.changes.outputs.key }}
-          path: verified.txt
-          retention-days: 14
