@@ -962,6 +962,6 @@ body.thb-photo-mode .thb-action-ticker {
     background: #c9973f;
   }
   100% {
-    background: transparent;
+    background: var(--px-raised);
   }
 }

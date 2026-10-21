@@ -235,10 +235,14 @@ export function SandboxToolbar({
   })
   const pickStable = useCallback((tool: SandboxTool) => pickRef.current(tool), [])
 
-  // The held tool's name sits above its icon; it follows the icon as the row scrolls, and sits at
-  // the bar's left end when the tool is in another group or scrolled out of sight. The row also
-  // fades at an edge with more tools past it.
+  const armedTool = armedToolId ? ALL_TOOLS.find((t) => t.id === armedToolId) : undefined
+  const heldName = armedToolLabel ?? armedTool?.label
+
+  // The held tool's name sits above its icon; it follows the icon as the row scrolls, stays inside
+  // the bar over a tool near either end, and sits at the bar's left end when the tool is in another
+  // group or scrolled out of sight. The row also fades at an edge with more tools past it.
   const toolsRef = useRef<HTMLDivElement>(null)
+  const heldRef = useRef<HTMLDivElement>(null)
   const [heldX, setHeldX] = useState<number | null>(null)
   const [edges, setEdges] = useState({ before: false, after: false })
   const measureRow = useCallback(() => {
@@ -253,9 +257,12 @@ export function SandboxToolbar({
     const t = tile.getBoundingClientRect()
     const r = row.getBoundingClientRect()
     const mid = t.left + t.width / 2
-    setHeldX(mid < r.left || mid > r.right ? null : Math.round(mid - bar.getBoundingClientRect().left))
+    if (mid < r.left || mid > r.right) return setHeldX(null)
+    const b = bar.getBoundingClientRect()
+    const half = (heldRef.current?.offsetWidth ?? 0) / 2
+    setHeldX(Math.round(Math.min(Math.max(mid - b.left, half + 6), b.width - half - 6)))
   }, [armedToolId])
-  useLayoutEffect(measureRow, [measureRow, groupId])
+  useLayoutEffect(measureRow, [measureRow, groupId, heldName])
   useEffect(() => {
     const row = toolsRef.current
     if (!row) return
@@ -271,9 +278,6 @@ export function SandboxToolbar({
       ?.querySelectorAll<HTMLElement>('.dock-tab.active, .dock-group-chip.active')
       .forEach(revealInLine)
   }, [tabId, groupId])
-
-  const armedTool = armedToolId ? ALL_TOOLS.find((t) => t.id === armedToolId) : undefined
-  const heldName = armedToolLabel ?? armedTool?.label
 
   // One tool on the row: a click arms or fires it.
   const renderTile = (tool: SandboxTool) => {
@@ -301,6 +305,7 @@ export function SandboxToolbar({
     <section className="sandbox-bar" aria-label="World controls" ref={barRef}>
       {armedToolId && heldName && (
         <div
+          ref={heldRef}
           className={clsx('dock-held', heldX === null && 'detached')}
           style={heldX === null ? undefined : { left: heldX }}
           aria-hidden="true"
