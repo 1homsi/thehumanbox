@@ -742,6 +742,7 @@ export class PeopleSprites {
       const resting = restCandidate[j] === 1 && !recent
       hidden[j] = resting ? 1 : 0
       const rider = boatIdx[j]
+      // Every figure has the same cell (`s`), so this is figureCentreX, which names and glyphs follow.
       let changed = storeF32(bx, j, Math.round(cx - s / 2) + s / 2)
       changed = storeF32(by, j, Math.round(cy - HUMAN_FEET_ROW) + s / 2) || changed
       changed =

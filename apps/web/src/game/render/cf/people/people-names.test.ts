@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TextLayer } from 'xipjs'
 import { PeopleNameLayer } from './people-names'
+import { figureCentreX, figureHeadTop } from '../../character-visuals'
 
 function frame(layer: PeopleNameLayer, runs: [string, number, number, 'name' | 'thought', number][]) {
   layer.begin()
@@ -66,8 +67,9 @@ describe('PeopleNameLayer', () => {
     people.py[0] = 51.2
     names.follow(people as never)
     expect(text.x[0]).toBeGreaterThan(first[0]!)
-    expect(text.x[0]).toBe(Math.trunc(Math.round(42.3 - 19 / 2) + 19 / 2))
-    expect(text.y[0]).toBe(Math.trunc(Math.round(51.2 - 19 * 0.78) + (35 - Math.round(50.1 - 19 * 0.78))))
+    // The label keeps its offset from the drawn figure: centre column and head top, snapped like the sprite.
+    expect(text.x[0]).toBe(figureCentreX(42.3) + (40 - figureCentreX(40.2)))
+    expect(text.y[0]).toBe(figureHeadTop(51.2, 'adult') + (35 - figureHeadTop(50.1, 'adult')))
   })
 
   it('reduces a 64 ms render-frame walk drift from 9 px to 0 px at close zoom', () => {
@@ -87,7 +89,7 @@ describe('PeopleNameLayer', () => {
     for (let i = 1; i <= 4; i++) {
       people.px[0] = 40.2 + i * 0.8
       names.follow(people as never)
-      const spriteX = Math.trunc(Math.round(people.px[0]! - 19 / 2) + 19 / 2)
+      const spriteX = figureCentreX(people.px[0]!)
       beforeMaxPx = Math.max(beforeMaxPx, Math.abs(staleX - spriteX) * 3)
       afterMaxPx = Math.max(afterMaxPx, Math.abs(text.x[0]! - spriteX) * 3)
     }

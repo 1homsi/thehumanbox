@@ -1,9 +1,8 @@
 import { isFloatingKind } from '../../../../shared/types'
 import type { OrganismState, PrayerInfo, VehicleInfo } from '../../../../shared/types'
 import type { ViewFlags } from '../../../../state/store'
-import { orgVariant } from '../../../model/org-variant'
 import { drawWorkActivity, workActivity } from '../../activity-visuals'
-import { zoomDetailLevel } from '../../character-visuals'
+import { figureCentreX, figureHeadTop, resolveAgeStage, zoomDetailLevel } from '../../character-visuals'
 import { LabelPlacer, crowdLabelWinners, labelWidth } from '../../crowd-detail'
 import {
   celebrating,
@@ -324,11 +323,8 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
     const nameAlpha = isSelected ? 1 : zoomAlpha
     const px = people.px[j]
     const py = people.py[j]
-    const bodyRadius = people.radius ? people.radius[j] : orgVariant(org.id).bodyRadius
-    const bodyR = bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
-    const spriteSize = Math.round(Math.max(19, bodyR * 3.8))
-    const spriteTop = Math.round(py - spriteSize * 0.78)
-    const labelX = Math.trunc(Math.round(px - spriteSize / 2) + spriteSize / 2)
+    const spriteTop = figureHeadTop(py, resolveAgeStage(org))
+    const labelX = figureCentreX(px)
 
     const showVitals = isSelected || org.energy < 0.22 || org.hydration < 0.22 || org.health < 0.22
     const labelY = spriteTop - (showVitals ? 10 : 2)

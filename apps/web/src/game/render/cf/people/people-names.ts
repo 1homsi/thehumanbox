@@ -1,5 +1,6 @@
 import { TextLayer } from 'xipjs'
 import { storeChanged } from '../attached'
+import { figureCentreX, figureHeadTop, resolveAgeStage } from '../../character-visuals'
 import type { PeopleLabelSource } from './people-labels'
 
 /** The four looks of a name tag and a thought, as the canvas painter drew them. */
@@ -71,13 +72,11 @@ export class PeopleNameLayer {
     const k = this.used++
     this.ensure(k + 1)
     this.slots[k] = slot
-    const org = this.currentPeople?.orgs[slot]
-    const size = this.spriteSize(org, this.currentPeople?.radius?.[slot])
-    const personX = this.currentPeople?.px[slot] ?? x
-    const spriteX = Math.trunc(Math.round(personX - size / 2) + size / 2)
-    const spriteY = Math.round((this.currentPeople?.py[slot] ?? y) - size * 0.78)
-    this.dx[k] = x - spriteX
-    this.dy[k] = y - spriteY
+    // The offset from the drawn figure, so `follow` can keep the label on it between rebuilds.
+    const people = this.currentPeople
+    const org = people?.orgs[slot]
+    this.dx[k] = x - figureCentreX(people?.px[slot] ?? x)
+    this.dy[k] = y - figureHeadTop(people?.py[slot] ?? y, org ? resolveAgeStage(org) : 'adult')
     if (k >= layer.count) {
       layer.add(text, x, y, { style: styleId, alpha: runAlpha, anchorX: 0.5, anchorY: 1, align: 'center' })
       this.changed = true
@@ -107,9 +106,8 @@ export class PeopleNameLayer {
       const slot = this.slots[k]!
       const org = people.orgs[slot]
       if (!org) continue
-      const size = this.spriteSize(org, people.radius?.[slot])
-      const x = Math.trunc(Math.round(people.px[slot]! - size / 2) + size / 2) + this.dx[k]!
-      const y = Math.round(people.py[slot]! - size * 0.78) + this.dy[k]!
+      const x = figureCentreX(people.px[slot]!) + this.dx[k]!
+      const y = figureHeadTop(people.py[slot]!, resolveAgeStage(org)) + this.dy[k]!
       moved = storeChanged(layer.x, k, x) || moved
       moved = storeChanged(layer.y, k, y) || moved
     }
@@ -128,13 +126,6 @@ export class PeopleNameLayer {
     this.slots = slots
     this.dx = dx
     this.dy = dy
-  }
-
-  private spriteSize(org: PeopleLabelSource['orgs'][number] | undefined, radius?: number): number {
-    if (!org) return 19
-    const bodyRadius = radius ?? 5
-    const bodyR = bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
-    return Math.round(Math.max(19, bodyR * 3.8))
   }
 
   end(): void {

@@ -11,6 +11,20 @@ export const HUMAN_HEIGHT = { infant: 6, child: 9, teen: 12, adult: 14, elder: 1
 /** The row of the hands, counted down from the top of the figure: where a held tool sits. */
 export const HUMAN_HAND_ROW = { infant: 3, child: 5, teen: 8, adult: 9, elder: 8 } as const
 
+/**
+ * The middle of a person's sprite as the people layer draws it, from their position in map pixels. The cell
+ * snaps to whole pixels, so anything that follows a person (their name, a glyph) must snap the same way or it
+ * wobbles a pixel against them as they walk.
+ */
+export function figureCentreX(px: number): number {
+  return Math.round(px - HUMAN_ATLAS_CELL / 2) + HUMAN_ATLAS_CELL / 2
+}
+
+/** The top of a person's head as drawn: their feet stand on the snapped position. */
+export function figureHeadTop(py: number, stage: keyof typeof HUMAN_HEIGHT): number {
+  return Math.round(py - HUMAN_FEET_ROW) + HUMAN_FEET_ROW - HUMAN_HEIGHT[stage]
+}
+
 /** Names from the same lineage-era data used by buildings. Unnamed tribes start in hides. */
 export function humanClothingEra(era: string | undefined): number {
   switch (era) {

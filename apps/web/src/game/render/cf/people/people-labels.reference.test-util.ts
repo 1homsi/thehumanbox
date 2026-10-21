@@ -1,8 +1,13 @@
 // The people-label painter as it was before it was made cheap (string-keyed placer, every person
 // visited, every person sorted). The tests run it against the real one and require identical drawing.
-import { orgVariant } from '../../../model/org-variant'
 import { drawWorkActivity, workActivity } from '../../activity-visuals'
-import { compareCharacterDepth, zoomDetailLevel } from '../../character-visuals'
+import {
+  compareCharacterDepth,
+  figureCentreX,
+  figureHeadTop,
+  resolveAgeStage,
+  zoomDetailLevel,
+} from '../../character-visuals'
 import { celebrating, drawCelebrationGlyph, drawPrayingGlyph } from '../../prayer-feedback'
 import { isFocused } from './people-sprites'
 import type { PeopleLabelInput } from './people-labels'
@@ -109,11 +114,8 @@ export function paintPeopleLabelsReference(ctx: CanvasRenderingContext2D, input:
     const full = isSelected || detail === 'detail'
     const px = people.px[j]
     const py = people.py[j]
-    const variant = orgVariant(org.id)
-    const bodyR = variant.bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
-    const spriteSize = Math.round(Math.max(19, bodyR * 3.8))
-    const spriteTop = Math.round(py - spriteSize * 0.78)
-    const labelX = Math.trunc(Math.round(px - spriteSize / 2) + spriteSize / 2)
+    const spriteTop = figureHeadTop(py, resolveAgeStage(org))
+    const labelX = figureCentreX(px)
     const focused = isFocused(org, focus)
     ctx.globalAlpha = focused ? 1 : 0.12
 
