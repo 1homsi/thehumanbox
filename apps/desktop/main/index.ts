@@ -56,7 +56,7 @@ import {
   installDownloadedUpdate,
 } from "./updater";
 
-app.setName("The Human Box");
+app.setName("The Human Box RU");
 
 const isDev = !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
@@ -489,11 +489,12 @@ function buildMenu(): void {
         {
           label: "Open GitHub",
           click: () =>
-            void shell.openExternal("https://github.com/1homsi/thehumanbox"),
+            void shell.openExternal("https://github.com/alklimover/thehumanbox"),
         },
         {
-          label: "Open thehumanbox.com",
-          click: () => void shell.openExternal("https://thehumanbox.com"),
+          label: "Original project (1homsi/thehumanbox)",
+          click: () =>
+            void shell.openExternal("https://github.com/1homsi/thehumanbox"),
         },
       ],
     },
@@ -591,7 +592,7 @@ function buildTray(): void {
               const ver = app.getVersion();
               notifyMilestone(
                 "The Human Box",
-                `v${ver}\nA persistent artificial-life simulation.\nthehumanbox.com`,
+                `v${ver}\nA persistent artificial-life simulation.\nBased on The Human Box by Mohamad Homsi.`,
               );
             },
           },

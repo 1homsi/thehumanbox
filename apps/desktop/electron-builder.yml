@@ -1,6 +1,9 @@
-appId: com.thehumanbox.desktop
-productName: The Human Box
-copyright: Copyright © 2026 The Human Box
+# Fork identity: a different appId and productName keep this app apart from
+# an installed upstream The Human Box (its own userData folder, single-instance
+# lock and /Applications bundle), and the update feed below is this fork's.
+appId: com.alklimover.thehumanbox
+productName: The Human Box RU
+copyright: Copyright © 2026 Mohamad Homsi; Russian fork © 2026 alklimover
 
 directories:
   output: out
@@ -25,7 +28,7 @@ asarUnpack:
 
 publish:
   - provider: github
-    owner: 1homsi
+    owner: alklimover
     repo: thehumanbox
     releaseType: release
 
