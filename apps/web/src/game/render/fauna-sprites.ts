@@ -7,8 +7,9 @@ import {
   paintFaunaGrid,
   type FaunaAtlasKey,
 } from './fauna-layout'
+import { spriteUrl } from '../../shared/sprite-url'
 
-const fauna = loadAtlas(`${import.meta.env.BASE_URL}sprites/fauna.png`)
+const fauna = loadAtlas(spriteUrl('sprites/fauna.png'))
 
 let bakedFauna: HTMLCanvasElement | null | undefined
 function getBakedFauna(): HTMLCanvasElement | null {

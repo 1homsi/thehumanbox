@@ -26,13 +26,20 @@ export interface PlacedLabel extends SettlementLabel {
   cx: number
   cy: number
   w: number
+  /** Height of the whole label; the title's own line is `titleH`, a peril warning fills the rest. */
   h: number
+  titleH: number
   scale: number
 }
 
-/** Keep lettering a steady screen size while allowing rank to set its weight. */
+/**
+ * Lettering holds one screen size from mid zoom in, and shrinks as the camera pulls out to the whole world: at full
+ * size, a handful of names covered the small map they sit on.
+ */
 export function labelScale(zoom: number): number {
-  return Math.max(0.75, 1 / Math.max(0.05, zoom))
+  const steady = Math.max(0.75, 1 / Math.max(0.05, zoom))
+  const zoomedOut = zoom >= 1 ? 1 : 0.6 + 0.4 * Math.min(1, Math.max(0, (zoom - 0.25) / 0.75))
+  return steady * zoomedOut
 }
 
 export type LabelKind = 'city' | 'town' | 'hamlet'
@@ -58,8 +65,12 @@ export function titleSpacing(kind: LabelKind, scale: number): string {
   return `${(SPACING[kind] * scale).toFixed(2)}px`
 }
 
+const SUB_SIZE = 10
+/** A monospace letter is about this much of its size wide; the warning line is placed without measuring it. */
+const MONO_ADVANCE = 0.6
+
 export function subFont(scale: number): string {
-  return `bold ${(10 * scale).toFixed(2)}px monospace`
+  return `bold ${(SUB_SIZE * scale).toFixed(2)}px monospace`
 }
 
 /** Place names without overlap, most important first. */
@@ -83,8 +94,12 @@ export function placeSettlementLabels(
       widths.set(label.title, textWidth)
       if (widths.size > 4096) widths.clear()
     }
-    const w = (textWidth + SPACING[kind] * Math.max(0, label.title.length - 1)) * scale
-    const h = SIZE[kind] * scale + 4 * scale
+    const titleW = (textWidth + SPACING[kind] * Math.max(0, label.title.length - 1)) * scale
+    const warning = label.alert && label.sub
+    const w = warning ? Math.max(titleW, label.sub.length * SUB_SIZE * MONO_ADVANCE * scale) : titleW
+    const titleH = SIZE[kind] * scale + 4 * scale
+    // The warning line counts toward the label's box, so two tribes in peril cannot print over each other.
+    const h = titleH + (warning ? (SUB_SIZE + 3) * scale : 0)
     const gap = 2 * scale
     const above = label.y - lift - h / 2
     for (const cy of [above, label.y + lift + h / 2, above - h - gap]) {
@@ -94,7 +109,7 @@ export function placeSettlementLabels(
         (p) => Math.abs(p.cx - cx) * 2 < p.w + w + gap * 2 && Math.abs(p.cy - y) * 2 < p.h + h + gap * 2,
       )
       if (!clash) {
-        placed.push({ ...label, cx, cy: y, w, h, scale })
+        placed.push({ ...label, cx, cy: y, w, h, titleH, scale })
         break
       }
     }
@@ -116,17 +131,20 @@ export function drawSettlementLabels(ctx: Ctx, placed: readonly PlacedLabel[]) {
     ctx.lineJoin = 'round'
     ctx.lineWidth = p.scale * 3.5
     ctx.strokeStyle = PARCHMENT_HALO
-    ctx.strokeText(p.title, Math.round(p.cx), Math.round(p.cy))
+    const top = p.cy - p.h / 2
+    const titleY = Math.round(top + p.titleH / 2)
+    ctx.strokeText(p.title, Math.round(p.cx), titleY)
     ctx.fillStyle = hex(INK)
-    ctx.fillText(p.title, Math.round(p.cx), Math.round(p.cy))
+    ctx.fillText(p.title, Math.round(p.cx), titleY)
     if (p.alert && p.sub) {
+      const subY = Math.round(top + p.titleH + (p.h - p.titleH) / 2)
       ctx.font = subFont(p.scale)
       ctx.letterSpacing = '0px'
       ctx.lineWidth = p.scale * 3
       ctx.strokeStyle = PARCHMENT_HALO
-      ctx.strokeText(p.sub, Math.round(p.cx), Math.round(p.cy + p.h / 2))
+      ctx.strokeText(p.sub, Math.round(p.cx), subY)
       ctx.fillStyle = '#8f3428'
-      ctx.fillText(p.sub, Math.round(p.cx), Math.round(p.cy + p.h / 2))
+      ctx.fillText(p.sub, Math.round(p.cx), subY)
     }
   }
   ctx.globalAlpha = 1

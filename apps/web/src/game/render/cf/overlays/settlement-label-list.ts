@@ -44,7 +44,12 @@ export function collectSettlementLabels(
       x: (cx - ox) * TILE,
       y: (cy - oy) * TILE,
       title,
-      sub: peril ? `⚠ ${remainingLine(peril.population)} · ${PERIL_HELP[peril.cause].reason}` : '',
+      // Zoomed out to the world, the warning keeps to how many are left; the reason waits for a closer look.
+      sub: peril
+        ? zoom < 0.68
+          ? `⚠ ${remainingLine(peril.population)}`
+          : `⚠ ${remainingLine(peril.population)} · ${PERIL_HELP[peril.cause].reason}`
+        : '',
       major,
       rank,
       alpha: peril ? 1 : fade,
