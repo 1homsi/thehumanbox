@@ -416,8 +416,11 @@ jobs:
   bump-version:
     name: Bump version
     # Only runs for direct pushes to main (post-merge). PRs go through
-    # the test jobs only — no version bump, no deploy.
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    # the test jobs only — no version bump, no deploy. The gate's own needs
+    # include jobs that skip by design (the suites on a verified merge,
+    # ship-web otherwise), and a skipped ancestor fails the default success()
+    # check, so this and the jobs after it check their needs explicitly.
+    if: ${{ !cancelled() && needs.release-gate.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs: [release-gate]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -528,6 +531,7 @@ jobs:
   publish-release:
     name: Publish desktop release
     needs: [bump-version]
+    if: ${{ !cancelled() && needs.bump-version.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -617,6 +621,7 @@ jobs:
     # The frontend ships once the gate passes; the version bump is not part
     # of the bundle, so it does not wait for it.
     needs: [release-gate, build-frontend]
+    if: ${{ !cancelled() && needs.release-gate.result == 'success' && needs.build-frontend.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
