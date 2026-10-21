@@ -1,10 +1,10 @@
-// Town and city names on the world map. They keep a readable size on screen
-// however far out the camera is, the most important places claim their spot
-// first, and a name that would overlap another moves aside or waits until
-// the player zooms in. They draw above people and buildings, on a small
-// plaque, so a busy town centre cannot swallow them.
+import { INK, hex } from './art-palette'
 
 type Ctx = CanvasRenderingContext2D
+
+// The palette has no parchment highlight yet; keep this local until the shared palette is updated.
+export const PARCHMENT_HALO = 'rgba(236, 220, 181, 0.92)'
+const measureCache = new Map<string, Map<string, number>>()
 
 export interface SettlementLabel {
   /** Anchor in map pixels: the middle of the settlement. */
@@ -13,15 +13,16 @@ export interface SettlementLabel {
   title: string
   sub: string
   major: boolean
+  rank: number
   /** Higher claims its place first. */
   priority: number
-  color: string
+  alpha: number
   /** A tribe on the brink: red rule and subtitle. */
   alert?: boolean
 }
 
 export interface PlacedLabel extends SettlementLabel {
-  /** Centre of the plaque in map pixels. */
+  /** Centre of the lettering in map pixels. */
   cx: number
   cy: number
   w: number
@@ -29,50 +30,50 @@ export interface PlacedLabel extends SettlementLabel {
   scale: number
 }
 
-/**
- * Map-pixel scale for labels: they grow as the camera pulls out so they stay
- * readable, and shrink a little as it moves in so a close view is not all
- * name, settling at the size of the people's name tags.
- */
+/** Keep lettering a steady screen size while allowing rank to set its weight. */
 export function labelScale(zoom: number): number {
   return Math.max(0.75, 1 / Math.max(0.05, zoom))
 }
 
-export function titleFont(major: boolean, scale: number): string {
-  return major ? `bold ${(12 * scale).toFixed(2)}px monospace` : `${(10 * scale).toFixed(2)}px monospace`
+function fontSize(rank: number): number {
+  if (rank >= 5) return 14
+  if (rank >= 4) return 11
+  if (rank >= 2) return 9
+  return 8
+}
+
+export function titleFont(rank: number, scale: number): string {
+  const size = fontSize(rank) * scale
+  return rank >= 4 ? `bold ${size.toFixed(2)}px monospace` : `${size.toFixed(2)}px monospace`
 }
 
 export function subFont(scale: number): string {
   return `${(8 * scale).toFixed(2)}px monospace`
 }
 
-/** Plaque size in design pixels, before scaling. */
-const PAD_X = 4
-const TITLE_H = 13
-const SUB_H = 9
-/** Gap kept between plaques, in design pixels. */
-const GAP = 2
-
-/**
- * Place labels without overlaps, most important first. Each tries its own
- * spot above the settlement, then just below it, then a step higher; one
- * that fits nowhere is left out for now. `measure` gives a text's width in
- * design pixels for the title (major or not) or the subtitle.
- */
+/** Place names without overlap, most important first. */
 export function placeSettlementLabels(
   labels: readonly SettlementLabel[],
   scale: number,
-  measure: (text: string, kind: 'major' | 'minor' | 'sub') => number,
+  measure: (text: string, kind: 'city' | 'town' | 'hamlet' | 'alert') => number,
   bounds: { w: number; h: number },
   lift: number,
 ): PlacedLabel[] {
   const order = [...labels].sort((a, b) => b.priority - a.priority || a.title.localeCompare(b.title))
   const placed: PlacedLabel[] = []
   for (const label of order) {
-    const textW = Math.max(measure(label.title, label.major ? 'major' : 'minor'), measure(label.sub, 'sub'))
-    const w = (textW + PAD_X * 2) * scale
-    const h = (TITLE_H + SUB_H) * scale
-    const gap = GAP * scale
+    const kind = label.alert ? 'alert' : label.rank >= 5 ? 'city' : label.rank >= 3 ? 'town' : 'hamlet'
+    let widths = measureCache.get(kind)
+    if (!widths) measureCache.set(kind, (widths = new Map()))
+    let textWidth = widths.get(label.title)
+    if (textWidth === undefined) {
+      textWidth = measure(label.title, kind)
+      widths.set(label.title, textWidth)
+      if (widths.size > 4096) widths.clear()
+    }
+    const w = textWidth * scale
+    const h = fontSize(label.rank) * scale + 4 * scale
+    const gap = 2 * scale
     const above = label.y - lift - h / 2
     for (const cy of [above, label.y + lift + h / 2, above - h - gap]) {
       const cx = Math.min(Math.max(label.x, w / 2 + 2), Math.max(bounds.w - w / 2 - 2, w / 2 + 2))
@@ -89,29 +90,30 @@ export function placeSettlementLabels(
   return placed
 }
 
-/** Draw placed labels: a dark plaque, the name, and its population line. */
+/** Draw map lettering with a thin parchment halo so it holds over land and water. */
 export function drawSettlementLabels(ctx: Ctx, placed: readonly PlacedLabel[]) {
+  if (placed.length === 0) return
   ctx.save()
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   for (const p of placed) {
-    const left = Math.round(p.cx - p.w / 2)
-    const top = Math.round(p.cy - p.h / 2)
-    ctx.fillStyle = 'rgba(22,17,11,0.66)'
-    ctx.fillRect(left, top, Math.round(p.w), Math.round(p.h))
-    if (p.major || p.alert) {
-      ctx.fillStyle = p.alert ? 'rgba(255,110,90,0.85)' : 'rgba(255,210,138,0.45)'
-      ctx.fillRect(left, top, Math.round(p.w), Math.max(p.scale, 0.5))
+    ctx.globalAlpha = p.alpha
+    ctx.font = titleFont(p.rank, p.scale)
+    ctx.lineJoin = 'round'
+    ctx.lineWidth = Math.max(1.5, p.scale * 2)
+    ctx.strokeStyle = PARCHMENT_HALO
+    ctx.strokeText(p.title, Math.round(p.cx), Math.round(p.cy))
+    ctx.fillStyle = hex(INK)
+    ctx.fillText(p.title, Math.round(p.cx), Math.round(p.cy))
+    if (p.alert && p.sub) {
+      ctx.font = subFont(p.scale)
+      ctx.lineWidth = Math.max(1, p.scale)
+      ctx.strokeStyle = PARCHMENT_HALO
+      ctx.strokeText(p.sub, Math.round(p.cx), Math.round(p.cy + p.h / 2))
+      ctx.fillStyle = '#8f3428'
+      ctx.fillText(p.sub, Math.round(p.cx), Math.round(p.cy + p.h / 2))
     }
-    const titleY = top + (TITLE_H / 2 + 1) * p.scale
-    ctx.font = titleFont(p.major, p.scale)
-    ctx.fillStyle = 'rgba(0,0,0,0.7)'
-    ctx.fillText(p.title, p.cx + p.scale, titleY + p.scale)
-    ctx.fillStyle = p.color
-    ctx.fillText(p.title, p.cx, titleY)
-    ctx.font = subFont(p.scale)
-    ctx.fillStyle = p.alert ? '#ff9f8c' : '#a99d86'
-    ctx.fillText(p.sub, p.cx, top + (TITLE_H + SUB_H / 2) * p.scale)
   }
+  ctx.globalAlpha = 1
   ctx.restore()
 }
