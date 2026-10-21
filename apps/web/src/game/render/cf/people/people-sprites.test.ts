@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { SPRITE_FLIP_X, SPRITE_HIDDEN, SPRITE_UNTEXTURED, SpriteLayer } from 'xipjs'
 import type { OrganismState } from '../../../../shared/types'
 import {
+  HUMAN_HEIGHT,
   deterministicAppearanceIndex,
   humanAtlasRow,
   humanAtlasColumn,
@@ -262,7 +263,7 @@ describe('PeopleSprites', () => {
     expect(solid.length).toBe(4 + 1 + 3)
     const crownBase = solid.find((i) => over.w[i] === 8 && over.h[i] === 2)!
     expect(over.x[crownBase] - 4).toBe(Math.round(box.px - 4))
-    expect(over.y[crownBase] - 1).toBe(Math.round(box.py - 14 - 2))
+    expect(over.y[crownBase] - 1).toBe(Math.round(box.py - HUMAN_HEIGHT.adult - 2))
   })
 
   it('draws a boat under a rider and an empty boat on the water', () => {

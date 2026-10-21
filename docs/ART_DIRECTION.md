@@ -17,8 +17,8 @@ trees, buildings, icons on the map) is authored at that native size and drawn wi
 - No large images shrunk down to fit. A 400 px painting drawn into a 14 px box turns into soft mush next to
   crisp pixels, which is the mixed look this rule removes.
 - No smooth gradients inside a sprite. Use two to four flat tones per material (light, mid, shade, and the outline).
-- Rough sizes: an adult person 12 to 14 px tall, a child 8 to 9 px; small animals 5 to 8 px; large animals 10 to 14 px;
-  trees 10 to 18 px; buildings by footprint.
+- Rough sizes: an adult person 16 px tall, a teen or elder 14, a child 10; small animals 5 to 8 px; large animals 10 to
+  14 px; trees 10 to 18 px; buildings by footprint.
 
 ### 2. One light source
 
@@ -58,17 +58,14 @@ These are the details players recognise from WorldBox:
 - black outlines on everything;
 - detailed artwork scaled down next to chunky pixels.
 
-## Who owns what
-
-The overhaul runs as parallel branches off `art-overhaul`. To keep merges clean, each one edits only its own files,
-and nobody edits `art-palette.ts` except the integrator. A branch that needs a colour the palette lacks defines it
-locally, and the integrator moves it into the palette when merging.
+## Where the art lives
 
 | Area | Files |
 |---|---|
-| Terrain, ocean, edge | `landscape-style.ts`, `base-parts/`, `mountains.ts`, `model/palette.ts`, `cf/ground/`, the `<World background>` in `WorldView.tsx` |
-| Buildings | `building-painters/`, `building-draw/`, `building-sprites.ts`, `cf/buildings/` |
-| People | `apps/web/scripts/gen_people_sprites.mjs`, `public/sprites/people/`, `character-visuals.ts`, `cf/people/` |
-| Trees and animals | `vegetation-sprites.ts`, `fauna-sprites.ts`, `fauna-layout.ts`, `pixel-fauna.ts`, `cf/vegetation/`, `cf/animals/`, `public/sprites/vegetation*`, `public/sprites/fauna*` |
-| Map labels | `settlement-labels.ts` and the name labels drawn over people |
-| World size | `crates/sim-core/`, `scripts/determinism-fingerprint.json`, hard-coded world sizes in `apps/web` |
+| Terrain, sea, world edge | `landscape-style.ts`, `base-parts/` (the sea chart is `sea-chart.ts`), `mountains.ts`, `model/palette.ts`, `cf/ground/` |
+| Buildings | `building-painters/` (shared shading in `kit.ts`, the outline and shadow pass in `finish.ts`), `building-draw/` |
+| People | `apps/web/scripts/gen_people_sprites.mjs` writes `public/sprites/people/`; `character-visuals.ts`, `cf/people/` |
+| Trees and animals | `vegetation-sprites.ts` (pixel grids), `fauna-layout.ts`, `pixel-fauna.ts`, `public/sprites/fauna.png` |
+| Map lettering | `settlement-labels.ts`, `cf/overlays/settlement-label-list.ts`, `cf/people/people-names.ts` |
+
+New colours go in `art-palette.ts` once a second file needs them; a colour only one painter uses can stay local to it.

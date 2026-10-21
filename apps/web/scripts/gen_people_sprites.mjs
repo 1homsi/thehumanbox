@@ -101,10 +101,10 @@ function deepen(color) {
  * as a person rather than a capsule.
  */
 const PLAN = {
-  adult: { face: 2, eye: 3, chin: 4, shoulder: 5, hand: HUMAN_HAND_ROW.adult, legs: 10, foot: 13 },
-  teen: { face: 2, eye: 3, chin: 4, shoulder: 5, hand: HUMAN_HAND_ROW.teen, legs: 9, foot: 11 },
-  elder: { face: 2, eye: 3, chin: 4, shoulder: 5, hand: HUMAN_HAND_ROW.elder, legs: 9, foot: 11 },
-  child: { face: 2, eye: 2, chin: 3, shoulder: 4, hand: HUMAN_HAND_ROW.child, legs: 6, foot: 8 },
+  adult: { face: 2, eye: 3, chin: 4, shoulder: 5, hand: HUMAN_HAND_ROW.adult, legs: 11, foot: 15 },
+  teen: { face: 2, eye: 3, chin: 4, shoulder: 5, hand: HUMAN_HAND_ROW.teen, legs: 10, foot: 13 },
+  elder: { face: 2, eye: 3, chin: 4, shoulder: 5, hand: HUMAN_HAND_ROW.elder, legs: 10, foot: 13 },
+  child: { face: 2, eye: 2, chin: 3, shoulder: 4, hand: HUMAN_HAND_ROW.child, legs: 7, foot: 9 },
 }
 
 function drawCell(frame, row, sex, stage, appearance, era, facing) {

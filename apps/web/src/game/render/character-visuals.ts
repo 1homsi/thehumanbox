@@ -7,9 +7,9 @@ export const HUMAN_CLOTHING_ERAS = ['hide', 'robe', 'coat', 'uniform', 'spacesui
 export const HUMAN_DIRECTIONS = 2
 /** The padded cell keeps room scenes compatible. Art is drawn at one world pixel per source pixel. */
 export const HUMAN_FEET_ROW = 25
-export const HUMAN_HEIGHT = { infant: 6, child: 9, teen: 12, adult: 14, elder: 12 } as const
+export const HUMAN_HEIGHT = { infant: 6, child: 10, teen: 14, adult: 16, elder: 14 } as const
 /** The row of the hands, counted down from the top of the figure: where a held tool sits. */
-export const HUMAN_HAND_ROW = { infant: 3, child: 5, teen: 8, adult: 9, elder: 8 } as const
+export const HUMAN_HAND_ROW = { infant: 3, child: 6, teen: 9, adult: 10, elder: 9 } as const
 
 /**
  * The middle of a person's sprite as the people layer draws it, from their position in map pixels. The cell
