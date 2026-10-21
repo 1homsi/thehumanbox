@@ -20,8 +20,12 @@ server. Server options are in `apps/server/.env.example`.
 
 ## The checks CI runs
 
-Run these before opening a PR. CI skips suites whose inputs did not change, but
-runs everything on `main`.
+Run these before opening a PR. CI skips suites whose inputs did not change.
+When a PR merges and `main` ends up with the exact source its PR run passed
+(`scripts/source-key.sh` ignores the release bot's version stamps), `main` skips
+the suites and deploys that run's frontend within about a minute; any other push
+to `main` runs everything. The desktop installers build in their own run
+(`desktop-release.yml`) after the release is cut.
 
 | Area | Commands |
 |---|---|

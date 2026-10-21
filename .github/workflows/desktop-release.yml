@@ -1,28 +1,16 @@
 name: desktop-release
 
-# Builds the Electron desktop app for macOS (arm64+x64), Windows (x64),
-# and Linux (x64), and uploads each artifact to the GitHub Release that
-# triggered the run. Triggered:
+# Builds the Electron desktop app for macOS (arm64), Windows (x64) and
+# Linux (x64), and uploads each artifact to a GitHub Release. Started:
 #
-#   - automatically when a release is published (the main pipeline bumps
-#     the version + cuts a tag, then this fires)
-#   - manually via workflow_dispatch (pass a tag name, useful for re-running
-#     a failed platform build without re-cutting the release)
+#   - by pipeline.yml's publish-release once it cuts the release, as its own
+#     run so the installers never hold up the next merge's pipeline (the
+#     `release: published` event does not fire for a release made with the
+#     default GITHUB_TOKEN, but a workflow_dispatch does)
+#   - manually (pass a tag name, useful for re-running a failed platform
+#     build without re-cutting the release)
 
 on:
-  # Called from pipeline.yml after publish-release creates the tag. The
-  # `release: published` event doesn't fire reliably when the release is
-  # created by the default GITHUB_TOKEN, so we chain explicitly instead.
-  workflow_call:
-    inputs:
-      tag:
-        description: 'Release tag to upload to (e.g. v0.2.1)'
-        required: true
-        type: string
-      version:
-        description: 'Numeric version to stamp into apps/desktop/package.json (e.g. 0.2.1)'
-        required: true
-        type: string
   workflow_dispatch:
     inputs:
       tag:
@@ -31,9 +19,22 @@ on:
       version:
         description: 'Numeric version to stamp into apps/desktop/package.json (e.g. 0.2.1)'
         required: true
+      source_sha:
+        description: 'Commit to build (defaults to the branch the run starts on)'
+        required: false
+        default: ''
+      pipeline_run_id:
+        description: 'Pipeline run whose sim-core-wasm artifact to reuse (built here when empty)'
+        required: false
+        default: ''
+
+concurrency:
+  group: desktop-release-${{ inputs.tag }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   build:
@@ -58,6 +59,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
 
       - name: Resolve release tag
         id: tag
@@ -77,28 +80,49 @@ jobs:
           mv "$tmp" apps/desktop/package.json
           echo "apps/desktop/package.json version → $(jq -r .version apps/desktop/package.json)"
 
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      # Most releases leave the simulation alone, and compiling it was the
+      # slowest step (about 2.5 minutes on Windows). Key the binary on its
+      # sources (scripts/source-key.sh ignores the release version stamps).
+      - name: Simulation binary key
+        id: sim-key
+        shell: bash
+        run: echo "key=sim-bin-${{ matrix.sim_target }}-$(scripts/source-key.sh crates apps/server Cargo.toml Cargo.lock)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore simulation binary
+        id: sim-bin
+        uses: actions/cache@v6
         with:
-          targets: wasm32-unknown-unknown, ${{ matrix.sim_target }}
+          path: target/${{ matrix.sim_target }}/release/${{ matrix.bin_name }}
+          key: ${{ steps.sim-key.outputs.key }}
 
       # The wasm is platform independent and the pipeline already built it;
       # rebuilding it here cost 5 to 9 minutes per OS. A manual dispatch has
-      # no pipeline artifact, so it falls back to building.
+      # no pipeline run, so it falls back to building.
       - name: Reuse wasm sim-core from the pipeline
         id: wasm
+        if: ${{ inputs.pipeline_run_id != '' }}
         continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           name: sim-core-wasm
           path: apps/web/src/wasm/sim-core
+          run-id: ${{ inputs.pipeline_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Setup Rust toolchain
+        if: steps.sim-bin.outputs.cache-hit != 'true' || steps.wasm.outcome != 'success'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown, ${{ matrix.sim_target }}
 
       - uses: Swatinem/rust-cache@v2
+        if: steps.sim-bin.outputs.cache-hit != 'true'
         with:
           workspaces: .
           key: ${{ matrix.sim_target }}
 
       - name: Build simulation binary
+        if: steps.sim-bin.outputs.cache-hit != 'true'
         shell: bash
         run: cargo build --release --locked --bin simulation-rs --target ${{ matrix.sim_target }}
 
@@ -154,7 +178,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           # `pnpm run release` builds the renderer (the client with
           # VITE_DESKTOP=1) itself, so the client is built once, here.
-          VITE_GIT_SHA:      ${{ github.sha }}
+          VITE_GIT_SHA:      ${{ inputs.source_sha || github.sha }}
           VITE_POSTHOG_KEY:  ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST || 'https://us.i.posthog.com' }}
         run: pnpm run release
