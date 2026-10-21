@@ -447,6 +447,7 @@ export class CfOverlayRenderer {
     const settlementLabels = this.settlementLabels
 
     // Names, thoughts, work poses and prayer glyphs go above the people; town names claim space first.
+    this.names.follow(extras.people)
     const labelsKey = `${animatedKey}|${extras.selectedId ?? ''}|${f.focus}|${f.viewFlags.names ? 1 : 0}|${f.viewFlags.thoughts ? 1 : 0}|${f.viewFlags.hideUI ? 1 : 0}`
     if (labelsKey !== this.labelsKey || extras.people !== this.labelsPeople) {
       this.labelsKey = labelsKey

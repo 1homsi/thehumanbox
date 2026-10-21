@@ -3,6 +3,7 @@ import type { FaithInfo, OrganismState, PrayerInfo, VehicleInfo } from '../../..
 import { resetPrayerFeedback, updatePrayerFeedback } from '../../prayer-feedback'
 import {
   labelFlagsOf,
+  nameVisibilityAlpha,
   paintPeopleLabels,
   type PeopleLabelInput,
   type PeopleLabelSource,
@@ -73,6 +74,12 @@ function input(over: Partial<PeopleLabelInput> & { people: PeopleLabelSource }):
 }
 
 describe('people labels', () => {
+  it('fades unselected names in across the overview zoom boundary', () => {
+    expect(nameVisibilityAlpha(0.7)).toBe(0)
+    expect(nameVisibilityAlpha(0.8)).toBeCloseTo(0.5)
+    expect(nameVisibilityAlpha(1)).toBe(1)
+  })
+
   it('writes a name above each person when zoomed in', () => {
     const r = recording()
     paintPeopleLabels(r.ctx, input({ people: source([org('ada', 10, 10), org('bo', 30, 30)]) }))

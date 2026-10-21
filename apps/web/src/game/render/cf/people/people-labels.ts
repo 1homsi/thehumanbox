@@ -18,7 +18,7 @@ import type { NameStyle } from './people-names'
 
 /** Where names and thoughts go instead of the canvas (a `TextLayer`, see `PeopleNameLayer`). */
 export interface NameSink {
-  text(text: string, x: number, y: number, style: NameStyle, alpha: number): void
+  text(text: string, x: number, y: number, style: NameStyle, alpha: number, slot: number): void
 }
 
 /** What the labels need of the people layer: who is drawn where, and how they last moved. */
@@ -52,6 +52,11 @@ export const LABEL_NAME = 1
 export const LABEL_THOUGHT = 2
 export const LABEL_ACTIVITY = 4
 export const LABEL_SEED_EVEN = 8
+
+/** Fade names across the overview boundary so the first zoom step does not add every tag at once. */
+export function nameVisibilityAlpha(zoom: number): number {
+  return Math.max(0, Math.min(1, (zoom - 0.72) / 0.16))
+}
 
 export function labelFlagsOf(org: OrganismState): number {
   const thought = org.thought ?? ''
@@ -164,7 +169,8 @@ function sortByDepth(
 export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLabelInput): void {
   const { people, selectedId, focus, viewFlags, zoom, now } = input
   const detail = zoomDetailLevel(zoom)
-  if (detail === 'overview' && selectedId == null) return
+  const zoomAlpha = nameVisibilityAlpha(zoom)
+  if (detail === 'overview' && selectedId == null && zoomAlpha === 0) return
   const { c0, c1, r0, r1 } = input.window
   const { ox, oy, poses, names } = input
   const orgs = people.orgs
@@ -196,7 +202,7 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
   }
   // Crowds over 400 show one name per screen cell (`nameWinnerScratch` marks who); smaller ones show all.
   const thinNames =
-    detail !== 'overview' && viewFlags.names
+    zoomAlpha > 0 && viewFlags.names
       ? crowdLabelWinners(orgs, onScreen, count, zoom, nameWinnerScratch, tileX, tileY, ids)
       : false
   const nameWinner = nameWinnerScratch
@@ -239,7 +245,7 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
     }
     if (
       f & LABEL_NAME &&
-      (isSelected || (standard && viewFlags.names && (!thinNames || nameWinner[j] === 1)))
+      (isSelected || (viewFlags.names && zoomAlpha > 0 && (!thinNames || nameWinner[j] === 1)))
     )
       mask |= NAME
     if (f & LABEL_THOUGHT && (isSelected || (full && viewFlags.thoughts))) mask |= THOUGHT
@@ -315,12 +321,14 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
 
     ctx.globalAlpha = alpha
     const isSelected = org.id === selectedId
+    const nameAlpha = isSelected ? 1 : zoomAlpha
     const px = people.px[j]
     const py = people.py[j]
     const bodyRadius = people.radius ? people.radius[j] : orgVariant(org.id).bodyRadius
     const bodyR = bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
     const spriteSize = Math.round(Math.max(19, bodyR * 3.8))
-    const spriteTop = py - spriteSize * 0.78
+    const spriteTop = Math.round(py - spriteSize * 0.78)
+    const labelX = Math.trunc(Math.round(px - spriteSize / 2) + spriteSize / 2)
 
     const showVitals = isSelected || org.energy < 0.22 || org.hydration < 0.22 || org.health < 0.22
     const labelY = spriteTop - (showVitals ? 10 : 2)
@@ -332,37 +340,40 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
     // person's always shows.
     const nameShown =
       (mask & NAME) !== 0 &&
-      placer.place(px, labelY, labelWidth(org.name, isSelected ? 10 : 9), 10, isSelected)
+      placer.place(labelX, labelY, labelWidth(org.name, isSelected ? 10 : 9), 10, isSelected)
     const thoughtShown =
       (mask & THOUGHT) !== 0 &&
-      placer.place(px, labelY - (nameShown ? 10 : 0), labelWidth(org.thought ?? '', 8), 9, isSelected)
+      placer.place(labelX, labelY - (nameShown ? 10 : 0), labelWidth(org.thought ?? '', 8), 9, isSelected)
 
     if (nameShown) {
-      if (names) names.text(org.name, px, labelY, isSelected ? 'nameSelected' : 'name', alpha)
+      if (names)
+        names.text(org.name, labelX, labelY, isSelected ? 'nameSelected' : 'name', alpha * nameAlpha, j)
       else {
         ctx.font = isSelected ? 'bold 10px monospace' : '9px monospace'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'bottom'
         ctx.lineWidth = 3
         ctx.strokeStyle = 'rgba(0,0,0,0.85)'
-        ctx.strokeText(org.name, px, labelY)
+        ctx.globalAlpha = alpha * nameAlpha
+        ctx.strokeText(org.name, labelX, labelY)
         ctx.fillStyle = isSelected ? '#ffffff' : 'rgba(255,255,255,0.95)'
-        ctx.fillText(org.name, px, labelY)
+        ctx.fillText(org.name, labelX, labelY)
+        ctx.globalAlpha = alpha
       }
     }
     if (thoughtShown) {
       const thoughtY = labelY - (nameShown ? 10 : 0)
       if (names)
-        names.text(org.thought ?? '', px, thoughtY, isSelected ? 'thoughtSelected' : 'thought', alpha)
+        names.text(org.thought ?? '', labelX, thoughtY, isSelected ? 'thoughtSelected' : 'thought', alpha, j)
       else {
         ctx.font = '8px monospace'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'bottom'
         ctx.lineWidth = 2.5
         ctx.strokeStyle = 'rgba(0,0,0,0.85)'
-        ctx.strokeText(org.thought, px, thoughtY)
+        ctx.strokeText(org.thought, labelX, thoughtY)
         ctx.fillStyle = isSelected ? 'rgba(180,220,255,1)' : 'rgba(180,220,255,0.9)'
-        ctx.fillText(org.thought, px, thoughtY)
+        ctx.fillText(org.thought, labelX, thoughtY)
       }
     }
   }
