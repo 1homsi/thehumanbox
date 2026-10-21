@@ -165,6 +165,15 @@ jobs:
         working-directory: apps/desktop
         run: pnpm install --frozen-lockfile
 
+      # electron-builder zips at 7-Zip level 7, three Deflate passes; on Windows
+      # the zip took 54 of the job's 300 seconds. Level 5 is one pass, and it
+      # also packs the NSIS installer's payload a little faster. The macOS zip
+      # is the auto-update download, so it keeps the smaller default.
+      - name: Faster archive compression on Windows
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo "ELECTRON_BUILDER_COMPRESSION_LEVEL=5" >> "$GITHUB_ENV"
+
       - name: Build + package desktop
         working-directory: apps/desktop
         env:

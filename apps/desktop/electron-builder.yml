@@ -76,3 +76,8 @@ linux:
     has memory, dreams, relationships, and a lineage. The simulation
     and its worlds run locally on the player's computer.
   icon: build/icon.png
+
+# xz (fpm's default) took 80 of the Linux release job's 220 seconds; gzip
+# builds in a few, and every dpkg reads it.
+deb:
+  compression: gz
