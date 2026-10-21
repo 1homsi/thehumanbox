@@ -4,6 +4,7 @@ import { TILE } from '../../../model/palette'
 import {
   labelScale,
   placeSettlementLabels,
+  type LabelKind,
   type PlacedLabel,
   type SettlementLabel,
 } from '../../settlement-labels'
@@ -58,7 +59,7 @@ export function collectSettlementLabels(
 export function placeLabels(
   labels: readonly SettlementLabel[],
   zoom: number,
-  measure: (text: string, kind: 'city' | 'town' | 'hamlet' | 'alert') => number,
+  measure: (text: string, kind: LabelKind) => number,
   W: number,
   H: number,
 ): PlacedLabel[] {

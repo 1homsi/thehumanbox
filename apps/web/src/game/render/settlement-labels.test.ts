@@ -3,13 +3,15 @@ import {
   PARCHMENT_HALO,
   drawSettlementLabels,
   labelScale,
+  labelKind,
   placeSettlementLabels,
   titleFont,
+  titleSpacing,
+  type LabelKind,
   type SettlementLabel,
 } from './settlement-labels'
 
-const measure = (text: string, kind: 'city' | 'town' | 'hamlet' | 'alert') =>
-  text.length * (kind === 'hamlet' ? 5 : 7)
+const measure = (text: string, kind: LabelKind) => text.length * (kind === 'hamlet' ? 5 : 7)
 const bounds = { w: 2000, h: 1000 }
 
 function town(title: string, x: number, y: number, priority: number): SettlementLabel {
@@ -28,10 +30,24 @@ describe('settlement labels', () => {
     expect(labelScale(0.25)).toBe(4)
   })
 
-  it('sets lettering weight and size by settlement rank', () => {
-    expect(titleFont(1, 1)).toBe('8.00px monospace')
-    expect(titleFont(3, 1)).toBe('9.00px monospace')
-    expect(titleFont(5, 1)).toBe('bold 14.00px monospace')
+  it('sets lettering size and spacing by settlement rank', () => {
+    expect([1, 2, 3, 4, 5].map(labelKind)).toEqual(['hamlet', 'hamlet', 'town', 'town', 'city'])
+    expect(titleFont('hamlet', 1)).toBe('bold 11.00px monospace')
+    expect(titleFont('town', 1)).toBe('bold 14.00px monospace')
+    expect(titleFont('city', 2)).toBe('bold 34.00px monospace')
+    expect(titleSpacing('city', 1)).toBe('3.00px')
+  })
+
+  it('reserves room for the letter spacing it draws with', () => {
+    // A town (rank 4) is measured and drawn in the same font: 7 px a letter here, plus 2 px between letters.
+    const [placed] = placeSettlementLabels(
+      [{ ...town('ABCD', 400, 300, 40), rank: 4 }],
+      1,
+      measure,
+      bounds,
+      16,
+    )
+    expect(placed!.w).toBe(4 * 7 + 3 * 2)
   })
 
   it('never overlap, and the most important town keeps its own spot', () => {
@@ -66,7 +82,7 @@ describe('settlement labels', () => {
   it('sizes map lettering without reserving space for always-on counts', () => {
     const placed = placeSettlementLabels([town('OLD TOWN', 400, 300, 40)], 1, measure, bounds, 16)
     expect(placed[0]?.sub).toBe('')
-    expect(placed[0]?.h).toBe(13)
+    expect(placed[0]?.h).toBe(18)
   })
 
   it('draws map lettering with ink text and a parchment halo', () => {

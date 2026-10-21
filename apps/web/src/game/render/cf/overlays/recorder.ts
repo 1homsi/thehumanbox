@@ -53,6 +53,7 @@ interface Snapshot {
   lineWidth: number
   lineCap: string
   font: string
+  letterSpacing: string
   textAlign: string
   textBaseline: string
 }
@@ -95,6 +96,8 @@ export class SpriteRecorder {
   lineCap = 'butt'
   lineJoin = 'miter'
   font = '10px monospace'
+  /** CSS pixels between letters, as on a canvas (`'2px'`); map lettering spaces its capitals. */
+  letterSpacing = '0px'
   textAlign = 'start'
   textBaseline = 'alphabetic'
   imageSmoothingEnabled = false
@@ -146,6 +149,7 @@ export class SpriteRecorder {
     this.lineWidth = 1
     this.lineCap = 'butt'
     this.font = '10px monospace'
+    this.letterSpacing = '0px'
     this.textAlign = 'start'
     this.textBaseline = 'alphabetic'
     this.stats.rects = 0
@@ -181,6 +185,7 @@ export class SpriteRecorder {
         lineWidth: 1,
         lineCap: 'butt',
         font: '',
+        letterSpacing: '0px',
         textAlign: '',
         textBaseline: '',
       }
@@ -199,6 +204,7 @@ export class SpriteRecorder {
     s.lineWidth = this.lineWidth
     s.lineCap = this.lineCap
     s.font = this.font
+    s.letterSpacing = this.letterSpacing
     s.textAlign = this.textAlign
     s.textBaseline = this.textBaseline
   }
@@ -218,6 +224,7 @@ export class SpriteRecorder {
     this.lineWidth = s.lineWidth
     this.lineCap = s.lineCap
     this.font = s.font
+    this.letterSpacing = s.letterSpacing
     this.textAlign = s.textAlign
     this.textBaseline = s.textBaseline
   }
@@ -599,7 +606,10 @@ export class SpriteRecorder {
     const atlas = this.glyphs.atlases[atlasIndex]
     const k = worldSize / atlas.px
     const adv = m.advance * worldSize
-    const total = adv * countChars(text)
+    const chars = countChars(text)
+    // Spacing goes between letters, not after the last, so centred text stays centred.
+    const spacing = (parseFloat(this.letterSpacing) || 0) * scale
+    const total = adv * chars + spacing * Math.max(0, chars - 1)
     const ox = this.a * x + this.c * y + this.e
     const oy = this.b * x + this.d * y + this.f
     let left = ox
@@ -637,7 +647,7 @@ export class SpriteRecorder {
           this.stats.glyphs++
         }
       }
-      pen += adv
+      pen += adv + spacing
     }
   }
 
