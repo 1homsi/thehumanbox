@@ -17,20 +17,51 @@ import {
   HUMAN_STAGE_ORDER,
   deterministicAppearanceIndex,
   humanAtlasRow,
+  humanAtlasColumn,
+  humanClothingEra,
+  HUMAN_CLOTHING_ERAS,
   resolveAgeStage,
   wrapHumanFrame,
   zoomDetailLevel,
 } from './character-visuals'
 
 describe('character visual atlas contract', () => {
-  it('describes the generated 4 by 60 atlas', () => {
+  it('describes all five eras and both facings without a tall texture', () => {
     expect(HUMAN_ATLAS_CELL).toBe(32)
     expect(HUMAN_ATLAS_FRAMES).toBe(4)
-    expect(HUMAN_ATLAS_COLS).toBe(4)
-    expect(HUMAN_APPEARANCES).toBe(24)
-    expect(HUMAN_ATLAS_ROWS).toBe(240)
-    expect(HUMAN_ATLAS_WIDTH).toBe(128)
-    expect(HUMAN_ATLAS_HEIGHT).toBe(7680)
+    expect(HUMAN_ATLAS_COLS).toBe(40)
+    expect(HUMAN_APPEARANCES).toBe(6)
+    expect(HUMAN_ATLAS_ROWS).toBe(60)
+    expect(HUMAN_ATLAS_WIDTH).toBe(1280)
+    expect(HUMAN_ATLAS_HEIGHT).toBe(1920)
+  })
+
+  it('maps the simulation eras to era clothing and keeps facing banks separate', () => {
+    const families = [
+      [undefined, '', 'pre-stone', 'pre_stone', 'stone', 'bronze', 'iron'],
+      ['classical', 'medieval', 'renaissance'],
+      ['industrial'],
+      ['modern', 'atomic', 'information'],
+      [
+        'future',
+        'space',
+        'digital',
+        'quantum',
+        'solar',
+        'posthuman',
+        'interstellar',
+        'kardashev-2',
+        'rebirth',
+      ],
+    ]
+    expect(families).toHaveLength(HUMAN_CLOTHING_ERAS.length)
+    families.forEach((names, bank) => {
+      for (const name of names) {
+        expect(humanClothingEra(name)).toBe(bank)
+        expect(humanAtlasColumn(name)).toBe(bank * 8)
+        expect(humanAtlasColumn(name, true)).toBe(bank * 8 + 4)
+      }
+    })
   })
 
   it('assigns every sex, life stage, and appearance a distinct row', () => {
@@ -158,14 +189,14 @@ describe('character motion and draw order', () => {
   })
   it('ships an atlas matching the renderer dimensions and all appearance rows', () => {
     const svg = readFileSync(new URL('../../../public/sprites/people/people.svg', import.meta.url), 'utf8')
-    // The sheet holds six figures per sex and stage; the look atlas expands them to every tint.
-    expect(svg).toContain('viewBox="0 0 128 1920"')
+    // Each row holds all five clothing eras, both facings and four walk frames.
+    expect(svg).toContain('viewBox="0 0 1280 1920"')
     expect(svg.match(/<!-- sex /g)?.length).toBe(2 * 5 * HUMAN_SHEET_APPEARANCES)
   })
   it('ships the rasterised sheet at the SVG size (IHDR width and height)', () => {
     const png = readFileSync(new URL('../../../public/sprites/people/people.png', import.meta.url))
     expect(png.subarray(1, 4).toString('ascii')).toBe('PNG')
-    expect(png.readUInt32BE(16)).toBe(128)
+    expect(png.readUInt32BE(16)).toBe(1280)
     expect(png.readUInt32BE(20)).toBe(1920)
   })
 })

@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { SPRITE_FLIP_X, SPRITE_HIDDEN, SPRITE_UNTEXTURED, SpriteLayer } from 'xipjs'
 import type { OrganismState } from '../../../../shared/types'
-import { orgVariant } from '../../../model/org-variant'
-import { deterministicAppearanceIndex, humanAtlasRow, HUMAN_ATLAS_FRAMES } from '../../character-visuals'
+import {
+  deterministicAppearanceIndex,
+  humanAtlasRow,
+  humanAtlasColumn,
+  HUMAN_ATLAS_COLS,
+  HUMAN_ATLAS_CELL,
+  HUMAN_FEET_ROW,
+  HUMAN_ATLAS_FRAMES,
+} from '../../character-visuals'
 import { BODY_ATLAS, PeopleSprites, glideTile, isFocused, type PeopleFrameInput } from './people-sprites'
 import { emoteFor } from '../../activity-emotes'
 import { peopleLabelSource, pickPersonAt, registerPeopleLayer } from '../picking'
@@ -60,18 +67,16 @@ function input(orgs: OrganismState[], extra: Partial<PeopleFrameInput> = {}): Pe
   }
 }
 
-/** The canvas painter's geometry for one person, as layers/people.ts computes it. */
+/** Native sprite bounds with the feet at the ground point. */
 function painterBox(o: OrganismState, ox = 0, oy = 0) {
-  const variant = orgVariant(o.id)
-  const bodyR = variant.bodyRadius * (o.sex === 'male' ? 1.05 : 0.95)
-  const size = Math.round(Math.max(19, bodyR * 3.8))
+  const size = HUMAN_ATLAS_CELL
   const px = (o.x - ox) * 8 + 4
   const py = (o.y - oy) * 8 + 4
-  return { size, px, py, left: Math.round(px - size / 2), top: Math.round(py - size * 0.78) }
+  return { size, px, py, left: Math.round(px - size / 2), top: Math.round(py - HUMAN_FEET_ROW) }
 }
 
 describe('PeopleSprites', () => {
-  it('puts each person where the canvas painter draws them', () => {
+  it('draws at native size with feet on the ground', () => {
     const { body, sprites } = setup()
     const people = [org('a', 10.5, 20.25), org('b', 40.1, 7.9, { sex: 'female' })]
     sprites.rebuild(input(people))
@@ -82,9 +87,53 @@ describe('PeopleSprites', () => {
       expect(body.x[i] - box.size / 2).toBe(box.left)
       expect(body.y[i] - box.size / 2).toBe(box.top)
       const row = humanAtlasRow(o.sex!, 'adult', deterministicAppearanceIndex(o.id))
-      expect(body.frame[i]).toBe(row * HUMAN_ATLAS_FRAMES)
+      expect(body.frame[i]).toBe(row * HUMAN_ATLAS_COLS)
       expect(body.atlas[i]).toBe(BODY_ATLAS.people)
     })
+  })
+
+  it('updates clothes on an era-only change and retains identity and animation storage', () => {
+    const { body, sprites } = setup()
+    const people = [org('a', 10, 10), org('b', 12, 10, { lineage_id: 'other' })]
+    const row = humanAtlasRow('male', 'adult', deterministicAppearanceIndex('a'))
+    sprites.rebuild(input(people, { lineageEras: { tribe: 'bronze', other: 'space' } }))
+    sprites.animate(1000, 1)
+    const positions = sprites.px
+    const phase = sprites.phase
+    expect(body.frame[0]).toBe(row * HUMAN_ATLAS_COLS)
+    expect(body.frame[1] % HUMAN_ATLAS_COLS).toBe(humanAtlasColumn('space'))
+    sprites.rebuild(input(people, { lineageEras: { tribe: 'industrial', other: 'space' } }))
+    sprites.animate(1200, 1)
+    expect(body.frame[0]).toBe(row * HUMAN_ATLAS_COLS + humanAtlasColumn('industrial'))
+    expect(sprites.px).toBe(positions)
+    expect(sprites.phase).toBe(phase)
+    expect(body.count).toBe(2)
+    expect(body.flags[0] & SPRITE_FLIP_X).toBe(0)
+  })
+
+  it('keeps one body sprite per person and reuses buffers for a 3200-person crowd', () => {
+    const { body, sprites } = setup()
+    const people = Array.from({ length: 3200 }, (_, i) =>
+      org(`crowd-${i}`, i % 80, Math.floor(i / 80), { lineage_id: `era-${i % 5}` }),
+    )
+    const lineageEras = Object.fromEntries(
+      ['stone', 'medieval', 'industrial', 'atomic', 'space'].map((era, i) => [`era-${i}`, era]),
+    )
+    const previous = people.map((o) => ({ ...o, x: o.x + 1 }))
+    sprites.rebuild(input(people, { lineageEras, prevOrgs: previous }))
+    const x = body.x
+    const frame = body.frame
+    const positions = sprites.px
+    for (let step = 0; step <= 20; step++) sprites.animate(1000 + step * 16, step / 20)
+    expect(body.count).toBe(3200)
+    expect(body.x).toBe(x)
+    expect(body.frame).toBe(frame)
+    expect(sprites.px).toBe(positions)
+    for (let i = 0; i < people.length; i++) {
+      const col = body.frame[i] % HUMAN_ATLAS_COLS
+      expect(Math.floor(col / 8)).toBe(i % 5)
+      expect(body.flags[i] & SPRITE_FLIP_X).toBe(0)
+    }
   })
 
   it('skips the dead and assigns slots in order', () => {
@@ -106,7 +155,7 @@ describe('PeopleSprites', () => {
     for (let k = 1; k <= 10; k++) {
       sprites.animate(1000 + k * 16, k / 10)
       frames.add(body.frame[0] % HUMAN_ATLAS_FRAMES)
-      flipped = (body.flags[0] & SPRITE_FLIP_X) !== 0
+      flipped = body.frame[0] % 8 >= 4
     }
     // halfway along the way, 9.5 tiles
     sprites.animate(2000, 0.5)
@@ -131,14 +180,14 @@ describe('PeopleSprites', () => {
       )
       sprites.animate(1000 + k * 100, 1)
     }
-    const flippedA = (body.flags[0] & SPRITE_FLIP_X) !== 0
+    const flippedA = body.frame[0] % 8 >= 4
     expect(flippedA).toBe(true)
     // b moves to the front: a's facing must follow it to slot 1
     sprites.rebuild(input([org('b', 30, 5), org('a', 7.6, 5)]))
     sprites.animate(2000, 1)
     expect(sprites.slotOf('a')).toBe(1)
-    expect((body.flags[1] & SPRITE_FLIP_X) !== 0).toBe(true)
-    expect((body.flags[0] & SPRITE_FLIP_X) !== 0).toBe(false)
+    expect(body.frame[1] % 8 >= 4).toBe(true)
+    expect(body.frame[0] % 8 >= 4).toBe(false)
   })
 
   it('sorts by depth', () => {
@@ -200,7 +249,7 @@ describe('PeopleSprites', () => {
     expect(far.over.count).toBe(0)
   })
 
-  it('draws crowns, vitals and the era stripe as snapped solid rects over the person', () => {
+  it('anchors crowns above the new head and replaces the era stripe with clothing', () => {
     const { over, sprites } = setup()
     const leader = org('l', 10.3, 10.6, { is_leader: true, energy: 0.1, lineage_id: 'tribe' })
     sprites.rebuild(input([leader], { lineageEras: { tribe: 'iron' } }))
@@ -209,11 +258,11 @@ describe('PeopleSprites', () => {
     const solid = Array.from({ length: over.count }, (_, i) => i).filter(
       (i) => (over.flags[i] & SPRITE_UNTEXTURED) !== 0,
     )
-    // era stripe, 4 crown rects, vitals background, energy/hydration/health bars
-    expect(solid.length).toBe(1 + 4 + 1 + 3)
+    // Four crown rects, vitals background, energy/hydration/health bars
+    expect(solid.length).toBe(4 + 1 + 3)
     const crownBase = solid.find((i) => over.w[i] === 8 && over.h[i] === 2)!
     expect(over.x[crownBase] - 4).toBe(Math.round(box.px - 4))
-    expect(over.y[crownBase] - 1).toBe(Math.round(box.top - 2))
+    expect(over.y[crownBase] - 1).toBe(Math.round(box.py - 14 - 2))
   })
 
   it('draws a boat under a rider and an empty boat on the water', () => {
