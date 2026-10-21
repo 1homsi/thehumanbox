@@ -1,3 +1,13 @@
+> **The Human Box RU** — русская версия [The Human Box](https://github.com/1homsi/thehumanbox)
+> Мохамада Хомси (MIT). Приложение для macOS (Apple Silicon); цель — весь
+> текст на экране на русском (в работе). Установка одной командой в Терминале:
+>
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/alklimover/thehumanbox/main/scripts/install-desktop.sh | bash
+> ```
+>
+> План доработок: [docs/fork/PLAN.ru.md](docs/fork/PLAN.ru.md). Ниже — README оригинала.
+
 <p align="center">
   <a href="https://thehumanbox.com"><img src="docs/readme-hero.gif" alt="The Human Box: tribes think, invent language, build cities, found religions, wage war, sign treaties and invent computers" width="100%" /></a>
 </p>
@@ -56,17 +66,16 @@ thehumanbox/
 
 ## Desktop app
 
-macOS one-liner (downloads the latest release and strips the quarantine
-flag so the unsigned app opens normally):
+macOS (Apple Silicon) one-liner (downloads this fork's latest release and
+strips the quarantine flag so the unsigned app opens normally):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/1homsi/thehumanbox/main/scripts/install-desktop.sh | bash
+curl -fsSL https://raw.githubusercontent.com/alklimover/thehumanbox/main/scripts/install-desktop.sh | bash
 ```
 
-Windows + Linux: grab the installer from
-[Releases](https://github.com/1homsi/thehumanbox/releases/latest)
-— Windows users click "More info → Run anyway" on the SmartScreen
-prompt, Linux users `chmod +x` the AppImage or install the `.deb`.
+Or download the `.dmg` from
+[Releases](https://github.com/alklimover/thehumanbox/releases/latest) and,
+on first launch, right-click the app and choose Open.
 
 The app is **not code-signed yet**, which is why the bypass step is
 needed. Source: [`apps/desktop/`](apps/desktop/).

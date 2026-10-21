@@ -36,8 +36,6 @@ import { escapeHandledElsewhere, gameKeyAction, mapOwnsZoomKeys, typingTarget } 
 import { tribeHome } from './game/model/tribe-peril'
 import { useCameraFocus } from './state/camera-focus'
 import type { PrayerInfo } from './shared/types'
-import { DesktopDownloadToast } from './ui/toasts/DesktopDownloadToast'
-import { StarToast } from './ui/toasts/StarToast'
 import { CommandPalette } from './ui/toolbar/CommandPalette'
 import { HeadlineTicker } from './ui/panels/HeadlineTicker'
 import { trackEvent } from './shared/observability'
@@ -698,8 +696,6 @@ function LiveApp() {
         />
         <HeadlineTicker world={world ?? null} enabled={viewFlags.headlineTicker} />
 
-        <DesktopDownloadToast />
-        <StarToast />
         <CommandPalette />
         <PhotoModeExit />
         <ConfirmHost />

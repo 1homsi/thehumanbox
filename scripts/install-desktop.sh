@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Installs The Human Box desktop from the latest GitHub Release and strips
-# the macOS quarantine attribute so it opens without the "unidentified
-# developer" / "app is damaged" dialog. macOS only — Windows + Linux users
-# should download the installer from the Releases page directly.
+# Installs The Human Box RU (the Russian fork) from the latest GitHub
+# Release and strips the macOS quarantine attribute so it opens without the
+# "unidentified developer" / "app is damaged" dialog. macOS (Apple Silicon)
+# only.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/1homsi/thehumanbox/main/scripts/install-desktop.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/alklimover/thehumanbox/main/scripts/install-desktop.sh | bash
 
 set -euo pipefail
 
-OWNER="1homsi"
+OWNER="alklimover"
 REPO="thehumanbox"
-APP_NAME="The Human Box"
+APP_NAME="The Human Box RU"
 
 if [[ "$(uname)" != "Darwin" ]]; then
   echo "This installer is macOS only."
@@ -36,7 +36,7 @@ META="$(curl -fsSL "$API")"
 TAG="$(printf '%s' "$META" | grep -oE '"tag_name":[[:space:]]*"[^"]+"' | head -n1 | sed -E 's/.*"([^"]+)"$/\1/' || true)"
 
 # Match any dmg asset whose URL ends in -<arch>.dmg (electron-builder names
-# them like "The Human Box-0.2.4-arm64.dmg").
+# them like "The Human Box RU-0.1.0-arm64.dmg").
 URL="$(printf '%s' "$META" | grep -oE 'https://[^"]+\.dmg' | grep -E "${SUFFIX}\$" | head -n1 || true)"
 
 if [[ -z "$URL" ]]; then
