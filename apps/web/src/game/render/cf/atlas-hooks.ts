@@ -18,6 +18,7 @@ import {
 } from './atlas-bake'
 import { HUMAN_ATLAS_HEIGHT, HUMAN_ATLAS_WIDTH } from '../character-visuals'
 import { FAUNA_RECTS, paintFaunaGrid } from '../fauna-layout'
+import { spriteUrl } from '../../../shared/sprite-url'
 
 /** A dynamic canvas drawn once by `bake`; returns its id for a layer atlas's `dynamicSrc`. */
 function useBaked(width: number, height: number, bake: (ctx: CanvasRenderingContext2D) => void): string {
@@ -65,7 +66,7 @@ export function usePeopleAtlas(): string {
   return dyn.id
 }
 
-const FAUNA_URL = `${import.meta.env.BASE_URL}sprites/fauna.png`
+const FAUNA_URL = spriteUrl('sprites/fauna.png')
 
 /** The fauna sheet cut into one 32x32 cell per animal at 1:1 native pixel size. */
 export function useFaunaAtlas(): string {

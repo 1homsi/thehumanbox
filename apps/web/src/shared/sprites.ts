@@ -8,6 +8,7 @@ import {
 import { pickAnimalTile, SPRITE, TILE_PX, type Tile } from './sprite-layout'
 import { rasterizedAtlas } from './rasterized-atlas'
 import { buildPeopleLookAtlas } from '../game/render/cf/people/people-looks'
+import { spriteUrl } from './sprite-url'
 
 export { pickAnimalTile, SPRITE, TILE_PX }
 export type { AgeStage, Tile }
@@ -29,10 +30,10 @@ export function loadAtlas(url: string): HTMLImageElement {
   return img
 }
 
-export const ATLAS_TOWN = loadAtlas(`${import.meta.env.BASE_URL}sprites/tiny-town.png`)
-export const ATLAS_CREATURE = loadAtlas(`${import.meta.env.BASE_URL}sprites/tiny-creatures.png`)
+export const ATLAS_TOWN = loadAtlas(spriteUrl('sprites/tiny-town.png'))
+export const ATLAS_CREATURE = loadAtlas(spriteUrl('sprites/tiny-creatures.png'))
 // The PNG is people.svg rasterised once (pixel-identical); the SVG stays as the source the generator writes.
-export const ATLAS_PEOPLE = loadAtlas(`${import.meta.env.BASE_URL}sprites/people/people.png`)
+export const ATLAS_PEOPLE = loadAtlas(spriteUrl('sprites/people/people.png'))
 
 export const PEOPLE_CELL = HUMAN_ATLAS_CELL
 
