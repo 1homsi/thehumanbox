@@ -12,7 +12,7 @@ Define world laws only. Humans figure out everything else.
 
 ## How it works
 
-The world is a 600×300 tile grid of biomes (grassland, forest, desert,
+The world is an 800×400 tile grid of biomes (grassland, forest, desert,
 wetland, tundra, volcanic) with elevation, rivers, weather, and four
 seasons. Humans are born with random traits, inherit a Q-table seed
 and a vocabulary from their parents, and learn through reinforcement
