@@ -1,228 +1,259 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { INK, ROCK, SAND, FOREST, OCEAN, SNOW, BIOME_TONES, hex } from '../src/game/render/art-palette.ts'
+import {
+  HUMAN_ATLAS_CELL as CELL,
+  HUMAN_ATLAS_FRAMES as FRAMES,
+  HUMAN_APPEARANCES as APPEARANCES,
+  HUMAN_STAGE_ORDER as STAGES,
+  HUMAN_SEX_ORDER as SEXES,
+  HUMAN_CLOTHING_ERAS as ERAS,
+  HUMAN_ATLAS_WIDTH as WIDTH,
+  HUMAN_ATLAS_HEIGHT as HEIGHT,
+  HUMAN_FEET_ROW as FEET,
+  HUMAN_HEIGHT,
+} from '../src/game/render/character-visuals.ts'
 
-const scriptDir = dirname(fileURLToPath(import.meta.url))
-const outputDir = resolve(scriptDir, '../public/sprites/people')
-const outputPath = resolve(outputDir, 'people.svg')
-
-const CELL = 32
-const FRAMES = 4
-const APPEARANCES = 3
-const STAGES = ['infant', 'child', 'teen', 'adult', 'elder']
-const SEXES = ['male', 'female']
-const ROWS = SEXES.length * STAGES.length * APPEARANCES
-const WIDTH = CELL * FRAMES
-const HEIGHT = CELL * ROWS
-const OUTLINE = '#211914'
-
-const STAGE_METRICS = {
-  infant: { headW: 8, headH: 7, bodyW: 8, torsoH: 5, legH: 3, armH: 4 },
-  child: { headW: 10, headH: 8, bodyW: 10, torsoH: 7, legH: 6, armH: 6 },
-  teen: { headW: 10, headH: 9, bodyW: 12, torsoH: 8, legH: 8, armH: 7 },
-  adult: { headW: 10, headH: 9, bodyW: 12, torsoH: 9, legH: 9, armH: 8 },
-  elder: { headW: 10, headH: 9, bodyW: 12, torsoH: 9, legH: 7, armH: 7 },
-}
-
-const PALETTES = [
-  {
-    skin: '#d8a070',
-    skinShade: '#a96f4f',
-    hair: '#34231d',
-    shirt: '#537c9b',
-    shirtLight: '#76a4be',
-    pants: '#293b55',
-  },
-  {
-    skin: '#8f5b3f',
-    skinShade: '#65402f',
-    hair: '#171413',
-    shirt: '#4f8755',
-    shirtLight: '#71a66c',
-    pants: '#4c3a2b',
-  },
-  {
-    skin: '#efc49e',
-    skinShade: '#bd8b6c',
-    hair: '#8c542d',
-    shirt: '#a94f4c',
-    shirtLight: '#d37368',
-    pants: '#57456e',
-  },
+const outputDir = resolve(dirname(fileURLToPath(import.meta.url)), '../public/sprites/people')
+// Skin needs its own warm ramps; all cloth, hair and outlines use the shared palette.
+const SKIN = [
+  ['#d5a477', '#b77d56', '#81513b'],
+  ['#a97752', '#825538', '#593b2c'],
+  ['#edc6a0', '#d4a078', '#a27050'],
+  ['#c48b60', '#9e6745', '#704732'],
+  ['#916344', '#70492f', '#503528'],
+  ['#e0b38b', '#bd8c65', '#8d6044'],
 ]
+const cloth = [
+  [SAND.light, SAND.desert, SAND.dune],
+  [FOREST.light, FOREST.mid, FOREST.dark],
+  [ROCK.lit, ROCK.mid, ROCK.shade],
+  [SAND.light, BIOME_TONES.badlands, ROCK.shade],
+  [OCEAN.surf, OCEAN.shallows, OCEAN.deep],
+  [SNOW.lit, SNOW.shade, ROCK.mid],
+].map((ramp) => ramp.map(hex))
+const hairs = [ROCK.deep, INK, SAND.dune, ROCK.shade, INK, SAND.desert].map(hex)
+const ink = hex(INK)
+const deep = hex(ROCK.deep)
+const white = hex(SNOW.lit)
 
-const ELDER_HAIR = ['#b9b5aa', '#807c76', '#d6d0c4']
-
-const rect = (x, y, width, height, fill) =>
-  width > 0 && height > 0
-    ? `<rect x="${x}" y="${y}" width="${width}" height="${height}" fill="${fill}"/>`
-    : ''
-
-function drawOutlinedRect(parts, x, y, width, height, fill, highlight) {
-  parts.push(rect(x, y, width, height, OUTLINE))
-  parts.push(rect(x + 1, y + 1, width - 2, height - 2, fill))
-  if (highlight && width >= 5 && height >= 4) {
-    parts.push(rect(x + 2, y + 1, width - 4, 1, highlight))
+function drawCell(frame, row, sex, stage, appearance, era, facing) {
+  const pixels = new Map()
+  const put = (x, y, color) => pixels.set(y * CELL + x, color)
+  const box = (x, y, w, h, color) => {
+    for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) put(xx, yy, color)
   }
-}
+  const height = HUMAN_HEIGHT[stage]
+  const top = FEET - height
+  const small = stage === 'infant' || stage === 'child'
+  const [skinLight, skin, skinShade] = SKIN[appearance]
+  const [lit, mid, shade] = cloth[appearance]
+  const hair = stage === 'elder' ? hex(appearance % 2 ? ROCK.lit : SNOW.shade) : hairs[appearance]
+  const headY = top + 1
+  const headH = small ? 2 : 3
+  const bodyY = headY + headH + 1
+  const legY = FEET - (stage === 'infant' ? 2 : stage === 'child' ? 3 : 4)
+  const leftStep = frame === 1 ? -1 : frame === 3 ? 1 : 0
+  const rightStep = -leftStep
 
-function drawHead(parts, x, y, width, height, sex, stage, palette, appearance) {
-  const hair = stage === 'elder' ? ELDER_HAIR[appearance] : palette.hair
+  // Feet trade places without moving the ground anchor or rescaling the figure.
+  for (const [x, step, color] of [
+    [14, leftStep, hex(ROCK.mid)],
+    [17, rightStep, deep],
+  ]) {
+    box(x, legY, 1, FEET - 1 - legY - (frame === 2 && x === 14 ? 1 : 0), color)
+    put(x + (small ? 0 : step), FEET - 2 - (frame === 2 && x === 14 ? 1 : 0), color)
+  }
+  box(14, bodyY, 4, Math.max(1, legY - bodyY + 1), mid)
+  box(14, bodyY, 1, Math.max(1, legY - bodyY + 1), lit)
+  box(17, bodyY + 1, 1, Math.max(0, legY - bodyY), shade)
+  const armY = Math.min(legY, bodyY + (frame === 1 ? 1 : 0))
+  box(13, armY, 1, Math.max(1, legY - armY), lit)
+  put(13, Math.max(armY, legY), skinLight)
+  box(18, Math.min(legY, bodyY + (frame === 3 ? 1 : 0)), 1, Math.max(1, legY - bodyY), shade)
+  put(18, legY, skinShade)
 
-  parts.push(rect(x + 1, y, width - 2, height, OUTLINE))
-  parts.push(rect(x, y + 2, width, height - 4, OUTLINE))
-  parts.push(rect(x + 2, y + 1, width - 4, height - 2, palette.skin))
-  parts.push(rect(x + 1, y + 3, width - 2, height - 5, palette.skin))
-  parts.push(rect(x + 2, y + height - 2, width - 4, 1, palette.skinShade))
+  if (!small) {
+    if (era === 'hide') {
+      // Uneven fur collar and hem, a leather strap instead of a modern shirt.
+      box(14, bodyY, 4, 1, hex(SAND.wet))
+      put(14, bodyY + 1, hex(SAND.light))
+      put(16, bodyY + 1, hex(SAND.dune))
+      put(15, legY + 1, mid)
+      box(16, bodyY + 2, 1, Math.max(1, legY - bodyY - 1), hex(ROCK.shade))
+    } else if (era === 'robe') {
+      box(14, legY, 4, sex === 'female' || appearance % 2 ? 2 : 1, mid)
+      box(14, bodyY, 1, FEET - bodyY - 2, lit)
+      box(17, bodyY + 1, 1, FEET - bodyY - 3, shade)
+      box(14, legY - 1, 4, 1, hex(SAND.dune))
+      put(15, bodyY, hex(SAND.light))
+    } else if (era === 'coat') {
+      box(15, bodyY, 2, 2, white)
+      box(14, legY, 1, 2, lit)
+      box(17, legY, 1, 2, shade)
+      put(16, legY - 1, hex(SAND.desert))
+    } else if (era === 'uniform') {
+      box(14, bodyY, 4, legY - bodyY + 1, appearance % 2 ? hex(FOREST.dark) : hex(OCEAN.deep))
+      box(14, bodyY, 1, legY - bodyY, appearance % 2 ? hex(FOREST.light) : hex(OCEAN.shallows))
+      box(15, bodyY, 2, 2, white)
+      put(16, bodyY + 1, hex(BIOME_TONES.badlands))
+      put(17, bodyY + 2, hex(SAND.desert))
+    } else {
+      const space = appearance % 2 === 0
+      box(14, bodyY, 4, legY - bodyY + 1, space ? hex(SNOW.shade) : hex(OCEAN.deep))
+      box(14, bodyY, 1, legY - bodyY + 1, space ? white : hex(OCEAN.shallows))
+      box(15, bodyY + 1, 2, 1, hex(OCEAN.open))
+      put(15, bodyY + 1, hex(OCEAN.surf))
+      if (space) box(19, bodyY + 1, 1, 3, hex(ROCK.shade))
+    }
+  }
+
+  if (small && era !== 'hide') {
+    const color = era === 'spacesuit' ? white : era === 'uniform' ? hex(OCEAN.deep) : mid
+    box(14, bodyY, 4, Math.max(1, legY - bodyY + 1), color)
+    put(14, bodyY, era === 'uniform' ? hex(OCEAN.shallows) : lit)
+    if (era === 'robe') put(15, legY, hex(SAND.dune))
+    if (era === 'coat') put(16, bodyY, white)
+    if (era === 'spacesuit') put(16, bodyY, hex(OCEAN.open))
+  }
+
+  // Three-quarter heads: one eye and a nose, with the light fixed in world space.
+  box(15, headY, 3, headH, skin)
+  box(15, headY, 1, headH, skinLight)
+  box(17, headY + 1, 1, headH - 1, skinShade)
+  const faceX = facing ? 14 : 18
+  if (!small) put(faceX, headY + 2, facing ? skinLight : skinShade)
+  box(15, headY, stage === 'infant' ? 1 : 3, 1, hair)
+  if (!small) {
+    put(facing ? 15 : 17, headY + 1, deep)
+    const backX = facing ? 18 : 14
+    box(backX, headY + 1, 1, sex === 'female' ? headH + 1 : 1, hair)
+    if (appearance % 3 === 1) put(backX, headY, hair)
+    if (stage === 'elder') box(15, headY + headH, 3, 1, hair)
+    if (era === 'spacesuit' && appearance % 2 === 0) {
+      box(14, headY, 5, 1, white)
+      box(14, headY, 1, headH + 1, white)
+      box(18, headY, 1, headH + 1, hex(SNOW.shade))
+      box(15, headY, 3, 1, hex(OCEAN.surf))
+    }
+  }
+
+  if (small) {
+    put(facing ? 15 : 17, headY + 1, deep)
+    if (stage === 'child' && sex === 'female') put(facing ? 18 : 14, headY + 2, hair)
+  }
+
+  if (stage === 'elder' && era !== 'spacesuit') {
+    box(20, FEET - 6, 1, 5, hex(SAND.dune))
+    put(19, FEET - 6, hex(SAND.light))
+  }
 
   if (stage === 'infant') {
-    parts.push(rect(x + 3, y, Math.max(2, width - 6), 2, hair))
-  } else if (sex === 'female') {
-    parts.push(rect(x + 1, y, width - 2, 3, hair))
-    parts.push(rect(x, y + 2, 2, Math.max(3, height - 2), hair))
-    parts.push(rect(x + width - 2, y + 2, 2, Math.max(3, height - 2), hair))
-  } else {
-    parts.push(rect(x + 1, y, width - 2, 3, hair))
-    parts.push(rect(x, y + 2, 2, 2, hair))
-    parts.push(rect(x + width - 2, y + 2, 2, 2, hair))
+    put(13, FEET - 2, mid)
+    put(18, FEET - 2, shade)
+    put(13, FEET - 2 - (frame === 1 || frame === 2 ? 1 : 0), skinLight)
+    put(18, FEET - 2 - (frame === 2 || frame === 3 ? 1 : 0), skinShade)
   }
 
-  const eyeY = y + Math.max(4, height - 4)
-  parts.push(rect(x + 2, eyeY, 1, 1, '#181515'))
-  parts.push(rect(x + width - 3, eyeY, 1, 1, '#181515'))
-
-  if (stage === 'elder') {
-    parts.push(rect(x + 2, y + height - 2, width - 4, 1, hair))
+  // Only the silhouette gets ink; internal seams use the material's shade.
+  const outline = new Map()
+  for (const key of pixels.keys()) {
+    const x = key % CELL
+    const y = Math.floor(key / CELL)
+    for (const [dx, dy] of [
+      [-1, 0],
+      [1, 0],
+      [0, -1],
+      [0, 1],
+    ]) {
+      const k = (y + dy) * CELL + x + dx
+      if (!pixels.has(k)) outline.set(k, ink)
+    }
   }
-}
-
-function drawLeg(parts, x, top, height, palette) {
-  drawOutlinedRect(parts, x, top, 4, height, palette.pants)
-  parts.push(rect(x, top + height - 2, 4, 2, OUTLINE))
-}
-
-function drawArm(parts, x, top, height, shirtOnLeft, palette) {
-  drawOutlinedRect(parts, x, top, 3, height, palette.skin)
-  const shirtX = shirtOnLeft ? x + 1 : x + 1
-  parts.push(rect(shirtX, top + 1, 1, Math.min(3, height - 2), palette.shirt))
-}
-
-function framePose(frame) {
-  switch (frame) {
-    case 1:
-      return {
-        bob: 0,
-        leftLegX: -2,
-        rightLegX: 1,
-        leftLegShorten: 0,
-        rightLegShorten: 2,
-        leftArmY: 0,
-        rightArmY: 2,
+  const col = ERAS.indexOf(era) * FRAMES * 2 + facing * FRAMES + frame
+  const colored = new Map([...outline, ...pixels])
+  const paths = new Map()
+  for (let y = 0; y < CELL; y++)
+    for (let x = 0; x < CELL;) {
+      const color = colored.get(y * CELL + x)
+      if (!color) {
+        x++
+        continue
       }
-    case 2:
-      return {
-        bob: -1,
-        leftLegX: -1,
-        rightLegX: 2,
-        leftLegShorten: 1,
-        rightLegShorten: 1,
-        leftArmY: 2,
-        rightArmY: 0,
-      }
-    case 3:
-      return {
-        bob: 0,
-        leftLegX: 1,
-        rightLegX: -2,
-        leftLegShorten: 2,
-        rightLegShorten: 0,
-        leftArmY: 2,
-        rightArmY: 0,
-      }
-    default:
-      return {
-        bob: 0,
-        leftLegX: 0,
-        rightLegX: 0,
-        leftLegShorten: 0,
-        rightLegShorten: 0,
-        leftArmY: 1,
-        rightArmY: 1,
-      }
-  }
-}
-
-function drawCell(col, row, sex, stage, appearance) {
-  const originX = col * CELL
-  const originY = row * CELL
-  const centerX = originX + CELL / 2
-  const feetY = originY + 30
-  const metrics = STAGE_METRICS[stage]
-  const palette = PALETTES[appearance]
-  const pose = framePose(col)
-  const bodyBottom = feetY - metrics.legH + pose.bob
-  const bodyTop = bodyBottom - metrics.torsoH
-  const bodyX = centerX - metrics.bodyW / 2
-  const headX = centerX - metrics.headW / 2
-  const headY = bodyTop - metrics.headH + 1
-  const parts = []
-
-  const leftLegHeight = Math.max(3, metrics.legH - pose.leftLegShorten)
-  const rightLegHeight = Math.max(3, metrics.legH - pose.rightLegShorten)
-  drawLeg(parts, centerX - 5 + pose.leftLegX, feetY - leftLegHeight + pose.bob, leftLegHeight, palette)
-  drawLeg(parts, centerX + 1 + pose.rightLegX, feetY - rightLegHeight + pose.bob, rightLegHeight, palette)
-
-  drawArm(parts, bodyX - 3, bodyTop + pose.leftArmY, Math.max(4, metrics.armH - pose.leftArmY), true, palette)
-  drawArm(
-    parts,
-    bodyX + metrics.bodyW,
-    bodyTop + pose.rightArmY,
-    Math.max(4, metrics.armH - pose.rightArmY),
-    false,
-    palette,
-  )
-
-  drawOutlinedRect(parts, bodyX, bodyTop, metrics.bodyW, metrics.torsoH, palette.shirt, palette.shirtLight)
-  parts.push(rect(bodyX + 1, bodyTop + metrics.torsoH - 2, metrics.bodyW - 2, 1, OUTLINE))
-
-  if (sex === 'female' && stage !== 'infant') {
-    parts.push(rect(bodyX + 1, bodyTop + metrics.torsoH - 3, metrics.bodyW - 2, 2, palette.shirtLight))
-  }
-
-  drawHead(parts, headX, headY, metrics.headW, metrics.headH, sex, stage, palette, appearance)
-
-  if (stage === 'elder') {
-    const caneX = bodyX + metrics.bodyW + 3
-    parts.push(rect(caneX, bodyTop + 3, 2, feetY - bodyTop - 2, OUTLINE))
-    parts.push(rect(caneX - 2, bodyTop + 3, 4, 2, OUTLINE))
-    parts.push(rect(caneX - 1, bodyTop + 4, 1, 1, '#a77945'))
-    parts.push(rect(caneX, bodyTop + 5, 1, feetY - bodyTop - 5, '#a77945'))
-  }
-
-  return parts.join('')
+      let w = 1
+      while (x + w < CELL && colored.get(y * CELL + x + w) === color) w++
+      const d = `M${col * CELL + x} ${row * CELL + y}h${w}v1h-${w}z`
+      paths.set(color, (paths.get(color) ?? '') + d)
+      x += w
+    }
+  return [...paths].map(([color, d]) => `<path fill="${color}" d="${d}"/>`).join('')
 }
 
 let body = ''
 let row = 0
-for (const sex of SEXES) {
-  for (const stage of STAGES) {
+for (const sex of SEXES)
+  for (const stage of STAGES)
     for (let appearance = 0; appearance < APPEARANCES; appearance++) {
-      for (let frame = 0; frame < FRAMES; frame++) {
-        body += drawCell(frame, row, sex, stage, appearance)
-      }
-      row += 1
+      body += `\n<!-- sex ${sex}, stage ${stage}, appearance ${appearance} -->\n`
+      for (const era of ERAS)
+        for (let facing = 0; facing < 2; facing++)
+          for (let frame = 0; frame < FRAMES; frame++) {
+            body += drawCell(frame, row, sex, stage, appearance, era, facing)
+          }
+      row++
     }
-  }
-}
-
 const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" shape-rendering="crispEdges" image-rendering="pixelated">
-<rect width="${WIDTH}" height="${HEIGHT}" fill="none"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" shape-rendering="crispEdges">
 ${body}
 </svg>
 `
-
 mkdirSync(outputDir, { recursive: true })
-writeFileSync(outputPath, svg, 'utf8')
-console.log('wrote', outputPath, `${WIDTH}x${HEIGHT}`)
-console.log('people.png is now stale: re-rasterise it as described in public/sprites/ART_NOTES.md')
+writeFileSync(resolve(outputDir, 'people.svg'), svg)
+console.log(`wrote people.svg ${WIDTH}x${HEIGHT}; rasterise in Chrome as described in ART_NOTES.md`)
+
+// Chrome is the reference rasterizer; other SVG decoders disagree on transparent pixels.
+if (process.argv.includes('--raster')) {
+  const { launchChrome } = await import('../bench/cdp.mjs')
+  const { execFileSync } = await import('node:child_process')
+  const { readFileSync, renameSync } = await import('node:fs')
+  const portArg = process.argv.indexOf('--port')
+  const port = portArg >= 0 ? Number(process.argv[portArg + 1]) : 9786
+  const chrome = await launchChrome({ port, width: WIDTH, height: 800, dpr: 1, headless: true })
+  const pngPath = resolve(outputDir, 'people.png')
+  try {
+    const uri = 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64')
+    const data = await chrome.page.evaluate(`(async () => {
+      const img = new Image(); img.src = ${JSON.stringify(uri)}; await img.decode();
+      const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+      const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+      window.peoplePixels = ctx.getImageData(0, 0, c.width, c.height).data;
+      return c.toDataURL('image/png').split(',')[1];
+    })()`)
+    writeFileSync(pngPath, Buffer.from(data, 'base64'))
+    const optimized = resolve(outputDir, 'people.optimized.png')
+    execFileSync('magick', [
+      pngPath,
+      '-strip',
+      '-define',
+      'png:compression-level=9',
+      '-define',
+      'png:compression-filter=5',
+      optimized,
+    ])
+    renameSync(optimized, pngPath)
+    const pngUri = 'data:image/png;base64,' + readFileSync(pngPath).toString('base64')
+    const mismatches = await chrome.page.evaluate(`(async () => {
+      const img = new Image(); img.src = ${JSON.stringify(pngUri)}; await img.decode();
+      const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+      const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+      const pixels = ctx.getImageData(0, 0, c.width, c.height).data;
+      let bad = 0; for (let i = 0; i < pixels.length; i++) if (pixels[i] !== window.peoplePixels[i]) bad++;
+      return bad;
+    })()`)
+    if (mismatches) throw new Error(`SVG/PNG RGBA mismatch: ${mismatches} bytes`)
+    console.log('wrote people.png; optimized PNG and SVG have identical RGBA bytes')
+  } finally {
+    chrome.killNow()
+  }
+}

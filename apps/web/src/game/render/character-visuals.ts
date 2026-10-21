@@ -1,19 +1,44 @@
 export const HUMAN_ATLAS_CELL = 32
 export const HUMAN_ATLAS_FRAMES = 4
-/** Appearances drawn in the people sheet (six base figures per sex and life stage). */
+/** Six authored skin, hair and clothing combinations; no hue rotations. */
 export const HUMAN_SHEET_APPEARANCES = 6
-/**
- * Colour looks made from each sheet figure: the clothes' hue turns, and skin is lighter or darker.
- * The first look is the sheet as drawn. `people-looks.ts` builds the atlas from these.
- */
-export const HUMAN_LOOK_TINTS: readonly { hue: number; skin: number }[] = [
-  { hue: 0, skin: 1 },
-  { hue: 110, skin: 0.9 },
-  { hue: 200, skin: 1.08 },
-  { hue: 290, skin: 0.8 },
-]
-/** Looks a person can have: every sheet figure in every tint. */
-export const HUMAN_APPEARANCES = HUMAN_SHEET_APPEARANCES * HUMAN_LOOK_TINTS.length
+export const HUMAN_APPEARANCES = HUMAN_SHEET_APPEARANCES
+export const HUMAN_CLOTHING_ERAS = ['hide', 'robe', 'coat', 'uniform', 'spacesuit'] as const
+export const HUMAN_DIRECTIONS = 2
+/** The padded cell keeps room scenes compatible. Art is drawn at one world pixel per source pixel. */
+export const HUMAN_FEET_ROW = 25
+export const HUMAN_HEIGHT = { infant: 6, child: 9, teen: 12, adult: 14, elder: 12 } as const
+
+/** Names from the same lineage-era data used by buildings. Unnamed tribes start in hides. */
+export function humanClothingEra(era: string | undefined): number {
+  switch (era) {
+    case undefined:
+    case '':
+    case 'pre-stone':
+    case 'pre_stone':
+    case 'stone':
+    case 'bronze':
+    case 'iron':
+      return 0
+    case 'classical':
+    case 'medieval':
+    case 'renaissance':
+      return 1
+    case 'industrial':
+      return 2
+    case 'modern':
+    case 'atomic':
+    case 'information':
+      return 3
+    default:
+      return 4
+  }
+}
+
+/** Era and facing are column banks, so the sheet stays below GPU texture-height limits. */
+export function humanAtlasColumn(era: string | undefined, flipped = false): number {
+  return humanClothingEra(era) * HUMAN_DIRECTIONS * HUMAN_ATLAS_FRAMES + (flipped ? HUMAN_ATLAS_FRAMES : 0)
+}
 
 export const HUMAN_STAGE_ORDER = ['infant', 'child', 'teen', 'adult', 'elder'] as const
 export const HUMAN_SEX_ORDER = ['male', 'female'] as const
@@ -22,7 +47,7 @@ export type AgeStage = (typeof HUMAN_STAGE_ORDER)[number]
 export type HumanSex = (typeof HUMAN_SEX_ORDER)[number]
 export type CharacterDetailLevel = 'overview' | 'standard' | 'detail'
 
-export const HUMAN_ATLAS_COLS = HUMAN_ATLAS_FRAMES
+export const HUMAN_ATLAS_COLS = HUMAN_ATLAS_FRAMES * HUMAN_DIRECTIONS * HUMAN_CLOTHING_ERAS.length
 export const HUMAN_ATLAS_ROWS = HUMAN_STAGE_ORDER.length * HUMAN_SEX_ORDER.length * HUMAN_APPEARANCES
 export const HUMAN_ATLAS_WIDTH = HUMAN_ATLAS_COLS * HUMAN_ATLAS_CELL
 export const HUMAN_ATLAS_HEIGHT = HUMAN_ATLAS_ROWS * HUMAN_ATLAS_CELL
