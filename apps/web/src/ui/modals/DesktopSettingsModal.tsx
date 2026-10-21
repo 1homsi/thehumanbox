@@ -20,6 +20,8 @@ import {
 } from '../../simulation/worldSource'
 import { deleteWorld, listRecoveryWorlds, loadWorld, type RecoveryWorld } from '../../simulation/wasmDb'
 import { DESKTOP_PAUSE_WHEN_HIDDEN_EVENT } from '../../shared/desktopVisibility'
+import { t } from '../../i18n'
+import { LanguageSwitch } from './LanguageSwitch'
 
 interface Props {
   onClose: () => void
@@ -201,6 +203,9 @@ function DisplayTab() {
   const randomTour = useViewFlag('randomTour')
   return (
     <>
+      <SettingRow title={t('settings.language.title')} desc={t('settings.language.desc')}>
+        <LanguageSwitch />
+      </SettingRow>
       <SettingRow
         title="Photo mode"
         desc="Hide every panel and the dock for clean screenshots. Press Esc or hover the top edge to get the header back."

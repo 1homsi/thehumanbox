@@ -1,7 +1,5 @@
-// The tour library (shepherd.js, ~45 kB) is only needed when someone starts the
-// tour, so it lives in tour-runner.ts and is fetched on demand. Its stylesheet stays
-// here: it is tiny and must keep loading before the app styles that override it.
-import 'shepherd.js/dist/css/shepherd.css'
+// The tour runner is only needed when someone starts the tour, so it lives in
+// tour-runner.ts and is fetched on demand.
 import { logger } from '../../shared/logger'
 import { isPhoneViewport } from '../../shared/phone'
 import type { PlayerWorldKind } from '../../simulation/worldSource'
