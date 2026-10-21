@@ -123,13 +123,15 @@ export function AboutModal({ onClose }: Props) {
 
         <div className="about-section">LINKS</div>
         <div className="about-links">
+          <a href="https://github.com/alklimover/thehumanbox" target="_blank" rel="noreferrer">
+            github.com/alklimover/thehumanbox
+          </a>
+          <span className="about-built-with-detail">Russian fork.</span>
+          <br />
           <a href="https://github.com/1homsi/thehumanbox" target="_blank" rel="noreferrer">
             github.com/1homsi/thehumanbox
           </a>
-          <br />
-          <a href="https://instagram.com/watchthehumanbox" target="_blank" rel="noreferrer">
-            instagram.com/watchthehumanbox
-          </a>
+          <span className="about-built-with-detail">The original game by Mohamad Homsi.</span>
         </div>
       </div>
     </Modal>
