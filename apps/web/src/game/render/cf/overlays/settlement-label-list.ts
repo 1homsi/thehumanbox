@@ -7,7 +7,6 @@ import {
   type PlacedLabel,
   type SettlementLabel,
 } from '../../settlement-labels'
-import { zoomDetailLevel } from '../../character-visuals'
 
 /**
  * The town and city names `layers/buildings.ts` collects as it draws buildings, rebuilt from the
@@ -26,29 +25,29 @@ export function collectSettlementLabels(
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
   const MARGIN = 6
-  const detail = zoomDetailLevel(zoom)
   const lineageNames = world.lineage_names ?? {}
   const perilBy = new Map((world.tribes_in_peril ?? []).map((p) => [p.lineage_id, p]))
   for (const s of settlements) {
     const [cx, cy] = s.center
     if (cx - ox < bounds.c0 - MARGIN || cx - ox > bounds.c1 + MARGIN) continue
     if (cy - oy < bounds.r0 - MARGIN || cy - oy > bounds.r1 + MARGIN) continue
-    const major = (s.tier ?? 0) >= 5
+    const rank = s.tier ?? 0
+    const major = rank >= 5
     const peril = perilBy.get(s.lineage_id)
-    const show = s.tier !== 0 && (detail !== 'overview' || major)
-    if (!show && !peril) continue
+    const show = rank !== 0
+    const fade = major ? 1 : Math.max(0, Math.min(1, (zoom - 0.68) / 0.16))
+    if ((!show || fade === 0) && !peril) continue
     const name = s.name ?? lineageNames[s.lineage_id] ?? s.lineage_id.slice(0, 6)
-    const title = s.tier >= 5 ? `${name.toUpperCase()} CITY` : `${name} ${s.tier_name ?? 'settlement'}`
+    const title = name.toUpperCase()
     out.push({
       x: (cx - ox) * TILE,
       y: (cy - oy) * TILE,
       title,
-      sub: peril
-        ? `⚠ ${remainingLine(peril.population)} · ${PERIL_HELP[peril.cause].reason}`
-        : `${s.population} people · ${s.building_count} buildings`,
+      sub: peril ? `⚠ ${remainingLine(peril.population)} · ${PERIL_HELP[peril.cause].reason}` : '',
       major,
-      priority: (peril ? 1_000_000 : 0) + s.tier * 10000 + s.population,
-      color: major ? '#ffd28a' : s.tier >= 4 || s.building_count >= 8 ? '#e5c89a' : '#c8b890',
+      rank,
+      alpha: peril ? 1 : fade,
+      priority: (peril ? 1_000_000 : 0) + rank * 10000 + s.population,
       alert: !!peril,
     })
   }
@@ -59,7 +58,7 @@ export function collectSettlementLabels(
 export function placeLabels(
   labels: readonly SettlementLabel[],
   zoom: number,
-  measure: (text: string, kind: 'major' | 'minor' | 'sub') => number,
+  measure: (text: string, kind: 'city' | 'town' | 'hamlet' | 'alert') => number,
   W: number,
   H: number,
 ): PlacedLabel[] {

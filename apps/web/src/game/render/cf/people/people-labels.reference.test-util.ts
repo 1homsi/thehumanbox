@@ -112,7 +112,8 @@ export function paintPeopleLabelsReference(ctx: CanvasRenderingContext2D, input:
     const variant = orgVariant(org.id)
     const bodyR = variant.bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
     const spriteSize = Math.round(Math.max(19, bodyR * 3.8))
-    const spriteTop = py - spriteSize * 0.78
+    const spriteTop = Math.round(py - spriteSize * 0.78)
+    const labelX = Math.trunc(Math.round(px - spriteSize / 2) + spriteSize / 2)
     const focused = isFocused(org, focus)
     ctx.globalAlpha = focused ? 1 : 0.12
 
@@ -149,10 +150,10 @@ export function paintPeopleLabelsReference(ctx: CanvasRenderingContext2D, input:
     // Names and thoughts that would sit on top of another label are left out; the selected
     // person's always shows.
     const nameShown =
-      showName && placer.place(px, labelY, labelWidth(org.name, isSelected ? 10 : 9), 10, isSelected)
+      showName && placer.place(labelX, labelY, labelWidth(org.name, isSelected ? 10 : 9), 10, isSelected)
     const thoughtShown =
       showThought &&
-      placer.place(px, labelY - (nameShown ? 10 : 0), labelWidth(org.thought ?? '', 8), 9, isSelected)
+      placer.place(labelX, labelY - (nameShown ? 10 : 0), labelWidth(org.thought ?? '', 8), 9, isSelected)
 
     if (nameShown) {
       ctx.font = isSelected ? 'bold 10px monospace' : '9px monospace'
@@ -160,9 +161,9 @@ export function paintPeopleLabelsReference(ctx: CanvasRenderingContext2D, input:
       ctx.textBaseline = 'bottom'
       ctx.lineWidth = 3
       ctx.strokeStyle = 'rgba(0,0,0,0.85)'
-      ctx.strokeText(org.name, px, labelY)
+      ctx.strokeText(org.name, labelX, labelY)
       ctx.fillStyle = isSelected ? '#ffffff' : 'rgba(255,255,255,0.95)'
-      ctx.fillText(org.name, px, labelY)
+      ctx.fillText(org.name, labelX, labelY)
     }
     if (thoughtShown) {
       ctx.font = '8px monospace'
@@ -171,9 +172,9 @@ export function paintPeopleLabelsReference(ctx: CanvasRenderingContext2D, input:
       ctx.lineWidth = 2.5
       ctx.strokeStyle = 'rgba(0,0,0,0.85)'
       const thoughtY = labelY - (nameShown ? 10 : 0)
-      ctx.strokeText(org.thought, px, thoughtY)
+      ctx.strokeText(org.thought, labelX, thoughtY)
       ctx.fillStyle = isSelected ? 'rgba(180,220,255,1)' : 'rgba(180,220,255,0.9)'
-      ctx.fillText(org.thought, px, thoughtY)
+      ctx.fillText(org.thought, labelX, thoughtY)
     }
   }
   ctx.globalAlpha = 1
