@@ -2,14 +2,13 @@ import type { Session } from "electron";
 
 /**
  * The desktop renderer is a `file://` page: it loads its own bundle, talks to
- * the local simulation over loopback, and sends analytics to PostHog. Nothing
- * in the desktop app loads script, styles or frames from elsewhere, so a
- * script injected into the page cannot reach the network or the preload
- * bridge's `world.migrateDataRoot`.
+ * the local simulation over loopback, and nothing else: this fork sends no
+ * analytics. Nothing in the desktop app loads script, styles or frames from
+ * elsewhere, so a script injected into the page cannot reach the network or
+ * the preload bridge's `world.migrateDataRoot`.
  *
- * `'wasm-unsafe-eval'` is required by the WebAssembly sim; PostHog is the only
- * remote origin (and its failure is not fatal). The loopback forms are the
- * ones `apps/web/src/shared/config.ts` accepts for an `?api=` override.
+ * `'wasm-unsafe-eval'` is required by the WebAssembly sim. The loopback forms
+ * are the ones `apps/web/src/shared/config.ts` accepts for an `?api=` override.
  */
 export function rendererContentSecurityPolicy(): string {
   return [
@@ -27,7 +26,6 @@ export function rendererContentSecurityPolicy(): string {
       "ws://localhost:*",
       "http://[::1]:*",
       "ws://[::1]:*",
-      "https://*.posthog.com",
     ].join(" "),
     "worker-src 'self'",
     "object-src 'none'",

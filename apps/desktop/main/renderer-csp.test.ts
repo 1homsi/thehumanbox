@@ -24,7 +24,8 @@ test("the renderer policy keeps local script and the wasm sim working", () => {
     assert.ok(directive("connect-src").includes(`http://${host}:*`), host);
     assert.ok(directive("connect-src").includes(`ws://${host}:*`), host);
   }
-  assert.ok(directive("connect-src").includes("https://*.posthog.com"));
+  // No remote origin: the fork sends no analytics.
+  assert.ok(!directive("connect-src").includes("https://"));
   assert.ok(directive("object-src").includes("'none'"));
   assert.ok(directive("frame-ancestors").includes("'none'"));
 });
