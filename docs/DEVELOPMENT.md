@@ -20,12 +20,15 @@ server. Server options are in `apps/server/.env.example`.
 
 ## The checks CI runs
 
-Run these before opening a PR. CI skips suites whose inputs did not change.
-When a PR merges and `main` ends up with the exact source its PR run passed
-(`scripts/source-key.sh` ignores the release bot's version stamps), `main` skips
-the suites and deploys that run's frontend within about a minute; any other push
-to `main` runs everything. The desktop installers build in their own run
-(`desktop-release.yml`) after the release is cut.
+Run these before opening a PR. CI groups the suites in three areas (sim,
+client, desktop) and keys each area by its inputs with `scripts/source-key.sh`,
+which ignores the release bot's version stamps. Any run, PR or `main`, skips an
+area whose key an earlier run already passed, and a PR also skips the areas it
+did not change. A merge therefore reruns only what no run has checked yet, and
+when the client area already passed, `main` deploys that run's frontend within
+about a minute. A manual run (`workflow_dispatch`) runs everything. The desktop
+installers build in their own run (`desktop-release.yml`) after the release is
+cut.
 
 | Area | Commands |
 |---|---|

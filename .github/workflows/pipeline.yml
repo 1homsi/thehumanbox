@@ -17,11 +17,21 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # Which suites to run. A PR runs the suites whose inputs it changed. A push
-  # to main normally reruns everything, but a merge whose source the PR run
-  # already verified (same key from scripts/source-key.sh, which ignores the
-  # release bot's version stamps) skips straight to shipping: the tests would
-  # rerun on identical code.
+  # Which suites to run. They fall in three areas, each keyed by
+  # scripts/source-key.sh over the area's inputs (the key ignores the release
+  # bot's version stamps):
+  #
+  #   sim      simulation-lint, simulation-tests, simulation-performance
+  #   client   test-frontend, build-wasm, build-frontend
+  #   desktop  test-desktop
+  #
+  # A run that passes an area leaves a `pass-<area>-<key>` artifact (see
+  # record-passes), and a later run, PR or main, skips any area whose key
+  # already passed: its suites would rerun on identical inputs. So a merge
+  # reruns only the areas whose inputs no run has checked yet, which matters
+  # when PRs land back to back: each merged tree then differs from the one
+  # its PR tested, and main used to rerun every suite. A PR also skips the
+  # areas it did not change, and a manual run (workflow_dispatch) runs all.
   changes:
     name: Detect changed areas
     if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
@@ -32,95 +42,113 @@ jobs:
       client: ${{ steps.plan.outputs.client }}
       desktop: ${{ steps.plan.outputs.desktop }}
       build_client: ${{ steps.plan.outputs.build_client }}
-      key: ${{ steps.key.outputs.key }}
-      verified: ${{ steps.verified.outputs.verified }}
-      verified_run: ${{ steps.verified.outputs.run }}
-      verified_bundle: ${{ steps.verified.outputs.bundle }}
+      sim_key: ${{ steps.keys.outputs.sim_key }}
+      client_key: ${{ steps.keys.outputs.client_key }}
+      desktop_key: ${{ steps.keys.outputs.desktop_key }}
+      sim_run: ${{ steps.passed.outputs.sim_run }}
+      client_run: ${{ steps.passed.outputs.client_run }}
+      desktop_run: ${{ steps.passed.outputs.desktop_run }}
+      bundle: ${{ steps.passed.outputs.bundle }}
     steps:
       - uses: actions/checkout@v7
-      - name: Source key
-        id: key
-        run: echo "key=$(scripts/source-key.sh)" >> "$GITHUB_OUTPUT"
-      - uses: dorny/paths-filter@v4
-        if: ${{ github.event_name == 'pull_request' }}
-        id: filter
         with:
-          filters: |
-            ci: &ci
-              - '.github/**'
-              - 'Makefile'
-              - 'scripts/source-key.sh'
-            sim:
-              - *ci
-              - 'apps/server/**'
-              - 'crates/**'
-              - 'Cargo.*'
-              - 'rustfmt.toml'
-              - 'clippy.toml'
-              - 'scripts/perf-gate.sh'
-              - 'scripts/determinism-fingerprint.json'
-            client:
-              - *ci
-              - 'apps/web/**'
-              - 'crates/sim-core/**'
-              - 'Cargo.*'
-              - '.node-version'
-              - 'scripts/build-wasm.sh'
-              - 'scripts/check-wasm-determinism.mjs'
-              - 'scripts/determinism-fingerprint.json'
-            desktop:
-              - *ci
-              - 'apps/desktop/**'
-              - '.node-version'
-      # The PR run for this exact source left a `verified-<key>` artifact (see
-      # pr-verified). Only runs of this workflow on a pull_request from this
-      # repository count, so a fork cannot vouch for a merge.
-      - name: Find the PR run that verified this source
-        id: verified
-        if: ${{ github.event_name == 'push' }}
+          # A PR checks out its merge commit; the first parent is the base.
+          fetch-depth: 2
+      - name: Area keys
+        id: keys
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          ci=(.github Makefile scripts/source-key.sh)
+          sim=("${ci[@]}" .config apps/server crates Cargo.toml Cargo.lock rustfmt.toml clippy.toml
+            scripts/perf-gate.sh scripts/determinism-fingerprint.json)
+          client=("${ci[@]}" apps/web crates/sim-core Cargo.toml Cargo.lock .node-version
+            scripts/build-wasm.sh scripts/check-wasm-determinism.mjs scripts/determinism-fingerprint.json)
+          desktop=("${ci[@]}" apps/desktop .node-version)
+          base=""
+          if [ "$EVENT" = pull_request ] && git rev-parse -q --verify 'HEAD^2' >/dev/null; then
+            base='HEAD^1'
+          fi
+          key() {
+            local area=$1 key changed=true
+            shift
+            key=$(scripts/source-key.sh "$@")
+            if [ -n "$base" ] && [ "$key" = "$(SOURCE_KEY_REV=$base scripts/source-key.sh "$@")" ]; then
+              changed=false
+            fi
+            echo "$area: $key${base:+ (changed from the base: $changed)}"
+            printf '%s_key=%s\n%s_changed=%s\n' "$area" "$key" "$area" "$changed" >> "$GITHUB_OUTPUT"
+          }
+          key sim "${sim[@]}"
+          key client "${client[@]}"
+          key desktop "${desktop[@]}"
+      - name: Find runs that already passed these keys
+        id: passed
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         env:
           GH_TOKEN: ${{ github.token }}
-          KEY: ${{ steps.key.outputs.key }}
+          EVENT: ${{ github.event_name }}
           REPO_ID: ${{ github.repository_id }}
+          SIM_KEY: ${{ steps.keys.outputs.sim_key }}
+          CLIENT_KEY: ${{ steps.keys.outputs.client_key }}
+          DESKTOP_KEY: ${{ steps.keys.outputs.desktop_key }}
         run: |
           set -uo pipefail
-          # Any API failure falls back to the full run.
-          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=verified-$KEY&per_page=20" --jq "
-            [.artifacts[] | select(.expired == false
-              and .workflow_run.repository_id == $REPO_ID
-              and .workflow_run.head_repository_id == $REPO_ID)]
-            | sort_by(.created_at) | last | .workflow_run.id // empty") || run=""
-          origin=""
-          if [ -n "$run" ]; then
-            origin=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.path + " " + .event') || origin=""
-          fi
-          if [ "$origin" = ".github/workflows/pipeline.yml pull_request" ]; then
-            # The PR run uploads client-dist only when it is the production
-            # bundle (built with the analytics key); ship-web deploys it.
-            bundle=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run/artifacts?name=client-dist" \
+          # Prints the newest run of this workflow that left the record. Only
+          # runs from this repository count, so a fork cannot vouch for
+          # anything. An API failure prints nothing, which runs the area.
+          passed_by() {
+            local run
+            for run in $(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=$1&per_page=20" --jq "
+                [.artifacts[] | select(.expired == false
+                  and .workflow_run.repository_id == $REPO_ID
+                  and .workflow_run.head_repository_id == $REPO_ID)]
+                | sort_by(.created_at) | reverse | .[].workflow_run.id"); do
+              if [ "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq .path)" = .github/workflows/pipeline.yml ]; then
+                echo "$run"
+                return
+              fi
+            done
+          }
+          sim_run=$(passed_by "pass-sim-$SIM_KEY")
+          client_run=$(passed_by "pass-client-$CLIENT_KEY")
+          desktop_run=$(passed_by "pass-desktop-$DESKTOP_KEY")
+          # That client run's bundle ships as is (ship-web) when it has one: a
+          # PR run uploads client-dist only when it is the production bundle
+          # (built with the analytics key).
+          bundle=false
+          if [ "$EVENT" = push ] && [ -n "$client_run" ]; then
+            bundle=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$client_run/artifacts?name=client-dist" \
               --jq '[.artifacts[] | select(.expired == false)] | length > 0') || bundle=false
-            echo "Verified by run $run (bundle: $bundle)"
-            { echo "verified=true"; echo "run=$run"; echo "bundle=$bundle"; } >> "$GITHUB_OUTPUT"
-          else
-            echo "No PR run verified source $KEY; running every suite"
-            { echo "verified=false"; echo "bundle=false"; } >> "$GITHUB_OUTPUT"
           fi
+          echo "passed in run: sim ${sim_run:-none}, client ${client_run:-none} (bundle: $bundle), desktop ${desktop_run:-none}"
+          printf '%s\n' "sim_run=$sim_run" "client_run=$client_run" "desktop_run=$desktop_run" "bundle=$bundle" >> "$GITHUB_OUTPUT"
       - name: Plan
         id: plan
         env:
           EVENT: ${{ github.event_name }}
-          VERIFIED: ${{ steps.verified.outputs.verified }}
-          SIM: ${{ steps.filter.outputs.sim }}
-          CLIENT: ${{ steps.filter.outputs.client }}
-          DESKTOP: ${{ steps.filter.outputs.desktop }}
+          SIM_CHANGED: ${{ steps.keys.outputs.sim_changed }}
+          CLIENT_CHANGED: ${{ steps.keys.outputs.client_changed }}
+          DESKTOP_CHANGED: ${{ steps.keys.outputs.desktop_changed }}
+          SIM_RUN: ${{ steps.passed.outputs.sim_run }}
+          CLIENT_RUN: ${{ steps.passed.outputs.client_run }}
+          DESKTOP_RUN: ${{ steps.passed.outputs.desktop_run }}
         run: |
-          if [ "$EVENT" = pull_request ]; then
-            plan=(sim="$SIM" client="$CLIENT" desktop="$DESKTOP" build_client="$CLIENT")
-          elif [ "$VERIFIED" = true ]; then
-            plan=(sim=false client=false desktop=false build_client=true)
-          else
-            plan=(sim=true client=true desktop=true build_client=true)
-          fi
+          # runs <changed from the base> <run that passed the key>
+          runs() {
+            if [ "$EVENT" = workflow_dispatch ]; then echo true
+            elif [ -n "$2" ]; then echo false
+            elif [ "$EVENT" = pull_request ]; then echo "$1"
+            else echo true
+            fi
+          }
+          client=$(runs "$CLIENT_CHANGED" "$CLIENT_RUN")
+          # Main always ships a frontend: built here, or ship-web's.
+          build_client=true
+          if [ "$EVENT" = pull_request ]; then build_client=$client; fi
+          plan=(sim="$(runs "$SIM_CHANGED" "$SIM_RUN")" client="$client"
+            desktop="$(runs "$DESKTOP_CHANGED" "$DESKTOP_RUN")" build_client="$build_client")
           echo "${plan[*]}"
           printf '%s\n' "${plan[@]}" >> "$GITHUB_OUTPUT"
 
@@ -284,17 +312,17 @@ jobs:
           path: apps/web/src/wasm/sim-core
           key: ${{ steps.wasm-key.outputs.key }}
       # PR caches are not visible to main, so a merge that changed sim-core
-      # would rebuild here. The verified PR run already built this exact wasm;
-      # take it (the cache step then saves it for main).
-      - name: Reuse the verified PR's wasm
+      # would rebuild here. The run that passed the client area already built
+      # this exact wasm; take it (the cache step then saves it for main).
+      - name: Reuse the wasm of the run that passed the client area
         id: wasm-pr
-        if: ${{ steps.wasm-cache.outputs.cache-hit != 'true' && needs.changes.outputs.verified_run != '' }}
+        if: ${{ steps.wasm-cache.outputs.cache-hit != 'true' && needs.changes.outputs.client_run != '' }}
         continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           name: sim-core-wasm
           path: apps/web/src/wasm/sim-core
-          run-id: ${{ needs.changes.outputs.verified_run }}
+          run-id: ${{ needs.changes.outputs.client_run }}
           github-token: ${{ github.token }}
       - uses: dtolnay/rust-toolchain@stable
         if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
@@ -315,10 +343,10 @@ jobs:
         run: scripts/build-wasm.sh
       # The browser sim must reproduce the committed native fingerprint (see
       # scripts/determinism-fingerprint.json). Runs on cached and fresh builds;
-      # a verified merge skips it unless the wasm was built here, since the PR
-      # run checked this same wasm.
+      # when an earlier run passed the client area it checked this same wasm,
+      # so this is skipped unless the wasm was built here.
       - name: Check wasm determinism fingerprint
-        if: needs.changes.outputs.verified != 'true' || steps.wasm-build.outcome == 'success'
+        if: needs.changes.outputs.client_run == '' || steps.wasm-build.outcome == 'success'
         run: node scripts/check-wasm-determinism.mjs apps/web/src/wasm/sim-core
       - uses: actions/upload-artifact@v7
         with:
@@ -329,12 +357,12 @@ jobs:
   build-frontend:
     name: Build frontend
     needs: [changes, test-frontend, build-wasm]
-    # A verified merge with the PR's production bundle ships that instead
-    # (ship-web). Main's frontend tests are skipped on a verified merge.
+    # When the run that passed the client area has a production bundle, main
+    # ships that instead (ship-web).
     if: >-
       ${{ !cancelled()
         && needs.changes.outputs.build_client == 'true'
-        && needs.changes.outputs.verified_bundle != 'true'
+        && needs.changes.outputs.bundle != 'true'
         && needs.build-wasm.result == 'success'
         && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') }}
     runs-on: ubuntu-24.04
@@ -417,9 +445,10 @@ jobs:
     name: Bump version
     # Only runs for direct pushes to main (post-merge). PRs go through
     # the test jobs only — no version bump, no deploy. The gate's own needs
-    # include jobs that skip by design (the suites on a verified merge,
-    # ship-web otherwise), and a skipped ancestor fails the default success()
-    # check, so this and the jobs after it check their needs explicitly.
+    # include jobs that skip by design (an area's suites once an earlier run
+    # passed its inputs, ship-web or build-frontend), and a skipped ancestor
+    # fails the default success() check, so this and the jobs after it check
+    # their needs explicitly.
     if: ${{ !cancelled() && needs.release-gate.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs: [release-gate]
     runs-on: ubuntu-24.04
@@ -495,10 +524,9 @@ jobs:
 
   release-gate:
     name: Release gate (all checks completed)
-    # always() so the gate decides from the results itself. An unverified
-    # push runs every suite, so anything other than success blocks the
-    # release; a verified merge may skip the suites (its PR run passed them)
-    # but still needs the wasm and a shipped frontend.
+    # always() so the gate decides from the results itself. Each area's
+    # suites must pass here, or skip because an earlier run passed the same
+    # inputs; the wasm and a shipped frontend are always needed.
     if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip-bump]') }}
     needs: [changes, simulation-lint, simulation-tests, simulation-performance, test-frontend, build-wasm, build-frontend, test-desktop, ship-web]
     runs-on: ubuntu-24.04
@@ -506,26 +534,38 @@ jobs:
     steps:
       - name: Confirm release prerequisites
         env:
-          VERIFIED: ${{ needs.changes.outputs.verified }}
           CHANGES: ${{ needs.changes.result }}
+          SIM_RUN: ${{ needs.changes.outputs.sim_run }}
+          CLIENT_RUN: ${{ needs.changes.outputs.client_run }}
+          DESKTOP_RUN: ${{ needs.changes.outputs.desktop_run }}
+          LINT: ${{ needs.simulation-lint.result }}
+          TESTS: ${{ needs.simulation-tests.result }}
+          PERF: ${{ needs.simulation-performance.result }}
+          FRONTEND_TESTS: ${{ needs.test-frontend.result }}
+          DESKTOP_TESTS: ${{ needs.test-desktop.result }}
           WASM: ${{ needs.build-wasm.result }}
           FRONTEND: ${{ needs.build-frontend.result }}
           SHIPPED: ${{ needs.ship-web.result }}
-          SUITES: >-
-            ${{ needs.simulation-lint.result }} ${{ needs.simulation-tests.result }}
-            ${{ needs.simulation-performance.result }} ${{ needs.test-frontend.result }}
-            ${{ needs.test-desktop.result }}
         run: |
-          echo "verified=$VERIFIED changes=$CHANGES wasm=$WASM frontend=$FRONTEND shipped=$SHIPPED suites: $SUITES"
+          echo "changes=$CHANGES lint=$LINT tests=$TESTS perf=$PERF frontend-tests=$FRONTEND_TESTS desktop-tests=$DESKTOP_TESTS"
+          echo "wasm=$WASM frontend=$FRONTEND shipped=$SHIPPED; passed earlier in: sim ${SIM_RUN:-none}, client ${CLIENT_RUN:-none}, desktop ${DESKTOP_RUN:-none}"
           fail() { echo "$1" >&2; exit 1; }
+          # area <run that passed it earlier> <job results...>
+          area() {
+            local passed=$1 result
+            shift
+            for result in "$@"; do
+              [ "$result" = success ] && continue
+              [ "$result" = skipped ] && [ -n "$passed" ] && continue
+              fail "a required check did not succeed ($result)"
+            done
+          }
           [ "$CHANGES" = success ] || fail "change detection did not succeed ($CHANGES)"
           [ "$WASM" = success ] || fail "the wasm build did not succeed ($WASM)"
           [ "$FRONTEND" = success ] || [ "$SHIPPED" = success ] || fail "no frontend was built or shipped"
-          for result in $SUITES; do
-            [ "$result" = success ] && continue
-            [ "$result" = skipped ] && [ "$VERIFIED" = true ] && continue
-            fail "a required check did not succeed ($result)"
-          done
+          area "$SIM_RUN" "$LINT" "$TESTS" "$PERF"
+          area "$CLIENT_RUN" "$FRONTEND_TESTS"
+          area "$DESKTOP_RUN" "$DESKTOP_TESTS"
           echo "All test, wasm, frontend, and desktop checks completed successfully."
 
   publish-release:
@@ -569,14 +609,15 @@ jobs:
             -f tag="v$NEW" -f version="$NEW" \
             -f source_sha="$GITHUB_SHA" -f pipeline_run_id="$GITHUB_RUN_ID"
 
-  # A verified merge whose PR run built the production bundle deploys that
-  # bundle straight away, before any other job: the merge is live about a
-  # minute after it lands. Only the commit stamp changes (PR builds are
-  # stamped with the PR's merge commit).
+  # When the run that passed the client area built the production bundle,
+  # main deploys that bundle straight away, before any other job: the merge
+  # is live about a minute after it lands. Only the commit stamp changes (a
+  # PR build is stamped with the PR's merge commit, a main build with its
+  # own commit).
   ship-web:
-    name: Deploy frontend (verified PR bundle)
+    name: Deploy frontend (bundle that passed)
     needs: [changes]
-    if: ${{ needs.changes.outputs.verified_bundle == 'true' }}
+    if: ${{ needs.changes.outputs.bundle == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -584,16 +625,16 @@ jobs:
       actions:     read
       deployments: write
     steps:
-      - name: Download the PR's static frontend
+      - name: Download the static frontend that passed
         uses: actions/download-artifact@v8
         with:
           name: client-dist
           path: apps/web/dist
-          run-id: ${{ needs.changes.outputs.verified_run }}
+          run-id: ${{ needs.changes.outputs.client_run }}
           github-token: ${{ github.token }}
 
       # useVersionCheck only prompts open tabs to reload when version.json's
-      # built_at is newer than their own build, and PRs can merge in a
+      # built_at is newer than their own build, and bundles can ship in a
       # different order than they were built, so built_at becomes the deploy
       # time. The bundle keeps its build time (the About modal shows it).
       - name: Stamp this commit
@@ -642,25 +683,41 @@ jobs:
           workingDirectory: apps/web
           command: pages deploy dist --project-name=thehumanbox --branch=main
 
-  # Leaves `verified-<source key>` when every suite this PR needed passed.
-  # When the PR merges, main finds it and ships without rerunning them.
-  pr-verified:
-    name: Record the verified source
-    if: >-
-      ${{ always() && github.event_name == 'pull_request'
-        && needs.changes.result == 'success'
-        && !contains(needs.*.result, 'failure')
-        && !contains(needs.*.result, 'cancelled') }}
+  # Leaves `pass-<area>-<key>` for each area whose suites all ran and passed
+  # here; a later run with the same key skips them (see changes). The record
+  # is a few bytes, kept long enough that an area nobody touches for weeks
+  # still counts as passed.
+  record-passes:
+    name: Record the areas that passed
+    if: ${{ always() && needs.changes.result == 'success' }}
     needs: [changes, simulation-lint, simulation-tests, simulation-performance, test-frontend, build-wasm, build-frontend, test-desktop]
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
       - name: Write the record
-        env:
-          KEY: ${{ needs.changes.outputs.key }}
-        run: printf 'source %s\nrun %s\nsha %s\n' "$KEY" "$GITHUB_RUN_ID" "$GITHUB_SHA" > verified.txt
-      - uses: actions/upload-artifact@v7
+        run: printf 'run %s\nsha %s\n' "$GITHUB_RUN_ID" "$GITHUB_SHA" > passed.txt
+      - name: Record sim
+        if: >-
+          ${{ needs.changes.outputs.sim == 'true' && needs.simulation-lint.result == 'success'
+            && needs.simulation-tests.result == 'success' && needs.simulation-performance.result == 'success' }}
+        uses: actions/upload-artifact@v7
         with:
-          name: verified-${{ needs.changes.outputs.key }}
-          path: verified.txt
-          retention-days: 14
+          name: pass-sim-${{ needs.changes.outputs.sim_key }}
+          path: passed.txt
+          retention-days: 90
+      - name: Record client
+        if: >-
+          ${{ needs.changes.outputs.client == 'true' && needs.test-frontend.result == 'success'
+            && needs.build-wasm.result == 'success' && needs.build-frontend.result == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: pass-client-${{ needs.changes.outputs.client_key }}
+          path: passed.txt
+          retention-days: 90
+      - name: Record desktop
+        if: ${{ needs.changes.outputs.desktop == 'true' && needs.test-desktop.result == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: pass-desktop-${{ needs.changes.outputs.desktop_key }}
+          path: passed.txt
+          retention-days: 90
