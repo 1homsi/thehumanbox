@@ -15,3 +15,9 @@ Deterministic multi-seed performance budget used by CI (`make perf-gate`). It sa
 ### rebuild-fresh.sh
 Wipes the local `world.save` (and `.tmp`/`.bak` siblings) and rebuilds the release binaries from scratch.
 **When to run:** local dev only. Use when iterating on world-gen or spawn logic and you need a known-clean seed. It does not touch any deployment.
+
+### check-wasm-determinism.mjs
+Checks the browser build against the committed native fingerprint:
+`node scripts/check-wasm-determinism.mjs apps/web/src/wasm/sim-core`.
+After an intentional simulation change, add `--update` to regenerate the fingerprint,
+then run the native determinism test to verify both targets agree.

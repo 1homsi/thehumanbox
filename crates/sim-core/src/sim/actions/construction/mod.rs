@@ -105,8 +105,8 @@ mod tests {
         builder.health = 1.0;
         builder.x = x as f32;
         builder.y = y as f32;
-        for tile_y in y - 2..=y + 8 {
-            for tile_x in x - 2..=x + 8 {
+        for tile_y in y - 2..=y + 12 {
+            for tile_x in x - 2..=x + 12 {
                 sim.grid.set(tile_x, tile_y, Tile::Grass);
             }
         }

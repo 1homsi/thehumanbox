@@ -28,8 +28,8 @@ const knownDelta = () => ({
   drought: false,
   weather: { kind: 'rain', intensity: 0.6, wind_x: 0.4, wind_y: 0.1 },
   grid: {
-    width: 600,
-    height: 300,
+    width: 800,
+    height: 400,
     origin_x: 0,
     origin_y: 0,
     fire: [[10, 20, 750]] as Array<[number, number, number]>,
@@ -137,7 +137,7 @@ describe('wire round-trip', () => {
     expect(f.weather.wind_x).toBeCloseTo(0.4, 5)
     expect(f.weather.wind_y).toBeCloseTo(0.1, 5)
 
-    expect(f.grid.width).toBe(600)
+    expect(f.grid.width).toBe(800)
     expect(f.grid.fire[0]).toEqual([10, 20, 750])
     expect(f.grid.structure?.[0]).toEqual([5, 5, 80])
 

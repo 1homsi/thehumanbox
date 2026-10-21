@@ -141,6 +141,12 @@ fn territory_claims_match_the_sorting_version() {
     for seed in [7u64, 42] {
         let mut fast = lived_in(seed, 300);
         let mut original = lived_in(seed, 300);
+        for y in 94..=146 {
+            for x in 144..=206 {
+                fast.grid.set(x, y, crate::world::tiles::Tile::Grass);
+                original.grid.set(x, y, crate::world::tiles::Tile::Grass);
+            }
+        }
         let lineages: Vec<String> = {
             let mut ids: Vec<String> = fast.organisms.iter().map(|o| o.lineage_id.clone()).collect();
             ids.sort();

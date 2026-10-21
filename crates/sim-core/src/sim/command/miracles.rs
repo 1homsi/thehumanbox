@@ -156,13 +156,14 @@ impl Simulation {
 #[cfg(test)]
 mod tests {
     use crate::sim::simulation::Simulation;
-    use crate::world::grid::{HEIGHT, WIDTH};
+    use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
     use crate::world::tiles::{Biome, Tile};
 
     fn grass_world(sim: &mut Simulation) {
         for x in 0..WIDTH as i32 {
             for y in 0..HEIGHT as i32 {
                 sim.grid.set(x, y, Tile::Grass);
+                sim.grid.biome[WorldGrid::idx(x, y)] = Biome::Grassland as u8;
             }
         }
     }
@@ -194,7 +195,7 @@ mod tests {
         grass_world(&mut sim);
         for x in 50..70 {
             for y in 50..70 {
-                sim.grid.biome[crate::world::grid::WorldGrid::idx(x, y)] = Biome::Forest as u8;
+                sim.grid.biome[WorldGrid::idx(x, y)] = Biome::Forest as u8;
             }
         }
         assert!(sim.apply_command_json(r#"{"cmd":"bless_forest","x":60.0,"y":60.0,"radius":8.0}"#));

@@ -74,6 +74,10 @@ impl Simulation {
             story_history: self.story_history.iter().rev().take(120).rev().cloned().collect(),
             grid: GridSave {
                 tiles: self.grid.tiles.clone(),
+                elevation: self.grid.elevation.clone(),
+                temperature: self.grid.temperature.clone(),
+                volcanoes: Some(self.grid.volcanoes.clone()),
+                pool_centers: Some(self.grid.pool_centers.clone()),
                 depth: self.grid.depth.clone(),
                 biome: self.grid.biome.clone(),
                 fire: self.grid.fire_intensity.clone(),

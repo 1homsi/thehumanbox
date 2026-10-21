@@ -289,7 +289,10 @@ fn war_and_peace_set_attitudes_between_the_nearest_tribes() {
 #[test]
 fn every_animal_kind_can_be_spawned_by_name() {
     use crate::organism::animal::AnimalKind;
+    use crate::world::tiles::Tile;
     let mut sim = Simulation::new(1);
+    sim.grid.set(120, 90, Tile::Grass);
+    sim.grid.set(121, 90, Tile::Water);
     for kind in AnimalKind::ALL {
         let cmd = format!(
             r#"{{"cmd":"spawn_animal","x":120.0,"y":90.0,"kind":"{}"}}"#,
@@ -323,6 +326,7 @@ fn weather_and_drought_apply() {
 #[test]
 fn spawn_animal_adds_one() {
     let mut sim = Simulation::new(1);
+    sim.grid.set(80, 80, crate::world::tiles::Tile::Grass);
     let before = sim.animals.len();
     assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":80.0,"y":80.0,"kind":"wolf"}"#));
     assert_eq!(sim.animals.len(), before + 1);
@@ -331,6 +335,7 @@ fn spawn_animal_adds_one() {
 #[test]
 fn spawn_animal_still_works_in_a_crowded_mature_world() {
     let mut sim = Simulation::new(1);
+    sim.grid.set(80, 80, crate::world::tiles::Tile::Grass);
     while sim.animals.iter().filter(|a| a.alive).count() < 700 {
         assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":80.0,"y":80.0,"kind":"deer"}"#));
     }

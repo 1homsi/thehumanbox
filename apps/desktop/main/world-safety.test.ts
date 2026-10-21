@@ -47,12 +47,12 @@ import {
 function validSave(overrides: Record<string, unknown> = {}): Buffer {
   return Buffer.from(
     JSON.stringify({
-      version: 5,
+      version: 6,
       tick_count: 123,
       world_seed: 99,
       organisms: [],
       animals: [],
-      grid: { tiles: new Array(600 * 300).fill(0) },
+      grid: { tiles: new Array(800 * 400).fill(0) },
       ...overrides,
     }),
   );
@@ -83,7 +83,7 @@ test("validates the required native world-save shape", () => {
   const result = validateWorldSaveBytes(
     validSave({ world_seed: 18_000_000_000_000_000_000 }),
   );
-  assert.equal(result.version, 5);
+  assert.equal(result.version, 6);
   assert.equal(result.tick, 123);
   assert.equal(result.seed, 18_000_000_000_000_000_000);
   assert.equal(result.seedText, "18000000000000000000");
@@ -200,13 +200,18 @@ test("startup handshake rejects a silently minted replacement world", () => {
 
 test("rejects incompatible or incomplete saves before import", () => {
   assert.throws(
-    () => validateWorldSaveBytes(validSave({ version: 6 })),
+    () => validateWorldSaveBytes(validSave({ version: 7 })),
     /newer/,
   );
   assert.doesNotThrow(() => validateWorldSaveBytes(validSave({ version: 4 })));
+  assert.doesNotThrow(() =>
+    validateWorldSaveBytes(
+      validSave({ version: 5, grid: { tiles: new Array(600 * 300).fill(0) } }),
+    ),
+  );
   assert.throws(
     () => validateWorldSaveBytes(validSave({ grid: { tiles: [0] } })),
-    /expected 180000/,
+    /expected 320000/,
   );
   assert.throws(
     () => validateWorldSaveBytes(Buffer.from("{bad json")),

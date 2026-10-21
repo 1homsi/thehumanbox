@@ -67,6 +67,9 @@ function byTownThenPosition(frame) {
 /** The candidates for a feature, in choice order. Each has x, y (tiles), name and the source entity. */
 export function candidatesFor(frame, feature, tick = frame.tick) {
   const [head, arg] = feature.split(':')
+  if (head === 'world') {
+    return [{ kind: 'world', name: 'world', x: frame.grid.width / 2, y: frame.grid.height / 2 }]
+  }
   const sortBy = byTownThenPosition(frame)
   if (head === 'caravan') {
     return (frame.caravans ?? [])

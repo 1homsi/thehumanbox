@@ -173,6 +173,11 @@ fn released_ducks_and_bees_are_placed_when_the_ground_suits_them() {
 #[test]
 fn a_wild_cat_that_stays_by_a_person_takes_to_them() {
     let mut sim = Simulation::new(7);
+    for x in 95..=105 {
+        for y in 95..=105 {
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
     for o in sim.organisms.iter_mut() {
         o.alive = false;
     }
@@ -193,6 +198,9 @@ fn a_wild_cat_that_stays_by_a_person_takes_to_them() {
         sim.organisms[0].x = 100.0;
         sim.organisms[0].y = 100.0;
         sim.organisms[0].alive = true;
+        sim.organisms[0].energy = 1.0;
+        sim.organisms[0].hydration = 1.0;
+        sim.organisms[0].health = 1.0;
         sim.animals[0].alive = true;
         sim.animals[0].x = 101.0;
         sim.animals[0].y = 100.0;

@@ -360,6 +360,7 @@ pub(crate) fn harvest_crop(sim: &mut Simulation, idx: usize, x: i32, y: i32) -> 
 mod tests {
     use super::*;
     use crate::world::grid::WorldGrid;
+    use crate::world::tiles::Biome;
 
     fn farm_sim() -> (Simulation, usize, i32, i32) {
         let mut sim = Simulation::new(1_337);
@@ -371,6 +372,7 @@ mod tests {
         let lineage_id = sim.organisms[idx].lineage_id.clone();
         sim.lineage_eras.insert(lineage_id, Era::Bronze);
         sim.grid.set(x, y, Tile::Grass);
+        sim.grid.biome[WorldGrid::idx(x, y)] = Biome::Grassland as u8;
         sim.grid.fertility[WorldGrid::idx(x, y)] = 0.8;
         (sim, idx, x, y)
     }

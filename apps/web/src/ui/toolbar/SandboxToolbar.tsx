@@ -207,10 +207,11 @@ export function SandboxToolbar({
   const pickTool = (picked: SandboxTool) => {
     if (armedToolId === picked.id) return onClearArmed()
     // The dice roll a new random event, at a new spot, every time they are picked.
-    const tool: SandboxTool =
-      picked.id === 'dice'
-        ? { ...picked, fire: rollRandomEvent(worldGrid?.width ?? 600, worldGrid?.height ?? 300) }
-        : picked
+    let tool = picked
+    if (picked.id === 'dice') {
+      if (!worldGrid) return
+      tool = { ...picked, fire: rollRandomEvent(worldGrid.width, worldGrid.height) }
+    }
     if (tool.mode === 'instant') {
       // Instant tools fire straight away; a flash shows the click landed.
       setFlashId(tool.id)

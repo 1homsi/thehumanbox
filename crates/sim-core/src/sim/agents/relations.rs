@@ -172,7 +172,7 @@ mod tests {
     fn open_ground() -> Simulation {
         let mut sim = Simulation::new(71);
         sim.organisms.truncate(4);
-        for x in 85..=115 {
+        for x in 85..=120 {
             for y in 90..=110 {
                 sim.grid.set(x, y, Tile::Grass);
             }

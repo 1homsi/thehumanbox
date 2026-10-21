@@ -169,7 +169,7 @@ fn building_damage_round_trips_through_schema_v5() {
     sim.buildings.push(building);
 
     let state = sim.to_save_state();
-    assert_eq!(state.version, 5);
+    assert_eq!(state.version, SAVE_SCHEMA_VERSION);
     let encoded = serde_json::to_string(&state).expect("serialize save state");
     let decoded: SaveState = serde_json::from_str(&encoded).expect("deserialize save state");
     let loaded = Simulation::from_save(sim.world_seed, decoded);

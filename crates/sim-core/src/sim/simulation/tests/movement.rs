@@ -174,7 +174,7 @@ fn tick_learner_with_distant_wolf(with_wolf: bool) -> Simulation {
     }
     sim.tick_count = 5_000;
 
-    let perception = learned_perception_for_first_org(&sim, true);
+    let perception = learned_perception_for_first_org(&sim, with_wolf);
     sim.organisms[0]
         .q_table
         .insert(perception, vec![(24, 5.0), (3, 0.1)]);

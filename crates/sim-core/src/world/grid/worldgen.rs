@@ -15,7 +15,7 @@
 //! 5. Features: volcanic cones, mineral veins in the foothills, beaches on
 //!    warm coasts.
 
-use super::{WorldGrid, HEIGHT, WIDTH};
+use super::{WorldGrid, OCEAN_MARGIN};
 use crate::math::DetMath;
 use crate::world::tiles::{Biome, Tile};
 use rand::rngs::StdRng;
@@ -23,7 +23,6 @@ use rand::{RngExt, SeedableRng};
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, VecDeque};
 
-const SIZE: usize = WIDTH * HEIGHT;
 const ORTHO: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 const EIGHT: [(i32, i32); 8] = [
     (-1, 0),
@@ -95,7 +94,7 @@ impl Blob {
     }
 }
 
-fn blobs_for(shape: WorldShape, rng: &mut StdRng) -> Vec<Blob> {
+fn blobs_for(shape: WorldShape, rng: &mut StdRng, legacy: bool) -> Vec<Blob> {
     let mut blobs: Vec<Blob> = Vec::new();
     let place = |rng: &mut StdRng, blobs: &mut Vec<Blob>, area: (f32, f32, f32, f32), min_gap: f32| {
         for _ in 0..40 {
@@ -110,8 +109,17 @@ fn blobs_for(shape: WorldShape, rng: &mut StdRng) -> Vec<Blob> {
     let tau = std::f32::consts::TAU;
     match shape {
         WorldShape::Continents => {
-            for _ in 0..rng.random_range(3..=5) {
-                if let Some((cx, cy)) = place(rng, &mut blobs, (0.3, 1.7, 0.25, 0.75), 0.42) {
+            for _ in 0..rng.random_range(if legacy { 3..=5 } else { 4..=7 }) {
+                if let Some((cx, cy)) = place(
+                    rng,
+                    &mut blobs,
+                    if legacy {
+                        (0.3, 1.7, 0.25, 0.75)
+                    } else {
+                        (0.18, 1.82, 0.14, 0.86)
+                    },
+                    if legacy { 0.42 } else { 0.36 },
+                ) {
                     let short = rng.random_range(0.16..0.24);
                     blobs.push(Blob {
                         cx,
@@ -135,7 +143,7 @@ fn blobs_for(shape: WorldShape, rng: &mut StdRng) -> Vec<Blob> {
                 strength: 1.35,
             });
             // Lobes make the coastline ragged instead of an oval.
-            for _ in 0..rng.random_range(2..=4) {
+            for _ in 0..rng.random_range(if legacy { 2..=4 } else { 3..=6 }) {
                 let a = rng.random_range(0.0..tau);
                 let r = rng.random_range(0.25..0.45);
                 blobs.push(Blob {
@@ -157,7 +165,7 @@ fn blobs_for(shape: WorldShape, rng: &mut StdRng) -> Vec<Blob> {
                     strength: -1.6,
                 });
             }
-            for _ in 0..rng.random_range(2..=4) {
+            for _ in 0..rng.random_range(if legacy { 2..=4 } else { 3..=6 }) {
                 if let Some((ix, iy)) = place(rng, &mut blobs, (0.15, 1.85, 0.15, 0.85), 0.3) {
                     let short = rng.random_range(0.04..0.07);
                     blobs.push(Blob {
@@ -181,8 +189,17 @@ fn blobs_for(shape: WorldShape, rng: &mut StdRng) -> Vec<Blob> {
                 angle: rng.random_range(0.0..tau),
                 strength: 1.3,
             });
-            for _ in 0..rng.random_range(9..=13) {
-                if let Some((cx, cy)) = place(rng, &mut blobs, (0.15, 1.85, 0.15, 0.85), 0.2) {
+            for _ in 0..rng.random_range(if legacy { 9..=13 } else { 16..=23 }) {
+                if let Some((cx, cy)) = place(
+                    rng,
+                    &mut blobs,
+                    if legacy {
+                        (0.15, 1.85, 0.15, 0.85)
+                    } else {
+                        (0.1, 1.9, 0.1, 0.9)
+                    },
+                    if legacy { 0.2 } else { 0.15 },
+                ) {
                     let short = rng.random_range(0.06..0.11);
                     blobs.push(Blob {
                         cx,
@@ -207,7 +224,7 @@ fn blobs_for(shape: WorldShape, rng: &mut StdRng) -> Vec<Blob> {
                     strength: 1.35,
                 });
             }
-            for _ in 0..rng.random_range(2..=4) {
+            for _ in 0..rng.random_range(if legacy { 2..=4 } else { 3..=6 }) {
                 if let Some((cx, cy)) = place(rng, &mut blobs, (0.85, 1.15, 0.2, 0.8), 0.12) {
                     blobs.push(Blob {
                         cx,
@@ -233,11 +250,20 @@ fn segment_distance(px: f32, py: f32, a: (f32, f32), b: (f32, f32)) -> (f32, f32
     ((px - cx).det_hypot(py - cy), t)
 }
 
+fn idx<const WIDTH: usize>(x: i32, y: i32) -> usize {
+    y as usize * WIDTH + x as usize
+}
+
+fn in_bounds<const WIDTH: usize, const HEIGHT: usize>(x: i32, y: i32) -> bool {
+    x >= 0 && y >= 0 && x < WIDTH as i32 && y < HEIGHT as i32
+}
+
 /// Land tiles grouped into connected landmasses.
-fn landmasses(land: &[bool]) -> Vec<Vec<usize>> {
-    let mut seen = vec![false; SIZE];
+fn landmasses<const WIDTH: usize, const HEIGHT: usize>(land: &[bool]) -> Vec<Vec<usize>> {
+    let size = WIDTH * HEIGHT;
+    let mut seen = vec![false; size];
     let mut out = Vec::new();
-    for start in 0..SIZE {
+    for start in 0..size {
         if !land[start] || seen[start] {
             continue;
         }
@@ -249,8 +275,8 @@ fn landmasses(land: &[bool]) -> Vec<Vec<usize>> {
             let (x, y) = ((i % WIDTH) as i32, (i / WIDTH) as i32);
             for (dx, dy) in ORTHO {
                 let (nx, ny) = (x + dx, y + dy);
-                if WorldGrid::in_bounds(nx, ny) {
-                    let ni = WorldGrid::idx(nx, ny);
+                if in_bounds::<WIDTH, HEIGHT>(nx, ny) {
+                    let ni = idx::<WIDTH>(nx, ny);
                     if land[ni] && !seen[ni] {
                         seen[ni] = true;
                         queue.push_back(ni);
@@ -265,8 +291,9 @@ fn landmasses(land: &[bool]) -> Vec<Vec<usize>> {
 
 /// Breadth-first distance (in tiles) from every tile to the nearest tile
 /// where `source` holds.
-fn distance_from(source: impl Fn(usize) -> bool) -> Vec<i32> {
-    let mut dist = vec![i32::MAX / 2; SIZE];
+fn distance_from<const WIDTH: usize, const HEIGHT: usize>(source: impl Fn(usize) -> bool) -> Vec<i32> {
+    let size = WIDTH * HEIGHT;
+    let mut dist = vec![i32::MAX / 2; size];
     let mut queue = VecDeque::new();
     for (i, d) in dist.iter_mut().enumerate() {
         if source(i) {
@@ -278,8 +305,8 @@ fn distance_from(source: impl Fn(usize) -> bool) -> Vec<i32> {
         let (x, y) = ((i % WIDTH) as i32, (i / WIDTH) as i32);
         for (dx, dy) in ORTHO {
             let (nx, ny) = (x + dx, y + dy);
-            if WorldGrid::in_bounds(nx, ny) {
-                let ni = WorldGrid::idx(nx, ny);
+            if in_bounds::<WIDTH, HEIGHT>(nx, ny) {
+                let ni = idx::<WIDTH>(nx, ny);
                 if dist[ni] > dist[i] + 1 {
                     dist[ni] = dist[i] + 1;
                     queue.push_back(ni);
@@ -291,18 +318,19 @@ fn distance_from(source: impl Fn(usize) -> bool) -> Vec<i32> {
 }
 
 /// Box blur, for turning streaky per-row passes into smooth fields.
-fn blur(field: &[f32], radius: i32) -> Vec<f32> {
-    let mut tmp = vec![0.0f32; SIZE];
-    let mut out = vec![0.0f32; SIZE];
+fn blur<const WIDTH: usize, const HEIGHT: usize>(field: &[f32], radius: i32) -> Vec<f32> {
+    let size = WIDTH * HEIGHT;
+    let mut tmp = vec![0.0f32; size];
+    let mut out = vec![0.0f32; size];
     for y in 0..HEIGHT as i32 {
         for x in 0..WIDTH as i32 {
             let (mut sum, mut n) = (0.0, 0.0);
             for dx in -radius..=radius {
                 let nx = (x + dx).clamp(0, WIDTH as i32 - 1);
-                sum += field[WorldGrid::idx(nx, y)];
+                sum += field[idx::<WIDTH>(nx, y)];
                 n += 1.0;
             }
-            tmp[WorldGrid::idx(x, y)] = sum / n;
+            tmp[idx::<WIDTH>(x, y)] = sum / n;
         }
     }
     for y in 0..HEIGHT as i32 {
@@ -310,24 +338,31 @@ fn blur(field: &[f32], radius: i32) -> Vec<f32> {
             let (mut sum, mut n) = (0.0, 0.0);
             for dy in -radius..=radius {
                 let ny = (y + dy).clamp(0, HEIGHT as i32 - 1);
-                sum += tmp[WorldGrid::idx(x, ny)];
+                sum += tmp[idx::<WIDTH>(x, ny)];
                 n += 1.0;
             }
-            out[WorldGrid::idx(x, y)] = sum / n;
+            out[idx::<WIDTH>(x, y)] = sum / n;
         }
     }
     out
 }
 
 impl WorldGrid {
-    pub(super) fn generate(&mut self, seed: u64) {
+    pub(super) fn generate_sized<const WIDTH: usize, const HEIGHT: usize>(
+        &mut self,
+        seed: u64,
+        legacy: bool,
+    ) {
+        let size = WIDTH * HEIGHT;
         let mut rng = StdRng::seed_from_u64(seed);
         let shape = WorldShape::pick(&mut rng);
         let aspect = WIDTH as f32 / HEIGHT as f32;
 
         // ── 1. Shape ────────────────────────────────────────────────────
-        let blobs = blobs_for(shape, &mut rng);
-        let mut raw = vec![0.0f32; SIZE];
+        let scale = if legacy { 1.0 } else { HEIGHT as f32 / 300.0 };
+        let area_scale = scale * scale;
+        let blobs = blobs_for(shape, &mut rng, legacy);
+        let mut raw = vec![0.0f32; size];
         for y in 0..HEIGHT {
             for x in 0..WIDTH {
                 let (nx, ny) = (x as f32 / WIDTH as f32, y as f32 / HEIGHT as f32);
@@ -349,11 +384,17 @@ impl WorldGrid {
                 // so coasts curve away from the edge instead of being cut by it.
                 let ragged = Self::fbm(u * 1.3 + 61.0, v * 1.3 + 17.0, seed ^ 0xed9e) * 0.05;
                 let d_edge = (nx.min(1.0 - nx) * aspect).min(ny.min(1.0 - ny)) + ragged;
-                let edge = ((d_edge - 0.04) / 0.2).clamp(0.0, 1.0);
+                let edge = if legacy {
+                    ((d_edge - 0.04) / 0.2).clamp(0.0, 1.0)
+                } else {
+                    // A short, uneven coast replaces the old map-wide ocean band.
+                    let distance = (nx.min(1.0 - nx) * WIDTH as f32).min(ny.min(1.0 - ny) * HEIGHT as f32);
+                    ((distance + ragged * 30.0 - OCEAN_MARGIN as f32) / 6.0).clamp(0.0, 1.0)
+                };
                 let edge = edge * edge * (3.0 - 2.0 * edge);
                 // Noise roughens continents but cannot raise land far from one.
                 // Fine noise frays the coastline into coves and headlands.
-                let fray = Self::fbm(u * 3.2 + 9.0, v * 3.2 + 4.0, seed ^ 0xc0a5) * 0.12;
+                let fray = Self::fbm(u * 3.2 * scale + 9.0, v * 3.2 * scale + 4.0, seed ^ 0xc0a5) * 0.12;
                 let roughness = (noise + fray) * (0.35 + lift.min(1.0) * 0.65);
                 raw[y * WIDTH + x] = (roughness + lift + carve) - (1.0 - edge) * 1.6;
             }
@@ -363,8 +404,8 @@ impl WorldGrid {
         sorted.sort_by(f32::total_cmp);
         // The share of sea is a target, but open ocean never rises into
         // land just to meet it: the floor keeps coasts on the continents.
-        let sea = sorted[(SIZE as f32 * shape.sea_share()) as usize].max(0.1);
-        let (lo, hi) = (sorted[0], sorted[SIZE - 1]);
+        let sea = sorted[(size as f32 * shape.sea_share()) as usize].max(0.1);
+        let (lo, hi) = (sorted[0], sorted[size - 1]);
         let mut land: Vec<bool> = raw.iter().map(|&r| r >= sea).collect();
 
         // Smooth the coastline, then drop islets too small to live on.
@@ -372,10 +413,10 @@ impl WorldGrid {
             let prev = land.clone();
             for y in 1..HEIGHT as i32 - 1 {
                 for x in 1..WIDTH as i32 - 1 {
-                    let i = Self::idx(x, y);
+                    let i = idx::<WIDTH>(x, y);
                     let n = EIGHT
                         .iter()
-                        .filter(|&&(dx, dy)| prev[Self::idx(x + dx, y + dy)])
+                        .filter(|&&(dx, dy)| prev[idx::<WIDTH>(x + dx, y + dy)])
                         .count();
                     if !prev[i] && n >= 6 {
                         land[i] = true;
@@ -390,7 +431,21 @@ impl WorldGrid {
         } else {
             320
         };
-        let mut masses = landmasses(&land);
+        let min_island = (min_island as f32 * area_scale) as usize;
+        if !legacy {
+            for y in 0..HEIGHT {
+                for x in 0..WIDTH {
+                    if x < OCEAN_MARGIN as usize
+                        || x >= WIDTH - OCEAN_MARGIN as usize
+                        || y < OCEAN_MARGIN as usize
+                        || y >= HEIGHT - OCEAN_MARGIN as usize
+                    {
+                        land[y * WIDTH + x] = false;
+                    }
+                }
+            }
+        }
+        let mut masses = landmasses::<WIDTH, HEIGHT>(&land);
         masses.retain(|comp| {
             if comp.len() < min_island {
                 for &i in comp {
@@ -402,9 +457,9 @@ impl WorldGrid {
             }
         });
 
-        let coast = distance_from(|i| !land[i]);
+        let coast = distance_from::<WIDTH, HEIGHT>(|i| !land[i]);
         // Lowland height, 0 at the shore rising gently inland.
-        let mut elev: Vec<f32> = (0..SIZE)
+        let mut elev: Vec<f32> = (0..size)
             .map(|i| {
                 if !land[i] {
                     return 0.0;
@@ -416,7 +471,7 @@ impl WorldGrid {
             .collect();
 
         // ── 2. Mountains ────────────────────────────────────────────────
-        let mut mountain = vec![0.0f32; SIZE];
+        let mut mountain = vec![0.0f32; size];
         for comp in &masses {
             let ranges = match comp.len() {
                 0..=1_199 => usize::from(rng.random::<f32>() < 0.4),
@@ -428,11 +483,18 @@ impl WorldGrid {
             if interior.is_empty() {
                 continue;
             }
+            let ranges = ranges
+                + if legacy {
+                    0
+                } else {
+                    (comp.len() / 50_000).saturating_sub(1)
+                };
             for _ in 0..ranges {
                 let start = interior[rng.random_range(0..interior.len())];
                 let (mut px, mut py) = ((start % WIDTH) as f32, (start / WIDTH) as f32);
                 let mut angle = rng.random_range(0.0..std::f32::consts::TAU);
-                let length = rng.random_range(50.0..((comp.len() as f32).sqrt() * 1.3).clamp(70.0, 260.0));
+                let length =
+                    rng.random_range(50.0..((comp.len() as f32).sqrt() * 1.3).clamp(70.0, 260.0 * scale));
                 let segments = rng.random_range(6..=10);
                 let step = length / segments as f32;
                 let mut points: Vec<(f32, f32, f32, f32)> =
@@ -441,7 +503,7 @@ impl WorldGrid {
                     angle += rng.random_range(-0.4..0.4);
                     let (nx, ny) = (px + angle.det_cos() * step, py + angle.det_sin() * step);
                     let (ix, iy) = (nx as i32, ny as i32);
-                    if !Self::in_bounds(ix, iy) || coast[Self::idx(ix, iy)] < 4 {
+                    if !in_bounds::<WIDTH, HEIGHT>(ix, iy) || coast[idx::<WIDTH>(ix, iy)] < 4 {
                         // Turn back inland rather than ending at the coast.
                         angle += std::f32::consts::PI * 0.6;
                         continue;
@@ -462,7 +524,7 @@ impl WorldGrid {
                     let (y0, y1) = (a.1.min(b.1) as i32 - reach, a.1.max(b.1) as i32 + reach);
                     for y in y0.max(0)..=y1.min(HEIGHT as i32 - 1) {
                         for x in x0.max(0)..=x1.min(WIDTH as i32 - 1) {
-                            let i = Self::idx(x, y);
+                            let i = idx::<WIDTH>(x, y);
                             if !land[i] {
                                 continue;
                             }
@@ -474,8 +536,10 @@ impl WorldGrid {
                             let height = a.2 + (b.2 - a.2) * t;
                             // Ridged noise breaks the range into crags and spurs.
                             let (u, v) = (x as f32 / HEIGHT as f32, y as f32 / HEIGHT as f32);
-                            let ridge =
-                                1.0 - Self::fbm(u * 4.0 + 5.1, v * 4.0 + 9.7, seed ^ 0x51ed).abs() * 2.0;
+                            let ridge = 1.0
+                                - Self::fbm(u * 4.0 * scale + 5.1, v * 4.0 * scale + 9.7, seed ^ 0x51ed)
+                                    .abs()
+                                    * 2.0;
                             let profile = (1.0 - d / width).det_powf(1.2);
                             let m = profile * height * (0.75 + ridge.clamp(0.0, 1.0) * 0.4);
                             mountain[i] = mountain[i].max(m);
@@ -484,7 +548,7 @@ impl WorldGrid {
                 }
             }
         }
-        for i in 0..SIZE {
+        for i in 0..size {
             if land[i] {
                 elev[i] = (elev[i] + mountain[i] * 0.72).min(1.0);
             }
@@ -495,8 +559,9 @@ impl WorldGrid {
             WorldShape::Archipelago => rng.random_range(2..=3),
             _ => rng.random_range(0..=2),
         };
+        let volcanoes = (volcanoes as f32 * area_scale).round() as usize;
         let mut craters: Vec<(i32, i32, i32)> = Vec::new();
-        let sites: Vec<usize> = (0..SIZE)
+        let sites: Vec<usize> = (0..size)
             .filter(|&i| land[i] && coast[i] >= 5 && coast[i] <= 40 && mountain[i] < 0.1)
             .collect();
         for _ in 0..volcanoes {
@@ -515,10 +580,10 @@ impl WorldGrid {
             for dy in -r * 2..=r * 2 {
                 for dx in -r * 2..=r * 2 {
                     let (x, y) = (cx + dx, cy + dy);
-                    if !Self::in_bounds(x, y) {
+                    if !in_bounds::<WIDTH, HEIGHT>(x, y) {
                         continue;
                     }
-                    let i = Self::idx(x, y);
+                    let i = idx::<WIDTH>(x, y);
                     let d = ((dx * dx + dy * dy) as f32).sqrt();
                     if land[i] && d < r as f32 {
                         elev[i] = elev[i].max(0.35 + (1.0 - d / r as f32) * 0.4);
@@ -529,10 +594,10 @@ impl WorldGrid {
         }
 
         // ── 3. Climate ──────────────────────────────────────────────────
-        let mut temp = vec![0.0f32; SIZE];
+        let mut temp = vec![0.0f32; size];
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
-                let i = Self::idx(x, y);
+                let i = idx::<WIDTH>(x, y);
                 let (u, v) = (x as f32 / HEIGHT as f32, y as f32 / HEIGHT as f32);
                 let wobble = Self::fbm(u * 0.8 + 3.3, v * 0.8 + 8.8, seed ^ 0x7e3) * 0.16;
                 let lat = ((v - 0.5).abs() * 2.0 + wobble).clamp(0.0, 1.0);
@@ -543,7 +608,7 @@ impl WorldGrid {
 
         // Moisture rides the prevailing wind: trade winds blow west in the
         // tropics and near the poles, westerlies blow east in between.
-        let mut carried_moist = vec![0.0f32; SIZE];
+        let mut carried_moist = vec![0.0f32; size];
         for y in 0..HEIGHT as i32 {
             let lat = ((y as f32 / HEIGHT as f32) - 0.5).abs() * 2.0;
             let eastward = (0.3..0.68).contains(&lat);
@@ -551,7 +616,7 @@ impl WorldGrid {
             let mut prev = 0.0f32;
             for k in 0..WIDTH as i32 {
                 let x = if eastward { k } else { WIDTH as i32 - 1 - k };
-                let i = Self::idx(x, y);
+                let i = idx::<WIDTH>(x, y);
                 if !land[i] {
                     carried = (carried + 0.06).min(1.0);
                     carried_moist[i] = carried;
@@ -565,9 +630,9 @@ impl WorldGrid {
                 prev = elev[i];
             }
         }
-        let carried_moist = blur(&carried_moist, 4);
-        let mut moist = vec![0.0f32; SIZE];
-        for i in 0..SIZE {
+        let carried_moist = blur::<WIDTH, HEIGHT>(&carried_moist, 4);
+        let mut moist = vec![0.0f32; size];
+        for i in 0..size {
             let (x, y) = ((i % WIDTH) as f32, (i / WIDTH) as f32);
             let (u, v) = (x / HEIGHT as f32, y / HEIGHT as f32);
             let near_sea = (1.0 - (coast[i] as f32 / 70.0).min(1.0)).det_powf(1.3);
@@ -583,12 +648,12 @@ impl WorldGrid {
         // Priority flood from the sea: every land tile learns which
         // neighbour drains it, with basins filled flat so water can leave.
         let mut filled = elev.clone();
-        let mut receiver = vec![usize::MAX; SIZE];
-        let mut order: Vec<usize> = Vec::with_capacity(SIZE);
-        let mut done = vec![false; SIZE];
+        let mut receiver = vec![usize::MAX; size];
+        let mut order: Vec<usize> = Vec::with_capacity(size);
+        let mut done = vec![false; size];
         let mut heap: BinaryHeap<Reverse<(u32, usize)>> = BinaryHeap::new();
         let key = |h: f32| (h.max(0.0) * 1_000_000.0) as u32;
-        for i in 0..SIZE {
+        for i in 0..size {
             if land[i] {
                 continue;
             }
@@ -596,7 +661,7 @@ impl WorldGrid {
             let (x, y) = ((i % WIDTH) as i32, (i / WIDTH) as i32);
             let shore = ORTHO.iter().any(|&(dx, dy)| {
                 let (nx, ny) = (x + dx, y + dy);
-                Self::in_bounds(nx, ny) && land[Self::idx(nx, ny)]
+                in_bounds::<WIDTH, HEIGHT>(nx, ny) && land[idx::<WIDTH>(nx, ny)]
             });
             if shore {
                 heap.push(Reverse((0, i)));
@@ -609,10 +674,10 @@ impl WorldGrid {
             let (x, y) = ((i % WIDTH) as i32, (i / WIDTH) as i32);
             for (dx, dy) in EIGHT {
                 let (nx, ny) = (x + dx, y + dy);
-                if !Self::in_bounds(nx, ny) {
+                if !in_bounds::<WIDTH, HEIGHT>(nx, ny) {
                     continue;
                 }
-                let ni = Self::idx(nx, ny);
+                let ni = idx::<WIDTH>(nx, ny);
                 if done[ni] {
                     continue;
                 }
@@ -622,7 +687,7 @@ impl WorldGrid {
                 heap.push(Reverse((key(filled[ni]), ni)));
             }
         }
-        let mut flow = vec![0.0f32; SIZE];
+        let mut flow = vec![0.0f32; size];
         for &i in order.iter().rev() {
             flow[i] += 0.3 + moist[i];
             if receiver[i] != usize::MAX {
@@ -631,10 +696,10 @@ impl WorldGrid {
             }
         }
         let land_tiles = land.iter().filter(|&&l| l).count() as f32;
-        let river_at = (land_tiles * 0.0026).max(50.0);
+        let river_at = (land_tiles * 0.0026 / area_scale).max(50.0);
 
-        let mut is_river = vec![false; SIZE];
-        for i in 0..SIZE {
+        let mut is_river = vec![false; size];
+        for i in 0..size {
             if !land[i] || flow[i] < river_at {
                 continue;
             }
@@ -651,15 +716,15 @@ impl WorldGrid {
                     let (rx, ry) = ((r % WIDTH) as i32, (r / WIDTH) as i32);
                     let (sx, sy) = (-(ry - y), rx - x);
                     let (wx, wy) = (x + sx, y + sy);
-                    if Self::in_bounds(wx, wy) && land[Self::idx(wx, wy)] {
-                        is_river[Self::idx(wx, wy)] = true;
+                    if in_bounds::<WIDTH, HEIGHT>(wx, wy) && land[idx::<WIDTH>(wx, wy)] {
+                        is_river[idx::<WIDTH>(wx, wy)] = true;
                     }
                 }
             }
         }
         // Basins deep enough to hold water become lakes.
-        let mut is_lake: Vec<bool> = (0..SIZE).map(|i| land[i] && filled[i] - elev[i] > 0.02).collect();
-        for comp in landmasses(&is_lake) {
+        let mut is_lake: Vec<bool> = (0..size).map(|i| land[i] && filled[i] - elev[i] > 0.02).collect();
+        for comp in landmasses::<WIDTH, HEIGHT>(&is_lake) {
             if comp.len() < 10 {
                 for i in comp {
                     is_lake[i] = false;
@@ -668,14 +733,14 @@ impl WorldGrid {
         }
 
         // ── Tiles and biomes ────────────────────────────────────────────
-        for i in 0..SIZE {
+        for i in 0..size {
             self.tiles[i] = Tile::Water as i8;
             self.biome[i] = Biome::Grassland as u8;
         }
-        let near_river = distance_from(|i| is_river[i] || is_lake[i]);
+        let near_river = distance_from::<WIDTH, HEIGHT>(|i| is_river[i] || is_lake[i]);
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
-                let i = Self::idx(x, y);
+                let i = idx::<WIDTH>(x, y);
                 if !land[i] {
                     continue;
                 }
@@ -715,8 +780,8 @@ impl WorldGrid {
                 };
                 self.biome[i] = biome as u8;
 
-                let detail = Self::fbm(u * 6.0 + 1.7, v * 6.0 + 2.9, seed ^ 0x9d1);
-                let vein = Self::fbm(u * 9.0 + 40.0, v * 9.0 + 11.0, seed ^ 0x6a5);
+                let detail = Self::fbm(u * 6.0 * scale + 1.7, v * 6.0 * scale + 2.9, seed ^ 0x9d1);
+                let vein = Self::fbm(u * 9.0 * scale + 40.0, v * 9.0 * scale + 11.0, seed ^ 0x6a5);
                 let tile = if is_lake[i] || is_river[i] {
                     Tile::Water
                 } else if e > ROCK_LINE {
@@ -726,7 +791,7 @@ impl WorldGrid {
                 } else if e > FOOTHILLS {
                     // Outcrops and veins come from noise, so they form
                     // connected clusters off the range instead of speckle.
-                    let outcrop = Self::fbm(u * 7.0 + 70.0, v * 7.0 + 3.0, seed ^ 0x0c7);
+                    let outcrop = Self::fbm(u * 7.0 * scale + 70.0, v * 7.0 * scale + 3.0, seed ^ 0x0c7);
                     if vein > 0.36 {
                         Tile::Mineral
                     } else if outcrop > 0.42 - (e - FOOTHILLS) * 1.6 {
@@ -752,7 +817,7 @@ impl WorldGrid {
         // Fold tiny rock clusters back into grass: they read as noise on
         // the map. Ranges and volcano cones are far larger.
         let rock_mask: Vec<bool> = self.tiles.iter().map(|&t| t == Tile::Rock as i8).collect();
-        for comp in landmasses(&rock_mask) {
+        for comp in landmasses::<WIDTH, HEIGHT>(&rock_mask) {
             if comp.len() < 8 {
                 for i in comp {
                     self.tiles[i] = Tile::Grass as i8;
@@ -761,7 +826,7 @@ impl WorldGrid {
         }
 
         // River mouths spread into marshy deltas.
-        for i in 0..SIZE {
+        for i in 0..size {
             if !is_river[i] || flow[i] < river_at * 4.0 || coast[i] > 3 {
                 continue;
             }
@@ -769,8 +834,12 @@ impl WorldGrid {
             for dy in -3..=3 {
                 for dx in -3..=3 {
                     let (x, y) = (cx + dx, cy + dy);
-                    if Self::in_bounds(x, y) && land[Self::idx(x, y)] && elev[Self::idx(x, y)] < 0.15 {
-                        self.biome[Self::idx(x, y)] = Biome::Wetland as u8;
+                    if in_bounds::<WIDTH, HEIGHT>(x, y)
+                        && land[idx::<WIDTH>(x, y)]
+                        && elev[idx::<WIDTH>(x, y)] < 0.15
+                        && temp[idx::<WIDTH>(x, y)] >= 7.0
+                    {
+                        self.biome[idx::<WIDTH>(x, y)] = Biome::Wetland as u8;
                     }
                 }
             }
@@ -781,10 +850,10 @@ impl WorldGrid {
             for dy in -r * 2..=r * 2 {
                 for dx in -r * 2..=r * 2 {
                     let (x, y) = (cx + dx, cy + dy);
-                    if !Self::in_bounds(x, y) || !land[Self::idx(x, y)] {
+                    if !in_bounds::<WIDTH, HEIGHT>(x, y) || !land[idx::<WIDTH>(x, y)] {
                         continue;
                     }
-                    let i = Self::idx(x, y);
+                    let i = idx::<WIDTH>(x, y);
                     let d = ((dx * dx + dy * dy) as f32).sqrt();
                     let rf = r as f32;
                     if d <= 1.5 {
@@ -800,6 +869,9 @@ impl WorldGrid {
                     }
                     if d < rf * 1.9 {
                         self.biome[i] = Biome::Volcanic as u8;
+                        if self.tiles[i] == Tile::Snow as i8 && temp[i] >= 2.0 {
+                            self.tiles[i] = Tile::Grass as i8;
+                        }
                     }
                 }
             }
@@ -808,8 +880,13 @@ impl WorldGrid {
         // Ponds anywhere still far from fresh water, so every region can drink.
         let mut ponds: Vec<(i32, i32)> = Vec::new();
         {
-            let water_dist = distance_from(|i| self.tiles[i] == Tile::Water as i8 && land[i]);
-            let zones = (10usize, 5usize);
+            let water_dist =
+                distance_from::<WIDTH, HEIGHT>(|i| self.tiles[i] == Tile::Water as i8 && land[i]);
+            let zones = if legacy {
+                (10, 5)
+            } else {
+                (WIDTH / 60, HEIGHT / 60)
+            };
             let (zw, zh) = (WIDTH / zones.0, HEIGHT / zones.1);
             for zy in 0..zones.1 {
                 for zx in 0..zones.0 {
@@ -835,8 +912,8 @@ impl WorldGrid {
                             let ragged = Self::corner_hash(x as u32, y as u32, seed ^ 0x90d) > 0.2;
                             let inside = dx * dx + dy * dy <= r * r
                                 && !(ragged && dx * dx + dy * dy >= (r - 1) * (r - 1));
-                            if inside && Self::in_bounds(x, y) && land[Self::idx(x, y)] {
-                                self.tiles[Self::idx(x, y)] = Tile::Water as i8;
+                            if inside && in_bounds::<WIDTH, HEIGHT>(x, y) && land[idx::<WIDTH>(x, y)] {
+                                self.tiles[idx::<WIDTH>(x, y)] = Tile::Water as i8;
                             }
                         }
                     }
@@ -847,8 +924,8 @@ impl WorldGrid {
 
         // Scattered stones and the first wild food.
         const WILD_FOOD_DENSITY: f32 = 0.35;
-        let near_water = distance_from(|i| self.tiles[i] == Tile::Water as i8 && land[i]);
-        for i in 0..SIZE {
+        let near_water = distance_from::<WIDTH, HEIGHT>(|i| self.tiles[i] == Tile::Water as i8 && land[i]);
+        for i in 0..size {
             if self.tiles[i] != Tile::Grass as i8 {
                 continue;
             }
@@ -865,7 +942,7 @@ impl WorldGrid {
 
         // ── Layers the simulation reads ─────────────────────────────────
         self.temperature = temp;
-        for i in 0..SIZE {
+        for i in 0..size {
             let base = Biome::from_u8(self.biome[i]).base_fertility();
             let river = if land[i] && near_water[i] <= 4 { 0.15 } else { 0.0 };
             self.fertility[i] = (base + river).min(1.0);
@@ -875,7 +952,7 @@ impl WorldGrid {
                 ((raw[i] - lo) / (sea - lo).max(1e-5)).clamp(0.0, 1.0) * 0.3
             };
         }
-        let mut pools: Vec<(i32, i32)> = landmasses(&is_lake)
+        let mut pools: Vec<(i32, i32)> = landmasses::<WIDTH, HEIGHT>(&is_lake)
             .iter()
             .map(|comp| {
                 let (sx, sy) = comp
@@ -886,7 +963,7 @@ impl WorldGrid {
             .collect();
         pools.extend(ponds);
         pools.extend(
-            (0..SIZE)
+            (0..size)
                 .filter(|&i| is_river[i])
                 .step_by(40)
                 .map(|i| ((i % WIDTH) as i32, (i / WIDTH) as i32)),
@@ -899,10 +976,10 @@ impl WorldGrid {
 
         // Sea depth: distance from shore blended with how far the seabed
         // sits below sea level, so shelves and trenches read smoothly.
-        let shore = distance_from(|i| self.tiles[i] != Tile::Water as i8);
+        let shore = distance_from::<WIDTH, HEIGHT>(|i| self.tiles[i] != Tile::Water as i8);
         // Blur the grid distance so shelves read as rounded, not diamonds.
-        let shore = blur(&shore.iter().map(|&d| d.min(60) as f32).collect::<Vec<_>>(), 4);
-        for i in 0..SIZE {
+        let shore = blur::<WIDTH, HEIGHT>(&shore.iter().map(|&d| d.min(60) as f32).collect::<Vec<_>>(), 4);
+        for i in 0..size {
             self.depth[i] = if self.tiles[i] == Tile::Water as i8 {
                 if land[i] {
                     // Rivers, lakes and ponds stay shallow.
@@ -921,6 +998,7 @@ impl WorldGrid {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::world::grid::{HEIGHT, WIDTH};
 
     #[test]
     fn worlds_have_mountains_rivers_and_lakes() {
@@ -929,7 +1007,7 @@ mod tests {
             let count = |t: Tile| grid.tiles.iter().filter(|&&v| v == t as i8).count();
             let land = grid.tiles.iter().filter(|&&v| v != Tile::Water as i8).count();
             let rock = count(Tile::Rock);
-            let peaks = (0..SIZE).filter(|&i| grid.elevation[i] > 0.8).count();
+            let peaks = (0..WIDTH * HEIGHT).filter(|&i| grid.elevation[i] > 0.8).count();
             assert!(
                 rock * 100 > land,
                 "seed {seed}: only {rock} rock tiles on {land} land"
@@ -941,6 +1019,46 @@ mod tests {
                 "seed {seed}: mountains cover too much land ({rock} of {land})"
             );
         }
+    }
+
+    #[test]
+    fn every_shape_keeps_a_thin_ocean_margin() {
+        let mut seen = Vec::new();
+        for seed in 0..100 {
+            let shape = WorldShape::pick(&mut StdRng::seed_from_u64(seed));
+            if seen.contains(&shape) {
+                continue;
+            }
+            seen.push(shape);
+            let grid = WorldGrid::new(seed);
+            let mut land = 0;
+            for y in 0..HEIGHT as i32 {
+                for x in 0..WIDTH as i32 {
+                    if grid.get(x, y) == Tile::Water {
+                        continue;
+                    }
+                    land += 1;
+                    assert!(
+                        !WorldGrid::is_edge_border(x, y),
+                        "{shape:?} seed {seed} at {x},{y}"
+                    );
+                }
+            }
+            assert!(
+                land > WIDTH * HEIGHT / 6,
+                "{shape:?} seed {seed}: {land} land tiles"
+            );
+            assert!(
+                land < WIDTH * HEIGHT * 2 / 3,
+                "{shape:?} seed {seed}: {land} land tiles"
+            );
+            eprintln!("{shape:?}: seed {seed}, {land} land tiles");
+            if seen.len() == 5 {
+                break;
+            }
+        }
+        assert_eq!(seen.len(), 5);
+        assert_eq!(OCEAN_MARGIN, 4);
     }
 
     #[test]

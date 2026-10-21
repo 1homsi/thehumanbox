@@ -23,8 +23,9 @@ fn grassy_patch(sim: &mut Simulation) {
 #[test]
 fn a_release_without_a_count_still_releases_one_animal() {
     let mut sim = Simulation::new(1);
+    grassy_patch(&mut sim);
     let before = sim.animals.len();
-    assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":80.0,"y":80.0,"kind":"deer"}"#));
+    assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":150.0,"y":150.0,"kind":"deer"}"#));
     assert_eq!(sim.animals.len(), before + 1);
 }
 
@@ -93,10 +94,11 @@ fn wolves_are_released_in_the_forest_when_there_is_forest_nearby() {
 #[test]
 fn releases_respect_the_animal_cap() {
     let mut sim = Simulation::new(1);
+    grassy_patch(&mut sim);
     while sim.animals.iter().filter(|a| a.alive).count() < 1100 {
-        assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":80.0,"y":80.0,"kind":"deer"}"#));
+        assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":150.0,"y":150.0,"kind":"deer"}"#));
     }
-    assert!(!sim.apply_command_json(r#"{"cmd":"spawn_animal","x":80.0,"y":80.0,"kind":"deer","count":5}"#));
+    assert!(!sim.apply_command_json(r#"{"cmd":"spawn_animal","x":150.0,"y":150.0,"kind":"deer","count":5}"#));
 }
 
 #[test]

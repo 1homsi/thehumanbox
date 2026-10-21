@@ -631,6 +631,11 @@ fn a_project_no_builder_can_reach_moves_to_where_the_tribe_lives() {
     let mut sim = Simulation::new(0x57A1);
     sim.buildings.clear();
     sim.organisms.clear();
+    for y in 45..=75 {
+        for x in 45..=75 {
+            sim.grid.set(x, y, crate::world::tiles::Tile::Grass);
+        }
+    }
     let mut builder = test_org("builder", "Builder", "lineage-a", 60.0, 60.0);
     builder.age = 10_000;
     sim.organisms.push(builder);

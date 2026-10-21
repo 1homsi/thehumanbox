@@ -1,11 +1,26 @@
 use super::*;
 
 impl Simulation {
-    pub fn from_save(seed: u64, state: SaveState) -> Self {
+    pub fn from_save(seed: u64, mut state: SaveState) -> Self {
+        if state.grid.tiles.len() == resize::OLD_WIDTH * resize::OLD_HEIGHT {
+            resize::centre_old_world(&mut state, seed);
+        }
         let expected = WIDTH * HEIGHT;
         let mut grid = WorldGrid::new(seed);
         if state.grid.tiles.len() == expected {
             grid.tiles = state.grid.tiles;
+            if state.grid.elevation.len() == expected {
+                grid.elevation = state.grid.elevation;
+            }
+            if state.grid.temperature.len() == expected {
+                grid.temperature = state.grid.temperature;
+            }
+            if let Some(volcanoes) = state.grid.volcanoes {
+                grid.volcanoes = volcanoes;
+            }
+            if let Some(pools) = state.grid.pool_centers {
+                grid.pool_centers = pools;
+            }
             if state.grid.depth.len() == expected {
                 grid.depth = state.grid.depth;
             }
@@ -390,9 +405,9 @@ impl Simulation {
 
     pub fn relocate_edge_squatters(&mut self) {
         use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
-        let interior_w_min = (WIDTH as f32 * 0.05).ceil() + 1.0;
+        let interior_w_min = crate::world::grid::OCEAN_MARGIN as f32 + 1.0;
         let interior_w_max = WIDTH as f32 - interior_w_min - 1.0;
-        let interior_h_min = (HEIGHT as f32 * 0.05).ceil() + 1.0;
+        let interior_h_min = crate::world::grid::OCEAN_MARGIN as f32 + 1.0;
         let interior_h_max = HEIGHT as f32 - interior_h_min - 1.0;
 
         for org in self.organisms.iter_mut() {
