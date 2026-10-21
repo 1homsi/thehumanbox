@@ -60,9 +60,10 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          # This file decides how every suite runs; the other workflows and
-          # Dependabot's config do not touch them.
-          ci=(.github/workflows/pipeline.yml Makefile scripts/source-key.sh)
+          # This file decides how every suite runs; the other workflows,
+          # Dependabot's config and the Makefile (CI never runs make) do not
+          # touch them.
+          ci=(.github/workflows/pipeline.yml scripts/source-key.sh)
           sim=("${ci[@]}" .config apps/server crates Cargo.toml Cargo.lock rustfmt.toml clippy.toml
             scripts/perf-gate.sh scripts/determinism-fingerprint.json)
           client=("${ci[@]}" apps/web crates/sim-core Cargo.toml Cargo.lock .node-version

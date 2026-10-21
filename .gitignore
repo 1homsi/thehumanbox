@@ -2,6 +2,10 @@
 /target/
 apps/server/*.save
 apps/server/.env
+# Vite reads .env and .env.<mode> too, not only the .local files ignored below.
+apps/web/.env
+apps/web/.env.*
+!apps/web/.env.example
 
 # Node
 apps/web/node_modules/

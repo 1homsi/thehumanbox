@@ -16,8 +16,7 @@ CARGO_RELEASE := cargo
         wipe wipe-archive logs profile metrics snapshot \
         install install-client install-desktop install-sim \
         clean clean-sim clean-client clean-desktop perf-gate \
-        ci-status ci-watch ci-log redeploy ec2-status worlds-list \
-        commit-as-1homsi tag-list release-latest
+        ci-status ci-watch ci-log redeploy worlds-list tag-list release-latest
 
 help: ## Show this help (default)
 	@printf "\nThe Human Box — make targets\n\n"
