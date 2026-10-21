@@ -12,7 +12,13 @@ export interface UpdateCheckResult {
   message?: string
 }
 
+// A release ships on every merge, so check often; returning to the window
+// checks too, unless a check ran a few minutes ago.
+const CHECK_INTERVAL_MS = 30 * 60 * 1000
+const FOCUS_CHECK_MIN_GAP_MS = 10 * 60 * 1000
+
 let initialized = false
+let lastCheckAt = 0
 let latestStatus: UpdateCheckResult = { status: 'up-to-date' }
 let downloadedFile: string | null = null
 let promptedVersion: string | null = null
@@ -124,13 +130,16 @@ export function initUpdater(getWindow: () => BrowserWindow | null): void {
 
   void checkForUpdatesNow()
 
-  setInterval(
-    () => {
-      if (!loadSettings().autoUpdate) return
-      void checkForUpdatesNow().catch(() => {})
-    },
-    6 * 60 * 60 * 1000,
-  )
+  setInterval(() => {
+    if (!loadSettings().autoUpdate) return
+    void checkForUpdatesNow().catch(() => {})
+  }, CHECK_INTERVAL_MS)
+
+  app.on('browser-window-focus', () => {
+    if (Date.now() - lastCheckAt < FOCUS_CHECK_MIN_GAP_MS) return
+    if (!loadSettings().autoUpdate) return
+    void checkForUpdatesNow().catch(() => {})
+  })
 }
 
 export async function checkForUpdatesNow(): Promise<UpdateCheckResult> {
@@ -142,6 +151,7 @@ export async function checkForUpdatesNow(): Promise<UpdateCheckResult> {
     return latestStatus
   }
 
+  lastCheckAt = Date.now()
   // A downloaded update stays held during a check; resetting it would hide the install action.
   if (latestStatus.status !== 'downloaded') latestStatus = { status: 'checking' }
   try {

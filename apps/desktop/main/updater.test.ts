@@ -12,12 +12,19 @@ type FakeUpdater = EventEmitter & {
 
 // Loads the compiled updater in its own context, so each test starts with a
 // fresh module state (the `initialized` flag is per context).
-function harness(onCheck: (updater: FakeUpdater) => Promise<{ updateInfo: { version: string } } | null> = async () => null) {
+function harness(
+  onCheck: (updater: FakeUpdater) => Promise<{ updateInfo: { version: string } } | null> = async () => null,
+  { autoUpdate = false, now = (): number => 0 }: { autoUpdate?: boolean; now?: () => number } = {},
+) {
   const autoUpdater = new EventEmitter() as FakeUpdater
   autoUpdater.checkForUpdates = () => onCheck(autoUpdater)
   autoUpdater.quitAndInstall = () => {}
   const prompts: string[] = []
-  const app = { isPackaged: true, getPath: () => '/tmp/thehumanbox-test', quit() {} }
+  const app = Object.assign(new EventEmitter(), {
+    isPackaged: true,
+    getPath: () => '/tmp/thehumanbox-test',
+    quit() {},
+  })
   const dialog = {
     showMessageBox: async (options: { message: string }) => {
       prompts.push(options.message)
@@ -33,10 +40,11 @@ function harness(onCheck: (updater: FakeUpdater) => Promise<{ updateInfo: { vers
     clearTimeout,
     setImmediate,
     setInterval: () => 0,
+    Date: { now },
     require: (id: string) => {
       if (id === 'electron') return { app, BrowserWindow: class {}, dialog }
       if (id === 'electron-updater') return { autoUpdater }
-      if (id === './settings') return { loadSettings: () => ({ autoUpdate: false }) }
+      if (id === './settings') return { loadSettings: () => ({ autoUpdate }) }
       if (id === './mac-unsigned-install') {
         return {
           appBundleFromExe: () => null,
@@ -49,7 +57,7 @@ function harness(onCheck: (updater: FakeUpdater) => Promise<{ updateInfo: { vers
   })
   vm.runInContext(readFileSync(path.join(__dirname, 'updater.js'), 'utf8'), context)
   vm.runInContext('initUpdater(() => null)', context)
-  return { context, autoUpdater, prompts }
+  return { context, app, autoUpdater, prompts }
 }
 
 const flush = () => new Promise((resolve) => setImmediate(resolve))
@@ -95,4 +103,23 @@ test('a failed check reports its error but keeps a held download installable', a
   assert.equal(failed.status, 'error')
   const install = vm.runInContext('installDownloadedUpdate()', context)
   assert.equal(install.status, 'downloaded')
+})
+
+test('focusing the window checks again once the last check is ten minutes old', async () => {
+  let checks = 0
+  let clock = 0
+  const { app } = harness(
+    async () => {
+      checks++
+      return null
+    },
+    { autoUpdate: true, now: () => clock },
+  )
+  assert.equal(checks, 1, 'checks at startup')
+  clock = 9 * 60 * 1000
+  app.emit('browser-window-focus')
+  assert.equal(checks, 1, 'a recent check is not repeated')
+  clock = 10 * 60 * 1000
+  app.emit('browser-window-focus')
+  assert.equal(checks, 2)
 })

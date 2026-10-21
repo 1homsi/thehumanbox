@@ -40,7 +40,7 @@ CI builds all three platforms in matrix mode and uploads each artifact to the Gi
 
 ## Auto-update
 
-The packaged app uses `electron-updater` pointed at this repo's GitHub Releases. On boot it checks for a newer version; if one exists, it downloads quietly in the background and prompts the user to restart-and-update. Users can disable this in settings.
+The packaged app uses `electron-updater` pointed at this repo's GitHub Releases. It checks for a newer version on boot, every 30 minutes, and when you return to the window (at most once per 10 minutes); if one exists, it downloads quietly in the background and prompts the user to restart-and-update. Users can disable this in settings.
 
 ## Settings
 
