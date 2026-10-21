@@ -21,18 +21,14 @@ Trade marks use the shared palette and native integer pixels, centred on the fiv
 
 ### Other atlases
 
-- `fauna-v2.png`: original generated animal artwork. See `fauna-layout.ts` for measured source rectangles. All seven supported animal species are covered, with two bird appearances.
-- `vegetation-v2.png`: original generated vegetation artwork: oak, pine, birch, autumn red and gold trees, bare tree, cactus, and shrub. The tree renderer chooses the seasonal and biome variant.
+- `fauna.png`: native 1:1 pixel-art animal atlas (`64 × 32`, eight `16 × 16` cells). See `fauna-layout.ts` for exact source rectangles and pixel grids: rabbit (`6 × 6`), deer (`12 × 12`), wild boar (`10 × 8`), small brown bird (`5 × 4`), wolf (`12 × 9`), dog (`10 × 8`), river fish (`6 × 5`), and golden bird (`5 × 4`).
+- Trees, the shrub and the cactus have no image file: `vegetation-sprites.ts` holds them as pixel grids and draws the atlas from them once at startup, so the art and its crop rectangles cannot drift apart. The crowns of the oaks, birch and pines were generated (overlapping leaf clumps lit from the top-left, the clump behind darkened where the one in front overlaps it, the underside in shade, then a warm `INK` outline) and pasted in as grids; edit the grids directly. The bare tree and the cactus are drawn by hand. The tree renderer chooses the seasonal and biome variant.
 - `tiny-town.png` and `tiny-creatures.png`: existing fallback atlases; their original license files remain alongside them.
 
-## Generation prompts
+## Native pixel-art rules
 
-Both new PNG atlases use built-in image generation. Original PNGs are preserved; crop rectangles and scaling are applied only by the renderer.
-
-Animals: transparent 4×2 atlas, rabbit, deer, wild boar, small brown bird; silver-gray wolf, tan dog with red collar, blue river fish, golden bird. Chunky pixel-art RPG sprites, all facing right, dark outlines, warm natural colors, upper-left highlights, isolated complete silhouettes. No text, grid lines, scenery, shadows, glow or interface.
-
-Vegetation: transparent 4×2 atlas, broad green oak, dark evergreen pine, light-leaf white-trunk birch, autumn red oak; autumn golden oak, bare winter tree, desert cactus, low leafy shrub. Chunky pixel-art RPG sprites, dark outlines, three-tone leaf clusters, upper-left highlights, warm trunks, isolated complete crowns and roots. No text, grid lines, terrain, ground discs or shadows.
+The vegetation grids and `fauna.png` are authored directly at `1` world pixel = `1 / TILE` of a tile (`TILE = 8`) using the shared `art-palette.ts` colours (`INK` outer outlines, `FOREST` and `GRASS` greens, `SAND` and `ROCK` hides, `FRESH_WATER` fish tones, and warm bark/autumn tones). Light comes from the top-left, with 2–3 flat tones per material and no gradients.
 
 ## Rendering rules
 
-Keep atlas bounds and TypeScript layout constants synchronized. Preserve aspect ratios and feet anchors. Nearest-neighbor sampling is deliberate. Facing follows horizontal movement and persists at rest. Characters and animals sort by ground depth without mutating simulation arrays. Public asset URLs must honor Vite's base URL so the Electron build can load them from disk.
+Keep atlas bounds and TypeScript layout constants synchronized. Draw sprites 1:1 at native pixel size with `imageSmoothingEnabled = false` and nearest-neighbor sampling, anchored at the feet (`y + size * 0.88` for vegetation, `cy + size * 0.42` for land animals). Facing follows horizontal movement and persists at rest. Characters and animals sort by ground depth without mutating simulation arrays. Public asset URLs must honor Vite's base URL so the Electron build can load them from disk.

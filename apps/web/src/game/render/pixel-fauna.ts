@@ -1,602 +1,567 @@
+import {
+  BIOME_TONES,
+  FOREST,
+  FRESH_WATER,
+  GRASS,
+  INK,
+  OCEAN,
+  ROCK,
+  SAND,
+  SNOW,
+  hex,
+  type Rgb,
+} from './art-palette'
+
+// Local earthy hide, feather, and creature accent colours beyond art-palette.ts.
+const HIDE_LIT: Rgb = [142, 102, 66]
+const HIDE_MID: Rgb = [110, 77, 48]
+const HIDE_SHADE: Rgb = [78, 54, 34]
+const FOX_LIT: Rgb = [196, 104, 62]
+const FOX_MID: Rgb = [168, 74, 44]
+const GOLD_LIT: Rgb = [214, 174, 78]
+const GOLD_MID: Rgb = [184, 138, 54]
+const GOLD_SHADE: Rgb = [138, 96, 36]
+const CRIMSON_MID: Rgb = [176, 66, 52]
+const CRIMSON_SHADE: Rgb = [118, 48, 30]
+const SNOUT_PINK: Rgb = [206, 148, 136]
+
 /**
- * Hand-drawn pixel sprites for animals the fauna atlas does not cover. Each
- * kind has two frames whose legs swap, so walking animals step instead of
- * sliding. Sprites face right; `flip` mirrors them.
+ * Hand-drawn 1:1 native pixel sprites for animals and monsters outside the main
+ * 8-cell fauna atlas. Every sprite uses `INK` (`o`) for its outer outline, a
+ * top-left light source, and 2–3 earthy tones per material. Sprites face right;
+ * `flip` mirrors them.
  */
 const PALETTE: Record<string, string> = {
-  B: '#6b4a2e', // bear fur
-  D: '#4a3220', // dark fur, legs
-  S: '#c9a77a', // muzzle
-  o: '#1a120b', // eyes, nose, hooves
-  w: '#f1ece0', // wool, white hide
-  W: '#d6cfbf', // wool shade
-  k: '#3b3430', // dark face, legs, spots
-  p: '#e8a0a0', // pink snout
-  h: '#8a5a34', // chestnut coat
-  m: '#3a2616', // mane, tail
-  r: '#d8463a', // comb
-  y: '#e9b949', // beak, feet
-  g: '#86a86a', // zombie skin
-  t: '#5b6f8f', // zombie rags
-  R: '#b8332a', // demon
-  l: '#ffd34d', // glowing eyes, ufo lights
-  F: '#ff8a2a', // demon flames
-  d: '#3f8f5a', // dragon scales
-  e: '#d2d27a', // dragon belly
-  a: '#a6e38f', // alien skin
-  A: '#5d9a52', // alien suit
-  q: '#aab4bf', // ufo hull
-  c: '#8fd8ff', // ufo dome
-  f: '#c96a2c', // fox red
-  n: '#8f8a84', // cat grey
-  N: '#4f4a46', // cat stripes, feet
-  x: '#c9a46a', // camel tan
-  X: '#8a6a3e', // camel shade, legs
-  v: '#6aa84f', // frog green
-  V: '#3f7a32', // frog shade
-  u: '#4b6e8f', // whale blue
-  z: '#dfe7ec', // whale belly
-  Y: '#f2d45c', // duck yellow
-  Q: '#e0803a', // duck bill, feet
-  i: '#f5c93d', // bee gold
-  I: '#2a2420', // bee stripes
-  j: '#dfe9f2', // bee wings
-  O: '#8a6a4a', // owl brown
-  L: '#eadcc0', // owl face and belly
-  E: '#ffc93c', // owl eyes
-  G: '#4a3a2a', // owl wing shade
-  Z: '#4a3626', // eagle brown
-  H: '#f6f2e6', // eagle head
-  K: '#7a9a3a', // snake olive
-  J: '#d8c35a', // snake band
-  C: '#5d6b3c', // crocodile green
-  P: '#cfc38f', // crocodile belly
-  U: '#2f3a22', // crocodile ridges
-  b: '#9c7a52',
-  s: '#e6dcc6',
-  1: '#8f8f8a',
-  2: '#5e5e5a',
-  3: '#c9963f',
-  4: '#6b4418',
-  M: '#7b5234', // monkey fur
-  T: '#e7c79a', // monkey face
+  o: hex(INK), // warm dark outline, eyes, hooves
+  B: hex(HIDE_LIT), // warm brown lit
+  b: hex(HIDE_MID), // warm brown mid
+  D: hex(HIDE_SHADE), // warm brown shade
+  S: hex(SAND.light), // light muzzle / cream
+  s: hex(SAND.wet), // shaded cream
+  w: hex(SNOW.lit), // wool / white lit
+  W: hex(SNOW.shade), // wool / white shade
+  k: hex(ROCK.deep), // dark spots / face
+  p: hex(SNOUT_PINK), // snout
+  h: hex(HIDE_LIT), // chestnut lit
+  m: hex(HIDE_SHADE), // mane, tail
+  r: hex(CRIMSON_MID), // comb / demon mid
+  R: hex(CRIMSON_SHADE), // demon shade
+  y: hex(GOLD_LIT), // beak / gold lit
+  Y: hex(GOLD_MID), // duck / gold mid
+  Q: hex(FOX_LIT), // orange bill / flame
+  f: hex(FOX_LIT), // fox lit
+  F: hex(FOX_MID), // fox mid
+  n: hex(ROCK.lit), // grey lit
+  N: hex(ROCK.mid), // grey mid
+  2: hex(ROCK.shade), // grey shade
+  x: hex(SAND.desert), // camel / tan lit
+  X: hex(SAND.dune), // camel / tan shade
+  v: hex(GRASS.light), // frog / alien lit
+  V: hex(FOREST.mid), // frog / dragon mid
+  d: hex(FOREST.dark), // dragon / croc shade
+  e: hex(SAND.light), // underbelly
+  u: hex(OCEAN.shelf), // whale lit
+  U: hex(OCEAN.open), // whale shade
+  z: hex(SNOW.lit), // whale belly
+  i: hex(GOLD_LIT), // bee gold
+  I: hex(INK), // bee stripe
+  j: hex(SNOW.shade), // bee wing
+  O: hex(HIDE_MID), // owl mid
+  L: hex(SAND.light), // owl face
+  E: hex(GOLD_LIT), // glowing eye
+  G: hex(HIDE_SHADE), // owl shade
+  Z: hex(HIDE_MID), // eagle mid
+  H: hex(SNOW.lit), // eagle head
+  K: hex(GRASS.lush), // snake lit
+  J: hex(SAND.desert), // snake band
+  C: hex(FOREST.mid), // crocodile mid
+  P: hex(SAND.wet), // crocodile belly
+  1: hex(ROCK.lit), // elephant lit
+  3: hex(GOLD_MID), // lion mid
+  4: hex(GOLD_SHADE), // lion mane
+  M: hex(HIDE_LIT), // monkey lit
+  T: hex(SAND.light), // monkey face
+  g: hex(BIOME_TONES.wetland), // zombie skin
+  t: hex(FRESH_WATER.deep), // zombie rags
+  l: hex(GOLD_LIT), // ufo / demon lights
+  a: hex(GRASS.light), // alien lit
+  A: hex(FOREST.mid), // alien suit
+  q: hex(ROCK.lit), // ufo hull lit
+  c: hex(FRESH_WATER.edge), // ufo dome
 }
 
-/** Poses of a kind: the walk frames, then (for bears) a lying pose for sleeping. */
+/** Poses of a kind: the walk frames, then (for bears/grazers) a resting pose. */
 type Frames = readonly (readonly string[])[]
 
 const SPRITES: Record<string, Frames> = {
   bear: [
     [
-      '.........DD.',
-      '..BBBBBBBBD.',
-      '.BBBBBBBBBSo',
-      '.BBBBBBBBBSS',
-      '.BBBBBBBBBB.',
-      '..BBBBBBBB..',
-      '..DD.DD.DD..',
-      '..DD....DD..',
+      '..ooooooo...',
+      '.oBBBBbbbo..',
+      'oBBBBbbbbSo.',
+      'oBBBbbbbbbSo',
+      'oBBbbbbDDDbo',
+      '.obbbbDDDDo.',
+      '.oDo.oDo.oDo',
+      '.ooo.ooo.ooo',
     ],
     [
-      '.........DD.',
-      '..BBBBBBBBD.',
-      '.BBBBBBBBBSo',
-      '.BBBBBBBBBSS',
-      '.BBBBBBBBBB.',
-      '..BBBBBBBB..',
-      '...DD..DD...',
-      '...DD..DD...',
+      '..ooooooo...',
+      '.oBBBBbbbo..',
+      'oBBBBbbbbSo.',
+      'oBBBbbbbbbSo',
+      'oBBbbbbDDDbo',
+      '.obbbbDDDDo.',
+      '..oDo..oDo..',
+      '..ooo..ooo..',
     ],
-    ['.........DD.', '..BBBBBBBBD.', '.BBBBBBBBBSk', 'BBBBBBBBBBBS', 'BBBBBBBBBBB.', 'DD.D.DD.D.DD'],
+    [
+      '............',
+      '............',
+      '..ooooooo...',
+      '.oBBBBbbbo..',
+      'oBBBBbbbbSo.',
+      'oBBbbbbDDSSo',
+      'oDDDDDDDDDDo',
+      '.oooooooooo.',
+    ],
   ],
   sheep: [
     [
-      '..WwwWwW....',
-      '.wwwwwwwwkk.',
-      'Wwwwwwwwwkok',
-      'wwwwwwwwwkk.',
-      '.wWwwwWww...',
-      '..k..k.k....',
-      '..k..k.k....',
+      '..ooooooo...',
+      '.owwwwwWwo..',
+      'owwwwwWWwkko',
+      'owwwwWWWWkko',
+      '.oWWWWWWWwo.',
+      '..oko..oko..',
+      '..ooo..ooo..',
     ],
     [
-      '..WwwWwW....',
-      '.wwwwwwwwkk.',
-      'Wwwwwwwwwkok',
-      'wwwwwwwwwkk.',
-      '.wWwwwWww...',
-      '...k.k..k...',
-      '...k.k..k...',
+      '..ooooooo...',
+      '.owwwwwWwo..',
+      'owwwwwWWwkko',
+      'owwwwWWWWkko',
+      '.oWWWWWWWwo.',
+      '.oko....oko.',
+      '.ooo....ooo.',
     ],
-    // Grazing: the head is down by the grass.
     [
-      '..WwwWwW....',
-      '.wwwwwwwww..',
-      'Wwwwwwwwww..',
-      'wwwwwwwwwkk.',
-      '.wWwwwWwwkok',
-      '..k..k.k.k..',
-      '..k..k.k....',
+      '..ooooooo...',
+      '.owwwwwWwo..',
+      'owwwwwWWWwo.',
+      'owwwwWWWWkko',
+      '.oWWWWWWwkko',
+      '..oko..okko.',
+      '..ooo..oooo.',
     ],
   ],
   cow: [
     [
-      '.........o.o',
-      '.wwwwwwwwkkk',
-      'wkkwwwwkwkok',
-      'wkkwwwwwwppp',
-      'wwwwwkkwww..',
-      '.wwwwkkwww..',
-      '.k..k..k.k..',
-      '.o..o..o.o..',
+      '........o.o.',
+      '.oooooooooo.',
+      'owwwkkwwkkko',
+      'owwkkwwWWkpo',
+      'owwWWWWWWppo',
+      '.oWWWWWWWwo.',
+      '.oko.oko.oko',
+      '.ooo.ooo.ooo',
     ],
     [
-      '.........o.o',
-      '.wwwwwwwwkkk',
-      'wkkwwwwkwkok',
-      'wkkwwwwwwppp',
-      'wwwwwkkwww..',
-      '.wwwwkkwww..',
-      '..k.k...kk..',
-      '..o.o...oo..',
+      '........o.o.',
+      '.oooooooooo.',
+      'owwwkkwwkkko',
+      'owwkkwwWWkpo',
+      'owwWWWWWWppo',
+      '.oWWWWWWWwo.',
+      '..oko...oko.',
+      '..ooo...ooo.',
     ],
-    // Grazing: the head is down by the grass.
     [
       '............',
-      '.wwwwwwwww..',
-      'wkkwwwwkwww.',
-      'wkkwwwwwwww.',
-      'wwwwwkkwwkkk',
-      '.wwwwkkwwkok',
-      '.k..k..k.kpp',
-      '.o..o..o.o..',
+      '.ooooooooo..',
+      'owwwkkwwWwo.',
+      'owwkkwwWWWoo',
+      'owwWWWWWWkko',
+      '.oWWWWWWwkpo',
+      '.oko.oko.ooo',
+      '.ooo.ooo....',
     ],
   ],
   horse: [
     [
-      '.........hh.',
-      '........mhhh',
-      '.......mhhoh',
-      'm.hhhhhhhh..',
-      'mhhhhhhhhh..',
-      '.hhhhhhhh...',
-      '.h.h...h.h..',
-      '.h.h...h.h..',
-      '.o.o...o.o..',
+      '........ooo.',
+      '.......omhho',
+      '......omhhbo',
+      '.ooooohhhbo.',
+      'omhhhhbbbb..',
+      'omhhbbbbDo..',
+      '.obDo..obDo.',
+      '.obDo..obDo.',
+      '.oooo..oooo.',
     ],
     [
-      '.........hh.',
-      '........mhhh',
-      '.......mhhoh',
-      'm.hhhhhhhh..',
-      'mhhhhhhhhh..',
-      '.hhhhhhhh...',
-      '..hh...hh...',
-      '..hh...hh...',
-      '..oo...oo...',
+      '........ooo.',
+      '.......omhho',
+      '......omhhbo',
+      '.ooooohhhbo.',
+      'omhhhhbbbb..',
+      'omhhbbbbDo..',
+      '..obDo.obDo.',
+      '..obDo.obDo.',
+      '..oooo.oooo.',
     ],
   ],
   chicken: [
-    ['.....rr.', '....www.', '....wowy', '.wwwwww.', 'wwwwwww.', '.wwwww..', '..y.y...'],
-    ['.....rr.', '....www.', '....wowy', '.wwwwww.', 'wwwwwww.', '.wwwww..', '...yy...'],
+    ['....ooo.', '...orwo.', '..owwwoo', '.owwwWyo', 'owwwWWo.', '.oWWWoo.', '..oyo...', '..ooo...'],
+    ['....ooo.', '...orwo.', '..owwwoo', '.owwwWyo', 'owwwWWo.', '.oWWWoo.', '..o.yo..', '..o.oo..'],
   ],
   fox: [
-    [
-      '.........f.f',
-      '........ffff',
-      'wwffffffffoo',
-      'wwffffffffff',
-      '.ffffffffff.',
-      '..ffffffff..',
-      '..f.f..f.f..',
-      '..k.k..k.k..',
-    ],
-    [
-      '.........f.f',
-      '........ffff',
-      'wwffffffffoo',
-      'wwffffffffff',
-      '.ffffffffff.',
-      '..ffffffff..',
-      '.f..f..f..f.',
-      '.k..k..k..k.',
-    ],
+    ['.......ooo.', '.oo...offfo', 'owfo.offFoo', 'owffffFFDFo', '.offFFFDDDo', '..oFDo.oFDo', '..oooo.oooo'],
+    ['.......ooo.', '.oo...offfo', 'owfo.offFoo', 'owffffFFDFo', '.offFFFDDDo', '.oFDo...oDo', '.oooo...ooo'],
   ],
   cat: [
-    [
-      '........n.n.',
-      '.......nnnn.',
-      'n......nonnn',
-      'nn.nnnnnnnnn',
-      '.nNnnNnnnnn.',
-      '..nnnnnnnn..',
-      '..n.n..n.n..',
-      '..N.N..N.N..',
-    ],
-    [
-      '........n.n.',
-      '.......nnnn.',
-      'n......nonnn',
-      'nn.nnnnnnnnn',
-      '.nNnnNnnnnn.',
-      '..nnnnnnnn..',
-      '.n..n..n..n.',
-      '.N..N..N..N.',
-    ],
+    ['......ooo.', 'oo...onnno', 'ono..onNoo', '.onnnnNNNo', '.onNN222o.', '..oNo..o2o', '..ooo..ooo'],
+    ['......ooo.', 'oo...onnno', 'ono..onNoo', '.onnnnNNNo', '.onNN222o.', '.oNo...o2o', '.ooo...ooo'],
   ],
   penguin: [
-    [
-      '...kkkk...',
-      '..kkkkkk..',
-      '..kkowkk..',
-      '..kkwwkky.',
-      '..kwwwwk..',
-      '..kwwwwk..',
-      '..kkkkkk..',
-      '..yy..yy..',
-    ],
-    [
-      '...kkkk...',
-      '..kkkkkk..',
-      '..kkowkk..',
-      '..kkwwkky.',
-      '..kwwwwk..',
-      '..kwwwwk..',
-      '..kkkkkk..',
-      '.yy....yy.',
-    ],
+    ['..oooo..', '.okkkko.', '.okwwko.', 'ookwwkQo', 'okwwwwko', 'okwWWwko', '.okkkko.', '.oQo.oQo'],
+    ['..oooo..', '.okkkko.', '.okwwko.', 'ookwwkQo', 'okwwwwko', 'okwWWwko', '.okkkko.', 'oQo..oQo'],
   ],
   duck: [
-    ['.....YYY...', '....YYYYY..', '...YYYYYYQQ', '.YYYYYYYYY.', '.YYYYYYYYY.', '..YYYYYYY..', '...Q...Q...'],
-    ['.....YYY...', '....YYYYY..', '...YYYYYYQQ', '.YYYYYYYYY.', '.YYYYYYYYY.', '..YYYYYYY..', '..Q....Q...'],
+    [
+      '....oooo..',
+      '...oyyyyo.',
+      '..oyyyYYQo',
+      '.oyyyYYYYo',
+      'oyyYYYYYo.',
+      '.oYYYYYo..',
+      '..oQo.oQo.',
+      '..ooo.ooo.',
+    ],
+    [
+      '....oooo..',
+      '...oyyyyo.',
+      '..oyyyYYQo',
+      '.oyyyYYYYo',
+      'oyyYYYYYo.',
+      '.oYYYYYo..',
+      '.oQo...oQo',
+      '.ooo...ooo',
+    ],
   ],
   snake: [
-    ['.KKKKKKKK...', 'KJKKJKKKKKoo', '.KKKKKKK..KK', '...KK.....K.'],
-    ['..KKKKKKKK..', '.JKKJKKKKKoo', 'KKKKKK..KKK.', '....KK...K..'],
+    ['.ooooooo....', 'oKJKJKKKooo.', '.ooooooKKVdo', '......ooooo.'],
+    ['..ooooooo...', '.oKJKJKKKooo', 'oooooooKKVdo', '.......oooo.'],
   ],
   crocodile: [
-    ['..UU..UU......', 'CCCCCCCCCCCCCo', 'CPPPPPPPPPPPCC', '.CCCCCCCCCCCC.', '.C.C.....C.C..'],
-    ['..UU..UU......', 'CCCCCCCCCCCCCo', 'CPPPPPPPPPPPCC', '.CCCCCCCCCCCC.', '..C.C....C.C..'],
+    [
+      '..oooo..oooo..',
+      '.oCCCCooCCCCo.',
+      'oCCCCCCCddddddo',
+      'oPPPPPPPPddddo',
+      '.oCdo....oCdo.',
+      '.oooo....oooo.',
+    ],
+    [
+      '..oooo..oooo..',
+      '.oCCCCooCCCCo.',
+      'oCCCCCCCddddddo',
+      'oPPPPPPPPddddo',
+      '..oCdo..oCdo..',
+      '..oooo..oooo..',
+    ],
   ],
   monkey: [
     [
-      '......MMMM..',
-      '.....MMMMMM.',
-      '....MMMMMMTT',
-      '....MMMoMMTT',
-      '..MMMMMMMMMT',
-      '.M.MMMMMMMM.',
-      'M..MMMMMMM..',
-      '...MM..MM...',
-      '...M....M...',
+      '.....oooo..',
+      '....oMMMMo.',
+      '...oMMMTTo.',
+      '...oMMbbTo.',
+      '.ooMMMbbbo.',
+      'oMo.oMbbDo.',
+      '.oo..oDo.oDo',
+      '.....ooo.ooo',
     ],
     [
-      '......MMMM..',
-      '.....MMMMMM.',
-      '....MMMMMMTT',
-      '....MMMoMMTT',
-      '..MMMMMMMMMT',
-      '.M.MMMMMMMM.',
-      'M..MMMMMMM..',
-      '..MM....MM..',
-      '..M......M..',
+      '.....oooo..',
+      '....oMMMMo.',
+      '...oMMMTTo.',
+      '...oMMbbTo.',
+      '.ooMMMbbbo.',
+      'oMo.oMbbDo.',
+      '.oo.oDo..oDo',
+      '....ooo..ooo',
     ],
   ],
   goat: [
-    [
-      '.........s..',
-      '........bbb.',
-      '.bbbbbbbbbbb',
-      'bbbbbbbbbbbb',
-      '.bbbbbbbbbb.',
-      '.b.b....b.b.',
-      '.o.o....o.o.',
-    ],
-    [
-      '.........s..',
-      '........bbb.',
-      '.bbbbbbbbbbb',
-      'bbbbbbbbbbbb',
-      '.bbbbbbbbbb.',
-      '..b.b..b.b..',
-      '..o.o..o.o..',
-    ],
+    ['.......oo..', '......oSSo.', '.ooooobbbbo', 'oSbbbbbbDDo', 'obbbbbDDDDo', '.obDo..obDo', '.oooo..oooo'],
+    ['.......oo..', '......oSSo.', '.ooooobbbbo', 'oSbbbbbbDDo', 'obbbbbDDDDo', '..obDo.obDo', '..oooo.oooo'],
   ],
   elephant: [
     [
-      '.1111111111.',
-      '111111111111',
-      '1111111111.2',
-      '2111111111..',
-      '..111111111.',
-      '..1.1...1.1.',
-      '..2.2...2.2.',
+      '..oooooooo..',
+      '.o11111NNNo.',
+      'o11111NNNNNo',
+      'o111NNNN22so',
+      'o11NNNN22o.o',
+      '.oN2o..o2o..',
+      '.oooo..ooo..',
     ],
     [
-      '.1111111111.',
-      '111111111111',
-      '1111111111.2',
-      '2111111111..',
-      '..111111111.',
-      '.1.1....1.1.',
-      '.2.2....2.2.',
+      '..oooooooo..',
+      '.o11111NNNo.',
+      'o11111NNNNNo',
+      'o111NNNN22so',
+      'o11NNNN22o.o',
+      '..oN2o.o2o..',
+      '..oooo.ooo..',
     ],
   ],
   lion: [
-    [
-      '...4444.....',
-      '..444333....',
-      '.4443333333.',
-      '.4433333333.',
-      '..333333333.',
-      '..3.3...3.3.',
-      '..3.3...3.3.',
-    ],
-    [
-      '...4444.....',
-      '..444333....',
-      '.4443333333.',
-      '.4433333333.',
-      '..333333333.',
-      '.3.3....3.3.',
-      '.3.3....3.3.',
-    ],
+    ['......oooo.', '.....o4444o', '.oooo44334o', 'oyyy333444o', 'oyy3333XXo.', '.o3Xo..oXo.', '.oooo..ooo.'],
+    ['......oooo.', '.....o4444o', '.oooo44334o', 'oyyy333444o', 'oyy3333XXo.', '..o3Xo.oXo.', '..oooo.ooo.'],
   ],
   zebra: [
-    [
-      '..wwwwwwww..',
-      '.wwkkkwwkkw.',
-      'wkkkwwkkkwww',
-      'kkwwkkkwwkkw',
-      '.wkkwwkkwwk.',
-      '..k.k...k.k.',
-      '..k.k...k.k.',
-    ],
-    [
-      '..wwwwwwww..',
-      '.wwkkkwwkkw.',
-      'wkkkwwkkkwww',
-      'kkwwkkkwwkkw',
-      '.wkkwwkkwwk.',
-      '.k.k....k.k.',
-      '.k.k....k.k.',
-    ],
+    ['.......ooo.', '......owkwo', '.ooooowkwko', 'owkwkwkWWo.', 'owkWkWkwWo.', '.okWo..okWo', '.oooo..oooo'],
+    ['.......ooo.', '......owkwo', '.ooooowkwko', 'owkwkwkWWo.', 'owkWkWkwWo.', '..okWo.okWo', '..oooo.oooo'],
   ],
   polar_bear: [
     [
-      '...wwwww....',
-      '..wwwwwwww..',
-      '.wwwwwwwwwwo',
-      '.WWWWWWWWWW.',
-      '.wwwwwwwwwww',
-      '..w.w....w.w',
-      '..o.o....o.o',
+      '..ooooooo...',
+      '.owwwwwWwo..',
+      'owwwwwwWWwo.',
+      'owwwwwWWWWwo',
+      'owwWWWWsssWo',
+      '.oWWo..oWWo.',
+      '.oooo..oooo.',
     ],
     [
-      '...wwwww....',
-      '..wwwwwwww..',
-      '.wwwwwwwwwwo',
-      '.WWWWWWWWWW.',
-      '.wwwwwwwwwww',
-      '.w.w....w.w.',
-      '.o.o....o.o.',
+      '..ooooooo...',
+      '.owwwwwWwo..',
+      'owwwwwwWWwo.',
+      'owwwwwWWWWwo',
+      'owwWWWWsssWo',
+      '..oWWo.oWWo.',
+      '..oooo.oooo.',
     ],
   ],
   kangaroo: [
     [
-      '..h...h.....',
-      '..hhhhh.....',
-      '.hhhhhhh....',
-      'hhhhhhhhhh..',
-      '.hhhhhhhhh..',
-      '..D..D...D..',
-      '..D..D...D..',
+      '.....ooo...',
+      '....ohhbo..',
+      '...ohhhbo..',
+      '..ohhhbbbo.',
+      'ooohbbbbDo.',
+      'ohbbbbDDDo.',
+      '..oDDo.oDDo',
+      '..oooo.oooo',
     ],
     [
-      '..h...h.....',
-      '..hhhhh.....',
-      '.hhhhhhh....',
-      'hhhhhhhhhh..',
-      '.hhhhhhhhh..',
-      '...D.D..D.D.',
-      '...D.D..D.D.',
+      '.....ooo...',
+      '....ohhbo..',
+      '...ohhhbo..',
+      '..ohhhbbbo.',
+      'ooohbbbbDo.',
+      'ohbbbbDDDo.',
+      '.oDDo..oDDo',
+      '.oooo..oooo',
     ],
   ],
   owl: [
     [
-      '.O.......O.',
-      '.OO.....OO.',
-      'OOLLLLLLLOO',
-      'OLEELLLEELO',
-      'OLLLyLLLLLO',
-      'OOLLLLLLLOO',
-      'OGOOOOOOOGO',
-      '..y.....y..',
+      '.oo.....oo.',
+      'oOOoooooOOo',
+      'oOLLLLLLLOo',
+      'oOLEoLoELOo',
+      'oOLLLyLLGOo',
+      '.oOLLLGGGo.',
+      '.oGGGGGGGo.',
+      '..oyo.oyo..',
     ],
     [
-      '.O.......O.',
-      '.OO.....OO.',
-      'OOLLLLLLLOO',
-      'OLEELLLEELO',
-      'OLLLyLLLLLO',
-      'OOLLLLLLLOO',
-      'GGOOOOOOOGG',
-      '..y.....y..',
+      '.oo.....oo.',
+      'oOOoooooOOo',
+      'oOLLLLLLLOo',
+      'oOLEoLoELOo',
+      'oOLLLyLLGOo',
+      'ooOLLLGGGoo',
+      '.oGGGGGGGo.',
+      '..oyo.oyo..',
     ],
   ],
   eagle: [
     [
-      '.ZZ.......ZZ.',
-      'ZZZZ.HHH.ZZZZ',
-      'ZZZZZHHHHZZZZ',
-      'ZZZZZHHyHZZZZ',
-      'ZZZZZZZZZZZZZ',
-      '.ZZZZZZZZZZZ.',
-      '..ZZZ...ZZZ..',
-      '..y.....y....',
+      '.oo.......oo.',
+      'oZZoo.ooo.oZo',
+      'oZZZZoHHHoZZo',
+      'oZZZZoHHyoZZo',
+      '.oZZZZGGGZZo.',
+      '..oGGGGGGGo..',
+      '...oyo.oyo...',
+      '...ooo.ooo...',
     ],
     [
       '.............',
-      '.ZZ.......ZZ.',
-      'ZZZZ.HHH.ZZZZ',
-      'ZZZZZHHHHZZZZ',
-      'ZZZZZHHyHZZZZ',
-      'ZZZZZZZZZZZZZ',
-      '.ZZZZZZZZZZZ.',
-      '..y.....y....',
+      '.oo.......oo.',
+      'oZZoo.ooo.oZo',
+      'oZZZZoHHHoZZo',
+      'oZZZZoHHyoZZo',
+      '.oZZZZGGGZZo.',
+      '..oGGGGGGGo..',
+      '...oyo.oyo...',
     ],
   ],
   bee: [
-    ['.jj...jj.', '..jjjjj..', '.iIiIiIi.', '.IiIiIiI.', '....o....'],
-    ['.j.....j.', '.jjjjjjj.', '.iIiIiIi.', '.IiIiIiI.', '....o....'],
+    ['.oo...oo.', 'ojjo.ojjo', 'oiIiIiIio', '.oIiIiIo.', '..ooooo..'],
+    ['..oo.oo..', '.ojjjjjo.', 'oiIiIiIio', '.oIiIiIo.', '..ooooo..'],
   ],
   camel: [
     [
-      '..xx....xx..',
-      '.xxxx..xxxx.',
-      '.xxxxxxxxxxx',
-      'xxxxxxxxxxxx',
-      'xxxxxxxxxxxx',
-      '..XX....XX..',
-      '..XX....XX..',
-      '..X.X..X.X..',
+      '..ooo..ooo..',
+      '.oxxxooxxxo.',
+      '.oxxxxxXXXoo',
+      'oxxxxxXXXXXo',
+      'oxxxXXXXXXo.',
+      '.oXXo..oXXo.',
+      '.oXXo..oXXo.',
+      '.oooo..oooo.',
     ],
     [
-      '..xx....xx..',
-      '.xxxx..xxxx.',
-      '.xxxxxxxxxxx',
-      'xxxxxxxxxxxx',
-      'xxxxxxxxxxxx',
-      '..XX....XX..',
-      '.XX.....XX..',
-      '.X..X.X..X..',
+      '..ooo..ooo..',
+      '.oxxxooxxxo.',
+      '.oxxxxxXXXoo',
+      'oxxxxxXXXXXo',
+      'oxxxXXXXXXo.',
+      '..oXXo.oXXo.',
+      '..oXXo.oXXo.',
+      '..oooo.oooo.',
     ],
   ],
   frog: [
-    ['.vv....vv.', '.vwv..vwv.', 'vvvvvvvvvv', 'vVvvvvvvVv', '.vvvvvvvv.', 'V.V....V.V'],
-    ['.vv....vv.', '.vwv..vwv.', 'vvvvvvvvvv', 'vVvvvvvvVv', '.vvvvvvvv.', 'VV.VVVV.VV'],
+    ['.ooo..ooo.', 'ovwvoovwvo', 'ovvvvvVVVo', 'ovVVVVdddo', '.ovVVdddo.', '.oVo..oVo.'],
+    ['.ooo..ooo.', 'ovwvoovwvo', 'ovvvvvVVVo', 'ovVVVVdddo', '.ovVVdddo.', 'oVVo..oVVo'],
   ],
   whale: [
     [
-      '......w.........',
-      '....uuuuu.......',
-      '..uuuuuuuuuu..u.',
-      '.uuuuuuuuuuuu.uu',
-      'uuouuuuuuuuuuuuu',
-      '.uuzzzzzzzzzuu..',
-      '...zzzzzzz......',
+      '.....oo........',
+      '...ouuuoo......',
+      '.ouuuuuuUUo.oo.',
+      'ouuuuuUUUUUouUo',
+      'ououuUUUUUUUUo.',
+      '.ozzzzzzzzzUo..',
+      '..oooooooooo...',
     ],
     [
-      '......w.........',
-      '....uuuuu.......',
-      '..uuuuuuuuuu..u.',
-      '.uuuuuuuuuuuu.uu',
-      'uuouuuuuuuuuuuuu',
-      '.uuzzzzzzzzzuu..',
-      '...zzzzzzz......',
+      '.....oo........',
+      '...ouuuoo......',
+      '.ouuuuuuUUo.oo.',
+      'ouuuuuUUUUUouUo',
+      'ououuUUUUUUUUo.',
+      '.ozzzzzzzzzUo..',
+      '..oooooooooo...',
     ],
   ],
   zombie: [
     [
-      '...gg.....',
-      '..gggg....',
-      '..goggg...',
-      '..gggg....',
-      '...ttgggg.',
-      '..tttt....',
-      '..tttt....',
-      '..t..t....',
-      '..k..k....',
+      '..oooo....',
+      '.oggggo...',
+      '.ogoggo...',
+      '..ogggo...',
+      '.ootttggo.',
+      '.ottttto..',
+      '..otttto..',
+      '..oto.oto.',
+      '..ooo.ooo.',
     ],
     [
-      '...gg.....',
-      '..gggg....',
-      '..goggg...',
-      '..gggg....',
-      '...ttgggg.',
-      '..tttt....',
-      '..tttt....',
-      '...tt.....',
-      '...kk.....',
+      '..oooo....',
+      '.oggggo...',
+      '.ogoggo...',
+      '..ogggo...',
+      '.ootttggo.',
+      '.ottttto..',
+      '..otttto..',
+      '...ototo..',
+      '...ooooo..',
     ],
   ],
   demon: [
     [
-      '.R......R.',
-      '.RR....RR.',
-      '..RRRRRR..',
-      '..RlRRlR..',
-      '..RRRRRR..',
-      '...RwwR...',
-      '..RRRRRR..',
-      '.R.RRRR.R.',
-      '...R..R...',
-      '..FF..FF..',
+      '.oo....oo.',
+      'orro..orro',
+      '.orrrrrro.',
+      '.orlrRlro.',
+      '.orrRRRro.',
+      '..oRwwRo..',
+      '.orrRRRro.',
+      'oroRRRRoro',
+      '..oRo.oRo.',
+      '..oQo.oQo.',
     ],
     [
-      '.R......R.',
-      '.RR....RR.',
-      '..RRRRRR..',
-      '..RlRRlR..',
-      '..RRRRRR..',
-      '...RwwR...',
-      '..RRRRRR..',
-      '.R.RRRR.R.',
-      '..R....R..',
-      '.FF....FF.',
+      '.oo....oo.',
+      'orro..orro',
+      '.orrrrrro.',
+      '.orlrRlro.',
+      '.orrRRRro.',
+      '..oRwwRo..',
+      '.orrRRRro.',
+      'oroRRRRoro',
+      '.oRo...oRo',
+      '.oQo...oQo',
     ],
   ],
   dragon: [
     [
-      '.....d........',
-      '....dd....dd..',
-      '...ddd...dddd.',
-      '..dddd..ddodd.',
-      'dddddddddddd..',
-      '.deeeeeeedd...',
-      '..dddddddd....',
-      '..d..d..d.....',
+      '....ooo.......',
+      '...oVVVo..ooo.',
+      '..oVVVddooVVVo',
+      '.oVVVdddoVVelo',
+      'oVVVddddddddo.',
+      '.odeeeeeeddo..',
+      '..odddddddo...',
+      '..odo..odo....',
     ],
     [
       '..............',
-      '..........dd..',
-      '.........dddd.',
-      '.........ddodd',
-      'dddddddddddd..',
-      '.ddeeeeeedd...',
-      '..dddddddd....',
-      '.dd..d..d.....',
+      '..........ooo.',
+      '..oooo...oVVVo',
+      '.oVVVVoooVVelo',
+      'oVVVddddddddo.',
+      '.odeeeeeeddo..',
+      '..odddddddo...',
+      '.odo...odo....',
     ],
   ],
   alien: [
     [
-      '..aaaa..',
-      '.aaaaaa.',
-      '.aoaaoa.',
-      '.aaaaaa.',
-      '..aaaa..',
-      '...aa...',
-      '..AAAA..',
-      '.A.AA.A.',
-      '...AA...',
-      '..A..A..',
+      '..oooo..',
+      '.ovvvvo.',
+      'ovoaavao',
+      'ovvaaavo',
+      '.ovaavo.',
+      '..ovvo..',
+      '.oAAAAo.',
+      'oAoAAoAo',
+      '..oAoAo.',
+      '..ooooo.',
     ],
     [
-      '..aaaa..',
-      '.aaaaaa.',
-      '.aoaaoa.',
-      '.aaaaaa.',
-      '..aaaa..',
-      '...aa...',
-      '..AAAA..',
-      '.A.AA.A.',
-      '...AA...',
-      '...AA...',
+      '..oooo..',
+      '.ovvvvo.',
+      'ovoaavao',
+      'ovvaaavo',
+      '.ovaavo.',
+      '..ovvo..',
+      '.oAAAAo.',
+      'oAoAAoAo',
+      '..oAAo..',
+      '..oooo..',
     ],
   ],
   ufo: [
-    ['....cccc....', '...cccccc...', '.qqqqqqqqqq.', 'qqlqqlqqlqqq', '.qqqqqqqqqq.', '...l....l...'],
-    ['....cccc....', '...cccccc...', '.qqqqqqqqqq.', 'qqqlqqlqqlqq', '.qqqqqqqqqq.', '....l..l....'],
+    ['...oooooo...', '..occcccco..', '.oqqqqqqNNo.', 'oqlqqlqqlNNo', '.oNNNNNNNNo.', '..olo..olo..'],
+    ['...oooooo...', '..occcccco..', '.oqqqqqqNNo.', 'oqlqqlqqlNNo', '.oNNNNNNNNo.', '...oloolo...'],
   ],
 }
 
@@ -616,13 +581,13 @@ export function pixelFaunaDims(kind: string): { cols: number; rows: number } | n
   return frames ? { cols: frames[0][0].length, rows: frames[0].length } : null
 }
 
-/** Draws `kind` centred on (cx, cy) about `size` px wide. Returns false if unknown. */
+/** Draws `kind` centred on (cx, cy) at 1:1 native pixel scale. Returns false if unknown. */
 export function drawPixelFauna(
   ctx: CanvasRenderingContext2D,
   kind: string,
   cx: number,
   cy: number,
-  size: number,
+  _size: number,
   flip: boolean,
   frame: number,
 ): boolean {
@@ -630,9 +595,8 @@ export function drawPixelFauna(
   if (!frames) return false
   const rows = frames[((frame % frames.length) + frames.length) % frames.length]
   const cols = rows[0].length
-  const px = Math.max(1, Math.round(size / cols))
-  const w = cols * px
-  const h = rows.length * px
+  const w = cols
+  const h = rows.length
   const x0 = Math.round(cx - w / 2)
   const y0 = Math.round(cy - h / 2)
   for (let y = 0; y < rows.length; y++) {
@@ -642,7 +606,7 @@ export function drawPixelFauna(
       if (c === '.') continue
       ctx.fillStyle = PALETTE[c]
       const dx = flip ? cols - 1 - x : x
-      ctx.fillRect(x0 + dx * px, y0 + y * px, px, px)
+      ctx.fillRect(x0 + dx, y0 + y, 1, 1)
     }
   }
   return true
