@@ -1,0 +1,30 @@
+name: cache-cleanup
+
+# A PR's caches (Rust builds, pnpm stores) are only visible to that PR, yet
+# they count against the repository's 10 GB cache limit. They had grown to
+# about half of it and pushed main's caches out, so later runs compiled from
+# cold. Drop them once the PR closes. pull_request_target so a fork's PR gets
+# a token that can delete; nothing from the PR is checked out or run.
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    name: Delete the PR's caches
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REF: refs/pull/${{ github.event.pull_request.number }}/merge
+        run: |
+          set -euo pipefail
+          ids=$(gh cache list --repo "$GITHUB_REPOSITORY" --ref "$REF" --limit 200 --json id --jq '.[].id')
+          for id in $ids; do
+            gh cache delete "$id" --repo "$GITHUB_REPOSITORY"
+          done
+          echo "deleted $(echo "$ids" | grep -c . || true) caches for $REF"
