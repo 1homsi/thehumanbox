@@ -1,0 +1,24 @@
+# cargo-nextest settings for the simulation tests (CI runs them as three shards; see pipeline.yml).
+#
+# A shard cannot finish before its longest test, and nextest starts tests in name order, so a
+# test that runs for minutes used to start a minute or two in and set the shard's length on its
+# own. These start first instead, while the short tests fill the other threads. The list comes
+# from CI timings (nextest prints SLOW for anything past a minute); keep the longest at the top.
+
+# Several worlds for fifteen days each, in threads of its own: the longest test by far.
+[[profile.default.overrides]]
+filter = 'test(=sim::simulation::tests::dispersal::population_stays_dispersed_after_many_days)'
+priority = 100
+
+# Each about half a minute to a minute and a half on a CI runner.
+[[profile.default.overrides]]
+filter = """
+test(=sim::tech::tech_progress::tests::borrowed_aggregation_matches_the_original)
+| test(=sim::civ::civ_tick::tests::construction::site_search_picks_the_same_tile_as_the_single_site_rules)
+| test(=sim::actions::plan_tests::range_plan_matches_the_retain_construction)
+| test(=sim::simulation::tests::movement::few_people_pace_in_place_in_front_of_obstacles)
+| test(=sim::simulation::tests::determinism::same_seed_stays_identical_over_a_long_run)
+| test(=sim::storage::serialize::tests::typed_frame_serialises_like_the_value_frame)
+| test(=sim::simulation::aggregate_tests::lineage_aggregates_match_the_cloning_version)
+"""
+priority = 50
