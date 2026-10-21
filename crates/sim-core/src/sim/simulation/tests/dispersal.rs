@@ -193,13 +193,26 @@ fn spread_after(seed: u64, ticks: u64) -> Spread {
 /// and must not funnel a quarter of the living to one destination; a seed's spread may not fall
 /// under a floor that only a collapse reaches; and across the seeds the mean spread stays above
 /// the original floors (`0.12` of WIDTH, `0.08` of HEIGHT). Single seeds swing with the world's
-/// chaos, so the seeds are judged together where a floor is a mean.
+/// chaos, so the seeds are judged together where a floor is a mean. The seeds are independent
+/// worlds, so they run at once; one after another they made this the suite's slowest test by
+/// minutes.
 #[test]
 fn population_stays_dispersed_after_many_days() {
+    let spreads: Vec<Spread> = std::thread::scope(|scope| {
+        let runs: Vec<_> = DISPERSAL_SEEDS
+            .iter()
+            .map(|&seed| scope.spawn(move || spread_after(seed, 9_000)))
+            .collect();
+        runs.into_iter()
+            .map(|run| {
+                run.join()
+                    .unwrap_or_else(|panic| std::panic::resume_unwind(panic))
+            })
+            .collect()
+    });
     let mut stdx_sum = 0.0;
     let mut stdy_sum = 0.0;
-    for seed in DISPERSAL_SEEDS {
-        let s = spread_after(seed, 9_000);
+    for (&seed, s) in DISPERSAL_SEEDS.iter().zip(spreads) {
         assert!(
             s.alive >= 80,
             "seed {seed} population collapsed to {} after 3 days",

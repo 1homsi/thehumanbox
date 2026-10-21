@@ -149,12 +149,20 @@ jobs:
       - name: cargo clippy
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
+  # The suite is about 20 CPU-minutes, so one 4-core runner took 6 minutes
+  # to run it after compiling. Each shard compiles the tests (cached deps) and
+  # runs a third of them with cargo-nextest, which also runs every test
+  # binary at once instead of one binary after another.
   simulation-tests:
-    name: Simulation tests (release workspace)
+    name: Simulation tests (shard ${{ matrix.shard }}/3)
     needs: [changes]
     if: ${{ needs.changes.outputs.sim == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     env:
       CARGO_INCREMENTAL: 0
       CARGO_NET_RETRY: 10
@@ -167,10 +175,17 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: . -> target
-      - name: cargo test --release --locked --workspace
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+      - name: cargo nextest run --release --locked --workspace (one shard)
         # --workspace so the sim-core crate's tests run too (the bulk of the
         # suite lives there after the core was split out for the wasm build).
-        run: cargo test --release --locked --workspace
+        run: cargo nextest run --release --locked --workspace --no-fail-fast --partition hash:${{ matrix.shard }}/3
+      # nextest does not run doc tests.
+      - name: cargo test --doc
+        if: matrix.shard == 1
+        run: cargo test --release --locked --workspace --doc
 
   simulation-performance:
     name: Simulation performance budget
