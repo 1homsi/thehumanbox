@@ -1,11 +1,16 @@
 import { BIOME_ID, TILE_ID } from '../model/terrain-ids'
 import { permanentWaterDepth } from '../model/terrain-visuals'
 import { OCEAN, ROCK, SAND, SNOW, hex, type Rgb } from './art-palette'
+import { valueNoise } from './base-parts/noise'
 
 /** The sea's depth bands, deepest first. A band is one flat colour, like the tints of a sea chart. */
 export const OCEAN_BANDS: readonly Rgb[] = [OCEAN.abyss, OCEAN.deep, OCEAN.open, OCEAN.shelf, OCEAN.shallows]
-/** Wire depth where each band above the abyss begins. */
-const BAND_FLOORS = [40, 95, 140, 178]
+/**
+ * Wire depth where each band above the abyss begins. The simulation's open sea, away from any coast,
+ * sits around wire 65; it is abyss here, the same colour as past the map, so the edge of the world never
+ * meets the open sea in a straight line. The lighter bands are the shelf rising toward a coast.
+ */
+const BAND_FLOORS = [100, 128, 156, 180]
 export const SHALLOWS_BAND = OCEAN_BANDS.length - 1
 
 /** The band of a wire depth (0 is deep ocean, 200 the shoreline): 0 is the abyss, SHALLOWS_BAND the shallows. */
@@ -24,10 +29,30 @@ export function oceanColor(wireDepth: number): Rgb {
 }
 
 /**
- * How fast the sea shelves up from the world's edge, in wire depth per tile. The edge tile itself is
- * abyss, the colour past the map, so land near the edge still leaves no visible rectangle.
+ * Where a coast comes near the world's edge, its shelf falls away to the abyss before the edge, so the
+ * map never ends in the middle of a lighter band. A straight fall would cut such coasts in a straight
+ * line, so the fall is ragged and its corners are rounded.
+ *
+ * Wire depth stays abyss for EDGE_HOLD tiles, then rises EDGE_DEPTH_STEP per tile; noise holds the
+ * abyss up to EDGE_RAGGED tiles further in. Past EDGE_REACH the fall is above the shoreline, so it never
+ * cuts the simulation's own depths in a straight line.
  */
-const EDGE_DEPTH_STEP = 24
+const EDGE_DEPTH_STEP = 12
+const EDGE_HOLD = 1
+const EDGE_RAGGED = 12
+const EDGE_CORNER = 14
+const EDGE_REACH = EDGE_HOLD + EDGE_RAGGED + Math.ceil(200 / EDGE_DEPTH_STEP)
+/** Size of the edge's ragged bays, in tiles. */
+const EDGE_NOISE_SCALE = 22
+
+/** Tiles from the world's edge, with the corners rounded off. */
+function edgeDistance(row: number, col: number, width: number, height: number): number {
+  const dx = Math.min(col, width - 1 - col)
+  const dy = Math.min(row, height - 1 - row)
+  if (dx < EDGE_CORNER && dy < EDGE_CORNER)
+    return Math.max(0, EDGE_CORNER - Math.hypot(EDGE_CORNER - dx, EDGE_CORNER - dy))
+  return Math.min(dx, dy)
+}
 
 /** The wire depth of the sea with the world's edge falling away to the abyss. */
 export function seaDepthAt(
@@ -37,8 +62,10 @@ export function seaDepthAt(
   width: number,
   height: number,
 ): number {
-  const edge = Math.min(row, col, height - 1 - row, width - 1 - col)
-  const floor = edge * EDGE_DEPTH_STEP
+  const edge = edgeDistance(row, col, width, height)
+  if (edge >= EDGE_REACH) return wireDepth
+  const ragged = EDGE_RAGGED * valueNoise(col / EDGE_NOISE_SCALE, row / EDGE_NOISE_SCALE)
+  const floor = Math.floor(Math.max(0, edge - EDGE_HOLD - ragged) * EDGE_DEPTH_STEP)
   return wireDepth < floor ? wireDepth : floor
 }
 

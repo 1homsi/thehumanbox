@@ -140,25 +140,37 @@ fn tick_first_org(sim: &mut Simulation) {
 
 #[test]
 fn nearby_prey_does_not_override_learned_action_choice() {
-    let mut sim = Simulation::new(0xa701);
-    sim.organisms.clear();
-    sim.animals.clear();
-    flatten_test_area(&mut sim, 50, 50);
-    let mut org = autonomy_test_organism("learner", 50.0, 50.0);
-    org.energy = 0.50;
-    sim.organisms.push(org);
-    sim.animals.push(Animal::new(1, 54.0, 50.0, AnimalKind::Deer));
-    sim.tick_count = 5_000;
+    // A learner still explores now and then (about one tick in thirteen at this age), so one tick could
+    // land either way. Over many independent draws prey must never pull the learner off its choice.
+    let mut scouting = 0;
+    for draw in 0..12u64 {
+        let mut sim = Simulation::new(0xa701);
+        sim.organisms.clear();
+        sim.animals.clear();
+        flatten_test_area(&mut sim, 50, 50);
+        let mut org = autonomy_test_organism("learner", 50.0, 50.0);
+        org.energy = 0.50;
+        sim.organisms.push(org);
+        sim.animals.push(Animal::new(1, 54.0, 50.0, AnimalKind::Deer));
+        sim.tick_count = 5_000;
+        sim.rng = ChaCha8Rng::seed_from_u64(draw);
 
-    let perception = learned_perception_for_first_org(&sim, true);
-    sim.organisms[0]
-        .q_table
-        .insert(perception, vec![(24, 5.0), (3, 0.1)]);
+        let perception = learned_perception_for_first_org(&sim, true);
+        sim.organisms[0]
+            .q_table
+            .insert(perception, vec![(24, 5.0), (3, 0.1)]);
 
-    tick_first_org(&mut sim);
+        tick_first_org(&mut sim);
 
-    assert_eq!(sim.organisms[0].thought, "scouting the area");
-    assert_ne!(sim.organisms[0].thought, "stalking prey");
+        assert_ne!(sim.organisms[0].thought, "stalking prey", "draw {draw}");
+        if sim.organisms[0].thought == "scouting the area" {
+            scouting += 1;
+        }
+    }
+    assert!(
+        scouting >= 9,
+        "the learned choice won only {scouting} of 12 draws"
+    );
 }
 
 /// One learner with a learned preference, one tick, with or without a wolf
