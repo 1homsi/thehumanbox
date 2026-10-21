@@ -32,12 +32,17 @@ cut.
 
 | Area | Commands |
 |---|---|
-| Rust | `cargo fmt --all` then `cargo clippy --workspace --all-targets --locked --release -- -D warnings` then `cargo test --release --locked --workspace` |
+| Rust | `cargo fmt --all` then `cargo clippy --workspace --all-targets --locked --release -- -D warnings` then `cargo nextest run --release --locked --workspace` (CI splits it into three shards) and `cargo test --release --locked --workspace --doc`; plain `cargo test` works too, only slower |
 | Web (`apps/web`) | `pnpm exec prettier --check "src/**/*.{ts,tsx,js,jsx,json,css}"`, `pnpm exec tsc -b --noEmit`, `pnpm exec eslint src`, `pnpm exec vitest run`, `pnpm run build` |
 | Desktop (`apps/desktop`) | `pnpm exec tsc -p tsconfig.json --noEmit` and `pnpm run test:main` |
 | Performance budget | `make perf-gate` (`scripts/perf-gate.sh`): three seeds at 8,000 ticks and one 25,000-tick run; max, p99 and mean time per tick, and memory |
 
 Run prettier and `cargo fmt` last, after every edit.
+
+A shard lasts as long as its longest test, so `.config/nextest.toml` starts the tests that run for
+minutes first. A new test that takes most of a minute belongs on that list. A test that only needs a
+moment late in a run (a year boundary, an old enough world) should move the clock or the state there
+rather than simulate the time in between.
 
 ## Running the engine without a server
 
