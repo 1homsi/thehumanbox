@@ -8,6 +8,7 @@ import { paintStructureTile, structureStrength } from '../../structure-marks'
 import { CELL_GUTTER, type CellAtlas, type CellRef } from '../atlas/cell-atlas'
 import { WHITE, writeSprite, type CfDriver, type CfFrame } from '../frame'
 import { packRgba } from '../overlays/color'
+import { OCEAN } from '../../art-palette'
 
 /**
  * Cell sizes: a tile plus gutter, and the 14 px cell reeds need (they rise 4 px above their tile
@@ -61,6 +62,9 @@ export class ShoreDriver {
   private readonly layer: SpriteLayer
   private readonly atlas: CellAtlas
   private built = -1
+  /** Depth (which water is fresh) arrives only with full frames; delta frames reuse the last one. */
+  private depth: number[][] | undefined
+  private builtDepth: number[][] | undefined
 
   constructor(layer: SpriteLayer, atlas: CellAtlas) {
     this.layer = layer
@@ -68,10 +72,13 @@ export class ShoreDriver {
   }
 
   update(f: CfFrame): boolean {
-    if (f.terrainRevision === this.built || f.terrainRevision === 0) return false
+    if (f.world.grid.depth_map) this.depth = f.world.grid.depth_map as number[][]
+    if (f.terrainRevision === 0) return false
+    if (f.terrainRevision === this.built && this.depth === this.builtDepth) return false
     const t0 = performance.now()
     const { tiles, width, height } = f.world.grid
     const biomes = f.biomes
+    const depth = this.depth
     const { ox, oy } = f
     const cells: CellRef[] = []
     const pos: number[] = []
@@ -84,12 +91,12 @@ export class ShoreDriver {
       for (let y = 0; y < height; y++) {
         if (!tiles[y]) continue
         for (let x = 0; x < width; x++) {
-          const key = shoreTileKey(tiles, biomes, x, y, ox, oy)
+          const key = shoreTileKey(tiles, biomes, x, y, ox, oy, depth)
           if (key !== null) {
             const cell =
               this.atlas.get(key) ??
               this.atlas.bake(key, TILE, TILE, (ctx) =>
-                paintShoreTile(ctx, tiles, biomes, x, y, ox, oy, 0, 0),
+                paintShoreTile(ctx, tiles, biomes, x, y, ox, oy, 0, 0, depth),
               )
             if (cell) {
               cells.push(cell)
@@ -117,6 +124,7 @@ export class ShoreDriver {
     // `pos` holds each cell's content corner, so shore and reed cells share one write.
     writeCells(this.layer, cells, pos, 0, 0)
     this.built = f.terrainRevision
+    this.builtDepth = depth
     this.stats = {
       sprites: cells.length,
       reeds,
@@ -333,7 +341,10 @@ function sameList(a: ArrayLike<number>, b: ArrayLike<number>, n: number): boolea
   return true
 }
 
-/** Whitecaps on the shore: a thin line that stays, and thick breakers that pulse in four phases. */
+/**
+ * Breakers on the shore: thick surf that pulses in four phases. The thin line that stays is the
+ * shore's surf line (`paintShoreTile`), drawn under the day and night tint like the rest of the ground.
+ */
 export class FoamDriver implements CfDriver {
   stats = { rects: 0, rebuilds: 0 }
   private readonly layer: SpriteLayer
@@ -352,8 +363,7 @@ export class FoamDriver implements CfDriver {
       const { tiles, width, height } = f.world.grid
       const foam = buildFoamRects(tiles, width, height)
       const layer = this.layer
-      const thin = foam.thin
-      const total = thin.length / 4 + foam.thick.reduce((n, b) => n + b.length / 4, 0)
+      const total = foam.thick.reduce((n, b) => n + b.length / 4, 0)
       layer.resize(total)
       let i = 0
       const put = (rects: readonly number[], color: number) => {
@@ -371,7 +381,6 @@ export class FoamDriver implements CfDriver {
           layer.rotation[i] = 0
         }
       }
-      put(thin, packRgba(255, 255, 255, 0.3))
       this.starts[0] = i
       for (let b = 0; b < 4; b++) {
         put(foam.thick[b], 0)
@@ -387,8 +396,8 @@ export class FoamDriver implements CfDriver {
     const layer = this.layer
     for (let b = 0; b < 4; b++) {
       const pulse = Math.sin(foamT + (b * Math.PI) / 2)
-      const alpha = pulse <= 0.25 ? 0 : 0.55 * Math.min(1, (pulse - 0.25) / 0.75)
-      const color = packRgba(255, 255, 255, alpha)
+      const alpha = pulse <= 0.25 ? 0 : 0.4 * Math.min(1, (pulse - 0.25) / 0.75)
+      const color = packRgba(OCEAN.surf[0], OCEAN.surf[1], OCEAN.surf[2], alpha)
       if (color === this.lastColors[b]) continue
       this.lastColors[b] = color
       layer.color.fill(color, this.starts[b], this.starts[b + 1])

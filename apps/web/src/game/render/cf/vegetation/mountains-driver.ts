@@ -1,15 +1,12 @@
 import type { SpriteLayer } from 'xipjs'
 import { TILE } from '../../../model/palette'
 import { BIOME_ID } from '../../../model/terrain-ids'
-import { landscapeHash } from '../../landscape-style'
-import { drawMassTile, mountainHeights } from '../../mountains'
+import { MASS_CELL, drawMassTile, massTileKey, mountainHeights } from '../../mountains'
 import { CELL_GUTTER, type CellAtlas, type CellRef } from '../atlas/cell-atlas'
 import { WHITE, writeSprite, type CfFrame } from '../frame'
 
-/** A mountain tile is 8x8 with a 2px cliff shadow on the lowland below it. */
-const CONTENT_W = TILE
-const CONTENT_H = TILE + 2
-export const MOUNTAIN_CLASSES: ReadonlyArray<readonly [number, number]> = [[CONTENT_W + 2, CONTENT_H + 2]]
+/** A mountain tile is 8x8 with the strip of cast shadow it throws right of it and below it. */
+export const MOUNTAIN_CLASSES: ReadonlyArray<readonly [number, number]> = [[MASS_CELL + 2, MASS_CELL + 2]]
 
 /** The sculpted mountain mass: one sprite per rock or snow tile of a range. */
 export class MountainsDriver {
@@ -28,7 +25,6 @@ export class MountainsDriver {
     const t0 = performance.now()
     const { tiles, width, height } = f.world.grid
     const biomes = f.biomes
-    const { ox, oy } = f
     const h = mountainHeights(tiles, width, height)
     for (let pass = 0; pass < 2; pass++) {
       const epoch = this.atlas.epoch
@@ -39,23 +35,11 @@ export class MountainsDriver {
           const here = h[y * width + x]
           if (here === 0) continue
           const volcanic = biomes?.[y]?.[x] === BIOME_ID.VOLCANIC
-          const north = y > 0 ? h[(y - 1) * width + x] : 0
-          const south = y + 1 < height ? h[(y + 1) * width + x] : 0
-          const west = x > 0 ? h[y * width + x - 1] : 0
-          const east = x + 1 < width ? h[y * width + x + 1] : 0
-          // Everything drawMassTile reads from the neighbourhood, plus the tile's hash.
-          const sig =
-            here * 64 +
-            (north > here ? 32 : north < here ? 16 : 0) +
-            (west < here ? 8 : 0) +
-            (east < here ? 4 : 0) +
-            (south === 0 ? 2 : 0) +
-            (volcanic ? 1 : 0)
-          const key = `M|${x + ox}|${y + oy}|${sig}`
+          const key = massTileKey(h, width, height, x, y, volcanic)
           const cell =
             this.atlas.get(key) ??
-            this.atlas.bake(key, CONTENT_W, CONTENT_H, (ctx) =>
-              drawMassTile(ctx, h, width, height, x, y, volcanic, landscapeHash(x + ox, y + oy), 0, 0),
+            this.atlas.bake(key, MASS_CELL, MASS_CELL, (ctx) =>
+              drawMassTile(ctx, h, width, height, x, y, volcanic, 0, 0),
             )
           if (!cell) continue
           this.cells.push(cell)

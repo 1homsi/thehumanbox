@@ -6,12 +6,15 @@ import { FoamDriver, GROUND_CLASSES, PatchDriver, ShoreDriver, StructureDriver }
 import { AccentDriver } from './terrain-accents'
 import { CattailDriver } from './cattails'
 import { WaterPlantDriver } from './water-plants'
+import { SeaChartDriver } from './sea-chart-driver'
 
 /**
  * Where the ground detail sits: the shore banks and reeds were part of the terrain (under the
  * day/night tint, which is at 5), the rest was drawn after it.
  */
 export const SHORE_Z = 2.5
+/** The sea chart's contours: on the ground's water, under the shore and everything on it. */
+export const SEA_CHART_Z = 1
 export const FOAM_Z = 5.2
 export const PATCH_Z = 5.5
 export const STRUCTURE_Z = 5.6
@@ -24,6 +27,8 @@ export const CATTAIL_Z = 4.4
 
 /** Shoreline, foam, food and mineral patches and the settlement marks, as SpriteLayers. */
 export function CfGround({ registry }: { registry: CfRegistry }) {
+  const chartAtlas = useCellAtlas([256], GROUND_CLASSES)
+  const chart = useSpriteLayer({ atlases: chartAtlas.atlases, zIndex: SEA_CHART_Z, sampling: 'nearest' })
   const shoreAtlas = useCellAtlas([512, 512], GROUND_CLASSES)
   const shore = useSpriteLayer({ atlases: shoreAtlas.atlases, zIndex: SHORE_Z, sampling: 'nearest' })
   const patchAtlas = useCellAtlas([256], GROUND_CLASSES)
@@ -48,6 +53,7 @@ export function CfGround({ registry }: { registry: CfRegistry }) {
 
   const drivers = useMemo(
     () => ({
+      chart: new SeaChartDriver(chart, chartAtlas.atlas),
       shore: new ShoreDriver(shore, shoreAtlas.atlas),
       patches: new PatchDriver(patches, patchAtlas.atlas),
       foam: new FoamDriver(foam),
@@ -57,6 +63,8 @@ export function CfGround({ registry }: { registry: CfRegistry }) {
       structure: new StructureDriver(structure, structureAtlas.atlas),
     }),
     [
+      chart,
+      chartAtlas.atlas,
       shore,
       shoreAtlas.atlas,
       patches,
@@ -71,6 +79,7 @@ export function CfGround({ registry }: { registry: CfRegistry }) {
   )
   useLayoutEffect(() => {
     const removers = [
+      registry.add('seaChart', drivers.chart),
       registry.add('shore', drivers.shore),
       registry.add('patches', drivers.patches),
       registry.add('foam', drivers.foam),

@@ -8,10 +8,11 @@ import { terrainVisualSignature } from '../model/terrain-visuals'
 import { TILE } from '../model/palette'
 import { drawTrees, drawNaturalDecor } from './decorations'
 import { tileColor } from './base-parts/tile-paint'
+import { forEachChartCell, paintChartCell, seaBands } from './base-parts/sea-chart'
 import { terrainSeason } from './terrain-season'
 
 // The ground of the 2D fallback (browsers without WebGL2): one cached bitmap of the whole map with
-// flat-coloured tiles, scattered detail, shores, trees and mountains. On xipjs the ground is a
+// flat-coloured tiles, the sea chart, scattered detail, shores, trees and mountains. On xipjs the ground is a
 // TileLayer and the rest are sprite layers, so none of this runs there.
 
 interface BaseKey {
@@ -118,6 +119,10 @@ export function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null 
       ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
     }
   }
+  // The sea chart's smooth band edges and contours, where the flat tiles above leave a staircase.
+  forEachChartCell(seaBands(tiles, depth_map, width, height), width, height, (key, x, y) =>
+    paintChartCell(ctx, key, x, y),
+  )
   if (biomes) drawNaturalDecor(ctx, width, height, tiles, biomes, origin_x, origin_y)
   // Resources, huts and fires sit on the ground as it was at the last terrain change.
   for (let row = 0; row < height; row++) {
@@ -145,7 +150,7 @@ export function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null 
     }
   }
   if (biomes && ATLAS_TOWN.complete) drawTrees(ctx, width, height, tiles, biomes, origin_x, origin_y, season)
-  drawMountains(ctx, width, height, tiles, biomes, origin_x, origin_y)
+  drawMountains(ctx, width, height, tiles, biomes)
   _baseCanvas = canvas
   _baseKey = {
     width,
