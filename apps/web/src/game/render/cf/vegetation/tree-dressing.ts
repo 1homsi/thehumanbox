@@ -1,3 +1,4 @@
+import { SNOW } from '../../art-palette'
 import { landscapeHash } from '../../landscape-style'
 import { rgba } from '../frame'
 
@@ -19,17 +20,17 @@ export interface Dressing {
 const DRESSING: Record<string, Dressing> = {
   spring: {
     count: 9,
-    colours: [rgba(246, 182, 206, 255), rgba(255, 244, 250, 255)],
+    colours: [rgba(224, 168, 178, 255), rgba(236, 238, 228, 255)],
     topOnly: false,
   },
   autumn: {
     count: 7,
-    colours: [rgba(204, 88, 40, 255), rgba(226, 172, 58, 255)],
+    colours: [rgba(196, 104, 62, 255), rgba(214, 174, 78, 255)],
     topOnly: false,
   },
   winter: {
     count: 8,
-    colours: [rgba(240, 246, 255, 255)],
+    colours: [rgba(SNOW.lit[0], SNOW.lit[1], SNOW.lit[2], 255)],
     topOnly: true,
   },
 }

@@ -1,12 +1,18 @@
-import { SPRITE_FLIP_X, SPRITE_HIDDEN, type SpriteLayer } from 'xipjs'
+import { SPRITE_HIDDEN, type SpriteLayer } from 'xipjs'
 import { isFloatingKind, type OrganismState, type VehicleInfo } from '../../../../shared/types'
 import type { ViewFlags } from '../../../../state/store'
 import { lineageColor } from '../../../../shared/constants'
 import { THOUGHT_COLORS, TILE } from '../../../model/palette'
 import { orgVariant } from '../../../model/org-variant'
-import { ERA_STRIPE_COLOR, orgAnimPhase, pickToolEmoji } from '../../draw-helpers'
+import { orgAnimPhase, pickToolEmoji } from '../../draw-helpers'
 import {
   HUMAN_ATLAS_FRAMES,
+  HUMAN_ATLAS_COLS,
+  HUMAN_ATLAS_CELL,
+  HUMAN_FEET_ROW,
+  HUMAN_HEIGHT,
+  HUMAN_HAND_ROW,
+  humanAtlasColumn,
   deterministicAppearanceIndex,
   humanAtlasRow,
   resolveAgeStage,
@@ -20,7 +26,6 @@ import {
   pierColumn,
   DECAL,
   DEGREE_EMOJI,
-  ELDER_CANE_EMOJI,
   SICK_EMOJI,
   emoteFrame,
   glyphFrame,
@@ -39,6 +44,7 @@ import { cssToRgba32, rgba32, withAlpha } from '../colors'
 import { MotionStore } from '../motion'
 import { labelFlagsOf } from './people-labels'
 import { professionMarks } from './profession-marks'
+import { INK, SAND, SHADOW } from '../../art-palette'
 
 /** Atlas slots, by layer. */
 export const BODY_ATLAS = { people: 0, boats: 1 } as const
@@ -92,15 +98,10 @@ export function isFocused(org: OrganismState, focus: string): boolean {
   return true
 }
 
-/**
- * The people sheet draws a figure in a 32-pixel cell: the top of the hair is at cell row 4, the body's middle
- * (where a held tool sits) at row 16. The sprite is `size` pixels tall, so these rows scale with it.
- */
-const SHEET_HEAD_ROW = 4
-const SHEET_HAND_ROW = 16
 const WHITE = 0xffffffff
-const BLACK = rgba32(0, 0, 0)
-const CROWN = cssToRgba32('#f2c84b')
+const BLACK = rgba32(...INK)
+const CAST_SHADOW = rgba32(...SHADOW.rgb)
+const CROWN = rgba32(...SAND.desert)
 const CROWN_RECTS = [
   [-4, 0, 8, 2],
   [-4, -2, 2, 2],
@@ -112,7 +113,7 @@ const CROWN_RECTS = [
  * The population as three SpriteLayers written from typed arrays:
  *  - `soft`  (under the people): shadows, auras and rings
  *  - `body`  (depth-sorted):      people and boats
- *  - `over`  (above the people):  crowns, vitals, stripes, emoji
+ *  - `over`  (above the people):  crowns, vitals, emoji
  *  - `emote` (above those, pixel-crisp): thought bubbles
  * Names and thoughts are text and work poses are free-form strokes: they stay
  * on the canvas painter.
@@ -144,6 +145,7 @@ export class PeopleSprites {
   py = new Float32Array(0)
   private size = new Uint8Array(0)
   private row = new Uint8Array(0)
+  private column = new Uint8Array(0)
   private alpha = new Uint8Array(0)
   /** Each person's walk-cycle offset, from their id. */
   phase = new Uint16Array(0)
@@ -228,6 +230,7 @@ export class PeopleSprites {
     this.py = grow(this.py, Float32Array)
     this.size = grow(this.size, Uint8Array)
     this.row = grow(this.row, Uint8Array)
+    this.column = grow(this.column, Uint8Array)
     this.alpha = grow(this.alpha, Uint8Array)
     this.phase = grow(this.phase, Uint16Array)
     this.appearance = grow(this.appearance, Uint32Array)
@@ -402,11 +405,13 @@ export class PeopleSprites {
       const standard = isSelected || detail !== 'overview'
       const full = isSelected || detail === 'detail'
       const bodyR = this.radius[j] * (org.sex === 'male' ? 1.05 : 0.95)
-      const size = Math.round(Math.max(19, bodyR * 3.8))
+      const size = HUMAN_ATLAS_CELL
       const stage = resolveAgeStage(org)
       const sex = org.sex === 'female' ? 'female' : 'male'
       this.size[j] = size
       this.row[j] = humanAtlasRow(sex, stage, this.appearance[j])
+      const era = input.lineageEras[org.lineage_id]
+      this.column[j] = humanAtlasColumn(era)
       this.alpha[j] = Math.round(255 * fa)
 
       // Resting indoors: not drawn unless they moved a moment ago (checked per frame).
@@ -426,7 +431,7 @@ export class PeopleSprites {
       }
       this.restCandidate[j] = rest
 
-      const i = body.add(0, 0, size, size, this.row[j] * HUMAN_ATLAS_FRAMES, j)
+      const i = body.add(0, 0, size, size, this.row[j] * HUMAN_ATLAS_COLS + this.column[j], j)
       body.atlas[i] = BODY_ATLAS.people
       body.color[i] = withAlpha(WHITE, fa)
       body.flags[i] = 0
@@ -437,13 +442,21 @@ export class PeopleSprites {
       this.boatVariant[j] = boatVariantOf(boat?.era, boat?.cargo)
       this.boatSeat[j] = seats.get(id) ?? 0
 
-      const spriteTopOff = -size * 0.78
-      // Where the marks start: the top of the head, and the hand (see SHEET_HEAD_ROW).
-      const headTop = spriteTopOff + (size * SHEET_HEAD_ROW) / 32
-      const handTop = spriteTopOff + (size * SHEET_HAND_ROW) / 32
+      const headTop = -HUMAN_HEIGHT[stage]
+      const handTop = headTop + HUMAN_HAND_ROW[stage]
       // Shadows only when the world is close enough to see them.
       if (detail !== 'overview' && !crowded) {
-        soft.push(j, 1, size * 0.2, size * 0.54, size * 0.2, DECAL.disc, 0, withAlpha(BLACK, 0.4 * fa))
+        soft.push(
+          j,
+          1,
+          0,
+          6,
+          2,
+          0,
+          0,
+          withAlpha(CAST_SHADOW, SHADOW.alpha * fa),
+          ATTACHED_UNTEXTURED | ATTACHED_SNAP,
+        )
       }
 
       const thought = org.thought ?? ''
@@ -478,29 +491,11 @@ export class PeopleSprites {
       }
       if (isSelected) {
         // a warm halo, then the white dashed ring turning slowly over it
-        soft.push(
-          j,
-          0,
-          2,
-          size * 0.84,
-          size * 0.48,
-          DECAL.ring,
-          0,
-          withAlpha(rgba32(255, 210, 138), 0.35 * fa),
-        )
-        soft.push(j, 0, 2, size * 0.84, size * 0.48, DECAL.dashed, 0, withAlpha(WHITE, 0.95 * fa), 0, 0.0006)
+        soft.push(j, 0, 2, 16, 9, DECAL.ring, 0, withAlpha(rgba32(255, 210, 138), 0.35 * fa))
+        soft.push(j, 0, 2, 16, 9, DECAL.dashed, 0, withAlpha(WHITE, 0.95 * fa), 0, 0.0006)
       }
       if (standard && (!crowded || isSelected) && org.lineage_id) {
-        soft.push(
-          j,
-          0,
-          3,
-          size * 0.68,
-          size * 0.34,
-          DECAL.ring,
-          0,
-          withAlpha(cssToRgba32(lineageColor(org.lineage_id)), fa),
-        )
+        soft.push(j, 0, 3, 13, 6, DECAL.ring, 0, withAlpha(cssToRgba32(lineageColor(org.lineage_id)), fa))
       }
 
       // Simulation state as a restrained aura behind the character art.
@@ -567,29 +562,14 @@ export class PeopleSprites {
           )
       }
 
-      const era = input.lineageEras[org.lineage_id] ?? ''
-      if (standard && era && era !== 'pre-stone' && era !== 'stone') {
-        const color = cssToRgba32(ERA_STRIPE_COLOR[era] ?? 'rgba(255,255,255,0)')
-        over.push(
-          j,
-          -bodyR,
-          bodyR + 1,
-          Math.round(bodyR * 2),
-          1,
-          0,
-          0,
-          withAlpha(color, 0.75 * fa),
-          ATTACHED_UNTEXTURED | ATTACHED_SNAP,
-        )
-      }
       if (org.is_leader) {
-        const top = spriteTopOff - 2
+        const top = headTop - 2
         for (const [dx, dy, w, h] of CROWN_RECTS)
           over.push(j, dx, top + dy, w, h, 0, 0, withAlpha(CROWN, fa), ATTACHED_UNTEXTURED | ATTACHED_SNAP)
       }
       // The trade shows on the figure: a hat on the head, a tool at hand height (see profession-marks).
-      if (standard && org.specialty) {
-        const { worn, held } = professionMarks(org.specialty, bodyR + 2)
+      if (standard && org.specialty && this.column[j] < 32 && stage !== 'infant') {
+        const { worn, held } = professionMarks(org.specialty, 3)
         for (const [marks, top] of [
           [worn, headTop],
           [held, handTop],
@@ -615,15 +595,13 @@ export class PeopleSprites {
         const tool = pickToolEmoji(org.tools)
         if (tool) this.glyph(j, fa, tool, bodyR + 4, bodyR * 0.6, 9)
       }
-      // An elder leans on a cane on the side opposite the sickness glyph.
-      if (standard && stage === 'elder') this.glyph(j, fa, ELDER_CANE_EMOJI, -bodyR - 3, bodyR * 0.7, 9)
       if (full && org.degrees && org.degrees.length > 0)
         this.glyph(j, fa, DEGREE_EMOJI, -bodyR - 4, bodyR * 0.6, 8)
 
       if (standard && org.carrying > 0) {
         over.push(
           j,
-          size * 0.2,
+          4,
           -1,
           5,
           4,
@@ -638,7 +616,7 @@ export class PeopleSprites {
       if (showVitals) {
         const barW = Math.max(8, Math.round(size * 0.55))
         const left = -barW / 2
-        const top = spriteTopOff - 5
+        const top = headTop - 5
         over.push(
           j,
           left - 1,
@@ -736,7 +714,7 @@ export class PeopleSprites {
   animate(now: number, t: number): boolean {
     const n = this.n
     const body = this.body
-    const { fromX, fromY, toX, toY, px, py, size, row, phase, restCandidate, hidden, boatIdx } = this
+    const { fromX, fromY, toX, toY, px, py, size, row, column, phase, restCandidate, hidden, boatIdx } = this
     const motion = this.motion
     const ox = this.ox
     const oy = this.oy
@@ -764,16 +742,19 @@ export class PeopleSprites {
       const resting = restCandidate[j] === 1 && !recent
       hidden[j] = resting ? 1 : 0
       const rider = boatIdx[j]
+      // Every figure has the same cell (`s`), so this is figureCentreX, which names and glyphs follow.
       let changed = storeF32(bx, j, Math.round(cx - s / 2) + s / 2)
-      changed = storeF32(by, j, Math.round(cy - s * 0.78) + s / 2) || changed
+      changed = storeF32(by, j, Math.round(cy - HUMAN_FEET_ROW) + s / 2) || changed
       changed =
         storeU32(
           bf,
           j,
-          row[j] * HUMAN_ATLAS_FRAMES + (rider >= 0 ? 0 : motion.frame(j, now, phase[j], HUMAN_ATLAS_FRAMES)),
+          row[j] * HUMAN_ATLAS_COLS +
+            column[j] +
+            (motion.flipped[j] ? HUMAN_ATLAS_FRAMES : 0) +
+            (rider >= 0 ? 0 : motion.frame(j, now, phase[j], HUMAN_ATLAS_FRAMES)),
         ) || changed
-      changed =
-        storeU8(bflags, j, (motion.flipped[j] ? SPRITE_FLIP_X : 0) | (resting ? SPRITE_HIDDEN : 0)) || changed
+      changed = storeU8(bflags, j, resting ? SPRITE_HIDDEN : 0) || changed
       changed = storeF64(bkey, j, y) || changed
       if (changed || touchAll) {
         if (j < lo) lo = j

@@ -78,6 +78,7 @@ import { UpdateToast } from './ui/toasts/UpdateToast'
 import { DesktopUpdateToast } from './ui/toasts/DesktopUpdateToast'
 import { useCurrentScene } from './state/scene'
 import type { OrganismState } from './shared/types'
+import { OCEAN, hex } from './game/render/art-palette'
 import clsx from 'clsx'
 import './App.css'
 import './pixel-theme.css'
@@ -92,7 +93,7 @@ const WorldView = lazyWithRetry(() =>
 )
 function WorldViewPending() {
   // Same footprint and colour as the map's own loading cover.
-  return <div className="map2d-world" style={{ flex: 1, minWidth: 0, background: '#1a4a80' }} />
+  return <div className="map2d-world" style={{ flex: 1, minWidth: 0, background: hex(OCEAN.abyss) }} />
 }
 
 const SceneView = lazyWithRetry(() =>

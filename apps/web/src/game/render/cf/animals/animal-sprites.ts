@@ -11,6 +11,8 @@ import {
   isFlyer,
   isGrazer,
 } from '../../animal-visuals'
+import { SHADOW } from '../../art-palette'
+import { FAUNA_RECTS } from '../../fauna-layout'
 import { pixelFaunaDims, hasPixelFauna } from '../../pixel-fauna'
 import {
   DECAL,
@@ -19,7 +21,6 @@ import {
   PIXEL_FAUNA_CELL,
   SLEEP_GLYPH,
   faunaCellKind,
-  faunaDrawSize,
   glyphFrame,
   pixelFaunaFrame,
   pixelFaunaOffset,
@@ -37,7 +38,7 @@ export interface AnimalFrameInput {
   oy: number
 }
 
-const BLACK = rgba32(0, 0, 0)
+const SHADOW_COLOR = rgba32(SHADOW.rgb[0], SHADOW.rgb[1], SHADOW.rgb[2])
 const WHITE = 0xffffffff
 
 /**
@@ -179,9 +180,8 @@ export class AnimalSprites {
 
       const adult = animalSize(a.kind)
       const growth = animalGrowth(a.young)
-      const size = adult * growth
+      let size = adult * growth
       this.grow[j] = growth
-      this.size[j] = size
       let w = 0
       let h = 0
       let frame = 0
@@ -189,8 +189,9 @@ export class AnimalSprites {
       this.grazer[j] = 0
       if (hasPixelFauna(a.kind)) {
         const d = pixelFaunaDims(a.kind)!
-        const scale = Math.max(1, Math.round(adult / d.cols))
+        const scale = 1
         const off = pixelFaunaOffset(a.kind)
+        size = Math.max(d.cols, d.rows) * scale * growth
         this.mode[j] = 1
         this.scale[j] = scale
         this.cols[j] = d.cols
@@ -206,15 +207,17 @@ export class AnimalSprites {
       } else {
         const cut = faunaCellKind(a.kind, a.id)
         if (cut) {
-          const d = faunaDrawSize(cut)
+          const [, , sw, sh] = FAUNA_RECTS[cut]
+          size = Math.max(sw, sh) * growth
           this.mode[j] = 2
-          this.cutH[j] = d.h
+          this.cutH[j] = sh
           this.base[j] = FAUNA_KINDS.indexOf(cut)
           w = h = FAUNA_CELL * growth
           frame = this.base[j]
           atlas = ANIMAL_ATLAS.fauna
         } else this.mode[j] = 0
       }
+      this.size[j] = size
       const i = body.add(0, 0, w, h, frame, a.id)
       body.atlas[i] = atlas
       body.color[i] = WHITE
@@ -231,7 +234,7 @@ export class AnimalSprites {
           2 * size * (flyer ? 0.1 : 0.14),
           DECAL.disc,
           0,
-          withAlpha(BLACK, flyer ? 0.18 : 0.3),
+          withAlpha(SHADOW_COLOR, flyer ? 0.18 : SHADOW.alpha),
         )
       }
       if (a.sleeping) this.sleepers.push(j)
@@ -280,8 +283,9 @@ export class AnimalSprites {
         const sc = scale[j] * g
         const W = cols[j] * sc
         const H = rows[j] * sc
+        const top = kind === 'whale' ? cy - H / 2 : cy + s * 0.42 - H
         const x0 = Math.round(cx - W / 2)
-        const y0 = Math.round(cy - H / 2)
+        const y0 = Math.round(top)
         const left = flip ? PIXEL_FAUNA_CELL - offX[j] - cols[j] : offX[j]
         bx[j] = x0 + (PIXEL_FAUNA_CELL / 2 - left) * sc
         by[j] = y0 + (PIXEL_FAUNA_CELL / 2 - offY[j]) * sc

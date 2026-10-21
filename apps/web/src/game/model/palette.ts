@@ -4,41 +4,61 @@
  * These are pure-data modules - no side effects, no React, safe to
  * import from anywhere.
  */
+import { BIOME_TONES, FOREST, GRASS, OCEAN, ROCK, SAND, SNOW, hex, type Rgb } from '../render/art-palette'
 
 export const TILE = 8
 
+/**
+ * Ground colour per tile id, before the biome tint, the season and the texture. Earthy and muted to
+ * match the interface (render/art-palette.ts): olive grass, parchment sand, warm stone.
+ */
 export const TILE_COLORS: Record<number, string> = {
   0: '#0a0a0a',
-  1: '#789657',
-  2: '#2e6db4',
-  3: '#8eae61',
+  1: hex(GRASS.base),
+  2: hex(OCEAN.open),
+  3: hex(GRASS.light),
   4: '#e8450a',
-  5: '#878e87',
-  6: '#555544',
+  5: hex(ROCK.mid),
+  6: '#5c564a',
   7: '#cc6600',
   8: '#8b6914',
-  9: '#3a6688',
+  // Floodwater: muddy, between the river's green and the soil.
+  9: '#62796a',
   10: '#c8a020',
   11: '#2a2018',
-  12: '#e2edf0',
-  13: '#dec48c',
+  12: hex(SNOW.lit),
+  13: hex(SAND.light),
   14: '#d9461c',
-  15: '#c4e2ec',
+  15: '#c6d6d3',
 }
 
+/** Wetland ground: reed olive gone brown with mud. */
+const MARSH: Rgb = [104, 102, 70]
+/** Jungle: a deeper, wetter green than the forest's moss. */
+const JUNGLE: Rgb = [40, 86, 40]
+/** Taiga: the forest's green gone cold and blue. */
+const TAIGA: Rgb = [58, 84, 84]
+
+/**
+ * Each biome's tint over the ground, as `rgba(r,g,b,strength)`. Every biome has its own hue so
+ * neighbouring biomes stay apart: moss forest, deep wet jungle, cold blue-green taiga, gold savanna,
+ * rust badlands, ochre desert, grey-green tundra, reed-olive wetland, ash-dark volcanic land.
+ */
 export const BIOME_OVERLAYS: Record<number, string> = {
-  0: 'rgba(80,140,60,0.08)',
-  1: 'rgba(30,79,58,0.24)',
-  2: 'rgba(200,160,60,0.28)',
-  3: 'rgba(36,111,103,0.23)',
-  4: 'rgba(200,230,255,0.10)',
-  5: 'rgba(160,40,20,0.18)',
-  // Jungle: deep wet green. Savanna: sun-bleached gold.
-  6: 'rgba(16,78,34,0.34)',
-  7: 'rgba(196,170,72,0.30)',
-  // Taiga: cold blue-green. Badlands: rust red.
-  8: 'rgba(40,82,78,0.30)',
-  9: 'rgba(186,84,44,0.42)',
+  0: tone(GRASS.lush, 0.2),
+  1: tone(FOREST.mid, 0.62),
+  2: tone(SAND.desert, 0.62),
+  3: tone(MARSH, 0.62),
+  4: tone(BIOME_TONES.tundra, 0.55),
+  5: tone(BIOME_TONES.volcanic, 0.72),
+  6: tone(JUNGLE, 0.66),
+  7: tone(BIOME_TONES.savanna, 0.55),
+  8: tone(TAIGA, 0.62),
+  9: tone(BIOME_TONES.badlands, 0.62),
+}
+
+function tone([r, g, b]: Rgb, strength: number): string {
+  return `rgba(${r},${g},${b},${strength})`
 }
 
 export function parseHex(h: string): [number, number, number] {
@@ -106,11 +126,12 @@ export const THOUGHT_COLORS: Record<string, string> = {
   'marking the homeland': '#e8b050',
 }
 
+/** How each season colours the grassy ground: summer's deep olive, spring's sage, autumn's ochre, winter's straw. */
 export const SEASON_LAND_TINT: Record<string, { rgb: [number, number, number]; w: number }> = {
-  abundance: { rgb: [58, 138, 66], w: 0.22 },
-  recovery: { rgb: [92, 150, 64], w: 0.3 },
-  decline: { rgb: [150, 118, 44], w: 0.42 },
-  scarcity: { rgb: [128, 102, 56], w: 0.52 },
+  abundance: { rgb: [98, 122, 58], w: 0.2 },
+  recovery: { rgb: [124, 146, 80], w: 0.26 },
+  decline: { rgb: [168, 132, 64], w: 0.44 },
+  scarcity: { rgb: [138, 120, 88], w: 0.52 },
   /** A hard winter: frost over everything. */
-  hard_winter: { rgb: [196, 206, 212], w: 0.58 },
+  hard_winter: { rgb: [208, 212, 204], w: 0.6 },
 }

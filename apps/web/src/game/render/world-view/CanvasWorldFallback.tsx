@@ -11,6 +11,10 @@ import { LOW_PERF } from '../../../shared/perf'
 import { logger } from '../../../shared/logger'
 import { zoomDetailLevel } from '../character-visuals'
 import { TILE } from '../../model/palette'
+import { OCEAN, hex } from '../art-palette'
+
+/** Past the map the sea stays in its deepest band. */
+const WORLD_EDGE = hex(OCEAN.abyss)
 
 export function CanvasWorldFallback({
   world,
@@ -189,7 +193,7 @@ export function CanvasWorldFallback({
         r1: Math.min(w.grid.height, Math.ceil((cam.y + halfH) / TILE) + 4),
       }
       ctx.setTransform(1, 0, 0, 1, 0, 0)
-      ctx.fillStyle = '#1a4a80'
+      ctx.fillStyle = WORLD_EDGE
       ctx.fillRect(0, 0, canvas.width, canvas.height)
       ctx.setTransform(
         dpr * zoom,

@@ -59,15 +59,17 @@ function world(over: Partial<WorldState> = {}): WorldState {
 const bounds = { c0: 0, c1: 100, r0: 0, r1: 60 }
 
 describe('settlement labels without the building painter', () => {
-  it('names towns and cities, skipping camps and places out of view', () => {
+  it('letters settlement names in capitals, skipping camps and places out of view', () => {
     const labels = collectSettlementLabels(world(), bounds, 1)
-    expect(labels.map((l) => l.title)).toEqual(['Rok village', 'MALA CITY'])
+    expect(labels.map((l) => l.title)).toEqual(['ROK', 'MALA'])
     expect(labels[1].major).toBe(true)
-    expect(labels[0].sub).toBe('12 people · 6 buildings')
+    expect(labels[0].sub).toBe('')
   })
 
-  it('keeps only cities when zoomed far out', () => {
-    expect(collectSettlementLabels(world(), bounds, 0.3).map((l) => l.title)).toEqual(['MALA CITY'])
+  it('fades smaller names in near the overview zoom instead of popping in', () => {
+    expect(collectSettlementLabels(world(), bounds, 0.3).map((l) => l.title)).toEqual(['MALA'])
+    expect(collectSettlementLabels(world(), bounds, 0.72)[0]?.alpha).toBeCloseTo(0.25)
+    expect(collectSettlementLabels(world(), bounds, 1)[0]?.alpha).toBe(1)
   })
 
   it('always names a tribe on the brink, with what threatens it', () => {
@@ -85,7 +87,7 @@ describe('settlement labels without the building painter', () => {
     const labels = collectSettlementLabels(world(), bounds, 1)
     const placed = placeLabels(labels, 1, (t) => t.length * 6, 1600, 800)
     expect(placed).toHaveLength(2)
-    expect(placed[0].title).toBe('MALA CITY')
+    expect(placed[0].title).toBe('MALA')
     const [a, b] = placed
     const overlap = Math.abs(a.cx - b.cx) * 2 < a.w + b.w && Math.abs(a.cy - b.cy) * 2 < a.h + b.h
     expect(overlap).toBe(false)

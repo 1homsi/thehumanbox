@@ -102,10 +102,11 @@ function hash2(a: number, b: number): number {
 }
 
 /**
- * The additive texture term `k` of the canvas painter for pixel (gx, gy) of a tile whose texture
- * rules are those of `tid`. Same maths as `paintTileBlock`.
+ * The additive texture term `k` for pixel (gx, gy) of a tile whose texture rules are those of `tid`.
+ * Water has none: its depth bands are flat fills, and the contour sprites over them must match.
  */
 export function textureTerm(tid: number, gx: number, gy: number): number {
+  if (tid === TILE_ID.WATER) return 0
   const clusterX = gx >> 1
   const clusterY = gy >> 1
   let h = (clusterX * 374761393 + clusterY * 668265263) | 0

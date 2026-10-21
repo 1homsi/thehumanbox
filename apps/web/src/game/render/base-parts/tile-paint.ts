@@ -1,8 +1,9 @@
-import { TILE_ID, isPermanentWaterTile, isWaterTile } from '../../model/terrain-ids'
-import { baseTerrainTile, permanentWaterDepth } from '../../model/terrain-visuals'
-import { oceanColor } from '../landscape-style'
+import { BIOME_ID, TILE_ID, isPermanentWaterTile, isWaterTile } from '../../model/terrain-ids'
+import { baseTerrainTile } from '../../model/terrain-visuals'
+import { OCEAN_BANDS, seaBandAt } from '../landscape-style'
+import { FRESH_WATER, GRASS, type Rgb } from '../art-palette'
 import { TILE_RGB, BIOME_RGBA, SEASON_LAND_TINT } from '../../model/palette'
-import { biomePatchNoise, macroNoise, macroNoiseFine } from './noise'
+import { biomePatchNoise, dryNoise, macroNoise, macroNoiseFine } from './noise'
 
 export function varAmountForTile(tid: number): number {
   if (tid === 2 || tid === 9) return 2
@@ -91,42 +92,41 @@ export function tileColor(
 ): number {
   const height = tiles.length
   const tileRow = tiles[row]
-  const depthRow = depth_map?.[row]
   const tileRowPrev = row > 0 ? tiles[row - 1] : undefined
   const tileRowNext = row + 1 < height ? tiles[row + 1] : undefined
   const rawTid = tileRow?.[col] ?? TILE_ID.VOID
   const tid = baseTerrainTile(rawTid)
-  const rgb = TILE_RGB[tid] ?? TILE_RGB[0]
-  let r = rgb[0]
-  let g = rgb[1]
-  let b = rgb[2]
 
   const isWater = isWaterTile(rawTid)
-  const isPermanentWater = isPermanentWaterTile(rawTid)
-  const wN = tileRowPrev?.[col]
-  const wS = tileRowNext?.[col]
-  const wW = col > 0 ? tileRow?.[col - 1] : undefined
-  const wE = tileRow?.[col + 1]
-  const touchesLand =
-    (wN !== undefined && !isWaterTile(wN)) ||
-    (wS !== undefined && !isWaterTile(wS)) ||
-    (wW !== undefined && !isWaterTile(wW)) ||
-    (wE !== undefined && !isWaterTile(wE))
-
-  const visualDepth = permanentWaterDepth(rawTid, depthRow?.[col])
-  if (visualDepth !== null) {
-    const ocean = oceanColor(visualDepth)
-    r = ocean[0]
-    g = ocean[1]
-    b = ocean[2]
+  if (isPermanentWaterTile(rawTid)) {
+    // Water is flat: the sea in its chart band, rivers and lakes in fresh water, darker away from
+    // the bank. The contours between bands and the surf are sprites over it (sea-chart.ts).
+    const band = seaBandAt(tiles, depth_map, row, col)
+    let rgb: Rgb
+    if (band >= 0) rgb = OCEAN_BANDS[band]
+    else {
+      const wN = tileRowPrev?.[col]
+      const wS = tileRowNext?.[col]
+      const wW = col > 0 ? tileRow?.[col - 1] : undefined
+      const wE = tileRow?.[col + 1]
+      const touchesLand =
+        (wN !== undefined && !isWaterTile(wN)) ||
+        (wS !== undefined && !isWaterTile(wS)) ||
+        (wW !== undefined && !isWaterTile(wW)) ||
+        (wE !== undefined && !isWaterTile(wE))
+      rgb = touchesLand ? FRESH_WATER.mid : FRESH_WATER.deep
+    }
+    out[0] = rgb[0]
+    out[1] = rgb[1]
+    out[2] = rgb[2]
+    out[3] = 0
+    return tid
   }
 
-  if (isPermanentWater && touchesLand) {
-    r = (r * 0.68 + SHALLOW_RGB[0] * 0.32) | 0
-    g = (g * 0.68 + SHALLOW_RGB[1] * 0.32) | 0
-    b = (b * 0.68 + SHALLOW_RGB[2] * 0.32) | 0
-  }
-
+  const base = TILE_RGB[tid] ?? TILE_RGB[0]
+  let r = base[0]
+  let g = base[1]
+  let b = base[2]
   if (!isWater && tid !== TILE_ID.ROCK && tid !== TILE_ID.SNOW) {
     biomeOverlayAt(biomeScratch, biomes, row, col)
     const a = biomeScratch[3]
@@ -135,6 +135,19 @@ export function tileColor(
       r = (r * ia + biomeScratch[0] * a) | 0
       g = (g * ia + biomeScratch[1] * a) | 0
       b = (b * ia + biomeScratch[2] * a) | 0
+    }
+  }
+  if (tid === TILE_ID.GRASS) {
+    // Open grass dries to ochre in patches; forest, jungle and wetland stay green.
+    const biome = biomes?.[row]?.[col]
+    if (biome === BIOME_ID.GRASSLAND || biome === BIOME_ID.SAVANNA) {
+      const dry = dryNoise.at(col / 25 + 31, row / 25 + 17)
+      if (dry > 0.55) {
+        const w = dry > 0.8 ? 0.6 : (dry - 0.55) * 2.4
+        r = (r + (GRASS.dry[0] - r) * w) | 0
+        g = (g + (GRASS.dry[1] - g) * w) | 0
+        b = (b + (GRASS.dry[2] - b) * w) | 0
+      }
     }
   }
 
@@ -160,5 +173,3 @@ export function tileColor(
   out[3] = shading
   return tid
 }
-
-export const SHALLOW_RGB: [number, number, number] = [116, 198, 208]

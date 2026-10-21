@@ -2,7 +2,7 @@ import { TILE } from '../../../model/palette'
 import { prayerTimeLeft } from '../../../model/prayers'
 import { drawPrayerBubble, mergePrayerBubbles, prayerBubbleScale } from '../../prayer-bubbles'
 import { drawPrayerFeedback, updatePrayerFeedback } from '../../prayer-feedback'
-import { drawSettlementLabels, subFont, titleFont, type PlacedLabel } from '../../settlement-labels'
+import { drawSettlementLabels, titleFont, type LabelKind, type PlacedLabel } from '../../settlement-labels'
 import { drawBlessings, drawFireworks, updateWorldMoments } from '../../world-moments'
 import type { CfFrame } from './frame'
 import { painterView } from './frame'
@@ -15,8 +15,8 @@ export function paintHud(ctx: Ctx, f: CfFrame, opts: { grid: boolean }): { label
   const { world, viewFlags, zoom, ox, oy, t, bounds } = f
   let placed: PlacedLabel[] = []
   if (!viewFlags.hideUI) {
-    const measure = (text: string, kind: 'major' | 'minor' | 'sub') => {
-      ctx.font = kind === 'sub' ? subFont(1) : titleFont(kind === 'major', 1)
+    const measure = (text: string, kind: LabelKind) => {
+      ctx.font = titleFont(kind, 1)
       return ctx.measureText(text).width
     }
     placed = placeLabels(collectSettlementLabels(world, bounds, zoom), zoom, measure, f.W, f.H)

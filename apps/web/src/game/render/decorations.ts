@@ -1,4 +1,5 @@
-import { shorelineColors, vegetationSeason, landscapeHash } from './landscape-style'
+import { isFreshWaterAt, shorelineColors, vegetationSeason, landscapeHash } from './landscape-style'
+import { FRESH_WATER, OCEAN, SHADOW, hex } from './art-palette'
 /**
  * Cosmetic / atmospheric decorations rendered onto the 2D world
  * canvas: trees (drawn into the cached base layer), clouds, and
@@ -501,9 +502,10 @@ export function paintDecorTile(
 
 /**
  * The shoreline work of one tile, painted with its top-left at (px, py): beach banks on land
- * next to permanent water, a bright rim on shallow water next to land, mud marks on floodwater.
- * Permanent water creates beaches and shallow rims; temporary floodwater stays a separate muddy
- * overlay. Which edges and colours are drawn depends only on `shoreTileKey`.
+ * next to permanent water, a thin surf line on sea next to land (a pale bank line on rivers and
+ * lakes), mud marks on floodwater. Permanent water creates beaches and surf; temporary floodwater
+ * stays a separate muddy overlay. Which edges and colours are drawn depends only on `shoreTileKey`.
+ * Without a depth map every shore counts as sea.
  */
 export function paintShoreTile(
   ctx: CanvasRenderingContext2D,
@@ -515,6 +517,7 @@ export function paintShoreTile(
   originY: number,
   px: number,
   py: number,
+  depth?: number[][],
 ) {
   const t = tiles[y]?.[x]
   if (t === undefined) return
@@ -527,7 +530,8 @@ export function paintShoreTile(
     if (beach & EDGE_SOUTH) ctx.fillRect(px, py + TILE - 2, TILE, 2)
     if (beach & EDGE_WEST) ctx.fillRect(px, py, 2, TILE)
     if (beach & EDGE_EAST) ctx.fillRect(px + TILE - 2, py, 2, TILE)
-    ctx.fillStyle = 'rgba(53,66,48,0.48)'
+    // Banks facing away from the light (south and east) are in shade.
+    ctx.fillStyle = BANK_SHADE
     if (beach & EDGE_SOUTH) ctx.fillRect(px, py + TILE - 2, TILE, 2)
     if (beach & EDGE_EAST) ctx.fillRect(px + TILE - 2, py, 2, TILE)
     ctx.fillStyle = rim
@@ -538,7 +542,7 @@ export function paintShoreTile(
   } else if (t === TILE_ID.WATER) {
     const shore = permanentWaterLandEdgeMask(tiles, y, x)
     if (shore === 0) return
-    ctx.fillStyle = 'rgba(145,220,222,0.42)'
+    ctx.fillStyle = depth && isFreshWaterAt(tiles, depth, y, x) ? FRESH_BANK_LINE : SURF
     if (shore & EDGE_NORTH) ctx.fillRect(px, py, TILE, 1)
     if (shore & EDGE_SOUTH) ctx.fillRect(px, py + TILE - 1, TILE, 1)
     if (shore & EDGE_WEST) ctx.fillRect(px, py, 1, TILE)
@@ -551,6 +555,9 @@ export function paintShoreTile(
     ctx.fillRect(px + 3, py + 5, 3, 1)
   }
 }
+const BANK_SHADE = `rgba(${SHADOW.rgb.join(',')},${SHADOW.alpha})`
+const SURF = hex(OCEAN.surf)
+const FRESH_BANK_LINE = hex(FRESH_WATER.edge)
 
 /**
  * Everything `paintShoreTile` draws for this tile, as a string, or null when it draws nothing.
@@ -563,6 +570,7 @@ export function shoreTileKey(
   y: number,
   originX: number,
   originY: number,
+  depth?: number[][],
 ): string | null {
   const t = tiles[y]?.[x]
   if (t === undefined) return null
@@ -574,7 +582,8 @@ export function shoreTileKey(
   }
   if (t === TILE_ID.WATER) {
     const shore = permanentWaterLandEdgeMask(tiles, y, x)
-    return shore === 0 ? null : `S|${shore}`
+    if (shore === 0) return null
+    return `${depth && isFreshWaterAt(tiles, depth, y, x) ? 'F' : 'S'}|${shore}`
   }
   return `M|${(landscapeHash(x + originX, y + originY) >>> 8) & 1}`
 }

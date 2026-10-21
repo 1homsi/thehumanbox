@@ -447,6 +447,7 @@ export class CfOverlayRenderer {
     const settlementLabels = this.settlementLabels
 
     // Names, thoughts, work poses and prayer glyphs go above the people; town names claim space first.
+    this.names.follow(extras.people)
     const labelsKey = `${animatedKey}|${extras.selectedId ?? ''}|${f.focus}|${f.viewFlags.names ? 1 : 0}|${f.viewFlags.thoughts ? 1 : 0}|${f.viewFlags.hideUI ? 1 : 0}`
     if (labelsKey !== this.labelsKey || extras.people !== this.labelsPeople) {
       this.labelsKey = labelsKey
@@ -574,7 +575,9 @@ export class CfOverlayRenderer {
   private addTint(tint: Tint, W: number, H: number): void {
     if (tint.a <= 0) return
     const layer = this.tintLayer
-    const i = layer.add(W / 2, H / 2, W, H)
+    // The open sea past the map's edge takes the same light, so the edge never shows as a rectangle.
+    const reach = 2 * Math.max(W, H)
+    const i = layer.add(W / 2, H / 2, W + 2 * reach, H + 2 * reach)
     layer.color[i] = packRgba(tint.r, tint.g, tint.b, tint.a)
     layer.flags[i] = SPRITE_UNTEXTURED
   }
