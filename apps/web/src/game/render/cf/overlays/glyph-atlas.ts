@@ -6,7 +6,11 @@ export type Weight = 'normal' | 'bold'
 export const GLYPH_BUCKETS = [9, 14, 22, 36] as const
 
 const COLS = 16
-const ROWS = 10
+// Fork: 24 rows (384 glyphs) instead of 10. Russian labels mix Cyrillic (66
+// letters with Ё/ё) with the Latin names of tribes and people, digits and
+// symbols, about 150 glyphs, and a full atlas draws new glyphs as blanks. The
+// largest bucket (36 px) is then about 416 x 1180 texels.
+const ROWS = 24
 const CAPACITY = COLS * ROWS
 const PAD = 2
 
