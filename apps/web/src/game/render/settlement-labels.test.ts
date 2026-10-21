@@ -27,7 +27,8 @@ describe('settlement labels', () => {
   it('stay readable on screen when the camera zooms out', () => {
     expect(labelScale(4)).toBe(0.75)
     expect(labelScale(1)).toBe(1)
-    expect(labelScale(0.25)).toBe(4)
+    // Zoomed all the way out the lettering is 60% of its usual screen size, so names do not cover the map.
+    expect(labelScale(0.25)).toBeCloseTo(4 * 0.6)
   })
 
   it('sets lettering size and spacing by settlement rank', () => {
@@ -66,6 +67,24 @@ describe('settlement labels', () => {
     // Four names cannot all fit around one spot; the least important waits.
     expect(placed.length).toBeLessThan(towns.length)
     expect(placed.some((p) => p.title === 'small village')).toBe(false)
+  })
+
+  it('keeps two tribes in peril from printing their warnings over each other', () => {
+    const peril = (title: string, y: number): SettlementLabel => ({
+      ...town(title, 500, y, 30),
+      alert: true,
+      sub: '⚠ only 5 left · no one is left to raise children',
+    })
+    const placed = placeSettlementLabels(
+      [peril('HUFEGJA', 300), peril('SAWKIL', 318)],
+      1,
+      measure,
+      bounds,
+      16,
+    )
+    expect(placed).toHaveLength(2)
+    expect(overlaps(placed[0]!, placed[1]!)).toBe(false)
+    expect(placed[0]!.h).toBeGreaterThan(placed[0]!.titleH)
   })
 
   it('places every label when towns are far apart', () => {

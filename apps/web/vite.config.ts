@@ -1,7 +1,10 @@
 import { defineConfig, type Plugin, type ResolvedConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { createHash } from 'node:crypto'
+import { readdirSync, readFileSync } from 'node:fs'
 import { readdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 function emitVersionJson(): Plugin {
   let outDir: string
@@ -33,6 +36,30 @@ function emitVersionJson(): Plugin {
  * generateBundle for config-level JS plugins.
  */
 const SPRITE_SHEETS = ['sprites/people/people.png', 'sprites/fauna.png']
+
+/**
+ * A short hash of every sheet under public/sprites, keyed by its path from public/. The app asks for each sheet with
+ * `?v=<hash>` (src/shared/sprite-url.ts): the files keep fixed names and are cached for a day, so a redrawn sheet must
+ * be a new URL or players get the old image under the new code that reads it.
+ */
+function spriteVersions(): Record<string, string> {
+  const publicDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public')
+  const versions: Record<string, string> = {}
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(path.join(publicDir, dir), { withFileTypes: true })) {
+      const rel = `${dir}/${entry.name}`
+      if (entry.isDirectory()) walk(rel)
+      else if (entry.name.endsWith('.png'))
+        versions[rel] = createHash('sha256')
+          .update(readFileSync(path.join(publicDir, rel)))
+          .digest('hex')
+          .slice(0, 10)
+    }
+  }
+  walk('sprites')
+  return versions
+}
+const SPRITE_VERSIONS = spriteVersions()
 
 function preloadSimAssets(): Plugin {
   const base = process.env.VITE_DESKTOP === '1' ? './' : '/'
@@ -80,7 +107,9 @@ function preloadSimAssets(): Plugin {
       // The sprite sheets are read on the GPU path as soon as WorldView evaluates. Hint them here, after the wasm, at
       // low priority so they queue behind it.
       for (const sheet of SPRITE_SHEETS) {
-        tags.push(`<link rel="preload" href="${base}${sheet}" as="image" fetchpriority="low" />`)
+        // The same URL the app asks for (src/shared/sprite-url.ts), so the preload is the request it uses.
+        const href = `${base}${sheet}?v=${SPRITE_VERSIONS[sheet]}`
+        tags.push(`<link rel="preload" href="${href}" as="image" fetchpriority="low" />`)
       }
       const next = html.replace('</head>', `  ${tags.join('\n  ')}\n</head>`)
       if (next !== html) await writeFile(htmlPath, next, 'utf8')
@@ -90,6 +119,7 @@ function preloadSimAssets(): Plugin {
 
 export default defineConfig({
   plugins: [react(), emitVersionJson(), preloadSimAssets()],
+  define: { __SPRITE_VERSIONS__: JSON.stringify(SPRITE_VERSIONS) },
 
   // Web is served at root with a Cloudflare SPA-fallback (any deep URL
   // returns /index.html), so absolute /assets/... is the only safe form

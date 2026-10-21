@@ -17,7 +17,8 @@
 /version.json
   Cache-Control: public, max-age=0, must-revalidate
 
-# Unhashed static art. Cached for a day so repeat visits stay fast,
-# but a deploy replaces it within a day at worst.
+# Static art keeps fixed names and is cached for a day. The app asks for
+# each sheet with ?v=<hash of the file> (src/shared/sprite-url.ts), so a
+# redrawn sheet is a new URL and never comes from a stale cache.
 /sprites/*
   Cache-Control: public, max-age=86400
