@@ -72,6 +72,7 @@ function harness(options: { failWindow?: boolean } = {}) {
       if (id === './app-version-arg') return { appVersionArgument: (v: string) => `--thb-app-version=${v}` }
       if (id === './app-icon') return { appIconPath: () => '/tmp/icon.png' }
       if (id === 'node:path') return path
+      if (id === './i18n') return require(path.join(__dirname, 'i18n'))
       if (id === './renderer-load') return require(path.join(__dirname, 'renderer-load'))
       return {}
     },

@@ -30,6 +30,8 @@ export interface DesktopBridge {
     pickSaveDir(): Promise<string | null>;
     checkForUpdates(): Promise<unknown>;
     installUpdate(): Promise<unknown>;
+    /** Fork: the interface language the game runs in, for the menus and dialogs. */
+    setLocale(locale: string): Promise<void>;
   };
 
   world: {
@@ -93,6 +95,7 @@ const bridge: DesktopBridge = {
     pickSaveDir: () => ipcRenderer.invoke("app:pickSaveDir"),
     checkForUpdates: () => ipcRenderer.invoke("app:checkForUpdates"),
     installUpdate: () => ipcRenderer.invoke("app:installUpdate"),
+    setLocale: (locale) => ipcRenderer.invoke("app:setLocale", locale),
   },
 
   world: {

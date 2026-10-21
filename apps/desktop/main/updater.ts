@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog } from 'electron'
 import { autoUpdater, UpdateDownloadedEvent, UpdateInfo } from 'electron-updater'
 import { loadSettings } from './settings'
+import { tr } from './i18n'
 import { appBundleFromExe, hasDeveloperIdSignature, startUnsignedMacInstall } from './mac-unsigned-install'
 
 export type UpdateCheckStatus = 'checking' | 'available' | 'downloaded' | 'up-to-date' | 'unsupported' | 'error'
@@ -36,12 +37,12 @@ function installNow(): UpdateCheckResult {
     return latestStatus
   }
   if (!downloadedFile) {
-    return { ...latestStatus, message: 'The downloaded update file is missing. Check for updates again.' }
+    return { ...latestStatus, message: tr('updateFileMissing') }
   }
   const result = startUnsignedMacInstall(downloadedFile, process.execPath, process.pid)
   if (!result.started) {
-    const message = result.message ?? 'The update could not be installed.'
-    void dialog.showMessageBox({ type: 'error', title: 'Update failed', message: 'The update could not be installed.', detail: message })
+    const message = result.message ?? tr('updateFailed')
+    void dialog.showMessageBox({ type: 'error', title: tr('updateFailedTitle'), message: tr('updateFailed'), detail: message })
     return { ...latestStatus, message }
   }
   setImmediate(() => app.quit())
@@ -100,12 +101,12 @@ export function initUpdater(getWindow: () => BrowserWindow | null): void {
     promptedVersion = info.version
     const { response } = await dialog.showMessageBox({
       type: 'info',
-      buttons: ['Restart and update', 'Later'],
+      buttons: [tr('updateRestart'), tr('updateLater')],
       defaultId: 0,
       cancelId: 1,
-      title: 'Update ready',
-      message: `Version ${info.version} is ready to install.`,
-      detail: 'The app will restart and apply the update.',
+      title: tr('updateReadyTitle'),
+      message: tr('updateReady', { version: info.version }),
+      detail: tr('updateReadyDetail'),
     })
     if (response === 0) installNow()
   })

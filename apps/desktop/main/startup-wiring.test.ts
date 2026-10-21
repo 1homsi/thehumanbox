@@ -170,6 +170,7 @@ function loadIndex(options: {
       if (id === "./login-launch") return { loginItemSettings: () => ({}) };
       if (id === "node:fs") return { readFileSync: () => { throw new Error("no saved bounds"); } };
       if (id === "node:path") return path;
+      if (id === "./i18n") return require(path.join(__dirname, "i18n"));
       if (id === "./renderer-csp") return rendererCsp;
       return {};
     },

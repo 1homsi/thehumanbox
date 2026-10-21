@@ -3,6 +3,7 @@
 // failure only produced a rejected promise that the menu click swallowed. The
 // decision logic lives here so the menu action can offer a no-checkpoint retry
 // and a test can pin the messages.
+import { tr } from "./i18n";
 import { CHECKPOINT_FAILED_ERROR } from "./sim-errors";
 
 /** The button that restarts without waiting for a checkpoint. */
@@ -36,11 +37,9 @@ export function restartFailurePrompt(error: unknown): RestartFailurePrompt {
   const detail = errorText(error);
   if (isCheckpointFailure(error)) {
     return {
-      message: "Could not restart the simulation",
-      detail:
-        `${detail}\n\nThe simulation may be hung. Restarting without a checkpoint ` +
-        "loses up to about a minute of play.",
-      buttons: [NO_CHECKPOINT_BUTTON, "Cancel"],
+      message: tr("restartFailed"),
+      detail: tr("restartHungDetail", { detail }),
+      buttons: [tr("noCheckpoint"), tr("cancel")],
       // Cancel is the default: the retry gives up up to a minute of play.
       defaultId: 1,
       cancelId: 1,
@@ -48,9 +47,9 @@ export function restartFailurePrompt(error: unknown): RestartFailurePrompt {
     };
   }
   return {
-    message: "Could not restart the simulation",
+    message: tr("restartFailed"),
     detail,
-    buttons: ["OK"],
+    buttons: [tr("ok")],
     defaultId: 0,
     cancelId: 0,
     canRetryWithoutCheckpoint: false,

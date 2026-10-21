@@ -55,6 +55,7 @@ import {
   initUpdater,
   installDownloadedUpdate,
 } from "./updater";
+import { isUiLocale, loadUiLocale, setUiLocale, tr } from "./i18n";
 
 app.setName("The Human Box RU");
 
@@ -129,15 +130,15 @@ function persistWindowState(win: BrowserWindow): void {
 
 function renderBootError(
   detail: string,
-  heading = "The Human Box couldn't start the local simulation",
-  hint = "Check the logs for details, then restart the local simulation from Settings.",
+  heading = tr("bootSimHeading"),
+  hint = tr("bootSimHint"),
 ): string {
   const safe = detail.replace(
     /[<>&]/g,
     (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c]!,
   );
   return `data:text/html;charset=utf-8,${encodeURIComponent(`
-<!doctype html><html><head><meta charset="utf-8"><title>The Human Box — startup error</title>
+<!doctype html><html><head><meta charset="utf-8"><title>${tr("bootTitle")}</title>
 <style>
   html,body{margin:0;background:#0c0a08;color:#f5e9d4;font:14px/1.5 ui-monospace,monospace}
   .wrap{padding:24px;max-width:780px;margin:0 auto}
@@ -148,7 +149,7 @@ function renderBootError(
 </style></head><body><div class="wrap">
 <h1>${heading}</h1>
 <pre>${safe}</pre>
-<p>Open DevTools with <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>I</kbd> (macOS) or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> (Win/Linux) for more.</p>
+<p>${tr("bootDevTools")}</p>
 <p>${hint}</p>
 </div></body></html>`)}`;
 }
@@ -171,8 +172,8 @@ async function createWindow(): Promise<void> {
     console.error("[main] could not read settings:", err);
     bootErrorUrl = renderBootError(
       msg,
-      "The Human Box couldn't read its settings",
-      "Repair or remove the file named above, then relaunch. Your existing worlds are untouched.",
+      tr("bootSettingsHeading"),
+      tr("bootSettingsHint"),
     );
   }
 
@@ -403,63 +404,77 @@ function buildMenu(): void {
     ...(isMac
       ? [
           {
-            label: "The Human Box",
+            label: tr("appName"),
             submenu: [
-              { role: "about" as const },
+              { role: "about" as const, label: tr("menuAbout") },
               { type: "separator" as const },
               {
-                label: "Settings…",
+                label: tr("menuSettings"),
                 accelerator: "Cmd+,",
                 click: () => mainWindow?.webContents.send("menu:openSettings"),
               },
               { type: "separator" as const },
-              { role: "services" as const },
+              { role: "services" as const, label: tr("menuServices") },
               { type: "separator" as const },
-              { role: "hide" as const },
-              { role: "hideOthers" as const },
-              { role: "unhide" as const },
+              { role: "hide" as const, label: tr("menuHide") },
+              { role: "hideOthers" as const, label: tr("menuHideOthers") },
+              { role: "unhide" as const, label: tr("menuShowAll") },
               { type: "separator" as const },
-              { role: "quit" as const },
+              { role: "quit" as const, label: tr("menuQuit") },
             ],
           },
         ]
       : []),
     {
-      label: "File",
+      label: tr("menuFile"),
       submenu: [
         {
-          label: "Reload",
+          label: tr("menuReload"),
           accelerator: isMac ? "Cmd+R" : "Ctrl+R",
           click: () => mainWindow?.reload(),
         },
         {
-          label: "Restart simulation",
+          label: tr("menuRestartSim"),
           click: () =>
             void restartSimulationFromMenu().catch((err) =>
               console.error("[main] restart menu failed:", err),
             ),
         },
-        isMac ? { role: "close" as const } : { role: "quit" as const },
+        isMac
+          ? { role: "close" as const, label: tr("menuCloseWindow") }
+          : { role: "quit" as const, label: tr("menuQuit") },
       ],
     },
-    { role: "editMenu" },
     {
-      label: "View",
+      role: "editMenu",
+      label: tr("menuEdit"),
+      submenu: [
+        { role: "undo", label: tr("menuUndo") },
+        { role: "redo", label: tr("menuRedo") },
+        { type: "separator" },
+        { role: "cut", label: tr("menuCut") },
+        { role: "copy", label: tr("menuCopy") },
+        { role: "paste", label: tr("menuPaste") },
+        { role: "selectAll", label: tr("menuSelectAll") },
+      ],
+    },
+    {
+      label: tr("menuView"),
       submenu: [
         {
-          label: "Toggle DevTools",
+          label: tr("menuDevTools"),
           accelerator: isMac ? "Cmd+Alt+I" : "Ctrl+Shift+I",
           click: toggleDevTools,
         },
         { type: "separator" },
-        { role: "resetZoom" },
-        { role: "zoomIn" },
-        { role: "zoomOut" },
+        { role: "resetZoom", label: tr("menuActualSize") },
+        { role: "zoomIn", label: tr("menuZoomIn") },
+        { role: "zoomOut", label: tr("menuZoomOut") },
         { type: "separator" },
-        { role: "togglefullscreen" },
+        { role: "togglefullscreen", label: tr("menuFullScreen") },
         { type: "separator" },
         {
-          label: "Always on top",
+          label: tr("menuAlwaysOnTop"),
           type: "checkbox",
           checked: mainWindow ? mainWindow.isAlwaysOnTop() : false,
           accelerator: isMac ? "Cmd+Shift+T" : "Ctrl+Shift+T",
@@ -469,12 +484,12 @@ function buildMenu(): void {
           },
         },
         {
-          label: "Screenshot",
+          label: tr("menuScreenshot"),
           accelerator: isMac ? "Cmd+Shift+S" : "Ctrl+Shift+S",
           click: () => {
             void captureScreenshot().then((fp) => {
               if (fp) {
-                notifyMilestone("Screenshot saved", fp);
+                notifyMilestone(tr("screenshotSaved"), fp);
                 shell.showItemInFolder(fp);
               }
             });
@@ -482,17 +497,31 @@ function buildMenu(): void {
         },
       ],
     },
-    { role: "windowMenu" },
+    {
+      role: "windowMenu",
+      label: tr("menuWindow"),
+      submenu: [
+        { role: "minimize", label: tr("menuMinimize") },
+        { role: "zoom", label: tr("menuZoom") },
+        ...(isMac
+          ? [
+              { type: "separator" as const },
+              { role: "front" as const, label: tr("menuFront") },
+            ]
+          : [{ role: "close" as const, label: tr("menuCloseWindow") }]),
+      ],
+    },
     {
       role: "help",
+      label: tr("menuHelp"),
       submenu: [
         {
-          label: "Open GitHub",
+          label: tr("menuOpenGitHub"),
           click: () =>
             void shell.openExternal("https://github.com/alklimover/thehumanbox"),
         },
         {
-          label: "Original project (1homsi/thehumanbox)",
+          label: tr("menuOriginal"),
           click: () =>
             void shell.openExternal("https://github.com/1homsi/thehumanbox"),
         },
@@ -537,40 +566,40 @@ function buildTray(): void {
           {
             label:
               mainWindow && mainWindow.isVisible()
-                ? "Hide window"
-                : "Show window",
+                ? tr("trayHide")
+                : tr("trayShow"),
             click: () => toggleWindow(),
           },
           { type: "separator" },
           {
-            label: "Take screenshot",
+            label: tr("trayScreenshot"),
             click: () =>
               void captureScreenshot().then((fp) => {
                 if (fp) {
-                  notifyMilestone("Screenshot saved", fp);
+                  notifyMilestone(tr("screenshotSaved"), fp);
                   shell.showItemInFolder(fp);
                 }
               }),
           },
           {
-            label: "Open worlds folder",
+            label: tr("trayWorlds"),
             click: () => {
               void openWorldsFolder().catch((error) => {
                 console.error("[main] could not open worlds folder:", error);
                 notifyMilestone(
-                  "Worlds folder unavailable",
+                  tr("worldsUnavailable"),
                   (error as Error).message,
                 );
               });
             },
           },
           {
-            label: "Open logs folder",
+            label: tr("trayLogs"),
             click: () => {
               void openLogsFolder().catch((error) => {
                 console.error("[main] could not open logs folder:", error);
                 notifyMilestone(
-                  "Logs folder unavailable",
+                  tr("logsUnavailable"),
                   (error as Error).message,
                 );
               });
@@ -578,7 +607,7 @@ function buildTray(): void {
           },
           { type: "separator" },
           {
-            label: "Always on top",
+            label: tr("menuAlwaysOnTop"),
             type: "checkbox",
             checked: mainWindow ? mainWindow.isAlwaysOnTop() : false,
             click: (item) => {
@@ -587,17 +616,16 @@ function buildTray(): void {
             },
           },
           {
-            label: "About The Human Box",
+            label: tr("trayAbout"),
             click: () => {
-              const ver = app.getVersion();
               notifyMilestone(
-                "The Human Box",
-                `v${ver}\nA persistent artificial-life simulation.\nBased on The Human Box by Mohamad Homsi.`,
+                tr("appName"),
+                tr("trayAboutBody", { version: app.getVersion() }),
               );
             },
           },
           { type: "separator" },
-          { label: "Quit The Human Box", role: "quit" },
+          { label: tr("trayQuit"), role: "quit" },
         ]),
       );
     };
@@ -626,7 +654,7 @@ function openWindowOrReport(): Promise<void> {
     console.error("[main] could not open the window:", err);
     if (!isQuitting) {
       dialog.showErrorBox(
-        "The Human Box couldn't open its window",
+        tr("windowOpenFailed"),
         (err as Error)?.message ?? String(err),
       );
     }
@@ -709,6 +737,12 @@ async function captureScreenshot(): Promise<string | null> {
 }
 
 function registerAppIpcHandlers(): void {
+  // The game reports the interface language it runs in (apps/web/src/i18n);
+  // the menus, tray and dialogs follow it.
+  ipcMain.handle("app:setLocale", (_e, locale: unknown) => {
+    if (isUiLocale(locale) && setUiLocale(locale)) rebuildWindowMenus();
+  });
+
   ipcMain.handle(
     "app:notify",
     (_e, payload: { title: string; body: string }) => {
@@ -721,7 +755,7 @@ function registerAppIpcHandlers(): void {
   ipcMain.handle("app:screenshot", async () => {
     const fp = await captureScreenshot();
     if (fp) {
-      notifyMilestone("Screenshot saved", fp);
+      notifyMilestone(tr("screenshotSaved"), fp);
       shell.showItemInFolder(fp);
     }
     return fp;
@@ -745,7 +779,7 @@ function registerAppIpcHandlers(): void {
   ipcMain.handle("app:pickSaveDir", async () => {
     if (!mainWindow) return null;
     const res = await dialog.showOpenDialog(mainWindow, {
-      title: "Choose where The Human Box stores worlds",
+      title: tr("pickSaveDirTitle"),
       properties: ["openDirectory", "createDirectory"],
       defaultPath:
         loadSettings().saveLocationOverride ?? app.getPath("userData"),
@@ -797,7 +831,7 @@ async function showRestartFailure(error: unknown): Promise<void> {
       await restartSimulation({ requireCheckpoint: false });
     } catch (retryError) {
       dialog.showErrorBox(
-        "Could not restart the simulation",
+        tr("restartFailed"),
         (retryError as Error)?.message ?? String(retryError),
       );
     }
@@ -842,12 +876,9 @@ async function offerSimRestart(
     const options: Electron.MessageBoxOptions = {
       type: "error",
       title: "The Human Box",
-      message: "The simulation stopped unexpectedly",
-      detail:
-        `Exit ${signal ?? `code ${code}`}. Your world was last saved at its most ` +
-        "recent checkpoint (about a minute of play at most is lost). Restart the " +
-        "simulation to continue.",
-      buttons: ["Restart simulation", "Not now"],
+      message: tr("simStopped"),
+      detail: tr("simStoppedDetail", { exit: signal ?? tr("exitCode", { code: String(code) }) }),
+      buttons: [tr("restartSim"), tr("notNow")],
       defaultId: 0,
       cancelId: 1,
     };
@@ -858,7 +889,7 @@ async function offerSimRestart(
     if (response === 0 && !isQuitting) {
       await restartSimulation().catch((err) => {
         dialog.showErrorBox(
-          "Could not restart the simulation",
+          tr("restartFailed"),
           (err as Error)?.message ?? String(err),
         );
       });
@@ -889,6 +920,7 @@ async function offerSimRestart(
 }
 
 async function boot(): Promise<void> {
+  loadUiLocale(app.getPath("userData"));
   // Before any renderer load: the file:// page gets a CSP so injected script
   // cannot reach the network or the preload bridge.
   installRendererCsp(session.defaultSession);
@@ -953,7 +985,7 @@ async function fatalStartupFailure(err: unknown): Promise<void> {
     if (stopTimeout) clearTimeout(stopTimeout);
   }
   try {
-    dialog.showErrorBox("The Human Box couldn't start", msg);
+    dialog.showErrorBox(tr("startFailed"), msg);
   } catch {
     // No GUI available (e.g. headless CI); the log line above is all we have.
   }

@@ -21,6 +21,7 @@ import {
 } from "./sim-process";
 import { acquireDataRootLock, type DataRootLock } from "./data-lock";
 import { loadRenderer } from "./renderer-load";
+import { tr } from "./i18n";
 import {
   RESTART_SIMULATION_OPERATION,
   runExclusiveDesktopOperation,
@@ -436,9 +437,9 @@ export function registerIpc(
         throw new Error("could not checkpoint the active world for export");
       const world = activeWorld(settings);
       const result = await dialog.showSaveDialog(win, {
-        title: "Export a restorable world save",
+        title: tr("exportTitle"),
         defaultPath: `thehumanbox-${world.hash}.world.save`,
-        filters: [{ name: "The Human Box world save", extensions: ["save"] }],
+        filters: [{ name: tr("saveFilterName"), extensions: ["save"] }],
       });
       if (result.canceled || !result.filePath) return { exported: false };
       assertExportOutsideDataRoot(effectiveDataRoot(settings), result.filePath);
@@ -468,11 +469,10 @@ export function registerIpc(
       const world = activeWorld(settings);
       const decision = await dialog.showMessageBox(win, {
         type: "warning",
-        title: "Start a new local world?",
-        message: "Start a new local world?",
-        detail:
-          "Your current world will remain archived on this computer. Exporting a separate save first gives you an additional portable backup.",
-        buttons: ["Export & start new", "Start new without export", "Cancel"],
+        title: tr("resetTitle"),
+        message: tr("resetTitle"),
+        detail: tr("resetDetail"),
+        buttons: [tr("resetExportAndNew"), tr("resetNewWithoutExport"), tr("cancel")],
         defaultId: 2,
         cancelId: 2,
         noLink: true,
@@ -482,9 +482,9 @@ export function registerIpc(
       let exportPath: string | null = null;
       if (decision.response === 0) {
         const exportChoice = await dialog.showSaveDialog(win, {
-          title: "Export current world before reset",
+          title: tr("resetExportTitle"),
           defaultPath: `thehumanbox-${world.hash}.world.save`,
-          filters: [{ name: "The Human Box world save", extensions: ["save"] }],
+          filters: [{ name: tr("saveFilterName"), extensions: ["save"] }],
         });
         if (exportChoice.canceled || !exportChoice.filePath)
           return { reset: false };

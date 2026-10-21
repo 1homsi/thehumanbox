@@ -59,6 +59,8 @@ export interface DesktopBridge {
     pickSaveDir(): Promise<string | null>
     checkForUpdates(): Promise<UpdateCheckResult>
     installUpdate(): Promise<UpdateCheckResult>
+    /** Fork: tells the desktop shell which language the interface runs in (menus, dialogs). */
+    setLocale?(locale: string): Promise<void>
   }
   world: {
     migrateDataRoot(payload: { targetDir: string | null }): Promise<{

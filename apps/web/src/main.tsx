@@ -7,9 +7,11 @@ import { initAnalytics } from './shared/observability'
 import { reloadAppSafely } from './simulation/worldSource'
 import { isDesktopStartupPending } from './shared/desktopStartup'
 import { applyDocumentLocale, t } from './i18n'
+import { reportLocaleToDesktop } from './i18n/desktop-locale'
 
 initAnalytics()
 applyDocumentLocale()
+reportLocaleToDesktop()
 localizeSplash()
 
 /** index.html carries the Russian loading screen; put it in the chosen language before it is noticed. */
