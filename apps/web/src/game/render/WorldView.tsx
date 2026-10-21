@@ -242,6 +242,7 @@ export function WorldView({
                   cameraStateRef={cameraStateRef}
                   viewportDims={dims}
                   rendererPaused={rendererPaused}
+                  showTrade={viewFlags.tradeRoutes}
                   onFirstDraw={handleFirstDraw}
                   onDrawError={setDrawError}
                 />

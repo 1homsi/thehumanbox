@@ -1,5 +1,6 @@
 import { TILE } from '../../../model/palette'
 import { ERA_TIERS, eraTier } from '../../../model/era-tier'
+import { ROCK, SAND, hex } from '../../art-palette'
 
 /** The road kinds a cell holds: the simulation's `ROAD_TRACK`, `ROAD_BRIDGE` and `ROAD_RAIL`. */
 export const ROAD_TRACK = 1
@@ -12,8 +13,18 @@ export const ROAD_E = 2
 export const ROAD_S = 4
 export const ROAD_W = 8
 
-/** A dirt track in the early ages, cobbles from the bronze age on (as the trade roads are built). */
-export type RoadStyle = 'track' | 'cobble'
+/** A dirt track in the early ages, cobbles from the classical age, asphalt from industry on. */
+export type RoadStyle = 'track' | 'cobble' | 'paved'
+
+/** The style of a road two tribes built, by the more advanced one's era tier. */
+export function roadStyleOfTier(tier: number): RoadStyle {
+  return tier >= 5 ? 'paved' : tier >= 2 ? 'cobble' : 'track'
+}
+
+/** The style for a planned route's code (see `styleCodeOf`): 1 track, 2 cobble, 3 paved. */
+export function roadStyleOfCode(code: number): RoadStyle {
+  return code >= 3 ? 'paved' : code === 2 ? 'cobble' : 'track'
+}
 
 /**
  * The style of every road on the map in this era: the whole world's roads change together. Eras the
@@ -46,7 +57,7 @@ export function bridgeIsVertical(mask: number): boolean {
   return (mask & (ROAD_N | ROAD_S)) !== 0 && (mask & (ROAD_E | ROAD_W)) === 0
 }
 
-/** The margin a road keeps clear of each tile edge: a track is 4 px wide (2 px inset), cobbles 6 px (1 px). */
+/** The margin a road keeps clear of each tile edge: a track is 4 px wide (2 px inset), cobbles and asphalt 6 px (1 px). */
 function inset(style: RoadStyle): number {
   return style === 'track' ? 2 : 1
 }
@@ -71,6 +82,20 @@ export function isRoadPixel(style: RoadStyle, mask: number, x: number, y: number
 const TRACK_COLORS = ['#a88a5c', '#8a6c44', '#c3a77a'] as const
 const COBBLE_COLORS = ['#9b968b', '#8c877c', '#a7a295'] as const
 const MORTAR = '#6e675c'
+/** Asphalt: dark and warm, lit on its top-left edge (the art direction's light), with sparse darker grit. */
+const ASPHALT = '#48413a'
+const ASPHALT_GRIT = '#3e3832'
+const ASPHALT_EDGE = hex(ROCK.shade)
+const ASPHALT_EDGE_LIT = hex(ROCK.mid)
+const ASPHALT_LINE = hex(SAND.light)
+
+/** Whether a straight asphalt cell carries a dash at pixel (x, y): one short dash down the middle. */
+function isPavedDash(mask: number, x: number, y: number): boolean {
+  const mid = Math.floor(TILE / 2) - 1
+  if (mask === (ROAD_N | ROAD_S)) return x === mid && y >= 2 && y <= TILE - 4
+  if (mask === (ROAD_E | ROAD_W)) return y === mid && x >= 2 && x <= TILE - 4
+  return false
+}
 
 /** The colour of road pixel (x, y): deterministic in the position and the mask, so a cell always looks the same. */
 export function roadPixelColor(style: RoadStyle, mask: number, x: number, y: number): string {
@@ -79,6 +104,13 @@ export function roadPixelColor(style: RoadStyle, mask: number, x: number, y: num
     if ((x * 7 + y * 13 + mask * 5) % 11 === 0) return TRACK_COLORS[1]
     if ((x * 3 + y * 5 + mask) % 9 === 0) return TRACK_COLORS[2]
     return TRACK_COLORS[0]
+  }
+  if (style === 'paved') {
+    // A dash on straight runs; the road's rim is a shade lighter, most on the sides facing the light.
+    if (isPavedDash(mask, x, y)) return ASPHALT_LINE
+    if (!isRoadPixel(style, mask, x - 1, y) || !isRoadPixel(style, mask, x, y - 1)) return ASPHALT_EDGE_LIT
+    if (!isRoadPixel(style, mask, x + 1, y) || !isRoadPixel(style, mask, x, y + 1)) return ASPHALT_EDGE
+    return (x * 7 + y * 13 + mask * 3) % 11 === 0 ? ASPHALT_GRIT : ASPHALT
   }
   // Cobbles: rows of stones with a mortar line every other row, the joints staggered.
   if (y % 2 === 0) return MORTAR
