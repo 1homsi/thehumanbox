@@ -49,13 +49,16 @@
   outline-offset: 1px;
 }
 
-/* Line one: category words, a thin divider, then the open category's groups. */
+/* Line one: category words, a thin divider, then the open category's groups. It scrolls sideways,
+ * which clips it top and bottom too, so it leaves room for the dot under a word (4 px below it). */
 .dock-nav {
   display: flex;
   align-items: center;
   gap: 14px;
   min-width: 0;
+  padding: 2px 0 6px;
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
   white-space: nowrap;
 }
@@ -437,7 +440,9 @@
   }
   .dock-tabs,
   .dock-groups {
+    padding-bottom: 6px;
     overflow-x: auto;
+    overflow-y: hidden;
     scrollbar-width: none;
   }
   .dock-tabs::-webkit-scrollbar,
@@ -449,7 +454,7 @@
   }
   .dock-groups {
     gap: 4px;
-    padding: 0 0 2px;
+    padding-left: 0;
     border-left: 0;
   }
   /* Taller hit areas for thumbs, without making the words any bigger. */
