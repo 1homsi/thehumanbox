@@ -10,7 +10,7 @@ import { TerrainTileLayer, type TerrainSyncFn } from '../terrain-tiles/TerrainTi
 import { makeFrame } from './frame'
 import { CfRegistry } from './registry'
 import { wakeEngine } from './frame-clock'
-import { registerContextRestoreWake, SleepyLoop } from './render-loop'
+import { registerContextRestoreWake, SleepyLoop, wakeRenderLoops } from './render-loop'
 import { CfBuildings } from './buildings/CfBuildings'
 import { CfGround } from './ground/CfGround'
 import { CfLanduse } from './landuse/CfLanduse'
@@ -24,6 +24,8 @@ interface Props {
   cameraStateRef: React.MutableRefObject<{ x: number; y: number; zoom: number }>
   viewportDims: { w: number; h: number }
   rendererPaused: boolean
+  /** The trade-route lens is on: the roads between settlements show (default on). */
+  showTrade?: boolean
   /** The first frame of the world has been handed to the engine. */
   onFirstDraw: () => void
   onDrawError: (message: string) => void
@@ -40,6 +42,7 @@ export function CfWorld({
   cameraStateRef,
   viewportDims,
   rendererPaused,
+  showTrade = true,
   onFirstDraw,
   onDrawError,
 }: Props) {
@@ -49,6 +52,8 @@ export function CfWorld({
   const terrainSyncRef = useRef<TerrainSyncFn | null>(null)
   const worldRef = useRef(world)
   worldRef.current = world
+  const showTradeRef = useRef(showTrade)
+  showTradeRef.current = showTrade
   const cachedBiomes = useRef<number[][] | undefined>(undefined)
   const cachedDepth = useRef<number[][] | undefined>(undefined)
   const hasDrawn = useRef(false)
@@ -97,7 +102,16 @@ export function CfWorld({
         grid.origin_y ?? 0,
         vegetationSeason(terrainSeason(w)),
       )
-      const frame = makeFrame(w, cachedBiomes.current, camera, viewportDims, Date.now(), 2, watch.revision)
+      const frame = makeFrame(
+        w,
+        cachedBiomes.current,
+        camera,
+        viewportDims,
+        Date.now(),
+        2,
+        watch.revision,
+        showTradeRef.current,
+      )
       if (registry.update(frame)) wakeEngine(engine, 30)
       signalFirstDraw()
     },
@@ -128,7 +142,7 @@ export function CfWorld({
       // A paused map with a still camera stays as it is (fires stop flickering, trees stop swaying):
       // the loop sleeps, and a new frame, a pan or a zoom wakes it.
       const cam = cameraStateRef.current
-      const key = `${interp?.currentServerAt.current ?? 0}|${cam.x}|${cam.y}|${cam.zoom}|${viewportDims.w}x${viewportDims.h}`
+      const key = `${interp?.currentServerAt.current ?? 0}|${cam.x}|${cam.y}|${cam.zoom}|${viewportDims.w}x${viewportDims.h}|${showTradeRef.current ? 1 : 0}`
       if (interp && key === lastKey && isSettled(interp, now)) return false
       lastKey = key
       try {
@@ -143,6 +157,9 @@ export function CfWorld({
     loop.wake()
     return () => loop.stop()
   }, [interp, rendererPaused, step, cameraStateRef, viewportDims])
+
+  // The loop sleeps while nothing changes; the lens is read from a ref, so wake it.
+  useEffect(() => wakeRenderLoops(), [showTrade])
 
   useEffect(() => registerContextRestoreWake(() => engine.loop.markDirty()), [engine])
 

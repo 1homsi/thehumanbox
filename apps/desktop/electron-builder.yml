@@ -4,6 +4,15 @@
 appId: com.alklimover.thehumanbox
 productName: The Human Box RU
 copyright: Copyright © 2026 Mohamad Homsi; Russian fork © 2026 alklimover
+# apps/desktop/package.json stays identical to upstream's (its version line
+# changes on every upstream release); these override it inside the packaged
+# app, so app.getName() and the userData folder are "The Human Box RU" too.
+extraMetadata:
+  productName: The Human Box RU
+  description: The Human Box RU — Russian fork of The Human Box. Runs the simulation locally.
+  homepage: https://github.com/alklimover/thehumanbox
+  author:
+    name: alklimover
 
 directories:
   output: out
@@ -79,3 +88,8 @@ linux:
     has memory, dreams, relationships, and a lineage. The simulation
     and its worlds run locally on the player's computer.
   icon: build/icon.png
+
+# xz (fpm's default) took 80 of the Linux release job's 220 seconds; gzip
+# builds in a few, and every dpkg reads it.
+deb:
+  compression: gz

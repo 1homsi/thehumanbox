@@ -6,7 +6,8 @@
 .map-controls {
   position: absolute;
   right: calc(10px + var(--safe-right));
-  bottom: 10px;
+  /* Clear of the dock bar where it floats over the map (0 on phones, where it sits below). */
+  bottom: calc(10px + var(--dock-over-map, 0px));
   z-index: 15;
   display: none;
   flex-direction: column;

@@ -1,65 +1,10 @@
-// Trade routes as real roads on the ground, built to the age of the tribes
-// they join: a trodden dirt track, then a cobbled road, then asphalt with a
-// painted line and traffic on it. Caravans travel them as ox carts or trucks.
-// They were dashed overlay lines with an emoji in a circle.
+// Traffic on the trade roads. The roads themselves are tile roads (cf/roads), planned over the land in
+// trade-paths.ts; this draws what moves on them: cars on the asphalt of the modern ages, and caravans as ox
+// carts or trucks.
+
+import { pointAlong, type PathPoint, type PlannedPath } from './trade-paths'
 
 type Ctx = CanvasRenderingContext2D
-
-export interface RoadStyle {
-  kind: 'track' | 'cobble' | 'asphalt'
-  /** Width in tiles. */
-  width: number
-  surface: string
-  edge: string
-}
-
-/** The road two tribes build between them, by the more advanced one's age. */
-export function roadStyle(tier: number): RoadStyle {
-  if (tier >= 5) return { kind: 'asphalt', width: 0.7, surface: '#43474c', edge: '#6b7076' }
-  if (tier >= 2) return { kind: 'cobble', width: 0.6, surface: '#8d877b', edge: '#6a6458' }
-  return { kind: 'track', width: 0.45, surface: 'rgba(132, 104, 70, 0.75)', edge: 'rgba(96, 74, 48, 0.6)' }
-}
-
-/** One road between (ax, ay) and (bx, by) in map pixels. */
-export function drawRoad(
-  ctx: Ctx,
-  ax: number,
-  ay: number,
-  bx: number,
-  by: number,
-  tier: number,
-  tile: number,
-) {
-  const len = Math.hypot(bx - ax, by - ay)
-  if (len < 1) return
-  const style = roadStyle(tier)
-  const w = style.width * tile
-  ctx.save()
-  ctx.translate(ax, ay)
-  ctx.rotate(Math.atan2(by - ay, bx - ax))
-  ctx.fillStyle = style.edge
-  ctx.fillRect(0, -w / 2 - 1, len, w + 2)
-  ctx.fillStyle = style.surface
-  ctx.fillRect(0, -w / 2, len, w)
-  if (style.kind === 'track') {
-    // Two wheel ruts worn into the dirt.
-    ctx.fillStyle = 'rgba(80, 60, 38, 0.55)'
-    ctx.fillRect(0, -w * 0.22, len, Math.max(1, w * 0.12))
-    ctx.fillRect(0, w * 0.12, len, Math.max(1, w * 0.12))
-  } else if (style.kind === 'cobble') {
-    // Setts laid in courses.
-    ctx.fillStyle = 'rgba(70, 64, 56, 0.5)'
-    const step = Math.max(2, tile * 0.25)
-    for (let s = 0; s < len; s += step) ctx.fillRect(s, -w / 2, 1, w)
-    ctx.fillRect(0, -0.5, len, 1)
-  } else {
-    // A dashed centre line.
-    ctx.fillStyle = '#e9c45a'
-    const dash = Math.max(3, tile * 0.5)
-    for (let s = dash / 2; s < len; s += dash * 2) ctx.fillRect(s, -0.5, dash, 1)
-  }
-  ctx.restore()
-}
 
 function hash(n: number): number {
   let h = Math.imul(n ^ 0x2c1b3c6d, 0x297a2d39)
@@ -67,48 +12,50 @@ function hash(n: number): number {
   return (Math.imul(h, 0x85ebca6b) >>> 0) / 4294967296
 }
 
-/** Cars on an asphalt road, each with its own pace and colour. */
+const CAR_COLORS = ['#c8392b', '#2f4f8a', '#e9e4d8', '#3f7a3a', '#d9a23a']
+const carAt: PathPoint = { x: 0, y: 0, angle: 0 }
+
+/** Cars on a modern road, each with its own pace and colour, following the road's tiles in the right-hand lane. */
 export function drawTraffic(
   ctx: Ctx,
-  ax: number,
-  ay: number,
-  bx: number,
-  by: number,
+  path: PlannedPath,
   tier: number,
   tile: number,
   t: number,
   seed: number,
 ) {
   if (tier < 6) return
-  const len = Math.hypot(bx - ax, by - ay)
+  const len = path.total * tile
   if (len < tile * 4) return
   const cars = Math.min(4, Math.floor(len / (tile * 8)))
-  const colors = ['#c8392b', '#2f4f8a', '#e9e4d8', '#3f7a3a', '#d9a23a']
-  ctx.save()
-  ctx.translate(ax, ay)
-  ctx.rotate(Math.atan2(by - ay, bx - ax))
   for (let i = 0; i < cars; i++) {
     const speed = 0.02 + hash(seed + i) * 0.02
     const forward = i % 2 === 0
     const at = (t * speed + hash(seed * 7 + i) * len) % len
-    const x = forward ? at : len - at
-    const lane = (forward ? -1 : 1) * tile * 0.17
-    ctx.fillStyle = colors[Math.floor(hash(seed + i * 13) * colors.length)]!
-    ctx.fillRect(
-      Math.round(x - tile * 0.25),
-      Math.round(lane - tile * 0.1),
-      Math.max(2, tile * 0.5),
-      Math.max(1, tile * 0.2),
-    )
+    pointAlong(path, at / len, !forward, carAt)
+    const cos = Math.cos(carAt.angle)
+    const sin = Math.sin(carAt.angle)
+    const lane = -tile * 0.17
+    const x = (carAt.x + 0.5) * tile - sin * lane
+    const y = (carAt.y + 0.5) * tile + cos * lane
+    // The road's tiles run north-south or east-west: a car lies along whichever it is heading.
+    const horizontal = Math.abs(cos) >= Math.abs(sin)
+    const long = Math.max(2, Math.round(tile * 0.5))
+    const wide = Math.max(1, Math.round(tile * 0.2))
+    const w = horizontal ? long : wide
+    const h = horizontal ? wide : long
+    ctx.fillStyle = CAR_COLORS[Math.floor(hash(seed + i * 13) * CAR_COLORS.length)]!
+    ctx.fillRect(Math.round(x - w / 2), Math.round(y - h / 2), w, h)
+    // The windscreen at the front.
     ctx.fillStyle = 'rgba(180, 220, 255, 0.85)'
+    const front = horizontal ? (cos > 0 ? w - 1 : 0) : sin > 0 ? h - 1 : 0
     ctx.fillRect(
-      Math.round(x + (forward ? tile * 0.1 : -tile * 0.2)),
-      Math.round(lane - tile * 0.1),
-      Math.max(1, tile * 0.1),
-      Math.max(1, tile * 0.2),
+      Math.round(x - w / 2) + (horizontal ? front : 0),
+      Math.round(y - h / 2) + (horizontal ? 0 : front),
+      horizontal ? 1 : w,
+      horizontal ? h : 1,
     )
   }
-  ctx.restore()
 }
 
 /** A caravan in pixels: an ox cart in early ages, a truck from industry on. */

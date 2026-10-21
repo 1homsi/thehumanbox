@@ -183,13 +183,20 @@ mod history_year_tests {
 
     #[test]
     fn a_run_counts_every_birth_in_some_year() {
+        // The year is the tick over YEAR_LENGTH_TICKS, so the clock starts late in the first year
+        // and the run crosses into the second: births land in both, as they would a year in. (A run
+        // from tick zero to the second year took minutes for the same check.)
         let mut sim = Simulation::new(42);
-        for _ in 0..(YEAR_LENGTH_TICKS + 500) {
-            sim.tick();
-        }
+        sim.tick_count = YEAR_LENGTH_TICKS - 2_500;
+        sim.tick_n(3_500);
         assert!(sim.history.births > 0);
         let counted: u64 = sim.history.births_by_year.iter().map(|&n| u64::from(n)).sum();
         assert_eq!(counted, sim.history.births, "every birth lands in a year");
+        assert!(
+            sim.history.births_by_year.len() == 2 && sim.history.births_by_year.iter().all(|&n| n > 0),
+            "births in both years: {:?}",
+            sim.history.births_by_year
+        );
         let deaths: u64 = sim.history.deaths_by_year.iter().map(|&n| u64::from(n)).sum();
         assert!(
             deaths > 0
@@ -222,9 +229,13 @@ mod wealth_gap_year_tests {
 
     #[test]
     fn a_run_samples_one_gap_per_year_within_range() {
+        // The gap is sampled on the tick a year begins, so the run steps across two year boundaries
+        // rather than living through two years (which took minutes).
         let mut sim = Simulation::new(42);
-        for _ in 0..(2 * YEAR_LENGTH_TICKS + 10) {
-            sim.tick();
+        sim.tick_n(1_000);
+        for year in 1..=2 {
+            sim.tick_count = year * YEAR_LENGTH_TICKS - 5;
+            sim.tick_n(10);
         }
         assert_eq!(sim.history.wealth_gap_by_year.len(), 3);
         for g in &sim.history.wealth_gap_by_year {

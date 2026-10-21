@@ -13,6 +13,9 @@ import {
   roadCellPixels,
   roadMask,
   roadStyle,
+  roadStyleOfCode,
+  roadStyleOfTier,
+  roadCellKey,
   RAIL_STEEL,
   RAIL_TIE,
   railCellKey,
@@ -141,5 +144,73 @@ describe('road cell art', () => {
 
   it('paints the same cell the same way every time', () => {
     expect(roadCellPixels('cobble', 5)).toEqual(roadCellPixels('cobble', 5))
+  })
+})
+
+describe('paved roads', () => {
+  const colourAt = (pixels: [number, number, string][], x: number, y: number) =>
+    pixels.find(([px, py]) => px === x && py === y)?.[2]
+  const brightness = (hex: string) => {
+    const n = parseInt(hex.slice(1), 16)
+    return (n >> 16) + ((n >> 8) & 255) + (n & 255)
+  }
+  const straight = roadCellPixels('paved', ROAD_E | ROAD_W)
+
+  it('comes with industry: track, cobble, then paved by era tier and by planned code', () => {
+    expect(roadStyleOfTier(1)).toBe('track')
+    expect(roadStyleOfTier(2)).toBe('cobble')
+    expect(roadStyleOfTier(4)).toBe('cobble')
+    expect(roadStyleOfTier(5)).toBe('paved')
+    expect(roadStyleOfTier(7)).toBe('paved')
+    expect([1, 2, 3].map(roadStyleOfCode)).toEqual(['track', 'cobble', 'paved'])
+  })
+
+  it('is as wide as cobbles and runs to the tile edge where it joins', () => {
+    expect(straight.length).toBe(roadCellPixels('cobble', ROAD_E | ROAD_W).length)
+    expect(isRoadPixel('paved', ROAD_E | ROAD_W, 0, 3)).toBe(true)
+    expect(isRoadPixel('paved', ROAD_E | ROAD_W, TILE - 1, 3)).toBe(true)
+    expect(isRoadPixel('paved', ROAD_E | ROAD_W, 3, 0)).toBe(false)
+  })
+
+  it('is dark asphalt with a slightly lighter rim, lit on the sides facing the top-left light', () => {
+    const middle = brightness(colourAt(straight, 4, 4)!)
+    const top = colourAt(straight, 4, 1)!
+    const bottom = colourAt(straight, 4, TILE - 2)!
+    // Dark, like the pavement in the palette.
+    expect(middle).toBeLessThan(260)
+    expect(brightness(top)).toBeGreaterThan(middle)
+    expect(brightness(bottom)).toBeGreaterThan(middle)
+    // The edge facing the light is the lighter of the two.
+    expect(brightness(top)).toBeGreaterThan(brightness(bottom))
+  })
+
+  it('carries one short dash on a straight run, and none at a junction, a bend or a dead end', () => {
+    const dashes = (mask: number) => {
+      const pixels = roadCellPixels('paved', mask)
+      const base = new Set(pixels.map(([, , c]) => c))
+      const line = pixels.filter(([, , c]) => c === '#cdb588')
+      return { line, base }
+    }
+    const horizontal = dashes(ROAD_E | ROAD_W).line
+    expect(horizontal.length).toBeGreaterThan(1)
+    expect(horizontal.length).toBeLessThanOrEqual(4)
+    expect(new Set(horizontal.map(([, y]) => y)).size).toBe(1)
+    const vertical = dashes(ROAD_N | ROAD_S).line
+    expect(new Set(vertical.map(([x]) => x)).size).toBe(1)
+    expect(vertical.length).toBe(horizontal.length)
+    for (const mask of [
+      ROAD_N | ROAD_E,
+      ROAD_N | ROAD_E | ROAD_S,
+      ROAD_N | ROAD_E | ROAD_S | ROAD_W,
+      ROAD_E,
+      0,
+    ]) {
+      expect(dashes(mask).line).toHaveLength(0)
+    }
+  })
+
+  it('lines up with the next tile of a straight run: the dash sits in the same place each tile', () => {
+    expect(roadCellPixels('paved', ROAD_E | ROAD_W)).toEqual(roadCellPixels('paved', ROAD_E | ROAD_W))
+    expect(roadCellKey('paved', ROAD_E | ROAD_W)).not.toBe(roadCellKey('cobble', ROAD_E | ROAD_W))
   })
 })
