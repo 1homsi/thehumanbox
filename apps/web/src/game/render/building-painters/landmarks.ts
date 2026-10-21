@@ -6,22 +6,40 @@ export function paintLandmark(p: P) {
   const { x0, y1, w, h, kind } = p
   const cx = x0 + w / 2
   if (kind === 'Pyramid') {
-    p.ctx.fillStyle = '#cfae6e'
+    // Two faces: the one toward the light in sand, the other in shade, with blocks courses across both.
+    p.ctx.fillStyle = '#d3b678'
+    p.ctx.beginPath()
+    p.ctx.moveTo(x0, y1)
+    p.ctx.lineTo(cx - w * 0.06, y1)
+    p.ctx.lineTo(cx - w * 0.06, y1 - h * 0.28)
+    p.ctx.lineTo(cx, y1 - h * 0.95)
+    p.ctx.closePath()
+    p.ctx.fill()
+    p.ctx.fillStyle = '#9d7f4d'
+    p.ctx.beginPath()
+    p.ctx.moveTo(cx - w * 0.06, y1)
+    p.ctx.lineTo(x0 + w, y1)
+    p.ctx.lineTo(cx, y1 - h * 0.95)
+    p.ctx.lineTo(cx - w * 0.06, y1 - h * 0.28)
+    p.ctx.closePath()
+    p.ctx.fill()
+    p.ctx.fillStyle = 'rgba(60,40,16,0.2)'
+    for (let row = 3; row < h * 0.9; row += 4) {
+      const half = (w / 2) * (1 - row / (h * 0.95))
+      p.ctx.fillRect(
+        Math.round(cx - half + 1),
+        Math.round(y1 - row),
+        Math.max(1, Math.round(half * 2 - 2)),
+        1,
+      )
+    }
+    p.ctx.strokeStyle = OUTLINE
     p.ctx.beginPath()
     p.ctx.moveTo(x0, y1)
     p.ctx.lineTo(x0 + w, y1)
     p.ctx.lineTo(cx, y1 - h * 0.95)
     p.ctx.closePath()
-    p.ctx.fill()
-    p.ctx.strokeStyle = OUTLINE
     p.ctx.stroke()
-    p.ctx.fillStyle = 'rgba(0,0,0,0.18)'
-    p.ctx.beginPath()
-    p.ctx.moveTo(cx, y1 - h * 0.95)
-    p.ctx.lineTo(x0 + w, y1)
-    p.ctx.lineTo(cx + w * 0.18, y1)
-    p.ctx.closePath()
-    p.ctx.fill()
     return
   }
   if (kind === 'Ziggurat') {
@@ -29,7 +47,7 @@ export function paintLandmark(p: P) {
     let ty = y1
     for (let i = 0; i < 3; i++) {
       const th = h * 0.28
-      px(p.ctx, cx - tw / 2, ty - th, tw, th, shade('#b08858', 1 - i * 0.08))
+      wallTexture(p, cx - tw / 2, ty - th, tw, th, shade('#b08858', 1 - i * 0.08))
       outline(p.ctx, cx - tw / 2, ty - th, tw, th)
       ty -= th
       tw *= 0.66
@@ -65,6 +83,7 @@ export function paintLandmark(p: P) {
   const ow = Math.max(2, w * 0.14)
   px(p.ctx, cx - ow / 2, y1 - h, ow, h - 2, '#b0a89c')
   px(p.ctx, cx - ow / 2, y1 - h, 1, h - 2, '#ccc4b8')
+  px(p.ctx, cx + ow / 2 - 1, y1 - h, 1, h - 2, '#8a8276')
   if (kind === 'Obelisk') {
     p.ctx.fillStyle = '#b0a89c'
     p.ctx.beginPath()
@@ -110,7 +129,7 @@ export function paintProp(p: P): boolean {
     case 'MarketStall':
     case 'FoodCart':
     case 'Kiosk': {
-      const stripes = ['#c84848', '#3a6ea8', '#3f8a4f'][Math.floor(p.rng() * 3)]
+      const stripes = ['#b0503f', '#46688a', '#5b7f46'][Math.floor(p.rng() * 3)]
       const cream = '#e8e0d0'
       px(p.ctx, cx - 4, y1 - 4, 8, 4, '#7a5e3e')
       // The awning, with a scalloped valance: each stripe hangs one pixel lower at its middle.
@@ -145,7 +164,7 @@ export function paintProp(p: P): boolean {
     }
     case 'FlagPole': {
       px(p.ctx, cx - 0.5, y1 - 11, 1, 11, '#a8a8a8')
-      p.ctx.fillStyle = '#c03838'
+      p.ctx.fillStyle = '#a8453a'
       p.ctx.beginPath()
       p.ctx.moveTo(cx + 0.5, y1 - 11)
       p.ctx.lineTo(cx + 6, y1 - 9.5)

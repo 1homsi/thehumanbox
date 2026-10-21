@@ -9,6 +9,8 @@ import {
   hipRoof,
   outline,
   px,
+  cylinder,
+  dome,
   wallTexture,
   windowGlow,
 } from './kit'
@@ -78,10 +80,12 @@ export function paintTemple(p: P) {
     p.ctx.beginPath()
     p.ctx.arc(cx, wallY, w * 0.3, Math.PI, 0)
     p.ctx.fill()
+    dome(p, cx, wallY, w * 0.3)
     p.ctx.strokeStyle = OUTLINE
     p.ctx.stroke()
     px(p.ctx, cx - 1, wallY - w * 0.3 - 3, 2, 4, '#d8b860')
-    px(p.ctx, x0 + 1, wallY - h * 0.5, 2, h * 0.5, '#ded6c2')
+    px(p.ctx, x0 + 1, wallY - h * 0.5, 3, h * 0.5, '#ded6c2')
+    cylinder(p, x0 + 1, wallY - h * 0.5, 3, h * 0.5)
     px(p.ctx, x0 + 0.5, wallY - h * 0.5 - 2, 3, 2, '#3f8a8a')
     door(p, cx, y1, Math.max(3, w * 0.14), wallH * 0.6, '#46301c')
     return
@@ -179,7 +183,7 @@ export function paintCastle(p: P) {
   p.ctx.fill()
   const fx = x0 + w / 2
   px(p.ctx, fx - 0.5, wallY - 8, 1, 8, '#5a4028')
-  p.ctx.fillStyle = '#c03838'
+  p.ctx.fillStyle = '#a8453a'
   p.ctx.beginPath()
   p.ctx.moveTo(fx + 0.5, wallY - 8)
   p.ctx.lineTo(fx + 6, wallY - 6.5)
@@ -197,8 +201,9 @@ export function paintTowerTall(p: P) {
     const tw = Math.min(w, 10)
     for (let i = 0; i < 4; i++) {
       const sy = y1 - ((i + 1) * th) / 4
-      px(p.ctx, cx - tw / 2, sy, tw, th / 4, i % 2 === 0 ? '#d8d0c0' : '#b84040')
+      px(p.ctx, cx - tw / 2, sy, tw, th / 4, i % 2 === 0 ? '#d8d0c0' : '#a8483c')
     }
+    cylinder(p, cx - tw / 2, y1 - th, tw, th)
     outline(p.ctx, cx - tw / 2, y1 - th, tw, th)
     px(p.ctx, cx - tw / 2 - 1, y1 - th - 4, tw + 2, 4, '#403830')
     windowGlow(p, cx - tw / 2, y1 - th - 3, tw, 2)
@@ -223,6 +228,7 @@ export function paintTowerTall(p: P) {
     p.ctx.beginPath()
     p.ctx.arc(cx, y1 - hh - 8, w * 0.3, Math.PI, 0)
     p.ctx.fill()
+    cylinder(p, cx - w * 0.3, y1 - hh - 8, w * 0.6, 9)
     return
   }
   if (kind === 'Observatory') {
@@ -233,8 +239,10 @@ export function paintTowerTall(p: P) {
     p.ctx.beginPath()
     p.ctx.arc(cx, y1 - h * 0.7, tw * 0.55, Math.PI, 0)
     p.ctx.fill()
+    dome(p, cx, y1 - h * 0.7, tw * 0.55)
     p.ctx.strokeStyle = OUTLINE
     p.ctx.stroke()
+    cylinder(p, cx - tw / 2, y1 - h * 0.7, tw, h * 0.7)
     px(p.ctx, cx - 1, y1 - h * 0.7 - tw * 0.55, 2, tw * 0.3, '#404858')
     return
   }
@@ -280,13 +288,22 @@ export function paintWindmill(p: P) {
   p.ctx.fill()
   p.ctx.strokeStyle = OUTLINE
   p.ctx.stroke()
+  // The right half of the tapering tower is in shade.
+  p.ctx.fillStyle = 'rgba(24,16,10,0.3)'
+  p.ctx.beginPath()
+  p.ctx.moveTo(cx + tw * 0.08, y1)
+  p.ctx.lineTo(cx + tw / 2, y1)
+  p.ctx.lineTo(cx + tw * 0.32, y1 - th)
+  p.ctx.lineTo(cx + tw * 0.06, y1 - th)
+  p.ctx.closePath()
+  p.ctx.fill()
   gableRoof(p, cx - tw * 0.36, y1 - th, tw * 0.72, 4, '#5a3a22', 1)
   windowGlow(p, cx - 1.5, y1 - th * 0.45, 3, 3)
   door(p, cx, y1, 4, 6)
   const hub = { x: cx, y: y1 - th - 1 }
   const a0 = rng() * Math.PI
   const bladeLen = Math.min(h * 0.55, hub.y - 2, w / 2 + PAD - 1)
-  p.ctx.strokeStyle = '#e8dcc0'
+  p.ctx.strokeStyle = '#e0d2b2'
   p.ctx.lineWidth = 2
   for (let i = 0; i < 4; i++) {
     const a = a0 + (i * Math.PI) / 2
