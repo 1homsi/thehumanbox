@@ -54,7 +54,7 @@ importers:
         specifier: ^15.3.0
         version: 15.3.0
       xipjs:
-        specifier: ^0.15.4
+        specifier: 0.15.4
         version: 0.15.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       zustand:
         specifier: ^5.0.15

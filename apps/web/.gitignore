@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
 
 # Generated wasm-pack output (built by `make wasm` / CI before the client build)
 src/wasm/sim-core
