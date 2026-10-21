@@ -20,6 +20,8 @@ import {
 } from './simulation/worldSource'
 import { SimulationDataProvider } from './simulation/SimulationDataProvider'
 import { SandboxToolbar } from './ui/toolbar/SandboxToolbar'
+import { WorldToolSearch } from './ui/toolbar/WorldToolSearch'
+import { saveBlocked, worldActionForKey, type WorldActions, type WorldSave } from './ui/toolbar/world-actions'
 import { HotkeyHelp } from './ui/toolbar/HotkeyHelp'
 import { PhotoModeExit } from './ui/toolbar/PhotoModeExit'
 import { ConfirmHost } from './ui/modals/ConfirmDialog'
@@ -214,6 +216,78 @@ function LiveApp() {
     }
   }, [desktop])
 
+  // Find a tool and save the world live in the header's ⋯ menu (and the phone menu), not the dock.
+  const [toolSearchOpen, setToolSearchOpen] = useState(false)
+  const openToolSearch = useCallback(() => setToolSearchOpen(true), [])
+  const closeToolSearch = useCallback(() => setToolSearchOpen(false), [])
+  const worldSave: WorldSave | undefined =
+    world && (isLocalWebWorld || (desktop && desktopMode === 'local'))
+      ? {
+          onSave: () => void saveLocalWorld(),
+          busy:
+            localSaveStatus.phase === 'loading' ||
+            localSaveStatus.phase === 'retrying' ||
+            localSaveStatus.phase === 'saving',
+          error: localSaveStatus.phase === 'error',
+          retryable: localSaveStatus.phase === 'error' && localSaveStatus.retryable === true,
+          status:
+            localSaveStatus.phase === 'loading'
+              ? 'loading local save…'
+              : localSaveStatus.phase === 'retrying'
+                ? 'retrying local storage…'
+                : localSaveStatus.phase === 'ready'
+                  ? localSaveStatus.restored
+                    ? `world restored at tick ${localSaveStatus.tick.toLocaleString()}`
+                    : 'new local world ready'
+                  : localSaveStatus.phase === 'saving'
+                    ? `saving tick ${localSaveStatus.tick.toLocaleString()}…`
+                    : localSaveStatus.phase === 'saved'
+                      ? `saved locally · tick ${localSaveStatus.tick.toLocaleString()}`
+                      : localSaveStatus.phase === 'error'
+                        ? localSaveStatus.message
+                        : undefined,
+        }
+      : undefined
+  const canFindTool = !!world && sandboxControlsEnabled
+  const worldActions: WorldActions = {
+    findTool: canFindTool ? openToolSearch : undefined,
+    save: worldSave,
+  }
+
+  // `/` finds a tool and ⌘S or Ctrl+S saves, now that neither has a button on the dock.
+  const saveFromKey = useRef(false)
+  const worldSaveRef = useRef(worldSave)
+  useEffect(() => {
+    worldSaveRef.current = worldSave
+  })
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const action = worldActionForKey(event)
+      if (action === 'save') {
+        const save = worldSaveRef.current
+        if (!save) return
+        // The browser's "save page" is never what a player means here.
+        event.preventDefault()
+        if (event.repeat || saveBlocked(save)) return
+        saveFromKey.current = true
+        save.onSave()
+      } else if (action === 'find' && canFindTool) {
+        event.preventDefault()
+        setToolSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [canFindTool])
+  // A save from the keyboard has no menu open to show how it went, so the dock's status line says.
+  useEffect(() => {
+    if (!saveFromKey.current) return
+    if (localSaveStatus.phase === 'saved' || localSaveStatus.phase === 'error') {
+      saveFromKey.current = false
+      setTemporarySandboxStatus(worldSaveRef.current?.status ?? null, 2400)
+    } else if (localSaveStatus.phase === 'saving') setTemporarySandboxStatus('saving the world…', 4000)
+  }, [localSaveStatus, setTemporarySandboxStatus])
+
   useEffect(() => {
     if (sandboxControlsEnabled) return
     setArmedTool(null)
@@ -276,7 +350,8 @@ function LiveApp() {
           window.clearTimeout(sandboxStatusTimer.current)
           sandboxStatusTimer.current = null
         }
-        setSandboxStatus(next ? `${tool.label} armed - click the world to apply` : null)
+        // The bar labels the held tool above its icon, so arming leaves the status line clear.
+        setSandboxStatus(null)
         return next
       })
     },
@@ -695,6 +770,7 @@ function LiveApp() {
           connected={connected}
           sickOrgs={sickOrgs}
           onAnswerPrayer={handleAnswerPrayer}
+          worldActions={worldActions}
         />
         <HeadlineTicker world={world ?? null} enabled={viewFlags.headlineTicker} />
 
@@ -792,6 +868,9 @@ function LiveApp() {
           )}
         </main>
 
+        {canFindTool && (
+          <WorldToolSearch open={toolSearchOpen} onClose={closeToolSearch} onPick={onPickTool} />
+        )}
         {world && sandboxControlsEnabled && !viewFlags.hideUI && (
           <SandboxToolbar
             armedToolId={armedTool?.id ?? null}
@@ -823,35 +902,6 @@ function LiveApp() {
               ui.setViewFlag('history', false)
               setTemporarySandboxStatus('map layers cleared')
             }}
-            onSave={
-              isLocalWebWorld || (desktop && desktopMode === 'local')
-                ? () => void saveLocalWorld()
-                : undefined
-            }
-            saveBusy={
-              localSaveStatus.phase === 'loading' ||
-              localSaveStatus.phase === 'retrying' ||
-              localSaveStatus.phase === 'saving'
-            }
-            saveError={localSaveStatus.phase === 'error'}
-            saveRetryable={localSaveStatus.phase === 'error' && localSaveStatus.retryable === true}
-            saveStatus={
-              localSaveStatus.phase === 'loading'
-                ? 'loading local save…'
-                : localSaveStatus.phase === 'retrying'
-                  ? 'retrying local storage…'
-                  : localSaveStatus.phase === 'ready'
-                    ? localSaveStatus.restored
-                      ? `world restored at tick ${localSaveStatus.tick.toLocaleString()}`
-                      : 'new local world ready'
-                    : localSaveStatus.phase === 'saving'
-                      ? `saving tick ${localSaveStatus.tick.toLocaleString()}…`
-                      : localSaveStatus.phase === 'saved'
-                        ? `saved locally · tick ${localSaveStatus.tick.toLocaleString()}`
-                        : localSaveStatus.phase === 'error'
-                          ? localSaveStatus.message
-                          : undefined
-            }
           />
         )}
 

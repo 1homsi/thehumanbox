@@ -6,7 +6,7 @@ const tool = (id: string): SandboxTool => ({ id, label: id, icon: '🖱️', mod
 const tabTools = Array.from({ length: 12 }, (_, i) => tool(`t${i}`))
 
 describe('tool hotkeys', () => {
-  it('assigns the first ten tools of a tab, in order', () => {
+  it('assigns the first ten tools on the bar, in order', () => {
     const keys = hotkeysFor(tabTools)
     expect(keys.size).toBe(10)
     expect(keys.get('t0')).toBe('Q')
@@ -41,6 +41,9 @@ describe('tool hotkeys', () => {
       '4',
       '+',
       '-',
+      ',',
+      '.',
+      '/',
     ]
     for (const key of TOOL_HOTKEYS) expect(reserved, key).not.toContain(key)
     expect(new Set(TOOL_HOTKEYS).size).toBe(TOOL_HOTKEYS.length)

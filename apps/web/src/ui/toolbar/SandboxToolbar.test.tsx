@@ -4,7 +4,7 @@ import { SANDBOX_CATEGORIES } from '../../simulation/sandbox'
 import { isRuntimeControlActive } from '../../simulation/runtimeControls'
 import { SandboxToolbar } from './SandboxToolbar'
 
-function renderSaveButton(saveError: boolean, saveRetryable: boolean, saveBusy = false): string {
+function renderBar(overrides: Partial<Parameters<typeof SandboxToolbar>[0]> = {}): string {
   return renderToStaticMarkup(
     <SandboxToolbar
       armedToolId={null}
@@ -12,35 +12,30 @@ function renderSaveButton(saveError: boolean, saveRetryable: boolean, saveBusy =
       onBrush={() => {}}
       onPick={() => {}}
       onClearArmed={() => {}}
-      onSave={() => {}}
-      saveError={saveError}
-      saveRetryable={saveRetryable}
-      saveBusy={saveBusy}
-      saveStatus={saveError ? 'temporary storage failure' : undefined}
+      {...overrides}
     />,
   )
 }
 
-describe('SandboxToolbar local save recovery', () => {
-  it('presents one labeled dock with tabs, grouped tools, and time speeds', () => {
-    const markup = renderSaveButton(false, false)
+describe('SandboxToolbar quiet bar', () => {
+  it('presents one labeled bar with category words, group chips, one row of tools, and one time control', () => {
+    const markup = renderBar()
     expect(markup).toContain('aria-label="World controls"')
     expect(markup).toContain('aria-label="World tools"')
-    expect(markup).toContain('aria-pressed="true"')
-    expect(markup).toContain('aria-label="life tools"')
-    expect(markup).toContain('aria-label="Speed 4×"')
+    expect(markup).toContain('aria-label="life groups"')
+    expect(markup).toContain('aria-label="people tools"')
+    expect(markup).toContain('class="time-control')
+    expect(markup).toContain('aria-label="Speed 1×, choose a speed"')
   })
 
-  it('keeps a retryable failed save actionable', () => {
-    const markup = renderSaveButton(true, true)
-    expect(markup).toContain('↻ retry save')
-    expect(markup).not.toContain('disabled=""')
-    expect(markup).toContain('temporary storage failure')
+  it('no longer carries find or save, which live in the ⋯ menu', () => {
+    const markup = renderBar()
+    expect(markup).not.toContain('Search all world tools')
+    expect(markup).not.toContain('save world')
   })
 
-  it('still blocks nonretryable conflicts and saves already in progress', () => {
-    expect(renderSaveButton(true, false)).toContain('disabled=""')
-    expect(renderSaveButton(false, false, true)).toContain('disabled=""')
+  it('shows the speed list only once the speed is clicked', () => {
+    expect(renderBar()).not.toContain('time-speed-list')
   })
 })
 
@@ -68,19 +63,10 @@ describe('SandboxToolbar runtime state', () => {
 
 describe('persistent transport controls', () => {
   it('offers pause outside the time category', () => {
-    expect(renderSaveButton(false, false)).toContain('aria-label="Pause simulation"')
+    expect(renderBar()).toContain('aria-label="Pause simulation"')
   })
   it('offers resume when the acknowledged world state is paused', () => {
-    const markup = renderToStaticMarkup(
-      <SandboxToolbar
-        armedToolId={null}
-        brush={2}
-        runtimePaused
-        onBrush={() => {}}
-        onPick={() => {}}
-        onClearArmed={() => {}}
-      />,
-    )
+    const markup = renderBar({ runtimePaused: true })
     expect(markup).toContain('aria-label="Resume simulation"')
     expect(markup).not.toContain('aria-label="Pause simulation"')
   })

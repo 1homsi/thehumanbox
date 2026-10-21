@@ -68,6 +68,36 @@ describe('PhoneMenu', () => {
     unmount()
   })
 
+  it('offers find a tool and save the world first, with the save status', () => {
+    const findTool = vi.fn()
+    const onSave = vi.fn()
+    const unmount = mount({
+      worldActions: {
+        findTool,
+        save: { onSave, busy: false, error: false, retryable: false, status: 'saved locally · tick 900' },
+      },
+    })
+    act(() => document.querySelector<HTMLElement>('.phone-menu-btn')!.click())
+    expect(document.querySelector('.phone-menu-row')?.textContent).toContain('find a tool')
+    expect(button('save world')!.textContent).toContain('saved locally · tick 900')
+    act(() => button('save world')!.click())
+    expect(onSave).toHaveBeenCalledTimes(1)
+    // Saving keeps the sheet open so the status can be read; finding closes it for the search.
+    expect(document.querySelector('.phone-menu-modal')).not.toBeNull()
+    act(() => button('find a tool')!.click())
+    expect(findTool).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('.phone-menu-modal')).toBeNull()
+    unmount()
+  })
+
+  it('leaves out find and save when the world has neither', () => {
+    const unmount = mount()
+    act(() => document.querySelector<HTMLElement>('.phone-menu-btn')!.click())
+    expect(button('find a tool')).toBeUndefined()
+    expect(button('save world')).toBeUndefined()
+    unmount()
+  })
+
   it('carries the view options', () => {
     const unmount = mount()
     act(() => document.querySelector<HTMLElement>('.phone-menu-btn')!.click())

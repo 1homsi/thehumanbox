@@ -4,12 +4,13 @@ import { createElement } from 'react'
 import { SANDBOX_CATEGORIES } from '../../simulation/sandbox'
 import {
   DOCK_TABS,
-  MAX_TAB_COLUMNS,
-  SPEED_TOOL_IDS,
-  WIDE_TABS,
   TIME_CATEGORY_ID,
+  groupLabel,
   groupsFor,
+  rememberGroup,
+  resolveGroup,
   resolveTab,
+  speedTools,
 } from './dock-tabs'
 import { toolTip, toolFailure } from './tool-tips'
 import { ToolSprite } from './ToolSprite'
@@ -96,13 +97,10 @@ describe('dock layout stays complete as tools are added', () => {
     })
   })
 
-  it('offers only speeds that exist as time tools', () => {
+  it('offers every speed time tool in the time control, and nothing else', () => {
     const time = SANDBOX_CATEGORIES.find((c) => c.id === TIME_CATEGORY_ID)?.tools ?? []
-    for (const id of SPEED_TOOL_IDS)
-      expect(
-        time.some((t) => t.id === id),
-        id,
-      ).toBe(true)
+    const speeds = time.filter((t) => t.time?.control === 'speed')
+    expect(new Set(speedTools().map((t) => t.id))).toEqual(new Set(speeds.map((t) => t.id)))
   })
 
   it('keeps the dock to five tabs, with people and every animal in the life tab', () => {
@@ -111,22 +109,28 @@ describe('dock layout stays complete as tools are added', () => {
     for (const g of ['life', 'animals', 'birds', 'reptiles', 'safari']) expect(life?.groups).toContain(g)
   })
 
-  it('fits every tab in the columns the narrow dock can show without sideways scrolling', () => {
-    // Each group is two tiles per column, so a group takes ceil(tools / 2) columns. Only the
-    // listed wide tabs may scroll sideways.
-    for (const tab of DOCK_TABS) {
-      if (WIDE_TABS.includes(tab.id)) continue
-      const columns = groupsFor(tab.id).reduce((sum, g) => sum + Math.ceil(g.tools.length / 2), 0)
-      expect(columns, `tab ${tab.id} needs ${columns} columns`).toBeLessThanOrEqual(MAX_TAB_COLUMNS)
-    }
+  it('labels the groups on the bar, calling the life group people', () => {
+    expect(groupsFor('life').map(groupLabel)).toEqual([
+      'people',
+      'monsters',
+      'animals',
+      'birds',
+      'reptiles',
+      'safari',
+    ])
+    expect(new Set(groupsFor('nature').map(groupLabel)).size).toBe(groupsFor('nature').length)
   })
 
-  it('names only real tabs as wide', () => {
-    for (const id of WIDE_TABS)
-      expect(
-        DOCK_TABS.some((t) => t.id === id),
-        id,
-      ).toBe(true)
+  it('opens a tab on its remembered group, or its first while that group is not in the tab', () => {
+    expect(resolveGroup('life', 'animals')).toBe('animals')
+    expect(resolveGroup('life', 'sky')).toBe('life')
+    expect(resolveGroup('nature', undefined)).toBe('terrain')
+    expect(resolveGroup('deadly', null)).toBe('bad')
+  })
+
+  it('remembers groups per tab without storage', () => {
+    const next = rememberGroup({ nature: 'sky' }, 'life', 'birds')
+    expect(next).toEqual({ nature: 'sky', life: 'birds' })
   })
 
   it('restores tabs saved by older docks', () => {

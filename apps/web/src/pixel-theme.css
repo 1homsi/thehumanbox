@@ -195,15 +195,6 @@
   outline: none;
 }
 
-/* The dock's folder tabs stick up into the world from its top-left edge.
- * Anything anchored to the bottom of the world clears them by this much. */
-:root:has(.sandbox-bar) {
-  --dock-tab-clear: 36px;
-}
-body.thb-photo-mode {
-  --dock-tab-clear: 0px;
-}
-
 /* ── Drawers ────────────────────────────────────────────────────────
  * On desktop the world and people drawers slide over the world instead of
  * squeezing it. Animating their width resized the world canvas on every
@@ -234,7 +225,6 @@ body.thb-photo-mode {
   .panel-left,
   .panel-left.open {
     left: var(--safe-left);
-    bottom: var(--dock-tab-clear, 0px);
     width: 240px;
     transform: translateX(-100%);
     border-right: 2px solid var(--px-ink);
@@ -257,6 +247,15 @@ body.thb-photo-mode {
     transform: none;
     visibility: visible;
     transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+/* Too narrow to fit the dock bar between open drawers, so the drawers end above it instead. */
+@media (min-width: 768px) and (max-width: 1099px) {
+  .panel-left,
+  .panel-left.open,
+  .panel-right,
+  .panel-right.open {
+    bottom: var(--dock-over-map, 0px);
   }
 }
 @media (max-width: 767px) {
@@ -317,6 +316,62 @@ body.thb-photo-mode {
   height: 2px;
   background: var(--px-ink);
   box-shadow: 0 1px 0 var(--px-groove);
+}
+/* Find a tool and save the world, first in the menu now that the dock has no buttons for them. */
+.more-dropdown-actions {
+  display: grid;
+  gap: 6px;
+}
+.more-dropdown-action {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 2px solid var(--px-ink);
+  clip-path: var(--px-notch);
+  background: var(--px-raised);
+  box-shadow: var(--px-raised-shadow);
+  color: var(--px-gold-text);
+  font-family: var(--dialog-font);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-align: left;
+  cursor: pointer;
+}
+.more-dropdown-action:hover:not(:disabled) {
+  background: var(--px-raised-hover);
+}
+.more-dropdown-action:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+.more-dropdown-action kbd {
+  order: 2;
+  margin-left: auto;
+  color: var(--px-muted);
+  font: inherit;
+  font-size: 12px;
+}
+.more-dropdown-status {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--px-muted);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.more-dropdown-action.error .more-dropdown-status {
+  color: #e0907e;
+}
+.more-dropdown-action.busy > span {
+  animation: sandbox-save-pulse 900ms ease-in-out infinite;
+}
+@keyframes sandbox-save-pulse {
+  50% {
+    opacity: 0.45;
+  }
 }
 .cmd-row-active {
   background: var(--px-active);
@@ -916,6 +971,6 @@ body.thb-photo-mode .thb-action-ticker {
     background: #c9973f;
   }
   100% {
-    background: var(--dock-wood);
+    background: transparent;
   }
 }

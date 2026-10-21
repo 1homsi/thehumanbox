@@ -19,7 +19,6 @@ function render(overrides: Partial<ToolbarProps> = {}) {
     onBrush: vi.fn(),
     onPick: vi.fn(),
     onClearArmed: vi.fn(),
-    onSave: vi.fn(),
     ...overrides,
   }
   act(() => root.render(<SandboxToolbar {...props} />))

@@ -4,9 +4,16 @@ import { SHORTCUT_HELP } from '../../game/model/shortcuts'
 import { saveMapPicture } from '../../shared/mapPicture'
 import { useWorldStore } from '../../state/worldStore'
 import { Tooltip } from './Tooltip'
+import { saveBlocked, saveLabel, saveShortcutLabel, type WorldActions } from './world-actions'
 
-/** `onAction` runs whenever the dropdown closes (an action or a toggle). */
-export function MoreDropdown({ onAction }: { onAction?: () => void } = {}) {
+/**
+ * `onAction` runs whenever the dropdown closes (an action or a toggle). `worldActions` puts
+ * "Find a tool" and "Save world" at the top; the phone menu has rows of its own for them.
+ */
+export function MoreDropdown({
+  onAction,
+  worldActions,
+}: { onAction?: () => void; worldActions?: WorldActions } = {}) {
   const focus = useUIStore((s) => s.focus)
   const leftOpen = useUIStore((s) => s.leftOpen)
   const setFocus = useUIStore((s) => s.setFocus)
@@ -39,8 +46,48 @@ export function MoreDropdown({ onAction }: { onAction?: () => void } = {}) {
     onAction?.()
   }
 
+  const { findTool, save } = worldActions ?? {}
+
   return (
     <div className="more-dropdown">
+      {(findTool || save) && (
+        <>
+          <div className="more-dropdown-actions">
+            {findTool && (
+              <button
+                type="button"
+                className="more-dropdown-action"
+                onClick={() => {
+                  closeMore()
+                  findTool()
+                }}
+              >
+                <span>⌕ Find a tool…</span>
+                <kbd>/</kbd>
+              </button>
+            )}
+            {save && (
+              <button
+                type="button"
+                className={clsx('more-dropdown-action', save.error && 'error', save.busy && 'busy')}
+                onClick={save.onSave}
+                disabled={saveBlocked(save)}
+                aria-busy={save.busy}
+                aria-keyshortcuts="Meta+S Control+S"
+              >
+                <span>{saveLabel(save)}</span>
+                <kbd>{saveShortcutLabel()}</kbd>
+                {save.status && (
+                  <small className="more-dropdown-status" role="status">
+                    {save.status}
+                  </small>
+                )}
+              </button>
+            )}
+          </div>
+          <div className="more-dropdown-divider" />
+        </>
+      )}
       <div className="more-dropdown-section">focus</div>
       <div className="more-dropdown-grid">
         <Tooltip tip="Show every organism (clear the focus filter)">
