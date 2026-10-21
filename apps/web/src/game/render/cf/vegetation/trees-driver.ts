@@ -3,6 +3,7 @@ import { LOW_PERF } from '../../../../shared/perf'
 import { ATLAS_TOWN, SPRITE, drawTile } from '../../../../shared/sprites'
 import type { WorldState } from '../../../../shared/types'
 import { TILE } from '../../../model/palette'
+import { SHADOW as ART_SHADOW } from '../../art-palette'
 import { drawAcacia, placeTrees, type PlacedAcacia, type PlacedTree } from '../../decorations'
 import {
   drawVegetationCrop,
@@ -15,13 +16,18 @@ import { castSun } from './cast-shadows'
 import { crownSpeck, dressingFor } from './tree-dressing'
 import { WHITE, rgba, writeSprite, type CfFrame } from '../frame'
 
-/** Cell classes: a tree is at most ~32px square, an acacia 24x20. */
+/** Cell classes: native trees are 7..18px, acacias up to 24x20. */
 export const TREE_CLASSES: ReadonlyArray<readonly [number, number]> = [
   [26, 22],
   [34, 34],
 ]
 
-const SHADOW = rgba(20, 24, 18, Math.round(0.24 * 255))
+const SHADOW = rgba(
+  ART_SHADOW.rgb[0],
+  ART_SHADOW.rgb[1],
+  ART_SHADOW.rgb[2],
+  Math.round(ART_SHADOW.alpha * 255),
+)
 
 /**
  * The wind moves a canopy by whole pixels along a slow sine (a period of four seconds): a pixel flips a
@@ -65,6 +71,7 @@ export class TreesDriver {
   /** Seasonal specks on the crowns (blossom, leaves, snow), above the trees. */
   private readonly dressLayer: SpriteLayer
   private season = ''
+  private dressOverviewHidden = false
   private readonly atlas: CellAtlas
   private sprites: TreeSprite[] = []
   /** Sorted by bottom edge, for a visible-range scan each frame. */
@@ -202,12 +209,12 @@ export class TreesDriver {
     const n = sprites.length * 2 + acaciaCells.length
     layer.resize(n)
     let i = 0
-    // Every shadow lies under every tree, as the canvas painter drew them.
+    // Every shadow lies under every tree's feet, shifted 1px bottom-right for top-left light.
     for (const s of sprites) {
-      const sw = Math.max(4, Math.round(s.sz * 0.48))
-      const sh = Math.max(1, Math.round(s.sz * 0.1))
-      const x = Math.round(s.cx + (s.sz - sw) / 2)
-      const y = Math.round(s.cy + s.sz * 0.88)
+      const sw = Math.max(4, Math.round(s.w * 0.65))
+      const sh = Math.max(1, Math.round(s.h * 0.14))
+      const x = Math.round(s.dx + (s.w - sw) / 2) + 1
+      const y = s.dy + s.h - 1
       writeSprite(layer, i++, x + sw / 2, y + sh / 2, sw, sh, 0, 0, SHADOW, SPRITE_UNTEXTURED, -1, 0)
     }
     for (const s of sprites) {
@@ -243,6 +250,7 @@ export class TreesDriver {
       )
     }
     layer.touch()
+    this.dressOverviewHidden = false
     this.buildDressing(sprites)
     this.stats.trees = sprites.length
     this.stats.acacias = acaciaCells.length
@@ -263,20 +271,20 @@ export class TreesDriver {
     for (const s of crowns) {
       const seed = Math.round(s.cx) * 1009 + Math.round(s.cy)
       for (let k = 0; k < dressing.count; k++) {
-        const sp = crownSpeck(dressing, seed, k, s.cx, s.cy, s.sz)
+        const sp = crownSpeck(dressing, seed, k, s.dx, s.dy, s.w)
         writeSprite(layer, i++, sp.x, sp.y, sp.size, sp.size, 0, 0, sp.colour, SPRITE_UNTEXTURED, -1, 0)
       }
     }
     layer.touch()
   }
 
-  /** The canopy of a tree without its trunk: the top 62% of the box, as the canvas sway clip. */
+  /** The canopy of a tree without its trunk: the top 68% of the native sprite height. */
   private canopyCell(s: TreeSprite): CellRef | null {
     if (this.canopyEpoch !== this.atlas.epoch) {
       this.canopyCells.clear()
       this.canopyEpoch = this.atlas.epoch
     }
-    const rows = Math.max(1, Math.min(s.h, Math.round(s.cy + s.sz * 0.62) - s.dy))
+    const rows = Math.max(1, Math.min(s.h, Math.round(s.h * 0.68)))
     const key = `K|${s.tile[0]},${s.tile[1]}|${s.w}x${s.h}|${rows}`
     let cell: CellRef | null | undefined = this.canopyCells.get(key)
     if (!cell) {
@@ -291,9 +299,21 @@ export class TreesDriver {
 
   /** Per-frame wind: canopy-only sprites, shifted whole pixels, for the visible trees. */
   update(f: CfFrame): boolean {
+    let dressChanged = false
+    const hideDress = f.detail === 'overview'
+    if (hideDress !== this.dressOverviewHidden && dressingFor(this.season)) {
+      this.dressOverviewHidden = hideDress
+      if (hideDress) {
+        this.dressLayer.resize(0)
+        this.dressLayer.touch()
+      } else {
+        this.buildDressing(this.sprites)
+      }
+      dressChanged = true
+    }
     const cast = this.updateCast(f.world)
     const sway = this.updateSway(f)
-    return cast || sway
+    return dressChanged || cast || sway
   }
 
   /**
@@ -314,13 +334,13 @@ export class TreesDriver {
     }
     const sprites = this.sprites
     cast.resize(sprites.length)
-    const color = rgba(20, 24, 18, Math.round(sun.alpha * 255))
+    const color = rgba(ART_SHADOW.rgb[0], ART_SHADOW.rgb[1], ART_SHADOW.rgb[2], Math.round(sun.alpha * 255))
     for (let i = 0; i < sprites.length; i++) {
       const s = sprites[i]
-      const length = s.sz * sun.length
-      const x0 = s.cx + s.sz * 0.5
-      const y0 = s.cy + s.sz * 0.92
-      const h = Math.max(1, Math.round(s.sz * 0.22))
+      const length = s.h * sun.length
+      const x0 = s.dx + s.w * 0.5
+      const y0 = s.dy + s.h - 1
+      const h = Math.max(1, Math.round(s.w * 0.22))
       writeSprite(
         cast,
         i,
@@ -378,7 +398,7 @@ export class TreesDriver {
       this.shifts = new Int8Array(sprites.length)
     }
     const picked = this.picked
-    const shifts = this.shifts
+    const shifts = new Int8Array(this.shifts.buffer)
     let count = 0
     for (let i = lo; i < sprites.length; i++) {
       const s = sprites[i]
