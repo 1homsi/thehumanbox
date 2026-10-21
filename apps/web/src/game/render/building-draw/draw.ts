@@ -26,7 +26,9 @@ export function drawBuilding(
   const structural = getBuildingState(building)
   const k = normKind(building.kind)
 
-  drawBuildingShadow(ctx, px, py, w, h, tileSize)
+  // A finished sprite carries its own cast shadow (see finishSprite); everything else gets the flat footprint one.
+  const spriteShadow = structural.isComplete && !structural.isRuined && hasBuildingSprite(k)
+  if (!spriteShadow) drawBuildingShadow(ctx, px, py, w, h, tileSize)
 
   if (structural.isRuined) {
     const rebuilding = structural.integrity > 0.08
@@ -89,6 +91,8 @@ export function drawBuilding(
       return
     }
   }
+
+  if (spriteShadow) drawBuildingShadow(ctx, px, py, w, h, tileSize)
 
   if (isHouseLike(k)) {
     const wallH = h * 0.62

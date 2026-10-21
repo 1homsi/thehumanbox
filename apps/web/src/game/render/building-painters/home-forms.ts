@@ -8,6 +8,7 @@ import {
   hipRoof,
   outline,
   px,
+  sideShade,
   smoke,
   wallTexture,
   windowGlow,
@@ -64,7 +65,7 @@ export function paintGlassTower(p: P) {
   const top = y1 - bh
   const glass = night > 0 ? '#1c2a3e' : hueShift('#5f86a8', (rng() - 0.5) * 20)
   px(p.ctx, x0, top, w, bh, glass)
-  px(p.ctx, x0 + w * 0.55, top, w * 0.45, bh, 'rgba(0,0,0,0.18)')
+  sideShade(p, x0, top, w, bh)
   for (let x = x0 + 2; x < x0 + w - 1; x += 3) px(p.ctx, x, top, 1, bh, 'rgba(255,255,255,0.12)')
   for (let y = top + 4; y < y1; y += 4) {
     px(p.ctx, x0, y, w, 1, 'rgba(10,20,30,0.35)')
@@ -311,8 +312,8 @@ export function paintEcoTower(p: P) {
   const bh = Math.min(h + 14 + (p.variant % 3) * 3, y1 - 6)
   const top = y1 - bh
   px(ctx, x0 + 1, top, w - 2, bh, '#e4e9ea')
-  px(ctx, x0 + w * 0.55, top, w * 0.45 - 1, bh, 'rgba(0,0,0,0.12)')
   outline(ctx, x0 + 1, top, w - 2, bh)
+  sideShade(p, x0 + 1, top, w - 2, bh)
   for (let y = top + 3; y < y1 - 3; y += 4) {
     px(ctx, x0, y, w, 1, '#c9d2d4')
     for (let x = x0 + 1; x < x0 + w - 1; x += 2)
@@ -341,7 +342,7 @@ export function paintCapsuleTower(p: P) {
   ctx.fill()
   ctx.strokeStyle = OUTLINE
   ctx.stroke()
-  px(ctx, cx, top + 2, w / 2 - 1, bh - 2, 'rgba(0,0,0,0.16)')
+  sideShade(p, x0, top + r, w, bh - r)
   for (let y = top + r + 3; y < y1 - 2; y += 4) px(ctx, x0 + 1, y, w - 2, 1, 'rgba(255,255,255,0.18)')
   px(ctx, x0 + 1, top + r, w - 2, 2, `rgba(120,240,255,${0.55 + night * 0.4})`)
   px(ctx, x0 + 2, top + 3, 2, bh * 0.5, 'rgba(255,255,255,0.22)')

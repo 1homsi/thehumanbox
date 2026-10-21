@@ -1,5 +1,5 @@
 import { shade, hueShift } from '../sprite-colors'
-import { OUTLINE, door, outline, px, smoke, wallTexture, windowGlow } from './kit'
+import { OUTLINE, dome, door, outline, px, smoke, wallTexture, windowGlow } from './kit'
 import type { P } from './kit'
 import { paintIndustrial } from './industry'
 
@@ -42,8 +42,8 @@ export function paintModern(p: P) {
     }
   }
   if (kind === 'Hospital' || kind === 'Hospital2' || kind === 'Clinic') {
-    px(p.ctx, x0 + w / 2 - 1, by + 2, 2, 6, '#c83030')
-    px(p.ctx, x0 + w / 2 - 3, by + 4, 6, 2, '#c83030')
+    px(p.ctx, x0 + w / 2 - 1, by + 2, 2, 6, '#b04038')
+    px(p.ctx, x0 + w / 2 - 3, by + 4, 6, 2, '#b04038')
   }
   if (kind === 'Apartment') {
     for (let y = by + 12; y < y1 - 7; y += 12) {
@@ -66,6 +66,7 @@ export function paintFuturistic(p: P) {
     p.ctx.beginPath()
     p.ctx.arc(cx, y1, w * 0.48, Math.PI, 0)
     p.ctx.fill()
+    dome(p, cx, y1, w * 0.48)
     p.ctx.strokeStyle = OUTLINE
     p.ctx.stroke()
     for (let i = 1; i < 4; i++) {
@@ -195,7 +196,7 @@ export function paintSpaceport(p: P) {
   const rh = h * 1.15
   const ry = y1 - 3 - rh
   px(p.ctx, rx - rw / 2, ry + rw, rw, rh - rw, '#eef1f4')
-  px(p.ctx, rx, ry + rw, rw / 2, rh - rw, 'rgba(0,0,0,0.12)')
+  px(p.ctx, rx, ry + rw, rw / 2, rh - rw, 'rgba(24,16,10,0.26)')
   p.ctx.fillStyle = '#eef1f4'
   p.ctx.beginPath()
   p.ctx.moveTo(rx - rw / 2, ry + rw)
@@ -206,8 +207,8 @@ export function paintSpaceport(p: P) {
   p.ctx.strokeStyle = OUTLINE
   p.ctx.stroke()
   outline(p.ctx, rx - rw / 2, ry + rw, rw, rh - rw)
-  px(p.ctx, rx - rw / 2 - 2, y1 - 9, 2, 6, '#c8392b')
-  px(p.ctx, rx + rw / 2, y1 - 9, 2, 6, '#c8392b')
+  px(p.ctx, rx - rw / 2 - 2, y1 - 9, 2, 6, '#a8453a')
+  px(p.ctx, rx + rw / 2, y1 - 9, 2, 6, '#a8453a')
   px(p.ctx, rx - rw / 2, ry + rh * 0.35, rw, 2, '#2f4f8a')
   windowGlow(p, rx - 1, ry + rw + 3, 2, 2, true)
   if (night > 0) px(p.ctx, gx + 1, y1 - gh - 1, 1, 1, '#ff5050')
