@@ -6,6 +6,9 @@ Saves live in `~/Library/Application Support/TheHumanBox/worlds/` (macOS),
 `%APPDATA%/TheHumanBox/worlds/` (Windows), or
 `~/.config/TheHumanBox/worlds/` (Linux).
 
+Built on Electron 45, so it needs macOS 13 or later (Apple silicon), 64-bit
+Windows 10 or later, or 64-bit Linux.
+
 ## What's in this directory
 
 - `main/` — Electron main process (Node.js side). Window creation, sim-process spawning, IPC, auto-update.
@@ -25,7 +28,8 @@ cp ../../target/release/simulation-rs resources/bin/  # or .exe on Windows
 pnpm install
 pnpm run build
 
-# 3. Run from source (no packaging)
+# 3. Run from source (no packaging). Electron downloads its binary on the
+#    first run rather than at install.
 pnpm run dev
 ```
 

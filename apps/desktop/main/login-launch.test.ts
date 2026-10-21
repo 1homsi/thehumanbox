@@ -2,10 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { HIDDEN_ARG, loginItemSettings, shouldStartHidden } from "./login-launch";
 
-test("start-minimized is carried by a launch argument, not just macOS openAsHidden", () => {
+test("start-minimized is carried by a launch argument", () => {
   assert.deepEqual(loginItemSettings(true, true), {
     openAtLogin: true,
-    openAsHidden: true,
     args: [HIDDEN_ARG],
   });
   assert.deepEqual(loginItemSettings(true, false).args, []);

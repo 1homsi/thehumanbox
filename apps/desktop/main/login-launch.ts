@@ -1,14 +1,14 @@
 export const HIDDEN_ARG = "--hidden";
 
 /**
- * Login-item settings for the OS. `openAsHidden` is macOS-only and ignored by
- * macOS 13+, so a launch marker argument carries "start minimized" on every
- * platform that supports login items (macOS, Windows).
+ * Login-item settings for the OS. A launch marker argument carries "start
+ * minimized" on every platform that supports login items (macOS, Windows);
+ * Electron 44 dropped macOS's `openAsHidden`, which only macOS 12 and older
+ * honoured.
  */
 export function loginItemSettings(autoLaunch: boolean, startMinimized: boolean) {
   return {
     openAtLogin: autoLaunch,
-    openAsHidden: startMinimized,
     args: autoLaunch && startMinimized ? [HIDDEN_ARG] : [],
   };
 }

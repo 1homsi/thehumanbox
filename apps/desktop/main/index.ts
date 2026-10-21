@@ -679,6 +679,11 @@ function notifyMilestone(title: string, body: string): void {
   // A click brings the game forward. It must not hide a window that is
   // already visible, which is what the tray and hotkey toggle does.
   n.on("click", () => showExistingWindow());
+  // macOS only shows notifications from code-signed apps (Electron 42+), and
+  // the mac build is unsigned; bounce the dock so the milestone still shows.
+  n.on("failed", () => {
+    if (process.platform === "darwin") app.dock?.bounce("informational");
+  });
   n.show();
 }
 
