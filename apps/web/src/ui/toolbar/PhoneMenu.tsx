@@ -6,12 +6,15 @@ import { useUIStore } from '../../state/store'
 import { Modal } from '../modals/Modal'
 import { MoreDropdown } from './MoreDropdown'
 import { ToolSprite } from './ToolSprite'
+import { saveBlocked, saveLabel, type WorldActions } from './world-actions'
 
 interface Props {
   /** Chronicle entries so far, shown as a count like the desktop button. */
   chronicleCount: number
   isFullscreen: boolean
   onToggleFullscreen: () => void
+  /** Find a tool and save the world, which live here on a phone rather than on the dock. */
+  worldActions?: WorldActions
 }
 
 /**
@@ -19,7 +22,7 @@ interface Props {
  * everything it held (plus the panels and the view options). The button is always rendered and
  * only shown by the phone breakpoint in CSS, so the two can never disagree about what a phone is.
  */
-export function PhoneMenu({ chronicleCount, isFullscreen, onToggleFullscreen }: Props) {
+export function PhoneMenu({ chronicleCount, isFullscreen, onToggleFullscreen, worldActions }: Props) {
   const [open, setOpen] = useState(false)
   const leftOpen = useUIStore((s) => s.leftOpen)
   const panelOpen = useUIStore((s) => s.panelOpen)
@@ -77,6 +80,31 @@ export function PhoneMenu({ chronicleCount, isFullscreen, onToggleFullscreen }: 
           </button>
         </div>
         <div className="phone-menu-body">
+          {(worldActions?.findTool || worldActions?.save) && (
+            <div className="phone-menu-list phone-menu-world">
+              {worldActions.findTool && row('🔍', 'find a tool', worldActions.findTool)}
+              {worldActions.save && (
+                <button
+                  type="button"
+                  className="phone-menu-row phone-menu-save"
+                  // Saving keeps the sheet open, so the status below the label can be read.
+                  onClick={worldActions.save.onSave}
+                  disabled={saveBlocked(worldActions.save)}
+                  aria-busy={worldActions.save.busy}
+                >
+                  <ToolSprite icon="💾" size={20} />
+                  <span className="phone-menu-label">
+                    {saveLabel(worldActions.save).toLowerCase()}
+                    {worldActions.save.status && (
+                      <small className="phone-menu-status" role="status">
+                        {worldActions.save.status}
+                      </small>
+                    )}
+                  </span>
+                </button>
+              )}
+            </div>
+          )}
           <div className="phone-menu-list">
             {row('📊', 'stats', openStats)}
             {row('👑', 'civilization', openCiv)}

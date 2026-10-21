@@ -15,15 +15,18 @@ import { PerilChip } from '../panels/PerilChip'
 import { CalendarTag } from '../panels/CalendarTag'
 import { PopulationChip } from '../panels/PopulationChip'
 import { WeatherChip } from '../panels/WeatherChip'
+import type { WorldActions } from './world-actions'
 
 interface Props {
   world: WorldState | null
   connected: boolean
   sickOrgs: number
   onAnswerPrayer: (prayer: PrayerInfo) => void
+  /** Find a tool and save the world, offered first in the ⋯ menu and the phone menu. */
+  worldActions?: WorldActions
 }
 
-export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props) {
+export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer, worldActions }: Props) {
   const showMore = useUIStore((s) => s.showMore)
   const panelOpen = useUIStore((s) => s.panelOpen)
   const isFullscreen = useUIStore((s) => s.isFullscreen)
@@ -196,7 +199,7 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
             </button>
           </Tooltip>
           <div className="more-menu" ref={moreRef}>
-            <Tooltip tip={tip('more', 'Overlays, focus filters, and view options.')}>
+            <Tooltip tip={tip('more', 'Find a tool, save the world, focus filters, and view options.')}>
               <button
                 className={clsx('hdr-btn', showMore && 'active')}
                 data-tour="more-btn"
@@ -207,7 +210,7 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
                 <span className="btn-label">more</span>
               </button>
             </Tooltip>
-            {showMore && <MoreDropdown />}
+            {showMore && <MoreDropdown worldActions={worldActions} />}
           </div>
           <Tooltip tip={tip('settings', 'World source and local simulation options.')}>
             <button className="hdr-btn" data-tour="settings-btn" onClick={openSettings} aria-label="Settings">
@@ -263,6 +266,7 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
           chronicleCount={world.story_history?.length ?? 0}
           isFullscreen={isFullscreen}
           onToggleFullscreen={toggleFullscreen}
+          worldActions={worldActions}
         />
       )}
     </header>

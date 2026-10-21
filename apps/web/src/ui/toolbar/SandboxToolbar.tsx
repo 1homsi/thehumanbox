@@ -1,6 +1,6 @@
-import { WorldToolSearch } from './WorldToolSearch'
 import { ToolSprite } from './ToolSprite'
 import { Tooltip } from './Tooltip'
+import { TimeControl } from './TimeControl'
 import { toolHowTo, toolTip } from './tool-tips'
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useWorldStore } from '../../state/worldStore'
@@ -15,18 +15,19 @@ import {
 import {
   BRUSH_SIZES,
   DOCK_TABS,
-  SPEED_TOOL_IDS,
-  TIME_CATEGORY_ID,
+  groupLabel,
   groupsFor,
   markNewToolsSeen,
+  readRememberedGroups,
   readSeenNewTools,
+  rememberGroup,
+  resolveGroup,
   resolveTab,
   unseenNewTools,
+  unseenNewToolsInGroup,
 } from './dock-tabs'
 import { hotkeysFor, toolForHotkey } from './tool-hotkeys'
 import { typingTarget } from '../../game/model/shortcuts'
-import { WASM_BASE_TICK_MS, isRuntimeControlActive } from '../../simulation/runtimeControls'
-import { nextSpeedStep } from '../../simulation/speedSteps'
 
 const TAB_STORAGE_KEY = 'thb-sandbox-category'
 
@@ -43,15 +44,6 @@ interface Props {
   onPick: (tool: SandboxTool) => void
   onClearArmed: () => void
   onClearView?: () => void
-  onSave?: () => void
-  saveStatus?: string
-  saveBusy?: boolean
-  saveError?: boolean
-  saveRetryable?: boolean
-}
-
-function formatSpeed(speed: number): string {
-  return `${Number.isInteger(speed) ? speed.toFixed(0) : speed}×`
 }
 
 function readInitialTab(): string {
@@ -74,29 +66,30 @@ function TipCard({ title, body, how }: { title: string; body?: string; how?: str
   )
 }
 
-/**
- * Speed the world is really running at, from how fast its tick advances
- * (1× is one tick per base interval). Null until there are samples.
- */
-function useAchievedSpeed(paused: boolean): number | null {
-  const tick = useWorldStore((s) => s.world?.tick ?? 0)
-  const samples = useRef<[number, number][]>([])
-  const [speed, setSpeed] = useState<number | null>(null)
-  useEffect(() => {
-    if (paused) {
-      samples.current = []
-      return
-    }
-    const now = performance.now()
-    const list = samples.current
-    list.push([now, tick])
-    while (list.length > 2 && now - list[0][0] > 3000) list.shift()
-    const [t0, k0] = list[0]
-    if (now - t0 >= 1000 && tick > k0) {
-      setSpeed(((tick - k0) / ((now - t0) / 1000)) * (WASM_BASE_TICK_MS / 1000))
-    }
-  }, [tick, paused])
-  return speed
+const ALL_TOOLS = SANDBOX_CATEGORIES.flatMap((c) => c.tools)
+
+/** Whether a tool's reach changes with the brush, so the brush sizes are worth showing for it. */
+function usesBrush(tool: SandboxTool | undefined): boolean {
+  if (!tool?.build) return false
+  const small = tool.build(0, 0, 0) as { radius?: number; count?: number }
+  const large = tool.build(0, 0, 4) as { radius?: number; count?: number }
+  return small.radius !== large.radius || small.count !== large.count
+}
+
+/** Scrolls the nearest sideways-scrolling line that holds `el` just far enough to show it. */
+function revealInLine(el: HTMLElement) {
+  for (
+    let line = el.parentElement;
+    line && !line.classList.contains('sandbox-bar');
+    line = line.parentElement
+  ) {
+    if (line.scrollWidth <= line.clientWidth) continue
+    const a = el.getBoundingClientRect()
+    const b = line.getBoundingClientRect()
+    if (a.left < b.left) line.scrollLeft -= b.left - a.left + 8
+    else if (a.right > b.right) line.scrollLeft += a.right - b.right + 8
+    return
+  }
 }
 
 interface DockTileProps {
@@ -110,8 +103,9 @@ interface DockTileProps {
 }
 
 /**
- * One dock tile. Memoized: a pick re-renders the dock to flash its tile, and only that tile's props
- * change, so the other tiles (each with its tooltip and sprite) are not reconciled again.
+ * One tool on the bar: its icon, no frame. Memoized: a pick re-renders the bar to flash its tool,
+ * and only that tool's props change, so the others (each with its tooltip and sprite) are not
+ * reconciled again.
  */
 const DockTile = memo(function DockTile({ tool, active, flashed, hotkey, body, how, onPick }: DockTileProps) {
   return (
@@ -119,12 +113,13 @@ const DockTile = memo(function DockTile({ tool, active, flashed, hotkey, body, h
       <button
         type="button"
         className={clsx('dock-tile', active && 'active', flashed && 'flash')}
+        data-tool={tool.id}
         aria-label={tool.label}
         aria-keyshortcuts={hotkey}
         aria-pressed={active}
         onClick={() => onPick(tool)}
       >
-        <ToolSprite icon={tool.icon} size={36} />
+        <ToolSprite icon={tool.icon} size={26} />
       </button>
     </Tooltip>
   )
@@ -132,6 +127,7 @@ const DockTile = memo(function DockTile({ tool, active, flashed, hotkey, body, h
 
 export function SandboxToolbar({
   armedToolId,
+  armedToolLabel,
   brush,
   status,
   runtimePaused = false,
@@ -141,16 +137,13 @@ export function SandboxToolbar({
   onBrush,
   onPick,
   onClearArmed,
-  onSave,
-  saveStatus,
-  saveBusy = false,
-  saveError = false,
-  saveRetryable = false,
 }: Props) {
   const [tabId, setTabId] = useState(readInitialTab)
-  const [seenNew, setSeenNew] = useState(readSeenNewTools)
-  // Toasts sit above the dock, and the dock's height depends on the viewport and the tab,
-  // so publish it as a CSS variable instead of hard-coding a guess in three stylesheets.
+  const [remembered, setRemembered] = useState(readRememberedGroups)
+  const groupId = resolveGroup(tabId, remembered[tabId])
+  const [seenNew, setSeenNew] = useState(() => markNewToolsSeen(groupId, readSeenNewTools()))
+  // Toasts sit above the bar, and its height depends on the viewport, so publish it as a CSS
+  // variable instead of hard-coding a guess in three stylesheets.
   const barRef = useRef<HTMLElement>(null)
   useLayoutEffect(() => {
     const el = barRef.current
@@ -165,18 +158,14 @@ export function SandboxToolbar({
     }
   }, [])
   const groups = groupsFor(tabId)
-  const timeTools = SANDBOX_CATEGORIES.find((c) => c.id === TIME_CATEGORY_ID)?.tools ?? []
-  const speedTools = SPEED_TOOL_IDS.flatMap((id) => timeTools.filter((t) => t.id === id))
-  const achieved = useAchievedSpeed(runtimePaused)
-  // Past what the machine can sustain, say what it is really doing.
-  const lagging = !runtimePaused && achieved !== null && runtimeSpeed > 10 && achieved < runtimeSpeed * 0.8
+  const group = groups.find((g) => g.id === groupId) ?? groups[0]
   const worldGrid = useWorldStore((s) => s.world?.grid)
   const weather = useWorldStore((s) => s.world?.weather?.kind)
   const drought = useWorldStore((s) => s.world?.drought ?? false)
   const [flashId, setFlashId] = useState<string | null>(null)
   const isViewActive = (tool: SandboxTool) =>
     isSandboxViewControlActive(tool.view, activeOverlay, activeViewFlags)
-  // Weather and drought are states of the world, so their tiles light up
+  // Weather and drought are states of the world, so their tools light up
   // while that state holds, and clicking a lit one switches it off.
   const isStateActive = (tool: SandboxTool) =>
     (tool.id === 'rain' && weather === 'rain') ||
@@ -184,20 +173,17 @@ export function SandboxToolbar({
     (tool.id === 'snow_weather' && weather === 'snow') ||
     (tool.id === 'fog' && weather === 'fog') ||
     (tool.id === 'drought_on' && drought)
-  const tabEngaged = (id: string) =>
-    groupsFor(id).some((c) => c.tools.some((t) => armedToolId === t.id || isViewActive(t)))
+  const engaged = (tools: readonly SandboxTool[]) =>
+    tools.some((t) => armedToolId === t.id || isViewActive(t))
+  const tabEngaged = (id: string) => engaged(groupsFor(id).flatMap((c) => c.tools))
 
-  const toggleTime = () =>
-    onPick({
-      id: runtimePaused ? 'play' : 'pause',
-      label: runtimePaused ? 'play' : 'pause',
-      icon: runtimePaused ? '▶️' : '⏸️',
-      mode: 'instant',
-      time: { control: runtimePaused ? 'resume' : 'pause' },
-    })
+  const openGroup = (tab: string, id: string) => {
+    setSeenNew((seen) => markNewToolsSeen(id, seen))
+    setRemembered((prev) => (prev[tab] === id ? prev : rememberGroup(prev, tab, id)))
+  }
   const selectTab = (id: string) => {
     setTabId(id)
-    setSeenNew((seen) => markNewToolsSeen(id, seen))
+    openGroup(id, resolveGroup(id, remembered[id]))
     try {
       window.localStorage.setItem(TAB_STORAGE_KEY, id)
     } catch {
@@ -227,13 +213,13 @@ export function SandboxToolbar({
     onPick(tool)
   }
 
-  // Q to G pick the first ten tools of the open tab, as the tooltips say.
-  const tabTools = groups.flatMap((group) => group.tools)
-  const hotkeys = hotkeysFor(tabTools)
+  // Q to G pick the first ten tools of the open group, the ones on the bar.
+  const rowTools = group?.tools ?? []
+  const hotkeys = hotkeysFor(rowTools)
   useEffect(() => {
     const onHotkey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey || event.repeat || typingTarget(event.target)) return
-      const tool = toolForHotkey(tabTools, event.key)
+      const tool = toolForHotkey(rowTools, event.key)
       if (!tool) return
       event.preventDefault()
       pickTool(tool)
@@ -242,18 +228,6 @@ export function SandboxToolbar({
     return () => window.removeEventListener('keydown', onHotkey)
   })
 
-  // Tooltips describe tools and the world view explains the armed one, so
-  // the hint line only carries transient status and the brush size.
-  const hint = status ?? null
-  const saveActionLabel = saveBusy ? 'saving' : saveError && saveRetryable ? '↻ retry save' : 'save world'
-  const saveTitle = saveStatus
-    ? `${saveActionLabel} · ${saveStatus}`
-    : saveError && saveRetryable
-      ? 'Retry saving this world on this device'
-      : saveBusy
-        ? 'Saving this world on this device'
-        : 'Save this world on this device now'
-
   // The tiles are memoized, so they get one pick function that never changes and calls this render's pick.
   const pickRef = useRef(pickTool)
   useLayoutEffect(() => {
@@ -261,7 +235,47 @@ export function SandboxToolbar({
   })
   const pickStable = useCallback((tool: SandboxTool) => pickRef.current(tool), [])
 
-  // One dock tile: a click arms or fires it.
+  // The held tool's name sits above its icon; it follows the icon as the row scrolls, and sits at
+  // the bar's left end when the tool is in another group or scrolled out of sight. The row also
+  // fades at an edge with more tools past it.
+  const toolsRef = useRef<HTMLDivElement>(null)
+  const [heldX, setHeldX] = useState<number | null>(null)
+  const [edges, setEdges] = useState({ before: false, after: false })
+  const measureRow = useCallback(() => {
+    const bar = barRef.current
+    const row = toolsRef.current
+    if (!bar || !row) return
+    const before = row.scrollLeft > 1
+    const after = row.scrollLeft + row.clientWidth < row.scrollWidth - 1
+    setEdges((prev) => (prev.before === before && prev.after === after ? prev : { before, after }))
+    const tile = armedToolId ? row.querySelector<HTMLElement>(`[data-tool="${armedToolId}"]`) : null
+    if (!tile) return setHeldX(null)
+    const t = tile.getBoundingClientRect()
+    const r = row.getBoundingClientRect()
+    const mid = t.left + t.width / 2
+    setHeldX(mid < r.left || mid > r.right ? null : Math.round(mid - bar.getBoundingClientRect().left))
+  }, [armedToolId])
+  useLayoutEffect(measureRow, [measureRow, groupId])
+  useEffect(() => {
+    const row = toolsRef.current
+    if (!row) return
+    const obs = new ResizeObserver(measureRow)
+    obs.observe(row)
+    return () => obs.disconnect()
+  }, [measureRow])
+
+  // A remembered group far along its line (on a phone, or between open drawers) is scrolled to.
+  const navRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    navRef.current
+      ?.querySelectorAll<HTMLElement>('.dock-tab.active, .dock-group-chip.active')
+      .forEach(revealInLine)
+  }, [tabId, groupId])
+
+  const armedTool = armedToolId ? ALL_TOOLS.find((t) => t.id === armedToolId) : undefined
+  const heldName = armedToolLabel ?? armedTool?.label
+
+  // One tool on the row: a click arms or fires it.
   const renderTile = (tool: SandboxTool) => {
     const active = armedToolId === tool.id || isViewActive(tool) || isStateActive(tool)
     const how = isStateActive(tool)
@@ -283,226 +297,112 @@ export function SandboxToolbar({
     )
   }
 
-  // The slower and faster buttons step through the finer speed ladder from the speed the world runs at now.
-  const stepButton = (direction: 1 | -1) => {
-    const label = direction > 0 ? 'faster' : 'slower'
-    const next = nextSpeedStep(runtimeSpeed, direction)
-    return (
-      <Tooltip
-        key={label}
-        tip={
-          <TipCard
-            title={next === null ? label : `${label} · ${formatSpeed(next)}`}
-            body={
-              next === null
-                ? direction > 0
-                  ? 'Already at the fastest step.'
-                  : 'Already at the slowest step.'
-                : `Run time ${formatSpeed(next)}.`
-            }
-          />
-        }
-      >
-        <button
-          type="button"
-          className="dock-speed dock-speed-step"
-          aria-label={label}
-          disabled={next === null}
-          onClick={() => {
-            if (next === null) return
-            onPick({
-              id: `speed-${label}`,
-              label: formatSpeed(next),
-              icon: direction > 0 ? '⏩' : '🐢',
-              mode: 'instant',
-              time: { control: 'speed', mult: next },
-            })
-          }}
-        >
-          {direction > 0 ? '+' : '−'}
-        </button>
-      </Tooltip>
-    )
-  }
-
   return (
     <section className="sandbox-bar" aria-label="World controls" ref={barRef}>
-      <nav className="dock-tabs" aria-label="World tools">
-        {DOCK_TABS.map((tab) => (
-          <Tooltip
-            key={tab.id}
-            tip={
-              <TipCard
-                title={tab.label}
-                body={tab.tip}
-                how={tabEngaged(tab.id) ? 'a tool or layer here is on' : undefined}
-              />
-            }
-          >
-            <button
-              type="button"
-              className={clsx('dock-tab', tab.id === tabId && 'active', tabEngaged(tab.id) && 'engaged')}
-              aria-pressed={tab.id === tabId}
-              onClick={() => selectTab(tab.id)}
-            >
-              <ToolSprite icon={tab.icon} size={24} />
-              <span>{tab.label}</span>
-              {unseenNewTools(tab.id, seenNew).length > 0 && (
-                <span className="dock-tab-new" aria-label="new tools here">
-                  new
-                </span>
-              )}
-            </button>
-          </Tooltip>
-        ))}
-      </nav>
-
+      {armedToolId && heldName && (
+        <div
+          className={clsx('dock-held', heldX === null && 'detached')}
+          style={heldX === null ? undefined : { left: heldX }}
+          aria-hidden="true"
+        >
+          {heldName} · click the map
+        </div>
+      )}
       <div className="dock-hint" role="status" aria-live="polite">
-        {hint && <span>{hint}</span>}
-        {armedToolId && (
-          <span className="dock-brush" title="Brush size · also - and =">
-            <button type="button" aria-label="Smaller brush" onClick={() => onBrush(Math.max(0, brush - 1))}>
-              −
-            </button>
-            <span>brush {brush}</span>
-            <button type="button" aria-label="Larger brush" onClick={() => onBrush(Math.min(20, brush + 1))}>
-              +
-            </button>
-            <span className="dock-brush-sizes" role="group" aria-label="Brush sizes">
-              {BRUSH_SIZES.map(([size, value]) => (
-                <button
-                  key={size}
-                  type="button"
-                  title={`Brush ${size} tile${size === 1 ? '' : 's'} across`}
-                  aria-label={`Brush size ${size}`}
-                  aria-pressed={brush === value}
-                  className={brush === value ? 'active' : undefined}
-                  onClick={() => onBrush(value)}
-                >
-                  {size}
-                </button>
-              ))}
-            </span>
-          </span>
+        {status && <span>{status}</span>}
+      </div>
+
+      <div className="dock-nav" ref={navRef}>
+        <nav className="dock-tabs" aria-label="World tools">
+          {DOCK_TABS.map((tab) => (
+            <Tooltip
+              key={tab.id}
+              tip={
+                <TipCard
+                  title={tab.label}
+                  body={tab.tip}
+                  how={tabEngaged(tab.id) ? 'a tool or layer here is on' : undefined}
+                />
+              }
+            >
+              <button
+                type="button"
+                className={clsx('dock-tab', tab.id === tabId && 'active', tabEngaged(tab.id) && 'engaged')}
+                aria-pressed={tab.id === tabId}
+                onClick={() => selectTab(tab.id)}
+              >
+                {tab.label}
+                {unseenNewTools(tab.id, seenNew).length > 0 && (
+                  <span className="dock-new" aria-label="new tools here" />
+                )}
+              </button>
+            </Tooltip>
+          ))}
+        </nav>
+        {groups.length > 1 && (
+          <div className="dock-groups" role="group" aria-label={`${tabId} groups`}>
+            {groups.map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                className={clsx(
+                  'dock-group-chip',
+                  g.id === group?.id && 'active',
+                  engaged(g.tools) && 'engaged',
+                )}
+                aria-pressed={g.id === group?.id}
+                onClick={() => openGroup(tabId, g.id)}
+              >
+                {groupLabel(g)}
+                {unseenNewToolsInGroup(g.id, seenNew).length > 0 && (
+                  <span className="dock-new" aria-label="new tools here" />
+                )}
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
-      <div
-        className="dock-tools"
-        role="group"
-        aria-label={`${tabId} tools`}
-        onWheel={(e) => {
-          // A mouse wheel scrolls the tool strip sideways when it overflows.
-          const el = e.currentTarget
-          if (el.scrollWidth > el.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX))
-            el.scrollLeft += e.deltaY
-        }}
-      >
-        {groups.map((group) => (
-          <div className="dock-group" key={group.id} role="group" aria-label={group.label}>
-            {group.tools.map(renderTile)}
-          </div>
-        ))}
-      </div>
-
-      <div className="dock-side">
-        <div className="dock-time">
-          <Tooltip
-            tip={
-              <TipCard
-                title={runtimePaused ? 'resume' : 'pause'}
-                body={
-                  runtimePaused
-                    ? 'Time is stopped. Start the world again.'
-                    : lagging
-                      ? `Asked for ${formatSpeed(runtimeSpeed)}; this computer is running about ${formatSpeed(Math.round(achieved ?? 0))}, as fast as it can.`
-                      : `Stop time. Running at ${formatSpeed(runtimeSpeed)}.`
-                }
-                how="space"
-              />
-            }
-          >
-            <button
-              type="button"
-              className={clsx('dock-play', runtimePaused && 'paused')}
-              onClick={toggleTime}
-              aria-label={runtimePaused ? 'Resume simulation' : 'Pause simulation'}
-            >
-              <ToolSprite icon={runtimePaused ? '▶️' : '⏸️'} size={24} />
-              <span>
-                {runtimePaused
-                  ? 'paused'
-                  : lagging
-                    ? `≈${formatSpeed(Math.round(achieved ?? 0))}`
-                    : formatSpeed(runtimeSpeed)}
-              </span>
+      <div className="dock-row">
+        <div
+          className={clsx('dock-tools', edges.before && 'more-before', edges.after && 'more-after')}
+          role="group"
+          aria-label={`${group ? groupLabel(group) : tabId} tools`}
+          ref={toolsRef}
+          onScroll={measureRow}
+          onWheel={(e) => {
+            // A mouse wheel scrolls the row sideways when it overflows.
+            const el = e.currentTarget
+            if (el.scrollWidth > el.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX))
+              el.scrollLeft += e.deltaY
+          }}
+        >
+          {rowTools.map(renderTile)}
+        </div>
+        {usesBrush(armedTool) && (
+          <div className="dock-brush" role="group" aria-label="Brush sizes" title="Brush size · also - and =">
+            <button type="button" aria-label="Smaller brush" onClick={() => onBrush(Math.max(0, brush - 1))}>
+              −
             </button>
-          </Tooltip>
-          <div className="dock-speeds">
-            {stepButton(-1)}
-            {speedTools.map((tool) => (
-              <Tooltip
-                key={tool.id}
-                tip={
-                  <TipCard
-                    title={`speed ${formatSpeed(tool.time?.mult ?? 1)}`}
-                    body={
-                      tool.label === '1×'
-                        ? 'Normal speed.'
-                        : (tool.time?.mult ?? 1) > 40
-                          ? `Run time ${formatSpeed(tool.time?.mult ?? 1)} faster, or as fast as this computer can.`
-                          : `Run time ${tool.label} faster.`
-                    }
-                  />
-                }
+            {BRUSH_SIZES.map(([size, value]) => (
+              <button
+                key={size}
+                type="button"
+                title={`Brush ${size} tile${size === 1 ? '' : 's'} across`}
+                aria-label={`Brush size ${size}`}
+                aria-pressed={brush === value}
+                className={brush === value ? 'active' : undefined}
+                onClick={() => onBrush(value)}
               >
-                <button
-                  type="button"
-                  className={clsx(
-                    'dock-speed',
-                    !runtimePaused &&
-                      isRuntimeControlActive(tool.time, runtimePaused, runtimeSpeed) &&
-                      'active',
-                  )}
-                  onClick={() => onPick(tool)}
-                  aria-label={`Speed ${tool.label}`}
-                >
-                  {tool.label}
-                </button>
-              </Tooltip>
+                {size}
+              </button>
             ))}
-            {stepButton(1)}
+            <button type="button" aria-label="Larger brush" onClick={() => onBrush(Math.min(20, brush + 1))}>
+              +
+            </button>
           </div>
-        </div>
-        <div className="dock-utility">
-          <WorldToolSearch onPick={onPick} />
-          {onSave && (
-            <Tooltip tip={<TipCard title={saveActionLabel} body={saveTitle} />}>
-              <div className={clsx('sandbox-save', saveError && 'error')}>
-                <button
-                  type="button"
-                  className={clsx('dock-mini', 'sandbox-save-button', saveBusy && 'busy')}
-                  onClick={onSave}
-                  disabled={saveBusy || (saveError && !saveRetryable)}
-                  aria-label={saveActionLabel}
-                  aria-busy={saveBusy}
-                >
-                  <span className="sandbox-save-icon" aria-hidden="true">
-                    <ToolSprite icon="💾" size={24} />
-                  </span>
-                  <span className="sandbox-save-label">
-                    {saveBusy ? 'saving' : saveError && saveRetryable ? 'retry save' : 'save world'}
-                  </span>
-                </button>
-                {saveStatus && (
-                  <span className="sandbox-save-status" role="status">
-                    {saveStatus}
-                  </span>
-                )}
-              </div>
-            </Tooltip>
-          )}
-        </div>
+        )}
+        <TimeControl paused={runtimePaused} speed={runtimeSpeed} onPick={onPick} />
       </div>
     </section>
   )
