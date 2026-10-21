@@ -1,14 +1,10 @@
 /* ── World dock: the quiet bar ────────────────────────────────────────────
- * One slim bar floating over the bottom of the map, with the map showing on both sides. Line one
- * holds the category words and the open category's group chips; line two holds the open group's
- * tools as bare icons in one row that scrolls sideways, and one time control at its right end.
- * Phones put the same bar full width under the map (see the end of this file). */
+ * One slim bar across the bottom of the window, under the map (the map and its drawers end above
+ * it). Line one holds the category words and the open category's group chips; line two holds the
+ * open group's tools as bare icons in one row that scrolls sideways, and one time control at its
+ * right end. The bar is part of the page, not over the map, so nothing needs to clear it there:
+ * --dock-lift and --dock-over-map stay 0. Toasts still clear it through --dock-h (00-base.css). */
 :root:has(.sandbox-bar) {
-  /* How far the bar floats above the bottom edge; toasts and map controls clear it by this too. */
-  --dock-lift: calc(14px + var(--safe-bottom));
-  --dock-over-map: calc(var(--dock-h) + var(--dock-lift));
-}
-:root:has(body.thb-photo-mode) {
   --dock-lift: 0px;
   --dock-over-map: 0px;
 }
@@ -20,23 +16,15 @@
   --bar-parchment: #ebdfbd;
   --bar-ink: #2b2117;
   --bar-tool: 34px;
-  position: fixed;
-  /* Left and right pin the space between the open drawers; max-width and auto margins centre the
-   * bar in it. */
-  left: calc(12px + var(--safe-left) + var(--dock-inset-left, 0px));
-  right: calc(12px + var(--safe-right) + var(--dock-inset-right, 0px));
-  bottom: var(--dock-lift);
-  max-width: 1000px;
-  margin: 0 auto;
+  position: relative;
+  flex: 0 0 auto;
   z-index: 60;
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding: 8px 10px 8px 14px;
-  background: var(--bar-wood);
-  border: 1px solid var(--bar-line);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  padding: 8px calc(12px + var(--safe-right)) calc(8px + var(--safe-bottom)) calc(16px + var(--safe-left));
+  background: #241b14;
+  border-top: 1px solid var(--bar-line);
   color: var(--bar-cream);
   font-family: inherit;
 }
@@ -49,13 +37,16 @@
   outline-offset: 1px;
 }
 
-/* Line one: category words, a thin divider, then the open category's groups. */
+/* Line one: category words, a thin divider, then the open category's groups. It scrolls sideways,
+ * which clips it top and bottom too, so it leaves room for the dot under a word (4 px below it). */
 .dock-nav {
   display: flex;
   align-items: center;
   gap: 14px;
   min-width: 0;
+  padding: 2px 0 6px;
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
   white-space: nowrap;
 }
@@ -394,39 +385,13 @@
   outline-offset: -2px;
 }
 
-/* Wide windows: the bar sits in the map between the open drawers. */
-@media (min-width: 1100px) {
-  .app:has(.panel-left.open) .sandbox-bar {
-    --dock-inset-left: 240px;
-  }
-  .app:has(.panel-right.open) .sandbox-bar {
-    --dock-inset-right: 320px;
-  }
-}
-
-/* Phones: the same bar, full width under the map instead of over it. Both lines and the tool
- * row scroll sideways; the time control stays in view at the right end. */
+/* Phones: the same bar with taller hit areas, the categories and groups on lines of their own. Both
+ * lines and the tool row scroll sideways; the time control stays in view at the right end. */
 @media (max-width: 767px) {
-  :root:has(.sandbox-bar) {
-    --dock-lift: 0px;
-    --dock-over-map: 0px;
-  }
   .sandbox-bar {
     --bar-tool: 40px;
-    position: relative;
-    left: auto;
-    right: auto;
-    bottom: auto;
-    flex: 0 0 auto;
-    max-width: none;
-    /* Auto margins would shrink a flex item to its content; the bar fills the width here. */
-    margin: 0;
     gap: 0;
     padding: 0 calc(8px + var(--safe-right)) calc(6px + var(--safe-bottom)) calc(10px + var(--safe-left));
-    background: #241b14;
-    border-width: 1px 0 0;
-    border-radius: 0;
-    box-shadow: none;
   }
   /* Categories and groups each get a line of their own, so the groups never hide off the edge. */
   .dock-nav {
@@ -437,7 +402,9 @@
   }
   .dock-tabs,
   .dock-groups {
+    padding-bottom: 6px;
     overflow-x: auto;
+    overflow-y: hidden;
     scrollbar-width: none;
   }
   .dock-tabs::-webkit-scrollbar,
@@ -449,7 +416,7 @@
   }
   .dock-groups {
     gap: 4px;
-    padding: 0 0 2px;
+    padding-left: 0;
     border-left: 0;
   }
   /* Taller hit areas for thumbs, without making the words any bigger. */
