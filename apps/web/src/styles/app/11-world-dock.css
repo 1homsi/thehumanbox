@@ -1,118 +1,281 @@
-/* ── World dock ─────────────────────────────────────────────────────────
- * Pixel-framed tool dock anchored to the bottom edge. Tabs sit on its top
- * edge from the left; the tool tiles fill two rows, split into carved
- * groups; time, search and save live on the right. Corners are notched with
- * clip-path so every frame reads as drawn pixels rather than rounded CSS. */
+/* ── World dock: the quiet bar ────────────────────────────────────────────
+ * One slim bar across the bottom of the window, under the map (the map and its drawers end above
+ * it). Line one holds the category words and the open category's group chips; line two holds the
+ * open group's tools as small raised tiles in one row that scrolls sideways, and one time control at
+ * its right end. The bar is part of the page, not over the map, so nothing needs to clear it there:
+ * --dock-lift and --dock-over-map stay 0. Toasts still clear it through --dock-h (00-base.css).
+ * It is drawn in the pixel style of the rest of the game: a grained wood plank under an ink and
+ * brass edge, bevelled tiles and plates, carved dividers, and notched corners (--px-notch). */
+:root:has(.sandbox-bar) {
+  --dock-lift: 0px;
+  --dock-over-map: 0px;
+}
 .sandbox-bar {
-  --dock-wood: var(--px-wood);
-  --dock-wood-dark: var(--px-wood-dark);
-  --dock-ink: var(--px-ink);
-  --dock-groove: var(--px-groove);
-  --dock-brass: var(--px-brass);
-  --dock-gold: var(--px-gold);
-  --dock-text: #cbbfa8;
-  --dock-tile: 44px;
-  --dock-notch: var(--px-notch);
+  --bar-wood: rgba(36, 27, 20, 0.95);
+  --bar-line: #5d4632;
+  --bar-dim: #9c8b66;
+  --bar-cream: #e8d7ab;
+  --bar-parchment: #ebdfbd;
+  --bar-ink: #2b2117;
+  --bar-tool: 36px;
   position: relative;
   flex: 0 0 auto;
   z-index: 60;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px calc(10px + var(--safe-right)) calc(8px + var(--safe-bottom)) calc(10px + var(--safe-left));
-  background: repeating-linear-gradient(0deg, var(--dock-wood) 0 22px, var(--dock-wood-dark) 22px 24px);
-  border-top: 2px solid var(--dock-ink);
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px calc(12px + var(--safe-right)) calc(8px + var(--safe-bottom)) calc(16px + var(--safe-left));
+  background: var(--px-grain);
+  border-top: 2px solid var(--px-ink);
   box-shadow:
-    inset 0 2px 0 var(--dock-brass),
+    inset 0 2px 0 var(--px-brass),
     inset 0 4px 0 rgba(0, 0, 0, 0.35);
+  color: var(--bar-cream);
   font-family: inherit;
-  color: var(--dock-text);
+}
+.sandbox-bar button {
+  font: inherit;
+  cursor: pointer;
+}
+.sandbox-bar button:focus-visible {
+  outline: 2px solid var(--px-gold);
+  outline-offset: 1px;
 }
 
-/* Tabs: pixel folder tabs growing rightward from the left edge. */
-.dock-tabs {
-  position: absolute;
-  bottom: 100%;
-  left: var(--safe-left);
+/* Line one: category words, a thin divider, then the open category's groups. It scrolls sideways,
+ * which clips it top and bottom too, so it leaves room for the dot under a word (4 px below it). */
+.dock-nav {
   display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  max-width: calc(100% - 20px - var(--safe-left) - var(--safe-right));
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 2px 0 6px;
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
+  white-space: nowrap;
+}
+.dock-nav::-webkit-scrollbar {
+  display: none;
+}
+.dock-tabs,
+.dock-groups {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+.dock-tabs {
+  gap: 14px;
+}
+.dock-groups {
+  gap: 4px;
+  padding-left: 14px;
+  border-left: 2px solid var(--px-ink);
+  box-shadow: inset 2px 0 0 var(--px-groove);
 }
 .dock-tab {
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 12px 0 8px;
-  background: var(--dock-wood-dark);
-  border: 2px solid var(--dock-ink);
-  border-bottom: 0;
-  box-shadow: inset 0 2px 0 var(--dock-groove);
-  clip-path: polygon(
-    0 3px,
-    3px 3px,
-    3px 0,
-    calc(100% - 3px) 0,
-    calc(100% - 3px) 3px,
-    100% 3px,
-    100% 100%,
-    0 100%
-  );
-  color: #9d8c6e;
-  font: inherit;
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  flex: 0 0 auto;
-}
-.dock-tab:first-child {
-  border-left: 0;
-  clip-path: polygon(0 0, calc(100% - 3px) 0, calc(100% - 3px) 3px, 100% 3px, 100% 100%, 0 100%);
+  padding: 2px 0 1px;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--bar-dim);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  line-height: 1.3;
+  text-transform: uppercase;
 }
 .dock-tab:hover {
-  color: #e7d8bc;
+  color: var(--bar-cream);
 }
 .dock-tab.active {
-  height: 36px;
-  margin-bottom: -2px;
-  background: var(--dock-wood);
-  color: #f3d17a;
-  box-shadow:
-    inset 0 3px 0 var(--dock-gold),
-    inset 0 5px 0 rgba(0, 0, 0, 0.3);
+  color: var(--px-gold-text);
+  border-bottom-color: var(--px-gold);
 }
-.dock-tab.engaged::after {
+.dock-group-chip {
+  position: relative;
+  padding: 3px 9px;
+  background: none;
+  border: 0;
+  color: var(--bar-cream);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  opacity: 0.7;
+}
+.dock-group-chip:hover {
+  opacity: 1;
+}
+/* The open group: a raised plate. */
+.dock-group-chip.active {
+  background: var(--px-raised);
+  box-shadow: var(--px-raised-shadow);
+  clip-path: var(--px-notch);
+  color: var(--px-gold-text);
+  opacity: 1;
+}
+/* A tool or map layer is on in a category or group the player is not looking at. */
+.dock-tab.engaged:not(.active)::before,
+.dock-group-chip.engaged:not(.active)::before {
   content: '';
   position: absolute;
-  top: 7px;
-  right: 4px;
+  left: 50%;
+  bottom: -4px;
   width: 4px;
   height: 4px;
-  background: var(--dock-gold);
+  margin-left: -2px;
+  background: var(--px-gold);
+}
+/* Holds a tool the player has not seen yet (see NEW_TOOL_IDS in dock-tabs.ts). */
+.dock-new {
+  position: absolute;
+  top: 0;
+  right: -5px;
+  width: 4px;
+  height: 4px;
+  background: #f0c24c;
+  box-shadow: 0 0 0 1px var(--px-ink);
+  pointer-events: none;
+}
+.dock-group-chip .dock-new {
+  right: -1px;
 }
 
-/* Hint: what the pointed-at or armed tool does. */
+/* Line two: the open group's tools, as raised tiles in one row that scrolls sideways; then the
+ * brush sizes while an area tool is held, and the time control. */
+.dock-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.dock-tools {
+  display: flex;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.dock-tools::-webkit-scrollbar {
+  display: none;
+}
+/* The row fades out at an edge that has more tools past it. */
+.dock-tools.more-after {
+  mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent);
+}
+.dock-tools.more-before {
+  mask-image: linear-gradient(90deg, transparent, #000 32px);
+}
+.dock-tools.more-before.more-after {
+  mask-image: linear-gradient(90deg, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+}
+.dock-tile {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: var(--bar-tool);
+  height: var(--bar-tool);
+  padding: 0;
+  background: var(--px-raised);
+  border: 2px solid var(--px-ink);
+  box-shadow: var(--px-raised-shadow);
+  clip-path: var(--px-notch);
+  transition: background 90ms ease;
+}
+.dock-tile svg {
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.5));
+}
+.dock-tile:hover {
+  background: var(--px-raised-hover);
+}
+.dock-tile:active {
+  box-shadow: var(--px-pressed-shadow);
+}
+.dock-tile:active svg {
+  transform: translateY(1px);
+}
+/* The held tool: pressed in, with a gold rim. */
+.dock-tile.active {
+  background: var(--px-active);
+  border-color: var(--px-gold);
+  box-shadow: var(--px-pressed-shadow);
+}
+.sandbox-bar .dock-tile:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Brush sizes, beside the row while an area tool is held. */
+.dock-brush {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+  padding-left: 10px;
+  border-left: 2px solid var(--px-ink);
+  box-shadow: inset 2px 0 0 var(--px-groove);
+}
+.dock-brush button {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 4px;
+  background: var(--px-raised);
+  border: 0;
+  box-shadow:
+    inset 1px 1px 0 var(--px-raised-hi),
+    inset -1px -2px 0 var(--px-raised-lo);
+  clip-path: var(--px-notch);
+  color: var(--bar-cream);
+  font-size: 11px;
+}
+.dock-brush button:hover {
+  background: var(--px-raised-hover);
+}
+.dock-brush button.active {
+  background: var(--px-active);
+  box-shadow:
+    inset 1px 2px 0 var(--px-raised-lo),
+    inset -1px -1px 0 var(--px-raised-hi);
+  color: var(--px-gold-text);
+}
+
+/* The held tool's name, on a parchment tag above its icon (kept inside the bar near its ends; see
+ * measureRow in SandboxToolbar.tsx). */
+.dock-held {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  background: var(--bar-parchment);
+  border: 2px solid var(--px-ink);
+  box-shadow: inset 0 -2px 0 #c9b78c;
+  clip-path: var(--px-notch);
+  color: var(--bar-ink);
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.dock-held.detached {
+  left: 14px;
+  transform: none;
+}
+
+/* Status: what a tool or a save just did, above the bar's right end. */
 .dock-hint {
   position: absolute;
   bottom: calc(100% + 6px);
   right: 10px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
   max-width: 55%;
-  font-size: 12px;
-  letter-spacing: 0.03em;
-  color: #e7d8bc;
+  font-size: 11px;
+  color: var(--bar-cream);
   pointer-events: none;
 }
-.dock-hint > span:first-child {
-  padding: 4px 8px;
-  background: rgba(17, 12, 8, 0.82);
-  clip-path: var(--dock-notch);
+.dock-hint > span {
+  display: block;
+  padding: 4px 9px;
+  background: rgba(17, 12, 8, 0.88);
+  clip-path: var(--px-notch);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -120,298 +283,227 @@
 .dock-hint:empty {
   display: none;
 }
-.dock-brush {
+
+/* ── Time control: pause or play, then ‹ speed › ───────────────────────── */
+/* A sunken, ink-framed slot. The frame is drawn on ::before so its notched corners don't clip the
+ * speed list, which opens above the control. */
+.time-control {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 4px;
-  background: rgba(17, 12, 8, 0.82);
-  clip-path: var(--dock-notch);
-  pointer-events: auto;
-  color: #f3d17a;
-}
-.dock-brush button {
-  width: 22px;
-  height: 22px;
-  border: 0;
-  background: #3a2c1e;
-  color: #f3d17a;
-  font: inherit;
-  cursor: pointer;
-  clip-path: var(--dock-notch);
-}
-.dock-brush-sizes {
-  display: flex;
-  gap: 2px;
-}
-.dock-brush-sizes button.active {
-  background: #7a5a2a;
-  color: #fff3c4;
-}
-
-/* Tools: two rows of framed tiles, one carved group per category. */
-.dock-tools {
-  display: flex;
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: thin;
-}
-.dock-group {
-  display: grid;
-  grid-template-rows: repeat(2, var(--dock-tile));
-  grid-auto-flow: column;
-  grid-auto-columns: var(--dock-tile);
-  gap: 4px;
-  padding: 0 12px;
   flex: 0 0 auto;
-  box-shadow:
-    2px 0 0 var(--dock-ink),
-    4px 0 0 var(--dock-groove);
-  margin-right: 4px;
+  height: var(--bar-tool);
+  padding: 2px;
+  color: var(--bar-cream);
 }
-.dock-group:first-child {
-  padding-left: 0;
+.time-control::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--px-inset);
+  border: 2px solid var(--px-ink);
+  box-shadow: var(--px-sunken-shadow);
+  clip-path: var(--px-notch);
 }
-.dock-group:last-child {
-  box-shadow: none;
-}
-.dock-tile,
-.dock-play,
-.dock-speed,
-.dock-mini {
+.time-pause {
   display: grid;
   place-items: center;
+  width: 38px;
+  height: 100%;
   padding: 0;
-  border: 2px solid var(--dock-ink);
-  background: #45362a;
-  box-shadow:
-    inset 2px 2px 0 #6a5439,
-    inset -2px -3px 0 #2a1f15;
-  clip-path: var(--dock-notch);
-  color: var(--dock-text);
-  font: inherit;
-  cursor: pointer;
-  transition: background 90ms ease;
+  background: var(--px-raised);
+  border: 0;
+  border-right: 2px solid var(--px-ink);
+  box-shadow: var(--px-raised-shadow);
 }
-.dock-tile {
+.time-pause:hover {
+  background: var(--px-raised-hover);
+}
+.time-control.paused .time-pause {
+  background: var(--px-active);
+  box-shadow: var(--px-pressed-shadow);
+}
+.time-step {
+  width: 24px;
+  height: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--bar-dim);
+  font-size: 16px;
+  line-height: 1;
+}
+.time-step:hover:not(:disabled) {
+  color: var(--px-gold-text);
+}
+.time-step:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+.time-step:last-of-type {
+  margin-right: 6px;
+}
+.time-speed-value {
   position: relative;
-  width: var(--dock-tile);
-  height: var(--dock-tile);
-}
-.dock-tile:hover,
-.dock-play:hover,
-.dock-speed:hover,
-.dock-mini:hover:not(:disabled) {
-  background: #54422f;
-}
-.dock-tile:active,
-.dock-play:active,
-.dock-speed:active,
-.dock-mini:active:not(:disabled) {
-  box-shadow:
-    inset 2px 3px 0 #2a1f15,
-    inset -2px -2px 0 #6a5439;
-}
-.dock-tile:active svg,
-.dock-mini:active:not(:disabled) svg {
-  transform: translateY(1px);
-}
-.dock-tile.active,
-.dock-speed.active {
-  background: #5c4527;
-  border-color: var(--dock-gold);
-  box-shadow:
-    inset 2px 2px 0 #9c7a3e,
-    inset -2px -3px 0 #3a2a15;
-}
-/* A tab holding a tool the player has not seen yet (see NEW_TOOL_IDS in dock-tabs.ts). */
-.dock-tab-new {
-  position: absolute;
-  top: -5px;
-  right: -3px;
-  padding: 1px 3px;
-  border-radius: 3px;
-  background: var(--dock-gold);
-  color: #2a1b0c;
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1.2;
-  text-transform: uppercase;
-  pointer-events: none;
-}
-.dock-tile:focus-visible,
-.dock-tab:focus-visible,
-.dock-play:focus-visible,
-.dock-speed:focus-visible,
-.dock-mini:focus-visible {
-  outline: 2px solid var(--dock-gold);
-  outline-offset: -4px;
-}
-
-/* Right side: time panel, then search and save. */
-.dock-side {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
-  padding-left: 14px;
-  box-shadow:
-    -2px 0 0 var(--dock-groove),
-    -4px 0 0 var(--dock-ink);
-}
-.dock-time {
-  display: grid;
-  grid-template-rows: 50px 38px;
-  gap: 4px;
-  width: 148px;
-}
-.dock-play {
-  grid-auto-flow: column;
-  gap: 8px;
-  justify-content: center;
-  color: #f3d17a;
+  min-width: 46px;
+  height: 24px;
+  padding: 0 4px;
+  background: none;
+  border: 0;
+  clip-path: var(--px-notch);
+  color: var(--px-gold-text);
   font-size: 13px;
-  letter-spacing: 0.04em;
+  font-weight: 700;
 }
-.dock-play.paused {
-  border-color: var(--dock-gold);
+.time-speed-value:hover,
+.time-speed-value[aria-expanded='true'] {
+  background: rgba(233, 196, 90, 0.12);
 }
-.dock-speeds {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
+.time-control.paused .time-speed-value {
+  color: var(--bar-dim);
 }
-.dock-speed {
-  font-size: 11px;
-}
-.dock-utility {
-  display: grid;
-  grid-template-rows: repeat(2, var(--dock-tile));
-  gap: 4px;
-}
-.dock-mini {
-  width: var(--dock-tile);
-  height: var(--dock-tile);
-}
-.dock-mini:disabled {
-  cursor: wait;
-  opacity: 0.65;
-}
-
-.sandbox-save {
-  position: relative;
-  display: flex;
-}
-.sandbox-save.error .dock-mini {
-  border-color: #c76e5e;
-  background: #5a2a22;
-}
-.sandbox-save-button.busy .sandbox-save-icon {
-  animation: sandbox-save-pulse 900ms ease-in-out infinite;
-}
-.sandbox-save-icon {
-  display: grid;
-  place-items: center;
-}
-.sandbox-save-label,
-.sandbox-save-status {
+/* Asked for more speed than this computer can give: a small ember on the value. */
+.time-lag {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
+  top: 3px;
+  right: 1px;
+  width: 4px;
+  height: 4px;
+  background: #e0894a;
+}
+/* The speeds, in a framed wood panel like the header's ⋯ menu. */
+.time-speed-list {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 168px;
+  padding: 8px;
+  background: var(--px-wood);
+  border: 2px solid var(--px-ink);
+  box-shadow: var(--px-frame-shadow);
+  color: var(--px-text);
+}
+.time-speed-list button {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 3px 8px;
+  background: none;
   border: 0;
+  clip-path: var(--px-notch);
+  color: inherit;
+  font-size: 12px;
+  text-align: left;
 }
-@keyframes sandbox-save-pulse {
-  0%,
-  100% {
-    opacity: 0.45;
-  }
-  50% {
-    opacity: 1;
-  }
+.time-speed-list button:hover {
+  background: var(--px-raised);
 }
-
-/* Narrow desktop windows: smaller tiles and a slimmer time panel, so every tab's tiles fit beside it. */
-@media (max-width: 1100px) {
-  .sandbox-bar {
-    --dock-tile: 40px;
-  }
-  .dock-time {
-    width: 128px;
-  }
-  /* Eight tabs must still fit in a 768 window's tab row. */
-  .dock-tab {
-    padding: 0 8px 0 6px;
-    font-size: 11px;
-  }
+.time-speed-list button.active {
+  background: var(--px-active);
+  box-shadow: var(--px-pressed-shadow);
+  color: var(--px-gold-text);
+  font-weight: 700;
 }
-@media (max-width: 900px) {
-  .sandbox-bar {
-    --dock-tile: 38px;
-  }
-  .dock-group {
-    padding: 0 10px;
-  }
+.time-speed-list small {
+  color: var(--px-muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+.sandbox-bar .time-speed-list button:focus-visible {
+  outline-offset: -2px;
 }
 
+/* Phones: the same bar with taller hit areas, the categories and groups on lines of their own. Both
+ * lines and the tool row scroll sideways; the time control stays in view at the right end. */
 @media (max-width: 767px) {
   .sandbox-bar {
-    --dock-tile: 36px;
-    gap: 8px;
-    padding: 6px calc(6px + var(--safe-right)) calc(6px + var(--safe-bottom)) calc(6px + var(--safe-left));
+    --bar-tool: 40px;
+    gap: 0;
+    padding: 0 calc(8px + var(--safe-right)) calc(6px + var(--safe-bottom)) calc(10px + var(--safe-left));
   }
-  .dock-tab span {
+  /* Categories and groups each get a line of their own, so the groups never hide off the edge. */
+  .dock-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    overflow: visible;
+  }
+  .dock-tabs,
+  .dock-groups {
+    padding-bottom: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .dock-tabs::-webkit-scrollbar,
+  .dock-groups::-webkit-scrollbar {
     display: none;
   }
-  .dock-tab {
-    padding: 0 8px;
+  .dock-tabs {
+    gap: 12px;
   }
-  .dock-time {
-    grid-template-rows: 40px 32px;
-    width: 104px;
+  .dock-groups {
+    gap: 4px;
+    padding-left: 0;
+    border-left: 0;
+    box-shadow: none;
+  }
+  /* Taller hit areas for thumbs, without making the words any bigger. */
+  .dock-row {
+    gap: 6px;
+  }
+  .dock-tab {
+    padding: 9px 0 6px;
+    border-bottom-width: 0;
+    background: linear-gradient(var(--px-gold), var(--px-gold)) no-repeat center bottom 4px / 0 2px;
+  }
+  .dock-tab.active {
+    background-size: 100% 2px;
+  }
+  .dock-group-chip {
+    padding: 4px 8px;
+  }
+  .dock-tab .dock-new {
+    top: 8px;
+  }
+  .dock-held,
+  .dock-hint {
+    bottom: calc(100% + 8px);
   }
   .dock-hint {
     max-width: 70%;
   }
-}
-
-/* Phones (375 px and up to 480): no sideways scroll. Each group wraps its tiles into rows of six, the
- * groups of a tab wrap beneath one another, and the tools area scrolls up and down instead. */
-@media (max-width: 480px) {
-  .sandbox-bar {
-    --dock-tile: 34px;
+  /* Brush sizes and a narrower time control leave room for at least the held tool's tile. */
+  .dock-brush {
+    gap: 2px;
+    padding-left: 8px;
   }
-  .dock-tools {
-    flex-wrap: wrap;
-    align-content: flex-start;
-    overflow-x: hidden;
-    overflow-y: auto;
-    max-height: 196px;
+  .dock-brush button {
+    min-width: 28px;
+    height: 28px;
   }
-  .dock-group {
-    grid-template-rows: none;
-    grid-auto-flow: row;
-    grid-auto-columns: auto;
-    grid-template-columns: repeat(5, var(--dock-tile));
-    padding: 0 6px;
-    margin: 0 0 6px;
-    box-shadow: none;
+  .time-step {
+    width: 20px;
   }
-  .dock-group:first-child {
-    padding-left: 0;
+  .time-speed-value {
+    min-width: 40px;
+  }
+  .time-speed-list {
+    width: 190px;
+  }
+  .time-speed-list button {
+    padding: 7px 10px;
+    font-size: 13px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .dock-tile,
-  .dock-play,
-  .dock-speed,
-  .dock-mini {
+  .dock-tile {
     transition: none;
   }
 }
@@ -429,7 +521,7 @@
   min-width: 260px;
   max-width: min(92vw, 380px);
   padding: 14px 16px;
-  background: var(--dock-wood);
+  background: var(--px-wood);
   color: #e7d8bc;
   box-shadow:
     inset 2px 2px 0 #9c7a3e,

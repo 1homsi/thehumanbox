@@ -110,6 +110,20 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Find a tool and save the world sit above the rest, as they do in the desktop ⋯ menu. Each takes
+ * a full row so the save status fits on one line beside its label. */
+.phone-menu-world {
+  grid-template-columns: minmax(0, 1fr);
+  margin-bottom: 8px;
+}
+.phone-menu-status {
+  margin-left: 10px;
+  color: #a8987c;
+  font-size: 10px;
+}
+.phone-menu-row:disabled {
+  opacity: 0.75;
+}
 .phone-menu-section {
   margin: 16px 2px 8px;
   color: #8f8272;

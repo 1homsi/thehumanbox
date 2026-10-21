@@ -20,3 +20,11 @@ export function nextSpeedStep(current: number, direction: 1 | -1): number | null
   for (const step of SPEED_STEPS) if (step < current / ON_STEP) below = step
   return below
 }
+
+const FRACTIONS: Record<number, string> = { 0.25: '¼', 0.5: '½' }
+
+/** A speed as the time control shows it: `½×`, `1×`, `40×`. */
+export function formatSpeed(speed: number): string {
+  const whole = Number.isInteger(speed) ? speed.toFixed(0) : String(speed)
+  return `${FRACTIONS[speed] ?? whole}×`
+}

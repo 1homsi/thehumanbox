@@ -6,7 +6,7 @@ browser. The standalone site does not connect to a simulation API.
 
 ## What you're looking at
 
-A live 600×300 world of autonomous humans who learn, form tribes,
+A live 800×400 world of autonomous humans who learn, form tribes,
 build cities, develop their own language, found religions, sign
 treaties, declare wars, choose their own furniture, and live their
 own days — all through emergence. No scripted behaviours. The
@@ -54,6 +54,7 @@ simulation never stops, even when nobody's watching.
 
 ```bash
 pnpm install
+(cd ../.. && make wasm)   # the WebAssembly engine, into src/wasm/sim-core (not committed)
 pnpm run dev
 ```
 

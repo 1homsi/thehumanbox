@@ -387,16 +387,25 @@ impl WorldGrid {
                 let edge = if legacy {
                     ((d_edge - 0.04) / 0.2).clamp(0.0, 1.0)
                 } else {
-                    // A short, uneven coast replaces the old map-wide ocean band.
+                    // Land drowns before the frame along a wavy line, about ten to thirty tiles in,
+                    // and rises back over the next twelve, so no coast runs along the edge of the
+                    // world. `fbm` is centred on zero (about -0.8 to 0.6), so the line sits twenty
+                    // tiles in on average and follows the noise unclamped: a clamped stretch is straight.
+                    let coast = OCEAN_MARGIN as f32
+                        + 16.0
+                        + Self::fbm(u * 2.4 + 61.0, v * 2.4 + 17.0, seed ^ 0xed9e) * 20.0;
                     let distance = (nx.min(1.0 - nx) * WIDTH as f32).min(ny.min(1.0 - ny) * HEIGHT as f32);
-                    ((distance + ragged * 30.0 - OCEAN_MARGIN as f32) / 6.0).clamp(0.0, 1.0)
+                    ((distance - coast) / 12.0).clamp(0.0, 1.0)
                 };
                 let edge = edge * edge * (3.0 - 2.0 * edge);
                 // Noise roughens continents but cannot raise land far from one.
                 // Fine noise frays the coastline into coves and headlands.
                 let fray = Self::fbm(u * 3.2 * scale + 9.0, v * 3.2 * scale + 4.0, seed ^ 0xc0a5) * 0.12;
                 let roughness = (noise + fray) * (0.35 + lift.min(1.0) * 0.65);
-                raw[y * WIDTH + x] = (roughness + lift + carve) - (1.0 - edge) * 1.6;
+                // The new frame drowns land outright: strong continents stood above the old sink and
+                // ran on to the margin, where the hard cut left a straight coast.
+                let sink = if legacy { 1.6 } else { 3.2 };
+                raw[y * WIDTH + x] = (roughness + lift + carve) - (1.0 - edge) * sink;
             }
         }
 
@@ -1059,6 +1068,33 @@ mod tests {
         }
         assert_eq!(seen.len(), 5);
         assert_eq!(OCEAN_MARGIN, 4);
+    }
+
+    #[test]
+    fn no_coast_runs_along_the_edge_of_the_world() {
+        // Walk the rings just inside the margin: a coast that followed the frame would leave a long
+        // unbroken run of land on one of them.
+        for seed in 0..20u64 {
+            let grid = WorldGrid::new(seed);
+            for k in (OCEAN_MARGIN + 1)..=(OCEAN_MARGIN + 10) {
+                let (w, h) = (WIDTH as i32, HEIGHT as i32);
+                let ring: Vec<(i32, i32)> = (k..w - k)
+                    .map(|x| (x, k))
+                    .chain((k..h - k).map(|y| (w - 1 - k, y)))
+                    .chain((k..w - k).rev().map(|x| (x, h - 1 - k)))
+                    .chain((k..h - k).rev().map(|y| (k, y)))
+                    .collect();
+                let (mut run, mut longest) = (0, 0);
+                for &(x, y) in &ring {
+                    run = if grid.get(x, y) == Tile::Water { 0 } else { run + 1 };
+                    longest = longest.max(run);
+                }
+                assert!(
+                    longest < 24,
+                    "seed {seed}: {longest} tiles of land along ring {k}"
+                );
+            }
+        }
     }
 
     #[test]

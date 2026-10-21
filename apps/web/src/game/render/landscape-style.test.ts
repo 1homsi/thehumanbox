@@ -53,6 +53,33 @@ describe('landscape art direction', () => {
     }
   })
 
+  it("draws the simulation's open sea in the abyss, the colour past the map", () => {
+    // Open sea away from land sits around wire 65; the edge of the world is wire 0.
+    expect(oceanBand(65)).toBe(0)
+    expect(oceanBand(0)).toBe(0)
+    expect(oceanBand(200)).toBe(SHALLOWS_BAND)
+  })
+
+  it('keeps the edge of the world from drawing a rectangle in the bands', () => {
+    const [width, height] = [800, 400]
+    const abyssWidth = (col: number) => {
+      let row = 0
+      while (oceanBand(seaDepthAt(200, row, col, width, height)) === 0) row++
+      return row
+    }
+    const widths = new Set<number>()
+    for (let col = 40; col < width - 40; col += 3) {
+      const w = abyssWidth(col)
+      // Never thinner than the first few tiles, the colour past the map.
+      expect(w).toBeGreaterThan(5)
+      widths.add(w)
+    }
+    // Along the edge the abyss comes and goes, so its border is not a straight line.
+    expect(widths.size).toBeGreaterThan(3)
+    // The corner is rounded: its diagonal reaches deeper than either side does at the same depth.
+    expect(oceanBand(seaDepthAt(200, 6, 6, width, height))).toBe(0)
+  })
+
   it('tells rivers and lakes from open sea that only passes their depth on a gradient', () => {
     const W = TILE_ID.WATER
     const L = TILE_ID.GRASS

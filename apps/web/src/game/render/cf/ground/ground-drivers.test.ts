@@ -266,11 +266,16 @@ describe('foam driver', () => {
 })
 
 describe('sea chart driver', () => {
-  /** All sea, deep on the west and shallow on the east, with the depth map the frames carry. */
+  /**
+   * All sea, deep on the west and shallow on the east, with the depth map the frames carry. Big enough
+   * that its middle lies past where the world's edge falls away to the abyss.
+   */
+  const SW = 80
+  const SH = 60
   function sea(depthAt: (x: number) => number): WorldState {
-    const tiles = Array.from({ length: H }, () => Array(W).fill(TILE_ID.WATER))
-    const depth_map = Array.from({ length: H }, () => Array.from({ length: W }, (_, x) => depthAt(x)))
-    return world({ tiles, depth_map })
+    const tiles = Array.from({ length: SH }, () => Array(SW).fill(TILE_ID.WATER))
+    const depth_map = Array.from({ length: SH }, () => Array.from({ length: SW }, (_, x) => depthAt(x)))
+    return world({ tiles, depth_map, width: SW, height: SH })
   }
 
   it('lays one cell where two depth bands meet and none over a single band', () => {
@@ -279,27 +284,21 @@ describe('sea chart driver', () => {
     expect(
       driver.update(
         frame(
-          sea((x) => (x < 8 ? 100 : 160)),
+          sea((x) => (x < SW / 2 ? 100 : 160)),
           1,
         ),
       ),
     ).toBe(true)
     expect(l.count).toBeGreaterThan(0)
+    // Abyss everywhere, the edge included (the edge falls to the abyss too): one band, nothing to draw.
     const flat = layer()
     new SeaChartDriver(flat, atlas()).update(
       frame(
-        sea(() => 100),
+        sea(() => 0),
         1,
       ),
     )
-    // A one-band sea still falls to the abyss at the map's edge; inland of that there is nothing to draw.
-    expect(flat.count).toBeGreaterThan(0)
-    for (let i = 0; i < flat.count; i++) {
-      // A cell's sprite is centred a tile right of and below the tile centre it starts from.
-      const col = flat.x[i] / TILE - 1
-      const row = flat.y[i] / TILE - 1
-      expect(col >= 4 && col <= W - 6 && row >= 4 && row <= H - 6).toBe(false)
-    }
+    expect(flat.count).toBe(0)
   })
 
   it('rebuilds when the terrain or the depth map changes, and keeps the depth of the last full frame', () => {

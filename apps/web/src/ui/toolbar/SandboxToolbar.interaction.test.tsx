@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SANDBOX_CATEGORIES, type SandboxTool } from '../../simulation/sandbox'
-import { DOCK_TABS, SPEED_TOOL_IDS, TIME_CATEGORY_ID, groupsFor } from './dock-tabs'
+import { DOCK_TABS, groupLabel, groupsFor } from './dock-tabs'
 import { SandboxToolbar } from './SandboxToolbar'
 import { useWorldStore } from '../../state/worldStore'
 import type { WorldState } from '../../shared/types'
@@ -23,7 +23,6 @@ function render(overrides: Partial<ToolbarProps> = {}) {
     onBrush: vi.fn(),
     onPick: vi.fn(),
     onClearArmed: vi.fn(),
-    onSave: vi.fn(),
     ...overrides,
   }
   act(() => root.render(<SandboxToolbar {...props} />))
@@ -37,6 +36,13 @@ const click = (el: Element | null) => {
 const tab = (id: string) =>
   container.querySelector(`.dock-tab:nth-child(${DOCK_TABS.findIndex((t) => t.id === id) + 1})`)
 const tile = (label: string) => container.querySelector(`.dock-tile[aria-label="${label}"]`)
+const chip = (label: string) =>
+  [...container.querySelectorAll<HTMLElement>('.dock-group-chip')].find((c) => c.textContent === label) ??
+  null
+const key = (k: string, init: KeyboardEventInit = {}) =>
+  act(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, ...init }))
+  })
 
 // Recent Node versions shadow happy-dom's storage, so give the dock a
 // plain in-memory one to remember its tab in.
@@ -81,14 +87,22 @@ describe('world dock buttons', { timeout: 20_000 }, () => {
       const props = render()
       click(tab(dockTab.id))
       expect(tab(dockTab.id)?.getAttribute('aria-pressed')).toBe('true')
-      const tools = groupsFor(dockTab.id).flatMap((group) => group.tools)
-      expect(container.querySelectorAll('.dock-group .dock-tile')).toHaveLength(tools.length)
-      for (const tool of tools) {
-        click(tile(tool.label))
-        // The dice roll their own event when picked, so they are checked by id.
-        if (tool.id === 'dice')
-          expect(props.onPick).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'dice' }))
-        else expect(props.onPick).toHaveBeenLastCalledWith(tool)
+      const groups = groupsFor(dockTab.id)
+      // A tab with one group needs no chips; its tools are on the row straight away.
+      expect(container.querySelectorAll('.dock-group-chip')).toHaveLength(
+        groups.length > 1 ? groups.length : 0,
+      )
+      const tools = groups.flatMap((group) => group.tools)
+      for (const group of groups) {
+        if (groups.length > 1) click(chip(groupLabel(group)))
+        expect(container.querySelectorAll('.dock-tools .dock-tile')).toHaveLength(group.tools.length)
+        for (const tool of group.tools) {
+          click(tile(tool.label))
+          // The dice roll their own event when picked, so they are checked by id.
+          if (tool.id === 'dice')
+            expect(props.onPick).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'dice' }))
+          else expect(props.onPick).toHaveBeenLastCalledWith(tool)
+        }
       }
       expect(props.onPick).toHaveBeenCalledTimes(tools.length)
     }, 20_000)
@@ -97,6 +111,7 @@ describe('world dock buttons', { timeout: 20_000 }, () => {
   it('rolls events using the loaded world dimensions', () => {
     const props = render()
     click(tab('nature'))
+    click(chip('sky'))
     vi.spyOn(Math, 'random').mockReturnValue(0.99).mockReturnValueOnce(0.2)
     click(tile('dice'))
     expect(props.onPick).toHaveBeenLastCalledWith(
@@ -108,20 +123,9 @@ describe('world dock buttons', { timeout: 20_000 }, () => {
     useWorldStore.setState({ world: null })
     const props = render()
     click(tab('nature'))
+    click(chip('sky'))
     click(tile('dice'))
     expect(props.onPick).not.toHaveBeenCalled()
-  })
-
-  it('steps the speed one finer step faster or slower from the speed the world runs at', () => {
-    const props = render({ runtimeSpeed: 1 })
-    click(container.querySelector('[aria-label="faster"]') as HTMLElement)
-    expect(props.onPick).toHaveBeenLastCalledWith(
-      expect.objectContaining({ time: { control: 'speed', mult: 2 } }),
-    )
-    click(container.querySelector('[aria-label="slower"]') as HTMLElement)
-    expect(props.onPick).toHaveBeenLastCalledWith(
-      expect.objectContaining({ time: { control: 'speed', mult: 0.5 } }),
-    )
   })
 
   it('remembers the chosen tab', () => {
@@ -132,6 +136,65 @@ describe('world dock buttons', { timeout: 20_000 }, () => {
     root = createRoot(container)
     render()
     expect(tab('resources')?.getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('opens a category on its first group and switches groups with the chips', () => {
+    render()
+    expect(chip('people')?.getAttribute('aria-pressed')).toBe('true')
+    expect(tile('wolf')).toBeNull()
+    click(chip('animals'))
+    expect(chip('animals')?.getAttribute('aria-pressed')).toBe('true')
+    expect(chip('people')?.getAttribute('aria-pressed')).toBe('false')
+    expect(tile('wolf')).not.toBeNull()
+    expect(tile('person')).toBeNull()
+  })
+
+  it('remembers the last group of each category, across categories and reloads', () => {
+    render()
+    click(chip('animals'))
+    click(tab('nature'))
+    click(chip('sky'))
+    click(tab('life'))
+    expect(chip('animals')?.getAttribute('aria-pressed')).toBe('true')
+    click(tab('nature'))
+    expect(chip('sky')?.getAttribute('aria-pressed')).toBe('true')
+    act(() => root.unmount())
+    root = createRoot(container)
+    render()
+    expect(tab('nature')?.getAttribute('aria-pressed')).toBe('true')
+    expect(chip('sky')?.getAttribute('aria-pressed')).toBe('true')
+    click(tab('life'))
+    expect(chip('animals')?.getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('falls back to the first group when the remembered one is gone', () => {
+    window.localStorage.setItem('thb-sandbox-groups', JSON.stringify({ life: 'retired-group' }))
+    render()
+    expect(chip('people')?.getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('names the held tool above the bar', () => {
+    render({ armedToolId: 'wolf', armedToolLabel: 'wolf' })
+    expect(container.querySelector('.dock-held')?.textContent).toBe('wolf · click the map')
+    render({ armedToolId: null })
+    expect(container.querySelector('.dock-held')).toBeNull()
+  })
+
+  it('gives the hotkeys to the first ten tools on the row', () => {
+    const props = render()
+    click(chip('animals'))
+    const animals = groupsFor('life').find((g) => g.id === 'animals')!.tools
+    expect(tile(animals[0].label)?.getAttribute('aria-keyshortcuts')).toBe('Q')
+    key('e')
+    expect(props.onPick).toHaveBeenLastCalledWith(animals[1])
+  })
+
+  it('marks a group that holds a new tool until the group is opened', () => {
+    render()
+    const birds = chip('birds')
+    expect(birds?.querySelector('.dock-new')).not.toBeNull()
+    click(birds)
+    expect(chip('birds')?.querySelector('.dock-new')).toBeNull()
   })
 
   it('puts an armed tool away when its tile is clicked again', () => {
@@ -147,28 +210,12 @@ describe('world dock buttons', { timeout: 20_000 }, () => {
   it('marks active map layers on their tiles and tab', () => {
     render({ activeOverlay: 'density', activeViewFlags: { territory: true } })
     click(tab('world'))
+    expect(chip('maps')?.classList.contains('engaged')).toBe(true)
+    click(chip('maps'))
     expect(tile('borders')?.getAttribute('aria-pressed')).toBe('true')
     expect(tile('people')?.getAttribute('aria-pressed')).toBe('true')
     expect(tile('towns')?.getAttribute('aria-pressed')).toBe('false')
     expect(tab('world')?.classList.contains('engaged')).toBe(true)
-  })
-
-  it('pauses, resumes, and sets every offered speed', () => {
-    const props = render({ runtimeSpeed: 2 })
-    click(container.querySelector('[aria-label="Pause simulation"]'))
-    expect(props.onPick).toHaveBeenLastCalledWith(expect.objectContaining({ time: { control: 'pause' } }))
-
-    const time = SANDBOX_CATEGORIES.find((c) => c.id === TIME_CATEGORY_ID)?.tools ?? []
-    for (const id of SPEED_TOOL_IDS) {
-      const speed = time.find((t) => t.id === id) as SandboxTool
-      click(container.querySelector(`[aria-label="Speed ${speed.label}"]`))
-      expect(props.onPick).toHaveBeenLastCalledWith(speed)
-    }
-    expect(container.querySelector('[aria-label="Speed 2×"]')?.classList.contains('active')).toBe(true)
-
-    render({ ...props, runtimePaused: true })
-    click(container.querySelector('[aria-label="Resume simulation"]'))
-    expect(props.onPick).toHaveBeenLastCalledWith(expect.objectContaining({ time: { control: 'resume' } }))
   })
 
   it('changes brush size within bounds while a tool is armed', () => {
@@ -187,12 +234,10 @@ describe('world dock buttons', { timeout: 20_000 }, () => {
     expect(container.querySelector('[aria-label="Larger brush"]')).toBeNull()
   })
 
-  it('saves the world and opens tool search', () => {
-    const props = render()
-    click(container.querySelector('[aria-label="save world"]'))
-    expect(props.onSave).toHaveBeenCalledTimes(1)
-    click(container.querySelector('[aria-label="Search all world tools"]'))
-    expect(document.querySelector('.world-tool-search')).not.toBeNull()
+  it('has no save or search buttons of its own, now that both are in the ⋯ menu', () => {
+    render()
+    expect(container.querySelector('[aria-label="save world"]')).toBeNull()
+    expect(container.querySelector('[aria-label="Search all world tools"]')).toBeNull()
   })
 
   it('shows tool status messages in the hint line', () => {

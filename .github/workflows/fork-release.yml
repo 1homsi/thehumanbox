@@ -1,12 +1,15 @@
-name: desktop-release
+name: fork-release
 
 # Builds the macOS (Apple Silicon) desktop app and uploads the .dmg and .zip
 # to a GitHub Release of this repository. The app's updater reads the same
 # releases. Started:
 #
-#   - by pushing a version tag: `git tag v0.1.0 && git push origin v0.1.0`
-#   - manually from the Actions tab (pass the tag; useful for re-running a
-#     failed build without cutting a new tag)
+#   - by pushing a branch `release/vX.Y.Z`: the release and its tag are cut at
+#     that branch's commit (for sessions that may push branches but not tags)
+#   - by pushing a version tag, or publishing a release with a new tag in the
+#     GitHub UI
+#   - manually from the Actions tab (pass an existing tag; useful for
+#     re-running a failed build)
 #
 # The version comes from the tag (v0.1.0 -> 0.1.0) and is stamped into
 # apps/desktop/package.json at build time, so the committed version stays
@@ -15,6 +18,7 @@ name: desktop-release
 on:
   push:
     tags: ['v*']
+    branches: ['release/v*']
   workflow_dispatch:
     inputs:
       tag:
@@ -22,7 +26,7 @@ on:
         required: true
 
 concurrency:
-  group: desktop-release-${{ inputs.tag || github.ref_name }}
+  group: fork-release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 permissions:
@@ -45,7 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ inputs.tag || github.sha }}
 
       - name: Resolve release tag and version
         id: tag
@@ -54,6 +58,7 @@ jobs:
           TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           set -euo pipefail
+          TAG=${TAG#release/}
           [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "tag '$TAG' is not vX.Y.Z" >&2; exit 1; }
           { echo "tag=$TAG"; echo "version=${TAG#v}"; } >> "$GITHUB_OUTPUT"
 
@@ -78,7 +83,8 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists"
           else
-            gh release create "$TAG" --title "$TAG" --verify-tag \
+            # A release branch has no tag yet: the release creates it here.
+            gh release create "$TAG" --title "$TAG" --target "$GITHUB_SHA" \
               --notes "macOS (Apple Silicon) build. The app is not signed: on first launch right-click it and choose Open."
           fi
 

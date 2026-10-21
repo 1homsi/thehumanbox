@@ -1,8 +1,9 @@
-import { SANDBOX_CATEGORIES, type SandboxCategory } from '../../simulation/sandbox'
+import { SANDBOX_CATEGORIES, type SandboxCategory, type SandboxTool } from '../../simulation/sandbox'
 
 /**
- * Layout of the world dock. Each tab lists the sandbox categories it shows;
- * every category becomes one divided group of tiles in that tab.
+ * Layout of the world dock. Each tab is a category word on the bar and lists the sandbox
+ * categories it holds; every one of those becomes a group chip, and the open group's tools fill
+ * the bar's single row.
  *
  * Adding a tool:
  *   1. Add it to its category in `simulation/sandbox.ts`.
@@ -11,15 +12,6 @@ import { SANDBOX_CATEGORIES, type SandboxCategory } from '../../simulation/sandb
  * Adding a category: create it in `sandbox.ts`, then list its id in one tab
  * below. `dock-tabs.test.ts` fails if any tool or category is left out.
  */
-/** Tile columns a tab may take up (two tiles per column): 11 columns of 40px tiles fit beside the time panel at 768 wide. */
-export const MAX_TAB_COLUMNS = 11
-
-/**
- * Tabs allowed to run wider than that: the row scrolls sideways. The dock keeps few tabs, so the
- * big ones hold several groups each rather than spreading them over more tabs.
- */
-export const WIDE_TABS: readonly string[] = ['life', 'nature', 'resources']
-
 export interface DockTab {
   id: string
   label: string
@@ -66,8 +58,16 @@ export const DOCK_TABS: DockTab[] = [
   },
 ]
 
-/** Time controls live in the dock's time panel rather than in a tab. */
+/** Time controls live in the bar's time control rather than in a tab. */
 export const TIME_CATEGORY_ID = 'time'
+
+/** Every speed the time tools offer, slowest first: the time control's list. */
+export function speedTools(): SandboxTool[] {
+  const time = SANDBOX_CATEGORIES.find((c) => c.id === TIME_CATEGORY_ID)?.tools ?? []
+  return time
+    .filter((t) => t.time?.control === 'speed' && typeof t.time.mult === 'number')
+    .sort((a, b) => (a.time?.mult ?? 0) - (b.time?.mult ?? 0))
+}
 
 /** Brush presets: the size shown (tiles from the centre to the edge, counting the centre) and the brush value it sets. */
 export const BRUSH_SIZES: ReadonlyArray<readonly [number, number]> = [
@@ -77,17 +77,58 @@ export const BRUSH_SIZES: ReadonlyArray<readonly [number, number]> = [
   [5, 4],
 ]
 
-/** Speeds offered as buttons under the play control, by time-tool id. */
-export const SPEED_TOOL_IDS = ['normal', 'fast2', 'fast4', 'fast10']
-
 export function groupsFor(tabId: string): SandboxCategory[] {
   const tab = DOCK_TABS.find((t) => t.id === tabId) ?? DOCK_TABS[0]
   return tab.groups.flatMap((id) => SANDBOX_CATEGORIES.filter((c) => c.id === id))
 }
 
+/** The life tab's own group is its people; under the word "life" the chip says so. */
+const GROUP_LABELS: Record<string, string> = { life: 'people' }
+
+/** What a group's chip on the bar says. */
+export function groupLabel(group: SandboxCategory): string {
+  return GROUP_LABELS[group.id] ?? group.label
+}
+
+/** The group a tab opens on: the remembered one while it is still in the tab, else its first. */
+export function resolveGroup(tabId: string, remembered: string | null | undefined): string {
+  const groups = groupsFor(tabId)
+  return groups.find((g) => g.id === remembered)?.id ?? groups[0]?.id ?? ''
+}
+
+const GROUP_STORAGE_KEY = 'thb-sandbox-groups'
+
+/** The last group opened in each tab, from browser storage (empty when storage is unavailable). */
+export function readRememberedGroups(): Record<string, string> {
+  try {
+    const raw: unknown = JSON.parse(window.localStorage.getItem(GROUP_STORAGE_KEY) ?? '{}')
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+    return Object.fromEntries(
+      Object.entries(raw).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+    )
+  } catch {
+    return {}
+  }
+}
+
+/** Remembers the group opened in a tab, and returns the updated record. */
+export function rememberGroup(
+  remembered: Readonly<Record<string, string>>,
+  tabId: string,
+  groupId: string,
+): Record<string, string> {
+  const next = { ...remembered, [tabId]: groupId }
+  try {
+    window.localStorage.setItem(GROUP_STORAGE_KEY, JSON.stringify(next))
+  } catch {
+    // The bar still works when browser storage is unavailable; it just forgets on reload.
+  }
+  return next
+}
+
 /**
- * Tools added since the last release. A tab that holds one the player has not seen shows a
- * "new" mark; opening the tab marks its new tools seen. Remove an id once it is old news.
+ * Tools added since the last release. A tab and a group that hold one the player has not seen
+ * show a "new" mark; opening the group marks its new tools seen. Remove an id once it is old news.
  */
 export const NEW_TOOL_IDS: readonly string[] = [
   'heat_wave',
@@ -120,10 +161,22 @@ export const NEW_TOOL_IDS: readonly string[] = [
 
 const SEEN_NEW_STORAGE_KEY = 'thb-seen-new-tools'
 
+function unseenIn(groups: readonly SandboxCategory[], seen: ReadonlySet<string>): string[] {
+  const here = new Set(groups.flatMap((c) => c.tools.map((t) => t.id)))
+  return NEW_TOOL_IDS.filter((id) => here.has(id) && !seen.has(id))
+}
+
 /** The new tools a tab holds that the player has not seen yet. */
 export function unseenNewTools(tabId: string, seen: ReadonlySet<string>): string[] {
-  const here = new Set(groupsFor(tabId).flatMap((c) => c.tools.map((t) => t.id)))
-  return NEW_TOOL_IDS.filter((id) => here.has(id) && !seen.has(id))
+  return unseenIn(groupsFor(tabId), seen)
+}
+
+/** The new tools one group holds that the player has not seen yet. */
+export function unseenNewToolsInGroup(groupId: string, seen: ReadonlySet<string>): string[] {
+  return unseenIn(
+    SANDBOX_CATEGORIES.filter((c) => c.id === groupId),
+    seen,
+  )
 }
 
 /** The new tools seen so far, from browser storage (empty when storage is unavailable). */
@@ -137,10 +190,10 @@ export function readSeenNewTools(): Set<string> {
   }
 }
 
-/** Marks the new tools in a tab as seen, and returns the updated set. */
-export function markNewToolsSeen(tabId: string, seen: ReadonlySet<string>): Set<string> {
+/** Marks the new tools in a group as seen, and returns the updated set. */
+export function markNewToolsSeen(groupId: string, seen: ReadonlySet<string>): Set<string> {
   const next = new Set(seen)
-  for (const id of unseenNewTools(tabId, seen)) next.add(id)
+  for (const id of unseenNewToolsInGroup(groupId, seen)) next.add(id)
   if (next.size === seen.size) return next
   try {
     window.localStorage.setItem(SEEN_NEW_STORAGE_KEY, JSON.stringify([...next]))

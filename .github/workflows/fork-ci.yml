@@ -1,4 +1,4 @@
-name: pipeline
+name: fork-ci
 
 on:
   push:
@@ -7,9 +7,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Fork CI: checks only. Upstream's version bump, release and Cloudflare deploy
-# jobs are removed; desktop installers are built by desktop-release.yml when a
-# `v*` tag is pushed. PR runs are cancellable so a new push supersedes them.
+# Fork CI: checks only. Upstream's pipeline.yml (version bump, release
+# cutting, Cloudflare deploys) is deleted in this fork; when an upstream merge
+# touches it, keep it deleted. Desktop installers are built by
+# fork-release.yml. PR runs are cancellable so a new push supersedes them.
 concurrency:
   group: pipeline-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

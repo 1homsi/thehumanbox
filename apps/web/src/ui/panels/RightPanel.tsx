@@ -4,7 +4,6 @@ import clsx from 'clsx'
 import type { OrganismState, WorldState } from '../../shared/types'
 import { useUIStore } from '../../state/store'
 import { lazyWithRetry as lazy } from '../../shared/lazyWithRetry'
-import { CivSummary } from './CivSummary'
 
 // The person cards and the detail view (with the life-story modal) are only drawn
 // once the drawer is open, so they ship as their own chunk instead of in the first
@@ -96,8 +95,6 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
                 onSelectOrg={(id) => selectOrg(id)}
               />
             )}
-
-            <CivSummary world={world} />
 
             <div className="section-title-row">
               <span className="section-title">ALIVE ({visibleLive.length})</span>

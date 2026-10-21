@@ -75,7 +75,10 @@ export function mapOwnsZoomKeys(target: EventTarget | null): boolean {
 
 export const SHORTCUT_HELP: ReadonlyArray<[string, string]> = [
   ['1 2 3 4', 'speed 1× 2× 4× 10×'],
+  [', .', 'slower or faster'],
   ['space', 'pause or play'],
+  ['/', 'find a tool'],
+  ['⌘S', 'save the world (Ctrl+S off a Mac)'],
   ['P', 'answer the most urgent prayer'],
   ['B', 'go to the next tribe on the brink'],
   ['[ ]', 'previous or next person'],
@@ -83,5 +86,5 @@ export const SHORTCUT_HELP: ReadonlyArray<[string, string]> = [
   ['?', 'show or hide this list'],
   ['H', 'hide the interface'],
   ['0', 'fit the world'],
-  ['Q E R T Y U I O F G', 'pick the first ten tools of the open tab'],
+  ['Q E R T Y U I O F G', 'pick the first ten tools on the bar'],
 ]

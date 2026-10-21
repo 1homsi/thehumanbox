@@ -21,6 +21,8 @@ export interface CfFrame {
   win: { c0: number; c1: number; r0: number; r1: number }
   /** Bumped whenever the terrain (tiles, biomes, season) changes in a way the ground sprites show. */
   terrainRevision: number
+  /** The trade-route lens is on: the planned trade roads show. */
+  showTrade: boolean
 }
 
 export function makeFrame(
@@ -31,6 +33,7 @@ export function makeFrame(
   now: number,
   margin: number,
   terrainRevision = 0,
+  showTrade = true,
 ): CfFrame {
   const zoom = Math.max(0.01, camera.zoom)
   const halfW = viewport.w / 2 / zoom
@@ -46,6 +49,7 @@ export function makeFrame(
     oy: world.grid.origin_y ?? 0,
     detail: zoomDetailLevel(camera.zoom),
     terrainRevision,
+    showTrade,
     win: {
       c0: Math.max(0, Math.floor((camera.x - halfW) / TILE) - margin),
       c1: Math.min(width, Math.ceil((camera.x + halfW) / TILE) + margin),

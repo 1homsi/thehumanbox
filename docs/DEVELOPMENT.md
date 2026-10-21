@@ -20,21 +20,29 @@ server. Server options are in `apps/server/.env.example`.
 
 ## The checks CI runs
 
-Run these before opening a PR. CI skips suites whose inputs did not change.
-When a PR merges and `main` ends up with the exact source its PR run passed
-(`scripts/source-key.sh` ignores the release bot's version stamps), `main` skips
-the suites and deploys that run's frontend within about a minute; any other push
-to `main` runs everything. The desktop installers build in their own run
-(`desktop-release.yml`) after the release is cut.
+Run these before opening a PR. CI groups the suites in three areas (sim,
+client, desktop) and keys each area by its inputs with `scripts/source-key.sh`,
+which ignores the release bot's version stamps. Any run, PR or `main`, skips an
+area whose key an earlier run already passed, and a PR also skips the areas it
+did not change. A merge therefore reruns only what no run has checked yet, and
+when the client area already passed, `main` deploys that run's frontend within
+about a minute. A manual run (`workflow_dispatch`) runs everything. The desktop
+installers build in their own run (`desktop-release.yml`) after the release is
+cut.
 
 | Area | Commands |
 |---|---|
-| Rust | `cargo fmt --all` then `cargo clippy --workspace --all-targets --locked --release -- -D warnings` then `cargo test --release --locked --workspace` |
+| Rust | `cargo fmt --all` then `cargo clippy --workspace --all-targets --locked --release -- -D warnings` then `cargo nextest run --release --locked --workspace` (CI splits it into three shards) and `cargo test --release --locked --workspace --doc`; plain `cargo test` works too, only slower |
 | Web (`apps/web`) | `pnpm exec prettier --check "src/**/*.{ts,tsx,js,jsx,json,css}"`, `pnpm exec tsc -b --noEmit`, `pnpm exec eslint src`, `pnpm exec vitest run`, `pnpm run build` |
 | Desktop (`apps/desktop`) | `pnpm exec tsc -p tsconfig.json --noEmit` and `pnpm run test:main` |
 | Performance budget | `make perf-gate` (`scripts/perf-gate.sh`): three seeds at 8,000 ticks and one 25,000-tick run; max, p99 and mean time per tick, and memory |
 
 Run prettier and `cargo fmt` last, after every edit.
+
+A shard lasts as long as its longest test, so `.config/nextest.toml` starts the tests that run for
+minutes first. A new test that takes most of a minute belongs on that list. A test that only needs a
+moment late in a run (a year boundary, an old enough world) should move the clock or the state there
+rather than simulate the time in between.
 
 ## Running the engine without a server
 
