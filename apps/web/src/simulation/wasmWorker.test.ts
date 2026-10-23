@@ -492,6 +492,42 @@ describe('browser simulation scheduling', () => {
     expect(model.tick - before).toBeLessThanOrEqual(86n)
   })
 
+  it('runs the time a late timer still owed before resyncing a returning tab', async () => {
+    vi.spyOn(performance, 'now').mockImplementation(() => Date.now())
+    await vi.advanceTimersByTimeAsync(240)
+    send({ type: 'visibility', hidden: true, keepRunning: true })
+    const fakeSetTimeout = globalThis.setTimeout
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((fn: () => void, ms?: number) =>
+      fakeSetTimeout(fn, Math.max(1000, ms ?? 0))) as typeof setTimeout)
+    const before = model.tick
+    // Shown 900 ms after the last throttled wake-up, before the next one fires.
+    await vi.advanceTimersByTimeAsync(3_900)
+    model.fullFrame.mockClear()
+    send({ type: 'visibility', hidden: false, keepRunning: true })
+    expect(model.tick - before).toBeGreaterThanOrEqual(31n)
+    expect(model.fullFrame).toHaveBeenCalledTimes(1)
+  })
+
+  it('resyncs on return even if the setting was turned off while hidden', async () => {
+    send({ type: 'visibility', hidden: true, keepRunning: true })
+    await vi.advanceTimersByTimeAsync(1000)
+    send({ type: 'visibility', hidden: true, keepRunning: false })
+    await vi.advanceTimersByTimeAsync(1000)
+    model.fullFrame.mockClear()
+    send({ type: 'visibility', hidden: false, keepRunning: false })
+    expect(model.fullFrame).toHaveBeenCalledTimes(1)
+  })
+
+  it('sends no frames for commands while hidden and running', async () => {
+    send({ type: 'visibility', hidden: true, keepRunning: true })
+    model.deltaFrame.mockClear()
+    model.fullFrame.mockClear()
+    send({ type: 'command', json: '{}', requestId: 7 })
+    await vi.advanceTimersByTimeAsync(500)
+    expect(model.fullFrame).not.toHaveBeenCalled()
+    expect(model.deltaFrame).not.toHaveBeenCalled()
+  })
+
   it('does not replay more than a minute after the machine sleeps', async () => {
     let clock = 0
     vi.spyOn(performance, 'now').mockImplementation(() => clock)
