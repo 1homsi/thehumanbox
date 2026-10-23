@@ -1,1 +1,290 @@
-{}
+{
+  "right": {
+    "alive": "CANLILAR ({count})",
+    "starred": "yıldızlı",
+    "showAll": "Tüm canlıları göster",
+    "showStarred": "Yalnızca yıldızlıları göster ({count})",
+    "showMore": "{count} tane daha göster · {hidden} gizli",
+    "dead": "ÖLÜLER ({count})",
+    "generation": "N{generation} · {age}",
+    "unstar": "Yıldızı kaldır",
+    "gone": "KAYBOLANLAR ({count})",
+    "vanished": "dünyadan kayboldu"
+  },
+  "events": {
+    "heading": "OLAYLAR",
+    "important": "önemli",
+    "all": "tümü",
+    "showImportant": "Önemli olanlar gösteriliyor. Tümünü görmek için tıklayın.",
+    "showAll": "Tümü gösteriliyor. Yalnızca önemli olanları görmek için tıklayın."
+  },
+  "eventRow": {
+    "goThere": "Oraya git"
+  },
+  "headlines": {
+    "label": "dünyadan son haberler"
+  },
+  "history": {
+    "title": "DÜNYA TARİHİ",
+    "births": "doğumlar",
+    "birthsTip": "Bu dünyaya şimdiye kadar doğan toplam kişi sayısı",
+    "oldAge": "yaşlılık",
+    "oldAgeTip": "Yaşlılıktan ölümler: tam bir ömür süren kişiler",
+    "starvation": "açlık",
+    "starvationTip": "Açlıktan veya susuzluktan ölümler: yeterli yiyecek ya da su olmaması",
+    "sickness": "hastalık",
+    "sicknessTip": "Hastalıktan ölümler",
+    "combat": "çatışma",
+    "combatTip": "Komşular arasındaki kavgalarda ve kabileler arasındaki savaşlarda ölümler",
+    "beasts": "vahşi hayvanlar",
+    "beastsTip": "Kurtlar, ayılar ve canavarlar tarafından öldürülenler",
+    "drowned": "boğulanlar",
+    "drownedTip": "Derin veya kabarmış suda boğulanlar",
+    "fire": "yangın",
+    "fireTip": "Orman yangınında ölenler",
+    "disaster": "afet",
+    "disasterTip": "Depremler, göktaşları, sel, fırtınalar, volkanlar ve tanrıların şimşeğinden ölenler",
+    "alliances": "ittifaklar",
+    "alliancesTip": "Kabileler arasında kurulan ittifaklar",
+    "challenges": "meydan okumalar",
+    "challengesTip": "Toprak üzerindeki meydan okumalar: bir kişinin diğerine karşı çıkması",
+    "gifts": "hediyeler",
+    "giftsTip": "İnsanlar arasında verilen yiyecek: akrabalık ve dostluk",
+    "droughts": "kuraklıklar",
+    "droughtsTip": "Kuraklıklar: su kıtlığı mevsimleri",
+    "outbreaks": "salgınlar",
+    "outbreaksTip": "Nüfus arasında yayılan hastalık salgınları"
+  },
+  "wildlife": {
+    "title": "YABAN HAYATI",
+    "danger": "Acıktığında insanları avlar",
+    "herds": "Koyunlar, inekler, atlar ve tavuklar",
+    "game": "Yiyecek için avlanan yaban hayvanları: aşırı avlanma sayılarını azaltır",
+    "away": "+{count} uzakta",
+    "animals": {
+      "rabbits": "tavşanlar",
+      "deer": "geyikler",
+      "boar": "yaban domuzları",
+      "birds": "kuşlar",
+      "fish": "balıklar",
+      "herds": "sürüler",
+      "foxes": "tilkiler",
+      "cats": "kediler",
+      "penguins": "penguenler",
+      "camels": "develer",
+      "frogs": "kurbağalar",
+      "whales": "balinalar",
+      "ducks": "ördekler",
+      "bees": "arılar",
+      "owls": "baykuşlar",
+      "eagles": "kartallar",
+      "snakes": "yılanlar",
+      "crocodiles": "timsahlar",
+      "monkeys": "maymunlar",
+      "wolves": "kurtlar",
+      "goats": "keçiler",
+      "elephants": "filler",
+      "lions": "aslanlar",
+      "zebras": "zebralar",
+      "polarBears": "kutup ayıları",
+      "kangaroos": "kangurular",
+      "bears": "ayılar"
+    }
+  },
+  "footer": {
+    "era": "dönem",
+    "eras": {
+      "genesis": "YARATILIŞ",
+      "forager": "TOPLAYICI",
+      "fire": "ATEŞ",
+      "shelter": "BARINAK",
+      "tribal": "KABİLE",
+      "invention": "BULUŞ",
+      "cooking": "PİŞİRME",
+      "masonry": "DUVARCILIK",
+      "equilibrium": "DENGE"
+    },
+    "day": "gündüz",
+    "night": "gece",
+    "weather": "hava",
+    "droughtTag": "· {label}",
+    "tribes": "kabileler"
+  },
+  "weather": {
+    "clear": "açık",
+    "rain": "yağmur",
+    "rainBody": "Kuru toprağın daha hızlı toparlanmasına yardım eder.",
+    "storm": "fırtına",
+    "stormBody": "Enerjiyi tüketir. Şimşek çakabilir.",
+    "drought": "kuraklık",
+    "droughtBody": "Su azalıyor ve susuzluktan ölümler artıyor."
+  },
+  "silent": {
+    "title": "Dünya sessizliğe büründü",
+    "body": "Halkınızın son kişisi de öldü. Kurdukları köylerde artık hiçbir şey kıpırdamıyor.",
+    "lasted": "sürdü",
+    "years": {
+      "one": "{count} yıl",
+      "other": "{count} yıl"
+    },
+    "mostAlive": "aynı anda en çok canlı",
+    "tribes": "kabileler",
+    "furthestAge": "ulaşılan en ileri dönem",
+    "prayersAnswered": "karşılanan dualar",
+    "unanswered": "{count} karşılanmayan",
+    "keepWatching": "izlemeye devam et",
+    "newWorld": "yeni dünya",
+    "seed": "yeni insanlar yerleştir"
+  },
+  "rename": {
+    "label": "Yeni ad",
+    "save": "kaydet",
+    "cancel": "vazgeç"
+  },
+  "prayerHint": {
+    "title": "Halkın dua ediyor",
+    "body": "Yardım etmek için bir kabilenin üzerindeki konuşma balonuna tıklayın. Karşılanan dualar inanç kazandırır.",
+    "showMe": "göster",
+    "dismiss": "Kapat"
+  },
+  "prayerChip": {
+    "tipTitle": "dualar",
+    "tipBody": {
+      "one": "Bir kabile yardımınızı istiyor. İnancını yitirmeden yanıt verin.",
+      "other": "{count} kabile yardımınızı istiyor. İnançlarını yitirmeden yanıt verin."
+    },
+    "label": "{count} dua"
+  },
+  "peril": {
+    "title": "uçurumun eşiğinde",
+    "tipOne": "{tribe} kabilesi uçurumun eşiğinde: {remaining}, {reason}.",
+    "tipMany": "{count} kabile uçurumun eşiğinde. Her birine sırayla gitmek için tıklayın.",
+    "label": {
+      "one": "{count} kabile uçurumun eşiğinde",
+      "other": "{count} kabile uçurumun eşiğinde"
+    }
+  },
+  "population": {
+    "people": "insanlar",
+    "alive": "{count} hayatta.",
+    "milestone": "sonraki hedef {count}",
+    "sickness": "hastalık",
+    "sick": {
+      "one": "{count} kişi hasta. Yakın temasla yayılır.",
+      "other": "{count} kişi hasta. Yakın temasla yayılır."
+    }
+  },
+  "calendar": {
+    "year": "Y{year}",
+    "yearTitle": "Yıl {year}, {season}",
+    "dayOfSeason": "{season} mevsiminin 5 günlük döneminde {day}. gün. Bir yıl dört mevsimden oluşur ve insanlar yaşadıkları yıllara göre yaşlanır.",
+    "throughDay": "{phase}, gün içinde %{percent} geçti.",
+    "moon": "ay: {phase}",
+    "moonDate": "Yıl {year}, gün {day}.",
+    "hardWinter": "sert kış",
+    "hardWinterAhead": "{season} · sert kış yaklaşıyor",
+    "omen": "sert kış yaklaşıyor",
+    "hardWinterBody": "Her zamankinden soğuk. Yabani yiyecekler çabuk tükenir ve ateşler yayılır.",
+    "hardWinterHow": "Kabileler yiyecek ve şifa için dua edecek.",
+    "aheadBody": "Yaşlılar sert bir kıştan korkuyor. Yabani yiyecek azalacak ve ateşler yayılacak.",
+    "aheadHow": "Soğuk gelmeden önce şimdiden ekin ve bahçe dikin.",
+    "tip": {
+      "recovery": "Toprak toparlanıyor. Yiyecek yeniden büyümeye başlıyor.",
+      "abundance": "Yiyecek bol.",
+      "decline": "Kış öncesinde yiyecek büyümesi yavaşlıyor.",
+      "scarcity": "Yiyecek kıt. Kış en zorlu mevsimdir.",
+      "default": "Yiyecek büyümesini ve kuraklık riskini etkiler."
+    },
+    "season": {
+      "spring": "ilkbahar",
+      "summer": "yaz",
+      "autumn": "sonbahar",
+      "winter": "kış"
+    },
+    "seasonName": {
+      "spring": "İlkbahar",
+      "summer": "Yaz",
+      "autumn": "Sonbahar",
+      "winter": "Kış"
+    },
+    "phase": {
+      "dawn": "şafak",
+      "day": "gündüz",
+      "dusk": "alacakaranlık",
+      "night": "gece"
+    },
+    "phaseTitle": {
+      "dawn": "Şafak",
+      "day": "Gündüz",
+      "dusk": "Alacakaranlık",
+      "night": "Gece"
+    }
+  },
+  "lineages": {
+    "title": "SOYLAR ({count})",
+    "onBrink": "Uçurumun eşiğinde: {line}, {reason}. Yardım etmek için tıklayın.",
+    "showAll": "Tüm soyları göster",
+    "focus": "{name} soyuna odaklan",
+    "brink": "uçurumun eşiğinde",
+    "oldest": "En yaşlı hayatta olan: {line}",
+    "viewAll": "tümünü gör ({count})",
+    "faith": "inanç {faith}",
+    "faithBlessed": "inanç {faith} · karşılanan bir duayla kutsanmış",
+    "faithDespair": "inanç {faith} · karşılanmayan bir dua sonrası umutsuz",
+    "eldestDays": "{days} g",
+    "generation": "N{from}",
+    "generationRange": "N{from}-{to}"
+  },
+  "tribe": {
+    "rename": "Bu kabilenin adını değiştir",
+    "nameLabel": "Kabile adı",
+    "close": "Kapat",
+    "regionLabel": "{name} kabilesi",
+    "sparkTitle": "Son zamanlarda {from} → {to} kişi",
+    "growing": "büyüyor",
+    "shrinking": "küçülüyor",
+    "steady": "sabit",
+    "food": "yiyecek",
+    "water": "su",
+    "health": "sağlık",
+    "ledBy": "lideri:",
+    "followLeader": "Lideri takip et",
+    "festival": "{name} sürüyor",
+    "people": {
+      "one": "{count} kişi",
+      "other": "{count} kişi"
+    },
+    "eraAge": "{era} dönemi",
+    "wealth": "servet {gap}",
+    "onBrink": "uçurumun eşiğinde: {peak} kişiden {line}, {reason}",
+    "atWar": "{enemies} ile savaşta",
+    "makePeace": "barış yap",
+    "granary": "ambar: {count} ölçü tahıl",
+    "bakery": "fırın: {count} somun",
+    "pen": "ahır: {count} baş hayvan",
+    "lostLately": "son zamanlarda kaybedilen: {losses}",
+    "oldest": "En yaşlı hayatta olan: {line}",
+    "oldestTitle": "Bu kabilenin en yaşlı hayatta olan üyesi",
+    "families": "aileler: {list}",
+    "familiesTitle": "Bu kabilenin hayatta olan kişilerinin aileleri",
+    "faith": "inanç {faith}",
+    "faithTitle": "Karşılanan dualar eksi terk edilenler",
+    "faithLostTitle": "Tanrılardan umutlarını kestiler ve nadiren dua ediyorlar. Geri kazanmak için istemeden yardım edin.",
+    "blessed": "kutsanmış",
+    "lostFaith": "inancını yitirmiş",
+    "despairing": "umutsuz",
+    "sick": {
+      "one": "{count} hasta",
+      "other": "{count} hasta"
+    },
+    "nextAge": "sonraki: {era} dönemi",
+    "inspire": "ilham ver",
+    "inspireTitle": "İlham ver: bir sonraki keşfi hızlandırır",
+    "teach": "öğret",
+    "teachTitle": "Eksik olduğu bir sonraki sırrı öğret (mevsimde bir kez)",
+    "stillToLearn": "öğrenilmesi gereken: {list}",
+    "needsPeople": "{count} kişi daha gerekli",
+    "praying": "dua ediyor",
+    "help": "yardım"
+  }
+}

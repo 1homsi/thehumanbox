@@ -1,1 +1,284 @@
-{}
+{
+  "right": {
+    "alive": "생존 ({count})",
+    "starred": "즐겨찾기",
+    "showAll": "모든 생명체 보기",
+    "showStarred": "즐겨찾기만 보기 ({count})",
+    "showMore": "{count}개 더 보기 · {hidden}개 숨김",
+    "dead": "사망 ({count})",
+    "generation": "{generation}세대 · {age}",
+    "unstar": "즐겨찾기 해제",
+    "gone": "사라짐 ({count})",
+    "vanished": "세계에서 사라졌습니다"
+  },
+  "events": {
+    "heading": "사건",
+    "important": "중요",
+    "all": "전체",
+    "showImportant": "중요한 사건만 보고 있습니다. 클릭하면 모두 보입니다.",
+    "showAll": "모든 사건을 보고 있습니다. 클릭하면 중요한 사건만 보입니다."
+  },
+  "eventRow": {
+    "goThere": "그곳으로 가기"
+  },
+  "headlines": {
+    "label": "세계의 최근 소식"
+  },
+  "history": {
+    "title": "세계의 역사",
+    "births": "출생",
+    "birthsTip": "이 세계에서 태어난 사람의 총수",
+    "oldAge": "노환",
+    "oldAgeTip": "노환으로 인한 사망: 천수를 누린 사람들",
+    "starvation": "굶주림",
+    "starvationTip": "굶주림이나 갈증으로 인한 사망: 음식이나 물 부족",
+    "sickness": "질병",
+    "sicknessTip": "질병으로 인한 사망",
+    "combat": "전투",
+    "combatTip": "이웃 간 싸움과 부족 간 전쟁에서의 사망",
+    "beasts": "맹수",
+    "beastsTip": "늑대, 곰, 괴물에게 죽음",
+    "drowned": "익사",
+    "drownedTip": "깊은 물이나 불어난 물에서 익사",
+    "fire": "화재",
+    "fireTip": "산불로 인한 사망",
+    "disaster": "재해",
+    "disasterTip": "지진, 운석, 홍수, 폭풍, 화산, 신의 번개로 인한 사망",
+    "alliances": "동맹",
+    "alliancesTip": "부족 사이에 맺은 동맹",
+    "challenges": "도전",
+    "challengesTip": "영역 도전: 한 사람이 다른 사람에게 맞섬",
+    "gifts": "선물",
+    "giftsTip": "사람들 사이에 주고받은 음식: 친족과 우정의 표시",
+    "droughts": "가뭄",
+    "droughtsTip": "가뭄: 물이 부족한 계절",
+    "outbreaks": "유행",
+    "outbreaksTip": "인구 사이에 퍼진 질병 유행"
+  },
+  "wildlife": {
+    "title": "야생동물",
+    "danger": "배고플 때 사람을 사냥함",
+    "herds": "양, 소, 말, 닭",
+    "game": "먹이로 사냥하는 야생 사냥감: 과잉 사냥은 개체 수를 줄인다",
+    "away": "+{count} 원정 중",
+    "animals": {
+      "rabbits": "토끼",
+      "deer": "사슴",
+      "boar": "멧돼지",
+      "birds": "새",
+      "fish": "물고기",
+      "herds": "가축 떼",
+      "foxes": "여우",
+      "cats": "고양이",
+      "penguins": "펭귄",
+      "camels": "낙타",
+      "frogs": "개구리",
+      "whales": "고래",
+      "ducks": "오리",
+      "bees": "벌",
+      "owls": "올빼미",
+      "eagles": "독수리",
+      "snakes": "뱀",
+      "crocodiles": "악어",
+      "monkeys": "원숭이",
+      "wolves": "늑대",
+      "goats": "염소",
+      "elephants": "코끼리",
+      "lions": "사자",
+      "zebras": "얼룩말",
+      "polarBears": "북극곰",
+      "kangaroos": "캥거루",
+      "bears": "곰"
+    }
+  },
+  "footer": {
+    "era": "시대",
+    "eras": {
+      "genesis": "창세",
+      "forager": "채집",
+      "fire": "불",
+      "shelter": "거처",
+      "tribal": "부족",
+      "invention": "발명",
+      "cooking": "요리",
+      "masonry": "석공",
+      "equilibrium": "균형"
+    },
+    "day": "낮",
+    "night": "밤",
+    "weather": "날씨",
+    "droughtTag": "· {label}",
+    "tribes": "부족"
+  },
+  "weather": {
+    "clear": "맑음",
+    "rain": "비",
+    "rainBody": "마른 땅이 더 빨리 회복되는 데 도움이 된다.",
+    "storm": "폭풍",
+    "stormBody": "기력을 소모시킨다. 벼락이 칠 수 있다.",
+    "drought": "가뭄",
+    "droughtBody": "물이 줄어들고 갈증으로 인한 사망이 늘고 있다."
+  },
+  "silent": {
+    "title": "세계가 고요해졌습니다",
+    "body": "당신의 백성 중 마지막 한 사람까지 세상을 떠났습니다. 그들이 세운 마을에는 아무것도 움직이지 않습니다.",
+    "lasted": "지속 기간",
+    "years": {
+      "other": "{count}년"
+    },
+    "mostAlive": "동시에 살았던 최대 인구",
+    "tribes": "부족",
+    "furthestAge": "도달한 가장 높은 시대",
+    "prayersAnswered": "응답받은 기도",
+    "unanswered": "{count}개 미응답",
+    "keepWatching": "계속 지켜보기",
+    "newWorld": "새 세계",
+    "seed": "새 사람들 심기"
+  },
+  "rename": {
+    "label": "새 이름",
+    "save": "저장",
+    "cancel": "취소"
+  },
+  "prayerHint": {
+    "title": "백성이 기도하고 있습니다",
+    "body": "부족 위의 말풍선을 클릭해 도울 수 있습니다. 응답받은 기도는 신앙을 얻습니다.",
+    "showMe": "보여 주기",
+    "dismiss": "닫기"
+  },
+  "prayerChip": {
+    "tipTitle": "기도",
+    "tipBody": {
+      "other": "{count}개 부족이 도움을 청하고 있습니다. 신앙을 잃기 전에 응답하세요."
+    },
+    "label": "기도 {count}개"
+  },
+  "peril": {
+    "title": "존폐 위기",
+    "tipOne": "{tribe} 부족이 존폐 위기에 있습니다: {remaining}, {reason}.",
+    "tipMany": "{count}개 부족이 존폐 위기에 있습니다. 클릭하면 차례로 이동합니다.",
+    "label": {
+      "other": "존폐 위기 부족 {count}개"
+    }
+  },
+  "population": {
+    "people": "인구",
+    "alive": "{count}명 생존.",
+    "milestone": "다음 목표 {count}명",
+    "sickness": "질병",
+    "sick": {
+      "other": "{count}명이 아픕니다. 가까이 접촉하면 퍼집니다."
+    }
+  },
+  "calendar": {
+    "year": "{year}년",
+    "yearTitle": "{year}년, {season}",
+    "dayOfSeason": "{season} {day}일째(5일 중). 한 해는 네 계절로 이루어지며, 사람은 살아온 햇수만큼 나이를 먹는다.",
+    "throughDay": "{phase}, 하루의 {percent}% 경과.",
+    "moon": "달: {phase}",
+    "moonDate": "{year}년, {day}일째.",
+    "hardWinter": "혹독한 겨울",
+    "hardWinterAhead": "{season} · 혹독한 겨울이 다가옴",
+    "omen": "혹독한 겨울이 다가옴",
+    "hardWinterBody": "평소보다 춥습니다. 야생 먹이가 빨리 줄고 열병이 퍼집니다.",
+    "hardWinterHow": "부족들이 음식과 치료를 기도할 것입니다.",
+    "aheadBody": "원로들은 혹독한 겨울을 걱정합니다. 야생 먹이가 부족해지고 열병이 퍼질 것입니다.",
+    "aheadHow": "추위가 오기 전에 지금 작물과 과수원을 심으세요.",
+    "tip": {
+      "recovery": "땅이 회복되고 있습니다. 먹이가 다시 자라기 시작합니다.",
+      "abundance": "먹이가 풍부합니다.",
+      "decline": "겨울을 앞두고 먹이 성장이 둔화되고 있습니다.",
+      "scarcity": "먹이가 부족합니다. 겨울이 가장 힘든 계절입니다.",
+      "default": "먹이 성장과 가뭄 위험에 영향을 줍니다."
+    },
+    "season": {
+      "spring": "봄",
+      "summer": "여름",
+      "autumn": "가을",
+      "winter": "겨울"
+    },
+    "seasonName": {
+      "spring": "봄",
+      "summer": "여름",
+      "autumn": "가을",
+      "winter": "겨울"
+    },
+    "phase": {
+      "dawn": "새벽",
+      "day": "낮",
+      "dusk": "황혼",
+      "night": "밤"
+    },
+    "phaseTitle": {
+      "dawn": "새벽",
+      "day": "낮",
+      "dusk": "황혼",
+      "night": "밤"
+    }
+  },
+  "lineages": {
+    "title": "계통 ({count})",
+    "onBrink": "존폐 위기: {line}, {reason}. 클릭해서 도와주세요.",
+    "showAll": "모든 계통 보기",
+    "focus": "{name} 집중",
+    "brink": "존폐 위기",
+    "oldest": "가장 나이 많은 생존자: {line}",
+    "viewAll": "전체 보기 ({count})",
+    "faith": "신앙 {faith}",
+    "faithBlessed": "신앙 {faith} · 응답받은 기도로 축복받음",
+    "faithDespair": "신앙 {faith} · 응답받지 못한 기도 뒤 절망",
+    "eldestDays": "{days}일",
+    "generation": "{from}세대",
+    "generationRange": "{from}~{to}세대"
+  },
+  "tribe": {
+    "rename": "이 부족 이름 바꾸기",
+    "nameLabel": "부족 이름",
+    "close": "닫기",
+    "regionLabel": "{name} 부족",
+    "sparkTitle": "최근 {from} → {to}명",
+    "growing": "늘어나는 중",
+    "shrinking": "줄어드는 중",
+    "steady": "안정",
+    "food": "식량",
+    "water": "물",
+    "health": "건강",
+    "ledBy": "지도자:",
+    "followLeader": "지도자 따라가기",
+    "festival": "{name} 축제 진행 중",
+    "people": {
+      "other": "{count}명"
+    },
+    "eraAge": "{era} 시대",
+    "wealth": "부 {gap}",
+    "onBrink": "존폐 위기: {line} (최대 {peak}명), {reason}",
+    "atWar": "{enemies}와(과) 전쟁 중",
+    "makePeace": "화해하기",
+    "granary": "곡간: 곡식 {count}되",
+    "bakery": "빵집: 빵 {count}개",
+    "pen": "우리: 가축 {count}마리",
+    "lostLately": "최근 잃은 것: {losses}",
+    "oldest": "가장 나이 많은 생존자: {line}",
+    "oldestTitle": "이 부족에서 가장 나이 많은 생존자",
+    "families": "가족: {list}",
+    "familiesTitle": "이 부족 생존자들의 가족",
+    "faith": "신앙 {faith}",
+    "faithTitle": "응답받은 기도에서 버려진 기도를 뺀 수",
+    "faithLostTitle": "신들을 포기해 기도를 거의 하지 않습니다. 요청하지 않아도 도와서 신앙을 되찾으세요.",
+    "blessed": "축복받음",
+    "lostFaith": "신앙 상실",
+    "despairing": "절망 중",
+    "sick": {
+      "other": "아픈 사람 {count}명"
+    },
+    "nextAge": "다음 시대: {era}",
+    "inspire": "고무하기",
+    "inspireTitle": "고무하기: 다음 발견을 앞당깁니다",
+    "teach": "가르치기",
+    "teachTitle": "아직 모르는 다음 비법을 가르칩니다 (계절당 한 번)",
+    "stillToLearn": "아직 배울 것: {list}",
+    "needsPeople": "사람 {count}명 더 필요",
+    "praying": "기도 중",
+    "help": "도움"
+  }
+}

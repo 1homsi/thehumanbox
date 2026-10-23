@@ -1,1 +1,284 @@
-{}
+{
+  "right": {
+    "alive": "存活 ({count})",
+    "starred": "已星标",
+    "showAll": "显示所有生物",
+    "showStarred": "仅显示已星标 ({count})",
+    "showMore": "再显示 {count} 个 · 隐藏 {hidden} 个",
+    "dead": "死亡 ({count})",
+    "generation": "第{generation}代 · {age}",
+    "unstar": "取消星标",
+    "gone": "消失 ({count})",
+    "vanished": "已从世界中消失"
+  },
+  "events": {
+    "heading": "事件",
+    "important": "重要",
+    "all": "全部",
+    "showImportant": "当前显示重要事件。点击显示全部。",
+    "showAll": "当前显示全部事件。点击仅显示重要事件。"
+  },
+  "eventRow": {
+    "goThere": "前往此处"
+  },
+  "headlines": {
+    "label": "世界近期头条"
+  },
+  "history": {
+    "title": "世界历史",
+    "births": "出生",
+    "birthsTip": "这个世界上出生过的所有人",
+    "oldAge": "老死",
+    "oldAgeTip": "老死：度过完整一生的人",
+    "starvation": "饿死",
+    "starvationTip": "因饥饿或口渴而死：缺少食物或水",
+    "sickness": "病死",
+    "sicknessTip": "因疾病而死",
+    "combat": "战死",
+    "combatTip": "在邻里争斗和部落之间战争中死亡",
+    "beasts": "被兽杀",
+    "beastsTip": "被狼、熊和怪物杀死",
+    "drowned": "溺死",
+    "drownedTip": "在深水或涨水中溺亡",
+    "fire": "火灾",
+    "fireTip": "被野火烧死",
+    "disaster": "灾害",
+    "disasterTip": "被地震、陨石、洪水、风暴、火山和神明的闪电夺去性命",
+    "alliances": "结盟",
+    "alliancesTip": "部落之间结成的联盟",
+    "challenges": "挑战",
+    "challengesTip": "领地挑战：一人与另一人对峙",
+    "gifts": "赠礼",
+    "giftsTip": "人与人之间赠送的食物：亲情与友谊",
+    "droughts": "干旱",
+    "droughtsTip": "干旱：缺水的季节",
+    "outbreaks": "疫情",
+    "outbreaksTip": "席卷人口的疾病疫情"
+  },
+  "wildlife": {
+    "title": "野生动物",
+    "danger": "饥饿时会猎杀人类",
+    "herds": "羊、牛、马和鸡",
+    "game": "供食用猎取的野味：过度狩猎会使其减少",
+    "away": "+{count} 外出",
+    "animals": {
+      "rabbits": "兔子",
+      "deer": "鹿",
+      "boar": "野猪",
+      "birds": "鸟类",
+      "fish": "鱼",
+      "herds": "畜群",
+      "foxes": "狐狸",
+      "cats": "猫",
+      "penguins": "企鹅",
+      "camels": "骆驼",
+      "frogs": "青蛙",
+      "whales": "鲸鱼",
+      "ducks": "鸭子",
+      "bees": "蜜蜂",
+      "owls": "猫头鹰",
+      "eagles": "老鹰",
+      "snakes": "蛇",
+      "crocodiles": "鳄鱼",
+      "monkeys": "猴子",
+      "wolves": "狼",
+      "goats": "山羊",
+      "elephants": "大象",
+      "lions": "狮子",
+      "zebras": "斑马",
+      "polarBears": "北极熊",
+      "kangaroos": "袋鼠",
+      "bears": "熊"
+    }
+  },
+  "footer": {
+    "era": "时代",
+    "eras": {
+      "genesis": "创世",
+      "forager": "采集",
+      "fire": "火",
+      "shelter": "庇护",
+      "tribal": "部落",
+      "invention": "发明",
+      "cooking": "烹饪",
+      "masonry": "石工",
+      "equilibrium": "平衡"
+    },
+    "day": "白天",
+    "night": "夜晚",
+    "weather": "天气",
+    "droughtTag": "· {label}",
+    "tribes": "部落"
+  },
+  "weather": {
+    "clear": "晴朗",
+    "rain": "雨",
+    "rainBody": "帮助干涸的土地更快恢复。",
+    "storm": "暴风雨",
+    "stormBody": "消耗体力，雷电可能击中。",
+    "drought": "干旱",
+    "droughtBody": "水源减少，因口渴而死的人越来越多。"
+  },
+  "silent": {
+    "title": "世界陷入寂静",
+    "body": "你的最后一个子民已经离去。他们建造的村庄里，再无任何动静。",
+    "lasted": "存续",
+    "years": {
+      "other": "{count} 年"
+    },
+    "mostAlive": "同时存活的最多人数",
+    "tribes": "部落",
+    "furthestAge": "最远到达的时代",
+    "prayersAnswered": "已应验的祈祷",
+    "unanswered": "{count} 个未应验",
+    "keepWatching": "继续观望",
+    "newWorld": "新世界",
+    "seed": "播种新的人"
+  },
+  "rename": {
+    "label": "新名字",
+    "save": "保存",
+    "cancel": "取消"
+  },
+  "prayerHint": {
+    "title": "你的子民正在祈祷",
+    "body": "点击部落上方的语泡即可帮助他们。应验的祈祷会带来信仰。",
+    "showMe": "给我看看",
+    "dismiss": "关闭"
+  },
+  "prayerChip": {
+    "tipTitle": "祈祷",
+    "tipBody": {
+      "other": "{count} 个部落正在请求你的帮助。请在他们失去信仰前回应。"
+    },
+    "label": "{count} 个祈祷"
+  },
+  "peril": {
+    "title": "濒临灭亡",
+    "tipOne": "{tribe} 濒临灭亡：{remaining}，{reason}。",
+    "tipMany": "{count} 个部落濒临灭亡。点击依次前往每一个。",
+    "label": {
+      "other": "{count} 个部落濒临灭亡"
+    }
+  },
+  "population": {
+    "people": "人口",
+    "alive": "{count} 人存活。",
+    "milestone": "下一个里程碑 {count}",
+    "sickness": "疾病",
+    "sick": {
+      "other": "{count} 人患病，疾病会通过密切接触传播。"
+    }
+  },
+  "calendar": {
+    "year": "Y{year}",
+    "yearTitle": "第 {year} 年，{season}",
+    "dayOfSeason": "{season}第 {day} 天（共 5 天）。一年分为四季，人会按经历的年数变老。",
+    "throughDay": "{phase}，已过去一天的 {percent}%。",
+    "moon": "月相：{phase}",
+    "moonDate": "第 {year} 年，第 {day} 天。",
+    "hardWinter": "严冬",
+    "hardWinterAhead": "{season} · 严冬将至",
+    "omen": "严冬将至",
+    "hardWinterBody": "比往年更冷。野生食物迅速枯竭，热病四处蔓延。",
+    "hardWinterHow": "部落会祈求食物和药物。",
+    "aheadBody": "长老们担心严冬来临。野生食物将会稀缺，热病将会蔓延。",
+    "aheadHow": "趁寒冷到来之前，现在就种下庄稼和果树。",
+    "tip": {
+      "recovery": "土地正在恢复，食物开始重新生长。",
+      "abundance": "食物充足。",
+      "decline": "冬季临近，食物生长放缓。",
+      "scarcity": "食物匮乏。冬天是最艰难的季节。",
+      "default": "影响食物生长和干旱风险。"
+    },
+    "season": {
+      "spring": "春季",
+      "summer": "夏季",
+      "autumn": "秋季",
+      "winter": "冬季"
+    },
+    "seasonName": {
+      "spring": "春季",
+      "summer": "夏季",
+      "autumn": "秋季",
+      "winter": "冬季"
+    },
+    "phase": {
+      "dawn": "黎明",
+      "day": "白天",
+      "dusk": "黄昏",
+      "night": "夜晚"
+    },
+    "phaseTitle": {
+      "dawn": "黎明",
+      "day": "白天",
+      "dusk": "黄昏",
+      "night": "夜晚"
+    }
+  },
+  "lineages": {
+    "title": "血脉 ({count})",
+    "onBrink": "濒临灭亡：{line}，{reason}。点击帮助他们。",
+    "showAll": "显示所有血脉",
+    "focus": "聚焦 {name}",
+    "brink": "濒临灭亡",
+    "oldest": "最年长的在世者：{line}",
+    "viewAll": "查看全部 ({count})",
+    "faith": "信仰 {faith}",
+    "faithBlessed": "信仰 {faith} · 受到应验祈祷的祝福",
+    "faithDespair": "信仰 {faith} · 祈祷未应验后陷入绝望",
+    "eldestDays": "{days} 天",
+    "generation": "第{from}代",
+    "generationRange": "第{from}-{to}代"
+  },
+  "tribe": {
+    "rename": "重命名此部落",
+    "nameLabel": "部落名称",
+    "close": "关闭",
+    "regionLabel": "{name} 部落",
+    "sparkTitle": "近期人数 {from} → {to}",
+    "growing": "增长中",
+    "shrinking": "减少中",
+    "steady": "稳定",
+    "food": "食物",
+    "water": "水",
+    "health": "健康",
+    "ledBy": "首领：",
+    "followLeader": "跟随首领",
+    "festival": "{name}正在举行",
+    "people": {
+      "other": "{count} 人"
+    },
+    "eraAge": "{era}时代",
+    "wealth": "财富 {gap}",
+    "onBrink": "濒临灭亡：{peak} 人中的{line}，{reason}",
+    "atWar": "正与{enemies}交战",
+    "makePeace": "议和",
+    "granary": "粮仓：{count} 斗谷物",
+    "bakery": "面包房：{count} 个面包",
+    "pen": "畜栏：{count} 头牲畜",
+    "lostLately": "近期损失：{losses}",
+    "oldest": "最年长的在世者：{line}",
+    "oldestTitle": "此部落中最年长的在世成员",
+    "families": "家族：{list}",
+    "familiesTitle": "此部落在世成员的家族",
+    "faith": "信仰 {faith}",
+    "faithTitle": "应验的祈祷减去被弃的祈祷",
+    "faithLostTitle": "他们已放弃神明，很少祈祷。请在他们不求助时主动帮助，以挽回信仰。",
+    "blessed": "受祝福",
+    "lostFaith": "信仰丧失",
+    "despairing": "绝望",
+    "sick": {
+      "other": "{count} 人患病"
+    },
+    "nextAge": "下一时代：{era}时代",
+    "inspire": "激励",
+    "inspireTitle": "激励他们：加快下一次发现",
+    "teach": "传授",
+    "teachTitle": "传授他们缺少的下一个秘密（每季一次）",
+    "stillToLearn": "尚未掌握：{list}",
+    "needsPeople": "还需 {count} 人",
+    "praying": "祈祷中",
+    "help": "帮助"
+  }
+}

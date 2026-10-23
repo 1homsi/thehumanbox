@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { Tooltip } from '../toolbar/Tooltip'
 import { ToolSprite } from '../toolbar/ToolSprite'
 import { nextPopulationMilestone } from './population-milestone'
+import { formatNumber, t } from '../../i18n'
 
 interface Props {
   /** People alive. */
@@ -21,17 +22,21 @@ export function PopulationChip({ population, sick }: Props) {
     <span className="tip-card">
       {population > 0 && (
         <span className="tip-part">
-          <span className="tip-title">people</span>
-          <span className="tip-body">{population.toLocaleString()} alive.</span>
-          {milestone && <span className="tip-how">next milestone {milestone.toLocaleString()}</span>}
+          <span className="tip-title">{t('panels.population.people')}</span>
+          <span className="tip-body">
+            {t('panels.population.alive', { count: formatNumber(population) })}
+          </span>
+          {milestone && (
+            <span className="tip-how">
+              {t('panels.population.milestone', { count: formatNumber(milestone) })}
+            </span>
+          )}
         </span>
       )}
       {sick > 0 && (
         <span className="tip-part">
-          <span className="tip-title">sickness</span>
-          <span className="tip-body">
-            {sick} {sick > 1 ? 'people are' : 'person is'} sick. It spreads through close contact.
-          </span>
+          <span className="tip-title">{t('panels.population.sickness')}</span>
+          <span className="tip-body">{t('panels.population.sick', { count: sick })}</span>
         </span>
       )}
     </span>
@@ -42,7 +47,7 @@ export function PopulationChip({ population, sick }: Props) {
         {population > 0 && (
           <>
             <ToolSprite icon="🚶" size={16} />
-            {population.toLocaleString()}
+            {formatNumber(population)}
           </>
         )}
         {sick > 0 && (

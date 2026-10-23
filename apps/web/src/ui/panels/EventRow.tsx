@@ -4,6 +4,7 @@ import { useUIStore } from '../../state/store'
 import { useWorldStore } from '../../state/worldStore'
 import { EVENT_ICONS, EVENT_COLORS } from '../../shared/constants'
 import { eventTarget } from '../../game/model/event-target'
+import { t } from '../../i18n'
 
 /** Rows about the player's own role: prayers and how they ended. */
 const GODLY = new Set(['prayer', 'answered', 'forsaken'])
@@ -26,7 +27,7 @@ export function EventRow({ event }: { event: SimEvent }) {
       className={'event-row' + (GODLY.has(event.type) ? ' godly' : '')}
       role="button"
       tabIndex={0}
-      title="Go there"
+      title={t('panels.eventRow.goThere')}
       onClick={() => goTo(event)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {

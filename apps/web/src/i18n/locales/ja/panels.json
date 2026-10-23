@@ -1,1 +1,284 @@
-{}
+{
+  "right": {
+    "alive": "生存 ({count})",
+    "starred": "お気に入り",
+    "showAll": "すべての生き物を表示",
+    "showStarred": "お気に入りのみ表示 ({count})",
+    "showMore": "さらに {count} 件表示 · {hidden} 件非表示",
+    "dead": "死亡 ({count})",
+    "generation": "第{generation}世代 · {age}",
+    "unstar": "お気に入りを解除",
+    "gone": "消失 ({count})",
+    "vanished": "世界から消えた"
+  },
+  "events": {
+    "heading": "出来事",
+    "important": "重要",
+    "all": "すべて",
+    "showImportant": "重要な出来事を表示中。クリックですべて表示。",
+    "showAll": "すべての出来事を表示中。クリックで重要なものだけ表示。"
+  },
+  "eventRow": {
+    "goThere": "そこへ移動"
+  },
+  "headlines": {
+    "label": "世界の最新ニュース"
+  },
+  "history": {
+    "title": "世界の歴史",
+    "births": "出生",
+    "birthsTip": "この世界に生まれた人の総数",
+    "oldAge": "老衰",
+    "oldAgeTip": "老衰による死亡: 天寿を全うした人々",
+    "starvation": "飢え",
+    "starvationTip": "飢えや渇きによる死亡: 食べ物や水が足りない",
+    "sickness": "病気",
+    "sicknessTip": "病気による死亡",
+    "combat": "戦闘",
+    "combatTip": "隣人同士の争いや部族間の戦争での死亡",
+    "beasts": "獣",
+    "beastsTip": "オオカミ、クマ、怪物に殺された",
+    "drowned": "溺死",
+    "drownedTip": "深い水や増水した水で溺れた",
+    "fire": "火災",
+    "fireTip": "山火事で死亡",
+    "disaster": "災害",
+    "disasterTip": "地震、隕石、洪水、嵐、火山、神の雷による死亡",
+    "alliances": "同盟",
+    "alliancesTip": "部族間で結ばれた同盟",
+    "challenges": "挑戦",
+    "challengesTip": "縄張りをめぐる挑戦: 一人が別の一人に立ち向かう",
+    "gifts": "贈り物",
+    "giftsTip": "人々の間で贈られた食べ物: 親族と友情のしるし",
+    "droughts": "干ばつ",
+    "droughtsTip": "干ばつ: 水が不足する季節",
+    "outbreaks": "流行",
+    "outbreaksTip": "人口に広がった病気の流行"
+  },
+  "wildlife": {
+    "title": "野生動物",
+    "danger": "空腹のとき人を襲う",
+    "herds": "羊、牛、馬、鶏",
+    "game": "食用に狩られる野生の獲物: 狩りすぎると減る",
+    "away": "+{count} 不在",
+    "animals": {
+      "rabbits": "ウサギ",
+      "deer": "シカ",
+      "boar": "イノシシ",
+      "birds": "鳥",
+      "fish": "魚",
+      "herds": "家畜の群れ",
+      "foxes": "キツネ",
+      "cats": "ネコ",
+      "penguins": "ペンギン",
+      "camels": "ラクダ",
+      "frogs": "カエル",
+      "whales": "クジラ",
+      "ducks": "カモ",
+      "bees": "ハチ",
+      "owls": "フクロウ",
+      "eagles": "ワシ",
+      "snakes": "ヘビ",
+      "crocodiles": "ワニ",
+      "monkeys": "サル",
+      "wolves": "オオカミ",
+      "goats": "ヤギ",
+      "elephants": "ゾウ",
+      "lions": "ライオン",
+      "zebras": "シマウマ",
+      "polarBears": "ホッキョクグマ",
+      "kangaroos": "カンガルー",
+      "bears": "クマ"
+    }
+  },
+  "footer": {
+    "era": "時代",
+    "eras": {
+      "genesis": "創世",
+      "forager": "採集",
+      "fire": "火",
+      "shelter": "住居",
+      "tribal": "部族",
+      "invention": "発明",
+      "cooking": "調理",
+      "masonry": "石工",
+      "equilibrium": "均衡"
+    },
+    "day": "昼",
+    "night": "夜",
+    "weather": "天候",
+    "droughtTag": "· {label}",
+    "tribes": "部族"
+  },
+  "weather": {
+    "clear": "晴れ",
+    "rain": "雨",
+    "rainBody": "乾いた土地が早く回復する助けになる。",
+    "storm": "嵐",
+    "stormBody": "体力を消耗させる。落雷の恐れがある。",
+    "drought": "干ばつ",
+    "droughtBody": "水が減り、渇きによる死者が増えている。"
+  },
+  "silent": {
+    "title": "世界は静まり返った",
+    "body": "あなたの民の最後の一人が死んだ。彼らが築いた村には、もう何も動くものがない。",
+    "lasted": "存続期間",
+    "years": {
+      "other": "{count} 年"
+    },
+    "mostAlive": "同時に生きていた最多人数",
+    "tribes": "部族",
+    "furthestAge": "最も進んだ時代",
+    "prayersAnswered": "叶えられた祈り",
+    "unanswered": "{count} 件が未回答",
+    "keepWatching": "見守る",
+    "newWorld": "新しい世界",
+    "seed": "新しい民を生み出す"
+  },
+  "rename": {
+    "label": "新しい名前",
+    "save": "保存",
+    "cancel": "キャンセル"
+  },
+  "prayerHint": {
+    "title": "民が祈っています",
+    "body": "部族の上の吹き出しをクリックすると手助けできます。叶えた祈りは信仰を集めます。",
+    "showMe": "見せて",
+    "dismiss": "閉じる"
+  },
+  "prayerChip": {
+    "tipTitle": "祈り",
+    "tipBody": {
+      "other": "{count} 部族があなたの助けを求めています。信仰を失う前に応えてください。"
+    },
+    "label": "{count} 件の祈り"
+  },
+  "peril": {
+    "title": "存亡の危機",
+    "tipOne": "{tribe} は存亡の危機にあります: {remaining}、{reason}。",
+    "tipMany": "{count} 部族が存亡の危機にあります。クリックすると順番に移動します。",
+    "label": {
+      "other": "{count} 部族が存亡の危機"
+    }
+  },
+  "population": {
+    "people": "人口",
+    "alive": "{count} 人が生存。",
+    "milestone": "次の節目 {count}",
+    "sickness": "病気",
+    "sick": {
+      "other": "{count} 人が病気です。近くにいると広がります。"
+    }
+  },
+  "calendar": {
+    "year": "{year}年",
+    "yearTitle": "{year}年、{season}",
+    "dayOfSeason": "{season}の{day}日目（5日間）。一年は四つの季節からなり、人は生きてきた年数で歳をとる。",
+    "throughDay": "{phase}、一日の{percent}%が経過。",
+    "moon": "月: {phase}",
+    "moonDate": "{year}年目、{day}日目。",
+    "hardWinter": "厳冬",
+    "hardWinterAhead": "{season}・厳冬が近い",
+    "omen": "厳冬が近い",
+    "hardWinterBody": "例年より寒い。野生の食べ物はすぐに枯れ、熱病が広がる。",
+    "hardWinterHow": "部族は食べ物と治療を祈るだろう。",
+    "aheadBody": "長老たちは厳しい冬を恐れている。野生の食べ物は乏しくなり、熱病が広がるだろう。",
+    "aheadHow": "寒さが来る前に、今のうちに作物と果樹を植えよう。",
+    "tip": {
+      "recovery": "大地が回復している。食べ物が再び育ち始める。",
+      "abundance": "食べ物が豊富。",
+      "decline": "冬を前に食べ物の成長が鈍っている。",
+      "scarcity": "食べ物が乏しい。冬が一番厳しい季節だ。",
+      "default": "食べ物の成長と干ばつの危険に影響する。"
+    },
+    "season": {
+      "spring": "春",
+      "summer": "夏",
+      "autumn": "秋",
+      "winter": "冬"
+    },
+    "seasonName": {
+      "spring": "春",
+      "summer": "夏",
+      "autumn": "秋",
+      "winter": "冬"
+    },
+    "phase": {
+      "dawn": "夜明け",
+      "day": "昼",
+      "dusk": "夕暮れ",
+      "night": "夜"
+    },
+    "phaseTitle": {
+      "dawn": "夜明け",
+      "day": "昼",
+      "dusk": "夕暮れ",
+      "night": "夜"
+    }
+  },
+  "lineages": {
+    "title": "系統 ({count})",
+    "onBrink": "存亡の危機: {line}、{reason}。クリックして助けてください。",
+    "showAll": "すべての系統を表示",
+    "focus": "{name} に注目",
+    "brink": "存亡の危機",
+    "oldest": "最年長の生存者: {line}",
+    "viewAll": "すべて表示 ({count})",
+    "faith": "信仰 {faith}",
+    "faithBlessed": "信仰 {faith} · 叶えられた祈りに祝福された",
+    "faithDespair": "信仰 {faith} · 叶わなかった祈りの後で絶望中",
+    "eldestDays": "{days}日",
+    "generation": "世代{from}",
+    "generationRange": "世代{from}-{to}"
+  },
+  "tribe": {
+    "rename": "この部族の名前を変える",
+    "nameLabel": "部族の名前",
+    "close": "閉じる",
+    "regionLabel": "{name} 部族",
+    "sparkTitle": "最近 {from} → {to} 人",
+    "growing": "増加中",
+    "shrinking": "減少中",
+    "steady": "安定",
+    "food": "食料",
+    "water": "水",
+    "health": "健康",
+    "ledBy": "指導者:",
+    "followLeader": "指導者を追う",
+    "festival": "{name} が開催中",
+    "people": {
+      "other": "{count} 人"
+    },
+    "eraAge": "{era}の時代",
+    "wealth": "富 {gap}",
+    "onBrink": "存亡の危機: {line}（最大 {peak} 人）、{reason}",
+    "atWar": "{enemies} と交戦中",
+    "makePeace": "和平を結ぶ",
+    "granary": "穀倉: 穀物 {count} 升",
+    "bakery": "パン屋: パン {count} 個",
+    "pen": "囲い: 家畜 {count} 頭",
+    "lostLately": "最近の被害: {losses}",
+    "oldest": "最年長の生存者: {line}",
+    "oldestTitle": "この部族で最も年長の生存者",
+    "families": "家族: {list}",
+    "familiesTitle": "この部族の生存者の家族",
+    "faith": "信仰 {faith}",
+    "faithTitle": "叶えられた祈りから叶わなかった祈りを引いた数",
+    "faithLostTitle": "神々を見限り、めったに祈らない。見返りを求めず助けて、信仰を取り戻そう。",
+    "blessed": "祝福あり",
+    "lostFaith": "信仰喪失",
+    "despairing": "絶望中",
+    "sick": {
+      "other": "病人 {count} 人"
+    },
+    "nextAge": "次の時代: {era}",
+    "inspire": "鼓舞",
+    "inspireTitle": "鼓舞する: 次の発見を早める",
+    "teach": "教える",
+    "teachTitle": "まだ知らない次の知恵を教える（季節に一度）",
+    "stillToLearn": "未習得: {list}",
+    "needsPeople": "あと {count} 人必要",
+    "praying": "祈り中",
+    "help": "助ける"
+  }
+}

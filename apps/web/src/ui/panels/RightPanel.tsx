@@ -4,6 +4,7 @@ import clsx from 'clsx'
 import type { OrganismState, WorldState } from '../../shared/types'
 import { useUIStore } from '../../state/store'
 import { lazyWithRetry as lazy } from '../../shared/lazyWithRetry'
+import { formatNumber, t } from '../../i18n'
 
 // The person cards and the detail view (with the life-story modal) are only drawn
 // once the drawer is open, so they ship as their own chunk instead of in the first
@@ -97,14 +98,22 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
             )}
 
             <div className="section-title-row">
-              <span className="section-title">ALIVE ({visibleLive.length})</span>
+              <span className="section-title">
+                {t('panels.right.alive', { count: formatNumber(visibleLive.length) })}
+              </span>
               <button
                 type="button"
                 className={clsx('starred-toggle', showStarredOnly && 'active')}
                 onClick={toggleShowStarred}
-                title={showStarredOnly ? 'Show all organisms' : `Show only starred (${starredOrgIds.length})`}
+                title={
+                  showStarredOnly
+                    ? t('panels.right.showAll')
+                    : t('panels.right.showStarred', { count: formatNumber(starredOrgIds.length) })
+                }
               >
-                {showStarredOnly ? '★ starred' : `☆ ${starredOrgIds.length}`}
+                {showStarredOnly
+                  ? `★ ${t('panels.right.starred')}`
+                  : `☆ ${formatNumber(starredOrgIds.length)}`}
               </button>
             </div>
             {renderedLive.map((org) => (
@@ -116,27 +125,31 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
                 className="view-all-btn"
                 onClick={() => setVisibleLimit((limit) => limit + LIVE_PAGE_SIZE)}
               >
-                show {Math.min(LIVE_PAGE_SIZE, visibleLive.length - renderedLive.length)} more ·{' '}
-                {visibleLive.length - renderedLive.length} hidden
+                {t('panels.right.showMore', {
+                  count: formatNumber(Math.min(LIVE_PAGE_SIZE, visibleLive.length - renderedLive.length)),
+                  hidden: formatNumber(visibleLive.length - renderedLive.length),
+                })}
               </button>
             )}
 
             {visibleDead.length > 0 && (
               <>
-                <div className="section-title">DEAD ({visibleDead.length})</div>
+                <div className="section-title">
+                  {t('panels.right.dead', { count: formatNumber(visibleDead.length) })}
+                </div>
                 {(showStarredOnly ? visibleDead : visibleDead.slice(-5)).map((org) => (
                   <div key={org.id} className="org-card dead">
                     <div className="org-header">
                       <span className="org-name">{personName(org)}</span>
                       <span className="org-meta">
-                        g{org.generation} · {org.age}
+                        {t('panels.right.generation', { generation: org.generation, age: org.age })}
                       </span>
                       {starredSet.has(org.id) && (
                         <button
                           type="button"
                           className="unstar-dead-btn"
                           onClick={() => useUIStore.getState().toggleStar(org.id)}
-                          title="Unstar"
+                          title={t('panels.right.unstar')}
                         >
                           ★
                         </button>
@@ -149,17 +162,19 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
             )}
             {starredGone.length > 0 && (
               <>
-                <div className="section-title">GONE ({starredGone.length})</div>
+                <div className="section-title">
+                  {t('panels.right.gone', { count: formatNumber(starredGone.length) })}
+                </div>
                 {starredGone.map((id) => (
                   <div key={id} className="org-card dead">
                     <div className="org-header">
                       <span className="org-name">{id.slice(0, 8)}</span>
-                      <span className="org-meta">vanished from world</span>
+                      <span className="org-meta">{t('panels.right.vanished')}</span>
                       <button
                         type="button"
                         className="unstar-dead-btn"
                         onClick={() => useUIStore.getState().toggleStar(id)}
-                        title="Unstar"
+                        title={t('panels.right.unstar')}
                       >
                         ★
                       </button>

@@ -1,1 +1,290 @@
-{}
+{
+  "right": {
+    "alive": "LEBENDE ({count})",
+    "starred": "markiert",
+    "showAll": "Alle Lebewesen anzeigen",
+    "showStarred": "Nur markierte anzeigen ({count})",
+    "showMore": "{count} weitere anzeigen · {hidden} ausgeblendet",
+    "dead": "TOTE ({count})",
+    "generation": "G{generation} · {age}",
+    "unstar": "Markierung entfernen",
+    "gone": "VERSCHWUNDEN ({count})",
+    "vanished": "aus der Welt verschwunden"
+  },
+  "events": {
+    "heading": "EREIGNISSE",
+    "important": "wichtig",
+    "all": "alle",
+    "showImportant": "Zeigt, was wichtig ist. Klicken, um alles zu zeigen.",
+    "showAll": "Zeigt alles. Klicken, um nur das Wichtige zu zeigen."
+  },
+  "eventRow": {
+    "goThere": "Dorthin gehen"
+  },
+  "headlines": {
+    "label": "aktuelle Weltschlagzeilen"
+  },
+  "history": {
+    "title": "WELTGESCHICHTE",
+    "births": "Geburten",
+    "birthsTip": "Alle Menschen, die in dieser Welt je geboren wurden",
+    "oldAge": "Alter",
+    "oldAgeTip": "Todesfälle durch hohes Alter: Menschen, die ein volles Leben lebten",
+    "starvation": "Hunger",
+    "starvationTip": "Todesfälle durch Hunger oder Durst: nicht genug Nahrung oder Wasser",
+    "sickness": "Krankheit",
+    "sicknessTip": "Todesfälle durch Krankheit",
+    "combat": "Kampf",
+    "combatTip": "Todesfälle in Streitereien zwischen Nachbarn und in Kriegen zwischen Stämmen",
+    "beasts": "Bestien",
+    "beastsTip": "Getötet von Wölfen, Bären und Ungeheuern",
+    "drowned": "ertrunken",
+    "drownedTip": "Ertrunken in tiefem oder steigendem Wasser",
+    "fire": "Feuer",
+    "fireTip": "Getötet von einem Waldbrand",
+    "disaster": "Katastrophe",
+    "disasterTip": "Getötet durch Erdbeben, Meteore, Überschwemmungen, Stürme, Vulkane und den Blitz der Götter",
+    "alliances": "Bündnisse",
+    "alliancesTip": "Zwischen Stämmen geschlossene Bündnisse",
+    "challenges": "Herausforderungen",
+    "challengesTip": "Gebietsstreitigkeiten: eine Person stellt eine andere zur Rede",
+    "gifts": "Geschenke",
+    "giftsTip": "Nahrung, die zwischen Menschen weitergegeben wird: Verwandtschaft und Freundschaft",
+    "droughts": "Dürren",
+    "droughtsTip": "Dürren: Jahreszeiten mit Wassermangel",
+    "outbreaks": "Ausbrüche",
+    "outbreaksTip": "Krankheitsausbrüche, die durch die Bevölkerung zogen"
+  },
+  "wildlife": {
+    "title": "WILDTIERE",
+    "danger": "Jagt Menschen, wenn es hungrig ist",
+    "herds": "Schafe, Kühe, Pferde und Hühner",
+    "game": "Wild zur Nahrung gejagt: Überjagung dezimiert es",
+    "away": "+{count} unterwegs",
+    "animals": {
+      "rabbits": "Kaninchen",
+      "deer": "Hirsche",
+      "boar": "Wildschweine",
+      "birds": "Vögel",
+      "fish": "Fische",
+      "herds": "Herden",
+      "foxes": "Füchse",
+      "cats": "Katzen",
+      "penguins": "Pinguine",
+      "camels": "Kamele",
+      "frogs": "Frösche",
+      "whales": "Wale",
+      "ducks": "Enten",
+      "bees": "Bienen",
+      "owls": "Eulen",
+      "eagles": "Adler",
+      "snakes": "Schlangen",
+      "crocodiles": "Krokodile",
+      "monkeys": "Affen",
+      "wolves": "Wölfe",
+      "goats": "Ziegen",
+      "elephants": "Elefanten",
+      "lions": "Löwen",
+      "zebras": "Zebras",
+      "polarBears": "Eisbären",
+      "kangaroos": "Kängurus",
+      "bears": "Bären"
+    }
+  },
+  "footer": {
+    "era": "Epoche",
+    "eras": {
+      "genesis": "GENESIS",
+      "forager": "SAMMLER",
+      "fire": "FEUER",
+      "shelter": "UNTERSCHLUPF",
+      "tribal": "STAMMES",
+      "invention": "ERFINDUNG",
+      "cooking": "KOCHEN",
+      "masonry": "MAUERWERK",
+      "equilibrium": "GLEICHGEWICHT"
+    },
+    "day": "Tag",
+    "night": "Nacht",
+    "weather": "Wetter",
+    "droughtTag": "· {label}",
+    "tribes": "Stämme"
+  },
+  "weather": {
+    "clear": "klar",
+    "rain": "Regen",
+    "rainBody": "Hilft trockenem Land, sich schneller zu erholen.",
+    "storm": "Sturm",
+    "stormBody": "Zehrt an der Kraft. Blitze können einschlagen.",
+    "drought": "Dürre",
+    "droughtBody": "Das Wasser schwindet und die Todesfälle durch Durst nehmen zu."
+  },
+  "silent": {
+    "title": "Die Welt ist verstummt",
+    "body": "Der letzte deiner Menschen ist gestorben. In den Dörfern, die sie erbaut haben, regt sich nichts.",
+    "lasted": "Dauer",
+    "years": {
+      "one": "{count} Jahr",
+      "other": "{count} Jahre"
+    },
+    "mostAlive": "meiste Lebende gleichzeitig",
+    "tribes": "Stämme",
+    "furthestAge": "weiteste Epoche",
+    "prayersAnswered": "erhörte Gebete",
+    "unanswered": "{count} unerhört",
+    "keepWatching": "weiter beobachten",
+    "newWorld": "neue Welt",
+    "seed": "neue Menschen ansiedeln"
+  },
+  "rename": {
+    "label": "Neuer Name",
+    "save": "speichern",
+    "cancel": "abbrechen"
+  },
+  "prayerHint": {
+    "title": "Deine Menschen beten",
+    "body": "Klicke auf eine Sprechblase über einem Stamm, um zu helfen. Erhörte Gebete bringen Glauben.",
+    "showMe": "zeig es mir",
+    "dismiss": "Schließen"
+  },
+  "prayerChip": {
+    "tipTitle": "Gebete",
+    "tipBody": {
+      "one": "Ein Stamm bittet um deine Hilfe. Antworte, bevor er seinen Glauben verliert.",
+      "other": "{count} Stämme bitten um deine Hilfe. Antworte, bevor sie ihren Glauben verlieren."
+    },
+    "label": "{count} Gebete"
+  },
+  "peril": {
+    "title": "am Abgrund",
+    "tipOne": "Die {tribe} stehen am Abgrund: {remaining}, {reason}.",
+    "tipMany": "{count} Stämme stehen am Abgrund. Klicke, um sie der Reihe nach aufzusuchen.",
+    "label": {
+      "one": "{count} Stamm am Abgrund",
+      "other": "{count} Stämme am Abgrund"
+    }
+  },
+  "population": {
+    "people": "Menschen",
+    "alive": "{count} am Leben.",
+    "milestone": "nächster Meilenstein {count}",
+    "sickness": "Krankheit",
+    "sick": {
+      "one": "{count} Person ist krank. Die Krankheit breitet sich durch engen Kontakt aus.",
+      "other": "{count} Personen sind krank. Die Krankheit breitet sich durch engen Kontakt aus."
+    }
+  },
+  "calendar": {
+    "year": "J{year}",
+    "yearTitle": "Jahr {year}, {season}",
+    "dayOfSeason": "Tag {day} von 5 im {season}. Ein Jahr hat vier Jahreszeiten, und Menschen altern nach den Jahren, die sie gelebt haben.",
+    "throughDay": "{phase}, {percent} % des Tages vorüber.",
+    "moon": "Mond: {phase}",
+    "moonDate": "Jahr {year}, Tag {day}.",
+    "hardWinter": "harter Winter",
+    "hardWinterAhead": "{season} · harter Winter steht bevor",
+    "omen": "harter Winter steht bevor",
+    "hardWinterBody": "Kälter als sonst. Wildnahrung stirbt schnell ab und Fieber breiten sich aus.",
+    "hardWinterHow": "Die Stämme werden um Nahrung und Heilmittel beten.",
+    "aheadBody": "Die Ältesten fürchten einen harten Winter. Wildnahrung wird knapp sein und Fieber werden sich ausbreiten.",
+    "aheadHow": "Pflanze jetzt Feldfrüchte und Obstgärten, bevor die Kälte kommt.",
+    "tip": {
+      "recovery": "Das Land erholt sich. Die Nahrung beginnt wieder zu wachsen.",
+      "abundance": "Nahrung gibt es reichlich.",
+      "decline": "Das Nahrungswachstum verlangsamt sich vor dem Winter.",
+      "scarcity": "Nahrung ist knapp. Der Winter ist die schwerste Jahreszeit.",
+      "default": "Beeinflusst das Nahrungswachstum und das Dürrerisiko."
+    },
+    "season": {
+      "spring": "Frühling",
+      "summer": "Sommer",
+      "autumn": "Herbst",
+      "winter": "Winter"
+    },
+    "seasonName": {
+      "spring": "Frühling",
+      "summer": "Sommer",
+      "autumn": "Herbst",
+      "winter": "Winter"
+    },
+    "phase": {
+      "dawn": "Morgengrauen",
+      "day": "Tag",
+      "dusk": "Abenddämmerung",
+      "night": "Nacht"
+    },
+    "phaseTitle": {
+      "dawn": "Morgengrauen",
+      "day": "Tageslicht",
+      "dusk": "Abenddämmerung",
+      "night": "Nachtzeit"
+    }
+  },
+  "lineages": {
+    "title": "LINIEN ({count})",
+    "onBrink": "Am Abgrund: {line}, {reason}. Klicke, um ihnen zu helfen.",
+    "showAll": "Alle Linien anzeigen",
+    "focus": "{name} fokussieren",
+    "brink": "am Abgrund",
+    "oldest": "Ältester Lebender: {line}",
+    "viewAll": "alle anzeigen ({count})",
+    "faith": "Glaube {faith}",
+    "faithBlessed": "Glaube {faith} · durch ein erhörtes Gebet gesegnet",
+    "faithDespair": "Glaube {faith} · verzweifelt nach einem unerhörten Gebet",
+    "eldestDays": "{days} T",
+    "generation": "G{from}",
+    "generationRange": "G{from}-{to}"
+  },
+  "tribe": {
+    "rename": "Diesen Stamm umbenennen",
+    "nameLabel": "Name des Stammes",
+    "close": "Schließen",
+    "regionLabel": "Stamm {name}",
+    "sparkTitle": "{from} → {to} Menschen zuletzt",
+    "growing": "wächst",
+    "shrinking": "schrumpft",
+    "steady": "gleichbleibend",
+    "food": "Nahrung",
+    "water": "Wasser",
+    "health": "Gesundheit",
+    "ledBy": "angeführt von",
+    "followLeader": "Dem Anführer folgen",
+    "festival": "{name} läuft gerade",
+    "people": {
+      "one": "{count} Person",
+      "other": "{count} Menschen"
+    },
+    "eraAge": "Zeitalter {era}",
+    "wealth": "Vermögen {gap}",
+    "onBrink": "am Abgrund: {line} von {peak}, {reason}",
+    "atWar": "im Krieg mit {enemies}",
+    "makePeace": "Frieden schließen",
+    "granary": "Kornspeicher: {count} Maß Getreide",
+    "bakery": "Bäckerei: {count} Laibe",
+    "pen": "Gehege: {count} Stück Vieh",
+    "lostLately": "zuletzt verloren: {losses}",
+    "oldest": "Ältester Lebender: {line}",
+    "oldestTitle": "Das älteste lebende Mitglied dieses Stammes",
+    "families": "Familien: {list}",
+    "familiesTitle": "Die Familien der lebenden Menschen dieses Stammes",
+    "faith": "Glaube {faith}",
+    "faithTitle": "Erhörte Gebete minus verlassene Gebete",
+    "faithLostTitle": "Sie haben die Götter aufgegeben und beten selten. Hilf ihnen ungefragt, um ihren Glauben zurückzugewinnen.",
+    "blessed": "gesegnet",
+    "lostFaith": "Glaube verloren",
+    "despairing": "verzweifelt",
+    "sick": {
+      "one": "{count} krank",
+      "other": "{count} krank"
+    },
+    "nextAge": "nächstes: Zeitalter {era}",
+    "inspire": "inspirieren",
+    "inspireTitle": "Inspirieren: beschleunigt ihre nächste Entdeckung",
+    "teach": "lehren",
+    "teachTitle": "Lehre ihnen das nächste Geheimnis, das ihnen fehlt (einmal pro Jahreszeit)",
+    "stillToLearn": "noch zu lernen: {list}",
+    "needsPeople": "braucht {count} Menschen mehr",
+    "praying": "betet",
+    "help": "helfen"
+  }
+}
