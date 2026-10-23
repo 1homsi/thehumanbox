@@ -25,46 +25,33 @@ export function AspirationSection({ org }: { org: OrganismState }) {
   )
 }
 
+/** How a skill level reads: the same lines the simulation marks milestones at. */
+function skillRank(level: number): string {
+  if (level >= 0.9) return 'master'
+  if (level >= 0.65) return 'skilled'
+  if (level >= 0.35) return 'handy'
+  return 'learning'
+}
+
+/** What this person has learned to do, by doing it or by watching kin and friends. */
 export function LearningSection({ detail }: { detail: OrgDetail | null }) {
+  const skills = (detail?.skills ?? []).filter((s) => s.level >= 0.05).slice(0, 6)
+  if (skills.length === 0) return null
   return (
     <>
-      {detail?.learning && detail.learning.states > 0 && (
-        <>
-          <div className="org-detail-section">LEARNING</div>
-          <div className="trait-full-grid">
-            <MiniBar
-              label="confidence"
-              value={detail.learning.confidence}
-              color="#79d6b0"
-              tip="How consistently this person has found rewarding choices across situations."
-            />
-            <div className="trait-full-row">
-              <Tooltip tip="Distinct situations this person has learned from.">
-                <span className="trait-full-label" style={{ cursor: 'default' }}>
-                  experience
-                </span>
-              </Tooltip>
-              <span className="bar-pct">{detail.learning.states} states</span>
-            </div>
-            <div className="trait-full-row">
-              <Tooltip tip="Situation-specific actions this person has actually attempted.">
-                <span className="trait-full-label" style={{ cursor: 'default' }}>
-                  choices tried
-                </span>
-              </Tooltip>
-              <span className="bar-pct">{detail.learning.tried_actions}</span>
-            </div>
-            <div className="trait-full-row">
-              <Tooltip tip="Situations where this person currently knows at least one promising response.">
-                <span className="trait-full-label" style={{ cursor: 'default' }}>
-                  useful lessons
-                </span>
-              </Tooltip>
-              <span className="bar-pct">{detail.learning.promising_states}</span>
-            </div>
-          </div>
-        </>
-      )}
+      <div className="org-detail-section">SKILLS</div>
+      <div className="trait-full-grid">
+        {skills.map((s) => (
+          <MiniBar
+            key={s.name}
+            label={s.name}
+            value={s.level}
+            valueLabel={skillRank(s.level)}
+            color="#79d6b0"
+            tip="Grows with practice and by watching kin and friends who are better at it. A practised hand succeeds more often and gets more out of the same work."
+          />
+        ))}
+      </div>
     </>
   )
 }

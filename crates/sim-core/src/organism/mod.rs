@@ -7,5 +7,6 @@ mod navigation;
 #[allow(clippy::module_inception)]
 pub mod organism;
 pub mod personality;
+pub mod skills;
 pub mod traits;
 pub mod vocabulary;

@@ -161,6 +161,17 @@ pub fn try_apply(
         }
     }
     let mut ctx = ActionCtx::new(sim, idx, ix, iy, spatial);
+    let healing = matches!(action, 246..=260 | 1320..=1369);
+    // Who a remedy could reach, and their health before it, so a practised
+    // healer's extra good lands on whoever the remedy actually helped.
+    let before_remedy: Vec<(usize, f32)> = if healing {
+        std::iter::once(idx)
+            .chain(ctx.near.iter().copied())
+            .map(|i| (i, ctx.sim.organisms[i].health))
+            .collect()
+    } else {
+        Vec::new()
+    };
     let r = if let Some(def) = registry::find(action) {
         (def.apply)(&mut ctx)
     } else {
@@ -298,6 +309,34 @@ pub fn try_apply(
     if r > 0.0 && records_experiment(action) {
         ctx.sim.organisms[idx].last_experiment_tick = ctx.tick;
     }
+    // Healers learn by tending, and a practised one does more good with each
+    // remedy: whatever health it restored is raised by up to half again.
+    // Only a remedy that restored someone's health is healing practice; care
+    // that heals nobody (teaching a child to walk) teaches no healing, and a
+    // medicine that healed nobody counts as a failed attempt, whatever its reward.
+    let r = if healing {
+        let level = ctx.org().skills.level(crate::organism::skills::Skill::Healing);
+        let mut healed_anyone = false;
+        for &(i, before) in &before_remedy {
+            let o = &mut ctx.sim.organisms[i];
+            let restored = o.health - before;
+            if restored > 0.0 {
+                healed_anyone = true;
+                o.health = (o.health + restored * skilled_remedy_bonus(level)).min(1.0);
+            }
+        }
+        if healed_anyone {
+            ctx.practised(crate::organism::skills::Skill::Healing, true);
+            r * (1.0 + level * 0.5)
+        } else {
+            if (246..=260).contains(&action) {
+                ctx.practised(crate::organism::skills::Skill::Healing, false);
+            }
+            r
+        }
+    } else {
+        r
+    };
     if r <= 0.0 {
         if let Some(snapshot) = reservation {
             restore_action_resource(ctx.sim, idx, snapshot);
@@ -318,6 +357,11 @@ pub fn try_apply(
         }
     }
     Some(r * spec_bonus * asp_bonus)
+}
+
+/// Extra share of the health a remedy restores, for a healer at `level`.
+pub(crate) fn skilled_remedy_bonus(level: f32) -> f32 {
+    level.clamp(0.0, 1.0) * 0.5
 }
 
 pub mod agriculture;

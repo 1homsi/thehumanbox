@@ -1,11 +1,13 @@
 use super::super::ctx::ActionCtx;
+use crate::organism::skills::Skill;
 use crate::sim::era::Era;
 use crate::world::tiles::{Biome, Tile};
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if ctx.rock_near && ctx.org().carry_room() > 0 {
+        let extra = ctx.practised(Skill::Quarrying, true);
         let o = ctx.org_mut();
-        o.inv_stone = o.inv_stone.saturating_add(1);
+        o.inv_stone = o.inv_stone.saturating_add(1 + extra);
         ctx.think("mining stone");
         ctx.discover("mining", "learned to mine");
         if ctx.biome() == Biome::Badlands {

@@ -167,6 +167,8 @@ pub struct Organism {
     /// Practice in each trade this person has worked at, 0 to 1. Grows with
     /// every attempt at the trade's actions and is kept when they change job.
     pub practice: BTreeMap<String, f32>,
+    /// What this person has learned to do by doing it or watching others (see `organism::skills`).
+    pub skills: super::skills::Skills,
     pub religion_id: Option<String>,
     pub degrees: Vec<String>,
     pub tools: BTreeMap<String, u8>,
@@ -306,6 +308,7 @@ impl Organism {
             piety: 0.0,
             specialty: None,
             practice: BTreeMap::new(),
+            skills: Default::default(),
             religion_id: None,
             degrees: Vec::new(),
             tools: BTreeMap::new(),

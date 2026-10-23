@@ -1,4 +1,5 @@
 use super::super::ctx::ActionCtx;
+use crate::organism::skills::Skill;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !ctx.rock_near {
@@ -16,6 +17,8 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         (1, 0.008) // bare hands: slow baseline
     };
 
+    // A practised quarrier knows where the rock splits clean.
+    let yield_amount = yield_amount + ctx.practised(Skill::Quarrying, true);
     let o = ctx.org_mut();
     o.inv_stone = o.inv_stone.saturating_add(yield_amount);
     ctx.think(if yield_amount >= 2 {

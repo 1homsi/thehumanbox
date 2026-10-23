@@ -575,3 +575,64 @@ fn established_route_dispatches_tool_cargo_without_a_foreign_visitor() {
     assert_eq!(sim.caravans[0].cargo, "cloth");
     assert_eq!(sim.caravans[0].amount, 2);
 }
+
+/// A practised healer restores more health with the same remedy than a novice.
+#[test]
+fn a_practised_healer_restores_more_health_with_the_same_remedy() {
+    let restored = |level: f32| {
+        let mut sim = Simulation::new(17);
+        let idx = 0;
+        let lineage = sim.organisms[idx].lineage_id.clone();
+        let (x, y) = (sim.organisms[idx].x, sim.organisms[idx].y);
+        let patient = (1..sim.organisms.len())
+            .find(|&i| sim.organisms[i].alive)
+            .expect("a second person");
+        for i in [idx, patient] {
+            let o = &mut sim.organisms[i];
+            o.alive = true;
+            o.age = o.max_age / 2;
+            o.lineage_id = lineage.clone();
+        }
+        sim.organisms[patient].x = x + 1.0;
+        sim.organisms[patient].y = y;
+        sim.organisms[patient].health = 0.5;
+        sim.organisms[idx].inv_food = 3;
+        sim.organisms[idx]
+            .skills
+            .set(crate::organism::skills::Skill::Healing, level);
+        let spatial = SpatialIndex::build(&sim.organisms, 10);
+        let applied = try_apply(&mut sim, idx, 246, x as i32, y as i32, &spatial);
+        assert!(applied.is_some_and(|r| r > 0.0), "tending did not happen");
+        sim.organisms[patient].health - 0.5
+    };
+    let novice = restored(0.0);
+    let master = restored(1.0);
+    assert!(novice > 0.0);
+    assert!(
+        (master - novice * 1.5).abs() < 1e-4,
+        "novice {novice}, master {master}"
+    );
+}
+
+/// Care that heals nobody is not healing practice.
+#[test]
+fn care_that_heals_nobody_teaches_no_healing() {
+    let mut sim = Simulation::new(17);
+    let idx = 0;
+    sim.organisms[idx].age = sim.organisms[idx].max_age / 2;
+    let (x, y) = (sim.organisms[idx].x as i32, sim.organisms[idx].y as i32);
+    let spatial = SpatialIndex::build(&sim.organisms, 10);
+    for action in 1320..=1369 {
+        let _ = try_apply(&mut sim, idx, action, x, y, &spatial);
+        for o in sim.organisms.iter_mut() {
+            o.health = 1.0;
+        }
+    }
+    assert_eq!(
+        sim.organisms[idx]
+            .skills
+            .level(crate::organism::skills::Skill::Healing),
+        0.0,
+        "healing learned from care that healed nobody"
+    );
+}

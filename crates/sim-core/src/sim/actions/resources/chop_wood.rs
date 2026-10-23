@@ -1,4 +1,5 @@
 use super::super::ctx::ActionCtx;
+use crate::organism::skills::Skill;
 use crate::world::tiles::Tile;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -16,9 +17,10 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         (0.50, 0) // bare hands: baseline
     };
 
-    if ctx.chance(success_p) {
+    let (felled, practised_extra) = ctx.attempt(Skill::Woodcutting, success_p);
+    if felled {
         let o = ctx.org_mut();
-        o.inv_wood = o.inv_wood.saturating_add(1 + yield_bonus);
+        o.inv_wood = o.inv_wood.saturating_add(1 + yield_bonus + practised_extra);
         ctx.think("chopping wood");
         ctx.discover("woodcutting", "learned to fell wood");
         0.010 + yield_bonus as f32 * 0.005

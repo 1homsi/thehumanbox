@@ -1,5 +1,6 @@
 use super::super::agriculture::farm_ops;
 use super::super::ctx::ActionCtx;
+use crate::organism::skills::Skill;
 use crate::world::tiles::Tile;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -7,6 +8,10 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         let Some(harvest) = farm_ops::harvest_crop(ctx.sim, ctx.idx, ctx.ix, ctx.iy) else {
             return 0.0;
         };
+        // A practised farmer wastes less of the crop in the cutting.
+        let extra = ctx.practised(Skill::Farming, true);
+        let o = ctx.org_mut();
+        o.inv_food = o.inv_food.saturating_add(extra);
         ctx.think(&format!("harvesting {} measures of crops", harvest.yield_units));
         ctx.discover("harvest", "brought in a harvest");
         return 0.018;

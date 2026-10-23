@@ -276,6 +276,7 @@ impl Simulation {
             next_festival_id,
             action_counts: HashMap::default(),
             decision_counts: HashMap::default(),
+            lessons_watched: 0,
             workshop_hits: HashMap::default(),
             last_witness_tick: state.last_witness_tick,
             books: state.books,

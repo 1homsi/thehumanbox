@@ -264,6 +264,8 @@ impl Organism {
             "danger" => (MemoryKind::Episode, 0.75, -2),
             "aspiration" => (MemoryKind::Fact, 0.85, 2),
             "specialty" => (MemoryKind::Fact, 0.75, 1),
+            "skill" => (MemoryKind::Fact, 0.70, 1),
+            "learned" => (MemoryKind::Bond, 0.70, 1),
             "graduated" => (MemoryKind::Fact, 0.75, 2),
             "religion" => (MemoryKind::Fact, 0.80, 1),
             "milestone" => (MemoryKind::Episode, 0.80, 1),
