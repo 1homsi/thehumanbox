@@ -5,6 +5,7 @@ use std::collections::VecDeque;
 
 use super::tech_tree::all_tech;
 use crate::organism::organism::Organism;
+use crate::organism::skills::{self, Skill};
 use crate::sim::civ::government::{Government, LawKind};
 use crate::sim::simulation::Event;
 use crate::sim::tech::buildings::{Building, BuildingKind};
@@ -119,8 +120,8 @@ pub fn tick_tech_progress(
                 .copied()
                 .enumerate()
                 .max_by(|(ai, a), (bi, b)| {
-                    let a_score = researcher_score(&organisms[*a]) + jitter[*ai];
-                    let b_score = researcher_score(&organisms[*b]) + jitter[*bi];
+                    let a_score = researcher_score(&organisms[*a], node.name) + jitter[*ai];
+                    let b_score = researcher_score(&organisms[*b], node.name) + jitter[*bi];
                     a_score.total_cmp(&b_score)
                 })
                 // `max_by` yields the *enumerated* item, so the winner has to
@@ -129,6 +130,7 @@ pub fn tick_tech_progress(
                 .map(|(member_slot, _)| members[member_slot])
                 .unwrap_or(members[0]);
             organisms[pick].discoveries.insert(node.name.to_string());
+            credit_know_how(&mut organisms[pick], node.name, tick);
             let name = organisms[pick].name.clone();
             let lname = lineage_names.get(lid).cloned().unwrap_or_else(|| lid.clone());
             let detail = if learned_from_neighbours {
@@ -241,6 +243,44 @@ struct ResearchProfile {
     /// that lives in houses has ground to sow near them, so farming discoveries
     /// come easier to settled tribes than to camps that only forage.
     settled: f32,
+}
+
+/// The skill whose practice leads to `discovery`, if one does.
+fn discovery_skill(discovery: &str) -> Option<Skill> {
+    let d = discovery.to_ascii_lowercase();
+    let any = |words: &[&str]| words.iter().any(|w| d.contains(w));
+    if any(&["medicine", "herb", "surgery", "health", "remedy", "vaccine"]) {
+        Some(Skill::Healing)
+    } else if any(&[
+        "agri",
+        "farm",
+        "crop",
+        "plough",
+        "plow",
+        "irrigation",
+        "mill",
+        "seed",
+    ]) {
+        Some(Skill::Farming)
+    } else if any(&[
+        "mason", "stone", "quarr", "mining", "metal", "bronze", "iron", "ore",
+    ]) {
+        Some(Skill::Quarrying)
+    } else if any(&["hunt", "spear", "bow", "trap", "animal", "domestic"]) {
+        Some(Skill::Hunting)
+    } else if any(&["fish", "boat", "sail", "net", "navigation", "harbour", "harbor"]) {
+        Some(Skill::Fishing)
+    } else if any(&["wood", "axe", "carpent", "forestry", "timber"]) {
+        Some(Skill::Woodcutting)
+    } else if any(&["architect", "construction", "building", "arch", "bridge"]) {
+        Some(Skill::Building)
+    } else if any(&["pottery", "weav", "tool", "craft", "textile", "leather", "glass"]) {
+        Some(Skill::Crafting)
+    } else if any(&["forag", "gather", "food_preservation"]) {
+        Some(Skill::Foraging)
+    } else {
+        None
+    }
 }
 
 fn research_profile(
@@ -430,13 +470,27 @@ fn evidence_multiplier(discovery: &str, profile: &ResearchProfile) -> f32 {
     (0.20 + profile.literacy * 0.35 + practice + experimentation).clamp(0.10, 1.8)
 }
 
-fn researcher_score(org: &Organism) -> f32 {
+/// A discoverer skilled at the related work remembers how they came to it.
+fn credit_know_how(org: &mut Organism, discovery: &str, tick: u64) {
+    if let Some(skill) = discovery_skill(discovery).filter(|&s| org.skills.level(s) >= skills::SKILLED) {
+        let text = format!(
+            "worked out {} after years of {}",
+            discovery.replace('_', " "),
+            skill.name()
+        );
+        org.log_life(tick, "milestone", text);
+    }
+}
+
+fn researcher_score(org: &Organism, discovery: &str) -> f32 {
     let specialty = match org.specialty.as_deref() {
         Some("scholar" | "teacher" | "scribe") => 0.35,
         Some("engineer" | "programmer" | "doctor") => 0.25,
         _ => 0.0,
     };
-    org.literacy * 0.45 + org.traits.curiosity * 0.35 + specialty
+    // Whoever has done the related work longest is likeliest to see the next step.
+    let hands_on = discovery_skill(discovery).map_or(0.0, |skill| org.skills.level(skill) * 0.4);
+    org.literacy * 0.45 + org.traits.curiosity * 0.35 + specialty + hands_on
 }
 
 pub fn seed_baseline_discoveries(organisms: &mut [Organism], tick: u64) {
@@ -570,8 +624,8 @@ fn tick_tech_progress_reference(
                 .copied()
                 .enumerate()
                 .max_by(|(ai, a), (bi, b)| {
-                    let a_score = researcher_score(&organisms[*a]) + jitter[*ai];
-                    let b_score = researcher_score(&organisms[*b]) + jitter[*bi];
+                    let a_score = researcher_score(&organisms[*a], node.name) + jitter[*ai];
+                    let b_score = researcher_score(&organisms[*b], node.name) + jitter[*bi];
                     a_score.total_cmp(&b_score)
                 })
                 // `max_by` yields the *enumerated* item, so the winner has to
@@ -580,6 +634,7 @@ fn tick_tech_progress_reference(
                 .map(|(member_slot, _)| members[member_slot])
                 .unwrap_or(members[0]);
             organisms[pick].discoveries.insert(node.name.to_string());
+            credit_know_how(&mut organisms[pick], node.name, tick);
             let name = organisms[pick].name.clone();
             let lname = lineage_names.get(lid).cloned().unwrap_or_else(|| lid.clone());
             let detail = if learned_from_neighbours {
@@ -690,6 +745,52 @@ mod tests {
             evidence_multiplier("orbital_engineering", &engineering)
                 > evidence_multiplier("orbital_engineering", &base)
         );
+    }
+
+    #[test]
+    fn each_discovery_knows_the_work_that_leads_to_it() {
+        assert_eq!(discovery_skill("agriculture"), Some(Skill::Farming));
+        assert_eq!(discovery_skill("masonry"), Some(Skill::Quarrying));
+        assert_eq!(discovery_skill("fishing_nets"), Some(Skill::Fishing));
+        assert_eq!(discovery_skill("philosophy"), None);
+    }
+
+    #[test]
+    fn the_skilled_hand_is_credited_with_the_discovery() {
+        let traits = crate::organism::traits::Traits::default();
+        let mut novice = Organism::new(
+            "a".into(),
+            "A".into(),
+            0.0,
+            0.0,
+            0,
+            "".into(),
+            "l".into(),
+            5000,
+            traits.clone(),
+        );
+        let mut master = Organism::new(
+            "b".into(),
+            "B".into(),
+            0.0,
+            0.0,
+            0,
+            "".into(),
+            "l".into(),
+            5000,
+            traits,
+        );
+        novice.literacy = 0.3;
+        master.literacy = 0.3;
+        master.skills.set(Skill::Quarrying, 0.9);
+        assert!(researcher_score(&master, "masonry") > researcher_score(&novice, "masonry") + 0.3);
+        credit_know_how(&mut master, "masonry", 10);
+        assert!(master
+            .life_log
+            .iter()
+            .any(|e| e.text == "worked out masonry after years of quarrying"));
+        credit_know_how(&mut novice, "masonry", 10);
+        assert!(novice.life_log.is_empty());
     }
 
     #[test]

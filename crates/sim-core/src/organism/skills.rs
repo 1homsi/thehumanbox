@@ -92,6 +92,9 @@ pub struct Skills {
     /// settled liking (`LIKING_CAP`). Grows with success; harm at the work
     /// turns it to dread, which fades over the seasons.
     feelings: [f32; Skill::ALL.len()],
+    /// Where each kind of work has gone well for them, and how sure they are
+    /// of the place (0 to 1). They go back there.
+    spots: [Option<((i32, i32), f32)>; Skill::ALL.len()],
 }
 
 /// Most a person comes to like a kind of work.
@@ -134,6 +137,47 @@ impl Skills {
         for (name, &f) in map {
             if let Some(skill) = Skill::from_name(name) {
                 self.set_feeling(skill, f);
+            }
+        }
+    }
+
+    /// The place this work has gone well, if they remember one.
+    pub fn good_spot(&self, skill: Skill) -> Option<((i32, i32), f32)> {
+        self.spots[skill.slot()]
+    }
+
+    /// Work at `spot` went well (or not): the place is remembered, more surely
+    /// with each success, and forgotten after enough empty tries.
+    pub fn note_spot(&mut self, skill: Skill, spot: (i32, i32), went_well: bool) {
+        let slot = &mut self.spots[skill.slot()];
+        match (*slot, went_well) {
+            (Some((p, sure)), true) if p == spot => *slot = Some((p, (sure + 0.1).min(1.0))),
+            // A success somewhere new replaces a place they were less sure of.
+            (Some((_, sure)), true) if sure < 0.3 => *slot = Some((spot, 0.2)),
+            (None, true) => *slot = Some((spot, 0.2)),
+            (Some((p, sure)), false) if p == spot => {
+                *slot = (sure > 0.06).then_some((p, sure - 0.05));
+            }
+            _ => {}
+        }
+    }
+
+    /// Every remembered spot, by skill name, for saves.
+    pub fn spots_map(&self) -> BTreeMap<String, [f32; 3]> {
+        Skill::ALL
+            .into_iter()
+            .filter_map(|s| {
+                self.good_spot(s)
+                    .map(|((x, y), sure)| (s, [x as f32, y as f32, sure]))
+            })
+            .map(|(s, v)| (s.name().to_string(), v))
+            .collect()
+    }
+
+    pub fn set_spots_from_map(&mut self, map: &BTreeMap<String, [f32; 3]>) {
+        for (name, &[x, y, sure]) in map {
+            if let Some(skill) = Skill::from_name(name) {
+                self.spots[skill.slot()] = Some(((x as i32, y as i32), sure.clamp(0.0, 1.0)));
             }
         }
     }
@@ -315,6 +359,31 @@ mod tests {
         let mut back = Skills::default();
         back.set_feelings_from_map(&map);
         assert_eq!(back.feeling(Skill::Fishing), LIKING_CAP);
+    }
+
+    #[test]
+    fn a_good_spot_is_remembered_and_empty_tries_wear_it_out() {
+        let mut skills = Skills::default();
+        skills.note_spot(Skill::Fishing, (5, 5), true);
+        skills.note_spot(Skill::Fishing, (5, 5), true);
+        assert_eq!(skills.good_spot(Skill::Fishing).map(|(p, _)| p), Some((5, 5)));
+        // A success elsewhere does not replace a place they are fairly sure of.
+        skills.note_spot(Skill::Fishing, (9, 9), true);
+        assert_eq!(skills.good_spot(Skill::Fishing).map(|(p, _)| p), Some((5, 5)));
+        for _ in 0..20 {
+            skills.note_spot(Skill::Fishing, (5, 5), false);
+        }
+        assert!(
+            skills.good_spot(Skill::Fishing).is_none(),
+            "an emptied spot is forgotten"
+        );
+        skills.note_spot(Skill::Fishing, (9, 9), true);
+        let back = {
+            let mut b = Skills::default();
+            b.set_spots_from_map(&skills.spots_map());
+            b
+        };
+        assert_eq!(back.good_spot(Skill::Fishing).map(|(p, _)| p), Some((9, 9)));
     }
 
     #[test]
