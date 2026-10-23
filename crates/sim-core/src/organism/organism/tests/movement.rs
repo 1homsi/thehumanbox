@@ -135,6 +135,106 @@ fn hydrated_wader_in_shallows_keeps_going_instead_of_turning_back() {
 }
 
 #[test]
+fn someone_stuck_in_the_shallows_gets_out_even_mid_crossing_and_afraid_of_the_spot() {
+    // The drowning trap: a half-done wading route, the water underfoot remembered
+    // as dangerous, and too long in the water. They must head for land.
+    let mut rng = StdRng::seed_from_u64(0);
+    let traits = Traits::random(&mut rng);
+    let mut grid = WorldGrid::new(2);
+    for x in 0..=30 {
+        grid.set(x, 10, Tile::Grass);
+    }
+    for x in 10..=14 {
+        grid.set(x, 10, Tile::Water);
+        grid.depth[WorldGrid::idx(x, 10)] = 0.05;
+    }
+
+    let mut org = Organism::new(
+        "id".into(),
+        "Wader".into(),
+        12.0,
+        10.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    org.hydration = 0.96;
+    org.energy = 0.6;
+    org.health = 0.97;
+    org.water_ticks = 20;
+    org.danger_memory.insert((12, 10), 0.9);
+    {
+        let mut route = org.route.borrow_mut();
+        route.goal = (25, 10);
+        route.steps = (13..=25).map(|x| (x, 10)).collect();
+        route.next = 0;
+    }
+
+    let (action, thought) = org.choose_action(
+        &grid,
+        &BuildingList::new(),
+        100,
+        0.0,
+        &[],
+        false,
+        0,
+        &mut rng,
+        false,
+        "",
+        &[],
+    );
+    assert_eq!(thought.as_deref(), Some("swimming ashore"));
+    assert!(action < 8, "a step, not standing still: {action}");
+}
+
+#[test]
+fn a_danger_underfoot_is_not_fled_toward() {
+    let mut rng = StdRng::seed_from_u64(3);
+    let traits = Traits::random(&mut rng);
+    let mut grid = WorldGrid::new(4);
+    for x in 0..=30 {
+        for y in 0..=20 {
+            grid.set(x, y, Tile::Sand);
+        }
+    }
+    let mut org = Organism::new(
+        "id".into(),
+        "Walker".into(),
+        10.0,
+        10.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    org.hydration = 0.9;
+    org.energy = 0.9;
+    org.health = 1.0;
+    org.danger_memory.insert((10, 10), 0.9);
+    let (_, thought) = org.choose_action(
+        &grid,
+        &BuildingList::new(),
+        100,
+        0.0,
+        &[],
+        false,
+        0,
+        &mut rng,
+        false,
+        "",
+        &[],
+    );
+    assert_ne!(
+        thought.as_deref(),
+        Some("avoiding danger"),
+        "fled from the tile it stands on"
+    );
+}
+
+#[test]
 fn movement_toward_land_avoids_deep_water_step() {
     let mut rng = StdRng::seed_from_u64(0);
     let traits = Traits::random(&mut rng);

@@ -77,6 +77,42 @@ pub(super) fn ordered_human_candidates(
     candidates.sort_unstable();
 }
 
+/// Someone in the water with no dry ground they may step onto: a pond or
+/// inlet that huts were built all the way around. They may walk out through
+/// a house; otherwise they paddle between the water tiles until they drown.
+pub(super) fn walled_into_water(grid: &WorldGrid, ix: i32, iy: i32) -> bool {
+    let here = grid.get(ix, iy);
+    grid.is_wet(here, ix, iy)
+        && !DIRECTIONS.iter().any(|&(dx, dy)| {
+            let (nx, ny) = (ix + dx, iy + dy);
+            let t = grid.get(nx, ny);
+            t.walkable() && t != Tile::Fire && !grid.is_wet(t, nx, ny)
+        })
+}
+
+/// For someone `walled_into_water`: the house to walk through, one with dry
+/// ground on its far side first, then the one most in the asked direction.
+pub(super) fn way_out_through_a_house(
+    grid: &WorldGrid,
+    ix: i32,
+    iy: i32,
+    requested_action: usize,
+) -> Option<(i32, i32)> {
+    let (rdx, rdy) = DIRECTIONS[requested_action];
+    DIRECTIONS
+        .iter()
+        .map(|&(dx, dy)| (ix + dx, iy + dy, dx * rdx + dy * rdy))
+        .filter(|&(nx, ny, _)| grid.get(nx, ny) == Tile::Hut)
+        .max_by_key(|&(nx, ny, alignment)| {
+            let dry_beyond = DIRECTIONS.iter().any(|&(ex, ey)| {
+                let t = grid.get(nx + ex, ny + ey);
+                t.walkable() && t != Tile::Fire && !grid.is_wet(t, nx + ex, ny + ey)
+            });
+            (dry_beyond, alignment)
+        })
+        .map(|(nx, ny, _)| (nx, ny))
+}
+
 pub(super) fn fallback_walkable_step(
     grid: &WorldGrid,
     ix: i32,

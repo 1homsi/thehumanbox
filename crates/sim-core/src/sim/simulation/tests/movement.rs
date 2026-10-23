@@ -412,3 +412,58 @@ fn pacing_share(seed: u64) -> (usize, usize) {
     }
     (tracked, pacing)
 }
+
+/// A pond that huts were built all the way around: whoever is in it walks out
+/// through a house instead of paddling between the two water tiles until they
+/// drown (seed 42 lost five people this way in one village).
+#[test]
+fn someone_walled_into_a_pond_walks_out_through_a_house() {
+    let mut sim = Simulation::new(42);
+    sim.organisms.clear();
+    sim.animals.clear();
+    flatten_test_area(&mut sim, 50, 50);
+    for dy in -2..=2 {
+        for dx in -2..=3 {
+            sim.grid.set(50 + dx, 50 + dy, Tile::Hut);
+        }
+    }
+    sim.grid.set(50, 50, Tile::Water);
+    sim.grid.set(51, 50, Tile::Water);
+    let mut org = autonomy_test_organism("stranded", 50.0, 50.0);
+    org.hydration = 0.97;
+    org.energy = 0.9;
+    org.water_ticks = 20;
+    sim.organisms.push(org);
+
+    for _ in 0..30 {
+        tick_first_org(&mut sim);
+        let (x, y) = (sim.organisms[0].x as i32, sim.organisms[0].y as i32);
+        if sim.grid.get(x, y) != Tile::Water {
+            return;
+        }
+    }
+    panic!("still in the pond after 30 ticks");
+}
+
+/// Open water with no house beside it is not a trap: a swimmer there still
+/// moves through the water toward the shore.
+#[test]
+fn a_swimmer_in_open_water_still_moves() {
+    let mut sim = Simulation::new(42);
+    sim.organisms.clear();
+    sim.animals.clear();
+    flatten_test_area(&mut sim, 50, 50);
+    for dy in -3..=3 {
+        for dx in -3..=3 {
+            sim.grid.set(50 + dx, 50 + dy, Tile::Water);
+        }
+    }
+    let mut org = autonomy_test_organism("swimmer", 50.0, 50.0);
+    org.hydration = 0.97;
+    org.energy = 0.9;
+    org.water_ticks = 10;
+    sim.organisms.push(org);
+    tick_first_org(&mut sim);
+    let moved = (sim.organisms[0].x, sim.organisms[0].y) != (50.0, 50.0);
+    assert!(moved, "frozen in open water");
+}

@@ -15,6 +15,11 @@ use super::organism::{Organism, QRowExt, ACTION_ID_SPACE, N_ACTIONS};
 /// this, people sleep in the nearest shelter instead.
 const NIGHT_HOME_REACH: f32 = 16.0;
 
+/// Ticks in the water after which a wading crossing counts as stuck. A shallow
+/// strip takes a few steps; someone still in it this long is going nowhere and
+/// must get out before the cold and panic set in (from 12 ticks).
+const CROSSING_PATIENCE: u32 = 8;
+
 fn survival_relevant_action(
     action: usize,
     needs_food: bool,
@@ -176,7 +181,7 @@ impl Organism {
         // along the bank. Deep water still gets people out.
         let crossing = {
             let route = self.route.borrow();
-            !deep && route.steps.len() > route.next
+            !deep && route.steps.len() > route.next && self.water_ticks <= CROSSING_PATIENCE
         };
         if grid.is_wet(tile, ix, iy)
             && !crossing
@@ -478,10 +483,14 @@ impl Organism {
 
         if !self.danger_memory.is_empty() {
             let danger_thresh = (3.0 + 2.0 * self.traits.fear) as i32;
+            // Fleeing a danger remembered on the very tile someone stands on
+            // aims at that same tile, so they stood still. That froze people
+            // in the shallows, where struggling marks the water as dangerous,
+            // until they drowned. Flee the nearest danger elsewhere instead.
             if let Some((&(cx, cy), _)) = self
                 .danger_memory
                 .iter()
-                .filter(|(_, v)| **v > 0.4)
+                .filter(|(&p, v)| **v > 0.4 && p != (ix, iy))
                 .min_by_key(|(&(cx, cy), _)| (cx - ix).abs() + (cy - iy).abs())
             {
                 let dist = (cx - ix).abs() + (cy - iy).abs();
