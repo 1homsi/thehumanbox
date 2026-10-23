@@ -9,6 +9,7 @@ import { useIsMobile } from '../../shared/hooks/useIsMobile'
 import { useSimulationData } from '../../simulation/simulationData'
 import { LOW_PERF } from '../../shared/perf'
 import { readLowPerf, toggleLowPerf } from '../../shared/perf-mode'
+import { readRunInBackground, setRunInBackground } from '../../shared/run-in-background'
 import { getDesktop } from '../../shared/desktop'
 import type { DesktopBridge, DesktopSettings, SimStatus, UpdateCheckResult } from '../../shared/desktop'
 import {
@@ -248,19 +249,41 @@ function PerformanceTab() {
   const chosen = readLowPerf()
   const automatic = LOW_PERF && !chosen
   return (
+    <>
+      <SettingRow
+        title="Low-performance mode"
+        desc={
+          automatic
+            ? 'On automatically for this device. Lower frame rate and resolution, fewer effects.'
+            : 'Lower frame rate and resolution, fewer effects. Reloads the game (your world is saved first).'
+        }
+      >
+        <Switch
+          checked={LOW_PERF}
+          onChange={() => toggleLowPerf()}
+          label="Low-performance mode"
+          disabled={automatic}
+        />
+      </SettingRow>
+      {getWorldSource() === 'wasm' && <RunInBackgroundRow />}
+    </>
+  )
+}
+
+function RunInBackgroundRow() {
+  const [enabled, setEnabled] = useState(readRunInBackground)
+  return (
     <SettingRow
-      title="Low-performance mode"
-      desc={
-        automatic
-          ? 'On automatically for this device. Lower frame rate and resolution, fewer effects.'
-          : 'Lower frame rate and resolution, fewer effects. Reloads the game (your world is saved first).'
-      }
+      title="Keep running in background"
+      desc="Your world keeps living while this tab is hidden or in the background. Uses more battery."
     >
       <Switch
-        checked={LOW_PERF}
-        onChange={() => toggleLowPerf()}
-        label="Low-performance mode"
-        disabled={automatic}
+        checked={enabled}
+        onChange={(v) => {
+          setRunInBackground(v)
+          setEnabled(v)
+        }}
+        label="Keep running in background"
       />
     </SettingRow>
   )

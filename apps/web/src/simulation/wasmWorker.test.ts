@@ -446,6 +446,99 @@ describe('browser simulation scheduling', () => {
     expect(model.tick).toBeGreaterThan(before)
   })
 
+  it('keeps ticking while hidden when asked to, without sending frames, then resyncs', async () => {
+    await vi.advanceTimersByTimeAsync(240)
+    const before = model.tick
+    send({ type: 'visibility', hidden: true, keepRunning: true })
+    model.deltaFrame.mockClear()
+    model.fullFrame.mockClear()
+    await vi.advanceTimersByTimeAsync(2400)
+    expect(model.tick - before).toBeGreaterThanOrEqual(15n)
+    expect(model.deltaFrame).not.toHaveBeenCalled()
+    expect(model.fullFrame).not.toHaveBeenCalled()
+    send({ type: 'visibility', hidden: false, keepRunning: true })
+    expect(model.fullFrame).toHaveBeenCalledTimes(1)
+  })
+
+  it('a world started in a hidden tab stays paused until the tab is shown', async () => {
+    send({ type: 'stop' })
+    await vi.advanceTimersByTimeAsync(0)
+    vi.resetModules()
+    model.tick = 0n
+    worker = { onmessage: null, postMessage: vi.fn(), close: vi.fn() }
+    vi.stubGlobal('self', worker)
+    await import('./wasmWorker')
+    send({ type: 'visibility', hidden: true, keepRunning: false })
+    send({ type: 'start', id: 'test', seed: '42' })
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(model.tick).toBe(0n)
+    send({ type: 'visibility', hidden: false, keepRunning: false })
+    await vi.advanceTimersByTimeAsync(500)
+    expect(model.tick).toBeGreaterThan(0n)
+  })
+
+  it('keeps real time while hidden even when the browser throttles its timers', async () => {
+    vi.spyOn(performance, 'now').mockImplementation(() => Date.now())
+    await vi.advanceTimersByTimeAsync(240)
+    send({ type: 'visibility', hidden: true, keepRunning: true })
+    // A throttled background tab: no timer fires sooner than a second.
+    const fakeSetTimeout = globalThis.setTimeout
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((fn: () => void, ms?: number) =>
+      fakeSetTimeout(fn, Math.max(1000, ms ?? 0))) as typeof setTimeout)
+    const before = model.tick
+    await vi.advanceTimersByTimeAsync(10_000)
+    // 10 s at 120 ms per tick is ~83 ticks, not the ~10 the late timers alone would give.
+    expect(model.tick - before).toBeGreaterThanOrEqual(75n)
+    expect(model.tick - before).toBeLessThanOrEqual(86n)
+  })
+
+  it('runs the time a late timer still owed before resyncing a returning tab', async () => {
+    vi.spyOn(performance, 'now').mockImplementation(() => Date.now())
+    await vi.advanceTimersByTimeAsync(240)
+    send({ type: 'visibility', hidden: true, keepRunning: true })
+    const fakeSetTimeout = globalThis.setTimeout
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((fn: () => void, ms?: number) =>
+      fakeSetTimeout(fn, Math.max(1000, ms ?? 0))) as typeof setTimeout)
+    const before = model.tick
+    // Shown 900 ms after the last throttled wake-up, before the next one fires.
+    await vi.advanceTimersByTimeAsync(3_900)
+    model.fullFrame.mockClear()
+    send({ type: 'visibility', hidden: false, keepRunning: true })
+    expect(model.tick - before).toBeGreaterThanOrEqual(31n)
+    expect(model.fullFrame).toHaveBeenCalledTimes(1)
+  })
+
+  it('resyncs on return even if the setting was turned off while hidden', async () => {
+    send({ type: 'visibility', hidden: true, keepRunning: true })
+    await vi.advanceTimersByTimeAsync(1000)
+    send({ type: 'visibility', hidden: true, keepRunning: false })
+    await vi.advanceTimersByTimeAsync(1000)
+    model.fullFrame.mockClear()
+    send({ type: 'visibility', hidden: false, keepRunning: false })
+    expect(model.fullFrame).toHaveBeenCalledTimes(1)
+  })
+
+  it('sends no frames for commands while hidden and running', async () => {
+    send({ type: 'visibility', hidden: true, keepRunning: true })
+    model.deltaFrame.mockClear()
+    model.fullFrame.mockClear()
+    send({ type: 'command', json: '{}', requestId: 7 })
+    await vi.advanceTimersByTimeAsync(500)
+    expect(model.fullFrame).not.toHaveBeenCalled()
+    expect(model.deltaFrame).not.toHaveBeenCalled()
+  })
+
+  it('does not replay more than a minute after the machine sleeps', async () => {
+    let clock = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => clock)
+    await vi.advanceTimersByTimeAsync(240)
+    send({ type: 'visibility', hidden: true, keepRunning: true })
+    const before = model.tick
+    clock += 60 * 60_000
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(model.tick - before).toBeLessThanOrEqual(BigInt(Math.ceil(65_000 / 120)))
+  })
+
   it('yields after an expensive tick instead of running the rest of a fast batch', async () => {
     let clock = 0
     vi.spyOn(performance, 'now').mockImplementation(() => clock)

@@ -38,7 +38,7 @@ type InMsg =
   | StartMsg
   | { type: 'pause'; requestId?: number }
   | { type: 'resume'; requestId?: number }
-  | { type: 'visibility'; hidden: boolean }
+  | { type: 'visibility'; hidden: boolean; keepRunning?: boolean }
   | { type: 'save'; requestId?: number }
   | { type: 'retry_storage'; requestId?: number }
   | { type: 'prepare_reload'; requestId: number; deadlineAt: number; requireLocalWorld?: boolean }
@@ -78,6 +78,18 @@ let lastDeepFullAt = -Infinity
 let started = false
 let manuallyPaused = false
 let hiddenPaused = false
+// Hidden but still simulating ("keep running in background"): ticks and autosaves
+// continue, but no frames go out since nothing draws them. A full frame resyncs on return.
+let hiddenRunning = false
+let resyncOnReturn = false
+// Browsers may throttle a hidden tab's timers to once a second or slower, so while hidden the
+// world runs by wall clock: each wake-up runs the ticks owed since the last one. Capped so a
+// machine waking from sleep does not replay hours of world at once.
+const MAX_BACKGROUND_OWED_MS = 60_000
+const MIN_BACKGROUND_SLICE_MS = 50
+const MAX_BACKGROUND_SLICE_MS = 500
+let backgroundOwedMs = 0
+let backgroundClockAt = 0
 let reloadPreparing = false
 let tickTimer: ReturnType<typeof setTimeout> | null = null
 let saveTimer: ReturnType<typeof setInterval> | null = null
@@ -168,7 +180,8 @@ async function releaseWorldLockAfterStartup() {
 }
 
 function emit(deepFull: boolean) {
-  if (!sim) return
+  // Nothing draws a hidden tab; a full frame resyncs it on return.
+  if (!sim || hiddenRunning) return
   frameId += 1
   const now = Date.now()
   lastEmittedAt = performance.now()
@@ -406,13 +419,42 @@ function stopTimers() {
   }
 }
 
+function msPerTick() {
+  return tickMs / stepsPerEmit
+}
+
+/** Run the ticks a hidden world owes for the real time since the last wake-up. */
+function catchUpInBackground(running: Sim, startedAt: number) {
+  const sinceLastMs = startedAt - backgroundClockAt
+  backgroundOwedMs = Math.min(MAX_BACKGROUND_OWED_MS, backgroundOwedMs + sinceLastMs)
+  backgroundClockAt = startedAt
+  // Work at most half the gap, so a throttled timer still leaves the CPU half idle.
+  const sliceMs = Math.min(MAX_BACKGROUND_SLICE_MS, Math.max(MIN_BACKGROUND_SLICE_MS, sinceLastMs / 2))
+  while (backgroundOwedMs >= msPerTick() && performance.now() - startedAt < sliceMs) {
+    running.tickN(1)
+    backgroundOwedMs -= msPerTick()
+  }
+}
+
 function tickOnce() {
   const startedAt = performance.now()
   let completed = 0
-  if (!manuallyPaused && !hiddenPaused && !reloadPreparing && sim) {
+  const running = manuallyPaused || hiddenPaused || reloadPreparing ? null : sim
+  if (running && hiddenRunning) {
+    catchUpInBackground(running, startedAt)
+    const workMs = performance.now() - startedAt
+    const behind = backgroundOwedMs >= msPerTick()
+    // Still behind: come straight back, idling at least as long as the slice took.
+    const delay = behind ? Math.max(MIN_WASM_TICK_MS, workMs) : msPerTick() - backgroundOwedMs
+    tickTimer = setTimeout(tickOnce, delay)
+    return
+  }
+  backgroundOwedMs = 0
+  backgroundClockAt = startedAt
+  if (running) {
     // Bound a fast-forward batch, yielding between slices for pause/save/input.
     do {
-      sim.tickN(1)
+      running.tickN(1)
       completed += 1
     } while (completed < stepsPerEmit && performance.now() - startedAt < 16)
     if (tickMs >= WASM_BASE_TICK_MS || performance.now() - lastEmittedAt >= WASM_BASE_TICK_MS) {
@@ -646,9 +688,23 @@ self.onmessage = (e: MessageEvent) => {
         })
       }
       break
-    case 'visibility':
-      hiddenPaused = msg.hidden
+    case 'visibility': {
+      const wasHiddenRunning = hiddenRunning
+      hiddenPaused = msg.hidden && msg.keepRunning !== true
+      hiddenRunning = msg.hidden && msg.keepRunning === true
+      // Frames held back while hidden (even if the setting is turned off before return) need a resync.
+      if (hiddenRunning) resyncOnReturn = true
+      if (wasHiddenRunning && !msg.hidden && sim && !manuallyPaused && !reloadPreparing) {
+        // A throttled timer may not have fired since the last catch-up: run what is owed up
+        // to now (within one slice) so the resync frame shows the world on time.
+        catchUpInBackground(sim, performance.now())
+      }
+      if (resyncOnReturn && !msg.hidden) {
+        resyncOnReturn = false
+        emit(true)
+      }
       break
+    }
     case 'save':
       void persist().then((ok) => {
         if (msg.requestId !== undefined) post({ type: 'save_result', requestId: msg.requestId, ok })
