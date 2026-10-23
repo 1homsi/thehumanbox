@@ -116,6 +116,9 @@
     "rainBody": "Aide la terre sèche à se rétablir plus vite.",
     "storm": "orage",
     "stormBody": "Épuise l'énergie. La foudre peut frapper.",
+    "snow": "neige",
+    "fog": "brouillard",
+    "wet": "humide",
     "drought": "sécheresse",
     "droughtBody": "L'eau diminue et les morts de soif augmentent."
   },
@@ -153,7 +156,10 @@
       "one": "Une tribu demande votre aide. Répondez avant qu'elle perde la foi.",
       "other": "{count} tribus demandent votre aide. Répondez avant qu'elles perdent la foi."
     },
-    "label": "{count} prières"
+    "label": {
+      "one": "{formattedCount} prière",
+      "other": "{formattedCount} prières"
+    }
   },
   "peril": {
     "title": "au bord du gouffre",

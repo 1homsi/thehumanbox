@@ -116,6 +116,9 @@
     "rainBody": "Hilft trockenem Land, sich schneller zu erholen.",
     "storm": "Sturm",
     "stormBody": "Zehrt an der Kraft. Blitze können einschlagen.",
+    "snow": "Schnee",
+    "fog": "Nebel",
+    "wet": "feucht",
     "drought": "Dürre",
     "droughtBody": "Das Wasser schwindet und die Todesfälle durch Durst nehmen zu."
   },
@@ -153,7 +156,10 @@
       "one": "Ein Stamm bittet um deine Hilfe. Antworte, bevor er seinen Glauben verliert.",
       "other": "{count} Stämme bitten um deine Hilfe. Antworte, bevor sie ihren Glauben verlieren."
     },
-    "label": "{count} Gebete"
+    "label": {
+      "one": "{formattedCount} Gebet",
+      "other": "{formattedCount} Gebete"
+    }
   },
   "peril": {
     "title": "am Abgrund",

@@ -116,6 +116,9 @@
     "rainBody": "帮助干涸的土地更快恢复。",
     "storm": "暴风雨",
     "stormBody": "消耗体力，雷电可能击中。",
+    "snow": "雪",
+    "fog": "雾",
+    "wet": "潮湿",
     "drought": "干旱",
     "droughtBody": "水源减少，因口渴而死的人越来越多。"
   },
@@ -151,7 +154,9 @@
     "tipBody": {
       "other": "{count} 个部落正在请求你的帮助。请在他们失去信仰前回应。"
     },
-    "label": "{count} 个祈祷"
+    "label": {
+      "other": "{formattedCount} 个祈祷"
+    }
   },
   "peril": {
     "title": "濒临灭亡",

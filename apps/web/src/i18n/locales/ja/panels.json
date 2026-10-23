@@ -116,6 +116,9 @@
     "rainBody": "乾いた土地が早く回復する助けになる。",
     "storm": "嵐",
     "stormBody": "体力を消耗させる。落雷の恐れがある。",
+    "snow": "雪",
+    "fog": "霧",
+    "wet": "湿潤",
     "drought": "干ばつ",
     "droughtBody": "水が減り、渇きによる死者が増えている。"
   },
@@ -151,7 +154,9 @@
     "tipBody": {
       "other": "{count} 部族があなたの助けを求めています。信仰を失う前に応えてください。"
     },
-    "label": "{count} 件の祈り"
+    "label": {
+      "other": "{formattedCount} 件の祈り"
+    }
   },
   "peril": {
     "title": "存亡の危機",

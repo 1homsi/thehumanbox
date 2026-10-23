@@ -116,6 +116,9 @@
     "rainBody": "Aiuta la terra arida a riprendersi più in fretta.",
     "storm": "tempesta",
     "stormBody": "Consuma energia. I fulmini possono colpire.",
+    "snow": "neve",
+    "fog": "nebbia",
+    "wet": "umido",
     "drought": "siccità",
     "droughtBody": "L'acqua diminuisce e aumentano le morti per sete."
   },
@@ -153,7 +156,10 @@
       "one": "Una tribù chiede il tuo aiuto. Rispondi prima che perda la fede.",
       "other": "{count} tribù chiedono il tuo aiuto. Rispondi prima che perdano la fede."
     },
-    "label": "{count} preghiere"
+    "label": {
+      "one": "{formattedCount} preghiera",
+      "other": "{formattedCount} preghiere"
+    }
   },
   "peril": {
     "title": "sull'orlo",

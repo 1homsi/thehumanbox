@@ -116,6 +116,9 @@
     "rainBody": "Kuru toprağın daha hızlı toparlanmasına yardım eder.",
     "storm": "fırtına",
     "stormBody": "Enerjiyi tüketir. Şimşek çakabilir.",
+    "snow": "kar",
+    "fog": "sis",
+    "wet": "nemli",
     "drought": "kuraklık",
     "droughtBody": "Su azalıyor ve susuzluktan ölümler artıyor."
   },
@@ -153,7 +156,10 @@
       "one": "Bir kabile yardımınızı istiyor. İnancını yitirmeden yanıt verin.",
       "other": "{count} kabile yardımınızı istiyor. İnançlarını yitirmeden yanıt verin."
     },
-    "label": "{count} dua"
+    "label": {
+      "one": "{formattedCount} dua",
+      "other": "{formattedCount} dua"
+    }
   },
   "peril": {
     "title": "uçurumun eşiğinde",

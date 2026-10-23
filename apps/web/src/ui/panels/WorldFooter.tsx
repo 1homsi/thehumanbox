@@ -22,6 +22,9 @@ const WEATHER_KEY: Record<string, MessageKey> = {
   clear: 'panels.weather.clear',
   rain: 'panels.weather.rain',
   storm: 'panels.weather.storm',
+  snow: 'panels.weather.snow',
+  fog: 'panels.weather.fog',
+  wet: 'panels.weather.wet',
 }
 
 export function WorldFooter({ world }: Props) {

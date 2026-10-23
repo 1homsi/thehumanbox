@@ -116,6 +116,9 @@
     "rainBody": "Helps dry land recover faster.",
     "storm": "storm",
     "stormBody": "Drains energy. Lightning can strike.",
+    "snow": "snow",
+    "fog": "fog",
+    "wet": "wet",
     "drought": "drought",
     "droughtBody": "Water is shrinking and thirst deaths are rising."
   },
@@ -153,7 +156,10 @@
       "one": "A tribe is asking for your help. Answer before they lose faith.",
       "other": "{count} tribes are asking for your help. Answer before they lose faith."
     },
-    "label": "{count} prayers"
+    "label": {
+      "one": "{formattedCount} prayer",
+      "other": "{formattedCount} prayers"
+    }
   },
   "peril": {
     "title": "on the brink",

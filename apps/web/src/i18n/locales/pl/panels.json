@@ -116,6 +116,9 @@
     "rainBody": "Pomaga suchej ziemi szybciej się odbudować.",
     "storm": "burza",
     "stormBody": "Odbiera siły. Piorun może uderzyć.",
+    "snow": "śnieg",
+    "fog": "mgła",
+    "wet": "wilgotno",
     "drought": "susza",
     "droughtBody": "Woda się kurczy, a zgonów z pragnienia przybywa."
   },
@@ -158,10 +161,10 @@
       "other": "{count} plemion prosi cię o pomoc. Odpowiedz, zanim stracą wiarę."
     },
     "label": {
-      "one": "{count} modlitwa",
-      "few": "{count} modlitwy",
-      "many": "{count} modlitw",
-      "other": "{count} modlitwy"
+      "one": "{formattedCount} modlitwa",
+      "few": "{formattedCount} modlitwy",
+      "many": "{formattedCount} modlitw",
+      "other": "{formattedCount} modlitwy"
     }
   },
   "peril": {

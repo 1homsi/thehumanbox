@@ -67,7 +67,10 @@ export function PrayerChip({ world, onAnswer }: Props) {
             setOpen((v) => !v)
           }}
           aria-expanded={open}
-          aria-label={t('panels.prayerChip.label', { count: formatNumber(prayers.length) })}
+          aria-label={t('panels.prayerChip.label', {
+            count: prayers.length,
+            formattedCount: formatNumber(prayers.length),
+          })}
         >
           <ToolSprite icon="🙏" size={16} />
           {prayers.length}

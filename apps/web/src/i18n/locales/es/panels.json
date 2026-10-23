@@ -116,6 +116,9 @@
     "rainBody": "Ayuda a que la tierra seca se recupere más rápido.",
     "storm": "tormenta",
     "stormBody": "Agota la energía. Los rayos pueden caer.",
+    "snow": "nieve",
+    "fog": "niebla",
+    "wet": "húmedo",
     "drought": "sequía",
     "droughtBody": "El agua disminuye y aumentan las muertes por sed."
   },
@@ -153,7 +156,10 @@
       "one": "Una tribu pide tu ayuda. Responde antes de que pierda la fe.",
       "other": "{count} tribus piden tu ayuda. Responde antes de que pierdan la fe."
     },
-    "label": "{count} oraciones"
+    "label": {
+      "one": "{formattedCount} oración",
+      "other": "{formattedCount} oraciones"
+    }
   },
   "peril": {
     "title": "al borde",
