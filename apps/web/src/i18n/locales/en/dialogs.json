@@ -1,1 +1,542 @@
-{}
+{
+  "confirm": {
+    "cancel": "cancel",
+    "confirm": "confirm",
+    "ok": "ok"
+  },
+  "welcome": {
+    "quickTour": "Quick tour",
+    "back": "Back",
+    "skip": "Skip",
+    "start": "Start",
+    "next": "Next",
+    "localTitle": "You are their god",
+    "localBody": "Small tribes live, love, build and go to war on their own. When trouble comes they pray to you: click a prayer bubble and the power that helps is in your hand. It all runs and saves on this device."
+  },
+  "worlds": {
+    "introArchives": "Your world archives are saved on this computer.",
+    "introPrivate": "Your private world lives in this browser and never connects to a hosted simulation server."
+  },
+  "about": {
+    "title": "About",
+    "heading": "ABOUT",
+    "close": "Close",
+    "unknown": "unknown",
+    "blurb": "The Human Box is a living simulation of small agents that forage, bond, build language, and pass it on to their children. Open source on GitHub.",
+    "frontend": "FRONTEND",
+    "commit": "commit",
+    "built": "built",
+    "simulation": "SIMULATION",
+    "runtime": "runtime",
+    "runtimeLocal": "local browser · offline",
+    "versionError": "could not reach simulation /version: {error}",
+    "loading": "loading…",
+    "name": "name",
+    "builtWith": "BUILT WITH",
+    "engineDetail": "React-first 2D browser game engine. The world canvas, camera, input handling, and WebGL pipeline all run on it.",
+    "links": "LINKS"
+  },
+  "achievements": {
+    "title": "Achievements",
+    "heading": "ACHIEVEMENTS",
+    "earned": "{earned} of {total} earned"
+  },
+  "lineages": {
+    "title": "All lineages",
+    "heading": "ALL LINEAGES ({count})",
+    "close": "Close",
+    "onBrink": "On the brink: {remaining}, {reason}",
+    "generation": "g{gen}",
+    "generationRange": "–{gen}"
+  },
+  "chronicles": {
+    "title": "Chronicles",
+    "heading": "CHRONICLES",
+    "tabHistory": "World History",
+    "tabLives": "Lives",
+    "close": "Close",
+    "historyIntro": "The great turns of this world — eras, wars, dynasties and wonders.",
+    "noHistory": "No notable events yet. The story is just beginning.",
+    "day": "day {day}",
+    "livesIntro": "Stories told by the world's inhabitants, ordered by when they were lived.",
+    "noLives": "No stories yet. Stories appear after organisms complete a full day cycle."
+  },
+  "goals": {
+    "title": "Goals",
+    "heading": "GOALS",
+    "lost": "No one is left alive.",
+    "difficulty": "Difficulty: {notes}",
+    "difficultyGroup": "Difficulty",
+    "levels": {
+      "calm": "calm",
+      "normal": "normal",
+      "harsh": "harsh"
+    }
+  },
+  "scenarios": {
+    "title": "Scenarios",
+    "heading": "SCENARIOS",
+    "intro": "Each scenario adds to the world you are watching. It does not start a new world.",
+    "start": "start"
+  },
+  "civ": {
+    "title": "Civilization",
+    "close": "Close",
+    "common": {
+      "people": "{count} people",
+      "more": "+{count} more",
+      "tick": "tick {tick}"
+    },
+    "calendar": {
+      "year": "year",
+      "day": "day {day} of 84",
+      "lit": "{percent}% lit",
+      "season": "season",
+      "worldTech": "world tech"
+    },
+    "lineages": {
+      "heading": "Lineages",
+      "name": "Name",
+      "era": "Lineage Era",
+      "pop": "Pop",
+      "next": "Next",
+      "gov": "Gov",
+      "currency": "Currency",
+      "actions": "Actions",
+      "worldPopulation": "world population {current}/{required}",
+      "missing": "missing {items}",
+      "tavern": "tavern"
+    },
+    "campaigns": {
+      "kicker": "Player guidance",
+      "heading": "Lineage campaigns",
+      "help": "Lineages still choose their own actions; successful aligned actions fill the goal.",
+      "completed": "completed",
+      "awaiting": "awaiting guidance",
+      "focusOn": "focus on {strategy}",
+      "aligned": "{progress}/{target} aligned actions",
+      "rewardEarned": "reward earned",
+      "ticksLeft": "{ticks} ticks left",
+      "progressAria": "{lineage} {strategy} campaign",
+      "reward": "Reward: {reward}",
+      "defaultReward": "lineage morale",
+      "choose": "Choose a soft objective to give this lineage a visible goal and completion reward.",
+      "guideAria": "Guide {lineage}",
+      "change": "change campaign…",
+      "start": "start campaign…"
+    },
+    "guidance": {
+      "hunt": {
+        "label": "secure food",
+        "description": "focus hunters on tracking, trapping, and bringing food home",
+        "reward": "food reserves for every living member"
+      },
+      "explore": {
+        "label": "explore",
+        "description": "push into unknown terrain and act on new discoveries",
+        "reward": "trail maps and a curiosity surge"
+      },
+      "settle": {
+        "label": "settle & build",
+        "description": "gather materials, rest safely, and expand the settlement",
+        "reward": "communal wood and stone reserves"
+      },
+      "trade": {
+        "label": "trade",
+        "description": "seek exchanges, markets, and foreign trade partners",
+        "reward": "shared wealth for the lineage"
+      },
+      "defend": {
+        "label": "defend",
+        "description": "sound alarms, fortify territory, and protect vulnerable kin",
+        "reward": "restored health, courage, and morale"
+      },
+      "guiding": "guiding…",
+      "started": "{strategy} campaign started",
+      "rejected": "guidance rejected",
+      "unavailable": "guidance unavailable"
+    },
+    "redirect": {
+      "title": "Change campaign?",
+      "body": "Redirect {lineage} from {from} to {to}.\n\nProgress on the current campaign is archived.",
+      "confirm": "redirect"
+    },
+    "history": {
+      "title": "Recent campaigns",
+      "showRecent": "show recent",
+      "showAll": "show all {count}",
+      "lineageEnded": "lineage ended",
+      "tick": "t{tick}"
+    },
+    "governments": {
+      "heading": "Governments & Leaders",
+      "empty": "No governments yet",
+      "leader": "leader: {name}",
+      "treasury": "treasury: {amount}"
+    },
+    "religions": {
+      "heading": "Religions",
+      "empty": "No religions founded yet",
+      "adherents": "{count} adherents",
+      "foundedBy": "founded by {lineage}",
+      "enterTemple": "enter temple →",
+      "templeUnavailable": "temple unavailable"
+    },
+    "conflicts": {
+      "heading": "Conflicts",
+      "empty": "No battles yet",
+      "versus": "{attackers} vs {defenders}",
+      "won": "{side} won",
+      "stalemate": "stalemate",
+      "ended": "ended",
+      "ongoing": "ongoing"
+    },
+    "diplomacy": {
+      "heading": "Diplomacy",
+      "empty": "No treaties yet",
+      "pair": "{a} & {b}",
+      "treaty": "treaty"
+    },
+    "buildings": {
+      "heading": "Buildings",
+      "empty": "Nothing built yet"
+    },
+    "settlements": {
+      "heading": "Settlements",
+      "empty": "No stable settlements yet",
+      "completedBuildings": "{count} completed buildings",
+      "capacity": "capacity {count}"
+    },
+    "agriculture": {
+      "heading": "Agriculture",
+      "empty": "No fields have been plowed yet",
+      "growing": "growing: {count}",
+      "harvestReady": "harvest ready: {count}",
+      "fallow": "fallow: {count}",
+      "projectedFood": "projected food: {count}",
+      "fields": {
+        "one": "{crop}: {count} field",
+        "other": "{crop}: {count} fields"
+      }
+    },
+    "goods": {
+      "heading": "Goods in Circulation",
+      "empty": "No crafted goods held yet",
+      "byLineage": "by lineage:",
+      "held": "{count} held"
+    },
+    "books": {
+      "heading": "Recent Books",
+      "empty": "No books written yet",
+      "on": "{author} on {topic}",
+      "copies": "{count} copies"
+    },
+    "artworks": {
+      "heading": "Artworks",
+      "empty": "Nothing made yet",
+      "by": "by {name}"
+    },
+    "trade": {
+      "heading": "Trade Network",
+      "empty": "No routes yet — Iron-era merchants need two established settlements, currency, navigation, and a trade workspace.",
+      "routes": {
+        "one": "{count} route",
+        "other": "{count} routes"
+      },
+      "caravans": {
+        "one": "{count} caravan traveling",
+        "other": "{count} caravans traveling"
+      },
+      "totals": "{deliveries} deliveries · {volume} goods moved",
+      "routeStats": "{distance} tiles · {delivered} delivered · {volume} volume",
+      "enRoute": "{count} en route",
+      "readyToUnload": "ready to unload",
+      "ticksAway": "{ticks} ticks away"
+    },
+    "tradeLog": {
+      "heading": "Recent Trades",
+      "empty": "No trades yet (needs barter / currency)",
+      "coins": {
+        "one": "{count} coin",
+        "other": "{count} coins"
+      }
+    },
+    "headlines": {
+      "heading": "Headlines",
+      "empty": "No notable events yet"
+    }
+  },
+  "toast": {
+    "dismiss": "Dismiss",
+    "desktopTitle": "Run The Human Box locally",
+    "desktopSub": "Your own private world with no shared latency. Free.",
+    "copy": "copy",
+    "copied": "copied",
+    "download": "Download",
+    "notNow": "Not now",
+    "updateReady": "Update ready to install",
+    "updateAvailable": "Update available",
+    "updateReadySub": "v{version} downloaded — restart to apply",
+    "updateDownloading": "v{version} downloading…",
+    "updateFailed": "update failed: {message}",
+    "updateNotReady": "update is not ready yet",
+    "restartFailed": "could not restart updater",
+    "restartTitle": "Restart The Human Box and install the downloaded update",
+    "restarting": "restarting…",
+    "restart": "restart",
+    "newVersion": "New version available",
+    "newVersionSub": "refresh to load the latest world",
+    "refreshing": "refreshing…",
+    "refresh": "Refresh",
+    "checkpointFailed": "could not checkpoint the current world; update refresh was cancelled safely",
+    "starTitle": "Enjoying your world?",
+    "starSub": "The Human Box is free and open source. A star on GitHub helps other people find it.",
+    "starCta": "Star on GitHub",
+    "starLater": "Maybe later"
+  },
+  "life": {
+    "title": "{name}'s Life",
+    "heading": "{name}'S LIFE",
+    "close": "Close",
+    "day": "day {day}",
+    "failed": "failed to load",
+    "gen": "gen {gen}",
+    "age": {
+      "one": "{count} day old",
+      "other": "{count} days old"
+    },
+    "elder": "elder",
+    "partnered": "partnered",
+    "children": {
+      "one": "{count} child",
+      "other": "{count} children"
+    },
+    "feeling": "feeling",
+    "friends": "friends",
+    "discoveries": "discoveries",
+    "memories": "what they hold in mind ({count})",
+    "events": "life events ({count})",
+    "stuck": "⚠ this organism is stuck: same action {count} times in a row",
+    "noEvents": "no recorded events yet"
+  },
+  "conversations": {
+    "kinds": {
+      "courtship": "First meeting",
+      "bonded": "Partners talking",
+      "farewell": "Farewell",
+      "chat": "Casual chat",
+      "gossip": "Gossip",
+      "excited": "Sharing excitement",
+      "argue": "Argument"
+    },
+    "relPartner": "♥ partner",
+    "relFriend": "friend",
+    "relTrusts": "trusts",
+    "relWary": "wary",
+    "day": "day {day}",
+    "title": "Conversations of {name}",
+    "heading": "CONVERSATIONS",
+    "close": "Close",
+    "filterAll": "all",
+    "loading": "loading {name}'s conversations…",
+    "drawn": "{name} is drawn to someone - a first conversation is coming",
+    "noneYet": "{name} hasn't spoken with anyone yet",
+    "noneOfKind": "no {kind} conversations"
+  },
+  "notable": {
+    "title": "Notable",
+    "heading": "NOTABLE ORGANISMS",
+    "alive": "{count} alive · pick a lens below",
+    "close": "Close",
+    "empty": "no one fits this lens yet",
+    "gen": "gen {gen}",
+    "oldest": "Oldest among us",
+    "days": "{count} days",
+    "children": "Most children",
+    "childrenCount": "{count} children",
+    "friends": "Best connected",
+    "friendsCount": "{count} friends",
+    "wealth": "Richest",
+    "coin": "{count} coin",
+    "discoveries": "Most learned (discoveries)",
+    "discoveriesCount": "{count} discoveries",
+    "literate": "Most literate",
+    "literacy": "{percent}% literate",
+    "devout": "Most devout",
+    "piety": "{percent}% piety",
+    "joy": "Most joyful right now",
+    "joyTicks": "{count} joy ticks",
+    "grief": "Carrying the deepest grief",
+    "griefTicks": "{count} grief ticks",
+    "aspiration": "Has a life aim"
+  },
+  "orgSearch": {
+    "title": "Organisms",
+    "heading": "ORGANISMS",
+    "summary": "{shown} shown · {alive} alive · {dead} dead",
+    "close": "Close",
+    "placeholder": "search by name, thought, lineage id…",
+    "statusAll": "all",
+    "statusAlive": "alive",
+    "statusDead": "dead",
+    "fire": "fire",
+    "shelter": "shelter",
+    "allTribes": "all tribes",
+    "empty": "no organisms match",
+    "genAge": "g{gen} · {days}d",
+    "track": "track in world",
+    "back": "← all organisms",
+    "placeholderDetail": "← select an organism to view details"
+  },
+  "stats": {
+    "title": "Stats",
+    "heading": "STATS",
+    "yearDay": "year {year} · day {day}",
+    "day": "day {day}",
+    "aliveCount": "{count} alive",
+    "reload": "Reload from current world",
+    "close": "Close",
+    "alive": "alive",
+    "totalDeaths": "total deaths",
+    "totalBirths": "total births",
+    "daysElapsed": "days elapsed",
+    "knowFire": "know fire",
+    "haveShelter": "have shelter",
+    "animals": "animals",
+    "populationOverTime": "POPULATION OVER TIME",
+    "birthsDeathsByYear": "BIRTHS AND DEATHS BY YEAR",
+    "wealthGapByYear": "WEALTH GAP BY YEAR",
+    "agePyramid": "AGE PYRAMID",
+    "populationTraits": "POPULATION TRAITS",
+    "tribalRelations": "TRIBAL RELATIONS",
+    "discoveryRollup": "DISCOVERY ROLLUP",
+    "legends": "LEGENDS",
+    "generationsAlive": "GENERATIONS ALIVE",
+    "oldestLiving": "OLDEST LIVING",
+    "longevity": "LONGEVITY",
+    "noOldAgeDeaths": "nobody has died of old age yet",
+    "causesOfDeath": "CAUSES OF DEATH",
+    "causes": {
+      "starvation": "starvation",
+      "dehydration": "dehydration",
+      "sickness": "sickness",
+      "combat": "combat",
+      "oldAge": "old age",
+      "droughts": "droughts",
+      "outbreaks": "outbreaks"
+    },
+    "bondsFamily": "BONDS & FAMILY",
+    "notableOrganisms": "NOTABLE ORGANISMS",
+    "discoveryLog": "DISCOVERY LOG",
+    "worldEras": "WORLD ERAS",
+    "dayShort": "d{day}",
+    "accumulating": "accumulating data…",
+    "firstYear": "the first year is still turning…",
+    "birthsDeathsAria": "Births and deaths by year",
+    "yearBorn": "year {year}: {count} born",
+    "yearDied": "year {year}: {count} died",
+    "wealthGapAria": "Average wealth gap by year",
+    "stark": "stark",
+    "yearWealth": "year {year}: {word} ({value})",
+    "noLegends": "no legends yet",
+    "noContacts": "no inter-tribe contacts yet",
+    "versus": "{a} vs {b}",
+    "noDiscoveries": "no discoveries yet",
+    "traits": {
+      "curiosity": "curiosity",
+      "fear": "fear",
+      "socialTendency": "social tendency",
+      "resilience": "resilience",
+      "aggression": "aggression",
+      "memoryStrength": "memory strength"
+    },
+    "nobodyAlive": "nobody is alive",
+    "gen": "gen {gen}",
+    "ageDays": {
+      "one": "{count} day old",
+      "other": "{count} days old"
+    },
+    "notable": {
+      "oldest": "oldest",
+      "parents": "parents",
+      "deepestGen": "deepest gen",
+      "days": "· {days}d",
+      "kids": "· {count} kids",
+      "gen": "· g{gen}"
+    }
+  },
+  "tree": {
+    "title": "Family tree",
+    "heading": "FAMILY TREE",
+    "summary": "{alive} alive · {ancestors} ancestors · {generations} generations",
+    "reload": "Reload from current world",
+    "close": "Close",
+    "generation": "generation {gen}",
+    "ageGen": "{days}d · g{gen}",
+    "gen": "gen {gen}",
+    "days": "{days}d",
+    "bonded": "bonded",
+    "father": "father: {name}",
+    "children": "{count} children",
+    "hint": "scroll to zoom · drag to pan · hover a node for info ·",
+    "bondedPair": "bonded pair",
+    "fitAllTitle": "Fit all generations",
+    "fitAliveTitle": "Fit only living organisms",
+    "fitAll": "fit all",
+    "fitAlive": "fit alive",
+    "legendFire": "fire",
+    "legendShelter": "shelter",
+    "legendDeceased": "deceased",
+    "legendBonded": "bonded",
+    "legendMother": "mother",
+    "legendFather": "father",
+    "legendInfidelity": "infidelity"
+  },
+  "language": {
+    "title": "Languages of the world",
+    "heading": "LANGUAGES OF THE WORLD",
+    "reload": "Reload from current world",
+    "close": "Close",
+    "intro": "Each lineage develops its own words. Words mutate across generations and spread through contact.",
+    "sexWords": "their words for the two kinds:",
+    "sexNote": "(coined by the founding generation)",
+    "placeholder": "search {count} concepts or coined words…",
+    "matches": {
+      "one": "{count} match",
+      "other": "{count} matches"
+    },
+    "concept": "concept",
+    "noMatch": "no concepts match \"{query}\"",
+    "sections": {
+      "coreSurvival": "core survival",
+      "skyWeather": "sky & weather",
+      "landWater": "land & water",
+      "bodyVital": "body & vital states",
+      "emotions": "emotions",
+      "kinRoles": "kin & roles",
+      "socialActs": "social acts",
+      "motionAction": "motion & action",
+      "qualitiesRelations": "qualities & relations",
+      "toolsResources": "tools & resources",
+      "bodySenses": "body & senses",
+      "familyLife": "family & life events",
+      "animals": "animals",
+      "terrain": "terrain",
+      "weatherSky": "weather & sky events",
+      "materials": "materials",
+      "abstract": "abstract",
+      "moreActs": "more acts",
+      "quantity": "quantity",
+      "colours": "colours",
+      "plants": "plants",
+      "finerTime": "finer time",
+      "directions": "directions",
+      "sounds": "sounds",
+      "finerFeelings": "finer feelings",
+      "socialStructures": "social structures",
+      "bodyActions": "body actions",
+      "languageMeaning": "language & meaning",
+      "physicalQualities": "physical qualities"
+    }
+  }
+}

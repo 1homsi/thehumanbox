@@ -1,1 +1,542 @@
-{}
+{
+  "confirm": {
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "ok": "OK"
+  },
+  "welcome": {
+    "quickTour": "簡単ツアー",
+    "back": "戻る",
+    "skip": "スキップ",
+    "start": "開始",
+    "next": "次へ",
+    "localTitle": "あなたは彼らの神です",
+    "localBody": "小さな部族は、自分たちだけで暮らし、愛し、築き、戦います。困ったことが起きると、彼らはあなたに祈ります。祈りの吹き出しをクリックすると、助けになる力があなたの手に入ります。すべてこの端末で動き、保存されます。"
+  },
+  "worlds": {
+    "introArchives": "世界のアーカイブはこのコンピューターに保存されます。",
+    "introPrivate": "プライベートな世界はこのブラウザ内で動作し、ホストされたシミュレーションサーバーには接続しません。"
+  },
+  "about": {
+    "title": "バージョン情報",
+    "heading": "バージョン情報",
+    "close": "閉じる",
+    "unknown": "不明",
+    "blurb": "The Human Box は、食べ物を探し、絆を育み、言語を作り、子どもへ伝えていく小さなエージェントたちの生きたシミュレーションです。GitHub でオープンソースとして公開しています。",
+    "frontend": "フロントエンド",
+    "commit": "コミット",
+    "built": "ビルド",
+    "simulation": "シミュレーション",
+    "runtime": "ランタイム",
+    "runtimeLocal": "ローカルブラウザ · オフライン",
+    "versionError": "シミュレーションの /version に接続できませんでした: {error}",
+    "loading": "読み込み中…",
+    "name": "名前",
+    "builtWith": "使用技術",
+    "engineDetail": "React 向けに設計された 2D ブラウザゲームエンジンです。世界のキャンバス、カメラ、入力処理、WebGL パイプラインはすべてこの上で動作します。",
+    "links": "リンク"
+  },
+  "achievements": {
+    "title": "実績",
+    "heading": "実績",
+    "earned": "{total} 件中 {earned} 件達成"
+  },
+  "lineages": {
+    "title": "すべての系譜",
+    "heading": "すべての系譜 ({count})",
+    "close": "閉じる",
+    "onBrink": "存亡の危機: {remaining}、{reason}",
+    "generation": "世代{gen}",
+    "generationRange": "–{gen}"
+  },
+  "chronicles": {
+    "title": "年代記",
+    "heading": "年代記",
+    "tabHistory": "世界の歴史",
+    "tabLives": "人生",
+    "close": "閉じる",
+    "historyIntro": "この世界の大きな転換点 — 時代、戦争、王朝、驚異の建造物。",
+    "noHistory": "まだ注目すべき出来事はありません。物語はまだ始まったばかりです。",
+    "day": "{day}日目",
+    "livesIntro": "世界の住人が語る物語。生きた時期順に並んでいます。",
+    "noLives": "まだ物語はありません。生物が 1 日の周期を最後まで過ごすと、物語が現れます。"
+  },
+  "goals": {
+    "title": "目標",
+    "heading": "目標",
+    "lost": "生き残った者は一人もいません。",
+    "difficulty": "難易度: {notes}",
+    "difficultyGroup": "難易度",
+    "levels": {
+      "calm": "穏やか",
+      "normal": "通常",
+      "harsh": "厳しい"
+    }
+  },
+  "scenarios": {
+    "title": "シナリオ",
+    "heading": "シナリオ",
+    "intro": "各シナリオは、いま見ている世界に追加されます。新しい世界は始まりません。",
+    "start": "開始"
+  },
+  "civ": {
+    "title": "文明",
+    "close": "閉じる",
+    "common": {
+      "people": "{count} 人",
+      "more": "+{count} 件",
+      "tick": "tick {tick}"
+    },
+    "calendar": {
+      "year": "年",
+      "day": "84日中 {day}日目",
+      "lit": "{percent}% 照らされ",
+      "season": "季節",
+      "worldTech": "世界の技術"
+    },
+    "lineages": {
+      "heading": "系譜",
+      "name": "名前",
+      "era": "系譜の時代",
+      "pop": "人口",
+      "next": "次",
+      "gov": "政体",
+      "currency": "通貨",
+      "actions": "行動",
+      "worldPopulation": "世界の人口 {current}/{required}",
+      "missing": "不足: {items}",
+      "tavern": "酒場"
+    },
+    "campaigns": {
+      "kicker": "プレイヤーの指示",
+      "heading": "系譜のキャンペーン",
+      "help": "系譜は引き続き自分で行動を選びます。方針に沿った成功した行動が目標を埋めていきます。",
+      "completed": "完了",
+      "awaiting": "指示待ち",
+      "focusOn": "{strategy}に集中",
+      "aligned": "方針に沿った行動 {progress}/{target}",
+      "rewardEarned": "報酬を獲得",
+      "ticksLeft": "残り {ticks} tick",
+      "progressAria": "{lineage}の{strategy}キャンペーン",
+      "reward": "報酬: {reward}",
+      "defaultReward": "系譜の士気",
+      "choose": "この系譜に分かりやすい目標と達成報酬を与えるため、穏やかな目的を選んでください。",
+      "guideAria": "{lineage}を導く",
+      "change": "キャンペーンを変更…",
+      "start": "キャンペーンを開始…"
+    },
+    "guidance": {
+      "hunt": {
+        "label": "食料を確保",
+        "description": "猟師を、獲物の追跡、罠の設置、食料の持ち帰りに集中させる",
+        "reward": "生きている全員のための食料備蓄"
+      },
+      "explore": {
+        "label": "探索",
+        "description": "未知の土地へ進み、新しい発見に基づいて動く",
+        "reward": "道の地図と好奇心の高まり"
+      },
+      "settle": {
+        "label": "定住と建設",
+        "description": "資材を集め、安全に休み、集落を広げる",
+        "reward": "共有の木材と石材の備蓄"
+      },
+      "trade": {
+        "label": "交易",
+        "description": "交換、市場、外国の交易相手を探す",
+        "reward": "系譜全体での富の共有"
+      },
+      "defend": {
+        "label": "防衛",
+        "description": "警報を鳴らし、領地を固め、弱い家族を守る",
+        "reward": "健康、勇気、士気の回復"
+      },
+      "guiding": "指示中…",
+      "started": "{strategy}キャンペーンを開始しました",
+      "rejected": "指示は拒否されました",
+      "unavailable": "指示は利用できません"
+    },
+    "redirect": {
+      "title": "キャンペーンを変更しますか？",
+      "body": "{lineage}の方針を{from}から{to}へ変更します。\n\n現在のキャンペーンの進行状況はアーカイブされます。",
+      "confirm": "変更"
+    },
+    "history": {
+      "title": "最近のキャンペーン",
+      "showRecent": "最近を表示",
+      "showAll": "すべて {count} 件を表示",
+      "lineageEnded": "系譜は途絶えました",
+      "tick": "t{tick}"
+    },
+    "governments": {
+      "heading": "政体と指導者",
+      "empty": "まだ政体はありません",
+      "leader": "指導者: {name}",
+      "treasury": "国庫: {amount}"
+    },
+    "religions": {
+      "heading": "宗教",
+      "empty": "まだ宗教は創始されていません",
+      "adherents": "信者 {count} 人",
+      "foundedBy": "創始者: {lineage}",
+      "enterTemple": "神殿に入る →",
+      "templeUnavailable": "神殿は利用できません"
+    },
+    "conflicts": {
+      "heading": "争い",
+      "empty": "まだ戦いはありません",
+      "versus": "{attackers} 対 {defenders}",
+      "won": "{side}の勝利",
+      "stalemate": "引き分け",
+      "ended": "終了",
+      "ongoing": "進行中"
+    },
+    "diplomacy": {
+      "heading": "外交",
+      "empty": "まだ条約はありません",
+      "pair": "{a} と {b}",
+      "treaty": "条約"
+    },
+    "buildings": {
+      "heading": "建物",
+      "empty": "まだ建物はありません"
+    },
+    "settlements": {
+      "heading": "集落",
+      "empty": "まだ安定した集落はありません",
+      "completedBuildings": "完成した建物 {count} 棟",
+      "capacity": "収容 {count}"
+    },
+    "agriculture": {
+      "heading": "農業",
+      "empty": "まだ耕された畑はありません",
+      "growing": "生育中: {count}",
+      "harvestReady": "収穫可能: {count}",
+      "fallow": "休耕中: {count}",
+      "projectedFood": "見込まれる食料: {count}",
+      "fields": {
+        "one": "{crop}: {count} 区画",
+        "other": "{crop}: {count} 区画"
+      }
+    },
+    "goods": {
+      "heading": "流通している品物",
+      "empty": "まだ作られた品物はありません",
+      "byLineage": "系譜別:",
+      "held": "所持 {count}"
+    },
+    "books": {
+      "heading": "最近の書物",
+      "empty": "まだ書かれた書物はありません",
+      "on": "{author}、{topic}について",
+      "copies": "{count} 部"
+    },
+    "artworks": {
+      "heading": "芸術作品",
+      "empty": "まだ作られたものはありません",
+      "by": "作者: {name}"
+    },
+    "trade": {
+      "heading": "交易網",
+      "empty": "まだ交易路はありません — 鉄器時代の商人には、定住地が2つ、通貨、航海術、交易の場が必要です。",
+      "routes": {
+        "one": "{count} 本の交易路",
+        "other": "{count} 本の交易路"
+      },
+      "caravans": {
+        "one": "移動中のキャラバン {count} 隊",
+        "other": "移動中のキャラバン {count} 隊"
+      },
+      "totals": "配送 {deliveries} 回 · 移動した品物 {volume}",
+      "routeStats": "{distance} マス · 配送 {delivered} · 輸送量 {volume}",
+      "enRoute": "移動中 {count}",
+      "readyToUnload": "荷下ろし可能",
+      "ticksAway": "あと {ticks} tick"
+    },
+    "tradeLog": {
+      "heading": "最近の取引",
+      "empty": "まだ取引はありません（物々交換 / 通貨が必要）",
+      "coins": {
+        "one": "{count} 枚",
+        "other": "{count} 枚"
+      }
+    },
+    "headlines": {
+      "heading": "見出し",
+      "empty": "まだ注目すべき出来事はありません"
+    }
+  },
+  "toast": {
+    "dismiss": "閉じる",
+    "desktopTitle": "The Human Box をローカルで実行",
+    "desktopSub": "共有の遅延がない、あなた専用のプライベートな世界。無料。",
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "download": "ダウンロード",
+    "notNow": "今はしない",
+    "updateReady": "アップデートをインストールできます",
+    "updateAvailable": "アップデートがあります",
+    "updateReadySub": "v{version} をダウンロード済み — 再起動して適用",
+    "updateDownloading": "v{version} をダウンロード中…",
+    "updateFailed": "アップデートに失敗しました: {message}",
+    "updateNotReady": "アップデートはまだ準備できていません",
+    "restartFailed": "アップデーターを再起動できませんでした",
+    "restartTitle": "The Human Box を再起動し、ダウンロード済みのアップデートをインストールします",
+    "restarting": "再起動中…",
+    "restart": "再起動",
+    "newVersion": "新しいバージョンがあります",
+    "newVersionSub": "更新して最新の世界を読み込む",
+    "refreshing": "更新中…",
+    "refresh": "更新",
+    "checkpointFailed": "現在の世界を保存できませんでした。更新は安全に取り消されました",
+    "starTitle": "世界を楽しんでいますか？",
+    "starSub": "The Human Box は無料のオープンソースです。GitHub でスターを付けると、ほかの人が見つけやすくなります。",
+    "starCta": "GitHub でスターを付ける",
+    "starLater": "あとで"
+  },
+  "life": {
+    "title": "{name}の人生",
+    "heading": "{name}の人生",
+    "close": "閉じる",
+    "day": "{day}日目",
+    "failed": "読み込みに失敗しました",
+    "gen": "世代 {gen}",
+    "age": {
+      "one": "生後 {count} 日",
+      "other": "生後 {count} 日"
+    },
+    "elder": "長老",
+    "partnered": "パートナーあり",
+    "children": {
+      "one": "子ども {count} 人",
+      "other": "子ども {count} 人"
+    },
+    "feeling": "気分",
+    "friends": "友人",
+    "discoveries": "発見",
+    "memories": "心に留めていること ({count})",
+    "events": "人生の出来事 ({count})",
+    "stuck": "⚠ この生物は行き詰まっています: 同じ行動が {count} 回連続しています",
+    "noEvents": "記録された出来事はまだありません"
+  },
+  "conversations": {
+    "kinds": {
+      "courtship": "初めての出会い",
+      "bonded": "パートナーとの会話",
+      "farewell": "別れ",
+      "chat": "雑談",
+      "gossip": "噂話",
+      "excited": "興奮を分かち合う",
+      "argue": "口論"
+    },
+    "relPartner": "♥ パートナー",
+    "relFriend": "友人",
+    "relTrusts": "信頼",
+    "relWary": "警戒",
+    "day": "{day}日目",
+    "title": "{name}の会話",
+    "heading": "会話",
+    "close": "閉じる",
+    "filterAll": "すべて",
+    "loading": "{name}の会話を読み込み中…",
+    "drawn": "{name}は誰かに惹かれています - 最初の会話がもうすぐ始まります",
+    "noneYet": "{name}はまだ誰とも話していません",
+    "noneOfKind": "{kind}の会話はありません"
+  },
+  "notable": {
+    "title": "注目",
+    "heading": "注目の生物",
+    "alive": "{count} 体が生存 · 下から基準を選択",
+    "close": "閉じる",
+    "empty": "この基準に当てはまる生物はまだいません",
+    "gen": "世代 {gen}",
+    "oldest": "最年長",
+    "days": "{count} 日",
+    "children": "子どもが最も多い",
+    "childrenCount": "子ども {count} 人",
+    "friends": "最も人脈が広い",
+    "friendsCount": "友人 {count} 人",
+    "wealth": "最も裕福",
+    "coin": "{count} 枚",
+    "discoveries": "最も博識（発見）",
+    "discoveriesCount": "発見 {count} 件",
+    "literate": "最も識字率が高い",
+    "literacy": "識字率 {percent}%",
+    "devout": "最も信心深い",
+    "piety": "信心 {percent}%",
+    "joy": "今いちばん喜びに満ちている",
+    "joyTicks": "喜び {count} tick",
+    "grief": "最も深い悲しみを抱えている",
+    "griefTicks": "悲しみ {count} tick",
+    "aspiration": "人生の目標がある"
+  },
+  "orgSearch": {
+    "title": "生物",
+    "heading": "生物",
+    "summary": "表示 {shown} · 生存 {alive} · 死亡 {dead}",
+    "close": "閉じる",
+    "placeholder": "名前、思考、系譜 ID で検索…",
+    "statusAll": "すべて",
+    "statusAlive": "生存",
+    "statusDead": "死亡",
+    "fire": "火",
+    "shelter": "住居",
+    "allTribes": "すべての部族",
+    "empty": "一致する生物はいません",
+    "genAge": "世代{gen} · {days}日",
+    "track": "世界で追跡",
+    "back": "← すべての生物",
+    "placeholderDetail": "← 生物を選ぶと詳細を表示します"
+  },
+  "stats": {
+    "title": "統計",
+    "heading": "統計",
+    "yearDay": "{year} 年 · {day} 日目",
+    "day": "{day}日目",
+    "aliveCount": "生存 {count}",
+    "reload": "現在の世界から再読み込み",
+    "close": "閉じる",
+    "alive": "生存",
+    "totalDeaths": "死亡の合計",
+    "totalBirths": "出生の合計",
+    "daysElapsed": "経過日数",
+    "knowFire": "火を知っている",
+    "haveShelter": "住居を持つ",
+    "animals": "動物",
+    "populationOverTime": "人口の推移",
+    "birthsDeathsByYear": "年ごとの出生と死亡",
+    "wealthGapByYear": "年ごとの富の格差",
+    "agePyramid": "年齢ピラミッド",
+    "populationTraits": "人口の特性",
+    "tribalRelations": "部族間の関係",
+    "discoveryRollup": "発見の集計",
+    "legends": "伝説",
+    "generationsAlive": "生存している世代",
+    "oldestLiving": "存命の最年長",
+    "longevity": "寿命",
+    "noOldAgeDeaths": "まだ老衰で亡くなった者はいません",
+    "causesOfDeath": "死因",
+    "causes": {
+      "starvation": "飢餓",
+      "dehydration": "脱水",
+      "sickness": "病気",
+      "combat": "戦闘",
+      "oldAge": "老衰",
+      "droughts": "干ばつ",
+      "outbreaks": "流行"
+    },
+    "bondsFamily": "絆と家族",
+    "notableOrganisms": "注目の生物",
+    "discoveryLog": "発見の記録",
+    "worldEras": "世界の時代",
+    "dayShort": "{day}日",
+    "accumulating": "データを蓄積中…",
+    "firstYear": "最初の年はまだ進行中…",
+    "birthsDeathsAria": "年ごとの出生と死亡",
+    "yearBorn": "{year}年: 出生 {count}",
+    "yearDied": "{year}年: 死亡 {count}",
+    "wealthGapAria": "年ごとの平均的な富の格差",
+    "stark": "極端",
+    "yearWealth": "{year}年: {word}（{value}）",
+    "noLegends": "まだ伝説はありません",
+    "noContacts": "部族間の接触はまだありません",
+    "versus": "{a} 対 {b}",
+    "noDiscoveries": "まだ発見はありません",
+    "traits": {
+      "curiosity": "好奇心",
+      "fear": "恐れ",
+      "socialTendency": "社交性",
+      "resilience": "回復力",
+      "aggression": "攻撃性",
+      "memoryStrength": "記憶力"
+    },
+    "nobodyAlive": "生存者はいません",
+    "gen": "世代 {gen}",
+    "ageDays": {
+      "one": "生後 {count} 日",
+      "other": "生後 {count} 日"
+    },
+    "notable": {
+      "oldest": "最年長",
+      "parents": "両親",
+      "deepestGen": "最も深い世代",
+      "days": "· {days}日",
+      "kids": "· 子ども {count} 人",
+      "gen": "· 世代{gen}"
+    }
+  },
+  "tree": {
+    "title": "家系図",
+    "heading": "家系図",
+    "summary": "生存 {alive} · 祖先 {ancestors} · 世代 {generations}",
+    "reload": "現在の世界から再読み込み",
+    "close": "閉じる",
+    "generation": "世代 {gen}",
+    "ageGen": "{days}日 · 世代{gen}",
+    "gen": "世代 {gen}",
+    "days": "{days}日",
+    "bonded": "絆あり",
+    "father": "父: {name}",
+    "children": "子ども {count} 人",
+    "hint": "スクロールで拡大 · ドラッグで移動 · ノードにカーソルを合わせると情報を表示 ·",
+    "bondedPair": "絆で結ばれた二人",
+    "fitAllTitle": "すべての世代を表示",
+    "fitAliveTitle": "生存している生物だけに合わせる",
+    "fitAll": "全体表示",
+    "fitAlive": "生存者を表示",
+    "legendFire": "火",
+    "legendShelter": "住居",
+    "legendDeceased": "死亡",
+    "legendBonded": "絆",
+    "legendMother": "母",
+    "legendFather": "父",
+    "legendInfidelity": "不貞"
+  },
+  "language": {
+    "title": "世界の言語",
+    "heading": "世界の言語",
+    "reload": "現在の世界から再読み込み",
+    "close": "閉じる",
+    "intro": "各系譜は独自の言葉を育てます。言葉は世代を経て変化し、接触によって広がります。",
+    "sexWords": "二つの種類を表す言葉:",
+    "sexNote": "(創始の世代が生み出した)",
+    "placeholder": "{count} 個の概念や造語を検索…",
+    "matches": {
+      "one": "{count} 件一致",
+      "other": "{count} 件一致"
+    },
+    "concept": "概念",
+    "noMatch": "「{query}」に一致する概念はありません",
+    "sections": {
+      "coreSurvival": "生存の基本",
+      "skyWeather": "空と天気",
+      "landWater": "陸と水",
+      "bodyVital": "身体と生命の状態",
+      "emotions": "感情",
+      "kinRoles": "親族と役割",
+      "socialActs": "社会的な行為",
+      "motionAction": "動きと行動",
+      "qualitiesRelations": "性質と関係",
+      "toolsResources": "道具と資源",
+      "bodySenses": "身体と感覚",
+      "familyLife": "家族と人生の出来事",
+      "animals": "動物",
+      "terrain": "地形",
+      "weatherSky": "天候と空のできごと",
+      "materials": "素材",
+      "abstract": "抽象",
+      "moreActs": "その他の行為",
+      "quantity": "数量",
+      "colours": "色",
+      "plants": "植物",
+      "finerTime": "細かい時間",
+      "directions": "方角",
+      "sounds": "音",
+      "finerFeelings": "細かい感情",
+      "socialStructures": "社会の仕組み",
+      "bodyActions": "身体の動作",
+      "languageMeaning": "言語と意味",
+      "physicalQualities": "身体的な性質"
+    }
+  }
+}

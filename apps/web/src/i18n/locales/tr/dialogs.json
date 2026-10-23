@@ -1,1 +1,542 @@
-{}
+{
+  "confirm": {
+    "cancel": "vazgeç",
+    "confirm": "onayla",
+    "ok": "tamam"
+  },
+  "welcome": {
+    "quickTour": "Hızlı tur",
+    "back": "Geri",
+    "skip": "Atla",
+    "start": "Başla",
+    "next": "İleri",
+    "localTitle": "Onların tanrısı sensin",
+    "localBody": "Küçük kabileler kendi başlarına yaşar, sever, inşa eder ve savaşa girer. Sıkıntı geldiğinde sana dua eder: bir dua balonuna tıkla, işine yarayacak güç senin elinde olur. Her şey bu cihazda çalışır ve kaydedilir."
+  },
+  "worlds": {
+    "introArchives": "Dünya arşivlerin bu bilgisayarda kaydedilir.",
+    "introPrivate": "Özel dünyan bu tarayıcıda yaşar ve hiçbir zaman barındırılan bir simülasyon sunucusuna bağlanmaz."
+  },
+  "about": {
+    "title": "Hakkında",
+    "heading": "HAKKINDA",
+    "close": "Kapat",
+    "unknown": "bilinmiyor",
+    "blurb": "The Human Box; yiyecek arayan, bağ kuran, dil geliştirip çocuklarına aktaran küçük ajanlardan oluşan canlı bir simülasyondur. GitHub'da açık kaynaklıdır.",
+    "frontend": "ÖN YÜZ",
+    "commit": "commit",
+    "built": "derleme",
+    "simulation": "SİMÜLASYON",
+    "runtime": "çalışma zamanı",
+    "runtimeLocal": "yerel tarayıcı · çevrimdışı",
+    "versionError": "simülasyonun /version adresine ulaşılamadı: {error}",
+    "loading": "yükleniyor…",
+    "name": "ad",
+    "builtWith": "KULLANILAN ARAÇLAR",
+    "engineDetail": "React öncelikli 2B tarayıcı oyun motoru. Dünya tuvali, kamera, girdi işleme ve WebGL hattının tamamı bunun üzerinde çalışır.",
+    "links": "BAĞLANTILAR"
+  },
+  "achievements": {
+    "title": "Başarımlar",
+    "heading": "BAŞARIMLAR",
+    "earned": "{earned} / {total} kazanıldı"
+  },
+  "lineages": {
+    "title": "Tüm soy hatları",
+    "heading": "TÜM SOY HATLARI ({count})",
+    "close": "Kapat",
+    "onBrink": "Uçurumun kenarında: {remaining}, {reason}",
+    "generation": "k{gen}",
+    "generationRange": "–{gen}"
+  },
+  "chronicles": {
+    "title": "Kronikler",
+    "heading": "KRONİKLER",
+    "tabHistory": "Dünya tarihi",
+    "tabLives": "Hayatlar",
+    "close": "Kapat",
+    "historyIntro": "Bu dünyanın büyük dönemeçleri — çağlar, savaşlar, hanedanlar ve harikalar.",
+    "noHistory": "Henüz dikkate değer bir olay yok. Hikâye yeni başlıyor.",
+    "day": "gün {day}",
+    "livesIntro": "Dünyanın sakinleri tarafından anlatılan hikâyeler, yaşandıkları zamana göre sıralanmış.",
+    "noLives": "Henüz hikâye yok. Hikâyeler, canlılar tam bir gün döngüsünü tamamladığında belirir."
+  },
+  "goals": {
+    "title": "Hedefler",
+    "heading": "HEDEFLER",
+    "lost": "Hayatta kimse kalmadı.",
+    "difficulty": "Zorluk: {notes}",
+    "difficultyGroup": "Zorluk",
+    "levels": {
+      "calm": "sakin",
+      "normal": "normal",
+      "harsh": "sert"
+    }
+  },
+  "scenarios": {
+    "title": "Senaryolar",
+    "heading": "SENARYOLAR",
+    "intro": "Her senaryo, izlediğin dünyaya bir şey ekler. Yeni bir dünya başlatmaz.",
+    "start": "başlat"
+  },
+  "civ": {
+    "title": "Uygarlık",
+    "close": "Kapat",
+    "common": {
+      "people": "{count} kişi",
+      "more": "+{count} daha",
+      "tick": "tik {tick}"
+    },
+    "calendar": {
+      "year": "yıl",
+      "day": "gün {day} / 84",
+      "lit": "%{percent} aydınlık",
+      "season": "mevsim",
+      "worldTech": "dünya teknolojisi"
+    },
+    "lineages": {
+      "heading": "Soy hatları",
+      "name": "Ad",
+      "era": "Soy hattı çağı",
+      "pop": "Nüfus",
+      "next": "Sonraki",
+      "gov": "Yönetim",
+      "currency": "Para birimi",
+      "actions": "Eylemler",
+      "worldPopulation": "dünya nüfusu {current}/{required}",
+      "missing": "eksik: {items}",
+      "tavern": "meyhane"
+    },
+    "campaigns": {
+      "kicker": "Oyuncu yönlendirmesi",
+      "heading": "Soy hattı kampanyaları",
+      "help": "Soy hatları yine kendi eylemlerini seçer; hedefle uyumlu başarılı eylemler hedefi tamamlar.",
+      "completed": "tamamlandı",
+      "awaiting": "yönlendirme bekleniyor",
+      "focusOn": "odak: {strategy}",
+      "aligned": "{progress}/{target} uyumlu eylem",
+      "rewardEarned": "ödül kazanıldı",
+      "ticksLeft": "{ticks} tik kaldı",
+      "progressAria": "{lineage} soy hattının {strategy} kampanyası",
+      "reward": "Ödül: {reward}",
+      "defaultReward": "soy hattı morali",
+      "choose": "Bu soy hattına görünür bir hedef ve tamamlama ödülü vermek için yumuşak bir amaç seçin.",
+      "guideAria": "{lineage} soy hattını yönlendir",
+      "change": "kampanyayı değiştir…",
+      "start": "kampanyayı başlat…"
+    },
+    "guidance": {
+      "hunt": {
+        "label": "besin güvencesi",
+        "description": "avcıları iz sürmeye, tuzak kurmaya ve yiyecek getirmeye odakla",
+        "reward": "her yaşayan üye için yiyecek rezervi"
+      },
+      "explore": {
+        "label": "keşfet",
+        "description": "bilinmeyen arazilere ilerle ve yeni keşifler üzerinde hareket et",
+        "reward": "yol haritaları ve merak artışı"
+      },
+      "settle": {
+        "label": "yerleş ve inşa et",
+        "description": "malzeme topla, güvenle dinlen ve yerleşimi genişlet",
+        "reward": "ortak odun ve taş rezervleri"
+      },
+      "trade": {
+        "label": "ticaret",
+        "description": "alışverişler, pazarlar ve yabancı ticaret ortakları ara",
+        "reward": "soy hattı için ortak zenginlik"
+      },
+      "defend": {
+        "label": "savun",
+        "description": "alarm çal, toprağı tahkim et ve savunmasız akrabaları koru",
+        "reward": "yenilenmiş sağlık, cesaret ve moral"
+      },
+      "guiding": "yönlendiriliyor…",
+      "started": "{strategy} kampanyası başladı",
+      "rejected": "yönlendirme reddedildi",
+      "unavailable": "yönlendirme kullanılamıyor"
+    },
+    "redirect": {
+      "title": "Kampanya değiştirilsin mi?",
+      "body": "{lineage} soy hattını {from} kampanyasından {to} kampanyasına yönlendir.\n\nMevcut kampanyanın ilerlemesi arşivlenir.",
+      "confirm": "yönlendir"
+    },
+    "history": {
+      "title": "Son kampanyalar",
+      "showRecent": "son olanları göster",
+      "showAll": "tümünü göster ({count})",
+      "lineageEnded": "soy hattı sona erdi",
+      "tick": "t{tick}"
+    },
+    "governments": {
+      "heading": "Yönetimler ve liderler",
+      "empty": "Henüz yönetim yok",
+      "leader": "lider: {name}",
+      "treasury": "hazine: {amount}"
+    },
+    "religions": {
+      "heading": "Dinler",
+      "empty": "Henüz hiçbir din kurulmadı",
+      "adherents": "{count} inanan",
+      "foundedBy": "kuran: {lineage}",
+      "enterTemple": "tapınağa gir →",
+      "templeUnavailable": "tapınak kullanılamıyor"
+    },
+    "conflicts": {
+      "heading": "Çatışmalar",
+      "empty": "Henüz savaş yok",
+      "versus": "{attackers} karşı {defenders}",
+      "won": "{side} kazandı",
+      "stalemate": "berabere",
+      "ended": "bitti",
+      "ongoing": "devam ediyor"
+    },
+    "diplomacy": {
+      "heading": "Diplomasi",
+      "empty": "Henüz antlaşma yok",
+      "pair": "{a} ve {b}",
+      "treaty": "antlaşma"
+    },
+    "buildings": {
+      "heading": "Yapılar",
+      "empty": "Henüz hiçbir şey inşa edilmedi"
+    },
+    "settlements": {
+      "heading": "Yerleşimler",
+      "empty": "Henüz kalıcı yerleşim yok",
+      "completedBuildings": "{count} tamamlanmış yapı",
+      "capacity": "kapasite {count}"
+    },
+    "agriculture": {
+      "heading": "Tarım",
+      "empty": "Henüz hiçbir tarla sürülmedi",
+      "growing": "büyüyen: {count}",
+      "harvestReady": "hasada hazır: {count}",
+      "fallow": "nadas: {count}",
+      "projectedFood": "tahmini yiyecek: {count}",
+      "fields": {
+        "one": "{crop}: {count} tarla",
+        "other": "{crop}: {count} tarla"
+      }
+    },
+    "goods": {
+      "heading": "Dolaşımdaki mallar",
+      "empty": "Henüz üretilmiş mal yok",
+      "byLineage": "soy hattına göre:",
+      "held": "{count} adet"
+    },
+    "books": {
+      "heading": "Son kitaplar",
+      "empty": "Henüz kitap yazılmadı",
+      "on": "{author}: {topic} üzerine",
+      "copies": "{count} kopya"
+    },
+    "artworks": {
+      "heading": "Sanat eserleri",
+      "empty": "Henüz bir şey yapılmadı",
+      "by": "{name} tarafından"
+    },
+    "trade": {
+      "heading": "Ticaret ağı",
+      "empty": "Henüz rota yok — Demir Çağı tüccarları iki kurulu yerleşim, para birimi, navigasyon ve bir ticaret alanı gerektirir.",
+      "routes": {
+        "one": "{count} rota",
+        "other": "{count} rota"
+      },
+      "caravans": {
+        "one": "yolda {count} kervan",
+        "other": "yolda {count} kervan"
+      },
+      "totals": "{deliveries} teslimat · {volume} mal taşındı",
+      "routeStats": "{distance} kare · {delivered} teslim edildi · {volume} hacim",
+      "enRoute": "yolda {count}",
+      "readyToUnload": "boşaltmaya hazır",
+      "ticksAway": "{ticks} tik uzakta"
+    },
+    "tradeLog": {
+      "heading": "Son ticaretler",
+      "empty": "Henüz ticaret yok (takas veya para birimi gerekir)",
+      "coins": {
+        "one": "{count} sikke",
+        "other": "{count} sikke"
+      }
+    },
+    "headlines": {
+      "heading": "Manşetler",
+      "empty": "Henüz dikkate değer bir olay yok"
+    }
+  },
+  "toast": {
+    "dismiss": "Kapat",
+    "desktopTitle": "The Human Box'ı yerel olarak çalıştır",
+    "desktopSub": "Paylaşılan gecikme olmadan kendi özel dünyan. Ücretsiz.",
+    "copy": "kopyala",
+    "copied": "kopyalandı",
+    "download": "İndir",
+    "notNow": "Şimdi değil",
+    "updateReady": "Yüklemeye hazır güncelleme",
+    "updateAvailable": "Güncelleme var",
+    "updateReadySub": "v{version} indirildi — uygulamak için yeniden başlat",
+    "updateDownloading": "v{version} indiriliyor…",
+    "updateFailed": "güncelleme başarısız: {message}",
+    "updateNotReady": "güncelleme henüz hazır değil",
+    "restartFailed": "güncelleyici yeniden başlatılamadı",
+    "restartTitle": "The Human Box'ı yeniden başlat ve indirilen güncellemeyi yükle",
+    "restarting": "yeniden başlatılıyor…",
+    "restart": "yeniden başlat",
+    "newVersion": "Yeni sürüm var",
+    "newVersionSub": "en son dünyayı yüklemek için yenile",
+    "refreshing": "yenileniyor…",
+    "refresh": "Yenile",
+    "checkpointFailed": "mevcut dünya kaydedilemedi; güncelleme yenilemesi güvenli şekilde iptal edildi",
+    "starTitle": "Dünyandan memnun musun?",
+    "starSub": "The Human Box ücretsiz ve açık kaynaklıdır. GitHub'da yıldız vermek, başkalarının onu bulmasına yardımcı olur.",
+    "starCta": "GitHub'da yıldız ver",
+    "starLater": "Belki sonra"
+  },
+  "life": {
+    "title": "{name}'in hayatı",
+    "heading": "{name}'İN HAYATI",
+    "close": "Kapat",
+    "day": "gün {day}",
+    "failed": "yüklenemedi",
+    "gen": "kuşak {gen}",
+    "age": {
+      "one": "{count} günlük",
+      "other": "{count} günlük"
+    },
+    "elder": "yaşlı",
+    "partnered": "eşli",
+    "children": {
+      "one": "{count} çocuk",
+      "other": "{count} çocuk"
+    },
+    "feeling": "duygu",
+    "friends": "arkadaşlar",
+    "discoveries": "keşifler",
+    "memories": "aklında tuttukları ({count})",
+    "events": "yaşam olayları ({count})",
+    "stuck": "⚠ bu canlı takılı kaldı: art arda {count} kez aynı eylem",
+    "noEvents": "henüz kaydedilmiş olay yok"
+  },
+  "conversations": {
+    "kinds": {
+      "courtship": "İlk tanışma",
+      "bonded": "Eşler konuşuyor",
+      "farewell": "Veda",
+      "chat": "Sohbet",
+      "gossip": "Dedikodu",
+      "excited": "Heyecanını paylaşıyor",
+      "argue": "Tartışma"
+    },
+    "relPartner": "♥ eş",
+    "relFriend": "arkadaş",
+    "relTrusts": "güveniyor",
+    "relWary": "temkinli",
+    "day": "gün {day}",
+    "title": "{name} kişisinin konuşmaları",
+    "heading": "KONUŞMALAR",
+    "close": "Kapat",
+    "filterAll": "tümü",
+    "loading": "{name} kişisinin konuşmaları yükleniyor…",
+    "drawn": "{name} birine çekiliyor - ilk konuşma yolda",
+    "noneYet": "{name} henüz kimseyle konuşmadı",
+    "noneOfKind": "{kind} konuşması yok"
+  },
+  "notable": {
+    "title": "Dikkate değerler",
+    "heading": "DİKKATE DEĞER CANLILAR",
+    "alive": "{count} hayatta · aşağıdan bir bakış açısı seç",
+    "close": "Kapat",
+    "empty": "Bu bakış açısına henüz kimse uymuyor",
+    "gen": "kuşak {gen}",
+    "oldest": "Aramızdaki en yaşlı",
+    "days": "{count} gün",
+    "children": "En çok çocuğu olan",
+    "childrenCount": "{count} çocuk",
+    "friends": "En çok bağlantısı olan",
+    "friendsCount": "{count} arkadaş",
+    "wealth": "En zengin",
+    "coin": "{count} sikke",
+    "discoveries": "En çok öğrenen (keşifler)",
+    "discoveriesCount": "{count} keşif",
+    "literate": "En okuryazar",
+    "literacy": "%{percent} okuryazar",
+    "devout": "En dindar",
+    "piety": "%{percent} dindarlık",
+    "joy": "Şu anda en neşeli",
+    "joyTicks": "{count} neşe tiki",
+    "grief": "En derin yası taşıyan",
+    "griefTicks": "{count} yas tiki",
+    "aspiration": "Bir yaşam amacı var"
+  },
+  "orgSearch": {
+    "title": "Canlılar",
+    "heading": "CANLILAR",
+    "summary": "{shown} gösteriliyor · {alive} hayatta · {dead} ölü",
+    "close": "Kapat",
+    "placeholder": "ada, düşünceye veya soy hattı kimliğine göre ara…",
+    "statusAll": "tümü",
+    "statusAlive": "hayatta",
+    "statusDead": "ölü",
+    "fire": "ateş",
+    "shelter": "barınak",
+    "allTribes": "tüm kabileler",
+    "empty": "Eşleşen canlı yok",
+    "genAge": "k{gen} · {days}g",
+    "track": "dünyada takip et",
+    "back": "← tüm canlılar",
+    "placeholderDetail": "← ayrıntıları görmek için bir canlı seç"
+  },
+  "stats": {
+    "title": "İstatistikler",
+    "heading": "İSTATİSTİKLER",
+    "yearDay": "yıl {year} · gün {day}",
+    "day": "gün {day}",
+    "aliveCount": "{count} hayatta",
+    "reload": "Mevcut dünyadan yeniden yükle",
+    "close": "Kapat",
+    "alive": "hayatta",
+    "totalDeaths": "toplam ölüm",
+    "totalBirths": "toplam doğum",
+    "daysElapsed": "geçen gün",
+    "knowFire": "ateşi biliyor",
+    "haveShelter": "barınağı var",
+    "animals": "hayvanlar",
+    "populationOverTime": "ZAMANA GÖRE NÜFUS",
+    "birthsDeathsByYear": "YILA GÖRE DOĞUM VE ÖLÜMLER",
+    "wealthGapByYear": "YILA GÖRE SERVET FARKI",
+    "agePyramid": "YAŞ PİRAMİDİ",
+    "populationTraits": "NÜFUS ÖZELLİKLERİ",
+    "tribalRelations": "KABİLELER ARASI İLİŞKİLER",
+    "discoveryRollup": "KEŞİF ÖZETİ",
+    "legends": "EFSANELER",
+    "generationsAlive": "HAYATTA OLAN KUŞAKLAR",
+    "oldestLiving": "EN YAŞLI HAYATTAKİLER",
+    "longevity": "UZUN ÖMÜRLÜLÜK",
+    "noOldAgeDeaths": "Henüz kimse yaşlılıktan ölmedi",
+    "causesOfDeath": "ÖLÜM NEDENLERİ",
+    "causes": {
+      "starvation": "açlık",
+      "dehydration": "susuzluk",
+      "sickness": "hastalık",
+      "combat": "çatışma",
+      "oldAge": "yaşlılık",
+      "droughts": "kuraklık",
+      "outbreaks": "salgın"
+    },
+    "bondsFamily": "BAĞLAR VE AİLE",
+    "notableOrganisms": "DİKKATE DEĞER CANLILAR",
+    "discoveryLog": "KEŞİF GÜNLÜĞÜ",
+    "worldEras": "DÜNYA ÇAĞLARI",
+    "dayShort": "g{day}",
+    "accumulating": "veri toplanıyor…",
+    "firstYear": "ilk yıl hâlâ dönüyor…",
+    "birthsDeathsAria": "Yıla göre doğum ve ölümler",
+    "yearBorn": "yıl {year}: {count} doğum",
+    "yearDied": "yıl {year}: {count} ölüm",
+    "wealthGapAria": "Yıla göre ortalama servet farkı",
+    "stark": "keskin",
+    "yearWealth": "yıl {year}: {word} ({value})",
+    "noLegends": "Henüz efsane yok",
+    "noContacts": "Henüz kabileler arası temas yok",
+    "versus": "{a} karşı {b}",
+    "noDiscoveries": "Henüz keşif yok",
+    "traits": {
+      "curiosity": "merak",
+      "fear": "korku",
+      "socialTendency": "sosyallik eğilimi",
+      "resilience": "dayanıklılık",
+      "aggression": "saldırganlık",
+      "memoryStrength": "hafıza gücü"
+    },
+    "nobodyAlive": "hayatta kimse yok",
+    "gen": "kuşak {gen}",
+    "ageDays": {
+      "one": "{count} günlük",
+      "other": "{count} günlük"
+    },
+    "notable": {
+      "oldest": "en yaşlı",
+      "parents": "ebeveynler",
+      "deepestGen": "en derin kuşak",
+      "days": "· {days}g",
+      "kids": "· {count} çocuk",
+      "gen": "· k{gen}"
+    }
+  },
+  "tree": {
+    "title": "Aile ağacı",
+    "heading": "AİLE AĞACI",
+    "summary": "{alive} hayatta · {ancestors} ata · {generations} kuşak",
+    "reload": "Mevcut dünyadan yeniden yükle",
+    "close": "Kapat",
+    "generation": "kuşak {gen}",
+    "ageGen": "{days}g · k{gen}",
+    "gen": "k{gen}",
+    "days": "{days}g",
+    "bonded": "eşli",
+    "father": "baba: {name}",
+    "children": "{count} çocuk",
+    "hint": "yakınlaştırmak için kaydır · kaydırmak için sürükle · bilgi için bir düğümün üzerine gel ·",
+    "bondedPair": "eşli çift",
+    "fitAllTitle": "Tüm kuşakları sığdır",
+    "fitAliveTitle": "Yalnızca hayatta olan canlıları sığdır",
+    "fitAll": "tümünü sığdır",
+    "fitAlive": "hayattakileri sığdır",
+    "legendFire": "ateş",
+    "legendShelter": "barınak",
+    "legendDeceased": "vefat eden",
+    "legendBonded": "eşli",
+    "legendMother": "anne",
+    "legendFather": "baba",
+    "legendInfidelity": "aldatma"
+  },
+  "language": {
+    "title": "Dünyanın dilleri",
+    "heading": "DÜNYANIN DİLLERİ",
+    "reload": "Mevcut dünyadan yeniden yükle",
+    "close": "Kapat",
+    "intro": "Her soy hattı kendi kelimelerini geliştirir. Kelimeler kuşaklar boyunca değişir ve temas yoluyla yayılır.",
+    "sexWords": "iki tür için kendi kelimeleri:",
+    "sexNote": "(ilk kuşak tarafından türetilmiştir)",
+    "placeholder": "{count} kavram veya türetilmiş kelime içinde ara…",
+    "matches": {
+      "one": "{count} eşleşme",
+      "other": "{count} eşleşme"
+    },
+    "concept": "kavram",
+    "noMatch": "\"{query}\" ile eşleşen kavram yok",
+    "sections": {
+      "coreSurvival": "temel hayatta kalma",
+      "skyWeather": "gök ve hava",
+      "landWater": "kara ve su",
+      "bodyVital": "beden ve hayati durumlar",
+      "emotions": "duygular",
+      "kinRoles": "akrabalar ve roller",
+      "socialActs": "sosyal eylemler",
+      "motionAction": "hareket ve eylem",
+      "qualitiesRelations": "nitelikler ve ilişkiler",
+      "toolsResources": "araçlar ve kaynaklar",
+      "bodySenses": "beden ve duyular",
+      "familyLife": "aile ve yaşam olayları",
+      "animals": "hayvanlar",
+      "terrain": "arazi",
+      "weatherSky": "hava ve gök olayları",
+      "materials": "malzemeler",
+      "abstract": "soyut",
+      "moreActs": "diğer eylemler",
+      "quantity": "miktar",
+      "colours": "renkler",
+      "plants": "bitkiler",
+      "finerTime": "daha ayrıntılı zaman",
+      "directions": "yönler",
+      "sounds": "sesler",
+      "finerFeelings": "daha ince duygular",
+      "socialStructures": "toplumsal yapılar",
+      "bodyActions": "beden eylemleri",
+      "languageMeaning": "dil ve anlam",
+      "physicalQualities": "fiziksel nitelikler"
+    }
+  }
+}

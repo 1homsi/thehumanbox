@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { achievementsFor } from '../../game/model/achievements'
 import type { WorldState } from '../../shared/types'
 import { Modal } from './Modal'
+import { formatNumber, t } from '../../i18n'
 
 interface Props {
   world: WorldState
@@ -23,11 +24,20 @@ export function AchievementsModal({ world, onClose }: Props) {
   const earned = list.filter((a) => a.unlocked).length
 
   return (
-    <Modal open onClose={onClose} className="achievements-modal" title="Achievements" hideTitle>
+    <Modal
+      open
+      onClose={onClose}
+      className="achievements-modal"
+      title={t('dialogs.achievements.title')}
+      hideTitle
+    >
       <div className="lang-modal-header">
-        <span className="lang-modal-title">ACHIEVEMENTS</span>
+        <span className="lang-modal-title">{t('dialogs.achievements.heading')}</span>
         <span className="tree-modal-sub">
-          {earned} of {list.length} earned
+          {t('dialogs.achievements.earned', {
+            earned: formatNumber(earned),
+            total: formatNumber(list.length),
+          })}
         </span>
       </div>
       <ul className="achievement-list" style={{ listStyle: 'none', padding: 0, margin: '12px 0 0' }}>

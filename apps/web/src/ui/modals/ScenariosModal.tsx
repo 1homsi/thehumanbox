@@ -1,5 +1,6 @@
 import { SCENARIO_PRESETS, type ScenarioPreset } from '../../simulation/scenarios'
 import { Modal } from './Modal'
+import { t } from '../../i18n'
 
 interface Props {
   onStart: (preset: ScenarioPreset) => void
@@ -9,13 +10,11 @@ interface Props {
 /** Ready-made additions to the world you are watching. Each one places people or animals and then gets out of the way. */
 export function ScenariosModal({ onStart, onClose }: Props) {
   return (
-    <Modal open onClose={onClose} className="scenarios-modal" title="Scenarios" hideTitle>
+    <Modal open onClose={onClose} className="scenarios-modal" title={t('dialogs.scenarios.title')} hideTitle>
       <div className="lang-modal-header">
-        <span className="lang-modal-title">SCENARIOS</span>
+        <span className="lang-modal-title">{t('dialogs.scenarios.heading')}</span>
       </div>
-      <p className="tree-modal-sub">
-        Each scenario adds to the world you are watching. It does not start a new world.
-      </p>
+      <p className="tree-modal-sub">{t('dialogs.scenarios.intro')}</p>
       <ul className="scenario-list" style={{ listStyle: 'none', padding: 0, margin: '12px 0 0' }}>
         {SCENARIO_PRESETS.map((preset) => (
           <li
@@ -33,7 +32,7 @@ export function ScenariosModal({ onStart, onClose }: Props) {
               <span className="tree-modal-sub">{preset.detail}</span>
             </span>
             <button type="button" className="tree-zoom-btn" onClick={() => onStart(preset)}>
-              start
+              {t('dialogs.scenarios.start')}
             </button>
           </li>
         ))}

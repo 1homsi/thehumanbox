@@ -6,6 +6,7 @@ import { lineageColor } from '../../shared/constants'
 import { useOrgConversations } from '../../shared/hooks/useOrgConversations'
 import { WithQueryClient } from '../../shared/query'
 import { Modal } from './Modal'
+import { formatNumber, t, type MessageKey } from '../../i18n'
 
 const DAY_LENGTH = 600
 
@@ -16,18 +17,21 @@ interface Props {
   onClose: () => void
 }
 
-const KIND_META: Record<string, { icon: string; label: string; color: string }> = {
-  courtship: { icon: '💛', label: 'First meeting', color: '#d4a843' },
-  bonded: { icon: '♥', label: 'Partners talking', color: '#c07090' },
-  farewell: { icon: '✦', label: 'Farewell', color: '#778' },
-  chat: { icon: '💬', label: 'Casual chat', color: '#5b9' },
-  gossip: { icon: '🗣', label: 'Gossip', color: '#b98ad0' },
-  excited: { icon: '✨', label: 'Sharing excitement', color: '#7bbbff' },
-  argue: { icon: '⚡', label: 'Argument', color: '#e06030' },
+const KIND_META: Record<string, { icon: string; label: MessageKey; color: string }> = {
+  courtship: { icon: '💛', label: 'dialogs.conversations.kinds.courtship', color: '#d4a843' },
+  bonded: { icon: '♥', label: 'dialogs.conversations.kinds.bonded', color: '#c07090' },
+  farewell: { icon: '✦', label: 'dialogs.conversations.kinds.farewell', color: '#778' },
+  chat: { icon: '💬', label: 'dialogs.conversations.kinds.chat', color: '#5b9' },
+  gossip: { icon: '🗣', label: 'dialogs.conversations.kinds.gossip', color: '#b98ad0' },
+  excited: { icon: '✨', label: 'dialogs.conversations.kinds.excited', color: '#7bbbff' },
+  argue: { icon: '⚡', label: 'dialogs.conversations.kinds.argue', color: '#e06030' },
 }
 
-function kindMeta(kind: string) {
-  return KIND_META[kind] ?? { icon: '💬', label: kind, color: '#666' }
+function kindMeta(kind: string): { icon: string; label: string; color: string } {
+  const meta = KIND_META[kind]
+  return meta
+    ? { icon: meta.icon, label: t(meta.label), color: meta.color }
+    : { icon: '💬', label: kind, color: '#666' }
 }
 
 const ConvoBlock = memo(function ConvoBlock({
@@ -47,13 +51,13 @@ const ConvoBlock = memo(function ConvoBlock({
   const trust = selfOrg.org_trust?.[entry.with_id] ?? 0
   const rel =
     selfOrg.partner_id === entry.with_id
-      ? { text: '♥ partner', color: '#c07090' }
+      ? { text: t('dialogs.conversations.relPartner'), color: '#c07090' }
       : selfOrg.friends?.[entry.with_id]
-        ? { text: 'friend', color: '#5b9' }
+        ? { text: t('dialogs.conversations.relFriend'), color: '#5b9' }
         : trust > 0.25
-          ? { text: 'trusts', color: '#7bbbff' }
+          ? { text: t('dialogs.conversations.relTrusts'), color: '#7bbbff' }
           : trust < -0.25
-            ? { text: 'wary', color: '#e06030' }
+            ? { text: t('dialogs.conversations.relWary'), color: '#e06030' }
             : null
 
   return (
@@ -83,7 +87,7 @@ const ConvoBlock = memo(function ConvoBlock({
             {rel.text}
           </span>
         )}
-        <span className="cv-day">day {day}</span>
+        <span className="cv-day">{t('dialogs.conversations.day', { day: formatNumber(day) })}</span>
       </div>
 
       {}
@@ -134,12 +138,12 @@ function ConversationsModalBody({ org, allOrgs, sexWords, onClose }: Props) {
       open
       onClose={onClose}
       className="cv-modal"
-      title={`Conversations of ${personName(org)}`}
+      title={t('dialogs.conversations.title', { name: personName(org) })}
       hideTitle
     >
       {}
       <div className="cv-modal-head">
-        <span className="cv-modal-title">CONVERSATIONS</span>
+        <span className="cv-modal-title">{t('dialogs.conversations.heading')}</span>
         <div className="cv-modal-who">
           <span style={{ color: lineageColor(org.lineage_id), fontWeight: 700 }}>{personName(org)}</span>
           {sexLabel && (
@@ -153,7 +157,7 @@ function ConversationsModalBody({ org, allOrgs, sexWords, onClose }: Props) {
             </span>
           )}
         </div>
-        <button aria-label="Close" className="close-btn" onClick={onClose}>
+        <button aria-label={t('dialogs.conversations.close')} className="close-btn" onClick={onClose}>
           ✕
         </button>
       </div>
@@ -169,7 +173,10 @@ function ConversationsModalBody({ org, allOrgs, sexWords, onClose }: Props) {
             const count = k === 'all' ? allConvos.length : (kindCounts[k] ?? 0)
             if (k !== 'all' && count === 0) return null
             const isActive = kindFilter === k
-            const meta = k === 'all' ? { icon: '∗', label: 'all', color: '#999' } : kindMeta(k)
+            const meta =
+              k === 'all'
+                ? { icon: '∗', label: t('dialogs.conversations.filterAll'), color: '#999' }
+                : kindMeta(k)
             return (
               <button
                 key={k}
@@ -200,7 +207,7 @@ function ConversationsModalBody({ org, allOrgs, sexWords, onClose }: Props) {
               •••
             </div>
             <div style={{ fontSize: 11, fontStyle: 'italic', color: '#555', textAlign: 'center' }}>
-              loading {personName(org)}'s conversations…
+              {t('dialogs.conversations.loading', { name: personName(org) })}
             </div>
           </div>
         ) : filteredConvos.length === 0 ? (
@@ -209,9 +216,9 @@ function ConversationsModalBody({ org, allOrgs, sexWords, onClose }: Props) {
             <div style={{ fontSize: 11, fontStyle: 'italic', color: '#555', textAlign: 'center' }}>
               {allConvos.length === 0
                 ? org.attracted_to
-                  ? `${personName(org)} is drawn to someone - a first conversation is coming`
-                  : `${personName(org)} hasn't spoken with anyone yet`
-                : `no ${kindFilter} conversations`}
+                  ? t('dialogs.conversations.drawn', { name: personName(org) })
+                  : t('dialogs.conversations.noneYet', { name: personName(org) })
+                : t('dialogs.conversations.noneOfKind', { kind: kindFilter })}
             </div>
           </div>
         ) : (

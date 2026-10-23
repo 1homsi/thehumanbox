@@ -4,6 +4,7 @@ import { Modal } from './Modal'
 import type { OrganismState } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
 import { useUIStore } from '../../state/store'
+import { formatNumber, t, type MessageKey } from '../../i18n'
 
 const DAY_LENGTH = 600
 
@@ -26,7 +27,7 @@ interface Props {
 
 const CATEGORIES: Array<{
   id: Category
-  label: string
+  label: MessageKey
   emoji: string
   scoreOf: (o: OrganismState) => number
   format: (o: OrganismState) => string
@@ -34,79 +35,82 @@ const CATEGORIES: Array<{
 }> = [
   {
     id: 'oldest',
-    label: 'Oldest among us',
+    label: 'dialogs.notable.oldest',
     emoji: '⌛',
     scoreOf: (o) => o.age,
-    format: (o) => `${Math.floor(o.age / DAY_LENGTH)} days`,
+    format: (o) => t('dialogs.notable.days', { count: formatNumber(Math.floor(o.age / DAY_LENGTH)) }),
     filter: (o) => o.alive,
   },
   {
     id: 'children',
-    label: 'Most children',
+    label: 'dialogs.notable.children',
     emoji: '🍼',
     scoreOf: (o) => o.children_count ?? 0,
-    format: (o) => `${o.children_count ?? 0} children`,
+    format: (o) => t('dialogs.notable.childrenCount', { count: formatNumber(o.children_count ?? 0) }),
     filter: (o) => (o.children_count ?? 0) > 0,
   },
   {
     id: 'friends',
-    label: 'Best connected',
+    label: 'dialogs.notable.friends',
     emoji: '🤝',
     scoreOf: (o) => Object.keys(o.friends ?? {}).length,
-    format: (o) => `${Object.keys(o.friends ?? {}).length} friends`,
+    format: (o) =>
+      t('dialogs.notable.friendsCount', { count: formatNumber(Object.keys(o.friends ?? {}).length) }),
     filter: (o) => o.alive && Object.keys(o.friends ?? {}).length > 0,
   },
   {
     id: 'wealth',
-    label: 'Richest',
+    label: 'dialogs.notable.wealth',
     emoji: '💰',
     scoreOf: (o) => o.wealth ?? 0,
-    format: (o) => `${o.wealth ?? 0} coin`,
+    format: (o) => t('dialogs.notable.coin', { count: formatNumber(o.wealth ?? 0) }),
     filter: (o) => o.alive && (o.wealth ?? 0) > 0,
   },
   {
     id: 'discoveries',
-    label: 'Most learned (discoveries)',
+    label: 'dialogs.notable.discoveries',
     emoji: '🔎',
     scoreOf: (o) => (o.discoveries ?? []).length,
-    format: (o) => `${(o.discoveries ?? []).length} discoveries`,
+    format: (o) =>
+      t('dialogs.notable.discoveriesCount', { count: formatNumber((o.discoveries ?? []).length) }),
     filter: (o) => o.alive && (o.discoveries ?? []).length > 0,
   },
   {
     id: 'literacy',
-    label: 'Most literate',
+    label: 'dialogs.notable.literate',
     emoji: '📜',
     scoreOf: (o) => o.literacy ?? 0,
-    format: (o) => `${Math.round((o.literacy ?? 0) * 100)}% literate`,
+    format: (o) =>
+      t('dialogs.notable.literacy', { percent: formatNumber(Math.round((o.literacy ?? 0) * 100)) }),
     filter: (o) => o.alive && (o.literacy ?? 0) > 0.05,
   },
   {
     id: 'piety',
-    label: 'Most devout',
+    label: 'dialogs.notable.devout',
     emoji: '🕯️',
     scoreOf: (o) => o.piety ?? 0,
-    format: (o) => `${Math.round((o.piety ?? 0) * 100)}% piety`,
+    format: (o) => t('dialogs.notable.piety', { percent: formatNumber(Math.round((o.piety ?? 0) * 100)) }),
     filter: (o) => o.alive && (o.piety ?? 0) > 0.05,
   },
   {
     id: 'joy',
-    label: 'Most joyful right now',
+    label: 'dialogs.notable.joy',
     emoji: '☀',
     scoreOf: (o) => o.joy_ticks ?? 0,
-    format: (o) => `${o.joy_ticks} joy ticks`,
+    format: (o) => t('dialogs.notable.joyTicks', { count: formatNumber(o.joy_ticks ?? 0) }),
     filter: (o) => o.alive && (o.joy_ticks ?? 0) > 0,
   },
   {
     id: 'grief',
-    label: 'Carrying the deepest grief',
+    label: 'dialogs.notable.grief',
     emoji: '◌',
     scoreOf: (o) => o.grief_ticks ?? 0,
-    format: (o) => `${o.grief_ticks} grief ticks`,
+    format: (o) => t('dialogs.notable.griefTicks', { count: formatNumber(o.grief_ticks ?? 0) }),
     filter: (o) => o.alive && (o.grief_ticks ?? 0) > 0,
   },
   {
     id: 'aspiration',
-    label: 'Has a life aim',
+    label: 'dialogs.notable.aspiration',
     emoji: '✦',
     scoreOf: (o) => o.age,
     format: (o) => o.aspiration ?? '',
@@ -128,12 +132,14 @@ export function NotableOrgsModal({ organisms, onClose }: Props) {
   const livingCount = useMemo(() => organisms.filter((o) => o.alive).length, [organisms])
 
   return (
-    <Modal open onClose={onClose} className="notable-modal" title="Notable" hideTitle>
+    <Modal open onClose={onClose} className="notable-modal" title={t('dialogs.notable.title')} hideTitle>
       <div className="lang-modal-header">
-        <span className="lang-modal-title">NOTABLE ORGANISMS</span>
-        <span className="tree-modal-sub">{livingCount} alive · pick a lens below</span>
+        <span className="lang-modal-title">{t('dialogs.notable.heading')}</span>
+        <span className="tree-modal-sub">
+          {t('dialogs.notable.alive', { count: formatNumber(livingCount) })}
+        </span>
         <div className="modal-header-actions">
-          <button aria-label="Close" className="close-btn" onClick={onClose}>
+          <button aria-label={t('dialogs.notable.close')} className="close-btn" onClick={onClose}>
             ✕
           </button>
         </div>
@@ -165,7 +171,7 @@ export function NotableOrgsModal({ organisms, onClose }: Props) {
                 letterSpacing: '0.03em',
               }}
             >
-              {cat.emoji} {cat.label}
+              {cat.emoji} {t(cat.label)}
             </button>
           )
         })}
@@ -174,7 +180,7 @@ export function NotableOrgsModal({ organisms, onClose }: Props) {
       <div style={{ overflowY: 'auto', maxHeight: 'calc(80vh - 140px)', padding: '8px 12px' }}>
         {rows.length === 0 ? (
           <div style={{ color: '#555', fontStyle: 'italic', textAlign: 'center', padding: 40 }}>
-            no one fits this lens yet
+            {t('dialogs.notable.empty')}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -230,7 +236,9 @@ export function NotableOrgsModal({ organisms, onClose }: Props) {
                         {r.org.sex === 'female' ? '♀' : '♂'}
                       </span>
                     )}
-                    <span style={{ color: '#555', marginLeft: 8, fontSize: 10 }}>gen {r.org.generation}</span>
+                    <span style={{ color: '#555', marginLeft: 8, fontSize: 10 }}>
+                      {t('dialogs.notable.gen', { gen: r.org.generation })}
+                    </span>
                     {!r.org.alive && <span style={{ color: '#444', marginLeft: 6 }}>†</span>}
                   </span>
                   <span style={{ color: '#9a8870', fontSize: 11, fontFamily: 'monospace' }}>{r.label}</span>

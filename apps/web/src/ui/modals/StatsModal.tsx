@@ -16,6 +16,7 @@ import { TraitAverages } from './stats/TraitAverages'
 import { DiscoveryRollup } from './stats/DiscoveryRollup'
 import { BondStats } from './stats/BondStats'
 import { NotableOrgs } from './stats/NotableOrgs'
+import { formatNumber, t } from '../../i18n'
 
 interface Props {
   world: WorldState
@@ -44,24 +45,28 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
   }, {})
 
   return (
-    <Modal open onClose={onClose} className="stats-modal" title="Stats" hideTitle>
+    <Modal open onClose={onClose} className="stats-modal" title={t('dialogs.stats.title')} hideTitle>
       <div className="lang-modal-header">
-        <span className="lang-modal-title">STATS</span>
+        <span className="lang-modal-title">{t('dialogs.stats.heading')}</span>
         <span className="tree-modal-sub">
           {world.cosmos ? (
             <>
-              year {world.cosmos.year + 1} · day {world.cosmos.day_of_year + 1} ·{' '}
+              {t('dialogs.stats.yearDay', {
+                year: formatNumber(world.cosmos.year + 1),
+                day: formatNumber(world.cosmos.day_of_year + 1),
+              })}{' '}
+              ·{' '}
             </>
           ) : (
-            <>day {currentDay} · </>
+            <>{t('dialogs.stats.day', { day: formatNumber(currentDay) })} · </>
           )}
-          {liveCount} alive
+          {t('dialogs.stats.aliveCount', { count: formatNumber(liveCount) })}
         </span>
         <div className="modal-header-actions">
-          <button className="reload-btn" onClick={reload} title="Reload from current world">
+          <button className="reload-btn" onClick={reload} title={t('dialogs.stats.reload')}>
             ⟳
           </button>
-          <button aria-label="Close" className="close-btn" onClick={onClose}>
+          <button aria-label={t('dialogs.stats.close')} className="close-btn" onClick={onClose}>
             ✕
           </button>
         </div>
@@ -70,28 +75,28 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
       <div className="stats-body">
         <div className="stats-quick">
           <div className="stats-num-card">
-            <div className="stats-num">{liveCount}</div>
-            <div className="stats-num-label">alive</div>
+            <div className="stats-num">{formatNumber(liveCount)}</div>
+            <div className="stats-num-label">{t('dialogs.stats.alive')}</div>
           </div>
           <div className="stats-num-card">
-            <div className="stats-num">{totalDeaths}</div>
-            <div className="stats-num-label">total deaths</div>
+            <div className="stats-num">{formatNumber(totalDeaths)}</div>
+            <div className="stats-num-label">{t('dialogs.stats.totalDeaths')}</div>
           </div>
           <div className="stats-num-card">
             <div className="stats-num">{world.history.births}</div>
-            <div className="stats-num-label">total births</div>
+            <div className="stats-num-label">{t('dialogs.stats.totalBirths')}</div>
           </div>
           <div className="stats-num-card">
-            <div className="stats-num">{currentDay}</div>
-            <div className="stats-num-label">days elapsed</div>
+            <div className="stats-num">{formatNumber(currentDay)}</div>
+            <div className="stats-num-label">{t('dialogs.stats.daysElapsed')}</div>
           </div>
           <div className="stats-num-card">
-            <div className="stats-num">{fireCount}</div>
-            <div className="stats-num-label">🔥 know fire</div>
+            <div className="stats-num">{formatNumber(fireCount)}</div>
+            <div className="stats-num-label">🔥 {t('dialogs.stats.knowFire')}</div>
           </div>
           <div className="stats-num-card">
-            <div className="stats-num">{shelterCount}</div>
-            <div className="stats-num-label">🏠 have shelter</div>
+            <div className="stats-num">{formatNumber(shelterCount)}</div>
+            <div className="stats-num-label">🏠 {t('dialogs.stats.haveShelter')}</div>
           </div>
           <div
             className="stats-num-card stats-num-card-wide"
@@ -100,8 +105,8 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
               .map(([k, n]) => `${kindIcon(k)} ${k}: ${n}`)
               .join('\n')}
           >
-            <div className="stats-num">{animalCount}</div>
-            <div className="stats-num-label">🦌 animals</div>
+            <div className="stats-num">{formatNumber(animalCount)}</div>
+            <div className="stats-num-label">🦌 {t('dialogs.stats.animals')}</div>
             <div className="stats-num-sub">
               {Object.entries(animalKinds)
                 .sort((a, b) => b[1] - a[1])
@@ -113,12 +118,12 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
           </div>
         </div>
 
-        <div className="stats-section-title">POPULATION OVER TIME</div>
+        <div className="stats-section-title">{t('dialogs.stats.populationOverTime')}</div>
         <div className="stats-chart-wrap">
           <PopChart history={world.pop_history ?? []} />
         </div>
 
-        <div className="stats-section-title">BIRTHS AND DEATHS BY YEAR</div>
+        <div className="stats-section-title">{t('dialogs.stats.birthsDeathsByYear')}</div>
         <div className="stats-chart-wrap">
           <YearlyChart
             births={world.history.births_by_year ?? []}
@@ -126,24 +131,24 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
           />
         </div>
 
-        <div className="stats-section-title">WEALTH GAP BY YEAR</div>
+        <div className="stats-section-title">{t('dialogs.stats.wealthGapByYear')}</div>
         <div className="stats-chart-wrap">
           <WealthGapChart values={world.history.wealth_gap_by_year ?? []} />
         </div>
 
         <div className="stats-grid">
           <section>
-            <div className="stats-section-title">AGE PYRAMID</div>
+            <div className="stats-section-title">{t('dialogs.stats.agePyramid')}</div>
             <AgePyramid organisms={world.organisms.filter((o) => o.alive)} />
           </section>
 
           <section>
-            <div className="stats-section-title">POPULATION TRAITS</div>
+            <div className="stats-section-title">{t('dialogs.stats.populationTraits')}</div>
             <TraitAverages organisms={world.organisms.filter((o) => o.alive)} />
           </section>
 
           <section>
-            <div className="stats-section-title">TRIBAL RELATIONS</div>
+            <div className="stats-section-title">{t('dialogs.stats.tribalRelations')}</div>
             <RelationsTable
               relations={world.tribal_relations ?? []}
               lineageSizes={world.lineage_sizes ?? []}
@@ -152,22 +157,22 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
           </section>
 
           <section>
-            <div className="stats-section-title">DISCOVERY ROLLUP</div>
+            <div className="stats-section-title">{t('dialogs.stats.discoveryRollup')}</div>
             <DiscoveryRollup organisms={world.organisms.filter((o) => o.alive)} />
           </section>
 
           <section>
-            <div className="stats-section-title">LEGENDS</div>
+            <div className="stats-section-title">{t('dialogs.stats.legends')}</div>
             <LegendsList events={world.events ?? []} />
           </section>
 
           <section>
-            <div className="stats-section-title">GENERATIONS ALIVE</div>
+            <div className="stats-section-title">{t('dialogs.stats.generationsAlive')}</div>
             <GenerationBars organisms={world.organisms.filter((o) => o.alive)} />
           </section>
 
           <section>
-            <div className="stats-section-title">OLDEST LIVING</div>
+            <div className="stats-section-title">{t('dialogs.stats.oldestLiving')}</div>
             <OldestList
               organisms={world.organisms.filter((o) => o.alive)}
               lineageNames={world.lineage_names}
@@ -175,7 +180,7 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
           </section>
 
           <section>
-            <div className="stats-section-title">LONGEVITY</div>
+            <div className="stats-section-title">{t('dialogs.stats.longevity')}</div>
             {longevityLines(
               longevityOf(world.organisms),
               (l) => world.lineage_names?.[l] ?? l.slice(0, 6),
@@ -186,56 +191,58 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
             ))}
             {longevityOf(world.organisms).deaths === 0 && (
               <div style={{ color: '#444', fontSize: 11, textAlign: 'center', padding: '4px 0' }}>
-                nobody has died of old age yet
+                {t('dialogs.stats.noOldAgeDeaths')}
               </div>
             )}
           </section>
 
           <section>
-            <div className="stats-section-title">CAUSES OF DEATH</div>
+            <div className="stats-section-title">{t('dialogs.stats.causesOfDeath')}</div>
             <div className="stats-death-grid">
-              <span className="hist-label">starvation</span>{' '}
+              <span className="hist-label">{t('dialogs.stats.causes.starvation')}</span>{' '}
               <span className="hist-val">{world.history.deaths_starvation}</span>
-              <span className="hist-label">dehydration</span>{' '}
+              <span className="hist-label">{t('dialogs.stats.causes.dehydration')}</span>{' '}
               <span className="hist-val">{world.history.deaths_dehydration}</span>
-              <span className="hist-label">sickness</span>{' '}
+              <span className="hist-label">{t('dialogs.stats.causes.sickness')}</span>{' '}
               <span className="hist-val">{world.history.deaths_sickness}</span>
-              <span className="hist-label">combat</span>{' '}
+              <span className="hist-label">{t('dialogs.stats.causes.combat')}</span>{' '}
               <span className="hist-val">{world.history.deaths_combat}</span>
-              <span className="hist-label">old age</span>{' '}
+              <span className="hist-label">{t('dialogs.stats.causes.oldAge')}</span>{' '}
               <span className="hist-val">{world.history.deaths_old_age}</span>
-              <span className="hist-label">droughts</span>{' '}
+              <span className="hist-label">{t('dialogs.stats.causes.droughts')}</span>{' '}
               <span className="hist-val">{world.history.droughts}</span>
-              <span className="hist-label">outbreaks</span>{' '}
+              <span className="hist-label">{t('dialogs.stats.causes.outbreaks')}</span>{' '}
               <span className="hist-val">{world.history.outbreaks}</span>
             </div>
           </section>
 
           <section>
-            <div className="stats-section-title">BONDS &amp; FAMILY</div>
+            <div className="stats-section-title">{t('dialogs.stats.bondsFamily')}</div>
             <BondStats organisms={world.organisms.filter((o) => o.alive)} />
           </section>
 
           <section>
-            <div className="stats-section-title">NOTABLE ORGANISMS</div>
+            <div className="stats-section-title">{t('dialogs.stats.notableOrganisms')}</div>
             <NotableOrgs organisms={world.organisms.filter((o) => o.alive)} />
           </section>
 
           <section>
-            <div className="stats-section-title">DISCOVERY LOG</div>
+            <div className="stats-section-title">{t('dialogs.stats.discoveryLog')}</div>
             <DiscoveryTimeline events={world.events ?? []} />
           </section>
 
           {world.history.era_history && world.history.era_history.length > 0 && (
             <section>
-              <div className="stats-section-title">WORLD ERAS</div>
+              <div className="stats-section-title">{t('dialogs.stats.worldEras')}</div>
               <div className="stats-timeline">
                 {[...world.history.era_history]
                   .reverse()
                   .slice(0, 12)
                   .map((e, i) => (
                     <div key={i} className="stats-timeline-row">
-                      <span className="stats-tick">d{Math.floor(e.tick / DAY_LENGTH)}</span>
+                      <span className="stats-tick">
+                        {t('dialogs.stats.dayShort', { day: formatNumber(Math.floor(e.tick / DAY_LENGTH)) })}
+                      </span>
                       <span className={`era-badge era-${e.era}`} style={{ fontSize: 9 }}>
                         {e.era}
                       </span>

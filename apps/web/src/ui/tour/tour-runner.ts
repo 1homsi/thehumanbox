@@ -2,6 +2,7 @@ import Shepherd from 'shepherd.js'
 import { trackEvent } from '../../shared/observability'
 import type { PlayerWorldKind } from '../../simulation/worldSource'
 import { tourWorldCopy } from '../../simulation/playerWorldCopy'
+import { t } from '../../i18n'
 import { useUIStore } from '../../state/store'
 import { isTourSupported, markSeen } from './tour'
 
@@ -32,40 +33,32 @@ export function tourSteps(worldKind: PlayerWorldKind): StepDef[] {
   return [
     {
       selector: '[data-tour="world-canvas"]',
-      title: 'Your world',
-      text:
-        'Every tiny figure is a real person with a name, a family and beliefs, living their own life. ' +
-        'Drag to pan, scroll to zoom, click anyone to follow them.',
+      title: t('tour.world.title'),
+      text: t('tour.world.text'),
       on: 'auto',
     },
     {
       // Centred, not pinned to the header chips: they change width every few seconds and the card
       // would jump around with them.
       selector: '',
-      title: 'When they need you',
-      text:
-        'A bubble over a tribe is a prayer: hunger, sickness, fire, danger. Click it to answer and ' +
-        'win their faith. When a tribe is on the brink, ⚠ lights up in the header.',
+      title: t('tour.prayer.title'),
+      text: t('tour.prayer.text'),
     },
     {
       selector: '.sandbox-bar',
-      title: 'Your powers',
-      text:
-        'Everything you can do to the world. Pick a tool, then click the map; Esc puts it down. ' +
-        'Pause and speed are on the right.',
+      title: t('tour.powers.title'),
+      text: t('tour.powers.text'),
       on: 'top',
     },
     {
       selector: '.header-actions',
-      title: 'Watch history unfold',
-      text:
-        'Stats, civilization, search and chronicles: eras, religions, wars, and the stories this world ' +
-        'writes about itself.',
+      title: t('tour.history.title'),
+      text: t('tour.history.text'),
       on: 'bottom',
     },
     {
       selector: '[data-tour="settings-btn"]',
-      title: 'That’s it, have fun',
+      title: t('tour.done.title'),
       text: worldCopy.closing,
       on: 'bottom',
     },
@@ -151,13 +144,13 @@ export function runTour(worldKind: PlayerWorldKind = 'local') {
           ? []
           : [
               {
-                text: 'Back',
+                text: t('tour.back'),
                 classes: 'shepherd-button-secondary',
                 action: () => tour.back(),
               },
             ]),
         {
-          text: isLast ? 'Finish' : 'Next',
+          text: isLast ? t('tour.finish') : t('tour.next'),
           action: () => (isLast ? tour.complete() : tour.next()),
         },
       ],

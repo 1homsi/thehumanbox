@@ -1,1 +1,28 @@
-{}
+{
+  "worldCopy": {
+    "opening": "Estas tribus te necesitan. Responde a sus plegarias, mantenlas con vida y guíalas a través de las eras, o mira qué les pasa sin ti.",
+    "closing": "Tu mundo se guarda en este dispositivo. Ajustes tiene modo foto, exportar, un mundo nuevo y este recorrido de nuevo."
+  },
+  "world": {
+    "title": "Tu mundo",
+    "text": "Cada figura diminuta es una persona real con nombre, familia y creencias, que vive su propia vida. Arrastra para desplazarte, usa la rueda para acercar y haz clic en alguien para seguirlo."
+  },
+  "prayer": {
+    "title": "Cuando te necesitan",
+    "text": "Una burbuja sobre una tribu es una plegaria: hambre, enfermedad, fuego, peligro. Haz clic para responder y ganar su fe. Cuando una tribu está al borde, ⚠ se enciende en la cabecera."
+  },
+  "powers": {
+    "title": "Tus poderes",
+    "text": "Todo lo que puedes hacer al mundo. Elige una herramienta y luego haz clic en el mapa; Esc la guarda. La pausa y la velocidad están a la derecha."
+  },
+  "history": {
+    "title": "Mira la historia desarrollarse",
+    "text": "Estadísticas, civilización, búsqueda y crónicas: eras, religiones, guerras y las historias que este mundo escribe sobre sí mismo."
+  },
+  "done": {
+    "title": "Eso es todo, diviértete"
+  },
+  "back": "Atrás",
+  "next": "Siguiente",
+  "finish": "Terminar"
+}

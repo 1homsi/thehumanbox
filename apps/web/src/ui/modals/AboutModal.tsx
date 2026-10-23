@@ -3,6 +3,7 @@ import { Modal } from './Modal'
 import { API_BASE } from '../../shared/config'
 import { useUIStore } from '../../state/store'
 import { useSimulationData } from '../../simulation/simulationData'
+import { t } from '../../i18n'
 
 interface Props {
   onClose: () => void
@@ -19,7 +20,7 @@ const FE_GIT_SHA = (import.meta.env.VITE_GIT_SHA ?? 'dev') as string
 const FE_BUILD_TS = Number(import.meta.env.VITE_BUILD_TS ?? 0)
 
 function fmtTime(unixSec: number): string {
-  if (!unixSec) return 'unknown'
+  if (!unixSec) return t('dialogs.about.unknown')
   const d = new Date(unixSec * 1000)
   return d
     .toISOString()
@@ -55,73 +56,67 @@ export function AboutModal({ onClose }: Props) {
   }, [apiEnabled, nerdStats])
 
   return (
-    <Modal open onClose={onClose} className="about-modal" title="About" hideTitle>
+    <Modal open onClose={onClose} className="about-modal" title={t('dialogs.about.title')} hideTitle>
       <div className="about-head">
-        <span className="about-title">ABOUT</span>
-        <button aria-label="Close" className="close-btn" onClick={onClose}>
+        <span className="about-title">{t('dialogs.about.heading')}</span>
+        <button aria-label={t('dialogs.about.close')} className="close-btn" onClick={onClose}>
           ✕
         </button>
       </div>
 
       <div className="about-body">
-        <p className="about-blurb">
-          The Human Box is a living simulation of small agents that forage, bond, build language, and pass it
-          on to their children. Open source on GitHub.
-        </p>
+        <p className="about-blurb">{t('dialogs.about.blurb')}</p>
 
         {nerdStats && (
           <>
-            <div className="about-section">FRONTEND</div>
+            <div className="about-section">{t('dialogs.about.frontend')}</div>
             <div className="about-grid">
-              <span className="about-k">commit</span>
+              <span className="about-k">{t('dialogs.about.commit')}</span>
               <span className="about-v">
                 <code>{shortSha(FE_GIT_SHA)}</code>
               </span>
-              <span className="about-k">built</span>
+              <span className="about-k">{t('dialogs.about.built')}</span>
               <span className="about-v">{fmtTime(FE_BUILD_TS)}</span>
             </div>
 
-            <div className="about-section">SIMULATION</div>
+            <div className="about-section">{t('dialogs.about.simulation')}</div>
             {!apiEnabled ? (
               <div className="about-grid">
-                <span className="about-k">runtime</span>
-                <span className="about-v">local browser · offline</span>
+                <span className="about-k">{t('dialogs.about.runtime')}</span>
+                <span className="about-v">{t('dialogs.about.runtimeLocal')}</span>
               </div>
             ) : (
               <>
-                {error && <div className="about-err">could not reach simulation /version: {error}</div>}
-                {!error && !backend && <div className="about-loading">loading…</div>}
+                {error && <div className="about-err">{t('dialogs.about.versionError', { error })}</div>}
+                {!error && !backend && <div className="about-loading">{t('dialogs.about.loading')}</div>}
               </>
             )}
             {apiEnabled && backend && (
               <div className="about-grid">
-                <span className="about-k">name</span>
+                <span className="about-k">{t('dialogs.about.name')}</span>
                 <span className="about-v">
                   {backend.name} v{backend.version}
                 </span>
-                <span className="about-k">commit</span>
+                <span className="about-k">{t('dialogs.about.commit')}</span>
                 <span className="about-v">
                   <code>{shortSha(backend.git_sha)}</code>
                 </span>
-                <span className="about-k">built</span>
+                <span className="about-k">{t('dialogs.about.built')}</span>
                 <span className="about-v">{fmtTime(backend.built_at)}</span>
               </div>
             )}
           </>
         )}
 
-        <div className="about-section">BUILT WITH</div>
+        <div className="about-section">{t('dialogs.about.builtWith')}</div>
         <div className="about-links">
           <a href="https://github.com/1homsi/xip" target="_blank" rel="noreferrer">
             xipjs
           </a>
-          <span className="about-built-with-detail">
-            React-first 2D browser game engine. The world canvas, camera, input handling, and WebGL pipeline
-            all run on it.
-          </span>
+          <span className="about-built-with-detail">{t('dialogs.about.engineDetail')}</span>
         </div>
 
-        <div className="about-section">LINKS</div>
+        <div className="about-section">{t('dialogs.about.links')}</div>
         <div className="about-links">
           <a href="https://github.com/1homsi/thehumanbox" target="_blank" rel="noreferrer">
             github.com/1homsi/thehumanbox

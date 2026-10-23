@@ -1,1 +1,558 @@
-{}
+{
+  "confirm": {
+    "cancel": "anuluj",
+    "confirm": "potwierdź",
+    "ok": "ok"
+  },
+  "welcome": {
+    "quickTour": "Krótki przewodnik",
+    "back": "Wstecz",
+    "skip": "Pomiń",
+    "start": "Start",
+    "next": "Dalej",
+    "localTitle": "Jesteś ich bogiem",
+    "localBody": "Małe plemiona żyją, kochają się, budują i same wchodzą w wojny. Gdy przychodzi kłopot, modlą się do ciebie: kliknij dymek z modlitwą, a moc, która pomaga, znajdzie się w twoich rękach. Wszystko działa i zapisuje się na tym urządzeniu."
+  },
+  "worlds": {
+    "introArchives": "Archiwa twojego świata są zapisane na tym komputerze.",
+    "introPrivate": "Twój prywatny świat działa w tej przeglądarce i nigdy nie łączy się z hostowanym serwerem symulacji."
+  },
+  "about": {
+    "title": "O programie",
+    "heading": "O PROGRAMIE",
+    "close": "Zamknij",
+    "unknown": "nieznane",
+    "blurb": "The Human Box to żywa symulacja małych istot, które szukają pożywienia, tworzą więzi, budują język i przekazują go swoim dzieciom. Open source na GitHubie.",
+    "frontend": "FRONTEND",
+    "commit": "commit",
+    "built": "zbudowano",
+    "simulation": "SYMULACJA",
+    "runtime": "środowisko",
+    "runtimeLocal": "lokalna przeglądarka · offline",
+    "versionError": "nie udało się połączyć z /version symulacji: {error}",
+    "loading": "wczytywanie…",
+    "name": "nazwa",
+    "builtWith": "ZBUDOWANO Z",
+    "engineDetail": "Silnik gier 2D w przeglądarce, stworzony z myślą o React. Na nim działają płótno świata, kamera, obsługa wejścia i potok WebGL.",
+    "links": "LINKI"
+  },
+  "achievements": {
+    "title": "Osiągnięcia",
+    "heading": "OSIĄGNIĘCIA",
+    "earned": "zdobyto {earned} z {total}"
+  },
+  "lineages": {
+    "title": "Wszystkie rody",
+    "heading": "WSZYSTKIE RODY ({count})",
+    "close": "Zamknij",
+    "onBrink": "Na krawędzi: {remaining}, {reason}",
+    "generation": "p{gen}",
+    "generationRange": "–{gen}"
+  },
+  "chronicles": {
+    "title": "Kroniki",
+    "heading": "KRONIKI",
+    "tabHistory": "Historia świata",
+    "tabLives": "Życia",
+    "close": "Zamknij",
+    "historyIntro": "Najważniejsze zwroty tego świata — epoki, wojny, dynastie i cuda.",
+    "noHistory": "Brak znaczących wydarzeń. Historia dopiero się zaczyna.",
+    "day": "dzień {day}",
+    "livesIntro": "Historie opowiedziane przez mieszkańców świata, uporządkowane według czasu, w którym je przeżyto.",
+    "noLives": "Brak historii. Pojawiają się, gdy organizmy przejdą pełny cykl dnia."
+  },
+  "goals": {
+    "title": "Cele",
+    "heading": "CELE",
+    "lost": "Nikt nie pozostał przy życiu.",
+    "difficulty": "Trudność: {notes}",
+    "difficultyGroup": "Trudność",
+    "levels": {
+      "calm": "spokojna",
+      "normal": "normalna",
+      "harsh": "surowa"
+    }
+  },
+  "scenarios": {
+    "title": "Scenariusze",
+    "heading": "SCENARIUSZE",
+    "intro": "Każdy scenariusz dodaje coś do świata, który obserwujesz. Nie rozpoczyna nowego świata.",
+    "start": "start"
+  },
+  "civ": {
+    "title": "Cywilizacja",
+    "close": "Zamknij",
+    "common": {
+      "people": "ludzie: {count}",
+      "more": "+{count} więcej",
+      "tick": "takt {tick}"
+    },
+    "calendar": {
+      "year": "rok",
+      "day": "dzień {day} z 84",
+      "lit": "{percent}% oświetlenia",
+      "season": "pora roku",
+      "worldTech": "technologia świata"
+    },
+    "lineages": {
+      "heading": "Rody",
+      "name": "Nazwa",
+      "era": "Epoka rodu",
+      "pop": "Ludność",
+      "next": "Następny",
+      "gov": "Rząd",
+      "currency": "Waluta",
+      "actions": "Działania",
+      "worldPopulation": "populacja świata {current}/{required}",
+      "missing": "brakuje: {items}",
+      "tavern": "karczma"
+    },
+    "campaigns": {
+      "kicker": "Wskazówki dla gracza",
+      "heading": "Kampanie rodów",
+      "help": "Rody nadal wybierają własne działania; udane zgodne działania wypełniają cel.",
+      "completed": "ukończona",
+      "awaiting": "czeka na wskazówki",
+      "focusOn": "skup się na: {strategy}",
+      "aligned": "{progress}/{target} zgodnych działań",
+      "rewardEarned": "nagroda zdobyta",
+      "ticksLeft": "zostało taktów: {ticks}",
+      "progressAria": "Kampania rodu {lineage}: {strategy}",
+      "reward": "Nagroda: {reward}",
+      "defaultReward": "morale rodu",
+      "choose": "Wybierz łagodny cel, aby ród miał widoczny cel i nagrodę za jego ukończenie.",
+      "guideAria": "Prowadź {lineage}",
+      "change": "zmień kampanię…",
+      "start": "rozpocznij kampanię…"
+    },
+    "guidance": {
+      "hunt": {
+        "label": "zdobądź pożywienie",
+        "description": "skieruj myśliwych na tropienie, zastawianie pułapek i przynoszenie jedzenia do domu",
+        "reward": "zapasy żywności dla każdego żyjącego członka"
+      },
+      "explore": {
+        "label": "eksploruj",
+        "description": "wyrusz na nieznane tereny i działaj na podstawie nowych odkryć",
+        "reward": "mapy szlaków i przypływ ciekawości"
+      },
+      "settle": {
+        "label": "osiedl się i buduj",
+        "description": "zbieraj materiały, odpoczywaj bezpiecznie i rozwijaj osadę",
+        "reward": "wspólne zapasy drewna i kamienia"
+      },
+      "trade": {
+        "label": "handluj",
+        "description": "szukaj wymiany, targowisk i zagranicznych partnerów handlowych",
+        "reward": "wspólne bogactwo rodu"
+      },
+      "defend": {
+        "label": "broń się",
+        "description": "podnoś alarm, umacniaj terytorium i chroń bezbronnych krewnych",
+        "reward": "przywrócone zdrowie, odwaga i morale"
+      },
+      "guiding": "prowadzenie…",
+      "started": "kampania {strategy} rozpoczęta",
+      "rejected": "wskazówki odrzucone",
+      "unavailable": "wskazówki niedostępne"
+    },
+    "redirect": {
+      "title": "Zmienić kampanię?",
+      "body": "Przekierować {lineage} z {from} na {to}.\n\nPostęp bieżącej kampanii zostanie zarchiwizowany.",
+      "confirm": "przekieruj"
+    },
+    "history": {
+      "title": "Ostatnie kampanie",
+      "showRecent": "pokaż ostatnie",
+      "showAll": "pokaż wszystkie: {count}",
+      "lineageEnded": "ród wygasł",
+      "tick": "t{tick}"
+    },
+    "governments": {
+      "heading": "Rządy i przywódcy",
+      "empty": "Brak rządów",
+      "leader": "przywódca: {name}",
+      "treasury": "skarbiec: {amount}"
+    },
+    "religions": {
+      "heading": "Religie",
+      "empty": "Nie założono jeszcze żadnej religii",
+      "adherents": "wyznawcy: {count}",
+      "foundedBy": "założona przez {lineage}",
+      "enterTemple": "wejdź do świątyni →",
+      "templeUnavailable": "świątynia niedostępna"
+    },
+    "conflicts": {
+      "heading": "Konflikty",
+      "empty": "Brak bitew",
+      "versus": "{attackers} kontra {defenders}",
+      "won": "zwycięstwo: {side}",
+      "stalemate": "impas",
+      "ended": "zakończony",
+      "ongoing": "trwa"
+    },
+    "diplomacy": {
+      "heading": "Dyplomacja",
+      "empty": "Brak traktatów",
+      "pair": "{a} & {b}",
+      "treaty": "traktat"
+    },
+    "buildings": {
+      "heading": "Budynki",
+      "empty": "Nic jeszcze nie zbudowano"
+    },
+    "settlements": {
+      "heading": "Osady",
+      "empty": "Brak stabilnych osad",
+      "completedBuildings": "ukończone budynki: {count}",
+      "capacity": "pojemność {count}"
+    },
+    "agriculture": {
+      "heading": "Rolnictwo",
+      "empty": "Nie zaorano jeszcze żadnych pól",
+      "growing": "rośnie: {count}",
+      "harvestReady": "gotowe do zbioru: {count}",
+      "fallow": "ugór: {count}",
+      "projectedFood": "przewidywana żywność: {count}",
+      "fields": {
+        "one": "{crop}: {count} pole",
+        "few": "{crop}: {count} pola",
+        "many": "{crop}: {count} pól",
+        "other": "{crop}: {count} pola"
+      }
+    },
+    "goods": {
+      "heading": "Towary w obiegu",
+      "empty": "Nie posiadano jeszcze wytworzonych towarów",
+      "byLineage": "według rodów:",
+      "held": "w posiadaniu: {count}"
+    },
+    "books": {
+      "heading": "Ostatnie księgi",
+      "empty": "Nie napisano jeszcze żadnych ksiąg",
+      "on": "{author}: {topic}",
+      "copies": "egzemplarzy: {count}"
+    },
+    "artworks": {
+      "heading": "Dzieła sztuki",
+      "empty": "Nic jeszcze nie powstało",
+      "by": "autor: {name}"
+    },
+    "trade": {
+      "heading": "Sieć handlowa",
+      "empty": "Brak szlaków — kupcy z epoki żelaza potrzebują dwóch ustalonych osad, waluty, nawigacji i stanowiska handlowego.",
+      "routes": {
+        "one": "{count} trasa",
+        "few": "{count} trasy",
+        "many": "{count} tras",
+        "other": "{count} trasy"
+      },
+      "caravans": {
+        "one": "{count} karawana w drodze",
+        "few": "{count} karawany w drodze",
+        "many": "{count} karawan w drodze",
+        "other": "{count} karawany w drodze"
+      },
+      "totals": "dostawy: {deliveries} · przewiezione towary: {volume}",
+      "routeStats": "odległość w kafelkach: {distance} · dostarczono: {delivered} · wolumen: {volume}",
+      "enRoute": "w drodze: {count}",
+      "readyToUnload": "gotowe do rozładunku",
+      "ticksAway": "takty do przybycia: {ticks}"
+    },
+    "tradeLog": {
+      "heading": "Ostatnie transakcje",
+      "empty": "Brak transakcji (wymagają wymiany lub waluty)",
+      "coins": {
+        "one": "{count} moneta",
+        "few": "{count} monety",
+        "many": "{count} monet",
+        "other": "{count} monety"
+      }
+    },
+    "headlines": {
+      "heading": "Nagłówki",
+      "empty": "Brak znaczących wydarzeń"
+    }
+  },
+  "toast": {
+    "dismiss": "Odrzuć",
+    "desktopTitle": "Uruchom The Human Box lokalnie",
+    "desktopSub": "Twój prywatny świat bez opóźnień sieciowych. Za darmo.",
+    "copy": "kopiuj",
+    "copied": "skopiowano",
+    "download": "Pobierz",
+    "notNow": "Nie teraz",
+    "updateReady": "Aktualizacja gotowa do instalacji",
+    "updateAvailable": "Dostępna aktualizacja",
+    "updateReadySub": "v{version} pobrana — uruchom ponownie, aby zastosować",
+    "updateDownloading": "pobieranie v{version}…",
+    "updateFailed": "aktualizacja nie powiodła się: {message}",
+    "updateNotReady": "aktualizacja nie jest jeszcze gotowa",
+    "restartFailed": "nie udało się uruchomić ponownie programu aktualizującego",
+    "restartTitle": "Uruchom ponownie The Human Box i zainstaluj pobraną aktualizację",
+    "restarting": "uruchamianie ponowne…",
+    "restart": "uruchom ponownie",
+    "newVersion": "Dostępna nowa wersja",
+    "newVersionSub": "odśwież, aby wczytać najnowszy świat",
+    "refreshing": "odświeżanie…",
+    "refresh": "Odśwież",
+    "checkpointFailed": "nie udało się zapisać bieżącego świata; odświeżenie aktualizacji zostało bezpiecznie anulowane",
+    "starTitle": "Podoba ci się twój świat?",
+    "starSub": "The Human Box jest darmowy i open source. Gwiazdka na GitHubie pomaga innym go znaleźć.",
+    "starCta": "Daj gwiazdkę na GitHubie",
+    "starLater": "Może później"
+  },
+  "life": {
+    "title": "Życie {name}",
+    "heading": "ŻYCIE {name}",
+    "close": "Zamknij",
+    "day": "dzień {day}",
+    "failed": "nie udało się wczytać",
+    "gen": "pokolenie {gen}",
+    "age": {
+      "one": "{count} dzień życia",
+      "few": "{count} dni życia",
+      "many": "{count} dni życia",
+      "other": "{count} dnia życia"
+    },
+    "elder": "starszy",
+    "partnered": "w związku",
+    "children": {
+      "one": "{count} dziecko",
+      "few": "{count} dzieci",
+      "many": "{count} dzieci",
+      "other": "{count} dziecka"
+    },
+    "feeling": "nastrój",
+    "friends": "przyjaciele",
+    "discoveries": "odkrycia",
+    "memories": "to, co mają w pamięci ({count})",
+    "events": "wydarzenia życia ({count})",
+    "stuck": "⚠ ten organizm utknął: ta sama czynność {count} razy z rzędu",
+    "noEvents": "brak zapisanych wydarzeń"
+  },
+  "conversations": {
+    "kinds": {
+      "courtship": "Pierwsze spotkanie",
+      "bonded": "Rozmowa partnerów",
+      "farewell": "Pożegnanie",
+      "chat": "Zwykła rozmowa",
+      "gossip": "Plotki",
+      "excited": "Dzielenie się emocjami",
+      "argue": "Kłótnia"
+    },
+    "relPartner": "♥ partner",
+    "relFriend": "przyjaciel",
+    "relTrusts": "ufa",
+    "relWary": "nieufny",
+    "day": "dzień {day}",
+    "title": "Rozmowy: {name}",
+    "heading": "ROZMOWY",
+    "close": "Zamknij",
+    "filterAll": "wszystkie",
+    "loading": "wczytywanie rozmów: {name}…",
+    "drawn": "{name} kogoś upatrzył - pierwsza rozmowa już się zbliża",
+    "noneYet": "{name} jeszcze z nikim nie rozmawiał",
+    "noneOfKind": "brak rozmów typu: {kind}"
+  },
+  "notable": {
+    "title": "Wyróżnieni",
+    "heading": "WYRÓŻNIONE ORGANIZMY",
+    "alive": "żywych: {count} · wybierz filtr poniżej",
+    "close": "Zamknij",
+    "empty": "nikt jeszcze nie pasuje do tego filtra",
+    "gen": "pokolenie {gen}",
+    "oldest": "Najstarsi wśród nas",
+    "days": "dni: {count}",
+    "children": "Najwięcej dzieci",
+    "childrenCount": "dzieci: {count}",
+    "friends": "Najlepiej powiązani",
+    "friendsCount": "przyjaciele: {count}",
+    "wealth": "Najbogatsi",
+    "coin": "monety: {count}",
+    "discoveries": "Najwięcej wiedzy (odkrycia)",
+    "discoveriesCount": "odkrycia: {count}",
+    "literate": "Najbardziej piśmienni",
+    "literacy": "{percent}% piśmienności",
+    "devout": "Najbardziej pobożni",
+    "piety": "{percent}% pobożności",
+    "joy": "Najbardziej radośni w tej chwili",
+    "joyTicks": "takty radości: {count}",
+    "grief": "Najgłębiej pogrążeni w żalu",
+    "griefTicks": "takty żalu: {count}",
+    "aspiration": "Ma życiowy cel"
+  },
+  "orgSearch": {
+    "title": "Organizmy",
+    "heading": "ORGANIZMY",
+    "summary": "pokazano: {shown} · żywych: {alive} · zmarłych: {dead}",
+    "close": "Zamknij",
+    "placeholder": "szukaj po imieniu, myśli lub identyfikatorze rodu…",
+    "statusAll": "wszystkie",
+    "statusAlive": "żywe",
+    "statusDead": "zmarłe",
+    "fire": "ogień",
+    "shelter": "schronienie",
+    "allTribes": "wszystkie plemiona",
+    "empty": "brak organizmów pasujących do wyszukiwania",
+    "genAge": "p{gen} · {days}d",
+    "track": "śledź w świecie",
+    "back": "← wszystkie organizmy",
+    "placeholderDetail": "← wybierz organizm, aby zobaczyć szczegóły"
+  },
+  "stats": {
+    "title": "Statystyki",
+    "heading": "STATYSTYKI",
+    "yearDay": "rok {year} · dzień {day}",
+    "day": "dzień {day}",
+    "aliveCount": "żywych: {count}",
+    "reload": "Przeładuj z bieżącego świata",
+    "close": "Zamknij",
+    "alive": "żywi",
+    "totalDeaths": "łączna liczba zgonów",
+    "totalBirths": "łączna liczba narodzin",
+    "daysElapsed": "minęło dni",
+    "knowFire": "znają ogień",
+    "haveShelter": "mają schronienie",
+    "animals": "zwierzęta",
+    "populationOverTime": "POPULACJA W CZASIE",
+    "birthsDeathsByYear": "NARODZINY I ZGONY WEDŁUG ROKU",
+    "wealthGapByYear": "RÓŻNICA MAJĄTKOWA WEDŁUG ROKU",
+    "agePyramid": "PIRAMIDA WIEKU",
+    "populationTraits": "CECHY POPULACJI",
+    "tribalRelations": "RELACJE MIĘDZY PLEMIONAMI",
+    "discoveryRollup": "PODSUMOWANIE ODKRYĆ",
+    "legends": "LEGENDY",
+    "generationsAlive": "ŻYJĄCE POKOLENIA",
+    "oldestLiving": "NAJSTARSZY ŻYJĄCY",
+    "longevity": "DŁUGOWIECZNOŚĆ",
+    "noOldAgeDeaths": "nikt jeszcze nie umarł ze starości",
+    "causesOfDeath": "PRZYCZYNY ZGONÓW",
+    "causes": {
+      "starvation": "głód",
+      "dehydration": "odwodnienie",
+      "sickness": "choroba",
+      "combat": "walka",
+      "oldAge": "starość",
+      "droughts": "susze",
+      "outbreaks": "epidemie"
+    },
+    "bondsFamily": "WIĘZI I RODZINA",
+    "notableOrganisms": "WYRÓŻNIONE ORGANIZMY",
+    "discoveryLog": "DZIENNIK ODKRYĆ",
+    "worldEras": "EPOKI ŚWIATA",
+    "dayShort": "d{day}",
+    "accumulating": "zbieranie danych…",
+    "firstYear": "pierwszy rok wciąż trwa…",
+    "birthsDeathsAria": "Narodziny i zgony według roku",
+    "yearBorn": "rok {year}: narodziny: {count}",
+    "yearDied": "rok {year}: zgony: {count}",
+    "wealthGapAria": "Średnia różnica majątkowa według roku",
+    "stark": "ostra",
+    "yearWealth": "rok {year}: {word} ({value})",
+    "noLegends": "brak legend",
+    "noContacts": "brak kontaktów między plemionami",
+    "versus": "{a} kontra {b}",
+    "noDiscoveries": "brak odkryć",
+    "traits": {
+      "curiosity": "ciekawość",
+      "fear": "lęk",
+      "socialTendency": "skłonność do kontaktów",
+      "resilience": "odporność",
+      "aggression": "agresja",
+      "memoryStrength": "siła pamięci"
+    },
+    "nobodyAlive": "nikt nie żyje",
+    "gen": "pokolenie {gen}",
+    "ageDays": {
+      "one": "{count} dzień życia",
+      "few": "{count} dni życia",
+      "many": "{count} dni życia",
+      "other": "{count} dnia życia"
+    },
+    "notable": {
+      "oldest": "najstarszy",
+      "parents": "rodzice",
+      "deepestGen": "najgłębsze pokolenie",
+      "days": "· {days}d",
+      "kids": "· dzieci: {count}",
+      "gen": "· p{gen}"
+    }
+  },
+  "tree": {
+    "title": "Drzewo rodzinne",
+    "heading": "DRZEWO RODZINNE",
+    "summary": "żywych: {alive} · przodków: {ancestors} · pokoleń: {generations}",
+    "reload": "Przeładuj z bieżącego świata",
+    "close": "Zamknij",
+    "generation": "pokolenie {gen}",
+    "ageGen": "{days}d · p{gen}",
+    "gen": "p{gen}",
+    "days": "{days}d",
+    "bonded": "w związku",
+    "father": "ojciec: {name}",
+    "children": "dzieci: {count}",
+    "hint": "przewiń, aby przybliżyć · przeciągnij, aby przesunąć · najedź na węzeł, aby zobaczyć informacje ·",
+    "bondedPair": "para w związku",
+    "fitAllTitle": "Dopasuj wszystkie pokolenia",
+    "fitAliveTitle": "Dopasuj tylko żyjących",
+    "fitAll": "dopasuj wszystkie",
+    "fitAlive": "dopasuj żyjących",
+    "legendFire": "ogień",
+    "legendShelter": "schronienie",
+    "legendDeceased": "zmarły",
+    "legendBonded": "w związku",
+    "legendMother": "matka",
+    "legendFather": "ojciec",
+    "legendInfidelity": "zdrada"
+  },
+  "language": {
+    "title": "Języki świata",
+    "heading": "JĘZYKI ŚWIATA",
+    "reload": "Przeładuj z bieżącego świata",
+    "close": "Zamknij",
+    "intro": "Każdy ród tworzy własne słowa. Słowa zmieniają się z pokolenia na pokolenie i rozprzestrzeniają się przez kontakt.",
+    "sexWords": "ich słowa dla dwóch płci:",
+    "sexNote": "(ustalone przez pierwsze pokolenie)",
+    "placeholder": "szukaj pojęć i ukutych słów ({count})…",
+    "matches": {
+      "one": "{count} wynik",
+      "few": "{count} wyniki",
+      "many": "{count} wyników",
+      "other": "{count} wyniku"
+    },
+    "concept": "pojęcie",
+    "noMatch": "żadne pojęcie nie pasuje do „{query}”",
+    "sections": {
+      "coreSurvival": "przetrwanie",
+      "skyWeather": "niebo i pogoda",
+      "landWater": "ląd i woda",
+      "bodyVital": "ciało i stany życiowe",
+      "emotions": "emocje",
+      "kinRoles": "krewni i role",
+      "socialActs": "czynności społeczne",
+      "motionAction": "ruch i działanie",
+      "qualitiesRelations": "cechy i relacje",
+      "toolsResources": "narzędzia i zasoby",
+      "bodySenses": "ciało i zmysły",
+      "familyLife": "rodzina i wydarzenia życiowe",
+      "animals": "zwierzęta",
+      "terrain": "ukształtowanie terenu",
+      "weatherSky": "zjawiska pogodowe i na niebie",
+      "materials": "materiały",
+      "abstract": "abstrakcyjne",
+      "moreActs": "więcej czynności",
+      "quantity": "ilość",
+      "colours": "kolory",
+      "plants": "rośliny",
+      "finerTime": "drobniejszy czas",
+      "directions": "kierunki",
+      "sounds": "dźwięki",
+      "finerFeelings": "drobniejsze uczucia",
+      "socialStructures": "struktury społeczne",
+      "bodyActions": "czynności ciała",
+      "languageMeaning": "język i znaczenie",
+      "physicalQualities": "cechy fizyczne"
+    }
+  }
+}

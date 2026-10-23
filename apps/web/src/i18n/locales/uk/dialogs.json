@@ -1,1 +1,558 @@
-{}
+{
+  "confirm": {
+    "cancel": "скасувати",
+    "confirm": "підтвердити",
+    "ok": "гаразд"
+  },
+  "welcome": {
+    "quickTour": "Короткий огляд",
+    "back": "Назад",
+    "skip": "Пропустити",
+    "start": "Почати",
+    "next": "Далі",
+    "localTitle": "Ви їхній бог",
+    "localBody": "Маленькі племена живуть, кохають, будують і воюють самостійно. Коли приходить біда, вони моляться вам: клацніть на бульбашку молитви, і сила, що допоможе, опиниться у ваших руках. Усе працює й зберігається на цьому пристрої."
+  },
+  "worlds": {
+    "introArchives": "Архіви вашого світу зберігаються на цьому комп'ютері.",
+    "introPrivate": "Ваш приватний світ живе в цьому браузері й ніколи не підключається до сервера симуляції."
+  },
+  "about": {
+    "title": "Про програму",
+    "heading": "ПРО ПРОГРАМУ",
+    "close": "Закрити",
+    "unknown": "невідомо",
+    "blurb": "The Human Box: жива симуляція маленьких агентів, які шукають їжу, зв'язуються між собою, створюють мову й передають її своїм дітям. Відкритий код на GitHub.",
+    "frontend": "ФРОНТЕНД",
+    "commit": "коміт",
+    "built": "збірка",
+    "simulation": "СИМУЛЯЦІЯ",
+    "runtime": "середовище",
+    "runtimeLocal": "локальний браузер · офлайн",
+    "versionError": "не вдалося звернутися до /version симуляції: {error}",
+    "loading": "завантаження…",
+    "name": "назва",
+    "builtWith": "ЗБУДОВАНО З",
+    "engineDetail": "2D-рушій браузерних ігор, орієнтований насамперед на React. На ньому працюють полотно світу, камера, обробка введення та конвеєр WebGL.",
+    "links": "ПОСИЛАННЯ"
+  },
+  "achievements": {
+    "title": "Досягнення",
+    "heading": "ДОСЯГНЕННЯ",
+    "earned": "{earned} з {total} отримано"
+  },
+  "lineages": {
+    "title": "Усі роди",
+    "heading": "УСІ РОДИ ({count})",
+    "close": "Закрити",
+    "onBrink": "На межі: {remaining}, {reason}",
+    "generation": "п{gen}",
+    "generationRange": "–{gen}"
+  },
+  "chronicles": {
+    "title": "Хроніки",
+    "heading": "ХРОНІКИ",
+    "tabHistory": "Історія світу",
+    "tabLives": "Життя",
+    "close": "Закрити",
+    "historyIntro": "Головні повороти цього світу — епохи, війни, династії та дива.",
+    "noHistory": "Помітних подій ще немає. Історія тільки починається.",
+    "day": "день {day}",
+    "livesIntro": "Історії, які розповідають мешканці світу, упорядковані за часом, коли їх прожили.",
+    "noLives": "Історій ще немає. Вони з'являються після того, як організми проживуть повний день."
+  },
+  "goals": {
+    "title": "Цілі",
+    "heading": "ЦІЛІ",
+    "lost": "Нікого не залишилось живим.",
+    "difficulty": "Складність: {notes}",
+    "difficultyGroup": "Складність",
+    "levels": {
+      "calm": "спокійна",
+      "normal": "звичайна",
+      "harsh": "жорстка"
+    }
+  },
+  "scenarios": {
+    "title": "Сценарії",
+    "heading": "СЦЕНАРІЇ",
+    "intro": "Кожен сценарій додає щось до світу, який ви спостерігаєте. Він не починає новий світ.",
+    "start": "почати"
+  },
+  "civ": {
+    "title": "Цивілізація",
+    "close": "Закрити",
+    "common": {
+      "people": "людей: {count}",
+      "more": "+ще {count}",
+      "tick": "тік {tick}"
+    },
+    "calendar": {
+      "year": "рік",
+      "day": "день {day} з 84",
+      "lit": "{percent}% освітлено",
+      "season": "сезон",
+      "worldTech": "технології світу"
+    },
+    "lineages": {
+      "heading": "Роди",
+      "name": "Назва",
+      "era": "Епоха роду",
+      "pop": "Нас.",
+      "next": "Наступ.",
+      "gov": "Уряд",
+      "currency": "Валюта",
+      "actions": "Дії",
+      "worldPopulation": "населення світу {current}/{required}",
+      "missing": "бракує: {items}",
+      "tavern": "таверна"
+    },
+    "campaigns": {
+      "kicker": "Керівництво гравця",
+      "heading": "Кампанії роду",
+      "help": "Роди й далі самі обирають дії; успішні узгоджені дії наближають ціль.",
+      "completed": "завершено",
+      "awaiting": "очікує вказівок",
+      "focusOn": "фокус: {strategy}",
+      "aligned": "{progress}/{target} узгоджених дій",
+      "rewardEarned": "нагороду отримано",
+      "ticksLeft": "залишилось тіків: {ticks}",
+      "progressAria": "Кампанія «{strategy}», рід {lineage}",
+      "reward": "Нагорода: {reward}",
+      "defaultReward": "мораль роду",
+      "choose": "Оберіть м'яку ціль, щоб дати цьому роду видиму мету та нагороду за її виконання.",
+      "guideAria": "Вказати роду {lineage}",
+      "change": "змінити кампанію…",
+      "start": "почати кампанію…"
+    },
+    "guidance": {
+      "hunt": {
+        "label": "забезпечити їжу",
+        "description": "спрямувати мисливців на вистежування, пастки та доставку їжі додому",
+        "reward": "запаси їжі для кожного живого члена"
+      },
+      "explore": {
+        "label": "дослідити",
+        "description": "просуватися в невідому місцевість і діяти на основі нових відкриттів",
+        "reward": "карти стежок і сплеск цікавості"
+      },
+      "settle": {
+        "label": "осісти й будувати",
+        "description": "збирати матеріали, безпечно відпочивати й розширювати поселення",
+        "reward": "спільні запаси деревини й каменю"
+      },
+      "trade": {
+        "label": "торгувати",
+        "description": "шукати обміни, ринки та зовнішніх торгових партнерів",
+        "reward": "спільне багатство роду"
+      },
+      "defend": {
+        "label": "захищати",
+        "description": "піднімати тривогу, укріплювати територію та захищати вразливих родичів",
+        "reward": "відновлене здоров'я, мужність і мораль"
+      },
+      "guiding": "надсилання вказівки…",
+      "started": "кампанію «{strategy}» розпочато",
+      "rejected": "вказівку відхилено",
+      "unavailable": "вказівка недоступна"
+    },
+    "redirect": {
+      "title": "Змінити кампанію?",
+      "body": "Перенаправити {lineage} з «{from}» на «{to}».\n\nПрогрес поточної кампанії буде архівовано.",
+      "confirm": "перенаправити"
+    },
+    "history": {
+      "title": "Останні кампанії",
+      "showRecent": "показати останні",
+      "showAll": "показати всі ({count})",
+      "lineageEnded": "рід зник",
+      "tick": "т{tick}"
+    },
+    "governments": {
+      "heading": "Уряди й правителі",
+      "empty": "Урядів ще немає",
+      "leader": "правитель: {name}",
+      "treasury": "скарбниця: {amount}"
+    },
+    "religions": {
+      "heading": "Релігії",
+      "empty": "Релігій ще не засновано",
+      "adherents": "вірних: {count}",
+      "foundedBy": "засновник: {lineage}",
+      "enterTemple": "увійти до храму →",
+      "templeUnavailable": "храм недоступний"
+    },
+    "conflicts": {
+      "heading": "Конфлікти",
+      "empty": "Битв ще не було",
+      "versus": "{attackers} проти {defenders}",
+      "won": "перемога: {side}",
+      "stalemate": "глухий кут",
+      "ended": "завершено",
+      "ongoing": "триває"
+    },
+    "diplomacy": {
+      "heading": "Дипломатія",
+      "empty": "Договорів ще немає",
+      "pair": "{a} і {b}",
+      "treaty": "договір"
+    },
+    "buildings": {
+      "heading": "Будівлі",
+      "empty": "Ще нічого не збудовано"
+    },
+    "settlements": {
+      "heading": "Поселення",
+      "empty": "Стабільних поселень ще немає",
+      "completedBuildings": "завершених будівель: {count}",
+      "capacity": "місткість {count}"
+    },
+    "agriculture": {
+      "heading": "Землеробство",
+      "empty": "Ще не зорано жодного поля",
+      "growing": "зростає: {count}",
+      "harvestReady": "готово до збирання: {count}",
+      "fallow": "перелог: {count}",
+      "projectedFood": "прогноз їжі: {count}",
+      "fields": {
+        "one": "{crop}: {count} поле",
+        "few": "{crop}: {count} поля",
+        "many": "{crop}: {count} полів",
+        "other": "{crop}: {count} поля"
+      }
+    },
+    "goods": {
+      "heading": "Товари в обігу",
+      "empty": "Ремісничих товарів ще немає",
+      "byLineage": "за родами:",
+      "held": "у наявності: {count}"
+    },
+    "books": {
+      "heading": "Останні книги",
+      "empty": "Книг ще не написано",
+      "on": "{author}: {topic}",
+      "copies": "примірників: {count}"
+    },
+    "artworks": {
+      "heading": "Мистецтво",
+      "empty": "Ще нічого не створено",
+      "by": "автор: {name}"
+    },
+    "trade": {
+      "heading": "Торгова мережа",
+      "empty": "Маршрутів ще немає — торговцям доби заліза потрібні два усталені поселення, валюта, навігація та торговий простір.",
+      "routes": {
+        "one": "{count} маршрут",
+        "few": "{count} маршрути",
+        "many": "{count} маршрутів",
+        "other": "{count} маршруту"
+      },
+      "caravans": {
+        "one": "{count} караван у дорозі",
+        "few": "{count} каравани у дорозі",
+        "many": "{count} караванів у дорозі",
+        "other": "{count} каравана у дорозі"
+      },
+      "totals": "доставок: {deliveries} · переміщено товарів: {volume}",
+      "routeStats": "{distance} клітинок · доставлено: {delivered} · обсяг: {volume}",
+      "enRoute": "у дорозі: {count}",
+      "readyToUnload": "готово до розвантаження",
+      "ticksAway": "за {ticks} тіків"
+    },
+    "tradeLog": {
+      "heading": "Останні торгівлі",
+      "empty": "Угод ще немає (потрібен бартер або валюта)",
+      "coins": {
+        "one": "{count} монета",
+        "few": "{count} монети",
+        "many": "{count} монет",
+        "other": "{count} монети"
+      }
+    },
+    "headlines": {
+      "heading": "Заголовки",
+      "empty": "Помітних подій ще немає"
+    }
+  },
+  "toast": {
+    "dismiss": "Закрити",
+    "desktopTitle": "Запустіть The Human Box локально",
+    "desktopSub": "Ваш власний приватний світ без спільної затримки. Безкоштовно.",
+    "copy": "копіювати",
+    "copied": "скопійовано",
+    "download": "Завантажити",
+    "notNow": "Не зараз",
+    "updateReady": "Оновлення готове до встановлення",
+    "updateAvailable": "Доступне оновлення",
+    "updateReadySub": "v{version} завантажено — перезапустіть, щоб застосувати",
+    "updateDownloading": "v{version} завантажується…",
+    "updateFailed": "оновлення не вдалося: {message}",
+    "updateNotReady": "оновлення ще не готове",
+    "restartFailed": "не вдалося перезапустити оновлювач",
+    "restartTitle": "Перезапустити The Human Box і встановити завантажене оновлення",
+    "restarting": "перезапуск…",
+    "restart": "перезапустити",
+    "newVersion": "Доступна нова версія",
+    "newVersionSub": "оновіть сторінку, щоб завантажити найновіший світ",
+    "refreshing": "оновлення…",
+    "refresh": "Оновити",
+    "checkpointFailed": "не вдалося зберегти поточний світ; оновлення безпечно скасовано",
+    "starTitle": "Подобається ваш світ?",
+    "starSub": "The Human Box безкоштовний і з відкритим кодом. Зірка на GitHub допомагає іншим людям його знайти.",
+    "starCta": "Поставити зірку на GitHub",
+    "starLater": "Можливо, пізніше"
+  },
+  "life": {
+    "title": "Життя: {name}",
+    "heading": "ЖИТТЯ: {name}",
+    "close": "Закрити",
+    "day": "день {day}",
+    "failed": "не вдалося завантажити",
+    "gen": "покоління {gen}",
+    "age": {
+      "one": "{count} день",
+      "few": "{count} дні",
+      "many": "{count} днів",
+      "other": "{count} дня"
+    },
+    "elder": "старійшина",
+    "partnered": "у парі",
+    "children": {
+      "one": "{count} дитина",
+      "few": "{count} дитини",
+      "many": "{count} дітей",
+      "other": "{count} дитини"
+    },
+    "feeling": "настрій",
+    "friends": "друзі",
+    "discoveries": "відкриття",
+    "memories": "що вони тримають у пам'яті ({count})",
+    "events": "події життя ({count})",
+    "stuck": "⚠ цей організм застряг: та сама дія {count} разів поспіль",
+    "noEvents": "записаних подій ще немає"
+  },
+  "conversations": {
+    "kinds": {
+      "courtship": "Перше знайомство",
+      "bonded": "Розмова партнерів",
+      "farewell": "Прощання",
+      "chat": "Невимушена розмова",
+      "gossip": "Плітки",
+      "excited": "Ділиться радістю",
+      "argue": "Сварка"
+    },
+    "relPartner": "♥ партнер",
+    "relFriend": "друг",
+    "relTrusts": "довіряє",
+    "relWary": "насторожений",
+    "day": "день {day}",
+    "title": "Розмови: {name}",
+    "heading": "РОЗМОВИ",
+    "close": "Закрити",
+    "filterAll": "усі",
+    "loading": "завантаження розмов: {name}…",
+    "drawn": "{name} тягнеться до когось: першу розмову вже близько",
+    "noneYet": "у {name} ще не було розмов",
+    "noneOfKind": "розмов типу «{kind}» немає"
+  },
+  "notable": {
+    "title": "Видатні",
+    "heading": "ВИДАТНІ ОРГАНІЗМИ",
+    "alive": "живих: {count} · оберіть фільтр нижче",
+    "close": "Закрити",
+    "empty": "Поки що ніхто не відповідає цьому фільтру",
+    "gen": "покоління {gen}",
+    "oldest": "Найстаріший серед нас",
+    "days": "днів: {count}",
+    "children": "Найбільше дітей",
+    "childrenCount": "дітей: {count}",
+    "friends": "Найкраще зв'язаний",
+    "friendsCount": "друзів: {count}",
+    "wealth": "Найбагатший",
+    "coin": "монет: {count}",
+    "discoveries": "Найбільше навчився (відкриття)",
+    "discoveriesCount": "відкриттів: {count}",
+    "literate": "Найграмотніший",
+    "literacy": "грамотність: {percent}%",
+    "devout": "Найпобожніший",
+    "piety": "побожність: {percent}%",
+    "joy": "Найрадісніший зараз",
+    "joyTicks": "тіків радості: {count}",
+    "grief": "Несе найглибше горе",
+    "griefTicks": "тіків горя: {count}",
+    "aspiration": "Має життєву мету"
+  },
+  "orgSearch": {
+    "title": "Організми",
+    "heading": "ОРГАНІЗМИ",
+    "summary": "показано: {shown} · живих: {alive} · мертвих: {dead}",
+    "close": "Закрити",
+    "placeholder": "пошук за іменем, думкою, ідентифікатором роду…",
+    "statusAll": "усі",
+    "statusAlive": "живі",
+    "statusDead": "мертві",
+    "fire": "вогонь",
+    "shelter": "притулок",
+    "allTribes": "усі племена",
+    "empty": "немає організмів, що відповідають",
+    "genAge": "п{gen} · {days}д",
+    "track": "стежити у світі",
+    "back": "← усі організми",
+    "placeholderDetail": "← оберіть організм, щоб переглянути деталі"
+  },
+  "stats": {
+    "title": "Статистика",
+    "heading": "СТАТИСТИКА",
+    "yearDay": "рік {year} · день {day}",
+    "day": "день {day}",
+    "aliveCount": "живих: {count}",
+    "reload": "Перезавантажити з поточного світу",
+    "close": "Закрити",
+    "alive": "живі",
+    "totalDeaths": "усього смертей",
+    "totalBirths": "усього народжень",
+    "daysElapsed": "минуло днів",
+    "knowFire": "знають вогонь",
+    "haveShelter": "мають притулок",
+    "animals": "тварини",
+    "populationOverTime": "НАСЕЛЕННЯ ЗА ЧАСОМ",
+    "birthsDeathsByYear": "НАРОДЖЕННЯ ТА СМЕРТІ ЗА РОКАМИ",
+    "wealthGapByYear": "РІЗНИЦЯ В БАГАТСТВІ ЗА РОКАМИ",
+    "agePyramid": "ВІКОВА ПІРАМІДА",
+    "populationTraits": "ОСОБЛИВОСТІ НАСЕЛЕННЯ",
+    "tribalRelations": "МІЖПЛЕМІННІ СТОСУНКИ",
+    "discoveryRollup": "ЗВЕДЕННЯ ВІДКРИТТІВ",
+    "legends": "ЛЕГЕНДИ",
+    "generationsAlive": "ЖИВІ ПОКОЛІННЯ",
+    "oldestLiving": "НАЙСТАРШІ ЖИВІ",
+    "longevity": "ТРИВАЛІСТЬ ЖИТТЯ",
+    "noOldAgeDeaths": "Ще ніхто не помер від старості",
+    "causesOfDeath": "ПРИЧИНИ СМЕРТІ",
+    "causes": {
+      "starvation": "голод",
+      "dehydration": "зневоднення",
+      "sickness": "хвороба",
+      "combat": "бій",
+      "oldAge": "старість",
+      "droughts": "посухи",
+      "outbreaks": "спалахи"
+    },
+    "bondsFamily": "ЗВ'ЯЗКИ ТА РОДИНА",
+    "notableOrganisms": "ВИДАТНІ ОРГАНІЗМИ",
+    "discoveryLog": "ЖУРНАЛ ВІДКРИТТІВ",
+    "worldEras": "ЕПОХИ СВІТУ",
+    "dayShort": "д{day}",
+    "accumulating": "збираємо дані…",
+    "firstYear": "перший рік ще триває…",
+    "birthsDeathsAria": "Народження та смерті за роками",
+    "yearBorn": "рік {year}: народилось {count}",
+    "yearDied": "рік {year}: померло {count}",
+    "wealthGapAria": "Середня різниця в багатстві за роками",
+    "stark": "різка",
+    "yearWealth": "рік {year}: {word} ({value})",
+    "noLegends": "Легенд ще немає",
+    "noContacts": "Контактів між племенами ще немає",
+    "versus": "{a} проти {b}",
+    "noDiscoveries": "Відкриттів ще немає",
+    "traits": {
+      "curiosity": "цікавість",
+      "fear": "страх",
+      "socialTendency": "схильність до спілкування",
+      "resilience": "стійкість",
+      "aggression": "агресивність",
+      "memoryStrength": "сила пам'яті"
+    },
+    "nobodyAlive": "Живих немає",
+    "gen": "покоління {gen}",
+    "ageDays": {
+      "one": "{count} день",
+      "few": "{count} дні",
+      "many": "{count} днів",
+      "other": "{count} дня"
+    },
+    "notable": {
+      "oldest": "найстаріший",
+      "parents": "батьки",
+      "deepestGen": "найглибше покоління",
+      "days": "· {days}д",
+      "kids": "· дітей: {count}",
+      "gen": "· п{gen}"
+    }
+  },
+  "tree": {
+    "title": "Родинне дерево",
+    "heading": "РОДИННЕ ДЕРЕВО",
+    "summary": "живих: {alive} · предків: {ancestors} · поколінь: {generations}",
+    "reload": "Перезавантажити з поточного світу",
+    "close": "Закрити",
+    "generation": "покоління {gen}",
+    "ageGen": "{days}д · п{gen}",
+    "gen": "покоління {gen}",
+    "days": "{days}д",
+    "bonded": "у парі",
+    "father": "батько: {name}",
+    "children": "дітей: {count}",
+    "hint": "прокрутка: масштаб · перетягування: переміщення · наведіть на вузол для відомостей ·",
+    "bondedPair": "пара",
+    "fitAllTitle": "Вмістити всі покоління",
+    "fitAliveTitle": "Вмістити лише живі організми",
+    "fitAll": "вмістити всі",
+    "fitAlive": "вмістити живих",
+    "legendFire": "вогонь",
+    "legendShelter": "притулок",
+    "legendDeceased": "померлі",
+    "legendBonded": "у парі",
+    "legendMother": "мати",
+    "legendFather": "батько",
+    "legendInfidelity": "зрада"
+  },
+  "language": {
+    "title": "Мови світу",
+    "heading": "МОВИ СВІТУ",
+    "reload": "Перезавантажити з поточного світу",
+    "close": "Закрити",
+    "intro": "Кожен рід розвиває власні слова. Слова змінюються з покоління в покоління й поширюються через контакт.",
+    "sexWords": "їхні слова для двох статей:",
+    "sexNote": "(утворені першим поколінням)",
+    "placeholder": "пошук серед {count} понять або створених слів…",
+    "matches": {
+      "one": "{count} збіг",
+      "few": "{count} збіги",
+      "many": "{count} збігів",
+      "other": "{count} збігу"
+    },
+    "concept": "поняття",
+    "noMatch": "немає понять, що відповідають \"{query}\"",
+    "sections": {
+      "coreSurvival": "основне виживання",
+      "skyWeather": "небо і погода",
+      "landWater": "земля і вода",
+      "bodyVital": "тіло та життєві стани",
+      "emotions": "емоції",
+      "kinRoles": "родичі й ролі",
+      "socialActs": "соціальні дії",
+      "motionAction": "рух і дія",
+      "qualitiesRelations": "якості та стосунки",
+      "toolsResources": "інструменти та ресурси",
+      "bodySenses": "тіло та відчуття",
+      "familyLife": "сім'я та події життя",
+      "animals": "тварини",
+      "terrain": "місцевість",
+      "weatherSky": "події погоди й неба",
+      "materials": "матеріали",
+      "abstract": "абстрактне",
+      "moreActs": "інші дії",
+      "quantity": "кількість",
+      "colours": "кольори",
+      "plants": "рослини",
+      "finerTime": "точніший час",
+      "directions": "напрямки",
+      "sounds": "звуки",
+      "finerFeelings": "тонші почуття",
+      "socialStructures": "соціальні структури",
+      "bodyActions": "дії тіла",
+      "languageMeaning": "мова і значення",
+      "physicalQualities": "фізичні якості"
+    }
+  }
+}

@@ -1,1 +1,28 @@
-{}
+{
+  "worldCopy": {
+    "opening": "Ces tribus ont besoin de vous. Exaucez leurs prières, gardez-les en vie et faites-les traverser les âges, ou voyez ce qu'elles deviennent sans vous.",
+    "closing": "Votre monde est sauvegardé sur cet appareil. Les paramètres proposent le mode photo, l'exportation, un nouveau monde et de revoir cette visite."
+  },
+  "world": {
+    "title": "Votre monde",
+    "text": "Chaque petite silhouette est une personne réelle avec un nom, une famille et des croyances, qui vit sa propre vie. Faites glisser pour vous déplacer, utilisez la molette pour zoomer et cliquez sur quelqu'un pour le suivre."
+  },
+  "prayer": {
+    "title": "Quand ils ont besoin de vous",
+    "text": "Une bulle au-dessus d'une tribu est une prière : faim, maladie, feu, danger. Cliquez dessus pour répondre et gagner leur foi. Quand une tribu est au bord du gouffre, ⚠ s'allume dans l'en-tête."
+  },
+  "powers": {
+    "title": "Vos pouvoirs",
+    "text": "Tout ce que vous pouvez faire au monde. Choisissez un outil, puis cliquez sur la carte ; Échap le repose. La pause et la vitesse se trouvent à droite."
+  },
+  "history": {
+    "title": "Regardez l'histoire se dérouler",
+    "text": "Statistiques, civilisation, recherche et chroniques : ères, religions, guerres et les récits que ce monde écrit sur lui-même."
+  },
+  "done": {
+    "title": "Voilà, amusez-vous bien"
+  },
+  "back": "Retour",
+  "next": "Suivant",
+  "finish": "Terminer"
+}

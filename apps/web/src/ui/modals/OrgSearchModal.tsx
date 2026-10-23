@@ -5,6 +5,7 @@ import type { OrganismState } from '../../shared/types'
 import { lineageColor, cbColor } from '../../shared/constants'
 import { OrgDetail } from '../panels/OrgDetail'
 import { Modal } from './Modal'
+import { formatNumber, t, type MessageKey } from '../../i18n'
 
 const DAY_LENGTH = 600
 
@@ -16,6 +17,12 @@ interface Props {
 }
 
 type StatusFilter = 'all' | 'alive' | 'dead'
+
+const STATUS_LABEL: Record<StatusFilter, MessageKey> = {
+  all: 'dialogs.orgSearch.statusAll',
+  alive: 'dialogs.orgSearch.statusAlive',
+  dead: 'dialogs.orgSearch.statusDead',
+}
 type DiscoveryFilter = 'all' | 'fire' | 'shelter'
 type AspirationFilter =
   | 'all'
@@ -76,7 +83,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
   }, [tribeOpen])
 
   const tn = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
-  const currentTribeLabel = lineageF === 'all' ? 'all tribes' : tn(lineageF)
+  const currentTribeLabel = lineageF === 'all' ? t('dialogs.orgSearch.allTribes') : tn(lineageF)
 
   const lineages = useMemo(() => [...new Set(organisms.map((o) => o.lineage_id))].sort(), [organisms])
 
@@ -113,15 +120,18 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
   const selectedOrg = selectedId ? (organisms.find((o) => o.id === selectedId) ?? null) : null
 
   return (
-    <Modal open onClose={onClose} className="org-search-modal" title="Organisms" hideTitle>
+    <Modal open onClose={onClose} className="org-search-modal" title={t('dialogs.orgSearch.title')} hideTitle>
       {}
       <div className="lang-modal-header">
-        <span className="lang-modal-title">ORGANISMS</span>
+        <span className="lang-modal-title">{t('dialogs.orgSearch.heading')}</span>
         <span className="tree-modal-sub">
-          {filtered.length} shown · {organisms.filter((o) => o.alive).length} alive ·{' '}
-          {organisms.filter((o) => !o.alive).length} dead
+          {t('dialogs.orgSearch.summary', {
+            shown: formatNumber(filtered.length),
+            alive: formatNumber(organisms.filter((o) => o.alive).length),
+            dead: formatNumber(organisms.filter((o) => !o.alive).length),
+          })}
         </span>
-        <button aria-label="Close" className="close-btn" onClick={onClose}>
+        <button aria-label={t('dialogs.orgSearch.close')} className="close-btn" onClick={onClose}>
           ✕
         </button>
       </div>
@@ -130,7 +140,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
       <div className={clsx('org-search-toolbar', selectedOrg && 'org-search-toolbar--behind-detail')}>
         <input
           className="org-search-input"
-          placeholder="search by name, thought, lineage id…"
+          placeholder={t('dialogs.orgSearch.placeholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           autoFocus={autoFocus}
@@ -143,7 +153,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                 className={clsx('filter-chip', status === s && 'active')}
                 onClick={() => setStatus(s)}
               >
-                {s}
+                {t(STATUS_LABEL[s])}
               </button>
             ))}
             <span className="filter-sep">·</span>
@@ -151,13 +161,13 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
               className={clsx('filter-chip', discF === 'fire' && 'active')}
               onClick={() => setDiscF(discF === 'fire' ? 'all' : 'fire')}
             >
-              🔥 fire
+              🔥 {t('dialogs.orgSearch.fire')}
             </button>
             <button
               className={clsx('filter-chip', discF === 'shelter' && 'active')}
               onClick={() => setDiscF(discF === 'shelter' ? 'all' : 'shelter')}
             >
-              🏠 shelter
+              🏠 {t('dialogs.orgSearch.shelter')}
             </button>
             <span className="filter-sep">·</span>
             <button
@@ -219,7 +229,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                     setTribeOpen(false)
                   }}
                 >
-                  all tribes
+                  {t('dialogs.orgSearch.allTribes')}
                 </div>
                 {lineages.map((lid) => (
                   <div
@@ -243,7 +253,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
       {}
       <div className={clsx('org-search-body', selectedOrg && 'has-selection')}>
         <div className="org-search-list" ref={listRef}>
-          {filtered.length === 0 && <div className="org-search-empty">no organisms match</div>}
+          {filtered.length === 0 && <div className="org-search-empty">{t('dialogs.orgSearch.empty')}</div>}
           {filtered.map((org) => {
             const color = lineageColor(org.lineage_id)
             const isSelected = org.id === selectedId
@@ -272,12 +282,15 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                     {discs.includes('spear') && '🗡️'}
                   </span>
                   <span className="org-search-meta" style={{ color: 'var(--dialog-muted)' }}>
-                    g{org.generation} · {Math.floor(org.age / DAY_LENGTH)}d
+                    {t('dialogs.orgSearch.genAge', {
+                      gen: formatNumber(org.generation),
+                      days: formatNumber(Math.floor(org.age / DAY_LENGTH)),
+                    })}
                   </span>
                   {org.alive && onTrack && (
                     <button
                       className="org-action-btn org-track-btn"
-                      title="track in world"
+                      title={t('dialogs.orgSearch.track')}
                       onClick={(e) => {
                         e.stopPropagation()
                         onTrack(org.id)
@@ -337,7 +350,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                   setSelectedId(null)
                 }}
               >
-                ← all organisms
+                {t('dialogs.orgSearch.back')}
               </button>
               <OrgDetail
                 org={selectedOrg}
@@ -350,7 +363,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
               />
             </>
           ) : (
-            <div className="org-search-placeholder">← select an organism to view details</div>
+            <div className="org-search-placeholder">{t('dialogs.orgSearch.placeholderDetail')}</div>
           )}
         </div>
       </div>

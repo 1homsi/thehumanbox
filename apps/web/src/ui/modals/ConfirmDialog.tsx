@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { Modal } from './LazyModal'
 import { currentConfirm, settleConfirm, subscribeConfirm } from '../../shared/confirm'
+import { t } from '../../i18n'
 
 /** Renders the dialog requested through `askConfirm` or `showNotice`. Mount once near the app root. */
 export function ConfirmHost() {
@@ -18,7 +19,7 @@ export function ConfirmHost() {
       <div className="confirm-actions">
         {!current.notice && (
           <button className="lang-btn" onClick={() => settleConfirm(false)}>
-            {current.cancelLabel ?? 'cancel'}
+            {current.cancelLabel ?? t('dialogs.confirm.cancel')}
           </button>
         )}
         <button
@@ -26,7 +27,7 @@ export function ConfirmHost() {
           onClick={() => settleConfirm(true)}
           autoFocus
         >
-          {current.confirmLabel ?? 'confirm'}
+          {current.confirmLabel ?? t('dialogs.confirm.confirm')}
         </button>
       </div>
     </Modal>

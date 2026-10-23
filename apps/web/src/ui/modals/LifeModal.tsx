@@ -3,6 +3,7 @@ import type { OrgLife, LifeEvent } from '../../shared/types'
 import { Modal } from './Modal'
 import { API_BASE } from '../../shared/config'
 import { useSimulationData } from '../../simulation/simulationData'
+import { formatNumber, t } from '../../i18n'
 
 const DAY_LENGTH = 600
 
@@ -57,7 +58,8 @@ const CATEGORY_COLOR: Record<string, string> = {
 function EventRow({ ev }: { ev: LifeEvent }) {
   const icon = CATEGORY_ICON[ev.category] ?? '•'
   const color = CATEGORY_COLOR[ev.category] ?? '#888'
-  const day = ev.tick > 0 ? `day ${Math.floor(ev.tick / DAY_LENGTH)}` : ''
+  const day =
+    ev.tick > 0 ? t('dialogs.life.day', { day: formatNumber(Math.floor(ev.tick / DAY_LENGTH)) }) : ''
   return (
     <div
       className="life-event-row"
@@ -134,10 +136,16 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
   const stuckCount = recent.length >= 6 && recent.every((e) => e.text === recent[0].text) ? recent.length : 0
 
   return (
-    <Modal open onClose={onClose} className="lang-modal life-modal" title={`${orgName}'s Life`} hideTitle>
+    <Modal
+      open
+      onClose={onClose}
+      className="lang-modal life-modal"
+      title={t('dialogs.life.title', { name: orgName })}
+      hideTitle
+    >
       <div className="lang-modal-header">
-        <span className="lang-modal-title">{orgName.toUpperCase()}'S LIFE</span>
-        <button aria-label="Close" className="close-btn" onClick={onClose}>
+        <span className="lang-modal-title">{t('dialogs.life.heading', { name: orgName.toUpperCase() })}</span>
+        <button aria-label={t('dialogs.life.close')} className="close-btn" onClick={onClose}>
           ✕
         </button>
       </div>
@@ -154,7 +162,9 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
             <div className="life-skel-event" />
           </div>
         )}
-        {error && <div style={{ color: '#ff6644', textAlign: 'center', padding: 20 }}>failed to load</div>}
+        {error && (
+          <div style={{ color: '#ff6644', textAlign: 'center', padding: 20 }}>{t('dialogs.life.failed')}</div>
+        )}
         {life && (
           <>
             <div
@@ -167,31 +177,27 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
                 color: '#888',
               }}
             >
-              <span>gen {life.generation}</span>
+              <span>{t('dialogs.life.gen', { gen: life.generation })}</span>
               <span>·</span>
-              <span>
-                {ageInDays} day{ageInDays !== 1 ? 's' : ''} old
-              </span>
+              <span>{t('dialogs.life.age', { count: ageInDays })}</span>
               <span>·</span>
               <span>{life.sex}</span>
               {life.is_elder && (
                 <>
                   <span>·</span>
-                  <span style={{ color: '#ffcc44' }}>elder</span>
+                  <span style={{ color: '#ffcc44' }}>{t('dialogs.life.elder')}</span>
                 </>
               )}
               {life.partner_id && (
                 <>
                   <span>·</span>
-                  <span style={{ color: '#ff88aa' }}>partnered</span>
+                  <span style={{ color: '#ff88aa' }}>{t('dialogs.life.partnered')}</span>
                 </>
               )}
               {life.children_count > 0 && (
                 <>
                   <span>·</span>
-                  <span>
-                    {life.children_count} child{life.children_count !== 1 ? 'ren' : ''}
-                  </span>
+                  <span>{t('dialogs.life.children', { count: life.children_count })}</span>
                 </>
               )}
             </div>
@@ -209,7 +215,7 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
               }}
             >
               <span style={{ color: '#888', fontSize: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
-                feeling
+                {t('dialogs.life.feeling')}
               </span>
               <span style={{ marginLeft: 8, color: '#ddd' }}>{life.emotional_state}</span>
             </div>
@@ -225,7 +231,7 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
                     marginBottom: 4,
                   }}
                 >
-                  friends
+                  {t('dialogs.life.friends')}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {life.friends.map((f) => (
@@ -258,7 +264,7 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
                     marginBottom: 4,
                   }}
                 >
-                  discoveries
+                  {t('dialogs.life.discoveries')}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {life.discoveries.map((d) => (
@@ -311,7 +317,7 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
                     marginTop: 4,
                   }}
                 >
-                  what they hold in mind ({life.memories.length})
+                  {t('dialogs.life.memories', { count: formatNumber(life.memories.length) })}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 10 }}>
                   {life.memories.slice(0, 8).map((m, i) => {
@@ -365,18 +371,16 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
                 marginBottom: 8,
               }}
             >
-              life events ({life.events.length})
+              {t('dialogs.life.events', { count: formatNumber(life.events.length) })}
             </div>
 
             {stuckCount > 0 && (
-              <div className="life-stuck-banner">
-                ⚠ this organism is stuck: same action {stuckCount} times in a row
-              </div>
+              <div className="life-stuck-banner">{t('dialogs.life.stuck', { count: stuckCount })}</div>
             )}
 
             {life.events.length === 0 ? (
               <div style={{ color: '#555', fontSize: 10, textAlign: 'center', padding: 12 }}>
-                no recorded events yet
+                {t('dialogs.life.noEvents')}
               </div>
             ) : (
               <div className={life.events.length > 8 ? 'life-events-grid' : ''}>

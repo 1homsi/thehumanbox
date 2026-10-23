@@ -3,6 +3,7 @@ import { REPO_URL } from '../../shared/links'
 import { trackEvent } from '../../shared/observability'
 import { ToolSprite } from '../toolbar/ToolSprite'
 import { screenBusy, TOAST_RETRY_MS } from './screenBusy'
+import { t } from '../../i18n'
 
 export const STAR_PROMPT_KEY = 'thb-star-prompt-v1'
 // Late enough that the first minutes belong to the world, not to prompts.
@@ -62,18 +63,16 @@ export function StarToast() {
 
   return (
     <div className="desktop-toast star-toast" role="status" aria-live="polite">
-      <button className="desktop-toast-close" aria-label="Dismiss" onClick={dismiss}>
+      <button className="desktop-toast-close" aria-label={t('dialogs.toast.dismiss')} onClick={dismiss}>
         ×
       </button>
       <div className="star-toast-head">
         <span className="star-toast-star" aria-hidden="true">
           <ToolSprite icon="⭐" size={28} />
         </span>
-        <div className="desktop-toast-title">Enjoying your world?</div>
+        <div className="desktop-toast-title">{t('dialogs.toast.starTitle')}</div>
       </div>
-      <div className="desktop-toast-sub">
-        The Human Box is free and open source. A star on GitHub helps other people find it.
-      </div>
+      <div className="desktop-toast-sub">{t('dialogs.toast.starSub')}</div>
       <div className="desktop-toast-actions">
         <a
           className="desktop-toast-primary"
@@ -89,10 +88,10 @@ export function StarToast() {
           <span className="star-toast-glyph" aria-hidden="true">
             ★
           </span>{' '}
-          Star on GitHub
+          {t('dialogs.toast.starCta')}
         </a>
         <button className="desktop-toast-secondary" onClick={dismiss}>
-          Maybe later
+          {t('dialogs.toast.starLater')}
         </button>
       </div>
     </div>

@@ -1,1 +1,28 @@
-{}
+{
+  "worldCopy": {
+    "opening": "Queste tribù hanno bisogno di te. Rispondi alle loro preghiere, tienile in vita e falle crescere attraverso le epoche, oppure guarda cosa diventano senza di te.",
+    "closing": "Il tuo mondo viene salvato su questo dispositivo. Nelle Impostazioni trovi la modalità foto, l'esportazione, un nuovo mondo e di nuovo questo tour."
+  },
+  "world": {
+    "title": "Il tuo mondo",
+    "text": "Ogni piccola figura è una persona reale, con un nome, una famiglia e delle convinzioni, che vive la propria vita. Trascina per spostarti, scorri per ingrandire, clicca su qualcuno per seguirlo."
+  },
+  "prayer": {
+    "title": "Quando hanno bisogno di te",
+    "text": "Una bolla sopra una tribù è una preghiera: fame, malattia, fuoco, pericolo. Cliccala per rispondere e conquistare la loro fede. Quando una tribù è sull'orlo, ⚠ si accende nell'intestazione."
+  },
+  "powers": {
+    "title": "I tuoi poteri",
+    "text": "Tutto ciò che puoi fare al mondo. Scegli uno strumento, poi clicca sulla mappa; Esc lo rimette via. Pausa e velocità sono a destra."
+  },
+  "history": {
+    "title": "Guarda la storia che si svolge",
+    "text": "Statistiche, civiltà, ricerca e cronache: ere, religioni, guerre e le storie che questo mondo scrive di sé."
+  },
+  "done": {
+    "title": "Tutto qui, buon divertimento"
+  },
+  "back": "Indietro",
+  "next": "Avanti",
+  "finish": "Fine"
+}

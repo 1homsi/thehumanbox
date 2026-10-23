@@ -1,1 +1,28 @@
-{}
+{
+  "worldCopy": {
+    "opening": "Essas tribos precisam de você. Atenda às preces, mantenha-as vivas e conduza-as pelas eras, ou veja o que acontece com elas sem você.",
+    "closing": "Seu mundo é salvo neste dispositivo. Em Configurações há modo foto, exportação, um novo mundo e este tour de novo."
+  },
+  "world": {
+    "title": "Seu mundo",
+    "text": "Cada figura minúscula é uma pessoa real, com nome, família e crenças, vivendo a própria vida. Arraste para mover, role para dar zoom, clique em alguém para segui-lo."
+  },
+  "prayer": {
+    "title": "Quando precisam de você",
+    "text": "Um balão sobre uma tribo é uma prece: fome, doença, fogo, perigo. Clique nele para atender e ganhar a fé deles. Quando uma tribo está à beira, o ⚠ acende no cabeçalho."
+  },
+  "powers": {
+    "title": "Seus poderes",
+    "text": "Tudo o que você pode fazer com o mundo. Escolha uma ferramenta e clique no mapa; Esc a guarda. Pausa e velocidade ficam à direita."
+  },
+  "history": {
+    "title": "Acompanhe a história se desenrolar",
+    "text": "Estatísticas, civilização, busca e crônicas: eras, religiões, guerras e as histórias que este mundo escreve sobre si mesmo."
+  },
+  "done": {
+    "title": "Pronto, divirta-se"
+  },
+  "back": "Voltar",
+  "next": "Próximo",
+  "finish": "Concluir"
+}

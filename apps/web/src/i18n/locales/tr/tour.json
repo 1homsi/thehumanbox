@@ -1,1 +1,28 @@
-{}
+{
+  "worldCopy": {
+    "opening": "Bu kabilelerin sana ihtiyacı var. Dualarını yanıtla, onları hayatta tut ve çağlar boyunca yücelt ya da sen olmadan ne olacaklarını gör.",
+    "closing": "Dünyan bu cihazda kaydedilir. Ayarlar bölümünde fotoğraf modu, dışa aktarma, yeni bir dünya ve bu tur yer alır."
+  },
+  "world": {
+    "title": "Dünyan",
+    "text": "Her küçük figür; adı, ailesi ve inançları olan, kendi hayatını yaşayan gerçek bir insandır. Kaydırmak için sürükle, yakınlaştırmak için kaydır, birini takip etmek için ona tıkla."
+  },
+  "prayer": {
+    "title": "Sana ihtiyaç duyduklarında",
+    "text": "Bir kabilenin üstündeki balon bir duadır: açlık, hastalık, ateş, tehlike. Yanıtlamak ve inançlarını kazanmak için tıkla. Bir kabile uçurumun kenarına geldiğinde üst çubuktaki ⚠ yanar."
+  },
+  "powers": {
+    "title": "Güçlerin",
+    "text": "Dünyaya yapabileceğin her şey. Bir araç seç, sonra haritaya tıkla; Esc aracı bırakır. Duraklatma ve hız denetimleri sağda."
+  },
+  "history": {
+    "title": "Tarihin açılışını izle",
+    "text": "İstatistikler, uygarlık, arama ve kronikler: çağlar, dinler, savaşlar ve bu dünyanın kendisi hakkında yazdığı hikâyeler."
+  },
+  "done": {
+    "title": "Hepsi bu kadar, iyi eğlenceler"
+  },
+  "back": "Geri",
+  "next": "İleri",
+  "finish": "Bitir"
+}

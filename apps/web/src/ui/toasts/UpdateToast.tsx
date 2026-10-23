@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useVersionCheck } from '../../shared/hooks/useVersionCheck'
 import { reloadAppSafely } from '../../simulation/worldSource'
+import { t } from '../../i18n'
 
 export function UpdateToast() {
   const { newVersionAvailable } = useVersionCheck()
@@ -15,7 +16,7 @@ export function UpdateToast() {
       () =>
         reloadAppSafely({
           onFailure: () => setReloading(false),
-          failureMessage: 'could not checkpoint the current world; update refresh was cancelled safely',
+          failureMessage: t('dialogs.toast.checkpointFailed'),
         }),
       80,
     )
@@ -27,17 +28,17 @@ export function UpdateToast() {
         ⤴
       </div>
       <div className="update-toast__body">
-        <div className="update-toast__title">New version available</div>
-        <div className="update-toast__sub">refresh to load the latest world</div>
+        <div className="update-toast__title">{t('dialogs.toast.newVersion')}</div>
+        <div className="update-toast__sub">{t('dialogs.toast.newVersionSub')}</div>
       </div>
       <button type="button" className="update-toast__cta" onClick={reload} disabled={reloading} autoFocus>
-        {reloading ? 'refreshing…' : 'Refresh'}
+        {reloading ? t('dialogs.toast.refreshing') : t('dialogs.toast.refresh')}
       </button>
       <button
         type="button"
         className="update-toast__close"
         onClick={() => setDismissed(true)}
-        aria-label="Dismiss"
+        aria-label={t('dialogs.toast.dismiss')}
       >
         ×
       </button>

@@ -1,1 +1,542 @@
-{}
+{
+  "confirm": {
+    "cancel": "취소",
+    "confirm": "확인",
+    "ok": "확인"
+  },
+  "welcome": {
+    "quickTour": "빠른 투어",
+    "back": "뒤로",
+    "skip": "건너뛰기",
+    "start": "시작",
+    "next": "다음",
+    "localTitle": "당신은 그들의 신입니다",
+    "localBody": "작은 부족들은 스스로 살아가고, 사랑하고, 짓고, 전쟁을 벌입니다. 문제가 생기면 그들은 당신에게 기도합니다. 기도 말풍선을 클릭하면 도움이 되는 힘이 당신의 손에 들어옵니다. 모든 것은 이 기기에서 실행되고 저장됩니다."
+  },
+  "worlds": {
+    "introArchives": "세계 아카이브는 이 컴퓨터에 저장됩니다.",
+    "introPrivate": "개인 세계는 이 브라우저에서 돌아가며, 호스팅된 시뮬레이션 서버에 연결하지 않습니다."
+  },
+  "about": {
+    "title": "정보",
+    "heading": "정보",
+    "close": "닫기",
+    "unknown": "알 수 없음",
+    "blurb": "The Human Box는 먹을 것을 찾고, 유대를 맺고, 언어를 만들어 자식에게 물려주는 작은 개체들의 살아 있는 시뮬레이션입니다. GitHub에서 오픈 소스로 공개되어 있습니다.",
+    "frontend": "프런트엔드",
+    "commit": "커밋",
+    "built": "빌드",
+    "simulation": "시뮬레이션",
+    "runtime": "런타임",
+    "runtimeLocal": "로컬 브라우저 · 오프라인",
+    "versionError": "시뮬레이션의 /version에 연결할 수 없습니다: {error}",
+    "loading": "불러오는 중…",
+    "name": "이름",
+    "builtWith": "사용 기술",
+    "engineDetail": "React 중심의 2D 브라우저 게임 엔진입니다. 세계 캔버스, 카메라, 입력 처리, WebGL 파이프라인이 모두 이 위에서 동작합니다.",
+    "links": "링크"
+  },
+  "achievements": {
+    "title": "업적",
+    "heading": "업적",
+    "earned": "{total}개 중 {earned}개 달성"
+  },
+  "lineages": {
+    "title": "모든 혈통",
+    "heading": "모든 혈통 ({count})",
+    "close": "닫기",
+    "onBrink": "존폐 위기: {remaining}, {reason}",
+    "generation": "{gen}세대",
+    "generationRange": "–{gen}"
+  },
+  "chronicles": {
+    "title": "연대기",
+    "heading": "연대기",
+    "tabHistory": "세계 역사",
+    "tabLives": "삶",
+    "close": "닫기",
+    "historyIntro": "이 세계의 큰 전환점 — 시대, 전쟁, 왕조, 불가사의.",
+    "noHistory": "아직 주목할 만한 사건이 없습니다. 이야기는 막 시작되었습니다.",
+    "day": "{day}일",
+    "livesIntro": "세계의 주민들이 들려주는 이야기이며, 살았던 시기 순으로 정렬됩니다.",
+    "noLives": "아직 이야기가 없습니다. 생명체가 하루 주기를 온전히 보내면 이야기가 나타납니다."
+  },
+  "goals": {
+    "title": "목표",
+    "heading": "목표",
+    "lost": "살아남은 사람이 아무도 없습니다.",
+    "difficulty": "난이도: {notes}",
+    "difficultyGroup": "난이도",
+    "levels": {
+      "calm": "평온",
+      "normal": "보통",
+      "harsh": "가혹"
+    }
+  },
+  "scenarios": {
+    "title": "시나리오",
+    "heading": "시나리오",
+    "intro": "각 시나리오는 지금 보고 있는 세계에 더해집니다. 새 세계를 시작하지는 않습니다.",
+    "start": "시작"
+  },
+  "civ": {
+    "title": "문명",
+    "close": "닫기",
+    "common": {
+      "people": "{count}명",
+      "more": "+{count}개 더",
+      "tick": "tick {tick}"
+    },
+    "calendar": {
+      "year": "년",
+      "day": "84일 중 {day}일",
+      "lit": "{percent}% 밝음",
+      "season": "계절",
+      "worldTech": "세계 기술"
+    },
+    "lineages": {
+      "heading": "혈통",
+      "name": "이름",
+      "era": "혈통의 시대",
+      "pop": "인구",
+      "next": "다음",
+      "gov": "정부",
+      "currency": "화폐",
+      "actions": "행동",
+      "worldPopulation": "세계 인구 {current}/{required}",
+      "missing": "부족: {items}",
+      "tavern": "주점"
+    },
+    "campaigns": {
+      "kicker": "플레이어 지침",
+      "heading": "혈통 캠페인",
+      "help": "혈통은 여전히 스스로 행동을 고릅니다. 방향에 맞는 성공한 행동이 목표를 채웁니다.",
+      "completed": "완료",
+      "awaiting": "지시 대기 중",
+      "focusOn": "{strategy}에 집중",
+      "aligned": "방향에 맞는 행동 {progress}/{target}",
+      "rewardEarned": "보상 획득",
+      "ticksLeft": "남은 tick {ticks}",
+      "progressAria": "{lineage}의 {strategy} 캠페인",
+      "reward": "보상: {reward}",
+      "defaultReward": "혈통의 사기",
+      "choose": "이 혈통에 눈에 보이는 목표와 완료 보상을 주려면 부드러운 목표를 고르세요.",
+      "guideAria": "{lineage} 지시",
+      "change": "캠페인 변경…",
+      "start": "캠페인 시작…"
+    },
+    "guidance": {
+      "hunt": {
+        "label": "식량 확보",
+        "description": "사냥꾼이 추적, 덫 놓기, 식량 가져오기에 집중하게 합니다",
+        "reward": "살아 있는 모든 구성원을 위한 식량 비축"
+      },
+      "explore": {
+        "label": "탐험",
+        "description": "미지의 땅으로 나아가 새로운 발견에 따라 행동합니다",
+        "reward": "길 지도와 호기심의 급상승"
+      },
+      "settle": {
+        "label": "정착과 건설",
+        "description": "자재를 모으고, 안전하게 쉬며, 정착지를 넓힙니다",
+        "reward": "공동 목재와 석재 비축"
+      },
+      "trade": {
+        "label": "교역",
+        "description": "교환, 시장, 외국 교역 상대를 찾습니다",
+        "reward": "혈통 전체가 나누는 부"
+      },
+      "defend": {
+        "label": "방어",
+        "description": "경보를 울리고, 영토를 요새화하며, 취약한 친족을 보호합니다",
+        "reward": "건강, 용기, 사기 회복"
+      },
+      "guiding": "지시하는 중…",
+      "started": "{strategy} 캠페인을 시작했습니다",
+      "rejected": "지시가 거부되었습니다",
+      "unavailable": "지시를 사용할 수 없습니다"
+    },
+    "redirect": {
+      "title": "캠페인을 변경할까요?",
+      "body": "{lineage}의 방향을 {from}에서 {to}(으)로 바꿉니다.\n\n현재 캠페인의 진행 상황은 보관됩니다.",
+      "confirm": "변경"
+    },
+    "history": {
+      "title": "최근 캠페인",
+      "showRecent": "최근 항목 보기",
+      "showAll": "{count}개 모두 보기",
+      "lineageEnded": "혈통이 끊어짐",
+      "tick": "t{tick}"
+    },
+    "governments": {
+      "heading": "정부와 지도자",
+      "empty": "아직 정부가 없습니다",
+      "leader": "지도자: {name}",
+      "treasury": "국고: {amount}"
+    },
+    "religions": {
+      "heading": "종교",
+      "empty": "아직 세워진 종교가 없습니다",
+      "adherents": "신도 {count}명",
+      "foundedBy": "창시자: {lineage}",
+      "enterTemple": "신전으로 들어가기 →",
+      "templeUnavailable": "신전을 사용할 수 없음"
+    },
+    "conflicts": {
+      "heading": "분쟁",
+      "empty": "아직 전투가 없습니다",
+      "versus": "{attackers} 대 {defenders}",
+      "won": "{side} 승리",
+      "stalemate": "교착",
+      "ended": "종료",
+      "ongoing": "진행 중"
+    },
+    "diplomacy": {
+      "heading": "외교",
+      "empty": "아직 조약이 없습니다",
+      "pair": "{a} 및 {b}",
+      "treaty": "조약"
+    },
+    "buildings": {
+      "heading": "건물",
+      "empty": "아직 지어진 건물이 없습니다"
+    },
+    "settlements": {
+      "heading": "정착지",
+      "empty": "아직 안정된 정착지가 없습니다",
+      "completedBuildings": "완성된 건물 {count}채",
+      "capacity": "수용 {count}"
+    },
+    "agriculture": {
+      "heading": "농업",
+      "empty": "아직 갈린 밭이 없습니다",
+      "growing": "자라는 중: {count}",
+      "harvestReady": "수확 가능: {count}",
+      "fallow": "휴경 중: {count}",
+      "projectedFood": "예상 식량: {count}",
+      "fields": {
+        "one": "{crop}: 밭 {count}곳",
+        "other": "{crop}: 밭 {count}곳"
+      }
+    },
+    "goods": {
+      "heading": "유통 중인 물품",
+      "empty": "아직 가진 제작품이 없습니다",
+      "byLineage": "혈통별:",
+      "held": "보유 {count}"
+    },
+    "books": {
+      "heading": "최근 책",
+      "empty": "아직 쓰인 책이 없습니다",
+      "on": "{author}의 {topic}",
+      "copies": "{count}부"
+    },
+    "artworks": {
+      "heading": "예술 작품",
+      "empty": "아직 만들어진 것이 없습니다",
+      "by": "작가: {name}"
+    },
+    "trade": {
+      "heading": "교역망",
+      "empty": "아직 교역로가 없습니다 — 철기 시대의 상인에게는 자리 잡은 정착지 두 곳, 화폐, 항해술, 교역 공간이 필요합니다.",
+      "routes": {
+        "one": "교역로 {count}개",
+        "other": "교역로 {count}개"
+      },
+      "caravans": {
+        "one": "이동 중인 캐러밴 {count}개",
+        "other": "이동 중인 캐러밴 {count}개"
+      },
+      "totals": "배송 {deliveries}회 · 이동한 물품 {volume}",
+      "routeStats": "{distance}타일 · 배송 {delivered} · 물량 {volume}",
+      "enRoute": "이동 중 {count}",
+      "readyToUnload": "하역 준비 완료",
+      "ticksAway": "{ticks} tick 후"
+    },
+    "tradeLog": {
+      "heading": "최근 거래",
+      "empty": "아직 거래가 없습니다 (물물교환 / 화폐 필요)",
+      "coins": {
+        "one": "{count}개",
+        "other": "{count}개"
+      }
+    },
+    "headlines": {
+      "heading": "헤드라인",
+      "empty": "아직 주목할 만한 사건이 없습니다"
+    }
+  },
+  "toast": {
+    "dismiss": "닫기",
+    "desktopTitle": "The Human Box를 로컬에서 실행",
+    "desktopSub": "공유 지연이 없는 나만의 개인 세계. 무료.",
+    "copy": "복사",
+    "copied": "복사됨",
+    "download": "내려받기",
+    "notNow": "나중에",
+    "updateReady": "설치할 업데이트 준비 완료",
+    "updateAvailable": "업데이트 사용 가능",
+    "updateReadySub": "v{version} 다운로드 완료 — 다시 시작하면 적용됩니다",
+    "updateDownloading": "v{version} 다운로드 중…",
+    "updateFailed": "업데이트 실패: {message}",
+    "updateNotReady": "업데이트가 아직 준비되지 않았습니다",
+    "restartFailed": "업데이트 프로그램을 다시 시작할 수 없습니다",
+    "restartTitle": "The Human Box를 다시 시작하고 다운로드한 업데이트를 설치합니다",
+    "restarting": "다시 시작하는 중…",
+    "restart": "다시 시작",
+    "newVersion": "새 버전 사용 가능",
+    "newVersionSub": "새로 고침하여 최신 세계를 불러오기",
+    "refreshing": "새로 고치는 중…",
+    "refresh": "새로 고침",
+    "checkpointFailed": "현재 세계를 저장할 수 없습니다. 새로 고침 업데이트는 안전하게 취소되었습니다",
+    "starTitle": "세계가 마음에 드시나요?",
+    "starSub": "The Human Box는 무료이며 오픈 소스입니다. GitHub에서 별을 누르면 다른 사람들이 찾기 쉬워집니다.",
+    "starCta": "GitHub에서 별 누르기",
+    "starLater": "나중에"
+  },
+  "life": {
+    "title": "{name}의 삶",
+    "heading": "{name}의 삶",
+    "close": "닫기",
+    "day": "{day}일",
+    "failed": "불러오지 못했습니다",
+    "gen": "{gen}세대",
+    "age": {
+      "one": "{count}일 된",
+      "other": "{count}일 된"
+    },
+    "elder": "원로",
+    "partnered": "짝이 있음",
+    "children": {
+      "one": "자녀 {count}명",
+      "other": "자녀 {count}명"
+    },
+    "feeling": "기분",
+    "friends": "친구",
+    "discoveries": "발견",
+    "memories": "마음에 간직한 것 ({count})",
+    "events": "생애 사건 ({count})",
+    "stuck": "⚠ 이 생명체는 막혀 있습니다: 같은 행동이 {count}번 연속되었습니다",
+    "noEvents": "기록된 사건이 아직 없습니다"
+  },
+  "conversations": {
+    "kinds": {
+      "courtship": "첫 만남",
+      "bonded": "파트너와의 대화",
+      "farewell": "작별",
+      "chat": "잡담",
+      "gossip": "소문",
+      "excited": "들뜬 마음 나누기",
+      "argue": "말다툼"
+    },
+    "relPartner": "♥ 파트너",
+    "relFriend": "친구",
+    "relTrusts": "신뢰",
+    "relWary": "경계",
+    "day": "{day}일",
+    "title": "{name}의 대화",
+    "heading": "대화",
+    "close": "닫기",
+    "filterAll": "전체",
+    "loading": "{name}의 대화를 불러오는 중…",
+    "drawn": "{name}이(가) 누군가에게 끌리고 있습니다 - 첫 대화가 곧 시작됩니다",
+    "noneYet": "{name}은(는) 아직 아무와도 대화하지 않았습니다",
+    "noneOfKind": "{kind} 대화가 없습니다"
+  },
+  "notable": {
+    "title": "주목",
+    "heading": "주목할 만한 생명체",
+    "alive": "{count}명 생존 · 아래에서 기준을 고르세요",
+    "close": "닫기",
+    "empty": "아직 이 기준에 맞는 생명체가 없습니다",
+    "gen": "{gen}세대",
+    "oldest": "가장 나이 많은 존재",
+    "days": "{count}일",
+    "children": "자녀가 가장 많은",
+    "childrenCount": "자녀 {count}명",
+    "friends": "인맥이 가장 넓은",
+    "friendsCount": "친구 {count}명",
+    "wealth": "가장 부유한",
+    "coin": "{count}개",
+    "discoveries": "가장 많이 배운 (발견)",
+    "discoveriesCount": "발견 {count}개",
+    "literate": "가장 글을 잘 아는",
+    "literacy": "문해율 {percent}%",
+    "devout": "가장 독실한",
+    "piety": "신앙심 {percent}%",
+    "joy": "지금 가장 기쁨에 찬",
+    "joyTicks": "기쁨 tick {count}",
+    "grief": "가장 깊은 슬픔을 안고 있는",
+    "griefTicks": "슬픔 tick {count}",
+    "aspiration": "삶의 목표가 있는"
+  },
+  "orgSearch": {
+    "title": "생명체",
+    "heading": "생명체",
+    "summary": "표시 {shown} · 생존 {alive} · 사망 {dead}",
+    "close": "닫기",
+    "placeholder": "이름, 생각, 혈통 ID로 검색…",
+    "statusAll": "전체",
+    "statusAlive": "생존",
+    "statusDead": "사망",
+    "fire": "불",
+    "shelter": "거처",
+    "allTribes": "모든 부족",
+    "empty": "일치하는 생명체가 없습니다",
+    "genAge": "{gen}세대 · {days}일",
+    "track": "세계에서 추적",
+    "back": "← 모든 생명체",
+    "placeholderDetail": "← 생명체를 선택하면 세부 정보를 볼 수 있습니다"
+  },
+  "stats": {
+    "title": "통계",
+    "heading": "통계",
+    "yearDay": "{year}년 · {day}일",
+    "day": "{day}일",
+    "aliveCount": "{count}명 생존",
+    "reload": "현재 세계에서 다시 로드",
+    "close": "닫기",
+    "alive": "생존",
+    "totalDeaths": "총 사망",
+    "totalBirths": "총 출생",
+    "daysElapsed": "경과한 일수",
+    "knowFire": "불을 안다",
+    "haveShelter": "거처가 있음",
+    "animals": "동물",
+    "populationOverTime": "시간에 따른 인구",
+    "birthsDeathsByYear": "연도별 출생과 사망",
+    "wealthGapByYear": "연도별 부의 격차",
+    "agePyramid": "연령 피라미드",
+    "populationTraits": "인구 특성",
+    "tribalRelations": "부족 간 관계",
+    "discoveryRollup": "발견 요약",
+    "legends": "전설",
+    "generationsAlive": "생존 세대",
+    "oldestLiving": "생존 최고령",
+    "longevity": "수명",
+    "noOldAgeDeaths": "아직 노환으로 죽은 사람이 없습니다",
+    "causesOfDeath": "사인",
+    "causes": {
+      "starvation": "기아",
+      "dehydration": "탈수",
+      "sickness": "질병",
+      "combat": "전투",
+      "oldAge": "노환",
+      "droughts": "가뭄",
+      "outbreaks": "유행병"
+    },
+    "bondsFamily": "유대와 가족",
+    "notableOrganisms": "주목할 만한 생명체",
+    "discoveryLog": "발견 기록",
+    "worldEras": "세계의 시대",
+    "dayShort": "{day}일",
+    "accumulating": "데이터를 모으는 중…",
+    "firstYear": "첫 해가 아직 지나는 중…",
+    "birthsDeathsAria": "연도별 출생과 사망",
+    "yearBorn": "{year}년: 출생 {count}",
+    "yearDied": "{year}년: 사망 {count}",
+    "wealthGapAria": "연도별 평균 부의 격차",
+    "stark": "극심",
+    "yearWealth": "{year}년: {word} ({value})",
+    "noLegends": "아직 전설이 없습니다",
+    "noContacts": "아직 부족 간 접촉이 없습니다",
+    "versus": "{a} 대 {b}",
+    "noDiscoveries": "아직 발견이 없습니다",
+    "traits": {
+      "curiosity": "호기심",
+      "fear": "두려움",
+      "socialTendency": "사교성",
+      "resilience": "회복력",
+      "aggression": "공격성",
+      "memoryStrength": "기억력"
+    },
+    "nobodyAlive": "살아 있는 사람이 없습니다",
+    "gen": "{gen}세대",
+    "ageDays": {
+      "one": "{count}일 된",
+      "other": "{count}일 된"
+    },
+    "notable": {
+      "oldest": "최고령",
+      "parents": "부모",
+      "deepestGen": "가장 깊은 세대",
+      "days": "· {days}일",
+      "kids": "· 자녀 {count}명",
+      "gen": "· {gen}세대"
+    }
+  },
+  "tree": {
+    "title": "가계도",
+    "heading": "가계도",
+    "summary": "생존 {alive} · 조상 {ancestors} · 세대 {generations}",
+    "reload": "현재 세계에서 다시 로드",
+    "close": "닫기",
+    "generation": "{gen}세대",
+    "ageGen": "{days}일 · {gen}세대",
+    "gen": "{gen}세대",
+    "days": "{days}일",
+    "bonded": "유대 있음",
+    "father": "아버지: {name}",
+    "children": "자녀 {count}명",
+    "hint": "스크롤로 확대 · 드래그로 이동 · 노드에 마우스를 올리면 정보 표시 ·",
+    "bondedPair": "유대 관계인 두 사람",
+    "fitAllTitle": "모든 세대에 맞추기",
+    "fitAliveTitle": "살아 있는 생명체에만 맞추기",
+    "fitAll": "전체 맞춤",
+    "fitAlive": "생존자 맞춤",
+    "legendFire": "불",
+    "legendShelter": "거처",
+    "legendDeceased": "사망",
+    "legendBonded": "유대",
+    "legendMother": "어머니",
+    "legendFather": "아버지",
+    "legendInfidelity": "불륜"
+  },
+  "language": {
+    "title": "세계의 언어",
+    "heading": "세계의 언어",
+    "reload": "현재 세계에서 다시 로드",
+    "close": "닫기",
+    "intro": "각 혈통은 고유한 말을 발전시킵니다. 말은 세대를 거치며 변하고, 접촉을 통해 퍼집니다.",
+    "sexWords": "두 종류를 가리키는 말:",
+    "sexNote": "(창시 세대가 만든)",
+    "placeholder": "{count}개의 개념 또는 만들어진 말 검색…",
+    "matches": {
+      "one": "{count}개 일치",
+      "other": "{count}개 일치"
+    },
+    "concept": "개념",
+    "noMatch": "“{query}”와 일치하는 개념이 없습니다",
+    "sections": {
+      "coreSurvival": "기본 생존",
+      "skyWeather": "하늘과 날씨",
+      "landWater": "땅과 물",
+      "bodyVital": "몸과 생명 상태",
+      "emotions": "감정",
+      "kinRoles": "친족과 역할",
+      "socialActs": "사회적 행위",
+      "motionAction": "움직임과 행동",
+      "qualitiesRelations": "성질과 관계",
+      "toolsResources": "도구와 자원",
+      "bodySenses": "몸과 감각",
+      "familyLife": "가족과 생애 사건",
+      "animals": "동물",
+      "terrain": "지형",
+      "weatherSky": "날씨와 하늘의 사건",
+      "materials": "재료",
+      "abstract": "추상",
+      "moreActs": "기타 행위",
+      "quantity": "수량",
+      "colours": "색",
+      "plants": "식물",
+      "finerTime": "세부 시간",
+      "directions": "방향",
+      "sounds": "소리",
+      "finerFeelings": "세부 감정",
+      "socialStructures": "사회 구조",
+      "bodyActions": "몸 동작",
+      "languageMeaning": "언어와 의미",
+      "physicalQualities": "신체적 성질"
+    }
+  }
+}
