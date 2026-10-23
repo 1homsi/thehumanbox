@@ -315,6 +315,9 @@
   width: 24px;
   text-align: right;
 }
+.bar-pct-word {
+  width: 44px;
+}
 
 .org-memory {
   display: flex;

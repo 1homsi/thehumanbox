@@ -1,4 +1,5 @@
 use super::super::ctx::ActionCtx;
+use crate::organism::skills::Skill;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !ctx.water_near {
@@ -9,9 +10,11 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     // the more likely a fish is landed, and the net takes one from the shoal.
     let (x, y) = (ctx.org().x, ctx.org().y);
     let school = ctx.sim.fish_school_near(x, y).min(12);
-    if ctx.chance(0.20 + 0.04 * school as f32) {
+    // A practised fisher lands more of what bites, and now and then two.
+    let (landed, extra) = ctx.attempt(Skill::Fishing, 0.20 + 0.04 * school as f32);
+    if landed {
         let o = ctx.org_mut();
-        o.inv_food = o.inv_food.saturating_add(1);
+        o.inv_food = o.inv_food.saturating_add(1 + extra);
         if school > 0 {
             ctx.sim.take_nearest_fish(x, y);
         }

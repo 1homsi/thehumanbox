@@ -17,6 +17,7 @@ use world::grid::{WorldGrid, HEIGHT, WIDTH};
 use world::tiles::{Biome, Tile};
 
 mod args;
+mod learning;
 mod report;
 mod rows;
 mod rss;
@@ -232,6 +233,7 @@ fn main() {
     print_economy(&sim);
     print_coverage(&sim);
     print_mood(&sim);
+    learning::print_learning(&sim);
     print_institutions(&sim);
     print_society(&sim);
     print_progress(&sim);

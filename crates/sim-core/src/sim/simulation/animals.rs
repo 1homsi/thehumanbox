@@ -855,6 +855,15 @@ impl Simulation {
                     };
                     let dist_penalty = if manh == 2 { 0.6 } else { 1.0 };
                     let p = (base_p + org.traits.aggression * 0.18 + weapon_bonus) * dist_penalty;
+                    // A practised hunter closes in without spooking the game.
+                    let p = if p > 0.0 {
+                        crate::organism::skills::success_chance(
+                            p,
+                            org.skills.level(crate::organism::skills::Skill::Hunting),
+                        )
+                    } else {
+                        p
+                    };
                     if self.rng.random::<f32>() < p {
                         to_catch.push((oi, ai));
                     }
@@ -949,9 +958,14 @@ impl Simulation {
                     ),
                 );
             }
+            let watchers = organism_spatial.query(hunter_x as i32, hunter_y as i32, 5);
+            let practised_extra =
+                self.practise_skill(oi, crate::organism::skills::Skill::Hunting, true, &watchers);
             self.organisms[oi].energy =
                 (self.organisms[oi].energy + boost + tool_bonus + pack_bonus).min(1.0);
-            self.organisms[oi].inv_food = self.organisms[oi].inv_food.saturating_add(food_yield);
+            self.organisms[oi].inv_food = self.organisms[oi]
+                .inv_food
+                .saturating_add(food_yield + practised_extra);
             if meat > 0 {
                 let cur = self.organisms[oi].tools.get("meat").copied().unwrap_or(0);
                 let next = (cur as u16 + meat as u16).min(8) as u8;

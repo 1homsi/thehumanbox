@@ -1,4 +1,5 @@
 use super::super::ctx::ActionCtx;
+use crate::organism::skills::{success_chance, Skill};
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let disc = &ctx.sim.organisms[ctx.idx].discoveries;
@@ -12,7 +13,10 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     };
 
     // Game has to be there to be caught: the animal dies and feeds the hunter.
-    if ctx.chance(success_p) && ctx.catch_small_prey(5.0) > 0 {
+    let level = ctx.org().skills.level(Skill::Hunting);
+    let caught = ctx.chance(success_chance(success_p, level)) && ctx.catch_small_prey(5.0) > 0;
+    ctx.practised(Skill::Hunting, caught);
+    if caught {
         ctx.think("caught small game");
         ctx.discover("trapping-game", "learned to hunt small game");
         0.012 + (success_p - 0.12) * 0.05

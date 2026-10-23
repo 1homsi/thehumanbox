@@ -8,6 +8,7 @@ pub mod memory_pressure;
 pub mod newcomers;
 pub mod relations;
 pub mod service;
+pub mod skills;
 pub mod social;
 pub mod spawn;
 pub mod speeches;

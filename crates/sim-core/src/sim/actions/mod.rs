@@ -298,6 +298,14 @@ pub fn try_apply(
     if r > 0.0 && records_experiment(action) {
         ctx.sim.organisms[idx].last_experiment_tick = ctx.tick;
     }
+    // Healers learn by tending: a practised one does more good with each remedy.
+    let r = if matches!(action, 246..=260 | 1320..=1369) {
+        let level = ctx.org().skills.level(crate::organism::skills::Skill::Healing);
+        ctx.practised(crate::organism::skills::Skill::Healing, r > 0.0);
+        r * (1.0 + level * 0.5)
+    } else {
+        r
+    };
     if r <= 0.0 {
         if let Some(snapshot) = reservation {
             restore_action_resource(ctx.sim, idx, snapshot);

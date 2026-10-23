@@ -22,12 +22,15 @@ export function MiniBar({
   color,
   invert,
   tip,
+  valueLabel,
 }: {
   label: string
   value: number
   color: string
   invert?: boolean
   tip?: string
+  /** Shown instead of the percentage, e.g. a rank. */
+  valueLabel?: string
 }) {
   const w = Math.min(value, 1) * 100
   const labelEl = (
@@ -48,7 +51,9 @@ export function MiniBar({
           }}
         />
       </div>
-      <span className="bar-pct">{(value * 100).toFixed(0)}</span>
+      <span className={valueLabel ? 'bar-pct bar-pct-word' : 'bar-pct'}>
+        {valueLabel ?? (value * 100).toFixed(0)}
+      </span>
     </div>
   )
 }

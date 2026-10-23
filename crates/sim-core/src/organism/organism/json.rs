@@ -587,6 +587,15 @@ impl Organism {
             life_log,
             conversations: self.conversations.iter().rev().take(25).rev().cloned().collect(),
             memories,
+            skills: self
+                .skills
+                .known()
+                .into_iter()
+                .map(|(skill, level)| SkillJson {
+                    name: skill.name(),
+                    level: (level * 100.0).round() / 100.0,
+                })
+                .collect(),
         }
     }
 
@@ -1009,6 +1018,14 @@ pub struct OrgDetailJson {
     pub life_log: Vec<LifeEventJson>,
     pub conversations: Vec<ConversationEntry>,
     pub memories: Vec<MemoryJson>,
+    /// What this person knows how to do, best first (see `organism::skills`).
+    pub skills: Vec<SkillJson>,
+}
+
+#[derive(Serialize)]
+pub struct SkillJson {
+    pub name: &'static str,
+    pub level: f32,
 }
 
 #[derive(Serialize)]

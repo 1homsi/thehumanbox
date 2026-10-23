@@ -114,6 +114,8 @@ pub struct Simulation {
     pub next_festival_id: u32,
     pub action_counts: HashMap<&'static str, u64>,
     pub decision_counts: HashMap<&'static str, u64>,
+    /// Times someone learned a skill by watching kin or a friend work. Runtime only, for reports.
+    pub lessons_watched: u64,
     pub workshop_hits: HashMap<&'static str, (u64, u64)>,
     pub last_witness_tick: u64,
     pub books: Vec<super::language_tech::Book>,
@@ -283,6 +285,7 @@ impl Simulation {
             next_festival_id: 1,
             action_counts: HashMap::default(),
             decision_counts: HashMap::default(),
+            lessons_watched: 0,
             workshop_hits: HashMap::default(),
             last_witness_tick: 0,
             books: Vec::new(),
