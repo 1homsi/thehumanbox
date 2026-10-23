@@ -85,6 +85,7 @@ function loadIndex(options: {
     setName() {},
     isPackaged: true,
     getVersion: () => "0.0.0-test",
+    getLocale: () => "en-US",
     setLoginItemSettings() {},
     getLoginItemSettings: () => ({ wasOpenedAtLogin: false }),
     on(event: string, handler: () => Promise<void>) {
@@ -164,6 +165,7 @@ function loadIndex(options: {
         };
       }
       if (id === "./settings") return { loadSettings: () => startupSettings, prepareDataRoot() {} };
+      if (id === "./i18n") return require(path.join(__dirname, "i18n"));
       if (id === "./updater") return { initUpdater: () => calls.push("updater:init") };
       if (id === "./app-version-arg") return { appVersionArgument: (v: string) => `--thb-app-version=${v}` };
       if (id === "./app-icon") return { appIconPath: () => "/tmp/icon.png" };

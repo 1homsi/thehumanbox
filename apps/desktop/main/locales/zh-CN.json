@@ -1,0 +1,94 @@
+{
+  "menu": {
+    "settings": "设置…",
+    "file": "文件",
+    "reload": "重新加载",
+    "restartSimulation": "重新启动模拟",
+    "view": "视图",
+    "toggleDevTools": "切换开发者工具",
+    "alwaysOnTop": "始终置顶",
+    "screenshot": "截图",
+    "help": "帮助",
+    "openGitHub": "打开 GitHub",
+    "openWebsite": "打开 thehumanbox.com",
+    "about": "关于 The Human Box",
+    "services": "服务",
+    "hide": "隐藏 The Human Box",
+    "hideOthers": "隐藏其他",
+    "showAll": "全部显示",
+    "quit": "退出",
+    "quitApp": "退出 The Human Box",
+    "close": "关闭窗口",
+    "resetZoom": "实际大小",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "fullScreen": "切换全屏"
+  },
+  "tray": {
+    "showWindow": "显示窗口",
+    "hideWindow": "隐藏窗口",
+    "takeScreenshot": "截图",
+    "openWorldsFolder": "打开世界文件夹",
+    "openLogsFolder": "打开日志文件夹"
+  },
+  "notify": {
+    "screenshotSaved": "截图已保存",
+    "worldsFolderUnavailable": "世界文件夹不可用",
+    "logsFolderUnavailable": "日志文件夹不可用",
+    "about": "v{version}\n持续运行的人工生命模拟。\nthehumanbox.com"
+  },
+  "dialog": {
+    "chooseSaveFolder": "选择 The Human Box 保存世界的位置",
+    "worldSaveFilter": "The Human Box 世界存档",
+    "exportSave": "导出可恢复的世界存档",
+    "exportBeforeReset": "导出当前世界后再重置",
+    "resetWorld": "开始新的本地世界？",
+    "resetDetail": "当前世界会保留在这台电脑上的存档中。先导出一个单独的存档，可以多一份便携备份。",
+    "openWindowFailed": "The Human Box 无法打开窗口"
+  },
+  "buttons": {
+    "ok": "确定",
+    "cancel": "取消",
+    "notNow": "暂不",
+    "later": "稍后",
+    "restartSimulation": "重新启动模拟",
+    "restartWithoutCheckpoint": "不使用检查点重新启动",
+    "restartAndUpdate": "重启并更新",
+    "exportAndStartNew": "导出并开始新世界",
+    "startNewWithoutExport": "不导出，开始新世界"
+  },
+  "restart": {
+    "failed": "无法重新启动模拟",
+    "checkpointDetail": "模拟可能已卡住。不使用检查点重新启动，最多会丢失约一分钟的游戏进度。"
+  },
+  "simStopped": {
+    "message": "模拟意外停止",
+    "detail": "退出：{status}。世界最近一次保存在最新的检查点（最多丢失约一分钟的游戏进度）。请重新启动模拟以继续。",
+    "exitCode": "代码 {code}"
+  },
+  "startFailed": {
+    "title": "The Human Box 无法启动",
+    "simHeading": "The Human Box 无法启动本地模拟",
+    "simHint": "请查看日志了解详情，然后在设置中重新启动本地模拟。",
+    "settingsHeading": "The Human Box 无法读取其设置",
+    "settingsHint": "修复或删除上面提到的文件，然后重新启动。你现有的世界不会受影响。",
+    "pageTitle": "The Human Box — 启动错误",
+    "devtools": "如需更多信息，请按 {mac}（macOS）或 {win}（Windows/Linux）打开开发者工具。",
+    "rendererFailed": "界面加载失败。"
+  },
+  "update": {
+    "failedTitle": "更新失败",
+    "failedMessage": "无法安装更新。",
+    "readyTitle": "更新已就绪",
+    "readyMessage": "版本 {version} 已可安装。",
+    "readyDetail": "应用将重新启动并应用更新。",
+    "fileMissing": "已下载的更新文件缺失，请重新检查更新。",
+    "packagedOnlyCheck": "更新检查仅适用于正式打包的版本。",
+    "packagedOnlyInstall": "更新安装仅适用于正式打包的版本。",
+    "nothingReady": "没有可安装的已下载更新。",
+    "noAppBundle": "找不到已安装的应用程序包。",
+    "noPermission": "没有权限替换 {dir} 中的应用。请使用 scripts/install-desktop.sh 重新安装。",
+    "unpackFailed": "无法解压更新：{error}",
+    "noAppInUpdate": "下载的更新中不包含应用程序。"
+  }
+}

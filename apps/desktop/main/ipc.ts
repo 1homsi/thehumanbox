@@ -11,6 +11,7 @@ import {
   Settings,
   worldsRoot,
 } from "./settings";
+import { t } from "./i18n";
 import {
   activeSim,
   checkpointActiveSim,
@@ -214,7 +215,9 @@ export function registerIpc(
             "use the save-folder migration control to change where worlds are stored",
           );
         }
-        saveSettings(next);
+        // The language is set by app:setLocale, never by the settings form,
+        // so keep the stored one whatever the renderer sent.
+        saveSettings({ ...next, locale: current.locale });
         return loadSettings();
       },
     ),
@@ -436,9 +439,9 @@ export function registerIpc(
         throw new Error("could not checkpoint the active world for export");
       const world = activeWorld(settings);
       const result = await dialog.showSaveDialog(win, {
-        title: "Export a restorable world save",
+        title: t("dialog.exportSave"),
         defaultPath: `thehumanbox-${world.hash}.world.save`,
-        filters: [{ name: "The Human Box world save", extensions: ["save"] }],
+        filters: [{ name: t("dialog.worldSaveFilter"), extensions: ["save"] }],
       });
       if (result.canceled || !result.filePath) return { exported: false };
       assertExportOutsideDataRoot(effectiveDataRoot(settings), result.filePath);
@@ -468,11 +471,14 @@ export function registerIpc(
       const world = activeWorld(settings);
       const decision = await dialog.showMessageBox(win, {
         type: "warning",
-        title: "Start a new local world?",
-        message: "Start a new local world?",
-        detail:
-          "Your current world will remain archived on this computer. Exporting a separate save first gives you an additional portable backup.",
-        buttons: ["Export & start new", "Start new without export", "Cancel"],
+        title: t("dialog.resetWorld"),
+        message: t("dialog.resetWorld"),
+        detail: t("dialog.resetDetail"),
+        buttons: [
+          t("buttons.exportAndStartNew"),
+          t("buttons.startNewWithoutExport"),
+          t("buttons.cancel"),
+        ],
         defaultId: 2,
         cancelId: 2,
         noLink: true,
@@ -482,9 +488,9 @@ export function registerIpc(
       let exportPath: string | null = null;
       if (decision.response === 0) {
         const exportChoice = await dialog.showSaveDialog(win, {
-          title: "Export current world before reset",
+          title: t("dialog.exportBeforeReset"),
           defaultPath: `thehumanbox-${world.hash}.world.save`,
-          filters: [{ name: "The Human Box world save", extensions: ["save"] }],
+          filters: [{ name: t("dialog.worldSaveFilter"), extensions: ["save"] }],
         });
         if (exportChoice.canceled || !exportChoice.filePath)
           return { reset: false };

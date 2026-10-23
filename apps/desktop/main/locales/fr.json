@@ -1,0 +1,94 @@
+{
+  "menu": {
+    "settings": "Paramètres…",
+    "file": "Fichier",
+    "reload": "Recharger",
+    "restartSimulation": "Redémarrer la simulation",
+    "view": "Affichage",
+    "toggleDevTools": "Afficher ou masquer les outils de développement",
+    "alwaysOnTop": "Toujours au premier plan",
+    "screenshot": "Capture d'écran",
+    "help": "Aide",
+    "openGitHub": "Ouvrir GitHub",
+    "openWebsite": "Ouvrir thehumanbox.com",
+    "about": "À propos de The Human Box",
+    "services": "Services",
+    "hide": "Masquer The Human Box",
+    "hideOthers": "Masquer les autres",
+    "showAll": "Tout afficher",
+    "quit": "Quitter",
+    "quitApp": "Quitter The Human Box",
+    "close": "Fermer la fenêtre",
+    "resetZoom": "Taille réelle",
+    "zoomIn": "Zoom avant",
+    "zoomOut": "Zoom arrière",
+    "fullScreen": "Plein écran"
+  },
+  "tray": {
+    "showWindow": "Afficher la fenêtre",
+    "hideWindow": "Masquer la fenêtre",
+    "takeScreenshot": "Faire une capture d'écran",
+    "openWorldsFolder": "Ouvrir le dossier des mondes",
+    "openLogsFolder": "Ouvrir le dossier des journaux"
+  },
+  "notify": {
+    "screenshotSaved": "Capture d'écran enregistrée",
+    "worldsFolderUnavailable": "Dossier des mondes indisponible",
+    "logsFolderUnavailable": "Dossier des journaux indisponible",
+    "about": "v{version}\nUne simulation persistante de vie artificielle.\nthehumanbox.com"
+  },
+  "dialog": {
+    "chooseSaveFolder": "Choisir où The Human Box enregistre les mondes",
+    "worldSaveFilter": "Sauvegarde de monde The Human Box",
+    "exportSave": "Exporter une sauvegarde de monde restaurable",
+    "exportBeforeReset": "Exporter le monde actuel avant la réinitialisation",
+    "resetWorld": "Commencer un nouveau monde local ?",
+    "resetDetail": "Votre monde actuel restera archivé sur cet ordinateur. Exporter d'abord une sauvegarde séparée vous donne une copie de sécurité portable supplémentaire.",
+    "openWindowFailed": "The Human Box n'a pas pu ouvrir sa fenêtre"
+  },
+  "buttons": {
+    "ok": "OK",
+    "cancel": "Annuler",
+    "notNow": "Pas maintenant",
+    "later": "Plus tard",
+    "restartSimulation": "Redémarrer la simulation",
+    "restartWithoutCheckpoint": "Redémarrer sans point de contrôle",
+    "restartAndUpdate": "Redémarrer et mettre à jour",
+    "exportAndStartNew": "Exporter et commencer un nouveau",
+    "startNewWithoutExport": "Commencer sans exporter"
+  },
+  "restart": {
+    "failed": "Impossible de redémarrer la simulation",
+    "checkpointDetail": "La simulation est peut-être bloquée. Redémarrer sans point de contrôle fait perdre jusqu'à environ une minute de jeu."
+  },
+  "simStopped": {
+    "message": "La simulation s'est arrêtée de façon inattendue",
+    "detail": "Sortie : {status}. Votre monde a été sauvegardé pour la dernière fois au point de contrôle le plus récent (une minute de jeu au maximum peut être perdue). Redémarrez la simulation pour continuer.",
+    "exitCode": "code {code}"
+  },
+  "startFailed": {
+    "title": "The Human Box n'a pas pu démarrer",
+    "simHeading": "The Human Box n'a pas pu démarrer la simulation locale",
+    "simHint": "Consultez les journaux pour plus de détails, puis redémarrez la simulation locale depuis les paramètres.",
+    "settingsHeading": "The Human Box n'a pas pu lire ses paramètres",
+    "settingsHint": "Réparez ou supprimez le fichier indiqué ci-dessus, puis relancez l'application. Vos mondes existants n'ont pas été modifiés.",
+    "pageTitle": "The Human Box — erreur au démarrage",
+    "devtools": "Pour plus de détails, ouvrez les outils de développement avec {mac} (macOS) ou {win} (Windows/Linux).",
+    "rendererFailed": "L'interface n'a pas pu être chargée."
+  },
+  "update": {
+    "failedTitle": "Échec de la mise à jour",
+    "failedMessage": "La mise à jour n'a pas pu être installée.",
+    "readyTitle": "Mise à jour prête",
+    "readyMessage": "La version {version} est prête à être installée.",
+    "readyDetail": "L'application va redémarrer et appliquer la mise à jour.",
+    "fileMissing": "Le fichier de mise à jour téléchargé est introuvable. Recherchez à nouveau les mises à jour.",
+    "packagedOnlyCheck": "La recherche de mises à jour n'est disponible que dans les versions installées.",
+    "packagedOnlyInstall": "L'installation des mises à jour n'est disponible que dans les versions installées.",
+    "nothingReady": "Aucune mise à jour téléchargée n'est prête à être installée.",
+    "noAppBundle": "Le paquet de l'application installée est introuvable.",
+    "noPermission": "Autorisation absente pour remplacer l'application dans {dir}. Réinstallez-la avec scripts/install-desktop.sh.",
+    "unpackFailed": "Impossible d'extraire la mise à jour : {error}",
+    "noAppInUpdate": "La mise à jour téléchargée ne contenait pas d'application."
+  }
+}

@@ -30,6 +30,8 @@ export interface DesktopBridge {
     pickSaveDir(): Promise<string | null>;
     checkForUpdates(): Promise<unknown>;
     installUpdate(): Promise<unknown>;
+    /** The language the game shows, e.g. "de" or "pt-BR". */
+    setLocale(code: string): Promise<void>;
   };
 
   world: {
@@ -93,6 +95,7 @@ const bridge: DesktopBridge = {
     pickSaveDir: () => ipcRenderer.invoke("app:pickSaveDir"),
     checkForUpdates: () => ipcRenderer.invoke("app:checkForUpdates"),
     installUpdate: () => ipcRenderer.invoke("app:installUpdate"),
+    setLocale: (code) => ipcRenderer.invoke("app:setLocale", code),
   },
 
   world: {

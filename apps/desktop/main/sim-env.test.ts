@@ -14,6 +14,7 @@ function settings(overrides: Partial<Settings> = {}): Settings {
     autoLaunch: false,
     startMinimized: false,
     pauseWhenHidden: true,
+    locale: null,
   }
   return { ...defaults, ...overrides }
 }

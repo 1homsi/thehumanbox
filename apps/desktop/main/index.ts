@@ -49,12 +49,18 @@ import {
   simLifecyclePending,
 } from "./sim-process";
 import { restartFailureStillRelevant, simExitStillRelevant } from "./prompt-relevance";
-import { loadSettings, prepareDataRoot, type Settings } from "./settings";
+import {
+  loadSettings,
+  prepareDataRoot,
+  saveSettings,
+  type Settings,
+} from "./settings";
 import {
   checkForUpdatesNow,
   initUpdater,
   installDownloadedUpdate,
 } from "./updater";
+import { getLocale, matchLocale, setLocale, t } from "./i18n";
 
 app.setName("The Human Box");
 
@@ -129,15 +135,19 @@ function persistWindowState(win: BrowserWindow): void {
 
 function renderBootError(
   detail: string,
-  heading = "The Human Box couldn't start the local simulation",
-  hint = "Check the logs for details, then restart the local simulation from Settings.",
+  heading = t("startFailed.simHeading"),
+  hint = t("startFailed.simHint"),
 ): string {
   const safe = detail.replace(
     /[<>&]/g,
     (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c]!,
   );
+  const devtools = t("startFailed.devtools", {
+    mac: "<kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>I</kbd>",
+    win: "<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>",
+  });
   return `data:text/html;charset=utf-8,${encodeURIComponent(`
-<!doctype html><html><head><meta charset="utf-8"><title>The Human Box — startup error</title>
+<!doctype html><html><head><meta charset="utf-8"><title>${t("startFailed.pageTitle")}</title>
 <style>
   html,body{margin:0;background:#0c0a08;color:#f5e9d4;font:14px/1.5 ui-monospace,monospace}
   .wrap{padding:24px;max-width:780px;margin:0 auto}
@@ -148,7 +158,7 @@ function renderBootError(
 </style></head><body><div class="wrap">
 <h1>${heading}</h1>
 <pre>${safe}</pre>
-<p>Open DevTools with <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>I</kbd> (macOS) or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> (Win/Linux) for more.</p>
+<p>${devtools}</p>
 <p>${hint}</p>
 </div></body></html>`)}`;
 }
@@ -171,8 +181,8 @@ async function createWindow(): Promise<void> {
     console.error("[main] could not read settings:", err);
     bootErrorUrl = renderBootError(
       msg,
-      "The Human Box couldn't read its settings",
-      "Repair or remove the file named above, then relaunch. Your existing worlds are untouched.",
+      t("startFailed.settingsHeading"),
+      t("startFailed.settingsHint"),
     );
   }
 
@@ -310,7 +320,7 @@ async function createWindow(): Promise<void> {
     console.error(`[main] did-fail-load code=${code} desc=${desc} url=${shown}`);
     win?.loadURL(
       renderBootError(
-        `Renderer failed to load.\nURL: ${shown}\nCode: ${code}\n${desc}`,
+        `${t("startFailed.rendererFailed")}\nURL: ${shown}\nCode: ${code}\n${desc}`,
       ),
     );
   });
@@ -405,61 +415,63 @@ function buildMenu(): void {
           {
             label: "The Human Box",
             submenu: [
-              { role: "about" as const },
+              { role: "about" as const, label: t("menu.about") },
               { type: "separator" as const },
               {
-                label: "Settings…",
+                label: t("menu.settings"),
                 accelerator: "Cmd+,",
                 click: () => mainWindow?.webContents.send("menu:openSettings"),
               },
               { type: "separator" as const },
-              { role: "services" as const },
+              { role: "services" as const, label: t("menu.services") },
               { type: "separator" as const },
-              { role: "hide" as const },
-              { role: "hideOthers" as const },
-              { role: "unhide" as const },
+              { role: "hide" as const, label: t("menu.hide") },
+              { role: "hideOthers" as const, label: t("menu.hideOthers") },
+              { role: "unhide" as const, label: t("menu.showAll") },
               { type: "separator" as const },
-              { role: "quit" as const },
+              { role: "quit" as const, label: t("menu.quitApp") },
             ],
           },
         ]
       : []),
     {
-      label: "File",
+      label: t("menu.file"),
       submenu: [
         {
-          label: "Reload",
+          label: t("menu.reload"),
           accelerator: isMac ? "Cmd+R" : "Ctrl+R",
           click: () => mainWindow?.reload(),
         },
         {
-          label: "Restart simulation",
+          label: t("menu.restartSimulation"),
           click: () =>
             void restartSimulationFromMenu().catch((err) =>
               console.error("[main] restart menu failed:", err),
             ),
         },
-        isMac ? { role: "close" as const } : { role: "quit" as const },
+        isMac
+          ? { role: "close" as const, label: t("menu.close") }
+          : { role: "quit" as const, label: t("menu.quit") },
       ],
     },
     { role: "editMenu" },
     {
-      label: "View",
+      label: t("menu.view"),
       submenu: [
         {
-          label: "Toggle DevTools",
+          label: t("menu.toggleDevTools"),
           accelerator: isMac ? "Cmd+Alt+I" : "Ctrl+Shift+I",
           click: toggleDevTools,
         },
         { type: "separator" },
-        { role: "resetZoom" },
-        { role: "zoomIn" },
-        { role: "zoomOut" },
+        { role: "resetZoom", label: t("menu.resetZoom") },
+        { role: "zoomIn", label: t("menu.zoomIn") },
+        { role: "zoomOut", label: t("menu.zoomOut") },
         { type: "separator" },
-        { role: "togglefullscreen" },
+        { role: "togglefullscreen", label: t("menu.fullScreen") },
         { type: "separator" },
         {
-          label: "Always on top",
+          label: t("menu.alwaysOnTop"),
           type: "checkbox",
           checked: mainWindow ? mainWindow.isAlwaysOnTop() : false,
           accelerator: isMac ? "Cmd+Shift+T" : "Ctrl+Shift+T",
@@ -469,12 +481,12 @@ function buildMenu(): void {
           },
         },
         {
-          label: "Screenshot",
+          label: t("menu.screenshot"),
           accelerator: isMac ? "Cmd+Shift+S" : "Ctrl+Shift+S",
           click: () => {
             void captureScreenshot().then((fp) => {
               if (fp) {
-                notifyMilestone("Screenshot saved", fp);
+                notifyMilestone(t("notify.screenshotSaved"), fp);
                 shell.showItemInFolder(fp);
               }
             });
@@ -485,14 +497,15 @@ function buildMenu(): void {
     { role: "windowMenu" },
     {
       role: "help",
+      label: t("menu.help"),
       submenu: [
         {
-          label: "Open GitHub",
+          label: t("menu.openGitHub"),
           click: () =>
             void shell.openExternal("https://github.com/1homsi/thehumanbox"),
         },
         {
-          label: "Open thehumanbox.com",
+          label: t("menu.openWebsite"),
           click: () => void shell.openExternal("https://thehumanbox.com"),
         },
       ],
@@ -536,40 +549,40 @@ function buildTray(): void {
           {
             label:
               mainWindow && mainWindow.isVisible()
-                ? "Hide window"
-                : "Show window",
+                ? t("tray.hideWindow")
+                : t("tray.showWindow"),
             click: () => toggleWindow(),
           },
           { type: "separator" },
           {
-            label: "Take screenshot",
+            label: t("tray.takeScreenshot"),
             click: () =>
               void captureScreenshot().then((fp) => {
                 if (fp) {
-                  notifyMilestone("Screenshot saved", fp);
+                  notifyMilestone(t("notify.screenshotSaved"), fp);
                   shell.showItemInFolder(fp);
                 }
               }),
           },
           {
-            label: "Open worlds folder",
+            label: t("tray.openWorldsFolder"),
             click: () => {
               void openWorldsFolder().catch((error) => {
                 console.error("[main] could not open worlds folder:", error);
                 notifyMilestone(
-                  "Worlds folder unavailable",
+                  t("notify.worldsFolderUnavailable"),
                   (error as Error).message,
                 );
               });
             },
           },
           {
-            label: "Open logs folder",
+            label: t("tray.openLogsFolder"),
             click: () => {
               void openLogsFolder().catch((error) => {
                 console.error("[main] could not open logs folder:", error);
                 notifyMilestone(
-                  "Logs folder unavailable",
+                  t("notify.logsFolderUnavailable"),
                   (error as Error).message,
                 );
               });
@@ -577,7 +590,7 @@ function buildTray(): void {
           },
           { type: "separator" },
           {
-            label: "Always on top",
+            label: t("menu.alwaysOnTop"),
             type: "checkbox",
             checked: mainWindow ? mainWindow.isAlwaysOnTop() : false,
             click: (item) => {
@@ -586,17 +599,17 @@ function buildTray(): void {
             },
           },
           {
-            label: "About The Human Box",
+            label: t("menu.about"),
             click: () => {
               const ver = app.getVersion();
               notifyMilestone(
                 "The Human Box",
-                `v${ver}\nA persistent artificial-life simulation.\nthehumanbox.com`,
+                t("notify.about", { version: ver }),
               );
             },
           },
           { type: "separator" },
-          { label: "Quit The Human Box", role: "quit" },
+          { label: t("menu.quitApp"), role: "quit" },
         ]),
       );
     };
@@ -625,7 +638,7 @@ function openWindowOrReport(): Promise<void> {
     console.error("[main] could not open the window:", err);
     if (!isQuitting) {
       dialog.showErrorBox(
-        "The Human Box couldn't open its window",
+        t("dialog.openWindowFailed"),
         (err as Error)?.message ?? String(err),
       );
     }
@@ -712,7 +725,44 @@ async function captureScreenshot(): Promise<string | null> {
   }
 }
 
+// The shell speaks the saved language from the first menu on; with nothing
+// saved yet, the operating system's. The renderer then reports the language it
+// shows (see app:setLocale), which can differ from the OS.
+function initLocale(): void {
+  let saved: string | null = null;
+  try {
+    saved = loadSettings().locale;
+  } catch {
+    // An unreadable settings file is reported when the window opens.
+  }
+  setLocale([saved, app.getLocale()]);
+}
+
+// The renderer reports the player's language. The menus and tray are rebuilt
+// when it differs from the shell's, and the choice is kept for the next start.
+async function applyLocale(requested: unknown): Promise<void> {
+  const code = typeof requested === "string" ? matchLocale(requested) : null;
+  if (!code) return;
+  if (code !== getLocale()) {
+    setLocale([code]);
+    rebuildWindowMenus();
+  }
+  try {
+    // Under the guard settings:set and the save-folder move use, so this
+    // read-modify-write cannot overwrite a save folder being moved. Skipped
+    // while one of them runs; the renderer reports again on the next start.
+    await runExclusiveDesktopOperation("save the language", () => {
+      const settings = loadSettings();
+      if (settings.locale !== code) saveSettings({ ...settings, locale: code });
+    });
+  } catch (error) {
+    console.warn("[main] could not save the language:", error);
+  }
+}
+
 function registerAppIpcHandlers(): void {
+  ipcMain.handle("app:setLocale", (_e, code: unknown) => applyLocale(code));
+
   ipcMain.handle(
     "app:notify",
     (_e, payload: { title: string; body: string }) => {
@@ -725,7 +775,7 @@ function registerAppIpcHandlers(): void {
   ipcMain.handle("app:screenshot", async () => {
     const fp = await captureScreenshot();
     if (fp) {
-      notifyMilestone("Screenshot saved", fp);
+      notifyMilestone(t("notify.screenshotSaved"), fp);
       shell.showItemInFolder(fp);
     }
     return fp;
@@ -749,7 +799,7 @@ function registerAppIpcHandlers(): void {
   ipcMain.handle("app:pickSaveDir", async () => {
     if (!mainWindow) return null;
     const res = await dialog.showOpenDialog(mainWindow, {
-      title: "Choose where The Human Box stores worlds",
+      title: t("dialog.chooseSaveFolder"),
       properties: ["openDirectory", "createDirectory"],
       defaultPath:
         loadSettings().saveLocationOverride ?? app.getPath("userData"),
@@ -801,7 +851,7 @@ async function showRestartFailure(error: unknown): Promise<void> {
       await restartSimulation({ requireCheckpoint: false });
     } catch (retryError) {
       dialog.showErrorBox(
-        "Could not restart the simulation",
+        t("restart.failed"),
         (retryError as Error)?.message ?? String(retryError),
       );
     }
@@ -846,12 +896,11 @@ async function offerSimRestart(
     const options: Electron.MessageBoxOptions = {
       type: "error",
       title: "The Human Box",
-      message: "The simulation stopped unexpectedly",
-      detail:
-        `Exit ${signal ?? `code ${code}`}. Your world was last saved at its most ` +
-        "recent checkpoint (about a minute of play at most is lost). Restart the " +
-        "simulation to continue.",
-      buttons: ["Restart simulation", "Not now"],
+      message: t("simStopped.message"),
+      detail: t("simStopped.detail", {
+        status: signal ?? t("simStopped.exitCode", { code: String(code) }),
+      }),
+      buttons: [t("buttons.restartSimulation"), t("buttons.notNow")],
       defaultId: 0,
       cancelId: 1,
     };
@@ -862,7 +911,7 @@ async function offerSimRestart(
     if (response === 0 && !isQuitting) {
       await restartSimulation().catch((err) => {
         dialog.showErrorBox(
-          "Could not restart the simulation",
+          t("restart.failed"),
           (err as Error)?.message ?? String(err),
         );
       });
@@ -911,6 +960,7 @@ async function boot(): Promise<void> {
     startHiddenOnce = false;
   }
 
+  initLocale();
   // Set up controls and update checks before the simulation load begins.
   buildTray();
   applyAutoLaunch();
@@ -957,7 +1007,7 @@ async function fatalStartupFailure(err: unknown): Promise<void> {
     if (stopTimeout) clearTimeout(stopTimeout);
   }
   try {
-    dialog.showErrorBox("The Human Box couldn't start", msg);
+    dialog.showErrorBox(t("startFailed.title"), msg);
   } catch {
     // No GUI available (e.g. headless CI); the log line above is all we have.
   }

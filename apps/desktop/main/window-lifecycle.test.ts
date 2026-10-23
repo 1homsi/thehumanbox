@@ -54,6 +54,7 @@ test('replacing a window retains the new window and routes old events to their o
       if (id === './app-icon') return { appIconPath: () => '/tmp/icon.png' }
       if (id === 'node:path') return path
       if (id === './renderer-load') return rendererLoad
+      if (id === './i18n') return require(path.join(__dirname, 'i18n'))
       return {}
     },
   })
@@ -112,6 +113,7 @@ test('a renderer that fails to load does not carry the command token in its erro
       if (id === 'node:path') return path
       if (id === './redact-url') return redactUrl
       if (id === './renderer-load') return rendererLoad
+      if (id === './i18n') return require(path.join(__dirname, 'i18n'))
       return {}
     },
   })
@@ -182,6 +184,7 @@ test('the failed-load log line and boot page never show the command token', asyn
       if (id === 'node:path') return path
       if (id === './redact-url') return redactUrl
       if (id === './renderer-load') return rendererLoad
+      if (id === './i18n') return require(path.join(__dirname, 'i18n'))
       if (id === './navigation-guard') return require(path.join(__dirname, 'navigation-guard'))
       return {}
     },

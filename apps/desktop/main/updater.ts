@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog } from 'electron'
 import { autoUpdater, UpdateDownloadedEvent, UpdateInfo } from 'electron-updater'
 import { loadSettings } from './settings'
 import { appBundleFromExe, hasDeveloperIdSignature, startUnsignedMacInstall } from './mac-unsigned-install'
+import { t } from './i18n'
 
 export type UpdateCheckStatus = 'checking' | 'available' | 'downloaded' | 'up-to-date' | 'unsupported' | 'error'
 
@@ -36,12 +37,12 @@ function installNow(): UpdateCheckResult {
     return latestStatus
   }
   if (!downloadedFile) {
-    return { ...latestStatus, message: 'The downloaded update file is missing. Check for updates again.' }
+    return { ...latestStatus, message: t('update.fileMissing') }
   }
   const result = startUnsignedMacInstall(downloadedFile, process.execPath, process.pid)
   if (!result.started) {
-    const message = result.message ?? 'The update could not be installed.'
-    void dialog.showMessageBox({ type: 'error', title: 'Update failed', message: 'The update could not be installed.', detail: message })
+    const message = result.message ?? t('update.failedMessage')
+    void dialog.showMessageBox({ type: 'error', title: t('update.failedTitle'), message: t('update.failedMessage'), detail: message })
     return { ...latestStatus, message }
   }
   setImmediate(() => app.quit())
@@ -100,12 +101,12 @@ export function initUpdater(getWindow: () => BrowserWindow | null): void {
     promptedVersion = info.version
     const { response } = await dialog.showMessageBox({
       type: 'info',
-      buttons: ['Restart and update', 'Later'],
+      buttons: [t('buttons.restartAndUpdate'), t('buttons.later')],
       defaultId: 0,
       cancelId: 1,
-      title: 'Update ready',
-      message: `Version ${info.version} is ready to install.`,
-      detail: 'The app will restart and apply the update.',
+      title: t('update.readyTitle'),
+      message: t('update.readyMessage', { version: info.version }),
+      detail: t('update.readyDetail'),
     })
     if (response === 0) installNow()
   })
@@ -120,7 +121,7 @@ export function initUpdater(getWindow: () => BrowserWindow | null): void {
   if (!app.isPackaged) {
     latestStatus = {
       status: 'unsupported',
-      message: 'Update checks are only available in packaged builds.',
+      message: t('update.packagedOnlyCheck'),
     }
     return
   }
@@ -146,7 +147,7 @@ export async function checkForUpdatesNow(): Promise<UpdateCheckResult> {
   if (!app.isPackaged) {
     latestStatus = {
       status: 'unsupported',
-      message: 'Update checks are only available in packaged builds.',
+      message: t('update.packagedOnlyCheck'),
     }
     return latestStatus
   }
@@ -177,14 +178,14 @@ export function installDownloadedUpdate(): UpdateCheckResult {
   if (!app.isPackaged) {
     latestStatus = {
       status: 'unsupported',
-      message: 'Update installs are only available in packaged builds.',
+      message: t('update.packagedOnlyInstall'),
     }
     return latestStatus
   }
   if (latestStatus.status !== 'downloaded') {
     return {
       ...latestStatus,
-      message: latestStatus.message ?? 'No downloaded update is ready to install.',
+      message: latestStatus.message ?? t('update.nothingReady'),
     }
   }
   return installNow()

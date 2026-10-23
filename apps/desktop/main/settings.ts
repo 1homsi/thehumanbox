@@ -18,6 +18,9 @@ export interface Settings {
   autoLaunch: boolean;
   startMinimized: boolean;
   pauseWhenHidden: boolean;
+  // The language the game showed last, reported by the renderer (see
+  // app:setLocale). Null until it has reported; the shell then uses the OS.
+  locale: string | null;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -29,6 +32,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoLaunch: false,
   startMinimized: false,
   pauseWhenHidden: true,
+  locale: null,
 };
 
 function settingsPath(): string {
@@ -92,6 +96,7 @@ function mergeWithDefaults(partial: Partial<Settings>): Settings {
     startMinimized: partial.startMinimized ?? DEFAULT_SETTINGS.startMinimized,
     pauseWhenHidden:
       partial.pauseWhenHidden ?? DEFAULT_SETTINGS.pauseWhenHidden,
+    locale: typeof partial.locale === "string" ? partial.locale : null,
   };
 }
 

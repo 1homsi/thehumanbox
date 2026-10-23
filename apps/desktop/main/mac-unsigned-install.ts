@@ -2,6 +2,7 @@ import { spawn, spawnSync } from 'node:child_process'
 import { mkdtempSync, readdirSync, writeFileSync, accessSync, constants } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { t } from './i18n'
 
 /**
  * macOS builds ship without a Developer ID signature (`identity: null` in
@@ -72,23 +73,23 @@ export interface UnsignedInstallResult {
  */
 export function startUnsignedMacInstall(zipPath: string, exePath: string, pid: number): UnsignedInstallResult {
   const appBundle = appBundleFromExe(exePath)
-  if (!appBundle) return { started: false, message: 'Could not find the installed app bundle.' }
+  if (!appBundle) return { started: false, message: t('update.noAppBundle') }
   try {
     accessSync(dirname(appBundle), constants.W_OK)
   } catch {
     return {
       started: false,
-      message: `No permission to replace the app in ${dirname(appBundle)}. Reinstall it with scripts/install-desktop.sh.`,
+      message: t('update.noPermission', { dir: dirname(appBundle) }),
     }
   }
 
   const staging = mkdtempSync(join(tmpdir(), 'thb-update-'))
   const unzip = spawnSync('ditto', ['-x', '-k', zipPath, staging], { encoding: 'utf8' })
   if (unzip.status !== 0) {
-    return { started: false, message: `Could not unpack the update: ${unzip.stderr || 'ditto failed'}` }
+    return { started: false, message: t('update.unpackFailed', { error: unzip.stderr || 'ditto failed' }) }
   }
   const unpacked = readdirSync(staging).find((name) => name.endsWith('.app'))
-  if (!unpacked) return { started: false, message: 'The downloaded update did not contain an app.' }
+  if (!unpacked) return { started: false, message: t('update.noAppInUpdate') }
 
   const script = join(staging, 'swap.sh')
   writeFileSync(script, buildSwapScript(pid, appBundle, join(staging, unpacked)), { mode: 0o755 })

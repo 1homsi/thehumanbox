@@ -1,0 +1,94 @@
+{
+  "menu": {
+    "settings": "설정…",
+    "file": "파일",
+    "reload": "새로 고침",
+    "restartSimulation": "시뮬레이션 다시 시작",
+    "view": "보기",
+    "toggleDevTools": "개발자 도구 전환",
+    "alwaysOnTop": "항상 위에 표시",
+    "screenshot": "스크린샷",
+    "help": "도움말",
+    "openGitHub": "GitHub 열기",
+    "openWebsite": "thehumanbox.com 열기",
+    "about": "The Human Box 정보",
+    "services": "서비스",
+    "hide": "The Human Box 가리기",
+    "hideOthers": "다른 항목 가리기",
+    "showAll": "모두 보기",
+    "quit": "종료",
+    "quitApp": "The Human Box 종료",
+    "close": "창 닫기",
+    "resetZoom": "실제 크기",
+    "zoomIn": "확대",
+    "zoomOut": "축소",
+    "fullScreen": "전체 화면 전환"
+  },
+  "tray": {
+    "showWindow": "창 표시",
+    "hideWindow": "창 숨기기",
+    "takeScreenshot": "스크린샷 찍기",
+    "openWorldsFolder": "세계 폴더 열기",
+    "openLogsFolder": "로그 폴더 열기"
+  },
+  "notify": {
+    "screenshotSaved": "스크린샷을 저장했습니다",
+    "worldsFolderUnavailable": "세계 폴더를 사용할 수 없습니다",
+    "logsFolderUnavailable": "로그 폴더를 사용할 수 없습니다",
+    "about": "v{version}\n지속되는 인공 생명 시뮬레이션입니다.\nthehumanbox.com"
+  },
+  "dialog": {
+    "chooseSaveFolder": "The Human Box가 세계를 저장할 폴더를 선택하세요",
+    "worldSaveFilter": "The Human Box 세계 저장 파일",
+    "exportSave": "복원 가능한 세계 저장 파일 내보내기",
+    "exportBeforeReset": "초기화 전에 현재 세계 내보내기",
+    "resetWorld": "새 로컬 세계를 시작할까요?",
+    "resetDetail": "현재 세계는 이 컴퓨터에 보관됩니다. 먼저 별도의 저장 파일을 내보내면 휴대용 백업을 하나 더 만들 수 있습니다.",
+    "openWindowFailed": "The Human Box가 창을 열 수 없습니다"
+  },
+  "buttons": {
+    "ok": "확인",
+    "cancel": "취소",
+    "notNow": "나중에",
+    "later": "나중에",
+    "restartSimulation": "시뮬레이션 다시 시작",
+    "restartWithoutCheckpoint": "체크포인트 없이 다시 시작",
+    "restartAndUpdate": "다시 시작하고 업데이트",
+    "exportAndStartNew": "내보내고 새로 시작",
+    "startNewWithoutExport": "내보내지 않고 새로 시작"
+  },
+  "restart": {
+    "failed": "시뮬레이션을 다시 시작할 수 없습니다",
+    "checkpointDetail": "시뮬레이션이 멈췄을 수 있습니다. 체크포인트 없이 다시 시작하면 최대 약 1분의 플레이를 잃습니다."
+  },
+  "simStopped": {
+    "message": "시뮬레이션이 예기치 않게 중지되었습니다",
+    "detail": "종료: {status}. 세계는 가장 최근 체크포인트에 마지막으로 저장되었습니다(최대 약 1분의 플레이만 잃습니다). 계속하려면 시뮬레이션을 다시 시작하세요.",
+    "exitCode": "코드 {code}"
+  },
+  "startFailed": {
+    "title": "The Human Box를 시작할 수 없습니다",
+    "simHeading": "The Human Box가 로컬 시뮬레이션을 시작할 수 없습니다",
+    "simHint": "자세한 내용은 로그를 확인한 뒤, 설정에서 로컬 시뮬레이션을 다시 시작하세요.",
+    "settingsHeading": "The Human Box가 설정을 읽을 수 없습니다",
+    "settingsHint": "위에 표시된 파일을 복구하거나 삭제한 뒤 앱을 다시 실행하세요. 기존 세계는 그대로 남아 있습니다.",
+    "pageTitle": "The Human Box — 시작 오류",
+    "devtools": "자세한 내용은 개발자 도구를 여세요. macOS는 {mac}, Windows/Linux는 {win}입니다.",
+    "rendererFailed": "화면을 불러오지 못했습니다."
+  },
+  "update": {
+    "failedTitle": "업데이트 실패",
+    "failedMessage": "업데이트를 설치할 수 없습니다.",
+    "readyTitle": "업데이트 준비 완료",
+    "readyMessage": "버전 {version}을(를) 설치할 준비가 되었습니다.",
+    "readyDetail": "앱을 다시 시작하고 업데이트를 적용합니다.",
+    "fileMissing": "다운로드한 업데이트 파일이 없습니다. 업데이트를 다시 확인하세요.",
+    "packagedOnlyCheck": "업데이트 확인은 설치된 빌드에서만 사용할 수 있습니다.",
+    "packagedOnlyInstall": "업데이트 설치는 설치된 빌드에서만 사용할 수 있습니다.",
+    "nothingReady": "설치할 준비가 된 다운로드 업데이트가 없습니다.",
+    "noAppBundle": "설치된 앱 번들을 찾을 수 없습니다.",
+    "noPermission": "{dir}의 앱을 교체할 권한이 없습니다. scripts/install-desktop.sh로 다시 설치하세요.",
+    "unpackFailed": "업데이트의 압축을 풀 수 없습니다: {error}",
+    "noAppInUpdate": "다운로드한 업데이트에 앱이 없습니다."
+  }
+}

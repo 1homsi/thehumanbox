@@ -1,0 +1,94 @@
+{
+  "menu": {
+    "settings": "Einstellungen…",
+    "file": "Datei",
+    "reload": "Neu laden",
+    "restartSimulation": "Simulation neu starten",
+    "view": "Ansicht",
+    "toggleDevTools": "Entwicklertools ein-/ausblenden",
+    "alwaysOnTop": "Immer im Vordergrund",
+    "screenshot": "Screenshot",
+    "help": "Hilfe",
+    "openGitHub": "GitHub öffnen",
+    "openWebsite": "thehumanbox.com öffnen",
+    "about": "Über The Human Box",
+    "services": "Dienste",
+    "hide": "The Human Box ausblenden",
+    "hideOthers": "Andere ausblenden",
+    "showAll": "Alle einblenden",
+    "quit": "Beenden",
+    "quitApp": "The Human Box beenden",
+    "close": "Fenster schließen",
+    "resetZoom": "Originalgröße",
+    "zoomIn": "Vergrößern",
+    "zoomOut": "Verkleinern",
+    "fullScreen": "Vollbild ein-/ausschalten"
+  },
+  "tray": {
+    "showWindow": "Fenster anzeigen",
+    "hideWindow": "Fenster ausblenden",
+    "takeScreenshot": "Screenshot aufnehmen",
+    "openWorldsFolder": "Weltenordner öffnen",
+    "openLogsFolder": "Protokollordner öffnen"
+  },
+  "notify": {
+    "screenshotSaved": "Screenshot gespeichert",
+    "worldsFolderUnavailable": "Weltenordner nicht verfügbar",
+    "logsFolderUnavailable": "Protokollordner nicht verfügbar",
+    "about": "v{version}\nEine dauerhafte Simulation künstlichen Lebens.\nthehumanbox.com"
+  },
+  "dialog": {
+    "chooseSaveFolder": "Ordner wählen, in dem The Human Box die Welten speichert",
+    "worldSaveFilter": "Weltspeicherstand von The Human Box",
+    "exportSave": "Wiederherstellbaren Weltspeicherstand exportieren",
+    "exportBeforeReset": "Aktuelle Welt vor dem Zurücksetzen exportieren",
+    "resetWorld": "Neue lokale Welt starten?",
+    "resetDetail": "Deine aktuelle Welt bleibt auf diesem Computer archiviert. Wenn du vorher einen separaten Speicherstand exportierst, erhältst du eine zusätzliche tragbare Sicherung.",
+    "openWindowFailed": "The Human Box konnte sein Fenster nicht öffnen"
+  },
+  "buttons": {
+    "ok": "OK",
+    "cancel": "Abbrechen",
+    "notNow": "Nicht jetzt",
+    "later": "Später",
+    "restartSimulation": "Simulation neu starten",
+    "restartWithoutCheckpoint": "Ohne Checkpoint neu starten",
+    "restartAndUpdate": "Neu starten und aktualisieren",
+    "exportAndStartNew": "Exportieren und neu starten",
+    "startNewWithoutExport": "Neu starten ohne Export"
+  },
+  "restart": {
+    "failed": "Die Simulation konnte nicht neu gestartet werden",
+    "checkpointDetail": "Die Simulation hängt möglicherweise. Ein Neustart ohne Checkpoint kostet bis zu etwa eine Minute Spielzeit."
+  },
+  "simStopped": {
+    "message": "Die Simulation wurde unerwartet beendet",
+    "detail": "Beendet mit {status}. Deine Welt wurde zuletzt am neuesten Checkpoint gespeichert (höchstens etwa eine Minute Spielzeit geht verloren). Starte die Simulation neu, um weiterzumachen.",
+    "exitCode": "Code {code}"
+  },
+  "startFailed": {
+    "title": "The Human Box konnte nicht gestartet werden",
+    "simHeading": "The Human Box konnte die lokale Simulation nicht starten",
+    "simHint": "Details stehen in den Protokollen. Prüfe sie und starte die lokale Simulation dann über die Einstellungen neu.",
+    "settingsHeading": "The Human Box konnte seine Einstellungen nicht lesen",
+    "settingsHint": "Repariere oder entferne die oben genannte Datei und starte die App neu. Deine vorhandenen Welten bleiben unverändert.",
+    "pageTitle": "The Human Box — Startfehler",
+    "devtools": "Für mehr Details die Entwicklertools mit {mac} (macOS) bzw. {win} (Windows/Linux) öffnen.",
+    "rendererFailed": "Die Oberfläche konnte nicht geladen werden."
+  },
+  "update": {
+    "failedTitle": "Update fehlgeschlagen",
+    "failedMessage": "Das Update konnte nicht installiert werden.",
+    "readyTitle": "Update bereit",
+    "readyMessage": "Version {version} ist bereit zur Installation.",
+    "readyDetail": "Die App wird neu gestartet und das Update angewendet.",
+    "fileMissing": "Die heruntergeladene Update-Datei fehlt. Suche erneut nach Updates.",
+    "packagedOnlyCheck": "Update-Prüfungen sind nur in installierten Versionen verfügbar.",
+    "packagedOnlyInstall": "Update-Installationen sind nur in installierten Versionen verfügbar.",
+    "nothingReady": "Kein heruntergeladenes Update ist zur Installation bereit.",
+    "noAppBundle": "Das installierte App-Paket wurde nicht gefunden.",
+    "noPermission": "Keine Berechtigung, die App in {dir} zu ersetzen. Installiere sie mit scripts/install-desktop.sh neu.",
+    "unpackFailed": "Das Update konnte nicht entpackt werden: {error}",
+    "noAppInUpdate": "Das heruntergeladene Update enthält keine App."
+  }
+}

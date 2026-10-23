@@ -1,0 +1,94 @@
+{
+  "menu": {
+    "settings": "設定…",
+    "file": "ファイル",
+    "reload": "再読み込み",
+    "restartSimulation": "シミュレーションを再起動",
+    "view": "表示",
+    "toggleDevTools": "開発者ツールの切り替え",
+    "alwaysOnTop": "常に手前に表示",
+    "screenshot": "スクリーンショット",
+    "help": "ヘルプ",
+    "openGitHub": "GitHub を開く",
+    "openWebsite": "thehumanbox.com を開く",
+    "about": "The Human Box について",
+    "services": "サービス",
+    "hide": "The Human Box を隠す",
+    "hideOthers": "ほかを隠す",
+    "showAll": "すべてを表示",
+    "quit": "終了",
+    "quitApp": "The Human Box を終了",
+    "close": "ウインドウを閉じる",
+    "resetZoom": "実際のサイズ",
+    "zoomIn": "拡大",
+    "zoomOut": "縮小",
+    "fullScreen": "フルスクリーンの切り替え"
+  },
+  "tray": {
+    "showWindow": "ウインドウを表示",
+    "hideWindow": "ウインドウを隠す",
+    "takeScreenshot": "スクリーンショットを撮る",
+    "openWorldsFolder": "世界フォルダを開く",
+    "openLogsFolder": "ログフォルダを開く"
+  },
+  "notify": {
+    "screenshotSaved": "スクリーンショットを保存しました",
+    "worldsFolderUnavailable": "世界フォルダを利用できません",
+    "logsFolderUnavailable": "ログフォルダを利用できません",
+    "about": "v{version}\n永続する人工生命のシミュレーション。\nthehumanbox.com"
+  },
+  "dialog": {
+    "chooseSaveFolder": "The Human Box が世界を保存するフォルダを選択",
+    "worldSaveFilter": "The Human Box のワールドセーブ",
+    "exportSave": "復元可能なワールドセーブを書き出す",
+    "exportBeforeReset": "リセット前に現在の世界を書き出す",
+    "resetWorld": "新しいローカルの世界を始めますか？",
+    "resetDetail": "現在の世界はこのコンピューターにアーカイブとして残ります。先に別のセーブを書き出すと、持ち運べるバックアップがもう1つ作れます。",
+    "openWindowFailed": "The Human Box はウインドウを開けませんでした"
+  },
+  "buttons": {
+    "ok": "OK",
+    "cancel": "キャンセル",
+    "notNow": "今はしない",
+    "later": "あとで",
+    "restartSimulation": "シミュレーションを再起動",
+    "restartWithoutCheckpoint": "チェックポイントなしで再起動",
+    "restartAndUpdate": "再起動して更新",
+    "exportAndStartNew": "書き出して新しく始める",
+    "startNewWithoutExport": "書き出さずに新しく始める"
+  },
+  "restart": {
+    "failed": "シミュレーションを再起動できませんでした",
+    "checkpointDetail": "シミュレーションが停止している可能性があります。チェックポイントなしで再起動すると、約1分間のプレイが失われることがあります。"
+  },
+  "simStopped": {
+    "message": "シミュレーションが予期せず停止しました",
+    "detail": "終了: {status}。ワールドは最後にチェックポイントで保存されています（失われるのは最大で約1分のプレイです）。続けるにはシミュレーションを再起動してください。",
+    "exitCode": "コード {code}"
+  },
+  "startFailed": {
+    "title": "The Human Box を起動できませんでした",
+    "simHeading": "The Human Box はローカルのシミュレーションを起動できませんでした",
+    "simHint": "詳細はログを確認してください。その後、設定からローカルのシミュレーションを再起動してください。",
+    "settingsHeading": "The Human Box は設定を読み込めませんでした",
+    "settingsHint": "上に示したファイルを修復または削除してから、アプリを再起動してください。既存の世界は変更されていません。",
+    "pageTitle": "The Human Box — 起動エラー",
+    "devtools": "詳細は開発者ツールで確認できます。macOS は {mac}、Windows/Linux は {win} で開きます。",
+    "rendererFailed": "画面を読み込めませんでした。"
+  },
+  "update": {
+    "failedTitle": "更新に失敗しました",
+    "failedMessage": "アップデートをインストールできませんでした。",
+    "readyTitle": "アップデートの準備ができました",
+    "readyMessage": "バージョン {version} をインストールできます。",
+    "readyDetail": "アプリを再起動して、アップデートを適用します。",
+    "fileMissing": "ダウンロードしたアップデートファイルが見つかりません。もう一度アップデートを確認してください。",
+    "packagedOnlyCheck": "アップデートの確認はインストール版でのみ利用できます。",
+    "packagedOnlyInstall": "アップデートのインストールはインストール版でのみ利用できます。",
+    "nothingReady": "インストールできる、ダウンロード済みのアップデートはありません。",
+    "noAppBundle": "インストールされたアプリのバンドルが見つかりません。",
+    "noPermission": "{dir} にあるアプリを置き換える権限がありません。scripts/install-desktop.sh で再インストールしてください。",
+    "unpackFailed": "アップデートを展開できませんでした: {error}",
+    "noAppInUpdate": "ダウンロードしたアップデートにアプリが含まれていませんでした。"
+  }
+}
