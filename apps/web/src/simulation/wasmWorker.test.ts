@@ -460,6 +460,32 @@ describe('browser simulation scheduling', () => {
     expect(model.fullFrame).toHaveBeenCalledTimes(1)
   })
 
+  it('keeps real time while hidden even when the browser throttles its timers', async () => {
+    vi.spyOn(performance, 'now').mockImplementation(() => Date.now())
+    await vi.advanceTimersByTimeAsync(240)
+    send({ type: 'visibility', hidden: true, keepRunning: true })
+    // A throttled background tab: no timer fires sooner than a second.
+    const fakeSetTimeout = globalThis.setTimeout
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((fn: () => void, ms?: number) =>
+      fakeSetTimeout(fn, Math.max(1000, ms ?? 0))) as typeof setTimeout)
+    const before = model.tick
+    await vi.advanceTimersByTimeAsync(10_000)
+    // 10 s at 120 ms per tick is ~83 ticks, not the ~10 the late timers alone would give.
+    expect(model.tick - before).toBeGreaterThanOrEqual(75n)
+    expect(model.tick - before).toBeLessThanOrEqual(86n)
+  })
+
+  it('does not replay more than a minute after the machine sleeps', async () => {
+    let clock = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => clock)
+    await vi.advanceTimersByTimeAsync(240)
+    send({ type: 'visibility', hidden: true, keepRunning: true })
+    const before = model.tick
+    clock += 60 * 60_000
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(model.tick - before).toBeLessThanOrEqual(BigInt(Math.ceil(65_000 / 120)))
+  })
+
   it('yields after an expensive tick instead of running the rest of a fast batch', async () => {
     let clock = 0
     vi.spyOn(performance, 'now').mockImplementation(() => clock)

@@ -81,6 +81,14 @@ let hiddenPaused = false
 // Hidden but still simulating ("keep running in background"): ticks and autosaves
 // continue, but no frames go out since nothing draws them. A full frame resyncs on return.
 let hiddenRunning = false
+// Browsers may throttle a hidden tab's timers to once a second or slower, so while hidden the
+// world runs by wall clock: each wake-up runs the ticks owed since the last one. Capped so a
+// machine waking from sleep does not replay hours of world at once.
+const MAX_BACKGROUND_OWED_MS = 60_000
+const MIN_BACKGROUND_SLICE_MS = 50
+const MAX_BACKGROUND_SLICE_MS = 500
+let backgroundOwedMs = 0
+let backgroundClockAt = 0
 let reloadPreparing = false
 let tickTimer: ReturnType<typeof setTimeout> | null = null
 let saveTimer: ReturnType<typeof setInterval> | null = null
@@ -409,19 +417,45 @@ function stopTimers() {
   }
 }
 
+function msPerTick() {
+  return tickMs / stepsPerEmit
+}
+
+/** Run the ticks a hidden world owes for the real time since the last wake-up. */
+function catchUpInBackground(running: Sim, startedAt: number) {
+  const sinceLastMs = startedAt - backgroundClockAt
+  backgroundOwedMs = Math.min(MAX_BACKGROUND_OWED_MS, backgroundOwedMs + sinceLastMs)
+  backgroundClockAt = startedAt
+  // Work at most half the gap, so a throttled timer still leaves the CPU half idle.
+  const sliceMs = Math.min(MAX_BACKGROUND_SLICE_MS, Math.max(MIN_BACKGROUND_SLICE_MS, sinceLastMs / 2))
+  while (backgroundOwedMs >= msPerTick() && performance.now() - startedAt < sliceMs) {
+    running.tickN(1)
+    backgroundOwedMs -= msPerTick()
+  }
+}
+
 function tickOnce() {
   const startedAt = performance.now()
   let completed = 0
-  if (!manuallyPaused && !hiddenPaused && !reloadPreparing && sim) {
+  const running = manuallyPaused || hiddenPaused || reloadPreparing ? null : sim
+  if (running && hiddenRunning) {
+    catchUpInBackground(running, startedAt)
+    const workMs = performance.now() - startedAt
+    const behind = backgroundOwedMs >= msPerTick()
+    // Still behind: come straight back, idling at least as long as the slice took.
+    const delay = behind ? Math.max(MIN_WASM_TICK_MS, workMs) : msPerTick() - backgroundOwedMs
+    tickTimer = setTimeout(tickOnce, delay)
+    return
+  }
+  backgroundOwedMs = 0
+  backgroundClockAt = startedAt
+  if (running) {
     // Bound a fast-forward batch, yielding between slices for pause/save/input.
     do {
-      sim.tickN(1)
+      running.tickN(1)
       completed += 1
     } while (completed < stepsPerEmit && performance.now() - startedAt < 16)
-    if (
-      !hiddenRunning &&
-      (tickMs >= WASM_BASE_TICK_MS || performance.now() - lastEmittedAt >= WASM_BASE_TICK_MS)
-    ) {
+    if (tickMs >= WASM_BASE_TICK_MS || performance.now() - lastEmittedAt >= WASM_BASE_TICK_MS) {
       emit(performance.now() - lastDeepFullAt >= DEEP_FULL_EVERY_MS)
     }
   }
