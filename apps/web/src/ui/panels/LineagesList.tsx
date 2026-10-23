@@ -119,7 +119,7 @@ function LineagesListImpl() {
           const brink = r.peril
             ? t('panels.lineages.onBrink', {
                 line: remainingLine(r.count),
-                reason: PERIL_HELP[r.peril].reason,
+                reason: t(PERIL_HELP[r.peril].reason),
               })
             : null
           return (

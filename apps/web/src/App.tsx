@@ -30,7 +30,8 @@ import { WorldSilent } from './ui/panels/WorldSilent'
 import { PrayerHint } from './ui/panels/PrayerHint'
 import { TribeCard } from './ui/panels/TribeCard'
 import { askConfirm } from './shared/confirm'
-import { toolFailure } from './ui/toolbar/tool-tips'
+import { toolFailure, toolName } from './ui/toolbar/tool-tips'
+import { t } from './i18n'
 import { PAIR_TOOLS, SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
 import { newPerils } from './game/model/peril-watch'
 import { prayerRows, prayerTool } from './game/model/prayers'
@@ -441,13 +442,17 @@ function LiveApp() {
         return
       }
       if (!armedTool.build) return
-      const label = armedTool.label
+      const label = toolName(armedTool)
       const x = Math.round(wx)
       const y = Math.round(wy)
       setSandboxStatus(`${label} -> ${x}, ${y}`)
       const tool = armedTool
       void sendCommand(tool.build!(x, y, brush)).then((ok) => {
-        setTemporarySandboxStatus(ok ? `${label} applied at ${x}, ${y}` : `${label} · ${toolFailure(tool)}`)
+        setTemporarySandboxStatus(
+          ok
+            ? t('model.status.applied', { label, x, y })
+            : t('model.status.failed', { label, reason: toolFailure(tool) }),
+        )
       })
     },
     [armedTool, brush, sandboxControlsEnabled, sendCommand, setTemporarySandboxStatus],
@@ -573,7 +578,8 @@ function LiveApp() {
   const runScenario = useCallback(
     (preset: ScenarioPreset, width: number, height: number) => {
       const steps = preset.steps(width, height)
-      setTemporarySandboxStatus(`${preset.title} · starting`)
+      const title = t(preset.title)
+      setTemporarySandboxStatus(t('model.scenarios.starting', { title }))
       void (async () => {
         let worked = 0
         for (const step of steps) {
@@ -581,8 +587,8 @@ function LiveApp() {
         }
         setTemporarySandboxStatus(
           worked === steps.length
-            ? `${preset.title} is in the world`
-            : `${preset.title}: ${worked} of ${steps.length} steps worked`,
+            ? t('model.scenarios.inWorld', { title })
+            : t('model.scenarios.partial', { title, worked, total: steps.length }),
         )
       })()
     },

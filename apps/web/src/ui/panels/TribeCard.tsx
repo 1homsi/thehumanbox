@@ -5,7 +5,7 @@ import { popHistory } from '../../state/worldStore'
 import { sparklinePoints, trend } from '../../game/model/pop-history'
 import type { PrayerInfo, WorldState } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
-import { PRAYER_KINDS } from '../../game/model/prayers'
+import { PRAYER_KINDS, prayerPleaText } from '../../game/model/prayers'
 import { lossLine, PERIL_HELP, perilOf, remainingLine } from '../../game/model/tribe-peril'
 import { activeBattles, enemiesOf } from '../../game/render/battles'
 import { relationsLine, relationsOf } from '../../game/model/diplomacy'
@@ -200,11 +200,11 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
             {t('panels.tribe.onBrink', {
               line: remainingLine(peril.population),
               peak: formatNumber(peril.peak),
-              reason: help.reason,
+              reason: t(help.reason),
             })}
           </span>
           <button className="tribe-peril-help" onClick={() => lookAtTribe(help.tool)}>
-            {help.action}
+            {t(help.action)}
           </button>
         </div>
       )}
@@ -307,7 +307,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
       {prayer && (
         <button className="tribe-card-prayer" onClick={() => onAnswer(prayer)}>
           <ToolSprite icon={PRAYER_KINDS[prayer.kind]?.icon ?? '🙏'} size={16} />
-          <span>{PRAYER_KINDS[prayer.kind]?.plea ?? t('panels.tribe.praying')}</span>
+          <span>{prayerPleaText(prayer.kind) ?? t('panels.tribe.praying')}</span>
           <span className="tribe-card-help">{t('panels.tribe.help')}</span>
         </button>
       )}

@@ -64,7 +64,7 @@ export function AllLineagesModal({ lineages, lineageWords, lineageNames, peril, 
                 cause
                   ? t('dialogs.lineages.onBrink', {
                       remaining: remainingLine(info.count),
-                      reason: PERIL_HELP[cause].reason,
+                      reason: t(PERIL_HELP[cause].reason),
                     })
                   : undefined
               }

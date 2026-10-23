@@ -1,0 +1,228 @@
+{
+  "progressOf": "{done} de {total}",
+  "age": {
+    "years": "{years} anos"
+  },
+  "peril": {
+    "sickness": {
+      "reason": "a doença os leva",
+      "action": "cure-os"
+    },
+    "hunger": {
+      "reason": "estão passando fome",
+      "action": "envie uma colheita"
+    },
+    "thirst": {
+      "reason": "não têm água",
+      "action": "envie chuva"
+    },
+    "noChildren": {
+      "reason": "não resta ninguém para criar as crianças",
+      "action": "envie um recém-chegado"
+    },
+    "oldAge": {
+      "reason": "estão envelhecendo",
+      "action": "envie sangue novo"
+    },
+    "dwindling": {
+      "reason": "o número deles não para de cair",
+      "action": "abençoe-os"
+    },
+    "war": {
+      "reason": "a guerra os mata",
+      "action": "faça a paz"
+    },
+    "beasts": {
+      "reason": "as feras os caçam",
+      "action": "afaste as feras"
+    },
+    "drowning": {
+      "reason": "a água os leva",
+      "action": "eleve terra seca"
+    },
+    "fire": {
+      "reason": "o fogo os leva",
+      "action": "apague as chamas"
+    },
+    "disaster": {
+      "reason": "desastre após desastre os atinge",
+      "action": "abençoe-os"
+    },
+    "lastOne": "o último",
+    "left": "só restam {count}"
+  },
+  "loss": {
+    "war": "guerra",
+    "fights": "combates",
+    "beasts": "feras",
+    "drowning": "afogamento",
+    "fire": "fogo",
+    "disaster": "desastre",
+    "sickness": "doença",
+    "hunger": "fome",
+    "thirst": "sede",
+    "oldAge": "velhice",
+    "to": "{count} por {cause}"
+  },
+  "titles": {
+    "chief": "Chefe",
+    "elder": "Ancião",
+    "trade": {
+      "healer": "Curandeiro",
+      "doctor": "Médico",
+      "hunter": "Caçador",
+      "farmer": "Agricultor",
+      "builder": "Construtor",
+      "soldier": "Soldado",
+      "priest": "Sacerdote",
+      "scholar": "Erudito",
+      "baker": "Padeiro",
+      "miner": "Mineiro",
+      "merchant": "Mercador",
+      "artist": "Artista"
+    }
+  },
+  "achievements": {
+    "fullYear": {
+      "title": "Um ano inteiro",
+      "detail": "O mundo passou por um ano inteiro de estações.",
+      "progress": "{percent}% do primeiro ano"
+    },
+    "hundredSouls": {
+      "title": "Cem almas",
+      "detail": "Seu povo chega a {goal} ou mais ao mesmo tempo."
+    },
+    "village": {
+      "title": "Uma vila",
+      "detail": "Uma tribo cresceu e virou vila."
+    },
+    "threeTribes": {
+      "title": "Três tribos",
+      "detail": "Três tribos diferentes estão vivas ao mesmo tempo."
+    },
+    "grandchildren": {
+      "title": "Netos",
+      "detail": "Alguém vivo é neto ou descendente posterior dos primeiros povos."
+    },
+    "ruler": {
+      "title": "Um governante",
+      "detail": "Uma tribo coroou um governante que ainda está vivo."
+    },
+    "elder": {
+      "title": "Um ancião",
+      "detail": "Uma pessoa adulta viveu o bastante para ser chamada de ancião."
+    },
+    "toolmakers": {
+      "title": "Fabricantes de ferramentas",
+      "detail": "Alguém vivo carrega uma ferramenta que fez ou recebeu."
+    },
+    "firstRoad": {
+      "title": "A primeira estrada",
+      "detail": "O povo abriu uma estrada pela terra."
+    },
+    "roadNetwork": {
+      "title": "Uma rede de estradas",
+      "detail": "{goal} células de estrada abertas pela terra."
+    },
+    "overTheWater": {
+      "title": "Sobre a água",
+      "detail": "Uma ponte leva o povo através de um rio ou lago."
+    }
+  },
+  "difficulty": {
+    "calm": "Menos desastres, fome mais branda.",
+    "normal": "O mundo padrão.",
+    "harsh": "Mais desastres e fome mais severa."
+  },
+  "goals": {
+    "none": "Nenhuma meta ainda.",
+    "metCount": "{done} de {total} metas atingidas.",
+    "lost": "Todos morreram no ano {year}, {season}, dia {day}.",
+    "met": "atingida",
+    "notYet": "ainda não"
+  },
+  "relations": {
+    "allied": "aliada de {names}",
+    "bound": "vinculada a {names}",
+    "peace": "em paz com {names}"
+  },
+  "crime": {
+    "thefts": {
+      "one": "{count} furto",
+      "other": "{count} furtos"
+    },
+    "killings": {
+      "one": "{count} homicídio",
+      "other": "{count} homicídios"
+    },
+    "both": "{thefts}, {killings}"
+  },
+  "wealth": {
+    "even": "equilibrada",
+    "uneven": "desigual",
+    "stark": "muito desigual"
+  },
+  "generations": {
+    "oldest": "geração viva mais velha {generation}",
+    "soFar": "{count} gerações até agora"
+  },
+  "prayers": {
+    "aTribe": "Uma tribo",
+    "pray": "por ajuda",
+    "sentence": "{who} reza {plea}",
+    "many": "{count} tribos rezam {plea}",
+    "plea": {
+      "hunger": "por comida",
+      "thirst": "por água limpa",
+      "sickness": "pelos doentes",
+      "danger": "para serem salvos das feras",
+      "rain": "por chuva",
+      "children": "por filhos",
+      "peace": "para que a guerra acabe",
+      "knowledge": "por sabedoria",
+      "shelter": "por abrigo contra o frio",
+      "fire": "para que os deuses apaguem o fogo"
+    }
+  },
+  "scenarios": {
+    "foundingFamily": {
+      "title": "Família fundadora",
+      "detail": "Um casal com filhos se instala no meio da terra, e seus parentes são coroados líderes."
+    },
+    "twoTribes": {
+      "title": "Duas tribos rivais",
+      "detail": "Dois grupos de cinco começam em lados opostos da terra, cada um com um pouco de caça por perto."
+    },
+    "wildValley": {
+      "title": "Vale selvagem",
+      "detail": "Um rebanho de veados e coelhos é espalhado pela terra, com céu limpo para começar."
+    },
+    "apocalypse": {
+      "title": "Apocalipse",
+      "detail": "Uma tempestade cai sobre a terra, um meteoro cai no meio, uma praga se espalha e zumbis andam pelas bordas."
+    },
+    "goldenAge": {
+      "title": "Era de ouro",
+      "detail": "Céu limpo, fartura de comida e sol quente sobre o centro, e duas famílias fundam suas tribos em boas terras."
+    },
+    "tribalWar": {
+      "title": "Guerra tribal",
+      "detail": "Duas famílias fundam tribos rivais em lados opostos da terra, e os deuses as colocam em guerra."
+    },
+    "islandSurvival": {
+      "title": "Sobrevivência na ilha",
+      "detail": "Um grupo de seis começa no meio, com veados e coelhos por perto e chuva para beber."
+    },
+    "iceAge": {
+      "title": "Era do gelo",
+      "detail": "Neve cai e uma nevasca varre o centro, enquanto um pequeno grupo e alguns ursos precisam suportar."
+    },
+    "starting": "{title} · iniciando",
+    "inWorld": "{title} está no mundo",
+    "partial": "{title}: {worked} de {total} passos concluídos"
+  },
+  "status": {
+    "applied": "{label} aplicado em {x}, {y}",
+    "failed": "{label} · {reason}"
+  }
+}

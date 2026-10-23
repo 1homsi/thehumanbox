@@ -2,19 +2,21 @@
 // come from the state the simulation already sends (the tribe's ruler, age,
 // and the trade a person has taken up), so a title is never a separate fact.
 
-const TRADE_TITLES: Record<string, string> = {
-  healer: 'Healer',
-  doctor: 'Doctor',
-  hunter: 'Hunter',
-  farmer: 'Farmer',
-  builder: 'Builder',
-  soldier: 'Soldier',
-  priest: 'Priest',
-  scholar: 'Scholar',
-  baker: 'Baker',
-  miner: 'Miner',
-  merchant: 'Merchant',
-  artist: 'Artist',
+import { t, type MessageKey } from '../../i18n'
+
+const TRADE_TITLES: Record<string, MessageKey | undefined> = {
+  healer: 'model.titles.trade.healer',
+  doctor: 'model.titles.trade.doctor',
+  hunter: 'model.titles.trade.hunter',
+  farmer: 'model.titles.trade.farmer',
+  builder: 'model.titles.trade.builder',
+  soldier: 'model.titles.trade.soldier',
+  priest: 'model.titles.trade.priest',
+  scholar: 'model.titles.trade.scholar',
+  baker: 'model.titles.trade.baker',
+  miner: 'model.titles.trade.miner',
+  merchant: 'model.titles.trade.merchant',
+  artist: 'model.titles.trade.artist',
 }
 
 /** The titles for a living person, in the order they are shown. The dead keep no title. */
@@ -26,11 +28,12 @@ export function personTitles(org: {
 }): string[] {
   if (!org.alive) return []
   const titles: string[] = []
-  if (org.is_leader) titles.push('Chief')
-  if (org.is_elder) titles.push('Elder')
+  if (org.is_leader) titles.push(t('model.titles.chief'))
+  if (org.is_elder) titles.push(t('model.titles.elder'))
   if (org.specialty) {
     const trade = org.specialty.toLowerCase()
-    titles.push(TRADE_TITLES[trade] ?? trade.charAt(0).toUpperCase() + trade.slice(1))
+    const key = TRADE_TITLES[trade]
+    titles.push(key ? t(key) : trade.charAt(0).toUpperCase() + trade.slice(1))
   }
   return titles
 }

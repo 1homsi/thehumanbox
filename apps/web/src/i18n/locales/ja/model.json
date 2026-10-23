@@ -1,0 +1,228 @@
+{
+  "progressOf": "{done} / {total}",
+  "age": {
+    "years": "{years} 年"
+  },
+  "peril": {
+    "sickness": {
+      "reason": "病が人々を奪っている",
+      "action": "病を治す"
+    },
+    "hunger": {
+      "reason": "飢えている",
+      "action": "収穫を送る"
+    },
+    "thirst": {
+      "reason": "水がない",
+      "action": "雨を送る"
+    },
+    "noChildren": {
+      "reason": "子を育てる者がもういない",
+      "action": "新しい者を送る"
+    },
+    "oldAge": {
+      "reason": "老いてゆく",
+      "action": "若い血を送る"
+    },
+    "dwindling": {
+      "reason": "人数が減り続けている",
+      "action": "祝福する"
+    },
+    "war": {
+      "reason": "戦争が命を奪っている",
+      "action": "和平をもたらす"
+    },
+    "beasts": {
+      "reason": "獣に狩られている",
+      "action": "獣を追い払う"
+    },
+    "drowning": {
+      "reason": "水が人々を奪っている",
+      "action": "乾いた土地を盛り上げる"
+    },
+    "fire": {
+      "reason": "火が人々を奪っている",
+      "action": "炎を消す"
+    },
+    "disaster": {
+      "reason": "災害が次々と襲っている",
+      "action": "祝福する"
+    },
+    "lastOne": "最後のひとり",
+    "left": "残り{count}人"
+  },
+  "loss": {
+    "war": "戦争",
+    "fights": "争い",
+    "beasts": "獣",
+    "drowning": "溺死",
+    "fire": "火災",
+    "disaster": "災害",
+    "sickness": "病",
+    "hunger": "飢え",
+    "thirst": "渇き",
+    "oldAge": "老衰",
+    "to": "{cause}で{count}人"
+  },
+  "titles": {
+    "chief": "首長",
+    "elder": "長老",
+    "trade": {
+      "healer": "治療師",
+      "doctor": "医師",
+      "hunter": "狩人",
+      "farmer": "農夫",
+      "builder": "建築師",
+      "soldier": "兵士",
+      "priest": "司祭",
+      "scholar": "学者",
+      "baker": "パン職人",
+      "miner": "鉱夫",
+      "merchant": "商人",
+      "artist": "芸術家"
+    }
+  },
+  "achievements": {
+    "fullYear": {
+      "title": "丸一年",
+      "detail": "世界は季節をひとめぐりした。",
+      "progress": "最初の一年の{percent}%"
+    },
+    "hundredSouls": {
+      "title": "百の魂",
+      "detail": "あなたの民が同時に{goal}人以上になる。"
+    },
+    "village": {
+      "title": "村",
+      "detail": "ある部族が村へと成長した。"
+    },
+    "threeTribes": {
+      "title": "三つの部族",
+      "detail": "別々の三つの部族が同時に生きている。"
+    },
+    "grandchildren": {
+      "title": "孫たち",
+      "detail": "生きている誰かが、最初の人々の孫、またはそれ以降の子孫である。"
+    },
+    "ruler": {
+      "title": "支配者",
+      "detail": "ある部族が、今も生きる支配者を戴いた。"
+    },
+    "elder": {
+      "title": "長老",
+      "detail": "成人が長く生きて、長老と呼ばれるようになった。"
+    },
+    "toolmakers": {
+      "title": "道具作り",
+      "detail": "生きている誰かが、自ら作った、または贈られた道具を持っている。"
+    },
+    "firstRoad": {
+      "title": "最初の道",
+      "detail": "人々が大地に道を敷いた。"
+    },
+    "roadNetwork": {
+      "title": "道の網",
+      "detail": "大地に{goal}マスの道が敷かれた。"
+    },
+    "overTheWater": {
+      "title": "水を越えて",
+      "detail": "橋が人々を川や湖の向こうへ渡している。"
+    }
+  },
+  "difficulty": {
+    "calm": "災害は少なく、飢えはおだやか。",
+    "normal": "標準的な世界。",
+    "harsh": "災害が多く、飢えはより厳しい。"
+  },
+  "goals": {
+    "none": "まだ目標はありません。",
+    "metCount": "{total}個中{done}個の目標を達成。",
+    "lost": "年{year}の{season}・{day}日目に、全員が死にました。",
+    "met": "達成",
+    "notYet": "まだ"
+  },
+  "relations": {
+    "allied": "{names}と同盟",
+    "bound": "{names}に従属",
+    "peace": "{names}と平和"
+  },
+  "crime": {
+    "thefts": {
+      "one": "窃盗{count}件",
+      "other": "窃盗{count}件"
+    },
+    "killings": {
+      "one": "殺人{count}件",
+      "other": "殺人{count}件"
+    },
+    "both": "{thefts}、{killings}"
+  },
+  "wealth": {
+    "even": "均等",
+    "uneven": "不均等",
+    "stark": "格差が大きい"
+  },
+  "generations": {
+    "oldest": "生きている最年長の世代 {generation}",
+    "soFar": "これまでに{count}世代"
+  },
+  "prayers": {
+    "aTribe": "ある部族",
+    "pray": "助けを祈る",
+    "sentence": "{who}が{plea}",
+    "many": "{count}部族が{plea}",
+    "plea": {
+      "hunger": "食料を祈る",
+      "thirst": "清らかな水を祈る",
+      "sickness": "病人のために祈る",
+      "danger": "獣から救われるよう祈る",
+      "rain": "雨を祈る",
+      "children": "子宝を祈る",
+      "peace": "戦争が終わるよう祈る",
+      "knowledge": "知恵を祈る",
+      "shelter": "寒さをしのぐ住まいを祈る",
+      "fire": "神々が火を消してくれるよう祈る"
+    }
+  },
+  "scenarios": {
+    "foundingFamily": {
+      "title": "始まりの家族",
+      "detail": "子を持つ夫婦が大地の中央に住み着き、その親族が指導者に立てられる。"
+    },
+    "twoTribes": {
+      "title": "二つの敵対する部族",
+      "detail": "五人ずつの二つの集団が大地の反対側から始まり、それぞれ近くに少しの獲物がある。"
+    },
+    "wildValley": {
+      "title": "野生の谷",
+      "detail": "鹿とウサギの群れが大地に放たれ、始まりは晴れた空。"
+    },
+    "apocalypse": {
+      "title": "終末",
+      "detail": "大地に嵐が吹き荒れ、中央に隕石が落ち、疫病が広がり、ゾンビが縁を歩く。"
+    },
+    "goldenAge": {
+      "title": "黄金時代",
+      "detail": "晴れた空、豊富な食料、中央を照らす暖かな陽光。二つの家族が良い土地に部族を興す。"
+    },
+    "tribalWar": {
+      "title": "部族間の戦争",
+      "detail": "二つの家族が大地の両側に敵対する部族を興し、神々が二つを戦わせる。"
+    },
+    "islandSurvival": {
+      "title": "孤島の生存",
+      "detail": "六人の一団が中央から始まり、近くに鹿とウサギ、飲むための雨がある。"
+    },
+    "iceAge": {
+      "title": "氷河期",
+      "detail": "雪が降り、吹雪が中央を吹き抜ける。小さな一団と数頭の熊がそれに耐えることになる。"
+    },
+    "starting": "{title} · 開始中",
+    "inWorld": "{title} が世界に現れた",
+    "partial": "{title}: {total}手順中{worked}手順が成功"
+  },
+  "status": {
+    "applied": "{label} を {x}, {y} に適用",
+    "failed": "{label} · {reason}"
+  }
+}

@@ -1,0 +1,228 @@
+{
+  "progressOf": "{done} / {total}",
+  "age": {
+    "years": "{years} yıl"
+  },
+  "peril": {
+    "sickness": {
+      "reason": "hastalık onları alıp götürüyor",
+      "action": "onları iyileştir"
+    },
+    "hunger": {
+      "reason": "açlıktan ölüyorlar",
+      "action": "hasat gönder"
+    },
+    "thirst": {
+      "reason": "suları yok",
+      "action": "yağmur gönder"
+    },
+    "noChildren": {
+      "reason": "çocuk büyütecek kimse kalmadı",
+      "action": "yeni biri gönder"
+    },
+    "oldAge": {
+      "reason": "yaşlanıyorlar",
+      "action": "genç kan gönder"
+    },
+    "dwindling": {
+      "reason": "sayıları sürekli azalıyor",
+      "action": "onları kutsa"
+    },
+    "war": {
+      "reason": "savaş onları öldürüyor",
+      "action": "barış yap"
+    },
+    "beasts": {
+      "reason": "vahşi hayvanlar avlıyor",
+      "action": "hayvanları kovala"
+    },
+    "drowning": {
+      "reason": "su onları alıp götürüyor",
+      "action": "kuru toprağı yükselt"
+    },
+    "fire": {
+      "reason": "ateş onları alıp götürüyor",
+      "action": "alevleri söndür"
+    },
+    "disaster": {
+      "reason": "felaket üstüne felaket geliyor",
+      "action": "onları kutsa"
+    },
+    "lastOne": "son kişi",
+    "left": "yalnızca {count} kişi kaldı"
+  },
+  "loss": {
+    "war": "savaş",
+    "fights": "çatışma",
+    "beasts": "vahşi hayvan",
+    "drowning": "boğulma",
+    "fire": "yangın",
+    "disaster": "felaket",
+    "sickness": "hastalık",
+    "hunger": "açlık",
+    "thirst": "susuzluk",
+    "oldAge": "yaşlılık",
+    "to": "{cause}: {count}"
+  },
+  "titles": {
+    "chief": "Reis",
+    "elder": "Yaşlı",
+    "trade": {
+      "healer": "Şifacı",
+      "doctor": "Doktor",
+      "hunter": "Avcı",
+      "farmer": "Çiftçi",
+      "builder": "Yapı ustası",
+      "soldier": "Asker",
+      "priest": "Rahip",
+      "scholar": "Bilgin",
+      "baker": "Fırıncı",
+      "miner": "Madenci",
+      "merchant": "Tüccar",
+      "artist": "Sanatçı"
+    }
+  },
+  "achievements": {
+    "fullYear": {
+      "title": "Tam bir yıl",
+      "detail": "Dünya mevsimlerin tam bir yılını dolaştı.",
+      "progress": "İlk yılın {percent}%'i"
+    },
+    "hundredSouls": {
+      "title": "Yüz can",
+      "detail": "Halkın aynı anda {goal} veya daha fazla kişi olur."
+    },
+    "village": {
+      "title": "Bir köy",
+      "detail": "Bir kabile köye dönüştü."
+    },
+    "threeTribes": {
+      "title": "Üç kabile",
+      "detail": "Birbirinden ayrı üç kabile aynı anda yaşıyor."
+    },
+    "grandchildren": {
+      "title": "Torunlar",
+      "detail": "Yaşayan biri, ilk insanların torunu ya da daha sonraki bir soyundan."
+    },
+    "ruler": {
+      "title": "Bir hükümdar",
+      "detail": "Bir kabile, hâlâ hayatta olan bir hükümdarı taç giydirdi."
+    },
+    "elder": {
+      "title": "Bir yaşlı",
+      "detail": "Yetişkin biri, yaşlı diye anılacak kadar uzun yaşadı."
+    },
+    "toolmakers": {
+      "title": "Alet yapıcılar",
+      "detail": "Yaşayan biri, kendi yaptığı ya da kendisine verilen bir aleti taşıyor."
+    },
+    "firstRoad": {
+      "title": "İlk yol",
+      "detail": "İnsanlar arazinin üzerine bir yol döşedi."
+    },
+    "roadNetwork": {
+      "title": "Bir yol ağı",
+      "detail": "Arazi boyunca döşenmiş {goal} yol hücresi."
+    },
+    "overTheWater": {
+      "title": "Suyun ötesi",
+      "detail": "Bir köprü insanları bir nehrin ya da gölün öbür yakasına taşıyor."
+    }
+  },
+  "difficulty": {
+    "calm": "Daha az felaket, daha yumuşak açlık.",
+    "normal": "Standart dünya.",
+    "harsh": "Daha çok felaket ve daha keskin açlık."
+  },
+  "goals": {
+    "none": "Henüz hedef yok.",
+    "metCount": "{total} hedefin {done} tanesi tamamlandı.",
+    "lost": "Herkes {year}. yılın {season} mevsiminde, {day}. günde öldü.",
+    "met": "tamamlandı",
+    "notYet": "henüz değil"
+  },
+  "relations": {
+    "allied": "{names} ile müttefik",
+    "bound": "{names} bağlı",
+    "peace": "{names} ile barışta"
+  },
+  "crime": {
+    "thefts": {
+      "one": "{count} hırsızlık",
+      "other": "{count} hırsızlık"
+    },
+    "killings": {
+      "one": "{count} cinayet",
+      "other": "{count} cinayet"
+    },
+    "both": "{thefts}, {killings}"
+  },
+  "wealth": {
+    "even": "dengeli",
+    "uneven": "dengesiz",
+    "stark": "keskin"
+  },
+  "generations": {
+    "oldest": "hayattaki en yaşlı kuşak {generation}",
+    "soFar": "şimdiye kadar {count} kuşak"
+  },
+  "prayers": {
+    "aTribe": "Bir kabile",
+    "pray": "yardım için",
+    "sentence": "{who} {plea} dua ediyor",
+    "many": "{count} kabile {plea} dua ediyor",
+    "plea": {
+      "hunger": "yiyecek için",
+      "thirst": "temiz su için",
+      "sickness": "hastaları için",
+      "danger": "vahşi hayvanlardan kurtulmak için",
+      "rain": "yağmur için",
+      "children": "çocuklar için",
+      "peace": "savaşın bitmesi için",
+      "knowledge": "bilgelik için",
+      "shelter": "soğuktan barınak için",
+      "fire": "tanrılar ateşi söndürsün diye"
+    }
+  },
+  "scenarios": {
+    "foundingFamily": {
+      "title": "Kurucu aile",
+      "detail": "Çocuklu bir çift arazinin ortasına yerleşir ve akrabaları lider ilan edilir."
+    },
+    "twoTribes": {
+      "title": "İki rakip kabile",
+      "detail": "Beşer kişilik iki grup arazinin karşıt yakalarından başlar, her birinin yakınında biraz av vardır."
+    },
+    "wildValley": {
+      "title": "Vahşi vadi",
+      "detail": "Arazinin dört bir yanına geyik ve tavşan sürüleri yerleştirilir, başlangıçta açık bir gökyüzü vardır."
+    },
+    "apocalypse": {
+      "title": "Kıyamet",
+      "detail": "Arazinin üzerine fırtına çöker, ortaya bir meteor düşer, salgın yayılır ve kenarlarda zombiler dolaşır."
+    },
+    "goldenAge": {
+      "title": "Altın çağ",
+      "detail": "Açık gökyüzü, bol yiyecek ve ortanın üzerinde sıcak güneş; iki aile iyi topraklarda kabilelerini kurar."
+    },
+    "tribalWar": {
+      "title": "Kabile savaşı",
+      "detail": "İki aile arazinin iki yanında rakip kabileler kurar ve tanrılar onları savaşa sokar."
+    },
+    "islandSurvival": {
+      "title": "Ada sağkalımı",
+      "detail": "Altı kişilik bir grup ortada başlar; yakınlarda geyikler ve tavşanlar, içmek için yağmur vardır."
+    },
+    "iceAge": {
+      "title": "Buz çağı",
+      "detail": "Kar yağar ve bir tipi ortayı süpürürken küçük bir grup ve birkaç ayı buna dayanmak zorunda kalır."
+    },
+    "starting": "{title} · başlatılıyor",
+    "inWorld": "{title} dünyada",
+    "partial": "{title}: {total} adımdan {worked} tanesi tamamlandı"
+  },
+  "status": {
+    "applied": "{label} {x}, {y} konumuna uygulandı",
+    "failed": "{label} · {reason}"
+  }
+}

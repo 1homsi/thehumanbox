@@ -26,7 +26,7 @@ export function PerilChip({ world }: Props) {
       ? t('panels.peril.tipOne', {
           tribe: lead.tribe,
           remaining: remainingLine(lead.population),
-          reason: PERIL_HELP[lead.cause].reason,
+          reason: t(PERIL_HELP[lead.cause].reason),
         })
       : t('panels.peril.tipMany', { count: perils.length })
   return (

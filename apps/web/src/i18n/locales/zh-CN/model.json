@@ -1,0 +1,228 @@
+{
+  "progressOf": "{done} / {total}",
+  "age": {
+    "years": "{years} 岁"
+  },
+  "peril": {
+    "sickness": {
+      "reason": "疾病正在夺走他们",
+      "action": "治愈他们"
+    },
+    "hunger": {
+      "reason": "他们正在挨饿",
+      "action": "降下丰收"
+    },
+    "thirst": {
+      "reason": "他们没有水",
+      "action": "降下甘霖"
+    },
+    "noChildren": {
+      "reason": "已无人抚养孩子",
+      "action": "送来一位新人"
+    },
+    "oldAge": {
+      "reason": "他们正在变老",
+      "action": "送来年轻的血脉"
+    },
+    "dwindling": {
+      "reason": "人数还在不断减少",
+      "action": "祝福他们"
+    },
+    "war": {
+      "reason": "战争正在夺走他们",
+      "action": "促成和平"
+    },
+    "beasts": {
+      "reason": "野兽正在猎杀他们",
+      "action": "驱赶野兽"
+    },
+    "drowning": {
+      "reason": "洪水正在夺走他们",
+      "action": "抬高干地"
+    },
+    "fire": {
+      "reason": "大火正在夺走他们",
+      "action": "扑灭火焰"
+    },
+    "disaster": {
+      "reason": "一场又一场灾难降临",
+      "action": "祝福他们"
+    },
+    "lastOne": "最后一人",
+    "left": "只剩 {count} 人"
+  },
+  "loss": {
+    "war": "战争",
+    "fights": "战斗",
+    "beasts": "野兽",
+    "drowning": "溺水",
+    "fire": "火灾",
+    "disaster": "灾难",
+    "sickness": "疾病",
+    "hunger": "饥饿",
+    "thirst": "干渴",
+    "oldAge": "衰老",
+    "to": "{count} 人死于{cause}"
+  },
+  "titles": {
+    "chief": "首领",
+    "elder": "长者",
+    "trade": {
+      "healer": "医者",
+      "doctor": "大夫",
+      "hunter": "猎人",
+      "farmer": "农夫",
+      "builder": "工匠",
+      "soldier": "战士",
+      "priest": "祭司",
+      "scholar": "学者",
+      "baker": "面包师",
+      "miner": "矿工",
+      "merchant": "商人",
+      "artist": "艺术家"
+    }
+  },
+  "achievements": {
+    "fullYear": {
+      "title": "满一年",
+      "detail": "世界走过了完整的一年四季。",
+      "progress": "第一年的 {percent}%"
+    },
+    "hundredSouls": {
+      "title": "百人之魂",
+      "detail": "你的子民同时达到 {goal} 人或以上。"
+    },
+    "village": {
+      "title": "村落",
+      "detail": "一个部落发展成了村落。"
+    },
+    "threeTribes": {
+      "title": "三个部落",
+      "detail": "三个不同的部落同时存活。"
+    },
+    "grandchildren": {
+      "title": "子孙",
+      "detail": "一位在世者是最初之人的孙辈或更后代的子孙。"
+    },
+    "ruler": {
+      "title": "首领",
+      "detail": "一个部落拥立了仍在世的首领。"
+    },
+    "elder": {
+      "title": "长者",
+      "detail": "一位成年人活得足够久，被称为长者。"
+    },
+    "toolmakers": {
+      "title": "工具匠",
+      "detail": "一位在世者带着自己做的或得到的工具。"
+    },
+    "firstRoad": {
+      "title": "第一条路",
+      "detail": "人们在大地上铺出了一条路。"
+    },
+    "roadNetwork": {
+      "title": "道路网",
+      "detail": "大地上已铺设 {goal} 格道路。"
+    },
+    "overTheWater": {
+      "title": "越过水面",
+      "detail": "一座桥带着人们跨过河流或湖泊。"
+    }
+  },
+  "difficulty": {
+    "calm": "灾难较少，饥饿较轻。",
+    "normal": "标准世界。",
+    "harsh": "灾难更多，饥饿更严酷。"
+  },
+  "goals": {
+    "none": "暂无目标。",
+    "metCount": "已完成 {done}/{total} 个目标。",
+    "lost": "所有人都在第 {year} 年{season}第 {day} 天死去。",
+    "met": "已完成",
+    "notYet": "尚未"
+  },
+  "relations": {
+    "allied": "与{names}结盟",
+    "bound": "隶属于{names}",
+    "peace": "与{names}和平相处"
+  },
+  "crime": {
+    "thefts": {
+      "one": "{count} 起盗窃",
+      "other": "{count} 起盗窃"
+    },
+    "killings": {
+      "one": "{count} 起杀人",
+      "other": "{count} 起杀人"
+    },
+    "both": "{thefts}，{killings}"
+  },
+  "wealth": {
+    "even": "均衡",
+    "uneven": "不均",
+    "stark": "悬殊"
+  },
+  "generations": {
+    "oldest": "最年长的在世世代 {generation}",
+    "soFar": "至今已 {count} 代"
+  },
+  "prayers": {
+    "aTribe": "一个部落",
+    "pray": "祈求帮助",
+    "sentence": "{who}{plea}",
+    "many": "{count} 个部落{plea}",
+    "plea": {
+      "hunger": "祈求食物",
+      "thirst": "祈求清水",
+      "sickness": "为病人祈求",
+      "danger": "祈求免受野兽之害",
+      "rain": "祈求降雨",
+      "children": "祈求子嗣",
+      "peace": "祈求战争结束",
+      "knowledge": "祈求智慧",
+      "shelter": "祈求抵御寒冷的庇护",
+      "fire": "祈求神明熄灭大火"
+    }
+  },
+  "scenarios": {
+    "foundingFamily": {
+      "title": "开基家族",
+      "detail": "一对带着孩子的夫妇定居在大地中央，他们的亲属被推举为首领。"
+    },
+    "twoTribes": {
+      "title": "两个对立的部落",
+      "detail": "两组各五人分别从大地的两端出发，各自附近都有一些野味。"
+    },
+    "wildValley": {
+      "title": "野性之谷",
+      "detail": "一群鹿和兔子散布在大地上，开始时晴空万里。"
+    },
+    "apocalypse": {
+      "title": "末日",
+      "detail": "暴风席卷大地，陨石落在中央，瘟疫蔓延，僵尸在边缘游荡。"
+    },
+    "goldenAge": {
+      "title": "黄金时代",
+      "detail": "晴朗的天空，食物丰饶，中央温暖的阳光，两个家族在良田上建立部落。"
+    },
+    "tribalWar": {
+      "title": "部落战争",
+      "detail": "两个家族在大地两侧建立对立的部落，神明让他们陷入战争。"
+    },
+    "islandSurvival": {
+      "title": "荒岛求生",
+      "detail": "六人一群从中央出发，附近有鹿和兔子，还有雨水可饮。"
+    },
+    "iceAge": {
+      "title": "冰河时代",
+      "detail": "大雪纷飞，暴风雪席卷中央，一小群人和几只熊必须熬过去。"
+    },
+    "starting": "{title} · 开始中",
+    "inWorld": "{title} 已降临世界",
+    "partial": "{title}：{total} 步中完成 {worked} 步"
+  },
+  "status": {
+    "applied": "{label} 已在 {x}, {y} 生效",
+    "failed": "{label} · {reason}"
+  }
+}

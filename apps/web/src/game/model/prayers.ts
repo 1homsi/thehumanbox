@@ -1,26 +1,33 @@
 import type { PrayerInfo } from '../../shared/types'
+import { t, type MessageKey } from '../../i18n'
 
-/** What each prayer asks for, and which tool answers it. */
-export const PRAYER_KINDS: Record<string, { plea: string; tool: string; icon: string }> = {
-  hunger: { plea: 'pray for food', tool: 'harvest', icon: '🌾' },
-  thirst: { plea: 'pray for clean water', tool: 'drink', icon: '💧' },
-  sickness: { plea: 'pray for their sick', tool: 'cure', icon: '💊' },
-  danger: { plea: 'beg to be saved from beasts', tool: 'banish', icon: '🛡️' },
-  rain: { plea: 'pray for rain', tool: 'rain', icon: '🌧️' },
-  children: { plea: 'pray for children', tool: 'love', icon: '❤️' },
-  peace: { plea: 'pray for the war to end', tool: 'peace', icon: '🕊️' },
-  knowledge: { plea: 'pray for wisdom', tool: 'inspire', icon: '💡' },
-  shelter: { plea: 'pray for shelter from the cold', tool: 'shelter', icon: '🛖' },
-  fire: { plea: 'beg the gods to put out the fire', tool: 'douse', icon: '🪣' },
+/** What each prayer asks for, and which tool answers it. The plea is a key, read with t() where it is shown. */
+export const PRAYER_KINDS: Record<string, { plea: MessageKey; tool: string; icon: string }> = {
+  hunger: { plea: 'model.prayers.plea.hunger', tool: 'harvest', icon: '🌾' },
+  thirst: { plea: 'model.prayers.plea.thirst', tool: 'drink', icon: '💧' },
+  sickness: { plea: 'model.prayers.plea.sickness', tool: 'cure', icon: '💊' },
+  danger: { plea: 'model.prayers.plea.danger', tool: 'banish', icon: '🛡️' },
+  rain: { plea: 'model.prayers.plea.rain', tool: 'rain', icon: '🌧️' },
+  children: { plea: 'model.prayers.plea.children', tool: 'love', icon: '❤️' },
+  peace: { plea: 'model.prayers.plea.peace', tool: 'peace', icon: '🕊️' },
+  knowledge: { plea: 'model.prayers.plea.knowledge', tool: 'inspire', icon: '💡' },
+  shelter: { plea: 'model.prayers.plea.shelter', tool: 'shelter', icon: '🛖' },
+  fire: { plea: 'model.prayers.plea.fire', tool: 'douse', icon: '🪣' },
 }
 
 export function prayerTool(kind: string): string | null {
   return PRAYER_KINDS[kind]?.tool ?? null
 }
 
+/** What a prayer of this kind asks for, in words ("pray for food"), or null for an unknown kind. */
+export function prayerPleaText(kind: string): string | null {
+  const key = PRAYER_KINDS[kind]?.plea
+  return key ? t(key) : null
+}
+
 export function prayerPlea(p: Pick<PrayerInfo, 'kind' | 'tribe'>): string {
-  const who = p.tribe || 'A tribe'
-  return `${who} ${PRAYER_KINDS[p.kind]?.plea ?? 'pray'}`
+  const who = p.tribe || t('model.prayers.aTribe')
+  return t('model.prayers.sentence', { who, plea: prayerPleaText(p.kind) ?? t('model.prayers.pray') })
 }
 
 /** Share of the prayer's time still left, 0..1. */
@@ -62,7 +69,10 @@ export function prayerRows(prayers: readonly PrayerInfo[], tick: number): Prayer
 
 export function prayerRowText(row: PrayerRow): string {
   if (row.count <= 1) return prayerPlea(row.prayer)
-  return `${row.count} tribes ${PRAYER_KINDS[row.prayer.kind]?.plea ?? 'pray'}`
+  return t('model.prayers.many', {
+    count: row.count,
+    plea: prayerPleaText(row.prayer.kind) ?? t('model.prayers.pray'),
+  })
 }
 
 /** Most urgent first: the prayer closest to lapsing. */

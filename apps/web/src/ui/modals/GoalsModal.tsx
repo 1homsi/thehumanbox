@@ -78,7 +78,7 @@ export function GoalsModal({ world, onClose }: Props) {
 
       <div style={{ marginTop: 14 }}>
         <div className="tree-modal-sub" style={{ marginBottom: 6 }}>
-          {t('dialogs.goals.difficulty', { notes: DIFFICULTY_NOTES[difficulty] })}
+          {t('dialogs.goals.difficulty', { notes: t(DIFFICULTY_NOTES[difficulty]) })}
         </div>
         <div role="group" aria-label={t('dialogs.goals.difficultyGroup')} style={{ display: 'flex', gap: 6 }}>
           {DIFFICULTY_ORDER.map((level) => (

@@ -1,18 +1,27 @@
 import type { PerilCause, TribePeril, WorldState } from '../../shared/types'
+import { t, type MessageKey } from '../../i18n'
 
-/** What is killing a tribe, and the power that helps most. */
-export const PERIL_HELP: Record<PerilCause, { reason: string; tool: string; action: string }> = {
-  sickness: { reason: 'sickness is taking them', tool: 'cure', action: 'cure them' },
-  hunger: { reason: 'they are starving', tool: 'harvest', action: 'send a harvest' },
-  thirst: { reason: 'they have no water', tool: 'rain', action: 'send rain' },
-  no_children: { reason: 'no one is left to raise children', tool: 'spawn1', action: 'send a newcomer' },
-  old_age: { reason: 'they are growing old', tool: 'spawn1', action: 'send young blood' },
-  dwindling: { reason: 'their numbers keep falling', tool: 'bless', action: 'bless them' },
-  war: { reason: 'war is killing them', tool: 'peace', action: 'make peace' },
-  beasts: { reason: 'beasts are hunting them', tool: 'banish', action: 'drive off the beasts' },
-  drowning: { reason: 'the water is taking them', tool: 'grass', action: 'raise dry land' },
-  fire: { reason: 'fire is taking them', tool: 'douse', action: 'douse the flames' },
-  disaster: { reason: 'disaster after disaster strikes them', tool: 'bless', action: 'bless them' },
+/** What is killing a tribe, and the power that helps most. The text is a key, read with t() where it is shown. */
+export const PERIL_HELP: Record<PerilCause, { reason: MessageKey; tool: string; action: MessageKey }> = {
+  sickness: { reason: 'model.peril.sickness.reason', tool: 'cure', action: 'model.peril.sickness.action' },
+  hunger: { reason: 'model.peril.hunger.reason', tool: 'harvest', action: 'model.peril.hunger.action' },
+  thirst: { reason: 'model.peril.thirst.reason', tool: 'rain', action: 'model.peril.thirst.action' },
+  no_children: {
+    reason: 'model.peril.noChildren.reason',
+    tool: 'spawn1',
+    action: 'model.peril.noChildren.action',
+  },
+  old_age: { reason: 'model.peril.oldAge.reason', tool: 'spawn1', action: 'model.peril.oldAge.action' },
+  dwindling: {
+    reason: 'model.peril.dwindling.reason',
+    tool: 'bless',
+    action: 'model.peril.dwindling.action',
+  },
+  war: { reason: 'model.peril.war.reason', tool: 'peace', action: 'model.peril.war.action' },
+  beasts: { reason: 'model.peril.beasts.reason', tool: 'banish', action: 'model.peril.beasts.action' },
+  drowning: { reason: 'model.peril.drowning.reason', tool: 'grass', action: 'model.peril.drowning.action' },
+  fire: { reason: 'model.peril.fire.reason', tool: 'douse', action: 'model.peril.fire.action' },
+  disaster: { reason: 'model.peril.disaster.reason', tool: 'bless', action: 'model.peril.disaster.action' },
 }
 
 export function perilOf(world: Pick<WorldState, 'tribes_in_peril'>, lineage: string): TribePeril | null {
@@ -21,7 +30,7 @@ export function perilOf(world: Pick<WorldState, 'tribes_in_peril'>, lineage: str
 
 /** "only 3 left", "the last one" */
 export function remainingLine(population: number): string {
-  return population === 1 ? 'the last one' : `only ${population} left`
+  return population === 1 ? t('model.peril.lastOne') : t('model.peril.left', { count: population })
 }
 
 /** Rows to show in the panel: every tribe on the brink, then the largest. */
@@ -52,17 +61,17 @@ export function tribeHome(
 }
 
 /** How each cause of death reads on a tribe card. */
-const LOSS_WORDS: Record<string, string> = {
-  war: 'war',
-  combat: 'fights',
-  beasts: 'beasts',
-  drowning: 'drowning',
-  fire: 'fire',
-  disaster: 'disaster',
-  sickness: 'sickness',
-  starvation: 'hunger',
-  dehydration: 'thirst',
-  old_age: 'old age',
+const LOSS_WORDS: Record<string, MessageKey> = {
+  war: 'model.loss.war',
+  combat: 'model.loss.fights',
+  beasts: 'model.loss.beasts',
+  drowning: 'model.loss.drowning',
+  fire: 'model.loss.fire',
+  disaster: 'model.loss.disaster',
+  sickness: 'model.loss.sickness',
+  starvation: 'model.loss.hunger',
+  dehydration: 'model.loss.thirst',
+  old_age: 'model.loss.oldAge',
 }
 
 /** "3 to war · 1 to old age", worst first; null when nobody died lately. */
@@ -73,6 +82,10 @@ export function lossLine(losses: Record<string, number> | undefined): string | n
   if (rows.length === 0) return null
   return rows
     .slice(0, 3)
-    .map(([cause, n]) => `${n} to ${LOSS_WORDS[cause] ?? cause.replace(/_/g, ' ')}`)
+    .map(([cause, n]) => {
+      const key = LOSS_WORDS[cause]
+      const word = key ? t(key) : cause.replace(/_/g, ' ')
+      return t('model.loss.to', { count: n, cause: word })
+    })
     .join(' · ')
 }

@@ -2,6 +2,8 @@
 // Gini coefficient per tribe (0 when everyone holds the same, near 1 when one
 // person holds almost all of it); see sim/civ/society/inequality.rs.
 
+import { t } from '../../i18n'
+
 export interface LineageInequality {
   lineage_id: string
   gini: number
@@ -10,9 +12,9 @@ export interface LineageInequality {
 
 /** A word for a Gini coefficient: how far the tribe's wealth is spread. */
 export function wealthGapLabel(gini: number): string {
-  if (gini < 0.3) return 'even'
-  if (gini < 0.5) return 'uneven'
-  return 'stark'
+  if (gini < 0.3) return t('model.wealth.even')
+  if (gini < 0.5) return t('model.wealth.uneven')
+  return t('model.wealth.stark')
 }
 
 /** The wealth gap of one tribe, if the simulation reported it (tribes of four or more). */

@@ -1,4 +1,5 @@
 import type { WorldState } from '../../../../shared/types'
+import { t } from '../../../../i18n'
 import { PERIL_HELP, remainingLine } from '../../../model/tribe-peril'
 import { TILE } from '../../../model/palette'
 import {
@@ -48,7 +49,7 @@ export function collectSettlementLabels(
       sub: peril
         ? zoom < 0.68
           ? `⚠ ${remainingLine(peril.population)}`
-          : `⚠ ${remainingLine(peril.population)} · ${PERIL_HELP[peril.cause].reason}`
+          : `⚠ ${remainingLine(peril.population)} · ${t(PERIL_HELP[peril.cause].reason)}`
         : '',
       major,
       rank,
