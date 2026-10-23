@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { CHECKPOINT_FAILED_ERROR } from "./sim-errors";
 import {
-  NO_CHECKPOINT_BUTTON,
+  noCheckpointButton,
   isCheckpointFailure,
   restartFailurePrompt,
 } from "./restart-recovery";
@@ -11,7 +11,7 @@ test("a checkpoint failure offers a restart without a checkpoint", () => {
   const error = new Error(CHECKPOINT_FAILED_ERROR);
   assert.equal(isCheckpointFailure(error), true);
   const prompt = restartFailurePrompt(error);
-  assert.deepEqual(prompt.buttons, [NO_CHECKPOINT_BUTTON, "Cancel"]);
+  assert.deepEqual(prompt.buttons, [noCheckpointButton(), "Cancel"]);
   assert.equal(prompt.canRetryWithoutCheckpoint, true);
   // Cancel is focused: Enter must not discard play.
   assert.equal(prompt.defaultId, prompt.cancelId);

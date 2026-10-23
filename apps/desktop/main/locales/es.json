@@ -1,0 +1,94 @@
+{
+  "menu": {
+    "settings": "Ajustes…",
+    "file": "Archivo",
+    "reload": "Recargar",
+    "restartSimulation": "Reiniciar simulación",
+    "view": "Ver",
+    "toggleDevTools": "Mostrar u ocultar herramientas de desarrollo",
+    "alwaysOnTop": "Siempre visible",
+    "screenshot": "Captura de pantalla",
+    "help": "Ayuda",
+    "openGitHub": "Abrir GitHub",
+    "openWebsite": "Abrir thehumanbox.com",
+    "about": "Acerca de The Human Box",
+    "services": "Servicios",
+    "hide": "Ocultar The Human Box",
+    "hideOthers": "Ocultar otros",
+    "showAll": "Mostrar todo",
+    "quit": "Salir",
+    "quitApp": "Salir de The Human Box",
+    "close": "Cerrar ventana",
+    "resetZoom": "Tamaño real",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "fullScreen": "Pantalla completa"
+  },
+  "tray": {
+    "showWindow": "Mostrar ventana",
+    "hideWindow": "Ocultar ventana",
+    "takeScreenshot": "Hacer captura de pantalla",
+    "openWorldsFolder": "Abrir carpeta de mundos",
+    "openLogsFolder": "Abrir carpeta de registros"
+  },
+  "notify": {
+    "screenshotSaved": "Captura guardada",
+    "worldsFolderUnavailable": "Carpeta de mundos no disponible",
+    "logsFolderUnavailable": "Carpeta de registros no disponible",
+    "about": "v{version}\nUna simulación persistente de vida artificial.\nthehumanbox.com"
+  },
+  "dialog": {
+    "chooseSaveFolder": "Elige dónde guarda The Human Box los mundos",
+    "worldSaveFilter": "Partida guardada de The Human Box",
+    "exportSave": "Exportar una partida guardada que se pueda restaurar",
+    "exportBeforeReset": "Exportar el mundo actual antes de restablecer",
+    "resetWorld": "¿Empezar un nuevo mundo local?",
+    "resetDetail": "Tu mundo actual se conservará archivado en este equipo. Si antes exportas una partida aparte, tendrás una copia de seguridad portátil adicional.",
+    "openWindowFailed": "The Human Box no pudo abrir su ventana"
+  },
+  "buttons": {
+    "ok": "OK",
+    "cancel": "Cancelar",
+    "notNow": "Ahora no",
+    "later": "Más tarde",
+    "restartSimulation": "Reiniciar simulación",
+    "restartWithoutCheckpoint": "Reiniciar sin punto de control",
+    "restartAndUpdate": "Reiniciar y actualizar",
+    "exportAndStartNew": "Exportar y empezar de nuevo",
+    "startNewWithoutExport": "Empezar de nuevo sin exportar"
+  },
+  "restart": {
+    "failed": "No se pudo reiniciar la simulación",
+    "checkpointDetail": "La simulación puede estar bloqueada. Reiniciar sin punto de control hace perder hasta un minuto de juego."
+  },
+  "simStopped": {
+    "message": "La simulación se detuvo inesperadamente",
+    "detail": "Salida: {status}. Tu mundo se guardó por última vez en su punto de control más reciente (como mucho se pierde un minuto de juego). Reinicia la simulación para continuar.",
+    "exitCode": "código {code}"
+  },
+  "startFailed": {
+    "title": "The Human Box no pudo iniciarse",
+    "simHeading": "The Human Box no pudo iniciar la simulación local",
+    "simHint": "Revisa los registros para ver los detalles y reinicia la simulación local desde Ajustes.",
+    "settingsHeading": "The Human Box no pudo leer sus ajustes",
+    "settingsHint": "Repara o elimina el archivo indicado arriba y vuelve a abrir la aplicación. Tus mundos existentes no se han tocado.",
+    "pageTitle": "The Human Box — error al iniciar",
+    "devtools": "Para más información, abre las herramientas de desarrollo con {mac} (macOS) o {win} (Windows/Linux).",
+    "rendererFailed": "No se pudo cargar la interfaz."
+  },
+  "update": {
+    "failedTitle": "Error al actualizar",
+    "failedMessage": "No se pudo instalar la actualización.",
+    "readyTitle": "Actualización lista",
+    "readyMessage": "La versión {version} está lista para instalarse.",
+    "readyDetail": "La aplicación se reiniciará y aplicará la actualización.",
+    "fileMissing": "Falta el archivo de la actualización descargada. Vuelve a buscar actualizaciones.",
+    "packagedOnlyCheck": "Las comprobaciones de actualizaciones solo están disponibles en las versiones empaquetadas.",
+    "packagedOnlyInstall": "Las instalaciones de actualizaciones solo están disponibles en las versiones empaquetadas.",
+    "nothingReady": "Ninguna actualización descargada está lista para instalarse.",
+    "noAppBundle": "No se encontró el paquete de la aplicación instalada.",
+    "noPermission": "No hay permiso para reemplazar la aplicación en {dir}. Reinstálala con scripts/install-desktop.sh.",
+    "unpackFailed": "No se pudo descomprimir la actualización: {error}",
+    "noAppInUpdate": "La actualización descargada no contenía ninguna aplicación."
+  }
+}

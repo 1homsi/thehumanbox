@@ -5,19 +5,25 @@ import { ErrorBoundary } from './ui/ErrorBoundary'
 import { initAnalytics } from './shared/observability'
 import { reloadAppSafely } from './simulation/worldSource'
 import { isDesktopStartupPending } from './shared/desktopStartup'
-import { initI18n } from './i18n'
+import { getLocale, initI18n } from './i18n'
 
 initAnalytics()
 
 // The chosen language loads before the first render; it never blocks for long
 // and falls back to English.
-void initI18n().finally(() => {
-  createRoot(document.getElementById('root')!).render(
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>,
-  )
-})
+void initI18n()
+  .then(() => {
+    // The desktop shell's menus, tray and dialogs follow the language the game
+    // shows. A failed report only leaves the shell in its last language.
+    window.thbDesktop?.app?.setLocale?.(getLocale())?.catch(() => {})
+  })
+  .finally(() => {
+    createRoot(document.getElementById('root')!).render(
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>,
+    )
+  })
 
 function hideSplash() {
   const splash = document.getElementById('thb-splash')

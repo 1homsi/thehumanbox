@@ -1,0 +1,94 @@
+{
+  "menu": {
+    "settings": "Ustawienia…",
+    "file": "Plik",
+    "reload": "Przeładuj",
+    "restartSimulation": "Uruchom symulację ponownie",
+    "view": "Widok",
+    "toggleDevTools": "Przełącz narzędzia deweloperskie",
+    "alwaysOnTop": "Zawsze na wierzchu",
+    "screenshot": "Zrzut ekranu",
+    "help": "Pomoc",
+    "openGitHub": "Otwórz GitHub",
+    "openWebsite": "Otwórz thehumanbox.com",
+    "about": "O The Human Box",
+    "services": "Usługi",
+    "hide": "Ukryj The Human Box",
+    "hideOthers": "Ukryj pozostałe",
+    "showAll": "Pokaż wszystko",
+    "quit": "Zakończ",
+    "quitApp": "Zakończ The Human Box",
+    "close": "Zamknij okno",
+    "resetZoom": "Rzeczywisty rozmiar",
+    "zoomIn": "Powiększ",
+    "zoomOut": "Pomniejsz",
+    "fullScreen": "Pełny ekran"
+  },
+  "tray": {
+    "showWindow": "Pokaż okno",
+    "hideWindow": "Ukryj okno",
+    "takeScreenshot": "Zrób zrzut ekranu",
+    "openWorldsFolder": "Otwórz folder światów",
+    "openLogsFolder": "Otwórz folder logów"
+  },
+  "notify": {
+    "screenshotSaved": "Zrzut ekranu zapisano",
+    "worldsFolderUnavailable": "Folder światów jest niedostępny",
+    "logsFolderUnavailable": "Folder logów jest niedostępny",
+    "about": "v{version}\nTrwała symulacja sztucznego życia.\nthehumanbox.com"
+  },
+  "dialog": {
+    "chooseSaveFolder": "Wybierz folder, w którym The Human Box zapisuje światy",
+    "worldSaveFilter": "Zapis świata The Human Box",
+    "exportSave": "Eksportuj zapis świata, który można przywrócić",
+    "exportBeforeReset": "Eksportuj obecny świat przed resetem",
+    "resetWorld": "Rozpocząć nowy lokalny świat?",
+    "resetDetail": "Obecny świat pozostanie zarchiwizowany na tym komputerze. Wcześniejszy eksport osobnego zapisu daje dodatkową przenośną kopię zapasową.",
+    "openWindowFailed": "The Human Box nie mógł otworzyć okna"
+  },
+  "buttons": {
+    "ok": "OK",
+    "cancel": "Anuluj",
+    "notNow": "Nie teraz",
+    "later": "Później",
+    "restartSimulation": "Uruchom symulację ponownie",
+    "restartWithoutCheckpoint": "Uruchom ponownie bez punktu kontrolnego",
+    "restartAndUpdate": "Uruchom ponownie i zaktualizuj",
+    "exportAndStartNew": "Eksportuj i zacznij nowy",
+    "startNewWithoutExport": "Zacznij nowy bez eksportu"
+  },
+  "restart": {
+    "failed": "Nie można uruchomić symulacji ponownie",
+    "checkpointDetail": "Symulacja może być zawieszona. Ponowne uruchomienie bez punktu kontrolnego oznacza utratę do około minuty gry."
+  },
+  "simStopped": {
+    "message": "Symulacja zatrzymała się nieoczekiwanie",
+    "detail": "Zakończono z: {status}. Świat został ostatnio zapisany w najnowszym punkcie kontrolnym (utracona zostanie co najwyżej minuta gry). Uruchom symulację ponownie, aby kontynuować.",
+    "exitCode": "kod {code}"
+  },
+  "startFailed": {
+    "title": "Nie można uruchomić The Human Box",
+    "simHeading": "The Human Box nie mógł uruchomić lokalnej symulacji",
+    "simHint": "Szczegóły znajdziesz w logach. Następnie uruchom lokalną symulację ponownie w ustawieniach.",
+    "settingsHeading": "The Human Box nie mógł odczytać swoich ustawień",
+    "settingsHint": "Napraw lub usuń wskazany wyżej plik, a następnie uruchom aplikację ponownie. Istniejące światy pozostają nietknięte.",
+    "pageTitle": "The Human Box — błąd uruchamiania",
+    "devtools": "Więcej informacji znajdziesz w narzędziach deweloperskich: {mac} (macOS) lub {win} (Windows/Linux).",
+    "rendererFailed": "Nie udało się wczytać interfejsu."
+  },
+  "update": {
+    "failedTitle": "Aktualizacja nie powiodła się",
+    "failedMessage": "Nie można zainstalować aktualizacji.",
+    "readyTitle": "Aktualizacja gotowa",
+    "readyMessage": "Wersja {version} jest gotowa do instalacji.",
+    "readyDetail": "Aplikacja uruchomi się ponownie i zastosuje aktualizację.",
+    "fileMissing": "Brakuje pobranego pliku aktualizacji. Sprawdź aktualizacje ponownie.",
+    "packagedOnlyCheck": "Sprawdzanie aktualizacji jest dostępne tylko w zainstalowanych wersjach.",
+    "packagedOnlyInstall": "Instalacja aktualizacji jest dostępna tylko w zainstalowanych wersjach.",
+    "nothingReady": "Żadna pobrana aktualizacja nie jest gotowa do instalacji.",
+    "noAppBundle": "Nie znaleziono zainstalowanego pakietu aplikacji.",
+    "noPermission": "Brak uprawnień do zastąpienia aplikacji w {dir}. Zainstaluj ją ponownie za pomocą scripts/install-desktop.sh.",
+    "unpackFailed": "Nie można rozpakować aktualizacji: {error}",
+    "noAppInUpdate": "Pobrana aktualizacja nie zawierała aplikacji."
+  }
+}

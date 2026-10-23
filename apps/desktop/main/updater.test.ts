@@ -45,6 +45,7 @@ function harness(
       if (id === 'electron') return { app, BrowserWindow: class {}, dialog }
       if (id === 'electron-updater') return { autoUpdater }
       if (id === './settings') return { loadSettings: () => ({ autoUpdate }) }
+      if (id === './i18n') return require(path.join(__dirname, 'i18n'))
       if (id === './mac-unsigned-install') {
         return {
           appBundleFromExe: () => null,

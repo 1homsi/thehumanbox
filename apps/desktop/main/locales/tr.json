@@ -1,0 +1,94 @@
+{
+  "menu": {
+    "settings": "Ayarlar…",
+    "file": "Dosya",
+    "reload": "Yeniden yükle",
+    "restartSimulation": "Simülasyonu yeniden başlat",
+    "view": "Görünüm",
+    "toggleDevTools": "Geliştirici araçlarını aç/kapat",
+    "alwaysOnTop": "Her zaman üstte",
+    "screenshot": "Ekran görüntüsü",
+    "help": "Yardım",
+    "openGitHub": "GitHub'ı aç",
+    "openWebsite": "thehumanbox.com'u aç",
+    "about": "The Human Box Hakkında",
+    "services": "Hizmetler",
+    "hide": "The Human Box'ı gizle",
+    "hideOthers": "Diğerlerini gizle",
+    "showAll": "Tümünü göster",
+    "quit": "Çık",
+    "quitApp": "The Human Box'tan çık",
+    "close": "Pencereyi kapat",
+    "resetZoom": "Gerçek boyut",
+    "zoomIn": "Yakınlaştır",
+    "zoomOut": "Uzaklaştır",
+    "fullScreen": "Tam ekran"
+  },
+  "tray": {
+    "showWindow": "Pencereyi göster",
+    "hideWindow": "Pencereyi gizle",
+    "takeScreenshot": "Ekran görüntüsü al",
+    "openWorldsFolder": "Dünyalar klasörünü aç",
+    "openLogsFolder": "Günlükler klasörünü aç"
+  },
+  "notify": {
+    "screenshotSaved": "Ekran görüntüsü kaydedildi",
+    "worldsFolderUnavailable": "Dünyalar klasörü kullanılamıyor",
+    "logsFolderUnavailable": "Günlükler klasörü kullanılamıyor",
+    "about": "v{version}\nKalıcı bir yapay yaşam simülasyonu.\nthehumanbox.com"
+  },
+  "dialog": {
+    "chooseSaveFolder": "The Human Box'ın dünyaları sakladığı yeri seçin",
+    "worldSaveFilter": "The Human Box dünya kaydı",
+    "exportSave": "Geri yüklenebilir bir dünya kaydı dışa aktar",
+    "exportBeforeReset": "Sıfırlamadan önce mevcut dünyayı dışa aktar",
+    "resetWorld": "Yeni bir yerel dünya başlatılsın mı?",
+    "resetDetail": "Mevcut dünyanız bu bilgisayarda arşivlenmiş olarak kalacak. Önce ayrı bir kayıt dışa aktarırsanız taşınabilir ek bir yedeğiniz olur.",
+    "openWindowFailed": "The Human Box penceresini açamadı"
+  },
+  "buttons": {
+    "ok": "Tamam",
+    "cancel": "İptal",
+    "notNow": "Şimdi değil",
+    "later": "Daha sonra",
+    "restartSimulation": "Simülasyonu yeniden başlat",
+    "restartWithoutCheckpoint": "Kontrol noktası olmadan yeniden başlat",
+    "restartAndUpdate": "Yeniden başlat ve güncelle",
+    "exportAndStartNew": "Dışa aktar ve yenisini başlat",
+    "startNewWithoutExport": "Dışa aktarmadan yenisini başlat"
+  },
+  "restart": {
+    "failed": "Simülasyon yeniden başlatılamadı",
+    "checkpointDetail": "Simülasyon takılmış olabilir. Kontrol noktası olmadan yeniden başlatmak yaklaşık bir dakikaya kadar oyun kaybettirir."
+  },
+  "simStopped": {
+    "message": "Simülasyon beklenmedik şekilde durdu",
+    "detail": "Çıkış: {status}. Dünyanız en son en yeni kontrol noktasında kaydedildi (en fazla yaklaşık bir dakika oyun kaybedilir). Devam etmek için simülasyonu yeniden başlatın.",
+    "exitCode": "kod {code}"
+  },
+  "startFailed": {
+    "title": "The Human Box başlatılamadı",
+    "simHeading": "The Human Box yerel simülasyonu başlatamadı",
+    "simHint": "Ayrıntılar için günlüklere bakın, ardından yerel simülasyonu Ayarlar'dan yeniden başlatın.",
+    "settingsHeading": "The Human Box ayarlarını okuyamadı",
+    "settingsHint": "Yukarıda adı verilen dosyayı onarın ya da kaldırın, ardından uygulamayı yeniden açın. Mevcut dünyalarınız değiştirilmedi.",
+    "pageTitle": "The Human Box — başlatma hatası",
+    "devtools": "Daha fazla bilgi için geliştirici araçlarını {mac} (macOS) veya {win} (Windows/Linux) ile açın.",
+    "rendererFailed": "Arayüz yüklenemedi."
+  },
+  "update": {
+    "failedTitle": "Güncelleme başarısız",
+    "failedMessage": "Güncelleme yüklenemedi.",
+    "readyTitle": "Güncelleme hazır",
+    "readyMessage": "{version} sürümü yüklenmeye hazır.",
+    "readyDetail": "Uygulama yeniden başlayacak ve güncellemeyi uygulayacak.",
+    "fileMissing": "İndirilen güncelleme dosyası eksik. Güncellemeleri yeniden denetleyin.",
+    "packagedOnlyCheck": "Güncelleme denetimleri yalnızca paketlenmiş sürümlerde kullanılabilir.",
+    "packagedOnlyInstall": "Güncelleme yüklemeleri yalnızca paketlenmiş sürümlerde kullanılabilir.",
+    "nothingReady": "Yüklenmeye hazır indirilmiş bir güncelleme yok.",
+    "noAppBundle": "Yüklü uygulama paketi bulunamadı.",
+    "noPermission": "{dir} içindeki uygulamayı değiştirme izni yok. scripts/install-desktop.sh ile yeniden yükleyin.",
+    "unpackFailed": "Güncelleme açılamadı: {error}",
+    "noAppInUpdate": "İndirilen güncelleme bir uygulama içermiyordu."
+  }
+}

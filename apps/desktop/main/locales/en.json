@@ -1,0 +1,94 @@
+{
+  "menu": {
+    "settings": "Settings…",
+    "file": "File",
+    "reload": "Reload",
+    "restartSimulation": "Restart simulation",
+    "view": "View",
+    "toggleDevTools": "Toggle DevTools",
+    "alwaysOnTop": "Always on top",
+    "screenshot": "Screenshot",
+    "help": "Help",
+    "openGitHub": "Open GitHub",
+    "openWebsite": "Open thehumanbox.com",
+    "about": "About The Human Box",
+    "services": "Services",
+    "hide": "Hide The Human Box",
+    "hideOthers": "Hide Others",
+    "showAll": "Show All",
+    "quit": "Exit",
+    "quitApp": "Quit The Human Box",
+    "close": "Close Window",
+    "resetZoom": "Actual Size",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "fullScreen": "Toggle Full Screen"
+  },
+  "tray": {
+    "showWindow": "Show window",
+    "hideWindow": "Hide window",
+    "takeScreenshot": "Take screenshot",
+    "openWorldsFolder": "Open worlds folder",
+    "openLogsFolder": "Open logs folder"
+  },
+  "notify": {
+    "screenshotSaved": "Screenshot saved",
+    "worldsFolderUnavailable": "Worlds folder unavailable",
+    "logsFolderUnavailable": "Logs folder unavailable",
+    "about": "v{version}\nA persistent artificial-life simulation.\nthehumanbox.com"
+  },
+  "dialog": {
+    "chooseSaveFolder": "Choose where The Human Box stores worlds",
+    "worldSaveFilter": "The Human Box world save",
+    "exportSave": "Export a restorable world save",
+    "exportBeforeReset": "Export current world before reset",
+    "resetWorld": "Start a new local world?",
+    "resetDetail": "Your current world will remain archived on this computer. Exporting a separate save first gives you an additional portable backup.",
+    "openWindowFailed": "The Human Box couldn't open its window"
+  },
+  "buttons": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "notNow": "Not now",
+    "later": "Later",
+    "restartSimulation": "Restart simulation",
+    "restartWithoutCheckpoint": "Restart without checkpoint",
+    "restartAndUpdate": "Restart and update",
+    "exportAndStartNew": "Export & start new",
+    "startNewWithoutExport": "Start new without export"
+  },
+  "restart": {
+    "failed": "Could not restart the simulation",
+    "checkpointDetail": "The simulation may be hung. Restarting without a checkpoint loses up to about a minute of play."
+  },
+  "simStopped": {
+    "message": "The simulation stopped unexpectedly",
+    "detail": "Exit {status}. Your world was last saved at its most recent checkpoint (about a minute of play at most is lost). Restart the simulation to continue.",
+    "exitCode": "code {code}"
+  },
+  "startFailed": {
+    "title": "The Human Box couldn't start",
+    "simHeading": "The Human Box couldn't start the local simulation",
+    "simHint": "Check the logs for details, then restart the local simulation from Settings.",
+    "settingsHeading": "The Human Box couldn't read its settings",
+    "settingsHint": "Repair or remove the file named above, then relaunch. Your existing worlds are untouched.",
+    "pageTitle": "The Human Box — startup error",
+    "devtools": "Open DevTools with {mac} (macOS) or {win} (Win/Linux) for more.",
+    "rendererFailed": "Renderer failed to load."
+  },
+  "update": {
+    "failedTitle": "Update failed",
+    "failedMessage": "The update could not be installed.",
+    "readyTitle": "Update ready",
+    "readyMessage": "Version {version} is ready to install.",
+    "readyDetail": "The app will restart and apply the update.",
+    "fileMissing": "The downloaded update file is missing. Check for updates again.",
+    "packagedOnlyCheck": "Update checks are only available in packaged builds.",
+    "packagedOnlyInstall": "Update installs are only available in packaged builds.",
+    "nothingReady": "No downloaded update is ready to install.",
+    "noAppBundle": "Could not find the installed app bundle.",
+    "noPermission": "No permission to replace the app in {dir}. Reinstall it with scripts/install-desktop.sh.",
+    "unpackFailed": "Could not unpack the update: {error}",
+    "noAppInUpdate": "The downloaded update did not contain an app."
+  }
+}

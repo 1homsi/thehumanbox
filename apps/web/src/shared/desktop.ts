@@ -59,6 +59,8 @@ export interface DesktopBridge {
     pickSaveDir(): Promise<string | null>
     checkForUpdates(): Promise<UpdateCheckResult>
     installUpdate(): Promise<UpdateCheckResult>
+    /** Tells the desktop shell (menus, tray, native dialogs) the language the game shows. */
+    setLocale(code: string): Promise<void>
   }
   world: {
     migrateDataRoot(payload: { targetDir: string | null }): Promise<{

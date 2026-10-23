@@ -153,6 +153,7 @@ function harness() {
       }
       if (id === "./startup-lifecycle") return { startWhenReady: () => {} };
       if (id === "./settings") return { loadSettings: () => ({}) };
+      if (id === "./i18n") return require(path.join(__dirname, "i18n"));
       if (id === "./exclusive-operation") {
         return {
           runExclusiveDesktopOperation: async (
