@@ -1,0 +1,232 @@
+{
+  "progressOf": "{done} z {total}",
+  "age": {
+    "years": "{years} l."
+  },
+  "peril": {
+    "sickness": {
+      "reason": "choroba ich zabiera",
+      "action": "wylecz ich"
+    },
+    "hunger": {
+      "reason": "głodują",
+      "action": "wyślij plony"
+    },
+    "thirst": {
+      "reason": "nie mają wody",
+      "action": "ześlij deszcz"
+    },
+    "noChildren": {
+      "reason": "nie ma komu wychowywać dzieci",
+      "action": "wyślij przybysza"
+    },
+    "oldAge": {
+      "reason": "starzeją się",
+      "action": "wyślij młodą krew"
+    },
+    "dwindling": {
+      "reason": "ich liczba wciąż maleje",
+      "action": "pobłogosław ich"
+    },
+    "war": {
+      "reason": "wojna ich zabija",
+      "action": "zaprowadź pokój"
+    },
+    "beasts": {
+      "reason": "zwierzęta na nich polują",
+      "action": "odpędź zwierzęta"
+    },
+    "drowning": {
+      "reason": "woda ich zabiera",
+      "action": "podnieś suchy ląd"
+    },
+    "fire": {
+      "reason": "ogień ich zabiera",
+      "action": "ugaś płomienie"
+    },
+    "disaster": {
+      "reason": "klęska za klęską ich spotyka",
+      "action": "pobłogosław ich"
+    },
+    "lastOne": "ostatni",
+    "left": "zostało tylko {count}"
+  },
+  "loss": {
+    "war": "wojna",
+    "fights": "walki",
+    "beasts": "zwierzęta",
+    "drowning": "utonięcia",
+    "fire": "ogień",
+    "disaster": "klęska",
+    "sickness": "choroba",
+    "hunger": "głód",
+    "thirst": "pragnienie",
+    "oldAge": "starość",
+    "to": "{count}: {cause}"
+  },
+  "titles": {
+    "chief": "Wódz",
+    "elder": "Starszy",
+    "trade": {
+      "healer": "Uzdrowiciel",
+      "doctor": "Lekarz",
+      "hunter": "Myśliwy",
+      "farmer": "Rolnik",
+      "builder": "Budowniczy",
+      "soldier": "Żołnierz",
+      "priest": "Kapłan",
+      "scholar": "Uczony",
+      "baker": "Piekarz",
+      "miner": "Górnik",
+      "merchant": "Kupiec",
+      "artist": "Artysta"
+    }
+  },
+  "achievements": {
+    "fullYear": {
+      "title": "Pełny rok",
+      "detail": "Świat przeszedł przez cały rok pór roku.",
+      "progress": "{percent}% pierwszego roku"
+    },
+    "hundredSouls": {
+      "title": "Sto dusz",
+      "detail": "Twoich ludzi jest naraz {goal} lub więcej."
+    },
+    "village": {
+      "title": "Wieś",
+      "detail": "Plemię urosło do rozmiarów wsi."
+    },
+    "threeTribes": {
+      "title": "Trzy plemiona",
+      "detail": "Trzy odrębne plemiona żyją jednocześnie."
+    },
+    "grandchildren": {
+      "title": "Wnuki",
+      "detail": "Ktoś żywy jest wnukiem lub późniejszym potomkiem pierwszych ludzi."
+    },
+    "ruler": {
+      "title": "Władca",
+      "detail": "Plemię ukoronowało władcę, który wciąż żyje."
+    },
+    "elder": {
+      "title": "Starszy",
+      "detail": "Dorosły przeżył dość długo, by nazywano go starszym."
+    },
+    "toolmakers": {
+      "title": "Wytwórcy narzędzi",
+      "detail": "Ktoś żywy nosi narzędzie, które sam wykonał lub otrzymał."
+    },
+    "firstRoad": {
+      "title": "Pierwsza droga",
+      "detail": "Ludzie wytyczyli drogę przez ziemię."
+    },
+    "roadNetwork": {
+      "title": "Sieć dróg",
+      "detail": "{goal} pól drogi wytyczonych przez ziemię."
+    },
+    "overTheWater": {
+      "title": "Przez wodę",
+      "detail": "Most przeprowadza ludzi przez rzekę lub jezioro."
+    }
+  },
+  "difficulty": {
+    "calm": "Mniej klęsk, łagodniejszy głód.",
+    "normal": "Świat standardowy.",
+    "harsh": "Więcej klęsk i ostrzejszy głód."
+  },
+  "goals": {
+    "none": "Brak celów.",
+    "metCount": "Osiągnięte cele: {done} z {total}.",
+    "lost": "Wszyscy zginęli w roku {year}, {season}, dnia {day}.",
+    "met": "osiągnięty",
+    "notYet": "jeszcze nie"
+  },
+  "relations": {
+    "allied": "sojusz z {names}",
+    "bound": "związani z {names}",
+    "peace": "pokój z {names}"
+  },
+  "crime": {
+    "thefts": {
+      "one": "{count} kradzież",
+      "few": "{count} kradzieże",
+      "many": "{count} kradzieży",
+      "other": "{count} kradzieży"
+    },
+    "killings": {
+      "one": "{count} zabójstwo",
+      "few": "{count} zabójstwa",
+      "many": "{count} zabójstw",
+      "other": "{count} zabójstw"
+    },
+    "both": "{thefts}, {killings}"
+  },
+  "wealth": {
+    "even": "równy",
+    "uneven": "nierówny",
+    "stark": "duży"
+  },
+  "generations": {
+    "oldest": "najstarsze żyjące pokolenie {generation}",
+    "soFar": "dotąd {count} pokoleń"
+  },
+  "prayers": {
+    "aTribe": "Plemię",
+    "pray": "o pomoc",
+    "sentence": "{who} modli się {plea}",
+    "many": "{count} plemion modli się {plea}",
+    "plea": {
+      "hunger": "o jedzenie",
+      "thirst": "o czystą wodę",
+      "sickness": "za swoich chorych",
+      "danger": "o ochronę przed zwierzętami",
+      "rain": "o deszcz",
+      "children": "o dzieci",
+      "peace": "o koniec wojny",
+      "knowledge": "o mądrość",
+      "shelter": "o schronienie przed zimnem",
+      "fire": "by bogowie ugasili ogień"
+    }
+  },
+  "scenarios": {
+    "foundingFamily": {
+      "title": "Rodzina założycielska",
+      "detail": "Para z dziećmi osiedla się w środku ziemi, a ich krewni zostają ukoronowani na przywódców."
+    },
+    "twoTribes": {
+      "title": "Dwa rywalizujące plemiona",
+      "detail": "Dwie grupy po pięć osób startują po przeciwnych stronach ziemi, każda z odrobiną zwierzyny w pobliżu."
+    },
+    "wildValley": {
+      "title": "Dzika dolina",
+      "detail": "Stado jeleni i królików rozlokowuje się po ziemi, a na początek jest czyste niebo."
+    },
+    "apocalypse": {
+      "title": "Apokalipsa",
+      "detail": "Nad ziemią wybucha burza, w środku spada meteoryt, rozprzestrzenia się zaraza, a na krańcach wędrują zombie."
+    },
+    "goldenAge": {
+      "title": "Złoty wiek",
+      "detail": "Czyste niebo, obfitość jedzenia i ciepłe słońce nad środkiem, a dwie rodziny zakładają swoje plemiona na dobrej ziemi."
+    },
+    "tribalWar": {
+      "title": "Wojna plemienna",
+      "detail": "Dwie rodziny zakładają rywalizujące plemiona po obu stronach ziemi, a bogowie stawiają je w stanie wojny."
+    },
+    "islandSurvival": {
+      "title": "Przetrwanie na wyspie",
+      "detail": "Sześcioosobowa grupa startuje w środku, z jeleniami i królikami w pobliżu oraz deszczem do picia."
+    },
+    "iceAge": {
+      "title": "Epoka lodowcowa",
+      "detail": "Pada śnieg, a zamieć przetacza się przez środek, podczas gdy mała grupa i kilka niedźwiedzi muszą to przetrwać."
+    },
+    "starting": "{title} · start",
+    "inWorld": "{title} jest na świecie",
+    "partial": "{title}: wykonano {worked} z {total} kroków"
+  },
+  "status": {
+    "applied": "{label} użyto w {x}, {y}",
+    "failed": "{label} · {reason}"
+  }
+}

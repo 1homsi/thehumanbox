@@ -6,10 +6,11 @@ import common from './common.json'
 import dialogs from './dialogs.json'
 import dock from './dock.json'
 import header from './header.json'
+import model from './model.json'
 import panels from './panels.json'
 import person from './person.json'
 import settings from './settings.json'
 import tour from './tour.json'
 import updates from './updates.json'
 
-export default { common, dialogs, dock, header, panels, person, settings, tour, updates }
+export default { common, dialogs, dock, header, model, panels, person, settings, tour, updates }

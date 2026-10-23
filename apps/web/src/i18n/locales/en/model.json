@@ -1,0 +1,228 @@
+{
+  "progressOf": "{done} of {total}",
+  "age": {
+    "years": "{years} yrs"
+  },
+  "peril": {
+    "sickness": {
+      "reason": "sickness is taking them",
+      "action": "cure them"
+    },
+    "hunger": {
+      "reason": "they are starving",
+      "action": "send a harvest"
+    },
+    "thirst": {
+      "reason": "they have no water",
+      "action": "send rain"
+    },
+    "noChildren": {
+      "reason": "no one is left to raise children",
+      "action": "send a newcomer"
+    },
+    "oldAge": {
+      "reason": "they are growing old",
+      "action": "send young blood"
+    },
+    "dwindling": {
+      "reason": "their numbers keep falling",
+      "action": "bless them"
+    },
+    "war": {
+      "reason": "war is killing them",
+      "action": "make peace"
+    },
+    "beasts": {
+      "reason": "beasts are hunting them",
+      "action": "drive off the beasts"
+    },
+    "drowning": {
+      "reason": "the water is taking them",
+      "action": "raise dry land"
+    },
+    "fire": {
+      "reason": "fire is taking them",
+      "action": "douse the flames"
+    },
+    "disaster": {
+      "reason": "disaster after disaster strikes them",
+      "action": "bless them"
+    },
+    "lastOne": "the last one",
+    "left": "only {count} left"
+  },
+  "loss": {
+    "war": "war",
+    "fights": "fights",
+    "beasts": "beasts",
+    "drowning": "drowning",
+    "fire": "fire",
+    "disaster": "disaster",
+    "sickness": "sickness",
+    "hunger": "hunger",
+    "thirst": "thirst",
+    "oldAge": "old age",
+    "to": "{count} to {cause}"
+  },
+  "titles": {
+    "chief": "Chief",
+    "elder": "Elder",
+    "trade": {
+      "healer": "Healer",
+      "doctor": "Doctor",
+      "hunter": "Hunter",
+      "farmer": "Farmer",
+      "builder": "Builder",
+      "soldier": "Soldier",
+      "priest": "Priest",
+      "scholar": "Scholar",
+      "baker": "Baker",
+      "miner": "Miner",
+      "merchant": "Merchant",
+      "artist": "Artist"
+    }
+  },
+  "achievements": {
+    "fullYear": {
+      "title": "A full year",
+      "detail": "The world has turned through a whole year of seasons.",
+      "progress": "{percent}% of the first year"
+    },
+    "hundredSouls": {
+      "title": "A hundred souls",
+      "detail": "Your people number {goal} or more at once."
+    },
+    "village": {
+      "title": "A village",
+      "detail": "A tribe has grown into a village."
+    },
+    "threeTribes": {
+      "title": "Three tribes",
+      "detail": "Three separate tribes are alive at the same time."
+    },
+    "grandchildren": {
+      "title": "Grandchildren",
+      "detail": "Someone alive is a grandchild or a later descendant of the first people."
+    },
+    "ruler": {
+      "title": "A ruler",
+      "detail": "A tribe has crowned a ruler who is still alive."
+    },
+    "elder": {
+      "title": "An elder",
+      "detail": "A grown person has lived long enough to be called an elder."
+    },
+    "toolmakers": {
+      "title": "Toolmakers",
+      "detail": "Someone alive carries a tool they made or were given."
+    },
+    "firstRoad": {
+      "title": "The first road",
+      "detail": "The people have laid a road across the land."
+    },
+    "roadNetwork": {
+      "title": "A road network",
+      "detail": "{goal} cells of road laid across the land."
+    },
+    "overTheWater": {
+      "title": "Over the water",
+      "detail": "A bridge carries the people across a river or a lake."
+    }
+  },
+  "difficulty": {
+    "calm": "Fewer disasters, gentler hunger.",
+    "normal": "The standard world.",
+    "harsh": "More disasters and sharper hunger."
+  },
+  "goals": {
+    "none": "No goals yet.",
+    "metCount": "{done} of {total} goals met.",
+    "lost": "Everyone died in year {year}, {season} day {day}.",
+    "met": "met",
+    "notYet": "not yet"
+  },
+  "relations": {
+    "allied": "allied with {names}",
+    "bound": "bound to {names}",
+    "peace": "at peace with {names}"
+  },
+  "crime": {
+    "thefts": {
+      "one": "{count} theft",
+      "other": "{count} thefts"
+    },
+    "killings": {
+      "one": "{count} killing",
+      "other": "{count} killings"
+    },
+    "both": "{thefts}, {killings}"
+  },
+  "wealth": {
+    "even": "even",
+    "uneven": "uneven",
+    "stark": "stark"
+  },
+  "generations": {
+    "oldest": "oldest living generation {generation}",
+    "soFar": "{count} generations so far"
+  },
+  "prayers": {
+    "aTribe": "A tribe",
+    "pray": "pray",
+    "sentence": "{who} {plea}",
+    "many": "{count} tribes {plea}",
+    "plea": {
+      "hunger": "pray for food",
+      "thirst": "pray for clean water",
+      "sickness": "pray for their sick",
+      "danger": "beg to be saved from beasts",
+      "rain": "pray for rain",
+      "children": "pray for children",
+      "peace": "pray for the war to end",
+      "knowledge": "pray for wisdom",
+      "shelter": "pray for shelter from the cold",
+      "fire": "beg the gods to put out the fire"
+    }
+  },
+  "scenarios": {
+    "foundingFamily": {
+      "title": "Founding family",
+      "detail": "A couple with children settles the middle of the land, and their kin are crowned leader."
+    },
+    "twoTribes": {
+      "title": "Two rival tribes",
+      "detail": "Two groups of five start on opposite sides of the land, each with a little wild game nearby."
+    },
+    "wildValley": {
+      "title": "Wild valley",
+      "detail": "A herd of deer and rabbits is placed through the land, with a clear sky to start."
+    },
+    "apocalypse": {
+      "title": "Apocalypse",
+      "detail": "A storm breaks over the land, a meteor falls in the middle, a plague spreads, and zombies walk the edges."
+    },
+    "goldenAge": {
+      "title": "Golden age",
+      "detail": "Clear skies, a bounty of food and warm sun over the middle, and two families founding their tribes on the good ground."
+    },
+    "tribalWar": {
+      "title": "Tribal war",
+      "detail": "Two families found rival tribes on either side of the land, and the gods set them at war."
+    },
+    "islandSurvival": {
+      "title": "Island survival",
+      "detail": "A band of six starts in the middle with deer and rabbits about, and rain to drink."
+    },
+    "iceAge": {
+      "title": "Ice age",
+      "detail": "Snow falls and a blizzard sweeps the middle while a small band and a few bears are left to endure it."
+    },
+    "starting": "{title} · starting",
+    "inWorld": "{title} is in the world",
+    "partial": "{title}: {worked} of {total} steps worked"
+  },
+  "status": {
+    "applied": "{label} applied at {x}, {y}",
+    "failed": "{label} · {reason}"
+  }
+}

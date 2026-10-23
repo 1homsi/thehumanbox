@@ -1,4 +1,5 @@
 import type { OrganismState, WorldState } from '../../shared/types'
+import { t } from '../../i18n'
 import { YEAR_TICKS } from './calendar'
 
 export interface Achievement {
@@ -54,75 +55,80 @@ export function achievementsFor(world: AchievementWorld): Achievement[] {
   return [
     {
       id: 'full-year',
-      title: 'A full year',
-      detail: 'The world has turned through a whole year of seasons.',
+      title: t('model.achievements.fullYear.title'),
+      detail: t('model.achievements.fullYear.detail'),
       unlocked: world.tick >= YEAR_TICKS,
       progress:
         world.tick >= YEAR_TICKS
           ? undefined
-          : `${Math.floor((world.tick / YEAR_TICKS) * 100)}% of the first year`,
+          : t('model.achievements.fullYear.progress', {
+              percent: Math.floor((world.tick / YEAR_TICKS) * 100),
+            }),
     },
     {
       id: 'hundred-souls',
-      title: 'A hundred souls',
-      detail: `Your people number ${POPULATION_GOAL} or more at once.`,
+      title: t('model.achievements.hundredSouls.title'),
+      detail: t('model.achievements.hundredSouls.detail', { goal: POPULATION_GOAL }),
       unlocked: population >= POPULATION_GOAL,
-      progress: population >= POPULATION_GOAL ? undefined : `${population} of ${POPULATION_GOAL}`,
+      progress:
+        population >= POPULATION_GOAL
+          ? undefined
+          : t('model.progressOf', { done: population, total: POPULATION_GOAL }),
     },
     {
       id: 'village',
-      title: 'A village',
-      detail: 'A tribe has grown into a village.',
+      title: t('model.achievements.village.title'),
+      detail: t('model.achievements.village.detail'),
       unlocked: settlements.some((s) => s.tier >= 2),
     },
     {
       id: 'three-tribes',
-      title: 'Three tribes',
-      detail: `Three separate tribes are alive at the same time.`,
+      title: t('model.achievements.threeTribes.title'),
+      detail: t('model.achievements.threeTribes.detail'),
       unlocked: tribes >= TRIBE_GOAL,
-      progress: tribes >= TRIBE_GOAL ? undefined : `${tribes} of ${TRIBE_GOAL}`,
+      progress: tribes >= TRIBE_GOAL ? undefined : t('model.progressOf', { done: tribes, total: TRIBE_GOAL }),
     },
     {
       id: 'grandchildren',
-      title: 'Grandchildren',
-      detail: 'Someone alive is a grandchild or a later descendant of the first people.',
+      title: t('model.achievements.grandchildren.title'),
+      detail: t('model.achievements.grandchildren.detail'),
       unlocked: oldestGeneration >= 2,
     },
     {
       id: 'ruler',
-      title: 'A ruler',
-      detail: 'A tribe has crowned a ruler who is still alive.',
+      title: t('model.achievements.ruler.title'),
+      detail: t('model.achievements.ruler.detail'),
       unlocked: alive.some((o) => o.is_leader === true),
     },
     {
       id: 'elder',
-      title: 'An elder',
-      detail: 'A grown person has lived long enough to be called an elder.',
+      title: t('model.achievements.elder.title'),
+      detail: t('model.achievements.elder.detail'),
       unlocked: alive.some((o) => o.is_elder),
     },
     {
       id: 'toolmakers',
-      title: 'Toolmakers',
-      detail: 'Someone alive carries a tool they made or were given.',
+      title: t('model.achievements.toolmakers.title'),
+      detail: t('model.achievements.toolmakers.detail'),
       unlocked: alive.some((o) => o.tools !== undefined && Object.keys(o.tools).length > 0),
     },
     {
       id: 'first-road',
-      title: 'The first road',
-      detail: 'The people have laid a road across the land.',
+      title: t('model.achievements.firstRoad.title'),
+      detail: t('model.achievements.firstRoad.detail'),
       unlocked: roads >= 1,
     },
     {
       id: 'road-network',
-      title: 'A road network',
-      detail: `${ROAD_GOAL} cells of road laid across the land.`,
+      title: t('model.achievements.roadNetwork.title'),
+      detail: t('model.achievements.roadNetwork.detail', { goal: ROAD_GOAL }),
       unlocked: roads >= ROAD_GOAL,
-      progress: roads >= ROAD_GOAL ? undefined : `${roads} of ${ROAD_GOAL}`,
+      progress: roads >= ROAD_GOAL ? undefined : t('model.progressOf', { done: roads, total: ROAD_GOAL }),
     },
     {
       id: 'over-the-water',
-      title: 'Over the water',
-      detail: 'A bridge carries the people across a river or a lake.',
+      title: t('model.achievements.overTheWater.title'),
+      detail: t('model.achievements.overTheWater.detail'),
       unlocked: bridges >= 1,
     },
   ]

@@ -28,8 +28,8 @@ export function ScenariosModal({ onStart, onClose }: Props) {
             }}
           >
             <span style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
-              <span style={{ color: '#f4e6c0' }}>{preset.title}</span>
-              <span className="tree-modal-sub">{preset.detail}</span>
+              <span style={{ color: '#f4e6c0' }}>{t(preset.title)}</span>
+              <span className="tree-modal-sub">{t(preset.detail)}</span>
             </span>
             <button type="button" className="tree-zoom-btn" onClick={() => onStart(preset)}>
               {t('dialogs.scenarios.start')}

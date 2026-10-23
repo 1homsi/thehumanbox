@@ -1,9 +1,11 @@
 import type { SandboxCommand } from './sandbox'
+import type { MessageKey } from '../i18n'
 
 export interface ScenarioPreset {
   id: string
-  title: string
-  detail: string
+  /** Translation keys: the modal and the status line read them with t(). */
+  title: MessageKey
+  detail: MessageKey
   /** The commands to send, placed by fractions of the world's width and height. */
   steps: (width: number, height: number) => SandboxCommand[]
 }
@@ -25,8 +27,8 @@ function at(width: number, height: number, fx: number, fy: number): { x: number;
 export const SCENARIO_PRESETS: ScenarioPreset[] = [
   {
     id: 'founding-family',
-    title: 'Founding family',
-    detail: 'A couple with children settles the middle of the land, and their kin are crowned leader.',
+    title: 'model.scenarios.foundingFamily.title',
+    detail: 'model.scenarios.foundingFamily.detail',
     steps: (w, h) => {
       const c = at(w, h, 0.5, 0.5)
       return [
@@ -37,8 +39,8 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
   },
   {
     id: 'two-tribes',
-    title: 'Two rival tribes',
-    detail: 'Two groups of five start on opposite sides of the land, each with a little wild game nearby.',
+    title: 'model.scenarios.twoTribes.title',
+    detail: 'model.scenarios.twoTribes.detail',
     steps: (w, h) => {
       const west = at(w, h, 0.3, 0.45)
       const east = at(w, h, 0.7, 0.55)
@@ -52,8 +54,8 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
   },
   {
     id: 'wild-valley',
-    title: 'Wild valley',
-    detail: 'A herd of deer and rabbits is placed through the land, with a clear sky to start.',
+    title: 'model.scenarios.wildValley.title',
+    detail: 'model.scenarios.wildValley.detail',
     steps: (w, h) => {
       const points = [at(w, h, 0.25, 0.3), at(w, h, 0.6, 0.35), at(w, h, 0.45, 0.7)]
       return [
@@ -67,9 +69,8 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
   },
   {
     id: 'apocalypse',
-    title: 'Apocalypse',
-    detail:
-      'A storm breaks over the land, a meteor falls in the middle, a plague spreads, and zombies walk the edges.',
+    title: 'model.scenarios.apocalypse.title',
+    detail: 'model.scenarios.apocalypse.detail',
     steps: (w, h) => {
       const c = at(w, h, 0.5, 0.5)
       const west = at(w, h, 0.25, 0.6)
@@ -85,9 +86,8 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
   },
   {
     id: 'golden-age',
-    title: 'Golden age',
-    detail:
-      'Clear skies, a bounty of food and warm sun over the middle, and two families founding their tribes on the good ground.',
+    title: 'model.scenarios.goldenAge.title',
+    detail: 'model.scenarios.goldenAge.detail',
     steps: (w, h) => {
       const c = at(w, h, 0.5, 0.5)
       const west = at(w, h, 0.3, 0.5)
@@ -103,8 +103,8 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
   },
   {
     id: 'tribal-war',
-    title: 'Tribal war',
-    detail: 'Two families found rival tribes on either side of the land, and the gods set them at war.',
+    title: 'model.scenarios.tribalWar.title',
+    detail: 'model.scenarios.tribalWar.detail',
     steps: (w, h) => {
       const c = at(w, h, 0.5, 0.5)
       const west = at(w, h, 0.3, 0.5)
@@ -118,8 +118,8 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
   },
   {
     id: 'island-survival',
-    title: 'Island survival',
-    detail: 'A band of six starts in the middle with deer and rabbits about, and rain to drink.',
+    title: 'model.scenarios.islandSurvival.title',
+    detail: 'model.scenarios.islandSurvival.detail',
     steps: (w, h) => {
       const c = at(w, h, 0.5, 0.5)
       return [
@@ -132,9 +132,8 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
   },
   {
     id: 'ice-age',
-    title: 'Ice age',
-    detail:
-      'Snow falls and a blizzard sweeps the middle while a small band and a few bears are left to endure it.',
+    title: 'model.scenarios.iceAge.title',
+    detail: 'model.scenarios.iceAge.detail',
     steps: (w, h) => {
       const c = at(w, h, 0.5, 0.5)
       const west = at(w, h, 0.3, 0.6)

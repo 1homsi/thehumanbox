@@ -1,0 +1,228 @@
+{
+  "progressOf": "{done} / {total}",
+  "age": {
+    "years": "{years}년"
+  },
+  "peril": {
+    "sickness": {
+      "reason": "병이 그들을 데려가고 있다",
+      "action": "치료하기"
+    },
+    "hunger": {
+      "reason": "굶주리고 있다",
+      "action": "수확물 보내기"
+    },
+    "thirst": {
+      "reason": "물이 없다",
+      "action": "비 내리기"
+    },
+    "noChildren": {
+      "reason": "아이를 키울 사람이 남아 있지 않다",
+      "action": "새 사람 보내기"
+    },
+    "oldAge": {
+      "reason": "늙어 가고 있다",
+      "action": "젊은 피 보내기"
+    },
+    "dwindling": {
+      "reason": "수가 계속 줄고 있다",
+      "action": "축복하기"
+    },
+    "war": {
+      "reason": "전쟁이 그들을 죽이고 있다",
+      "action": "평화 이루기"
+    },
+    "beasts": {
+      "reason": "짐승들이 사냥하고 있다",
+      "action": "짐승 쫓아내기"
+    },
+    "drowning": {
+      "reason": "물이 그들을 데려가고 있다",
+      "action": "마른 땅 솟게 하기"
+    },
+    "fire": {
+      "reason": "불이 그들을 데려가고 있다",
+      "action": "불길 끄기"
+    },
+    "disaster": {
+      "reason": "재난이 연달아 덮친다",
+      "action": "축복하기"
+    },
+    "lastOne": "마지막 한 사람",
+    "left": "{count}명만 남음"
+  },
+  "loss": {
+    "war": "전쟁",
+    "fights": "싸움",
+    "beasts": "짐승",
+    "drowning": "익사",
+    "fire": "화재",
+    "disaster": "재난",
+    "sickness": "병",
+    "hunger": "굶주림",
+    "thirst": "갈증",
+    "oldAge": "노환",
+    "to": "{cause}로 {count}명"
+  },
+  "titles": {
+    "chief": "족장",
+    "elder": "장로",
+    "trade": {
+      "healer": "치유사",
+      "doctor": "의사",
+      "hunter": "사냥꾼",
+      "farmer": "농부",
+      "builder": "건축가",
+      "soldier": "병사",
+      "priest": "사제",
+      "scholar": "학자",
+      "baker": "제빵사",
+      "miner": "광부",
+      "merchant": "상인",
+      "artist": "예술가"
+    }
+  },
+  "achievements": {
+    "fullYear": {
+      "title": "꽉 찬 한 해",
+      "detail": "세상이 사계절을 한 바퀴 돌았다.",
+      "progress": "첫 해의 {percent}%"
+    },
+    "hundredSouls": {
+      "title": "백 명의 영혼",
+      "detail": "당신의 백성이 동시에 {goal}명 이상이 된다."
+    },
+    "village": {
+      "title": "마을",
+      "detail": "한 부족이 마을로 자랐다."
+    },
+    "threeTribes": {
+      "title": "세 부족",
+      "detail": "서로 다른 세 부족이 동시에 살아 있다."
+    },
+    "grandchildren": {
+      "title": "손자들",
+      "detail": "살아 있는 누군가가 최초의 사람들의 손자 또는 그 후손이다."
+    },
+    "ruler": {
+      "title": "지도자",
+      "detail": "한 부족이 살아 있는 지도자를 세웠다."
+    },
+    "elder": {
+      "title": "장로",
+      "detail": "성인이 오래 살아 장로라 불릴 만큼 되었다."
+    },
+    "toolmakers": {
+      "title": "도구 장인",
+      "detail": "살아 있는 누군가가 직접 만들었거나 받은 도구를 지니고 있다."
+    },
+    "firstRoad": {
+      "title": "첫 길",
+      "detail": "사람들이 땅 위에 길을 닦았다."
+    },
+    "roadNetwork": {
+      "title": "길의 망",
+      "detail": "땅 위에 {goal}칸의 길이 놓였다."
+    },
+    "overTheWater": {
+      "title": "물을 건너",
+      "detail": "다리가 강이나 호수 너머로 사람들을 이어 준다."
+    }
+  },
+  "difficulty": {
+    "calm": "재난은 적고, 굶주림은 덜하다.",
+    "normal": "표준 세계.",
+    "harsh": "재난이 많고, 굶주림이 더 심하다."
+  },
+  "goals": {
+    "none": "아직 목표가 없습니다.",
+    "metCount": "{total}개 목표 중 {done}개 달성.",
+    "lost": "{year}년 {season} {day}일에 모두 죽었습니다.",
+    "met": "달성",
+    "notYet": "아직"
+  },
+  "relations": {
+    "allied": "{names}와 동맹",
+    "bound": "{names}에 예속",
+    "peace": "{names}와 평화 상태"
+  },
+  "crime": {
+    "thefts": {
+      "one": "절도 {count}건",
+      "other": "절도 {count}건"
+    },
+    "killings": {
+      "one": "살인 {count}건",
+      "other": "살인 {count}건"
+    },
+    "both": "{thefts}, {killings}"
+  },
+  "wealth": {
+    "even": "고른 편",
+    "uneven": "불균등",
+    "stark": "격차가 큼"
+  },
+  "generations": {
+    "oldest": "살아 있는 가장 나이 많은 세대 {generation}",
+    "soFar": "지금까지 {count}세대"
+  },
+  "prayers": {
+    "aTribe": "한 부족",
+    "pray": "도움을 위해 기도합니다",
+    "sentence": "{who} {plea}",
+    "many": "{count}개 부족 {plea}",
+    "plea": {
+      "hunger": "음식을 위해 기도합니다",
+      "thirst": "깨끗한 물을 위해 기도합니다",
+      "sickness": "병든 이들을 위해 기도합니다",
+      "danger": "짐승에게서 구해 달라고 빕니다",
+      "rain": "비를 위해 기도합니다",
+      "children": "아이들을 위해 기도합니다",
+      "peace": "전쟁이 끝나기를 기도합니다",
+      "knowledge": "지혜를 위해 기도합니다",
+      "shelter": "추위를 피할 쉼터를 위해 기도합니다",
+      "fire": "신들이 불을 꺼 주기를 빕니다"
+    }
+  },
+  "scenarios": {
+    "foundingFamily": {
+      "title": "시조 가족",
+      "detail": "아이가 있는 부부가 땅 한가운데에 정착하고, 그들의 친족이 지도자로 세워진다."
+    },
+    "twoTribes": {
+      "title": "맞서는 두 부족",
+      "detail": "다섯 명씩 두 무리가 땅의 양쪽 끝에서 시작하며, 각자 근처에 약간의 사냥감이 있다."
+    },
+    "wildValley": {
+      "title": "야생의 계곡",
+      "detail": "사슴과 토끼 무리가 땅 곳곳에 놓이고, 시작은 맑은 하늘이다."
+    },
+    "apocalypse": {
+      "title": "종말",
+      "detail": "땅 위에 폭풍이 몰아치고, 가운데로 운석이 떨어지며, 역병이 퍼지고, 좀비들이 가장자리를 걷는다."
+    },
+    "goldenAge": {
+      "title": "황금시대",
+      "detail": "맑은 하늘, 풍부한 식량, 가운데를 비추는 따뜻한 햇살. 두 가족이 좋은 땅에 부족을 세운다."
+    },
+    "tribalWar": {
+      "title": "부족 전쟁",
+      "detail": "두 가족이 땅의 양쪽에 맞서는 부족을 세우고, 신들이 둘을 전쟁에 몰아넣는다."
+    },
+    "islandSurvival": {
+      "title": "섬에서의 생존",
+      "detail": "여섯 명의 무리가 가운데에서 시작하며, 주변에는 사슴과 토끼가, 마실 비가 내린다."
+    },
+    "iceAge": {
+      "title": "빙하기",
+      "detail": "눈이 내리고 눈보라가 가운데를 휩쓰는 가운데, 작은 무리와 곰 몇 마리가 그것을 견뎌야 한다."
+    },
+    "starting": "{title} · 시작 중",
+    "inWorld": "세상에 {title} 적용됨",
+    "partial": "{title}: {total}단계 중 {worked}단계 성공"
+  },
+  "status": {
+    "applied": "{label} 적용: {x}, {y}",
+    "failed": "{label} · {reason}"
+  }
+}

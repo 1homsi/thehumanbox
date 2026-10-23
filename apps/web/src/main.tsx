@@ -51,12 +51,15 @@ window.addEventListener('thb-snapshot-progress', (e: Event) => {
   if (!bar || !text || !wrap) return
 
   const kb = (n: number) => (n / 1024).toFixed(0)
+  // The word comes from the splash table in index.html, so it matches the language the splash shows.
+  const word =
+    (window as Window & { thbSplash?: { downloading?: string } }).thbSplash?.downloading ?? 'downloading'
   if (detail.total) {
     wrap.classList.remove('indeterminate')
     const pct = Math.min(100, Math.round((detail.loaded / detail.total) * 100))
     bar.style.width = pct + '%'
-    text.textContent = `downloading · ${kb(detail.loaded)} / ${kb(detail.total)} kb`
+    text.textContent = `${word} · ${kb(detail.loaded)} / ${kb(detail.total)} kb`
   } else {
-    text.textContent = `downloading · ${kb(detail.loaded)} kb`
+    text.textContent = `${word} · ${kb(detail.loaded)} kb`
   }
 })

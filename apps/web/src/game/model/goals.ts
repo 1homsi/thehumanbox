@@ -1,14 +1,23 @@
 import type { Difficulty, GoalStatus } from '../../shared/types'
+import { t, type MessageKey } from '../../i18n'
 import { calendarAt } from './calendar'
 
-/** What each difficulty means, as the Goals panel says it. */
-export const DIFFICULTY_NOTES: Record<Difficulty, string> = {
-  calm: 'Fewer disasters, gentler hunger.',
-  normal: 'The standard world.',
-  harsh: 'More disasters and sharper hunger.',
+/** What each difficulty means, as the Goals panel says it. Keys, read with t() where they are shown. */
+export const DIFFICULTY_NOTES: Record<Difficulty, MessageKey> = {
+  calm: 'model.difficulty.calm',
+  normal: 'model.difficulty.normal',
+  harsh: 'model.difficulty.harsh',
 }
 
 export const DIFFICULTY_ORDER: Difficulty[] = ['calm', 'normal', 'harsh']
+
+/** The panel's name for each season the calendar counts (see calendarAt). */
+const SEASON_KEY: Record<string, MessageKey> = {
+  Spring: 'panels.calendar.seasonName.spring',
+  Summer: 'panels.calendar.seasonName.summer',
+  Autumn: 'panels.calendar.seasonName.autumn',
+  Winter: 'panels.calendar.seasonName.winter',
+}
 
 export interface GoalsSummary {
   done: number
@@ -33,14 +42,18 @@ export function goalsSummary(
       done,
       total,
       lost: true,
-      headline: `Everyone died in year ${date.year}, ${date.season} day ${date.dayOfSeason}.`,
+      headline: t('model.goals.lost', {
+        year: date.year,
+        season: t(SEASON_KEY[date.season]),
+        day: date.dayOfSeason,
+      }),
     }
   }
   return {
     done,
     total,
     lost: false,
-    headline: total === 0 ? 'No goals yet.' : `${done} of ${total} goals met.`,
+    headline: total === 0 ? t('model.goals.none') : t('model.goals.metCount', { done, total }),
   }
 }
 
@@ -53,7 +66,7 @@ export function goalFraction(goal: GoalStatus): number {
 
 /** The goal's progress as words: "3 of 5 years", "not yet". */
 export function goalProgressText(goal: GoalStatus): string {
-  if (goal.done) return 'met'
-  if (goal.target === 1) return 'not yet'
-  return `${goal.progress} of ${goal.target}`
+  if (goal.done) return t('model.goals.met')
+  if (goal.target === 1) return t('model.goals.notYet')
+  return t('model.progressOf', { done: goal.progress, total: goal.target })
 }

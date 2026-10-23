@@ -1,0 +1,228 @@
+{
+  "progressOf": "{done} von {total}",
+  "age": {
+    "years": "{years} J."
+  },
+  "peril": {
+    "sickness": {
+      "reason": "Krankheit rafft sie dahin",
+      "action": "Sie heilen"
+    },
+    "hunger": {
+      "reason": "sie hungern",
+      "action": "eine Ernte schicken"
+    },
+    "thirst": {
+      "reason": "sie haben kein Wasser",
+      "action": "Regen schicken"
+    },
+    "noChildren": {
+      "reason": "niemand ist mehr da, der Kinder großzieht",
+      "action": "einen Neuankömmling schicken"
+    },
+    "oldAge": {
+      "reason": "sie werden alt",
+      "action": "junges Blut schicken"
+    },
+    "dwindling": {
+      "reason": "ihre Zahl sinkt immer weiter",
+      "action": "Sie segnen"
+    },
+    "war": {
+      "reason": "Krieg tötet sie",
+      "action": "Frieden stiften"
+    },
+    "beasts": {
+      "reason": "Bestien jagen sie",
+      "action": "die Bestien vertreiben"
+    },
+    "drowning": {
+      "reason": "das Wasser nimmt sie",
+      "action": "trockenes Land heben"
+    },
+    "fire": {
+      "reason": "das Feuer nimmt sie",
+      "action": "die Flammen löschen"
+    },
+    "disaster": {
+      "reason": "Katastrophe um Katastrophe trifft sie",
+      "action": "Sie segnen"
+    },
+    "lastOne": "der Letzte",
+    "left": "nur noch {count} übrig"
+  },
+  "loss": {
+    "war": "Krieg",
+    "fights": "Kämpfe",
+    "beasts": "Bestien",
+    "drowning": "Ertrinken",
+    "fire": "Feuer",
+    "disaster": "Katastrophe",
+    "sickness": "Krankheit",
+    "hunger": "Hunger",
+    "thirst": "Durst",
+    "oldAge": "Alter",
+    "to": "{count} an {cause}"
+  },
+  "titles": {
+    "chief": "Häuptling",
+    "elder": "Ältester",
+    "trade": {
+      "healer": "Heiler",
+      "doctor": "Arzt",
+      "hunter": "Jäger",
+      "farmer": "Bauer",
+      "builder": "Baumeister",
+      "soldier": "Soldat",
+      "priest": "Priester",
+      "scholar": "Gelehrter",
+      "baker": "Bäcker",
+      "miner": "Bergmann",
+      "merchant": "Händler",
+      "artist": "Künstler"
+    }
+  },
+  "achievements": {
+    "fullYear": {
+      "title": "Ein volles Jahr",
+      "detail": "Die Welt hat ein ganzes Jahr der Jahreszeiten durchlaufen.",
+      "progress": "{percent} % des ersten Jahres"
+    },
+    "hundredSouls": {
+      "title": "Hundert Seelen",
+      "detail": "Deine Leute zählen gleichzeitig {goal} oder mehr."
+    },
+    "village": {
+      "title": "Ein Dorf",
+      "detail": "Ein Stamm ist zu einem Dorf gewachsen."
+    },
+    "threeTribes": {
+      "title": "Drei Stämme",
+      "detail": "Drei getrennte Stämme leben zur selben Zeit."
+    },
+    "grandchildren": {
+      "title": "Enkel",
+      "detail": "Jemand Lebendes ist ein Enkel oder ein späterer Nachkomme der ersten Menschen."
+    },
+    "ruler": {
+      "title": "Ein Herrscher",
+      "detail": "Ein Stamm hat einen Herrscher gekrönt, der noch lebt."
+    },
+    "elder": {
+      "title": "Ein Ältester",
+      "detail": "Ein erwachsener Mensch hat lange genug gelebt, um Ältester genannt zu werden."
+    },
+    "toolmakers": {
+      "title": "Werkzeugmacher",
+      "detail": "Jemand Lebendes trägt ein Werkzeug, das er selbst gemacht hat oder geschenkt bekam."
+    },
+    "firstRoad": {
+      "title": "Die erste Straße",
+      "detail": "Die Menschen haben eine Straße durchs Land gelegt."
+    },
+    "roadNetwork": {
+      "title": "Ein Straßennetz",
+      "detail": "{goal} Felder Straße führen durchs Land."
+    },
+    "overTheWater": {
+      "title": "Über das Wasser",
+      "detail": "Eine Brücke bringt die Menschen über einen Fluss oder See."
+    }
+  },
+  "difficulty": {
+    "calm": "Weniger Katastrophen, sanfterer Hunger.",
+    "normal": "Die Standardwelt.",
+    "harsh": "Mehr Katastrophen und schärferer Hunger."
+  },
+  "goals": {
+    "none": "Noch keine Ziele.",
+    "metCount": "{done} von {total} Zielen erreicht.",
+    "lost": "Alle sind im Jahr {year} gestorben, {season}, Tag {day}.",
+    "met": "erreicht",
+    "notYet": "noch nicht"
+  },
+  "relations": {
+    "allied": "verbündet mit {names}",
+    "bound": "gebunden an {names}",
+    "peace": "in Frieden mit {names}"
+  },
+  "crime": {
+    "thefts": {
+      "one": "{count} Diebstahl",
+      "other": "{count} Diebstähle"
+    },
+    "killings": {
+      "one": "{count} Tötung",
+      "other": "{count} Tötungen"
+    },
+    "both": "{thefts}, {killings}"
+  },
+  "wealth": {
+    "even": "gleichmäßig",
+    "uneven": "ungleich",
+    "stark": "stark"
+  },
+  "generations": {
+    "oldest": "älteste lebende Generation {generation}",
+    "soFar": "{count} Generationen bisher"
+  },
+  "prayers": {
+    "aTribe": "Ein Stamm",
+    "pray": "um Hilfe",
+    "sentence": "{who} betet {plea}",
+    "many": "{count} Stämme beten {plea}",
+    "plea": {
+      "hunger": "um Nahrung",
+      "thirst": "um sauberes Wasser",
+      "sickness": "für ihre Kranken",
+      "danger": "darum, vor Bestien gerettet zu werden",
+      "rain": "um Regen",
+      "children": "um Kinder",
+      "peace": "darum, dass der Krieg endet",
+      "knowledge": "um Weisheit",
+      "shelter": "um Schutz vor der Kälte",
+      "fire": "darum, dass die Götter das Feuer löschen"
+    }
+  },
+  "scenarios": {
+    "foundingFamily": {
+      "title": "Gründerfamilie",
+      "detail": "Ein Paar mit Kindern lässt sich in der Mitte des Landes nieder, und ihre Sippe wird zur Führung gekrönt."
+    },
+    "twoTribes": {
+      "title": "Zwei rivalisierende Stämme",
+      "detail": "Zwei Gruppen mit je fünf Menschen beginnen auf gegenüberliegenden Seiten des Landes, jede mit etwas Wild in der Nähe."
+    },
+    "wildValley": {
+      "title": "Wildes Tal",
+      "detail": "Eine Herde Hirsche und Hasen wird über das Land verteilt, zum Start ist der Himmel klar."
+    },
+    "apocalypse": {
+      "title": "Apokalypse",
+      "detail": "Ein Sturm bricht über das Land herein, ein Meteor fällt in der Mitte, eine Seuche breitet sich aus und Zombies wandern an den Rändern."
+    },
+    "goldenAge": {
+      "title": "Goldenes Zeitalter",
+      "detail": "Klarer Himmel, reichlich Nahrung und warme Sonne über der Mitte, und zwei Familien gründen ihre Stämme auf gutem Boden."
+    },
+    "tribalWar": {
+      "title": "Stammeskrieg",
+      "detail": "Zwei Familien gründen rivalisierende Stämme auf beiden Seiten des Landes, und die Götter setzen sie in den Krieg."
+    },
+    "islandSurvival": {
+      "title": "Überleben auf der Insel",
+      "detail": "Eine Gruppe von sechs Menschen beginnt in der Mitte, mit Hirschen und Hasen in der Nähe und Regen zum Trinken."
+    },
+    "iceAge": {
+      "title": "Eiszeit",
+      "detail": "Schnee fällt, und ein Blizzard fegt über die Mitte, während eine kleine Gruppe und ein paar Bären ihn überstehen müssen."
+    },
+    "starting": "{title} · startet",
+    "inWorld": "{title} ist in der Welt",
+    "partial": "{title}: {worked} von {total} Schritten gelungen"
+  },
+  "status": {
+    "applied": "{label} angewendet bei {x}, {y}",
+    "failed": "{label} · {reason}"
+  }
+}
