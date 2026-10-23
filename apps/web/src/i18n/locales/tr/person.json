@@ -1,7 +1,7 @@
 {
   "card": {
     "energyShort": "E",
-    "energyTip": "Enerji – zamanla azalır, yiyecek karolarında yemek yeyerek yenilenir. %0'da organizma açlıktan ölür.",
+    "energyTip": "Enerji – zamanla azalır, yiyecek karolarında yemek yiyerek yenilenir. %0'da organizma açlıktan ölür.",
     "hydrationShort": "S",
     "hydrationTip": "Hidrasyon – zamanla azalır, su içerek yenilenir. %0'da organizma susuzlaşır.",
     "healthTip": "Sağlık – açlık, enfeksiyon ve savaşla zarar görür. İhtiyaçlar karşılandığında yavaşça toparlanır.",

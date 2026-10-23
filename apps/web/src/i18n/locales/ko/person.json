@@ -70,7 +70,7 @@
   "home": {
     "enterTip": "그 사람의 집 안으로 들어가기",
     "visitTip": "그 사람의 집 방문하기 (외출 중)",
-    "lookInside": "안 들여다보기"
+    "lookInside": "들여다보기"
   },
   "status": {
     "rich": "부유함",
