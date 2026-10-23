@@ -163,7 +163,9 @@
       "building": "建築",
       "crafting": "工芸",
       "healing": "治療"
-    }
+    },
+    "enjoys": "{list}が好き",
+    "avoids": "けがをしてから{list}を避けている"
   },
   "zodiac": {
     "title": "生まれた星座",

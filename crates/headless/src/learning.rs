@@ -12,6 +12,26 @@ pub(super) fn print_learning(sim: &Simulation) {
         "Lessons learned by watching kin or friends work: {}",
         sim.lessons_watched
     );
+    let remembering: Vec<String> = sim
+        .lineage_winter_memory
+        .iter()
+        .filter(|(_, m)| m.strength >= crate::sim::civ::society::hard_winters::REMEMBERED)
+        .map(|(l, m)| {
+            format!(
+                "{} (year {}, {:.2})",
+                sim.lineage_names
+                    .get(l)
+                    .map_or(&l[..6.min(l.len())], |n| n.as_str()),
+                m.year + 1,
+                m.strength
+            )
+        })
+        .collect();
+    println!(
+        "Tribes remembering a hungry winter: {} {:?}",
+        remembering.len(),
+        remembering
+    );
     if alive.is_empty() {
         println!("  nobody alive");
         return;

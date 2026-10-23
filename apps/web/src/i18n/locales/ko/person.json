@@ -163,7 +163,9 @@
       "building": "건축",
       "crafting": "공예",
       "healing": "치료"
-    }
+    },
+    "enjoys": "{list}을(를) 좋아함",
+    "avoids": "다친 뒤로 {list}을(를) 피함"
   },
   "zodiac": {
     "title": "태어난 별자리",

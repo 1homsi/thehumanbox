@@ -114,6 +114,8 @@ pub struct SaveState {
     pub(super) lineage_generations_reached: HashMap<String, u32>,
     #[serde(default)]
     pub(super) lineage_unrest: HashMap<String, f32>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub(super) lineage_winter_memory: HashMap<String, crate::sim::civ::society::hard_winters::WinterMemory>,
     #[serde(default)]
     pub(super) lineage_crime: HashMap<String, crate::sim::civ::society::crime::CrimeTally>,
     #[serde(default)]

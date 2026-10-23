@@ -18,7 +18,7 @@ import { generationLine, generationsOf } from '../../game/model/generations'
 import { familyLineText, familyLines } from '../../game/model/family-lines'
 import { eldestByLineage, eldestLine } from '../../game/model/tribe-eldest'
 import { ToolSprite } from '../toolbar/ToolSprite'
-import { formatNumber, t } from '../../i18n'
+import { formatNumber, t, type MessageKey } from '../../i18n'
 
 interface Props {
   world: WorldState
@@ -113,6 +113,19 @@ function TribeName({
   )
 }
 
+/** What a tribe known for each craft is said to be known for. */
+const CRAFT_KEYS: Record<string, MessageKey> = {
+  woodcutting: 'panels.tribe.lore.craft.woodcutting',
+  quarrying: 'panels.tribe.lore.craft.quarrying',
+  foraging: 'panels.tribe.lore.craft.foraging',
+  fishing: 'panels.tribe.lore.craft.fishing',
+  hunting: 'panels.tribe.lore.craft.hunting',
+  farming: 'panels.tribe.lore.craft.farming',
+  building: 'panels.tribe.lore.craft.building',
+  crafting: 'panels.tribe.lore.craft.crafting',
+  healing: 'panels.tribe.lore.craft.healing',
+}
+
 /**
  * The focused tribe at a glance: what they need, how they feel about the
  * gods, and what they are praying for. Appears when a tribe is focused from
@@ -139,6 +152,8 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
   const losses = lossLine(world.tribe_losses?.[status.id])
   const families = familyLines(world.organisms, status.id)
   const eldest = eldestByLineage(world.organisms)[status.id]
+  const lore = world.lineage_lore?.[status.id]
+  const craftKey = lore?.craft ? CRAFT_KEYS[lore.craft] : undefined
   const help = peril ? PERIL_HELP[peril.cause] : null
   const lookAtTribe = (tool: string) => {
     const home = world.settlements?.find((s) => s.lineage_id === status.id)
@@ -234,6 +249,16 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
       <Need label={t('panels.tribe.health')} value={status.health} />
       {losses && <div className="tribe-card-losses">{t('panels.tribe.lostLately', { losses })}</div>}
       {relations && <div className="tribe-card-relations">{relations}</div>}
+      {craftKey && (
+        <div className="tribe-card-relations" title={t('panels.tribe.lore.craftTitle')}>
+          {t(craftKey)}
+        </div>
+      )}
+      {lore?.hungry_winter && (
+        <div className="tribe-card-relations" title={t('panels.tribe.lore.winterTitle')}>
+          {t('panels.tribe.lore.winter', { year: lore.hungry_winter })}
+        </div>
+      )}
       {eldest && (
         <div className="tribe-card-relations" title={t('panels.tribe.oldestTitle')}>
           {t('panels.tribe.oldest', { line: eldestLine(eldest) })}

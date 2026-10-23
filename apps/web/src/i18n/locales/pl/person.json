@@ -169,7 +169,9 @@
       "building": "budowanie",
       "crafting": "rzemiosło",
       "healing": "leczenie"
-    }
+    },
+    "enjoys": "lubi: {list}",
+    "avoids": "unika: {list} po urazie"
   },
   "zodiac": {
     "title": "URODZONY POD",

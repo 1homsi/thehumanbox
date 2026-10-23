@@ -284,6 +284,22 @@
     "stillToLearn": "아직 배울 것: {list}",
     "needsPeople": "사람 {count}명 더 필요",
     "praying": "기도 중",
-    "help": "도움"
+    "help": "도움",
+    "lore": {
+      "craftTitle": "이 부족 어른들이 잘하는 일. 아이들은 그것을 보며 자란다.",
+      "winter": "{year}년의 굶주린 겨울을 기억한다",
+      "winterTitle": "그 뒤로 해마다 가을이면 식량을 모아 둔다.",
+      "craft": {
+        "woodcutting": "나무꾼으로 알려짐",
+        "quarrying": "석공으로 알려짐",
+        "foraging": "채집꾼으로 알려짐",
+        "fishing": "어부로 알려짐",
+        "hunting": "사냥꾼으로 알려짐",
+        "farming": "농부로 알려짐",
+        "building": "건축으로 알려짐",
+        "crafting": "공예로 알려짐",
+        "healing": "치료사로 알려짐"
+      }
+    }
   }
 }

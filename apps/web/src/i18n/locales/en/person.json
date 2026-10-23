@@ -165,7 +165,9 @@
       "building": "building",
       "crafting": "crafting",
       "healing": "healing"
-    }
+    },
+    "enjoys": "enjoys {list}",
+    "avoids": "avoids {list} after being hurt at it"
   },
   "zodiac": {
     "title": "BORN UNDER",

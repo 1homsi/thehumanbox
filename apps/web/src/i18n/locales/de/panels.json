@@ -291,6 +291,22 @@
     "stillToLearn": "noch zu lernen: {list}",
     "needsPeople": "braucht {count} Menschen mehr",
     "praying": "betet",
-    "help": "helfen"
+    "help": "helfen",
+    "lore": {
+      "craftTitle": "Worin die Erwachsenen dieses Stammes gut sind. Ihre Kinder wachsen damit auf.",
+      "winter": "erinnert sich an den Hungerwinter des Jahres {year}",
+      "winterTitle": "Seitdem legen sie jeden Herbst Vorräte an.",
+      "craft": {
+        "woodcutting": "bekannt für ihre Holzfäller",
+        "quarrying": "bekannt für ihre Steinbrecher",
+        "foraging": "bekannt für ihre Sammler",
+        "fishing": "bekannt für ihre Fischer",
+        "hunting": "bekannt für ihre Jäger",
+        "farming": "bekannt für ihre Bauern",
+        "building": "bekannt für ihre Baumeister",
+        "crafting": "bekannt für ihr Handwerk",
+        "healing": "bekannt für ihre Heiler"
+      }
+    }
   }
 }

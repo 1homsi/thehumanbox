@@ -100,6 +100,10 @@ pub struct Simulation {
     pub lineage_generations_reached: HashMap<String, u32>,
     /// Unrest building in each tribe whose wealth gap is stark (civ/society/unrest.rs).
     pub lineage_unrest: HashMap<String, f32>,
+    /// The hungry winter each tribe remembers (see `civ::society::hard_winters`).
+    pub lineage_winter_memory: HashMap<String, crate::sim::civ::society::hard_winters::WinterMemory>,
+    /// The craft each tribe is known for (see `civ::society::tribe_crafts`). Runtime only, worked out daily.
+    pub lineage_crafts: HashMap<String, crate::organism::skills::Skill>,
     /// Thefts, killings and punishments in each tribe (civ/society/crime.rs).
     pub lineage_crime: HashMap<String, crate::sim::civ::society::crime::CrimeTally>,
     pub(crate) lineage_aggregates: HashMap<String, LineageAggregate>,
@@ -272,6 +276,8 @@ impl Simulation {
             lineage_eras: HashMap::default(),
             lineage_generations_reached: HashMap::default(),
             lineage_unrest: HashMap::default(),
+            lineage_winter_memory: HashMap::default(),
+            lineage_crafts: HashMap::default(),
             lineage_crime: HashMap::default(),
             lineage_aggregates: HashMap::default(),
             buildings: Default::default(),

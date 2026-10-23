@@ -53,9 +53,16 @@ function skillName(name: string): string {
 }
 
 /** What this person has learned to do, by doing it or by watching kin and friends. */
+/** Likings this strong are worth a mention; dread this deep keeps them from the work. */
+const ENJOYS = 0.15
+const AVOIDS = -0.3
+
 export function LearningSection({ detail }: { detail: OrgDetail | null }) {
-  const skills = (detail?.skills ?? []).filter((s) => s.level >= 0.05).slice(0, 6)
-  if (skills.length === 0) return null
+  const all = detail?.skills ?? []
+  const skills = all.filter((s) => s.level >= 0.05).slice(0, 6)
+  const enjoys = all.filter((s) => (s.feeling ?? 0) >= ENJOYS).map((s) => skillName(s.name))
+  const avoids = all.filter((s) => (s.feeling ?? 0) <= AVOIDS).map((s) => skillName(s.name))
+  if (skills.length === 0 && avoids.length === 0) return null
   return (
     <>
       <div className="org-detail-section">{t('person.skills.title')}</div>
@@ -71,6 +78,16 @@ export function LearningSection({ detail }: { detail: OrgDetail | null }) {
           />
         ))}
       </div>
+      {enjoys.length > 0 && (
+        <div className="trait-full-row" style={{ color: '#79d6b0', fontSize: 11 }}>
+          {t('person.skills.enjoys', { list: enjoys.join(', ') })}
+        </div>
+      )}
+      {avoids.length > 0 && (
+        <div className="trait-full-row" style={{ color: '#e8a070', fontSize: 11 }}>
+          {t('person.skills.avoids', { list: avoids.join(', ') })}
+        </div>
+      )}
     </>
   )
 }

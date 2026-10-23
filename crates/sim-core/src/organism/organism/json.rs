@@ -594,6 +594,7 @@ impl Organism {
                 .map(|(skill, level)| SkillJson {
                     name: skill.name(),
                     level: (level * 100.0).round() / 100.0,
+                    feeling: (self.skills.feeling(skill) * 100.0).round() / 100.0,
                 })
                 .collect(),
         }
@@ -1026,6 +1027,8 @@ pub struct OrgDetailJson {
 pub struct SkillJson {
     pub name: &'static str,
     pub level: f32,
+    /// How they feel about the work: a liking above 0, dread below.
+    pub feeling: f32,
 }
 
 #[derive(Serialize)]

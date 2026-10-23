@@ -165,7 +165,9 @@
       "building": "Bauen",
       "crafting": "Handwerk",
       "healing": "Heilen"
-    }
+    },
+    "enjoys": "mag {list}",
+    "avoids": "meidet {list}, seit es dabei verletzt wurde"
   },
   "zodiac": {
     "title": "GEBOREN UNTER",
