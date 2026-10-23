@@ -268,8 +268,8 @@
     "line": "死于{cause}，享年 {age}"
   },
   "life": {
-    "childOfBoth": "{mother}与{father}之子。",
-    "childOfOne": "{parent}之子。",
+    "childOfBoth": "{mother}与{father}的孩子。",
+    "childOfOne": "{parent}的孩子。",
     "trade": "投身于{trade}这一行。",
     "chief": "作为首领统治部族。",
     "partnered": "与{name}结为伴侣。",

@@ -265,7 +265,7 @@
     "sentence": "이 부족의 {surname} 가문: 생존 {living}명, 최고령 {days}일."
   },
   "death": {
-    "line": "{cause}로 사망, {age}세"
+    "line": "{cause}로 사망, 나이 {age}"
   },
   "life": {
     "childOfBoth": "{mother}와 {father}의 자식.",

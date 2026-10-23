@@ -282,7 +282,7 @@
     "partnered": "Состоял(а) в паре с {name}.",
     "hasPartner": "Есть партнёр.",
     "children": {
-      "one": "Имеет {count} ребёнка.",
+      "one": "Имеет {count} ребёнок.",
       "few": "Имеет {count} ребёнка.",
       "many": "Имеет {count} детей.",
       "other": "Имеет {count} детей."
