@@ -81,14 +81,15 @@ pub(super) fn ordered_human_candidates(
 const ENCLOSURE: usize = 12;
 
 /// Ground someone at (ix, iy) could walk to without passing a house: dry
-/// ground when they are in the water, any walkable ground otherwise. Stops
+/// ground when they are in the water or partway through a wall of huts (a
+/// pond behind them is no way out), any walkable ground otherwise. Stops
 /// counting at `ENCLOSURE` tiles.
 fn open_pocket(grid: &WorldGrid, ix: i32, iy: i32) -> Vec<(i32, i32)> {
     let here = grid.get(ix, iy);
-    let in_water = grid.is_wet(here, ix, iy);
+    let dry_only = here == Tile::Hut || grid.is_wet(here, ix, iy);
     let open = |x: i32, y: i32| {
         let t = grid.get(x, y);
-        t.walkable() && t != Tile::Fire && !(in_water && grid.is_wet(t, x, y))
+        t.walkable() && t != Tile::Fire && !(dry_only && grid.is_wet(t, x, y))
     };
     let mut pocket: Vec<(i32, i32)> = Vec::with_capacity(ENCLOSURE);
     let mut frontier = vec![(ix, iy)];

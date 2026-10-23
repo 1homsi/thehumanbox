@@ -435,14 +435,55 @@ fn someone_walled_into_a_pond_walks_out_through_a_house() {
     org.water_ticks = 20;
     sim.organisms.push(org);
 
-    for _ in 0..30 {
-        tick_first_org(&mut sim);
+    assert_reaches_open_ground(&mut sim, 30);
+}
+
+/// Runs the first person until they are out: on dry, walkable ground, or in a
+/// house at the edge of the block with open ground beside it (free to step
+/// out whenever they like). Fails after `ticks`.
+fn assert_reaches_open_ground(sim: &mut Simulation, ticks: usize) {
+    for _ in 0..ticks {
+        tick_first_org(sim);
         let (x, y) = (sim.organisms[0].x as i32, sim.organisms[0].y as i32);
-        if sim.grid.get(x, y) != Tile::Water {
+        let t = sim.grid.get(x, y);
+        let on_open_ground = t.walkable() && !sim.grid.is_wet(t, x, y);
+        let at_the_door = t == Tile::Hut && !crate::sim::simulation::helpers::walled_in(&sim.grid, x, y);
+        if on_open_ground || at_the_door {
             return;
         }
     }
-    panic!("still in the pond after 30 ticks");
+    let (x, y) = (sim.organisms[0].x as i32, sim.organisms[0].y as i32);
+    panic!(
+        "still shut in at {x},{y} ({:?}) after {ticks} ticks",
+        sim.grid.get(x, y)
+    );
+}
+
+/// A bigger pond (more open water than counts as a pocket) behind a wall of
+/// huts two thick: the swimmer must cross both rings, not stop on the inner one.
+#[test]
+fn someone_in_a_big_walled_pond_crosses_a_thick_wall_of_huts() {
+    let mut sim = Simulation::new(42);
+    sim.organisms.clear();
+    sim.animals.clear();
+    flatten_test_area(&mut sim, 50, 50);
+    for dy in -5i32..=5 {
+        for dx in -5i32..=5 {
+            let ring = dx.abs().max(dy.abs());
+            if ring >= 4 {
+                sim.grid.set(50 + dx, 50 + dy, Tile::Hut);
+            } else {
+                sim.grid.set(50 + dx, 50 + dy, Tile::Water);
+                sim.grid.depth[WorldGrid::idx(50 + dx, 50 + dy)] = 0.08;
+            }
+        }
+    }
+    let mut org = autonomy_test_organism("pond", 53.0, 50.0);
+    org.hydration = 0.97;
+    org.energy = 0.9;
+    org.water_ticks = 20;
+    sim.organisms.push(org);
+    assert_reaches_open_ground(&mut sim, 60);
 }
 
 /// Open water with no house beside it is not a trap: a swimmer there still
@@ -486,10 +527,15 @@ fn someone_boxed_in_by_huts_walks_out() {
     org.hydration = 0.3;
     org.energy = 0.8;
     sim.organisms.push(org);
+    // The open tile in the middle is dry ground, so out means out of the block,
+    // or in one of its outer houses with open ground beside it.
     for _ in 0..30 {
         tick_first_org(&mut sim);
         let (x, y) = (sim.organisms[0].x as i32, sim.organisms[0].y as i32);
-        if (x - 50).abs() > 2 || (y - 50).abs() > 2 {
+        let outside = (x - 50).abs() > 2 || (y - 50).abs() > 2;
+        let at_the_door =
+            sim.grid.get(x, y) == Tile::Hut && !crate::sim::simulation::helpers::walled_in(&sim.grid, x, y);
+        if outside || at_the_door {
             return;
         }
     }
