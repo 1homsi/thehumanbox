@@ -174,7 +174,7 @@
     "aTribe": "Plemię",
     "pray": "o pomoc",
     "sentence": "{who} modli się {plea}",
-    "many": "{count} plemion modli się {plea}",
+    "many": "plemiona ({count}) modlą się {plea}",
     "plea": {
       "hunger": "o jedzenie",
       "thirst": "o czystą wodę",
