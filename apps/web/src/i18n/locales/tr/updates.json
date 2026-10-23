@@ -1,0 +1,13 @@
+{
+  "check": "güncellemeleri denetle",
+  "checkTitle": "Güncellemeleri denetle",
+  "checking": "denetleniyor…",
+  "available": "güncelleme var",
+  "availableVersion": "v{version} kullanılabilir",
+  "ready": "güncelleme hazır",
+  "readyVersion": "v{version} hazır",
+  "upToDate": "güncel",
+  "packagedOnly": "yalnızca kurulu uygulamada kullanılabilir",
+  "failed": "güncelleme denetimi başarısız",
+  "failedWith": "denetleme başarısız: {error}"
+}

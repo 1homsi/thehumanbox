@@ -1,0 +1,11 @@
+{
+  "close": "닫기",
+  "open": "열기",
+  "retry": "다시 시도",
+  "loading": "불러오는 중…",
+  "export": "내보내기",
+  "restore": "복원…",
+  "delete": "삭제…",
+  "move": "이동",
+  "checking": "확인 중…"
+}

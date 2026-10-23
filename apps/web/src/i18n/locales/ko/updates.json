@@ -1,0 +1,13 @@
+{
+  "check": "업데이트 확인",
+  "checkTitle": "업데이트 확인",
+  "checking": "확인 중…",
+  "available": "업데이트 있음",
+  "availableVersion": "v{version} 사용 가능",
+  "ready": "업데이트 준비됨",
+  "readyVersion": "v{version} 준비됨",
+  "upToDate": "최신 버전",
+  "packagedOnly": "설치된 앱에서만 사용할 수 있습니다",
+  "failed": "업데이트 확인 실패",
+  "failedWith": "확인 실패: {error}"
+}

@@ -1,0 +1,13 @@
+{
+  "check": "rechercher des mises à jour",
+  "checkTitle": "Rechercher des mises à jour",
+  "checking": "vérification…",
+  "available": "mise à jour disponible",
+  "availableVersion": "v{version} disponible",
+  "ready": "mise à jour prête",
+  "readyVersion": "v{version} prête",
+  "upToDate": "à jour",
+  "packagedOnly": "disponible uniquement dans l'application installée",
+  "failed": "échec de la recherche de mises à jour",
+  "failedWith": "échec de la vérification : {error}"
+}

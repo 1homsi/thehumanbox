@@ -1,0 +1,13 @@
+{
+  "check": "check for updates",
+  "checkTitle": "Check for updates",
+  "checking": "checking…",
+  "available": "update available",
+  "availableVersion": "v{version} available",
+  "ready": "update ready",
+  "readyVersion": "v{version} ready",
+  "upToDate": "up to date",
+  "packagedOnly": "only available in the packaged app",
+  "failed": "update check failed",
+  "failedWith": "check failed: {error}"
+}

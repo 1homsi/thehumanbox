@@ -5,9 +5,19 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { getLocale, loadLocale, LOCALES, matchLocale, nativeName, t, type Messages } from './index'
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'locales')
-const read = (file: string): Messages => JSON.parse(readFileSync(path.join(dir, file), 'utf8'))
-const english = read('en.json')
-const translations = readdirSync(dir).filter((file) => file.endsWith('.json') && file !== 'en.json')
+const areaFiles = (code: string) => readdirSync(path.join(dir, code)).filter((file) => file.endsWith('.json'))
+/** One language's area files merged under their area names, as the loader does. */
+const read = (code: string): Messages =>
+  Object.fromEntries(
+    areaFiles(code).map((file) => [
+      file.slice(0, -'.json'.length),
+      JSON.parse(readFileSync(path.join(dir, code, file), 'utf8')) as Messages,
+    ]),
+  )
+const english = read('en')
+const translations = readdirSync(dir, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && entry.name !== 'en')
+  .map((entry) => entry.name)
 
 /** Every leaf as `key -> text`; plural forms are listed as `key#form`. */
 function leaves(table: Messages, prefix = ''): Map<string, string> {
@@ -33,14 +43,17 @@ describe('locale files', () => {
     expect(translations.length).toBeGreaterThanOrEqual(10)
   })
 
-  for (const file of translations) {
-    describe(file, () => {
-      const table = leaves(read(file))
+  for (const code of translations) {
+    describe(code, () => {
+      const table = leaves(read(code))
 
       it('is named by a language code the browser understands', () => {
-        const code = file.slice(0, -'.json'.length)
         expect(() => new Intl.Locale(code)).not.toThrow()
         expect(nativeName(code)).not.toBe('')
+      })
+
+      it('has the same area files as English', () => {
+        expect(areaFiles(code).sort()).toEqual(areaFiles('en').sort())
       })
 
       it('translates every English key and adds none', () => {

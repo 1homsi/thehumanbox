@@ -1,11 +1,12 @@
 /**
  * Interface translations.
  *
- * Every language is one JSON file in `./locales`, named by its BCP 47 code
- * (`es.json`, `pt-BR.json`). Dropping a new file there is all it takes to add
- * a language: the file is found at build time, offered in Settings, and loaded
- * only when chosen. `en.json` is the source every other file follows; a key a
- * translation lacks falls back to English.
+ * Every language is a folder in `./locales`, named by its BCP 47 code (`es`,
+ * `pt-BR`), holding one JSON file per area of the interface (`settings.json`,
+ * `dock.json`). Adding a folder is all it takes to add a language: it is found
+ * at build time, offered in Settings, and loaded only when chosen. English
+ * (`locales/en`) is the source every other folder follows; a key a translation
+ * lacks falls back to English.
  *
  * Only the interface is translated. Names, invented languages and everything
  * the simulation writes (thoughts, chronicles, event text) stay as they are.
@@ -14,7 +15,7 @@
  * loaded before the app first renders, and changing it reloads the page, so a
  * render-time call always sees the right language.
  */
-import en from './locales/en.json'
+import en from './locales/en'
 
 export type Messages = { [key: string]: string | Messages }
 
@@ -38,19 +39,32 @@ export const SOURCE_LOCALE = 'en'
 const STORAGE_KEY = 'thb-locale'
 const RTL_LANGUAGES = new Set(['ar', 'fa', 'he', 'ur'])
 
-const loaders = import.meta.glob<{ default: Messages }>(['./locales/*.json', '!./locales/en.json'])
+const areaLoaders = import.meta.glob<{ default: Messages }>(['./locales/*/*.json', '!./locales/en/*.json'])
 
-function codeFromPath(path: string): string {
-  return path.slice(path.lastIndexOf('/') + 1, -'.json'.length)
+/** `./locales/es/settings.json` → `['es', 'settings']`. */
+function splitPath(path: string): [string, string] {
+  const [code, file] = path.split('/').slice(-2)
+  return [code, file.slice(0, -'.json'.length)]
 }
 
-const loaderByCode = new Map(Object.entries(loaders).map(([path, load]) => [codeFromPath(path), load]))
+type AreaLoader = () => Promise<{ default: Messages }>
+const loaderByCode = new Map<string, [string, AreaLoader][]>()
+for (const [path, load] of Object.entries(areaLoaders)) {
+  const [code, area] = splitPath(path)
+  loaderByCode.set(code, [...(loaderByCode.get(code) ?? []), [area, load]])
+}
+
+/** Every area file of one language, merged under its area's name. */
+async function loadAreas(areas: [string, AreaLoader][]): Promise<Messages> {
+  const loaded = await Promise.all(areas.map(async ([area, load]) => [area, (await load()).default] as const))
+  return Object.fromEntries(loaded)
+}
 
 /** Every language a file exists for, English first, the rest by code. */
 export const LOCALES: readonly string[] = [SOURCE_LOCALE, ...[...loaderByCode.keys()].sort()]
 
 let active = SOURCE_LOCALE
-let messages: Messages = en
+let messages: Messages = en as Messages
 let pluralRules = new Intl.PluralRules(SOURCE_LOCALE)
 
 /** The language's own name for itself, e.g. "Español" for `es`. */
@@ -108,12 +122,12 @@ function applyToDocument(code: string): void {
 
 /** Make `code` the active language. Unknown codes and failed loads keep English. */
 export async function loadLocale(code: string): Promise<string> {
-  const load = loaderByCode.get(code)
-  let next: Messages = en
+  const areas = loaderByCode.get(code)
+  let next: Messages = en as Messages
   let chosen = SOURCE_LOCALE
-  if (load) {
+  if (areas) {
     try {
-      next = (await load()).default
+      next = await loadAreas(areas)
       chosen = code
     } catch {
       // A missing chunk (offline, stale cache) leaves the game in English.
@@ -182,7 +196,9 @@ function interpolate(text: string, vars: Vars | undefined): string {
 /** The interface text for `key` in the active language, with `{name}` placeholders filled. */
 export function t(key: MessageKey, vars?: Vars): string {
   const text =
-    pick(messages, key, vars, pluralRules) ?? pick(en, key, vars, new Intl.PluralRules(SOURCE_LOCALE)) ?? key
+    pick(messages, key, vars, pluralRules) ??
+    pick(en as Messages, key, vars, new Intl.PluralRules(SOURCE_LOCALE)) ??
+    key
   return interpolate(text, vars)
 }
 

@@ -1,0 +1,13 @@
+{
+  "check": "检查更新",
+  "checkTitle": "检查更新",
+  "checking": "检查中…",
+  "available": "有可用更新",
+  "availableVersion": "v{version} 可用",
+  "ready": "更新已就绪",
+  "readyVersion": "v{version} 已就绪",
+  "upToDate": "已是最新版本",
+  "packagedOnly": "仅适用于安装版应用",
+  "failed": "检查更新失败",
+  "failedWith": "检查失败：{error}"
+}

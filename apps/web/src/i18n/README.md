@@ -1,21 +1,23 @@
 # Translations
 
-The interface text lives in `locales/`, one JSON file per language, named by its
-language code (`es.json`, `pt-BR.json`, `zh-CN.json`).
+The interface text lives in `locales/`, one folder per language named by its
+language code (`es`, `pt-BR`, `zh-CN`). Each folder holds one JSON file per area
+of the interface: `settings.json`, `dock.json`, `panels.json` and so on.
 
 ## Adding a language
 
-1. Copy `locales/en.json` to `locales/<code>.json`.
+1. Copy `locales/en` to `locales/<code>` (leave out `index.ts`).
 2. Translate the values. Keep every key, and keep each `{placeholder}` exactly as it is.
-3. Run `pnpm test src/i18n`. It checks that the file has every key, no extra
-   ones, the same placeholders, and no empty strings.
+3. Run `pnpm test src/i18n`. It checks that the folder has every file and key,
+   no extra ones, the same placeholders, and no empty strings.
 
-That is all: the new file shows up in Settings → Language on its own.
+That is all: the new folder shows up in Settings → Language on its own.
 
 ## Changing English text
 
-`en.json` is the source. When you add or rename a key there, add it to every
-other file too; the test fails until they match.
+`locales/en` is the source. When you add or rename a key there, add it to every
+other language too; the test fails until they match. A new area file also needs
+one import line in `locales/en/index.ts`.
 
 ## What is translated
 

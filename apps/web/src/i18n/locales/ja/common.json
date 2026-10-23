@@ -1,0 +1,11 @@
+{
+  "close": "閉じる",
+  "open": "開く",
+  "retry": "再試行",
+  "loading": "読み込み中…",
+  "export": "書き出し",
+  "restore": "復元…",
+  "delete": "削除…",
+  "move": "移動",
+  "checking": "確認中…"
+}

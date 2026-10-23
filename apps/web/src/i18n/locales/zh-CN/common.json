@@ -1,0 +1,11 @@
+{
+  "close": "关闭",
+  "open": "打开",
+  "retry": "重试",
+  "loading": "加载中…",
+  "export": "导出",
+  "restore": "恢复…",
+  "delete": "删除…",
+  "move": "移动",
+  "checking": "检查中…"
+}

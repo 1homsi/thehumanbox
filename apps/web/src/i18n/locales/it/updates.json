@@ -1,0 +1,13 @@
+{
+  "check": "verifica aggiornamenti",
+  "checkTitle": "Verifica aggiornamenti",
+  "checking": "controllo…",
+  "available": "aggiornamento disponibile",
+  "availableVersion": "v{version} disponibile",
+  "ready": "aggiornamento pronto",
+  "readyVersion": "v{version} pronto",
+  "upToDate": "aggiornato",
+  "packagedOnly": "disponibile solo nell'app installata",
+  "failed": "verifica degli aggiornamenti non riuscita",
+  "failedWith": "verifica non riuscita: {error}"
+}

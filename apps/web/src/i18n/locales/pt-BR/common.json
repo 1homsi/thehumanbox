@@ -1,0 +1,11 @@
+{
+  "close": "Fechar",
+  "open": "abrir",
+  "retry": "tentar novamente",
+  "loading": "carregando…",
+  "export": "exportar",
+  "restore": "restaurar…",
+  "delete": "excluir…",
+  "move": "mover",
+  "checking": "verificando…"
+}
