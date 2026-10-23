@@ -5,6 +5,7 @@ import { Tooltip } from '../../toolbar/Tooltip'
 import { DAY_LENGTH, fmt } from './format'
 import { HomeButton } from './HomeButton'
 import type { OrganismState } from '../../../shared/types'
+import { formatNumber, t } from '../../../i18n'
 
 export function OrgHeader({
   org,
@@ -42,51 +43,55 @@ export function OrgHeader({
             {title}
           </span>
         ))}
-        {isSick && <span className="org-sick-badge">sick</span>}
+        {isSick && <span className="org-sick-badge">{t('person.header.sick')}</span>}
         {carrying && (
-          <Tooltip tip="Carrying wood">
+          <Tooltip tip={t('person.header.carrying')}>
             <span className="org-carrying-badge" style={{ cursor: 'default' }}>
               🪵
             </span>
           </Tooltip>
         )}
         <span className="org-detail-actions">
-          <Tooltip tip={isStarred ? 'Unstar' : 'Star this organism (saved across reloads)'}>
+          <Tooltip tip={isStarred ? t('person.header.unstar') : t('person.header.starTip')}>
             <button
               className={clsx('icon-btn', isStarred && 'active-star')}
-              aria-label={isStarred ? 'Unstar' : 'Star'}
+              aria-label={isStarred ? t('person.header.unstar') : t('person.header.star')}
               onClick={() => toggleStar(org.id)}
             >
               {isStarred ? '★' : '☆'}
             </button>
           </Tooltip>
-          <Tooltip tip="View full life history">
-            <button className="icon-btn" aria-label="Life" onClick={() => setShowLife(true)}>
+          <Tooltip tip={t('person.header.lifeTip')}>
+            <button
+              className="icon-btn"
+              aria-label={t('person.header.life')}
+              onClick={() => setShowLife(true)}
+            >
               📖
             </button>
           </Tooltip>
           <HomeButton org={org} />
-          <Tooltip tip={following ? 'Following' : 'Follow this organism'}>
+          <Tooltip tip={following ? t('person.header.following') : t('person.header.followTip')}>
             <button
               className={clsx('icon-btn', following && 'active')}
-              aria-label={following ? 'Unfollow' : 'Follow'}
+              aria-label={following ? t('person.header.unfollow') : t('person.header.follow')}
               onClick={() => onFollow(following ? null : org.id)}
             >
               ⊙
             </button>
           </Tooltip>
-          <button aria-label="Close" className="icon-btn icon-close" onClick={onClose}>
+          <button aria-label={t('person.header.close')} className="icon-btn icon-close" onClick={onClose}>
             ✕
           </button>
         </span>
       </div>
 
       <div className="org-detail-sub">
-        gen {org.generation} ·{' '}
-        {ageInDays > 0 ? `${ageInDays} day${ageInDays !== 1 ? 's' : ''} old` : 'newborn'}
+        {t('person.header.gen', { generation: formatNumber(org.generation) })} ·{' '}
+        {ageInDays > 0 ? t('person.header.ageDays', { count: ageInDays }) : t('person.header.newborn')}
         {' · '}
         {tn(org.lineage_id)}
-        {org.max_age > 0 && ` · max ${fmt(org.max_age)}`}
+        {org.max_age > 0 && ` · ${t('person.header.maxAge', { time: fmt(org.max_age) })}`}
       </div>
     </>
   )

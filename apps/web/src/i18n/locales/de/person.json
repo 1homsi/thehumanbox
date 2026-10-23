@@ -1,1 +1,272 @@
-{}
+{
+  "card": {
+    "energyShort": "E",
+    "energyTip": "Energie – nimmt mit der Zeit ab und wird durch Essen auf Nahrungsfeldern aufgefüllt. Bei 0 % verhungert der Organismus.",
+    "hydrationShort": "H",
+    "hydrationTip": "Hydration – nimmt mit der Zeit ab und wird durch Trinken von Wasser aufgefüllt. Bei 0 % trocknet der Organismus aus.",
+    "healthTip": "Gesundheit – wird durch Hunger, Infektion und Kampf geschwächt. Erholt sich langsam, wenn die Bedürfnisse gestillt sind.",
+    "infectionTip": "Infektionsgrad – der Organismus ist krank und kann die Krankheit an Lebewesen in der Nähe weitergeben. Klingt mit der Zeit oder nahe einer Unterkunft ab.",
+    "sick": "krank",
+    "infectedTip": "Infiziert ({percent} %) – die Krankheit breitet sich durch engen Kontakt mit anderen aus",
+    "expecting": "erwartet ein Kind",
+    "pregnantTip": "Schwanger – in etwa 3 Tagen der Spielwelt wird ein Kind geboren",
+    "sexWordsTip": "ihre Wörter für die beiden Arten",
+    "sexWordsOrigin": "von der Gründergeneration geprägt",
+    "meta": "Generation {generation} · {years}",
+    "ageTip": "Generation {generation} · {years} alt ({ticks} Ticks)",
+    "rename": "dieser Person einen Namen geben",
+    "renameAria": "Person umbenennen",
+    "conversations": {
+      "one": "{count} Gespräch",
+      "other": "{count} Gespräche"
+    },
+    "familyTree": "Stammbaum",
+    "track": "in der Welt verfolgen",
+    "attractionTip": "Dieser Organismus fühlt sich zu einem anderen hingezogen – die Anziehung wächst, und es kann sich eine Bindung bilden",
+    "drawnTo": "fühlt sich zu jemandem hingezogen ✦",
+    "friends": "Freunde:",
+    "memoryFoodShort": "N",
+    "memoryWaterShort": "W",
+    "memoryDangerShort": "G",
+    "memoryFoodTip": "{count} Nahrungsorte gemerkt",
+    "memoryWaterTip": "{count} Wasserquellen gemerkt",
+    "memoryDangerTip": "{count} Gefahrenzonen gemerkt",
+    "traitLabel": {
+      "curiosity": "neu",
+      "aggression": "agr",
+      "fear": "ang",
+      "memory": "ged",
+      "social": "soz",
+      "resilience": "res"
+    },
+    "traitTip": {
+      "curiosity": "Neugier – treibt Erkundung und Risikobereitschaft an",
+      "aggression": "Aggression – bestimmt Kämpfe und Revierverhalten",
+      "fear": "Angst – wie vorsichtig der Organismus gegenüber Gefahren und Raubtieren ist",
+      "memory": "Gedächtnis – wie viele Orte sie sich merken können und wie gut",
+      "social": "Geselligkeit – Neigung zu Bindungen, Handel und Reisen in Gruppen",
+      "resilience": "Widerstandskraft – Schutz vor Krankheit, Temperaturstress und Hunger"
+    }
+  },
+  "header": {
+    "sick": "krank",
+    "carrying": "trägt Holz",
+    "starTip": "Diesen Organismus markieren (bleibt nach Neustarts erhalten)",
+    "star": "Markieren",
+    "unstar": "Markierung entfernen",
+    "lifeTip": "Vollständige Lebensgeschichte anzeigen",
+    "life": "Leben",
+    "following": "Wird verfolgt",
+    "followTip": "Diesem Organismus folgen",
+    "follow": "Folgen",
+    "unfollow": "Nicht mehr folgen",
+    "close": "Schließen",
+    "gen": "Gen. {generation}",
+    "ageDays": {
+      "one": "{count} Tag alt",
+      "other": "{count} Tage alt"
+    },
+    "newborn": "neugeboren",
+    "maxAge": "max. {time}"
+  },
+  "home": {
+    "enterTip": "Ihr Zuhause betreten",
+    "visitTip": "Ihr Zuhause besuchen (sie sind unterwegs)",
+    "lookInside": "Hineinschauen"
+  },
+  "status": {
+    "rich": "reich",
+    "poor": "arm",
+    "skillTip": "Geschick {percent}",
+    "skillWord": {
+      "master": "Meister",
+      "skilled": "geübt",
+      "journeyman": "Geselle",
+      "apprentice": "Lehrling"
+    },
+    "traitTip": "Eine Eigenschaft, mit der sie geboren wurden und die von den Eltern weitergegeben wurde",
+    "moodTip": "Wie sie sich gerade fühlen, je nachdem, was sie durchmachen",
+    "feels": "fühlt sich {mood}",
+    "mounted": "auf Fahrzeug"
+  },
+  "vitals": {
+    "energy": "Energie",
+    "hydration": "Hydration",
+    "health": "Gesundheit",
+    "infection": "Infektion"
+  },
+  "mental": {
+    "title": "SEELISCHER ZUSTAND",
+    "label": {
+      "comfort": "Behagen",
+      "loneliness": "Einsamkeit",
+      "fear": "Angst",
+      "boredom": "Langeweile",
+      "fatigue": "Erschöpfung",
+      "grieving": "trauert",
+      "joyful": "fröhlich",
+      "hope": "Hoffnung",
+      "awe": "Ehrfurcht",
+      "gratitude": "Dankbarkeit",
+      "jealousy": "Eifersucht",
+      "anger": "Wut",
+      "regret": "Reue",
+      "curiosity": "Neugier",
+      "spiritual": "spirituell"
+    },
+    "tip": {
+      "comfort": "Behagen – steigt in der Nähe von Unterkunft und Verwandten und sinkt unter harten Bedingungen. Hohes Behagen beschleunigt die Erholung.",
+      "loneliness": "Einsamkeit – baut sich auf, wenn man isoliert ist, und lässt durch sozialen Kontakt nach. Hohe Einsamkeit treibt sie dazu, andere zu suchen.",
+      "fear": "Angst – steigt in der Nähe von Raubtieren und Gefahr sprunghaft an. Überlagert das normale Verhalten; der Organismus flieht.",
+      "boredom": "Langeweile – steigt, wenn nichts zu tun ist. Treibt den Organismus an, zu erkunden, umherzuziehen oder Risiken einzugehen.",
+      "fatigue": "Erschöpfung – baut sich ohne Ruhe auf. Der Organismus sucht eine Unterkunft zum Schlafen; hohe Erschöpfung zehrt an der Gesundheit.",
+      "hope": "Hoffnung – steigt, wenn man sicher und satt ist, und sinkt unter Bedrohung oder Hunger.",
+      "awe": "Ehrfurcht – vertieft sich nachts unter offenem Himmel. Nährt das spirituelle Wachstum.",
+      "gratitude": "Dankbarkeit – sammelt sich im Behagen unter Verwandten. Treibt zum Teilen an.",
+      "jealousy": "Eifersucht – schleicht sich ein, wenn Rivalen in knappen Zeiten vordringen.",
+      "anger": "Wut – steigt gegen feindselige Nachbarn an und kühlt schnell ab, wenn man sicher ist.",
+      "regret": "Reue – bleibt nach Ausbrüchen oder langer Trauer zurück.",
+      "curiosity": "Neugier-Antrieb – gelangweilte, satte Organismen wandern weiter.",
+      "spiritual": "Spirituelle Tiefe – steigt nachts in einer sicheren Unterkunft. Zieht Pilgerreisen zu Tempeln an."
+    },
+    "ticks": "{count} Ticks"
+  },
+  "aspiration": {
+    "title": "BESTREBUNG",
+    "tip": {
+      "seeker": "Zieht es zum Wissen – strebt nach Erkundung, Wissenschaft und Lernen.",
+      "wanderer": "Ruhelos und neugierig – am glücklichsten unterwegs, weit weg von Siedlungen.",
+      "warrior": "Für den Kampf geboren – neigt zu Kampf und Militärleben.",
+      "connector": "Lebt für andere – sucht Partnerschaften, Freundschaften, Familie.",
+      "builder": "Will Dinge erschaffen – Bauen und Handwerk sind ihre Berufung.",
+      "devout": "Ein spirituelles Leben – Religion, Ritual und Hingabe leiten sie.",
+      "sage": "Im Herzen ein Lehrer – gibt Wissen an die nächste Generation weiter.",
+      "provider": "Sorgt für den Haushalt – Landwirtschaft, Essen und Fürsorge für die Familie.",
+      "artist": "Schafft um des Schaffens willen – Bilder, Lieder, geschriebene Worte.",
+      "healer": "Kümmert sich um die Kranken – Heilkunde, Kräuter und die lange Geduld der Pflege."
+    }
+  },
+  "skills": {
+    "title": "FÄHIGKEITEN",
+    "tip": "Wächst durch Übung und durch Zusehen bei Verwandten und Freunden, die es besser können. Eine geübte Hand gelingt öfter und holt mehr aus derselben Arbeit heraus.",
+    "rank": {
+      "learning": "lernt",
+      "handy": "geschickt",
+      "skilled": "erfahren",
+      "master": "Meister"
+    },
+    "name": {
+      "woodcutting": "Holzfällen",
+      "quarrying": "Steinbruch",
+      "foraging": "Sammeln",
+      "fishing": "Fischen",
+      "hunting": "Jagen",
+      "farming": "Ackerbau",
+      "building": "Bauen",
+      "crafting": "Handwerk",
+      "healing": "Heilen"
+    }
+  },
+  "zodiac": {
+    "title": "GEBOREN UNTER",
+    "flavor": {
+      "ember": "warmherzig und schnell im Handeln",
+      "wave": "fließend, geduldig, folgt dem Mond",
+      "stone": "beständig, langsam im Zorn, schwer zu stürzen",
+      "root": "tief verwurzelt, hält an den Verwandten fest",
+      "bough": "greift nach außen und wächst stetig",
+      "crane": "wachsam, langes Gedächtnis, bedachter Schritt",
+      "wolf": "jagt in der Stille, vertraut dem Rudel",
+      "dawn": "aus dem Licht geboren, unruhig bis zum Tag",
+      "hearth": "hütet das Feuer, sorgt für das Zuhause",
+      "veil": "still, sieht, was andere übersehen",
+      "spear": "zielsicher, direkt, unerschrocken",
+      "seed": "jetzt noch klein, aber alles kommt noch"
+    }
+  },
+  "traits": {
+    "title": "EIGENSCHAFTEN",
+    "label": {
+      "curiosity": "Neugier",
+      "aggression": "Aggression",
+      "fear": "Angst",
+      "memory": "Gedächtnis",
+      "social": "Geselligkeit",
+      "resilience": "Widerstandskraft"
+    },
+    "tip": {
+      "curiosity": "Neugier – treibt Erkundung und Risikobereitschaft an. Neugierige Organismen wandern weiter und entdecken mehr.",
+      "aggression": "Aggression – bestimmt, wann Kämpfe beginnen und wie Reviere verteidigt werden. Hohe Aggression = mehr Herausforderungen.",
+      "fear": "Angst – wie schnell sie vor Gefahr fliehen. Hohe Angst bedeutet frühen Rückzug; niedrige Angst heißt standhalten.",
+      "memory": "Gedächtnis – wie viele Orte sie behalten und wie stark. Besseres Gedächtnis = klügere Wegfindung.",
+      "social": "Geselligkeit – treibt Bindungen, Handel und Gruppenreisen an. Gesellige Organismen bilden Stämme schneller.",
+      "resilience": "Widerstandskraft – Schutz vor Krankheit, extremen Temperaturen und Hunger. Bei hohen Werten längere Lebensspanne."
+    }
+  },
+  "language": {
+    "title": "IHRE SPRACHE"
+  },
+  "life": {
+    "memory": "GEDÄCHTNIS",
+    "foodTip": "{count} Nahrungsorte gemerkt – der Organismus steuert diese an, wenn er hungrig ist",
+    "waterTip": "{count} Wasserquellen gemerkt – der Organismus steuert diese an, wenn er durstig ist",
+    "dangerTip": "{count} Gefahrenzonen gemerkt – der Organismus meidet diese Gebiete, wenn möglich",
+    "food": "Nahrung ×{count}",
+    "water": "Wasser ×{count}",
+    "danger": "Gefahr ×{count}",
+    "death": "TOD",
+    "story": "GESCHICHTE",
+    "recent": "JÜNGSTES LEBEN",
+    "witnessed": "WAS SIE GESEHEN HABEN",
+    "tick": "t{tick}",
+    "innerLife": "INNERES LEBEN",
+    "oldest": "älteste:",
+    "proudest": "stolzeste:",
+    "heaviest": "schwerste:"
+  },
+  "memories": {
+    "bonds": "GEMERKTE BINDUNGEN",
+    "bond": "Bindung",
+    "goTo": "Zu {name} gehen",
+    "whatTheyRemember": "WAS SIE SICH MERKEN",
+    "salience": "{kind} – Bedeutung {percent} %",
+    "salienceRecalled": "{kind} – Bedeutung {percent} % · {count}× erinnert",
+    "salienceOnly": "Bedeutung {percent} %"
+  },
+  "kin": {
+    "title": "FAMILIE UND FREUNDE",
+    "mother": "Mutter",
+    "father": "Vater",
+    "child": "Kind",
+    "friend": "Freund",
+    "rival": "Rivale",
+    "tip": "{label}: {name}. Zum Auswählen klicken.",
+    "tipDead": "{label}: {name} (verstorben). Zum Auswählen klicken."
+  },
+  "relations": {
+    "title": "BEZIEHUNGEN",
+    "allied": "Verbündet mit {name} – {percent} % positive Haltung. Wird wahrscheinlich handeln und zusammenarbeiten.",
+    "hostile": "Feindselig gegenüber {name} – {percent} % negative Haltung. Wird wahrscheinlich herausfordern oder meiden."
+  },
+  "bonds": {
+    "title": "PERSÖNLICHE BINDUNGEN",
+    "trusts": "Vertraut {name} – persönliche Bindung bei {percent} %. Entsteht durch gemeinsame Erfahrungen und Zusammenarbeit.",
+    "fears": "Fürchtet {name} – negative Bindung bei {percent} %. Ergebnis früherer Konflikte oder Aggression."
+  },
+  "background": {
+    "education": "BILDUNG",
+    "literacy": "Lesefähigkeit",
+    "wealth": "VERMÖGEN",
+    "inventory": "INVENTAR",
+    "religion": "RELIGION",
+    "piety": "Frömmigkeit",
+    "diseases": "KRANKHEITEN",
+    "sickSince": "Krank mit {kind} seit t{tick}"
+  },
+  "format": {
+    "days": {
+      "one": "{count} Tag",
+      "other": "{count} Tage"
+    }
+  }
+}

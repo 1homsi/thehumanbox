@@ -1,1 +1,269 @@
-{}
+{
+  "card": {
+    "energyShort": "E",
+    "energyTip": "Enerji – zamanla azalır, yiyecek karolarında yemek yiyerek yenilenir. %0'da organizma açlıktan ölür.",
+    "hydrationShort": "S",
+    "hydrationTip": "Hidrasyon – zamanla azalır, su içerek yenilenir. %0'da organizma susuzlaşır.",
+    "healthTip": "Sağlık – açlık, enfeksiyon ve savaşla zarar görür. İhtiyaçlar karşılandığında yavaşça toparlanır.",
+    "infectionTip": "Enfeksiyon düzeyi – organizma hasta ve yakındakilere hastalık bulaştırabilir. Zamanla ya da bir barınağın yakınında azalır.",
+    "sick": "hasta",
+    "infectedTip": "Enfekte (%{percent}) – hastalık diğerleriyle yakın temas yoluyla yayılır",
+    "expecting": "çocuk bekliyor",
+    "pregnantTip": "Hamile – dünyada yaklaşık 3 gün içinde bir çocuk doğacak",
+    "sexWordsTip": "iki tür için kullandıkları kelimeler",
+    "sexWordsOrigin": "kurucu kuşak tarafından türetildi",
+    "meta": "Nesil {generation} · {years}",
+    "ageTip": "Nesil {generation} · {years} yaşında ({ticks} tik)",
+    "rename": "bu kişiye bir isim ver",
+    "renameAria": "Kişiyi yeniden adlandır",
+    "conversations": {
+      "other": "{count} konuşma"
+    },
+    "familyTree": "soy ağacı",
+    "track": "dünyada takip et",
+    "attractionTip": "Bu organizma bir başkasına çekiliyor – çekim büyüyor ve bir bağ kurulabilir",
+    "drawnTo": "birine çekiliyor ✦",
+    "friends": "arkadaşlar:",
+    "memoryFoodShort": "Y",
+    "memoryWaterShort": "S",
+    "memoryDangerShort": "T",
+    "memoryFoodTip": "{count} yiyecek yeri hatırlanıyor",
+    "memoryWaterTip": "{count} su kaynağı hatırlanıyor",
+    "memoryDangerTip": "{count} tehlikeli bölge hatırlanıyor",
+    "traitLabel": {
+      "curiosity": "mer",
+      "aggression": "agr",
+      "fear": "kor",
+      "memory": "haf",
+      "social": "sos",
+      "resilience": "dir"
+    },
+    "traitTip": {
+      "curiosity": "Merak – keşfi ve riski teşvik eder",
+      "aggression": "Saldırganlık – savaşları ve bölgesel davranışı belirler",
+      "fear": "Korku – organizmanın tehlike ve avcılara karşı ne kadar temkinli olduğu",
+      "memory": "Hafıza – kaç yeri ve ne kadar iyi hatırladıkları",
+      "social": "Sosyallik – bağ kurma, ticaret ve grupla seyahat eğilimi",
+      "resilience": "Dayanıklılık – hastalıklara, aşırı sıcaklıklara ve açlığa direnç"
+    }
+  },
+  "header": {
+    "sick": "hasta",
+    "carrying": "odun taşıyor",
+    "starTip": "Bu organizmayı yıldızla (yeniden yüklemeden sonra da kalır)",
+    "star": "Yıldızla",
+    "unstar": "Yıldızı kaldır",
+    "lifeTip": "Tam yaşam öyküsünü gör",
+    "life": "Yaşam",
+    "following": "Takip ediliyor",
+    "followTip": "Bu organizmayı takip et",
+    "follow": "Takip et",
+    "unfollow": "Takibi bırak",
+    "close": "Kapat",
+    "gen": "nesil {generation}",
+    "ageDays": {
+      "other": "{count} günlük"
+    },
+    "newborn": "yeni doğmuş",
+    "maxAge": "en fazla {time}"
+  },
+  "home": {
+    "enterTip": "Evlerinin içine gir",
+    "visitTip": "Evlerini ziyaret et (dışarıdalar)",
+    "lookInside": "İçeri bak"
+  },
+  "status": {
+    "rich": "zengin",
+    "poor": "fakir",
+    "skillTip": "beceri {percent}",
+    "skillWord": {
+      "master": "usta",
+      "skilled": "becerikli",
+      "journeyman": "kalfa",
+      "apprentice": "çırak"
+    },
+    "traitTip": "Doğuştan sahip oldukları ve ebeveynlerinden geçen bir özellik",
+    "moodTip": "Yaşadıklarına bağlı olarak şu an nasıl hissettikleri",
+    "feels": "{mood} hissediyor",
+    "mounted": "araca binmiş"
+  },
+  "vitals": {
+    "energy": "enerji",
+    "hydration": "hidrasyon",
+    "health": "sağlık",
+    "infection": "enfeksiyon"
+  },
+  "mental": {
+    "title": "ZİHİNSEL DURUM",
+    "label": {
+      "comfort": "rahatlık",
+      "loneliness": "yalnızlık",
+      "fear": "korku",
+      "boredom": "sıkıntı",
+      "fatigue": "yorgunluk",
+      "grieving": "yas tutuyor",
+      "joyful": "neşeli",
+      "hope": "umut",
+      "awe": "hayranlık",
+      "gratitude": "minnettarlık",
+      "jealousy": "kıskançlık",
+      "anger": "öfke",
+      "regret": "pişmanlık",
+      "curiosity": "merak",
+      "spiritual": "ruhsal"
+    },
+    "tip": {
+      "comfort": "Rahatlık – barınağa ve yakınlara yakınken artar, zor koşullarda düşer. Yüksek rahatlık iyileşmeyi hızlandırır.",
+      "loneliness": "Yalnızlık – yalnız kalınca birikir, sosyal temasla hafifler. Yüksek yalnızlık onları başkalarını aramaya iter.",
+      "fear": "Korku – avcılara ve tehlikeye yakınken ani biçimde artar. Normal davranışın önüne geçer; organizma kaçar.",
+      "boredom": "Sıkıntı – boşta kalındıkça artar. Organizmayı keşfetmeye, dolaşmaya ya da risk almaya iter.",
+      "fatigue": "Yorgunluk – dinlenmeden birikir. Organizma uyumak için barınak arar; yüksek yorgunluk sağlığı tüketir.",
+      "hope": "Umut – güvende ve tokken artar, tehdit ya da açlık altında düşer.",
+      "awe": "Hayranlık – geceleri açık gökyüzü altında derinleşir. Ruhsal büyümeyi besler.",
+      "gratitude": "Minnettarlık – yakınların arasında rahatlıkta birikir. Paylaşmaya yöneltir.",
+      "jealousy": "Kıskançlık – kıtlık zamanında rakipler yayıldığında sinsice büyür.",
+      "anger": "Öfke – düşman komşulara karşı yükselir ve güvende olunca hızla söner.",
+      "regret": "Pişmanlık – patlamalardan ya da uzun süren yastan sonra kalır.",
+      "curiosity": "Merak dürtüsü – sıkılmış, tok organizmalar daha uzağa gider.",
+      "spiritual": "Ruhsal derinlik – güvenli bir barınakta geceleri artar. Tapınaklara hac yolculuklarını çeker."
+    },
+    "ticks": "{count} tik"
+  },
+  "aspiration": {
+    "title": "ARZU",
+    "tip": {
+      "seeker": "Bilgiye yönelir – keşfi, bilimi ve öğrenmeyi arar.",
+      "wanderer": "Huzursuz ve meraklı – yerleşimlerden uzakta, yolda en mutlu.",
+      "warrior": "Çatışma için doğmuş – savaşa ve askerî yaşama yönelir.",
+      "connector": "Başkaları için yaşar – ortaklıklar, dostluklar, aileyi arar.",
+      "builder": "Bir şeyler yapmak ister – inşaat ve zanaat onların çağrısıdır.",
+      "devout": "Ruhsal bir yaşam – din, ritüel ve bağlılık onlara yol gösterir.",
+      "sage": "Özünde bir öğretmen – bilgiyi bir sonraki kuşağa aktarır.",
+      "provider": "Evi çeker çevirir – tarım, yiyecek ve aile bakımı.",
+      "artist": "Yapmak için yapar – resimler, şarkılar, yazılı sözler.",
+      "healer": "Hastalara bakar – tıp, otlar ve bakımın uzun sabrı."
+    }
+  },
+  "skills": {
+    "title": "BECERİLER",
+    "tip": "Pratikle ve daha iyi yapan akraba ve arkadaşları izleyerek gelişir. Deneyimli bir el daha sık başarır ve aynı işten daha çok çıkarır.",
+    "rank": {
+      "learning": "öğreniyor",
+      "handy": "becerikli",
+      "skilled": "usta",
+      "master": "üstat"
+    },
+    "name": {
+      "woodcutting": "odunculuk",
+      "quarrying": "taşçılık",
+      "foraging": "toplayıcılık",
+      "fishing": "balıkçılık",
+      "hunting": "avcılık",
+      "farming": "çiftçilik",
+      "building": "inşaat",
+      "crafting": "zanaat",
+      "healing": "şifacılık"
+    }
+  },
+  "zodiac": {
+    "title": "ALTINDA DOĞDU",
+    "flavor": {
+      "ember": "sıcak kalpli ve hızlı harekete geçen",
+      "wave": "akıcı, sabırlı, aya uyar",
+      "stone": "sağlam, öfkesi geç gelir, geç düşer",
+      "root": "derine kök salmış, yakınlarına bağlı",
+      "bough": "dışa uzanır, hep büyür",
+      "crane": "uyanık, uzun hafıza, dikkatli adım",
+      "wolf": "sessizce avlanır, sürüye güvenir",
+      "dawn": "ışıkla doğmuş, gün doğana dek huzursuz",
+      "hearth": "ateşi korur, evi kollar",
+      "veil": "sessiz, başkalarının kaçırdığını görür",
+      "spear": "hedefi iyi tutar, dobra, korkusuz",
+      "seed": "şimdilik küçük, ama her şey geliyor"
+    }
+  },
+  "traits": {
+    "title": "ÖZELLİKLER",
+    "label": {
+      "curiosity": "merak",
+      "aggression": "saldırganlık",
+      "fear": "korku",
+      "memory": "hafıza",
+      "social": "sosyallik",
+      "resilience": "dayanıklılık"
+    },
+    "tip": {
+      "curiosity": "Merak – keşfi ve risk almayı teşvik eder. Yüksek merakı olan organizmalar daha uzağa gider ve daha çok şey keşfeder.",
+      "aggression": "Saldırganlık – çatışmaların başlamasını ve bölgesel davranışı belirler. Yüksek saldırganlık = daha çok meydan okuma.",
+      "fear": "Korku – tehlikeden ne kadar hızlı kaçtıklarını belirler. Yüksek korku erken geri çekilme demektir; düşük korku yerinde durmak demektir.",
+      "memory": "Hafıza – kaç yeri ne kadar güçlü tuttukları. Daha iyi hafıza = daha akıllı yol bulma.",
+      "social": "Sosyallik – bağ kurma, ticaret ve grup seyahatini teşvik eder. Yüksek sosyallik gösteren organizmalar kabileleri daha hızlı kurar.",
+      "resilience": "Dayanıklılık – hastalıklara, aşırı sıcaklıklara ve açlığa direnç. Yüksek değerlerde daha uzun yaşarlar."
+    }
+  },
+  "language": {
+    "title": "DİLLERİ"
+  },
+  "life": {
+    "memory": "HAFIZA",
+    "foodTip": "Hatırlanan {count} yiyecek yeri – açken organizma bu yerlere yönelir",
+    "waterTip": "Hatırlanan {count} su kaynağı – susayınca organizma bu yerlere yönelir",
+    "dangerTip": "Hatırlanan {count} tehlikeli bölge – mümkün olduğunda organizma bu alanlardan kaçınır",
+    "food": "yiyecek ×{count}",
+    "water": "su ×{count}",
+    "danger": "tehlike ×{count}",
+    "death": "ÖLÜM",
+    "story": "HİKÂYE",
+    "recent": "SON YAŞAM",
+    "witnessed": "TANIK OLDUKLARI",
+    "tick": "t{tick}",
+    "innerLife": "İÇ YAŞAM",
+    "oldest": "en eski:",
+    "proudest": "en gururlu:",
+    "heaviest": "en ağır:"
+  },
+  "memories": {
+    "bonds": "HATIRLANAN BAĞLAR",
+    "bond": "bağ",
+    "goTo": "{name} kişisine git",
+    "whatTheyRemember": "HATIRLADIKLARI",
+    "salience": "{kind} – önem %{percent}",
+    "salienceRecalled": "{kind} – önem %{percent} · {count} kez hatırlandı",
+    "salienceOnly": "önem %{percent}"
+  },
+  "kin": {
+    "title": "AİLE VE ARKADAŞLAR",
+    "mother": "anne",
+    "father": "baba",
+    "child": "çocuk",
+    "friend": "arkadaş",
+    "rival": "rakip",
+    "tip": "{label}: {name}. Seçmek için tıkla.",
+    "tipDead": "{label}: {name} (öldü). Seçmek için tıkla."
+  },
+  "relations": {
+    "title": "İLİŞKİLER",
+    "allied": "{name} ile müttefik – %{percent} olumlu tutum. Muhtemelen ticaret yapıp iş birliği yapacak.",
+    "hostile": "{name} kişisine karşı düşman – %{percent} olumsuz tutum. Muhtemelen meydan okuyacak ya da kaçınacak."
+  },
+  "bonds": {
+    "title": "KİŞİSEL BAĞLAR",
+    "trusts": "{name} kişisine güveniyor – %{percent} kişisel bağ. Ortak deneyimler ve iş birliğiyle kuruldu.",
+    "fears": "{name} kişisinden korkuyor – %{percent} olumsuz bağ. Geçmiş bir çatışma ya da saldırganlığın sonucu."
+  },
+  "background": {
+    "education": "EĞİTİM",
+    "literacy": "okuryazarlık",
+    "wealth": "SERVET",
+    "inventory": "ENVANTER",
+    "religion": "DİN",
+    "piety": "dindarlık",
+    "diseases": "HASTALIKLAR",
+    "sickSince": "t{tick} tarihinden beri {kind} hastalığına yakalanmış"
+  },
+  "format": {
+    "days": {
+      "other": "{count} gün"
+    }
+  }
+}

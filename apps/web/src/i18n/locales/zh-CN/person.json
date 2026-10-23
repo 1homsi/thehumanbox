@@ -1,1 +1,269 @@
-{}
+{
+  "card": {
+    "energyShort": "能",
+    "energyTip": "能量——随时间减少，吃到食物格子时恢复。降到 0% 时会饿死。",
+    "hydrationShort": "水",
+    "hydrationTip": "水分——随时间减少，喝水可恢复。降到 0% 时会脱水。",
+    "healthTip": "健康——会因饥饿、感染和战斗受损。需求得到满足时会缓慢恢复。",
+    "infectionTip": "感染程度——生物患病，可能把疾病传给附近的其他生物。随时间或在住所附近会减轻。",
+    "sick": "患病",
+    "infectedTip": "已感染（{percent}%）——疾病通过密切接触传播",
+    "expecting": "怀孕",
+    "pregnantTip": "怀孕——约 3 个世界日后会有孩子出生",
+    "sexWordsTip": "他们对两种人的称呼",
+    "sexWordsOrigin": "由开创世代所造",
+    "meta": "第 {generation} 代 · {years}",
+    "ageTip": "第 {generation} 代 · {years}（{ticks} tick）",
+    "rename": "给这个人起个名字",
+    "renameAria": "为此人改名",
+    "conversations": {
+      "other": "{count} 次对话"
+    },
+    "familyTree": "家谱",
+    "track": "在世界中追踪",
+    "attractionTip": "这个生物被另一个吸引——好感在增长，可能会结成联系",
+    "drawnTo": "被某人吸引 ✦",
+    "friends": "朋友：",
+    "memoryFoodShort": "食",
+    "memoryWaterShort": "水",
+    "memoryDangerShort": "险",
+    "memoryFoodTip": "记住的食物地点 {count} 处",
+    "memoryWaterTip": "记住的水源 {count} 处",
+    "memoryDangerTip": "记住的危险区域 {count} 处",
+    "traitLabel": {
+      "curiosity": "好奇",
+      "aggression": "攻击",
+      "fear": "恐惧",
+      "memory": "记忆",
+      "social": "社交",
+      "resilience": "韧性"
+    },
+    "traitTip": {
+      "curiosity": "好奇心——驱动探索和冒险意愿",
+      "aggression": "攻击性——决定战斗和领地行为",
+      "fear": "恐惧——面对危险和捕食者时有多谨慎",
+      "memory": "记忆力——能记住多少地点，记得多牢",
+      "social": "社交倾向——驱动结交、交易和结伴出行",
+      "resilience": "韧性——抵抗疾病、极端温度和饥饿的能力"
+    }
+  },
+  "header": {
+    "sick": "患病",
+    "carrying": "正在搬运木材",
+    "starTip": "给这个生物加星标（重新加载后仍保留）",
+    "star": "加星标",
+    "unstar": "取消星标",
+    "lifeTip": "查看完整生平",
+    "life": "生平",
+    "following": "正在跟随",
+    "followTip": "跟随此生物",
+    "follow": "跟随",
+    "unfollow": "取消跟随",
+    "close": "关闭",
+    "gen": "第 {generation} 代",
+    "ageDays": {
+      "other": "{count} 日龄"
+    },
+    "newborn": "新生",
+    "maxAge": "寿限 {time}"
+  },
+  "home": {
+    "enterTip": "进入他们的家",
+    "visitTip": "拜访他们的家（他们外出了）",
+    "lookInside": "查看内部"
+  },
+  "status": {
+    "rich": "富有",
+    "poor": "贫穷",
+    "skillTip": "技能 {percent}",
+    "skillWord": {
+      "master": "大师",
+      "skilled": "熟练",
+      "journeyman": "熟手",
+      "apprentice": "学徒"
+    },
+    "traitTip": "与生俱来、由父母遗传的特质",
+    "moodTip": "根据他们正在经历的事情，此刻的感受",
+    "feels": "感觉{mood}",
+    "mounted": "乘坐中"
+  },
+  "vitals": {
+    "energy": "能量",
+    "hydration": "水分",
+    "health": "健康",
+    "infection": "感染"
+  },
+  "mental": {
+    "title": "心理状态",
+    "label": {
+      "comfort": "舒适",
+      "loneliness": "孤独",
+      "fear": "恐惧",
+      "boredom": "无聊",
+      "fatigue": "疲劳",
+      "grieving": "哀悼",
+      "joyful": "欢喜",
+      "hope": "希望",
+      "awe": "敬畏",
+      "gratitude": "感恩",
+      "jealousy": "嫉妒",
+      "anger": "愤怒",
+      "regret": "懊悔",
+      "curiosity": "好奇",
+      "spiritual": "灵性"
+    },
+    "tip": {
+      "comfort": "舒适——在住所和亲人附近上升，在恶劣条件下下降。舒适度高有助于恢复。",
+      "loneliness": "孤独——独处时积累，社交接触可缓解。孤独感高会驱使他们去寻找他人。",
+      "fear": "恐惧——在捕食者和危险附近急剧上升。会压过正常行为，生物会逃跑。",
+      "boredom": "无聊——闲置时上升。促使生物去探索、游荡或冒险。",
+      "fatigue": "疲劳——不休息就会积累。生物会寻找住所睡觉；疲劳过高会消耗健康。",
+      "hope": "希望——安全且吃饱时上升，受威胁或饥饿时下降。",
+      "awe": "敬畏——夜里在敞开的天空下加深。滋养灵性成长。",
+      "gratitude": "感恩——在亲人环绕的舒适中积累。驱动分享。",
+      "jealousy": "嫉妒——在匮乏时，竞争者侵占领地便会滋生。",
+      "anger": "愤怒——对敌对邻居会骤然升起，安全时很快平息。",
+      "regret": "懊悔——在爆发或长久哀悼之后留存。",
+      "curiosity": "好奇驱动——无聊且吃饱的生物会走得更远。",
+      "spiritual": "灵性深度——夜里在安全的住所中上升。吸引人们朝圣寺庙。"
+    },
+    "ticks": "{count} tick"
+  },
+  "aspiration": {
+    "title": "志向",
+    "tip": {
+      "seeker": "被知识吸引——追求探索、科学和学习。",
+      "wanderer": "不安分且好奇——在路上最快乐，远离定居点。",
+      "warrior": "生来为战——倾向战斗与军旅生活。",
+      "connector": "为他人而活——寻求伙伴关系、友谊和家庭。",
+      "builder": "想要创造——建造与手艺是他们的使命。",
+      "devout": "虔诚的生活——宗教、仪式和奉献指引着他们。",
+      "sage": "天生是师者——把知识传给下一代。",
+      "provider": "操持家务——农业、食物和家庭照料。",
+      "artist": "为创作而创作——绘画、歌曲、文字。",
+      "healer": "照料病人——医术、草药，以及漫长的耐心照护。"
+    }
+  },
+  "skills": {
+    "title": "技能",
+    "tip": "通过练习，以及观看更擅长的亲人和朋友工作而提高。熟练的人更常成功，同样的工作收获更多。",
+    "rank": {
+      "learning": "学习中",
+      "handy": "上手",
+      "skilled": "熟练",
+      "master": "大师"
+    },
+    "name": {
+      "woodcutting": "伐木",
+      "quarrying": "采石",
+      "foraging": "采集",
+      "fishing": "捕鱼",
+      "hunting": "狩猎",
+      "farming": "耕作",
+      "building": "建造",
+      "crafting": "手工",
+      "healing": "医治"
+    }
+  },
+  "zodiac": {
+    "title": "出生于",
+    "flavor": {
+      "ember": "热心肠，行动迅速",
+      "wave": "随和、耐心，追随月亮",
+      "stone": "稳重，发怒慢，倒下也慢",
+      "root": "根基深厚，紧系亲人",
+      "bough": "向外伸展，永远生长",
+      "crane": "警觉，记性长，步伐谨慎",
+      "wolf": "无声狩猎，信任群体",
+      "dawn": "生于光明，直到天亮都不安宁",
+      "hearth": "守护火焰，照料家园",
+      "veil": "安静，看见别人忽略的东西",
+      "spear": "瞄得准，直率，无所畏惧",
+      "seed": "现在虽小，但一切都在到来"
+    }
+  },
+  "traits": {
+    "title": "特质",
+    "label": {
+      "curiosity": "好奇",
+      "aggression": "攻击",
+      "fear": "恐惧",
+      "memory": "记忆",
+      "social": "社交",
+      "resilience": "韧性"
+    },
+    "tip": {
+      "curiosity": "好奇心——驱动探索和冒险。好奇心强的生物走得更远，发现也更多。",
+      "aggression": "攻击性——决定是否发起战斗以及领地行为。攻击性高意味着更多挑战。",
+      "fear": "恐惧——逃离危险的速度。恐惧高意味着早早撤退；恐惧低意味着坚守阵地。",
+      "memory": "记忆——能保留多少地点、保留得多牢。记忆越好，导航越聪明。",
+      "social": "社交倾向——驱动结交、交易和结伴出行。社交性强的生物更快组成部落。",
+      "resilience": "韧性——抵抗疾病、极端温度和饥饿的能力。数值越高寿命越长。"
+    }
+  },
+  "language": {
+    "title": "他们的语言"
+  },
+  "life": {
+    "memory": "记忆",
+    "foodTip": "记住 {count} 处食物地点——饥饿时生物会前往这些地方",
+    "waterTip": "记住 {count} 处水源——口渴时生物会前往这些地方",
+    "dangerTip": "记住 {count} 处危险区域——生物会尽量避开这些地方",
+    "food": "食物 ×{count}",
+    "water": "水 ×{count}",
+    "danger": "危险 ×{count}",
+    "death": "死亡",
+    "story": "经历",
+    "recent": "近期生活",
+    "witnessed": "他们目睹的",
+    "tick": "t{tick}",
+    "innerLife": "内心生活",
+    "oldest": "最早的：",
+    "proudest": "最骄傲的：",
+    "heaviest": "最沉重的："
+  },
+  "memories": {
+    "bonds": "记住的联系",
+    "bond": "联系",
+    "goTo": "前往 {name}",
+    "whatTheyRemember": "他们记得的",
+    "salience": "{kind}——显著度 {percent}%",
+    "salienceRecalled": "{kind}——显著度 {percent}% · 回想过 {count} 次",
+    "salienceOnly": "显著度 {percent}%"
+  },
+  "kin": {
+    "title": "家人与朋友",
+    "mother": "母亲",
+    "father": "父亲",
+    "child": "孩子",
+    "friend": "朋友",
+    "rival": "对手",
+    "tip": "{label}：{name}。点击选中此人。",
+    "tipDead": "{label}：{name}（已故）。点击选中此人。"
+  },
+  "relations": {
+    "title": "关系",
+    "allied": "与 {name} 结盟——正面态度 {percent}%。可能会交易并合作。",
+    "hostile": "敌视 {name}——负面态度 {percent}%。可能会挑战或回避。"
+  },
+  "bonds": {
+    "title": "个人纽带",
+    "trusts": "信任 {name}——个人纽带 {percent}%。通过共同经历和合作建立。",
+    "fears": "畏惧 {name}——负面纽带 {percent}%。源于过去的冲突或攻击。"
+  },
+  "background": {
+    "education": "教育",
+    "literacy": "识字",
+    "wealth": "财富",
+    "inventory": "物品",
+    "religion": "宗教",
+    "piety": "虔诚",
+    "diseases": "疾病",
+    "sickSince": "自 t{tick} 起患有{kind}"
+  },
+  "format": {
+    "days": {
+      "other": "{count} 天"
+    }
+  }
+}

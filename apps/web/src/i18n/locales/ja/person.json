@@ -1,1 +1,269 @@
-{}
+{
+  "card": {
+    "energyShort": "エ",
+    "energyTip": "エネルギー――時間とともに減り、食べ物のタイルを食べると回復します。0%になると餓死します。",
+    "hydrationShort": "水",
+    "hydrationTip": "水分――時間とともに減り、水を飲むと回復します。0%になると脱水します。",
+    "healthTip": "健康――飢え、感染、戦闘で損なわれます。欲求が満たされると少しずつ回復します。",
+    "infectionTip": "感染度――病気にかかっており、近くの他の生き物にうつすことがあります。時間が経つか、住まいの近くにいると減ります。",
+    "sick": "病気",
+    "infectedTip": "感染（{percent}%）――密接な接触を通じて病気が広がります",
+    "expecting": "妊娠中",
+    "pregnantTip": "妊娠中――約3世界日のうちに子どもが生まれます",
+    "sexWordsTip": "二つの種類を表す彼ら独自の言葉",
+    "sexWordsOrigin": "始祖の世代が作った言葉",
+    "meta": "第{generation}世代 · {years}",
+    "ageTip": "第{generation}世代 · {years}（{ticks} ティック）",
+    "rename": "この人に名前をつける",
+    "renameAria": "名前を変更",
+    "conversations": {
+      "other": "会話 {count} 件"
+    },
+    "familyTree": "家系図",
+    "track": "世界で追跡",
+    "attractionTip": "この生き物は別の生き物に惹かれています――惹かれ合いが深まり、絆が生まれるかもしれません",
+    "drawnTo": "誰かに惹かれている ✦",
+    "friends": "友人:",
+    "memoryFoodShort": "食",
+    "memoryWaterShort": "水",
+    "memoryDangerShort": "危",
+    "memoryFoodTip": "覚えている食べ物の場所 {count} か所",
+    "memoryWaterTip": "覚えている水源 {count} か所",
+    "memoryDangerTip": "覚えている危険地帯 {count} か所",
+    "traitLabel": {
+      "curiosity": "好奇",
+      "aggression": "攻撃",
+      "fear": "恐怖",
+      "memory": "記憶",
+      "social": "社交",
+      "resilience": "耐性"
+    },
+    "traitTip": {
+      "curiosity": "好奇心――探索と危険への挑戦を促します",
+      "aggression": "攻撃性――戦闘や縄張りの振る舞いを決めます",
+      "fear": "恐怖――危険や捕食者の前でどれだけ慎重か",
+      "memory": "記憶力――どれだけ多くの場所をどれだけ正確に覚えられるか",
+      "social": "社交性――絆を結び、交易し、集団で移動する傾向",
+      "resilience": "耐性――病気、極端な温度、飢えへの抵抗力"
+    }
+  },
+  "header": {
+    "sick": "病気",
+    "carrying": "木材を運んでいる",
+    "starTip": "この生き物にスターを付ける（再読み込み後も保存されます）",
+    "star": "スターを付ける",
+    "unstar": "スターを外す",
+    "lifeTip": "生涯の全記録を見る",
+    "life": "生涯",
+    "following": "追跡中",
+    "followTip": "この生き物を追跡する",
+    "follow": "追跡",
+    "unfollow": "追跡をやめる",
+    "close": "閉じる",
+    "gen": "第{generation}世代",
+    "ageDays": {
+      "other": "生後 {count} 日"
+    },
+    "newborn": "生まれたばかり",
+    "maxAge": "寿命 {time}"
+  },
+  "home": {
+    "enterTip": "住まいの中に入る",
+    "visitTip": "住まいを訪ねる（外出中です）",
+    "lookInside": "中をのぞく"
+  },
+  "status": {
+    "rich": "裕福",
+    "poor": "貧しい",
+    "skillTip": "技能 {percent}",
+    "skillWord": {
+      "master": "達人",
+      "skilled": "熟練",
+      "journeyman": "職人",
+      "apprentice": "見習い"
+    },
+    "traitTip": "生まれつき持っていた特性で、親から受け継がれたもの",
+    "moodTip": "今、置かれている状況からくる気持ち",
+    "feels": "{mood}と感じている",
+    "mounted": "乗り物に乗車中"
+  },
+  "vitals": {
+    "energy": "エネルギー",
+    "hydration": "水分",
+    "health": "健康",
+    "infection": "感染"
+  },
+  "mental": {
+    "title": "心の状態",
+    "label": {
+      "comfort": "安らぎ",
+      "loneliness": "孤独",
+      "fear": "恐れ",
+      "boredom": "退屈",
+      "fatigue": "疲労",
+      "grieving": "悲しんでいる",
+      "joyful": "喜び",
+      "hope": "希望",
+      "awe": "畏敬",
+      "gratitude": "感謝",
+      "jealousy": "嫉妬",
+      "anger": "怒り",
+      "regret": "後悔",
+      "curiosity": "好奇心",
+      "spiritual": "精神性"
+    },
+    "tip": {
+      "comfort": "安らぎ――住まいや家族の近くで高まり、厳しい状況で下がります。安らぎが高いと回復が早まります。",
+      "loneliness": "孤独――一人でいると募り、社会的な触れ合いで和らぎます。孤独が強いと他者を探すようになります。",
+      "fear": "恐れ――捕食者や危険の近くで急に高まります。通常の行動より優先され、生き物は逃げます。",
+      "boredom": "退屈――何もしていないと高まります。生き物を探索、放浪、危険への挑戦へ駆り立てます。",
+      "fatigue": "疲労――休まないと蓄積します。生き物は眠る場所を探し、疲労が強いと健康を損ないます。",
+      "hope": "希望――安全で満腹なときに高まり、脅威や飢えの下で下がります。",
+      "awe": "畏敬――夜、広い空の下で深まります。精神的な成長を育てます。",
+      "gratitude": "感謝――家族に囲まれた安らぎの中で蓄積します。分かち合う気持ちを促します。",
+      "jealousy": "嫉妬――不足している時期に、ライバルが侵入すると忍び寄ります。",
+      "anger": "怒り――敵対する隣人に対して高まり、安全になると素早く収まります。",
+      "regret": "後悔――激しい行動や長い悲しみのあとに残ります。",
+      "curiosity": "好奇心の衝動――退屈で満たされた生き物は、より遠くへ歩き回ります。",
+      "spiritual": "精神の深さ――夜、安全な住まいで高まります。寺院への巡礼を引き寄せます。"
+    },
+    "ticks": "{count} ティック"
+  },
+  "aspiration": {
+    "title": "志向",
+    "tip": {
+      "seeker": "知識に引かれる――探索、科学、学びを追い求めます。",
+      "wanderer": "落ち着かず好奇心が強い――旅の途中が一番幸せで、集落から遠く離れたところを好みます。",
+      "warrior": "戦うために生まれた――戦いや軍人としての生活に引かれます。",
+      "connector": "他者のために生きる――パートナーシップ、友情、家族を求めます。",
+      "builder": "作ることを望む――建設と工芸が彼らの天職です。",
+      "devout": "信心深い生活――宗教、儀式、献身が彼らを導きます。",
+      "sage": "根っからの教師――知識を次の世代へ伝えます。",
+      "provider": "家庭を支える――農業、食料、家族の世話。",
+      "artist": "作ること自体のために作る――絵画、歌、書かれた言葉。",
+      "healer": "病人の世話をする――医術、薬草、そして長い看病の忍耐。"
+    }
+  },
+  "skills": {
+    "title": "技能",
+    "tip": "練習と、より上手な家族や友人を見ることで伸びる。熟練した者ほど成功しやすく、同じ仕事からより多くを得る。",
+    "rank": {
+      "learning": "見習い",
+      "handy": "慣れた",
+      "skilled": "熟練",
+      "master": "名人"
+    },
+    "name": {
+      "woodcutting": "伐採",
+      "quarrying": "採石",
+      "foraging": "採集",
+      "fishing": "漁",
+      "hunting": "狩り",
+      "farming": "農耕",
+      "building": "建築",
+      "crafting": "工芸",
+      "healing": "治療"
+    }
+  },
+  "zodiac": {
+    "title": "生まれた星座",
+    "flavor": {
+      "ember": "情に厚く、行動が素早い",
+      "wave": "しなやかで辛抱強く、月に従う",
+      "stone": "どっしりして、怒るのも倒れるのもゆっくり",
+      "root": "深く根を張り、家族を大切にする",
+      "bough": "外へ手を伸ばし、いつまでも育つ",
+      "crane": "用心深く、記憶が長く、足取りは慎重",
+      "wolf": "静かに狩りをし、群れを信頼する",
+      "dawn": "光から生まれ、夜明けまで落ち着かない",
+      "hearth": "火を守り、家を支える",
+      "veil": "静かで、ほかの人が見落とすものを見抜く",
+      "spear": "狙いは正確、率直で、恐れを知らない",
+      "seed": "今はまだ小さいが、すべてはこれから訪れる"
+    }
+  },
+  "traits": {
+    "title": "特性",
+    "label": {
+      "curiosity": "好奇心",
+      "aggression": "攻撃性",
+      "fear": "恐れ",
+      "memory": "記憶",
+      "social": "社交性",
+      "resilience": "耐性"
+    },
+    "tip": {
+      "curiosity": "好奇心――探索と冒険を促します。好奇心が強い生き物は、より遠くまで行き、多くを発見します。",
+      "aggression": "攻撃性――戦いを仕掛けるかどうかと、縄張りの振る舞いを決めます。攻撃性が高いほど争いが増えます。",
+      "fear": "恐れ――危険からどれだけ速く逃げるか。恐れが強いと早めに退き、弱いとその場に踏みとどまります。",
+      "memory": "記憶――どれだけ多くの場所を、どれだけ強く保つか。記憶が良いほど、道の見つけ方が賢くなります。",
+      "social": "社交性――絆、交易、集団での移動を促します。社交性が高いと部族をより早く作ります。",
+      "resilience": "耐性――病気、極端な温度、飢えへの抵抗力。値が高いほど寿命が長くなります。"
+    }
+  },
+  "language": {
+    "title": "彼らの言語"
+  },
+  "life": {
+    "memory": "記憶",
+    "foodTip": "食べ物の場所を {count} か所覚えています――空腹のとき、生き物はそこへ向かいます",
+    "waterTip": "水源を {count} か所覚えています――喉が渇くと、生き物はそこへ向かいます",
+    "dangerTip": "危険地帯を {count} か所覚えています――できる限り、生き物はその地域を避けます",
+    "food": "食べ物 ×{count}",
+    "water": "水 ×{count}",
+    "danger": "危険 ×{count}",
+    "death": "死",
+    "story": "物語",
+    "recent": "最近の生活",
+    "witnessed": "目撃したこと",
+    "tick": "t{tick}",
+    "innerLife": "内面の生活",
+    "oldest": "最も古い:",
+    "proudest": "最も誇らしい:",
+    "heaviest": "最も重い:"
+  },
+  "memories": {
+    "bonds": "覚えている絆",
+    "bond": "絆",
+    "goTo": "{name}へ移動",
+    "whatTheyRemember": "覚えていること",
+    "salience": "{kind}――印象度 {percent}%",
+    "salienceRecalled": "{kind}――印象度 {percent}% · {count}回思い出した",
+    "salienceOnly": "印象度 {percent}%"
+  },
+  "kin": {
+    "title": "家族と友人",
+    "mother": "母",
+    "father": "父",
+    "child": "子",
+    "friend": "友人",
+    "rival": "ライバル",
+    "tip": "{label}：{name}。クリックして選択します。",
+    "tipDead": "{label}：{name}（死去）。クリックして選択します。"
+  },
+  "relations": {
+    "title": "関係",
+    "allied": "{name}と同盟――好意的な態度 {percent}%。交易や協力をしそうです。",
+    "hostile": "{name}に敵意――否定的な態度 {percent}%。挑んだり避けたりしそうです。"
+  },
+  "bonds": {
+    "title": "個人的な絆",
+    "trusts": "{name}を信頼――個人的な絆 {percent}%。共に過ごした経験や協力から生まれました。",
+    "fears": "{name}を恐れる――否定的な絆 {percent}%。過去の争いや攻撃の結果です。"
+  },
+  "background": {
+    "education": "教育",
+    "literacy": "読み書き",
+    "wealth": "財産",
+    "inventory": "持ち物",
+    "religion": "宗教",
+    "piety": "信心",
+    "diseases": "病気",
+    "sickSince": "t{tick}から{kind}にかかっている"
+  },
+  "format": {
+    "days": {
+      "other": "{count} 日"
+    }
+  }
+}

@@ -3,6 +3,7 @@ import { Tooltip } from '../../toolbar/Tooltip'
 import { useSceneStore } from '../../../state/scene'
 import { hasBuiltHome, isAtHome } from '../../../game/scenes'
 import { useWorldStore } from '../../../state/worldStore'
+import { t } from '../../../i18n'
 
 export function HomeButton({ org }: { org: OrganismState }) {
   const world = useWorldStore((s) => s.world)
@@ -11,10 +12,10 @@ export function HomeButton({ org }: { org: OrganismState }) {
   if (!built) return null
   const inside = isAtHome(org, world)
   return (
-    <Tooltip tip={inside ? 'Step inside their home' : 'Visit their home (they are out)'}>
+    <Tooltip tip={inside ? t('person.home.enterTip') : t('person.home.visitTip')}>
       <button
         className="icon-btn"
-        aria-label="Look inside"
+        aria-label={t('person.home.lookInside')}
         onClick={() => useSceneStore.getState().enter({ kind: 'home', orgId: org.id })}
       >
         ⌂

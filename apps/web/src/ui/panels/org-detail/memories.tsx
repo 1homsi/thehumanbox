@@ -1,5 +1,6 @@
 import { lineageColor } from '../../../shared/constants'
 import type { OrganismState, OrgDetail } from '../../../shared/types'
+import { formatNumber, t } from '../../../i18n'
 
 export function BondsRememberedSection({
   detail,
@@ -14,7 +15,7 @@ export function BondsRememberedSection({
     <>
       {detail?.memories && detail.memories.filter((m) => m.kind === 'bond').length > 0 && (
         <>
-          <div className="org-detail-section">BONDS REMEMBERED</div>
+          <div className="org-detail-section">{t('person.memories.bonds')}</div>
           <div className="thought-history">
             {detail.memories
               .filter((m) => m.kind === 'bond')
@@ -28,7 +29,7 @@ export function BondsRememberedSection({
                       className="thought-tick"
                       style={{ color: '#e09ab0', fontWeight: 600, minWidth: 50 }}
                     >
-                      bond
+                      {t('person.memories.bond')}
                     </span>
                     <span className="thought-text" style={{ color: emo, flex: 1 }}>
                       {m.text}
@@ -73,7 +74,7 @@ export function MemoriesSection({
     <>
       {detail?.memories && detail.memories.length > 0 && (
         <>
-          <div className="org-detail-section">WHAT THEY REMEMBER</div>
+          <div className="org-detail-section">{t('person.memories.whatTheyRemember')}</div>
           <div className="thought-history">
             {detail.memories.map((m, i) => {
               const kindColor: Record<string, string> = {
@@ -105,7 +106,18 @@ export function MemoriesSection({
                       fontWeight: 600,
                       minWidth: 56,
                     }}
-                    title={`${m.kind} — salience ${(m.salience * 100).toFixed(0)}%${m.recalls > 0 ? ` · recalled ${m.recalls}x` : ''}`}
+                    title={
+                      m.recalls > 0
+                        ? t('person.memories.salienceRecalled', {
+                            kind: m.kind,
+                            percent: (m.salience * 100).toFixed(0),
+                            count: formatNumber(m.recalls),
+                          })
+                        : t('person.memories.salience', {
+                            kind: m.kind,
+                            percent: (m.salience * 100).toFixed(0),
+                          })
+                    }
                   >
                     {m.kind}
                   </span>
@@ -124,7 +136,7 @@ export function MemoriesSection({
                           borderRadius: 3,
                           cursor: 'pointer',
                         }}
-                        title={`Go to ${relatedOrg.name}`}
+                        title={t('person.memories.goTo', { name: relatedOrg.name })}
                       >
                         ↪ {relatedOrg.name}
                       </button>
@@ -132,7 +144,7 @@ export function MemoriesSection({
                   </span>
                   <span
                     style={{ color: '#444', fontFamily: 'monospace', fontSize: 9, marginLeft: 6 }}
-                    title={`salience ${(m.salience * 100).toFixed(0)}%`}
+                    title={t('person.memories.salienceOnly', { percent: (m.salience * 100).toFixed(0) })}
                   >
                     {'▮'.repeat(bars)}
                   </span>

@@ -2,6 +2,7 @@ import { Bar } from './bars'
 import { AGE_STAGE_ICON, ERA_ICON } from './icons'
 import type { OrganismState } from '../../../shared/types'
 import { skillPercent, skillWord } from '../../../game/model/skills'
+import { t, type MessageKey } from '../../../i18n'
 
 /** A glyph for each mood word the simulation sends. */
 const MOOD_ICON: Record<string, string> = {
@@ -12,6 +13,18 @@ const MOOD_ICON: Record<string, string> = {
   angry: '✶',
   joyful: '♪',
   content: '☺',
+}
+
+const SKILL_KEY: Record<string, MessageKey> = {
+  master: 'person.status.skillWord.master',
+  skilled: 'person.status.skillWord.skilled',
+  journeyman: 'person.status.skillWord.journeyman',
+  apprentice: 'person.status.skillWord.apprentice',
+}
+
+/** The skill level in words, translated from the level `skillWord` names. */
+function skillLabel(practice: number): string {
+  return t(SKILL_KEY[skillWord(practice)])
 }
 
 export function StatusChips({ org }: { org: OrganismState }) {
@@ -25,7 +38,7 @@ export function StatusChips({ org }: { org: OrganismState }) {
             className="relation-tag"
             style={{ background: '#2a1f08', color: '#ffd966', cursor: 'default' }}
           >
-            {'\u{1F4B0}'} rich
+            {'\u{1F4B0}'} {t('person.status.rich')}
           </span>
         )}
         {org.discoveries?.includes('poor') && (
@@ -33,7 +46,7 @@ export function StatusChips({ org }: { org: OrganismState }) {
             className="relation-tag"
             style={{ background: '#1a1a2a', color: '#7a8898', cursor: 'default' }}
           >
-            {'\u{1FAA8}'} poor
+            {'\u{1FAA8}'} {t('person.status.poor')}
           </span>
         )}
         {(org.age_stage ?? null) && (
@@ -59,9 +72,12 @@ export function StatusChips({ org }: { org: OrganismState }) {
           >
             ★ {org.specialty}
             {org.skill != null && org.skill > 0 && (
-              <span style={{ opacity: 0.8 }} title={`skill ${skillPercent(org.skill)}`}>
+              <span
+                style={{ opacity: 0.8 }}
+                title={t('person.status.skillTip', { percent: skillPercent(org.skill) })}
+              >
                 {' '}
-                · {skillWord(org.skill)}
+                · {skillLabel(org.skill)}
               </span>
             )}
           </span>
@@ -71,7 +87,7 @@ export function StatusChips({ org }: { org: OrganismState }) {
             key={word}
             className="relation-tag"
             style={{ background: '#241a14', color: '#e6c9a0', cursor: 'default' }}
-            title="A trait they were born with, passed on from their parents"
+            title={t('person.status.traitTip')}
           >
             {word}
           </span>
@@ -80,9 +96,9 @@ export function StatusChips({ org }: { org: OrganismState }) {
           <span
             className="relation-tag"
             style={{ background: '#1a1a24', color: '#c8c2d8', cursor: 'default' }}
-            title="How they feel right now, from what they are going through"
+            title={t('person.status.moodTip')}
           >
-            {MOOD_ICON[org.mood] ?? '·'} feels {org.mood}
+            {MOOD_ICON[org.mood] ?? '·'} {t('person.status.feels', { mood: org.mood })}
           </span>
         )}
         {(org.mounted_vehicle ?? null) !== null && org.mounted_vehicle !== undefined && (
@@ -90,7 +106,7 @@ export function StatusChips({ org }: { org: OrganismState }) {
             className="relation-tag"
             style={{ background: '#1a2a0a', color: '#c4e688', cursor: 'default' }}
           >
-            🛞 mounted
+            🛞 {t('person.status.mounted')}
           </span>
         )}
       </div>
@@ -103,10 +119,10 @@ export function Vitals({ org, isSick }: { org: OrganismState; isSick: boolean })
     <>
       <div className="org-detail-thought">{org.thought}</div>
 
-      <Bar label="energy" value={org.energy} color="#55dd55" />
-      <Bar label="hydration" value={org.hydration} color="#4499ff" />
-      <Bar label="health" value={org.health} color="#ff6644" />
-      {isSick && <Bar label="infection" value={org.infection} color="#bbff44" />}
+      <Bar label={t('person.vitals.energy')} value={org.energy} color="#55dd55" />
+      <Bar label={t('person.vitals.hydration')} value={org.hydration} color="#4499ff" />
+      <Bar label={t('person.vitals.health')} value={org.health} color="#ff6644" />
+      {isSick && <Bar label={t('person.vitals.infection')} value={org.infection} color="#bbff44" />}
     </>
   )
 }
