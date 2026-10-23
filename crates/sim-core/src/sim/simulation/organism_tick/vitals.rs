@@ -60,12 +60,17 @@ impl Simulation {
             && (cy - self.organisms[idx].home_y as i32).abs() <= 2
         {
             let o = &mut self.organisms[idx];
+            let (load, kind) = (o.carrying, o.carrying_type);
             o.carrying = 0;
             o.carrying_type = 0;
             if o.carry_room() > 0 {
                 o.inv_wood = o.inv_wood.saturating_add(1);
+                o.think("stacking the woodpile", self.tick_count);
+            } else {
+                // No room to stack it: they keep holding the armful rather than drop it.
+                o.carrying = load;
+                o.carrying_type = kind;
             }
-            o.think("stacking the woodpile", self.tick_count);
         }
 
         if self.organisms[idx].carrying > 0 {

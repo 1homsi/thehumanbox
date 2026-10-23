@@ -99,6 +99,15 @@ pub fn liking(id: &str, skill: Skill) -> f32 {
     (h % 1000) as f32 / 1000.0
 }
 
+/// Whether someone already carries a full load of what `skill` gathers.
+fn hands_full(o: &crate::organism::organism::Organism, skill: Skill) -> bool {
+    match skill {
+        Skill::Woodcutting => o.inv_wood >= WOOD_LOAD,
+        Skill::Quarrying => o.inv_stone >= STONE_LOAD,
+        _ => o.inv_food >= FOOD_LOAD,
+    }
+}
+
 fn manhattan(a: (i32, i32), b: (i32, i32)) -> i32 {
     (a.0 - b.0).abs() + (a.1 - b.1).abs()
 }
@@ -242,6 +251,10 @@ impl Simulation {
             .collect();
         ranked.sort_by(|a, b| b.1.total_cmp(&a.1).then(a.0.cmp(&b.0)));
         for (skill, _) in ranked {
+            // Nothing to go out for with hands already full of it.
+            if hands_full(&self.organisms[idx], skill) {
+                continue;
+            }
             let Some(spot) = self.work_spot(skill, here) else {
                 continue;
             };
@@ -270,11 +283,7 @@ impl Simulation {
             return;
         };
         let o = &self.organisms[idx];
-        let full = match plan.skill {
-            Skill::Woodcutting => o.inv_wood >= WOOD_LOAD,
-            Skill::Quarrying => o.inv_stone >= STONE_LOAD,
-            _ => o.inv_food >= FOOD_LOAD,
-        };
+        let full = hands_full(o, plan.skill);
         let spent =
             !o.alive || tick >= plan.until || self.is_night() || o.energy < 0.35 || o.hydration < 0.35;
         if full {
@@ -386,6 +395,21 @@ mod tests {
         sim.assign_daily_work(0);
         assert!(sim.organisms[0].work.is_none());
         assert_eq!(sim.organisms[0].wander_target, Some((100, 100)));
+    }
+
+    #[test]
+    fn nobody_goes_out_for_what_their_hands_are_already_full_of() {
+        let mut sim = shore();
+        sim.organisms[0].skills.set(Skill::Fishing, 0.9);
+        sim.organisms[0].inv_food = FOOD_LOAD;
+        sim.tick_count = morning(0);
+        sim.assign_daily_work(0);
+        assert!(
+            sim.organisms[0]
+                .work
+                .is_none_or(|p| !matches!(p.skill, Skill::Fishing | Skill::Foraging | Skill::Hunting)),
+            "went out for food with full hands"
+        );
     }
 
     #[test]

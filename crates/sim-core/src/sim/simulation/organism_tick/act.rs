@@ -279,7 +279,9 @@ impl Simulation {
             // Keep the reason when there is one (a storm, a death, the shelter
             // being packed, an evening by the fire): the panel used to call all
             // of it 'resting under shelter'.
-            if !rest_has_reason(&self.organisms[idx].thought) {
+            // Only a reason given this tick counts: a learned choice to rest
+            // (no new thought) must not keep yesterday's storm or mourning.
+            if !f.new_thought.as_deref().is_some_and(rest_has_reason) {
                 self.organisms[idx].think(
                     if sheltered {
                         "resting under shelter"
