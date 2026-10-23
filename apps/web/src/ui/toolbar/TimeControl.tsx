@@ -5,15 +5,16 @@ import type { SandboxTool } from '../../simulation/sandbox'
 import { WASM_BASE_TICK_MS } from '../../simulation/runtimeControls'
 import { formatSpeed, nextSpeedStep } from '../../simulation/speedSteps'
 import { useWorldStore } from '../../state/worldStore'
+import { t } from '../../i18n'
 import { speedTools } from './dock-tabs'
 import { ToolSprite } from './ToolSprite'
 import { Tooltip } from './Tooltip'
 
 /** A word beside the odd speeds in the list; the rest speak for themselves. */
 function speedNote(mult: number): string | undefined {
-  if (mult < 1) return 'slow'
-  if (mult === 1) return 'normal'
-  if (mult >= 500) return 'flat out'
+  if (mult < 1) return t('dock.time.slowNote')
+  if (mult === 1) return t('dock.time.normalNote')
+  if (mult >= 500) return t('dock.time.flatOutNote')
   return undefined
 }
 
@@ -86,7 +87,7 @@ export function TimeControl({ paused, speed, onPick }: Props) {
   const togglePause = () =>
     onPick({
       id: paused ? 'play' : 'pause',
-      label: paused ? 'play' : 'pause',
+      label: paused ? t('dock.time.play') : t('dock.time.pause'),
       icon: paused ? '▶️' : '⏸️',
       mode: 'instant',
       time: { control: paused ? 'resume' : 'pause' },
@@ -128,7 +129,10 @@ export function TimeControl({ paused, speed, onPick }: Props) {
   }, [listOpen])
 
   const lagNote = lagging
-    ? `Asked for ${formatSpeed(speed)}; this computer is running about ${formatSpeed(Math.round(achieved ?? 0))}, as fast as it can.`
+    ? t('dock.time.lag', {
+        asked: formatSpeed(speed),
+        actual: formatSpeed(Math.round(achieved ?? 0)),
+      })
     : undefined
 
   return (
@@ -136,12 +140,8 @@ export function TimeControl({ paused, speed, onPick }: Props) {
       <Tooltip
         tip={
           <Tip
-            title={paused ? 'resume' : 'pause'}
-            body={
-              paused
-                ? 'Time is stopped. Start the world again.'
-                : `Stop time. Running at ${formatSpeed(speed)}.`
-            }
+            title={paused ? t('dock.time.resume') : t('dock.time.pause')}
+            body={paused ? t('dock.time.resumeTip') : t('dock.time.pauseTip', { speed: formatSpeed(speed) })}
             how="space"
           />
         }
@@ -150,7 +150,7 @@ export function TimeControl({ paused, speed, onPick }: Props) {
           type="button"
           className="time-pause"
           onClick={togglePause}
-          aria-label={paused ? 'Resume simulation' : 'Pause simulation'}
+          aria-label={paused ? t('dock.time.resumeAria') : t('dock.time.pauseAria')}
         >
           <ToolSprite icon={paused ? '▶️' : '⏸️'} size={18} />
         </button>
@@ -158,8 +158,12 @@ export function TimeControl({ paused, speed, onPick }: Props) {
       <Tooltip
         tip={
           <Tip
-            title={slower === null ? 'slower' : `slower · ${formatSpeed(slower)}`}
-            body={slower === null ? 'Already at the slowest step.' : undefined}
+            title={
+              slower === null
+                ? t('dock.time.slower')
+                : t('dock.time.slowerTo', { speed: formatSpeed(slower) })
+            }
+            body={slower === null ? t('dock.time.slowest') : undefined}
             how={SLOWER_KEY}
           />
         }
@@ -167,7 +171,7 @@ export function TimeControl({ paused, speed, onPick }: Props) {
         <button
           type="button"
           className="time-step"
-          aria-label="slower"
+          aria-label={t('dock.time.slower')}
           aria-keyshortcuts={SLOWER_KEY}
           disabled={slower === null}
           onClick={() => step(-1)}
@@ -178,15 +182,19 @@ export function TimeControl({ paused, speed, onPick }: Props) {
       <Tooltip
         tip={
           <Tip
-            title={paused ? `paused at ${formatSpeed(speed)}` : `speed ${formatSpeed(speed)}`}
-            body={lagNote ?? 'Choose any speed.'}
+            title={
+              paused
+                ? t('dock.time.pausedAt', { speed: formatSpeed(speed) })
+                : t('dock.time.speedAt', { speed: formatSpeed(speed) })
+            }
+            body={lagNote ?? t('dock.time.chooseAny')}
           />
         }
       >
         <button
           type="button"
           className="time-speed-value"
-          aria-label={`Speed ${formatSpeed(speed)}, choose a speed`}
+          aria-label={t('dock.time.speedAria', { speed: formatSpeed(speed) })}
           aria-haspopup="menu"
           aria-expanded={listOpen}
           onClick={() => setListOpen((open) => !open)}
@@ -198,8 +206,12 @@ export function TimeControl({ paused, speed, onPick }: Props) {
       <Tooltip
         tip={
           <Tip
-            title={faster === null ? 'faster' : `faster · ${formatSpeed(faster)}`}
-            body={faster === null ? 'Past this, pick a speed from the list.' : undefined}
+            title={
+              faster === null
+                ? t('dock.time.faster')
+                : t('dock.time.fasterTo', { speed: formatSpeed(faster) })
+            }
+            body={faster === null ? t('dock.time.fastest') : undefined}
             how={FASTER_KEY}
           />
         }
@@ -207,7 +219,7 @@ export function TimeControl({ paused, speed, onPick }: Props) {
         <button
           type="button"
           className="time-step"
-          aria-label="faster"
+          aria-label={t('dock.time.faster')}
           aria-keyshortcuts={FASTER_KEY}
           disabled={faster === null}
           onClick={() => step(1)}
@@ -216,7 +228,7 @@ export function TimeControl({ paused, speed, onPick }: Props) {
         </button>
       </Tooltip>
       {listOpen && (
-        <div className="time-speed-list" role="menu" aria-label="Speeds">
+        <div className="time-speed-list" role="menu" aria-label={t('dock.time.speedsAria')}>
           {speedTools().map((tool) => {
             const mult = tool.time?.mult ?? 1
             const on = Math.abs(mult - speed) < 1e-6
@@ -227,7 +239,7 @@ export function TimeControl({ paused, speed, onPick }: Props) {
                 type="button"
                 role="menuitemradio"
                 aria-checked={on}
-                aria-label={`Speed ${formatSpeed(mult)}`}
+                aria-label={t('dock.time.speedItemAria', { speed: formatSpeed(mult) })}
                 className={clsx(on && 'active')}
                 onClick={() => {
                   onPick(tool)

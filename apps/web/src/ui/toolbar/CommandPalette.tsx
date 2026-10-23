@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { useUIStore } from '../../state/store'
 import { getDesktop } from '../../shared/desktop'
+import { t } from '../../i18n'
 
 interface Command {
   id: string
@@ -28,39 +29,43 @@ export function CommandPalette() {
 
   const commands = useMemo<Command[]>(() => {
     const cmds: Command[] = [
-      { id: 'stats', label: 'Open Stats', run: () => openStats() },
-      { id: 'civ', label: 'Open Civilization', run: () => openCiv() },
-      { id: 'chronicles', label: 'Open Chronicles', run: () => openChronicles() },
+      { id: 'stats', label: t('dock.commands.openStats'), run: () => openStats() },
+      { id: 'civ', label: t('dock.commands.openCiv'), run: () => openCiv() },
+      { id: 'chronicles', label: t('dock.commands.openChronicles'), run: () => openChronicles() },
       {
         id: 'search',
-        label: 'Find Organism',
-        hint: 'search by name / thought / lineage',
+        label: t('dock.commands.findOrganism'),
+        hint: t('dock.commands.findOrganismHint'),
         run: () => openOrgSearch(),
       },
-      { id: 'left', label: 'Toggle Left Panel', run: () => toggleLeft() },
+      { id: 'left', label: t('dock.commands.toggleLeft'), run: () => toggleLeft() },
       {
         id: 'tour',
-        label: viewFlags.randomTour ? 'Stop Random Tour' : 'Start Random Tour',
+        label: viewFlags.randomTour ? t('dock.commands.stopTour') : t('dock.commands.startTour'),
         run: () => setViewFlag('randomTour', !viewFlags.randomTour),
       },
       {
         id: 'hide-ui',
-        label: viewFlags.hideUI ? 'Show UI' : 'Hide UI',
-        hint: 'immersive mode · H',
+        label: viewFlags.hideUI ? t('dock.commands.showUI') : t('dock.commands.hideUI'),
+        hint: t('dock.commands.hideUIHint'),
         run: () => setViewFlag('hideUI', !viewFlags.hideUI),
       },
     ]
     if (desktop) {
       cmds.push(
-        { id: 'desk-settings', label: 'Desktop Settings', run: () => openDesktopSettings() },
+        { id: 'desk-settings', label: t('dock.commands.desktopSettings'), run: () => openDesktopSettings() },
         {
           id: 'desk-screenshot',
-          label: 'Take Screenshot',
-          hint: 'save to ~/Pictures/TheHumanBox',
+          label: t('dock.commands.screenshot'),
+          hint: t('dock.commands.screenshotHint'),
           run: () => void desktop.app.screenshot(),
         },
-        { id: 'desk-open-worlds', label: 'Open Worlds Folder', run: () => void desktop.app.openWorlds() },
-        { id: 'desk-open-logs', label: 'Open Logs Folder', run: () => void desktop.app.openLogs() },
+        {
+          id: 'desk-open-worlds',
+          label: t('dock.commands.openWorlds'),
+          run: () => void desktop.app.openWorlds(),
+        },
+        { id: 'desk-open-logs', label: t('dock.commands.openLogs'), run: () => void desktop.app.openLogs() },
       )
     }
     return cmds
@@ -164,12 +169,12 @@ export function CommandPalette() {
         <input
           ref={inputRef}
           className="cmd-input"
-          placeholder="type a command..."
+          placeholder={t('dock.palette.placeholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         <div className="cmd-list">
-          {filtered.length === 0 && <div className="cmd-empty">no matches</div>}
+          {filtered.length === 0 && <div className="cmd-empty">{t('dock.palette.empty')}</div>}
           {filtered.map((cmd, i) => (
             <div
               key={cmd.id}
@@ -184,7 +189,7 @@ export function CommandPalette() {
             </div>
           ))}
         </div>
-        <div className="cmd-footer">↑↓ navigate · ↵ run · esc close</div>
+        <div className="cmd-footer">{t('dock.palette.footer')}</div>
       </div>
     </div>
   )

@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import { ToolSprite } from './ToolSprite'
 import type { SandboxTool } from '../../simulation/sandbox'
 import { searchWorldTools } from './tool-search'
+import { toolName } from './tool-tips'
+import { t, formatNumber } from '../../i18n'
 import './world-tool-search.css'
 
 type ToolResult = ReturnType<typeof searchWorldTools>[number]
@@ -25,9 +27,9 @@ const ToolResults = memo(function ToolResults({
             <ToolSprite icon={tool.icon} />
           </span>
           <span>
-            <strong>{tool.label}</strong>
+            <strong>{toolName(tool)}</strong>
             <small>
-              {category} · {tool.mode === 'point' ? 'place on the map' : 'apply immediately'}
+              {category} · {tool.mode === 'point' ? t('dock.search.placeOnMap') : t('dock.search.applyNow')}
             </small>
           </span>
           <span aria-hidden="true">→</span>
@@ -96,18 +98,18 @@ export function WorldToolSearch({
     >
       <header>
         <div>
-          <span>WORLD CONTROLS</span>
-          <h2 id="tool-search-title">What would you like to do?</h2>
+          <span>{t('dock.search.kicker')}</span>
+          <h2 id="tool-search-title">{t('dock.search.title')}</h2>
         </div>
-        <button onClick={close} aria-label="Close tool search">
+        <button onClick={close} aria-label={t('dock.search.close')}>
           ×
         </button>
       </header>
       <input
         ref={input}
         type="search"
-        placeholder="Try water, heal, grass, pause…"
-        aria-label="Find a world tool"
+        placeholder={t('dock.search.placeholder')}
+        aria-label={t('dock.search.inputAria')}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
@@ -118,14 +120,10 @@ export function WorldToolSearch({
         }}
       />
       <p className="tool-search-count" role="status">
-        {results.length} tools{query ? ' found' : ' available'} · choose a tool to continue
+        {t(query ? 'dock.search.found' : 'dock.search.available', { count: formatNumber(results.length) })}
       </p>
       <ToolResults results={results} onPick={pick} />
-      {!results.length && (
-        <p className="tool-search-empty">
-          No matching tools. Try a terrain type, animal, map layer, or time control.
-        </p>
-      )}
+      {!results.length && <p className="tool-search-empty">{t('dock.search.empty')}</p>}
     </dialog>,
     document.body,
   )
