@@ -16,6 +16,7 @@
     "title": "Lingua dell'interfaccia",
     "desc": "Menu, descrizioni e impostazioni. I nomi e tutto ciò che scrive il mondo restano invariati. Cambiando lingua il gioco si ricarica; il mondo viene prima salvato.",
     "failed": "impossibile salvare prima il mondo; la lingua non è stata cambiata",
+    "storageFailed": "impossibile salvare la scelta in questo browser, quindi la lingua non è cambiata",
     "contribute": "Manca la tua lingua? Le traduzioni sono semplici file nel repository, e quelle nuove sono benvenute."
   },
   "display": {

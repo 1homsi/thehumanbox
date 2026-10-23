@@ -8,19 +8,23 @@ import { REPO_URL } from '../../shared/links'
 export function LanguageTab() {
   const current = getLocale()
   const [pending, setPending] = useState<string | null>(null)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState<'reload' | 'storage' | null>(null)
 
   function choose(code: string) {
     if (code === current || pending) return
     const previous = current
-    setFailed(false)
+    setFailed(null)
+    // Without storage the reload would come back in the old language.
+    if (!saveLocale(code)) {
+      setFailed('storage')
+      return
+    }
     setPending(code)
-    saveLocale(code)
     reloadAppSafely({
       onFailure: () => {
         saveLocale(previous)
         setPending(null)
-        setFailed(true)
+        setFailed('reload')
       },
       failureMessage: t('settings.language.failed'),
     })
@@ -52,7 +56,7 @@ export function LanguageTab() {
       </div>
       {failed && (
         <div className="settings-note" role="alert">
-          {t('settings.language.failed')}
+          {failed === 'storage' ? t('settings.language.storageFailed') : t('settings.language.failed')}
         </div>
       )}
       <div className="settings-note">

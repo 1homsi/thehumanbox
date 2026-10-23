@@ -16,6 +16,7 @@
     "title": "Arayüz dili",
     "desc": "Menüler, ipuçları ve ayarlar. Adlar ve dünyanın yazdığı her şey olduğu gibi kalır. Değiştirmek oyunu yeniden yükler; dünyanız önce kaydedilir.",
     "failed": "dünya önce kaydedilemedi; dil değiştirilmedi",
+    "storageFailed": "seçim bu tarayıcıda kaydedilemedi, bu yüzden dil değişmedi",
     "contribute": "Diliniz eksik mi? Çeviriler depodaki düz dosyalardır ve yenileri memnuniyetle karşılanır."
   },
   "display": {

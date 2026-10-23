@@ -16,6 +16,7 @@
     "title": "Idioma de la interfaz",
     "desc": "Menús, descripciones emergentes y ajustes. Los nombres y todo lo que escribe el mundo se mantienen igual. Al cambiarlo, el juego se recarga; antes se guarda tu mundo.",
     "failed": "no se pudo guardar el mundo primero; el idioma no se cambió",
+    "storageFailed": "no se pudo guardar la elección en este navegador, así que el idioma no cambió",
     "contribute": "¿Falta tu idioma? Las traducciones son archivos sencillos en el repositorio, y las nuevas son bienvenidas."
   },
   "display": {

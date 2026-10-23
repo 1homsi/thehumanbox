@@ -16,6 +16,7 @@
     "title": "Język interfejsu",
     "desc": "Menu, podpowiedzi i ustawienia. Nazwy oraz wszystko, co pisze świat, pozostają bez zmian. Zmiana języka przeładowuje grę; twój świat zostanie najpierw zapisany.",
     "failed": "nie udało się najpierw zapisać świata; język nie został zmieniony",
+    "storageFailed": "nie udało się zapisać wyboru w tej przeglądarce, więc język nie został zmieniony",
     "contribute": "Brakuje twojego języka? Tłumaczenia to zwykłe pliki w repozytorium, a nowe są mile widziane."
   },
   "display": {

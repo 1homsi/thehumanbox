@@ -16,6 +16,7 @@
     "title": "Interface language",
     "desc": "Menus, tooltips and settings. Names and everything the world writes stay as they are. Changing it reloads the game; your world is saved first.",
     "failed": "could not save the world first; the language was not changed",
+    "storageFailed": "could not remember the choice in this browser, so the language was not changed",
     "contribute": "Missing your language? Translations are plain files in the repository, and new ones are welcome."
   },
   "display": {

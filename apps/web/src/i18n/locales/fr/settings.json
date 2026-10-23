@@ -16,6 +16,7 @@
     "title": "Langue de l'interface",
     "desc": "Menus, info-bulles et paramètres. Les noms et tout ce qu'écrit le monde restent inchangés. Changer de langue recharge le jeu ; votre monde est d'abord sauvegardé.",
     "failed": "le monde n'a pas pu être sauvegardé au préalable ; la langue n'a pas été modifiée",
+    "storageFailed": "impossible d'enregistrer ce choix dans ce navigateur ; la langue n'a pas changé",
     "contribute": "Votre langue manque ? Les traductions sont de simples fichiers dans le dépôt, et les nouvelles sont les bienvenues."
   },
   "display": {

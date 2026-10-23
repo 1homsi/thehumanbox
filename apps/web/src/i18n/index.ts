@@ -121,7 +121,11 @@ function applyToDocument(code: string): void {
 }
 
 /** Make `code` the active language. Unknown codes and failed loads keep English. */
+/** Bumped by every load and by a start-up timeout; a load that finishes after it was overtaken changes nothing. */
+let loadGeneration = 0
+
 export async function loadLocale(code: string): Promise<string> {
+  const generation = ++loadGeneration
   const areas = loaderByCode.get(code)
   let next: Messages = en as Messages
   let chosen = SOURCE_LOCALE
@@ -133,6 +137,7 @@ export async function loadLocale(code: string): Promise<string> {
       // A missing chunk (offline, stale cache) leaves the game in English.
     }
   }
+  if (generation !== loadGeneration) return active
   active = chosen
   messages = next
   pluralRules = new Intl.PluralRules(chosen)
@@ -147,16 +152,24 @@ export async function initI18n(timeoutMs = 4000): Promise<string> {
     applyToDocument(SOURCE_LOCALE)
     return SOURCE_LOCALE
   }
-  const timeout = new Promise<string>((resolve) => setTimeout(() => resolve(active), timeoutMs))
+  // When the timeout wins the game starts in English, and the late load is
+  // dropped so it cannot switch formats and document language under a render.
+  const timeout = new Promise<string>((resolve) =>
+    setTimeout(() => {
+      loadGeneration += 1
+      resolve(active)
+    }, timeoutMs),
+  )
   return Promise.race([loadLocale(wanted), timeout])
 }
 
-/** Remember the player's choice. The caller reloads the page to apply it. */
-export function saveLocale(code: string): void {
+/** Remember the player's choice; the caller reloads to apply it. False when storage refused it. */
+export function saveLocale(code: string): boolean {
   try {
     localStorage.setItem(STORAGE_KEY, code)
+    return localStorage.getItem(STORAGE_KEY) === code
   } catch {
-    // Private mode: the choice lasts until the reload only.
+    return false
   }
 }
 

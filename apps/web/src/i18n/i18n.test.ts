@@ -95,6 +95,12 @@ describe('t', () => {
     expect(t('settings.title')).toBe('Settings')
   })
 
+  it('lets the latest load win when two overlap', async () => {
+    const [first, second] = LOCALES.filter((code) => code !== 'en')
+    await Promise.all([loadLocale(first), loadLocale(second)])
+    expect(getLocale()).toBe(second)
+  })
+
   it('switches language and back', async () => {
     const other = LOCALES.find((code) => code !== 'en')
     if (!other) return
