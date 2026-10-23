@@ -288,6 +288,22 @@
     "stillToLearn": "still to learn: {list}",
     "needsPeople": "needs {count} more people",
     "praying": "praying",
-    "help": "help"
+    "help": "help",
+    "lore": {
+      "craftTitle": "What this tribe's grown people are good at. Their children grow up around it.",
+      "winter": "remembers the hungry winter of year {year}",
+      "winterTitle": "They lay food by every autumn since.",
+      "craft": {
+        "woodcutting": "known for their woodcutters",
+        "quarrying": "known for their stoneworkers",
+        "foraging": "known for their foragers",
+        "fishing": "known for their fishers",
+        "hunting": "known for their hunters",
+        "farming": "known for their farmers",
+        "building": "known for their builders",
+        "crafting": "known for their crafts",
+        "healing": "known for their healers"
+      }
+    }
   }
 }

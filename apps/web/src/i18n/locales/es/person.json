@@ -165,7 +165,9 @@
       "building": "construir",
       "crafting": "artesanía",
       "healing": "curar"
-    }
+    },
+    "enjoys": "disfruta de {list}",
+    "avoids": "evita {list} desde que se hirió haciéndolo"
   },
   "zodiac": {
     "title": "NACIDO BAJO",

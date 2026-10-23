@@ -30,11 +30,22 @@ const PROVISIONS_CAP: u8 = 8;
 fn store_for_winter(
     organisms: &mut [crate::organism::organism::Organism],
     eager: bool,
+    memories: &crate::hashing::FxHashMap<String, crate::sim::civ::society::hard_winters::WinterMemory>,
     tick: u64,
     rng: &mut impl rand::Rng,
 ) {
-    let chance = if eager { 0.8 } else { 0.25 };
+    use crate::sim::civ::society::hard_winters::REMEMBERED;
     for o in organisms.iter_mut().filter(|o| o.alive && o.inv_food >= 3) {
+        // A tribe that remembers a hungry winter lays food by as if warned.
+        let memory = memories.get(&o.lineage_id).map_or(0.0, |m| m.strength);
+        let remembering = memory >= REMEMBERED;
+        let chance = if eager {
+            0.8
+        } else if remembering {
+            0.25 + 0.55 * memory
+        } else {
+            0.25
+        };
         let stored = o.tools.get("winter_provisions").copied().unwrap_or(0);
         if stored >= PROVISIONS_CAP || rng.random::<f32>() >= chance {
             continue;
@@ -43,6 +54,8 @@ fn store_for_winter(
         o.tools.insert("winter_provisions".into(), stored + 1);
         if eager {
             o.think("storing food for the hard winter", tick);
+        } else if remembering {
+            o.think("laying food by, remembering the hungry winter", tick);
         }
     }
 }
@@ -146,7 +159,13 @@ impl Simulation {
         {
             let eager = self.hard_winter_ahead;
             let tick = self.tick_count;
-            store_for_winter(&mut self.organisms, eager, tick, &mut self.rng);
+            store_for_winter(
+                &mut self.organisms,
+                eager,
+                &self.lineage_winter_memory,
+                tick,
+                &mut self.rng,
+            );
         }
         if self.tick_count > 0 && self.tick_count.is_multiple_of(SPOIL_STEP) {
             spoil_carried_food(&mut self.organisms);
@@ -358,8 +377,8 @@ mod tests {
         };
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
         for _ in 0..5 {
-            store_for_winter(&mut calm.organisms, false, 0, &mut rng);
-            store_for_winter(&mut warned.organisms, true, 0, &mut rng);
+            store_for_winter(&mut calm.organisms, false, &Default::default(), 0, &mut rng);
+            store_for_winter(&mut warned.organisms, true, &Default::default(), 0, &mut rng);
         }
         assert!(stored(&calm) > 0);
         assert!(stored(&warned) > stored(&calm));

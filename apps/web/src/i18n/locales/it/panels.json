@@ -291,6 +291,22 @@
     "stillToLearn": "ancora da imparare: {list}",
     "needsPeople": "servono altre {count} persone",
     "praying": "in preghiera",
-    "help": "aiuta"
+    "help": "aiuta",
+    "lore": {
+      "craftTitle": "In cosa sono bravi gli adulti di questa tribù. I loro figli ci crescono in mezzo.",
+      "winter": "ricorda l'inverno della fame dell'anno {year}",
+      "winterTitle": "Da allora mettono da parte cibo ogni autunno.",
+      "craft": {
+        "woodcutting": "noti per i loro taglialegna",
+        "quarrying": "noti per i loro scalpellini",
+        "foraging": "noti per i loro raccoglitori",
+        "fishing": "noti per i loro pescatori",
+        "hunting": "noti per i loro cacciatori",
+        "farming": "noti per i loro agricoltori",
+        "building": "noti per i loro costruttori",
+        "crafting": "noti per il loro artigianato",
+        "healing": "noti per i loro guaritori"
+      }
+    }
   }
 }

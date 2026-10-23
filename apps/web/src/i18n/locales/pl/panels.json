@@ -310,6 +310,22 @@
       "other": "potrzeba jeszcze {count} osób"
     },
     "praying": "modli się",
-    "help": "pomoc"
+    "help": "pomoc",
+    "lore": {
+      "craftTitle": "W czym są dobrzy dorośli z tego plemienia. Ich dzieci dorastają przy tym.",
+      "winter": "pamięta głodną zimę roku {year}",
+      "winterTitle": "Od tamtej pory co jesień robią zapasy.",
+      "craft": {
+        "woodcutting": "słyną z drwali",
+        "quarrying": "słyną z kamieniarzy",
+        "foraging": "słyną ze zbieraczy",
+        "fishing": "słyną z rybaków",
+        "hunting": "słyną z myśliwych",
+        "farming": "słyną z rolników",
+        "building": "słyną z budowniczych",
+        "crafting": "słyną z rzemiosła",
+        "healing": "słyną z uzdrowicieli"
+      }
+    }
   }
 }

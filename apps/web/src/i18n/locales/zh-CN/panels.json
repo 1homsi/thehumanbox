@@ -284,6 +284,22 @@
     "stillToLearn": "尚未掌握：{list}",
     "needsPeople": "还需 {count} 人",
     "praying": "祈祷中",
-    "help": "帮助"
+    "help": "帮助",
+    "lore": {
+      "craftTitle": "这个部落的成年人擅长的事。孩子们在其中长大。",
+      "winter": "记得第 {year} 年的饥荒之冬",
+      "winterTitle": "从那以后，每年秋天都储存粮食。",
+      "craft": {
+        "woodcutting": "以伐木人闻名",
+        "quarrying": "以石匠闻名",
+        "foraging": "以采集者闻名",
+        "fishing": "以渔民闻名",
+        "hunting": "以猎人闻名",
+        "farming": "以农夫闻名",
+        "building": "以建造者闻名",
+        "crafting": "以手艺闻名",
+        "healing": "以医者闻名"
+      }
+    }
   }
 }

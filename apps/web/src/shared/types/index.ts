@@ -358,7 +358,7 @@ export interface OrgDetail extends OrganismState {
   conversations: ConversationEntry[]
   memories: MemoryEntry[]
   /** What this person knows how to do, 0 to 1, best first. */
-  skills?: { name: string; level: number }[]
+  skills?: { name: string; level: number; feeling?: number }[]
 }
 
 export interface OrgLife {
@@ -660,6 +660,8 @@ export interface WorldState {
   /** The tick the last person died, once the world is lost. */
   lost_tick?: number | null
   lineage_homes?: Record<string, [number, number, number]>
+  /** What each tribe has learned as a people: the craft it is known for, the hungry winter it remembers. */
+  lineage_lore?: Record<string, { craft?: string; hungry_winter?: number }>
   current_era?: string
   featured_org_id?: string
   sex_words?: [string, string]

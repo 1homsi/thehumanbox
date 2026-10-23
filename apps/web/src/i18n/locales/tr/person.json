@@ -163,7 +163,9 @@
       "building": "inşaat",
       "crafting": "zanaat",
       "healing": "şifacılık"
-    }
+    },
+    "enjoys": "sever: {list}",
+    "avoids": "yaralandığından beri kaçınır: {list}"
   },
   "zodiac": {
     "title": "ALTINDA DOĞDU",

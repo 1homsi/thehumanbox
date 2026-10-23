@@ -88,7 +88,20 @@ const WATCH_RATE: f32 = 0.01;
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Skills {
     levels: [f32; Skill::ALL.len()],
+    /// How the person feels about each kind of work, from dread (-1) to a
+    /// settled liking (`LIKING_CAP`). Grows with success; harm at the work
+    /// turns it to dread, which fades over the seasons.
+    feelings: [f32; Skill::ALL.len()],
 }
+
+/// Most a person comes to like a kind of work.
+pub const LIKING_CAP: f32 = 0.3;
+/// Liking gained from one success at the work.
+pub const LIKING_PER_SUCCESS: f32 = 0.003;
+/// Where someone hurt at their work starts, and the line below which they avoid it.
+pub const DREAD: f32 = -0.6;
+/// How much dread fades each day.
+pub const DREAD_FADE_PER_DAY: f32 = 0.006;
 
 impl Skills {
     pub fn level(&self, skill: Skill) -> f32 {
@@ -97,6 +110,39 @@ impl Skills {
 
     pub fn set(&mut self, skill: Skill, level: f32) {
         self.levels[skill.slot()] = level.clamp(0.0, 1.0);
+    }
+
+    pub fn feeling(&self, skill: Skill) -> f32 {
+        self.feelings[skill.slot()]
+    }
+
+    pub fn set_feeling(&mut self, skill: Skill, feeling: f32) {
+        self.feelings[skill.slot()] = feeling.clamp(-1.0, LIKING_CAP);
+    }
+
+    /// Every feeling worth saving, by skill name, to three decimals.
+    pub fn feelings_map(&self) -> BTreeMap<String, f32> {
+        Skill::ALL
+            .into_iter()
+            .map(|s| (s, self.feeling(s)))
+            .filter(|&(_, f)| f.abs() >= 0.001)
+            .map(|(s, f)| (s.name().to_string(), (f * 1000.0).round() / 1000.0))
+            .collect()
+    }
+
+    pub fn set_feelings_from_map(&mut self, map: &BTreeMap<String, f32>) {
+        for (name, &f) in map {
+            if let Some(skill) = Skill::from_name(name) {
+                self.set_feeling(skill, f);
+            }
+        }
+    }
+
+    /// One day passes: dread eases a little.
+    pub fn ease_dread(&mut self) {
+        for f in self.feelings.iter_mut().filter(|f| **f < 0.0) {
+            *f = (*f + DREAD_FADE_PER_DAY).min(0.0);
+        }
     }
 
     /// Every skill this person has begun to learn, best first.
@@ -251,6 +297,24 @@ mod tests {
         assert_eq!(milestone_crossed(0.30, 0.36), Some(Milestone::Handy));
         assert_eq!(milestone_crossed(0.60, 0.95), Some(Milestone::Master));
         assert_eq!(milestone_crossed(0.36, 0.40), None);
+    }
+
+    #[test]
+    fn dread_fades_and_liking_is_capped() {
+        let mut skills = Skills::default();
+        skills.set_feeling(Skill::Hunting, DREAD);
+        let mut days = 0;
+        while skills.feeling(Skill::Hunting) < 0.0 {
+            skills.ease_dread();
+            days += 1;
+        }
+        assert!((60..=120).contains(&days), "{days} days");
+        skills.set_feeling(Skill::Fishing, 5.0);
+        assert_eq!(skills.feeling(Skill::Fishing), LIKING_CAP);
+        let map = skills.feelings_map();
+        let mut back = Skills::default();
+        back.set_feelings_from_map(&map);
+        assert_eq!(back.feeling(Skill::Fishing), LIKING_CAP);
     }
 
     #[test]

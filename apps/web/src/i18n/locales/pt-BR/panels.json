@@ -291,6 +291,22 @@
     "stillToLearn": "ainda a aprender: {list}",
     "needsPeople": "precisa de mais {count} pessoas",
     "praying": "rezando",
-    "help": "ajudar"
+    "help": "ajudar",
+    "lore": {
+      "craftTitle": "No que os adultos desta tribo são bons. Os filhos crescem em meio a isso.",
+      "winter": "lembra o inverno da fome do ano {year}",
+      "winterTitle": "Desde então guardam comida todo outono.",
+      "craft": {
+        "woodcutting": "conhecidos por seus lenhadores",
+        "quarrying": "conhecidos por seus canteiros",
+        "foraging": "conhecidos por seus coletores",
+        "fishing": "conhecidos por seus pescadores",
+        "hunting": "conhecidos por seus caçadores",
+        "farming": "conhecidos por seus agricultores",
+        "building": "conhecidos por seus construtores",
+        "crafting": "conhecidos por seu artesanato",
+        "healing": "conhecidos por seus curandeiros"
+      }
+    }
   }
 }

@@ -526,6 +526,8 @@ impl Simulation {
         self.tick_prayers();
         self.tick_wards();
         self.tick_smog();
+        self.tick_winter_memories();
+        self.tick_tribe_crafts();
         self.tick_wild_food();
         self.check_animal_catches();
 

@@ -291,6 +291,22 @@
     "stillToLearn": "öğrenilmesi gereken: {list}",
     "needsPeople": "{count} kişi daha gerekli",
     "praying": "dua ediyor",
-    "help": "yardım"
+    "help": "yardım",
+    "lore": {
+      "craftTitle": "Bu kabilenin yetişkinlerinin iyi olduğu iş. Çocukları bununla büyür.",
+      "winter": "{year}. yılın aç kışını hatırlıyor",
+      "winterTitle": "O günden beri her sonbahar yiyecek biriktiriyorlar.",
+      "craft": {
+        "woodcutting": "oduncularıyla tanınır",
+        "quarrying": "taşçılarıyla tanınır",
+        "foraging": "toplayıcılarıyla tanınır",
+        "fishing": "balıkçılarıyla tanınır",
+        "hunting": "avcılarıyla tanınır",
+        "farming": "çiftçileriyle tanınır",
+        "building": "yapı ustalarıyla tanınır",
+        "crafting": "zanaatıyla tanınır",
+        "healing": "şifacılarıyla tanınır"
+      }
+    }
   }
 }

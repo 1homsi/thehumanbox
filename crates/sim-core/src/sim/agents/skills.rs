@@ -34,6 +34,14 @@ impl Simulation {
         if !succeeded {
             return 0;
         }
+        {
+            // Work that keeps going well grows on a person.
+            let o = &mut self.organisms[idx];
+            let liked = o.skills.feeling(skill) + crate::organism::skills::LIKING_PER_SUCCESS;
+            if o.skills.feeling(skill) >= 0.0 {
+                o.skills.set_feeling(skill, liked);
+            }
+        }
         self.teach_by_example(idx, skill, after, nearby);
         let chance = skills::extra_yield_chance(after);
         u8::from(chance > 0.0 && self.rng.random::<f32>() < chance)

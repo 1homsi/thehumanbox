@@ -196,7 +196,13 @@ impl Simulation {
             Skill::Woodcutting if o.inv_wood == 0 => 0.1,
             _ => 0.0,
         };
-        o.skills.level(skill) + 0.25 * liking(&o.id, skill) + need
+        // The tribe's own craft pulls a little: it is what everyone around them does.
+        let tradition = if self.tribe_craft(&o.lineage_id) == Some(skill) {
+            0.1
+        } else {
+            0.0
+        };
+        o.skills.level(skill) + 0.25 * liking(&o.id, skill) + o.skills.feeling(skill) + need + tradition
     }
 
     /// Whether `idx` is free and fit for a stint of work.
@@ -243,8 +249,12 @@ impl Simulation {
             .iter()
             .filter(|o| o.alive && o.lineage_id == lineage)
             .count() as u32;
+        // A tribe that remembers a hungry winter gathers food all autumn.
+        let laying_by = self.season() == "decline"
+            && self.winter_memory(&lineage) >= crate::sim::civ::society::hard_winters::REMEMBERED;
         let food_short = village_stores::stock_of(self, &lineage) < members * LEAN_STORES_PER_HEAD
-            || self.organisms[idx].energy < 0.75;
+            || self.organisms[idx].energy < 0.75
+            || laying_by;
         let mut ranked: Vec<(Skill, f32)> = WORK
             .into_iter()
             .map(|s| (s, self.work_score(idx, s, food_short)))
@@ -253,6 +263,10 @@ impl Simulation {
         for (skill, _) in ranked {
             // Nothing to go out for with hands already full of it.
             if hands_full(&self.organisms[idx], skill) {
+                continue;
+            }
+            // Work they still dread is not on the list at all.
+            if self.organisms[idx].skills.feeling(skill) <= crate::organism::skills::DREAD / 2.0 {
                 continue;
             }
             let Some(spot) = self.work_spot(skill, here) else {
@@ -409,6 +423,34 @@ mod tests {
                 .work
                 .is_none_or(|p| !matches!(p.skill, Skill::Fishing | Skill::Foraging | Skill::Hunting)),
             "went out for food with full hands"
+        );
+    }
+
+    #[test]
+    fn hurt_at_work_they_swear_off_it_and_choose_other_work() {
+        use crate::organism::organism::Harm;
+        let mut sim = shore();
+        sim.organisms[0].skills.set(Skill::Fishing, 0.7);
+        sim.organisms[0].work = Some(WorkPlan {
+            skill: Skill::Fishing,
+            spot: (109, 100),
+            until: u64::MAX,
+        });
+        sim.organisms[0].mark_harm(Harm::Drowning, 50);
+        assert!(
+            sim.organisms[0].work.is_none(),
+            "kept working after nearly drowning"
+        );
+        assert!(sim.organisms[0].skills.feeling(Skill::Fishing) <= crate::organism::skills::DREAD);
+        assert!(sim.organisms[0]
+            .life_log
+            .iter()
+            .any(|e| e.text == "swore off fishing after nearly drowning"));
+        sim.tick_count = morning(0);
+        sim.assign_daily_work(0);
+        assert!(
+            sim.organisms[0].work.is_none_or(|p| p.skill != Skill::Fishing),
+            "went fishing again the next morning"
         );
     }
 

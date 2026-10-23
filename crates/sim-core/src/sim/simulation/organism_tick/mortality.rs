@@ -151,6 +151,9 @@ impl Simulation {
             push_event(&mut self.events, self.tick_count, "died", &name, &msg);
         }
 
+        if let Some((lineage, "starvation")) = &noted {
+            self.remember_hungry_winter(lineage);
+        }
         if let Some((lineage, cause)) = noted {
             self.note_death(&lineage, cause);
             self.history.record_death(self.tick_count);

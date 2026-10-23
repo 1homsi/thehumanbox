@@ -170,6 +170,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     lineage_words: parsed.lineage_words ?? base?.lineage_words,
     lineage_centroid_history: parsed.lineage_centroid_history ?? base?.lineage_centroid_history,
     lineage_homes: parsed.lineage_homes ?? base?.lineage_homes,
+    lineage_lore: parsed.lineage_lore ?? base?.lineage_lore,
     goals: parsed.goals ?? base?.goals ?? [],
     difficulty: parsed.difficulty ?? base?.difficulty ?? 'normal',
     lost_tick: parsed.lost_tick ?? base?.lost_tick ?? null,

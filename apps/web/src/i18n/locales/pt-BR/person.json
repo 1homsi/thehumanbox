@@ -165,7 +165,9 @@
       "building": "construção",
       "crafting": "artesanato",
       "healing": "cura"
-    }
+    },
+    "enjoys": "gosta de {list}",
+    "avoids": "evita {list} desde que se machucou"
   },
   "zodiac": {
     "title": "NASCIDO SOB",

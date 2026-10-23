@@ -165,7 +165,9 @@
       "building": "costruzione",
       "crafting": "artigianato",
       "healing": "cura"
-    }
+    },
+    "enjoys": "ama {list}",
+    "avoids": "evita {list} dopo un infortunio"
   },
   "zodiac": {
     "title": "NATO SOTTO",

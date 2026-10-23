@@ -218,6 +218,9 @@ impl Simulation {
             lineage_eras: state.lineage_eras,
             lineage_generations_reached: state.lineage_generations_reached,
             lineage_unrest: state.lineage_unrest,
+            lineage_winter_memory: state.lineage_winter_memory,
+            lineage_crafts: HashMap::default(),
+            lineage_crafts_ready: false,
             lineage_crime: state.lineage_crime,
             lineage_aggregates: HashMap::default(),
             current_era: if state.current_era.is_empty() {

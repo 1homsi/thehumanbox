@@ -158,6 +158,8 @@ pub(crate) struct OrgSave {
     pub(super) practice: std::collections::BTreeMap<String, f32>,
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub(super) skills: std::collections::BTreeMap<String, f32>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub(super) work_feelings: std::collections::BTreeMap<String, f32>,
     #[serde(default)]
     pub(super) religion_id: Option<String>,
     #[serde(default)]
@@ -332,6 +334,7 @@ pub(super) fn org_to_save(o: &Organism) -> OrgSave {
         specialty: o.specialty.clone(),
         practice: o.practice.clone(),
         skills: o.skills.to_map(),
+        work_feelings: o.skills.feelings_map(),
         religion_id: o.religion_id.clone(),
         degrees: o.degrees.clone(),
         tools: o.tools.clone(),
@@ -478,6 +481,7 @@ pub(super) fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
         o.specialty = s.specialty;
         o.practice = s.practice;
         o.skills = crate::organism::skills::Skills::from_map(&s.skills);
+        o.skills.set_feelings_from_map(&s.work_feelings);
         o.religion_id = s.religion_id;
         o.degrees = s.degrees;
         o.tools = s.tools;

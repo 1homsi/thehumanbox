@@ -165,7 +165,9 @@
       "building": "construction",
       "crafting": "artisanat",
       "healing": "soins"
-    }
+    },
+    "enjoys": "aime {list}",
+    "avoids": "évite {list} depuis une blessure"
   },
   "zodiac": {
     "title": "NÉ SOUS",

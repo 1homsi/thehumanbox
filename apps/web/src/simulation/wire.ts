@@ -71,6 +71,7 @@ export type IncomingWorldFrame = Pick<
   difficulty?: WorldState['difficulty']
   lost_tick?: WorldState['lost_tick']
   lineage_homes?: WorldState['lineage_homes']
+  lineage_lore?: WorldState['lineage_lore']
   current_era?: WorldState['current_era']
   featured_org_id?: WorldState['featured_org_id']
   sex_words?: WorldState['sex_words']

@@ -163,7 +163,9 @@
       "building": "建造",
       "crafting": "手工",
       "healing": "医治"
-    }
+    },
+    "enjoys": "喜欢{list}",
+    "avoids": "受伤后避开{list}"
   },
   "zodiac": {
     "title": "出生于",

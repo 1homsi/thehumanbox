@@ -495,6 +495,7 @@ impl Simulation {
                     "lineage_names".to_string(),
                     serde_json::to_value(&self.lineage_names).unwrap(),
                 );
+                obj.insert("lineage_lore".to_string(), lineage_lore(self));
                 obj.insert(
                     "lineage_centroid_history".to_string(),
                     serde_json::to_value(&self.lineage_centroid_history).unwrap(),
@@ -960,4 +961,22 @@ fn lineage_words(
             (lineage.to_string(), serde_json::Value::Object(words))
         })
         .collect()
+}
+
+/// What each tribe has learned as a people: the craft it is known for and the
+/// hungry winter it remembers. Only tribes with something to tell are listed.
+fn lineage_lore(sim: &Simulation) -> serde_json::Value {
+    use crate::sim::civ::society::hard_winters::REMEMBERED;
+    let mut lore = serde_json::Map::new();
+    for (lineage, skill) in &sim.lineage_crafts {
+        lore.insert(lineage.clone(), json!({ "craft": skill.name() }));
+    }
+    for (lineage, memory) in &sim.lineage_winter_memory {
+        if memory.strength < REMEMBERED {
+            continue;
+        }
+        let entry = lore.entry(lineage.clone()).or_insert_with(|| json!({}));
+        entry["hungry_winter"] = json!(memory.year + 1);
+    }
+    serde_json::Value::Object(lore)
 }
