@@ -223,6 +223,184 @@
   },
   "status": {
     "applied": "{label} applied at {x}, {y}",
-    "failed": "{label} · {reason}"
+    "failed": "{label} · {reason}",
+    "following": "following {name}",
+    "naming": "name · type a new name for {name}",
+    "paused": "paused: {names} on the brink"
+  },
+  "legends": {
+    "when": "Year {year}, {season}",
+    "notable": "A notable event",
+    "titles": {
+      "meteor": "A star falls",
+      "eruption": "The mountain wakes",
+      "battle": "A battle",
+      "warDeclared": "War is declared",
+      "treaty": "A treaty is sealed",
+      "era": "A new age",
+      "eraAdvance": "A tribe comes into a new age",
+      "milestone": "A milestone",
+      "smite": "A god's wrath",
+      "answered": "A prayer is answered",
+      "forsaken": "A prayer goes unanswered",
+      "prayer": "A prayer",
+      "outbreak": "A sickness spreads",
+      "diseaseDeath": "A death to sickness",
+      "buildingRuined": "A building falls",
+      "weather": "Strange weather",
+      "drought": "A drought",
+      "danger": "A danger"
+    }
+  },
+  "longevity": {
+    "longest": "longest life {age} ({name}, {lineage})",
+    "average": "average {age} over {deaths}",
+    "deaths": {
+      "one": "{count} old-age death",
+      "other": "{count} old-age deaths"
+    }
+  },
+  "family": {
+    "line": "{surname} ×{living}",
+    "longestLine": "{surname} ×{living}, eldest {days} days (longest-lived)",
+    "sentence": "The {surname} family in this tribe: {living} living, the eldest {days} days old."
+  },
+  "death": {
+    "line": "Died of {cause} at age {age}"
+  },
+  "life": {
+    "childOfBoth": "Child of {mother} and {father}.",
+    "childOfOne": "Child of {parent}.",
+    "trade": "Took up the trade of {trade}.",
+    "chief": "Rules the tribe as its chief.",
+    "partnered": "Partnered with {name}.",
+    "hasPartner": "Has a partner.",
+    "children": {
+      "one": "Parent of {count} child.",
+      "other": "Parent of {count} children."
+    },
+    "event": "{text}.",
+    "living": {
+      "one": "Living, {count} day old.",
+      "other": "Living, {count} days old."
+    },
+    "diedOf": {
+      "one": "Died of {cause} at {count} day old.",
+      "other": "Died of {cause} at {count} days old."
+    },
+    "died": {
+      "one": "Died at {count} day old.",
+      "other": "Died at {count} days old."
+    }
+  },
+  "territory": {
+    "holds": "holds {goods}",
+    "routes": {
+      "one": "{count} route",
+      "other": "{count} routes"
+    },
+    "goods": {
+      "one": "{count} good",
+      "other": "{count} goods"
+    },
+    "caravans": {
+      "one": "{count} caravan on the road",
+      "other": "{count} caravans on the road"
+    },
+    "embargoed": "embargoed by war",
+    "agreement": "trade agreement",
+    "buying": "buying {cargo} at {price}{unit} each",
+    "earned": "earned {amount}{unit} from trade",
+    "bartered": "bartered {amount} in kind",
+    "towns": {
+      "ore": "a mining town",
+      "salt": "a salt town",
+      "clay": "a pottery town",
+      "spice": "a spice town",
+      "ochre": "an ochre town",
+      "fur": "a fur town"
+    }
+  },
+  "pair": {
+    "marry": {
+      "next": "marry · now click the other person",
+      "done": "married · they are partners now",
+      "failed": "marry · both must be grown, free to wed, of different sexes, and close to the clicks"
+    },
+    "tradeGift": {
+      "next": "trade · now click a person of the tribe to trade with",
+      "done": "traded · the second tribe received food",
+      "failed": "trade · click a person of each tribe, and the first tribe needs food to spare"
+    },
+    "mergeTribes": {
+      "next": "merge · now click a person of the other tribe",
+      "done": "merged · the second tribe joined the first",
+      "failed": "merge · click two people of different tribes, close to the clicks"
+    }
+  },
+  "words": {
+    "moon": {
+      "newMoon": "new moon",
+      "waxingCrescent": "waxing crescent",
+      "firstQuarter": "first quarter",
+      "waxingGibbous": "waxing gibbous",
+      "fullMoon": "full moon",
+      "waningGibbous": "waning gibbous",
+      "lastQuarter": "last quarter",
+      "waningCrescent": "waning crescent"
+    },
+    "season": {
+      "abundance": "abundance",
+      "decline": "decline",
+      "scarcity": "scarcity",
+      "recovery": "recovery"
+    },
+    "building": {
+      "hut": "hut",
+      "house": "house",
+      "manor": "manor",
+      "townhouse": "townhouse",
+      "apartment": "apartment",
+      "longhouse": "longhouse",
+      "well": "well",
+      "dock": "dock",
+      "marina": "marina",
+      "port": "port",
+      "shipyard": "shipyard",
+      "drydock": "drydock",
+      "sawMill": "saw mill",
+      "quarry": "quarry",
+      "mine": "mine",
+      "smithy": "smithy",
+      "forge": "forge",
+      "mill": "mill",
+      "windmill": "windmill",
+      "watermill": "watermill",
+      "granary": "granary",
+      "silo": "silo",
+      "barn": "barn",
+      "pen": "pen",
+      "workshop": "workshop",
+      "warehouse": "warehouse",
+      "market": "market",
+      "marketStall": "market stall",
+      "foodCart": "food cart",
+      "tent": "tent",
+      "temple": "temple",
+      "shrine": "shrine",
+      "school": "school",
+      "library": "library",
+      "tavern": "tavern",
+      "inn": "inn",
+      "bakery": "bakery",
+      "brewery": "brewery",
+      "bridge": "bridge",
+      "wall": "wall",
+      "watchtower": "watchtower",
+      "barracks": "barracks",
+      "bank": "bank",
+      "stable": "stable",
+      "garden": "garden"
+    }
   }
 }

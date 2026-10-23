@@ -223,6 +223,176 @@
   },
   "status": {
     "applied": "{label} を {x}, {y} に適用",
-    "failed": "{label} · {reason}"
+    "failed": "{label} · {reason}",
+    "following": "{name}を追跡中",
+    "naming": "名前 · {name}の新しい名前を入力",
+    "paused": "一時停止：{names} が存亡の危機"
+  },
+  "legends": {
+    "when": "{year}年目 {season}",
+    "notable": "注目すべき出来事",
+    "titles": {
+      "meteor": "星が落ちる",
+      "eruption": "山が目覚める",
+      "battle": "戦い",
+      "warDeclared": "宣戦布告",
+      "treaty": "条約が結ばれる",
+      "era": "新しい時代",
+      "eraAdvance": "ある部族が新しい時代に入る",
+      "milestone": "節目",
+      "smite": "神の怒り",
+      "answered": "祈りが聞き届けられる",
+      "forsaken": "祈りが届かない",
+      "prayer": "祈り",
+      "outbreak": "病が広がる",
+      "diseaseDeath": "病による死",
+      "buildingRuined": "建物が崩れる",
+      "weather": "異様な天気",
+      "drought": "干ばつ",
+      "danger": "危険"
+    }
+  },
+  "longevity": {
+    "longest": "最長寿 {age}（{name}、{lineage}）",
+    "average": "平均 {age}（{deaths}）",
+    "deaths": {
+      "other": "老衰による死 {count} 件"
+    }
+  },
+  "family": {
+    "line": "{surname} ×{living}",
+    "longestLine": "{surname} ×{living}、最年長 {days} 日（最長寿）",
+    "sentence": "この部族の{surname}家：生存 {living} 人、最年長は {days} 日。"
+  },
+  "death": {
+    "line": "{cause}で死去、享年{age}"
+  },
+  "life": {
+    "childOfBoth": "{mother}と{father}の子。",
+    "childOfOne": "{parent}の子。",
+    "trade": "{trade}の仕事に就いた。",
+    "chief": "首長として部族を治めている。",
+    "partnered": "{name}と連れ添った。",
+    "hasPartner": "伴侶がいる。",
+    "children": {
+      "other": "{count}人の子の親。"
+    },
+    "event": "{text}。",
+    "living": {
+      "other": "生存中、{count}日齢。"
+    },
+    "diedOf": {
+      "other": "{cause}で死去、{count}日齢。"
+    },
+    "died": {
+      "other": "{count}日齢で死去。"
+    }
+  },
+  "territory": {
+    "holds": "{goods}を持つ",
+    "routes": {
+      "other": "{count} 本の交易路"
+    },
+    "goods": {
+      "other": "{count} 点の品"
+    },
+    "caravans": {
+      "other": "道中の隊商 {count} 組"
+    },
+    "embargoed": "戦争により禁輸",
+    "agreement": "通商協定",
+    "buying": "{cargo}を1つ{price}{unit}で購入中",
+    "earned": "交易で{amount}{unit}を稼いだ",
+    "bartered": "物々交換で{amount}を取引",
+    "towns": {
+      "ore": "鉱山の町",
+      "salt": "塩の町",
+      "clay": "陶器の町",
+      "spice": "香辛料の町",
+      "ochre": "黄土の町",
+      "fur": "毛皮の町"
+    }
+  },
+  "pair": {
+    "marry": {
+      "next": "結婚 · 次に相手をクリック",
+      "done": "結婚しました · 二人はパートナーになりました",
+      "failed": "結婚 · 両者は成人で、独身で、性別が異なり、クリックした場所の近くにいる必要があります"
+    },
+    "tradeGift": {
+      "next": "交易 · 次に取引相手の部族の人をクリック",
+      "done": "交易しました · 二つ目の部族が食料を受け取りました",
+      "failed": "交易 · 両方の部族の人をクリックし、最初の部族に食料の余裕が必要です"
+    },
+    "mergeTribes": {
+      "next": "統合 · 次にもう一方の部族の人をクリック",
+      "done": "統合しました · 二つ目の部族が一つ目に加わりました",
+      "failed": "統合 · 異なる部族の二人をクリックし、クリックした場所の近くにいる必要があります"
+    }
+  },
+  "words": {
+    "moon": {
+      "newMoon": "新月",
+      "waxingCrescent": "三日月",
+      "firstQuarter": "上弦",
+      "waxingGibbous": "満ちていく月",
+      "fullMoon": "満月",
+      "waningGibbous": "欠けゆく月",
+      "lastQuarter": "下弦",
+      "waningCrescent": "有明月"
+    },
+    "season": {
+      "abundance": "豊穣",
+      "decline": "衰退",
+      "scarcity": "欠乏",
+      "recovery": "回復"
+    },
+    "building": {
+      "hut": "小屋",
+      "house": "家",
+      "manor": "館",
+      "townhouse": "町家",
+      "apartment": "アパート",
+      "longhouse": "長屋",
+      "well": "井戸",
+      "dock": "波止場",
+      "marina": "マリーナ",
+      "port": "港",
+      "shipyard": "造船所",
+      "drydock": "乾ドック",
+      "sawMill": "製材所",
+      "quarry": "採石場",
+      "mine": "鉱山",
+      "smithy": "鍛冶屋",
+      "forge": "鍛造所",
+      "mill": "製粉所",
+      "windmill": "風車",
+      "watermill": "水車",
+      "granary": "穀倉",
+      "silo": "サイロ",
+      "barn": "納屋",
+      "pen": "囲い",
+      "workshop": "工房",
+      "warehouse": "倉庫",
+      "market": "市場",
+      "marketStall": "露店",
+      "foodCart": "屋台",
+      "tent": "テント",
+      "temple": "神殿",
+      "shrine": "祠",
+      "school": "学校",
+      "library": "図書館",
+      "tavern": "酒場",
+      "inn": "宿屋",
+      "bakery": "パン屋",
+      "brewery": "醸造所",
+      "bridge": "橋",
+      "wall": "城壁",
+      "watchtower": "見張り塔",
+      "barracks": "兵舎",
+      "bank": "銀行",
+      "stable": "厩舎",
+      "garden": "庭園"
+    }
   }
 }

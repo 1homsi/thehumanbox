@@ -223,6 +223,176 @@
   },
   "status": {
     "applied": "{label} 적용: {x}, {y}",
-    "failed": "{label} · {reason}"
+    "failed": "{label} · {reason}",
+    "following": "{name} 따라가는 중",
+    "naming": "이름 · {name}의 새 이름을 입력",
+    "paused": "일시정지: {names} 존속 위기"
+  },
+  "legends": {
+    "when": "{year}년 {season}",
+    "notable": "주목할 만한 사건",
+    "titles": {
+      "meteor": "별이 떨어진다",
+      "eruption": "산이 깨어난다",
+      "battle": "전투",
+      "warDeclared": "전쟁이 선포된다",
+      "treaty": "조약이 체결된다",
+      "era": "새로운 시대",
+      "eraAdvance": "한 부족이 새로운 시대에 들어선다",
+      "milestone": "이정표",
+      "smite": "신의 노여움",
+      "answered": "기도가 응답받는다",
+      "forsaken": "기도가 응답받지 못한다",
+      "prayer": "기도",
+      "outbreak": "병이 퍼진다",
+      "diseaseDeath": "병으로 인한 죽음",
+      "buildingRuined": "건물이 무너진다",
+      "weather": "이상한 날씨",
+      "drought": "가뭄",
+      "danger": "위험"
+    }
+  },
+  "longevity": {
+    "longest": "가장 긴 삶 {age} ({name}, {lineage})",
+    "average": "평균 {age} ({deaths})",
+    "deaths": {
+      "other": "노환으로 죽은 사람 {count}명"
+    }
+  },
+  "family": {
+    "line": "{surname} ×{living}",
+    "longestLine": "{surname} ×{living}, 최고령 {days}일 (최장수 가문)",
+    "sentence": "이 부족의 {surname} 가문: 생존 {living}명, 최고령 {days}일."
+  },
+  "death": {
+    "line": "{cause}로 사망, {age}세"
+  },
+  "life": {
+    "childOfBoth": "{mother}와 {father}의 자식.",
+    "childOfOne": "{parent}의 자식.",
+    "trade": "{trade} 일을 시작했다.",
+    "chief": "족장으로서 부족을 다스린다.",
+    "partnered": "{name}와 짝을 이뤘다.",
+    "hasPartner": "배우자가 있다.",
+    "children": {
+      "other": "자녀 {count}명의 부모."
+    },
+    "event": "{text}.",
+    "living": {
+      "other": "생존 중, {count}일째."
+    },
+    "diedOf": {
+      "other": "{cause}로 사망, {count}일째."
+    },
+    "died": {
+      "other": "{count}일째에 사망."
+    }
+  },
+  "territory": {
+    "holds": "{goods} 보유",
+    "routes": {
+      "other": "교역로 {count}개"
+    },
+    "goods": {
+      "other": "교역품 {count}개"
+    },
+    "caravans": {
+      "other": "길 위의 상단 {count}개"
+    },
+    "embargoed": "전쟁으로 봉쇄됨",
+    "agreement": "무역 협정",
+    "buying": "{cargo} 구입 중, 개당 {price}{unit}",
+    "earned": "교역으로 {amount}{unit} 벌어들임",
+    "bartered": "물물교환으로 {amount}개 거래",
+    "towns": {
+      "ore": "광산 마을",
+      "salt": "소금 마을",
+      "clay": "도기 마을",
+      "spice": "향신료 마을",
+      "ochre": "황토 마을",
+      "fur": "모피 마을"
+    }
+  },
+  "pair": {
+    "marry": {
+      "next": "결혼 · 이제 상대를 클릭",
+      "done": "결혼했습니다 · 이제 두 사람은 짝입니다",
+      "failed": "결혼 · 둘 다 성인이고, 결혼할 수 있으며, 성별이 달라야 하고, 클릭한 곳 가까이 있어야 합니다"
+    },
+    "tradeGift": {
+      "next": "교역 · 이제 교역할 부족의 사람을 클릭",
+      "done": "교역했습니다 · 두 번째 부족이 식량을 받았습니다",
+      "failed": "교역 · 각 부족의 사람을 클릭하고, 첫 번째 부족에 식량 여유가 있어야 합니다"
+    },
+    "mergeTribes": {
+      "next": "합치기 · 이제 다른 부족의 사람을 클릭",
+      "done": "합쳤습니다 · 두 번째 부족이 첫 번째 부족에 합류했습니다",
+      "failed": "합치기 · 서로 다른 부족의 두 사람을 클릭해야 하며, 클릭 위치 가까이 있어야 합니다"
+    }
+  },
+  "words": {
+    "moon": {
+      "newMoon": "삭",
+      "waxingCrescent": "초승달",
+      "firstQuarter": "상현",
+      "waxingGibbous": "차오르는 달",
+      "fullMoon": "보름달",
+      "waningGibbous": "기우는 달",
+      "lastQuarter": "하현",
+      "waningCrescent": "그믐달"
+    },
+    "season": {
+      "abundance": "풍요",
+      "decline": "쇠퇴",
+      "scarcity": "결핍",
+      "recovery": "회복"
+    },
+    "building": {
+      "hut": "오두막",
+      "house": "집",
+      "manor": "저택",
+      "townhouse": "연립주택",
+      "apartment": "아파트",
+      "longhouse": "긴 집",
+      "well": "우물",
+      "dock": "부두",
+      "marina": "마리나",
+      "port": "항구",
+      "shipyard": "조선소",
+      "drydock": "건선거",
+      "sawMill": "제재소",
+      "quarry": "채석장",
+      "mine": "광산",
+      "smithy": "대장간",
+      "forge": "단조장",
+      "mill": "방앗간",
+      "windmill": "풍차",
+      "watermill": "물레방아",
+      "granary": "곡식 창고",
+      "silo": "사일로",
+      "barn": "헛간",
+      "pen": "우리",
+      "workshop": "공방",
+      "warehouse": "창고",
+      "market": "시장",
+      "marketStall": "노점",
+      "foodCart": "음식 수레",
+      "tent": "천막",
+      "temple": "신전",
+      "shrine": "사당",
+      "school": "학교",
+      "library": "도서관",
+      "tavern": "선술집",
+      "inn": "여관",
+      "bakery": "빵집",
+      "brewery": "양조장",
+      "bridge": "다리",
+      "wall": "성벽",
+      "watchtower": "망루",
+      "barracks": "막사",
+      "bank": "은행",
+      "stable": "마구간",
+      "garden": "정원"
+    }
   }
 }
