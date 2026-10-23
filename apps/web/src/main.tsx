@@ -5,14 +5,19 @@ import { ErrorBoundary } from './ui/ErrorBoundary'
 import { initAnalytics } from './shared/observability'
 import { reloadAppSafely } from './simulation/worldSource'
 import { isDesktopStartupPending } from './shared/desktopStartup'
+import { initI18n } from './i18n'
 
 initAnalytics()
 
-createRoot(document.getElementById('root')!).render(
-  <ErrorBoundary>
-    <App />
-  </ErrorBoundary>,
-)
+// The chosen language loads before the first render; it never blocks for long
+// and falls back to English.
+void initI18n().finally(() => {
+  createRoot(document.getElementById('root')!).render(
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>,
+  )
+})
 
 function hideSplash() {
   const splash = document.getElementById('thb-splash')
