@@ -438,6 +438,17 @@ fn someone_walled_into_a_pond_walks_out_through_a_house() {
     assert_reaches_open_ground(&mut sim, 30);
 }
 
+/// Whether a house at (x, y) opens onto dry, walkable ground that is not a
+/// house, ignoring tiles `inside` the enclosure. Read straight off the map, so
+/// the tests do not lean on the enclosure check the movement code uses.
+fn beside_dry_ground(sim: &Simulation, x: i32, y: i32, inside: impl Fn(i32, i32) -> bool) -> bool {
+    DIRECTIONS.iter().any(|&(dx, dy)| {
+        let (nx, ny) = (x + dx, y + dy);
+        let t = sim.grid.get(nx, ny);
+        !inside(nx, ny) && t.walkable() && t != Tile::Fire && !sim.grid.is_wet(t, nx, ny)
+    })
+}
+
 /// Runs the first person until they are out: on dry, walkable ground, or in a
 /// house at the edge of the block with open ground beside it (free to step
 /// out whenever they like). Fails after `ticks`.
@@ -447,7 +458,7 @@ fn assert_reaches_open_ground(sim: &mut Simulation, ticks: usize) {
         let (x, y) = (sim.organisms[0].x as i32, sim.organisms[0].y as i32);
         let t = sim.grid.get(x, y);
         let on_open_ground = t.walkable() && !sim.grid.is_wet(t, x, y);
-        let at_the_door = t == Tile::Hut && !crate::sim::simulation::helpers::walled_in(&sim.grid, x, y);
+        let at_the_door = t == Tile::Hut && beside_dry_ground(sim, x, y, |_, _| false);
         if on_open_ground || at_the_door {
             return;
         }
@@ -533,8 +544,8 @@ fn someone_boxed_in_by_huts_walks_out() {
         tick_first_org(&mut sim);
         let (x, y) = (sim.organisms[0].x as i32, sim.organisms[0].y as i32);
         let outside = (x - 50).abs() > 2 || (y - 50).abs() > 2;
-        let at_the_door =
-            sim.grid.get(x, y) == Tile::Hut && !crate::sim::simulation::helpers::walled_in(&sim.grid, x, y);
+        let at_the_door = sim.grid.get(x, y) == Tile::Hut
+            && beside_dry_ground(&sim, x, y, |nx, ny| (nx - 50).abs() <= 2 && (ny - 50).abs() <= 2);
         if outside || at_the_door {
             return;
         }
