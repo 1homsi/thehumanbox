@@ -166,6 +166,12 @@
       "showRecent": "显示近期",
       "showAll": "显示全部 {count} 项",
       "lineageEnded": "血脉已结束",
+      "outcome": {
+        "completed": "已完成",
+        "expired": "已过期",
+        "redirected": "已改向",
+        "failed": "已失败"
+      },
       "tick": "t{tick}"
     },
     "governments": {

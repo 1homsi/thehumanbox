@@ -166,6 +166,12 @@
       "showRecent": "pokaż ostatnie",
       "showAll": "pokaż wszystkie: {count}",
       "lineageEnded": "ród wygasł",
+      "outcome": {
+        "completed": "ukończona",
+        "expired": "wygasła",
+        "redirected": "przekierowana",
+        "failed": "nieudana"
+      },
       "tick": "t{tick}"
     },
     "governments": {

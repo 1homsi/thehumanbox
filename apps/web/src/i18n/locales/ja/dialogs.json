@@ -90,7 +90,7 @@
     "calendar": {
       "year": "年",
       "day": "84日中 {day}日目",
-      "lit": "{percent}% 照らされ",
+      "lit": "{percent}% 照らされている",
       "season": "季節",
       "worldTech": "世界の技術"
     },
@@ -166,6 +166,12 @@
       "showRecent": "最近を表示",
       "showAll": "すべて {count} 件を表示",
       "lineageEnded": "系譜は途絶えました",
+      "outcome": {
+        "completed": "完了",
+        "expired": "期限切れ",
+        "redirected": "方針変更",
+        "failed": "失敗"
+      },
       "tick": "t{tick}"
     },
     "governments": {

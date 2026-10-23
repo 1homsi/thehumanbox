@@ -166,6 +166,12 @@
       "showRecent": "показать недавние",
       "showAll": "показать все: {count}",
       "lineageEnded": "род прервался",
+      "outcome": {
+        "completed": "завершена",
+        "expired": "истекла",
+        "redirected": "перенаправлена",
+        "failed": "не удалась"
+      },
       "tick": "т{tick}"
     },
     "governments": {

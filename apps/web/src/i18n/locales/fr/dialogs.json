@@ -166,6 +166,12 @@
       "showRecent": "afficher les récentes",
       "showAll": "afficher les {count}",
       "lineageEnded": "lignée éteinte",
+      "outcome": {
+        "completed": "terminée",
+        "expired": "expirée",
+        "redirected": "redirigée",
+        "failed": "échouée"
+      },
       "tick": "t{tick}"
     },
     "governments": {

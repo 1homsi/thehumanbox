@@ -166,6 +166,12 @@
       "showRecent": "son olanları göster",
       "showAll": "tümünü göster ({count})",
       "lineageEnded": "soy hattı sona erdi",
+      "outcome": {
+        "completed": "tamamlandı",
+        "expired": "süresi doldu",
+        "redirected": "yönlendirildi",
+        "failed": "başarısız"
+      },
       "tick": "t{tick}"
     },
     "governments": {
@@ -375,7 +381,7 @@
     "heading": "CANLILAR",
     "summary": "{shown} gösteriliyor · {alive} hayatta · {dead} ölü",
     "close": "Kapat",
-    "placeholder": "ada, düşünceye veya soy hattı kimliğine göre ara…",
+    "placeholder": "ad, düşünceye veya soy hattı kimliğine göre ara…",
     "statusAll": "tümü",
     "statusAlive": "hayatta",
     "statusDead": "ölü",

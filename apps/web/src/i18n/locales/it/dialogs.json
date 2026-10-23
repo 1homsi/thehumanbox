@@ -166,6 +166,12 @@
       "showRecent": "mostra recenti",
       "showAll": "mostra tutte {count}",
       "lineageEnded": "stirpe estinta",
+      "outcome": {
+        "completed": "completata",
+        "expired": "scaduta",
+        "redirected": "reindirizzata",
+        "failed": "fallita"
+      },
       "tick": "t{tick}"
     },
     "governments": {

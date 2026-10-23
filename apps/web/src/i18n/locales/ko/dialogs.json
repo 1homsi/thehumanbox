@@ -166,6 +166,12 @@
       "showRecent": "최근 항목 보기",
       "showAll": "{count}개 모두 보기",
       "lineageEnded": "혈통이 끊어짐",
+      "outcome": {
+        "completed": "완료",
+        "expired": "기한 만료",
+        "redirected": "방향 변경",
+        "failed": "실패"
+      },
       "tick": "t{tick}"
     },
     "governments": {

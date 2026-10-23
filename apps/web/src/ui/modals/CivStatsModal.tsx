@@ -53,6 +53,18 @@ const GUIDANCE: Array<{
   },
 ]
 
+const CAMPAIGN_OUTCOME: Record<'completed' | 'expired' | 'redirected' | 'failed', MessageKey> = {
+  completed: 'dialogs.civ.history.outcome.completed',
+  expired: 'dialogs.civ.history.outcome.expired',
+  redirected: 'dialogs.civ.history.outcome.redirected',
+  failed: 'dialogs.civ.history.outcome.failed',
+}
+
+function strategyLabel(value: string): string {
+  const meta = GUIDANCE.find((entry) => entry.value === value)
+  return meta ? t(meta.label) : value
+}
+
 function hasEnterableBuilding(world: WorldState, kinds: ReadonlySet<string>, lineageId: string): boolean {
   const matching = (world.buildings ?? []).filter((building) => {
     if (!kinds.has(building.kind.toLowerCase())) return false
@@ -168,8 +180,8 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
         title: t('dialogs.civ.redirect.title'),
         body: t('dialogs.civ.redirect.body', {
           lineage: lineageById(lineageId),
-          from: active.strategy,
-          to: strategy,
+          from: strategyLabel(active.strategy),
+          to: strategyLabel(strategy),
         }),
         confirmLabel: t('dialogs.civ.redirect.confirm'),
       }))
@@ -184,7 +196,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
         setGuidanceResult((current) => ({
           ...current,
           [lineageId]: ok
-            ? t('dialogs.civ.guidance.started', { strategy })
+            ? t('dialogs.civ.guidance.started', { strategy: strategyLabel(strategy) })
             : t('dialogs.civ.guidance.rejected'),
         }))
       })
@@ -424,7 +436,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                                     : 'civ-strategy-active'
                                 }
                               >
-                                {activeStrategy.strategy} {formatNumber(objectivePercent)}%
+                                {strategyLabel(activeStrategy.strategy)} {formatNumber(objectivePercent)}%
                               </span>
                             )}
                             {hasBrewing && canEnterTavern && (
@@ -495,7 +507,9 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                           <p className="civ-campaign-description">
                             {meta
                               ? t(meta.description)
-                              : t('dialogs.civ.campaigns.focusOn', { strategy: active.strategy })}
+                              : t('dialogs.civ.campaigns.focusOn', {
+                                  strategy: strategyLabel(active.strategy),
+                                })}
                           </p>
                           <div className="civ-campaign-progress-copy">
                             <span>
@@ -515,7 +529,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                             role="progressbar"
                             aria-label={t('dialogs.civ.campaigns.progressAria', {
                               lineage: lineageById(lineage.id),
-                              strategy: active.strategy,
+                              strategy: strategyLabel(active.strategy),
                             })}
                             aria-valuemin={0}
                             aria-valuemax={target}
@@ -597,12 +611,13 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                           {icon}
                         </span>
                         <span className="civ-campaign-name">
-                          {campaign.lineage_name || lineageById(campaign.lineage_id)} · {campaign.strategy}
+                          {campaign.lineage_name || lineageById(campaign.lineage_id)} ·{' '}
+                          {strategyLabel(campaign.strategy)}
                         </span>
                         <span className="civ-campaign-result">
                           {campaign.reason === 'lineage_extinct'
                             ? t('dialogs.civ.history.lineageEnded')
-                            : campaign.outcome}
+                            : t(CAMPAIGN_OUTCOME[campaign.outcome])}
                         </span>
                         <span className="civ-campaign-effort">
                           {formatNumber(campaign.progress)}/{formatNumber(campaign.target)}

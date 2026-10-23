@@ -218,7 +218,7 @@ function ConversationsModalBody({ org, allOrgs, sexWords, onClose }: Props) {
                 ? org.attracted_to
                   ? t('dialogs.conversations.drawn', { name: personName(org) })
                   : t('dialogs.conversations.noneYet', { name: personName(org) })
-                : t('dialogs.conversations.noneOfKind', { kind: kindFilter })}
+                : t('dialogs.conversations.noneOfKind', { kind: kindMeta(kindFilter).label })}
             </div>
           </div>
         ) : (

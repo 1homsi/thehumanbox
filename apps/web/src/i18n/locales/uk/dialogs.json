@@ -166,6 +166,12 @@
       "showRecent": "показати останні",
       "showAll": "показати всі ({count})",
       "lineageEnded": "рід зник",
+      "outcome": {
+        "completed": "завершено",
+        "expired": "минув термін",
+        "redirected": "перенаправлено",
+        "failed": "не вдалося"
+      },
       "tick": "т{tick}"
     },
     "governments": {

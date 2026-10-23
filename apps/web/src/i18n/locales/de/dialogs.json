@@ -166,6 +166,12 @@
       "showRecent": "letzte anzeigen",
       "showAll": "alle {count} anzeigen",
       "lineageEnded": "Linie erloschen",
+      "outcome": {
+        "completed": "abgeschlossen",
+        "expired": "abgelaufen",
+        "redirected": "umgeleitet",
+        "failed": "fehlgeschlagen"
+      },
       "tick": "T{tick}"
     },
     "governments": {
