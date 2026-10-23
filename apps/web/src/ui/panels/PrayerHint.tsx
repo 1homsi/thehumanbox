@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { PrayerInfo, WorldState } from '../../shared/types'
 import { sortPrayers } from '../../game/model/prayers'
 import { ToolSprite } from '../toolbar/ToolSprite'
+import { t } from '../../i18n'
 
 const SEEN_KEY = 'thb-prayer-hint-seen-v1'
 
@@ -60,10 +61,8 @@ export function PrayerHint({ world, onAnswer }: Props) {
         <ToolSprite icon="🙏" size={20} />
       </div>
       <div className="update-toast__body">
-        <div className="update-toast__title">Your people are praying</div>
-        <div className="update-toast__sub">
-          Click a speech bubble over a tribe to help. Answered prayers earn faith.
-        </div>
+        <div className="update-toast__title">{t('panels.prayerHint.title')}</div>
+        <div className="update-toast__sub">{t('panels.prayerHint.body')}</div>
       </div>
       <button
         type="button"
@@ -74,9 +73,14 @@ export function PrayerHint({ world, onAnswer }: Props) {
           if (first) onAnswer(first)
         }}
       >
-        show me
+        {t('panels.prayerHint.showMe')}
       </button>
-      <button type="button" className="update-toast__close" onClick={close} aria-label="Dismiss">
+      <button
+        type="button"
+        className="update-toast__close"
+        onClick={close}
+        aria-label={t('panels.prayerHint.dismiss')}
+      >
         ×
       </button>
     </div>

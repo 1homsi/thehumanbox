@@ -1,1 +1,296 @@
-{}
+{
+  "right": {
+    "alive": "VIVOS ({count})",
+    "starred": "favoritos",
+    "showAll": "Mostrar todos os organismos",
+    "showStarred": "Mostrar só os favoritos ({count})",
+    "showMore": "mostrar mais {count} · {hidden} ocultos",
+    "dead": "MORTOS ({count})",
+    "generation": "g{generation} · {age}",
+    "unstar": "Remover dos favoritos",
+    "gone": "DESAPARECIDOS ({count})",
+    "vanished": "desapareceu do mundo"
+  },
+  "events": {
+    "heading": "EVENTOS",
+    "important": "importantes",
+    "all": "todos",
+    "showImportant": "Mostrando o que importa. Clique para mostrar tudo.",
+    "showAll": "Mostrando tudo. Clique para mostrar só o que importa."
+  },
+  "eventRow": {
+    "goThere": "Ir até lá"
+  },
+  "headlines": {
+    "label": "manchetes recentes do mundo"
+  },
+  "history": {
+    "title": "HISTÓRIA DO MUNDO",
+    "births": "nascimentos",
+    "birthsTip": "Total de pessoas já nascidas neste mundo",
+    "oldAge": "velhice",
+    "oldAgeTip": "Mortes por velhice: pessoas que viveram uma vida completa",
+    "starvation": "fome",
+    "starvationTip": "Mortes por fome ou sede: falta de comida ou água",
+    "sickness": "doença",
+    "sicknessTip": "Mortes por doença",
+    "combat": "combate",
+    "combatTip": "Mortes em brigas entre vizinhos e em guerras entre tribos",
+    "beasts": "feras",
+    "beastsTip": "Mortos por lobos, ursos e monstros",
+    "drowned": "afogados",
+    "drownedTip": "Afogados em águas profundas ou em cheia",
+    "fire": "fogo",
+    "fireTip": "Mortos por incêndio florestal",
+    "disaster": "desastres",
+    "disasterTip": "Mortos por terremotos, meteoros, enchentes, tempestades, vulcões e pelos raios dos deuses",
+    "alliances": "alianças",
+    "alliancesTip": "Alianças formadas entre tribos",
+    "challenges": "desafios",
+    "challengesTip": "Desafios territoriais: uma pessoa enfrenta outra",
+    "gifts": "presentes",
+    "giftsTip": "Comida dada entre pessoas: parentesco e amizade",
+    "droughts": "secas",
+    "droughtsTip": "Secas: períodos de falta de água",
+    "outbreaks": "surtos",
+    "outbreaksTip": "Surtos de doença que se espalharam pela população"
+  },
+  "wildlife": {
+    "title": "VIDA SELVAGEM",
+    "danger": "Caça pessoas quando está com fome",
+    "herds": "Ovelhas, vacas, cavalos e galinhas",
+    "game": "Caça selvagem, abatida para comida: a caça excessiva a reduz",
+    "away": "+{count} fora",
+    "animals": {
+      "rabbits": "coelhos",
+      "deer": "veados",
+      "boar": "javalis",
+      "birds": "pássaros",
+      "fish": "peixes",
+      "herds": "rebanhos",
+      "foxes": "raposas",
+      "cats": "gatos",
+      "penguins": "pinguins",
+      "camels": "camelos",
+      "frogs": "sapos",
+      "whales": "baleias",
+      "ducks": "patos",
+      "bees": "abelhas",
+      "owls": "corujas",
+      "eagles": "águias",
+      "snakes": "cobras",
+      "crocodiles": "crocodilos",
+      "monkeys": "macacos",
+      "wolves": "lobos",
+      "goats": "cabras",
+      "elephants": "elefantes",
+      "lions": "leões",
+      "zebras": "zebras",
+      "polarBears": "ursos-polares",
+      "kangaroos": "cangurus",
+      "bears": "ursos"
+    }
+  },
+  "footer": {
+    "era": "era",
+    "eras": {
+      "genesis": "GÊNESE",
+      "forager": "COLETORES",
+      "fire": "FOGO",
+      "shelter": "ABRIGO",
+      "tribal": "TRIBAL",
+      "invention": "INVENÇÃO",
+      "cooking": "COZINHA",
+      "masonry": "ALVENARIA",
+      "equilibrium": "EQUILÍBRIO"
+    },
+    "day": "dia",
+    "night": "noite",
+    "weather": "clima",
+    "droughtTag": "· {label}",
+    "tribes": "tribos"
+  },
+  "weather": {
+    "clear": "limpo",
+    "rain": "chuva",
+    "rainBody": "Ajuda a terra seca a se recuperar mais rápido.",
+    "storm": "tempestade",
+    "stormBody": "Drena a energia. Relâmpagos podem cair.",
+    "snow": "neve",
+    "fog": "neblina",
+    "wet": "úmido",
+    "drought": "seca",
+    "droughtBody": "A água está diminuindo e as mortes por sede aumentam."
+  },
+  "silent": {
+    "title": "O mundo ficou em silêncio",
+    "body": "O último dos seus povos se foi. Nada se mexe nas aldeias que construíram.",
+    "lasted": "durou",
+    "years": {
+      "one": "{count} ano",
+      "other": "{count} anos"
+    },
+    "mostAlive": "mais vivos ao mesmo tempo",
+    "tribes": "tribos",
+    "furthestAge": "era mais avançada",
+    "prayersAnswered": "orações atendidas",
+    "unanswered": "{count} sem resposta",
+    "keepWatching": "continuar observando",
+    "newWorld": "novo mundo",
+    "seed": "semear novas pessoas"
+  },
+  "rename": {
+    "label": "Novo nome",
+    "save": "salvar",
+    "cancel": "cancelar"
+  },
+  "prayerHint": {
+    "title": "Seu povo está rezando",
+    "body": "Clique em um balão de fala sobre uma tribo para ajudar. Orações atendidas geram fé.",
+    "showMe": "me mostre",
+    "dismiss": "Dispensar"
+  },
+  "prayerChip": {
+    "tipTitle": "orações",
+    "tipBody": {
+      "one": "Uma tribo está pedindo sua ajuda. Responda antes que perca a fé.",
+      "other": "{count} tribos estão pedindo sua ajuda. Responda antes que percam a fé."
+    },
+    "label": {
+      "one": "{formattedCount} oração",
+      "other": "{formattedCount} orações"
+    }
+  },
+  "peril": {
+    "title": "à beira do fim",
+    "tipOne": "A tribo {tribe} está à beira do fim: {remaining}, {reason}.",
+    "tipMany": "{count} tribos estão à beira do fim. Clique para ir a cada uma por vez.",
+    "label": {
+      "one": "{count} tribo à beira do fim",
+      "other": "{count} tribos à beira do fim"
+    }
+  },
+  "population": {
+    "people": "pessoas",
+    "alive": "{count} vivas.",
+    "milestone": "próxima marca {count}",
+    "sickness": "doença",
+    "sick": {
+      "one": "{count} pessoa está doente. Espalha-se por contato próximo.",
+      "other": "{count} pessoas estão doentes. Espalha-se por contato próximo."
+    }
+  },
+  "calendar": {
+    "year": "A{year}",
+    "yearTitle": "Ano {year}, {season}",
+    "dayOfSeason": "Dia {day} de 5 nesta estação: {season}. Um ano tem quatro estações, e as pessoas envelhecem conforme os anos que viveram.",
+    "throughDay": "{phase}, {percent}% do dia já passou.",
+    "moon": "lua: {phase}",
+    "moonDate": "Ano {year}, dia {day}.",
+    "hardWinter": "inverno rigoroso",
+    "hardWinterAhead": "{season} · inverno rigoroso se aproxima",
+    "omen": "inverno rigoroso se aproxima",
+    "hardWinterBody": "Mais frio que o normal. A comida selvagem morre rápido e as febres se espalham.",
+    "hardWinterHow": "As tribos vão rezar por comida e curas.",
+    "aheadBody": "Os anciãos temem um inverno rigoroso. A comida selvagem vai escassear e as febres vão se espalhar.",
+    "aheadHow": "Plante lavouras e pomares agora, antes que o frio chegue.",
+    "tip": {
+      "recovery": "A terra está se recuperando. A comida começa a crescer de novo.",
+      "abundance": "A comida é abundante.",
+      "decline": "O crescimento da comida diminui antes do inverno.",
+      "scarcity": "A comida é escassa. O inverno é a estação mais difícil.",
+      "default": "Afeta o crescimento da comida e o risco de seca."
+    },
+    "season": {
+      "spring": "primavera",
+      "summer": "verão",
+      "autumn": "outono",
+      "winter": "inverno"
+    },
+    "seasonName": {
+      "spring": "Primavera",
+      "summer": "Verão",
+      "autumn": "Outono",
+      "winter": "Inverno"
+    },
+    "phase": {
+      "dawn": "amanhecer",
+      "day": "dia",
+      "dusk": "entardecer",
+      "night": "noite"
+    },
+    "phaseTitle": {
+      "dawn": "Amanhecer",
+      "day": "Dia",
+      "dusk": "Entardecer",
+      "night": "Noite"
+    }
+  },
+  "lineages": {
+    "title": "LINHAGENS ({count})",
+    "onBrink": "À beira do fim: {line}, {reason}. Clique para ajudar.",
+    "showAll": "Mostrar todas as linhagens",
+    "focus": "Focar em {name}",
+    "brink": "à beira do fim",
+    "oldest": "Mais velho vivo: {line}",
+    "viewAll": "ver todas ({count})",
+    "faith": "fé {faith}",
+    "faithBlessed": "fé {faith} · abençoada por uma oração atendida",
+    "faithDespair": "fé {faith} · desesperada após uma oração sem resposta",
+    "eldestDays": "{days} d",
+    "generation": "g{from}",
+    "generationRange": "g{from}-{to}"
+  },
+  "tribe": {
+    "rename": "Renomear esta tribo",
+    "nameLabel": "Nome da tribo",
+    "close": "Fechar",
+    "regionLabel": "Tribo {name}",
+    "sparkTitle": "{from} → {to} pessoas recentemente",
+    "growing": "crescendo",
+    "shrinking": "diminuindo",
+    "steady": "estável",
+    "food": "comida",
+    "water": "água",
+    "health": "saúde",
+    "ledBy": "liderada por",
+    "followLeader": "Seguir o líder",
+    "festival": "{name} está acontecendo",
+    "people": {
+      "one": "{count} pessoa",
+      "other": "{count} pessoas"
+    },
+    "eraAge": "era {era}",
+    "wealth": "riqueza {gap}",
+    "onBrink": "à beira do fim: {line} de {peak}, {reason}",
+    "atWar": "em guerra com {enemies}",
+    "makePeace": "fazer a paz",
+    "granary": "celeiro: {count} medidas de grão",
+    "bakery": "padaria: {count} pães",
+    "pen": "curral: {count} cabeças de gado",
+    "lostLately": "perdas recentes: {losses}",
+    "oldest": "mais velho vivo: {line}",
+    "oldestTitle": "O membro mais velho vivo desta tribo",
+    "families": "famílias: {list}",
+    "familiesTitle": "As famílias das pessoas vivas desta tribo",
+    "faith": "fé {faith}",
+    "faithTitle": "Orações atendidas menos as abandonadas",
+    "faithLostTitle": "Desistiram dos deuses e raramente rezam. Ajude-os sem que peçam, para reconquistá-los.",
+    "blessed": "abençoada",
+    "lostFaith": "fé perdida",
+    "despairing": "desesperada",
+    "sick": {
+      "one": "{count} doente",
+      "other": "{count} doentes"
+    },
+    "nextAge": "próxima: era {era}",
+    "inspire": "inspirar",
+    "inspireTitle": "Inspirar: acelera a próxima descoberta",
+    "teach": "ensinar",
+    "teachTitle": "Ensinar o próximo segredo que lhes falta (uma vez por estação)",
+    "stillToLearn": "ainda a aprender: {list}",
+    "needsPeople": "precisa de mais {count} pessoas",
+    "praying": "rezando",
+    "help": "ajudar"
+  }
+}

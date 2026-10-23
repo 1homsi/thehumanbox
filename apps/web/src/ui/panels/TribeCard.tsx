@@ -18,6 +18,7 @@ import { generationLine, generationsOf } from '../../game/model/generations'
 import { familyLineText, familyLines } from '../../game/model/family-lines'
 import { eldestByLineage, eldestLine } from '../../game/model/tribe-eldest'
 import { ToolSprite } from '../toolbar/ToolSprite'
+import { formatNumber, t } from '../../i18n'
 
 interface Props {
   world: WorldState
@@ -50,12 +51,18 @@ function Sparkline({ lineage }: { lineage: string }) {
   return (
     <div
       className={clsx('tribe-spark', direction)}
-      title={`${samples[0]} → ${samples[samples.length - 1]} people lately`}
+      title={t('panels.tribe.sparkTitle', { from: samples[0]!, to: samples[samples.length - 1]! })}
     >
       <svg width="72" height="14" viewBox="0 0 72 14" aria-hidden="true">
         <polyline points={sparklinePoints(samples, 72, 14)} fill="none" strokeWidth="1.5" />
       </svg>
-      <span>{direction === 'up' ? 'growing' : direction === 'down' ? 'shrinking' : 'steady'}</span>
+      <span>
+        {direction === 'up'
+          ? t('panels.tribe.growing')
+          : direction === 'down'
+            ? t('panels.tribe.shrinking')
+            : t('panels.tribe.steady')}
+      </span>
     </div>
   )
 }
@@ -78,7 +85,7 @@ function TribeName({
     return (
       <button
         className="tribe-card-name tribe-card-rename"
-        title="Rename this tribe"
+        title={t('panels.tribe.rename')}
         onClick={() => setEditing(name)}
       >
         {name} <span aria-hidden="true">✎</span>
@@ -91,7 +98,7 @@ function TribeName({
       autoFocus
       maxLength={24}
       value={editing}
-      aria-label="Tribe name"
+      aria-label={t('panels.tribe.nameLabel')}
       onChange={(e) => setEditing(e.target.value)}
       onBlur={() => setEditing(null)}
       onKeyDown={(e) => {
@@ -139,11 +146,19 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
   }
 
   return (
-    <div className="tribe-card" role="region" aria-label={`${status.name} tribe`}>
+    <div
+      className="tribe-card"
+      role="region"
+      aria-label={t('panels.tribe.regionLabel', { name: status.name })}
+    >
       <div className="tribe-card-head">
         <span className="lineage-dot" style={{ background: lineageColor(status.id) }} />
         <TribeName key={status.id} lineage={status.id} name={status.name} onRename={onRename} />
-        <button className="tribe-card-close" aria-label="Close" onClick={() => setFocus('all')}>
+        <button
+          className="tribe-card-close"
+          aria-label={t('panels.tribe.close')}
+          onClick={() => setFocus('all')}
+        >
           ×
         </button>
       </div>
@@ -152,10 +167,10 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
           {leadership.government}
           {leadership.leader && (
             <>
-              {' · led by '}
+              {` · ${t('panels.tribe.ledBy')} `}
               <button
                 className="tribe-leader-link"
-                title="Follow the leader"
+                title={t('panels.tribe.followLeader')}
                 onClick={() => {
                   const ui = useUIStore.getState()
                   ui.selectOrg(leadership.leader!.id)
@@ -168,18 +183,25 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
           )}
         </div>
       )}
-      {festival && <div className="tribe-card-festival">♫ {festival} is under way</div>}
+      {festival && (
+        <div className="tribe-card-festival">♫ {t('panels.tribe.festival', { name: festival })}</div>
+      )}
       <div className="tribe-card-sub">
-        {status.people} {status.people === 1 ? 'person' : 'people'}
-        {status.era && ` · ${status.era} age`}
-        {gap && ` · wealth ${gap}`}
+        {t('panels.tribe.people', { count: status.people })}
+        {status.era && ` · ${t('panels.tribe.eraAge', { era: status.era })}`}
+        {gap && ` · ${t('panels.tribe.wealth', { gap })}`}
         {gens && ` · ${generationLine(gens)}`}
         {crime && ` · ${crime}`}
       </div>
       {peril && help && (
         <div className="tribe-peril" role="alert">
           <span>
-            ⚠ on the brink: {remainingLine(peril.population)} of {peril.peak}, {help.reason}
+            ⚠{' '}
+            {t('panels.tribe.onBrink', {
+              line: remainingLine(peril.population),
+              peak: formatNumber(peril.peak),
+              reason: help.reason,
+            })}
           </span>
           <button className="tribe-peril-help" onClick={() => lookAtTribe(help.tool)}>
             {help.action}
@@ -188,73 +210,77 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
       )}
       {enemies.length > 0 && field && (
         <div className="tribe-peril tribe-war" role="status">
-          <span>⚔ at war with {enemies.join(', ')}</span>
+          <span>⚔ {t('panels.tribe.atWar', { enemies: enemies.join(', ') })}</span>
           <button
             className="tribe-peril-help"
             onClick={() => onTool('peace', { x: field.location[0], y: field.location[1] })}
           >
-            make peace
+            {t('panels.tribe.makePeace')}
           </button>
         </div>
       )}
       <Sparkline lineage={status.id} />
-      <Need label="food" value={status.food} />
-      {status.stores > 0 && <p className="tribe-stores">granary: {status.stores} measures of grain</p>}
-      {status.bread > 0 && <p className="tribe-stores">bakery: {status.bread} loaves</p>}
-      {status.livestock > 0 && <p className="tribe-stores">pen: {status.livestock} head of livestock</p>}
-      <Need label="water" value={status.water} />
-      <Need label="health" value={status.health} />
-      {losses && <div className="tribe-card-losses">lost lately: {losses}</div>}
+      <Need label={t('panels.tribe.food')} value={status.food} />
+      {status.stores > 0 && (
+        <p className="tribe-stores">{t('panels.tribe.granary', { count: formatNumber(status.stores) })}</p>
+      )}
+      {status.bread > 0 && (
+        <p className="tribe-stores">{t('panels.tribe.bakery', { count: formatNumber(status.bread) })}</p>
+      )}
+      {status.livestock > 0 && (
+        <p className="tribe-stores">{t('panels.tribe.pen', { count: formatNumber(status.livestock) })}</p>
+      )}
+      <Need label={t('panels.tribe.water')} value={status.water} />
+      <Need label={t('panels.tribe.health')} value={status.health} />
+      {losses && <div className="tribe-card-losses">{t('panels.tribe.lostLately', { losses })}</div>}
       {relations && <div className="tribe-card-relations">{relations}</div>}
       {eldest && (
-        <div className="tribe-card-relations" title="The oldest living member of this tribe">
-          oldest living: {eldestLine(eldest)}
+        <div className="tribe-card-relations" title={t('panels.tribe.oldestTitle')}>
+          {t('panels.tribe.oldest', { line: eldestLine(eldest) })}
         </div>
       )}
       {families.length > 0 && (
-        <div className="tribe-card-relations" title="The families of this tribe's living people">
-          families: {families.map(familyLineText).join(' · ')}
+        <div className="tribe-card-relations" title={t('panels.tribe.familiesTitle')}>
+          {t('panels.tribe.families', { list: families.map(familyLineText).join(' · ') })}
         </div>
       )}
       <div className="tribe-card-row">
         <span
           className={clsx('tribe-faith', status.blessed && 'blessed', status.despairing && 'despair')}
-          title={
-            status.lostFaith
-              ? 'They have given up on the gods and rarely pray. Help them unasked to win them back.'
-              : 'Answered prayers minus forsaken ones'
-          }
+          title={status.lostFaith ? t('panels.tribe.faithLostTitle') : t('panels.tribe.faithTitle')}
         >
-          ✧ faith {status.faith}
+          ✧ {t('panels.tribe.faith', { faith: status.faith })}
           {status.blessed
-            ? ' · blessed'
+            ? ` · ${t('panels.tribe.blessed')}`
             : status.lostFaith
-              ? ' · lost faith'
+              ? ` · ${t('panels.tribe.lostFaith')}`
               : status.despairing
-                ? ' · despairing'
+                ? ` · ${t('panels.tribe.despairing')}`
                 : ''}
         </span>
-        {status.sick > 0 && <span className="tribe-sick">{status.sick} sick</span>}
+        {status.sick > 0 && (
+          <span className="tribe-sick">{t('panels.tribe.sick', { count: status.sick })}</span>
+        )}
       </div>
       {status.nextAge && (
         <div className="tribe-next">
           <div className="tribe-next-head">
-            <span>next: {status.nextAge.era} age</span>
+            <span>{t('panels.tribe.nextAge', { era: status.nextAge.era })}</span>
             <span className="tribe-next-actions">
               <button
                 className="tribe-inspire"
-                title="Inspire them: speeds up their next discovery"
+                title={t('panels.tribe.inspireTitle')}
                 onClick={() => lookAtTribe('inspire')}
               >
-                ✦ inspire
+                ✦ {t('panels.tribe.inspire')}
               </button>
               {status.nextAge.missing.length > 0 && (
                 <button
                   className="tribe-inspire"
-                  title="Teach them the next secret they lack (once a season)"
+                  title={t('panels.tribe.teachTitle')}
                   onClick={() => onTeach(status.id)}
                 >
-                  ✎ teach
+                  ✎ {t('panels.tribe.teach')}
                 </button>
               )}
             </span>
@@ -268,19 +294,21 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
           </span>
           {status.nextAge.missing.length > 0 && (
             <div className="tribe-next-missing">
-              still to learn: {status.nextAge.missing.slice(0, 3).join(', ')}
+              {t('panels.tribe.stillToLearn', { list: status.nextAge.missing.slice(0, 3).join(', ') })}
             </div>
           )}
           {status.nextAge.peopleNeeded > 0 && (
-            <div className="tribe-next-missing">needs {status.nextAge.peopleNeeded} more people</div>
+            <div className="tribe-next-missing">
+              {t('panels.tribe.needsPeople', { count: status.nextAge.peopleNeeded })}
+            </div>
           )}
         </div>
       )}
       {prayer && (
         <button className="tribe-card-prayer" onClick={() => onAnswer(prayer)}>
           <ToolSprite icon={PRAYER_KINDS[prayer.kind]?.icon ?? '🙏'} size={16} />
-          <span>{PRAYER_KINDS[prayer.kind]?.plea ?? 'praying'}</span>
-          <span className="tribe-card-help">help</span>
+          <span>{PRAYER_KINDS[prayer.kind]?.plea ?? t('panels.tribe.praying')}</span>
+          <span className="tribe-card-help">{t('panels.tribe.help')}</span>
         </button>
       )}
     </div>

@@ -1,8 +1,9 @@
 import clsx from 'clsx'
 import type { WorldState } from '../../shared/types'
+import { t } from '../../i18n'
 import { Tooltip } from '../toolbar/Tooltip'
 import { ToolSprite } from '../toolbar/ToolSprite'
-import { calendarTagParts, DAY_PHASE_ICON, DAY_PHASE_TITLE, seasonNote } from './calendar-tag'
+import { calendarTagParts, DAY_PHASE_ICON, seasonNote } from './calendar-tag'
 
 /**
  * The one readout for the calendar and the light, in the header: "Y15 · SUMMER · night".
@@ -15,23 +16,30 @@ export function CalendarTag({ world }: { world: WorldState }) {
   const tip = (
     <span className="tip-card">
       <span className="tip-title">
-        Year {parts.year}, {parts.calendarSeason}
+        {t('panels.calendar.yearTitle', { year: parts.year, season: parts.calendarSeason })}
       </span>
       <span className="tip-body">
-        Day {parts.dayOfSeason} of 5 in {parts.calendarSeason.toLowerCase()}. A year is four seasons, and
-        people age by the years they have lived.
+        {t('panels.calendar.dayOfSeason', {
+          day: parts.dayOfSeason,
+          season: parts.calendarWord,
+        })}
       </span>
       {note.title && <span className="tip-title">{note.title}</span>}
       <span className="tip-body">{note.body}</span>
       {note.how && <span className="tip-how">{note.how}</span>}
       <span className="tip-how">
-        {DAY_PHASE_TITLE[parts.phase]}, {parts.dayPercent}% through the day.
+        {t('panels.calendar.throughDay', { phase: parts.phaseTitle, percent: parts.dayPercent })}
       </span>
       {world.cosmos && (
         <>
-          <span className="tip-title">moon: {world.cosmos.moon_phase.replace(/_/g, ' ')}</span>
+          <span className="tip-title">
+            {t('panels.calendar.moon', { phase: world.cosmos.moon_phase.replace(/_/g, ' ') })}
+          </span>
           <span className="tip-how">
-            Year {world.cosmos.year + 1}, day {world.cosmos.day_of_year + 1}.
+            {t('panels.calendar.moonDate', {
+              year: world.cosmos.year + 1,
+              day: world.cosmos.day_of_year + 1,
+            })}
           </span>
         </>
       )}
@@ -49,7 +57,7 @@ export function CalendarTag({ world }: { world: WorldState }) {
         )}
         style={{ cursor: 'default' }}
       >
-        <span className="time-tag-year">Y{parts.year}</span>
+        <span className="time-tag-year">{t('panels.calendar.year', { year: parts.year })}</span>
         <span className="time-tag-sep" aria-hidden="true">
           ·
         </span>
@@ -57,7 +65,7 @@ export function CalendarTag({ world }: { world: WorldState }) {
           <span className="time-tag-dot" aria-hidden="true" />
           {parts.seasonWord}
           {parts.hardWinterAhead && (
-            <span className="time-tag-omen" role="img" aria-label="hard winter ahead">
+            <span className="time-tag-omen" role="img" aria-label={t('panels.calendar.omen')}>
               ❄
             </span>
           )}
@@ -67,7 +75,7 @@ export function CalendarTag({ world }: { world: WorldState }) {
         </span>
         <span className="time-tag-phase">
           <ToolSprite icon={DAY_PHASE_ICON[parts.phase]} size={14} />
-          {parts.phase}
+          {parts.phaseWord}
         </span>
       </span>
     </Tooltip>

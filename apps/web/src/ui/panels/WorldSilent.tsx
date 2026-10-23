@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { WorldState } from '../../shared/types'
 import { everLived, livingCount, worldEpitaph } from '../../game/model/world-end'
 import { Modal } from '../modals/LazyModal'
+import { formatNumber, t } from '../../i18n'
 
 interface Props {
   world: WorldState | null
@@ -29,34 +30,37 @@ export function WorldSilent({ world, onSeed, onNewWorld }: Props) {
   const close = () => setDismissed(true)
 
   return (
-    <Modal open onClose={close} className="confirm-modal world-silent" title="The world has fallen silent">
+    <Modal open onClose={close} className="confirm-modal world-silent" title={t('panels.silent.title')}>
       <div className="confirm-body">
-        <p>The last of your people is gone. Nothing stirs in the villages they built.</p>
+        <p>{t('panels.silent.body')}</p>
         <dl className="world-silent-stats">
-          <dt>lasted</dt>
-          <dd>
-            {e.years} {e.years === 1 ? 'year' : 'years'}
-          </dd>
-          <dt>most alive at once</dt>
-          <dd>{e.peak.toLocaleString()}</dd>
-          <dt>tribes</dt>
+          <dt>{t('panels.silent.lasted')}</dt>
+          <dd>{t('panels.silent.years', { count: e.years })}</dd>
+          <dt>{t('panels.silent.mostAlive')}</dt>
+          <dd>{formatNumber(e.peak)}</dd>
+          <dt>{t('panels.silent.tribes')}</dt>
           <dd>{e.tribes}</dd>
           {e.era && (
             <>
-              <dt>furthest age</dt>
+              <dt>{t('panels.silent.furthestAge')}</dt>
               <dd>{e.era}</dd>
             </>
           )}
-          <dt>prayers answered</dt>
+          <dt>{t('panels.silent.prayersAnswered')}</dt>
           <dd>
             {e.answered}
-            {e.forsaken > 0 && <span className="world-silent-forsaken"> · {e.forsaken} unanswered</span>}
+            {e.forsaken > 0 && (
+              <span className="world-silent-forsaken">
+                {' · '}
+                {t('panels.silent.unanswered', { count: formatNumber(e.forsaken) })}
+              </span>
+            )}
           </dd>
         </dl>
       </div>
       <div className="confirm-actions">
         <button className="lang-btn" onClick={close}>
-          keep watching
+          {t('panels.silent.keepWatching')}
         </button>
         {onNewWorld && (
           <button
@@ -66,7 +70,7 @@ export function WorldSilent({ world, onSeed, onNewWorld }: Props) {
               onNewWorld()
             }}
           >
-            new world
+            {t('panels.silent.newWorld')}
           </button>
         )}
         <button
@@ -77,7 +81,7 @@ export function WorldSilent({ world, onSeed, onNewWorld }: Props) {
             onSeed()
           }}
         >
-          seed new people
+          {t('panels.silent.seed')}
         </button>
       </div>
     </Modal>

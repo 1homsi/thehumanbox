@@ -3,6 +3,7 @@ import { sendSandboxCommand } from '../../simulation/commandBus'
 import { useUIStore } from '../../state/store'
 import { personName } from '../../shared/personName'
 import type { OrganismState } from '../../shared/types'
+import { t } from '../../i18n'
 
 /** The longest name a person can be given; the simulation keeps the same limit. */
 const MAX_NAME = 24
@@ -30,7 +31,7 @@ export function RenameForm({ org }: { org: Pick<OrganismState, 'id' | 'name' | '
     >
       <input
         autoFocus
-        aria-label="New name"
+        aria-label={t('panels.rename.label')}
         maxLength={MAX_NAME}
         value={value}
         onChange={(e) => setValue(e.target.value)}
@@ -39,9 +40,9 @@ export function RenameForm({ org }: { org: Pick<OrganismState, 'id' | 'name' | '
         }}
         style={{ flex: 1, minWidth: 0 }}
       />
-      <button type="submit">save</button>
+      <button type="submit">{t('panels.rename.save')}</button>
       <button type="button" onClick={stopRename}>
-        cancel
+        {t('panels.rename.cancel')}
       </button>
     </form>
   )

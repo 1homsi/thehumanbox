@@ -1,4 +1,5 @@
 import type { WorldState } from '../../shared/types'
+import { t } from '../../i18n'
 
 export interface WeatherCondition {
   key: 'rain' | 'storm' | 'drought'
@@ -11,17 +12,22 @@ export interface WeatherCondition {
 export function weatherConditions(world: Pick<WorldState, 'weather' | 'drought'>): WeatherCondition[] {
   const out: WeatherCondition[] = []
   if (world.weather?.kind === 'rain') {
-    out.push({ key: 'rain', icon: '🌧️', title: 'rain', body: 'Helps dry land recover faster.' })
+    out.push({ key: 'rain', icon: '🌧️', title: t('panels.weather.rain'), body: t('panels.weather.rainBody') })
   }
   if (world.weather?.kind === 'storm') {
-    out.push({ key: 'storm', icon: '⛈️', title: 'storm', body: 'Drains energy. Lightning can strike.' })
+    out.push({
+      key: 'storm',
+      icon: '⛈️',
+      title: t('panels.weather.storm'),
+      body: t('panels.weather.stormBody'),
+    })
   }
   if (world.drought) {
     out.push({
       key: 'drought',
       icon: '🏜️',
-      title: 'drought',
-      body: 'Water is shrinking and thirst deaths are rising.',
+      title: t('panels.weather.drought'),
+      body: t('panels.weather.droughtBody'),
     })
   }
   return out

@@ -1,5 +1,6 @@
 import { calendarAt } from '../../game/model/calendar'
 import { vegetationSeason } from '../../game/render/landscape-style'
+import { t, type MessageKey } from '../../i18n'
 import type { WorldState } from '../../shared/types'
 
 /** The part of the day the light is in. The thresholds are the sky's (render/cf/overlays/atmosphere.ts). */
@@ -12,11 +13,18 @@ export const DAY_PHASE_ICON: Record<DayPhase, string> = {
   night: '🌙',
 }
 
-export const DAY_PHASE_TITLE: Record<DayPhase, string> = {
-  dawn: 'Dawn',
-  day: 'Daytime',
-  dusk: 'Dusk',
-  night: 'Nighttime',
+const DAY_PHASE_WORD: Record<DayPhase, MessageKey> = {
+  dawn: 'panels.calendar.phase.dawn',
+  day: 'panels.calendar.phase.day',
+  dusk: 'panels.calendar.phase.dusk',
+  night: 'panels.calendar.phase.night',
+}
+
+const DAY_PHASE_TITLE: Record<DayPhase, MessageKey> = {
+  dawn: 'panels.calendar.phaseTitle.dawn',
+  day: 'panels.calendar.phaseTitle.day',
+  dusk: 'panels.calendar.phaseTitle.dusk',
+  night: 'panels.calendar.phaseTitle.night',
 }
 
 type DayWorld = Pick<WorldState, 'is_day' | 'day_progress'>
@@ -29,14 +37,30 @@ export function dayPhase(world: DayWorld): DayPhase {
   return 'day'
 }
 
+/** Season words by the simulation's vegetation name (spring, summer, autumn, winter). */
+const SEASON_WORD: Record<string, MessageKey> = {
+  spring: 'panels.calendar.season.spring',
+  summer: 'panels.calendar.season.summer',
+  autumn: 'panels.calendar.season.autumn',
+  winter: 'panels.calendar.season.winter',
+}
+
+/** Season names for the tooltip title, by the same vegetation name. */
+const SEASON_NAME: Record<string, MessageKey> = {
+  spring: 'panels.calendar.seasonName.spring',
+  summer: 'panels.calendar.seasonName.summer',
+  autumn: 'panels.calendar.seasonName.autumn',
+  winter: 'panels.calendar.seasonName.winter',
+}
+
 // The simulation names seasons by what they do to food; the header shows
 // the calendar name (autumn used to read as "decline", as if the world
 // were dying) and explains the effect in the tooltip.
-const SEASON_TIPS: Record<string, string> = {
-  recovery: 'The land is recovering. Food starts growing back.',
-  abundance: 'Food is plentiful.',
-  decline: 'Food growth is slowing ahead of winter.',
-  scarcity: 'Food is scarce. Winter is the hardest season.',
+const SEASON_TIPS: Record<string, MessageKey> = {
+  recovery: 'panels.calendar.tip.recovery',
+  abundance: 'panels.calendar.tip.abundance',
+  decline: 'panels.calendar.tip.decline',
+  scarcity: 'panels.calendar.tip.scarcity',
 }
 
 type TagWorld = Pick<
@@ -49,6 +73,8 @@ export interface CalendarTagParts {
   year: number
   /** Calendar season name for the tooltip title: "Summer". */
   calendarSeason: string
+  /** Calendar season name for use inside a sentence: "summer". */
+  calendarWord: string
   /** Day within the season, counted from 1. */
   dayOfSeason: number
   /** The season as the tag shows it: "summer", or "hard winter" in a hard winter. */
@@ -59,6 +85,10 @@ export interface CalendarTagParts {
   /** A hard winter is coming, not here yet: the tag shows a snowflake. */
   hardWinterAhead: boolean
   phase: DayPhase
+  /** The part of the day as the tag shows it: "night". */
+  phaseWord: string
+  /** The part of the day as the tooltip titles it: "Nighttime". */
+  phaseTitle: string
   /** Percent through the day, for the tooltip. */
   dayPercent: number
 }
@@ -68,15 +98,24 @@ export function calendarTagParts(world: TagWorld): CalendarTagParts {
   const date = calendarAt(world.tick)
   const hardWinter = !!world.hard_winter
   const season = vegetationSeason(world.season)
+  const phase = dayPhase(world)
+  const calendarKey = date.season.toLowerCase()
   return {
     year: date.year,
-    calendarSeason: date.season,
+    calendarSeason: SEASON_NAME[calendarKey] ? t(SEASON_NAME[calendarKey]) : date.season,
+    calendarWord: SEASON_WORD[calendarKey] ? t(SEASON_WORD[calendarKey]) : calendarKey,
     dayOfSeason: date.dayOfSeason,
-    seasonWord: hardWinter ? 'hard winter' : season,
+    seasonWord: hardWinter
+      ? t('panels.calendar.hardWinter')
+      : SEASON_WORD[season]
+        ? t(SEASON_WORD[season])
+        : season,
     seasonClass: world.season,
     hardWinter,
     hardWinterAhead: !hardWinter && !!world.hard_winter_ahead,
-    phase: dayPhase(world),
+    phase,
+    phaseWord: t(DAY_PHASE_WORD[phase]),
+    phaseTitle: t(DAY_PHASE_TITLE[phase]),
     dayPercent: Math.round((world.day_progress ?? 0) * 100),
   }
 }
@@ -85,17 +124,21 @@ export function calendarTagParts(world: TagWorld): CalendarTagParts {
 export function seasonNote(world: TagWorld): { title?: string; body: string; how?: string } {
   if (world.hard_winter) {
     return {
-      title: 'hard winter',
-      body: 'Colder than usual. Wild food dies back fast and fevers spread.',
-      how: 'Tribes will pray for food and cures.',
+      title: t('panels.calendar.hardWinter'),
+      body: t('panels.calendar.hardWinterBody'),
+      how: t('panels.calendar.hardWinterHow'),
     }
   }
   if (world.hard_winter_ahead) {
+    const season = vegetationSeason(world.season)
     return {
-      title: `${vegetationSeason(world.season)} · hard winter ahead`,
-      body: 'The elders fear a hard winter. Wild food will be scarce and fevers will spread.',
-      how: 'Plant crops and orchards now, before the cold comes.',
+      title: t('panels.calendar.hardWinterAhead', {
+        season: SEASON_WORD[season] ? t(SEASON_WORD[season]) : season,
+      }),
+      body: t('panels.calendar.aheadBody'),
+      how: t('panels.calendar.aheadHow'),
     }
   }
-  return { body: SEASON_TIPS[world.season] ?? 'Affects food growth and drought risk.' }
+  const key = SEASON_TIPS[world.season]
+  return { body: key ? t(key) : t('panels.calendar.tip.default') }
 }

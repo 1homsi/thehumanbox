@@ -1,1 +1,293 @@
-{}
+{
+  "right": {
+    "alive": "ALIVE ({count})",
+    "starred": "starred",
+    "showAll": "Show all organisms",
+    "showStarred": "Show only starred ({count})",
+    "showMore": "show {count} more · {hidden} hidden",
+    "dead": "DEAD ({count})",
+    "generation": "g{generation} · {age}",
+    "unstar": "Unstar",
+    "gone": "GONE ({count})",
+    "vanished": "vanished from world"
+  },
+  "events": {
+    "heading": "EVENTS",
+    "important": "important",
+    "all": "all",
+    "showImportant": "Showing what matters. Click to show everything.",
+    "showAll": "Showing everything. Click to show only what matters."
+  },
+  "eventRow": {
+    "goThere": "Go there"
+  },
+  "headlines": {
+    "label": "recent world headlines"
+  },
+  "history": {
+    "title": "WORLD HISTORY",
+    "births": "births",
+    "birthsTip": "Total people ever born into this world",
+    "oldAge": "old age",
+    "oldAgeTip": "Deaths from old age: people who lived a full life",
+    "starvation": "starvation",
+    "starvationTip": "Deaths from hunger or thirst: not enough food or water",
+    "sickness": "sickness",
+    "sicknessTip": "Deaths from disease",
+    "combat": "combat",
+    "combatTip": "Deaths in fights between neighbours and in wars between tribes",
+    "beasts": "beasts",
+    "beastsTip": "Killed by wolves, bears and monsters",
+    "drowned": "drowned",
+    "drownedTip": "Drowned in deep or rising water",
+    "fire": "fire",
+    "fireTip": "Killed by wildfire",
+    "disaster": "disaster",
+    "disasterTip": "Killed by earthquakes, meteors, floods, storms, volcanoes and the gods' lightning",
+    "alliances": "alliances",
+    "alliancesTip": "Alliances formed between tribes",
+    "challenges": "challenges",
+    "challengesTip": "Territorial challenges: one person confronting another",
+    "gifts": "gifts",
+    "giftsTip": "Food given between people: kinship and friendship",
+    "droughts": "droughts",
+    "droughtsTip": "Droughts: seasons of water scarcity",
+    "outbreaks": "outbreaks",
+    "outbreaksTip": "Disease outbreaks that swept through the population"
+  },
+  "wildlife": {
+    "title": "WILDLIFE",
+    "danger": "Hunts people when hungry",
+    "herds": "Sheep, cows, horses and chickens",
+    "game": "Wild game, hunted for food: overhunting thins it",
+    "away": "+{count} away",
+    "animals": {
+      "rabbits": "rabbits",
+      "deer": "deer",
+      "boar": "boar",
+      "birds": "birds",
+      "fish": "fish",
+      "herds": "herds",
+      "foxes": "foxes",
+      "cats": "cats",
+      "penguins": "penguins",
+      "camels": "camels",
+      "frogs": "frogs",
+      "whales": "whales",
+      "ducks": "ducks",
+      "bees": "bees",
+      "owls": "owls",
+      "eagles": "eagles",
+      "snakes": "snakes",
+      "crocodiles": "crocodiles",
+      "monkeys": "monkeys",
+      "wolves": "wolves",
+      "goats": "goats",
+      "elephants": "elephants",
+      "lions": "lions",
+      "zebras": "zebras",
+      "polarBears": "polar bears",
+      "kangaroos": "kangaroos",
+      "bears": "bears"
+    }
+  },
+  "footer": {
+    "era": "era",
+    "eras": {
+      "genesis": "GENESIS",
+      "forager": "FORAGER",
+      "fire": "FIRE",
+      "shelter": "SHELTER",
+      "tribal": "TRIBAL",
+      "invention": "INVENTION",
+      "cooking": "COOKING",
+      "masonry": "MASONRY",
+      "equilibrium": "EQUILIBRIUM"
+    },
+    "day": "day",
+    "night": "night",
+    "weather": "weather",
+    "droughtTag": "· {label}",
+    "tribes": "tribes"
+  },
+  "weather": {
+    "clear": "clear",
+    "rain": "rain",
+    "rainBody": "Helps dry land recover faster.",
+    "storm": "storm",
+    "stormBody": "Drains energy. Lightning can strike.",
+    "snow": "snow",
+    "fog": "fog",
+    "wet": "wet",
+    "drought": "drought",
+    "droughtBody": "Water is shrinking and thirst deaths are rising."
+  },
+  "silent": {
+    "title": "The world has fallen silent",
+    "body": "The last of your people is gone. Nothing stirs in the villages they built.",
+    "lasted": "lasted",
+    "years": {
+      "one": "{count} year",
+      "other": "{count} years"
+    },
+    "mostAlive": "most alive at once",
+    "tribes": "tribes",
+    "furthestAge": "furthest age",
+    "prayersAnswered": "prayers answered",
+    "unanswered": "{count} unanswered",
+    "keepWatching": "keep watching",
+    "newWorld": "new world",
+    "seed": "seed new people"
+  },
+  "rename": {
+    "label": "New name",
+    "save": "save",
+    "cancel": "cancel"
+  },
+  "prayerHint": {
+    "title": "Your people are praying",
+    "body": "Click a speech bubble over a tribe to help. Answered prayers earn faith.",
+    "showMe": "show me",
+    "dismiss": "Dismiss"
+  },
+  "prayerChip": {
+    "tipTitle": "prayers",
+    "tipBody": {
+      "one": "A tribe is asking for your help. Answer before they lose faith.",
+      "other": "{count} tribes are asking for your help. Answer before they lose faith."
+    },
+    "label": {
+      "one": "{formattedCount} prayer",
+      "other": "{formattedCount} prayers"
+    }
+  },
+  "peril": {
+    "title": "on the brink",
+    "tipOne": "The {tribe} are on the brink: {remaining}, {reason}.",
+    "tipMany": "{count} tribes are on the brink. Click to go to each in turn.",
+    "label": {
+      "one": "{count} tribe on the brink",
+      "other": "{count} tribes on the brink"
+    }
+  },
+  "population": {
+    "people": "people",
+    "alive": "{count} alive.",
+    "milestone": "next milestone {count}",
+    "sickness": "sickness",
+    "sick": {
+      "one": "{count} person is sick. It spreads through close contact.",
+      "other": "{count} people are sick. It spreads through close contact."
+    }
+  },
+  "calendar": {
+    "year": "Y{year}",
+    "yearTitle": "Year {year}, {season}",
+    "dayOfSeason": "Day {day} of 5 in {season}. A year is four seasons, and people age by the years they have lived.",
+    "throughDay": "{phase}, {percent}% through the day.",
+    "moon": "moon: {phase}",
+    "moonDate": "Year {year}, day {day}.",
+    "hardWinter": "hard winter",
+    "hardWinterAhead": "{season} · hard winter ahead",
+    "omen": "hard winter ahead",
+    "hardWinterBody": "Colder than usual. Wild food dies back fast and fevers spread.",
+    "hardWinterHow": "Tribes will pray for food and cures.",
+    "aheadBody": "The elders fear a hard winter. Wild food will be scarce and fevers will spread.",
+    "aheadHow": "Plant crops and orchards now, before the cold comes.",
+    "tip": {
+      "recovery": "The land is recovering. Food starts growing back.",
+      "abundance": "Food is plentiful.",
+      "decline": "Food growth is slowing ahead of winter.",
+      "scarcity": "Food is scarce. Winter is the hardest season.",
+      "default": "Affects food growth and drought risk."
+    },
+    "season": {
+      "spring": "spring",
+      "summer": "summer",
+      "autumn": "autumn",
+      "winter": "winter"
+    },
+    "seasonName": {
+      "spring": "Spring",
+      "summer": "Summer",
+      "autumn": "Autumn",
+      "winter": "Winter"
+    },
+    "phase": {
+      "dawn": "dawn",
+      "day": "day",
+      "dusk": "dusk",
+      "night": "night"
+    },
+    "phaseTitle": {
+      "dawn": "Dawn",
+      "day": "Daytime",
+      "dusk": "Dusk",
+      "night": "Nighttime"
+    }
+  },
+  "lineages": {
+    "title": "LINEAGES ({count})",
+    "onBrink": "On the brink: {line}, {reason}. Click to help them.",
+    "showAll": "Show all lineages",
+    "focus": "Focus {name}",
+    "brink": "on the brink",
+    "oldest": "Oldest living: {line}",
+    "viewAll": "view all ({count})",
+    "faith": "faith {faith}",
+    "faithBlessed": "faith {faith} · blessed by an answered prayer",
+    "faithDespair": "faith {faith} · despairing after an unanswered prayer",
+    "eldestDays": "{days}d",
+    "generation": "g{from}",
+    "generationRange": "g{from}-{to}"
+  },
+  "tribe": {
+    "rename": "Rename this tribe",
+    "nameLabel": "Tribe name",
+    "close": "Close",
+    "regionLabel": "{name} tribe",
+    "sparkTitle": "{from} → {to} people lately",
+    "growing": "growing",
+    "shrinking": "shrinking",
+    "steady": "steady",
+    "food": "food",
+    "water": "water",
+    "health": "health",
+    "ledBy": "led by",
+    "followLeader": "Follow the leader",
+    "festival": "{name} is under way",
+    "people": {
+      "one": "{count} person",
+      "other": "{count} people"
+    },
+    "eraAge": "{era} age",
+    "wealth": "wealth {gap}",
+    "onBrink": "on the brink: {line} of {peak}, {reason}",
+    "atWar": "at war with {enemies}",
+    "makePeace": "make peace",
+    "granary": "granary: {count} measures of grain",
+    "bakery": "bakery: {count} loaves",
+    "pen": "pen: {count} head of livestock",
+    "lostLately": "lost lately: {losses}",
+    "oldest": "oldest living: {line}",
+    "oldestTitle": "The oldest living member of this tribe",
+    "families": "families: {list}",
+    "familiesTitle": "The families of this tribe's living people",
+    "faith": "faith {faith}",
+    "faithTitle": "Answered prayers minus forsaken ones",
+    "faithLostTitle": "They have given up on the gods and rarely pray. Help them unasked to win them back.",
+    "blessed": "blessed",
+    "lostFaith": "lost faith",
+    "despairing": "despairing",
+    "sick": "{count} sick",
+    "nextAge": "next: {era} age",
+    "inspire": "inspire",
+    "inspireTitle": "Inspire them: speeds up their next discovery",
+    "teach": "teach",
+    "teachTitle": "Teach them the next secret they lack (once a season)",
+    "stillToLearn": "still to learn: {list}",
+    "needsPeople": "needs {count} more people",
+    "praying": "praying",
+    "help": "help"
+  }
+}

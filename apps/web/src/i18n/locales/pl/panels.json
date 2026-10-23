@@ -1,1 +1,315 @@
-{}
+{
+  "right": {
+    "alive": "ŻYWI ({count})",
+    "starred": "oznaczone",
+    "showAll": "Pokaż wszystkie organizmy",
+    "showStarred": "Pokaż tylko oznaczone ({count})",
+    "showMore": "pokaż jeszcze {count} · ukrytych: {hidden}",
+    "dead": "ZMARLI ({count})",
+    "generation": "g{generation} · {age}",
+    "unstar": "Usuń oznaczenie",
+    "gone": "ZNIKNIĘCI ({count})",
+    "vanished": "zniknął ze świata"
+  },
+  "events": {
+    "heading": "ZDARZENIA",
+    "important": "ważne",
+    "all": "wszystkie",
+    "showImportant": "Pokazano to, co ważne. Kliknij, aby pokazać wszystko.",
+    "showAll": "Pokazano wszystko. Kliknij, aby pokazać tylko to, co ważne."
+  },
+  "eventRow": {
+    "goThere": "Przejdź tam"
+  },
+  "headlines": {
+    "label": "najnowsze wiadomości ze świata"
+  },
+  "history": {
+    "title": "HISTORIA ŚWIATA",
+    "births": "narodziny",
+    "birthsTip": "Łączna liczba ludzi urodzonych w tym świecie",
+    "oldAge": "starość",
+    "oldAgeTip": "Zgony ze starości: ludzie, którzy przeżyli pełne życie",
+    "starvation": "głód",
+    "starvationTip": "Zgony z głodu lub pragnienia: brak jedzenia lub wody",
+    "sickness": "choroba",
+    "sicknessTip": "Zgony z powodu choroby",
+    "combat": "walki",
+    "combatTip": "Zgony w bójkach między sąsiadami i w wojnach między plemionami",
+    "beasts": "bestie",
+    "beastsTip": "Zabici przez wilki, niedźwiedzie i potwory",
+    "drowned": "utonięcia",
+    "drownedTip": "Utonięcia w głębokiej lub wzbierającej wodzie",
+    "fire": "pożar",
+    "fireTip": "Zabici przez pożar lasu",
+    "disaster": "klęski",
+    "disasterTip": "Zabici przez trzęsienia ziemi, meteoryty, powodzie, burze, wulkany i pioruny bogów",
+    "alliances": "sojusze",
+    "alliancesTip": "Sojusze zawarte między plemionami",
+    "challenges": "wyzwania",
+    "challengesTip": "Wyzwania o terytorium: jedna osoba staje przeciwko drugiej",
+    "gifts": "dary",
+    "giftsTip": "Jedzenie przekazywane między ludźmi: pokrewieństwo i przyjaźń",
+    "droughts": "susze",
+    "droughtsTip": "Susze: pory roku z brakiem wody",
+    "outbreaks": "epidemie",
+    "outbreaksTip": "Epidemie, które przeszły przez populację"
+  },
+  "wildlife": {
+    "title": "DZIKA FAUNA",
+    "danger": "Poluje na ludzi, gdy jest głodne",
+    "herds": "Owce, krowy, konie i kury",
+    "game": "Dzika zwierzyna łowiona na jedzenie: nadmierne łowy ją przerzedzają",
+    "away": "+{count} poza",
+    "animals": {
+      "rabbits": "króliki",
+      "deer": "jelenie",
+      "boar": "dziki",
+      "birds": "ptaki",
+      "fish": "ryby",
+      "herds": "stada",
+      "foxes": "lisy",
+      "cats": "koty",
+      "penguins": "pingwiny",
+      "camels": "wielbłądy",
+      "frogs": "żaby",
+      "whales": "wieloryby",
+      "ducks": "kaczki",
+      "bees": "pszczoły",
+      "owls": "sowy",
+      "eagles": "orły",
+      "snakes": "węże",
+      "crocodiles": "krokodyle",
+      "monkeys": "małpy",
+      "wolves": "wilki",
+      "goats": "kozy",
+      "elephants": "słonie",
+      "lions": "lwy",
+      "zebras": "zebry",
+      "polarBears": "niedźwiedzie polarne",
+      "kangaroos": "kangury",
+      "bears": "niedźwiedzie"
+    }
+  },
+  "footer": {
+    "era": "epoka",
+    "eras": {
+      "genesis": "GENEZA",
+      "forager": "ZBIERACZE",
+      "fire": "OGIEŃ",
+      "shelter": "SCHRONIENIE",
+      "tribal": "PLEMIENNA",
+      "invention": "WYNALAZKI",
+      "cooking": "GOTOWANIE",
+      "masonry": "MURARSTWO",
+      "equilibrium": "RÓWNOWAGA"
+    },
+    "day": "dzień",
+    "night": "noc",
+    "weather": "pogoda",
+    "droughtTag": "· {label}",
+    "tribes": "plemiona"
+  },
+  "weather": {
+    "clear": "bezchmurnie",
+    "rain": "deszcz",
+    "rainBody": "Pomaga suchej ziemi szybciej się odbudować.",
+    "storm": "burza",
+    "stormBody": "Odbiera siły. Piorun może uderzyć.",
+    "snow": "śnieg",
+    "fog": "mgła",
+    "wet": "wilgotno",
+    "drought": "susza",
+    "droughtBody": "Woda się kurczy, a zgonów z pragnienia przybywa."
+  },
+  "silent": {
+    "title": "Świat zamilkł",
+    "body": "Ostatni z twoich ludzi odszedł. W wioskach, które zbudowali, nic się nie porusza.",
+    "lasted": "trwał",
+    "years": {
+      "one": "{count} rok",
+      "few": "{count} lata",
+      "many": "{count} lat",
+      "other": "{count} roku"
+    },
+    "mostAlive": "najwięcej żywych naraz",
+    "tribes": "plemiona",
+    "furthestAge": "najdalsza epoka",
+    "prayersAnswered": "wysłuchane modlitwy",
+    "unanswered": "{count} niewysłuchanych",
+    "keepWatching": "obserwuj dalej",
+    "newWorld": "nowy świat",
+    "seed": "zasiej nowych ludzi"
+  },
+  "rename": {
+    "label": "Nowe imię",
+    "save": "zapisz",
+    "cancel": "anuluj"
+  },
+  "prayerHint": {
+    "title": "Twoi ludzie się modlą",
+    "body": "Kliknij dymek nad plemieniem, aby pomóc. Wysłuchane modlitwy przynoszą wiarę.",
+    "showMe": "pokaż mi",
+    "dismiss": "Zamknij"
+  },
+  "prayerChip": {
+    "tipTitle": "modlitwy",
+    "tipBody": {
+      "one": "Plemię prosi cię o pomoc. Odpowiedz, zanim straci wiarę.",
+      "few": "{count} plemiona proszą cię o pomoc. Odpowiedz, zanim stracą wiarę.",
+      "many": "{count} plemion prosi cię o pomoc. Odpowiedz, zanim stracą wiarę.",
+      "other": "{count} plemion prosi cię o pomoc. Odpowiedz, zanim stracą wiarę."
+    },
+    "label": {
+      "one": "{formattedCount} modlitwa",
+      "few": "{formattedCount} modlitwy",
+      "many": "{formattedCount} modlitw",
+      "other": "{formattedCount} modlitwy"
+    }
+  },
+  "peril": {
+    "title": "na krawędzi",
+    "tipOne": "Plemię {tribe} jest na krawędzi: {remaining}, {reason}.",
+    "tipMany": "{count} plemion jest na krawędzi. Kliknij, aby przechodzić do każdego po kolei.",
+    "label": {
+      "one": "{count} plemię na krawędzi",
+      "few": "{count} plemiona na krawędzi",
+      "many": "{count} plemion na krawędzi",
+      "other": "{count} plemienia na krawędzi"
+    }
+  },
+  "population": {
+    "people": "ludzie",
+    "alive": "żywych: {count}.",
+    "milestone": "następny kamień milowy: {count}",
+    "sickness": "choroba",
+    "sick": {
+      "one": "{count} osoba jest chora. Choroba rozprzestrzenia się przy bliskim kontakcie.",
+      "few": "{count} osoby są chore. Choroba rozprzestrzenia się przy bliskim kontakcie.",
+      "many": "{count} osób jest chorych. Choroba rozprzestrzenia się przy bliskim kontakcie.",
+      "other": "{count} osób jest chorych. Choroba rozprzestrzenia się przy bliskim kontakcie."
+    }
+  },
+  "calendar": {
+    "year": "R{year}",
+    "yearTitle": "Rok {year}, {season}",
+    "dayOfSeason": "Dzień {day} z 5 w sezonie: {season}. Rok składa się z czterech pór, a ludzie starzeją się według przeżytych lat.",
+    "throughDay": "{phase}, minęło {percent}% dnia.",
+    "moon": "księżyc: {phase}",
+    "moonDate": "Rok {year}, dzień {day}.",
+    "hardWinter": "ostra zima",
+    "hardWinterAhead": "{season} · zbliża się ostra zima",
+    "omen": "zbliża się ostra zima",
+    "hardWinterBody": "Zimniej niż zwykle. Dzika roślinność szybko zamiera, a gorączki się szerzą.",
+    "hardWinterHow": "Plemiona będą się modlić o jedzenie i lekarstwa.",
+    "aheadBody": "Starsi obawiają się ostrej zimy. Dzikiego jedzenia będzie mało, a gorączki się rozprzestrzenią.",
+    "aheadHow": "Posadź uprawy i sady teraz, zanim nadejdzie zimno.",
+    "tip": {
+      "recovery": "Ziemia się odradza. Jedzenie znów zaczyna rosnąć.",
+      "abundance": "Jedzenia jest pod dostatkiem.",
+      "decline": "Wzrost jedzenia zwalnia przed zimą.",
+      "scarcity": "Jedzenia jest mało. Zima to najtrudniejsza pora roku.",
+      "default": "Wpływa na wzrost jedzenia i ryzyko suszy."
+    },
+    "season": {
+      "spring": "wiosna",
+      "summer": "lato",
+      "autumn": "jesień",
+      "winter": "zima"
+    },
+    "seasonName": {
+      "spring": "Wiosna",
+      "summer": "Lato",
+      "autumn": "Jesień",
+      "winter": "Zima"
+    },
+    "phase": {
+      "dawn": "świt",
+      "day": "dzień",
+      "dusk": "zmierzch",
+      "night": "noc"
+    },
+    "phaseTitle": {
+      "dawn": "Świt",
+      "day": "Dzień",
+      "dusk": "Zmierzch",
+      "night": "Noc"
+    }
+  },
+  "lineages": {
+    "title": "LINIE ({count})",
+    "onBrink": "Na krawędzi: {line}, {reason}. Kliknij, aby pomóc.",
+    "showAll": "Pokaż wszystkie linie",
+    "focus": "Skup się na: {name}",
+    "brink": "na krawędzi",
+    "oldest": "Najstarszy żyjący: {line}",
+    "viewAll": "zobacz wszystkie ({count})",
+    "faith": "wiara {faith}",
+    "faithBlessed": "wiara {faith} · pobłogosławiona wysłuchaną modlitwą",
+    "faithDespair": "wiara {faith} · rozpacz po niewysłuchanej modlitwie",
+    "eldestDays": "{days} d",
+    "generation": "g{from}",
+    "generationRange": "g{from}-{to}"
+  },
+  "tribe": {
+    "rename": "Zmień nazwę tego plemienia",
+    "nameLabel": "Nazwa plemienia",
+    "close": "Zamknij",
+    "regionLabel": "Plemię {name}",
+    "sparkTitle": "{from} → {to} ludzi ostatnio",
+    "growing": "rośnie",
+    "shrinking": "maleje",
+    "steady": "stabilnie",
+    "food": "jedzenie",
+    "water": "woda",
+    "health": "zdrowie",
+    "ledBy": "prowadzi",
+    "followLeader": "Podążaj za przywódcą",
+    "festival": "{name} trwa",
+    "people": {
+      "one": "{count} osoba",
+      "few": "{count} osoby",
+      "many": "{count} osób",
+      "other": "{count} osób"
+    },
+    "eraAge": "epoka: {era}",
+    "wealth": "bogactwo {gap}",
+    "onBrink": "na krawędzi: {line} z {peak}, {reason}",
+    "atWar": "w stanie wojny z: {enemies}",
+    "makePeace": "zawrzyj pokój",
+    "granary": "spichlerz: {count} miar zboża",
+    "bakery": "piekarnia: {count} bochenków",
+    "pen": "zagroda: {count} sztuk bydła",
+    "lostLately": "ostatnio straty: {losses}",
+    "oldest": "najstarszy żyjący: {line}",
+    "oldestTitle": "Najstarszy żyjący członek tego plemienia",
+    "families": "rodziny: {list}",
+    "familiesTitle": "Rodziny żyjących członków tego plemienia",
+    "faith": "wiara {faith}",
+    "faithTitle": "Wysłuchane modlitwy minus porzucone",
+    "faithLostTitle": "Porzucili bogów i rzadko się modlą. Pomóż im bez proszenia, by odzyskać ich wiarę.",
+    "blessed": "pobłogosławione",
+    "lostFaith": "utrata wiary",
+    "despairing": "w rozpaczy",
+    "sick": {
+      "one": "{count} chory",
+      "few": "{count} chorych",
+      "many": "{count} chorych",
+      "other": "{count} chorych"
+    },
+    "nextAge": "następna: epoka {era}",
+    "inspire": "zainspiruj",
+    "inspireTitle": "Zainspiruj ich: przyspieszy następne odkrycie",
+    "teach": "naucz",
+    "teachTitle": "Naucz ich kolejnej tajemnicy, której im brakuje (raz na sezon)",
+    "stillToLearn": "do nauczenia: {list}",
+    "needsPeople": {
+      "one": "potrzeba jeszcze {count} osoby",
+      "few": "potrzeba jeszcze {count} osoby",
+      "many": "potrzeba jeszcze {count} osób",
+      "other": "potrzeba jeszcze {count} osób"
+    },
+    "praying": "modli się",
+    "help": "pomoc"
+  }
+}
