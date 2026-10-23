@@ -223,6 +223,176 @@
   },
   "status": {
     "applied": "{label} {x}, {y} konumuna uygulandı",
-    "failed": "{label} · {reason}"
+    "failed": "{label} · {reason}",
+    "following": "{name} takip ediliyor",
+    "naming": "ad · {name} için yeni bir ad yazın",
+    "paused": "duraklatıldı: {names} uçurumun kenarında"
+  },
+  "legends": {
+    "when": "{year}. yıl, {season}",
+    "notable": "Dikkat çekici bir olay",
+    "titles": {
+      "meteor": "Bir yıldız düşer",
+      "eruption": "Dağ uyanır",
+      "battle": "Bir savaş",
+      "warDeclared": "Savaş ilan edilir",
+      "treaty": "Bir antlaşma mühürlenir",
+      "era": "Yeni bir çağ",
+      "eraAdvance": "Bir kabile yeni bir çağa girer",
+      "milestone": "Bir dönüm noktası",
+      "smite": "Bir tanrının gazabı",
+      "answered": "Bir dua kabul olur",
+      "forsaken": "Bir dua karşılıksız kalır",
+      "prayer": "Bir dua",
+      "outbreak": "Bir hastalık yayılır",
+      "diseaseDeath": "Hastalıktan bir ölüm",
+      "buildingRuined": "Bir bina yıkılır",
+      "weather": "Tuhaf bir hava",
+      "drought": "Bir kuraklık",
+      "danger": "Bir tehlike"
+    }
+  },
+  "longevity": {
+    "longest": "en uzun ömür {age} ({name}, {lineage})",
+    "average": "ortalama {age}, {deaths} üzerinden",
+    "deaths": {
+      "other": "{count} yaşlılıktan ölüm"
+    }
+  },
+  "family": {
+    "line": "{surname} ×{living}",
+    "longestLine": "{surname} ×{living}, en yaşlısı {days} günlük (en uzun ömürlü)",
+    "sentence": "Bu kabilede {surname} ailesi: {living} canlı, en yaşlısı {days} günlük."
+  },
+  "death": {
+    "line": "{age} yaşında {cause} nedeniyle öldü"
+  },
+  "life": {
+    "childOfBoth": "{mother} ile {father}’ın çocuğu.",
+    "childOfOne": "{parent}’ın çocuğu.",
+    "trade": "{trade} mesleğine başladı.",
+    "chief": "Kabileyi reis olarak yönetiyor.",
+    "partnered": "{name} ile birlikte.",
+    "hasPartner": "Bir eşi var.",
+    "children": {
+      "other": "{count} çocuğu var."
+    },
+    "event": "{text}.",
+    "living": {
+      "other": "Yaşıyor, {count} günlük."
+    },
+    "diedOf": {
+      "other": "{count} günlükken {cause} nedeniyle öldü."
+    },
+    "died": {
+      "other": "{count} günlükken öldü."
+    }
+  },
+  "territory": {
+    "holds": "{goods} sahibi",
+    "routes": {
+      "other": "{count} güzergâh"
+    },
+    "goods": {
+      "other": "{count} mal"
+    },
+    "caravans": {
+      "other": "yolda {count} kervan"
+    },
+    "embargoed": "savaş nedeniyle ambargo altında",
+    "agreement": "ticaret anlaşması",
+    "buying": "{cargo} malını birim {price}{unit} fiyatla alıyor",
+    "earned": "ticaretten {amount}{unit} kazandı",
+    "bartered": "takasla {amount} birim alışveriş yaptı",
+    "towns": {
+      "ore": "bir maden kasabası",
+      "salt": "bir tuz kasabası",
+      "clay": "bir çömlekçi kasabası",
+      "spice": "bir baharat kasabası",
+      "ochre": "bir kırmızı toprak kasabası",
+      "fur": "bir kürk kasabası"
+    }
+  },
+  "pair": {
+    "marry": {
+      "next": "evlendir · şimdi diğer kişiye tıklayın",
+      "done": "evlendi · artık eş oldular",
+      "failed": "evlendir · ikisi de yetişkin, evlenmeye uygun, farklı cinsiyette olmalı ve tıklamalara yakın olmalı"
+    },
+    "tradeGift": {
+      "next": "ticaret · şimdi ticaret yapacağınız kabileden bir kişiye tıklayın",
+      "done": "ticaret yapıldı · ikinci kabile yiyecek aldı",
+      "failed": "ticaret · her kabileden birer kişiye tıklayın ve ilk kabilenin fazla yiyeceği olmalı"
+    },
+    "mergeTribes": {
+      "next": "birleştir · şimdi diğer kabileden bir kişiye tıklayın",
+      "done": "birleşti · ikinci kabile birinciye katıldı",
+      "failed": "birleştir · farklı kabilelerden iki kişiye, tıklamalara yakın olarak tıklayın"
+    }
+  },
+  "words": {
+    "moon": {
+      "newMoon": "yeni ay",
+      "waxingCrescent": "büyüyen hilal",
+      "firstQuarter": "ilk dördün",
+      "waxingGibbous": "büyüyen ay",
+      "fullMoon": "dolunay",
+      "waningGibbous": "küçülen ay",
+      "lastQuarter": "son dördün",
+      "waningCrescent": "küçülen hilal"
+    },
+    "season": {
+      "abundance": "bolluk",
+      "decline": "gerileme",
+      "scarcity": "kıtlık",
+      "recovery": "toparlanma"
+    },
+    "building": {
+      "hut": "kulübe",
+      "house": "ev",
+      "manor": "konak",
+      "townhouse": "şehir evi",
+      "apartment": "daire",
+      "longhouse": "uzun ev",
+      "well": "kuyu",
+      "dock": "iskele",
+      "marina": "marina",
+      "port": "liman",
+      "shipyard": "tersane",
+      "drydock": "kuru havuz",
+      "sawMill": "kereste fabrikası",
+      "quarry": "taş ocağı",
+      "mine": "maden",
+      "smithy": "demirci dükkânı",
+      "forge": "demirhane",
+      "mill": "değirmen",
+      "windmill": "yel değirmeni",
+      "watermill": "su değirmeni",
+      "granary": "tahıl ambarı",
+      "silo": "silo",
+      "barn": "ahır",
+      "pen": "ağıl",
+      "workshop": "atölye",
+      "warehouse": "depo",
+      "market": "pazar",
+      "marketStall": "pazar tezgâhı",
+      "foodCart": "yemek arabası",
+      "tent": "çadır",
+      "temple": "tapınak",
+      "shrine": "türbe",
+      "school": "okul",
+      "library": "kütüphane",
+      "tavern": "meyhane",
+      "inn": "han",
+      "bakery": "fırın",
+      "brewery": "bira fabrikası",
+      "bridge": "köprü",
+      "wall": "duvar",
+      "watchtower": "gözetleme kulesi",
+      "barracks": "kışla",
+      "bank": "banka",
+      "stable": "at ahırı",
+      "garden": "bahçe"
+    }
   }
 }

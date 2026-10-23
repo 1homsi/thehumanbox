@@ -223,6 +223,176 @@
   },
   "status": {
     "applied": "{label} 已在 {x}, {y} 生效",
-    "failed": "{label} · {reason}"
+    "failed": "{label} · {reason}",
+    "following": "正在跟随{name}",
+    "naming": "命名 · 为{name}输入新名字",
+    "paused": "已暂停：{names}濒临灭亡"
+  },
+  "legends": {
+    "when": "第 {year} 年{season}",
+    "notable": "一件值得注意的事",
+    "titles": {
+      "meteor": "一颗星坠落",
+      "eruption": "山岳苏醒",
+      "battle": "一场战斗",
+      "warDeclared": "宣战",
+      "treaty": "签订条约",
+      "era": "新时代",
+      "eraAdvance": "一个部族进入新时代",
+      "milestone": "一个里程碑",
+      "smite": "神明的震怒",
+      "answered": "祈祷得到回应",
+      "forsaken": "祈祷石沉大海",
+      "prayer": "一次祈祷",
+      "outbreak": "疾病蔓延",
+      "diseaseDeath": "因病而亡",
+      "buildingRuined": "建筑倒塌",
+      "weather": "诡异的天气",
+      "drought": "一场旱灾",
+      "danger": "一场危险"
+    }
+  },
+  "longevity": {
+    "longest": "最长寿 {age}（{name}，{lineage}）",
+    "average": "平均 {age}，共 {deaths}",
+    "deaths": {
+      "other": "{count} 例寿终"
+    }
+  },
+  "family": {
+    "line": "{surname} ×{living}",
+    "longestLine": "{surname} ×{living}，最年长 {days} 天（最长寿）",
+    "sentence": "本部族的{surname}家族：{living} 人在世，最年长者 {days} 天。"
+  },
+  "death": {
+    "line": "死于{cause}，享年 {age}"
+  },
+  "life": {
+    "childOfBoth": "{mother}与{father}的孩子。",
+    "childOfOne": "{parent}的孩子。",
+    "trade": "投身于{trade}这一行。",
+    "chief": "作为首领统治部族。",
+    "partnered": "与{name}结为伴侣。",
+    "hasPartner": "有伴侣。",
+    "children": {
+      "other": "育有 {count} 个子女。"
+    },
+    "event": "{text}。",
+    "living": {
+      "other": "在世，已活 {count} 天。"
+    },
+    "diedOf": {
+      "other": "死于{cause}，已活 {count} 天。"
+    },
+    "died": {
+      "other": "在 {count} 天大时去世。"
+    }
+  },
+  "territory": {
+    "holds": "持有{goods}",
+    "routes": {
+      "other": "{count} 条路线"
+    },
+    "goods": {
+      "other": "{count} 件货物"
+    },
+    "caravans": {
+      "other": "{count} 支商队在途中"
+    },
+    "embargoed": "因战争被禁运",
+    "agreement": "贸易协定",
+    "buying": "以每个{price}{unit}购入{cargo}",
+    "earned": "通过贸易赚取{amount}{unit}",
+    "bartered": "以物易物交换{amount}",
+    "towns": {
+      "ore": "一座矿业城镇",
+      "salt": "一座盐业城镇",
+      "clay": "一座陶器城镇",
+      "spice": "一座香料城镇",
+      "ochre": "一座赭石城镇",
+      "fur": "一座皮毛城镇"
+    }
+  },
+  "pair": {
+    "marry": {
+      "next": "结合 · 现在点击另一个人",
+      "done": "已结合 · 他们现在是伴侣",
+      "failed": "结合 · 双方都必须成年、可以结婚、性别不同，并且靠近点击位置"
+    },
+    "tradeGift": {
+      "next": "贸易 · 现在点击要与之贸易的部族中的一个人",
+      "done": "已交易 · 第二个部族收到了食物",
+      "failed": "贸易 · 分别点击两个部族的一个人，并且第一个部族需要有多余的食物"
+    },
+    "mergeTribes": {
+      "next": "合并 · 现在点击另一个部族的一个人",
+      "done": "已合并 · 第二个部族并入了第一个",
+      "failed": "合并 · 点击两个不同部族的人，且靠近点击位置"
+    }
+  },
+  "words": {
+    "moon": {
+      "newMoon": "新月",
+      "waxingCrescent": "娥眉月",
+      "firstQuarter": "上弦月",
+      "waxingGibbous": "盈凸月",
+      "fullMoon": "满月",
+      "waningGibbous": "亏凸月",
+      "lastQuarter": "下弦月",
+      "waningCrescent": "残月"
+    },
+    "season": {
+      "abundance": "丰饶",
+      "decline": "衰退",
+      "scarcity": "匮乏",
+      "recovery": "复苏"
+    },
+    "building": {
+      "hut": "小屋",
+      "house": "房屋",
+      "manor": "庄园",
+      "townhouse": "联排住宅",
+      "apartment": "公寓",
+      "longhouse": "长屋",
+      "well": "水井",
+      "dock": "码头",
+      "marina": "游艇港",
+      "port": "港口",
+      "shipyard": "造船厂",
+      "drydock": "干船坞",
+      "sawMill": "锯木厂",
+      "quarry": "采石场",
+      "mine": "矿井",
+      "smithy": "铁匠铺",
+      "forge": "锻造坊",
+      "mill": "磨坊",
+      "windmill": "风车",
+      "watermill": "水磨坊",
+      "granary": "粮仓",
+      "silo": "筒仓",
+      "barn": "谷仓",
+      "pen": "围栏",
+      "workshop": "作坊",
+      "warehouse": "仓库",
+      "market": "市场",
+      "marketStall": "集市摊位",
+      "foodCart": "小吃车",
+      "tent": "帐篷",
+      "temple": "神庙",
+      "shrine": "神龛",
+      "school": "学校",
+      "library": "图书馆",
+      "tavern": "酒馆",
+      "inn": "客栈",
+      "bakery": "面包房",
+      "brewery": "酿酒坊",
+      "bridge": "桥",
+      "wall": "城墙",
+      "watchtower": "瞭望塔",
+      "barracks": "兵营",
+      "bank": "银行",
+      "stable": "马厩",
+      "garden": "花园"
+    }
   }
 }

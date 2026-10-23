@@ -18,6 +18,7 @@ import { WeatherChip } from '../panels/WeatherChip'
 import type { WorldActions } from './world-actions'
 import { formatNumber, t } from '../../i18n'
 import { updateCheckMessage } from '../modals/updateCheckMessage'
+import { moonPhaseWord } from '../sim-words'
 
 interface Props {
   world: WorldState | null
@@ -138,7 +139,7 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer, worldAct
         {world && <PopulationChip population={livePopulation} sick={sickOrgs} />}
         {world?.cosmos &&
           (() => {
-            const label = world.cosmos.moon_phase.replace(/_/g, ' ')
+            const label = moonPhaseWord(world.cosmos.moon_phase)
             return (
               <Tooltip
                 tip={tip(

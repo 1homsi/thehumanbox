@@ -223,6 +223,184 @@
   },
   "status": {
     "applied": "{label} appliqué à {x}, {y}",
-    "failed": "{label} · {reason}"
+    "failed": "{label} · {reason}",
+    "following": "suit {name}",
+    "naming": "nom · tapez un nouveau nom pour {name}",
+    "paused": "en pause : {names} au bord du gouffre"
+  },
+  "legends": {
+    "when": "An {year}, {season}",
+    "notable": "Un événement notable",
+    "titles": {
+      "meteor": "Une étoile tombe",
+      "eruption": "La montagne s’éveille",
+      "battle": "Une bataille",
+      "warDeclared": "La guerre est déclarée",
+      "treaty": "Un traité est scellé",
+      "era": "Une nouvelle ère",
+      "eraAdvance": "Une tribu entre dans une nouvelle ère",
+      "milestone": "Une étape",
+      "smite": "La colère d’un dieu",
+      "answered": "Une prière est exaucée",
+      "forsaken": "Une prière reste sans réponse",
+      "prayer": "Une prière",
+      "outbreak": "Une maladie se répand",
+      "diseaseDeath": "Une mort due à la maladie",
+      "buildingRuined": "Un bâtiment s’effondre",
+      "weather": "Temps étrange",
+      "drought": "Une sécheresse",
+      "danger": "Un danger"
+    }
+  },
+  "longevity": {
+    "longest": "vie la plus longue {age} ({name}, {lineage})",
+    "average": "moyenne {age} sur {deaths}",
+    "deaths": {
+      "one": "{count} mort de vieillesse",
+      "other": "{count} morts de vieillesse"
+    }
+  },
+  "family": {
+    "line": "{surname} ×{living}",
+    "longestLine": "{surname} ×{living}, le plus âgé a {days} jours (le plus longévif)",
+    "sentence": "La famille {surname} dans cette tribu : {living} vivant(s), le plus âgé a {days} jours."
+  },
+  "death": {
+    "line": "Mort de {cause} à l’âge de {age}"
+  },
+  "life": {
+    "childOfBoth": "Enfant de {mother} et {father}.",
+    "childOfOne": "Enfant de {parent}.",
+    "trade": "A pris le métier de {trade}.",
+    "chief": "Dirige la tribu en tant que chef.",
+    "partnered": "En couple avec {name}.",
+    "hasPartner": "A un·e partenaire.",
+    "children": {
+      "one": "A {count} enfant.",
+      "other": "A {count} enfants."
+    },
+    "event": "{text}.",
+    "living": {
+      "one": "Vivant, {count} jour.",
+      "other": "Vivant, {count} jours."
+    },
+    "diedOf": {
+      "one": "Mort de {cause} à {count} jour.",
+      "other": "Mort de {cause} à {count} jours."
+    },
+    "died": {
+      "one": "Mort à {count} jour.",
+      "other": "Mort à {count} jours."
+    }
+  },
+  "territory": {
+    "holds": "détient {goods}",
+    "routes": {
+      "one": "{count} route",
+      "other": "{count} routes"
+    },
+    "goods": {
+      "one": "{count} marchandise",
+      "other": "{count} marchandises"
+    },
+    "caravans": {
+      "one": "{count} caravane en route",
+      "other": "{count} caravanes en route"
+    },
+    "embargoed": "embargo de guerre",
+    "agreement": "accord commercial",
+    "buying": "achète {cargo} à {price}{unit} l’unité",
+    "earned": "a gagné {amount}{unit} grâce au commerce",
+    "bartered": "a troqué {amount} en nature",
+    "towns": {
+      "ore": "une ville minière",
+      "salt": "une ville du sel",
+      "clay": "une ville de potiers",
+      "spice": "une ville aux épices",
+      "ochre": "une ville d’ocre",
+      "fur": "une ville de fourrures"
+    }
+  },
+  "pair": {
+    "marry": {
+      "next": "marier · cliquez maintenant sur l’autre personne",
+      "done": "mariés · ils sont maintenant en couple",
+      "failed": "marier · les deux doivent être adultes, libres de se marier, de sexes différents et proches des clics"
+    },
+    "tradeGift": {
+      "next": "commerce · cliquez maintenant sur une personne de la tribu avec laquelle commercer",
+      "done": "échangé · la seconde tribu a reçu de la nourriture",
+      "failed": "commerce · cliquez sur une personne de chaque tribu, et la première tribu doit avoir de la nourriture en réserve"
+    },
+    "mergeTribes": {
+      "next": "fusionner · cliquez maintenant sur une personne de l’autre tribu",
+      "done": "fusionnées · la seconde tribu a rejoint la première",
+      "failed": "fusionner · cliquez sur deux personnes de tribus différentes, proches des clics"
+    }
+  },
+  "words": {
+    "moon": {
+      "newMoon": "nouvelle lune",
+      "waxingCrescent": "premier croissant",
+      "firstQuarter": "premier quartier",
+      "waxingGibbous": "gibbeuse croissante",
+      "fullMoon": "pleine lune",
+      "waningGibbous": "gibbeuse décroissante",
+      "lastQuarter": "dernier quartier",
+      "waningCrescent": "croissant décroissant"
+    },
+    "season": {
+      "abundance": "abondance",
+      "decline": "déclin",
+      "scarcity": "pénurie",
+      "recovery": "reprise"
+    },
+    "building": {
+      "hut": "hutte",
+      "house": "maison",
+      "manor": "manoir",
+      "townhouse": "maison de ville",
+      "apartment": "appartement",
+      "longhouse": "longue maison",
+      "well": "puits",
+      "dock": "quai",
+      "marina": "marina",
+      "port": "port",
+      "shipyard": "chantier naval",
+      "drydock": "cale sèche",
+      "sawMill": "scierie",
+      "quarry": "carrière",
+      "mine": "mine",
+      "smithy": "maréchalerie",
+      "forge": "forge",
+      "mill": "moulin",
+      "windmill": "moulin à vent",
+      "watermill": "moulin à eau",
+      "granary": "grenier",
+      "silo": "silo",
+      "barn": "grange",
+      "pen": "enclos",
+      "workshop": "atelier",
+      "warehouse": "entrepôt",
+      "market": "marché",
+      "marketStall": "étal",
+      "foodCart": "chariot de restauration",
+      "tent": "tente",
+      "temple": "temple",
+      "shrine": "sanctuaire",
+      "school": "école",
+      "library": "bibliothèque",
+      "tavern": "taverne",
+      "inn": "auberge",
+      "bakery": "boulangerie",
+      "brewery": "brasserie",
+      "bridge": "pont",
+      "wall": "mur",
+      "watchtower": "tour de guet",
+      "barracks": "caserne",
+      "bank": "banque",
+      "stable": "écurie",
+      "garden": "jardin"
+    }
   }
 }

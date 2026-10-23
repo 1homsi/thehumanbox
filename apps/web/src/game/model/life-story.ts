@@ -3,6 +3,8 @@
 // children, trade, how they died) and their most telling life events. Nothing
 // here is a new fact; it only puts the existing ones into words.
 
+import { t } from '../../i18n'
+
 /** A day in ticks, the same as DAY_LENGTH in ui/panels/org-detail/format.ts. */
 const DAY_TICKS = 600
 
@@ -48,30 +50,33 @@ export function lifeStory(
 
   const mother = org.parent_id ? byId.get(org.parent_id) : undefined
   const father = org.father_id ? byId.get(org.father_id) : undefined
-  if (mother && father) lines.push(`Child of ${nameOf(mother)} and ${nameOf(father)}.`)
-  else if (mother || father) lines.push(`Child of ${nameOf((mother ?? father) as StoryPerson)}.`)
+  if (mother && father) {
+    lines.push(t('model.life.childOfBoth', { mother: nameOf(mother), father: nameOf(father) }))
+  } else if (mother || father) {
+    lines.push(t('model.life.childOfOne', { parent: nameOf((mother ?? father) as StoryPerson) }))
+  }
 
-  if (org.specialty) lines.push(`Took up the trade of ${org.specialty}.`)
-  if (org.is_leader) lines.push('Rules the tribe as its chief.')
+  if (org.specialty) lines.push(t('model.life.trade', { trade: org.specialty }))
+  if (org.is_leader) lines.push(t('model.life.chief'))
 
   if (org.partner_id) {
     const partner = byId.get(org.partner_id)
-    lines.push(partner ? `Partnered with ${nameOf(partner)}.` : 'Has a partner.')
+    lines.push(partner ? t('model.life.partnered', { name: nameOf(partner) }) : t('model.life.hasPartner'))
   }
 
   const children = org.children_count ?? 0
-  if (children > 0) lines.push(`Parent of ${children} ${children === 1 ? 'child' : 'children'}.`)
+  if (children > 0) lines.push(t('model.life.children', { count: children }))
 
   for (const e of events.filter((e) => MAJOR.has(e.category)).slice(-MAX_EVENTS)) {
-    lines.push(`${e.text.charAt(0).toUpperCase()}${e.text.slice(1)}.`)
+    lines.push(t('model.life.event', { text: `${e.text.charAt(0).toUpperCase()}${e.text.slice(1)}` }))
   }
 
   if (org.alive) {
-    lines.push(`Living, ${days} day${days === 1 ? '' : 's'} old.`)
+    lines.push(t('model.life.living', { count: days }))
   } else if (org.death_cause) {
-    lines.push(`Died of ${org.death_cause} at ${days} day${days === 1 ? '' : 's'} old.`)
+    lines.push(t('model.life.diedOf', { cause: org.death_cause, count: days }))
   } else {
-    lines.push(`Died at ${days} day${days === 1 ? '' : 's'} old.`)
+    lines.push(t('model.life.died', { count: days }))
   }
   return lines
 }

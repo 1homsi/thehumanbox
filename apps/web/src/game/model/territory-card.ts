@@ -1,6 +1,17 @@
 import type { WorldState } from '../../shared/types'
+import { t, type MessageKey } from '../../i18n'
 import { wealthGapOf } from './inequality'
 import { leadershipOf } from './leadership'
+
+/** The town a tribe is known for, by its specialty good. Keys, read with t() where they are shown. */
+const TOWNS = new Map<string, MessageKey>([
+  ['ore', 'model.territory.towns.ore'],
+  ['salt', 'model.territory.towns.salt'],
+  ['clay', 'model.territory.towns.clay'],
+  ['spice', 'model.territory.towns.spice'],
+  ['ochre', 'model.territory.towns.ochre'],
+  ['fur', 'model.territory.towns.fur'],
+])
 
 /** What the hover card says about a tribe whose land the pointer rests on. */
 export interface TerritoryCardFacts {
@@ -25,7 +36,7 @@ export function goodsOfTribe(world: Pick<WorldState, 'land_goods'>, lineage: str
     .filter(([, count]) => count > 0)
     .sort(([nameA, countA], [nameB, countB]) => countB - countA || nameA.localeCompare(nameB))
     .map(([good, count]) => `${count} ${good}`)
-  return parts.length > 0 ? `holds ${parts.join(', ')}` : null
+  return parts.length > 0 ? t('model.territory.holds', { goods: parts.join(', ') }) : null
 }
 
 /**
@@ -38,15 +49,8 @@ export function goodsOfTribe(world: Pick<WorldState, 'land_goods'>, lineage: str
 export function specialtyOfTribe(world: Pick<WorldState, 'specialties'>, lineage: string): string | null {
   const good = world.specialties?.[lineage]
   if (!good) return null
-  const towns: Record<string, string> = {
-    ore: 'a mining town',
-    salt: 'a salt town',
-    clay: 'a pottery town',
-    spice: 'a spice town',
-    ochre: 'an ochre town',
-    fur: 'a fur town',
-  }
-  return towns[good] ?? null
+  const key = TOWNS.get(good)
+  return key ? t(key) : null
 }
 
 export function tradeOfTribe(
@@ -67,18 +71,19 @@ export function tradeOfTribe(
     (caravan) => caravan.sender_lineage === lineage || caravan.receiver_lineage === lineage,
   )
   const inbound = caravans.find((caravan) => caravan.receiver_lineage === lineage)
-  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
-  const parts = [plural(routes.length, 'route', 'routes')]
-  if (routes.some((route) => route.embargoed)) parts.push('embargoed by war')
-  else if (routes.some((route) => route.agreement)) parts.push('trade agreement')
+  const parts = [t('model.territory.routes', { count: routes.length })]
+  if (routes.some((route) => route.embargoed)) parts.push(t('model.territory.embargoed'))
+  else if (routes.some((route) => route.agreement)) parts.push(t('model.territory.agreement'))
   // A first caravan still on the road has delivered nothing yet, so no goods are named.
-  if (goods > 0) parts.push(plural(goods, 'good', 'goods'))
-  if (caravans.length > 0) parts.push(`${plural(caravans.length, 'caravan', 'caravans')} on the road`)
-  if (inbound) parts.push(`buying ${inbound.cargo} at ${inbound.unit_price}${unit} each`)
+  if (goods > 0) parts.push(t('model.territory.goods', { count: goods }))
+  if (caravans.length > 0) parts.push(t('model.territory.caravans', { count: caravans.length }))
+  if (inbound) {
+    parts.push(t('model.territory.buying', { cargo: inbound.cargo, price: inbound.unit_price, unit }))
+  }
   const earned = world.trade_income?.[lineage] ?? 0
-  if (earned > 0) parts.push(`earned ${earned}${unit} from trade`)
+  if (earned > 0) parts.push(t('model.territory.earned', { amount: earned, unit }))
   const bartered = world.trade_barter?.[lineage] ?? 0
-  if (bartered > 0) parts.push(`bartered ${bartered} in kind`)
+  if (bartered > 0) parts.push(t('model.territory.bartered', { amount: bartered }))
   return parts.join(' · ')
 }
 

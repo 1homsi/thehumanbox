@@ -8,6 +8,7 @@ import { useSceneStore } from '../../state/scene'
 import { farmStage } from '../../game/model/farms'
 import { getBuildingState } from '../../game/model/building-state'
 import { formatNumber, t, type MessageKey } from '../../i18n'
+import { buildingKindWord, moonPhaseWord, seasonWord } from '../sim-words'
 
 interface Props {
   world: WorldState
@@ -307,7 +308,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
           <span className="civ-cal-sep" aria-hidden="true" />
           <div className="civ-cal-item">
             <span className="civ-cal-moon">{moonGlyphs[world.cosmos.moon_phase] ?? '🌑'}</span>
-            <span className="civ-cal-value">{world.cosmos.moon_phase.replace(/_/g, ' ')}</span>
+            <span className="civ-cal-value">{moonPhaseWord(world.cosmos.moon_phase)}</span>
             <span className="civ-cal-sub">
               {t('dialogs.civ.calendar.lit', {
                 percent: formatNumber(Math.round(world.cosmos.moon_illum * 100)),
@@ -317,7 +318,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
           <span className="civ-cal-sep" aria-hidden="true" />
           <div className="civ-cal-item">
             <span className="civ-cal-label">{t('dialogs.civ.calendar.season')}</span>
-            <span className="civ-cal-value">{world.season}</span>
+            <span className="civ-cal-value">{seasonWord(world.season)}</span>
           </div>
           {world.current_era && (
             <>
@@ -763,7 +764,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
             <div className="civ-build-grid">
               {buildingRows.map(([kind, count]) => (
                 <span key={kind} className="civ-chip">
-                  {kind}: {formatNumber(count)}
+                  {buildingKindWord(kind)}: {formatNumber(count)}
                 </span>
               ))}
               {buildingOverflow > 0 && (

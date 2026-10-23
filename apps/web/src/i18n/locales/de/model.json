@@ -223,6 +223,184 @@
   },
   "status": {
     "applied": "{label} angewendet bei {x}, {y}",
-    "failed": "{label} · {reason}"
+    "failed": "{label} · {reason}",
+    "following": "folgt {name}",
+    "naming": "Name · neuen Namen für {name} eingeben",
+    "paused": "pausiert: {names} am Abgrund"
+  },
+  "legends": {
+    "when": "Jahr {year}, {season}",
+    "notable": "Ein bemerkenswertes Ereignis",
+    "titles": {
+      "meteor": "Ein Stern fällt",
+      "eruption": "Der Berg erwacht",
+      "battle": "Eine Schlacht",
+      "warDeclared": "Der Krieg wird erklärt",
+      "treaty": "Ein Vertrag wird besiegelt",
+      "era": "Ein neues Zeitalter",
+      "eraAdvance": "Ein Stamm tritt in ein neues Zeitalter ein",
+      "milestone": "Ein Meilenstein",
+      "smite": "Der Zorn eines Gottes",
+      "answered": "Ein Gebet wird erhört",
+      "forsaken": "Ein Gebet bleibt unerhört",
+      "prayer": "Ein Gebet",
+      "outbreak": "Eine Krankheit breitet sich aus",
+      "diseaseDeath": "Ein Tod durch Krankheit",
+      "buildingRuined": "Ein Gebäude stürzt ein",
+      "weather": "Seltsames Wetter",
+      "drought": "Eine Dürre",
+      "danger": "Eine Gefahr"
+    }
+  },
+  "longevity": {
+    "longest": "längstes Leben {age} ({name}, {lineage})",
+    "average": "Durchschnitt {age} bei {deaths}",
+    "deaths": {
+      "one": "{count} Tod im Alter",
+      "other": "{count} Tode im Alter"
+    }
+  },
+  "family": {
+    "line": "{surname} ×{living}",
+    "longestLine": "{surname} ×{living}, ältester {days} Tage (am längsten gelebt)",
+    "sentence": "Die Familie {surname} in diesem Stamm: {living} leben, der älteste ist {days} Tage alt."
+  },
+  "death": {
+    "line": "Gestorben an {cause} im Alter von {age}"
+  },
+  "life": {
+    "childOfBoth": "Kind von {mother} und {father}.",
+    "childOfOne": "Kind von {parent}.",
+    "trade": "Hat das Handwerk {trade} erlernt.",
+    "chief": "Herrscht als Häuptling über den Stamm.",
+    "partnered": "Lebt mit {name} zusammen.",
+    "hasPartner": "Hat einen Partner.",
+    "children": {
+      "one": "Hat {count} Kind.",
+      "other": "Hat {count} Kinder."
+    },
+    "event": "{text}.",
+    "living": {
+      "one": "Lebt, {count} Tag alt.",
+      "other": "Lebt, {count} Tage alt."
+    },
+    "diedOf": {
+      "one": "Gestorben an {cause} mit {count} Tag.",
+      "other": "Gestorben an {cause} mit {count} Tagen."
+    },
+    "died": {
+      "one": "Gestorben mit {count} Tag.",
+      "other": "Gestorben mit {count} Tagen."
+    }
+  },
+  "territory": {
+    "holds": "besitzt {goods}",
+    "routes": {
+      "one": "{count} Route",
+      "other": "{count} Routen"
+    },
+    "goods": {
+      "one": "{count} Gut",
+      "other": "{count} Güter"
+    },
+    "caravans": {
+      "one": "{count} Karawane unterwegs",
+      "other": "{count} Karawanen unterwegs"
+    },
+    "embargoed": "durch Krieg gesperrt",
+    "agreement": "Handelsabkommen",
+    "buying": "kauft {cargo} zu {price}{unit} das Stück",
+    "earned": "hat {amount}{unit} mit dem Handel verdient",
+    "bartered": "{amount} in Naturalien getauscht",
+    "towns": {
+      "ore": "eine Bergbaustadt",
+      "salt": "eine Salzstadt",
+      "clay": "eine Töpferstadt",
+      "spice": "eine Gewürzstadt",
+      "ochre": "eine Ockerstadt",
+      "fur": "eine Pelzstadt"
+    }
+  },
+  "pair": {
+    "marry": {
+      "next": "Heiraten · jetzt die andere Person anklicken",
+      "done": "verheiratet · sie sind jetzt Partner",
+      "failed": "Heiraten · beide müssen erwachsen, ungebunden und unterschiedlichen Geschlechts sein und nah bei den Klicks stehen"
+    },
+    "tradeGift": {
+      "next": "Handel · jetzt eine Person des Stammes anklicken, mit dem gehandelt werden soll",
+      "done": "gehandelt · der zweite Stamm hat Nahrung erhalten",
+      "failed": "Handel · eine Person jedes Stammes anklicken, und der erste Stamm muss Nahrung übrig haben"
+    },
+    "mergeTribes": {
+      "next": "vereinen · jetzt eine Person des anderen Stammes anklicken",
+      "done": "vereinigt · der zweite Stamm hat sich dem ersten angeschlossen",
+      "failed": "vereinen · zwei Personen verschiedener Stämme anklicken, nah bei den Klicks"
+    }
+  },
+  "words": {
+    "moon": {
+      "newMoon": "Neumond",
+      "waxingCrescent": "zunehmende Sichel",
+      "firstQuarter": "erstes Viertel",
+      "waxingGibbous": "zunehmender Mond",
+      "fullMoon": "Vollmond",
+      "waningGibbous": "abnehmender Mond",
+      "lastQuarter": "letztes Viertel",
+      "waningCrescent": "abnehmende Sichel"
+    },
+    "season": {
+      "abundance": "Überfluss",
+      "decline": "Niedergang",
+      "scarcity": "Knappheit",
+      "recovery": "Erholung"
+    },
+    "building": {
+      "hut": "Hütte",
+      "house": "Haus",
+      "manor": "Herrenhaus",
+      "townhouse": "Stadthaus",
+      "apartment": "Wohnung",
+      "longhouse": "Langhaus",
+      "well": "Brunnen",
+      "dock": "Anlegesteg",
+      "marina": "Yachthafen",
+      "port": "Hafen",
+      "shipyard": "Werft",
+      "drydock": "Trockendock",
+      "sawMill": "Sägewerk",
+      "quarry": "Steinbruch",
+      "mine": "Mine",
+      "smithy": "Schmiede",
+      "forge": "Esse",
+      "mill": "Mühle",
+      "windmill": "Windmühle",
+      "watermill": "Wassermühle",
+      "granary": "Kornspeicher",
+      "silo": "Silo",
+      "barn": "Scheune",
+      "pen": "Gehege",
+      "workshop": "Werkstatt",
+      "warehouse": "Lagerhaus",
+      "market": "Markt",
+      "marketStall": "Marktstand",
+      "foodCart": "Essenswagen",
+      "tent": "Zelt",
+      "temple": "Tempel",
+      "shrine": "Schrein",
+      "school": "Schule",
+      "library": "Bibliothek",
+      "tavern": "Taverne",
+      "inn": "Gasthaus",
+      "bakery": "Bäckerei",
+      "brewery": "Brauerei",
+      "bridge": "Brücke",
+      "wall": "Mauer",
+      "watchtower": "Wachturm",
+      "barracks": "Kaserne",
+      "bank": "Bank",
+      "stable": "Stall",
+      "garden": "Garten"
+    }
   }
 }

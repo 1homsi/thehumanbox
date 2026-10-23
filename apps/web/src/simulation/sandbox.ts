@@ -1,3 +1,5 @@
+import type { MessageKey } from '../i18n'
+
 export type SandboxCommand =
   | { cmd: 'spawn'; x: number; y: number; count?: number; lineage?: string }
   | { cmd: 'smite'; x: number; y: number; radius?: number }
@@ -1539,30 +1541,31 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
 
 /** A tool that takes two clicks: the first picks one thing, the second the other, then the app sends the command. */
 export interface PairTool {
-  /** Shown while waiting for the second click. */
-  next: string
+  /** Shown while waiting for the second click: a translation key, read with t() where it is shown. */
+  next: MessageKey
   build: (first: { x: number; y: number }, second: { x: number; y: number }) => SandboxCommand
-  done: string
-  failed: string
+  /** Translation keys for the outcome of the command. */
+  done: MessageKey
+  failed: MessageKey
 }
 
 export const PAIR_TOOLS: Record<string, PairTool> = {
   marry: {
-    next: 'marry · now click the other person',
+    next: 'model.pair.marry.next',
     build: (a, b) => ({ cmd: 'marry', ax: a.x, ay: a.y, bx: b.x, by: b.y }),
-    done: 'married · they are partners now',
-    failed: 'marry · both must be grown, free to wed, of different sexes, and close to the clicks',
+    done: 'model.pair.marry.done',
+    failed: 'model.pair.marry.failed',
   },
   trade_gift: {
-    next: 'trade · now click a person of the tribe to trade with',
+    next: 'model.pair.tradeGift.next',
     build: (a, b) => ({ cmd: 'trade_gift', ax: a.x, ay: a.y, bx: b.x, by: b.y }),
-    done: 'traded · the second tribe received food',
-    failed: 'trade · click a person of each tribe, and the first tribe needs food to spare',
+    done: 'model.pair.tradeGift.done',
+    failed: 'model.pair.tradeGift.failed',
   },
   merge_tribes: {
-    next: 'merge · now click a person of the other tribe',
+    next: 'model.pair.mergeTribes.next',
     build: (a, b) => ({ cmd: 'merge_tribes', ax: a.x, ay: a.y, bx: b.x, by: b.y }),
-    done: 'merged · the second tribe joined the first',
-    failed: 'merge · click two people of different tribes, close to the clicks',
+    done: 'model.pair.mergeTribes.done',
+    failed: 'model.pair.mergeTribes.failed',
   },
 }

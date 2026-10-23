@@ -227,6 +227,200 @@
   },
   "status": {
     "applied": "{label} застосовано: {x}, {y}",
-    "failed": "{label} · {reason}"
+    "failed": "{label} · {reason}",
+    "following": "стежить за: {name}",
+    "naming": "ім’я · введіть нове ім’я для: {name}",
+    "paused": "пауза: {names} на межі"
+  },
+  "legends": {
+    "when": "Рік {year}, {season}",
+    "notable": "Помітна подія",
+    "titles": {
+      "meteor": "Падає зоря",
+      "eruption": "Гора прокидається",
+      "battle": "Битва",
+      "warDeclared": "Оголошено війну",
+      "treaty": "Укладено договір",
+      "era": "Нова епоха",
+      "eraAdvance": "Плем’я входить у нову епоху",
+      "milestone": "Віха",
+      "smite": "Гнів бога",
+      "answered": "Молитву почули",
+      "forsaken": "Молитва залишилася без відповіді",
+      "prayer": "Молитва",
+      "outbreak": "Поширюється хвороба",
+      "diseaseDeath": "Смерть від хвороби",
+      "buildingRuined": "Будівля руйнується",
+      "weather": "Дивна погода",
+      "drought": "Посуха",
+      "danger": "Небезпека"
+    }
+  },
+  "longevity": {
+    "longest": "найдовше життя {age} ({name}, {lineage})",
+    "average": "у середньому {age} з {deaths}",
+    "deaths": {
+      "one": "{count} смерть від старості",
+      "few": "{count} смерті від старості",
+      "many": "{count} смертей від старості",
+      "other": "{count} смертей від старості"
+    }
+  },
+  "family": {
+    "line": "{surname} ×{living}",
+    "longestLine": "{surname} ×{living}, найстарший {days} дн. (найдовше життя)",
+    "sentence": "Родина {surname} у цьому племені: живих {living}, найстаріший прожив {days} дн."
+  },
+  "death": {
+    "line": "Помер від {cause} у віці {age}"
+  },
+  "life": {
+    "childOfBoth": "Дитя {mother} і {father}.",
+    "childOfOne": "Дитя {parent}.",
+    "trade": "Опанував ремесло: {trade}.",
+    "chief": "Править племенем як вождь.",
+    "partnered": "Перебував у парі з {name}.",
+    "hasPartner": "Має партнера.",
+    "children": {
+      "one": "Має {count} дитину.",
+      "few": "Має {count} дитини.",
+      "many": "Має {count} дітей.",
+      "other": "Має {count} дітей."
+    },
+    "event": "{text}.",
+    "living": {
+      "one": "Живий, {count} день.",
+      "few": "Живий, {count} дні.",
+      "many": "Живий, {count} днів.",
+      "other": "Живий, {count} днів."
+    },
+    "diedOf": {
+      "one": "Помер від {cause} у {count} день.",
+      "few": "Помер від {cause} у {count} дні.",
+      "many": "Помер від {cause} у {count} днів.",
+      "other": "Помер від {cause} у {count} днів."
+    },
+    "died": {
+      "one": "Помер у {count} день.",
+      "few": "Помер у {count} дні.",
+      "many": "Помер у {count} днів.",
+      "other": "Помер у {count} днів."
+    }
+  },
+  "territory": {
+    "holds": "має: {goods}",
+    "routes": {
+      "one": "{count} маршрут",
+      "few": "{count} маршрути",
+      "many": "{count} маршрутів",
+      "other": "{count} маршрутів"
+    },
+    "goods": {
+      "one": "{count} товар",
+      "few": "{count} товари",
+      "many": "{count} товарів",
+      "other": "{count} товарів"
+    },
+    "caravans": {
+      "one": "{count} караван у дорозі",
+      "few": "{count} каравани у дорозі",
+      "many": "{count} караванів у дорозі",
+      "other": "{count} караванів у дорозі"
+    },
+    "embargoed": "під ембарго через війну",
+    "agreement": "торговельна угода",
+    "buying": "купує {cargo} по {price}{unit} за одиницю",
+    "earned": "заробило {amount}{unit} на торгівлі",
+    "bartered": "обміняло {amount} натурою",
+    "towns": {
+      "ore": "місто гірників",
+      "salt": "соляне місто",
+      "clay": "гончарне місто",
+      "spice": "пряне місто",
+      "ochre": "охристе місто",
+      "fur": "хутряне місто"
+    }
+  },
+  "pair": {
+    "marry": {
+      "next": "шлюб · тепер клацніть на іншу людину",
+      "done": "шлюб укладено · тепер вони партнери",
+      "failed": "шлюб · обидві людини мають бути дорослими, вільними для шлюбу, різної статі та поблизу клацань"
+    },
+    "tradeGift": {
+      "next": "торгівля · тепер клацніть на людину племені, з яким торгувати",
+      "done": "торгівлю проведено · друге плем’я отримало їжу",
+      "failed": "торгівля · клацніть на людину з кожного племені, і в першого племені має бути зайва їжа"
+    },
+    "mergeTribes": {
+      "next": "об’єднання · тепер клацніть на людину іншого племені",
+      "done": "об’єднано · друге плем’я приєдналося до першого",
+      "failed": "об’єднання · клацніть на двох людей з різних племен, поблизу клацань"
+    }
+  },
+  "words": {
+    "moon": {
+      "newMoon": "новий місяць",
+      "waxingCrescent": "молодик",
+      "firstQuarter": "перша чверть",
+      "waxingGibbous": "прибуваючий місяць",
+      "fullMoon": "повня",
+      "waningGibbous": "спадаючий місяць",
+      "lastQuarter": "остання чверть",
+      "waningCrescent": "останній серп"
+    },
+    "season": {
+      "abundance": "достаток",
+      "decline": "занепад",
+      "scarcity": "нестача",
+      "recovery": "відновлення"
+    },
+    "building": {
+      "hut": "хатина",
+      "house": "дім",
+      "manor": "садиба",
+      "townhouse": "міський будинок",
+      "apartment": "квартира",
+      "longhouse": "довгий дім",
+      "well": "криниця",
+      "dock": "причал",
+      "marina": "марина",
+      "port": "порт",
+      "shipyard": "верф",
+      "drydock": "сухий док",
+      "sawMill": "лісопильня",
+      "quarry": "кар’єр",
+      "mine": "шахта",
+      "smithy": "кузня",
+      "forge": "горн",
+      "mill": "млин",
+      "windmill": "вітряк",
+      "watermill": "водяний млин",
+      "granary": "комора",
+      "silo": "силос",
+      "barn": "сарай",
+      "pen": "загін",
+      "workshop": "майстерня",
+      "warehouse": "склад",
+      "market": "ринок",
+      "marketStall": "торгова ятка",
+      "foodCart": "візок із їжею",
+      "tent": "намет",
+      "temple": "храм",
+      "shrine": "святилище",
+      "school": "школа",
+      "library": "бібліотека",
+      "tavern": "корчма",
+      "inn": "заїжджий двір",
+      "bakery": "пекарня",
+      "brewery": "пивоварня",
+      "bridge": "міст",
+      "wall": "стіна",
+      "watchtower": "сторожова вежа",
+      "barracks": "казарма",
+      "bank": "банк",
+      "stable": "стайня",
+      "garden": "сад"
+    }
   }
 }

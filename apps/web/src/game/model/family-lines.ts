@@ -3,6 +3,8 @@
 // marked as the longest-lived. A child takes the father's surname (else the
 // mother's), so a surname is a family line the sim already keeps.
 
+import { t } from '../../i18n'
+
 const DAY_TICKS = 600
 
 export interface FamilyLine {
@@ -43,8 +45,9 @@ export function familyLines(
 
 /** One family as a card line: "Mira ×5, eldest 41 days (longest-lived)". */
 export function familyLineText(f: FamilyLine): string {
-  const tail = f.longestLived ? `, eldest ${f.eldestDays} days (longest-lived)` : ''
-  return `${f.surname} ×${f.living}${tail}`
+  return f.longestLived
+    ? t('model.family.longestLine', { surname: f.surname, living: f.living, days: f.eldestDays })
+    : t('model.family.line', { surname: f.surname, living: f.living })
 }
 
 /**
@@ -61,5 +64,9 @@ export function familySentence(
     (f) => f.surname === org.surname,
   )
   if (!line) return null
-  return `The ${line.surname} family in this tribe: ${line.living} living, the eldest ${line.eldestDays} days old.`
+  return t('model.family.sentence', {
+    surname: line.surname,
+    living: line.living,
+    days: line.eldestDays,
+  })
 }

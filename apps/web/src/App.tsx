@@ -414,7 +414,7 @@ function LiveApp() {
           return
         }
         useUIStore.getState().followOrg(person.id)
-        setTemporarySandboxStatus(`following ${personName(person)}`)
+        setTemporarySandboxStatus(t('model.status.following', { name: personName(person) }))
         return
       }
       if (armedTool.id === 'name') {
@@ -424,7 +424,7 @@ function LiveApp() {
           return
         }
         useUIStore.getState().startRename(person.id)
-        setTemporarySandboxStatus(`name · type a new name for ${personName(person)}`)
+        setTemporarySandboxStatus(t('model.status.naming', { name: personName(person) }))
         return
       }
       const pair = PAIR_TOOLS[armedTool.id]
@@ -432,12 +432,12 @@ function LiveApp() {
         const first = pairFirstRef.current
         if (!first) {
           pairFirstRef.current = { x: wx, y: wy }
-          setTemporarySandboxStatus(pair.next)
+          setTemporarySandboxStatus(t(pair.next))
           return
         }
         pairFirstRef.current = null
         void sendCommand(pair.build(first, { x: wx, y: wy })).then((ok) =>
-          setTemporarySandboxStatus(ok ? pair.done : pair.failed),
+          setTemporarySandboxStatus(t(ok ? pair.done : pair.failed)),
         )
         return
       }
@@ -677,7 +677,7 @@ function LiveApp() {
     if (fresh.length > 0 && useUIStore.getState().pauseOnPeril) {
       pauseSim()
       const names = fresh.map((p) => p.tribe).join(', ')
-      setTemporarySandboxStatus(`paused: ${names} on the brink`)
+      setTemporarySandboxStatus(t('model.status.paused', { names }))
     }
   }, [world, pauseSim, setTemporarySandboxStatus])
 

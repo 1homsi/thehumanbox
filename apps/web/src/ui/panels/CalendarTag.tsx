@@ -3,6 +3,7 @@ import type { WorldState } from '../../shared/types'
 import { t } from '../../i18n'
 import { Tooltip } from '../toolbar/Tooltip'
 import { ToolSprite } from '../toolbar/ToolSprite'
+import { moonPhaseWord } from '../sim-words'
 import { calendarTagParts, DAY_PHASE_ICON, seasonNote } from './calendar-tag'
 
 /**
@@ -33,7 +34,7 @@ export function CalendarTag({ world }: { world: WorldState }) {
       {world.cosmos && (
         <>
           <span className="tip-title">
-            {t('panels.calendar.moon', { phase: world.cosmos.moon_phase.replace(/_/g, ' ') })}
+            {t('panels.calendar.moon', { phase: moonPhaseWord(world.cosmos.moon_phase) })}
           </span>
           <span className="tip-how">
             {t('panels.calendar.moonDate', {

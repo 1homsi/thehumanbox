@@ -227,6 +227,200 @@
   },
   "status": {
     "applied": "{label} użyto w {x}, {y}",
-    "failed": "{label} · {reason}"
+    "failed": "{label} · {reason}",
+    "following": "podąża za: {name}",
+    "naming": "nazwa · wpisz nowe imię dla: {name}",
+    "paused": "wstrzymano: {names} na krawędzi"
+  },
+  "legends": {
+    "when": "Rok {year}, {season}",
+    "notable": "Godne uwagi wydarzenie",
+    "titles": {
+      "meteor": "Spada gwiazda",
+      "eruption": "Góra się budzi",
+      "battle": "Bitwa",
+      "warDeclared": "Wojna zostaje wypowiedziana",
+      "treaty": "Zawarto traktat",
+      "era": "Nowa epoka",
+      "eraAdvance": "Plemię wchodzi w nową epokę",
+      "milestone": "Kamień milowy",
+      "smite": "Gniew bogów",
+      "answered": "Modlitwa zostaje wysłuchana",
+      "forsaken": "Modlitwa pozostaje bez odpowiedzi",
+      "prayer": "Modlitwa",
+      "outbreak": "Choroba się rozprzestrzenia",
+      "diseaseDeath": "Śmierć z powodu choroby",
+      "buildingRuined": "Budynek runie",
+      "weather": "Dziwna pogoda",
+      "drought": "Susza",
+      "danger": "Niebezpieczeństwo"
+    }
+  },
+  "longevity": {
+    "longest": "najdłuższe życie {age} ({name}, {lineage})",
+    "average": "średnio {age} z {deaths}",
+    "deaths": {
+      "one": "{count} śmierć ze starości",
+      "few": "{count} śmierci ze starości",
+      "many": "{count} śmierci ze starości",
+      "other": "{count} śmierci ze starości"
+    }
+  },
+  "family": {
+    "line": "{surname} ×{living}",
+    "longestLine": "{surname} ×{living}, najstarszy {days} dni (najdłużej żyjący)",
+    "sentence": "Rodzina {surname} w tym plemieniu: {living} żyjących, najstarszy ma {days} dni."
+  },
+  "death": {
+    "line": "Zmarł z powodu: {cause}, w wieku {age}"
+  },
+  "life": {
+    "childOfBoth": "Dziecko {mother} i {father}.",
+    "childOfOne": "Dziecko {parent}.",
+    "trade": "Zajął się zawodem: {trade}.",
+    "chief": "Rządzi plemieniem jako wódz.",
+    "partnered": "Związany/a z {name}.",
+    "hasPartner": "Ma partnera.",
+    "children": {
+      "one": "Ma {count} dziecko.",
+      "few": "Ma {count} dzieci.",
+      "many": "Ma {count} dzieci.",
+      "other": "Ma {count} dzieci."
+    },
+    "event": "{text}.",
+    "living": {
+      "one": "Żyje, ma {count} dzień.",
+      "few": "Żyje, ma {count} dni.",
+      "many": "Żyje, ma {count} dni.",
+      "other": "Żyje, ma {count} dni."
+    },
+    "diedOf": {
+      "one": "Zmarł z powodu: {cause}, w wieku {count} dnia.",
+      "few": "Zmarł z powodu: {cause}, w wieku {count} dni.",
+      "many": "Zmarł z powodu: {cause}, w wieku {count} dni.",
+      "other": "Zmarł z powodu: {cause}, w wieku {count} dni."
+    },
+    "died": {
+      "one": "Zmarł w wieku {count} dnia.",
+      "few": "Zmarł w wieku {count} dni.",
+      "many": "Zmarł w wieku {count} dni.",
+      "other": "Zmarł w wieku {count} dni."
+    }
+  },
+  "territory": {
+    "holds": "ma: {goods}",
+    "routes": {
+      "one": "{count} szlak",
+      "few": "{count} szlaki",
+      "many": "{count} szlaków",
+      "other": "{count} szlaków"
+    },
+    "goods": {
+      "one": "{count} towar",
+      "few": "{count} towary",
+      "many": "{count} towarów",
+      "other": "{count} towarów"
+    },
+    "caravans": {
+      "one": "{count} karawana w drodze",
+      "few": "{count} karawany w drodze",
+      "many": "{count} karawan w drodze",
+      "other": "{count} karawan w drodze"
+    },
+    "embargoed": "objęte embargo z powodu wojny",
+    "agreement": "porozumienie handlowe",
+    "buying": "kupuje {cargo} po {price}{unit} sztuka",
+    "earned": "zarobiło {amount}{unit} na handlu",
+    "bartered": "wymieniło {amount} w naturze",
+    "towns": {
+      "ore": "miasto górnicze",
+      "salt": "miasto soli",
+      "clay": "miasto garncarzy",
+      "spice": "miasto przypraw",
+      "ochre": "miasto ochry",
+      "fur": "miasto futrzarzy"
+    }
+  },
+  "pair": {
+    "marry": {
+      "next": "małżeństwo · teraz kliknij drugą osobę",
+      "done": "połączeni · są teraz partnerami",
+      "failed": "małżeństwo · obie osoby muszą być dorosłe, wolne do ślubu, różnej płci i blisko kliknięć"
+    },
+    "tradeGift": {
+      "next": "handel · teraz kliknij osobę z plemienia, z którym chcesz handlować",
+      "done": "wymieniono · drugie plemię otrzymało jedzenie",
+      "failed": "handel · kliknij osobę z każdego plemienia, a pierwsze plemię musi mieć zapas jedzenia"
+    },
+    "mergeTribes": {
+      "next": "połącz · teraz kliknij osobę z drugiego plemienia",
+      "done": "połączono · drugie plemię dołączyło do pierwszego",
+      "failed": "połącz · kliknij dwie osoby z różnych plemion, blisko kliknięć"
+    }
+  },
+  "words": {
+    "moon": {
+      "newMoon": "nów",
+      "waxingCrescent": "sierp przybywający",
+      "firstQuarter": "pierwsza kwadra",
+      "waxingGibbous": "garbaty przybywający",
+      "fullMoon": "pełnia",
+      "waningGibbous": "garbaty ubywający",
+      "lastQuarter": "ostatnia kwadra",
+      "waningCrescent": "sierp ubywający"
+    },
+    "season": {
+      "abundance": "obfitość",
+      "decline": "upadek",
+      "scarcity": "niedobór",
+      "recovery": "odbudowa"
+    },
+    "building": {
+      "hut": "chata",
+      "house": "dom",
+      "manor": "dwór",
+      "townhouse": "kamienica",
+      "apartment": "mieszkanie",
+      "longhouse": "długi dom",
+      "well": "studnia",
+      "dock": "pomost",
+      "marina": "marina",
+      "port": "port",
+      "shipyard": "stocznia",
+      "drydock": "suchy dok",
+      "sawMill": "tartak",
+      "quarry": "kamieniołom",
+      "mine": "kopalnia",
+      "smithy": "kuźnia",
+      "forge": "kowalnia",
+      "mill": "młyn",
+      "windmill": "wiatrak",
+      "watermill": "młyn wodny",
+      "granary": "spichlerz",
+      "silo": "silos",
+      "barn": "stodoła",
+      "pen": "zagroda",
+      "workshop": "warsztat",
+      "warehouse": "magazyn",
+      "market": "targ",
+      "marketStall": "stoisko",
+      "foodCart": "wózek z jedzeniem",
+      "tent": "namiot",
+      "temple": "świątynia",
+      "shrine": "kapliczka",
+      "school": "szkoła",
+      "library": "biblioteka",
+      "tavern": "karczma",
+      "inn": "zajazd",
+      "bakery": "piekarnia",
+      "brewery": "browar",
+      "bridge": "most",
+      "wall": "mur",
+      "watchtower": "strażnica",
+      "barracks": "koszary",
+      "bank": "bank",
+      "stable": "stajnia",
+      "garden": "ogród"
+    }
   }
 }
