@@ -676,6 +676,23 @@
   gap: 8px;
   margin-top: 8px;
 }
+.settings-row-stacked {
+  border-bottom: 0;
+  padding-bottom: 4px;
+}
+.settings-languages {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 6px;
+  margin: 4px 0 10px;
+}
+.settings-languages .lang-btn {
+  text-align: left;
+}
+.settings-note a {
+  color: inherit;
+  text-decoration: underline;
+}
 .settings-path {
   display: block;
   padding: 7px 9px;

@@ -1,0 +1,13 @@
+{
+  "check": "アップデートを確認",
+  "checkTitle": "アップデートを確認",
+  "checking": "確認中…",
+  "available": "アップデートがあります",
+  "availableVersion": "v{version} が利用可能",
+  "ready": "アップデートの準備完了",
+  "readyVersion": "v{version} の準備完了",
+  "upToDate": "最新版です",
+  "packagedOnly": "インストール版アプリでのみ利用できます",
+  "failed": "アップデートの確認に失敗しました",
+  "failedWith": "確認に失敗しました: {error}"
+}

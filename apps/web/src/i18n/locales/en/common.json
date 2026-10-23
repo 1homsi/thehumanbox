@@ -1,0 +1,11 @@
+{
+  "close": "Close",
+  "open": "open",
+  "retry": "retry",
+  "loading": "loading…",
+  "export": "export",
+  "restore": "restore…",
+  "delete": "delete…",
+  "move": "move",
+  "checking": "checking…"
+}

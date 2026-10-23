@@ -1,0 +1,11 @@
+{
+  "close": "Zamknij",
+  "open": "otwórz",
+  "retry": "ponów",
+  "loading": "wczytywanie…",
+  "export": "eksportuj",
+  "restore": "przywróć…",
+  "delete": "usuń…",
+  "move": "przenieś",
+  "checking": "sprawdzanie…"
+}

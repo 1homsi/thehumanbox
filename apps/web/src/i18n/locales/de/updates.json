@@ -1,0 +1,13 @@
+{
+  "check": "Nach Updates suchen",
+  "checkTitle": "Nach Updates suchen",
+  "checking": "Wird geprüft…",
+  "available": "Update verfügbar",
+  "availableVersion": "v{version} verfügbar",
+  "ready": "Update bereit",
+  "readyVersion": "v{version} bereit",
+  "upToDate": "Aktuell",
+  "packagedOnly": "nur in der installierten App verfügbar",
+  "failed": "Update-Prüfung fehlgeschlagen",
+  "failedWith": "Prüfung fehlgeschlagen: {error}"
+}

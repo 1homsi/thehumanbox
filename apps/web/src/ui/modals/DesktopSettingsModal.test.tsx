@@ -138,7 +138,9 @@ describe('DesktopSettingsModal failures', () => {
       m.button('save settings').click()
     })
     await m.flush()
-    expect(document.body.textContent).toContain('saved, but could not update launch at login: no permission')
+    expect(document.body.textContent).toContain(
+      'saved, but could not update launch at sign-in: no permission',
+    )
     expect(document.body.textContent).not.toContain('could not save settings')
   })
 
@@ -238,7 +240,7 @@ describe('DesktopSettingsModal failures', () => {
     })
     await m.flush()
     expect(migrateDataRoot).toHaveBeenCalledWith({ targetDir: '/new/dir' })
-    expect(document.body.textContent).toContain('worlds migrated safely')
+    expect(document.body.textContent).toContain('worlds moved safely')
   })
 
   it('reports failed screenshot and folder tools instead of dropping them', async () => {

@@ -1,0 +1,13 @@
+{
+  "check": "buscar actualizaciones",
+  "checkTitle": "Buscar actualizaciones",
+  "checking": "comprobando…",
+  "available": "actualización disponible",
+  "availableVersion": "v{version} disponible",
+  "ready": "actualización lista",
+  "readyVersion": "v{version} lista",
+  "upToDate": "al día",
+  "packagedOnly": "solo disponible en la versión instalada",
+  "failed": "la búsqueda de actualizaciones falló",
+  "failedWith": "la comprobación falló: {error}"
+}
