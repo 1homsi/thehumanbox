@@ -21,6 +21,7 @@ import {
 import { canSendSandboxCommand, type SandboxCommand } from './sandbox'
 import { isDesktop } from '../shared/desktop'
 import { isDesktopStartupPending } from '../shared/desktopStartup'
+import { readRunInBackground, RUN_IN_BACKGROUND_EVENT } from '../shared/run-in-background'
 import { localSaveWorkerRequest } from './wasmPersistence'
 import { FrameSequence } from './frameSequence'
 import {
@@ -146,7 +147,7 @@ export function useSimulation(source: WorldSource = 'native'): {
       // A hidden or minimized window gets no animation frames, so nothing drains the queue
       // while a local server keeps broadcasting. Buffering would overflow it and re-download
       // the snapshot in a loop; drop the frame and let the visibility handler resync once
-      // (the wasm worker pauses itself when hidden and never fetches snapshots).
+      // (the wasm worker pauses, or stops sending frames, while hidden and never fetches snapshots).
       if (effectiveSource !== 'wasm' && document.hidden) {
         frameSequenceRef.current.markAwaitingFullFrame()
         return
@@ -536,16 +537,19 @@ export function useSimulation(source: WorldSource = 'native'): {
       window.addEventListener(LOCAL_WORLD_CHECKPOINT_EVENT, onCheckpointRequest)
       window.addEventListener(LOCAL_WORLD_RELOAD_EVENT, onSafeReloadRequest)
 
+      const postVisibility = () =>
+        worker.postMessage({
+          type: 'visibility',
+          hidden: document.visibilityState === 'hidden',
+          keepRunning: readRunInBackground(),
+        })
       const onVisibility = () => {
-        if (document.visibilityState === 'hidden') {
-          worker.postMessage({ type: 'save' })
-          worker.postMessage({ type: 'visibility', hidden: true })
-        } else {
-          worker.postMessage({ type: 'visibility', hidden: false })
-        }
+        if (document.visibilityState === 'hidden') worker.postMessage({ type: 'save' })
+        postVisibility()
       }
       const onPageHide = () => worker.postMessage({ type: 'save' })
       document.addEventListener('visibilitychange', onVisibility)
+      window.addEventListener(RUN_IN_BACKGROUND_EVENT, postVisibility)
       window.addEventListener('pagehide', onPageHide)
       resumeRef.current = () => {
         setIdleParked(false)
@@ -555,6 +559,7 @@ export function useSimulation(source: WorldSource = 'native'): {
       return () => {
         destroyed = true
         document.removeEventListener('visibilitychange', onVisibility)
+        window.removeEventListener(RUN_IN_BACKGROUND_EVENT, postVisibility)
         window.removeEventListener('pagehide', onPageHide)
         window.removeEventListener(LOCAL_WORLD_CHECKPOINT_EVENT, onCheckpointRequest)
         window.removeEventListener(LOCAL_WORLD_RELOAD_EVENT, onSafeReloadRequest)

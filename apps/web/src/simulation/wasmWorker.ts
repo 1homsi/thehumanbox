@@ -38,7 +38,7 @@ type InMsg =
   | StartMsg
   | { type: 'pause'; requestId?: number }
   | { type: 'resume'; requestId?: number }
-  | { type: 'visibility'; hidden: boolean }
+  | { type: 'visibility'; hidden: boolean; keepRunning?: boolean }
   | { type: 'save'; requestId?: number }
   | { type: 'retry_storage'; requestId?: number }
   | { type: 'prepare_reload'; requestId: number; deadlineAt: number; requireLocalWorld?: boolean }
@@ -78,6 +78,9 @@ let lastDeepFullAt = -Infinity
 let started = false
 let manuallyPaused = false
 let hiddenPaused = false
+// Hidden but still simulating ("keep running in background"): ticks and autosaves
+// continue, but no frames go out since nothing draws them. A full frame resyncs on return.
+let hiddenRunning = false
 let reloadPreparing = false
 let tickTimer: ReturnType<typeof setTimeout> | null = null
 let saveTimer: ReturnType<typeof setInterval> | null = null
@@ -415,7 +418,10 @@ function tickOnce() {
       sim.tickN(1)
       completed += 1
     } while (completed < stepsPerEmit && performance.now() - startedAt < 16)
-    if (tickMs >= WASM_BASE_TICK_MS || performance.now() - lastEmittedAt >= WASM_BASE_TICK_MS) {
+    if (
+      !hiddenRunning &&
+      (tickMs >= WASM_BASE_TICK_MS || performance.now() - lastEmittedAt >= WASM_BASE_TICK_MS)
+    ) {
       emit(performance.now() - lastDeepFullAt >= DEEP_FULL_EVERY_MS)
     }
   }
@@ -646,9 +652,13 @@ self.onmessage = (e: MessageEvent) => {
         })
       }
       break
-    case 'visibility':
-      hiddenPaused = msg.hidden
+    case 'visibility': {
+      const wasHiddenRunning = hiddenRunning
+      hiddenPaused = msg.hidden && msg.keepRunning !== true
+      hiddenRunning = msg.hidden && msg.keepRunning === true
+      if (wasHiddenRunning && !msg.hidden) emit(true)
       break
+    }
     case 'save':
       void persist().then((ok) => {
         if (msg.requestId !== undefined) post({ type: 'save_result', requestId: msg.requestId, ok })

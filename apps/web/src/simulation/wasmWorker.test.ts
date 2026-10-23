@@ -446,6 +446,20 @@ describe('browser simulation scheduling', () => {
     expect(model.tick).toBeGreaterThan(before)
   })
 
+  it('keeps ticking while hidden when asked to, without sending frames, then resyncs', async () => {
+    await vi.advanceTimersByTimeAsync(240)
+    const before = model.tick
+    send({ type: 'visibility', hidden: true, keepRunning: true })
+    model.deltaFrame.mockClear()
+    model.fullFrame.mockClear()
+    await vi.advanceTimersByTimeAsync(2400)
+    expect(model.tick - before).toBeGreaterThanOrEqual(15n)
+    expect(model.deltaFrame).not.toHaveBeenCalled()
+    expect(model.fullFrame).not.toHaveBeenCalled()
+    send({ type: 'visibility', hidden: false, keepRunning: true })
+    expect(model.fullFrame).toHaveBeenCalledTimes(1)
+  })
+
   it('yields after an expensive tick instead of running the rest of a fast batch', async () => {
     let clock = 0
     vi.spyOn(performance, 'now').mockImplementation(() => clock)
