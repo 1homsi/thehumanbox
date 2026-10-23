@@ -24,7 +24,7 @@ impl Simulation {
             // flames. Fire is never a valid destination, so route it through
             // the fallback, which picks the best genuinely safe neighbour and
             // returns `None` when the organism is trapped.
-            let house_exit = if walled_into_water(&self.grid, ix, iy) {
+            let house_exit = if walled_in(&self.grid, ix, iy) {
                 way_out_through_a_house(&self.grid, ix, iy, action)
             } else {
                 None

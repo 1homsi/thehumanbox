@@ -365,7 +365,10 @@ impl Organism {
                     // Next to home counts: a hut on the home tile can't be
                     // walked onto, which left builders circling it forever.
                     let on_home = (ix - hx).abs() <= 2 && (iy - hy).abs() <= 2;
-                    if !on_home {
+                    // Nobody packs a shelter standing in the water: a home on
+                    // the shore had builders packing in the shallows until they
+                    // drowned. Off the water first.
+                    if !on_home || grid.is_wet(tile, ix, iy) {
                         set_thought!("building shelter");
                         return (self.toward((hx, hy), grid), thought);
                     }

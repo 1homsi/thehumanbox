@@ -467,3 +467,31 @@ fn a_swimmer_in_open_water_still_moves() {
     let moved = (sim.organisms[0].x, sim.organisms[0].y) != (50.0, 50.0);
     assert!(moved, "frozen in open water");
 }
+
+/// Inside a solid block of huts two deep, someone used to stand until they
+/// died of thirst, since no neighbour could be walked on. They walk out.
+#[test]
+fn someone_boxed_in_by_huts_walks_out() {
+    let mut sim = Simulation::new(42);
+    sim.organisms.clear();
+    sim.animals.clear();
+    flatten_test_area(&mut sim, 50, 50);
+    for dy in -2..=2 {
+        for dx in -2..=2 {
+            sim.grid.set(50 + dx, 50 + dy, Tile::Hut);
+        }
+    }
+    sim.grid.set(50, 50, Tile::Grass);
+    let mut org = autonomy_test_organism("boxed", 50.0, 50.0);
+    org.hydration = 0.3;
+    org.energy = 0.8;
+    sim.organisms.push(org);
+    for _ in 0..30 {
+        tick_first_org(&mut sim);
+        let (x, y) = (sim.organisms[0].x as i32, sim.organisms[0].y as i32);
+        if (x - 50).abs() > 2 || (y - 50).abs() > 2 {
+            return;
+        }
+    }
+    panic!("still boxed in after 30 ticks");
+}
