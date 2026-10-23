@@ -50,6 +50,29 @@ impl Simulation {
             }
         }
 
+        // A home shelter already as solid as it gets takes no more wood: the
+        // armful goes on the woodpile. Without this, people stood at home
+        // 'packing' a finished shelter for most of a day.
+        if self.organisms[idx].carrying > 0
+            && self.organisms[idx].carrying_type != 2
+            && self.grid.structure_at(cx, cy) >= 0.99
+            && (cx - self.organisms[idx].home_x as i32).abs() <= 2
+            && (cy - self.organisms[idx].home_y as i32).abs() <= 2
+        {
+            let o = &mut self.organisms[idx];
+            let (load, kind) = (o.carrying, o.carrying_type);
+            o.carrying = 0;
+            o.carrying_type = 0;
+            if o.carry_room() > 0 {
+                o.inv_wood = o.inv_wood.saturating_add(1);
+                o.think("stacking the woodpile", self.tick_count);
+            } else {
+                // No room to stack it: they keep holding the armful rather than drop it.
+                o.carrying = load;
+                o.carrying_type = kind;
+            }
+        }
+
         if self.organisms[idx].carrying > 0 {
             let tile = self.grid.get(cx, cy);
             if matches!(

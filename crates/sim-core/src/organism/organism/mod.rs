@@ -132,6 +132,8 @@ pub struct Organism {
     pub last_area_cell: (i32, i32),
     pub wander_target: Option<(i32, i32)>,
     pub journey: Option<Journey>,
+    /// Today's stint of everyday work, if any (see `sim::agents::daily_work`). Runtime only.
+    pub work: Option<crate::sim::agents::daily_work::WorkPlan>,
     /// Remembered route around obstacles; runtime only, never saved.
     pub route: std::cell::RefCell<super::navigation::RouteCache>,
     pub last_groomed: u64,
@@ -284,6 +286,7 @@ impl Organism {
             last_area_cell: (x as i32, y as i32),
             wander_target: None,
             journey: None,
+            work: None,
             route: Default::default(),
             last_groomed: 0,
             last_fed_kin: 0,

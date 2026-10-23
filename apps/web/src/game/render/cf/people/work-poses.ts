@@ -38,6 +38,8 @@ const HEAD_BUILD = part('#93918b', -2, -8, 4, 2)
 const HEAD_CHOP = part('#b5b5a5', -2, -8, 4, 4)
 const HEAD_MINE = part('#b5b5a5', -2, -8, 7, 2)
 const DUST: Part[] = [part('#c9b28a', 3, 3, 1, 1), part('#c9b28a', -3, 2, 1, 1)]
+const SPEAR_SHAFT = part('#b38b52', 1, -4, 12, 1)
+const SPEAR_POINT = part('#b5b5a5', 13, -5, 2, 3)
 
 /** The poses `emitWorkPose` draws; fishing is strokes and stays with the canvas painter. */
 export type FastPose = Exclude<WorkActivity, null | 'fish'>
@@ -111,6 +113,13 @@ export function emitWorkPose(
   const flat = flipped ? -Math.PI : 0
   if (activity === 'rest') {
     for (let i = 0; i < REST.length; i++) put(sink, REST[i], ox, oy, s, flat, alpha, 0, 0)
+    return
+  }
+  if (activity === 'hunt') {
+    // A spear held low, its point bobbing with the stalk.
+    const bob = Math.round(Math.sin(time / 260 + phase))
+    put(sink, SPEAR_SHAFT, ox, oy, s, flat, alpha, 0, bob)
+    put(sink, SPEAR_POINT, ox, oy, s, flat, alpha, 0, bob)
     return
   }
   const swing = Math.sin(time / 180 + phase)

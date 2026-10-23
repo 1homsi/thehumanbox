@@ -1,6 +1,6 @@
 {
   "seed": 42,
   "tick": 3000,
-  "save_fnv1a64": "0x4bf2e8fbe5518041",
-  "note": "FNV-1a 64 of the serialized save state. Checked natively by sim-core tests and in the browser wasm build by scripts/check-wasm-determinism.mjs. Update only when a change is meant to alter the world. Regenerated when people stopped drowning in the shallows and dying of thirst inside blocks of huts."
+  "save_fnv1a64": "0xa17fa3c158e0d61c",
+  "note": "FNV-1a 64 of the serialized save state. Checked natively by sim-core tests and in the browser wasm build by scripts/check-wasm-determinism.mjs. Update only when a change is meant to alter the world. Regenerated when people began going out to a day's work and drinking from the bank."
 }

@@ -566,6 +566,25 @@ impl WorldGrid {
         }
     }
 
+    /// Water someone standing at (x, y) can drink from without wading: the
+    /// shallowest water tile among the eight around them.
+    pub fn water_beside(&self, x: i32, y: i32) -> Option<(i32, i32)> {
+        [
+            (0, -1),
+            (0, 1),
+            (-1, 0),
+            (1, 0),
+            (-1, -1),
+            (1, -1),
+            (-1, 1),
+            (1, 1),
+        ]
+        .into_iter()
+        .map(|(dx, dy)| (x + dx, y + dy))
+        .filter(|&(nx, ny)| self.get(nx, ny) == Tile::Water)
+        .min_by(|a, b| self.depth_at(a.0, a.1).total_cmp(&self.depth_at(b.0, b.1)))
+    }
+
     pub fn decay_world_layers(&mut self) {
         // Fertility regrowth rates bumped ~5× from the original numbers
         // so heavily-used tiles can actually recover within a session
