@@ -104,6 +104,8 @@ pub struct Simulation {
     pub lineage_winter_memory: HashMap<String, crate::sim::civ::society::hard_winters::WinterMemory>,
     /// The craft each tribe is known for (see `civ::society::tribe_crafts`). Runtime only, worked out daily.
     pub lineage_crafts: HashMap<String, crate::organism::skills::Skill>,
+    /// Whether `lineage_crafts` has been worked out since the world was made or loaded. Runtime only.
+    pub lineage_crafts_ready: bool,
     /// Thefts, killings and punishments in each tribe (civ/society/crime.rs).
     pub lineage_crime: HashMap<String, crate::sim::civ::society::crime::CrimeTally>,
     pub(crate) lineage_aggregates: HashMap<String, LineageAggregate>,
@@ -278,6 +280,7 @@ impl Simulation {
             lineage_unrest: HashMap::default(),
             lineage_winter_memory: HashMap::default(),
             lineage_crafts: HashMap::default(),
+            lineage_crafts_ready: false,
             lineage_crime: HashMap::default(),
             lineage_aggregates: HashMap::default(),
             buildings: Default::default(),

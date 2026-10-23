@@ -65,12 +65,17 @@ impl Simulation {
             crafts.push((lineage.to_string(), best));
         }
         let tick = self.tick_count;
+        // The map is rebuilt from today's people, so a tribe with no grown
+        // members left loses its craft too. The first pass after a world is
+        // made or loaded fills it in quietly: those crafts are not news.
+        let announce = self.lineage_crafts_ready;
+        let before_all = std::mem::take(&mut self.lineage_crafts);
         for (lineage, craft) in crafts {
-            let before = self.lineage_crafts.get(&lineage).copied();
+            let before = before_all.get(&lineage).copied();
             match craft {
                 Some(skill) => {
                     self.lineage_crafts.insert(lineage.clone(), skill);
-                    if before != Some(skill) {
+                    if announce && before != Some(skill) {
                         let name = self
                             .lineage_names
                             .get(&lineage)
@@ -85,11 +90,10 @@ impl Simulation {
                         );
                     }
                 }
-                None => {
-                    self.lineage_crafts.shift_remove(&lineage);
-                }
+                None => {}
             }
         }
+        self.lineage_crafts_ready = true;
         // Dread of a kind of work eases a little each day, and children pick up
         // the craft of the tribe they grow up in.
         for o in self.organisms.iter_mut().filter(|o| o.alive) {
@@ -136,6 +140,7 @@ mod tests {
     #[test]
     fn a_tribe_of_fishers_is_known_for_fishing_and_its_children_pick_it_up() {
         let mut sim = tribe(0.5);
+        sim.lineage_crafts_ready = true;
         assert_eq!(sim.organisms[4].age_stage(), AgeStage::Child);
         next_day(&mut sim);
         assert_eq!(sim.tribe_craft("clan"), Some(Skill::Fishing));
@@ -156,6 +161,29 @@ mod tests {
         next_day(&mut sim);
         assert_eq!(sim.tribe_craft("clan"), None);
         assert_eq!(sim.organisms[4].skills.level(Skill::Fishing), 0.0);
+    }
+
+    #[test]
+    fn a_tribe_with_no_grown_members_left_loses_its_craft() {
+        let mut sim = tribe(0.5);
+        next_day(&mut sim);
+        for o in sim.organisms.iter_mut().take(4) {
+            o.alive = false;
+        }
+        next_day(&mut sim);
+        assert_eq!(sim.tribe_craft("clan"), None);
+    }
+
+    #[test]
+    fn crafts_found_on_the_first_pass_after_loading_are_not_announced() {
+        let mut sim = tribe(0.5);
+        sim.lineage_crafts_ready = false;
+        next_day(&mut sim);
+        assert_eq!(sim.tribe_craft("clan"), Some(Skill::Fishing));
+        assert!(!sim
+            .events
+            .iter()
+            .any(|e| e.detail.starts_with("became known for")));
     }
 
     #[test]

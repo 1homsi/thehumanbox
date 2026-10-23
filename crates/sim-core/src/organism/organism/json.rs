@@ -587,10 +587,18 @@ impl Organism {
             life_log,
             conversations: self.conversations.iter().rev().take(25).rev().cloned().collect(),
             memories,
+            // What they know, and any work they dread even if they never got the
+            // hang of it, so the panel can say what they avoid.
             skills: self
                 .skills
                 .known()
                 .into_iter()
+                .chain(
+                    crate::organism::skills::Skill::ALL
+                        .into_iter()
+                        .filter(|&s| self.skills.level(s) < 0.01 && self.skills.feeling(s) <= -0.3)
+                        .map(|s| (s, self.skills.level(s))),
+                )
                 .map(|(skill, level)| SkillJson {
                     name: skill.name(),
                     level: (level * 100.0).round() / 100.0,
