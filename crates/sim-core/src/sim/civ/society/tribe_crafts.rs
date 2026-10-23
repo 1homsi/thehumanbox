@@ -72,25 +72,22 @@ impl Simulation {
         let before_all = std::mem::take(&mut self.lineage_crafts);
         for (lineage, craft) in crafts {
             let before = before_all.get(&lineage).copied();
-            match craft {
-                Some(skill) => {
-                    self.lineage_crafts.insert(lineage.clone(), skill);
-                    if announce && before != Some(skill) {
-                        let name = self
-                            .lineage_names
-                            .get(&lineage)
-                            .cloned()
-                            .unwrap_or_else(|| "a tribe".to_string());
-                        push_event(
-                            &mut self.events,
-                            tick,
-                            "life",
-                            &name,
-                            &format!("became known for their {}", skill.name()),
-                        );
-                    }
+            if let Some(skill) = craft {
+                self.lineage_crafts.insert(lineage.clone(), skill);
+                if announce && before != Some(skill) {
+                    let name = self
+                        .lineage_names
+                        .get(&lineage)
+                        .cloned()
+                        .unwrap_or_else(|| "a tribe".to_string());
+                    push_event(
+                        &mut self.events,
+                        tick,
+                        "life",
+                        &name,
+                        &format!("became known for their {}", skill.name()),
+                    );
                 }
-                None => {}
             }
         }
         self.lineage_crafts_ready = true;
