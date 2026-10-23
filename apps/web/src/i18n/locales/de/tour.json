@@ -1,1 +1,28 @@
-{}
+{
+  "worldCopy": {
+    "opening": "Diese Stämme brauchen dich. Erhöre ihre Gebete, halte sie am Leben und führe sie durch die Zeitalter, oder sieh, was ohne dich aus ihnen wird.",
+    "closing": "Deine Welt wird auf diesem Gerät gespeichert. Unter Einstellungen findest du den Fotomodus, den Export, eine neue Welt und diese Tour erneut."
+  },
+  "world": {
+    "title": "Deine Welt",
+    "text": "Jede winzige Figur ist ein echter Mensch mit Namen, Familie und Überzeugungen, der sein eigenes Leben lebt. Ziehen zum Verschieben, scrollen zum Zoomen, auf jemanden klicken, um ihm zu folgen."
+  },
+  "prayer": {
+    "title": "Wenn sie dich brauchen",
+    "text": "Eine Blase über einem Stamm ist ein Gebet: Hunger, Krankheit, Feuer, Gefahr. Klicke sie an, um zu antworten und ihren Glauben zu gewinnen. Wenn ein Stamm am Abgrund steht, leuchtet ⚠ in der Kopfzeile auf."
+  },
+  "powers": {
+    "title": "Deine Kräfte",
+    "text": "Alles, was du mit der Welt tun kannst. Wähle ein Werkzeug und klicke dann auf die Karte; Esc legt es wieder weg. Pause und Geschwindigkeit befinden sich rechts."
+  },
+  "history": {
+    "title": "Verfolge die Geschichte",
+    "text": "Statistiken, Zivilisation, Suche und Chroniken: Epochen, Religionen, Kriege und die Geschichten, die diese Welt über sich selbst schreibt."
+  },
+  "done": {
+    "title": "Das war’s, viel Spaß"
+  },
+  "back": "Zurück",
+  "next": "Weiter",
+  "finish": "Fertig"
+}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getDesktop } from '../../shared/desktop'
 import { trackEvent } from '../../shared/observability'
 import { screenBusy, TOAST_RETRY_MS } from './screenBusy'
+import { t } from '../../i18n'
 
 const RELEASES_URL = 'https://github.com/1homsi/thehumanbox/releases/latest'
 const INSTALL_CMD =
@@ -84,16 +85,16 @@ export function DesktopDownloadToast() {
 
   return (
     <div className="desktop-toast" role="status" aria-live="polite">
-      <button className="desktop-toast-close" aria-label="Dismiss" onClick={dismiss}>
+      <button className="desktop-toast-close" aria-label={t('dialogs.toast.dismiss')} onClick={dismiss}>
         ×
       </button>
-      <div className="desktop-toast-title">Run The Human Box locally</div>
-      <div className="desktop-toast-sub">Your own private world with no shared latency. Free.</div>
+      <div className="desktop-toast-title">{t('dialogs.toast.desktopTitle')}</div>
+      <div className="desktop-toast-sub">{t('dialogs.toast.desktopSub')}</div>
       {mac ? (
         <div className="desktop-toast-cmd-row">
           <code className="desktop-toast-cmd">{INSTALL_CMD}</code>
           <button className="desktop-toast-copy" onClick={onCopy}>
-            {copied ? 'copied' : 'copy'}
+            {copied ? t('dialogs.toast.copied') : t('dialogs.toast.copy')}
           </button>
         </div>
       ) : null}
@@ -107,10 +108,10 @@ export function DesktopDownloadToast() {
             trackEvent('desktop_toast_download_clicked', { mac })
           }}
         >
-          Download
+          {t('dialogs.toast.download')}
         </a>
         <button className="desktop-toast-secondary" onClick={dismiss}>
-          Not now
+          {t('dialogs.toast.notNow')}
         </button>
       </div>
     </div>

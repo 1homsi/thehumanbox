@@ -2,6 +2,7 @@ import { personName } from '../../../shared/personName'
 import type { WorldState } from '../../../shared/types'
 import { lineageColor } from '../../../shared/constants'
 import { DAY_LENGTH } from './constants'
+import { formatNumber, t } from '../../../i18n'
 
 export function NotableOrgs({ organisms }: { organisms: WorldState['organisms'] }) {
   if (organisms.length === 0) return null
@@ -26,9 +27,15 @@ export function NotableOrgs({ organisms }: { organisms: WorldState['organisms'] 
   )
   return (
     <div className="notable-grid">
-      {row('oldest', byAge, (o) => `· ${Math.floor(o.age / DAY_LENGTH)}d`)}
-      {row('parents', byKids, (o) => `· ${o.children_count ?? 0} kids`)}
-      {row('deepest gen', byGen, (o) => `· g${o.generation}`)}
+      {row(t('dialogs.stats.notable.oldest'), byAge, (o) =>
+        t('dialogs.stats.notable.days', { days: formatNumber(Math.floor(o.age / DAY_LENGTH)) }),
+      )}
+      {row(t('dialogs.stats.notable.parents'), byKids, (o) =>
+        t('dialogs.stats.notable.kids', { count: formatNumber(o.children_count ?? 0) }),
+      )}
+      {row(t('dialogs.stats.notable.deepestGen'), byGen, (o) =>
+        t('dialogs.stats.notable.gen', { gen: formatNumber(o.generation) }),
+      )}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { wealthGapYears } from '../../../game/model/wealth-history'
+import { t } from '../../../i18n'
 
 const W = 1000
 const H = 200
@@ -11,7 +12,7 @@ export function WealthGapChart({ values }: { values: number[] }) {
   if (years.length === 0) {
     return (
       <div style={{ color: '#444', fontSize: 11, textAlign: 'center', padding: '20px 0' }}>
-        the first year is still turning…
+        {t('dialogs.stats.firstYear')}
       </div>
     )
   }
@@ -22,10 +23,10 @@ export function WealthGapChart({ values }: { values: number[] }) {
   const line = years.map((p, i) => `${x(i).toFixed(1)},${y(p.gini).toFixed(1)}`).join(' ')
   const stark = y(0.5)
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Average wealth gap by year">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={t('dialogs.stats.wealthGapAria')}>
       <line x1={PAD.l} x2={W - PAD.r} y1={stark} y2={stark} stroke="#555" strokeDasharray="4 4" />
       <text x={W - PAD.r} y={stark - 4} fill="#777" fontSize="11" textAnchor="end">
-        stark
+        {t('dialogs.stats.stark')}
       </text>
       <text x={PAD.l - 6} y={PAD.t + 10} fill="#777" fontSize="11" textAnchor="end">
         1
@@ -37,7 +38,9 @@ export function WealthGapChart({ values }: { values: number[] }) {
       {years.map((p, i) => (
         <g key={p.year}>
           <circle cx={x(i)} cy={y(p.gini)} r="3.5" fill="#e8c46a">
-            <title>{`year ${p.year}: ${p.word} (${p.gini.toFixed(2)})`}</title>
+            <title>
+              {t('dialogs.stats.yearWealth', { year: p.year, word: p.word, value: p.gini.toFixed(2) })}
+            </title>
           </circle>
           <text x={x(i)} y={H - 8} fill="#777" fontSize="11" textAnchor="middle">
             {p.year}

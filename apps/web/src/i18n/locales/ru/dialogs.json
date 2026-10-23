@@ -1,1 +1,564 @@
-{}
+{
+  "confirm": {
+    "cancel": "отмена",
+    "confirm": "подтвердить",
+    "ok": "ок"
+  },
+  "welcome": {
+    "quickTour": "Краткая экскурсия",
+    "back": "Назад",
+    "skip": "Пропустить",
+    "start": "Начать",
+    "next": "Далее",
+    "localTitle": "Вы их бог",
+    "localBody": "Небольшие племена живут, любят, строят и сами воюют. Когда приходит беда, они молятся вам: нажмите на пузырь молитвы, и сила, которая поможет, окажется в ваших руках. Всё работает и сохраняется на этом устройстве."
+  },
+  "worlds": {
+    "introArchives": "Архивы вашего мира сохраняются на этом компьютере.",
+    "introPrivate": "Ваш личный мир живёт в этом браузере и никогда не подключается к размещённому серверу симуляции."
+  },
+  "about": {
+    "title": "О программе",
+    "heading": "О ПРОГРАММЕ",
+    "close": "Закрыть",
+    "unknown": "неизвестно",
+    "blurb": "The Human Box представляет собой живую симуляцию маленьких существ, которые собирают пищу, создают связи, строят язык и передают его детям. Открытый исходный код на GitHub.",
+    "frontend": "ФРОНТЕНД",
+    "commit": "коммит",
+    "built": "собрано",
+    "simulation": "СИМУЛЯЦИЯ",
+    "runtime": "среда",
+    "runtimeLocal": "локальный браузер · офлайн",
+    "versionError": "не удалось связаться с /version симуляции: {error}",
+    "loading": "загрузка…",
+    "name": "имя",
+    "builtWith": "СОЗДАНО НА",
+    "engineDetail": "2D-движок для игр в браузере, ориентированный на React. На нём работают холст мира, камера, обработка ввода и конвейер WebGL.",
+    "links": "ССЫЛКИ"
+  },
+  "achievements": {
+    "title": "Достижения",
+    "heading": "ДОСТИЖЕНИЯ",
+    "earned": "получено: {earned} из {total}"
+  },
+  "lineages": {
+    "title": "Все роды",
+    "heading": "ВСЕ РОДЫ ({count})",
+    "close": "Закрыть",
+    "onBrink": "На грани: {remaining}, {reason}",
+    "generation": "п{gen}",
+    "generationRange": "–{gen}"
+  },
+  "chronicles": {
+    "title": "Хроники",
+    "heading": "ХРОНИКИ",
+    "tabHistory": "История мира",
+    "tabLives": "Жизни",
+    "close": "Закрыть",
+    "historyIntro": "Главные повороты этого мира — эпохи, войны, династии и чудеса.",
+    "noHistory": "Значимых событий пока нет. История только начинается.",
+    "day": "день {day}",
+    "livesIntro": "Истории обитателей мира, упорядоченные по времени, когда они были прожиты.",
+    "noLives": "Историй пока нет. Они появляются, когда организмы проходят полный цикл дня."
+  },
+  "goals": {
+    "title": "Цели",
+    "heading": "ЦЕЛИ",
+    "lost": "Никто не остался в живых.",
+    "difficulty": "Сложность: {notes}",
+    "difficultyGroup": "Сложность",
+    "levels": {
+      "calm": "спокойная",
+      "normal": "обычная",
+      "harsh": "суровая"
+    }
+  },
+  "scenarios": {
+    "title": "Сценарии",
+    "heading": "СЦЕНАРИИ",
+    "intro": "Каждый сценарий дополняет мир, за которым вы наблюдаете. Он не начинает новый мир.",
+    "start": "начать"
+  },
+  "civ": {
+    "title": "Цивилизация",
+    "close": "Закрыть",
+    "common": {
+      "people": "{count} чел.",
+      "more": "+ещё {count}",
+      "tick": "тик {tick}"
+    },
+    "calendar": {
+      "year": "год",
+      "day": "день {day} из 84",
+      "lit": "{percent}% освещено",
+      "season": "сезон",
+      "worldTech": "технологии мира"
+    },
+    "lineages": {
+      "heading": "Роды",
+      "name": "Название",
+      "era": "Эпоха рода",
+      "pop": "Население",
+      "next": "Далее",
+      "gov": "Власть",
+      "currency": "Валюта",
+      "actions": "Действия",
+      "worldPopulation": "население мира {current}/{required}",
+      "missing": "не хватает: {items}",
+      "tavern": "таверна"
+    },
+    "campaigns": {
+      "kicker": "Подсказки игроку",
+      "heading": "Кампании родов",
+      "help": "Роды по-прежнему сами выбирают действия; удачные действия в нужном направлении приближают цель.",
+      "completed": "завершена",
+      "awaiting": "ждёт указаний",
+      "focusOn": "фокус: {strategy}",
+      "aligned": "{progress}/{target} действий в нужном направлении",
+      "rewardEarned": "награда получена",
+      "ticksLeft": "осталось тиков: {ticks}",
+      "progressAria": "Кампания рода {lineage}: {strategy}",
+      "reward": "Награда: {reward}",
+      "defaultReward": "боевой дух рода",
+      "choose": "Выберите мягкую цель, чтобы у рода была видимая задача и награда за её выполнение.",
+      "guideAria": "Направить {lineage}",
+      "change": "сменить кампанию…",
+      "start": "начать кампанию…"
+    },
+    "guidance": {
+      "hunt": {
+        "label": "добыть пищу",
+        "description": "направить охотников на слежку, ловлю и доставку еды домой",
+        "reward": "запасы пищи для каждого живого члена рода"
+      },
+      "explore": {
+        "label": "исследовать",
+        "description": "идти на неизведанные земли и действовать по новым находкам",
+        "reward": "карты троп и всплеск любознательности"
+      },
+      "settle": {
+        "label": "обустроиться и строить",
+        "description": "собирать материалы, безопасно отдыхать и расширять поселение",
+        "reward": "общие запасы дерева и камня"
+      },
+      "trade": {
+        "label": "торговать",
+        "description": "искать обмены, рынки и внешних торговых партнёров",
+        "reward": "общее богатство рода"
+      },
+      "defend": {
+        "label": "защищаться",
+        "description": "поднимать тревогу, укреплять территорию и защищать уязвимых родичей",
+        "reward": "восстановленное здоровье, смелость и боевой дух"
+      },
+      "guiding": "направление…",
+      "started": "кампания «{strategy}» начата",
+      "rejected": "указание отклонено",
+      "unavailable": "указание недоступно"
+    },
+    "redirect": {
+      "title": "Сменить кампанию?",
+      "body": "Перенаправить {lineage} с «{from}» на «{to}».\n\nПрогресс текущей кампании будет заархивирован.",
+      "confirm": "перенаправить"
+    },
+    "history": {
+      "title": "Недавние кампании",
+      "showRecent": "показать недавние",
+      "showAll": "показать все: {count}",
+      "lineageEnded": "род прервался",
+      "outcome": {
+        "completed": "завершена",
+        "expired": "истекла",
+        "redirected": "перенаправлена",
+        "failed": "не удалась"
+      },
+      "tick": "т{tick}"
+    },
+    "governments": {
+      "heading": "Власти и правители",
+      "empty": "Правительств пока нет",
+      "leader": "правитель: {name}",
+      "treasury": "казна: {amount}"
+    },
+    "religions": {
+      "heading": "Религии",
+      "empty": "Религий пока не основано",
+      "adherents": "последователей: {count}",
+      "foundedBy": "основатель: {lineage}",
+      "enterTemple": "войти в храм →",
+      "templeUnavailable": "храм недоступен"
+    },
+    "conflicts": {
+      "heading": "Конфликты",
+      "empty": "Сражений пока нет",
+      "versus": "{attackers} против {defenders}",
+      "won": "победа: {side}",
+      "stalemate": "ничья",
+      "ended": "завершён",
+      "ongoing": "продолжается"
+    },
+    "diplomacy": {
+      "heading": "Дипломатия",
+      "empty": "Договоров пока нет",
+      "pair": "{a} & {b}",
+      "treaty": "договор"
+    },
+    "buildings": {
+      "heading": "Постройки",
+      "empty": "Ничего пока не построено"
+    },
+    "settlements": {
+      "heading": "Поселения",
+      "empty": "Устойчивых поселений пока нет",
+      "completedBuildings": "готовых построек: {count}",
+      "capacity": "вместимость {count}"
+    },
+    "agriculture": {
+      "heading": "Земледелие",
+      "empty": "Поля ещё не вспаханы",
+      "growing": "растёт: {count}",
+      "harvestReady": "готово к сбору: {count}",
+      "fallow": "под паром: {count}",
+      "projectedFood": "прогноз пищи: {count}",
+      "fields": {
+        "one": "{crop}: {count} поле",
+        "few": "{crop}: {count} поля",
+        "many": "{crop}: {count} полей",
+        "other": "{crop}: {count} поля"
+      }
+    },
+    "goods": {
+      "heading": "Товары в обращении",
+      "empty": "Созданных товаров пока нет",
+      "byLineage": "по родам:",
+      "held": "в наличии: {count}"
+    },
+    "books": {
+      "heading": "Недавние книги",
+      "empty": "Книг пока не написано",
+      "on": "{author}: {topic}",
+      "copies": "экземпляров: {count}"
+    },
+    "artworks": {
+      "heading": "Произведения",
+      "empty": "Ничего пока не создано",
+      "by": "автор: {name}"
+    },
+    "trade": {
+      "heading": "Торговая сеть",
+      "empty": "Маршрутов пока нет — купцам эпохи железа нужны два устоявшихся поселения, валюта, навигация и торговая площадка.",
+      "routes": {
+        "one": "{count} маршрут",
+        "few": "{count} маршрута",
+        "many": "{count} маршрутов",
+        "other": "{count} маршрута"
+      },
+      "caravans": {
+        "one": "{count} караван в пути",
+        "few": "{count} каравана в пути",
+        "many": "{count} караванов в пути",
+        "other": "{count} каравана в пути"
+      },
+      "totals": "доставок: {deliveries} · перевезено товаров: {volume}",
+      "routeStats": "расстояние в клетках: {distance} · доставлено: {delivered} · объём: {volume}",
+      "enRoute": "в пути: {count}",
+      "readyToUnload": "готово к разгрузке",
+      "ticksAway": "тиков до прибытия: {ticks}"
+    },
+    "tradeLog": {
+      "heading": "Недавние сделки",
+      "empty": "Сделок пока нет (нужны обмен или валюта)",
+      "coins": {
+        "one": "{count} монета",
+        "few": "{count} монеты",
+        "many": "{count} монет",
+        "other": "{count} монеты"
+      }
+    },
+    "headlines": {
+      "heading": "Заголовки",
+      "empty": "Значимых событий пока нет"
+    }
+  },
+  "toast": {
+    "dismiss": "Скрыть",
+    "desktopTitle": "Запустите The Human Box локально",
+    "desktopSub": "Ваш личный мир без сетевых задержек. Бесплатно.",
+    "copy": "копировать",
+    "copied": "скопировано",
+    "download": "Скачать",
+    "notNow": "Не сейчас",
+    "updateReady": "Обновление готово к установке",
+    "updateAvailable": "Доступно обновление",
+    "updateReadySub": "v{version} загружена — перезапустите, чтобы применить",
+    "updateDownloading": "загрузка v{version}…",
+    "updateFailed": "не удалось обновить: {message}",
+    "updateNotReady": "обновление ещё не готово",
+    "restartFailed": "не удалось перезапустить средство обновления",
+    "restartTitle": "Перезапустить The Human Box и установить загруженное обновление",
+    "restarting": "перезапуск…",
+    "restart": "перезапустить",
+    "newVersion": "Доступна новая версия",
+    "newVersionSub": "обновите страницу, чтобы загрузить последний мир",
+    "refreshing": "обновление…",
+    "refresh": "Обновить",
+    "checkpointFailed": "не удалось сохранить текущий мир; обновление отменено без потери данных",
+    "starTitle": "Нравится ваш мир?",
+    "starSub": "The Human Box бесплатен и с открытым исходным кодом. Звезда на GitHub помогает другим людям его найти.",
+    "starCta": "Поставить звезду на GitHub",
+    "starLater": "Может быть, позже"
+  },
+  "life": {
+    "title": "Жизнь {name}",
+    "heading": "ЖИЗНЬ {name}",
+    "close": "Закрыть",
+    "day": "день {day}",
+    "failed": "не удалось загрузить",
+    "gen": "поколение {gen}",
+    "age": {
+      "one": "{count} день от роду",
+      "few": "{count} дня от роду",
+      "many": "{count} дней от роду",
+      "other": "{count} дня от роду"
+    },
+    "elder": "старейшина",
+    "partnered": "в паре",
+    "children": {
+      "one": "{count} ребёнок",
+      "few": "{count} ребёнка",
+      "many": "{count} детей",
+      "other": "{count} ребёнка"
+    },
+    "feeling": "настроение",
+    "friends": "друзья",
+    "discoveries": "открытия",
+    "memories": "что они помнят ({count})",
+    "events": "события жизни ({count})",
+    "stuck": "⚠ этот организм застрял: одно и то же действие подряд, повторов: {count}",
+    "noEvents": "записанных событий пока нет"
+  },
+  "conversations": {
+    "kinds": {
+      "courtship": "Первое знакомство",
+      "bonded": "Разговор партнёров",
+      "farewell": "Прощание",
+      "chat": "Непринуждённый разговор",
+      "gossip": "Сплетни",
+      "excited": "Делятся восторгом",
+      "argue": "Спор"
+    },
+    "relPartner": "♥ партнёр",
+    "relFriend": "друг",
+    "relTrusts": "доверяет",
+    "relWary": "настороженно",
+    "day": "день {day}",
+    "title": "Разговоры: {name}",
+    "heading": "РАЗГОВОРЫ",
+    "close": "Закрыть",
+    "filterAll": "все",
+    "loading": "загрузка разговоров: {name}…",
+    "drawn": "{name} тянется к кому-то - скоро состоится первый разговор",
+    "noneYet": "{name} ещё ни с кем не разговаривал",
+    "noneOfKind": "нет разговоров: {kind}"
+  },
+  "notable": {
+    "title": "Выдающиеся",
+    "heading": "ВЫДАЮЩИЕСЯ ОРГАНИЗМЫ",
+    "alive": "живых: {count} · выберите фильтр ниже",
+    "close": "Закрыть",
+    "empty": "пока никто не подходит под этот фильтр",
+    "gen": "поколение {gen}",
+    "oldest": "Старейшие среди нас",
+    "days": "дней: {count}",
+    "children": "Больше всех детей",
+    "childrenCount": "детей: {count}",
+    "friends": "Лучше всех связаны",
+    "friendsCount": "друзей: {count}",
+    "wealth": "Богатейшие",
+    "coin": "монет: {count}",
+    "discoveries": "Больше всех знают (открытия)",
+    "discoveriesCount": "открытий: {count}",
+    "literate": "Самые грамотные",
+    "literacy": "{percent}% грамотности",
+    "devout": "Самые набожные",
+    "piety": "{percent}% набожности",
+    "joy": "Самые радостные сейчас",
+    "joyTicks": "тиков радости: {count}",
+    "grief": "Глубже всех скорбят",
+    "griefTicks": "тиков скорби: {count}",
+    "aspiration": "Имеет жизненную цель"
+  },
+  "orgSearch": {
+    "title": "Организмы",
+    "heading": "ОРГАНИЗМЫ",
+    "summary": "показано: {shown} · живых: {alive} · мёртвых: {dead}",
+    "close": "Закрыть",
+    "placeholder": "поиск по имени, мысли или коду рода…",
+    "statusAll": "все",
+    "statusAlive": "живые",
+    "statusDead": "мёртвые",
+    "fire": "огонь",
+    "shelter": "убежище",
+    "allTribes": "все племена",
+    "empty": "нет подходящих организмов",
+    "genAge": "п{gen} · {days}д",
+    "track": "следить в мире",
+    "back": "← все организмы",
+    "placeholderDetail": "← выберите организм, чтобы увидеть подробности"
+  },
+  "stats": {
+    "title": "Статистика",
+    "heading": "СТАТИСТИКА",
+    "yearDay": "год {year} · день {day}",
+    "day": "день {day}",
+    "aliveCount": "живых: {count}",
+    "reload": "Перезагрузить из текущего мира",
+    "close": "Закрыть",
+    "alive": "живые",
+    "totalDeaths": "всего смертей",
+    "totalBirths": "всего рождений",
+    "daysElapsed": "прошло дней",
+    "knowFire": "знают огонь",
+    "haveShelter": "есть убежище",
+    "animals": "животные",
+    "populationOverTime": "НАСЕЛЕНИЕ ПО ВРЕМЕНИ",
+    "birthsDeathsByYear": "РОЖДЕНИЯ И СМЕРТИ ПО ГОДАМ",
+    "wealthGapByYear": "РАЗРЫВ В БОГАТСТВЕ ПО ГОДАМ",
+    "agePyramid": "ВОЗРАСТНАЯ ПИРАМИДА",
+    "populationTraits": "ЧЕРТЫ НАСЕЛЕНИЯ",
+    "tribalRelations": "ОТНОШЕНИЯ ПЛЕМЁН",
+    "discoveryRollup": "СВОДКА ОТКРЫТИЙ",
+    "legends": "ЛЕГЕНДЫ",
+    "generationsAlive": "ЖИВЫЕ ПОКОЛЕНИЯ",
+    "oldestLiving": "САМЫЕ СТАРЫЕ ЖИВЫЕ",
+    "longevity": "ПРОДОЛЖИТЕЛЬНОСТЬ ЖИЗНИ",
+    "noOldAgeDeaths": "от старости пока никто не умирал",
+    "causesOfDeath": "ПРИЧИНЫ СМЕРТИ",
+    "causes": {
+      "starvation": "голод",
+      "dehydration": "обезвоживание",
+      "sickness": "болезнь",
+      "combat": "бой",
+      "oldAge": "старость",
+      "droughts": "засухи",
+      "outbreaks": "вспышки болезней"
+    },
+    "bondsFamily": "СВЯЗИ И СЕМЬЯ",
+    "notableOrganisms": "ВЫДАЮЩИЕСЯ ОРГАНИЗМЫ",
+    "discoveryLog": "ЖУРНАЛ ОТКРЫТИЙ",
+    "worldEras": "ЭПОХИ МИРА",
+    "dayShort": "д{day}",
+    "accumulating": "сбор данных…",
+    "firstYear": "первый год ещё идёт…",
+    "birthsDeathsAria": "Рождения и смерти по годам",
+    "yearBorn": "год {year}: рождено: {count}",
+    "yearDied": "год {year}: умерло: {count}",
+    "wealthGapAria": "Средний разрыв в богатстве по годам",
+    "stark": "сильный",
+    "yearWealth": "год {year}: {word} ({value})",
+    "noLegends": "легенд пока нет",
+    "noContacts": "контактов между племенами пока нет",
+    "versus": "{a} против {b}",
+    "noDiscoveries": "открытий пока нет",
+    "traits": {
+      "curiosity": "любознательность",
+      "fear": "страх",
+      "socialTendency": "общительность",
+      "resilience": "стойкость",
+      "aggression": "агрессия",
+      "memoryStrength": "сила памяти"
+    },
+    "nobodyAlive": "никто не жив",
+    "gen": "поколение {gen}",
+    "ageDays": {
+      "one": "{count} день от роду",
+      "few": "{count} дня от роду",
+      "many": "{count} дней от роду",
+      "other": "{count} дня от роду"
+    },
+    "notable": {
+      "oldest": "старейший",
+      "parents": "родители",
+      "deepestGen": "самое глубокое поколение",
+      "days": "· {days}д",
+      "kids": "· детей: {count}",
+      "gen": "· п{gen}"
+    }
+  },
+  "tree": {
+    "title": "Родословное древо",
+    "heading": "РОДОСЛОВНОЕ ДРЕВО",
+    "summary": "живых: {alive} · предков: {ancestors} · поколений: {generations}",
+    "reload": "Перезагрузить из текущего мира",
+    "close": "Закрыть",
+    "generation": "поколение {gen}",
+    "ageGen": "{days}д · п{gen}",
+    "gen": "п{gen}",
+    "days": "{days}д",
+    "bonded": "в паре",
+    "father": "отец: {name}",
+    "children": "детей: {count}",
+    "hint": "прокрутка для масштаба · перетаскивание для сдвига · наведите на узел для сведений ·",
+    "bondedPair": "пара",
+    "fitAllTitle": "Показать все поколения",
+    "fitAliveTitle": "Показать только живых",
+    "fitAll": "показать всех",
+    "fitAlive": "показать живых",
+    "legendFire": "огонь",
+    "legendShelter": "убежище",
+    "legendDeceased": "умерший",
+    "legendBonded": "в паре",
+    "legendMother": "мать",
+    "legendFather": "отец",
+    "legendInfidelity": "измена"
+  },
+  "language": {
+    "title": "Языки мира",
+    "heading": "ЯЗЫКИ МИРА",
+    "reload": "Перезагрузить из текущего мира",
+    "close": "Закрыть",
+    "intro": "Каждый род развивает собственные слова. Слова меняются от поколения к поколению и распространяются через контакты.",
+    "sexWords": "их слова для двух полов:",
+    "sexNote": "(придуманы основавшим поколением)",
+    "placeholder": "поиск понятий и придуманных слов ({count})…",
+    "matches": {
+      "one": "{count} совпадение",
+      "few": "{count} совпадения",
+      "many": "{count} совпадений",
+      "other": "{count} совпадения"
+    },
+    "concept": "понятие",
+    "noMatch": "нет понятий по запросу «{query}»",
+    "sections": {
+      "coreSurvival": "выживание",
+      "skyWeather": "небо и погода",
+      "landWater": "суша и вода",
+      "bodyVital": "тело и жизненные состояния",
+      "emotions": "эмоции",
+      "kinRoles": "родичи и роли",
+      "socialActs": "социальные действия",
+      "motionAction": "движение и действие",
+      "qualitiesRelations": "свойства и отношения",
+      "toolsResources": "инструменты и ресурсы",
+      "bodySenses": "тело и чувства",
+      "familyLife": "семья и события жизни",
+      "animals": "животные",
+      "terrain": "местность",
+      "weatherSky": "события погоды и неба",
+      "materials": "материалы",
+      "abstract": "абстрактное",
+      "moreActs": "другие действия",
+      "quantity": "количество",
+      "colours": "цвета",
+      "plants": "растения",
+      "finerTime": "тонкости времени",
+      "directions": "направления",
+      "sounds": "звуки",
+      "finerFeelings": "тонкие чувства",
+      "socialStructures": "социальные структуры",
+      "bodyActions": "действия тела",
+      "languageMeaning": "язык и значение",
+      "physicalQualities": "физические свойства"
+    }
+  }
+}

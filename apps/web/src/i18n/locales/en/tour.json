@@ -1,1 +1,28 @@
-{}
+{
+  "worldCopy": {
+    "opening": "These tribes need you. Answer their prayers, keep them alive and lift them through the ages, or see what becomes of them without you.",
+    "closing": "Your world saves on this device. Settings has photo mode, export, a fresh world, and this tour again."
+  },
+  "world": {
+    "title": "Your world",
+    "text": "Every tiny figure is a real person with a name, a family and beliefs, living their own life. Drag to pan, scroll to zoom, click anyone to follow them."
+  },
+  "prayer": {
+    "title": "When they need you",
+    "text": "A bubble over a tribe is a prayer: hunger, sickness, fire, danger. Click it to answer and win their faith. When a tribe is on the brink, ⚠ lights up in the header."
+  },
+  "powers": {
+    "title": "Your powers",
+    "text": "Everything you can do to the world. Pick a tool, then click the map; Esc puts it down. Pause and speed are on the right."
+  },
+  "history": {
+    "title": "Watch history unfold",
+    "text": "Stats, civilization, search and chronicles: eras, religions, wars, and the stories this world writes about itself."
+  },
+  "done": {
+    "title": "That’s it, have fun"
+  },
+  "back": "Back",
+  "next": "Next",
+  "finish": "Finish"
+}

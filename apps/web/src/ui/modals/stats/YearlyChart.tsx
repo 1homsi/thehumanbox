@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { yearlySeries } from '../../../game/model/yearly'
+import { formatNumber, t } from '../../../i18n'
 
 const W = 1000
 const H = 200
@@ -11,7 +12,7 @@ export function YearlyChart({ births, deaths }: { births: number[]; deaths: numb
   if (years.length === 0) {
     return (
       <div style={{ color: '#444', fontSize: 11, textAlign: 'center', padding: '20px 0' }}>
-        the first year is still turning…
+        {t('dialogs.stats.firstYear')}
       </div>
     )
   }
@@ -23,7 +24,7 @@ export function YearlyChart({ births, deaths }: { births: number[]; deaths: numb
   const bar = Math.max(2, Math.min(18, slot * 0.36))
   const half = ch / 2
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Births and deaths by year">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={t('dialogs.stats.birthsDeathsAria')}>
       <line x1={PAD.l} x2={W - PAD.r} y1={mid} y2={mid} stroke="#333" />
       <text x={PAD.l - 6} y={PAD.t + 10} fill="#777" fontSize="11" textAnchor="end">
         {top}
@@ -38,10 +39,10 @@ export function YearlyChart({ births, deaths }: { births: number[]; deaths: numb
         return (
           <g key={y.year}>
             <rect x={cx - bar} y={mid - bh} width={bar} height={bh} fill="#8fd17a">
-              <title>{`year ${y.year}: ${y.births} born`}</title>
+              <title>{t('dialogs.stats.yearBorn', { year: y.year, count: formatNumber(y.births) })}</title>
             </rect>
             <rect x={cx} y={mid} width={bar} height={dh} fill="#b08fd1">
-              <title>{`year ${y.year}: ${y.deaths} died`}</title>
+              <title>{t('dialogs.stats.yearDied', { year: y.year, count: formatNumber(y.deaths) })}</title>
             </rect>
             {(years.length <= 12 || i % Math.ceil(years.length / 12) === 0) && (
               <text x={cx} y={H - 8} fill="#777" fontSize="11" textAnchor="middle">

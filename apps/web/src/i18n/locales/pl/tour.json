@@ -1,1 +1,28 @@
-{}
+{
+  "worldCopy": {
+    "opening": "Te plemiona potrzebują ciebie. Odpowiadaj na ich modlitwy, utrzymuj je przy życiu i prowadź przez epoki albo zobacz, co się z nimi stanie bez ciebie.",
+    "closing": "Twój świat zapisuje się na tym urządzeniu. Ustawienia zawierają tryb zdjęć, eksport, nowy świat oraz ponowne uruchomienie tego przewodnika."
+  },
+  "world": {
+    "title": "Twój świat",
+    "text": "Każda drobna postać to prawdziwy człowiek z imieniem, rodziną i przekonaniami, żyjący własnym życiem. Przeciągnij, aby przesunąć, przewiń, aby przybliżyć, kliknij kogoś, aby za nim podążać."
+  },
+  "prayer": {
+    "title": "Kiedy cię potrzebują",
+    "text": "Dymek nad plemieniem to modlitwa: głód, choroba, ogień, niebezpieczeństwo. Kliknij go, aby odpowiedzieć i zdobyć ich wiarę. Gdy plemię jest na krawędzi, ⚠ zapala się w nagłówku."
+  },
+  "powers": {
+    "title": "Twoje moce",
+    "text": "Wszystko, co możesz zrobić ze światem. Wybierz narzędzie, a potem kliknij mapę; Esc je odkłada. Pauza i prędkość są po prawej stronie."
+  },
+  "history": {
+    "title": "Obserwuj, jak rozwija się historia",
+    "text": "Statystyki, cywilizacja, wyszukiwanie i kroniki: epoki, religie, wojny oraz historie, które ten świat tworzy o sobie samym."
+  },
+  "done": {
+    "title": "To wszystko, miłej zabawy"
+  },
+  "back": "Wstecz",
+  "next": "Dalej",
+  "finish": "Zakończ"
+}

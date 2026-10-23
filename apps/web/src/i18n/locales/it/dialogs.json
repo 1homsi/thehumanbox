@@ -1,1 +1,548 @@
-{}
+{
+  "confirm": {
+    "cancel": "annulla",
+    "confirm": "conferma",
+    "ok": "ok"
+  },
+  "welcome": {
+    "quickTour": "Tour rapido",
+    "back": "Indietro",
+    "skip": "Salta",
+    "start": "Avvia",
+    "next": "Avanti",
+    "localTitle": "Sei il loro dio",
+    "localBody": "Le piccole tribù vivono, amano, costruiscono e fanno guerra da sole. Quando arrivano i guai ti pregano: clicca una bolla di preghiera e il potere che aiuta è nelle tue mani. Tutto gira e viene salvato su questo dispositivo."
+  },
+  "worlds": {
+    "introArchives": "Gli archivi del tuo mondo sono salvati su questo computer.",
+    "introPrivate": "Il tuo mondo privato vive in questo browser e non si collega mai a un server di simulazione ospitato."
+  },
+  "about": {
+    "title": "Info",
+    "heading": "INFO",
+    "close": "Chiudi",
+    "unknown": "sconosciuto",
+    "blurb": "The Human Box è una simulazione viva di piccoli agenti che cercano cibo, creano legami, costruiscono un linguaggio e lo trasmettono ai figli. Open source su GitHub.",
+    "frontend": "FRONTEND",
+    "commit": "commit",
+    "built": "build",
+    "simulation": "SIMULAZIONE",
+    "runtime": "runtime",
+    "runtimeLocal": "browser locale · offline",
+    "versionError": "impossibile raggiungere /version della simulazione: {error}",
+    "loading": "caricamento…",
+    "name": "nome",
+    "builtWith": "COSTRUITO CON",
+    "engineDetail": "Motore di gioco 2D per browser, pensato per React. Il canvas del mondo, la camera, la gestione dell'input e la pipeline WebGL girano tutti su di esso.",
+    "links": "LINK"
+  },
+  "achievements": {
+    "title": "Traguardi",
+    "heading": "TRAGUARDI",
+    "earned": "{earned} di {total} ottenuti"
+  },
+  "lineages": {
+    "title": "Tutte le stirpi",
+    "heading": "TUTTE LE STIRPI ({count})",
+    "close": "Chiudi",
+    "onBrink": "Sull'orlo: {remaining}, {reason}",
+    "generation": "g{gen}",
+    "generationRange": "–{gen}"
+  },
+  "chronicles": {
+    "title": "Cronache",
+    "heading": "CRONACHE",
+    "tabHistory": "Storia del mondo",
+    "tabLives": "Vite",
+    "close": "Chiudi",
+    "historyIntro": "Le grandi svolte di questo mondo — ere, guerre, dinastie e meraviglie.",
+    "noHistory": "Nessun evento notevole per ora. La storia è appena iniziata.",
+    "day": "giorno {day}",
+    "livesIntro": "Storie raccontate dagli abitanti del mondo, in ordine di quando sono state vissute.",
+    "noLives": "Ancora nessuna storia. Le storie compaiono quando gli organismi completano un ciclo di un giorno intero."
+  },
+  "goals": {
+    "title": "Obiettivi",
+    "heading": "OBIETTIVI",
+    "lost": "Non è rimasto nessuno in vita.",
+    "difficulty": "Difficoltà: {notes}",
+    "difficultyGroup": "Difficoltà",
+    "levels": {
+      "calm": "calmo",
+      "normal": "normale",
+      "harsh": "severo"
+    }
+  },
+  "scenarios": {
+    "title": "Scenari",
+    "heading": "SCENARI",
+    "intro": "Ogni scenario si aggiunge al mondo che stai guardando. Non avvia un nuovo mondo.",
+    "start": "avvia"
+  },
+  "civ": {
+    "title": "Civiltà",
+    "close": "Chiudi",
+    "common": {
+      "people": "{count} persone",
+      "more": "+{count} altri",
+      "tick": "tick {tick}"
+    },
+    "calendar": {
+      "year": "anno",
+      "day": "giorno {day} di 84",
+      "lit": "{percent}% illuminata",
+      "season": "stagione",
+      "worldTech": "tecnologia del mondo"
+    },
+    "lineages": {
+      "heading": "Stirpi",
+      "name": "Nome",
+      "era": "Era della stirpe",
+      "pop": "Pop.",
+      "next": "Prossimo",
+      "gov": "Gov.",
+      "currency": "Valuta",
+      "actions": "Azioni",
+      "worldPopulation": "popolazione del mondo {current}/{required}",
+      "missing": "mancano {items}",
+      "tavern": "taverna"
+    },
+    "campaigns": {
+      "kicker": "Guida del giocatore",
+      "heading": "Campagne delle stirpi",
+      "help": "Le stirpi scelgono ancora da sole le proprie azioni; le azioni riuscite e allineate riempiono l'obiettivo.",
+      "completed": "completata",
+      "awaiting": "in attesa di indicazioni",
+      "focusOn": "concentrarsi su {strategy}",
+      "aligned": "{progress}/{target} azioni allineate",
+      "rewardEarned": "ricompensa ottenuta",
+      "ticksLeft": "{ticks} tick rimasti",
+      "progressAria": "campagna {strategy} di {lineage}",
+      "reward": "Ricompensa: {reward}",
+      "defaultReward": "morale della stirpe",
+      "choose": "Scegli un obiettivo leggero per dare a questa stirpe un traguardo visibile e una ricompensa al completamento.",
+      "guideAria": "Guida {lineage}",
+      "change": "cambia campagna…",
+      "start": "avvia campagna…"
+    },
+    "guidance": {
+      "hunt": {
+        "label": "assicura il cibo",
+        "description": "concentra i cacciatori su tracce, trappole e rientro con il cibo",
+        "reward": "scorte di cibo per ogni membro in vita"
+      },
+      "explore": {
+        "label": "esplora",
+        "description": "spingiti in terreni sconosciuti e agisci sulle nuove scoperte",
+        "reward": "mappe dei sentieri e un'ondata di curiosità"
+      },
+      "settle": {
+        "label": "insediati e costruisci",
+        "description": "raccogli materiali, riposa in sicurezza ed espandi l'insediamento",
+        "reward": "scorte comuni di legno e pietra"
+      },
+      "trade": {
+        "label": "commercia",
+        "description": "cerca scambi, mercati e partner commerciali stranieri",
+        "reward": "ricchezza condivisa per la stirpe"
+      },
+      "defend": {
+        "label": "difendi",
+        "description": "dai l'allarme, fortifica il territorio e proteggi i parenti vulnerabili",
+        "reward": "salute, coraggio e morale ripristinati"
+      },
+      "guiding": "indicazione in corso…",
+      "started": "campagna {strategy} avviata",
+      "rejected": "indicazione rifiutata",
+      "unavailable": "indicazione non disponibile"
+    },
+    "redirect": {
+      "title": "Cambiare campagna?",
+      "body": "Reindirizza {lineage} da {from} a {to}.\n\nI progressi della campagna attuale vengono archiviati.",
+      "confirm": "reindirizza"
+    },
+    "history": {
+      "title": "Campagne recenti",
+      "showRecent": "mostra recenti",
+      "showAll": "mostra tutte {count}",
+      "lineageEnded": "stirpe estinta",
+      "outcome": {
+        "completed": "completata",
+        "expired": "scaduta",
+        "redirected": "reindirizzata",
+        "failed": "fallita"
+      },
+      "tick": "t{tick}"
+    },
+    "governments": {
+      "heading": "Governi e capi",
+      "empty": "Nessun governo ancora",
+      "leader": "capo: {name}",
+      "treasury": "tesoro: {amount}"
+    },
+    "religions": {
+      "heading": "Religioni",
+      "empty": "Nessuna religione ancora fondata",
+      "adherents": "{count} fedeli",
+      "foundedBy": "fondata da {lineage}",
+      "enterTemple": "entra nel tempio →",
+      "templeUnavailable": "tempio non disponibile"
+    },
+    "conflicts": {
+      "heading": "Conflitti",
+      "empty": "Nessuna battaglia ancora",
+      "versus": "{attackers} contro {defenders}",
+      "won": "vittoria di {side}",
+      "stalemate": "stallo",
+      "ended": "concluso",
+      "ongoing": "in corso"
+    },
+    "diplomacy": {
+      "heading": "Diplomazia",
+      "empty": "Nessun trattato ancora",
+      "pair": "{a} e {b}",
+      "treaty": "trattato"
+    },
+    "buildings": {
+      "heading": "Edifici",
+      "empty": "Nessun edificio ancora"
+    },
+    "settlements": {
+      "heading": "Insediamenti",
+      "empty": "Nessun insediamento stabile ancora",
+      "completedBuildings": "{count} edifici completati",
+      "capacity": "capacità {count}"
+    },
+    "agriculture": {
+      "heading": "Agricoltura",
+      "empty": "Nessun campo è ancora stato arato",
+      "growing": "in crescita: {count}",
+      "harvestReady": "pronti per il raccolto: {count}",
+      "fallow": "a riposo: {count}",
+      "projectedFood": "cibo previsto: {count}",
+      "fields": {
+        "one": "{crop}: {count} campo",
+        "other": "{crop}: {count} campi"
+      }
+    },
+    "goods": {
+      "heading": "Beni in circolazione",
+      "empty": "Nessun bene artigianale posseduto ancora",
+      "byLineage": "per stirpe:",
+      "held": "{count} posseduti"
+    },
+    "books": {
+      "heading": "Libri recenti",
+      "empty": "Nessun libro scritto ancora",
+      "on": "{author} su {topic}",
+      "copies": "{count} copie"
+    },
+    "artworks": {
+      "heading": "Opere d'arte",
+      "empty": "Nulla di creato ancora",
+      "by": "di {name}"
+    },
+    "trade": {
+      "heading": "Rete commerciale",
+      "empty": "Nessuna rotta ancora — i mercanti dell'Età del Ferro richiedono due insediamenti consolidati, una valuta, la navigazione e uno spazio per il commercio.",
+      "routes": {
+        "one": "{count} rotta",
+        "other": "{count} rotte"
+      },
+      "caravans": {
+        "one": "{count} carovana in viaggio",
+        "other": "{count} carovane in viaggio"
+      },
+      "totals": "{deliveries} consegne · {volume} beni spostati",
+      "routeStats": "{distance} caselle · {delivered} consegnati · {volume} di volume",
+      "enRoute": "{count} in viaggio",
+      "readyToUnload": "pronto per lo scarico",
+      "ticksAway": "tra {ticks} tick"
+    },
+    "tradeLog": {
+      "heading": "Scambi recenti",
+      "empty": "Nessuno scambio ancora (serve baratto / valuta)",
+      "coins": {
+        "one": "{count} moneta",
+        "other": "{count} monete"
+      }
+    },
+    "headlines": {
+      "heading": "Titoli",
+      "empty": "Nessun evento notevole ancora"
+    }
+  },
+  "toast": {
+    "dismiss": "Chiudi",
+    "desktopTitle": "Esegui The Human Box in locale",
+    "desktopSub": "Il tuo mondo privato, senza latenza condivisa. Gratis.",
+    "copy": "copia",
+    "copied": "copiato",
+    "download": "Scarica",
+    "notNow": "Non ora",
+    "updateReady": "Aggiornamento pronto da installare",
+    "updateAvailable": "Aggiornamento disponibile",
+    "updateReadySub": "v{version} scaricata — riavvia per applicare",
+    "updateDownloading": "v{version} in download…",
+    "updateFailed": "aggiornamento non riuscito: {message}",
+    "updateNotReady": "l'aggiornamento non è ancora pronto",
+    "restartFailed": "impossibile riavviare il programma di aggiornamento",
+    "restartTitle": "Riavvia The Human Box e installa l'aggiornamento scaricato",
+    "restarting": "riavvio…",
+    "restart": "riavvia",
+    "newVersion": "Nuova versione disponibile",
+    "newVersionSub": "aggiorna per caricare il mondo più recente",
+    "refreshing": "aggiornamento…",
+    "refresh": "Aggiorna",
+    "checkpointFailed": "impossibile salvare il mondo attuale; l'aggiornamento è stato annullato in sicurezza",
+    "starTitle": "Ti piace il tuo mondo?",
+    "starSub": "The Human Box è gratuito e open source. Una stella su GitHub aiuta altre persone a trovarlo.",
+    "starCta": "Metti una stella su GitHub",
+    "starLater": "Forse più tardi"
+  },
+  "life": {
+    "title": "La vita di {name}",
+    "heading": "LA VITA DI {name}",
+    "close": "Chiudi",
+    "day": "giorno {day}",
+    "failed": "caricamento non riuscito",
+    "gen": "gen {gen}",
+    "age": {
+      "one": "{count} giorno di vita",
+      "other": "{count} giorni di vita"
+    },
+    "elder": "anziano",
+    "partnered": "in coppia",
+    "children": {
+      "one": "{count} figlio",
+      "other": "{count} figli"
+    },
+    "feeling": "stato d'animo",
+    "friends": "amici",
+    "discoveries": "scoperte",
+    "memories": "ciò che hanno in mente ({count})",
+    "events": "eventi di vita ({count})",
+    "stuck": "⚠ questo organismo è bloccato: la stessa azione {count} volte di seguito",
+    "noEvents": "nessun evento registrato ancora"
+  },
+  "conversations": {
+    "kinds": {
+      "courtship": "Primo incontro",
+      "bonded": "Partner che parlano",
+      "farewell": "Congedo",
+      "chat": "Chiacchiere",
+      "gossip": "Pettegolezzo",
+      "excited": "Condivisione dell'entusiasmo",
+      "argue": "Discussione"
+    },
+    "relPartner": "♥ partner",
+    "relFriend": "amico",
+    "relTrusts": "si fida",
+    "relWary": "diffidente",
+    "day": "giorno {day}",
+    "title": "Conversazioni di {name}",
+    "heading": "CONVERSAZIONI",
+    "close": "Chiudi",
+    "filterAll": "tutte",
+    "loading": "caricamento delle conversazioni di {name}…",
+    "drawn": "{name} è attratto da qualcuno - una prima conversazione sta arrivando",
+    "noneYet": "{name} non ha ancora parlato con nessuno",
+    "noneOfKind": "nessuna conversazione di tipo {kind}"
+  },
+  "notable": {
+    "title": "Notevoli",
+    "heading": "ORGANISMI NOTEVOLI",
+    "alive": "{count} vivi · scegli un filtro qui sotto",
+    "close": "Chiudi",
+    "empty": "per ora nessuno corrisponde a questo filtro",
+    "gen": "gen {gen}",
+    "oldest": "Il più anziano tra noi",
+    "days": "{count} giorni",
+    "children": "Più figli",
+    "childrenCount": "{count} figli",
+    "friends": "Più connesso",
+    "friendsCount": "{count} amici",
+    "wealth": "Più ricco",
+    "coin": "{count} monete",
+    "discoveries": "Più istruito (scoperte)",
+    "discoveriesCount": "{count} scoperte",
+    "literate": "Più alfabetizzato",
+    "literacy": "{percent}% alfabetizzato",
+    "devout": "Più devoto",
+    "piety": "{percent}% devozione",
+    "joy": "Più gioioso in questo momento",
+    "joyTicks": "{count} tick di gioia",
+    "grief": "Porta il dolore più profondo",
+    "griefTicks": "{count} tick di dolore",
+    "aspiration": "Ha uno scopo di vita"
+  },
+  "orgSearch": {
+    "title": "Organismi",
+    "heading": "ORGANISMI",
+    "summary": "{shown} mostrati · {alive} vivi · {dead} morti",
+    "close": "Chiudi",
+    "placeholder": "cerca per nome, pensiero, ID della stirpe…",
+    "statusAll": "tutti",
+    "statusAlive": "vivi",
+    "statusDead": "morti",
+    "fire": "fuoco",
+    "shelter": "riparo",
+    "allTribes": "tutte le tribù",
+    "empty": "nessun organismo corrisponde",
+    "genAge": "g{gen} · {days}gg",
+    "track": "segui nel mondo",
+    "back": "← tutti gli organismi",
+    "placeholderDetail": "← seleziona un organismo per vederne i dettagli"
+  },
+  "stats": {
+    "title": "Statistiche",
+    "heading": "STATISTICHE",
+    "yearDay": "anno {year} · giorno {day}",
+    "day": "giorno {day}",
+    "aliveCount": "{count} vivi",
+    "reload": "Ricarica dal mondo attuale",
+    "close": "Chiudi",
+    "alive": "vivi",
+    "totalDeaths": "decessi totali",
+    "totalBirths": "nascite totali",
+    "daysElapsed": "giorni trascorsi",
+    "knowFire": "conoscono il fuoco",
+    "haveShelter": "hanno un riparo",
+    "animals": "animali",
+    "populationOverTime": "POPOLAZIONE NEL TEMPO",
+    "birthsDeathsByYear": "NASCITE E DECESSI PER ANNO",
+    "wealthGapByYear": "DIVARIO DI RICCHEZZA PER ANNO",
+    "agePyramid": "PIRAMIDE D'ETÀ",
+    "populationTraits": "CARATTERI DELLA POPOLAZIONE",
+    "tribalRelations": "RAPPORTI TRA TRIBÙ",
+    "discoveryRollup": "RIEPILOGO DELLE SCOPERTE",
+    "legends": "LEGGENDE",
+    "generationsAlive": "GENERAZIONI IN VITA",
+    "oldestLiving": "I PIÙ ANZIANI IN VITA",
+    "longevity": "LONGEVITÀ",
+    "noOldAgeDeaths": "nessuno è ancora morto di vecchiaia",
+    "causesOfDeath": "CAUSE DI MORTE",
+    "causes": {
+      "starvation": "fame",
+      "dehydration": "disidratazione",
+      "sickness": "malattia",
+      "combat": "combattimento",
+      "oldAge": "vecchiaia",
+      "droughts": "siccità",
+      "outbreaks": "epidemie"
+    },
+    "bondsFamily": "LEGAMI E FAMIGLIA",
+    "notableOrganisms": "ORGANISMI NOTEVOLI",
+    "discoveryLog": "REGISTRO DELLE SCOPERTE",
+    "worldEras": "ERE DEL MONDO",
+    "dayShort": "g{day}",
+    "accumulating": "raccolta dei dati…",
+    "firstYear": "il primo anno è ancora in corso…",
+    "birthsDeathsAria": "Nascite e decessi per anno",
+    "yearBorn": "anno {year}: {count} nati",
+    "yearDied": "anno {year}: {count} morti",
+    "wealthGapAria": "Divario medio di ricchezza per anno",
+    "stark": "netto",
+    "yearWealth": "anno {year}: {word} ({value})",
+    "noLegends": "ancora nessuna leggenda",
+    "noContacts": "ancora nessun contatto tra tribù",
+    "versus": "{a} contro {b}",
+    "noDiscoveries": "ancora nessuna scoperta",
+    "traits": {
+      "curiosity": "curiosità",
+      "fear": "paura",
+      "socialTendency": "tendenza sociale",
+      "resilience": "resilienza",
+      "aggression": "aggressività",
+      "memoryStrength": "forza della memoria"
+    },
+    "nobodyAlive": "non c'è nessuno in vita",
+    "gen": "gen {gen}",
+    "ageDays": {
+      "one": "{count} giorno di vita",
+      "other": "{count} giorni di vita"
+    },
+    "notable": {
+      "oldest": "più anziano",
+      "parents": "genitori",
+      "deepestGen": "generazione più profonda",
+      "days": "· {days}gg",
+      "kids": "· {count} figli",
+      "gen": "· g{gen}"
+    }
+  },
+  "tree": {
+    "title": "Albero genealogico",
+    "heading": "ALBERO GENEALOGICO",
+    "summary": "{alive} vivi · {ancestors} antenati · {generations} generazioni",
+    "reload": "Ricarica dal mondo attuale",
+    "close": "Chiudi",
+    "generation": "generazione {gen}",
+    "ageGen": "{days}gg · g{gen}",
+    "gen": "gen {gen}",
+    "days": "{days}gg",
+    "bonded": "legato",
+    "father": "padre: {name}",
+    "children": "{count} figli",
+    "hint": "scorri per ingrandire · trascina per spostarti · passa sopra un nodo per le info ·",
+    "bondedPair": "coppia legata",
+    "fitAllTitle": "Adatta tutte le generazioni",
+    "fitAliveTitle": "Adatta solo gli organismi in vita",
+    "fitAll": "adatta tutti",
+    "fitAlive": "adatta i vivi",
+    "legendFire": "fuoco",
+    "legendShelter": "riparo",
+    "legendDeceased": "deceduto",
+    "legendBonded": "legato",
+    "legendMother": "madre",
+    "legendFather": "padre",
+    "legendInfidelity": "infedeltà"
+  },
+  "language": {
+    "title": "Lingue del mondo",
+    "heading": "LINGUE DEL MONDO",
+    "reload": "Ricarica dal mondo attuale",
+    "close": "Chiudi",
+    "intro": "Ogni stirpe sviluppa le proprie parole. Le parole mutano di generazione in generazione e si diffondono attraverso il contatto.",
+    "sexWords": "le loro parole per i due tipi:",
+    "sexNote": "(coniate dalla generazione fondatrice)",
+    "placeholder": "cerca tra {count} concetti o parole coniate…",
+    "matches": {
+      "one": "{count} corrispondenza",
+      "other": "{count} corrispondenze"
+    },
+    "concept": "concetto",
+    "noMatch": "nessun concetto corrisponde a «{query}»",
+    "sections": {
+      "coreSurvival": "sopravvivenza di base",
+      "skyWeather": "cielo e meteo",
+      "landWater": "terra e acqua",
+      "bodyVital": "corpo e stati vitali",
+      "emotions": "emozioni",
+      "kinRoles": "parenti e ruoli",
+      "socialActs": "atti sociali",
+      "motionAction": "movimento e azione",
+      "qualitiesRelations": "qualità e relazioni",
+      "toolsResources": "strumenti e risorse",
+      "bodySenses": "corpo e sensi",
+      "familyLife": "famiglia ed eventi di vita",
+      "animals": "animali",
+      "terrain": "terreno",
+      "weatherSky": "eventi meteo e celesti",
+      "materials": "materiali",
+      "abstract": "astratto",
+      "moreActs": "altri atti",
+      "quantity": "quantità",
+      "colours": "colori",
+      "plants": "piante",
+      "finerTime": "tempo più dettagliato",
+      "directions": "direzioni",
+      "sounds": "suoni",
+      "finerFeelings": "emozioni più sottili",
+      "socialStructures": "strutture sociali",
+      "bodyActions": "azioni del corpo",
+      "languageMeaning": "linguaggio e significato",
+      "physicalQualities": "qualità fisiche"
+    }
+  }
+}

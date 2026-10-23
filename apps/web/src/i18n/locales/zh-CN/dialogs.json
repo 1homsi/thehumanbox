@@ -1,1 +1,548 @@
-{}
+{
+  "confirm": {
+    "cancel": "取消",
+    "confirm": "确认",
+    "ok": "确定"
+  },
+  "welcome": {
+    "quickTour": "快速导览",
+    "back": "返回",
+    "skip": "跳过",
+    "start": "开始",
+    "next": "下一步",
+    "localTitle": "你是他们的神",
+    "localBody": "小部落会自己生活、相爱、建造，也会自行开战。遇到麻烦时，他们会向你祈祷：点击祈祷气泡，能帮上忙的力量就在你手中。一切都在这台设备上运行并保存。"
+  },
+  "worlds": {
+    "introArchives": "你的世界存档保存在这台电脑上。",
+    "introPrivate": "你的私人世界运行在这个浏览器中，从不连接托管的模拟服务器。"
+  },
+  "about": {
+    "title": "关于",
+    "heading": "关于",
+    "close": "关闭",
+    "unknown": "未知",
+    "blurb": "The Human Box 是一个活的模拟世界，由觅食、结成关系、创造语言并传给后代的小型智能体组成。在 GitHub 上开源。",
+    "frontend": "前端",
+    "commit": "commit",
+    "built": "构建",
+    "simulation": "模拟",
+    "runtime": "运行环境",
+    "runtimeLocal": "本地浏览器 · 离线",
+    "versionError": "无法访问模拟服务的 /version：{error}",
+    "loading": "加载中…",
+    "name": "名称",
+    "builtWith": "技术栈",
+    "engineDetail": "以 React 为核心的 2D 浏览器游戏引擎。世界画布、摄像机、输入处理和 WebGL 渲染管线都运行在其上。",
+    "links": "链接"
+  },
+  "achievements": {
+    "title": "成就",
+    "heading": "成就",
+    "earned": "已获得 {earned}/{total}"
+  },
+  "lineages": {
+    "title": "全部血脉",
+    "heading": "全部血脉（{count}）",
+    "close": "关闭",
+    "onBrink": "濒临消亡：{remaining}，{reason}",
+    "generation": "{gen}代",
+    "generationRange": "–{gen}"
+  },
+  "chronicles": {
+    "title": "编年史",
+    "heading": "编年史",
+    "tabHistory": "世界历史",
+    "tabLives": "生平",
+    "close": "关闭",
+    "historyIntro": "这个世界的重大转折 — 纪元、战争、王朝与奇迹。",
+    "noHistory": "暂无值得记录的事件。故事才刚刚开始。",
+    "day": "第 {day} 天",
+    "livesIntro": "由世界居民讲述的故事，按其生活的时间排列。",
+    "noLives": "暂无故事。生物完成一整个昼夜循环后，故事便会出现。"
+  },
+  "goals": {
+    "title": "目标",
+    "heading": "目标",
+    "lost": "已无人存活。",
+    "difficulty": "难度：{notes}",
+    "difficultyGroup": "难度",
+    "levels": {
+      "calm": "平稳",
+      "normal": "普通",
+      "harsh": "严酷"
+    }
+  },
+  "scenarios": {
+    "title": "情景",
+    "heading": "情景",
+    "intro": "每个情景都会为你正在观看的世界添加内容，但不会开启新世界。",
+    "start": "开始"
+  },
+  "civ": {
+    "title": "文明",
+    "close": "关闭",
+    "common": {
+      "people": "{count} 人",
+      "more": "另有 {count} 个",
+      "tick": "tick {tick}"
+    },
+    "calendar": {
+      "year": "年",
+      "day": "第 {day} / 84 天",
+      "lit": "{percent}% 照亮",
+      "season": "季节",
+      "worldTech": "世界科技"
+    },
+    "lineages": {
+      "heading": "血脉",
+      "name": "名称",
+      "era": "血脉时代",
+      "pop": "人口",
+      "next": "下一步",
+      "gov": "政体",
+      "currency": "货币",
+      "actions": "操作",
+      "worldPopulation": "世界人口 {current}/{required}",
+      "missing": "缺少 {items}",
+      "tavern": "酒馆"
+    },
+    "campaigns": {
+      "kicker": "玩家指引",
+      "heading": "血脉行动",
+      "help": "血脉仍会自行选择行动；符合目标的成功行动会推进该目标。",
+      "completed": "已完成",
+      "awaiting": "等待指引",
+      "focusOn": "专注于{strategy}",
+      "aligned": "{progress}/{target} 次符合的行动",
+      "rewardEarned": "已获得奖励",
+      "ticksLeft": "剩余 {ticks} tick",
+      "progressAria": "{lineage}的{strategy}行动",
+      "reward": "奖励：{reward}",
+      "defaultReward": "血脉士气",
+      "choose": "选择一个柔性目标，为该血脉设定可见的目标和完成奖励。",
+      "guideAria": "指引{lineage}",
+      "change": "更换行动…",
+      "start": "开始行动…"
+    },
+    "guidance": {
+      "hunt": {
+        "label": "保障食物",
+        "description": "让猎人专注于追踪、设陷阱并把食物带回家",
+        "reward": "为每位在世成员提供食物储备"
+      },
+      "explore": {
+        "label": "探索",
+        "description": "深入未知地带，并根据新发现采取行动",
+        "reward": "探路地图和好奇心激增"
+      },
+      "settle": {
+        "label": "定居与建造",
+        "description": "收集材料、安全休整并扩大聚居地",
+        "reward": "共享的木材和石料储备"
+      },
+      "trade": {
+        "label": "贸易",
+        "description": "寻求交换、市场和外部贸易伙伴",
+        "reward": "血脉的共同财富"
+      },
+      "defend": {
+        "label": "防御",
+        "description": "发出警报、加固领地并保护弱小的族人",
+        "reward": "恢复健康、勇气和士气"
+      },
+      "guiding": "指引中…",
+      "started": "已开始{strategy}行动",
+      "rejected": "指引被拒绝",
+      "unavailable": "指引不可用"
+    },
+    "redirect": {
+      "title": "更改行动？",
+      "body": "将{lineage}的行动从{from}改为{to}。\n\n当前行动的进度将被存档。",
+      "confirm": "改为"
+    },
+    "history": {
+      "title": "近期行动",
+      "showRecent": "显示近期",
+      "showAll": "显示全部 {count} 项",
+      "lineageEnded": "血脉已结束",
+      "outcome": {
+        "completed": "已完成",
+        "expired": "已过期",
+        "redirected": "已改向",
+        "failed": "已失败"
+      },
+      "tick": "t{tick}"
+    },
+    "governments": {
+      "heading": "政体与领袖",
+      "empty": "暂无政体",
+      "leader": "领袖：{name}",
+      "treasury": "国库：{amount}"
+    },
+    "religions": {
+      "heading": "宗教",
+      "empty": "尚无宗教建立",
+      "adherents": "{count} 名信徒",
+      "foundedBy": "创立者：{lineage}",
+      "enterTemple": "进入神庙 →",
+      "templeUnavailable": "神庙不可用"
+    },
+    "conflicts": {
+      "heading": "冲突",
+      "empty": "暂无战斗",
+      "versus": "{attackers} 对 {defenders}",
+      "won": "{side}获胜",
+      "stalemate": "僵持",
+      "ended": "已结束",
+      "ongoing": "进行中"
+    },
+    "diplomacy": {
+      "heading": "外交",
+      "empty": "暂无条约",
+      "pair": "{a} 与 {b}",
+      "treaty": "条约"
+    },
+    "buildings": {
+      "heading": "建筑",
+      "empty": "尚未建造任何建筑"
+    },
+    "settlements": {
+      "heading": "聚居地",
+      "empty": "暂无稳定的聚居地",
+      "completedBuildings": "{count} 座已完成的建筑",
+      "capacity": "容量 {count}"
+    },
+    "agriculture": {
+      "heading": "农业",
+      "empty": "尚未开垦任何田地",
+      "growing": "生长中：{count}",
+      "harvestReady": "可收获：{count}",
+      "fallow": "休耕：{count}",
+      "projectedFood": "预计食物：{count}",
+      "fields": {
+        "one": "{crop}：{count} 块田",
+        "other": "{crop}：{count} 块田"
+      }
+    },
+    "goods": {
+      "heading": "流通中的商品",
+      "empty": "尚未持有任何手工制品",
+      "byLineage": "按血脉：",
+      "held": "持有 {count} 件"
+    },
+    "books": {
+      "heading": "近期书籍",
+      "empty": "尚无书籍问世",
+      "on": "{author}论{topic}",
+      "copies": "{count} 册"
+    },
+    "artworks": {
+      "heading": "艺术品",
+      "empty": "尚未创作任何作品",
+      "by": "作者：{name}"
+    },
+    "trade": {
+      "heading": "贸易网络",
+      "empty": "暂无路线 — 铁器时代的商人需要两个已建立的聚居地、货币、航海能力以及一个贸易场所。",
+      "routes": {
+        "one": "{count} 条路线",
+        "other": "{count} 条路线"
+      },
+      "caravans": {
+        "one": "{count} 支商队在途",
+        "other": "{count} 支商队在途"
+      },
+      "totals": "{deliveries} 次交付 · 运送 {volume} 件商品",
+      "routeStats": "{distance} 格 · 已送达 {delivered} · 运量 {volume}",
+      "enRoute": "在途 {count}",
+      "readyToUnload": "可卸货",
+      "ticksAway": "还有 {ticks} tick"
+    },
+    "tradeLog": {
+      "heading": "近期交易",
+      "empty": "暂无交易（需要以物易物或货币）",
+      "coins": {
+        "one": "{count} 枚硬币",
+        "other": "{count} 枚硬币"
+      }
+    },
+    "headlines": {
+      "heading": "头条",
+      "empty": "暂无值得记录的事件"
+    }
+  },
+  "toast": {
+    "dismiss": "关闭",
+    "desktopTitle": "在本地运行 The Human Box",
+    "desktopSub": "属于你自己的私人世界，没有共享延迟。免费。",
+    "copy": "复制",
+    "copied": "已复制",
+    "download": "下载",
+    "notNow": "暂不",
+    "updateReady": "更新已准备好安装",
+    "updateAvailable": "有可用更新",
+    "updateReadySub": "v{version} 已下载 — 重启即可应用",
+    "updateDownloading": "正在下载 v{version}…",
+    "updateFailed": "更新失败：{message}",
+    "updateNotReady": "更新尚未准备好",
+    "restartFailed": "无法重启更新程序",
+    "restartTitle": "重启 The Human Box 并安装已下载的更新",
+    "restarting": "正在重启…",
+    "restart": "重启",
+    "newVersion": "有新版本",
+    "newVersionSub": "刷新以加载最新世界",
+    "refreshing": "正在刷新…",
+    "refresh": "刷新",
+    "checkpointFailed": "无法保存当前世界，已安全取消更新刷新",
+    "starTitle": "喜欢你的世界吗？",
+    "starSub": "The Human Box 免费且开源。在 GitHub 上点星可以帮助更多人找到它。",
+    "starCta": "在 GitHub 上点星",
+    "starLater": "以后再说"
+  },
+  "life": {
+    "title": "{name}的生平",
+    "heading": "{name}的生平",
+    "close": "关闭",
+    "day": "第 {day} 天",
+    "failed": "加载失败",
+    "gen": "第 {gen} 代",
+    "age": {
+      "one": "{count} 天龄",
+      "other": "{count} 天龄"
+    },
+    "elder": "长者",
+    "partnered": "已结伴",
+    "children": {
+      "one": "{count} 个孩子",
+      "other": "{count} 个孩子"
+    },
+    "feeling": "心情",
+    "friends": "朋友",
+    "discoveries": "发现",
+    "memories": "心中留存的事（{count}）",
+    "events": "生活事件（{count}）",
+    "stuck": "⚠ 该生物卡住了：连续 {count} 次做同一件事",
+    "noEvents": "尚无记录的事件"
+  },
+  "conversations": {
+    "kinds": {
+      "courtship": "初次相遇",
+      "bonded": "伴侣交谈",
+      "farewell": "告别",
+      "chat": "闲聊",
+      "gossip": "闲话",
+      "excited": "分享兴奋",
+      "argue": "争执"
+    },
+    "relPartner": "♥ 伴侣",
+    "relFriend": "朋友",
+    "relTrusts": "信任",
+    "relWary": "戒备",
+    "day": "第 {day} 天",
+    "title": "{name}的对话",
+    "heading": "对话",
+    "close": "关闭",
+    "filterAll": "全部",
+    "loading": "正在加载{name}的对话…",
+    "drawn": "{name}被某人吸引，第一次对话即将到来",
+    "noneYet": "{name}还没有和任何人交谈",
+    "noneOfKind": "没有{kind}对话"
+  },
+  "notable": {
+    "title": "值得关注",
+    "heading": "值得关注的生物",
+    "alive": "{count} 人在世 · 从下方选择一个视角",
+    "close": "关闭",
+    "empty": "暂时没有人符合此视角",
+    "gen": "第 {gen} 代",
+    "oldest": "我们中最年长的",
+    "days": "{count} 天",
+    "children": "孩子最多",
+    "childrenCount": "{count} 个孩子",
+    "friends": "人脉最广",
+    "friendsCount": "{count} 位朋友",
+    "wealth": "最富有",
+    "coin": "{count} 枚硬币",
+    "discoveries": "学识最渊博（发现）",
+    "discoveriesCount": "{count} 项发现",
+    "literate": "最有文化",
+    "literacy": "{percent}% 识字",
+    "devout": "最虔诚",
+    "piety": "{percent}% 虔诚",
+    "joy": "当下最快乐",
+    "joyTicks": "{count} 个喜悦 tick",
+    "grief": "心中悲痛最深",
+    "griefTicks": "{count} 个悲伤 tick",
+    "aspiration": "有人生志向"
+  },
+  "orgSearch": {
+    "title": "生物",
+    "heading": "生物",
+    "summary": "显示 {shown} · 在世 {alive} · 已故 {dead}",
+    "close": "关闭",
+    "placeholder": "按名称、想法或血脉编号搜索…",
+    "statusAll": "全部",
+    "statusAlive": "在世",
+    "statusDead": "已故",
+    "fire": "火",
+    "shelter": "庇护所",
+    "allTribes": "所有部落",
+    "empty": "没有符合的生物",
+    "genAge": "{gen}代 · {days}天",
+    "track": "在世界中追踪",
+    "back": "← 所有生物",
+    "placeholderDetail": "← 选择一个生物以查看详情"
+  },
+  "stats": {
+    "title": "统计",
+    "heading": "统计",
+    "yearDay": "第 {year} 年 · 第 {day} 天",
+    "day": "第 {day} 天",
+    "aliveCount": "{count} 人在世",
+    "reload": "从当前世界重新加载",
+    "close": "关闭",
+    "alive": "在世",
+    "totalDeaths": "死亡总数",
+    "totalBirths": "出生总数",
+    "daysElapsed": "已过天数",
+    "knowFire": "懂得用火",
+    "haveShelter": "有庇护所",
+    "animals": "动物",
+    "populationOverTime": "人口变化",
+    "birthsDeathsByYear": "历年出生与死亡",
+    "wealthGapByYear": "历年财富差距",
+    "agePyramid": "年龄金字塔",
+    "populationTraits": "人口特征",
+    "tribalRelations": "部落关系",
+    "discoveryRollup": "发现汇总",
+    "legends": "传说",
+    "generationsAlive": "在世的代数",
+    "oldestLiving": "在世最年长者",
+    "longevity": "寿命",
+    "noOldAgeDeaths": "尚无人死于老年",
+    "causesOfDeath": "死亡原因",
+    "causes": {
+      "starvation": "饥饿",
+      "dehydration": "脱水",
+      "sickness": "疾病",
+      "combat": "战斗",
+      "oldAge": "老年",
+      "droughts": "干旱",
+      "outbreaks": "疫情"
+    },
+    "bondsFamily": "关系与家庭",
+    "notableOrganisms": "值得关注的生物",
+    "discoveryLog": "发现日志",
+    "worldEras": "世界纪元",
+    "dayShort": "第{day}天",
+    "accumulating": "数据积累中…",
+    "firstYear": "第一年仍在进行中…",
+    "birthsDeathsAria": "历年出生与死亡",
+    "yearBorn": "第 {year} 年：{count} 人出生",
+    "yearDied": "第 {year} 年：{count} 人死亡",
+    "wealthGapAria": "历年平均财富差距",
+    "stark": "悬殊",
+    "yearWealth": "第 {year} 年：{word}（{value}）",
+    "noLegends": "暂无传说",
+    "noContacts": "暂无部落间接触",
+    "versus": "{a} 对 {b}",
+    "noDiscoveries": "暂无发现",
+    "traits": {
+      "curiosity": "好奇心",
+      "fear": "恐惧",
+      "socialTendency": "社交倾向",
+      "resilience": "韧性",
+      "aggression": "攻击性",
+      "memoryStrength": "记忆力"
+    },
+    "nobodyAlive": "无人在世",
+    "gen": "第 {gen} 代",
+    "ageDays": {
+      "one": "{count} 天龄",
+      "other": "{count} 天龄"
+    },
+    "notable": {
+      "oldest": "最年长",
+      "parents": "父母",
+      "deepestGen": "最深代数",
+      "days": "· {days}天",
+      "kids": "· {count} 个孩子",
+      "gen": "· {gen}代"
+    }
+  },
+  "tree": {
+    "title": "家谱",
+    "heading": "家谱",
+    "summary": "{alive} 人在世 · {ancestors} 位祖先 · {generations} 代",
+    "reload": "从当前世界重新加载",
+    "close": "关闭",
+    "generation": "第 {gen} 代",
+    "ageGen": "{days}天 · {gen}代",
+    "gen": "{gen}代",
+    "days": "{days}天",
+    "bonded": "结伴",
+    "father": "父亲：{name}",
+    "children": "{count} 个孩子",
+    "hint": "滚轮缩放 · 拖动平移 · 悬停节点查看信息 ·",
+    "bondedPair": "结伴的一对",
+    "fitAllTitle": "适配所有代",
+    "fitAliveTitle": "仅适配在世的生物",
+    "fitAll": "适配全部",
+    "fitAlive": "适配在世者",
+    "legendFire": "火",
+    "legendShelter": "庇护所",
+    "legendDeceased": "已故",
+    "legendBonded": "结伴",
+    "legendMother": "母亲",
+    "legendFather": "父亲",
+    "legendInfidelity": "不忠"
+  },
+  "language": {
+    "title": "世界的语言",
+    "heading": "世界的语言",
+    "reload": "从当前世界重新加载",
+    "close": "关闭",
+    "intro": "每个血脉都会发展出自己的词汇。词语会随代际变化，并通过接触传播。",
+    "sexWords": "两种性别各自的称谓：",
+    "sexNote": "（由开创者一代创造）",
+    "placeholder": "在 {count} 个概念或新造词中搜索…",
+    "matches": {
+      "one": "{count} 项匹配",
+      "other": "{count} 项匹配"
+    },
+    "concept": "概念",
+    "noMatch": "没有与 \"{query}\" 匹配的概念",
+    "sections": {
+      "coreSurvival": "基本生存",
+      "skyWeather": "天空与天气",
+      "landWater": "陆地与水",
+      "bodyVital": "身体与生命状态",
+      "emotions": "情绪",
+      "kinRoles": "亲属与角色",
+      "socialActs": "社交行为",
+      "motionAction": "动作与行为",
+      "qualitiesRelations": "特质与关系",
+      "toolsResources": "工具与资源",
+      "bodySenses": "身体与感官",
+      "familyLife": "家庭与生活事件",
+      "animals": "动物",
+      "terrain": "地形",
+      "weatherSky": "天气与天空事件",
+      "materials": "材料",
+      "abstract": "抽象",
+      "moreActs": "更多行为",
+      "quantity": "数量",
+      "colours": "颜色",
+      "plants": "植物",
+      "finerTime": "更细的时间",
+      "directions": "方向",
+      "sounds": "声音",
+      "finerFeelings": "更细的情绪",
+      "socialStructures": "社会结构",
+      "bodyActions": "身体动作",
+      "languageMeaning": "语言与含义",
+      "physicalQualities": "身体特质"
+    }
+  }
+}

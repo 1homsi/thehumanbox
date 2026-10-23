@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getDesktop } from '../../shared/desktop'
 import type { UpdateInfo } from '../../shared/desktop'
+import { t } from '../../i18n'
 
 type State =
   { kind: 'idle' } | { kind: 'available'; info: UpdateInfo } | { kind: 'downloaded'; info: UpdateInfo }
@@ -27,7 +28,7 @@ export function DesktopUpdateToast() {
     // Surface updater failures instead of leaving the app silently stuck.
     const offError = desktop.on('updater:error', (payload) => {
       if (!payload?.message) return
-      setError(`update failed: ${payload.message}`)
+      setError(t('dialogs.toast.updateFailed', { message: payload.message }))
       setInstalling(false)
       setDismissed(false)
     })
@@ -43,10 +44,10 @@ export function DesktopUpdateToast() {
   if (dismissed) return null
 
   const isReady = state.kind === 'downloaded'
-  const title = isReady ? 'Update ready to install' : 'Update available'
+  const title = isReady ? t('dialogs.toast.updateReady') : t('dialogs.toast.updateAvailable')
   const subtitle = isReady
-    ? `v${state.info.version} downloaded — restart to apply`
-    : `v${state.info.version} downloading…`
+    ? t('dialogs.toast.updateReadySub', { version: state.info.version })
+    : t('dialogs.toast.updateDownloading', { version: state.info.version })
 
   return (
     <div style={wrap}>
@@ -68,20 +69,20 @@ export function DesktopUpdateToast() {
                 .then((result) => {
                   if (result.status !== 'downloaded') {
                     setInstalling(false)
-                    setError(result.message ?? 'update is not ready yet')
+                    setError(result.message ?? t('dialogs.toast.updateNotReady'))
                   }
                 })
                 .catch((err: unknown) => {
                   setInstalling(false)
-                  setError(err instanceof Error ? err.message : 'could not restart updater')
+                  setError(err instanceof Error ? err.message : t('dialogs.toast.restartFailed'))
                 })
             }}
-            title="Restart The Human Box and install the downloaded update"
+            title={t('dialogs.toast.restartTitle')}
           >
-            {installing ? 'restarting…' : 'restart'}
+            {installing ? t('dialogs.toast.restarting') : t('dialogs.toast.restart')}
           </button>
         )}
-        <button style={dismissBtn} onClick={() => setDismissed(true)} aria-label="Dismiss">
+        <button style={dismissBtn} onClick={() => setDismissed(true)} aria-label={t('dialogs.toast.dismiss')}>
           ✕
         </button>
       </div>

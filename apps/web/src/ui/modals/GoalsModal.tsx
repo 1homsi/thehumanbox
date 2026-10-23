@@ -7,7 +7,14 @@ import {
 } from '../../game/model/goals'
 import type { Difficulty, WorldState } from '../../shared/types'
 import { sendSandboxCommand } from '../../simulation/commandBus'
+import { t, type MessageKey } from '../../i18n'
 import { Modal } from './Modal'
+
+const DIFFICULTY_LABEL: Record<Difficulty, MessageKey> = {
+  calm: 'dialogs.goals.levels.calm',
+  normal: 'dialogs.goals.levels.normal',
+  harsh: 'dialogs.goals.levels.harsh',
+}
 
 interface Props {
   world: WorldState
@@ -21,15 +28,21 @@ export function GoalsModal({ world, onClose }: Props) {
   const summary = goalsSummary(goals, world.lost_tick)
 
   return (
-    <Modal open onClose={onClose} className="achievements-modal goals-modal" title="Goals" hideTitle>
+    <Modal
+      open
+      onClose={onClose}
+      className="achievements-modal goals-modal"
+      title={t('dialogs.goals.title')}
+      hideTitle
+    >
       <div className="lang-modal-header">
-        <span className="lang-modal-title">GOALS</span>
+        <span className="lang-modal-title">{t('dialogs.goals.heading')}</span>
         <span className="tree-modal-sub">{summary.headline}</span>
       </div>
 
       {summary.lost && (
         <p role="status" data-testid="goals-lost" style={{ color: '#e07060', margin: '10px 0 0' }}>
-          No one is left alive.
+          {t('dialogs.goals.lost')}
         </p>
       )}
 
@@ -65,9 +78,9 @@ export function GoalsModal({ world, onClose }: Props) {
 
       <div style={{ marginTop: 14 }}>
         <div className="tree-modal-sub" style={{ marginBottom: 6 }}>
-          Difficulty: {DIFFICULTY_NOTES[difficulty]}
+          {t('dialogs.goals.difficulty', { notes: DIFFICULTY_NOTES[difficulty] })}
         </div>
-        <div role="group" aria-label="Difficulty" style={{ display: 'flex', gap: 6 }}>
+        <div role="group" aria-label={t('dialogs.goals.difficultyGroup')} style={{ display: 'flex', gap: 6 }}>
           {DIFFICULTY_ORDER.map((level) => (
             <button
               key={level}
@@ -78,7 +91,7 @@ export function GoalsModal({ world, onClose }: Props) {
                 void sendSandboxCommand({ cmd: 'set_difficulty', level })
               }}
             >
-              {level}
+              {t(DIFFICULTY_LABEL[level])}
             </button>
           ))}
         </div>

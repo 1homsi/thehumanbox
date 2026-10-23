@@ -2,6 +2,8 @@
  * Themed stand-ins for `window.confirm` and `window.alert`, which render as
  * the browser's own dialogs. `ConfirmHost` (mounted once in App) shows them.
  */
+import { t } from '../i18n'
+
 export interface ConfirmOptions {
   title: string
   body?: string
@@ -36,7 +38,9 @@ export function askConfirm(options: ConfirmOptions): Promise<boolean> {
 
 /** Shows a message with one dismiss button. */
 export function showNotice(title: string, body?: string): Promise<void> {
-  return askConfirm({ title, body, notice: true, confirmLabel: 'ok' }).then(() => undefined)
+  return askConfirm({ title, body, notice: true, confirmLabel: t('dialogs.confirm.ok') }).then(
+    () => undefined,
+  )
 }
 
 export function settleConfirm(ok: boolean) {

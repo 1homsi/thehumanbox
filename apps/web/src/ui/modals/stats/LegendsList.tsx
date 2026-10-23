@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { legendsOf } from '../../../game/model/legends'
 import type { SimEvent } from '../../../shared/types'
+import { t } from '../../../i18n'
 
 /** The world's latest notable events, told as titled legends with their date. */
 export function LegendsList({ events }: { events: SimEvent[] }) {
@@ -8,7 +9,7 @@ export function LegendsList({ events }: { events: SimEvent[] }) {
   if (legends.length === 0) {
     return (
       <div style={{ color: '#444', fontSize: 11, textAlign: 'center', padding: '12px 0' }}>
-        no legends yet
+        {t('dialogs.stats.noLegends')}
       </div>
     )
   }

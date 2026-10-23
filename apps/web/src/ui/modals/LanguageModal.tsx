@@ -3,10 +3,11 @@ import type { OrganismState } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
 import { useFrozenSnapshot } from '../../shared/hooks/useFrozenSnapshot'
 import { Modal } from './Modal'
+import { formatNumber, t, type MessageKey } from '../../i18n'
 
-const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
+const CONCEPT_SECTIONS: { label: MessageKey; concepts: string[] }[] = [
   {
-    label: 'core survival',
+    label: 'dialogs.language.sections.coreSurvival',
     concepts: [
       'food',
       'water',
@@ -25,11 +26,11 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'sky & weather',
+    label: 'dialogs.language.sections.skyWeather',
     concepts: ['sun', 'moon', 'star', 'sky', 'rain', 'storm', 'wind', 'snow', 'ice', 'cloud'],
   },
   {
-    label: 'land & water',
+    label: 'dialogs.language.sections.landWater',
     concepts: [
       'river',
       'lake',
@@ -47,7 +48,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'body & vital states',
+    label: 'dialogs.language.sections.bodyVital',
     concepts: [
       'hunger',
       'thirst',
@@ -69,7 +70,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'emotions',
+    label: 'dialogs.language.sections.emotions',
     concepts: [
       'fear',
       'joy',
@@ -89,11 +90,11 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'kin & roles',
+    label: 'dialogs.language.sections.kinRoles',
     concepts: ['kin', 'child', 'mother', 'father', 'elder', 'mate', 'stranger', 'leader', 'tribe', 'ally'],
   },
   {
-    label: 'social acts',
+    label: 'dialogs.language.sections.socialActs',
     concepts: [
       'gift',
       'share',
@@ -114,7 +115,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'motion & action',
+    label: 'dialogs.language.sections.motionAction',
     concepts: [
       'go',
       'come',
@@ -140,7 +141,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'qualities & relations',
+    label: 'dialogs.language.sections.qualitiesRelations',
     concepts: [
       'cold',
       'warm',
@@ -159,7 +160,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'tools & resources',
+    label: 'dialogs.language.sections.toolsResources',
     concepts: [
       'meat',
       'berry',
@@ -178,11 +179,11 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'body & senses',
+    label: 'dialogs.language.sections.bodySenses',
     concepts: ['eye', 'ear', 'hand', 'foot', 'mouth', 'skin', 'heart', 'voice', 'scent', 'bone'],
   },
   {
-    label: 'family & life events',
+    label: 'dialogs.language.sections.familyLife',
     concepts: [
       'birth',
       'wedding',
@@ -197,7 +198,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'animals',
+    label: 'dialogs.language.sections.animals',
     concepts: [
       'wolf',
       'bird',
@@ -214,7 +215,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'terrain',
+    label: 'dialogs.language.sections.terrain',
     concepts: [
       'cliff',
       'ridge',
@@ -238,7 +239,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'weather & sky events',
+    label: 'dialogs.language.sections.weatherSky',
     concepts: [
       'dawn',
       'dusk',
@@ -256,7 +257,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'materials',
+    label: 'dialogs.language.sections.materials',
     concepts: [
       'clay',
       'mud',
@@ -274,7 +275,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'abstract',
+    label: 'dialogs.language.sections.abstract',
     concepts: [
       'truth',
       'lie',
@@ -311,7 +312,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'more acts',
+    label: 'dialogs.language.sections.moreActs',
     concepts: [
       'bless',
       'curse',
@@ -336,7 +337,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'quantity',
+    label: 'dialogs.language.sections.quantity',
     concepts: [
       'one',
       'two',
@@ -352,9 +353,12 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
       'full',
     ],
   },
-  { label: 'colours', concepts: ['red', 'blue', 'green', 'yellow', 'white', 'black', 'brown', 'grey'] },
   {
-    label: 'plants',
+    label: 'dialogs.language.sections.colours',
+    concepts: ['red', 'blue', 'green', 'yellow', 'white', 'black', 'brown', 'grey'],
+  },
+  {
+    label: 'dialogs.language.sections.plants',
     concepts: [
       'flower',
       'leaf',
@@ -374,7 +378,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'finer time',
+    label: 'dialogs.language.sections.finerTime',
     concepts: [
       'morning',
       'noon',
@@ -389,7 +393,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'directions',
+    label: 'dialogs.language.sections.directions',
     concepts: [
       'north',
       'south',
@@ -408,7 +412,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'sounds',
+    label: 'dialogs.language.sections.sounds',
     concepts: [
       'cry',
       'shout',
@@ -425,7 +429,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'finer feelings',
+    label: 'dialogs.language.sections.finerFeelings',
     concepts: [
       'worry',
       'relief',
@@ -444,7 +448,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'social structures',
+    label: 'dialogs.language.sections.socialStructures',
     concepts: [
       'council',
       'clan',
@@ -459,7 +463,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'body actions',
+    label: 'dialogs.language.sections.bodyActions',
     concepts: [
       'jump',
       'crawl',
@@ -480,7 +484,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'language & meaning',
+    label: 'dialogs.language.sections.languageMeaning',
     concepts: [
       'question',
       'answer',
@@ -499,7 +503,7 @@ const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
     ],
   },
   {
-    label: 'physical qualities',
+    label: 'dialogs.language.sections.physicalQualities',
     concepts: [
       'heavy',
       'hard',
@@ -597,30 +601,28 @@ export function LanguageModal({ organisms, lineageWords, sexWords, onClose, line
   const totalMatches = filteredSections.reduce((n, s) => n + s.concepts.length, 0)
 
   return (
-    <Modal open onClose={onClose} className="lang-modal" title="Languages of the world" hideTitle>
+    <Modal open onClose={onClose} className="lang-modal" title={t('dialogs.language.title')} hideTitle>
       <div className="lang-modal-header">
-        <span className="lang-modal-title">LANGUAGES OF THE WORLD</span>
+        <span className="lang-modal-title">{t('dialogs.language.heading')}</span>
         <div className="modal-header-actions">
-          <button className="reload-btn" onClick={reload} title="Reload from current world">
+          <button className="reload-btn" onClick={reload} title={t('dialogs.language.reload')}>
             ⟳
           </button>
-          <button aria-label="Close" className="close-btn" onClick={onClose}>
+          <button aria-label={t('dialogs.language.close')} className="close-btn" onClick={onClose}>
             ✕
           </button>
         </div>
       </div>
       <div className="lang-modal-body">
-        <p className="lang-modal-sub">
-          Each lineage develops its own words. Words mutate across generations and spread through contact.
-        </p>
+        <p className="lang-modal-sub">{t('dialogs.language.intro')}</p>
 
         {sexWords && (
           <div className="lang-sex-words">
-            <span className="lang-sex-label">their words for the two kinds:</span>
+            <span className="lang-sex-label">{t('dialogs.language.sexWords')}</span>
             <span className="lang-sex-word lang-sex-word-0">{sexWords[0]}</span>
             <span className="lang-sex-divider">·</span>
             <span className="lang-sex-word lang-sex-word-1">{sexWords[1]}</span>
-            <span className="lang-sex-note">(coined by the founding generation)</span>
+            <span className="lang-sex-note">{t('dialogs.language.sexNote')}</span>
           </div>
         )}
 
@@ -628,14 +630,14 @@ export function LanguageModal({ organisms, lineageWords, sexWords, onClose, line
           <input
             className="lang-search"
             type="text"
-            placeholder={`search ${ALL_CONCEPTS.length} concepts or coined words…`}
+            placeholder={t('dialogs.language.placeholder', { count: formatNumber(ALL_CONCEPTS.length) })}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoFocus
           />
           {q && (
             <span className="lang-search-count">
-              {totalMatches} match{totalMatches === 1 ? '' : 'es'}
+              {t('dialogs.language.matches', { count: totalMatches })}
               <button className="lang-search-clear" onClick={() => setQuery('')}>
                 ✕
               </button>
@@ -646,12 +648,12 @@ export function LanguageModal({ organisms, lineageWords, sexWords, onClose, line
         <div className="lang-table-wrap">
           {filteredSections.map((section) => (
             <div key={section.label} className="lang-section">
-              <div className="lang-section-header">{section.label}</div>
+              <div className="lang-section-header">{t(section.label)}</div>
               <div
                 className="lang-table"
                 style={{ gridTemplateColumns: `120px repeat(${lineages.length}, 1fr)` }}
               >
-                <div className="lang-th lang-concept-col">concept</div>
+                <div className="lang-th lang-concept-col">{t('dialogs.language.concept')}</div>
                 {lineages.map((l) => (
                   <div key={l.lineageId} className="lang-th lang-lineage-col">
                     <span className="lang-lineage-dot" style={{ background: lineageColor(l.lineageId) }} />
@@ -680,7 +682,9 @@ export function LanguageModal({ organisms, lineageWords, sexWords, onClose, line
               </div>
             </div>
           ))}
-          {filteredSections.length === 0 && <div className="lang-empty">no concepts match "{query}"</div>}
+          {filteredSections.length === 0 && (
+            <div className="lang-empty">{t('dialogs.language.noMatch', { query })}</div>
+          )}
         </div>
       </div>
     </Modal>
