@@ -460,6 +460,23 @@ describe('browser simulation scheduling', () => {
     expect(model.fullFrame).toHaveBeenCalledTimes(1)
   })
 
+  it('a world started in a hidden tab stays paused until the tab is shown', async () => {
+    send({ type: 'stop' })
+    await vi.advanceTimersByTimeAsync(0)
+    vi.resetModules()
+    model.tick = 0n
+    worker = { onmessage: null, postMessage: vi.fn(), close: vi.fn() }
+    vi.stubGlobal('self', worker)
+    await import('./wasmWorker')
+    send({ type: 'visibility', hidden: true, keepRunning: false })
+    send({ type: 'start', id: 'test', seed: '42' })
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(model.tick).toBe(0n)
+    send({ type: 'visibility', hidden: false, keepRunning: false })
+    await vi.advanceTimersByTimeAsync(500)
+    expect(model.tick).toBeGreaterThan(0n)
+  })
+
   it('keeps real time while hidden even when the browser throttles its timers', async () => {
     vi.spyOn(performance, 'now').mockImplementation(() => Date.now())
     await vi.advanceTimersByTimeAsync(240)

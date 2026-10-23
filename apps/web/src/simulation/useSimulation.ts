@@ -452,6 +452,14 @@ export function useSimulation(source: WorldSource = 'native'): {
           message: e.message || 'the local simulation worker stopped unexpectedly',
         })
       }
+      const postVisibility = () =>
+        worker.postMessage({
+          type: 'visibility',
+          hidden: document.visibilityState === 'hidden',
+          keepRunning: readRunInBackground(),
+        })
+      // A page opened in a background tab gets no visibilitychange, so say where it starts.
+      postVisibility()
       worker.postMessage({
         type: 'start',
         id: OWN_WORLD_ID,
@@ -537,12 +545,6 @@ export function useSimulation(source: WorldSource = 'native'): {
       window.addEventListener(LOCAL_WORLD_CHECKPOINT_EVENT, onCheckpointRequest)
       window.addEventListener(LOCAL_WORLD_RELOAD_EVENT, onSafeReloadRequest)
 
-      const postVisibility = () =>
-        worker.postMessage({
-          type: 'visibility',
-          hidden: document.visibilityState === 'hidden',
-          keepRunning: readRunInBackground(),
-        })
       const onVisibility = () => {
         if (document.visibilityState === 'hidden') worker.postMessage({ type: 'save' })
         postVisibility()
