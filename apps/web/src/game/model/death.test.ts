@@ -3,8 +3,9 @@ import { deathLine } from './death'
 
 describe('deathLine', () => {
   it('names the cause and age of someone who died', () => {
-    expect(deathLine({ alive: false, death_cause: 'starvation', age: 412 })).toBe(
-      'Died of starvation at age 412',
+    // Ages arrive in ticks and read in years, as on every other card.
+    expect(deathLine({ alive: false, death_cause: 'starvation', age: 30_000 })).toBe(
+      'Died of starvation at age 2.5 yrs',
     )
   })
 
