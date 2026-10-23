@@ -8,6 +8,10 @@ use std::collections::BTreeMap;
 pub(super) fn print_learning(sim: &Simulation) {
     let alive: Vec<_> = sim.organisms.iter().filter(|o| o.alive).collect();
     println!("\n=== LEARNING ===");
+    println!(
+        "Lessons learned by watching kin or friends work: {}",
+        sim.lessons_watched
+    );
     if alive.is_empty() {
         println!("  nobody alive");
         return;
@@ -46,8 +50,4 @@ pub(super) fn print_learning(sim: &Simulation) {
             masters
         );
     }
-    println!(
-        "Lessons learned by watching kin or friends work: {}",
-        sim.lessons_watched
-    );
 }
