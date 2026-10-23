@@ -613,3 +613,26 @@ fn a_practised_healer_restores_more_health_with_the_same_remedy() {
         "novice {novice}, master {master}"
     );
 }
+
+/// Care that heals nobody is not healing practice.
+#[test]
+fn care_that_heals_nobody_teaches_no_healing() {
+    let mut sim = Simulation::new(17);
+    let idx = 0;
+    sim.organisms[idx].age = sim.organisms[idx].max_age / 2;
+    let (x, y) = (sim.organisms[idx].x as i32, sim.organisms[idx].y as i32);
+    let spatial = SpatialIndex::build(&sim.organisms, 10);
+    for action in 1320..=1369 {
+        let _ = try_apply(&mut sim, idx, action, x, y, &spatial);
+        for o in sim.organisms.iter_mut() {
+            o.health = 1.0;
+        }
+    }
+    assert_eq!(
+        sim.organisms[idx]
+            .skills
+            .level(crate::organism::skills::Skill::Healing),
+        0.0,
+        "healing learned from care that healed nobody"
+    );
+}

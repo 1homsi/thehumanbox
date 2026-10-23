@@ -311,17 +311,29 @@ pub fn try_apply(
     }
     // Healers learn by tending, and a practised one does more good with each
     // remedy: whatever health it restored is raised by up to half again.
+    // Only a remedy that restored someone's health is healing practice; care
+    // that heals nobody (teaching a child to walk) teaches no healing, and a
+    // failed remedy teaches a little.
     let r = if healing {
         let level = ctx.org().skills.level(crate::organism::skills::Skill::Healing);
+        let mut healed_anyone = false;
         for &(i, before) in &before_remedy {
             let o = &mut ctx.sim.organisms[i];
             let restored = o.health - before;
             if restored > 0.0 {
+                healed_anyone = true;
                 o.health = (o.health + restored * skilled_remedy_bonus(level)).min(1.0);
             }
         }
-        ctx.practised(crate::organism::skills::Skill::Healing, r > 0.0);
-        r * (1.0 + level * 0.5)
+        if healed_anyone {
+            ctx.practised(crate::organism::skills::Skill::Healing, true);
+            r * (1.0 + level * 0.5)
+        } else {
+            if r <= 0.0 && (246..=260).contains(&action) {
+                ctx.practised(crate::organism::skills::Skill::Healing, false);
+            }
+            r
+        }
     } else {
         r
     };
