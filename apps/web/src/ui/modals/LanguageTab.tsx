@@ -22,9 +22,10 @@ export function LanguageTab() {
     setPending(code)
     reloadAppSafely({
       onFailure: () => {
-        saveLocale(previous)
+        // If the old choice cannot be put back either, say so: the next visit would open in the new one.
+        const restored = saveLocale(previous)
         setPending(null)
-        setFailed('reload')
+        setFailed(restored ? 'reload' : 'storage')
       },
       failureMessage: t('settings.language.failed'),
     })

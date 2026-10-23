@@ -101,6 +101,17 @@ describe('t', () => {
     expect(getLocale()).toBe(second)
   })
 
+  it('a start-up that finished in time does not cancel a later load', async () => {
+    const other = LOCALES.find((code) => code !== 'en')
+    if (!other) return
+    const { initI18n } = await import('./index')
+    await initI18n(5)
+    const later = loadLocale(other)
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(await later).toBe(other)
+    expect(getLocale()).toBe(other)
+  })
+
   it('switches language and back', async () => {
     const other = LOCALES.find((code) => code !== 'en')
     if (!other) return

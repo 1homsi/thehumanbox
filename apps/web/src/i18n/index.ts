@@ -152,15 +152,23 @@ export async function initI18n(timeoutMs = 4000): Promise<string> {
     applyToDocument(SOURCE_LOCALE)
     return SOURCE_LOCALE
   }
-  // When the timeout wins the game starts in English, and the late load is
+  // When the timeout wins the game starts in English, and this late load is
   // dropped so it cannot switch formats and document language under a render.
-  const timeout = new Promise<string>((resolve) =>
-    setTimeout(() => {
-      loadGeneration += 1
+  // A load started since then is left alone.
+  const load = loadLocale(wanted)
+  const generation = loadGeneration
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<string>((resolve) => {
+    timer = setTimeout(() => {
+      if (loadGeneration === generation) loadGeneration += 1
       resolve(active)
-    }, timeoutMs),
-  )
-  return Promise.race([loadLocale(wanted), timeout])
+    }, timeoutMs)
+  })
+  try {
+    return await Promise.race([load, timeout])
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 /** Remember the player's choice; the caller reloads to apply it. False when storage refused it. */
