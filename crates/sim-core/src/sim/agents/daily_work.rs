@@ -32,11 +32,16 @@ const WOOD_LOAD: u8 = 3;
 const STONE_LOAD: u8 = 4;
 /// Food someone gathers before taking it home.
 const FOOD_LOAD: u8 = 3;
+/// Children this close to a parent setting out to work go along to learn.
+const APPRENTICE_REACH: i32 = 10;
+/// At most this many children follow one parent to work.
+const MAX_APPRENTICES: usize = 2;
 /// A tribe holding less than this much grain per person is short of food.
 const LEAN_STORES_PER_HEAD: u32 = 2;
 
 /// The kinds of everyday work, with the skill each one practises.
-const WORK: [Skill; 5] = [
+const WORK: [Skill; 6] = [
+    Skill::Farming,
     Skill::Fishing,
     Skill::Woodcutting,
     Skill::Quarrying,
@@ -51,6 +56,8 @@ pub struct WorkPlan {
     /// The tile to work from (beside the water, the rock face, the trees...).
     pub spot: (i32, i32),
     pub until: u64,
+    /// For field work: the field is ripe and is being brought in, rather than tended.
+    pub harvest: bool,
 }
 
 impl WorkPlan {
@@ -61,6 +68,8 @@ impl WorkPlan {
             Skill::Woodcutting => (27, "felling trees"),
             Skill::Quarrying => (29, "quarrying stone"),
             Skill::Hunting => (121, "stalking game"),
+            Skill::Farming if self.harvest => (35, "harvesting the field"),
+            Skill::Farming => (338, "tending crops"),
             _ => (34, "picking berries"),
         }
     }
@@ -72,6 +81,7 @@ impl WorkPlan {
             Skill::Woodcutting => "going to cut wood",
             Skill::Quarrying => "going to the rock face",
             Skill::Hunting => "going hunting",
+            Skill::Farming => "going out to the fields",
             _ => "going foraging",
         }
     }
@@ -164,6 +174,18 @@ impl Simulation {
     }
 
     /// Where `skill` can be worked from near `from`, if anywhere.
+    /// The tribe's nearest field that wants work: a ripe one first (with
+    /// `true`), else a growing one to tend.
+    fn field_to_work(&self, lineage: &str, from: (i32, i32)) -> Option<((i32, i32), bool)> {
+        let tick = self.tick_count;
+        self.farms
+            .iter()
+            .filter(|f| f.owner_lineage == lineage && !f.harvested && !f.withered)
+            .map(|f| ((f.x, f.y), f.is_mature(tick)))
+            .filter(|&(p, _)| manhattan(p, from) <= WORK_REACH)
+            .min_by_key(|&(p, ripe)| (!ripe, manhattan(p, from), p))
+    }
+
     fn work_spot(&self, skill: Skill, from: (i32, i32)) -> Option<(i32, i32)> {
         match skill {
             Skill::Fishing => self.land_beside(from, Tile::Water, WORK_REACH),
@@ -194,6 +216,12 @@ impl Simulation {
             Skill::Fishing | Skill::Foraging | Skill::Hunting if food_short => 0.3,
             Skill::Quarrying if o.fetch_stone_until > self.tick_count => 0.3,
             Skill::Woodcutting if o.inv_wood == 0 => 0.1,
+            // A ripe field waits for nobody; a growing one can use the hands.
+            Skill::Farming => match self.field_to_work(&o.lineage_id, (o.x as i32, o.y as i32)) {
+                Some((_, true)) => 0.5,
+                Some((_, false)) => 0.1,
+                None => -1.0,
+            },
             _ => 0.0,
         };
         // The tribe's own craft pulls a little: it is what everyone around them does.
@@ -269,8 +297,17 @@ impl Simulation {
             if self.organisms[idx].skills.feeling(skill) <= crate::organism::skills::DREAD / 2.0 {
                 continue;
             }
-            let Some(spot) = self.work_spot(skill, here) else {
-                continue;
+            let (spot, harvest) = if skill == Skill::Farming {
+                let lineage = self.organisms[idx].lineage_id.clone();
+                match self.field_to_work(&lineage, here) {
+                    Some(field) => field,
+                    None => continue,
+                }
+            } else {
+                match self.work_spot(skill, here) {
+                    Some(spot) => (spot, false),
+                    None => continue,
+                }
             };
             if self.organisms[idx].route.borrow().recently_blocked(spot) {
                 continue;
@@ -279,13 +316,59 @@ impl Simulation {
                 skill,
                 spot,
                 until: tick + STINT,
+                harvest,
             });
+            self.take_apprentices(idx, skill, spot);
             let thought = self.organisms[idx]
                 .work
                 .map(|p| p.walking_thought())
                 .unwrap_or("");
             self.organisms[idx].think(thought, tick);
             return;
+        }
+    }
+
+    /// A parent setting out to work takes their free children along to watch
+    /// and learn (`agents::skills` teaches watchers, twice as fast from a parent).
+    fn take_apprentices(&mut self, idx: usize, skill: Skill, spot: (i32, i32)) {
+        let tick = self.tick_count;
+        let parent_id = self.organisms[idx].id.clone();
+        let parent_name = self.organisms[idx].name.clone();
+        let here = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
+        let children: Vec<usize> = self
+            .organisms
+            .iter()
+            .enumerate()
+            .filter(|(_, o)| {
+                o.alive
+                    && (o.parent_id == parent_id || o.father_id.as_deref() == Some(parent_id.as_str()))
+                    && matches!(o.age_stage(), AgeStage::Child | AgeStage::Teen)
+                    && o.work.is_none()
+                    && o.journey.is_none()
+                    && o.wander_target.is_none()
+                    && o.energy > 0.5
+                    && o.hydration > 0.5
+                    && manhattan((o.x as i32, o.y as i32), here) <= APPRENTICE_REACH
+            })
+            .map(|(i, _)| i)
+            .take(MAX_APPRENTICES)
+            .collect();
+        for (n, child) in children.into_iter().enumerate() {
+            // They stand a step or two off the work, where they can see it.
+            let beside = (spot.0 + 1 - n as i32 * 2, spot.1 + 1);
+            let target = if self.workable_ground(beside.0, beside.1) {
+                beside
+            } else {
+                spot
+            };
+            // A shore is fine to stand on to watch, though not a place to wander to.
+            if self.workable_ground(target.0, target.1)
+                && !self.organisms[child].route.borrow().recently_blocked(target)
+            {
+                self.organisms[child].wander_target = Some(target);
+                let thought = format!("following {} to learn {}", parent_name, skill.name());
+                self.organisms[child].think(&thought, tick);
+            }
         }
     }
 
@@ -310,6 +393,20 @@ impl Simulation {
         }
         if spent {
             self.organisms[idx].work = None;
+            return;
+        }
+        // Field work follows the field: a tended field that ripened is brought in,
+        // and one brought in sends the worker to the next field or home.
+        if plan.skill == Skill::Farming {
+            let lineage = self.organisms[idx].lineage_id.clone();
+            let here = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
+            self.organisms[idx].work = self
+                .field_to_work(&lineage, here)
+                .map(|(spot, harvest)| WorkPlan {
+                    spot,
+                    harvest,
+                    ..plan
+                });
             return;
         }
         // The tree was felled or the berries picked: move to the next one close by.
@@ -403,6 +500,7 @@ mod tests {
             skill: Skill::Fishing,
             spot: (109, 100),
             until: u64::MAX,
+            harvest: false,
         });
         sim.organisms[0].inv_food = FOOD_LOAD;
         sim.tick_count = morning(0);
@@ -435,6 +533,7 @@ mod tests {
             skill: Skill::Fishing,
             spot: (109, 100),
             until: u64::MAX,
+            harvest: false,
         });
         sim.organisms[0].mark_harm(Harm::Drowning, 50);
         assert!(
@@ -452,6 +551,62 @@ mod tests {
             sim.organisms[0].work.is_none_or(|p| p.skill != Skill::Fishing),
             "went fishing again the next morning"
         );
+    }
+
+    #[test]
+    fn a_parent_going_fishing_takes_the_children_along_to_learn() {
+        let mut sim = shore();
+        let mut child = crate::organism::organism::Organism::new(
+            "kid".into(),
+            "Kid".into(),
+            101.0,
+            100.0,
+            1,
+            sim.organisms[0].id.clone(),
+            sim.organisms[0].lineage_id.clone(),
+            4000,
+            Default::default(),
+        );
+        child.age = 900;
+        child.energy = 0.9;
+        child.hydration = 0.9;
+        sim.organisms.push(child);
+        assert_eq!(sim.organisms[1].age_stage(), AgeStage::Child);
+        sim.organisms[0].skills.set(Skill::Fishing, 0.7);
+        sim.tick_count = morning(0);
+        sim.assign_daily_work(0);
+        assert!(sim.organisms[0].work.is_some());
+        let target = sim.organisms[1].wander_target.expect("the child came along");
+        assert!(manhattan(target, (109, 100)) <= 2, "{target:?}");
+        assert!(sim.organisms[1].thought.starts_with("following"));
+        assert!(sim.organisms[1].thought.ends_with("to learn fishing"));
+    }
+
+    #[test]
+    fn a_ripe_field_calls_someone_out_to_bring_it_in() {
+        use crate::sim::tech::agriculture::{CropKind, Farm};
+        let mut sim = shore();
+        let lineage = sim.organisms[0].lineage_id.clone();
+        sim.tick_count = morning(0);
+        sim.farms.push(Farm {
+            id: 1,
+            x: 96,
+            y: 100,
+            owner_lineage: lineage,
+            crop: CropKind::Wheat,
+            planted_tick: 0,
+            ready_tick: 1,
+            harvested: false,
+            prepared: true,
+            season_timed: false,
+            withered: false,
+        });
+        sim.assign_daily_work(0);
+        let plan = sim.organisms[0].work.expect("set out to work");
+        assert_eq!(plan.skill, Skill::Farming);
+        assert!(plan.harvest);
+        assert_eq!(plan.spot, (96, 100));
+        assert_eq!(plan.action(), (35, "harvesting the field"));
     }
 
     #[test]

@@ -10,8 +10,20 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         };
         // A practised farmer wastes less of the crop in the cutting.
         let extra = ctx.practised(Skill::Farming, true);
+        // The crop goes to the tribe's stores (with the granary's bonus), as when
+        // the village brings it in; what the stores cannot take stays in hand.
+        let lineage = ctx.org().lineage_id.clone();
+        let units = harvest.yield_units.saturating_add(extra);
+        let grain = (units as f32 * crate::sim::civ::land::village_stores::yield_factor(ctx.sim, &lineage))
+            .round() as u32;
         let o = ctx.org_mut();
-        o.inv_food = o.inv_food.saturating_add(extra);
+        o.inv_food = o.inv_food.saturating_sub(harvest.yield_units);
+        let at = (ctx.ix, ctx.iy);
+        if !crate::sim::civ::land::village_carts::haul_harvest(ctx.sim, &lineage, at, grain) {
+            let left = crate::sim::civ::land::village_stores::deposit(ctx.sim, &lineage, grain);
+            let o = ctx.org_mut();
+            o.inv_food = o.inv_food.saturating_add(left.min(255) as u8);
+        }
         ctx.think(&format!("harvesting {} measures of crops", harvest.yield_units));
         ctx.discover("harvest", "brought in a harvest");
         return 0.018;

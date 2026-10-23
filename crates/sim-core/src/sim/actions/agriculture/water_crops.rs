@@ -20,6 +20,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ) {
         return 0.0;
     }
+    ctx.practised(crate::organism::skills::Skill::Farming, true);
     ctx.think("watering the crops");
     ctx.discover("irrigation_farming", "discovered irrigation farming");
     0.012
