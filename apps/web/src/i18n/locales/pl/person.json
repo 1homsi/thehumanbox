@@ -1,1 +1,278 @@
-{}
+{
+  "card": {
+    "energyShort": "E",
+    "energyTip": "Energia – maleje z czasem i odnawia się, gdy organizm zjada pola z jedzeniem. Przy 0% organizm głoduje.",
+    "hydrationShort": "H",
+    "hydrationTip": "Nawodnienie – maleje z czasem i odnawia się przez picie wody. Przy 0% organizm się odwadnia.",
+    "healthTip": "Zdrowie – osłabiane przez głód, zakażenie i walkę. Powoli się regeneruje, gdy potrzeby są zaspokojone.",
+    "infectionTip": "Poziom zakażenia – organizm jest chory i może przenosić chorobę na pobliskie istoty. Słabnie z czasem lub w pobliżu schronienia.",
+    "sick": "chory",
+    "infectedTip": "Zakażony ({percent}%) – choroba rozprzestrzenia się przy bliskim kontakcie z innymi",
+    "expecting": "spodziewa się dziecka",
+    "pregnantTip": "W ciąży – dziecko urodzi się za około 3 dni świata",
+    "sexWordsTip": "ich słowa na oba rodzaje",
+    "sexWordsOrigin": "ukute przez pokolenie założycieli",
+    "meta": "Pokolenie {generation} · {years}",
+    "ageTip": "Pokolenie {generation} · {years} ({ticks} tyknięć)",
+    "rename": "nadaj tej osobie imię",
+    "renameAria": "Zmień imię osoby",
+    "conversations": {
+      "one": "{count} rozmowa",
+      "few": "{count} rozmowy",
+      "many": "{count} rozmów",
+      "other": "{count} rozmowy"
+    },
+    "familyTree": "drzewo rodzinne",
+    "track": "śledź w świecie",
+    "attractionTip": "Ten organizm jest przyciągany przez innego – przyciąganie rośnie i może powstać więź",
+    "drawnTo": "przyciągany przez kogoś ✦",
+    "friends": "przyjaciele:",
+    "memoryFoodShort": "J",
+    "memoryWaterShort": "W",
+    "memoryDangerShort": "Z",
+    "memoryFoodTip": "zapamiętane miejsca z jedzeniem: {count}",
+    "memoryWaterTip": "zapamiętane źródła wody: {count}",
+    "memoryDangerTip": "zapamiętane strefy zagrożenia: {count}",
+    "traitLabel": {
+      "curiosity": "cie",
+      "aggression": "agr",
+      "fear": "lęk",
+      "memory": "pam",
+      "social": "spo",
+      "resilience": "odp"
+    },
+    "traitTip": {
+      "curiosity": "Ciekawość – pobudza eksplorację i gotowość do ryzyka",
+      "aggression": "Agresja – decyduje o walkach i zachowaniu terytorialnym",
+      "fear": "Lęk – jak ostrożny jest organizm wobec niebezpieczeństwa i drapieżników",
+      "memory": "Pamięć – ile miejsc potrafią zapamiętać i jak dobrze",
+      "social": "Towarzyskość – skłonność do więzi, handlu i wędrówek w grupie",
+      "resilience": "Odporność – odporność na choroby, skrajne temperatury i głód"
+    }
+  },
+  "header": {
+    "sick": "chory",
+    "carrying": "niesie drewno",
+    "starTip": "Oznacz ten organizm gwiazdką (zapisane po przeładowaniu)",
+    "star": "Oznacz gwiazdką",
+    "unstar": "Usuń gwiazdkę",
+    "lifeTip": "Pokaż pełną historię życia",
+    "life": "Życie",
+    "following": "Śledzony",
+    "followTip": "Śledź ten organizm",
+    "follow": "Śledź",
+    "unfollow": "Przestań śledzić",
+    "close": "Zamknij",
+    "gen": "pok. {generation}",
+    "ageDays": {
+      "one": "{count} dzień życia",
+      "few": "{count} dni życia",
+      "many": "{count} dni życia",
+      "other": "{count} dnia życia"
+    },
+    "newborn": "noworodek",
+    "maxAge": "maks. {time}"
+  },
+  "home": {
+    "enterTip": "Wejdź do ich domu",
+    "visitTip": "Odwiedź ich dom (są poza domem)",
+    "lookInside": "Zajrzyj do środka"
+  },
+  "status": {
+    "rich": "bogaty",
+    "poor": "biedny",
+    "skillTip": "umiejętność {percent}",
+    "skillWord": {
+      "master": "mistrz",
+      "skilled": "wprawny",
+      "journeyman": "czeladnik",
+      "apprentice": "praktykant"
+    },
+    "traitTip": "Cecha, z którą się urodzili, przekazana przez rodziców",
+    "moodTip": "Jak się czują w tej chwili, zależnie od tego, co przeżywają",
+    "feels": "czuje się {mood}",
+    "mounted": "na pojeździe"
+  },
+  "vitals": {
+    "energy": "energia",
+    "hydration": "nawodnienie",
+    "health": "zdrowie",
+    "infection": "zakażenie"
+  },
+  "mental": {
+    "title": "STAN PSYCHICZNY",
+    "label": {
+      "comfort": "komfort",
+      "loneliness": "samotność",
+      "fear": "lęk",
+      "boredom": "nuda",
+      "fatigue": "zmęczenie",
+      "grieving": "w żałobie",
+      "joyful": "radosny",
+      "hope": "nadzieja",
+      "awe": "podziw",
+      "gratitude": "wdzięczność",
+      "jealousy": "zazdrość",
+      "anger": "gniew",
+      "regret": "żal",
+      "curiosity": "ciekawość",
+      "spiritual": "duchowość"
+    },
+    "tip": {
+      "comfort": "Komfort – rośnie w pobliżu schronienia i bliskich, spada w trudnych warunkach. Wysoki komfort przyspiesza regenerację.",
+      "loneliness": "Samotność – narasta w izolacji i łagodnieje przy kontakcie z innymi. Duża samotność pcha ich do szukania towarzystwa.",
+      "fear": "Lęk – gwałtownie rośnie w pobliżu drapieżników i zagrożenia. Przejmuje kontrolę nad zwykłym zachowaniem; organizm ucieka.",
+      "boredom": "Nuda – rośnie w bezczynności. Pcha organizm do eksploracji, wędrówek lub ryzyka.",
+      "fatigue": "Zmęczenie – narasta bez odpoczynku. Organizm szuka schronienia, by spać; duże zmęczenie odbiera zdrowie.",
+      "hope": "Nadzieja – rośnie, gdy jest bezpiecznie i syto, a spada pod zagrożeniem lub przy głodzie.",
+      "awe": "Podziw – pogłębia się nocą pod otwartym niebem. Karmi rozwój duchowy.",
+      "gratitude": "Wdzięczność – gromadzi się w komforcie wśród bliskich. Pobudza do dzielenia się.",
+      "jealousy": "Zazdrość – pojawia się, gdy rywale wkraczają w czasie niedostatku.",
+      "anger": "Gniew – wzrasta wobec wrogich sąsiadów i szybko słabnie, gdy jest bezpiecznie.",
+      "regret": "Żal – pozostaje po wybuchach lub długiej żałobie.",
+      "curiosity": "Popęd ciekawości – znudzone, najedzone organizmy wędrują dalej.",
+      "spiritual": "Głębia duchowa – rośnie w bezpiecznym schronieniu nocą. Przyciąga pielgrzymki do świątyń."
+    },
+    "ticks": "{count} tyknięć"
+  },
+  "aspiration": {
+    "title": "ASPIRACJA",
+    "tip": {
+      "seeker": "Pociąga go wiedza – dąży do eksploracji, nauki i poznawania.",
+      "wanderer": "Niespokojny i ciekawski – najszczęśliwszy w drodze, daleko od osad.",
+      "warrior": "Stworzony do walki – ciągnie go do boju i życia wojskowego.",
+      "connector": "Żyje dla innych – szuka partnerstw, przyjaźni, rodziny.",
+      "builder": "Chce tworzyć rzeczy – budowa i rzemiosło to jego powołanie.",
+      "devout": "Życie duchowe – kierują nim religia, rytuał i oddanie.",
+      "sage": "Nauczyciel z natury – przekazuje wiedzę następnemu pokoleniu.",
+      "provider": "Dba o dom – rolnictwo, jedzenie i opieka nad rodziną.",
+      "artist": "Tworzy dla samego tworzenia – obrazy, pieśni, pisane słowa.",
+      "healer": "Opiekuje się chorymi – medycyna, zioła i długa cierpliwość opieki."
+    }
+  },
+  "skills": {
+    "title": "UMIEJĘTNOŚCI",
+    "tip": "Rośnie dzięki praktyce i obserwowaniu bliskich i przyjaciół, którzy robią to lepiej. Wprawna ręka częściej odnosi sukces i więcej uzyskuje z tej samej pracy.",
+    "rank": {
+      "learning": "uczy się",
+      "handy": "wprawny",
+      "skilled": "biegły",
+      "master": "mistrz"
+    },
+    "name": {
+      "woodcutting": "wyrąb",
+      "quarrying": "kamieniarstwo",
+      "foraging": "zbieractwo",
+      "fishing": "rybołówstwo",
+      "hunting": "łowiectwo",
+      "farming": "rolnictwo",
+      "building": "budowanie",
+      "crafting": "rzemiosło",
+      "healing": "leczenie"
+    }
+  },
+  "zodiac": {
+    "title": "URODZONY POD",
+    "flavor": {
+      "ember": "ciepłego serca i szybki w działaniu",
+      "wave": "płynny, cierpliwy, podąża za księżycem",
+      "stone": "stabilny, wolny do gniewu, wolny do upadku",
+      "root": "głęboko zakorzeniony, trzyma się bliskich",
+      "bough": "sięga na zewnątrz, zawsze rośnie",
+      "crane": "czujny, długa pamięć, ostrożny krok",
+      "wolf": "poluje w ciszy, ufa stadu",
+      "dawn": "z natury światła, niespokojny aż do dnia",
+      "hearth": "pilnuje ognia, dba o dom",
+      "veil": "cichy, widzi to, co inni przeoczają",
+      "spear": "celny, prostolinijny, nieustraszony",
+      "seed": "teraz mały, ale wszystko dopiero nadejdzie"
+    }
+  },
+  "traits": {
+    "title": "CECHY",
+    "label": {
+      "curiosity": "ciekawość",
+      "aggression": "agresja",
+      "fear": "lęk",
+      "memory": "pamięć",
+      "social": "towarzyskość",
+      "resilience": "odporność"
+    },
+    "tip": {
+      "curiosity": "Ciekawość – pobudza eksplorację i gotowość do ryzyka. Ciekawe organizmy wędrują dalej i odkrywają więcej.",
+      "aggression": "Agresja – decyduje o zaczynaniu walk i zachowaniu terytorialnym. Wysoka agresja = więcej konfliktów.",
+      "fear": "Lęk – jak szybko uciekają przed niebezpieczeństwem. Wysoki lęk oznacza wczesny odwrót; niski – trzymanie pozycji.",
+      "memory": "Pamięć – ile miejsc zachowują i jak mocno. Lepsza pamięć = mądrzejsza nawigacja.",
+      "social": "Towarzyskość – pobudza więzi, handel i wędrówki grupowe. Towarzyskie organizmy szybciej tworzą plemiona.",
+      "resilience": "Odporność – odporność na choroby, ekstremalne temperatury i głód. Dłuższe życie przy wysokich wartościach."
+    }
+  },
+  "language": {
+    "title": "ICH JĘZYK"
+  },
+  "life": {
+    "memory": "PAMIĘĆ",
+    "foodTip": "Zapamiętane miejsca z jedzeniem: {count} – organizm kieruje się do nich, gdy jest głodny",
+    "waterTip": "Zapamiętane źródła wody: {count} – organizm kieruje się do nich, gdy jest spragniony",
+    "dangerTip": "Zapamiętane strefy zagrożenia: {count} – organizm w miarę możliwości omija te obszary",
+    "food": "jedzenie ×{count}",
+    "water": "woda ×{count}",
+    "danger": "zagrożenie ×{count}",
+    "death": "ŚMIERĆ",
+    "story": "HISTORIA",
+    "recent": "NIEDAWNE ŻYCIE",
+    "witnessed": "CO WIDZIELI",
+    "tick": "t{tick}",
+    "innerLife": "ŻYCIE WEWNĘTRZNE",
+    "oldest": "najstarsze:",
+    "proudest": "najdumniejsze:",
+    "heaviest": "najcięższe:"
+  },
+  "memories": {
+    "bonds": "ZAPAMIĘTANE WIĘZI",
+    "bond": "więź",
+    "goTo": "Przejdź do: {name}",
+    "whatTheyRemember": "CO PAMIĘTAJĄ",
+    "salience": "{kind} – waga {percent}%",
+    "salienceRecalled": "{kind} – waga {percent}% · przywołane {count}×",
+    "salienceOnly": "waga {percent}%"
+  },
+  "kin": {
+    "title": "RODZINA I PRZYJACIELE",
+    "mother": "matka",
+    "father": "ojciec",
+    "child": "dziecko",
+    "friend": "przyjaciel",
+    "rival": "rywal",
+    "tip": "{label}: {name}. Kliknij, aby wybrać.",
+    "tipDead": "{label}: {name} (zmarły). Kliknij, aby wybrać."
+  },
+  "relations": {
+    "title": "RELACJE",
+    "allied": "Sprzymierzony z: {name} – pozytywne nastawienie {percent}%. Prawdopodobnie będzie handlować i współpracować.",
+    "hostile": "Wrogi wobec: {name} – negatywne nastawienie {percent}%. Prawdopodobnie będzie wyzywać lub unikać."
+  },
+  "bonds": {
+    "title": "OSOBISTE WIĘZI",
+    "trusts": "Ufa: {name} – osobista więź na poziomie {percent}%. Powstała dzięki wspólnym doświadczeniom i współpracy.",
+    "fears": "Boi się: {name} – negatywna więź na poziomie {percent}%. Skutek dawnego konfliktu lub agresji."
+  },
+  "background": {
+    "education": "WYKSZTAŁCENIE",
+    "literacy": "umiejętność czytania",
+    "wealth": "MAJĄTEK",
+    "inventory": "EKWIPUNEK",
+    "religion": "RELIGIA",
+    "piety": "pobożność",
+    "diseases": "CHOROBY",
+    "sickSince": "Chory na {kind} od t{tick}"
+  },
+  "format": {
+    "days": {
+      "one": "{count} dzień",
+      "few": "{count} dni",
+      "many": "{count} dni",
+      "other": "{count} dnia"
+    }
+  }
+}

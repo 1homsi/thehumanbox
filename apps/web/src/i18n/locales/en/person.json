@@ -1,1 +1,272 @@
-{}
+{
+  "card": {
+    "energyShort": "E",
+    "energyTip": "Energy - depletes over time, restored by eating food tiles. At 0% the organism starves.",
+    "hydrationShort": "H",
+    "hydrationTip": "Hydration - depletes over time, restored by drinking water. At 0% the organism dehydrates.",
+    "healthTip": "Health - damaged by starvation, infection, and combat. Recovers slowly when needs are met.",
+    "infectionTip": "Infection level - organism is sick and may spread illness to others nearby. Clears over time or near shelter.",
+    "sick": "sick",
+    "infectedTip": "Infected ({percent}%) - illness spreads through close contact with others",
+    "expecting": "expecting",
+    "pregnantTip": "Pregnant - a child will be born in ~3 in-world days",
+    "sexWordsTip": "their words for the two kinds",
+    "sexWordsOrigin": "coined by the founding generation",
+    "meta": "Generation {generation} · {years}",
+    "ageTip": "Generation {generation} · {years} old ({ticks} ticks)",
+    "rename": "give this person a name",
+    "renameAria": "Rename person",
+    "conversations": {
+      "one": "{count} conversation",
+      "other": "{count} conversations"
+    },
+    "familyTree": "family tree",
+    "track": "track in world",
+    "attractionTip": "This organism is drawn to another - they are building attraction and may bond",
+    "drawnTo": "drawn to someone ✦",
+    "friends": "friends:",
+    "memoryFoodShort": "f",
+    "memoryWaterShort": "w",
+    "memoryDangerShort": "d",
+    "memoryFoodTip": "{count} food locations memorized",
+    "memoryWaterTip": "{count} water sources memorized",
+    "memoryDangerTip": "{count} danger zones memorized",
+    "traitLabel": {
+      "curiosity": "cur",
+      "aggression": "agg",
+      "fear": "fear",
+      "memory": "mem",
+      "social": "soc",
+      "resilience": "res"
+    },
+    "traitTip": {
+      "curiosity": "Curiosity - drives exploration and willingness to take risks",
+      "aggression": "Aggression - determines combat and territorial behaviour",
+      "fear": "Fear - how cautious the organism is around danger and predators",
+      "memory": "Memory - how many locations they can remember and how well",
+      "social": "Social - tendency to form bonds, trade, and travel with groups",
+      "resilience": "Resilience - resistance to disease, temperature stress, and starvation"
+    }
+  },
+  "header": {
+    "sick": "sick",
+    "carrying": "Carrying wood",
+    "starTip": "Star this organism (saved across reloads)",
+    "star": "Star",
+    "unstar": "Unstar",
+    "lifeTip": "View full life history",
+    "life": "Life",
+    "following": "Following",
+    "followTip": "Follow this organism",
+    "follow": "Follow",
+    "unfollow": "Unfollow",
+    "close": "Close",
+    "gen": "gen {generation}",
+    "ageDays": {
+      "one": "{count} day old",
+      "other": "{count} days old"
+    },
+    "newborn": "newborn",
+    "maxAge": "max {time}"
+  },
+  "home": {
+    "enterTip": "Step inside their home",
+    "visitTip": "Visit their home (they are out)",
+    "lookInside": "Look inside"
+  },
+  "status": {
+    "rich": "rich",
+    "poor": "poor",
+    "skillTip": "skill {percent}",
+    "skillWord": {
+      "master": "master",
+      "skilled": "skilled",
+      "journeyman": "journeyman",
+      "apprentice": "apprentice"
+    },
+    "traitTip": "A trait they were born with, passed on from their parents",
+    "moodTip": "How they feel right now, from what they are going through",
+    "feels": "feels {mood}",
+    "mounted": "mounted"
+  },
+  "vitals": {
+    "energy": "energy",
+    "hydration": "hydration",
+    "health": "health",
+    "infection": "infection"
+  },
+  "mental": {
+    "title": "MENTAL STATE",
+    "label": {
+      "comfort": "comfort",
+      "loneliness": "loneliness",
+      "fear": "fear",
+      "boredom": "boredom",
+      "fatigue": "fatigue",
+      "grieving": "grieving",
+      "joyful": "joyful",
+      "hope": "hope",
+      "awe": "awe",
+      "gratitude": "gratitude",
+      "jealousy": "jealousy",
+      "anger": "anger",
+      "regret": "regret",
+      "curiosity": "curiosity",
+      "spiritual": "spiritual"
+    },
+    "tip": {
+      "comfort": "Comfort - rises near shelter and kin, falls in harsh conditions. High comfort boosts recovery.",
+      "loneliness": "Loneliness - builds when isolated, eased by social contact. High loneliness drives them to seek others.",
+      "fear": "Fear - spikes near predators and danger. Overrides normal behaviour; organism will flee.",
+      "boredom": "Boredom - rises when idle. Pushes the organism to explore, wander, or take risks.",
+      "fatigue": "Fatigue - builds without rest. Organism seeks shelter to sleep; high fatigue drains health.",
+      "hope": "Hope - rises when safe and well-fed, falls under threat or hunger.",
+      "awe": "Awe - deepens under open sky at night. Feeds spiritual growth.",
+      "gratitude": "Gratitude - accumulates in comfort surrounded by kin. Drives sharing.",
+      "jealousy": "Jealousy - creeps when rivals encroach during scarcity.",
+      "anger": "Anger - spikes against hostile neighbours, cools quickly when safe.",
+      "regret": "Regret - carried after outbursts or long grief.",
+      "curiosity": "Curiosity drive - bored, well-fed organisms wander further.",
+      "spiritual": "Spiritual depth - rises in safe nighttime shelter. Draws pilgrimages to temples."
+    },
+    "ticks": "{count} ticks"
+  },
+  "aspiration": {
+    "title": "ASPIRATION",
+    "tip": {
+      "seeker": "Drawn to knowledge — pursues exploration, science, and learning.",
+      "wanderer": "Restless and curious — happiest on the road, far from settlements.",
+      "warrior": "Born for conflict — gravitates toward combat and military life.",
+      "connector": "Lives for others — seeks partnerships, friendships, family.",
+      "builder": "Wants to make things — construction and craft are their calling.",
+      "devout": "A spiritual life — religion, ritual, and devotion guide them.",
+      "sage": "A teacher at heart — passes knowledge to the next generation.",
+      "provider": "Tends the household — agriculture, food, and family care.",
+      "artist": "Makes for the sake of making — paintings, song, written words.",
+      "healer": "Tends the sick — medicine, herbs, and the long patience of care."
+    }
+  },
+  "skills": {
+    "title": "SKILLS",
+    "tip": "Grows with practice and by watching kin and friends who are better at it. A practised hand succeeds more often and gets more out of the same work.",
+    "rank": {
+      "learning": "learning",
+      "handy": "handy",
+      "skilled": "skilled",
+      "master": "master"
+    },
+    "name": {
+      "woodcutting": "woodcutting",
+      "quarrying": "quarrying",
+      "foraging": "foraging",
+      "fishing": "fishing",
+      "hunting": "hunting",
+      "farming": "farming",
+      "building": "building",
+      "crafting": "crafting",
+      "healing": "healing"
+    }
+  },
+  "zodiac": {
+    "title": "BORN UNDER",
+    "flavor": {
+      "ember": "warm-hearted and quick to act",
+      "wave": "fluid, patient, follows the moon",
+      "stone": "steady, slow to anger, slow to fall",
+      "root": "drawn deep, holds onto kin",
+      "bough": "reaches outward, growing always",
+      "crane": "watchful, long memory, careful step",
+      "wolf": "hunts in silence, trusts the pack",
+      "dawn": "born of light, restless until day",
+      "hearth": "keeps the fire, tends the home",
+      "veil": "quiet, sees what others miss",
+      "spear": "true-aimed, blunt, unafraid",
+      "seed": "small now, but everything is coming"
+    }
+  },
+  "traits": {
+    "title": "TRAITS",
+    "label": {
+      "curiosity": "curiosity",
+      "aggression": "aggression",
+      "fear": "fear",
+      "memory": "memory",
+      "social": "social",
+      "resilience": "resilience"
+    },
+    "tip": {
+      "curiosity": "Curiosity - drives exploration and risk-taking. High curiosity organisms wander further and discover more.",
+      "aggression": "Aggression - determines combat initiation and territorial behaviour. High aggression = more challenges.",
+      "fear": "Fear - how quickly they flee danger. High fear means early retreat; low fear means standing ground.",
+      "memory": "Memory - how many locations they retain and how strongly. Better memory = smarter navigation.",
+      "social": "Social tendency - drives bonding, trading, and group travel. High social organisms form tribes faster.",
+      "resilience": "Resilience - resistance to disease, extreme temperatures, and starvation. Longer lifespan at high values."
+    }
+  },
+  "language": {
+    "title": "THEIR LANGUAGE"
+  },
+  "life": {
+    "memory": "MEMORY",
+    "foodTip": "{count} food tile locations remembered - organism navigates toward these when hungry",
+    "waterTip": "{count} water source locations remembered - organism navigates toward these when thirsty",
+    "dangerTip": "{count} danger zones remembered - organism avoids these areas when possible",
+    "food": "food ×{count}",
+    "water": "water ×{count}",
+    "danger": "danger ×{count}",
+    "death": "DEATH",
+    "story": "STORY",
+    "recent": "RECENT LIFE",
+    "witnessed": "WHAT THEY'VE SEEN",
+    "tick": "t{tick}",
+    "innerLife": "INNER LIFE",
+    "oldest": "oldest mem:",
+    "proudest": "proudest:",
+    "heaviest": "heaviest:"
+  },
+  "memories": {
+    "bonds": "BONDS REMEMBERED",
+    "bond": "bond",
+    "goTo": "Go to {name}",
+    "whatTheyRemember": "WHAT THEY REMEMBER",
+    "salience": "{kind} — salience {percent}%",
+    "salienceRecalled": "{kind} — salience {percent}% · recalled {count}x",
+    "salienceOnly": "salience {percent}%"
+  },
+  "kin": {
+    "title": "KIN & FRIENDS",
+    "mother": "mother",
+    "father": "father",
+    "child": "child",
+    "friend": "friend",
+    "rival": "rival",
+    "tip": "{label}: {name}. Click to select them.",
+    "tipDead": "{label}: {name} (dead). Click to select them."
+  },
+  "relations": {
+    "title": "RELATIONS",
+    "allied": "Allied with {name} - {percent}% positive attitude. Likely to trade and cooperate.",
+    "hostile": "Hostile toward {name} - {percent}% negative attitude. Likely to challenge or avoid."
+  },
+  "bonds": {
+    "title": "PERSONAL BONDS",
+    "trusts": "Trusts {name} - personal bond at {percent}%. Built through shared experiences and cooperation.",
+    "fears": "Fears {name} - negative bond at {percent}%. Result of past conflict or aggression."
+  },
+  "background": {
+    "education": "EDUCATION",
+    "literacy": "literacy",
+    "wealth": "WEALTH",
+    "inventory": "INVENTORY",
+    "religion": "RELIGION",
+    "piety": "piety",
+    "diseases": "DISEASES",
+    "sickSince": "Sick with {kind} since t{tick}"
+  },
+  "format": {
+    "days": {
+      "one": "{count} day",
+      "other": "{count} days"
+    }
+  }
+}

@@ -1,3 +1,5 @@
+import { t, type MessageKey } from '../../../i18n'
+
 export const AGE_STAGE_ICON: Record<string, string> = {
   infant: '👶',
   child: '🧒',
@@ -32,17 +34,17 @@ export const ASPIRATION_EMOJI: Record<string, string> = {
   healer: '🌿',
 }
 
-export const ASPIRATION_TIPS: Record<string, string> = {
-  seeker: 'Drawn to knowledge — pursues exploration, science, and learning.',
-  wanderer: 'Restless and curious — happiest on the road, far from settlements.',
-  warrior: 'Born for conflict — gravitates toward combat and military life.',
-  connector: 'Lives for others — seeks partnerships, friendships, family.',
-  builder: 'Wants to make things — construction and craft are their calling.',
-  devout: 'A spiritual life — religion, ritual, and devotion guide them.',
-  sage: 'A teacher at heart — passes knowledge to the next generation.',
-  provider: 'Tends the household — agriculture, food, and family care.',
-  artist: 'Makes for the sake of making — paintings, song, written words.',
-  healer: 'Tends the sick — medicine, herbs, and the long patience of care.',
+export const ASPIRATION_TIP_KEY: Record<string, MessageKey | undefined> = {
+  seeker: 'person.aspiration.tip.seeker',
+  wanderer: 'person.aspiration.tip.wanderer',
+  warrior: 'person.aspiration.tip.warrior',
+  connector: 'person.aspiration.tip.connector',
+  builder: 'person.aspiration.tip.builder',
+  devout: 'person.aspiration.tip.devout',
+  sage: 'person.aspiration.tip.sage',
+  provider: 'person.aspiration.tip.provider',
+  artist: 'person.aspiration.tip.artist',
+  healer: 'person.aspiration.tip.healer',
 }
 
 export const ZODIAC_GLYPH: Record<string, string> = {
@@ -60,19 +62,31 @@ export const ZODIAC_GLYPH: Record<string, string> = {
   seed: '᛫',
 }
 
-export const ZODIAC_FLAVOR: Record<string, string> = {
-  ember: 'warm-hearted and quick to act',
-  wave: 'fluid, patient, follows the moon',
-  stone: 'steady, slow to anger, slow to fall',
-  root: 'drawn deep, holds onto kin',
-  bough: 'reaches outward, growing always',
-  crane: 'watchful, long memory, careful step',
-  wolf: 'hunts in silence, trusts the pack',
-  dawn: 'born of light, restless until day',
-  hearth: 'keeps the fire, tends the home',
-  veil: 'quiet, sees what others miss',
-  spear: 'true-aimed, blunt, unafraid',
-  seed: 'small now, but everything is coming',
+export const ZODIAC_FLAVOR_KEY: Record<string, MessageKey | undefined> = {
+  ember: 'person.zodiac.flavor.ember',
+  wave: 'person.zodiac.flavor.wave',
+  stone: 'person.zodiac.flavor.stone',
+  root: 'person.zodiac.flavor.root',
+  bough: 'person.zodiac.flavor.bough',
+  crane: 'person.zodiac.flavor.crane',
+  wolf: 'person.zodiac.flavor.wolf',
+  dawn: 'person.zodiac.flavor.dawn',
+  hearth: 'person.zodiac.flavor.hearth',
+  veil: 'person.zodiac.flavor.veil',
+  spear: 'person.zodiac.flavor.spear',
+  seed: 'person.zodiac.flavor.seed',
+}
+
+/** The tip for an aspiration, or '' when the simulation sends one the panel does not know. */
+export function aspirationTip(id: string): string {
+  const key = ASPIRATION_TIP_KEY[id]
+  return key ? t(key) : ''
+}
+
+/** The flavour line for a zodiac sign, or '' when the sign is unknown. */
+export function zodiacFlavor(sign: string): string {
+  const key = ZODIAC_FLAVOR_KEY[sign]
+  return key ? t(key) : ''
 }
 
 export const TOOL_ICON: Record<string, string> = {

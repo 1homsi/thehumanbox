@@ -1,1 +1,269 @@
-{}
+{
+  "card": {
+    "energyShort": "에",
+    "energyTip": "에너지 – 시간이 지나면 줄고, 음식 타일을 먹으면 회복합니다. 0%가 되면 굶주립니다.",
+    "hydrationShort": "수",
+    "hydrationTip": "수분 – 시간이 지나면 줄고, 물을 마시면 회복합니다. 0%가 되면 탈수됩니다.",
+    "healthTip": "건강 – 굶주림, 감염, 전투로 손상됩니다. 욕구가 채워지면 천천히 회복합니다.",
+    "infectionTip": "감염 수준 – 병에 걸려 근처 다른 생명체에게 병을 옮길 수 있습니다. 시간이 지나거나 쉼터 근처에서 줄어듭니다.",
+    "sick": "아픔",
+    "infectedTip": "감염됨 ({percent}%) – 다른 사람과 가까이 접촉하면 병이 퍼집니다",
+    "expecting": "임신 중",
+    "pregnantTip": "임신 – 세계 시간으로 약 3일 안에 아이가 태어납니다",
+    "sexWordsTip": "두 종류를 부르는 말",
+    "sexWordsOrigin": "초기 세대가 만든 말",
+    "meta": "{generation}세대 · {years}",
+    "ageTip": "{generation}세대 · {years} (틱 {ticks})",
+    "rename": "이 사람에게 이름 짓기",
+    "renameAria": "이름 바꾸기",
+    "conversations": {
+      "other": "대화 {count}회"
+    },
+    "familyTree": "가계도",
+    "track": "세계에서 추적",
+    "attractionTip": "이 생명체는 다른 생명체에게 끌리고 있습니다 – 호감이 쌓이며 유대가 생길 수 있습니다",
+    "drawnTo": "누군가에게 끌림 ✦",
+    "friends": "친구:",
+    "memoryFoodShort": "식",
+    "memoryWaterShort": "수",
+    "memoryDangerShort": "위",
+    "memoryFoodTip": "기억하는 음식 장소 {count}곳",
+    "memoryWaterTip": "기억하는 물 근원 {count}곳",
+    "memoryDangerTip": "기억하는 위험 지역 {count}곳",
+    "traitLabel": {
+      "curiosity": "호기",
+      "aggression": "공격",
+      "fear": "공포",
+      "memory": "기억",
+      "social": "사교",
+      "resilience": "회복"
+    },
+    "traitTip": {
+      "curiosity": "호기심 – 탐험과 모험을 이끕니다",
+      "aggression": "공격성 – 전투와 영역 행동을 결정합니다",
+      "fear": "두려움 – 위험과 포식자 앞에서 얼마나 조심스러운지",
+      "memory": "기억력 – 얼마나 많은 장소를 얼마나 잘 기억하는지",
+      "social": "사교성 – 유대, 교역, 무리와의 이동을 향한 성향",
+      "resilience": "회복력 – 질병, 극심한 온도, 굶주림에 대한 저항력"
+    }
+  },
+  "header": {
+    "sick": "아픔",
+    "carrying": "나무를 나르는 중",
+    "starTip": "이 생명체에 별표 표시 (다시 불러와도 유지됨)",
+    "star": "별표",
+    "unstar": "별표 해제",
+    "lifeTip": "전체 생애 보기",
+    "life": "생애",
+    "following": "따라가는 중",
+    "followTip": "이 생명체 따라가기",
+    "follow": "따라가기",
+    "unfollow": "따라가기 해제",
+    "close": "닫기",
+    "gen": "{generation}세대",
+    "ageDays": {
+      "other": "태어난 지 {count}일"
+    },
+    "newborn": "갓 태어남",
+    "maxAge": "최대 {time}"
+  },
+  "home": {
+    "enterTip": "그 사람의 집 안으로 들어가기",
+    "visitTip": "그 사람의 집 방문하기 (외출 중)",
+    "lookInside": "안 들여다보기"
+  },
+  "status": {
+    "rich": "부유함",
+    "poor": "가난함",
+    "skillTip": "숙련도 {percent}",
+    "skillWord": {
+      "master": "장인",
+      "skilled": "숙련",
+      "journeyman": "직인",
+      "apprentice": "견습생"
+    },
+    "traitTip": "태어날 때부터 지닌 특성으로, 부모에게서 물려받은 것",
+    "moodTip": "지금 겪고 있는 일에 따라 현재 느끼는 감정",
+    "feels": "{mood} 느낌",
+    "mounted": "탑승 중"
+  },
+  "vitals": {
+    "energy": "에너지",
+    "hydration": "수분",
+    "health": "건강",
+    "infection": "감염"
+  },
+  "mental": {
+    "title": "심리 상태",
+    "label": {
+      "comfort": "안락",
+      "loneliness": "외로움",
+      "fear": "두려움",
+      "boredom": "지루함",
+      "fatigue": "피로",
+      "grieving": "슬퍼함",
+      "joyful": "기쁨",
+      "hope": "희망",
+      "awe": "경외",
+      "gratitude": "감사",
+      "jealousy": "질투",
+      "anger": "분노",
+      "regret": "후회",
+      "curiosity": "호기심",
+      "spiritual": "영적임"
+    },
+    "tip": {
+      "comfort": "안락 – 쉼터와 가족 가까이 있을 때 오르고, 힘든 상황에서는 떨어집니다. 안락이 높으면 회복이 빨라집니다.",
+      "loneliness": "외로움 – 혼자 있으면 쌓이고, 사회적 접촉으로 줄어듭니다. 외로움이 크면 다른 이를 찾아 나섭니다.",
+      "fear": "두려움 – 포식자와 위험 근처에서 급격히 솟구칩니다. 평소 행동을 덮어쓰며, 생명체는 달아납니다.",
+      "boredom": "지루함 – 할 일이 없을 때 오릅니다. 생명체를 탐험, 방랑, 위험 감수로 이끕니다.",
+      "fatigue": "피로 – 쉬지 않으면 쌓입니다. 생명체는 잠을 자려고 쉼터를 찾으며, 피로가 크면 건강이 줄어듭니다.",
+      "hope": "희망 – 안전하고 배부를 때 오르고, 위협이나 배고픔 속에서 떨어집니다.",
+      "awe": "경외 – 밤에 탁 트인 하늘 아래에서 깊어집니다. 영적 성장을 키웁니다.",
+      "gratitude": "감사 – 가족에게 둘러싸여 안락할 때 쌓입니다. 나누려는 마음을 이끕니다.",
+      "jealousy": "질투 – 부족할 때 경쟁자가 침범하면 슬며시 자랍니다.",
+      "anger": "분노 – 적대적인 이웃에게 치솟고, 안전할 때 빠르게 가라앉습니다.",
+      "regret": "후회 – 폭발적인 행동이나 오랜 슬픔 뒤에 남습니다.",
+      "curiosity": "호기심 욕구 – 지루하고 배부른 생명체일수록 더 멀리 떠돕니다.",
+      "spiritual": "영적 깊이 – 밤에 안전한 쉼터에서 오릅니다. 사원으로 순례를 이끕니다."
+    },
+    "ticks": "{count} 틱"
+  },
+  "aspiration": {
+    "title": "열망",
+    "tip": {
+      "seeker": "지식을 향합니다 – 탐험, 과학, 배움을 추구합니다.",
+      "wanderer": "안절부절못하고 호기심이 많습니다 – 정착지에서 멀리 떨어진 길 위에서 가장 행복합니다.",
+      "warrior": "싸우기 위해 태어났습니다 – 전투와 군대 생활에 끌립니다.",
+      "connector": "타인을 위해 삽니다 – 동반자, 우정, 가족을 찾습니다.",
+      "builder": "무언가를 만들고 싶어합니다 – 건축과 공예가 그들의 소명입니다.",
+      "devout": "영적인 삶 – 종교, 의식, 헌신이 그들을 이끕니다.",
+      "sage": "본질적으로 스승입니다 – 다음 세대에게 지식을 전합니다.",
+      "provider": "집안을 돌봅니다 – 농사, 식량, 가족 돌봄.",
+      "artist": "만드는 것 자체를 위해 만듭니다 – 그림, 노래, 글.",
+      "healer": "아픈 이를 돌봅니다 – 의술, 약초, 그리고 돌봄의 긴 인내."
+    }
+  },
+  "skills": {
+    "title": "기술",
+    "tip": "연습하고, 더 잘하는 가족과 친구를 지켜보며 늘어난다. 숙련된 사람은 더 자주 성공하고 같은 일에서 더 많이 얻는다.",
+    "rank": {
+      "learning": "배우는 중",
+      "handy": "능숙",
+      "skilled": "숙련",
+      "master": "장인"
+    },
+    "name": {
+      "woodcutting": "벌목",
+      "quarrying": "채석",
+      "foraging": "채집",
+      "fishing": "낚시",
+      "hunting": "사냥",
+      "farming": "농사",
+      "building": "건축",
+      "crafting": "공예",
+      "healing": "치료"
+    }
+  },
+  "zodiac": {
+    "title": "태어난 별자리",
+    "flavor": {
+      "ember": "마음이 따뜻하고 행동이 빠릅니다",
+      "wave": "유연하고 참을성이 있으며, 달을 따릅니다",
+      "stone": "꿋꿋하고, 화는 더디고, 쓰러지는 것도 더딥니다",
+      "root": "깊이 뿌리내리고, 가족을 꼭 붙듭니다",
+      "bough": "바깥으로 뻗으며 끊임없이 자랍니다",
+      "crane": "주의 깊고, 기억이 길며, 발걸음이 신중합니다",
+      "wolf": "조용히 사냥하고, 무리를 믿습니다",
+      "dawn": "빛에서 태어나, 날이 밝을 때까지 안절부절못합니다",
+      "hearth": "불을 지키고, 집을 돌봅니다",
+      "veil": "조용하고, 다른 이들이 놓치는 것을 봅니다",
+      "spear": "정확하게 겨누고, 솔직하며, 두려움이 없습니다",
+      "seed": "지금은 작지만, 모든 것이 다가오고 있습니다"
+    }
+  },
+  "traits": {
+    "title": "특성",
+    "label": {
+      "curiosity": "호기심",
+      "aggression": "공격성",
+      "fear": "두려움",
+      "memory": "기억력",
+      "social": "사교성",
+      "resilience": "회복력"
+    },
+    "tip": {
+      "curiosity": "호기심 – 탐험과 모험을 이끕니다. 호기심이 강한 생명체는 더 멀리 가고 더 많이 발견합니다.",
+      "aggression": "공격성 – 전투를 시작할지와 영역 행동을 결정합니다. 공격성이 높을수록 도전이 많습니다.",
+      "fear": "두려움 – 위험에서 얼마나 빨리 달아나는지. 두려움이 높으면 일찍 물러나고, 낮으면 제자리를 지킵니다.",
+      "memory": "기억력 – 얼마나 많은 장소를 얼마나 강하게 간직하는지. 기억력이 좋을수록 길을 더 잘 찾습니다.",
+      "social": "사교성 – 유대, 교역, 무리 이동을 이끕니다. 사교성이 높으면 부족을 더 빨리 이룹니다.",
+      "resilience": "회복력 – 질병, 극심한 온도, 굶주림에 대한 저항력. 값이 높을수록 수명이 깁니다."
+    }
+  },
+  "language": {
+    "title": "그들의 언어"
+  },
+  "life": {
+    "memory": "기억",
+    "foodTip": "음식 장소 {count}곳을 기억합니다 – 배가 고프면 생명체는 이곳으로 향합니다",
+    "waterTip": "물 근원 {count}곳을 기억합니다 – 목이 마르면 생명체는 이곳으로 향합니다",
+    "dangerTip": "위험 지역 {count}곳을 기억합니다 – 가능하면 생명체는 이 지역을 피합니다",
+    "food": "음식 ×{count}",
+    "water": "물 ×{count}",
+    "danger": "위험 ×{count}",
+    "death": "죽음",
+    "story": "이야기",
+    "recent": "최근의 삶",
+    "witnessed": "목격한 것",
+    "tick": "t{tick}",
+    "innerLife": "내면의 삶",
+    "oldest": "가장 오래된:",
+    "proudest": "가장 자랑스러운:",
+    "heaviest": "가장 무거운:"
+  },
+  "memories": {
+    "bonds": "기억하는 유대",
+    "bond": "유대",
+    "goTo": "{name}에게 가기",
+    "whatTheyRemember": "기억하는 것",
+    "salience": "{kind} – 중요도 {percent}%",
+    "salienceRecalled": "{kind} – 중요도 {percent}% · {count}번 떠올림",
+    "salienceOnly": "중요도 {percent}%"
+  },
+  "kin": {
+    "title": "가족과 친구",
+    "mother": "어머니",
+    "father": "아버지",
+    "child": "자녀",
+    "friend": "친구",
+    "rival": "라이벌",
+    "tip": "{label}: {name}. 클릭하면 선택합니다.",
+    "tipDead": "{label}: {name} (사망). 클릭하면 선택합니다."
+  },
+  "relations": {
+    "title": "관계",
+    "allied": "{name}과(와) 동맹 – 긍정적 태도 {percent}%. 교역하고 협력할 가능성이 큽니다.",
+    "hostile": "{name}에 대한 적대감 – 부정적 태도 {percent}%. 도전하거나 피할 가능성이 큽니다."
+  },
+  "bonds": {
+    "title": "개인적 유대",
+    "trusts": "{name}을(를) 신뢰 – 개인적 유대 {percent}%. 함께한 경험과 협력으로 쌓였습니다.",
+    "fears": "{name}을(를) 두려워함 – 부정적 유대 {percent}%. 과거의 갈등이나 공격의 결과입니다."
+  },
+  "background": {
+    "education": "교육",
+    "literacy": "문해력",
+    "wealth": "재산",
+    "inventory": "소지품",
+    "religion": "종교",
+    "piety": "신심",
+    "diseases": "질병",
+    "sickSince": "t{tick}부터 {kind}에 걸림"
+  },
+  "format": {
+    "days": {
+      "other": "{count}일"
+    }
+  }
+}

@@ -1,20 +1,21 @@
 import { Tooltip } from '../../toolbar/Tooltip'
 import { cbColor } from '../../../shared/constants'
 import { MiniBar } from './bars'
-import { ASPIRATION_EMOJI, ASPIRATION_TIPS, ZODIAC_GLYPH, ZODIAC_FLAVOR } from './icons'
+import { ASPIRATION_EMOJI, ZODIAC_GLYPH, aspirationTip, zodiacFlavor } from './icons'
 import type { OrganismState, OrgDetail } from '../../../shared/types'
+import { t, type MessageKey } from '../../../i18n'
 
 export function AspirationSection({ org }: { org: OrganismState }) {
   return (
     <>
       {org.aspiration && (
         <>
-          <div className="org-detail-section">ASPIRATION</div>
+          <div className="org-detail-section">{t('person.aspiration.title')}</div>
           <div className="relation-list">
             <span
               className="relation-tag"
               style={{ background: '#1a1408', color: '#f6d062', cursor: 'default' }}
-              title={ASPIRATION_TIPS[org.aspiration] ?? ''}
+              title={aspirationTip(org.aspiration)}
             >
               {ASPIRATION_EMOJI[org.aspiration] ?? '✦'} {org.aspiration}
             </span>
@@ -27,10 +28,28 @@ export function AspirationSection({ org }: { org: OrganismState }) {
 
 /** How a skill level reads: the same lines the simulation marks milestones at. */
 function skillRank(level: number): string {
-  if (level >= 0.9) return 'master'
-  if (level >= 0.65) return 'skilled'
-  if (level >= 0.35) return 'handy'
-  return 'learning'
+  if (level >= 0.9) return t('person.skills.rank.master')
+  if (level >= 0.65) return t('person.skills.rank.skilled')
+  if (level >= 0.35) return t('person.skills.rank.handy')
+  return t('person.skills.rank.learning')
+}
+
+const SKILL_NAMES: Record<string, MessageKey> = {
+  woodcutting: 'person.skills.name.woodcutting',
+  quarrying: 'person.skills.name.quarrying',
+  foraging: 'person.skills.name.foraging',
+  fishing: 'person.skills.name.fishing',
+  hunting: 'person.skills.name.hunting',
+  farming: 'person.skills.name.farming',
+  building: 'person.skills.name.building',
+  crafting: 'person.skills.name.crafting',
+  healing: 'person.skills.name.healing',
+}
+
+/** A skill's name in the interface language; one the interface does not know stays as the simulation sent it. */
+function skillName(name: string): string {
+  const key = SKILL_NAMES[name]
+  return key ? t(key) : name
 }
 
 /** What this person has learned to do, by doing it or by watching kin and friends. */
@@ -39,16 +58,16 @@ export function LearningSection({ detail }: { detail: OrgDetail | null }) {
   if (skills.length === 0) return null
   return (
     <>
-      <div className="org-detail-section">SKILLS</div>
+      <div className="org-detail-section">{t('person.skills.title')}</div>
       <div className="trait-full-grid">
         {skills.map((s) => (
           <MiniBar
             key={s.name}
-            label={s.name}
+            label={skillName(s.name)}
             value={s.level}
             valueLabel={skillRank(s.level)}
             color="#79d6b0"
-            tip="Grows with practice and by watching kin and friends who are better at it. A practised hand succeeds more often and gets more out of the same work."
+            tip={t('person.skills.tip')}
           />
         ))}
       </div>
@@ -61,17 +80,17 @@ export function ZodiacSection({ org }: { org: OrganismState }) {
     <>
       {org.zodiac && (
         <>
-          <div className="org-detail-section">BORN UNDER</div>
+          <div className="org-detail-section">{t('person.zodiac.title')}</div>
           <div className="relation-list">
             <span
               className="relation-tag"
               style={{ background: '#0e1018', color: '#9ad0f0', cursor: 'default' }}
-              title={ZODIAC_FLAVOR[org.zodiac] ?? ''}
+              title={zodiacFlavor(org.zodiac)}
             >
               {ZODIAC_GLYPH[org.zodiac] ?? '✦'} {org.zodiac}
             </span>
             <span style={{ color: '#666', fontSize: 11, marginLeft: 6, fontStyle: 'italic' }}>
-              {ZODIAC_FLAVOR[org.zodiac] ?? ''}
+              {zodiacFlavor(org.zodiac)}
             </span>
           </div>
         </>
@@ -81,54 +100,23 @@ export function ZodiacSection({ org }: { org: OrganismState }) {
 }
 
 export function TraitsSection({ org }: { org: OrganismState }) {
+  const traits: [MessageKey, MessageKey, number, string][] = [
+    ['person.traits.label.curiosity', 'person.traits.tip.curiosity', org.traits.curiosity, '#88aaff'],
+    ['person.traits.label.aggression', 'person.traits.tip.aggression', org.traits.aggression, '#ff6655'],
+    ['person.traits.label.fear', 'person.traits.tip.fear', org.traits.fear, '#ffcc44'],
+    ['person.traits.label.memory', 'person.traits.tip.memory', org.traits.memory_strength, '#aa88ff'],
+    ['person.traits.label.social', 'person.traits.tip.social', org.traits.social_tendency, '#55ddaa'],
+    ['person.traits.label.resilience', 'person.traits.tip.resilience', org.traits.resilience, '#ff8844'],
+  ]
   return (
     <>
-      <div className="org-detail-section">TRAITS</div>
+      <div className="org-detail-section">{t('person.traits.title')}</div>
       <div className="trait-full-grid">
-        {(
-          [
-            [
-              'curiosity',
-              org.traits.curiosity,
-              '#88aaff',
-              'Curiosity - drives exploration and risk-taking. High curiosity organisms wander further and discover more.',
-            ],
-            [
-              'aggression',
-              org.traits.aggression,
-              '#ff6655',
-              'Aggression - determines combat initiation and territorial behaviour. High aggression = more challenges.',
-            ],
-            [
-              'fear',
-              org.traits.fear,
-              '#ffcc44',
-              'Fear - how quickly they flee danger. High fear means early retreat; low fear means standing ground.',
-            ],
-            [
-              'memory',
-              org.traits.memory_strength,
-              '#aa88ff',
-              'Memory - how many locations they retain and how strongly. Better memory = smarter navigation.',
-            ],
-            [
-              'social',
-              org.traits.social_tendency,
-              '#55ddaa',
-              'Social tendency - drives bonding, trading, and group travel. High social organisms form tribes faster.',
-            ],
-            [
-              'resilience',
-              org.traits.resilience,
-              '#ff8844',
-              'Resilience - resistance to disease, extreme temperatures, and starvation. Longer lifespan at high values.',
-            ],
-          ] as [string, number, string, string][]
-        ).map(([label, val, col, tip]) => (
+        {traits.map(([label, tip, val, col]) => (
           <div key={label} className="trait-full-row">
-            <Tooltip tip={tip}>
+            <Tooltip tip={t(tip)}>
               <span className="trait-full-label" style={{ cursor: 'default' }}>
-                {label}
+                {t(label)}
               </span>
             </Tooltip>
             <div className="bar-track">
