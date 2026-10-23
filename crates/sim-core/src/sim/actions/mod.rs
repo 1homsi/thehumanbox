@@ -313,7 +313,7 @@ pub fn try_apply(
     // remedy: whatever health it restored is raised by up to half again.
     // Only a remedy that restored someone's health is healing practice; care
     // that heals nobody (teaching a child to walk) teaches no healing, and a
-    // failed remedy teaches a little.
+    // medicine that healed nobody counts as a failed attempt, whatever its reward.
     let r = if healing {
         let level = ctx.org().skills.level(crate::organism::skills::Skill::Healing);
         let mut healed_anyone = false;
@@ -329,7 +329,7 @@ pub fn try_apply(
             ctx.practised(crate::organism::skills::Skill::Healing, true);
             r * (1.0 + level * 0.5)
         } else {
-            if r <= 0.0 && (246..=260).contains(&action) {
+            if (246..=260).contains(&action) {
                 ctx.practised(crate::organism::skills::Skill::Healing, false);
             }
             r
