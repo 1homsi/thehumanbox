@@ -1,5 +1,6 @@
 pub mod age_stage;
 pub mod courtship;
+pub mod daily_work;
 pub mod family_outings;
 pub mod generations;
 pub mod growth;

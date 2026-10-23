@@ -144,6 +144,19 @@ fn main() {
 
         for org in sim.organisms.iter().filter(|o| o.alive) {
             *thought_freq.entry(org.thought.clone()).or_insert(0) += 1;
+            // THB_WET lists what people standing in water are doing.
+            if std::env::var("THB_WET").is_ok() {
+                let (x, y) = (org.x as i32, org.y as i32);
+                if sim.grid.get(x, y) == world::tiles::Tile::Water {
+                    *thought_freq
+                        .entry(format!("[in water] {}", org.thought))
+                        .or_insert(0) += 1;
+                }
+            }
+            if std::env::var("THB_SPLIT").is_ok() {
+                let tag = if sim.is_night() { "[night] " } else { "[day] " };
+                *thought_freq.entry(format!("{tag}{}", org.thought)).or_insert(0) += 1;
+            }
         }
 
         if t.is_multiple_of(print_every) {

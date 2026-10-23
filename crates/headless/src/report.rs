@@ -23,8 +23,13 @@ pub(super) fn print_history(sim: &Simulation, thought_freq: HashMap<String, u64>
 
     let mut freq_vec: Vec<(String, u64)> = thought_freq.into_iter().collect();
     freq_vec.sort_by_key(|e| std::cmp::Reverse(e.1));
+    // THB_TOP_THOUGHTS lists more than the default ten when digging into behaviour.
+    let top = std::env::var("THB_TOP_THOUGHTS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(10);
     println!("\nTop behaviors (thought frequency across all organism-ticks):");
-    for (thought, count) in freq_vec.iter().take(10) {
+    for (thought, count) in freq_vec.iter().take(top) {
         println!("  {:>10}  {}", count, thought);
     }
 }

@@ -29,7 +29,7 @@ function sprites(layer: SpriteLayer) {
 }
 
 describe('work poses written straight into sprites', () => {
-  const activities: WorkActivity[] = ['build', 'chop', 'mine', 'farm', 'gather', 'rest']
+  const activities: WorkActivity[] = ['build', 'chop', 'mine', 'farm', 'gather', 'hunt', 'rest']
 
   it('draw the same quads as the canvas painter through the recorder', () => {
     const canvas = recorder()
@@ -63,7 +63,7 @@ describe('work poses written straight into sprites', () => {
             checked++
           }
     }
-    expect(checked).toBe(6 * 2 * 2 * 40)
+    expect(checked).toBe(activities.length * 2 * 2 * 40)
     // The dust that flies off a tool at the top of its swing was among the cases.
     expect(dust).toBeGreaterThan(0)
   })

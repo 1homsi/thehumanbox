@@ -36,6 +36,7 @@ impl Simulation {
         // Children keep close to their mother and play near home; elders sit by the fire after dark.
         self.assign_family_outing(idx, spatial, org_idx_by_id);
         self.assign_working_day(idx);
+        self.assign_daily_work(idx);
         self.assign_service(idx);
         self.assign_speech(idx);
         self.keep_away_from_rivals(idx, org_idx_by_id);

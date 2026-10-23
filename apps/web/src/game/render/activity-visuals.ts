@@ -1,5 +1,5 @@
 /** Work poses come from current actions, never professions or planned jobs. */
-export type WorkActivity = 'build' | 'chop' | 'mine' | 'farm' | 'fish' | 'gather' | 'rest' | null
+export type WorkActivity = 'build' | 'chop' | 'mine' | 'farm' | 'fish' | 'gather' | 'hunt' | 'rest' | null
 
 const thoughtActivities = new Map<string, WorkActivity>()
 
@@ -20,7 +20,9 @@ function activityForThought(thought: string): WorkActivity {
   if (/chopping|cutting wood|gathering wood|felling/.test(t)) return 'chop'
   if (/mining|quarrying|gathering stone|digging ore/.test(t)) return 'mine'
   if (/harvesting|planting|sowing|irrigating|tending crops/.test(t)) return 'farm'
-  if (/fishing/.test(t)) return 'fish'
+  if (/fishing|caught a fish/.test(t)) return 'fish'
+  if (/stalking|tracking|caught small game|setting a trap|checking the traps|trap caught/.test(t))
+    return 'hunt'
   if (/foraging|gathering|picking berries/.test(t)) return 'gather'
   if (/sleeping|resting|dozing|napping/.test(t)) return 'rest'
   return null
@@ -58,6 +60,13 @@ export function drawWorkActivity(
     ctx.stroke()
     ctx.fillStyle = '#d99a59'
     ctx.fillRect(14, 1, 2, 2)
+  } else if (activity === 'hunt') {
+    // A spear held low and steady, its point bobbing with the stalk.
+    const bob = Math.round(Math.sin(time / 260 + phase))
+    ctx.fillStyle = '#b38b52'
+    ctx.fillRect(1, -4 + bob, 12, 1)
+    ctx.fillStyle = '#b5b5a5'
+    ctx.fillRect(13, -5 + bob, 2, 3)
   } else if (activity === 'gather' || activity === 'farm') {
     const swing = Math.sin(time / 180 + phase)
     ctx.fillStyle = '#9e703e'

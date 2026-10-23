@@ -552,3 +552,31 @@ fn someone_boxed_in_by_huts_walks_out() {
     }
     panic!("still boxed in after 30 ticks");
 }
+
+/// Someone thirsty on the bank of deep water drinks from the bank. They used
+/// to stand a step from the lake, unwilling to wade in, until they died.
+#[test]
+fn a_thirsty_person_on_the_bank_drinks_without_wading_in() {
+    let mut sim = Simulation::new(42);
+    sim.organisms.clear();
+    sim.animals.clear();
+    flatten_test_area(&mut sim, 50, 50);
+    for dy in -4..=4 {
+        for dx in 1..=6 {
+            sim.grid.set(50 + dx, 50 + dy, Tile::Water);
+            sim.grid.depth[WorldGrid::idx(50 + dx, 50 + dy)] = 0.6;
+        }
+    }
+    let mut org = autonomy_test_organism("thirsty", 50.0, 50.0);
+    org.hydration = 0.2;
+    org.energy = 0.8;
+    sim.organisms.push(org);
+    tick_first_org(&mut sim);
+    let o = &sim.organisms[0];
+    assert!(o.hydration > 0.9, "did not drink: {}", o.hydration);
+    assert_ne!(
+        sim.grid.get(o.x as i32, o.y as i32),
+        Tile::Water,
+        "waded in to drink"
+    );
+}

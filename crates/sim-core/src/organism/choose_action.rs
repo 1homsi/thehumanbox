@@ -263,6 +263,12 @@ impl Organism {
             } else {
                 14
             };
+            // At the bank: kneel and drink. Wading in for it left people dying of
+            // thirst a step from deep water they would not step into.
+            if grid.water_beside(ix, iy).is_some() {
+                set_thought!("drinking at the water's edge");
+                return (9, thought);
+            }
             if let Some(v) = self.nearest_visible(grid, Tile::Water, scan_r) {
                 set_thought!("moving to water");
                 return (self.toward(v, grid), thought);
@@ -352,6 +358,24 @@ impl Organism {
             tick < journey.expires_at && (journey.target.0 - ix).abs().max((journey.target.1 - iy).abs()) > 2
         });
 
+        // A stint of everyday work (`sim::agents::daily_work`): walk out to
+        // the spot, then do the work there until the stint ends.
+        if let Some(plan) = self
+            .work
+            .filter(|p| needs_easy && !night && !fire_dangerous && !journeying && tick < p.until)
+        {
+            // Work is done from dry land: someone who waded in on the way walks out first.
+            if plan.at_spot((ix, iy)) && !grid.is_wet(tile, ix, iy) {
+                let (action, doing) = plan.action();
+                set_thought!(doing);
+                return (action, thought);
+            }
+            if !self.route.borrow().recently_blocked(plan.spot) {
+                set_thought!(plan.walking_thought());
+                return (self.toward(plan.spot, grid), thought);
+            }
+        }
+
         if needs_easy && !night && !fire_dangerous {
             // A home no route reaches (walled in by other huts or water) is not worth carrying wood toward.
             let home_unreachable = self
@@ -413,6 +437,10 @@ impl Organism {
                 }
             }
             if self.hydration < 0.82 && self.hydration > 0.45 {
+                if grid.water_beside(ix, iy).is_some() {
+                    set_thought!("drinking at the water's edge");
+                    return (9, thought);
+                }
                 if let Some(v) = self.nearest_visible(grid, Tile::Water, 6) {
                     let dist = (v.0 - ix).abs() + (v.1 - iy).abs();
                     if dist <= 4 {
