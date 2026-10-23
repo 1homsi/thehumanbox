@@ -2,7 +2,16 @@ import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
-import { getLocale, loadLocale, LOCALES, matchLocale, nativeName, t, type Messages } from './index'
+import {
+  formatNumber,
+  getLocale,
+  loadLocale,
+  LOCALES,
+  matchLocale,
+  nativeName,
+  t,
+  type Messages,
+} from './index'
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'locales')
 const areaFiles = (code: string) => readdirSync(path.join(dir, code)).filter((file) => file.endsWith('.json'))
@@ -119,6 +128,15 @@ describe('t', () => {
     expect(t('settings.title')).not.toBe('')
     await loadLocale('en')
     expect(t('settings.title')).toBe('Settings')
+  })
+})
+
+describe('formatNumber', () => {
+  it('shows a dash for a missing or broken number instead of throwing', () => {
+    expect(formatNumber(1234)).toBe('1,234')
+    expect(formatNumber(undefined)).toBe('–')
+    expect(formatNumber(null)).toBe('–')
+    expect(formatNumber(Number.NaN)).toBe('–')
   })
 })
 

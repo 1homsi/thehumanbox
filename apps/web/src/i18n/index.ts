@@ -224,7 +224,11 @@ export function t(key: MessageKey, vars?: Vars): string {
 }
 
 /** Format a number the way the active language writes it. */
-export function formatNumber(value: number, options?: Intl.NumberFormatOptions): string {
+export function formatNumber(value: number | null | undefined, options?: Intl.NumberFormatOptions): string {
+  // Frames do not always carry every field (cold fields arrive with full
+  // frames), so a missing number shows as a dash instead of taking the
+  // interface down.
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '–'
   return value.toLocaleString(active, options)
 }
 
