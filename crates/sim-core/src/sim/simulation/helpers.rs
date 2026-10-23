@@ -77,6 +77,82 @@ pub(super) fn ordered_human_candidates(
     candidates.sort_unstable();
 }
 
+/// Open ground at least this big around someone means they are not shut in.
+const ENCLOSURE: usize = 12;
+
+/// Ground someone at (ix, iy) could walk to without passing a house: dry
+/// ground when they are in the water or partway through a wall of huts (a
+/// pond behind them is no way out), any walkable ground otherwise. Stops
+/// counting at `ENCLOSURE` tiles.
+fn open_pocket(grid: &WorldGrid, ix: i32, iy: i32) -> Vec<(i32, i32)> {
+    let here = grid.get(ix, iy);
+    let dry_only = here == Tile::Hut || grid.is_wet(here, ix, iy);
+    let open = |x: i32, y: i32| {
+        let t = grid.get(x, y);
+        t.walkable() && t != Tile::Fire && !(dry_only && grid.is_wet(t, x, y))
+    };
+    let mut pocket: Vec<(i32, i32)> = Vec::with_capacity(ENCLOSURE);
+    let mut frontier = vec![(ix, iy)];
+    while let Some((x, y)) = frontier.pop() {
+        for &(dx, dy) in &DIRECTIONS {
+            let p = (x + dx, y + dy);
+            if p != (ix, iy) && open(p.0, p.1) && !pocket.contains(&p) {
+                pocket.push(p);
+                if pocket.len() >= ENCLOSURE {
+                    return pocket;
+                }
+                frontier.push(p);
+            }
+        }
+    }
+    pocket
+}
+
+/// Someone huts were built all the way around. In the water: no dry ground to
+/// reach, as in a pond the village closed in, where they paddled between the
+/// water tiles until they drowned. On land: only a few tiles of open ground,
+/// as inside a solid block of huts, where they paced until they died of
+/// thirst. Either way they may walk out through a house. Checked only next to
+/// a house or in the water, so open country costs nothing.
+pub(super) fn walled_in(grid: &WorldGrid, ix: i32, iy: i32) -> bool {
+    let here = grid.get(ix, iy);
+    let near_a_house = here == Tile::Hut
+        || DIRECTIONS
+            .iter()
+            .any(|&(dx, dy)| grid.get(ix + dx, iy + dy) == Tile::Hut);
+    near_a_house && open_pocket(grid, ix, iy).len() < ENCLOSURE
+}
+
+/// For someone `walled_in`: the house to walk through. One that opens onto
+/// ground outside their pocket comes first, then the one most in the asked
+/// direction.
+pub(super) fn way_out_through_a_house(
+    grid: &WorldGrid,
+    ix: i32,
+    iy: i32,
+    requested_action: usize,
+) -> Option<(i32, i32)> {
+    let (rdx, rdy) = DIRECTIONS[requested_action];
+    let pocket = open_pocket(grid, ix, iy);
+    DIRECTIONS
+        .iter()
+        .map(|&(dx, dy)| (ix + dx, iy + dy, dx * rdx + dy * rdy))
+        .filter(|&(nx, ny, _)| grid.get(nx, ny) == Tile::Hut)
+        .max_by_key(|&(nx, ny, alignment)| {
+            let opens_outside = DIRECTIONS.iter().any(|&(ex, ey)| {
+                let p = (nx + ex, ny + ey);
+                let t = grid.get(p.0, p.1);
+                t.walkable()
+                    && t != Tile::Fire
+                    && !grid.is_wet(t, p.0, p.1)
+                    && p != (ix, iy)
+                    && !pocket.contains(&p)
+            });
+            (opens_outside, alignment)
+        })
+        .map(|(nx, ny, _)| (nx, ny))
+}
+
 pub(super) fn fallback_walkable_step(
     grid: &WorldGrid,
     ix: i32,
