@@ -428,7 +428,7 @@ impl Organism {
             }
             // Grass across the water is as far out of reach as food across it.
             if let Some(action) = self
-                .nearest_visible_where(grid, Tile::Grass, 8, |t| open(t))
+                .nearest_visible_where(grid, Tile::Grass, 8, open)
                 .and_then(step_dry)
             {
                 set_thought!("looking for roots");
