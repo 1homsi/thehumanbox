@@ -267,58 +267,69 @@ impl PhysicsEngine {
     }
 
     fn grow_plants(&self, grid: &mut WorldGrid, rng: &mut impl Rng) {
-        use crate::world::grid::{TrailKind, HEIGHT, WIDTH};
+        use crate::world::grid::{HEIGHT, WIDTH};
+        use crate::world::tiles::Biome;
         // Wild food sprouts slowly enough that people eat into it, and not
         // at all in winter (see `sim::seasons` for the dieback).
         let base_grow = WILD_FOOD_GROWTH * self.food_season;
         let recover_rate = 0.0018 * (self.growth_mult * 0.7).max(0.4);
         let freezing = self.season_temp < -SNOWFALL_FROST;
 
+        // Every cell, every physics step: the layers are read by index rather than through the bounds-checked
+        // accessors, in the same order and with the same draws as before.
+        let (grass, ash, snow, scorched) = (
+            Tile::Grass as i8,
+            Tile::Ash as i8,
+            Tile::Snow as i8,
+            Tile::Scorched as i8,
+        );
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
-                match grid.get(x, y) {
-                    Tile::Grass => {
-                        if freezing {
-                            let chance =
-                                snowfall_chance(grid.biome_at(x, y), grid.temp_at(x, y), self.season_temp);
-                            if chance > 0.0 && rng.random::<f32>() < chance {
-                                grid.set(x, y, Tile::Snow);
-                                continue;
-                            }
-                        }
-                        let trail = grid.trail_at(x, y, TrailKind::Food);
-                        let trail_boost = 1.0 + trail * 1.2;
-                        let fertility = grid.fertility[WorldGrid::idx(x, y)];
-                        let grow_rate = base_grow * grid.biome_growth_mult(x, y) * trail_boost * fertility;
-                        if rng.random::<f32>() < grow_rate {
-                            grid.set(x, y, Tile::Food);
+                let i = WorldGrid::idx(x, y);
+                let tile = grid.tiles[i];
+                if tile == grass {
+                    if freezing {
+                        let chance = snowfall_chance(
+                            Biome::from_u8(grid.biome[i]),
+                            grid.temperature[i],
+                            self.season_temp,
+                        );
+                        if chance > 0.0 && rng.random::<f32>() < chance {
+                            grid.tiles[i] = snow;
+                            continue;
                         }
                     }
-                    Tile::Ash if rng.random::<f32>() < recover_rate => {
-                        grid.set(x, y, Tile::Grass);
-                        grid.enrich_soil(x, y, ash_soil_bonus(grid.biome_at(x, y)));
+                    let trail_boost = 1.0 + grid.food_trail[i] * 1.2;
+                    let fertility = grid.fertility[i];
+                    let grow_rate = base_grow
+                        * Biome::from_u8(grid.biome[i]).food_growth_mult()
+                        * trail_boost
+                        * fertility;
+                    if rng.random::<f32>() < grow_rate {
+                        grid.tiles[i] = Tile::Food as i8;
                     }
+                } else if tile == ash {
+                    if rng.random::<f32>() < recover_rate {
+                        grid.tiles[i] = grass;
+                        grid.enrich_soil(x, y, ash_soil_bonus(Biome::from_u8(grid.biome[i])));
+                    }
+                } else if tile == snow {
                     // Snow melts where the land is warm enough, and waters
                     // the soil under it. Peaks and tundra keep theirs.
-                    Tile::Snow => {
-                        let chance =
-                            snow_melt_chance(grid.biome_at(x, y), grid.temp_at(x, y), self.season_temp);
-                        if chance > 0.0 && rng.random::<f32>() < chance {
-                            grid.set(x, y, thawed_tile(grid.biome_at(x, y)));
-                            grid.restore_fertility(x, y, MELTWATER);
-                        }
+                    let biome = Biome::from_u8(grid.biome[i]);
+                    let chance = snow_melt_chance(biome, grid.temperature[i], self.season_temp);
+                    if chance > 0.0 && rng.random::<f32>() < chance {
+                        grid.tiles[i] = thawed_tile(biome) as i8;
+                        grid.restore_fertility(x, y, MELTWATER);
                     }
+                } else if tile == scorched {
                     // Blighted and burned-black ground greens again as its
                     // soil comes back: slowly, and slower still on poor soil.
-                    Tile::Scorched => {
-                        let i = WorldGrid::idx(x, y);
-                        let cap = grid.biome_at(x, y).base_fertility().max(0.05);
-                        let health = (grid.fertility[i] / cap).clamp(0.15, 1.0);
-                        if rng.random::<f32>() < recover_rate * SCORCHED_RECOVERY * health {
-                            grid.set(x, y, Tile::Grass);
-                        }
+                    let cap = Biome::from_u8(grid.biome[i]).base_fertility().max(0.05);
+                    let health = (grid.fertility[i] / cap).clamp(0.15, 1.0);
+                    if rng.random::<f32>() < recover_rate * SCORCHED_RECOVERY * health {
+                        grid.tiles[i] = grass;
                     }
-                    _ => {}
                 }
             }
         }
