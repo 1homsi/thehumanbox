@@ -10,6 +10,7 @@ import {
   hipRoof,
   outline,
   px,
+  sideWidth,
   timberFrame,
   wallTexture,
   windowGlow,
@@ -160,13 +161,18 @@ function paintLongCottage(p: P) {
   const roof = hueShift(['#7f4a33', '#5b6258', '#9c8448'][style], (rng() - 0.5) * 12)
   hipRoof(p, x0, wallY, w, Math.max(4, Math.round(h * 0.3)), roof)
   chimney(p, x0 + Math.round(w * (rng() < 0.5 ? 0.28 : 0.62)), wallY - h * 0.22, 5)
-  // Door to one side, a window in each bay the wall is wide enough for.
+  // Door to one side, a window in each bay the front face has room for on the other side of it (the side wall
+  // in shade is not part of the front, so a window never runs onto the corner).
   const doorRight = rng() < 0.5
   const doorX = x0 + w * (doorRight ? 0.7 : 0.3)
-  door(p, doorX, y1, Math.max(3, w * 0.15), wallH * 0.66)
+  const doorW = Math.max(3, w * 0.15)
+  door(p, doorX, y1, doorW, wallH * 0.66)
   const wy = wallY + Math.max(2, Math.round(wallH * 0.28))
-  const bays = w >= 20 ? [0.12, 0.4] : [0.16]
-  for (const wx of bays.map((b) => x0 + Math.round(w * (doorRight ? b : 0.84 - b - 3 / w)))) {
+  const front = w - sideWidth(w)
+  const bays = doorRight
+    ? (w >= 20 ? [0.12, 0.4] : [0.16]).map((b) => x0 + Math.round(w * b))
+    : [0, 6].map((k) => Math.round(doorX + doorW / 2 + 2) + k).filter((wx) => wx + 3 <= x0 + front - 1)
+  for (const wx of bays) {
     windowGlow(p, wx, wy, 3, 3)
     px(p.ctx, wx, wy + 3, 3, 1, shade(base, 0.6))
   }
