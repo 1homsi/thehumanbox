@@ -194,18 +194,30 @@ function isPlural(node: string | Messages | undefined): node is PluralForms {
   return typeof node === 'object' && typeof node.other === 'string'
 }
 
-function pick(
-  table: Messages,
-  key: string,
-  vars: Vars | undefined,
-  rules: Intl.PluralRules,
-): string | undefined {
+/**
+ * The number a `count` stands for. Callers usually pass `formatNumber(n)`, so the text is read back
+ * with the active language's grouping and decimal marks ("1,021", "1 021", "1.021"); a plain number
+ * is used as it is.
+ */
+export function countValue(raw: string | number | undefined, locale: string): number {
+  if (raw === undefined) return 0
+  if (typeof raw === 'number') return raw
+  // A probe with more digits than any locale's minimum grouping: at 1,111.5 Spanish and Polish write no
+  // group mark, so 10,000 and 1,000,000 (which they do group) would read back as NaN.
+  const parts = new Intl.NumberFormat(locale).formatToParts(-1111111.5)
+  const group = parts.find((p) => p.type === 'group')?.value ?? ''
+  const decimal = parts.find((p) => p.type === 'decimal')?.value ?? '.'
+  // Spaces include the no-break ones some languages group with.
+  let digits = raw.replace(/\s/g, '')
+  if (group.trim()) digits = digits.split(group).join('')
+  if (decimal !== '.') digits = digits.split(decimal).join('.')
+  return digits === '' ? Number.NaN : Number(digits)
+}
+
+function pick(table: Messages, key: string, count: number, rules: Intl.PluralRules): string | undefined {
   const node = lookup(table, key)
   if (typeof node === 'string') return node
-  if (isPlural(node)) {
-    const count = Number(vars?.count ?? 0)
-    return node[rules.select(count)] ?? node.other
-  }
+  if (isPlural(node)) return node[rules.select(count)] ?? node.other
   return undefined
 }
 
@@ -216,9 +228,10 @@ function interpolate(text: string, vars: Vars | undefined): string {
 
 /** The interface text for `key` in the active language, with `{name}` placeholders filled. */
 export function t(key: MessageKey, vars?: Vars): string {
+  const count = countValue(vars?.count, active)
   const text =
-    pick(messages, key, vars, pluralRules) ??
-    pick(en as Messages, key, vars, new Intl.PluralRules(SOURCE_LOCALE)) ??
+    pick(messages, key, count, pluralRules) ??
+    pick(en as Messages, key, count, new Intl.PluralRules(SOURCE_LOCALE)) ??
     key
   return interpolate(text, vars)
 }

@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  countValue,
   formatNumber,
   getLocale,
   loadLocale,
@@ -137,6 +138,53 @@ describe('formatNumber', () => {
     expect(formatNumber(undefined)).toBe('–')
     expect(formatNumber(null)).toBe('–')
     expect(formatNumber(Number.NaN)).toBe('–')
+  })
+})
+
+describe('plural forms', () => {
+  afterEach(async () => {
+    await loadLocale('en')
+  })
+
+  // Callers pass the count already formatted with formatNumber ("1,021" in English), and the plural
+  // must still come from the number that text stands for. Russian's "one" form covers 1, 21, 1,021.
+  it('picks the plural form of a formatted count, not of its text', async () => {
+    await loadLocale('ru')
+    expect(t('dialogs.civ.trade.routes', { count: formatNumber(1021) })).toBe(`${formatNumber(1021)} маршрут`)
+    expect(t('dialogs.civ.trade.routes', { count: formatNumber(1022) })).toBe(
+      `${formatNumber(1022)} маршрута`,
+    )
+    expect(t('dialogs.civ.trade.routes', { count: formatNumber(5005) })).toBe(
+      `${formatNumber(5005)} маршрутов`,
+    )
+    expect(t('dialogs.civ.trade.routes', { count: formatNumber(3) })).toBe('3 маршрута')
+  })
+
+  it('reads a count written with another language grouping mark', async () => {
+    await loadLocale('de')
+    expect(formatNumber(1021)).toContain('.')
+    expect(t('dialogs.civ.trade.routes', { count: formatNumber(1021) })).toBe(`${formatNumber(1021)} Routen`)
+    expect(t('dialogs.civ.trade.routes', { count: formatNumber(1) })).toBe('1 Route')
+  })
+
+  it('keeps the plural of a plain number', async () => {
+    await loadLocale('ru')
+    expect(t('dialogs.civ.trade.routes', { count: 1021 })).toBe('1021 маршрут')
+  })
+})
+
+describe('countValue', () => {
+  // Spanish groups seven-digit numbers but not four-digit ones; the probe must find its mark anyway.
+  it('reads the grouping of a language that groups only large numbers', () => {
+    expect(countValue('1.000.000', 'es')).toBe(1000000)
+  })
+
+  it('reads plain, grouped and missing counts', () => {
+    expect(countValue('1,021', 'en')).toBe(1021)
+    expect(countValue('10 021', 'pl')).toBe(10021)
+    expect(countValue(7, 'en')).toBe(7)
+    expect(countValue(undefined, 'en')).toBe(0)
+    expect(countValue('–', 'en')).toBeNaN()
   })
 })
 
