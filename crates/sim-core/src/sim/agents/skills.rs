@@ -62,7 +62,12 @@ impl Simulation {
                     && (o.x - wx).abs() + (o.y - wy).abs() <= WATCH_REACH
                     && o.age_stage() != AgeStage::Infant
                     && o.skills.level(skill) + 0.05 < level
-                    && (o.lineage_id == worker_lineage || o.friends.contains_key(&worker_id))
+                    // Their own child learns from them whichever line the child
+                    // was born into.
+                    && (o.lineage_id == worker_lineage
+                        || o.friends.contains_key(&worker_id)
+                        || o.parent_id == worker_id
+                        || o.father_id.as_deref() == Some(worker_id.as_str()))
             })
             .take(MAX_WATCHERS)
             .collect();
@@ -166,6 +171,27 @@ mod tests {
         );
         let first = sim.organisms[1].life_log.iter().find(|e| e.category == "learned");
         assert!(first.is_some_and(|e| e.related_id.as_deref() == Some(sim.organisms[0].id.as_str())));
+    }
+
+    #[test]
+    fn a_child_born_into_another_line_still_learns_from_their_father() {
+        let mut sim = village();
+        sim.organisms[0].skills.set(Skill::Fishing, 0.8);
+        let father = sim.organisms[0].id.clone();
+        for i in [1, 2] {
+            sim.organisms[i].lineage_id = "mothers_line".into();
+            sim.organisms[i].friends.clear();
+        }
+        sim.organisms[1].father_id = Some(father);
+        for _ in 0..20 {
+            sim.practise_skill(0, Skill::Fishing, true, &[1, 2]);
+        }
+        assert!(sim.organisms[1].skills.level(Skill::Fishing) > 0.05);
+        assert_eq!(
+            sim.organisms[2].skills.level(Skill::Fishing),
+            0.0,
+            "a stranger learned"
+        );
     }
 
     #[test]
