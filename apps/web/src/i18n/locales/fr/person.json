@@ -167,7 +167,15 @@
       "healing": "soins"
     },
     "enjoys": "aime {list}",
-    "avoids": "évite {list} depuis une blessure"
+    "avoids": "évite {list} depuis une blessure",
+    "lessonTip": "Une mort dont il a été témoin le lui a appris. Cela s'estompe avec les années, et ses enfants en héritent une part.",
+    "lessons": {
+      "water": "se méfie de l'eau profonde depuis une noyade",
+      "hunger": "mange avant d'avoir faim depuis une mort de faim",
+      "thirst": "garde de l'eau à portée depuis une mort de soif",
+      "beasts": "évite les bêtes sauvages depuis que l'une a tué quelqu'un",
+      "fire": "se tient loin du feu depuis que quelqu'un a brûlé"
+    }
   },
   "zodiac": {
     "title": "NÉ SOUS",

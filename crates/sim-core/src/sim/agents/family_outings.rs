@@ -189,6 +189,26 @@ impl Simulation {
             pupil.literacy = (pupil.literacy + LESSON_LITERACY).min(1.0);
         }
         self.pass_on_the_old_ways(idx, &pupils);
+        self.tell_of_a_loss(idx, &pupils);
+    }
+
+    /// An elder who still heeds what a death taught them tells the children
+    /// of it, and the children take a share of the caution.
+    fn tell_of_a_loss(&mut self, idx: usize, pupils: &[usize]) {
+        use crate::organism::lessons::TOLD;
+        let Some(&lesson) = self.organisms[idx].lessons.heeded().first() else {
+            return;
+        };
+        if pupils.is_empty() {
+            return;
+        }
+        let told = self.organisms[idx].lessons.strength(lesson) * TOLD;
+        let tick = self.tick_count;
+        let thought = format!("telling the children of {}", lesson.told_as());
+        self.organisms[idx].think(&thought, tick);
+        for &p in pupils {
+            self.organisms[p].lessons.learn(lesson, told);
+        }
     }
 
     /// A skilled elder tells the children by the fire how the work is done: half
@@ -401,6 +421,30 @@ mod tests {
         let learned = sim.organisms[child].skills.level(Skill::Fishing);
         assert!(learned > 0.01 && learned < 0.8, "{learned}");
         assert_eq!(told(&sim), 1, "and only the first");
+    }
+
+    #[test]
+    fn an_elder_who_saw_a_drowning_tells_the_children_and_they_grow_wary() {
+        use crate::organism::lessons::{Lesson, HEEDED};
+        let mut sim = open_ground();
+        let (elder, child) = (0, 1);
+        place(&mut sim, elder, 103.0, 100.0);
+        sim.organisms[elder].age = 3000;
+        sim.organisms[elder].max_age = 4000;
+        sim.organisms[elder].lessons = Default::default();
+        sim.organisms[elder].lessons.learn(Lesson::Water, 1.0);
+        make_child(&mut sim, child, elder);
+        sim.organisms[child].lessons = Default::default();
+        sim.organisms[child].x = 104.0;
+        sim.organisms[child].y = 101.0;
+        sim.grid.set(104, 100, Tile::Campfire);
+        let spatial = crate::sim::spatial::SpatialIndex::build(&sim.organisms, 10);
+        sim.teach_by_the_fire(elder, &spatial);
+        assert!(sim.organisms[child].lessons.strength(Lesson::Water) >= HEEDED);
+        assert_eq!(
+            sim.organisms[elder].thought,
+            "telling the children of the drowning"
+        );
     }
 
     #[test]

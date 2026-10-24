@@ -106,9 +106,34 @@ fn main() {
         w
     });
 
+    // THB_DEATHS=<cause> prints the last thoughts of everyone who dies of it.
+    let death_probe = std::env::var("THB_DEATHS").ok();
+    let mut reported: std::collections::HashSet<String> = std::collections::HashSet::new();
     while sim.tick_count < max_ticks {
         let t0 = std::time::Instant::now();
         sim.tick();
+        if let Some(cause) = death_probe.as_deref() {
+            for o in sim
+                .organisms
+                .iter()
+                .filter(|o| !o.alive && o.death_cause == cause)
+            {
+                if !reported.insert(o.id.clone()) {
+                    continue;
+                }
+                let last: Vec<&str> = o
+                    .thought_history
+                    .iter()
+                    .rev()
+                    .take(8)
+                    .map(|t| t.text.as_str())
+                    .collect();
+                println!(
+                    "DEATH t{} {} age {} at ({:.0},{:.0}): {:?}",
+                    sim.tick_count, o.name, o.age, o.x, o.y, last
+                );
+            }
+        }
         let tick_us = t0.elapsed().as_micros() as u64;
         tick_times_us.push(tick_us);
         let t = sim.tick_count;

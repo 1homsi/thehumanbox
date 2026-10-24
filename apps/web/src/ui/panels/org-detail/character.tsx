@@ -46,6 +46,14 @@ const SKILL_NAMES: Record<string, MessageKey> = {
   healing: 'person.skills.name.healing',
 }
 
+const LESSONS: Record<string, MessageKey> = {
+  water: 'person.skills.lessons.water',
+  hunger: 'person.skills.lessons.hunger',
+  thirst: 'person.skills.lessons.thirst',
+  beasts: 'person.skills.lessons.beasts',
+  fire: 'person.skills.lessons.fire',
+}
+
 /** A skill's name in the interface language; one the interface does not know stays as the simulation sent it. */
 function skillName(name: string): string {
   const key = SKILL_NAMES[name]
@@ -62,7 +70,8 @@ export function LearningSection({ detail }: { detail: OrgDetail | null }) {
   const skills = all.filter((s) => s.level >= 0.05).slice(0, 6)
   const enjoys = all.filter((s) => (s.feeling ?? 0) >= ENJOYS).map((s) => skillName(s.name))
   const avoids = all.filter((s) => (s.feeling ?? 0) <= AVOIDS).map((s) => skillName(s.name))
-  if (skills.length === 0 && avoids.length === 0) return null
+  const lessons = (detail?.lessons ?? []).flatMap((l) => (LESSONS[l] ? [LESSONS[l]] : []))
+  if (skills.length === 0 && avoids.length === 0 && lessons.length === 0) return null
   return (
     <>
       <div className="org-detail-section">{t('person.skills.title')}</div>
@@ -88,6 +97,16 @@ export function LearningSection({ detail }: { detail: OrgDetail | null }) {
           {t('person.skills.avoids', { list: avoids.join(', ') })}
         </div>
       )}
+      {lessons.map((key) => (
+        <div
+          key={key}
+          className="trait-full-row"
+          style={{ color: '#9ad0f0', fontSize: 11 }}
+          title={t('person.skills.lessonTip')}
+        >
+          {t(key)}
+        </div>
+      ))}
     </>
   )
 }

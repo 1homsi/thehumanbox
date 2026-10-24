@@ -313,7 +313,11 @@ impl Simulation {
             let inherited_disc: Vec<String> = self.organisms[idx].discoveries.iter().cloned().collect();
 
             let dead_id = self.organisms[idx].id.clone();
+            let lesson = crate::organism::lessons::Lesson::of_death(&self.organisms[idx].death_cause);
             for gi in &grievers {
+                if let Some(lesson) = lesson {
+                    self.take_lesson(*gi, idx, lesson, (dx, dy));
+                }
                 let ms = self.organisms[*gi].traits.memory_strength;
                 Organism::remember(&mut self.organisms[*gi].danger_memory, dx, dy, 0.65, ms);
                 self.organisms[*gi].fear_level = (self.organisms[*gi].fear_level + 0.22).min(1.0);

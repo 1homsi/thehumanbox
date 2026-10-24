@@ -167,7 +167,15 @@
       "healing": "Heilen"
     },
     "enjoys": "mag {list}",
-    "avoids": "meidet {list}, seit es dabei verletzt wurde"
+    "avoids": "meidet {list}, seit es dabei verletzt wurde",
+    "lessonTip": "Ein Tod, den sie mitansahen, hat sie das gelehrt. Es verblasst mit den Jahren, und ihre Kinder wachsen mit einem Teil davon auf.",
+    "lessons": {
+      "water": "meidet tiefes Wasser seit einem Ertrinken",
+      "hunger": "isst, bevor der Hunger kommt, seit jemand verhungerte",
+      "thirst": "hält Wasser in der Nähe, seit jemand verdurstete",
+      "beasts": "geht wilden Tieren weit aus dem Weg, seit eines jemanden tötete",
+      "fire": "hält Abstand vom Feuer, seit jemand verbrannte"
+    }
   },
   "zodiac": {
     "title": "GEBOREN UNTER",

@@ -167,7 +167,15 @@
       "healing": "cura"
     },
     "enjoys": "ama {list}",
-    "avoids": "evita {list} dopo un infortunio"
+    "avoids": "evita {list} dopo un infortunio",
+    "lessonTip": "Una morte a cui ha assistito glielo ha insegnato. Svanisce con gli anni, e i figli ne crescono con una parte.",
+    "lessons": {
+      "water": "diffida dell'acqua profonda da quando ha visto un annegamento",
+      "hunger": "mangia prima di avere fame da quando qualcuno è morto di fame",
+      "thirst": "tiene l'acqua vicina da quando qualcuno è morto di sete",
+      "beasts": "sta alla larga dalle bestie da quando una ha ucciso qualcuno",
+      "fire": "sta lontano dal fuoco da quando qualcuno è bruciato"
+    }
   },
   "zodiac": {
     "title": "NATO SOTTO",

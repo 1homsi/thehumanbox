@@ -13,7 +13,11 @@ impl Simulation {
 
         let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
         let fear_trait = self.organisms[idx].traits.fear;
-        let wolf_flee_radius = 6.0 + fear_trait * 8.0;
+        // Someone who saw a person killed by a beast flees from further off.
+        let beast_wary = self.organisms[idx]
+            .lessons
+            .heeds(crate::organism::lessons::Lesson::Beasts);
+        let wolf_flee_radius = 6.0 + fear_trait * 8.0 + beast_wary * 6.0;
 
         // Animal positions are stable until tick_animals, after all human
         // actions. Query only local candidates, in original animal order.

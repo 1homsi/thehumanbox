@@ -167,7 +167,15 @@
       "healing": "cura"
     },
     "enjoys": "gosta de {list}",
-    "avoids": "evita {list} desde que se machucou"
+    "avoids": "evita {list} desde que se machucou",
+    "lessonTip": "Uma morte que presenciou ensinou isso. Vai se apagando com os anos, e os filhos crescem com parte disso.",
+    "lessons": {
+      "water": "tem medo de água funda desde um afogamento",
+      "hunger": "come antes da fome chegar desde que alguém morreu de fome",
+      "thirst": "mantém água por perto desde que alguém morreu de sede",
+      "beasts": "fica longe das feras desde que uma matou alguém",
+      "fire": "fica longe do fogo desde que alguém queimou"
+    }
   },
   "zodiac": {
     "title": "NASCIDO SOB",
