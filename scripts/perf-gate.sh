@@ -30,21 +30,19 @@ if [[ ! -x "$BIN" ]]; then
   exit 2
 fi
 
-# Seeds are independent, so run them at once (CI runners have several
-# cores) and check each profile afterwards. The long run goes in the same
-# batch so it does not add to the wall time of the short ones.
-pids=()
+# One run at a time. Running the four at once on a CI runner (two cores, four threads) made them share
+# cores with each other, and the same code measured anywhere from 5.1 to 8.5 ms a tick on seed 42 from one
+# run to the next: the gate failed main itself. Alone, a run is timed on a core of its own.
+run_one() {
+  local seed=$1 ticks=$2
+  "$BIN" --seed "$seed" --ticks "$ticks" --every "$ticks" \
+    --profile "$TMPDIR/$seed-$ticks.csv" --profile-every "$PROFILE_EVERY" >"$TMPDIR/$seed-$ticks.out" ||
+    { echo "headless run failed (seed $seed, $ticks ticks)" >&2; exit 1; }
+}
 for seed in $SEEDS; do
-  "$BIN" --seed "$seed" --ticks "$TICKS" --every "$TICKS" \
-    --profile "$TMPDIR/$seed-$TICKS.csv" --profile-every "$PROFILE_EVERY" >"$TMPDIR/$seed-$TICKS.out" &
-  pids+=("$!")
+  run_one "$seed" "$TICKS"
 done
-"$BIN" --seed "$LONG_SEED" --ticks "$LONG_TICKS" --every "$LONG_TICKS" \
-  --profile "$TMPDIR/$LONG_SEED-$LONG_TICKS.csv" --profile-every "$PROFILE_EVERY" >"$TMPDIR/$LONG_SEED-$LONG_TICKS.out" &
-pids+=("$!")
-for pid in "${pids[@]}"; do
-  wait "$pid" || { echo "headless run failed (pid $pid)" >&2; exit 1; }
-done
+run_one "$LONG_SEED" "$LONG_TICKS"
 
 # check_run <seed> <ticks> <max_tick_ms> <max_p99_ms> <max_mean_ms>
 check_run() {
