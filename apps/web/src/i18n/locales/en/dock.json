@@ -628,8 +628,14 @@
     "close": "Close tool search",
     "placeholder": "Try water, heal, grass, pause…",
     "inputAria": "Find a world tool",
-    "found": "{count} tools found · choose a tool to continue",
-    "available": "{count} tools available · choose a tool to continue",
+    "found": {
+      "one": "{count} tool found · choose a tool to continue",
+      "other": "{count} tools found · choose a tool to continue"
+    },
+    "available": {
+      "one": "{count} tool available · choose a tool to continue",
+      "other": "{count} tools available · choose a tool to continue"
+    },
     "placeOnMap": "place on the map",
     "applyNow": "apply immediately",
     "empty": "No matching tools. Try a terrain type, animal, map layer, or time control."

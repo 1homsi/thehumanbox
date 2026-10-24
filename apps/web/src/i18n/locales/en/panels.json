@@ -266,8 +266,14 @@
     "onBrink": "on the brink: {line} of {peak}, {reason}",
     "atWar": "at war with {enemies}",
     "makePeace": "make peace",
-    "granary": "granary: {count} measures of grain",
-    "bakery": "bakery: {count} loaves",
+    "granary": {
+      "one": "granary: {count} measure of grain",
+      "other": "granary: {count} measures of grain"
+    },
+    "bakery": {
+      "one": "bakery: {count} loaf",
+      "other": "bakery: {count} loaves"
+    },
     "pen": "pen: {count} head of livestock",
     "lostLately": "lost lately: {losses}",
     "oldest": "oldest living: {line}",
@@ -287,7 +293,10 @@
     "teach": "teach",
     "teachTitle": "Teach them the next secret they lack (once a season)",
     "stillToLearn": "still to learn: {list}",
-    "needsPeople": "needs {count} more people",
+    "needsPeople": {
+      "one": "needs {count} more person",
+      "other": "needs {count} more people"
+    },
     "praying": "praying",
     "help": "help",
     "lore": {
