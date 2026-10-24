@@ -316,7 +316,9 @@ impl Simulation {
             let lesson = crate::organism::lessons::Lesson::of_death(&self.organisms[idx].death_cause);
             // Anyone close enough to see it learns from it, mourner or not: a
             // stranger from another tribe who watched the drowning is warier too.
+            // Close kin far away hear of it.
             if let Some(lesson) = lesson {
+                let dead = &self.organisms[idx];
                 let witnesses: Vec<usize> = self
                     .organisms
                     .iter()
@@ -325,7 +327,8 @@ impl Simulation {
                         i != idx
                             && o.alive
                             && !griever_set.contains(&i)
-                            && (o.x as i32 - dx).abs() + (o.y as i32 - dy).abs() <= 12
+                            && ((o.x as i32 - dx).abs() + (o.y as i32 - dy).abs() <= 12
+                                || crate::sim::agents::lessons::close_kin(o, dead))
                     })
                     .map(|(i, _)| i)
                     .collect();

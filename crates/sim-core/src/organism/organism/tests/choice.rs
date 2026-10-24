@@ -746,3 +746,50 @@ fn someone_too_weak_to_swim_does_not_wade_toward_food_across_the_water() {
         }
     }
 }
+
+#[test]
+fn someone_who_saw_a_burning_flees_a_fire_even_at_night() {
+    use crate::organism::lessons::Lesson;
+    let mut rng = StdRng::seed_from_u64(13);
+    let traits = Traits::random(&mut rng);
+    let mut grid = WorldGrid::new(4);
+    for x in 30..=70 {
+        for y in 30..=70 {
+            grid.set(x, y, Tile::Grass);
+        }
+    }
+    grid.set(52, 50, Tile::Fire);
+    let mut org = Organism::new(
+        "wary".into(),
+        "Wary".into(),
+        50.0,
+        50.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    org.energy = 0.9;
+    org.hydration = 0.9;
+    org.traits.fear = 0.0;
+    org.lessons.learn(Lesson::Fire, 1.0);
+    let (action, thought) = org.choose_action(
+        &grid,
+        &BuildingList::new(),
+        100,
+        0.0,
+        &[],
+        true,
+        0,
+        &mut rng,
+        false,
+        "state",
+        &[0, 1, 2, 3, 4, 5, 6, 7],
+    );
+    assert_eq!(thought.as_deref(), Some("heat dangerous"));
+    assert!(
+        crate::organism::organism::DIRECTIONS[action].0 < 0,
+        "steps away from the fire"
+    );
+}

@@ -214,7 +214,7 @@ impl Organism {
         if !critical && fire_dangerous {
             set_thought!("heat dangerous");
             if let Some((fx, fy)) = fire_tile {
-                if !night {
+                if !night || self.lessons.heeds(Lesson::Fire) > 0.0 {
                     let tdx = ix - fx;
                     let tdy = iy - fy;
                     return (self.toward((ix + tdx * 3, iy + tdy * 3), grid), thought);

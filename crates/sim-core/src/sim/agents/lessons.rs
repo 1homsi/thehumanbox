@@ -11,6 +11,24 @@ const SAW_IT: i32 = 12;
 /// How much less a lesson weighs when only heard of from afar.
 const HEARD_OF_IT: f32 = 0.75;
 
+/// Partner, parent, child, brother or sister.
+pub(crate) fn close_kin(
+    w: &crate::organism::organism::Organism,
+    d: &crate::organism::organism::Organism,
+) -> bool {
+    let real = |id: &str| !id.is_empty() && id != "genesis";
+    let siblings = (real(&w.parent_id) && w.parent_id == d.parent_id)
+        || w.father_id
+            .as_deref()
+            .is_some_and(|f| real(f) && d.father_id.as_deref() == Some(f));
+    w.partner_id.as_deref() == Some(d.id.as_str())
+        || w.parent_id == d.id
+        || w.father_id.as_deref() == Some(d.id.as_str())
+        || d.parent_id == w.id
+        || d.father_id.as_deref() == Some(w.id.as_str())
+        || siblings
+}
+
 impl Simulation {
     /// `witness` mourns `dead`, who died at `at` in a way that teaches `lesson`.
     pub(crate) fn take_lesson(&mut self, witness: usize, dead: usize, lesson: Lesson, at: (i32, i32)) {
@@ -19,17 +37,7 @@ impl Simulation {
             return;
         }
         let saw_it = (w.x as i32 - at.0).abs() + (w.y as i32 - at.1).abs() <= SAW_IT;
-        let real = |id: &str| !id.is_empty() && id != "genesis";
-        let siblings = (real(&w.parent_id) && w.parent_id == d.parent_id)
-            || w.father_id
-                .as_deref()
-                .is_some_and(|f| real(f) && d.father_id.as_deref() == Some(f));
-        let kin = w.partner_id.as_deref() == Some(d.id.as_str())
-            || w.parent_id == d.id
-            || w.father_id.as_deref() == Some(d.id.as_str())
-            || d.parent_id == w.id
-            || d.father_id.as_deref() == Some(w.id.as_str())
-            || siblings;
+        let kin = close_kin(w, d);
         let strength = match (saw_it, kin) {
             (true, true) => FROM_KIN,
             (true, false) => FROM_NEIGHBOUR,
@@ -123,6 +131,19 @@ mod tests {
         sim.tick();
         assert_eq!(sim.organisms[0].death_cause, "starvation");
         assert!(sim.organisms[2].lessons.heeds(Lesson::Hunger) > 0.0);
+    }
+
+    #[test]
+    fn a_parent_far_away_hears_of_it() {
+        let mut sim = tribe();
+        let parent = sim.organisms[3].id.clone();
+        sim.organisms[0].parent_id = parent;
+        sim.organisms[3].x = 95.0;
+        sim.organisms[0].energy = 0.0;
+        sim.organisms[0].hydration = 0.9;
+        sim.tick();
+        assert_eq!(sim.organisms[0].death_cause, "starvation");
+        assert!(sim.organisms[3].lessons.heeds(Lesson::Hunger) > 0.0);
     }
 
     #[test]
