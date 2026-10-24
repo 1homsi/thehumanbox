@@ -1,101 +1,146 @@
-pub(crate) fn directive_aligns_action(directive: &str, action: usize) -> bool {
-    match directive {
-        "seek_food" | "forage" => {
-            matches!(action, 8 | 19 | 26..=38 | 141..=150 | 336..=355 | 1140..=1189)
+/// A directive's name, read once: a decision tests hundreds of actions against the active directive, and
+/// matching the name against every directive for each of them was string comparison in the innermost loop.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Directive {
+    Food,
+    Water,
+    Roam,
+    Socialize,
+    Flee,
+    Fight,
+    Hunt,
+    Defend,
+    Trade,
+    Rest,
+    Isolate,
+    SeekHelp,
+    Settle,
+}
+
+impl Directive {
+    /// The directive a name stands for; `None` for a name that steers nothing.
+    pub(crate) fn parse(name: &str) -> Option<Self> {
+        match name {
+            "seek_food" | "forage" => Some(Directive::Food),
+            "seek_water" => Some(Directive::Water),
+            "explore" | "wander" | "migrate" => Some(Directive::Roam),
+            "socialize" => Some(Directive::Socialize),
+            "flee" => Some(Directive::Flee),
+            "fight" => Some(Directive::Fight),
+            "hunt" => Some(Directive::Hunt),
+            "defend" => Some(Directive::Defend),
+            "trade" => Some(Directive::Trade),
+            "rest" => Some(Directive::Rest),
+            "isolate" => Some(Directive::Isolate),
+            "seek_help" => Some(Directive::SeekHelp),
+            "settle" => Some(Directive::Settle),
+            _ => None,
         }
-        "seek_water" => matches!(action, 9 | 18 | 166..=180 | 1320..=1369),
-        "explore" | "wander" | "migrate" => matches!(
-            action,
-            0..=7
-                | 24
-                | 117..=123
-                | 211..=220
-                | 900..=949
-                | 1440..=1489
-                | 2168..=2169
-                | 2198..=2202
-                | 4200..=4249
-                | 4440..=4609
-        ),
-        "socialize" => matches!(action, 10 | 13 | 80..=95 | 181..=200 | 226..=245),
-        "flee" => matches!(action, 0..=7 | 11 | 17),
-        "fight" => matches!(
-            action,
-            12
-                | 96..=99
-                | 102
-                | 106
-                | 193..=194
-                | 198
-                | 436..=439
-                | 442..=446
-                | 448
-                | 451..=453
-                | 455
-                | 3660..=3709
-        ),
-        "hunt" => matches!(
-            action,
-            28 | 121..=123 | 2179..=2189 | 2203..=2208 | 5820..=5869
-        ),
-        "defend" => matches!(
-            action,
-            11
-                | 39
-                | 44
-                | 48
-                | 50
-                | 100..=101
-                | 103..=105
-                | 169
-                | 179
-                | 191..=192
-                | 195..=197
-                | 199..=200
-                | 440..=441
-                | 447
-                | 449..=450
-                | 454
-                | 537
-                | 3660..=3709
-        ),
-        "trade" => matches!(
-            action,
-            94
-                | 276..=295
-                | 1680..=1729
-                | 2700..=2749
-                | 3180..=3229
-                | 5100..=5149
-                | 5220..=5269
-                | 5460..=5509
-        ),
-        "rest" => matches!(action, 17 | 107..=116 | 221..=225),
-        "isolate" => matches!(action, 0..=7 | 17),
-        "seek_help" => matches!(action, 10 | 11 | 107..=116 | 181..=190),
-        "settle" => matches!(
-            action,
-            14..=15
-                | 17
-                | 30..=31
-                | 35..=50
-                | 146..=147
-                | 166..=180
-                | 536..=537
-                | 540..=589
-                | 1620..=1668
-                | 2580..=2629
-                | 2880..=2989
-                | 3300..=3349
-                | 3540..=3589
-                | 3720..=3829
-        ),
-        _ => false,
+    }
+
+    /// Whether `action` serves this directive.
+    pub(crate) fn aligns(self, action: usize) -> bool {
+        match self {
+            Directive::Food => {
+                matches!(action, 8 | 19 | 26..=38 | 141..=150 | 336..=355 | 1140..=1189)
+            }
+            Directive::Water => matches!(action, 9 | 18 | 166..=180 | 1320..=1369),
+            Directive::Roam => matches!(
+                action,
+                0..=7
+                    | 24
+                    | 117..=123
+                    | 211..=220
+                    | 900..=949
+                    | 1440..=1489
+                    | 2168..=2169
+                    | 2198..=2202
+                    | 4200..=4249
+                    | 4440..=4609
+            ),
+            Directive::Socialize => matches!(action, 10 | 13 | 80..=95 | 181..=200 | 226..=245),
+            Directive::Flee => matches!(action, 0..=7 | 11 | 17),
+            Directive::Fight => matches!(
+                action,
+                12
+                    | 96..=99
+                    | 102
+                    | 106
+                    | 193..=194
+                    | 198
+                    | 436..=439
+                    | 442..=446
+                    | 448
+                    | 451..=453
+                    | 455
+                    | 3660..=3709
+            ),
+            Directive::Hunt => matches!(
+                action,
+                28 | 121..=123 | 2179..=2189 | 2203..=2208 | 5820..=5869
+            ),
+            Directive::Defend => matches!(
+                action,
+                11
+                    | 39
+                    | 44
+                    | 48
+                    | 50
+                    | 100..=101
+                    | 103..=105
+                    | 169
+                    | 179
+                    | 191..=192
+                    | 195..=197
+                    | 199..=200
+                    | 440..=441
+                    | 447
+                    | 449..=450
+                    | 454
+                    | 537
+                    | 3660..=3709
+            ),
+            Directive::Trade => matches!(
+                action,
+                94
+                    | 276..=295
+                    | 1680..=1729
+                    | 2700..=2749
+                    | 3180..=3229
+                    | 5100..=5149
+                    | 5220..=5269
+                    | 5460..=5509
+            ),
+            Directive::Rest => matches!(action, 17 | 107..=116 | 221..=225),
+            Directive::Isolate => matches!(action, 0..=7 | 17),
+            Directive::SeekHelp => matches!(action, 10 | 11 | 107..=116 | 181..=190),
+            Directive::Settle => matches!(
+                action,
+                14..=15
+                    | 17
+                    | 30..=31
+                    | 35..=50
+                    | 146..=147
+                    | 166..=180
+                    | 536..=537
+                    | 540..=589
+                    | 1620..=1668
+                    | 2580..=2629
+                    | 2880..=2989
+                    | 3300..=3349
+                    | 3540..=3589
+                    | 3720..=3829
+            ),
+        }
     }
 }
 
-pub(crate) fn directive_action_boost(directive: &str, action: usize) -> f32 {
-    if directive_aligns_action(directive, action) {
+pub(crate) fn directive_aligns_action(directive: &str, action: usize) -> bool {
+    Directive::parse(directive).is_some_and(|d| d.aligns(action))
+}
+
+pub(crate) fn directive_action_boost(directive: Option<Directive>, action: usize) -> f32 {
+    if directive.is_some_and(|d| d.aligns(action)) {
         0.08
     } else {
         0.0
