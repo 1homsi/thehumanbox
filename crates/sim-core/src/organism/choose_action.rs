@@ -340,6 +340,14 @@ impl Organism {
                 let next = (ix + dx, iy + dy);
                 let wades = action < 8 && grid.is_wet(grid.get(next.0, next.1), next.0, next.1);
                 if on_land && wades && self.energy < 0.55 && !planned {
+                    // `toward` may just have planned this very crossing; drop
+                    // it, or the next look would take it for one under way.
+                    let mut route = self.route.borrow_mut();
+                    if route.goal == target {
+                        route.steps.clear();
+                        route.next = 0;
+                    }
+                    drop(route);
                     rejected.borrow_mut().push(target);
                     None
                 } else {
@@ -383,10 +391,10 @@ impl Organism {
                         && o.lineage_id == self.lineage_id
                         && (o.x - self.x).abs() + (o.y - self.y).abs() <= 14.0
                 })
-                .find(|o| {
-                    matches!(grid.get(o.x as i32, o.y as i32), Tile::Food) && open((o.x as i32, o.y as i32))
-                });
-            if let Some(action) = kin_eating.and_then(|k| step_dry((k.x as i32, k.y as i32))) {
+                .map(|o| (o.x as i32, o.y as i32))
+                .filter(|&at| matches!(grid.get(at.0, at.1), Tile::Food) && open(at))
+                .find_map(step_dry);
+            if let Some(action) = kin_eating {
                 set_thought!("following kin to food");
                 return (action, thought);
             }

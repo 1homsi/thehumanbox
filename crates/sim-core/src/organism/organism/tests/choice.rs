@@ -724,21 +724,25 @@ fn someone_too_weak_to_swim_does_not_wade_toward_food_across_the_water() {
     );
     org.energy = 0.3;
     org.hydration = 0.9;
-    let (action, thought) = org.choose_action(
-        &grid,
-        &BuildingList::new(),
-        100,
-        0.0,
-        &[],
-        false,
-        0,
-        &mut rng,
-        false,
-        "state",
-        &[0, 1, 2, 3, 4, 5, 6, 7, 8],
-    );
-    if action < 8 {
-        let (dx, dy) = crate::organism::organism::DIRECTIONS[action];
-        assert_ne!(grid.get(50 + dx, 50 + dy), Tile::Water, "waded in ({thought:?})");
+    // Asked again and again: a crossing planned on the way to rejecting the
+    // food must not be taken up the next time.
+    for tick in 100..104 {
+        let (action, thought) = org.choose_action(
+            &grid,
+            &BuildingList::new(),
+            tick,
+            0.0,
+            &[],
+            false,
+            0,
+            &mut rng,
+            false,
+            "state",
+            &[0, 1, 2, 3, 4, 5, 6, 7, 8],
+        );
+        if action < 8 {
+            let (dx, dy) = crate::organism::organism::DIRECTIONS[action];
+            assert_ne!(grid.get(50 + dx, 50 + dy), Tile::Water, "waded in ({thought:?})");
+        }
     }
 }
