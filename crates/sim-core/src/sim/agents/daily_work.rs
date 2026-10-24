@@ -324,7 +324,7 @@ impl Simulation {
                 continue;
             }
             // Work they still dread is not on the list at all.
-            if self.organisms[idx].skills.feeling(skill) <= crate::organism::skills::DREAD / 2.0 {
+            if self.organisms[idx].skills.dreads(skill) {
                 continue;
             }
             // A place this work went well before comes first, if it still serves.
