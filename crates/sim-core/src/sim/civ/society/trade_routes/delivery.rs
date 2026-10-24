@@ -178,6 +178,7 @@ pub(super) fn deliver_caravan(sim: &mut Simulation, caravan_id: u32) -> bool {
     if let Some(sender_idx) = sender_idx {
         sim.organisms[sender_idx].update_attitude(&caravan.receiver_lineage, 0.025);
     }
+    sim.share_craft_by_trade(&caravan.sender_lineage, primary_recipient, sender_idx);
 
     sim.trades.push_back(Trade {
         tick: sim.tick_count,
