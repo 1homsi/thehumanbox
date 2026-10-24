@@ -1,4 +1,5 @@
 use super::*;
+use crate::world::grid::{HEIGHT, WIDTH};
 
 impl Organism {
     pub fn perceive(
@@ -62,25 +63,41 @@ impl Organism {
         let mut fire_near = false;
         let fire_r = (2.0 + 2.0 * self.traits.fear) as i32;
 
-        for dx in -scan..=scan {
+        // Walks the raw rows of the tile array instead of `grid.get` per cell:
+        // this scan runs for everyone every tick. The nearest food and water
+        // are the same ones the cell-by-cell scan found: least distance, then
+        // least dx, then least dy, as its dx-then-dy order with a strict `<`.
+        let (food_v, water_v, fire_v) = (Tile::Food as i8, Tile::Water as i8, Tile::Fire as i8);
+        let x0 = (ix - scan).max(0);
+        let x1 = (ix + scan).min(WIDTH as i32 - 1);
+        if x0 <= x1 {
             for dy in -scan..=scan {
-                let t = grid.get(ix + dx, iy + dy);
-                let dist = dx.abs() + dy.abs();
-                match t {
-                    Tile::Food if dist < food_dist => {
-                        food_dist = dist;
-                        food_dx = dx;
-                        food_dy = dy;
+                let y = iy + dy;
+                if y < 0 || y >= HEIGHT as i32 {
+                    continue;
+                }
+                let row = &grid.tiles[WorldGrid::idx(x0, y)..=WorldGrid::idx(x1, y)];
+                for (k, &v) in row.iter().enumerate() {
+                    if v != food_v && v != water_v && v != fire_v {
+                        continue;
                     }
-                    Tile::Water if dist < water_dist => {
-                        water_dist = dist;
-                        water_dx = dx;
-                        water_dy = dy;
-                    }
-                    Tile::Fire if dist <= fire_r => {
+                    let dx = x0 + k as i32 - ix;
+                    let dist = dx.abs() + dy.abs();
+                    if v == food_v {
+                        if (dist, dx, dy) < (food_dist, food_dx, food_dy) {
+                            food_dist = dist;
+                            food_dx = dx;
+                            food_dy = dy;
+                        }
+                    } else if v == water_v {
+                        if (dist, dx, dy) < (water_dist, water_dx, water_dy) {
+                            water_dist = dist;
+                            water_dx = dx;
+                            water_dy = dy;
+                        }
+                    } else if dist <= fire_r {
                         fire_near = true;
                     }
-                    _ => {}
                 }
             }
         }

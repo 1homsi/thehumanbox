@@ -621,3 +621,80 @@ fn toolmakers_fetch_stone_from_nearby_rock() {
     });
     assert!(quarried, "next to rock they quarry");
 }
+
+/// The cell-by-cell search the row scan replaced, kept here as the reference.
+fn nearest_cell_by_cell(grid: &WorldGrid, at: (i32, i32), tile: Tile, radius: i32) -> Option<(i32, i32)> {
+    let mut best_dist = radius + 1;
+    let mut best = None;
+    for dx in -radius..=radius {
+        for dy in -radius..=radius {
+            if grid.get(at.0 + dx, at.1 + dy) == tile {
+                let dist = dx.abs() + dy.abs();
+                if dist < best_dist {
+                    best_dist = dist;
+                    best = Some((at.0 + dx, at.1 + dy));
+                }
+            }
+        }
+    }
+    best
+}
+
+#[test]
+fn the_row_scan_finds_the_same_tile_as_the_cell_by_cell_search() {
+    use rand::RngExt;
+    let mut rng = StdRng::seed_from_u64(21);
+    let mut grid = WorldGrid::new(4);
+    let (w, h) = (
+        crate::world::grid::WIDTH as i32,
+        crate::world::grid::HEIGHT as i32,
+    );
+    for x in 0..w {
+        for y in 0..h {
+            let t = match rng.random_range(0..10) {
+                0 => Tile::Food,
+                1 => Tile::Water,
+                2 => Tile::Fire,
+                _ => Tile::Grass,
+            };
+            grid.set(x, y, t);
+        }
+    }
+    let traits = Traits::random(&mut rng);
+    let mut org = Organism::new(
+        "scan".into(),
+        "Scan".into(),
+        0.0,
+        0.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    // Corners and edges as well as the open map.
+    let mut spots = vec![
+        (0, 0),
+        (w - 1, h - 1),
+        (0, h - 1),
+        (w - 1, 0),
+        (3, 200),
+        (w - 2, 5),
+    ];
+    for _ in 0..400 {
+        spots.push((rng.random_range(0..w), rng.random_range(0..h)));
+    }
+    for (x, y) in spots {
+        org.x = x as f32;
+        org.y = y as f32;
+        for tile in [Tile::Food, Tile::Water, Tile::Fire, Tile::Rock] {
+            for radius in [1, 4, 8, 24] {
+                assert_eq!(
+                    org.nearest_visible(&grid, tile, radius),
+                    nearest_cell_by_cell(&grid, (x, y), tile, radius),
+                    "{tile:?} r{radius} at ({x},{y})"
+                );
+            }
+        }
+    }
+}

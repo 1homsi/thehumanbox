@@ -1008,3 +1008,51 @@ fn a_longhouse_seats_eight_under_one_roof() {
     assert_eq!(BuildingKind::Longhouse.footprint(), (4, 2));
     assert_eq!(BuildingKind::Longhouse.era_unlock(), Era::Iron);
 }
+
+#[test]
+fn building_is_learned_on_site_from_the_work_and_from_the_crew() {
+    use crate::organism::skills::Skill;
+    let mut sim = Simulation::new(0x1AB1);
+    sim.organisms.clear();
+    sim.buildings.clear();
+    for (id, skill) in [("master", 0.9), ("hand", 0.0)] {
+        let mut worker = test_org(id, id, "lineage-a", 10.0, 10.0);
+        worker.age = 10_000;
+        worker.energy = 1.0;
+        worker.skills.set(Skill::Building, skill);
+        sim.organisms.push(worker);
+    }
+    sim.buildings.push(Building::new(
+        1,
+        BuildingKind::Temple,
+        10,
+        10,
+        Some("lineage-a".into()),
+        0,
+    ));
+    sim.tick_count = 20;
+    assert!(BuildingKind::Temple.construction_crew_capacity() >= 2);
+    tick_building_progress(&mut sim);
+    let hand = sim.organisms[1].skills.level(Skill::Building);
+    assert!(hand > 0.0, "a pass of work is building practice");
+
+    // Alone on a site, the same work teaches a raw hand less than beside a master.
+    let mut solo = Simulation::new(0x1AB1);
+    solo.organisms.clear();
+    solo.buildings.clear();
+    let mut worker = test_org("hand", "hand", "lineage-a", 10.0, 10.0);
+    worker.age = 10_000;
+    worker.energy = 1.0;
+    solo.organisms.push(worker);
+    solo.buildings.push(Building::new(
+        1,
+        BuildingKind::Temple,
+        10,
+        10,
+        Some("lineage-a".into()),
+        0,
+    ));
+    solo.tick_count = 20;
+    tick_building_progress(&mut solo);
+    assert!(hand > solo.organisms[0].skills.level(Skill::Building));
+}

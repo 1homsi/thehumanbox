@@ -246,20 +246,54 @@ impl Organism {
         keep: impl Fn((i32, i32)) -> bool,
     ) -> Option<(i32, i32)> {
         let (ix, iy) = (self.x as i32, self.y as i32);
-        let mut best_dist = radius + 1;
-        let mut best_loc = None;
-        for dx in -radius..=radius {
+        // Off the map reads as `Void`; only a search for `Void` itself needs
+        // the cell-by-cell walk that sees it.
+        if tile_type == Tile::Void {
+            let mut best_dist = radius + 1;
+            let mut best_loc = None;
+            for dx in -radius..=radius {
+                for dy in -radius..=radius {
+                    if grid.get(ix + dx, iy + dy) == tile_type && keep((ix + dx, iy + dy)) {
+                        let dist = dx.abs() + dy.abs();
+                        if dist < best_dist {
+                            best_dist = dist;
+                            best_loc = Some((ix + dx, iy + dy));
+                        }
+                    }
+                }
+            }
+            return best_loc;
+        }
+        // Raw rows of the tile array, as in `perceive_into`. The tile found is
+        // the one the dx-then-dy walk with a strict `<` found: least distance,
+        // then least dx, then least dy.
+        let want = tile_type as i8;
+        let x0 = (ix - radius).max(0);
+        let x1 = (ix + radius).min(crate::world::grid::WIDTH as i32 - 1);
+        let mut best: Option<(i32, i32, i32)> = None;
+        if x0 <= x1 {
             for dy in -radius..=radius {
-                if grid.get(ix + dx, iy + dy) == tile_type && keep((ix + dx, iy + dy)) {
+                let y = iy + dy;
+                if y < 0 || y >= crate::world::grid::HEIGHT as i32 {
+                    continue;
+                }
+                let row = &grid.tiles[WorldGrid::idx(x0, y)..=WorldGrid::idx(x1, y)];
+                for (k, &v) in row.iter().enumerate() {
+                    if v != want {
+                        continue;
+                    }
+                    let dx = x0 + k as i32 - ix;
                     let dist = dx.abs() + dy.abs();
-                    if dist < best_dist {
-                        best_dist = dist;
-                        best_loc = Some((ix + dx, iy + dy));
+                    if dist > radius || best.is_some_and(|b| (dist, dx, dy) >= b) {
+                        continue;
+                    }
+                    if keep((ix + dx, iy + dy)) {
+                        best = Some((dist, dx, dy));
                     }
                 }
             }
         }
-        best_loc
+        best.map(|(_, dx, dy)| (ix + dx, iy + dy))
     }
 
     pub(crate) fn find_trail_target(
