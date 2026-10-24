@@ -83,4 +83,18 @@ describe('TribeCard', () => {
     expect(host.querySelector('.tribe-card-name-input')).toBeNull()
     expect(host.querySelector('.tribe-card-rename')?.textContent).toContain('Bren')
   })
+
+  it('tells what the tribe has been through: a hungry winter and its war dead', () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    roots.push(root)
+
+    const w = { ...world(['a', 'b']), lineage_lore: { a: { hungry_winter: 3, war_weary: 9 } } } as WorldState
+    act(() => useUIStore.setState({ focus: 'lineage:a' }))
+    act(() => root.render(card(w)))
+
+    expect(host.textContent).toContain('remembers the hungry winter of year 3')
+    expect(host.textContent).toContain('weary of war after 9 of their own fell in battle')
+  })
 })
