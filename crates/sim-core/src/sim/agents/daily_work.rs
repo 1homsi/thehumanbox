@@ -40,6 +40,12 @@ const MAX_APPRENTICES: usize = 2;
 const MISSES_BEFORE_MOVING: u8 = 6;
 /// How far someone walks back to a place their work went well, beyond `WORK_REACH`.
 const REMEMBERED_REACH: i32 = WORK_REACH + 8;
+/// How far a skilled worker's call reaches the tribe's young who are still
+/// finding their trade.
+const MASTER_REACH: i32 = 16;
+/// A youngster drawn to a kind of work at least this much will go and learn it
+/// from a skilled stranger of their tribe.
+const DRAWN_TO: f32 = 0.6;
 /// A tribe holding less than this much grain per person is short of food.
 const LEAN_STORES_PER_HEAD: u32 = 2;
 
@@ -393,7 +399,40 @@ impl Simulation {
             .map(|(i, _)| i)
             .take(MAX_APPRENTICES)
             .collect();
-        for (n, child) in children.into_iter().enumerate() {
+        let mut learners: Vec<(usize, bool)> = children.iter().map(|&c| (c, true)).collect();
+        // A skilled worker also takes on the tribe's young who have no one at
+        // home to learn the work from, if the work draws them: skills spread
+        // beyond the families that have them.
+        let skilled = self.organisms[idx].skills.level(skill) >= crate::organism::skills::SKILLED;
+        if skilled && learners.len() < MAX_APPRENTICES {
+            let lineage = self.organisms[idx].lineage_id.clone();
+            let worker_level = self.organisms[idx].skills.level(skill);
+            let youngsters: Vec<usize> = self
+                .organisms
+                .iter()
+                .enumerate()
+                .filter(|&(i, o)| {
+                    i != idx
+                        && o.alive
+                        && o.lineage_id == lineage
+                        && o.age_stage() == AgeStage::Teen
+                        && !children.contains(&i)
+                        && o.work.is_none()
+                        && o.journey.is_none()
+                        && o.wander_target.is_none()
+                        && o.energy > 0.5
+                        && o.hydration > 0.5
+                        && o.skills.level(skill) + 0.2 < worker_level
+                        && liking(&o.id, skill) >= DRAWN_TO
+                        && manhattan((o.x as i32, o.y as i32), here) <= MASTER_REACH
+                })
+                .map(|(i, _)| i)
+                .filter(|&i| !self.has_skilled_parent(i, skill))
+                .take(MAX_APPRENTICES - learners.len())
+                .collect();
+            learners.extend(youngsters.into_iter().map(|y| (y, false)));
+        }
+        for (n, (child, own)) in learners.into_iter().enumerate() {
             // They stand a step or two off the work, where they can see it.
             let beside = (spot.0 + 1 - n as i32 * 2, spot.1 + 1);
             let target = if self.workable_ground(beside.0, beside.1) {
@@ -408,6 +447,17 @@ impl Simulation {
                 self.organisms[child].wander_target = Some(target);
                 let thought = format!("following {} to learn {}", parent_name, skill.name());
                 self.organisms[child].think(&thought, tick);
+                // The first time a youngster goes to learn from someone not
+                // their own, it is a turn in their life.
+                if !own && self.organisms[child].skills.level(skill) < 0.01 {
+                    self.organisms[child].log_life_rel(
+                        tick,
+                        "learned",
+                        format!("went to learn from {}, a skilled {}", parent_name, skill.worker()),
+                        Some(parent_id.clone()),
+                        Some(parent_name.clone()),
+                    );
+                }
             }
         }
     }
@@ -488,6 +538,17 @@ impl Simulation {
             }
         }
         self.organisms[idx].work = Some(plan);
+    }
+
+    /// Whether a living parent of `idx` is at least handy at `skill`, so the
+    /// youngster can learn it at home.
+    fn has_skilled_parent(&self, idx: usize, skill: Skill) -> bool {
+        let o = &self.organisms[idx];
+        self.organisms.iter().any(|p| {
+            p.alive
+                && (p.id == o.parent_id || o.father_id.as_deref() == Some(p.id.as_str()))
+                && p.skills.level(skill) >= crate::organism::skills::HANDY
+        })
     }
 
     /// Ends a stint that is over, full-handed, or out of work, and keeps the
@@ -671,6 +732,77 @@ mod tests {
             sim.organisms[0].work.is_none_or(|p| p.skill != Skill::Fishing),
             "went fishing again the next morning"
         );
+    }
+
+    fn teen_of(sim: &Simulation, id: &str, parent: &str) -> crate::organism::organism::Organism {
+        let mut teen = crate::organism::organism::Organism::new(
+            id.into(),
+            "Teen".into(),
+            102.0,
+            101.0,
+            1,
+            parent.into(),
+            sim.organisms[0].lineage_id.clone(),
+            4000,
+            Default::default(),
+        );
+        teen.age = 1200;
+        teen.energy = 0.9;
+        teen.hydration = 0.9;
+        teen
+    }
+
+    #[test]
+    fn a_skilled_fisher_takes_on_a_teen_of_the_tribe_drawn_to_the_work() {
+        let mut sim = shore();
+        let keen = (0..200)
+            .map(|n| format!("teen{n}"))
+            .find(|id| liking(id, Skill::Fishing) >= DRAWN_TO)
+            .expect("some id likes fishing");
+        let cool = (0..200)
+            .map(|n| format!("teen{n}"))
+            .find(|id| liking(id, Skill::Fishing) < 0.3)
+            .expect("some id does not");
+        let (keen_teen, cool_teen) = (
+            teen_of(&sim, &keen, "elsewhere"),
+            teen_of(&sim, &cool, "elsewhere"),
+        );
+        sim.organisms.push(keen_teen);
+        sim.organisms.push(cool_teen);
+        assert_eq!(sim.organisms[1].age_stage(), AgeStage::Teen);
+        sim.organisms[0].skills.set(Skill::Fishing, 0.8);
+        sim.tick_count = morning(0);
+        sim.assign_daily_work(0);
+        assert!(sim.organisms[0].work.is_some_and(|p| p.skill == Skill::Fishing));
+        assert!(sim.organisms[1].thought.ends_with("to learn fishing"));
+        assert!(sim.organisms[1]
+            .life_log
+            .iter()
+            .any(|e| e.text.starts_with("went to learn from") && e.text.ends_with("a skilled fisher")));
+        assert!(
+            sim.organisms[2].wander_target.is_none(),
+            "a teen not drawn to it stayed"
+        );
+    }
+
+    #[test]
+    fn a_teen_with_a_handy_parent_learns_at_home_not_from_a_stranger() {
+        let mut sim = shore();
+        let keen = (0..200)
+            .map(|n| format!("teen{n}"))
+            .find(|id| liking(id, Skill::Fishing) >= DRAWN_TO)
+            .expect("some id likes fishing");
+        let mut parent = teen_of(&sim, "parent", "grandparent");
+        parent.age = 3000;
+        parent.x = 60.0;
+        parent.skills.set(Skill::Fishing, 0.5);
+        sim.organisms.push(parent);
+        let teen = teen_of(&sim, &keen, "parent");
+        sim.organisms.push(teen);
+        sim.organisms[0].skills.set(Skill::Fishing, 0.8);
+        sim.tick_count = morning(0);
+        sim.assign_daily_work(0);
+        assert!(sim.organisms[2].wander_target.is_none());
     }
 
     #[test]
