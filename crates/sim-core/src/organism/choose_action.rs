@@ -6,7 +6,7 @@ use crate::world::{
     tiles::Tile,
 };
 
-use super::decision_bias::{directive_action_boost, directive_aligns_action, preferred_action_boost};
+use super::decision_bias::{directive_action_boost, preferred_action_boost, Directive};
 use super::lessons::Lesson;
 use super::organism::{Hot, Organism, QRowExt, ACTION_ID_SPACE, N_ACTIONS};
 use super::skills::Skill;
@@ -1187,6 +1187,7 @@ impl Organism {
         } else {
             ""
         };
+        let directive = Directive::parse(active_directive);
 
         let age_decay = 1.0 / (1.0 + self.age as f32 / 2000.0);
         let eff_eps = (epsilon * (0.5 + self.traits.curiosity) * age_decay).clamp(0.02, 0.80);
@@ -1270,7 +1271,7 @@ impl Organism {
             } else {
                 pool.iter()
                     .copied()
-                    .filter(|&action| directive_aligns_action(active_directive, action))
+                    .filter(|&action| directive.is_some_and(|d| d.aligns(action)))
                     .collect()
             };
             let guided_pool: &[usize] = if directed.is_empty() { pool } else { &directed };
@@ -1335,7 +1336,7 @@ impl Organism {
                 };
                 let learned = if tried { v } else { novelty_seed };
                 let directed = if has_directive {
-                    directive_action_boost(active_directive, a)
+                    directive_action_boost(directive, a)
                 } else {
                     0.0
                 };

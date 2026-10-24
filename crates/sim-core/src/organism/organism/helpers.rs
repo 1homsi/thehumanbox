@@ -17,13 +17,19 @@ pub(super) fn best_remembered_cell(
         if strength < 0.15 {
             continue;
         }
+        // Distance only lowers the score (its weight is at least 0.4), so a cell whose strength alone cannot
+        // beat the best is passed over before its distance is worked out.
+        let pull = strength * (1.0 + urgency * 0.35);
+        if pull <= best_score {
+            continue;
+        }
         let tx = cell.0 as f32;
         let ty = cell.1 as f32;
         let dist = ((tx - cx) * (tx - cx) + (ty - cy) * (ty - cy)).sqrt();
         if dist > max_dist {
             continue;
         }
-        let base = strength * (1.0 + urgency * 0.35) - (dist / max_dist) * distance_weight;
+        let base = pull - (dist / max_dist) * distance_weight;
         // Danger only lowers the score, so skip its 9 lookups when this cell
         // can't win anyway or nothing dangerous is remembered.
         if base <= best_score {

@@ -424,6 +424,27 @@ impl WorldGrid {
         best
     }
 
+    /// Whether any trail of `kind` within `radius` (a square) is stronger than `threshold`: the same as
+    /// `detect_trail(..) > threshold`, but walking the rows of the trail array and stopping at the first such
+    /// cell. Perception asks this for everyone every tick.
+    pub fn trail_above(&self, x: i32, y: i32, kind: TrailKind, radius: i32, threshold: f32) -> bool {
+        let trail = match kind {
+            TrailKind::Food => &self.food_trail,
+            TrailKind::Water => &self.water_trail,
+            TrailKind::Path => &self.path_trail,
+        };
+        let x0 = (x - radius).max(0);
+        let x1 = (x + radius).min(WIDTH as i32 - 1);
+        if x0 > x1 {
+            return false;
+        }
+        ((y - radius).max(0)..=(y + radius).min(HEIGHT as i32 - 1)).any(|row| {
+            trail[Self::idx(x0, row)..=Self::idx(x1, row)]
+                .iter()
+                .any(|&v| v > threshold)
+        })
+    }
+
     // Cells with a trail value below this clip to zero so they drop
     // out of `trail_dirty`. Below this the value is invisible to all
     // queries (perception thresholds are ≥ 0.05).
@@ -1286,7 +1307,7 @@ fn push_over_threshold(out: &mut Vec<[u16; 3]>, layer: &[f32], w: Window, thresh
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum TrailKind {
     Food,
     Water,
@@ -1387,6 +1408,53 @@ mod tests {
         assert!(structure_delta(&cur, &cur).is_empty());
         assert_eq!(structure_delta(&[], &[[0, 0, 1]]), vec![[0, 0, 1]]);
         assert_eq!(structure_delta(&[[0, 0, 1]], &[]), vec![[0, 0, 0]]);
+    }
+
+    /// `trail_above` answers exactly what `detect_trail(..) > threshold` does: at the edges and corners of the
+    /// world (where part of the square falls outside), with values at and around the threshold, for each kind.
+    #[test]
+    fn trail_above_matches_the_strongest_trail_test() {
+        let mut grid = WorldGrid::new(5);
+        let mut state = 0x2545_F491_4F6C_DD1Du64;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        for _ in 0..4000 {
+            let i = (next() % (WIDTH * HEIGHT) as u64) as usize;
+            let v = [0.39, 0.4, 0.41, 0.9, 0.05][(next() % 5) as usize];
+            match next() % 3 {
+                0 => grid.food_trail[i] = v,
+                1 => grid.water_trail[i] = v,
+                _ => grid.path_trail[i] = v,
+            }
+        }
+        let w = WIDTH as i32;
+        let h = HEIGHT as i32;
+        let mut spots = vec![
+            (0, 0),
+            (w - 1, h - 1),
+            (0, h - 1),
+            (w - 1, 0),
+            (2, 3),
+            (w - 3, h / 2),
+            (-3, 5),
+            (w + 2, h + 2),
+        ];
+        spots.extend((0..3000).map(|_| ((next() % w as u64) as i32, (next() % h as u64) as i32)));
+        for (x, y) in spots {
+            for kind in [TrailKind::Food, TrailKind::Water, TrailKind::Path] {
+                for (radius, threshold) in [(5, 0.4), (0, 0.4), (3, 0.0), (5, 0.9)] {
+                    assert_eq!(
+                        grid.trail_above(x, y, kind, radius, threshold),
+                        grid.detect_trail(x, y, kind, radius) > threshold,
+                        "({x}, {y}) {kind:?} r={radius} t={threshold}"
+                    );
+                }
+            }
+        }
     }
 
     /// The block-skipping layer scans must emit exactly what the per-tile
