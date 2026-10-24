@@ -495,8 +495,11 @@ impl Organism {
                 && self.energy > 0.55
                 // Dread keeps them from the quarry unless the tribe is waiting on stone.
                 && (fetching_stone || !self.skills.dreads(Skill::Quarrying))
+                // As with the trees, someone who likes the quarry goes more often.
                 && (self.thought == "heading to the quarry"
-                    || rng.random::<f32>() < if fetching_stone { 0.55 } else { 0.15 })
+                    || rng.random::<f32>()
+                        < if fetching_stone { 0.55 } else { 0.15 }
+                            + self.skills.feeling(Skill::Quarrying).max(0.0) * 0.5)
             {
                 let rock_adjacent = crate::organism::organism::DIRECTIONS
                     .iter()
