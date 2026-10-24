@@ -426,3 +426,69 @@ fn a_tribe_that_resents_another_as_a_whole_raids_it() {
     let sim = tribes_with_grudges(7);
     assert!(raids_over_a_while(&sim) > 0);
 }
+
+#[test]
+fn the_badly_wounded_leave_the_battle_alive_and_go_home() {
+    let mut sim = Simulation::new(95);
+    sim.organisms.truncate(4);
+    for (index, organism) in sim.organisms.iter_mut().enumerate() {
+        organism.alive = true;
+        organism.health = 1.0;
+        organism.traits.fear = 0.0;
+        organism.lineage_id = if index < 2 { "river".into() } else { "hill".into() };
+        organism.home_x = 10.0;
+        organism.home_y = 10.0;
+        organism.wander_target = None;
+    }
+    // One river fighter is a blow from a bad wound, and fearful: the blow lands
+    // in this exchange, and they weigh leaving.
+    sim.organisms[0].health = 0.26;
+    sim.organisms[0].traits.fear = 1.0;
+    let ids: Vec<String> = sim.organisms.iter().map(|o| o.id.clone()).collect();
+    let mut battles = vec![Battle {
+        id: "river-hill".into(),
+        attackers: vec!["river".into()],
+        defenders: vec!["hill".into()],
+        attacker_orgs: ids[..2].to_vec(),
+        defender_orgs: ids[2..].to_vec(),
+        scale: BattleScale::Skirmish,
+        location: (50, 50),
+        started_tick: 0,
+        ended_tick: None,
+        casualties_a: 0,
+        casualties_d: 0,
+        outcome: None,
+        initial_a: 2,
+        initial_d: 2,
+    }];
+    let lineage_eras = HashMap::default();
+    let governments = HashMap::default();
+    let mut treaties = Vec::new();
+    let mut events = std::collections::VecDeque::new();
+    let mut rng = <rand_chacha::ChaCha8Rng as SeedableRng>::seed_from_u64(7);
+    tick_battles(
+        10,
+        &mut rng,
+        &mut battles,
+        &mut treaties,
+        &mut sim.organisms,
+        &mut events,
+        &mut sim.history,
+        BattleInstitutions {
+            lineage_eras: &lineage_eras,
+            governments: &governments,
+            buildings: &[],
+            field_fortifications: &[],
+            grid: &sim.grid,
+        },
+    );
+    let hurt = &sim.organisms[0];
+    assert!(hurt.alive, "the wounded fighter lived");
+    assert!(!battles[0].attacker_orgs.contains(&hurt.id), "and left the fight");
+    assert_eq!(hurt.wander_target, Some((10, 10)), "for home");
+    assert!(hurt
+        .life_log
+        .iter()
+        .any(|e| e.text == "came away wounded from a battle"));
+    assert!(battles[0].defender_orgs.len() == 2, "the unhurt fight on");
+}

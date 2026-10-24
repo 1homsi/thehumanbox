@@ -23,6 +23,44 @@ fn fall_in_battle(
     history.record_death(tick);
 }
 
+/// Health below which a fighter may leave the battle.
+const WITHDRAW_AT: f32 = 0.25;
+
+/// A fighter just wounded below `WITHDRAW_AT` in this exchange may leave the
+/// fight and make for home, instead of fighting on until they fall: the
+/// fearful often, the bold seldom. Each fighter weighs it once, when the wound
+/// comes; whoever stays fights on. Their side is weaker for every one who
+/// goes, and a side that loses enough of its fighters, dead or gone, breaks.
+fn withdraw_wounded(
+    ids: &mut Vec<String>,
+    organisms: &mut [crate::organism::organism::Organism],
+    health_before: &HashMap<String, f32>,
+    tick: u64,
+    rng: &mut rand_chacha::ChaCha8Rng,
+) -> u32 {
+    use rand::RngExt;
+    let mut left = 0;
+    ids.retain(|id| {
+        let Some(i) = organism_index(organisms, id) else {
+            return true;
+        };
+        let o = &mut organisms[i];
+        let just_wounded = health_before.get(id).is_some_and(|&h| h >= WITHDRAW_AT) && o.health < WITHDRAW_AT;
+        if !o.alive || !just_wounded {
+            return true;
+        }
+        if rng.random::<f32>() >= 0.1 + 0.4 * o.traits.fear {
+            return true;
+        }
+        o.think("wounded, leaving the fight", tick);
+        o.log_life(tick, "battle", "came away wounded from a battle".to_string());
+        o.wander_target = Some((o.home_x as i32, o.home_y as i32));
+        left += 1;
+        false
+    });
+    left
+}
+
 pub fn tick_battles(
     tick: u64,
     rng: &mut rand_chacha::ChaCha8Rng,
@@ -84,6 +122,11 @@ pub fn tick_battles(
             .unwrap_or(0.0);
 
         let base_dmg = 0.06f32;
+        let health_before: HashMap<String, f32> = att_alive
+            .iter()
+            .chain(def_alive.iter())
+            .map(|&i| (organisms[i].id.clone(), organisms[i].health))
+            .collect();
 
         // A combatant can die to fire, illness, or another system between
         // battle ticks. Resolve the empty side below instead of indexing an
@@ -122,6 +165,9 @@ pub fn tick_battles(
                 battle.casualties_a += 1;
             }
         }
+
+        withdraw_wounded(&mut battle.attacker_orgs, organisms, &health_before, tick, rng);
+        withdraw_wounded(&mut battle.defender_orgs, organisms, &health_before, tick, rng);
 
         let att_now = battle
             .attacker_orgs
