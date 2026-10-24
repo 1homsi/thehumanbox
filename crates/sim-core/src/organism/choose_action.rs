@@ -1181,6 +1181,22 @@ impl Organism {
             self.sleep_debt,
         );
         let decision_pool = context_pool.as_deref().unwrap_or(available);
+        // Work that cannot be done where they stand is not chosen: mining or
+        // quarrying with no rock beside them, fishing with no water near,
+        // digging roots off the grass. Before, a good share of everyone's day
+        // went on "looking for ore" and "looking for water to fish" in open
+        // country, learning nothing and gathering nothing.
+        let rock_beside = crate::organism::organism::DIRECTIONS
+            .iter()
+            .any(|&(dx, dy)| matches!(grid.get(ix + dx, iy + dy), Tile::Rock | Tile::Mineral));
+        let water_near =
+            (-2i32..=2).any(|dx| (-2i32..=2).any(|dy| grid.get(ix + dx, iy + dy) == Tile::Water));
+        let workable = |a: usize| match a {
+            26 | 29 => rock_beside,
+            28 => water_near,
+            32 => tile == Tile::Grass,
+            _ => true,
+        };
         let q_row = self.q_table.get(cached_perception);
         let active_directive = if tick < self.directive_until {
             self.directive.as_str()
@@ -1254,13 +1270,18 @@ impl Organism {
                     15 => self.carrying > 0 && self.carrying_type != 2,
                     14 => self.carrying == 0,
                     // Trying things out never means going back to work that hurt them.
-                    _ => !Skill::of_action(a).is_some_and(|s| self.skills.dreads(s)),
+                    _ => workable(a) && !Skill::of_action(a).is_some_and(|s| self.skills.dreads(s)),
                 })
                 .collect();
-            let pool: &[usize] = if filtered.is_empty() {
-                decision_pool
-            } else {
+            // Nothing in the pool can be done here: they walk on instead of
+            // trying what cannot work.
+            const STEPS: [usize; 8] = [0, 1, 2, 3, 4, 5, 6, 7];
+            let pool: &[usize] = if !filtered.is_empty() {
                 &filtered
+            } else if decision_pool.iter().any(|&a| !workable(a)) {
+                &STEPS
+            } else {
+                decision_pool
             };
             // Guidance should shape experimentation as well as exploitation.
             // Previously epsilon exploration ignored the player's strategy,
@@ -1340,12 +1361,19 @@ impl Organism {
                 } else {
                     0.0
                 };
+                if !workable(a) {
+                    return f32::NEG_INFINITY;
+                }
                 learned + directed + preferred_action_boost(active_wander_action, a) + self.skills.pull(a)
             };
             let mut best_avail: Option<usize> = None;
             let mut best_score = f32::NEG_INFINITY;
             let mut equal_best_seen = 0u32;
             for &a in decision_pool {
+                // Work that cannot be done here is never the pick, even when nothing else is on offer.
+                if !workable(a) {
+                    continue;
+                }
                 let s = lookup(a);
                 if best_avail.is_none() || s > best_score + f32::EPSILON {
                     best_score = s;
@@ -1387,10 +1415,14 @@ impl Organism {
             }
             return (best_idx, thought);
         }
+        // Nothing on offer can be done here: they walk on.
+        const STEPS: [usize; 8] = [0, 1, 2, 3, 4, 5, 6, 7];
         let pool = if decision_pool.is_empty() {
             &[][..]
-        } else {
+        } else if decision_pool.iter().any(|&a| workable(a)) {
             decision_pool
+        } else {
+            &STEPS
         };
         let pick = if pool.is_empty() {
             rng.random_range(0..N_ACTIONS)

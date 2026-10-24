@@ -544,6 +544,8 @@ fn worker_on_sand(name: &str) -> (Organism, WorldGrid, StdRng) {
             grid.set(x, y, Tile::Sand);
         }
     }
+    // A pool close by, so fishing is a choice they can make here.
+    grid.set(52, 52, Tile::Water);
     let mut org = Organism::new(
         "id".into(),
         name.into(),
@@ -556,7 +558,7 @@ fn worker_on_sand(name: &str) -> (Organism, WorldGrid, StdRng) {
         traits,
     );
     org.energy = 0.80;
-    org.hydration = 0.80;
+    org.hydration = 0.95;
     org.health = 0.90;
     org.age = 1500;
     (org, grid, rng)
@@ -900,5 +902,34 @@ fn grass_across_the_water_is_no_place_to_dig_for_someone_too_weak_to_swim() {
             let (dx, dy) = crate::organism::organism::DIRECTIONS[action];
             assert_ne!(grid.get(50 + dx, 50 + dy), Tile::Water, "waded in ({thought:?})");
         }
+    }
+}
+
+#[test]
+fn a_habit_of_mining_is_not_followed_where_there_is_no_rock() {
+    let (mut org, mut grid, mut rng) = worker_on_sand("Miner");
+    // Mining (26) has served them best, resting (17) less.
+    org.q_table.insert("state".into(), vec![(26, 0.9), (17, 0.1)]);
+    assert_eq!(
+        learned_pick(&org, &grid, &mut rng, &[17, 26]),
+        17,
+        "no rock beside them"
+    );
+    grid.set(51, 50, Tile::Rock);
+    assert_eq!(
+        learned_pick(&org, &grid, &mut rng, &[17, 26]),
+        26,
+        "beside a rock face"
+    );
+}
+
+#[test]
+fn with_only_unworkable_work_on_offer_they_walk_on() {
+    let (mut org, grid, mut rng) = worker_on_sand("Miner");
+    // Only mining (26) and quarrying (29) are on offer, and there is no rock beside them.
+    org.q_table.insert("state".into(), vec![(26, 0.9), (29, 0.5)]);
+    for _ in 0..20 {
+        let pick = learned_pick(&org, &grid, &mut rng, &[26, 29]);
+        assert!(pick < 8, "picked {pick} with no rock beside them");
     }
 }
