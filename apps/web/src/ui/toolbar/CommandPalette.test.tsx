@@ -95,6 +95,61 @@ function commandRow(label: string): HTMLElement {
 
 const flush = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)))
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
+
+describe('CommandPalette superseded commands', () => {
+  it('ignores the result of a command the player closed the palette over', async () => {
+    const logs = deferred<void>()
+    desktopBridge.current = {
+      app: {
+        screenshot: vi.fn(async () => '/pictures/thb.png'),
+        openLogs: vi.fn(() => logs.promise),
+        openWorlds: vi.fn(async () => undefined),
+      },
+    }
+    mount()
+    key({ key: 'k', ctrlKey: true })
+    act(() => commandRow(t('dock.commands.openLogs')).click())
+    key({ key: 'Escape' })
+    key({ key: 'k', ctrlKey: true })
+    await act(async () => logs.resolve())
+    await flush()
+
+    expect(document.querySelector('.cmd-input')).not.toBeNull()
+  })
+
+  it('ignores a failure from a command a newer command has superseded', async () => {
+    const worlds = deferred<void>()
+    const logs = deferred<void>()
+    desktopBridge.current = {
+      app: {
+        screenshot: vi.fn(async () => '/pictures/thb.png'),
+        openLogs: vi.fn(() => logs.promise),
+        openWorlds: vi.fn(() => worlds.promise),
+      },
+    }
+    mount()
+    key({ key: 'k', ctrlKey: true })
+    act(() => commandRow(t('dock.commands.openWorlds')).click())
+    act(() => commandRow(t('dock.commands.openLogs')).click())
+    await act(async () => worlds.reject(new Error('stale folder error')))
+    await flush()
+    expect(document.querySelector('[role="alert"]')).toBeNull()
+
+    await act(async () => logs.resolve())
+    await flush()
+    expect(document.querySelector('.cmd-input')).toBeNull()
+  })
+})
+
 describe('CommandPalette desktop commands', () => {
   it('shows why a desktop command failed and stays open, instead of failing silently', async () => {
     desktopBridge.current = {

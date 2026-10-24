@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useUIStore } from '../../state/store'
 import { getDesktop } from '../../shared/desktop'
 import { t } from '../../i18n'
@@ -118,26 +118,46 @@ export function CommandPalette() {
     )
   }, [commands, query])
 
-  const runCommand = (cmd: Command) => {
-    ranCommand.current = true
-    setFailure(null)
-    const outcome = cmd.run()
-    if (!(outcome instanceof Promise)) {
-      setOpen(false)
-      return
-    }
-    // A command that is still running keeps the palette open; a failure stays on screen here.
-    outcome.then(
-      () => setOpen(false),
-      (error: unknown) => setFailure(error instanceof Error ? error.message : String(error)),
-    )
-  }
+  // Bumped when a command starts and whenever the palette closes or reopens. A command still running when
+  // the number has moved on was superseded: its result must not close the palette or replace its message.
+  const generation = useRef(0)
+
+  const closePalette = useCallback(() => {
+    generation.current += 1
+    setOpen(false)
+  }, [])
+
+  const runCommand = useCallback(
+    (cmd: Command) => {
+      ranCommand.current = true
+      setFailure(null)
+      const token = ++generation.current
+      const outcome = cmd.run()
+      if (!(outcome instanceof Promise)) {
+        closePalette()
+        return
+      }
+      // A command that is still running keeps the palette open; a failure stays on screen here.
+      outcome.then(
+        () => {
+          if (token === generation.current) closePalette()
+        },
+        (error: unknown) => {
+          if (token === generation.current) {
+            setFailure(error instanceof Error ? error.message : String(error))
+          }
+        },
+      )
+    },
+    [closePalette],
+  )
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       const isOpenShortcut = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'
       if (isOpenShortcut) {
         e.preventDefault()
+        generation.current += 1
         setOpen((prev) => !prev)
         setQuery('')
         setHighlight(0)
@@ -147,7 +167,7 @@ export function CommandPalette() {
       if (!open) return
       if (e.key === 'Escape') {
         e.preventDefault()
-        setOpen(false)
+        closePalette()
         return
       }
       if (e.key === 'ArrowDown') {
@@ -169,7 +189,7 @@ export function CommandPalette() {
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, filtered, highlight])
+  }, [open, filtered, highlight, runCommand, closePalette])
 
   useEffect(() => {
     if (!open) return
@@ -203,7 +223,7 @@ export function CommandPalette() {
   if (!open) return null
 
   return (
-    <div className="cmd-backdrop" onClick={() => setOpen(false)}>
+    <div className="cmd-backdrop" onClick={closePalette}>
       <div className="cmd-panel" onClick={(e) => e.stopPropagation()}>
         <input
           ref={inputRef}
