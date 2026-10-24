@@ -1573,7 +1573,7 @@ pub(super) fn tick_building_progress(sim: &mut Simulation) {
                     continue;
                 }
                 effort += worker.effort;
-                working.push((worker.index, building.kind));
+                working.push((worker.index, building.kind, building_index));
                 building.occupants.push(organisms[worker.index].id.clone());
             }
             if effort == 0.0 {
@@ -1613,10 +1613,25 @@ pub(super) fn tick_building_progress(sim: &mut Simulation) {
             );
         }
     }
-    for (worker_index, kind) in working {
+    for &(worker_index, kind, _) in &working {
         let worker = &mut sim.organisms[worker_index];
         worker.energy = (worker.energy - 0.006).max(0.0);
         worker.thought = format!("building a {}", kind.name());
+    }
+    // Building is learned on the site: each pass of work is practice, and the
+    // crew watch one another, so a raw hand on a master's crew learns fast.
+    for &(worker_index, _, site) in &working {
+        let crew: Vec<usize> = working
+            .iter()
+            .filter(|&&(other, _, other_site)| other_site == site && other != worker_index)
+            .map(|&(other, _, _)| other)
+            .collect();
+        sim.practise_skill(
+            worker_index,
+            crate::organism::skills::Skill::Building,
+            true,
+            &crew,
+        );
     }
     for (lineage, kind, x, y) in completed {
         // Construction knowledge is earned only when the project becomes
