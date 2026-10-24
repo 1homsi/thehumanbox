@@ -83,7 +83,10 @@
     "title": "Civilization",
     "close": "Close",
     "common": {
-      "people": "{count} people",
+      "people": {
+        "one": "{count} person",
+        "other": "{count} people"
+      },
       "more": "+{count} more",
       "tick": "tick {tick}"
     },
@@ -183,7 +186,10 @@
     "religions": {
       "heading": "Religions",
       "empty": "No religions founded yet",
-      "adherents": "{count} adherents",
+      "adherents": {
+        "one": "{count} adherent",
+        "other": "{count} adherents"
+      },
       "foundedBy": "founded by {lineage}",
       "enterTemple": "enter temple →",
       "templeUnavailable": "temple unavailable"
@@ -210,7 +216,10 @@
     "settlements": {
       "heading": "Settlements",
       "empty": "No stable settlements yet",
-      "completedBuildings": "{count} completed buildings",
+      "completedBuildings": {
+        "one": "{count} completed building",
+        "other": "{count} completed buildings"
+      },
       "capacity": "capacity {count}"
     },
     "agriculture": {
@@ -235,7 +244,10 @@
       "heading": "Recent Books",
       "empty": "No books written yet",
       "on": "{author} on {topic}",
-      "copies": "{count} copies"
+      "copies": {
+        "one": "{count} copy",
+        "other": "{count} copies"
+      }
     },
     "artworks": {
       "heading": "Artworks",
@@ -357,23 +369,44 @@
     "empty": "no one fits this lens yet",
     "gen": "gen {gen}",
     "oldest": "Oldest among us",
-    "days": "{count} days",
+    "days": {
+      "one": "{count} day",
+      "other": "{count} days"
+    },
     "children": "Most children",
-    "childrenCount": "{count} children",
+    "childrenCount": {
+      "one": "{count} child",
+      "other": "{count} children"
+    },
     "friends": "Best connected",
-    "friendsCount": "{count} friends",
+    "friendsCount": {
+      "one": "{count} friend",
+      "other": "{count} friends"
+    },
     "wealth": "Richest",
-    "coin": "{count} coin",
+    "coin": {
+      "one": "{count} coin",
+      "other": "{count} coins"
+    },
     "discoveries": "Most learned (discoveries)",
-    "discoveriesCount": "{count} discoveries",
+    "discoveriesCount": {
+      "one": "{count} discovery",
+      "other": "{count} discoveries"
+    },
     "literate": "Most literate",
     "literacy": "{percent}% literate",
     "devout": "Most devout",
     "piety": "{percent}% piety",
     "joy": "Most joyful right now",
-    "joyTicks": "{count} joy ticks",
+    "joyTicks": {
+      "one": "{count} joy tick",
+      "other": "{count} joy ticks"
+    },
     "grief": "Carrying the deepest grief",
-    "griefTicks": "{count} grief ticks",
+    "griefTicks": {
+      "one": "{count} grief tick",
+      "other": "{count} grief ticks"
+    },
     "aspiration": "Has a life aim"
   },
   "orgSearch": {
@@ -467,7 +500,10 @@
       "parents": "parents",
       "deepestGen": "deepest gen",
       "days": "· {days}d",
-      "kids": "· {count} kids",
+      "kids": {
+        "one": "· {count} kid",
+        "other": "· {count} kids"
+      },
       "gen": "· g{gen}"
     },
     "ageAdult": "adult",
@@ -488,7 +524,10 @@
     "days": "{days}d",
     "bonded": "bonded",
     "father": "father: {name}",
-    "children": "{count} children",
+    "children": {
+      "one": "{count} child",
+      "other": "{count} children"
+    },
     "hint": "scroll to zoom · drag to pan · hover a node for info ·",
     "bondedPair": "bonded pair",
     "fitAllTitle": "Fit all generations",
