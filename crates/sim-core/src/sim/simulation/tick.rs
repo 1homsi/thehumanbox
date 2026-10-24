@@ -585,6 +585,11 @@ impl Simulation {
             return false;
         }
         let org = &self.organisms[idx];
+        // Someone starving or parched goes for food or water first: the storm
+        // reflex used to override even eating, and they built until they died.
+        if org.energy < 0.25 || org.hydration < 0.25 {
+            return false;
+        }
         if org.has_shelter_within(&self.grid, &self.buildings, 3)
             || org.has_shelter_project_within(&self.buildings, 3)
         {

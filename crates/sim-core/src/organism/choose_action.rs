@@ -321,22 +321,68 @@ impl Organism {
             } else {
                 9
             };
-            if let Some(v) = self.nearest_visible(grid, Tile::Food, scan_r) {
+            // Food across water is out of reach for someone this weak: the
+            // first step would put them in the water, and being too tired to
+            // swim sends them straight back to the bank. They went back and
+            // forth like that until they starved. Such food is passed over
+            // for the next, and set aside for a while when nothing else is
+            // within reach. A crossing already planned along a route still goes
+            // ahead: once wading, they keep to it.
+            let on_land = !grid.is_wet(tile, ix, iy);
+            let rejected: std::cell::RefCell<Vec<(i32, i32)>> = std::cell::RefCell::new(Vec::new());
+            let step_dry = |target: (i32, i32)| {
+                let planned = {
+                    let route = self.route.borrow();
+                    route.goal == target && route.steps.len() > route.next
+                };
+                let action = self.toward(target, grid);
+                let (dx, dy) = crate::organism::organism::DIRECTIONS[action % 8];
+                let next = (ix + dx, iy + dy);
+                let wades = action < 8 && grid.is_wet(grid.get(next.0, next.1), next.0, next.1);
+                if on_land && wades && self.energy < 0.55 && !planned {
+                    // `toward` may just have planned this very crossing; drop
+                    // it, or the next look would take it for one under way.
+                    let mut route = self.route.borrow_mut();
+                    if route.goal == target {
+                        route.steps.clear();
+                        route.next = 0;
+                    }
+                    drop(route);
+                    rejected.borrow_mut().push(target);
+                    None
+                } else {
+                    Some(action)
+                }
+            };
+            let open =
+                |t: (i32, i32)| !self.route.borrow().recently_blocked(t) && !rejected.borrow().contains(&t);
+            let mut choice = None;
+            for _ in 0..3 {
+                let Some(t) = self.nearest_visible_where(grid, Tile::Food, scan_r, open) else {
+                    break;
+                };
+                if let Some(action) = step_dry(t) {
+                    choice = Some(action);
+                    break;
+                }
+            }
+            if let Some(action) = choice {
                 set_thought!("moving to food");
-                return (self.toward(v, grid), thought);
+                return (action, thought);
             }
             let urgency = (0.42 - self.energy) / 0.42;
-            if let Some(t) = Self::best_remembered_with_danger(
+            if let Some(action) = Self::best_remembered_with_danger(
                 &self.food_memory,
                 self.x,
                 self.y,
                 &self.danger_memory,
                 urgency,
             )
-            .filter(|&t| !self.route.borrow().recently_blocked(t))
+            .filter(|&t| open(t))
+            .and_then(step_dry)
             {
                 set_thought!("moving to known food");
-                return (self.toward(t, grid), thought);
+                return (action, thought);
             }
             let kin_eating = nearby_people()
                 .filter(|o| {
@@ -345,14 +391,25 @@ impl Organism {
                         && o.lineage_id == self.lineage_id
                         && (o.x - self.x).abs() + (o.y - self.y).abs() <= 14.0
                 })
-                .find(|o| matches!(grid.get(o.x as i32, o.y as i32), Tile::Food));
-            if let Some(k) = kin_eating {
+                .map(|o| (o.x as i32, o.y as i32))
+                .filter(|&at| matches!(grid.get(at.0, at.1), Tile::Food) && open(at))
+                .find_map(step_dry);
+            if let Some(action) = kin_eating {
                 set_thought!("following kin to food");
-                return (self.toward((k.x as i32, k.y as i32), grid), thought);
+                return (action, thought);
             }
-            if let Some(t) = self.find_trail_target(grid, TrailKind::Food, 12) {
+            if let Some(action) = self
+                .find_trail_target(grid, TrailKind::Food, 12)
+                .filter(|&t| open(t))
+                .and_then(step_dry)
+            {
                 set_thought!("following food trail");
-                return (self.toward(t, grid), thought);
+                return (action, thought);
+            }
+            // Nothing within reach on dry land: what lay across the water is
+            // set aside for a while, so they stop turning back toward it.
+            if let Some(&first) = rejected.borrow().first() {
+                self.route.borrow_mut().mark_blocked(first);
             }
             set_thought!("hungry - searching");
         }

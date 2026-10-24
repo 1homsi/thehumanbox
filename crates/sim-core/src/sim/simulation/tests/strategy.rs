@@ -373,3 +373,29 @@ fn fortify_position_consumes_material_and_records_lineage_ownership() {
         fortification.x == x && fortification.y == y && fortification.lineage_id == lineage_id
     }));
 }
+
+#[test]
+fn someone_starving_in_a_storm_goes_for_food_before_building() {
+    let mut sim = Simulation::new(0xE912);
+    let idx = sim.organisms.iter().position(|organism| organism.alive).unwrap();
+    sim.buildings.clear();
+    sim.weather.kind = 2;
+    sim.organisms[idx].inv_wood = 1;
+    let (x, y) = (90, 90);
+    sim.organisms[idx].x = x as f32;
+    sim.organisms[idx].y = y as f32;
+    for tile_y in y - 4..=y + 4 {
+        for tile_x in x - 4..=x + 4 {
+            sim.grid.set(tile_x, tile_y, Tile::Grass);
+            sim.grid.structure[WorldGrid::idx(tile_x, tile_y)] = 0.0;
+        }
+    }
+    sim.organisms[idx].energy = 0.8;
+    sim.organisms[idx].hydration = 0.8;
+    assert!(sim.should_start_emergency_shelter(idx));
+    sim.organisms[idx].energy = 0.15;
+    assert!(!sim.should_start_emergency_shelter(idx));
+    sim.organisms[idx].energy = 0.8;
+    sim.organisms[idx].hydration = 0.1;
+    assert!(!sim.should_start_emergency_shelter(idx));
+}

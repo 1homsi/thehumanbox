@@ -234,12 +234,23 @@ impl Organism {
         tile_type: Tile,
         radius: i32,
     ) -> Option<(i32, i32)> {
+        self.nearest_visible_where(grid, tile_type, radius, |_| true)
+    }
+
+    /// The nearest tile of `tile_type` within `radius` that `keep` accepts.
+    pub(crate) fn nearest_visible_where(
+        &self,
+        grid: &WorldGrid,
+        tile_type: Tile,
+        radius: i32,
+        keep: impl Fn((i32, i32)) -> bool,
+    ) -> Option<(i32, i32)> {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let mut best_dist = radius + 1;
         let mut best_loc = None;
         for dx in -radius..=radius {
             for dy in -radius..=radius {
-                if grid.get(ix + dx, iy + dy) == tile_type {
+                if grid.get(ix + dx, iy + dy) == tile_type && keep((ix + dx, iy + dy)) {
                     let dist = dx.abs() + dy.abs();
                     if dist < best_dist {
                         best_dist = dist;
