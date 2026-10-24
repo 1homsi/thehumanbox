@@ -7,11 +7,13 @@ const H = 240
 const PAD = { t: 14, r: 16, b: 36, l: 44 }
 
 export function PopChart({ history }: { history: [number, number][] }) {
+  // The top of the scale is at least 1, so a history of zeros (a world that died out) still has a
+  // finite scale; the axis and the line must use this same value.
+  const maxPop = Math.max(...history.map((h) => h[1]), 1)
   const points = useMemo(() => {
     if (history.length < 2) return null
     const maxTick = history[history.length - 1][0]
     const minTick = history[0][0]
-    const maxPop = Math.max(...history.map((h) => h[1]), 1)
     const cw = W - PAD.l - PAD.r
     const ch = H - PAD.t - PAD.b
     return history.map(([tick, pop]) => ({
@@ -20,7 +22,7 @@ export function PopChart({ history }: { history: [number, number][] }) {
       pop,
       tick,
     }))
-  }, [history])
+  }, [history, maxPop])
 
   if (!points || points.length < 2) {
     return (
@@ -32,9 +34,8 @@ export function PopChart({ history }: { history: [number, number][] }) {
 
   const d = 'M ' + points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ')
   const area = d + ` L ${points[points.length - 1].x},${H - PAD.b} L ${points[0].x},${H - PAD.b} Z`
-  const maxPop = Math.max(...history.map((h) => h[1]))
-
-  const yTicks = [0, Math.floor(maxPop / 2), maxPop]
+  // A peak of 1 gives 0, 0, 1: the same label twice, under the same React key.
+  const yTicks = [...new Set([0, Math.floor(maxPop / 2), maxPop])]
 
   return (
     <svg

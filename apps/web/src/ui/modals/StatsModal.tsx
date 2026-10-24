@@ -83,7 +83,7 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
             <div className="stats-num-label">{t('dialogs.stats.totalDeaths')}</div>
           </div>
           <div className="stats-num-card">
-            <div className="stats-num">{world.history.births}</div>
+            <div className="stats-num">{formatNumber(world.history.births)}</div>
             <div className="stats-num-label">{t('dialogs.stats.totalBirths')}</div>
           </div>
           <div className="stats-num-card">
@@ -200,19 +200,19 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
             <div className="stats-section-title">{t('dialogs.stats.causesOfDeath')}</div>
             <div className="stats-death-grid">
               <span className="hist-label">{t('dialogs.stats.causes.starvation')}</span>{' '}
-              <span className="hist-val">{world.history.deaths_starvation}</span>
+              <span className="hist-val">{formatNumber(world.history.deaths_starvation)}</span>
               <span className="hist-label">{t('dialogs.stats.causes.dehydration')}</span>{' '}
-              <span className="hist-val">{world.history.deaths_dehydration}</span>
+              <span className="hist-val">{formatNumber(world.history.deaths_dehydration)}</span>
               <span className="hist-label">{t('dialogs.stats.causes.sickness')}</span>{' '}
-              <span className="hist-val">{world.history.deaths_sickness}</span>
+              <span className="hist-val">{formatNumber(world.history.deaths_sickness)}</span>
               <span className="hist-label">{t('dialogs.stats.causes.combat')}</span>{' '}
-              <span className="hist-val">{world.history.deaths_combat}</span>
+              <span className="hist-val">{formatNumber(world.history.deaths_combat)}</span>
               <span className="hist-label">{t('dialogs.stats.causes.oldAge')}</span>{' '}
-              <span className="hist-val">{world.history.deaths_old_age}</span>
+              <span className="hist-val">{formatNumber(world.history.deaths_old_age)}</span>
               <span className="hist-label">{t('dialogs.stats.causes.droughts')}</span>{' '}
-              <span className="hist-val">{world.history.droughts}</span>
+              <span className="hist-val">{formatNumber(world.history.droughts)}</span>
               <span className="hist-label">{t('dialogs.stats.causes.outbreaks')}</span>{' '}
-              <span className="hist-val">{world.history.outbreaks}</span>
+              <span className="hist-val">{formatNumber(world.history.outbreaks)}</span>
             </div>
           </section>
 
