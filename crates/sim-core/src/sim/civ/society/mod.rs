@@ -1,3 +1,4 @@
+pub mod craft_exchange;
 pub mod crime;
 pub mod culture;
 pub mod economy;
