@@ -869,11 +869,14 @@ impl Simulation {
                     } else {
                         p
                     };
-                    // Game that has been hunted here keeps its distance.
-                    let p = p
-                        * (1.0
-                            - super::wary_game::ESCAPE_AT_FULL
-                                * super::wary_game::wariness_in(&self.game_wariness, animal.x, animal.y));
+                    // Game that has been hunted here keeps its distance; fish
+                    // in the water know nothing of it.
+                    let wary = if matches!(animal.kind, AnimalKind::Fish) {
+                        0.0
+                    } else {
+                        super::wary_game::wariness_in(&self.game_wariness, animal.x, animal.y)
+                    };
+                    let p = p * (1.0 - super::wary_game::ESCAPE_AT_FULL * wary);
                     if self.rng.random::<f32>() < p {
                         to_catch.push((oi, ai));
                     }

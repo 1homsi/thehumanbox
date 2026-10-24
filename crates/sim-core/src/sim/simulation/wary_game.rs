@@ -1,8 +1,8 @@
 //! Hunted game grows wary. Every animal people catch makes the rest in that
 //! stretch of land more skittish: they bolt from people further off and are
 //! harder to get close to. Hunters who keep taking game near home find it
-//! slipping away and have to range further; left alone for some days, the
-//! animals settle again.
+//! slipping away and have to range further; left alone, the animals settle
+//! again: a lightly hunted patch in days, the most hunted in under a month.
 //!
 //! Kept per patch of land and saved with the world.
 
@@ -94,6 +94,19 @@ mod tests {
             sim.tick_game_wariness();
         }
         assert!((10..=20).contains(&days), "wary for {days} days");
+
+        // The most hunted patch takes longer, but settles within a month.
+        for _ in 0..20 {
+            sim.spook_game(40.0, 40.0, 0);
+        }
+        assert_eq!(sim.game_wariness(40.0, 40.0), 1.0);
+        let start = days;
+        while sim.game_wariness(40.0, 40.0) > 0.0 {
+            days += 1;
+            sim.tick_count = DAY_LENGTH * days + DAY_LENGTH / 3;
+            sim.tick_game_wariness();
+        }
+        assert!(days - start <= 30, "wary for {} days", days - start);
     }
 
     #[test]
