@@ -642,3 +642,52 @@ fn every_daily_work_action_practises_its_own_skill() {
     }
     assert_eq!(Skill::of_action(17), None);
 }
+
+#[test]
+fn someone_too_weak_to_swim_does_not_wade_toward_food_across_the_water() {
+    let mut rng = StdRng::seed_from_u64(9);
+    let traits = Traits::random(&mut rng);
+    let mut grid = WorldGrid::new(4);
+    for x in 30..=70 {
+        for y in 30..=70 {
+            grid.set(x, y, Tile::Grass);
+        }
+    }
+    // Rock on three sides; the only way toward the food is through the water.
+    for (dx, dy) in [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (1, 1)] {
+        grid.set(50 + dx, 50 + dy, Tile::Rock);
+    }
+    grid.set(50, 51, Tile::Water);
+    grid.set(50, 52, Tile::Water);
+    grid.set(50, 53, Tile::Food);
+    let mut org = Organism::new(
+        "weak".into(),
+        "Weak".into(),
+        50.0,
+        50.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    org.energy = 0.3;
+    org.hydration = 0.9;
+    let (action, thought) = org.choose_action(
+        &grid,
+        &BuildingList::new(),
+        100,
+        0.0,
+        &[],
+        false,
+        0,
+        &mut rng,
+        false,
+        "state",
+        &[0, 1, 2, 3, 4, 5, 6, 7, 8],
+    );
+    if action < 8 {
+        let (dx, dy) = crate::organism::organism::DIRECTIONS[action];
+        assert_ne!(grid.get(50 + dx, 50 + dy), Tile::Water, "waded in ({thought:?})");
+    }
+}

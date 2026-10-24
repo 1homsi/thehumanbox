@@ -321,12 +321,35 @@ impl Organism {
             } else {
                 9
             };
-            if let Some(v) = self.nearest_visible(grid, Tile::Food, scan_r) {
+            // Food across water is out of reach for someone this weak: the
+            // first step would put them in the water, and being too tired to
+            // swim sends them straight back to the bank. They went back and
+            // forth like that until they starved. Such food is set aside for
+            // a while and the next nearest is tried.
+            let on_land = !grid.is_wet(tile, ix, iy);
+            let step_dry = |target: (i32, i32)| {
+                let action = self.toward(target, grid);
+                let (dx, dy) = crate::organism::organism::DIRECTIONS[action % 8];
+                let next = (ix + dx, iy + dy);
+                let wades = action < 8 && grid.is_wet(grid.get(next.0, next.1), next.0, next.1);
+                if on_land && wades && self.energy < 0.55 {
+                    self.route.borrow_mut().mark_blocked(target);
+                    None
+                } else {
+                    Some(action)
+                }
+            };
+            if let Some(action) = self
+                .nearest_visible_where(grid, Tile::Food, scan_r, |t| {
+                    !self.route.borrow().recently_blocked(t)
+                })
+                .and_then(step_dry)
+            {
                 set_thought!("moving to food");
-                return (self.toward(v, grid), thought);
+                return (action, thought);
             }
             let urgency = (0.42 - self.energy) / 0.42;
-            if let Some(t) = Self::best_remembered_with_danger(
+            if let Some(action) = Self::best_remembered_with_danger(
                 &self.food_memory,
                 self.x,
                 self.y,
@@ -334,9 +357,10 @@ impl Organism {
                 urgency,
             )
             .filter(|&t| !self.route.borrow().recently_blocked(t))
+            .and_then(step_dry)
             {
                 set_thought!("moving to known food");
-                return (self.toward(t, grid), thought);
+                return (action, thought);
             }
             let kin_eating = nearby_people()
                 .filter(|o| {
