@@ -7,13 +7,35 @@ interface Command {
   id: string
   label: string
   hint?: string
-  run: () => void
+  run: () => void | Promise<void>
+}
+
+type DesktopFailure =
+  | 'settings.desktop.screenshotFailed'
+  | 'settings.desktop.openWorldsFailed'
+  | 'settings.desktop.openLogsFailed'
+
+/**
+ * A desktop tool whose failure is named in the palette. The settings tab does the same; a bare
+ * `void` call would turn a refused folder into an unhandled rejection the player never sees.
+ */
+function desktopTool(failure: DesktopFailure, action: () => Promise<unknown>): () => Promise<void> {
+  return async () => {
+    try {
+      await action()
+    } catch (error) {
+      throw new Error(t(failure, { error: error instanceof Error ? error.message : String(error) }), {
+        cause: error,
+      })
+    }
+  }
 }
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [highlight, setHighlight] = useState(0)
+  const [failure, setFailure] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const ranCommand = useRef(false)
   const openStats = useUIStore((s) => s.openStats)
@@ -58,14 +80,21 @@ export function CommandPalette() {
           id: 'desk-screenshot',
           label: t('dock.commands.screenshot'),
           hint: t('dock.commands.screenshotHint'),
-          run: () => void desktop.app.screenshot(),
+          // screenshot() resolves null when the capture or its file write fails.
+          run: desktopTool('settings.desktop.screenshotFailed', async () => {
+            if (!(await desktop.app.screenshot())) throw new Error(t('settings.desktop.captureFailed'))
+          }),
         },
         {
           id: 'desk-open-worlds',
           label: t('dock.commands.openWorlds'),
-          run: () => void desktop.app.openWorlds(),
+          run: desktopTool('settings.desktop.openWorldsFailed', () => desktop.app.openWorlds()),
         },
-        { id: 'desk-open-logs', label: t('dock.commands.openLogs'), run: () => void desktop.app.openLogs() },
+        {
+          id: 'desk-open-logs',
+          label: t('dock.commands.openLogs'),
+          run: desktopTool('settings.desktop.openLogsFailed', () => desktop.app.openLogs()),
+        },
       )
     }
     return cmds
@@ -91,8 +120,17 @@ export function CommandPalette() {
 
   const runCommand = (cmd: Command) => {
     ranCommand.current = true
-    cmd.run()
-    setOpen(false)
+    setFailure(null)
+    const outcome = cmd.run()
+    if (!(outcome instanceof Promise)) {
+      setOpen(false)
+      return
+    }
+    // A command that is still running keeps the palette open; a failure stays on screen here.
+    outcome.then(
+      () => setOpen(false),
+      (error: unknown) => setFailure(error instanceof Error ? error.message : String(error)),
+    )
   }
 
   useEffect(() => {
@@ -103,6 +141,7 @@ export function CommandPalette() {
         setOpen((prev) => !prev)
         setQuery('')
         setHighlight(0)
+        setFailure(null)
         return
       }
       if (!open) return
@@ -174,6 +213,11 @@ export function CommandPalette() {
           onChange={(e) => setQuery(e.target.value)}
         />
         <div className="cmd-list">
+          {failure && (
+            <div className="cmd-empty cmd-failure" role="alert">
+              {failure}
+            </div>
+          )}
           {filtered.length === 0 && <div className="cmd-empty">{t('dock.palette.empty')}</div>}
           {filtered.map((cmd, i) => (
             <div

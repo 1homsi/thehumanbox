@@ -204,6 +204,10 @@ body.thb-app-minimized *::after {
   font-size: 11px;
   font-style: italic;
 }
+.cmd-failure {
+  color: #ff9b6b;
+  font-style: normal;
+}
 .headline-ticker {
   background: linear-gradient(to bottom, #1a140e, #28201a);
   border-bottom: 1px solid #443329;
