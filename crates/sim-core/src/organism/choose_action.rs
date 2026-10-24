@@ -207,7 +207,9 @@ impl Organism {
         // Fear makes people keep further from fire, and so does having seen someone burn.
         let flee_r = (2.0 + 2.0 * self.traits.fear + 2.0 * self.lessons.heeds(Lesson::Fire)) as i32;
         let fire_tile = self.nearest_visible(grid, Tile::Fire, flee_r);
-        let fire_dangerous = tile == Tile::Fire || (!night && fire_tile.is_some());
+        // By night a fire is for warmth, unless they have seen someone burn.
+        let fire_dangerous =
+            tile == Tile::Fire || (fire_tile.is_some() && (!night || self.lessons.heeds(Lesson::Fire) > 0.0));
         let critical = self.energy < 0.2 || self.hydration < 0.2;
         if !critical && fire_dangerous {
             set_thought!("heat dangerous");
@@ -514,6 +516,10 @@ impl Organism {
             if self.hydration < 0.82 + 0.1 * thirst_wary && self.hydration > 0.45 {
                 if grid.water_beside(ix, iy).is_some() {
                     set_thought!("drinking at the water's edge");
+                    return (9, thought);
+                }
+                if grid.ice_beside(ix, iy).is_some() {
+                    set_thought!("breaking the ice to drink");
                     return (9, thought);
                 }
                 if let Some(v) = self.nearest_visible(grid, Tile::Water, 6 + (2.0 * thirst_wary) as i32) {

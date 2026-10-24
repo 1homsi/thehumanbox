@@ -168,13 +168,13 @@
     },
     "enjoys": "ama {list}",
     "avoids": "evita {list} dopo un infortunio",
-    "lessonTip": "Una morte a cui ha assistito glielo ha insegnato. Svanisce con gli anni, e i figli ne crescono con una parte.",
+    "lessonTip": "Imparato da una morte: una vista con i propri occhi, una raccontata dagli anziani o una prudenza ereditata dai genitori. Svanisce con gli anni.",
     "lessons": {
-      "water": "diffida dell'acqua profonda da quando ha visto un annegamento",
-      "hunger": "mangia prima di avere fame da quando qualcuno è morto di fame",
-      "thirst": "tiene l'acqua vicina da quando qualcuno è morto di sete",
-      "beasts": "sta alla larga dalle bestie da quando una ha ucciso qualcuno",
-      "fire": "sta lontano dal fuoco da quando qualcuno è bruciato"
+      "water": "diffida dell'acqua profonda",
+      "hunger": "mangia prima di avere fame",
+      "thirst": "tiene l'acqua vicina",
+      "beasts": "sta alla larga dalle bestie",
+      "fire": "sta lontano dal fuoco"
     }
   },
   "zodiac": {

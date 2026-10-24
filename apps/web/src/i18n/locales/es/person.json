@@ -168,13 +168,13 @@
     },
     "enjoys": "disfruta de {list}",
     "avoids": "evita {list} desde que se hirió haciéndolo",
-    "lessonTip": "Una muerte que presenció le enseñó esto. Se desvanece con los años, y sus hijos crecen con parte de ello.",
+    "lessonTip": "Aprendido de una muerte: una que vio, una que contaron los ancianos o la cautela heredada de sus padres. Se desvanece con los años.",
     "lessons": {
-      "water": "teme el agua profunda desde que vio a alguien ahogarse",
-      "hunger": "come antes de tener hambre desde que alguien murió de hambre",
-      "thirst": "tiene agua cerca desde que alguien murió de sed",
-      "beasts": "se aleja de las fieras desde que una mató a alguien",
-      "fire": "se mantiene lejos del fuego desde que alguien ardió"
+      "water": "teme el agua profunda",
+      "hunger": "come antes de tener hambre",
+      "thirst": "tiene agua cerca",
+      "beasts": "se aleja de las fieras",
+      "fire": "se mantiene lejos del fuego"
     }
   },
   "zodiac": {

@@ -19,11 +19,17 @@ impl Simulation {
             return;
         }
         let saw_it = (w.x as i32 - at.0).abs() + (w.y as i32 - at.1).abs() <= SAW_IT;
+        let real = |id: &str| !id.is_empty() && id != "genesis";
+        let siblings = (real(&w.parent_id) && w.parent_id == d.parent_id)
+            || w.father_id
+                .as_deref()
+                .is_some_and(|f| real(f) && d.father_id.as_deref() == Some(f));
         let kin = w.partner_id.as_deref() == Some(d.id.as_str())
             || w.parent_id == d.id
             || w.father_id.as_deref() == Some(d.id.as_str())
             || d.parent_id == w.id
-            || d.father_id.as_deref() == Some(w.id.as_str());
+            || d.father_id.as_deref() == Some(w.id.as_str())
+            || siblings;
         let strength = match (saw_it, kin) {
             (true, true) => FROM_KIN,
             (true, false) => FROM_NEIGHBOUR,
@@ -87,6 +93,36 @@ mod tests {
         assert!(!sim.organisms[0].alive);
         assert_eq!(sim.organisms[0].death_cause, "starvation");
         assert!(sim.organisms[1].lessons.heeds(Lesson::Hunger) > 0.0);
+    }
+
+    #[test]
+    fn a_sibling_who_saw_it_takes_it_as_kin() {
+        let mut sim = tribe();
+        sim.organisms[0].parent_id = "mother".into();
+        sim.organisms[1].parent_id = "mother".into();
+        sim.organisms[2].parent_id = "genesis".into();
+        sim.organisms[0].parent_id = "genesis".into();
+        sim.take_lesson(2, 0, Lesson::Water, (50, 50));
+        sim.organisms[0].parent_id = "mother".into();
+        sim.take_lesson(1, 0, Lesson::Water, (50, 50));
+        assert_eq!(sim.organisms[1].lessons.strength(Lesson::Water), FROM_KIN);
+        assert_eq!(
+            sim.organisms[2].lessons.strength(Lesson::Water),
+            FROM_NEIGHBOUR,
+            "the founders' shared marker is no family tie"
+        );
+    }
+
+    #[test]
+    fn a_stranger_from_another_tribe_who_saw_it_learns_too() {
+        let mut sim = tribe();
+        sim.organisms[2].lineage_id = "other".into();
+        sim.organisms[2].friends.clear();
+        sim.organisms[0].energy = 0.0;
+        sim.organisms[0].hydration = 0.9;
+        sim.tick();
+        assert_eq!(sim.organisms[0].death_cause, "starvation");
+        assert!(sim.organisms[2].lessons.heeds(Lesson::Hunger) > 0.0);
     }
 
     #[test]

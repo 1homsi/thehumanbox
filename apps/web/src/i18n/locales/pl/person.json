@@ -172,13 +172,13 @@
     },
     "enjoys": "lubi: {list}",
     "avoids": "unika: {list} po urazie",
-    "lessonTip": "Nauczyła ich tego śmierć, którą widzieli. Z latami blednie, a ich dzieci dorastają z częścią tej ostrożności.",
+    "lessonTip": "Nauczka z czyjejś śmierci: widzianej na własne oczy, opowiedzianej przez starszych albo ostrożność przejęta od rodziców. Z latami blednie.",
     "lessons": {
-      "water": "boi się głębokiej wody, odkąd ktoś utonął",
-      "hunger": "je, zanim przyjdzie głód, odkąd ktoś zmarł z głodu",
-      "thirst": "trzyma wodę blisko, odkąd ktoś zmarł z pragnienia",
-      "beasts": "omija dzikie zwierzęta szerokim łukiem, odkąd jedno kogoś zabiło",
-      "fire": "trzyma się z dala od ognia, odkąd ktoś spłonął"
+      "water": "boi się głębokiej wody",
+      "hunger": "je, zanim przyjdzie głód",
+      "thirst": "trzyma wodę blisko",
+      "beasts": "omija dzikie zwierzęta szerokim łukiem",
+      "fire": "trzyma się z dala od ognia"
     }
   },
   "zodiac": {

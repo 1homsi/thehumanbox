@@ -292,7 +292,7 @@ impl Simulation {
                     griever_set.insert(i);
                 }
             }
-            let grievers: Vec<usize> = griever_set.into_iter().collect();
+            let grievers: Vec<usize> = griever_set.iter().copied().collect();
 
             let griever_count = grievers.len();
 
@@ -314,6 +314,25 @@ impl Simulation {
 
             let dead_id = self.organisms[idx].id.clone();
             let lesson = crate::organism::lessons::Lesson::of_death(&self.organisms[idx].death_cause);
+            // Anyone close enough to see it learns from it, mourner or not: a
+            // stranger from another tribe who watched the drowning is warier too.
+            if let Some(lesson) = lesson {
+                let witnesses: Vec<usize> = self
+                    .organisms
+                    .iter()
+                    .enumerate()
+                    .filter(|&(i, o)| {
+                        i != idx
+                            && o.alive
+                            && !griever_set.contains(&i)
+                            && (o.x as i32 - dx).abs() + (o.y as i32 - dy).abs() <= 12
+                    })
+                    .map(|(i, _)| i)
+                    .collect();
+                for w in witnesses {
+                    self.take_lesson(w, idx, lesson, (dx, dy));
+                }
+            }
             for gi in &grievers {
                 if let Some(lesson) = lesson {
                     self.take_lesson(*gi, idx, lesson, (dx, dy));

@@ -168,13 +168,13 @@
     },
     "enjoys": "gosta de {list}",
     "avoids": "evita {list} desde que se machucou",
-    "lessonTip": "Uma morte que presenciou ensinou isso. Vai se apagando com os anos, e os filhos crescem com parte disso.",
+    "lessonTip": "Aprendido com uma morte: uma que presenciou, uma que os anciãos contaram ou a cautela herdada dos pais. Vai se apagando com os anos.",
     "lessons": {
-      "water": "tem medo de água funda desde um afogamento",
-      "hunger": "come antes da fome chegar desde que alguém morreu de fome",
-      "thirst": "mantém água por perto desde que alguém morreu de sede",
-      "beasts": "fica longe das feras desde que uma matou alguém",
-      "fire": "fica longe do fogo desde que alguém queimou"
+      "water": "tem medo de água funda",
+      "hunger": "come antes da fome chegar",
+      "thirst": "mantém água por perto",
+      "beasts": "fica longe das feras",
+      "fire": "fica longe do fogo"
     }
   },
   "zodiac": {

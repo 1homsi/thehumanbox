@@ -168,13 +168,13 @@
     },
     "enjoys": "aime {list}",
     "avoids": "évite {list} depuis une blessure",
-    "lessonTip": "Une mort dont il a été témoin le lui a appris. Cela s'estompe avec les années, et ses enfants en héritent une part.",
+    "lessonTip": "Appris d'une mort : une dont il a été témoin, une que les anciens ont racontée, ou une prudence héritée de ses parents. Cela s'estompe avec les années.",
     "lessons": {
-      "water": "se méfie de l'eau profonde depuis une noyade",
-      "hunger": "mange avant d'avoir faim depuis une mort de faim",
-      "thirst": "garde de l'eau à portée depuis une mort de soif",
-      "beasts": "évite les bêtes sauvages depuis que l'une a tué quelqu'un",
-      "fire": "se tient loin du feu depuis que quelqu'un a brûlé"
+      "water": "se méfie de l'eau profonde",
+      "hunger": "mange avant d'avoir faim",
+      "thirst": "garde de l'eau à portée",
+      "beasts": "évite les bêtes sauvages",
+      "fire": "se tient loin du feu"
     }
   },
   "zodiac": {

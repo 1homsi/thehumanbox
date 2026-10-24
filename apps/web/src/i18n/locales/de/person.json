@@ -168,13 +168,13 @@
     },
     "enjoys": "mag {list}",
     "avoids": "meidet {list}, seit es dabei verletzt wurde",
-    "lessonTip": "Ein Tod, den sie mitansahen, hat sie das gelehrt. Es verblasst mit den Jahren, und ihre Kinder wachsen mit einem Teil davon auf.",
+    "lessonTip": "Aus einem Tod gelernt: einem, den sie sahen, einem, von dem die Alten erzählten, oder Vorsicht, die sie von den Eltern mitbekamen. Es verblasst mit den Jahren.",
     "lessons": {
-      "water": "meidet tiefes Wasser seit einem Ertrinken",
-      "hunger": "isst, bevor der Hunger kommt, seit jemand verhungerte",
-      "thirst": "hält Wasser in der Nähe, seit jemand verdurstete",
-      "beasts": "geht wilden Tieren weit aus dem Weg, seit eines jemanden tötete",
-      "fire": "hält Abstand vom Feuer, seit jemand verbrannte"
+      "water": "meidet tiefes Wasser",
+      "hunger": "isst, bevor der Hunger kommt",
+      "thirst": "hält Wasser in der Nähe",
+      "beasts": "geht wilden Tieren weit aus dem Weg",
+      "fire": "hält Abstand vom Feuer"
     }
   },
   "zodiac": {

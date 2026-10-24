@@ -33,13 +33,13 @@ describe('LearningSection', () => {
     })
     expect(host.textContent).toContain('enjoys fishing')
     expect(host.textContent).toContain('avoids woodcutting')
-    expect(host.textContent).toContain('wary of deep water since a drowning')
-    expect(host.textContent).toContain('eats before hunger comes since a death by hunger')
+    expect(host.textContent).toContain('wary of deep water')
+    expect(host.textContent).toContain('eats before hunger comes')
   })
 
   it('shows lessons even for someone with no skills yet, and skips lessons it does not know', () => {
     const host = render({ skills: [], lessons: ['fire', 'comets'] })
-    expect(host.textContent).toContain('keeps clear of fire since someone burned')
+    expect(host.textContent).toContain('keeps clear of fire')
     expect(host.textContent).not.toContain('comets')
   })
 

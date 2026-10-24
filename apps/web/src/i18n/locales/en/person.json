@@ -168,13 +168,13 @@
     },
     "enjoys": "enjoys {list}",
     "avoids": "avoids {list} after being hurt at it",
-    "lessonTip": "A death they saw taught them this. It fades over the years, and their children grow up with some of it.",
+    "lessonTip": "Learned from a death: one they saw, one the elders told of, or caution carried from their parents. It fades over the years.",
     "lessons": {
-      "water": "wary of deep water since a drowning",
-      "hunger": "eats before hunger comes since a death by hunger",
-      "thirst": "keeps water near since a death by thirst",
-      "beasts": "gives beasts a wide berth since one killed someone",
-      "fire": "keeps clear of fire since someone burned"
+      "water": "wary of deep water",
+      "hunger": "eats before hunger comes",
+      "thirst": "keeps water near",
+      "beasts": "gives beasts a wide berth",
+      "fire": "keeps clear of fire"
     }
   },
   "zodiac": {

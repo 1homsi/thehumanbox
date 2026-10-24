@@ -166,13 +166,13 @@
     },
     "enjoys": "sever: {list}",
     "avoids": "yaralandığından beri kaçınır: {list}",
-    "lessonTip": "Gördükleri bir ölüm bunu öğretti. Yıllar geçtikçe silinir; çocukları da bunun bir kısmıyla büyür.",
+    "lessonTip": "Bir ölümden öğrenildi: kendi gözüyle gördüğü, yaşlıların anlattığı ya da anne babasından geçen bir temkin. Yıllar geçtikçe silinir.",
     "lessons": {
-      "water": "birinin boğulmasından beri derin sudan çekinir",
-      "hunger": "birinin açlıktan ölmesinden beri acıkmadan yer",
-      "thirst": "birinin susuzluktan ölmesinden beri suyu yakın tutar",
-      "beasts": "bir hayvanın birini öldürmesinden beri yabani hayvanlardan uzak durur",
-      "fire": "birinin yanmasından beri ateşten uzak durur"
+      "water": "derin sudan çekinir",
+      "hunger": "acıkmadan yer",
+      "thirst": "suyu yakın tutar",
+      "beasts": "yabani hayvanlardan uzak durur",
+      "fire": "ateşten uzak durur"
     }
   },
   "zodiac": {
