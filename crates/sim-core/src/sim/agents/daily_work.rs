@@ -254,10 +254,19 @@ impl Simulation {
     /// In the working hours, sends a free, fit person without a workshop out to work.
     pub(crate) fn assign_daily_work(&mut self, idx: usize) {
         let tick = self.tick_count;
-        if tick % 60 != (idx as u64 + 30) % 60 {
+        let on_schedule = tick % 60 == (idx as u64 + 30) % 60;
+        // A field can ripen between check-ins; someone working it notices at
+        // once instead of standing over a ripe crop until the next one.
+        let in_the_fields = self.organisms[idx]
+            .work
+            .is_some_and(|plan| plan.skill == Skill::Farming);
+        if !on_schedule && !in_the_fields {
             return;
         }
         self.tend_daily_work(idx);
+        if !on_schedule {
+            return;
+        }
         let phase = (tick % DAY_LENGTH) as f32 / DAY_LENGTH as f32;
         if !(WORK_HOURS.0..WORK_HOURS.1).contains(&phase) || !self.free_to_work(idx) {
             return;
@@ -609,6 +618,36 @@ mod tests {
         assert!(plan.harvest);
         assert_eq!(plan.spot, (96, 100));
         assert_eq!(plan.action(), (35, "harvesting the field"));
+    }
+
+    #[test]
+    fn a_field_that_ripens_while_tended_is_brought_in_straight_away() {
+        use crate::sim::tech::agriculture::{CropKind, Farm};
+        let mut sim = shore();
+        let lineage = sim.organisms[0].lineage_id.clone();
+        sim.tick_count = morning(0);
+        sim.farms.push(Farm {
+            id: 1,
+            x: 96,
+            y: 100,
+            owner_lineage: lineage,
+            crop: CropKind::Wheat,
+            planted_tick: 0,
+            ready_tick: sim.tick_count + 5,
+            harvested: false,
+            prepared: true,
+            season_timed: false,
+            withered: false,
+        });
+        sim.organisms[0].skills.set(Skill::Farming, 0.8);
+        sim.assign_daily_work(0);
+        let plan = sim.organisms[0].work.expect("out tending the field");
+        assert_eq!(plan.skill, Skill::Farming);
+        assert!(!plan.harvest);
+        // Off the hourly check-in, a few ticks after it ripened.
+        sim.tick_count += 7;
+        sim.assign_daily_work(0);
+        assert!(sim.organisms[0].work.is_some_and(|p| p.harvest));
     }
 
     #[test]
