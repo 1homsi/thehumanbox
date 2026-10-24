@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { wealthGapYears } from '../../../game/model/wealth-history'
-import { t } from '../../../i18n'
+import { formatNumber, t } from '../../../i18n'
 
 const W = 1000
 const H = 200
@@ -39,7 +39,11 @@ export function WealthGapChart({ values }: { values: number[] }) {
         <g key={p.year}>
           <circle cx={x(i)} cy={y(p.gini)} r="3.5" fill="#e8c46a">
             <title>
-              {t('dialogs.stats.yearWealth', { year: p.year, word: p.word, value: p.gini.toFixed(2) })}
+              {t('dialogs.stats.yearWealth', {
+                year: p.year,
+                word: p.word,
+                value: formatNumber(p.gini, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+              })}
             </title>
           </circle>
           <text x={x(i)} y={H - 8} fill="#777" fontSize="11" textAnchor="middle">

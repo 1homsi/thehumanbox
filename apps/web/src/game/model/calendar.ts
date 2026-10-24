@@ -2,7 +2,7 @@
 // crates/sim-core/src/sim/calendar.rs and cosmos.rs (DAY_LENGTH, SEASON_LENGTH
 // and the four-season year); keep the two in step.
 
-import { t } from '../../i18n'
+import { formatNumber, t } from '../../i18n'
 
 export const DAY_TICKS = 600
 export const SEASON_TICKS = 3000
@@ -38,8 +38,15 @@ export function calendarAt(tick: number): CalendarDate {
   }
 }
 
-/** An age in ticks, as years: one decimal while young ("1.4 yrs"), whole years after. */
+/**
+ * An age in ticks, as years: one decimal while young ("1.4 yrs", "1,4 J." in German), whole years after.
+ * The decimal mark comes from the active language, so it is never written with `toFixed`.
+ */
 export function ageInYears(ageTicks: number): string {
   const years = ageTicks / YEAR_TICKS
-  return t('model.age.years', { years: years < 10 ? years.toFixed(1) : Math.floor(years) })
+  const shown =
+    years < 10
+      ? formatNumber(years, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+      : formatNumber(Math.floor(years))
+  return t('model.age.years', { years: shown })
 }
