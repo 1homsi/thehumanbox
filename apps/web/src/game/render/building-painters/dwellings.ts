@@ -4,6 +4,7 @@ import {
   tintRoof,
   chimney,
   cracks,
+  crenellation,
   door,
   gableRoof,
   hipRoof,
@@ -130,6 +131,91 @@ export function paintCottage(p: P) {
   cracks(p, x0, wallY, w, wallH)
 }
 
+/**
+ * A village home of the cottage era in one of three plans, so a village is not one house stamped
+ * out in three colours: the gabled cottage, a long low cottage under a hipped roof, and a cottage
+ * with a lean-to shed against one side. Trade buildings keep the plain cottage (their signs hang on
+ * its window).
+ */
+export function paintVillageHome(p: P) {
+  switch (Math.floor(p.variant / 3) % 3) {
+    case 1:
+      return paintLongCottage(p)
+    case 2:
+      return paintLeanToCottage(p)
+    default:
+      return paintCottage(p)
+  }
+}
+
+/** A long, low cottage: the ridge runs along the front, so its roof is hipped, with two windows. */
+function paintLongCottage(p: P) {
+  const { x0, y1, w, h, rng } = p
+  const style = p.variant % 3
+  const wallH = Math.round(h * 0.46)
+  const wallY = y1 - wallH
+  const base = hueShift(['#c8b48a', '#a39a80', '#b08c66'][style], (rng() - 0.5) * 12, 1, 0.95 + rng() * 0.1)
+  wallTexture(p, x0, wallY, w, wallH, base)
+  outline(p.ctx, x0, wallY, w, wallH)
+  const roof = hueShift(['#7f4a33', '#5b6258', '#9c8448'][style], (rng() - 0.5) * 12)
+  hipRoof(p, x0, wallY, w, Math.max(4, Math.round(h * 0.3)), roof)
+  chimney(p, x0 + Math.round(w * (rng() < 0.5 ? 0.28 : 0.62)), wallY - h * 0.22, 5)
+  // Door to one side, a window in each bay the wall is wide enough for.
+  const doorRight = rng() < 0.5
+  const doorX = x0 + w * (doorRight ? 0.7 : 0.3)
+  door(p, doorX, y1, Math.max(3, w * 0.15), wallH * 0.66)
+  const wy = wallY + Math.max(2, Math.round(wallH * 0.28))
+  const bays = w >= 20 ? [0.12, 0.4] : [0.16]
+  for (const wx of bays.map((b) => x0 + Math.round(w * (doorRight ? b : 0.84 - b - 3 / w)))) {
+    windowGlow(p, wx, wy, 3, 3)
+    px(p.ctx, wx, wy + 3, 3, 1, shade(base, 0.6))
+  }
+  px(p.ctx, doorX - 2, y1 - 1, 4, 1, '#ada48a')
+  cracks(p, x0, wallY, w, wallH)
+}
+
+/** A gabled cottage with a lower lean-to shed against one side, its roof sloping away from the house. */
+function paintLeanToCottage(p: P) {
+  const { x0, y1, w, h, rng } = p
+  const style = p.variant % 3
+  const shedLeft = rng() < 0.5
+  const shedW = Math.max(4, Math.round(w * 0.36))
+  const mainW = w - shedW
+  const mainX = shedLeft ? x0 + shedW : x0
+  const shedX = shedLeft ? x0 : x0 + mainW
+  const wallH = Math.round(h * 0.52)
+  const wallY = y1 - wallH
+  const base = hueShift(['#c4b38d', '#9e987e', '#ac8962'][style], (rng() - 0.5) * 12, 1, 0.95 + rng() * 0.1)
+  const roof = hueShift(['#874b32', '#565e58', '#a58c4d'][style], (rng() - 0.5) * 12)
+  // The shed: plank walls, lower than the house, under a single slope of the same roofing.
+  const shedH = Math.max(3, Math.round(wallH * 0.7))
+  const shedY = y1 - shedH
+  const planks = shade(base, 0.72)
+  px(p.ctx, shedX, shedY, shedW, shedH, planks)
+  for (let i = 1; i < shedW; i += 2) px(p.ctx, shedX + i, shedY + 1, 1, shedH - 1, shade(planks, 0.86))
+  outline(p.ctx, shedX, shedY, shedW, shedH)
+  // Its roof: two rows of roofing dropping two pixels from the house wall to the outer edge.
+  const shedRoof = shade(tintRoof(p, roof), 0.86)
+  for (let i = -1; i <= shedW; i++) {
+    const t = shedLeft ? 1 - (i + 1) / (shedW + 1) : (i + 1) / (shedW + 1)
+    const y = shedY - 2 + Math.round(t * 2)
+    px(p.ctx, shedX + i, y - 1, 1, 1, OUTLINE)
+    px(p.ctx, shedX + i, y, 1, 2, shedRoof)
+  }
+  // The house itself.
+  wallTexture(p, mainX, wallY, mainW, wallH, base)
+  if (style === 0) timberFrame(p, mainX, wallY, mainW, wallH)
+  outline(p.ctx, mainX, wallY, mainW, wallH)
+  gableRoof(p, mainX, wallY, mainW, h * 0.34, roof)
+  chimney(p, shedLeft ? mainX + mainW - 4 : mainX + 1, wallY - h * 0.16, 5)
+  const doorX = mainX + mainW * 0.5
+  door(p, doorX, y1, Math.max(3, mainW * 0.2), wallH * 0.62)
+  // A small shuttered hatch on the shed.
+  px(p.ctx, shedX + Math.floor(shedW / 2) - 1, shedY + 1, 2, 2, '#3a2c20')
+  px(p.ctx, doorX - 2, y1 - 1, 4, 1, '#ada48a')
+  cracks(p, mainX, wallY, mainW, wallH)
+}
+
 export function paintTownhouse(p: P, shopfront = false) {
   const { x0, y1, w, h, rng } = p
   const floors = h >= 28 ? 3 : 2
@@ -173,6 +259,21 @@ export function paintTownhouse(p: P, shopfront = false) {
 }
 
 export function paintManor(p: P) {
+  // Four plans, not four recolours: a street of manors should not look stamped out.
+  switch (p.variant % 4) {
+    case 1:
+      return paintWingedManor(p)
+    case 2:
+      return paintTowerManor(p)
+    case 3:
+      return paintTimberHall(p)
+    default:
+      return paintHipManor(p)
+  }
+}
+
+/** The classic plan: a broad plastered block under a hip roof, pilasters and a small dormer. */
+function paintHipManor(p: P) {
   const { x0, y1, w, h, rng } = p
   const wallH = h * 0.6
   const wallY = y1 - wallH
@@ -195,6 +296,87 @@ export function paintManor(p: P) {
     windowGlow(p, wx, wallY + wallH * 0.32, 3, 5)
   }
   cracks(p, x0, wallY, w, wallH)
+}
+
+/** A tall main house with a lower wing on one side under its own roof. */
+function paintWingedManor(p: P) {
+  const { x0, y1, w, h, rng } = p
+  const wingLeft = rng() < 0.5
+  const mainW = Math.round(w * 0.6)
+  const wingW = w - mainW
+  const mainX = wingLeft ? x0 + wingW : x0
+  const wingX = wingLeft ? x0 : x0 + mainW
+  const base = hueShift('#d6c7a4', (rng() - 0.5) * 16, 0.9, 0.92 + rng() * 0.12)
+  const roof = hueShift('#7a3f2c', (rng() - 0.5) * 18)
+  // The wing first, so the main house's roof overlaps it.
+  const wingH = h * 0.42
+  wallTexture(p, wingX, y1 - wingH, wingW, wingH, shade(base, 0.96))
+  outline(p.ctx, wingX, y1 - wingH, wingW, wingH)
+  gableRoof(p, wingX, y1 - wingH, wingW, h * 0.2, shade(roof, 0.95), 1)
+  windowGlow(p, wingX + wingW / 2 - 1, y1 - wingH * 0.62, 3, 3)
+  const mainH = h * 0.62
+  wallTexture(p, mainX, y1 - mainH, mainW, mainH, base)
+  outline(p.ctx, mainX, y1 - mainH, mainW, mainH)
+  gableRoof(p, mainX, y1 - mainH, mainW, h * 0.3, roof)
+  chimney(p, mainX + (wingLeft ? mainW - 5 : 2), y1 - mainH - h * 0.16, 6)
+  door(p, mainX + mainW * 0.5, y1, Math.max(4, mainW * 0.18), mainH * 0.42, '#4a2f1c')
+  windowGlow(p, mainX + 2, y1 - mainH * 0.78, 3, 4)
+  windowGlow(p, mainX + mainW - 6, y1 - mainH * 0.78, 3, 4)
+  cracks(p, mainX, y1 - mainH, mainW, mainH)
+}
+
+/** Stone house with a square corner tower, the kind a family with land builds to be seen from afar. */
+function paintTowerManor(p: P) {
+  const { x0, y1, w, h, rng } = p
+  const stone = hueShift('#a69c88', (rng() - 0.5) * 12, 0.9, 0.92 + rng() * 0.12)
+  const towerRight = rng() < 0.5
+  const towerW = Math.max(6, Math.round(w * 0.28))
+  const towerX = towerRight ? x0 + w - towerW : x0
+  const houseX = towerRight ? x0 : x0 + towerW
+  const houseW = w - towerW
+  const houseH = h * 0.52
+  wallTexture(p, houseX, y1 - houseH, houseW, houseH, stone)
+  for (let row = y1 - houseH + 3; row < y1 - 2; row += 3)
+    px(p.ctx, houseX + 1, row, houseW - 2, 1, shade(stone, 0.86))
+  outline(p.ctx, houseX, y1 - houseH, houseW, houseH)
+  gableRoof(p, houseX, y1 - houseH, houseW, h * 0.26, hueShift('#56606a', (rng() - 0.5) * 14), 1)
+  door(p, houseX + houseW * 0.45, y1, Math.max(4, houseW * 0.2), houseH * 0.5, '#3e2a1a')
+  windowGlow(p, houseX + houseW * 0.75, y1 - houseH * 0.7, 3, 4)
+  const towerH = h * 0.86
+  wallTexture(p, towerX, y1 - towerH, towerW, towerH, shade(stone, 0.95))
+  outline(p.ctx, towerX, y1 - towerH, towerW, towerH)
+  crenellation(p, towerX, y1 - towerH, towerW, shade(stone, 0.9))
+  windowGlow(p, towerX + towerW / 2 - 1, y1 - towerH * 0.72, 2, 4)
+  windowGlow(p, towerX + towerW / 2 - 1, y1 - towerH * 0.4, 2, 3)
+  cracks(p, houseX, y1 - houseH, houseW, houseH)
+}
+
+/** A timber-framed hall: plastered panels between dark posts, the upper floor jutting out over the lower. */
+function paintTimberHall(p: P) {
+  const { x0, y1, w, h, rng } = p
+  const plaster = hueShift('#e2d6b6', (rng() - 0.5) * 10, 0.9, 0.94 + rng() * 0.08)
+  const lowerH = h * 0.3
+  const upperH = h * 0.28
+  wallTexture(p, x0 + 1, y1 - lowerH, w - 2, lowerH, plaster)
+  timberFrame(p, x0 + 1, y1 - lowerH, w - 2, lowerH)
+  outline(p.ctx, x0 + 1, y1 - lowerH, w - 2, lowerH)
+  const upperY = y1 - lowerH - upperH
+  wallTexture(p, x0 - 1, upperY, w + 2, upperH, shade(plaster, 1.02))
+  timberFrame(p, x0 - 1, upperY, w + 2, upperH)
+  // Diagonal braces in the upper panels.
+  for (let i = 0; i + 4 < w; i += 8) {
+    for (let k = 0; k < Math.min(4, upperH - 1); k++)
+      px(p.ctx, x0 + i + k, upperY + upperH - 1 - k, 1, 1, '#5a4028')
+  }
+  px(p.ctx, x0 - 1, upperY + upperH, w + 2, 1, '#4a3420')
+  outline(p.ctx, x0 - 1, upperY, w + 2, upperH)
+  gableRoof(p, x0 - 1, upperY, w + 2, h * 0.3, hueShift('#6e3a28', (rng() - 0.5) * 16))
+  chimney(p, x0 + Math.round(w * (0.2 + rng() * 0.6)), upperY - h * 0.18, 6)
+  door(p, x0 + w * (0.3 + rng() * 0.4), y1, Math.max(4, w * 0.12), lowerH * 0.8, '#40291a')
+  const nWin = Math.max(2, Math.floor(w / 9))
+  for (let i = 0; i < nWin; i++)
+    windowGlow(p, x0 + 2 + (i * (w - 7)) / Math.max(1, nWin - 1), upperY + 2, 3, 3)
+  cracks(p, x0, upperY, w, upperH + lowerH)
 }
 
 // Different rooflines and materials, not just recolors. The stable building ID

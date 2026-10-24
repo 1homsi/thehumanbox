@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PAD_BOT } from './kit'
-import { earthy, shadowRows } from './finish'
+import { earthy, shadowRows, snapToPixels } from './finish'
 import { sideWidth } from './kit'
 
 describe('earthy colours', () => {
@@ -55,5 +55,17 @@ describe('side wall', () => {
     expect(sideWidth(10)).toBe(2)
     expect(sideWidth(20)).toBe(3)
     expect(sideWidth(40)).toBe(4)
+  })
+})
+
+describe('whole pixels', () => {
+  it('drops faint edge pixels and makes the rest fully solid, leaving whole ones alone', () => {
+    // Four pixels: empty, faint fringe, mostly covered, solid.
+    const d = new Uint8ClampedArray([0, 0, 0, 0, 200, 100, 50, 40, 200, 100, 50, 160, 10, 20, 30, 255])
+    snapToPixels(d)
+    expect(Array.from(d.slice(0, 4))).toEqual([0, 0, 0, 0])
+    expect(Array.from(d.slice(4, 8))).toEqual([0, 0, 0, 0])
+    expect(Array.from(d.slice(8, 12))).toEqual([200, 100, 50, 255])
+    expect(Array.from(d.slice(12, 16))).toEqual([10, 20, 30, 255])
   })
 })

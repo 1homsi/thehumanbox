@@ -105,9 +105,12 @@ function roofTones(c: string): [string, string] {
 export function gableRoof(p: P, x: number, y: number, w: number, rh: number, colour: string, over = 2) {
   const { ctx } = p
   const [lit, dark] = roofTones(tintRoof(p, colour))
-  const left = Math.round(x - over)
-  const right = Math.round(x + w + over)
-  const apex = Math.round(x + w / 2)
+  // No two roofs set out quite alike: the eaves overhang a little more or less on each side, and on a
+  // roof wide enough the ridge sits a pixel off the middle, as a hand-built roof does.
+  const skew = w >= 12 ? Math.floor(p.rng() * 3) - 1 : 0
+  const left = Math.round(x - over - (p.rng() < 0.3 ? 1 : 0))
+  const right = Math.round(x + w + over + (p.rng() < 0.3 ? 1 : 0))
+  const apex = Math.round(x + w / 2) + skew
   const top = Math.round(y - rh) + 0.5
   const eave = Math.round(y) + 0.5
   ctx.fillStyle = lit
@@ -128,11 +131,23 @@ export function gableRoof(p: P, x: number, y: number, w: number, rh: number, col
     ctx.fillStyle = 'rgba(24,16,10,0.26)'
     ctx.fill()
   }
-  // Tile courses, each a darker tone of the slope's own colour.
+  // Tile courses, each a darker tone of the slope's own colour, laid a little unevenly.
   ctx.fillStyle = 'rgba(40,26,14,0.16)'
   for (let row = 2; row < rh; row += 3) {
     const half = ((w + over * 2) / 2) * (1 - row / rh)
-    ctx.fillRect(Math.round(apex - half + 1), Math.round(y - row), Math.max(1, Math.round(half * 2 - 2)), 1)
+    const start = Math.round(apex - half + 1)
+    const len = Math.max(1, Math.round(half * 2 - 2))
+    for (let i = 0; i < len; i++) if (p.rng() > 0.12) ctx.fillRect(start + i, Math.round(y - row), 1, 1)
+  }
+  // A few odd tiles: one weathered lighter, one darker where it was replaced.
+  if (colour.startsWith('#')) {
+    for (let i = 0; i < Math.max(1, Math.floor(w / 6)); i++) {
+      const row = 1 + Math.floor(p.rng() * Math.max(1, rh - 2))
+      const half = ((w + over * 2) / 2) * (1 - row / rh)
+      if (half < 2) continue
+      const tx = Math.round(apex - half + 1 + p.rng() * (half * 2 - 2))
+      px(ctx, tx, Math.round(y - row), 1, 1, shade(tintRoof(p, colour), i % 2 ? 0.62 : 1.24))
+    }
   }
   ctx.strokeStyle = OUTLINE
   ctx.lineWidth = 1
@@ -246,10 +261,24 @@ export function wallTexture(p: P, x: number, y: number, w: number, h: number, ba
   px(p.ctx, x, y, fw, 1, shade(base, 1.18))
   px(p.ctx, x, y + 1, 1, Math.max(1, h - 3), shade(base, 1.1))
   px(p.ctx, x, y + h - 2, w, 2, shade(base, 0.78))
+  // The wall's surface: a few pixels a tone lighter or darker than the wall itself, as plaster, stone
+  // and timber weather, rather than flecks of grey over everything.
   const r = p.rng
-  p.ctx.fillStyle = 'rgba(0,0,0,0.08)'
-  for (let i = 0; i < (fw * h) / 38; i++) {
-    p.ctx.fillRect(Math.round(x + r() * (fw - 2)), Math.round(y + 1 + r() * (h - 3)), 2, 1)
+  const lighter = shade(base, 1.08)
+  const darker = shade(base, 0.9)
+  for (let i = 0; i < (fw * h) / 30; i++) {
+    const c = r() < 0.5 ? lighter : darker
+    px(p.ctx, x + 1 + r() * (fw - 3), y + 2 + r() * (h - 5), r() < 0.6 ? 2 : 1, 1, c)
+  }
+  // A footing of uneven stones along the ground.
+  if (h >= 8 && fw >= 6) {
+    const stone = shade(base, 0.7)
+    let sx = x
+    while (sx < x + fw - 1) {
+      const sw2 = 2 + Math.floor(r() * 3)
+      px(p.ctx, sx, y + h - 2, Math.min(sw2, x + fw - sx) - 1, 2, r() < 0.5 ? stone : shade(stone, 1.12))
+      sx += sw2
+    }
   }
   if (sw === 0) {
     px(p.ctx, x + w - 2, y + 1, 2, Math.max(1, h - 3), shade(base, 0.84))

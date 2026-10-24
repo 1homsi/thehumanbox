@@ -83,14 +83,35 @@ export function shadowRows(
 }
 
 /**
- * The last step of a building sprite, over what the painter drew: the colours go earthy, the outer edge
- * becomes the warm ink, and a flat cast shadow lies under it to the bottom-right. Done on pixels because
- * ~200 painters share it; the sprite is cached, so this runs once per look, not per frame.
+ * Every pixel either part of the building or not: the half-covered pixels canvas leaves along slopes and
+ * curves are dropped or made whole at the silhouette threshold. Those soft edges made roofs and domes read
+ * as smooth vector art rather than pixel art; snapped, a slope is a clean staircase of whole pixels.
+ */
+export function snapToPixels(d: Uint8ClampedArray) {
+  for (let o = 3; o < d.length; o += 4) {
+    if (d[o] === 0 || d[o] === 255) continue
+    if (d[o] < SOLID) {
+      d[o - 3] = 0
+      d[o - 2] = 0
+      d[o - 1] = 0
+      d[o] = 0
+    } else {
+      d[o] = 255
+    }
+  }
+}
+
+/**
+ * The last step of a building sprite, over what the painter drew: every pixel made whole or empty, the
+ * colours go earthy, the outer edge becomes the warm ink, and a flat cast shadow lies under it to the
+ * bottom-right. Done on pixels because ~200 painters share it; the sprite is cached, so this runs once per
+ * look, not per frame.
  */
 export function finishSprite(ctx: CanvasRenderingContext2D, width: number, height: number, kind: string) {
   const groundY = height - PAD_BOT
   const img = ctx.getImageData(0, 0, width, height)
   const d = img.data
+  snapToPixels(d)
   const solid = (x: number, y: number) =>
     x >= 0 && y >= 0 && x < width && y < height && d[(y * width + x) * 4 + 3] >= SOLID
   const edge = new Uint8Array(width * height)
