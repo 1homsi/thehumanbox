@@ -202,17 +202,24 @@ impl Simulation {
             spatial,
             perception_buf,
         );
-        let next_ix = self.organisms[idx].x as i32;
-        let next_iy = self.organisms[idx].y as i32;
-        crate::sim::actions::available_actions_into(
-            self,
-            idx,
-            next_ix,
-            next_iy,
-            spatial,
-            available_buf,
-            spatial_buf,
-        );
+        // The actions open from the new state only bound the best value learned for that state. With nothing
+        // learned for it yet that value is 0 whatever they are, so they are not worked out (most of a tick's
+        // second pass over the action gates, for a state seen for the first time).
+        if self.organisms[idx].q_table.contains_key(&next_perception) {
+            let next_ix = self.organisms[idx].x as i32;
+            let next_iy = self.organisms[idx].y as i32;
+            crate::sim::actions::available_actions_into(
+                self,
+                idx,
+                next_ix,
+                next_iy,
+                spatial,
+                available_buf,
+                spatial_buf,
+            );
+        } else {
+            available_buf.clear();
+        }
 
         f.reward = reward;
         f.boredom = boredom;
