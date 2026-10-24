@@ -114,6 +114,8 @@ fn hands_full(o: &crate::organism::organism::Organism, skill: Skill) -> bool {
     match skill {
         Skill::Woodcutting => o.inv_wood >= WOOD_LOAD,
         Skill::Quarrying => o.inv_stone >= STONE_LOAD,
+        // A field's crop goes to the tribe's stores, not into their hands.
+        Skill::Farming => false,
         _ => o.inv_food >= FOOD_LOAD,
     }
 }
@@ -607,6 +609,33 @@ mod tests {
         assert!(plan.harvest);
         assert_eq!(plan.spot, (96, 100));
         assert_eq!(plan.action(), (35, "harvesting the field"));
+    }
+
+    #[test]
+    fn food_in_hand_does_not_keep_a_farmer_from_a_ripe_field() {
+        use crate::sim::tech::agriculture::{CropKind, Farm};
+        let mut sim = shore();
+        let lineage = sim.organisms[0].lineage_id.clone();
+        sim.organisms[0].inv_food = 255;
+        sim.organisms[0].skills.set(Skill::Farming, 0.8);
+        sim.tick_count = morning(0);
+        sim.farms.push(Farm {
+            id: 1,
+            x: 96,
+            y: 100,
+            owner_lineage: lineage,
+            crop: CropKind::Wheat,
+            planted_tick: 0,
+            ready_tick: 1,
+            harvested: false,
+            prepared: true,
+            season_timed: false,
+            withered: false,
+        });
+        sim.assign_daily_work(0);
+        let plan = sim.organisms[0].work.expect("set out to work");
+        assert_eq!(plan.skill, Skill::Farming);
+        assert!(plan.harvest);
     }
 
     #[test]
