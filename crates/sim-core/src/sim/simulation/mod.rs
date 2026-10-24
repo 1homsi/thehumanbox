@@ -40,6 +40,7 @@ mod strategy;
 mod territory;
 mod tick;
 mod types;
+pub(crate) mod wary_game;
 mod world;
 
 pub use types::*;
@@ -57,6 +58,8 @@ pub struct Simulation {
     pub physics: PhysicsEngine,
     pub organisms: Vec<Organism>,
     pub animals: Vec<Animal>,
+    /// How wary the game in each patch of land has grown of hunters (see `wary_game`).
+    pub game_wariness: crate::hashing::FxHashMap<(i32, i32), f32>,
     /// Where predators made kills, and what is left of the prey (see `carcasses`).
     pub carcasses: Vec<Carcass>,
     pub tick_count: u64,
@@ -251,6 +254,7 @@ impl Simulation {
             physics,
             organisms: Vec::new(),
             animals: Vec::new(),
+            game_wariness: Default::default(),
             carcasses: Vec::new(),
             tick_count: 0,
             population_limit: DEFAULT_MAX_POPULATION,

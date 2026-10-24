@@ -164,10 +164,15 @@ impl Simulation {
                 animal.energy = animal.energy.max(0.5);
                 continue;
             }
+            animal.wary = if animal.kind.hostile() {
+                0.0
+            } else {
+                super::wary_game::wariness_in(&self.game_wariness, animal.x, animal.y)
+            };
             let human_radius = if animal.kind.hostile() {
                 20
             } else {
-                animal.kind.flee_radius().ceil() as i32
+                (animal.kind.flee_radius() * (1.0 + animal.wary)).ceil() as i32
             };
             nearby_human_positions(
                 &self.organisms,
@@ -864,6 +869,14 @@ impl Simulation {
                     } else {
                         p
                     };
+                    // Game that has been hunted here keeps its distance; fish
+                    // in the water know nothing of it.
+                    let wary = if matches!(animal.kind, AnimalKind::Fish) {
+                        0.0
+                    } else {
+                        super::wary_game::wariness_in(&self.game_wariness, animal.x, animal.y)
+                    };
+                    let p = p * (1.0 - super::wary_game::ESCAPE_AT_FULL * wary);
                     if self.rng.random::<f32>() < p {
                         to_catch.push((oi, ai));
                     }
@@ -918,6 +931,9 @@ impl Simulation {
             };
             let (ax, ay) = (self.animals[ai].x as i32, self.animals[ai].y as i32);
             self.animals[ai].alive = false;
+            if !matches!(self.animals[ai].kind, AnimalKind::Fish) {
+                self.spook_game(ax as f32, ay as f32, oi);
+            }
             let ms = self.organisms[oi].traits.memory_strength;
             let has_tools = self.organisms[oi].discoveries.contains("stone_tools")
                 || self.organisms[oi].discoveries.contains("spear");

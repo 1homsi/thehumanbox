@@ -100,6 +100,9 @@ pub struct SaveState {
     pub(super) events: Vec<Event>,
     pub(crate) organisms: Vec<OrgSave>,
     pub(crate) animals: Vec<AnimalSave>,
+    /// Wary game by patch of land: (patch x, patch y, wariness), sorted.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(super) game_wariness: Vec<(i32, i32, f32)>,
     #[serde(default)]
     pub(crate) carcasses: Vec<CarcassSave>,
     pub(crate) grid: GridSave,

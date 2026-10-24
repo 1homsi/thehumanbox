@@ -410,6 +410,9 @@ pub struct Animal {
     pub sleeping: bool,
     /// Flown south for the winter (wild birds). Recomputed every tick.
     pub away: bool,
+    /// How wary of people hunting has made the game where it stands, 0 to 1:
+    /// a wary animal bolts from further off. Recomputed every tick.
+    pub wary: f32,
     /// Tick the animal was born, when it came from a parent (0 for animals
     /// placed by the world or by a god power, which count as grown).
     pub born_tick: u64,
@@ -449,6 +452,7 @@ impl Animal {
             heading: (id % 8) as u8,
             sleeping: false,
             away: false,
+            wary: 0.0,
             born_tick: 0,
             keeper: None,
             pen: None,
@@ -559,7 +563,7 @@ impl Animal {
             return;
         }
 
-        let flee_r = self.kind.flee_radius();
+        let flee_r = self.kind.flee_radius() * (1.0 + self.wary);
         let nearest_org = if flee_r > 0.0 {
             org_positions
                 .iter()

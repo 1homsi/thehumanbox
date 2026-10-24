@@ -168,6 +168,11 @@ impl Simulation {
             physics,
             organisms,
             animals: state.animals.into_iter().map(animal_from_save).collect(),
+            game_wariness: state
+                .game_wariness
+                .iter()
+                .map(|&(x, y, w)| ((x, y), w.clamp(0.0, 1.0)))
+                .collect(),
             carcasses: state
                 .carcasses
                 .into_iter()

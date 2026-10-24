@@ -528,6 +528,7 @@ impl Simulation {
         self.tick_smog();
         self.tick_winter_memories();
         self.tick_tribe_crafts();
+        self.tick_game_wariness();
         self.tick_wild_food();
         self.check_animal_catches();
 
