@@ -174,6 +174,13 @@ impl<'a> ActionCtx<'a> {
         let Some((i, _)) = prey else {
             return 0;
         };
+        // Game hunted here before is quicker to bolt.
+        let (ax, ay) = (self.sim.animals[i].x, self.sim.animals[i].y);
+        let wary = self.sim.game_wariness(ax, ay);
+        if wary > 0.0 && self.chance(crate::sim::simulation::wary_game::ESCAPE_AT_FULL * wary) {
+            return 0;
+        }
+        self.sim.spook_game(ax, ay, self.idx);
         let food = match self.sim.animals[i].kind {
             AnimalKind::Deer | AnimalKind::Boar => 3,
             _ => 1,

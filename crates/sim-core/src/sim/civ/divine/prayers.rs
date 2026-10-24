@@ -124,7 +124,7 @@ struct Needs {
 }
 
 impl Simulation {
-    fn tribe_name(&self, lineage: &str) -> String {
+    pub(crate) fn tribe_name(&self, lineage: &str) -> String {
         self.lineage_names
             .get(lineage)
             .cloned()
