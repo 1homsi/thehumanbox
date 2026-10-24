@@ -344,15 +344,24 @@
     "tavernAway": "Поруч, але не в корчмі",
     "templeAway": "Поруч, але не в храмі",
     "noOneHome": "вдома нікого",
-    "alone": "сам",
     "insideCount": "всередині: {count}",
     "emptySquare": "порожня площа",
     "inSquareCount": "на площі: {count}",
     "emptyTavern": "порожня корчма",
     "shopClosed": "крамниця зачинена",
     "noOneInPrayer": "ніхто не молиться",
-    "drinkingCount": "п’ють: {count}",
-    "inPrayerCount": "моляться: {count}",
+    "drinkingCount": {
+      "one": "{count} п’є",
+      "few": "{count} п’ють",
+      "many": "{count} п’ють",
+      "other": "{count} п’ють"
+    },
+    "inPrayerCount": {
+      "one": "молиться: {count}",
+      "few": "моляться: {count}",
+      "many": "моляться: {count}",
+      "other": "моляться: {count}"
+    },
     "atWorkCount": "за роботою: {count}",
     "day": "день",
     "night": "ніч"

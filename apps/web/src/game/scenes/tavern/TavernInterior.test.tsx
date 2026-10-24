@@ -65,4 +65,22 @@ describe('TavernInterior in another language', () => {
       `${t('panels.scene.drinkingCount', { count: '1' })} · ☾ ${t('panels.scene.night')}`,
     )
   })
+
+  // One drinker takes the singular verb in German, so the wording agrees with the count.
+  it('uses the singular verb for one drinker and the plural for two', async () => {
+    await loadLocale('de')
+    const occupant = { role: 'Gast', org: { id: 'b', name: 'Bea' }, activity: 'trinkt' }
+    const one = render({ title: 'Taverne', subtitle: '', occupants: [occupant], away: [], isDay: true })
+    expect(one.querySelector('.scene-meta')?.textContent).toContain('1 trinkt ')
+    act(() => root?.unmount())
+    document.body.replaceChildren()
+    const two = render({
+      title: 'Taverne',
+      subtitle: '',
+      occupants: [occupant, occupant],
+      away: [],
+      isDay: true,
+    })
+    expect(two.querySelector('.scene-meta')?.textContent).toContain('2 trinken ')
+  })
 })

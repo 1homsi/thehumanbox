@@ -27,9 +27,7 @@ export function HomeInterior({ ctx, onExit, onFocusOrg }: Props) {
         <div className="scene-meta">
           {occupants.length === 0
             ? t('panels.scene.noOneHome')
-            : occupants.length === 1
-              ? t('panels.scene.alone')
-              : t('panels.scene.insideCount', { count: occupants.length })}
+            : t('panels.scene.insideCount', { count: occupants.length })}
           {' · '}
           {isDay ? `☀ ${t('panels.scene.day')}` : `☾ ${t('panels.scene.night')}`}
         </div>

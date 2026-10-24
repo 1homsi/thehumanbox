@@ -320,14 +320,16 @@
     "tavernAway": "In der Nähe, aber nicht in der Taverne",
     "templeAway": "In der Nähe, aber nicht im Tempel",
     "noOneHome": "niemand zu Hause",
-    "alone": "allein",
     "insideCount": "{count} drinnen",
     "emptySquare": "leerer Platz",
     "inSquareCount": "{count} auf dem Platz",
     "emptyTavern": "leere Taverne",
     "shopClosed": "Laden geschlossen",
     "noOneInPrayer": "niemand betet",
-    "drinkingCount": "{count} trinken",
+    "drinkingCount": {
+      "one": "{count} trinkt",
+      "other": "{count} trinken"
+    },
     "inPrayerCount": "{count} im Gebet",
     "atWorkCount": "{count} bei der Arbeit",
     "day": "Tag",
