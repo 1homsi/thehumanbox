@@ -221,11 +221,18 @@ impl Simulation {
                 );
                 (before, o.skills.level(skill))
             };
-            if before < 0.01 && after >= 0.01 {
+            // The first telling of a kind of work is remembered, whatever the
+            // child already knew of it.
+            let told = format!("heard the old ways of {} from", skill.name());
+            let first = !self.organisms[p]
+                .life_log
+                .iter()
+                .any(|e| e.text.starts_with(&told));
+            if after > before && first {
                 self.organisms[p].log_life_rel(
                     tick,
                     "learned",
-                    format!("heard the old ways of {} from {}", skill.name(), elder_name),
+                    format!("{} {}", told, elder_name),
                     Some(elder_id.clone()),
                     Some(elder_name.clone()),
                 );
@@ -379,15 +386,21 @@ mod tests {
         sim.organisms[child].y = 101.0;
         sim.grid.set(104, 100, Tile::Campfire);
         let spatial = crate::sim::spatial::SpatialIndex::build(&sim.organisms, 10);
-        for _ in 0..10 {
+        let told = |sim: &Simulation| {
+            sim.organisms[child]
+                .life_log
+                .iter()
+                .filter(|e| e.text.starts_with("heard the old ways of fishing from"))
+                .count()
+        };
+        sim.teach_by_the_fire(elder, &spatial);
+        assert_eq!(told(&sim), 1, "the first telling is remembered");
+        for _ in 0..9 {
             sim.teach_by_the_fire(elder, &spatial);
         }
         let learned = sim.organisms[child].skills.level(Skill::Fishing);
         assert!(learned > 0.01 && learned < 0.8, "{learned}");
-        assert!(sim.organisms[child]
-            .life_log
-            .iter()
-            .any(|e| e.text.starts_with("heard the old ways of fishing from")));
+        assert_eq!(told(&sim), 1, "and only the first");
     }
 
     #[test]
