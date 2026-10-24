@@ -231,15 +231,15 @@
   "life": {
     "memory": "MEMORY",
     "foodTip": {
-      "one": "{count} food tile location remembered - organism navigates toward these when hungry",
+      "one": "{count} food tile location remembered - organism navigates toward that location when hungry",
       "other": "{count} food tile locations remembered - organism navigates toward these when hungry"
     },
     "waterTip": {
-      "one": "{count} water source location remembered - organism navigates toward these when thirsty",
+      "one": "{count} water source location remembered - organism navigates toward that location when thirsty",
       "other": "{count} water source locations remembered - organism navigates toward these when thirsty"
     },
     "dangerTip": {
-      "one": "{count} danger zone remembered - organism avoids these areas when possible",
+      "one": "{count} danger zone remembered - organism avoids that area when possible",
       "other": "{count} danger zones remembered - organism avoids these areas when possible"
     },
     "food": "food ×{count}",
