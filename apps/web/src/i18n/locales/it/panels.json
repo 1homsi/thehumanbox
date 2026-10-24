@@ -310,5 +310,27 @@
         "healing": "noti per i loro guaritori"
       }
     }
+  },
+  "scene": {
+    "out": "fuori",
+    "nearby": "nei paraggi",
+    "shopNearby": "Nei paraggi",
+    "homeOut": "Al momento fuori",
+    "villageAway": "Nel villaggio, ma non in piazza",
+    "tavernAway": "Nei paraggi, ma non in taverna",
+    "templeAway": "Nei paraggi, ma non nel tempio",
+    "noOneHome": "nessuno in casa",
+    "alone": "da solo",
+    "insideCount": "{count} dentro",
+    "emptySquare": "piazza vuota",
+    "inSquareCount": "{count} in piazza",
+    "emptyTavern": "taverna vuota",
+    "shopClosed": "negozio chiuso",
+    "noOneInPrayer": "nessuno in preghiera",
+    "drinkingCount": "{count} bevono",
+    "inPrayerCount": "{count} in preghiera",
+    "atWorkCount": "{count} al lavoro",
+    "day": "giorno",
+    "night": "notte"
   }
 }

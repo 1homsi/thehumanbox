@@ -1,6 +1,7 @@
 import { personName } from '../../../shared/personName'
 import type { SceneContext } from '../core/types'
 import { useUIStore } from '../../../state/store'
+import { t } from '../../../i18n'
 import { HomeCanvas } from './HomeCanvas'
 
 interface Props {
@@ -16,8 +17,8 @@ export function HomeInterior({ ctx, onExit, onFocusOrg }: Props) {
   return (
     <div className="scene-shell">
       <div className="scene-head">
-        <button className="scene-back" onClick={onExit} aria-label="Back to map">
-          ← back to map
+        <button className="scene-back" onClick={onExit} aria-label={t('common.backToMap')}>
+          ← {t('common.backToMap')}
         </button>
         <div className="scene-title-wrap">
           <div className="scene-title">{title}</div>
@@ -25,12 +26,12 @@ export function HomeInterior({ ctx, onExit, onFocusOrg }: Props) {
         </div>
         <div className="scene-meta">
           {occupants.length === 0
-            ? 'no one home'
+            ? t('panels.scene.noOneHome')
             : occupants.length === 1
-              ? 'alone'
-              : `${occupants.length} inside`}
+              ? t('panels.scene.alone')
+              : t('panels.scene.insideCount', { count: occupants.length })}
           {' · '}
-          {isDay ? '☀ day' : '☾ night'}
+          {isDay ? `☀ ${t('panels.scene.day')}` : `☾ ${t('panels.scene.night')}`}
         </div>
       </div>
 
@@ -59,9 +60,11 @@ export function HomeInterior({ ctx, onExit, onFocusOrg }: Props) {
                 (o.org.id === selectedOrgId ? ' active' : '')
               }
               onClick={() => onFocusOrg(o.org.id)}
-              title="Currently out"
+              title={t('panels.scene.homeOut')}
             >
-              <span className="scene-occupant-role">{o.role} · out</span>
+              <span className="scene-occupant-role">
+                {o.role} · {t('panels.scene.out')}
+              </span>
               <span className="scene-occupant-name">{personName(o.org)}</span>
               <span className="scene-occupant-act">{o.activity}</span>
             </button>

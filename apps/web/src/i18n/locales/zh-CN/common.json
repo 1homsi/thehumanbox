@@ -7,5 +7,12 @@
   "restore": "恢复…",
   "delete": "删除…",
   "move": "移动",
-  "checking": "检查中…"
+  "checking": "检查中…",
+  "backToMap": "返回地图",
+  "zoomIn": "放大",
+  "zoomOut": "缩小",
+  "fitWorld": "显示整个世界",
+  "centreOnSelected": "移至选中对象",
+  "worldMapLabel": "可交互的世界地图",
+  "terrainLabel": "世界地形与居民"
 }

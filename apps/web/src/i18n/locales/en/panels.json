@@ -307,5 +307,27 @@
         "healing": "known for their healers"
       }
     }
+  },
+  "scene": {
+    "out": "out",
+    "nearby": "nearby",
+    "shopNearby": "Nearby",
+    "homeOut": "Currently out",
+    "villageAway": "In the village but not in the square",
+    "tavernAway": "Nearby but not in the tavern",
+    "templeAway": "Nearby but not in the temple",
+    "noOneHome": "no one home",
+    "alone": "alone",
+    "insideCount": "{count} inside",
+    "emptySquare": "empty square",
+    "inSquareCount": "{count} in the square",
+    "emptyTavern": "empty tavern",
+    "shopClosed": "shop closed",
+    "noOneInPrayer": "no one in prayer",
+    "drinkingCount": "{count} drinking",
+    "inPrayerCount": "{count} in prayer",
+    "atWorkCount": "{count} at work",
+    "day": "day",
+    "night": "night"
   }
 }

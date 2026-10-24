@@ -12,6 +12,7 @@ import { logger } from '../../../shared/logger'
 import { zoomDetailLevel } from '../character-visuals'
 import { TILE } from '../../model/palette'
 import { OCEAN, hex } from '../art-palette'
+import { t } from '../../../i18n'
 
 /** Past the map the sea stays in its deepest band. */
 const WORLD_EDGE = hex(OCEAN.abyss)
@@ -241,7 +242,7 @@ export function CanvasWorldFallback({
   return (
     <canvas
       ref={canvasRef}
-      aria-label="World terrain and inhabitants"
+      aria-label={t('common.terrainLabel')}
       style={{ display: 'block', width: '100%', height: '100%' }}
     />
   )

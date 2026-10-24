@@ -4,6 +4,7 @@ import type { PrayerInfo, WorldState } from '../../shared/types'
 import type { InterpRefs } from '../../simulation/useSimulation'
 import { useUIStore } from '../../state/store'
 import { useCameraFocus } from '../../state/camera-focus'
+import { t } from '../../i18n'
 import { buildTerritoryIndex } from '../model/territory'
 import { TILE } from '../model/palette'
 import { CanvasCameraController } from './CanvasCameraController'
@@ -187,7 +188,7 @@ export function WorldView({
       ref={containerRef}
       className="map2d-world"
       tabIndex={0}
-      aria-label="Interactive world map"
+      aria-label={t('common.worldMapLabel')}
       style={{
         flex: 1,
         minWidth: 0,

@@ -334,5 +334,27 @@
         "healing": "słyną z uzdrowicieli"
       }
     }
+  },
+  "scene": {
+    "out": "poza",
+    "nearby": "w pobliżu",
+    "shopNearby": "W pobliżu",
+    "homeOut": "Obecnie poza domem",
+    "villageAway": "We wsi, ale nie na placu",
+    "tavernAway": "W pobliżu, ale nie w karczmie",
+    "templeAway": "W pobliżu, ale nie w świątyni",
+    "noOneHome": "nikogo w domu",
+    "alone": "sam",
+    "insideCount": "{count} w środku",
+    "emptySquare": "pusty plac",
+    "inSquareCount": "{count} na placu",
+    "emptyTavern": "pusta karczma",
+    "shopClosed": "sklep zamknięty",
+    "noOneInPrayer": "nikt się nie modli",
+    "drinkingCount": "{count} pije",
+    "inPrayerCount": "{count} w modlitwie",
+    "atWorkCount": "{count} przy pracy",
+    "day": "dzień",
+    "night": "noc"
   }
 }

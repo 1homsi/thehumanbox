@@ -310,5 +310,27 @@
         "healing": "şifacılarıyla tanınır"
       }
     }
+  },
+  "scene": {
+    "out": "dışarıda",
+    "nearby": "yakında",
+    "shopNearby": "Yakında",
+    "homeOut": "Şu an dışarıda",
+    "villageAway": "Köyde ama meydanda değil",
+    "tavernAway": "Yakında ama han içinde değil",
+    "templeAway": "Yakında ama tapınakta değil",
+    "noOneHome": "evde kimse yok",
+    "alone": "yalnız",
+    "insideCount": "{count} içeride",
+    "emptySquare": "boş meydan",
+    "inSquareCount": "meydanda {count}",
+    "emptyTavern": "boş han",
+    "shopClosed": "dükkân kapalı",
+    "noOneInPrayer": "kimse dua etmiyor",
+    "drinkingCount": "{count} içiyor",
+    "inPrayerCount": "{count} dua ediyor",
+    "atWorkCount": "{count} çalışıyor",
+    "day": "gündüz",
+    "night": "gece"
   }
 }

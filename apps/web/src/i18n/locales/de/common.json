@@ -7,5 +7,12 @@
   "restore": "Wiederherstellen…",
   "delete": "Löschen…",
   "move": "Verschieben",
-  "checking": "Wird geprüft…"
+  "checking": "Wird geprüft…",
+  "backToMap": "Zurück zur Karte",
+  "zoomIn": "Vergrößern",
+  "zoomOut": "Verkleinern",
+  "fitWorld": "Ganze Welt zeigen",
+  "centreOnSelected": "Auf Auswahl zentrieren",
+  "worldMapLabel": "Interaktive Weltkarte",
+  "terrainLabel": "Weltgelände und Bewohner"
 }

@@ -310,5 +310,27 @@
         "healing": "conhecidos por seus curandeiros"
       }
     }
+  },
+  "scene": {
+    "out": "fora",
+    "nearby": "por perto",
+    "shopNearby": "Por perto",
+    "homeOut": "No momento fora",
+    "villageAway": "Na aldeia, mas não na praça",
+    "tavernAway": "Por perto, mas não na taverna",
+    "templeAway": "Por perto, mas não no templo",
+    "noOneHome": "ninguém em casa",
+    "alone": "sozinho",
+    "insideCount": "{count} dentro",
+    "emptySquare": "praça vazia",
+    "inSquareCount": "{count} na praça",
+    "emptyTavern": "taverna vazia",
+    "shopClosed": "loja fechada",
+    "noOneInPrayer": "ninguém rezando",
+    "drinkingCount": "{count} bebendo",
+    "inPrayerCount": "{count} rezando",
+    "atWorkCount": "{count} trabalhando",
+    "day": "dia",
+    "night": "noite"
   }
 }

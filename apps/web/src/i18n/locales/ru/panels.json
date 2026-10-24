@@ -334,5 +334,27 @@
         "healing": "славятся целителями"
       }
     }
+  },
+  "scene": {
+    "out": "вне",
+    "nearby": "рядом",
+    "shopNearby": "Рядом",
+    "homeOut": "Сейчас вне дома",
+    "villageAway": "В деревне, но не на площади",
+    "tavernAway": "Рядом, но не в таверне",
+    "templeAway": "Рядом, но не в храме",
+    "noOneHome": "дома никого",
+    "alone": "один",
+    "insideCount": "внутри: {count}",
+    "emptySquare": "пустая площадь",
+    "inSquareCount": "на площади: {count}",
+    "emptyTavern": "пустая таверна",
+    "shopClosed": "лавка закрыта",
+    "noOneInPrayer": "никто не молится",
+    "drinkingCount": "пьют: {count}",
+    "inPrayerCount": "молятся: {count}",
+    "atWorkCount": "за работой: {count}",
+    "day": "день",
+    "night": "ночь"
   }
 }

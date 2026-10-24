@@ -334,5 +334,27 @@
         "healing": "славляться цілителями"
       }
     }
+  },
+  "scene": {
+    "out": "поза",
+    "nearby": "поруч",
+    "shopNearby": "Поруч",
+    "homeOut": "Наразі поза домом",
+    "villageAway": "У селі, але не на площі",
+    "tavernAway": "Поруч, але не в корчмі",
+    "templeAway": "Поруч, але не в храмі",
+    "noOneHome": "вдома нікого",
+    "alone": "сам",
+    "insideCount": "всередині: {count}",
+    "emptySquare": "порожня площа",
+    "inSquareCount": "на площі: {count}",
+    "emptyTavern": "порожня корчма",
+    "shopClosed": "крамниця зачинена",
+    "noOneInPrayer": "ніхто не молиться",
+    "drinkingCount": "п’ють: {count}",
+    "inPrayerCount": "моляться: {count}",
+    "atWorkCount": "за роботою: {count}",
+    "day": "день",
+    "night": "ніч"
   }
 }

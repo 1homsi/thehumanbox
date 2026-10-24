@@ -303,5 +303,27 @@
         "healing": "治療師で知られる"
       }
     }
+  },
+  "scene": {
+    "out": "外出中",
+    "nearby": "近く",
+    "shopNearby": "近く",
+    "homeOut": "現在外出中",
+    "villageAway": "村にはいるが広場にはいない",
+    "tavernAway": "近くにはいるが酒場の中ではない",
+    "templeAway": "近くにはいるが神殿の中ではない",
+    "noOneHome": "誰もいない",
+    "alone": "ひとり",
+    "insideCount": "{count}人が中",
+    "emptySquare": "人のいない広場",
+    "inSquareCount": "広場に{count}人",
+    "emptyTavern": "無人の酒場",
+    "shopClosed": "閉店中",
+    "noOneInPrayer": "祈っている人はいない",
+    "drinkingCount": "{count}人が飲んでいる",
+    "inPrayerCount": "{count}人が祈り中",
+    "atWorkCount": "{count}人が作業中",
+    "day": "昼",
+    "night": "夜"
   }
 }

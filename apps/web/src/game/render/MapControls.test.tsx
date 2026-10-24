@@ -1,10 +1,11 @@
 // @vitest-environment happy-dom
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { MapControls } from './MapControls'
 import { KEY_ZOOM_STEP } from './cf/input/camera-rig'
 import type { MapCommand } from './camera-controls'
+import { loadLocale, t } from '../../i18n'
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
 afterAll(() => vi.unstubAllGlobals())
@@ -53,5 +54,22 @@ describe('MapControls', () => {
     act(() => withSelection.button('Centre on selected')!.click())
     expect(onLocate).toHaveBeenCalledOnce()
     withSelection.unmount()
+  })
+})
+
+describe('MapControls in another language', () => {
+  afterEach(async () => {
+    await loadLocale('en')
+  })
+
+  it('names its buttons in the active language', async () => {
+    await loadLocale('de')
+    const { button, unmount } = mount({ onLocate: () => undefined })
+    expect(button(t('common.zoomIn'))).not.toBeNull()
+    expect(button(t('common.zoomOut'))).not.toBeNull()
+    expect(button(t('common.fitWorld'))).not.toBeNull()
+    expect(button(t('common.centreOnSelected'))).not.toBeNull()
+    expect(button('Zoom in')).toBeNull()
+    unmount()
   })
 })

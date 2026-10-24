@@ -303,5 +303,27 @@
         "healing": "치료사로 알려짐"
       }
     }
+  },
+  "scene": {
+    "out": "외출 중",
+    "nearby": "근처",
+    "shopNearby": "근처",
+    "homeOut": "지금 외출 중",
+    "villageAway": "마을에는 있지만 광장에는 없음",
+    "tavernAway": "근처에 있지만 주점 안은 아님",
+    "templeAway": "근처에 있지만 사원 안은 아님",
+    "noOneHome": "집에 아무도 없음",
+    "alone": "혼자",
+    "insideCount": "안에 {count}명",
+    "emptySquare": "빈 광장",
+    "inSquareCount": "광장에 {count}명",
+    "emptyTavern": "빈 주점",
+    "shopClosed": "가게 문 닫음",
+    "noOneInPrayer": "기도하는 사람 없음",
+    "drinkingCount": "{count}명 마시는 중",
+    "inPrayerCount": "{count}명 기도 중",
+    "atWorkCount": "{count}명 작업 중",
+    "day": "낮",
+    "night": "밤"
   }
 }

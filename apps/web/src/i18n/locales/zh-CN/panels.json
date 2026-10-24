@@ -303,5 +303,27 @@
         "healing": "以医者闻名"
       }
     }
+  },
+  "scene": {
+    "out": "外出",
+    "nearby": "附近",
+    "shopNearby": "附近",
+    "homeOut": "目前外出",
+    "villageAway": "在村里，但不在广场上",
+    "tavernAway": "在附近，但不在酒馆里",
+    "templeAway": "在附近，但不在神庙里",
+    "noOneHome": "家里没人",
+    "alone": "独自一人",
+    "insideCount": "{count}人在里面",
+    "emptySquare": "空无一人的广场",
+    "inSquareCount": "广场上{count}人",
+    "emptyTavern": "空荡荡的酒馆",
+    "shopClosed": "店铺已关门",
+    "noOneInPrayer": "无人祈祷",
+    "drinkingCount": "{count}人在喝酒",
+    "inPrayerCount": "{count}人在祈祷",
+    "atWorkCount": "{count}人在工作",
+    "day": "白天",
+    "night": "夜晚"
   }
 }
