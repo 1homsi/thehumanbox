@@ -36,6 +36,10 @@ const FOOD_LOAD: u8 = 3;
 const APPRENTICE_REACH: i32 = 10;
 /// At most this many children follow one parent to work.
 const MAX_APPRENTICES: usize = 2;
+/// Empty tries in a row before a worker gives up on a spot and moves along.
+const MISSES_BEFORE_MOVING: u8 = 6;
+/// How far someone walks back to a place their work went well, beyond `WORK_REACH`.
+const REMEMBERED_REACH: i32 = WORK_REACH + 8;
 /// A tribe holding less than this much grain per person is short of food.
 const LEAN_STORES_PER_HEAD: u32 = 2;
 
@@ -58,6 +62,8 @@ pub struct WorkPlan {
     pub until: u64,
     /// For field work: the field is ripe and is being brought in, rather than tended.
     pub harvest: bool,
+    /// Tries in a row at this spot that came to nothing.
+    pub misses: u8,
 }
 
 impl WorkPlan {
@@ -232,7 +238,14 @@ impl Simulation {
         } else {
             0.0
         };
-        o.skills.level(skill) + 0.25 * liking(&o.id, skill) + o.skills.feeling(skill) + need + tradition
+        // A place they know works makes the work easier to choose.
+        let known_place = o.skills.good_spot(skill).map_or(0.0, |(_, sure)| sure * 0.2);
+        o.skills.level(skill)
+            + 0.25 * liking(&o.id, skill)
+            + o.skills.feeling(skill)
+            + need
+            + tradition
+            + known_place
     }
 
     /// Whether `idx` is free and fit for a stint of work.
@@ -308,6 +321,16 @@ impl Simulation {
             if self.organisms[idx].skills.feeling(skill) <= crate::organism::skills::DREAD / 2.0 {
                 continue;
             }
+            // A place this work went well before comes first, if it still serves.
+            let remembered = self.organisms[idx]
+                .skills
+                .good_spot(skill)
+                .map(|(p, _)| p)
+                .filter(|&p| {
+                    skill != Skill::Farming
+                        && manhattan(p, here) <= REMEMBERED_REACH
+                        && self.spot_still_good(skill, p)
+                });
             let (spot, harvest) = if skill == Skill::Farming {
                 let lineage = self.organisms[idx].lineage_id.clone();
                 match self.field_to_work(&lineage, here) {
@@ -315,7 +338,7 @@ impl Simulation {
                     None => continue,
                 }
             } else {
-                match self.work_spot(skill, here) {
+                match remembered.or_else(|| self.work_spot(skill, here)) {
                     Some(spot) => (spot, false),
                     None => continue,
                 }
@@ -328,13 +351,19 @@ impl Simulation {
                 spot,
                 until: tick + STINT,
                 harvest,
+                misses: 0,
             });
             self.take_apprentices(idx, skill, spot);
-            let thought = self.organisms[idx]
-                .work
-                .map(|p| p.walking_thought())
-                .unwrap_or("");
-            self.organisms[idx].think(thought, tick);
+            if remembered.is_some() {
+                let thought = format!("going back to my {} spot", skill.name());
+                self.organisms[idx].think(&thought, tick);
+            } else {
+                let thought = self.organisms[idx]
+                    .work
+                    .map(|p| p.walking_thought())
+                    .unwrap_or("");
+                self.organisms[idx].think(thought, tick);
+            }
             return;
         }
     }
@@ -381,6 +410,84 @@ impl Simulation {
                 self.organisms[child].think(&thought, tick);
             }
         }
+    }
+
+    /// Whether `spot` can still be worked for `skill`: the water, rock, tree or
+    /// berries are still there. Game moves, so no hunting spot is kept.
+    fn spot_still_good(&self, skill: Skill, spot: (i32, i32)) -> bool {
+        let beside = |kind: Tile, reach: i32| {
+            (-reach..=reach)
+                .any(|dx| (-reach..=reach).any(|dy| self.grid.get(spot.0 + dx, spot.1 + dy) == kind))
+        };
+        match skill {
+            Skill::Fishing => self.workable_ground(spot.0, spot.1) && beside(Tile::Water, 1),
+            Skill::Quarrying => self.workable_ground(spot.0, spot.1) && beside(Tile::Rock, 1),
+            Skill::Woodcutting => self.grid.get(spot.0, spot.1) == Tile::Grass,
+            Skill::Foraging => beside(Tile::Food, 2),
+            _ => false,
+        }
+    }
+
+    /// Another place to do `skill`, near `from` but at least `gap` tiles from `avoid`.
+    fn spot_further_along(
+        &self,
+        skill: Skill,
+        from: (i32, i32),
+        avoid: (i32, i32),
+        gap: i32,
+    ) -> Option<(i32, i32)> {
+        const REACH: i32 = 10;
+        let mut best: Option<((i32, i32), i32)> = None;
+        for dy in -REACH..=REACH {
+            for dx in -REACH..=REACH {
+                let p = (from.0 + dx, from.1 + dy);
+                let d = dx.abs() + dy.abs();
+                if d > REACH || manhattan(p, avoid) < gap || best.is_some_and(|(_, bd)| d >= bd) {
+                    continue;
+                }
+                if self.spot_still_good(skill, p) {
+                    best = Some((p, d));
+                }
+            }
+        }
+        best.map(|(p, _)| p)
+    }
+
+    /// Learns from one try at the day's work: the place is remembered or worn
+    /// out, and a worker whose spot keeps coming up empty moves along.
+    pub(crate) fn note_work_outcome(&mut self, idx: usize, skill: Skill, succeeded: bool) {
+        let here = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
+        let Some(mut plan) = self.organisms[idx]
+            .work
+            .filter(|p| p.skill == skill && p.at_spot(here))
+        else {
+            return;
+        };
+        if skill != Skill::Hunting {
+            self.organisms[idx].skills.note_spot(skill, plan.spot, succeeded);
+        }
+        plan.misses = if succeeded {
+            0
+        } else {
+            plan.misses.saturating_add(1)
+        };
+        if plan.misses >= MISSES_BEFORE_MOVING {
+            let tick = self.tick_count;
+            self.organisms[idx].skills.forget_spot_at(skill, plan.spot);
+            match self.spot_further_along(skill, plan.spot, plan.spot, 4) {
+                Some(next) => {
+                    plan.spot = next;
+                    plan.misses = 0;
+                    self.organisms[idx].think("nothing here; trying further along", tick);
+                }
+                None => {
+                    self.organisms[idx].work = None;
+                    self.organisms[idx].think("nothing to be had here today", tick);
+                    return;
+                }
+            }
+        }
+        self.organisms[idx].work = Some(plan);
     }
 
     /// Ends a stint that is over, full-handed, or out of work, and keeps the
@@ -512,6 +619,7 @@ mod tests {
             spot: (109, 100),
             until: u64::MAX,
             harvest: false,
+            misses: 0,
         });
         sim.organisms[0].inv_food = FOOD_LOAD;
         sim.tick_count = morning(0);
@@ -545,6 +653,7 @@ mod tests {
             spot: (109, 100),
             until: u64::MAX,
             harvest: false,
+            misses: 0,
         });
         sim.organisms[0].mark_harm(Harm::Drowning, 50);
         assert!(
@@ -675,6 +784,73 @@ mod tests {
         let plan = sim.organisms[0].work.expect("set out to work");
         assert_eq!(plan.skill, Skill::Farming);
         assert!(plan.harvest);
+    }
+
+    #[test]
+    fn a_spot_that_stops_giving_is_forgotten_however_sure_they_were() {
+        let mut sim = shore();
+        sim.organisms[0].x = 109.0;
+        for _ in 0..10 {
+            sim.organisms[0]
+                .skills
+                .note_spot(Skill::Fishing, (109, 100), true);
+        }
+        assert!(sim.organisms[0]
+            .skills
+            .good_spot(Skill::Fishing)
+            .is_some_and(|(_, sure)| sure > 0.8));
+        sim.organisms[0].work = Some(WorkPlan {
+            skill: Skill::Fishing,
+            spot: (109, 100),
+            until: u64::MAX,
+            harvest: false,
+            misses: 0,
+        });
+        for _ in 0..MISSES_BEFORE_MOVING {
+            sim.note_work_outcome(0, Skill::Fishing, false);
+        }
+        assert_eq!(sim.organisms[0].skills.good_spot(Skill::Fishing), None);
+    }
+
+    #[test]
+    fn empty_tries_move_a_fisher_along_the_shore_and_a_good_catch_is_remembered() {
+        let mut sim = shore();
+        sim.organisms[0].x = 109.0;
+        sim.organisms[0].work = Some(WorkPlan {
+            skill: Skill::Fishing,
+            spot: (109, 100),
+            until: u64::MAX,
+            harvest: false,
+            misses: 0,
+        });
+        for _ in 0..MISSES_BEFORE_MOVING {
+            sim.note_work_outcome(0, Skill::Fishing, false);
+        }
+        let plan = sim.organisms[0].work.expect("still fishing, elsewhere");
+        assert!(
+            manhattan(plan.spot, (109, 100)) >= 4,
+            "moved along to {:?}",
+            plan.spot
+        );
+        assert_eq!(sim.organisms[0].thought, "nothing here; trying further along");
+        // A catch at the new place is remembered, and next morning they go back.
+        sim.organisms[0].x = plan.spot.0 as f32;
+        sim.organisms[0].y = plan.spot.1 as f32;
+        for _ in 0..3 {
+            sim.note_work_outcome(0, Skill::Fishing, true);
+        }
+        assert_eq!(
+            sim.organisms[0].skills.good_spot(Skill::Fishing).map(|(p, _)| p),
+            Some(plan.spot)
+        );
+        sim.organisms[0].work = None;
+        sim.organisms[0].x = 100.0;
+        sim.organisms[0].y = 100.0;
+        sim.organisms[0].skills.set(Skill::Fishing, 0.8);
+        sim.tick_count = morning(0);
+        sim.assign_daily_work(0);
+        assert_eq!(sim.organisms[0].work.map(|p| p.spot), Some(plan.spot));
+        assert_eq!(sim.organisms[0].thought, "going back to my fishing spot");
     }
 
     #[test]

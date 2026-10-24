@@ -20,6 +20,7 @@ impl Simulation {
     /// success kin and friends among `nearby` learn a little by watching.
     /// Returns the extra units a practised hand gets from a success (0 or 1).
     pub fn practise_skill(&mut self, idx: usize, skill: Skill, succeeded: bool, nearby: &[usize]) -> u8 {
+        self.note_work_outcome(idx, skill, succeeded);
         let (before, after) = {
             let o = &mut self.organisms[idx];
             let aptitude = skills::aptitude(o.age_stage(), o.traits.memory_strength, o.traits.curiosity);

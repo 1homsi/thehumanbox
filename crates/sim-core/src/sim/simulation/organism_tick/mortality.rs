@@ -543,15 +543,20 @@ mod death_cause_tests {
     #[test]
     fn deaths_record_their_cause() {
         let mut sim = Simulation::new(42);
-        for _ in 0..4000 {
+        // Run until the first death rather than a fixed time: when it comes
+        // shifts whenever the world's rules change.
+        for _ in 0..20_000 {
             sim.tick();
+            if sim.organisms.iter().any(|o| !o.death_cause.is_empty()) {
+                break;
+            }
         }
         let caused: Vec<&Organism> = sim
             .organisms
             .iter()
             .filter(|o| !o.death_cause.is_empty())
             .collect();
-        assert!(!caused.is_empty(), "someone dies within 4000 ticks");
+        assert!(!caused.is_empty(), "someone dies within 20000 ticks");
         for o in caused {
             assert!(!o.alive, "{} has a cause of death but is alive", o.name);
         }
