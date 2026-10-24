@@ -18,6 +18,32 @@ pub const MAX_BATTLE_TICKS: u64 = 200;
 pub const STRENGTH_BREAK_FRAC: f32 = 0.30;
 pub const RAID_CHECK_INTERVAL: u64 = 240;
 pub const RAID_ATTITUDE_THRESHOLD: f32 = -0.45;
+
+/// How a tribe as a whole feels about each other tribe: the mean of its living
+/// members' attitudes, with someone who has no opinion counting as neutral.
+/// Before, the first member in the list spoke for everyone, so a single
+/// person's grudge could send the whole tribe raiding.
+pub fn tribe_mood(
+    organisms: &[crate::organism::organism::Organism],
+    members: &[usize],
+) -> std::collections::BTreeMap<String, f32> {
+    let mut sums: std::collections::BTreeMap<String, f32> = std::collections::BTreeMap::new();
+    let alive: Vec<&crate::organism::organism::Organism> = members
+        .iter()
+        .map(|&i| &organisms[i])
+        .filter(|o| o.alive)
+        .collect();
+    for o in &alive {
+        for (lid, &att) in &o.lineage_attitudes {
+            *sums.entry(lid.clone()).or_insert(0.0) += att;
+        }
+    }
+    let n = alive.len().max(1) as f32;
+    for v in sums.values_mut() {
+        *v /= n;
+    }
+    sums
+}
 pub const RAID_MIN_POP: usize = 8;
 
 pub fn try_spawn_raids(
@@ -66,20 +92,8 @@ pub fn try_spawn_raids(
             continue;
         }
 
-        let attacker_org = pop_per_lineage[a_lid].iter().find_map(|&i| {
-            if organisms[i].alive {
-                Some(&organisms[i])
-            } else {
-                None
-            }
-        });
-        let attacker_org = match attacker_org {
-            Some(o) => o,
-            None => continue,
-        };
-
-        let mut candidates: Vec<(String, f32)> = attacker_org
-            .lineage_attitudes
+        let mood = tribe_mood(organisms, &pop_per_lineage[a_lid]);
+        let mut candidates: Vec<(String, f32)> = mood
             .iter()
             .filter(|(lid, att)| {
                 **att <= RAID_ATTITUDE_THRESHOLD
@@ -216,16 +230,7 @@ pub fn try_spawn_border_wars(
         if a_terr.is_empty() {
             continue;
         }
-        let attacker_sample = pop_per_lineage[a_lid].iter().find_map(|&oi| {
-            if organisms[oi].alive {
-                Some(&organisms[oi])
-            } else {
-                None
-            }
-        });
-        let Some(attacker_sample) = attacker_sample else {
-            continue;
-        };
+        let mood = tribe_mood(organisms, &pop_per_lineage[a_lid]);
 
         for j in (i + 1)..lineages.len() {
             let b_lid = lineages[j];
@@ -245,11 +250,7 @@ pub fn try_spawn_border_wars(
             if b_terr.is_empty() {
                 continue;
             }
-            let att_ab = attacker_sample
-                .lineage_attitudes
-                .get(b_lid)
-                .copied()
-                .unwrap_or(0.0);
+            let att_ab = mood.get(b_lid.as_str()).copied().unwrap_or(0.0);
             if att_ab > BORDER_WAR_ATTITUDE_THRESHOLD {
                 continue;
             }
