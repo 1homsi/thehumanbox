@@ -1273,10 +1273,15 @@ impl Organism {
                     _ => workable(a) && !Skill::of_action(a).is_some_and(|s| self.skills.dreads(s)),
                 })
                 .collect();
-            let pool: &[usize] = if filtered.is_empty() {
-                decision_pool
-            } else {
+            // Nothing in the pool can be done here: they walk on instead of
+            // trying what cannot work.
+            const STEPS: [usize; 8] = [0, 1, 2, 3, 4, 5, 6, 7];
+            let pool: &[usize] = if !filtered.is_empty() {
                 &filtered
+            } else if decision_pool.iter().any(|&a| !workable(a)) {
+                &STEPS
+            } else {
+                decision_pool
             };
             // Guidance should shape experimentation as well as exploitation.
             // Previously epsilon exploration ignored the player's strategy,
