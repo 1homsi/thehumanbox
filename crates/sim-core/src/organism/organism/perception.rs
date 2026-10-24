@@ -68,6 +68,14 @@ impl Organism {
         // are the same ones the cell-by-cell scan found: least distance, then
         // least dx, then least dy, as its dx-then-dy order with a strict `<`.
         let (food_v, water_v, fire_v) = (Tile::Food as i8, Tile::Water as i8, Tile::Fire as i8);
+        let (campfire_v, hut_v, rock_v) = (Tile::Campfire as i8, Tile::Hut as i8, Tile::Rock as i8);
+        // The same pass notes a campfire within 4 tiles (the warmth below) and a hut or rock within 2 (the
+        // shelter below): both squares lie inside this one, since the scan is at least 6.
+        let wanted: u64 = [food_v, water_v, fire_v, campfire_v, hut_v, rock_v]
+            .iter()
+            .fold(0, |m, &v| m | 1 << v);
+        let mut campfire_near = false;
+        let mut hut_or_rock_beside = false;
         let x0 = (ix - scan).max(0);
         let x1 = (ix + scan).min(WIDTH as i32 - 1);
         if x0 <= x1 {
@@ -78,11 +86,19 @@ impl Organism {
                 }
                 let row = &grid.tiles[WorldGrid::idx(x0, y)..=WorldGrid::idx(x1, y)];
                 for (k, &v) in row.iter().enumerate() {
-                    if v != food_v && v != water_v && v != fire_v {
+                    if !(0..64).contains(&v) || wanted >> v & 1 == 0 {
                         continue;
                     }
                     let dx = x0 + k as i32 - ix;
                     let dist = dx.abs() + dy.abs();
+                    if v == campfire_v {
+                        campfire_near |= dx.abs() <= 4 && dy.abs() <= 4;
+                        continue;
+                    }
+                    if v == hut_v || v == rock_v {
+                        hut_or_rock_beside |= dx.abs() <= 2 && dy.abs() <= 2;
+                        continue;
+                    }
                     if v == food_v {
                         if (dist, dx, dy) < (food_dist, food_dx, food_dy) {
                             food_dist = dist;
@@ -153,16 +169,8 @@ impl Organism {
             }
         }
 
-        let food_tr = if grid.detect_trail(ix, iy, TrailKind::Food, 5) > 0.4 {
-            1
-        } else {
-            0
-        };
-        let water_tr = if grid.detect_trail(ix, iy, TrailKind::Water, 5) > 0.4 {
-            1
-        } else {
-            0
-        };
+        let food_tr = i32::from(grid.trail_above(ix, iy, TrailKind::Food, 5, 0.4));
+        let water_tr = i32::from(grid.trail_above(ix, iy, TrailKind::Water, 5, 0.4));
 
         let att_char = {
             match nearest_lid {
@@ -194,15 +202,7 @@ impl Organism {
             .any(|(&(mx, my), &v)| v > 0.30 && (mx - ix).abs() + (my - iy).abs() <= 5);
 
         let warmth_char = {
-            let mut has_warmth = false;
-            'outer: for ddx in -4i32..=4 {
-                for ddy in -4i32..=4 {
-                    if grid.get(ix + ddx, iy + ddy) == crate::world::tiles::Tile::Campfire {
-                        has_warmth = true;
-                        break 'outer;
-                    }
-                }
-            }
+            let has_warmth = campfire_near;
             if has_warmth {
                 'W'
             } else if grid.temp_at(ix, iy) < 8.0 {
@@ -221,18 +221,9 @@ impl Organism {
         let water_reserve_char = reserve_char(self.inv_water, 4);
 
         let shelter_char = {
-            let mut s = false;
-            'sh: for ddx in -2i32..=2 {
-                for ddy in -2i32..=2 {
-                    let nx = ix + ddx;
-                    let ny = iy + ddy;
-                    if matches!(grid.get(nx, ny), Tile::Hut | Tile::Rock) || grid.structure_at(nx, ny) >= 0.35
-                    {
-                        s = true;
-                        break 'sh;
-                    }
-                }
-            }
+            let s = hut_or_rock_beside
+                || (-2i32..=2)
+                    .any(|ddx| (-2i32..=2).any(|ddy| grid.structure_at(ix + ddx, iy + ddy) >= 0.35));
             if s {
                 'S'
             } else {
