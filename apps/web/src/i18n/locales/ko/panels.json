@@ -289,6 +289,8 @@
       "craftTitle": "이 부족 어른들이 잘하는 일. 아이들은 그것을 보며 자란다.",
       "winter": "{year}년의 굶주린 겨울을 기억한다",
       "winterTitle": "그 뒤로 해마다 가을이면 식량을 모아 둔다.",
+      "warWeary": "전투에서 {count}명을 잃고 전쟁에 지쳤다",
+      "warWearyTitle": "습격을 자주 그만두고, 똑같이 싸움에 지친 부족과는 화친을 맺는다.",
       "craft": {
         "woodcutting": "나무꾼으로 알려짐",
         "quarrying": "석공으로 알려짐",

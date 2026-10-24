@@ -296,6 +296,8 @@
       "craftTitle": "Worin die Erwachsenen dieses Stammes gut sind. Ihre Kinder wachsen damit auf.",
       "winter": "erinnert sich an den Hungerwinter des Jahres {year}",
       "winterTitle": "Seitdem legen sie jeden Herbst Vorräte an.",
+      "warWeary": "kriegsmüde, nachdem {count} der Ihren im Kampf fielen",
+      "warWearyTitle": "Sie blasen Überfälle oft ab und schließen Frieden mit Stämmen, die ebenso kampfmüde sind.",
       "craft": {
         "woodcutting": "bekannt für ihre Holzfäller",
         "quarrying": "bekannt für ihre Steinbrecher",

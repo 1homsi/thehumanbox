@@ -661,7 +661,7 @@ export interface WorldState {
   lost_tick?: number | null
   lineage_homes?: Record<string, [number, number, number]>
   /** What each tribe has learned as a people: the craft it is known for, the hungry winter it remembers. */
-  lineage_lore?: Record<string, { craft?: string; hungry_winter?: number }>
+  lineage_lore?: Record<string, { craft?: string; hungry_winter?: number; war_weary?: number }>
   current_era?: string
   featured_org_id?: string
   sex_words?: [string, string]

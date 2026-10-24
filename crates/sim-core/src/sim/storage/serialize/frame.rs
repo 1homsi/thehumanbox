@@ -963,8 +963,9 @@ fn lineage_words(
         .collect()
 }
 
-/// What each tribe has learned as a people: the craft it is known for and the
-/// hungry winter it remembers. Only tribes with something to tell are listed.
+/// What each tribe has learned as a people: the craft it is known for, the
+/// hungry winter it remembers and the war dead it mourns. Only tribes with
+/// something to tell are listed.
 fn lineage_lore(sim: &Simulation) -> serde_json::Value {
     use crate::sim::civ::society::hard_winters::REMEMBERED;
     let mut lore = serde_json::Map::new();
@@ -977,6 +978,13 @@ fn lineage_lore(sim: &Simulation) -> serde_json::Value {
         }
         let entry = lore.entry(lineage.clone()).or_insert_with(|| json!({}));
         entry["hungry_winter"] = json!(memory.year + 1);
+    }
+    for (lineage, war) in &sim.lineage_war_weariness {
+        if war.weariness < crate::sim::civ::society::war_weariness::WEARY {
+            continue;
+        }
+        let entry = lore.entry(lineage.clone()).or_insert_with(|| json!({}));
+        entry["war_weary"] = json!(war.fallen);
     }
     serde_json::Value::Object(lore)
 }

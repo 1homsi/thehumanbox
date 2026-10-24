@@ -224,6 +224,7 @@ impl Simulation {
             lineage_generations_reached: state.lineage_generations_reached,
             lineage_unrest: state.lineage_unrest,
             lineage_winter_memory: state.lineage_winter_memory,
+            lineage_war_weariness: state.lineage_war_weariness,
             lineage_crafts: HashMap::default(),
             lineage_crafts_ready: false,
             lineage_crime: state.lineage_crime,

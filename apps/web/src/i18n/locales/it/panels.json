@@ -296,6 +296,8 @@
       "craftTitle": "In cosa sono bravi gli adulti di questa tribù. I loro figli ci crescono in mezzo.",
       "winter": "ricorda l'inverno della fame dell'anno {year}",
       "winterTitle": "Da allora mettono da parte cibo ogni autunno.",
+      "warWeary": "stanchi della guerra dopo che {count} dei loro sono caduti in battaglia",
+      "warWearyTitle": "Spesso rinunciano alle razzie e fanno pace con le tribù stanche di combattere quanto loro.",
       "craft": {
         "woodcutting": "noti per i loro taglialegna",
         "quarrying": "noti per i loro scalpellini",

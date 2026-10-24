@@ -105,6 +105,8 @@ pub struct Simulation {
     pub lineage_unrest: HashMap<String, f32>,
     /// The hungry winter each tribe remembers (see `civ::society::hard_winters`).
     pub lineage_winter_memory: HashMap<String, crate::sim::civ::society::hard_winters::WinterMemory>,
+    /// How weary of war each tribe is, and how many of its people have fallen.
+    pub lineage_war_weariness: HashMap<String, crate::sim::civ::society::war_weariness::WarWeariness>,
     /// The craft each tribe is known for (see `civ::society::tribe_crafts`). Runtime only, worked out daily.
     pub lineage_crafts: HashMap<String, crate::organism::skills::Skill>,
     /// Whether `lineage_crafts` has been worked out since the world was made or loaded. Runtime only.
@@ -283,6 +285,7 @@ impl Simulation {
             lineage_generations_reached: HashMap::default(),
             lineage_unrest: HashMap::default(),
             lineage_winter_memory: HashMap::default(),
+            lineage_war_weariness: HashMap::default(),
             lineage_crafts: HashMap::default(),
             lineage_crafts_ready: false,
             lineage_crime: HashMap::default(),
