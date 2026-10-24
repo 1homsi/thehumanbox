@@ -464,7 +464,6 @@ fn at_night_a_person_walks_home_and_sleeps_there_not_in_any_shelter() {
     assert!(slept, "the person sleeps at home once there");
 }
 
-<<<<<<< HEAD
 fn parched_at(tiles: &[((i32, i32), Tile)], hydration: f32) -> (Organism, WorldGrid) {
     let mut rng = StdRng::seed_from_u64(5);
     let traits = Traits::random(&mut rng);
@@ -480,20 +479,6 @@ fn parched_at(tiles: &[((i32, i32), Tile)], hydration: f32) -> (Organism, WorldG
     let mut org = Organism::new(
         "dry".into(),
         "Dry".into(),
-=======
-fn worker_on_sand(name: &str) -> (Organism, WorldGrid, StdRng) {
-    let mut rng = StdRng::seed_from_u64(0);
-    let traits = Traits::random(&mut rng);
-    let mut grid = WorldGrid::new(4);
-    for x in 40..=60 {
-        for y in 40..=60 {
-            grid.set(x, y, Tile::Sand);
-        }
-    }
-    let mut org = Organism::new(
-        "id".into(),
-        name.into(),
->>>>>>> e57af3ac6 (world: people lean toward work they like and keep from work that hurt them, and elders tell the children how their work is done)
         50.0,
         50.0,
         0,
@@ -502,7 +487,6 @@ fn worker_on_sand(name: &str) -> (Organism, WorldGrid, StdRng) {
         5000,
         traits,
     );
-<<<<<<< HEAD
     org.energy = 0.8;
     org.hydration = hydration;
     (org, grid)
@@ -514,25 +498,12 @@ fn someone_thirsty_beside_a_frozen_lake_breaks_the_ice_to_drink() {
     let mut rng = StdRng::seed_from_u64(0);
     let (action, thought) = org.choose_action(
         &grid,
-=======
-    org.energy = 0.80;
-    org.hydration = 0.80;
-    org.health = 0.90;
-    org.age = 1500;
-    (org, grid, rng)
-}
-
-fn learned_pick(org: &Organism, grid: &WorldGrid, rng: &mut StdRng, available: &[usize]) -> usize {
-    org.choose_action(
-        grid,
->>>>>>> e57af3ac6 (world: people lean toward work they like and keep from work that hurt them, and elders tell the children how their work is done)
         &BuildingList::new(),
         100,
         0.0,
         &[],
         false,
         0,
-<<<<<<< HEAD
         &mut rng,
         false,
         "state",
@@ -562,7 +533,44 @@ fn only_someone_parched_cuts_through_the_houses_between_them_and_water() {
     let (thirsty, grid) = parched_at(&tiles, 0.5);
     let step = thirsty.toward((50, 53), &grid);
     assert_ne!(crate::organism::organism::DIRECTIONS[step], (0, 1));
-=======
+}
+
+fn worker_on_sand(name: &str) -> (Organism, WorldGrid, StdRng) {
+    let mut rng = StdRng::seed_from_u64(0);
+    let traits = Traits::random(&mut rng);
+    let mut grid = WorldGrid::new(4);
+    for x in 40..=60 {
+        for y in 40..=60 {
+            grid.set(x, y, Tile::Sand);
+        }
+    }
+    let mut org = Organism::new(
+        "id".into(),
+        name.into(),
+        50.0,
+        50.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    org.energy = 0.80;
+    org.hydration = 0.80;
+    org.health = 0.90;
+    org.age = 1500;
+    (org, grid, rng)
+}
+
+fn learned_pick(org: &Organism, grid: &WorldGrid, rng: &mut StdRng, available: &[usize]) -> usize {
+    org.choose_action(
+        grid,
+        &BuildingList::new(),
+        100,
+        0.0,
+        &[],
+        false,
+        0,
         rng,
         false,
         "state",
@@ -633,5 +641,4 @@ fn every_daily_work_action_practises_its_own_skill() {
         assert_eq!(Skill::of_action(action), Some(skill), "action {action}");
     }
     assert_eq!(Skill::of_action(17), None);
->>>>>>> e57af3ac6 (world: people lean toward work they like and keep from work that hurt them, and elders tell the children how their work is done)
 }
