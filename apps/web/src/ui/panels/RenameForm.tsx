@@ -13,6 +13,8 @@ export function RenameForm({ org }: { org: Pick<OrganismState, 'id' | 'name' | '
   const stopRename = useUIStore((s) => s.stopRename)
   const [value, setValue] = useState(() => personName(org))
   const [refused, setRefused] = useState(false)
+  // One submission at a time: a second name typed while the world answers would be a second, independent command.
+  const [pending, setPending] = useState(false)
   // The world answers later. By then the form may be gone, or the player may be renaming someone else.
   const open = useRef(true)
   useEffect(() => {
@@ -23,22 +25,27 @@ export function RenameForm({ org }: { org: Pick<OrganismState, 'id' | 'name' | '
   }, [])
 
   const save = () => {
+    if (pending) return
     const name = value.trim()
     if (!name || name === personName(org)) {
       stopRename()
       return
     }
     setRefused(false)
+    setPending(true)
     // A refused name (no sandbox here, or the world turned it down) keeps the form open with a message,
     // so the player can try another name or cancel. The card would otherwise show the old name with no reason.
     sendSandboxCommand({ cmd: 'rename_person', id: org.id, name }).then(
       (saved) => {
         if (!open.current) return
+        setPending(false)
         if (saved) stopRename()
         else setRefused(true)
       },
       () => {
-        if (open.current) setRefused(true)
+        if (!open.current) return
+        setPending(false)
+        setRefused(true)
       },
     )
   }
@@ -57,13 +64,16 @@ export function RenameForm({ org }: { org: Pick<OrganismState, 'id' | 'name' | '
         aria-label={t('panels.rename.label')}
         maxLength={MAX_NAME}
         value={value}
+        disabled={pending}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Escape') stopRename()
         }}
         style={{ flex: 1, minWidth: 0 }}
       />
-      <button type="submit">{t('panels.rename.save')}</button>
+      <button type="submit" disabled={pending}>
+        {t('panels.rename.save')}
+      </button>
       <button type="button" onClick={stopRename}>
         {t('panels.rename.cancel')}
       </button>

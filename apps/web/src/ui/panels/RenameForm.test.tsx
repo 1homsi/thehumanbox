@@ -65,4 +65,30 @@ describe('RenameForm', () => {
     expect(useUIStore.getState().renamingOrgId).toBe('p1')
     expect(host.querySelector('[role="alert"]')?.textContent).toBe(t('panels.rename.refused'))
   })
+
+  it('sends one name at a time and locks the form while the world answers', async () => {
+    const answer = deferred<boolean>()
+    vi.mocked(sendSandboxCommand).mockReturnValue(answer.promise)
+    const host = mount()
+    submitName(host, 'Bea')
+    submitName(host, 'Cy')
+    await flush()
+    expect(sendSandboxCommand).toHaveBeenCalledTimes(1)
+    expect(host.querySelector('input')?.disabled).toBe(true)
+    expect(host.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true)
+    expect(host.querySelector<HTMLButtonElement>('button[type="button"]')?.disabled).toBe(false)
+
+    await act(async () => answer.resolve(false))
+    await flush()
+    expect(host.querySelector('input')?.disabled).toBe(false)
+    expect(host.querySelector('[role="alert"]')).not.toBeNull()
+  })
 })
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((res) => {
+    resolve = res
+  })
+  return { promise, resolve }
+}
