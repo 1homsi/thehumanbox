@@ -259,6 +259,11 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
           {t('panels.tribe.lore.winter', { year: lore.hungry_winter })}
         </div>
       )}
+      {!!lore?.war_weary && (
+        <div className="tribe-card-relations" title={t('panels.tribe.lore.warWearyTitle')}>
+          {t('panels.tribe.lore.warWeary', { count: lore.war_weary })}
+        </div>
+      )}
       {eldest && (
         <div className="tribe-card-relations" title={t('panels.tribe.oldestTitle')}>
           {t('panels.tribe.oldest', { line: eldestLine(eldest) })}

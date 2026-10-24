@@ -16,4 +16,5 @@ pub mod trade_routes;
 pub mod tribe_crafts;
 pub mod unrest;
 pub mod vacancy;
+pub mod war_weariness;
 pub mod warfare;

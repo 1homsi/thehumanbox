@@ -296,6 +296,8 @@
       "craftTitle": "No que os adultos desta tribo são bons. Os filhos crescem em meio a isso.",
       "winter": "lembra o inverno da fome do ano {year}",
       "winterTitle": "Desde então guardam comida todo outono.",
+      "warWeary": "cansados da guerra depois que {count} dos seus caíram em batalha",
+      "warWearyTitle": "Muitas vezes desistem de ataques e fazem as pazes com tribos tão cansadas de lutar quanto eles.",
       "craft": {
         "woodcutting": "conhecidos por seus lenhadores",
         "quarrying": "conhecidos por seus canteiros",

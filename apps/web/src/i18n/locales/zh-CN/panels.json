@@ -289,6 +289,8 @@
       "craftTitle": "这个部落的成年人擅长的事。孩子们在其中长大。",
       "winter": "记得第 {year} 年的饥荒之冬",
       "winterTitle": "从那以后，每年秋天都储存粮食。",
+      "warWeary": "已有 {count} 人战死，厌倦了战争",
+      "warWearyTitle": "他们常常取消袭击，并与同样厌战的部落讲和。",
       "craft": {
         "woodcutting": "以伐木人闻名",
         "quarrying": "以石匠闻名",

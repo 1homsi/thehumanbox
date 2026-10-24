@@ -296,6 +296,8 @@
       "craftTitle": "Ce en quoi les adultes de cette tribu excellent. Leurs enfants grandissent avec.",
       "winter": "se souvient de l'hiver de la faim de l'an {year}",
       "winterTitle": "Depuis, ils font des réserves chaque automne.",
+      "warWeary": "las de la guerre après la mort de {count} des leurs au combat",
+      "warWearyTitle": "Ils renoncent souvent à leurs raids et font la paix avec les tribus aussi lasses de se battre qu'eux.",
       "craft": {
         "woodcutting": "connus pour leurs bûcherons",
         "quarrying": "connus pour leurs tailleurs de pierre",

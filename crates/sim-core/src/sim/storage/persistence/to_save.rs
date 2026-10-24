@@ -56,6 +56,7 @@ impl Simulation {
             lineage_generations_reached: self.lineage_generations_reached.clone(),
             lineage_unrest: self.lineage_unrest.clone(),
             lineage_winter_memory: self.lineage_winter_memory.clone(),
+            lineage_war_weariness: self.lineage_war_weariness.clone(),
             lineage_crime: self.lineage_crime.clone(),
             goals: self.goals.clone(),
             events: self.events.iter().rev().take(200).rev().cloned().collect(),

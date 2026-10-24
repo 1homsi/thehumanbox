@@ -315,6 +315,13 @@
       "craftTitle": "W czym są dobrzy dorośli z tego plemienia. Ich dzieci dorastają przy tym.",
       "winter": "pamięta głodną zimę roku {year}",
       "winterTitle": "Od tamtej pory co jesień robią zapasy.",
+      "warWeary": {
+        "one": "zmęczeni wojną po tym, jak {count} z nich poległ w bitwie",
+        "few": "zmęczeni wojną po tym, jak {count} z nich poległo w bitwie",
+        "many": "zmęczeni wojną po tym, jak {count} z nich poległo w bitwie",
+        "other": "zmęczeni wojną po tym, jak {count} z nich poległo w bitwie"
+      },
+      "warWearyTitle": "Często odwołują najazdy i zawierają pokój z plemionami równie zmęczonymi walką.",
       "craft": {
         "woodcutting": "słyną z drwali",
         "quarrying": "słyną z kamieniarzy",

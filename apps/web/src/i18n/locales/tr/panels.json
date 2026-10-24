@@ -296,6 +296,8 @@
       "craftTitle": "Bu kabilenin yetişkinlerinin iyi olduğu iş. Çocukları bununla büyür.",
       "winter": "{year}. yılın aç kışını hatırlıyor",
       "winterTitle": "O günden beri her sonbahar yiyecek biriktiriyorlar.",
+      "warWeary": "savaşta {count} kişiyi yitirdikten sonra savaştan bıktılar",
+      "warWearyTitle": "Baskınlardan sık sık vazgeçer, kendileri kadar savaştan bıkmış kabilelerle barış yaparlar.",
       "craft": {
         "woodcutting": "oduncularıyla tanınır",
         "quarrying": "taşçılarıyla tanınır",

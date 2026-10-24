@@ -293,6 +293,8 @@
       "craftTitle": "What this tribe's grown people are good at. Their children grow up around it.",
       "winter": "remembers the hungry winter of year {year}",
       "winterTitle": "They lay food by every autumn since.",
+      "warWeary": "weary of war after {count} of their own fell in battle",
+      "warWearyTitle": "They often call off raids, and make peace with tribes as tired of fighting as they are.",
       "craft": {
         "woodcutting": "known for their woodcutters",
         "quarrying": "known for their stoneworkers",

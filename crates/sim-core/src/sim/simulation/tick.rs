@@ -216,6 +216,7 @@ impl Simulation {
                 &mut self.events,
             );
             let new_battles = self.turn_away_warded(new_battles);
+            let new_battles = self.weary_stay_home(new_battles);
             self.march_warbands(&new_battles);
             self.battles.extend(new_battles);
             let new_wars = crate::sim::warfare::try_spawn_border_wars(
@@ -228,6 +229,7 @@ impl Simulation {
                 &mut self.events,
             );
             let new_wars = self.turn_away_warded(new_wars);
+            let new_wars = self.weary_stay_home(new_wars);
             self.march_warbands(&new_wars);
             self.battles.extend(new_wars);
             let standing: Vec<bool> = self.organisms.iter().map(|o| o.alive).collect();
@@ -257,7 +259,9 @@ impl Simulation {
                 .collect();
             for lineage in fallen {
                 self.note_death(&lineage, "war");
+                self.mourn_war_dead(&lineage);
             }
+            self.make_weary_peace();
             self.apply_conquests();
         }
         crate::sim::civ::building_damage::tick_building_damage(self);
@@ -529,6 +533,7 @@ impl Simulation {
         self.tick_winter_memories();
         self.tick_tribe_crafts();
         self.tick_game_wariness();
+        self.tick_war_weariness();
         self.tick_wild_food();
         self.check_animal_catches();
 
