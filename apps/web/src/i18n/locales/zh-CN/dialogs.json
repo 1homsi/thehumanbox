@@ -469,7 +469,12 @@
       "days": "· {days}天",
       "kids": "· {count} 个孩子",
       "gen": "· {gen}代"
-    }
+    },
+    "ageAdult": "成年人",
+    "withKids": "有孩子",
+    "thirsty": "口渴",
+    "collapse": "收起",
+    "distinctShown": "共{total}种 · 显示前{shown}种"
   },
   "tree": {
     "title": "家谱",

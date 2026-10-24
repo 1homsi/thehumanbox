@@ -469,7 +469,12 @@
       "days": "· {days}gg",
       "kids": "· {count} figli",
       "gen": "· g{gen}"
-    }
+    },
+    "ageAdult": "adulto",
+    "withKids": "con figli",
+    "thirsty": "assetato",
+    "collapse": "comprimi",
+    "distinctShown": "{total} distinte · prime {shown} mostrate"
   },
   "tree": {
     "title": "Albero genealogico",

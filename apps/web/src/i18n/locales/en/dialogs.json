@@ -469,7 +469,12 @@
       "days": "· {days}d",
       "kids": "· {count} kids",
       "gen": "· g{gen}"
-    }
+    },
+    "ageAdult": "adult",
+    "withKids": "with kids",
+    "thirsty": "thirsty",
+    "collapse": "collapse",
+    "distinctShown": "{total} distinct · top {shown} shown"
   },
   "tree": {
     "title": "Family tree",

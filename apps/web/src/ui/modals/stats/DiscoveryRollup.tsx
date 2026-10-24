@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { WorldState } from '../../../shared/types'
-import { formatNumber } from '../../../i18n'
+import { formatNumber, t } from '../../../i18n'
 
 export function DiscoveryRollup({ organisms }: { organisms: WorldState['organisms'] }) {
   const [showAll, setShowAll] = useState(false)
@@ -13,18 +13,25 @@ export function DiscoveryRollup({ organisms }: { organisms: WorldState['organism
   }, [organisms])
 
   if (rows.length === 0) {
-    return <div style={{ color: '#333', fontSize: 11, padding: '8px 0' }}>no discoveries yet</div>
+    return (
+      <div style={{ color: '#333', fontSize: 11, padding: '8px 0' }}>{t('dialogs.stats.noDiscoveries')}</div>
+    )
   }
   const visible = showAll ? rows : rows.slice(0, TOP_N)
   return (
     <div className="disc-rollup">
       <div className="disc-summary">
         <span>
-          {totalDistinct} distinct · top {Math.min(TOP_N, totalDistinct)} shown
+          {t('dialogs.stats.distinctShown', {
+            total: formatNumber(totalDistinct),
+            shown: formatNumber(Math.min(TOP_N, totalDistinct)),
+          })}
         </span>
         {totalDistinct > TOP_N && (
           <button className="disc-toggle" onClick={() => setShowAll((s) => !s)}>
-            {showAll ? 'collapse' : `show all (${totalDistinct})`}
+            {showAll
+              ? t('dialogs.stats.collapse')
+              : t('dialogs.civ.history.showAll', { count: formatNumber(totalDistinct) })}
           </button>
         )}
       </div>

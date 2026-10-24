@@ -469,7 +469,12 @@
       "days": "· {days}g",
       "kids": "· {count} çocuk",
       "gen": "· k{gen}"
-    }
+    },
+    "ageAdult": "yetişkin",
+    "withKids": "çocuklu",
+    "thirsty": "susuz",
+    "collapse": "daralt",
+    "distinctShown": "{total} farklı · ilk {shown} gösteriliyor"
   },
   "tree": {
     "title": "Aile ağacı",

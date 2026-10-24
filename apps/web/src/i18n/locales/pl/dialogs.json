@@ -483,7 +483,12 @@
       "days": "· {days}d",
       "kids": "· dzieci: {count}",
       "gen": "· p{gen}"
-    }
+    },
+    "ageAdult": "dorosły",
+    "withKids": "z dziećmi",
+    "thirsty": "spragniony",
+    "collapse": "zwiń",
+    "distinctShown": "{total} różnych · pokazano {shown}"
   },
   "tree": {
     "title": "Drzewo rodzinne",
