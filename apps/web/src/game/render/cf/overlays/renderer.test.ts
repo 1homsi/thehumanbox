@@ -265,6 +265,45 @@ describe('CfOverlayRenderer', () => {
     expect(still.count).toBe(8)
   })
 
+  it('redraws the structure outline only when the structure grid changes, not on every world frame', () => {
+    make()
+    const structure = Array.from({ length: GH }, () => Array(GW).fill(0))
+    structure[5][5] = 0.8
+    const grid = { ...world().grid, structure, structure_revision: 1 }
+    const still = host.layers.find((l) => l.zIndex === Z.groundStatic)!
+    const structuresOn = { ...flags, structures: true }
+    const w1 = world({ grid, frame_id: 1 } as unknown as Partial<WorldState>)
+    renderer.update(Object.assign(frameOf(w1), { viewFlags: structuresOn }))
+    expect(still.count).toBe(4)
+
+    // The wire patches the grid in place and keeps the revision when nothing structural changed.
+    structure[5][6] = 0.8
+    const w2 = { ...w1, frame_id: 2 } as WorldState
+    renderer.update(Object.assign(frameOf(w2, null, 5100), { viewFlags: structuresOn }))
+    expect(still.count).toBe(4)
+
+    // A structural change bumps the revision, and the outline follows it.
+    const w3 = { ...w2, grid: { ...grid, structure_revision: 2 }, frame_id: 3 } as WorldState
+    renderer.update(Object.assign(frameOf(w3, null, 5200), { viewFlags: structuresOn }))
+    expect(still.count).toBe(8)
+  })
+
+  it('still redraws the outline on every world frame when the grid has no revision counter', () => {
+    make()
+    const structure = Array.from({ length: GH }, () => Array(GW).fill(0))
+    structure[5][5] = 0.8
+    const grid = { ...world().grid, structure }
+    const still = host.layers.find((l) => l.zIndex === Z.groundStatic)!
+    const structuresOn = { ...flags, structures: true }
+    const w1 = world({ grid, frame_id: 1 } as unknown as Partial<WorldState>)
+    renderer.update(Object.assign(frameOf(w1), { viewFlags: structuresOn }))
+    expect(still.count).toBe(4)
+    structure[5][6] = 0.8
+    const w2 = { ...w1, frame_id: 2 } as WorldState
+    renderer.update(Object.assign(frameOf(w2, null, 5100), { viewFlags: structuresOn }))
+    expect(still.count).toBe(8)
+  })
+
   it('draws battles, wards, festivals and smog as sprites from the existing painters', () => {
     make()
     const w = world({
