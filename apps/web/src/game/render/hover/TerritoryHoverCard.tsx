@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type MutableRefObject } from 'react'
 import { lineageColor } from '../../../shared/constants'
 import type { WorldState } from '../../../shared/types'
+import { formatNumber, t } from '../../../i18n'
 import { territoryCardFacts, type TerritoryCardFacts } from '../../model/territory-card'
 import { lineageAtTerritoryTile, territoryTileKey, type TerritoryIndex } from '../../model/territory'
 import { TILE } from '../../model/palette'
@@ -99,7 +100,8 @@ export function TerritoryHoverCard({
       {facts && <TribeFacts facts={facts} lineage={hover?.lineage ?? ''} />}
       {settlement && (
         <div>
-          {settlement.population} people · {settlement.building_count} buildings
+          {t('panels.tribe.people', { count: formatNumber(settlement.population) })} ·{' '}
+          {t('model.territory.buildings', { count: formatNumber(settlement.building_count) })}
         </div>
       )}
     </div>
@@ -122,17 +124,17 @@ function TribeFacts({ facts, lineage }: { facts: TerritoryCardFacts; lineage: st
         {facts.name}
       </div>
       <div>
-        {facts.people} {facts.people === 1 ? 'person' : 'people'}
+        {t('panels.tribe.people', { count: formatNumber(facts.people) })}
         {facts.era ? ` · ${facts.era}` : ''}
       </div>
       <div>
-        {facts.leader ? `led by ${facts.leader}` : 'no leader'}
+        {facts.leader ? `${t('panels.tribe.ledBy')} ${facts.leader}` : t('model.territory.noLeader')}
         {facts.government ? ` (${facts.government})` : ''}
       </div>
-      {facts.wealthGap && <div>wealth: {facts.wealthGap}</div>}
+      {facts.wealthGap && <div>{t('model.territory.wealthLabel', { value: facts.wealthGap })}</div>}
       {facts.goods && <div>{facts.goods}</div>}
-      {facts.trade && <div>trade: {facts.trade}</div>}
-      {facts.contested && <div style={{ color: '#ffb36b' }}>disputed land</div>}
+      {facts.trade && <div>{t('model.territory.tradeLabel', { value: facts.trade })}</div>}
+      {facts.contested && <div style={{ color: '#ffb36b' }}>{t('model.territory.disputed')}</div>}
     </>
   )
 }

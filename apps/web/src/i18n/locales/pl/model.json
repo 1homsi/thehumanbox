@@ -339,6 +339,16 @@
       "spice": "miasto przypraw",
       "ochre": "miasto ochry",
       "fur": "miasto futrzarzy"
+    },
+    "noLeader": "bez przywódcy",
+    "wealthLabel": "majątek: {value}",
+    "tradeLabel": "handel: {value}",
+    "disputed": "sporne ziemie",
+    "buildings": {
+      "one": "{count} budynek",
+      "few": "{count} budynki",
+      "many": "{count} budynków",
+      "other": "{count} budynku"
     }
   },
   "pair": {

@@ -319,6 +319,14 @@
       "spice": "una città delle spezie",
       "ochre": "una città dell’ocra",
       "fur": "una città delle pellicce"
+    },
+    "noLeader": "senza capo",
+    "wealthLabel": "ricchezza: {value}",
+    "tradeLabel": "commercio: {value}",
+    "disputed": "terra contesa",
+    "buildings": {
+      "one": "{count} edificio",
+      "other": "{count} edifici"
     }
   },
   "pair": {

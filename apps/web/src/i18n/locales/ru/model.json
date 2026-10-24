@@ -339,6 +339,16 @@
       "spice": "пряный город",
       "ochre": "охряной город",
       "fur": "город мехов"
+    },
+    "noLeader": "без вождя",
+    "wealthLabel": "богатство: {value}",
+    "tradeLabel": "торговля: {value}",
+    "disputed": "спорная земля",
+    "buildings": {
+      "one": "{count} здание",
+      "few": "{count} здания",
+      "many": "{count} зданий",
+      "other": "{count} здания"
     }
   },
   "pair": {

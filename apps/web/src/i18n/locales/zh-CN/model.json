@@ -311,7 +311,12 @@
       "spice": "一座香料城镇",
       "ochre": "一座赭石城镇",
       "fur": "一座皮毛城镇"
-    }
+    },
+    "noLeader": "没有首领",
+    "wealthLabel": "财富: {value}",
+    "tradeLabel": "贸易: {value}",
+    "disputed": "争议土地",
+    "buildings": "{count} 座建筑"
   },
   "pair": {
     "marry": {

@@ -319,6 +319,14 @@
       "spice": "una ciudad de especias",
       "ochre": "una ciudad de ocre",
       "fur": "una ciudad de pieles"
+    },
+    "noLeader": "sin líder",
+    "wealthLabel": "riqueza: {value}",
+    "tradeLabel": "comercio: {value}",
+    "disputed": "tierra disputada",
+    "buildings": {
+      "one": "{count} edificio",
+      "other": "{count} edificios"
     }
   },
   "pair": {
