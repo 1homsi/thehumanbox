@@ -2,6 +2,7 @@ import { personName } from '../../../shared/personName'
 import { useCallback, useMemo } from 'react'
 import type { SceneContext } from '../core/types'
 import { useUIStore } from '../../../state/store'
+import { t } from '../../../i18n'
 import { RoomCanvas, type RoomPalette } from '../shared/RoomCanvas'
 import { drawSettlementFurniture } from './furniture'
 
@@ -64,8 +65,8 @@ export function SettlementInterior({ ctx, onExit, onFocusOrg }: Props) {
   return (
     <div className="scene-shell">
       <div className="scene-head">
-        <button className="scene-back" onClick={onExit} aria-label="Back to map">
-          ← back to map
+        <button className="scene-back" onClick={onExit} aria-label={t('common.backToMap')}>
+          ← {t('common.backToMap')}
         </button>
         <div className="scene-title-wrap">
           <div className="scene-title">{title}</div>
@@ -73,12 +74,10 @@ export function SettlementInterior({ ctx, onExit, onFocusOrg }: Props) {
         </div>
         <div className="scene-meta">
           {occupants.length === 0
-            ? 'empty square'
-            : occupants.length === 1
-              ? '1 in the square'
-              : `${occupants.length} in the square`}
+            ? t('panels.scene.emptySquare')
+            : t('panels.scene.inSquareCount', { count: occupants.length })}
           {' · '}
-          {isDay ? '☀ day' : '☾ night'}
+          {isDay ? `☀ ${t('panels.scene.day')}` : `☾ ${t('panels.scene.night')}`}
         </div>
       </div>
 
@@ -114,9 +113,11 @@ export function SettlementInterior({ ctx, onExit, onFocusOrg }: Props) {
                 (o.org.id === selectedOrgId ? ' active' : '')
               }
               onClick={() => onFocusOrg(o.org.id)}
-              title="In the village but not in the square"
+              title={t('panels.scene.villageAway')}
             >
-              <span className="scene-occupant-role">{o.role} · nearby</span>
+              <span className="scene-occupant-role">
+                {o.role} · {t('panels.scene.nearby')}
+              </span>
               <span className="scene-occupant-name">{personName(o.org)}</span>
               <span className="scene-occupant-act">{o.activity}</span>
             </button>

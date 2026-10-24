@@ -1,6 +1,7 @@
 import type { MutableRefObject } from 'react'
 import { KEY_ZOOM_STEP } from './cf/input/camera-rig'
 import type { MapCommand } from './camera-controls'
+import { t } from '../../i18n'
 import './map-controls.css'
 
 interface Props {
@@ -30,7 +31,7 @@ export function MapControls({ commandRef, onLocate }: Props) {
       <button
         type="button"
         className="map-control-btn"
-        aria-label="Zoom in"
+        aria-label={t('common.zoomIn')}
         onClick={press(() => {
           commandRef.current = { kind: 'zoom', factor: KEY_ZOOM_STEP }
         })}
@@ -40,7 +41,7 @@ export function MapControls({ commandRef, onLocate }: Props) {
       <button
         type="button"
         className="map-control-btn"
-        aria-label="Zoom out"
+        aria-label={t('common.zoomOut')}
         onClick={press(() => {
           commandRef.current = { kind: 'zoom', factor: 1 / KEY_ZOOM_STEP }
         })}
@@ -50,7 +51,7 @@ export function MapControls({ commandRef, onLocate }: Props) {
       <button
         type="button"
         className="map-control-btn"
-        aria-label="Fit world"
+        aria-label={t('common.fitWorld')}
         onClick={press(() => {
           commandRef.current = { kind: 'fit' }
         })}
@@ -61,7 +62,7 @@ export function MapControls({ commandRef, onLocate }: Props) {
         <button
           type="button"
           className="map-control-btn"
-          aria-label="Centre on selected"
+          aria-label={t('common.centreOnSelected')}
           onClick={press(onLocate)}
         >
           {icon('locate')}

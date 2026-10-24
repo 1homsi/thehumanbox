@@ -7,5 +7,12 @@
   "restore": "ripristina…",
   "delete": "elimina…",
   "move": "sposta",
-  "checking": "controllo…"
+  "checking": "controllo…",
+  "backToMap": "Torna alla mappa",
+  "zoomIn": "Ingrandisci",
+  "zoomOut": "Riduci",
+  "fitWorld": "Mostra tutto il mondo",
+  "centreOnSelected": "Centra sulla selezione",
+  "worldMapLabel": "Mappa del mondo interattiva",
+  "terrainLabel": "Terreno del mondo e abitanti"
 }

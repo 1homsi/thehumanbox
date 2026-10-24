@@ -7,5 +7,12 @@
   "restore": "복원…",
   "delete": "삭제…",
   "move": "이동",
-  "checking": "확인 중…"
+  "checking": "확인 중…",
+  "backToMap": "지도로 돌아가기",
+  "zoomIn": "확대",
+  "zoomOut": "축소",
+  "fitWorld": "전체 세계 보기",
+  "centreOnSelected": "선택한 대상으로 이동",
+  "worldMapLabel": "조작 가능한 세계 지도",
+  "terrainLabel": "세계의 지형과 주민"
 }

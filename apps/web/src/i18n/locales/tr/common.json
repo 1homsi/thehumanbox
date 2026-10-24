@@ -7,5 +7,12 @@
   "restore": "geri yükle…",
   "delete": "sil…",
   "move": "taşı",
-  "checking": "denetleniyor…"
+  "checking": "denetleniyor…",
+  "backToMap": "Haritaya dön",
+  "zoomIn": "Yakınlaştır",
+  "zoomOut": "Uzaklaştır",
+  "fitWorld": "Tüm dünyayı göster",
+  "centreOnSelected": "Seçileni ortala",
+  "worldMapLabel": "Etkileşimli dünya haritası",
+  "terrainLabel": "Dünyanın arazisi ve sakinleri"
 }

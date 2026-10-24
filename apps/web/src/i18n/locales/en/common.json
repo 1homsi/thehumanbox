@@ -7,5 +7,12 @@
   "restore": "restore…",
   "delete": "delete…",
   "move": "move",
-  "checking": "checking…"
+  "checking": "checking…",
+  "backToMap": "Back to map",
+  "zoomIn": "Zoom in",
+  "zoomOut": "Zoom out",
+  "fitWorld": "Fit world",
+  "centreOnSelected": "Centre on selected",
+  "worldMapLabel": "Interactive world map",
+  "terrainLabel": "World terrain and inhabitants"
 }

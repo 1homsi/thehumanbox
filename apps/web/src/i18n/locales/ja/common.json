@@ -7,5 +7,12 @@
   "restore": "復元…",
   "delete": "削除…",
   "move": "移動",
-  "checking": "確認中…"
+  "checking": "確認中…",
+  "backToMap": "地図に戻る",
+  "zoomIn": "拡大",
+  "zoomOut": "縮小",
+  "fitWorld": "世界全体を表示",
+  "centreOnSelected": "選択中の対象へ移動",
+  "worldMapLabel": "操作できる世界地図",
+  "terrainLabel": "世界の地形と住民"
 }

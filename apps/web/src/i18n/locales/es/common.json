@@ -7,5 +7,12 @@
   "restore": "restaurar…",
   "delete": "eliminar…",
   "move": "mover",
-  "checking": "comprobando…"
+  "checking": "comprobando…",
+  "backToMap": "Volver al mapa",
+  "zoomIn": "Acercar",
+  "zoomOut": "Alejar",
+  "fitWorld": "Ver todo el mundo",
+  "centreOnSelected": "Centrar en la selección",
+  "worldMapLabel": "Mapa del mundo interactivo",
+  "terrainLabel": "Terreno del mundo y habitantes"
 }
