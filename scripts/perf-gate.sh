@@ -36,11 +36,11 @@ fi
 pids=()
 for seed in $SEEDS; do
   "$BIN" --seed "$seed" --ticks "$TICKS" --every "$TICKS" \
-    --profile "$TMPDIR/$seed-$TICKS.csv" --profile-every "$PROFILE_EVERY" >/dev/null &
+    --profile "$TMPDIR/$seed-$TICKS.csv" --profile-every "$PROFILE_EVERY" >"$TMPDIR/$seed-$TICKS.out" &
   pids+=("$!")
 done
 "$BIN" --seed "$LONG_SEED" --ticks "$LONG_TICKS" --every "$LONG_TICKS" \
-  --profile "$TMPDIR/$LONG_SEED-$LONG_TICKS.csv" --profile-every "$PROFILE_EVERY" >/dev/null &
+  --profile "$TMPDIR/$LONG_SEED-$LONG_TICKS.csv" --profile-every "$PROFILE_EVERY" >"$TMPDIR/$LONG_SEED-$LONG_TICKS.out" &
 pids+=("$!")
 for pid in "${pids[@]}"; do
   wait "$pid" || { echo "headless run failed (pid $pid)" >&2; exit 1; }
@@ -68,28 +68,37 @@ check_run() {
     awk '{ v[NR] = $1 } END { printf "%.3f", NR ? v[int((NR * 99 + 99) / 100)] : 0 }')
   peak_rss_kb=$(awk -F, 'NR > 1 && $4 > max { max = $4 } END { printf "%.0f", max + 0 }' "$profile")
   peak_rss_mb=$(awk -v kb="$peak_rss_kb" 'BEGIN { printf "%.1f", kb / 1024 }')
-  echo "seed=$seed ticks=$ticks mean_tick_ms=$mean_ms p99_tick_ms=$p99_ms max_tick_ms=$max_ms peak_rss_mb=$peak_rss_mb budgets=${max_tick}ms/${max_p99}ms/${max_mean}ms/${MAX_RSS_MB}MB"
+  # What the run simulated, so a slower tick can be told from a bigger world: the people alive at the end,
+  # and a checksum of the world's printed history (timing lines left out) to compare with a local run of
+  # `headless --seed <seed> --ticks <ticks> --every <ticks>` on another machine.
+  local out="$TMPDIR/$seed-$ticks.out" alive world
+  alive=$(awk -v t="$ticks" '$1 == t && NF > 3 { print $2; exit }' "$out")
+  world=$(grep -v -e 'µs' -e 'wall' "$out" | cksum | awk '{ print $1 }')
+  echo "seed=$seed ticks=$ticks mean_tick_ms=$mean_ms p99_tick_ms=$p99_ms max_tick_ms=$max_ms peak_rss_mb=$peak_rss_mb alive=${alive:-?} world=$world budgets=${max_tick}ms/${max_p99}ms/${max_mean}ms/${MAX_RSS_MB}MB"
   awk -v max="$max_tick" -v actual="$max_ms" 'BEGIN { exit actual > max }' || {
     echo "performance budget exceeded for seed $seed: ${max_ms}ms > ${max_tick}ms" >&2
-    exit 1
+    return 1
   }
   awk -v max="$max_p99" -v actual="$p99_ms" 'BEGIN { exit actual > max }' || {
     echo "p99 tick budget exceeded for seed $seed: ${p99_ms}ms > ${max_p99}ms" >&2
-    exit 1
+    return 1
   }
   awk -v max="$max_mean" -v actual="$mean_ms" 'BEGIN { exit actual > max }' || {
     echo "mean tick budget exceeded for seed $seed: ${mean_ms}ms > ${max_mean}ms" >&2
-    exit 1
+    return 1
   }
   if [[ "$peak_rss_kb" -gt 0 ]]; then
     awk -v max="$MAX_RSS_MB" -v actual="$peak_rss_mb" 'BEGIN { exit actual > max }' || {
       echo "memory budget exceeded for seed $seed: ${peak_rss_mb}MB > ${MAX_RSS_MB}MB" >&2
-      exit 1
+      return 1
     }
   fi
 }
 
+# Every run is checked and reported before the gate fails, so one slow seed does not hide the others.
+failed=0
 for seed in $SEEDS; do
-  check_run "$seed" "$TICKS" "$MAX_TICK_MS" "$MAX_P99_MS" "$MAX_MEAN_MS"
+  check_run "$seed" "$TICKS" "$MAX_TICK_MS" "$MAX_P99_MS" "$MAX_MEAN_MS" || failed=1
 done
-check_run "$LONG_SEED" "$LONG_TICKS" "$MAX_LONG_TICK_MS" "$MAX_LONG_P99_MS" "$MAX_LONG_MEAN_MS"
+check_run "$LONG_SEED" "$LONG_TICKS" "$MAX_LONG_TICK_MS" "$MAX_LONG_P99_MS" "$MAX_LONG_MEAN_MS" || failed=1
+exit "$failed"
