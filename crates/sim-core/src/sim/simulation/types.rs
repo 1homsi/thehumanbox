@@ -209,11 +209,7 @@ mod history_year_tests {
             + sim.history.deaths_fire
             + sim.history.deaths_disaster
             + sim.history.deaths_combat;
-        assert!(deaths <= all_deaths);
-        assert!(
-            all_deaths == 0 || deaths > 0,
-            "deaths happened but none landed in a year"
-        );
+        assert_eq!(deaths, all_deaths, "every death lands in a year");
     }
 }
 
