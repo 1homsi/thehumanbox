@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useUIStore } from '../../state/store'
 import { getDesktop } from '../../shared/desktop'
 import { t } from '../../i18n'
@@ -7,13 +7,35 @@ interface Command {
   id: string
   label: string
   hint?: string
-  run: () => void
+  run: () => void | Promise<void>
+}
+
+type DesktopFailure =
+  | 'settings.desktop.screenshotFailed'
+  | 'settings.desktop.openWorldsFailed'
+  | 'settings.desktop.openLogsFailed'
+
+/**
+ * A desktop tool whose failure is named in the palette. The settings tab does the same; a bare
+ * `void` call would turn a refused folder into an unhandled rejection the player never sees.
+ */
+function desktopTool(failure: DesktopFailure, action: () => Promise<unknown>): () => Promise<void> {
+  return async () => {
+    try {
+      await action()
+    } catch (error) {
+      throw new Error(t(failure, { error: error instanceof Error ? error.message : String(error) }), {
+        cause: error,
+      })
+    }
+  }
 }
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [highlight, setHighlight] = useState(0)
+  const [failure, setFailure] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const ranCommand = useRef(false)
   const openStats = useUIStore((s) => s.openStats)
@@ -58,14 +80,21 @@ export function CommandPalette() {
           id: 'desk-screenshot',
           label: t('dock.commands.screenshot'),
           hint: t('dock.commands.screenshotHint'),
-          run: () => void desktop.app.screenshot(),
+          // screenshot() resolves null when the capture or its file write fails.
+          run: desktopTool('settings.desktop.screenshotFailed', async () => {
+            if (!(await desktop.app.screenshot())) throw new Error(t('settings.desktop.captureFailed'))
+          }),
         },
         {
           id: 'desk-open-worlds',
           label: t('dock.commands.openWorlds'),
-          run: () => void desktop.app.openWorlds(),
+          run: desktopTool('settings.desktop.openWorldsFailed', () => desktop.app.openWorlds()),
         },
-        { id: 'desk-open-logs', label: t('dock.commands.openLogs'), run: () => void desktop.app.openLogs() },
+        {
+          id: 'desk-open-logs',
+          label: t('dock.commands.openLogs'),
+          run: desktopTool('settings.desktop.openLogsFailed', () => desktop.app.openLogs()),
+        },
       )
     }
     return cmds
@@ -89,26 +118,56 @@ export function CommandPalette() {
     )
   }, [commands, query])
 
-  const runCommand = (cmd: Command) => {
-    ranCommand.current = true
-    cmd.run()
+  // Bumped when a command starts and whenever the palette closes or reopens. A command still running when
+  // the number has moved on was superseded: its result must not close the palette or replace its message.
+  const generation = useRef(0)
+
+  const closePalette = useCallback(() => {
+    generation.current += 1
     setOpen(false)
-  }
+  }, [])
+
+  const runCommand = useCallback(
+    (cmd: Command) => {
+      ranCommand.current = true
+      setFailure(null)
+      const token = ++generation.current
+      const outcome = cmd.run()
+      if (!(outcome instanceof Promise)) {
+        closePalette()
+        return
+      }
+      // A command that is still running keeps the palette open; a failure stays on screen here.
+      outcome.then(
+        () => {
+          if (token === generation.current) closePalette()
+        },
+        (error: unknown) => {
+          if (token === generation.current) {
+            setFailure(error instanceof Error ? error.message : String(error))
+          }
+        },
+      )
+    },
+    [closePalette],
+  )
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       const isOpenShortcut = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'
       if (isOpenShortcut) {
         e.preventDefault()
+        generation.current += 1
         setOpen((prev) => !prev)
         setQuery('')
         setHighlight(0)
+        setFailure(null)
         return
       }
       if (!open) return
       if (e.key === 'Escape') {
         e.preventDefault()
-        setOpen(false)
+        closePalette()
         return
       }
       if (e.key === 'ArrowDown') {
@@ -130,7 +189,7 @@ export function CommandPalette() {
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, filtered, highlight])
+  }, [open, filtered, highlight, runCommand, closePalette])
 
   useEffect(() => {
     if (!open) return
@@ -164,7 +223,7 @@ export function CommandPalette() {
   if (!open) return null
 
   return (
-    <div className="cmd-backdrop" onClick={() => setOpen(false)}>
+    <div className="cmd-backdrop" onClick={closePalette}>
       <div className="cmd-panel" onClick={(e) => e.stopPropagation()}>
         <input
           ref={inputRef}
@@ -174,6 +233,11 @@ export function CommandPalette() {
           onChange={(e) => setQuery(e.target.value)}
         />
         <div className="cmd-list">
+          {failure && (
+            <div className="cmd-empty cmd-failure" role="alert">
+              {failure}
+            </div>
+          )}
           {filtered.length === 0 && <div className="cmd-empty">{t('dock.palette.empty')}</div>}
           {filtered.map((cmd, i) => (
             <div

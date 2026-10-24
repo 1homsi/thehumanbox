@@ -3,6 +3,15 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { CommandPalette } from './CommandPalette'
+import { t } from '../../i18n'
+import type { DesktopBridge } from '../../shared/desktop'
+
+// The desktop bridge is only present in the Electron build; each test sets the one it needs.
+const desktopBridge = vi.hoisted(() => ({ current: null as unknown }))
+vi.mock('../../shared/desktop', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../shared/desktop')>()
+  return { ...actual, getDesktop: () => desktopBridge.current as DesktopBridge | null }
+})
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
 afterAll(() => vi.unstubAllGlobals())
@@ -73,5 +82,129 @@ describe('CommandPalette focus', () => {
     key({ key: 'Escape' })
     expect(document.activeElement).toBe(other)
     expect(document.activeElement).not.toBe(map)
+  })
+})
+
+function commandRow(label: string): HTMLElement {
+  const row = [...document.querySelectorAll<HTMLElement>('.cmd-row')].find((el) =>
+    el.textContent?.includes(label),
+  )
+  if (!row) throw new Error(`no command row "${label}"`)
+  return row
+}
+
+const flush = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
+
+describe('CommandPalette superseded commands', () => {
+  it('ignores the result of a command the player closed the palette over', async () => {
+    const logs = deferred<void>()
+    desktopBridge.current = {
+      app: {
+        screenshot: vi.fn(async () => '/pictures/thb.png'),
+        openLogs: vi.fn(() => logs.promise),
+        openWorlds: vi.fn(async () => undefined),
+      },
+    }
+    mount()
+    key({ key: 'k', ctrlKey: true })
+    act(() => commandRow(t('dock.commands.openLogs')).click())
+    key({ key: 'Escape' })
+    key({ key: 'k', ctrlKey: true })
+    await act(async () => logs.resolve())
+    await flush()
+
+    expect(document.querySelector('.cmd-input')).not.toBeNull()
+  })
+
+  it('ignores a failure from a command a newer command has superseded', async () => {
+    const worlds = deferred<void>()
+    const logs = deferred<void>()
+    desktopBridge.current = {
+      app: {
+        screenshot: vi.fn(async () => '/pictures/thb.png'),
+        openLogs: vi.fn(() => logs.promise),
+        openWorlds: vi.fn(() => worlds.promise),
+      },
+    }
+    mount()
+    key({ key: 'k', ctrlKey: true })
+    act(() => commandRow(t('dock.commands.openWorlds')).click())
+    act(() => commandRow(t('dock.commands.openLogs')).click())
+    await act(async () => worlds.reject(new Error('stale folder error')))
+    await flush()
+    expect(document.querySelector('[role="alert"]')).toBeNull()
+
+    await act(async () => logs.resolve())
+    await flush()
+    expect(document.querySelector('.cmd-input')).toBeNull()
+  })
+})
+
+describe('CommandPalette desktop commands', () => {
+  it('shows why a desktop command failed and stays open, instead of failing silently', async () => {
+    desktopBridge.current = {
+      app: {
+        screenshot: vi.fn(async () => null),
+        openLogs: vi.fn(async () => undefined),
+        openWorlds: vi.fn(() => Promise.reject(new Error('the folder is on an unplugged drive'))),
+      },
+    }
+    mount()
+    key({ key: 'k', ctrlKey: true })
+    act(() => commandRow(t('dock.commands.openWorlds')).click())
+    await flush()
+
+    expect(document.querySelector('.cmd-input')).not.toBeNull()
+    expect(document.querySelector('[role="alert"]')?.textContent).toBe(
+      t('settings.desktop.openWorldsFailed', { error: 'the folder is on an unplugged drive' }),
+    )
+  })
+
+  it('reports a screenshot that came back empty as a failure', async () => {
+    desktopBridge.current = {
+      app: {
+        screenshot: vi.fn(async () => null),
+        openLogs: vi.fn(async () => undefined),
+        openWorlds: vi.fn(async () => undefined),
+      },
+    }
+    mount()
+    key({ key: 'k', ctrlKey: true })
+    act(() => commandRow(t('dock.commands.screenshot')).click())
+    await flush()
+
+    expect(document.querySelector('[role="alert"]')?.textContent).toBe(
+      t('settings.desktop.screenshotFailed', { error: t('settings.desktop.captureFailed') }),
+    )
+  })
+
+  it('closes after a desktop command succeeds', async () => {
+    desktopBridge.current = {
+      app: {
+        screenshot: vi.fn(async () => '/pictures/thb.png'),
+        openLogs: vi.fn(async () => undefined),
+        openWorlds: vi.fn(async () => undefined),
+      },
+    }
+    mount()
+    key({ key: 'k', ctrlKey: true })
+    act(() => commandRow(t('dock.commands.openLogs')).click())
+    await flush()
+
+    expect(document.querySelector('.cmd-input')).toBeNull()
+  })
+
+  afterEach(() => {
+    desktopBridge.current = null
   })
 })
