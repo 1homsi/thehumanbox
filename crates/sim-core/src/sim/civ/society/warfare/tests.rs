@@ -322,6 +322,8 @@ fn battle_deaths_are_counted_in_their_year_and_written_into_the_life_story() {
         organism.alive = true;
         organism.health = 0.01;
         organism.lineage_id = if index < 2 { "river".into() } else { "hill".into() };
+        organism.x = 50.0;
+        organism.y = 50.0;
     }
     let ids: Vec<String> = sim.organisms.iter().map(|o| o.id.clone()).collect();
     let mut battles = vec![Battle {
@@ -439,6 +441,8 @@ fn the_badly_wounded_leave_the_battle_alive_and_go_home() {
         organism.home_x = 10.0;
         organism.home_y = 10.0;
         organism.wander_target = None;
+        organism.x = 50.0;
+        organism.y = 50.0;
     }
     // One river fighter is a blow from a bad wound, and fearful: the blow lands
     // in this exchange, and they weigh leaving.
@@ -491,4 +495,62 @@ fn the_badly_wounded_leave_the_battle_alive_and_go_home() {
         .iter()
         .any(|e| e.text == "came away wounded from a battle"));
     assert!(battles[0].defender_orgs.len() == 2, "the unhurt fight on");
+}
+
+#[test]
+fn a_fighter_who_is_not_at_the_battle_is_not_hurt_by_it() {
+    let mut sim = Simulation::new(97);
+    sim.organisms.truncate(4);
+    for (index, organism) in sim.organisms.iter_mut().enumerate() {
+        organism.alive = true;
+        organism.health = 0.03;
+        organism.traits.fear = 0.0;
+        organism.lineage_id = if index < 2 { "river".into() } else { "hill".into() };
+        organism.x = 50.0;
+        organism.y = 50.0;
+    }
+    // One river fighter is still at home, far from the field.
+    sim.organisms[1].x = 200.0;
+    sim.organisms[1].y = 200.0;
+    let ids: Vec<String> = sim.organisms.iter().map(|o| o.id.clone()).collect();
+    let mut battles = vec![Battle {
+        id: "river-hill".into(),
+        attackers: vec!["river".into()],
+        defenders: vec!["hill".into()],
+        attacker_orgs: ids[..2].to_vec(),
+        defender_orgs: ids[2..].to_vec(),
+        scale: BattleScale::Skirmish,
+        location: (50, 50),
+        started_tick: 0,
+        ended_tick: None,
+        casualties_a: 0,
+        casualties_d: 0,
+        outcome: None,
+        initial_a: 2,
+        initial_d: 2,
+    }];
+    let lineage_eras = HashMap::default();
+    let governments = HashMap::default();
+    let mut treaties = Vec::new();
+    let mut events = std::collections::VecDeque::new();
+    let mut rng = <rand_chacha::ChaCha8Rng as SeedableRng>::seed_from_u64(7);
+    tick_battles(
+        10,
+        &mut rng,
+        &mut battles,
+        &mut treaties,
+        &mut sim.organisms,
+        &mut events,
+        &mut sim.history,
+        BattleInstitutions {
+            lineage_eras: &lineage_eras,
+            governments: &governments,
+            buildings: &[],
+            field_fortifications: &[],
+            grid: &sim.grid,
+        },
+    );
+    assert!(sim.organisms[1].alive, "the one at home lived");
+    assert_eq!(sim.organisms[1].health, 0.03, "and took no wound");
+    assert!(!sim.organisms[0].alive, "the one on the field fell");
 }

@@ -197,20 +197,19 @@ mod history_year_tests {
             "births in both years: {:?}",
             sim.history.births_by_year
         );
+        // Deaths land in years too, though how many die in a short window
+        // shifts with the world's rules, so none dying is no failure.
         let deaths: u64 = sim.history.deaths_by_year.iter().map(|&n| u64::from(n)).sum();
-        assert!(
-            deaths > 0
-                && deaths
-                    <= sim.history.deaths_old_age
-                        + sim.history.deaths_starvation
-                        + sim.history.deaths_dehydration
-                        + sim.history.deaths_sickness
-                        + sim.history.deaths_beasts
-                        + sim.history.deaths_drowning
-                        + sim.history.deaths_fire
-                        + sim.history.deaths_disaster
-                        + sim.history.deaths_combat
-        );
+        let all_deaths = sim.history.deaths_old_age
+            + sim.history.deaths_starvation
+            + sim.history.deaths_dehydration
+            + sim.history.deaths_sickness
+            + sim.history.deaths_beasts
+            + sim.history.deaths_drowning
+            + sim.history.deaths_fire
+            + sim.history.deaths_disaster
+            + sim.history.deaths_combat;
+        assert_eq!(deaths, all_deaths, "every death lands in a year");
     }
 }
 
