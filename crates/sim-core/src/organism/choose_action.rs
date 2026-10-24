@@ -1370,6 +1370,10 @@ impl Organism {
             let mut best_score = f32::NEG_INFINITY;
             let mut equal_best_seen = 0u32;
             for &a in decision_pool {
+                // Work that cannot be done here is never the pick, even when nothing else is on offer.
+                if !workable(a) {
+                    continue;
+                }
                 let s = lookup(a);
                 if best_avail.is_none() || s > best_score + f32::EPSILON {
                     best_score = s;
@@ -1411,10 +1415,14 @@ impl Organism {
             }
             return (best_idx, thought);
         }
+        // Nothing on offer can be done here: they walk on.
+        const STEPS: [usize; 8] = [0, 1, 2, 3, 4, 5, 6, 7];
         let pool = if decision_pool.is_empty() {
             &[][..]
-        } else {
+        } else if decision_pool.iter().any(|&a| workable(a)) {
             decision_pool
+        } else {
+            &STEPS
         };
         let pick = if pool.is_empty() {
             rng.random_range(0..N_ACTIONS)

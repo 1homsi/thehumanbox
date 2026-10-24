@@ -922,3 +922,14 @@ fn a_habit_of_mining_is_not_followed_where_there_is_no_rock() {
         "beside a rock face"
     );
 }
+
+#[test]
+fn with_only_unworkable_work_on_offer_they_walk_on() {
+    let (mut org, grid, mut rng) = worker_on_sand("Miner");
+    // Only mining (26) and quarrying (29) are on offer, and there is no rock beside them.
+    org.q_table.insert("state".into(), vec![(26, 0.9), (29, 0.5)]);
+    for _ in 0..20 {
+        let pick = learned_pick(&org, &grid, &mut rng, &[26, 29]);
+        assert!(pick < 8, "picked {pick} with no rock beside them");
+    }
+}
