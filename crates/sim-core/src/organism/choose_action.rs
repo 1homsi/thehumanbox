@@ -417,7 +417,21 @@ impl Organism {
             if let Some(&first) = rejected.borrow().first() {
                 self.route.borrow_mut().mark_blocked(first);
             }
+            // No food in sight, in memory or on a trail. Roots are under any
+            // grass: they dig where they stand or walk to the nearest green
+            // ground, instead of drifting off to look for ore or stack cairns
+            // while they starve.
             set_thought!("hungry - searching");
+            if tile == Tile::Grass {
+                set_thought!("digging for roots");
+                return (32, thought);
+            }
+            if let Some(g) =
+                self.nearest_visible_where(grid, Tile::Grass, 8, |t| !self.route.borrow().recently_blocked(t))
+            {
+                set_thought!("looking for roots");
+                return (self.toward(g, grid), thought);
+            }
         }
 
         let needs_easy = self.hydration > 0.55 && self.energy > 0.50 && self.health > 0.55;

@@ -793,3 +793,63 @@ fn someone_who_saw_a_burning_flees_a_fire_even_at_night() {
         "steps away from the fire"
     );
 }
+
+fn hungry_with_nothing_known(tile_here: Tile, grass_at: Option<(i32, i32)>) -> (usize, Option<String>) {
+    let mut rng = StdRng::seed_from_u64(11);
+    let traits = Traits::random(&mut rng);
+    let mut grid = WorldGrid::new(4);
+    for x in 30..=70 {
+        for y in 30..=70 {
+            grid.set(x, y, Tile::Sand);
+        }
+    }
+    grid.set(50, 50, tile_here);
+    if let Some((x, y)) = grass_at {
+        grid.set(x, y, Tile::Grass);
+    }
+    let mut org = Organism::new(
+        "hungry".into(),
+        "Hungry".into(),
+        50.0,
+        50.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    org.energy = 0.3;
+    org.hydration = 0.9;
+    org.choose_action(
+        &grid,
+        &BuildingList::new(),
+        100,
+        0.0,
+        &[],
+        false,
+        0,
+        &mut rng,
+        false,
+        "state",
+        &[0, 1, 2, 3, 4, 5, 6, 7, 8, 32],
+    )
+}
+
+#[test]
+fn someone_hungry_with_no_food_known_digs_for_roots_in_the_grass() {
+    let (action, thought) = hungry_with_nothing_known(Tile::Grass, None);
+    assert_eq!(action, 32);
+    assert_eq!(thought.as_deref(), Some("digging for roots"));
+}
+
+#[test]
+fn off_the_grass_they_walk_to_the_nearest_green_ground_for_roots() {
+    let (action, thought) = hungry_with_nothing_known(Tile::Sand, Some((53, 50)));
+    assert_eq!(thought.as_deref(), Some("looking for roots"));
+    assert!(action < 8);
+    assert_eq!(
+        crate::organism::organism::DIRECTIONS[action].0,
+        1,
+        "toward the grass to the east"
+    );
+}
