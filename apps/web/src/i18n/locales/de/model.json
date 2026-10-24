@@ -319,6 +319,14 @@
       "spice": "eine Gewürzstadt",
       "ochre": "eine Ockerstadt",
       "fur": "eine Pelzstadt"
+    },
+    "noLeader": "ohne Anführer",
+    "wealthLabel": "Vermögen: {value}",
+    "tradeLabel": "Handel: {value}",
+    "disputed": "umstrittenes Land",
+    "buildings": {
+      "one": "{count} Gebäude",
+      "other": "{count} Gebäude"
     }
   },
   "pair": {

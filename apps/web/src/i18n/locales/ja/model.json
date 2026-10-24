@@ -311,7 +311,12 @@
       "spice": "香辛料の町",
       "ochre": "黄土の町",
       "fur": "毛皮の町"
-    }
+    },
+    "noLeader": "指導者なし",
+    "wealthLabel": "富: {value}",
+    "tradeLabel": "交易: {value}",
+    "disputed": "係争の土地",
+    "buildings": "{count} 棟"
   },
   "pair": {
     "marry": {

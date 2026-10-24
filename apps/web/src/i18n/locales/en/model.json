@@ -319,6 +319,14 @@
       "spice": "a spice town",
       "ochre": "an ochre town",
       "fur": "a fur town"
+    },
+    "noLeader": "no leader",
+    "wealthLabel": "wealth: {value}",
+    "tradeLabel": "trade: {value}",
+    "disputed": "disputed land",
+    "buildings": {
+      "one": "{count} building",
+      "other": "{count} buildings"
     }
   },
   "pair": {

@@ -311,7 +311,12 @@
       "spice": "향신료 마을",
       "ochre": "황토 마을",
       "fur": "모피 마을"
-    }
+    },
+    "noLeader": "지도자 없음",
+    "wealthLabel": "부: {value}",
+    "tradeLabel": "교역: {value}",
+    "disputed": "분쟁 중인 땅",
+    "buildings": "{count}개 건물"
   },
   "pair": {
     "marry": {

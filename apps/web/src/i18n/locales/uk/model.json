@@ -339,6 +339,16 @@
       "spice": "пряне місто",
       "ochre": "охристе місто",
       "fur": "хутряне місто"
+    },
+    "noLeader": "без вождя",
+    "wealthLabel": "багатство: {value}",
+    "tradeLabel": "торгівля: {value}",
+    "disputed": "спірна земля",
+    "buildings": {
+      "one": "{count} будівля",
+      "few": "{count} будівлі",
+      "many": "{count} будівель",
+      "other": "{count} будівлі"
     }
   },
   "pair": {

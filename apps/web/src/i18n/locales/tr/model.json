@@ -311,7 +311,12 @@
       "spice": "bir baharat kasabası",
       "ochre": "bir kırmızı toprak kasabası",
       "fur": "bir kürk kasabası"
-    }
+    },
+    "noLeader": "lideri yok",
+    "wealthLabel": "servet: {value}",
+    "tradeLabel": "ticaret: {value}",
+    "disputed": "çekişmeli toprak",
+    "buildings": "{count} bina"
   },
   "pair": {
     "marry": {
