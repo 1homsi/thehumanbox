@@ -426,11 +426,13 @@ impl Organism {
                 set_thought!("digging for roots");
                 return (32, thought);
             }
-            if let Some(g) =
-                self.nearest_visible_where(grid, Tile::Grass, 8, |t| !self.route.borrow().recently_blocked(t))
+            // Grass across the water is as far out of reach as food across it.
+            if let Some(action) = self
+                .nearest_visible_where(grid, Tile::Grass, 8, |t| open(t))
+                .and_then(step_dry)
             {
                 set_thought!("looking for roots");
-                return (self.toward(g, grid), thought);
+                return (action, thought);
             }
         }
 

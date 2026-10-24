@@ -853,3 +853,52 @@ fn off_the_grass_they_walk_to_the_nearest_green_ground_for_roots() {
         "toward the grass to the east"
     );
 }
+
+#[test]
+fn grass_across_the_water_is_no_place_to_dig_for_someone_too_weak_to_swim() {
+    let mut rng = StdRng::seed_from_u64(15);
+    let traits = Traits::random(&mut rng);
+    let mut grid = WorldGrid::new(4);
+    for x in 30..=70 {
+        for y in 30..=70 {
+            grid.set(x, y, Tile::Sand);
+        }
+    }
+    for (dx, dy) in [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (1, 1)] {
+        grid.set(50 + dx, 50 + dy, Tile::Rock);
+    }
+    grid.set(50, 51, Tile::Water);
+    grid.set(50, 52, Tile::Grass);
+    let mut org = Organism::new(
+        "weak".into(),
+        "Weak".into(),
+        50.0,
+        50.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    org.energy = 0.3;
+    org.hydration = 0.9;
+    for tick in 100..103 {
+        let (action, thought) = org.choose_action(
+            &grid,
+            &BuildingList::new(),
+            tick,
+            0.0,
+            &[],
+            false,
+            0,
+            &mut rng,
+            false,
+            "state",
+            &[0, 1, 2, 3, 4, 5, 6, 7, 8, 32],
+        );
+        if action < 8 {
+            let (dx, dy) = crate::organism::organism::DIRECTIONS[action];
+            assert_ne!(grid.get(50 + dx, 50 + dy), Tile::Water, "waded in ({thought:?})");
+        }
+    }
+}
