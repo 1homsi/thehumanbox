@@ -199,10 +199,12 @@ function isPlural(node: string | Messages | undefined): node is PluralForms {
  * with the active language's grouping and decimal marks ("1,021", "1 021", "1.021"); a plain number
  * is used as it is.
  */
-function countValue(raw: string | number | undefined, locale: string): number {
+export function countValue(raw: string | number | undefined, locale: string): number {
   if (raw === undefined) return 0
   if (typeof raw === 'number') return raw
-  const parts = new Intl.NumberFormat(locale).formatToParts(-1111.5)
+  // A probe with more digits than any locale's minimum grouping: at 1,111.5 Spanish and Polish write no
+  // group mark, so 10,000 and 1,000,000 (which they do group) would read back as NaN.
+  const parts = new Intl.NumberFormat(locale).formatToParts(-1111111.5)
   const group = parts.find((p) => p.type === 'group')?.value ?? ''
   const decimal = parts.find((p) => p.type === 'decimal')?.value ?? '.'
   // Spaces include the no-break ones some languages group with.

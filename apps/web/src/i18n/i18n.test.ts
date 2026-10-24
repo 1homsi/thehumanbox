@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  countValue,
   formatNumber,
   getLocale,
   loadLocale,
@@ -169,6 +170,21 @@ describe('plural forms', () => {
   it('keeps the plural of a plain number', async () => {
     await loadLocale('ru')
     expect(t('dialogs.civ.trade.routes', { count: 1021 })).toBe('1021 маршрут')
+  })
+})
+
+describe('countValue', () => {
+  // Spanish groups seven-digit numbers but not four-digit ones; the probe must find its mark anyway.
+  it('reads the grouping of a language that groups only large numbers', () => {
+    expect(countValue('1.000.000', 'es')).toBe(1000000)
+  })
+
+  it('reads plain, grouped and missing counts', () => {
+    expect(countValue('1,021', 'en')).toBe(1021)
+    expect(countValue('10 021', 'pl')).toBe(10021)
+    expect(countValue(7, 'en')).toBe(7)
+    expect(countValue(undefined, 'en')).toBe(0)
+    expect(countValue('–', 'en')).toBeNaN()
   })
 })
 
