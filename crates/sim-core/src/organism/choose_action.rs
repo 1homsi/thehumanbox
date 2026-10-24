@@ -8,7 +8,7 @@ use crate::world::{
 
 use super::decision_bias::{directive_action_boost, directive_aligns_action, preferred_action_boost};
 use super::lessons::Lesson;
-use super::organism::{Organism, QRowExt, ACTION_ID_SPACE, N_ACTIONS};
+use super::organism::{Hot, Organism, QRowExt, ACTION_ID_SPACE, N_ACTIONS};
 use super::skills::Skill;
 
 /// Farthest a person walks home at night, in tiles (Manhattan). Routes to
@@ -546,9 +546,9 @@ impl Organism {
                     }
                 }
             }
-            let has_blade = self.discoveries.contains("stone_tools")
-                || self.discoveries.contains("axe")
-                || self.discoveries.contains("tool_making");
+            let has_blade = self.discoveries.has(Hot::StoneTools)
+                || self.discoveries.has(Hot::Axe)
+                || self.discoveries.has(Hot::ToolMaking);
             if has_blade
                 && !journeying
                 && self.inv_wood < 3
@@ -605,7 +605,7 @@ impl Organism {
                     return (self.toward(t, grid), thought);
                 }
             }
-            if self.discoveries.contains("forestry")
+            if self.discoveries.has(Hot::Forestry)
                 && !journeying
                 && self.inv_wood == 0
                 && dist_home < 8.0
@@ -1085,9 +1085,9 @@ impl Organism {
                 return (148, thought);
             }
 
-            let has_blade = self.discoveries.contains("knife")
-                || self.discoveries.contains("axe")
-                || self.discoveries.contains("spear");
+            let has_blade = self.discoveries.has(Hot::Knife)
+                || self.discoveries.has(Hot::Axe)
+                || self.discoveries.has(Hot::Spear);
             if has_blade
                 && self.boredom > 0.50
                 && self.near_shelter(grid, buildings)
