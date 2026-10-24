@@ -4,7 +4,7 @@ import { useUIStore } from '../../state/store'
 import { useWorldStore } from '../../state/worldStore'
 import { EVENT_ICONS, EVENT_COLORS } from '../../shared/constants'
 import { eventTarget } from '../../game/model/event-target'
-import { t } from '../../i18n'
+import { formatNumber, t } from '../../i18n'
 
 /** Rows about the player's own role: prayers and how they ended. */
 const GODLY = new Set(['prayer', 'answered', 'forsaken'])
@@ -36,7 +36,7 @@ export function EventRow({ event }: { event: SimEvent }) {
         }
       }}
     >
-      <span className="event-tick">{event.tick}</span>
+      <span className="event-tick">{formatNumber(event.tick)}</span>
       <span className="event-icon" style={{ color: EVENT_COLORS[event.type] }}>
         {EVENT_ICONS[event.type]}
       </span>

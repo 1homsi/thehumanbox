@@ -31,7 +31,7 @@ export function GenerationBars({ organisms }: { organisms: OrganismState[] }) {
               }}
             />
           </span>
-          <span style={{ width: 32, textAlign: 'right', color: '#bbb' }}>{r.living}</span>
+          <span style={{ width: 32, textAlign: 'right', color: '#bbb' }}>{formatNumber(r.living)}</span>
         </div>
       ))}
     </div>
