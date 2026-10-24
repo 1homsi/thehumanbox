@@ -447,8 +447,9 @@ impl Simulation {
                 self.organisms[child].wander_target = Some(target);
                 let thought = format!("following {} to learn {}", parent_name, skill.name());
                 self.organisms[child].think(&thought, tick);
-                // The first time a youngster goes to learn from someone not
-                // their own, it is a turn in their life.
+                // Going to learn a kind of work from someone not their own is
+                // a turn in a youngster's life: told once for each kind of
+                // work, when they first take it up.
                 if !own && self.organisms[child].skills.level(skill) < 0.01 {
                     self.organisms[child].log_life_rel(
                         tick,
