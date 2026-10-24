@@ -140,6 +140,38 @@ describe('formatNumber', () => {
   })
 })
 
+describe('plural forms', () => {
+  afterEach(async () => {
+    await loadLocale('en')
+  })
+
+  // Callers pass the count already formatted with formatNumber ("1,021" in English), and the plural
+  // must still come from the number that text stands for. Russian's "one" form covers 1, 21, 1,021.
+  it('picks the plural form of a formatted count, not of its text', async () => {
+    await loadLocale('ru')
+    expect(t('dialogs.civ.trade.routes', { count: formatNumber(1021) })).toBe(`${formatNumber(1021)} маршрут`)
+    expect(t('dialogs.civ.trade.routes', { count: formatNumber(1022) })).toBe(
+      `${formatNumber(1022)} маршрута`,
+    )
+    expect(t('dialogs.civ.trade.routes', { count: formatNumber(5005) })).toBe(
+      `${formatNumber(5005)} маршрутов`,
+    )
+    expect(t('dialogs.civ.trade.routes', { count: formatNumber(3) })).toBe('3 маршрута')
+  })
+
+  it('reads a count written with another language grouping mark', async () => {
+    await loadLocale('de')
+    expect(formatNumber(1021)).toContain('.')
+    expect(t('dialogs.civ.trade.routes', { count: formatNumber(1021) })).toBe(`${formatNumber(1021)} Routen`)
+    expect(t('dialogs.civ.trade.routes', { count: formatNumber(1) })).toBe('1 Route')
+  })
+
+  it('keeps the plural of a plain number', async () => {
+    await loadLocale('ru')
+    expect(t('dialogs.civ.trade.routes', { count: 1021 })).toBe('1021 маршрут')
+  })
+})
+
 describe('matchLocale', () => {
   const available = ['en', 'es', 'pt-BR', 'zh-CN']
 
