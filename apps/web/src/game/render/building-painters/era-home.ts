@@ -1,5 +1,5 @@
 import type { P } from './kit'
-import { paintCottage, paintDwelling, paintEarlyHome, paintManor, paintTownhouse } from './dwellings'
+import { paintDwelling, paintEarlyHome, paintManor, paintTownhouse, paintVillageHome } from './dwellings'
 import { paintModern } from './modern'
 import { paintLandHome } from './land-homes'
 import {
@@ -47,7 +47,7 @@ export function paintEraHome(p: P) {
     case 0:
       return paintEarlyHome(p)
     case 1:
-      return paintCottage(p)
+      return paintVillageHome(p)
     case 2:
       return [paintClassicalHome, paintMudBrickHome, paintVilla][form % 3](p)
     case 3:
