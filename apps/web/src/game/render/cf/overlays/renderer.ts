@@ -151,7 +151,9 @@ export class CfOverlayRenderer {
   private heatAt = -Infinity
   private heatPending = false
   private staticKey = ''
-  private outlineFrame = -1
+  /** The structure grid revision and array the outline was last drawn from (see `updateTerritoryBorders`). */
+  private outlineRevision = -2
+  private outlineStructure: unknown = null
   private territoryRef: unknown = null
   private contestedKey = ''
   private groundKey = ''
@@ -652,17 +654,28 @@ export class CfOverlayRenderer {
       ctx.fillRect(this.contestedTiles[i] * TILE, this.contestedTiles[i + 1] * TILE, TILE, TILE)
   }
 
-  /** Territory borders and, with the structures view, a thin outline on every built-up tile. */
+  /**
+   * Territory borders and, with the structures view, a thin outline on every built-up tile. The outline
+   * is redrawn when the structure grid changes (its revision, or a new grid array), not on every
+   * simulation frame: the grid is mutated in place and most frames leave it as it was.
+   */
   private updateTerritoryBorders(f: CfFrame): void {
     const { world, viewFlags } = f
     const outline = viewFlags.structures && !!world.grid.structure
     const key = `${viewFlags.territory ? 1 : 0}|${f.focus}|${outline ? 1 : 0}`
+    // Grids that do not count their revisions are read once per frame, as before.
+    const structureRevision = world.grid.structure_revision ?? world.frame_id
     if (key === this.staticKey && world.territory === this.territoryRef) {
-      if (!outline || this.outlineFrame === world.frame_id) return
+      if (
+        !outline ||
+        (this.outlineRevision === structureRevision && this.outlineStructure === world.grid.structure)
+      )
+        return
     }
     this.staticKey = key
     this.territoryRef = world.territory
-    this.outlineFrame = world.frame_id
+    this.outlineRevision = structureRevision
+    this.outlineStructure = world.grid.structure ?? null
     this.groundStatic.begin({ zoom: f.zoom, dpr: f.dpr })
     const ctx = this.groundStatic.asContext()
     if (viewFlags.territory) paintTerritoryBorders(ctx, world, f.focus)
