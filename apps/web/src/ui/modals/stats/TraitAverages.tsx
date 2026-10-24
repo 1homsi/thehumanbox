@@ -1,5 +1,5 @@
 import type { WorldState } from '../../../shared/types'
-import { t, type MessageKey } from '../../../i18n'
+import { formatNumber, t, type MessageKey } from '../../../i18n'
 
 const TRAIT_LABEL: Record<string, MessageKey> = {
   curiosity: 'dialogs.stats.traits.curiosity',
@@ -38,7 +38,9 @@ export function TraitAverages({ organisms }: { organisms: WorldState['organisms'
             <div className="trait-bar-wrap">
               <div className="trait-bar" style={{ width: `${Math.round(v * 100)}%` }} />
             </div>
-            <span className="trait-val">{v.toFixed(2)}</span>
+            <span className="trait-val">
+              {formatNumber(v, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
           </div>
         )
       })}

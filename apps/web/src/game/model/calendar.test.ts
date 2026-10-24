@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { loadLocale } from '../../i18n'
 import { ageInYears, calendarAt, YEAR_TICKS } from './calendar'
 
 describe('calendarAt', () => {
@@ -28,5 +29,15 @@ describe('ageInYears', () => {
 
   it('drops the decimal once a person is old', () => {
     expect(ageInYears(YEAR_TICKS * 12 + 9000)).toBe('12 yrs')
+  })
+
+  it('writes the decimal the way the active language does', async () => {
+    await loadLocale('de')
+    try {
+      expect(ageInYears(YEAR_TICKS / 2)).toBe('0,5 J.')
+      expect(ageInYears(YEAR_TICKS * 3 + 1200)).toBe('3,1 J.')
+    } finally {
+      await loadLocale('en')
+    }
   })
 })
