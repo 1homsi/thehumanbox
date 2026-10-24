@@ -463,3 +463,74 @@ fn at_night_a_person_walks_home_and_sleeps_there_not_in_any_shelter() {
     }
     assert!(slept, "the person sleeps at home once there");
 }
+
+fn parched_at(tiles: &[((i32, i32), Tile)], hydration: f32) -> (Organism, WorldGrid) {
+    let mut rng = StdRng::seed_from_u64(5);
+    let traits = Traits::random(&mut rng);
+    let mut grid = WorldGrid::new(4);
+    for x in 30..=70 {
+        for y in 30..=70 {
+            grid.set(x, y, Tile::Grass);
+        }
+    }
+    for &((x, y), t) in tiles {
+        grid.set(x, y, t);
+    }
+    let mut org = Organism::new(
+        "dry".into(),
+        "Dry".into(),
+        50.0,
+        50.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    org.energy = 0.8;
+    org.hydration = hydration;
+    (org, grid)
+}
+
+#[test]
+fn someone_thirsty_beside_a_frozen_lake_breaks_the_ice_to_drink() {
+    let (org, grid) = parched_at(&[((51, 50), Tile::Ice)], 0.25);
+    let mut rng = StdRng::seed_from_u64(0);
+    let (action, thought) = org.choose_action(
+        &grid,
+        &BuildingList::new(),
+        100,
+        0.0,
+        &[],
+        false,
+        0,
+        &mut rng,
+        false,
+        "state",
+        &[0, 1, 2, 3, 4, 5, 6, 7, 9],
+    );
+    assert_eq!(action, 9);
+    assert_eq!(thought.as_deref(), Some("breaking the ice to drink"));
+}
+
+#[test]
+fn only_someone_parched_cuts_through_the_houses_between_them_and_water() {
+    // Houses built all the way round, with water just beyond.
+    let mut tiles: Vec<((i32, i32), Tile)> = (-1i32..=1)
+        .flat_map(|dx| (-1i32..=1).map(move |dy| (dx, dy)))
+        .filter(|&d| d != (0, 0))
+        .map(|(dx, dy)| ((50 + dx, 50 + dy), Tile::Hut))
+        .collect();
+    tiles.extend((40..=60).map(|x| ((x, 53), Tile::Water)));
+    let (parched, grid) = parched_at(&tiles, 0.2);
+    let step = parched.toward((50, 53), &grid);
+    assert_eq!(
+        crate::organism::organism::DIRECTIONS[step].1,
+        1,
+        "steps toward the water"
+    );
+    // Someone only thirsty is still held by the houses: no step leads through.
+    let (thirsty, grid) = parched_at(&tiles, 0.5);
+    let step = thirsty.toward((50, 53), &grid);
+    assert_ne!(crate::organism::organism::DIRECTIONS[step], (0, 1));
+}

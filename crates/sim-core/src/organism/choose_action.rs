@@ -269,8 +269,17 @@ impl Organism {
                 set_thought!("drinking at the water's edge");
                 return (9, thought);
             }
+            // In winter the lake freezes over; they break the ice.
+            if grid.ice_beside(ix, iy).is_some() {
+                set_thought!("breaking the ice to drink");
+                return (9, thought);
+            }
             if let Some(v) = self.nearest_visible(grid, Tile::Water, scan_r) {
                 set_thought!("moving to water");
+                return (self.toward(v, grid), thought);
+            }
+            if let Some(v) = self.nearest_visible(grid, Tile::Ice, scan_r) {
+                set_thought!("heading for the frozen water");
                 return (self.toward(v, grid), thought);
             }
             let urgency = (0.38 - self.hydration) / 0.38;

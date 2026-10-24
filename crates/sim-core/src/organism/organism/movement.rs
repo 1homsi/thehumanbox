@@ -3,6 +3,9 @@ use super::*;
 /// The pull of a road on a step that also makes progress, in tiles of progress (see `toward`).
 const ROAD_PULL: f32 = 1.0;
 
+/// Hydration below which someone walks through houses to reach water.
+pub(crate) const PARCHED: f32 = 0.3;
+
 impl Organism {
     pub(crate) fn begin_journey(&mut self, target: (i32, i32), description: &str, tick: u64) {
         // Don't set out again for somewhere we just found no way to reach.
@@ -52,6 +55,11 @@ impl Organism {
         true
     }
 
+    /// So thirsty that houses are no longer in the way: they walk through.
+    pub(crate) fn parched(&self) -> bool {
+        self.hydration < PARCHED
+    }
+
     pub(crate) fn toward(&self, target: (i32, i32), grid: &WorldGrid) -> usize {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let (tx, ty) = target;
@@ -80,6 +88,7 @@ impl Organism {
             }
             moved
         };
+        let through_houses = self.parched();
         let mut best_action = 0;
         let mut best_score = f32::NEG_INFINITY;
         let mut best_progress = 0;
@@ -98,8 +107,11 @@ impl Organism {
             let t = grid.get(nx, ny);
             // `Fire` is technically walkable, but standing in it burns and
             // costs reward, so exclude it the same way `has_progress_step`
-            // and `navigation::detour_step` already do.
-            if !t.walkable() || t == Tile::Fire {
+            // and `navigation::detour_step` already do. Someone parched cuts
+            // through a house rather than die of thirst behind a row of them.
+            if through_houses && t == Tile::Hut {
+                score -= 0.5;
+            } else if !t.walkable() || t == Tile::Fire {
                 score = f32::NEG_INFINITY;
             }
             if grid.is_wet(t, nx, ny) {

@@ -31,7 +31,9 @@ impl Simulation {
             };
             let destination = if house_exit.is_some() {
                 house_exit
-            } else if next_tile.walkable() && next_tile != Tile::Fire {
+            } else if (next_tile.walkable() && next_tile != Tile::Fire)
+                || (next_tile == Tile::Hut && self.organisms[idx].parched())
+            {
                 Some((nx, ny))
             } else {
                 fallback_walkable_step(
@@ -107,7 +109,17 @@ impl Simulation {
             } else {
                 self.grid.water_beside(ox, oy).unwrap_or((ox, oy))
             };
-            if self.grid.get(cx, cy) == Tile::Water {
+            // A frozen lake is still water: they break the ice to drink.
+            let ice = (self.grid.get(cx, cy) != Tile::Water)
+                .then(|| self.grid.ice_beside(ox, oy))
+                .flatten();
+            if let Some((ix2, iy2)) = ice {
+                action_succeeded = true;
+                self.organisms[idx].hydration = 1.0;
+                let ms = self.organisms[idx].traits.memory_strength;
+                Organism::remember(&mut self.organisms[idx].water_memory, ix2, iy2, 1.0, ms);
+                self.organisms[idx].think("broke the ice to drink", self.tick_count);
+            } else if self.grid.get(cx, cy) == Tile::Water {
                 action_succeeded = true;
                 *self.water_use.entry((cx, cy)).or_insert(0) += 1;
                 self.organisms[idx].hydration = 1.0;

@@ -568,6 +568,23 @@ impl WorldGrid {
 
     /// Water someone standing at (x, y) can drink from without wading: the
     /// shallowest water tile among the eight around them.
+    /// Ice underfoot or beside (x, y), to break for a drink.
+    pub fn ice_beside(&self, x: i32, y: i32) -> Option<(i32, i32)> {
+        std::iter::once((0, 0))
+            .chain([
+                (0, -1),
+                (0, 1),
+                (-1, 0),
+                (1, 0),
+                (-1, -1),
+                (1, -1),
+                (-1, 1),
+                (1, 1),
+            ])
+            .map(|(dx, dy)| (x + dx, y + dy))
+            .find(|&(nx, ny)| self.get(nx, ny) == Tile::Ice)
+    }
+
     pub fn water_beside(&self, x: i32, y: i32) -> Option<(i32, i32)> {
         [
             (0, -1),
