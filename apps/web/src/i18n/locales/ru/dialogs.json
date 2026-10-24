@@ -483,7 +483,12 @@
       "days": "· {days}д",
       "kids": "· детей: {count}",
       "gen": "· п{gen}"
-    }
+    },
+    "ageAdult": "взрослый",
+    "withKids": "с детьми",
+    "thirsty": "жаждущий",
+    "collapse": "свернуть",
+    "distinctShown": "{total} разных · показаны первые {shown}"
   },
   "tree": {
     "title": "Родословное древо",

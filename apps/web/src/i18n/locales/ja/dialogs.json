@@ -469,7 +469,12 @@
       "days": "· {days}日",
       "kids": "· 子ども {count} 人",
       "gen": "· 世代{gen}"
-    }
+    },
+    "ageAdult": "成人",
+    "withKids": "子あり",
+    "thirsty": "喉が渇いている",
+    "collapse": "たたむ",
+    "distinctShown": "{total}種 · 上位{shown}件を表示"
   },
   "tree": {
     "title": "家系図",

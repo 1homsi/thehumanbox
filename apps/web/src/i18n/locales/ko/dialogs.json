@@ -469,7 +469,12 @@
       "days": "· {days}일",
       "kids": "· 자녀 {count}명",
       "gen": "· {gen}세대"
-    }
+    },
+    "ageAdult": "성인",
+    "withKids": "자녀 있음",
+    "thirsty": "목마름",
+    "collapse": "접기",
+    "distinctShown": "{total}가지 · 상위 {shown}개 표시"
   },
   "tree": {
     "title": "가계도",

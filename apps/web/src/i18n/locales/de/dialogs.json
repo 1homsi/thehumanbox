@@ -469,7 +469,12 @@
       "days": "· {days} T",
       "kids": "· {count} Kinder",
       "gen": "· G{gen}"
-    }
+    },
+    "ageAdult": "erwachsen",
+    "withKids": "mit Kindern",
+    "thirsty": "durstig",
+    "collapse": "einklappen",
+    "distinctShown": "{total} verschiedene · die ersten {shown} angezeigt"
   },
   "tree": {
     "title": "Familienbaum",
