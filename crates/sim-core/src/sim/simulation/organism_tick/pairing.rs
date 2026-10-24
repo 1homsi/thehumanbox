@@ -205,6 +205,7 @@ impl Simulation {
                         self.organisms[idx].partner_id = Some(pid.clone());
                         self.share_home(idx, pi);
                         self.gather_wedding(idx, pi);
+                        self.join_tribes_by_marriage(idx, pi);
                         self.organisms[idx].attracted_to = None;
                         self.organisms[pi].partner_id = Some(oid.clone());
                         self.organisms[pi].attracted_to = None;
