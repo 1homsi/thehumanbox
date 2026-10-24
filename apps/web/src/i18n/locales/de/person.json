@@ -167,7 +167,15 @@
       "healing": "Heilen"
     },
     "enjoys": "mag {list}",
-    "avoids": "meidet {list}, seit es dabei verletzt wurde"
+    "avoids": "meidet {list}, seit es dabei verletzt wurde",
+    "lessonTip": "Aus einem Tod gelernt: einem, den sie sahen, einem, von dem die Alten erzählten, oder Vorsicht, die sie von den Eltern mitbekamen. Es verblasst mit den Jahren.",
+    "lessons": {
+      "water": "meidet tiefes Wasser",
+      "hunger": "isst, bevor der Hunger kommt",
+      "thirst": "hält Wasser in der Nähe",
+      "beasts": "geht wilden Tieren weit aus dem Weg",
+      "fire": "hält Abstand vom Feuer"
+    }
   },
   "zodiac": {
     "title": "GEBOREN UNTER",

@@ -165,7 +165,15 @@
       "healing": "医治"
     },
     "enjoys": "喜欢{list}",
-    "avoids": "受伤后避开{list}"
+    "avoids": "受伤后避开{list}",
+    "lessonTip": "从一次死亡中学到的：亲眼所见的、长者讲述的，或从父母那里传下来的谨慎。随着岁月渐渐淡去。",
+    "lessons": {
+      "water": "远离深水",
+      "hunger": "不等饿就先吃",
+      "thirst": "把水留在身边",
+      "beasts": "远远避开野兽",
+      "fire": "远离火"
+    }
   },
   "zodiac": {
     "title": "出生于",

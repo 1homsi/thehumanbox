@@ -167,7 +167,15 @@
       "healing": "healing"
     },
     "enjoys": "enjoys {list}",
-    "avoids": "avoids {list} after being hurt at it"
+    "avoids": "avoids {list} after being hurt at it",
+    "lessonTip": "Learned from a death: one they saw, one the elders told of, or caution carried from their parents. It fades over the years.",
+    "lessons": {
+      "water": "wary of deep water",
+      "hunger": "eats before hunger comes",
+      "thirst": "keeps water near",
+      "beasts": "gives beasts a wide berth",
+      "fire": "keeps clear of fire"
+    }
   },
   "zodiac": {
     "title": "BORN UNDER",

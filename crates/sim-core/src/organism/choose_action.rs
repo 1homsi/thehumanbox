@@ -7,6 +7,7 @@ use crate::world::{
 };
 
 use super::decision_bias::{directive_action_boost, directive_aligns_action, preferred_action_boost};
+use super::lessons::Lesson;
 use super::organism::{Organism, QRowExt, ACTION_ID_SPACE, N_ACTIONS};
 use super::skills::Skill;
 
@@ -184,10 +185,12 @@ impl Organism {
             let route = self.route.borrow();
             !deep && route.steps.len() > route.next && self.water_ticks <= CROSSING_PATIENCE
         };
+        // Someone who saw a drowning gets out of the water sooner.
+        let water_wary = self.lessons.heeds(Lesson::Water);
         if grid.is_wet(tile, ix, iy)
             && !crossing
-            && ((deep && self.hydration >= 0.75)
-                || self.water_ticks > 5
+            && ((deep && self.hydration >= 0.75 - 0.35 * water_wary)
+                || self.water_ticks > 5 - (3.0 * water_wary) as u32
                 || self.energy < 0.55
                 || self.health < 0.90)
         {
@@ -201,14 +204,17 @@ impl Organism {
             return (8, thought);
         }
 
-        let flee_r = (2.0 + 2.0 * self.traits.fear) as i32;
+        // Fear makes people keep further from fire, and so does having seen someone burn.
+        let flee_r = (2.0 + 2.0 * self.traits.fear + 2.0 * self.lessons.heeds(Lesson::Fire)) as i32;
         let fire_tile = self.nearest_visible(grid, Tile::Fire, flee_r);
-        let fire_dangerous = tile == Tile::Fire || (!night && fire_tile.is_some());
+        // By night a fire is for warmth, unless they have seen someone burn.
+        let fire_dangerous =
+            tile == Tile::Fire || (fire_tile.is_some() && (!night || self.lessons.heeds(Lesson::Fire) > 0.0));
         let critical = self.energy < 0.2 || self.hydration < 0.2;
         if !critical && fire_dangerous {
             set_thought!("heat dangerous");
             if let Some((fx, fy)) = fire_tile {
-                if !night {
+                if !night || self.lessons.heeds(Lesson::Fire) > 0.0 {
                     let tdx = ix - fx;
                     let tdy = iy - fy;
                     return (self.toward((ix + tdx * 3, iy + tdy * 3), grid), thought);
@@ -494,23 +500,31 @@ impl Organism {
                     return (self.toward(t, grid), thought);
                 }
             }
-            if self.energy < 0.78 && self.energy > 0.42 {
+            // Someone who saw a death by hunger eats sooner and goes further for it.
+            let hunger_wary = self.lessons.heeds(Lesson::Hunger);
+            if self.energy < 0.78 + 0.12 * hunger_wary && self.energy > 0.42 {
                 if let Some(v) = self.nearest_visible(grid, Tile::Food, 8) {
                     let dist = (v.0 - ix).abs() + (v.1 - iy).abs();
-                    if dist <= 6 {
+                    if dist <= 6 + (2.0 * hunger_wary) as i32 {
                         set_thought!("topping up food");
                         return (self.toward(v, grid), thought);
                     }
                 }
             }
-            if self.hydration < 0.82 && self.hydration > 0.45 {
+            // And one who saw a death by thirst drinks sooner and goes further for it.
+            let thirst_wary = self.lessons.heeds(Lesson::Thirst);
+            if self.hydration < 0.82 + 0.1 * thirst_wary && self.hydration > 0.45 {
                 if grid.water_beside(ix, iy).is_some() {
                     set_thought!("drinking at the water's edge");
                     return (9, thought);
                 }
-                if let Some(v) = self.nearest_visible(grid, Tile::Water, 6) {
+                if grid.ice_beside(ix, iy).is_some() {
+                    set_thought!("breaking the ice to drink");
+                    return (9, thought);
+                }
+                if let Some(v) = self.nearest_visible(grid, Tile::Water, 6 + (2.0 * thirst_wary) as i32) {
                     let dist = (v.0 - ix).abs() + (v.1 - iy).abs();
-                    if dist <= 4 {
+                    if dist <= 4 + (2.0 * thirst_wary) as i32 {
                         set_thought!("topping up water");
                         return (self.toward(v, grid), thought);
                     }

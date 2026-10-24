@@ -171,7 +171,15 @@
       "healing": "leczenie"
     },
     "enjoys": "lubi: {list}",
-    "avoids": "unika: {list} po urazie"
+    "avoids": "unika: {list} po urazie",
+    "lessonTip": "Nauczka z czyjejś śmierci: widzianej na własne oczy, opowiedzianej przez starszych albo ostrożność przejęta od rodziców. Z latami blednie.",
+    "lessons": {
+      "water": "boi się głębokiej wody",
+      "hunger": "je, zanim przyjdzie głód",
+      "thirst": "trzyma wodę blisko",
+      "beasts": "omija dzikie zwierzęta szerokim łukiem",
+      "fire": "trzyma się z dala od ognia"
+    }
   },
   "zodiac": {
     "title": "URODZONY POD",

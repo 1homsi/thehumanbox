@@ -167,7 +167,15 @@
       "healing": "cura"
     },
     "enjoys": "ama {list}",
-    "avoids": "evita {list} dopo un infortunio"
+    "avoids": "evita {list} dopo un infortunio",
+    "lessonTip": "Imparato da una morte: una vista con i propri occhi, una raccontata dagli anziani o una prudenza ereditata dai genitori. Svanisce con gli anni.",
+    "lessons": {
+      "water": "diffida dell'acqua profonda",
+      "hunger": "mangia prima di avere fame",
+      "thirst": "tiene l'acqua vicina",
+      "beasts": "sta alla larga dalle bestie",
+      "fire": "sta lontano dal fuoco"
+    }
   },
   "zodiac": {
     "title": "NATO SOTTO",

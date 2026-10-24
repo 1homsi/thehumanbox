@@ -605,6 +605,7 @@ impl Organism {
                     feeling: (self.skills.feeling(skill) * 100.0).round() / 100.0,
                 })
                 .collect(),
+            lessons: self.lessons.heeded().into_iter().map(|l| l.name()).collect(),
         }
     }
 
@@ -1029,6 +1030,9 @@ pub struct OrgDetailJson {
     pub memories: Vec<MemoryJson>,
     /// What this person knows how to do, best first (see `organism::skills`).
     pub skills: Vec<SkillJson>,
+    /// What deaths they saw taught them, strongest first (see `organism::lessons`).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub lessons: Vec<&'static str>,
 }
 
 #[derive(Serialize)]

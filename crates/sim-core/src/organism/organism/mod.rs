@@ -171,6 +171,8 @@ pub struct Organism {
     pub practice: BTreeMap<String, f32>,
     /// What this person has learned to do by doing it or watching others (see `organism::skills`).
     pub skills: super::skills::Skills,
+    /// What the deaths they have seen taught them (see `organism::lessons`).
+    pub lessons: super::lessons::Lessons,
     pub religion_id: Option<String>,
     pub degrees: Vec<String>,
     pub tools: BTreeMap<String, u8>,
@@ -312,6 +314,7 @@ impl Organism {
             specialty: None,
             practice: BTreeMap::new(),
             skills: Default::default(),
+            lessons: Default::default(),
             religion_id: None,
             degrees: Vec::new(),
             tools: BTreeMap::new(),

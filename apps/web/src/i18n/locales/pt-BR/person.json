@@ -167,7 +167,15 @@
       "healing": "cura"
     },
     "enjoys": "gosta de {list}",
-    "avoids": "evita {list} desde que se machucou"
+    "avoids": "evita {list} desde que se machucou",
+    "lessonTip": "Aprendido com uma morte: uma que presenciou, uma que os anciãos contaram ou a cautela herdada dos pais. Vai se apagando com os anos.",
+    "lessons": {
+      "water": "tem medo de água funda",
+      "hunger": "come antes da fome chegar",
+      "thirst": "mantém água por perto",
+      "beasts": "fica longe das feras",
+      "fire": "fica longe do fogo"
+    }
   },
   "zodiac": {
     "title": "NASCIDO SOB",

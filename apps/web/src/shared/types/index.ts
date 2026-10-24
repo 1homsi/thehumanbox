@@ -359,6 +359,7 @@ export interface OrgDetail extends OrganismState {
   memories: MemoryEntry[]
   /** What this person knows how to do, 0 to 1, best first. */
   skills?: { name: string; level: number; feeling?: number }[]
+  lessons?: string[]
 }
 
 export interface OrgLife {

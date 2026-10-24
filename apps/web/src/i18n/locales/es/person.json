@@ -167,7 +167,15 @@
       "healing": "curar"
     },
     "enjoys": "disfruta de {list}",
-    "avoids": "evita {list} desde que se hirió haciéndolo"
+    "avoids": "evita {list} desde que se hirió haciéndolo",
+    "lessonTip": "Aprendido de una muerte: una que vio, una que contaron los ancianos o la cautela heredada de sus padres. Se desvanece con los años.",
+    "lessons": {
+      "water": "teme el agua profunda",
+      "hunger": "come antes de tener hambre",
+      "thirst": "tiene agua cerca",
+      "beasts": "se aleja de las fieras",
+      "fire": "se mantiene lejos del fuego"
+    }
   },
   "zodiac": {
     "title": "NACIDO BAJO",

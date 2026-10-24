@@ -167,7 +167,15 @@
       "healing": "soins"
     },
     "enjoys": "aime {list}",
-    "avoids": "évite {list} depuis une blessure"
+    "avoids": "évite {list} depuis une blessure",
+    "lessonTip": "Appris d'une mort : une dont il a été témoin, une que les anciens ont racontée, ou une prudence héritée de ses parents. Cela s'estompe avec les années.",
+    "lessons": {
+      "water": "se méfie de l'eau profonde",
+      "hunger": "mange avant d'avoir faim",
+      "thirst": "garde de l'eau à portée",
+      "beasts": "évite les bêtes sauvages",
+      "fire": "se tient loin du feu"
+    }
   },
   "zodiac": {
     "title": "NÉ SOUS",

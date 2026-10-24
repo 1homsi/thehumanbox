@@ -165,7 +165,15 @@
       "healing": "şifacılık"
     },
     "enjoys": "sever: {list}",
-    "avoids": "yaralandığından beri kaçınır: {list}"
+    "avoids": "yaralandığından beri kaçınır: {list}",
+    "lessonTip": "Bir ölümden öğrenildi: kendi gözüyle gördüğü, yaşlıların anlattığı ya da anne babasından geçen bir temkin. Yıllar geçtikçe silinir.",
+    "lessons": {
+      "water": "derin sudan çekinir",
+      "hunger": "acıkmadan yer",
+      "thirst": "suyu yakın tutar",
+      "beasts": "yabani hayvanlardan uzak durur",
+      "fire": "ateşten uzak durur"
+    }
   },
   "zodiac": {
     "title": "ALTINDA DOĞDU",

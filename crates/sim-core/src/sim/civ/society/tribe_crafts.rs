@@ -91,10 +91,12 @@ impl Simulation {
             }
         }
         self.lineage_crafts_ready = true;
-        // Dread of a kind of work eases a little each day, and children pick up
-        // the craft of the tribe they grow up in.
+        // Dread of a kind of work eases a little each day, as do the lessons
+        // of deaths they saw, and children pick up the craft of the tribe they
+        // grow up in.
         for o in self.organisms.iter_mut().filter(|o| o.alive) {
             o.skills.ease_dread();
+            o.lessons.fade();
             if !matches!(o.age_stage(), AgeStage::Child | AgeStage::Teen) {
                 continue;
             }

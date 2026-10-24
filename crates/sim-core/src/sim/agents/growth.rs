@@ -507,6 +507,11 @@ pub fn try_reproduce(
     child.alive = false;
     child.age = 0;
     child.father_id = Some(partner_id.clone());
+    // A child grows up with some of the caution their parents learned.
+    child.lessons = crate::organism::lessons::Lessons::inherited(
+        &organisms[org_idx].lessons,
+        Some(&organisms[partner_idx].lessons),
+    );
     child.surname =
         crate::organism::organism::child_surname(Some(&organisms[partner_idx]), &organisms[org_idx]);
 
