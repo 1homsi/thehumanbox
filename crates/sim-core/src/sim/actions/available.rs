@@ -49,7 +49,17 @@ pub fn available_actions_into(
 
     plan.range(0, 25);
 
-    plan.range(26, 38);
+    // Mining and quarrying need rock beside them (mining also room in the
+    // pack), the same check the reference filter below makes. Split so each id
+    // keeps its place in the order the candidates are offered.
+    if near_rock && org.carry_room() > 0 {
+        plan.range(26, 26);
+    }
+    plan.range(27, 28);
+    if near_rock {
+        plan.range(29, 29);
+    }
+    plan.range(30, 38);
 
     if has_mats || near_rock || near_water {
         plan.range(39, 50);
@@ -523,6 +533,8 @@ pub(super) fn available_actions_into_reference(
                     && relationships_deep::action_is_possible(sim, idx, action, nearby)
                     && crate::sim::civ::trade_routes::action_is_possible(sim, idx, action, nearby)
                     && (action != 2704 || crate::sim::civ::trade_routes::can_dispatch_caravan(sim, idx))))
+            && (action != 26 || (near_rock && org.carry_room() > 0))
+            && (action != 29 || near_rock)
             && registry::is_possible(sim, idx, action, ix, iy)
             && seen.insert(action)
     });

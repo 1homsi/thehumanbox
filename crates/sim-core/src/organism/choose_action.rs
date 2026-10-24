@@ -211,7 +211,11 @@ impl Organism {
         let fire_dangerous =
             tile == Tile::Fire || (fire_tile.is_some() && (!night || self.lessons.heeds(Lesson::Fire) > 0.0));
         let critical = self.energy < 0.2 || self.hydration < 0.2;
-        if !critical && fire_dangerous {
+        // Heat hurts only on the fire itself. A hungry person turns back from a
+        // fire's ring only when standing on the fire: turning back at the edge of
+        // the ring walked them out of it and straight back in, until they starved.
+        let hungry = self.energy < 0.42;
+        if !critical && fire_dangerous && (tile == Tile::Fire || !hungry) {
             set_thought!("heat dangerous");
             if let Some((fx, fy)) = fire_tile {
                 if !night || self.lessons.heeds(Lesson::Fire) > 0.0 {
