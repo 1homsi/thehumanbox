@@ -23,6 +23,10 @@ fn fall_in_battle(
     history.record_death(tick);
 }
 
+/// How close (in tiles) a fighter must be to a battle's place to fight in it: a battle ranges over the land around
+/// it, but someone at home across the island is not in it.
+pub const AT_BATTLE: i32 = 25;
+
 /// Health below which a fighter may leave the battle.
 const WITHDRAW_AT: f32 = 0.25;
 
@@ -131,10 +135,23 @@ pub fn tick_battles(
         // A combatant can die to fire, illness, or another system between
         // battle ticks. Resolve the empty side below instead of indexing an
         // empty force while trying to manufacture one combat pair.
-        let pairs = att_alive.len().min(def_alive.len());
+        //
+        // Only those at the battle trade blows. A fighter still on the way (or
+        // never set out) is not hurt where they stand: before, someone resting
+        // at home a hundred tiles off "fell in battle".
+        let at_battle = |i: &usize| {
+            let o = &organisms[*i];
+            (o.x as i32 - battle.location.0)
+                .abs()
+                .max((o.y as i32 - battle.location.1).abs())
+                <= AT_BATTLE
+        };
+        let att_here: Vec<usize> = att_alive.iter().copied().filter(at_battle).collect();
+        let def_here: Vec<usize> = def_alive.iter().copied().filter(at_battle).collect();
+        let pairs = att_here.len().min(def_here.len());
         for k in 0..pairs {
-            let ai = att_alive[k];
-            let di = def_alive[k % def_alive.len()];
+            let ai = att_here[k];
+            let di = def_here[k % def_here.len()];
             let att_style = combat_style_for(&organisms[ai], att_era);
             let def_style = combat_style_for(&organisms[di], def_era);
             let a_bonus = soldier_bonus(&organisms[ai]) + att_policy_bonus;

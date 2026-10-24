@@ -2,6 +2,7 @@
 //! place walk to it: each one plans its way along the roads (a road costs less to walk, so the
 //! route keeps to them where it can) and sets out, instead of standing where it was picked.
 //! A few marchers per battle, so the walk reads as a band on the road and does not clear a town.
+//! The defenders picked for the fight hurry there too: only those at the place fight.
 
 use super::Battle;
 use crate::hashing::FxHashMap as HashMap;
@@ -33,27 +34,37 @@ impl Simulation {
             if !self.grid.get(target.0, target.1).walkable() {
                 continue;
             }
+            // Attackers march to the place; defenders hurry there to meet them.
             let mut marched = 0usize;
-            for id in &battle.attacker_orgs {
-                if marched >= MARCHERS {
-                    break;
-                }
-                let Some(&i) = index.get(id) else { continue };
-                let o = &self.organisms[i];
-                if o.journey.is_some()
-                    || o.wander_target.is_some()
-                    || o.energy < 0.35
-                    || o.hydration < 0.35
-                    || o.fear_level > 0.5
-                {
-                    continue;
-                }
-                let here = (o.x as i32, o.y as i32);
-                if chebyshev(here, target) <= AT_PLACE {
-                    continue;
-                }
-                if self.organisms[i].march_along_roads(&self.grid, target, "marching to the battle", tick) {
-                    marched += 1;
+            for (ids, thought) in [
+                (&battle.attacker_orgs, "marching to the battle"),
+                (&battle.defender_orgs, "hurrying to defend the tribe"),
+            ] {
+                let mut side = 0usize;
+                for id in ids {
+                    if side >= MARCHERS {
+                        break;
+                    }
+                    let Some(&i) = index.get(id) else { continue };
+                    let o = &self.organisms[i];
+                    if o.journey.is_some()
+                        || o.wander_target.is_some()
+                        || o.energy < 0.35
+                        || o.hydration < 0.35
+                        || o.fear_level > 0.5
+                    {
+                        continue;
+                    }
+                    let here = (o.x as i32, o.y as i32);
+                    if chebyshev(here, target) <= AT_PLACE {
+                        continue;
+                    }
+                    if self.organisms[i].march_along_roads(&self.grid, target, thought, tick) {
+                        side += 1;
+                        if thought == "marching to the battle" {
+                            marched += 1;
+                        }
+                    }
                 }
             }
             if marched > 0 {
