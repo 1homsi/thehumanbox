@@ -1,6 +1,9 @@
 //! Weddings. When two people pair, the people of their tribe who are already close to the couple's home come over
 //! to see it: up to `GUESTS` adults within `GUEST_REACH` tiles walk to the home and stand near the couple for a
 //! while (their thought reads "at a wedding"). Only people already near walk, so the tribe does not bunch up.
+//!
+//! A marriage across two tribes binds them: both peoples think better of each other, and two tribes on bad terms
+//! make peace for a time.
 
 use super::age_stage::AgeStage;
 use super::family_outings::{chebyshev, spread};
@@ -10,8 +13,61 @@ use crate::sim::simulation::Simulation;
 const GUESTS: usize = 6;
 /// Only people this close to the home (in tiles) come over.
 const GUEST_REACH: i32 = 8;
+/// How much warmer each person of two tribes joined by a marriage feels toward the other tribe.
+const MARRIAGE_WARMTH: f32 = 0.12;
+/// Two tribes this cold toward each other (on average) make peace when one of theirs marries one of the other's.
+const WEDDING_PEACE_BELOW: f32 = -0.2;
 
 impl Simulation {
+    /// `a` and `b` have married: if they are of two tribes, the tribes are bound.
+    pub(crate) fn join_tribes_by_marriage(&mut self, a: usize, b: usize) {
+        use crate::sim::civ::warfare::{establish_treaty, has_active_treaty, tribe_mood, TreatyKind};
+        let (la, lb) = (
+            self.organisms[a].lineage_id.clone(),
+            self.organisms[b].lineage_id.clone(),
+        );
+        if la == lb || la.is_empty() || lb.is_empty() {
+            return;
+        }
+        let tick = self.tick_count;
+        let members = |lineage: &str| -> Vec<usize> {
+            self.organisms
+                .iter()
+                .enumerate()
+                .filter(|(_, o)| o.alive && o.lineage_id == lineage)
+                .map(|(i, _)| i)
+                .collect()
+        };
+        let (ma, mb) = (members(&la), members(&lb));
+        let mood_a = tribe_mood(&self.organisms, &ma).get(&lb).copied().unwrap_or(0.0);
+        let mood_b = tribe_mood(&self.organisms, &mb).get(&la).copied().unwrap_or(0.0);
+        for &i in &ma {
+            self.organisms[i].update_attitude(&lb, MARRIAGE_WARMTH);
+        }
+        for &i in &mb {
+            self.organisms[i].update_attitude(&la, MARRIAGE_WARMTH);
+        }
+        let (na, nb) = (self.tribe_name(&la), self.tribe_name(&lb));
+        let couple = format!("{} and {}", self.organisms[a].name, self.organisms[b].name);
+        let hostile = (mood_a + mood_b) / 2.0 < WEDDING_PEACE_BELOW;
+        let detail = if hostile
+            && !has_active_treaty(&self.treaties, &la, &lb, tick)
+            && establish_treaty(
+                &mut self.treaties,
+                &mut self.organisms,
+                &la,
+                &lb,
+                TreatyKind::NonAggression,
+                tick,
+                tick + 3000,
+            ) {
+            format!("the marriage of {couple} brings peace between the {na} and the {nb}")
+        } else {
+            format!("the {na} and the {nb} are joined by the marriage of {couple}")
+        };
+        crate::sim::world_events::push_event(&mut self.events, tick, "wedding", &na, &detail);
+    }
+
     /// Sends the nearest fit adults of the couple's tribe to the couple's home, once, when they pair.
     pub(crate) fn gather_wedding(&mut self, a: usize, b: usize) {
         let tick = self.tick_count;
@@ -94,6 +150,53 @@ mod tests {
         sim.organisms[7].x = 125.0;
         sim.organisms[7].home_x = 125.0;
         sim
+    }
+
+    /// The village split in two tribes, river (0..4) and hill (4..8), with every
+    /// one feeling `attitude` toward the other tribe.
+    fn two_tribes(attitude: f32) -> Simulation {
+        let mut sim = village();
+        for (i, o) in sim.organisms.iter_mut().enumerate() {
+            o.lineage_id = if i < 4 { "river".into() } else { "hill".into() };
+            o.lineage_attitudes.clear();
+            let other = if i < 4 { "hill" } else { "river" };
+            o.lineage_attitudes.insert(other.into(), attitude);
+        }
+        sim
+    }
+
+    #[test]
+    fn a_marriage_between_tribes_at_odds_brings_peace() {
+        use crate::sim::civ::warfare::has_active_treaty;
+        let mut sim = two_tribes(-0.5);
+        sim.join_tribes_by_marriage(0, 4);
+        assert!(has_active_treaty(&sim.treaties, "river", "hill", sim.tick_count));
+        assert!(sim
+            .events
+            .iter()
+            .any(|e| e.detail.contains("brings peace between")));
+        let warmer = sim.organisms[5].attitude_toward("river");
+        assert!(warmer > -0.5, "{warmer}");
+    }
+
+    #[test]
+    fn a_marriage_between_friendly_tribes_joins_them_without_a_treaty() {
+        use crate::sim::civ::warfare::has_active_treaty;
+        let mut sim = two_tribes(0.2);
+        sim.join_tribes_by_marriage(0, 4);
+        assert!(!has_active_treaty(&sim.treaties, "river", "hill", sim.tick_count));
+        assert!(sim
+            .events
+            .iter()
+            .any(|e| e.detail.contains("are joined by the marriage of")));
+    }
+
+    #[test]
+    fn a_marriage_within_a_tribe_binds_no_tribes() {
+        let mut sim = village();
+        let before = sim.events.len();
+        sim.join_tribes_by_marriage(0, 1);
+        assert_eq!(sim.events.len(), before);
     }
 
     #[test]
