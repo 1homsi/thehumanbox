@@ -144,7 +144,8 @@
   "rename": {
     "label": "Nowe imię",
     "save": "zapisz",
-    "cancel": "anuluj"
+    "cancel": "anuluj",
+    "refused": "Nazwa nie została zapisana. Spróbuj ponownie."
   },
   "prayerHint": {
     "title": "Twoi ludzie się modlą",

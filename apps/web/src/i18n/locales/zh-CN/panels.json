@@ -141,7 +141,8 @@
   "rename": {
     "label": "新名字",
     "save": "保存",
-    "cancel": "取消"
+    "cancel": "取消",
+    "refused": "名字没有保存，请再试一次。"
   },
   "prayerHint": {
     "title": "你的子民正在祈祷",

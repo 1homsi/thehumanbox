@@ -142,7 +142,8 @@
   "rename": {
     "label": "Nuovo nome",
     "save": "salva",
-    "cancel": "annulla"
+    "cancel": "annulla",
+    "refused": "Il nome non è stato salvato. Riprova."
   },
   "prayerHint": {
     "title": "Il tuo popolo sta pregando",
