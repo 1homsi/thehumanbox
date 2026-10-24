@@ -534,3 +534,111 @@ fn only_someone_parched_cuts_through_the_houses_between_them_and_water() {
     let step = thirsty.toward((50, 53), &grid);
     assert_ne!(crate::organism::organism::DIRECTIONS[step], (0, 1));
 }
+
+fn worker_on_sand(name: &str) -> (Organism, WorldGrid, StdRng) {
+    let mut rng = StdRng::seed_from_u64(0);
+    let traits = Traits::random(&mut rng);
+    let mut grid = WorldGrid::new(4);
+    for x in 40..=60 {
+        for y in 40..=60 {
+            grid.set(x, y, Tile::Sand);
+        }
+    }
+    let mut org = Organism::new(
+        "id".into(),
+        name.into(),
+        50.0,
+        50.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    org.energy = 0.80;
+    org.hydration = 0.80;
+    org.health = 0.90;
+    org.age = 1500;
+    (org, grid, rng)
+}
+
+fn learned_pick(org: &Organism, grid: &WorldGrid, rng: &mut StdRng, available: &[usize]) -> usize {
+    org.choose_action(
+        grid,
+        &BuildingList::new(),
+        100,
+        0.0,
+        &[],
+        false,
+        0,
+        rng,
+        false,
+        "state",
+        available,
+    )
+    .0
+}
+
+#[test]
+fn dreaded_work_loses_a_close_learned_choice() {
+    use crate::organism::skills::{Skill, DREAD};
+    let (mut org, grid, mut rng) = worker_on_sand("Wary");
+    // Fishing (28) has served a little better than resting (17) here.
+    org.q_table.insert("state".into(), vec![(28, 0.30), (17, 0.27)]);
+    assert_eq!(learned_pick(&org, &grid, &mut rng, &[17, 28]), 28);
+
+    org.skills.set_feeling(Skill::Fishing, DREAD);
+    assert_eq!(learned_pick(&org, &grid, &mut rng, &[17, 28]), 17);
+}
+
+#[test]
+fn liked_work_wins_a_near_tie_but_not_a_clear_loss() {
+    use crate::organism::skills::{Skill, LIKING_CAP};
+    let (mut org, grid, mut rng) = worker_on_sand("Keen");
+    org.skills.set_feeling(Skill::Fishing, LIKING_CAP);
+    org.q_table.insert("state".into(), vec![(28, 0.28), (17, 0.30)]);
+    assert_eq!(learned_pick(&org, &grid, &mut rng, &[17, 28]), 28);
+
+    org.q_table.insert("state".into(), vec![(28, 0.28), (17, 0.50)]);
+    assert_eq!(learned_pick(&org, &grid, &mut rng, &[17, 28]), 17);
+}
+
+#[test]
+fn someone_hurt_felling_trees_stops_going_off_to_chop_wood() {
+    use crate::organism::skills::{Skill, DREAD};
+    let chops = |dread: bool| {
+        let mut picks = 0;
+        for seed in 0..40 {
+            let (mut org, mut grid, _) = worker_on_sand("Axe");
+            grid.set(50, 50, Tile::Grass);
+            org.discoveries.insert("stone_tools".into());
+            if dread {
+                org.skills.set_feeling(Skill::Woodcutting, DREAD);
+            }
+            let mut rng = StdRng::seed_from_u64(seed);
+            if learned_pick(&org, &grid, &mut rng, &[17]) == 27 {
+                picks += 1;
+            }
+        }
+        picks
+    };
+    assert!(chops(false) > 0, "a toolmaker on a tree tile sometimes chops");
+    assert_eq!(chops(true), 0);
+}
+
+#[test]
+fn every_daily_work_action_practises_its_own_skill() {
+    use crate::organism::skills::Skill;
+    for (action, skill) in [
+        (27, Skill::Woodcutting),
+        (28, Skill::Fishing),
+        (29, Skill::Quarrying),
+        (34, Skill::Foraging),
+        (35, Skill::Farming),
+        (338, Skill::Farming),
+        (121, Skill::Hunting),
+    ] {
+        assert_eq!(Skill::of_action(action), Some(skill), "action {action}");
+    }
+    assert_eq!(Skill::of_action(17), None);
+}

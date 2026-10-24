@@ -8,6 +8,7 @@ use crate::world::{
 
 use super::decision_bias::{directive_action_boost, directive_aligns_action, preferred_action_boost};
 use super::organism::{Organism, QRowExt, ACTION_ID_SPACE, N_ACTIONS};
+use super::skills::Skill;
 
 /// Farthest a person walks home at night, in tiles (Manhattan). Routes to
 /// farther homes outrun the route planner's window and search budget, so the
@@ -465,9 +466,13 @@ impl Organism {
                 && !journeying
                 && self.inv_wood < 3
                 && self.energy > 0.55
+                // Someone hurt felling trees leaves the trees alone for a while;
+                // someone who likes the work goes more often.
+                && !self.skills.dreads(Skill::Woodcutting)
                 // A started trip continues; re-rolling every tick made people
                 // zig-zag between this and their other targets.
-                && (self.thought == "heading to the trees" || rng.random::<f32>() < 0.30)
+                && (self.thought == "heading to the trees"
+                    || rng.random::<f32>() < 0.30 + self.skills.feeling(Skill::Woodcutting).max(0.0) * 0.5)
             {
                 if tile == Tile::Grass {
                     set_thought!("chopping wood");
@@ -488,8 +493,13 @@ impl Organism {
                 && !journeying
                 && self.inv_stone < if fetching_stone { 4 } else { 2 }
                 && self.energy > 0.55
+                // Dread keeps them from the quarry unless the tribe is waiting on stone.
+                && (fetching_stone || !self.skills.dreads(Skill::Quarrying))
+                // As with the trees, someone who likes the quarry goes more often.
                 && (self.thought == "heading to the quarry"
-                    || rng.random::<f32>() < if fetching_stone { 0.55 } else { 0.15 })
+                    || rng.random::<f32>()
+                        < if fetching_stone { 0.55 } else { 0.15 }
+                            + self.skills.feeling(Skill::Quarrying).max(0.0) * 0.5)
             {
                 let rock_adjacent = crate::organism::organism::DIRECTIONS
                     .iter()
@@ -1155,7 +1165,8 @@ impl Organism {
                     9 => on_water,
                     15 => self.carrying > 0 && self.carrying_type != 2,
                     14 => self.carrying == 0,
-                    _ => true,
+                    // Trying things out never means going back to work that hurt them.
+                    _ => !Skill::of_action(a).is_some_and(|s| self.skills.dreads(s)),
                 })
                 .collect();
             let pool: &[usize] = if filtered.is_empty() {
@@ -1241,7 +1252,7 @@ impl Organism {
                 } else {
                     0.0
                 };
-                learned + directed + preferred_action_boost(active_wander_action, a)
+                learned + directed + preferred_action_boost(active_wander_action, a) + self.skills.pull(a)
             };
             let mut best_avail: Option<usize> = None;
             let mut best_score = f32::NEG_INFINITY;

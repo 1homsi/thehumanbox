@@ -53,6 +53,19 @@ impl Skill {
         Skill::ALL.into_iter().find(|s| s.name() == name)
     }
 
+    /// The skill an action practises, for the actions that practise one.
+    pub fn of_action(action: usize) -> Option<Skill> {
+        match action {
+            26 | 29 => Some(Skill::Quarrying),
+            27 => Some(Skill::Woodcutting),
+            28 => Some(Skill::Fishing),
+            32 | 34 | 907 => Some(Skill::Foraging),
+            35 | 38 | 338 | 339 => Some(Skill::Farming),
+            121 | 123 | 480 => Some(Skill::Hunting),
+            _ => None,
+        }
+    }
+
     /// What someone who has mastered it is called.
     pub fn worker(self) -> &'static str {
         match self {
@@ -105,6 +118,9 @@ pub const LIKING_PER_SUCCESS: f32 = 0.003;
 pub const DREAD: f32 = -0.6;
 /// How much dread fades each day.
 pub const DREAD_FADE_PER_DAY: f32 = 0.006;
+/// How far a feeling about a kind of work weighs in choosing what to do next,
+/// on the scale of learned action values.
+pub const FEELING_PULL: f32 = 0.1;
 
 impl Skills {
     pub fn level(&self, skill: Skill) -> f32 {
@@ -117,6 +133,17 @@ impl Skills {
 
     pub fn feeling(&self, skill: Skill) -> f32 {
         self.feelings[skill.slot()]
+    }
+
+    /// Hurt at this work recently enough that they keep away from it.
+    pub fn dreads(&self, skill: Skill) -> bool {
+        self.feeling(skill) <= DREAD / 2.0
+    }
+
+    /// How their feeling about the work behind `action` draws them to it, or
+    /// keeps them from it. Actions that practise no skill feel like nothing.
+    pub fn pull(&self, action: usize) -> f32 {
+        Skill::of_action(action).map_or(0.0, |s| self.feeling(s) * FEELING_PULL)
     }
 
     pub fn set_feeling(&mut self, skill: Skill, feeling: f32) {

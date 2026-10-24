@@ -162,7 +162,8 @@ impl Simulation {
         }
     }
 
-    /// Children within reach of an elder who sits by the fire gain a little literacy.
+    /// Children within reach of an elder who sits by the fire gain a little
+    /// literacy, and the old ways of the work the elder is best at.
     fn teach_by_the_fire(&mut self, idx: usize, spatial: &SpatialIndex) {
         let here = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
         let at_fire = (-1i32..=1)
@@ -183,9 +184,59 @@ impl Simulation {
                     && chebyshev((o.x as i32, o.y as i32), here) <= LESSON_RANGE
             })
             .collect();
-        for p in pupils {
+        for &p in &pupils {
             let pupil = &mut self.organisms[p];
             pupil.literacy = (pupil.literacy + LESSON_LITERACY).min(1.0);
+        }
+        self.pass_on_the_old_ways(idx, &pupils);
+    }
+
+    /// A skilled elder tells the children by the fire how the work is done: half
+    /// what watching it done would teach, and never past the elder.
+    fn pass_on_the_old_ways(&mut self, idx: usize, pupils: &[usize]) {
+        use crate::organism::skills;
+        let Some((skill, level)) = self.organisms[idx]
+            .skills
+            .best()
+            .filter(|&(_, l)| l >= skills::SKILLED)
+        else {
+            return;
+        };
+        if pupils.is_empty() {
+            return;
+        }
+        let tick = self.tick_count;
+        let elder_id = self.organisms[idx].id.clone();
+        let elder_name = self.organisms[idx].name.clone();
+        let thought = format!("telling the children how {} is done", skill.name());
+        self.organisms[idx].think(&thought, tick);
+        for &p in pupils {
+            let (before, after) = {
+                let o = &mut self.organisms[p];
+                let aptitude = skills::aptitude(o.age_stage(), o.traits.memory_strength, o.traits.curiosity);
+                let before = o.skills.level(skill);
+                o.skills.set(
+                    skill,
+                    before + skills::watching_gain(before, level, aptitude) * 0.5,
+                );
+                (before, o.skills.level(skill))
+            };
+            // The first telling of a kind of work is remembered, whatever the
+            // child already knew of it.
+            let told = format!("heard the old ways of {} from", skill.name());
+            let first = !self.organisms[p]
+                .life_log
+                .iter()
+                .any(|e| e.text.starts_with(&told));
+            if after > before && first {
+                self.organisms[p].log_life_rel(
+                    tick,
+                    "learned",
+                    format!("{} {}", told, elder_name),
+                    Some(elder_id.clone()),
+                    Some(elder_name.clone()),
+                );
+            }
         }
     }
 
@@ -317,6 +368,39 @@ mod tests {
 
         let target = sim.organisms[child].wander_target.expect("walks home");
         assert!(chebyshev(target, (100, 100)) <= 1);
+    }
+
+    #[test]
+    fn a_skilled_elder_by_the_fire_passes_the_old_ways_to_the_children() {
+        use crate::organism::skills::Skill;
+        let mut sim = open_ground();
+        let (elder, child) = (0, 1);
+        place(&mut sim, elder, 103.0, 100.0);
+        sim.organisms[elder].age = 3000;
+        sim.organisms[elder].max_age = 4000;
+        sim.organisms[elder].skills = Default::default();
+        sim.organisms[elder].skills.set(Skill::Fishing, 0.8);
+        make_child(&mut sim, child, elder);
+        sim.organisms[child].skills = Default::default();
+        sim.organisms[child].x = 104.0;
+        sim.organisms[child].y = 101.0;
+        sim.grid.set(104, 100, Tile::Campfire);
+        let spatial = crate::sim::spatial::SpatialIndex::build(&sim.organisms, 10);
+        let told = |sim: &Simulation| {
+            sim.organisms[child]
+                .life_log
+                .iter()
+                .filter(|e| e.text.starts_with("heard the old ways of fishing from"))
+                .count()
+        };
+        sim.teach_by_the_fire(elder, &spatial);
+        assert_eq!(told(&sim), 1, "the first telling is remembered");
+        for _ in 0..9 {
+            sim.teach_by_the_fire(elder, &spatial);
+        }
+        let learned = sim.organisms[child].skills.level(Skill::Fishing);
+        assert!(learned > 0.01 && learned < 0.8, "{learned}");
+        assert_eq!(told(&sim), 1, "and only the first");
     }
 
     #[test]
