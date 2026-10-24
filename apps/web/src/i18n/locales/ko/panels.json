@@ -141,7 +141,8 @@
   "rename": {
     "label": "새 이름",
     "save": "저장",
-    "cancel": "취소"
+    "cancel": "취소",
+    "refused": "이름이 저장되지 않았습니다. 다시 시도하세요."
   },
   "prayerHint": {
     "title": "백성이 기도하고 있습니다",

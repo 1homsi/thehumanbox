@@ -142,7 +142,8 @@
   "rename": {
     "label": "Yeni ad",
     "save": "kaydet",
-    "cancel": "vazgeç"
+    "cancel": "vazgeç",
+    "refused": "Ad kaydedilmedi. Yeniden deneyin."
   },
   "prayerHint": {
     "title": "Halkın dua ediyor",

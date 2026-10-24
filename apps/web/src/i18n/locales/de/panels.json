@@ -142,7 +142,8 @@
   "rename": {
     "label": "Neuer Name",
     "save": "speichern",
-    "cancel": "abbrechen"
+    "cancel": "abbrechen",
+    "refused": "Der Name wurde nicht gespeichert. Versuch es noch einmal."
   },
   "prayerHint": {
     "title": "Deine Menschen beten",
