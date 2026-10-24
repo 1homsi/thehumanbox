@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type MutableRefObject } from 'react'
 import { lineageColor } from '../../../shared/constants'
 import type { WorldState } from '../../../shared/types'
-import { formatNumber, t } from '../../../i18n'
+import { t } from '../../../i18n'
 import { territoryCardFacts, type TerritoryCardFacts } from '../../model/territory-card'
 import { lineageAtTerritoryTile, territoryTileKey, type TerritoryIndex } from '../../model/territory'
 import { TILE } from '../../model/palette'
@@ -100,8 +100,8 @@ export function TerritoryHoverCard({
       {facts && <TribeFacts facts={facts} lineage={hover?.lineage ?? ''} />}
       {settlement && (
         <div>
-          {t('panels.tribe.people', { count: formatNumber(settlement.population) })} ·{' '}
-          {t('model.territory.buildings', { count: formatNumber(settlement.building_count) })}
+          {t('panels.tribe.people', { count: settlement.population })} ·{' '}
+          {t('model.territory.buildings', { count: settlement.building_count })}
         </div>
       )}
     </div>
@@ -124,7 +124,7 @@ function TribeFacts({ facts, lineage }: { facts: TerritoryCardFacts; lineage: st
         {facts.name}
       </div>
       <div>
-        {t('panels.tribe.people', { count: formatNumber(facts.people) })}
+        {t('panels.tribe.people', { count: facts.people })}
         {facts.era ? ` · ${facts.era}` : ''}
       </div>
       <div>

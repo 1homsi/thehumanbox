@@ -102,4 +102,18 @@ describe('TerritoryHoverCard', () => {
     expect(text).toContain(t('model.territory.noLeader'))
     expect(text).not.toContain('no leader')
   })
+
+  // Polish writes 10,001 with a space and picks its plural from the number, so the card must pass the number.
+  it('picks the plural of a large count from the number, not from its grouped text', async () => {
+    await loadLocale('pl')
+    try {
+      const world = tribeWorld()
+      world.settlements![0].building_count = 10001
+      const text = hoverCardText(world)
+      expect(text).toContain(t('model.territory.buildings', { count: '10001' }))
+      expect(text).toContain('10001 budynków')
+    } finally {
+      await loadLocale('en')
+    }
+  })
 })
