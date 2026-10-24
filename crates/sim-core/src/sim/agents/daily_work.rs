@@ -473,6 +473,7 @@ impl Simulation {
         };
         if plan.misses >= MISSES_BEFORE_MOVING {
             let tick = self.tick_count;
+            self.organisms[idx].skills.forget_spot_at(skill, plan.spot);
             match self.spot_further_along(skill, plan.spot, plan.spot, 4) {
                 Some(next) => {
                     plan.spot = next;
@@ -783,6 +784,32 @@ mod tests {
         let plan = sim.organisms[0].work.expect("set out to work");
         assert_eq!(plan.skill, Skill::Farming);
         assert!(plan.harvest);
+    }
+
+    #[test]
+    fn a_spot_that_stops_giving_is_forgotten_however_sure_they_were() {
+        let mut sim = shore();
+        sim.organisms[0].x = 109.0;
+        for _ in 0..10 {
+            sim.organisms[0]
+                .skills
+                .note_spot(Skill::Fishing, (109, 100), true);
+        }
+        assert!(sim.organisms[0]
+            .skills
+            .good_spot(Skill::Fishing)
+            .is_some_and(|(_, sure)| sure > 0.8));
+        sim.organisms[0].work = Some(WorkPlan {
+            skill: Skill::Fishing,
+            spot: (109, 100),
+            until: u64::MAX,
+            harvest: false,
+            misses: 0,
+        });
+        for _ in 0..MISSES_BEFORE_MOVING {
+            sim.note_work_outcome(0, Skill::Fishing, false);
+        }
+        assert_eq!(sim.organisms[0].skills.good_spot(Skill::Fishing), None);
     }
 
     #[test]

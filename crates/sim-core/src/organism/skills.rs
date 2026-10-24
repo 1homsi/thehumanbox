@@ -162,6 +162,15 @@ impl Skills {
         }
     }
 
+    /// A place that has stopped giving anything is no longer the good spot,
+    /// however sure they once were of it.
+    pub fn forget_spot_at(&mut self, skill: Skill, spot: (i32, i32)) {
+        let slot = &mut self.spots[skill.slot()];
+        if slot.is_some_and(|(p, _)| p == spot) {
+            *slot = None;
+        }
+    }
+
     /// Every remembered spot, by skill name, for saves.
     pub fn spots_map(&self) -> BTreeMap<String, [f32; 3]> {
         Skill::ALL
