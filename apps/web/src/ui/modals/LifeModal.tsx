@@ -3,6 +3,7 @@ import type { OrgLife, LifeEvent } from '../../shared/types'
 import { Modal } from './Modal'
 import { API_BASE } from '../../shared/config'
 import { useSimulationData } from '../../simulation/simulationData'
+import { shownGeneration } from '../../game/model/generations'
 import { formatNumber, t } from '../../i18n'
 
 const DAY_LENGTH = 600
@@ -183,7 +184,7 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
                 color: '#888',
               }}
             >
-              <span>{t('dialogs.life.gen', { gen: life.generation })}</span>
+              <span>{t('dialogs.life.gen', { gen: formatNumber(shownGeneration(life.generation)) })}</span>
               <span>·</span>
               <span>{t('dialogs.life.age', { count: ageInDays })}</span>
               <span>·</span>
