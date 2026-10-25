@@ -10,8 +10,6 @@ export interface LineageFacts {
 import { t } from '../../i18n'
 import { eraWord } from '../../shared/era-words'
 
-const pretty = (s: string) => s.replace(/[-_]/g, ' ')
-
 /** Each tribe's age, faith and form of government, for the lineage list. */
 export function lineageFacts(
   world: Pick<WorldState, 'lineage_eras' | 'faith' | 'governments'>,
