@@ -699,6 +699,18 @@
       "seasonal_calculation": "obliczanie pór roku",
       "season_counting": "liczenie pór roku",
       "decade_marking": "oznaczanie dekad"
+    },
+    "era": {
+      "preStone": "przedkamienna",
+      "stone": "kamienna",
+      "bronze": "brązowa",
+      "iron": "żelazna",
+      "classical": "klasyczna",
+      "medieval": "średniowieczna",
+      "renaissance": "renesansowa",
+      "industrial": "przemysłowa",
+      "modern": "nowożytna",
+      "information": "informacyjna"
     }
   }
 }

@@ -1,4 +1,5 @@
 import type { WorldState } from '../../shared/types'
+import { eraWord } from '../../shared/era-words'
 
 /** World ticks an era change stays marked on the map. */
 export const FLOURISH_TICKS = 300
@@ -6,7 +7,7 @@ export const FLOURISH_TICKS = 300
 /** A tribe that moved on to a new era, and the world tick it happened at. */
 export interface EraChange {
   lineage: string
-  /** The era it entered, pretty-printed (`pre stone`, `bronze`, ...). */
+  /** The era it entered, in words (`pre stone`, `bronze`, ...). */
   era: string
   tick: number
 }
@@ -15,10 +16,9 @@ export interface EraChange {
 export function eraRows(world: Pick<WorldState, 'lineage_eras'>): [string, string][] {
   const eras = world.lineage_eras
   if (!eras) return []
-  const pretty = (raw: string) => raw.replace(/[-_]/g, ' ')
   if (Array.isArray(eras))
-    return eras.filter((r) => r.era_name).map((r) => [r.lineage_id, pretty(r.era_name)])
-  return Object.entries(eras).map(([id, raw]) => [id, pretty(raw)])
+    return eras.filter((r) => r.era_name).map((r) => [r.lineage_id, eraWord(r.era_name)])
+  return Object.entries(eras).map(([id, raw]) => [id, eraWord(raw)])
 }
 
 /**

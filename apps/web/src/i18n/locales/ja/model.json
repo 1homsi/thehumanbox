@@ -666,6 +666,18 @@
       "seasonal_calculation": "季節の計算",
       "season_counting": "季節の数え方",
       "decade_marking": "十年の印"
+    },
+    "era": {
+      "preStone": "石器以前",
+      "stone": "石器",
+      "bronze": "青銅器",
+      "iron": "鉄器",
+      "classical": "古典",
+      "medieval": "中世",
+      "renaissance": "ルネサンス",
+      "industrial": "産業",
+      "modern": "近代",
+      "information": "情報"
     }
   }
 }

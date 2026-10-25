@@ -699,6 +699,18 @@
       "seasonal_calculation": "розрахунок пір року",
       "season_counting": "лічба пір року",
       "decade_marking": "позначення декад"
+    },
+    "era": {
+      "preStone": "доісторична",
+      "stone": "кам’яна",
+      "bronze": "бронзова",
+      "iron": "залізна",
+      "classical": "класична",
+      "medieval": "середньовічна",
+      "renaissance": "ренесансна",
+      "industrial": "індустріальна",
+      "modern": "сучасна",
+      "information": "інформаційна"
     }
   }
 }

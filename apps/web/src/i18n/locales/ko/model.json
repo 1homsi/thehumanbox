@@ -666,6 +666,18 @@
       "seasonal_calculation": "계절 계산",
       "season_counting": "계절 세기",
       "decade_marking": "십년 표시"
+    },
+    "era": {
+      "preStone": "석기 이전",
+      "stone": "석기",
+      "bronze": "청동기",
+      "iron": "철기",
+      "classical": "고전",
+      "medieval": "중세",
+      "renaissance": "르네상스",
+      "industrial": "산업",
+      "modern": "현대",
+      "information": "정보"
     }
   }
 }
