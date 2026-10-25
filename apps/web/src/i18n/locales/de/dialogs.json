@@ -67,6 +67,7 @@
     "lost": "Niemand ist mehr am Leben.",
     "difficulty": "Schwierigkeit: {notes}",
     "difficultyGroup": "Schwierigkeit",
+    "difficultyRefused": "Die Welt hat die Schwierigkeit nicht geändert. Versuche es noch einmal.",
     "levels": {
       "calm": "ruhig",
       "normal": "normal",

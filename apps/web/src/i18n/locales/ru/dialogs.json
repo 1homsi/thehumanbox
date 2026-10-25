@@ -67,6 +67,7 @@
     "lost": "Никто не остался в живых.",
     "difficulty": "Сложность: {notes}",
     "difficultyGroup": "Сложность",
+    "difficultyRefused": "Мир не изменил сложность. Попробуйте ещё раз.",
     "levels": {
       "calm": "спокойная",
       "normal": "обычная",

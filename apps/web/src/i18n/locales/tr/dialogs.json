@@ -67,6 +67,7 @@
     "lost": "Hayatta kimse kalmadı.",
     "difficulty": "Zorluk: {notes}",
     "difficultyGroup": "Zorluk",
+    "difficultyRefused": "Dünya zorluğu değiştirmedi. Tekrar deneyin.",
     "levels": {
       "calm": "sakin",
       "normal": "normal",

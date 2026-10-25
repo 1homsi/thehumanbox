@@ -67,6 +67,7 @@
     "lost": "No one is left alive.",
     "difficulty": "Difficulty: {notes}",
     "difficultyGroup": "Difficulty",
+    "difficultyRefused": "The world did not change its difficulty. Try again.",
     "levels": {
       "calm": "calm",
       "normal": "normal",
