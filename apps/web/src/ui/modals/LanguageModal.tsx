@@ -651,7 +651,11 @@ export function LanguageModal({ organisms, lineageWords, sexWords, onClose, line
               <div className="lang-section-header">{t(section.label)}</div>
               <div
                 className="lang-table"
-                style={{ gridTemplateColumns: `120px repeat(${lineages.length}, 1fr)` }}
+                // With no tribe left there are no lineage columns; repeat(0, …) is not a valid track list.
+                style={{
+                  gridTemplateColumns:
+                    lineages.length > 0 ? `120px repeat(${lineages.length}, 1fr)` : '120px',
+                }}
               >
                 <div className="lang-th lang-concept-col">{t('dialogs.language.concept')}</div>
                 {lineages.map((l) => (
