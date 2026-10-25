@@ -60,9 +60,11 @@ export function loadSettings(): Settings {
         `file, then relaunch.`,
     );
   }
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(raw) as Partial<Settings>;
-    return mergeWithDefaults(parsed);
+    // Notepad and PowerShell can save UTF-8 with a byte order mark, which
+    // JSON.parse rejects.
+    parsed = JSON.parse(raw.replace(/^﻿/, ""));
   } catch (err) {
     throw new Error(
       `settings.json at ${p} is corrupt (${(err as Error).message}). ` +
@@ -71,33 +73,84 @@ export function loadSettings(): Settings {
         `file, then relaunch.`,
     );
   }
+  if (!isPlainObject(parsed)) {
+    throw new Error(
+      `settings.json at ${p} is corrupt (it does not hold a JSON object). ` +
+        `Refusing to fall back to defaults, which would reset the save ` +
+        `location and could orphan existing worlds. Repair or remove the ` +
+        `file, then relaunch.`,
+    );
+  }
+  return normalizeSettings(parsed);
 }
 
 export function saveSettings(s: Settings): void {
   const p = settingsPath();
-  atomicReplaceFile(p, JSON.stringify(mergeWithDefaults(s), null, 2));
+  atomicReplaceFile(p, JSON.stringify(normalizeSettings(s), null, 2));
 }
 
-function mergeWithDefaults(partial: Partial<Settings>): Settings {
+// A plain object is one whose prototype is null or the Object.prototype of its
+// realm. Checking the prototype's own prototype works across realms (the vm
+// tests build objects in their own context), and rejects Date, Map, arrays,
+// typed arrays and class instances, which would otherwise be filled with
+// defaults and saved.
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null) return false;
+  const proto: unknown = Object.getPrototypeOf(value);
+  return proto === null || Object.getPrototypeOf(proto) === null;
+}
+
+/**
+ * Turn a settings object from disk or from the renderer into a valid Settings.
+ * Missing or mistyped fields take their defaults. A save folder that is not an
+ * absolute path is refused rather than resolved against the working directory,
+ * since falling back to the default folder would strand a world kept in the
+ * custom one.
+ */
+export function normalizeSettings(input: unknown): Settings {
+  if (!isPlainObject(input)) throw new Error("settings must be an object");
   return {
     // Older releases supported a hosted "remote" mode. Always migrate those
     // settings back to the bundled local simulation.
     mode: "local",
-    tickMs: clampInt(partial.tickMs ?? DEFAULT_SETTINGS.tickMs, 30, 5000),
+    tickMs: clampInt(numberOr(input.tickMs, DEFAULT_SETTINGS.tickMs), 30, 5000),
     populationCap: clampInt(
-      partial.populationCap ?? DEFAULT_SETTINGS.populationCap,
+      numberOr(input.populationCap, DEFAULT_SETTINGS.populationCap),
       120,
       5000,
     ),
-    saveLocationOverride:
-      partial.saveLocationOverride ?? DEFAULT_SETTINGS.saveLocationOverride,
-    autoUpdate: partial.autoUpdate ?? DEFAULT_SETTINGS.autoUpdate,
-    autoLaunch: partial.autoLaunch ?? DEFAULT_SETTINGS.autoLaunch,
-    startMinimized: partial.startMinimized ?? DEFAULT_SETTINGS.startMinimized,
-    pauseWhenHidden:
-      partial.pauseWhenHidden ?? DEFAULT_SETTINGS.pauseWhenHidden,
-    locale: typeof partial.locale === "string" ? partial.locale : null,
+    saveLocationOverride: saveLocationOverride(input.saveLocationOverride),
+    autoUpdate: booleanOr(input.autoUpdate, DEFAULT_SETTINGS.autoUpdate),
+    autoLaunch: booleanOr(input.autoLaunch, DEFAULT_SETTINGS.autoLaunch),
+    startMinimized: booleanOr(input.startMinimized, DEFAULT_SETTINGS.startMinimized),
+    pauseWhenHidden: booleanOr(input.pauseWhenHidden, DEFAULT_SETTINGS.pauseWhenHidden),
+    locale: typeof input.locale === "string" ? input.locale : null,
   };
+}
+
+function booleanOr(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+// A hand-edited number may be stored as text ("250"). Number.isFinite does not
+// coerce, so that text used to clamp to the minimum.
+function numberOr(value: unknown, fallback: number): number {
+  if (typeof value === "number") return value;
+  if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value)))
+    return Number(value);
+  return fallback;
+}
+
+function saveLocationOverride(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "string" || value.trim() === "" || !path.isAbsolute(value)) {
+    throw new Error(
+      `the save folder in settings must be an absolute folder path or empty ` +
+        `(found ${JSON.stringify(value)}). Refusing to fall back to the default ` +
+        `folder, which could orphan existing worlds. Fix or remove settings.json, then relaunch.`,
+    );
+  }
+  return value;
 }
 
 function clampInt(v: number, lo: number, hi: number): number {
