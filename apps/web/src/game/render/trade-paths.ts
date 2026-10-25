@@ -185,9 +185,20 @@ export function planPath(
         heapPush(exit * G_RANGE + (G_RANGE - 1 - Math.min(exit, G_RANGE - 1)), goal)
       }
     }
+    // A bridge runs straight from one bank to the other, as real ones do: once over open water the way goes
+    // on in the direction it came until it lands, with no turn above the water.
+    const overWater =
+      bridging &&
+      grid.tiles[cy]?.[cx] === TILE_ID.WATER &&
+      (grid.roads?.[cy]?.[cx] ?? 0) !== ROAD_BRIDGE &&
+      parents[cur]! >= 0
+    const from = overWater ? parents[cur]! : -1
+    const hx = overWater ? cx - (x0 + (from % w)) : 0
+    const hy = overWater ? cy - (y0 + Math.floor(from / w)) : 0
     for (let d = 0; d < 4; d++) {
       const nx = d === 0 ? cx + 1 : d === 1 ? cx - 1 : cx
       const ny = d === 2 ? cy + 1 : d === 3 ? cy - 1 : cy
+      if (overWater && (nx - cx !== hx || ny - cy !== hy)) continue
       if (nx < x0 || nx > x1 || ny < y0 || ny > y1) continue
       const step = stepCost(grid, nx, ny, bridging)
       if (step === 0) continue
@@ -233,7 +244,7 @@ export function planRoute(
   return wet && bridgesAreShort(grid, wet) ? wet : null
 }
 
-/** A planned route as a polyline in cells: the settlement centre, each road tile, the other centre. */
+/** A planned route as a polyline in cells: its road tiles from one end to the other. */
 export interface PlannedPath {
   /** Road tiles from the `a` end to the `b` end, as `row * width + col`. */
   cells: Int32Array
@@ -256,18 +267,24 @@ export function buildPath(
   a: readonly [number, number],
   b: readonly [number, number],
 ): PlannedPath {
-  const n = cells.length + 2
+  // The carts keep to the road itself. A town's centre is usually built over and can lie off the road (it
+  // was even out at sea, between a tribe's islands), and the straight leg from it to the road's first tile
+  // had carts driving over water and through houses. With no road tiles, the two centres are the way.
+  const points: [number, number][] =
+    cells.length > 0
+      ? Array.from(cells, (cell) => [cell % width, Math.floor(cell / width)] as [number, number])
+      : [
+          [a[0], a[1]],
+          [b[0], b[1]],
+        ]
+  const n = points.length
   const xs = new Float32Array(n)
   const ys = new Float32Array(n)
   const cum = new Float32Array(n)
-  xs[0] = a[0]
-  ys[0] = a[1]
-  for (let i = 0; i < cells.length; i++) {
-    xs[i + 1] = cells[i]! % width
-    ys[i + 1] = Math.floor(cells[i]! / width)
+  for (let i = 0; i < n; i++) {
+    xs[i] = points[i]![0]
+    ys[i] = points[i]![1]
   }
-  xs[n - 1] = b[0]
-  ys[n - 1] = b[1]
   for (let i = 1; i < n; i++) cum[i] = cum[i - 1]! + Math.hypot(xs[i]! - xs[i - 1]!, ys[i]! - ys[i - 1]!)
   let minX = Infinity
   let maxX = -Infinity

@@ -194,6 +194,30 @@ describe('planning a route over the land', () => {
   })
 })
 
+describe('bridges and carts', () => {
+  it('a bridge crosses a strait straight, square to it, and lands on the far bank', () => {
+    // A strait four tiles wide, between two banks; the towns sit across it at a slant.
+    const rows = Array.from({ length: 12 }, () => '......~~~~......')
+    const grid = land(rows)
+    const path = planRoute(grid, [2, 2], [13, 9])!
+    expect(path).not.toBeNull()
+    const wet = Array.from(path).filter(
+      (i) => grid.tiles[Math.floor(i / grid.width)]![i % grid.width] === TILE_ID.WATER,
+    )
+    expect(wet.length).toBe(4)
+    const row = Math.floor(wet[0]! / grid.width)
+    expect(wet.every((i) => Math.floor(i / grid.width) === row)).toBe(true)
+  })
+
+  it('carts keep to the road tiles, not the straight leg from a centre that lies off the road', () => {
+    // The road runs along row 3; the town centres sit two rows above it, over water.
+    const cells = Int32Array.from([3 * 10 + 1, 3 * 10 + 2, 3 * 10 + 3, 3 * 10 + 4])
+    const path = buildPath(cells, 10, [1, 1], [4, 1])
+    expect(Array.from(path.ys)).toEqual([3, 3, 3, 3])
+    expect(path.total).toBe(3)
+  })
+})
+
 describe('walking a planned path', () => {
   // East from (0,0) to (4,0), then south to (4,4): 8 tiles long, with a corner.
   const cells = Int32Array.from([0, 1, 2, 3, 4, 9, 14, 19, 24])
@@ -475,9 +499,9 @@ describe('TradePathPlanner', () => {
     const planner = new TradePathPlanner()
     planner.update(world, 1)
     const path = planner.pathOf(1)!
-    expect(path.xs[0]).toBe(2)
-    expect(path.ys[0]).toBe(5)
-    expect(path.xs.at(-1)).toBe(36)
+    // The carts' way is the road itself, which starts and ends within a few tiles of each centre.
+    expect(Math.abs(path.xs[0]! - 2) + Math.abs(path.ys[0]! - 5)).toBeLessThanOrEqual(4)
+    expect(Math.abs(path.xs.at(-1)! - 36) + Math.abs(path.ys.at(-1)! - 5)).toBeLessThanOrEqual(4)
     for (const i of path.cells) expect(i).toBeLessThan(grid.width * grid.height)
   })
 
