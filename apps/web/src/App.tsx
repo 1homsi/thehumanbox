@@ -31,7 +31,7 @@ import { PrayerHint } from './ui/panels/PrayerHint'
 import { TribeCard } from './ui/panels/TribeCard'
 import { askConfirm } from './shared/confirm'
 import { toolFailure, toolName } from './ui/toolbar/tool-tips'
-import { t } from './i18n'
+import { formatNumber, t, type MessageKey } from './i18n'
 import { PAIR_TOOLS, SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
 import { newPerils } from './game/model/peril-watch'
 import { prayerRows, prayerTool } from './game/model/prayers'
@@ -91,6 +91,15 @@ import './pixel-theme.css'
 // arrived, which takes seconds of WebAssembly start-up. It is its own chunk, fetched in
 // parallel with the entry through a modulepreload hint (see vite.config.ts), so the app
 // shell parses and the simulation worker starts without waiting for it.
+/** The name of each guidance strategy in words, as the civilization panel shows it. */
+const GUIDANCE_LABEL: Record<LineageStrategy, MessageKey> = {
+  hunt: 'dialogs.civ.guidance.hunt.label',
+  explore: 'dialogs.civ.guidance.explore.label',
+  settle: 'dialogs.civ.guidance.settle.label',
+  trade: 'dialogs.civ.guidance.trade.label',
+  defend: 'dialogs.civ.guidance.defend.label',
+}
+
 const WorldView = lazyWithRetry(() =>
   import('./game/render/WorldView').then((m) => ({ default: m.WorldView })),
 )
@@ -233,17 +242,17 @@ function LiveApp() {
           retryable: localSaveStatus.phase === 'error' && localSaveStatus.retryable === true,
           status:
             localSaveStatus.phase === 'loading'
-              ? 'loading local save…'
+              ? t('header.save.loading')
               : localSaveStatus.phase === 'retrying'
-                ? 'retrying local storage…'
+                ? t('header.save.retrying')
                 : localSaveStatus.phase === 'ready'
                   ? localSaveStatus.restored
-                    ? `world restored at tick ${localSaveStatus.tick.toLocaleString()}`
-                    : 'new local world ready'
+                    ? t('header.save.restored', { tick: formatNumber(localSaveStatus.tick) })
+                    : t('header.save.newWorld')
                   : localSaveStatus.phase === 'saving'
-                    ? `saving tick ${localSaveStatus.tick.toLocaleString()}…`
+                    ? t('header.save.saving', { tick: formatNumber(localSaveStatus.tick) })
                     : localSaveStatus.phase === 'saved'
-                      ? `saved locally · tick ${localSaveStatus.tick.toLocaleString()}`
+                      ? t('header.save.saved', { tick: formatNumber(localSaveStatus.tick) })
                       : localSaveStatus.phase === 'error'
                         ? localSaveStatus.message
                         : undefined,
@@ -286,7 +295,8 @@ function LiveApp() {
     if (localSaveStatus.phase === 'saved' || localSaveStatus.phase === 'error') {
       saveFromKey.current = false
       setTemporarySandboxStatus(worldSaveRef.current?.status ?? null, 2400)
-    } else if (localSaveStatus.phase === 'saving') setTemporarySandboxStatus('saving the world…', 4000)
+    } else if (localSaveStatus.phase === 'saving')
+      setTemporarySandboxStatus(t('header.save.savingWorld'), 4000)
   }, [localSaveStatus, setTemporarySandboxStatus])
 
   useEffect(() => {
@@ -375,16 +385,16 @@ function LiveApp() {
   const handleSeedPeople = useCallback(() => {
     const tool = SANDBOX_CATEGORIES.flatMap((c) => c.tools).find((t) => t.id === 'spawn5')
     if (tool && armedTool?.id !== tool.id) onPickTool(tool)
-    setSandboxStatus('click the land to seed a new tribe')
+    setSandboxStatus(t('header.sandbox.seedHint'))
   }, [armedTool, onPickTool])
   const handleNewWorld = useMemo(
     () =>
       getWorldSource() === 'wasm'
         ? () => {
             void askConfirm({
-              title: 'Start a new world?',
-              body: 'This silent world is kept in recovery saves.',
-              confirmLabel: 'start new',
+              title: t('dialogs.newWorld.title'),
+              body: t('dialogs.newWorld.body'),
+              confirmLabel: t('dialogs.newWorld.confirm'),
             }).then((ok) => {
               if (ok) requestOwnWorldReset()
             })
@@ -467,7 +477,11 @@ function LiveApp() {
         strategy,
         duration_ticks: 7200,
       })
-      setTemporarySandboxStatus(ok ? `${strategy} guidance set` : 'guidance failed')
+      setTemporarySandboxStatus(
+        ok
+          ? t('header.sandbox.guidanceSet', { strategy: t(GUIDANCE_LABEL[strategy]) })
+          : t('header.sandbox.guidanceFailed'),
+      )
       return ok
     },
     [sandboxControlsEnabled, sendCommand, setTemporarySandboxStatus],

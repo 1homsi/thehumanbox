@@ -10,6 +10,7 @@ import {
   shouldUseSimulationApi,
 } from './worldSource'
 import { showNotice } from '../shared/confirm'
+import { loadLocale } from '../i18n'
 
 vi.mock('../shared/confirm', () => ({ showNotice: vi.fn(() => Promise.resolve()) }))
 
@@ -168,5 +169,26 @@ describe('local-world storage transitions', () => {
     expect(requestOwnWorldRecovery('browser-own:recovery:123')).toBe(false)
     expect(storage.getItem('thb-wasm-reset-pending')).toBe('1')
     expect(storage.getItem('thb-wasm-recovery-pending')).toBeNull()
+  })
+})
+
+describe('checkpoint failures in the active language', () => {
+  it('gives the reason a reset was cancelled, in German', async () => {
+    await loadLocale('de')
+    try {
+      const target = installReloadWindow()
+      const details: LocalWorldReloadDetail[] = []
+      target.addEventListener(LOCAL_WORLD_RELOAD_EVENT, (event) => {
+        details.push((event as CustomEvent<LocalWorldReloadDetail>).detail)
+        event.preventDefault()
+      })
+
+      requestOwnWorldReset()
+      expect(details[0]?.failureMessage).toBe(
+        'Die aktuelle Welt konnte nicht gesichert werden; das Zurücksetzen wurde sicher abgebrochen',
+      )
+    } finally {
+      await loadLocale('en')
+    }
   })
 })

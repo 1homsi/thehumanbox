@@ -40,5 +40,19 @@
   "fullscreen": "tela cheia",
   "exitFullscreen": "sair da tela cheia",
   "enterFullscreenAria": "Entrar em tela cheia",
-  "exitFullscreenAria": "Sair da tela cheia"
+  "exitFullscreenAria": "Sair da tela cheia",
+  "save": {
+    "loading": "carregando o salvamento local…",
+    "retrying": "tentando o armazenamento local de novo…",
+    "restored": "mundo restaurado no tick {tick}",
+    "newWorld": "novo mundo local pronto",
+    "saving": "salvando o tick {tick}…",
+    "saved": "salvo localmente · tick {tick}",
+    "savingWorld": "salvando o mundo…"
+  },
+  "sandbox": {
+    "seedHint": "clique na terra para fundar uma nova tribo",
+    "guidanceSet": "orientação {strategy} definida",
+    "guidanceFailed": "falha na orientação"
+  }
 }

@@ -40,5 +40,19 @@
   "fullscreen": "pełny ekran",
   "exitFullscreen": "wyjdź z pełnego ekranu",
   "enterFullscreenAria": "Przejdź na pełny ekran",
-  "exitFullscreenAria": "Wyjdź z pełnego ekranu"
+  "exitFullscreenAria": "Wyjdź z pełnego ekranu",
+  "save": {
+    "loading": "wczytywanie lokalnego zapisu…",
+    "retrying": "ponawianie zapisu lokalnego…",
+    "restored": "świat przywrócony w ticku {tick}",
+    "newWorld": "nowy lokalny świat gotowy",
+    "saving": "zapisywanie ticku {tick}…",
+    "saved": "zapisano lokalnie · tick {tick}",
+    "savingWorld": "zapisywanie świata…"
+  },
+  "sandbox": {
+    "seedHint": "kliknij ziemię, aby założyć nowe plemię",
+    "guidanceSet": "ustawiono kierunek: {strategy}",
+    "guidanceFailed": "nie udało się ustawić kierunku"
+  }
 }

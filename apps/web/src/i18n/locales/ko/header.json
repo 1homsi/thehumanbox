@@ -40,5 +40,19 @@
   "fullscreen": "전체 화면",
   "exitFullscreen": "전체 화면 종료",
   "enterFullscreenAria": "전체 화면으로 전환",
-  "exitFullscreenAria": "전체 화면 종료"
+  "exitFullscreenAria": "전체 화면 종료",
+  "save": {
+    "loading": "로컬 저장 데이터를 불러오는 중…",
+    "retrying": "로컬 저장소를 다시 시도하는 중…",
+    "restored": "틱 {tick}에서 세계를 복원함",
+    "newWorld": "새 로컬 세계 준비 완료",
+    "saving": "틱 {tick} 저장 중…",
+    "saved": "로컬에 저장됨 · 틱 {tick}",
+    "savingWorld": "세계를 저장하는 중…"
+  },
+  "sandbox": {
+    "seedHint": "땅을 클릭해 새 부족을 세우세요",
+    "guidanceSet": "{strategy} 지침 설정됨",
+    "guidanceFailed": "지침 설정 실패"
+  }
 }

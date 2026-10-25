@@ -550,5 +550,26 @@
       "languageMeaning": "linguaggio e significato",
       "physicalQualities": "qualità fisiche"
     }
+  },
+  "newWorld": {
+    "title": "Iniziare un nuovo mondo?",
+    "body": "Questo mondo silenzioso è conservato nei salvataggi di ripristino.",
+    "confirm": "nuovo mondo"
+  },
+  "worldNotice": {
+    "worldLoading": "Il mondo sta ancora caricando",
+    "loadingRefresh": "Il mondo locale sta ancora caricando. Attendi un momento, poi ricarica la pagina.",
+    "loadingReset": "Il mondo locale sta ancora caricando. Attendi un momento, poi riprova a iniziare un nuovo mondo.",
+    "loadingRestore": "Il mondo locale sta ancora caricando. Attendi un momento, poi riprova a ripristinare.",
+    "storageUnavailable": "Archiviazione del browser non disponibile",
+    "notReset": "Il mondo attuale non è stato reimpostato.",
+    "notRecovered": "Il ripristino non è stato avviato.",
+    "badSaveTitle": "Impossibile ripristinare quel salvataggio",
+    "badSaveBody": "Quel salvataggio di ripristino non è valido per questo mondo locale.",
+    "checkpointReset": "impossibile salvare il mondo attuale; la reimpostazione è stata annullata in sicurezza",
+    "checkpointRestore": "impossibile salvare il mondo attuale; il ripristino è stato annullato in sicurezza",
+    "checkpointPerfMode": "impossibile salvare il mondo attuale; l’aggiornamento della modalità prestazioni è stato annullato in sicurezza",
+    "checkpointRenderer": "impossibile salvare il mondo attuale; l’aggiornamento del renderer è stato annullato in sicurezza",
+    "checkpointRefresh": "impossibile salvare il mondo attuale; l’aggiornamento è stato annullato in sicurezza"
   }
 }

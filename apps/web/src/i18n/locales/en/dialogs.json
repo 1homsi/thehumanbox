@@ -589,5 +589,26 @@
       "languageMeaning": "language & meaning",
       "physicalQualities": "physical qualities"
     }
+  },
+  "newWorld": {
+    "title": "Start a new world?",
+    "body": "This silent world is kept in recovery saves.",
+    "confirm": "start new"
+  },
+  "worldNotice": {
+    "worldLoading": "World still loading",
+    "loadingRefresh": "The local world is still loading. Wait a moment, then try refreshing again.",
+    "loadingReset": "The local world is still loading. Wait a moment, then try starting a new world again.",
+    "loadingRestore": "The local world is still loading. Wait a moment, then try restoring again.",
+    "storageUnavailable": "Browser storage unavailable",
+    "notReset": "The current world was not reset.",
+    "notRecovered": "The recovery was not started.",
+    "badSaveTitle": "Can’t restore that save",
+    "badSaveBody": "That recovery save is not valid for this local world.",
+    "checkpointReset": "could not checkpoint the current world; reset was cancelled safely",
+    "checkpointRestore": "could not checkpoint the current world; restore was cancelled safely",
+    "checkpointPerfMode": "could not checkpoint the current world; performance-mode refresh was cancelled safely",
+    "checkpointRenderer": "could not checkpoint the current world; renderer update was cancelled safely",
+    "checkpointRefresh": "could not checkpoint the current world; refresh was cancelled safely"
   }
 }

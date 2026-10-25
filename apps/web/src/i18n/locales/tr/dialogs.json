@@ -550,5 +550,26 @@
       "languageMeaning": "dil ve anlam",
       "physicalQualities": "fiziksel nitelikler"
     }
+  },
+  "newWorld": {
+    "title": "Yeni bir dünya başlatılsın mı?",
+    "body": "Bu sessiz dünya kurtarma kayıtlarında saklanır.",
+    "confirm": "yeni başlat"
+  },
+  "worldNotice": {
+    "worldLoading": "Dünya hâlâ yükleniyor",
+    "loadingRefresh": "Yerel dünya hâlâ yükleniyor. Biraz bekleyip sayfayı yenileyin.",
+    "loadingReset": "Yerel dünya hâlâ yükleniyor. Biraz bekleyip yeni bir dünya başlatmayı yeniden deneyin.",
+    "loadingRestore": "Yerel dünya hâlâ yükleniyor. Biraz bekleyip geri yüklemeyi yeniden deneyin.",
+    "storageUnavailable": "Tarayıcı depolaması kullanılamıyor",
+    "notReset": "Mevcut dünya sıfırlanmadı.",
+    "notRecovered": "Kurtarma başlatılmadı.",
+    "badSaveTitle": "Bu kayıt geri yüklenemiyor",
+    "badSaveBody": "Bu kurtarma kaydı bu yerel dünya için geçerli değil.",
+    "checkpointReset": "mevcut dünya kaydedilemedi; sıfırlama güvenli biçimde iptal edildi",
+    "checkpointRestore": "mevcut dünya kaydedilemedi; geri yükleme güvenli biçimde iptal edildi",
+    "checkpointPerfMode": "mevcut dünya kaydedilemedi; performans modu yenilemesi güvenli biçimde iptal edildi",
+    "checkpointRenderer": "mevcut dünya kaydedilemedi; oluşturucu güncellemesi güvenli biçimde iptal edildi",
+    "checkpointRefresh": "mevcut dünya kaydedilemedi; yenileme güvenli biçimde iptal edildi"
   }
 }

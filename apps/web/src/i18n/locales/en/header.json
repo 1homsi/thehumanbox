@@ -40,5 +40,19 @@
   "fullscreen": "fullscreen",
   "exitFullscreen": "exit fullscreen",
   "enterFullscreenAria": "Enter fullscreen",
-  "exitFullscreenAria": "Exit fullscreen"
+  "exitFullscreenAria": "Exit fullscreen",
+  "save": {
+    "loading": "loading local save…",
+    "retrying": "retrying local storage…",
+    "restored": "world restored at tick {tick}",
+    "newWorld": "new local world ready",
+    "saving": "saving tick {tick}…",
+    "saved": "saved locally · tick {tick}",
+    "savingWorld": "saving the world…"
+  },
+  "sandbox": {
+    "seedHint": "click the land to seed a new tribe",
+    "guidanceSet": "{strategy} guidance set",
+    "guidanceFailed": "guidance failed"
+  }
 }

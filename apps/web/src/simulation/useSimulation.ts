@@ -6,6 +6,7 @@ import { useUIStore } from '../state/store'
 import { binaryFramesReady, fetchSnapshotWithProgress, loadBinaryFrameDecoder, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
 import { signalSimFrame } from './frame-signal'
+import { t } from '../i18n'
 import { logger } from '../shared/logger'
 import {
   type LocalWorldReloadDetail,
@@ -539,9 +540,7 @@ export function useSimulation(source: WorldSource = 'native'): {
             setLocalSaveStatus({
               phase: 'error',
               retryable: true,
-              message:
-                request.detail?.failureMessage ??
-                'could not checkpoint the current world; refresh was cancelled safely',
+              message: request.detail?.failureMessage ?? t('dialogs.worldNotice.checkpointRefresh'),
             })
           }
         })
