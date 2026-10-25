@@ -4,6 +4,7 @@ import { factsLine, type LineageFacts } from '../../game/model/lineage-facts'
 import { PERIL_HELP, remainingLine, visibleLineages } from '../../game/model/tribe-peril'
 import { lineageColor, lineageWord } from '../../shared/constants'
 import { Modal } from './Modal'
+import { shownGeneration } from '../../game/model/generations'
 import { formatNumber, t } from '../../i18n'
 
 interface LineageInfo {
@@ -76,8 +77,10 @@ export function AllLineagesModal({ lineages, lineageWords, lineageNames, peril, 
                 {info.count}
               </span>
               <span className="lineage-gen">
-                {t('dialogs.lineages.generation', { gen: info.minGen })}
-                {info.maxGen > info.minGen ? t('dialogs.lineages.generationRange', { gen: info.maxGen }) : ''}
+                {t('dialogs.lineages.generation', { gen: shownGeneration(info.minGen) })}
+                {info.maxGen > info.minGen
+                  ? t('dialogs.lineages.generationRange', { gen: shownGeneration(info.maxGen) })
+                  : ''}
               </span>
               <span className="lineage-strat">
                 {lineageWords?.[lid]?.home ||

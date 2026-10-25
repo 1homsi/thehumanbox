@@ -2,6 +2,7 @@ import { personName } from '../../../shared/personName'
 import type { WorldState } from '../../../shared/types'
 import { lineageColor } from '../../../shared/constants'
 import { DAY_LENGTH } from './constants'
+import { shownGeneration } from '../../../game/model/generations'
 import { formatNumber, t } from '../../../i18n'
 
 export function NotableOrgs({ organisms }: { organisms: WorldState['organisms'] }) {
@@ -34,7 +35,7 @@ export function NotableOrgs({ organisms }: { organisms: WorldState['organisms'] 
         t('dialogs.stats.notable.kids', { count: formatNumber(o.children_count ?? 0) }),
       )}
       {row(t('dialogs.stats.notable.deepestGen'), byGen, (o) =>
-        t('dialogs.stats.notable.gen', { gen: formatNumber(o.generation) }),
+        t('dialogs.stats.notable.gen', { gen: formatNumber(shownGeneration(o.generation)) }),
       )}
     </div>
   )

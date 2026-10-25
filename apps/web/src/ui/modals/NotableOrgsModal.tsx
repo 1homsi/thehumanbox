@@ -4,6 +4,7 @@ import { Modal } from './Modal'
 import type { OrganismState } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
 import { useUIStore } from '../../state/store'
+import { shownGeneration } from '../../game/model/generations'
 import { formatNumber, t, type MessageKey } from '../../i18n'
 
 const DAY_LENGTH = 600
@@ -237,7 +238,7 @@ export function NotableOrgsModal({ organisms, onClose }: Props) {
                       </span>
                     )}
                     <span style={{ color: '#555', marginLeft: 8, fontSize: 10 }}>
-                      {t('dialogs.notable.gen', { gen: r.org.generation })}
+                      {t('dialogs.notable.gen', { gen: shownGeneration(r.org.generation) })}
                     </span>
                     {!r.org.alive && <span style={{ color: '#444', marginLeft: 6 }}>†</span>}
                   </span>

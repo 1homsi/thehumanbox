@@ -4,6 +4,7 @@ import clsx from 'clsx'
 import type { OrganismState, WorldState } from '../../shared/types'
 import { useUIStore } from '../../state/store'
 import { lazyWithRetry as lazy } from '../../shared/lazyWithRetry'
+import { shownGeneration } from '../../game/model/generations'
 import { formatNumber, t } from '../../i18n'
 
 // The person cards and the detail view (with the life-story modal) are only drawn
@@ -142,7 +143,10 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
                     <div className="org-header">
                       <span className="org-name">{personName(org)}</span>
                       <span className="org-meta">
-                        {t('panels.right.generation', { generation: org.generation, age: org.age })}
+                        {t('panels.right.generation', {
+                          generation: formatNumber(shownGeneration(org.generation)),
+                          age: org.age,
+                        })}
                       </span>
                       {starredSet.has(org.id) && (
                         <button
