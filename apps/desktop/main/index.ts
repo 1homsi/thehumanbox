@@ -238,10 +238,13 @@ async function createWindow(): Promise<void> {
   // when its bounds can no longer be read, and the last move would be lost.
   const persistWindowSoon = (() => {
     let t: NodeJS.Timeout | null = null;
+    // Only the window the app shows may save. A replaced window stays open
+    // briefly after its replacement has started, and its bounds would overwrite
+    // the state the new window saved. Its pending save is dropped as well.
     const flush = (): void => {
       if (t) clearTimeout(t);
       t = null;
-      persistWindowState(win);
+      if (mainWindow === win) persistWindowState(win);
     };
     const schedule = (): void => {
       if (t) clearTimeout(t);

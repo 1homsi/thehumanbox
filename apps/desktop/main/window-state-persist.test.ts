@@ -84,12 +84,20 @@ class FakeWindow extends EventEmitter {
   }
 }
 
+// When set, the simulation does not finish starting until this resolves, so a
+// test can keep a replacement window in its startup while it moves.
+let simGate: Promise<void> | null = null
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 /** Load index.js with a fake Electron and a real user-data folder; returns the window it creates. */
-function openFirstWindow(userData: string): { win: () => FakeWindow; run: (code: string) => Promise<unknown> } {
+function openFirstWindow(userData: string): {
+  win: () => FakeWindow
+  windows: FakeWindow[]
+  run: (code: string) => Promise<unknown>
+} {
   const windows: FakeWindow[] = []
   class Window extends FakeWindow {
     constructor() {
@@ -125,7 +133,14 @@ function openFirstWindow(userData: string): { win: () => FakeWindow; run: (code:
       }
       if (id === './startup-lifecycle') return { startWhenReady: () => {} }
       if (id === './settings') return { loadSettings: () => ({}) }
-      if (id === './sim-process') return { startSim: async () => ({ port: 8000, commandToken: 'T' }) }
+      if (id === './sim-process') {
+        return {
+          startSim: async () => {
+            if (simGate) await simGate
+            return { port: 8000, commandToken: 'T' }
+          },
+        }
+      }
       if (id === './ipc') return { registerIpc: () => {} }
       if (id === './updater') return { initUpdater: () => {}, checkForUpdatesNow: async () => ({}), installDownloadedUpdate: () => ({}) }
       if (id === 'node:fs') return fs
@@ -159,6 +174,7 @@ function openFirstWindow(userData: string): { win: () => FakeWindow; run: (code:
       if (!last) throw new Error('no window was created')
       return last
     },
+    windows,
     run: (code: string) => Promise.resolve(vm.runInContext(code, context)),
   }
 }
@@ -222,4 +238,50 @@ test('a saved full screen and always-on-top window is restored on the next launc
     const win = opened.win()
     assert.ok(win.calls.includes('setAlwaysOnTop:true'), `calls: ${win.calls.join(', ')}`)
     assert.ok(win.calls.includes('setFullScreen:true'), `calls: ${win.calls.join(', ')}`)
+  }))
+
+test('a replaced window that closes late does not overwrite the state the new window saved', () =>
+  withUserData(async (userData) => {
+    const opened = openFirstWindow(userData)
+    await opened.run('createWindow()')
+    const oldWindow = opened.windows[0]
+
+    // Restart the simulation. The replacement opens while the old window is
+    // still up, and the old window closes only once the new one has started.
+    // Hold the start open so the new window can be moved and saved meanwhile.
+    let release: () => void = () => {}
+    simGate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const restarting = opened.run('createWindowReplace()')
+    await sleep(0)
+    const newWindow = opened.windows[1]
+    assert.ok(newWindow, 'the replacement window exists while the old one is still open')
+    assert.equal(oldWindow.destroyed, false)
+
+    newWindow.bounds = { x: 400, y: 300, width: 1500, height: 880 }
+    newWindow.emit('move')
+    await sleep(100)
+    // The old window is moved as well, so its own save timer is still pending.
+    // It fires after the new window's save and must not write over it.
+    oldWindow.bounds = { x: 10, y: 10, width: 1200, height: 700 }
+    oldWindow.emit('move')
+    await sleep(600)
+    assert.equal(readSaved(userData).width, 1500)
+
+    // Startup finishes, and the old window closes with its own, stale bounds.
+    release()
+    simGate = null
+    await restarting
+    assert.equal(oldWindow.destroyed, true)
+
+    assert.deepEqual(readSaved(userData), {
+      x: 400,
+      y: 300,
+      width: 1500,
+      height: 880,
+      maximized: false,
+      fullscreen: false,
+      alwaysOnTop: false,
+    })
   }))
