@@ -4,6 +4,8 @@ export interface WindowState {
   width: number;
   height: number;
   maximized?: boolean;
+  fullscreen?: boolean;
+  alwaysOnTop?: boolean;
 }
 
 export interface Rect {
@@ -47,6 +49,10 @@ export function sanitizeWindowState(
   const width = finite(p.width) && p.width >= 800 ? Math.round(p.width) : 1400;
   const height = finite(p.height) && p.height >= 600 ? Math.round(p.height) : 900;
   const state: WindowState = { width, height, maximized: p.maximized === true };
+  // Only the modes that were on are written back, so a state file without them
+  // keeps its previous shape.
+  if (p.fullscreen === true) state.fullscreen = true;
+  if (p.alwaysOnTop === true) state.alwaysOnTop = true;
   if (finite(p.x) && finite(p.y)) {
     const x = Math.round(p.x);
     const y = Math.round(p.y);
