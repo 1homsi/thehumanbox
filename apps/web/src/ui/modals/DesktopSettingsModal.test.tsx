@@ -97,6 +97,30 @@ async function mount(b: DesktopBridge) {
   return { root, flush, button, openSimulationTab, openAppTab }
 }
 
+describe('DesktopSettingsModal while a save is in flight', () => {
+  it('locks the settings controls until the save answers, so an edit cannot be overwritten by it', async () => {
+    let answer!: (saved: DesktopSettings) => void
+    const m = await mount(
+      bridge({
+        set: () =>
+          new Promise<DesktopSettings>((resolve) => {
+            answer = resolve
+          }),
+      }),
+    )
+    await m.openSimulationTab()
+    await m.flush()
+    const slider = document.querySelector<HTMLInputElement>('input[type="range"]')!
+    await act(async () => {
+      m.button('save settings').click()
+    })
+    expect(slider.disabled).toBe(true)
+    await act(async () => answer(SETTINGS))
+    await m.flush()
+    expect(slider.disabled).toBe(false)
+  })
+})
+
 describe('DesktopSettingsModal failures', () => {
   it('shows an error and a retry instead of "loading…" forever when settings cannot be read', async () => {
     let attempt = 0
