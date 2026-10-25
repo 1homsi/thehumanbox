@@ -678,6 +678,17 @@
       "industrial": "工业",
       "modern": "现代",
       "information": "信息"
+    },
+    "government": {
+      "tribal": "部落",
+      "chiefdom": "酋邦",
+      "monarchy": "君主制",
+      "theocracy": "神权政治",
+      "republic": "共和制",
+      "democracy": "民主制",
+      "empire": "帝国",
+      "federation": "联邦",
+      "corporate": "企业体制"
     }
   }
 }

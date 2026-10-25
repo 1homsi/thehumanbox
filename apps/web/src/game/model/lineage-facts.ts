@@ -1,4 +1,5 @@
 import type { WorldState } from '../../shared/types'
+import { governmentWord } from '../../shared/government-words'
 
 export interface LineageFacts {
   era?: string
@@ -21,7 +22,7 @@ export function lineageFacts(
   if (Array.isArray(eras)) for (const e of eras) at(e.lineage_id).era = eraWord(e.era_name)
   else if (eras) for (const [id, era] of Object.entries(eras)) at(id).era = eraWord(era)
   for (const [id, n] of Object.entries(world.faith?.by_lineage ?? {})) at(id).faith = n
-  for (const g of world.governments ?? []) at(g.lineage_id).government = pretty(g.kind)
+  for (const g of world.governments ?? []) at(g.lineage_id).government = governmentWord(g.kind)
   return out
 }
 

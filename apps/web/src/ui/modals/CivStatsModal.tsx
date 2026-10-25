@@ -6,6 +6,7 @@ import { askConfirm } from '../../shared/confirm'
 import { personName } from '../../shared/personName'
 import { normalizeLineageEras } from '../../shared/lineageEras'
 import { eraWord } from '../../shared/era-words'
+import { governmentWord } from '../../shared/government-words'
 import { useSceneStore } from '../../state/scene'
 import { farmStage } from '../../game/model/farms'
 import { getBuildingState } from '../../game/model/building-state'
@@ -416,7 +417,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                           )}
                         </td>
                         <td role="cell" data-label={t('dialogs.civ.lineages.gov')}>
-                          {gov ? `${GOV_EMOJI[gov.kind] ?? ''} ${gov.kind}` : '-'}
+                          {gov ? `${GOV_EMOJI[gov.kind] ?? ''} ${governmentWord(gov.kind)}` : '-'}
                         </td>
                         <td role="cell" data-label={t('dialogs.civ.lineages.currency')}>
                           {currencies[l.id] ?? '-'}
@@ -644,7 +645,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
             {governments.map((g) => (
               <div key={g.lineage_id} className="civ-row">
                 <span className="civ-row-head">
-                  {GOV_EMOJI[g.kind] ?? ''} {g.kind}
+                  {GOV_EMOJI[g.kind] ?? ''} {governmentWord(g.kind)}
                 </span>
                 <span className="civ-row-sub">{lineageById(g.lineage_id)}</span>
                 {g.leader_id && (

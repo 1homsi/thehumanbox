@@ -689,6 +689,17 @@
       "industrial": "Industrie",
       "modern": "Moderne",
       "information": "Information"
+    },
+    "government": {
+      "tribal": "Stamm",
+      "chiefdom": "Häuptlingstum",
+      "monarchy": "Monarchie",
+      "theocracy": "Theokratie",
+      "republic": "Republik",
+      "democracy": "Demokratie",
+      "empire": "Kaiserreich",
+      "federation": "Bund",
+      "corporate": "Konzern"
     }
   }
 }

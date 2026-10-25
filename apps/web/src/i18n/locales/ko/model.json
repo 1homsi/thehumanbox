@@ -678,6 +678,17 @@
       "industrial": "산업",
       "modern": "현대",
       "information": "정보"
+    },
+    "government": {
+      "tribal": "부족",
+      "chiefdom": "족장제",
+      "monarchy": "군주제",
+      "theocracy": "신정 정치",
+      "republic": "공화국",
+      "democracy": "민주주의",
+      "empire": "제국",
+      "federation": "연방",
+      "corporate": "기업 체제"
     }
   }
 }
