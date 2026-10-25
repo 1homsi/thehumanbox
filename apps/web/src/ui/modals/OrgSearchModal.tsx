@@ -50,6 +50,8 @@ const ASPIRATION_EMOJI: Record<string, string> = {
   healer: '🌿',
 }
 
+import { discoveryWord } from '../sim-words'
+
 export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Props) {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<StatusFilter>('all')
@@ -328,7 +330,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                           .filter((d) => !d.startsWith('pact:'))
                           .map((d) => (
                             <span key={d} className="org-memorial-disc">
-                              {d.replace(/_/g, ' ')}
+                              {discoveryWord(d)}
                             </span>
                           ))}
                       </div>

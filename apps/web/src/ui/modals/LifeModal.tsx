@@ -90,6 +90,8 @@ interface Props {
   onClose: () => void
 }
 
+import { discoveryWord } from '../sim-words'
+
 export function LifeModal({ orgId, orgName, onClose }: Props) {
   const { apiEnabled, loadLocalOrgLife } = useSimulationData()
   const [life, setLife] = useState<OrgLife | null>(null)
@@ -283,7 +285,7 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
                         color: '#88ccff',
                       }}
                     >
-                      {d.replace(/_/g, ' ')}
+                      {discoveryWord(d)}
                     </span>
                   ))}
                 </div>

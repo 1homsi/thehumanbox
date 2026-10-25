@@ -190,6 +190,11 @@ function lookup(table: Messages, key: string): string | Messages | undefined {
   return node
 }
 
+/** Whether `key` names a text in the English source. Every language has the same keys, so this holds in each one. */
+export function hasMessage(key: string): boolean {
+  return typeof lookup(en as Messages, key) === 'string'
+}
+
 function isPlural(node: string | Messages | undefined): node is PluralForms {
   return typeof node === 'object' && typeof node.other === 'string'
 }

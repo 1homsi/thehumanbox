@@ -3,7 +3,7 @@
 // translation key. An id it does not know is shown as itself with underscores
 // turned into spaces, so a new id from the simulation never breaks the interface.
 
-import { t, type MessageKey } from '../i18n'
+import { hasMessage, t, type MessageKey } from '../i18n'
 
 const MOON_PHASES = new Map<string, MessageKey>([
   ['new_moon', 'model.words.moon.newMoon'],
@@ -95,4 +95,10 @@ export function seasonWord(season: string | null | undefined): string {
 /** A building kind as words, e.g. "market stall". */
 export function buildingKindWord(kind: string | null | undefined): string {
   return wordOf(BUILDING_KINDS, kind)
+}
+
+/** A discovery as words, e.g. "agriculture"; a discovery the table does not name is shown as its words. */
+export function discoveryWord(id: string): string {
+  const key = `model.words.discovery.${id}`
+  return hasMessage(key) ? t(key as MessageKey) : idWords(id)
 }
