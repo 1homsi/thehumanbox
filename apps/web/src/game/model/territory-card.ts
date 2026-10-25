@@ -1,5 +1,6 @@
 import type { WorldState } from '../../shared/types'
 import { t, type MessageKey } from '../../i18n'
+import { eraWord } from '../../shared/era-words'
 import { wealthGapOf } from './inequality'
 import { leadershipOf } from './leadership'
 
@@ -92,7 +93,7 @@ export function eraNameOf(world: Pick<WorldState, 'lineage_eras'>, lineage: stri
   const eras = world.lineage_eras
   if (!eras) return null
   const raw = Array.isArray(eras) ? eras.find((row) => row.lineage_id === lineage)?.era_name : eras[lineage]
-  return raw ? raw.replace(/[-_]/g, ' ') : null
+  return raw ? eraWord(raw) : null
 }
 
 /** The facts a tribe's territory card shows: name, people alive, who leads it, its era and wealth gap. */

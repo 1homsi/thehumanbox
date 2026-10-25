@@ -677,6 +677,18 @@
       "seasonal_calculation": "calcolo delle stagioni",
       "season_counting": "conteggio delle stagioni",
       "decade_marking": "segnatura dei decenni"
+    },
+    "era": {
+      "preStone": "pre-pietra",
+      "stone": "pietra",
+      "bronze": "bronzo",
+      "iron": "ferro",
+      "classical": "classica",
+      "medieval": "medievale",
+      "renaissance": "rinascimentale",
+      "industrial": "industriale",
+      "modern": "moderna",
+      "information": "informatica"
     }
   }
 }

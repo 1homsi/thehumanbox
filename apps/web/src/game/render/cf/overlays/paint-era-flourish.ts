@@ -1,3 +1,4 @@
+import { t } from '../../../../i18n'
 import { TILE } from '../../../model/palette'
 import { FLOURISH_TICKS, type EraChange } from '../../../model/era-flourish'
 import type { CfFrame } from './frame'
@@ -42,7 +43,7 @@ export function paintEraFlourish(ctx: Ctx, f: CfFrame, changes: readonly EraChan
     // The plate fades in quickly and out over the last third of its time.
     const alpha = Math.min(1, age * 8) * Math.min(1, (1 - age) / 0.3)
     const name = world.lineage_names?.[change.lineage] ?? settlement.name ?? change.lineage.slice(0, 6)
-    const text = `${name} · ${change.era.toUpperCase()} AGE`
+    const text = `${name} · ${t('panels.tribe.eraAge', { era: change.era }).toUpperCase()}`
     const font = 13 * s
     const width = (text.length * 7.6 + 16) * s
     const height = 20 * s

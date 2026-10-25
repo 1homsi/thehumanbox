@@ -3,6 +3,7 @@ import { AGE_STAGE_ICON, ERA_ICON } from './icons'
 import type { OrganismState } from '../../../shared/types'
 import { skillPercent, skillWord } from '../../../game/model/skills'
 import { hasMessage, t, type MessageKey } from '../../../i18n'
+import { eraWord } from '../../../shared/era-words'
 
 /** A glyph for each mood word the simulation sends. */
 const MOOD_ICON: Record<string, string> = {
@@ -74,7 +75,7 @@ export function StatusChips({ org }: { org: OrganismState }) {
             className="relation-tag"
             style={{ background: '#2a1a0a', color: '#e6c488', cursor: 'default' }}
           >
-            {ERA_ICON[(org.era ?? org.lineage_era) as string] ?? '◷'} {org.era ?? org.lineage_era}
+            {ERA_ICON[(org.era ?? org.lineage_era) as string] ?? '◷'} {eraWord(org.era ?? org.lineage_era)}
           </span>
         )}
         {(org.specialty ?? null) && (

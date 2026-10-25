@@ -6,6 +6,9 @@ export interface LineageFacts {
   government?: string
 }
 
+import { t } from '../../i18n'
+import { eraWord } from '../../shared/era-words'
+
 const pretty = (s: string) => s.replace(/[-_]/g, ' ')
 
 /** Each tribe's age, faith and form of government, for the lineage list. */
@@ -15,8 +18,8 @@ export function lineageFacts(
   const out: Record<string, LineageFacts> = {}
   const at = (id: string) => (out[id] ??= {})
   const eras = world.lineage_eras
-  if (Array.isArray(eras)) for (const e of eras) at(e.lineage_id).era = pretty(e.era_name)
-  else if (eras) for (const [id, era] of Object.entries(eras)) at(id).era = pretty(era)
+  if (Array.isArray(eras)) for (const e of eras) at(e.lineage_id).era = eraWord(e.era_name)
+  else if (eras) for (const [id, era] of Object.entries(eras)) at(id).era = eraWord(era)
   for (const [id, n] of Object.entries(world.faith?.by_lineage ?? {})) at(id).faith = n
   for (const g of world.governments ?? []) at(g.lineage_id).government = pretty(g.kind)
   return out
@@ -25,7 +28,11 @@ export function lineageFacts(
 /** "industrial age · empire · ✧-10", leaving out what is not known. */
 export function factsLine(f: LineageFacts | undefined): string {
   if (!f) return ''
-  return [f.era ? `${f.era} age` : '', f.government ?? '', f.faith !== undefined ? `✧${f.faith}` : '']
+  return [
+    f.era ? t('panels.tribe.eraAge', { era: f.era }) : '',
+    f.government ?? '',
+    f.faith !== undefined ? `✧${f.faith}` : '',
+  ]
     .filter(Boolean)
     .join(' · ')
 }

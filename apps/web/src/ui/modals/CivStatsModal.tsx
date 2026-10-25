@@ -5,6 +5,7 @@ import { Modal } from './Modal'
 import { askConfirm } from '../../shared/confirm'
 import { personName } from '../../shared/personName'
 import { normalizeLineageEras } from '../../shared/lineageEras'
+import { eraWord } from '../../shared/era-words'
 import { useSceneStore } from '../../state/scene'
 import { farmStage } from '../../game/model/farms'
 import { getBuildingState } from '../../game/model/building-state'
@@ -382,7 +383,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                           {lineageById(l.id)}
                         </td>
                         <td role="cell" data-label={t('dialogs.civ.lineages.era')}>
-                          {ERA_EMOJI[era] ?? ''} {era}
+                          {ERA_EMOJI[era] ?? ''} {eraWord(era)}
                         </td>
                         <td role="cell" data-label={t('dialogs.civ.lineages.pop')}>
                           {formatNumber(l.count)}

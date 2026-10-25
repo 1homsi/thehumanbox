@@ -42,13 +42,15 @@ function eraOf(world: WorldState, id: string): string | null {
   return eras[id] ?? null
 }
 
+import { eraWord } from '../../shared/era-words'
+
 const pretty = (s: string) => s.replace(/[-_]/g, ' ')
 
 function nextAgeOf(world: WorldState, id: string): TribeStatus['nextAge'] {
   const p = world.lineage_era_progress?.find((e) => e.lineage_id === id)
   if (!p?.next_era) return null
   return {
-    era: pretty(p.next_era),
+    era: eraWord(p.next_era),
     known: p.known.length,
     required: p.required.length,
     missing: p.missing.map(pretty),

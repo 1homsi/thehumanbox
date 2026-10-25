@@ -680,6 +680,18 @@
       "seasonal_calculation": "seasonal calculation",
       "season_counting": "season counting",
       "decade_marking": "decade marking"
+    },
+    "era": {
+      "preStone": "pre stone",
+      "stone": "stone",
+      "bronze": "bronze",
+      "iron": "iron",
+      "classical": "classical",
+      "medieval": "medieval",
+      "renaissance": "renaissance",
+      "industrial": "industrial",
+      "modern": "modern",
+      "information": "information"
     }
   }
 }

@@ -699,6 +699,18 @@
       "seasonal_calculation": "расчёт времён года",
       "season_counting": "счёт времён года",
       "decade_marking": "отметка декад"
+    },
+    "era": {
+      "preStone": "доисторическая",
+      "stone": "каменная",
+      "bronze": "бронзовая",
+      "iron": "железная",
+      "classical": "классическая",
+      "medieval": "средневековая",
+      "renaissance": "ренессансная",
+      "industrial": "индустриальная",
+      "modern": "современная",
+      "information": "информационная"
     }
   }
 }

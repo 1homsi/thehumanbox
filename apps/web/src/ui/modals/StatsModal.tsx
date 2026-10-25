@@ -1,4 +1,5 @@
 import type { WorldState } from '../../shared/types'
+import { eraWord } from '../../shared/era-words'
 import { useFrozenSnapshot } from '../../shared/hooks/useFrozenSnapshot'
 import { Modal } from './Modal'
 import { eventDate } from '../event-date'
@@ -243,7 +244,7 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
                     <div key={i} className="stats-timeline-row">
                       <span className="stats-tick">{eventDate(e.tick)}</span>
                       <span className={`era-badge era-${e.era}`} style={{ fontSize: 9 }}>
-                        {e.era}
+                        {eraWord(e.era)}
                       </span>
                     </div>
                   ))}

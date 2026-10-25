@@ -666,6 +666,18 @@
       "seasonal_calculation": "mevsim hesabı",
       "season_counting": "mevsim sayımı",
       "decade_marking": "on yıl işaretleme"
+    },
+    "era": {
+      "preStone": "Taş öncesi",
+      "stone": "Taş",
+      "bronze": "Tunç",
+      "iron": "Demir",
+      "classical": "Klasik",
+      "medieval": "Orta Çağ",
+      "renaissance": "Rönesans",
+      "industrial": "Sanayi",
+      "modern": "Modern",
+      "information": "Bilgi"
     }
   }
 }

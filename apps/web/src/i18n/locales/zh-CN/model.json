@@ -666,6 +666,18 @@
       "seasonal_calculation": "节气推算",
       "season_counting": "季节计数",
       "decade_marking": "十年标记"
+    },
+    "era": {
+      "preStone": "前石器",
+      "stone": "石器",
+      "bronze": "青铜器",
+      "iron": "铁器",
+      "classical": "古典",
+      "medieval": "中世纪",
+      "renaissance": "文艺复兴",
+      "industrial": "工业",
+      "modern": "现代",
+      "information": "信息"
     }
   }
 }

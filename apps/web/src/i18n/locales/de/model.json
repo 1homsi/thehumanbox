@@ -677,6 +677,18 @@
       "seasonal_calculation": "Jahreszeitenrechnung",
       "season_counting": "Jahreszeitenzählung",
       "decade_marking": "Dekadenzählung"
+    },
+    "era": {
+      "preStone": "Vorstein",
+      "stone": "Stein",
+      "bronze": "Bronze",
+      "iron": "Eisen",
+      "classical": "Antike",
+      "medieval": "Mittelalter",
+      "renaissance": "Renaissance",
+      "industrial": "Industrie",
+      "modern": "Moderne",
+      "information": "Information"
     }
   }
 }

@@ -1,6 +1,7 @@
 import type { SceneContext, SceneFixture, SceneId } from '../core/types'
 import type { OrganismState, WorldState } from '../../../shared/types'
 import { householdAround } from '../shared/occupants'
+import { eraWord } from '../../../shared/era-words'
 
 const ERA_LABEL: Record<string, string> = {
   'pre-stone': 'A bare windbreak',
@@ -204,7 +205,7 @@ export function resolveHomeScene(world: WorldState, scene: SceneId): SceneContex
     scene,
     world,
     title: `${host.name}'s home`,
-    subtitle: `${flavor} · ${lineageName} · ${era}`,
+    subtitle: `${flavor} · ${lineageName} · ${eraWord(era)}`,
     isDay,
     occupants: inside,
     away,
