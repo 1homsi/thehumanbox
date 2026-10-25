@@ -535,6 +535,32 @@ fn only_someone_parched_cuts_through_the_houses_between_them_and_water() {
     assert_ne!(crate::organism::organism::DIRECTIONS[step], (0, 1));
 }
 
+#[test]
+fn thirsty_with_frozen_water_nearer_than_open_water_heads_for_the_ice() {
+    // Open water 23 tiles south, a frozen patch 18 tiles away to the south-east. Both are in reach
+    // at this thirst, and the nearer one is the goal from every tile on the way.
+    let (org, grid) = parched_at(&[((50, 73), Tile::Water), ((62, 56), Tile::Ice)], 0.19);
+    let mut rng = StdRng::seed_from_u64(0);
+    let (action, thought) = org.choose_action(
+        &grid,
+        &BuildingList::new(),
+        100,
+        0.0,
+        &[],
+        false,
+        0,
+        &mut rng,
+        false,
+        "state",
+        &[0, 1, 2, 3, 4, 5, 6, 7],
+    );
+    assert_eq!(thought.as_deref(), Some("heading for the frozen water"));
+    assert!(
+        crate::organism::organism::DIRECTIONS[action].0 > 0,
+        "steps east toward the ice"
+    );
+}
+
 fn worker_on_sand(name: &str) -> (Organism, WorldGrid, StdRng) {
     let mut rng = StdRng::seed_from_u64(0);
     let traits = Traits::random(&mut rng);

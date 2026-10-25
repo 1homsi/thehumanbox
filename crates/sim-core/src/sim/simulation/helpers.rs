@@ -123,6 +123,29 @@ pub(super) fn walled_in(grid: &WorldGrid, ix: i32, iy: i32) -> bool {
     near_a_house && open_pocket(grid, ix, iy).len() < ENCLOSURE
 }
 
+/// The house a walled-in walker steps out through in place of the step they chose. A parched walker
+/// whose step is open ground takes that step: the house exit replaced every step, so from the next hut
+/// the walk led straight back, and two huts traded places each tick while people died of thirst beside
+/// them. Everyone else keeps the house exit as before.
+pub(super) fn walled_exit(
+    grid: &WorldGrid,
+    ix: i32,
+    iy: i32,
+    action: usize,
+    parched: bool,
+) -> Option<(i32, i32)> {
+    let (dx, dy) = DIRECTIONS[action];
+    let (nx, ny) = (ix + dx, iy + dy);
+    let next = grid.get(nx, ny);
+    // Open ground is taken as chosen. A hut is never open ground here: when walled in, a chosen hut is
+    // a house-exit candidate too, so an interior hut does not keep them inside while another hut opens out.
+    let step_open = next.walkable() && next != Tile::Fire && !grid.is_wet(next, nx, ny);
+    if (step_open && parched) || !walled_in(grid, ix, iy) {
+        return None;
+    }
+    way_out_through_a_house(grid, ix, iy, action)
+}
+
 /// For someone `walled_in`: the house to walk through. One that opens onto
 /// ground outside their pocket comes first, then the one most in the asked
 /// direction.
