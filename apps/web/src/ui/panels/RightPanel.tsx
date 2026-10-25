@@ -5,6 +5,7 @@ import type { OrganismState, WorldState } from '../../shared/types'
 import { useUIStore } from '../../state/store'
 import { lazyWithRetry as lazy } from '../../shared/lazyWithRetry'
 import { shownGeneration } from '../../game/model/generations'
+import { ageInYears } from '../../game/model/calendar'
 import { formatNumber, t } from '../../i18n'
 
 // The person cards and the detail view (with the life-story modal) are only drawn
@@ -145,7 +146,7 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
                       <span className="org-meta">
                         {t('panels.right.generation', {
                           generation: formatNumber(shownGeneration(org.generation)),
-                          age: org.age,
+                          age: ageInYears(org.age),
                         })}
                       </span>
                       {starredSet.has(org.id) && (
