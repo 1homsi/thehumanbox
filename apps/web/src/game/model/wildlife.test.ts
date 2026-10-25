@@ -22,6 +22,10 @@ describe('wildlife', () => {
     expect(wildlifeCounts(birds)).toEqual([{ label: 'birds', count: 1, away: 2 }])
   })
 
+  it('marks a lion as a danger, as the simulation treats it (a predator that hunts people)', () => {
+    expect(wildlifeCounts([{ kind: 'lion' }] as never)).toEqual([{ label: 'lions', count: 1, danger: true }])
+  })
+
   it('copes with no animals', () => {
     expect(wildlifeCounts(undefined)).toEqual([])
   })

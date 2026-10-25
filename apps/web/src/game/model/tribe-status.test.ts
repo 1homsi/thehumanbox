@@ -32,6 +32,17 @@ describe('tribe status', () => {
     ],
   } as unknown as WorldState
 
+  it('counts a member sick from the same infection level the person card and the population count use', () => {
+    // 0.2 is past the 0.15 line the simulation and the person card call sick, but short of 0.3.
+    const mild = {
+      ...world,
+      organisms: (world.organisms as unknown as Array<Record<string, unknown>>).map((o) =>
+        o.lineage_id === 'a' ? { ...o, infection: 0.2 } : o,
+      ),
+    } as unknown as WorldState
+    expect(tribeStatus(mild, 'a')!.sick).toBe(tribeStatus(mild, 'a')!.people)
+  })
+
   it('averages needs over living members and gathers faith and prayers', () => {
     const s = tribeStatus(world, 'a')!
     expect(s.name).toBe('Ashari')
