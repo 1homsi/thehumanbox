@@ -93,6 +93,7 @@
     "noAppBundle": "Das installierte App-Paket wurde nicht gefunden.",
     "noPermission": "Keine Berechtigung, die App in {dir} zu ersetzen. Installiere sie mit scripts/install-desktop.sh neu.",
     "unpackFailed": "Das Update konnte nicht entpackt werden: {error}",
-    "noAppInUpdate": "Das heruntergeladene Update enthält keine App."
+    "noAppInUpdate": "Das heruntergeladene Update enthält keine App.",
+    "busyMessage": "Warte, bis die laufende Änderung am Speicher oder an der Simulation abgeschlossen ist, und installiere dann das Update."
   }
 }

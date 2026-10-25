@@ -93,6 +93,7 @@
     "noAppBundle": "Nie znaleziono zainstalowanego pakietu aplikacji.",
     "noPermission": "Brak uprawnień do zastąpienia aplikacji w {dir}. Zainstaluj ją ponownie za pomocą scripts/install-desktop.sh.",
     "unpackFailed": "Nie można rozpakować aktualizacji: {error}",
-    "noAppInUpdate": "Pobrana aktualizacja nie zawierała aplikacji."
+    "noAppInUpdate": "Pobrana aktualizacja nie zawierała aplikacji.",
+    "busyMessage": "Poczekaj, aż zakończy się trwająca zmiana zapisu lub symulacji, a potem zainstaluj aktualizację."
   }
 }

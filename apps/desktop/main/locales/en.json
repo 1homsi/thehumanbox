@@ -93,6 +93,7 @@
     "noAppBundle": "Could not find the installed app bundle.",
     "noPermission": "No permission to replace the app in {dir}. Reinstall it with scripts/install-desktop.sh.",
     "unpackFailed": "Could not unpack the update: {error}",
-    "noAppInUpdate": "The downloaded update did not contain an app."
+    "noAppInUpdate": "The downloaded update did not contain an app.",
+    "busyMessage": "Wait for the current save or simulation change to finish, then install the update."
   }
 }

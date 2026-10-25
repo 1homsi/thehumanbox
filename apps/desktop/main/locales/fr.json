@@ -93,6 +93,7 @@
     "noAppBundle": "Le paquet de l'application installée est introuvable.",
     "noPermission": "Autorisation absente pour remplacer l'application dans {dir}. Réinstallez-la avec scripts/install-desktop.sh.",
     "unpackFailed": "Impossible d'extraire la mise à jour : {error}",
-    "noAppInUpdate": "La mise à jour téléchargée ne contenait pas d'application."
+    "noAppInUpdate": "La mise à jour téléchargée ne contenait pas d'application.",
+    "busyMessage": "Attendez la fin de la modification en cours des sauvegardes ou de la simulation, puis installez la mise à jour."
   }
 }

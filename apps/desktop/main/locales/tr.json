@@ -93,6 +93,7 @@
     "noAppBundle": "Yüklü uygulama paketi bulunamadı.",
     "noPermission": "{dir} içindeki uygulamayı değiştirme izni yok. scripts/install-desktop.sh ile yeniden yükleyin.",
     "unpackFailed": "Güncelleme açılamadı: {error}",
-    "noAppInUpdate": "İndirilen güncelleme bir uygulama içermiyordu."
+    "noAppInUpdate": "İndirilen güncelleme bir uygulama içermiyordu.",
+    "busyMessage": "Devam eden kayıt veya simülasyon değişikliği bitene kadar bekleyin, sonra güncellemeyi kurun."
   }
 }

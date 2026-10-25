@@ -93,6 +93,7 @@
     "noAppBundle": "No se encontró el paquete de la aplicación instalada.",
     "noPermission": "No hay permiso para reemplazar la aplicación en {dir}. Reinstálala con scripts/install-desktop.sh.",
     "unpackFailed": "No se pudo descomprimir la actualización: {error}",
-    "noAppInUpdate": "La actualización descargada no contenía ninguna aplicación."
+    "noAppInUpdate": "La actualización descargada no contenía ninguna aplicación.",
+    "busyMessage": "Espera a que termine el cambio de guardado o de simulación en curso y luego instala la actualización."
   }
 }

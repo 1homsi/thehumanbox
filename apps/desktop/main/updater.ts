@@ -3,6 +3,7 @@ import { autoUpdater, UpdateDownloadedEvent, UpdateInfo } from 'electron-updater
 import { loadSettings } from './settings'
 import { appBundleFromExe, hasDeveloperIdSignature, startUnsignedMacInstall } from './mac-unsigned-install'
 import { t } from './i18n'
+import { currentDesktopOperation } from './exclusive-operation'
 
 export type UpdateCheckStatus = 'checking' | 'available' | 'downloaded' | 'up-to-date' | 'unsupported' | 'error'
 
@@ -31,7 +32,16 @@ function usesUnsignedMacInstall(): boolean {
   return bundle !== null && !hasDeveloperIdSignature(bundle)
 }
 
+// Installing quits the app. A save-folder move, a reset or a simulation restart
+// running in this process must finish first: quitting mid-way leaves it to
+// recovery at the next start. Returns the reason to wait, or null when idle.
+function installWaitReason(): string | null {
+  return currentDesktopOperation() === null ? null : t('update.busyMessage')
+}
+
 function installNow(): UpdateCheckResult {
+  const waitReason = installWaitReason()
+  if (waitReason) return { ...latestStatus, message: waitReason }
   if (!usesUnsignedMacInstall()) {
     setImmediate(() => autoUpdater.quitAndInstall())
     return latestStatus
@@ -119,7 +129,17 @@ export function initUpdater(getWindow: () => BrowserWindow | null): void {
       console.error('[updater] could not show the update prompt:', error)
       return
     }
-    if (response === 0) installNow()
+    if (response !== 0) return
+    // The toast can still install this download later, so a refusal here only
+    // needs to be said, not retried.
+    const waitReason = installWaitReason()
+    if (waitReason) {
+      dialog
+        .showMessageBox({ type: 'info', message: waitReason })
+        .catch((error: unknown) => console.error('[updater] could not show the wait notice:', error))
+      return
+    }
+    installNow()
   })
 
   autoUpdater.on('error', (err) => {
