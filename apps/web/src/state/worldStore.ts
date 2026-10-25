@@ -6,6 +6,15 @@ import { recordPopulations, type PopHistory } from '../game/model/pop-history'
 export const popHistory: PopHistory = new Map()
 const popSampling = { lastTick: -Infinity }
 
+// Every tribe name the player has been shown while the tribe lived. The simulation drops a name once no one of
+// that tribe is alive, but a stats row can still mention the tribe for a while after that.
+const tribeNames = new Map<string, string>()
+
+/** The tribe's name from the current snapshot, else the last one seen for it, else undefined. */
+export function knownTribeName(names: Record<string, string> | undefined, id: string): string | undefined {
+  return names?.[id] ?? tribeNames.get(id)
+}
+
 interface WorldStore {
   world: WorldState | null
   byId: Map<string, OrganismState>
@@ -17,6 +26,7 @@ export const useWorldStore = create<WorldStore>((set, get) => ({
   byId: new Map(),
   setWorld: (world) => {
     recordPopulations(popHistory, popSampling, world)
+    for (const [id, name] of Object.entries(world.lineage_names ?? {})) tribeNames.set(id, name)
     // Diff against the previous map: reuse the entries whose
     // reference equals the incoming one, only allocate a new Map
     // when membership actually changed. With the mergeDefined
