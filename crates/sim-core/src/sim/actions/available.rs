@@ -203,6 +203,7 @@ pub fn available_actions_into(
 
     // A dead organism is turned down for every action by the trade-route check.
     if !org.alive {
+        recycle_plan(plan);
         return;
     }
     // Walk the candidate ranges in the order they were offered, keeping an id
@@ -233,6 +234,18 @@ pub fn available_actions_into(
             }
         }
     }
+    recycle_plan(plan);
+}
+
+thread_local! {
+    /// The candidate ranges of the last plan, kept for the next one: a plan is built for every organism every
+    /// tick, and each one used to allocate (and grow) its own list.
+    static PLAN_RANGES: std::cell::RefCell<Vec<(u16, u16)>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// Hands a finished plan's list back for the next plan to reuse.
+fn recycle_plan(plan: Plan) {
+    PLAN_RANGES.with_borrow_mut(|ranges| *ranges = plan.0);
 }
 
 /// The ids whose candidacy needs more than the semantic gate, as bit words,
@@ -301,7 +314,9 @@ struct Plan(Vec<(u16, u16)>);
 
 impl Plan {
     fn new() -> Self {
-        Plan(Vec::with_capacity(96))
+        let mut ranges = PLAN_RANGES.with_borrow_mut(std::mem::take);
+        ranges.clear();
+        Plan(ranges)
     }
 
     fn range(&mut self, start: usize, end: usize) {

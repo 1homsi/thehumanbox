@@ -226,10 +226,9 @@ impl Simulation {
                 self.organisms[idx].health = (self.organisms[idx].health - 0.001 * (inf - 0.6)).max(0.0);
                 self.organisms[idx].mark_harm(crate::organism::organism::Harm::Sickness, self.tick_count);
             }
-            let thought = self.organisms[idx].thought.clone();
             if inf > 0.25
                 && matches!(
-                    thought.as_str(),
+                    self.organisms[idx].thought.as_str(),
                     "exploring" | "observing" | "satisfied" | "on path"
                 )
             {

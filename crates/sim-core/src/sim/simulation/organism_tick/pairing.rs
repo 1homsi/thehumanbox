@@ -154,9 +154,7 @@ impl Simulation {
         }
 
         if is_unpartnered_adult {
-            let attracted_to = self.organisms[idx].attracted_to.clone();
-            if let Some(ref aid) = attracted_to {
-                let aid = aid.clone();
+            if let Some(aid) = self.organisms[idx].attracted_to.clone() {
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
                 let attraction_age = tc.saturating_sub(self.organisms[idx].attraction_tick);
                 let partner_close = org_idx_by_id.get(&aid).is_some_and(|&i| {
@@ -231,9 +229,12 @@ impl Simulation {
             }
         }
 
-        if let Some(ref pid) = self.organisms[idx].partner_id.clone() {
-            let pid = pid.clone();
-            if tc % 19 == (idx as u64 % 19) && self.rng.random::<f32>() < 0.0018 {
+        // The id is copied only when the check passes; the checks run in the same order as before, so the draws match.
+        if self.organisms[idx].partner_id.is_some()
+            && tc % 19 == (idx as u64 % 19)
+            && self.rng.random::<f32>() < 0.0018
+        {
+            if let Some(pid) = self.organisms[idx].partner_id.clone() {
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
                 if let Some(pi) = org_idx_by_id
                     .get(&pid)
@@ -271,13 +272,13 @@ impl Simulation {
             if spread_check {
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
                 let chat_target: Option<usize> = {
-                    let partner_id = self.organisms[idx].partner_id.clone();
+                    let partner_id = self.organisms[idx].partner_id.as_deref();
                     spatial
                         .ordered_nearby(&self.organisms, ox, oy, 6)
                         .filter(|(i, o)| {
                             *i != idx
                                 && o.alive
-                                && partner_id.as_deref() != Some(&o.id)
+                                && partner_id != Some(o.id.as_str())
                                 && (o.x - ox).det_hypot(o.y - oy) < 6.0
                         })
                         .min_by(|(_, a), (_, b)| {
