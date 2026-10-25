@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { WorldState } from '../../../shared/types'
 import { formatNumber, t } from '../../../i18n'
+import { discoveryWord } from '../../sim-words'
 
 export function DiscoveryRollup({ organisms }: { organisms: WorldState['organisms'] }) {
   const [showAll, setShowAll] = useState(false)
@@ -38,7 +39,7 @@ export function DiscoveryRollup({ organisms }: { organisms: WorldState['organism
       <div className="disc-list">
         {visible.map(([name, count]) => (
           <div key={name} className="disc-row">
-            <span className="disc-name">{name}</span>
+            <span className="disc-name">{discoveryWord(name)}</span>
             <span className="disc-count">{formatNumber(count)}</span>
             <span className="disc-pct">{Math.round((count / organisms.length) * 100)}%</span>
           </div>
