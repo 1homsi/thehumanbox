@@ -106,7 +106,8 @@ describe('CalendarTag: one tag for year, season and time of day', () => {
     act(() => tag.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })))
     const body = text(document.querySelector('.ui-tooltip'))
     expect(body).toContain('moon: waxing gibbous')
-    expect(body).toContain('Year 15, day 5.')
+    // The moon's date comes from the tick, as the time tag's does, not from the stored cosmos day (4).
+    expect(body).toContain('Year 15, day 1.')
   })
 
   it('explains the full date, the season and the time in its tooltip', () => {
