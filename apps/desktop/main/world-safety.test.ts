@@ -382,6 +382,30 @@ test("only empty or previously identified custom folders can become migration ta
   }
 });
 
+test("a folder that holds only operating-system metadata can become a save folder", () => {
+  // Finder writes .DS_Store into folders it has shown, and Explorer writes
+  // Thumbs.db and desktop.ini, so a folder the player just created can look used.
+  const root = mkdtempSync(path.join(tmpdir(), "thb-os-metadata-test-"));
+  const folder = path.join(root, "Saves");
+  try {
+    mkdirSync(folder);
+    writeFileSync(path.join(folder, ".DS_Store"), "finder");
+    writeFileSync(path.join(folder, "Thumbs.db"), "explorer");
+    writeFileSync(path.join(folder, "desktop.ini"), "shell");
+
+    assert.doesNotThrow(() => assertEmptyOrIdentifiedDataRoot(folder));
+    assert.equal(readFileSync(path.join(folder, ".DS_Store"), "utf8"), "finder");
+
+    writeFileSync(path.join(folder, "family-photos.txt"), "keep me");
+    assert.throws(
+      () => assertEmptyOrIdentifiedDataRoot(folder),
+      /not empty/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("never trusts symlinked active-world control paths", () => {
   const root = mkdtempSync(path.join(tmpdir(), "thb-symlink-world-test-"));
   const source = path.join(root, "source");
