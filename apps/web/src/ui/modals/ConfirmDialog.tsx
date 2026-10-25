@@ -18,14 +18,15 @@ export function ConfirmHost() {
       )}
       <div className="confirm-actions">
         {!current.notice && (
-          <button className="lang-btn" onClick={() => settleConfirm(false)}>
+          <button className="lang-btn" onClick={() => settleConfirm(false)} autoFocus={!!current.danger}>
             {current.cancelLabel ?? t('dialogs.confirm.cancel')}
           </button>
         )}
+        {/* A destructive question starts on Cancel: a reflex Enter must not delete anything. */}
         <button
           className={`lang-btn ${current.danger ? 'danger' : 'primary'}`}
           onClick={() => settleConfirm(true)}
-          autoFocus
+          autoFocus={!current.danger}
         >
           {current.confirmLabel ?? t('dialogs.confirm.confirm')}
         </button>
