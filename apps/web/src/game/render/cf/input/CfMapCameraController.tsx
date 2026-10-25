@@ -222,9 +222,10 @@ export function CfMapCameraController({
         minMapZoom({ w: worldW, h: worldH }, { w: containerW, h: containerH }),
         MAX_MAP_ZOOM,
       )
+      // The player took the camera even when it is already at the limit: the follow ends either way.
+      stopFollowRef.current()
       if (to === from.zoom) return
       const rect = containerEl.getBoundingClientRect()
-      stopFollowRef.current()
       tween.current = {
         from: { ...from },
         to,

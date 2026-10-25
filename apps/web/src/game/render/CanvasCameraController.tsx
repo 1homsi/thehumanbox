@@ -119,8 +119,9 @@ export function CanvasCameraController({
       const rect = containerEl.getBoundingClientRect()
       const from = cameraStateRef.current
       const to = doubleClickZoomTarget(from.zoom, e.shiftKey, minZoom, MAX_MAP_ZOOM)
-      if (to === from.zoom) return
+      // The player took the camera even when it is already at the limit: the follow ends either way.
       stopFollow()
+      if (to === from.zoom) return
       tween.current = {
         from: { ...from },
         to,
