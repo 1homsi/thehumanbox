@@ -237,3 +237,24 @@ export function discoveryWord(id: string): string {
   // A finished building is discovered under its kind's id, so it reads as the building's name.
   return BUILDING_KINDS.has(id) ? buildingKindWord(id) : idWords(id)
 }
+
+/** A word from the table under `prefix`, or the id's own words when the table does not name it. */
+function keyedWord(prefix: string, id: string): string {
+  const key = `${prefix}.${id}`
+  return hasMessage(key) ? t(key as MessageKey) : idWords(id)
+}
+
+/** A trade good as words, e.g. "bottled spirit". */
+export function goodWord(good: string): string {
+  return keyedWord('model.words.good', good)
+}
+
+/** A treaty kind as words, e.g. "non aggression". */
+export function treatyWord(kind: string): string {
+  return keyedWord('model.words.treaty', kind)
+}
+
+/** A relation status as words, e.g. "rivals". */
+export function relationWord(status: string): string {
+  return keyedWord('model.words.relation', status)
+}

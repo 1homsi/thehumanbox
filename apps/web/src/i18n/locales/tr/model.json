@@ -740,6 +740,48 @@
       "empire": "imparatorluk",
       "federation": "federasyon",
       "corporate": "şirketçi"
+    },
+    "good": {
+      "food": "yiyecek",
+      "water": "su",
+      "wood": "odun",
+      "stone": "taş",
+      "iron": "demir",
+      "cloth": "kumaş",
+      "bread": "ekmek",
+      "spirit": "rakı",
+      "aged_spirit": "yaşlanmış rakı",
+      "bottled_spirit": "şişelenmiş rakı",
+      "blended_spirit": "karışım rakı",
+      "bottle": "şişe",
+      "meat": "et",
+      "cuts": "et parçaları",
+      "ground": "kıyma",
+      "sausage": "sucuk",
+      "preserved": "konserve",
+      "preserved_meat": "tuzlu et",
+      "pattern": "desen",
+      "piece": "parça",
+      "garment": "giysi",
+      "article": "eşya",
+      "drink": "içecek",
+      "pastry": "hamur işi",
+      "coffee": "kahve",
+      "stock": "stok",
+      "cave_painting": "mağara resmi",
+      "sculpture": "heykel"
+    },
+    "treaty": {
+      "non_aggression": "saldırmazlık",
+      "alliance": "ittifak",
+      "trade": "ticaret",
+      "defensive": "savunma",
+      "vassalage": "vasallık"
+    },
+    "relation": {
+      "ally": "müttefik",
+      "neutral": "tarafsız",
+      "rivals": "rakipler"
     }
   }
 }

@@ -754,6 +754,48 @@
       "empire": "empire",
       "federation": "federation",
       "corporate": "corporate"
+    },
+    "good": {
+      "food": "food",
+      "water": "water",
+      "wood": "wood",
+      "stone": "stone",
+      "iron": "iron",
+      "cloth": "cloth",
+      "bread": "bread",
+      "spirit": "spirit",
+      "aged_spirit": "aged spirit",
+      "bottled_spirit": "bottled spirit",
+      "blended_spirit": "blended spirit",
+      "bottle": "bottle",
+      "meat": "meat",
+      "cuts": "cuts",
+      "ground": "ground",
+      "sausage": "sausage",
+      "preserved": "preserved",
+      "preserved_meat": "preserved meat",
+      "pattern": "pattern",
+      "piece": "piece",
+      "garment": "garment",
+      "article": "article",
+      "drink": "drink",
+      "pastry": "pastry",
+      "coffee": "coffee",
+      "stock": "stock",
+      "cave_painting": "cave painting",
+      "sculpture": "sculpture"
+    },
+    "treaty": {
+      "non_aggression": "non aggression",
+      "alliance": "alliance",
+      "trade": "trade",
+      "defensive": "defensive",
+      "vassalage": "vassalage"
+    },
+    "relation": {
+      "ally": "ally",
+      "neutral": "neutral",
+      "rivals": "rivals"
     }
   }
 }

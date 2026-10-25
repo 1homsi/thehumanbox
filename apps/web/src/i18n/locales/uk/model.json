@@ -773,6 +773,48 @@
       "empire": "імперія",
       "federation": "федерація",
       "corporate": "корпоративний"
+    },
+    "good": {
+      "food": "їжа",
+      "water": "вода",
+      "wood": "деревина",
+      "stone": "камінь",
+      "iron": "залізо",
+      "cloth": "тканина",
+      "bread": "хліб",
+      "spirit": "горілка",
+      "aged_spirit": "витримана горілка",
+      "bottled_spirit": "пляшкова горілка",
+      "blended_spirit": "змішана горілка",
+      "bottle": "пляшка",
+      "meat": "м’ясо",
+      "cuts": "шматки м’яса",
+      "ground": "фарш",
+      "sausage": "ковбаса",
+      "preserved": "консерви",
+      "preserved_meat": "солонина",
+      "pattern": "візерунок",
+      "piece": "деталь",
+      "garment": "одяг",
+      "article": "виріб",
+      "drink": "напій",
+      "pastry": "випічка",
+      "coffee": "кава",
+      "stock": "запаси",
+      "cave_painting": "печерний живопис",
+      "sculpture": "скульптура"
+    },
+    "treaty": {
+      "non_aggression": "про ненапад",
+      "alliance": "союз",
+      "trade": "торгівля",
+      "defensive": "оборонний",
+      "vassalage": "васалітет"
+    },
+    "relation": {
+      "ally": "союзники",
+      "neutral": "нейтральні",
+      "rivals": "суперники"
     }
   }
 }

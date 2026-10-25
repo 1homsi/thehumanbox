@@ -751,6 +751,48 @@
       "empire": "Kaiserreich",
       "federation": "Bund",
       "corporate": "Konzern"
+    },
+    "good": {
+      "food": "Nahrung",
+      "water": "Wasser",
+      "wood": "Holz",
+      "stone": "Stein",
+      "iron": "Eisen",
+      "cloth": "Stoff",
+      "bread": "Brot",
+      "spirit": "Branntwein",
+      "aged_spirit": "gereifter Branntwein",
+      "bottled_spirit": "abgefüllter Branntwein",
+      "blended_spirit": "Mischbrand",
+      "bottle": "Flasche",
+      "meat": "Fleisch",
+      "cuts": "Fleischstücke",
+      "ground": "Hackfleisch",
+      "sausage": "Wurst",
+      "preserved": "Konserve",
+      "preserved_meat": "Pökelfleisch",
+      "pattern": "Muster",
+      "piece": "Stück",
+      "garment": "Kleidungsstück",
+      "article": "Ware",
+      "drink": "Getränk",
+      "pastry": "Gebäck",
+      "coffee": "Kaffee",
+      "stock": "Vorrat",
+      "cave_painting": "Höhlenmalerei",
+      "sculpture": "Skulptur"
+    },
+    "treaty": {
+      "non_aggression": "Nichtangriff",
+      "alliance": "Bündnis",
+      "trade": "Handel",
+      "defensive": "Verteidigung",
+      "vassalage": "Vasallentum"
+    },
+    "relation": {
+      "ally": "Verbündete",
+      "neutral": "neutral",
+      "rivals": "Rivalen"
     }
   }
 }

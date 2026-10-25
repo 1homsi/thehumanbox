@@ -740,6 +740,48 @@
       "empire": "帝国",
       "federation": "連邦",
       "corporate": "企業体制"
+    },
+    "good": {
+      "food": "食料",
+      "water": "水",
+      "wood": "木材",
+      "stone": "石材",
+      "iron": "鉄",
+      "cloth": "布",
+      "bread": "パン",
+      "spirit": "蒸留酒",
+      "aged_spirit": "熟成酒",
+      "bottled_spirit": "瓶詰めの酒",
+      "blended_spirit": "ブレンド酒",
+      "bottle": "瓶",
+      "meat": "肉",
+      "cuts": "肉の部位",
+      "ground": "挽き肉",
+      "sausage": "ソーセージ",
+      "preserved": "保存食",
+      "preserved_meat": "塩漬け肉",
+      "pattern": "模様",
+      "piece": "部品",
+      "garment": "衣類",
+      "article": "品物",
+      "drink": "飲み物",
+      "pastry": "焼き菓子",
+      "coffee": "コーヒー",
+      "stock": "在庫",
+      "cave_painting": "洞窟壁画",
+      "sculpture": "彫刻"
+    },
+    "treaty": {
+      "non_aggression": "不可侵",
+      "alliance": "同盟",
+      "trade": "通商",
+      "defensive": "防衛",
+      "vassalage": "従属"
+    },
+    "relation": {
+      "ally": "同盟",
+      "neutral": "中立",
+      "rivals": "対立"
     }
   }
 }

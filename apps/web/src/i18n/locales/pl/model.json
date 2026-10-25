@@ -773,6 +773,48 @@
       "empire": "imperium",
       "federation": "federacja",
       "corporate": "korporacja"
+    },
+    "good": {
+      "food": "żywność",
+      "water": "woda",
+      "wood": "drewno",
+      "stone": "kamień",
+      "iron": "żelazo",
+      "cloth": "tkanina",
+      "bread": "chleb",
+      "spirit": "wódka",
+      "aged_spirit": "dojrzała wódka",
+      "bottled_spirit": "butelkowana wódka",
+      "blended_spirit": "mieszana wódka",
+      "bottle": "butelka",
+      "meat": "mięso",
+      "cuts": "kawałki mięsa",
+      "ground": "mięso mielone",
+      "sausage": "kiełbasa",
+      "preserved": "konserwa",
+      "preserved_meat": "peklowane mięso",
+      "pattern": "wzór",
+      "piece": "element",
+      "garment": "odzież",
+      "article": "artykuł",
+      "drink": "napój",
+      "pastry": "wypiek",
+      "coffee": "kawa",
+      "stock": "zapas",
+      "cave_painting": "malowidło jaskiniowe",
+      "sculpture": "rzeźba"
+    },
+    "treaty": {
+      "non_aggression": "pakt o nieagresji",
+      "alliance": "sojusz",
+      "trade": "handel",
+      "defensive": "obronny",
+      "vassalage": "wasalstwo"
+    },
+    "relation": {
+      "ally": "sojusznicy",
+      "neutral": "neutralni",
+      "rivals": "rywale"
     }
   }
 }

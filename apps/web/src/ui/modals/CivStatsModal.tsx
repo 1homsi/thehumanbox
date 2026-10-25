@@ -12,7 +12,7 @@ import { farmStage } from '../../game/model/farms'
 import { getBuildingState } from '../../game/model/building-state'
 import { calendarAt } from '../../game/model/calendar'
 import { formatNumber, t, type MessageKey } from '../../i18n'
-import { buildingKindWord, moonPhaseWord, seasonWord } from '../sim-words'
+import { buildingKindWord, goodWord, moonPhaseWord, seasonWord, treatyWord } from '../sim-words'
 
 interface Props {
   world: WorldState
@@ -756,7 +756,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                   })}
                 </span>
                 <span className="civ-row-tag">
-                  {(treaty.kind ?? t('dialogs.civ.diplomacy.treaty')).replace(/_/g, ' ')}
+                  {treaty.kind ? treatyWord(treaty.kind) : t('dialogs.civ.diplomacy.treaty')}
                 </span>
               </div>
             ))}
@@ -857,8 +857,8 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
             {goodsTotalRows.length === 0 && <div className="civ-empty">{t('dialogs.civ.goods.empty')}</div>}
             <div className="civ-build-grid">
               {goodsTotalRows.map(([kind, total]) => (
-                <span key={kind} className="civ-chip" title={kind.replace(/_/g, ' ')}>
-                  {GOOD_EMOJI[kind] ?? '🧰'} {kind.replace(/_/g, ' ')}: {formatNumber(total)}
+                <span key={kind} className="civ-chip" title={goodWord(kind)}>
+                  {GOOD_EMOJI[kind] ?? '🧰'} {goodWord(kind)}: {formatNumber(total)}
                 </span>
               ))}
               {goodsOverflow > 0 && (
@@ -1000,7 +1000,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                         </span>
                         <span className="civ-row-sub">
                           {GOOD_EMOJI[caravan.cargo] ?? '\u{1F4E6}'} {formatNumber(caravan.amount)}{' '}
-                          {caravan.cargo.replace(/_/g, ' ')} · {formatNumber(Math.round(progress * 100))}%
+                          {goodWord(caravan.cargo)} · {formatNumber(Math.round(progress * 100))}%
                         </span>
                         <span className="civ-row-tag">
                           {eta === 0
@@ -1032,8 +1032,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                       {'\u{1F4B0}'} {seller} → {buyer}
                     </span>
                     <span className="civ-row-sub">
-                      {GOOD_EMOJI[trade.good] ?? ''} {formatNumber(trade.amount)}{' '}
-                      {trade.good.replace(/_/g, ' ')}
+                      {GOOD_EMOJI[trade.good] ?? ''} {formatNumber(trade.amount)} {goodWord(trade.good)}
                     </span>
                     <span className="civ-row-tag">
                       {t('dialogs.civ.tradeLog.coins', { count: trade.price })}
