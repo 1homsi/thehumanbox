@@ -169,6 +169,82 @@ describe('TribeCard', () => {
     expect(host.querySelector('[role="alert"]')?.textContent).toBe(t('panels.rename.refused'))
   })
 
+  it('a blur while the name is being saved keeps the field open, and a refusal puts the cursor back in it', async () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    roots.push(root)
+    let answer: (saved: boolean) => void = () => {}
+    const onRename = vi.fn(() => new Promise<boolean>((resolve) => (answer = resolve)))
+
+    act(() => useUIStore.setState({ focus: 'lineage:a' }))
+    act(() =>
+      root.render(
+        <TribeCard
+          world={world(['a', 'b'])}
+          onAnswer={() => {}}
+          onTool={() => {}}
+          onRename={onRename}
+          onTeach={() => {}}
+        />,
+      ),
+    )
+    act(() => host.querySelector<HTMLButtonElement>('.tribe-card-rename')!.click())
+    const input = host.querySelector<HTMLInputElement>('.tribe-card-name-input')!
+    typeInto(input, 'Ashen')
+    act(() => {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    })
+    act(() => {
+      input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
+    })
+    expect(host.querySelector('.tribe-card-name-input')).not.toBeNull()
+
+    await act(async () => answer(false))
+
+    const field = host.querySelector<HTMLInputElement>('.tribe-card-name-input')!
+    expect(host.querySelector('[role="alert"]')?.textContent).toBe(t('panels.rename.refused'))
+    expect(document.activeElement).toBe(field)
+  })
+
+  it('a refusal does not show again once the player reopens the field', async () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    roots.push(root)
+    const onRename = vi.fn(() => Promise.resolve(false))
+
+    act(() => useUIStore.setState({ focus: 'lineage:a' }))
+    act(() =>
+      root.render(
+        <TribeCard
+          world={world(['a', 'b'])}
+          onAnswer={() => {}}
+          onTool={() => {}}
+          onRename={onRename}
+          onTeach={() => {}}
+        />,
+      ),
+    )
+    act(() => host.querySelector<HTMLButtonElement>('.tribe-card-rename')!.click())
+    const input = host.querySelector<HTMLInputElement>('.tribe-card-name-input')!
+    typeInto(input, 'Ashen')
+    act(() => {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    })
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+    expect(host.querySelector('[role="alert"]')).not.toBeNull()
+
+    act(() => {
+      host
+        .querySelector<HTMLInputElement>('.tribe-card-name-input')!
+        .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    })
+    act(() => host.querySelector<HTMLButtonElement>('.tribe-card-rename')!.click())
+
+    expect(host.querySelector('[role="alert"]')).toBeNull()
+  })
+
   it('tells what the tribe has been through: a hungry winter and its war dead', () => {
     const host = document.createElement('div')
     document.body.append(host)

@@ -88,12 +88,18 @@ function TribeName({
   const [pending, setPending] = useState(false)
   const [refused, setRefused] = useState(false)
   const open = useRef(true)
+  const input = useRef<HTMLInputElement>(null)
   useEffect(() => {
     open.current = true
     return () => {
       open.current = false
     }
   }, [])
+  // Disabling the field while the world answers can drop keyboard focus. When a refusal lands, the field is
+  // enabled again, so the player can correct the name without reaching for the mouse.
+  useEffect(() => {
+    if (!pending && refused && editing !== null) input.current?.focus()
+  }, [pending, refused, editing])
 
   const save = (next: string) => {
     if (pending) return
@@ -119,7 +125,11 @@ function TribeName({
       <button
         className="tribe-card-name tribe-card-rename"
         title={t('panels.tribe.rename')}
-        onClick={() => setEditing(name)}
+        onClick={() => {
+          // A new edit starts clean: the last refusal belonged to the previous attempt.
+          setRefused(false)
+          setEditing(name)
+        }}
       >
         {name} <span aria-hidden="true">✎</span>
       </button>
@@ -128,14 +138,21 @@ function TribeName({
   return (
     <>
       <input
+        ref={input}
         className="tribe-card-name-input"
         autoFocus
         maxLength={24}
         value={editing}
         disabled={pending}
         aria-label={t('panels.tribe.nameLabel')}
-        onChange={(e) => setEditing(e.target.value)}
-        onBlur={() => setEditing(null)}
+        onChange={(e) => {
+          setRefused(false)
+          setEditing(e.target.value)
+        }}
+        // A blur while the world answers must not close the field: the name is still being saved.
+        onBlur={() => {
+          if (!pending) setEditing(null)
+        }}
         onKeyDown={(e) => {
           e.stopPropagation()
           // Enter and Escape that end an IME composition finish the word, not the name.
