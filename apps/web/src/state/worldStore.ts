@@ -9,6 +9,9 @@ const popSampling = { lastTick: -Infinity }
 // Every tribe name the player has been shown while the tribe lived. The simulation drops a name once no one of
 // that tribe is alive, but a stats row can still mention the tribe for a while after that.
 const tribeNames = new Map<string, string>()
+// Lineage ids are only unique within one world, so a new world (time rewound by a reset or a loaded save)
+// starts the names afresh. Same rule as the population history.
+const namesSampling = { lastTick: -Infinity }
 
 /** The tribe's name from the current snapshot, else the last one seen for it, else undefined. */
 export function knownTribeName(names: Record<string, string> | undefined, id: string): string | undefined {
@@ -26,6 +29,8 @@ export const useWorldStore = create<WorldStore>((set, get) => ({
   byId: new Map(),
   setWorld: (world) => {
     recordPopulations(popHistory, popSampling, world)
+    if (world.tick < namesSampling.lastTick) tribeNames.clear()
+    namesSampling.lastTick = world.tick
     for (const [id, name] of Object.entries(world.lineage_names ?? {})) tribeNames.set(id, name)
     // Diff against the previous map: reuse the entries whose
     // reference equals the incoming one, only allocate a new Map
