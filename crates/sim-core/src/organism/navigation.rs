@@ -196,6 +196,9 @@ const PLAN_SIDE: usize = (PLAN_RADIUS * 2 + 1) as usize;
 /// Most tiles one plan may expand; bounded so a crowd of blocked walkers
 /// cannot stall a tick.
 const PLAN_BUDGET: usize = 3000;
+/// A route that ends this near its goal (in tiles) reaches it, even when it gains little: a home in a block
+/// of huts can be got no nearer than two tiles, and refusing that last step sent people round and round it.
+const NEAR_ENOUGH: i32 = 2;
 /// The route search's estimate per tile of distance to the target: a weighted A* (1.4 times the open-ground
 /// step). The admissible estimate (the road step, 6) was measured slower: 4 to 12% more instructions, because
 /// it weakens the pull toward the goal across open ground. At 10 (the open step) the estimate overshoots along
@@ -355,7 +358,7 @@ fn plan_route_in(
         }
     }
     // Only worth walking when it ends clearly closer than we started.
-    if best.2 == start || best.0 + 2 > start_distance && best.0 != 0 {
+    if best.2 == start || best.0 + 2 > start_distance && best.0 > NEAR_ENOUGH {
         return Some(None);
     }
     let mut steps = Vec::new();
@@ -521,7 +524,7 @@ mod wide {
             }
         }
         // Only worth walking when it ends clearly closer than we started.
-        if best.2 == start || best.0 + 2 > start_distance && best.0 != 0 {
+        if best.2 == start || best.0 + 2 > start_distance && best.0 > NEAR_ENOUGH {
             return None;
         }
         let mut steps = Vec::new();
