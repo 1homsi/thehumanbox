@@ -63,6 +63,7 @@ import {
 } from "./updater";
 import { getLocale, matchLocale, setLocale, t } from "./i18n";
 import { appMenuTemplate } from "./app-menu";
+import { handleSecondLaunch } from "./single-instance";
 
 app.setName("The Human Box");
 
@@ -1055,7 +1056,17 @@ function reportStartupFailure(err: unknown): Promise<void> {
 // the data-root lock and show a startup error. Quit it and focus the running
 // window instead.
 if (app.requestSingleInstanceLock()) {
-  app.on("second-instance", showExistingWindow);
+  // The arguments of the second launch are deliberately ignored.
+  app.on("second-instance", () =>
+    handleSecondLaunch({
+      platform: process.platform,
+      isReady: () => app.isReady(),
+      whenReady: () => app.whenReady(),
+      showWindow: showExistingWindow,
+      focusApp: (options) => app.focus(options),
+      onError: (error) => console.error("[main] second launch could not focus the window:", error),
+    }),
+  );
   startWhenReady(app.whenReady(), boot, reportStartupFailure);
 } else {
   app.quit();
