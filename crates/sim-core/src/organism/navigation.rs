@@ -98,7 +98,9 @@ fn step_cost(grid: &WorldGrid, x: i32, y: i32) -> i32 {
     } else {
         OPEN_STEP_COST
     };
-    base + (grid.hazard_at(x, y) * 30.0) as i32
+    // Hazard only ever adds: no step costs less than a road step, which the searches' early outs rely on.
+    // (Nothing writes a negative hazard; the floor makes that a guarantee rather than a habit.)
+    base + (grid.hazard_at(x, y).max(0.0) * 30.0) as i32
 }
 
 const DETOUR_RADIUS: i32 = 16;
@@ -157,6 +159,11 @@ fn detour_step_in(
             if (nx - start.0).abs() > DETOUR_RADIUS || (ny - start.1).abs() > DETOUR_RADIUS {
                 continue;
             }
+            // Same early out as the plan search: a step costs at least a road step.
+            let idx = index(nx, ny);
+            if scratch.cost(idx) <= cost + ROAD_STEP_COST {
+                continue;
+            }
             let tile = grid.get(nx, ny);
             if !tile.walkable() || tile == Tile::Fire {
                 continue;
@@ -170,7 +177,6 @@ fn detour_step_in(
                 continue;
             }
             let next_cost = cost + step_cost(grid, nx, ny);
-            let idx = index(nx, ny);
             if next_cost >= scratch.cost(idx) {
                 continue;
             }
@@ -331,6 +337,12 @@ fn plan_route_in(
             if !inside(nx, ny) || !WorldGrid::in_bounds(nx, ny) {
                 continue;
             }
+            // A step costs at least a road step (hazard only adds), so a cell already reached at or below
+            // `cost + ROAD_STEP_COST` cannot improve. Checked before the tile and step lookups it would skip.
+            let idx = index(nx, ny);
+            if scratch.cost(idx) <= cost + ROAD_STEP_COST {
+                continue;
+            }
             let tile = grid.get(nx, ny);
             if !tile.walkable() || tile == Tile::Fire {
                 continue;
@@ -342,7 +354,6 @@ fn plan_route_in(
                 continue;
             }
             let next_cost = cost + step_cost(grid, nx, ny);
-            let idx = index(nx, ny);
             if next_cost >= scratch.cost(idx) {
                 continue;
             }
@@ -699,6 +710,15 @@ mod tests {
         }
         let doorstep = plan_route(&far, (100, 100), (125, 125)).unwrap();
         assert!(plan_route(&far, *doorstep.last().unwrap(), (125, 125)).is_none());
+    }
+
+    #[test]
+    fn no_step_costs_less_than_a_road_step_even_on_negative_hazard() {
+        let mut grid = WorldGrid::new(1);
+        grid.set(10, 10, Tile::Grass);
+        grid.road[WorldGrid::idx(10, 10)] = crate::world::grid::ROAD_TRACK;
+        grid.hazard[WorldGrid::idx(10, 10)] = -0.5;
+        assert_eq!(step_cost(&grid, 10, 10), ROAD_STEP_COST);
     }
 
     #[test]
