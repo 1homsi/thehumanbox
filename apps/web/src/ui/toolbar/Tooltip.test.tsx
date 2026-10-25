@@ -56,4 +56,42 @@ describe('Tooltip on focus', () => {
     act(() => button.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })))
     expect(document.querySelector('.ui-tooltip')).not.toBeNull()
   })
+
+  it('takes the tip down when the hovered control is replaced under the pointer', () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+    const under = (id: string) => (
+      <Tooltip tip="stats">
+        <button key={id} type="button">
+          {id}
+        </button>
+      </Tooltip>
+    )
+    act(() => root?.render(under('a')))
+    const first = host.querySelector('button') as HTMLButtonElement
+    act(() => first.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })))
+    expect(document.querySelector('.ui-tooltip')).not.toBeNull()
+
+    // The control the pointer is on is swapped for a new one (its key changes), so no mouseleave ever comes.
+    act(() => root?.render(under('b')))
+
+    expect(document.querySelector('.ui-tooltip')).toBeNull()
+  })
+
+  it('moves with its control when the page scrolls under it', () => {
+    const button = mount()
+    const place = (top: number) =>
+      ({ top, bottom: top + 20, left: 40, right: 60, width: 20, height: 20, x: 40, y: top }) as DOMRect
+    const spy = vi.spyOn(button, 'getBoundingClientRect').mockReturnValue(place(300))
+    act(() => button.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })))
+    const tip = () => document.querySelector<HTMLElement>('.ui-tooltip')
+    expect(tip()?.style.top).toBe('292px')
+
+    // The panel scrolls, so the control is now higher on the screen.
+    spy.mockReturnValue(place(150))
+    act(() => window.dispatchEvent(new Event('scroll')))
+
+    expect(tip()?.style.top).toBe('142px')
+  })
 })
