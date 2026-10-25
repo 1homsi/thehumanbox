@@ -47,6 +47,7 @@ import {
   rootsOverlap,
   restoreParkedLiveWorld,
   syncDirectoryBestEffort,
+  syncDirectoryBestEffortAsync,
   validateWorldSaveBytes,
   validateWorldSaveBytesInWorker,
   verifySaveFolderMigrationCopyInWorker,
@@ -76,7 +77,7 @@ async function replaceFileForTransaction(
   try {
     if (backup) fs.renameSync(target, backup);
     fs.renameSync(prepared, target);
-    syncDirectoryBestEffort(path.dirname(target));
+    await syncDirectoryBestEffortAsync(path.dirname(target));
     return { target, backup };
   } catch (error) {
     try {
@@ -90,7 +91,7 @@ async function replaceFileForTransaction(
   }
 }
 
-function finishReplacedFile(replaced: ReplacedFile): void {
+async function finishReplacedFile(replaced: ReplacedFile): Promise<void> {
   if (replaced.backup) {
     try {
       fs.unlinkSync(replaced.backup);
@@ -98,7 +99,7 @@ function finishReplacedFile(replaced: ReplacedFile): void {
       /* noop */
     }
   }
-  syncDirectoryBestEffort(path.dirname(replaced.target));
+  await syncDirectoryBestEffortAsync(path.dirname(replaced.target));
 }
 
 /**
@@ -472,7 +473,7 @@ export function registerIpc(
         bytes,
         randomUUID(),
       );
-      finishReplacedFile(replaced);
+      await finishReplacedFile(replaced);
       return { exported: true, filePath: result.filePath, hash: world.hash };
     }),
   );
@@ -538,7 +539,7 @@ export function registerIpc(
             exportBytes,
             token,
           );
-          finishReplacedFile(replaced);
+          await finishReplacedFile(replaced);
         }
         fs.renameSync(world.markerPath, parkedMarker);
         syncDirectoryBestEffort(path.dirname(world.markerPath));

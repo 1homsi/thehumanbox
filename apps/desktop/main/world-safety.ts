@@ -15,6 +15,7 @@ export {
 export type { ValidatedWorldSave, MigrationWorldExpectation } from "./world-safety/save-validation";
 export {
   syncDirectoryBestEffort,
+  syncDirectoryBestEffortAsync,
   atomicWriteNewFile,
   atomicWriteNewFileAsync,
   atomicReplaceFile,

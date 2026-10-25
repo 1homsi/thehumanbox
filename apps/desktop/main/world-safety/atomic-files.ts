@@ -16,6 +16,22 @@ export function syncDirectoryBestEffort(directory: string): void {
   }
 }
 
+/** syncDirectoryBestEffort for code already on the async path: the sync runs on libuv's thread pool. */
+export async function syncDirectoryBestEffortAsync(
+  directory: string,
+): Promise<void> {
+  try {
+    const handle = await fs.promises.open(directory, "r");
+    try {
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+  } catch {
+    // Directory fsync is unavailable on some Windows filesystems.
+  }
+}
+
 export function syncFile(filePath: string): void {
   const fd = fs.openSync(filePath, "r");
   try {
@@ -85,7 +101,7 @@ export async function atomicWriteNewFileAsync(
     await handle.close();
     handle = null;
     await fs.promises.rename(tempPath, filePath);
-    syncDirectoryBestEffort(path.dirname(filePath));
+    await syncDirectoryBestEffortAsync(path.dirname(filePath));
   } catch (error) {
     if (handle !== null) await handle.close().catch(() => {});
     await fs.promises.unlink(tempPath).catch(() => {});
