@@ -135,6 +135,21 @@ describe('the lagging mark', () => {
     expect(q('.time-lag')).not.toBeNull()
   })
 
+  it('does not carry a lag from before a pause into the run after it', () => {
+    render({ speed: 40 })
+    runTicks([
+      [0, 0],
+      [1000, 50],
+      [2000, 100],
+    ])
+    expect(q('.time-lag')).not.toBeNull()
+
+    render({ speed: 40, paused: true })
+    render({ speed: 40, paused: false })
+    // No new ticks yet: the run has not been measured, so there is nothing to say about it.
+    expect(q('.time-lag')).toBeNull()
+  })
+
   it('stays quiet while the world keeps up', () => {
     render({ speed: 40 })
     // 333 ticks a second is 40×.

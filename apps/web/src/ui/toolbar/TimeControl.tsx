@@ -33,6 +33,8 @@ function useAchievedSpeed(paused: boolean): number | null {
   useEffect(() => {
     if (paused) {
       samples.current = []
+      // The speed from before the pause says nothing about the run after it: forget it.
+      setSpeed(null)
       return
     }
     const now = performance.now()
