@@ -98,7 +98,9 @@ fn step_cost(grid: &WorldGrid, x: i32, y: i32) -> i32 {
     } else {
         OPEN_STEP_COST
     };
-    base + (grid.hazard_at(x, y) * 30.0) as i32
+    // Hazard only ever adds: no step costs less than a road step, which the searches' early outs rely on.
+    // (Nothing writes a negative hazard; the floor makes that a guarantee rather than a habit.)
+    base + (grid.hazard_at(x, y).max(0.0) * 30.0) as i32
 }
 
 const DETOUR_RADIUS: i32 = 16;
@@ -708,6 +710,15 @@ mod tests {
         }
         let doorstep = plan_route(&far, (100, 100), (125, 125)).unwrap();
         assert!(plan_route(&far, *doorstep.last().unwrap(), (125, 125)).is_none());
+    }
+
+    #[test]
+    fn no_step_costs_less_than_a_road_step_even_on_negative_hazard() {
+        let mut grid = WorldGrid::new(1);
+        grid.set(10, 10, Tile::Grass);
+        grid.road[WorldGrid::idx(10, 10)] = crate::world::grid::ROAD_TRACK;
+        grid.hazard[WorldGrid::idx(10, 10)] = -0.5;
+        assert_eq!(step_cost(&grid, 10, 10), ROAD_STEP_COST);
     }
 
     #[test]
