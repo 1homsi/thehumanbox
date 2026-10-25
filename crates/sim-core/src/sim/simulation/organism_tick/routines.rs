@@ -84,39 +84,42 @@ impl Simulation {
             }
         }
 
-        if let Some(ref pid) = self.organisms[idx].partner_id.clone() {
+        // Only a partner who is gone needs the id owned: the common case reads it in place.
+        let partner_dead = self.organisms[idx].partner_id.as_ref().is_some_and(|pid| {
             let partner_pos = org_idx_by_id.get(pid).copied();
-            let dead = partner_pos.map(|p| !self.organisms[p].alive).unwrap_or(true);
-            if dead {
+            partner_pos.map(|p| !self.organisms[p].alive).unwrap_or(true)
+        });
+        if partner_dead {
+            if let Some(pid) = self.organisms[idx].partner_id.clone() {
+                let partner_pos = org_idx_by_id.get(&pid).copied();
                 let partner_name = partner_pos
                     .map(|p| self.organisms[p].name.clone())
                     .or_else(|| {
                         self.organisms
                             .iter()
-                            .find(|o| &o.id == pid)
+                            .find(|o| o.id == pid)
                             .map(|o| o.name.clone())
                     })
                     .unwrap_or_else(|| "partner".to_string());
                 let tc = self.tick_count;
-                let pid_owned = pid.clone();
                 self.organisms[idx].partner_id = None;
                 self.organisms[idx].grief_ticks = (self.organisms[idx].grief_ticks + 120).min(300);
                 self.organisms[idx].log_life_rel(
                     tc,
                     "loss",
                     format!("lost my beloved {}", partner_name),
-                    Some(pid_owned),
+                    Some(pid),
                     Some(partner_name),
                 );
             }
         }
-        if let Some(ref aid) = self.organisms[idx].attracted_to.clone() {
-            let gone = !org_idx_by_id
+        let attracted_gone = self.organisms[idx].attracted_to.as_ref().is_some_and(|aid| {
+            !org_idx_by_id
                 .get(aid)
-                .is_some_and(|&i| self.organisms[i].alive && self.organisms[i].partner_id.is_none());
-            if gone {
-                self.organisms[idx].attracted_to = None;
-            }
+                .is_some_and(|&i| self.organisms[i].alive && self.organisms[i].partner_id.is_none())
+        });
+        if attracted_gone {
+            self.organisms[idx].attracted_to = None;
         }
 
         let tc = self.tick_count;
