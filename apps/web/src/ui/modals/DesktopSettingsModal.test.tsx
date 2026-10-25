@@ -110,14 +110,31 @@ describe('DesktopSettingsModal while a save is in flight', () => {
     )
     await m.openSimulationTab()
     await m.flush()
-    const slider = document.querySelector<HTMLInputElement>('input[type="range"]')!
+    const ranges = [...document.querySelectorAll<HTMLInputElement>('input[type="range"]')]
+    const presets = [...document.querySelectorAll<HTMLButtonElement>('.desktop-cap-presets button')]
     await act(async () => {
       m.button('save settings').click()
     })
-    expect(slider.disabled).toBe(true)
+    expect(ranges).toHaveLength(2)
+    expect(presets).toHaveLength(4)
+    expect(ranges.every((control) => control.disabled)).toBe(true)
+    expect(presets.every((control) => control.disabled)).toBe(true)
     await act(async () => answer(SETTINGS))
     await m.flush()
-    expect(slider.disabled).toBe(false)
+    expect(ranges.every((control) => !control.disabled)).toBe(true)
+    expect(presets.every((control) => !control.disabled)).toBe(true)
+
+    await m.openAppTab()
+    await m.flush()
+    const switches = [...document.querySelectorAll<HTMLButtonElement>('button[role="switch"]')]
+    expect(switches).toHaveLength(4)
+    await act(async () => {
+      m.button('save settings').click()
+    })
+    expect(switches.every((control) => control.disabled)).toBe(true)
+    await act(async () => answer(SETTINGS))
+    await m.flush()
+    expect(switches.every((control) => !control.disabled)).toBe(true)
   })
 })
 
