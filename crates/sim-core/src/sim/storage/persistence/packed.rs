@@ -16,6 +16,8 @@ use std::marker::PhantomData;
 
 /// Marks a packed layer, and which encoding it uses.
 const PREFIX: &str = "rle1:";
+/// The most cells a layer may decode to: several times any world's map.
+const MAX_CELLS: usize = 4 * 1024 * 1024;
 
 /// A value a layer holds, as the bytes it is stored as.
 trait Cell: Copy {
@@ -96,9 +98,10 @@ fn encode<T: Cell>(values: &[T]) -> String {
 }
 
 fn decode<T: Cell>(text: &str) -> Result<Vec<T>, String> {
-    let body = text
-        .strip_prefix(PREFIX)
-        .ok_or_else(|| format!("unknown grid layer encoding {:?}", &text[..text.len().min(8)]))?;
+    let body = text.strip_prefix(PREFIX).ok_or_else(|| {
+        let head: String = text.chars().take(8).collect();
+        format!("unknown grid layer encoding {head:?}")
+    })?;
     let raw = base64_decode(body)?;
     let mut values = Vec::new();
     let mut at = 0;
@@ -108,7 +111,9 @@ fn decode<T: Cell>(text: &str) -> Result<Vec<T>, String> {
         at += T::SIZE;
         let value = T::read(bytes);
         let run = usize::try_from(run).map_err(|_| "grid layer run is too long")?;
-        if values.len() + run > 64 * 1024 * 1024 {
+        // No world has a layer anywhere near this (one is 320,000 cells): a save claiming more is damaged or
+        // hostile, and is refused before it can claim the memory.
+        if run > MAX_CELLS || values.len() + run > MAX_CELLS {
             return Err("grid layer is larger than any world".into());
         }
         values.resize(values.len() + run, value);
