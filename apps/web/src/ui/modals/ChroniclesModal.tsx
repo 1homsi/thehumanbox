@@ -2,9 +2,8 @@ import { useState } from 'react'
 import type { StoryEntry, HeadlineInfo } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
 import { Modal } from './Modal'
-import { formatNumber, t } from '../../i18n'
-
-const DAY_LENGTH = 600
+import { t } from '../../i18n'
+import { eventDate } from '../event-date'
 
 interface Props {
   stories: StoryEntry[]
@@ -65,9 +64,7 @@ export function ChroniclesModal({ stories, headlines = [], onClose }: Props) {
               <div className="chronicle-list">
                 {timeline.map((h, i) => (
                   <div key={`${h.tick}-${i}`} className="chronicle-row">
-                    <span className="chronicle-day">
-                      {t('dialogs.chronicles.day', { day: formatNumber(Math.floor(h.tick / DAY_LENGTH)) })}
-                    </span>
+                    <span className="chronicle-day">{eventDate(h.tick)}</span>
                     <span className="chronicle-text">{h.text}</span>
                   </div>
                 ))}
@@ -83,9 +80,7 @@ export function ChroniclesModal({ stories, headlines = [], onClose }: Props) {
               <div className="chronicle-list">
                 {sortedStories.map((s, i) => (
                   <div key={i} className="chronicle-row">
-                    <span className="chronicle-day">
-                      {t('dialogs.chronicles.day', { day: formatNumber(Math.floor(s.tick / DAY_LENGTH)) })}
-                    </span>
+                    <span className="chronicle-day">{eventDate(s.tick)}</span>
                     <span className="chronicle-name" style={{ color: lineageColor(s.lineage_id) }}>
                       {s.org_name}
                     </span>
