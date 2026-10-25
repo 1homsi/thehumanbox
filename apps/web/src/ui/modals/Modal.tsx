@@ -9,13 +9,23 @@ interface ModalProps {
   className?: string
   title?: string
   hideTitle?: boolean
+  /** Runs before the dialog closes on Escape; calling preventDefault keeps it open. */
+  onEscapeKeyDown?: (event: KeyboardEvent) => void
   children: ReactNode
 }
 
 /** How far a phone sheet must be dragged down (CSS px) for letting go to dismiss it. */
 const DISMISS_DRAG_PX = 90
 
-export function Modal({ open, onClose, className, title, hideTitle = false, children }: ModalProps) {
+export function Modal({
+  open,
+  onClose,
+  className,
+  title,
+  hideTitle = false,
+  onEscapeKeyDown,
+  children,
+}: ModalProps) {
   // Confirmations stay a centred dialog on phones; everything else is a bottom sheet there.
   const sheet = !className?.includes('confirm-modal')
   const contentRef = useRef<HTMLDivElement>(null)
@@ -79,6 +89,7 @@ export function Modal({ open, onClose, className, title, hideTitle = false, chil
           ref={contentRef}
           className={`thb-modal${sheet ? ' thb-modal--sheet' : ''} ${className ?? ''}`}
           aria-describedby={undefined}
+          onEscapeKeyDown={onEscapeKeyDown}
           onOpenAutoFocus={(e) => {
             // Move focus into the dialog without picking a control, so the trigger behind the overlay
             // loses it and the focus trap engages. An autoFocus child already holds focus; keep it.
