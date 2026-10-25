@@ -196,6 +196,9 @@ const PLAN_SIDE: usize = (PLAN_RADIUS * 2 + 1) as usize;
 /// Most tiles one plan may expand; bounded so a crowd of blocked walkers
 /// cannot stall a tick.
 const PLAN_BUDGET: usize = 3000;
+/// A route that ends this near its goal (in tiles) reaches it, even when it gains little: a home in a block
+/// of huts can be got no nearer than two tiles, and refusing that last step sent people round and round it.
+const NEAR_ENOUGH: i32 = 2;
 /// The route search's estimate per tile of distance to the target: a weighted A* (1.4 times the open-ground
 /// step). The admissible estimate (the road step, 6) was measured slower: 4 to 12% more instructions, because
 /// it weakens the pull toward the goal across open ground. At 10 (the open step) the estimate overshoots along
@@ -355,7 +358,7 @@ fn plan_route_in(
         }
     }
     // Only worth walking when it ends clearly closer than we started.
-    if best.2 == start || best.0 + 2 > start_distance && best.0 != 0 {
+    if best.2 == start || best.0 + 2 > start_distance && best.0 > NEAR_ENOUGH {
         return Some(None);
     }
     let mut steps = Vec::new();
@@ -521,7 +524,7 @@ mod wide {
             }
         }
         // Only worth walking when it ends clearly closer than we started.
-        if best.2 == start || best.0 + 2 > start_distance && best.0 != 0 {
+        if best.2 == start || best.0 + 2 > start_distance && best.0 > NEAR_ENOUGH {
             return None;
         }
         let mut steps = Vec::new();
@@ -660,6 +663,42 @@ mod tests {
         assert_eq!((125 - ex).abs().max((125 - ey).abs()), 8);
         // Standing at the wall, no tile gets any closer: that is unreachable.
         assert!(plan_route(&grid, (ex, ey), (125, 125)).is_none());
+    }
+
+    #[test]
+    fn a_home_boxed_in_by_huts_is_reached_at_its_doorstep() {
+        let mut grid = WorldGrid::new(1);
+        for y in 80..120 {
+            for x in 80..120 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+        // Huts all round the home spot, one tile out: two tiles away is as near as anyone gets.
+        for y in 99..=101 {
+            for x in 99..=101 {
+                if (x, y) != (100, 100) {
+                    grid.set(x, y, Tile::Hut);
+                }
+            }
+        }
+        let steps = plan_route(&grid, (103, 100), (100, 100)).expect("a route to the doorstep");
+        let &(ex, ey) = steps.last().unwrap();
+        assert_eq!(
+            (100 - ex).abs().max((100 - ey).abs()),
+            2,
+            "ends on the doorstep: {steps:?}"
+        );
+        // A route that gains as little but ends far from its goal is still refused.
+        let mut far = walled();
+        for y in 118..=132 {
+            for x in 118..=132 {
+                if y == 118 || y == 132 || x == 118 || x == 132 {
+                    far.set(x, y, Tile::Rock);
+                }
+            }
+        }
+        let doorstep = plan_route(&far, (100, 100), (125, 125)).unwrap();
+        assert!(plan_route(&far, *doorstep.last().unwrap(), (125, 125)).is_none());
     }
 
     #[test]

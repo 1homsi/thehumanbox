@@ -1,6 +1,6 @@
 {
   "seed": 42,
   "tick": 3000,
-  "save_fnv1a64": "0x79c8c305528c9e97",
-  "note": "FNV-1a 64 of the serialized save state. Checked natively by sim-core tests and in the browser wasm build by scripts/check-wasm-determinism.mjs. Update only when a change is meant to alter the world. Regenerated when people stopped setting out for chores that can't be done where they are."
+  "save_fnv1a64": "0x685ae5589c258934",
+  "note": "FNV-1a 64 of the serialized save state. Checked natively by sim-core tests and in the browser wasm build by scripts/check-wasm-determinism.mjs. Update only when a change is meant to alter the world. Regenerated when a route ending within two tiles of its goal began to count as reaching it."
 }
