@@ -53,6 +53,21 @@
   "sandbox": {
     "seedHint": "土地をクリックして新しい部族を作ります",
     "guidanceSet": "{strategy}の指針を設定しました",
-    "guidanceFailed": "指針の設定に失敗しました"
+    "guidanceFailed": "指針の設定に失敗しました",
+    "followNobody": "追跡 · 近くに誰もいません",
+    "nameNobody": "命名 · 近くに誰もいません",
+    "noOnePraying": "祈っている人はいません",
+    "noTribeBrink": "存亡の危機にある部族はありません",
+    "taughtSecret": "神々は彼らに秘密を授けた",
+    "cannotTeach": "まだ教えを受けられません",
+    "layersCleared": "地図のレイヤーを消去しました",
+    "toolShown": "{tool}を表示",
+    "toolHidden": "{tool}を非表示",
+    "toolMapOn": "{tool}の地図 オン",
+    "toolMapOff": "{tool}の地図 オフ",
+    "toolWorking": "{tool}…",
+    "toolApplied": "{tool}を適用",
+    "toolFailed": "{tool}に失敗",
+    "toolAt": "{tool} → {x}, {y}"
   }
 }

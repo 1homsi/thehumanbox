@@ -53,6 +53,21 @@
   "sandbox": {
     "seedHint": "cliquez sur la terre pour fonder une nouvelle tribu",
     "guidanceSet": "orientation « {strategy} » activée",
-    "guidanceFailed": "échec de l’orientation"
+    "guidanceFailed": "échec de l’orientation",
+    "followNobody": "suivre · personne à portée",
+    "nameNobody": "nommer · personne à portée",
+    "noOnePraying": "personne ne prie",
+    "noTribeBrink": "aucune tribu n’est au bord du gouffre",
+    "taughtSecret": "les dieux leur ont enseigné un secret",
+    "cannotTeach": "ils ne peuvent pas encore être instruits à nouveau",
+    "layersCleared": "couches de la carte effacées",
+    "toolShown": "{tool} affiché",
+    "toolHidden": "{tool} masqué",
+    "toolMapOn": "carte {tool} activée",
+    "toolMapOff": "carte {tool} désactivée",
+    "toolWorking": "{tool}…",
+    "toolApplied": "{tool} appliqué",
+    "toolFailed": "échec : {tool}",
+    "toolAt": "{tool} → {x}, {y}"
   }
 }

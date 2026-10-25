@@ -53,6 +53,21 @@
   "sandbox": {
     "seedHint": "натисніть на землю, щоб заснувати нове плем’я",
     "guidanceSet": "напрям «{strategy}» задано",
-    "guidanceFailed": "не вдалося задати напрям"
+    "guidanceFailed": "не вдалося задати напрям",
+    "followNobody": "стеження · поруч нікого",
+    "nameNobody": "назвати · поруч нікого",
+    "noOnePraying": "ніхто не молиться",
+    "noTribeBrink": "жодне плем’я не на межі",
+    "taughtSecret": "боги відкрили їм таємницю",
+    "cannotTeach": "їх ще не можна навчити знову",
+    "layersCleared": "шари карти очищено",
+    "toolShown": "{tool}: показано",
+    "toolHidden": "{tool}: приховано",
+    "toolMapOn": "карта «{tool}»: увімк.",
+    "toolMapOff": "карта «{tool}»: вимк.",
+    "toolWorking": "{tool}…",
+    "toolApplied": "{tool}: застосовано",
+    "toolFailed": "{tool}: помилка",
+    "toolAt": "{tool} → {x}, {y}"
   }
 }

@@ -53,6 +53,21 @@
   "sandbox": {
     "seedHint": "点击土地以建立新部落",
     "guidanceSet": "{strategy}指引已设定",
-    "guidanceFailed": "指引设定失败"
+    "guidanceFailed": "指引设定失败",
+    "followNobody": "跟随 · 附近没有人",
+    "nameNobody": "命名 · 附近没有人",
+    "noOnePraying": "没有人在祈祷",
+    "noTribeBrink": "没有部落处于危急边缘",
+    "taughtSecret": "神明教给了他们一个秘密",
+    "cannotTeach": "暂时还不能再次教导",
+    "layersCleared": "已清除地图图层",
+    "toolShown": "已显示{tool}",
+    "toolHidden": "已隐藏{tool}",
+    "toolMapOn": "{tool}地图已开启",
+    "toolMapOff": "{tool}地图已关闭",
+    "toolWorking": "{tool}…",
+    "toolApplied": "已应用{tool}",
+    "toolFailed": "{tool}失败",
+    "toolAt": "{tool} → {x}, {y}"
   }
 }

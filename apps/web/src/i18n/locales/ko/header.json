@@ -53,6 +53,21 @@
   "sandbox": {
     "seedHint": "땅을 클릭해 새 부족을 세우세요",
     "guidanceSet": "{strategy} 지침 설정됨",
-    "guidanceFailed": "지침 설정 실패"
+    "guidanceFailed": "지침 설정 실패",
+    "followNobody": "따라가기 · 가까이에 아무도 없음",
+    "nameNobody": "이름 짓기 · 가까이에 아무도 없음",
+    "noOnePraying": "기도하는 사람이 없습니다",
+    "noTribeBrink": "벼랑 끝에 선 부족이 없습니다",
+    "taughtSecret": "신들이 그들에게 비밀을 가르쳤다",
+    "cannotTeach": "아직 다시 가르칠 수 없습니다",
+    "layersCleared": "지도 레이어를 지웠습니다",
+    "toolShown": "{tool} 표시됨",
+    "toolHidden": "{tool} 숨김",
+    "toolMapOn": "{tool} 지도 켜짐",
+    "toolMapOff": "{tool} 지도 꺼짐",
+    "toolWorking": "{tool}…",
+    "toolApplied": "{tool} 적용됨",
+    "toolFailed": "{tool} 실패",
+    "toolAt": "{tool} → {x}, {y}"
   }
 }

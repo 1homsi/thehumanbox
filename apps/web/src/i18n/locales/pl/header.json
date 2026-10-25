@@ -53,6 +53,21 @@
   "sandbox": {
     "seedHint": "kliknij ziemię, aby założyć nowe plemię",
     "guidanceSet": "ustawiono kierunek: {strategy}",
-    "guidanceFailed": "nie udało się ustawić kierunku"
+    "guidanceFailed": "nie udało się ustawić kierunku",
+    "followNobody": "podążanie · nikogo w zasięgu",
+    "nameNobody": "nazwij · nikogo w zasięgu",
+    "noOnePraying": "nikt się nie modli",
+    "noTribeBrink": "żadne plemię nie jest na skraju",
+    "taughtSecret": "bogowie nauczyli ich sekretu",
+    "cannotTeach": "nie mogą jeszcze znów się uczyć",
+    "layersCleared": "warstwy mapy wyczyszczone",
+    "toolShown": "{tool} pokazany",
+    "toolHidden": "{tool} ukryty",
+    "toolMapOn": "mapa {tool} włączona",
+    "toolMapOff": "mapa {tool} wyłączona",
+    "toolWorking": "{tool}…",
+    "toolApplied": "{tool} zastosowany",
+    "toolFailed": "{tool} nie powiodło się",
+    "toolAt": "{tool} → {x}, {y}"
   }
 }

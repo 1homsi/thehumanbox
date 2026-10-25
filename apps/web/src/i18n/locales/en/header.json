@@ -53,6 +53,21 @@
   "sandbox": {
     "seedHint": "click the land to seed a new tribe",
     "guidanceSet": "{strategy} guidance set",
-    "guidanceFailed": "guidance failed"
+    "guidanceFailed": "guidance failed",
+    "followNobody": "follow · nobody in reach here",
+    "nameNobody": "name · nobody in reach here",
+    "noOnePraying": "no one is praying",
+    "noTribeBrink": "no tribe is on the brink",
+    "taughtSecret": "the gods taught them a secret",
+    "cannotTeach": "they cannot be taught again yet",
+    "layersCleared": "map layers cleared",
+    "toolShown": "{tool} shown",
+    "toolHidden": "{tool} hidden",
+    "toolMapOn": "{tool} map on",
+    "toolMapOff": "{tool} map off",
+    "toolWorking": "{tool}...",
+    "toolApplied": "{tool} applied",
+    "toolFailed": "{tool} failed",
+    "toolAt": "{tool} -> {x}, {y}"
   }
 }

@@ -53,6 +53,21 @@
   "sandbox": {
     "seedHint": "clicca sul terreno per fondare una nuova tribù",
     "guidanceSet": "guida {strategy} impostata",
-    "guidanceFailed": "guida non riuscita"
+    "guidanceFailed": "guida non riuscita",
+    "followNobody": "segui · nessuno a portata",
+    "nameNobody": "nomina · nessuno a portata",
+    "noOnePraying": "nessuno sta pregando",
+    "noTribeBrink": "nessuna tribù è sull’orlo",
+    "taughtSecret": "gli dèi hanno insegnato loro un segreto",
+    "cannotTeach": "non possono ancora essere istruiti di nuovo",
+    "layersCleared": "livelli della mappa cancellati",
+    "toolShown": "{tool} mostrato",
+    "toolHidden": "{tool} nascosto",
+    "toolMapOn": "mappa {tool} attiva",
+    "toolMapOff": "mappa {tool} disattiva",
+    "toolWorking": "{tool}…",
+    "toolApplied": "{tool} applicato",
+    "toolFailed": "{tool} non riuscito",
+    "toolAt": "{tool} → {x}, {y}"
   }
 }

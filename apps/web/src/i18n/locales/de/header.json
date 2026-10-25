@@ -53,6 +53,21 @@
   "sandbox": {
     "seedHint": "Klicke auf das Land, um einen neuen Stamm zu gründen",
     "guidanceSet": "Lenkung {strategy} gesetzt",
-    "guidanceFailed": "Lenkung fehlgeschlagen"
+    "guidanceFailed": "Lenkung fehlgeschlagen",
+    "followNobody": "Folgen · niemand in Reichweite",
+    "nameNobody": "Benennen · niemand in Reichweite",
+    "noOnePraying": "niemand betet gerade",
+    "noTribeBrink": "kein Stamm steht am Abgrund",
+    "taughtSecret": "die Götter haben ihnen ein Geheimnis gelehrt",
+    "cannotTeach": "sie können noch nicht erneut unterrichtet werden",
+    "layersCleared": "Kartenebenen geleert",
+    "toolShown": "{tool} angezeigt",
+    "toolHidden": "{tool} ausgeblendet",
+    "toolMapOn": "{tool}-Karte an",
+    "toolMapOff": "{tool}-Karte aus",
+    "toolWorking": "{tool}…",
+    "toolApplied": "{tool} angewendet",
+    "toolFailed": "{tool} fehlgeschlagen",
+    "toolAt": "{tool} → {x}, {y}"
   }
 }
