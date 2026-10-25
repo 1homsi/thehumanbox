@@ -336,6 +336,21 @@
       "worshipper": "신도",
       "brewer": "양조사",
       "priest": "사제"
+    },
+    "tavern": {
+      "title": "{name}의 주점",
+      "nearbyCount": "근처 {count}명",
+      "time": {
+        "busyLunch": "점심 손님으로 북적임",
+        "quietDay": "조용한 낮 시간",
+        "rowdyEvening": "시끌벅적한 저녁",
+        "lateNight": "밤늦은 단골들"
+      },
+      "brewers": {
+        "one": "양조사 {count}명",
+        "other": "양조사 {count}명"
+      },
+      "shelf": "선반에 {count}"
     }
   }
 }

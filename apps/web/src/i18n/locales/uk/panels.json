@@ -377,6 +377,23 @@
       "worshipper": "віруючий",
       "brewer": "пивовар",
       "priest": "жрець"
+    },
+    "tavern": {
+      "title": "Таверна «{name}»",
+      "nearbyCount": "поруч: {count}",
+      "time": {
+        "busyLunch": "людно в обідню пору",
+        "quietDay": "тихі денні години",
+        "rowdyEvening": "гамірний вечір",
+        "lateNight": "нічні відвідувачі"
+      },
+      "brewers": {
+        "one": "{count} пивовар",
+        "few": "{count} пивовари",
+        "many": "{count} пивоварів",
+        "other": "{count} пивоварів"
+      },
+      "shelf": "{count} на полиці"
     }
   }
 }

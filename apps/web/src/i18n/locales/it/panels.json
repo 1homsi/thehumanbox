@@ -346,6 +346,21 @@
       "worshipper": "fedele",
       "brewer": "birraio",
       "priest": "sacerdote"
+    },
+    "tavern": {
+      "title": "Taverna di {name}",
+      "nearbyCount": "{count} nei dintorni",
+      "time": {
+        "busyLunch": "pranzo affollato",
+        "quietDay": "ore tranquille del giorno",
+        "rowdyEvening": "serata chiassosa",
+        "lateNight": "clienti della notte"
+      },
+      "brewers": {
+        "one": "{count} birraio",
+        "other": "{count} birrai"
+      },
+      "shelf": "{count} sullo scaffale"
     }
   }
 }

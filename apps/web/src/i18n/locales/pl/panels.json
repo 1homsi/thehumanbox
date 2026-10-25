@@ -372,6 +372,23 @@
       "worshipper": "wierzący",
       "brewer": "piwowar",
       "priest": "kapłan"
+    },
+    "tavern": {
+      "title": "Karczma {name}",
+      "nearbyCount": "{count} w pobliżu",
+      "time": {
+        "busyLunch": "tłoczno w porze obiadowej",
+        "quietDay": "spokojne godziny dnia",
+        "rowdyEvening": "hałaśliwy wieczór",
+        "lateNight": "nocni goście"
+      },
+      "brewers": {
+        "one": "{count} piwowar",
+        "few": "{count} piwowarzy",
+        "many": "{count} piwowarów",
+        "other": "{count} piwowarów"
+      },
+      "shelf": "{count} na półce"
     }
   }
 }
