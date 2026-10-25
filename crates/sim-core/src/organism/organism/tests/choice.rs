@@ -561,6 +561,22 @@ fn thirsty_with_frozen_water_nearer_than_open_water_heads_for_the_ice() {
     );
 }
 
+#[test]
+fn someone_dying_of_thirst_keeps_the_walk_to_water_in_view() {
+    let (mut org, _grid) = parched_at(&[], 0.2);
+    org.think("moving to water", 100);
+    // Teaching and mourning think on the same tick; the bubble keeps the need.
+    org.think("teaching Neni", 101);
+    assert_eq!(org.thought, "moving to water");
+    org.think("dying", 102);
+    assert_eq!(org.thought, "dying", "death is always shown");
+    // Once the thirst is gone, other thoughts show again.
+    let (mut watered, _grid) = parched_at(&[], 0.9);
+    watered.think("moving to water", 100);
+    watered.think("teaching Neni", 101);
+    assert_eq!(watered.thought, "teaching Neni");
+}
+
 fn worker_on_sand(name: &str) -> (Organism, WorldGrid, StdRng) {
     let mut rng = StdRng::seed_from_u64(0);
     let traits = Traits::random(&mut rng);

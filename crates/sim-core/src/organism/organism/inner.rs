@@ -357,6 +357,12 @@ impl Organism {
         if self.thought == text {
             return;
         }
+        // Someone dying of thirst or hunger keeps that in view. Other systems (teaching, mourning,
+        // building, a mood) think on the tick too, and on alternate ticks their thought replaced
+        // "moving to water" while the walk went on, so the bubble said one thing and the body another.
+        if self.urgent_need() && is_need_thought(&self.thought) && !is_need_thought(text) && text != "dying" {
+            return;
+        }
         self.thought = text.to_string();
         self.thought_dirty = true;
         self.thought_history.push_back(ThoughtEntry {
@@ -366,6 +372,12 @@ impl Organism {
         if self.thought_history.len() > 16 {
             self.thought_history.pop_front();
         }
+    }
+
+    /// Thirsty enough to go for water, or hungry enough to go for food (the thresholds the choice
+    /// of action uses for them).
+    fn urgent_need(&self) -> bool {
+        self.hydration < 0.38 || self.energy < 0.34
     }
 
     pub fn reflect_internally(&mut self, tick: u64) -> Option<String> {
@@ -429,4 +441,12 @@ impl Organism {
         self.thought_dirty = true;
         Some(line)
     }
+}
+
+/// A thought about thirst or hunger: the walk to water or food, drinking, eating, and looking for them.
+fn is_need_thought(text: &str) -> bool {
+    let t = text.to_lowercase();
+    ["water", "food", "drink", "eating", "hungry", "thirsty", "roots"]
+        .iter()
+        .any(|k| t.contains(k))
 }
