@@ -149,3 +149,26 @@ test('settings:set refuses a save folder that is not an absolute path', () =>
     const handler = ipcHandlers(userData)['settings:set']
     await assert.rejects(handler({}, { tickMs: 250, saveLocationOverride: 'relative' }), /absolute/)
   }))
+
+test('settings:set refuses a Date or other non-plain object, and keeps the stored settings', () =>
+  withUserData(async (userData) => {
+    writeSettings(userData, JSON.stringify({ tickMs: 250, populationCap: 800 }))
+    const before = readFileSync(path.join(userData, 'settings.json'), 'utf8')
+    const handler = ipcHandlers(userData)['settings:set']
+    class Stored {}
+    for (const payload of [new Date(), new Map(), new Stored(), new Uint8Array(2)]) {
+      await assert.rejects(handler({}, payload), /settings must be an object/)
+    }
+    assert.equal(readFileSync(path.join(userData, 'settings.json'), 'utf8'), before)
+  }))
+
+test('settings:set accepts a plain settings object built in another realm', () =>
+  withUserData(async (userData) => {
+    // The vm contexts these tests run in have their own Object.prototype, so
+    // this plain object belongs to a different realm from settings.ts.
+    writeSettings(userData, JSON.stringify({ tickMs: 250, populationCap: 800 }))
+    const handler = ipcHandlers(userData)['settings:set']
+    const saved = (await handler({}, { tickMs: 300, populationCap: 900 })) as { tickMs: number; populationCap: number }
+    assert.equal(saved.tickMs, 300)
+    assert.equal(saved.populationCap, 900)
+  }))

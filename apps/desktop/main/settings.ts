@@ -89,8 +89,15 @@ export function saveSettings(s: Settings): void {
   atomicReplaceFile(p, JSON.stringify(normalizeSettings(s), null, 2));
 }
 
+// A plain object is one whose prototype is null or the Object.prototype of its
+// realm. Checking the prototype's own prototype works across realms (the vm
+// tests build objects in their own context), and rejects Date, Map, arrays,
+// typed arrays and class instances, which would otherwise be filled with
+// defaults and saved.
 function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  if (typeof value !== "object" || value === null) return false;
+  const proto: unknown = Object.getPrototypeOf(value);
+  return proto === null || Object.getPrototypeOf(proto) === null;
 }
 
 /**
