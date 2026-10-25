@@ -98,6 +98,7 @@ function loadIndex(options: { pictures: string; capture: () => Promise<{ isEmpty
     setTimeout,
     clearTimeout,
     require: (id: string) => {
+      if (id === './app-menu') return require(path.join(__dirname, 'app-menu'))
       if (id === 'electron') {
         return {
           app,
