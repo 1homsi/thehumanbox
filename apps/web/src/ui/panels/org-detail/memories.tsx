@@ -137,7 +137,7 @@ export function MemoriesSection({
                           borderRadius: 3,
                           cursor: 'pointer',
                         }}
-                        title={t('person.memories.goTo', { name: relatedOrg.name })}
+                        title={t('person.memories.goTo', { name: personName(relatedOrg) })}
                       >
                         ↪ {personName(relatedOrg)}
                       </button>

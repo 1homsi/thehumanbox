@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { OrgDetail } from './OrgDetail'
-import { BondsRememberedSection } from './org-detail/memories'
+import { BondsRememberedSection, MemoriesSection } from './org-detail/memories'
 import type { OrganismState } from '../../shared/types'
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
@@ -124,5 +124,30 @@ describe('OrgDetail', () => {
     const text = host.textContent ?? ''
     expect(text).toContain('Bea')
     expect(text).not.toContain('B-GEN')
+  })
+
+  it('names a remembered person in the link tooltip as the player named them', () => {
+    const partner = { ...org('b'), name: 'B-GEN', custom_name: 'Bea' } as OrganismState
+    const detail = {
+      memories: [
+        {
+          kind: 'core',
+          text: 'met at the well',
+          emotion: 0,
+          salience: 0.5,
+          related_id: 'b',
+          tick: 1,
+          recalls: 0,
+        },
+      ],
+    } as never
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    roots.push(root)
+    act(() => root.render(<MemoriesSection detail={detail} organisms={[partner]} />))
+    const link = host.querySelector<HTMLButtonElement>('button[title]')!
+    expect(link.title).toContain('Bea')
+    expect(link.title).not.toContain('B-GEN')
   })
 })
