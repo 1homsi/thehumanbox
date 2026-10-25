@@ -617,6 +617,8 @@
     "help": "mostra o nascondi questo elenco",
     "hide": "nascondi l'interfaccia",
     "fit": "adatta il mondo",
+    "doubleClick": "ingrandire su quel punto (con Maiusc, rimpicciolire)",
+    "doubleClickKeys": "doppio clic",
     "tools": "scegli i primi dieci strumenti della barra"
   },
   "photo": {

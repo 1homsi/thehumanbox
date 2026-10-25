@@ -617,6 +617,8 @@
     "help": "mostrar ou ocultar esta lista",
     "hide": "ocultar a interface",
     "fit": "enquadrar o mundo",
+    "doubleClick": "aproximar naquele ponto (com Shift, afastar)",
+    "doubleClickKeys": "clique duplo",
     "tools": "escolher as dez primeiras ferramentas da barra"
   },
   "photo": {

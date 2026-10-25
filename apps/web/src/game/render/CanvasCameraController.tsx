@@ -2,11 +2,14 @@ import { useEffect, useRef, type MutableRefObject } from 'react'
 import { useUIStore } from '../../state/store'
 import {
   clampMapCamera,
+  doubleClickZoomTarget,
+  DOUBLE_CLICK_ZOOM_MS,
   initialMapCamera,
   isMapControl,
   MAX_MAP_ZOOM,
   minMapZoom,
   zoomMapAt,
+  zoomTweenAt,
   type MapCamera,
   type MapCommand,
 } from './camera-controls'
@@ -20,6 +23,8 @@ interface Props {
   cameraStateRef: MutableRefObject<MapCamera>
   commandRef: MutableRefObject<MapCommand | null>
   followTarget: { x: number; y: number } | null
+  /** A god tool is armed: a double-click paints twice rather than zooming. */
+  toolArmed?: boolean
 }
 export function CanvasCameraController({
   worldW,
@@ -30,8 +35,19 @@ export function CanvasCameraController({
   cameraStateRef,
   commandRef,
   followTarget,
+  toolArmed = false,
 }: Props) {
   const initialized = useRef(false)
+  const toolArmedRef = useRef(toolArmed)
+  toolArmedRef.current = toolArmed
+  // A double-click zoom in progress: where it started, where it is going, and the point it closes in on.
+  // Any other camera action (drag, wheel, pinch, keys, a fit or focus request) takes over from it.
+  const tween = useRef<{
+    from: MapCamera
+    to: number
+    point: { x: number; y: number }
+    start: number
+  } | null>(null)
   const previousFollow = useRef(false)
   const minZoom = minMapZoom({ w: worldW, h: worldH }, { w: containerW, h: containerH })
   const apply = (next: MapCamera) => {
@@ -60,12 +76,14 @@ export function CanvasCameraController({
   useEffect(() => {
     if (!containerEl) return
     let drag: { px: number; py: number; camera: MapCamera; id: number } | null = null
+    // A double-click zoom in progress: where it started, where it is going, and the point it closes in on.
     const keys = new Set<string>()
     const stopFollow = () => {
       const ui = useUIStore.getState()
       if (ui.followOrgId) ui.followOrg(null)
     }
     const zoom = (factor: number, point = { x: containerW / 2, y: containerH / 2 }) => {
+      tween.current = null
       const current = cameraStateRef.current
       const next = Math.max(minZoom, Math.min(MAX_MAP_ZOOM, current.zoom * factor))
       applyRef.current(zoomMapAt(current, next, point, { w: containerW, h: containerH }))
@@ -76,6 +94,7 @@ export function CanvasCameraController({
         drag = null
         return
       }
+      tween.current = null
       drag = { px: e.clientX, py: e.clientY, camera: { ...cameraStateRef.current }, id: e.pointerId }
       containerEl.focus({ preventScroll: true })
     }
@@ -94,9 +113,26 @@ export function CanvasCameraController({
     const onUp = () => {
       drag = null
     }
+    const onDoubleClick = (e: MouseEvent) => {
+      if (isMapControl(e.target) || toolArmedRef.current || e.button !== 0) return
+      e.preventDefault()
+      const rect = containerEl.getBoundingClientRect()
+      const from = cameraStateRef.current
+      const to = doubleClickZoomTarget(from.zoom, e.shiftKey, minZoom, MAX_MAP_ZOOM)
+      // The player took the camera even when it is already at the limit: the follow ends either way.
+      stopFollow()
+      if (to === from.zoom) return
+      tween.current = {
+        from: { ...from },
+        to,
+        point: { x: e.clientX - rect.left, y: e.clientY - rect.top },
+        start: performance.now(),
+      }
+    }
     const onWheel = (e: WheelEvent) => {
       if (isMapControl(e.target)) return
       e.preventDefault()
+      tween.current = null
       const rect = containerEl.getBoundingClientRect()
       const delta = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? containerH : 1)
       stopFollow()
@@ -118,6 +154,7 @@ export function CanvasCameraController({
       if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(key)) {
         e.preventDefault()
         stopFollow()
+        tween.current = null
         keys.add(key)
       } else if (key === '+' || key === '=') {
         e.preventDefault()
@@ -134,16 +171,32 @@ export function CanvasCameraController({
     const reset = () => {
       keys.clear()
       drag = null
+      tween.current = null
     }
     let raf = 0,
       last = performance.now()
     const frame = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000)
       last = now
+      if (tween.current) {
+        const zooming = tween.current
+        const elapsed = now - zooming.start
+        const viewport = { w: containerW, h: containerH }
+        applyRef.current(
+          zoomMapAt(
+            zooming.from,
+            zoomTweenAt(zooming.from.zoom, zooming.to, elapsed),
+            zooming.point,
+            viewport,
+          ),
+        )
+        if (elapsed >= DOUBLE_CLICK_ZOOM_MS) tween.current = null
+      }
       const command = commandRef.current
       if (command) {
         commandRef.current = null
         stopFollow()
+        tween.current = null
         if (command.kind === 'fit') {
           const opening = initialMapCamera({ w: worldW, h: worldH }, { w: containerW, h: containerH })
           if (opening) applyRef.current(opening)
@@ -167,6 +220,7 @@ export function CanvasCameraController({
     raf = requestAnimationFrame(frame)
     containerEl.addEventListener('pointerdown', onDown)
     containerEl.addEventListener('wheel', onWheel, { passive: false })
+    containerEl.addEventListener('dblclick', onDoubleClick)
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
     window.addEventListener('pointercancel', reset)
@@ -177,6 +231,7 @@ export function CanvasCameraController({
       cancelAnimationFrame(raf)
       containerEl.removeEventListener('pointerdown', onDown)
       containerEl.removeEventListener('wheel', onWheel)
+      containerEl.removeEventListener('dblclick', onDoubleClick)
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', reset)
@@ -195,6 +250,7 @@ export function CanvasCameraController({
         return
       }
       e.preventDefault()
+      tween.current = null
       const [a, b] = [e.touches[0], e.touches[1]]
       const next = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
       if (distance > 0 && next > 0) {

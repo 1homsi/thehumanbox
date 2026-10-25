@@ -617,6 +617,8 @@
     "help": "show or hide this list",
     "hide": "hide the interface",
     "fit": "fit the world",
+    "doubleClick": "zoom in on that spot (with Shift, zoom out)",
+    "doubleClickKeys": "double-click",
     "tools": "pick the first ten tools on the bar"
   },
   "photo": {

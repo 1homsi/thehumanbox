@@ -56,6 +56,34 @@ export function zoomMapAt(
   return { x: camera.x + dx / camera.zoom - dx / zoom, y: camera.y + dy / camera.zoom - dy / zoom, zoom }
 }
 
+/** How much one double-click zooms the map: twice as close, or with Shift twice as far. */
+export const DOUBLE_CLICK_ZOOM = 2
+/** How long the double-click zoom takes to settle, in milliseconds. */
+export const DOUBLE_CLICK_ZOOM_MS = 180
+
+/**
+ * The zoom a double-click aims for from `zoom`, kept within the map's limits. A double-click is the
+ * zoom a laptop trackpad can always make: scrolling to zoom is awkward on one.
+ */
+export function doubleClickZoomTarget(zoom: number, out: boolean, min: number, max: number): number {
+  return Math.max(min, Math.min(max, out ? zoom / DOUBLE_CLICK_ZOOM : zoom * DOUBLE_CLICK_ZOOM))
+}
+
+/**
+ * The zoom `elapsed` ms into a double-click zoom from `from` to `to`: eased out, and stepped evenly in
+ * scale rather than in raw zoom, so the map does not seem to speed up as it closes in.
+ */
+export function zoomTweenAt(
+  from: number,
+  to: number,
+  elapsed: number,
+  duration = DOUBLE_CLICK_ZOOM_MS,
+): number {
+  const t = Math.max(0, Math.min(1, elapsed / duration))
+  const eased = 1 - (1 - t) ** 3
+  return from * (to / from) ** eased
+}
+
 export function screenToMap(camera: MapCamera, point: { x: number; y: number }, viewport: MapSize) {
   return {
     x: camera.x + (point.x - viewport.w / 2) / camera.zoom,

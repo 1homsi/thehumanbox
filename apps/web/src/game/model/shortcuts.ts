@@ -86,5 +86,6 @@ export const SHORTCUT_HELP: ReadonlyArray<[string, string]> = [
   ['?', 'show or hide this list'],
   ['H', 'hide the interface'],
   ['0', 'fit the world'],
+  ['double-click', 'zoom in on that spot (with Shift, zoom out)'],
   ['Q E R T Y U I O F G', 'pick the first ten tools on the bar'],
 ]

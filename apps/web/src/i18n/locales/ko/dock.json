@@ -617,6 +617,8 @@
     "help": "이 목록 표시 또는 숨기기",
     "hide": "인터페이스 숨기기",
     "fit": "세계에 맞추기",
+    "doubleClick": "그 지점을 확대 (Shift를 누르면 축소)",
+    "doubleClickKeys": "더블클릭",
     "tools": "바의 처음 열 개 도구 선택"
   },
   "photo": {

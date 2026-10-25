@@ -617,6 +617,8 @@
     "help": "diese Liste ein- oder ausblenden",
     "hide": "Oberfläche ausblenden",
     "fit": "Welt einpassen",
+    "doubleClick": "an diese Stelle heranzoomen (mit Umschalt herauszoomen)",
+    "doubleClickKeys": "Doppelklick",
     "tools": "die ersten zehn Werkzeuge der Leiste auswählen"
   },
   "photo": {

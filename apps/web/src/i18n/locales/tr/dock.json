@@ -617,6 +617,8 @@
     "help": "bu listeyi göster ya da gizle",
     "hide": "arayüzü gizle",
     "fit": "dünyayı sığdır",
+    "doubleClick": "o noktaya yakınlaş (Shift ile uzaklaş)",
+    "doubleClickKeys": "çift tıklama",
     "tools": "çubuktaki ilk on aracı seç"
   },
   "photo": {

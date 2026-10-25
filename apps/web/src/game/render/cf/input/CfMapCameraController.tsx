@@ -3,11 +3,14 @@ import { Entity, Script, useCamera, useCameraPanZoom, useGame } from 'xipjs'
 import { useUIStore } from '../../../../state/store'
 import {
   clampMapCamera,
+  doubleClickZoomTarget,
+  DOUBLE_CLICK_ZOOM_MS,
   initialMapCamera,
   isMapControl,
   MAX_MAP_ZOOM,
   minMapZoom,
   zoomMapAt,
+  zoomTweenAt,
   type MapCamera,
   type MapCommand,
 } from '../../camera-controls'
@@ -30,6 +33,8 @@ interface Props {
   followTarget: { x: number; y: number } | null
   /** A press released without dragging: map point and container point. Primary button only. */
   onTap?: (tap: { worldX: number; worldY: number; screenX: number; screenY: number }) => void
+  /** A god tool is armed: a double-click paints twice rather than zooming. */
+  toolArmed?: boolean
 }
 
 interface CameraLike {
@@ -61,6 +66,7 @@ export function CfMapCameraController({
   followOrgId,
   followTarget,
   onTap,
+  toolArmed = false,
 }: Props) {
   const engine = useGame()
   const camera = useCamera()
@@ -90,6 +96,16 @@ export function CfMapCameraController({
   const previousFollow = useRef(false)
   const keys = useRef(new Set<string>())
   const lastFrameAt = useRef(0)
+  const toolArmedRef = useRef(toolArmed)
+  toolArmedRef.current = toolArmed
+  // A double-click zoom in progress: the camera it started from, the zoom it is going to, and the container
+  // point it closes in on (which stays over the same spot of the world all the way).
+  const tween = useRef<{
+    from: MapCamera
+    to: number
+    point: { x: number; y: number }
+    start: number
+  } | null>(null)
 
   const stopFollow = () => {
     const ui = useUIStore.getState()
@@ -112,6 +128,8 @@ export function CfMapCameraController({
     engine.loop.markDirty()
   }
   const zoomBy = (factor: number, point = { x: containerW / 2, y: containerH / 2 }) => {
+    // Keyboard zoom takes over from a double-click zoom still settling.
+    tween.current = null
     const current = cameraStateRef.current
     const next = Math.max(minZoom, Math.min(MAX_MAP_ZOOM, current.zoom * factor))
     apply(zoomMapAt(current, next, point, viewport))
@@ -176,6 +194,7 @@ export function CfMapCameraController({
       if (panKey(key)) {
         e.preventDefault()
         stopFollowRef.current()
+        tween.current = null
         pressed.add(key)
         lastFrameAt.current = performance.now()
         engine.loop.markDirty()
@@ -192,6 +211,29 @@ export function CfMapCameraController({
       }
     }
     const keyUp = (e: KeyboardEvent) => pressed.delete(e.key.toLowerCase())
+    // Double-click zooms in on the spot (Shift: out): the zoom a laptop trackpad can always make.
+    const onDoubleClick = (e: MouseEvent) => {
+      if (isMapControl(e.target) || toolArmedRef.current || e.button !== 0) return
+      e.preventDefault()
+      const from = cameraStateRef.current
+      const to = doubleClickZoomTarget(
+        from.zoom,
+        e.shiftKey,
+        minMapZoom({ w: worldW, h: worldH }, { w: containerW, h: containerH }),
+        MAX_MAP_ZOOM,
+      )
+      // The player took the camera even when it is already at the limit: the follow ends either way.
+      stopFollowRef.current()
+      if (to === from.zoom) return
+      const rect = containerEl.getBoundingClientRect()
+      tween.current = {
+        from: { ...from },
+        to,
+        point: { x: e.clientX - rect.left, y: e.clientY - rect.top },
+        start: performance.now(),
+      }
+      engine.loop.markDirty()
+    }
     const reset = () => pressed.clear()
     const hidden = () => {
       if (document.hidden) pressed.clear()
@@ -200,14 +242,16 @@ export function CfMapCameraController({
     window.addEventListener('keyup', keyUp)
     window.addEventListener('blur', reset)
     document.addEventListener('visibilitychange', hidden)
+    containerEl.addEventListener('dblclick', onDoubleClick)
     return () => {
       pressed.clear()
+      containerEl.removeEventListener('dblclick', onDoubleClick)
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('keyup', keyUp)
       window.removeEventListener('blur', reset)
       document.removeEventListener('visibilitychange', hidden)
     }
-  }, [containerEl, commandRef, engine])
+  }, [containerEl, commandRef, engine, cameraStateRef, worldW, worldH, containerW, containerH])
 
   // Runs every engine frame, before the renderer draws.
   const frame = () => {
@@ -224,7 +268,11 @@ export function CfMapCameraController({
     // The player moved the camera (drag, wheel, keys): the follow ends, and the store says so a render later, so
     // this frame must not snap back to the person.
     const moved = !!seen && (live.x !== seen.x || live.y !== seen.y || liveZoom !== seen.zoom)
-    if (moved) stopFollowRef.current()
+    if (moved) {
+      stopFollowRef.current()
+      // A drag or the wheel takes over from a double-click zoom still settling.
+      tween.current = null
+    }
 
     let next: MapCamera = { x: live.x, y: live.y, zoom: liveZoom }
     // Following: where the people layer draws the person now. The simulation moves them once per frame, the
@@ -237,10 +285,24 @@ export function CfMapCameraController({
     if (command) {
       commandRef.current = null
       stopFollowRef.current()
+      // A fit or focus request takes over from a double-click zoom still settling.
+      tween.current = null
       const target = commandCamera(command, next, world, viewport)
       if (target) next = target
     }
     const now = performance.now()
+    const zooming = tween.current
+    if (zooming) {
+      const elapsed = now - zooming.start
+      next = zoomMapAt(
+        zooming.from,
+        zoomTweenAt(zooming.from.zoom, zooming.to, elapsed),
+        zooming.point,
+        viewport,
+      )
+      if (elapsed >= DOUBLE_CLICK_ZOOM_MS) tween.current = null
+      else engine.loop.markDirty()
+    }
     if (keys.current.size && containerEl?.contains(document.activeElement)) {
       // The loop sleeps between inputs and steps a fixed 1/60 s: use real time.
       const dt = Math.min(0.05, (now - lastFrameAt.current) / 1000)
