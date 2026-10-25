@@ -580,3 +580,32 @@ fn a_thirsty_person_on_the_bank_drinks_without_wading_in() {
         "waded in to drink"
     );
 }
+
+/// A parched person walled in by huts whose step is open ground takes that step. Only a shut step sends them out
+/// through a house; the house exit used to replace every step, so from one hut the walk led to the next
+/// and back again.
+#[test]
+fn a_parched_walled_in_walker_takes_an_open_step_and_only_a_shut_one_goes_through_a_house() {
+    let mut sim = Simulation::new(42);
+    sim.organisms.clear();
+    sim.animals.clear();
+    flatten_test_area(&mut sim, 50, 50);
+    for x in 48..=52 {
+        for y in 48..=52 {
+            sim.grid.set(x, y, Tile::Hut);
+        }
+    }
+    for x in 49..=51 {
+        for y in 49..=51 {
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
+    // East of (49, 49) is open ground inside the walls.
+    assert_eq!(
+        super::super::helpers::walled_exit(&sim.grid, 49, 49, 3, true),
+        None
+    );
+    // With rock in that step, the way out is through one of the houses beside them.
+    sim.grid.set(50, 49, Tile::Rock);
+    assert!(super::super::helpers::walled_exit(&sim.grid, 49, 49, 3, true).is_some());
+}

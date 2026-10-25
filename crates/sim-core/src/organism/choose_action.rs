@@ -285,12 +285,25 @@ impl Organism {
                 set_thought!("breaking the ice to drink");
                 return (9, thought);
             }
-            if let Some(v) = self.nearest_visible(grid, Tile::Water, scan_r) {
-                set_thought!("moving to water");
-                return (self.toward(v, grid), thought);
-            }
-            if let Some(v) = self.nearest_visible(grid, Tile::Ice, scan_r) {
-                set_thought!("heading for the frozen water");
+            // Open water and frozen water are one source. Looked for as two kinds, the goal flipped
+            // from ice to open water at the edge of the search radius and back again on the next step,
+            // so people paced between two tiles beside a frozen lake until they died of thirst.
+            let open = self.nearest_visible(grid, Tile::Water, scan_r);
+            let frozen = self.nearest_visible(grid, Tile::Ice, scan_r);
+            let nearest = match (open, frozen) {
+                (Some(w), Some(i)) => {
+                    if i.0.abs_diff(ix) + i.1.abs_diff(iy) < w.0.abs_diff(ix) + w.1.abs_diff(iy) {
+                        Some((i, "heading for the frozen water"))
+                    } else {
+                        Some((w, "moving to water"))
+                    }
+                }
+                (Some(w), None) => Some((w, "moving to water")),
+                (None, Some(i)) => Some((i, "heading for the frozen water")),
+                (None, None) => None,
+            };
+            if let Some((v, label)) = nearest {
+                set_thought!(label);
                 return (self.toward(v, grid), thought);
             }
             let urgency = (0.38 - self.hydration) / 0.38;
