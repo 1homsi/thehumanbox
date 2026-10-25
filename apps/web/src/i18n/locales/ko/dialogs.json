@@ -67,6 +67,7 @@
     "lost": "살아남은 사람이 아무도 없습니다.",
     "difficulty": "난이도: {notes}",
     "difficultyGroup": "난이도",
+    "difficultyRefused": "세계의 난이도가 바뀌지 않았습니다. 다시 시도해 주세요.",
     "levels": {
       "calm": "평온",
       "normal": "보통",

@@ -67,6 +67,7 @@
     "lost": "Nikt nie pozostał przy życiu.",
     "difficulty": "Trudność: {notes}",
     "difficultyGroup": "Trudność",
+    "difficultyRefused": "Świat nie zmienił trudności. Spróbuj ponownie.",
     "levels": {
       "calm": "spokojna",
       "normal": "normalna",

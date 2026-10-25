@@ -67,6 +67,7 @@
     "lost": "生き残った者は一人もいません。",
     "difficulty": "難易度: {notes}",
     "difficultyGroup": "難易度",
+    "difficultyRefused": "世界の難易度は変わりませんでした。もう一度お試しください。",
     "levels": {
       "calm": "穏やか",
       "normal": "通常",

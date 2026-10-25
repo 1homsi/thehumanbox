@@ -67,6 +67,7 @@
     "lost": "No queda nadie con vida.",
     "difficulty": "Dificultad: {notes}",
     "difficultyGroup": "Dificultad",
+    "difficultyRefused": "El mundo no cambió la dificultad. Inténtalo de nuevo.",
     "levels": {
       "calm": "tranquila",
       "normal": "normal",

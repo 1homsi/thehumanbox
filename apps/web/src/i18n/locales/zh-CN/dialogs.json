@@ -67,6 +67,7 @@
     "lost": "已无人存活。",
     "difficulty": "难度：{notes}",
     "difficultyGroup": "难度",
+    "difficultyRefused": "世界没有改变难度。请再试一次。",
     "levels": {
       "calm": "平稳",
       "normal": "普通",

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import {
   DIFFICULTY_NOTES,
   DIFFICULTY_ORDER,
@@ -26,6 +27,35 @@ export function GoalsModal({ world, onClose }: Props) {
   const goals = world.goals ?? []
   const difficulty: Difficulty = world.difficulty ?? 'normal'
   const summary = goalsSummary(goals, world.lost_tick)
+  // The level the player has just asked for, while the world answers.
+  const [sending, setSending] = useState<Difficulty | null>(null)
+  // The world turned the last choice down. The buttons still show the old level, so say so.
+  const [refused, setRefused] = useState(false)
+  const open = useRef(true)
+  useEffect(() => {
+    open.current = true
+    return () => {
+      open.current = false
+    }
+  }, [])
+
+  const choose = (level: Difficulty) => {
+    if (sending) return
+    setRefused(false)
+    setSending(level)
+    sendSandboxCommand({ cmd: 'set_difficulty', level }).then(
+      (ok) => {
+        if (!open.current) return
+        setSending(null)
+        setRefused(!ok)
+      },
+      () => {
+        if (!open.current) return
+        setSending(null)
+        setRefused(true)
+      },
+    )
+  }
 
   return (
     <Modal
@@ -87,14 +117,18 @@ export function GoalsModal({ world, onClose }: Props) {
               type="button"
               className="lang-btn"
               aria-pressed={level === difficulty}
-              onClick={() => {
-                void sendSandboxCommand({ cmd: 'set_difficulty', level })
-              }}
+              disabled={sending !== null}
+              onClick={() => choose(level)}
             >
               {t(DIFFICULTY_LABEL[level])}
             </button>
           ))}
         </div>
+        {refused && (
+          <p role="alert" style={{ color: '#e07060', fontSize: 11, margin: '8px 0 0' }}>
+            {t('dialogs.goals.difficultyRefused')}
+          </p>
+        )}
       </div>
     </Modal>
   )
