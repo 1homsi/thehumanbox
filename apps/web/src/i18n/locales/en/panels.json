@@ -380,6 +380,26 @@
       "praying": "praying",
       "reflecting": "reflecting",
       "observing": "observing"
+    },
+    "home": {
+      "title": "{name}'s home",
+      "fallback": "A home",
+      "chosenPieces": {
+        "one": "{count} chosen piece",
+        "other": "{count} chosen pieces"
+      },
+      "era": {
+        "preStone": "A bare windbreak",
+        "stone": "A stone-walled hut",
+        "bronze": "A timber-and-thatch home",
+        "iron": "An iron-age cottage",
+        "classical": "A clay-tiled house",
+        "medieval": "A timbered cottage",
+        "renaissance": "A two-story dwelling",
+        "industrial": "A brick row-house",
+        "modern": "A house",
+        "information": "A small apartment"
+      }
     }
   }
 }

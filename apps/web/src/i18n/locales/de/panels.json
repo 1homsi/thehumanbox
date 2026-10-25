@@ -377,6 +377,26 @@
       "praying": "betet",
       "reflecting": "denkt nach",
       "observing": "beobachtet"
+    },
+    "home": {
+      "title": "Zuhause von {name}",
+      "fallback": "Ein Zuhause",
+      "chosenPieces": {
+        "one": "{count} gewähltes Möbelstück",
+        "other": "{count} gewählte Möbelstücke"
+      },
+      "era": {
+        "preStone": "Ein kahler Windschutz",
+        "stone": "Eine Hütte mit Steinmauern",
+        "bronze": "Ein Haus aus Holz und Stroh",
+        "iron": "Ein Kotten der Eisenzeit",
+        "classical": "Ein Haus mit Tonziegeln",
+        "medieval": "Ein Fachwerkkotten",
+        "renaissance": "Ein zweistöckiges Wohnhaus",
+        "industrial": "Ein Backsteinreihenhaus",
+        "modern": "Ein Haus",
+        "information": "Eine kleine Wohnung"
+      }
     }
   }
 }

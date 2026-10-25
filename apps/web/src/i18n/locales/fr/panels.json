@@ -374,6 +374,26 @@
       "praying": "prie",
       "reflecting": "médite",
       "observing": "observe"
+    },
+    "home": {
+      "title": "Maison de {name}",
+      "fallback": "Un foyer",
+      "chosenPieces": {
+        "one": "{count} meuble choisi",
+        "other": "{count} meubles choisis"
+      },
+      "era": {
+        "preStone": "Un simple abri contre le vent",
+        "stone": "Une hutte aux murs de pierre",
+        "bronze": "Une maison de bois et de chaume",
+        "iron": "Une chaumière de l’âge du fer",
+        "classical": "Une maison aux tuiles d’argile",
+        "medieval": "Une chaumière à colombages",
+        "renaissance": "Une demeure à deux étages",
+        "industrial": "Une maison de briques en rangée",
+        "modern": "Une maison",
+        "information": "Un petit appartement"
+      }
     }
   }
 }
