@@ -36,7 +36,7 @@
     "worldsFolderUnavailable": "世界文件夹不可用",
     "logsFolderUnavailable": "日志文件夹不可用",
     "shortcutUnavailable": "快捷键不可用",
-    "shortcutUnavailableDetail": "{shortcut} 已被其他应用占用。请使用托盘图标显示或隐藏游戏。",
+    "shortcutUnavailableDetail": "无法注册 {shortcut}。请使用托盘图标显示或隐藏游戏。",
     "about": "v{version}\n持续运行的人工生命模拟。\nthehumanbox.com"
   },
   "dialog": {

@@ -5,60 +5,65 @@ import * as path from "node:path";
 import test from "node:test";
 import * as vm from "node:vm";
 
-// The show/hide shortcut is registered at boot. When another app already holds
-// it, Electron returns false and pressing it does nothing. The player must be
-// told; the tray icon still works.
+// The show/hide shortcut is registered at boot. When it does not register, the
+// player must be told once the window is open: a notification, or, where a
+// notification cannot be shown, the tray tooltip. The tray icon still works.
 
-type Handler = (...args: unknown[]) => unknown
-
-function loadIndex(register: () => boolean) {
-  const notifications: Array<{ title: string; body: string }> = []
-  const warnings: string[] = []
-  class FakeNotification {
+function loadIndex(options: { register: () => boolean; notificationsSupported?: boolean }) {
+  const notifications: Array<{ title: string; body: string; instance: EventEmitter }> = [];
+  const tooltips: string[] = [];
+  const warnings: string[] = [];
+  class FakeNotification extends EventEmitter {
     static isSupported() {
-      return true
+      return options.notificationsSupported ?? true;
     }
     constructor(options: { title: string; body: string }) {
-      notifications.push({ title: options.title, body: options.body })
+      super();
+      notifications.push({ title: options.title, body: options.body, instance: this });
     }
-    on() {}
     show() {}
   }
+  class FakeTray extends EventEmitter {
+    setToolTip(text: string) {
+      tooltips.push(text);
+    }
+    setContextMenu() {}
+  }
   class FakeWindow extends EventEmitter {
-    destroyed = false
+    destroyed = false;
     webContents = {
       send: () => {},
       on: () => {},
       setWindowOpenHandler: () => {},
       openDevTools: () => {},
       session: { setPermissionCheckHandler: () => {}, setPermissionRequestHandler: () => {} },
-    }
+    };
     loadFile() {
-      return Promise.resolve()
+      return Promise.resolve();
     }
     loadURL() {
-      return Promise.resolve()
+      return Promise.resolve();
     }
     getBounds() {
-      return { x: 0, y: 0, width: 1400, height: 900 }
+      return { x: 0, y: 0, width: 1400, height: 900 };
     }
     getNormalBounds() {
-      return { x: 0, y: 0, width: 1400, height: 900 }
+      return { x: 0, y: 0, width: 1400, height: 900 };
     }
     isMaximized() {
-      return false
+      return false;
     }
     isFullScreen() {
-      return false
+      return false;
     }
     isDestroyed() {
-      return this.destroyed
+      return this.destroyed;
     }
     isAlwaysOnTop() {
-      return false
+      return false;
     }
     isVisible() {
-      return true
+      return true;
     }
     show() {}
     maximize() {}
@@ -71,7 +76,7 @@ function loadIndex(register: () => boolean) {
     on() {},
     requestSingleInstanceLock: () => true,
     whenReady: () => new Promise<void>(() => {}),
-  }
+  };
   const context = vm.createContext({
     exports: {},
     __dirname,
@@ -89,9 +94,11 @@ function loadIndex(register: () => boolean) {
           app,
           BrowserWindow: FakeWindow,
           Notification: FakeNotification,
+          Tray: FakeTray,
+          nativeImage: { createFromPath: () => ({ resize() { return this; }, setTemplateImage() {} }) },
           Menu: { setApplicationMenu() {}, buildFromTemplate: () => ({}) },
           ipcMain: { handle: () => {} },
-          globalShortcut: { register, unregisterAll() {} },
+          globalShortcut: { register: options.register, unregisterAll() {} },
           screen: { getAllDisplays: () => [] },
           shell: { openExternal: () => Promise.resolve() },
           session: { defaultSession: {} },
@@ -114,30 +121,57 @@ function loadIndex(register: () => boolean) {
     },
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, "index.js"), "utf8"), context);
-  return { context, notifications, warnings };
+  return { context, notifications, tooltips, warnings };
 }
 
 const shortcut = process.platform === "darwin" ? "Cmd+Alt+Shift+H" : "Ctrl+Alt+Shift+H";
 
-test("a show/hide shortcut that another app holds is reported to the player", () => {
-  const { context, notifications, warnings } = loadIndex(() => false);
-  vm.runInContext("registerToggleShortcut()", context);
-  assert.equal(notifications.length, 1, `notifications: ${JSON.stringify(notifications)}`);
+test("a shortcut that does not register is reported once the window is open, not during boot", () => {
+  const { context, notifications, warnings } = loadIndex({ register: () => false });
+  const registered = vm.runInContext("registerToggleShortcut()", context);
+  assert.equal(registered, false);
+  assert.equal(notifications.length, 0, "nothing is raised before the window exists");
+  assert.ok(warnings.some((line) => line.includes(shortcut)));
+
+  vm.runInContext("announceShortcutUnavailable()", context);
+  assert.equal(notifications.length, 1);
   assert.match(notifications[0].title, /shortcut/i);
   assert.ok(notifications[0].body.includes(shortcut), notifications[0].body);
-  assert.ok(warnings.some((line) => line.includes(shortcut)));
 });
 
-test("a shortcut that Electron rejects is reported to the player too", () => {
-  const { context, notifications } = loadIndex(() => {
-    throw new Error("Invalid accelerator");
+test("the message does not blame another app, since registration can fail for other reasons", () => {
+  const { context, notifications } = loadIndex({
+    register: () => {
+      throw new Error("Invalid accelerator");
+    },
   });
-  assert.doesNotThrow(() => vm.runInContext("registerToggleShortcut()", context));
+  assert.equal(vm.runInContext("registerToggleShortcut()", context), false);
+  vm.runInContext("announceShortcutUnavailable()", context);
   assert.equal(notifications.length, 1);
+  assert.doesNotMatch(notifications[0].body, /another app/i);
+});
+
+test("when a notification cannot be shown, the tray tooltip carries the message", () => {
+  const unsupported = loadIndex({ register: () => false, notificationsSupported: false });
+  vm.runInContext("buildTray()", unsupported.context);
+  vm.runInContext("announceShortcutUnavailable()", unsupported.context);
+  assert.equal(unsupported.notifications.length, 0);
+  assert.ok(unsupported.tooltips.some((text) => text.includes(shortcut)), `tooltips: ${unsupported.tooltips.join(" | ")}`);
+});
+
+test("a notification the OS rejects falls back to the tray tooltip", () => {
+  const rejected = loadIndex({ register: () => false });
+  vm.runInContext("buildTray()", rejected.context);
+  vm.runInContext("announceShortcutUnavailable()", rejected.context);
+  assert.equal(rejected.notifications.length, 1);
+  rejected.notifications[0].instance.emit("failed");
+  assert.ok(rejected.tooltips.some((text) => text.includes(shortcut)), `tooltips: ${rejected.tooltips.join(" | ")}`);
 });
 
 test("a shortcut that registers quietly says nothing", () => {
-  const { context, notifications } = loadIndex(() => true);
-  vm.runInContext("registerToggleShortcut()", context);
-  assert.deepEqual(notifications, []);
+  const { context, notifications, warnings } = loadIndex({ register: () => true });
+  // boot announces only when registration failed, so a success raises nothing.
+  assert.equal(vm.runInContext("registerToggleShortcut()", context), true);
+  assert.equal(notifications.length, 0);
+  assert.equal(warnings.length, 0);
 });
