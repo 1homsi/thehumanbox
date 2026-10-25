@@ -157,6 +157,11 @@ fn detour_step_in(
             if (nx - start.0).abs() > DETOUR_RADIUS || (ny - start.1).abs() > DETOUR_RADIUS {
                 continue;
             }
+            // Same early out as the plan search: a step costs at least a road step.
+            let idx = index(nx, ny);
+            if scratch.cost(idx) <= cost + ROAD_STEP_COST {
+                continue;
+            }
             let tile = grid.get(nx, ny);
             if !tile.walkable() || tile == Tile::Fire {
                 continue;
@@ -170,7 +175,6 @@ fn detour_step_in(
                 continue;
             }
             let next_cost = cost + step_cost(grid, nx, ny);
-            let idx = index(nx, ny);
             if next_cost >= scratch.cost(idx) {
                 continue;
             }
@@ -331,6 +335,12 @@ fn plan_route_in(
             if !inside(nx, ny) || !WorldGrid::in_bounds(nx, ny) {
                 continue;
             }
+            // A step costs at least a road step (hazard only adds), so a cell already reached at or below
+            // `cost + ROAD_STEP_COST` cannot improve. Checked before the tile and step lookups it would skip.
+            let idx = index(nx, ny);
+            if scratch.cost(idx) <= cost + ROAD_STEP_COST {
+                continue;
+            }
             let tile = grid.get(nx, ny);
             if !tile.walkable() || tile == Tile::Fire {
                 continue;
@@ -342,7 +352,6 @@ fn plan_route_in(
                 continue;
             }
             let next_cost = cost + step_cost(grid, nx, ny);
-            let idx = index(nx, ny);
             if next_cost >= scratch.cost(idx) {
                 continue;
             }
