@@ -77,6 +77,8 @@ let rebuildTrayMenu: (() => void) | null = null;
 let startHiddenOnce = false;
 // A hidden first window that should be maximized when the user first shows it.
 let pendingMaximize = false;
+// The same for full screen, which is entered when the window is first shown.
+let pendingFullScreen = false;
 
 function windowStateFile(): string {
   return path.join(app.getPath("userData"), "window-state.json");
@@ -126,6 +128,8 @@ function persistWindowState(win: BrowserWindow): void {
       width: bounds.width,
       height: bounds.height,
       maximized: win.isMaximized(),
+      fullscreen: win.isFullScreen(),
+      alwaysOnTop: win.isAlwaysOnTop(),
     };
     atomicReplaceFile(windowStateFile(), JSON.stringify(state, null, 2));
   } catch (e) {
@@ -219,27 +223,40 @@ async function createWindow(): Promise<void> {
   });
   mainWindow = win;
   bindWindowMenus(win);
+  if (winState.alwaysOnTop) win.setAlwaysOnTop(true);
   // maximize() would also show a window that is meant to start hidden. A boot
   // failure must never be hidden, so that case shows the window as well.
   pendingMaximize = startHidden && !bootErrorUrl && winState.maximized === true;
+  pendingFullScreen = startHidden && !bootErrorUrl && winState.fullscreen === true;
   if (!startHidden || bootErrorUrl) {
     if (winState.maximized) win.maximize();
     if (startHidden) win.show();
   }
 
-  const persistDebounced = (() => {
+  // A drag fires many move events, so the save waits for a short pause. Closing
+  // saves at once: the pending timer would fire after the window is destroyed,
+  // when its bounds can no longer be read, and the last move would be lost.
+  const persistWindowSoon = (() => {
     let t: NodeJS.Timeout | null = null;
-    return () => {
+    const flush = (): void => {
       if (t) clearTimeout(t);
-      t = setTimeout(() => {
-        if (win) persistWindowState(win);
-      }, 400);
+      t = null;
+      persistWindowState(win);
     };
+    const schedule = (): void => {
+      if (t) clearTimeout(t);
+      t = setTimeout(flush, 400);
+    };
+    return { schedule, flush };
   })();
-  win.on("resize", persistDebounced);
-  win.on("move", persistDebounced);
-  win.on("maximize", persistDebounced);
-  win.on("unmaximize", persistDebounced);
+  win.on("resize", persistWindowSoon.schedule);
+  win.on("move", persistWindowSoon.schedule);
+  win.on("maximize", persistWindowSoon.schedule);
+  win.on("unmaximize", persistWindowSoon.schedule);
+  win.on("enter-full-screen", persistWindowSoon.schedule);
+  win.on("leave-full-screen", persistWindowSoon.schedule);
+  win.on("always-on-top-changed", persistWindowSoon.schedule);
+  win.on("close", persistWindowSoon.flush);
 
   win.on("minimize", () => {
     win?.webContents.send("app:visibility", "minimized");
@@ -337,6 +354,9 @@ async function createWindow(): Promise<void> {
   if (isQuitting || win.isDestroyed()) return;
   if (!startHidden || bootErrorUrl) {
     if (winState.maximized) win.maximize();
+    // Full screen is entered once the page has loaded, so the transition runs
+    // on a visible window; a hidden start does this in revealWindow.
+    if (winState.fullscreen) win.setFullScreen(true);
     win.show();
   }
 
@@ -625,6 +645,10 @@ function revealWindow(win: BrowserWindow): void {
   if (pendingMaximize) {
     pendingMaximize = false;
     win.maximize();
+  }
+  if (pendingFullScreen) {
+    pendingFullScreen = false;
+    win.setFullScreen(true);
   }
   win.show();
   win.focus();

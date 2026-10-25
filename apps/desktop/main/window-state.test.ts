@@ -32,6 +32,21 @@ test("a window whose title bar is off the top of the display is dropped", () => 
   assert.equal(sanitizeWindowState({ x: 5, y: 5, width: 1400, height: 900 }, []).x, 5);
 });
 
+test("full screen and always on top are kept when they were saved on", () => {
+  const s = sanitizeWindowState(
+    { x: 100, y: 80, width: 1200, height: 800, fullscreen: true, alwaysOnTop: true },
+    [primary],
+  );
+  assert.equal(s.fullscreen, true);
+  assert.equal(s.alwaysOnTop, true);
+});
+
+test("full screen and always on top stay off unless saved as true", () => {
+  const s = sanitizeWindowState({ width: 1200, height: 800, fullscreen: "yes", alwaysOnTop: 1 }, [primary]);
+  assert.equal(s.fullscreen, undefined);
+  assert.equal(s.alwaysOnTop, undefined);
+});
+
 test("malformed state never produces values the BrowserWindow constructor rejects", () => {
   for (const bad of [null, "x", 3, [], { x: "10", y: 5 }, { x: NaN, y: 0 }, { x: 5 }, { width: Infinity, height: -1 }]) {
     const s = sanitizeWindowState(bad, [primary]);
