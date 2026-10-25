@@ -67,10 +67,12 @@ export function DesktopUpdateToast() {
               desktop.app
                 .installUpdate()
                 .then((result) => {
-                  if (result.status !== 'downloaded') {
-                    setInstalling(false)
-                    setError(result.message ?? t('dialogs.toast.updateNotReady'))
-                  }
+                  // A plain "downloaded" result means the app is restarting. A deferred or
+                  // failed install can still come back as "downloaded" with a message: show
+                  // it and re-enable the button, keeping the update held.
+                  if (result.status === 'downloaded' && !result.message) return
+                  setInstalling(false)
+                  setError(result.message ?? t('dialogs.toast.updateNotReady'))
                 })
                 .catch((err: unknown) => {
                   setInstalling(false)
