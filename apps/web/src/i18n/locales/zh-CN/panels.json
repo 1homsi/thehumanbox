@@ -384,6 +384,19 @@
         "modern": "一栋房屋",
         "information": "小公寓"
       }
+    },
+    "temple": {
+      "kind": {
+        "animism": "供奉灵魂的石头神龛",
+        "polytheism": "众神的神庙",
+        "monotheism": "供奉唯一神的圣堂",
+        "philosophical": "冥思之堂",
+        "secular": "市政纪念厅",
+        "fallback": "礼拜场所"
+      },
+      "adherents": "{count} 名信徒",
+      "atAltar": "祭坛前{count}人",
+      "nearbyCount": "附近{count}人"
     }
   }
 }

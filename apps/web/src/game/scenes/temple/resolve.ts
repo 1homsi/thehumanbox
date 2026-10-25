@@ -1,21 +1,26 @@
-import { t } from '../../../i18n'
+import { formatNumber, t } from '../../../i18n'
 import type { SceneContext, SceneFixture, SceneId, SceneOccupant } from '../core/types'
 import type { WorldState } from '../../../shared/types'
 import { getBuildingState } from '../../model/building-state'
 
 const TEMPLE_RADIUS = 20
 
-const KIND_SUBTITLE: Record<string, string> = {
-  Animism: 'a stone shrine to the spirits',
-  Polytheism: 'a temple of many gods',
-  Monotheism: 'a sanctified house of the one god',
-  Philosophical: 'a hall of contemplation',
-  Secular: 'a civic hall of remembrance',
-  animism: 'a stone shrine to the spirits',
-  polytheism: 'a temple of many gods',
-  monotheism: 'a sanctified house of the one god',
-  philosophical: 'a hall of contemplation',
-  secular: 'a civic hall of remembrance',
+/** One line describing the faith's kind of worship, whatever case the simulation sends it in. */
+function kindSubtitle(kind: string | undefined): string {
+  switch ((kind ?? '').toLowerCase()) {
+    case 'animism':
+      return t('panels.scene.temple.kind.animism')
+    case 'polytheism':
+      return t('panels.scene.temple.kind.polytheism')
+    case 'monotheism':
+      return t('panels.scene.temple.kind.monotheism')
+    case 'philosophical':
+      return t('panels.scene.temple.kind.philosophical')
+    case 'secular':
+      return t('panels.scene.temple.kind.secular')
+    default:
+      return t('panels.scene.temple.kind.fallback')
+  }
 }
 
 const TEMPLE_KINDS = new Set(['temple', 'cathedral', 'shrine', 'mosque', 'synagogue', 'pagoda'])
@@ -104,9 +109,10 @@ export function resolveTempleScene(world: WorldState, scene: SceneId): SceneCont
 
   const adherents = religion.adherents ?? 0
   const subtitle = [
-    KIND_SUBTITLE[religion.kind ?? ''] ?? 'a place of worship',
-    `${adherents} of the faith`,
-    `${inside.length} at the altar · ${away.length} nearby`,
+    kindSubtitle(religion.kind),
+    t('panels.scene.temple.adherents', { count: formatNumber(adherents) }),
+    t('panels.scene.temple.atAltar', { count: formatNumber(inside.length) }),
+    t('panels.scene.temple.nearbyCount', { count: formatNumber(away.length) }),
   ].join(' · ')
 
   return {

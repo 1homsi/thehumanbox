@@ -400,6 +400,19 @@
         "modern": "A house",
         "information": "A small apartment"
       }
+    },
+    "temple": {
+      "kind": {
+        "animism": "a stone shrine to the spirits",
+        "polytheism": "a temple of many gods",
+        "monotheism": "a sanctified house of the one god",
+        "philosophical": "a hall of contemplation",
+        "secular": "a civic hall of remembrance",
+        "fallback": "a place of worship"
+      },
+      "adherents": "{count} of the faith",
+      "atAltar": "{count} at the altar",
+      "nearbyCount": "{count} nearby"
     }
   }
 }

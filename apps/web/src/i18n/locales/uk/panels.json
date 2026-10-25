@@ -432,6 +432,19 @@
         "modern": "Будинок",
         "information": "Невелика квартира"
       }
+    },
+    "temple": {
+      "kind": {
+        "animism": "кам’яне святилище духів",
+        "polytheism": "храм багатьох богів",
+        "monotheism": "освячений дім єдиного бога",
+        "philosophical": "зал роздумів",
+        "secular": "громадська зала пам’яті",
+        "fallback": "місце поклоніння"
+      },
+      "adherents": "віруючих: {count}",
+      "atAltar": "біля вівтаря: {count}",
+      "nearbyCount": "поруч: {count}"
     }
   }
 }

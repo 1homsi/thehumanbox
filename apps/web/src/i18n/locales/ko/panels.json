@@ -384,6 +384,19 @@
         "modern": "집",
         "information": "작은 아파트"
       }
+    },
+    "temple": {
+      "kind": {
+        "animism": "정령에게 바치는 돌 사당",
+        "polytheism": "여러 신을 모신 신전",
+        "monotheism": "유일신을 모신 성스러운 집",
+        "philosophical": "사색의 전당",
+        "secular": "시민 추모의 전당",
+        "fallback": "예배 장소"
+      },
+      "adherents": "신도 {count}명",
+      "atAltar": "제단 앞 {count}명",
+      "nearbyCount": "근처 {count}명"
     }
   }
 }

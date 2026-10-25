@@ -384,6 +384,19 @@
         "modern": "一軒家",
         "information": "小さなアパート"
       }
+    },
+    "temple": {
+      "kind": {
+        "animism": "精霊に捧げる石の祠",
+        "polytheism": "多くの神々の神殿",
+        "monotheism": "唯一神に捧げられた聖堂",
+        "philosophical": "瞑想の広間",
+        "secular": "市民の追悼の広間",
+        "fallback": "礼拝の場所"
+      },
+      "adherents": "信徒{count}人",
+      "atAltar": "祭壇の前に{count}人",
+      "nearbyCount": "近くに{count}人"
     }
   }
 }

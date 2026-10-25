@@ -394,6 +394,22 @@
         "modern": "Une maison",
         "information": "Un petit appartement"
       }
+    },
+    "temple": {
+      "kind": {
+        "animism": "un sanctuaire de pierre aux esprits",
+        "polytheism": "un temple de nombreux dieux",
+        "monotheism": "une maison sacrée du Dieu unique",
+        "philosophical": "une salle de contemplation",
+        "secular": "une salle civique du souvenir",
+        "fallback": "un lieu de culte"
+      },
+      "adherents": {
+        "one": "{count} fidèle",
+        "other": "{count} fidèles"
+      },
+      "atAltar": "{count} devant l’autel",
+      "nearbyCount": "{count} à proximité"
     }
   }
 }

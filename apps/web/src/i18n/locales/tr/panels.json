@@ -394,6 +394,19 @@
         "modern": "Bir ev",
         "information": "Küçük bir daire"
       }
+    },
+    "temple": {
+      "kind": {
+        "animism": "ruhlara adanmış taş bir tapınak",
+        "polytheism": "birçok tanrının tapınağı",
+        "monotheism": "tek tanrıya adanmış kutsal bir ev",
+        "philosophical": "bir tefekkür salonu",
+        "secular": "bir anma kamu salonu",
+        "fallback": "bir ibadet yeri"
+      },
+      "adherents": "{count} inanan",
+      "atAltar": "sunakta {count}",
+      "nearbyCount": "{count} yakında"
     }
   }
 }
