@@ -376,7 +376,7 @@
       "observing": "gözlemliyor"
     },
     "home": {
-      "title": "{name}'in evi",
+      "title": "{name} adlı kişinin evi",
       "fallback": "Bir yuva",
       "chosenPieces": {
         "one": "{count} seçilmiş parça",
