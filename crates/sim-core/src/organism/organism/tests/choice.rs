@@ -856,6 +856,63 @@ fn off_the_grass_they_walk_to_the_nearest_green_ground_for_roots() {
     );
 }
 
+fn fire_beside_remembered_food(energy: f32) -> (usize, Option<String>) {
+    let mut rng = StdRng::seed_from_u64(17);
+    let traits = Traits::random(&mut rng);
+    let mut grid = WorldGrid::new(4);
+    for x in 30..=70 {
+        for y in 30..=70 {
+            grid.set(x, y, Tile::Grass);
+        }
+    }
+    grid.set(52, 50, Tile::Fire);
+    let mut org = Organism::new(
+        "starving".into(),
+        "Starving".into(),
+        50.0,
+        50.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    org.energy = energy;
+    org.hydration = 0.9;
+    org.traits.fear = 0.0;
+    org.food_memory.insert((54, 50), 0.9);
+    org.choose_action(
+        &grid,
+        &BuildingList::new(),
+        100,
+        0.0,
+        &[],
+        false,
+        0,
+        &mut rng,
+        false,
+        "state",
+        &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    )
+}
+
+#[test]
+fn hungry_someone_goes_on_to_food_beside_a_fire_instead_of_stepping_back() {
+    let (action, thought) = fire_beside_remembered_food(0.3);
+    assert_eq!(thought.as_deref(), Some("moving to known food"));
+    assert!(
+        crate::organism::organism::DIRECTIONS[action].0 > 0,
+        "turned back from the food for the fire"
+    );
+}
+
+#[test]
+fn someone_not_hungry_still_keeps_their_distance_from_a_fire() {
+    let (action, thought) = fire_beside_remembered_food(0.6);
+    assert_eq!(thought.as_deref(), Some("heat dangerous"));
+    assert!(crate::organism::organism::DIRECTIONS[action].0 < 0);
+}
+
 #[test]
 fn grass_across_the_water_is_no_place_to_dig_for_someone_too_weak_to_swim() {
     let mut rng = StdRng::seed_from_u64(15);

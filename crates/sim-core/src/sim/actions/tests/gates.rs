@@ -320,3 +320,25 @@ fn pre_stone_cannot_bypass_advanced_build_farming_or_siege_gates() {
         );
     }
 }
+
+#[test]
+fn mining_and_quarrying_are_only_offered_beside_rock() {
+    let mut sim = Simulation::new(21);
+    let idx = 0;
+    move_other_organisms_far_away(&mut sim, idx);
+    let (x, y) = (sim.organisms[idx].x as i32, sim.organisms[idx].y as i32);
+    for dx in -2..=2 {
+        for dy in -2..=2 {
+            sim.grid.set(x + dx, y + dy, Tile::Grass);
+        }
+    }
+
+    let actions = actions_for(&sim, idx);
+    assert!(!actions.contains(&26), "mining offered with no rock near");
+    assert!(!actions.contains(&29), "quarrying offered with no rock near");
+
+    sim.grid.set(x + 1, y, Tile::Rock);
+    let actions = actions_for(&sim, idx);
+    assert!(actions.contains(&26), "mining not offered beside rock");
+    assert!(actions.contains(&29), "quarrying not offered beside rock");
+}
