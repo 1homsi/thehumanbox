@@ -549,5 +549,21 @@
       "languageMeaning": "언어와 의미",
       "physicalQualities": "신체적 성질"
     }
+  },
+  "newWorld": {
+    "title": "새 세계를 시작할까요?",
+    "body": "이 고요한 세계는 복구 저장본으로 보관됩니다.",
+    "confirm": "새로 시작"
+  },
+  "worldNotice": {
+    "worldLoading": "세계를 아직 불러오는 중입니다",
+    "loadingRefresh": "로컬 세계를 아직 불러오는 중입니다. 잠시 기다린 뒤 페이지를 새로고침하세요.",
+    "loadingReset": "로컬 세계를 아직 불러오는 중입니다. 잠시 기다린 뒤 새 세계를 다시 시작하세요.",
+    "loadingRestore": "로컬 세계를 아직 불러오는 중입니다. 잠시 기다린 뒤 다시 복원하세요.",
+    "storageUnavailable": "브라우저 저장소를 사용할 수 없습니다",
+    "notReset": "현재 세계는 초기화되지 않았습니다.",
+    "notRecovered": "복구가 시작되지 않았습니다.",
+    "badSaveTitle": "이 저장본은 복원할 수 없습니다",
+    "badSaveBody": "이 복구 저장본은 이 로컬 세계에 맞지 않습니다."
   }
 }

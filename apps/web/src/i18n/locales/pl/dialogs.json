@@ -565,5 +565,21 @@
       "languageMeaning": "język i znaczenie",
       "physicalQualities": "cechy fizyczne"
     }
+  },
+  "newWorld": {
+    "title": "Zacząć nowy świat?",
+    "body": "Ten cichy świat zostanie zachowany w zapisach awaryjnych.",
+    "confirm": "zacznij nowy"
+  },
+  "worldNotice": {
+    "worldLoading": "Świat wciąż się wczytuje",
+    "loadingRefresh": "Lokalny świat wciąż się wczytuje. Poczekaj chwilę, a potem odśwież stronę.",
+    "loadingReset": "Lokalny świat wciąż się wczytuje. Poczekaj chwilę i spróbuj ponownie zacząć nowy świat.",
+    "loadingRestore": "Lokalny świat wciąż się wczytuje. Poczekaj chwilę i spróbuj ponownie przywrócić zapis.",
+    "storageUnavailable": "Pamięć przeglądarki niedostępna",
+    "notReset": "Bieżący świat nie został zresetowany.",
+    "notRecovered": "Przywracanie nie zostało rozpoczęte.",
+    "badSaveTitle": "Nie można przywrócić tego zapisu",
+    "badSaveBody": "Ten zapis awaryjny nie pasuje do tego lokalnego świata."
   }
 }

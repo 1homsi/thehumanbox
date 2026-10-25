@@ -549,5 +549,21 @@
       "languageMeaning": "言語と意味",
       "physicalQualities": "身体的な性質"
     }
+  },
+  "newWorld": {
+    "title": "新しい世界を始めますか？",
+    "body": "この静かな世界は復元用の保存データとして残ります。",
+    "confirm": "新しく始める"
+  },
+  "worldNotice": {
+    "worldLoading": "世界を読み込み中です",
+    "loadingRefresh": "ローカルの世界を読み込み中です。少し待ってから、ページを再読み込みしてください。",
+    "loadingReset": "ローカルの世界を読み込み中です。少し待ってから、もう一度新しい世界を始めてください。",
+    "loadingRestore": "ローカルの世界を読み込み中です。少し待ってから、もう一度復元してください。",
+    "storageUnavailable": "ブラウザの保存領域が使えません",
+    "notReset": "現在の世界はリセットされませんでした。",
+    "notRecovered": "復元は開始されませんでした。",
+    "badSaveTitle": "その保存データは復元できません",
+    "badSaveBody": "その復元用の保存データは、このローカルの世界では使えません。"
   }
 }

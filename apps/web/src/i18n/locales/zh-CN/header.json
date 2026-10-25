@@ -40,5 +40,19 @@
   "fullscreen": "全屏",
   "exitFullscreen": "退出全屏",
   "enterFullscreenAria": "进入全屏",
-  "exitFullscreenAria": "退出全屏"
+  "exitFullscreenAria": "退出全屏",
+  "save": {
+    "loading": "正在加载本地存档…",
+    "retrying": "正在重试本地存储…",
+    "restored": "已在第 {tick} 时刻恢复世界",
+    "newWorld": "新的本地世界已就绪",
+    "saving": "正在保存第 {tick} 时刻…",
+    "saved": "已保存到本地 · 第 {tick} 时刻",
+    "savingWorld": "正在保存世界…"
+  },
+  "sandbox": {
+    "seedHint": "点击土地以建立新部落",
+    "guidanceSet": "{strategy}指引已设定",
+    "guidanceFailed": "指引设定失败"
+  }
 }

@@ -40,5 +40,19 @@
   "fullscreen": "Vollbild",
   "exitFullscreen": "Vollbild beenden",
   "enterFullscreenAria": "Vollbild aktivieren",
-  "exitFullscreenAria": "Vollbild beenden"
+  "exitFullscreenAria": "Vollbild beenden",
+  "save": {
+    "loading": "lade lokalen Spielstand…",
+    "retrying": "versuche den lokalen Speicher erneut…",
+    "restored": "Welt wiederhergestellt bei Tick {tick}",
+    "newWorld": "neue lokale Welt bereit",
+    "saving": "speichere Tick {tick}…",
+    "saved": "lokal gespeichert · Tick {tick}",
+    "savingWorld": "speichere die Welt…"
+  },
+  "sandbox": {
+    "seedHint": "Klicke auf das Land, um einen neuen Stamm zu gründen",
+    "guidanceSet": "Lenkung {strategy} gesetzt",
+    "guidanceFailed": "Lenkung fehlgeschlagen"
+  }
 }

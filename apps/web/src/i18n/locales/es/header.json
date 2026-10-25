@@ -40,5 +40,19 @@
   "fullscreen": "pantalla completa",
   "exitFullscreen": "salir de pantalla completa",
   "enterFullscreenAria": "Entrar en pantalla completa",
-  "exitFullscreenAria": "Salir de pantalla completa"
+  "exitFullscreenAria": "Salir de pantalla completa",
+  "save": {
+    "loading": "cargando el guardado local…",
+    "retrying": "reintentando el almacenamiento local…",
+    "restored": "mundo restaurado en el tick {tick}",
+    "newWorld": "nuevo mundo local listo",
+    "saving": "guardando el tick {tick}…",
+    "saved": "guardado localmente · tick {tick}",
+    "savingWorld": "guardando el mundo…"
+  },
+  "sandbox": {
+    "seedHint": "haz clic en la tierra para fundar una nueva tribu",
+    "guidanceSet": "guía de {strategy} aplicada",
+    "guidanceFailed": "la guía falló"
+  }
 }

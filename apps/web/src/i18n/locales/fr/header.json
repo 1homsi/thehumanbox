@@ -40,5 +40,19 @@
   "fullscreen": "plein écran",
   "exitFullscreen": "quitter le plein écran",
   "enterFullscreenAria": "Passer en plein écran",
-  "exitFullscreenAria": "Quitter le plein écran"
+  "exitFullscreenAria": "Quitter le plein écran",
+  "save": {
+    "loading": "chargement de la sauvegarde locale…",
+    "retrying": "nouvelle tentative de stockage local…",
+    "restored": "monde restauré au tick {tick}",
+    "newWorld": "nouveau monde local prêt",
+    "saving": "enregistrement du tick {tick}…",
+    "saved": "enregistré localement · tick {tick}",
+    "savingWorld": "enregistrement du monde…"
+  },
+  "sandbox": {
+    "seedHint": "cliquez sur la terre pour fonder une nouvelle tribu",
+    "guidanceSet": "orientation « {strategy} » activée",
+    "guidanceFailed": "échec de l’orientation"
+  }
 }

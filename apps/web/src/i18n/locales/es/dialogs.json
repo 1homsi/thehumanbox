@@ -549,5 +549,21 @@
       "languageMeaning": "lenguaje y significado",
       "physicalQualities": "cualidades físicas"
     }
+  },
+  "newWorld": {
+    "title": "¿Empezar un mundo nuevo?",
+    "body": "Este mundo silencioso se guarda en las copias de recuperación.",
+    "confirm": "empezar nuevo"
+  },
+  "worldNotice": {
+    "worldLoading": "El mundo todavía se está cargando",
+    "loadingRefresh": "El mundo local todavía se está cargando. Espera un momento y luego actualiza la página.",
+    "loadingReset": "El mundo local todavía se está cargando. Espera un momento y luego vuelve a intentar empezar un mundo nuevo.",
+    "loadingRestore": "El mundo local todavía se está cargando. Espera un momento y luego vuelve a intentar restaurarlo.",
+    "storageUnavailable": "Almacenamiento del navegador no disponible",
+    "notReset": "El mundo actual no se restableció.",
+    "notRecovered": "La recuperación no se inició.",
+    "badSaveTitle": "No se puede restaurar ese guardado",
+    "badSaveBody": "Ese guardado de recuperación no es válido para este mundo local."
   }
 }

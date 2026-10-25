@@ -40,5 +40,19 @@
   "fullscreen": "tam ekran",
   "exitFullscreen": "tam ekrandan çık",
   "enterFullscreenAria": "Tam ekrana geç",
-  "exitFullscreenAria": "Tam ekrandan çık"
+  "exitFullscreenAria": "Tam ekrandan çık",
+  "save": {
+    "loading": "yerel kayıt yükleniyor…",
+    "retrying": "yerel depolama yeniden deneniyor…",
+    "restored": "dünya {tick} tikinde geri yüklendi",
+    "newWorld": "yeni yerel dünya hazır",
+    "saving": "{tick} tiki kaydediliyor…",
+    "saved": "yerel olarak kaydedildi · tik {tick}",
+    "savingWorld": "dünya kaydediliyor…"
+  },
+  "sandbox": {
+    "seedHint": "yeni bir kabile kurmak için araziye tıklayın",
+    "guidanceSet": "{strategy} yönlendirmesi ayarlandı",
+    "guidanceFailed": "yönlendirme başarısız"
+  }
 }

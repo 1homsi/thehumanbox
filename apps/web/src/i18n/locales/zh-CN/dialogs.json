@@ -549,5 +549,21 @@
       "languageMeaning": "语言与含义",
       "physicalQualities": "身体特质"
     }
+  },
+  "newWorld": {
+    "title": "开始新世界？",
+    "body": "这个安静的世界将保存在恢复存档中。",
+    "confirm": "开始新世界"
+  },
+  "worldNotice": {
+    "worldLoading": "世界仍在加载",
+    "loadingRefresh": "本地世界仍在加载。请稍等片刻，然后刷新页面。",
+    "loadingReset": "本地世界仍在加载。请稍等片刻，然后再次尝试开始新世界。",
+    "loadingRestore": "本地世界仍在加载。请稍等片刻，然后再次尝试恢复。",
+    "storageUnavailable": "浏览器存储不可用",
+    "notReset": "当前世界未被重置。",
+    "notRecovered": "恢复未能开始。",
+    "badSaveTitle": "无法恢复该存档",
+    "badSaveBody": "该恢复存档与此本地世界不匹配。"
   }
 }

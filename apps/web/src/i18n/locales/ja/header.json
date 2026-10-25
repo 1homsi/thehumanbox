@@ -40,5 +40,19 @@
   "fullscreen": "全画面",
   "exitFullscreen": "全画面を終了",
   "enterFullscreenAria": "全画面表示にする",
-  "exitFullscreenAria": "全画面表示を終了"
+  "exitFullscreenAria": "全画面表示を終了",
+  "save": {
+    "loading": "ローカルの保存データを読み込み中…",
+    "retrying": "ローカルストレージを再試行中…",
+    "restored": "ティック{tick}で世界を復元",
+    "newWorld": "新しいローカル世界の準備ができました",
+    "saving": "ティック{tick}を保存中…",
+    "saved": "ローカルに保存 · ティック{tick}",
+    "savingWorld": "世界を保存中…"
+  },
+  "sandbox": {
+    "seedHint": "土地をクリックして新しい部族を作ります",
+    "guidanceSet": "{strategy}の指針を設定しました",
+    "guidanceFailed": "指針の設定に失敗しました"
+  }
 }
