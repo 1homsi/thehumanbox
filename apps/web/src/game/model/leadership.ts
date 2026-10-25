@@ -1,4 +1,5 @@
 import type { WorldState } from '../../shared/types'
+import { personName } from '../../shared/personName'
 
 export interface Leadership {
   government: string
@@ -19,6 +20,6 @@ export function leadershipOf(
     : undefined
   return {
     government: pretty(gov.kind),
-    leader: leader ? { id: leader.id, name: leader.name } : null,
+    leader: leader ? { id: leader.id, name: personName(leader) } : null,
   }
 }
