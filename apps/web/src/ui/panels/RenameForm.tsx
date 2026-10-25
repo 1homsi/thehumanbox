@@ -67,7 +67,8 @@ export function RenameForm({ org }: { org: Pick<OrganismState, 'id' | 'name' | '
         disabled={pending}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Escape') stopRename()
+          // An Escape that cancels a composed character is the input method's; it does not cancel the rename.
+          if (e.key === 'Escape' && !e.nativeEvent.isComposing && e.keyCode !== 229) stopRename()
         }}
         style={{ flex: 1, minWidth: 0 }}
       />

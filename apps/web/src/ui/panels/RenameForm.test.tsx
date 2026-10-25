@@ -85,6 +85,18 @@ describe('RenameForm', () => {
   })
 })
 
+describe('RenameForm while an IME composes', () => {
+  it('an Escape that cancels a composed character does not cancel the rename', () => {
+    const host = mount()
+    const input = host.querySelector('input')!
+    act(() => {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', isComposing: true, bubbles: true }))
+    })
+    expect(useUIStore.getState().renamingOrgId).toBe('p1')
+    expect(host.querySelector('input')).not.toBeNull()
+  })
+})
+
 function deferred<T>() {
   let resolve!: (value: T) => void
   const promise = new Promise<T>((res) => {

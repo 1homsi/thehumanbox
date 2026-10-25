@@ -84,6 +84,36 @@ describe('TribeCard', () => {
     expect(host.querySelector('.tribe-card-rename')?.textContent).toContain('Bren')
   })
 
+  it('an Enter that commits a composed name does not rename the tribe yet', () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    roots.push(root)
+    const onRename = vi.fn()
+
+    act(() => useUIStore.setState({ focus: 'lineage:a' }))
+    act(() =>
+      root.render(
+        <TribeCard
+          world={world(['a', 'b'])}
+          onAnswer={() => {}}
+          onTool={() => {}}
+          onRename={onRename}
+          onTeach={() => {}}
+        />,
+      ),
+    )
+    act(() => host.querySelector<HTMLButtonElement>('.tribe-card-rename')!.click())
+    const input = host.querySelector<HTMLInputElement>('.tribe-card-name-input')!
+    typeInto(input, 'Ashen')
+    act(() => {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true }))
+    })
+
+    expect(onRename).not.toHaveBeenCalled()
+    expect(host.querySelector('.tribe-card-name-input')).not.toBeNull()
+  })
+
   it('tells what the tribe has been through: a hungry winter and its war dead', () => {
     const host = document.createElement('div')
     document.body.append(host)
