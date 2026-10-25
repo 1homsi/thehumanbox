@@ -1,19 +1,26 @@
+import { formatNumber, t, type MessageKey } from '../../../i18n'
 import type { SceneContext, SceneFixture, SceneId } from '../core/types'
 import type { OrganismState, WorldState } from '../../../shared/types'
 import { householdAround } from '../shared/occupants'
 import { eraWord } from '../../../shared/era-words'
 
-const ERA_LABEL: Record<string, string> = {
-  'pre-stone': 'A bare windbreak',
-  stone: 'A stone-walled hut',
-  bronze: 'A timber-and-thatch home',
-  iron: 'An iron-age cottage',
-  classical: 'A clay-tiled house',
-  medieval: 'A timbered cottage',
-  renaissance: 'A two-story dwelling',
-  industrial: 'A brick row-house',
-  modern: 'A house',
-  information: 'A small apartment',
+const ERA_LABEL: Record<string, MessageKey> = {
+  'pre-stone': 'panels.scene.home.era.preStone',
+  stone: 'panels.scene.home.era.stone',
+  bronze: 'panels.scene.home.era.bronze',
+  iron: 'panels.scene.home.era.iron',
+  classical: 'panels.scene.home.era.classical',
+  medieval: 'panels.scene.home.era.medieval',
+  renaissance: 'panels.scene.home.era.renaissance',
+  industrial: 'panels.scene.home.era.industrial',
+  modern: 'panels.scene.home.era.modern',
+  information: 'panels.scene.home.era.information',
+}
+
+/** One line describing the house for its era, e.g. "A stone-walled hut". */
+function eraLabel(era: string): string {
+  const key = ERA_LABEL[era]
+  return key ? t(key) : t('panels.scene.home.fallback')
 }
 
 interface Slot {
@@ -198,13 +205,13 @@ export function resolveHomeScene(world: WorldState, scene: SceneId): SceneContex
 
   const flavor =
     aiPicked.length === 0
-      ? (ERA_LABEL[era] ?? 'A home')
-      : `${ERA_LABEL[era] ?? 'A home'} · ${aiPicked.length} chosen pieces`
+      ? eraLabel(era)
+      : `${eraLabel(era)} · ${t('panels.scene.home.chosenPieces', { count: formatNumber(aiPicked.length) })}`
 
   return {
     scene,
     world,
-    title: `${host.name}'s home`,
+    title: t('panels.scene.home.title', { name: host.name }),
     subtitle: `${flavor} · ${lineageName} · ${eraWord(era)}`,
     isDay,
     occupants: inside,

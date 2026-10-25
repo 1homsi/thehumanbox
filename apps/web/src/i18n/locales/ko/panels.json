@@ -367,6 +367,23 @@
       "praying": "기도하는 중",
       "reflecting": "묵상하는 중",
       "observing": "지켜보는 중"
+    },
+    "home": {
+      "title": "{name}의 집",
+      "fallback": "보금자리",
+      "chosenPieces": "고른 가구 {count}개",
+      "era": {
+        "preStone": "맨 바람막이",
+        "stone": "돌담 오두막",
+        "bronze": "목재와 초가의 집",
+        "iron": "철기 시대의 오두막",
+        "classical": "점토 기와집",
+        "medieval": "목조 골격 오두막",
+        "renaissance": "이층 주택",
+        "industrial": "벽돌 연립주택",
+        "modern": "집",
+        "information": "작은 아파트"
+      }
     }
   }
 }

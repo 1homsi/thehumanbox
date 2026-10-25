@@ -374,6 +374,26 @@
       "praying": "rezando",
       "reflecting": "refletindo",
       "observing": "observando"
+    },
+    "home": {
+      "title": "Casa de {name}",
+      "fallback": "Um lar",
+      "chosenPieces": {
+        "one": "{count} peça escolhida",
+        "other": "{count} peças escolhidas"
+      },
+      "era": {
+        "preStone": "Um abrigo nu contra o vento",
+        "stone": "Uma cabana de paredes de pedra",
+        "bronze": "Uma casa de madeira e palha",
+        "iron": "Uma casinha da Idade do Ferro",
+        "classical": "Uma casa de telhas de barro",
+        "medieval": "Uma casinha de enxaimel",
+        "renaissance": "Uma moradia de dois andares",
+        "industrial": "Uma casa geminada de tijolos",
+        "modern": "Uma casa",
+        "information": "Um pequeno apartamento"
+      }
     }
   }
 }

@@ -367,6 +367,23 @@
       "praying": "祈祷中",
       "reflecting": "沉思中",
       "observing": "旁观中"
+    },
+    "home": {
+      "title": "{name}的家",
+      "fallback": "住所",
+      "chosenPieces": "已选{count}件家具",
+      "era": {
+        "preStone": "光秃秃的避风处",
+        "stone": "石墙小屋",
+        "bronze": "木料与茅草的房屋",
+        "iron": "铁器时代的小屋",
+        "classical": "陶瓦房屋",
+        "medieval": "木构架小屋",
+        "renaissance": "两层住宅",
+        "industrial": "砖砌联排房屋",
+        "modern": "一栋房屋",
+        "information": "小公寓"
+      }
     }
   }
 }

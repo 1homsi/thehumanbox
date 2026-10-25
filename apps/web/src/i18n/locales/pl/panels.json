@@ -405,6 +405,28 @@
       "praying": "modli się",
       "reflecting": "rozmyśla",
       "observing": "obserwuje"
+    },
+    "home": {
+      "title": "Dom {name}",
+      "fallback": "Dom",
+      "chosenPieces": {
+        "one": "{count} wybrany element",
+        "few": "{count} wybrane elementy",
+        "many": "{count} wybranych elementów",
+        "other": "{count} wybranych elementów"
+      },
+      "era": {
+        "preStone": "Goła osłona przed wiatrem",
+        "stone": "Chata z kamiennymi ścianami",
+        "bronze": "Dom z drewna i strzechy",
+        "iron": "Chata z epoki żelaza",
+        "classical": "Dom z glinianą dachówką",
+        "medieval": "Chata o szkielecie drewnianym",
+        "renaissance": "Dwukondygnacyjny dom",
+        "industrial": "Ceglany dom szeregowy",
+        "modern": "Dom",
+        "information": "Małe mieszkanie"
+      }
     }
   }
 }

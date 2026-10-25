@@ -374,6 +374,26 @@
       "praying": "dua ediyor",
       "reflecting": "düşünüyor",
       "observing": "gözlemliyor"
+    },
+    "home": {
+      "title": "{name} adlı kişinin evi",
+      "fallback": "Bir yuva",
+      "chosenPieces": {
+        "one": "{count} seçilmiş parça",
+        "other": "{count} seçilmiş parça"
+      },
+      "era": {
+        "preStone": "Çıplak bir rüzgâr siperi",
+        "stone": "Taş duvarlı bir kulübe",
+        "bronze": "Ahşap ve saz çatılı bir ev",
+        "iron": "Demir Çağı'ndan bir kulübe",
+        "classical": "Kiremitli bir ev",
+        "medieval": "Ahşap karkaslı bir kulübe",
+        "renaissance": "İki katlı bir konut",
+        "industrial": "Tuğla sıra ev",
+        "modern": "Bir ev",
+        "information": "Küçük bir daire"
+      }
     }
   }
 }

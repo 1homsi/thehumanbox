@@ -367,6 +367,23 @@
       "praying": "祈っている",
       "reflecting": "思いにふけっている",
       "observing": "見守っている"
+    },
+    "home": {
+      "title": "{name}の家",
+      "fallback": "住まい",
+      "chosenPieces": "選んだ家具 {count}点",
+      "era": {
+        "preStone": "むき出しの風よけ",
+        "stone": "石壁の小屋",
+        "bronze": "木造と藁葺きの家",
+        "iron": "鉄器時代の小屋",
+        "classical": "粘土瓦の家",
+        "medieval": "木骨造りの小屋",
+        "renaissance": "二階建ての住まい",
+        "industrial": "レンガの連棟住宅",
+        "modern": "一軒家",
+        "information": "小さなアパート"
+      }
     }
   }
 }

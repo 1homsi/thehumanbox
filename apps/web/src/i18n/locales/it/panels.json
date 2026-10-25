@@ -377,6 +377,26 @@
       "praying": "prega",
       "reflecting": "riflette",
       "observing": "osserva"
+    },
+    "home": {
+      "title": "Casa di {name}",
+      "fallback": "Una casa",
+      "chosenPieces": {
+        "one": "{count} mobile scelto",
+        "other": "{count} mobili scelti"
+      },
+      "era": {
+        "preStone": "Un nudo riparo contro il vento",
+        "stone": "Una capanna con muri di pietra",
+        "bronze": "Una casa di legno e paglia",
+        "iron": "Un cottage dell’età del ferro",
+        "classical": "Una casa con tegole di argilla",
+        "medieval": "Un cottage a graticcio",
+        "renaissance": "Un’abitazione a due piani",
+        "industrial": "Una casa a schiera in mattoni",
+        "modern": "Una casa",
+        "information": "Un piccolo appartamento"
+      }
     }
   }
 }
