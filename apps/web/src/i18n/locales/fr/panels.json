@@ -331,6 +331,18 @@
     "inPrayerCount": "{count} en prière",
     "atWorkCount": "{count} au travail",
     "day": "jour",
-    "night": "nuit"
+    "night": "nuit",
+    "role": {
+      "host": "hôte",
+      "partner": "conjoint",
+      "child": "enfant",
+      "kin": "parent",
+      "guest": "invité",
+      "stranger": "inconnu",
+      "patron": "habitué",
+      "worshipper": "fidèle",
+      "brewer": "brasseur",
+      "priest": "prêtre"
+    }
   }
 }

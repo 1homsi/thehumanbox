@@ -43,7 +43,7 @@ describe('HomeInterior in another language', () => {
       title: 'Haus',
       subtitle: '',
       occupants: [],
-      away: [{ role: 'Vater', org: { id: 'a', name: 'Ari' }, activity: 'jagt' }],
+      away: [{ role: 'kin', org: { id: 'a', name: 'Ari' }, activity: 'jagt' }],
       isDay: true,
     })
     expect(host.querySelector('.scene-back')?.getAttribute('aria-label')).toBe(t('common.backToMap'))
@@ -52,12 +52,14 @@ describe('HomeInterior in another language', () => {
     )
     const chip = host.querySelector('.scene-occupant-chip--away')
     expect(chip?.getAttribute('title')).toBe(t('panels.scene.homeOut'))
-    expect(chip?.querySelector('.scene-occupant-role')?.textContent).toBe(`Vater · ${t('panels.scene.out')}`)
+    expect(chip?.querySelector('.scene-occupant-role')?.textContent).toBe(
+      `Verwandte · ${t('panels.scene.out')}`,
+    )
   })
 
   it('counts the people inside in the active language', async () => {
     await loadLocale('de')
-    const occupant = { role: 'Mutter', org: { id: 'b', name: 'Bea' }, activity: 'kocht' }
+    const occupant = { role: 'child', org: { id: 'b', name: 'Bea' }, activity: 'kocht' }
     const host = render({
       title: 'Haus',
       subtitle: '',

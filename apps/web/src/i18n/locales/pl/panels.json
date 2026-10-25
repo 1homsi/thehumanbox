@@ -360,6 +360,18 @@
     "inPrayerCount": "{count} w modlitwie",
     "atWorkCount": "{count} przy pracy",
     "day": "dzień",
-    "night": "noc"
+    "night": "noc",
+    "role": {
+      "host": "gospodarz",
+      "partner": "partner",
+      "child": "dziecko",
+      "kin": "krewny",
+      "guest": "gość",
+      "stranger": "obcy",
+      "patron": "stały gość",
+      "worshipper": "wierzący",
+      "brewer": "piwowar",
+      "priest": "kapłan"
+    }
   }
 }
