@@ -59,12 +59,12 @@ export function resolveTavernScene(world: WorldState, scene: SceneId): SceneCont
     if (!eligible) continue
     const role: SceneOccupant['role'] = o.is_leader ? 'host' : hasSpirit ? 'brewer' : 'patron'
     const activity = hasSpirit
-      ? 'serving'
+      ? t('panels.scene.activity.serving')
       : drinkerThought
         ? o.thought!
         : knowsBrewing
-          ? 'drinking'
-          : 'looking in'
+          ? t('panels.scene.activity.drinking')
+          : t('panels.scene.activity.lookingIn')
     const entry: SceneOccupant = { org: o, role, activity }
     if (d <= 3) inside.push(entry)
     else away.push(entry)

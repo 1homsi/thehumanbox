@@ -351,6 +351,22 @@
         "other": "{count} 名酿酒人"
       },
       "shelf": "架上 {count}"
+    },
+    "activity": {
+      "atHome": "在家",
+      "idling": "闲着",
+      "visiting": "拜访中",
+      "working": {
+        "forge": "在铁匠铺干活",
+        "bakery": "在面包房干活",
+        "mill": "在磨坊干活"
+      },
+      "serving": "上酒中",
+      "drinking": "喝酒中",
+      "lookingIn": "在门口张望",
+      "praying": "祈祷中",
+      "reflecting": "沉思中",
+      "observing": "旁观中"
     }
   }
 }

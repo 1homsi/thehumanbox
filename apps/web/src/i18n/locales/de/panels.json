@@ -361,6 +361,22 @@
         "other": "{count} Brauer"
       },
       "shelf": "{count} im Regal"
+    },
+    "activity": {
+      "atHome": "zu Hause",
+      "idling": "untätig",
+      "visiting": "zu Besuch",
+      "working": {
+        "forge": "arbeitet an der Schmiede",
+        "bakery": "arbeitet in der Bäckerei",
+        "mill": "arbeitet in der Mühle"
+      },
+      "serving": "bedient",
+      "drinking": "trinkt",
+      "lookingIn": "schaut herein",
+      "praying": "betet",
+      "reflecting": "denkt nach",
+      "observing": "beobachtet"
     }
   }
 }

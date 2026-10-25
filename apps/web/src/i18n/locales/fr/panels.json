@@ -358,6 +358,22 @@
         "other": "{count} brasseurs"
       },
       "shelf": "{count} sur l’étagère"
+    },
+    "activity": {
+      "atHome": "à la maison",
+      "idling": "désœuvré",
+      "visiting": "en visite",
+      "working": {
+        "forge": "travaille à la forge",
+        "bakery": "travaille à la boulangerie",
+        "mill": "travaille au moulin"
+      },
+      "serving": "sert",
+      "drinking": "boit",
+      "lookingIn": "regarde à l'intérieur",
+      "praying": "prie",
+      "reflecting": "médite",
+      "observing": "observe"
     }
   }
 }

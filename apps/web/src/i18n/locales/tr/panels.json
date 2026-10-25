@@ -358,6 +358,22 @@
         "other": "{count} bira yapıcı"
       },
       "shelf": "rafta {count}"
+    },
+    "activity": {
+      "atHome": "evde",
+      "idling": "boşta",
+      "visiting": "ziyarette",
+      "working": {
+        "forge": "demircide çalışıyor",
+        "bakery": "fırında çalışıyor",
+        "mill": "değirmende çalışıyor"
+      },
+      "serving": "servis yapıyor",
+      "drinking": "içiyor",
+      "lookingIn": "içeriye bakıyor",
+      "praying": "dua ediyor",
+      "reflecting": "düşünüyor",
+      "observing": "gözlemliyor"
     }
   }
 }

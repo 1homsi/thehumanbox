@@ -361,6 +361,22 @@
         "other": "{count} birrai"
       },
       "shelf": "{count} sullo scaffale"
+    },
+    "activity": {
+      "atHome": "a casa",
+      "idling": "non fa nulla",
+      "visiting": "in visita",
+      "working": {
+        "forge": "al lavoro alla forgia",
+        "bakery": "al lavoro in panetteria",
+        "mill": "al lavoro al mulino"
+      },
+      "serving": "serve",
+      "drinking": "beve",
+      "lookingIn": "guarda dentro",
+      "praying": "prega",
+      "reflecting": "riflette",
+      "observing": "osserva"
     }
   }
 }

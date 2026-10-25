@@ -364,6 +364,22 @@
         "other": "{count} brewers"
       },
       "shelf": "{count} on the shelf"
+    },
+    "activity": {
+      "atHome": "at home",
+      "idling": "idling",
+      "visiting": "visiting",
+      "working": {
+        "forge": "working at the forge",
+        "bakery": "working at the bakery",
+        "mill": "working at the mill"
+      },
+      "serving": "serving",
+      "drinking": "drinking",
+      "lookingIn": "looking in",
+      "praying": "praying",
+      "reflecting": "reflecting",
+      "observing": "observing"
     }
   }
 }

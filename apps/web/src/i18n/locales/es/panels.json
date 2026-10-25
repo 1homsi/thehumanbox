@@ -358,6 +358,22 @@
         "other": "{count} cerveceros"
       },
       "shelf": "{count} en la estantería"
+    },
+    "activity": {
+      "atHome": "en casa",
+      "idling": "holgazaneando",
+      "visiting": "de visita",
+      "working": {
+        "forge": "trabajando en la forja",
+        "bakery": "trabajando en la panadería",
+        "mill": "trabajando en el molino"
+      },
+      "serving": "sirviendo",
+      "drinking": "bebiendo",
+      "lookingIn": "mirando desde la puerta",
+      "praying": "rezando",
+      "reflecting": "reflexionando",
+      "observing": "observando"
     }
   }
 }

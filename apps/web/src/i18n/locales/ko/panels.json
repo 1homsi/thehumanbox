@@ -351,6 +351,22 @@
         "other": "양조사 {count}명"
       },
       "shelf": "선반에 {count}"
+    },
+    "activity": {
+      "atHome": "집에 있음",
+      "idling": "한가하게 있음",
+      "visiting": "방문 중",
+      "working": {
+        "forge": "대장간에서 일하는 중",
+        "bakery": "빵집에서 일하는 중",
+        "mill": "방앗간에서 일하는 중"
+      },
+      "serving": "서빙 중",
+      "drinking": "마시는 중",
+      "lookingIn": "안을 들여다보는 중",
+      "praying": "기도하는 중",
+      "reflecting": "묵상하는 중",
+      "observing": "지켜보는 중"
     }
   }
 }
