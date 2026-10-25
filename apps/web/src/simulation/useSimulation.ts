@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { WorldState, GridState, OrganismState, AnimalState, OrgDetail, OrgLife } from '../shared/types'
 import { WS_BASE, API_BASE, IS_LOCAL_SERVER, sandboxHeaders } from '../shared/config'
 import { useWorldStore } from '../state/worldStore'
+import { useUIStore } from '../state/store'
 import { binaryFramesReady, fetchSnapshotWithProgress, loadBinaryFrameDecoder, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
 import { signalSimFrame } from './frame-signal'
@@ -460,10 +461,13 @@ export function useSimulation(source: WorldSource = 'native'): {
         })
       // A page opened in a background tab gets no visibilitychange, so say where it starts.
       postVisibility()
+      const ownSeed = getOwnWorldSeed()
+      // Stars belong to the world they were made in; a world that starts with another seed is a new one.
+      useUIStore.getState().bindStarredWorld(ownSeed)
       worker.postMessage({
         type: 'start',
         id: OWN_WORLD_ID,
-        seed: getOwnWorldSeed(),
+        seed: ownSeed,
         reset: hasOwnWorldResetRequest(),
         recoveryId: getOwnWorldRecoveryRequest(),
       })
