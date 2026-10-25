@@ -351,6 +351,22 @@
         "other": "醸造家{count}人"
       },
       "shelf": "棚に{count}"
+    },
+    "activity": {
+      "atHome": "家にいる",
+      "idling": "ぶらぶらしている",
+      "visiting": "訪問中",
+      "working": {
+        "forge": "鍛冶場で作業中",
+        "bakery": "パン屋で作業中",
+        "mill": "製粉所で作業中"
+      },
+      "serving": "給仕中",
+      "drinking": "飲んでいる",
+      "lookingIn": "中をのぞいている",
+      "praying": "祈っている",
+      "reflecting": "思いにふけっている",
+      "observing": "見守っている"
     }
   }
 }

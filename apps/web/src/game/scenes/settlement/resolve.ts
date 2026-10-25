@@ -1,3 +1,4 @@
+import { t } from '../../../i18n'
 import type { SceneContext, SceneFixture, SceneId, SceneOccupant } from '../core/types'
 import type { WorldState } from '../../../shared/types'
 
@@ -30,7 +31,7 @@ export function resolveSettlementScene(world: WorldState, scene: SceneId): Scene
     const entry: SceneOccupant = {
       org: o,
       role: o.is_leader ? 'host' : 'kin',
-      activity: o.thought || 'idling',
+      activity: o.thought || t('panels.scene.activity.idling'),
     }
     if (d <= 5) inside.push(entry)
     else away.push(entry)

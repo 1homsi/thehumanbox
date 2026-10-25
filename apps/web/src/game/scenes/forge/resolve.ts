@@ -1,8 +1,17 @@
+import { t } from '../../../i18n'
 import type { SceneContext, SceneFixture, SceneId, SceneOccupant } from '../core/types'
 import type { WorldState } from '../../../shared/types'
 import { getBuildingState } from '../../model/building-state'
 
 const RADIUS = 14
+
+/** What a worker in the building is doing, in words: "working at the forge". */
+function workingAt(kind: 'forge' | 'bakery' | 'mill'): string {
+  if (kind === 'forge') return t('panels.scene.activity.working.forge')
+  return kind === 'bakery'
+    ? t('panels.scene.activity.working.bakery')
+    : t('panels.scene.activity.working.mill')
+}
 
 export function resolveForgeScene(world: WorldState, scene: SceneId): SceneContext | null {
   if (scene.kind !== 'forge' && scene.kind !== 'bakery' && scene.kind !== 'mill') return null
@@ -32,7 +41,7 @@ export function resolveForgeScene(world: WorldState, scene: SceneId): SceneConte
     const entry: SceneOccupant = {
       org: o,
       role: isWorker ? 'host' : 'patron',
-      activity: isWorker ? `working at the ${kind}` : o.thought || 'visiting',
+      activity: isWorker ? workingAt(kind) : o.thought || t('panels.scene.activity.visiting'),
     }
     if (d <= 3) inside.push(entry)
     else away.push(entry)

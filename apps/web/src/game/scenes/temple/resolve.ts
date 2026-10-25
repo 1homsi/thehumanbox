@@ -1,3 +1,4 @@
+import { t } from '../../../i18n'
 import type { SceneContext, SceneFixture, SceneId, SceneOccupant } from '../core/types'
 import type { WorldState } from '../../../shared/types'
 import { getBuildingState } from '../../model/building-state'
@@ -79,7 +80,12 @@ export function resolveTempleScene(world: WorldState, scene: SceneId): SceneCont
     const piety = o.piety ?? 0
     if (!sameFaith && piety < 0.2) continue
     const role: SceneOccupant['role'] = o.is_leader ? 'priest' : piety > 0.6 ? 'worshipper' : 'guest'
-    const activity = piety > 0.6 ? 'praying' : piety > 0.3 ? 'reflecting' : 'observing'
+    const activity =
+      piety > 0.6
+        ? t('panels.scene.activity.praying')
+        : piety > 0.3
+          ? t('panels.scene.activity.reflecting')
+          : t('panels.scene.activity.observing')
     const entry: SceneOccupant = { org: o, role, activity }
     if (d <= 4) inside.push(entry)
     else away.push(entry)

@@ -394,6 +394,22 @@
         "other": "{count} пивоварів"
       },
       "shelf": "{count} на полиці"
+    },
+    "activity": {
+      "atHome": "вдома",
+      "idling": "без діла",
+      "visiting": "в гостях",
+      "working": {
+        "forge": "працює в кузні",
+        "bakery": "працює в пекарні",
+        "mill": "працює на млині"
+      },
+      "serving": "подає",
+      "drinking": "п'є",
+      "lookingIn": "заглядає всередину",
+      "praying": "молиться",
+      "reflecting": "роздумує",
+      "observing": "спостерігає"
     }
   }
 }

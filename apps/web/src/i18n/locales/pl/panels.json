@@ -389,6 +389,22 @@
         "other": "{count} piwowarów"
       },
       "shelf": "{count} na półce"
+    },
+    "activity": {
+      "atHome": "w domu",
+      "idling": "nic nie robi",
+      "visiting": "w odwiedzinach",
+      "working": {
+        "forge": "pracuje w kuźni",
+        "bakery": "pracuje w piekarni",
+        "mill": "pracuje w młynie"
+      },
+      "serving": "obsługuje",
+      "drinking": "pije",
+      "lookingIn": "zagląda do środka",
+      "praying": "modli się",
+      "reflecting": "rozmyśla",
+      "observing": "obserwuje"
     }
   }
 }
