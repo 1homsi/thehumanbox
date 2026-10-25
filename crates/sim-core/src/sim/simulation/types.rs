@@ -1,6 +1,6 @@
 use super::*;
 
-pub const SAVE_SCHEMA_VERSION: u32 = 6;
+pub const SAVE_SCHEMA_VERSION: u32 = 7;
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[serde(default)]

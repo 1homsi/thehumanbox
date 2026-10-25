@@ -41,6 +41,7 @@ import {
   recoverInterruptedWorldReset,
   restoreParkedLiveWorld,
   rootsOverlap,
+  SUPPORTED_SAVE_SCHEMA_VERSION,
   validateWorldSaveBytes,
   validateWorldSaveBytesInWorker,
   verifySaveFolderMigrationCopy,
@@ -247,7 +248,7 @@ test("startup handshake rejects a silently minted replacement world", () => {
 
 test("rejects incompatible or incomplete saves before import", () => {
   assert.throws(
-    () => validateWorldSaveBytes(validSave({ version: 7 })),
+    () => validateWorldSaveBytes(validSave({ version: SUPPORTED_SAVE_SCHEMA_VERSION + 1 })),
     /newer/,
   );
   assert.doesNotThrow(() => validateWorldSaveBytes(validSave({ version: 4 })));

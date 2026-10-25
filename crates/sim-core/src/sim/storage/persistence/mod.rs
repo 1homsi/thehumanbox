@@ -17,6 +17,7 @@ use crate::world::tiles::Tile;
 mod file_io;
 mod from_save;
 mod organism;
+mod packed;
 mod repair;
 mod resize;
 #[cfg(test)]
