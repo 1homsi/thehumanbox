@@ -202,9 +202,20 @@ pub fn plan_road_avoiding(
         if expanded > SEARCH_BUDGET {
             return None;
         }
+        // A bridge is built the way real ones are: straight out from one bank to the other, square to the
+        // water. So water is only stepped onto straight (not on a diagonal), and from a bridge cell the way
+        // goes on in the direction it came, to the far bank, with no turn over the water.
+        let on_bridge = water.is_some() && [x, y] != from && grid.get(x, y) == Tile::Water;
+        let heading = (parent[index(x, y)] != usize::MAX).then(|| {
+            let p = parent[index(x, y)];
+            (x - (x0 + (p % w) as i32), y - (y0 + (p / w) as i32))
+        });
         for dx in -1..=1 {
             for dy in -1..=1 {
                 if dx == 0 && dy == 0 {
+                    continue;
+                }
+                if on_bridge && heading != Some((dx, dy)) {
                     continue;
                 }
                 let (nx, ny) = (x + dx, y + dy);
@@ -215,6 +226,9 @@ pub fn plan_road_avoiding(
                 let tile = grid.get(nx, ny);
                 let wet = water.is_some() && tile == Tile::Water;
                 if !(target || tile.road_ground() || grid.road_at(nx, ny) == ROAD_TRACK || wet) {
+                    continue;
+                }
+                if wet && dx != 0 && dy != 0 {
                     continue;
                 }
                 if !target && blocked(nx, ny) {
@@ -374,6 +388,42 @@ mod tests {
             plan_road(&grid, [90, 100], [110, 100]).is_none(),
             "no road over a river with no bridge"
         );
+    }
+
+    #[test]
+    fn a_bridge_runs_straight_from_bank_to_bank() {
+        // A strait four tiles wide, crossed at a slant: the bridge still goes straight across it.
+        let mut grid = WorldGrid::new(1);
+        for y in 80..140 {
+            for x in 80..140 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+        for y in 80..140 {
+            for x in 108..112 {
+                grid.set(x, y, Tile::Water);
+            }
+        }
+        let path = plan_bridge(&grid, [100, 100], [120, 112]).expect("a bridge");
+        let wet: Vec<[i32; 2]> = path
+            .iter()
+            .copied()
+            .filter(|&[x, y]| grid.get(x, y) == Tile::Water)
+            .collect();
+        assert_eq!(
+            wet.len(),
+            4,
+            "the bridge spans the strait once, square to it: {wet:?}"
+        );
+        assert!(
+            wet.iter().all(|&[_, y]| y == wet[0][1]),
+            "the bridge turns over the water: {wet:?}"
+        );
+        // Each end of the span lands on the bank straight ahead.
+        let first = path.iter().position(|&p| p == wet[0]).unwrap();
+        let last = path.iter().position(|&p| p == wet[3]).unwrap();
+        assert_eq!(path[first - 1][1], wet[0][1]);
+        assert_eq!(path[last + 1][1], wet[3][1]);
     }
 
     #[test]

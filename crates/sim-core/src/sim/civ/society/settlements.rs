@@ -40,6 +40,10 @@ struct SettlementAccumulator {
     x_sum: f64,
     y_sum: f64,
     center_weight: u32,
+    /// Where the tribe actually is: its buildings' middles, or its people on dry land while it has none.
+    anchors: Vec<[i32; 2]>,
+    /// Its people's dry-land tiles, used as anchors only when it has no buildings.
+    resident_tiles: Vec<[i32; 2]>,
 }
 
 fn capacity_weight(function: BuildingFunction) -> u32 {
@@ -79,6 +83,13 @@ pub fn snapshots(sim: &Simulation) -> Vec<SettlementSnapshot> {
         entry.x_sum += f64::from(resident.x) * 2.0;
         entry.y_sum += f64::from(resident.y) * 2.0;
         entry.center_weight += 2;
+        let at = [resident.x as i32, resident.y as i32];
+        if !matches!(
+            sim.grid.get(at[0], at[1]),
+            crate::world::tiles::Tile::Water | crate::world::tiles::Tile::Void
+        ) {
+            entry.resident_tiles.push(at);
+        }
     }
 
     for building in sim.buildings.iter().filter(|building| building.is_operational()) {
@@ -104,6 +115,14 @@ pub fn snapshots(sim: &Simulation) -> Vec<SettlementSnapshot> {
         entry.x_sum += center_x * f64::from(building_weight);
         entry.y_sum += center_y * f64::from(building_weight);
         entry.center_weight += building_weight;
+        entry
+            .anchors
+            .push([center_x.floor() as i32, center_y.floor() as i32]);
+    }
+    for entry in by_lineage.values_mut() {
+        if entry.anchors.is_empty() {
+            entry.anchors = std::mem::take(&mut entry.resident_tiles);
+        }
     }
 
     by_lineage
@@ -117,10 +136,19 @@ pub fn snapshots(sim: &Simulation) -> Vec<SettlementSnapshot> {
             let center = if entry.center_weight == 0 {
                 [0, 0]
             } else {
-                [
+                let mean = [
                     (entry.x_sum / f64::from(entry.center_weight)).round() as i32,
                     (entry.y_sum / f64::from(entry.center_weight)).round() as i32,
-                ]
+                ];
+                // The weighted mean of a tribe spread over two islands lies in the sea between them, where its
+                // name hung over open water and its roads set out from. The centre is the tribe's own place
+                // nearest that mean: one of its buildings, or with none, one of its people on dry land.
+                entry
+                    .anchors
+                    .iter()
+                    .min_by_key(|&&[x, y]| ((x - mean[0]).abs().max((y - mean[1]).abs()), x, y))
+                    .copied()
+                    .unwrap_or(mean)
             };
             let name = sim
                 .lineage_names
@@ -348,5 +376,41 @@ mod tests {
         assert_eq!(loaded.settlement_tiers.len(), 1);
         assert_eq!(loaded.settlement_tiers.get(&lineage_id), Some(&2));
         assert!(!loaded.settlement_tiers.contains_key("stale-save"));
+    }
+
+    #[test]
+    fn a_tribe_on_two_islands_is_centred_on_its_own_buildings_not_the_sea_between() {
+        let (mut sim, lineage_id) = settlement_sim(8);
+        // Half the tribe and its houses on one island, half on another forty tiles east; sea between.
+        for (index, org) in sim.organisms.iter_mut().enumerate().take(8) {
+            org.x = if index < 4 { 100.0 } else { 140.0 };
+            org.y = 120.0;
+        }
+        for x in 105..=135 {
+            for y in 110..=130 {
+                sim.grid.set(x, y, crate::world::tiles::Tile::Water);
+            }
+        }
+        for (x, kind) in [(100, BuildingKind::House), (140, BuildingKind::House)] {
+            let id = sim.buildings.len() as u32 + 1;
+            let mut b = Building::new(id, kind, x, 120, Some(lineage_id.clone()), sim.tick_count);
+            b.condition = 1.0;
+            sim.buildings.push(b);
+        }
+        let snap = snapshots(&sim)
+            .into_iter()
+            .find(|s| s.lineage_id == lineage_id)
+            .unwrap();
+        let [cx, cy] = snap.center;
+        assert_ne!(
+            sim.grid.get(cx, cy),
+            crate::world::tiles::Tile::Water,
+            "centre at sea: {:?}",
+            snap.center
+        );
+        assert!(
+            (cx - 100).abs() <= 2 || (cx - 140).abs() <= 2,
+            "centre {cx},{cy} is on neither island"
+        );
     }
 }
