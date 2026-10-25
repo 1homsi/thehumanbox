@@ -357,10 +357,7 @@ impl Organism {
         if self.thought == text {
             return;
         }
-        // Someone dying of thirst or hunger keeps that in view. Other systems (teaching, mourning,
-        // building, a mood) think on the tick too, and on alternate ticks their thought replaced
-        // "moving to water" while the walk went on, so the bubble said one thing and the body another.
-        if self.urgent_need() && is_need_thought(&self.thought) && !is_need_thought(text) && text != "dying" {
+        if self.keeps_need_in_view(text) {
             return;
         }
         self.thought = text.to_string();
@@ -377,7 +374,15 @@ impl Organism {
     /// Thirsty enough to go for water, or hungry enough to go for food (the thresholds the choice
     /// of action uses for them).
     fn urgent_need(&self) -> bool {
-        self.hydration < 0.38 || self.energy < 0.34
+        self.hydration < 0.38 || self.energy < 0.42
+    }
+
+    /// Whether `text` must not replace the thought on show. Someone dying of thirst or hunger keeps the
+    /// need in view: other systems (teaching, mourning, building, a mood, reflection) think on the same
+    /// tick, and on alternate ticks their thought replaced "moving to water" while the walk went on.
+    /// Death is always shown.
+    fn keeps_need_in_view(&self, text: &str) -> bool {
+        self.urgent_need() && is_need_thought(&self.thought) && !is_need_thought(text) && text != "dying"
     }
 
     pub fn reflect_internally(&mut self, tick: u64) -> Option<String> {
@@ -430,6 +435,10 @@ impl Organism {
             self.memories.touch(|m| m.text == target, 0.02);
         }
 
+        // A reflection is a thought like any other: it does not replace the need on show either.
+        if self.keeps_need_in_view(&line) {
+            return Some(line);
+        }
         self.thought_history.push_back(ThoughtEntry {
             tick,
             text: line.clone(),

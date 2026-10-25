@@ -577,6 +577,25 @@ fn someone_dying_of_thirst_keeps_the_walk_to_water_in_view() {
     assert_eq!(watered.thought, "teaching Neni");
 }
 
+#[test]
+fn hunger_keeps_the_walk_to_food_in_view_up_to_the_food_branch_threshold() {
+    // The food branch of the choice of action runs below 0.42 energy; the thought must hold there too.
+    let (mut org, _grid) = parched_at(&[], 0.9);
+    org.energy = 0.40;
+    org.think("moving to food", 100);
+    org.think("teaching Neni", 101);
+    assert_eq!(org.thought, "moving to food");
+}
+
+#[test]
+fn a_reflection_does_not_replace_the_walk_to_water() {
+    let (mut org, _grid) = parched_at(&[], 0.2);
+    org.energy = 0.9;
+    org.think("moving to water", 100);
+    org.reflect_internally(101);
+    assert_eq!(org.thought, "moving to water");
+}
+
 fn worker_on_sand(name: &str) -> (Organism, WorldGrid, StdRng) {
     let mut rng = StdRng::seed_from_u64(0);
     let traits = Traits::random(&mut rng);
