@@ -93,6 +93,7 @@
     "noAppBundle": "找不到已安装的应用程序包。",
     "noPermission": "没有权限替换 {dir} 中的应用。请使用 scripts/install-desktop.sh 重新安装。",
     "unpackFailed": "无法解压更新：{error}",
-    "noAppInUpdate": "下载的更新中不包含应用程序。"
+    "noAppInUpdate": "下载的更新中不包含应用程序。",
+    "busyMessage": "请等待正在进行的存档或模拟变更完成，然后再安装更新。"
   }
 }

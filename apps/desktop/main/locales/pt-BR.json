@@ -93,6 +93,7 @@
     "noAppBundle": "Não foi possível encontrar o pacote do aplicativo instalado.",
     "noPermission": "Sem permissão para substituir o aplicativo em {dir}. Reinstale-o com scripts/install-desktop.sh.",
     "unpackFailed": "Não foi possível descompactar a atualização: {error}",
-    "noAppInUpdate": "A atualização baixada não continha um aplicativo."
+    "noAppInUpdate": "A atualização baixada não continha um aplicativo.",
+    "busyMessage": "Aguarde a conclusão da alteração em andamento no salvamento ou na simulação e depois instale a atualização."
   }
 }

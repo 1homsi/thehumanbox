@@ -93,6 +93,7 @@
     "noAppBundle": "Impossibile trovare il pacchetto dell'app installata.",
     "noPermission": "Nessun permesso per sostituire l'app in {dir}. Reinstallala con scripts/install-desktop.sh.",
     "unpackFailed": "Impossibile estrarre l'aggiornamento: {error}",
-    "noAppInUpdate": "L'aggiornamento scaricato non conteneva un'app."
+    "noAppInUpdate": "L'aggiornamento scaricato non conteneva un'app.",
+    "busyMessage": "Attendi la fine della modifica in corso a salvataggi o simulazione, poi installa l'aggiornamento."
   }
 }

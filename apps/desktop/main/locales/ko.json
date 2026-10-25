@@ -93,6 +93,7 @@
     "noAppBundle": "설치된 앱 번들을 찾을 수 없습니다.",
     "noPermission": "{dir}의 앱을 교체할 권한이 없습니다. scripts/install-desktop.sh로 다시 설치하세요.",
     "unpackFailed": "업데이트의 압축을 풀 수 없습니다: {error}",
-    "noAppInUpdate": "다운로드한 업데이트에 앱이 없습니다."
+    "noAppInUpdate": "다운로드한 업데이트에 앱이 없습니다.",
+    "busyMessage": "진행 중인 저장 폴더 또는 시뮬레이션 변경이 끝난 뒤 업데이트를 설치하세요."
   }
 }
