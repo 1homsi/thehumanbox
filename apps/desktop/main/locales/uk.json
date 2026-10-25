@@ -36,6 +36,9 @@
     "screenshotFailed": "Знімок екрана не збережено",
     "worldsFolderUnavailable": "Папка світів недоступна",
     "logsFolderUnavailable": "Папка журналів недоступна",
+    "shortcutUnavailable": "Комбінація клавіш недоступна",
+    "shortcutUnavailableDetail": "Не вдалося зареєструвати {shortcut}. Щоб показати або сховати гру, скористайтеся значком у треї.",
+    "shortcutUnavailableTooltip": "Комбінація {shortcut} недоступна. Цей значок показує або ховає гру.",
     "about": "v{version}\nПостійна симуляція штучного життя.\nthehumanbox.com"
   },
   "dialog": {

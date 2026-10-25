@@ -36,6 +36,9 @@
     "screenshotFailed": "Снимок экрана не сохранён",
     "worldsFolderUnavailable": "Папка миров недоступна",
     "logsFolderUnavailable": "Папка журналов недоступна",
+    "shortcutUnavailable": "Сочетание клавиш недоступно",
+    "shortcutUnavailableDetail": "Не удалось назначить {shortcut}. Используйте значок в трее, чтобы показать или скрыть игру.",
+    "shortcutUnavailableTooltip": "Сочетание {shortcut} недоступно. Этот значок показывает или скрывает игру.",
     "about": "v{version}\nПостоянная симуляция искусственной жизни.\nthehumanbox.com"
   },
   "dialog": {

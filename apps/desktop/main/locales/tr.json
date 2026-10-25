@@ -36,6 +36,9 @@
     "screenshotFailed": "Ekran görüntüsü kaydedilemedi",
     "worldsFolderUnavailable": "Dünyalar klasörü kullanılamıyor",
     "logsFolderUnavailable": "Günlükler klasörü kullanılamıyor",
+    "shortcutUnavailable": "Kısayol kullanılamıyor",
+    "shortcutUnavailableDetail": "{shortcut} kaydedilemedi. Oyunu göstermek veya gizlemek için sistem tepsisi simgesini kullanın.",
+    "shortcutUnavailableTooltip": "{shortcut} kısayolu kullanılamıyor. Oyunu göstermek veya gizlemek için bu simgeyi kullanın.",
     "about": "v{version}\nKalıcı bir yapay yaşam simülasyonu.\nthehumanbox.com"
   },
   "dialog": {

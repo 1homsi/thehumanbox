@@ -36,6 +36,9 @@
     "screenshotFailed": "Screenshot non salvato",
     "worldsFolderUnavailable": "Cartella dei mondi non disponibile",
     "logsFolderUnavailable": "Cartella dei log non disponibile",
+    "shortcutUnavailable": "Scorciatoia non disponibile",
+    "shortcutUnavailableDetail": "Impossibile registrare {shortcut}. Usa l'icona nella barra di sistema per mostrare o nascondere il gioco.",
+    "shortcutUnavailableTooltip": "Scorciatoia {shortcut} non disponibile. Usa questa icona per mostrare o nascondere il gioco.",
     "about": "v{version}\nUna simulazione persistente di vita artificiale.\nthehumanbox.com"
   },
   "dialog": {

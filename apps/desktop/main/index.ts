@@ -705,8 +705,14 @@ function toggleWindow(): void {
   }
 }
 
-function notifyMilestone(title: string, body: string): void {
-  if (!Notification.isSupported()) return;
+// `onUnshown` runs when the notification cannot be shown: the platform has no
+// notification support, or the OS rejects it. Callers that must reach the player
+// use it for a fallback.
+function notifyMilestone(title: string, body: string, onUnshown?: () => void): void {
+  if (!Notification.isSupported()) {
+    onUnshown?.();
+    return;
+  }
   const n = new Notification({ title, body, silent: false });
   // A click brings the game forward. It must not hide a window that is
   // already visible, which is what the tray and hotkey toggle does.
@@ -715,6 +721,7 @@ function notifyMilestone(title: string, body: string): void {
   // the mac build is unsigned; bounce the dock so the milestone still shows.
   n.on("failed", () => {
     if (process.platform === "darwin") app.dock?.bounce("informational");
+    onUnshown?.();
   });
   n.show();
 }
@@ -722,6 +729,39 @@ function notifyMilestone(title: string, body: string): void {
 // Throws when the OS refuses the login item. The settings form awaits this call
 // and shows the failure; swallowing it reported success for a launch-at-login
 // setting the system never applied. Startup catches it instead (see boot).
+// The global show/hide shortcut. Another app may already hold it, and then
+// pressing it does nothing. Say so once; the tray icon still works.
+function toggleShortcutLabel(): string {
+  return process.platform === "darwin" ? "Cmd+Alt+Shift+H" : "Ctrl+Alt+Shift+H";
+}
+
+// Returns whether the shortcut is registered. A failure is not announced here:
+// boot calls announceShortcutUnavailable once the window is open.
+function registerToggleShortcut(): boolean {
+  const shortcut = toggleShortcutLabel();
+  let registered = false;
+  try {
+    registered = globalShortcut.register(shortcut, toggleWindow);
+  } catch (error) {
+    console.error(`[main] global shortcut ${shortcut} was rejected:`, error);
+  }
+  if (!registered) console.warn(`[main] could not register global shortcut ${shortcut}`);
+  return registered;
+}
+
+// The player is told the shortcut is unavailable. Electron gives no reason for a
+// failed registration, so the text does not name one. The tray tooltip carries
+// the message where a notification cannot be shown.
+function announceShortcutUnavailable(): void {
+  const shortcut = toggleShortcutLabel();
+  const title = t("notify.shortcutUnavailable");
+  const body = t("notify.shortcutUnavailableDetail", { shortcut });
+  // The tooltip has its own short text: Windows cuts a tooltip off at 127 units.
+  notifyMilestone(title, body, () =>
+    tray?.setToolTip(t("notify.shortcutUnavailableTooltip", { shortcut })),
+  );
+}
+
 function applyAutoLaunch(): void {
   const s = loadSettings();
   app.setLoginItemSettings(loginItemSettings(s.autoLaunch, s.startMinimized));
@@ -1015,14 +1055,11 @@ async function boot(): Promise<void> {
       console.error("[main] sim exit prompt failed:", err),
     ),
   );
-  const toggleKey =
-    process.platform === "darwin" ? "Cmd+Alt+Shift+H" : "Ctrl+Alt+Shift+H";
-  if (!globalShortcut.register(toggleKey, toggleWindow)) {
-    console.warn(`[main] could not register global shortcut ${toggleKey}`);
-  }
+  const shortcutRegistered = registerToggleShortcut();
 
   await openWindow();
   if (isQuitting) return;
+  if (!shortcutRegistered) announceShortcutUnavailable();
   // Hidden start needs the tray as the way back; without it show the window.
   if (!tray && mainWindow && !mainWindow.isVisible()) revealWindow(mainWindow);
 }
