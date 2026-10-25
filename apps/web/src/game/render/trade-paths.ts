@@ -46,6 +46,11 @@ export interface PlanGrid {
   planned?: Uint8Array
 }
 
+/** Open water with no bridge yet: crossed only by a bridge's straight span. */
+function openWater(grid: PlanGrid, x: number, y: number): boolean {
+  return grid.tiles[y]?.[x] === TILE_ID.WATER && (grid.roads?.[y]?.[x] ?? 0) !== ROAD_BRIDGE
+}
+
 /** The cost of stepping onto a cell, or 0 where nobody can build a road. */
 function stepCost(grid: PlanGrid, x: number, y: number, bridging: boolean): number {
   const idx = y * grid.width + x
@@ -166,13 +171,22 @@ export function planPath(
     const g = G_RANGE - 1 - (poppedKey % G_RANGE)
     if (costs[cur] !== g) continue
     if (cur === goal) {
-      let len = 0
-      for (let c = parents[goal]!; c !== -1; c = parents[c]!) len++
-      const path = new Int32Array(len)
-      for (let c = parents[goal]!, i = len - 1; c !== -1; c = parents[c]!, i--) {
-        path[i] = (y0 + Math.floor(c / w)) * grid.width + (x0 + (c % w))
+      // Walk back from the goal; a bridge's step leaves out the water tiles it spans, so they are filled in.
+      const back: number[] = []
+      for (let c = parents[goal]!; c !== -1; c = parents[c]!) {
+        const x = x0 + (c % w)
+        const y = y0 + Math.floor(c / w)
+        back.push(y * grid.width + x)
+        const p = parents[c]!
+        if (p === -1) continue
+        const px = x0 + (p % w)
+        const py = y0 + Math.floor(p / w)
+        const span = Math.max(Math.abs(px - x), Math.abs(py - y))
+        for (let k = 1; k < span; k++) {
+          back.push((y + Math.sign(py - y) * k) * grid.width + (x + Math.sign(px - x) * k))
+        }
       }
-      return path
+      return Int32Array.from(back.reverse())
     }
     if (++expanded > budget) return null
     const cx = x0 + (cur % w)
@@ -185,10 +199,46 @@ export function planPath(
         heapPush(exit * G_RANGE + (G_RANGE - 1 - Math.min(exit, G_RANGE - 1)), goal)
       }
     }
+    // A bridge is one straight span from bank to bank, as real ones are: from dry ground, each straight way is
+    // looked along across at most MAX_SPAN tiles of open water to the first dry tile beyond, which is reached in
+    // one step carrying the whole span. Open water is never a place the search stands on, so a span cannot turn
+    // over the water or be lost to a cheaper arrival from another side.
+    if (bridging) {
+      for (let d = 0; d < 4; d++) {
+        const sx = d === 0 ? 1 : d === 1 ? -1 : 0
+        const sy = d === 2 ? 1 : d === 3 ? -1 : 0
+        let k = 1
+        while (k <= MAX_SPAN + 1) {
+          const nx = cx + sx * k
+          const ny = cy + sy * k
+          if (nx < x0 || nx > x1 || ny < y0 || ny > y1) break
+          if (openWater(grid, nx, ny)) {
+            // A building or pier standing in the water stops the span: a bridge does not run through it.
+            if (grid.blocked?.[ny * grid.width + nx]) break
+            k++
+            continue
+          }
+          const land = stepCost(grid, nx, ny, false)
+          if (k >= 2 && land !== 0) {
+            const next = (ny - y0) * w + (nx - x0)
+            const ng = g + COST_WATER * (k - 1) + land
+            const known = costs[next]!
+            if (known === -1 || ng < known) {
+              costs[next] = ng
+              parents[next] = cur
+              const f = ng + Math.abs(nx - tx) + Math.abs(ny - ty)
+              heapPush(f * G_RANGE + (G_RANGE - 1 - Math.min(ng, G_RANGE - 1)), next)
+            }
+          }
+          break
+        }
+      }
+    }
     for (let d = 0; d < 4; d++) {
       const nx = d === 0 ? cx + 1 : d === 1 ? cx - 1 : cx
       const ny = d === 2 ? cy + 1 : d === 3 ? cy - 1 : cy
       if (nx < x0 || nx > x1 || ny < y0 || ny > y1) continue
+      if (bridging && openWater(grid, nx, ny)) continue
       const step = stepCost(grid, nx, ny, bridging)
       if (step === 0) continue
       const next = (ny - y0) * w + (nx - x0)
@@ -233,7 +283,7 @@ export function planRoute(
   return wet && bridgesAreShort(grid, wet) ? wet : null
 }
 
-/** A planned route as a polyline in cells: the settlement centre, each road tile, the other centre. */
+/** A planned route as a polyline in cells: its road tiles from one end to the other. */
 export interface PlannedPath {
   /** Road tiles from the `a` end to the `b` end, as `row * width + col`. */
   cells: Int32Array
@@ -256,18 +306,29 @@ export function buildPath(
   a: readonly [number, number],
   b: readonly [number, number],
 ): PlannedPath {
-  const n = cells.length + 2
+  // The carts keep to the road itself. A town's centre is usually built over and can lie off the road (it
+  // was even out at sea, between a tribe's islands), and the straight leg from it to the road's first tile
+  // had carts driving over water and through houses.
+  const toPoint = (cell: number): [number, number] => [cell % width, Math.floor(cell / width)]
+  const points: [number, number][] =
+    cells.length > 1
+      ? Array.from(cells, toPoint)
+      : cells.length === 1
+        ? // Towns side by side meet at one road tile: the way runs through it, from one centre to the other
+          // (a centre is the town's own building, within a few tiles of its road).
+          [[a[0], a[1]], toPoint(cells[0]!), [b[0], b[1]]]
+        : [
+            [a[0], a[1]],
+            [b[0], b[1]],
+          ]
+  const n = points.length
   const xs = new Float32Array(n)
   const ys = new Float32Array(n)
   const cum = new Float32Array(n)
-  xs[0] = a[0]
-  ys[0] = a[1]
-  for (let i = 0; i < cells.length; i++) {
-    xs[i + 1] = cells[i]! % width
-    ys[i + 1] = Math.floor(cells[i]! / width)
+  for (let i = 0; i < n; i++) {
+    xs[i] = points[i]![0]
+    ys[i] = points[i]![1]
   }
-  xs[n - 1] = b[0]
-  ys[n - 1] = b[1]
   for (let i = 1; i < n; i++) cum[i] = cum[i - 1]! + Math.hypot(xs[i]! - xs[i - 1]!, ys[i]! - ys[i - 1]!)
   let minX = Infinity
   let maxX = -Infinity

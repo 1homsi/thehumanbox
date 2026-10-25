@@ -4,6 +4,8 @@ import { TILE_ID } from '../model/terrain-ids'
 import { ROAD_BRIDGE, ROAD_CANAL, ROAD_RAIL, ROAD_TRACK } from './cf/roads/road-art'
 import {
   MAX_SPAN,
+  PLAN_BUDGET,
+  PLAN_PAD,
   PLANNED_BRIDGE,
   TradePathPlanner,
   buildPath,
@@ -191,6 +193,57 @@ describe('planning a route over the land', () => {
   it('finds nothing when the ground is not there', () => {
     const grid = land(['~~~~~~~~', '~~~~~~~~', '~~~~~~~~'])
     expect(planRoute(grid, [1, 1], [6, 1])).toBeNull()
+  })
+})
+
+describe('bridges and carts', () => {
+  it('a bridge crosses a strait straight, square to it, and lands on the far bank', () => {
+    // A strait four tiles wide, between two banks; the towns sit across it at a slant.
+    const rows = Array.from({ length: 12 }, () => '......~~~~......')
+    const grid = land(rows)
+    const path = planRoute(grid, [2, 2], [13, 9])!
+    expect(path).not.toBeNull()
+    const wet = Array.from(path).filter(
+      (i) => grid.tiles[Math.floor(i / grid.width)]![i % grid.width] === TILE_ID.WATER,
+    )
+    expect(wet.length).toBe(4)
+    const row = Math.floor(wet[0]! / grid.width)
+    expect(wet.every((i) => Math.floor(i / grid.width) === row)).toBe(true)
+  })
+
+  it('a straight crossing is still found when a cheaper way reaches the water from the side', () => {
+    // From the west the water at (2,1) faces a rock; only the span from (2,0) south over (2,1) and (2,2) lands.
+    const grid = land(['.....', '..~^.', '^^~^^', '.....'])
+    const path = planPath(grid, [0, 1], [2, 3], true, PLAN_BUDGET, PLAN_PAD, 0)
+    expect(path).not.toBeNull()
+    const cells = Array.from(path!).map((i) => [i % grid.width, Math.floor(i / grid.width)])
+    const wet = cells.filter(([x, y]) => grid.tiles[y]![x] === TILE_ID.WATER)
+    expect(wet).toEqual([
+      [2, 1],
+      [2, 2],
+    ])
+  })
+
+  it('towns side by side, with a single road tile between them, still give their caravans a way to travel', () => {
+    const path = buildPath(Int32Array.from([3 * 10 + 4]), 10, [2, 3], [6, 3])
+    expect(path.total).toBe(4)
+    expect(Array.from(path.xs)).toEqual([2, 4, 6])
+  })
+
+  it('a bridge span stops at a building standing in the water', () => {
+    // Rock walls the water on both sides, so the only crossing is the column of water, and a pier blocks it.
+    const grid = land(['^..^', '^~^^', '^~^^', '^..^'])
+    grid.blocked = new Uint8Array(grid.width * grid.height)
+    grid.blocked[2 * grid.width + 1] = 1
+    expect(planPath(grid, [1, 0], [1, 3], true, PLAN_BUDGET, PLAN_PAD, 0)).toBeNull()
+  })
+
+  it('carts keep to the road tiles, not the straight leg from a centre that lies off the road', () => {
+    // The road runs along row 3; the town centres sit two rows above it, over water.
+    const cells = Int32Array.from([3 * 10 + 1, 3 * 10 + 2, 3 * 10 + 3, 3 * 10 + 4])
+    const path = buildPath(cells, 10, [1, 1], [4, 1])
+    expect(Array.from(path.ys)).toEqual([3, 3, 3, 3])
+    expect(path.total).toBe(3)
   })
 })
 
@@ -475,9 +528,9 @@ describe('TradePathPlanner', () => {
     const planner = new TradePathPlanner()
     planner.update(world, 1)
     const path = planner.pathOf(1)!
-    expect(path.xs[0]).toBe(2)
-    expect(path.ys[0]).toBe(5)
-    expect(path.xs.at(-1)).toBe(36)
+    // The carts' way is the road itself, which starts and ends within a few tiles of each centre.
+    expect(Math.abs(path.xs[0]! - 2) + Math.abs(path.ys[0]! - 5)).toBeLessThanOrEqual(4)
+    expect(Math.abs(path.xs.at(-1)! - 36) + Math.abs(path.ys.at(-1)! - 5)).toBeLessThanOrEqual(4)
     for (const i of path.cells) expect(i).toBeLessThan(grid.width * grid.height)
   })
 
