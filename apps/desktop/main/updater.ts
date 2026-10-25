@@ -137,9 +137,10 @@ export function initUpdater(getWindow: () => BrowserWindow | null): void {
     return
   }
 
-  if (!automaticChecksEnabled()) return
-
-  void checkForUpdatesNow()
+  // The first check waits for the setting. The timer and the focus check are
+  // registered either way and read the setting each time, so a settings file
+  // that was unreadable at startup takes effect once it reads again.
+  if (automaticChecksEnabled()) void checkForUpdatesNow()
 
   setInterval(() => {
     if (!automaticChecksEnabled()) return

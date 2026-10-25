@@ -193,3 +193,25 @@ test('the update timer while settings.json is unreadable does not throw', async 
 test('starting while settings.json is unreadable does not throw out of the updater', () => {
   assert.doesNotThrow(() => harness(undefined, { settingsUnreadable: () => true }))
 })
+
+test('checks resume once a settings file that was unreadable at startup reads again', async () => {
+  // The timer and the focus check are registered even when the first read
+  // fails; a registration skipped at startup would stay skipped until a restart.
+  let unreadable = true
+  let checks = 0
+  const { intervals } = harness(
+    async () => {
+      checks++
+      return null
+    },
+    { autoUpdate: true, settingsUnreadable: () => unreadable },
+  )
+  await flush()
+  assert.equal(checks, 0, 'no check while the file is unreadable')
+  assert.equal(intervals.length, 1, 'the timer is registered regardless')
+
+  unreadable = false
+  intervals[0]()
+  await flush()
+  assert.equal(checks, 1)
+})
