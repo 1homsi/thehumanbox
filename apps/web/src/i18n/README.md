@@ -40,8 +40,9 @@ event log lines).
 
 When the simulation sends an id with no translation yet, the game shows the id
 with its underscores turned into spaces, so nothing breaks. To translate a new
-id, add its key to `locales/en` and to every other language, and add the id to
-the table listed above that the screen reads.
+id, add its locale key to `locales/en` and every other language. If the screen
+reads the id through a lookup table, also add the id to that table. Discovery
+ids are looked up directly by `discoveryWord`, so they need only the locale key.
 
 ## In code
 
