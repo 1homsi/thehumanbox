@@ -1,6 +1,6 @@
 import type { WorldState } from '../../../shared/types'
-import { DAY_LENGTH } from './constants'
-import { formatNumber, t } from '../../../i18n'
+import { eventDate } from '../../event-date'
+import { t } from '../../../i18n'
 
 export function DiscoveryTimeline({ events }: { events: WorldState['events'] }) {
   const milestones = events
@@ -23,9 +23,7 @@ export function DiscoveryTimeline({ events }: { events: WorldState['events'] }) 
     <div className="stats-timeline">
       {milestones.map((e, i) => (
         <div key={i} className="stats-timeline-row">
-          <span className="stats-tick">
-            {t('dialogs.stats.dayShort', { day: formatNumber(Math.floor(e.tick / DAY_LENGTH)) })}
-          </span>
+          <span className="stats-tick">{eventDate(e.tick)}</span>
           <span className="stats-actor">{e.actor}</span>
           <span className="stats-detail">{e.detail}</span>
         </div>

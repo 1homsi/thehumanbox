@@ -1,6 +1,7 @@
 import type { WorldState } from '../../shared/types'
 import { useFrozenSnapshot } from '../../shared/hooks/useFrozenSnapshot'
 import { Modal } from './Modal'
+import { eventDate } from '../event-date'
 import { DAY_LENGTH, kindIcon } from './stats/constants'
 import { PopChart } from './stats/PopChart'
 import { YearlyChart } from './stats/YearlyChart'
@@ -240,9 +241,7 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
                   .slice(0, 12)
                   .map((e, i) => (
                     <div key={i} className="stats-timeline-row">
-                      <span className="stats-tick">
-                        {t('dialogs.stats.dayShort', { day: formatNumber(Math.floor(e.tick / DAY_LENGTH)) })}
-                      </span>
+                      <span className="stats-tick">{eventDate(e.tick)}</span>
                       <span className={`era-badge era-${e.era}`} style={{ fontSize: 9 }}>
                         {e.era}
                       </span>

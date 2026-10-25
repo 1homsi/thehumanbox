@@ -6,9 +6,8 @@ import { lineageColor } from '../../shared/constants'
 import { useOrgConversations } from '../../shared/hooks/useOrgConversations'
 import { WithQueryClient } from '../../shared/query'
 import { Modal } from './Modal'
-import { formatNumber, t, type MessageKey } from '../../i18n'
-
-const DAY_LENGTH = 600
+import { eventDate } from '../event-date'
+import { t, type MessageKey } from '../../i18n'
 
 interface Props {
   org: OrganismState
@@ -49,7 +48,6 @@ const ConvoBlock = memo(function ConvoBlock({
   const partnerName = partner ? personName(partner) : entry.with_name
   const selfColor = lineageColor(selfOrg.lineage_id)
   const meta = kindMeta(entry.kind)
-  const day = Math.floor(entry.tick / DAY_LENGTH)
   const trust = selfOrg.org_trust?.[entry.with_id] ?? 0
   const rel =
     selfOrg.partner_id === entry.with_id
@@ -89,7 +87,7 @@ const ConvoBlock = memo(function ConvoBlock({
             {rel.text}
           </span>
         )}
-        <span className="cv-day">{t('dialogs.conversations.day', { day: formatNumber(day) })}</span>
+        <span className="cv-day">{eventDate(entry.tick)}</span>
       </div>
 
       {}

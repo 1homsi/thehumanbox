@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { OrgLife, LifeEvent } from '../../shared/types'
 import { Modal } from './Modal'
+import { eventDate } from '../event-date'
 import { API_BASE } from '../../shared/config'
 import { useSimulationData } from '../../simulation/simulationData'
 import { shownGeneration } from '../../game/model/generations'
@@ -63,8 +64,7 @@ const CATEGORY_COLOR: Record<string, string> = {
 function EventRow({ ev }: { ev: LifeEvent }) {
   const icon = CATEGORY_ICON[ev.category] ?? '•'
   const color = CATEGORY_COLOR[ev.category] ?? '#888'
-  const day =
-    ev.tick > 0 ? t('dialogs.life.day', { day: formatNumber(Math.floor(ev.tick / DAY_LENGTH)) }) : ''
+  const day = ev.tick > 0 ? eventDate(ev.tick) : ''
   return (
     <div
       className="life-event-row"
