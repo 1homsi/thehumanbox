@@ -91,7 +91,8 @@ export function tribeStatus(world: WorldState, id: string): TribeStatus | null {
         avg((o) => o.health),
       ),
     ),
-    sick: members.filter((o) => o.infection > 0.3).length,
+    // The same line the person card, the population count and the simulation call sick (0.15).
+    sick: members.filter((o) => o.infection > 0.15).length,
     faith: faith?.by_lineage[id] ?? 0,
     blessed: !!faith?.blessed.includes(id),
     despairing: !!faith?.despairing.includes(id),
