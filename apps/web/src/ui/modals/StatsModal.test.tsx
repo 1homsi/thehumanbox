@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import type { WorldState } from '../../shared/types'
 import { formatNumber, t } from '../../i18n'
 import { StatsModal } from './StatsModal'
+import { useWorldStore } from '../../state/worldStore'
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
 afterAll(() => vi.unstubAllGlobals())
@@ -82,5 +83,27 @@ describe('StatsModal counts', () => {
     expect(values).toContain(formatNumber(1000))
     expect(values).toContain(formatNumber(1200))
     expect(values).not.toContain('2345')
+  })
+
+  it('names the tribe of the longest life by the name it had, once that tribe has died out', () => {
+    // A snapshot from while the tribe still lived, then one where its name is gone.
+    useWorldStore.getState().setWorld({
+      tick: 10,
+      organisms: [],
+      lineage_names: { 'gone-line': 'Gonefolk' },
+    } as unknown as WorldState)
+    const oldAge = {
+      id: 'ada',
+      name: 'Ada',
+      alive: false,
+      death_cause: 'old age',
+      age: 9000,
+      lineage_id: 'gone-line',
+      sex: 'female',
+    }
+    renderStats({ ...emptyWorld({}), organisms: [oldAge] } as unknown as WorldState)
+
+    expect(document.body.textContent).toContain('Gonefolk')
+    expect(document.body.textContent).not.toContain('gone-l')
   })
 })

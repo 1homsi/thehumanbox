@@ -20,6 +20,7 @@ import { DiscoveryRollup } from './stats/DiscoveryRollup'
 import { BondStats } from './stats/BondStats'
 import { NotableOrgs } from './stats/NotableOrgs'
 import { formatNumber, t } from '../../i18n'
+import { knownTribeName } from '../../state/worldStore'
 
 interface Props {
   world: WorldState
@@ -186,7 +187,7 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
             <div className="stats-section-title">{t('dialogs.stats.longevity')}</div>
             {longevityLines(
               longevityOf(world.organisms),
-              (l) => world.lineage_names?.[l] ?? l.slice(0, 6),
+              (l) => knownTribeName(world.lineage_names, l) ?? l.slice(0, 6),
             ).map((line) => (
               <div key={line} style={{ fontSize: 11, lineHeight: 1.6 }}>
                 {line}

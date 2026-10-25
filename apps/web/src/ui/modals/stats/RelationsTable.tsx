@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import type { TribalRelation } from '../../../shared/types'
 import { lineageColor } from '../../../shared/constants'
 import { t } from '../../../i18n'
+import { knownTribeName } from '../../../state/worldStore'
 
 export function RelationsTable({
   relations,
@@ -32,18 +33,18 @@ export function RelationsTable({
         return (
           <div key={i} className="stats-rel-row">
             <span className="stats-rel-name" style={{ color: lineageColor(r.a) }}>
-              {lineageNames[r.a] ?? r.a}
+              {knownTribeName(lineageNames, r.a) ?? r.a.slice(0, 6)}
             </span>
             <span className="stats-rel-muted">↔</span>
             <span className="stats-rel-name" style={{ color: lineageColor(r.b) }}>
-              {lineageNames[r.b] ?? r.b}
+              {knownTribeName(lineageNames, r.b) ?? r.b.slice(0, 6)}
             </span>
             <div className="stats-rel-bar-wrap">
               <div className="stats-rel-bar" style={{ width: barW, background: barColor }} />
             </div>
             <span className={`stats-rel-status status-${r.status}`}>{r.status}</span>
             <span className="stats-rel-muted">
-              {t('dialogs.stats.versus', { a: sizeMap[r.a] ?? '?', b: sizeMap[r.b] ?? '?' })}
+              {t('dialogs.stats.versus', { a: sizeMap[r.a] ?? 0, b: sizeMap[r.b] ?? 0 })}
             </span>
           </div>
         )

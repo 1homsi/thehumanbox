@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { TribeCard } from './TribeCard'
 import { useUIStore } from '../../state/store'
+import { useWorldStore } from '../../state/worldStore'
 import { t } from '../../i18n'
 import type { OrganismState, WorldState } from '../../shared/types'
 
@@ -243,6 +244,33 @@ describe('TribeCard', () => {
     act(() => host.querySelector<HTMLButtonElement>('.tribe-card-rename')!.click())
 
     expect(host.querySelector('[role="alert"]')).toBeNull()
+  })
+
+  it('names an enemy tribe that has died out by the name it had while it lived', () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    roots.push(root)
+    // The enemy was on the snapshot the player saw; the latest one has dropped its name.
+    useWorldStore
+      .getState()
+      .setWorld({ tick: 10, organisms: [], lineage_names: { gone: 'Gonefolk' } } as unknown as WorldState)
+    const war = {
+      id: 'war-1',
+      attackers: ['a'],
+      defenders: ['gone'],
+      scale: 'raid',
+      location: [0, 0],
+      started_tick: 5,
+      ended: false,
+      casualties_a: 0,
+      casualties_d: 0,
+    }
+    const w = { ...world(['a']), battles: [war] } as unknown as WorldState
+    act(() => useUIStore.setState({ focus: 'lineage:a' }))
+    act(() => root.render(card(w)))
+
+    expect(host.textContent).toContain('Gonefolk')
   })
 
   it('tells what the tribe has been through: a hungry winter and its war dead', () => {
