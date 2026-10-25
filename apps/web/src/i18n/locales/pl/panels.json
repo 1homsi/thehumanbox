@@ -427,6 +427,19 @@
         "modern": "Dom",
         "information": "Małe mieszkanie"
       }
+    },
+    "temple": {
+      "kind": {
+        "animism": "kamienna świątynka duchów",
+        "polytheism": "świątynia wielu bogów",
+        "monotheism": "poświęcony dom jedynego boga",
+        "philosophical": "sala kontemplacji",
+        "secular": "obywatelska sala pamięci",
+        "fallback": "miejsce kultu"
+      },
+      "adherents": "{count} wiernych",
+      "atAltar": "{count} przy ołtarzu",
+      "nearbyCount": "{count} w pobliżu"
     }
   }
 }

@@ -397,6 +397,19 @@
         "modern": "Ein Haus",
         "information": "Eine kleine Wohnung"
       }
+    },
+    "temple": {
+      "kind": {
+        "animism": "ein Steinschrein für die Geister",
+        "polytheism": "ein Tempel vieler Götter",
+        "monotheism": "ein geweihtes Haus des einen Gottes",
+        "philosophical": "eine Halle der Besinnung",
+        "secular": "eine städtische Halle des Gedenkens",
+        "fallback": "ein Ort der Andacht"
+      },
+      "adherents": "{count} Gläubige",
+      "atAltar": "{count} am Altar",
+      "nearbyCount": "{count} in der Nähe"
     }
   }
 }
