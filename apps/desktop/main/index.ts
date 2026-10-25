@@ -1059,11 +1059,9 @@ if (app.requestSingleInstanceLock()) {
   // The arguments of the second launch are deliberately ignored.
   app.on("second-instance", () =>
     handleSecondLaunch({
-      platform: process.platform,
       isReady: () => app.isReady(),
       whenReady: () => app.whenReady(),
       showWindow: showExistingWindow,
-      focusApp: (options) => app.focus(options),
       onError: (error) => console.error("[main] second launch could not focus the window:", error),
     }),
   );
