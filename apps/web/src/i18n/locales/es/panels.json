@@ -404,7 +404,10 @@
         "secular": "un salón cívico del recuerdo",
         "fallback": "un lugar de culto"
       },
-      "adherents": "{count} fieles",
+      "adherents": {
+        "one": "{count} fiel",
+        "other": "{count} fieles"
+      },
       "atAltar": "{count} ante el altar",
       "nearbyCount": "{count} cerca"
     }

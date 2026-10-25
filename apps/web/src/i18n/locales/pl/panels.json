@@ -437,7 +437,12 @@
         "secular": "obywatelska sala pamięci",
         "fallback": "miejsce kultu"
       },
-      "adherents": "{count} wiernych",
+      "adherents": {
+        "one": "{count} wierny",
+        "few": "{count} wierni",
+        "many": "{count} wiernych",
+        "other": "{count} wiernych"
+      },
       "atAltar": "{count} przy ołtarzu",
       "nearbyCount": "{count} w pobliżu"
     }

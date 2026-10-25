@@ -407,7 +407,10 @@
         "secular": "eine städtische Halle des Gedenkens",
         "fallback": "ein Ort der Andacht"
       },
-      "adherents": "{count} Gläubige",
+      "adherents": {
+        "one": "{count} Gläubiger",
+        "other": "{count} Gläubige"
+      },
       "atAltar": "{count} am Altar",
       "nearbyCount": "{count} in der Nähe"
     }
