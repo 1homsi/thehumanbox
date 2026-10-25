@@ -1,4 +1,4 @@
-import { useState, useRef, cloneElement } from 'react'
+import { useEffect, useState, useRef, cloneElement } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import type { ReactElement, ReactNode } from 'react'
@@ -27,13 +27,44 @@ interface Props {
 
 export function Tooltip({ tip, children }: Props) {
   const [rect, setRect] = useState<DOMRect | null>(null)
+  const shownOn = useRef<HTMLElement | null>(null)
   const longPressTimer = useRef<number | null>(null)
   const shownByLongPress = useRef(false)
 
   const show = (target: HTMLElement) => {
+    shownOn.current = target
     setRect(target.getBoundingClientRect())
   }
-  const hide = () => setRect(null)
+  const hide = () => {
+    shownOn.current = null
+    setRect(null)
+  }
+  // The control the tip belongs to. When it is replaced (a new key, or a re-mount) no mouseleave ever comes,
+  // so the tip is taken down here instead of floating over whatever took its place.
+  useEffect(() => {
+    if (shownOn.current && !shownOn.current.isConnected) hide()
+  })
+  // A tip stays beside its control while the page scrolls or resizes under it, rather than being left where it
+  // first appeared.
+  useEffect(() => {
+    if (!rect) return
+    const follow = () => {
+      const el = shownOn.current
+      if (!el) return
+      if (!el.isConnected) {
+        shownOn.current = null
+        setRect(null)
+        return
+      }
+      setRect(el.getBoundingClientRect())
+    }
+    window.addEventListener('scroll', follow, true)
+    window.addEventListener('resize', follow)
+    return () => {
+      window.removeEventListener('scroll', follow, true)
+      window.removeEventListener('resize', follow)
+    }
+  }, [rect])
 
   const clearLongPressTimer = () => {
     if (longPressTimer.current !== null) {
