@@ -428,6 +428,10 @@ function rebuildWindowMenus(): void {
 function buildMenu(): void {
   const isMac = process.platform === "darwin";
 
+  // Items that act on the game window are disabled while none is open, rather
+  // than doing nothing when chosen (macOS keeps the app running after its window closes).
+  const hasGameWindow = mainWindow !== null;
+
   const toggleDevTools = (): void => {
     if (!mainWindow) return;
     if (mainWindow.webContents.isDevToolsOpened()) {
@@ -448,6 +452,7 @@ function buildMenu(): void {
               {
                 label: t("menu.settings"),
                 accelerator: "Cmd+,",
+                enabled: hasGameWindow,
                 click: () => mainWindow?.webContents.send("menu:openSettings"),
               },
               { type: "separator" as const },
@@ -468,6 +473,7 @@ function buildMenu(): void {
         {
           label: t("menu.reload"),
           accelerator: isMac ? "Cmd+R" : "Ctrl+R",
+          enabled: hasGameWindow,
           click: () => mainWindow?.reload(),
         },
         {
@@ -489,6 +495,7 @@ function buildMenu(): void {
         {
           label: t("menu.toggleDevTools"),
           accelerator: isMac ? "Cmd+Alt+I" : "Ctrl+Shift+I",
+          enabled: hasGameWindow,
           click: toggleDevTools,
         },
         { type: "separator" },
@@ -502,6 +509,7 @@ function buildMenu(): void {
           label: t("menu.alwaysOnTop"),
           type: "checkbox",
           checked: mainWindow ? mainWindow.isAlwaysOnTop() : false,
+          enabled: hasGameWindow,
           accelerator: isMac ? "Cmd+Shift+T" : "Ctrl+Shift+T",
           click: (item) => {
             if (!mainWindow) return;
@@ -565,6 +573,7 @@ function buildTray(): void {
     tray.setToolTip("The Human Box");
     const update = (): void => {
       if (!tray) return;
+      const hasGameWindow = mainWindow !== null;
       tray.setContextMenu(
         Menu.buildFromTemplate([
           {
@@ -608,6 +617,7 @@ function buildTray(): void {
             label: t("menu.alwaysOnTop"),
             type: "checkbox",
             checked: mainWindow ? mainWindow.isAlwaysOnTop() : false,
+            enabled: hasGameWindow,
             click: (item) => {
               if (!mainWindow) return;
               mainWindow.setAlwaysOnTop(item.checked);

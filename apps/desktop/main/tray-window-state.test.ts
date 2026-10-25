@@ -5,7 +5,7 @@ import * as path from "node:path";
 import test from "node:test";
 import * as vm from "node:vm";
 
-type MenuItem = { label?: string; checked?: boolean; submenu?: MenuItem[] };
+type MenuItem = { label?: string; checked?: boolean; enabled?: boolean; submenu?: MenuItem[] };
 
 function findMenuItem(items: MenuItem[], label: string): MenuItem | null {
   for (const item of items) {
@@ -252,4 +252,31 @@ test("closing the last window clears the tray and View state", async () => {
   assert.equal(trayLabel(trays[0]), "Show window");
   assert.equal(viewAlwaysOnTopChecked(h.appMenu), false);
   assert.equal(trayAlwaysOnTopChecked(trays[0]), false);
+});
+
+test("the menu items that act on the game window are disabled while no window is open", async () => {
+  // With no window (macOS keeps the app running after its window closes), Reload,
+  // DevTools and Always on top did nothing when chosen, and Always on top still
+  // showed a tick that it could not apply. They are disabled until a window opens.
+  const h = harness();
+  const { context, trays } = h;
+  const appItem = (label: string): MenuItem | null => findMenuItem(h.appMenu?.template ?? [], label);
+  const trayItem = (): MenuItem | null =>
+    trays[0].contextMenu?.template.find((item) => item.label === "Always on top") ?? null;
+  await vm.runInContext("createWindow()", context);
+  vm.runInContext("buildTray()", context);
+
+  assert.notEqual(appItem("Reload")?.enabled, false);
+  assert.notEqual(trayItem()?.enabled, false);
+
+  (vm.runInContext("mainWindow", context) as { close: () => void }).close();
+  assert.equal(appItem("Reload")?.enabled, false);
+  assert.equal(appItem("Toggle DevTools")?.enabled, false);
+  assert.equal(appItem("Always on top")?.enabled, false);
+  assert.equal(trayItem()?.enabled, false);
+
+  await vm.runInContext("openWindow()", context);
+  assert.notEqual(appItem("Reload")?.enabled, false);
+  assert.notEqual(appItem("Always on top")?.enabled, false);
+  assert.notEqual(trayItem()?.enabled, false);
 });
