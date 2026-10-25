@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { TribeCard } from './TribeCard'
 import { useUIStore } from '../../state/store'
+import { t } from '../../i18n'
 import type { OrganismState, WorldState } from '../../shared/types'
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
@@ -51,7 +52,15 @@ function world(alive: string[]): WorldState {
 }
 
 function card(w: WorldState) {
-  return <TribeCard world={w} onAnswer={() => {}} onTool={() => {}} onRename={() => {}} onTeach={() => {}} />
+  return (
+    <TribeCard
+      world={w}
+      onAnswer={() => {}}
+      onTool={() => {}}
+      onRename={() => Promise.resolve(true)}
+      onTeach={() => {}}
+    />
+  )
 }
 
 function typeInto(input: HTMLInputElement, value: string) {
@@ -89,7 +98,7 @@ describe('TribeCard', () => {
     document.body.append(host)
     const root = createRoot(host)
     roots.push(root)
-    const onRename = vi.fn()
+    const onRename = vi.fn(() => Promise.resolve(true))
 
     act(() => useUIStore.setState({ focus: 'lineage:a' }))
     act(() =>
@@ -126,6 +135,38 @@ describe('TribeCard', () => {
 
     expect(host.querySelector('.tribe-card-sub')?.textContent).toContain('1,234 people')
     expect(host.querySelector('.tribe-sick')?.textContent).toBe('1,234 sick')
+  })
+
+  it('a refused tribe name keeps the field open and says the name was not saved', async () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    roots.push(root)
+    const onRename = vi.fn(() => Promise.resolve(false))
+
+    act(() => useUIStore.setState({ focus: 'lineage:a' }))
+    act(() =>
+      root.render(
+        <TribeCard
+          world={world(['a', 'b'])}
+          onAnswer={() => {}}
+          onTool={() => {}}
+          onRename={onRename}
+          onTeach={() => {}}
+        />,
+      ),
+    )
+    act(() => host.querySelector<HTMLButtonElement>('.tribe-card-rename')!.click())
+    const input = host.querySelector<HTMLInputElement>('.tribe-card-name-input')!
+    typeInto(input, 'Ashen')
+    act(() => {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    })
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+
+    expect(onRename).toHaveBeenCalledWith('a', 'Ashen')
+    expect(host.querySelector('.tribe-card-name-input')).not.toBeNull()
+    expect(host.querySelector('[role="alert"]')?.textContent).toBe(t('panels.rename.refused'))
   })
 
   it('tells what the tribe has been through: a hungry winter and its war dead', () => {

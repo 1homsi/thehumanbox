@@ -833,7 +833,7 @@ function LiveApp() {
                   world={world}
                   onAnswer={handleAnswerPrayer}
                   onTool={handlePickToolAt}
-                  onRename={(lineage, name) => void sendCommand({ cmd: 'rename_tribe', lineage, name })}
+                  onRename={(lineage, name) => sendCommand({ cmd: 'rename_tribe', lineage, name })}
                   onTeach={(lineage) =>
                     void sendCommand({ cmd: 'teach', lineage }).then((ok) =>
                       setTemporarySandboxStatus(

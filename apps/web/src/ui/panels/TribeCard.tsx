@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useUIStore } from '../../state/store'
 import { popHistory } from '../../state/worldStore'
 import { sparklinePoints, trend } from '../../game/model/pop-history'
@@ -26,7 +26,7 @@ interface Props {
   /** Pick up a dock tool by id, looking at the tribe. */
   onTool: (toolId: string, at: { x: number; y: number }) => void
   /** Give the tribe a name of the player's choosing. */
-  onRename: (lineage: string, name: string) => void
+  onRename: (lineage: string, name: string) => Promise<boolean>
   /** Teach the tribe the next secret it lacks. */
   onTeach: (lineage: string) => void
 }
@@ -84,6 +84,36 @@ function TribeName({
   onRename: Props['onRename']
 }) {
   const [editing, setEditing] = useState<string | null>(null)
+  // The world answers later. By then the field may be gone, and a refused name keeps it open with a message.
+  const [pending, setPending] = useState(false)
+  const [refused, setRefused] = useState(false)
+  const open = useRef(true)
+  useEffect(() => {
+    open.current = true
+    return () => {
+      open.current = false
+    }
+  }, [])
+
+  const save = (next: string) => {
+    if (pending) return
+    setRefused(false)
+    setPending(true)
+    onRename(lineage, next).then(
+      (saved) => {
+        if (!open.current) return
+        setPending(false)
+        if (saved) setEditing(null)
+        else setRefused(true)
+      },
+      () => {
+        if (!open.current) return
+        setPending(false)
+        setRefused(true)
+      },
+    )
+  }
+
   if (editing === null) {
     return (
       <button
@@ -96,25 +126,34 @@ function TribeName({
     )
   }
   return (
-    <input
-      className="tribe-card-name-input"
-      autoFocus
-      maxLength={24}
-      value={editing}
-      aria-label={t('panels.tribe.nameLabel')}
-      onChange={(e) => setEditing(e.target.value)}
-      onBlur={() => setEditing(null)}
-      onKeyDown={(e) => {
-        e.stopPropagation()
-        // Enter and Escape that end an IME composition finish the word, not the name.
-        if (e.nativeEvent.isComposing || e.keyCode === 229) return
-        if (e.key === 'Enter') {
-          const next = editing.trim()
-          if (next && next !== name) onRename(lineage, next)
-          setEditing(null)
-        } else if (e.key === 'Escape') setEditing(null)
-      }}
-    />
+    <>
+      <input
+        className="tribe-card-name-input"
+        autoFocus
+        maxLength={24}
+        value={editing}
+        disabled={pending}
+        aria-label={t('panels.tribe.nameLabel')}
+        onChange={(e) => setEditing(e.target.value)}
+        onBlur={() => setEditing(null)}
+        onKeyDown={(e) => {
+          e.stopPropagation()
+          // Enter and Escape that end an IME composition finish the word, not the name.
+          if (e.nativeEvent.isComposing || e.keyCode === 229) return
+          if (e.key === 'Enter') {
+            const next = editing.trim()
+            // Nothing new to save: the field just closes.
+            if (!next || next === name) setEditing(null)
+            else save(next)
+          } else if (e.key === 'Escape') setEditing(null)
+        }}
+      />
+      {refused && (
+        <span role="alert" style={{ color: '#ff9b6b', fontSize: 11 }}>
+          {t('panels.rename.refused')}
+        </span>
+      )}
+    </>
   )
 }
 
