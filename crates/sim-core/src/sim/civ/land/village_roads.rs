@@ -192,8 +192,19 @@ pub fn plan_road_avoiding(
             let mut path = Vec::new();
             let mut at = index(x, y);
             while at != start {
-                path.push([x0 + (at % w) as i32, y0 + (at / w) as i32]);
-                at = parent[at];
+                let (ax, ay) = (x0 + (at % w) as i32, y0 + (at / w) as i32);
+                let up = parent[at];
+                let (px, py) = (x0 + (up % w) as i32, y0 + (up / w) as i32);
+                path.push([ax, ay]);
+                // A bridge's span: the water tiles between the bank it left and the bank it reached.
+                let (sx, sy) = ((px - ax).signum(), (py - ay).signum());
+                let (mut cx, mut cy) = (ax + sx, ay + sy);
+                while (cx, cy) != (px, py) && (px - ax).abs().max((py - ay).abs()) > 1 {
+                    path.push([cx, cy]);
+                    cx += sx;
+                    cy += sy;
+                }
+                at = up;
             }
             path.reverse();
             return Some(path);
@@ -202,20 +213,41 @@ pub fn plan_road_avoiding(
         if expanded > SEARCH_BUDGET {
             return None;
         }
-        // A bridge is built the way real ones are: straight out from one bank to the other, square to the
-        // water. So water is only stepped onto straight (not on a diagonal), and from a bridge cell the way
-        // goes on in the direction it came, to the far bank, with no turn over the water.
-        let on_bridge = water.is_some() && [x, y] != from && grid.get(x, y) == Tile::Water;
-        let heading = (parent[index(x, y)] != usize::MAX).then(|| {
-            let p = parent[index(x, y)];
-            (x - (x0 + (p % w) as i32), y - (y0 + (p / w) as i32))
-        });
+        // A bridge is built the way real ones are: one straight span from bank to bank, square to the water.
+        // From dry ground, each of the four straight ways is looked along: across at most `MAX_SPAN` tiles of
+        // water to the first dry tile beyond, which is reached in one step that carries the whole span. Water is
+        // never a place the search stands on, so no span can turn over the water or be cut short.
+        if let Some(per_tile) = water {
+            for (dx, dy) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+                let mut k = 1;
+                while k <= MAX_SPAN as i32 + 1 {
+                    let (nx, ny) = (x + dx * k, y + dy * k);
+                    if !inside(nx, ny) || !WorldGrid::in_bounds(nx, ny) {
+                        break;
+                    }
+                    let tile = grid.get(nx, ny);
+                    if tile == Tile::Water {
+                        k += 1;
+                        continue;
+                    }
+                    let lands = [nx, ny] == to || tile.road_ground() || grid.road_at(nx, ny) == ROAD_TRACK;
+                    if k >= 2 && lands && ([nx, ny] == to || !blocked(nx, ny)) {
+                        let next = g + per_tile * (k as u32 - 1) + 2;
+                        let idx = index(nx, ny);
+                        if next < cost[idx] {
+                            cost[idx] = next;
+                            parent[idx] = index(x, y);
+                            let h = chebyshev([nx, ny], to) as u32;
+                            frontier.push(Reverse((next + h, next, nx, ny)));
+                        }
+                    }
+                    break;
+                }
+            }
+        }
         for dx in -1..=1 {
             for dy in -1..=1 {
                 if dx == 0 && dy == 0 {
-                    continue;
-                }
-                if on_bridge && heading != Some((dx, dy)) {
                     continue;
                 }
                 let (nx, ny) = (x + dx, y + dy);
@@ -224,23 +256,13 @@ pub fn plan_road_avoiding(
                 }
                 let target = [nx, ny] == to;
                 let tile = grid.get(nx, ny);
-                let wet = water.is_some() && tile == Tile::Water;
-                if !(target || tile.road_ground() || grid.road_at(nx, ny) == ROAD_TRACK || wet) {
-                    continue;
-                }
-                if wet && dx != 0 && dy != 0 {
+                if !(target || tile.road_ground() || grid.road_at(nx, ny) == ROAD_TRACK) {
                     continue;
                 }
                 if !target && blocked(nx, ny) {
                     continue;
                 }
-                let step = if cheap(nx, ny) {
-                    1
-                } else if let (true, Some(cost)) = (wet, water) {
-                    cost
-                } else {
-                    2
-                };
+                let step = if cheap(nx, ny) { 1 } else { 2 };
                 let next = g + step;
                 let idx = index(nx, ny);
                 if next < cost[idx] {
