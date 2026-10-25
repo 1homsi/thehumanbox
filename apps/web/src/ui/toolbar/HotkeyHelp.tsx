@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { SHORTCUT_HELP, typingTarget } from '../../game/model/shortcuts'
 import { t } from '../../i18n'
-import { shortcutWhat } from './shortcut-text'
+import { shortcutKeys, shortcutWhat } from './shortcut-text'
 
 /** The keys the game answers to, from the same list the More menu shows. Press ? or Escape to close it. */
 export function HotkeyHelp({ onClose }: { onClose: () => void }) {
@@ -22,7 +22,7 @@ export function HotkeyHelp({ onClose }: { onClose: () => void }) {
         <dl className="hotkey-help-list">
           {SHORTCUT_HELP.map(([keys, what]) => (
             <div key={keys} className="hotkey-help-row">
-              <dt>{keys}</dt>
+              <dt>{shortcutKeys(keys)}</dt>
               <dd>{shortcutWhat(keys, what)}</dd>
             </div>
           ))}

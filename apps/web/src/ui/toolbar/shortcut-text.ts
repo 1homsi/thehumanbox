@@ -17,6 +17,7 @@ const SHORTCUT_TEXT: Readonly<Record<string, MessageKey | undefined>> = {
   '?': 'dock.shortcuts.help',
   H: 'dock.shortcuts.hide',
   '0': 'dock.shortcuts.fit',
+  'double-click': 'dock.shortcuts.doubleClick',
   'Q E R T Y U I O F G': 'dock.shortcuts.tools',
 }
 
@@ -24,4 +25,15 @@ const SHORTCUT_TEXT: Readonly<Record<string, MessageKey | undefined>> = {
 export function shortcutWhat(keys: string, what: string): string {
   const key = SHORTCUT_TEXT[keys]
   return key ? t(key) : what
+}
+
+/** Keys that are words rather than key caps, in the active language. */
+const KEY_TEXT: Readonly<Record<string, MessageKey | undefined>> = {
+  'double-click': 'dock.shortcuts.doubleClickKeys',
+}
+
+/** The keys of a shortcut as shown: key caps as they are, a gesture in the active language. */
+export function shortcutKeys(keys: string): string {
+  const key = KEY_TEXT[keys]
+  return key ? t(key) : keys
 }

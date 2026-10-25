@@ -5,7 +5,7 @@ import { saveMapPicture } from '../../shared/mapPicture'
 import { useWorldStore } from '../../state/worldStore'
 import { Tooltip } from './Tooltip'
 import { saveBlocked, saveLabel, saveShortcutLabel, type WorldActions } from './world-actions'
-import { shortcutWhat } from './shortcut-text'
+import { shortcutKeys, shortcutWhat } from './shortcut-text'
 import { t } from '../../i18n'
 
 /**
@@ -345,7 +345,7 @@ export function MoreDropdown({
               <strong>{t('dock.more.keys')}</strong>
               {SHORTCUT_HELP.map(([key, what]) => (
                 <span key={key}>
-                  <b>{key}</b> {shortcutWhat(key, what)}
+                  <b>{shortcutKeys(key)}</b> {shortcutWhat(key, what)}
                 </span>
               ))}
             </span>

@@ -617,6 +617,8 @@
     "help": "afficher ou masquer cette liste",
     "hide": "masquer l'interface",
     "fit": "adapter le monde à l'écran",
+    "doubleClick": "zoomer sur cet endroit (avec Maj, dézoomer)",
+    "doubleClickKeys": "double-clic",
     "tools": "choisir les dix premiers outils de la barre"
   },
   "photo": {

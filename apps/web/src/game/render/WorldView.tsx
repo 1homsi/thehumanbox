@@ -285,6 +285,7 @@ export function WorldView({
                   followOrgId={followOrgId}
                   followTarget={followTarget}
                   onTap={handleTap}
+                  toolArmed={sandboxArmed}
                 />
               </World>
             </Game>
@@ -314,6 +315,7 @@ export function WorldView({
               containerEl={containerRef.current}
               cameraStateRef={cameraStateRef}
               followTarget={followTarget}
+              toolArmed={sandboxArmed}
             />
           </>
         ))}

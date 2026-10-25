@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { clampMapCamera, initialMapCamera, minMapZoom, screenToMap, zoomMapAt } from './camera-controls'
+import {
+  clampMapCamera,
+  doubleClickZoomTarget,
+  DOUBLE_CLICK_ZOOM_MS,
+  initialMapCamera,
+  MAX_MAP_ZOOM,
+  minMapZoom,
+  screenToMap,
+  zoomMapAt,
+  zoomTweenAt,
+} from './camera-controls'
 
 const viewport = { w: 800, h: 600 }
 const world = { w: 4800, h: 2400 }
@@ -56,6 +66,37 @@ describe('2D map navigation', () => {
       const camera = clampMapCamera({ x: 10, y: 10, zoom }, world, viewport)
       expect(camera.zoom).toBeCloseTo(initialMapCamera(world, viewport)!.zoom)
       expect(camera.x).toBe(2400)
+    }
+  })
+
+  it('zooms twice as close on a double-click, twice as far with Shift, within the limits', () => {
+    expect(doubleClickZoomTarget(2, false, 0.5, MAX_MAP_ZOOM)).toBe(4)
+    expect(doubleClickZoomTarget(2, true, 0.5, MAX_MAP_ZOOM)).toBe(1)
+    expect(doubleClickZoomTarget(6, false, 0.5, MAX_MAP_ZOOM)).toBe(MAX_MAP_ZOOM)
+    expect(doubleClickZoomTarget(0.8, true, 0.5, MAX_MAP_ZOOM)).toBe(0.5)
+  })
+
+  it('eases a double-click zoom from where it was to where it is going', () => {
+    expect(zoomTweenAt(2, 4, 0)).toBe(2)
+    expect(zoomTweenAt(2, 4, DOUBLE_CLICK_ZOOM_MS)).toBeCloseTo(4)
+    expect(zoomTweenAt(2, 4, DOUBLE_CLICK_ZOOM_MS * 5)).toBeCloseTo(4)
+    const halfway = zoomTweenAt(2, 4, DOUBLE_CLICK_ZOOM_MS / 2)
+    // Eased out: past the middle of the scale step at half the time.
+    expect(halfway).toBeGreaterThan(Math.SQRT2 * 2)
+    expect(halfway).toBeLessThan(4)
+    expect(zoomTweenAt(4, 2, DOUBLE_CLICK_ZOOM_MS / 2)).toBeLessThan(Math.SQRT2 * 2)
+  })
+
+  it('keeps the double-clicked spot under the pointer all the way in', () => {
+    const viewport = { w: 800, h: 600 }
+    const start = { x: 300, y: 200, zoom: 2 }
+    const point = { x: 650, y: 120 }
+    const spot = screenToMap(start, point, viewport)
+    for (const elapsed of [0, 40, 90, 140, DOUBLE_CLICK_ZOOM_MS]) {
+      const camera = zoomMapAt(start, zoomTweenAt(2, 4, elapsed), point, viewport)
+      const under = screenToMap(camera, point, viewport)
+      expect(under.x).toBeCloseTo(spot.x)
+      expect(under.y).toBeCloseTo(spot.y)
     }
   })
 })

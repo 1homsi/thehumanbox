@@ -617,6 +617,8 @@
     "help": "pokaż lub ukryj tę listę",
     "hide": "ukryj interfejs",
     "fit": "dopasuj świat",
+    "doubleClick": "przybliż w tym miejscu (z Shift oddal)",
+    "doubleClickKeys": "dwuklik",
     "tools": "wybierz pierwsze dziesięć narzędzi na pasku"
   },
   "photo": {

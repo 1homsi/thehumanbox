@@ -617,6 +617,8 @@
     "help": "显示或隐藏此列表",
     "hide": "隐藏界面",
     "fit": "适应世界视图",
+    "doubleClick": "放大该处(按住 Shift 缩小)",
+    "doubleClickKeys": "双击",
     "tools": "选择工具栏上的前十个工具"
   },
   "photo": {

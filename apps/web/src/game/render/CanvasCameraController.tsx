@@ -2,11 +2,14 @@ import { useEffect, useRef, type MutableRefObject } from 'react'
 import { useUIStore } from '../../state/store'
 import {
   clampMapCamera,
+  doubleClickZoomTarget,
+  DOUBLE_CLICK_ZOOM_MS,
   initialMapCamera,
   isMapControl,
   MAX_MAP_ZOOM,
   minMapZoom,
   zoomMapAt,
+  zoomTweenAt,
   type MapCamera,
   type MapCommand,
 } from './camera-controls'
@@ -20,6 +23,8 @@ interface Props {
   cameraStateRef: MutableRefObject<MapCamera>
   commandRef: MutableRefObject<MapCommand | null>
   followTarget: { x: number; y: number } | null
+  /** A god tool is armed: a double-click paints twice rather than zooming. */
+  toolArmed?: boolean
 }
 export function CanvasCameraController({
   worldW,
@@ -30,8 +35,11 @@ export function CanvasCameraController({
   cameraStateRef,
   commandRef,
   followTarget,
+  toolArmed = false,
 }: Props) {
   const initialized = useRef(false)
+  const toolArmedRef = useRef(toolArmed)
+  toolArmedRef.current = toolArmed
   const previousFollow = useRef(false)
   const minZoom = minMapZoom({ w: worldW, h: worldH }, { w: containerW, h: containerH })
   const apply = (next: MapCamera) => {
@@ -60,6 +68,8 @@ export function CanvasCameraController({
   useEffect(() => {
     if (!containerEl) return
     let drag: { px: number; py: number; camera: MapCamera; id: number } | null = null
+    // A double-click zoom in progress: where it started, where it is going, and the point it closes in on.
+    let tween: { from: MapCamera; to: number; point: { x: number; y: number }; start: number } | null = null
     const keys = new Set<string>()
     const stopFollow = () => {
       const ui = useUIStore.getState()
@@ -76,6 +86,7 @@ export function CanvasCameraController({
         drag = null
         return
       }
+      tween = null
       drag = { px: e.clientX, py: e.clientY, camera: { ...cameraStateRef.current }, id: e.pointerId }
       containerEl.focus({ preventScroll: true })
     }
@@ -94,9 +105,25 @@ export function CanvasCameraController({
     const onUp = () => {
       drag = null
     }
+    const onDoubleClick = (e: MouseEvent) => {
+      if (isMapControl(e.target) || toolArmedRef.current || e.button !== 0) return
+      e.preventDefault()
+      const rect = containerEl.getBoundingClientRect()
+      const from = cameraStateRef.current
+      const to = doubleClickZoomTarget(from.zoom, e.shiftKey, minZoom, MAX_MAP_ZOOM)
+      if (to === from.zoom) return
+      stopFollow()
+      tween = {
+        from: { ...from },
+        to,
+        point: { x: e.clientX - rect.left, y: e.clientY - rect.top },
+        start: performance.now(),
+      }
+    }
     const onWheel = (e: WheelEvent) => {
       if (isMapControl(e.target)) return
       e.preventDefault()
+      tween = null
       const rect = containerEl.getBoundingClientRect()
       const delta = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? containerH : 1)
       stopFollow()
@@ -134,12 +161,21 @@ export function CanvasCameraController({
     const reset = () => {
       keys.clear()
       drag = null
+      tween = null
     }
     let raf = 0,
       last = performance.now()
     const frame = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000)
       last = now
+      if (tween) {
+        const elapsed = now - tween.start
+        const viewport = { w: containerW, h: containerH }
+        applyRef.current(
+          zoomMapAt(tween.from, zoomTweenAt(tween.from.zoom, tween.to, elapsed), tween.point, viewport),
+        )
+        if (elapsed >= DOUBLE_CLICK_ZOOM_MS) tween = null
+      }
       const command = commandRef.current
       if (command) {
         commandRef.current = null
@@ -167,6 +203,7 @@ export function CanvasCameraController({
     raf = requestAnimationFrame(frame)
     containerEl.addEventListener('pointerdown', onDown)
     containerEl.addEventListener('wheel', onWheel, { passive: false })
+    containerEl.addEventListener('dblclick', onDoubleClick)
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
     window.addEventListener('pointercancel', reset)
@@ -177,6 +214,7 @@ export function CanvasCameraController({
       cancelAnimationFrame(raf)
       containerEl.removeEventListener('pointerdown', onDown)
       containerEl.removeEventListener('wheel', onWheel)
+      containerEl.removeEventListener('dblclick', onDoubleClick)
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', reset)
