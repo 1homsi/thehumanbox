@@ -581,6 +581,33 @@ fn a_thirsty_person_on_the_bank_drinks_without_wading_in() {
     );
 }
 
+/// A parched walker walled in whose chosen step is an interior hut goes out through a hut that opens onto
+/// open ground, not into the interior one (the chosen hut is a house-exit candidate too).
+#[test]
+fn a_parched_walker_who_chooses_an_interior_hut_goes_out_through_one_that_opens() {
+    let mut sim = Simulation::new(42);
+    sim.organisms.clear();
+    sim.animals.clear();
+    flatten_test_area(&mut sim, 50, 50);
+    for x in 48..=52 {
+        for y in 48..=52 {
+            sim.grid.set(x, y, Tile::Hut);
+        }
+    }
+    for x in 49..=51 {
+        for y in 49..=51 {
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
+    // The interior hut east of (49, 50) is the step they chose; the wall hut west of them opens onto sand.
+    sim.grid.set(50, 50, Tile::Hut);
+    let exit = super::super::helpers::walled_exit(&sim.grid, 49, 50, 3, true);
+    assert!(
+        matches!(exit, Some((48, _))),
+        "went out through {exit:?}, not a hut that opens outward"
+    );
+}
+
 /// A parched person walled in by huts whose step is open ground takes that step. Only a shut step sends them out
 /// through a house; the house exit used to replace every step, so from one hut the walk led to the next
 /// and back again.

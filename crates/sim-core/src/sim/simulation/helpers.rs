@@ -137,8 +137,9 @@ pub(super) fn walled_exit(
     let (dx, dy) = DIRECTIONS[action];
     let (nx, ny) = (ix + dx, iy + dy);
     let next = grid.get(nx, ny);
-    let step_open = (next.walkable() && next != Tile::Fire && !grid.is_wet(next, nx, ny))
-        || (next == Tile::Hut && parched);
+    // Open ground is taken as chosen. A hut is never open ground here: when walled in, a chosen hut is
+    // a house-exit candidate too, so an interior hut does not keep them inside while another hut opens out.
+    let step_open = next.walkable() && next != Tile::Fire && !grid.is_wet(next, nx, ny);
     if (step_open && parched) || !walled_in(grid, ix, iy) {
         return None;
     }
