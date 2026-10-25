@@ -227,6 +227,15 @@ describe('bridges and carts', () => {
   it('towns side by side, with a single road tile between them, still give their caravans a way to travel', () => {
     const path = buildPath(Int32Array.from([3 * 10 + 4]), 10, [2, 3], [6, 3])
     expect(path.total).toBe(4)
+    expect(Array.from(path.xs)).toEqual([2, 4, 6])
+  })
+
+  it('a bridge span stops at a building standing in the water', () => {
+    // Rock walls the water on both sides, so the only crossing is the column of water, and a pier blocks it.
+    const grid = land(['^..^', '^~^^', '^~^^', '^..^'])
+    grid.blocked = new Uint8Array(grid.width * grid.height)
+    grid.blocked[2 * grid.width + 1] = 1
+    expect(planPath(grid, [1, 0], [1, 3], true, PLAN_BUDGET, PLAN_PAD, 0)).toBeNull()
   })
 
   it('carts keep to the road tiles, not the straight leg from a centre that lies off the road', () => {

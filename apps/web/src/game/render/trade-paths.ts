@@ -213,6 +213,8 @@ export function planPath(
           const ny = cy + sy * k
           if (nx < x0 || nx > x1 || ny < y0 || ny > y1) break
           if (openWater(grid, nx, ny)) {
+            // A building or pier standing in the water stops the span: a bridge does not run through it.
+            if (grid.blocked?.[ny * grid.width + nx]) break
             k++
             continue
           }
@@ -306,15 +308,19 @@ export function buildPath(
 ): PlannedPath {
   // The carts keep to the road itself. A town's centre is usually built over and can lie off the road (it
   // was even out at sea, between a tribe's islands), and the straight leg from it to the road's first tile
-  // had carts driving over water and through houses. With fewer than two road tiles (towns side by side) the
-  // way is the line between the two centres, so a caravan still moves along it.
+  // had carts driving over water and through houses.
+  const toPoint = (cell: number): [number, number] => [cell % width, Math.floor(cell / width)]
   const points: [number, number][] =
     cells.length > 1
-      ? Array.from(cells, (cell) => [cell % width, Math.floor(cell / width)] as [number, number])
-      : [
-          [a[0], a[1]],
-          [b[0], b[1]],
-        ]
+      ? Array.from(cells, toPoint)
+      : cells.length === 1
+        ? // Towns side by side meet at one road tile: the way runs through it, from one centre to the other
+          // (a centre is the town's own building, within a few tiles of its road).
+          [[a[0], a[1]], toPoint(cells[0]!), [b[0], b[1]]]
+        : [
+            [a[0], a[1]],
+            [b[0], b[1]],
+          ]
   const n = points.length
   const xs = new Float32Array(n)
   const ys = new Float32Array(n)
