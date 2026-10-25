@@ -3,6 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { WorldState } from '../../shared/types'
+import { t } from '../../i18n'
 import { CivStatsModal } from './CivStatsModal'
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
@@ -42,6 +43,26 @@ function worldWithRenamedLeader(): WorldState {
     },
   } as unknown as WorldState
 }
+
+describe('CivStatsModal calendar', () => {
+  it('gives the day of the season the time tag shows, out of five, not a day of the year', () => {
+    // Tick 3600 is the second day of the second season of year 1: the tag reads "Day 2 of 5".
+    const world = {
+      ...worldWithRenamedLeader(),
+      tick: 3600,
+      cosmos: { year: 0, day_of_year: 6, moon_phase: 'new', moon_illum: 0 },
+    }
+    const host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+    act(() => root?.render(<CivStatsModal world={world as unknown as WorldState} onClose={() => {}} />))
+
+    const day = document.querySelector('.civ-cal-sub')?.textContent
+    expect(day).toBe(t('dialogs.civ.calendar.day', { day: 2 }))
+    expect(day).not.toContain('84')
+    expect(day).not.toContain('7')
+  })
+})
 
 describe('CivStatsModal names people as the player named them', () => {
   it('shows the leader of a government by the name they were given', () => {

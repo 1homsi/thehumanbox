@@ -19,6 +19,7 @@ import type { WorldActions } from './world-actions'
 import { formatNumber, t } from '../../i18n'
 import { updateCheckMessage } from '../modals/updateCheckMessage'
 import { moonPhaseWord } from '../sim-words'
+import { calendarAt } from '../../game/model/calendar'
 
 interface Props {
   world: WorldState | null
@@ -144,7 +145,10 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer, worldAct
               <Tooltip
                 tip={tip(
                   t('header.moonTitle', { phase: label }),
-                  t('header.moonBody', { year: world.cosmos.year + 1, day: world.cosmos.day_of_year + 1 }),
+                  t('header.moonBody', {
+                    year: calendarAt(world.tick).year,
+                    day: calendarAt(world.tick).dayOfSeason,
+                  }),
                 )}
               >
                 <span className="hdr-chip moon-badge">

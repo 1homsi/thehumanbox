@@ -38,8 +38,8 @@ export function CalendarTag({ world }: { world: WorldState }) {
           </span>
           <span className="tip-how">
             {t('panels.calendar.moonDate', {
-              year: world.cosmos.year + 1,
-              day: world.cosmos.day_of_year + 1,
+              year: parts.year,
+              day: parts.dayOfSeason,
             })}
           </span>
         </>

@@ -2,6 +2,7 @@ import type { WorldState } from '../../shared/types'
 import { eraWord } from '../../shared/era-words'
 import { useFrozenSnapshot } from '../../shared/hooks/useFrozenSnapshot'
 import { Modal } from './Modal'
+import { calendarAt } from '../../game/model/calendar'
 import { eventDate } from '../event-date'
 import { DAY_LENGTH, kindIcon } from './stats/constants'
 import { PopChart } from './stats/PopChart'
@@ -54,8 +55,8 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
           {world.cosmos ? (
             <>
               {t('dialogs.stats.yearDay', {
-                year: formatNumber(world.cosmos.year + 1),
-                day: formatNumber(world.cosmos.day_of_year + 1),
+                year: formatNumber(calendarAt(world.tick).year),
+                day: formatNumber(calendarAt(world.tick).dayOfSeason),
               })}{' '}
               ·{' '}
             </>
