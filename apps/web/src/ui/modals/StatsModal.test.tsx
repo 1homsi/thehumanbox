@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { WorldState } from '../../shared/types'
-import { formatNumber } from '../../i18n'
+import { formatNumber, t } from '../../i18n'
 import { StatsModal } from './StatsModal'
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
@@ -50,6 +50,22 @@ function renderStats(world: WorldState): HTMLElement {
   act(() => root?.render(<StatsModal world={world} onClose={() => undefined} />))
   return host
 }
+
+describe('StatsModal calendar', () => {
+  it('dates the header by the day of the season the time tag shows', () => {
+    // Tick 3600: year 1, the second day of the second season. The header said day 7 of the year before.
+    const world = {
+      ...emptyWorld({}),
+      tick: 3600,
+      cosmos: { year: 0, day_of_year: 6, moon_phase: 'new', moon_illum: 0 },
+    }
+    renderStats(world as unknown as WorldState)
+
+    const header = document.querySelector('.tree-modal-sub')?.textContent ?? ''
+    expect(header).toContain(t('dialogs.stats.yearDay', { year: formatNumber(1), day: formatNumber(2) }))
+    expect(header).not.toContain(t('dialogs.stats.yearDay', { year: formatNumber(1), day: formatNumber(7) }))
+  })
+})
 
 describe('StatsModal counts', () => {
   it('writes the births count with the same grouping as every other count', () => {

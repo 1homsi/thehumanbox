@@ -93,7 +93,7 @@
     },
     "calendar": {
       "year": "year",
-      "day": "day {day} of 84",
+      "day": "day {day} of 5",
       "lit": "{percent}% lit",
       "season": "season",
       "worldTech": "world tech"

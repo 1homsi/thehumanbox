@@ -90,7 +90,7 @@
     },
     "calendar": {
       "year": "ano",
-      "day": "dia {day} de 84",
+      "day": "dia {day} de 5",
       "lit": "{percent}% iluminada",
       "season": "estação",
       "worldTech": "tecnologia do mundo"

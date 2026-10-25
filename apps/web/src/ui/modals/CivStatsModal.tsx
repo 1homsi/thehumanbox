@@ -8,6 +8,7 @@ import { normalizeLineageEras } from '../../shared/lineageEras'
 import { useSceneStore } from '../../state/scene'
 import { farmStage } from '../../game/model/farms'
 import { getBuildingState } from '../../game/model/building-state'
+import { calendarAt } from '../../game/model/calendar'
 import { formatNumber, t, type MessageKey } from '../../i18n'
 import { buildingKindWord, moonPhaseWord, seasonWord } from '../sim-words'
 
@@ -301,9 +302,9 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
         <div className="civ-calendar">
           <div className="civ-cal-item">
             <span className="civ-cal-label">{t('dialogs.civ.calendar.year')}</span>
-            <span className="civ-cal-value">{world.cosmos.year + 1}</span>
+            <span className="civ-cal-value">{calendarAt(world.tick).year}</span>
             <span className="civ-cal-sub">
-              {t('dialogs.civ.calendar.day', { day: formatNumber(world.cosmos.day_of_year + 1) })}
+              {t('dialogs.civ.calendar.day', { day: formatNumber(calendarAt(world.tick).dayOfSeason) })}
             </span>
           </div>
           <span className="civ-cal-sep" aria-hidden="true" />

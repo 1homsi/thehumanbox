@@ -90,7 +90,7 @@
     },
     "calendar": {
       "year": "年",
-      "day": "第 {day} / 84 天",
+      "day": "第 {day} / 5 天",
       "lit": "{percent}% 照亮",
       "season": "季节",
       "worldTech": "世界科技"

@@ -90,7 +90,7 @@
     },
     "calendar": {
       "year": "рік",
-      "day": "день {day} з 84",
+      "day": "день {day} з 5",
       "lit": "{percent}% освітлено",
       "season": "сезон",
       "worldTech": "технології світу"

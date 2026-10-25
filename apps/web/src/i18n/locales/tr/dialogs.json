@@ -90,7 +90,7 @@
     },
     "calendar": {
       "year": "yıl",
-      "day": "gün {day} / 84",
+      "day": "gün {day} / 5",
       "lit": "%{percent} aydınlık",
       "season": "mevsim",
       "worldTech": "dünya teknolojisi"
