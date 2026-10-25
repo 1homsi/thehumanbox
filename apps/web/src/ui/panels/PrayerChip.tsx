@@ -37,6 +37,10 @@ export function PrayerChip({ world, onAnswer }: Props) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       e.preventDefault()
+      // A row that had focus is about to unmount: hand focus back to the chip first, or it falls to the body.
+      if (listRef.current?.contains(document.activeElement)) {
+        ref.current?.querySelector<HTMLElement>('.prayer-chip')?.focus({ preventScroll: true })
+      }
       setOpen(false)
     }
     document.addEventListener('pointerdown', close)

@@ -46,4 +46,19 @@ describe('PrayerChip', () => {
       window.removeEventListener('keydown', app)
     }
   })
+
+  it('an Escape from a focused prayer row gives focus back to the prayer chip', () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+    act(() => root?.render(<PrayerChip world={world} onAnswer={() => {}} />))
+    act(() => host.querySelector<HTMLButtonElement>('.prayer-chip')!.click())
+    const row = document.querySelector<HTMLButtonElement>('.prayer-row')!
+    act(() => row.focus())
+    act(() => {
+      row.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
+    })
+    expect(document.querySelector('.prayer-row')).toBeNull()
+    expect(document.activeElement).toBe(host.querySelector('.prayer-chip'))
+  })
 })
