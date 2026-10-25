@@ -361,7 +361,7 @@
     },
     "activity": {
       "atHome": "à la maison",
-      "idling": "désœuvré",
+      "idling": "ne fait rien",
       "visiting": "en visite",
       "working": {
         "forge": "travaille à la forge",
