@@ -114,6 +114,20 @@ describe('TribeCard', () => {
     expect(host.querySelector('.tribe-card-name-input')).not.toBeNull()
   })
 
+  it('groups a large tribe and its sick count the way the rest of the interface does', () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    roots.push(root)
+    const crowd = Array.from({ length: 1234 }, (_, i) => ({ ...person(`p-${i}`, 'a'), infection: 0.5 }))
+
+    act(() => useUIStore.setState({ focus: 'lineage:a' }))
+    act(() => root.render(card({ ...world(['a']), organisms: crowd } as WorldState)))
+
+    expect(host.querySelector('.tribe-card-sub')?.textContent).toContain('1,234 people')
+    expect(host.querySelector('.tribe-sick')?.textContent).toBe('1,234 sick')
+  })
+
   it('tells what the tribe has been through: a hungry winter and its war dead', () => {
     const host = document.createElement('div')
     document.body.append(host)

@@ -59,6 +59,12 @@ describe('PopulationChip', () => {
     expect(chip!.textContent).toBe('1563')
   })
 
+  it('groups a large sick count the way the living count is grouped', () => {
+    render(5000, 1234)
+    expect(container.querySelector('.pop-sick')!.textContent).toBe('1,234')
+    expect(container.querySelector('.population-badge')!.textContent).toBe('5,0001,234')
+  })
+
   it('explains the living and the sick, with the next milestone, in the tooltip', () => {
     const chip = render(156, 1)
     hover(chip)

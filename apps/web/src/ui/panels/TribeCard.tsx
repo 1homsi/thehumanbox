@@ -51,7 +51,10 @@ function Sparkline({ lineage }: { lineage: string }) {
   return (
     <div
       className={clsx('tribe-spark', direction)}
-      title={t('panels.tribe.sparkTitle', { from: samples[0]!, to: samples[samples.length - 1]! })}
+      title={t('panels.tribe.sparkTitle', {
+        from: formatNumber(samples[0]!),
+        to: formatNumber(samples[samples.length - 1]!),
+      })}
     >
       <svg width="72" height="14" viewBox="0 0 72 14" aria-hidden="true">
         <polyline points={sparklinePoints(samples, 72, 14)} fill="none" strokeWidth="1.5" />
@@ -204,7 +207,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
         <div className="tribe-card-festival">♫ {t('panels.tribe.festival', { name: festival })}</div>
       )}
       <div className="tribe-card-sub">
-        {t('panels.tribe.people', { count: status.people })}
+        {t('panels.tribe.people', { count: formatNumber(status.people) })}
         {status.era && ` · ${t('panels.tribe.eraAge', { era: status.era })}`}
         {gap && ` · ${t('panels.tribe.wealth', { gap })}`}
         {gens && ` · ${generationLine(gens)}`}
@@ -281,7 +284,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
           className={clsx('tribe-faith', status.blessed && 'blessed', status.despairing && 'despair')}
           title={status.lostFaith ? t('panels.tribe.faithLostTitle') : t('panels.tribe.faithTitle')}
         >
-          ✧ {t('panels.tribe.faith', { faith: status.faith })}
+          ✧ {t('panels.tribe.faith', { faith: formatNumber(status.faith) })}
           {status.blessed
             ? ` · ${t('panels.tribe.blessed')}`
             : status.lostFaith
@@ -291,7 +294,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
                 : ''}
         </span>
         {status.sick > 0 && (
-          <span className="tribe-sick">{t('panels.tribe.sick', { count: status.sick })}</span>
+          <span className="tribe-sick">{t('panels.tribe.sick', { count: formatNumber(status.sick) })}</span>
         )}
       </div>
       {status.nextAge && (
@@ -331,7 +334,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
           )}
           {status.nextAge.peopleNeeded > 0 && (
             <div className="tribe-next-missing">
-              {t('panels.tribe.needsPeople', { count: status.nextAge.peopleNeeded })}
+              {t('panels.tribe.needsPeople', { count: formatNumber(status.nextAge.peopleNeeded) })}
             </div>
           )}
         </div>
