@@ -1,6 +1,6 @@
 {
   "seed": 42,
   "tick": 3000,
-  "save_fnv1a64": "0xff3304e726b0d8d2",
-  "note": "FNV-1a 64 of the serialized save state. Checked natively by sim-core tests and in the browser wasm build by scripts/check-wasm-determinism.mjs. Update only when a change is meant to alter the world. Regenerated when the save began writing grid layers packed (schema 7): the world is the same, the save bytes are not."
+  "save_fnv1a64": "0x7afab6472ae172ac",
+  "note": "FNV-1a 64 of the serialized save state. Checked natively by sim-core tests and in the browser wasm build by scripts/check-wasm-determinism.mjs. Update only when a change is meant to alter the world. Regenerated when mining and quarrying were offered only beside rock, and the hungry walked on to food beside a fire."
 }
