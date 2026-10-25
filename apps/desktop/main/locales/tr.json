@@ -33,6 +33,7 @@
   },
   "notify": {
     "screenshotSaved": "Ekran görüntüsü kaydedildi",
+    "screenshotFailed": "Ekran görüntüsü kaydedilemedi",
     "worldsFolderUnavailable": "Dünyalar klasörü kullanılamıyor",
     "logsFolderUnavailable": "Günlükler klasörü kullanılamıyor",
     "about": "v{version}\nKalıcı bir yapay yaşam simülasyonu.\nthehumanbox.com"

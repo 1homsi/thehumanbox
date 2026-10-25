@@ -33,6 +33,7 @@
   },
   "notify": {
     "screenshotSaved": "スクリーンショットを保存しました",
+    "screenshotFailed": "スクリーンショットを保存できませんでした",
     "worldsFolderUnavailable": "世界フォルダを利用できません",
     "logsFolderUnavailable": "ログフォルダを利用できません",
     "about": "v{version}\n永続する人工生命のシミュレーション。\nthehumanbox.com"

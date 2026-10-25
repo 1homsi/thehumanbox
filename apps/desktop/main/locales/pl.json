@@ -33,6 +33,7 @@
   },
   "notify": {
     "screenshotSaved": "Zrzut ekranu zapisano",
+    "screenshotFailed": "Zrzutu ekranu nie zapisano",
     "worldsFolderUnavailable": "Folder światów jest niedostępny",
     "logsFolderUnavailable": "Folder logów jest niedostępny",
     "about": "v{version}\nTrwała symulacja sztucznego życia.\nthehumanbox.com"

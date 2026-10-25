@@ -33,6 +33,7 @@
   },
   "notify": {
     "screenshotSaved": "Screenshot saved",
+    "screenshotFailed": "Screenshot not saved",
     "worldsFolderUnavailable": "Worlds folder unavailable",
     "logsFolderUnavailable": "Logs folder unavailable",
     "about": "v{version}\nA persistent artificial-life simulation.\nthehumanbox.com"

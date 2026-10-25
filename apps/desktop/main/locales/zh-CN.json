@@ -33,6 +33,7 @@
   },
   "notify": {
     "screenshotSaved": "截图已保存",
+    "screenshotFailed": "截图未保存",
     "worldsFolderUnavailable": "世界文件夹不可用",
     "logsFolderUnavailable": "日志文件夹不可用",
     "about": "v{version}\n持续运行的人工生命模拟。\nthehumanbox.com"
