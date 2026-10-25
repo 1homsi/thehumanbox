@@ -44,7 +44,7 @@ export function RelationsTable({
             </div>
             <span className={`stats-rel-status status-${r.status}`}>{r.status}</span>
             <span className="stats-rel-muted">
-              {t('dialogs.stats.versus', { a: sizeMap[r.a] ?? '?', b: sizeMap[r.b] ?? '?' })}
+              {t('dialogs.stats.versus', { a: sizeMap[r.a] ?? 0, b: sizeMap[r.b] ?? 0 })}
             </span>
           </div>
         )

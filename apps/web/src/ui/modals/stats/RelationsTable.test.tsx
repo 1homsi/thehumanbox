@@ -3,6 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { RelationsTable } from './RelationsTable'
+import { t } from '../../../i18n'
 import { useWorldStore } from '../../../state/worldStore'
 import type { WorldState } from '../../../shared/types'
 
@@ -56,5 +57,19 @@ describe('RelationsTable names', () => {
 
     const first = host.querySelector('.stats-rel-name')?.textContent
     expect(first).toBe('nameless-tribe-id'.slice(0, 6))
+  })
+
+  it('counts a tribe that is no longer in the sizes as no people, not as a question mark', () => {
+    const host = mount(
+      <RelationsTable
+        relations={[{ a: 'gone-line', b: 'bren-line', attitude: 0.2, status: 'neutral' }]}
+        lineageSizes={[{ id: 'bren-line', count: 7 }]}
+        lineageNames={{ 'bren-line': 'Bren' }}
+      />,
+    )
+
+    const versus = host.querySelector('.stats-rel-muted:last-child')?.textContent ?? ''
+    expect(versus).toBe(t('dialogs.stats.versus', { a: 0, b: 7 }))
+    expect(versus).not.toContain('?')
   })
 })

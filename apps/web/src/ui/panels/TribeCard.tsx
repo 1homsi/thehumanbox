@@ -19,6 +19,7 @@ import { familyLineText, familyLines } from '../../game/model/family-lines'
 import { eldestByLineage, eldestLine } from '../../game/model/tribe-eldest'
 import { ToolSprite } from '../toolbar/ToolSprite'
 import { formatNumber, t, type MessageKey } from '../../i18n'
+import { knownTribeName } from '../../state/worldStore'
 
 interface Props {
   world: WorldState
@@ -202,7 +203,9 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
   const gens = generationsOf(world.lineage_generations, status.id)
   const crime = crimeLineOf(world.lineage_crime, status.id)
   const prayer = status.prayer
-  const enemies = enemiesOf(world.battles, status.id).map((l) => world.lineage_names?.[l] ?? l.slice(0, 6))
+  const enemies = enemiesOf(world.battles, status.id).map(
+    (l) => knownTribeName(world.lineage_names, l) ?? l.slice(0, 6),
+  )
   const field = activeBattles(world.battles).find(
     (b) => b.attackers.includes(status.id) || b.defenders.includes(status.id),
   )
