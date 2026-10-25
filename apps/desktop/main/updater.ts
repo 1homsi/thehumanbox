@@ -42,7 +42,9 @@ function installNow(): UpdateCheckResult {
   const result = startUnsignedMacInstall(downloadedFile, process.execPath, process.pid)
   if (!result.started) {
     const message = result.message ?? t('update.failedMessage')
-    void dialog.showMessageBox({ type: 'error', title: t('update.failedTitle'), message: t('update.failedMessage'), detail: message })
+    dialog
+      .showMessageBox({ type: 'error', title: t('update.failedTitle'), message: t('update.failedMessage'), detail: message })
+      .catch((error: unknown) => console.error('[updater] could not show the install failure:', error))
     return { ...latestStatus, message }
   }
   setImmediate(() => app.quit())
@@ -99,15 +101,24 @@ export function initUpdater(getWindow: () => BrowserWindow | null): void {
     // ask once per version. A newer version still gets its own prompt.
     if (promptedVersion === info.version) return
     promptedVersion = info.version
-    const { response } = await dialog.showMessageBox({
-      type: 'info',
-      buttons: [t('buttons.restartAndUpdate'), t('buttons.later')],
-      defaultId: 0,
-      cancelId: 1,
-      title: t('update.readyTitle'),
-      message: t('update.readyMessage', { version: info.version }),
-      detail: t('update.readyDetail'),
-    })
+    let response: number
+    try {
+      ;({ response } = await dialog.showMessageBox({
+        type: 'info',
+        buttons: [t('buttons.restartAndUpdate'), t('buttons.later')],
+        defaultId: 0,
+        cancelId: 1,
+        title: t('update.readyTitle'),
+        message: t('update.readyMessage', { version: info.version }),
+        detail: t('update.readyDetail'),
+      }))
+    } catch (error) {
+      // Nothing awaits this listener, so a failed prompt would otherwise be an
+      // unhandled rejection. The download stays held, so the update toast can
+      // still install it.
+      console.error('[updater] could not show the update prompt:', error)
+      return
+    }
     if (response === 0) installNow()
   })
 

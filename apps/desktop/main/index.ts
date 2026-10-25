@@ -318,11 +318,15 @@ async function createWindow(): Promise<void> {
     if (!shouldShowLoadError(code, url, isMainFrame)) return;
     const shown = redactUrlForDisplay(url);
     console.error(`[main] did-fail-load code=${code} desc=${desc} url=${shown}`);
+    // Electron rejects this load when a newer navigation replaces it. Nothing
+    // awaits it here, so log the failure instead of leaving a rejection behind.
     win?.loadURL(
       renderBootError(
         `${t("startFailed.rendererFailed")}\nURL: ${shown}\nCode: ${code}\n${desc}`,
       ),
-    );
+    ).catch((loadError: unknown) => {
+      console.error("[main] could not show the load failure page:", loadError);
+    });
   });
 
   if (bootErrorUrl) {
@@ -700,13 +704,12 @@ function notifyMilestone(title: string, body: string): void {
   n.show();
 }
 
+// Throws when the OS refuses the login item. The settings form awaits this call
+// and shows the failure; swallowing it reported success for a launch-at-login
+// setting the system never applied. Startup catches it instead (see boot).
 function applyAutoLaunch(): void {
-  try {
-    const s = loadSettings();
-    app.setLoginItemSettings(loginItemSettings(s.autoLaunch, s.startMinimized));
-  } catch (e) {
-    console.warn("[main] setLoginItemSettings failed:", e);
-  }
+  const s = loadSettings();
+  app.setLoginItemSettings(loginItemSettings(s.autoLaunch, s.startMinimized));
 }
 
 async function captureScreenshot(): Promise<string | null> {
@@ -963,7 +966,11 @@ async function boot(): Promise<void> {
   initLocale();
   // Set up controls and update checks before the simulation load begins.
   buildTray();
-  applyAutoLaunch();
+  try {
+    applyAutoLaunch();
+  } catch (e) {
+    console.warn("[main] setLoginItemSettings failed:", e);
+  }
   initUpdater(() => mainWindow);
   onUnexpectedSimExit(({ code, signal }) =>
     void offerSimRestart(code, signal).catch((err) =>
