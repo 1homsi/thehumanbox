@@ -14,5 +14,8 @@
   "fitWorld": "Fit world",
   "centreOnSelected": "Centre on selected",
   "worldMapLabel": "Interactive world map",
-  "terrainLabel": "World terrain and inhabitants"
+  "terrainLabel": "World terrain and inhabitants",
+  "boundaryTitle": "The world stuttered",
+  "boundaryBody": "Something unexpected happened in the renderer. Reload to reconnect to the current simulation.",
+  "boundaryReload": "Reload"
 }

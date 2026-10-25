@@ -14,5 +14,8 @@
   "fitWorld": "世界全体を表示",
   "centreOnSelected": "選択中の対象へ移動",
   "worldMapLabel": "操作できる世界地図",
-  "terrainLabel": "世界の地形と住民"
+  "terrainLabel": "世界の地形と住民",
+  "boundaryTitle": "世界がつかえました",
+  "boundaryBody": "描画で予期しないことが起きました。再読み込みすると、いまのシミュレーションに再接続します。",
+  "boundaryReload": "再読み込み"
 }

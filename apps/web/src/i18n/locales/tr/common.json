@@ -14,5 +14,8 @@
   "fitWorld": "Tüm dünyayı göster",
   "centreOnSelected": "Seçileni ortala",
   "worldMapLabel": "Etkileşimli dünya haritası",
-  "terrainLabel": "Dünyanın arazisi ve sakinleri"
+  "terrainLabel": "Dünyanın arazisi ve sakinleri",
+  "boundaryTitle": "Dünya takıldı",
+  "boundaryBody": "Görüntüleme sırasında beklenmedik bir şey oldu. Mevcut simülasyona yeniden bağlanmak için sayfayı yeniden yükleyin.",
+  "boundaryReload": "Yeniden yükle"
 }
