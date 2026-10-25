@@ -137,21 +137,34 @@ export function initUpdater(getWindow: () => BrowserWindow | null): void {
     return
   }
 
-  const s = loadSettings()
-  if (!s.autoUpdate) return
-
-  void checkForUpdatesNow()
+  // The first check waits for the setting. The timer and the focus check are
+  // registered either way and read the setting each time, so a settings file
+  // that was unreadable at startup takes effect once it reads again.
+  if (automaticChecksEnabled()) void checkForUpdatesNow()
 
   setInterval(() => {
-    if (!loadSettings().autoUpdate) return
+    if (!automaticChecksEnabled()) return
     void checkForUpdatesNow().catch(() => {})
   }, CHECK_INTERVAL_MS)
 
   app.on('browser-window-focus', () => {
     if (Date.now() - lastCheckAt < FOCUS_CHECK_MIN_GAP_MS) return
-    if (!loadSettings().autoUpdate) return
+    if (!automaticChecksEnabled()) return
     void checkForUpdatesNow().catch(() => {})
   })
+}
+
+// The settings file is read on a timer and on window focus. An exception there
+// reaches the main process's uncaughtException handler, which stops the
+// simulation and quits the game. So an unreadable file turns automatic checks
+// off for now, and the boot path reports the file's problem in the window.
+function automaticChecksEnabled(): boolean {
+  try {
+    return loadSettings().autoUpdate
+  } catch (error) {
+    console.warn('[updater] settings unreadable; automatic update checks are paused:', error)
+    return false
+  }
 }
 
 export async function checkForUpdatesNow(): Promise<UpdateCheckResult> {

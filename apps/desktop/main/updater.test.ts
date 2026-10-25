@@ -18,12 +18,19 @@ function harness(
     autoUpdate = false,
     now = (): number => 0,
     promptFails = false,
-  }: { autoUpdate?: boolean; now?: () => number; promptFails?: boolean } = {},
+    settingsUnreadable = (): boolean => false,
+  }: {
+    autoUpdate?: boolean
+    now?: () => number
+    promptFails?: boolean
+    settingsUnreadable?: () => boolean
+  } = {},
 ) {
   const autoUpdater = new EventEmitter() as FakeUpdater
   autoUpdater.checkForUpdates = () => onCheck(autoUpdater)
   autoUpdater.quitAndInstall = () => {}
   const prompts: string[] = []
+  const intervals: Array<() => void> = []
   const app = Object.assign(new EventEmitter(), {
     isPackaged: true,
     getPath: () => '/tmp/thehumanbox-test',
@@ -44,12 +51,23 @@ function harness(
     setTimeout,
     clearTimeout,
     setImmediate,
-    setInterval: () => 0,
+    setInterval: (callback: () => void) => {
+      intervals.push(callback)
+      return 0
+    },
     Date: { now },
     require: (id: string) => {
       if (id === 'electron') return { app, BrowserWindow: class {}, dialog }
       if (id === 'electron-updater') return { autoUpdater }
-      if (id === './settings') return { loadSettings: () => ({ autoUpdate }) }
+      if (id === './settings') {
+        return {
+          loadSettings: () => {
+            // Stands in for settings.json being edited into invalid JSON mid-session.
+            if (settingsUnreadable()) throw new Error('settings.json is corrupt')
+            return { autoUpdate }
+          },
+        }
+      }
       if (id === './i18n') return require(path.join(__dirname, 'i18n'))
       if (id === './mac-unsigned-install') {
         return {
@@ -63,7 +81,7 @@ function harness(
   })
   vm.runInContext(readFileSync(path.join(__dirname, 'updater.js'), 'utf8'), context)
   vm.runInContext('initUpdater(() => null)', context)
-  return { context, app, autoUpdater, prompts }
+  return { context, app, autoUpdater, prompts, intervals }
 }
 
 const flush = () => new Promise((resolve) => setImmediate(resolve))
@@ -144,4 +162,56 @@ test('focusing the window checks again once the last check is ten minutes old', 
   clock = 10 * 60 * 1000
   app.emit('browser-window-focus')
   assert.equal(checks, 2)
+})
+
+// An exception on a timer or a window event reaches the main process's
+// uncaughtException handler, which stops the simulation and quits the game. A
+// settings.json edited into invalid JSON while the game runs must not do that.
+
+test('focusing the window while settings.json is unreadable does not throw', () => {
+  let unreadable = false
+  let clock = 0
+  const { app } = harness(undefined, {
+    autoUpdate: true,
+    now: () => clock,
+    settingsUnreadable: () => unreadable,
+  })
+  unreadable = true
+  // A focus only reads the settings once the last check is ten minutes old.
+  clock = 10 * 60 * 1000
+  assert.doesNotThrow(() => app.emit('browser-window-focus'))
+})
+
+test('the update timer while settings.json is unreadable does not throw', async () => {
+  let unreadable = false
+  const { intervals } = harness(undefined, { autoUpdate: true, settingsUnreadable: () => unreadable })
+  assert.equal(intervals.length, 1)
+  unreadable = true
+  assert.doesNotThrow(() => intervals[0]())
+})
+
+test('starting while settings.json is unreadable does not throw out of the updater', () => {
+  assert.doesNotThrow(() => harness(undefined, { settingsUnreadable: () => true }))
+})
+
+test('checks resume once a settings file that was unreadable at startup reads again', async () => {
+  // The timer and the focus check are registered even when the first read
+  // fails; a registration skipped at startup would stay skipped until a restart.
+  let unreadable = true
+  let checks = 0
+  const { intervals } = harness(
+    async () => {
+      checks++
+      return null
+    },
+    { autoUpdate: true, settingsUnreadable: () => unreadable },
+  )
+  await flush()
+  assert.equal(checks, 0, 'no check while the file is unreadable')
+  assert.equal(intervals.length, 1, 'the timer is registered regardless')
+
+  unreadable = false
+  intervals[0]()
+  await flush()
+  assert.equal(checks, 1)
 })
