@@ -629,7 +629,8 @@ function LiveApp() {
       event.preventDefault()
       onPickTool({
         id: 'keyboard-playback',
-        label: runtimeState.paused ? 'play' : 'pause',
+        // The status line names the tool, so the label is in the player's language (the time control's words).
+        label: t(runtimeState.paused ? 'dock.time.play' : 'dock.time.pause'),
         icon: '',
         mode: 'instant',
         time: { control: runtimeState.paused ? 'resume' : 'pause' },
