@@ -544,6 +544,7 @@
       "aquaculture": "aquaculture"
     },
     "discovery": {
+      "stone_tools": "outils de pierre",
       "agriculture": "agriculture",
       "farm": "ferme",
       "harvest": "récolte",

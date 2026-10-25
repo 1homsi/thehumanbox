@@ -544,6 +544,7 @@
       "aquaculture": "aquicultura"
     },
     "discovery": {
+      "stone_tools": "ferramentas de pedra",
       "agriculture": "agricultura",
       "farm": "fazenda",
       "harvest": "colheita",
