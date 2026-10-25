@@ -711,6 +711,17 @@
       "industrial": "індустріальна",
       "modern": "сучасна",
       "information": "інформаційна"
+    },
+    "government": {
+      "tribal": "племінний",
+      "chiefdom": "вождівство",
+      "monarchy": "монархія",
+      "theocracy": "теократія",
+      "republic": "республіка",
+      "democracy": "демократія",
+      "empire": "імперія",
+      "federation": "федерація",
+      "corporate": "корпоративний"
     }
   }
 }

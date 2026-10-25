@@ -692,6 +692,17 @@
       "industrial": "industrial",
       "modern": "modern",
       "information": "information"
+    },
+    "government": {
+      "tribal": "tribal",
+      "chiefdom": "chiefdom",
+      "monarchy": "monarchy",
+      "theocracy": "theocracy",
+      "republic": "republic",
+      "democracy": "democracy",
+      "empire": "empire",
+      "federation": "federation",
+      "corporate": "corporate"
     }
   }
 }

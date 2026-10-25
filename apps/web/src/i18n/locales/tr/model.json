@@ -678,6 +678,17 @@
       "industrial": "Sanayi",
       "modern": "Modern",
       "information": "Bilgi"
+    },
+    "government": {
+      "tribal": "kabile",
+      "chiefdom": "şeflik",
+      "monarchy": "monarşi",
+      "theocracy": "teokrasi",
+      "republic": "cumhuriyet",
+      "democracy": "demokrasi",
+      "empire": "imparatorluk",
+      "federation": "federasyon",
+      "corporate": "şirketçi"
     }
   }
 }
