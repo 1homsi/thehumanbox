@@ -105,8 +105,10 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
         // for an organism whose cache entry was seeded from a cold-less
         // frame, so the search box threw a TypeError on the first
         // keystroke.
+        // The name searched is the one the card shows (the player's name when they gave one), and the generated name still finds them.
         if (
           q &&
+          !(personName(o) ?? '').toLowerCase().includes(q) &&
           !(o.name ?? '').toLowerCase().includes(q) &&
           !(o.thought ?? '').toLowerCase().includes(q) &&
           !(o.lineage_id ?? '').toLowerCase().includes(q)

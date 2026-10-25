@@ -1,4 +1,5 @@
 import { lineageColor } from '../../../shared/constants'
+import { personName } from '../../../shared/personName'
 import type { OrganismState, OrgDetail } from '../../../shared/types'
 import { formatNumber, t } from '../../../i18n'
 
@@ -47,7 +48,7 @@ export function BondsRememberedSection({
                             cursor: 'pointer',
                           }}
                         >
-                          ↪ {relatedOrg.name}
+                          ↪ {personName(relatedOrg)}
                         </button>
                       )}
                     </span>
@@ -136,9 +137,9 @@ export function MemoriesSection({
                           borderRadius: 3,
                           cursor: 'pointer',
                         }}
-                        title={t('person.memories.goTo', { name: relatedOrg.name })}
+                        title={t('person.memories.goTo', { name: personName(relatedOrg) })}
                       >
-                        ↪ {relatedOrg.name}
+                        ↪ {personName(relatedOrg)}
                       </button>
                     )}
                   </span>

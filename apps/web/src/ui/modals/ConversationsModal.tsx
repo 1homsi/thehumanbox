@@ -45,6 +45,8 @@ const ConvoBlock = memo(function ConvoBlock({
 }) {
   const partner = allOrgs.find((o) => o.id === entry.with_id)
   const pColor = partner ? lineageColor(partner.lineage_id) : '#aaa'
+  // The header names people as they are now; the transcript below keeps the names as they were spoken.
+  const partnerName = partner ? personName(partner) : entry.with_name
   const selfColor = lineageColor(selfOrg.lineage_id)
   const meta = kindMeta(entry.kind)
   const day = Math.floor(entry.tick / DAY_LENGTH)
@@ -69,9 +71,9 @@ const ConvoBlock = memo(function ConvoBlock({
           {meta.label}
         </span>
         <span className="cv-participants">
-          <span style={{ color: selfColor, fontWeight: 600 }}>{selfOrg.name}</span>
+          <span style={{ color: selfColor, fontWeight: 600 }}>{personName(selfOrg)}</span>
           <span className="cv-sep">&amp;</span>
-          <span style={{ color: pColor, fontWeight: 600 }}>{entry.with_name}</span>
+          <span style={{ color: pColor, fontWeight: 600 }}>{partnerName}</span>
         </span>
         {rel && (
           <span
@@ -153,7 +155,7 @@ function ConversationsModalBody({ org, allOrgs, sexWords, onClose }: Props) {
           )}
           {partnerOrg && (
             <span style={{ color: '#c07090', marginLeft: 8 }}>
-              ♥ <span style={{ color: lineageColor(partnerOrg.lineage_id) }}>{partnerOrg.name}</span>
+              ♥ <span style={{ color: lineageColor(partnerOrg.lineage_id) }}>{personName(partnerOrg)}</span>
             </span>
           )}
         </div>

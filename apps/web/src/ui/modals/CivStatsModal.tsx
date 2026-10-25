@@ -3,6 +3,7 @@ import type { WorldState } from '../../shared/types'
 import type { LineageStrategy } from '../../simulation/sandbox'
 import { Modal } from './Modal'
 import { askConfirm } from '../../shared/confirm'
+import { personName } from '../../shared/personName'
 import { normalizeLineageEras } from '../../shared/lineageEras'
 import { useSceneStore } from '../../state/scene'
 import { farmStage } from '../../game/model/farms'
@@ -210,7 +211,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
   }
   const nameById = useMemo(() => {
     const m = new Map<string, string>()
-    for (const o of world.organisms) m.set(o.id, o.name)
+    for (const o of world.organisms) m.set(o.id, personName(o))
     return m
   }, [world.organisms])
   const orgById = (id: string | null | undefined) => {
@@ -1018,7 +1019,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                 return <div className="civ-empty">{t('dialogs.civ.tradeLog.empty')}</div>
               }
               const nameById = new Map<string, string>()
-              for (const o of world.organisms) nameById.set(o.id, o.name)
+              for (const o of world.organisms) nameById.set(o.id, personName(o))
               return trades.slice(0, 6).map((trade, i) => {
                 const buyer = nameById.get(trade.buyer_id) ?? trade.buyer_id.slice(0, 6)
                 const seller = nameById.get(trade.seller_id) ?? trade.seller_id.slice(0, 6)

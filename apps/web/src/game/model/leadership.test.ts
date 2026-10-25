@@ -18,6 +18,14 @@ describe('leadership', () => {
     expect(leadershipOf(world, 'a')).toEqual({ government: 'chiefdom', leader: { id: 'p1', name: 'Zuhe' } })
   })
 
+  it('names the leader as the player named them', () => {
+    const renamed = {
+      governments: [{ lineage_id: 'a', kind: 'chiefdom', leader_id: 'p1' }],
+      organisms: [{ id: 'p1', name: 'Zuhe', custom_name: 'Mara', alive: true }],
+    } as never
+    expect(leadershipOf(renamed, 'a')?.leader).toEqual({ id: 'p1', name: 'Mara' })
+  })
+
   it('has no leader when the leader is dead or there is none', () => {
     expect(leadershipOf(world, 'b')).toEqual({ government: 'city state', leader: null })
     expect(leadershipOf(world, 'c')?.leader).toBeNull()

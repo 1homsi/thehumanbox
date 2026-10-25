@@ -57,6 +57,18 @@ describe('OrgSearchModal', () => {
     expect(list.scrollTop).toBe(0)
   })
 
+  it('finds a renamed person by the name their card shows', () => {
+    render([{ ...organism('a'), name: 'Ada', custom_name: 'Bob' } as OrganismState, organism('b')])
+    const search = el<HTMLInputElement>('.org-search-input')
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'bob')
+      search.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    const names = [...document.querySelectorAll('.org-search-entry')].map((e) => e.textContent ?? '')
+    expect(names).toHaveLength(1)
+    expect(names[0]).toContain('Bob')
+  })
+
   it('a desktop deselect of the row under the pointer keeps the list where it was', () => {
     render([organism('a'), organism('b')])
     const list = el('.org-search-list')

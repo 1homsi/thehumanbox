@@ -59,7 +59,10 @@ function OrgDetailBody({
   const toggleStar = useUIStore((s) => s.toggleStar)
   const isStarred = starredOrgIds.includes(org.id)
   const tn = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
-  const on = (oid: string) => organisms?.find((o) => o.id === oid)?.name ?? (oid ?? '').slice(0, 5)
+  const on = (oid: string) => {
+    const other = organisms?.find((o) => o.id === oid)
+    return (other && personName(other)) || (oid ?? '').slice(0, 5)
+  }
   const color = lineageColor(org.lineage_id)
   // `traits`, `name` and `lineage_id` are cold fields. The server omits
   // them from periodic "full" frames (which still set `organisms_complete`),
