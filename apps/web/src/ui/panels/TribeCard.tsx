@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useUIStore } from '../../state/store'
 import { popHistory } from '../../state/worldStore'
 import { sparklinePoints, trend } from '../../game/model/pop-history'
@@ -26,7 +26,7 @@ interface Props {
   /** Pick up a dock tool by id, looking at the tribe. */
   onTool: (toolId: string, at: { x: number; y: number }) => void
   /** Give the tribe a name of the player's choosing. */
-  onRename: (lineage: string, name: string) => void
+  onRename: (lineage: string, name: string) => Promise<boolean>
   /** Teach the tribe the next secret it lacks. */
   onTeach: (lineage: string) => void
 }
@@ -84,37 +84,93 @@ function TribeName({
   onRename: Props['onRename']
 }) {
   const [editing, setEditing] = useState<string | null>(null)
+  // The world answers later. By then the field may be gone, and a refused name keeps it open with a message.
+  const [pending, setPending] = useState(false)
+  const [refused, setRefused] = useState(false)
+  const open = useRef(true)
+  const input = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    open.current = true
+    return () => {
+      open.current = false
+    }
+  }, [])
+  // Disabling the field while the world answers can drop keyboard focus. When a refusal lands, the field is
+  // enabled again, so the player can correct the name without reaching for the mouse.
+  useEffect(() => {
+    if (!pending && refused && editing !== null) input.current?.focus()
+  }, [pending, refused, editing])
+
+  const save = (next: string) => {
+    if (pending) return
+    setRefused(false)
+    setPending(true)
+    onRename(lineage, next).then(
+      (saved) => {
+        if (!open.current) return
+        setPending(false)
+        if (saved) setEditing(null)
+        else setRefused(true)
+      },
+      () => {
+        if (!open.current) return
+        setPending(false)
+        setRefused(true)
+      },
+    )
+  }
+
   if (editing === null) {
     return (
       <button
         className="tribe-card-name tribe-card-rename"
         title={t('panels.tribe.rename')}
-        onClick={() => setEditing(name)}
+        onClick={() => {
+          // A new edit starts clean: the last refusal belonged to the previous attempt.
+          setRefused(false)
+          setEditing(name)
+        }}
       >
         {name} <span aria-hidden="true">✎</span>
       </button>
     )
   }
   return (
-    <input
-      className="tribe-card-name-input"
-      autoFocus
-      maxLength={24}
-      value={editing}
-      aria-label={t('panels.tribe.nameLabel')}
-      onChange={(e) => setEditing(e.target.value)}
-      onBlur={() => setEditing(null)}
-      onKeyDown={(e) => {
-        e.stopPropagation()
-        // Enter and Escape that end an IME composition finish the word, not the name.
-        if (e.nativeEvent.isComposing || e.keyCode === 229) return
-        if (e.key === 'Enter') {
-          const next = editing.trim()
-          if (next && next !== name) onRename(lineage, next)
-          setEditing(null)
-        } else if (e.key === 'Escape') setEditing(null)
-      }}
-    />
+    <>
+      <input
+        ref={input}
+        className="tribe-card-name-input"
+        autoFocus
+        maxLength={24}
+        value={editing}
+        disabled={pending}
+        aria-label={t('panels.tribe.nameLabel')}
+        onChange={(e) => {
+          setRefused(false)
+          setEditing(e.target.value)
+        }}
+        // A blur while the world answers must not close the field: the name is still being saved.
+        onBlur={() => {
+          if (!pending) setEditing(null)
+        }}
+        onKeyDown={(e) => {
+          e.stopPropagation()
+          // Enter and Escape that end an IME composition finish the word, not the name.
+          if (e.nativeEvent.isComposing || e.keyCode === 229) return
+          if (e.key === 'Enter') {
+            const next = editing.trim()
+            // Nothing new to save: the field just closes.
+            if (!next || next === name) setEditing(null)
+            else save(next)
+          } else if (e.key === 'Escape') setEditing(null)
+        }}
+      />
+      {refused && (
+        <span role="alert" style={{ color: '#ff9b6b', fontSize: 11 }}>
+          {t('panels.rename.refused')}
+        </span>
+      )}
+    </>
   )
 }
 
