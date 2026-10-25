@@ -2,7 +2,7 @@ import { Bar } from './bars'
 import { AGE_STAGE_ICON, ERA_ICON } from './icons'
 import type { OrganismState } from '../../../shared/types'
 import { skillPercent, skillWord } from '../../../game/model/skills'
-import { t, type MessageKey } from '../../../i18n'
+import { hasMessage, t, type MessageKey } from '../../../i18n'
 
 /** A glyph for each mood word the simulation sends. */
 const MOOD_ICON: Record<string, string> = {
@@ -21,6 +21,18 @@ const SKILL_KEY: Record<string, MessageKey> = {
   journeyman: 'person.status.skillWord.journeyman',
   apprentice: 'person.status.skillWord.apprentice',
 }
+
+/** A word from the table under `prefix`; an id the table does not name is shown as its words. */
+function wordFrom(prefix: string, id: string): string {
+  const key = `${prefix}.${id}`
+  return hasMessage(key) ? t(key as MessageKey) : id.replace(/_/g, ' ')
+}
+
+/** A life stage in words, e.g. "elder" in German is "Alter". */
+const ageStageWord = (stage: string) => wordFrom('person.status.ageStage', stage)
+
+/** A trade or calling in words, e.g. "smith" in German is "Schmied". */
+const specialtyWord = (specialty: string) => wordFrom('person.status.specialty', specialty)
 
 /** The skill level in words, translated from the level `skillWord` names. */
 function skillLabel(practice: number): string {
@@ -54,7 +66,7 @@ export function StatusChips({ org }: { org: OrganismState }) {
             className="relation-tag"
             style={{ background: '#1a1a2a', color: '#bbcce6', cursor: 'default' }}
           >
-            {AGE_STAGE_ICON[org.age_stage as string] ?? '•'} {org.age_stage}
+            {AGE_STAGE_ICON[org.age_stage as string] ?? '•'} {ageStageWord(org.age_stage as string)}
           </span>
         )}
         {(org.era ?? org.lineage_era ?? null) && (
@@ -70,7 +82,7 @@ export function StatusChips({ org }: { org: OrganismState }) {
             className="relation-tag"
             style={{ background: '#0a1a2a', color: '#88c6e6', cursor: 'default' }}
           >
-            ★ {org.specialty}
+            ★ {specialtyWord(org.specialty as string)}
             {org.skill != null && org.skill > 0 && (
               <span
                 style={{ opacity: 0.8 }}
