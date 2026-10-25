@@ -33,6 +33,7 @@
   },
   "notify": {
     "screenshotSaved": "Screenshot gespeichert",
+    "screenshotFailed": "Screenshot nicht gespeichert",
     "worldsFolderUnavailable": "Weltenordner nicht verfügbar",
     "logsFolderUnavailable": "Protokollordner nicht verfügbar",
     "about": "v{version}\nEine dauerhafte Simulation künstlichen Lebens.\nthehumanbox.com"

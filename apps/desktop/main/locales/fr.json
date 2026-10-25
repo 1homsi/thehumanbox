@@ -33,6 +33,7 @@
   },
   "notify": {
     "screenshotSaved": "Capture d'écran enregistrée",
+    "screenshotFailed": "Capture d'écran non enregistrée",
     "worldsFolderUnavailable": "Dossier des mondes indisponible",
     "logsFolderUnavailable": "Dossier des journaux indisponible",
     "about": "v{version}\nUne simulation persistante de vie artificielle.\nthehumanbox.com"

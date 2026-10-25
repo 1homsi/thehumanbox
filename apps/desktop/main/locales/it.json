@@ -33,6 +33,7 @@
   },
   "notify": {
     "screenshotSaved": "Screenshot salvato",
+    "screenshotFailed": "Screenshot non salvato",
     "worldsFolderUnavailable": "Cartella dei mondi non disponibile",
     "logsFolderUnavailable": "Cartella dei log non disponibile",
     "about": "v{version}\nUna simulazione persistente di vita artificiale.\nthehumanbox.com"

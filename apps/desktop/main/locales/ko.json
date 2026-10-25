@@ -33,6 +33,7 @@
   },
   "notify": {
     "screenshotSaved": "스크린샷을 저장했습니다",
+    "screenshotFailed": "스크린샷을 저장하지 못했습니다",
     "worldsFolderUnavailable": "세계 폴더를 사용할 수 없습니다",
     "logsFolderUnavailable": "로그 폴더를 사용할 수 없습니다",
     "about": "v{version}\n지속되는 인공 생명 시뮬레이션입니다.\nthehumanbox.com"

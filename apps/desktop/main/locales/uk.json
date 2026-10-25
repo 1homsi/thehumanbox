@@ -33,6 +33,7 @@
   },
   "notify": {
     "screenshotSaved": "Знімок екрана збережено",
+    "screenshotFailed": "Знімок екрана не збережено",
     "worldsFolderUnavailable": "Папка світів недоступна",
     "logsFolderUnavailable": "Папка журналів недоступна",
     "about": "v{version}\nПостійна симуляція штучного життя.\nthehumanbox.com"

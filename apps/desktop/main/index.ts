@@ -21,7 +21,7 @@ import {
   shouldShowLoadError,
 } from "./navigation-guard";
 import { sanitizeWindowState, type WindowState } from "./window-state";
-import { atomicReplaceFile } from "./world-safety";
+import { atomicReplaceFile, atomicWriteNewFile } from "./world-safety";
 import { appVersionArgument } from "./app-version-arg";
 import { loginItemSettings, shouldStartHidden } from "./login-launch";
 import { appIconPath } from "./app-icon";
@@ -510,14 +510,7 @@ function buildMenu(): void {
         {
           label: t("menu.screenshot"),
           accelerator: isMac ? "Cmd+Shift+S" : "Ctrl+Shift+S",
-          click: () => {
-            void captureScreenshot().then((fp) => {
-              if (fp) {
-                notifyMilestone(t("notify.screenshotSaved"), fp);
-                shell.showItemInFolder(fp);
-              }
-            });
-          },
+          click: () => takeScreenshotForPlayer(),
         },
       ],
     },
@@ -583,13 +576,7 @@ function buildTray(): void {
           { type: "separator" },
           {
             label: t("tray.takeScreenshot"),
-            click: () =>
-              void captureScreenshot().then((fp) => {
-                if (fp) {
-                  notifyMilestone(t("notify.screenshotSaved"), fp);
-                  shell.showItemInFolder(fp);
-                }
-              }),
+            click: () => takeScreenshotForPlayer(),
           },
           {
             label: t("tray.openWorldsFolder"),
@@ -739,20 +726,41 @@ function applyAutoLaunch(): void {
   app.setLoginItemSettings(loginItemSettings(s.autoLaunch, s.startMinimized));
 }
 
-async function captureScreenshot(): Promise<string | null> {
-  if (!mainWindow) return null;
-  try {
-    const img = await mainWindow.webContents.capturePage();
-    const root = path.join(app.getPath("pictures"), "TheHumanBox");
-    fs.mkdirSync(root, { recursive: true });
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const fp = path.join(root, `thb-${stamp}.png`);
-    fs.writeFileSync(fp, img.toPNG());
-    return fp;
-  } catch (e) {
-    console.warn("[main] capturePage failed:", e);
-    return null;
+// Rejects with the reason when nothing was saved. The menu, tray and renderer
+// all report that rejection to the player.
+async function captureScreenshot(): Promise<string> {
+  if (!mainWindow) throw new Error("the game window is not open");
+  const img = await mainWindow.webContents.capturePage();
+  // A hidden window (tray mode) captures as an empty image. Writing that would
+  // leave an empty PNG that is reported as a screenshot.
+  if (img.isEmpty()) {
+    throw new Error("the window has nothing to capture; show it and try again");
   }
+  const root = path.join(app.getPath("pictures"), "TheHumanBox");
+  fs.mkdirSync(root, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const fp = path.join(root, `thb-${stamp}.png`);
+  // Written under a temporary name and renamed, so a failed write cannot leave
+  // a partial PNG at the reported path.
+  atomicWriteNewFile(fp, img.toPNG());
+  return fp;
+}
+
+// A screenshot from the View menu or the tray: the player hears either way.
+function takeScreenshotForPlayer(): void {
+  captureScreenshot().then(
+    (fp) => {
+      notifyMilestone(t("notify.screenshotSaved"), fp);
+      shell.showItemInFolder(fp);
+    },
+    (error: unknown) => {
+      console.warn("[main] screenshot failed:", error);
+      notifyMilestone(
+        t("notify.screenshotFailed"),
+        error instanceof Error ? error.message : String(error),
+      );
+    },
+  );
 }
 
 // The shell speaks the saved language from the first menu on; with nothing
@@ -802,12 +810,11 @@ function registerAppIpcHandlers(): void {
 
   ipcMain.handle("app:trayToggle", () => toggleWindow());
 
+  // A failed capture rejects, and the renderer shows the reason.
   ipcMain.handle("app:screenshot", async () => {
     const fp = await captureScreenshot();
-    if (fp) {
-      notifyMilestone(t("notify.screenshotSaved"), fp);
-      shell.showItemInFolder(fp);
-    }
+    notifyMilestone(t("notify.screenshotSaved"), fp);
+    shell.showItemInFolder(fp);
     return fp;
   });
 
