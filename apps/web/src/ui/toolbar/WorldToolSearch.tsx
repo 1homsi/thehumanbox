@@ -113,6 +113,8 @@ export function WorldToolSearch({
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
+          // An Enter that commits a composed word (Japanese, Chinese, Korean input) is not a pick.
+          if (e.nativeEvent.isComposing || e.keyCode === 229) return
           if (e.key === 'Enter' && query.trim() && results.length === 1) {
             e.preventDefault()
             pick(results[0].tool)

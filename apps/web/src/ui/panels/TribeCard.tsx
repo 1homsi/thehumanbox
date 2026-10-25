@@ -103,6 +103,8 @@ function TribeName({
       onBlur={() => setEditing(null)}
       onKeyDown={(e) => {
         e.stopPropagation()
+        // Enter and Escape that end an IME composition finish the word, not the name.
+        if (e.nativeEvent.isComposing || e.keyCode === 229) return
         if (e.key === 'Enter') {
           const next = editing.trim()
           if (next && next !== name) onRename(lineage, next)

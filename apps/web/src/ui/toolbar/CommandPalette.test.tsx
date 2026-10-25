@@ -37,6 +37,17 @@ function mount() {
 const key = (init: KeyboardEventInit) =>
   act(() => void document.dispatchEvent(new KeyboardEvent('keydown', init)))
 
+describe('CommandPalette while an IME composes', () => {
+  it('an Enter or Escape that ends a composed word leaves the palette and its command alone', () => {
+    mount()
+    key({ key: 'k', ctrlKey: true })
+    key({ key: 'Enter', isComposing: true })
+    expect(document.querySelector('.cmd-input')).not.toBeNull()
+    key({ key: 'Escape', isComposing: true })
+    expect(document.querySelector('.cmd-input')).not.toBeNull()
+  })
+})
+
 describe('CommandPalette focus', () => {
   it('returns focus to the map when it closes, so the map keys keep working', () => {
     const map = mount()

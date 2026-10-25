@@ -154,6 +154,8 @@ export function CommandPalette() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
+      // Enter and Escape that end an IME composition belong to the input method, not to the palette.
+      if (e.isComposing || e.keyCode === 229) return
       const isOpenShortcut = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'
       if (isOpenShortcut) {
         e.preventDefault()
