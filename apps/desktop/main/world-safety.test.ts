@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
 import {
   existsSync,
   mkdtempSync,
@@ -90,17 +91,61 @@ test("validates the required native world-save shape", () => {
   assert.equal(result.tickText, "123");
 });
 
-test("validates a save in a worker without blocking the main event loop", async () => {
-  const bytes = validSave();
-  let settled = false;
-  const validation = validateWorldSaveBytesInWorker(bytes).then((result) => {
-    settled = true;
-    return result;
-  });
+// save-validation.ts reads Worker from the worker_threads module at call time,
+// so a test can stand in for it here without changing production code.
+const workerThreads = require("node:worker_threads") as { Worker: unknown };
 
-  await new Promise<void>((resolve) => setImmediate(resolve));
-  assert.equal(settled, false);
-  const result = await validation;
+test("validation runs in the validation worker and reports only through its message", async () => {
+  // The old version of this test asserted that the promise was still pending
+  // after one setImmediate. Whether a real worker has replied by then depends on
+  // thread start-up time, so it failed at random. Here the reply is held until
+  // the test sends it, so the outcome does not depend on timing.
+  const bytes = validSave();
+  const RealWorker = workerThreads.Worker;
+  const started: Array<{ file: string; data: unknown }> = [];
+  const holder: { worker?: EventEmitter } = {};
+  class HeldWorker extends EventEmitter {
+    constructor(file: string, options: { workerData: unknown }) {
+      super();
+      started.push({ file, data: options.workerData });
+      holder.worker = this;
+    }
+  }
+  workerThreads.Worker = HeldWorker;
+  try {
+    let settled = false;
+    const validation = validateWorldSaveBytesInWorker(bytes).then((result) => {
+      settled = true;
+      return result;
+    });
+    assert.equal(started.length, 1);
+    assert.ok(started[0].file.endsWith("save-validation-worker.js"), started[0].file);
+    assert.equal(started[0].data, bytes);
+
+    for (let turn = 0; turn < 10; turn += 1) {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    }
+    assert.equal(settled, false, "the result must not appear before the worker replies");
+
+    holder.worker!.emit("message", {
+      version: 6,
+      tick: 123,
+      seed: 99,
+      tickText: "123",
+      seedText: "99",
+    });
+    const result = await validation;
+    assert.equal(result.tickText, "123");
+    assert.equal(result.seedText, "99");
+    assert.deepEqual(result.bytes, bytes);
+  } finally {
+    workerThreads.Worker = RealWorker;
+  }
+});
+
+test("a real validation worker returns the save's fields and bytes", async () => {
+  const bytes = validSave();
+  const result = await validateWorldSaveBytesInWorker(bytes);
   assert.equal(result.tickText, "123");
   assert.equal(result.seedText, "99");
   assert.deepEqual(result.bytes, bytes);
