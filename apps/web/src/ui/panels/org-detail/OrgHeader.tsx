@@ -5,6 +5,7 @@ import { Tooltip } from '../../toolbar/Tooltip'
 import { DAY_LENGTH, fmt } from './format'
 import { HomeButton } from './HomeButton'
 import type { OrganismState } from '../../../shared/types'
+import { shownGeneration } from '../../../game/model/generations'
 import { formatNumber, t } from '../../../i18n'
 
 export function OrgHeader({
@@ -87,7 +88,7 @@ export function OrgHeader({
       </div>
 
       <div className="org-detail-sub">
-        {t('person.header.gen', { generation: formatNumber(org.generation) })} ·{' '}
+        {t('person.header.gen', { generation: formatNumber(shownGeneration(org.generation)) })} ·{' '}
         {ageInDays > 0 ? t('person.header.ageDays', { count: ageInDays }) : t('person.header.newborn')}
         {' · '}
         {tn(org.lineage_id)}

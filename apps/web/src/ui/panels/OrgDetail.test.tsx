@@ -64,4 +64,15 @@ describe('OrgDetail', () => {
     act(() => root.render(panel(org('b'))))
     expect(document.querySelector('.life-modal')).toBeNull()
   })
+
+  it('shows the founders of a tribe as generation 1, as the card does', () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    roots.push(root)
+    act(() => root.render(panel({ ...org('a'), generation: 0 } as OrganismState)))
+    const text = host.textContent ?? ''
+    expect(text).toContain('gen 1')
+    expect(text).not.toContain('gen 0')
+  })
 })

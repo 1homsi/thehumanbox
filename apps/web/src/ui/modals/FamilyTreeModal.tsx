@@ -289,7 +289,11 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, 
     ctx.fillStyle = '#3a3028'
     ctx.textAlign = 'left'
     for (const lbl of generationLabels) {
-      ctx.fillText(t('dialogs.tree.generation', { gen: formatNumber(lbl.gen) }), lbl.x, lbl.y - NODE_R - 6)
+      ctx.fillText(
+        t('dialogs.tree.generation', { gen: formatNumber(shownGeneration(lbl.gen)) }),
+        lbl.x,
+        lbl.y - NODE_R - 6,
+      )
     }
 
     ctx.lineWidth = 1.2
@@ -421,7 +425,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, 
         ctx.fillText(
           t('dialogs.tree.ageGen', {
             days: formatNumber(Math.floor(org.age / DAY_LENGTH)),
-            gen: formatNumber(org.generation),
+            gen: formatNumber(shownGeneration(org.generation)),
           }),
           x,
           y + NODE_R + 24,

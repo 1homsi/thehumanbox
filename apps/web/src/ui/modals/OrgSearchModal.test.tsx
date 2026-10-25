@@ -65,4 +65,11 @@ describe('OrgSearchModal', () => {
     act(() => el('.org-search-entry').click())
     expect(list.scrollTop).toBe(240)
   })
+
+  it('shows a founder as generation 1, as the card does', () => {
+    render([{ ...organism('a'), generation: 0 } as OrganismState])
+    const meta = el('.org-search-meta').textContent ?? ''
+    expect(meta).toContain('g1')
+    expect(meta).not.toContain('g0')
+  })
 })

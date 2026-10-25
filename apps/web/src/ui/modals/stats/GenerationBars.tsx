@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { generationCounts } from '../../../game/model/generation-counts'
 import type { OrganismState } from '../../../shared/types'
+import { shownGeneration } from '../../../game/model/generations'
 import { formatNumber, t } from '../../../i18n'
 
 /** How many living people there are in each generation, as bars. */
@@ -19,7 +20,7 @@ export function GenerationBars({ organisms }: { organisms: OrganismState[] }) {
       {rows.map((r) => (
         <div key={r.generation} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
           <span style={{ width: 52, color: '#888' }}>
-            {t('dialogs.stats.gen', { gen: formatNumber(r.generation) })}
+            {t('dialogs.stats.gen', { gen: formatNumber(shownGeneration(r.generation)) })}
           </span>
           <span style={{ flex: 1, height: 8, background: '#1a1a1a', borderRadius: 2, overflow: 'hidden' }}>
             <span

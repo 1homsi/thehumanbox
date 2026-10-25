@@ -5,6 +5,7 @@ import type { OrganismState } from '../../shared/types'
 import { lineageColor, cbColor } from '../../shared/constants'
 import { OrgDetail } from '../panels/OrgDetail'
 import { Modal } from './Modal'
+import { shownGeneration } from '../../game/model/generations'
 import { formatNumber, t, type MessageKey } from '../../i18n'
 
 const DAY_LENGTH = 600
@@ -283,7 +284,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                   </span>
                   <span className="org-search-meta" style={{ color: 'var(--dialog-muted)' }}>
                     {t('dialogs.orgSearch.genAge', {
-                      gen: formatNumber(org.generation),
+                      gen: formatNumber(shownGeneration(org.generation)),
                       days: formatNumber(Math.floor(org.age / DAY_LENGTH)),
                     })}
                   </span>

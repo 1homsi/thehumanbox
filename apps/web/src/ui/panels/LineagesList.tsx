@@ -12,6 +12,7 @@ import {
   type Eldest,
 } from '../../game/model/tribe-eldest'
 import type { PerilCause } from '../../shared/types'
+import { shownGeneration } from '../../game/model/generations'
 import { formatNumber, t } from '../../i18n'
 
 interface LineageRow {
@@ -156,8 +157,11 @@ function LineagesListImpl() {
               )}
               <span className="lineage-gen">
                 {r.maxGen > r.minGen
-                  ? t('panels.lineages.generationRange', { from: r.minGen, to: r.maxGen })
-                  : t('panels.lineages.generation', { from: r.minGen })}
+                  ? t('panels.lineages.generationRange', {
+                      from: shownGeneration(r.minGen),
+                      to: shownGeneration(r.maxGen),
+                    })
+                  : t('panels.lineages.generation', { from: shownGeneration(r.minGen) })}
               </span>
             </button>
           )
