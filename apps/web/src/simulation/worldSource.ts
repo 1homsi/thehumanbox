@@ -162,7 +162,7 @@ export function requestOwnWorldReset(): boolean {
   return reloadAppSafely({
     operation: 'reset',
     onFailure: () => restoreLocalWorldRequestSnapshot(snapshot),
-    failureMessage: 'could not checkpoint the current world; reset was cancelled safely',
+    failureMessage: t('dialogs.worldNotice.checkpointReset'),
     requireLocalWorld: true,
     unavailableMessage: t('dialogs.worldNotice.loadingReset'),
   })
@@ -205,7 +205,7 @@ export function requestOwnWorldRecovery(recoveryId: string): boolean {
   return reloadAppSafely({
     operation: 'recovery',
     onFailure: () => restoreLocalWorldRequestSnapshot(snapshot),
-    failureMessage: 'could not checkpoint the current world; restore was cancelled safely',
+    failureMessage: t('dialogs.worldNotice.checkpointRestore'),
     requireLocalWorld: true,
     unavailableMessage: t('dialogs.worldNotice.loadingRestore'),
   })

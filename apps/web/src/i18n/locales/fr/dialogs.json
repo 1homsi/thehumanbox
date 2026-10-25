@@ -564,6 +564,11 @@
     "notReset": "Le monde actuel n’a pas été réinitialisé.",
     "notRecovered": "La récupération n’a pas été lancée.",
     "badSaveTitle": "Impossible de restaurer cette sauvegarde",
-    "badSaveBody": "Cette sauvegarde de récupération n’est pas valide pour ce monde local."
+    "badSaveBody": "Cette sauvegarde de récupération n’est pas valide pour ce monde local.",
+    "checkpointReset": "le monde actuel n’a pas pu être sauvegardé ; la réinitialisation a été annulée sans risque",
+    "checkpointRestore": "le monde actuel n’a pas pu être sauvegardé ; la restauration a été annulée sans risque",
+    "checkpointPerfMode": "le monde actuel n’a pas pu être sauvegardé ; le rechargement du mode performance a été annulé sans risque",
+    "checkpointRenderer": "le monde actuel n’a pas pu être sauvegardé ; la mise à jour du moteur de rendu a été annulée sans risque",
+    "checkpointRefresh": "le monde actuel n’a pas pu être sauvegardé ; l’actualisation a été annulée sans risque"
   }
 }

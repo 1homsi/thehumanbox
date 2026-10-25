@@ -564,6 +564,11 @@
     "notReset": "Il mondo attuale non è stato reimpostato.",
     "notRecovered": "Il ripristino non è stato avviato.",
     "badSaveTitle": "Impossibile ripristinare quel salvataggio",
-    "badSaveBody": "Quel salvataggio di ripristino non è valido per questo mondo locale."
+    "badSaveBody": "Quel salvataggio di ripristino non è valido per questo mondo locale.",
+    "checkpointReset": "impossibile salvare il mondo attuale; la reimpostazione è stata annullata in sicurezza",
+    "checkpointRestore": "impossibile salvare il mondo attuale; il ripristino è stato annullato in sicurezza",
+    "checkpointPerfMode": "impossibile salvare il mondo attuale; l’aggiornamento della modalità prestazioni è stato annullato in sicurezza",
+    "checkpointRenderer": "impossibile salvare il mondo attuale; l’aggiornamento del renderer è stato annullato in sicurezza",
+    "checkpointRefresh": "impossibile salvare il mondo attuale; l’aggiornamento è stato annullato in sicurezza"
   }
 }

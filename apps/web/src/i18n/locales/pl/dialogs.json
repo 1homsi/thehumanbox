@@ -580,6 +580,11 @@
     "notReset": "Bieżący świat nie został zresetowany.",
     "notRecovered": "Przywracanie nie zostało rozpoczęte.",
     "badSaveTitle": "Nie można przywrócić tego zapisu",
-    "badSaveBody": "Ten zapis awaryjny nie pasuje do tego lokalnego świata."
+    "badSaveBody": "Ten zapis awaryjny nie pasuje do tego lokalnego świata.",
+    "checkpointReset": "nie udało się zapisać bieżącego świata; resetowanie zostało bezpiecznie anulowane",
+    "checkpointRestore": "nie udało się zapisać bieżącego świata; przywracanie zostało bezpiecznie anulowane",
+    "checkpointPerfMode": "nie udało się zapisać bieżącego świata; odświeżenie trybu wydajności zostało bezpiecznie anulowane",
+    "checkpointRenderer": "nie udało się zapisać bieżącego świata; aktualizacja silnika renderowania została bezpiecznie anulowana",
+    "checkpointRefresh": "nie udało się zapisać bieżącego świata; odświeżenie zostało bezpiecznie anulowane"
   }
 }

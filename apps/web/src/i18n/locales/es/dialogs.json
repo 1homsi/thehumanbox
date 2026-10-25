@@ -564,6 +564,11 @@
     "notReset": "El mundo actual no se restableció.",
     "notRecovered": "La recuperación no se inició.",
     "badSaveTitle": "No se puede restaurar ese guardado",
-    "badSaveBody": "Ese guardado de recuperación no es válido para este mundo local."
+    "badSaveBody": "Ese guardado de recuperación no es válido para este mundo local.",
+    "checkpointReset": "no se pudo guardar el mundo actual; el reinicio se canceló de forma segura",
+    "checkpointRestore": "no se pudo guardar el mundo actual; la restauración se canceló de forma segura",
+    "checkpointPerfMode": "no se pudo guardar el mundo actual; la recarga del modo de rendimiento se canceló de forma segura",
+    "checkpointRenderer": "no se pudo guardar el mundo actual; la actualización del renderizador se canceló de forma segura",
+    "checkpointRefresh": "no se pudo guardar el mundo actual; la actualización se canceló de forma segura"
   }
 }

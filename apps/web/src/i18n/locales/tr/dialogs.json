@@ -564,6 +564,11 @@
     "notReset": "Mevcut dünya sıfırlanmadı.",
     "notRecovered": "Kurtarma başlatılmadı.",
     "badSaveTitle": "Bu kayıt geri yüklenemiyor",
-    "badSaveBody": "Bu kurtarma kaydı bu yerel dünya için geçerli değil."
+    "badSaveBody": "Bu kurtarma kaydı bu yerel dünya için geçerli değil.",
+    "checkpointReset": "mevcut dünya kaydedilemedi; sıfırlama güvenli biçimde iptal edildi",
+    "checkpointRestore": "mevcut dünya kaydedilemedi; geri yükleme güvenli biçimde iptal edildi",
+    "checkpointPerfMode": "mevcut dünya kaydedilemedi; performans modu yenilemesi güvenli biçimde iptal edildi",
+    "checkpointRenderer": "mevcut dünya kaydedilemedi; oluşturucu güncellemesi güvenli biçimde iptal edildi",
+    "checkpointRefresh": "mevcut dünya kaydedilemedi; yenileme güvenli biçimde iptal edildi"
   }
 }

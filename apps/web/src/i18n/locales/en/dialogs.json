@@ -603,6 +603,11 @@
     "notReset": "The current world was not reset.",
     "notRecovered": "The recovery was not started.",
     "badSaveTitle": "Can’t restore that save",
-    "badSaveBody": "That recovery save is not valid for this local world."
+    "badSaveBody": "That recovery save is not valid for this local world.",
+    "checkpointReset": "could not checkpoint the current world; reset was cancelled safely",
+    "checkpointRestore": "could not checkpoint the current world; restore was cancelled safely",
+    "checkpointPerfMode": "could not checkpoint the current world; performance-mode refresh was cancelled safely",
+    "checkpointRenderer": "could not checkpoint the current world; renderer update was cancelled safely",
+    "checkpointRefresh": "could not checkpoint the current world; refresh was cancelled safely"
   }
 }

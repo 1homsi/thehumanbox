@@ -564,6 +564,11 @@
     "notReset": "Die aktuelle Welt wurde nicht zurückgesetzt.",
     "notRecovered": "Die Wiederherstellung wurde nicht gestartet.",
     "badSaveTitle": "Dieser Spielstand kann nicht wiederhergestellt werden",
-    "badSaveBody": "Dieser Wiederherstellungsstand passt nicht zu dieser lokalen Welt."
+    "badSaveBody": "Dieser Wiederherstellungsstand passt nicht zu dieser lokalen Welt.",
+    "checkpointReset": "Die aktuelle Welt konnte nicht gesichert werden; das Zurücksetzen wurde sicher abgebrochen",
+    "checkpointRestore": "Die aktuelle Welt konnte nicht gesichert werden; die Wiederherstellung wurde sicher abgebrochen",
+    "checkpointPerfMode": "Die aktuelle Welt konnte nicht gesichert werden; die Aktualisierung für den Leistungsmodus wurde sicher abgebrochen",
+    "checkpointRenderer": "Die aktuelle Welt konnte nicht gesichert werden; die Aktualisierung des Renderers wurde sicher abgebrochen",
+    "checkpointRefresh": "Die aktuelle Welt konnte nicht gesichert werden; die Aktualisierung wurde sicher abgebrochen"
   }
 }
