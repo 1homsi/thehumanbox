@@ -666,6 +666,42 @@ mod tests {
     }
 
     #[test]
+    fn a_home_boxed_in_by_huts_is_reached_at_its_doorstep() {
+        let mut grid = WorldGrid::new(1);
+        for y in 80..120 {
+            for x in 80..120 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+        // Huts all round the home spot, one tile out: two tiles away is as near as anyone gets.
+        for y in 99..=101 {
+            for x in 99..=101 {
+                if (x, y) != (100, 100) {
+                    grid.set(x, y, Tile::Hut);
+                }
+            }
+        }
+        let steps = plan_route(&grid, (103, 100), (100, 100)).expect("a route to the doorstep");
+        let &(ex, ey) = steps.last().unwrap();
+        assert_eq!(
+            (100 - ex).abs().max((100 - ey).abs()),
+            2,
+            "ends on the doorstep: {steps:?}"
+        );
+        // A route that gains as little but ends far from its goal is still refused.
+        let mut far = walled();
+        for y in 118..=132 {
+            for x in 118..=132 {
+                if y == 118 || y == 132 || x == 118 || x == 132 {
+                    far.set(x, y, Tile::Rock);
+                }
+            }
+        }
+        let doorstep = plan_route(&far, (100, 100), (125, 125)).unwrap();
+        assert!(plan_route(&far, *doorstep.last().unwrap(), (125, 125)).is_none());
+    }
+
+    #[test]
     fn the_cache_follows_its_waypoints_in_order() {
         let grid = walled();
         let steps = plan_route(&grid, (100, 100), (125, 100)).unwrap();
