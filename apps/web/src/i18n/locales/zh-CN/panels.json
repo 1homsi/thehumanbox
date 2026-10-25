@@ -336,6 +336,21 @@
       "worshipper": "信徒",
       "brewer": "酿酒人",
       "priest": "祭司"
+    },
+    "tavern": {
+      "title": "{name}的酒馆",
+      "nearbyCount": "附近{count}人",
+      "time": {
+        "busyLunch": "午餐时人声鼎沸",
+        "quietDay": "白天安静的时段",
+        "rowdyEvening": "喧闹的傍晚",
+        "lateNight": "深夜的常客"
+      },
+      "brewers": {
+        "one": "{count} 名酿酒人",
+        "other": "{count} 名酿酒人"
+      },
+      "shelf": "架上 {count}"
     }
   }
 }

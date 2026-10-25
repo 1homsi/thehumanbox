@@ -336,6 +336,21 @@
       "worshipper": "信者",
       "brewer": "醸造家",
       "priest": "司祭"
+    },
+    "tavern": {
+      "title": "{name}の酒場",
+      "nearbyCount": "近くに{count}人",
+      "time": {
+        "busyLunch": "昼どきの混雑",
+        "quietDay": "静かな昼の時間",
+        "rowdyEvening": "騒がしい夕方",
+        "lateNight": "夜更けの常連"
+      },
+      "brewers": {
+        "one": "醸造家{count}人",
+        "other": "醸造家{count}人"
+      },
+      "shelf": "棚に{count}"
     }
   }
 }

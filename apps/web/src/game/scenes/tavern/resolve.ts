@@ -1,3 +1,4 @@
+import { formatNumber, t } from '../../../i18n'
 import type { SceneContext, SceneFixture, SceneId, SceneOccupant } from '../core/types'
 import type { WorldState } from '../../../shared/types'
 import { getBuildingState } from '../../model/building-state'
@@ -94,16 +95,17 @@ export function resolveTavernScene(world: WorldState, scene: SceneId): SceneCont
   ).length
   const timeOfDay = world.is_day
     ? inside.length > 3
-      ? 'busy lunch crowd'
-      : 'quiet daytime hours'
+      ? t('panels.scene.tavern.time.busyLunch')
+      : t('panels.scene.tavern.time.quietDay')
     : inside.length > 3
-      ? 'rowdy evening'
-      : 'late-night regulars'
+      ? t('panels.scene.tavern.time.rowdyEvening')
+      : t('panels.scene.tavern.time.lateNight')
   const subtitle = [
-    `${inside.length} drinking · ${away.length} nearby`,
+    t('panels.scene.drinkingCount', { count: formatNumber(inside.length) }),
+    t('panels.scene.tavern.nearbyCount', { count: formatNumber(away.length) }),
     timeOfDay,
-    brewerCount > 0 ? `${brewerCount} brewer${brewerCount === 1 ? '' : 's'}` : null,
-    totalSpirit > 0 ? `${totalSpirit} on the shelf` : null,
+    brewerCount > 0 ? t('panels.scene.tavern.brewers', { count: formatNumber(brewerCount) }) : null,
+    totalSpirit > 0 ? t('panels.scene.tavern.shelf', { count: formatNumber(totalSpirit) }) : null,
   ]
     .filter(Boolean)
     .join(' · ')
@@ -111,7 +113,7 @@ export function resolveTavernScene(world: WorldState, scene: SceneId): SceneCont
   return {
     scene,
     world,
-    title: `${lineageName} tavern`,
+    title: t('panels.scene.tavern.title', { name: lineageName }),
     subtitle,
     isDay: !!world.is_day,
     occupants: inside.slice(0, 8),

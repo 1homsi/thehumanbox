@@ -349,6 +349,21 @@
       "worshipper": "worshipper",
       "brewer": "brewer",
       "priest": "priest"
+    },
+    "tavern": {
+      "title": "{name} tavern",
+      "nearbyCount": "{count} nearby",
+      "time": {
+        "busyLunch": "busy lunch crowd",
+        "quietDay": "quiet daytime hours",
+        "rowdyEvening": "rowdy evening",
+        "lateNight": "late-night regulars"
+      },
+      "brewers": {
+        "one": "{count} brewer",
+        "other": "{count} brewers"
+      },
+      "shelf": "{count} on the shelf"
     }
   }
 }

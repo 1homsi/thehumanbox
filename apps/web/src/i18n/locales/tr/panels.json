@@ -343,6 +343,21 @@
       "worshipper": "ibadet eden",
       "brewer": "bira yapıcı",
       "priest": "rahip"
+    },
+    "tavern": {
+      "title": "{name} meyhanesi",
+      "nearbyCount": "{count} yakında",
+      "time": {
+        "busyLunch": "öğle kalabalığı",
+        "quietDay": "sakin gündüz saatleri",
+        "rowdyEvening": "gürültülü akşam",
+        "lateNight": "gece müdavimleri"
+      },
+      "brewers": {
+        "one": "{count} bira yapıcı",
+        "other": "{count} bira yapıcı"
+      },
+      "shelf": "rafta {count}"
     }
   }
 }
