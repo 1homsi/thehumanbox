@@ -1,6 +1,23 @@
 import { t } from '../../../i18n'
 import type { WorldState } from '../../../shared/types'
 
+/**
+ * The stage of life the simulation puts a person in. It counts a lifespan (`max_age`) in shares: under
+ * 35% is young (infant, child or teen), 35% to 75% an adult, and 75% on an elder.
+ */
+function lifeStage(
+  o: Pick<WorldState['organisms'][number], 'age' | 'max_age' | 'is_elder'>,
+): 'young' | 'adult' | 'elder' {
+  if (!(o.max_age > 0)) {
+    // A frame without lifespans cannot place anyone by share; fall back to the tribe's eldest and to age in ticks.
+    return o.is_elder ? 'elder' : o.age < 900 ? 'young' : 'adult'
+  }
+  const share = o.age / o.max_age
+  if (share < 0.35) return 'young'
+  if (share < 0.75) return 'adult'
+  return 'elder'
+}
+
 export function AgePyramid({ organisms }: { organisms: WorldState['organisms'] }) {
   let cm = 0,
     cf = 0,
@@ -10,11 +27,11 @@ export function AgePyramid({ organisms }: { organisms: WorldState['organisms'] }
     ef = 0
   for (const o of organisms) {
     const isMale = o.sex === 'male'
-    const isElder = o.is_elder || o.age >= 3600
-    if (isElder) {
+    const stage = lifeStage(o)
+    if (stage === 'elder') {
       if (isMale) em++
       else ef++
-    } else if (o.age < 900) {
+    } else if (stage === 'young') {
       if (isMale) cm++
       else cf++
     } else {
