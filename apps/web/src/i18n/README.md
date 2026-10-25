@@ -21,9 +21,27 @@ one import line in `locales/en/index.ts`.
 
 ## What is translated
 
-Menus, buttons, tooltips, settings and dialogs. Names, the people's invented
-languages and everything the simulation writes (thoughts, chronicles, event
-text) stay as they are.
+- Menus, buttons, tooltips, settings, dialogs, the save line and the world
+  notices.
+- Text the game writes for the screens it draws: the room titles, subtitles
+  and activity lines of the home, tavern, temple, village and workshop
+  interiors, and the roles on their chips; the sandbox tool messages.
+- Words for ids the simulation sends, which the game shows as words: discovery
+  names, building kinds, eras, forms of government, trade goods, treaty kinds,
+  relation statuses, life stages and callings. The tables live next to the
+  code that uses them (`ui/sim-words.ts`, `shared/era-words.ts`,
+  `shared/government-words.ts`, `game/scenes/shared/occupant-words.ts`).
+
+These stay as they are: names of people, tribes, places and faiths; the
+invented languages; and the simulation's own free text (thoughts, chronicles,
+event log lines).
+
+## Simulation ids
+
+When the simulation sends an id with no translation yet, the game shows the id
+with its underscores turned into spaces, so nothing breaks. To translate a new
+id, add its key to `locales/en` and to every other language, and add the id to
+the table listed above that the screen reads.
 
 ## In code
 
