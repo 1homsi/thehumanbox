@@ -14,5 +14,8 @@
   "fitWorld": "显示整个世界",
   "centreOnSelected": "移至选中对象",
   "worldMapLabel": "可交互的世界地图",
-  "terrainLabel": "世界地形与居民"
+  "terrainLabel": "世界地形与居民",
+  "boundaryTitle": "世界卡住了",
+  "boundaryBody": "渲染过程中出现了意外。重新加载即可重新连接到当前的模拟。",
+  "boundaryReload": "重新加载"
 }

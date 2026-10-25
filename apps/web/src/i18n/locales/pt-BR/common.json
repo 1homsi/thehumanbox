@@ -14,5 +14,8 @@
   "fitWorld": "Mostrar o mundo todo",
   "centreOnSelected": "Centralizar no selecionado",
   "worldMapLabel": "Mapa-múndi interativo",
-  "terrainLabel": "Terreno do mundo e habitantes"
+  "terrainLabel": "Terreno do mundo e habitantes",
+  "boundaryTitle": "O mundo engasgou",
+  "boundaryBody": "Algo inesperado aconteceu na renderização. Recarregue a página para se reconectar à simulação atual.",
+  "boundaryReload": "Recarregar"
 }

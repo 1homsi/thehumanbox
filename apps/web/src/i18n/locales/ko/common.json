@@ -14,5 +14,8 @@
   "fitWorld": "전체 세계 보기",
   "centreOnSelected": "선택한 대상으로 이동",
   "worldMapLabel": "조작 가능한 세계 지도",
-  "terrainLabel": "세계의 지형과 주민"
+  "terrainLabel": "세계의 지형과 주민",
+  "boundaryTitle": "세계가 멈칫했습니다",
+  "boundaryBody": "화면을 그리는 중 예상치 못한 문제가 생겼습니다. 다시 불러오면 지금의 시뮬레이션에 다시 연결됩니다.",
+  "boundaryReload": "새로고침"
 }

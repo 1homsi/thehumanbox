@@ -14,5 +14,8 @@
   "fitWorld": "Pokaż cały świat",
   "centreOnSelected": "Wyśrodkuj na wybranym",
   "worldMapLabel": "Interaktywna mapa świata",
-  "terrainLabel": "Teren świata i mieszkańcy"
+  "terrainLabel": "Teren świata i mieszkańcy",
+  "boundaryTitle": "Świat się zaciął",
+  "boundaryBody": "W renderowaniu wydarzyło się coś nieoczekiwanego. Przeładuj stronę, aby połączyć się ponownie z bieżącą symulacją.",
+  "boundaryReload": "Przeładuj"
 }

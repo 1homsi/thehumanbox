@@ -14,5 +14,8 @@
   "fitWorld": "Mostra tutto il mondo",
   "centreOnSelected": "Centra sulla selezione",
   "worldMapLabel": "Mappa del mondo interattiva",
-  "terrainLabel": "Terreno del mondo e abitanti"
+  "terrainLabel": "Terreno del mondo e abitanti",
+  "boundaryTitle": "Il mondo ha avuto un intoppo",
+  "boundaryBody": "È successo qualcosa di inatteso nel motore grafico. Ricarica per riconnetterti alla simulazione in corso.",
+  "boundaryReload": "Ricarica"
 }

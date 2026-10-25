@@ -14,5 +14,8 @@
   "fitWorld": "Ganze Welt zeigen",
   "centreOnSelected": "Auf Auswahl zentrieren",
   "worldMapLabel": "Interaktive Weltkarte",
-  "terrainLabel": "Weltgelände und Bewohner"
+  "terrainLabel": "Weltgelände und Bewohner",
+  "boundaryTitle": "Die Welt hat gestockt",
+  "boundaryBody": "In der Darstellung ist etwas Unerwartetes passiert. Lade neu, um dich wieder mit der laufenden Simulation zu verbinden.",
+  "boundaryReload": "Neu laden"
 }
