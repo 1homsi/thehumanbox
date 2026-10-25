@@ -109,3 +109,47 @@ describe('the find and save keys', () => {
     expect(worldActionForKey({ key: '/', metaKey: true, target: null })).toBeNull()
   })
 })
+
+describe('the ⋯ menu and Escape', () => {
+  it('an Escape from inside the menu gives focus back to the ⋯ button', () => {
+    // The header's ⋯ button, with the attributes AppHeader gives it while the menu is open.
+    const trigger = document.createElement('button')
+    trigger.className = 'hdr-btn active'
+    trigger.dataset.tour = 'more-btn'
+    trigger.setAttribute('aria-expanded', 'true')
+    document.body.append(trigger)
+    try {
+      render({ findTool: vi.fn(), save: save() })
+      item('Find a tool')!.focus()
+      act(() => {
+        item('Find a tool')!.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+        )
+      })
+      expect(document.activeElement).toBe(trigger)
+    } finally {
+      trigger.remove()
+    }
+  })
+
+  it('an Escape closes the menu and does not also disarm the held tool', () => {
+    // The app's own Escape handler listens on the window and disarms the tool unless something took the key.
+    const disarm = vi.fn()
+    const app = (event: KeyboardEvent) => {
+      if (!event.defaultPrevented) disarm()
+    }
+    window.addEventListener('keydown', app)
+    try {
+      render({ findTool: vi.fn(), save: save() })
+      act(() => {
+        document.body.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+        )
+      })
+      expect(useUIStore.getState().showMore).toBe(false)
+      expect(disarm).not.toHaveBeenCalled()
+    } finally {
+      window.removeEventListener('keydown', app)
+    }
+  })
+})

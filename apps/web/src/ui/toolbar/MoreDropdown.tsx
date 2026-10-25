@@ -1,4 +1,5 @@
 import clsx from 'clsx'
+import { useEffect } from 'react'
 import { useUIStore, useViewFlag } from '../../state/store'
 import { SHORTCUT_HELP } from '../../game/model/shortcuts'
 import { saveMapPicture } from '../../shared/mapPicture'
@@ -47,6 +48,21 @@ export function MoreDropdown({
     useUIStore.setState({ showMore: false })
     onAction?.()
   }
+
+  // Escape closes the menu, as a click elsewhere does, and hands focus back to the ⋯ button: a key pressed
+  // inside the menu would otherwise leave focus on the body, where the map's keys stop working. It is taken on
+  // the document, ahead of the window, where the app's own Escape (which disarms the held tool) listens.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      const trigger = document.querySelector<HTMLElement>('[data-tour="more-btn"][aria-expanded="true"]')
+      useUIStore.setState({ showMore: false })
+      trigger?.focus({ preventScroll: true })
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
 
   const { findTool, save } = worldActions ?? {}
 
