@@ -28,10 +28,32 @@ function finite(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n);
 }
 
-function overlaps(a: Rect, b: Rect): boolean {
-  const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
-  const h = Math.min(a.y + TITLE_BAR_H, b.y + b.height) - Math.max(a.y, b.y);
+/** How much of the window's title-bar strip lies on the display. */
+function titleBarOverlap(win: Rect, area: Rect): { w: number; h: number } {
+  return {
+    w: Math.min(win.x + win.width, area.x + area.width) - Math.max(win.x, area.x),
+    h: Math.min(win.y + TITLE_BAR_H, area.y + area.height) - Math.max(win.y, area.y),
+  };
+}
+
+function overlaps(win: Rect, area: Rect): boolean {
+  const { w, h } = titleBarOverlap(win, area);
   return w >= MIN_VISIBLE_W && h >= TITLE_BAR_H;
+}
+
+/** The display the window's title bar is most on, or undefined when it is on none. */
+function displayFor(win: Rect, areas: Rect[]): Rect | undefined {
+  let best: Rect | undefined;
+  let bestArea = 0;
+  for (const area of areas) {
+    if (!overlaps(win, area)) continue;
+    const { w, h } = titleBarOverlap(win, area);
+    if (w * h > bestArea) {
+      best = area;
+      bestArea = w * h;
+    }
+  }
+  return best;
 }
 
 /**
@@ -55,22 +77,41 @@ export function sanitizeWindowState(
   if (p.alwaysOnTop === true) state.alwaysOnTop = true;
   let x: number | undefined;
   let y: number | undefined;
+  // The display the window returns to. With no position kept it is the largest one.
+  let display: Rect | undefined;
   if (finite(p.x) && finite(p.y)) {
     const savedX = Math.round(p.x);
     const savedY = Math.round(p.y);
-    if (workAreas.length === 0 || workAreas.some((a) => overlaps({ x: savedX, y: savedY, width, height }, a))) {
+    if (workAreas.length === 0) {
       x = savedX;
       y = savedY;
+    } else {
+      // The position is checked at the size it will be shown at, not the saved
+      // one: narrowing a window can push its title bar off the display it started on.
+      const shown = displayFor({ x: savedX, y: savedY, width, height }, workAreas);
+      if (
+        shown &&
+        overlaps(
+          {
+            x: savedX,
+            y: savedY,
+            width: Math.min(width, shown.width),
+            height: Math.min(height, shown.height),
+          },
+          shown,
+        )
+      ) {
+        x = savedX;
+        y = savedY;
+        display = shown;
+      }
     }
   }
   // The size was saved on whatever display the window was on then. Fit it to the
   // display it returns to, or to the largest one when its position was dropped,
   // so a window cannot open larger than the screen it is on. The position is
   // kept as saved: a window partly off an edge is still allowed, as above.
-  const display =
-    (x !== undefined && y !== undefined
-      ? workAreas.find((a) => overlaps({ x, y, width, height }, a))
-      : undefined) ?? largestArea(workAreas);
+  display ??= largestArea(workAreas);
   if (display) {
     state.width = Math.min(width, display.width);
     state.height = Math.min(height, display.height);

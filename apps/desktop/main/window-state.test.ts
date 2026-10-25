@@ -58,6 +58,25 @@ test("a window on a second display is fitted to that display, not the first", ()
   assert.equal(s.height, 800);
 });
 
+test("a window is fitted to the display its title bar is mostly on, not the first one listed", () => {
+  // The title bar is 120px on the primary display and 1400px on the smaller second one.
+  const smallSecond = { x: 1920, y: 0, width: 1280, height: 800 };
+  const s = sanitizeWindowState({ x: 1800, y: 40, width: 2600, height: 1500 }, [primary, smallSecond]);
+  assert.equal(s.x, 1800);
+  assert.equal(s.width, 1280);
+  assert.equal(s.height, 800);
+});
+
+test("a position is checked at the fitted size, so a window narrowed off its display is dropped", () => {
+  // At 2600px wide the title bar reaches 100px onto the display, but the window is
+  // shown at 1920px, which leaves it entirely off screen.
+  const s = sanitizeWindowState({ x: -2500, y: 10, width: 2600, height: 1500 }, [primary]);
+  assert.equal(s.x, undefined);
+  assert.equal(s.y, undefined);
+  assert.equal(s.width, 1920);
+  assert.equal(s.height, 1080);
+});
+
 test("full screen and always on top are kept when they were saved on", () => {
   const s = sanitizeWindowState(
     { x: 100, y: 80, width: 1200, height: 800, fullscreen: true, alwaysOnTop: true },
