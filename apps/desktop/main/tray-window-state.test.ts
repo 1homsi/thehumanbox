@@ -5,7 +5,7 @@ import * as path from "node:path";
 import test from "node:test";
 import * as vm from "node:vm";
 
-type MenuItem = { label?: string; checked?: boolean; enabled?: boolean; submenu?: MenuItem[] };
+type MenuItem = { label?: string; checked?: boolean; enabled?: boolean; click?: () => void; submenu?: MenuItem[] };
 
 function findMenuItem(items: MenuItem[], label: string): MenuItem | null {
   for (const item of items) {
@@ -73,6 +73,7 @@ function harness() {
   class FakeWindow extends EventEmitter {
     destroyed = false;
     visible = true;
+    minimized = false;
     alwaysOnTop = false;
     webContents = {
       send: () => {},
@@ -99,7 +100,11 @@ function harness() {
       return this.visible;
     }
     isMinimized() {
-      return false;
+      return this.minimized;
+    }
+    minimize() {
+      this.minimized = true;
+      this.emit("minimize");
     }
     isAlwaysOnTop() {
       return this.alwaysOnTop;
@@ -117,7 +122,10 @@ function harness() {
       this.emit("always-on-top-changed", value);
     }
     focus() {}
-    restore() {}
+    restore() {
+      this.minimized = false;
+      this.emit("restore");
+    }
     maximize() {}
   }
 
@@ -237,6 +245,25 @@ test("the tray and the View menu follow the window a restart swaps in", async ()
   assert.equal(trayAlwaysOnTopChecked(trays[0]), true);
   windows[1].hide();
   assert.equal(trayLabel(trays[0]), "Show window");
+});
+
+test("a minimized game window is offered as Show window, and that item restores it", async () => {
+  const h = harness();
+  const { context, windows, trays } = h;
+  await vm.runInContext("createWindow()", context);
+  vm.runInContext("buildTray()", context);
+  assert.equal(trayLabel(trays[0]), "Hide window");
+
+  // Minimized windows stay visible, so the old label still said "Hide window"
+  // while the click below restored the window.
+  windows[0].minimize();
+  assert.equal(trayLabel(trays[0]), "Show window");
+
+  const show = (trays[0].contextMenu?.template ?? []).find((item) => item.label === "Show window");
+  show?.click?.();
+  assert.equal(windows[0].isMinimized(), false);
+  assert.equal(windows[0].isVisible(), true);
+  assert.equal(trayLabel(trays[0]), "Hide window");
 });
 
 test("closing the last window clears the tray and View state", async () => {

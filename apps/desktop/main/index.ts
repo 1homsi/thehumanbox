@@ -416,6 +416,9 @@ function bindWindowMenus(win: BrowserWindow): void {
   };
   win.on("show", update);
   win.on("hide", update);
+  // A minimized window stays visible, so the show/hide item needs these too.
+  win.on("minimize", update);
+  win.on("restore", update);
   win.on("always-on-top-changed", update);
   update();
 }
@@ -577,10 +580,9 @@ function buildTray(): void {
       tray.setContextMenu(
         Menu.buildFromTemplate([
           {
-            label:
-              mainWindow && mainWindow.isVisible()
-                ? t("tray.hideWindow")
-                : t("tray.showWindow"),
+            // A minimized window is still visible, but toggling it restores it, so
+            // the item offers to show it rather than hide it.
+            label: gameWindowShown() ? t("tray.hideWindow") : t("tray.showWindow"),
             click: () => toggleWindow(),
           },
           { type: "separator" },
@@ -696,6 +698,17 @@ function openWindow(): Promise<void> {
     });
   }
   return windowCreation;
+}
+
+// True when the game window is on screen and not minimized: the state in which
+// the tray and the toggle hide it rather than show it.
+function gameWindowShown(): boolean {
+  return (
+    mainWindow !== null &&
+    !mainWindow.isDestroyed() &&
+    mainWindow.isVisible() &&
+    !mainWindow.isMinimized()
+  );
 }
 
 function toggleWindow(): void {
