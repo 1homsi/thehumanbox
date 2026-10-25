@@ -3,6 +3,7 @@ import { useCallback, useMemo } from 'react'
 import type { SceneContext } from '../core/types'
 import { useUIStore } from '../../../state/store'
 import { t } from '../../../i18n'
+import { roleWord } from '../shared/occupant-words'
 import { RoomCanvas, type RoomPalette } from '../shared/RoomCanvas'
 import { drawSettlementFurniture } from './furniture'
 
@@ -100,7 +101,7 @@ export function SettlementInterior({ ctx, onExit, onFocusOrg }: Props) {
               className={'scene-occupant-chip' + (o.org.id === selectedOrgId ? ' active' : '')}
               onClick={() => onFocusOrg(o.org.id)}
             >
-              <span className="scene-occupant-role">{o.role}</span>
+              <span className="scene-occupant-role">{roleWord(o.role)}</span>
               <span className="scene-occupant-name">{personName(o.org)}</span>
               <span className="scene-occupant-act">{o.activity}</span>
             </button>
@@ -116,7 +117,7 @@ export function SettlementInterior({ ctx, onExit, onFocusOrg }: Props) {
               title={t('panels.scene.villageAway')}
             >
               <span className="scene-occupant-role">
-                {o.role} · {t('panels.scene.nearby')}
+                {roleWord(o.role)} · {t('panels.scene.nearby')}
               </span>
               <span className="scene-occupant-name">{personName(o.org)}</span>
               <span className="scene-occupant-act">{o.activity}</span>

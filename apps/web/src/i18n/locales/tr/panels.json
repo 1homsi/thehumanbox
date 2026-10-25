@@ -331,6 +331,18 @@
     "inPrayerCount": "{count} dua ediyor",
     "atWorkCount": "{count} çalışıyor",
     "day": "gündüz",
-    "night": "gece"
+    "night": "gece",
+    "role": {
+      "host": "ev sahibi",
+      "partner": "eş",
+      "child": "çocuk",
+      "kin": "akraba",
+      "guest": "misafir",
+      "stranger": "yabancı",
+      "patron": "müdavim",
+      "worshipper": "ibadet eden",
+      "brewer": "bira yapıcı",
+      "priest": "rahip"
+    }
   }
 }

@@ -324,6 +324,18 @@
     "inPrayerCount": "{count}명 기도 중",
     "atWorkCount": "{count}명 작업 중",
     "day": "낮",
-    "night": "밤"
+    "night": "밤",
+    "role": {
+      "host": "주인",
+      "partner": "배우자",
+      "child": "자녀",
+      "kin": "친척",
+      "guest": "손님",
+      "stranger": "낯선 사람",
+      "patron": "단골",
+      "worshipper": "신도",
+      "brewer": "양조사",
+      "priest": "사제"
+    }
   }
 }

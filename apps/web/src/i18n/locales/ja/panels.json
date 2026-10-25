@@ -324,6 +324,18 @@
     "inPrayerCount": "{count}人が祈り中",
     "atWorkCount": "{count}人が作業中",
     "day": "昼",
-    "night": "夜"
+    "night": "夜",
+    "role": {
+      "host": "主人",
+      "partner": "連れ合い",
+      "child": "子",
+      "kin": "親族",
+      "guest": "客",
+      "stranger": "よそ者",
+      "patron": "常連",
+      "worshipper": "信者",
+      "brewer": "醸造家",
+      "priest": "司祭"
+    }
   }
 }
