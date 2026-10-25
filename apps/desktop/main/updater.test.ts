@@ -14,7 +14,11 @@ type FakeUpdater = EventEmitter & {
 // fresh module state (the `initialized` flag is per context).
 function harness(
   onCheck: (updater: FakeUpdater) => Promise<{ updateInfo: { version: string } } | null> = async () => null,
-  { autoUpdate = false, now = (): number => 0 }: { autoUpdate?: boolean; now?: () => number } = {},
+  {
+    autoUpdate = false,
+    now = (): number => 0,
+    promptFails = false,
+  }: { autoUpdate?: boolean; now?: () => number; promptFails?: boolean } = {},
 ) {
   const autoUpdater = new EventEmitter() as FakeUpdater
   autoUpdater.checkForUpdates = () => onCheck(autoUpdater)
@@ -28,6 +32,7 @@ function harness(
   const dialog = {
     showMessageBox: async (options: { message: string }) => {
       prompts.push(options.message)
+      if (promptFails) throw new Error('no display to show the prompt on')
       return { response: 1 }
     },
   }
@@ -62,6 +67,22 @@ function harness(
 }
 
 const flush = () => new Promise((resolve) => setImmediate(resolve))
+
+test('an update prompt that cannot be shown does not escape as an unhandled rejection', async () => {
+  // The download event listener is async and EventEmitter drops its promise,
+  // so a rejected prompt used to surface only as an unhandled rejection.
+  const unhandled: unknown[] = []
+  const record = (reason: unknown) => { unhandled.push(reason) }
+  process.on('unhandledRejection', record)
+  try {
+    const { autoUpdater } = harness(undefined, { promptFails: true })
+    autoUpdater.emit('update-downloaded', { version: '1.2.3', downloadedFile: '/tmp/a.zip' })
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    assert.deepEqual(unhandled, [])
+  } finally {
+    process.off('unhandledRejection', record)
+  }
+})
 
 test('a cached update re-emitted after its prompt was answered prompts once', async () => {
   const { autoUpdater, prompts } = harness()
