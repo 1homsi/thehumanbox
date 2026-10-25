@@ -596,6 +596,21 @@ fn a_reflection_does_not_replace_the_walk_to_water() {
     assert_eq!(org.thought, "moving to water");
 }
 
+#[test]
+fn a_need_eased_gives_way_even_while_another_need_is_urgent() {
+    // Thirst has eased but hunger is urgent: the old walk to water no longer holds the bubble.
+    let (mut org, _grid) = parched_at(&[], 0.9);
+    org.energy = 0.2;
+    org.think("moving to water", 100);
+    org.think("teaching Neni", 101);
+    assert_eq!(org.thought, "teaching Neni");
+    // A thought that only mentions water is not a walk to it.
+    let (mut thirsty, _grid) = parched_at(&[], 0.2);
+    thirsty.think("sitting by the water", 100);
+    thirsty.think("teaching Neni", 101);
+    assert_eq!(thirsty.thought, "teaching Neni");
+}
+
 fn worker_on_sand(name: &str) -> (Organism, WorldGrid, StdRng) {
     let mut rng = StdRng::seed_from_u64(0);
     let traits = Traits::random(&mut rng);
