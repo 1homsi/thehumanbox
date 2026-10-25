@@ -121,7 +121,19 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
   const selectedOrg = selectedId ? (organisms.find((o) => o.id === selectedId) ?? null) : null
 
   return (
-    <Modal open onClose={onClose} className="org-search-modal" title={t('dialogs.orgSearch.title')} hideTitle>
+    <Modal
+      open
+      onClose={onClose}
+      className="org-search-modal"
+      title={t('dialogs.orgSearch.title')}
+      hideTitle
+      // With the tribe list open, Escape closes the list and keeps the search (and its filters) on screen.
+      onEscapeKeyDown={(event) => {
+        if (!tribeOpen) return
+        event.preventDefault()
+        setTribeOpen(false)
+      }}
+    >
       {}
       <div className="lang-modal-header">
         <span className="lang-modal-title">{t('dialogs.orgSearch.heading')}</span>
