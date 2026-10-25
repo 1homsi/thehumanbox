@@ -96,10 +96,36 @@ describe('the time control', () => {
     expect(q('.time-speed-list')).toBeNull()
   })
 
+  it('an Escape that closes the speed list does not also disarm the held tool', () => {
+    // The app's own Escape handler listens on the window and disarms the tool unless something took the key.
+    const disarm = vi.fn()
+    const app = (event: KeyboardEvent) => {
+      if (!event.defaultPrevented) disarm()
+    }
+    window.addEventListener('keydown', app)
+    try {
+      render()
+      click(q('.time-speed-value'))
+      act(() => {
+        document.body.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+        )
+      })
+      expect(q('.time-speed-list')).toBeNull()
+      expect(disarm).not.toHaveBeenCalled()
+    } finally {
+      window.removeEventListener('keydown', app)
+    }
+  })
+
   it('closes the list on Escape and on a click elsewhere', () => {
     render()
     click(q('.time-speed-value'))
-    key('Escape')
+    act(() => {
+      document.body.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      )
+    })
     expect(q('.time-speed-list')).toBeNull()
     click(q('.time-speed-value'))
     act(() => {

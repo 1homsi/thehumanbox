@@ -32,8 +32,23 @@ export function PrayerChip({ world, onAnswer }: Props) {
       if (ref.current?.contains(target) || listRef.current?.contains(target)) return
       setOpen(false)
     }
+    // Escape closes the list the way a click elsewhere does. It is taken on the document, ahead of the
+    // window, where the app's own Escape (which disarms the held tool) listens.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      // A row that had focus is about to unmount: hand focus back to the chip first, or it falls to the body.
+      if (listRef.current?.contains(document.activeElement)) {
+        ref.current?.querySelector<HTMLElement>('.prayer-chip')?.focus({ preventScroll: true })
+      }
+      setOpen(false)
+    }
     document.addEventListener('pointerdown', close)
-    return () => document.removeEventListener('pointerdown', close)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', close)
+      document.removeEventListener('keydown', onKey)
+    }
   }, [open])
 
   useEffect(() => {

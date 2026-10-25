@@ -109,7 +109,9 @@ export function TimeControl({ paused, speed, onPick }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   })
 
-  // The list closes on a click anywhere else, or on Escape.
+  // The list closes on a click anywhere else, or on Escape. Escape is taken on the document, ahead of the
+  // window, where the app's own Escape (which disarms the held tool) listens: a key that closes the list
+  // must not also disarm the tool.
   useEffect(() => {
     if (!listOpen) return
     const onDown = (event: PointerEvent) => {
@@ -121,10 +123,10 @@ export function TimeControl({ paused, speed, onPick }: Props) {
       setListOpen(false)
     }
     document.addEventListener('pointerdown', onDown)
-    window.addEventListener('keydown', onKey)
+    document.addEventListener('keydown', onKey)
     return () => {
       document.removeEventListener('pointerdown', onDown)
-      window.removeEventListener('keydown', onKey)
+      document.removeEventListener('keydown', onKey)
     }
   }, [listOpen])
 
