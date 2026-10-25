@@ -37,6 +37,7 @@
     "logsFolderUnavailable": "ログフォルダを利用できません",
     "shortcutUnavailable": "ショートカットを使えません",
     "shortcutUnavailableDetail": "{shortcut} を登録できませんでした。トレイのアイコンからゲームの表示・非表示を切り替えてください。",
+    "shortcutUnavailableTooltip": "{shortcut} は使えません。このアイコンでゲームを表示・非表示にします。",
     "about": "v{version}\n永続する人工生命のシミュレーション。\nthehumanbox.com"
   },
   "dialog": {

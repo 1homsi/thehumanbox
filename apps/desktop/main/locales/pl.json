@@ -37,6 +37,7 @@
     "logsFolderUnavailable": "Folder logów jest niedostępny",
     "shortcutUnavailable": "Skrót niedostępny",
     "shortcutUnavailableDetail": "Nie udało się zarejestrować skrótu {shortcut}. Użyj ikony w zasobniku, aby pokazać lub ukryć grę.",
+    "shortcutUnavailableTooltip": "Skrót {shortcut} niedostępny. Ikona pokazuje lub ukrywa grę.",
     "about": "v{version}\nTrwała symulacja sztucznego życia.\nthehumanbox.com"
   },
   "dialog": {

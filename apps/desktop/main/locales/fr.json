@@ -37,6 +37,7 @@
     "logsFolderUnavailable": "Dossier des journaux indisponible",
     "shortcutUnavailable": "Raccourci indisponible",
     "shortcutUnavailableDetail": "{shortcut} n'a pas pu être enregistré. Utilisez l'icône de la barre d'état pour afficher ou masquer le jeu.",
+    "shortcutUnavailableTooltip": "Raccourci {shortcut} indisponible. Utilisez cette icône pour afficher ou masquer le jeu.",
     "about": "v{version}\nUne simulation persistante de vie artificielle.\nthehumanbox.com"
   },
   "dialog": {

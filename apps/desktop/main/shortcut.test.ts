@@ -175,3 +175,26 @@ test("a shortcut that registers quietly says nothing", () => {
   assert.equal(notifications.length, 0);
   assert.equal(warnings.length, 0);
 });
+
+test("the fallback tray tooltip fits Windows' 127-unit limit in every language", () => {
+  // Windows truncates a longer tooltip, which would cut off the advice to use
+  // the tray icon. The app's own i18n module is shared with the harness, so
+  // setLocale here changes the language the app announces in.
+  const i18n = require(path.join(__dirname, "i18n")) as {
+    LOCALE_CODES: readonly string[];
+    setLocale: (preferred: readonly string[]) => string;
+  };
+  try {
+    for (const code of i18n.LOCALE_CODES) {
+      i18n.setLocale([code]);
+      const { context, tooltips } = loadIndex({ register: () => false, notificationsSupported: false });
+      vm.runInContext("buildTray()", context);
+      vm.runInContext("announceShortcutUnavailable()", context);
+      const tooltip = tooltips[tooltips.length - 1] ?? "";
+      assert.ok(tooltip.includes(shortcut), `${code}: ${tooltip}`);
+      assert.ok(tooltip.length <= 127, `${code}: ${tooltip.length} units: ${tooltip}`);
+    }
+  } finally {
+    i18n.setLocale(["en"]);
+  }
+});

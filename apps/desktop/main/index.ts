@@ -738,9 +738,13 @@ function registerToggleShortcut(): boolean {
 // failed registration, so the text does not name one. The tray tooltip carries
 // the message where a notification cannot be shown.
 function announceShortcutUnavailable(): void {
+  const shortcut = toggleShortcutLabel();
   const title = t("notify.shortcutUnavailable");
-  const body = t("notify.shortcutUnavailableDetail", { shortcut: toggleShortcutLabel() });
-  notifyMilestone(title, body, () => tray?.setToolTip(`${title}. ${body}`));
+  const body = t("notify.shortcutUnavailableDetail", { shortcut });
+  // The tooltip has its own short text: Windows cuts a tooltip off at 127 units.
+  notifyMilestone(title, body, () =>
+    tray?.setToolTip(t("notify.shortcutUnavailableTooltip", { shortcut })),
+  );
 }
 
 function applyAutoLaunch(): void {

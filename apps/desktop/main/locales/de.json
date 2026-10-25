@@ -37,6 +37,7 @@
     "logsFolderUnavailable": "Protokollordner nicht verfügbar",
     "shortcutUnavailable": "Tastenkürzel nicht verfügbar",
     "shortcutUnavailableDetail": "{shortcut} konnte nicht registriert werden. Nutze das Tray-Symbol, um das Spiel ein- oder auszublenden.",
+    "shortcutUnavailableTooltip": "Tastenkürzel {shortcut} nicht verfügbar. Dieses Symbol zeigt oder versteckt das Spiel.",
     "about": "v{version}\nEine dauerhafte Simulation künstlichen Lebens.\nthehumanbox.com"
   },
   "dialog": {

@@ -37,6 +37,7 @@
     "logsFolderUnavailable": "Pasta de logs indisponível",
     "shortcutUnavailable": "Atalho indisponível",
     "shortcutUnavailableDetail": "Não foi possível registrar {shortcut}. Use o ícone da bandeja para mostrar ou ocultar o jogo.",
+    "shortcutUnavailableTooltip": "Atalho {shortcut} indisponível. Use este ícone para mostrar ou ocultar o jogo.",
     "about": "v{version}\nUma simulação persistente de vida artificial.\nthehumanbox.com"
   },
   "dialog": {

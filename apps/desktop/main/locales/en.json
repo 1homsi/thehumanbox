@@ -37,6 +37,7 @@
     "logsFolderUnavailable": "Logs folder unavailable",
     "shortcutUnavailable": "Shortcut unavailable",
     "shortcutUnavailableDetail": "{shortcut} could not be registered. Use the tray icon to show or hide the game.",
+    "shortcutUnavailableTooltip": "Shortcut {shortcut} unavailable. Click this icon to show or hide the game.",
     "about": "v{version}\nA persistent artificial-life simulation.\nthehumanbox.com"
   },
   "dialog": {

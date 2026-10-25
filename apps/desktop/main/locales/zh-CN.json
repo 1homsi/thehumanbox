@@ -37,6 +37,7 @@
     "logsFolderUnavailable": "日志文件夹不可用",
     "shortcutUnavailable": "快捷键不可用",
     "shortcutUnavailableDetail": "无法注册 {shortcut}。请使用托盘图标显示或隐藏游戏。",
+    "shortcutUnavailableTooltip": "无法使用 {shortcut}。请点击此图标显示或隐藏游戏。",
     "about": "v{version}\n持续运行的人工生命模拟。\nthehumanbox.com"
   },
   "dialog": {
