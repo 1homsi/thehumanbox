@@ -28,14 +28,14 @@ import {
   runExclusiveDesktopOperation,
 } from "./exclusive-operation";
 import {
-  atomicWriteNewFile,
+  atomicWriteNewFileAsync,
   assertEmptyOrIdentifiedDataRoot,
   assertExportOutsideDataRoot,
   assertSameLoadedWorld,
   assertNoLegacyWorldAtMigrationTarget,
   assertNoUnmigratedLegacyWorld,
   beginSaveFolderMigration,
-  copyWorldsToStaging,
+  copyWorldsToStagingInWorker,
   finishSaveFolderMigration,
   hasRecoverableSaveFolderMigration,
   inspectSaveFolderMigrationSourceInWorker,
@@ -65,14 +65,14 @@ function exclusiveIpcHandler<TArgs extends unknown[], TResult>(
     runExclusiveDesktopOperation(name, () => handler(...args));
 }
 
-function replaceFileForTransaction(
+async function replaceFileForTransaction(
   target: string,
-  data: string | Uint8Array,
+  data: Uint8Array,
   token: string,
-): ReplacedFile {
+): Promise<ReplacedFile> {
   const prepared = `${target}.next-${token}`;
   const backup = fs.existsSync(target) ? `${target}.rollback-${token}` : null;
-  atomicWriteNewFile(prepared, data);
+  await atomicWriteNewFileAsync(prepared, data);
   try {
     if (backup) fs.renameSync(target, backup);
     fs.renameSync(prepared, target);
@@ -360,7 +360,7 @@ export function registerIpc(
             await inspectSaveFolderMigrationSourceInWorker(sourceRoot);
           beginSaveFolderMigration(sourceRoot, targetRoot, token);
           journalStarted = true;
-          stagingRoot = copyWorldsToStaging(sourceRoot, targetRoot, token);
+          stagingRoot = await copyWorldsToStagingInWorker(sourceRoot, targetRoot, token);
           fs.renameSync(
             path.join(stagingRoot, "worlds"),
             path.join(targetRoot, "worlds"),
@@ -467,7 +467,7 @@ export function registerIpc(
       assertExportOutsideDataRoot(effectiveDataRoot(settings), result.filePath);
       const bytes = await fs.promises.readFile(world.savePath);
       await validateWorldSaveBytesInWorker(bytes);
-      const replaced = replaceFileForTransaction(
+      const replaced = await replaceFileForTransaction(
         result.filePath,
         bytes,
         randomUUID(),
@@ -533,7 +533,7 @@ export function registerIpc(
           assertExportOutsideDataRoot(effectiveDataRoot(settings), exportPath);
           const exportBytes = await fs.promises.readFile(world.savePath);
           await validateWorldSaveBytesInWorker(exportBytes);
-          const replaced = replaceFileForTransaction(
+          const replaced = await replaceFileForTransaction(
             exportPath,
             exportBytes,
             token,

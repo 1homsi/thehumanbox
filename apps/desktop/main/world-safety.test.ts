@@ -20,9 +20,11 @@ import {
   assertExportOutsideDataRoot,
   assertNoLegacyWorldAtMigrationTarget,
   atomicReplaceFile,
+  atomicWriteNewFileAsync,
   beginSaveFolderMigration,
   chooseAvailableWorldHash,
   copyWorldsToStaging,
+  copyWorldsToStagingInWorker,
   downloadAndValidateWorldSave,
   finishCommittedMigrationForActiveRoot,
   finishSaveFolderMigration,
@@ -307,6 +309,92 @@ test("stages a save-folder copy without changing the source", () => {
       readFileSync(path.join(source, "worlds", "abc", "world.save"), "utf8"),
       "safe",
     );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// Counts how many times the event loop ran while `work` was pending. Work that
+// holds the main thread never lets it turn, so the count stays at zero.
+async function eventLoopTurnsWhile<T>(work: Promise<T>): Promise<{ value: T; turns: number }> {
+  let settled = false;
+  work.then(
+    () => {
+      settled = true;
+    },
+    () => {
+      settled = true;
+    },
+  );
+  let turns = 0;
+  while (!settled) {
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    if (!settled) turns += 1;
+  }
+  return { value: await work, turns };
+}
+
+test("the save copy runs off the main thread, so the window keeps turning while a world copies", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "thb-copy-worker-test-"));
+  const source = path.join(root, "source");
+  const target = path.join(root, "target");
+  const save = Buffer.alloc(24 * 1024 * 1024, 7);
+  try {
+    mkdirSync(path.join(source, "worlds", "abc"), { recursive: true });
+    writeFileSync(path.join(source, "worlds", "_live"), "abc");
+    writeFileSync(path.join(source, "worlds", "abc", "world.save"), save);
+    const { value: staging, turns } = await eventLoopTurnsWhile(
+      copyWorldsToStagingInWorker(source, target, "worker-token"),
+    );
+    assert.ok(turns > 0, "the copy held the event loop until it finished");
+    assert.equal(staging, path.join(target, ".thehumanbox-migration-worker-token"));
+    assert.ok(readFileSync(path.join(staging, "worlds", "abc", "world.save")).equals(save));
+    assert.equal(readFileSync(path.join(staging, "worlds", "_live"), "utf8"), "abc");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a save-folder copy refused by the worker rejects with the same reason", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "thb-copy-worker-refuse-"));
+  const source = path.join(root, "source");
+  const target = path.join(root, "target");
+  try {
+    mkdirSync(path.join(source, "worlds", "abc"), { recursive: true });
+    writeFileSync(path.join(source, "worlds", "_live"), "abc");
+    writeFileSync(path.join(source, "worlds", "abc", "world.save"), "safe");
+    mkdirSync(path.join(target, "worlds"), { recursive: true });
+    await assert.rejects(
+      copyWorldsToStagingInWorker(source, target, "refused-token"),
+      /choose an empty folder/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("an exported save is written without holding the event loop, and its bytes are exact", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "thb-export-async-test-"));
+  const file = path.join(root, "exports", "world.save");
+  const data = Buffer.alloc(24 * 1024 * 1024);
+  for (let i = 0; i < data.length; i += 4096) data.fill(i & 0xff, i, i + 4096);
+  try {
+    const { turns } = await eventLoopTurnsWhile(atomicWriteNewFileAsync(file, data));
+    assert.ok(turns > 0, "the export write held the event loop");
+    assert.ok(readFileSync(file).equals(data));
+    assert.deepEqual(readdirSync(path.dirname(file)), ["world.save"]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a failed export write names the blocked path and leaves no partial file", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "thb-export-async-fail-"));
+  const blocker = path.join(root, "not-a-folder");
+  writeFileSync(blocker, "in the way");
+  try {
+    await assert.rejects(atomicWriteNewFileAsync(path.join(blocker, "world.save"), Buffer.from("x")));
+    assert.deepEqual(readdirSync(root), ["not-a-folder"]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
