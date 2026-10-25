@@ -41,4 +41,15 @@ describe('ConfirmHost focus', () => {
 
     expect(document.activeElement?.textContent).toBe('move')
   })
+
+  it('moves focus to Cancel when a destructive question replaces an ordinary one', async () => {
+    await openQuestion({ title: 'Move it?', confirmLabel: 'move' })
+    expect(document.activeElement?.textContent).toBe('move')
+
+    act(() => {
+      void askConfirm({ title: 'Delete it?', danger: true, confirmLabel: 'delete' })
+    })
+
+    expect(document.activeElement?.textContent).toBe(t('dialogs.confirm.cancel'))
+  })
 })
