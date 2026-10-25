@@ -39,7 +39,7 @@ export function WorldSilent({ world, onSeed, onNewWorld }: Props) {
           <dt>{t('panels.silent.mostAlive')}</dt>
           <dd>{formatNumber(e.peak)}</dd>
           <dt>{t('panels.silent.tribes')}</dt>
-          <dd>{e.tribes}</dd>
+          <dd>{formatNumber(e.tribes)}</dd>
           {e.era && (
             <>
               <dt>{t('panels.silent.furthestAge')}</dt>
@@ -48,7 +48,7 @@ export function WorldSilent({ world, onSeed, onNewWorld }: Props) {
           )}
           <dt>{t('panels.silent.prayersAnswered')}</dt>
           <dd>
-            {e.answered}
+            {formatNumber(e.answered)}
             {e.forsaken > 0 && (
               <span className="world-silent-forsaken">
                 {' · '}
