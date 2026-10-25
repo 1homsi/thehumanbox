@@ -324,13 +324,17 @@ function LiveApp() {
         }
         setTemporarySandboxStatus(
           tool.id.endsWith('_view')
-            ? `${tool.label} ${enabled ? 'shown' : 'hidden'}`
-            : `${tool.label} map ${enabled ? 'on' : 'off'}`,
+            ? enabled
+              ? t('header.sandbox.toolShown', { tool: toolName(tool) })
+              : t('header.sandbox.toolHidden', { tool: toolName(tool) })
+            : enabled
+              ? t('header.sandbox.toolMapOn', { tool: toolName(tool) })
+              : t('header.sandbox.toolMapOff', { tool: toolName(tool) }),
         )
         return
       }
       if (tool.mode === 'instant') {
-        setSandboxStatus(`${tool.label}...`)
+        setSandboxStatus(t('header.sandbox.toolWorking', { tool: toolName(tool) }))
         let handled = true
         if (tool.time) {
           const result =
@@ -342,12 +346,20 @@ function LiveApp() {
                   ? setSpeed(tool.time.mult)
                   : Promise.resolve(false)
           void result.then((ok) =>
-            setTemporarySandboxStatus(ok ? `${tool.label} applied` : `${tool.label} failed`),
+            setTemporarySandboxStatus(
+              ok
+                ? t('header.sandbox.toolApplied', { tool: toolName(tool) })
+                : t('header.sandbox.toolFailed', { tool: toolName(tool) }),
+            ),
           )
         } else if (tool.fire) {
           void sendCommand(tool.fire).then((ok) => {
             if (ok && tool.overlay) useSkyOverlay.getState().start(tool.overlay)
-            setTemporarySandboxStatus(ok ? `${tool.label} applied` : `${tool.label} failed`)
+            setTemporarySandboxStatus(
+              ok
+                ? t('header.sandbox.toolApplied', { tool: toolName(tool) })
+                : t('header.sandbox.toolFailed', { tool: toolName(tool) }),
+            )
           })
         } else {
           handled = false
@@ -420,7 +432,7 @@ function LiveApp() {
         // Following is the camera's business, not a world command: keep the nearest person in view.
         const person = nearestLivingPerson(useWorldStore.getState().world?.organisms ?? [], wx, wy, 4)
         if (!person) {
-          setTemporarySandboxStatus('follow · nobody in reach here')
+          setTemporarySandboxStatus(t('header.sandbox.followNobody'))
           return
         }
         useUIStore.getState().followOrg(person.id)
@@ -430,7 +442,7 @@ function LiveApp() {
       if (armedTool.id === 'name') {
         const person = nearestLivingPerson(useWorldStore.getState().world?.organisms ?? [], wx, wy, 4)
         if (!person) {
-          setTemporarySandboxStatus('name · nobody in reach here')
+          setTemporarySandboxStatus(t('header.sandbox.nameNobody'))
           return
         }
         useUIStore.getState().startRename(person.id)
@@ -455,7 +467,7 @@ function LiveApp() {
       const label = toolName(armedTool)
       const x = Math.round(wx)
       const y = Math.round(wy)
-      setSandboxStatus(`${label} -> ${x}, ${y}`)
+      setSandboxStatus(t('header.sandbox.toolAt', { tool: label, x, y }))
       const tool = armedTool
       void sendCommand(tool.build!(x, y, brush)).then((ok) => {
         setTemporarySandboxStatus(
@@ -572,11 +584,11 @@ function LiveApp() {
         const prayers = world?.prayers ?? []
         const first = prayerRows(prayers, world?.tick ?? 0)[0]
         if (first) handleAnswerPrayer(first.prayer)
-        else setTemporarySandboxStatus('no one is praying')
+        else setTemporarySandboxStatus(t('header.sandbox.noOnePraying'))
       } else {
         const perils = [...(world?.tribes_in_peril ?? [])].sort((a, b) => a.population - b.population)
         if (!world || perils.length === 0) {
-          setTemporarySandboxStatus('no tribe is on the brink')
+          setTemporarySandboxStatus(t('header.sandbox.noTribeBrink'))
           return
         }
         const peril = perils[brinkIndex.current++ % perils.length]!
@@ -617,7 +629,8 @@ function LiveApp() {
       event.preventDefault()
       onPickTool({
         id: 'keyboard-playback',
-        label: runtimeState.paused ? 'play' : 'pause',
+        // The status line names the tool, so the label is in the player's language (the time control's words).
+        label: t(runtimeState.paused ? 'dock.time.play' : 'dock.time.pause'),
         icon: '',
         mode: 'instant',
         time: { control: runtimeState.paused ? 'resume' : 'pause' },
@@ -851,7 +864,7 @@ function LiveApp() {
                   onTeach={(lineage) =>
                     void sendCommand({ cmd: 'teach', lineage }).then((ok) =>
                       setTemporarySandboxStatus(
-                        ok ? 'the gods taught them a secret' : 'they cannot be taught again yet',
+                        ok ? t('header.sandbox.taughtSecret') : t('header.sandbox.cannotTeach'),
                       ),
                     )
                   }
@@ -920,7 +933,7 @@ function LiveApp() {
               ui.setOverlay(null)
               ui.setTerritoryView(false)
               ui.setViewFlag('history', false)
-              setTemporarySandboxStatus('map layers cleared')
+              setTemporarySandboxStatus(t('header.sandbox.layersCleared'))
             }}
           />
         )}

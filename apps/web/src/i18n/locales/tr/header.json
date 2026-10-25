@@ -53,6 +53,21 @@
   "sandbox": {
     "seedHint": "yeni bir kabile kurmak için araziye tıklayın",
     "guidanceSet": "{strategy} yönlendirmesi ayarlandı",
-    "guidanceFailed": "yönlendirme başarısız"
+    "guidanceFailed": "yönlendirme başarısız",
+    "followNobody": "takip · yakında kimse yok",
+    "nameNobody": "adlandır · yakında kimse yok",
+    "noOnePraying": "kimse dua etmiyor",
+    "noTribeBrink": "hiçbir kabile uçurumun kenarında değil",
+    "taughtSecret": "tanrılar onlara bir sır öğretti",
+    "cannotTeach": "henüz yeniden öğretilemezler",
+    "layersCleared": "harita katmanları temizlendi",
+    "toolShown": "{tool} gösterildi",
+    "toolHidden": "{tool} gizlendi",
+    "toolMapOn": "{tool} haritası açık",
+    "toolMapOff": "{tool} haritası kapalı",
+    "toolWorking": "{tool}…",
+    "toolApplied": "{tool} uygulandı",
+    "toolFailed": "{tool} başarısız",
+    "toolAt": "{tool} → {x}, {y}"
   }
 }

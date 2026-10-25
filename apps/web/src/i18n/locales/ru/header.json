@@ -53,6 +53,21 @@
   "sandbox": {
     "seedHint": "нажмите на землю, чтобы основать новое племя",
     "guidanceSet": "направление «{strategy}» задано",
-    "guidanceFailed": "не удалось задать направление"
+    "guidanceFailed": "не удалось задать направление",
+    "followNobody": "следить · никого поблизости",
+    "nameNobody": "назвать · никого поблизости",
+    "noOnePraying": "никто не молится",
+    "noTribeBrink": "ни одно племя не на грани",
+    "taughtSecret": "боги открыли им тайну",
+    "cannotTeach": "их пока нельзя обучить снова",
+    "layersCleared": "слои карты очищены",
+    "toolShown": "{tool}: показано",
+    "toolHidden": "{tool}: скрыто",
+    "toolMapOn": "карта «{tool}»: вкл.",
+    "toolMapOff": "карта «{tool}»: выкл.",
+    "toolWorking": "{tool}…",
+    "toolApplied": "{tool}: применено",
+    "toolFailed": "{tool}: ошибка",
+    "toolAt": "{tool} → {x}, {y}"
   }
 }
