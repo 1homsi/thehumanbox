@@ -74,6 +74,7 @@ function harness(options: { failWindow?: boolean } = {}) {
       if (id === 'node:path') return path
       if (id === './renderer-load') return require(path.join(__dirname, 'renderer-load'))
       if (id === './i18n') return require(path.join(__dirname, 'i18n'))
+      if (id === './app-menu') return require(path.join(__dirname, 'app-menu'))
       return {}
     },
   })

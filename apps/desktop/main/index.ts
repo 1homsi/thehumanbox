@@ -62,6 +62,7 @@ import {
   installDownloadedUpdate,
 } from "./updater";
 import { getLocale, matchLocale, setLocale, t } from "./i18n";
+import { appMenuTemplate } from "./app-menu";
 
 app.setName("The Human Box");
 
@@ -426,8 +427,6 @@ function rebuildWindowMenus(): void {
 }
 
 function buildMenu(): void {
-  const isMac = process.platform === "darwin";
-
   // Items that act on the game window are disabled while none is open, rather
   // than doing nothing when chosen (macOS keeps the app running after its window closes).
   const hasGameWindow = mainWindow !== null;
@@ -441,105 +440,28 @@ function buildMenu(): void {
     }
   };
 
-  const template: Electron.MenuItemConstructorOptions[] = [
-    ...(isMac
-      ? [
-          {
-            label: "The Human Box",
-            submenu: [
-              { role: "about" as const, label: t("menu.about") },
-              { type: "separator" as const },
-              {
-                label: t("menu.settings"),
-                accelerator: "Cmd+,",
-                enabled: hasGameWindow,
-                click: () => mainWindow?.webContents.send("menu:openSettings"),
-              },
-              { type: "separator" as const },
-              { role: "services" as const, label: t("menu.services") },
-              { type: "separator" as const },
-              { role: "hide" as const, label: t("menu.hide") },
-              { role: "hideOthers" as const, label: t("menu.hideOthers") },
-              { role: "unhide" as const, label: t("menu.showAll") },
-              { type: "separator" as const },
-              { role: "quit" as const, label: t("menu.quitApp") },
-            ],
-          },
-        ]
-      : []),
-    {
-      label: t("menu.file"),
-      submenu: [
-        {
-          label: t("menu.reload"),
-          accelerator: isMac ? "Cmd+R" : "Ctrl+R",
-          enabled: hasGameWindow,
-          click: () => mainWindow?.reload(),
-        },
-        {
-          label: t("menu.restartSimulation"),
-          click: () =>
-            void restartSimulationFromMenu().catch((err) =>
-              console.error("[main] restart menu failed:", err),
-            ),
-        },
-        isMac
-          ? { role: "close" as const, label: t("menu.close") }
-          : { role: "quit" as const, label: t("menu.quit") },
-      ],
+  const template = appMenuTemplate({
+    platform: process.platform,
+    label: t,
+    hasGameWindow,
+    alwaysOnTop: mainWindow ? mainWindow.isAlwaysOnTop() : false,
+    actions: {
+      openSettings: () => mainWindow?.webContents.send("menu:openSettings"),
+      reload: () => mainWindow?.reload(),
+      restartSimulation: () =>
+        void restartSimulationFromMenu().catch((err) =>
+          console.error("[main] restart menu failed:", err),
+        ),
+      toggleDevTools,
+      setAlwaysOnTop: (on) => {
+        if (!mainWindow) return;
+        mainWindow.setAlwaysOnTop(on);
+      },
+      takeScreenshot: () => takeScreenshotForPlayer(),
+      openGitHub: () => void shell.openExternal("https://github.com/1homsi/thehumanbox"),
+      openWebsite: () => void shell.openExternal("https://thehumanbox.com"),
     },
-    { role: "editMenu" },
-    {
-      label: t("menu.view"),
-      submenu: [
-        {
-          label: t("menu.toggleDevTools"),
-          accelerator: isMac ? "Cmd+Alt+I" : "Ctrl+Shift+I",
-          enabled: hasGameWindow,
-          click: toggleDevTools,
-        },
-        { type: "separator" },
-        { role: "resetZoom", label: t("menu.resetZoom") },
-        { role: "zoomIn", label: t("menu.zoomIn") },
-        { role: "zoomOut", label: t("menu.zoomOut") },
-        { type: "separator" },
-        { role: "togglefullscreen", label: t("menu.fullScreen") },
-        { type: "separator" },
-        {
-          label: t("menu.alwaysOnTop"),
-          type: "checkbox",
-          checked: mainWindow ? mainWindow.isAlwaysOnTop() : false,
-          enabled: hasGameWindow,
-          accelerator: isMac ? "Cmd+Shift+T" : "Ctrl+Shift+T",
-          click: (item) => {
-            if (!mainWindow) return;
-            mainWindow.setAlwaysOnTop(item.checked);
-          },
-        },
-        {
-          label: t("menu.screenshot"),
-          accelerator: isMac ? "Cmd+Shift+S" : "Ctrl+Shift+S",
-          click: () => takeScreenshotForPlayer(),
-        },
-      ],
-    },
-    { role: "windowMenu" },
-    {
-      role: "help",
-      label: t("menu.help"),
-      submenu: [
-        {
-          label: t("menu.openGitHub"),
-          click: () =>
-            void shell.openExternal("https://github.com/1homsi/thehumanbox"),
-        },
-        {
-          label: t("menu.openWebsite"),
-          click: () => void shell.openExternal("https://thehumanbox.com"),
-        },
-      ],
-    },
-  ];
+  });
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }

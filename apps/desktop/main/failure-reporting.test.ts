@@ -91,6 +91,7 @@ function loadIndex(options: {
       if (id === './app-version-arg') return { appVersionArgument: (v: string) => `--thb-app-version=${v}` }
       if (id === './app-icon') return { appIconPath: () => '/tmp/icon.png' }
       if (id === './i18n') return require(path.join(__dirname, 'i18n'))
+      if (id === './app-menu') return require(path.join(__dirname, 'app-menu'))
       if (id === './redact-url') return require(path.join(__dirname, 'redact-url'))
       if (id === './renderer-load') return require(path.join(__dirname, 'renderer-load'))
       if (id === './navigation-guard') return require(path.join(__dirname, 'navigation-guard'))

@@ -174,6 +174,7 @@ function loadIndex(options: {
       }
       if (id === "./settings") return { loadSettings: () => startupSettings, prepareDataRoot() {} };
       if (id === "./i18n") return require(path.join(__dirname, "i18n"));
+      if (id === "./app-menu") return require(path.join(__dirname, "app-menu"));
       if (id === "./updater") return { initUpdater: () => calls.push("updater:init") };
       if (id === "./app-version-arg") return { appVersionArgument: (v: string) => `--thb-app-version=${v}` };
       if (id === "./app-icon") return { appIconPath: () => "/tmp/icon.png" };
