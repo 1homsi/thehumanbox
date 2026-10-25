@@ -357,6 +357,9 @@ impl Organism {
         if self.thought == text {
             return;
         }
+        if self.keeps_need_in_view(text) {
+            return;
+        }
         self.thought = text.to_string();
         self.thought_dirty = true;
         self.thought_history.push_back(ThoughtEntry {
@@ -366,6 +369,25 @@ impl Organism {
         if self.thought_history.len() > 16 {
             self.thought_history.pop_front();
         }
+    }
+
+    /// Whether the need behind `thought` is still urgent: thirsty enough to go for water for a water
+    /// thought, hungry enough to go for food for a food thought (the thresholds the choice of action
+    /// uses for them). Once that need eases, other thoughts show again.
+    fn need_still_urgent(&self, thought: &str) -> bool {
+        match need_of(thought) {
+            Some(Need::Water) => self.hydration < 0.38,
+            Some(Need::Food) => self.energy < 0.42,
+            None => false,
+        }
+    }
+
+    /// Whether `text` must not replace the thought on show. Someone dying of thirst or hunger keeps the
+    /// need in view: other systems (teaching, mourning, building, a mood, reflection) think on the same
+    /// tick, and on alternate ticks their thought replaced "moving to water" while the walk went on.
+    /// Death is always shown.
+    fn keeps_need_in_view(&self, text: &str) -> bool {
+        self.need_still_urgent(&self.thought) && need_of(text).is_none() && text != "dying"
     }
 
     pub fn reflect_internally(&mut self, tick: u64) -> Option<String> {
@@ -418,6 +440,10 @@ impl Organism {
             self.memories.touch(|m| m.text == target, 0.02);
         }
 
+        // A reflection is a thought like any other: it does not replace the need on show either.
+        if self.keeps_need_in_view(&line) {
+            return Some(line);
+        }
         self.thought_history.push_back(ThoughtEntry {
             tick,
             text: line.clone(),
@@ -428,5 +454,35 @@ impl Organism {
         self.thought = line.clone();
         self.thought_dirty = true;
         Some(line)
+    }
+}
+
+/// A thought about thirst or hunger: the walk to water or food, drinking, eating, and looking for them.
+/// The need a thought is the walk toward, for the thoughts the choice of action gives thirst and hunger.
+/// An exact list, not a word search: "sitting by the water" or "looking for water to fish" are not thirst.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Need {
+    Water,
+    Food,
+}
+
+fn need_of(text: &str) -> Option<Need> {
+    match text {
+        "moving to water"
+        | "moving to known water"
+        | "following water trail"
+        | "following kin to water"
+        | "digging for water"
+        | "heading for the frozen water"
+        | "breaking the ice to drink"
+        | "drinking at the water's edge" => Some(Need::Water),
+        "moving to food"
+        | "moving to known food"
+        | "following food trail"
+        | "following kin to food"
+        | "looking for roots"
+        | "digging for roots"
+        | "foraging the brush" => Some(Need::Food),
+        _ => None,
     }
 }
