@@ -100,6 +100,20 @@ function finishReplacedFile(replaced: ReplacedFile): void {
   syncDirectoryBestEffort(path.dirname(replaced.target));
 }
 
+/**
+ * The renderer's request to move the save folder: `{ targetDir }`, where null
+ * means the default folder. Anything else that is not a non-empty string is a
+ * request with no folder in it, and says so rather than failing inside path code.
+ */
+function saveFolderRequest(payload: unknown): string | null {
+  const targetDir = (payload as { targetDir?: unknown } | null | undefined)?.targetDir;
+  if (targetDir === null) return null;
+  if (typeof targetDir !== "string" || targetDir.trim() === "") {
+    throw new Error("choose a save folder, or the default folder, before moving the worlds");
+  }
+  return targetDir;
+}
+
 function activeWorld(settings: Settings): {
   hash: string;
   savePath: string;
@@ -258,11 +272,12 @@ export function registerIpc(
     "world:migrateDataRoot",
     exclusiveIpcHandler(
       "move the save folder",
-      async (_e, payload: { targetDir: string | null }) => {
+      async (_e, payload: unknown) => {
+        const requestedDir = saveFolderRequest(payload);
         const priorSettings = loadSettings();
         const sourceRoot = prepareDataRoot(priorSettings);
         const requestedTarget =
-          payload.targetDir === null ? defaultDataRoot() : payload.targetDir;
+          requestedDir === null ? defaultDataRoot() : requestedDir;
         if (!path.isAbsolute(requestedTarget))
           throw new Error("save folder must be an absolute path");
         const targetRoot = path.resolve(requestedTarget);

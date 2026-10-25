@@ -204,11 +204,26 @@ export function assertEmptyOrIdentifiedDataRoot(root: string): void {
     requireExistingDataRootIdentity(resolvedRoot);
     return;
   }
-  if (fs.readdirSync(resolvedRoot).length > 0) {
+  if (fs.readdirSync(resolvedRoot).some((name) => !isOperatingSystemMetadata(name))) {
     throw new Error(
       "the selected custom save folder is not empty and has no existing The Human Box data-root identity",
     );
   }
+}
+
+// Files the operating system writes into a folder it has displayed. They are
+// not the player's, and a folder that holds only them is still empty. Matched
+// case-insensitively, since Windows does not keep the case of these names.
+const OPERATING_SYSTEM_METADATA = new Set([
+  ".ds_store",
+  ".localized",
+  "thumbs.db",
+  "ehthumbs.db",
+  "desktop.ini",
+]);
+
+function isOperatingSystemMetadata(name: string): boolean {
+  return OPERATING_SYSTEM_METADATA.has(name.toLowerCase());
 }
 
 /**
