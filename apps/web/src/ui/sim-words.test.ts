@@ -14,7 +14,7 @@ describe('words for the ids the simulation sends', () => {
   })
 
   it('shows an id it does not know as its words, so a new id never breaks', () => {
-    expect(buildingKindWord('fusion_plant')).toBe('fusion plant')
+    expect(buildingKindWord('fusion_reactor_x')).toBe('fusion reactor x')
     expect(moonPhaseWord('blue_moon')).toBe('blue moon')
     expect(buildingKindWord('constructor')).toBe('constructor')
     expect(seasonWord(undefined)).toBe('')
@@ -48,6 +48,6 @@ describe('words for the discoveries the simulation records', () => {
 
   it('shows a discovery it does not name as its words in every language', async () => {
     await loadLocale('de')
-    expect(discoveryWord('fusion_plant')).toBe('fusion plant')
+    expect(discoveryWord('made_up_discovery')).toBe('made up discovery')
   })
 })
