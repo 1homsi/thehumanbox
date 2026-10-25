@@ -941,6 +941,12 @@ async function offerSimRestart(
       defaultId: 0,
       cancelId: 1,
     };
+    // The prompt is attached to the game window. A game kept in the tray has a
+    // hidden window, and a sheet attached to it may never reach the player, so
+    // the window comes up first.
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      revealWindow(mainWindow);
+    }
     const { response } =
       mainWindow && !mainWindow.isDestroyed()
         ? await dialog.showMessageBox(mainWindow, options)
