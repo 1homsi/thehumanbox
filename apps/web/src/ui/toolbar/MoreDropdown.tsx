@@ -56,7 +56,7 @@ export function MoreDropdown({
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       event.preventDefault()
-      const trigger = document.querySelector<HTMLElement>('.hdr-btn[aria-expanded="true"]')
+      const trigger = document.querySelector<HTMLElement>('[data-tour="more-btn"][aria-expanded="true"]')
       useUIStore.setState({ showMore: false })
       trigger?.focus({ preventScroll: true })
     }

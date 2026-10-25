@@ -112,8 +112,10 @@ describe('the find and save keys', () => {
 
 describe('the ⋯ menu and Escape', () => {
   it('an Escape from inside the menu gives focus back to the ⋯ button', () => {
+    // The header's ⋯ button, with the attributes AppHeader gives it while the menu is open.
     const trigger = document.createElement('button')
-    trigger.className = 'hdr-btn'
+    trigger.className = 'hdr-btn active'
+    trigger.dataset.tour = 'more-btn'
     trigger.setAttribute('aria-expanded', 'true')
     document.body.append(trigger)
     try {
