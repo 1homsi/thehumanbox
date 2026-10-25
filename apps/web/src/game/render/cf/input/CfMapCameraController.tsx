@@ -128,6 +128,8 @@ export function CfMapCameraController({
     engine.loop.markDirty()
   }
   const zoomBy = (factor: number, point = { x: containerW / 2, y: containerH / 2 }) => {
+    // Keyboard zoom takes over from a double-click zoom still settling.
+    tween.current = null
     const current = cameraStateRef.current
     const next = Math.max(minZoom, Math.min(MAX_MAP_ZOOM, current.zoom * factor))
     apply(zoomMapAt(current, next, point, viewport))
@@ -192,6 +194,7 @@ export function CfMapCameraController({
       if (panKey(key)) {
         e.preventDefault()
         stopFollowRef.current()
+        tween.current = null
         pressed.add(key)
         lastFrameAt.current = performance.now()
         engine.loop.markDirty()
@@ -281,6 +284,8 @@ export function CfMapCameraController({
     if (command) {
       commandRef.current = null
       stopFollowRef.current()
+      // A fit or focus request takes over from a double-click zoom still settling.
+      tween.current = null
       const target = commandCamera(command, next, world, viewport)
       if (target) next = target
     }
