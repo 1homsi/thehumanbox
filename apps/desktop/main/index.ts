@@ -22,6 +22,7 @@ import {
 } from "./navigation-guard";
 import { sanitizeWindowState, type WindowState } from "./window-state";
 import { atomicReplaceFile, atomicWriteNewFile } from "./world-safety";
+import { teeConsoleToLog } from "./main-log";
 import { appVersionArgument } from "./app-version-arg";
 import { loginItemSettings, shouldStartHidden } from "./login-launch";
 import { appIconPath } from "./app-icon";
@@ -979,6 +980,9 @@ async function offerSimRestart(
 }
 
 async function boot(): Promise<void> {
+  // First, so the shell's warnings and errors from the rest of boot are kept.
+  // A packaged app has no terminal to show them in.
+  teeConsoleToLog(console, path.join(app.getPath("logs"), "main.log"));
   // Before any renderer load: the file:// page gets a CSP so injected script
   // cannot reach the network or the preload bridge.
   installRendererCsp(session.defaultSession);

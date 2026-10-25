@@ -138,6 +138,14 @@ function loadIndex(options: {
       }
       if (id === "./ipc") return { registerIpc() {} };
       if (id === "./renderer-load") return { loadRenderer };
+      if (id === "./main-log") {
+        return {
+          teeConsoleToLog: (_console: unknown, file: string) => {
+            calls.push(`log:${file}`);
+            return { write() {}, close() {} };
+          },
+        };
+      }
       if (id === "./startup-lifecycle") {
         return {
           startWhenReady: (_ready: Promise<void>, start: () => Promise<void>, fail: (error: unknown) => Promise<void>) => {
@@ -241,6 +249,16 @@ test("boot registers app IPC before creating the window and stops the sim on fat
   wiring.setStopBehavior("hang");
   await assertFatalOrder(new Error("third startup failure"));
   assert.equal(calls.filter((call) => call === "app:exit").length, 3);
+});
+
+test("boot writes the shell's log to the logs folder before any other boot step", async () => {
+  const calls: string[] = [];
+  const wiring = loadIndex({ singleInstance: true, calls });
+  await assert.rejects(wiring.boot!(), /malformed window state/);
+  const log = calls.indexOf("log:/tmp/thehumanbox-test/main.log");
+  assert.ok(log > -1, `calls: ${calls.join(", ")}`);
+  assert.ok(log < calls.indexOf("csp:install"), `calls: ${calls.join(", ")}`);
+  assert.ok(log < calls.indexOf("ipc:app:setLocale"), `calls: ${calls.join(", ")}`);
 });
 
 test("boot installs a content security policy for the renderer file", async () => {
