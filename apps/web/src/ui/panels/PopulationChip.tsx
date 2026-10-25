@@ -36,7 +36,7 @@ export function PopulationChip({ population, sick }: Props) {
       {sick > 0 && (
         <span className="tip-part">
           <span className="tip-title">{t('panels.population.sickness')}</span>
-          <span className="tip-body">{t('panels.population.sick', { count: sick })}</span>
+          <span className="tip-body">{t('panels.population.sick', { count: formatNumber(sick) })}</span>
         </span>
       )}
     </span>
@@ -53,7 +53,7 @@ export function PopulationChip({ population, sick }: Props) {
         {sick > 0 && (
           <span className="pop-sick">
             <ToolSprite icon="🦠" size={16} />
-            {sick}
+            {formatNumber(sick)}
           </span>
         )}
       </span>
