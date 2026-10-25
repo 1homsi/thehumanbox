@@ -740,6 +740,48 @@
       "empire": "제국",
       "federation": "연방",
       "corporate": "기업 체제"
+    },
+    "good": {
+      "food": "식량",
+      "water": "물",
+      "wood": "목재",
+      "stone": "석재",
+      "iron": "철",
+      "cloth": "옷감",
+      "bread": "빵",
+      "spirit": "증류주",
+      "aged_spirit": "숙성주",
+      "bottled_spirit": "병입 주류",
+      "blended_spirit": "블렌드 주류",
+      "bottle": "병",
+      "meat": "고기",
+      "cuts": "고기 부위",
+      "ground": "가루",
+      "sausage": "소시지",
+      "preserved": "보존식",
+      "preserved_meat": "염장육",
+      "pattern": "문양",
+      "piece": "부품",
+      "garment": "의류",
+      "article": "물품",
+      "drink": "음료",
+      "pastry": "페이스트리",
+      "coffee": "커피",
+      "stock": "재고",
+      "cave_painting": "동굴 벽화",
+      "sculpture": "조각상"
+    },
+    "treaty": {
+      "non_aggression": "불가침",
+      "alliance": "동맹",
+      "trade": "교역",
+      "defensive": "방위",
+      "vassalage": "종속"
+    },
+    "relation": {
+      "ally": "동맹",
+      "neutral": "중립",
+      "rivals": "라이벌"
     }
   }
 }

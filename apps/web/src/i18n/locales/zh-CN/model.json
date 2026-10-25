@@ -740,6 +740,48 @@
       "empire": "帝国",
       "federation": "联邦",
       "corporate": "企业体制"
+    },
+    "good": {
+      "food": "食物",
+      "water": "水",
+      "wood": "木材",
+      "stone": "石料",
+      "iron": "铁",
+      "cloth": "布料",
+      "bread": "面包",
+      "spirit": "烈酒",
+      "aged_spirit": "陈酿烈酒",
+      "bottled_spirit": "瓶装烈酒",
+      "blended_spirit": "调和烈酒",
+      "bottle": "酒瓶",
+      "meat": "肉",
+      "cuts": "肉块",
+      "ground": "面粉",
+      "sausage": "香肠",
+      "preserved": "腌制品",
+      "preserved_meat": "腊肉",
+      "pattern": "纹样",
+      "piece": "构件",
+      "garment": "衣物",
+      "article": "制品",
+      "drink": "饮品",
+      "pastry": "糕点",
+      "coffee": "咖啡",
+      "stock": "存货",
+      "cave_painting": "洞穴壁画",
+      "sculpture": "雕塑"
+    },
+    "treaty": {
+      "non_aggression": "互不侵犯",
+      "alliance": "结盟",
+      "trade": "通商",
+      "defensive": "防御",
+      "vassalage": "附庸"
+    },
+    "relation": {
+      "ally": "盟友",
+      "neutral": "中立",
+      "rivals": "敌对"
     }
   }
 }

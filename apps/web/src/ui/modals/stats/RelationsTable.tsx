@@ -3,6 +3,7 @@ import type { TribalRelation } from '../../../shared/types'
 import { lineageColor } from '../../../shared/constants'
 import { t } from '../../../i18n'
 import { knownTribeName } from '../../../state/worldStore'
+import { relationWord } from '../../sim-words'
 
 export function RelationsTable({
   relations,
@@ -42,7 +43,7 @@ export function RelationsTable({
             <div className="stats-rel-bar-wrap">
               <div className="stats-rel-bar" style={{ width: barW, background: barColor }} />
             </div>
-            <span className={`stats-rel-status status-${r.status}`}>{r.status}</span>
+            <span className={`stats-rel-status status-${r.status}`}>{relationWord(r.status)}</span>
             <span className="stats-rel-muted">
               {t('dialogs.stats.versus', { a: sizeMap[r.a] ?? 0, b: sizeMap[r.b] ?? 0 })}
             </span>

@@ -751,6 +751,48 @@
       "empire": "imperio",
       "federation": "federación",
       "corporate": "corporativo"
+    },
+    "good": {
+      "food": "alimento",
+      "water": "agua",
+      "wood": "madera",
+      "stone": "piedra",
+      "iron": "hierro",
+      "cloth": "tela",
+      "bread": "pan",
+      "spirit": "aguardiente",
+      "aged_spirit": "aguardiente añejado",
+      "bottled_spirit": "aguardiente embotellado",
+      "blended_spirit": "aguardiente mezclado",
+      "bottle": "botella",
+      "meat": "carne",
+      "cuts": "cortes de carne",
+      "ground": "harina",
+      "sausage": "embutido",
+      "preserved": "conserva",
+      "preserved_meat": "carne curada",
+      "pattern": "diseño",
+      "piece": "pieza",
+      "garment": "prenda",
+      "article": "artículo",
+      "drink": "bebida",
+      "pastry": "repostería",
+      "coffee": "café",
+      "stock": "existencias",
+      "cave_painting": "pintura rupestre",
+      "sculpture": "escultura"
+    },
+    "treaty": {
+      "non_aggression": "no agresión",
+      "alliance": "alianza",
+      "trade": "comercio",
+      "defensive": "defensivo",
+      "vassalage": "vasallaje"
+    },
+    "relation": {
+      "ally": "aliados",
+      "neutral": "neutrales",
+      "rivals": "rivales"
     }
   }
 }
