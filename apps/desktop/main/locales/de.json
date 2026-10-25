@@ -35,6 +35,8 @@
     "screenshotSaved": "Screenshot gespeichert",
     "worldsFolderUnavailable": "Weltenordner nicht verfügbar",
     "logsFolderUnavailable": "Protokollordner nicht verfügbar",
+    "shortcutUnavailable": "Tastenkürzel nicht verfügbar",
+    "shortcutUnavailableDetail": "{shortcut} wird von einer anderen App verwendet. Nutze das Tray-Symbol, um das Spiel ein- oder auszublenden.",
     "about": "v{version}\nEine dauerhafte Simulation künstlichen Lebens.\nthehumanbox.com"
   },
   "dialog": {

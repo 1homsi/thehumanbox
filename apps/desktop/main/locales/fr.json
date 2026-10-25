@@ -35,6 +35,8 @@
     "screenshotSaved": "Capture d'écran enregistrée",
     "worldsFolderUnavailable": "Dossier des mondes indisponible",
     "logsFolderUnavailable": "Dossier des journaux indisponible",
+    "shortcutUnavailable": "Raccourci indisponible",
+    "shortcutUnavailableDetail": "{shortcut} est utilisé par une autre application. Utilisez l'icône de la barre d'état pour afficher ou masquer le jeu.",
     "about": "v{version}\nUne simulation persistante de vie artificielle.\nthehumanbox.com"
   },
   "dialog": {

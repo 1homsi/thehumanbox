@@ -35,6 +35,8 @@
     "screenshotSaved": "Captura guardada",
     "worldsFolderUnavailable": "Carpeta de mundos no disponible",
     "logsFolderUnavailable": "Carpeta de registros no disponible",
+    "shortcutUnavailable": "Atajo no disponible",
+    "shortcutUnavailableDetail": "{shortcut} lo usa otra aplicación. Usa el icono de la bandeja para mostrar u ocultar el juego.",
     "about": "v{version}\nUna simulación persistente de vida artificial.\nthehumanbox.com"
   },
   "dialog": {

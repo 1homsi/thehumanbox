@@ -707,6 +707,25 @@ function notifyMilestone(title: string, body: string): void {
 // Throws when the OS refuses the login item. The settings form awaits this call
 // and shows the failure; swallowing it reported success for a launch-at-login
 // setting the system never applied. Startup catches it instead (see boot).
+// The global show/hide shortcut. Another app may already hold it, and then
+// pressing it does nothing. Say so once; the tray icon still works.
+function registerToggleShortcut(): void {
+  const shortcut =
+    process.platform === "darwin" ? "Cmd+Alt+Shift+H" : "Ctrl+Alt+Shift+H";
+  let registered = false;
+  try {
+    registered = globalShortcut.register(shortcut, toggleWindow);
+  } catch (error) {
+    console.error(`[main] global shortcut ${shortcut} was rejected:`, error);
+  }
+  if (registered) return;
+  console.warn(`[main] could not register global shortcut ${shortcut}`);
+  notifyMilestone(
+    t("notify.shortcutUnavailable"),
+    t("notify.shortcutUnavailableDetail", { shortcut }),
+  );
+}
+
 function applyAutoLaunch(): void {
   const s = loadSettings();
   app.setLoginItemSettings(loginItemSettings(s.autoLaunch, s.startMinimized));
@@ -977,11 +996,7 @@ async function boot(): Promise<void> {
       console.error("[main] sim exit prompt failed:", err),
     ),
   );
-  const toggleKey =
-    process.platform === "darwin" ? "Cmd+Alt+Shift+H" : "Ctrl+Alt+Shift+H";
-  if (!globalShortcut.register(toggleKey, toggleWindow)) {
-    console.warn(`[main] could not register global shortcut ${toggleKey}`);
-  }
+  registerToggleShortcut();
 
   await openWindow();
   if (isQuitting) return;

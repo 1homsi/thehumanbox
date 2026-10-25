@@ -35,6 +35,8 @@
     "screenshotSaved": "Снимок экрана сохранён",
     "worldsFolderUnavailable": "Папка миров недоступна",
     "logsFolderUnavailable": "Папка журналов недоступна",
+    "shortcutUnavailable": "Сочетание клавиш недоступно",
+    "shortcutUnavailableDetail": "{shortcut} занято другим приложением. Используйте значок в трее, чтобы показать или скрыть игру.",
     "about": "v{version}\nПостоянная симуляция искусственной жизни.\nthehumanbox.com"
   },
   "dialog": {

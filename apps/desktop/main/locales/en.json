@@ -35,6 +35,8 @@
     "screenshotSaved": "Screenshot saved",
     "worldsFolderUnavailable": "Worlds folder unavailable",
     "logsFolderUnavailable": "Logs folder unavailable",
+    "shortcutUnavailable": "Shortcut unavailable",
+    "shortcutUnavailableDetail": "{shortcut} is in use by another app. Use the tray icon to show or hide the game.",
     "about": "v{version}\nA persistent artificial-life simulation.\nthehumanbox.com"
   },
   "dialog": {

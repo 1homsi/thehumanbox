@@ -35,6 +35,8 @@
     "screenshotSaved": "Zrzut ekranu zapisano",
     "worldsFolderUnavailable": "Folder światów jest niedostępny",
     "logsFolderUnavailable": "Folder logów jest niedostępny",
+    "shortcutUnavailable": "Skrót niedostępny",
+    "shortcutUnavailableDetail": "{shortcut} jest używany przez inną aplikację. Użyj ikony w zasobniku, aby pokazać lub ukryć grę.",
     "about": "v{version}\nTrwała symulacja sztucznego życia.\nthehumanbox.com"
   },
   "dialog": {

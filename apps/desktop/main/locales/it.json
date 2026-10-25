@@ -35,6 +35,8 @@
     "screenshotSaved": "Screenshot salvato",
     "worldsFolderUnavailable": "Cartella dei mondi non disponibile",
     "logsFolderUnavailable": "Cartella dei log non disponibile",
+    "shortcutUnavailable": "Scorciatoia non disponibile",
+    "shortcutUnavailableDetail": "{shortcut} è usata da un'altra app. Usa l'icona nella barra di sistema per mostrare o nascondere il gioco.",
     "about": "v{version}\nUna simulazione persistente di vita artificiale.\nthehumanbox.com"
   },
   "dialog": {

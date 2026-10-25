@@ -60,6 +60,16 @@ export interface DesktopBridge {
   ): () => void;
 }
 
+// The events the main process sends to the page (see the `.send(` calls in
+// main/). The page may listen only on these; any other channel is refused.
+const RENDERER_EVENTS: readonly string[] = [
+  "updater:available",
+  "updater:downloaded",
+  "updater:error",
+  "menu:openSettings",
+  "app:visibility",
+];
+
 // Passed by the main process (webPreferences.additionalArguments); see
 // main/app-version-arg.ts, which must keep the same prefix.
 const APP_VERSION_ARG_PREFIX = "--thb-app-version=";
@@ -106,6 +116,9 @@ const bridge: DesktopBridge = {
   },
 
   on(channel, cb) {
+    if (!RENDERER_EVENTS.includes(channel)) {
+      throw new Error(`not a desktop event: ${channel}`);
+    }
     const handler = (_e: unknown, payload: unknown) => cb(payload);
     ipcRenderer.on(channel, handler);
     return () => ipcRenderer.removeListener(channel, handler);
