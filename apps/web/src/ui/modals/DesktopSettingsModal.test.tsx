@@ -97,6 +97,47 @@ async function mount(b: DesktopBridge) {
   return { root, flush, button, openSimulationTab, openAppTab }
 }
 
+describe('DesktopSettingsModal while a save is in flight', () => {
+  it('locks the settings controls until the save answers, so an edit cannot be overwritten by it', async () => {
+    let answer!: (saved: DesktopSettings) => void
+    const m = await mount(
+      bridge({
+        set: () =>
+          new Promise<DesktopSettings>((resolve) => {
+            answer = resolve
+          }),
+      }),
+    )
+    await m.openSimulationTab()
+    await m.flush()
+    const ranges = [...document.querySelectorAll<HTMLInputElement>('input[type="range"]')]
+    const presets = [...document.querySelectorAll<HTMLButtonElement>('.desktop-cap-presets button')]
+    await act(async () => {
+      m.button('save settings').click()
+    })
+    expect(ranges).toHaveLength(2)
+    expect(presets).toHaveLength(4)
+    expect(ranges.every((control) => control.disabled)).toBe(true)
+    expect(presets.every((control) => control.disabled)).toBe(true)
+    await act(async () => answer(SETTINGS))
+    await m.flush()
+    expect(ranges.every((control) => !control.disabled)).toBe(true)
+    expect(presets.every((control) => !control.disabled)).toBe(true)
+
+    await m.openAppTab()
+    await m.flush()
+    const switches = [...document.querySelectorAll<HTMLButtonElement>('button[role="switch"]')]
+    expect(switches).toHaveLength(4)
+    await act(async () => {
+      m.button('save settings').click()
+    })
+    expect(switches.every((control) => control.disabled)).toBe(true)
+    await act(async () => answer(SETTINGS))
+    await m.flush()
+    expect(switches.every((control) => !control.disabled)).toBe(true)
+  })
+})
+
 describe('DesktopSettingsModal failures', () => {
   it('shows an error and a retry instead of "loading…" forever when settings cannot be read', async () => {
     let attempt = 0

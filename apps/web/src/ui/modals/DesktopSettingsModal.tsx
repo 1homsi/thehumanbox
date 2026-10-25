@@ -626,6 +626,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
                       max={2000}
                       step={10}
                       value={settings.tickMs}
+                      disabled={busy}
                       onChange={(e) => update({ tickMs: parseInt(e.target.value, 10) })}
                       style={{ width: '100%' }}
                     />
@@ -640,6 +641,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
                       max={5000}
                       step={20}
                       value={settings.populationCap}
+                      disabled={busy}
                       onChange={(e) => update({ populationCap: parseInt(e.target.value, 10) })}
                       style={{ width: '100%' }}
                     />
@@ -654,6 +656,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
                           type="button"
                           className={settings.populationCap === cap ? 'active' : ''}
                           onClick={() => update({ populationCap: cap })}
+                          disabled={busy}
                         >
                           {formatNumber(cap)} · {t(label)}
                         </button>
@@ -673,6 +676,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
                       <Switch
                         checked={settings.autoUpdate}
                         onChange={(v) => update({ autoUpdate: v })}
+                        disabled={busy}
                         label={t('settings.desktop.autoUpdate')}
                       />
                     </SettingRow>
@@ -686,6 +690,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
                       <Switch
                         checked={settings.autoLaunch}
                         onChange={(v) => update({ autoLaunch: v })}
+                        disabled={busy}
                         label={t('settings.desktop.launchAtSignIn')}
                       />
                     </SettingRow>
@@ -696,6 +701,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
                       <Switch
                         checked={settings.startMinimized}
                         onChange={(v) => update({ startMinimized: v })}
+                        disabled={busy}
                         label={t('settings.desktop.startHidden')}
                       />
                     </SettingRow>
@@ -706,6 +712,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
                       <Switch
                         checked={settings.pauseWhenHidden}
                         onChange={(v) => update({ pauseWhenHidden: v })}
+                        disabled={busy}
                         label={t('settings.desktop.pauseWhenHidden')}
                       />
                     </SettingRow>
