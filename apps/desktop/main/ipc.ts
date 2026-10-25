@@ -6,6 +6,7 @@ import {
   defaultDataRoot,
   effectiveDataRoot,
   loadSettings,
+  normalizeSettings,
   prepareDataRoot,
   saveSettings,
   Settings,
@@ -205,7 +206,11 @@ export function registerIpc(
     "settings:set",
     exclusiveIpcHandler(
       "update desktop settings",
-      async (_e, next: Settings) => {
+      async (_e, payload: unknown) => {
+        // The payload comes from the renderer. Normalizing it first rejects a
+        // non-object or a malformed save folder before it is compared or
+        // written, and fills any missing field with its default.
+        const next = normalizeSettings(payload);
         const current = loadSettings();
         if (
           path.resolve(effectiveDataRoot(current)) !==
