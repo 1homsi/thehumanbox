@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
+import type { FileHandle } from "node:fs/promises";
 
 export function syncDirectoryBestEffort(directory: string): void {
   try {
@@ -9,6 +10,22 @@ export function syncDirectoryBestEffort(directory: string): void {
       fs.fsyncSync(fd);
     } finally {
       fs.closeSync(fd);
+    }
+  } catch {
+    // Directory fsync is unavailable on some Windows filesystems.
+  }
+}
+
+/** syncDirectoryBestEffort for code already on the async path: the sync runs on libuv's thread pool. */
+export async function syncDirectoryBestEffortAsync(
+  directory: string,
+): Promise<void> {
+  try {
+    const handle = await fs.promises.open(directory, "r");
+    try {
+      await handle.sync();
+    } finally {
+      await handle.close();
     }
   } catch {
     // Directory fsync is unavailable on some Windows filesystems.
@@ -58,6 +75,36 @@ export function atomicWriteNewFile(
     } catch {
       /* noop */
     }
+    throw error;
+  }
+}
+
+/**
+ * atomicWriteNewFile for large payloads, such as an exported world save. The
+ * write and fsync run on libuv's thread pool, so the window stays responsive
+ * while tens of megabytes reach the disk. It fails if the name is taken.
+ */
+export async function atomicWriteNewFileAsync(
+  filePath: string,
+  data: Uint8Array,
+): Promise<void> {
+  await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+  const tempPath = path.join(
+    path.dirname(filePath),
+    `.${path.basename(filePath)}.${process.pid}.${randomUUID()}.tmp`,
+  );
+  let handle: FileHandle | null = null;
+  try {
+    handle = await fs.promises.open(tempPath, "wx", 0o600);
+    await handle.writeFile(data);
+    await handle.sync();
+    await handle.close();
+    handle = null;
+    await fs.promises.rename(tempPath, filePath);
+    await syncDirectoryBestEffortAsync(path.dirname(filePath));
+  } catch (error) {
+    if (handle !== null) await handle.close().catch(() => {});
+    await fs.promises.unlink(tempPath).catch(() => {});
     throw error;
   }
 }

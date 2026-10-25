@@ -47,69 +47,107 @@ function nonNegativeJsonInteger(value: unknown): value is number {
   );
 }
 
-function topLevelUnsignedIntegerText(json: string, key: string): string {
-  let depth = 0;
-  let previousSignificant = "";
-  let found: string | null = null;
+const UNSIGNED_INTEGER_TOKEN = /(?:0|[1-9]\d*)/y;
 
-  for (let index = 0; index < json.length; index += 1) {
-    const character = json[index];
-    if (/\s/.test(character)) continue;
-    if (character === '"') {
+// Character codes the top-level scan branches on. It only runs on text that
+// JSON.parse has already accepted, so whitespace is the four JSON characters.
+const CH_QUOTE = 0x22;
+const CH_BACKSLASH = 0x5c;
+const CH_COMMA = 0x2c;
+const CH_COLON = 0x3a;
+const CH_OPEN_BRACE = 0x7b;
+const CH_CLOSE_BRACE = 0x7d;
+const CH_OPEN_BRACKET = 0x5b;
+const CH_CLOSE_BRACKET = 0x5d;
+
+function isJsonWhitespace(code: number): boolean {
+  return code === 0x20 || code === 0x09 || code === 0x0a || code === 0x0d;
+}
+
+/**
+ * Read the top-level unsigned-integer fields `keys` in one pass over the save
+ * text, keeping each value's digits as written. A key that is missing, repeated,
+ * not followed by a plain integer, or outside Rust's u64 range is an error. The
+ * errors are raised in `keys` order, the same order a per-key scan would give.
+ */
+function topLevelUnsignedIntegerTexts(
+  json: string,
+  keys: readonly string[],
+): Record<string, string> {
+  const found = new Map<string, string>();
+  const problems = new Map<string, string>();
+  const length = json.length;
+  let depth = 0;
+  let previous = 0;
+  let index = 0;
+
+  while (index < length) {
+    const code = json.charCodeAt(index);
+    if (isJsonWhitespace(code)) {
+      index += 1;
+      continue;
+    }
+    if (code === CH_QUOTE) {
       const stringStart = index;
       index += 1;
-      while (index < json.length) {
-        if (json[index] === "\\") {
+      while (index < length) {
+        const inner = json.charCodeAt(index);
+        if (inner === CH_BACKSLASH) {
           index += 2;
           continue;
         }
-        if (json[index] === '"') break;
+        if (inner === CH_QUOTE) break;
         index += 1;
       }
-      if (index >= json.length) break; // JSON.parse already reports this.
+      if (index >= length) break; // JSON.parse already reports this.
 
-      if (
-        depth === 1 &&
-        (previousSignificant === "{" || previousSignificant === ",")
-      ) {
-        const decodedKey = JSON.parse(
-          json.slice(stringStart, index + 1),
-        ) as string;
+      if (depth === 1 && (previous === CH_OPEN_BRACE || previous === CH_COMMA)) {
+        const decodedKey = JSON.parse(json.slice(stringStart, index + 1)) as string;
         let valueStart = index + 1;
-        while (/\s/.test(json[valueStart] ?? "")) valueStart += 1;
-        if (json[valueStart] === ":") {
+        while (valueStart < length && isJsonWhitespace(json.charCodeAt(valueStart))) valueStart += 1;
+        if (json.charCodeAt(valueStart) === CH_COLON && keys.includes(decodedKey)) {
           valueStart += 1;
-          while (/\s/.test(json[valueStart] ?? "")) valueStart += 1;
-          if (decodedKey === key) {
-            const match = /^(?:0|[1-9]\d*)/.exec(json.slice(valueStart));
-            if (!match) {
-              throw new Error(`world save has an invalid ${key}`);
-            }
+          while (valueStart < length && isJsonWhitespace(json.charCodeAt(valueStart))) valueStart += 1;
+          UNSIGNED_INTEGER_TOKEN.lastIndex = valueStart;
+          const match = UNSIGNED_INTEGER_TOKEN.exec(json);
+          if (!match) {
+            if (!problems.has(decodedKey)) problems.set(decodedKey, `world save has an invalid ${decodedKey}`);
+          } else {
             let afterValue = valueStart + match[0].length;
-            while (/\s/.test(json[afterValue] ?? "")) afterValue += 1;
-            if (json[afterValue] !== "," && json[afterValue] !== "}") {
-              throw new Error(`world save has an invalid ${key}`);
+            while (afterValue < length && isJsonWhitespace(json.charCodeAt(afterValue))) afterValue += 1;
+            const after = json.charCodeAt(afterValue);
+            if (after !== CH_COMMA && after !== CH_CLOSE_BRACE) {
+              if (!problems.has(decodedKey)) problems.set(decodedKey, `world save has an invalid ${decodedKey}`);
+            } else if (found.has(decodedKey)) {
+              if (!problems.has(decodedKey)) problems.set(decodedKey, `world save contains duplicate ${decodedKey} fields`);
+            } else {
+              found.set(decodedKey, BigInt(match[0]).toString());
             }
-            if (found !== null) {
-              throw new Error(`world save contains duplicate ${key} fields`);
-            }
-            found = BigInt(match[0]).toString();
           }
         }
       }
-      previousSignificant = '"';
+      previous = CH_QUOTE;
+      index += 1;
       continue;
     }
-    if (character === "{" || character === "[") depth += 1;
-    if (character === "}" || character === "]") depth -= 1;
-    previousSignificant = character;
+    if (code === CH_OPEN_BRACE || code === CH_OPEN_BRACKET) depth += 1;
+    if (code === CH_CLOSE_BRACE || code === CH_CLOSE_BRACKET) depth -= 1;
+    previous = code;
+    index += 1;
   }
 
-  if (found === null) throw new Error(`world save is missing its ${key}`);
-  if (BigInt(found) > MAX_U64) {
-    throw new Error(`world save ${key} exceeds Rust's u64 range`);
+  const values: Record<string, string> = {};
+  for (const key of keys) {
+    const problem = problems.get(key);
+    if (problem !== undefined) throw new Error(problem);
+    const value = found.get(key);
+    if (value === undefined) throw new Error(`world save is missing its ${key}`);
+    if (BigInt(value) > MAX_U64) {
+      throw new Error(`world save ${key} exceeds Rust's u64 range`);
+    }
+    values[key] = value;
   }
-  return found;
+  return values;
 }
 
 export function validateWorldSaveBytes(bytes: Uint8Array): ValidatedWorldSave {
@@ -187,8 +225,10 @@ export function validateWorldSaveBytes(bytes: Uint8Array): ValidatedWorldSave {
     throw new Error("world save terrain contains an invalid tile value");
   }
 
-  const tickText = topLevelUnsignedIntegerText(text, "tick_count");
-  const seedText = topLevelUnsignedIntegerText(text, "world_seed");
+  const { tick_count: tickText, world_seed: seedText } = topLevelUnsignedIntegerTexts(text, [
+    "tick_count",
+    "world_seed",
+  ]);
 
   return {
     bytes: Buffer.from(bytes),

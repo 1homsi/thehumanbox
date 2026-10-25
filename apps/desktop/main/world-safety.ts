@@ -15,7 +15,9 @@ export {
 export type { ValidatedWorldSave, MigrationWorldExpectation } from "./world-safety/save-validation";
 export {
   syncDirectoryBestEffort,
+  syncDirectoryBestEffortAsync,
   atomicWriteNewFile,
+  atomicWriteNewFileAsync,
   atomicReplaceFile,
 } from "./world-safety/atomic-files";
 export {
@@ -51,5 +53,6 @@ export {
   finishSaveFolderMigration,
   finishCommittedMigrationForActiveRoot,
   copyWorldsToStaging,
+  copyWorldsToStagingInWorker,
 } from "./world-safety/save-folder-migration";
 export type { InterruptedMigrationRecovery } from "./world-safety/save-folder-migration";

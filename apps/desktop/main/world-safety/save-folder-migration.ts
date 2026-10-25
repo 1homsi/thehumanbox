@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { Worker } from "node:worker_threads";
 import { atomicReplaceFile, atomicWriteNewFile, pathEntryExists, syncDirectoryBestEffort, syncFile } from "./atomic-files";
 import { requireExistingDataRootIdentity, resolveActiveWorldFiles } from "./data-root";
 import { rootsOverlap } from "./paths";
@@ -574,6 +575,46 @@ export function copyWorldsToStaging(
     fs.rmSync(stagingRoot, { recursive: true, force: true });
     throw error;
   }
+}
+
+/**
+ * copyWorldsToStaging on a worker thread. A mature save folder is tens of
+ * megabytes per world, and copying and fsyncing it file by file on the main
+ * thread froze the window for the whole copy. The copy, its checks and its
+ * cleanup are the same code; only the thread differs.
+ */
+export function copyWorldsToStagingInWorker(
+  sourceRoot: string,
+  targetRoot: string,
+  token: string,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(path.join(__dirname, "copy-worlds-worker.js"), {
+      workerData: { sourceRoot, targetRoot, token },
+    });
+    let settled = false;
+    worker.once("message", (result: { stagingRoot?: string; error?: string }) => {
+      settled = true;
+      if (result.error !== undefined) {
+        reject(new Error(result.error));
+        return;
+      }
+      if (typeof result.stagingRoot !== "string") {
+        reject(new Error("world copy worker returned no staging folder"));
+        return;
+      }
+      resolve(result.stagingRoot);
+    });
+    worker.once("error", (error) => {
+      settled = true;
+      reject(error);
+    });
+    worker.once("exit", (code) => {
+      if (!settled) {
+        reject(new Error(`world copy worker exited with code ${code}`));
+      }
+    });
+  });
 }
 
 function copyTreeWithoutLinks(source: string, target: string): void {
