@@ -4,7 +4,7 @@ import { Worker } from "node:worker_threads";
 
 export const MAX_REMOTE_SAVE_BYTES = 256 * 1024 * 1024;
 
-export const SUPPORTED_SAVE_SCHEMA_VERSION = 6;
+export const SUPPORTED_SAVE_SCHEMA_VERSION = 7;
 
 const EXPECTED_GRID_TILES = 800 * 400;
 const LEGACY_GRID_TILES = 600 * 300;

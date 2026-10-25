@@ -80,27 +80,34 @@ fn old_world_preserves_every_grid_layer_and_coordinate() {
     s.grid.temperature = (0..600 * 300).map(|i| (i % 60) as f32 - 20.0).collect();
     s.grid.volcanoes = Some(vec![crate::world::grid::Volcano { x: 12, y: 24, r: 6 }]);
     s.grid.pool_centers = Some(vec![(12, 24)]);
+    // Each grid layer as numbers (floats by their bits), read from the struct: the save writes the layers
+    // packed, so they are not JSON arrays to compare.
+    fn layers(s: &SaveState) -> Vec<(&'static str, Vec<u64>)> {
+        let g = &s.grid;
+        let floats = |v: &Vec<f32>| v.iter().map(|x| u64::from(x.to_bits())).collect::<Vec<_>>();
+        let bytes = |v: &Vec<u8>| v.iter().map(|&x| u64::from(x)).collect::<Vec<_>>();
+        vec![
+            ("tiles", g.tiles.iter().map(|&x| x as u8 as u64).collect()),
+            ("depth", floats(&g.depth)),
+            ("biome", bytes(&g.biome)),
+            ("fire", floats(&g.fire)),
+            ("food_trail", floats(&g.food_trail)),
+            ("water_trail", floats(&g.water_trail)),
+            ("path_trail", floats(&g.path_trail)),
+            ("structure", floats(&g.structure)),
+            ("fertility", floats(&g.fertility)),
+            ("hazard", floats(&g.hazard)),
+            ("pressure", floats(&g.pressure)),
+            ("road", bytes(&g.road)),
+            ("elevation", floats(&g.elevation)),
+            ("temperature", floats(&g.temperature)),
+        ]
+    }
+    let before_layers = layers(&s);
     let before = serde_json::to_value(&s).unwrap();
     resize::centre_old_world(&mut s, 42);
     let after = serde_json::to_value(&s).unwrap();
-    for layer in [
-        "tiles",
-        "depth",
-        "biome",
-        "fire",
-        "food_trail",
-        "water_trail",
-        "path_trail",
-        "structure",
-        "fertility",
-        "hazard",
-        "pressure",
-        "road",
-        "elevation",
-        "temperature",
-    ] {
-        let a = before["grid"][layer].as_array().unwrap();
-        let b = after["grid"][layer].as_array().unwrap();
+    for ((layer, a), (_, b)) in before_layers.iter().zip(layers(&s)) {
         assert_eq!(b.len(), WIDTH * HEIGHT, "{layer}");
         for y in 0..300 {
             assert_eq!(

@@ -5,9 +5,9 @@ use super::*;
 pub(crate) struct GridSave {
     pub(super) tiles: Vec<i8>,
     /// Keep the terrain of migrated worlds instead of regenerating a larger map on reload.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty", with = "packed::f32s")]
     pub(super) elevation: Vec<f32>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty", with = "packed::f32s")]
     pub(super) temperature: Vec<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(super) volcanoes: Option<Vec<crate::world::grid::Volcano>>,
@@ -16,23 +16,33 @@ pub(crate) struct GridSave {
     /// Water depth changes at runtime as droughts, floods, and completed
     /// infrastructure reshape the map, so it cannot be regenerated from the
     /// world seed on load.
+    #[serde(with = "packed::f32s")]
     pub(super) depth: Vec<f32>,
     /// Biomes are rewritten at runtime by the world-evolution pass (forest
     /// clearing for farmland, grassland desertifying during droughts, rivers
     /// and wetlands forming). Regenerating them from the seed on load threw
     /// all of that away and, because fertility regrowth is capped per biome,
     /// re-capped recovered tiles to their pre-evolution biome's ceiling.
+    #[serde(with = "packed::u8s")]
     pub(super) biome: Vec<u8>,
+    #[serde(with = "packed::f32s")]
     pub(super) fire: Vec<f32>,
+    #[serde(with = "packed::f32s")]
     pub(super) food_trail: Vec<f32>,
+    #[serde(with = "packed::f32s")]
     pub(super) water_trail: Vec<f32>,
+    #[serde(with = "packed::f32s")]
     pub(super) path_trail: Vec<f32>,
+    #[serde(with = "packed::f32s")]
     pub(super) structure: Vec<f32>,
+    #[serde(with = "packed::f32s")]
     pub(super) fertility: Vec<f32>,
+    #[serde(with = "packed::f32s")]
     pub(super) hazard: Vec<f32>,
+    #[serde(with = "packed::f32s")]
     pub(super) pressure: Vec<f32>,
     /// Road kinds per cell (`ROAD_*`). Saves from before roads load with none.
-    #[serde(default)]
+    #[serde(default, with = "packed::u8s")]
     pub(super) road: Vec<u8>,
     /// Volcanoes raised with the god tool; world generation's own come back from the seed.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
