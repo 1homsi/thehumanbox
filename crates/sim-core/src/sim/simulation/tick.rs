@@ -189,8 +189,12 @@ impl Simulation {
             self.tick_settlements();
         }
 
-        if on_beat(self.tick_count, 600, ERAS_PHASE) {
+        // Baseline discoveries keep the 600-tick multiples: their thresholds are absolute ticks (fire at 1200,
+        // shelter at 2400, stone tools at 3600), and a later pass would hand each one out late.
+        if self.tick_count.is_multiple_of(600) {
             crate::sim::tech_progress::seed_baseline_discoveries(&mut self.organisms, self.tick_count);
+        }
+        if on_beat(self.tick_count, 600, ERAS_PHASE) {
             self.update_lineage_eras();
             self.tick_water_depletion();
         }

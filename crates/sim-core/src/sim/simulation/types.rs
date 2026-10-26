@@ -11,7 +11,7 @@ pub(crate) fn on_beat(tick: u64, period: u64, phase: u64) -> bool {
     tick % period == phase % period
 }
 
-/// Phase of the era, baseline-discovery and water-depletion pass (every 600 ticks).
+/// Phase of the era and water-depletion pass (every 600 ticks). Baseline discoveries stay on the multiples.
 pub(crate) const ERAS_PHASE: u64 = 151;
 /// Phase of village sowing (every `SOW_STEP`, 600 ticks).
 pub(crate) const SOW_PHASE: u64 = 433;
