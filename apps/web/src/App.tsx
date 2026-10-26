@@ -33,6 +33,7 @@ import { askConfirm } from './shared/confirm'
 import { toolFailure, toolName } from './ui/toolbar/tool-tips'
 import { formatNumber, t, type MessageKey } from './i18n'
 import { describeOutcome } from './simulation/command-outcome'
+import { GUIDANCE_LABEL } from './shared/guidance-words'
 import { PAIR_TOOLS, SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
 import { newPerils } from './game/model/peril-watch'
 import { prayerRows, prayerTool } from './game/model/prayers'
@@ -92,15 +93,6 @@ import './pixel-theme.css'
 // arrived, which takes seconds of WebAssembly start-up. It is its own chunk, fetched in
 // parallel with the entry through a modulepreload hint (see vite.config.ts), so the app
 // shell parses and the simulation worker starts without waiting for it.
-/** The name of each guidance strategy in words, as the civilization panel shows it. */
-const GUIDANCE_LABEL: Record<LineageStrategy, MessageKey> = {
-  hunt: 'dialogs.civ.guidance.hunt.label',
-  explore: 'dialogs.civ.guidance.explore.label',
-  settle: 'dialogs.civ.guidance.settle.label',
-  trade: 'dialogs.civ.guidance.trade.label',
-  defend: 'dialogs.civ.guidance.defend.label',
-}
-
 const WorldView = lazyWithRetry(() =>
   import('./game/render/WorldView').then((m) => ({ default: m.WorldView })),
 )

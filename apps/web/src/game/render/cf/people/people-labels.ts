@@ -14,6 +14,7 @@ import type { PlacedLabel } from '../../settlement-labels'
 import { isFocused } from './people-sprites'
 import { emitWorkPose, isFastPose, type PoseSink } from './work-poses'
 import type { NameStyle } from './people-names'
+import type { LabelPresence } from '../../label-presence'
 
 /** Where names and thoughts go instead of the canvas (a `TextLayer`, see `PeopleNameLayer`). */
 export interface NameSink {
@@ -67,6 +68,14 @@ export function labelFlagsOf(org: OrganismState): number {
   return f
 }
 
+/** A name or thought as it was last drawn: what it said and where, so it can hold still while it fades. */
+export interface HeldLabel {
+  text: string
+  x: number
+  y: number
+  style: NameStyle
+}
+
 export interface PeopleLabelInput {
   people: PeopleLabelSource
   selectedId: string | null
@@ -93,6 +102,11 @@ export interface PeopleLabelInput {
    * `ctx` (what the tests compare against).
    */
   names?: NameSink
+  /**
+   * Keeps each label's opacity from one paint to the next, so names fade in and out rather than pop (see
+   * `LabelPresence`). Without it a label is either drawn at full strength or not at all.
+   */
+  fade?: LabelPresence<HeldLabel>
 }
 
 /** What a person has to draw above their sprite this frame (a bit mask). */
@@ -115,6 +129,15 @@ let orderPrevCount = 0
 let flaggedAt = new Uint32Array(0)
 let placedAt = new Uint32Array(0)
 let frameStamp = 0
+/** Per candidate (in draw order): whether its name and thought are placed this paint, their opacity, and where they sit. */
+let nameOkScratch = new Uint8Array(0)
+let thoughtOkScratch = new Uint8Array(0)
+let nameAlphaScratch = new Float32Array(0)
+let thoughtAlphaScratch = new Float32Array(0)
+let anchorXScratch = new Float32Array(0)
+let anchorYScratch = new Float32Array(0)
+/** Per candidate: 1 when its name or thought was showing before this paint, read once before either pass places anything. */
+let stickyScratch = new Uint8Array(0)
 
 /** A person's prayer glyph seed: whether they join in, and where in the dance they start. */
 export function prayerSeed(id: string): number {
@@ -169,7 +192,11 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
   const { people, selectedId, focus, viewFlags, zoom, now } = input
   const detail = zoomDetailLevel(zoom)
   const zoomAlpha = nameVisibilityAlpha(zoom)
-  if (detail === 'overview' && selectedId == null && zoomAlpha === 0) return
+  const fade = input.fade
+  if (detail === 'overview' && selectedId == null && zoomAlpha === 0) {
+    fade?.clear()
+    return
+  }
   const { c0, c1, r0, r1 } = input.window
   const { ox, oy, poses, names } = input
   const orgs = people.orgs
@@ -183,12 +210,20 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
     orderNext = new Int32Array(cap)
     flaggedAt = new Uint32Array(cap)
     placedAt = new Uint32Array(cap)
+    nameOkScratch = new Uint8Array(cap)
+    thoughtOkScratch = new Uint8Array(cap)
+    nameAlphaScratch = new Float32Array(cap)
+    thoughtAlphaScratch = new Float32Array(cap)
+    anchorXScratch = new Float32Array(cap)
+    anchorYScratch = new Float32Array(cap)
+    stickyScratch = new Uint8Array(cap)
     orderPrevCount = 0
   }
   const stamp = ++frameStamp
   const onScreen = onScreenScratch
   const flags = flagsScratch
   const { tileX, tileY, ids } = people
+  fade?.begin(now)
 
   // Visible, living, drawn people.
   let count = 0
@@ -274,13 +309,84 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
   orderNext = orderPrev
   orderPrev = next
   orderPrevCount = nc
-  if (nc === 0) {
-    ctx.globalAlpha = 1
-    return
-  }
 
+  // Where names and thoughts go. A name already showing claims its place before newcomers do, so a newcomer
+  // cannot push a visible name out (it fades instead); the rest follow in draw order. Without a fade there is
+  // one pass in draw order, as before.
   const placer = new LabelPlacer()
   for (const p of input.settlementLabels) placer.place(p.cx, p.cy + p.h / 2, p.w, p.h, true)
+  const nameOk = nameOkScratch
+  const thoughtOk = thoughtOkScratch
+  const nameAlpha = nameAlphaScratch
+  const thoughtAlpha = thoughtAlphaScratch
+  const anchorX = anchorXScratch
+  const anchorY = anchorYScratch
+  // Read once per candidate, before any pass runs: a fade.set in pass 0 can drop a label below visible,
+  // and re-reading it in pass 1 would place that candidate twice and advance its fade twice.
+  const sticky = stickyScratch
+  for (let c = 0; c < nc; c++) {
+    const id = orgs[next[c]].id
+    sticky[c] = fade !== undefined && (fade.visible(id) || fade.visible(thoughtKeyOf(id))) ? 1 : 0
+  }
+  for (let pass = fade ? 0 : 1; pass < 2; pass++) {
+    for (let c = 0; c < nc; c++) {
+      const j = next[c]
+      const org = orgs[j]
+      const mask = flags[j]
+      if (mask === WORK) {
+        // A pose alone has no label to place; whatever label it had fades out with the others.
+        nameOk[c] = 0
+        thoughtOk[c] = 0
+        nameAlpha[c] = 0
+        thoughtAlpha[c] = 0
+        continue
+      }
+      const thoughtKey = thoughtKeyOf(org.id)
+      if ((pass === 0) !== (sticky[c] === 1)) continue
+      const isSelected = org.id === selectedId
+      // The lift above the figure eases with vitals rather than snapping when one dips under a threshold.
+      const vital = isSelected ? 0 : Math.min(org.energy, org.hydration, org.health)
+      const lift = 2 + 8 * Math.min(1, Math.max(0, (LIFT_CLEAR_AT - vital) / (LIFT_CLEAR_AT - LIFT_FULL_AT)))
+      const labelX = figureCentreX(people.px[j])
+      const labelY = figureHeadTop(people.py[j], resolveAgeStage(org)) - lift
+      anchorX[c] = labelX
+      anchorY[c] = labelY
+      const nameFits =
+        (mask & NAME) !== 0 &&
+        placer.place(labelX, labelY, labelWidth(org.name, isSelected ? 10 : 9), 10, isSelected)
+      const thoughtFits =
+        (mask & THOUGHT) !== 0 &&
+        placer.place(labelX, labelY - (nameFits ? 10 : 0), labelWidth(org.thought ?? '', 8), 9, isSelected)
+      nameOk[c] = nameFits ? 1 : 0
+      thoughtOk[c] = thoughtFits ? 1 : 0
+      if (fade) {
+        nameAlpha[c] = fade.set(
+          org.id,
+          nameFits,
+          nameFits
+            ? { text: org.name, x: labelX, y: labelY, style: isSelected ? 'nameSelected' : 'name' }
+            : undefined,
+        )
+        thoughtAlpha[c] = fade.set(
+          thoughtKey,
+          thoughtFits,
+          thoughtFits
+            ? {
+                text: org.thought ?? '',
+                x: labelX,
+                y: labelY - (nameFits ? 10 : 0),
+                style: isSelected ? 'thoughtSelected' : 'thought',
+              }
+            : undefined,
+        )
+      }
+    }
+  }
+  if (fade === undefined) {
+    // No presence to read: a label is at full strength when it is placed.
+    nameAlpha.fill(1, 0, nc)
+    thoughtAlpha.fill(1, 0, nc)
+  }
 
   // Back to front, the order the placer should claim space in.
   for (let c = 0; c < nc; c++) {
@@ -320,58 +426,128 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
 
     ctx.globalAlpha = alpha
     const isSelected = org.id === selectedId
-    const nameAlpha = isSelected ? 1 : zoomAlpha
+    const nameAlphaZoom = isSelected ? 1 : zoomAlpha
     const px = people.px[j]
     const py = people.py[j]
     const spriteTop = figureHeadTop(py, resolveAgeStage(org))
-    const labelX = figureCentreX(px)
-
-    const showVitals = isSelected || org.energy < 0.22 || org.hydration < 0.22 || org.health < 0.22
-    const labelY = spriteTop - (showVitals ? 10 : 2)
 
     if (mask & GLYPH_CELEBRATE) drawCelebrationGlyph(ctx, px, spriteTop, now, prayerSeed(org.id))
     else if (mask & GLYPH_PRAY) drawPrayingGlyph(ctx, px, spriteTop, now, prayerSeed(org.id))
 
-    // Names and thoughts that would sit on top of another label are left out; the selected
-    // person's always shows.
-    const nameShown =
-      (mask & NAME) !== 0 &&
-      placer.place(labelX, labelY, labelWidth(org.name, isSelected ? 10 : 9), 10, isSelected)
-    const thoughtShown =
-      (mask & THOUGHT) !== 0 &&
-      placer.place(labelX, labelY - (nameShown ? 10 : 0), labelWidth(org.thought ?? '', 8), 9, isSelected)
+    // Names and thoughts that would sit on top of another label were left out in the placement pass; the
+    // selected person's always show. A label that is leaving keeps the place it was drawn at.
+    const labelX = anchorX[c]
+    const labelY = anchorY[c]
+    const nameShown = nameOk[c] === 1
+    const thoughtShown = thoughtOk[c] === 1
+    const nameFade = nameAlpha[c]
+    const thoughtFade = thoughtAlpha[c]
 
     if (nameShown) {
       if (names)
-        names.text(org.name, labelX, labelY, isSelected ? 'nameSelected' : 'name', alpha * nameAlpha, j)
+        names.text(
+          org.name,
+          labelX,
+          labelY,
+          isSelected ? 'nameSelected' : 'name',
+          alpha * nameAlphaZoom * nameFade,
+          j,
+        )
       else {
         ctx.font = isSelected ? 'bold 10px monospace' : '9px monospace'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'bottom'
         ctx.lineWidth = 3
         ctx.strokeStyle = 'rgba(0,0,0,0.85)'
-        ctx.globalAlpha = alpha * nameAlpha
+        ctx.globalAlpha = alpha * nameAlphaZoom * nameFade
         ctx.strokeText(org.name, labelX, labelY)
         ctx.fillStyle = isSelected ? '#ffffff' : 'rgba(255,255,255,0.95)'
         ctx.fillText(org.name, labelX, labelY)
         ctx.globalAlpha = alpha
       }
+    } else if (fade && nameFade > 0) {
+      const held = fade.dataOf(org.id)
+      if (held) drawHeldLabel(ctx, names, held, alpha * nameAlphaZoom * nameFade)
     }
     if (thoughtShown) {
       const thoughtY = labelY - (nameShown ? 10 : 0)
       if (names)
-        names.text(org.thought ?? '', labelX, thoughtY, isSelected ? 'thoughtSelected' : 'thought', alpha, j)
+        names.text(
+          org.thought ?? '',
+          labelX,
+          thoughtY,
+          isSelected ? 'thoughtSelected' : 'thought',
+          alpha * thoughtFade,
+          j,
+        )
       else {
         ctx.font = '8px monospace'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'bottom'
         ctx.lineWidth = 2.5
         ctx.strokeStyle = 'rgba(0,0,0,0.85)'
+        ctx.globalAlpha = alpha * thoughtFade
         ctx.strokeText(org.thought, labelX, thoughtY)
         ctx.fillStyle = isSelected ? 'rgba(180,220,255,1)' : 'rgba(180,220,255,0.9)'
         ctx.fillText(org.thought, labelX, thoughtY)
+        ctx.globalAlpha = alpha
       }
+    } else if (fade && thoughtFade > 0) {
+      const held = fade.dataOf(thoughtKeyOf(org.id))
+      if (held) drawHeldLabel(ctx, names, held, alpha * thoughtFade)
     }
   }
+
+  // Labels that nobody asked about this paint (the person left the screen, or no longer has a name to show)
+  // fade out where they were.
+  if (fade) {
+    fade.leaving((_key, held, a) => {
+      const isName = held.style === 'name' || held.style === 'nameSelected'
+      drawHeldLabel(ctx, names, held, isName ? a * zoomAlpha : a)
+    })
+  }
   ctx.globalAlpha = 1
+}
+
+/**
+ * A name sits 2px above the head, and 10px when the person's lowest vital (energy, hydration, health) is low enough to
+ * show it. The lift eases between the two across vitals from `LIFT_CLEAR_AT` down to `LIFT_FULL_AT`, so a dip past a
+ * threshold does not snap the label up and down.
+ */
+const LIFT_CLEAR_AT = 0.3
+const LIFT_FULL_AT = 0.22
+
+/** The presence key of a person's thought (their name is keyed by the id itself). */
+function thoughtKeyOf(id: string): string {
+  return `thought ${id}`
+}
+
+/** Draws a label that is fading out where it was last shown. */
+function drawHeldLabel(
+  ctx: CanvasRenderingContext2D,
+  names: NameSink | undefined,
+  held: HeldLabel,
+  alpha: number,
+): void {
+  if (names) {
+    names.text(held.text, held.x, held.y, held.style, alpha, -1)
+    return
+  }
+  const selected = held.style === 'nameSelected' || held.style === 'thoughtSelected'
+  const isName = held.style === 'name' || held.style === 'nameSelected'
+  ctx.font = isName ? (selected ? 'bold 10px monospace' : '9px monospace') : '8px monospace'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'bottom'
+  ctx.lineWidth = isName ? 3 : 2.5
+  ctx.strokeStyle = 'rgba(0,0,0,0.85)'
+  ctx.globalAlpha = alpha
+  ctx.strokeText(held.text, held.x, held.y)
+  ctx.fillStyle = isName
+    ? selected
+      ? '#ffffff'
+      : 'rgba(255,255,255,0.95)'
+    : selected
+      ? 'rgba(180,220,255,1)'
+      : 'rgba(180,220,255,0.9)'
+  ctx.fillText(held.text, held.x, held.y)
 }

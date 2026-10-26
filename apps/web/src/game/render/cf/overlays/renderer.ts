@@ -3,7 +3,7 @@ import { TILE } from '../../../model/palette'
 import { drawTradeNetwork2D } from '../../base-parts/trade-network'
 import { drawCart, drawTrain } from '../../era-traffic'
 import { eraTier } from '../../../model/era-tier'
-import { paintPeopleLabels, type PeopleLabelSource } from '../people/people-labels'
+import { paintPeopleLabels, type HeldLabel, type PeopleLabelSource } from '../people/people-labels'
 import { PeopleNameLayer } from '../people/people-names'
 import { atmosphereTints, precipitating, writePrecipitation, type Tint } from './atmosphere'
 import { atlasId, makeCanvas } from './atlas-host'
@@ -43,6 +43,8 @@ import { paintTornado, tornadoAt } from './tornado'
 import { vegetationSeason } from '../../landscape-style'
 import { terrainSeason } from '../../terrain-season'
 import { paintHud } from './paint-hud'
+import { LabelPresence } from '../../label-presence'
+import type { PlacedLabel } from '../../settlement-labels'
 import { paintFireflies } from './fireflies'
 import { nightLevel, paintStars } from './night-sky'
 import { SpriteRecorder } from './recorder'
@@ -104,6 +106,8 @@ export interface OverlayExtras {
 const GROUND_INTERVAL_MS = 66
 /** Time-driven overlay layers need at most 15 updates per second. */
 const ANIMATED_SECTION_INTERVAL_MS = 66
+/** While a label fades, the labels repaint at this interval (about 60 times a second). */
+const FADE_FRAME_MS = 16
 /** The heat map follows new world data at most this often (a setting change is shown at once). */
 const HEAT_INTERVAL_MS = 500
 
@@ -168,6 +172,12 @@ export class CfOverlayRenderer {
   private labelsKey = ''
   private labelsPeople: PeopleLabelSource | null = null
   private settlementLabels: ReturnType<typeof paintHud>['labels'] = []
+  /** Opacity of each name and thought between paints, so they fade rather than pop (see `LabelPresence`). */
+  private readonly peopleFade = new LabelPresence<HeldLabel>()
+  private readonly settlementFade = new LabelPresence<PlacedLabel>()
+  /** Whether a label was part-way through a fade at the last paint: such labels repaint every frame until done. */
+  private labelsFading = false
+  private hudFading = false
   /** Tribes that entered a new era, marked on the map for a while. */
   private readonly eraWatch = new EraWatch()
   private readonly dust = new FootstepDust()
@@ -439,18 +449,20 @@ export class CfOverlayRenderer {
     }
     lap('effects')
 
-    const hudKey = `${animatedKey}|${f.viewFlags.grid ? 1 : 0}|${f.viewFlags.hideUI ? 1 : 0}`
+    const hudKey = `${animatedKey}|${f.viewFlags.grid ? 1 : 0}|${f.viewFlags.hideUI ? 1 : 0}|${this.hudFading ? Math.floor(f.t / FADE_FRAME_MS) : ''}`
     if (hudKey !== this.hudKey) {
       this.hudKey = hudKey
       this.hud.begin(gv)
-      this.settlementLabels = paintHud(this.hud.asContext(), f, { grid: f.viewFlags.grid }).labels
+      const hud = paintHud(this.hud.asContext(), f, { grid: f.viewFlags.grid, fade: this.settlementFade })
+      this.settlementLabels = hud.labels
+      this.hudFading = this.settlementFade.fading
       this.hud.end()
     }
     const settlementLabels = this.settlementLabels
 
     // Names, thoughts, work poses and prayer glyphs go above the people; town names claim space first.
     this.names.follow(extras.people)
-    const labelsKey = `${animatedKey}|${extras.selectedId ?? ''}|${f.focus}|${f.viewFlags.names ? 1 : 0}|${f.viewFlags.thoughts ? 1 : 0}|${f.viewFlags.hideUI ? 1 : 0}`
+    const labelsKey = `${animatedKey}|${extras.selectedId ?? ''}|${f.focus}|${f.viewFlags.names ? 1 : 0}|${f.viewFlags.thoughts ? 1 : 0}|${f.viewFlags.hideUI ? 1 : 0}|${this.labelsFading ? Math.floor(f.t / FADE_FRAME_MS) : ''}`
     if (labelsKey !== this.labelsKey || extras.people !== this.labelsPeople) {
       this.labelsKey = labelsKey
       this.labelsPeople = extras.people
@@ -472,8 +484,10 @@ export class CfOverlayRenderer {
           ox: f.ox,
           oy: f.oy,
           poses: this.labels,
+          fade: this.peopleFade,
         })
       }
+      this.labelsFading = this.peopleFade.fading
       this.names.end()
       this.labels.end()
     }
