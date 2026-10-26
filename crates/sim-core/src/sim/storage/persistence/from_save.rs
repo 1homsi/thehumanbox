@@ -303,6 +303,7 @@ impl Simulation {
             milestones_achieved: state.milestones_achieved,
             lineage_peak_pop: state.lineage_peak_pop,
             tribe_peril: HashMap::default(),
+            tribe_chronicle: Default::default(),
             festival_last: HashMap::default(),
             goals: state.goals,
             evening_places: Default::default(),

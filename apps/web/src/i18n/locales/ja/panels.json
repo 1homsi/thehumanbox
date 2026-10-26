@@ -303,6 +303,30 @@
         "crafting": "工芸で知られる",
         "healing": "治療師で知られる"
       }
+    },
+    "history": {
+      "title": "経緯",
+      "empty": "まだ記録はない",
+      "goTo": "この場所へ行く",
+      "raid": "{other}との襲撃戦",
+      "war": "{other}と交戦中",
+      "era": "{era}の時代に入った",
+      "famine": "飢饉に見舞われた",
+      "arrival": "放浪の民がやって来て、ここに住み着いた",
+      "split": "{other}から分かれ、この部族を興した",
+      "craft": "{craft}で知られるようになった",
+      "leaderDied": "指導者{name}を失った",
+      "crafts": {
+        "woodcutting": "木こり",
+        "quarrying": "石切り",
+        "foraging": "採集",
+        "fishing": "漁",
+        "hunting": "狩り",
+        "farming": "農耕",
+        "building": "建築",
+        "crafting": "細工",
+        "healing": "治療"
+      }
     }
   },
   "scene": {

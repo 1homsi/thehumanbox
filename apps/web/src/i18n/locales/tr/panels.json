@@ -310,6 +310,30 @@
         "crafting": "zanaatıyla tanınır",
         "healing": "şifacılarıyla tanınır"
       }
+    },
+    "history": {
+      "title": "Geçmiş",
+      "empty": "Henüz kayda geçen bir şey yok",
+      "goTo": "Bu yere git",
+      "raid": "{other} ile bir baskında",
+      "war": "{other} ile savaşta",
+      "era": "{era} çağına girdi",
+      "famine": "kıtlık yaşadı",
+      "arrival": "göçebe bir halk geldi ve burada yerleşti",
+      "split": "{other} halkından ayrılıp bu kabileyi kurdu",
+      "craft": "şu işle tanınmaya başladı: {craft}",
+      "leaderDied": "lideri {name} öldü",
+      "crafts": {
+        "woodcutting": "odunculuk",
+        "quarrying": "taşçılık",
+        "foraging": "toplayıcılık",
+        "fishing": "balıkçılık",
+        "hunting": "avcılık",
+        "farming": "tarım",
+        "building": "inşaat",
+        "crafting": "zanaat",
+        "healing": "şifacılık"
+      }
     }
   },
   "scene": {

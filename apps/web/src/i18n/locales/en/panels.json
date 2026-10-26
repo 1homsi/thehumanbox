@@ -316,6 +316,30 @@
         "crafting": "known for their crafts",
         "healing": "known for their healers"
       }
+    },
+    "history": {
+      "title": "History",
+      "empty": "Nothing recorded yet",
+      "goTo": "Go to this place",
+      "raid": "in a raid with {other}",
+      "war": "at war with {other}",
+      "era": "entered the {era} age",
+      "famine": "suffered a famine",
+      "arrival": "a wandering people arrived and settled here",
+      "split": "broke away from {other} to found this tribe",
+      "craft": "became known for {craft}",
+      "leaderDied": "lost their leader {name}",
+      "crafts": {
+        "woodcutting": "woodcutting",
+        "quarrying": "quarrying",
+        "foraging": "foraging",
+        "fishing": "fishing",
+        "hunting": "hunting",
+        "farming": "farming",
+        "building": "building",
+        "crafting": "crafting",
+        "healing": "healing"
+      }
     }
   },
   "scene": {

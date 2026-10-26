@@ -310,6 +310,30 @@
         "crafting": "noti per il loro artigianato",
         "healing": "noti per i loro guaritori"
       }
+    },
+    "history": {
+      "title": "Storia",
+      "empty": "Ancora nulla di registrato",
+      "goTo": "Vai a questo luogo",
+      "raid": "in un'incursione con {other}",
+      "war": "in guerra con {other}",
+      "era": "è entrata nell'era {era}",
+      "famine": "ha patito una carestia",
+      "arrival": "un popolo errante è arrivato e si è stabilito qui",
+      "split": "si è staccata da {other} per fondare questa tribù",
+      "craft": "divenne nota per {craft}",
+      "leaderDied": "ha perso il suo capo {name}",
+      "crafts": {
+        "woodcutting": "il taglio del legno",
+        "quarrying": "la cava",
+        "foraging": "la raccolta",
+        "fishing": "la pesca",
+        "hunting": "la caccia",
+        "farming": "l'agricoltura",
+        "building": "la costruzione",
+        "crafting": "l'artigianato",
+        "healing": "la cura"
+      }
     }
   },
   "scene": {

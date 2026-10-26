@@ -310,6 +310,30 @@
         "crafting": "bekannt für ihr Handwerk",
         "healing": "bekannt für ihre Heiler"
       }
+    },
+    "history": {
+      "title": "Verlauf",
+      "empty": "Noch nichts festgehalten",
+      "goTo": "Zu diesem Ort gehen",
+      "raid": "in einem Überfall mit {other}",
+      "war": "im Krieg mit {other}",
+      "era": "trat in das Zeitalter {era} ein",
+      "famine": "litt unter einer Hungersnot",
+      "arrival": "ein wanderndes Volk kam hierher und ließ sich nieder",
+      "split": "spaltete sich von {other} ab und gründete diesen Stamm",
+      "craft": "wurde bekannt für {craft}",
+      "leaderDied": "verlor ihren Anführer {name}",
+      "crafts": {
+        "woodcutting": "Holzfällen",
+        "quarrying": "Steinbrechen",
+        "foraging": "Sammeln",
+        "fishing": "Fischen",
+        "hunting": "Jagen",
+        "farming": "Ackerbau",
+        "building": "Bauen",
+        "crafting": "Handwerk",
+        "healing": "Heilen"
+      }
     }
   },
   "scene": {

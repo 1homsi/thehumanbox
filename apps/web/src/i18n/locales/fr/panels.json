@@ -310,6 +310,30 @@
         "crafting": "connus pour leur artisanat",
         "healing": "connus pour leurs guérisseurs"
       }
+    },
+    "history": {
+      "title": "Historique",
+      "empty": "Rien n'est encore consigné",
+      "goTo": "Aller à ce lieu",
+      "raid": "dans un raid avec {other}",
+      "war": "en guerre contre {other}",
+      "era": "est entrée dans l'ère {era}",
+      "famine": "a connu une famine",
+      "arrival": "un peuple errant est arrivé et s'est installé ici",
+      "split": "s'est détaché de {other} pour fonder cette tribu",
+      "craft": "devint réputée pour {craft}",
+      "leaderDied": "a perdu son chef {name}",
+      "crafts": {
+        "woodcutting": "le bûcheronnage",
+        "quarrying": "la carrière",
+        "foraging": "la cueillette",
+        "fishing": "la pêche",
+        "hunting": "la chasse",
+        "farming": "l'agriculture",
+        "building": "la construction",
+        "crafting": "l'artisanat",
+        "healing": "les soins"
+      }
     }
   },
   "scene": {

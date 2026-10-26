@@ -303,6 +303,30 @@
         "crafting": "以手艺闻名",
         "healing": "以医者闻名"
       }
+    },
+    "history": {
+      "title": "大事记",
+      "empty": "尚无记录",
+      "goTo": "前往此处",
+      "raid": "与{other}的一次突袭",
+      "war": "与{other}交战",
+      "era": "进入了{era}时代",
+      "famine": "经历了饥荒",
+      "arrival": "一支流浪的人群来到这里定居",
+      "split": "从{other}分出，建立了这个部落",
+      "craft": "以{craft}闻名",
+      "leaderDied": "失去了首领{name}",
+      "crafts": {
+        "woodcutting": "伐木",
+        "quarrying": "采石",
+        "foraging": "采集",
+        "fishing": "捕鱼",
+        "hunting": "狩猎",
+        "farming": "耕作",
+        "building": "营建",
+        "crafting": "手艺",
+        "healing": "医治"
+      }
     }
   },
   "scene": {

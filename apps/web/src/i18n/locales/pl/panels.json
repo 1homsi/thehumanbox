@@ -334,6 +334,30 @@
         "crafting": "słyną z rzemiosła",
         "healing": "słyną z uzdrowicieli"
       }
+    },
+    "history": {
+      "title": "Kronika",
+      "empty": "Nic jeszcze nie zapisano",
+      "goTo": "Idź do tego miejsca",
+      "raid": "w najeździe z {other}",
+      "war": "w stanie wojny z {other}",
+      "era": "weszło w erę: {era}",
+      "famine": "przeżyło głód",
+      "arrival": "przybyło tu wędrowne plemię i osiadło",
+      "split": "odłączyło się od {other}, by założyć to plemię",
+      "craft": "stało się znane z: {craft}",
+      "leaderDied": "straciło swego przywódcę {name}",
+      "crafts": {
+        "woodcutting": "ścinkę drzew",
+        "quarrying": "kamieniołomy",
+        "foraging": "zbieractwo",
+        "fishing": "rybołówstwo",
+        "hunting": "łowiectwo",
+        "farming": "uprawę roli",
+        "building": "budownictwo",
+        "crafting": "rzemiosło",
+        "healing": "uzdrawianie"
+      }
     }
   },
   "scene": {

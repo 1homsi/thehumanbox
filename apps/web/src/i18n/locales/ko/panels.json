@@ -303,6 +303,30 @@
         "crafting": "공예로 알려짐",
         "healing": "치료사로 알려짐"
       }
+    },
+    "history": {
+      "title": "연대기",
+      "empty": "아직 기록된 것이 없음",
+      "goTo": "이 장소로 가기",
+      "raid": "{other}와의 습격",
+      "war": "{other}와 전쟁 중",
+      "era": "{era} 시대에 접어듦",
+      "famine": "기근을 겪음",
+      "arrival": "떠돌던 무리가 와서 이곳에 정착함",
+      "split": "{other}에서 갈라져 이 부족을 세움",
+      "craft": "{craft}로 알려지게 됨",
+      "leaderDied": "지도자 {name}을(를) 잃음",
+      "crafts": {
+        "woodcutting": "벌목",
+        "quarrying": "채석",
+        "foraging": "채집",
+        "fishing": "낚시",
+        "hunting": "사냥",
+        "farming": "농사",
+        "building": "건설",
+        "crafting": "공예",
+        "healing": "치료"
+      }
     }
   },
   "scene": {

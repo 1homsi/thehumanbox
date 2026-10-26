@@ -39,6 +39,7 @@ mod separation;
 mod strategy;
 mod territory;
 mod tick;
+mod tribe_chronicle;
 mod types;
 pub(crate) mod wary_game;
 mod world;
@@ -148,6 +149,8 @@ pub struct Simulation {
     /// Tribes the world has warned are on the brink (runtime; re-detected
     /// within one check after a load).
     pub(crate) tribe_peril: HashMap<String, super::civ::peril::Peril>,
+    /// Each tribe's own history for its card (runtime, display only: not in the save).
+    pub(crate) tribe_chronicle: tribe_chronicle::TribeChronicle,
     /// When each tribe last began a festival (runtime).
     pub(crate) festival_last: HashMap<String, u64>,
     /// The player's goals, difficulty and whether the world is lost (saved).
@@ -319,6 +322,7 @@ impl Simulation {
             milestones_achieved: HashSet::default(),
             lineage_peak_pop: HashMap::default(),
             tribe_peril: HashMap::default(),
+            tribe_chronicle: Default::default(),
             festival_last: HashMap::default(),
             goals: Default::default(),
             evening_places: Default::default(),
