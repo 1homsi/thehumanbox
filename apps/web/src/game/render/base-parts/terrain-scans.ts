@@ -4,9 +4,9 @@ import { isRuinedBuilding } from '../../model/building-state'
 
 // Hut tiles are terrain-derived too; cache the positions per tiles array
 // so the settlement-ring pass stops rescanning all 180k tiles per frame.
-export let _hutSource: number[][] | null = null
+export let _hutSource: ArrayLike<number>[] | null = null
 export let _hutTiles: Array<[number, number]> = []
-export function hutTileList(tiles: number[][]): Array<[number, number]> {
+export function hutTileList(tiles: ArrayLike<number>[]): Array<[number, number]> {
   if (tiles === _hutSource) return _hutTiles
   const out: Array<[number, number]> = []
   for (let row = 0; row < tiles.length; row++) {

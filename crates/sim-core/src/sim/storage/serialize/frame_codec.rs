@@ -1,8 +1,8 @@
 //! Msgpack encoding of a frame.
 //!
 //! `rmp_serde::to_vec_named(&payload)` is the reference: this module writes
-//! exactly the same bytes, but writes the grid section (four 180k-tile arrays
-//! on a full frame, thousands of `[row, col, value]` rows on every frame)
+//! exactly the same bytes, but writes the grid section (up to four per-cell
+//! byte layers as `bin`, thousands of `[row, col, value]` rows on every frame)
 //! with direct byte writes instead of one serde call per number. Everything
 //! else still goes through `rmp_serde`.
 
@@ -112,45 +112,19 @@ fn write_sint(out: &mut Vec<u8>, value: i64) {
     }
 }
 
-/// An array of unsigned bytes, each in its smallest form.
-fn write_u8_array(out: &mut Vec<u8>, bytes: &[u8]) {
-    write_array_len(out, bytes.len());
-    out.reserve(bytes.len() * 2);
-    for &b in bytes {
-        if b < 128 {
-            out.push(b);
-        } else {
-            out.extend_from_slice(&[0xcc, b]);
-        }
+/// A byte layer as msgpack `bin`, the form `serialize_bytes` takes in `rmp_serde`.
+fn write_bin(out: &mut Vec<u8>, bytes: &[u8]) {
+    let len = bytes.len();
+    if len < 256 {
+        out.extend_from_slice(&[0xc4, len as u8]);
+    } else if len < 65_536 {
+        out.push(0xc5);
+        out.extend_from_slice(&(len as u16).to_be_bytes());
+    } else {
+        out.push(0xc6);
+        out.extend_from_slice(&(len as u32).to_be_bytes());
     }
-}
-
-/// An array of signed bytes, each in its smallest form.
-fn write_i8_array(out: &mut Vec<u8>, bytes: &[i8]) {
-    write_array_len(out, bytes.len());
-    out.reserve(bytes.len() * 2);
-    for &b in bytes {
-        if b >= -32 {
-            // Positive fixint and negative fixint are the byte itself.
-            out.push(b as u8);
-        } else {
-            out.extend_from_slice(&[0xd0, b as u8]);
-        }
-    }
-}
-
-fn write_u8_rows(out: &mut Vec<u8>, rows: &[Vec<u8>]) {
-    write_array_len(out, rows.len());
-    for row in rows {
-        write_u8_array(out, row);
-    }
-}
-
-fn write_i8_rows(out: &mut Vec<u8>, rows: &[Vec<i8>]) {
-    write_array_len(out, rows.len());
-    for row in rows {
-        write_i8_array(out, row);
-    }
+    out.extend_from_slice(bytes);
 }
 
 /// Fixed-size `[u16; N]` rows (`[row, col, value, ..]` entries).
@@ -201,21 +175,21 @@ fn write_grid(out: &mut Vec<u8>, grid: &GridJson) {
     // fire, height, origin_x, origin_y and width are always present.
     write_map_len(out, 5 + optional.iter().filter(|present| **present).count());
 
-    if let Some(rows) = biomes {
+    if let Some(cells) = biomes {
         write_str(out, "biomes");
-        write_u8_rows(out, rows);
+        write_bin(out, cells);
     }
-    if let Some(rows) = depth_map {
+    if let Some(cells) = depth_map {
         write_str(out, "depth_map");
-        write_u8_rows(out, rows);
+        write_bin(out, cells);
     }
     if let Some(rows) = fertility {
         write_str(out, "fertility");
         write_u16_rows(out, rows);
     }
-    if let Some(dense) = fertility_dense {
+    if let Some(cells) = fertility_dense {
         write_str(out, "fertility_dense");
-        write_u8_array(out, dense);
+        write_bin(out, cells);
     }
     write_str(out, "fire");
     write_u16_rows(out, fire);
@@ -241,9 +215,9 @@ fn write_grid(out: &mut Vec<u8>, grid: &GridJson) {
         write_str(out, "structure_delta");
         write_u16_rows(out, rows);
     }
-    if let Some(rows) = tiles {
+    if let Some(cells) = tiles {
         write_str(out, "tiles");
-        write_i8_rows(out, rows);
+        write_bin(out, cells);
     }
     if let Some(rows) = trails {
         write_str(out, "trails");
@@ -337,21 +311,22 @@ mod tests {
         );
     }
 
-    /// The byte-array writers over every value, including the width boundaries.
+    /// The `bin` writer on each side of the length boundaries.
     #[test]
-    fn byte_arrays_match_rmp() {
-        let unsigned: Vec<u8> = (0..=255u8).chain([0, 127, 128, 255]).collect();
-        let mut mine = Vec::new();
-        write_u8_array(&mut mine, &unsigned);
-        assert_eq!(mine, rmp_serde::to_vec(&unsigned).unwrap());
-        let signed: Vec<i8> = (-128..=127i8).chain([-33, -32, -1, 0, 127]).collect();
-        let mut mine = Vec::new();
-        write_i8_array(&mut mine, &signed);
-        assert_eq!(mine, rmp_serde::to_vec(&signed).unwrap());
-        let empty = Vec::<u8>::new();
-        let mut mine = Vec::new();
-        write_u8_array(&mut mine, &empty);
-        assert_eq!(mine, rmp_serde::to_vec(&empty).unwrap());
+    fn bin_matches_rmp() {
+        #[derive(Serialize)]
+        struct Bytes<'a>(#[serde(with = "serde_bytes_shim")] &'a [u8]);
+        mod serde_bytes_shim {
+            pub fn serialize<S: serde::Serializer>(b: &&[u8], s: S) -> Result<S::Ok, S::Error> {
+                s.serialize_bytes(b)
+            }
+        }
+        for len in [0usize, 1, 255, 256, 65_535, 65_536, 70_000] {
+            let cells: Vec<u8> = (0..len).map(|i| (i * 7) as u8).collect();
+            let mut mine = Vec::new();
+            write_bin(&mut mine, &cells);
+            assert_eq!(mine, rmp_serde::to_vec(&Bytes(&cells)).unwrap(), "len {len}");
+        }
     }
 
     /// Every frame kind of a running world, plus the transport's extra keys,
@@ -422,8 +397,12 @@ mod tests {
             }
             sim.buildings.push(b);
         }
-        let typed = sim.state_frame();
-        let via_value = FramePayload::from(sim.state_frame().into_value());
+        // Through `Value` the grid's byte layers turn into number arrays; this test is about buildings.
+        let mut typed = sim.state_frame();
+        typed.grid = None;
+        let mut value = sim.state_frame().into_value();
+        value.as_object_mut().unwrap().remove("grid");
+        let via_value = FramePayload::from(value);
         assert!(typed.entries().iter().any(|(k, _)| *k == "buildings"));
         assert_eq!(encode(&typed).unwrap(), reference(&via_value));
     }
@@ -435,8 +414,8 @@ mod tests {
         for mask in 0..1024u32 {
             let has = |bit: u32| mask & (1 << bit) != 0;
             let grid = GridJson {
-                biomes: has(0).then(|| vec![vec![0, 127, 128, 255]; 3]),
-                depth_map: has(1).then(|| vec![vec![255, 1]; 2]),
+                biomes: has(0).then(|| [0, 127, 128, 255].repeat(3)),
+                depth_map: has(1).then(|| (0..300u32).map(|i| i as u8).collect()),
                 fertility: has(2).then(|| vec![[0, 127, 128], [255, 256, 65_535]]),
                 fertility_dense: has(3).then(|| (0..=255u8).collect()),
                 fire: vec![[0, 0, 1], [299, 599, 65_535]],
@@ -447,7 +426,13 @@ mod tests {
                 roads: has(7).then(|| vec![[0, 1, 1], [299, 599, 2]]),
                 structure: has(8).then(Vec::new),
                 structure_delta: has(9).then(|| vec![[1, 2, 0]]),
-                tiles: has(5).then(|| vec![vec![-128, -33, -32, -1, 0, 1, 127]; 4]),
+                tiles: has(5).then(|| {
+                    [-128i8, -33, -32, -1, 0, 1, 127]
+                        .repeat(4)
+                        .into_iter()
+                        .map(|t| t as u8)
+                        .collect()
+                }),
                 trails: has(6).then(|| vec![[1, 2, 3, 4, 65_535]]),
                 width: 600,
             };

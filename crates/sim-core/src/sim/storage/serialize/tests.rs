@@ -768,3 +768,33 @@ fn typed_frame_serialises_like_the_value_frame() {
     }
     assert_eq!(kinds.len(), 2, "both hot-array and full-organism frames occur");
 }
+
+/// A fast-forward emits a frame every few ticks, so the stream may never land on a multiple of 60:
+/// the static layers (and tiles) still arrive once 60 ticks have passed since the last frame that
+/// carried them, and a deep full in between does not reset that count.
+#[test]
+fn static_layers_arrive_every_sixty_ticks_whatever_the_emit_cadence() {
+    let mut sim = Simulation::new(42);
+    let mut carried = Vec::new();
+    for round in 1..=60u64 {
+        for _ in 0..7 {
+            sim.tick();
+        }
+        if round == 20 {
+            let deep = sim.state_json();
+            assert!(
+                deep["grid"].get("tiles").is_some(),
+                "a deep full carries the tiles"
+            );
+        }
+        let frame = sim.state_json_incremental();
+        let grid = &frame["grid"];
+        if grid.get("trails").is_some() {
+            assert!(grid.get("tiles").is_some(), "tiles ride with the static layers");
+            assert!(grid.get("fertility_dense").is_some());
+            carried.push(sim.tick_count);
+        }
+    }
+    // 420 ticks emitted every 7: one multiple of 60 lands (420), but the layers come every 63.
+    assert_eq!(carried, vec![63, 126, 189, 252, 315, 378]);
+}

@@ -54,7 +54,7 @@ export function isSnowed(tid: number, row: number, col: number, cover: number): 
 /** Paints the snow of every snowed grass cell in the view. */
 export function paintGroundSnow(
   ctx: Ctx,
-  tiles: ReadonlyArray<ReadonlyArray<number>> | undefined,
+  tiles: readonly ArrayLike<number>[] | undefined,
   view: SnowView,
   season: string,
   progress: number,

@@ -40,7 +40,7 @@ export function paintDew(
   oy: number,
   t: number,
   level: number,
-  tiles: ReadonlyArray<ReadonlyArray<number>> | undefined,
+  tiles: readonly ArrayLike<number>[] | undefined,
 ): void {
   if (level <= 0 || !tiles) return
   // Glints are sub-tile specks: past a few thousand visible tiles (the whole-world view) they are not worth the paint.

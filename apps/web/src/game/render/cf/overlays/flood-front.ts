@@ -33,7 +33,7 @@ export interface FloodView {
 }
 
 /** Mask of the sides of grid cell (row, col) that touch dry land. Off the grid counts as no land. */
-export function dryEdges(tiles: ReadonlyArray<ReadonlyArray<number>>, row: number, col: number): number {
+export function dryEdges(tiles: readonly ArrayLike<number>[], row: number, col: number): number {
   const dry = (r: number, c: number) => {
     const v = tiles[r]?.[c]
     return v !== undefined && v !== TILE_ID.FLOODED && v !== TILE_ID.WATER
@@ -55,7 +55,7 @@ export function foamCrest(row: number, col: number, t: number): number {
 /** Paints the sheen and the foam front of every flooded cell in the view. */
 export function paintFloodFront(
   ctx: Ctx,
-  tiles: ReadonlyArray<ReadonlyArray<number>> | undefined,
+  tiles: readonly ArrayLike<number>[] | undefined,
   view: FloodView,
   t: number,
 ): void {

@@ -14,7 +14,12 @@ import { OCEAN_BANDS, SHALLOWS_BAND, seaBandAt } from '../landscape-style'
  */
 
 /** The band of every tile, row-major, -1 where the tile is not open sea. */
-export function seaBands(tiles: number[][], depth: number[][] | undefined, width: number, height: number) {
+export function seaBands(
+  tiles: ArrayLike<number>[],
+  depth: ArrayLike<number>[] | undefined,
+  width: number,
+  height: number,
+) {
   const bands = new Int8Array(width * height)
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) bands[row * width + col] = seaBandAt(tiles, depth, row, col)

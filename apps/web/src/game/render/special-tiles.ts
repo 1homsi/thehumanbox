@@ -11,9 +11,9 @@ export interface SpecialTileIndex {
   all: Int32Array
 }
 const EMPTY_SPECIAL: SpecialTileIndex = { animated: new Int32Array(0), all: new Int32Array(0) }
-let specialSource: number[][] | null = null
+let specialSource: ArrayLike<number>[] | null = null
 let special: SpecialTileIndex = EMPTY_SPECIAL
-export function specialTileIndex(tiles: number[][]): SpecialTileIndex {
+export function specialTileIndex(tiles: ArrayLike<number>[]): SpecialTileIndex {
   if (tiles === specialSource) return special
   const animated: number[] = []
   const all: number[] = []

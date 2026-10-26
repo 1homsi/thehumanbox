@@ -223,6 +223,9 @@ pub struct Simulation {
     /// The structure layer the last stream frame described, so a hot frame can send only what
     /// changed.
     pub(crate) serialized_structure: Option<StructureBase>,
+    /// The tick of the last stream frame that carried the static grid layers (trails, fertility,
+    /// hazard, roads), so they go out every `STATIC_LAYER_TICKS` whatever the emit cadence.
+    pub(crate) serialized_static_tick: u64,
     pub(crate) active_structure_tiles: HashSet<(i32, i32)>,
     pub(crate) field_fortifications: Vec<super::warfare::FieldFortification>,
     pub(crate) settlement_tiers: HashMap<String, u8>,
@@ -367,6 +370,7 @@ impl Simulation {
             planting_revision: 0,
             serialized_planting_revision: 0,
             serialized_structure: None,
+            serialized_static_tick: 0,
             active_structure_tiles: HashSet::default(),
             field_fortifications: Vec::new(),
             settlement_tiers: HashMap::default(),

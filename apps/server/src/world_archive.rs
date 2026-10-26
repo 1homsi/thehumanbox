@@ -237,7 +237,7 @@ pub async fn archive_and_reset(
     } else {
         process_started_at_ms
     };
-    let payload = sim.state_json();
+    let payload = sim.state_frame();
     let Some(snapshot_bytes) = encode_frame(payload, 0, ended_at_ms, "full") else {
         tracing::error!(target: "archive", "failed to encode the world snapshot; keeping the live world");
         return None;

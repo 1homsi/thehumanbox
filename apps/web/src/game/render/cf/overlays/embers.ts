@@ -83,7 +83,7 @@ function paintEmberCells(
 /** Paints the embers of every burning cell in the view. `fire` is the grid's fire_intensity. */
 export function paintEmbers(
   ctx: Ctx,
-  fire: ReadonlyArray<ReadonlyArray<number>> | undefined,
+  fire: readonly ArrayLike<number>[] | undefined,
   view: EmberView,
   t: number,
 ): void {
@@ -98,7 +98,7 @@ const CAMPFIRE_EMBERS = 2
 /** Paints a few embers over each campfire tile in the view (`tiles` is the grid's tile ids). */
 export function paintCampfireSparks(
   ctx: Ctx,
-  tiles: ReadonlyArray<ReadonlyArray<number>> | undefined,
+  tiles: readonly ArrayLike<number>[] | undefined,
   view: EmberView,
   t: number,
 ): void {

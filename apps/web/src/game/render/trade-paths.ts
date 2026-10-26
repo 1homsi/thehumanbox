@@ -31,7 +31,7 @@ const GROUND = new Set<number>([TILE_ID.GRASS, TILE_ID.SAND, TILE_ID.SNOW, TILE_
 /** Buildings a road passes through or beside: small things that do not fill a tile. */
 const PASSABLE_KINDS = new Set(['cart', 'food_cart', 'signpost', 'gate', 'bench'])
 
-type Rows = readonly (readonly number[])[]
+type Rows = readonly ArrayLike<number>[]
 
 /** The land a route is planned over, in grid cells. */
 export interface PlanGrid {

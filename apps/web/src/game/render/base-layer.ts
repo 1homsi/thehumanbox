@@ -20,10 +20,10 @@ interface BaseKey {
   height: number
   origin_x: number
   origin_y: number
-  tiles: number[][]
+  tiles: ArrayLike<number>[]
   terrain_signature: number
-  biomes?: number[][]
-  depth_map?: number[][]
+  biomes?: ArrayLike<number>[]
+  depth_map?: ArrayLike<number>[]
   season?: string
 }
 
@@ -41,10 +41,10 @@ function matches(
   height: number,
   origin_x: number,
   origin_y: number,
-  tiles: number[][],
+  tiles: ArrayLike<number>[],
   terrain_signature: number,
-  biomes: number[][] | undefined,
-  depth_map: number[][] | undefined,
+  biomes: ArrayLike<number>[] | undefined,
+  depth_map: ArrayLike<number>[] | undefined,
   season: string | undefined,
 ): boolean {
   return (
@@ -89,7 +89,7 @@ const clamp = (v: number) => (v < 0 ? 0 : v > 255 ? 255 : v)
 export function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
   const { width, height, tiles, biomes } = world.grid
   if (!tiles || tiles.length < height) return null
-  const depth_map = world.grid.depth_map as number[][] | undefined
+  const depth_map = world.grid.depth_map as ArrayLike<number>[] | undefined
   const origin_x = world.grid.origin_x ?? 0
   const origin_y = world.grid.origin_y ?? 0
   const season = terrainSeason(world)

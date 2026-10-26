@@ -44,8 +44,8 @@ export function CanvasWorldFallback({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const hasDrawn = useRef(false)
-  const cachedDepth = useRef<number[][] | null>(null)
-  const cachedBiomes = useRef<number[][] | null>(null)
+  const cachedDepth = useRef<ArrayLike<number>[] | null>(null)
+  const cachedBiomes = useRef<ArrayLike<number>[] | null>(null)
   const orgCache = useRef<OrgInterpCache>({
     source: null,
     prevSource: null,
@@ -96,8 +96,8 @@ export function CanvasWorldFallback({
       const { world: snapshot, selectedOrgId, overlay, focus, viewFlags } = latest.current
       const w = interp?.current.current ?? snapshot
       if (!w) return
-      if (w.grid.depth_map) cachedDepth.current = w.grid.depth_map as number[][]
-      if (w.grid.biomes) cachedBiomes.current = w.grid.biomes as number[][]
+      if (w.grid.depth_map) cachedDepth.current = w.grid.depth_map as ArrayLike<number>[]
+      if (w.grid.biomes) cachedBiomes.current = w.grid.biomes as ArrayLike<number>[]
 
       const prev = interp?.prev.current
       const serverAt = interp?.currentServerAt.current ?? 0

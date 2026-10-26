@@ -37,8 +37,8 @@ export function isLavaTile(tid: number, biome: number): boolean {
  * from a hash of its position, so the pattern is the same every time the grid is built.
  */
 export function buildAccentRects(
-  tiles: number[][],
-  biomes: number[][] | undefined,
+  tiles: ArrayLike<number>[],
+  biomes: ArrayLike<number>[] | undefined,
   width: number,
   height: number,
 ): AccentRects {

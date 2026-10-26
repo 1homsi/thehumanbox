@@ -19,7 +19,7 @@ export interface CattailRects {
   headLit: number[]
 }
 
-function hasWaterNeighbour(tiles: ReadonlyArray<ReadonlyArray<number>>, col: number, row: number): boolean {
+function hasWaterNeighbour(tiles: readonly ArrayLike<number>[], col: number, row: number): boolean {
   return (
     tiles[row - 1]?.[col] === TILE_ID.WATER ||
     tiles[row + 1]?.[col] === TILE_ID.WATER ||
@@ -30,8 +30,8 @@ function hasWaterNeighbour(tiles: ReadonlyArray<ReadonlyArray<number>>, col: num
 
 /** Whether a grid cell can hold cattails: wetland grass with water beside it. */
 export function isCattailGround(
-  tiles: ReadonlyArray<ReadonlyArray<number>>,
-  biomes: ReadonlyArray<ReadonlyArray<number>>,
+  tiles: readonly ArrayLike<number>[],
+  biomes: readonly ArrayLike<number>[],
   col: number,
   row: number,
 ): boolean {
@@ -47,8 +47,8 @@ export function isCattailGround(
  * of its world position, so the marsh looks the same every time it is rebuilt.
  */
 export function buildCattailRects(
-  tiles: ReadonlyArray<ReadonlyArray<number>>,
-  biomes: ReadonlyArray<ReadonlyArray<number>> | undefined,
+  tiles: readonly ArrayLike<number>[],
+  biomes: readonly ArrayLike<number>[] | undefined,
   width: number,
   height: number,
   ox: number,

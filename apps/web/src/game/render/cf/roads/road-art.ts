@@ -39,7 +39,7 @@ export function roadStyle(era: string | undefined): RoadStyle {
  * Where a road cell continues: the four neighbours that hold a road (off the map counts as none).
  * `roads[row][col]` is the kind of a cell; any non-zero kind joins.
  */
-export function roadMask(roads: readonly (readonly number[])[], row: number, col: number): number {
+export function roadMask(roads: readonly ArrayLike<number>[], row: number, col: number): number {
   const at = (r: number, c: number) => (roads[r]?.[c] ?? 0) !== 0
   let mask = 0
   if (at(row - 1, col)) mask |= ROAD_N

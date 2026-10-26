@@ -17,7 +17,7 @@ import type { DecorRegion } from './decorations'
 export const MAX_HEIGHT = 14
 
 /** Rock, or snow lying on a mountain (next to rock), not a polar snowfield. */
-export function isHighAt(tiles: number[][], x: number, y: number) {
+export function isHighAt(tiles: ArrayLike<number>[], x: number, y: number) {
   const t = tiles[y]?.[x]
   if (t === TILE_ID.ROCK) return true
   if (t !== TILE_ID.SNOW) return false
@@ -31,7 +31,7 @@ export function isHighAt(tiles: number[][], x: number, y: number) {
  * Computed by repeated erosion, which is exact within the cap.
  */
 export function mountainHeights(
-  tiles: number[][],
+  tiles: ArrayLike<number>[],
   width: number,
   height: number,
   window?: DecorRegion,
@@ -328,8 +328,8 @@ export function drawMountains(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  tiles: number[][],
-  biomes?: number[][],
+  tiles: ArrayLike<number>[],
+  biomes?: ArrayLike<number>[],
   only?: DecorRegion,
 ) {
   const h = mountainHeights(tiles, width, height, only)

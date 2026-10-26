@@ -52,7 +52,7 @@ export function paintFireflies(
   originY: number,
   t: number,
   strength: number,
-  tiles?: ReadonlyArray<ReadonlyArray<number>>,
+  tiles?: readonly ArrayLike<number>[],
 ): void {
   if (strength <= 0) return
   ctx.save()

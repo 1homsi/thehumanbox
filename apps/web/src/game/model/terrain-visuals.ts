@@ -22,7 +22,7 @@ export function baseTerrainTile(tile: number | undefined): number {
   }
 }
 
-export function terrainVisualSignature(tiles: number[][], width: number, height: number): number {
+export function terrainVisualSignature(tiles: ArrayLike<number>[], width: number, height: number): number {
   let hash = 2166136261
   for (let row = 0; row < height; row++) {
     const values = tiles[row]
@@ -39,7 +39,7 @@ export function terrainVisualSignature(tiles: number[][], width: number, height:
 }
 
 /** Permanent water directly beside a land tile; floods never create beaches. */
-export function permanentWaterNeighborMask(tiles: number[][], row: number, col: number): number {
+export function permanentWaterNeighborMask(tiles: ArrayLike<number>[], row: number, col: number): number {
   let mask = 0
   if (row > 0 && tiles[row - 1]?.[col] === TILE_ID.WATER) mask |= EDGE_NORTH
   if (row + 1 < tiles.length && tiles[row + 1]?.[col] === TILE_ID.WATER) mask |= EDGE_SOUTH
@@ -53,7 +53,7 @@ export function permanentWaterNeighborMask(tiles: number[][], row: number, col: 
  * Land-facing edges of a permanent water tile. Floodwater counts as water so
  * lakes do not draw a false foam seam where a flood meets the shore.
  */
-export function permanentWaterLandEdgeMask(tiles: number[][], row: number, col: number): number {
+export function permanentWaterLandEdgeMask(tiles: ArrayLike<number>[], row: number, col: number): number {
   const here = tiles[row]
   if (here?.[col] !== TILE_ID.WATER) return 0
   let mask = 0

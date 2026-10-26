@@ -949,17 +949,9 @@ impl WorldGrid {
         include_static: bool,
         include_terrain: bool,
     ) -> GridJson {
-        let ox = (cx - vw as i32 / 2).clamp(0, (WIDTH as i32 - vw as i32).max(0)) as usize;
-        let oy = (cy - vh as i32 / 2).clamp(0, (HEIGHT as i32 - vh as i32).max(0)) as usize;
+        let (ox, oy) = viewport_origin(cx, cy, vw, vh);
 
-        let slice_row = |vec: &[i8], y: usize| vec[y * WIDTH + ox..y * WIDTH + ox + vw].to_vec();
-        let slice_u8 = |vec: &[u8], y: usize| vec[y * WIDTH + ox..y * WIDTH + ox + vw].to_vec();
-
-        let tiles = if include_tiles {
-            Some((oy..oy + vh).map(|y| slice_row(&self.tiles, y)).collect())
-        } else {
-            None
-        };
+        let tiles = include_tiles.then(|| self.tile_bytes(ox, oy, vw, vh));
 
         let window = Window { ox, oy, vw, vh };
         let mut fire: Vec<[u16; 3]> = Vec::new();
@@ -1033,24 +1025,7 @@ impl WorldGrid {
         };
 
         let (biomes, depth_map) = if include_terrain {
-            let b = (oy..oy + vh).map(|y| slice_u8(&self.biome, y)).collect();
-            let d = (oy..oy + vh)
-                .map(|y| {
-                    let row_tiles = &self.tiles[y * WIDTH + ox..y * WIDTH + ox + vw];
-                    let row_depth = &self.depth[y * WIDTH + ox..y * WIDTH + ox + vw];
-                    row_tiles
-                        .iter()
-                        .zip(row_depth.iter())
-                        .map(|(&t, &d)| {
-                            if t == Tile::Water as i8 {
-                                ((1.0 - d) * 200.0) as u8
-                            } else {
-                                255u8
-                            }
-                        })
-                        .collect()
-                })
-                .collect();
+            let (b, d) = self.terrain_bytes(ox, oy, vw, vh);
             (Some(b), Some(d))
         } else {
             (None, None)
@@ -1087,17 +1062,9 @@ impl WorldGrid {
         include_static: bool,
         include_terrain: bool,
     ) -> GridJson {
-        let ox = (cx - vw as i32 / 2).clamp(0, (WIDTH as i32 - vw as i32).max(0)) as usize;
-        let oy = (cy - vh as i32 / 2).clamp(0, (HEIGHT as i32 - vh as i32).max(0)) as usize;
+        let (ox, oy) = viewport_origin(cx, cy, vw, vh);
 
-        let slice_row = |vec: &[i8], y: usize| vec[y * WIDTH + ox..y * WIDTH + ox + vw].to_vec();
-        let slice_u8 = |vec: &[u8], y: usize| vec[y * WIDTH + ox..y * WIDTH + ox + vw].to_vec();
-
-        let tiles = if include_tiles {
-            Some((oy..oy + vh).map(|y| slice_row(&self.tiles, y)).collect())
-        } else {
-            None
-        };
+        let tiles = include_tiles.then(|| self.tile_bytes(ox, oy, vw, vh));
 
         let mut fire: Vec<[u16; 3]> = Vec::new();
         for y in oy..oy + vh {
@@ -1189,24 +1156,7 @@ impl WorldGrid {
         };
 
         let (biomes, depth_map) = if include_terrain {
-            let b = (oy..oy + vh).map(|y| slice_u8(&self.biome, y)).collect();
-            let d = (oy..oy + vh)
-                .map(|y| {
-                    let row_tiles = &self.tiles[y * WIDTH + ox..y * WIDTH + ox + vw];
-                    let row_depth = &self.depth[y * WIDTH + ox..y * WIDTH + ox + vw];
-                    row_tiles
-                        .iter()
-                        .zip(row_depth.iter())
-                        .map(|(&t, &d)| {
-                            if t == Tile::Water as i8 {
-                                ((1.0 - d) * 200.0) as u8
-                            } else {
-                                255u8
-                            }
-                        })
-                        .collect()
-                })
-                .collect();
+            let (b, d) = self.terrain_bytes(ox, oy, vw, vh);
             (Some(b), Some(d))
         } else {
             (None, None)
@@ -1229,6 +1179,43 @@ impl WorldGrid {
             hazard,
             roads,
         }
+    }
+
+    /// The tile ids of a window, row-major, one byte each (the `i8` id's bit pattern).
+    fn tile_bytes(&self, ox: usize, oy: usize, vw: usize, vh: usize) -> Vec<u8> {
+        let mut out = Vec::with_capacity(vw * vh);
+        for y in oy..oy + vh {
+            out.extend(
+                self.tiles[y * WIDTH + ox..y * WIDTH + ox + vw]
+                    .iter()
+                    .map(|&t| t as u8),
+            );
+        }
+        out
+    }
+
+    /// The biome and sea-depth bytes of a window, row-major. Depth is `(1 - depth) * 200` on
+    /// water and 255 on land.
+    fn terrain_bytes(&self, ox: usize, oy: usize, vw: usize, vh: usize) -> (Vec<u8>, Vec<u8>) {
+        let mut biomes = Vec::with_capacity(vw * vh);
+        let mut depth = Vec::with_capacity(vw * vh);
+        for y in oy..oy + vh {
+            let span = y * WIDTH + ox..y * WIDTH + ox + vw;
+            biomes.extend_from_slice(&self.biome[span.clone()]);
+            depth.extend(
+                self.tiles[span.clone()]
+                    .iter()
+                    .zip(&self.depth[span])
+                    .map(|(&t, &d)| {
+                        if t == Tile::Water as i8 {
+                            ((1.0 - d) * 200.0) as u8
+                        } else {
+                            255u8
+                        }
+                    }),
+            );
+        }
+        (biomes, depth)
     }
 
     pub fn to_json(&self) -> GridJson {
@@ -1323,13 +1310,16 @@ pub enum TrailKind {
 /// paths byte for byte.
 #[derive(Serialize)]
 pub struct GridJson {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub biomes: Option<Vec<Vec<u8>>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub depth_map: Option<Vec<Vec<u8>>>,
+    /// Biome ids, row-major, one byte per cell (sent as raw bytes).
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "bytes")]
+    pub biomes: Option<Vec<u8>>,
+    /// Sea depth, row-major, one byte per cell: `(1 - depth) * 200` on water, 255 on land.
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "bytes")]
+    pub depth_map: Option<Vec<u8>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fertility: Option<Vec<[u16; 3]>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Fertility percent, row-major, one byte per cell (sent as raw bytes).
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "bytes")]
     pub fertility_dense: Option<Vec<u8>>,
     pub fire: Vec<[u16; 3]>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1348,11 +1338,29 @@ pub struct GridJson {
     /// patches the layer it holds. Sent instead of `structure` on hot frames.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub structure_delta: Option<Vec<[u16; 3]>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tiles: Option<Vec<Vec<i8>>>,
+    /// Tile ids, row-major, one byte per cell (each `i8` id's bit pattern, sent as raw bytes).
+    /// Absent on frames without the static layers.
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "bytes")]
+    pub tiles: Option<Vec<u8>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trails: Option<Vec<[u16; 5]>>,
     pub width: usize,
+}
+
+/// The top-left cell of a `vw` x `vh` window centred on `(cx, cy)`, kept inside the world.
+fn viewport_origin(cx: i32, cy: i32, vw: usize, vh: usize) -> (usize, usize) {
+    let ox = (cx - vw as i32 / 2).clamp(0, (WIDTH as i32 - vw as i32).max(0)) as usize;
+    let oy = (cy - vh as i32 / 2).clamp(0, (HEIGHT as i32 - vh as i32).max(0)) as usize;
+    (ox, oy)
+}
+
+/// A per-cell byte layer as raw bytes: msgpack `bin`, which the client reads as a typed array
+/// without decoding a number per cell (JSON still sees an array of numbers).
+fn bytes<S: serde::Serializer>(layer: &Option<Vec<u8>>, serializer: S) -> Result<S::Ok, S::Error> {
+    match layer {
+        Some(cells) => serializer.serialize_bytes(cells),
+        None => serializer.serialize_none(),
+    }
 }
 
 /// What changed between two structure layers (each `[row, col, percent]` in row-major order):

@@ -54,8 +54,8 @@ export function CfWorld({
   worldRef.current = world
   const showTradeRef = useRef(showTrade)
   showTradeRef.current = showTrade
-  const cachedBiomes = useRef<number[][] | undefined>(undefined)
-  const cachedDepth = useRef<number[][] | undefined>(undefined)
+  const cachedBiomes = useRef<ArrayLike<number>[] | undefined>(undefined)
+  const cachedDepth = useRef<ArrayLike<number>[] | undefined>(undefined)
   const hasDrawn = useRef(false)
   const onFirstDrawRef = useRef(onFirstDraw)
   onFirstDrawRef.current = onFirstDraw
@@ -68,8 +68,8 @@ export function CfWorld({
   const step = useCallback(
     (w: WorldState) => {
       // Wire grids are delta-merged: biomes and depth only arrive with full frames.
-      if (w.grid.biomes) cachedBiomes.current = w.grid.biomes as number[][]
-      if (w.grid.depth_map) cachedDepth.current = w.grid.depth_map as number[][]
+      if (w.grid.biomes) cachedBiomes.current = w.grid.biomes as ArrayLike<number>[]
+      if (w.grid.depth_map) cachedDepth.current = w.grid.depth_map as ArrayLike<number>[]
       const grid = w.grid
       const camera = cameraStateRef.current
       // The cover over the map comes off after the first pass, even before the terrain has arrived:

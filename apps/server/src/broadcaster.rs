@@ -266,17 +266,17 @@ mod tests {
         }
         let (bytes, kind) = if is_full_frame {
             (
-                encode_frame(s.state_json_periodic_full(), frame_id, now, "full"),
+                encode_frame(s.state_frame_periodic_full(), frame_id, now, "full"),
                 FrameKind::Full,
             )
         } else {
             (
-                encode_frame(s.state_json_incremental(), frame_id, now, "delta"),
+                encode_frame(s.state_frame_incremental(), frame_id, now, "delta"),
                 FrameKind::Delta,
             )
         };
         let heavy = if is_deep_full {
-            encode_frame(s.state_json(), frame_id, now, "full")
+            encode_frame(s.state_frame(), frame_id, now, "full")
         } else {
             None
         };

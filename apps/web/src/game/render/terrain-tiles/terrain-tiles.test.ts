@@ -128,7 +128,7 @@ describe('TileLayer terrain sync', () => {
     syncTerrainLayer(layer, state, src)
     const rev = layer.revision
     expect(syncTerrainLayer(layer, state, src).kind).toBe('none')
-    const copy = { ...src, tiles: src.tiles.map((r) => r.slice()) }
+    const copy = { ...src, tiles: src.tiles.map((r) => Array.from(r)) }
     expect(syncTerrainLayer(layer, state, copy).kind).toBe('none')
     expect(layer.revision).toBe(rev)
   })
@@ -138,9 +138,9 @@ describe('TileLayer terrain sync', () => {
     const layer = makeLayer()
     const state = createTerrainSyncState()
     syncTerrainLayer(layer, state, src)
-    const tiles = src.tiles.map((r) => r)
+    const tiles = src.tiles.map((r) => r) as number[][]
     const change = (row: number, col: number, tile: number) => {
-      if (tiles[row] === src.tiles[row]) tiles[row] = src.tiles[row].slice()
+      if (tiles[row] === src.tiles[row]) tiles[row] = Array.from(src.tiles[row])
       tiles[row][col] = tile
     }
     change(16, 24, TILE_ID.WATER) // grass becomes water beside land: shore mix of the neighbours changes
@@ -163,8 +163,8 @@ describe('TileLayer terrain sync', () => {
     const state = createTerrainSyncState()
     syncTerrainLayer(layer, state, src)
     layer.clearDirty()
-    const tiles = src.tiles.map((r) => r)
-    tiles[16] = src.tiles[16].slice()
+    const tiles = src.tiles.map((r) => r) as number[][]
+    tiles[16] = Array.from(src.tiles[16])
     tiles[16][24] = TILE_ID.WATER
     syncTerrainLayer(layer, state, { ...src, tiles })
     expect(layer.dirtyCount).toBeGreaterThan(0)
@@ -180,10 +180,10 @@ describe('TileLayer terrain sync', () => {
     const winter = syncTerrainLayer(layer, state, { ...src, season: 'hard_winter' })
     expect(winter.kind).toBe('full')
     expect(Array.from(layer.tints!)).not.toEqual(before)
-    const biomes = src.biomes!.map((r) => r.slice())
+    const biomes = src.biomes!.map((r) => Array.from(r))
     expect(syncTerrainLayer(layer, state, { ...src, season: 'hard_winter', biomes }).kind).toBe('full')
     // A depth map with a new identity is a new colour input too.
-    const depth_map = src.depth_map!.map((r) => r.slice())
+    const depth_map = src.depth_map!.map((r) => Array.from(r))
     expect(syncTerrainLayer(layer, state, { ...src, season: 'hard_winter', biomes, depth_map }).kind).toBe(
       'full',
     )

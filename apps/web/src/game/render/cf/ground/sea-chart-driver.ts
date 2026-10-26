@@ -14,8 +14,8 @@ export class SeaChartDriver implements CfDriver {
   private readonly atlas: CellAtlas
   private built = -1
   /** Depth arrives only with full frames; delta frames reuse the last one. */
-  private depth: number[][] | undefined
-  private builtDepth: number[][] | undefined
+  private depth: ArrayLike<number>[] | undefined
+  private builtDepth: ArrayLike<number>[] | undefined
 
   constructor(layer: SpriteLayer, atlas: CellAtlas) {
     this.layer = layer
@@ -24,7 +24,7 @@ export class SeaChartDriver implements CfDriver {
 
   update(f: CfFrame): boolean {
     const grid = f.world.grid
-    if (grid.depth_map) this.depth = grid.depth_map as number[][]
+    if (grid.depth_map) this.depth = grid.depth_map as ArrayLike<number>[]
     if (f.terrainRevision === 0) return false
     if (f.terrainRevision === this.built && this.depth === this.builtDepth) return false
     const t0 = performance.now()

@@ -44,7 +44,7 @@ const biomeScratch = new Float64Array(4)
  */
 export function biomeOverlayAt(
   out: Float64Array,
-  biomes: number[][] | undefined,
+  biomes: ArrayLike<number>[] | undefined,
   row: number,
   col: number,
 ): void {
@@ -83,9 +83,9 @@ export function biomeOverlayAt(
  */
 export function tileColor(
   out: Int32Array,
-  tiles: number[][],
-  biomes: number[][] | undefined,
-  depth_map: number[][] | undefined,
+  tiles: ArrayLike<number>[],
+  biomes: ArrayLike<number>[] | undefined,
+  depth_map: ArrayLike<number>[] | undefined,
   season: string | undefined,
   row: number,
   col: number,

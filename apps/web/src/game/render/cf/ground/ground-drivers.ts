@@ -63,8 +63,8 @@ export class ShoreDriver {
   private readonly atlas: CellAtlas
   private built = -1
   /** Depth (which water is fresh) arrives only with full frames; delta frames reuse the last one. */
-  private depth: number[][] | undefined
-  private builtDepth: number[][] | undefined
+  private depth: ArrayLike<number>[] | undefined
+  private builtDepth: ArrayLike<number>[] | undefined
 
   constructor(layer: SpriteLayer, atlas: CellAtlas) {
     this.layer = layer
@@ -72,7 +72,7 @@ export class ShoreDriver {
   }
 
   update(f: CfFrame): boolean {
-    if (f.world.grid.depth_map) this.depth = f.world.grid.depth_map as number[][]
+    if (f.world.grid.depth_map) this.depth = f.world.grid.depth_map as ArrayLike<number>[]
     if (f.terrainRevision === 0) return false
     if (f.terrainRevision === this.built && this.depth === this.builtDepth) return false
     const t0 = performance.now()
