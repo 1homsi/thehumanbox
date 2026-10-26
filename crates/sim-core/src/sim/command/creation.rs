@@ -6,6 +6,7 @@ impl Simulation {
     pub(super) fn cmd_family(&mut self, x: f32, y: f32) -> bool {
         // Four people need room under the sandbox ceiling, or none are added.
         if crate::sim::growth::population_slots_used(&self.organisms) + 4 > SANDBOX_PEOPLE_LIMIT {
+            self.report("world_full", 0, None);
             return false;
         }
         let lid = format!("L{}", crate::sim::agents::spawn::seeded_id(&mut self.rng, 6));
@@ -56,7 +57,9 @@ impl Simulation {
             child.parent_id = mother.clone();
             child.father_id = Some(father.clone());
         }
-        self.organisms.len() > before
+        let added = self.organisms.len() > before;
+        self.report(if added { "family_arrived" } else { "world_full" }, 0, None);
+        added
     }
 
     pub(super) fn cmd_spawn(&mut self, x: f32, y: f32, count: u32, lineage: Option<String>) -> bool {
@@ -115,6 +118,13 @@ impl Simulation {
         self.welcome_newcomers(before, &lid);
         // Report failure when the world is full so the player sees
         // why nobody appeared instead of a silent "applied".
+        let added = self.organisms.len().saturating_sub(before);
+        if added == 0 {
+            self.report("world_full", 0, None);
+        } else {
+            let name = (added == 1).then(|| self.organisms[before].name.clone());
+            self.report("spawned", added as u32, name.as_deref());
+        }
         self.organisms.len() > before
     }
 
@@ -176,12 +186,14 @@ impl Simulation {
         let room = SANDBOX_ANIMAL_CAP.saturating_sub(alive);
         let n = (count.clamp(1, 12) as usize).min(room);
         if n == 0 {
+            self.report("animal_full", 0, None);
             return false;
         }
         let cx = x.clamp(2.0, WIDTH as f32 - 2.0);
         let cy = y.clamp(2.0, HEIGHT as f32 - 2.0);
         let spots = self.release_spots(k, cx, cy, radius);
         if spots.is_empty() {
+            self.report("no_room_for_animal", 0, None);
             return false;
         }
         let habitat = k.habitat();
@@ -201,6 +213,7 @@ impl Simulation {
             }
             self.animals.push(animal);
         }
+        self.report("animals", n as u32, None);
         true
     }
 

@@ -26,6 +26,7 @@ impl Simulation {
             self.grid.get(x as i32, y as i32),
             Tile::Water | Tile::Rock | Tile::Void
         ) {
+            self.report("blocked", 0, None);
             return false;
         }
         let nearest = self
@@ -37,12 +38,15 @@ impl Simulation {
             .filter(|&(_, d)| d <= reach)
             .min_by(|a, b| a.1.total_cmp(&b.1));
         let Some((i, _)) = nearest else {
+            self.report("none_here", 0, None);
             return false;
         };
         let person = &mut self.organisms[i];
         person.x = x;
         person.y = y;
         person.wander_target = None;
+        let name = person.name.clone();
+        self.report("moved", 1, Some(name.as_str()));
         true
     }
 }

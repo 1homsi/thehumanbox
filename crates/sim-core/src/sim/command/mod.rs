@@ -715,6 +715,9 @@ mod marry;
 mod miracles;
 mod mutation;
 mod nuke;
+pub mod outcome;
+#[cfg(test)]
+mod outcome_tests;
 mod place;
 mod rain_patch;
 #[cfg(test)]
@@ -745,21 +748,42 @@ mod wildfire_tests;
 
 impl Simulation {
     pub fn apply_command_json(&mut self, json: &str) -> bool {
+        self.apply_command_json_reported(json).applied
+    }
+
+    /// Like `apply_command_json`, but says what the command did (see `outcome`).
+    pub fn apply_command_json_reported(&mut self, json: &str) -> outcome::CommandOutcome {
         match serde_json::from_str::<Command>(json) {
-            Ok(cmd) => self.apply_command(cmd),
-            Err(_) => false,
+            Ok(cmd) => self.apply_command_reported(cmd),
+            Err(_) => outcome::CommandOutcome::failed(),
         }
     }
 
     pub fn apply_command(&mut self, cmd: Command) -> bool {
+        self.apply_command_reported(cmd).applied
+    }
+
+    /// Runs a command and reports whether it changed the world and what it did.
+    pub fn apply_command_reported(&mut self, cmd: Command) -> outcome::CommandOutcome {
         let answers = prayer_answers(&cmd);
+        self.command_report = None;
         let applied = self.apply_command_inner(cmd);
         if applied {
             if let Some((kinds, at)) = answers {
                 self.answer_prayers(kinds, at);
             }
         }
-        applied
+        let report = self.command_report.take().unwrap_or(outcome::Report {
+            code: if applied { "applied" } else { "failed" },
+            count: 0,
+            name: None,
+        });
+        outcome::CommandOutcome {
+            applied,
+            code: report.code,
+            count: report.count,
+            name: report.name,
+        }
     }
 
     fn apply_command_inner(&mut self, cmd: Command) -> bool {

@@ -68,6 +68,86 @@
     "toolWorking": "{tool}…",
     "toolApplied": "{tool} uygulandı",
     "toolFailed": "{tool} başarısız",
-    "toolAt": "{tool} → {x}, {y}"
+    "toolAt": "{tool} → {x}, {y}",
+    "result": {
+      "none_here": "burada menzilde kimse yok",
+      "none_hurt": "buradakilerin hiçbiri yaralı değildi",
+      "none_sick": "buradakilerin hiçbiri hasta değil",
+      "none_dead": "burada geri getirilecek kimse yok",
+      "revive_cooldown": "bu kabile yakın zamanda diriltildi; tanrıların beklemesi gerek",
+      "world_full": "daha fazla insan için yer kalmadı",
+      "animal_full": "daha fazla hayvan için yer kalmadı",
+      "no_room_for_animal": "bu zeminde o hayvan için yer yok",
+      "split_small": "bir kabileyi ayırmak için burada çok az insan var",
+      "blocked": "kimse suda ya da kayada duramaz",
+      "no_government": "bu kabilenin onu yönetecek kimsesi yok",
+      "cannot_teach": "bunlara henüz yeniden öğretilemez",
+      "spawned": {
+        "one": "{name} geldi",
+        "other": "{count} kişi geldi"
+      },
+      "family_arrived": "yeni bir aile geldi",
+      "healed_animals": {
+        "one": "bir hayvanın gücünü geri verdi",
+        "other": "{count} hayvanın gücünü geri verdi"
+      },
+      "healed": {
+        "one": "{name} iyileştirildi",
+        "other": "{count} kişi iyileştirildi"
+      },
+      "revived": "{name} ölümden geri döndürüldü",
+      "blessed": {
+        "one": "{name} kutsandı",
+        "other": "{count} kişi kutsandı"
+      },
+      "inspired": {
+        "one": "{name} ilham aldı",
+        "other": "{count} kişi ilham aldı"
+      },
+      "cured": {
+        "one": "{name} iyileşti",
+        "other": "{count} kişi iyileşti"
+      },
+      "cured_tribe": {
+        "one": "kabileden bir kişi iyileşti",
+        "other": "kabileden {count} kişi iyileşti"
+      },
+      "loved": {
+        "one": "{name} aşık oldu",
+        "other": "aşkla dolan kalp: {count}"
+      },
+      "paired": {
+        "one": "bir çift bir araya getirildi",
+        "other": "{count} çift bir araya getirildi"
+      },
+      "mutated": "{name} mutasyona uğradı",
+      "cursed": "{name} lanetlendi",
+      "taught": "{name} kabilesi bir sır öğrendi",
+      "moved": "{name} taşındı",
+      "gifted_food": {
+        "one": "{name} kişisine yiyecek verildi",
+        "other": "{count} kişiye yiyecek verildi"
+      },
+      "gifted_tool": {
+        "one": "{name} kişisine alet verildi",
+        "other": "{count} kişiye alet verildi"
+      },
+      "crowned": "{name} taç giydi",
+      "split": {
+        "other": "{count} kişi ayrılıp yeni bir kabile kurdu"
+      },
+      "tamed": {
+        "one": "vahşi bir hayvan sadık bir köpeğe dönüştü",
+        "other": "{count} vahşi hayvan sadık köpeğe dönüştü"
+      },
+      "guardian": "bir bekçi köpek {name} kişisinin yanında durdu",
+      "smitten": "yıldırım {name} kişisini çarptı",
+      "struck_beast": "yıldırım bir hayvanı yere serdi",
+      "struck_roof": "yıldırım bir çatıyı yardı",
+      "animals": {
+        "one": "bir hayvan belirdi",
+        "other": "{count} hayvan belirdi"
+      }
+    }
   }
 }
