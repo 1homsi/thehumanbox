@@ -70,8 +70,22 @@ fn local_human_queries_preserve_animal_moves_and_rng() {
             let mut indexed = Animal::new(1, x, y, kind);
             let mut reference_rng = ChaCha8Rng::seed_from_u64(0x51A);
             let mut indexed_rng = ChaCha8Rng::seed_from_u64(0x51A);
-            reference.tick(&sim.grid, &all_humans, &[], &[(53.0, 50.0)], &mut reference_rng);
-            indexed.tick(&sim.grid, &local_humans, &[], &[(53.0, 50.0)], &mut indexed_rng);
+            reference.tick(
+                &sim.grid,
+                &all_humans,
+                &[],
+                &[],
+                &[(53.0, 50.0)],
+                &mut reference_rng,
+            );
+            indexed.tick(
+                &sim.grid,
+                &local_humans,
+                &[],
+                &[],
+                &[(53.0, 50.0)],
+                &mut indexed_rng,
+            );
             assert_eq!(
                 (
                     indexed.x,

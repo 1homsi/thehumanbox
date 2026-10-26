@@ -1,4 +1,5 @@
 use super::*;
+use crate::sim::simulation::animals::SUMMONED_ALARM;
 
 impl Simulation {
     /// Scan for dangerous animals, build the organism's perception of its surroundings, and note an emergency storm shelter.
@@ -24,10 +25,14 @@ impl Simulation {
         let mut animal_near = false;
         let mut wolf_threat: Option<(f32, f32, f32)> = None;
         let mut threat_kind = AnimalKind::Wolf;
+        let mut threat_summoned = false;
+        let mut summoned_threat: Option<(f32, f32, f32)> = None;
+        // A summoned pack is heard from further off than a wild wolf (see SUMMONED_ALARM).
+        let alarm_radius = wolf_flee_radius.max(SUMMONED_ALARM);
         animal_spatial.query_into(
             ox as i32,
             oy as i32,
-            wolf_flee_radius.max(8.0).ceil() as i32,
+            alarm_radius.max(8.0).ceil() as i32,
             spatial_buf,
         );
         spatial_buf.sort_unstable();
@@ -40,13 +45,29 @@ impl Simulation {
             if d <= 8.0 {
                 animal_near = true;
             }
+            let radius = if a.summoned {
+                alarm_radius
+            } else {
+                wolf_flee_radius
+            };
             if a.kind.hostile()
                 && !a.sleeping
-                && d <= wolf_flee_radius
+                && d <= radius
                 && wolf_threat.map(|(bd, _, _)| d < bd).unwrap_or(true)
             {
                 wolf_threat = Some((d, a.x, a.y));
                 threat_kind = a.kind;
+                threat_summoned = a.summoned;
+            }
+            // The nearest summoned wolf is tracked on its own, so a wild wolf that is too far to act on
+            // does not hide the pack from the decision (see decide.rs).
+            if a.summoned
+                && a.kind.hostile()
+                && !a.sleeping
+                && d <= alarm_radius
+                && summoned_threat.map(|(bd, _, _)| d < bd).unwrap_or(true)
+            {
+                summoned_threat = Some((d, a.x, a.y));
             }
         }
 
@@ -98,5 +119,7 @@ impl Simulation {
         f.storm_build = storm_build;
         f.threat_kind = threat_kind;
         f.wolf_threat = wolf_threat;
+        f.threat_summoned = threat_summoned;
+        f.summoned_threat = summoned_threat;
     }
 }

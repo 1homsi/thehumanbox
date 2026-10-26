@@ -25,6 +25,7 @@ mod feedback;
 mod movement;
 mod persistence;
 mod strategy;
+mod summoned_wolves;
 mod views;
 mod wild_kinds;
 mod world_events;

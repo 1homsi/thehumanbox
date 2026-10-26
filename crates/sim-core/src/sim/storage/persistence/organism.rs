@@ -216,6 +216,9 @@ pub(crate) struct AnimalSave {
     pub(super) keeper: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(super) pen: Option<(i32, i32)>,
+    /// A wolf the player summoned; old saves have none, so they are all wild.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub(super) summoned: bool,
 }
 
 fn is_zero_tick(t: &u64) -> bool {
@@ -607,6 +610,7 @@ pub(super) fn animal_to_save(a: &Animal) -> AnimalSave {
         born_tick: a.born_tick,
         keeper: a.keeper.clone(),
         pen: a.pen,
+        summoned: a.summoned,
     }
 }
 
@@ -621,5 +625,6 @@ pub(super) fn animal_from_save(s: AnimalSave) -> Animal {
     a.born_tick = s.born_tick;
     a.keeper = s.keeper;
     a.pen = s.pen;
+    a.summoned = s.summoned;
     a
 }

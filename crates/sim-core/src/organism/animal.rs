@@ -421,6 +421,11 @@ pub struct Animal {
     pub keeper: Option<String>,
     /// The pen the kept animal grazes round (its tile).
     pub pen: Option<(i32, i32)>,
+    /// A wolf the player summoned (see the spawn animal command). Only these hunt as a pack at night and
+    /// drive people to shelter; a wild wolf keeps its old behaviour, and so does a summoned one by day.
+    pub summoned: bool,
+    /// A summoned wolf is out hunting this tick (it is night). Recomputed every tick, not saved.
+    pub hunting: bool,
 }
 
 /// How far a kept animal may wander from its pen, in tiles: right beside it, inside the fence or
@@ -456,6 +461,8 @@ impl Animal {
             born_tick: 0,
             keeper: None,
             pen: None,
+            summoned: false,
+            hunting: false,
         }
     }
 
@@ -494,6 +501,7 @@ impl Animal {
         grid: &WorldGrid,
         org_positions: &[(f32, f32)],
         prey_positions: &[(f32, f32)],
+        livestock_positions: &[(f32, f32)],
         wolf_positions: &[(f32, f32)],
         rng: &mut impl Rng,
     ) {
@@ -520,12 +528,19 @@ impl Animal {
         let step = self.kind.step_size();
 
         // A fed predator rests and roams instead of stalking. Monsters
-        // always stalk, and only people.
+        // always stalk, and only people. A summoned pack out at night
+        // stalks people and the livestock in the pens too.
         let monster = self.kind.monster();
-        if monster || (self.kind.predator() && self.energy <= PREDATOR_HUNGRY_ENERGY) {
+        if monster || (self.kind.predator() && (self.energy <= PREDATOR_HUNGRY_ENERGY || self.hunting)) {
             let prey: &[(f32, f32)] = if monster { &[] } else { prey_positions };
+            let raid: &[(f32, f32)] = if self.hunting && !monster {
+                livestock_positions
+            } else {
+                &[]
+            };
             let target = prey
                 .iter()
+                .chain(raid.iter())
                 .chain(org_positions.iter())
                 .map(|&(ox, oy)| ((ox - self.x).abs() + (oy - self.y).abs(), ox, oy))
                 .filter(|&(d, _, _)| d < 20.0)
@@ -780,7 +795,7 @@ mod tests {
         animal.energy = 0.3;
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(3);
 
-        animal.tick(&grid, &[], &[], &[], &mut rng);
+        animal.tick(&grid, &[], &[], &[], &[], &mut rng);
 
         assert_ne!((animal.x as i32, animal.y as i32), (120, 120));
     }
@@ -877,8 +892,8 @@ mod tests {
             let mut calm_rng = rand_chacha::ChaCha8Rng::seed_from_u64(3);
             let mut wary_rng = rand_chacha::ChaCha8Rng::seed_from_u64(3);
 
-            without_wolf.tick(&grid, &[(46.0, 50.0)], &[], &[], &mut calm_rng);
-            with_wolf.tick(&grid, &[(46.0, 50.0)], &[], &[(53.0, 50.0)], &mut wary_rng);
+            without_wolf.tick(&grid, &[(46.0, 50.0)], &[], &[], &[], &mut calm_rng);
+            with_wolf.tick(&grid, &[(46.0, 50.0)], &[], &[], &[(53.0, 50.0)], &mut wary_rng);
 
             assert!(
                 without_wolf.x > 50.0,

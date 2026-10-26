@@ -241,6 +241,8 @@ impl Simulation {
             let id = self.next_animal_id;
             self.next_animal_id += 1;
             let mut animal = Animal::new(id, ix as f32, iy as f32, k);
+            // A wolf the player summons hunts as a pack at night and drives people to shelter (see tick_animals).
+            animal.summoned = k == AnimalKind::Wolf;
             if k == AnimalKind::Dog {
                 self.bond_released_dog(&mut animal);
             }

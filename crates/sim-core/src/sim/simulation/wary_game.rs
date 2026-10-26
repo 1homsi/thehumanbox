@@ -122,9 +122,9 @@ mod tests {
         let mut wary = Animal::new(2, 50.0, 50.0, AnimalKind::Deer);
         wary.wary = 1.0;
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
-        calm.tick(&grid, &person, &[], &[], &mut rng);
+        calm.tick(&grid, &person, &[], &[], &[], &mut rng);
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
-        wary.tick(&grid, &person, &[], &[], &mut rng);
+        wary.tick(&grid, &person, &[], &[], &[], &mut rng);
         assert!(wary.x < 50.0, "the wary deer ran from the person 5 tiles off");
         assert!(calm.x >= 49.0, "a calm deer lets a person that far be");
     }
