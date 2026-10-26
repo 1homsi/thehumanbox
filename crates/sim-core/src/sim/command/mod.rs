@@ -16,6 +16,11 @@ pub enum Command {
         count: u32,
         #[serde(default)]
         lineage: Option<String>,
+        /// Where a people already lives: the new people take the words of the
+        /// nearest living person within a few tiles of this point, so they
+        /// speak the same tongue as that people until their words drift apart.
+        #[serde(default)]
+        speak_like: Option<[f32; 2]>,
     },
     /// A family founds a tribe where you click: a partnered mother and father
     /// and two children of theirs.
@@ -729,6 +734,8 @@ mod restore_tests;
 mod roads;
 #[cfg(test)]
 mod roads_tests;
+#[cfg(test)]
+mod speak_like_tests;
 mod teach_nearby;
 mod teleport;
 #[cfg(test)]
@@ -788,7 +795,13 @@ impl Simulation {
 
     fn apply_command_inner(&mut self, cmd: Command) -> bool {
         match cmd {
-            Command::Spawn { x, y, count, lineage } => self.cmd_spawn(x, y, count, lineage),
+            Command::Spawn {
+                x,
+                y,
+                count,
+                lineage,
+                speak_like,
+            } => self.cmd_spawn(x, y, count, lineage, speak_like),
             Command::Family { x, y } => self.cmd_family(x, y),
             Command::Teleport { x, y, radius } => self.cmd_teleport(x, y, radius),
             Command::MakeLeader { x, y, radius } => self.cmd_make_leader(x, y, radius),

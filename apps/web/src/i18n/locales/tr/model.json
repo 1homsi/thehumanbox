@@ -193,6 +193,10 @@
       "title": "İki rakip kabile",
       "detail": "Beşer kişilik iki grup arazinin karşıt yakalarından başlar, her birinin yakınında biraz av vardır."
     },
+    "oneTongue": {
+      "title": "İki kabile, tek dil",
+      "detail": "Yan yana iki beşer kişilik grup aynı kelimelerle başlar; dillerinin nasıl ayrıldığını izleyebilirsiniz."
+    },
     "wildValley": {
       "title": "Vahşi vadi",
       "detail": "Arazinin dört bir yanına geyik ve tavşan sürüleri yerleştirilir, başlangıçta açık bir gökyüzü vardır."

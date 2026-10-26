@@ -1,5 +1,8 @@
 use super::*;
 
+/// How near a living person must stand for a `speak_like` spawn to borrow their words, in tiles.
+const SPEAK_LIKE_REACH: f32 = 8.0;
+
 impl Simulation {
     /// A family founds a new tribe: a mother and father who are partners, and
     /// two children of theirs. Children start at about an eighth of a full life.
@@ -62,7 +65,30 @@ impl Simulation {
         added
     }
 
-    pub(super) fn cmd_spawn(&mut self, x: f32, y: f32, count: u32, lineage: Option<String>) -> bool {
+    /// The words of the living person nearest `(x, y)`, when one is within `reach` tiles.
+    fn speaker_vocabulary_near(
+        &self,
+        x: f32,
+        y: f32,
+        reach: f32,
+    ) -> Option<crate::organism::vocabulary::Vocabulary> {
+        self.organisms
+            .iter()
+            .filter(|o| o.alive)
+            .map(|o| (o, (o.x - x).powi(2) + (o.y - y).powi(2)))
+            .filter(|&(_, d2)| d2 <= reach * reach)
+            .min_by(|a, b| a.1.total_cmp(&b.1))
+            .map(|(o, _)| o.vocabulary.clone())
+    }
+
+    pub(super) fn cmd_spawn(
+        &mut self,
+        x: f32,
+        y: f32,
+        count: u32,
+        lineage: Option<String>,
+        speak_like: Option<[f32; 2]>,
+    ) -> bool {
         let n = count.clamp(1, 50);
         let lid = lineage
             .filter(|lineage| !lineage.is_empty())
@@ -93,6 +119,9 @@ impl Simulation {
         }
         let before = self.organisms.len();
         let sexes = self.newcomer_sexes(&lid, n);
+        // Taken before anyone is added, so the newcomers cannot be their own speakers.
+        let words = speak_like.and_then(|[sx, sy]| self.speaker_vocabulary_near(sx, sy, SPEAK_LIKE_REACH));
+        let tick = self.tick_count;
         // Players can add as many people as they like. Births still
         // respect the natural population limit; this ceiling only
         // keeps a runaway click-fest from freezing the simulation.
@@ -114,6 +143,10 @@ impl Simulation {
                 sex,
                 &mut self.rng,
             );
+            if let (Some(words), Some(newcomer)) = (&words, self.organisms.last_mut()) {
+                newcomer.vocabulary = words.clone();
+                newcomer.vocabulary.touch_all_known(tick);
+            }
         }
         self.welcome_newcomers(before, &lid);
         // Report failure when the world is full so the player sees
