@@ -87,7 +87,10 @@
         "other": "{count} persone sono arrivate"
       },
       "family_arrived": "è arrivata una nuova famiglia",
-      "healed_animals": { "one": "un animale ha ripreso le forze", "other": "{count} animali hanno ripreso le forze" },
+      "healed_animals": {
+        "one": "un animale ha ripreso le forze",
+        "other": "{count} animali hanno ripreso le forze"
+      },
       "healed": {
         "one": "{name} è stato guarito",
         "other": "{count} persone guarite"
