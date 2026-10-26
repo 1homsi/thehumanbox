@@ -940,5 +940,9 @@
       "neutral": "нейтральні",
       "rivals": "суперники"
     }
+  },
+  "wordSplit": {
+    "title": "Слова розійшлися",
+    "text": "{first} і {second} раніше мали одне слово для {concept}. Тепер одні кажуть «{firstWord}», а інші «{secondWord}»."
   }
 }

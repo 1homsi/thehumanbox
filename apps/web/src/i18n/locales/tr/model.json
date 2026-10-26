@@ -907,5 +907,9 @@
       "neutral": "tarafsız",
       "rivals": "rakipler"
     }
+  },
+  "wordSplit": {
+    "title": "Kelimeler ayrıştı",
+    "text": "{first} ve {second} {concept} için aynı kelimeyi kullanıyordu. Şimdi biri {firstWord} diyor, öbürü {secondWord}."
   }
 }

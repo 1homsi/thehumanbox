@@ -918,5 +918,9 @@
       "neutral": "neutrali",
       "rivals": "rivali"
     }
+  },
+  "wordSplit": {
+    "title": "Le parole si sono separate",
+    "text": "{first} e {second} avevano la stessa parola per {concept}. Ora una dice {firstWord} e l’altra {secondWord}."
   }
 }

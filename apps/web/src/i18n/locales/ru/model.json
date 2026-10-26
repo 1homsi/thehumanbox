@@ -940,5 +940,9 @@
       "neutral": "нейтральные",
       "rivals": "соперники"
     }
+  },
+  "wordSplit": {
+    "title": "Слова разошлись",
+    "text": "{first} и {second} раньше говорили одним словом о {concept}. Теперь одни говорят «{firstWord}», а другие «{secondWord}»."
   }
 }

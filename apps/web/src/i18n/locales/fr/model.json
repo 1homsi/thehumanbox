@@ -918,5 +918,9 @@
       "neutral": "neutres",
       "rivals": "rivaux"
     }
+  },
+  "wordSplit": {
+    "title": "Les mots se sont séparés",
+    "text": "{first} et {second} partageaient un mot pour {concept}. Aujourd’hui l’un dit {firstWord} et l’autre {secondWord}."
   }
 }

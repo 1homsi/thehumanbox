@@ -921,5 +921,9 @@
       "neutral": "neutral",
       "rivals": "rivals"
     }
+  },
+  "wordSplit": {
+    "title": "Words have split",
+    "text": "{first} and {second} used to share a word for {concept}. Now one says {firstWord} and the other {secondWord}."
   }
 }

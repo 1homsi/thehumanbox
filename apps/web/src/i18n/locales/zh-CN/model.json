@@ -907,5 +907,9 @@
       "neutral": "中立",
       "rivals": "敌对"
     }
+  },
+  "wordSplit": {
+    "title": "用词分化了",
+    "text": "{first}和{second}原本对{concept}用同一个词，现在一方说“{firstWord}”，另一方说“{secondWord}”。"
   }
 }

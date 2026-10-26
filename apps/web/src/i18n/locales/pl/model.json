@@ -940,5 +940,9 @@
       "neutral": "neutralni",
       "rivals": "rywale"
     }
+  },
+  "wordSplit": {
+    "title": "Słowa się rozeszły",
+    "text": "{first} i {second} miały to samo słowo na {concept}. Teraz jedni mówią {firstWord}, a drudzy {secondWord}."
   }
 }

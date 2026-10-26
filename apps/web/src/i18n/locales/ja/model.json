@@ -907,5 +907,9 @@
       "neutral": "中立",
       "rivals": "対立"
     }
+  },
+  "wordSplit": {
+    "title": "言葉が分かれた",
+    "text": "{first}と{second}は{concept}を同じ言葉で呼んでいました。今は一方が{firstWord}、もう一方が{secondWord}と言います。"
   }
 }
