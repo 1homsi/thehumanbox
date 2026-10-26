@@ -1,6 +1,7 @@
 import type { WorldState } from '../../../../shared/types'
 import { t } from '../../../../i18n'
 import { PERIL_HELP, remainingLine } from '../../../model/tribe-peril'
+import type { LabelPresence } from '../../label-presence'
 import { TILE } from '../../../model/palette'
 import {
   labelScale,
@@ -42,6 +43,7 @@ export function collectSettlementLabels(
     const name = s.name ?? lineageNames[s.lineage_id] ?? s.lineage_id.slice(0, 6)
     const title = name.toUpperCase()
     out.push({
+      key: s.lineage_id,
       x: (cx - ox) * TILE,
       y: (cy - oy) * TILE,
       title,
@@ -68,7 +70,48 @@ export function placeLabels(
   measure: (text: string, kind: LabelKind) => number,
   W: number,
   H: number,
+  held?: ReadonlyMap<string, number>,
 ): PlacedLabel[] {
   if (labels.length === 0) return []
-  return placeSettlementLabels(labels, labelScale(zoom), measure, { w: W, h: H }, TILE * 2)
+  return placeSettlementLabels(labels, labelScale(zoom), measure, { w: W, h: H }, TILE * 2, held)
+}
+
+/** The place each settlement's lettering is showing at, for the ones still visible, so placement can keep them there. */
+export function heldSettlementSlots(
+  fade: LabelPresence<PlacedLabel>,
+  labels: readonly SettlementLabel[],
+): Map<string, number> {
+  const held = new Map<string, number>()
+  for (const label of labels) {
+    const key = label.key ?? label.title
+    const data = fade.dataOf(key)
+    if (data && fade.visible(key) && data.slot !== undefined) held.set(key, data.slot)
+  }
+  return held
+}
+
+/**
+ * The lettering to draw this paint. A settlement's lettering fades in as it is placed, and one that was showing and is
+ * not placed any more (it left the view, or lost its place) fades out where it was. Without this a name would pop on
+ * when it is first placed and off when it is not.
+ */
+export function fadeSettlementLabels(
+  fade: LabelPresence<PlacedLabel>,
+  now: number,
+  labels: readonly SettlementLabel[],
+  placed: readonly PlacedLabel[],
+): PlacedLabel[] {
+  fade.begin(now)
+  const byKey = new Map(placed.map((p) => [p.key ?? p.title, p] as const))
+  const out: PlacedLabel[] = []
+  for (const label of labels) {
+    const key = label.key ?? label.title
+    const p = byKey.get(key)
+    const opacity = fade.set(key, p !== undefined, p)
+    if (p !== undefined && opacity > 0) out.push({ ...p, alpha: p.alpha * opacity })
+  }
+  fade.leaving((_key, held, opacity) => {
+    out.push({ ...held, alpha: held.alpha * opacity })
+  })
+  return out
 }
