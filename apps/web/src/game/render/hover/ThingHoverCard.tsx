@@ -39,6 +39,8 @@ export function ThingHoverCard({ world, cameraRef, viewport, container, enabled,
       el.style.display = 'none'
       setHover(null)
     }
+    // A tool armed while a card shows takes the card down at once, not on the next pointer move.
+    if (!enabled) hide()
     const move = (e: PointerEvent) => {
       if (!enabled || e.buttons !== 0 || isMapControl(e.target)) return hide()
       const bounds = container.getBoundingClientRect()
@@ -59,9 +61,14 @@ export function ThingHoverCard({ world, cameraRef, viewport, container, enabled,
           ? found
           : groundThingAt(current, point, index)
       if (!thing) return hide()
+      // A thing whose card is empty (a planting of an unknown kind, a caravan that has just left) shows no box.
+      if (!mapThingCard(current, thing)) return hide()
       el.style.display = 'block'
-      el.style.left = `${Math.round(cx + 18)}px`
-      el.style.top = `${Math.round(cy + 18)}px`
+      // Keep the box inside the map: move it back from the right and bottom edges when it would spill over.
+      const maxLeft = Math.max(0, bounds.width - el.offsetWidth)
+      const maxTop = Math.max(0, bounds.height - el.offsetHeight)
+      el.style.left = `${Math.round(Math.min(cx + 18, maxLeft))}px`
+      el.style.top = `${Math.round(Math.min(cy + 18, maxTop))}px`
       setHover((prev) => (prev && thingKey(prev) === thingKey(thing) ? prev : thing))
     }
     container.addEventListener('pointermove', move)

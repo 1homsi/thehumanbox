@@ -110,6 +110,11 @@ function animalCard(animal: AnimalState): ThingCard {
   return { title: capitalise(animalKindWord(animal.kind)), lines }
 }
 
+/** The name a player sees for a person: the one they gave, when they gave one. */
+function personName(person: { name: string; custom_name?: string | null }): string {
+  return person.custom_name?.trim() || person.name
+}
+
 function buildingCard(world: WorldState, building: Building): ThingCard {
   const state = getBuildingState(building)
   const lines: string[] = []
@@ -127,10 +132,11 @@ function buildingCard(world: WorldState, building: Building): ThingCard {
 }
 
 function buildingStateLine(state: BuildingState): string {
-  if (!state.isComplete)
-    return t('model.thing.building.construction', { percent: Math.round(state.constructionProgress * 100) })
+  // A ruin is a ruin even before it was finished: it is not being built.
   if (state.isRuined)
     return t(state.isRepairing ? 'model.thing.building.rebuilding' : 'model.thing.building.ruined')
+  if (!state.isComplete)
+    return t('model.thing.building.construction', { percent: Math.round(state.constructionProgress * 100) })
   if (state.isRepairing) return t('model.thing.building.repairing')
   if (state.isDamaged)
     return t('model.thing.building.damaged', { percent: Math.round(state.integrity * 100) })
@@ -142,7 +148,7 @@ function peopleIn(world: WorldState, building: Building): { names: string; more:
   const living: string[] = []
   for (const id of building.occupants ?? []) {
     const person = world.organisms.find((org) => org.id === id && org.alive)
-    if (person) living.push(person.name)
+    if (person) living.push(personName(person))
   }
   return {
     names: living.slice(0, NAMES_SHOWN).join(', '),
@@ -154,7 +160,10 @@ function vehicleCard(world: WorldState, vehicle: VehicleInfo): ThingCard {
   const lines: string[] = []
   const aboard = [vehicle.rider_id, ...(vehicle.passenger_ids ?? [])]
     .filter((id): id is string => !!id)
-    .map((id) => world.organisms.find((org) => org.id === id && org.alive)?.name)
+    .map((id) => {
+      const person = world.organisms.find((org) => org.id === id && org.alive)
+      return person ? personName(person) : undefined
+    })
     .filter((name): name is string => !!name)
   if (aboard.length > 0)
     lines.push(t('model.thing.vehicle.aboard', { names: aboard.slice(0, NAMES_SHOWN).join(', ') }))

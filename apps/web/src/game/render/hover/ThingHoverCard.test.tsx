@@ -23,9 +23,12 @@ afterEach(async () => {
  * Renders the card over a 800x600 map (camera at tile 10, 10) and moves the pointer to the screen
  * centre, which is map tile (10, 10). Returns the card's text after the move.
  */
+/** The box element of the last card rendered by `cardTextAt`. */
+let lastBox: HTMLElement | null = null
+
 function cardTextAt(
   world: WorldState,
-  { enabled = true, buttons = 0, claimed = [] as [number, number][] } = {},
+  { enabled = true, buttons = 0, claimed = [] as [number, number][], armedAfter = false } = {},
 ): string {
   const host = document.createElement('div')
   const container = document.createElement('div')
@@ -47,27 +50,32 @@ function cardTextAt(
   // Tiles are 8 map pixels: the camera centre at (80, 80) is tile (10, 10).
   const cameraRef = { current: { x: 80, y: 80, zoom: 1 } as MapCamera }
 
-  act(() => {
-    root.render(
-      <ThingHoverCard
-        world={world}
-        cameraRef={cameraRef}
-        viewport={{ w: 800, h: 600 }}
-        container={container}
-        enabled={enabled}
-        territoryIndex={buildTerritoryIndex({
-          claimed: claimed.length > 0 ? [{ lid: 'l1', tiles: claimed }] : [],
-          contested: [],
-        })}
-      />,
-    )
-  })
+  const renderWith = (on: boolean) =>
+    act(() => {
+      root.render(
+        <ThingHoverCard
+          world={world}
+          cameraRef={cameraRef}
+          viewport={{ w: 800, h: 600 }}
+          container={container}
+          enabled={on}
+          territoryIndex={buildTerritoryIndex({
+            claimed: claimed.length > 0 ? [{ lid: 'l1', tiles: claimed }] : [],
+            contested: [],
+          })}
+        />,
+      )
+    })
+  renderWith(enabled)
   act(() => {
     container.dispatchEvent(
       new MouseEvent('pointermove', { clientX: 400, clientY: 300, buttons, bubbles: true }),
     )
   })
-  return (host.firstElementChild as HTMLElement).textContent ?? ''
+  // A tool armed while the card shows takes it down right away.
+  if (armedAfter) renderWith(false)
+  lastBox = host.firstElementChild as HTMLElement
+  return lastBox.textContent ?? ''
 }
 
 function townWorld(): WorldState {
@@ -126,6 +134,17 @@ describe('ThingHoverCard', () => {
 
   it('leaves claimed ground to the tribe card, which names the ground in its own line', () => {
     expect(cardTextAt(waterWorld(), { claimed: [[10, 10]] })).toBe('')
+  })
+
+  it('takes a shown card down as soon as a tool is armed, without another pointer move', () => {
+    expect(cardTextAt(townWorld(), { armedAfter: true })).toBe('')
+    expect(lastBox?.style.display).toBe('none')
+  })
+
+  it('shows no box for a thing whose card is empty, such as a planting of an unknown kind', () => {
+    const world = { ...waterWorld(), plantings: [10, 10, 99, 1] } as unknown as WorldState
+    expect(cardTextAt(world)).toBe('')
+    expect(lastBox?.style.display).toBe('none')
   })
 
   it('shows nothing while the button is held (a drag, not a hover)', () => {

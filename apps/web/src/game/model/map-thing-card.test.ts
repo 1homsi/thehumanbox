@@ -112,6 +112,27 @@ describe('building cards', () => {
     expect(lines({ ruined: true, damage: 1, integrity: 0, repairing: true })).toEqual(['being rebuilt'])
   })
 
+  it('shows a ruin as a ruin even when it was never finished', () => {
+    const lines = (extra: Partial<Building>) =>
+      mapThingCard(world({ buildings: [building({ id: 6, kind: 'mill', ...extra })] }), {
+        kind: 'building',
+        id: 6,
+      })?.lines
+    expect(lines({ condition: 0.4, ruined: true, damage: 1, integrity: 0 })).toEqual(['in ruins'])
+  })
+
+  it('names a person by the name the player gave them', () => {
+    const named = { ...person('a', 'Ada'), custom_name: 'Mara' } as OrganismState
+    const w = world({
+      organisms: [named],
+      buildings: [building({ id: 7, kind: 'house', function: 'Housing', occupants: ['a'] })],
+    })
+    expect(mapThingCard(w, { kind: 'building', id: 7 })?.lines).toEqual([
+      'in good repair',
+      'lives here: Mara',
+    ])
+  })
+
   it('names who lives in a house and who works in other buildings, the living only', () => {
     const occupants = ['a', 'b', 'x']
     const house = mapThingCard(
