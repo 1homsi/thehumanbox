@@ -136,6 +136,22 @@ describe('objectiveOf', () => {
     })
     expect(objectiveOf(w, 'b')).toEqual({ kind: 'unguided' })
   })
+
+  it('stops reporting a campaign as soon as it is completed, before its deadline', () => {
+    const done = world({
+      lineage_strategies: {
+        a: {
+          strategy: 'hunt',
+          expires_tick: 1500,
+          progress: 20,
+          target: 20,
+          status: 'completed',
+          completed: true,
+        },
+      },
+    })
+    expect(objectiveOf(done, 'a')).toEqual({ kind: 'unguided' })
+  })
 })
 
 describe('workOf', () => {

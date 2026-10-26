@@ -82,7 +82,9 @@ export type Objective =
 /** The campaign the player has guided this tribe to, while it is still running. */
 export function objectiveOf(world: WorldState, id: string): Objective {
   const s = world.lineage_strategies?.[id]
-  if (!s || s.expires_tick <= world.tick) return { kind: 'unguided' }
+  // A campaign that has already been reached is no longer an objective, even before its deadline.
+  if (!s || s.expires_tick <= world.tick || s.status === 'completed' || s.completed)
+    return { kind: 'unguided' }
   return { kind: 'guided', strategy: s.strategy, progress: s.progress ?? 0, target: s.target ?? 0 }
 }
 
