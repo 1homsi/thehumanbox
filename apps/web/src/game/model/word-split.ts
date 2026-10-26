@@ -50,8 +50,13 @@ export class WordSplitWatch {
         for (const concept of concepts) {
           const wa = wordsA[concept]
           const wb = wordsB[concept]
-          if (!wa || !wb) continue
           const key = `${a}\u0000${b}\u0000${concept}`
+          // A frame that leaves one word out says nothing about the pair, so the apart-clock stops rather than
+          // counting the missing ticks.
+          if (!wa || !wb) {
+            this.apartSince.delete(key)
+            continue
+          }
           if (wa === wb) {
             this.shared.add(key)
             this.apartSince.delete(key)

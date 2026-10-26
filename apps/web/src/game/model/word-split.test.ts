@@ -54,6 +54,19 @@ describe('WordSplitWatch', () => {
     expect(watch.update(frame(3 * SPLIT_CONFIRM_TICKS + 2000, apart))).toBeNull()
   })
 
+  it('starts the confirm clock again after a frame that leaves one tribe its word out', () => {
+    const watch = new WordSplitWatch()
+    const shared: Words = { La: { water: 'pi' }, Lb: { water: 'pi' } }
+    const apart: Words = { La: { water: 'ka' }, Lb: { water: 'pi' } }
+    watch.update(frame(1000, shared))
+    expect(watch.update(frame(1100, apart))).toBeNull()
+    // Lb's word is missing for a while: that time does not count towards the split.
+    expect(watch.update(frame(1300, { La: { water: 'ka' }, Lb: {} }))).toBeNull()
+    expect(watch.update(frame(1400, apart))).toBeNull()
+    expect(watch.update(frame(1400 + SPLIT_CONFIRM_TICKS - 1, apart))).toBeNull()
+    expect(watch.update(frame(1400 + SPLIT_CONFIRM_TICKS, apart))).not.toBeNull()
+  })
+
   it('starts again when the world goes back in time (a new world)', () => {
     const watch = new WordSplitWatch()
     const shared: Words = { La: { water: 'pi' }, Lb: { water: 'pi' } }

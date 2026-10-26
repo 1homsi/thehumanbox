@@ -42,12 +42,18 @@ function remember(key: string) {
 export function WordSplitToast({ world }: { world: WorldState | null }) {
   const watch = useRef<WordSplitWatch | null>(null)
   const seenWords = useRef<unknown>(null)
+  const lastTick = useRef(-Infinity)
   const [split, setSplit] = useState<WordSplit | null>(null)
   const [visible, setVisible] = useState(false)
 
   // Only full frames carry the tribes' words; the same object comes back between them.
   useEffect(() => {
-    if (!world?.lineage_words || world.lineage_words === seenWords.current) return
+    if (!world) return
+    // A world that starts over (its tick goes back) takes a notice still waiting for an empty screen with it:
+    // that split belongs to the old world.
+    if (world.tick < lastTick.current) setSplit(null)
+    lastTick.current = world.tick
+    if (!world.lineage_words || world.lineage_words === seenWords.current) return
     seenWords.current = world.lineage_words
     if (alreadyShown(worldKey())) return
     watch.current ??= new WordSplitWatch()

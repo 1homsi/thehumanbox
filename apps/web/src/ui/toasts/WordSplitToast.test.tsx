@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { WordSplitToast, WORD_SPLIT_KEY } from './WordSplitToast'
 import { SPLIT_CONFIRM_TICKS } from '../../game/model/word-split'
+import { TOAST_RETRY_MS } from './screenBusy'
 import type { WorldState } from '../../shared/types'
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
@@ -60,6 +61,30 @@ describe('WordSplitToast', () => {
     expect(host.textContent).toContain('Ula and Mo used to share a word for water')
     expect(host.textContent).toContain('ka')
     expect(window.localStorage.getItem(WORD_SPLIT_KEY)).toBe('777')
+  })
+
+  it('drops a split still waiting for an empty screen when the world starts over', () => {
+    vi.useFakeTimers()
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true)
+    try {
+      const root = createRoot(host)
+      roots.push(root)
+      mount(root, frame(1000, 'pi'))
+      mount(root, frame(1500, 'ka'))
+      mount(root, frame(1500 + SPLIT_CONFIRM_TICKS, 'ka'))
+      // The split is found but the screen is busy, so the notice waits. Then the world starts over.
+      expect(host.textContent).toBe('')
+      mount(root, frame(200, 'pi'))
+      hidden.mockReturnValue(false)
+      act(() => {
+        vi.advanceTimersByTime(TOAST_RETRY_MS * 5)
+      })
+      expect(host.textContent).toBe('')
+      expect(window.localStorage.getItem(WORD_SPLIT_KEY)).toBe(null)
+    } finally {
+      hidden.mockRestore()
+      vi.useRealTimers()
+    }
   })
 
   it('stays quiet in a world that already showed the notice', () => {
