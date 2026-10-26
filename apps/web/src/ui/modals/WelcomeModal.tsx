@@ -3,7 +3,8 @@ import { startTour, isTourSupported, preloadTour } from '../tour/tour'
 import { useIsMobile } from '../../shared/hooks/useIsMobile'
 import { useSimulationData } from '../../simulation/simulationData'
 import { welcomeStepsFor } from '../../simulation/playerWorldCopy'
-import { t } from '../../i18n'
+import { LOCALES, nativeName, t } from '../../i18n'
+import { languageFailureText, useLanguageChoice } from './useLanguageChoice'
 
 const STORAGE_KEY = 'thb-welcome-seen-v1'
 
@@ -15,6 +16,7 @@ export function WelcomeModal() {
   const { playerWorldKind } = useSimulationData()
   const steps = welcomeStepsFor(playerWorldKind)
   const cardRef = useRef<HTMLDivElement>(null)
+  const language = useLanguageChoice()
 
   useEffect(() => {
     let seen = true
@@ -67,7 +69,7 @@ export function WelcomeModal() {
         return
       }
       if (e.key !== 'Tab') return
-      const buttons = card.querySelectorAll<HTMLButtonElement>('button')
+      const buttons = card.querySelectorAll<HTMLButtonElement | HTMLSelectElement>('button, select')
       const first = buttons[0]
       const last = buttons[buttons.length - 1]
       if (!card.contains(document.activeElement)) {
@@ -123,6 +125,27 @@ export function WelcomeModal() {
           {current.title}
         </h2>
         <p className="welcome-body">{current.body}</p>
+        {/* The browser's language is picked automatically; this card is where a player corrects it. */}
+        <label className="welcome-language">
+          <span className="welcome-language-label">{t('settings.language.title')}</span>
+          <select
+            className="welcome-language-select"
+            value={language.pending ?? language.current}
+            disabled={!!language.pending}
+            onChange={(e) => language.choose(e.target.value)}
+          >
+            {LOCALES.map((code) => (
+              <option key={code} value={code} lang={code}>
+                {nativeName(code)}
+              </option>
+            ))}
+          </select>
+        </label>
+        {language.failed && (
+          <div className="welcome-language-note" role="alert">
+            {languageFailureText(language.failed)}
+          </div>
+        )}
         <div className="welcome-actions">
           {secondary && (
             <button type="button" className="welcome-btn welcome-btn--ghost" onClick={secondary.onClick}>
