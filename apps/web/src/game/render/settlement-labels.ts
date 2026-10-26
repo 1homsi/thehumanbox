@@ -7,6 +7,8 @@ export const PARCHMENT_HALO = 'rgba(236, 220, 181, 0.92)'
 const measureCache = new Map<string, Map<string, number>>()
 
 export interface SettlementLabel {
+  /** Stable identity of the settlement, so its lettering can keep its place and fade (defaults to the title). */
+  key?: string
   /** Anchor in map pixels: the middle of the settlement. */
   x: number
   y: number
@@ -30,6 +32,8 @@ export interface PlacedLabel extends SettlementLabel {
   h: number
   titleH: number
   scale: number
+  /** Which of the three places the lettering took: above, below, or above that (see `placeSettlementLabels`). */
+  slot?: number
 }
 
 /**
@@ -73,7 +77,10 @@ export function subFont(scale: number): string {
   return `bold ${(SUB_SIZE * scale).toFixed(2)}px monospace`
 }
 
-/** Place names without overlap, most important first. */
+/**
+ * Place names without overlap, most important first. `held` gives the place each name took last time (by key): it is
+ * tried first, so a name stays where it was while the others move around it, and only moves when that place is taken.
+ */
 export function placeSettlementLabels(
   labels: readonly SettlementLabel[],
   scale: number,
@@ -81,6 +88,7 @@ export function placeSettlementLabels(
   measure: (text: string, kind: LabelKind) => number,
   bounds: { w: number; h: number },
   lift: number,
+  held?: ReadonlyMap<string, number>,
 ): PlacedLabel[] {
   const order = [...labels].sort((a, b) => b.priority - a.priority || a.title.localeCompare(b.title))
   const placed: PlacedLabel[] = []
@@ -102,14 +110,17 @@ export function placeSettlementLabels(
     const h = titleH + (warning ? (SUB_SIZE + 3) * scale : 0)
     const gap = 2 * scale
     const above = label.y - lift - h / 2
-    for (const cy of [above, label.y + lift + h / 2, above - h - gap]) {
+    const places = [above, label.y + lift + h / 2, above - h - gap]
+    const first = held?.get(label.key ?? label.title) ?? 0
+    const tries = [first, ...[0, 1, 2].filter((i) => i !== first)]
+    for (const slot of tries) {
       const cx = Math.min(Math.max(label.x, w / 2 + 2), Math.max(bounds.w - w / 2 - 2, w / 2 + 2))
-      const y = Math.max(cy, h / 2 + 2)
+      const y = Math.max(places[slot], h / 2 + 2)
       const clash = placed.some(
         (p) => Math.abs(p.cx - cx) * 2 < p.w + w + gap * 2 && Math.abs(p.cy - y) * 2 < p.h + h + gap * 2,
       )
       if (!clash) {
-        placed.push({ ...label, cx, cy: y, w, h, titleH, scale })
+        placed.push({ ...label, cx, cy: y, w, h, titleH, scale, slot })
         break
       }
     }
