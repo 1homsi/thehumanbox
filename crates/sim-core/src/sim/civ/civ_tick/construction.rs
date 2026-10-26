@@ -195,8 +195,26 @@ fn construction_terrain_is_valid(sim: &Simulation, kind: BuildingKind, x: i32, y
                 }
             }
         }
+        if kind.needs_shore() && shore_water_beside(sim, x, y, width, height) < SHORE_WATER_TILES {
+            return false;
+        }
     }
     true
+}
+
+/// Open-water tiles a harbour building needs along its edge, so a puddle or one flooded corner
+/// does not count as a shore.
+pub(crate) const SHORE_WATER_TILES: usize = 3;
+
+/// The open-water tiles in the ring of tiles around a footprint (edges and corners).
+pub(crate) fn shore_water_beside(sim: &Simulation, x: i32, y: i32, width: u8, height: u8) -> usize {
+    use crate::world::tiles::Tile;
+    let (w, h) = (i32::from(width), i32::from(height));
+    (y - 1..=y + h)
+        .flat_map(|ty| (x - 1..=x + w).map(move |tx| (tx, ty)))
+        .filter(|&(tx, ty)| tx < x || tx >= x + w || ty < y || ty >= y + h)
+        .filter(|&(tx, ty)| sim.grid.get(tx, ty) == Tile::Water)
+        .count()
 }
 
 pub(super) fn apply_completed_building_effect(sim: &mut Simulation, kind: BuildingKind, x: i32, y: i32) {

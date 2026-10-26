@@ -1056,3 +1056,72 @@ fn building_is_learned_on_site_from_the_work_and_from_the_crew() {
     tick_building_progress(&mut solo);
     assert!(hand > solo.organisms[0].skills.level(Skill::Building));
 }
+
+/// A dry field with a lake whose west shore is column `shore_x` (water from there east).
+fn lakeside(shore_x: i32) -> Simulation {
+    use crate::world::tiles::Tile;
+    let mut sim = Simulation::new(0xD0C5);
+    sim.buildings.clear();
+    for y in 60..120 {
+        for x in 60..160 {
+            sim.grid
+                .set(x, y, if x >= shore_x { Tile::Water } else { Tile::Grass });
+        }
+    }
+    sim
+}
+
+#[test]
+fn harbour_buildings_need_open_water_along_an_edge() {
+    let sim = lakeside(100);
+    for kind in [
+        BuildingKind::Dock,
+        BuildingKind::Port,
+        BuildingKind::Marina,
+        BuildingKind::Lighthouse,
+    ] {
+        let (w, _) = kind.footprint();
+        let beside = 100 - i32::from(w);
+        assert!(
+            construction_site_is_valid(&sim, kind, beside, 80),
+            "{kind:?} right on the shore"
+        );
+        assert!(
+            !construction_site_is_valid(&sim, kind, beside - 6, 80),
+            "{kind:?} inland"
+        );
+    }
+    // Ordinary buildings keep standing inland.
+    assert!(construction_site_is_valid(&sim, BuildingKind::House, 70, 80));
+}
+
+#[test]
+fn one_wet_tile_is_not_a_shore() {
+    use crate::world::tiles::Tile;
+    let mut sim = lakeside(200);
+    sim.grid.set(92, 80, Tile::Water);
+    assert_eq!(shore_water_beside(&sim, 90, 80, 2, 2), 1);
+    assert!(!construction_site_is_valid(&sim, BuildingKind::Dock, 90, 80));
+}
+
+#[test]
+fn a_harbour_is_aimed_at_the_nearest_shore_and_found_there() {
+    let mut sim = lakeside(100);
+    sim.organisms.clear();
+    let mut builder = test_org("builder", "Builder", "lineage-a", 96.0, 80.0);
+    builder.age = 10_000;
+    builder.health = 1.0;
+    sim.organisms.push(builder);
+    let point = super::town::placement_point(&sim, "lineage-a", BuildingKind::Dock, (80, 80), (-7, 3));
+    assert_eq!(
+        point,
+        (99, 80),
+        "the dry tile beside the water, straight east of the centre"
+    );
+    let (x, y) = find_construction_site(&sim, "lineage-a", BuildingKind::Dock, point.0, point.1)
+        .expect("a shore site in reach of the builder");
+    assert!(
+        shore_water_beside(&sim, x, y, 2, 2) >= SHORE_WATER_TILES,
+        "site ({x}, {y}) sits on the shore"
+    );
+}

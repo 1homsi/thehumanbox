@@ -87,6 +87,15 @@ impl BuildingKind {
         }
     }
 
+    /// Harbour and boat buildings: they stand on dry ground with open water along an edge.
+    pub fn needs_shore(self) -> bool {
+        use BuildingKind::*;
+        matches!(
+            self,
+            Dock | Port | Marina | Shipyard | Drydock | Lighthouse | Lighthouse2
+        )
+    }
+
     pub fn footprint(self) -> (u8, u8) {
         use BuildingKind::*;
         match self {

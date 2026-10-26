@@ -281,7 +281,36 @@ pub(super) fn placement_point(
     center: (i32, i32),
     offset: (i32, i32),
 ) -> (i32, i32) {
+    if kind.needs_shore() {
+        // A harbour goes on the town's own shore, not wherever the offset lands.
+        return nearest_shore(sim, center).unwrap_or((center.0 + offset.0, center.1 + offset.1));
+    }
     town_anchor(sim, lineage, kind).unwrap_or((center.0 + offset.0, center.1 + offset.1))
+}
+
+/// How far from a town's centre it looks for a shore to put a harbour on.
+const SHORE_SEARCH_RADIUS: i32 = 24;
+
+/// The nearest dry tile beside open water, searching square rings out from `center` and taking
+/// the closest tile of the first ring that has one.
+fn nearest_shore(sim: &Simulation, center: (i32, i32)) -> Option<(i32, i32)> {
+    use crate::world::tiles::Tile;
+    let dry_shore = |x: i32, y: i32| {
+        WorldGrid::in_bounds(x, y)
+            && sim.grid.get(x, y) != Tile::Water
+            && [(1, 0), (-1, 0), (0, 1), (0, -1)]
+                .iter()
+                .any(|&(dx, dy)| sim.grid.get(x + dx, y + dy) == Tile::Water)
+    };
+    (0..=SHORE_SEARCH_RADIUS).find_map(|radius| {
+        (-radius..=radius)
+            .flat_map(|dy| (-radius..=radius).map(move |dx| (dx, dy)))
+            .filter(|&(dx, dy)| dx.abs() == radius || dy.abs() == radius)
+            .filter(|&(dx, dy)| dry_shore(center.0 + dx, center.1 + dy))
+            // The closest tile of the ring, not the first one scanned.
+            .min_by_key(|&(dx, dy)| dx * dx + dy * dy)
+            .map(|(dx, dy)| (center.0 + dx, center.1 + dy))
+    })
 }
 
 /// The era a town raises its market in, and the population it needs first.
