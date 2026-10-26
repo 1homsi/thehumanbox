@@ -145,11 +145,11 @@ impl Simulation {
         {
             crate::sim::civ::fields::tick_fields(self);
         }
-        if self.tick_count > 0
-            && self
-                .tick_count
-                .is_multiple_of(crate::sim::civ::land::village_fields::SOW_STEP)
-        {
+        if on_beat(
+            self.tick_count,
+            crate::sim::civ::land::village_fields::SOW_STEP,
+            SOW_PHASE,
+        ) {
             crate::sim::civ::land::village_fields::tick_village_fields(self);
         }
 
@@ -189,7 +189,7 @@ impl Simulation {
             self.tick_settlements();
         }
 
-        if self.tick_count.is_multiple_of(600) {
+        if on_beat(self.tick_count, 600, ERAS_PHASE) {
             crate::sim::tech_progress::seed_baseline_discoveries(&mut self.organisms, self.tick_count);
             self.update_lineage_eras();
             self.tick_water_depletion();
