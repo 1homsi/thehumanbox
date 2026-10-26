@@ -190,6 +190,7 @@ export function useSimulation(source: WorldSource = 'native'): {
     function requestSnapshotResync(force = false) {
       if (effectiveSource === 'wasm') return
       if (destroyed) return
+      if (versionRefused) return
       if (snapshotPendingRef.current) {
         if (!force) return
         if (snapshotAbort) snapshotAbort.abort()
@@ -634,6 +635,8 @@ export function useSimulation(source: WorldSource = 'native'): {
     let attempts = 0
     // Set once a server has been refused for speaking another protocol: reconnecting would only refuse it again.
     let versionRefused = false
+    // The socket whose hello was accepted. Only it may fetch a snapshot or resync from the window events.
+    let acceptedSocket: WebSocket | null = null
     // A socket only counts as reachable once it has stayed open this long; a server that
     // accepts and immediately closes (overload shedding, proxy idle kill) keeps its backoff.
     const HEALTHY_AFTER_MS = 5_000
@@ -658,6 +661,7 @@ export function useSimulation(source: WorldSource = 'native'): {
 
     function connect() {
       if (destroyed) return
+      if (versionRefused) return
       const existing = wsRef.current
       if (
         existing &&
@@ -739,6 +743,7 @@ export function useSimulation(source: WorldSource = 'native'): {
           // Only a server that has said hello gets a snapshot fetch or its frames; the fetch is what brings
           // the world in, so a refused server cannot feed the window either.
           handshaken = true
+          acceptedSocket = ws
           requestSnapshotResync()
           return
         }
@@ -749,6 +754,8 @@ export function useSimulation(source: WorldSource = 'native'): {
     /** A server that cannot be read: say so once, stop the socket, and do not reconnect to it. */
     function refuseServer(ws: WebSocket, verdict: Extract<HandshakeVerdict, { ok: false }>) {
       versionRefused = true
+      // A snapshot still downloading from an earlier connection must not land after the refusal.
+      if (snapshotAbort) snapshotAbort.abort()
       logger.error('ws', 'simulation server refused: it speaks another wire protocol', verdict)
       const server =
         verdict.reason === 'protocol'
@@ -849,7 +856,8 @@ export function useSimulation(source: WorldSource = 'native'): {
         }
         reconnectDelayMs = 1000
         connect()
-      } else if (ws && ws.readyState === WebSocket.OPEN) {
+      } else if (ws && ws.readyState === WebSocket.OPEN && ws === acceptedSocket) {
+        // A socket that has not said hello yet gets its snapshot from the hello path, not from here.
         requestSnapshotResync(true)
       }
     }

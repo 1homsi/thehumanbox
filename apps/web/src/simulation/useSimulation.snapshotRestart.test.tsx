@@ -191,6 +191,77 @@ describe('useSimulation snapshot recovery', () => {
     expect(fetchSnapshot).not.toHaveBeenCalled()
   })
 
+  it('does not reconnect, or say so again, when the window comes back after a refusal', async () => {
+    const socket = MockWebSocket.instances[0]
+    await act(async () => {
+      socket.readyState = MockWebSocket.OPEN
+      socket.onopen?.()
+      socket.sendHello(WIRE_PROTOCOL + 1, '9.0.0')
+      await flushMicrotasks()
+    })
+    act(() => {
+      socket.readyState = MockWebSocket.CLOSED
+      socket.onclose?.()
+    })
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+      window.dispatchEvent(new Event('online'))
+      await flushMicrotasks()
+    })
+    expect(MockWebSocket.instances).toHaveLength(1)
+    expect(showNotice).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not fetch a snapshot from a socket that has not said hello when the window comes back', async () => {
+    fetchSnapshot.mockResolvedValue(null)
+    const socket = MockWebSocket.instances[0]
+    await act(async () => {
+      socket.readyState = MockWebSocket.OPEN
+      socket.onopen?.()
+      await flushMicrotasks()
+    })
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+      await flushMicrotasks()
+    })
+    expect(fetchSnapshot).not.toHaveBeenCalled()
+    await act(async () => {
+      socket.sendHello()
+      await flushMicrotasks()
+    })
+    expect(fetchSnapshot).toHaveBeenCalledTimes(1)
+  })
+
+  it('aborts a snapshot still downloading from an earlier connection when a reconnect is refused', async () => {
+    fetchSnapshot.mockReturnValue(new Promise(() => {}))
+    const first = MockWebSocket.instances[0]
+    await act(async () => {
+      first.open()
+      await flushMicrotasks()
+    })
+    expect(fetchSnapshot).toHaveBeenCalledTimes(1)
+    const signal = fetchSnapshot.mock.calls[0][1] as AbortSignal
+    expect(signal.aborted).toBe(false)
+    act(() => {
+      first.readyState = MockWebSocket.CLOSED
+      first.onclose?.()
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000)
+      await flushMicrotasks()
+    })
+    const second = MockWebSocket.instances[MockWebSocket.instances.length - 1]
+    expect(second).not.toBe(first)
+    await act(async () => {
+      second.readyState = MockWebSocket.OPEN
+      second.onopen?.()
+      second.sendHello(WIRE_PROTOCOL + 1, '9.0.0')
+      await flushMicrotasks()
+    })
+    expect(signal.aborted).toBe(true)
+    expect(showNotice).toHaveBeenCalledTimes(1)
+  })
+
   it('accepts restarted frame ids and retries a failed snapshot with a cached world', async () => {
     parsedFrames.set('initial-snapshot', { frame_id: 10_000, frame_kind: 'full' })
     parsedFrames.set('old-server-frame', { frame_id: 10_001, frame_kind: 'delta' })
