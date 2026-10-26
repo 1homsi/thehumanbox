@@ -16,6 +16,11 @@ pub enum Command {
         count: u32,
         #[serde(default)]
         lineage: Option<String>,
+        /// Where a people already lives: the new people take the words of the
+        /// nearest living person within a few tiles of this point, so they
+        /// speak the same tongue as that people until their words drift apart.
+        #[serde(default)]
+        speak_like: Option<[f32; 2]>,
     },
     /// A family founds a tribe where you click: a partnered mother and father
     /// and two children of theirs.
@@ -715,6 +720,9 @@ mod marry;
 mod miracles;
 mod mutation;
 mod nuke;
+pub mod outcome;
+#[cfg(test)]
+mod outcome_tests;
 mod place;
 mod rain_patch;
 #[cfg(test)]
@@ -726,6 +734,8 @@ mod restore_tests;
 mod roads;
 #[cfg(test)]
 mod roads_tests;
+#[cfg(test)]
+mod speak_like_tests;
 mod teach_nearby;
 mod teleport;
 #[cfg(test)]
@@ -745,26 +755,53 @@ mod wildfire_tests;
 
 impl Simulation {
     pub fn apply_command_json(&mut self, json: &str) -> bool {
+        self.apply_command_json_reported(json).applied
+    }
+
+    /// Like `apply_command_json`, but says what the command did (see `outcome`).
+    pub fn apply_command_json_reported(&mut self, json: &str) -> outcome::CommandOutcome {
         match serde_json::from_str::<Command>(json) {
-            Ok(cmd) => self.apply_command(cmd),
-            Err(_) => false,
+            Ok(cmd) => self.apply_command_reported(cmd),
+            Err(_) => outcome::CommandOutcome::failed(),
         }
     }
 
     pub fn apply_command(&mut self, cmd: Command) -> bool {
+        self.apply_command_reported(cmd).applied
+    }
+
+    /// Runs a command and reports whether it changed the world and what it did.
+    pub fn apply_command_reported(&mut self, cmd: Command) -> outcome::CommandOutcome {
         let answers = prayer_answers(&cmd);
+        self.command_report = None;
         let applied = self.apply_command_inner(cmd);
         if applied {
             if let Some((kinds, at)) = answers {
                 self.answer_prayers(kinds, at);
             }
         }
-        applied
+        let report = self.command_report.take().unwrap_or(outcome::Report {
+            code: if applied { "applied" } else { "failed" },
+            count: 0,
+            name: None,
+        });
+        outcome::CommandOutcome {
+            applied,
+            code: report.code,
+            count: report.count,
+            name: report.name,
+        }
     }
 
     fn apply_command_inner(&mut self, cmd: Command) -> bool {
         match cmd {
-            Command::Spawn { x, y, count, lineage } => self.cmd_spawn(x, y, count, lineage),
+            Command::Spawn {
+                x,
+                y,
+                count,
+                lineage,
+                speak_like,
+            } => self.cmd_spawn(x, y, count, lineage, speak_like),
             Command::Family { x, y } => self.cmd_family(x, y),
             Command::Teleport { x, y, radius } => self.cmd_teleport(x, y, radius),
             Command::MakeLeader { x, y, radius } => self.cmd_make_leader(x, y, radius),

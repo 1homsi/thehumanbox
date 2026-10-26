@@ -12,12 +12,14 @@ import { relationsLine, relationsOf } from '../../game/model/diplomacy'
 import { leadershipOf } from '../../game/model/leadership'
 import { festivalLabel } from '../../game/render/festivals'
 import { tribeStatus } from '../../game/model/tribe-status'
+import { guideLines, type GuideLine } from '../../game/model/era-guide'
 import { wealthGapOf } from '../../game/model/inequality'
 import { crimeLineOf } from '../../game/model/crime'
 import { generationLine, generationsOf } from '../../game/model/generations'
 import { familyLineText, familyLines } from '../../game/model/family-lines'
 import { eldestByLineage, eldestLine } from '../../game/model/tribe-eldest'
 import { ToolSprite } from '../toolbar/ToolSprite'
+import { TribeHistory } from './TribeHistory'
 import { TribeReasoning } from './TribeReasoning'
 import { formatNumber, t, type MessageKey } from '../../i18n'
 import { knownTribeName } from '../../state/worldStore'
@@ -176,6 +178,22 @@ function TribeName({
   )
 }
 
+/** One line of a tribe's starter guide to its next age, in words. */
+function guideText(line: GuideLine): string {
+  switch (line.kind) {
+    case 'secrets':
+      return t('panels.tribe.stillToLearn', { list: line.names.join(', ') })
+    case 'people':
+      return t('panels.tribe.guide.worldPeople', {
+        have: formatNumber(line.have),
+        need: formatNumber(line.need),
+        short: formatNumber(line.short),
+      })
+    case 'ready':
+      return t('panels.tribe.guide.ready')
+  }
+}
+
 /** What a tribe known for each craft is said to be known for. */
 const CRAFT_KEYS: Record<string, MessageKey> = {
   woodcutting: 'panels.tribe.lore.craft.woodcutting',
@@ -312,6 +330,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
       )}
       <Need label={t('panels.tribe.water')} value={status.water} />
       <Need label={t('panels.tribe.health')} value={status.health} />
+      <TribeHistory world={world} lineage={status.id} />
       <TribeReasoning world={world} status={status} />
       {losses && <div className="tribe-card-losses">{t('panels.tribe.lostLately', { losses })}</div>}
       {relations && <div className="tribe-card-relations">{relations}</div>}
@@ -388,16 +407,17 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
               }}
             />
           </span>
-          {status.nextAge.missing.length > 0 && (
-            <div className="tribe-next-missing">
-              {t('panels.tribe.stillToLearn', { list: status.nextAge.missing.slice(0, 3).join(', ') })}
+          <div className="tribe-next-missing">
+            {t('panels.tribe.guide.known', {
+              known: formatNumber(status.nextAge.known),
+              required: formatNumber(status.nextAge.required),
+            })}
+          </div>
+          {guideLines(status.nextAge).map((line) => (
+            <div key={line.kind} className="tribe-next-missing">
+              {guideText(line)}
             </div>
-          )}
-          {status.nextAge.peopleNeeded > 0 && (
-            <div className="tribe-next-missing">
-              {t('panels.tribe.needsPeople', { count: formatNumber(status.nextAge.peopleNeeded) })}
-            </div>
-          )}
+          ))}
         </div>
       )}
       {prayer && (

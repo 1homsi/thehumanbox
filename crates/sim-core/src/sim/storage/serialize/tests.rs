@@ -9,6 +9,33 @@ fn lookahead_uses_the_same_safe_tick_bounds_as_the_runtime() {
 }
 
 #[test]
+fn full_payload_carries_each_living_tribes_history_with_its_place() {
+    let mut sim = Simulation::new(42);
+    let lid = sim
+        .organisms
+        .iter()
+        .find(|o| o.alive)
+        .expect("founder exists")
+        .lineage_id
+        .clone();
+    sim.chronicle(&lid, "famine", None, None, Some((12, 34)));
+    sim.chronicle("a tribe that died out", "war", Some(&lid), None, None);
+
+    let payload = sim.state_json();
+    let rows = payload["tribe_chronicle"][lid.as_str()]
+        .as_array()
+        .expect("the living tribe has a history");
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0]["kind"], "famine");
+    assert_eq!(rows[0]["x"], 12);
+    assert_eq!(rows[0]["y"], 34);
+    assert!(
+        payload["tribe_chronicle"].get("a tribe that died out").is_none(),
+        "a tribe that has died out is not sent"
+    );
+}
+
+#[test]
 fn tribe_work_counts_only_stints_still_running_by_trade() {
     use crate::organism::skills::Skill;
     use crate::sim::agents::daily_work::WorkPlan;

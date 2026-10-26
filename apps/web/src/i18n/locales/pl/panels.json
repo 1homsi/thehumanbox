@@ -335,6 +335,30 @@
         "healing": "słyną z uzdrowicieli"
       }
     },
+    "history": {
+      "title": "Kronika",
+      "empty": "Nic jeszcze nie zapisano",
+      "goTo": "Idź do tego miejsca",
+      "raid": "w najeździe z {other}",
+      "war": "wszedł w wojnę z {other}",
+      "era": "weszło w erę: {era}",
+      "famine": "przeżyło głód",
+      "arrival": "przybyło tu wędrowne plemię i osiadło",
+      "split": "odłączyło się od {other}, by założyć to plemię",
+      "craft": "stało się znane z: {craft}",
+      "leaderDied": "straciło swego przywódcę {name}",
+      "crafts": {
+        "woodcutting": "ścinkę drzew",
+        "quarrying": "kamieniołomy",
+        "foraging": "zbieractwo",
+        "fishing": "rybołówstwo",
+        "hunting": "łowiectwo",
+        "farming": "uprawę roli",
+        "building": "budownictwo",
+        "crafting": "rzemiosło",
+        "healing": "uzdrawianie"
+      }
+    },
     "why": {
       "title": "Dlaczego tak postępują",
       "guided": "Prowadzone ku: {strategy}, {done} z {target} zrobione",
@@ -378,6 +402,11 @@
         "learn": "nauczyć się: {secret} na następną epokę",
         "carryOn": "działać dalej jak dotąd"
       }
+    },
+    "guide": {
+      "known": "znane tajemnice: {known} z {required}",
+      "worldPeople": "świat ma {have} z {need} ludzi potrzebnych tej epoce (brakuje {short})",
+      "ready": "gotowe: epoka nadejdzie przy następnym sprawdzeniu świata"
     }
   },
   "scene": {

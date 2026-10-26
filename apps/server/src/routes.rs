@@ -103,16 +103,20 @@ pub async fn admin_reset_world_handler(
         .into_response()
 }
 
-pub async fn command_handler(State(s): State<AppState>, body: String) -> StatusCode {
+/// Runs a sandbox command. The body is the command's outcome as JSON (see `CommandOutcome`), so the
+/// client can say what it did; the status is 200 when the world changed and 400 when it did not.
+pub async fn command_handler(State(s): State<AppState>, body: String) -> axum::response::Response {
     if body.len() > 4096 {
-        return StatusCode::PAYLOAD_TOO_LARGE;
+        return StatusCode::PAYLOAD_TOO_LARGE.into_response();
     }
     let mut sim = s.sim.lock().await;
-    if sim.apply_command_json(&body) {
+    let outcome = sim.apply_command_json_reported(&body);
+    let status = if outcome.applied {
         StatusCode::OK
     } else {
         StatusCode::BAD_REQUEST
-    }
+    };
+    (status, Json(outcome)).into_response()
 }
 
 #[derive(serde::Deserialize)]

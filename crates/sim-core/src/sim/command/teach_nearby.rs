@@ -6,10 +6,18 @@ impl Simulation {
     /// no secret left or was taught too recently (the same rules as the teach command).
     pub(super) fn cmd_teach_nearby(&mut self, x: f32, y: f32, radius: f32) -> bool {
         let Some(i) = self.nearest_in_reach(x, y, radius) else {
+            self.report("none_here", 0, None);
             return false;
         };
         let lineage = self.organisms[i].lineage_id.clone();
-        self.teach_tribe(&lineage)
+        let name = self.organisms[i].name.clone();
+        let taught = self.teach_tribe(&lineage);
+        if taught {
+            self.report("taught", 1, Some(name.as_str()));
+        } else {
+            self.report("cannot_teach", 0, None);
+        }
+        taught
     }
 }
 

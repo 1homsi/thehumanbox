@@ -1,3 +1,4 @@
+import type { CommandOutcome } from './command-outcome'
 import type { TimeControl } from './sandbox'
 
 export type RuntimeControl = 'pause' | 'resume' | 'speed'
@@ -63,6 +64,8 @@ export interface RuntimeControlResult {
   ok: boolean
   paused?: boolean
   speed?: number
+  /** Set for a sandbox command: what it did (see command-outcome.ts). */
+  outcome?: CommandOutcome
 }
 
 const RUNTIME_REQUEST_TIMEOUT_MS = 5_000

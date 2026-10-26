@@ -311,6 +311,30 @@
         "healing": "conhecidos por seus curandeiros"
       }
     },
+    "history": {
+      "title": "Histórico",
+      "empty": "Nada registrado ainda",
+      "goTo": "Ir a este lugar",
+      "raid": "em uma incursão com {other}",
+      "war": "foi à guerra com {other}",
+      "era": "entrou na era {era}",
+      "famine": "passou por uma fome",
+      "arrival": "um povo errante chegou e se fixou aqui",
+      "split": "separou-se de {other} para fundar esta tribo",
+      "craft": "passou a ser conhecida por {craft}",
+      "leaderDied": "perdeu o líder {name}",
+      "crafts": {
+        "woodcutting": "o corte de madeira",
+        "quarrying": "a pedreira",
+        "foraging": "a coleta",
+        "fishing": "a pesca",
+        "hunting": "a caça",
+        "farming": "a agricultura",
+        "building": "a construção",
+        "crafting": "o artesanato",
+        "healing": "a cura"
+      }
+    },
     "why": {
       "title": "Por que agem assim",
       "guided": "Guiada para {strategy}: {done} de {target} feitos",
@@ -354,6 +378,11 @@
         "learn": "aprender {secret} para a próxima era",
         "carryOn": "seguir como estão"
       }
+    },
+    "guide": {
+      "known": "{known} de {required} segredos conhecidos",
+      "worldPeople": "o mundo tem {have} das {need} pessoas que esta era exige (faltam {short})",
+      "ready": "pronto: a era chega na próxima verificação do mundo"
     }
   },
   "scene": {

@@ -25,14 +25,24 @@ export interface TribeStatus {
   /** Gave up on the gods: rarely prays until helped unasked. */
   lostFaith: boolean
   prayer: PrayerInfo | null
-  /** What stands between the tribe and its next age, if there is one. */
-  nextAge: {
-    era: string
-    known: number
-    required: number
-    missing: string[]
-    peopleNeeded: number
-  } | null
+  /** What stands between the tribe and its next age, if there is one (see `era-guide.ts`). */
+  nextAge: NextAge | null
+}
+
+export interface NextAge {
+  era: string
+  /** Secrets the tribe knows of those its next age needs. */
+  known: number
+  required: number
+  /** The secrets it still lacks, all of them, in the sim's order. */
+  missing: string[]
+  /** People the world still needs before the age comes; 0 once it has them. */
+  peopleNeeded: number
+  /** People in the world now, and how many the next age needs of the world. */
+  worldPeople: number
+  worldPeopleRequired: number
+  /** False for an older frame without the world's totals: the people guidance is then unknown, not zero. */
+  worldKnown: boolean
 }
 
 function eraOf(world: WorldState, id: string): string | null {
@@ -46,15 +56,34 @@ import { eraWord } from '../../shared/era-words'
 
 const pretty = (s: string) => s.replace(/[-_]/g, ' ')
 
-function nextAgeOf(world: WorldState, id: string): TribeStatus['nextAge'] {
+/**
+ * The next age as the sim gates it. The age needs the secrets across the tribe's living people AND enough
+ * people in the whole world (`update_lineage_eras` counts the world's population, not the tribe's). The
+ * `pop_*` fields are the tribe's own count, kept for older clients; the world fields are the ones to read.
+ */
+function nextAgeOf(world: WorldState, id: string): NextAge | null {
   const p = world.lineage_era_progress?.find((e) => e.lineage_id === id)
   if (!p?.next_era) return null
-  return {
+  const base = {
     era: eraWord(p.next_era),
     known: p.known.length,
     required: p.required.length,
     missing: p.missing.map(pretty),
-    peopleNeeded: p.pop_ready ? 0 : Math.max(0, p.pop_required - p.pop),
+  }
+  // Frames from before the world totals carry only the tribe's own count. That is not the world's, so the
+  // people guidance is marked unknown instead of being worked out from it.
+  if (p.world_population == null || p.world_population_required == null) {
+    return { ...base, peopleNeeded: 0, worldPeople: 0, worldPeopleRequired: 0, worldKnown: false }
+  }
+  const worldPeople = p.world_population
+  const worldPeopleRequired = p.world_population_required
+  const peopleReady = p.world_population_ready ?? false
+  return {
+    ...base,
+    peopleNeeded: peopleReady ? 0 : Math.max(0, worldPeopleRequired - worldPeople),
+    worldPeople,
+    worldPeopleRequired,
+    worldKnown: true,
   }
 }
 

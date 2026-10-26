@@ -269,6 +269,18 @@ export interface FarmInfo {
   progress?: number
 }
 
+/** One line of a tribe's history: what happened, when, and where (tiles; null when the sim has no place). */
+export interface TribeChronicleRow {
+  tick: number
+  kind: 'raid' | 'war' | 'era' | 'famine' | 'arrival' | 'split' | 'craft' | 'leader_died'
+  /** The other tribe in a raid, war or split. */
+  other: string | null
+  /** An era, craft or leader's name, where the kind has one. */
+  word: string | null
+  x: number | null
+  y: number | null
+}
+
 export interface SettlementInfo {
   lineage_id: string
   name: string
@@ -452,6 +464,12 @@ export interface AnimalState {
   away?: boolean
   /** Born recently (a newborn is drawn smaller); see `YOUNG_ANIMAL_TICKS` in the sim. */
   young?: boolean
+  /** Kept as livestock or bonded to a person: no longer wild. */
+  tame?: boolean
+  /** Low on energy and looking for food. */
+  hungry?: boolean
+  /** A predator out after prey or people. */
+  hunting?: boolean
 }
 
 export interface WardInfo {
@@ -690,6 +708,8 @@ export interface WorldState {
   lineage_homes?: Record<string, [number, number, number]>
   /** What each tribe has learned as a people: the craft it is known for, the hungry winter it remembers. */
   lineage_lore?: Record<string, { craft?: string; hungry_winter?: number; war_weary?: number }>
+  /** Each living tribe's own history, oldest first (sim `tribe_chronicle.rs`). Sent with the cold frames. */
+  tribe_chronicle?: Record<string, TribeChronicleRow[]>
   /** What each tribe's people are at work on right now, counted by trade: `{lineage: {skill: people}}`. */
   tribe_work?: Record<string, Record<string, number>>
   current_era?: string

@@ -154,6 +154,7 @@ impl Simulation {
         if let Some((lineage, "starvation")) = &noted {
             self.remember_hungry_winter(lineage);
         }
+        let leader_lost = noted.is_some() && self.organisms[idx].is_leader;
         if let Some((lineage, cause)) = noted {
             self.note_death(&lineage, cause);
             self.history.record_death(self.tick_count);
@@ -162,6 +163,14 @@ impl Simulation {
             while self.fallen.len() > 96 {
                 self.fallen.pop_front();
             }
+        }
+        if leader_lost {
+            let (lineage, name, x, y) = {
+                let o = &self.organisms[idx];
+                (o.lineage_id.clone(), o.name.clone(), o.x, o.y)
+            };
+            let place = Some((x.round() as i32, y.round() as i32));
+            self.chronicle(&lineage, "leader_died", None, Some(&name), place);
         }
         if let Some(g) = grave {
             if self.grave_queue.len() < 200 {

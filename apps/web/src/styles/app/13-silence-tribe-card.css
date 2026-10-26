@@ -235,6 +235,13 @@
   font-size: 9px;
   color: #9ac6a6;
 }
+/* A tribe's own history: its newest lines, newest first; a line with a place is a button that takes the camera there. */
+.tribe-history {
+  margin-top: 6px;
+  font-size: 10px;
+  line-height: 1.35;
+  color: #e9dcb0;
+}
 /* Why the tribe acts: what it is guided to, what it needs most, what its people are doing and what it tries next. */
 .tribe-why {
   margin-top: 6px;
@@ -244,6 +251,12 @@
   line-height: 1.35;
   color: #e9dcb0;
 }
+.tribe-history-title {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c9b97e;
+}
 .tribe-why p {
   margin: 2px 0 0;
 }
@@ -252,6 +265,42 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #c9b97e;
+}
+.tribe-history-list {
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.tribe-history-list li + li {
+  margin-top: 2px;
+}
+.tribe-history-go {
+  display: block;
+  width: 100%;
+  padding: 1px 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.tribe-history-go:hover,
+.tribe-history-go:focus-visible {
+  color: #ffd98a;
+  text-decoration: underline;
+}
+.tribe-history-plain {
+  display: block;
+  padding: 1px 0;
+}
+.tribe-history-when {
+  color: #c9b97e;
+  font-variant-numeric: tabular-nums;
+}
+.tribe-history-empty {
+  margin: 2px 0 0;
+  opacity: 0.7;
 }
 .tribe-why-next {
   color: #ffd98a;

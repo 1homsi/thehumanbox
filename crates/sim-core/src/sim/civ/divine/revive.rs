@@ -33,6 +33,7 @@ impl Simulation {
             .filter(|&(_, d)| d <= REACH)
             .min_by(|a, b| a.1.total_cmp(&b.1));
         let Some((i, _)) = candidate else {
+            self.report("none_dead", 0, None);
             return false;
         };
         let lineage = self.organisms[i].lineage_id.clone();
@@ -41,6 +42,7 @@ impl Simulation {
             .get(&lineage)
             .is_some_and(|&t| now.saturating_sub(t) < REVIVE_COOLDOWN)
         {
+            self.report("revive_cooldown", 0, None);
             return false;
         }
         let o = &mut self.organisms[i];
@@ -69,6 +71,7 @@ impl Simulation {
             &tribe,
             &format!("{name} was raised from the dead by the gods"),
         );
+        self.report("revived", 1, Some(name.as_str()));
         true
     }
 }

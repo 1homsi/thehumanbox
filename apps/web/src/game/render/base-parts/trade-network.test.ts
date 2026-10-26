@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { WorldState } from '../../../shared/types'
 import { TILE } from '../../model/palette'
 import { buildPath, type TradePathPlanner } from '../trade-paths'
-import { drawTradeNetwork2D } from './trade-network'
+import { caravanDrawnAt, drawTradeNetwork2D } from './trade-network'
 
 interface Call {
   op: string
@@ -197,5 +197,36 @@ describe('traffic and barriers on a planned road', () => {
       pathOf: () => null,
     } as unknown as TradePathPlanner)
     expect(calls).toHaveLength(0)
+  })
+})
+
+describe('caravanDrawnAt', () => {
+  it('names the caravan where the last draw put it, in world tiles', () => {
+    drawTradeNetwork2D(recorder().ctx, world({ tick: 150 }), bounds, 0, 'caravans', planner)
+    // Drawn at grid tile (12, 2), so its centre is the middle of that tile.
+    expect(caravanDrawnAt(12.5, 2.5, 0.8)).toBe(7)
+    expect(caravanDrawnAt(2.5, 2.5, 0.8)).toBeNull()
+    expect(caravanDrawnAt(12.5, 2.5, 0.2)).toBe(7)
+    expect(caravanDrawnAt(13.5, 2.5, 0.8)).toBeNull()
+  })
+
+  it('is measured from the grid origin, which the caravans were drawn from', () => {
+    const shifted = world({
+      tick: 150,
+      grid: { width: 20, height: 20, origin_x: 100, origin_y: 0 },
+    } as Partial<WorldState>)
+    shifted.caravans![0] = { ...shifted.caravans![0]!, from: [102, 2], to: [112, 2] }
+    drawTradeNetwork2D(recorder().ctx, shifted, bounds, 0, 'caravans', {
+      pathOf: () => null,
+    } as unknown as TradePathPlanner)
+    // Halfway along the straight line: grid tile 7, world tile 107.
+    expect(caravanDrawnAt(107.5, 2.5, 0.8)).toBe(7)
+    expect(caravanDrawnAt(7.5, 2.5, 0.8)).toBeNull()
+  })
+
+  it('names nothing once a draw puts no caravans on the map', () => {
+    drawTradeNetwork2D(recorder().ctx, world({ tick: 150 }), bounds, 0, 'caravans', planner)
+    drawTradeNetwork2D(recorder().ctx, world({ tick: 150, caravans: [] }), bounds, 0, 'caravans', planner)
+    expect(caravanDrawnAt(12.5, 2.5, 0.8)).toBeNull()
   })
 })

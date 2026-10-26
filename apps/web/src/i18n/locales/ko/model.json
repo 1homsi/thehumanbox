@@ -193,6 +193,10 @@
       "title": "맞서는 두 부족",
       "detail": "다섯 명씩 두 무리가 땅의 양쪽 끝에서 시작하며, 각자 근처에 약간의 사냥감이 있다."
     },
+    "oneTongue": {
+      "title": "두 부족, 하나의 말",
+      "detail": "이웃한 다섯 명씩의 두 무리가 같은 말을 쓰며 시작합니다. 말이 갈라지는 과정을 지켜볼 수 있습니다."
+    },
     "wildValley": {
       "title": "야생의 계곡",
       "detail": "사슴과 토끼 무리가 땅 곳곳에 놓이고, 시작은 맑은 하늘이다."
@@ -226,7 +230,7 @@
     "failed": "{label} · {reason}",
     "following": "{name} 따라가는 중",
     "naming": "이름 · {name}의 새 이름을 입력",
-    "paused": "일시정지: {names} 존속 위기"
+    "pausedFor": "일시정지: {reasons}"
   },
   "legends": {
     "when": "{year}년 {season}",
@@ -318,6 +322,79 @@
     "disputed": "분쟁 중인 땅",
     "buildings": "{count}개 건물"
   },
+  "thing": {
+    "building": {
+      "tribe": "{tribe} 소유",
+      "construction": "건설 중 ({percent}%)",
+      "ruined": "폐허",
+      "rebuilding": "재건 중",
+      "repairing": "수리 중",
+      "damaged": "손상됨 (온전함 {percent}%)",
+      "intact": "양호한 상태",
+      "lives": "거주: {names}",
+      "works": "근무: {names}",
+      "more": "외 {count}명"
+    },
+    "vehicle": {
+      "aboard": "탑승: {names}",
+      "building": "건조 중",
+      "sailing": "항해 중",
+      "moored": "항구에 정박",
+      "cargo": "짐 {count}개 적재"
+    },
+    "animal": {
+      "named": "이름은 {name}",
+      "wild": "야생",
+      "tame": "길든",
+      "young": "어린",
+      "asleep": "잠든",
+      "hunting": "사냥 중",
+      "hungry": "배고픈"
+    },
+    "farm": {
+      "tribe": "{tribe} 경작",
+      "field": "밭"
+    },
+    "stage": {
+      "fallow": "휴경 중",
+      "sown": "씨 뿌림",
+      "growing": "자라는 중",
+      "ready": "수확 가능",
+      "withered": "시듦"
+    },
+    "caravan": {
+      "title": "대상 행렬",
+      "load": "{amount} {cargo} 운반 중",
+      "route": "{from}에서 {to}까지"
+    }
+  },
+  "terrain": {
+    "ground": {
+      "grass": "풀밭",
+      "shallowWater": "얕은 물",
+      "deepWater": "깊은 물",
+      "floodwater": "홍수물",
+      "sand": "모래",
+      "snow": "눈",
+      "ice": "얼음",
+      "rock": "바위",
+      "ash": "재",
+      "scorched": "그을린 땅",
+      "lava": "용암",
+      "mineral": "광물 땅",
+      "foodGround": "먹을거리가 많은 땅",
+      "fire": "불",
+      "campfire": "모닥불"
+    },
+    "note": {
+      "track": "다져진 길",
+      "rail": "철도",
+      "canal": "관개 수로",
+      "bridge": "다리",
+      "fertile": "비옥한 땅",
+      "onFire": "불타는 중"
+    }
+  },
   "pair": {
     "marry": {
       "next": "결혼 · 이제 상대를 클릭",
@@ -351,6 +428,52 @@
       "decline": "쇠퇴",
       "scarcity": "결핍",
       "recovery": "회복"
+    },
+    "plant": {
+      "tree": "나무",
+      "conifer": "침엽수",
+      "bush": "관목",
+      "deadTree": "마른 나무",
+      "cactus": "선인장",
+      "acacia": "아카시아",
+      "crop": "작물",
+      "orchard": "과수원",
+      "sapling": "묘목",
+      "flower": "꽃",
+      "berry": "베리 덤불",
+      "mushroom": "버섯",
+      "oak": "참나무",
+      "pine": "소나무",
+      "palm": "야자나무"
+    },
+    "crop": {
+      "wheat": "밀",
+      "rice": "쌀",
+      "maize": "옥수수",
+      "barley": "보리",
+      "potato": "감자",
+      "beans": "콩",
+      "cotton": "면화",
+      "tobacco": "담배",
+      "sugarcane": "사탕수수",
+      "coffee": "커피",
+      "tea": "차"
+    },
+    "vehicle": {
+      "boat": "보트",
+      "ship": "배",
+      "cart": "수레",
+      "wagon": "마차",
+      "carriage": "마차",
+      "sled": "썰매",
+      "bicycle": "자전거",
+      "automobile": "자동차",
+      "truck": "트럭",
+      "train": "기차",
+      "subway": "지하철",
+      "plane": "비행기",
+      "helicopter": "헬리콥터",
+      "rocket": "로켓"
     },
     "building": {
       "hut": "오두막",
@@ -720,7 +843,6 @@
       "posting_notices": "게시",
       "tool_making": "도구 제작",
       "tool_improvement": "도구 개량",
-      "stone_tools": "석기",
       "pottery": "토기",
       "weaving": "베짜기",
       "smelting": "제련",
@@ -907,5 +1029,14 @@
       "neutral": "중립",
       "rivals": "라이벌"
     }
+  },
+  "pause": {
+    "brink": "{names}: 존망 위기",
+    "era": "{names}: 새 시대에 접어듦",
+    "worldEra": "세계에 새 시대가 시작됨",
+    "warBy": "{names}: 전쟁에 나섬",
+    "war": "전쟁이 일어남",
+    "famine": "{names}: 굶주리는 중",
+    "extinct": "{names}: 대가 끊김"
   }
 }

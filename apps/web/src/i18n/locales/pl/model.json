@@ -197,6 +197,10 @@
       "title": "Dwa rywalizujące plemiona",
       "detail": "Dwie grupy po pięć osób startują po przeciwnych stronach ziemi, każda z odrobiną zwierzyny w pobliżu."
     },
+    "oneTongue": {
+      "title": "Dwa plemiona, jeden język",
+      "detail": "Dwie sąsiednie grupy po pięć osób zaczynają od tych samych słów, a ty możesz patrzeć, jak ich język się rozdziela."
+    },
     "wildValley": {
       "title": "Dzika dolina",
       "detail": "Stado jeleni i królików rozlokowuje się po ziemi, a na początek jest czyste niebo."
@@ -230,7 +234,7 @@
     "failed": "{label} · {reason}",
     "following": "podąża za: {name}",
     "naming": "nazwa · wpisz nowe imię dla: {name}",
-    "paused": "wstrzymano: {names} na krawędzi"
+    "pausedFor": "wstrzymano: {reasons}"
   },
   "legends": {
     "when": "Rok {year}, {season}",
@@ -351,6 +355,79 @@
       "other": "{count} budynku"
     }
   },
+  "thing": {
+    "building": {
+      "tribe": "należy do: {tribe}",
+      "construction": "w budowie, {percent}% gotowe",
+      "ruined": "w ruinie",
+      "rebuilding": "odbudowywany",
+      "repairing": "naprawiany",
+      "damaged": "uszkodzony, {percent}% sprawny",
+      "intact": "w dobrym stanie",
+      "lives": "mieszka tu: {names}",
+      "works": "pracuje tu: {names}",
+      "more": "i {count} więcej"
+    },
+    "vehicle": {
+      "aboard": "na pokładzie: {names}",
+      "building": "w budowie",
+      "sailing": "pod żaglami",
+      "moored": "przycumowany w porcie",
+      "cargo": "wiezie {count} towarów"
+    },
+    "animal": {
+      "named": "imię: {name}",
+      "wild": "dziki",
+      "tame": "oswojony",
+      "young": "młody",
+      "asleep": "śpi",
+      "hunting": "poluje",
+      "hungry": "głodny"
+    },
+    "farm": {
+      "tribe": "uprawia: {tribe}",
+      "field": "pole"
+    },
+    "stage": {
+      "fallow": "ugór",
+      "sown": "obsiane",
+      "growing": "rośnie",
+      "ready": "gotowe",
+      "withered": "uschnięte"
+    },
+    "caravan": {
+      "title": "karawana",
+      "load": "wiezie {amount} {cargo}",
+      "route": "z {from} do {to}"
+    }
+  },
+  "terrain": {
+    "ground": {
+      "grass": "trawa",
+      "shallowWater": "płytka woda",
+      "deepWater": "głęboka woda",
+      "floodwater": "woda powodziowa",
+      "sand": "piasek",
+      "snow": "śnieg",
+      "ice": "lód",
+      "rock": "skała",
+      "ash": "popiół",
+      "scorched": "spalona ziemia",
+      "lava": "lawa",
+      "mineral": "ziemia rudna",
+      "foodGround": "ziemia bogata w pożywienie",
+      "fire": "ogień",
+      "campfire": "ognisko"
+    },
+    "note": {
+      "track": "wydeptana ścieżka",
+      "rail": "tor kolejowy",
+      "canal": "kanał nawadniający",
+      "bridge": "most",
+      "fertile": "żyzna gleba",
+      "onFire": "płonie"
+    }
+  },
   "pair": {
     "marry": {
       "next": "małżeństwo · teraz kliknij drugą osobę",
@@ -384,6 +461,52 @@
       "decline": "upadek",
       "scarcity": "niedobór",
       "recovery": "odbudowa"
+    },
+    "plant": {
+      "tree": "drzewo",
+      "conifer": "iglak",
+      "bush": "krzew",
+      "deadTree": "martwe drzewo",
+      "cactus": "kaktus",
+      "acacia": "akacja",
+      "crop": "uprawa",
+      "orchard": "sad",
+      "sapling": "sadzonka",
+      "flower": "kwiat",
+      "berry": "krzew jagodowy",
+      "mushroom": "grzyb",
+      "oak": "dąb",
+      "pine": "sosna",
+      "palm": "palma"
+    },
+    "crop": {
+      "wheat": "pszenica",
+      "rice": "ryż",
+      "maize": "kukurydza",
+      "barley": "jęczmień",
+      "potato": "ziemniak",
+      "beans": "fasola",
+      "cotton": "bawełna",
+      "tobacco": "tytoń",
+      "sugarcane": "trzcina cukrowa",
+      "coffee": "kawa",
+      "tea": "herbata"
+    },
+    "vehicle": {
+      "boat": "łódź",
+      "ship": "statek",
+      "cart": "wóz",
+      "wagon": "wóz kryty",
+      "carriage": "powóz",
+      "sled": "sanie",
+      "bicycle": "rower",
+      "automobile": "samochód",
+      "truck": "ciężarówka",
+      "train": "pociąg",
+      "subway": "metro",
+      "plane": "samolot",
+      "helicopter": "helikopter",
+      "rocket": "rakieta"
     },
     "building": {
       "hut": "chata",
@@ -753,7 +876,6 @@
       "posting_notices": "ogłoszenia",
       "tool_making": "wytwarzanie narzędzi",
       "tool_improvement": "ulepszanie narzędzi",
-      "stone_tools": "narzędzia kamienne",
       "pottery": "garncarstwo",
       "weaving": "tkactwo",
       "smelting": "wytop",
@@ -940,5 +1062,14 @@
       "neutral": "neutralni",
       "rivals": "rywale"
     }
+  },
+  "pause": {
+    "brink": "{names} na skraju",
+    "era": "{names} weszło w nową epokę",
+    "worldEra": "na świecie rozpoczęła się nowa epoka",
+    "warBy": "{names} poszło na wojnę",
+    "war": "wybuchła wojna",
+    "famine": "{names} głodują",
+    "extinct": "{names} wymarło"
   }
 }

@@ -145,11 +145,11 @@ impl Simulation {
         {
             crate::sim::civ::fields::tick_fields(self);
         }
-        if self.tick_count > 0
-            && self
-                .tick_count
-                .is_multiple_of(crate::sim::civ::land::village_fields::SOW_STEP)
-        {
+        if on_beat(
+            self.tick_count,
+            crate::sim::civ::land::village_fields::SOW_STEP,
+            SOW_PHASE,
+        ) {
             crate::sim::civ::land::village_fields::tick_village_fields(self);
         }
 
@@ -189,8 +189,12 @@ impl Simulation {
             self.tick_settlements();
         }
 
+        // Baseline discoveries keep the 600-tick multiples: their thresholds are absolute ticks (fire at 1200,
+        // shelter at 2400, stone tools at 3600), and a later pass would hand each one out late.
         if self.tick_count.is_multiple_of(600) {
             crate::sim::tech_progress::seed_baseline_discoveries(&mut self.organisms, self.tick_count);
+        }
+        if on_beat(self.tick_count, 600, ERAS_PHASE) {
             self.update_lineage_eras();
             self.tick_water_depletion();
         }
@@ -218,6 +222,9 @@ impl Simulation {
             let new_battles = self.turn_away_warded(new_battles);
             let new_battles = self.weary_stay_home(new_battles);
             self.march_warbands(&new_battles);
+            for battle in &new_battles {
+                self.chronicle_battle(battle);
+            }
             self.battles.extend(new_battles);
             let new_wars = crate::sim::warfare::try_spawn_border_wars(
                 self.tick_count,
@@ -231,6 +238,9 @@ impl Simulation {
             let new_wars = self.turn_away_warded(new_wars);
             let new_wars = self.weary_stay_home(new_wars);
             self.march_warbands(&new_wars);
+            for battle in &new_wars {
+                self.chronicle_battle(battle);
+            }
             self.battles.extend(new_wars);
             let standing: Vec<bool> = self.organisms.iter().map(|o| o.alive).collect();
             crate::sim::warfare::tick_battles(
@@ -249,6 +259,7 @@ impl Simulation {
                     grid: &self.grid,
                 },
             );
+            self.record_fallen_leaders(&standing);
             // The fallen are their tribes' war dead.
             let fallen: Vec<String> = self
                 .organisms

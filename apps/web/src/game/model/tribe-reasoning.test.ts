@@ -180,7 +180,16 @@ describe('stanceOf', () => {
 })
 
 describe('nextStep', () => {
-  const learning = { era: 'iron', known: 1, required: 3, missing: ['smelting'], peopleNeeded: 0 }
+  const learning = {
+    era: 'iron',
+    known: 1,
+    required: 3,
+    missing: ['smelting'],
+    peopleNeeded: 0,
+    worldPeople: 0,
+    worldPeopleRequired: 0,
+    worldKnown: true,
+  }
 
   it('puts a pressing need before a campaign or learning', () => {
     expect(

@@ -68,6 +68,83 @@
     "toolWorking": "{tool}…",
     "toolApplied": "{tool} zastosowany",
     "toolFailed": "{tool} nie powiodło się",
-    "toolAt": "{tool} → {x}, {y}"
+    "toolAt": "{tool} → {x}, {y}",
+    "result": {
+      "none_here": "nikogo w zasięgu tutaj",
+      "none_hurt": "nikt tutaj nie był ranny",
+      "none_sick": "nikt tutaj nie choruje",
+      "none_dead": "nie ma tu nikogo do wskrzeszenia",
+      "revive_cooldown": "to plemię zostało niedawno wskrzeszone; bogowie muszą poczekać",
+      "world_full": "nie ma miejsca na więcej ludzi",
+      "animal_full": "nie ma miejsca na więcej zwierząt",
+      "no_room_for_animal": "na tym terenie nie ma miejsca dla tego zwierzęcia",
+      "split_small": "zbyt mało ludzi tutaj, by odłączyć plemię",
+      "blocked": "nikt nie może stanąć na wodzie ani na skale",
+      "no_government": "to plemię nie ma nikogo, kto by nim kierował",
+      "cannot_teach": "nie mogą jeszcze raz się czegoś nauczyć",
+      "spawned": {
+        "one": "{name} przybył",
+        "other": "przybyło osób: {count}"
+      },
+      "family_arrived": "przybyła nowa rodzina",
+      "healed_animals": { "one": "nakarmiono zwierzę", "other": "nakarmiono zwierząt: {count}" },
+      "healed": {
+        "one": "wyleczono: {name}",
+        "other": "wyleczono osób: {count}"
+      },
+      "revived": "{name} został wskrzeszony",
+      "blessed": {
+        "one": "pobłogosławiono: {name}",
+        "other": "pobłogosławiono osób: {count}"
+      },
+      "inspired": {
+        "one": "natchniono: {name}",
+        "other": "natchniono osób: {count}"
+      },
+      "cured": {
+        "one": "wyleczono: {name}",
+        "other": "wyleczono osób: {count}"
+      },
+      "cured_tribe": {
+        "one": "wyleczono jedną osobę z plemienia",
+        "other": "wyleczono w plemieniu osób: {count}"
+      },
+      "loved": {
+        "one": "{name} się zakochał",
+        "other": "serca pełne miłości: {count}"
+      },
+      "paired": {
+        "one": "połączono parę",
+        "other": "połączono par: {count}"
+      },
+      "mutated": "{name} przeszedł mutację",
+      "cursed": "przeklęto: {name}",
+      "taught": "plemię {name} poznało sekret",
+      "moved": "przeniesiono: {name}",
+      "gifted_food": {
+        "one": "dano jedzenie: {name}",
+        "other": "dano jedzenie osobom: {count}"
+      },
+      "gifted_tool": {
+        "one": "dano narzędzie: {name}",
+        "other": "dano narzędzia osobom: {count}"
+      },
+      "crowned": "koronowano: {name}",
+      "split": {
+        "other": "odłączyło się osób: {count}, by założyć plemię"
+      },
+      "tamed": {
+        "one": "dzikie zwierzę stało się wiernym psem",
+        "other": "dzikie zwierzęta stały się wiernymi psami: {count}"
+      },
+      "guardian": "pies stróż stanął przy: {name}",
+      "smitten": "piorun uderzył w: {name}",
+      "struck_beast": "piorun powalił zwierzę",
+      "struck_roof": "piorun rozbił dach",
+      "animals": {
+        "one": "pojawiło się zwierzę",
+        "other": "pojawiło się zwierząt: {count}"
+      }
+    }
   }
 }

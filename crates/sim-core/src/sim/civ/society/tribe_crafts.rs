@@ -87,6 +87,8 @@ impl Simulation {
                         &name,
                         &format!("became known for their {}", skill.name()),
                     );
+                    let home = self.chronicle_home(&lineage);
+                    self.chronicle(&lineage, "craft", None, Some(skill.name()), home);
                 }
             }
         }

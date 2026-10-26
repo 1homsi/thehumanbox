@@ -244,6 +244,10 @@ impl Simulation {
                             since: now,
                         },
                     );
+                    if cause == PerilCause::Hunger {
+                        let home = self.chronicle_home(lineage);
+                        self.chronicle(lineage, "famine", None, None, home);
+                    }
                 }
                 None => {}
             }

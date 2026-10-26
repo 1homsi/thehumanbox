@@ -193,6 +193,10 @@
       "title": "Due tribù rivali",
       "detail": "Due gruppi di cinque persone iniziano su lati opposti della terra, ciascuno con un po' di selvaggina vicina."
     },
+    "oneTongue": {
+      "title": "Due tribù, una lingua",
+      "detail": "Due gruppi vicini di cinque persone parlano all'inizio le stesse parole, e si vede la loro lingua dividersi."
+    },
     "wildValley": {
       "title": "Valle selvaggia",
       "detail": "Un branco di cervi e conigli viene sparso sulla terra, con cielo sereno all'inizio."
@@ -226,7 +230,7 @@
     "failed": "{label} · {reason}",
     "following": "segue {name}",
     "naming": "nome · scrivi un nuovo nome per {name}",
-    "paused": "in pausa: {names} sull’orlo"
+    "pausedFor": "in pausa: {reasons}"
   },
   "legends": {
     "when": "Anno {year}, {season}",
@@ -329,6 +333,79 @@
       "other": "{count} edifici"
     }
   },
+  "thing": {
+    "building": {
+      "tribe": "appartiene a {tribe}",
+      "construction": "in costruzione, {percent} % fatto",
+      "ruined": "in rovina",
+      "rebuilding": "in ricostruzione",
+      "repairing": "in riparazione",
+      "damaged": "danneggiato, {percent} % integro",
+      "intact": "in buono stato",
+      "lives": "vive qui: {names}",
+      "works": "lavora qui: {names}",
+      "more": "e altri {count}"
+    },
+    "vehicle": {
+      "aboard": "a bordo: {names}",
+      "building": "in costruzione",
+      "sailing": "a vela",
+      "moored": "ormeggiato al porto",
+      "cargo": "trasporta {count} merci"
+    },
+    "animal": {
+      "named": "di nome {name}",
+      "wild": "selvatico",
+      "tame": "domestico",
+      "young": "giovane",
+      "asleep": "addormentato",
+      "hunting": "a caccia",
+      "hungry": "affamato"
+    },
+    "farm": {
+      "tribe": "coltivato da {tribe}",
+      "field": "campo"
+    },
+    "stage": {
+      "fallow": "a riposo",
+      "sown": "seminato",
+      "growing": "in crescita",
+      "ready": "maturo",
+      "withered": "appassito"
+    },
+    "caravan": {
+      "title": "carovana",
+      "load": "trasporta {amount} {cargo}",
+      "route": "da {from} a {to}"
+    }
+  },
+  "terrain": {
+    "ground": {
+      "grass": "erba",
+      "shallowWater": "acqua bassa",
+      "deepWater": "acqua profonda",
+      "floodwater": "acqua alluvionale",
+      "sand": "sabbia",
+      "snow": "neve",
+      "ice": "ghiaccio",
+      "rock": "roccia",
+      "ash": "cenere",
+      "scorched": "terra bruciata",
+      "lava": "lava",
+      "mineral": "terreno minerario",
+      "foodGround": "terreno ricco di cibo",
+      "fire": "fuoco",
+      "campfire": "falò"
+    },
+    "note": {
+      "track": "sentiero battuto",
+      "rail": "ferrovia",
+      "canal": "canale d'irrigazione",
+      "bridge": "ponte",
+      "fertile": "terreno fertile",
+      "onFire": "in fiamme"
+    }
+  },
   "pair": {
     "marry": {
       "next": "sposare · ora clicca l’altra persona",
@@ -362,6 +439,52 @@
       "decline": "declino",
       "scarcity": "scarsità",
       "recovery": "ripresa"
+    },
+    "plant": {
+      "tree": "albero",
+      "conifer": "conifera",
+      "bush": "cespuglio",
+      "deadTree": "albero morto",
+      "cactus": "cactus",
+      "acacia": "acacia",
+      "crop": "coltura",
+      "orchard": "frutteto",
+      "sapling": "giovane pianta",
+      "flower": "fiore",
+      "berry": "cespuglio di bacche",
+      "mushroom": "fungo",
+      "oak": "quercia",
+      "pine": "pino",
+      "palm": "palma"
+    },
+    "crop": {
+      "wheat": "grano",
+      "rice": "riso",
+      "maize": "mais",
+      "barley": "orzo",
+      "potato": "patata",
+      "beans": "fagioli",
+      "cotton": "cotone",
+      "tobacco": "tabacco",
+      "sugarcane": "canna da zucchero",
+      "coffee": "caffè",
+      "tea": "tè"
+    },
+    "vehicle": {
+      "boat": "barca",
+      "ship": "nave",
+      "cart": "carretto",
+      "wagon": "carro",
+      "carriage": "carrozza",
+      "sled": "slitta",
+      "bicycle": "bicicletta",
+      "automobile": "automobile",
+      "truck": "camion",
+      "train": "treno",
+      "subway": "metropolitana",
+      "plane": "aereo",
+      "helicopter": "elicottero",
+      "rocket": "razzo"
     },
     "building": {
       "hut": "capanna",
@@ -731,7 +854,6 @@
       "posting_notices": "avvisi pubblici",
       "tool_making": "costruzione di utensili",
       "tool_improvement": "miglioramento degli utensili",
-      "stone_tools": "utensili di pietra",
       "pottery": "vasellame",
       "weaving": "tessitura",
       "smelting": "fusione",
@@ -918,5 +1040,14 @@
       "neutral": "neutrali",
       "rivals": "rivali"
     }
+  },
+  "pause": {
+    "brink": "{names} sull'orlo",
+    "era": "{names} è entrata in una nuova era",
+    "worldEra": "nel mondo è iniziata una nuova era",
+    "warBy": "{names} è entrata in guerra",
+    "war": "è scoppiata una guerra",
+    "famine": "{names} soffre la fame",
+    "extinct": "{names} si è estinta"
   }
 }

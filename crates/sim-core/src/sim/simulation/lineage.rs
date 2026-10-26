@@ -200,6 +200,8 @@ impl Simulation {
                     new_era.flavour()
                 );
                 push_event(&mut self.events, self.tick_count, "era_advance", &lname, &detail);
+                let home = self.chronicle_home(lid);
+                self.chronicle(lid, "era", None, Some(new_era.name()), home);
             }
             self.lineage_eras.insert(lid.clone(), new_era);
             max_era = Some(match max_era {

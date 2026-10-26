@@ -222,6 +222,8 @@ export function countValue(raw: string | number | undefined, locale: string): nu
 function pick(table: Messages, key: string, count: number, rules: Intl.PluralRules): string | undefined {
   const node = lookup(table, key)
   if (typeof node === 'string') return node
+  // Japanese, Korean and Chinese put one in their "other" form, so a count of one takes the "one" form when it has one.
+  if (isPlural(node) && count === 1 && node.one !== undefined) return node.one
   if (isPlural(node)) return node[rules.select(count)] ?? node.other
   return undefined
 }

@@ -1,7 +1,15 @@
 import type { MessageKey } from '../i18n'
 
 export type SandboxCommand =
-  | { cmd: 'spawn'; x: number; y: number; count?: number; lineage?: string }
+  | {
+      cmd: 'spawn'
+      x: number
+      y: number
+      count?: number
+      lineage?: string
+      /** A point where a people already lives: the new people speak the words of the nearest person there. */
+      speak_like?: [number, number]
+    }
   | { cmd: 'smite'; x: number; y: number; radius?: number }
   | { cmd: 'heal'; x: number; y: number; radius?: number }
   | { cmd: 'paint'; x: number; y: number; tile: string; radius?: number }

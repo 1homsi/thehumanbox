@@ -32,9 +32,10 @@ import { TribeCard } from './ui/panels/TribeCard'
 import { askConfirm } from './shared/confirm'
 import { toolFailure, toolName } from './ui/toolbar/tool-tips'
 import { formatNumber, t } from './i18n'
+import { describeOutcome } from './simulation/command-outcome'
 import { GUIDANCE_LABEL } from './shared/guidance-words'
 import { PAIR_TOOLS, SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
-import { newPerils } from './game/model/peril-watch'
+import { changeReason, watchChanges, type ChangeWatch } from './game/model/pause-on'
 import { prayerRows, prayerTool } from './game/model/prayers'
 import { escapeHandledElsewhere, gameKeyAction, mapOwnsZoomKeys, typingTarget } from './game/model/shortcuts'
 import { tribeHome } from './game/model/tribe-peril'
@@ -345,12 +346,13 @@ function LiveApp() {
             ),
           )
         } else if (tool.fire) {
-          void sendCommand(tool.fire).then((ok) => {
-            if (ok && tool.overlay) useSkyOverlay.getState().start(tool.overlay)
+          void sendCommand(tool.fire).then((outcome) => {
+            if (outcome.applied && tool.overlay) useSkyOverlay.getState().start(tool.overlay)
             setTemporarySandboxStatus(
-              ok
-                ? t('header.sandbox.toolApplied', { tool: toolName(tool) })
-                : t('header.sandbox.toolFailed', { tool: toolName(tool) }),
+              describeOutcome(outcome) ??
+                (outcome.applied
+                  ? t('header.sandbox.toolApplied', { tool: toolName(tool) })
+                  : t('header.sandbox.toolFailed', { tool: toolName(tool) })),
             )
           })
         } else {
@@ -450,8 +452,8 @@ function LiveApp() {
           return
         }
         pairFirstRef.current = null
-        void sendCommand(pair.build(first, { x: wx, y: wy })).then((ok) =>
-          setTemporarySandboxStatus(t(ok ? pair.done : pair.failed)),
+        void sendCommand(pair.build(first, { x: wx, y: wy })).then((outcome) =>
+          setTemporarySandboxStatus(describeOutcome(outcome) ?? t(outcome.applied ? pair.done : pair.failed)),
         )
         return
       }
@@ -461,11 +463,12 @@ function LiveApp() {
       const y = Math.round(wy)
       setSandboxStatus(t('header.sandbox.toolAt', { tool: label, x, y }))
       const tool = armedTool
-      void sendCommand(tool.build!(x, y, brush)).then((ok) => {
+      void sendCommand(tool.build!(x, y, brush)).then((outcome) => {
         setTemporarySandboxStatus(
-          ok
-            ? t('model.status.applied', { label, x, y })
-            : t('model.status.failed', { label, reason: toolFailure(tool) }),
+          describeOutcome(outcome) ??
+            (outcome.applied
+              ? t('model.status.applied', { label, x, y })
+              : t('model.status.failed', { label, reason: toolFailure(tool) })),
         )
       })
     },
@@ -475,12 +478,14 @@ function LiveApp() {
   const guideLineage = useCallback(
     async (lineage: string, strategy: LineageStrategy) => {
       if (!sandboxControlsEnabled) return false
-      const ok = await sendCommand({
-        cmd: 'guide',
-        lineage,
-        strategy,
-        duration_ticks: 7200,
-      })
+      const ok = (
+        await sendCommand({
+          cmd: 'guide',
+          lineage,
+          strategy,
+          duration_ticks: 7200,
+        })
+      ).applied
       setTemporarySandboxStatus(
         ok
           ? t('header.sandbox.guidanceSet', { strategy: t(GUIDANCE_LABEL[strategy]) })
@@ -601,7 +606,7 @@ function LiveApp() {
       void (async () => {
         let worked = 0
         for (const step of steps) {
-          if (await sendCommand(step)) worked += 1
+          if ((await sendCommand(step)).applied) worked += 1
         }
         setTemporarySandboxStatus(
           worked === steps.length
@@ -681,22 +686,19 @@ function LiveApp() {
     if (reconciled !== focus) useUIStore.getState().setFocus(reconciled)
   }, [world, focus])
 
-  // Optionally stop the clock when a tribe newly falls on the brink.
-  const seenPerils = useRef(new Set<string>())
-  const perilSeeded = useRef(false)
+  // Optionally stop the clock when a chosen change happens: a tribe on the brink, a new era, a war,
+  // a famine or a tribe dying out. The first look only learns what is already true, so loading a
+  // save never pauses for it.
+  const changeWatch = useRef<ChangeWatch | null>(null)
   useEffect(() => {
     if (!world) return
-    const fresh = newPerils(seenPerils.current, world.tribes_in_peril)
-    // The first look only learns who is already in danger: loading a save
-    // must not pause for tribes that were on the brink before.
-    if (!perilSeeded.current) {
-      perilSeeded.current = true
-      return
-    }
-    if (fresh.length > 0 && useUIStore.getState().pauseOnPeril) {
+    const { hits, watch } = watchChanges(changeWatch.current, world)
+    changeWatch.current = watch
+    const pauseOn = useUIStore.getState().pauseOn
+    const reasons = hits.filter((h) => pauseOn[h.trigger]).map((h) => changeReason(h))
+    if (reasons.length > 0) {
       pauseSim()
-      const names = fresh.map((p) => p.tribe).join(', ')
-      setTemporarySandboxStatus(t('model.status.paused', { names }))
+      setTemporarySandboxStatus(t('model.status.pausedFor', { reasons: reasons.join('; ') }))
     }
   }, [world, pauseSim, setTemporarySandboxStatus])
 
@@ -852,11 +854,13 @@ function LiveApp() {
                   world={world}
                   onAnswer={handleAnswerPrayer}
                   onTool={handlePickToolAt}
-                  onRename={(lineage, name) => sendCommand({ cmd: 'rename_tribe', lineage, name })}
+                  onRename={(lineage, name) =>
+                    sendCommand({ cmd: 'rename_tribe', lineage, name }).then((outcome) => outcome.applied)
+                  }
                   onTeach={(lineage) =>
-                    void sendCommand({ cmd: 'teach', lineage }).then((ok) =>
+                    void sendCommand({ cmd: 'teach', lineage }).then((outcome) =>
                       setTemporarySandboxStatus(
-                        ok ? t('header.sandbox.taughtSecret') : t('header.sandbox.cannotTeach'),
+                        outcome.applied ? t('header.sandbox.taughtSecret') : t('header.sandbox.cannotTeach'),
                       ),
                     )
                   }

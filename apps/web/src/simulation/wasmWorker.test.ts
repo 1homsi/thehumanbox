@@ -39,7 +39,7 @@ vi.mock('../wasm/sim-core/sim_core.js', () => ({
       return new Uint8Array([0x80])
     }
     command() {
-      return true
+      return '{"applied":true,"code":"applied","count":0,"name":null}'
     }
     serialize() {
       return model.serialize()
@@ -516,6 +516,17 @@ describe('browser simulation scheduling', () => {
     model.fullFrame.mockClear()
     send({ type: 'visibility', hidden: false, keepRunning: false })
     expect(model.fullFrame).toHaveBeenCalledTimes(1)
+  })
+
+  it('sends the command outcome back with its result', async () => {
+    send({ type: 'command', json: '{}', requestId: 8 })
+    await vi.advanceTimersByTimeAsync(10)
+    expect(worker.postMessage).toHaveBeenCalledWith({
+      type: 'command_result',
+      requestId: 8,
+      ok: true,
+      outcome: { applied: true, code: 'applied', count: 0, name: null },
+    })
   })
 
   it('sends no frames for commands while hidden and running', async () => {

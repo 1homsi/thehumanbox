@@ -39,6 +39,7 @@ mod separation;
 mod strategy;
 mod territory;
 mod tick;
+mod tribe_chronicle;
 mod types;
 pub(crate) mod wary_game;
 mod world;
@@ -137,6 +138,8 @@ pub struct Simulation {
     pub next_vehicle_id: u32,
     /// The last land survey for ferries (see `tech/ferry.rs`); rebuilt every few hundred ticks, not saved.
     pub(crate) ferry_survey: crate::sim::tech::ferry::FerrySurvey,
+    /// What the command in progress reported about itself (see `command/outcome.rs`). Runtime only.
+    pub(crate) command_report: Option<crate::sim::command::outcome::Report>,
     /// The people queued at each ferry pier, and the passengers aboard (see `tech/ferry.rs`); not saved.
     pub(crate) ferry_queues: crate::sim::tech::ferry::FerryQueues,
     pub battles: Vec<super::warfare::Battle>,
@@ -148,6 +151,8 @@ pub struct Simulation {
     /// Tribes the world has warned are on the brink (runtime; re-detected
     /// within one check after a load).
     pub(crate) tribe_peril: HashMap<String, super::civ::peril::Peril>,
+    /// Each tribe's own history for its card (runtime, display only: not in the save).
+    pub(crate) tribe_chronicle: tribe_chronicle::TribeChronicle,
     /// When each tribe last began a festival (runtime).
     pub(crate) festival_last: HashMap<String, u64>,
     /// The player's goals, difficulty and whether the world is lost (saved).
@@ -315,6 +320,7 @@ impl Simulation {
             next_vehicle_id: 1,
             ferry_survey: Default::default(),
             ferry_queues: Default::default(),
+            command_report: None,
             battles: Vec::new(),
             next_battle_id: 1,
             treaties: Vec::new(),
@@ -322,6 +328,7 @@ impl Simulation {
             milestones_achieved: HashSet::default(),
             lineage_peak_pop: HashMap::default(),
             tribe_peril: HashMap::default(),
+            tribe_chronicle: Default::default(),
             festival_last: HashMap::default(),
             goals: Default::default(),
             evening_places: Default::default(),
