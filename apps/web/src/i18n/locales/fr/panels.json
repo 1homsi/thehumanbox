@@ -290,6 +290,7 @@
     "teach": "enseigner",
     "teachTitle": "Enseigner le prochain savoir qui leur manque (une fois par saison)",
     "stillToLearn": "reste à apprendre : {list}",
+    "needsPeople": "besoin de {count} personnes de plus",
     "praying": "en prière",
     "help": "aider",
     "lore": {
@@ -310,12 +311,30 @@
         "healing": "connus pour leurs guérisseurs"
       }
     },
-    "guide": {
-      "known": "{known} secrets sur {required} connus",
-      "worldPeople": "le monde compte {have} personnes sur les {need} que demande cette ère ({short} manquent)",
-      "ready": "prêt : l'ère arrive au prochain contrôle du monde"
+    "history": {
+      "title": "Historique",
+      "empty": "Rien n'est encore consigné",
+      "goTo": "Aller à ce lieu",
+      "raid": "dans un raid avec {other}",
+      "war": "est allé en guerre contre {other}",
+      "era": "est entrée dans l'ère {era}",
+      "famine": "a connu une famine",
+      "arrival": "un peuple errant est arrivé et s'est installé ici",
+      "split": "s'est détaché de {other} pour fonder cette tribu",
+      "craft": "devint réputée pour {craft}",
+      "leaderDied": "a perdu son chef {name}",
+      "crafts": {
+        "woodcutting": "le bûcheronnage",
+        "quarrying": "la carrière",
+        "foraging": "la cueillette",
+        "fishing": "la pêche",
+        "hunting": "la chasse",
+        "farming": "l'agriculture",
+        "building": "la construction",
+        "crafting": "l'artisanat",
+        "healing": "les soins"
+      }
     },
-    "needsPeople": "besoin de {count} personnes de plus",
     "why": {
       "title": "Pourquoi ils agissent",
       "guided": "Guidée vers {strategy} : {done} sur {target} accomplis",
@@ -359,6 +378,11 @@
         "learn": "apprendre {secret} pour la prochaine ère",
         "carryOn": "continuer comme avant"
       }
+    },
+    "guide": {
+      "known": "{known} secrets sur {required} connus",
+      "worldPeople": "le monde compte {have} personnes sur les {need} que demande cette ère ({short} manquent)",
+      "ready": "prêt : l'ère arrive au prochain contrôle du monde"
     }
   },
   "scene": {

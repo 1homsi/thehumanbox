@@ -72,6 +72,7 @@ export type IncomingWorldFrame = Pick<
   lost_tick?: WorldState['lost_tick']
   lineage_homes?: WorldState['lineage_homes']
   lineage_lore?: WorldState['lineage_lore']
+  tribe_chronicle?: WorldState['tribe_chronicle']
   current_era?: WorldState['current_era']
   featured_org_id?: WorldState['featured_org_id']
   sex_words?: WorldState['sex_words']

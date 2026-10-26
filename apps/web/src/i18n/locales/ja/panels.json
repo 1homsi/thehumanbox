@@ -283,6 +283,7 @@
     "teach": "教える",
     "teachTitle": "まだ知らない次の知恵を教える（季節に一度）",
     "stillToLearn": "未習得: {list}",
+    "needsPeople": "あと {count} 人必要",
     "praying": "祈り中",
     "help": "助ける",
     "lore": {
@@ -303,12 +304,30 @@
         "healing": "治療師で知られる"
       }
     },
-    "guide": {
-      "known": "秘密を{known}／{required}知っている",
-      "worldPeople": "この時代に必要な{need}人のうち、世界には{have}人いる（あと{short}人）",
-      "ready": "準備完了: 次に世界が確かめるとき、時代が訪れる"
+    "history": {
+      "title": "経緯",
+      "empty": "まだ記録はない",
+      "goTo": "この場所へ行く",
+      "raid": "{other}との襲撃戦",
+      "war": "{other}と戦争になった",
+      "era": "{era}の時代に入った",
+      "famine": "飢饉に見舞われた",
+      "arrival": "放浪の民がやって来て、ここに住み着いた",
+      "split": "{other}から分かれ、この部族を興した",
+      "craft": "{craft}で知られるようになった",
+      "leaderDied": "指導者{name}を失った",
+      "crafts": {
+        "woodcutting": "木こり",
+        "quarrying": "石切り",
+        "foraging": "採集",
+        "fishing": "漁",
+        "hunting": "狩り",
+        "farming": "農耕",
+        "building": "建築",
+        "crafting": "細工",
+        "healing": "治療"
+      }
     },
-    "needsPeople": "あと {count} 人必要",
     "why": {
       "title": "なぜそう動くか",
       "guided": "{strategy}へ導いている: {target}のうち{done}を達成",
@@ -352,6 +371,11 @@
         "learn": "次の時代のために{secret}を学ぶ",
         "carryOn": "今のまま続ける"
       }
+    },
+    "guide": {
+      "known": "秘密を{known}／{required}知っている",
+      "worldPeople": "この時代に必要な{need}人のうち、世界には{have}人いる（あと{short}人）",
+      "ready": "準備完了: 次に世界が確かめるとき、時代が訪れる"
     }
   },
   "scene": {

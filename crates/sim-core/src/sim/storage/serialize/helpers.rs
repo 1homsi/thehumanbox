@@ -63,6 +63,38 @@ pub(super) fn lineage_strategy_payload(sim: &Simulation) -> serde_json::Value {
     serde_json::to_value(active_strategies).unwrap()
 }
 
+/// Each living tribe's own history, oldest first: `{lineage: [{tick, kind, other, word, x, y}]}`. A tribe
+/// that has died out is left out, since no card can show it.
+pub(super) fn tribe_chronicle_payload(sim: &Simulation) -> serde_json::Value {
+    let living: crate::hashing::FxHashSet<&str> = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive)
+        .map(|o| o.lineage_id.as_str())
+        .collect();
+    let mut out = serde_json::Map::new();
+    for (lid, entries) in sim.tribe_chronicle.tribes() {
+        if !living.contains(lid) {
+            continue;
+        }
+        let rows: Vec<serde_json::Value> = entries
+            .iter()
+            .map(|e| {
+                json!({
+                    "tick": e.tick,
+                    "kind": e.kind,
+                    "other": e.other,
+                    "word": e.word,
+                    "x": e.place.map(|p| p.0),
+                    "y": e.place.map(|p| p.1),
+                })
+            })
+            .collect();
+        out.insert(lid.to_string(), serde_json::Value::Array(rows));
+    }
+    serde_json::Value::Object(out)
+}
+
 /// What each tribe's people are at work on right now, counted by trade: `{lineage: {skill: people}}`.
 /// The tribe card reads it to say what a tribe is doing. Read only; a stint that has run out is not counted.
 pub(super) fn lineage_work_payload(sim: &Simulation) -> serde_json::Value {

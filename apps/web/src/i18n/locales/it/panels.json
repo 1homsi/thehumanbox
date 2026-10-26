@@ -290,6 +290,7 @@
     "teach": "insegna",
     "teachTitle": "Insegna loro il prossimo segreto che non conoscono (una volta a stagione)",
     "stillToLearn": "ancora da imparare: {list}",
+    "needsPeople": "servono altre {count} persone",
     "praying": "in preghiera",
     "help": "aiuta",
     "lore": {
@@ -310,12 +311,30 @@
         "healing": "noti per i loro guaritori"
       }
     },
-    "guide": {
-      "known": "{known} segreti su {required} conosciuti",
-      "worldPeople": "il mondo ha {have} delle {need} persone che questa era richiede (ne mancano {short})",
-      "ready": "pronti: l'era arriva al prossimo controllo del mondo"
+    "history": {
+      "title": "Storia",
+      "empty": "Ancora nulla di registrato",
+      "goTo": "Vai a questo luogo",
+      "raid": "in un'incursione con {other}",
+      "war": "è andato in guerra con {other}",
+      "era": "è entrata nell'era {era}",
+      "famine": "ha patito una carestia",
+      "arrival": "un popolo errante è arrivato e si è stabilito qui",
+      "split": "si è staccata da {other} per fondare questa tribù",
+      "craft": "divenne nota per {craft}",
+      "leaderDied": "ha perso il suo capo {name}",
+      "crafts": {
+        "woodcutting": "il taglio del legno",
+        "quarrying": "la cava",
+        "foraging": "la raccolta",
+        "fishing": "la pesca",
+        "hunting": "la caccia",
+        "farming": "l'agricoltura",
+        "building": "la costruzione",
+        "crafting": "l'artigianato",
+        "healing": "la cura"
+      }
     },
-    "needsPeople": "servono altre {count} persone",
     "why": {
       "title": "Perché agiscono così",
       "guided": "Guidata verso {strategy}: {done} di {target} fatti",
@@ -359,6 +378,11 @@
         "learn": "imparare {secret} per la prossima era",
         "carryOn": "continuare così"
       }
+    },
+    "guide": {
+      "known": "{known} segreti su {required} conosciuti",
+      "worldPeople": "il mondo ha {have} delle {need} persone che questa era richiede (ne mancano {short})",
+      "ready": "pronti: l'era arriva al prossimo controllo del mondo"
     }
   },
   "scene": {

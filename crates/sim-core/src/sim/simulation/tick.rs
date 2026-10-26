@@ -222,6 +222,9 @@ impl Simulation {
             let new_battles = self.turn_away_warded(new_battles);
             let new_battles = self.weary_stay_home(new_battles);
             self.march_warbands(&new_battles);
+            for battle in &new_battles {
+                self.chronicle_battle(battle);
+            }
             self.battles.extend(new_battles);
             let new_wars = crate::sim::warfare::try_spawn_border_wars(
                 self.tick_count,
@@ -235,6 +238,9 @@ impl Simulation {
             let new_wars = self.turn_away_warded(new_wars);
             let new_wars = self.weary_stay_home(new_wars);
             self.march_warbands(&new_wars);
+            for battle in &new_wars {
+                self.chronicle_battle(battle);
+            }
             self.battles.extend(new_wars);
             let standing: Vec<bool> = self.organisms.iter().map(|o| o.alive).collect();
             crate::sim::warfare::tick_battles(
@@ -253,6 +259,7 @@ impl Simulation {
                     grid: &self.grid,
                 },
             );
+            self.record_fallen_leaders(&standing);
             // The fallen are their tribes' war dead.
             let fallen: Vec<String> = self
                 .organisms

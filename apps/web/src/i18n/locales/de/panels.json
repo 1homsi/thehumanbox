@@ -290,6 +290,7 @@
     "teach": "lehren",
     "teachTitle": "Lehre ihnen das nächste Geheimnis, das ihnen fehlt (einmal pro Jahreszeit)",
     "stillToLearn": "noch zu lernen: {list}",
+    "needsPeople": "braucht {count} Menschen mehr",
     "praying": "betet",
     "help": "helfen",
     "lore": {
@@ -310,12 +311,30 @@
         "healing": "bekannt für ihre Heiler"
       }
     },
-    "guide": {
-      "known": "{known} von {required} Geheimnissen bekannt",
-      "worldPeople": "die Welt hat {have} von {need} Menschen, die dieses Zeitalter braucht ({short} fehlen)",
-      "ready": "bereit: das Zeitalter kommt bei der nächsten Prüfung der Welt"
+    "history": {
+      "title": "Verlauf",
+      "empty": "Noch nichts festgehalten",
+      "goTo": "Zu diesem Ort gehen",
+      "raid": "in einem Überfall mit {other}",
+      "war": "zog mit {other} in den Krieg",
+      "era": "trat in das Zeitalter {era} ein",
+      "famine": "litt unter einer Hungersnot",
+      "arrival": "ein wanderndes Volk kam hierher und ließ sich nieder",
+      "split": "spaltete sich von {other} ab und gründete diesen Stamm",
+      "craft": "wurde bekannt für {craft}",
+      "leaderDied": "verlor ihren Anführer {name}",
+      "crafts": {
+        "woodcutting": "Holzfällen",
+        "quarrying": "Steinbrechen",
+        "foraging": "Sammeln",
+        "fishing": "Fischen",
+        "hunting": "Jagen",
+        "farming": "Ackerbau",
+        "building": "Bauen",
+        "crafting": "Handwerk",
+        "healing": "Heilen"
+      }
     },
-    "needsPeople": "braucht {count} Menschen mehr",
     "why": {
       "title": "Warum sie handeln",
       "guided": "Geführt zu {strategy}: {done} von {target} geschafft",
@@ -359,6 +378,11 @@
         "learn": "{secret} für die nächste Epoche lernen",
         "carryOn": "wie bisher weitermachen"
       }
+    },
+    "guide": {
+      "known": "{known} von {required} Geheimnissen bekannt",
+      "worldPeople": "die Welt hat {have} von {need} Menschen, die dieses Zeitalter braucht ({short} fehlen)",
+      "ready": "bereit: das Zeitalter kommt bei der nächsten Prüfung der Welt"
     }
   },
   "scene": {

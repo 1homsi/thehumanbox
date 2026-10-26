@@ -324,6 +324,7 @@ impl Simulation {
             &tribe_name,
             &format!("a wandering tribe arrives ({} souls)", take),
         );
+        self.chronicle(&lineage_id, "arrival", None, None, Some((anchor_x, anchor_y)));
     }
 
     pub(crate) fn find_far_empty_anchor(&mut self, fx: i32, fy: i32) -> Option<(i32, i32)> {
@@ -410,6 +411,13 @@ impl Simulation {
             "migrate",
             &founder_name,
             &format!("breaks off to found the {}", new_name),
+        );
+        self.chronicle(
+            &new_lid,
+            "split",
+            Some(&old_lid),
+            None,
+            Some((anchor_x, anchor_y)),
         );
     }
 }

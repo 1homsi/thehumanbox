@@ -290,6 +290,7 @@
     "teach": "enseñar",
     "teachTitle": "Enseñarles el siguiente secreto que les falta (una vez por temporada)",
     "stillToLearn": "aún por aprender: {list}",
+    "needsPeople": "necesita {count} personas más",
     "praying": "rezando",
     "help": "ayudar",
     "lore": {
@@ -310,12 +311,30 @@
         "healing": "conocidos por sus sanadores"
       }
     },
-    "guide": {
-      "known": "{known} de {required} secretos conocidos",
-      "worldPeople": "el mundo tiene {have} de las {need} personas que necesita esta era (faltan {short})",
-      "ready": "listo: la era llega en la próxima revisión del mundo"
+    "history": {
+      "title": "Historia",
+      "empty": "Aún no hay nada registrado",
+      "goTo": "Ir a este lugar",
+      "raid": "en una incursión con {other}",
+      "war": "fue a la guerra con {other}",
+      "era": "entró en la era {era}",
+      "famine": "sufrió una hambruna",
+      "arrival": "un pueblo errante llegó y se asentó aquí",
+      "split": "se separó de {other} para fundar esta tribu",
+      "craft": "llegó a ser conocida por {craft}",
+      "leaderDied": "perdió a su líder {name}",
+      "crafts": {
+        "woodcutting": "la tala",
+        "quarrying": "la cantería",
+        "foraging": "la recolección",
+        "fishing": "la pesca",
+        "hunting": "la caza",
+        "farming": "el cultivo",
+        "building": "la construcción",
+        "crafting": "la artesanía",
+        "healing": "la curación"
+      }
     },
-    "needsPeople": "necesita {count} personas más",
     "why": {
       "title": "Por qué actúan",
       "guided": "Guiada hacia {strategy}: {done} de {target} hechos",
@@ -359,6 +378,11 @@
         "learn": "aprender {secret} para la próxima era",
         "carryOn": "seguir como están"
       }
+    },
+    "guide": {
+      "known": "{known} de {required} secretos conocidos",
+      "worldPeople": "el mundo tiene {have} de las {need} personas que necesita esta era (faltan {short})",
+      "ready": "listo: la era llega en la próxima revisión del mundo"
     }
   },
   "scene": {
