@@ -136,6 +136,8 @@ let nameAlphaScratch = new Float32Array(0)
 let thoughtAlphaScratch = new Float32Array(0)
 let anchorXScratch = new Float32Array(0)
 let anchorYScratch = new Float32Array(0)
+/** Per candidate: 1 when its name or thought was showing before this paint, read once before either pass places anything. */
+let stickyScratch = new Uint8Array(0)
 
 /** A person's prayer glyph seed: whether they join in, and where in the dance they start. */
 export function prayerSeed(id: string): number {
@@ -214,6 +216,7 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
     thoughtAlphaScratch = new Float32Array(cap)
     anchorXScratch = new Float32Array(cap)
     anchorYScratch = new Float32Array(cap)
+    stickyScratch = new Uint8Array(cap)
     orderPrevCount = 0
   }
   const stamp = ++frameStamp
@@ -318,6 +321,13 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
   const thoughtAlpha = thoughtAlphaScratch
   const anchorX = anchorXScratch
   const anchorY = anchorYScratch
+  // Read once per candidate, before any pass runs: a fade.set in pass 0 can drop a label below visible,
+  // and re-reading it in pass 1 would place that candidate twice and advance its fade twice.
+  const sticky = stickyScratch
+  for (let c = 0; c < nc; c++) {
+    const id = orgs[next[c]].id
+    sticky[c] = fade !== undefined && (fade.visible(id) || fade.visible(thoughtKeyOf(id))) ? 1 : 0
+  }
   for (let pass = fade ? 0 : 1; pass < 2; pass++) {
     for (let c = 0; c < nc; c++) {
       const j = next[c]
@@ -332,8 +342,7 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
         continue
       }
       const thoughtKey = thoughtKeyOf(org.id)
-      const sticky = fade !== undefined && (fade.visible(org.id) || fade.visible(thoughtKey))
-      if ((pass === 0) !== sticky) continue
+      if ((pass === 0) !== (sticky[c] === 1)) continue
       const isSelected = org.id === selectedId
       // The lift above the figure eases with vitals rather than snapping when one dips under a threshold.
       const vital = isSelected ? 0 : Math.min(org.energy, org.hydration, org.health)

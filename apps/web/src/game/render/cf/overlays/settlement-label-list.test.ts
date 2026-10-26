@@ -138,6 +138,21 @@ describe('settlement lettering fades in and out', () => {
     expect(leaving[leaving.length - 1].alpha).toBeLessThan(leaving[0].alpha)
   })
 
+  it('a settlement still in view that loses its place fades out where it was, not off at once', () => {
+    const fade = new LabelPresence<PlacedLabel>()
+    const placed = placeLabels([rok], 1, measure, bounds.w, bounds.h)
+    for (let t = 0; t <= LABEL_FADE_IN_MS; t += 30) fadeSettlementLabels(fade, 1000 + t, [rok], placed)
+
+    const lost: PlacedLabel[] = []
+    for (let t = 30; t <= LABEL_FADE_OUT_MS; t += 30) {
+      lost.push(...fadeSettlementLabels(fade, 1000 + LABEL_FADE_IN_MS + t, [rok], []))
+    }
+    expect(lost.length).toBeGreaterThan(1)
+    expect(lost[0].cx).toBe(placed[0].cx)
+    expect(lost[0].cy).toBe(placed[0].cy)
+    expect(lost[lost.length - 1].alpha).toBeLessThan(lost[0].alpha)
+  })
+
   it('remembers the place each shown settlement took, for the next placement', () => {
     const fade = new LabelPresence<PlacedLabel>()
     const placed = placeLabels([rok], 1, measure, bounds.w, bounds.h, undefined)

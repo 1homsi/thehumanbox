@@ -108,7 +108,11 @@ export function fadeSettlementLabels(
     const key = label.key ?? label.title
     const p = byKey.get(key)
     const opacity = fade.set(key, p !== undefined, p)
-    if (p !== undefined && opacity > 0) out.push({ ...p, alpha: p.alpha * opacity })
+    // A settlement that lost its place still fades out where it was last drawn, so draw it from the data it was held with.
+    if (opacity > 0) {
+      const shown = p ?? fade.dataOf(key)
+      if (shown) out.push({ ...shown, alpha: shown.alpha * opacity })
+    }
   }
   fade.leaving((_key, held, opacity) => {
     out.push({ ...held, alpha: held.alpha * opacity })

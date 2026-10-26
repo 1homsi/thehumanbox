@@ -510,6 +510,26 @@ describe('people labels fade and hold', () => {
     expect(paintNames(both, 5000).map((c) => c.text)).toEqual(['AN'])
   })
 
+  it('a name that loses its place fades once per paint, not twice, so it keeps fading where it was', () => {
+    const fade = new LabelPresence<HeldLabel>()
+    const shown = source([org('bo', 10, 10, { name: 'BO' })])
+    let at: NameCall | undefined
+    for (let t = 0; t <= LABEL_FADE_IN_MS; t += 30) at = paintNames(shown, 5000 + t, fade)[0]
+    // A town's name now covers the spot, so the name has no place this paint.
+    const townName = {
+      cx: at!.x,
+      cy: at!.y - 20,
+      w: 200,
+      h: 40,
+    } as PeopleLabelInput['settlementLabels'][number]
+    const over = { settlementLabels: [townName] }
+    const first = paintNames(shown, 5000 + LABEL_FADE_IN_MS + 100, fade, over).find((c) => c.text === 'BO')
+    expect(first?.alpha).toBeCloseTo(1 - 100 / LABEL_FADE_OUT_MS, 2)
+    // Another 100 ms: it fades on from there, once, and is still drawn.
+    const second = paintNames(shown, 5000 + LABEL_FADE_IN_MS + 200, fade, over).find((c) => c.text === 'BO')
+    expect(second?.alpha).toBeCloseTo(1 - 200 / LABEL_FADE_OUT_MS, 2)
+  })
+
   it('eases the lift above the head as a vital dips, rather than snapping', () => {
     const y = (energy: number) => paintNames(source([org('ada', 10, 10, { energy })]), 5000)[0].y
     const high = y(0.3)
