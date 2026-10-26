@@ -7,8 +7,8 @@ import { terrainVisualSignature } from '../../../model/terrain-visuals'
  * array is hashed (the same signature the canvas base layer uses) and compared.
  */
 export class TerrainWatch {
-  private tiles: number[][] | null = null
-  private biomes: number[][] | null = null
+  private tiles: ArrayLike<number>[] | null = null
+  private biomes: ArrayLike<number>[] | null = null
   private season = ''
   private signature = 0
   private width = 0
@@ -21,8 +21,8 @@ export class TerrainWatch {
   hashMs = 0
 
   update(
-    tiles: number[][] | undefined,
-    biomes: number[][] | undefined,
+    tiles: ArrayLike<number>[] | undefined,
+    biomes: ArrayLike<number>[] | undefined,
     width: number,
     height: number,
     originX: number,
@@ -60,7 +60,7 @@ export class TerrainWatch {
 }
 
 /** Biomes are re-sent with the tiles; compare by content only when the array changed. */
-function sameBiomes(a: number[][], b: number[][] | null): boolean {
+function sameBiomes(a: ArrayLike<number>[], b: ArrayLike<number>[] | null): boolean {
   if (!b || a.length !== b.length) return false
   for (let y = 0; y < a.length; y++) {
     const ra = a[y]

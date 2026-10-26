@@ -125,9 +125,9 @@ describe('shore driver', () => {
 describe('patch driver', () => {
   it('puts a sprite on each food and mineral tile', () => {
     const w = world()
-    w.grid.tiles[1][1] = TILE_ID.FOOD
-    w.grid.tiles[2][3] = TILE_ID.FOOD
-    w.grid.tiles[9][12] = TILE_ID.MINERAL
+    ;(w.grid.tiles as number[][])[1][1] = TILE_ID.FOOD
+    ;(w.grid.tiles as number[][])[2][3] = TILE_ID.FOOD
+    ;(w.grid.tiles as number[][])[9][12] = TILE_ID.MINERAL
     const l = layer()
     const driver = new PatchDriver(l, atlas())
     expect(driver.update(frame(w, 1))).toBe(true)

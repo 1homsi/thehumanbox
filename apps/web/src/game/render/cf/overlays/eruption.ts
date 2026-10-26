@@ -55,8 +55,8 @@ export function isVent(tid: number, biome: number, row: number, col: number): bo
  * molten; a thin flow running downhill is not, and once the crater cools to rock the plume stops.
  */
 export function isCraterMouth(
-  tiles: ReadonlyArray<ReadonlyArray<number>>,
-  biomes: ReadonlyArray<ReadonlyArray<number>>,
+  tiles: readonly ArrayLike<number>[],
+  biomes: readonly ArrayLike<number>[],
   row: number,
   col: number,
 ): boolean {
@@ -71,8 +71,8 @@ export function isCraterMouth(
 
 /** The vents in the view, as grid cells, at most `VENT_LIMIT` of them; crater mouths come first. */
 export function findVents(
-  tiles: ReadonlyArray<ReadonlyArray<number>> | undefined,
-  biomes: ReadonlyArray<ReadonlyArray<number>> | undefined,
+  tiles: readonly ArrayLike<number>[] | undefined,
+  biomes: readonly ArrayLike<number>[] | undefined,
   view: VentView,
 ): { row: number; col: number }[] {
   const mouths: { row: number; col: number }[] = []
@@ -147,7 +147,7 @@ export function coneGeometry(v: VolcanoCone, view: VentView) {
 /** Whether a volcano is erupting: its crater still holds lava (or the fire world generation lit in it). */
 export function coneErupting(
   v: VolcanoCone,
-  tiles: ReadonlyArray<ReadonlyArray<number>> | undefined,
+  tiles: readonly ArrayLike<number>[] | undefined,
   view: VentView,
 ) {
   const tid = tiles?.[v[1] - view.oy]?.[v[0] - view.ox]
@@ -219,8 +219,8 @@ export function paintCone(ctx: Ctx, v: VolcanoCone, view: VentView, erupting: bo
  */
 export function paintEruption(
   ctx: Ctx,
-  tiles: ReadonlyArray<ReadonlyArray<number>> | undefined,
-  biomes: ReadonlyArray<ReadonlyArray<number>> | undefined,
+  tiles: readonly ArrayLike<number>[] | undefined,
+  biomes: readonly ArrayLike<number>[] | undefined,
   view: VentView,
   t: number,
   night: boolean,

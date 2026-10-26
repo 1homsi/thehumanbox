@@ -9,9 +9,9 @@ import { TERRAIN_KINDS, kindHeadId, terrainKind, terrainTilesetPixels } from './
 export interface TerrainSource {
   width: number
   height: number
-  tiles: number[][]
-  biomes?: number[][]
-  depth_map?: number[][]
+  tiles: ArrayLike<number>[]
+  biomes?: ArrayLike<number>[]
+  depth_map?: ArrayLike<number>[]
   season?: string
   /** The camera zoom, for the level of detail. Omit to always show the textured tileset. */
   zoom?: number
@@ -19,9 +19,9 @@ export interface TerrainSource {
 
 /** What the layer currently shows, so the next frame can be diffed against it. */
 export interface TerrainSyncState {
-  tiles: number[][] | null
-  biomes: number[][] | undefined
-  depth_map: number[][] | undefined
+  tiles: ArrayLike<number>[] | null
+  biomes: ArrayLike<number>[] | undefined
+  depth_map: ArrayLike<number>[] | undefined
   season: string | undefined
   width: number
   height: number

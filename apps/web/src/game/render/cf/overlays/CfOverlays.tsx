@@ -78,8 +78,8 @@ export function CfOverlays({
   const focusRef = useRef(focus)
   const viewFlagsRef = useRef(viewFlags)
   const onUpdateRef = useRef(onUpdate)
-  const cachedDepth = useRef<number[][] | undefined>(undefined)
-  const cachedBiomes = useRef<number[][] | undefined>(undefined)
+  const cachedDepth = useRef<ArrayLike<number>[] | undefined>(undefined)
+  const cachedBiomes = useRef<ArrayLike<number>[] | undefined>(undefined)
   worldRef.current = world
   selectedRef.current = selectedOrgId
   overlayRef.current = overlay
@@ -95,8 +95,8 @@ export function CfOverlays({
       if (document.hidden || !shouldRenderFrame(now, lastFrameAt, LOW_PERF ? 24 : 30)) return true
       const cur = interp?.current.current ?? worldRef.current
       if (!cur) return true
-      if (cur.grid.depth_map) cachedDepth.current = cur.grid.depth_map as number[][]
-      if (cur.grid.biomes) cachedBiomes.current = cur.grid.biomes as number[][]
+      if (cur.grid.depth_map) cachedDepth.current = cur.grid.depth_map as ArrayLike<number>[]
+      if (cur.grid.biomes) cachedBiomes.current = cur.grid.biomes as ArrayLike<number>[]
       const cam = cameraStateRef.current
       const prev = interp?.prev.current
       const curServerAt = interp?.currentServerAt.current ?? 0

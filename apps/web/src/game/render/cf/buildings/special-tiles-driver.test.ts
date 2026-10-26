@@ -99,7 +99,7 @@ describe('special tiles driver', () => {
     w.grid.fire_intensity![5][5] = 0.2
     expect(d.update(frame(w, 1053))).toBe(true)
     expect(d.update(frame(w, 1053))).toBe(false)
-    w.grid.tiles = w.grid.tiles.map((row) => row.slice())
+    w.grid.tiles = w.grid.tiles.map((row) => Array.from(row))
     expect(d.update(frame(w, 1053))).toBe(true)
     const moved = makeFrame(w, undefined, { x: 40, y: 40, zoom: 2 }, { w: 40, h: 40 }, 1053, 2, 1)
     expect(d.update(moved)).toBe(true)

@@ -17,7 +17,7 @@ export interface FoamRects {
  * Where the foam goes: along every edge where permanent water meets land. The geometry depends
  * on the terrain grid only, so it is built once per terrain change.
  */
-export function buildFoamRects(tiles: number[][], width: number, height: number): FoamRects {
+export function buildFoamRects(tiles: ArrayLike<number>[], width: number, height: number): FoamRects {
   const thick: FoamRects['thick'] = [[], [], [], []]
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {

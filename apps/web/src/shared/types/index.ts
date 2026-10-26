@@ -581,13 +581,13 @@ export interface GridState {
   height: number
   origin_x: number
   origin_y: number
-  tiles: number[][]
+  tiles: ArrayLike<number>[]
   fire_intensity: number[][]
   structure: number[][]
   /** Bumped when a frame carried a new `structure` layer, so the renderer re-reads it only then. */
   structure_revision?: number
-  biomes?: number[][]
-  depth_map?: number[][]
+  biomes?: ArrayLike<number>[]
+  depth_map?: ArrayLike<number>[]
   food_trail?: number[][]
   water_trail?: number[][]
   path_trail?: number[][]
@@ -613,17 +613,23 @@ export interface GridWire {
   height: number
   origin_x: number
   origin_y: number
-  tiles?: number[][]
+  /**
+   * Tile ids, row-major, one per cell: raw bytes (each id's `i8` bit pattern) in a binary frame,
+   * numbers in a JSON one. Absent when the frame carries no tile layer or the tiles are unchanged.
+   */
+  tiles?: ArrayLike<number>
   fire: [number, number, number][]
   /** Absent on a hot frame whose structure layer is unchanged: keep the one already held. */
   structure?: [number, number, number][]
   /** Cell updates on hot frames; value 0 clears a previous structure mark. */
   structure_delta?: [number, number, number][]
-  biomes?: number[][]
-  depth_map?: number[][]
+  /** Biome ids, row-major, one per cell (raw bytes in a binary frame). */
+  biomes?: ArrayLike<number>
+  /** Sea depth, row-major, one per cell: `(1 - depth) * 200` on water, 255 on land. */
+  depth_map?: ArrayLike<number>
   trails?: [number, number, number, number, number][]
   fertility?: [number, number, number][]
-  fertility_dense?: number[] | Uint8Array
+  fertility_dense?: ArrayLike<number>
   hazard?: [number, number, number][]
   roads?: [number, number, number][]
 }

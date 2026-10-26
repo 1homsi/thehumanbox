@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { applyGridWire, expandDiscoveryNames, expandOrgsSoa } from './wire'
+import { applyGridWire, cellRows, expandDiscoveryNames, expandOrgsSoa } from './wire'
 import type { GridWire } from '../shared/types'
 
 const emptyWire = (w = 4, h = 3): GridWire => ({
@@ -247,5 +247,46 @@ describe('expandDiscoveryNames', () => {
     const frame: Record<string, unknown> = { organisms: [{ id: 'a', discoveries: ['fire'] }] }
     expandDiscoveryNames(frame)
     expect((frame.organisms as { discoveries: string[] }[])[0]!.discoveries).toEqual(['fire'])
+  })
+})
+
+describe('cellRows', () => {
+  it('splits frame bytes into rows read as signed tile ids, copied off the frame buffer', () => {
+    const frame = new Uint8Array([9, 9, 1, 2, 0xff, 4, 5, 0x80, 9])
+    const layer = frame.subarray(2, 8)
+    const rows = cellRows(layer, 3, 2, true)!
+    expect(rows.map((r) => Array.from(r))).toEqual([
+      [1, 2, -1],
+      [4, 5, -128],
+    ])
+    frame[2] = 7
+    expect(rows[0][0]).toBe(1)
+  })
+
+  it('reads unsigned bytes and plain JSON numbers alike, and refuses a short layer', () => {
+    expect(cellRows(new Uint8Array([200, 1, 2, 3]), 2, 2, false)!.map((r) => Array.from(r))).toEqual([
+      [200, 1],
+      [2, 3],
+    ])
+    expect(cellRows([1, 2, 3, 4], 2, 2, false)).toEqual([
+      [1, 2],
+      [3, 4],
+    ])
+    expect(cellRows([1, 2, 3], 2, 2, false)).toBeUndefined()
+  })
+
+  it('keeps the held tiles when a frame carries none', () => {
+    const base: GridWire = {
+      width: 2,
+      height: 1,
+      origin_x: 0,
+      origin_y: 0,
+      fire: [],
+      tiles: new Uint8Array([1, 2]),
+    }
+    const first = applyGridWire(base, null)
+    const next = applyGridWire({ ...base, tiles: undefined }, first)
+    expect(next.tiles).toBe(first.tiles)
+    expect(Array.from(next.tiles[0])).toEqual([1, 2])
   })
 })

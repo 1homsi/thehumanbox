@@ -78,8 +78,8 @@ const FRESH_WIRE_DEPTH = 184
 const SEA_GRADIENT_NEAR = 10
 
 export function isFreshWaterAt(
-  tiles: number[][],
-  depth: number[][] | undefined,
+  tiles: ArrayLike<number>[],
+  depth: ArrayLike<number>[] | undefined,
   row: number,
   col: number,
 ): boolean {
@@ -93,7 +93,12 @@ export function isFreshWaterAt(
   )
 }
 
-function nearSeaGradient(tiles: number[][], depth: number[][], row: number, col: number): boolean {
+function nearSeaGradient(
+  tiles: ArrayLike<number>[],
+  depth: ArrayLike<number>[],
+  row: number,
+  col: number,
+): boolean {
   if (tiles[row]?.[col] !== TILE_ID.WATER) return false
   const d = depth[row]?.[col]
   return d !== undefined && d !== FRESH_WIRE_DEPTH && Math.abs(d - FRESH_WIRE_DEPTH) <= SEA_GRADIENT_NEAR
@@ -104,8 +109,8 @@ function nearSeaGradient(tiles: number[][], depth: number[][], row: number, col:
  * unknown depths count as shallows, like new water the simulation has not measured.
  */
 export function seaBandAt(
-  tiles: number[][],
-  depth: number[][] | undefined,
+  tiles: ArrayLike<number>[],
+  depth: ArrayLike<number>[] | undefined,
   row: number,
   col: number,
 ): number {

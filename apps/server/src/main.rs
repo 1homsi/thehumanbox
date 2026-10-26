@@ -105,7 +105,7 @@ async fn main() {
         let mut s = sim.lock().await;
         let frame_started = std::time::Instant::now();
         let frame_id = next_frame_id(&frame_clock);
-        match encode_frame(s.state_json(), frame_id, now_ms(), "full") {
+        match encode_frame(s.state_frame(), frame_id, now_ms(), "full") {
             Some(bytes) => {
                 transport_stats.record_generated(bytes.len(), frame_started.elapsed().as_millis() as u64);
                 if let Ok(mut slot) = latest_full.write() {

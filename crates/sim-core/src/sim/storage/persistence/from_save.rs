@@ -274,6 +274,7 @@ impl Simulation {
             planting_revision: 1,
             serialized_planting_revision: 0,
             serialized_structure: None,
+            serialized_static_tick: 0,
             buildings: buildings.into(),
             next_building_id,
             governments: state.governments,

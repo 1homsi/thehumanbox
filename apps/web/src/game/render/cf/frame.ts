@@ -8,7 +8,7 @@ import type { BuildingVisualDetail } from '../building-draw/types'
 export interface CfFrame {
   world: WorldState
   /** Wire grids are delta-merged, so biomes and depth are cached by the caller. */
-  biomes: number[][] | undefined
+  biomes: ArrayLike<number>[] | undefined
   camera: { x: number; y: number; zoom: number }
   /** Pixel size of the map viewport. */
   viewport: { w: number; h: number }
@@ -27,7 +27,7 @@ export interface CfFrame {
 
 export function makeFrame(
   world: WorldState,
-  biomes: number[][] | undefined,
+  biomes: ArrayLike<number>[] | undefined,
   camera: { x: number; y: number; zoom: number },
   viewport: { w: number; h: number },
   now: number,

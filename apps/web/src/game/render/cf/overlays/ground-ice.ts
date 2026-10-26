@@ -32,7 +32,7 @@ export function iceCover(season: string, progress: number): number {
 }
 
 /** Whether a grid cell is permanent water with land on one side: the shore. */
-export function isShore(tiles: ReadonlyArray<ReadonlyArray<number>>, row: number, col: number): boolean {
+export function isShore(tiles: readonly ArrayLike<number>[], row: number, col: number): boolean {
   if (!isPermanentWaterTile(tiles[row]?.[col])) return false
   const around = [tiles[row - 1]?.[col], tiles[row + 1]?.[col], tiles[row]?.[col - 1], tiles[row]?.[col + 1]]
   return around.some((t) => t !== undefined && !isPermanentWaterTile(t))
@@ -50,7 +50,7 @@ export function isIced(row: number, col: number, cover: number): boolean {
 /** Paints the ice on the shore cells of the view. */
 export function paintGroundIce(
   ctx: Ctx,
-  tiles: ReadonlyArray<ReadonlyArray<number>> | undefined,
+  tiles: readonly ArrayLike<number>[] | undefined,
   view: SnowView,
   season: string,
   progress: number,
@@ -72,12 +72,7 @@ export function paintGroundIce(
 }
 
 /** One iced cell: a pale body, a bright rim on the land side, and a few cracks. */
-function paintIcedCell(
-  ctx: Ctx,
-  tiles: ReadonlyArray<ReadonlyArray<number>>,
-  row: number,
-  col: number,
-): void {
+function paintIcedCell(ctx: Ctx, tiles: readonly ArrayLike<number>[], row: number, col: number): void {
   const px = col * TILE
   const py = row * TILE
   ctx.fillStyle = ICE_BODY

@@ -626,6 +626,31 @@ function take2D(existing: number[][] | undefined, h: number, w: number, fill: nu
   return out
 }
 
+/**
+ * A row-major layer of one value per cell as rows. Bytes from a binary frame are copied once (so
+ * the rows don't keep the whole frame buffer alive) and split into typed views, with no number
+ * decoded per cell; `signed` reads them as `i8` (tile ids). A JSON frame's number array is split
+ * into plain rows. Returns undefined for a layer too short for the grid.
+ */
+export function cellRows(
+  layer: ArrayLike<number>,
+  w: number,
+  h: number,
+  signed: boolean,
+): ArrayLike<number>[] | undefined {
+  if (layer.length < w * h) return undefined
+  const rows = new Array<ArrayLike<number>>(h)
+  if (layer instanceof Uint8Array) {
+    const copy = layer.slice(0, w * h)
+    for (let r = 0; r < h; r++) {
+      rows[r] = signed ? new Int8Array(copy.buffer, r * w, w) : copy.subarray(r * w, (r + 1) * w)
+    }
+  } else {
+    for (let r = 0; r < h; r++) rows[r] = Array.prototype.slice.call(layer, r * w, (r + 1) * w) as number[]
+  }
+  return rows
+}
+
 export function applyGridWire(wire: GridWire, cache: GridState | null): GridState {
   const w = wire.width
   const h = wire.height
@@ -718,9 +743,9 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
     height: wire.height,
     origin_x: wire.origin_x,
     origin_y: wire.origin_y,
-    tiles: wire.tiles ?? cache?.tiles ?? [],
-    biomes: wire.biomes ?? cache?.biomes,
-    depth_map: wire.depth_map ?? cache?.depth_map,
+    tiles: (wire.tiles && cellRows(wire.tiles, w, h, true)) ?? cache?.tiles ?? [],
+    biomes: (wire.biomes && cellRows(wire.biomes, w, h, false)) ?? cache?.biomes,
+    depth_map: (wire.depth_map && cellRows(wire.depth_map, w, h, false)) ?? cache?.depth_map,
     fire_intensity: fire,
     structure,
     structure_revision,

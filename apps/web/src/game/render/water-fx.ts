@@ -48,12 +48,15 @@ export function tileHash(col: number, row: number): number {
   return h
 }
 
-let waterSource: number[][] | null = null
-let waterDepth: number[][] | undefined
+let waterSource: ArrayLike<number>[] | null = null
+let waterDepth: ArrayLike<number>[] | undefined
 let water: WaterCells | null = null
 
 /** Water cells for a terrain grid, rebuilt only when the grid or its depth map is replaced. */
-export function waterCellIndex(tiles: number[][], depthMap: number[][] | undefined): WaterCells {
+export function waterCellIndex(
+  tiles: ArrayLike<number>[],
+  depthMap: ArrayLike<number>[] | undefined,
+): WaterCells {
   if (water && tiles === waterSource && depthMap === waterDepth) return water
   const shimmer = newBuilder()
   const stars = newBuilder()

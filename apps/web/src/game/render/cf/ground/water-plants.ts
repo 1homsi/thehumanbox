@@ -26,11 +26,7 @@ const STEP_COL = [0, 0, -1, 1] as const
  * LAKE_MAX_CELLS cells). Each body is flood-filled once in full, so the sea is measured whole
  * and costs one pass over the grid.
  */
-export function lakeCells(
-  tiles: ReadonlyArray<ReadonlyArray<number>>,
-  width: number,
-  height: number,
-): Uint8Array {
+export function lakeCells(tiles: readonly ArrayLike<number>[], width: number, height: number): Uint8Array {
   const lake = new Uint8Array(width * height)
   const seen = new Uint8Array(width * height)
   const body: number[] = []
@@ -72,7 +68,7 @@ export interface WaterPlantRects {
 }
 
 /** Whether a grid cell is open water: permanent water with water on every side. */
-export function isOpenWater(tiles: ReadonlyArray<ReadonlyArray<number>>, col: number, row: number): boolean {
+export function isOpenWater(tiles: readonly ArrayLike<number>[], col: number, row: number): boolean {
   if (tiles[row]?.[col] !== TILE_ID.WATER) return false
   return (
     tiles[row - 1]?.[col] === TILE_ID.WATER &&
@@ -87,7 +83,7 @@ export function isOpenWater(tiles: ReadonlyArray<ReadonlyArray<number>>, col: nu
  * position, so the lake looks the same every time it is rebuilt, and every mark stays in its tile.
  */
 export function buildWaterPlantRects(
-  tiles: ReadonlyArray<ReadonlyArray<number>>,
+  tiles: readonly ArrayLike<number>[],
   width: number,
   height: number,
   ox: number,

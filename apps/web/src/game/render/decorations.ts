@@ -121,8 +121,8 @@ export interface PlacedAcacia {
 export function placeTrees(
   width: number,
   height: number,
-  tiles: number[][],
-  biomes: number[][],
+  tiles: ArrayLike<number>[],
+  biomes: ArrayLike<number>[],
   originX = 0,
   originY = 0,
   only?: DecorRegion,
@@ -303,8 +303,8 @@ export function drawTrees(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  tiles: number[][],
-  biomes?: number[][],
+  tiles: ArrayLike<number>[],
+  biomes?: ArrayLike<number>[],
   originX = 0,
   originY = 0,
   season = 'summer',
@@ -509,15 +509,15 @@ export function paintDecorTile(
  */
 export function paintShoreTile(
   ctx: CanvasRenderingContext2D,
-  tiles: number[][],
-  biomes: number[][] | undefined,
+  tiles: ArrayLike<number>[],
+  biomes: ArrayLike<number>[] | undefined,
   x: number,
   y: number,
   originX: number,
   originY: number,
   px: number,
   py: number,
-  depth?: number[][],
+  depth?: ArrayLike<number>[],
 ) {
   const t = tiles[y]?.[x]
   if (t === undefined) return
@@ -564,13 +564,13 @@ const FRESH_BANK_LINE = hex(FRESH_WATER.edge)
  * Two tiles with the same key paint the same pixels, so a sprite atlas can share one cell.
  */
 export function shoreTileKey(
-  tiles: number[][],
-  biomes: number[][] | undefined,
+  tiles: ArrayLike<number>[],
+  biomes: ArrayLike<number>[] | undefined,
   x: number,
   y: number,
   originX: number,
   originY: number,
-  depth?: number[][],
+  depth?: ArrayLike<number>[],
 ): string | null {
   const t = tiles[y]?.[x]
   if (t === undefined) return null
@@ -598,7 +598,7 @@ export interface ReedSpec {
 
 /** The reed on this water tile, or null (most water tiles have none). */
 export function reedAt(
-  tiles: number[][],
+  tiles: ArrayLike<number>[],
   x: number,
   y: number,
   originX: number,
@@ -676,8 +676,8 @@ export function drawNaturalDecor(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  tiles: number[][],
-  biomes?: number[][],
+  tiles: ArrayLike<number>[],
+  biomes?: ArrayLike<number>[],
   originX = 0,
   originY = 0,
 ) {
