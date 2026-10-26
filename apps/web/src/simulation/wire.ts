@@ -356,6 +356,36 @@ export function loadBinaryFrameDecoder(): Promise<void> {
   return binaryDecoderLoading
 }
 
+/**
+ * A full frame lists each person's discoveries and attributes as indices into one table of names each
+ * (`discovery_names`, `attribute_names`: a tribe shares most of them, so the names were written thousands of
+ * times over). They are turned back into names here,
+ * so everything past the decoder sees the lists of names it always has. An index outside the table is left
+ * out rather than shown as a number.
+ */
+export function expandDiscoveryNames(frame: Record<string, unknown>): void {
+  for (const [field, table] of [
+    ['discoveries', 'discovery_names'],
+    ['attributes', 'attribute_names'],
+  ] as const) {
+    const names = frame[table]
+    if (!Array.isArray(names)) continue
+    delete frame[table]
+    if (!Array.isArray(frame.organisms)) continue
+    for (const org of frame.organisms as Record<string, unknown>[]) {
+      const list = org?.[field]
+      if (!Array.isArray(list)) continue
+      const out: string[] = []
+      for (const entry of list) {
+        if (typeof entry === 'string') out.push(entry)
+        else if (typeof entry === 'number' && typeof names[entry] === 'string')
+          out.push(names[entry] as string)
+      }
+      org[field] = out
+    }
+  }
+}
+
 export function parseWorldFrame(
   raw: ArrayBuffer | Uint8Array | string,
 ): Result<IncomingWorldFrame, ParseError> {
@@ -374,6 +404,7 @@ export function parseWorldFrame(
     return err({ kind: 'schema', issues: ['root is not an object'] })
   }
   const d = decoded as Record<string, unknown>
+  expandDiscoveryNames(d)
   // Boundary validation: walk every field the renderer reads off the
   // frame and surface a real schema error instead of letting a
   // malformed payload blow up deep inside applyGridWire or

@@ -69,7 +69,15 @@ impl Simulation {
         if let Some(obj) = head.as_object_mut() {
             obj.insert("animals".to_string(), animals);
             match organisms {
-                HeadOrganisms::Full(list) => {
+                HeadOrganisms::Full(mut list) => {
+                    for (field, table) in [
+                        ("discoveries", "discovery_names"),
+                        ("attributes", "attribute_names"),
+                    ] {
+                        if let Some(names) = pack_names(&mut list, field) {
+                            obj.insert(table.to_string(), names);
+                        }
+                    }
                     obj.insert("organisms".to_string(), serde_json::Value::Array(list));
                 }
                 HeadOrganisms::Hot(soa) => organisms_hot = Some(*soa),
@@ -193,4 +201,36 @@ impl Simulation {
             ((sx / nf) as i32, (sy / nf) as i32)
         }
     }
+}
+
+/// A full frame's people each listed every discovery (and every attribute) by name: a tribe shares most of
+/// them, so the same few hundred names were written thousands of times (1.6 MB of a late world's 4.9 MB full
+/// frame). Each person's `field` list becomes indices into one table of names, in first-seen order; the
+/// client turns them back into names as it reads the frame. `None` when no one carries the list.
+pub(super) fn pack_names(list: &mut [serde_json::Value], field: &str) -> Option<serde_json::Value> {
+    let mut names: Vec<String> = Vec::new();
+    let mut index: crate::hashing::FxHashMap<String, u64> = crate::hashing::FxHashMap::default();
+    let mut any = false;
+    for org in list.iter_mut() {
+        let Some(discoveries) = org.get_mut(field).and_then(|d| d.as_array_mut()) else {
+            continue;
+        };
+        any = true;
+        for entry in discoveries.iter_mut() {
+            let Some(name) = entry.as_str() else {
+                continue;
+            };
+            let id = match index.get(name) {
+                Some(&id) => id,
+                None => {
+                    let id = names.len() as u64;
+                    index.insert(name.to_string(), id);
+                    names.push(name.to_string());
+                    id
+                }
+            };
+            *entry = serde_json::Value::from(id);
+        }
+    }
+    any.then(|| serde_json::Value::from(names))
 }

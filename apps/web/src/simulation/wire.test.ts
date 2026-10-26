@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { applyGridWire, expandOrgsSoa } from './wire'
+import { applyGridWire, expandDiscoveryNames, expandOrgsSoa } from './wire'
 import type { GridWire } from '../shared/types'
 
 const emptyWire = (w = 4, h = 3): GridWire => ({
@@ -215,5 +215,37 @@ describe('expandOrgsSoa', () => {
     expect(expanded[1].thought).toBe('wandering')
     expect(expanded[0].attracted_to).toBeNull()
     expect(expanded[2].attracted_to).toBe('a')
+  })
+})
+
+describe('expandDiscoveryNames', () => {
+  it("turns each person's discovery indices back into names, and drops the table", () => {
+    const frame: Record<string, unknown> = {
+      discovery_names: ['fire', 'foraging', 'pottery'],
+      organisms: [{ id: 'a', discoveries: [0, 2] }, { id: 'b', discoveries: [1, 0, 9] }, { id: 'c' }],
+    }
+    expandDiscoveryNames(frame)
+    expect(frame.discovery_names).toBeUndefined()
+    const orgs = frame.organisms as { discoveries?: string[] }[]
+    expect(orgs[0]!.discoveries).toEqual(['fire', 'pottery'])
+    // An index outside the table is left out, not shown as a number.
+    expect(orgs[1]!.discoveries).toEqual(['foraging', 'fire'])
+    expect(orgs[2]!.discoveries).toBeUndefined()
+  })
+
+  it('does the same for attributes', () => {
+    const frame: Record<string, unknown> = {
+      attribute_names: ['tall', 'calm'],
+      organisms: [{ id: 'a', attributes: [1, 0] }],
+    }
+    expandDiscoveryNames(frame)
+    expect(frame.attribute_names).toBeUndefined()
+    expect((frame.organisms as { attributes: string[] }[])[0]!.attributes).toEqual(['calm', 'tall'])
+  })
+
+  it('leaves a frame without a table, or with names already, as it is', () => {
+    const frame: Record<string, unknown> = { organisms: [{ id: 'a', discoveries: ['fire'] }] }
+    expandDiscoveryNames(frame)
+    expect((frame.organisms as { discoveries: string[] }[])[0]!.discoveries).toEqual(['fire'])
   })
 })
