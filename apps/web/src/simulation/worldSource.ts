@@ -125,6 +125,16 @@ export function reloadAppSafely(options: AppReloadOptions = {}): boolean {
   return true
 }
 
+/** Makes `seed` this browser's world seed: a recovery can bring back a world made with another seed. */
+export function setOwnWorldSeed(seed: string): void {
+  if (!/^\d+$/.test(seed)) return
+  try {
+    window.localStorage.setItem(SEED_KEY, seed)
+  } catch {
+    /* noop */
+  }
+}
+
 export function getOwnWorldSeed(): string {
   if (typeof window === 'undefined') return '42'
   try {

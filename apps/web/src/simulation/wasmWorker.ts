@@ -349,7 +349,13 @@ async function retryRestoreStorage(recoveryId: string): Promise<boolean> {
     const previousBackupId = await restoreRecoveryWorld(worldId, current.id)
     replaceSimulation(candidate, recovery.seed)
     markStorageReady(true)
-    post({ type: 'recovery_done', recoveryId: current.id, previousBackupId, tick: recovery.tick })
+    post({
+      type: 'recovery_done',
+      recoveryId: current.id,
+      previousBackupId,
+      tick: recovery.tick,
+      seed: recovery.seed,
+    })
     emit(true)
     return persist()
   } catch (error) {
@@ -555,6 +561,7 @@ async function start(msg: StartMsg) {
         recoveryId: msg.recoveryId,
         previousBackupId,
         tick: recovery.tick,
+        seed: recovery.seed,
       })
     } catch (e) {
       storageReady = false

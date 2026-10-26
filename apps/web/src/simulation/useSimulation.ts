@@ -19,6 +19,7 @@ import {
   clearOwnWorldRecoveryRequest,
   clearOwnWorldResetRequest,
   getOwnWorldSeed,
+  setOwnWorldSeed,
   getOwnWorldRecoveryRequest,
   hasOwnWorldResetRequest,
 } from './worldSource'
@@ -370,6 +371,7 @@ export function useSimulation(source: WorldSource = 'native'): {
           paused?: boolean
           tickMs?: number
           speed?: number
+          seed?: string
         }
         if (m.type === 'frame' && (typeof m.frame === 'string' || m.frame instanceof Uint8Array)) {
           if (!announced) {
@@ -392,6 +394,8 @@ export function useSimulation(source: WorldSource = 'native'): {
         } else if (m.type === 'reset_done') {
           clearOwnWorldResetRequest()
         } else if (m.type === 'recovery_done') {
+          // The restored world may have another seed; the word-split and other per-world watches read it from here.
+          if (typeof m.seed === 'string') setOwnWorldSeed(m.seed)
           clearOwnWorldRecoveryRequest()
         } else if (m.type === 'recovery_cancelled') {
           clearOwnWorldRecoveryRequest()
