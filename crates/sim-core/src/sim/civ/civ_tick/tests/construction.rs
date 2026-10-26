@@ -1100,7 +1100,7 @@ fn one_wet_tile_is_not_a_shore() {
     use crate::world::tiles::Tile;
     let mut sim = lakeside(200);
     sim.grid.set(92, 80, Tile::Water);
-    assert_eq!(shore_water_beside(&sim, 90, 80, 2, 2), 1);
+    assert_eq!(sim.grid.open_water_around(90, 80, 2, 2), 1);
     assert!(!construction_site_is_valid(&sim, BuildingKind::Dock, 90, 80));
 }
 
@@ -1121,7 +1121,7 @@ fn a_harbour_is_aimed_at_the_nearest_shore_and_found_there() {
     let (x, y) = find_construction_site(&sim, "lineage-a", BuildingKind::Dock, point.0, point.1)
         .expect("a shore site in reach of the builder");
     assert!(
-        shore_water_beside(&sim, x, y, 2, 2) >= SHORE_WATER_TILES,
+        sim.grid.open_water_around(x, y, 2, 2) >= crate::sim::tech::buildings::SHORE_WATER_TILES,
         "site ({x}, {y}) sits on the shore"
     );
 }

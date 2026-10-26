@@ -74,6 +74,17 @@ pub struct WorldGrid {
 }
 
 impl WorldGrid {
+    /// The open-water tiles in the ring of tiles around a `width` by `height` footprint at (x, y),
+    /// edges and corners.
+    pub fn open_water_around(&self, x: i32, y: i32, width: u8, height: u8) -> usize {
+        let (w, h) = (i32::from(width), i32::from(height));
+        (y - 1..=y + h)
+            .flat_map(|ty| (x - 1..=x + w).map(move |tx| (tx, ty)))
+            .filter(|&(tx, ty)| tx < x || tx >= x + w || ty < y || ty >= y + h)
+            .filter(|&(tx, ty)| self.get(tx, ty) == Tile::Water)
+            .count()
+    }
+
     pub fn new(seed: u64) -> Self {
         Self::new_sized::<WIDTH, HEIGHT>(seed, false)
     }

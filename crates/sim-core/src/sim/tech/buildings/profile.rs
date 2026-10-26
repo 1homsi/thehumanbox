@@ -33,6 +33,9 @@ impl BuildingFunction {
     }
 }
 
+/// Open-water tiles a harbour building needs along its edge (see `BuildingKind::has_water_for`).
+pub const SHORE_WATER_TILES: usize = 3;
+
 impl BuildingKind {
     pub fn era_unlock(self) -> Era {
         use BuildingKind::*;
@@ -94,6 +97,14 @@ impl BuildingKind {
             self,
             Dock | Port | Marina | Shipyard | Drydock | Lighthouse | Lighthouse2
         )
+    }
+
+    /// Whether this kind, at (x, y), has the water it needs: always for a kind that needs none, and
+    /// for a harbour building at least `SHORE_WATER_TILES` of open water along its edge, so a puddle
+    /// or one flooded corner does not count as a shore.
+    pub fn has_water_for(self, grid: &crate::world::grid::WorldGrid, x: i32, y: i32) -> bool {
+        let (w, h) = self.footprint();
+        !self.needs_shore() || grid.open_water_around(x, y, w, h) >= SHORE_WATER_TILES
     }
 
     pub fn footprint(self) -> (u8, u8) {

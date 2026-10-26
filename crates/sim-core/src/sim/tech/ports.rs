@@ -23,6 +23,9 @@ pub(crate) const PORT_REACH: i32 = 6;
 const YARD_TOWN_REACH: i32 = 12;
 /// The ring of tiles around a harbour a yard or a warehouse is built on, in tiles from the harbour.
 const BUILD_RING: (i32, i32) = (2, 4);
+/// How far along the shore from a harbour a shipyard may stand: the water's edge near the moorings is
+/// often taken by homes, so the yard looks a little further along the coast.
+const YARD_SHORE_REACH: i32 = 8;
 /// How far from a harbour a home may be and still count among its town, in tiles.
 const TOWN_REACH: i32 = 12;
 /// One pier, then one more for each this many townsfolk, up to `MAX_PIERS`.
@@ -311,7 +314,14 @@ fn launch_boat(sim: &mut Simulation, lineage: &str, harbour: (i32, i32)) {
 /// Raises a shipyard or a warehouse on open grass two to four tiles from the harbour.
 fn build_port_work(sim: &mut Simulation, lineage: &str, harbour: (i32, i32), kind: BuildingKind) -> bool {
     let occupied = occupied_tiles(sim);
-    let (near, far) = BUILD_RING;
+    // A shipyard's slip runs into the water, so it must have open water along its side, and it may
+    // look further along the coast for that; both keep clear of the moorings and the quay right
+    // beside them, where the town fishes and draws water.
+    let (near, far) = if kind.needs_shore() {
+        (BUILD_RING.0, YARD_SHORE_REACH)
+    } else {
+        BUILD_RING
+    };
     let mut site = None;
     'search: for reach in near..=far {
         for dy in -reach..=reach {
@@ -320,7 +330,7 @@ fn build_port_work(sim: &mut Simulation, lineage: &str, harbour: (i32, i32), kin
                     continue;
                 }
                 let (x, y) = (harbour.0 + dx, harbour.1 + dy);
-                if fits(sim, x, y, kind, &occupied) {
+                if fits(sim, x, y, kind, &occupied) && kind.has_water_for(&sim.grid, x, y) {
                     site = Some((x, y));
                     break 'search;
                 }
@@ -428,6 +438,23 @@ mod tests {
         assert_eq!(
             yards, 1,
             "the quay in reach of the yard uses it: no second yard in the same town"
+        );
+    }
+
+    #[test]
+    fn a_shipyard_stands_on_the_shore_with_open_water_along_its_side() {
+        let (mut sim, lineage) = coastal_sim();
+        sim.lineage_eras.insert(lineage.clone(), Era::Bronze);
+        run_works(&mut sim, 0, 100);
+        let i = building_within(&sim, BuildingKind::Shipyard, &lineage, (90, 100), PORT_REACH)
+            .expect("a bronze fishing tribe raises a yard");
+        let yard = &sim.buildings[i];
+        assert!(
+            sim.grid.open_water_around(yard.x, yard.y, 2, 2)
+                >= crate::sim::tech::buildings::SHORE_WATER_TILES,
+            "the yard at ({}, {}) fronts the water",
+            yard.x,
+            yard.y
         );
     }
 
