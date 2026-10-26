@@ -2,16 +2,26 @@ import { TILE } from '../../../model/palette'
 import { prayerTimeLeft } from '../../../model/prayers'
 import { drawPrayerBubble, mergePrayerBubbles, prayerBubbleScale } from '../../prayer-bubbles'
 import { drawPrayerFeedback, updatePrayerFeedback } from '../../prayer-feedback'
+import type { LabelPresence } from '../../label-presence'
 import { drawSettlementLabels, titleFont, type LabelKind, type PlacedLabel } from '../../settlement-labels'
 import { drawBlessings, drawFireworks, updateWorldMoments } from '../../world-moments'
 import type { CfFrame } from './frame'
 import { painterView } from './frame'
-import { collectSettlementLabels, placeLabels } from './settlement-label-list'
+import {
+  collectSettlementLabels,
+  fadeSettlementLabels,
+  heldSettlementSlots,
+  placeLabels,
+} from './settlement-label-list'
 
 type Ctx = CanvasRenderingContext2D
 
 /** Settlement names, world moments, prayer bubbles and effects, and the tile grid (the old `draw_hud`). */
-export function paintHud(ctx: Ctx, f: CfFrame, opts: { grid: boolean }): { labels: PlacedLabel[] } {
+export function paintHud(
+  ctx: Ctx,
+  f: CfFrame,
+  opts: { grid: boolean; fade?: LabelPresence<PlacedLabel> },
+): { labels: PlacedLabel[] } {
   const { world, viewFlags, zoom, ox, oy, t, bounds } = f
   let placed: PlacedLabel[] = []
   if (!viewFlags.hideUI) {
@@ -19,8 +29,13 @@ export function paintHud(ctx: Ctx, f: CfFrame, opts: { grid: boolean }): { label
       ctx.font = titleFont(kind, 1)
       return ctx.measureText(text).width
     }
-    placed = placeLabels(collectSettlementLabels(world, bounds, zoom), zoom, measure, f.W, f.H)
-  }
+    const labels = collectSettlementLabels(world, bounds, zoom)
+    const fade = opts.fade
+    // Placement reads who was showing last paint, so it runs before this paint's fades are set.
+    const held = fade ? heldSettlementSlots(fade, labels) : undefined
+    placed = placeLabels(labels, zoom, measure, f.W, f.H, held)
+    if (fade) placed = fadeSettlementLabels(fade, t, labels, placed)
+  } else opts.fade?.clear()
   if (placed.length > 0) drawSettlementLabels(ctx, placed)
 
   updateWorldMoments(world, t)

@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import type { FaithInfo, OrganismState, PrayerInfo, VehicleInfo } from '../../../../shared/types'
 import { resetPrayerFeedback, updatePrayerFeedback } from '../../prayer-feedback'
+import { LABEL_FADE_IN_MS, LABEL_FADE_OUT_MS, LabelPresence } from '../../label-presence'
 import {
   labelFlagsOf,
   nameVisibilityAlpha,
   paintPeopleLabels,
+  type HeldLabel,
   type PeopleLabelInput,
   type PeopleLabelSource,
 } from './people-labels'
@@ -426,4 +428,114 @@ describe('people labels, cheap painter against the original', () => {
       })
     }
   }
+})
+
+interface NameCall {
+  text: string
+  x: number
+  y: number
+  style: string
+  alpha: number
+  slot: number
+}
+
+/** Paints names into a recording sink, so each name's opacity and place can be checked. */
+function paintNames(
+  people: PeopleLabelSource,
+  now: number,
+  fade?: LabelPresence<HeldLabel>,
+  over: Partial<PeopleLabelInput> = {},
+): NameCall[] {
+  const calls: NameCall[] = []
+  const names = {
+    text: (text: string, x: number, y: number, style: string, alpha: number, slot: number) =>
+      void calls.push({ text, x, y, style, alpha, slot }),
+  }
+  paintPeopleLabels(
+    recording().ctx,
+    input({ people, names: names as PeopleLabelInput['names'], fade, now, ...over }),
+  )
+  return calls
+}
+
+describe('people labels fade and hold', () => {
+  it('fades a name in over the fade-in time instead of showing it at once', () => {
+    const fade = new LabelPresence<HeldLabel>()
+    const people = source([org('ada', 10, 10)])
+    const alphas: number[] = []
+    for (let t = 0; t <= LABEL_FADE_IN_MS; t += 30) alphas.push(paintNames(people, 5000 + t, fade)[0].alpha)
+    expect(alphas[0]).toBe(0)
+    expect(alphas[3]).toBeCloseTo(0.5, 1)
+    expect(alphas[alphas.length - 1]).toBeCloseTo(1)
+    expect([...alphas].sort((a, b) => a - b)).toEqual(alphas)
+  })
+
+  it('draws a name at full strength straight away when there is no fade to read', () => {
+    expect(paintNames(source([org('ada', 10, 10)]), 5000)[0].alpha).toBe(1)
+  })
+
+  it('keeps a name that walks off screen where it was, and fades it out', () => {
+    const fade = new LabelPresence<HeldLabel>()
+    const shown = source([org('ada', 10, 10)])
+    for (let t = 0; t <= LABEL_FADE_IN_MS; t += 30) paintNames(shown, 5000 + t, fade)
+    const before = paintNames(shown, 5000 + LABEL_FADE_IN_MS + 30, fade)[0]
+    // She is off screen now: nobody asks for her name, so it stays at the spot it was drawn and fades.
+    const gone = source([org('ada', 10, 10)], [0])
+    const leaving: NameCall[] = []
+    for (let t = 60; t <= LABEL_FADE_OUT_MS + 60; t += 30) {
+      leaving.push(...paintNames(gone, 5000 + LABEL_FADE_IN_MS + t, fade))
+    }
+    expect(leaving.length).toBeGreaterThan(1)
+    for (const call of leaving) {
+      expect(call.text).toBe('ADA')
+      expect(call.slot).toBe(-1)
+      expect(call.x).toBe(before.x)
+      expect(call.y).toBe(before.y)
+    }
+    const alphas = leaving.map((c) => c.alpha)
+    expect([...alphas].sort((a, b) => b - a)).toEqual(alphas)
+    expect(alphas[alphas.length - 1]).toBeLessThan(alphas[0])
+  })
+
+  it('does not let a newcomer push out a name that is already showing, but fades the newcomer out instead', () => {
+    const fade = new LabelPresence<HeldLabel>()
+    // 'bo' is showing alone first.
+    for (let t = 0; t <= LABEL_FADE_IN_MS; t += 30)
+      paintNames(source([org('bo', 10, 10, { name: 'BO' })]), 5000 + t, fade)
+    // Now 'ann' stands on the same spot. Without a fade she would be drawn first and claim the place.
+    const both = source([org('ann', 10, 10, { name: 'AN' }), org('bo', 10, 10, { name: 'BO' })])
+    const now = paintNames(both, 5000 + LABEL_FADE_IN_MS + 30, fade).map((c) => c.text)
+    expect(now).toEqual(['BO'])
+    // Without the fade, the first in draw order takes the place: 'ann'.
+    expect(paintNames(both, 5000).map((c) => c.text)).toEqual(['AN'])
+  })
+
+  it('a name that loses its place fades once per paint, not twice, so it keeps fading where it was', () => {
+    const fade = new LabelPresence<HeldLabel>()
+    const shown = source([org('bo', 10, 10, { name: 'BO' })])
+    let at: NameCall | undefined
+    for (let t = 0; t <= LABEL_FADE_IN_MS; t += 30) at = paintNames(shown, 5000 + t, fade)[0]
+    // A town's name now covers the spot, so the name has no place this paint.
+    const townName = {
+      cx: at!.x,
+      cy: at!.y - 20,
+      w: 200,
+      h: 40,
+    } as PeopleLabelInput['settlementLabels'][number]
+    const over = { settlementLabels: [townName] }
+    const first = paintNames(shown, 5000 + LABEL_FADE_IN_MS + 100, fade, over).find((c) => c.text === 'BO')
+    expect(first?.alpha).toBeCloseTo(1 - 100 / LABEL_FADE_OUT_MS, 2)
+    // Another 100 ms: it fades on from there, once, and is still drawn.
+    const second = paintNames(shown, 5000 + LABEL_FADE_IN_MS + 200, fade, over).find((c) => c.text === 'BO')
+    expect(second?.alpha).toBeCloseTo(1 - 200 / LABEL_FADE_OUT_MS, 2)
+  })
+
+  it('eases the lift above the head as a vital dips, rather than snapping', () => {
+    const y = (energy: number) => paintNames(source([org('ada', 10, 10, { energy })]), 5000)[0].y
+    const high = y(0.3)
+    const mid = y(0.26)
+    const low = y(0.22)
+    expect(high - mid).toBeCloseTo(4)
+    expect(mid - low).toBeCloseTo(4)
+  })
 })

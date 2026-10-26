@@ -123,7 +123,7 @@ pub(crate) fn haul_harvest(sim: &mut Simulation, lineage: &str, at: (i32, i32), 
 /// carts are capped per tribe. Then every cart moves one tile per `CART_STEP_TICKS` ticks.
 pub(crate) fn tick_carts(sim: &mut Simulation) {
     let now = sim.tick_count;
-    if now > 0 && now.is_multiple_of(CART_STEP) {
+    if crate::sim::simulation::on_beat(now, CART_STEP, crate::sim::simulation::CART_PHASE) {
         spawn_carts(sim);
     }
     if now.is_multiple_of(CART_STEP_TICKS) {

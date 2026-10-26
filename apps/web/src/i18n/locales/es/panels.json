@@ -310,6 +310,50 @@
         "crafting": "conocidos por su artesanía",
         "healing": "conocidos por sus sanadores"
       }
+    },
+    "why": {
+      "title": "Por qué actúan",
+      "guided": "Guiada hacia {strategy}: {done} de {target} hechos",
+      "unguided": "Nadie los guía; actúan por su cuenta",
+      "need": "Lo más urgente: {need}, le faltan {pct} %",
+      "needNone": "Nada urge ahora mismo",
+      "needs": {
+        "food": "comida",
+        "water": "agua",
+        "health": "salud",
+        "shelter": "refugio",
+        "safety": "seguridad",
+        "land": "tierra"
+      },
+      "doing": "Trabajando en: {list}",
+      "idle": "Nadie trabaja ahora mismo",
+      "work": {
+        "woodcutting": "talar árboles",
+        "quarrying": "cantería",
+        "foraging": "recolección",
+        "fishing": "pesca",
+        "hunting": "caza",
+        "farming": "cultivo",
+        "building": "construcción",
+        "crafting": "artesanía",
+        "healing": "curación"
+      },
+      "allied": "aliada con {names}",
+      "rivals": "enfrentada con {names}",
+      "neutral": "neutral hacia {names}",
+      "stanceNone": "No conocen a ningún vecino",
+      "next": "A punto de intentar: {step}",
+      "step": {
+        "food": "recolectar y cazar comida",
+        "water": "ir a buscar agua",
+        "health": "cuidar a los enfermos",
+        "shelter": "levantar más casas",
+        "safety": "armarse y vigilar su tierra",
+        "land": "reclamar más tierra",
+        "campaign": "seguir la campaña de {strategy}",
+        "learn": "aprender {secret} para la próxima era",
+        "carryOn": "seguir como están"
+      }
     }
   },
   "scene": {

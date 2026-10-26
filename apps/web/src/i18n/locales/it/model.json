@@ -226,7 +226,7 @@
     "failed": "{label} · {reason}",
     "following": "segue {name}",
     "naming": "nome · scrivi un nuovo nome per {name}",
-    "paused": "in pausa: {names} sull’orlo"
+    "pausedFor": "in pausa: {reasons}"
   },
   "legends": {
     "when": "Anno {year}, {season}",
@@ -850,7 +850,6 @@
       "posting_notices": "avvisi pubblici",
       "tool_making": "costruzione di utensili",
       "tool_improvement": "miglioramento degli utensili",
-      "stone_tools": "utensili di pietra",
       "pottery": "vasellame",
       "weaving": "tessitura",
       "smelting": "fusione",
@@ -1037,5 +1036,14 @@
       "neutral": "neutrali",
       "rivals": "rivali"
     }
+  },
+  "pause": {
+    "brink": "{names} sull'orlo",
+    "era": "{names} è entrata in una nuova era",
+    "worldEra": "nel mondo è iniziata una nuova era",
+    "warBy": "{names} è entrata in guerra",
+    "war": "è scoppiata una guerra",
+    "famine": "{names} soffre la fame",
+    "extinct": "{names} si è estinta"
   }
 }

@@ -310,6 +310,50 @@
         "crafting": "noti per il loro artigianato",
         "healing": "noti per i loro guaritori"
       }
+    },
+    "why": {
+      "title": "Perché agiscono così",
+      "guided": "Guidata verso {strategy}: {done} di {target} fatti",
+      "unguided": "Nessuno le guida: agiscono di propria iniziativa",
+      "need": "Più urgente: {need}, manca il {pct}%",
+      "needNone": "Per ora nulla è urgente",
+      "needs": {
+        "food": "cibo",
+        "water": "acqua",
+        "health": "salute",
+        "shelter": "riparo",
+        "safety": "sicurezza",
+        "land": "terra"
+      },
+      "doing": "Al lavoro: {list}",
+      "idle": "Per ora nessuno lavora",
+      "work": {
+        "woodcutting": "taglio del legno",
+        "quarrying": "cava",
+        "foraging": "raccolta",
+        "fishing": "pesca",
+        "hunting": "caccia",
+        "farming": "agricoltura",
+        "building": "costruzione",
+        "crafting": "artigianato",
+        "healing": "cura"
+      },
+      "allied": "alleata con {names}",
+      "rivals": "in attrito con {names}",
+      "neutral": "neutrale verso {names}",
+      "stanceNone": "Nessun vicino conosciuto",
+      "next": "Sta per provare: {step}",
+      "step": {
+        "food": "raccogliere e cacciare cibo",
+        "water": "andare a prendere l'acqua",
+        "health": "curare i malati",
+        "shelter": "costruire più case",
+        "safety": "armarsi e presidiare la terra",
+        "land": "reclamare altra terra",
+        "campaign": "proseguire la campagna {strategy}",
+        "learn": "imparare {secret} per la prossima era",
+        "carryOn": "continuare così"
+      }
     }
   },
   "scene": {

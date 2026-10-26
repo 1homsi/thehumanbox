@@ -3,6 +3,13 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { WelcomeModal } from './WelcomeModal'
+import { LOCALES, t } from '../../i18n'
+
+const reload = vi.hoisted(() => vi.fn(() => true))
+vi.mock('../../simulation/worldSource', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../simulation/worldSource')>()),
+  reloadAppSafely: reload,
+}))
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
 afterAll(() => vi.unstubAllGlobals())
@@ -23,6 +30,7 @@ function memoryStorage(): Storage {
 }
 
 beforeEach(() => {
+  reload.mockClear()
   Object.defineProperty(window, 'localStorage', { value: memoryStorage(), configurable: true })
 })
 afterEach(() => {
@@ -45,7 +53,21 @@ function press(target: Element, key: string, init: KeyboardEventInit = {}) {
 }
 
 function controls() {
-  return document.querySelectorAll<HTMLButtonElement>('.welcome-modal button')
+  return document.querySelectorAll<HTMLButtonElement | HTMLSelectElement>(
+    '.welcome-modal button, .welcome-modal select',
+  )
+}
+
+function picker() {
+  return document.querySelector<HTMLSelectElement>('.welcome-language-select')!
+}
+
+/** Picks a language the way a player does: the select's value changes, then its change event fires. */
+function chooseLanguage(code: string) {
+  act(() => {
+    picker().value = code
+    picker().dispatchEvent(new Event('change', { bubbles: true }))
+  })
 }
 
 describe('WelcomeModal', () => {
@@ -118,5 +140,56 @@ describe('WelcomeModal', () => {
     press(document.querySelector('.welcome-modal')!, 'Escape')
     expect(document.querySelector('.welcome-modal')).toBeNull()
     expect(window.localStorage.getItem('thb-welcome-seen-v1')).toBe('1')
+  })
+
+  it('shows the language picker with the current language by its own name', () => {
+    mount()
+    expect(picker().value).toBe('en')
+    expect(picker().selectedOptions[0].textContent).toBe('English')
+    expect(picker().options.length).toBe(LOCALES.length)
+  })
+
+  it('choosing a language saves it and reloads the game in that language', () => {
+    mount()
+    chooseLanguage('de')
+    expect(window.localStorage.getItem('thb-locale')).toBe('de')
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('a language that cannot be remembered is reported and the game is not reloaded', () => {
+    mount()
+    Object.defineProperty(window, 'localStorage', {
+      value: {
+        ...memoryStorage(),
+        setItem: () => {
+          throw new Error('quota')
+        },
+      },
+      configurable: true,
+    })
+    chooseLanguage('fr')
+    expect(reload).not.toHaveBeenCalled()
+    expect(document.querySelector('.welcome-language-note')?.textContent).toBe(
+      t('settings.language.storageFailed'),
+    )
+  })
+
+  it('Tab from the page body skips the disabled picker while a language change reloads', () => {
+    mount()
+    chooseLanguage('de')
+    expect(picker().disabled).toBe(true)
+    act(() => (document.activeElement as HTMLElement | null)?.blur())
+    press(document.body, 'Tab')
+    const enabled = [...controls()].filter((control) => !control.disabled)
+    expect(document.activeElement).toBe(enabled[0])
+    expect(document.activeElement).not.toBe(picker())
+  })
+
+  it('Tab reaches the language picker inside the card', () => {
+    mount()
+    const last = controls()[controls().length - 1]
+    act(() => last.focus())
+    press(last, 'Tab')
+    expect(document.activeElement).toBe(picker())
   })
 })

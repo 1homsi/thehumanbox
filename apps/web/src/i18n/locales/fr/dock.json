@@ -542,13 +542,27 @@
     "treeTip": "Arbre généalogique des lignées et de la descendance",
     "world": "monde",
     "worldTip": "Afficher ou masquer le panneau du monde à gauche (histoire, lignées, événements)",
-    "onBrink": "au bord",
-    "onBrinkTip": "Mettre le jeu en pause dès qu'une tribu tombe au bord",
     "keys": "touches",
     "picture": "image",
     "pictureTip": "Enregistrer une image du monde tel qu'il est maintenant",
     "notable": "remarquables",
-    "notableTip": "Les êtres les plus marquants par âge, taille de famille, amis, richesse, savoir, joie, deuil…"
+    "notableTip": "Les êtres les plus marquants par âge, taille de famille, amis, richesse, savoir, joie, deuil…",
+    "pauseOn": "pause à",
+    "pauseOnTip": "Arrêter le temps quand un changement choisi survient, pendant que le jeu tourne",
+    "pause": {
+      "brink": "au bord",
+      "era": "nouvelle ère",
+      "war": "guerre",
+      "famine": "famine",
+      "extinct": "s'éteint"
+    },
+    "pauseTip": {
+      "brink": "Pause quand une tribu tombe au bord de la disparition",
+      "era": "Pause quand une tribu ou le monde entre dans une nouvelle ère",
+      "war": "Pause quand une guerre éclate ou qu'une bataille commence",
+      "famine": "Pause quand une tribu meurt de faim",
+      "extinct": "Pause quand une tribu s'éteint"
+    }
   },
   "save": {
     "saving": "Sauvegarde…",

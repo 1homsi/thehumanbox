@@ -229,7 +229,7 @@
     "failed": "{label} · {reason}",
     "following": "following {name}",
     "naming": "name · type a new name for {name}",
-    "paused": "paused: {names} on the brink"
+    "pausedFor": "paused: {reasons}"
   },
   "legends": {
     "when": "Year {year}, {season}",
@@ -853,7 +853,6 @@
       "posting_notices": "posting notices",
       "tool_making": "tool making",
       "tool_improvement": "tool improvement",
-      "stone_tools": "stone tools",
       "pottery": "pottery",
       "weaving": "weaving",
       "smelting": "smelting",
@@ -1040,5 +1039,14 @@
       "neutral": "neutral",
       "rivals": "rivals"
     }
+  },
+  "pause": {
+    "brink": "{names} on the brink",
+    "era": "{names} entered a new era",
+    "worldEra": "a new era began in the world",
+    "warBy": "{names} went to war",
+    "war": "a war broke out",
+    "famine": "{names} are starving",
+    "extinct": "{names} died out"
   }
 }

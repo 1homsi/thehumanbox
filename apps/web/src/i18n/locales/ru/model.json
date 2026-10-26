@@ -230,7 +230,7 @@
     "failed": "{label} · {reason}",
     "following": "следует за: {name}",
     "naming": "имя · введите новое имя для: {name}",
-    "paused": "пауза: {names} на грани"
+    "pausedFor": "пауза: {reasons}"
   },
   "legends": {
     "when": "Год {year}, {season}",
@@ -872,7 +872,6 @@
       "posting_notices": "объявления",
       "tool_making": "изготовление инструментов",
       "tool_improvement": "улучшение инструментов",
-      "stone_tools": "каменные орудия",
       "pottery": "гончарное дело",
       "weaving": "ткачество",
       "smelting": "плавка",
@@ -1059,5 +1058,14 @@
       "neutral": "нейтральные",
       "rivals": "соперники"
     }
+  },
+  "pause": {
+    "brink": "{names} на грани гибели",
+    "era": "{names} вошло в новую эпоху",
+    "worldEra": "в мире началась новая эпоха",
+    "warBy": "{names} начало войну",
+    "war": "началась война",
+    "famine": "{names} голодают",
+    "extinct": "{names} вымерло"
   }
 }

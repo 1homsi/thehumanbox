@@ -254,6 +254,20 @@
   "language": {
     "title": "DİLLERİ"
   },
+  "words": {
+    "title": "KELİME GEÇMİŞİ",
+    "intro": "Her yaygın şey için kullandığı kelime, anne babasının ve büyükanne büyükbabasının kelimeleriyle yan yana.",
+    "you": "kendisi",
+    "mother": "anne",
+    "father": "baba",
+    "maternalGrandmother": "anne tarafı büyükanne",
+    "maternalGrandfather": "anne tarafı büyükbaba",
+    "paternalGrandmother": "baba tarafı büyükanne",
+    "paternalGrandfather": "baba tarafı büyükbaba",
+    "unknown": "hatırlanmıyor",
+    "same": "ailede aynı",
+    "drifted": "kelimeler ayrıştı"
+  },
   "life": {
     "memory": "HAFIZA",
     "foodTip": "Hatırlanan {count} yiyecek yeri – açken organizma bu yerlere yönelir",

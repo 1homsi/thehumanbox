@@ -570,6 +570,10 @@
     "checkpointRestore": "não foi possível salvar o mundo atual; a restauração foi cancelada com segurança",
     "checkpointPerfMode": "não foi possível salvar o mundo atual; a atualização do modo de desempenho foi cancelada com segurança",
     "checkpointRenderer": "não foi possível salvar o mundo atual; a atualização do renderizador foi cancelada com segurança",
-    "checkpointRefresh": "não foi possível salvar o mundo atual; a atualização foi cancelada com segurança"
+    "checkpointRefresh": "não foi possível salvar o mundo atual; a atualização foi cancelada com segurança",
+    "versionTitle": "A simulação é de outra versão",
+    "versionBody": "Esta janela e a simulação deste computador não podem funcionar juntas: a simulação é {server}. Feche o The Human Box por completo e abra-o de novo.",
+    "versionOlder": "uma versão mais antiga",
+    "versionNumber": "a versão {version}"
   }
 }

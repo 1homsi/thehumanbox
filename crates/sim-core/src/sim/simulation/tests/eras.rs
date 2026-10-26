@@ -131,7 +131,8 @@ fn prepare_technological_era_boundary(sim: &mut Simulation, era: crate::sim::era
         .map(|org| org.lineage_id.clone())
         .collect();
 
-    sim.tick_count = 1199;
+    // The tick before an era pass (see `ERAS_PHASE`).
+    sim.tick_count = 1200 + crate::sim::simulation::ERAS_PHASE - 1;
     sim.current_era = era.name().to_string();
     sim.lineage_eras.clear();
     for lineage_id in alive_lineages {
@@ -175,7 +176,7 @@ fn twelve_hundred_tick_boundary_keeps_current_era_technological() {
 
     sim.tick();
 
-    assert_eq!(sim.tick_count, 1200);
+    assert_eq!(sim.tick_count, 1200 + crate::sim::simulation::ERAS_PHASE);
     assert_eq!(sim.current_era, "classical");
     assert!(sim.history.era_history.is_empty());
     assert!(!sim.events.iter().any(|event| event.etype == "era"));

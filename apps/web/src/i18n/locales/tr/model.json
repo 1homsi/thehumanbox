@@ -226,7 +226,7 @@
     "failed": "{label} · {reason}",
     "following": "{name} takip ediliyor",
     "naming": "ad · {name} için yeni bir ad yazın",
-    "paused": "duraklatıldı: {names} uçurumun kenarında"
+    "pausedFor": "duraklatıldı: {reasons}"
   },
   "legends": {
     "when": "{year}. yıl, {season}",
@@ -839,7 +839,6 @@
       "posting_notices": "ilan panosu",
       "tool_making": "alet yapımı",
       "tool_improvement": "alet geliştirme",
-      "stone_tools": "taş aletler",
       "pottery": "çömlekçilik",
       "weaving": "dokumacılık",
       "smelting": "ergitme",
@@ -1026,5 +1025,14 @@
       "neutral": "tarafsız",
       "rivals": "rakipler"
     }
+  },
+  "pause": {
+    "brink": "{names} uçurumda",
+    "era": "{names} yeni bir çağa girdi",
+    "worldEra": "dünyada yeni bir çağ başladı",
+    "warBy": "{names} savaşa girdi",
+    "war": "bir savaş çıktı",
+    "famine": "{names} açlık çekiyor",
+    "extinct": "{names} tükendi"
   }
 }
