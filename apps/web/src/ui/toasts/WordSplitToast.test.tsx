@@ -87,6 +87,31 @@ describe('WordSplitToast', () => {
     }
   })
 
+  it('drops a waiting split, and the watch, when another seed replaces the world at a later tick', () => {
+    vi.useFakeTimers()
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true)
+    try {
+      const root = createRoot(host)
+      roots.push(root)
+      mount(root, frame(1000, 'pi'))
+      mount(root, frame(1500, 'ka'))
+      mount(root, frame(1500 + SPLIT_CONFIRM_TICKS, 'ka'))
+      expect(host.textContent).toBe('')
+      // A recovery swaps in a different world further along; its tribes still share the word.
+      window.localStorage.setItem('thb-wasm-seed', '888')
+      mount(root, frame(5000, 'ka'))
+      hidden.mockReturnValue(false)
+      act(() => {
+        vi.advanceTimersByTime(TOAST_RETRY_MS * 5)
+      })
+      expect(host.textContent).toBe('')
+      expect(window.localStorage.getItem(WORD_SPLIT_KEY)).toBe(null)
+    } finally {
+      hidden.mockRestore()
+      vi.useRealTimers()
+    }
+  })
+
   it('stays quiet in a world that already showed the notice', () => {
     window.localStorage.setItem(WORD_SPLIT_KEY, '777')
     const root = createRoot(host)
