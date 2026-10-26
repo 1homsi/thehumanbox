@@ -230,6 +230,7 @@
     "failed": "{label} · {reason}",
     "following": "{name} 따라가는 중",
     "naming": "이름 · {name}의 새 이름을 입력",
+    "paused": "일시정지: {names} 존속 위기",
     "pausedFor": "일시정지: {reasons}"
   },
   "legends": {
@@ -1029,6 +1030,10 @@
       "neutral": "중립",
       "rivals": "라이벌"
     }
+  },
+  "wordSplit": {
+    "title": "말이 갈라졌다",
+    "text": "{first}와 {second}는 {concept}에 같은 말을 썼습니다. 이제 한쪽은 {firstWord}, 다른 쪽은 {secondWord}라고 합니다."
   },
   "pause": {
     "brink": "{names}: 존망 위기",

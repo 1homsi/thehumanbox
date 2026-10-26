@@ -234,6 +234,7 @@
     "failed": "{label} · {reason}",
     "following": "следует за: {name}",
     "naming": "имя · введите новое имя для: {name}",
+    "paused": "пауза: {names} на грани",
     "pausedFor": "пауза: {reasons}"
   },
   "legends": {
@@ -1062,6 +1063,10 @@
       "neutral": "нейтральные",
       "rivals": "соперники"
     }
+  },
+  "wordSplit": {
+    "title": "Слова разошлись",
+    "text": "{first} и {second} раньше говорили одним словом о {concept}. Теперь одни говорят «{firstWord}», а другие «{secondWord}»."
   },
   "pause": {
     "brink": "{names} на грани гибели",

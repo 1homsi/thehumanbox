@@ -4,8 +4,10 @@ import {
   type LocalWorldReloadDetail,
   reloadAppSafely,
   requestOwnWorldRecovery,
+  getOwnWorldSeed,
   requestOwnWorldReset,
   resolvePlayerWorldKind,
+  setOwnWorldSeed,
   resolveWorldSource,
   shouldUseSimulationApi,
 } from './worldSource'
@@ -67,6 +69,22 @@ describe('resolveWorldSource', () => {
   it('ignores legacy source preferences', () => {
     expect(resolveWorldSource('native', false)).toBe('wasm')
     expect(resolveWorldSource('wasm', true)).toBe('native')
+  })
+})
+
+describe('setOwnWorldSeed', () => {
+  it("makes a recovered world seed this browser's own, so the seed read afterwards is the restored one", () => {
+    const storage = memoryStorage({ 'thb-wasm-seed': '111' })
+    installReloadWindow(storage)
+    setOwnWorldSeed('2222')
+    expect(getOwnWorldSeed()).toBe('2222')
+  })
+
+  it('ignores a seed that is not a number', () => {
+    const storage = memoryStorage({ 'thb-wasm-seed': '111' })
+    installReloadWindow(storage)
+    setOwnWorldSeed('not a seed')
+    expect(getOwnWorldSeed()).toBe('111')
   })
 })
 

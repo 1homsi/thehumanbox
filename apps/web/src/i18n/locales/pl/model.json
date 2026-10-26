@@ -234,6 +234,7 @@
     "failed": "{label} · {reason}",
     "following": "podąża za: {name}",
     "naming": "nazwa · wpisz nowe imię dla: {name}",
+    "paused": "wstrzymano: {names} na krawędzi",
     "pausedFor": "wstrzymano: {reasons}"
   },
   "legends": {
@@ -1062,6 +1063,10 @@
       "neutral": "neutralni",
       "rivals": "rywale"
     }
+  },
+  "wordSplit": {
+    "title": "Słowa się rozeszły",
+    "text": "{first} i {second} miały to samo słowo na {concept}. Teraz jedni mówią {firstWord}, a drudzy {secondWord}."
   },
   "pause": {
     "brink": "{names} na skraju",

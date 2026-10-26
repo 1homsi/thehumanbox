@@ -230,6 +230,7 @@
     "failed": "{label} · {reason}",
     "following": "suit {name}",
     "naming": "nom · tapez un nouveau nom pour {name}",
+    "paused": "en pause : {names} au bord du gouffre",
     "pausedFor": "en pause : {reasons}"
   },
   "legends": {
@@ -1040,6 +1041,10 @@
       "neutral": "neutres",
       "rivals": "rivaux"
     }
+  },
+  "wordSplit": {
+    "title": "Les mots se sont séparés",
+    "text": "{first} et {second} partageaient un mot pour {concept}. Aujourd’hui l’un dit {firstWord} et l’autre {secondWord}."
   },
   "pause": {
     "brink": "{names} au bord de la disparition",

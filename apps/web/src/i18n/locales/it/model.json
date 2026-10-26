@@ -230,6 +230,7 @@
     "failed": "{label} · {reason}",
     "following": "segue {name}",
     "naming": "nome · scrivi un nuovo nome per {name}",
+    "paused": "in pausa: {names} sull’orlo",
     "pausedFor": "in pausa: {reasons}"
   },
   "legends": {
@@ -1040,6 +1041,10 @@
       "neutral": "neutrali",
       "rivals": "rivali"
     }
+  },
+  "wordSplit": {
+    "title": "Le parole si sono separate",
+    "text": "{first} e {second} avevano la stessa parola per {concept}. Ora una dice {firstWord} e l’altra {secondWord}."
   },
   "pause": {
     "brink": "{names} sull'orlo",

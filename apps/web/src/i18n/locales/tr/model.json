@@ -230,6 +230,7 @@
     "failed": "{label} · {reason}",
     "following": "{name} takip ediliyor",
     "naming": "ad · {name} için yeni bir ad yazın",
+    "paused": "duraklatıldı: {names} uçurumun kenarında",
     "pausedFor": "duraklatıldı: {reasons}"
   },
   "legends": {
@@ -1029,6 +1030,10 @@
       "neutral": "tarafsız",
       "rivals": "rakipler"
     }
+  },
+  "wordSplit": {
+    "title": "Kelimeler ayrıştı",
+    "text": "{first} ve {second} {concept} için aynı kelimeyi kullanıyordu. Şimdi biri {firstWord} diyor, öbürü {secondWord}."
   },
   "pause": {
     "brink": "{names} uçurumda",

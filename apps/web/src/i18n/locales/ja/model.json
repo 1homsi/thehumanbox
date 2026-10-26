@@ -230,6 +230,7 @@
     "failed": "{label} · {reason}",
     "following": "{name}を追跡中",
     "naming": "名前 · {name}の新しい名前を入力",
+    "paused": "一時停止：{names} が存亡の危機",
     "pausedFor": "一時停止: {reasons}"
   },
   "legends": {
@@ -1029,6 +1030,10 @@
       "neutral": "中立",
       "rivals": "対立"
     }
+  },
+  "wordSplit": {
+    "title": "言葉が分かれた",
+    "text": "{first}と{second}は{concept}を同じ言葉で呼んでいました。今は一方が{firstWord}、もう一方が{secondWord}と言います。"
   },
   "pause": {
     "brink": "{names}が存亡の危機",

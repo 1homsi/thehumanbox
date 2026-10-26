@@ -233,6 +233,7 @@
     "failed": "{label} · {reason}",
     "following": "following {name}",
     "naming": "name · type a new name for {name}",
+    "paused": "paused: {names} on the brink",
     "pausedFor": "paused: {reasons}"
   },
   "legends": {
@@ -1043,6 +1044,10 @@
       "neutral": "neutral",
       "rivals": "rivals"
     }
+  },
+  "wordSplit": {
+    "title": "Words have split",
+    "text": "{first} and {second} used to share a word for {concept}. Now one says {firstWord} and the other {secondWord}."
   },
   "pause": {
     "brink": "{names} on the brink",

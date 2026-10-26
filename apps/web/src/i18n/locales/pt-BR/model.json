@@ -230,6 +230,7 @@
     "failed": "{label} · {reason}",
     "following": "seguindo {name}",
     "naming": "nome · digite um novo nome para {name}",
+    "paused": "pausado: {names} à beira do abismo",
     "pausedFor": "pausado: {reasons}"
   },
   "legends": {
@@ -1040,6 +1041,10 @@
       "neutral": "neutros",
       "rivals": "rivais"
     }
+  },
+  "wordSplit": {
+    "title": "As palavras se separaram",
+    "text": "{first} e {second} usavam a mesma palavra para {concept}. Agora uma diz {firstWord} e a outra {secondWord}."
   },
   "pause": {
     "brink": "{names} à beira da extinção",

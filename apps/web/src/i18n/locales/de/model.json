@@ -230,6 +230,7 @@
     "failed": "{label} · {reason}",
     "following": "folgt {name}",
     "naming": "Name · neuen Namen für {name} eingeben",
+    "paused": "pausiert: {names} am Abgrund",
     "pausedFor": "angehalten: {reasons}"
   },
   "legends": {
@@ -1040,6 +1041,10 @@
       "neutral": "neutral",
       "rivals": "Rivalen"
     }
+  },
+  "wordSplit": {
+    "title": "Wörter haben sich geteilt",
+    "text": "{first} und {second} hatten dasselbe Wort für {concept}. Jetzt sagt die eine {firstWord}, die andere {secondWord}."
   },
   "pause": {
     "brink": "{names} am Abgrund",
