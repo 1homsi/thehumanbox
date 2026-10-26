@@ -9,7 +9,7 @@ const { fetchSnapshot, parsedFrames, mergedFrames, showNotice } = vi.hoisted(() 
   fetchSnapshot: vi.fn(),
   parsedFrames: new Map<string, { frame_id: number; frame_kind: string }>(),
   mergedFrames: [] as number[],
-  showNotice: vi.fn((_title: string, _body?: string) => Promise.resolve()),
+  showNotice: vi.fn<(title: string, body?: string) => Promise<void>>(() => Promise.resolve()),
 }))
 
 vi.mock('../shared/confirm', () => ({ showNotice }))
