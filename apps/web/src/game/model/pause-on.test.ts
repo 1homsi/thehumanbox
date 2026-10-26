@@ -113,6 +113,25 @@ describe('watchChanges', () => {
     ).toEqual([])
   })
 
+  it('reports a famine once when a tribe already on the brink turns to hunger', () => {
+    const watch = start(world({ tick: 100, tribes_in_peril: [peril('a', 'dwindling')] }))
+    const turned = watchChanges(watch, world({ tick: 200, tribes_in_peril: [peril('a', 'hunger')] }))
+    expect(turned.hits).toEqual([{ trigger: 'famine', names: ['tribe a'] }])
+    const again = watchChanges(turned.watch, world({ tick: 300, tribes_in_peril: [peril('a', 'hunger')] }))
+    expect(again.hits).toEqual([])
+  })
+
+  it('starts over when a replacement world has an earlier tick, even with events later than the last ones seen', () => {
+    const watch = start(world({ tick: 1000, events: [event(900, 'born')] }))
+    const { hits, watch: next } = watchChanges(
+      watch,
+      world({ tick: 950, events: [event(920, 'war_declared')] }),
+    )
+    expect(hits).toEqual([])
+    expect(next.worldTick).toBe(950)
+    expect(next.tick).toBe(920)
+  })
+
   it('keeps the tribes it knew when a frame has no lineage list', () => {
     const watch = start(world({ tick: 100 }))
     const partial = watchChanges(watch, world({ tick: 200, lineage_sizes: undefined }))

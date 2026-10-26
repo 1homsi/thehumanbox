@@ -19,8 +19,12 @@ export const PAUSE_NOTHING: PauseOn = {
 export interface ChangeWatch {
   /** Newest event tick already looked at. */
   tick: number
+  /** The world's tick at the last look. A lower one means the world was replaced, e.g. the server restarted. */
+  worldTick: number
   /** Tribes on the brink at the last look. */
   perils: ReadonlySet<string>
+  /** Tribes on the brink from hunger at the last look, so a famine is announced once. */
+  hungry: ReadonlySet<string>
   /** Tribes with living people at the last look. */
   tribes: ReadonlySet<string>
 }
@@ -56,18 +60,26 @@ export function watchChanges(
   watch: ChangeWatch | null,
   world: WatchedWorld,
 ): { hits: ChangeHit[]; watch: ChangeWatch } {
-  const perilIds = (world.tribes_in_peril ?? []).map((p) => p.lineage_id)
+  const perilsNow = world.tribes_in_peril ?? []
+  const perilIds = perilsNow.map((p) => p.lineage_id)
+  const hungryIds = perilsNow.filter((p) => p.cause === 'hunger').map((p) => p.lineage_id)
   // Without a lineage list in this frame, the tribes seen last time are kept.
   const living = world.lineage_sizes
     ? new Set(world.lineage_sizes.filter((s) => s.count > 0).map((s) => s.id))
     : null
   const events = world.events ?? []
 
-  if (!watch || world.tick < watch.tick) {
+  if (!watch || world.tick < watch.worldTick) {
     const newest = events.reduce((max, e) => Math.max(max, e.tick), -1)
     return {
       hits: [],
-      watch: { tick: newest, perils: new Set(perilIds), tribes: living ?? new Set() },
+      watch: {
+        tick: newest,
+        worldTick: world.tick,
+        perils: new Set(perilIds),
+        hungry: new Set(hungryIds),
+        tribes: living ?? new Set(),
+      },
     }
   }
 
@@ -86,6 +98,12 @@ export function watchChanges(
     // A tribe on the brink from hunger is starving: that is a famine.
     if (p.cause === 'hunger') hits.push({ trigger: 'famine', names: [p.tribe] })
   }
+  // A tribe that was already on the brink can turn to hunger while it stays there (the sim recomputes its cause).
+  for (const p of perilsNow) {
+    if (p.cause === 'hunger' && watch.perils.has(p.lineage_id) && !watch.hungry.has(p.lineage_id)) {
+      hits.push({ trigger: 'famine', names: [p.tribe] })
+    }
+  }
 
   if (living) {
     for (const id of watch.tribes) {
@@ -97,7 +115,13 @@ export function watchChanges(
 
   return {
     hits,
-    watch: { tick, perils: new Set(perilIds), tribes: living ?? watch.tribes },
+    watch: {
+      tick,
+      worldTick: world.tick,
+      perils: new Set(perilIds),
+      hungry: new Set(hungryIds),
+      tribes: living ?? watch.tribes,
+    },
   }
 }
 
