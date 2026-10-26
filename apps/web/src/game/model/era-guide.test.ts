@@ -10,6 +10,7 @@ const next = (over: Partial<NextAge> = {}): NextAge => ({
   peopleNeeded: 0,
   worldPeople: 40,
   worldPeopleRequired: 60,
+  worldKnown: true,
   ...over,
 })
 
@@ -31,5 +32,12 @@ describe('guideLines', () => {
 
   it('is ready when nothing is missing and the world has the people', () => {
     expect(guideLines(next({ missing: [], peopleNeeded: 0 }))).toEqual([{ kind: 'ready' }])
+  })
+
+  it('says nothing about people or readiness while the world totals are unknown', () => {
+    expect(guideLines(next({ worldKnown: false, missing: [], peopleNeeded: 0 }))).toEqual([])
+    expect(guideLines(next({ worldKnown: false, peopleNeeded: 0 }))).toEqual([
+      { kind: 'secrets', names: ['copper smelting', 'farming'] },
+    ])
   })
 })

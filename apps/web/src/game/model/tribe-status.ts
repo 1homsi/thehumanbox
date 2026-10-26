@@ -41,6 +41,8 @@ export interface NextAge {
   /** People in the world now, and how many the next age needs of the world. */
   worldPeople: number
   worldPeopleRequired: number
+  /** False for an older frame without the world's totals: the people guidance is then unknown, not zero. */
+  worldKnown: boolean
 }
 
 function eraOf(world: WorldState, id: string): string | null {
@@ -62,20 +64,26 @@ const pretty = (s: string) => s.replace(/[-_]/g, ' ')
 function nextAgeOf(world: WorldState, id: string): NextAge | null {
   const p = world.lineage_era_progress?.find((e) => e.lineage_id === id)
   if (!p?.next_era) return null
-  // Frames from before the world totals carry only the tribe's own count. That is not the world's, so without
-  // the world's numbers the guide says nothing about the people rather than a shortfall that may be wrong.
-  if (p.world_population == null || p.world_population_required == null) return null
-  const worldPeople = p.world_population
-  const worldPeopleRequired = p.world_population_required
-  const peopleReady = p.world_population_ready ?? false
-  return {
+  const base = {
     era: eraWord(p.next_era),
     known: p.known.length,
     required: p.required.length,
     missing: p.missing.map(pretty),
+  }
+  // Frames from before the world totals carry only the tribe's own count. That is not the world's, so the
+  // people guidance is marked unknown instead of being worked out from it.
+  if (p.world_population == null || p.world_population_required == null) {
+    return { ...base, peopleNeeded: 0, worldPeople: 0, worldPeopleRequired: 0, worldKnown: false }
+  }
+  const worldPeople = p.world_population
+  const worldPeopleRequired = p.world_population_required
+  const peopleReady = p.world_population_ready ?? false
+  return {
+    ...base,
     peopleNeeded: peopleReady ? 0 : Math.max(0, worldPeopleRequired - worldPeople),
     worldPeople,
     worldPeopleRequired,
+    worldKnown: true,
   }
 }
 

@@ -188,6 +188,7 @@ describe('nextStep', () => {
     peopleNeeded: 0,
     worldPeople: 0,
     worldPeopleRequired: 0,
+    worldKnown: true,
   }
 
   it('puts a pressing need before a campaign or learning', () => {

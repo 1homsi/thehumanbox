@@ -67,6 +67,7 @@ describe('tribe status', () => {
       peopleNeeded: 3,
       worldPeople: 5,
       worldPeopleRequired: 8,
+      worldKnown: true,
     })
   })
 
@@ -84,7 +85,7 @@ describe('tribe status', () => {
     expect(tribeStatus(ready, 'a')!.nextAge?.peopleNeeded).toBe(0)
   })
 
-  it('says nothing about the people of an older frame that has no world totals, rather than the tribe count', () => {
+  it('keeps the secrets for an older frame that has no world totals, and does not claim a world figure', () => {
     const legacy = {
       ...world,
       lineage_era_progress: [
@@ -96,7 +97,10 @@ describe('tribe status', () => {
         },
       ],
     } as unknown as WorldState
-    expect(tribeStatus(legacy, 'a')!.nextAge).toBeNull()
+    const next = tribeStatus(legacy, 'a')!.nextAge
+    expect(next?.missing).toEqual(['copper smelting', 'farming'])
+    expect(next?.worldKnown).toBe(false)
+    expect(next?.peopleNeeded).toBe(0)
   })
 
   it('is empty for a tribe with nobody left', () => {

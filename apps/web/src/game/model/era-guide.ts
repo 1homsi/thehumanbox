@@ -12,7 +12,8 @@ export type GuideLine =
 export function guideLines(next: NextAge): GuideLine[] {
   const lines: GuideLine[] = []
   if (next.missing.length > 0) lines.push({ kind: 'secrets', names: next.missing })
-  if (next.peopleNeeded > 0) {
+  // Without the world's totals (an older frame) the people line and the "ready" line are left out: nothing is known about them.
+  if (next.worldKnown && next.peopleNeeded > 0) {
     lines.push({
       kind: 'people',
       have: next.worldPeople,
@@ -20,6 +21,6 @@ export function guideLines(next: NextAge): GuideLine[] {
       short: next.peopleNeeded,
     })
   }
-  if (lines.length === 0) lines.push({ kind: 'ready' })
+  if (lines.length === 0 && next.worldKnown) lines.push({ kind: 'ready' })
   return lines
 }
