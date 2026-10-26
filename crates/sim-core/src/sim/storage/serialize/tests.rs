@@ -66,6 +66,39 @@ fn full_frame_sends_lineage_words_instead_of_per_organism_vocabularies() {
     assert!(words.values().all(serde_json::Value::is_object));
 }
 
+#[test]
+fn a_full_frame_lists_discoveries_once_and_each_person_by_index() {
+    let mut sim = Simulation::new(42);
+    for org in sim.organisms.iter_mut().take(3) {
+        org.discoveries.insert("fire".to_string());
+        org.discoveries.insert("pottery".to_string());
+    }
+    let payload = sim.state_json();
+    let names: Vec<&str> = payload["discovery_names"]
+        .as_array()
+        .expect("a discovery table")
+        .iter()
+        .map(|n| n.as_str().unwrap())
+        .collect();
+    let mut seen = std::collections::BTreeSet::new();
+    assert!(names.iter().all(|n| seen.insert(*n)), "each name once: {names:?}");
+    for (org, model) in payload["organisms"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(&sim.organisms)
+    {
+        let back: Vec<&str> = org["discoveries"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|i| names[i.as_u64().unwrap() as usize])
+            .collect();
+        let expected: Vec<&str> = model.discoveries.iter().map(String::as_str).collect();
+        assert_eq!(back, expected, "{}", model.id);
+    }
+}
+
 /// A client that patches the layer it holds with each hot frame's `structure_delta` must end up
 /// with exactly what a full frame says.
 #[test]
