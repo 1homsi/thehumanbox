@@ -8,6 +8,8 @@ import { mergeFrame, type MergeCaches } from './merge'
 import { signalSimFrame } from './frame-signal'
 import { t } from '../i18n'
 import { logger } from '../shared/logger'
+import { showNotice } from '../shared/confirm'
+import { judgeHandshake, type HandshakeVerdict } from './wire-protocol'
 import {
   type LocalWorldReloadDetail,
   type WorldSource,
@@ -630,6 +632,8 @@ export function useSimulation(source: WorldSource = 'native'): {
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null
     let healthyTimer: ReturnType<typeof setTimeout> | null = null
     let attempts = 0
+    // Set once a server has been refused for speaking another protocol: reconnecting would only refuse it again.
+    let versionRefused = false
     // A socket only counts as reachable once it has stayed open this long; a server that
     // accepts and immediately closes (overload shedding, proxy idle kill) keeps its backoff.
     const HEALTHY_AFTER_MS = 5_000
@@ -694,7 +698,6 @@ export function useSimulation(source: WorldSource = 'native'): {
           attempts = 0
           setFailedAttempts(0)
         }, HEALTHY_AFTER_MS)
-        requestSnapshotResync()
       }
       ws.onclose = () => {
         if (destroyed) return
@@ -705,6 +708,7 @@ export function useSimulation(source: WorldSource = 'native'): {
           healthyTimer = null
         }
         setConnected(false)
+        if (versionRefused) return
         attempts += 1
         setFailedAttempts(attempts)
         if (rafPending.current !== null) {
@@ -722,9 +726,39 @@ export function useSimulation(source: WorldSource = 'native'): {
           /* noop */
         }
       }
+      // The first message must be the server's hello. Until it has been judged, nothing is decoded.
+      let handshaken = false
       ws.onmessage = (e) => {
         if (destroyed) return
+        if (!handshaken) {
+          const verdict = judgeHandshake(e.data)
+          if (!verdict.ok) {
+            refuseServer(ws, verdict)
+            return
+          }
+          // Only a server that has said hello gets a snapshot fetch or its frames; the fetch is what brings
+          // the world in, so a refused server cannot feed the window either.
+          handshaken = true
+          requestSnapshotResync()
+          return
+        }
         enqueueMessage(e.data)
+      }
+    }
+
+    /** A server that cannot be read: say so once, stop the socket, and do not reconnect to it. */
+    function refuseServer(ws: WebSocket, verdict: Extract<HandshakeVerdict, { ok: false }>) {
+      versionRefused = true
+      logger.error('ws', 'simulation server refused: it speaks another wire protocol', verdict)
+      const server =
+        verdict.reason === 'protocol'
+          ? t('dialogs.worldNotice.versionNumber', { version: verdict.server.version })
+          : t('dialogs.worldNotice.versionOlder')
+      void showNotice(t('dialogs.worldNotice.versionTitle'), t('dialogs.worldNotice.versionBody', { server }))
+      try {
+        ws.close()
+      } catch {
+        /* noop */
       }
     }
 

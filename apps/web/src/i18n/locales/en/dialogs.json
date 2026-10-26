@@ -609,6 +609,10 @@
     "checkpointRestore": "could not checkpoint the current world; restore was cancelled safely",
     "checkpointPerfMode": "could not checkpoint the current world; performance-mode refresh was cancelled safely",
     "checkpointRenderer": "could not checkpoint the current world; renderer update was cancelled safely",
-    "checkpointRefresh": "could not checkpoint the current world; refresh was cancelled safely"
+    "checkpointRefresh": "could not checkpoint the current world; refresh was cancelled safely",
+    "versionTitle": "The simulation is from another version",
+    "versionBody": "This window and the simulation on this computer cannot work together: the simulation is {server}. Quit The Human Box completely, then open it again.",
+    "versionOlder": "an older build",
+    "versionNumber": "version {version}"
   }
 }

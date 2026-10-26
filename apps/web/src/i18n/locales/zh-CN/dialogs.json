@@ -570,6 +570,10 @@
     "checkpointRestore": "无法保存当前世界；恢复已安全取消",
     "checkpointPerfMode": "无法保存当前世界；性能模式刷新已安全取消",
     "checkpointRenderer": "无法保存当前世界；渲染器更新已安全取消",
-    "checkpointRefresh": "无法保存当前世界；刷新已安全取消"
+    "checkpointRefresh": "无法保存当前世界；刷新已安全取消",
+    "versionTitle": "模拟来自另一个版本",
+    "versionBody": "此窗口与这台电脑上的模拟无法协同工作：模拟是{server}。请完全退出 The Human Box，然后重新打开。",
+    "versionOlder": "较旧的版本",
+    "versionNumber": "{version} 版"
   }
 }
