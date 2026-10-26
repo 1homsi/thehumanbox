@@ -171,6 +171,13 @@ describe('plural forms', () => {
     await loadLocale('ru')
     expect(t('dialogs.civ.trade.routes', { count: 1021 })).toBe('1021 маршрут')
   })
+
+  // Japanese's plural rule never says "one", so a count of one must take the named "one" form.
+  it('gives a count of one the named form in a language whose plural rule has no one', async () => {
+    await loadLocale('ja')
+    expect(t('header.sandbox.result.healed', { name: 'Ana', count: 1 })).toBe('Anaを癒やしました')
+    expect(t('header.sandbox.result.healed', { name: 'Ana', count: 3 })).toBe('3人を癒やしました')
+  })
 })
 
 describe('countValue', () => {

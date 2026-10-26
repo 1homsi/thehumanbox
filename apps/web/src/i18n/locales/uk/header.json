@@ -87,6 +87,7 @@
         "other": "прийшло людей: {count}"
       },
       "family_arrived": "прийшла нова родина",
+      "healed_animals": { "one": "нагодовано тварину", "other": "нагодовано тварин: {count}" },
       "healed": {
         "one": "вилікувано: {name}",
         "other": "вилікувано людей: {count}"

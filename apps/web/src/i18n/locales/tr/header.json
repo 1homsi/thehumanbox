@@ -87,6 +87,7 @@
         "other": "{count} kişi geldi"
       },
       "family_arrived": "yeni bir aile geldi",
+      "healed_animals": { "one": "bir hayvanın gücünü geri verdi", "other": "{count} hayvanın gücünü geri verdi" },
       "healed": {
         "one": "{name} iyileştirildi",
         "other": "{count} kişi iyileştirildi"

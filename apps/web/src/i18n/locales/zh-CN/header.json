@@ -87,6 +87,7 @@
         "other": "{count}人来到了这里"
       },
       "family_arrived": "一个新家庭来到了这里",
+      "healed_animals": { "one": "恢复了一只动物的体力", "other": "恢复了{count}只动物的体力" },
       "healed": {
         "one": "治愈了{name}",
         "other": "治愈了{count}人"

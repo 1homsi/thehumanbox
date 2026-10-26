@@ -55,6 +55,28 @@ fn healing_one_person_names_them() {
 }
 
 #[test]
+fn healing_only_animals_in_reach_says_they_were_fed() {
+    let mut sim = Simulation::new(21);
+    people_at(&mut sim, &[]);
+    for a in sim.animals.iter_mut() {
+        a.alive = false;
+    }
+    let mut animal = crate::organism::animal::Animal::new(
+        9_001,
+        60.0,
+        60.0,
+        crate::organism::animal::AnimalKind::Deer,
+    );
+    animal.energy = 0.2;
+    sim.animals.push(animal);
+    let outcome = sim.apply_command_json_reported(r#"{"cmd":"heal","x":60.0,"y":60.0,"radius":4.0}"#);
+    assert!(outcome.applied);
+    assert_eq!(outcome.code, "healed_animals", "the animal was fed, and nobody was in reach");
+    assert_eq!(outcome.count, 1);
+    assert_eq!(sim.animals.last().unwrap().energy, 1.0);
+}
+
+#[test]
 fn heal_one_with_nobody_in_reach_says_so() {
     let mut sim = Simulation::new(21);
     people_at(&mut sim, &[(60.0, 60.0, 0.3)]);

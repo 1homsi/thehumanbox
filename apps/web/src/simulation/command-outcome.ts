@@ -54,6 +54,7 @@ const RESULT_KEYS: Record<string, MessageKey | undefined> = {
   spawned: 'header.sandbox.result.spawned',
   family_arrived: 'header.sandbox.result.family_arrived',
   healed: 'header.sandbox.result.healed',
+  healed_animals: 'header.sandbox.result.healed_animals',
   revived: 'header.sandbox.result.revived',
   blessed: 'header.sandbox.result.blessed',
   inspired: 'header.sandbox.result.inspired',

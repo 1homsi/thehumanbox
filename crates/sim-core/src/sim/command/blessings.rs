@@ -8,6 +8,7 @@ impl Simulation {
         let mut people = 0;
         let mut hurt = 0;
         let mut hurt_name = None;
+        let mut animals_fed = 0;
         for o in self.organisms.iter_mut() {
             if o.alive && (o.x - x).det_hypot(o.y - y) <= r {
                 people += 1;
@@ -24,11 +25,16 @@ impl Simulation {
         }
         for a in self.animals.iter_mut() {
             if a.alive && (a.x - x).det_hypot(a.y - y) <= r {
+                if a.energy < 1.0 {
+                    animals_fed += 1;
+                }
                 a.energy = 1.0;
                 healed += 1;
             }
         }
         match hurt {
+            // Only animals were in reach: say they were fed, not that nobody was.
+            0 if people == 0 && animals_fed > 0 => self.report("healed_animals", animals_fed, None),
             0 if people == 0 => self.report("none_here", 0, None),
             0 => self.report("none_hurt", 0, None),
             1 => self.report("healed", 1, hurt_name.as_deref()),

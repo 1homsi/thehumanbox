@@ -84,6 +84,7 @@
       "cannot_teach": "they cannot be taught again yet",
       "spawned": { "one": "{name} arrived", "other": "{count} people arrived" },
       "family_arrived": "a new family arrived",
+      "healed_animals": { "one": "restored an animal", "other": "restored {count} animals" },
       "healed": { "one": "healed {name}", "other": "healed {count} people" },
       "revived": "{name} was raised from the dead",
       "blessed": { "one": "blessed {name}", "other": "blessed {count} people" },
