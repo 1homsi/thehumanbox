@@ -254,6 +254,20 @@
   "language": {
     "title": "他们的语言"
   },
+  "words": {
+    "title": "用词演变",
+    "intro": "其对每样常见事物的用词，与父母、祖父母的用词并列。",
+    "you": "本人",
+    "mother": "母亲",
+    "father": "父亲",
+    "maternalGrandmother": "外婆",
+    "maternalGrandfather": "外公",
+    "paternalGrandmother": "奶奶",
+    "paternalGrandfather": "爷爷",
+    "unknown": "未留存",
+    "same": "与家人相同",
+    "drifted": "用词已分化"
+  },
   "life": {
     "memory": "记忆",
     "foodTip": "记住 {count} 处食物地点——饥饿时生物会前往这些地方",

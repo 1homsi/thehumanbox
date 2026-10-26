@@ -570,6 +570,10 @@
     "checkpointRestore": "le monde actuel n’a pas pu être sauvegardé ; la restauration a été annulée sans risque",
     "checkpointPerfMode": "le monde actuel n’a pas pu être sauvegardé ; le rechargement du mode performance a été annulé sans risque",
     "checkpointRenderer": "le monde actuel n’a pas pu être sauvegardé ; la mise à jour du moteur de rendu a été annulée sans risque",
-    "checkpointRefresh": "le monde actuel n’a pas pu être sauvegardé ; l’actualisation a été annulée sans risque"
+    "checkpointRefresh": "le monde actuel n’a pas pu être sauvegardé ; l’actualisation a été annulée sans risque",
+    "versionTitle": "La simulation est d'une autre version",
+    "versionBody": "Cette fenêtre et la simulation de cet ordinateur ne peuvent pas fonctionner ensemble : la simulation est {server}. Quitte complètement The Human Box, puis rouvre-le.",
+    "versionOlder": "une version plus ancienne",
+    "versionNumber": "la version {version}"
   }
 }

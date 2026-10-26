@@ -226,7 +226,8 @@
     "failed": "{label} · {reason}",
     "following": "{name}を追跡中",
     "naming": "名前 · {name}の新しい名前を入力",
-    "paused": "一時停止：{names} が存亡の危機"
+    "paused": "一時停止：{names} が存亡の危機",
+    "pausedFor": "一時停止: {reasons}"
   },
   "legends": {
     "when": "{year}年目 {season}",
@@ -720,7 +721,6 @@
       "posting_notices": "掲示",
       "tool_making": "道具作り",
       "tool_improvement": "道具の改良",
-      "stone_tools": "石器",
       "pottery": "土器",
       "weaving": "機織り",
       "smelting": "製錬",
@@ -911,5 +911,14 @@
   "wordSplit": {
     "title": "言葉が分かれた",
     "text": "{first}と{second}は{concept}を同じ言葉で呼んでいました。今は一方が{firstWord}、もう一方が{secondWord}と言います。"
+  },
+  "pause": {
+    "brink": "{names}が存亡の危機",
+    "era": "{names}が新時代に入った",
+    "worldEra": "世界で新時代が始まった",
+    "warBy": "{names}が戦争を始めた",
+    "war": "戦争が始まった",
+    "famine": "{names}が飢えている",
+    "extinct": "{names}が絶えた"
   }
 }

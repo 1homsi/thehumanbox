@@ -1,5 +1,6 @@
 // The people-label painter as it was before it was made cheap (string-keyed placer, every person
-// visited, every person sorted). The tests run it against the real one and require identical drawing.
+// visited, every person sorted), with the eased lift the painter now uses. The tests run it against the real one
+// and require identical drawing.
 import { drawWorkActivity, workActivity } from '../../activity-visuals'
 import {
   compareCharacterDepth,
@@ -132,12 +133,14 @@ export function paintPeopleLabelsReference(ctx: CanvasRenderingContext2D, input:
       )
     }
 
-    const showVitals = isSelected || org.energy < 0.22 || org.hydration < 0.22 || org.health < 0.22
+    // The lift eases with the lowest vital (2px clear, 10px at or under 0.22), as the painter does.
+    const vital = isSelected ? 0 : Math.min(org.energy, org.hydration, org.health)
+    const lift = 2 + 8 * Math.min(1, Math.max(0, (0.3 - vital) / (0.3 - 0.22)))
     const showName =
       !!org.name && (isSelected || (standard && viewFlags.names && (!labelIds || labelIds.has(org.id))))
     const showThought =
       (isSelected || (full && viewFlags.thoughts)) && org.thought && org.thought !== 'observing'
-    const labelY = spriteTop - (showVitals ? 10 : 2)
+    const labelY = spriteTop - lift
 
     if (standard && !viewFlags.hideUI) {
       const seed = org.id.charCodeAt(0) + org.id.charCodeAt(org.id.length - 1)

@@ -260,6 +260,20 @@
   "language": {
     "title": "ICH JĘZYK"
   },
+  "words": {
+    "title": "HISTORIA SŁÓW",
+    "intro": "Ich słowo dla każdej zwyczajnej rzeczy, obok słów ich rodziców i dziadków.",
+    "you": "ta osoba",
+    "mother": "matka",
+    "father": "ojciec",
+    "maternalGrandmother": "babcia od strony matki",
+    "maternalGrandfather": "dziadek od strony matki",
+    "paternalGrandmother": "babcia od strony ojca",
+    "paternalGrandfather": "dziadek od strony ojca",
+    "unknown": "nie pamiętane",
+    "same": "takie samo w rodzinie",
+    "drifted": "słowa się rozeszły"
+  },
   "life": {
     "memory": "PAMIĘĆ",
     "foodTip": "Zapamiętane miejsca z jedzeniem: {count} – organizm kieruje się do nich, gdy jest głodny",

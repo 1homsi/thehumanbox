@@ -256,6 +256,20 @@
   "language": {
     "title": "IHRE SPRACHE"
   },
+  "words": {
+    "title": "WORTGESCHICHTE",
+    "intro": "Ihr Wort für alltägliche Dinge, neben den Wörtern ihrer Eltern und Großeltern.",
+    "you": "selbst",
+    "mother": "Mutter",
+    "father": "Vater",
+    "maternalGrandmother": "Mutters Mutter",
+    "maternalGrandfather": "Mutters Vater",
+    "paternalGrandmother": "Vaters Mutter",
+    "paternalGrandfather": "Vaters Vater",
+    "unknown": "nicht überliefert",
+    "same": "in der Familie gleich",
+    "drifted": "Wörter haben sich verschoben"
+  },
   "life": {
     "memory": "GEDÄCHTNIS",
     "foodTip": "{count} Nahrungsorte gemerkt – der Organismus steuert diese an, wenn er hungrig ist",

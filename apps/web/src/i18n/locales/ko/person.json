@@ -254,6 +254,20 @@
   "language": {
     "title": "그들의 언어"
   },
+  "words": {
+    "title": "낱말의 변화",
+    "intro": "흔한 것들을 부르는 말을 부모와 조부모의 말과 나란히 보여 줍니다.",
+    "you": "본인",
+    "mother": "어머니",
+    "father": "아버지",
+    "maternalGrandmother": "외할머니",
+    "maternalGrandfather": "외할아버지",
+    "paternalGrandmother": "친할머니",
+    "paternalGrandfather": "친할아버지",
+    "unknown": "기록 없음",
+    "same": "가족과 같음",
+    "drifted": "말이 달라짐"
+  },
   "life": {
     "memory": "기억",
     "foodTip": "음식 장소 {count}곳을 기억합니다 – 배가 고프면 생명체는 이곳으로 향합니다",

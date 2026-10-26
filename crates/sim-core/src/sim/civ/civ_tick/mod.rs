@@ -80,7 +80,7 @@ pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
     if tick.is_multiple_of(300) {
         tick_education(sim);
     }
-    if tick.is_multiple_of(240) {
+    if crate::sim::simulation::on_beat(tick, 240, crate::sim::simulation::CONSTRUCT_PHASE) {
         tick_buildings_construct(sim);
     }
     if tick.is_multiple_of(DISEASE_STEP) {

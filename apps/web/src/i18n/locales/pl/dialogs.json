@@ -586,6 +586,10 @@
     "checkpointRestore": "nie udało się zapisać bieżącego świata; przywracanie zostało bezpiecznie anulowane",
     "checkpointPerfMode": "nie udało się zapisać bieżącego świata; odświeżenie trybu wydajności zostało bezpiecznie anulowane",
     "checkpointRenderer": "nie udało się zapisać bieżącego świata; aktualizacja silnika renderowania została bezpiecznie anulowana",
-    "checkpointRefresh": "nie udało się zapisać bieżącego świata; odświeżenie zostało bezpiecznie anulowane"
+    "checkpointRefresh": "nie udało się zapisać bieżącego świata; odświeżenie zostało bezpiecznie anulowane",
+    "versionTitle": "Symulacja jest z innej wersji",
+    "versionBody": "To okno i symulacja na tym komputerze nie mogą działać razem: symulacja to {server}. Zamknij całkowicie The Human Box, a potem otwórz go ponownie.",
+    "versionOlder": "starszy build",
+    "versionNumber": "wersja {version}"
   }
 }

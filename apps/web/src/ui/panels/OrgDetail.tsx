@@ -28,6 +28,7 @@ import {
 } from './org-detail/life-log'
 import { BondsRememberedSection, MemoriesSection } from './org-detail/memories'
 import { LanguageSection } from './org-detail/LanguageSection'
+import { WordHistorySection } from './org-detail/word-history'
 
 // The life story dialog is opened from this panel on demand; its `Modal` pulls Radix Dialog in.
 const LifeModal = lazyWithRetry(() => import('../modals/LifeModal').then((m) => ({ default: m.LifeModal })))
@@ -119,6 +120,7 @@ function OrgDetailBody({
         <BondsRememberedSection detail={detail} organisms={organisms} onSelectOrg={onSelectOrg} />
         <MemoriesSection detail={detail} organisms={organisms} onSelectOrg={onSelectOrg} />
         <LanguageSection detail={detail} />
+        <WordHistorySection detail={detail} />
       </div>
     </>
   )

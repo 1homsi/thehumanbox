@@ -63,7 +63,10 @@ export class PeopleNameLayer {
     this.changed = false
   }
 
-  /** A label centred on `x`, its bottom at `y`. `alpha` is the person's focus alpha (1 or 0.12). */
+  /**
+   * A label centred on `x`, its bottom at `y`. `alpha` is the person's focus alpha (1 or 0.12). A slot of -1 is a
+   * label that is fading out: it stays where it was drawn rather than following anyone.
+   */
   text(text: string, x: number, y: number, style: NameStyle, alpha: number, slot: number): void {
     const layer = this.layer
     const look = LOOKS[style]
@@ -74,9 +77,10 @@ export class PeopleNameLayer {
     this.slots[k] = slot
     // The offset from the drawn figure, so `follow` can keep the label on it between rebuilds.
     const people = this.currentPeople
-    const org = people?.orgs[slot]
-    this.dx[k] = x - figureCentreX(people?.px[slot] ?? x)
-    this.dy[k] = y - figureHeadTop(people?.py[slot] ?? y, org ? resolveAgeStage(org) : 'adult')
+    const org = slot >= 0 ? people?.orgs[slot] : undefined
+    const anchored = slot >= 0 && people !== null
+    this.dx[k] = anchored ? x - figureCentreX(people.px[slot] ?? x) : 0
+    this.dy[k] = anchored ? y - figureHeadTop(people.py[slot] ?? y, org ? resolveAgeStage(org) : 'adult') : 0
     if (k >= layer.count) {
       layer.add(text, x, y, { style: styleId, alpha: runAlpha, anchorX: 0.5, anchorY: 1, align: 'center' })
       this.changed = true
@@ -104,6 +108,7 @@ export class PeopleNameLayer {
     let moved = false
     for (let k = 0; k < this.used; k++) {
       const slot = this.slots[k]!
+      if (slot < 0) continue
       const org = people.orgs[slot]
       if (!org) continue
       const x = figureCentreX(people.px[slot]!) + this.dx[k]!

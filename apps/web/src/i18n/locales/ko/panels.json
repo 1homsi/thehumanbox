@@ -303,6 +303,50 @@
         "crafting": "공예로 알려짐",
         "healing": "치료사로 알려짐"
       }
+    },
+    "why": {
+      "title": "왜 이렇게 행동하는가",
+      "guided": "{strategy} 방향으로 이끄는 중: {target} 중 {done} 완료",
+      "unguided": "아무도 이끌지 않아 스스로 움직임",
+      "need": "가장 시급: {need} ({pct}% 부족)",
+      "needNone": "지금은 시급한 것이 없음",
+      "needs": {
+        "food": "식량",
+        "water": "물",
+        "health": "건강",
+        "shelter": "거처",
+        "safety": "안전",
+        "land": "땅"
+      },
+      "doing": "하는 일: {list}",
+      "idle": "지금은 아무도 일하지 않음",
+      "work": {
+        "woodcutting": "벌목",
+        "quarrying": "채석",
+        "foraging": "채집",
+        "fishing": "낚시",
+        "hunting": "사냥",
+        "farming": "농사",
+        "building": "건설",
+        "crafting": "공예",
+        "healing": "치료"
+      },
+      "allied": "{names}와 동맹",
+      "rivals": "{names}와 대립",
+      "neutral": "{names}에 중립",
+      "stanceNone": "알려진 이웃이 없음",
+      "next": "다음에 시도할 일: {step}",
+      "step": {
+        "food": "채집하고 사냥해 식량 구하기",
+        "water": "물가로 가기",
+        "health": "아픈 사람 돌보기",
+        "shelter": "집을 더 짓기",
+        "safety": "무장하고 땅을 지키기",
+        "land": "땅을 더 차지하기",
+        "campaign": "{strategy} 활동을 이어 가기",
+        "learn": "다음 시대를 위해 {secret} 배우기",
+        "carryOn": "지금처럼 계속하기"
+      }
     }
   },
   "scene": {
