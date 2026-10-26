@@ -85,6 +85,17 @@ impl WorldGrid {
             .count()
     }
 
+    /// The open-water tiles that share an edge with a footprint (the ring without its corners).
+    pub fn open_water_on_sides(&self, x: i32, y: i32, width: u8, height: u8) -> usize {
+        let (w, h) = (i32::from(width), i32::from(height));
+        let above_below = (x..x + w).flat_map(|tx| [(tx, y - 1), (tx, y + h)]);
+        let left_right = (y..y + h).flat_map(|ty| [(x - 1, ty), (x + w, ty)]);
+        above_below
+            .chain(left_right)
+            .filter(|&(tx, ty)| self.get(tx, ty) == Tile::Water)
+            .count()
+    }
+
     pub fn new(seed: u64) -> Self {
         Self::new_sized::<WIDTH, HEIGHT>(seed, false)
     }

@@ -1115,8 +1115,8 @@ fn a_harbour_is_aimed_at_the_nearest_shore_and_found_there() {
     let point = super::town::placement_point(&sim, "lineage-a", BuildingKind::Dock, (80, 80), (-7, 3));
     assert_eq!(
         point,
-        (99, 80),
-        "the dry tile beside the water, straight east of the centre"
+        (98, 80),
+        "the corner of a dock on the dry shore straight east of the centre, its side on the water"
     );
     let (x, y) = find_construction_site(&sim, "lineage-a", BuildingKind::Dock, point.0, point.1)
         .expect("a shore site in reach of the builder");
@@ -1124,4 +1124,46 @@ fn a_harbour_is_aimed_at_the_nearest_shore_and_found_there() {
         sim.grid.open_water_around(x, y, 2, 2) >= crate::sim::tech::buildings::SHORE_WATER_TILES,
         "site ({x}, {y}) sits on the shore"
     );
+}
+
+#[test]
+fn water_only_at_the_corners_is_not_a_shore() {
+    use crate::world::tiles::Tile;
+    let mut sim = lakeside(200);
+    for (x, y) in [(89, 79), (92, 79), (89, 82)] {
+        sim.grid.set(x, y, Tile::Water);
+    }
+    assert_eq!(sim.grid.open_water_around(90, 80, 2, 2), 3);
+    assert_eq!(sim.grid.open_water_on_sides(90, 80, 2, 2), 0);
+    assert!(!construction_site_is_valid(&sim, BuildingKind::Dock, 90, 80));
+}
+
+#[test]
+fn a_harbour_does_not_stand_on_ice() {
+    use crate::world::tiles::Tile;
+    let mut sim = lakeside(100);
+    assert!(construction_site_is_valid(&sim, BuildingKind::Dock, 98, 80));
+    sim.grid.set(99, 80, Tile::Ice);
+    assert!(
+        !construction_site_is_valid(&sim, BuildingKind::Dock, 98, 80),
+        "half the footprint is frozen lake"
+    );
+}
+
+#[test]
+fn a_cramped_shore_is_passed_over_for_one_a_harbour_fits() {
+    use crate::world::tiles::Tile;
+    let mut sim = lakeside(100);
+    // The shore straight east is a one-tile gap in a row of huts; the harbour fits further down the coast.
+    for y in 70..=90 {
+        sim.grid.set(99, y, Tile::Hut);
+        sim.grid.set(98, y, Tile::Hut);
+    }
+    sim.grid.set(99, 80, Tile::Grass);
+    let point = super::town::placement_point(&sim, "lineage-a", BuildingKind::Dock, (80, 80), (0, 0));
+    assert!(
+        construction_terrain_is_valid(&sim, BuildingKind::Dock, point.0, point.1),
+        "{point:?} fits a dock"
+    );
+    assert!((point.1 - 80).abs() > 10, "{point:?} is past the huts");
 }
