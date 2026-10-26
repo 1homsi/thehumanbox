@@ -1,4 +1,5 @@
-import { getBuildingSprite, hasBuildingSprite, PAD, PAD_BOT } from '../building-sprites'
+import { hasBuildingSprite, PAD, PAD_BOT } from '../building-sprites'
+import { finishedSprite } from './finished-sprite'
 import { getBuildingState } from '../../model/building-state'
 import { buildingEmoji } from './emoji'
 import { normKind, resolveBuildingFootprint } from './footprints'
@@ -56,34 +57,26 @@ export function drawBuilding(
         h,
         tileSize,
         detail,
+        nightFactor,
       )
     }
     return
   }
 
   if (!structural.isComplete) {
-    drawConstructionSite(ctx, building, structural, px, py, w, h, tileSize, detail)
+    drawConstructionSite(ctx, building, structural, px, py, w, h, tileSize, detail, nightFactor)
     return
   }
 
   if (hasBuildingSprite(k)) {
-    const variant =
-      (((building.id ?? 0) * 2654435761) ^ (building.x * 73856093) ^ (building.y * 19349663)) >>> 0
-    const nightBucket = Math.max(0, Math.min(3, Math.round(nightFactor * 3)))
-    const condBucket = structural.integrity < 0.45 ? 0 : 1
-    const sprite = getBuildingSprite(
+    const sprite = finishedSprite(
+      building,
       k,
       fw,
       fh,
       tileSize,
-      variant & 7,
-      nightBucket,
-      condBucket,
-      building.tier ?? 0,
-      building.state ?? '',
-      building.snow ?? false,
-      building.land ?? '',
-      building.roofTint ?? '',
+      nightFactor,
+      structural.integrity < 0.45 ? 0 : 1,
     )
     if (sprite) {
       ctx.drawImage(sprite, Math.round(px - PAD), Math.round(py + h + PAD_BOT - sprite.height))

@@ -71,27 +71,3 @@ export function drawBuildingShadow(
     ctx.fillRect(x + shift, y - 1 + i, width, 1)
   }
 }
-
-export function drawProgressBar(
-  ctx: CanvasRenderingContext2D,
-  px: number,
-  py: number,
-  w: number,
-  tileSize: number,
-  progress: number,
-  color: string,
-) {
-  const x = Math.round(px)
-  const width = Math.max(3, Math.round(w))
-  const height = Math.max(3, Math.round(tileSize * 0.18))
-  const y = Math.round(py - Math.max(4, tileSize * 0.28))
-  ctx.fillStyle = 'rgba(43, 33, 23, 0.9)'
-  ctx.fillRect(x, y, width, height)
-  ctx.fillStyle = color
-  ctx.fillRect(
-    x + 1,
-    y + 1,
-    Math.max(0, Math.round((width - 2) * Math.max(0, Math.min(1, progress)))),
-    Math.max(1, height - 2),
-  )
-}
