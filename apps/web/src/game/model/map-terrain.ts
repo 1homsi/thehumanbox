@@ -84,3 +84,14 @@ function groundOf(tile: number, depth: number | undefined): GroundKey | null {
   }
   return GROUND[tile] ?? null
 }
+
+/**
+ * Whether the ground under a point is worth a card of its own on unclaimed land: water, snow, ice, sand and
+ * the rest, or grass with a road or a fire on it. Plain grass (fertile or not) is most of the map, and a card
+ * for it under every pointer move was noise.
+ */
+export function groundIsNotable(facts: TerrainFacts | null): boolean {
+  if (!facts) return false
+  if (facts.ground !== 'grass') return true
+  return facts.notes.some((note) => note !== 'fertile')
+}

@@ -67,6 +67,11 @@ export function mapThingAt(world: ThingWorld, point: TilePoint, drawn: DrawnThin
   return null
 }
 
+/** Things that, on a tribe's land, leave the tribe's card in place rather than taking over the pointer. */
+export function leavesTribeCard(thing: MapThing): boolean {
+  return thing.kind === 'tree' || thing.kind === 'planting'
+}
+
 /** The animals in view when the sim sends them, else every animal it sent. */
 export function animalsInView(world: ThingWorld): AnimalState[] {
   return world.viewport_animals?.length ? world.viewport_animals : (world.animals ?? [])

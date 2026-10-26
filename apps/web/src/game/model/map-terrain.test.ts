@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { WorldState } from '../../shared/types'
-import { DEEP_WATER_WIRE, terrainAt } from './map-terrain'
+import { DEEP_WATER_WIRE, groundIsNotable, terrainAt } from './map-terrain'
 import { TILE_ID } from './terrain-ids'
 
 /** A 3x3 grid whose only non-default cell is (1, 1), with the given layers set on that cell. */
@@ -109,5 +109,19 @@ describe('terrainAt', () => {
   it('reads a grid whose origin is not zero from the world tile', () => {
     expect(facts({ tile: TILE_ID.SNOW }, 100)?.ground).toBe('snow')
     expect(terrainAt({ grid: grid({ tile: TILE_ID.SNOW }, 100) }, 1.5, 1.5)).toBeNull()
+  })
+})
+
+describe('groundIsNotable', () => {
+  it('leaves plain grass, fertile or not, without a card of its own', () => {
+    expect(groundIsNotable({ ground: 'grass', notes: [] })).toBe(false)
+    expect(groundIsNotable({ ground: 'grass', notes: ['fertile'] })).toBe(false)
+  })
+
+  it('names water, snow and the like, and grass with a road or a fire on it', () => {
+    expect(groundIsNotable({ ground: 'deepWater', notes: [] })).toBe(true)
+    expect(groundIsNotable({ ground: 'grass', notes: ['track'] })).toBe(true)
+    expect(groundIsNotable({ ground: 'grass', notes: ['fertile', 'onFire'] })).toBe(true)
+    expect(groundIsNotable(null)).toBe(false)
   })
 })

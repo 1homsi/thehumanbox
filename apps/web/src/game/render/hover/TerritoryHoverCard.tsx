@@ -5,7 +5,7 @@ import { t } from '../../../i18n'
 import { territoryCardFacts, type TerritoryCardFacts } from '../../model/territory-card'
 import { lineageAtTerritoryTile, territoryTileKey, type TerritoryIndex } from '../../model/territory'
 import { TILE } from '../../model/palette'
-import { mapThingAt } from '../../model/map-things'
+import { leavesTribeCard, mapThingAt } from '../../model/map-things'
 import { groundLine } from '../../model/map-thing-card'
 import { isMapControl, screenToMap, type MapCamera, type MapSize } from '../camera-controls'
 import { pickPersonAt } from '../cf/picking'
@@ -66,7 +66,8 @@ export function TerritoryHoverCard({
       const tx = Math.floor(at.x / TILE) + ox
       const ty = Math.floor(at.y / TILE) + oy
       // A building, vehicle or caravan under the pointer has its own card (see ThingHoverCard).
-      if (mapThingAt(current, { x: at.x / TILE + ox, y: at.y / TILE + oy }, DRAWN_THINGS)) return hide()
+      const thing = mapThingAt(current, { x: at.x / TILE + ox, y: at.y / TILE + oy }, DRAWN_THINGS)
+      if (thing && !leavesTribeCard(thing)) return hide()
       const lineage = lineageAtTerritoryTile(index, tx, ty)
       if (!lineage) return hide()
       el.style.display = 'block'

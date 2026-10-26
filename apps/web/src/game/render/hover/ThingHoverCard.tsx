@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import type { WorldState } from '../../../shared/types'
 import { mapThingCard, type ThingCard } from '../../model/map-thing-card'
-import { mapThingAt, thingKey, type MapThing, type TilePoint } from '../../model/map-things'
-import { terrainAt } from '../../model/map-terrain'
+import { leavesTribeCard, mapThingAt, thingKey, type MapThing, type TilePoint } from '../../model/map-things'
+import { groundIsNotable, terrainAt } from '../../model/map-terrain'
 import { lineageAtTerritoryTile, type TerritoryIndex } from '../../model/territory'
 import { TILE } from '../../model/palette'
 import { isMapControl, screenToMap, type MapCamera, type MapSize } from '../camera-controls'
@@ -51,7 +51,13 @@ export function ThingHoverCard({ world, cameraRef, viewport, container, enabled,
         x: at.x / TILE + (current.grid.origin_x ?? 0),
         y: at.y / TILE + (current.grid.origin_y ?? 0),
       }
-      const thing = mapThingAt(current, point, DRAWN_THINGS) ?? groundThingAt(current, point, index)
+      const found = mapThingAt(current, point, DRAWN_THINGS)
+      // On a tribe's land a tree or planting leaves the tribe's card in place (most of a forest is claimed).
+      const thing =
+        found &&
+        !(leavesTribeCard(found) && lineageAtTerritoryTile(index, Math.floor(point.x), Math.floor(point.y)))
+          ? found
+          : groundThingAt(current, point, index)
       if (!thing) return hide()
       el.style.display = 'block'
       el.style.left = `${Math.round(cx + 18)}px`
@@ -89,7 +95,7 @@ function groundThingAt(world: WorldState, point: TilePoint, index: TerritoryInde
   const tx = Math.floor(point.x)
   const ty = Math.floor(point.y)
   if (lineageAtTerritoryTile(index, tx, ty)) return null
-  return terrainAt(world, point.x, point.y) ? { kind: 'ground', x: tx, y: ty } : null
+  return groundIsNotable(terrainAt(world, point.x, point.y)) ? { kind: 'ground', x: tx, y: ty } : null
 }
 
 function CardText({ card }: { card: ThingCard }) {

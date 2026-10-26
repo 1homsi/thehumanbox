@@ -3,6 +3,7 @@ import type { AnimalState, Building, VehicleInfo, WorldState } from '../../share
 import {
   ANIMAL_REACH,
   CARAVAN_REACH,
+  leavesTribeCard,
   mapThingAt,
   thingKey,
   VEHICLE_REACH,
@@ -129,5 +130,14 @@ describe('thingKey', () => {
     expect(thingKey({ kind: 'tree', x: 1, y: 2, tree: 'bush' })).not.toBe(
       thingKey({ kind: 'tree', x: 2, y: 1, tree: 'bush' }),
     )
+  })
+})
+
+describe('leavesTribeCard', () => {
+  it('lets trees and plantings leave the tribe card in place, and nothing with a card of its own', () => {
+    expect(leavesTribeCard({ kind: 'tree', x: 1, y: 1, tree: 'tree' })).toBe(true)
+    expect(leavesTribeCard({ kind: 'planting', x: 1, y: 1 })).toBe(true)
+    expect(leavesTribeCard({ kind: 'building', id: 3 })).toBe(false)
+    expect(leavesTribeCard({ kind: 'animal', id: 4 })).toBe(false)
   })
 })
