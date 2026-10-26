@@ -349,6 +349,26 @@
       "moored": "ormeggiato al porto",
       "cargo": "trasporta {count} merci"
     },
+    "animal": {
+      "named": "di nome {name}",
+      "wild": "selvatico",
+      "tame": "domestico",
+      "young": "giovane",
+      "asleep": "addormentato",
+      "hunting": "a caccia",
+      "hungry": "affamato"
+    },
+    "farm": {
+      "tribe": "coltivato da {tribe}",
+      "field": "campo"
+    },
+    "stage": {
+      "fallow": "a riposo",
+      "sown": "seminato",
+      "growing": "in crescita",
+      "ready": "maturo",
+      "withered": "appassito"
+    },
     "caravan": {
       "title": "carovana",
       "load": "trasporta {amount} {cargo}",
@@ -388,6 +408,36 @@
       "decline": "declino",
       "scarcity": "scarsità",
       "recovery": "ripresa"
+    },
+    "plant": {
+      "tree": "albero",
+      "conifer": "conifera",
+      "bush": "cespuglio",
+      "deadTree": "albero morto",
+      "cactus": "cactus",
+      "acacia": "acacia",
+      "crop": "coltura",
+      "orchard": "frutteto",
+      "sapling": "giovane pianta",
+      "flower": "fiore",
+      "berry": "cespuglio di bacche",
+      "mushroom": "fungo",
+      "oak": "quercia",
+      "pine": "pino",
+      "palm": "palma"
+    },
+    "crop": {
+      "wheat": "grano",
+      "rice": "riso",
+      "maize": "mais",
+      "barley": "orzo",
+      "potato": "patata",
+      "beans": "fagioli",
+      "cotton": "cotone",
+      "tobacco": "tabacco",
+      "sugarcane": "canna da zucchero",
+      "coffee": "caffè",
+      "tea": "tè"
     },
     "vehicle": {
       "boat": "barca",

@@ -338,6 +338,26 @@
       "moored": "항구에 정박",
       "cargo": "짐 {count}개 적재"
     },
+    "animal": {
+      "named": "이름은 {name}",
+      "wild": "야생",
+      "tame": "길든",
+      "young": "어린",
+      "asleep": "잠든",
+      "hunting": "사냥 중",
+      "hungry": "배고픈"
+    },
+    "farm": {
+      "tribe": "{tribe} 경작",
+      "field": "밭"
+    },
+    "stage": {
+      "fallow": "휴경 중",
+      "sown": "씨 뿌림",
+      "growing": "자라는 중",
+      "ready": "수확 가능",
+      "withered": "시듦"
+    },
     "caravan": {
       "title": "대상 행렬",
       "load": "{amount} {cargo} 운반 중",
@@ -377,6 +397,36 @@
       "decline": "쇠퇴",
       "scarcity": "결핍",
       "recovery": "회복"
+    },
+    "plant": {
+      "tree": "나무",
+      "conifer": "침엽수",
+      "bush": "관목",
+      "deadTree": "마른 나무",
+      "cactus": "선인장",
+      "acacia": "아카시아",
+      "crop": "작물",
+      "orchard": "과수원",
+      "sapling": "묘목",
+      "flower": "꽃",
+      "berry": "베리 덤불",
+      "mushroom": "버섯",
+      "oak": "참나무",
+      "pine": "소나무",
+      "palm": "야자나무"
+    },
+    "crop": {
+      "wheat": "밀",
+      "rice": "쌀",
+      "maize": "옥수수",
+      "barley": "보리",
+      "potato": "감자",
+      "beans": "콩",
+      "cotton": "면화",
+      "tobacco": "담배",
+      "sugarcane": "사탕수수",
+      "coffee": "커피",
+      "tea": "차"
     },
     "vehicle": {
       "boat": "보트",

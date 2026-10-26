@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import type { Building, CaravanInfo, OrganismState, VehicleInfo, WorldState } from '../../shared/types'
+import type {
+  AnimalState,
+  Building,
+  CaravanInfo,
+  OrganismState,
+  VehicleInfo,
+  WorldState,
+} from '../../shared/types'
 import { loadLocale } from '../../i18n'
 import { mapThingCard } from './map-thing-card'
 
@@ -160,5 +167,81 @@ describe('caravan cards', () => {
       lines: ['carrying 4 salt', 'from The Reds to The Blues'],
     })
     expect(mapThingCard(world(), { kind: 'caravan', id: 8 })).toBeNull()
+  })
+})
+
+describe('animal cards', () => {
+  const animal = (extra: Partial<AnimalState>): AnimalState =>
+    ({ id: 1, kind: 'wolf', x: 0, y: 0, ...extra }) as AnimalState
+
+  it('says what the animal is and whether it is wild or tame, hunting or hungry', () => {
+    const w = world({ animals: [animal({ id: 1, hunting: true })] })
+    expect(mapThingCard(w, { kind: 'animal', id: 1 })).toEqual({ title: 'Wolf', lines: ['wild', 'hunting'] })
+    const hungry = world({ animals: [animal({ id: 2, kind: 'deer', hungry: true })] })
+    expect(mapThingCard(hungry, { kind: 'animal', id: 2 })).toEqual({
+      title: 'Deer',
+      lines: ['wild', 'hungry'],
+    })
+  })
+
+  it('names a tame animal, its name and whether it is young', () => {
+    const w = world({
+      animals: [animal({ id: 3, kind: 'dog', name: 'Argo', tame: true, young: true })],
+    })
+    expect(mapThingCard(w, { kind: 'animal', id: 3 })).toEqual({
+      title: 'Dog',
+      lines: ['named Argo', 'tame', 'young'],
+    })
+  })
+
+  it('says a sleeping animal is asleep, not hunting, and uses the word for a two-word kind', () => {
+    const w = world({ animals: [animal({ id: 4, kind: 'polar_bear', sleeping: true, hunting: true })] })
+    expect(mapThingCard(w, { kind: 'animal', id: 4 })).toEqual({
+      title: 'Polar bear',
+      lines: ['wild', 'asleep'],
+    })
+  })
+
+  it('reads the animals in view first', () => {
+    const w = world({
+      animals: [animal({ id: 5, kind: 'deer' })],
+      viewport_animals: [animal({ id: 6, kind: 'rabbit' })],
+    } as Partial<WorldState>)
+    expect(mapThingCard(w, { kind: 'animal', id: 6 })?.title).toBe('Rabbit')
+    expect(mapThingCard(w, { kind: 'animal', id: 5 })).toBeNull()
+  })
+})
+
+describe('field, planting and tree cards', () => {
+  it('names a field by its crop, its tribe and how far it has grown', () => {
+    const farm = { id: 5, x: 1, y: 1, crop: 'wheat', lineage_id: 'red', planted_tick: 0, ready_tick: 100 }
+    const at = (tick: number, extra: Record<string, unknown> = {}) =>
+      mapThingCard(world({ tick, farms: [{ ...farm, ...extra }] } as Partial<WorldState>), {
+        kind: 'farm',
+        id: 5,
+      })
+    expect(at(50)).toEqual({ title: 'Wheat', lines: ['farmed by The Reds', 'growing'] })
+    expect(at(150)).toEqual({ title: 'Wheat', lines: ['farmed by The Reds', 'ready'] })
+    expect(at(150, { withered: true })).toEqual({ title: 'Wheat', lines: ['farmed by The Reds', 'withered'] })
+    expect(at(150, { crop: undefined, lineage_id: undefined })).toEqual({ title: 'Field', lines: ['ready'] })
+  })
+
+  it('names a planting by its kind and says whether it is ripe', () => {
+    const w = world({ plantings: [2, 3, 6, 4, 4, 4, 0, 1] } as Partial<WorldState>)
+    expect(mapThingCard(w, { kind: 'planting', x: 2, y: 3 })).toEqual({ title: 'Oak', lines: ['ready'] })
+    expect(mapThingCard(w, { kind: 'planting', x: 4, y: 4 })).toEqual({ title: 'Crop', lines: ['growing'] })
+    expect(mapThingCard(w, { kind: 'planting', x: 9, y: 9 })).toBeNull()
+  })
+
+  it('names a tree by what it is', () => {
+    const w = world()
+    expect(mapThingCard(w, { kind: 'tree', x: 1, y: 1, tree: 'dead' })).toEqual({
+      title: 'Dead tree',
+      lines: [],
+    })
+    expect(mapThingCard(w, { kind: 'tree', x: 1, y: 1, tree: 'acacia' })).toEqual({
+      title: 'Acacia',
+      lines: [],
+    })
   })
 })

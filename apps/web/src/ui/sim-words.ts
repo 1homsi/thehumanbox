@@ -271,6 +271,16 @@ export function goodWord(good: string): string {
   return keyedWord('model.words.good', good)
 }
 
+/** An animal kind as words, e.g. "polar bear". The interface already names every animal under the tool dock. */
+export function animalKindWord(kind: string): string {
+  return keyedWord('dock.tools', kind)
+}
+
+/** A crop as words, e.g. "sugarcane". */
+export function cropWord(crop: string): string {
+  return keyedWord('model.words.crop', crop)
+}
+
 /** A treaty kind as words, e.g. "non aggression". */
 export function treatyWord(kind: string): string {
   return keyedWord('model.words.treaty', kind)

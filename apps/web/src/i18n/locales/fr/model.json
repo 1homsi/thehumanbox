@@ -349,6 +349,26 @@
       "moored": "amarré au port",
       "cargo": "transporte {count} marchandises"
     },
+    "animal": {
+      "named": "nommé {name}",
+      "wild": "sauvage",
+      "tame": "apprivoisé",
+      "young": "jeune",
+      "asleep": "endormi",
+      "hunting": "à la chasse",
+      "hungry": "affamé"
+    },
+    "farm": {
+      "tribe": "cultivé par {tribe}",
+      "field": "champ"
+    },
+    "stage": {
+      "fallow": "en jachère",
+      "sown": "semé",
+      "growing": "en croissance",
+      "ready": "mûr",
+      "withered": "flétri"
+    },
     "caravan": {
       "title": "caravane",
       "load": "transporte {amount} {cargo}",
@@ -388,6 +408,36 @@
       "decline": "déclin",
       "scarcity": "pénurie",
       "recovery": "reprise"
+    },
+    "plant": {
+      "tree": "arbre",
+      "conifer": "conifère",
+      "bush": "buisson",
+      "deadTree": "arbre mort",
+      "cactus": "cactus",
+      "acacia": "acacia",
+      "crop": "culture",
+      "orchard": "verger",
+      "sapling": "jeune pousse",
+      "flower": "fleur",
+      "berry": "buisson de baies",
+      "mushroom": "champignon",
+      "oak": "chêne",
+      "pine": "pin",
+      "palm": "palmier"
+    },
+    "crop": {
+      "wheat": "blé",
+      "rice": "riz",
+      "maize": "maïs",
+      "barley": "orge",
+      "potato": "pomme de terre",
+      "beans": "haricots",
+      "cotton": "coton",
+      "tobacco": "tabac",
+      "sugarcane": "canne à sucre",
+      "coffee": "café",
+      "tea": "thé"
     },
     "vehicle": {
       "boat": "bateau",

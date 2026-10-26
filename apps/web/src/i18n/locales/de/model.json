@@ -349,6 +349,26 @@
       "moored": "am Hafen vertäut",
       "cargo": "{count} Waren an Bord"
     },
+    "animal": {
+      "named": "heißt {name}",
+      "wild": "wild",
+      "tame": "zahm",
+      "young": "jung",
+      "asleep": "schläft",
+      "hunting": "auf der Jagd",
+      "hungry": "hungrig"
+    },
+    "farm": {
+      "tribe": "bestellt von {tribe}",
+      "field": "Feld"
+    },
+    "stage": {
+      "fallow": "brachliegend",
+      "sown": "eingesät",
+      "growing": "wächst",
+      "ready": "erntereif",
+      "withered": "verdorrt"
+    },
     "caravan": {
       "title": "Karawane",
       "load": "trägt {amount} {cargo}",
@@ -388,6 +408,36 @@
       "decline": "Niedergang",
       "scarcity": "Knappheit",
       "recovery": "Erholung"
+    },
+    "plant": {
+      "tree": "Baum",
+      "conifer": "Nadelbaum",
+      "bush": "Busch",
+      "deadTree": "toter Baum",
+      "cactus": "Kaktus",
+      "acacia": "Akazie",
+      "crop": "Feldfrucht",
+      "orchard": "Obstgarten",
+      "sapling": "Setzling",
+      "flower": "Blume",
+      "berry": "Beerenstrauch",
+      "mushroom": "Pilz",
+      "oak": "Eiche",
+      "pine": "Kiefer",
+      "palm": "Palme"
+    },
+    "crop": {
+      "wheat": "Weizen",
+      "rice": "Reis",
+      "maize": "Mais",
+      "barley": "Gerste",
+      "potato": "Kartoffel",
+      "beans": "Bohnen",
+      "cotton": "Baumwolle",
+      "tobacco": "Tabak",
+      "sugarcane": "Zuckerrohr",
+      "coffee": "Kaffee",
+      "tea": "Tee"
     },
     "vehicle": {
       "boat": "Boot",

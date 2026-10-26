@@ -8,8 +8,8 @@ import { TILE } from '../../model/palette'
 import { mapThingAt } from '../../model/map-things'
 import { isMapControl, screenToMap, type MapCamera, type MapSize } from '../camera-controls'
 import { pickPersonAt } from '../cf/picking'
-import { caravanDrawnAt } from '../base-parts/trade-network'
 import { CARD } from './card-style'
+import { DRAWN_THINGS } from './drawn-things'
 
 interface Props {
   world: WorldState
@@ -63,7 +63,7 @@ export function TerritoryHoverCard({
       const tx = Math.floor(at.x / TILE) + ox
       const ty = Math.floor(at.y / TILE) + oy
       // A building, vehicle or caravan under the pointer has its own card (see ThingHoverCard).
-      if (mapThingAt(current, { x: at.x / TILE + ox, y: at.y / TILE + oy }, caravanDrawnAt)) return hide()
+      if (mapThingAt(current, { x: at.x / TILE + ox, y: at.y / TILE + oy }, DRAWN_THINGS)) return hide()
       const lineage = lineageAtTerritoryTile(index, tx, ty)
       if (!lineage) return hide()
       el.style.display = 'block'

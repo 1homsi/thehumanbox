@@ -522,7 +522,7 @@ impl Animal {
         // A fed predator rests and roams instead of stalking. Monsters
         // always stalk, and only people.
         let monster = self.kind.monster();
-        if monster || (self.kind.predator() && self.energy <= 0.85) {
+        if monster || (self.kind.predator() && self.energy <= PREDATOR_HUNGRY_ENERGY) {
             let prey: &[(f32, f32)] = if monster { &[] } else { prey_positions };
             let target = prey
                 .iter()
@@ -600,7 +600,7 @@ impl Animal {
                 ix + (fdx / len * 4.0).round() as i32,
                 iy + (fdy / len * 4.0).round() as i32,
             )
-        } else if !self.kind.monster() && self.energy < 0.55 && rng.random::<f32>() < 0.35 {
+        } else if self.is_hungry() && rng.random::<f32>() < 0.35 {
             let mut best_d = 999i32;
             let mut best_t = (ix, iy);
             for ddx in -10i32..=10 {
@@ -706,7 +706,21 @@ pub struct AnimalJson {
     pub away: bool,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub young: bool,
+    /// Kept by a tribe or bonded to a person: no longer wild.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub tame: bool,
+    /// Low on energy: it is looking for food.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub hungry: bool,
+    /// A predator out after prey or people, the way the attack rule sees it.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub hunting: bool,
 }
+
+/// Energy below which a grown animal (not a monster) is hungry and goes looking for food.
+pub const HUNGRY_ENERGY: f32 = 0.55;
+/// Energy at or below which a predator hunts (the same bar the attack rule uses).
+pub const PREDATOR_HUNGRY_ENERGY: f32 = 0.85;
 
 impl Animal {
     pub fn to_json(&self, tick: u64) -> AnimalJson {
@@ -719,7 +733,27 @@ impl Animal {
             sleeping: self.sleeping,
             away: self.away,
             young: self.is_young(tick),
+            tame: self.is_tame(),
+            hungry: self.is_hungry(),
+            hunting: self.is_hunting(),
         }
+    }
+
+    /// Kept as livestock or bonded to a person: an animal the tribes have taken in hand.
+    pub fn is_tame(&self) -> bool {
+        self.is_kept() || self.bonded_org.is_some()
+    }
+
+    /// Looking for food: a grown animal whose energy is below `HUNGRY_ENERGY`.
+    pub fn is_hungry(&self) -> bool {
+        !self.kind.monster() && self.energy < HUNGRY_ENERGY
+    }
+
+    /// Going after prey or people: a monster always, a predator once its energy is at the attack bar.
+    pub fn is_hunting(&self) -> bool {
+        self.alive
+            && !self.sleeping
+            && (self.kind.monster() || (self.kind.predator() && self.energy <= PREDATOR_HUNGRY_ENERGY))
     }
 }
 
@@ -768,6 +802,64 @@ mod tests {
             grown.get("young").is_none(),
             "grown animals leave the flag out of the frame"
         );
+    }
+
+    #[test]
+    fn the_frame_says_whether_an_animal_is_tame_hungry_or_hunting() {
+        let frame = |a: &Animal| serde_json::to_value(a.to_json(5_000)).unwrap();
+
+        let mut wolf = Animal::new(2, 10.0, 10.0, AnimalKind::Wolf);
+        wolf.energy = 0.95;
+        let rested = frame(&wolf);
+        assert!(rested.get("tame").is_none() && rested.get("hungry").is_none());
+        assert!(
+            rested.get("hunting").is_none(),
+            "a rested wolf is not out hunting"
+        );
+
+        wolf.energy = 0.5;
+        let hungry = frame(&wolf);
+        assert_eq!(hungry["hungry"], serde_json::json!(true));
+        assert_eq!(hungry["hunting"], serde_json::json!(true));
+
+        wolf.sleeping = true;
+        assert!(
+            frame(&wolf).get("hunting").is_none(),
+            "a sleeping wolf does not hunt"
+        );
+        wolf.sleeping = false;
+
+        let mut deer = Animal::new(3, 10.0, 10.0, AnimalKind::Deer);
+        deer.energy = 0.5;
+        let grazing = frame(&deer);
+        assert_eq!(grazing["hungry"], serde_json::json!(true));
+        assert!(
+            grazing.get("hunting").is_none(),
+            "prey looks for food, it does not hunt"
+        );
+
+        let mut zombie = Animal::new(4, 10.0, 10.0, AnimalKind::Zombie);
+        zombie.energy = 0.95;
+        assert_eq!(
+            frame(&zombie)["hunting"],
+            serde_json::json!(true),
+            "a monster always hunts"
+        );
+        assert!(
+            frame(&zombie).get("hungry").is_none(),
+            "a monster is never hungry"
+        );
+
+        let mut dog = Animal::new(5, 10.0, 10.0, AnimalKind::Dog);
+        dog.bonded_org = Some("someone".into());
+        assert_eq!(frame(&dog)["tame"], serde_json::json!(true));
+        let mut cow = Animal::new(6, 10.0, 10.0, AnimalKind::Cow);
+        cow.keeper = Some("red".into());
+        cow.pen = Some((10, 10));
+        assert_eq!(frame(&cow)["tame"], serde_json::json!(true));
+        assert!(frame(&Animal::new(7, 10.0, 10.0, AnimalKind::Deer))
+            .get("tame")
+            .is_none());
     }
 
     #[test]

@@ -352,6 +352,26 @@
       "moored": "moored at harbour",
       "cargo": "carrying {count} goods"
     },
+    "animal": {
+      "named": "named {name}",
+      "wild": "wild",
+      "tame": "tame",
+      "young": "young",
+      "asleep": "asleep",
+      "hunting": "hunting",
+      "hungry": "hungry"
+    },
+    "farm": {
+      "tribe": "farmed by {tribe}",
+      "field": "field"
+    },
+    "stage": {
+      "fallow": "fallow",
+      "sown": "sown",
+      "growing": "growing",
+      "ready": "ready",
+      "withered": "withered"
+    },
     "caravan": {
       "title": "caravan",
       "load": "carrying {amount} {cargo}",
@@ -391,6 +411,36 @@
       "decline": "decline",
       "scarcity": "scarcity",
       "recovery": "recovery"
+    },
+    "plant": {
+      "tree": "tree",
+      "conifer": "conifer",
+      "bush": "bush",
+      "deadTree": "dead tree",
+      "cactus": "cactus",
+      "acacia": "acacia",
+      "crop": "crop",
+      "orchard": "orchard",
+      "sapling": "sapling",
+      "flower": "flower",
+      "berry": "berry bush",
+      "mushroom": "mushroom",
+      "oak": "oak",
+      "pine": "pine",
+      "palm": "palm"
+    },
+    "crop": {
+      "wheat": "wheat",
+      "rice": "rice",
+      "maize": "maize",
+      "barley": "barley",
+      "potato": "potato",
+      "beans": "beans",
+      "cotton": "cotton",
+      "tobacco": "tobacco",
+      "sugarcane": "sugarcane",
+      "coffee": "coffee",
+      "tea": "tea"
     },
     "vehicle": {
       "boat": "boat",

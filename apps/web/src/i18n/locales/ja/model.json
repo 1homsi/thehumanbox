@@ -338,6 +338,26 @@
       "moored": "港に係留中",
       "cargo": "積荷 {count} 点"
     },
+    "animal": {
+      "named": "{name}という名",
+      "wild": "野生",
+      "tame": "飼いならされた",
+      "young": "幼い",
+      "asleep": "眠っている",
+      "hunting": "狩りの最中",
+      "hungry": "空腹"
+    },
+    "farm": {
+      "tribe": "{tribe}が耕作",
+      "field": "畑"
+    },
+    "stage": {
+      "fallow": "休耕中",
+      "sown": "種まき済み",
+      "growing": "生育中",
+      "ready": "収穫期",
+      "withered": "枯れている"
+    },
     "caravan": {
       "title": "隊商",
       "load": "{amount} {cargo}を運搬中",
@@ -377,6 +397,36 @@
       "decline": "衰退",
       "scarcity": "欠乏",
       "recovery": "回復"
+    },
+    "plant": {
+      "tree": "木",
+      "conifer": "針葉樹",
+      "bush": "低木",
+      "deadTree": "枯れ木",
+      "cactus": "サボテン",
+      "acacia": "アカシア",
+      "crop": "作物",
+      "orchard": "果樹園",
+      "sapling": "若木",
+      "flower": "花",
+      "berry": "ベリーの株",
+      "mushroom": "キノコ",
+      "oak": "オーク",
+      "pine": "松",
+      "palm": "ヤシ"
+    },
+    "crop": {
+      "wheat": "小麦",
+      "rice": "米",
+      "maize": "トウモロコシ",
+      "barley": "大麦",
+      "potato": "ジャガイモ",
+      "beans": "豆",
+      "cotton": "綿",
+      "tobacco": "タバコ",
+      "sugarcane": "サトウキビ",
+      "coffee": "コーヒー",
+      "tea": "茶"
     },
     "vehicle": {
       "boat": "ボート",

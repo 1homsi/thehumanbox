@@ -338,6 +338,26 @@
       "moored": "limanda demirli",
       "cargo": "{count} yük taşıyor"
     },
+    "animal": {
+      "named": "adı {name}",
+      "wild": "vahşi",
+      "tame": "evcil",
+      "young": "genç",
+      "asleep": "uyuyor",
+      "hunting": "avda",
+      "hungry": "aç"
+    },
+    "farm": {
+      "tribe": "{tribe} ekiyor",
+      "field": "tarla"
+    },
+    "stage": {
+      "fallow": "nadas",
+      "sown": "ekildi",
+      "growing": "büyüyor",
+      "ready": "hasat zamanı",
+      "withered": "kurumuş"
+    },
     "caravan": {
       "title": "kervan",
       "load": "{amount} {cargo} taşıyor",
@@ -377,6 +397,36 @@
       "decline": "gerileme",
       "scarcity": "kıtlık",
       "recovery": "toparlanma"
+    },
+    "plant": {
+      "tree": "ağaç",
+      "conifer": "iğne yapraklı",
+      "bush": "çalı",
+      "deadTree": "kuru ağaç",
+      "cactus": "kaktüs",
+      "acacia": "akasya",
+      "crop": "ekin",
+      "orchard": "meyve bahçesi",
+      "sapling": "fidan",
+      "flower": "çiçek",
+      "berry": "meyve çalısı",
+      "mushroom": "mantar",
+      "oak": "meşe",
+      "pine": "çam",
+      "palm": "palmiye"
+    },
+    "crop": {
+      "wheat": "buğday",
+      "rice": "pirinç",
+      "maize": "mısır",
+      "barley": "arpa",
+      "potato": "patates",
+      "beans": "fasulye",
+      "cotton": "pamuk",
+      "tobacco": "tütün",
+      "sugarcane": "şeker kamışı",
+      "coffee": "kahve",
+      "tea": "çay"
     },
     "vehicle": {
       "boat": "tekne",
