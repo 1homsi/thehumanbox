@@ -19,6 +19,7 @@ fn people_at(sim: &mut Simulation, who: &[(f32, f32, f32)]) {
 fn healing_a_well_crowd_says_no_one_was_hurt() {
     let mut sim = Simulation::new(21);
     people_at(&mut sim, &[(60.0, 60.0, 1.0), (61.0, 60.0, 1.0)]);
+    sim.animals.clear();
     let outcome = sim.apply_command_json_reported(r#"{"cmd":"heal","x":60.0,"y":60.0,"radius":4.0}"#);
     assert_eq!(outcome.code, "none_hurt", "nobody here needed healing");
     assert_eq!(outcome.count, 0);
@@ -133,4 +134,21 @@ fn the_outcome_is_sent_as_json_with_its_fields() {
     assert_eq!(json["code"], "healed");
     assert_eq!(json["count"], 1);
     assert!(json["name"].is_string());
+}
+
+#[test]
+fn a_well_crowd_with_a_hungry_beast_reports_the_beast_fed() {
+    let mut sim = Simulation::new(21);
+    people_at(&mut sim, &[(60.0, 60.0, 1.0)]);
+    sim.animals.clear();
+    let mut deer =
+        crate::organism::animal::Animal::new(9_002, 61.0, 60.0, crate::organism::animal::AnimalKind::Deer);
+    deer.energy = 0.2;
+    sim.animals.push(deer);
+    let outcome = sim.apply_command_json_reported(r#"{"cmd":"heal","x":60.0,"y":60.0,"radius":4.0}"#);
+    assert!(outcome.applied);
+    assert_eq!(
+        outcome.code, "healed_animals",
+        "nobody was hurt, but the deer was fed"
+    );
 }

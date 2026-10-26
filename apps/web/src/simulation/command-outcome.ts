@@ -80,6 +80,8 @@ const RESULT_KEYS: Record<string, MessageKey | undefined> = {
 
 /** The player-facing sentence for an outcome, or null when its code has none of its own. */
 export function describeOutcome(outcome: CommandOutcome): string | null {
+  // Own keys only: a code such as "constructor" must not find a property of the object.
+  if (!Object.prototype.hasOwnProperty.call(RESULT_KEYS, outcome.code)) return null
   const key = RESULT_KEYS[outcome.code]
   if (!key) return null
   return t(key, { count: outcome.count, name: outcome.name ?? '' })
