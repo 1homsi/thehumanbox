@@ -293,9 +293,9 @@ const SHORE_SEARCH_RADIUS: i32 = 24;
 
 /// The nearest place on the shore where `kind` fits the ground: a dry, unfrozen tile beside open
 /// water that a footprint of `kind` covering it would pass the terrain check (water along its side
-/// included). Searches square rings out from `center` and takes the closest such tile of the first
-/// ring that has one; returns the footprint's corner. A shore too cramped for the footprint is
-/// passed over for one further along.
+/// included) and no building already covers. Searches square rings out from `center` and takes the
+/// closest such tile of the first ring that has one; returns the footprint's corner. A shore too
+/// cramped or already built on is passed over for one further along.
 fn nearest_shore(sim: &Simulation, kind: BuildingKind, center: (i32, i32)) -> Option<(i32, i32)> {
     use crate::world::tiles::Tile;
     let (w, h) = kind.footprint();
@@ -306,11 +306,26 @@ fn nearest_shore(sim: &Simulation, kind: BuildingKind, center: (i32, i32)) -> Op
                 .iter()
                 .any(|&(dx, dy)| sim.grid.get(x + dx, y + dy) == Tile::Water)
     };
-    // The corner of a footprint covering (x, y) that the ground accepts, if any.
+    // Tiles standing buildings cover, gathered once so each candidate is a few lookups.
+    let built: crate::hashing::FxHashSet<(i32, i32)> = sim
+        .buildings
+        .iter()
+        .filter(|b| !b.decorative)
+        .flat_map(|b| {
+            let (bw, bh) = b.footprint();
+            (b.y..b.y + i32::from(bh)).flat_map(move |ty| (b.x..b.x + i32::from(bw)).map(move |tx| (tx, ty)))
+        })
+        .collect();
+    let free = |fx: i32, fy: i32| {
+        (fy..fy + i32::from(h)).all(|ty| (fx..fx + i32::from(w)).all(|tx| !built.contains(&(tx, ty))))
+    };
+    // The corner of a footprint covering (x, y) that the ground accepts and no building holds, if any.
     let fits_at = |x: i32, y: i32| {
         (0..i32::from(h))
             .flat_map(|oy| (0..i32::from(w)).map(move |ox| (x - ox, y - oy)))
-            .find(|&(fx, fy)| super::construction::construction_terrain_is_valid(sim, kind, fx, fy))
+            .find(|&(fx, fy)| {
+                super::construction::construction_terrain_is_valid(sim, kind, fx, fy) && free(fx, fy)
+            })
     };
     (0..=SHORE_SEARCH_RADIUS).find_map(|radius| {
         let mut ring: Vec<(i32, i32)> = (-radius..=radius)

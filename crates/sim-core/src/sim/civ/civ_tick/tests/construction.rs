@@ -1167,3 +1167,25 @@ fn a_cramped_shore_is_passed_over_for_one_a_harbour_fits() {
     );
     assert!((point.1 - 80).abs() > 10, "{point:?} is past the huts");
 }
+
+#[test]
+fn a_built_up_shore_is_passed_over_for_a_free_one() {
+    let mut sim = lakeside(100);
+    // Warehouses line the shore near the town; the dock goes past them.
+    for (i, y) in (66..=94).step_by(2).enumerate() {
+        sim.buildings.push(Building::new(
+            2000 + i as u32,
+            BuildingKind::Warehouse,
+            98,
+            y,
+            None,
+            0,
+        ));
+    }
+    let point = super::town::placement_point(&sim, "lineage-a", BuildingKind::Dock, (80, 80), (0, 0));
+    assert!(
+        construction_site_is_valid(&sim, BuildingKind::Dock, point.0, point.1),
+        "{point:?} is free shore"
+    );
+    assert!((point.1 - 80).abs() > 14, "{point:?} is past the warehouses");
+}
