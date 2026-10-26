@@ -606,6 +606,8 @@ impl Organism {
                 })
                 .collect(),
             lessons: self.lessons.heeded().into_iter().map(|l| l.name()).collect(),
+            // Filled in by whoever can see the parents (see `family_words`).
+            family_words: Vec::new(),
         }
     }
 
@@ -1033,6 +1035,9 @@ pub struct OrgDetailJson {
     /// What deaths they saw taught them, strongest first (see `organism::lessons`).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub lessons: Vec<&'static str>,
+    /// The words of this person's parents and grandparents (see `organism::family_words`).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub family_words: Vec<crate::organism::family_words::FamilyWordsJson>,
 }
 
 #[derive(Serialize)]

@@ -256,6 +256,20 @@
   "language": {
     "title": "LA LORO LINGUA"
   },
+  "words": {
+    "title": "STORIA DELLE PAROLE",
+    "intro": "La loro parola per ogni cosa comune, accanto a quelle dei genitori e dei nonni.",
+    "you": "sé",
+    "mother": "madre",
+    "father": "padre",
+    "maternalGrandmother": "nonna materna",
+    "maternalGrandfather": "nonno materno",
+    "paternalGrandmother": "nonna paterna",
+    "paternalGrandfather": "nonno paterno",
+    "unknown": "non ricordato",
+    "same": "uguale in famiglia",
+    "drifted": "le parole si sono allontanate"
+  },
   "life": {
     "memory": "MEMORIA",
     "foodTip": "{count} luoghi di cibo ricordati – l'organismo ci si dirige quando ha fame",

@@ -256,6 +256,20 @@
   "language": {
     "title": "O IDIOMA DELES"
   },
+  "words": {
+    "title": "HISTÓRIA DAS PALAVRAS",
+    "intro": "A palavra dela para cada coisa comum, ao lado das palavras dos pais e avós.",
+    "you": "própria",
+    "mother": "mãe",
+    "father": "pai",
+    "maternalGrandmother": "avó materna",
+    "maternalGrandfather": "avô materno",
+    "paternalGrandmother": "avó paterna",
+    "paternalGrandfather": "avô paterno",
+    "unknown": "não lembrada",
+    "same": "igual na família",
+    "drifted": "as palavras se afastaram"
+  },
   "life": {
     "memory": "MEMÓRIA",
     "foodTip": "{count} locais de comida lembrados – o organismo vai até eles quando está com fome",
