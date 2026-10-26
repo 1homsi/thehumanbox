@@ -371,6 +371,26 @@
       "moored": "пришвартований у порту",
       "cargo": "везе вантажів: {count}"
     },
+    "animal": {
+      "named": "на ім'я {name}",
+      "wild": "дикий",
+      "tame": "ручний",
+      "young": "молодий",
+      "asleep": "спить",
+      "hunting": "полює",
+      "hungry": "голодний"
+    },
+    "farm": {
+      "tribe": "обробляє: {tribe}",
+      "field": "поле"
+    },
+    "stage": {
+      "fallow": "під паром",
+      "sown": "засіяно",
+      "growing": "росте",
+      "ready": "достигло",
+      "withered": "в'яне"
+    },
     "caravan": {
       "title": "караван",
       "load": "везе: {amount} {cargo}",
@@ -410,6 +430,36 @@
       "decline": "занепад",
       "scarcity": "нестача",
       "recovery": "відновлення"
+    },
+    "plant": {
+      "tree": "дерево",
+      "conifer": "хвойне",
+      "bush": "кущ",
+      "deadTree": "сухе дерево",
+      "cactus": "кактус",
+      "acacia": "акація",
+      "crop": "посів",
+      "orchard": "сад",
+      "sapling": "саджанець",
+      "flower": "квітка",
+      "berry": "ягідний кущ",
+      "mushroom": "гриб",
+      "oak": "дуб",
+      "pine": "сосна",
+      "palm": "пальма"
+    },
+    "crop": {
+      "wheat": "пшениця",
+      "rice": "рис",
+      "maize": "кукурудза",
+      "barley": "ячмінь",
+      "potato": "картопля",
+      "beans": "квасоля",
+      "cotton": "бавовна",
+      "tobacco": "тютюн",
+      "sugarcane": "цукрова тростина",
+      "coffee": "кава",
+      "tea": "чай"
     },
     "vehicle": {
       "boat": "човен",

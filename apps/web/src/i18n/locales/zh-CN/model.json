@@ -338,6 +338,26 @@
       "moored": "停泊在港口",
       "cargo": "载货 {count} 件"
     },
+    "animal": {
+      "named": "名叫{name}",
+      "wild": "野生",
+      "tame": "驯养",
+      "young": "幼崽",
+      "asleep": "在睡觉",
+      "hunting": "在狩猎",
+      "hungry": "饥饿"
+    },
+    "farm": {
+      "tribe": "由{tribe}耕种",
+      "field": "田地"
+    },
+    "stage": {
+      "fallow": "休耕",
+      "sown": "已播种",
+      "growing": "生长中",
+      "ready": "成熟",
+      "withered": "枯萎"
+    },
     "caravan": {
       "title": "商队",
       "load": "正运送{amount}{cargo}",
@@ -377,6 +397,36 @@
       "decline": "衰退",
       "scarcity": "匮乏",
       "recovery": "复苏"
+    },
+    "plant": {
+      "tree": "树",
+      "conifer": "针叶树",
+      "bush": "灌木",
+      "deadTree": "枯树",
+      "cactus": "仙人掌",
+      "acacia": "金合欢",
+      "crop": "作物",
+      "orchard": "果园",
+      "sapling": "树苗",
+      "flower": "花",
+      "berry": "浆果丛",
+      "mushroom": "蘑菇",
+      "oak": "橡树",
+      "pine": "松树",
+      "palm": "棕榈"
+    },
+    "crop": {
+      "wheat": "小麦",
+      "rice": "水稻",
+      "maize": "玉米",
+      "barley": "大麦",
+      "potato": "土豆",
+      "beans": "豆类",
+      "cotton": "棉花",
+      "tobacco": "烟草",
+      "sugarcane": "甘蔗",
+      "coffee": "咖啡",
+      "tea": "茶"
     },
     "vehicle": {
       "boat": "小船",

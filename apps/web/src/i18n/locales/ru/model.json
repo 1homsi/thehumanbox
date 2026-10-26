@@ -371,6 +371,26 @@
       "moored": "пришвартован в порту",
       "cargo": "везёт грузов: {count}"
     },
+    "animal": {
+      "named": "по имени {name}",
+      "wild": "дикий",
+      "tame": "ручной",
+      "young": "молодой",
+      "asleep": "спит",
+      "hunting": "охотится",
+      "hungry": "голодный"
+    },
+    "farm": {
+      "tribe": "возделывает: {tribe}",
+      "field": "поле"
+    },
+    "stage": {
+      "fallow": "под паром",
+      "sown": "засеяно",
+      "growing": "растёт",
+      "ready": "созрело",
+      "withered": "засохло"
+    },
     "caravan": {
       "title": "караван",
       "load": "везёт: {amount} {cargo}",
@@ -410,6 +430,36 @@
       "decline": "упадок",
       "scarcity": "нехватка",
       "recovery": "восстановление"
+    },
+    "plant": {
+      "tree": "дерево",
+      "conifer": "хвойное",
+      "bush": "кустарник",
+      "deadTree": "сухое дерево",
+      "cactus": "кактус",
+      "acacia": "акация",
+      "crop": "посев",
+      "orchard": "сад",
+      "sapling": "саженец",
+      "flower": "цветок",
+      "berry": "ягодный куст",
+      "mushroom": "гриб",
+      "oak": "дуб",
+      "pine": "сосна",
+      "palm": "пальма"
+    },
+    "crop": {
+      "wheat": "пшеница",
+      "rice": "рис",
+      "maize": "кукуруза",
+      "barley": "ячмень",
+      "potato": "картофель",
+      "beans": "бобы",
+      "cotton": "хлопок",
+      "tobacco": "табак",
+      "sugarcane": "сахарный тростник",
+      "coffee": "кофе",
+      "tea": "чай"
     },
     "vehicle": {
       "boat": "лодка",

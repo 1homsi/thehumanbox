@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import type { WorldState } from '../../../shared/types'
 import { mapThingCard, type ThingCard } from '../../model/map-thing-card'
-import { mapThingAt, type MapThing } from '../../model/map-things'
+import { mapThingAt, thingKey, type MapThing } from '../../model/map-things'
 import { TILE } from '../../model/palette'
 import { isMapControl, screenToMap, type MapCamera, type MapSize } from '../camera-controls'
 import { pickPersonAt } from '../cf/picking'
-import { caravanDrawnAt } from '../base-parts/trade-network'
 import { CARD } from './card-style'
+import { DRAWN_THINGS } from './drawn-things'
 
 interface Props {
   world: WorldState
@@ -50,13 +50,13 @@ export function ThingHoverCard({ world, cameraRef, viewport, container, enabled 
           x: at.x / TILE + (current.grid.origin_x ?? 0),
           y: at.y / TILE + (current.grid.origin_y ?? 0),
         },
-        caravanDrawnAt,
+        DRAWN_THINGS,
       )
       if (!thing) return hide()
       el.style.display = 'block'
       el.style.left = `${Math.round(cx + 18)}px`
       el.style.top = `${Math.round(cy + 18)}px`
-      setHover((prev) => (prev && prev.kind === thing.kind && prev.id === thing.id ? prev : thing))
+      setHover((prev) => (prev && thingKey(prev) === thingKey(thing) ? prev : thing))
     }
     container.addEventListener('pointermove', move)
     container.addEventListener('pointerleave', hide)

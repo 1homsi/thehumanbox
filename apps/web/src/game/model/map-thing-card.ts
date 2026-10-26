@@ -1,8 +1,17 @@
-import type { Building, CaravanInfo, VehicleInfo, WorldState } from '../../shared/types'
-import { t } from '../../i18n'
-import { buildingKindWord, goodWord, vehicleKindWord } from '../../ui/sim-words'
+import type {
+  AnimalState,
+  Building,
+  CaravanInfo,
+  FarmInfo,
+  VehicleInfo,
+  WorldState,
+} from '../../shared/types'
+import { t, type MessageKey } from '../../i18n'
+import { animalKindWord, buildingKindWord, cropWord, goodWord, vehicleKindWord } from '../../ui/sim-words'
+import { PLANT_KIND } from '../render/plantings'
 import { getBuildingState, type BuildingState } from './building-state'
-import type { MapThing } from './map-things'
+import { farmStage, type FarmStage } from './farms'
+import { animalsInView, type MapThing, type TreeKind } from './map-things'
 
 /** A thing's card: its name, then a few plain lines about it. */
 export interface ThingCard {
@@ -15,16 +24,43 @@ const NAMES_SHOWN = 3
 
 /** The card for a thing on the map, read from the world as it is now; null when the thing is gone. */
 export function mapThingCard(world: WorldState, thing: MapThing): ThingCard | null {
-  if (thing.kind === 'building') {
-    const building = world.buildings?.find((item) => item.id === thing.id)
-    return building ? buildingCard(world, building) : null
+  switch (thing.kind) {
+    case 'animal': {
+      const animal = animalsInView(world).find((item) => item.id === thing.id)
+      return animal ? animalCard(animal) : null
+    }
+    case 'building': {
+      const building = world.buildings?.find((item) => item.id === thing.id)
+      return building ? buildingCard(world, building) : null
+    }
+    case 'vehicle': {
+      const vehicle = world.vehicles?.find((item) => item.id === thing.id)
+      return vehicle ? vehicleCard(world, vehicle) : null
+    }
+    case 'caravan': {
+      const caravan = world.caravans?.find((item) => item.id === thing.id)
+      return caravan ? caravanCard(world, caravan) : null
+    }
+    case 'farm': {
+      const farm = world.farms?.find((item) => item.id === thing.id)
+      return farm ? farmCard(world, farm) : null
+    }
+    case 'planting':
+      return plantingCard(world, thing.x, thing.y)
+    case 'tree':
+      return { title: capitalise(t(TREE_WORDS[thing.tree])), lines: [] }
   }
-  if (thing.kind === 'vehicle') {
-    const vehicle = world.vehicles?.find((item) => item.id === thing.id)
-    return vehicle ? vehicleCard(world, vehicle) : null
-  }
-  const caravan = world.caravans?.find((item) => item.id === thing.id)
-  return caravan ? caravanCard(world, caravan) : null
+}
+
+function animalCard(animal: AnimalState): ThingCard {
+  const lines: string[] = []
+  if (animal.name) lines.push(t('model.thing.animal.named', { name: animal.name }))
+  lines.push(t(animal.tame ? 'model.thing.animal.tame' : 'model.thing.animal.wild'))
+  if (animal.young) lines.push(t('model.thing.animal.young'))
+  if (animal.sleeping) lines.push(t('model.thing.animal.asleep'))
+  else if (animal.hunting) lines.push(t('model.thing.animal.hunting'))
+  else if (animal.hungry) lines.push(t('model.thing.animal.hungry'))
+  return { title: capitalise(animalKindWord(animal.kind)), lines }
 }
 
 function buildingCard(world: WorldState, building: Building): ThingCard {
@@ -94,6 +130,62 @@ function caravanCard(world: WorldState, caravan: CaravanInfo): ThingCard {
       }),
     ],
   }
+}
+
+function farmCard(world: WorldState, farm: FarmInfo): ThingCard {
+  const lines: string[] = []
+  const tribe = farm.lineage_id ? world.lineage_names?.[farm.lineage_id] : undefined
+  if (tribe) lines.push(t('model.thing.farm.tribe', { tribe }))
+  lines.push(t(farm.withered ? 'model.thing.stage.withered' : STAGE_WORDS[farmStage(farm, world.tick)]))
+  const title = farm.crop ? capitalise(cropWord(farm.crop)) : capitalise(t('model.thing.farm.field'))
+  return { title, lines }
+}
+
+/** The stage of a farm plot, in words. A plot that is fallow has nothing sown. */
+const STAGE_WORDS: Record<FarmStage, MessageKey> = {
+  fallow: 'model.thing.stage.fallow',
+  seeded: 'model.thing.stage.sown',
+  growing: 'model.thing.stage.growing',
+  mature: 'model.thing.stage.ready',
+  harvested: 'model.thing.stage.fallow',
+}
+
+/** A planting the player made: its kind, and whether it is ripe. Stage 4 is ripe; 0 to 3 are growing. */
+function plantingCard(world: WorldState, x: number, y: number): ThingCard | null {
+  const flat = world.plantings ?? []
+  for (let i = 0; i + 3 < flat.length; i += 4) {
+    if (flat[i] !== x || flat[i + 1] !== y) continue
+    const kind = flat[i + 2] ?? -1
+    const stage = flat[i + 3] ?? 0
+    const word = PLANTING_WORDS[kind]
+    if (!word) return null
+    return {
+      title: capitalise(t(word)),
+      lines: [t(stage >= 4 ? 'model.thing.stage.ready' : 'model.thing.stage.growing')],
+    }
+  }
+  return null
+}
+
+const PLANTING_WORDS: Record<number, MessageKey> = {
+  [PLANT_KIND.CROP]: 'model.words.plant.crop',
+  [PLANT_KIND.ORCHARD]: 'model.words.plant.orchard',
+  [PLANT_KIND.SAPLING]: 'model.words.plant.sapling',
+  [PLANT_KIND.FLOWER]: 'model.words.plant.flower',
+  [PLANT_KIND.BERRY]: 'model.words.plant.berry',
+  [PLANT_KIND.MUSHROOM]: 'model.words.plant.mushroom',
+  [PLANT_KIND.OAK]: 'model.words.plant.oak',
+  [PLANT_KIND.PINE]: 'model.words.plant.pine',
+  [PLANT_KIND.PALM]: 'model.words.plant.palm',
+}
+
+const TREE_WORDS: Record<TreeKind, MessageKey> = {
+  tree: 'model.words.plant.tree',
+  conifer: 'model.words.plant.conifer',
+  bush: 'model.words.plant.bush',
+  dead: 'model.words.plant.deadTree',
+  cactus: 'model.words.plant.cactus',
+  acacia: 'model.words.plant.acacia',
 }
 
 function capitalise(word: string): string {

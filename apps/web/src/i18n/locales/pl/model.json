@@ -371,6 +371,26 @@
       "moored": "przycumowany w porcie",
       "cargo": "wiezie {count} towarów"
     },
+    "animal": {
+      "named": "imię: {name}",
+      "wild": "dziki",
+      "tame": "oswojony",
+      "young": "młody",
+      "asleep": "śpi",
+      "hunting": "poluje",
+      "hungry": "głodny"
+    },
+    "farm": {
+      "tribe": "uprawia: {tribe}",
+      "field": "pole"
+    },
+    "stage": {
+      "fallow": "ugór",
+      "sown": "obsiane",
+      "growing": "rośnie",
+      "ready": "gotowe",
+      "withered": "uschnięte"
+    },
     "caravan": {
       "title": "karawana",
       "load": "wiezie {amount} {cargo}",
@@ -410,6 +430,36 @@
       "decline": "upadek",
       "scarcity": "niedobór",
       "recovery": "odbudowa"
+    },
+    "plant": {
+      "tree": "drzewo",
+      "conifer": "iglak",
+      "bush": "krzew",
+      "deadTree": "martwe drzewo",
+      "cactus": "kaktus",
+      "acacia": "akacja",
+      "crop": "uprawa",
+      "orchard": "sad",
+      "sapling": "sadzonka",
+      "flower": "kwiat",
+      "berry": "krzew jagodowy",
+      "mushroom": "grzyb",
+      "oak": "dąb",
+      "pine": "sosna",
+      "palm": "palma"
+    },
+    "crop": {
+      "wheat": "pszenica",
+      "rice": "ryż",
+      "maize": "kukurydza",
+      "barley": "jęczmień",
+      "potato": "ziemniak",
+      "beans": "fasola",
+      "cotton": "bawełna",
+      "tobacco": "tytoń",
+      "sugarcane": "trzcina cukrowa",
+      "coffee": "kawa",
+      "tea": "herbata"
     },
     "vehicle": {
       "boat": "łódź",

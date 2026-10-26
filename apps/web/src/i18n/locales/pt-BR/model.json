@@ -349,6 +349,26 @@
       "moored": "atracado no porto",
       "cargo": "levando {count} mercadorias"
     },
+    "animal": {
+      "named": "chamado {name}",
+      "wild": "selvagem",
+      "tame": "domesticado",
+      "young": "jovem",
+      "asleep": "dormindo",
+      "hunting": "caçando",
+      "hungry": "faminto"
+    },
+    "farm": {
+      "tribe": "cultivado por {tribe}",
+      "field": "campo"
+    },
+    "stage": {
+      "fallow": "em pousio",
+      "sown": "semeado",
+      "growing": "crescendo",
+      "ready": "pronto",
+      "withered": "murcho"
+    },
     "caravan": {
       "title": "caravana",
       "load": "levando {amount} {cargo}",
@@ -388,6 +408,36 @@
       "decline": "declínio",
       "scarcity": "escassez",
       "recovery": "recuperação"
+    },
+    "plant": {
+      "tree": "árvore",
+      "conifer": "conífera",
+      "bush": "arbusto",
+      "deadTree": "árvore morta",
+      "cactus": "cacto",
+      "acacia": "acácia",
+      "crop": "lavoura",
+      "orchard": "pomar",
+      "sapling": "muda",
+      "flower": "flor",
+      "berry": "arbusto de frutas",
+      "mushroom": "cogumelo",
+      "oak": "carvalho",
+      "pine": "pinheiro",
+      "palm": "palmeira"
+    },
+    "crop": {
+      "wheat": "trigo",
+      "rice": "arroz",
+      "maize": "milho",
+      "barley": "cevada",
+      "potato": "batata",
+      "beans": "feijão",
+      "cotton": "algodão",
+      "tobacco": "tabaco",
+      "sugarcane": "cana-de-açúcar",
+      "coffee": "café",
+      "tea": "chá"
     },
     "vehicle": {
       "boat": "barco",
