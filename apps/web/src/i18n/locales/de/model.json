@@ -329,6 +329,32 @@
       "other": "{count} Gebäude"
     }
   },
+  "thing": {
+    "building": {
+      "tribe": "gehört {tribe}",
+      "construction": "wird gebaut, {percent} % fertig",
+      "ruined": "in Trümmern",
+      "rebuilding": "wird wieder aufgebaut",
+      "repairing": "wird ausgebessert",
+      "damaged": "beschädigt, {percent} % intakt",
+      "intact": "in gutem Zustand",
+      "lives": "wohnt hier: {names}",
+      "works": "arbeitet hier: {names}",
+      "more": "und {count} weitere"
+    },
+    "vehicle": {
+      "aboard": "an Bord: {names}",
+      "building": "wird gebaut",
+      "sailing": "unter Segel",
+      "moored": "am Hafen vertäut",
+      "cargo": "{count} Waren an Bord"
+    },
+    "caravan": {
+      "title": "Karawane",
+      "load": "trägt {amount} {cargo}",
+      "route": "von {from} nach {to}"
+    }
+  },
   "pair": {
     "marry": {
       "next": "Heiraten · jetzt die andere Person anklicken",
@@ -362,6 +388,22 @@
       "decline": "Niedergang",
       "scarcity": "Knappheit",
       "recovery": "Erholung"
+    },
+    "vehicle": {
+      "boat": "Boot",
+      "ship": "Schiff",
+      "cart": "Karren",
+      "wagon": "Wagen",
+      "carriage": "Kutsche",
+      "sled": "Schlitten",
+      "bicycle": "Fahrrad",
+      "automobile": "Automobil",
+      "truck": "Lastwagen",
+      "train": "Zug",
+      "subway": "U-Bahn",
+      "plane": "Flugzeug",
+      "helicopter": "Hubschrauber",
+      "rocket": "Rakete"
     },
     "building": {
       "hut": "Hütte",

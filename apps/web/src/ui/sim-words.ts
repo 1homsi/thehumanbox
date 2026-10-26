@@ -230,6 +230,28 @@ export function buildingKindWord(kind: string | null | undefined): string {
   return wordOf(BUILDING_KINDS, kind)
 }
 
+const VEHICLE_KINDS = new Map<string, MessageKey>([
+  ['boat', 'model.words.vehicle.boat'],
+  ['ship', 'model.words.vehicle.ship'],
+  ['cart', 'model.words.vehicle.cart'],
+  ['wagon', 'model.words.vehicle.wagon'],
+  ['carriage', 'model.words.vehicle.carriage'],
+  ['sled', 'model.words.vehicle.sled'],
+  ['bicycle', 'model.words.vehicle.bicycle'],
+  ['automobile', 'model.words.vehicle.automobile'],
+  ['truck', 'model.words.vehicle.truck'],
+  ['train', 'model.words.vehicle.train'],
+  ['subway', 'model.words.vehicle.subway'],
+  ['plane', 'model.words.vehicle.plane'],
+  ['helicopter', 'model.words.vehicle.helicopter'],
+  ['rocket', 'model.words.vehicle.rocket'],
+])
+
+/** A vehicle kind as words, e.g. "ship" or "cart". */
+export function vehicleKindWord(kind: string | null | undefined): string {
+  return wordOf(VEHICLE_KINDS, kind)
+}
+
 /** A discovery as words, e.g. "agriculture"; a discovery the table does not name is shown as its words. */
 export function discoveryWord(id: string): string {
   const key = `model.words.discovery.${id}`

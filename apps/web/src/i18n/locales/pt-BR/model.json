@@ -329,6 +329,32 @@
       "other": "{count} edifícios"
     }
   },
+  "thing": {
+    "building": {
+      "tribe": "pertence a {tribe}",
+      "construction": "em construção, {percent}% pronto",
+      "ruined": "em ruínas",
+      "rebuilding": "sendo reconstruído",
+      "repairing": "sendo reparado",
+      "damaged": "danificado, {percent}% firme",
+      "intact": "em bom estado",
+      "lives": "mora aqui: {names}",
+      "works": "trabalha aqui: {names}",
+      "more": "e mais {count}"
+    },
+    "vehicle": {
+      "aboard": "a bordo: {names}",
+      "building": "em construção",
+      "sailing": "navegando a vela",
+      "moored": "atracado no porto",
+      "cargo": "levando {count} mercadorias"
+    },
+    "caravan": {
+      "title": "caravana",
+      "load": "levando {amount} {cargo}",
+      "route": "de {from} para {to}"
+    }
+  },
   "pair": {
     "marry": {
       "next": "casar · agora clique na outra pessoa",
@@ -362,6 +388,22 @@
       "decline": "declínio",
       "scarcity": "escassez",
       "recovery": "recuperação"
+    },
+    "vehicle": {
+      "boat": "barco",
+      "ship": "navio",
+      "cart": "carroça",
+      "wagon": "carroção",
+      "carriage": "carruagem",
+      "sled": "trenó",
+      "bicycle": "bicicleta",
+      "automobile": "automóvel",
+      "truck": "caminhão",
+      "train": "trem",
+      "subway": "metrô",
+      "plane": "avião",
+      "helicopter": "helicóptero",
+      "rocket": "foguete"
     },
     "building": {
       "hut": "cabana",

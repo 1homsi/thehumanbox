@@ -318,6 +318,32 @@
     "disputed": "係争の土地",
     "buildings": "{count} 棟"
   },
+  "thing": {
+    "building": {
+      "tribe": "{tribe}の所有",
+      "construction": "建設中（{percent}％完成）",
+      "ruined": "廃墟",
+      "rebuilding": "再建中",
+      "repairing": "修理中",
+      "damaged": "損傷あり（強度{percent}％）",
+      "intact": "良好な状態",
+      "lives": "住人: {names}",
+      "works": "働き手: {names}",
+      "more": "ほか{count}人"
+    },
+    "vehicle": {
+      "aboard": "乗員: {names}",
+      "building": "建造中",
+      "sailing": "帆走中",
+      "moored": "港に係留中",
+      "cargo": "積荷 {count} 点"
+    },
+    "caravan": {
+      "title": "隊商",
+      "load": "{amount} {cargo}を運搬中",
+      "route": "{from}から{to}へ"
+    }
+  },
   "pair": {
     "marry": {
       "next": "結婚 · 次に相手をクリック",
@@ -351,6 +377,22 @@
       "decline": "衰退",
       "scarcity": "欠乏",
       "recovery": "回復"
+    },
+    "vehicle": {
+      "boat": "ボート",
+      "ship": "船",
+      "cart": "荷車",
+      "wagon": "荷馬車",
+      "carriage": "馬車",
+      "sled": "ソリ",
+      "bicycle": "自転車",
+      "automobile": "自動車",
+      "truck": "トラック",
+      "train": "列車",
+      "subway": "地下鉄",
+      "plane": "飛行機",
+      "helicopter": "ヘリコプター",
+      "rocket": "ロケット"
     },
     "building": {
       "hut": "小屋",

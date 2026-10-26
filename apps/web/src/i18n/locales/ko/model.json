@@ -318,6 +318,32 @@
     "disputed": "분쟁 중인 땅",
     "buildings": "{count}개 건물"
   },
+  "thing": {
+    "building": {
+      "tribe": "{tribe} 소유",
+      "construction": "건설 중 ({percent}%)",
+      "ruined": "폐허",
+      "rebuilding": "재건 중",
+      "repairing": "수리 중",
+      "damaged": "손상됨 (온전함 {percent}%)",
+      "intact": "양호한 상태",
+      "lives": "거주: {names}",
+      "works": "근무: {names}",
+      "more": "외 {count}명"
+    },
+    "vehicle": {
+      "aboard": "탑승: {names}",
+      "building": "건조 중",
+      "sailing": "항해 중",
+      "moored": "항구에 정박",
+      "cargo": "짐 {count}개 적재"
+    },
+    "caravan": {
+      "title": "대상 행렬",
+      "load": "{amount} {cargo} 운반 중",
+      "route": "{from}에서 {to}까지"
+    }
+  },
   "pair": {
     "marry": {
       "next": "결혼 · 이제 상대를 클릭",
@@ -351,6 +377,22 @@
       "decline": "쇠퇴",
       "scarcity": "결핍",
       "recovery": "회복"
+    },
+    "vehicle": {
+      "boat": "보트",
+      "ship": "배",
+      "cart": "수레",
+      "wagon": "마차",
+      "carriage": "마차",
+      "sled": "썰매",
+      "bicycle": "자전거",
+      "automobile": "자동차",
+      "truck": "트럭",
+      "train": "기차",
+      "subway": "지하철",
+      "plane": "비행기",
+      "helicopter": "헬리콥터",
+      "rocket": "로켓"
     },
     "building": {
       "hut": "오두막",

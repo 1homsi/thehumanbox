@@ -351,6 +351,32 @@
       "other": "{count} budynku"
     }
   },
+  "thing": {
+    "building": {
+      "tribe": "należy do: {tribe}",
+      "construction": "w budowie, {percent}% gotowe",
+      "ruined": "w ruinie",
+      "rebuilding": "odbudowywany",
+      "repairing": "naprawiany",
+      "damaged": "uszkodzony, {percent}% sprawny",
+      "intact": "w dobrym stanie",
+      "lives": "mieszka tu: {names}",
+      "works": "pracuje tu: {names}",
+      "more": "i {count} więcej"
+    },
+    "vehicle": {
+      "aboard": "na pokładzie: {names}",
+      "building": "w budowie",
+      "sailing": "pod żaglami",
+      "moored": "przycumowany w porcie",
+      "cargo": "wiezie {count} towarów"
+    },
+    "caravan": {
+      "title": "karawana",
+      "load": "wiezie {amount} {cargo}",
+      "route": "z {from} do {to}"
+    }
+  },
   "pair": {
     "marry": {
       "next": "małżeństwo · teraz kliknij drugą osobę",
@@ -384,6 +410,22 @@
       "decline": "upadek",
       "scarcity": "niedobór",
       "recovery": "odbudowa"
+    },
+    "vehicle": {
+      "boat": "łódź",
+      "ship": "statek",
+      "cart": "wóz",
+      "wagon": "wóz kryty",
+      "carriage": "powóz",
+      "sled": "sanie",
+      "bicycle": "rower",
+      "automobile": "samochód",
+      "truck": "ciężarówka",
+      "train": "pociąg",
+      "subway": "metro",
+      "plane": "samolot",
+      "helicopter": "helikopter",
+      "rocket": "rakieta"
     },
     "building": {
       "hut": "chata",

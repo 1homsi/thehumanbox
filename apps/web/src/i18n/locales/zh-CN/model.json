@@ -318,6 +318,32 @@
     "disputed": "争议土地",
     "buildings": "{count} 座建筑"
   },
+  "thing": {
+    "building": {
+      "tribe": "归{tribe}所有",
+      "construction": "建造中，{percent}%",
+      "ruined": "已成废墟",
+      "rebuilding": "重建中",
+      "repairing": "修缮中",
+      "damaged": "受损，结构完好{percent}%",
+      "intact": "状况良好",
+      "lives": "住户：{names}",
+      "works": "工作者：{names}",
+      "more": "另有{count}人"
+    },
+    "vehicle": {
+      "aboard": "乘员：{names}",
+      "building": "建造中",
+      "sailing": "扬帆航行",
+      "moored": "停泊在港口",
+      "cargo": "载货 {count} 件"
+    },
+    "caravan": {
+      "title": "商队",
+      "load": "正运送{amount}{cargo}",
+      "route": "从{from}前往{to}"
+    }
+  },
   "pair": {
     "marry": {
       "next": "结合 · 现在点击另一个人",
@@ -351,6 +377,22 @@
       "decline": "衰退",
       "scarcity": "匮乏",
       "recovery": "复苏"
+    },
+    "vehicle": {
+      "boat": "小船",
+      "ship": "大船",
+      "cart": "马车",
+      "wagon": "货车",
+      "carriage": "马车",
+      "sled": "雪橇",
+      "bicycle": "自行车",
+      "automobile": "汽车",
+      "truck": "卡车",
+      "train": "火车",
+      "subway": "地铁",
+      "plane": "飞机",
+      "helicopter": "直升机",
+      "rocket": "火箭"
     },
     "building": {
       "hut": "小屋",

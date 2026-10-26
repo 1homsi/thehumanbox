@@ -351,6 +351,32 @@
       "other": "{count} будівлі"
     }
   },
+  "thing": {
+    "building": {
+      "tribe": "належить: {tribe}",
+      "construction": "будується, {percent}% готово",
+      "ruined": "у руїнах",
+      "rebuilding": "відновлюється",
+      "repairing": "ремонтується",
+      "damaged": "пошкоджено, цілісність {percent}%",
+      "intact": "у доброму стані",
+      "lives": "мешкає тут: {names}",
+      "works": "працює тут: {names}",
+      "more": "і ще {count}"
+    },
+    "vehicle": {
+      "aboard": "на борту: {names}",
+      "building": "будується",
+      "sailing": "під вітрилом",
+      "moored": "пришвартований у порту",
+      "cargo": "везе вантажів: {count}"
+    },
+    "caravan": {
+      "title": "караван",
+      "load": "везе: {amount} {cargo}",
+      "route": "з {from} до {to}"
+    }
+  },
   "pair": {
     "marry": {
       "next": "шлюб · тепер клацніть на іншу людину",
@@ -384,6 +410,22 @@
       "decline": "занепад",
       "scarcity": "нестача",
       "recovery": "відновлення"
+    },
+    "vehicle": {
+      "boat": "човен",
+      "ship": "корабель",
+      "cart": "віз",
+      "wagon": "фургон",
+      "carriage": "карета",
+      "sled": "сани",
+      "bicycle": "велосипед",
+      "automobile": "автомобіль",
+      "truck": "вантажівка",
+      "train": "потяг",
+      "subway": "метро",
+      "plane": "літак",
+      "helicopter": "гелікоптер",
+      "rocket": "ракета"
     },
     "building": {
       "hut": "хатина",

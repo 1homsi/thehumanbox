@@ -332,6 +332,32 @@
       "other": "{count} buildings"
     }
   },
+  "thing": {
+    "building": {
+      "tribe": "held by {tribe}",
+      "construction": "being built, {percent}% done",
+      "ruined": "in ruins",
+      "rebuilding": "being rebuilt",
+      "repairing": "being repaired",
+      "damaged": "damaged, {percent}% sound",
+      "intact": "in good repair",
+      "lives": "lives here: {names}",
+      "works": "works here: {names}",
+      "more": "and {count} more"
+    },
+    "vehicle": {
+      "aboard": "aboard: {names}",
+      "building": "being built",
+      "sailing": "under sail",
+      "moored": "moored at harbour",
+      "cargo": "carrying {count} goods"
+    },
+    "caravan": {
+      "title": "caravan",
+      "load": "carrying {amount} {cargo}",
+      "route": "from {from} to {to}"
+    }
+  },
   "pair": {
     "marry": {
       "next": "marry · now click the other person",
@@ -365,6 +391,22 @@
       "decline": "decline",
       "scarcity": "scarcity",
       "recovery": "recovery"
+    },
+    "vehicle": {
+      "boat": "boat",
+      "ship": "ship",
+      "cart": "cart",
+      "wagon": "wagon",
+      "carriage": "carriage",
+      "sled": "sled",
+      "bicycle": "bicycle",
+      "automobile": "automobile",
+      "truck": "truck",
+      "train": "train",
+      "subway": "subway",
+      "plane": "plane",
+      "helicopter": "helicopter",
+      "rocket": "rocket"
     },
     "building": {
       "hut": "hut",

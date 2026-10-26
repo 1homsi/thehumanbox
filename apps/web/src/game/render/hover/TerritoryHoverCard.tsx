@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState, type CSSProperties, type MutableRefObject } from 'react'
+import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import { lineageColor } from '../../../shared/constants'
 import type { WorldState } from '../../../shared/types'
 import { t } from '../../../i18n'
 import { territoryCardFacts, type TerritoryCardFacts } from '../../model/territory-card'
 import { lineageAtTerritoryTile, territoryTileKey, type TerritoryIndex } from '../../model/territory'
 import { TILE } from '../../model/palette'
+import { mapThingAt } from '../../model/map-things'
 import { isMapControl, screenToMap, type MapCamera, type MapSize } from '../camera-controls'
-import { pickBuildingAt, pickPersonAt } from '../cf/picking'
+import { pickPersonAt } from '../cf/picking'
+import { caravanDrawnAt } from '../base-parts/trade-network'
+import { CARD } from './card-style'
 
 interface Props {
   world: WorldState
@@ -16,21 +19,6 @@ interface Props {
   /** Off while a tool is armed: the pointer is then placing things, not reading them. */
   enabled: boolean
   territoryIndex: TerritoryIndex
-}
-
-const CARD: CSSProperties = {
-  position: 'absolute',
-  zIndex: 15,
-  pointerEvents: 'none',
-  minWidth: 140,
-  maxWidth: 220,
-  padding: '6px 8px',
-  background: 'rgba(20, 15, 10, 0.94)',
-  border: '1px solid #c9a24a',
-  borderRadius: 3,
-  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.5)',
-  color: '#f1e6c8',
-  font: '11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace',
 }
 
 /**
@@ -49,8 +37,9 @@ export function TerritoryHoverCard({
 }: Props) {
   const box = useRef<HTMLDivElement>(null)
   const [hover, setHover] = useState<{ lineage: string; contested: boolean } | null>(null)
-  const latest = useRef({ territoryIndex, ox: 0, oy: 0 })
+  const latest = useRef({ world, territoryIndex, ox: 0, oy: 0 })
   latest.current = {
+    world,
     territoryIndex,
     ox: world.grid.origin_x ?? 0,
     oy: world.grid.origin_y ?? 0,
@@ -69,10 +58,12 @@ export function TerritoryHoverCard({
       const cx = e.clientX - bounds.left
       const cy = e.clientY - bounds.top
       const at = screenToMap(cameraRef.current, { x: cx, y: cy }, viewport)
-      if (pickPersonAt(at.x, at.y) || (pickBuildingAt(at.x, at.y) ?? -1) >= 0) return hide()
-      const { territoryIndex: index, ox, oy } = latest.current
+      if (pickPersonAt(at.x, at.y)) return hide()
+      const { world: current, territoryIndex: index, ox, oy } = latest.current
       const tx = Math.floor(at.x / TILE) + ox
       const ty = Math.floor(at.y / TILE) + oy
+      // A building, vehicle or caravan under the pointer has its own card (see ThingHoverCard).
+      if (mapThingAt(current, { x: at.x / TILE + ox, y: at.y / TILE + oy }, caravanDrawnAt)) return hide()
       const lineage = lineageAtTerritoryTile(index, tx, ty)
       if (!lineage) return hide()
       el.style.display = 'block'

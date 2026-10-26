@@ -318,6 +318,32 @@
     "disputed": "çekişmeli toprak",
     "buildings": "{count} bina"
   },
+  "thing": {
+    "building": {
+      "tribe": "{tribe} sahibi",
+      "construction": "inşa ediliyor, %{percent} tamam",
+      "ruined": "harabe halinde",
+      "rebuilding": "yeniden inşa ediliyor",
+      "repairing": "onarılıyor",
+      "damaged": "hasarlı, %{percent} sağlam",
+      "intact": "iyi durumda",
+      "lives": "burada yaşıyor: {names}",
+      "works": "burada çalışıyor: {names}",
+      "more": "ve {count} kişi daha"
+    },
+    "vehicle": {
+      "aboard": "yolcular: {names}",
+      "building": "yapılıyor",
+      "sailing": "yelkenle seyrediyor",
+      "moored": "limanda demirli",
+      "cargo": "{count} yük taşıyor"
+    },
+    "caravan": {
+      "title": "kervan",
+      "load": "{amount} {cargo} taşıyor",
+      "route": "{from} ile {to} arası"
+    }
+  },
   "pair": {
     "marry": {
       "next": "evlendir · şimdi diğer kişiye tıklayın",
@@ -351,6 +377,22 @@
       "decline": "gerileme",
       "scarcity": "kıtlık",
       "recovery": "toparlanma"
+    },
+    "vehicle": {
+      "boat": "tekne",
+      "ship": "gemi",
+      "cart": "araba",
+      "wagon": "vagon",
+      "carriage": "fayton",
+      "sled": "kızak",
+      "bicycle": "bisiklet",
+      "automobile": "otomobil",
+      "truck": "kamyon",
+      "train": "tren",
+      "subway": "metro",
+      "plane": "uçak",
+      "helicopter": "helikopter",
+      "rocket": "roket"
     },
     "building": {
       "hut": "kulübe",

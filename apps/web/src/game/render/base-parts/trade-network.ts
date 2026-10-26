@@ -30,8 +30,33 @@ function routeOf(routes: TradeRouteInfo[] | undefined, id: number): TradeRouteIn
 const at: PathPoint = { x: 0, y: 0, angle: 0 }
 const routePaths: { route: TradeRouteInfo; path: PlannedPath }[] = []
 const caravansInView: { caravan: CaravanInfo; x: number; y: number; angle: number }[] = []
+/** How many of `caravansInView` the last caravan draw put on the map, and the grid corner they are measured from. */
+let caravansDrawn = 0
+const caravanOrigin = { x: 0, y: 0 }
 let tiersFor: WorldState['lineage_eras']
 let tiers = new Map<string, number>()
+
+/**
+ * The id of the caravan drawn nearest a world point (in tiles, as the sim numbers them), within `reach`
+ * tiles of its centre, or null. Reads where the last caravan draw put them, so the hover card names
+ * exactly the caravans on screen and never one that is off the map.
+ */
+export function caravanDrawnAt(worldX: number, worldY: number, reach: number): number | null {
+  let best: number | null = null
+  let bestDistance = reach
+  for (let i = 0; i < caravansDrawn; i++) {
+    const slot = caravansInView[i]!
+    const distance = Math.hypot(
+      slot.x + 0.5 + caravanOrigin.x - worldX,
+      slot.y + 0.5 + caravanOrigin.y - worldY,
+    )
+    if (distance < bestDistance) {
+      bestDistance = distance
+      best = slot.caravan.id
+    }
+  }
+  return best
+}
 
 /**
  * What moves on the trade roads: cars on the asphalt of the modern ages and the red barrier of a road closed by
@@ -47,10 +72,13 @@ export function drawTradeNetwork2D(
   layer: 'roads' | 'caravans',
   planner: TradePathPlanner = tradePaths,
 ) {
+  caravansDrawn = 0
   if (!world.trade_routes?.length && !world.caravans?.length) return
 
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
+  caravanOrigin.x = ox
+  caravanOrigin.y = oy
   const margin = 8
   const isVisible = (x: number, y: number) =>
     x >= bounds.c0 - margin && x <= bounds.c1 + margin && y >= bounds.r0 - margin && y <= bounds.r1 + margin
@@ -140,6 +168,7 @@ export function drawTradeNetwork2D(
     slot.angle = angle
     if (++seen >= MAX_CARAVANS_2D) break
   }
+  caravansDrawn = seen
   for (let i = 0; i < seen; i++) {
     const { caravan, x, y, angle } = caravansInView[i]!
     const px = (x + 0.5) * TILE
