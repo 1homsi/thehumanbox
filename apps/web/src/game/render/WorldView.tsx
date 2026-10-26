@@ -374,6 +374,7 @@ export function WorldView({
           viewport={dims}
           container={containerRef.current}
           enabled={!sandboxArmed}
+          territoryIndex={territoryIndex}
         />
       )}
       {mapReady && !viewFlags.hideUI && <MapControls commandRef={commandRef} onLocate={locateSelected} />}

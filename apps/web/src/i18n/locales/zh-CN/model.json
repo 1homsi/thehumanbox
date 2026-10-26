@@ -364,6 +364,33 @@
       "route": "从{from}前往{to}"
     }
   },
+  "terrain": {
+    "ground": {
+      "grass": "草地",
+      "shallowWater": "浅水",
+      "deepWater": "深水",
+      "floodwater": "洪水",
+      "sand": "沙地",
+      "snow": "雪地",
+      "ice": "冰面",
+      "rock": "岩石",
+      "ash": "灰烬",
+      "scorched": "焦土",
+      "lava": "熔岩",
+      "mineral": "矿地",
+      "foodGround": "食物丰富的地面",
+      "fire": "火焰",
+      "campfire": "篝火"
+    },
+    "note": {
+      "track": "踩出的小路",
+      "rail": "铁路",
+      "canal": "灌溉渠",
+      "bridge": "桥",
+      "fertile": "肥沃的土地",
+      "onFire": "着火"
+    }
+  },
   "pair": {
     "marry": {
       "next": "结合 · 现在点击另一个人",

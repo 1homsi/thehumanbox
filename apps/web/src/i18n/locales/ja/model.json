@@ -364,6 +364,33 @@
       "route": "{from}から{to}へ"
     }
   },
+  "terrain": {
+    "ground": {
+      "grass": "草地",
+      "shallowWater": "浅い水",
+      "deepWater": "深い水",
+      "floodwater": "洪水の水",
+      "sand": "砂",
+      "snow": "雪",
+      "ice": "氷",
+      "rock": "岩",
+      "ash": "灰",
+      "scorched": "焼けた地面",
+      "lava": "溶岩",
+      "mineral": "鉱石の地面",
+      "foodGround": "食べ物の多い地面",
+      "fire": "火",
+      "campfire": "焚き火"
+    },
+    "note": {
+      "track": "踏み固められた道",
+      "rail": "線路",
+      "canal": "灌漑水路",
+      "bridge": "橋",
+      "fertile": "肥沃な土",
+      "onFire": "燃えている"
+    }
+  },
   "pair": {
     "marry": {
       "next": "結婚 · 次に相手をクリック",

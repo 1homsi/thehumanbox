@@ -7,6 +7,7 @@ import type { WorldState } from '../../../shared/types'
 import type { MapCamera } from '../camera-controls'
 import { loadLocale } from '../../../i18n'
 import { registerPeopleLayer } from '../cf/picking'
+import { buildTerritoryIndex } from '../../model/territory'
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
 afterAll(() => vi.unstubAllGlobals())
@@ -22,7 +23,10 @@ afterEach(async () => {
  * Renders the card over a 800x600 map (camera at tile 10, 10) and moves the pointer to the screen
  * centre, which is map tile (10, 10). Returns the card's text after the move.
  */
-function cardTextAt(world: WorldState, { enabled = true, buttons = 0 } = {}): string {
+function cardTextAt(
+  world: WorldState,
+  { enabled = true, buttons = 0, claimed = [] as [number, number][] } = {},
+): string {
   const host = document.createElement('div')
   const container = document.createElement('div')
   container.getBoundingClientRect = () =>
@@ -51,6 +55,10 @@ function cardTextAt(world: WorldState, { enabled = true, buttons = 0 } = {}): st
         viewport={{ w: 800, h: 600 }}
         container={container}
         enabled={enabled}
+        territoryIndex={buildTerritoryIndex({
+          claimed: claimed.length > 0 ? [{ lid: 'l1', tiles: claimed }] : [],
+          contested: [],
+        })}
       />,
     )
   })
@@ -84,6 +92,20 @@ function townWorld(): WorldState {
   } as unknown as WorldState
 }
 
+/** Open sea-side ground: grass everywhere, and deep water on the tile (10, 10) under the pointer. */
+function waterWorld(): WorldState {
+  const tiles = Array.from({ length: 12 }, () => Array.from({ length: 12 }, () => 1))
+  const depth = Array.from({ length: 12 }, () => Array.from({ length: 12 }, () => 255))
+  tiles[10][10] = 2
+  depth[10][10] = 100
+  return {
+    tick: 1,
+    grid: { width: 12, height: 12, origin_x: 0, origin_y: 0, tiles, depth_map: depth },
+    organisms: [],
+    buildings: [],
+  } as unknown as WorldState
+}
+
 describe('ThingHoverCard', () => {
   it('names the building under the pointer with its tribe and its state', () => {
     expect(cardTextAt(townWorld())).toBe(
@@ -96,9 +118,14 @@ describe('ThingHoverCard', () => {
     expect(cardTextAt(townWorld())).toContain('Kornspeicher')
   })
 
-  it('shows nothing over open ground, and nothing while a god tool is armed', () => {
+  it('names unclaimed ground under the pointer, and nothing while a god tool is armed', () => {
     expect(cardTextAt({ ...townWorld(), buildings: [] } as unknown as WorldState)).toBe('')
     expect(cardTextAt(townWorld(), { enabled: false })).toBe('')
+    expect(cardTextAt(waterWorld())).toBe('Deep water')
+  })
+
+  it('leaves claimed ground to the tribe card, which names the ground in its own line', () => {
+    expect(cardTextAt(waterWorld(), { claimed: [[10, 10]] })).toBe('')
   })
 
   it('shows nothing while the button is held (a drag, not a hover)', () => {

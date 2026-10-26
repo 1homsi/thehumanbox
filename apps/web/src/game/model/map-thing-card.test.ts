@@ -8,7 +8,57 @@ import type {
   WorldState,
 } from '../../shared/types'
 import { loadLocale } from '../../i18n'
-import { mapThingCard } from './map-thing-card'
+import { groundLine, mapThingCard } from './map-thing-card'
+import { TILE_ID } from './terrain-ids'
+
+/** A 3x3 grid with water and a fire on its middle tile, which is deep (depth 100) and burning. */
+function burningWaterGrid(): WorldState['grid'] {
+  const tiles: number[][] = Array.from({ length: 3 }, () => [TILE_ID.GRASS, TILE_ID.GRASS, TILE_ID.GRASS])
+  tiles[1][1] = TILE_ID.WATER
+  const depth = Array.from({ length: 3 }, () => [255, 255, 255])
+  depth[1][1] = 100
+  const fire = Array.from({ length: 3 }, () => [0, 0, 0])
+  fire[1][1] = 0.5
+  return {
+    width: 3,
+    height: 3,
+    origin_x: 0,
+    origin_y: 0,
+    tiles,
+    depth_map: depth,
+    fire_intensity: fire,
+    fertility: Array.from({ length: 3 }, () => [0, 0, 0]),
+    roads: Array.from({ length: 3 }, () => [0, 0, 0]),
+    structure: Array.from({ length: 3 }, () => [0, 0, 0]),
+  } as unknown as WorldState['grid']
+}
+
+describe('ground cards', () => {
+  it('names the ground under a tile and its notes', () => {
+    const w = world({ grid: burningWaterGrid() } as Partial<WorldState>)
+    expect(mapThingCard(w, { kind: 'ground', x: 1, y: 1 })).toEqual({
+      title: 'Deep water',
+      lines: ['on fire'],
+    })
+  })
+
+  it('gives the ground in one line for a tribe card, with its notes after it', () => {
+    const w = world({ grid: burningWaterGrid() } as Partial<WorldState>)
+    expect(groundLine(w, 1.5, 1.5)).toBe('deep water · on fire')
+    expect(groundLine(w, 0.5, 0.5)).toBe('grass')
+    expect(groundLine(w, 9.5, 9.5)).toBeNull()
+  })
+
+  it('is null when the ground is gone from the grid', () => {
+    expect(
+      mapThingCard(world({ grid: burningWaterGrid() } as Partial<WorldState>), {
+        kind: 'ground',
+        x: 7,
+        y: 7,
+      }),
+    ).toBeNull()
+  })
+})
 
 afterEach(async () => {
   await loadLocale('en')
