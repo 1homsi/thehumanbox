@@ -16,6 +16,7 @@ import {
   runStorageRetry,
   type StorageRetry,
 } from './wasmPersistence'
+import { FAILED_OUTCOME, parseCommandOutcome } from './command-outcome'
 import {
   MAX_RUNTIME_SPEED,
   MIN_RUNTIME_SPEED,
@@ -762,16 +763,16 @@ self.onmessage = (e: MessageEvent) => {
       break
     case 'command':
       if (sim && !reloadPreparing) {
-        const ok = sim.command(msg.json)
-        if (ok) {
+        const outcome = parseCommandOutcome(sim.command(msg.json)) ?? FAILED_OUTCOME
+        if (outcome.applied) {
           emit(true)
           // Player actions are important checkpoints. Save them immediately
           // so terrain edits, disasters, and spawned life survive a reload.
           void persist()
         }
-        post({ type: 'command_result', requestId: msg.requestId, ok })
+        post({ type: 'command_result', requestId: msg.requestId, ok: outcome.applied, outcome })
       } else {
-        post({ type: 'command_result', requestId: msg.requestId, ok: false })
+        post({ type: 'command_result', requestId: msg.requestId, ok: false, outcome: FAILED_OUTCOME })
       }
       break
     case 'org_detail':

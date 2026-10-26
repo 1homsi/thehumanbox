@@ -371,6 +371,11 @@
         "learn": "次の時代のために{secret}を学ぶ",
         "carryOn": "今のまま続ける"
       }
+    },
+    "guide": {
+      "known": "秘密を{known}／{required}知っている",
+      "worldPeople": "この時代に必要な{need}人のうち、世界には{have}人いる（あと{short}人）",
+      "ready": "準備完了: 次に世界が確かめるとき、時代が訪れる"
     }
   },
   "scene": {

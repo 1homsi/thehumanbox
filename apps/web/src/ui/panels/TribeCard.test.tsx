@@ -286,4 +286,41 @@ describe('TribeCard', () => {
     expect(host.textContent).toContain('remembers the hungry winter of year 3')
     expect(host.textContent).toContain('weary of war after 9 of their own fell in battle')
   })
+
+  it('guides a tribe to its next age by the world it needs, not by its own size', () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    roots.push(root)
+
+    const w = {
+      ...world(['a', 'b']),
+      lineage_era_progress: [
+        {
+          lineage_id: 'a',
+          era_name: 'stone',
+          next_era: 'bronze',
+          pop: 1,
+          pop_required: 8,
+          pop_ready: false,
+          world_population: 2,
+          world_population_required: 6,
+          world_population_ready: false,
+          required: ['farming', 'pottery'],
+          known: ['pottery'],
+          missing: ['farming'],
+          discovery_ready: false,
+          ready: false,
+        },
+      ],
+    } as unknown as WorldState
+    act(() => useUIStore.setState({ focus: 'lineage:a' }))
+    act(() => root.render(card(w)))
+
+    expect(host.textContent).toContain(t('panels.tribe.guide.known', { known: '1', required: '2' }))
+    expect(host.textContent).toContain(t('panels.tribe.stillToLearn', { list: 'farming' }))
+    expect(host.textContent).toContain(
+      t('panels.tribe.guide.worldPeople', { have: '2', need: '6', short: '4' }),
+    )
+  })
 })

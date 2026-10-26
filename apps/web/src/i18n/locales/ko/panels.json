@@ -371,6 +371,11 @@
         "learn": "다음 시대를 위해 {secret} 배우기",
         "carryOn": "지금처럼 계속하기"
       }
+    },
+    "guide": {
+      "known": "비밀 {required}개 중 {known}개를 앎",
+      "worldPeople": "이 시대에 필요한 {need}명 중 세계에 {have}명이 있음 ({short}명 부족)",
+      "ready": "준비됨: 세계의 다음 점검 때 시대가 옴"
     }
   },
   "scene": {

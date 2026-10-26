@@ -402,6 +402,11 @@
         "learn": "nauczyć się: {secret} na następną epokę",
         "carryOn": "działać dalej jak dotąd"
       }
+    },
+    "guide": {
+      "known": "znane tajemnice: {known} z {required}",
+      "worldPeople": "świat ma {have} z {need} ludzi potrzebnych tej epoce (brakuje {short})",
+      "ready": "gotowe: epoka nadejdzie przy następnym sprawdzeniu świata"
     }
   },
   "scene": {

@@ -54,6 +54,7 @@ impl Simulation {
                     &name,
                     "was struck down by lightning",
                 );
+                self.report("smitten", 1, Some(name.as_str()));
                 true
             }
             (_, Some((i, _))) => {
@@ -66,10 +67,14 @@ impl Simulation {
                     "lightning",
                     &format!("struck down {kind}"),
                 );
+                self.report("struck_beast", 1, None);
                 true
             }
             _ => false,
         };
+        if !struck {
+            self.report(if roofs > 0 { "struck_roof" } else { "none_here" }, 0, None);
+        }
         struck || roofs > 0
     }
 

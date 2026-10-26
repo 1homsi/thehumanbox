@@ -30,13 +30,17 @@ impl Simulation {
             .filter(|&(_, d)| d <= reach)
             .min_by(|a, b| a.1.total_cmp(&b.1));
         let Some((i, _)) = nearest else {
+            self.report("none_here", 0, None);
             return false;
         };
         let person = &mut self.organisms[i];
+        let name = person.name.clone();
         if what == "food" {
             person.inv_food = person.inv_food.saturating_add(FOOD_GIFT);
+            self.report("gifted_food", 1, Some(name.as_str()));
         } else {
             person.give_tool(GIFT_TOOL);
+            self.report("gifted_tool", 1, Some(name.as_str()));
         }
         true
     }

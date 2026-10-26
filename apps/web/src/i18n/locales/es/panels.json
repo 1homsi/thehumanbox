@@ -378,6 +378,11 @@
         "learn": "aprender {secret} para la próxima era",
         "carryOn": "seguir como están"
       }
+    },
+    "guide": {
+      "known": "{known} de {required} secretos conocidos",
+      "worldPeople": "el mundo tiene {have} de las {need} personas que necesita esta era (faltan {short})",
+      "ready": "listo: la era llega en la próxima revisión del mundo"
     }
   },
   "scene": {

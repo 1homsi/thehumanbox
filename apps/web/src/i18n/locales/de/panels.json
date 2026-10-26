@@ -378,6 +378,11 @@
         "learn": "{secret} für die nächste Epoche lernen",
         "carryOn": "wie bisher weitermachen"
       }
+    },
+    "guide": {
+      "known": "{known} von {required} Geheimnissen bekannt",
+      "worldPeople": "die Welt hat {have} von {need} Menschen, die dieses Zeitalter braucht ({short} fehlen)",
+      "ready": "bereit: das Zeitalter kommt bei der nächsten Prüfung der Welt"
     }
   },
   "scene": {
