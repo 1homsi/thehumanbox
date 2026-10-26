@@ -47,13 +47,28 @@ impl Simulation {
                 } else {
                     home_is_the_way_out((hx, hy), (ox, oy), (wx, wy))
                 };
+                let (tx, ty) = if run_home {
+                    (hx.round() as i32, hy.round() as i32)
+                } else {
+                    // A pack's direction uses sign_of: f32::signum would call a zero offset 1.
+                    let (pdx, pdy) = if from_pack {
+                        (sign_of(ox - wx), sign_of(oy - wy))
+                    } else {
+                        (fdx, fdy)
+                    };
+                    safe_flee_target(&self.grid, ox, oy, pdx, pdy, flee_dist)
+                };
                 // The step follows the way it is going: towards home when running there, else away.
-                let (sx, sy) = if run_home && from_pack {
-                    ((hx - ox).signum(), (hy - oy).signum())
+                let (sx, sy) = if from_pack {
+                    if run_home {
+                        (sign_of(hx - ox), sign_of(hy - oy))
+                    } else {
+                        (sign_of(ox - wx), sign_of(oy - wy))
+                    }
                 } else {
                     (fdx, fdy)
                 };
-                let dir = match (sx as i32, sy as i32) {
+                let mut dir = match (sx as i32, sy as i32) {
                     (0, -1) => 0,
                     (0, 1) => 1,
                     (-1, 0) => 2,
@@ -64,11 +79,11 @@ impl Simulation {
                     (1, 1) => 7,
                     _ => 0,
                 };
-                let (tx, ty) = if run_home {
-                    (hx.round() as i32, hy.round() as i32)
-                } else {
-                    safe_flee_target(&self.grid, ox, oy, fdx, fdy, flee_dist)
-                };
+                // A pack flight's immediate step never enters water: it takes the dry neighbour nearest
+                // its target instead, or keeps the step if there is none.
+                if from_pack && step_is_wet(&self.grid, ox, oy, dir) {
+                    dir = dry_step_towards(&self.grid, ox, oy, tx, ty).unwrap_or(dir);
+                }
                 // A pack flight never aims at water; with no dry target it keeps its old course.
                 let wet_target = from_pack && self.grid.is_wet(self.grid.get(tx, ty), tx, ty);
                 if !wet_target {
@@ -208,15 +223,66 @@ fn flight_threat(
     }
 }
 
+/// The sign of an offset: -1, 0 or 1. Unlike `f32::signum`, a zero offset gives 0.
+fn sign_of(d: f32) -> f32 {
+    if d > 0.0 {
+        1.0
+    } else if d < 0.0 {
+        -1.0
+    } else {
+        0.0
+    }
+}
+
+/// The eight steps a person can take, in the order their action numbers use (see `decide`).
+const STEPS: [(i32, i32); 8] = [
+    (0, -1),
+    (0, 1),
+    (-1, 0),
+    (1, 0),
+    (-1, -1),
+    (1, -1),
+    (-1, 1),
+    (1, 1),
+];
+
+/// True when a step onto this tile keeps a person out of water and fire.
+fn dry_tile(grid: &WorldGrid, x: i32, y: i32) -> bool {
+    let tile = grid.get(x, y);
+    tile.walkable() && tile != Tile::Fire && !grid.is_wet(tile, x, y)
+}
+
+/// True when the step in direction `dir` from (ox, oy) lands in water.
+fn step_is_wet(grid: &WorldGrid, ox: f32, oy: f32, dir: usize) -> bool {
+    let (dx, dy) = STEPS[dir];
+    let (x, y) = (ox as i32 + dx, oy as i32 + dy);
+    grid.is_wet(grid.get(x, y), x, y)
+}
+
+/// The action number of the dry neighbour nearest (tx, ty), or None when every neighbour is wet.
+fn dry_step_towards(grid: &WorldGrid, ox: f32, oy: f32, tx: i32, ty: i32) -> Option<usize> {
+    let (ix, iy) = (ox as i32, oy as i32);
+    (0..8)
+        .filter(|&d| {
+            let (dx, dy) = STEPS[d];
+            dry_tile(grid, ix + dx, iy + dy)
+        })
+        .min_by_key(|&d| {
+            let (dx, dy) = STEPS[d];
+            (tx - (ix + dx)).abs() + (ty - (iy + dy)).abs()
+        })
+}
+
 /// True when every tile on the straight line from `from` to `to` is dry ground a person can walk on.
+/// A hut at the end is allowed: it is the shelter itself, and people walk up to its doorstep.
 fn dry_line(grid: &WorldGrid, from: (f32, f32), to: (f32, f32)) -> bool {
     let steps = (to.0 - from.0).abs().max((to.1 - from.1).abs()).ceil().max(1.0) as i32;
     (0..=steps).all(|s| {
         let t = s as f32 / steps as f32;
         let x = (from.0 + (to.0 - from.0) * t).round() as i32;
         let y = (from.1 + (to.1 - from.1) * t).round() as i32;
-        let tile = grid.get(x, y);
-        tile.walkable() && tile != Tile::Fire && !grid.is_wet(tile, x, y)
+        let end_hut = s == steps && grid.get(x, y) == Tile::Hut;
+        end_hut || dry_tile(grid, x, y)
     })
 }
 
