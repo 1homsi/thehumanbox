@@ -432,7 +432,6 @@ function LiveApp() {
   const handleSandboxApply = useCallback(
     (wx: number, wy: number) => {
       if (!sandboxControlsEnabled || !armedTool) return
-      countToolApply(armedTool.id)
       if (armedTool.id === 'follow') {
         // Following is the camera's business, not a world command: keep the nearest person in view.
         const person = nearestLivingPerson(useWorldStore.getState().world?.organisms ?? [], wx, wy, 4)
@@ -441,6 +440,7 @@ function LiveApp() {
           return
         }
         useUIStore.getState().followOrg(person.id)
+        countToolApply('follow')
         setTemporarySandboxStatus(t('model.status.following', { name: personName(person) }))
         return
       }
@@ -451,6 +451,7 @@ function LiveApp() {
           return
         }
         useUIStore.getState().startRename(person.id)
+        countToolApply('name')
         setTemporarySandboxStatus(t('model.status.naming', { name: personName(person) }))
         return
       }
@@ -463,9 +464,11 @@ function LiveApp() {
           return
         }
         pairFirstRef.current = null
-        void sendCommand(pair.build(first, { x: wx, y: wy })).then((outcome) =>
-          setTemporarySandboxStatus(describeOutcome(outcome) ?? t(outcome.applied ? pair.done : pair.failed)),
-        )
+        const pairId = armedTool.id
+        void sendCommand(pair.build(first, { x: wx, y: wy })).then((outcome) => {
+          if (outcome.applied) countToolApply(pairId)
+          setTemporarySandboxStatus(describeOutcome(outcome) ?? t(outcome.applied ? pair.done : pair.failed))
+        })
         return
       }
       if (!armedTool.build) return
@@ -475,6 +478,7 @@ function LiveApp() {
       setSandboxStatus(t('header.sandbox.toolAt', { tool: label, x, y }))
       const tool = armedTool
       void sendCommand(tool.build!(x, y, brush)).then((outcome) => {
+        if (outcome.applied) countToolApply(tool.id)
         setTemporarySandboxStatus(
           describeOutcome(outcome) ??
             (outcome.applied

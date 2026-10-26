@@ -32,6 +32,8 @@ interface Segment {
 }
 let segment: Segment = newSegment()
 let lastInputAt = 0
+/** When the page last became visible (or was last accounted), null while hidden. */
+let visibleSince: number | null = null
 
 function newSegment(): Segment {
   return { visibleMs: 0, activeMs: 0, events: {}, toolsApplied: {}, startTick: null }
@@ -81,6 +83,11 @@ export function initAnalytics(): void {
       })
       posthog.register(contextProps())
       client = posthog
+      let resizeTimer: number | undefined
+      window.addEventListener('resize', () => {
+        window.clearTimeout(resizeTimer)
+        resizeTimer = window.setTimeout(() => client?.register(contextProps()), 1000)
+      })
       startSessionClock()
       for (const fn of queued.splice(0, queued.length)) fn()
     })
@@ -128,16 +135,38 @@ function startSessionClock(): void {
   for (const type of ['pointerdown', 'keydown', 'wheel'] as const) {
     window.addEventListener(type, markInput, { passive: true, capture: true })
   }
-  window.setInterval(() => {
-    if (document.visibilityState !== 'visible') return
-    segment.visibleMs += CLOCK_MS
-    if (Date.now() - lastInputAt < ACTIVE_WINDOW_MS) segment.activeMs += CLOCK_MS
-    if (segment.startTick === null) segment.startTick = worldTick(readWorld())
-  }, CLOCK_MS)
+  if (document.visibilityState === 'visible') beginVisible()
+  window.setInterval(accrueVisible, CLOCK_MS)
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') sendSummary()
+    if (document.visibilityState === 'visible') {
+      beginVisible()
+    } else {
+      accrueVisible()
+      visibleSince = null
+      sendSummary()
+    }
   })
-  window.addEventListener('pagehide', sendSummary)
+  window.addEventListener('pagehide', () => {
+    accrueVisible()
+    visibleSince = null
+    sendSummary()
+  })
+}
+
+function beginVisible(): void {
+  visibleSince = Date.now()
+  if (segment.startTick === null) segment.startTick = worldTick(readWorld())
+}
+
+/** Add the visible time since the last account; it counts as active while input is recent. */
+function accrueVisible(): void {
+  if (visibleSince === null) return
+  const now = Date.now()
+  const elapsed = now - visibleSince
+  visibleSince = now
+  segment.visibleMs += elapsed
+  if (now - lastInputAt < ACTIVE_WINDOW_MS) segment.activeMs += elapsed
+  if (segment.startTick === null) segment.startTick = worldTick(readWorld())
 }
 
 function readWorld(): WorldSummary | null {
@@ -154,7 +183,9 @@ function worldTick(world: WorldSummary | null): number | null {
 
 /** One event per stretch of play, sent when the page is hidden or closed. */
 function sendSummary(): void {
-  if (!client || segment.visibleMs === 0) return
+  if (!client) return
+  const toolsTotal = Object.values(segment.toolsApplied).reduce((a, b) => a + b, 0)
+  if (segment.visibleMs === 0 && toolsTotal === 0 && Object.keys(segment.events).length === 0) return
   const world = readWorld()
   const tick = worldTick(world)
   const done = segment
@@ -167,9 +198,10 @@ function sendSummary(): void {
       ticks_watched: tick !== null && done.startTick !== null ? Math.max(0, tick - done.startTick) : null,
       event_counts: done.events,
       tools_applied: done.toolsApplied,
-      tools_applied_total: Object.values(done.toolsApplied).reduce((a, b) => a + b, 0),
+      tools_applied_total: toolsTotal,
       ...world,
     },
-    { transport: 'sendBeacon' },
+    // Unbatched, so it leaves before the page does instead of waiting in the batch queue.
+    { send_instantly: true, transport: 'sendBeacon' },
   )
 }
