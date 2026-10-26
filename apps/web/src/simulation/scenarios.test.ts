@@ -50,10 +50,14 @@ describe('scenario presets', () => {
     const spawns = preset!
       .steps(400, 300)
       .filter((s): s is Extract<SandboxCommand, { cmd: 'spawn' }> => s.cmd === 'spawn')
-    expect(spawns).toHaveLength(2)
-    const [west, east] = spawns
-    expect(west.speak_like).toBeUndefined()
-    expect(east.speak_like).toEqual([west.x, west.y])
-    expect(Math.abs(east.x - west.x)).toBeLessThan(400 / 4)
+    expect(spawns).toHaveLength(3)
+    const [first, rest, east] = spawns
+    // The western group is one lineage: its first person keeps their own words, and the others copy them.
+    expect(first.speak_like).toBeUndefined()
+    expect(first.count).toBe(1)
+    expect(rest.lineage).toBe(first.lineage)
+    expect(rest.speak_like).toEqual([first.x, first.y])
+    expect(east.speak_like).toEqual([first.x, first.y])
+    expect(Math.abs(east.x - first.x)).toBeLessThan(400 / 4)
   })
 })

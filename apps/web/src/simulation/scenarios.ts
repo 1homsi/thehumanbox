@@ -60,7 +60,16 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
       const west = at(w, h, 0.44, 0.45)
       const east = at(w, h, 0.56, 0.5)
       return [
-        { cmd: 'spawn', x: west.x, y: west.y, count: 5 },
+        // One person first, so the rest of the western group copies their words instead of each keeping their own.
+        { cmd: 'spawn', x: west.x, y: west.y, count: 1, lineage: 'one-tongue-west' },
+        {
+          cmd: 'spawn',
+          x: west.x,
+          y: west.y,
+          count: 4,
+          lineage: 'one-tongue-west',
+          speak_like: [west.x, west.y],
+        },
         { cmd: 'spawn', x: east.x, y: east.y, count: 5, speak_like: [west.x, west.y] },
         { cmd: 'spawn_animal', x: west.x, y: west.y, count: 3, radius: 6 },
         { cmd: 'spawn_animal', x: east.x, y: east.y, count: 3, radius: 6 },
