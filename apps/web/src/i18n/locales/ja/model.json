@@ -193,6 +193,10 @@
       "title": "二つの敵対する部族",
       "detail": "五人ずつの二つの集団が大地の反対側から始まり、それぞれ近くに少しの獲物がある。"
     },
+    "oneTongue": {
+      "title": "二つの部族、一つの言葉",
+      "detail": "隣り合う五人ずつの二つの集団が、同じ言葉を話すところから始まります。言葉が分かれていく様子を見られます。"
+    },
     "wildValley": {
       "title": "野生の谷",
       "detail": "鹿とウサギの群れが大地に放たれ、始まりは晴れた空。"
@@ -319,6 +323,79 @@
     "disputed": "係争の土地",
     "buildings": "{count} 棟"
   },
+  "thing": {
+    "building": {
+      "tribe": "{tribe}の所有",
+      "construction": "建設中（{percent}％完成）",
+      "ruined": "廃墟",
+      "rebuilding": "再建中",
+      "repairing": "修理中",
+      "damaged": "損傷あり（強度{percent}％）",
+      "intact": "良好な状態",
+      "lives": "住人: {names}",
+      "works": "働き手: {names}",
+      "more": "ほか{count}人"
+    },
+    "vehicle": {
+      "aboard": "乗員: {names}",
+      "building": "建造中",
+      "sailing": "帆走中",
+      "moored": "港に係留中",
+      "cargo": "積荷 {count} 点"
+    },
+    "animal": {
+      "named": "{name}という名",
+      "wild": "野生",
+      "tame": "飼いならされた",
+      "young": "幼い",
+      "asleep": "眠っている",
+      "hunting": "狩りの最中",
+      "hungry": "空腹"
+    },
+    "farm": {
+      "tribe": "{tribe}が耕作",
+      "field": "畑"
+    },
+    "stage": {
+      "fallow": "休耕中",
+      "sown": "種まき済み",
+      "growing": "生育中",
+      "ready": "収穫期",
+      "withered": "枯れている"
+    },
+    "caravan": {
+      "title": "隊商",
+      "load": "{amount} {cargo}を運搬中",
+      "route": "{from}から{to}へ"
+    }
+  },
+  "terrain": {
+    "ground": {
+      "grass": "草地",
+      "shallowWater": "浅い水",
+      "deepWater": "深い水",
+      "floodwater": "洪水の水",
+      "sand": "砂",
+      "snow": "雪",
+      "ice": "氷",
+      "rock": "岩",
+      "ash": "灰",
+      "scorched": "焼けた地面",
+      "lava": "溶岩",
+      "mineral": "鉱石の地面",
+      "foodGround": "食べ物の多い地面",
+      "fire": "火",
+      "campfire": "焚き火"
+    },
+    "note": {
+      "track": "踏み固められた道",
+      "rail": "線路",
+      "canal": "灌漑水路",
+      "bridge": "橋",
+      "fertile": "肥沃な土",
+      "onFire": "燃えている"
+    }
+  },
   "pair": {
     "marry": {
       "next": "結婚 · 次に相手をクリック",
@@ -352,6 +429,52 @@
       "decline": "衰退",
       "scarcity": "欠乏",
       "recovery": "回復"
+    },
+    "plant": {
+      "tree": "木",
+      "conifer": "針葉樹",
+      "bush": "低木",
+      "deadTree": "枯れ木",
+      "cactus": "サボテン",
+      "acacia": "アカシア",
+      "crop": "作物",
+      "orchard": "果樹園",
+      "sapling": "若木",
+      "flower": "花",
+      "berry": "ベリーの株",
+      "mushroom": "キノコ",
+      "oak": "オーク",
+      "pine": "松",
+      "palm": "ヤシ"
+    },
+    "crop": {
+      "wheat": "小麦",
+      "rice": "米",
+      "maize": "トウモロコシ",
+      "barley": "大麦",
+      "potato": "ジャガイモ",
+      "beans": "豆",
+      "cotton": "綿",
+      "tobacco": "タバコ",
+      "sugarcane": "サトウキビ",
+      "coffee": "コーヒー",
+      "tea": "茶"
+    },
+    "vehicle": {
+      "boat": "ボート",
+      "ship": "船",
+      "cart": "荷車",
+      "wagon": "荷馬車",
+      "carriage": "馬車",
+      "sled": "ソリ",
+      "bicycle": "自転車",
+      "automobile": "自動車",
+      "truck": "トラック",
+      "train": "列車",
+      "subway": "地下鉄",
+      "plane": "飛行機",
+      "helicopter": "ヘリコプター",
+      "rocket": "ロケット"
     },
     "building": {
       "hut": "小屋",

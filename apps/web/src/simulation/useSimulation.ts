@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { WorldState, GridState, OrganismState, AnimalState, OrgDetail, OrgLife } from '../shared/types'
 import { WS_BASE, API_BASE, IS_LOCAL_SERVER, sandboxHeaders } from '../shared/config'
+import { FAILED_OUTCOME, parseCommandOutcome, type CommandOutcome } from './command-outcome'
 import { useWorldStore } from '../state/worldStore'
 import { useUIStore } from '../state/store'
 import { binaryFramesReady, fetchSnapshotWithProgress, loadBinaryFrameDecoder, parseWorldFrame } from './wire'
@@ -73,7 +74,7 @@ export function useSimulation(source: WorldSource = 'native'): {
   idleParked: boolean
   resume: () => Promise<boolean>
   sandboxAvailable: boolean
-  sendCommand: (cmd: SandboxCommand) => Promise<boolean>
+  sendCommand: (cmd: SandboxCommand) => Promise<CommandOutcome>
   pauseSim: () => Promise<boolean>
   setSpeed: (mult: number) => Promise<boolean>
   runtimeState: RuntimeState
@@ -372,6 +373,7 @@ export function useSimulation(source: WorldSource = 'native'): {
           tickMs?: number
           speed?: number
           seed?: string
+          outcome?: unknown
         }
         if (m.type === 'frame' && (typeof m.frame === 'string' || m.frame instanceof Uint8Array)) {
           if (!announced) {
@@ -395,7 +397,10 @@ export function useSimulation(source: WorldSource = 'native'): {
           clearOwnWorldResetRequest()
         } else if (m.type === 'recovery_done') {
           // The restored world may have another seed; the word-split and other per-world watches read it from here.
-          if (typeof m.seed === 'string') setOwnWorldSeed(m.seed)
+          if (typeof m.seed === 'string') {
+            setOwnWorldSeed(m.seed)
+            useUIStore.getState().bindStarredWorld(m.seed)
+          }
           clearOwnWorldRecoveryRequest()
         } else if (m.type === 'recovery_cancelled') {
           clearOwnWorldRecoveryRequest()
@@ -419,6 +424,7 @@ export function useSimulation(source: WorldSource = 'native'): {
             pendingWorkerRequests.delete(m.requestId)
             pending.resolve({
               ok: m.ok === true,
+              outcome: m.outcome && typeof m.outcome === 'object' ? (m.outcome as CommandOutcome) : undefined,
               paused: typeof m.paused === 'boolean' ? m.paused : undefined,
               speed:
                 typeof m.speed === 'number' && Number.isFinite(m.speed) && m.speed > 0
@@ -920,10 +926,30 @@ export function useSimulation(source: WorldSource = 'native'): {
     }
   }, [effectiveSource])
 
+  const requestCommandFromWasm = useCallback((json: string): Promise<CommandOutcome> => {
+    const worker = wasmWorkerRef.current
+    if (!worker) return Promise.resolve(FAILED_OUTCOME)
+    const requestId = nextWorkerRequestRef.current++
+    return new Promise<CommandOutcome>((resolve) => {
+      const timer = setTimeout(() => {
+        pendingWorkerRequestsRef.current.delete(requestId)
+        resolve(FAILED_OUTCOME)
+      }, 5000)
+      pendingWorkerRequestsRef.current.set(requestId, {
+        resolve: (result) =>
+          resolve(
+            result.outcome ??
+              (result.ok ? { applied: true, code: 'applied', count: 0, name: null } : FAILED_OUTCOME),
+          ),
+        timer,
+      })
+      worker.postMessage({ type: 'command', json, requestId })
+    })
+  }, [])
+
   const requestFromWasm = useCallback(
     (
       payload:
-        | { type: 'command'; json: string }
         | { type: 'save' }
         | { type: 'retry_storage' }
         | { type: 'pause' }
@@ -1122,10 +1148,10 @@ export function useSimulation(source: WorldSource = 'native'): {
     saveLocalWorld,
     loadLocalOrgDetail,
     loadLocalOrgLife,
-    sendCommand: async (cmd: SandboxCommand) => {
-      if (!sandboxAvailable) return false
+    sendCommand: async (cmd: SandboxCommand): Promise<CommandOutcome> => {
+      if (!sandboxAvailable) return FAILED_OUTCOME
       if (effectiveSource === 'wasm') {
-        return requestFromWasm({ type: 'command', json: JSON.stringify(cmd) })
+        return requestCommandFromWasm(JSON.stringify(cmd))
       }
       try {
         const res = await fetch(`${API_BASE}/command`, {
@@ -1133,9 +1159,11 @@ export function useSimulation(source: WorldSource = 'native'): {
           headers: sandboxHeaders({ 'content-type': 'application/json' }),
           body: JSON.stringify(cmd),
         })
-        return res.ok
+        const outcome = parseCommandOutcome(await res.text())
+        if (outcome) return outcome
+        return res.ok ? { applied: true, code: 'applied', count: 0, name: null } : FAILED_OUTCOME
       } catch {
-        return false
+        return FAILED_OUTCOME
       }
     },
     pauseSim,

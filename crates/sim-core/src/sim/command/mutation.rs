@@ -44,6 +44,7 @@ impl Simulation {
             &name,
             &format!("mutated: their {trait_name} grew far beyond anyone else's"),
         );
+        self.report("mutated", 1, Some(name.as_str()));
         true
     }
 
@@ -51,6 +52,7 @@ impl Simulation {
     /// hurt and fall sick. Returns false when nobody is in reach.
     pub(super) fn cmd_curse(&mut self, x: f32, y: f32, radius: f32) -> bool {
         let Some(i) = self.nearest_in_reach(x, y, radius) else {
+            self.report("none_here", 0, None);
             return false;
         };
         let person = &mut self.organisms[i];
@@ -66,6 +68,7 @@ impl Simulation {
             &name,
             "was cursed: bad luck, fear and sickness fell on them",
         );
+        self.report("cursed", 1, Some(name.as_str()));
         true
     }
 

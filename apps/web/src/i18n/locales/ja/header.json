@@ -68,6 +68,83 @@
     "toolWorking": "{tool}…",
     "toolApplied": "{tool}を適用",
     "toolFailed": "{tool}に失敗",
-    "toolAt": "{tool} → {x}, {y}"
+    "toolAt": "{tool} → {x}, {y}",
+    "result": {
+      "none_here": "この近くには誰もいません",
+      "none_hurt": "ここには傷ついた人はいませんでした",
+      "none_sick": "ここには病気の人はいません",
+      "none_dead": "ここには生き返らせる人がいません",
+      "revive_cooldown": "この部族は最近生き返らされたばかりです。神々は待たねばなりません",
+      "world_full": "これ以上人を置く場所がありません",
+      "animal_full": "これ以上動物を置く場所がありません",
+      "no_room_for_animal": "この土地にはその動物のための場所がありません",
+      "split_small": "部族を分けるには、ここの人が少なすぎます",
+      "blocked": "水の上や岩の上には立てません",
+      "no_government": "この部族には導く人がいません",
+      "cannot_teach": "まだ改めて教えることはできません",
+      "spawned": {
+        "one": "{name}がやって来ました",
+        "other": "{count}人がやって来ました"
+      },
+      "family_arrived": "新しい家族がやって来ました",
+      "healed_animals": { "one": "動物の体力を回復しました", "other": "動物{count}匹の体力を回復しました" },
+      "healed": {
+        "one": "{name}を癒やしました",
+        "other": "{count}人を癒やしました"
+      },
+      "revived": "{name}を生き返らせました",
+      "blessed": {
+        "one": "{name}を祝福しました",
+        "other": "{count}人を祝福しました"
+      },
+      "inspired": {
+        "one": "{name}に霊感を与えました",
+        "other": "{count}人に霊感を与えました"
+      },
+      "cured": {
+        "one": "{name}の病を癒やしました",
+        "other": "{count}人の病を癒やしました"
+      },
+      "cured_tribe": {
+        "one": "部族の一人の病を癒やしました",
+        "other": "部族の{count}人の病を癒やしました"
+      },
+      "loved": {
+        "one": "{name}が恋に落ちました",
+        "other": "{count}人の心が愛で満たされました"
+      },
+      "paired": {
+        "one": "ふたりを結び付けました",
+        "other": "{count}組を結び付けました"
+      },
+      "mutated": "{name}に突然変異が起きました",
+      "cursed": "{name}に呪いをかけました",
+      "taught": "{name}の部族が秘密を学びました",
+      "moved": "{name}を移動させました",
+      "gifted_food": {
+        "one": "{name}に食べ物を贈りました",
+        "other": "{count}人に食べ物を贈りました"
+      },
+      "gifted_tool": {
+        "one": "{name}に道具を贈りました",
+        "other": "{count}人に道具を贈りました"
+      },
+      "crowned": "{name}を王に据えました",
+      "split": {
+        "other": "{count}人が離れて新しい部族を築きました"
+      },
+      "tamed": {
+        "one": "野生の獣が忠実な犬になりました",
+        "other": "{count}匹の野生の獣が忠実な犬になりました"
+      },
+      "guardian": "番犬が{name}のそばに現れました",
+      "smitten": "雷が{name}を打ちました",
+      "struck_beast": "雷が獣を打ち倒しました",
+      "struck_roof": "雷が屋根を裂きました",
+      "animals": {
+        "one": "動物が現れました",
+        "other": "{count}匹の動物が現れました"
+      }
+    }
   }
 }

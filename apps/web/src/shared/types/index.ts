@@ -452,6 +452,12 @@ export interface AnimalState {
   away?: boolean
   /** Born recently (a newborn is drawn smaller); see `YOUNG_ANIMAL_TICKS` in the sim. */
   young?: boolean
+  /** Kept as livestock or bonded to a person: no longer wild. */
+  tame?: boolean
+  /** Low on energy and looking for food. */
+  hungry?: boolean
+  /** A predator out after prey or people. */
+  hunting?: boolean
 }
 
 export interface WardInfo {

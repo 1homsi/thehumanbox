@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SANDBOX_CATEGORIES } from './sandbox'
+import { SANDBOX_CATEGORIES, type SandboxCommand } from './sandbox'
 import { SCENARIO_PRESETS } from './scenarios'
 
 describe('scenario presets', () => {
@@ -42,5 +42,22 @@ describe('scenario presets', () => {
         expect(known.has(step.cmd) || step.cmd === 'weather' || step.cmd === 'make_leader').toBe(true)
       }
     }
+  })
+
+  it('starts two neighbouring groups that speak the same words', () => {
+    const preset = SCENARIO_PRESETS.find((p) => p.id === 'one-tongue')
+    expect(preset).toBeDefined()
+    const spawns = preset!
+      .steps(400, 300)
+      .filter((s): s is Extract<SandboxCommand, { cmd: 'spawn' }> => s.cmd === 'spawn')
+    expect(spawns).toHaveLength(3)
+    const [first, rest, east] = spawns
+    // The western group is one lineage: its first person keeps their own words, and the others copy them.
+    expect(first.speak_like).toBeUndefined()
+    expect(first.count).toBe(1)
+    expect(rest.lineage).toBe(first.lineage)
+    expect(rest.speak_like).toEqual([first.x, first.y])
+    expect(east.speak_like).toEqual([first.x, first.y])
+    expect(Math.abs(east.x - first.x)).toBeLessThan(400 / 4)
   })
 })

@@ -196,6 +196,10 @@
       "title": "Two rival tribes",
       "detail": "Two groups of five start on opposite sides of the land, each with a little wild game nearby."
     },
+    "oneTongue": {
+      "title": "Two tribes, one tongue",
+      "detail": "Two neighbouring groups of five start out speaking the same words, so you can watch their language split."
+    },
     "wildValley": {
       "title": "Wild valley",
       "detail": "A herd of deer and rabbits is placed through the land, with a clear sky to start."
@@ -333,6 +337,79 @@
       "other": "{count} buildings"
     }
   },
+  "thing": {
+    "building": {
+      "tribe": "held by {tribe}",
+      "construction": "being built, {percent}% done",
+      "ruined": "in ruins",
+      "rebuilding": "being rebuilt",
+      "repairing": "being repaired",
+      "damaged": "damaged, {percent}% sound",
+      "intact": "in good repair",
+      "lives": "lives here: {names}",
+      "works": "works here: {names}",
+      "more": "and {count} more"
+    },
+    "vehicle": {
+      "aboard": "aboard: {names}",
+      "building": "being built",
+      "sailing": "under sail",
+      "moored": "moored at harbour",
+      "cargo": "carrying {count} goods"
+    },
+    "animal": {
+      "named": "named {name}",
+      "wild": "wild",
+      "tame": "tame",
+      "young": "young",
+      "asleep": "asleep",
+      "hunting": "hunting",
+      "hungry": "hungry"
+    },
+    "farm": {
+      "tribe": "farmed by {tribe}",
+      "field": "field"
+    },
+    "stage": {
+      "fallow": "fallow",
+      "sown": "sown",
+      "growing": "growing",
+      "ready": "ready",
+      "withered": "withered"
+    },
+    "caravan": {
+      "title": "caravan",
+      "load": "carrying {amount} {cargo}",
+      "route": "from {from} to {to}"
+    }
+  },
+  "terrain": {
+    "ground": {
+      "grass": "grass",
+      "shallowWater": "shallow water",
+      "deepWater": "deep water",
+      "floodwater": "floodwater",
+      "sand": "sand",
+      "snow": "snow",
+      "ice": "ice",
+      "rock": "rock",
+      "ash": "ash",
+      "scorched": "scorched ground",
+      "lava": "lava",
+      "mineral": "ore-bearing ground",
+      "foodGround": "food-rich ground",
+      "fire": "fire",
+      "campfire": "campfire"
+    },
+    "note": {
+      "track": "worn track",
+      "rail": "railway",
+      "canal": "irrigation canal",
+      "bridge": "bridge",
+      "fertile": "fertile soil",
+      "onFire": "on fire"
+    }
+  },
   "pair": {
     "marry": {
       "next": "marry · now click the other person",
@@ -366,6 +443,52 @@
       "decline": "decline",
       "scarcity": "scarcity",
       "recovery": "recovery"
+    },
+    "plant": {
+      "tree": "tree",
+      "conifer": "conifer",
+      "bush": "bush",
+      "deadTree": "dead tree",
+      "cactus": "cactus",
+      "acacia": "acacia",
+      "crop": "crop",
+      "orchard": "orchard",
+      "sapling": "sapling",
+      "flower": "flower",
+      "berry": "berry bush",
+      "mushroom": "mushroom",
+      "oak": "oak",
+      "pine": "pine",
+      "palm": "palm"
+    },
+    "crop": {
+      "wheat": "wheat",
+      "rice": "rice",
+      "maize": "maize",
+      "barley": "barley",
+      "potato": "potato",
+      "beans": "beans",
+      "cotton": "cotton",
+      "tobacco": "tobacco",
+      "sugarcane": "sugarcane",
+      "coffee": "coffee",
+      "tea": "tea"
+    },
+    "vehicle": {
+      "boat": "boat",
+      "ship": "ship",
+      "cart": "cart",
+      "wagon": "wagon",
+      "carriage": "carriage",
+      "sled": "sled",
+      "bicycle": "bicycle",
+      "automobile": "automobile",
+      "truck": "truck",
+      "train": "train",
+      "subway": "subway",
+      "plane": "plane",
+      "helicopter": "helicopter",
+      "rocket": "rocket"
     },
     "building": {
       "hut": "hut",

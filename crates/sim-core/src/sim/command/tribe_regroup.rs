@@ -65,10 +65,12 @@ impl Simulation {
     /// at least two people to go and two to stay. Returns false otherwise.
     pub(super) fn cmd_split_tribe(&mut self, x: f32, y: f32, radius: f32) -> bool {
         let Some(nearest) = self.nearest_in_reach(x, y, 0.0) else {
+            self.report("none_here", 0, None);
             return false;
         };
         let old = self.organisms[nearest].lineage_id.clone();
         if old.is_empty() {
+            self.report("none_here", 0, None);
             return false;
         }
         let reach = if radius > 0.0 {
@@ -85,6 +87,7 @@ impl Simulation {
             .filter(|&i| (self.organisms[i].x - x).det_hypot(self.organisms[i].y - y) <= reach)
             .collect();
         if movers.len() < MIN_SPLIT || living.len() - movers.len() < MIN_LEFT_BEHIND {
+            self.report("split_small", 0, None);
             return false;
         }
         let new_lid = format!("L{}", crate::sim::agents::spawn::seeded_id(&mut self.rng, 6));
@@ -109,6 +112,7 @@ impl Simulation {
                 movers.len()
             ),
         );
+        self.report("split", movers.len() as u32, None);
         true
     }
 }

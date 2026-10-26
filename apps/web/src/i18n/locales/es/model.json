@@ -193,6 +193,10 @@
       "title": "Dos tribus rivales",
       "detail": "Dos grupos de cinco comienzan en lados opuestos de la tierra, cada uno con algo de caza cerca."
     },
+    "oneTongue": {
+      "title": "Dos tribus, una lengua",
+      "detail": "Dos grupos vecinos de cinco personas empiezan hablando las mismas palabras, y puedes ver cómo su lengua se separa."
+    },
     "wildValley": {
       "title": "Valle salvaje",
       "detail": "Una manada de ciervos y conejos se reparte por la tierra, con cielo despejado al empezar."
@@ -330,6 +334,79 @@
       "other": "{count} edificios"
     }
   },
+  "thing": {
+    "building": {
+      "tribe": "de {tribe}",
+      "construction": "en construcción, {percent} % hecho",
+      "ruined": "en ruinas",
+      "rebuilding": "se reconstruye",
+      "repairing": "se repara",
+      "damaged": "dañado, {percent} % en pie",
+      "intact": "en buen estado",
+      "lives": "vive aquí: {names}",
+      "works": "trabaja aquí: {names}",
+      "more": "y {count} más"
+    },
+    "vehicle": {
+      "aboard": "a bordo: {names}",
+      "building": "en construcción",
+      "sailing": "navegando a vela",
+      "moored": "amarrado en el puerto",
+      "cargo": "lleva {count} mercancías"
+    },
+    "animal": {
+      "named": "llamado {name}",
+      "wild": "salvaje",
+      "tame": "domesticado",
+      "young": "joven",
+      "asleep": "dormido",
+      "hunting": "cazando",
+      "hungry": "hambriento"
+    },
+    "farm": {
+      "tribe": "cultivado por {tribe}",
+      "field": "campo"
+    },
+    "stage": {
+      "fallow": "en barbecho",
+      "sown": "sembrado",
+      "growing": "creciendo",
+      "ready": "listo",
+      "withered": "marchito"
+    },
+    "caravan": {
+      "title": "caravana",
+      "load": "lleva {amount} {cargo}",
+      "route": "de {from} a {to}"
+    }
+  },
+  "terrain": {
+    "ground": {
+      "grass": "hierba",
+      "shallowWater": "agua poco profunda",
+      "deepWater": "agua profunda",
+      "floodwater": "agua de inundación",
+      "sand": "arena",
+      "snow": "nieve",
+      "ice": "hielo",
+      "rock": "roca",
+      "ash": "ceniza",
+      "scorched": "tierra quemada",
+      "lava": "lava",
+      "mineral": "tierra con mineral",
+      "foodGround": "tierra rica en alimento",
+      "fire": "fuego",
+      "campfire": "hoguera"
+    },
+    "note": {
+      "track": "camino trillado",
+      "rail": "vía férrea",
+      "canal": "canal de riego",
+      "bridge": "puente",
+      "fertile": "suelo fértil",
+      "onFire": "en llamas"
+    }
+  },
   "pair": {
     "marry": {
       "next": "casar · ahora haz clic en la otra persona",
@@ -363,6 +440,52 @@
       "decline": "declive",
       "scarcity": "escasez",
       "recovery": "recuperación"
+    },
+    "plant": {
+      "tree": "árbol",
+      "conifer": "conífera",
+      "bush": "arbusto",
+      "deadTree": "árbol muerto",
+      "cactus": "cactus",
+      "acacia": "acacia",
+      "crop": "cultivo",
+      "orchard": "huerto",
+      "sapling": "brote",
+      "flower": "flor",
+      "berry": "arbusto de bayas",
+      "mushroom": "hongo",
+      "oak": "roble",
+      "pine": "pino",
+      "palm": "palmera"
+    },
+    "crop": {
+      "wheat": "trigo",
+      "rice": "arroz",
+      "maize": "maíz",
+      "barley": "cebada",
+      "potato": "patata",
+      "beans": "frijoles",
+      "cotton": "algodón",
+      "tobacco": "tabaco",
+      "sugarcane": "caña de azúcar",
+      "coffee": "café",
+      "tea": "té"
+    },
+    "vehicle": {
+      "boat": "barco",
+      "ship": "nave",
+      "cart": "carreta",
+      "wagon": "carro",
+      "carriage": "carruaje",
+      "sled": "trineo",
+      "bicycle": "bicicleta",
+      "automobile": "automóvil",
+      "truck": "camión",
+      "train": "tren",
+      "subway": "metro",
+      "plane": "avión",
+      "helicopter": "helicóptero",
+      "rocket": "cohete"
     },
     "building": {
       "hut": "choza",

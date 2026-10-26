@@ -12,10 +12,12 @@ impl Simulation {
     /// when nobody is in reach, or nobody in their tribe is sick.
     pub(super) fn cmd_cure_tribe(&mut self, x: f32, y: f32) -> bool {
         let Some(i) = self.nearest_in_reach(x, y, 0.0) else {
+            self.report("none_here", 0, None);
             return false;
         };
         let lid = self.organisms[i].lineage_id.clone();
         if lid.is_empty() {
+            self.report("none_here", 0, None);
             return false;
         }
         let now = self.tick_count;
@@ -38,8 +40,10 @@ impl Simulation {
             cured += 1;
         }
         if cured == 0 {
+            self.report("none_sick", 0, None);
             return false;
         }
+        self.report("cured_tribe", cured as u32, None);
         let name = self
             .lineage_names
             .get(&lid)
@@ -59,10 +63,12 @@ impl Simulation {
     /// the way a released dog does. Returns false when nobody is in reach or the world is full of animals.
     pub(super) fn cmd_guardian(&mut self, x: f32, y: f32) -> bool {
         let Some(i) = self.nearest_in_reach(x, y, 0.0) else {
+            self.report("none_here", 0, None);
             return false;
         };
         let alive = self.animals.iter().filter(|a| a.alive).count();
         if alive >= SANDBOX_ANIMAL_CAP {
+            self.report("animal_full", 0, None);
             return false;
         }
         let owner = self.organisms[i].id.clone();
@@ -84,6 +90,7 @@ impl Simulation {
             &name,
             &format!("a guardian dog came to stand by {name}"),
         );
+        self.report("guardian", 1, Some(name.as_str()));
         true
     }
 }

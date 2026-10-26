@@ -283,7 +283,6 @@
     "teach": "教える",
     "teachTitle": "まだ知らない次の知恵を教える（季節に一度）",
     "stillToLearn": "未習得: {list}",
-    "needsPeople": "あと {count} 人必要",
     "praying": "祈り中",
     "help": "助ける",
     "lore": {
@@ -304,6 +303,12 @@
         "healing": "治療師で知られる"
       }
     },
+    "guide": {
+      "known": "秘密を{known}／{required}知っている",
+      "worldPeople": "この時代に必要な{need}人のうち、世界には{have}人いる（あと{short}人）",
+      "ready": "準備完了: 次に世界が確かめるとき、時代が訪れる"
+    },
+    "needsPeople": "あと {count} 人必要",
     "why": {
       "title": "なぜそう動くか",
       "guided": "{strategy}へ導いている: {target}のうち{done}を達成",

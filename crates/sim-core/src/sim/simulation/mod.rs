@@ -137,6 +137,8 @@ pub struct Simulation {
     pub next_vehicle_id: u32,
     /// The last land survey for ferries (see `tech/ferry.rs`); rebuilt every few hundred ticks, not saved.
     pub(crate) ferry_survey: crate::sim::tech::ferry::FerrySurvey,
+    /// What the command in progress reported about itself (see `command/outcome.rs`). Runtime only.
+    pub(crate) command_report: Option<crate::sim::command::outcome::Report>,
     /// The people queued at each ferry pier, and the passengers aboard (see `tech/ferry.rs`); not saved.
     pub(crate) ferry_queues: crate::sim::tech::ferry::FerryQueues,
     pub battles: Vec<super::warfare::Battle>,
@@ -312,6 +314,7 @@ impl Simulation {
             next_vehicle_id: 1,
             ferry_survey: Default::default(),
             ferry_queues: Default::default(),
+            command_report: None,
             battles: Vec::new(),
             next_battle_id: 1,
             treaties: Vec::new(),
