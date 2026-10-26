@@ -123,11 +123,15 @@ mod wasm_facade {
 
         #[wasm_bindgen(js_name = orgDetail)]
         pub fn org_detail(&self, id: &str) -> String {
-            self.inner
-                .organisms
+            let organisms = &self.inner.organisms;
+            organisms
                 .iter()
                 .find(|org| org.id == id)
-                .and_then(|org| serde_json::to_string(&org.to_detail_json()).ok())
+                .and_then(|org| {
+                    let mut detail = org.to_detail_json();
+                    detail.family_words = crate::organism::family_words::family_words(org, organisms);
+                    serde_json::to_string(&detail).ok()
+                })
                 .unwrap_or_default()
         }
 

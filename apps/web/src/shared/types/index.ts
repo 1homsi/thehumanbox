@@ -360,6 +360,27 @@ export interface OrgDetail extends OrganismState {
   /** What this person knows how to do, 0 to 1, best first. */
   skills?: { name: string; level: number; feeling?: number }[]
   lessons?: string[]
+  /** Parents and grandparents, with their words for common things (see the sim's `family_words`). */
+  family_words?: FamilyWords[]
+}
+
+/** A parent or grandparent of a person, and the words they knew for common things. */
+export interface FamilyWords {
+  id: string
+  /** Empty when `remembered` is false. */
+  name: string
+  /** Only meaningful when `remembered` is true. */
+  alive: boolean
+  relation:
+    | 'mother'
+    | 'father'
+    | 'maternal_grandmother'
+    | 'maternal_grandfather'
+    | 'paternal_grandmother'
+    | 'paternal_grandfather'
+  /** False when their record is gone, so there are no words to show. */
+  remembered: boolean
+  vocabulary: Record<string, string>
 }
 
 export interface OrgLife {

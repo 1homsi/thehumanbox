@@ -256,6 +256,20 @@
   "language": {
     "title": "SU IDIOMA"
   },
+  "words": {
+    "title": "HISTORIA DE PALABRAS",
+    "intro": "Su palabra para cada cosa común, junto a las palabras de sus padres y abuelos.",
+    "you": "propia",
+    "mother": "madre",
+    "father": "padre",
+    "maternalGrandmother": "abuela materna",
+    "maternalGrandfather": "abuelo materno",
+    "paternalGrandmother": "abuela paterna",
+    "paternalGrandfather": "abuelo paterno",
+    "unknown": "no recordada",
+    "same": "igual en la familia",
+    "drifted": "las palabras se han alejado"
+  },
   "life": {
     "memory": "MEMORIA",
     "foodTip": "{count} lugares de comida recordados: el organismo se dirige a ellos cuando tiene hambre",

@@ -254,6 +254,20 @@
   "language": {
     "title": "彼らの言語"
   },
+  "words": {
+    "title": "言葉の変遷",
+    "intro": "身近なものの呼び名を、両親や祖父母の言葉と並べて示します。",
+    "you": "本人",
+    "mother": "母",
+    "father": "父",
+    "maternalGrandmother": "母方の祖母",
+    "maternalGrandfather": "母方の祖父",
+    "paternalGrandmother": "父方の祖母",
+    "paternalGrandfather": "父方の祖父",
+    "unknown": "記録なし",
+    "same": "家族と同じ",
+    "drifted": "言葉が変わった"
+  },
   "life": {
     "memory": "記憶",
     "foodTip": "食べ物の場所を {count} か所覚えています――空腹のとき、生き物はそこへ向かいます",

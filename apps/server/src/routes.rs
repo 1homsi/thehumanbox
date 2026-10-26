@@ -440,7 +440,9 @@ pub async fn org_detail_handler(
             .find(|o| o.id == id)
             .ok_or(StatusCode::NOT_FOUND)?;
         let needs_fallback = !org.alive && org.memories.is_empty();
-        (org.to_detail_json(), needs_fallback, s.world_store.get())
+        let mut detail = org.to_detail_json();
+        detail.family_words = crate::organism::family_words::family_words(org, &sim.organisms);
+        (detail, needs_fallback, s.world_store.get())
     };
     if was_dead_with_empty_memories && detail.memories.is_empty() {
         if let Some(ws) = world_store {
