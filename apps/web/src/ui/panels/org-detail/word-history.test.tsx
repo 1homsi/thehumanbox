@@ -93,12 +93,20 @@ describe('WordHistorySection', () => {
     expect(host.querySelectorAll('.word-history-chip.differs').length).toBeGreaterThan(0)
   })
 
-  it('shows a dash for a relative whose record is gone', () => {
+  it('says a relative whose record is gone is not remembered, and keeps the dash for one who has no such word', () => {
     const host = render(
       detail({ food: 'ula' }, [relative('m', 'mother', {}, false), relative('f', 'father', { food: 'ula' })]),
     )
     expect(host.textContent).toContain('father')
-    expect(host.querySelector('.word-history-chip[title="not remembered"]')?.textContent).toContain('—')
+    const gone = host.querySelector('.word-history-chip[title="not remembered"]')
+    expect(gone?.textContent).toContain('not remembered')
+    expect(gone?.textContent).not.toContain('—')
+    // Chips in order: the person, then mother (remembered, no such word), then father.
+    const noWord = render(
+      detail({ food: 'ula' }, [relative('m', 'mother', {}), relative('f', 'father', { food: 'ula' })]),
+    )
+    const words = [...noWord.querySelectorAll('.word-history-chip b')].map((b) => b.textContent)
+    expect(words).toEqual(['ula', '—', 'ula'])
   })
 
   it('renders nothing when there is no family to compare', () => {

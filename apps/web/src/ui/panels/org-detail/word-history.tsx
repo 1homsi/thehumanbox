@@ -28,7 +28,8 @@ export function WordHistorySection({ detail }: { detail: OrgDetail | null }) {
                 className={`word-history-chip${r.word !== null && r.word !== row.own ? ' differs' : ''}`}
                 title={r.remembered ? r.name : t('person.words.unknown')}
               >
-                <i>{t(RELATION_LABEL[r.relation])}</i> <b>{r.word ?? '—'}</b>
+                <i>{t(RELATION_LABEL[r.relation])}</i>{' '}
+                <b>{r.remembered ? (r.word ?? '—') : t('person.words.unknown')}</b>
               </span>
             ))}
           </div>
