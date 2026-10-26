@@ -9,6 +9,8 @@ export type MapThing =
   | { kind: 'animal' | 'building' | 'vehicle' | 'caravan' | 'farm'; id: number }
   | { kind: 'planting'; x: number; y: number }
   | { kind: 'tree'; x: number; y: number; tree: TreeKind }
+  /** The bare ground on a tile no tribe claims (where a claimed tile's ground is in its tribe's card). */
+  | { kind: 'ground'; x: number; y: number }
 
 /** The world data the lookup reads. */
 export type ThingWorld = Partial<

@@ -12,6 +12,7 @@ import { PLANT_KIND } from '../render/plantings'
 import { getBuildingState, type BuildingState } from './building-state'
 import { farmStage, type FarmStage } from './farms'
 import { animalsInView, type MapThing, type TreeKind } from './map-things'
+import { terrainAt, type GroundKey, type GroundNote } from './map-terrain'
 
 /** A thing's card: its name, then a few plain lines about it. */
 export interface ThingCard {
@@ -49,7 +50,53 @@ export function mapThingCard(world: WorldState, thing: MapThing): ThingCard | nu
       return plantingCard(world, thing.x, thing.y)
     case 'tree':
       return { title: capitalise(t(TREE_WORDS[thing.tree])), lines: [] }
+    case 'ground': {
+      const facts = terrainAt(world, thing.x + 0.5, thing.y + 0.5)
+      return facts
+        ? {
+            title: capitalise(t(GROUND_WORDS[facts.ground])),
+            lines: facts.notes.map((note) => t(NOTE_WORDS[note])),
+          }
+        : null
+    }
   }
+}
+
+/**
+ * The ground under a world point in one line for a tribe's card, for example "shallow water · on fire".
+ * Null off the grid.
+ */
+export function groundLine(world: WorldState, worldX: number, worldY: number): string | null {
+  const facts = terrainAt(world, worldX, worldY)
+  if (!facts) return null
+  return [t(GROUND_WORDS[facts.ground]), ...facts.notes.map((note) => t(NOTE_WORDS[note]))].join(' · ')
+}
+
+const GROUND_WORDS: Record<GroundKey, MessageKey> = {
+  grass: 'model.terrain.ground.grass',
+  shallowWater: 'model.terrain.ground.shallowWater',
+  deepWater: 'model.terrain.ground.deepWater',
+  floodwater: 'model.terrain.ground.floodwater',
+  sand: 'model.terrain.ground.sand',
+  snow: 'model.terrain.ground.snow',
+  ice: 'model.terrain.ground.ice',
+  rock: 'model.terrain.ground.rock',
+  ash: 'model.terrain.ground.ash',
+  scorched: 'model.terrain.ground.scorched',
+  lava: 'model.terrain.ground.lava',
+  mineral: 'model.terrain.ground.mineral',
+  foodGround: 'model.terrain.ground.foodGround',
+  fire: 'model.terrain.ground.fire',
+  campfire: 'model.terrain.ground.campfire',
+}
+
+const NOTE_WORDS: Record<GroundNote, MessageKey> = {
+  track: 'model.terrain.note.track',
+  rail: 'model.terrain.note.rail',
+  canal: 'model.terrain.note.canal',
+  bridge: 'model.terrain.note.bridge',
+  fertile: 'model.terrain.note.fertile',
+  onFire: 'model.terrain.note.onFire',
 }
 
 function animalCard(animal: AnimalState): ThingCard {

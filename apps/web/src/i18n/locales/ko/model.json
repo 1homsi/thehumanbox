@@ -364,6 +364,33 @@
       "route": "{from}에서 {to}까지"
     }
   },
+  "terrain": {
+    "ground": {
+      "grass": "풀밭",
+      "shallowWater": "얕은 물",
+      "deepWater": "깊은 물",
+      "floodwater": "홍수물",
+      "sand": "모래",
+      "snow": "눈",
+      "ice": "얼음",
+      "rock": "바위",
+      "ash": "재",
+      "scorched": "그을린 땅",
+      "lava": "용암",
+      "mineral": "광물 땅",
+      "foodGround": "먹을거리가 많은 땅",
+      "fire": "불",
+      "campfire": "모닥불"
+    },
+    "note": {
+      "track": "다져진 길",
+      "rail": "철도",
+      "canal": "관개 수로",
+      "bridge": "다리",
+      "fertile": "비옥한 땅",
+      "onFire": "불타는 중"
+    }
+  },
   "pair": {
     "marry": {
       "next": "결혼 · 이제 상대를 클릭",

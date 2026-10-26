@@ -378,6 +378,33 @@
       "route": "from {from} to {to}"
     }
   },
+  "terrain": {
+    "ground": {
+      "grass": "grass",
+      "shallowWater": "shallow water",
+      "deepWater": "deep water",
+      "floodwater": "floodwater",
+      "sand": "sand",
+      "snow": "snow",
+      "ice": "ice",
+      "rock": "rock",
+      "ash": "ash",
+      "scorched": "scorched ground",
+      "lava": "lava",
+      "mineral": "ore-bearing ground",
+      "foodGround": "food-rich ground",
+      "fire": "fire",
+      "campfire": "campfire"
+    },
+    "note": {
+      "track": "worn track",
+      "rail": "railway",
+      "canal": "irrigation canal",
+      "bridge": "bridge",
+      "fertile": "fertile soil",
+      "onFire": "on fire"
+    }
+  },
   "pair": {
     "marry": {
       "next": "marry · now click the other person",

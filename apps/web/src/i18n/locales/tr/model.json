@@ -364,6 +364,33 @@
       "route": "{from} ile {to} arası"
     }
   },
+  "terrain": {
+    "ground": {
+      "grass": "çimen",
+      "shallowWater": "sığ su",
+      "deepWater": "derin su",
+      "floodwater": "sel suyu",
+      "sand": "kum",
+      "snow": "kar",
+      "ice": "buz",
+      "rock": "kaya",
+      "ash": "kül",
+      "scorched": "yanmış toprak",
+      "lava": "lav",
+      "mineral": "madenli toprak",
+      "foodGround": "besince zengin toprak",
+      "fire": "ateş",
+      "campfire": "kamp ateşi"
+    },
+    "note": {
+      "track": "yıpranmış yol",
+      "rail": "demiryolu",
+      "canal": "sulama kanalı",
+      "bridge": "köprü",
+      "fertile": "verimli toprak",
+      "onFire": "yanıyor"
+    }
+  },
   "pair": {
     "marry": {
       "next": "evlendir · şimdi diğer kişiye tıklayın",

@@ -6,6 +6,7 @@ import { territoryCardFacts, type TerritoryCardFacts } from '../../model/territo
 import { lineageAtTerritoryTile, territoryTileKey, type TerritoryIndex } from '../../model/territory'
 import { TILE } from '../../model/palette'
 import { mapThingAt } from '../../model/map-things'
+import { groundLine } from '../../model/map-thing-card'
 import { isMapControl, screenToMap, type MapCamera, type MapSize } from '../camera-controls'
 import { pickPersonAt } from '../cf/picking'
 import { CARD } from './card-style'
@@ -36,7 +37,9 @@ export function TerritoryHoverCard({
   territoryIndex,
 }: Props) {
   const box = useRef<HTMLDivElement>(null)
-  const [hover, setHover] = useState<{ lineage: string; contested: boolean } | null>(null)
+  const [hover, setHover] = useState<{ lineage: string; contested: boolean; x: number; y: number } | null>(
+    null,
+  )
   const latest = useRef({ world, territoryIndex, ox: 0, oy: 0 })
   latest.current = {
     world,
@@ -71,7 +74,9 @@ export function TerritoryHoverCard({
       el.style.top = `${Math.round(cy + 18)}px`
       const contested = index.contested.has(territoryTileKey(tx, ty))
       setHover((prev) =>
-        prev && prev.lineage === lineage && prev.contested === contested ? prev : { lineage, contested },
+        prev && prev.lineage === lineage && prev.contested === contested && prev.x === tx && prev.y === ty
+          ? prev
+          : { lineage, contested, x: tx, y: ty },
       )
     }
     container.addEventListener('pointermove', move)
@@ -86,9 +91,11 @@ export function TerritoryHoverCard({
 
   const facts = hover ? territoryCardFacts(world, hover.lineage, hover.contested) : null
   const settlement = hover ? world.settlements?.find((item) => item.lineage_id === hover.lineage) : null
+  // The ground under the pointer, in one line, so the tribe's card also says what the land is.
+  const ground = hover ? groundLine(world, hover.x + 0.5, hover.y + 0.5) : null
   return (
     <div ref={box} aria-hidden="true" style={{ ...CARD, display: 'none' }}>
-      {facts && <TribeFacts facts={facts} lineage={hover?.lineage ?? ''} />}
+      {facts && <TribeFacts facts={facts} lineage={hover?.lineage ?? ''} ground={ground} />}
       {settlement && (
         <div>
           {t('panels.tribe.people', { count: settlement.population })} ·{' '}
@@ -99,7 +106,15 @@ export function TerritoryHoverCard({
   )
 }
 
-function TribeFacts({ facts, lineage }: { facts: TerritoryCardFacts; lineage: string }) {
+function TribeFacts({
+  facts,
+  lineage,
+  ground,
+}: {
+  facts: TerritoryCardFacts
+  lineage: string
+  ground: string | null
+}) {
   return (
     <>
       <div style={{ color: '#ffe9a8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -114,6 +129,7 @@ function TribeFacts({ facts, lineage }: { facts: TerritoryCardFacts; lineage: st
         />
         {facts.name}
       </div>
+      {ground && <div>{ground}</div>}
       <div>
         {t('panels.tribe.people', { count: facts.people })}
         {facts.era ? ` · ${facts.era}` : ''}

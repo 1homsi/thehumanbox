@@ -375,6 +375,33 @@
       "route": "de {from} à {to}"
     }
   },
+  "terrain": {
+    "ground": {
+      "grass": "herbe",
+      "shallowWater": "eau peu profonde",
+      "deepWater": "eau profonde",
+      "floodwater": "eau de crue",
+      "sand": "sable",
+      "snow": "neige",
+      "ice": "glace",
+      "rock": "rocher",
+      "ash": "cendres",
+      "scorched": "sol brûlé",
+      "lava": "lave",
+      "mineral": "sol minéralisé",
+      "foodGround": "sol riche en nourriture",
+      "fire": "feu",
+      "campfire": "feu de camp"
+    },
+    "note": {
+      "track": "piste battue",
+      "rail": "voie ferrée",
+      "canal": "canal d'irrigation",
+      "bridge": "pont",
+      "fertile": "sol fertile",
+      "onFire": "en feu"
+    }
+  },
   "pair": {
     "marry": {
       "next": "marier · cliquez maintenant sur l’autre personne",

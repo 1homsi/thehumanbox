@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import type { WorldState } from '../../../shared/types'
 import { mapThingCard, type ThingCard } from '../../model/map-thing-card'
-import { mapThingAt, thingKey, type MapThing } from '../../model/map-things'
+import { mapThingAt, thingKey, type MapThing, type TilePoint } from '../../model/map-things'
+import { terrainAt } from '../../model/map-terrain'
+import { lineageAtTerritoryTile, type TerritoryIndex } from '../../model/territory'
 import { TILE } from '../../model/palette'
 import { isMapControl, screenToMap, type MapCamera, type MapSize } from '../camera-controls'
 import { pickPersonAt } from '../cf/picking'
@@ -15,19 +17,20 @@ interface Props {
   container: HTMLDivElement | null
   /** Off while a tool is armed: the pointer is then placing things, not reading them. */
   enabled: boolean
+  territoryIndex: TerritoryIndex
 }
 
 /**
- * What the pointer rests on, when it is a building, a vehicle or a caravan: a small card beside the
- * pointer saying what it is, whose it is and what state it is in. People keep their own name tags and
- * territory keeps its card, so neither is shown here. One DOM element moved in place; the text is read
- * from the world on each render, so it stays current while the pointer rests.
+ * What the pointer rests on, when it is a thing (an animal, a building, a vehicle, a field, a tree...) or
+ * bare ground that no tribe claims: a small card beside the pointer saying what it is. People keep their
+ * own name tags, and claimed land keeps the tribe's card (which names the ground too). One DOM element
+ * moved in place; the text is read from the world on each render, so it stays current while the pointer rests.
  */
-export function ThingHoverCard({ world, cameraRef, viewport, container, enabled }: Props) {
+export function ThingHoverCard({ world, cameraRef, viewport, container, enabled, territoryIndex }: Props) {
   const box = useRef<HTMLDivElement>(null)
   const [hover, setHover] = useState<MapThing | null>(null)
-  const latest = useRef(world)
-  latest.current = world
+  const latest = useRef({ world, territoryIndex })
+  latest.current = { world, territoryIndex }
 
   useEffect(() => {
     const el = box.current
@@ -43,15 +46,12 @@ export function ThingHoverCard({ world, cameraRef, viewport, container, enabled 
       const cy = e.clientY - bounds.top
       const at = screenToMap(cameraRef.current, { x: cx, y: cy }, viewport)
       if (pickPersonAt(at.x, at.y)) return hide()
-      const current = latest.current
-      const thing = mapThingAt(
-        current,
-        {
-          x: at.x / TILE + (current.grid.origin_x ?? 0),
-          y: at.y / TILE + (current.grid.origin_y ?? 0),
-        },
-        DRAWN_THINGS,
-      )
+      const { world: current, territoryIndex: index } = latest.current
+      const point = {
+        x: at.x / TILE + (current.grid.origin_x ?? 0),
+        y: at.y / TILE + (current.grid.origin_y ?? 0),
+      }
+      const thing = mapThingAt(current, point, DRAWN_THINGS) ?? groundThingAt(current, point, index)
       if (!thing) return hide()
       el.style.display = 'block'
       el.style.left = `${Math.round(cx + 18)}px`
@@ -79,6 +79,17 @@ export function ThingHoverCard({ world, cameraRef, viewport, container, enabled 
       {card && <CardText card={card} />}
     </div>
   )
+}
+
+/**
+ * The bare ground under a point, when no tribe claims its tile. Claimed ground is named in the tribe's
+ * card instead, so this stays out of its way.
+ */
+function groundThingAt(world: WorldState, point: TilePoint, index: TerritoryIndex): MapThing | null {
+  const tx = Math.floor(point.x)
+  const ty = Math.floor(point.y)
+  if (lineageAtTerritoryTile(index, tx, ty)) return null
+  return terrainAt(world, point.x, point.y) ? { kind: 'ground', x: tx, y: ty } : null
 }
 
 function CardText({ card }: { card: ThingCard }) {
