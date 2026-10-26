@@ -303,6 +303,18 @@
   letter-spacing: 0.14em;
   padding: 4px 2px 0;
 }
+/* The pause-on-change switches: a label, then one toggle per change, wrapping on a narrow screen. */
+.more-pause {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.more-pause-label {
+  color: var(--px-muted);
+  font-size: 11px;
+  margin-right: 2px;
+}
 .more-dropdown-divider {
   height: 2px;
   background: var(--px-ink);

@@ -1,6 +1,6 @@
 {
   "seed": 42,
   "tick": 3000,
-  "save_fnv1a64": "0xa5e8e11760af8b3c",
-  "note": "FNV-1a 64 of the serialized save state. Checked natively by sim-core tests and in the browser wasm build by scripts/check-wasm-determinism.mjs. Update only when a change is meant to alter the world. Regenerated when a dying person's shown thought began to keep their need in view."
+  "save_fnv1a64": "0x3f8d0dc76d6a8dc5",
+  "note": "FNV-1a 64 of the serialized save state. Checked natively by sim-core tests and in the browser wasm build by scripts/check-wasm-determinism.mjs. Update only when a change is meant to alter the world. Regenerated when the heavy periodic systems each took their own phase in their cycle."
 }

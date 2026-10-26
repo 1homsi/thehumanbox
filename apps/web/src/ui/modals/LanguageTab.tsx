@@ -1,35 +1,11 @@
-import { useState } from 'react'
 import clsx from 'clsx'
-import { getLocale, LOCALES, nativeName, saveLocale, t } from '../../i18n'
-import { reloadAppSafely } from '../../simulation/worldSource'
+import { LOCALES, nativeName, t } from '../../i18n'
 import { REPO_URL } from '../../shared/links'
+import { languageFailureText, useLanguageChoice } from './useLanguageChoice'
 
 /** The interface language picker. Choosing one saves the world and reloads the game in it. */
 export function LanguageTab() {
-  const current = getLocale()
-  const [pending, setPending] = useState<string | null>(null)
-  const [failed, setFailed] = useState<'reload' | 'storage' | null>(null)
-
-  function choose(code: string) {
-    if (code === current || pending) return
-    const previous = current
-    setFailed(null)
-    // Without storage the reload would come back in the old language.
-    if (!saveLocale(code)) {
-      setFailed('storage')
-      return
-    }
-    setPending(code)
-    reloadAppSafely({
-      onFailure: () => {
-        // If the old choice cannot be put back either, say so: the next visit would open in the new one.
-        const restored = saveLocale(previous)
-        setPending(null)
-        setFailed(restored ? 'reload' : 'storage')
-      },
-      failureMessage: t('settings.language.failed'),
-    })
-  }
+  const { current, pending, failed, choose } = useLanguageChoice()
 
   return (
     <>
@@ -57,7 +33,7 @@ export function LanguageTab() {
       </div>
       {failed && (
         <div className="settings-note" role="alert">
-          {failed === 'storage' ? t('settings.language.storageFailed') : t('settings.language.failed')}
+          {languageFailureText(failed)}
         </div>
       )}
       <div className="settings-note">

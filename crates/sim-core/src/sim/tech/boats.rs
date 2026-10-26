@@ -98,7 +98,11 @@ impl Simulation {
     /// sails their own boat along a water route that may bend around
     /// headlands; `boat_action` then carries them across tick by tick.
     pub(crate) fn tick_colonization(&mut self) {
-        if !self.tick_count.is_multiple_of(COLONY_CHECK_TICKS) || self.tick_count == 0 {
+        if !crate::sim::simulation::on_beat(
+            self.tick_count,
+            COLONY_CHECK_TICKS,
+            crate::sim::simulation::COLONY_PHASE,
+        ) {
             return;
         }
         let boats = self
@@ -486,7 +490,7 @@ mod tests {
             o.health = 1.0;
             o.discoveries.insert("fishing".into());
         }
-        sim.tick_count = COLONY_CHECK_TICKS;
+        sim.tick_count = COLONY_CHECK_TICKS + crate::sim::simulation::COLONY_PHASE;
         sim.tick_colonization();
         let boats = sim
             .vehicles

@@ -333,6 +333,56 @@
       "known": "znane tajemnice: {known} z {required}",
       "worldPeople": "świat ma {have} z {need} ludzi potrzebnych tej epoce (brakuje {short})",
       "ready": "gotowe: epoka nadejdzie przy następnym sprawdzeniu świata"
+    },
+    "needsPeople": {
+      "one": "potrzeba jeszcze {count} osoby",
+      "few": "potrzeba jeszcze {count} osoby",
+      "many": "potrzeba jeszcze {count} osób",
+      "other": "potrzeba jeszcze {count} osób"
+    },
+    "why": {
+      "title": "Dlaczego tak postępują",
+      "guided": "Prowadzone ku: {strategy}, {done} z {target} zrobione",
+      "unguided": "Nikt ich nie prowadzi; działają same",
+      "need": "Najpilniejsze: {need}, brakuje {pct}%",
+      "needNone": "Nic pilnego w tej chwili",
+      "needs": {
+        "food": "jedzenie",
+        "water": "woda",
+        "health": "zdrowie",
+        "shelter": "schronienie",
+        "safety": "bezpieczeństwo",
+        "land": "ziemia"
+      },
+      "doing": "Przy pracy: {list}",
+      "idle": "Nikt teraz nie pracuje",
+      "work": {
+        "woodcutting": "ścinka drzew",
+        "quarrying": "kamieniołom",
+        "foraging": "zbieractwo",
+        "fishing": "rybołówstwo",
+        "hunting": "łowiectwo",
+        "farming": "uprawa",
+        "building": "budownictwo",
+        "crafting": "rzemiosło",
+        "healing": "uzdrawianie"
+      },
+      "allied": "sprzymierzone z {names}",
+      "rivals": "w sporze z {names}",
+      "neutral": "neutralne wobec {names}",
+      "stanceNone": "Nie znają żadnych sąsiadów",
+      "next": "Zamierzają spróbować: {step}",
+      "step": {
+        "food": "zbierać i polować na jedzenie",
+        "water": "iść po wodę",
+        "health": "opiekować się chorymi",
+        "shelter": "budować więcej domów",
+        "safety": "uzbroić się i strzec ziemi",
+        "land": "zająć więcej ziemi",
+        "campaign": "prowadzić kampanię: {strategy}",
+        "learn": "nauczyć się: {secret} na następną epokę",
+        "carryOn": "działać dalej jak dotąd"
+      }
     }
   },
   "scene": {

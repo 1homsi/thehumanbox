@@ -13,6 +13,23 @@ use tokio::sync::broadcast;
 use crate::transport::SharedTransportStats;
 use crate::{AppState, LatestFull, SharedSim, WS_RESYNC_LAG_THRESHOLD};
 
+/// The version of the websocket conversation: the frames a client decodes and what it must do with them. Bump it
+/// when a frame changes shape. The web client (`apps/web/src/simulation/wire-protocol.ts`) and the desktop app
+/// (`apps/desktop/main/sim-ready.ts`) carry the same number, and refuse a server that reports another one.
+pub const WIRE_PROTOCOL: u32 = 1;
+
+/// The first message on every websocket: which build is serving, so a client can refuse one it cannot read.
+pub fn hello_message() -> String {
+    serde_json::json!({
+        "type": "hello",
+        "protocol": WIRE_PROTOCOL,
+        "name": env!("CARGO_PKG_NAME"),
+        "version": env!("CARGO_PKG_VERSION"),
+        "git_sha": env!("THB_GIT_SHA"),
+    })
+    .to_string()
+}
+
 pub async fn ws_handler(ws: WebSocketUpgrade, State(s): State<AppState>) -> impl IntoResponse {
     let rx = s.tx.subscribe();
     let sim = s.sim.clone();
@@ -403,6 +420,7 @@ pub async fn version_handler() -> impl IntoResponse {
         Json(serde_json::json!({
             "name":     env!("CARGO_PKG_NAME"),
             "version":  env!("CARGO_PKG_VERSION"),
+            "protocol": WIRE_PROTOCOL,
             "git_sha":  env!("THB_GIT_SHA"),
             "built_at": built_at,
         })),
@@ -422,7 +440,9 @@ pub async fn org_detail_handler(
             .find(|o| o.id == id)
             .ok_or(StatusCode::NOT_FOUND)?;
         let needs_fallback = !org.alive && org.memories.is_empty();
-        (org.to_detail_json(), needs_fallback, s.world_store.get())
+        let mut detail = org.to_detail_json();
+        detail.family_words = crate::organism::family_words::family_words(org, &sim.organisms);
+        (detail, needs_fallback, s.world_store.get())
     };
     if was_dead_with_empty_memories && detail.memories.is_empty() {
         if let Some(ws) = world_store {
@@ -815,6 +835,11 @@ async fn handle_socket(
     let mut ping_ticker = tokio::time::interval(IDLE_PING_INTERVAL);
     ping_ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
 
+    // The handshake comes before any frame, so a client can refuse this build before it decodes anything.
+    if socket.send(Message::Text(hello_message().into())).await.is_err() {
+        return;
+    }
+
     loop {
         tokio::select! {
             result = rx.recv() => {
@@ -871,6 +896,16 @@ async fn handle_socket(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The first websocket message names the protocol, so a client built for another one can refuse it.
+    #[test]
+    fn hello_names_the_wire_protocol_and_build() {
+        let hello: serde_json::Value = serde_json::from_str(&hello_message()).unwrap();
+        assert_eq!(hello["type"], "hello");
+        assert_eq!(hello["protocol"], WIRE_PROTOCOL);
+        assert_eq!(hello["name"], env!("CARGO_PKG_NAME"));
+        assert_eq!(hello["version"], env!("CARGO_PKG_VERSION"));
+    }
 
     /// The streamed archive download returns exactly the bytes `std::fs::read`
     /// (the previous implementation) returns, with the same headers, and keeps

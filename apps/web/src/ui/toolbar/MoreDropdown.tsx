@@ -8,6 +8,7 @@ import { Tooltip } from './Tooltip'
 import { saveBlocked, saveLabel, saveShortcutLabel, type WorldActions } from './world-actions'
 import { shortcutKeys, shortcutWhat } from './shortcut-text'
 import { t } from '../../i18n'
+import { PAUSE_TRIGGERS } from '../../game/model/pause-on'
 
 /**
  * `onAction` runs whenever the dropdown closes (an action or a toggle). `worldActions` puts
@@ -28,8 +29,8 @@ export function MoreDropdown({
   const openGoals = useUIStore((s) => s.openGoals)
   const openScenarios = useUIStore((s) => s.openScenarios)
   const openNotable = useUIStore((s) => s.openNotable)
-  const pauseOnPeril = useUIStore((s) => s.pauseOnPeril)
-  const setPauseOnPeril = useUIStore((s) => s.setPauseOnPeril)
+  const pauseOn = useUIStore((s) => s.pauseOn)
+  const setPauseOn = useUIStore((s) => s.setPauseOn)
 
   const lineageDot = useViewFlag('lineageDot')
   const health = useViewFlag('health')
@@ -346,15 +347,20 @@ export function MoreDropdown({
             ⊞ {t('dock.more.world')}
           </button>
         </Tooltip>
-        <Tooltip tip={t('dock.more.onBrinkTip')}>
-          <button
-            className={clsx('lang-btn', pauseOnPeril && 'active')}
-            aria-pressed={pauseOnPeril}
-            onClick={() => setPauseOnPeril(!pauseOnPeril)}
-          >
-            ⏸ {t('dock.more.onBrink')}
-          </button>
-        </Tooltip>
+        <div className="more-pause" role="group" aria-label={t('dock.more.pauseOnTip')}>
+          <span className="more-pause-label">⏸ {t('dock.more.pauseOn')}</span>
+          {PAUSE_TRIGGERS.map((trigger) => (
+            <Tooltip key={trigger} tip={t(`dock.more.pauseTip.${trigger}`)}>
+              <button
+                className={clsx('lang-btn', pauseOn[trigger] && 'active')}
+                aria-pressed={pauseOn[trigger]}
+                onClick={() => setPauseOn(trigger, !pauseOn[trigger])}
+              >
+                {t(`dock.more.pause.${trigger}`)}
+              </button>
+            </Tooltip>
+          ))}
+        </div>
         <Tooltip
           tip={
             <span className="tip-card">

@@ -31,9 +31,10 @@ import { PrayerHint } from './ui/panels/PrayerHint'
 import { TribeCard } from './ui/panels/TribeCard'
 import { askConfirm } from './shared/confirm'
 import { toolFailure, toolName } from './ui/toolbar/tool-tips'
-import { formatNumber, t, type MessageKey } from './i18n'
+import { formatNumber, t } from './i18n'
+import { GUIDANCE_LABEL } from './shared/guidance-words'
 import { PAIR_TOOLS, SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
-import { newPerils } from './game/model/peril-watch'
+import { changeReason, watchChanges, type ChangeWatch } from './game/model/pause-on'
 import { prayerRows, prayerTool } from './game/model/prayers'
 import { escapeHandledElsewhere, gameKeyAction, mapOwnsZoomKeys, typingTarget } from './game/model/shortcuts'
 import { tribeHome } from './game/model/tribe-peril'
@@ -91,15 +92,6 @@ import './pixel-theme.css'
 // arrived, which takes seconds of WebAssembly start-up. It is its own chunk, fetched in
 // parallel with the entry through a modulepreload hint (see vite.config.ts), so the app
 // shell parses and the simulation worker starts without waiting for it.
-/** The name of each guidance strategy in words, as the civilization panel shows it. */
-const GUIDANCE_LABEL: Record<LineageStrategy, MessageKey> = {
-  hunt: 'dialogs.civ.guidance.hunt.label',
-  explore: 'dialogs.civ.guidance.explore.label',
-  settle: 'dialogs.civ.guidance.settle.label',
-  trade: 'dialogs.civ.guidance.trade.label',
-  defend: 'dialogs.civ.guidance.defend.label',
-}
-
 const WorldView = lazyWithRetry(() =>
   import('./game/render/WorldView').then((m) => ({ default: m.WorldView })),
 )
@@ -689,22 +681,19 @@ function LiveApp() {
     if (reconciled !== focus) useUIStore.getState().setFocus(reconciled)
   }, [world, focus])
 
-  // Optionally stop the clock when a tribe newly falls on the brink.
-  const seenPerils = useRef(new Set<string>())
-  const perilSeeded = useRef(false)
+  // Optionally stop the clock when a chosen change happens: a tribe on the brink, a new era, a war,
+  // a famine or a tribe dying out. The first look only learns what is already true, so loading a
+  // save never pauses for it.
+  const changeWatch = useRef<ChangeWatch | null>(null)
   useEffect(() => {
     if (!world) return
-    const fresh = newPerils(seenPerils.current, world.tribes_in_peril)
-    // The first look only learns who is already in danger: loading a save
-    // must not pause for tribes that were on the brink before.
-    if (!perilSeeded.current) {
-      perilSeeded.current = true
-      return
-    }
-    if (fresh.length > 0 && useUIStore.getState().pauseOnPeril) {
+    const { hits, watch } = watchChanges(changeWatch.current, world)
+    changeWatch.current = watch
+    const pauseOn = useUIStore.getState().pauseOn
+    const reasons = hits.filter((h) => pauseOn[h.trigger]).map((h) => changeReason(h))
+    if (reasons.length > 0) {
       pauseSim()
-      const names = fresh.map((p) => p.tribe).join(', ')
-      setTemporarySandboxStatus(t('model.status.paused', { names }))
+      setTemporarySandboxStatus(t('model.status.pausedFor', { reasons: reasons.join('; ') }))
     }
   }, [world, pauseSim, setTemporarySandboxStatus])
 

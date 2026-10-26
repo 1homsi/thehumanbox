@@ -570,6 +570,10 @@
     "checkpointRestore": "no se pudo guardar el mundo actual; la restauración se canceló de forma segura",
     "checkpointPerfMode": "no se pudo guardar el mundo actual; la recarga del modo de rendimiento se canceló de forma segura",
     "checkpointRenderer": "no se pudo guardar el mundo actual; la actualización del renderizador se canceló de forma segura",
-    "checkpointRefresh": "no se pudo guardar el mundo actual; la actualización se canceló de forma segura"
+    "checkpointRefresh": "no se pudo guardar el mundo actual; la actualización se canceló de forma segura",
+    "versionTitle": "La simulación es de otra versión",
+    "versionBody": "Esta ventana y la simulación de este ordenador no pueden funcionar juntas: la simulación es {server}. Cierra The Human Box por completo y vuelve a abrirlo.",
+    "versionOlder": "una versión anterior",
+    "versionNumber": "la versión {version}"
   }
 }

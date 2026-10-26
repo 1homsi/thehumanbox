@@ -570,6 +570,10 @@
     "checkpointRestore": "impossibile salvare il mondo attuale; il ripristino è stato annullato in sicurezza",
     "checkpointPerfMode": "impossibile salvare il mondo attuale; l’aggiornamento della modalità prestazioni è stato annullato in sicurezza",
     "checkpointRenderer": "impossibile salvare il mondo attuale; l’aggiornamento del renderer è stato annullato in sicurezza",
-    "checkpointRefresh": "impossibile salvare il mondo attuale; l’aggiornamento è stato annullato in sicurezza"
+    "checkpointRefresh": "impossibile salvare il mondo attuale; l’aggiornamento è stato annullato in sicurezza",
+    "versionTitle": "La simulazione è di un'altra versione",
+    "versionBody": "Questa finestra e la simulazione su questo computer non possono funzionare insieme: la simulazione è {server}. Chiudi del tutto The Human Box, poi riaprilo.",
+    "versionOlder": "una build più vecchia",
+    "versionNumber": "la versione {version}"
   }
 }
