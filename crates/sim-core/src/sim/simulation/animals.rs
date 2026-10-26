@@ -240,7 +240,7 @@ impl Simulation {
             if !pred.alive || !pred.kind.predator() || pred.sleeping {
                 continue;
             }
-            if pred.energy > 0.85 && !pred.hunting {
+            if pred.energy > crate::organism::animal::PREDATOR_HUNGRY_ENERGY && !pred.hunting {
                 continue;
             }
             let packed = hunters.iter().any(|&(oi, ox, oy, okind)| {
