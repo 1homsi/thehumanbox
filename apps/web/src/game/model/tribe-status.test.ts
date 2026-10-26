@@ -23,6 +23,10 @@ describe('tribe status', () => {
         pop: 2,
         pop_required: 8,
         pop_ready: false,
+        // The age is gated on the whole world's people, which the tribe's own two do not reach.
+        world_population: 5,
+        world_population_required: 8,
+        world_population_ready: false,
         required: ['copper_smelting', 'pottery', 'farming'],
         known: ['pottery'],
         missing: ['copper_smelting', 'farming'],
@@ -59,8 +63,25 @@ describe('tribe status', () => {
       known: 1,
       required: 3,
       missing: ['copper smelting', 'farming'],
-      peopleNeeded: 6,
+      // 8 people in the world are needed, and 5 are in it: three more, not the tribe's six.
+      peopleNeeded: 3,
+      worldPeople: 5,
+      worldPeopleRequired: 8,
     })
+  })
+
+  it('counts the world short of an age, not the tribe, and needs nothing once the world has the people', () => {
+    const ready = {
+      ...world,
+      lineage_era_progress: [
+        {
+          ...(world.lineage_era_progress as unknown as Array<Record<string, unknown>>)[0],
+          world_population: 9,
+          world_population_ready: true,
+        },
+      ],
+    } as unknown as WorldState
+    expect(tribeStatus(ready, 'a')!.nextAge?.peopleNeeded).toBe(0)
   })
 
   it('is empty for a tribe with nobody left', () => {

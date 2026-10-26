@@ -12,6 +12,7 @@ import { relationsLine, relationsOf } from '../../game/model/diplomacy'
 import { leadershipOf } from '../../game/model/leadership'
 import { festivalLabel } from '../../game/render/festivals'
 import { tribeStatus } from '../../game/model/tribe-status'
+import { guideLines, type GuideLine } from '../../game/model/era-guide'
 import { wealthGapOf } from '../../game/model/inequality'
 import { crimeLineOf } from '../../game/model/crime'
 import { generationLine, generationsOf } from '../../game/model/generations'
@@ -173,6 +174,22 @@ function TribeName({
       )}
     </>
   )
+}
+
+/** One line of a tribe's starter guide to its next age, in words. */
+function guideText(line: GuideLine): string {
+  switch (line.kind) {
+    case 'secrets':
+      return t('panels.tribe.stillToLearn', { list: line.names.join(', ') })
+    case 'people':
+      return t('panels.tribe.guide.worldPeople', {
+        have: formatNumber(line.have),
+        need: formatNumber(line.need),
+        short: formatNumber(line.short),
+      })
+    case 'ready':
+      return t('panels.tribe.guide.ready')
+  }
 }
 
 /** What a tribe known for each craft is said to be known for. */
@@ -386,16 +403,17 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
               }}
             />
           </span>
-          {status.nextAge.missing.length > 0 && (
-            <div className="tribe-next-missing">
-              {t('panels.tribe.stillToLearn', { list: status.nextAge.missing.slice(0, 3).join(', ') })}
+          <div className="tribe-next-missing">
+            {t('panels.tribe.guide.known', {
+              known: formatNumber(status.nextAge.known),
+              required: formatNumber(status.nextAge.required),
+            })}
+          </div>
+          {guideLines(status.nextAge).map((line) => (
+            <div key={line.kind} className="tribe-next-missing">
+              {guideText(line)}
             </div>
-          )}
-          {status.nextAge.peopleNeeded > 0 && (
-            <div className="tribe-next-missing">
-              {t('panels.tribe.needsPeople', { count: formatNumber(status.nextAge.peopleNeeded) })}
-            </div>
-          )}
+          ))}
         </div>
       )}
       {prayer && (

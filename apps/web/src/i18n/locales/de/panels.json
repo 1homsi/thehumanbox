@@ -290,7 +290,6 @@
     "teach": "lehren",
     "teachTitle": "Lehre ihnen das nächste Geheimnis, das ihnen fehlt (einmal pro Jahreszeit)",
     "stillToLearn": "noch zu lernen: {list}",
-    "needsPeople": "braucht {count} Menschen mehr",
     "praying": "betet",
     "help": "helfen",
     "lore": {
@@ -310,6 +309,11 @@
         "crafting": "bekannt für ihr Handwerk",
         "healing": "bekannt für ihre Heiler"
       }
+    },
+    "guide": {
+      "known": "{known} von {required} Geheimnissen bekannt",
+      "worldPeople": "die Welt hat {have} von {need} Menschen, die dieses Zeitalter braucht ({short} fehlen)",
+      "ready": "bereit: das Zeitalter kommt bei der nächsten Prüfung der Welt"
     }
   },
   "scene": {

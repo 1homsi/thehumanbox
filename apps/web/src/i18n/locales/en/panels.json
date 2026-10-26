@@ -293,10 +293,6 @@
     "teach": "teach",
     "teachTitle": "Teach them the next secret they lack (once a season)",
     "stillToLearn": "still to learn: {list}",
-    "needsPeople": {
-      "one": "needs {count} more person",
-      "other": "needs {count} more people"
-    },
     "praying": "praying",
     "help": "help",
     "lore": {
@@ -316,6 +312,11 @@
         "crafting": "known for their crafts",
         "healing": "known for their healers"
       }
+    },
+    "guide": {
+      "known": "{known} of {required} secrets known",
+      "worldPeople": "the world has {have} of the {need} people this age needs ({short} more)",
+      "ready": "ready: the age comes at the world's next check"
     }
   },
   "scene": {

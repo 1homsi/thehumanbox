@@ -290,7 +290,6 @@
     "teach": "enseñar",
     "teachTitle": "Enseñarles el siguiente secreto que les falta (una vez por temporada)",
     "stillToLearn": "aún por aprender: {list}",
-    "needsPeople": "necesita {count} personas más",
     "praying": "rezando",
     "help": "ayudar",
     "lore": {
@@ -310,6 +309,11 @@
         "crafting": "conocidos por su artesanía",
         "healing": "conocidos por sus sanadores"
       }
+    },
+    "guide": {
+      "known": "{known} de {required} secretos conocidos",
+      "worldPeople": "el mundo tiene {have} de las {need} personas que necesita esta era (faltan {short})",
+      "ready": "listo: la era llega en la próxima revisión del mundo"
     }
   },
   "scene": {
