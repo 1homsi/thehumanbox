@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SANDBOX_CATEGORIES, type SandboxTool } from '../../simulation/sandbox'
-import { DOCK_TABS, groupLabel, groupsFor } from './dock-tabs'
+import { DOCK_TABS, groupLabel, groupsFor, NEW_TOOL_IDS } from './dock-tabs'
 import { SandboxToolbar } from './SandboxToolbar'
 import { useWorldStore } from '../../state/worldStore'
 import type { WorldState } from '../../shared/types'
@@ -189,12 +189,22 @@ describe('world dock buttons', { timeout: 20_000 }, () => {
     expect(props.onPick).toHaveBeenLastCalledWith(animals[1])
   })
 
-  it('marks a group that holds a new tool until the group is opened', () => {
+  it('marks a group that holds a tool added since the player last saw the dock, until it is opened', () => {
+    // A returning player has seen every tool except the owl.
+    window.localStorage.setItem(
+      'thb-seen-new-tools',
+      JSON.stringify(NEW_TOOL_IDS.filter((id) => id !== 'owl')),
+    )
     render()
     const birds = chip('birds')
     expect(birds?.querySelector('.dock-new')).not.toBeNull()
     click(birds)
     expect(chip('birds')?.querySelector('.dock-new')).toBeNull()
+  })
+
+  it('shows no new marks to a first-time player, for whom nothing is new', () => {
+    render()
+    expect(container.querySelectorAll('.dock-new')).toHaveLength(0)
   })
 
   it('puts an armed tool away when its tile is clicked again', () => {

@@ -194,14 +194,24 @@ export function unseenNewToolsInGroup(groupId: string, seen: ReadonlySet<string>
   )
 }
 
-/** The new tools seen so far, from browser storage (empty when storage is unavailable). */
+/**
+ * The new tools seen so far, from browser storage. A player with no record has never seen the dock
+ * before, so nothing in it is new to them: the current new tools start out seen, and the marks only
+ * appear for tools added after that. Without storage the marks are hidden too, since they could
+ * never be cleared.
+ */
 export function readSeenNewTools(): Set<string> {
   try {
     const raw = window.localStorage.getItem(SEEN_NEW_STORAGE_KEY)
-    const ids: unknown = raw ? JSON.parse(raw) : []
+    if (raw === null) {
+      const first = new Set(NEW_TOOL_IDS)
+      window.localStorage.setItem(SEEN_NEW_STORAGE_KEY, JSON.stringify([...first]))
+      return first
+    }
+    const ids: unknown = JSON.parse(raw)
     return new Set(Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : [])
   } catch {
-    return new Set()
+    return new Set(NEW_TOOL_IDS)
   }
 }
 
