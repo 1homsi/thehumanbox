@@ -1056,3 +1056,156 @@ fn building_is_learned_on_site_from_the_work_and_from_the_crew() {
     tick_building_progress(&mut solo);
     assert!(hand > solo.organisms[0].skills.level(Skill::Building));
 }
+
+/// A dry field with a lake whose west shore is column `shore_x` (water from there east).
+fn lakeside(shore_x: i32) -> Simulation {
+    use crate::world::tiles::Tile;
+    let mut sim = Simulation::new(0xD0C5);
+    sim.buildings.clear();
+    for y in 60..120 {
+        for x in 60..160 {
+            sim.grid
+                .set(x, y, if x >= shore_x { Tile::Water } else { Tile::Grass });
+        }
+    }
+    sim
+}
+
+#[test]
+fn harbour_buildings_need_open_water_along_an_edge() {
+    let sim = lakeside(100);
+    for kind in [
+        BuildingKind::Dock,
+        BuildingKind::Port,
+        BuildingKind::Marina,
+        BuildingKind::Lighthouse,
+    ] {
+        let (w, _) = kind.footprint();
+        let beside = 100 - i32::from(w);
+        assert!(
+            construction_site_is_valid(&sim, kind, beside, 80),
+            "{kind:?} right on the shore"
+        );
+        assert!(
+            !construction_site_is_valid(&sim, kind, beside - 6, 80),
+            "{kind:?} inland"
+        );
+    }
+    // Ordinary buildings keep standing inland.
+    assert!(construction_site_is_valid(&sim, BuildingKind::House, 70, 80));
+}
+
+#[test]
+fn one_wet_tile_is_not_a_shore() {
+    use crate::world::tiles::Tile;
+    let mut sim = lakeside(200);
+    sim.grid.set(92, 80, Tile::Water);
+    assert_eq!(sim.grid.open_water_around(90, 80, 2, 2), 1);
+    assert!(!construction_site_is_valid(&sim, BuildingKind::Dock, 90, 80));
+}
+
+#[test]
+fn a_harbour_is_aimed_at_the_nearest_shore_and_found_there() {
+    let mut sim = lakeside(100);
+    sim.organisms.clear();
+    let mut builder = test_org("builder", "Builder", "lineage-a", 96.0, 80.0);
+    builder.age = 10_000;
+    builder.health = 1.0;
+    sim.organisms.push(builder);
+    let point = super::town::placement_point(&sim, "lineage-a", BuildingKind::Dock, (80, 80), (-7, 3));
+    assert_eq!(
+        point,
+        (98, 80),
+        "the corner of a dock on the dry shore straight east of the centre, its side on the water"
+    );
+    let (x, y) = find_construction_site(&sim, "lineage-a", BuildingKind::Dock, point.0, point.1)
+        .expect("a shore site in reach of the builder");
+    assert!(
+        sim.grid.open_water_around(x, y, 2, 2) >= crate::sim::tech::buildings::SHORE_WATER_TILES,
+        "site ({x}, {y}) sits on the shore"
+    );
+}
+
+#[test]
+fn water_only_at_the_corners_is_not_a_shore() {
+    use crate::world::tiles::Tile;
+    let mut sim = lakeside(200);
+    for (x, y) in [(89, 79), (92, 79), (89, 82)] {
+        sim.grid.set(x, y, Tile::Water);
+    }
+    assert_eq!(sim.grid.open_water_around(90, 80, 2, 2), 3);
+    assert_eq!(sim.grid.open_water_on_sides(90, 80, 2, 2), 0);
+    assert!(!construction_site_is_valid(&sim, BuildingKind::Dock, 90, 80));
+}
+
+#[test]
+fn a_harbour_does_not_stand_on_ice() {
+    use crate::world::tiles::Tile;
+    let mut sim = lakeside(100);
+    assert!(construction_site_is_valid(&sim, BuildingKind::Dock, 98, 80));
+    sim.grid.set(99, 80, Tile::Ice);
+    assert!(
+        !construction_site_is_valid(&sim, BuildingKind::Dock, 98, 80),
+        "half the footprint is frozen lake"
+    );
+}
+
+#[test]
+fn a_cramped_shore_is_passed_over_for_one_a_harbour_fits() {
+    use crate::world::tiles::Tile;
+    let mut sim = lakeside(100);
+    // The shore straight east is a one-tile gap in a row of huts; the harbour fits further down the coast.
+    for y in 70..=90 {
+        sim.grid.set(99, y, Tile::Hut);
+        sim.grid.set(98, y, Tile::Hut);
+    }
+    sim.grid.set(99, 80, Tile::Grass);
+    let point = super::town::placement_point(&sim, "lineage-a", BuildingKind::Dock, (80, 80), (0, 0));
+    assert!(
+        construction_terrain_is_valid(&sim, BuildingKind::Dock, point.0, point.1),
+        "{point:?} fits a dock"
+    );
+    assert!((point.1 - 80).abs() > 10, "{point:?} is past the huts");
+}
+
+#[test]
+fn a_built_up_shore_is_passed_over_for_a_free_one() {
+    let mut sim = lakeside(100);
+    // Warehouses line the shore near the town; the dock goes past them.
+    for (i, y) in (66..=94).step_by(2).enumerate() {
+        sim.buildings.push(Building::new(
+            2000 + i as u32,
+            BuildingKind::Warehouse,
+            98,
+            y,
+            None,
+            0,
+        ));
+    }
+    let point = super::town::placement_point(&sim, "lineage-a", BuildingKind::Dock, (80, 80), (0, 0));
+    assert!(
+        construction_site_is_valid(&sim, BuildingKind::Dock, point.0, point.1),
+        "{point:?} is free shore"
+    );
+    assert!((point.1 - 80).abs() > 14, "{point:?} is past the warehouses");
+}
+
+#[test]
+fn a_town_street_on_the_shore_is_passed_over() {
+    let mut sim = lakeside(100);
+    // A town's street runs along the shore near the centre; the dock goes past it.
+    sim.town_plazas.push(super::town::TownPlaza {
+        lineage: "lineage-a".into(),
+        center: [96, 80],
+        streets: (66..=94)
+            .map(|y| [98, y])
+            .chain((66..=94).map(|y| [99, y]))
+            .collect(),
+    });
+    let point = super::town::placement_point(&sim, "lineage-a", BuildingKind::Dock, (80, 80), (0, 0));
+    assert!(
+        !(point.1..point.1 + 2)
+            .any(|y| (point.0..point.0 + 2).any(|x| super::town::town_reserved(&sim, x, y))),
+        "{point:?} keeps off the street"
+    );
+}

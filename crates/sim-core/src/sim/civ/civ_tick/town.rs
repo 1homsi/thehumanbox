@@ -281,7 +281,66 @@ pub(super) fn placement_point(
     center: (i32, i32),
     offset: (i32, i32),
 ) -> (i32, i32) {
+    if kind.needs_shore() {
+        // A harbour goes on the town's own shore, not wherever the offset lands.
+        return nearest_shore(sim, kind, center).unwrap_or((center.0 + offset.0, center.1 + offset.1));
+    }
     town_anchor(sim, lineage, kind).unwrap_or((center.0 + offset.0, center.1 + offset.1))
+}
+
+/// How far from a town's centre it looks for a shore to put a harbour on.
+const SHORE_SEARCH_RADIUS: i32 = 24;
+
+/// The nearest place on the shore where `kind` fits the ground: a dry, unfrozen tile beside open
+/// water that a footprint of `kind` covering it would pass the terrain check (water along its side
+/// included) and no building or town street already covers. Searches square rings out from `center` and takes the
+/// closest such tile of the first ring that has one; returns the footprint's corner. A shore too
+/// cramped or already built on is passed over for one further along.
+fn nearest_shore(sim: &Simulation, kind: BuildingKind, center: (i32, i32)) -> Option<(i32, i32)> {
+    use crate::world::tiles::Tile;
+    let (w, h) = kind.footprint();
+    let dry_shore = |x: i32, y: i32| {
+        WorldGrid::in_bounds(x, y)
+            && !matches!(sim.grid.get(x, y), Tile::Water | Tile::Ice)
+            && [(1, 0), (-1, 0), (0, 1), (0, -1)]
+                .iter()
+                .any(|&(dx, dy)| sim.grid.get(x + dx, y + dy) == Tile::Water)
+    };
+    // Tiles standing buildings cover, gathered once so each candidate is a few lookups.
+    let built: crate::hashing::FxHashSet<(i32, i32)> = sim
+        .buildings
+        .iter()
+        .filter(|b| !b.decorative)
+        .flat_map(|b| {
+            let (bw, bh) = b.footprint();
+            (b.y..b.y + i32::from(bh)).flat_map(move |ty| (b.x..b.x + i32::from(bw)).map(move |tx| (tx, ty)))
+        })
+        .collect();
+    // Free of standing buildings and of the plazas and streets towns keep open.
+    let free = |fx: i32, fy: i32| {
+        (fy..fy + i32::from(h)).all(|ty| {
+            (fx..fx + i32::from(w)).all(|tx| !built.contains(&(tx, ty)) && !town_reserved(sim, tx, ty))
+        })
+    };
+    // The corner of a footprint covering (x, y) that the ground accepts and no building holds, if any.
+    let fits_at = |x: i32, y: i32| {
+        (0..i32::from(h))
+            .flat_map(|oy| (0..i32::from(w)).map(move |ox| (x - ox, y - oy)))
+            .find(|&(fx, fy)| {
+                super::construction::construction_terrain_is_valid(sim, kind, fx, fy) && free(fx, fy)
+            })
+    };
+    (0..=SHORE_SEARCH_RADIUS).find_map(|radius| {
+        let mut ring: Vec<(i32, i32)> = (-radius..=radius)
+            .flat_map(|dy| (-radius..=radius).map(move |dx| (dx, dy)))
+            .filter(|&(dx, dy)| dx.abs() == radius || dy.abs() == radius)
+            .filter(|&(dx, dy)| dry_shore(center.0 + dx, center.1 + dy))
+            .collect();
+        // The closest tiles of the ring first, not the first ones scanned.
+        ring.sort_by_key(|&(dx, dy)| dx * dx + dy * dy);
+        ring.into_iter()
+            .find_map(|(dx, dy)| fits_at(center.0 + dx, center.1 + dy))
+    })
 }
 
 /// The era a town raises its market in, and the population it needs first.

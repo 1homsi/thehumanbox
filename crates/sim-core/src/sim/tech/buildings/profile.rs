@@ -33,6 +33,9 @@ impl BuildingFunction {
     }
 }
 
+/// Open-water tiles a harbour building needs along its edge (see `BuildingKind::has_water_for`).
+pub const SHORE_WATER_TILES: usize = 3;
+
 impl BuildingKind {
     pub fn era_unlock(self) -> Era {
         use BuildingKind::*;
@@ -85,6 +88,31 @@ impl BuildingKind {
             Pen | Barn => Era::Bronze,
             Longhouse => Era::Iron,
         }
+    }
+
+    /// Harbour and boat buildings: they stand on dry ground with open water along an edge.
+    pub fn needs_shore(self) -> bool {
+        use BuildingKind::*;
+        matches!(
+            self,
+            Dock | Port | Marina | Shipyard | Drydock | Lighthouse | Lighthouse2
+        )
+    }
+
+    /// Whether this kind, at (x, y), has the water it needs: always for a kind that needs none. A
+    /// harbour building needs at least `SHORE_WATER_TILES` of open water around it, at least one of
+    /// them along a side rather than only at a corner, and firm ground under it: ice can melt.
+    pub fn has_water_for(self, grid: &crate::world::grid::WorldGrid, x: i32, y: i32) -> bool {
+        use crate::world::tiles::Tile;
+        if !self.needs_shore() {
+            return true;
+        }
+        let (w, h) = self.footprint();
+        let on_ice =
+            (y..y + i32::from(h)).any(|ty| (x..x + i32::from(w)).any(|tx| grid.get(tx, ty) == Tile::Ice));
+        !on_ice
+            && grid.open_water_around(x, y, w, h) >= SHORE_WATER_TILES
+            && grid.open_water_on_sides(x, y, w, h) >= 1
     }
 
     pub fn footprint(self) -> (u8, u8) {

@@ -147,7 +147,7 @@ pub(crate) fn construction_site_is_valid(sim: &Simulation, kind: BuildingKind, x
 
 /// The ground part of `construction_site_is_valid`: bounds and terrain, not the
 /// buildings already standing there.
-fn construction_terrain_is_valid(sim: &Simulation, kind: BuildingKind, x: i32, y: i32) -> bool {
+pub(super) fn construction_terrain_is_valid(sim: &Simulation, kind: BuildingKind, x: i32, y: i32) -> bool {
     use crate::world::grid::{HEIGHT, WIDTH};
     use crate::world::tiles::Tile;
 
@@ -194,6 +194,9 @@ fn construction_terrain_is_valid(sim: &Simulation, kind: BuildingKind, x: i32, y
                     return false;
                 }
             }
+        }
+        if !kind.has_water_for(&sim.grid, x, y) {
+            return false;
         }
     }
     true
