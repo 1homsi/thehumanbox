@@ -197,6 +197,10 @@
       "title": "Dwa rywalizujące plemiona",
       "detail": "Dwie grupy po pięć osób startują po przeciwnych stronach ziemi, każda z odrobiną zwierzyny w pobliżu."
     },
+    "oneTongue": {
+      "title": "Dwa plemiona, jeden język",
+      "detail": "Dwie sąsiednie grupy po pięć osób zaczynają od tych samych słów, a ty możesz patrzeć, jak ich język się rozdziela."
+    },
     "wildValley": {
       "title": "Dzika dolina",
       "detail": "Stado jeleni i królików rozlokowuje się po ziemi, a na początek jest czyste niebo."

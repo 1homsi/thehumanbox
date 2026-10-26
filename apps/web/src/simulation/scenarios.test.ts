@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SANDBOX_CATEGORIES } from './sandbox'
+import { SANDBOX_CATEGORIES, type SandboxCommand } from './sandbox'
 import { SCENARIO_PRESETS } from './scenarios'
 
 describe('scenario presets', () => {
@@ -42,5 +42,18 @@ describe('scenario presets', () => {
         expect(known.has(step.cmd) || step.cmd === 'weather' || step.cmd === 'make_leader').toBe(true)
       }
     }
+  })
+
+  it('starts two neighbouring groups that speak the same words', () => {
+    const preset = SCENARIO_PRESETS.find((p) => p.id === 'one-tongue')
+    expect(preset).toBeDefined()
+    const spawns = preset!
+      .steps(400, 300)
+      .filter((s): s is Extract<SandboxCommand, { cmd: 'spawn' }> => s.cmd === 'spawn')
+    expect(spawns).toHaveLength(2)
+    const [west, east] = spawns
+    expect(west.speak_like).toBeUndefined()
+    expect(east.speak_like).toEqual([west.x, west.y])
+    expect(Math.abs(east.x - west.x)).toBeLessThan(400 / 4)
   })
 })
