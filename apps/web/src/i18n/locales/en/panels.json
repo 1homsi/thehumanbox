@@ -316,6 +316,50 @@
         "crafting": "known for their crafts",
         "healing": "known for their healers"
       }
+    },
+    "why": {
+      "title": "Why they act",
+      "guided": "Guided to {strategy}: {done} of {target} done",
+      "unguided": "Nobody guides them; they act on their own",
+      "need": "Most pressing: {need}, {pct}% short",
+      "needNone": "Nothing is pressing right now",
+      "needs": {
+        "food": "food",
+        "water": "water",
+        "health": "health",
+        "shelter": "shelter",
+        "safety": "safety",
+        "land": "land"
+      },
+      "doing": "At work: {list}",
+      "idle": "Nobody is at work just now",
+      "work": {
+        "woodcutting": "woodcutting",
+        "quarrying": "quarrying",
+        "foraging": "foraging",
+        "fishing": "fishing",
+        "hunting": "hunting",
+        "farming": "farming",
+        "building": "building",
+        "crafting": "crafting",
+        "healing": "healing"
+      },
+      "allied": "allied with {names}",
+      "rivals": "at odds with {names}",
+      "neutral": "neutral toward {names}",
+      "stanceNone": "No neighbours they know of",
+      "next": "About to try: {step}",
+      "step": {
+        "food": "forage and hunt for food",
+        "water": "walk to water",
+        "health": "tend the sick",
+        "shelter": "raise more homes",
+        "safety": "arm up and guard their ground",
+        "land": "claim more ground",
+        "campaign": "keep up the {strategy} campaign",
+        "learn": "learn {secret} for the next age",
+        "carryOn": "carry on as they are"
+      }
     }
   },
   "scene": {

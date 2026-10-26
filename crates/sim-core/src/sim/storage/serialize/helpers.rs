@@ -63,6 +63,24 @@ pub(super) fn lineage_strategy_payload(sim: &Simulation) -> serde_json::Value {
     serde_json::to_value(active_strategies).unwrap()
 }
 
+/// What each tribe's people are at work on right now, counted by trade: `{lineage: {skill: people}}`.
+/// The tribe card reads it to say what a tribe is doing. Read only; a stint that has run out is not counted.
+pub(super) fn lineage_work_payload(sim: &Simulation) -> serde_json::Value {
+    let mut work: std::collections::BTreeMap<&str, std::collections::BTreeMap<&str, u32>> =
+        std::collections::BTreeMap::new();
+    for org in sim.organisms.iter().filter(|o| o.alive) {
+        let Some(plan) = org.work else {
+            continue;
+        };
+        if plan.until <= sim.tick_count {
+            continue;
+        }
+        let trades = work.entry(org.lineage_id.as_str()).or_default();
+        *trades.entry(plan.skill.name()).or_insert(0) += 1;
+    }
+    serde_json::to_value(work).unwrap_or_default()
+}
+
 pub(super) fn lineage_strategy_history_payload(sim: &Simulation) -> serde_json::Value {
     serde_json::to_value(
         sim.lineage_strategy_history
