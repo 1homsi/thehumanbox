@@ -34,7 +34,7 @@ import { toolFailure, toolName } from './ui/toolbar/tool-tips'
 import { formatNumber, t } from './i18n'
 import { GUIDANCE_LABEL } from './shared/guidance-words'
 import { PAIR_TOOLS, SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
-import { newPerils } from './game/model/peril-watch'
+import { changeReason, watchChanges, type ChangeWatch } from './game/model/pause-on'
 import { prayerRows, prayerTool } from './game/model/prayers'
 import { escapeHandledElsewhere, gameKeyAction, mapOwnsZoomKeys, typingTarget } from './game/model/shortcuts'
 import { tribeHome } from './game/model/tribe-peril'
@@ -681,22 +681,19 @@ function LiveApp() {
     if (reconciled !== focus) useUIStore.getState().setFocus(reconciled)
   }, [world, focus])
 
-  // Optionally stop the clock when a tribe newly falls on the brink.
-  const seenPerils = useRef(new Set<string>())
-  const perilSeeded = useRef(false)
+  // Optionally stop the clock when a chosen change happens: a tribe on the brink, a new era, a war,
+  // a famine or a tribe dying out. The first look only learns what is already true, so loading a
+  // save never pauses for it.
+  const changeWatch = useRef<ChangeWatch | null>(null)
   useEffect(() => {
     if (!world) return
-    const fresh = newPerils(seenPerils.current, world.tribes_in_peril)
-    // The first look only learns who is already in danger: loading a save
-    // must not pause for tribes that were on the brink before.
-    if (!perilSeeded.current) {
-      perilSeeded.current = true
-      return
-    }
-    if (fresh.length > 0 && useUIStore.getState().pauseOnPeril) {
+    const { hits, watch } = watchChanges(changeWatch.current, world)
+    changeWatch.current = watch
+    const pauseOn = useUIStore.getState().pauseOn
+    const reasons = hits.filter((h) => pauseOn[h.trigger]).map((h) => changeReason(h))
+    if (reasons.length > 0) {
       pauseSim()
-      const names = fresh.map((p) => p.tribe).join(', ')
-      setTemporarySandboxStatus(t('model.status.paused', { names }))
+      setTemporarySandboxStatus(t('model.status.pausedFor', { reasons: reasons.join('; ') }))
     }
   }, [world, pauseSim, setTemporarySandboxStatus])
 

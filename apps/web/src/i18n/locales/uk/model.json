@@ -230,7 +230,7 @@
     "failed": "{label} · {reason}",
     "following": "стежить за: {name}",
     "naming": "ім’я · введіть нове ім’я для: {name}",
-    "paused": "пауза: {names} на межі"
+    "pausedFor": "пауза: {reasons}"
   },
   "legends": {
     "when": "Рік {year}, {season}",
@@ -566,7 +566,7 @@
       "aquaculture": "аквакультура"
     },
     "discovery": {
-      "stone_tools": "кам'яні знаряддя",
+      "stone_tools": "кам’яні знаряддя",
       "agriculture": "землеробство",
       "farm": "ферма",
       "harvest": "урожай",
@@ -753,7 +753,6 @@
       "posting_notices": "оголошення",
       "tool_making": "виготовлення знарядь",
       "tool_improvement": "удосконалення знарядь",
-      "stone_tools": "кам’яні знаряддя",
       "pottery": "гончарство",
       "weaving": "ткацтво",
       "smelting": "виплавка",
@@ -940,5 +939,14 @@
       "neutral": "нейтральні",
       "rivals": "суперники"
     }
+  },
+  "pause": {
+    "brink": "{names} на межі",
+    "era": "{names} увійшло в нову епоху",
+    "worldEra": "у світі почалася нова епоха",
+    "warBy": "{names} почало війну",
+    "war": "почалася війна",
+    "famine": "{names} голодують",
+    "extinct": "{names} вимерло"
   }
 }

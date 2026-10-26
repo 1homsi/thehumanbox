@@ -226,7 +226,7 @@
     "failed": "{label} · {reason}",
     "following": "suit {name}",
     "naming": "nom · tapez un nouveau nom pour {name}",
-    "paused": "en pause : {names} au bord du gouffre"
+    "pausedFor": "en pause : {reasons}"
   },
   "legends": {
     "when": "An {year}, {season}",
@@ -731,7 +731,6 @@
       "posting_notices": "affichage public",
       "tool_making": "fabrication d’outils",
       "tool_improvement": "amélioration des outils",
-      "stone_tools": "outils de pierre",
       "pottery": "poterie",
       "weaving": "tissage",
       "smelting": "fonte",
@@ -918,5 +917,14 @@
       "neutral": "neutres",
       "rivals": "rivaux"
     }
+  },
+  "pause": {
+    "brink": "{names} au bord de la disparition",
+    "era": "{names} entre dans une nouvelle ère",
+    "worldEra": "une nouvelle ère a commencé dans le monde",
+    "warBy": "{names} est entré en guerre",
+    "war": "une guerre a éclaté",
+    "famine": "{names} meurt de faim",
+    "extinct": "{names} s'est éteint"
   }
 }
