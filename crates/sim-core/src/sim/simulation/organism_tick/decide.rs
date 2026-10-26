@@ -18,13 +18,16 @@ impl Simulation {
         let storm_build = std::mem::take(&mut f.storm_build);
         let threat_kind = f.threat_kind;
         let wolf_threat = f.wolf_threat;
+        let threat_summoned = f.threat_summoned;
 
         let (action, new_thought, decision_origin): (usize, Option<String>, &'static str) =
             if let Some(boat_action) = self.boat_action(idx) {
                 boat_action
             } else if let Some((action, thought)) = storm_build {
                 (action, thought, "emergency_reflex")
-            } else if let Some((dist, wx, wy)) = wolf_threat.filter(|(dist, _, _)| *dist <= 2.5) {
+            } else if let Some((dist, wx, wy)) = wolf_threat.filter(|(dist, _, _)| {
+                *dist <= 2.5 || (threat_summoned && *dist <= crate::sim::simulation::animals::SUMMONED_ALARM)
+            }) {
                 let fdx = (ox - wx).signum();
                 let fdy = (oy - wy).signum();
                 let dir = match (fdx as i32, fdy as i32) {
@@ -42,7 +45,12 @@ impl Simulation {
                 // When home is near and lies on the far side from the threat, they run for home.
                 let flee_dist = 20.0 + fear_trait * 30.0;
                 let (hx, hy) = (self.organisms[idx].home_x, self.organisms[idx].home_y);
-                let (tx, ty) = if home_is_the_way_out((hx, hy), (ox, oy), (wx, wy)) {
+                // A summoned pack sends people home to shelter when home is within reach; otherwise they
+                // run as they do from any beast.
+                let shelter_near = (hx - ox).abs() + (hy - oy).abs() <= SHELTER_REACH;
+                let run_home =
+                    (threat_summoned && shelter_near) || home_is_the_way_out((hx, hy), (ox, oy), (wx, wy));
+                let (tx, ty) = if run_home {
                     (hx.round() as i32, hy.round() as i32)
                 } else {
                     safe_flee_target(&self.grid, ox, oy, fdx, fdy, flee_dist)
@@ -165,6 +173,9 @@ impl Simulation {
 }
 
 /// True when home is within 40 tiles and lies on the far side of the threat from the person, so running for home is running away.
+/// How far (Manhattan tiles) home may be for people to run there from a summoned pack.
+const SHELTER_REACH: f32 = 30.0;
+
 pub(super) fn home_is_the_way_out(home: (f32, f32), me: (f32, f32), threat: (f32, f32)) -> bool {
     let (hx, hy) = home;
     let (ox, oy) = me;

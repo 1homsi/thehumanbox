@@ -51,6 +51,8 @@ fn main() {
         growth_every,
         profile_out,
         profile_every,
+        summon_wolves,
+        summon_at,
     } = args::parse();
 
     if world_report {
@@ -111,6 +113,16 @@ fn main() {
     let mut reported: std::collections::HashSet<String> = std::collections::HashSet::new();
     while sim.tick_count < max_ticks {
         let t0 = std::time::Instant::now();
+        if summon_wolves > 0 && sim.tick_count == summon_at {
+            // The player summons wolves beside the first living person (the same command as the sandbox tool).
+            if let Some(p) = sim.organisms.iter().find(|o| o.alive) {
+                let cmd = format!(
+                    r#"{{"cmd":"spawn_animal","x":{},"y":{},"kind":"wolf","count":{},"radius":4}}"#,
+                    p.x, p.y, summon_wolves
+                );
+                sim.apply_command_json(&cmd);
+            }
+        }
         sim.tick();
         if let Some(cause) = death_probe.as_deref() {
             for o in sim

@@ -60,6 +60,8 @@ pub(super) struct OrgFrame<'a> {
     pub(super) tc: u64,
     pub(super) threat_kind: AnimalKind,
     pub(super) wolf_threat: Option<(f32, f32, f32)>,
+    /// The nearest threat is a summoned wolf: people run for shelter from further off.
+    pub(super) threat_summoned: bool,
 }
 
 impl Simulation {
@@ -127,6 +129,7 @@ impl Simulation {
             tc: 0,
             threat_kind: AnimalKind::Wolf,
             wolf_threat: None,
+            threat_summoned: false,
         };
         self.org_setup(&mut f);
         self.org_threats(&mut f);

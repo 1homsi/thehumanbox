@@ -10,6 +10,13 @@ const CAT_BOND_CHANCE: f32 = 0.002;
 const PACK_RANGE: f32 = 4.0;
 /// How far (Manhattan tiles) a predator in a pack reaches prey; alone it reaches 1.5.
 const PACK_REACH: f32 = 3.0;
+/// How close (Manhattan tiles) another summoned wolf must be for a summoned wolf to bite as part of a pack.
+const SUMMONED_PACK_RANGE: f32 = 3.0;
+/// Bite chance for a summoned wolf hunting in a pack / alone (a wild wolf bites at 0.18 + 0.10 × energy).
+const SUMMONED_PACK_BITE: f32 = 0.34;
+const SUMMONED_LONE_BITE: f32 = 0.24;
+/// How far (Manhattan tiles) a summoned pack is heard coming: people run for shelter from this far off.
+pub(super) const SUMMONED_ALARM: f32 = 10.0;
 
 impl Simulation {
     pub(super) fn spawn_animals(&mut self, count: usize) {
@@ -116,6 +123,8 @@ impl Simulation {
         let night = self.is_night();
         for animal in &mut self.animals {
             let wild = animal.alive && animal.bonded_org.is_none();
+            // A summoned pack hunts through the night, fed or not (see the movement and bite rules below).
+            animal.hunting = animal.alive && animal.summoned && night;
             animal.sleeping = winter && wild && animal.kind == AnimalKind::Bear;
             // Birds fly south for the winter and come back with the spring.
             animal.away = winter && wild && animal.kind == AnimalKind::Bird;
@@ -141,6 +150,7 @@ impl Simulation {
         let mut wolf_candidates = Vec::with_capacity(32);
 
         let mut prey_pos_for_chase: Vec<(f32, f32)> = Vec::new();
+        let mut livestock_pos_for_raid: Vec<(f32, f32)> = Vec::new();
         let mut wolf_pos_for_flee: Vec<(f32, f32)> = Vec::new();
         for animal in self
             .animals
@@ -148,8 +158,9 @@ impl Simulation {
             .filter(|animal| animal.alive && !animal.sleeping && !animal.away)
         {
             match animal.kind {
-                // Livestock in a pen is not game: the rails keep the wolves out.
+                // Livestock in a pen is not game: the rails keep the wolves out, unless a summoned pack raids.
                 kind if kind.is_prey() && !animal.is_kept() => prey_pos_for_chase.push((animal.x, animal.y)),
+                kind if kind.is_prey() => livestock_pos_for_raid.push((animal.x, animal.y)),
                 kind if kind.hostile() => wolf_pos_for_flee.push((animal.x, animal.y)),
                 _ => {}
             }
@@ -187,6 +198,7 @@ impl Simulation {
                 &self.grid,
                 &nearby_humans,
                 &prey_pos_for_chase,
+                &livestock_pos_for_raid,
                 &wolf_pos_for_flee,
                 &mut self.rng,
             );
@@ -214,18 +226,27 @@ impl Simulation {
             .filter(|(_, a)| a.alive && a.kind.predator() && !a.sleeping)
             .map(|(i, a)| (i, a.x, a.y, a.kind))
             .collect();
+        // Livestock in pens are raided only by a summoned pack out at night.
+        let livestock: Vec<(usize, f32, f32, AnimalKind)> = self
+            .animals
+            .iter()
+            .enumerate()
+            .filter(|(_, a)| a.alive && !a.away && a.kind.is_prey() && a.is_kept())
+            .map(|(i, a)| (i, a.x, a.y, a.kind))
+            .collect();
         for (pi, pred) in self.animals.iter().enumerate() {
             if !pred.alive || !pred.kind.predator() || pred.sleeping {
                 continue;
             }
-            if pred.energy > 0.85 {
+            if pred.energy > 0.85 && !pred.hunting {
                 continue;
             }
             let packed = hunters.iter().any(|&(oi, ox, oy, okind)| {
                 oi != pi && okind == pred.kind && (ox - pred.x).abs() + (oy - pred.y).abs() <= PACK_RANGE
             });
             let reach = if packed { PACK_REACH } else { 1.5 };
-            for (vi, vx, vy, _) in prey_positions.iter().copied() {
+            let raid: &[(usize, f32, f32, AnimalKind)] = if pred.hunting { &livestock } else { &[] };
+            for (vi, vx, vy, _) in prey_positions.iter().chain(raid.iter()).copied() {
                 if vi == pi {
                     continue;
                 }
@@ -390,18 +411,32 @@ impl Simulation {
         }
 
         let mut bites: Vec<(usize, usize)> = Vec::new();
+        // Where the summoned wolves are, for telling a pack from a lone wolf.
+        let summoned_at: Vec<(usize, f32, f32)> = self
+            .animals
+            .iter()
+            .enumerate()
+            .filter(|(_, a)| a.alive && a.summoned && a.kind == AnimalKind::Wolf)
+            .map(|(i, a)| (i, a.x, a.y))
+            .collect();
         for (ai, a) in self.animals.iter().enumerate() {
-            // Only hungry predators attack, like their prey hunting above.
-            // Monsters always do; a UFO abducts instead (see tick_monsters).
+            // Only hungry predators attack, like their prey hunting above; a summoned pack also attacks
+            // at night, fed or not. Monsters always do; a UFO abducts instead (see tick_monsters).
             let monster = a.kind.monster();
             if !a.alive
                 || a.sleeping
                 || a.kind == AnimalKind::Ufo
                 || !(monster
-                    || (a.kind.predator() && a.energy <= crate::organism::animal::PREDATOR_HUNGRY_ENERGY))
+                    || (a.kind.predator()
+                        && (a.energy <= crate::organism::animal::PREDATOR_HUNGRY_ENERGY || a.hunting)))
             {
                 continue;
             }
+            let summoned_pack = a.hunting
+                && a.kind == AnimalKind::Wolf
+                && summoned_at.iter().any(|&(oi, ox, oy)| {
+                    oi != ai && (ox - a.x).abs() + (oy - a.y).abs() <= SUMMONED_PACK_RANGE
+                });
             // Aliens shoot and dragons breathe from a little further away.
             let reach = match a.kind {
                 AnimalKind::Alien => 3.0,
@@ -434,6 +469,13 @@ impl Simulation {
                         AnimalKind::Demon => 0.28,
                         AnimalKind::Dragon => 0.22,
                         AnimalKind::Alien => 0.20,
+                        AnimalKind::Wolf if a.hunting => {
+                            if summoned_pack {
+                                SUMMONED_PACK_BITE
+                            } else {
+                                SUMMONED_LONE_BITE
+                            }
+                        }
                         _ => 0.18 + a.energy * 0.10,
                     };
                     let bite_p = (base + weak_bonus) * pack_defence;
