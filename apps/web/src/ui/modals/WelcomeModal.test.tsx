@@ -174,6 +174,17 @@ describe('WelcomeModal', () => {
     )
   })
 
+  it('Tab from the page body skips the disabled picker while a language change reloads', () => {
+    mount()
+    chooseLanguage('de')
+    expect(picker().disabled).toBe(true)
+    act(() => (document.activeElement as HTMLElement | null)?.blur())
+    press(document.body, 'Tab')
+    const enabled = [...controls()].filter((control) => !control.disabled)
+    expect(document.activeElement).toBe(enabled[0])
+    expect(document.activeElement).not.toBe(picker())
+  })
+
   it('Tab reaches the language picker inside the card', () => {
     mount()
     const last = controls()[controls().length - 1]

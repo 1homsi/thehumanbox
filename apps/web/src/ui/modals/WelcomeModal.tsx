@@ -69,7 +69,10 @@ export function WelcomeModal() {
         return
       }
       if (e.key !== 'Tab') return
-      const buttons = card.querySelectorAll<HTMLButtonElement | HTMLSelectElement>('button, select')
+      // A disabled control cannot take focus, so Tab must skip it (the picker is disabled while a language reloads).
+      const buttons = card.querySelectorAll<HTMLButtonElement | HTMLSelectElement>(
+        'button:not(:disabled), select:not(:disabled)',
+      )
       const first = buttons[0]
       const last = buttons[buttons.length - 1]
       if (!card.contains(document.activeElement)) {
