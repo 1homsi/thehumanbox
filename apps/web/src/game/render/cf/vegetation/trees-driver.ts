@@ -5,6 +5,7 @@ import type { WorldState } from '../../../../shared/types'
 import { TILE } from '../../../model/palette'
 import { SHADOW as ART_SHADOW } from '../../art-palette'
 import { drawAcacia, placeTrees, type PlacedAcacia, type PlacedTree } from '../../decorations'
+import { indexTrees } from '../../tree-index'
 import {
   drawVegetationCrop,
   vegetationAtlasReady,
@@ -112,6 +113,7 @@ export class TreesDriver {
     if (!biomes) return
     const p0 = performance.now()
     const placed = placeTrees(width, height, tiles, biomes, f.ox, f.oy, undefined, season)
+    indexTrees(placed.trees, placed.acacias, width, { x: f.ox, y: f.oy })
     this.stats.placeMs += performance.now() - p0
     for (let pass = 0; pass < 2; pass++) {
       const epoch = this.atlas.epoch

@@ -333,6 +333,79 @@
       "other": "{count} Gebäude"
     }
   },
+  "thing": {
+    "building": {
+      "tribe": "gehört {tribe}",
+      "construction": "wird gebaut, {percent} % fertig",
+      "ruined": "in Trümmern",
+      "rebuilding": "wird wieder aufgebaut",
+      "repairing": "wird ausgebessert",
+      "damaged": "beschädigt, {percent} % intakt",
+      "intact": "in gutem Zustand",
+      "lives": "wohnt hier: {names}",
+      "works": "arbeitet hier: {names}",
+      "more": "und {count} weitere"
+    },
+    "vehicle": {
+      "aboard": "an Bord: {names}",
+      "building": "wird gebaut",
+      "sailing": "unter Segel",
+      "moored": "am Hafen vertäut",
+      "cargo": "{count} Waren an Bord"
+    },
+    "animal": {
+      "named": "heißt {name}",
+      "wild": "wild",
+      "tame": "zahm",
+      "young": "jung",
+      "asleep": "schläft",
+      "hunting": "auf der Jagd",
+      "hungry": "hungrig"
+    },
+    "farm": {
+      "tribe": "bestellt von {tribe}",
+      "field": "Feld"
+    },
+    "stage": {
+      "fallow": "brachliegend",
+      "sown": "eingesät",
+      "growing": "wächst",
+      "ready": "erntereif",
+      "withered": "verdorrt"
+    },
+    "caravan": {
+      "title": "Karawane",
+      "load": "trägt {amount} {cargo}",
+      "route": "von {from} nach {to}"
+    }
+  },
+  "terrain": {
+    "ground": {
+      "grass": "Gras",
+      "shallowWater": "flaches Wasser",
+      "deepWater": "tiefes Wasser",
+      "floodwater": "Flutwasser",
+      "sand": "Sand",
+      "snow": "Schnee",
+      "ice": "Eis",
+      "rock": "Fels",
+      "ash": "Asche",
+      "scorched": "versengter Boden",
+      "lava": "Lava",
+      "mineral": "erzhaltiger Boden",
+      "foodGround": "nahrungsreicher Boden",
+      "fire": "Feuer",
+      "campfire": "Lagerfeuer"
+    },
+    "note": {
+      "track": "ausgetretener Pfad",
+      "rail": "Schienenweg",
+      "canal": "Bewässerungskanal",
+      "bridge": "Brücke",
+      "fertile": "fruchtbarer Boden",
+      "onFire": "brennt"
+    }
+  },
   "pair": {
     "marry": {
       "next": "Heiraten · jetzt die andere Person anklicken",
@@ -366,6 +439,52 @@
       "decline": "Niedergang",
       "scarcity": "Knappheit",
       "recovery": "Erholung"
+    },
+    "plant": {
+      "tree": "Baum",
+      "conifer": "Nadelbaum",
+      "bush": "Busch",
+      "deadTree": "toter Baum",
+      "cactus": "Kaktus",
+      "acacia": "Akazie",
+      "crop": "Feldfrucht",
+      "orchard": "Obstgarten",
+      "sapling": "Setzling",
+      "flower": "Blume",
+      "berry": "Beerenstrauch",
+      "mushroom": "Pilz",
+      "oak": "Eiche",
+      "pine": "Kiefer",
+      "palm": "Palme"
+    },
+    "crop": {
+      "wheat": "Weizen",
+      "rice": "Reis",
+      "maize": "Mais",
+      "barley": "Gerste",
+      "potato": "Kartoffel",
+      "beans": "Bohnen",
+      "cotton": "Baumwolle",
+      "tobacco": "Tabak",
+      "sugarcane": "Zuckerrohr",
+      "coffee": "Kaffee",
+      "tea": "Tee"
+    },
+    "vehicle": {
+      "boat": "Boot",
+      "ship": "Schiff",
+      "cart": "Karren",
+      "wagon": "Wagen",
+      "carriage": "Kutsche",
+      "sled": "Schlitten",
+      "bicycle": "Fahrrad",
+      "automobile": "Automobil",
+      "truck": "Lastwagen",
+      "train": "Zug",
+      "subway": "U-Bahn",
+      "plane": "Flugzeug",
+      "helicopter": "Hubschrauber",
+      "rocket": "Rakete"
     },
     "building": {
       "hut": "Hütte",

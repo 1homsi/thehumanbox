@@ -103,6 +103,20 @@ describe('TerritoryHoverCard', () => {
     expect(text).not.toContain('no leader')
   })
 
+  it('gives the ground under the pointer in the tribe card, on its own line', () => {
+    const world = tribeWorld()
+    world.grid = {
+      ...world.grid,
+      tiles: Array.from({ length: 100 }, (_, row) =>
+        Array.from({ length: 100 }, (_c, col) => (row === 10 && col === 10 ? 2 : 1)),
+      ),
+      depth_map: Array.from({ length: 100 }, (_, row) =>
+        Array.from({ length: 100 }, (_c, col) => (row === 10 && col === 10 ? 120 : 255)),
+      ),
+    } as WorldState['grid']
+    expect(hoverCardText(world)).toContain('deep water')
+  })
+
   // Polish writes 10,001 with a space and picks its plural from the number, so the card must pass the number.
   it('picks the plural of a large count from the number, not from its grouped text', async () => {
     await loadLocale('pl')

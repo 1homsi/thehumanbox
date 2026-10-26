@@ -397,7 +397,8 @@ impl Simulation {
             if !a.alive
                 || a.sleeping
                 || a.kind == AnimalKind::Ufo
-                || !(monster || (a.kind.predator() && a.energy <= 0.85))
+                || !(monster
+                    || (a.kind.predator() && a.energy <= crate::organism::animal::PREDATOR_HUNGRY_ENERGY))
             {
                 continue;
             }

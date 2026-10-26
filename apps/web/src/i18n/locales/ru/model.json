@@ -355,6 +355,79 @@
       "other": "{count} здания"
     }
   },
+  "thing": {
+    "building": {
+      "tribe": "принадлежит: {tribe}",
+      "construction": "строится, {percent}% готово",
+      "ruined": "в руинах",
+      "rebuilding": "восстанавливается",
+      "repairing": "ремонтируется",
+      "damaged": "повреждён, цел на {percent}%",
+      "intact": "в хорошем состоянии",
+      "lives": "живёт здесь: {names}",
+      "works": "работает здесь: {names}",
+      "more": "и ещё {count}"
+    },
+    "vehicle": {
+      "aboard": "на борту: {names}",
+      "building": "строится",
+      "sailing": "под парусом",
+      "moored": "пришвартован в порту",
+      "cargo": "везёт грузов: {count}"
+    },
+    "animal": {
+      "named": "по имени {name}",
+      "wild": "дикий",
+      "tame": "ручной",
+      "young": "молодой",
+      "asleep": "спит",
+      "hunting": "охотится",
+      "hungry": "голодный"
+    },
+    "farm": {
+      "tribe": "возделывает: {tribe}",
+      "field": "поле"
+    },
+    "stage": {
+      "fallow": "под паром",
+      "sown": "засеяно",
+      "growing": "растёт",
+      "ready": "созрело",
+      "withered": "засохло"
+    },
+    "caravan": {
+      "title": "караван",
+      "load": "везёт: {amount} {cargo}",
+      "route": "из {from} в {to}"
+    }
+  },
+  "terrain": {
+    "ground": {
+      "grass": "трава",
+      "shallowWater": "мелководье",
+      "deepWater": "глубокая вода",
+      "floodwater": "паводковая вода",
+      "sand": "песок",
+      "snow": "снег",
+      "ice": "лёд",
+      "rock": "скала",
+      "ash": "пепел",
+      "scorched": "выжженная земля",
+      "lava": "лава",
+      "mineral": "рудная земля",
+      "foodGround": "земля, богатая пищей",
+      "fire": "огонь",
+      "campfire": "костёр"
+    },
+    "note": {
+      "track": "протоптанная тропа",
+      "rail": "железная дорога",
+      "canal": "оросительный канал",
+      "bridge": "мост",
+      "fertile": "плодородная почва",
+      "onFire": "горит"
+    }
+  },
   "pair": {
     "marry": {
       "next": "брак · теперь нажмите на другого человека",
@@ -388,6 +461,52 @@
       "decline": "упадок",
       "scarcity": "нехватка",
       "recovery": "восстановление"
+    },
+    "plant": {
+      "tree": "дерево",
+      "conifer": "хвойное",
+      "bush": "кустарник",
+      "deadTree": "сухое дерево",
+      "cactus": "кактус",
+      "acacia": "акация",
+      "crop": "посев",
+      "orchard": "сад",
+      "sapling": "саженец",
+      "flower": "цветок",
+      "berry": "ягодный куст",
+      "mushroom": "гриб",
+      "oak": "дуб",
+      "pine": "сосна",
+      "palm": "пальма"
+    },
+    "crop": {
+      "wheat": "пшеница",
+      "rice": "рис",
+      "maize": "кукуруза",
+      "barley": "ячмень",
+      "potato": "картофель",
+      "beans": "бобы",
+      "cotton": "хлопок",
+      "tobacco": "табак",
+      "sugarcane": "сахарный тростник",
+      "coffee": "кофе",
+      "tea": "чай"
+    },
+    "vehicle": {
+      "boat": "лодка",
+      "ship": "корабль",
+      "cart": "телега",
+      "wagon": "фургон",
+      "carriage": "карета",
+      "sled": "сани",
+      "bicycle": "велосипед",
+      "automobile": "автомобиль",
+      "truck": "грузовик",
+      "train": "поезд",
+      "subway": "метро",
+      "plane": "самолёт",
+      "helicopter": "вертолёт",
+      "rocket": "ракета"
     },
     "building": {
       "hut": "хижина",

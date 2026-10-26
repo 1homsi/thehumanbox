@@ -230,6 +230,28 @@ export function buildingKindWord(kind: string | null | undefined): string {
   return wordOf(BUILDING_KINDS, kind)
 }
 
+const VEHICLE_KINDS = new Map<string, MessageKey>([
+  ['boat', 'model.words.vehicle.boat'],
+  ['ship', 'model.words.vehicle.ship'],
+  ['cart', 'model.words.vehicle.cart'],
+  ['wagon', 'model.words.vehicle.wagon'],
+  ['carriage', 'model.words.vehicle.carriage'],
+  ['sled', 'model.words.vehicle.sled'],
+  ['bicycle', 'model.words.vehicle.bicycle'],
+  ['automobile', 'model.words.vehicle.automobile'],
+  ['truck', 'model.words.vehicle.truck'],
+  ['train', 'model.words.vehicle.train'],
+  ['subway', 'model.words.vehicle.subway'],
+  ['plane', 'model.words.vehicle.plane'],
+  ['helicopter', 'model.words.vehicle.helicopter'],
+  ['rocket', 'model.words.vehicle.rocket'],
+])
+
+/** A vehicle kind as words, e.g. "ship" or "cart". */
+export function vehicleKindWord(kind: string | null | undefined): string {
+  return wordOf(VEHICLE_KINDS, kind)
+}
+
 /** A discovery as words, e.g. "agriculture"; a discovery the table does not name is shown as its words. */
 export function discoveryWord(id: string): string {
   const key = `model.words.discovery.${id}`
@@ -247,6 +269,16 @@ function keyedWord(prefix: string, id: string): string {
 /** A trade good as words, e.g. "bottled spirit". */
 export function goodWord(good: string): string {
   return keyedWord('model.words.good', good)
+}
+
+/** An animal kind as words, e.g. "polar bear". The interface already names every animal under the tool dock. */
+export function animalKindWord(kind: string): string {
+  return keyedWord('dock.tools', kind)
+}
+
+/** A crop as words, e.g. "sugarcane". */
+export function cropWord(crop: string): string {
+  return keyedWord('model.words.crop', crop)
 }
 
 /** A treaty kind as words, e.g. "non aggression". */
