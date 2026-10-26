@@ -293,7 +293,7 @@ const SHORE_SEARCH_RADIUS: i32 = 24;
 
 /// The nearest place on the shore where `kind` fits the ground: a dry, unfrozen tile beside open
 /// water that a footprint of `kind` covering it would pass the terrain check (water along its side
-/// included) and no building already covers. Searches square rings out from `center` and takes the
+/// included) and no building or town street already covers. Searches square rings out from `center` and takes the
 /// closest such tile of the first ring that has one; returns the footprint's corner. A shore too
 /// cramped or already built on is passed over for one further along.
 fn nearest_shore(sim: &Simulation, kind: BuildingKind, center: (i32, i32)) -> Option<(i32, i32)> {
@@ -316,8 +316,11 @@ fn nearest_shore(sim: &Simulation, kind: BuildingKind, center: (i32, i32)) -> Op
             (b.y..b.y + i32::from(bh)).flat_map(move |ty| (b.x..b.x + i32::from(bw)).map(move |tx| (tx, ty)))
         })
         .collect();
+    // Free of standing buildings and of the plazas and streets towns keep open.
     let free = |fx: i32, fy: i32| {
-        (fy..fy + i32::from(h)).all(|ty| (fx..fx + i32::from(w)).all(|tx| !built.contains(&(tx, ty))))
+        (fy..fy + i32::from(h)).all(|ty| {
+            (fx..fx + i32::from(w)).all(|tx| !built.contains(&(tx, ty)) && !town_reserved(sim, tx, ty))
+        })
     };
     // The corner of a footprint covering (x, y) that the ground accepts and no building holds, if any.
     let fits_at = |x: i32, y: i32| {

@@ -1189,3 +1189,23 @@ fn a_built_up_shore_is_passed_over_for_a_free_one() {
     );
     assert!((point.1 - 80).abs() > 14, "{point:?} is past the warehouses");
 }
+
+#[test]
+fn a_town_street_on_the_shore_is_passed_over() {
+    let mut sim = lakeside(100);
+    // A town's street runs along the shore near the centre; the dock goes past it.
+    sim.town_plazas.push(super::town::TownPlaza {
+        lineage: "lineage-a".into(),
+        center: [96, 80],
+        streets: (66..=94)
+            .map(|y| [98, y])
+            .chain((66..=94).map(|y| [99, y]))
+            .collect(),
+    });
+    let point = super::town::placement_point(&sim, "lineage-a", BuildingKind::Dock, (80, 80), (0, 0));
+    assert!(
+        !(point.1..point.1 + 2)
+            .any(|y| (point.0..point.0 + 2).any(|x| super::town::town_reserved(&sim, x, y))),
+        "{point:?} keeps off the street"
+    );
+}
