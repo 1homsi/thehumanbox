@@ -62,9 +62,12 @@ const pretty = (s: string) => s.replace(/[-_]/g, ' ')
 function nextAgeOf(world: WorldState, id: string): NextAge | null {
   const p = world.lineage_era_progress?.find((e) => e.lineage_id === id)
   if (!p?.next_era) return null
-  const worldPeople = p.world_population ?? p.pop
-  const worldPeopleRequired = p.world_population_required ?? p.pop_required
-  const peopleReady = p.world_population_ready ?? p.pop_ready
+  // Frames from before the world totals carry only the tribe's own count. That is not the world's, so without
+  // the world's numbers the guide says nothing about the people rather than a shortfall that may be wrong.
+  if (p.world_population == null || p.world_population_required == null) return null
+  const worldPeople = p.world_population
+  const worldPeopleRequired = p.world_population_required
+  const peopleReady = p.world_population_ready ?? false
   return {
     era: eraWord(p.next_era),
     known: p.known.length,

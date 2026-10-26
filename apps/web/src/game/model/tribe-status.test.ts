@@ -84,6 +84,21 @@ describe('tribe status', () => {
     expect(tribeStatus(ready, 'a')!.nextAge?.peopleNeeded).toBe(0)
   })
 
+  it('says nothing about the people of an older frame that has no world totals, rather than the tribe count', () => {
+    const legacy = {
+      ...world,
+      lineage_era_progress: [
+        {
+          ...(world.lineage_era_progress as unknown as Array<Record<string, unknown>>)[0],
+          world_population: undefined,
+          world_population_required: undefined,
+          world_population_ready: undefined,
+        },
+      ],
+    } as unknown as WorldState
+    expect(tribeStatus(legacy, 'a')!.nextAge).toBeNull()
+  })
+
   it('is empty for a tribe with nobody left', () => {
     expect(tribeStatus(world, 'gone')).toBeNull()
   })
