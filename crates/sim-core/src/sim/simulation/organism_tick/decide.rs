@@ -18,19 +18,42 @@ impl Simulation {
         let storm_build = std::mem::take(&mut f.storm_build);
         let threat_kind = f.threat_kind;
         let wolf_threat = f.wolf_threat;
-        let threat_summoned = f.threat_summoned;
 
         let (action, new_thought, decision_origin): (usize, Option<String>, &'static str) =
             if let Some(boat_action) = self.boat_action(idx) {
                 boat_action
             } else if let Some((action, thought)) = storm_build {
                 (action, thought, "emergency_reflex")
-            } else if let Some((dist, wx, wy)) = wolf_threat.filter(|(dist, _, _)| {
-                *dist <= 2.5 || (threat_summoned && *dist <= crate::sim::simulation::animals::SUMMONED_ALARM)
-            }) {
+            } else if let Some(((dist, wx, wy), from_pack)) =
+                flight_threat(wolf_threat, f.threat_summoned, f.summoned_threat).filter(|&(_, from_pack)| {
+                    // Already home and sheltered from a pack: no need to run, so the normal choice stands.
+                    let home = (self.organisms[idx].home_x, self.organisms[idx].home_y);
+                    !(from_pack && (home.0 - ox).abs() < 1.0 && (home.1 - oy).abs() < 1.0)
+                })
+            {
                 let fdx = (ox - wx).signum();
                 let fdy = (oy - wy).signum();
-                let dir = match (fdx as i32, fdy as i32) {
+                // Set a distant flee target so they keep running after the wolf leaves range.
+                // When home is near and lies on the far side from the threat, they run for home.
+                let flee_dist = 20.0 + fear_trait * 30.0;
+                let (hx, hy) = (self.organisms[idx].home_x, self.organisms[idx].home_y);
+                // A summoned pack sends people home to shelter when home is within reach and the way there
+                // is dry land (running home across water is how people drowned in the sweeps); otherwise
+                // they run as they do from any beast.
+                let shelter_near = (hx - ox).abs() + (hy - oy).abs() <= SHELTER_REACH;
+                let shelter_dry = dry_line(&self.grid, (ox, oy), (hx, hy));
+                let run_home = if from_pack {
+                    shelter_near && shelter_dry
+                } else {
+                    home_is_the_way_out((hx, hy), (ox, oy), (wx, wy))
+                };
+                // The step follows the way it is going: towards home when running there, else away.
+                let (sx, sy) = if run_home && from_pack {
+                    ((hx - ox).signum(), (hy - oy).signum())
+                } else {
+                    (fdx, fdy)
+                };
+                let dir = match (sx as i32, sy as i32) {
                     (0, -1) => 0,
                     (0, 1) => 1,
                     (-1, 0) => 2,
@@ -41,23 +64,19 @@ impl Simulation {
                     (1, 1) => 7,
                     _ => 0,
                 };
-                // Set a distant flee target so they keep running after the wolf leaves range.
-                // When home is near and lies on the far side from the threat, they run for home.
-                let flee_dist = 20.0 + fear_trait * 30.0;
-                let (hx, hy) = (self.organisms[idx].home_x, self.organisms[idx].home_y);
-                // A summoned pack sends people home to shelter when home is within reach; otherwise they
-                // run as they do from any beast.
-                let shelter_near = (hx - ox).abs() + (hy - oy).abs() <= SHELTER_REACH;
-                let run_home =
-                    (threat_summoned && shelter_near) || home_is_the_way_out((hx, hy), (ox, oy), (wx, wy));
                 let (tx, ty) = if run_home {
                     (hx.round() as i32, hy.round() as i32)
                 } else {
                     safe_flee_target(&self.grid, ox, oy, fdx, fdy, flee_dist)
                 };
-                self.organisms[idx].wander_target = Some((tx, ty));
+                // A pack flight never aims at water; with no dry target it keeps its old course.
+                let wet_target = from_pack && self.grid.is_wet(self.grid.get(tx, ty), tx, ty);
+                if !wet_target {
+                    self.organisms[idx].wander_target = Some((tx, ty));
+                }
+                // The fear grows with closeness; a threat beyond the close range adds nothing.
                 self.organisms[idx].fear_level =
-                    (self.organisms[idx].fear_level + 0.07 + (2.5 - dist) * 0.02).min(1.0);
+                    (self.organisms[idx].fear_level + 0.07 + ((2.5 - dist) * 0.02).max(0.0)).min(1.0);
                 (
                     dir,
                     Some(format!("{}! run!", threat_kind.name())),
@@ -175,6 +194,31 @@ impl Simulation {
 /// True when home is within 40 tiles and lies on the far side of the threat from the person, so running for home is running away.
 /// How far (Manhattan tiles) home may be for people to run there from a summoned pack.
 const SHELTER_REACH: f32 = 30.0;
+
+/// The threat a person runs from this tick, and whether it is a summoned pack. A wild wolf counts when it is
+/// within 2.5 tiles, as it always has; otherwise the nearest summoned wolf within the alarm radius does.
+fn flight_threat(
+    wild: Option<(f32, f32, f32)>,
+    wild_is_summoned: bool,
+    pack: Option<(f32, f32, f32)>,
+) -> Option<((f32, f32, f32), bool)> {
+    match wild {
+        Some(w) if w.0 <= 2.5 && !wild_is_summoned => Some((w, false)),
+        _ => pack.map(|p| (p, true)),
+    }
+}
+
+/// True when every tile on the straight line from `from` to `to` is dry ground a person can walk on.
+fn dry_line(grid: &WorldGrid, from: (f32, f32), to: (f32, f32)) -> bool {
+    let steps = (to.0 - from.0).abs().max((to.1 - from.1).abs()).ceil().max(1.0) as i32;
+    (0..=steps).all(|s| {
+        let t = s as f32 / steps as f32;
+        let x = (from.0 + (to.0 - from.0) * t).round() as i32;
+        let y = (from.1 + (to.1 - from.1) * t).round() as i32;
+        let tile = grid.get(x, y);
+        tile.walkable() && tile != Tile::Fire && !grid.is_wet(tile, x, y)
+    })
+}
 
 pub(super) fn home_is_the_way_out(home: (f32, f32), me: (f32, f32), threat: (f32, f32)) -> bool {
     let (hx, hy) = home;

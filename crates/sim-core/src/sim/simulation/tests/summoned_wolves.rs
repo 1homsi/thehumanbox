@@ -125,6 +125,8 @@ fn people_run_for_home_from_a_summoned_pack_further_off_than_from_a_wild_wolf() 
         let mut sim = Simulation::new(34);
         flatten_test_area(&mut sim, 60, 60);
         only_people(&mut sim, &[(60.0, 60.0)]);
+        // Home lies 8 tiles north, away from the wolf: not where they already are.
+        sim.organisms[0].home_y = 52.0;
         sim.tick_count = day_tick();
         // Eight tiles off: beyond the 2.5 tiles a wild wolf must reach before anyone runs.
         sim.animals.push(wolf(&sim, 60.0, 68.0, summoned, 1.0));
@@ -160,5 +162,71 @@ fn a_summoned_wolf_is_saved_and_a_wild_one_is_not_marked() {
     assert!(
         !json.contains("\"summoned\":false"),
         "a wild animal writes no summoned field"
+    );
+}
+
+#[test]
+fn a_summoned_pack_bite_finishes_a_person_already_hurt() {
+    let mut sim = Simulation::new(36);
+    flatten_test_area(&mut sim, 60, 60);
+    only_people(&mut sim, &[(60.0, 60.0)]);
+    // Already hurt: a bite from the pack takes them to zero health, where the death is then recorded.
+    sim.organisms[0].health = 0.25;
+    sim.tick_count = night_tick();
+    sim.animals.push(wolf(&sim, 60.0, 61.0, true, 1.0));
+    sim.animals.push(wolf(&sim, 60.0, 61.0, true, 1.0));
+    run_animals(&mut sim, 60);
+    assert!(
+        sim.organisms[0].health <= 0.0,
+        "a bite from a summoned pack takes a hurt person to zero (health {})",
+        sim.organisms[0].health
+    );
+    assert_eq!(
+        sim.organisms[0].fatal_harm(sim.tick_count),
+        Some(crate::organism::organism::Harm::Beast),
+        "the wound is recorded as a beast attack"
+    );
+}
+
+#[test]
+fn people_do_not_run_home_across_water_from_a_summoned_pack() {
+    let mut sim = Simulation::new(37);
+    flatten_test_area(&mut sim, 60, 60);
+    only_people(&mut sim, &[(60.0, 60.0)]);
+    // A lake lies between the person and home, which is 20 tiles north.
+    for x in 55..=65 {
+        for y in 48..=54 {
+            sim.grid.set(x, y, Tile::Water);
+        }
+    }
+    sim.organisms[0].home_x = 60.0;
+    sim.organisms[0].home_y = 40.0;
+    sim.tick_count = day_tick();
+    sim.animals.push(wolf(&sim, 60.0, 68.0, true, 1.0));
+    sim.tick();
+    assert_ne!(
+        sim.organisms[0].wander_target,
+        Some((60, 40)),
+        "home lies across the lake, so the flight does not aim for it"
+    );
+}
+
+#[test]
+fn a_wild_wolf_too_far_to_act_on_does_not_hide_a_summoned_pack() {
+    let mut sim = Simulation::new(38);
+    flatten_test_area(&mut sim, 60, 60);
+    only_people(&mut sim, &[(60.0, 60.0)]);
+    sim.organisms[0].home_y = 52.0;
+    sim.tick_count = day_tick();
+    // A wild wolf three tiles off is nearer than the pack, but beyond the 2.5 tiles a wild wolf can drive off.
+    sim.animals.push(wolf(&sim, 60.0, 63.0, false, 1.0));
+    sim.animals.push(wolf(&sim, 60.0, 68.0, true, 1.0));
+    sim.tick();
+    assert!(
+        sim.organisms[0]
+            .thought_history
+            .iter()
+            .any(|t| t.text.contains("run!")),
+        "the person runs from the pack even with a wild wolf nearer"
     );
 }

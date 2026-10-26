@@ -17,6 +17,8 @@ const SUMMONED_PACK_BITE: f32 = 0.34;
 const SUMMONED_LONE_BITE: f32 = 0.24;
 /// How far (Manhattan tiles) a summoned pack is heard coming: people run for shelter from this far off.
 pub(super) const SUMMONED_ALARM: f32 = 10.0;
+/// Damage a bite from a hunting summoned wolf does (a wild wolf does 0.12): a few bites kill a person.
+const SUMMONED_BITE_DAMAGE: f32 = 0.30;
 
 impl Simulation {
     pub(super) fn spawn_animals(&mut self, count: usize) {
@@ -504,6 +506,7 @@ impl Simulation {
             let beast = self.animals[ai].kind;
             let bear = beast == AnimalKind::Bear;
             let base_dmg = match beast {
+                AnimalKind::Wolf if self.animals[ai].hunting => SUMMONED_BITE_DAMAGE,
                 AnimalKind::Bear => 0.22,
                 AnimalKind::Zombie => 0.14,
                 AnimalKind::Demon => 0.20,
