@@ -542,13 +542,27 @@
     "treeTip": "Soy hatlarının ve soyların aile ağacı",
     "world": "dünya",
     "worldTip": "Sol dünya panelini aç/kapat (tarih, soy hatları, olaylar)",
-    "onBrink": "çöküş eşiğinde",
-    "onBrinkTip": "Bir kabile çöküş eşiğine her yeni düştüğünde oyunu duraklat",
     "keys": "tuşlar",
     "picture": "resim",
     "pictureTip": "Dünyanın şu anki halinin bir resmini kaydedin",
     "notable": "öne çıkanlar",
-    "notableTip": "Yaşa, aile büyüklüğüne, arkadaşlığa, zenginliğe, bilgiye, sevince, üzüntüye göre en öne çıkan canlılar…"
+    "notableTip": "Yaşa, aile büyüklüğüne, arkadaşlığa, zenginliğe, bilgiye, sevince, üzüntüye göre en öne çıkan canlılar…",
+    "pauseOn": "duraklat:",
+    "pauseOnTip": "Oyun akarken seçilen bir değişiklik olduğunda zamanı durdur",
+    "pause": {
+      "brink": "uçurum",
+      "era": "yeni çağ",
+      "war": "savaş",
+      "famine": "kıtlık",
+      "extinct": "tükeniyor"
+    },
+    "pauseTip": {
+      "brink": "Bir kabile uçuruma düştüğünde duraklat",
+      "era": "Bir kabile ya da dünya yeni bir çağa girdiğinde duraklat",
+      "war": "Savaş çıktığında ya da bir çatışma başladığında duraklat",
+      "famine": "Bir kabile açlık çektiğinde duraklat",
+      "extinct": "Bir kabile tükendiğinde duraklat"
+    }
   },
   "save": {
     "saving": "Kaydediliyor…",
