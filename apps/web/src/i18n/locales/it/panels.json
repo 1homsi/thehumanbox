@@ -290,7 +290,6 @@
     "teach": "insegna",
     "teachTitle": "Insegna loro il prossimo segreto che non conoscono (una volta a stagione)",
     "stillToLearn": "ancora da imparare: {list}",
-    "needsPeople": "servono altre {count} persone",
     "praying": "in preghiera",
     "help": "aiuta",
     "lore": {
@@ -311,6 +310,12 @@
         "healing": "noti per i loro guaritori"
       }
     },
+    "guide": {
+      "known": "{known} segreti su {required} conosciuti",
+      "worldPeople": "il mondo ha {have} delle {need} persone che questa era richiede (ne mancano {short})",
+      "ready": "pronti: l'era arriva al prossimo controllo del mondo"
+    },
+    "needsPeople": "servono altre {count} persone",
     "why": {
       "title": "Perché agiscono così",
       "guided": "Guidata verso {strategy}: {done} di {target} fatti",

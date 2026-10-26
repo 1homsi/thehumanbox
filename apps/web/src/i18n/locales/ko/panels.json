@@ -283,7 +283,6 @@
     "teach": "가르치기",
     "teachTitle": "아직 모르는 다음 비법을 가르칩니다 (계절당 한 번)",
     "stillToLearn": "아직 배울 것: {list}",
-    "needsPeople": "사람 {count}명 더 필요",
     "praying": "기도 중",
     "help": "도움",
     "lore": {
@@ -304,6 +303,12 @@
         "healing": "치료사로 알려짐"
       }
     },
+    "guide": {
+      "known": "비밀 {required}개 중 {known}개를 앎",
+      "worldPeople": "이 시대에 필요한 {need}명 중 세계에 {have}명이 있음 ({short}명 부족)",
+      "ready": "준비됨: 세계의 다음 점검 때 시대가 옴"
+    },
+    "needsPeople": "사람 {count}명 더 필요",
     "why": {
       "title": "왜 이렇게 행동하는가",
       "guided": "{strategy} 방향으로 이끄는 중: {target} 중 {done} 완료",
