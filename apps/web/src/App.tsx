@@ -46,7 +46,9 @@ import { StarToast } from './ui/toasts/StarToast'
 import { WordSplitToast } from './ui/toasts/WordSplitToast'
 import { CommandPalette } from './ui/toolbar/CommandPalette'
 import { HeadlineTicker } from './ui/panels/HeadlineTicker'
-import { trackEvent } from './shared/observability'
+import { countToolApply, setWorldSummary, trackEvent } from './shared/observability'
+import { achievementsFor } from './game/model/achievements'
+import { YEAR_TICKS } from './game/model/calendar'
 import { reconcileFocus, reconcileViewerSelection } from './shared/viewerSelection'
 import { useUIStore } from './state/store'
 import { useIsPhoneSheetViewport } from './shared/hooks/useIsPhoneSheetViewport'
@@ -302,6 +304,11 @@ function LiveApp() {
   const onPickTool = useCallback(
     (tool: SandboxTool) => {
       pairFirstRef.current = null
+      trackEvent('tool_pick', {
+        tool: tool.id,
+        kind: tool.view ? 'view' : tool.time ? 'time' : tool.mode === 'instant' ? 'instant' : 'armed',
+        speed: tool.time?.mult ?? null,
+      })
       if (tool.view) {
         setArmedTool(null)
         const ui = useUIStore.getState()
@@ -348,6 +355,7 @@ function LiveApp() {
           )
         } else if (tool.fire) {
           void sendCommand(tool.fire).then((outcome) => {
+            if (outcome.applied) countToolApply(tool.id)
             if (outcome.applied && tool.overlay) useSkyOverlay.getState().start(tool.overlay)
             setTemporarySandboxStatus(
               describeOutcome(outcome) ??
@@ -403,7 +411,9 @@ function LiveApp() {
               body: t('dialogs.newWorld.body'),
               confirmLabel: t('dialogs.newWorld.confirm'),
             }).then((ok) => {
-              if (ok) requestOwnWorldReset()
+              if (!ok) return
+              trackEvent('world_reset', undefined, { send_instantly: true })
+              requestOwnWorldReset()
             })
           }
         : null,
@@ -431,6 +441,7 @@ function LiveApp() {
           return
         }
         useUIStore.getState().followOrg(person.id)
+        countToolApply('follow')
         setTemporarySandboxStatus(t('model.status.following', { name: personName(person) }))
         return
       }
@@ -441,6 +452,7 @@ function LiveApp() {
           return
         }
         useUIStore.getState().startRename(person.id)
+        countToolApply('name')
         setTemporarySandboxStatus(t('model.status.naming', { name: personName(person) }))
         return
       }
@@ -453,9 +465,11 @@ function LiveApp() {
           return
         }
         pairFirstRef.current = null
-        void sendCommand(pair.build(first, { x: wx, y: wy })).then((outcome) =>
-          setTemporarySandboxStatus(describeOutcome(outcome) ?? t(outcome.applied ? pair.done : pair.failed)),
-        )
+        const pairId = armedTool.id
+        void sendCommand(pair.build(first, { x: wx, y: wy })).then((outcome) => {
+          if (outcome.applied) countToolApply(pairId)
+          setTemporarySandboxStatus(describeOutcome(outcome) ?? t(outcome.applied ? pair.done : pair.failed))
+        })
         return
       }
       if (!armedTool.build) return
@@ -465,6 +479,7 @@ function LiveApp() {
       setSandboxStatus(t('header.sandbox.toolAt', { tool: label, x, y }))
       const tool = armedTool
       void sendCommand(tool.build!(x, y, brush)).then((outcome) => {
+        if (outcome.applied) countToolApply(tool.id)
         setTemporarySandboxStatus(
           describeOutcome(outcome) ??
             (outcome.applied
@@ -602,6 +617,7 @@ function LiveApp() {
   const runScenario = useCallback(
     (preset: ScenarioPreset, width: number, height: number) => {
       const steps = preset.steps(width, height)
+      trackEvent('scenario_start', { scenario: preset.id })
       const title = t(preset.title)
       setTemporarySandboxStatus(t('model.scenarios.starting', { title }))
       void (async () => {
@@ -715,6 +731,28 @@ function LiveApp() {
     }
   }, [world?.headlines])
 
+  // What the session summary reports about the world when the player leaves.
+  const runtimeRef = useRef(runtimeState)
+  runtimeRef.current = runtimeState
+  useEffect(() => {
+    setWorldSummary(() => {
+      const w = useWorldStore.getState().world
+      if (!w) return null
+      const alive = w.organisms.filter((o) => o.alive)
+      return {
+        tick: w.tick,
+        world_years: Math.floor(w.tick / YEAR_TICKS),
+        alive: alive.length,
+        tribes: new Set(alive.map((o) => o.lineage_id)).size,
+        settlements: w.settlements?.length ?? 0,
+        achievements_unlocked: achievementsFor(w).filter((a) => a.unlocked).length,
+        paused: runtimeRef.current.paused,
+        speed: runtimeRef.current.speed,
+      }
+    })
+    return () => setWorldSummary(null)
+  }, [])
+
   const splashHiddenRef = useRef(false)
   useEffect(() => {
     if (desktopStartupPending) return
@@ -725,6 +763,7 @@ function LiveApp() {
       trackEvent('world_first_loaded', {
         tick: world.tick,
         alive: world.organisms.filter((o) => o.alive).length,
+        load_ms: Math.round(performance.now()),
       })
     }
   }, [desktopStartupPending, localStartupFailed, world])

@@ -117,9 +117,17 @@ function preloadSimAssets(): Plugin {
   }
 }
 
+/** The released version (bumped by the release job), tagged on every analytics event. */
+const APP_VERSION: string = JSON.parse(
+  readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'package.json'), 'utf8'),
+).version
+
 export default defineConfig({
   plugins: [react(), emitVersionJson(), preloadSimAssets()],
-  define: { __SPRITE_VERSIONS__: JSON.stringify(SPRITE_VERSIONS) },
+  define: {
+    __SPRITE_VERSIONS__: JSON.stringify(SPRITE_VERSIONS),
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+  },
 
   // Web is served at root with a Cloudflare SPA-fallback (any deep URL
   // returns /index.html), so absolute /assets/... is the only safe form

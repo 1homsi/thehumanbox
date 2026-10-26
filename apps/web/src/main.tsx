@@ -2,7 +2,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { ErrorBoundary } from './ui/ErrorBoundary'
-import { initAnalytics } from './shared/observability'
+import { initAnalytics, refreshAnalyticsContext } from './shared/observability'
 import { reloadAppSafely } from './simulation/worldSource'
 import { isDesktopStartupPending } from './shared/desktopStartup'
 import { getLocale, initI18n } from './i18n'
@@ -13,6 +13,7 @@ initAnalytics()
 // and falls back to English.
 void initI18n()
   .then(() => {
+    refreshAnalyticsContext()
     // The desktop shell's menus, tray and dialogs follow the language the game
     // shows. A failed report only leaves the shell in its last language.
     window.thbDesktop?.app?.setLocale?.(getLocale())?.catch(() => {})
