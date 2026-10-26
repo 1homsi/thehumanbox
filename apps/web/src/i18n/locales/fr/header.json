@@ -68,6 +68,82 @@
     "toolWorking": "{tool}…",
     "toolApplied": "{tool} appliqué",
     "toolFailed": "échec : {tool}",
-    "toolAt": "{tool} → {x}, {y}"
+    "toolAt": "{tool} → {x}, {y}",
+    "result": {
+      "none_here": "personne à portée ici",
+      "none_hurt": "personne ici n'était blessé",
+      "none_sick": "personne ici n'est malade",
+      "none_dead": "personne à ramener à la vie ici",
+      "revive_cooldown": "cette tribu a déjà été ramenée récemment ; les dieux doivent attendre",
+      "world_full": "il n'y a plus de place pour de nouvelles personnes",
+      "animal_full": "il n'y a plus de place pour d'autres animaux",
+      "no_room_for_animal": "pas de place sur ce terrain pour cet animal",
+      "split_small": "trop peu de monde ici pour détacher une tribu",
+      "blocked": "personne ne peut se tenir sur l'eau ou la roche",
+      "no_government": "cette tribu n'a personne pour la diriger",
+      "cannot_teach": "elles ne peuvent pas encore être enseignées à nouveau",
+      "spawned": {
+        "one": "{name} est arrivé",
+        "other": "{count} personnes sont arrivées"
+      },
+      "family_arrived": "une nouvelle famille est arrivée",
+      "healed": {
+        "one": "{name} a été soigné",
+        "other": "{count} personnes soignées"
+      },
+      "revived": "{name} a été ramené d'entre les morts",
+      "blessed": {
+        "one": "{name} béni",
+        "other": "{count} personnes bénies"
+      },
+      "inspired": {
+        "one": "{name} inspiré",
+        "other": "{count} personnes inspirées"
+      },
+      "cured": {
+        "one": "{name} guéri",
+        "other": "{count} personnes guéries"
+      },
+      "cured_tribe": {
+        "one": "une personne de la tribu guérie",
+        "other": "{count} personnes de la tribu guéries"
+      },
+      "loved": {
+        "one": "{name} est tombé amoureux",
+        "other": "{count} cœurs remplis d'amour"
+      },
+      "paired": {
+        "one": "un couple réuni",
+        "other": "{count} couples réunis"
+      },
+      "mutated": "{name} a muté",
+      "cursed": "{name} maudit",
+      "taught": "la tribu de {name} a appris un secret",
+      "moved": "{name} déplacé",
+      "gifted_food": {
+        "one": "de la nourriture donnée à {name}",
+        "other": "de la nourriture donnée à {count} personnes"
+      },
+      "gifted_tool": {
+        "one": "un outil donné à {name}",
+        "other": "des outils donnés à {count} personnes"
+      },
+      "crowned": "{name} couronné",
+      "split": {
+        "other": "{count} personnes se sont détachées pour fonder une tribu"
+      },
+      "tamed": {
+        "one": "une bête sauvage est devenue un chien fidèle",
+        "other": "{count} bêtes sauvages sont devenues des chiens fidèles"
+      },
+      "guardian": "un chien gardien s'est posé près de {name}",
+      "smitten": "la foudre a frappé {name}",
+      "struck_beast": "la foudre a abattu une bête",
+      "struck_roof": "la foudre a fendu un toit",
+      "animals": {
+        "one": "un animal est apparu",
+        "other": "{count} animaux sont apparus"
+      }
+    }
   }
 }

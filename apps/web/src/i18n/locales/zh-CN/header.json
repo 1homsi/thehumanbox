@@ -68,6 +68,82 @@
     "toolWorking": "{tool}…",
     "toolApplied": "已应用{tool}",
     "toolFailed": "{tool}失败",
-    "toolAt": "{tool} → {x}, {y}"
+    "toolAt": "{tool} → {x}, {y}",
+    "result": {
+      "none_here": "这里的范围内没有人",
+      "none_hurt": "这里没有人受伤",
+      "none_sick": "这里没有人生病",
+      "none_dead": "这里没有可以复活的人",
+      "revive_cooldown": "这个部落最近刚被复活过，神明需要等待",
+      "world_full": "没有地方容纳更多人了",
+      "animal_full": "没有地方容纳更多动物了",
+      "no_room_for_animal": "这片地上没有地方容纳那种动物",
+      "split_small": "这里的人太少，无法分出一个部落",
+      "blocked": "没有人能站在水或岩石上",
+      "no_government": "这个部落没有人来领导",
+      "cannot_teach": "他们暂时还不能再次学习",
+      "spawned": {
+        "one": "{name}来到了这里",
+        "other": "{count}人来到了这里"
+      },
+      "family_arrived": "一个新家庭来到了这里",
+      "healed": {
+        "one": "治愈了{name}",
+        "other": "治愈了{count}人"
+      },
+      "revived": "{name}从死亡中复活了",
+      "blessed": {
+        "one": "祝福了{name}",
+        "other": "祝福了{count}人"
+      },
+      "inspired": {
+        "one": "启发了{name}",
+        "other": "启发了{count}人"
+      },
+      "cured": {
+        "one": "治好了{name}",
+        "other": "治好了{count}人"
+      },
+      "cured_tribe": {
+        "one": "治好了部落中的一个人",
+        "other": "治好了部落中的{count}人"
+      },
+      "loved": {
+        "one": "{name}坠入了爱河",
+        "other": "{count}颗心充满了爱"
+      },
+      "paired": {
+        "one": "促成了一对伴侣",
+        "other": "促成了{count}对伴侣"
+      },
+      "mutated": "{name}发生了变异",
+      "cursed": "诅咒了{name}",
+      "taught": "{name}的部落学会了一个秘密",
+      "moved": "移动了{name}",
+      "gifted_food": {
+        "one": "送给{name}食物",
+        "other": "送给{count}人食物"
+      },
+      "gifted_tool": {
+        "one": "送给{name}一件工具",
+        "other": "送给{count}人工具"
+      },
+      "crowned": "拥立{name}为王",
+      "split": {
+        "other": "{count}人分离出去，建立了一个新部落"
+      },
+      "tamed": {
+        "one": "一头野兽成为了忠诚的狗",
+        "other": "{count}头野兽成为了忠诚的狗"
+      },
+      "guardian": "一只守护犬来到了{name}身边",
+      "smitten": "雷电击中了{name}",
+      "struck_beast": "雷电击倒了一头野兽",
+      "struck_roof": "雷电劈裂了一座屋顶",
+      "animals": {
+        "one": "出现了一只动物",
+        "other": "出现了{count}只动物"
+      }
+    }
   }
 }

@@ -5,8 +5,16 @@ impl Simulation {
     pub(super) fn cmd_heal(&mut self, x: f32, y: f32, radius: f32) -> bool {
         let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
         let mut healed = 0;
+        let mut people = 0;
+        let mut hurt = 0;
+        let mut hurt_name = None;
         for o in self.organisms.iter_mut() {
             if o.alive && (o.x - x).det_hypot(o.y - y) <= r {
+                people += 1;
+                if o.health < 1.0 || o.infection > 0.0 {
+                    hurt += 1;
+                    hurt_name = Some(o.name.clone());
+                }
                 o.health = 1.0;
                 o.energy = 1.0;
                 o.hydration = 1.0;
@@ -19,6 +27,12 @@ impl Simulation {
                 a.energy = 1.0;
                 healed += 1;
             }
+        }
+        match hurt {
+            0 if people == 0 => self.report("none_here", 0, None),
+            0 => self.report("none_hurt", 0, None),
+            1 => self.report("healed", 1, hurt_name.as_deref()),
+            n => self.report("healed", n, None),
         }
         healed > 0
     }
@@ -100,6 +114,7 @@ impl Simulation {
     pub(super) fn cmd_bless(&mut self, x: f32, y: f32, radius: f32) -> bool {
         let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
         let mut blessed = 0;
+        let mut last_name = None;
         for o in self.organisms.iter_mut() {
             if o.alive && (o.x - x).det_hypot(o.y - y) <= r {
                 o.health = 1.0;
@@ -110,6 +125,7 @@ impl Simulation {
                 o.comfort = (o.comfort + 0.25).min(1.0);
                 o.joy_ticks = o.joy_ticks.saturating_add(600).min(1_200);
                 o.think("blessed by the gods", self.tick_count);
+                last_name = Some(o.name.clone());
                 blessed += 1;
             }
         }
@@ -122,6 +138,7 @@ impl Simulation {
                 &format!("blessed {blessed} people"),
             );
         }
+        self.report_people("blessed", blessed, last_name.as_deref());
         blessed > 0
     }
 
@@ -130,6 +147,7 @@ impl Simulation {
         let tech = crate::sim::tech::tech_tree::all_tech();
         let tick = self.tick_count;
         let mut inspired = 0;
+        let mut last_name = None;
         for i in 0..self.organisms.len() {
             let o = &self.organisms[i];
             if !o.alive || (o.x - x).det_hypot(o.y - y) > r {
@@ -148,6 +166,7 @@ impl Simulation {
                 o.discoveries.insert(name.to_string());
                 o.think(&format!("inspired: {}", name.replace('_', " ")), tick);
             }
+            last_name = Some(self.organisms[i].name.clone());
             inspired += 1;
         }
         if inspired > 0 {
@@ -159,6 +178,7 @@ impl Simulation {
                 &format!("inspired {inspired} people"),
             );
         }
+        self.report_people("inspired", inspired, last_name.as_deref());
         inspired > 0
     }
 
@@ -203,10 +223,13 @@ impl Simulation {
         let r = if radius <= 0.0 { 10.0 } else { radius.min(48.0) };
         let until = self.tick_count + 6_000;
         let mut cured = 0;
+        let mut in_reach = 0;
+        let mut last_name = None;
         for o in self.organisms.iter_mut() {
             if !o.alive || (o.x - x).det_hypot(o.y - y) > r {
                 continue;
             }
+            in_reach += 1;
             if o.infection <= 0.0 && o.diseases.is_empty() {
                 continue;
             }
@@ -216,6 +239,7 @@ impl Simulation {
             o.infection = 0.0;
             o.health = o.health.max(0.6);
             o.think("the sickness lifted", self.tick_count);
+            last_name = Some(o.name.clone());
             cured += 1;
         }
         if cured > 0 {
@@ -226,6 +250,11 @@ impl Simulation {
                 "the gods",
                 &format!("cured {cured} people"),
             );
+        }
+        if cured == 0 && in_reach > 0 {
+            self.report("none_sick", 0, None);
+        } else {
+            self.report_people("cured", cured, last_name.as_deref());
         }
         cured > 0
     }
@@ -352,6 +381,12 @@ impl Simulation {
             };
             push_event(&mut self.events, self.tick_count, "bless", "the gods", &detail);
         }
+        if paired > 0 {
+            self.report("paired", paired as u32, None);
+        } else {
+            let lone = (in_range.len() == 1).then(|| self.organisms[in_range[0]].name.clone());
+            self.report_people("loved", in_range.len() as u32, lone.as_deref());
+        }
         !in_range.is_empty()
     }
 
@@ -396,6 +431,7 @@ impl Simulation {
                 &format!("tamed {tamed} wild {what} into loyal dogs"),
             );
         }
+        self.report_people("tamed", tamed, None);
         tamed > 0
     }
 }

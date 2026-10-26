@@ -68,6 +68,82 @@
     "toolWorking": "{tool}…",
     "toolApplied": "{tool} 적용됨",
     "toolFailed": "{tool} 실패",
-    "toolAt": "{tool} → {x}, {y}"
+    "toolAt": "{tool} → {x}, {y}",
+    "result": {
+      "none_here": "이 근처에는 아무도 없습니다",
+      "none_hurt": "여기에는 다친 사람이 없었습니다",
+      "none_sick": "여기에는 아픈 사람이 없습니다",
+      "none_dead": "여기에는 되살릴 사람이 없습니다",
+      "revive_cooldown": "이 부족은 최근에 되살아났습니다. 신들이 기다려야 합니다",
+      "world_full": "더 이상 사람을 들일 자리가 없습니다",
+      "animal_full": "더 이상 동물을 들일 자리가 없습니다",
+      "no_room_for_animal": "이 땅에는 그 동물이 머물 자리가 없습니다",
+      "split_small": "부족을 나누기에는 여기 사람이 너무 적습니다",
+      "blocked": "물이나 바위 위에는 설 수 없습니다",
+      "no_government": "이 부족을 이끌 사람이 없습니다",
+      "cannot_teach": "아직 다시 가르칠 수 없습니다",
+      "spawned": {
+        "one": "{name}이(가) 도착했습니다",
+        "other": "{count}명이 도착했습니다"
+      },
+      "family_arrived": "새로운 가족이 도착했습니다",
+      "healed": {
+        "one": "{name}을(를) 치유했습니다",
+        "other": "{count}명을 치유했습니다"
+      },
+      "revived": "{name}이(가) 죽음에서 되살아났습니다",
+      "blessed": {
+        "one": "{name}을(를) 축복했습니다",
+        "other": "{count}명을 축복했습니다"
+      },
+      "inspired": {
+        "one": "{name}에게 영감을 주었습니다",
+        "other": "{count}명에게 영감을 주었습니다"
+      },
+      "cured": {
+        "one": "{name}의 병을 낫게 했습니다",
+        "other": "{count}명의 병을 낫게 했습니다"
+      },
+      "cured_tribe": {
+        "one": "부족의 한 사람을 낫게 했습니다",
+        "other": "부족의 {count}명을 낫게 했습니다"
+      },
+      "loved": {
+        "one": "{name}이(가) 사랑에 빠졌습니다",
+        "other": "사랑으로 {count}명의 마음이 가득 찼습니다"
+      },
+      "paired": {
+        "one": "한 쌍을 맺어 주었습니다",
+        "other": "{count}쌍을 맺어 주었습니다"
+      },
+      "mutated": "{name}이(가) 돌연변이가 되었습니다",
+      "cursed": "{name}에게 저주가 내렸습니다",
+      "taught": "{name}의 부족이 비밀을 배웠습니다",
+      "moved": "{name}을(를) 옮겼습니다",
+      "gifted_food": {
+        "one": "{name}에게 음식을 주었습니다",
+        "other": "{count}명에게 음식을 주었습니다"
+      },
+      "gifted_tool": {
+        "one": "{name}에게 도구를 주었습니다",
+        "other": "{count}명에게 도구를 주었습니다"
+      },
+      "crowned": "{name}을(를) 왕으로 세웠습니다",
+      "split": {
+        "other": "{count}명이 떨어져 나가 새 부족을 세웠습니다"
+      },
+      "tamed": {
+        "one": "야생 짐승이 충직한 개가 되었습니다",
+        "other": "야생 짐승 {count}마리가 충직한 개가 되었습니다"
+      },
+      "guardian": "수호견이 {name} 곁에 섰습니다",
+      "smitten": "번개가 {name}을(를) 내리쳤습니다",
+      "struck_beast": "번개가 짐승 하나를 쓰러뜨렸습니다",
+      "struck_roof": "번개가 지붕을 갈라놓았습니다",
+      "animals": {
+        "one": "동물 한 마리가 나타났습니다",
+        "other": "동물 {count}마리가 나타났습니다"
+      }
+    }
   }
 }

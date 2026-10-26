@@ -117,8 +117,10 @@ mod wasm_facade {
             serde_json::to_vec(&self.inner.to_save_state()).unwrap_or_default()
         }
 
-        pub fn command(&mut self, json: &str) -> bool {
-            self.inner.apply_command_json(json)
+        /// Runs a player command and returns its outcome as JSON: `{"applied", "code", "count", "name"}`.
+        pub fn command(&mut self, json: &str) -> String {
+            let outcome = self.inner.apply_command_json_reported(json);
+            serde_json::to_string(&outcome).expect("command outcome serialization cannot fail")
         }
 
         #[wasm_bindgen(js_name = orgDetail)]

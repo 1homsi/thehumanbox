@@ -68,6 +68,82 @@
     "toolWorking": "{tool}…",
     "toolApplied": "{tool} angewendet",
     "toolFailed": "{tool} fehlgeschlagen",
-    "toolAt": "{tool} → {x}, {y}"
+    "toolAt": "{tool} → {x}, {y}",
+    "result": {
+      "none_here": "hier ist niemand in Reichweite",
+      "none_hurt": "hier war niemand verletzt",
+      "none_sick": "hier ist niemand krank",
+      "none_dead": "hier gibt es niemanden, den man wiederbeleben könnte",
+      "revive_cooldown": "dieser Stamm wurde kürzlich erweckt; die Götter müssen warten",
+      "world_full": "für mehr Menschen ist kein Platz",
+      "animal_full": "für mehr Tiere ist kein Platz",
+      "no_room_for_animal": "auf diesem Boden ist kein Platz für dieses Tier",
+      "split_small": "hier sind zu wenige Menschen, um einen Stamm abzuspalten",
+      "blocked": "dort kann niemand auf Wasser oder Fels stehen",
+      "no_government": "dieser Stamm hat niemanden, der ihn führt",
+      "cannot_teach": "sie können noch nicht wieder unterwiesen werden",
+      "spawned": {
+        "one": "{name} ist angekommen",
+        "other": "{count} Menschen sind angekommen"
+      },
+      "family_arrived": "eine neue Familie ist angekommen",
+      "healed": {
+        "one": "{name} wurde geheilt",
+        "other": "{count} Menschen geheilt"
+      },
+      "revived": "{name} wurde von den Toten erweckt",
+      "blessed": {
+        "one": "{name} gesegnet",
+        "other": "{count} Menschen gesegnet"
+      },
+      "inspired": {
+        "one": "{name} inspiriert",
+        "other": "{count} Menschen inspiriert"
+      },
+      "cured": {
+        "one": "{name} geheilt",
+        "other": "{count} Menschen geheilt"
+      },
+      "cured_tribe": {
+        "one": "eine Person im Stamm geheilt",
+        "other": "{count} Menschen im Stamm geheilt"
+      },
+      "loved": {
+        "one": "{name} hat sich verliebt",
+        "other": "{count} Herzen mit Liebe gefüllt"
+      },
+      "paired": {
+        "one": "ein Paar zusammengebracht",
+        "other": "{count} Paare zusammengebracht"
+      },
+      "mutated": "{name} mutierte",
+      "cursed": "{name} verflucht",
+      "taught": "der Stamm von {name} hat ein Geheimnis gelernt",
+      "moved": "{name} versetzt",
+      "gifted_food": {
+        "one": "{name} Essen gegeben",
+        "other": "Essen an {count} Menschen gegeben"
+      },
+      "gifted_tool": {
+        "one": "{name} ein Werkzeug gegeben",
+        "other": "Werkzeuge an {count} Menschen gegeben"
+      },
+      "crowned": "{name} gekrönt",
+      "split": {
+        "other": "{count} Menschen zogen weg, um einen neuen Stamm zu gründen"
+      },
+      "tamed": {
+        "one": "ein wildes Tier wurde zu einem treuen Hund",
+        "other": "{count} wilde Tiere wurden zu treuen Hunden"
+      },
+      "guardian": "ein Wächterhund stand bei {name}",
+      "smitten": "der Blitz traf {name}",
+      "struck_beast": "der Blitz erschlug ein Tier",
+      "struck_roof": "der Blitz spaltete ein Dach",
+      "animals": {
+        "one": "ein Tier erschien",
+        "other": "{count} Tiere erschienen"
+      }
+    }
   }
 }

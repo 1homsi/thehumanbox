@@ -30,14 +30,17 @@ impl Simulation {
             .min_by(|a, b| a.1.total_cmp(&b.1))
             .map(|(i, _)| i);
         let Some(i) = nearest else {
+            self.report("none_here", 0, None);
             return false;
         };
         let lineage = self.organisms[i].lineage_id.clone();
         let person_id = self.organisms[i].id.clone();
         let Some(government) = self.governments.get_mut(&lineage) else {
+            self.report("no_government", 0, None);
             return false;
         };
         if government.kind.leader_count() == 0 {
+            self.report("no_government", 0, None);
             return false;
         }
         let previous = government.leader_id.replace(person_id);
@@ -47,6 +50,8 @@ impl Simulation {
             }
         }
         self.organisms[i].is_leader = true;
+        let name = self.organisms[i].name.clone();
+        self.report("crowned", 1, Some(name.as_str()));
         true
     }
 }
