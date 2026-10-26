@@ -316,7 +316,7 @@
       "empty": "Rien n'est encore consigné",
       "goTo": "Aller à ce lieu",
       "raid": "dans un raid avec {other}",
-      "war": "en guerre contre {other}",
+      "war": "est allé en guerre contre {other}",
       "era": "est entrée dans l'ère {era}",
       "famine": "a connu une famine",
       "arrival": "un peuple errant est arrivé et s'est installé ici",
@@ -333,6 +333,50 @@
         "building": "la construction",
         "crafting": "l'artisanat",
         "healing": "les soins"
+      }
+    },
+    "why": {
+      "title": "Pourquoi ils agissent",
+      "guided": "Guidée vers {strategy} : {done} sur {target} accomplis",
+      "unguided": "Personne ne les guide : ils agissent seuls",
+      "need": "Le plus urgent : {need}, il manque {pct} %",
+      "needNone": "Rien d'urgent pour l'instant",
+      "needs": {
+        "food": "nourriture",
+        "water": "eau",
+        "health": "santé",
+        "shelter": "abri",
+        "safety": "sécurité",
+        "land": "terre"
+      },
+      "doing": "Au travail : {list}",
+      "idle": "Personne ne travaille pour l'instant",
+      "work": {
+        "woodcutting": "bûcheronnage",
+        "quarrying": "carrière",
+        "foraging": "cueillette",
+        "fishing": "pêche",
+        "hunting": "chasse",
+        "farming": "agriculture",
+        "building": "construction",
+        "crafting": "artisanat",
+        "healing": "soins"
+      },
+      "allied": "allié à {names}",
+      "rivals": "en conflit avec {names}",
+      "neutral": "neutre envers {names}",
+      "stanceNone": "Aucun voisin connu",
+      "next": "Sur le point d'essayer : {step}",
+      "step": {
+        "food": "cueillir et chasser pour manger",
+        "water": "aller chercher de l'eau",
+        "health": "soigner les malades",
+        "shelter": "bâtir plus de maisons",
+        "safety": "s'armer et garder leur terre",
+        "land": "revendiquer plus de terre",
+        "campaign": "poursuivre la campagne {strategy}",
+        "learn": "apprendre {secret} pour la prochaine ère",
+        "carryOn": "continuer comme avant"
       }
     }
   },

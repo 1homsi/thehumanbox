@@ -19,6 +19,7 @@ import { familyLineText, familyLines } from '../../game/model/family-lines'
 import { eldestByLineage, eldestLine } from '../../game/model/tribe-eldest'
 import { ToolSprite } from '../toolbar/ToolSprite'
 import { TribeHistory } from './TribeHistory'
+import { TribeReasoning } from './TribeReasoning'
 import { formatNumber, t, type MessageKey } from '../../i18n'
 import { knownTribeName } from '../../state/worldStore'
 
@@ -313,6 +314,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
       <Need label={t('panels.tribe.water')} value={status.water} />
       <Need label={t('panels.tribe.health')} value={status.health} />
       <TribeHistory world={world} lineage={status.id} />
+      <TribeReasoning world={world} status={status} />
       {losses && <div className="tribe-card-losses">{t('panels.tribe.lostLately', { losses })}</div>}
       {relations && <div className="tribe-card-relations">{relations}</div>}
       {craftKey && (

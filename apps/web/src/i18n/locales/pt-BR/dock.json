@@ -542,13 +542,27 @@
     "treeTip": "Árvore genealógica das linhagens e da descendência",
     "world": "mundo",
     "worldTip": "Alterna o painel do mundo à esquerda (histórico, linhagens, eventos)",
-    "onBrink": "à beira",
-    "onBrinkTip": "Pausa o jogo sempre que uma tribo passa a estar à beira do colapso",
     "keys": "teclas",
     "picture": "imagem",
     "pictureTip": "Salva uma imagem do mundo como ele está agora",
     "notable": "destaques",
-    "notableTip": "Principais seres por idade, tamanho da família, amigos, riqueza, conhecimento, alegria, luto…"
+    "notableTip": "Principais seres por idade, tamanho da família, amigos, riqueza, conhecimento, alegria, luto…",
+    "pauseOn": "pausar em",
+    "pauseOnTip": "Parar o relógio quando acontecer uma mudança escolhida, enquanto o jogo roda",
+    "pause": {
+      "brink": "à beira",
+      "era": "nova era",
+      "war": "guerra",
+      "famine": "fome",
+      "extinct": "se extingue"
+    },
+    "pauseTip": {
+      "brink": "Pausar quando uma tribo cair à beira da extinção",
+      "era": "Pausar quando uma tribo ou o mundo entrar numa nova era",
+      "war": "Pausar quando uma guerra começar ou uma batalha começar",
+      "famine": "Pausar quando uma tribo estiver passando fome",
+      "extinct": "Pausar quando uma tribo se extinguir"
+    }
   },
   "save": {
     "saving": "Salvando…",

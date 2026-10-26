@@ -145,11 +145,11 @@ impl Simulation {
         {
             crate::sim::civ::fields::tick_fields(self);
         }
-        if self.tick_count > 0
-            && self
-                .tick_count
-                .is_multiple_of(crate::sim::civ::land::village_fields::SOW_STEP)
-        {
+        if on_beat(
+            self.tick_count,
+            crate::sim::civ::land::village_fields::SOW_STEP,
+            SOW_PHASE,
+        ) {
             crate::sim::civ::land::village_fields::tick_village_fields(self);
         }
 
@@ -189,8 +189,12 @@ impl Simulation {
             self.tick_settlements();
         }
 
+        // Baseline discoveries keep the 600-tick multiples: their thresholds are absolute ticks (fire at 1200,
+        // shelter at 2400, stone tools at 3600), and a later pass would hand each one out late.
         if self.tick_count.is_multiple_of(600) {
             crate::sim::tech_progress::seed_baseline_discoveries(&mut self.organisms, self.tick_count);
+        }
+        if on_beat(self.tick_count, 600, ERAS_PHASE) {
             self.update_lineage_eras();
             self.tick_water_depletion();
         }
@@ -255,6 +259,7 @@ impl Simulation {
                     grid: &self.grid,
                 },
             );
+            self.record_fallen_leaders(&standing);
             // The fallen are their tribes' war dead.
             let fallen: Vec<String> = self
                 .organisms

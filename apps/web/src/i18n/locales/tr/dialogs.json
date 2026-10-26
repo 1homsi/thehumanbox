@@ -570,6 +570,10 @@
     "checkpointRestore": "mevcut dünya kaydedilemedi; geri yükleme güvenli biçimde iptal edildi",
     "checkpointPerfMode": "mevcut dünya kaydedilemedi; performans modu yenilemesi güvenli biçimde iptal edildi",
     "checkpointRenderer": "mevcut dünya kaydedilemedi; oluşturucu güncellemesi güvenli biçimde iptal edildi",
-    "checkpointRefresh": "mevcut dünya kaydedilemedi; yenileme güvenli biçimde iptal edildi"
+    "checkpointRefresh": "mevcut dünya kaydedilemedi; yenileme güvenli biçimde iptal edildi",
+    "versionTitle": "Simülasyon başka bir sürümden",
+    "versionBody": "Bu pencere ile bu bilgisayardaki simülasyon birlikte çalışamaz: simülasyon {server}. The Human Box'ı tamamen kapatın, sonra yeniden açın.",
+    "versionOlder": "eski bir derleme",
+    "versionNumber": "sürüm {version}"
   }
 }

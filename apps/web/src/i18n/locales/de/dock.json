@@ -542,13 +542,27 @@
     "treeTip": "Stammbaum der Blutlinien und Abstammung",
     "world": "Welt",
     "worldTip": "Linkes Weltpanel ein- oder ausblenden (Geschichte, Linien, Ereignisse)",
-    "onBrink": "am Abgrund",
-    "onBrinkTip": "Das Spiel pausieren, sobald ein Stamm neu am Abgrund steht",
     "keys": "Tasten",
     "picture": "Bild",
     "pictureTip": "Ein Bild der Welt speichern, so wie sie jetzt aussieht",
     "notable": "bemerkenswert",
-    "notableTip": "Führende Lebewesen nach Alter, Familiengröße, Freunden, Wohlstand, Wissen, Freude, Trauer…"
+    "notableTip": "Führende Lebewesen nach Alter, Familiengröße, Freunden, Wohlstand, Wissen, Freude, Trauer…",
+    "pauseOn": "anhalten bei",
+    "pauseOnTip": "Die Zeit anhalten, wenn eine gewählte Veränderung eintritt, während das Spiel läuft",
+    "pause": {
+      "brink": "Abgrund",
+      "era": "neue Epoche",
+      "war": "Krieg",
+      "famine": "Hungersnot",
+      "extinct": "stirbt aus"
+    },
+    "pauseTip": {
+      "brink": "Pausieren, wenn ein Stamm an den Abgrund gerät",
+      "era": "Pausieren, wenn ein Stamm oder die Welt in eine neue Epoche eintritt",
+      "war": "Pausieren, wenn ein Krieg ausbricht oder eine Schlacht beginnt",
+      "famine": "Pausieren, wenn ein Stamm hungert",
+      "extinct": "Pausieren, wenn ein Stamm ausstirbt"
+    }
   },
   "save": {
     "saving": "Speichern…",

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { WorldState } from '../../../../shared/types'
-import { collectSettlementLabels, placeLabels } from './settlement-label-list'
+import {
+  collectSettlementLabels,
+  fadeSettlementLabels,
+  heldSettlementSlots,
+  placeLabels,
+} from './settlement-label-list'
+import { LabelPresence } from '../../label-presence'
+import { LABEL_FADE_IN_MS, LABEL_FADE_OUT_MS } from '../../label-presence'
+import type { PlacedLabel, SettlementLabel } from '../../settlement-labels'
 
 function world(over: Partial<WorldState> = {}): WorldState {
   return {
@@ -91,5 +99,65 @@ describe('settlement labels without the building painter', () => {
     const [a, b] = placed
     const overlap = Math.abs(a.cx - b.cx) * 2 < a.w + b.w && Math.abs(a.cy - b.cy) * 2 < a.h + b.h
     expect(overlap).toBe(false)
+  })
+})
+
+describe('settlement lettering fades in and out', () => {
+  const rok: SettlementLabel = {
+    key: 'rok',
+    title: 'ROK',
+    sub: '',
+    x: 300,
+    y: 300,
+    priority: 30,
+    rank: 2,
+    alpha: 1,
+    major: false,
+  }
+  const measure = () => 30
+  const bounds = { w: 2000, h: 1000 }
+
+  it('fades a settlement in as it is placed, and out where it was when it leaves the view', () => {
+    const fade = new LabelPresence<PlacedLabel>()
+    const placed = placeLabels([rok], 1, measure, bounds.w, bounds.h)
+    const alphas: number[] = []
+    for (let t = 0; t <= LABEL_FADE_IN_MS; t += 30) {
+      const out = fadeSettlementLabels(fade, 1000 + t, [rok], placed)
+      alphas.push(out[0]?.alpha ?? 0)
+    }
+    expect(alphas[0]).toBe(0)
+    expect(alphas[alphas.length - 1]).toBeCloseTo(1)
+
+    const leaving: PlacedLabel[] = []
+    for (let t = 30; t <= LABEL_FADE_OUT_MS + 30; t += 30) {
+      leaving.push(...fadeSettlementLabels(fade, 1000 + LABEL_FADE_IN_MS + t, [], []))
+    }
+    expect(leaving.length).toBeGreaterThan(1)
+    expect(leaving[0].cx).toBe(placed[0].cx)
+    expect(leaving[0].cy).toBe(placed[0].cy)
+    expect(leaving[leaving.length - 1].alpha).toBeLessThan(leaving[0].alpha)
+  })
+
+  it('a settlement still in view that loses its place fades out where it was, not off at once', () => {
+    const fade = new LabelPresence<PlacedLabel>()
+    const placed = placeLabels([rok], 1, measure, bounds.w, bounds.h)
+    for (let t = 0; t <= LABEL_FADE_IN_MS; t += 30) fadeSettlementLabels(fade, 1000 + t, [rok], placed)
+
+    const lost: PlacedLabel[] = []
+    for (let t = 30; t <= LABEL_FADE_OUT_MS; t += 30) {
+      lost.push(...fadeSettlementLabels(fade, 1000 + LABEL_FADE_IN_MS + t, [rok], []))
+    }
+    expect(lost.length).toBeGreaterThan(1)
+    expect(lost[0].cx).toBe(placed[0].cx)
+    expect(lost[0].cy).toBe(placed[0].cy)
+    expect(lost[lost.length - 1].alpha).toBeLessThan(lost[0].alpha)
+  })
+
+  it('remembers the place each shown settlement took, for the next placement', () => {
+    const fade = new LabelPresence<PlacedLabel>()
+    const placed = placeLabels([rok], 1, measure, bounds.w, bounds.h, undefined)
+    for (let t = 0; t <= LABEL_FADE_IN_MS; t += 30) fadeSettlementLabels(fade, 1000 + t, [rok], placed)
+    const held = heldSettlementSlots(fade, [rok])
+    expect(held.get('rok')).toBe(placed[0].slot)
   })
 })

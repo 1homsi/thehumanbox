@@ -570,6 +570,10 @@
     "checkpointRestore": "現在の世界を保存できなかったため、復元を安全に取りやめました",
     "checkpointPerfMode": "現在の世界を保存できなかったため、性能モードの再読み込みを安全に取りやめました",
     "checkpointRenderer": "現在の世界を保存できなかったため、描画エンジンの更新を安全に取りやめました",
-    "checkpointRefresh": "現在の世界を保存できなかったため、再読み込みを安全に取りやめました"
+    "checkpointRefresh": "現在の世界を保存できなかったため、再読み込みを安全に取りやめました",
+    "versionTitle": "シミュレーションが別のバージョンです",
+    "versionBody": "このウィンドウとこのコンピュータ上のシミュレーションは一緒に動作できません。シミュレーションは{server}です。The Human Box を完全に終了してから、もう一度開いてください。",
+    "versionOlder": "古いビルド",
+    "versionNumber": "バージョン {version}"
   }
 }

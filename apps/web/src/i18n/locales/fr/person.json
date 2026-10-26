@@ -256,6 +256,20 @@
   "language": {
     "title": "LEUR LANGUE"
   },
+  "words": {
+    "title": "HISTOIRE DES MOTS",
+    "intro": "Leur mot pour chaque chose courante, à côté de ceux de leurs parents et grands-parents.",
+    "you": "soi",
+    "mother": "mère",
+    "father": "père",
+    "maternalGrandmother": "grand-mère maternelle",
+    "maternalGrandfather": "grand-père maternel",
+    "paternalGrandmother": "grand-mère paternelle",
+    "paternalGrandfather": "grand-père paternel",
+    "unknown": "non retenu",
+    "same": "identique dans la famille",
+    "drifted": "les mots ont dérivé"
+  },
   "life": {
     "memory": "MÉMOIRE",
     "foodTip": "{count} lieux de nourriture mémorisés – l'organisme s'y dirige quand il a faim",

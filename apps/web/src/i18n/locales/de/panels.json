@@ -316,7 +316,7 @@
       "empty": "Noch nichts festgehalten",
       "goTo": "Zu diesem Ort gehen",
       "raid": "in einem Überfall mit {other}",
-      "war": "im Krieg mit {other}",
+      "war": "zog mit {other} in den Krieg",
       "era": "trat in das Zeitalter {era} ein",
       "famine": "litt unter einer Hungersnot",
       "arrival": "ein wanderndes Volk kam hierher und ließ sich nieder",
@@ -333,6 +333,50 @@
         "building": "Bauen",
         "crafting": "Handwerk",
         "healing": "Heilen"
+      }
+    },
+    "why": {
+      "title": "Warum sie handeln",
+      "guided": "Geführt zu {strategy}: {done} von {target} geschafft",
+      "unguided": "Niemand führt sie; sie handeln aus eigenem Antrieb",
+      "need": "Am dringendsten: {need}, {pct} % fehlen",
+      "needNone": "Gerade drängt nichts",
+      "needs": {
+        "food": "Nahrung",
+        "water": "Wasser",
+        "health": "Gesundheit",
+        "shelter": "Unterkunft",
+        "safety": "Sicherheit",
+        "land": "Land"
+      },
+      "doing": "Bei der Arbeit: {list}",
+      "idle": "Gerade arbeitet niemand",
+      "work": {
+        "woodcutting": "Holzfällen",
+        "quarrying": "Steinbruch",
+        "foraging": "Sammeln",
+        "fishing": "Fischen",
+        "hunting": "Jagd",
+        "farming": "Ackerbau",
+        "building": "Bauen",
+        "crafting": "Handwerk",
+        "healing": "Heilen"
+      },
+      "allied": "verbündet mit {names}",
+      "rivals": "im Streit mit {names}",
+      "neutral": "neutral gegenüber {names}",
+      "stanceNone": "Keine Nachbarn, die sie kennen",
+      "next": "Als Nächstes: {step}",
+      "step": {
+        "food": "Nahrung sammeln und jagen",
+        "water": "zum Wasser ziehen",
+        "health": "die Kranken pflegen",
+        "shelter": "mehr Häuser bauen",
+        "safety": "sich bewaffnen und ihr Land bewachen",
+        "land": "mehr Land beanspruchen",
+        "campaign": "den Feldzug {strategy} weiterführen",
+        "learn": "{secret} für die nächste Epoche lernen",
+        "carryOn": "wie bisher weitermachen"
       }
     }
   },

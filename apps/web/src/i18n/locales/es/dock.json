@@ -542,13 +542,27 @@
     "treeTip": "Árbol genealógico de linajes y descendencia",
     "world": "mundo",
     "worldTip": "Mostrar u ocultar el panel izquierdo del mundo (historia, linajes, eventos)",
-    "onBrink": "al borde",
-    "onBrinkTip": "Pausar el juego cada vez que una tribu cae al borde",
     "keys": "teclas",
     "picture": "imagen",
     "pictureTip": "Guardar una imagen del mundo tal como se ve ahora",
     "notable": "destacados",
-    "notableTip": "Seres destacados por edad, tamaño de familia, amigos, riqueza, conocimiento, alegría, duelo…"
+    "notableTip": "Seres destacados por edad, tamaño de familia, amigos, riqueza, conocimiento, alegría, duelo…",
+    "pauseOn": "pausar al",
+    "pauseOnTip": "Detener el tiempo cuando ocurra un cambio elegido, mientras el juego corre",
+    "pause": {
+      "brink": "al borde",
+      "era": "nueva era",
+      "war": "guerra",
+      "famine": "hambruna",
+      "extinct": "se extingue"
+    },
+    "pauseTip": {
+      "brink": "Pausar cuando una tribu caiga al borde",
+      "era": "Pausar cuando una tribu o el mundo entre en una nueva era",
+      "war": "Pausar cuando estalle una guerra o empiece una batalla",
+      "famine": "Pausar cuando una tribu pase hambre",
+      "extinct": "Pausar cuando una tribu se extinga"
+    }
   },
   "save": {
     "saving": "Guardando…",

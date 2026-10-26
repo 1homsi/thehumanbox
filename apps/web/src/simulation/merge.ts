@@ -225,6 +225,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     festivals: parsed.festivals ?? base?.festivals,
     lineage_eras: (parsed.lineage_eras as Record<string, string> | undefined) ?? base?.lineage_eras,
     lineage_strategies: parsed.lineage_strategies ?? base?.lineage_strategies,
+    tribe_work: parsed.tribe_work ?? base?.tribe_work,
     lineage_strategy_history: parsed.lineage_strategy_history ?? base?.lineage_strategy_history,
     lineage_era_progress: parsed.lineage_era_progress ?? base?.lineage_era_progress,
     lineage_currencies: parsed.lineage_currencies ?? base?.lineage_currencies,

@@ -570,6 +570,10 @@
     "checkpointRestore": "현재 세계를 저장하지 못해 복원을 안전하게 취소했습니다",
     "checkpointPerfMode": "현재 세계를 저장하지 못해 성능 모드 새로고침을 안전하게 취소했습니다",
     "checkpointRenderer": "현재 세계를 저장하지 못해 렌더러 업데이트를 안전하게 취소했습니다",
-    "checkpointRefresh": "현재 세계를 저장하지 못해 새로고침을 안전하게 취소했습니다"
+    "checkpointRefresh": "현재 세계를 저장하지 못해 새로고침을 안전하게 취소했습니다",
+    "versionTitle": "시뮬레이션이 다른 버전입니다",
+    "versionBody": "이 창과 이 컴퓨터의 시뮬레이션은 함께 동작할 수 없습니다. 시뮬레이션은 {server}입니다. The Human Box를 완전히 종료한 뒤 다시 여세요.",
+    "versionOlder": "이전 빌드",
+    "versionNumber": "버전 {version}"
   }
 }

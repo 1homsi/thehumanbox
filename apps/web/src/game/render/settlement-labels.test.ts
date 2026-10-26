@@ -135,3 +135,36 @@ describe('settlement labels', () => {
     ).toBe(true)
   })
 })
+
+describe('settlement labels keep their place', () => {
+  it('tries the place a name last took first, so it stays put while others move', () => {
+    const label = { ...town('ROK', 300, 300, 30), key: 'rok' }
+    const free = placeSettlementLabels([label], 1, measure, bounds, 10)
+    const held = placeSettlementLabels([label], 1, measure, bounds, 10, new Map([['rok', 2]]))
+    expect(free[0].slot).toBe(0)
+    expect(held[0].slot).toBe(2)
+    // The third place is the one furthest above the settlement.
+    expect(held[0].cy).toBeLessThan(free[0].cy)
+  })
+
+  it('falls back to another place when the held one is taken, and never overlaps', () => {
+    const a = { ...town('AAA', 300, 300, 60), key: 'a' }
+    const b = { ...town('BBB', 300, 300, 30), key: 'b' }
+    const placed = placeSettlementLabels(
+      [a, b],
+      1,
+      measure,
+      bounds,
+      10,
+      new Map([
+        ['a', 0],
+        ['b', 0],
+      ]),
+    )
+    const pa = placed.find((p) => p.key === 'a')!
+    const pb = placed.find((p) => p.key === 'b')!
+    expect(pa.slot).toBe(0)
+    expect(pb.slot).not.toBe(0)
+    expect(overlaps(pa, pb)).toBe(false)
+  })
+})

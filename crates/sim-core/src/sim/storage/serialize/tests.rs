@@ -35,6 +35,50 @@ fn full_payload_carries_each_living_tribes_history_with_its_place() {
     );
 }
 
+#[test]
+fn tribe_work_counts_only_stints_still_running_by_trade() {
+    use crate::organism::skills::Skill;
+    use crate::sim::agents::daily_work::WorkPlan;
+
+    let mut sim = Simulation::new(42);
+    sim.tick_count = 100;
+    let lid = sim
+        .organisms
+        .iter()
+        .find(|o| o.alive)
+        .expect("founder exists")
+        .lineage_id
+        .clone();
+    let plan = |skill, until| WorkPlan {
+        skill,
+        spot: (0, 0),
+        until,
+        harvest: false,
+        misses: 0,
+    };
+    let mut members = sim
+        .organisms
+        .iter_mut()
+        .filter(|o| o.alive && o.lineage_id == lid);
+    let first = members.next().expect("a member");
+    first.work = Some(plan(Skill::Fishing, 400));
+    let second = members.next().expect("a second member");
+    second.work = Some(plan(Skill::Fishing, 400));
+    let third = members.next().expect("a third member");
+    third.work = Some(plan(Skill::Woodcutting, 400));
+    let fourth = members.next().expect("a fourth member");
+    fourth.work = Some(plan(Skill::Hunting, 50));
+
+    let payload = sim.state_json_incremental();
+    let work = &payload["tribe_work"][lid.as_str()];
+    assert_eq!(work["fishing"], 2);
+    assert_eq!(work["woodcutting"], 1);
+    assert!(
+        work.get("hunting").is_none(),
+        "a stint that ran out is not counted"
+    );
+}
+
 /// Lock the delta payload's top-level shape. The client wire
 /// round-trip test in client/src/simulation/wire.roundtrip.test.ts
 /// expects these exact keys; if a refactor here removes one

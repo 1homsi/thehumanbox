@@ -3,12 +3,16 @@ import { act, useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSimulation } from './useSimulation'
+import { WIRE_PROTOCOL } from './wire-protocol'
 
-const { fetchSnapshot, parsedFrames, mergedFrames } = vi.hoisted(() => ({
+const { fetchSnapshot, parsedFrames, mergedFrames, showNotice } = vi.hoisted(() => ({
   fetchSnapshot: vi.fn(),
   parsedFrames: new Map<string, { frame_id: number; frame_kind: string }>(),
   mergedFrames: [] as number[],
+  showNotice: vi.fn<(title: string, body?: string) => Promise<void>>(() => Promise.resolve()),
 }))
+
+vi.mock('../shared/confirm', () => ({ showNotice }))
 
 vi.mock('./wire', () => ({
   binaryFramesReady: () => true,
@@ -52,9 +56,15 @@ class MockWebSocket {
     MockWebSocket.instances.push(this)
   }
 
+  /** Connects, and then the server says hello, as every current server does first. */
   open(): void {
     this.readyState = MockWebSocket.OPEN
     this.onopen?.()
+    this.sendHello()
+  }
+
+  sendHello(protocol: number = WIRE_PROTOCOL, version = 'test'): void {
+    this.onmessage?.({ data: JSON.stringify({ type: 'hello', protocol, name: 'simulation-rs', version }) })
   }
 
   sendFrame(frame: string): void {
@@ -112,6 +122,7 @@ describe('useSimulation snapshot recovery', () => {
     mergedFrames.length = 0
     parsedFrames.clear()
     fetchSnapshot.mockReset()
+    showNotice.mockClear()
     container = document.createElement('div')
     root = createRoot(container)
     ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -137,6 +148,118 @@ describe('useSimulation snapshot recovery', () => {
     act(() => root.render(<Harness />))
 
     expect(MockWebSocket.instances).toHaveLength(0)
+  })
+
+  it('refuses a server that sends a world frame first, says so once, and does not reconnect to it', async () => {
+    parsedFrames.set('old-server-frame', { frame_id: 7, frame_kind: 'full' })
+    const socket = MockWebSocket.instances[0]
+    await act(async () => {
+      socket.readyState = MockWebSocket.OPEN
+      socket.onopen?.()
+      // A build from before the handshake sends frames with no hello in front of them.
+      socket.sendFrame('old-server-frame')
+      await flushMicrotasks()
+    })
+    await flushAnimationFrame()
+    expect(showNotice).toHaveBeenCalledTimes(1)
+    expect(showNotice.mock.calls[0][0]).toBe('The simulation is from another version')
+    expect(showNotice.mock.calls[0][1]).toContain('an older build')
+    expect(mergedFrames).toEqual([])
+    expect(fetchSnapshot).not.toHaveBeenCalled()
+
+    act(() => {
+      socket.readyState = MockWebSocket.CLOSED
+      socket.onclose?.()
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000)
+      await flushMicrotasks()
+    })
+    expect(MockWebSocket.instances).toHaveLength(1)
+  })
+
+  it('refuses a server that speaks another protocol and names its version', async () => {
+    const socket = MockWebSocket.instances[0]
+    await act(async () => {
+      socket.readyState = MockWebSocket.OPEN
+      socket.onopen?.()
+      socket.sendHello(WIRE_PROTOCOL + 1, '9.0.0')
+      await flushMicrotasks()
+    })
+    expect(showNotice).toHaveBeenCalledTimes(1)
+    expect(showNotice.mock.calls[0][1]).toContain('version 9.0.0')
+    expect(fetchSnapshot).not.toHaveBeenCalled()
+  })
+
+  it('does not reconnect, or say so again, when the window comes back after a refusal', async () => {
+    const socket = MockWebSocket.instances[0]
+    await act(async () => {
+      socket.readyState = MockWebSocket.OPEN
+      socket.onopen?.()
+      socket.sendHello(WIRE_PROTOCOL + 1, '9.0.0')
+      await flushMicrotasks()
+    })
+    act(() => {
+      socket.readyState = MockWebSocket.CLOSED
+      socket.onclose?.()
+    })
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+      window.dispatchEvent(new Event('online'))
+      await flushMicrotasks()
+    })
+    expect(MockWebSocket.instances).toHaveLength(1)
+    expect(showNotice).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not fetch a snapshot from a socket that has not said hello when the window comes back', async () => {
+    fetchSnapshot.mockResolvedValue(null)
+    const socket = MockWebSocket.instances[0]
+    await act(async () => {
+      socket.readyState = MockWebSocket.OPEN
+      socket.onopen?.()
+      await flushMicrotasks()
+    })
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+      await flushMicrotasks()
+    })
+    expect(fetchSnapshot).not.toHaveBeenCalled()
+    await act(async () => {
+      socket.sendHello()
+      await flushMicrotasks()
+    })
+    expect(fetchSnapshot).toHaveBeenCalledTimes(1)
+  })
+
+  it('aborts a snapshot still downloading from an earlier connection when a reconnect is refused', async () => {
+    fetchSnapshot.mockReturnValue(new Promise(() => {}))
+    const first = MockWebSocket.instances[0]
+    await act(async () => {
+      first.open()
+      await flushMicrotasks()
+    })
+    expect(fetchSnapshot).toHaveBeenCalledTimes(1)
+    const signal = fetchSnapshot.mock.calls[0][1] as AbortSignal
+    expect(signal.aborted).toBe(false)
+    act(() => {
+      first.readyState = MockWebSocket.CLOSED
+      first.onclose?.()
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000)
+      await flushMicrotasks()
+    })
+    const second = MockWebSocket.instances[MockWebSocket.instances.length - 1]
+    expect(second).not.toBe(first)
+    await act(async () => {
+      second.readyState = MockWebSocket.OPEN
+      second.onopen?.()
+      second.sendHello(WIRE_PROTOCOL + 1, '9.0.0')
+      await flushMicrotasks()
+    })
+    expect(signal.aborted).toBe(true)
+    expect(showNotice).toHaveBeenCalledTimes(1)
   })
 
   it('accepts restarted frame ids and retries a failed snapshot with a cached world', async () => {

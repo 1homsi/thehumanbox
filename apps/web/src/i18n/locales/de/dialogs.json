@@ -570,6 +570,10 @@
     "checkpointRestore": "Die aktuelle Welt konnte nicht gesichert werden; die Wiederherstellung wurde sicher abgebrochen",
     "checkpointPerfMode": "Die aktuelle Welt konnte nicht gesichert werden; die Aktualisierung für den Leistungsmodus wurde sicher abgebrochen",
     "checkpointRenderer": "Die aktuelle Welt konnte nicht gesichert werden; die Aktualisierung des Renderers wurde sicher abgebrochen",
-    "checkpointRefresh": "Die aktuelle Welt konnte nicht gesichert werden; die Aktualisierung wurde sicher abgebrochen"
+    "checkpointRefresh": "Die aktuelle Welt konnte nicht gesichert werden; die Aktualisierung wurde sicher abgebrochen",
+    "versionTitle": "Die Simulation stammt von einer anderen Version",
+    "versionBody": "Dieses Fenster und die Simulation auf diesem Computer können nicht zusammenarbeiten: Die Simulation ist {server}. Beende The Human Box vollständig und öffne es dann erneut.",
+    "versionOlder": "ein älterer Build",
+    "versionNumber": "Version {version}"
   }
 }

@@ -542,13 +542,27 @@
     "treeTip": "Drzewo genealogiczne linii krwi i pochodzenia",
     "world": "świat",
     "worldTip": "Przełącz lewy panel świata (historia, rody, zdarzenia)",
-    "onBrink": "na skraju",
-    "onBrinkTip": "Wstrzymaj grę, ilekroć plemię nowo znajdzie się na skraju upadku",
     "keys": "klawisze",
     "picture": "obraz",
     "pictureTip": "Zapisz obraz świata takiego, jaki jest teraz",
     "notable": "godne uwagi",
-    "notableTip": "Najlepsze istoty według wieku, wielkości rodziny, przyjaciół, bogactwa, wiedzy, radości, smutku…"
+    "notableTip": "Najlepsze istoty według wieku, wielkości rodziny, przyjaciół, bogactwa, wiedzy, radości, smutku…",
+    "pauseOn": "pauza przy",
+    "pauseOnTip": "Zatrzymaj zegar, gdy wybrana zmiana nastąpi, podczas gry",
+    "pause": {
+      "brink": "na skraju",
+      "era": "nowa epoka",
+      "war": "wojna",
+      "famine": "głód",
+      "extinct": "wymiera"
+    },
+    "pauseTip": {
+      "brink": "Zatrzymaj, gdy plemię znajdzie się na skraju",
+      "era": "Zatrzymaj, gdy plemię lub świat wejdzie w nową epokę",
+      "war": "Zatrzymaj, gdy wybuchnie wojna lub zacznie się bitwa",
+      "famine": "Zatrzymaj, gdy plemię głodує",
+      "extinct": "Zatrzymaj, gdy plemię wymrze"
+    }
   },
   "save": {
     "saving": "Zapisywanie…",

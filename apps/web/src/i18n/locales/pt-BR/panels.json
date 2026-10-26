@@ -316,7 +316,7 @@
       "empty": "Nada registrado ainda",
       "goTo": "Ir a este lugar",
       "raid": "em uma incursão com {other}",
-      "war": "em guerra com {other}",
+      "war": "foi à guerra com {other}",
       "era": "entrou na era {era}",
       "famine": "passou por uma fome",
       "arrival": "um povo errante chegou e se fixou aqui",
@@ -333,6 +333,50 @@
         "building": "a construção",
         "crafting": "o artesanato",
         "healing": "a cura"
+      }
+    },
+    "why": {
+      "title": "Por que agem assim",
+      "guided": "Guiada para {strategy}: {done} de {target} feitos",
+      "unguided": "Ninguém as guia; agem por conta própria",
+      "need": "Mais urgente: {need}, faltam {pct}%",
+      "needNone": "Nada urgente no momento",
+      "needs": {
+        "food": "comida",
+        "water": "água",
+        "health": "saúde",
+        "shelter": "abrigo",
+        "safety": "segurança",
+        "land": "terra"
+      },
+      "doing": "Trabalhando em: {list}",
+      "idle": "Ninguém está trabalhando agora",
+      "work": {
+        "woodcutting": "corte de madeira",
+        "quarrying": "pedreira",
+        "foraging": "coleta",
+        "fishing": "pesca",
+        "hunting": "caça",
+        "farming": "agricultura",
+        "building": "construção",
+        "crafting": "artesanato",
+        "healing": "cura"
+      },
+      "allied": "aliada a {names}",
+      "rivals": "em desavença com {names}",
+      "neutral": "neutra com {names}",
+      "stanceNone": "Nenhum vizinho conhecido",
+      "next": "Prestes a tentar: {step}",
+      "step": {
+        "food": "colher e caçar comida",
+        "water": "ir buscar água",
+        "health": "cuidar dos doentes",
+        "shelter": "erguer mais casas",
+        "safety": "armar-se e guardar suas terras",
+        "land": "reivindicar mais terra",
+        "campaign": "manter a campanha de {strategy}",
+        "learn": "aprender {secret} para a próxima era",
+        "carryOn": "seguir como estão"
       }
     }
   },

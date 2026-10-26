@@ -309,7 +309,7 @@
       "empty": "まだ記録はない",
       "goTo": "この場所へ行く",
       "raid": "{other}との襲撃戦",
-      "war": "{other}と交戦中",
+      "war": "{other}と戦争になった",
       "era": "{era}の時代に入った",
       "famine": "飢饉に見舞われた",
       "arrival": "放浪の民がやって来て、ここに住み着いた",
@@ -326,6 +326,50 @@
         "building": "建築",
         "crafting": "細工",
         "healing": "治療"
+      }
+    },
+    "why": {
+      "title": "なぜそう動くか",
+      "guided": "{strategy}へ導いている: {target}のうち{done}を達成",
+      "unguided": "誰も導いておらず、自分たちで動いている",
+      "need": "最も急ぎ: {need}（{pct}%不足）",
+      "needNone": "今のところ急ぎのことはない",
+      "needs": {
+        "food": "食料",
+        "water": "水",
+        "health": "健康",
+        "shelter": "住まい",
+        "safety": "安全",
+        "land": "土地"
+      },
+      "doing": "作業中: {list}",
+      "idle": "今は誰も作業していない",
+      "work": {
+        "woodcutting": "木こり",
+        "quarrying": "石切り",
+        "foraging": "採集",
+        "fishing": "漁",
+        "hunting": "狩り",
+        "farming": "農耕",
+        "building": "建築",
+        "crafting": "細工",
+        "healing": "治療"
+      },
+      "allied": "{names}と同盟",
+      "rivals": "{names}と対立",
+      "neutral": "{names}に中立",
+      "stanceNone": "知られた隣人はいない",
+      "next": "次に試すこと: {step}",
+      "step": {
+        "food": "採集と狩りで食料を得る",
+        "water": "水場へ向かう",
+        "health": "病人を看病する",
+        "shelter": "家をもっと建てる",
+        "safety": "武装して土地を守る",
+        "land": "新たな土地を求める",
+        "campaign": "{strategy}の活動を続ける",
+        "learn": "次の時代のために{secret}を学ぶ",
+        "carryOn": "今のまま続ける"
       }
     }
   },

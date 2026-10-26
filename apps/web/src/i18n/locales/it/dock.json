@@ -542,13 +542,27 @@
     "treeTip": "Albero genealogico di discendenze e linee di sangue",
     "world": "mondo",
     "worldTip": "Mostra o nasconde il pannello del mondo a sinistra (storia, stirpi, eventi)",
-    "onBrink": "sull'orlo",
-    "onBrinkTip": "Mette in pausa il gioco ogni volta che una tribù cade sull'orlo",
     "keys": "tasti",
     "picture": "immagine",
     "pictureTip": "Salva un'immagine del mondo così com'è ora",
     "notable": "notevoli",
-    "notableTip": "Organismi di spicco per età, dimensione della famiglia, amici, ricchezza, conoscenza, gioia, lutto…"
+    "notableTip": "Organismi di spicco per età, dimensione della famiglia, amici, ricchezza, conoscenza, gioia, lutto…",
+    "pauseOn": "pausa a",
+    "pauseOnTip": "Fermare il tempo quando accade un cambiamento scelto, mentre il gioco va",
+    "pause": {
+      "brink": "sull'orlo",
+      "era": "nuova era",
+      "war": "guerra",
+      "famine": "carestia",
+      "extinct": "si estingue"
+    },
+    "pauseTip": {
+      "brink": "Pausa quando una tribù cade sull'orlo",
+      "era": "Pausa quando una tribù o il mondo entra in una nuova era",
+      "war": "Pausa quando scoppia una guerra o inizia una battaglia",
+      "famine": "Pausa quando una tribù soffre la fame",
+      "extinct": "Pausa quando una tribù si estingue"
+    }
   },
   "save": {
     "saving": "Salvataggio…",

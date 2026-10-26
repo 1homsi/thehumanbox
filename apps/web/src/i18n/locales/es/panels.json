@@ -316,7 +316,7 @@
       "empty": "Aún no hay nada registrado",
       "goTo": "Ir a este lugar",
       "raid": "en una incursión con {other}",
-      "war": "en guerra con {other}",
+      "war": "fue a la guerra con {other}",
       "era": "entró en la era {era}",
       "famine": "sufrió una hambruna",
       "arrival": "un pueblo errante llegó y se asentó aquí",
@@ -333,6 +333,50 @@
         "building": "la construcción",
         "crafting": "la artesanía",
         "healing": "la curación"
+      }
+    },
+    "why": {
+      "title": "Por qué actúan",
+      "guided": "Guiada hacia {strategy}: {done} de {target} hechos",
+      "unguided": "Nadie los guía; actúan por su cuenta",
+      "need": "Lo más urgente: {need}, le faltan {pct} %",
+      "needNone": "Nada urge ahora mismo",
+      "needs": {
+        "food": "comida",
+        "water": "agua",
+        "health": "salud",
+        "shelter": "refugio",
+        "safety": "seguridad",
+        "land": "tierra"
+      },
+      "doing": "Trabajando en: {list}",
+      "idle": "Nadie trabaja ahora mismo",
+      "work": {
+        "woodcutting": "talar árboles",
+        "quarrying": "cantería",
+        "foraging": "recolección",
+        "fishing": "pesca",
+        "hunting": "caza",
+        "farming": "cultivo",
+        "building": "construcción",
+        "crafting": "artesanía",
+        "healing": "curación"
+      },
+      "allied": "aliada con {names}",
+      "rivals": "enfrentada con {names}",
+      "neutral": "neutral hacia {names}",
+      "stanceNone": "No conocen a ningún vecino",
+      "next": "A punto de intentar: {step}",
+      "step": {
+        "food": "recolectar y cazar comida",
+        "water": "ir a buscar agua",
+        "health": "cuidar a los enfermos",
+        "shelter": "levantar más casas",
+        "safety": "armarse y vigilar su tierra",
+        "land": "reclamar más tierra",
+        "campaign": "seguir la campaña de {strategy}",
+        "learn": "aprender {secret} para la próxima era",
+        "carryOn": "seguir como están"
       }
     }
   },

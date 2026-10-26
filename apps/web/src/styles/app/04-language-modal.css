@@ -22,6 +22,49 @@
   color: #889;
 }
 
+/* Word history: a person's words beside their parents' and grandparents' */
+.word-history-intro {
+  font-size: 9px;
+  color: #889;
+  margin-bottom: 4px;
+}
+.word-history-row {
+  margin-bottom: 5px;
+}
+.word-history-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+.word-history-tag {
+  font-size: 8px;
+  color: #889;
+}
+.word-history-row.drifted .word-history-tag {
+  color: #ffd27a;
+}
+.word-history-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+}
+.word-history-chip {
+  font-size: 9px;
+  font-family: monospace;
+  color: #cfe;
+}
+.word-history-chip i {
+  font-style: normal;
+  color: #889;
+}
+.word-history-chip b {
+  font-weight: 600;
+  color: #aaffdd;
+}
+.word-history-chip.differs b {
+  color: #ffd27a;
+}
+
 /* ── Language modal ───────────────────────────────────────────────── */
 .lang-modal-backdrop {
   position: fixed;

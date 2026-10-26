@@ -2,6 +2,7 @@ pub mod animal;
 pub mod attributes;
 pub mod choose_action;
 pub mod decision_bias;
+pub mod family_words;
 pub mod lessons;
 pub mod memory;
 mod navigation;

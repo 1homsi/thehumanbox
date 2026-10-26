@@ -84,6 +84,27 @@ impl Simulation {
         self.lineage_homes.get(lineage).map(|h| (h[0], h[1]))
     }
 
+    /// Leaders a battle just killed get a `leader_died` entry. Battle deaths skip the mortality phase that
+    /// writes it for other deaths. `standing` is who was alive before the battles were fought.
+    pub(crate) fn record_fallen_leaders(&mut self, standing: &[bool]) {
+        let fallen: Vec<(String, String, (i32, i32))> = self
+            .organisms
+            .iter()
+            .zip(standing)
+            .filter(|(o, &was)| was && !o.alive && o.is_leader)
+            .map(|(o, _)| {
+                (
+                    o.lineage_id.clone(),
+                    o.name.clone(),
+                    (o.x.round() as i32, o.y.round() as i32),
+                )
+            })
+            .collect();
+        for (lineage, name, place) in fallen {
+            self.chronicle(&lineage, "leader_died", None, Some(&name), Some(place));
+        }
+    }
+
     /// A battle that has just begun: each side's history names the other and the place.
     pub(crate) fn chronicle_battle(&mut self, battle: &Battle) {
         let kind = if matches!(battle.scale, BattleScale::Raid) {
@@ -140,6 +161,32 @@ mod tests {
             "the tribe whose last entry was oldest is dropped"
         );
         assert!(names.contains(&"late"));
+    }
+
+    #[test]
+    fn a_leader_who_falls_in_battle_is_written_into_the_history() {
+        let mut sim = Simulation::new(42);
+        sim.organisms[0].alive = true;
+        let standing: Vec<bool> = sim.organisms.iter().map(|o| o.alive).collect();
+        {
+            let o = &mut sim.organisms[0];
+            o.is_leader = true;
+            o.lineage_id = "fallen".into();
+            o.name = "Ana".into();
+            o.x = 10.4;
+            o.y = 20.6;
+            o.alive = false;
+        }
+        sim.record_fallen_leaders(&standing);
+        let (_, entries) = sim
+            .tribe_chronicle
+            .tribes()
+            .find(|(lid, _)| *lid == "fallen")
+            .expect("the fallen leader's tribe has a history");
+        let entry = entries.back().expect("the leader's death is written");
+        assert_eq!(entry.kind, "leader_died");
+        assert_eq!(entry.word.as_deref(), Some("Ana"));
+        assert_eq!(entry.place, Some((10, 21)));
     }
 
     #[test]

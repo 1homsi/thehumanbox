@@ -109,6 +109,7 @@ export type IncomingWorldFrame = Pick<
   artworks?: WorldState['artworks']
   lineage_eras?: unknown
   lineage_strategies?: WorldState['lineage_strategies']
+  tribe_work?: WorldState['tribe_work']
   lineage_strategy_history?: WorldState['lineage_strategy_history']
   lineage_era_progress?: WorldState['lineage_era_progress']
   lineage_currencies?: WorldState['lineage_currencies']

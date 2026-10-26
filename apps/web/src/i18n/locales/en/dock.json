@@ -542,13 +542,27 @@
     "treeTip": "Family tree of bloodlines and descent",
     "world": "world",
     "worldTip": "Toggle the left world panel (history, lineages, events)",
-    "onBrink": "on brink",
-    "onBrinkTip": "Pause the game whenever a tribe newly falls on the brink",
     "keys": "keys",
     "picture": "picture",
     "pictureTip": "Save a picture of the world as it looks now",
     "notable": "notable",
-    "notableTip": "Top organisms by age, family size, friends, wealth, knowledge, joy, grief…"
+    "notableTip": "Top organisms by age, family size, friends, wealth, knowledge, joy, grief…",
+    "pauseOn": "pause on",
+    "pauseOnTip": "Stop the clock when a chosen change happens, while the game runs",
+    "pause": {
+      "brink": "brink",
+      "era": "new era",
+      "war": "war",
+      "famine": "famine",
+      "extinct": "dies out"
+    },
+    "pauseTip": {
+      "brink": "Pause when a tribe newly falls on the brink",
+      "era": "Pause when a tribe or the world enters a new era",
+      "war": "Pause when a war breaks out or a battle begins",
+      "famine": "Pause when a tribe is starving",
+      "extinct": "Pause when a tribe dies out"
+    }
   },
   "save": {
     "saving": "Saving…",

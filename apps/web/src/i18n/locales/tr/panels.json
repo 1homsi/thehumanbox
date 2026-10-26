@@ -316,7 +316,7 @@
       "empty": "Henüz kayda geçen bir şey yok",
       "goTo": "Bu yere git",
       "raid": "{other} ile bir baskında",
-      "war": "{other} ile savaşta",
+      "war": "{other} ile savaşa girdi",
       "era": "{era} çağına girdi",
       "famine": "kıtlık yaşadı",
       "arrival": "göçebe bir halk geldi ve burada yerleşti",
@@ -333,6 +333,50 @@
         "building": "inşaat",
         "crafting": "zanaat",
         "healing": "şifacılık"
+      }
+    },
+    "why": {
+      "title": "Neden böyle davranıyorlar",
+      "guided": "{strategy} yönünde yönlendiriliyor: {target} içinden {done} tamam",
+      "unguided": "Kimse yönlendirmiyor; kendi başlarına hareket ediyorlar",
+      "need": "En acil: {need}, %{pct} eksik",
+      "needNone": "Şu an acil bir şey yok",
+      "needs": {
+        "food": "yiyecek",
+        "water": "su",
+        "health": "sağlık",
+        "shelter": "barınak",
+        "safety": "güvenlik",
+        "land": "toprak"
+      },
+      "doing": "Çalışıyorlar: {list}",
+      "idle": "Şu an kimse çalışmıyor",
+      "work": {
+        "woodcutting": "odunculuk",
+        "quarrying": "taşçılık",
+        "foraging": "toplayıcılık",
+        "fishing": "balıkçılık",
+        "hunting": "avcılık",
+        "farming": "tarım",
+        "building": "inşaat",
+        "crafting": "zanaat",
+        "healing": "şifacılık"
+      },
+      "allied": "{names} ile müttefik",
+      "rivals": "{names} ile çekişmede",
+      "neutral": "{names} karşısında tarafsız",
+      "stanceNone": "Tanıdıkları bir komşu yok",
+      "next": "Sıradaki deneme: {step}",
+      "step": {
+        "food": "toplayıp avlanarak yiyecek bulmak",
+        "water": "suya gitmek",
+        "health": "hastalara bakmak",
+        "shelter": "daha çok ev yapmak",
+        "safety": "silahlanıp topraklarını korumak",
+        "land": "daha çok toprak talep etmek",
+        "campaign": "{strategy} seferini sürdürmek",
+        "learn": "sonraki çağ için {secret} öğrenmek",
+        "carryOn": "olduğu gibi sürdürmek"
       }
     }
   },

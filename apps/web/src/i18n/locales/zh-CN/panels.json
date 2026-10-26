@@ -309,7 +309,7 @@
       "empty": "尚无记录",
       "goTo": "前往此处",
       "raid": "与{other}的一次突袭",
-      "war": "与{other}交战",
+      "war": "与{other}开战",
       "era": "进入了{era}时代",
       "famine": "经历了饥荒",
       "arrival": "一支流浪的人群来到这里定居",
@@ -326,6 +326,50 @@
         "building": "营建",
         "crafting": "手艺",
         "healing": "医治"
+      }
+    },
+    "why": {
+      "title": "行动的缘由",
+      "guided": "正被引导向「{strategy}」：已完成 {done}/{target}",
+      "unguided": "无人引导，自行行动",
+      "need": "最迫切：{need}，缺 {pct}%",
+      "needNone": "眼下没有迫切的需要",
+      "needs": {
+        "food": "食物",
+        "water": "水",
+        "health": "健康",
+        "shelter": "住所",
+        "safety": "安全",
+        "land": "土地"
+      },
+      "doing": "正在做：{list}",
+      "idle": "眼下无人劳作",
+      "work": {
+        "woodcutting": "伐木",
+        "quarrying": "采石",
+        "foraging": "采集",
+        "fishing": "捕鱼",
+        "hunting": "狩猎",
+        "farming": "耕作",
+        "building": "营建",
+        "crafting": "手艺",
+        "healing": "医治"
+      },
+      "allied": "与{names}结盟",
+      "rivals": "与{names}交恶",
+      "neutral": "对{names}保持中立",
+      "stanceNone": "没有相识的邻部",
+      "next": "接下来想尝试：{step}",
+      "step": {
+        "food": "采集与狩猎以求食物",
+        "water": "去水边取水",
+        "health": "照料病人",
+        "shelter": "多盖房子",
+        "safety": "武装起来守住土地",
+        "land": "争取更多土地",
+        "campaign": "坚持「{strategy}」的行动",
+        "learn": "为下一时代学会{secret}",
+        "carryOn": "照常过日子"
       }
     }
   },

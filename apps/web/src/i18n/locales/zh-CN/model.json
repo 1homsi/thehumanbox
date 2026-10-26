@@ -226,7 +226,7 @@
     "failed": "{label} · {reason}",
     "following": "正在跟随{name}",
     "naming": "命名 · 为{name}输入新名字",
-    "paused": "已暂停：{names}濒临灭亡"
+    "pausedFor": "已暂停：{reasons}"
   },
   "legends": {
     "when": "第 {year} 年{season}",
@@ -720,7 +720,6 @@
       "posting_notices": "告示",
       "tool_making": "制作工具",
       "tool_improvement": "改进工具",
-      "stone_tools": "石器",
       "pottery": "陶器",
       "weaving": "纺织",
       "smelting": "冶炼",
@@ -907,5 +906,14 @@
       "neutral": "中立",
       "rivals": "敌对"
     }
+  },
+  "pause": {
+    "brink": "{names}濒临灭绝",
+    "era": "{names}进入新纪元",
+    "worldEra": "世界进入新纪元",
+    "warBy": "{names}开战",
+    "war": "爆发了战争",
+    "famine": "{names}正在挨饿",
+    "extinct": "{names}已灭绝"
   }
 }

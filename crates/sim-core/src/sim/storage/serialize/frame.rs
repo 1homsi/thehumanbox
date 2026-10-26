@@ -374,6 +374,8 @@ impl Simulation {
                 "lineage_strategy_history".to_string(),
                 lineage_strategy_history_payload(self),
             );
+            // What each tribe's people are working at, so its card can say what it is doing (read only).
+            obj.insert("tribe_work".to_string(), lineage_work_payload(self));
             // Routes are small and caravans visibly move every tick, so they
             // belong in hot/delta frames rather than the once-per-cold-snapshot
             // economy payload. The private dispatch_state used for delayed
