@@ -355,6 +355,7 @@ function LiveApp() {
           )
         } else if (tool.fire) {
           void sendCommand(tool.fire).then((outcome) => {
+            if (outcome.applied) countToolApply(tool.id)
             if (outcome.applied && tool.overlay) useSkyOverlay.getState().start(tool.overlay)
             setTemporarySandboxStatus(
               describeOutcome(outcome) ??

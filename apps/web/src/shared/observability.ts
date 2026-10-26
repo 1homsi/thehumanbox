@@ -162,10 +162,11 @@ function beginVisible(): void {
 function accrueVisible(): void {
   if (visibleSince === null) return
   const now = Date.now()
-  const elapsed = now - visibleSince
+  const start = visibleSince
   visibleSince = now
-  segment.visibleMs += elapsed
-  if (now - lastInputAt < ACTIVE_WINDOW_MS) segment.activeMs += elapsed
+  segment.visibleMs += now - start
+  // Only the part of this stretch before the active window ran out counts.
+  segment.activeMs += Math.max(0, Math.min(now, lastInputAt + ACTIVE_WINDOW_MS) - start)
   if (segment.startTick === null) segment.startTick = worldTick(readWorld())
 }
 
