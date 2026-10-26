@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { getLocale, saveLocale, t } from '../../i18n'
 import { reloadAppSafely } from '../../simulation/worldSource'
+import { trackEvent } from '../../shared/observability'
 
 export type LanguageChoiceFailure = 'reload' | 'storage'
 
@@ -23,6 +24,7 @@ export function useLanguageChoice() {
       return
     }
     setPending(code)
+    trackEvent('language_change', { from: previous, to: code }, { send_instantly: true })
     reloadAppSafely({
       onFailure: () => {
         // If the old choice cannot be put back either, say so: the next visit would open in the new one.
