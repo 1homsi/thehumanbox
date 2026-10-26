@@ -60,7 +60,7 @@ describe('WordSplitToast', () => {
     expect(host.textContent).toContain('Words have split')
     expect(host.textContent).toContain('Ula and Mo used to share a word for water')
     expect(host.textContent).toContain('ka')
-    expect(window.localStorage.getItem(WORD_SPLIT_KEY)).toBe('777')
+    expect(window.localStorage.getItem(WORD_SPLIT_KEY)).toBe('["777"]')
   })
 
   it('drops a split still waiting for an empty screen when the world starts over', () => {
@@ -112,7 +112,7 @@ describe('WordSplitToast', () => {
     }
   })
 
-  it('stays quiet in a world that already showed the notice', () => {
+  it('stays quiet in a world that already showed the notice (a bare seed from before the list counts)', () => {
     window.localStorage.setItem(WORD_SPLIT_KEY, '777')
     const root = createRoot(host)
     roots.push(root)
@@ -120,5 +120,16 @@ describe('WordSplitToast', () => {
     mount(root, frame(1500, 'ka'))
     mount(root, frame(1500 + SPLIT_CONFIRM_TICKS, 'ka'))
     expect(host.textContent).toBe('')
+  })
+
+  it('remembers every world shown the notice, not just the last', () => {
+    window.localStorage.setItem(WORD_SPLIT_KEY, JSON.stringify(['777', '888']))
+    const root = createRoot(host)
+    roots.push(root)
+    mount(root, frame(1000, 'pi'))
+    mount(root, frame(1500, 'ka'))
+    mount(root, frame(1500 + SPLIT_CONFIRM_TICKS, 'ka'))
+    expect(host.textContent).toBe('')
+    expect(window.localStorage.getItem(WORD_SPLIT_KEY)).toBe('["777","888"]')
   })
 })

@@ -5,10 +5,12 @@ import { WordSplitWatch, type WordSplit } from '../../game/model/word-split'
 import { getOwnWorldSeed } from '../../simulation/worldSource'
 import { screenBusy, TOAST_RETRY_MS } from './screenBusy'
 
-/** Holds the seed of the world the notice was last shown for, so each world shows it once. */
+/** Holds the seeds of the worlds the notice has been shown for (a JSON list), so each world shows it once. */
 export const WORD_SPLIT_KEY = 'thb-word-split-shown'
 /** How long the notice stays up before it goes away on its own. */
 export const WORD_SPLIT_SHOW_MS = 12_000
+/** The most seeds remembered; the oldest drop off first. */
+const MAX_REMEMBERED = 50
 
 function worldKey(): string {
   try {
@@ -18,9 +20,22 @@ function worldKey(): string {
   }
 }
 
+/** The seeds already shown the notice. A value from before the list (one bare seed) counts as one. */
+function shownSeeds(): string[] {
+  const raw = window.localStorage.getItem(WORD_SPLIT_KEY)
+  if (raw === null) return []
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed.filter((seed): seed is string => typeof seed === 'string')
+  } catch {
+    /* a bare seed */
+  }
+  return [raw]
+}
+
 function alreadyShown(key: string): boolean {
   try {
-    return window.localStorage.getItem(WORD_SPLIT_KEY) === key
+    return shownSeeds().includes(key)
   } catch {
     // Without storage the notice could not remember it was shown, and would return every frame.
     return true
@@ -29,7 +44,9 @@ function alreadyShown(key: string): boolean {
 
 function remember(key: string) {
   try {
-    window.localStorage.setItem(WORD_SPLIT_KEY, key)
+    const seeds = shownSeeds().filter((seed) => seed !== key)
+    seeds.push(key)
+    window.localStorage.setItem(WORD_SPLIT_KEY, JSON.stringify(seeds.slice(-MAX_REMEMBERED)))
   } catch {
     /* noop */
   }
