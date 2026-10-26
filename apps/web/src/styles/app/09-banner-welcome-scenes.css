@@ -85,6 +85,40 @@
   line-height: 1.55;
   color: #b9b0a0;
 }
+.welcome-language {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 18px 0;
+  font-size: 12px;
+  color: #8a8170;
+}
+.welcome-language-select {
+  min-width: 0;
+  max-width: 60%;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 13px;
+  color: #e5ddc7;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.welcome-language-select:focus-visible {
+  outline: 2px solid #e5ddc7;
+  outline-offset: 2px;
+}
+.welcome-language-select:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.welcome-language-note {
+  margin: -8px 0 16px 0;
+  font-size: 12px;
+  color: #d9a48a;
+}
 .welcome-actions {
   display: flex;
   justify-content: space-between;
