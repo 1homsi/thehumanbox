@@ -43,12 +43,16 @@ export function TribeTimeline({ world, lineage, samples }: Props) {
   }
   const first = samples[0]!
   const last = samples[samples.length - 1]!
-  // The charts and the markers share this one tick range, so a point and an event at the same tick line up.
-  const span = Math.max(1, last.tick - first.tick)
-  const at = (tick: number) => ((tick - first.tick) / span) * 100
   const events = (world.tribe_chronicle?.[lineage] ?? []).filter(
-    (row) => TIMELINE_KINDS.has(row.kind) && row.tick >= first.tick && row.tick <= last.tick,
+    (row) => TIMELINE_KINDS.has(row.kind) && row.tick >= first.tick,
   )
+  // The charts and the markers share this one tick range, so a point and an event at the same tick line up. It
+  // runs to the latest event when one came after the last sample (samples are a few hundred ticks apart), so a
+  // war that just broke out shows at once; it does not run on to today, which would squeeze a fallen tribe's
+  // charts a little more every tick.
+  const end = Math.max(last.tick, ...events.map((row) => row.tick))
+  const span = Math.max(1, end - first.tick)
+  const at = (tick: number) => ((tick - first.tick) / span) * 100
   const peopleTop = Math.max(1, ...samples.map((s) => s.people))
   const charts = [
     {
@@ -62,7 +66,7 @@ export function TribeTimeline({ world, lineage, samples }: Props) {
         0,
         peopleTop,
         first.tick,
-        last.tick,
+        end,
       ),
     },
     {
@@ -76,7 +80,7 @@ export function TribeTimeline({ world, lineage, samples }: Props) {
         0,
         1,
         first.tick,
-        last.tick,
+        end,
       ),
     },
     {
@@ -90,7 +94,7 @@ export function TribeTimeline({ world, lineage, samples }: Props) {
         0,
         1,
         first.tick,
-        last.tick,
+        end,
       ),
     },
   ]
@@ -127,18 +131,23 @@ export function TribeTimeline({ world, lineage, samples }: Props) {
               onClick={() => useCameraFocus.getState().focusTile(Math.round(place[0]), Math.round(place[1]))}
             />
           ) : (
+            // No place to go to, but the same description, reachable by keyboard: this may be the only
+            // mention of an event older than the history list shows.
             <span
               key={`${row.tick}-${row.kind}-${i}`}
               className="tribe-timeline-marker plain"
               style={style}
               title={title}
+              role="img"
+              aria-label={title}
+              tabIndex={0}
             />
           )
         })}
       </div>
       <div className="tribe-timeline-axis" aria-hidden="true">
         <span>{t('panels.calendar.year', { year: calendarAt(first.tick).year })}</span>
-        <span>{t('panels.calendar.year', { year: calendarAt(last.tick).year })}</span>
+        <span>{t('panels.calendar.year', { year: calendarAt(end).year })}</span>
       </div>
     </section>
   )

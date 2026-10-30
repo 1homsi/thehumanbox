@@ -78,4 +78,33 @@ describe('TribeTimeline', () => {
     act(() => (host.querySelector('button.tribe-timeline-marker') as HTMLButtonElement).click())
     expect(useCameraFocus.getState().request).toMatchObject({ x: 4, y: 5 })
   })
+
+  it('shows an event that came after the last sample, stretching the axis to it', () => {
+    const host = render(
+      {
+        tick: 800,
+        organisms: [],
+        tribe_chronicle: { a: [{ tick: 800, kind: 'war', other: 'b', word: null, x: 4, y: 5 }] },
+      } as unknown as WorldState,
+      samples,
+    )
+    const war = host.querySelector('button.tribe-timeline-marker') as HTMLElement
+    expect(war).not.toBeNull()
+    expect(war.style.left).toBe('100%')
+  })
+
+  it('an event with no place can still be reached by keyboard and read', () => {
+    const host = render(
+      {
+        tick: 600,
+        organisms: [],
+        tribe_chronicle: { a: [{ tick: 600, kind: 'famine', other: null, word: null, x: null, y: null }] },
+      } as unknown as WorldState,
+      samples,
+    )
+    const plain = host.querySelector('.tribe-timeline-marker.plain') as HTMLElement
+    expect(plain.tabIndex).toBe(0)
+    expect(plain.getAttribute('role')).toBe('img')
+    expect(plain.getAttribute('aria-label')).toBe(plain.title)
+  })
 })
