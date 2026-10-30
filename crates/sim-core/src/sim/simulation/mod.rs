@@ -54,6 +54,12 @@ use memory::read_self_rss_kb_local;
 /// (`origin_x`, `origin_y`, `width`, `height`).
 pub(crate) type StructureBase = ((i32, i32, usize, usize), Vec<[u16; 3]>);
 
+/// Settlement snapshots and the tick they describe.
+pub(crate) type SettlementSnapshotCache = (
+    u64,
+    std::sync::Arc<Vec<crate::sim::civ::settlements::SettlementSnapshot>>,
+);
+
 pub struct Simulation {
     pub grid: WorldGrid,
     pub physics: PhysicsEngine,
@@ -226,6 +232,10 @@ pub struct Simulation {
     /// The tick of the last stream frame that carried the static grid layers (trails, fertility,
     /// hazard, roads), so they go out every `STATIC_LAYER_TICKS` whatever the emit cadence.
     pub(crate) serialized_static_tick: u64,
+    /// The settlements as of the tick they were taken in (see `settlements::snapshots_this_tick`):
+    /// the trade checks ask for them once per person and neighbour, and rebuilding them each time
+    /// walked every person and building again.
+    pub(crate) settlement_snapshots: std::sync::Mutex<Option<SettlementSnapshotCache>>,
     pub(crate) active_structure_tiles: HashSet<(i32, i32)>,
     pub(crate) field_fortifications: Vec<super::warfare::FieldFortification>,
     pub(crate) settlement_tiers: HashMap<String, u8>,
@@ -371,6 +381,7 @@ impl Simulation {
             serialized_planting_revision: 0,
             serialized_structure: None,
             serialized_static_tick: 0,
+            settlement_snapshots: std::sync::Mutex::new(None),
             active_structure_tiles: HashSet::default(),
             field_fortifications: Vec::new(),
             settlement_tiers: HashMap::default(),

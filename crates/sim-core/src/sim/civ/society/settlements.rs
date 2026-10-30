@@ -170,6 +170,24 @@ pub fn snapshots(sim: &Simulation) -> Vec<SettlementSnapshot> {
         .collect()
 }
 
+/// `snapshots`, taken once per tick and shared: the trade checks ask for the settlements once for every
+/// person and each neighbour from another tribe, and building them walks every person and building.
+/// Within a tick they describe the world as the first asker found it.
+pub fn snapshots_this_tick(sim: &Simulation) -> std::sync::Arc<Vec<SettlementSnapshot>> {
+    let mut cache = sim
+        .settlement_snapshots
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    if let Some((tick, snapshots)) = cache.as_ref() {
+        if *tick == sim.tick_count {
+            return snapshots.clone();
+        }
+    }
+    let fresh = std::sync::Arc::new(snapshots(sim));
+    *cache = Some((sim.tick_count, fresh.clone()));
+    fresh
+}
+
 pub(crate) fn rebuild_tiers(sim: &mut Simulation) {
     sim.settlement_tiers = snapshots(sim)
         .into_iter()
@@ -412,5 +430,27 @@ mod tests {
             (cx - 100).abs() <= 2 || (cx - 140).abs() <= 2,
             "centre {cx},{cy} is on neither island"
         );
+    }
+
+    #[test]
+    fn snapshots_are_built_once_per_tick_and_match_a_fresh_build() {
+        let mut sim = Simulation::new(42);
+        for _ in 0..50 {
+            sim.tick();
+        }
+        let first = snapshots_this_tick(&sim);
+        let again = snapshots_this_tick(&sim);
+        assert!(
+            std::sync::Arc::ptr_eq(&first, &again),
+            "the same tick shares one build"
+        );
+        assert_eq!(*first, snapshots(&sim), "and it is the build a fresh call makes");
+        sim.tick();
+        let next = snapshots_this_tick(&sim);
+        assert!(
+            !std::sync::Arc::ptr_eq(&first, &next),
+            "a new tick builds them again"
+        );
+        assert_eq!(*next, snapshots(&sim));
     }
 }
