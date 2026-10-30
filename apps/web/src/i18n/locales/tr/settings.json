@@ -30,7 +30,9 @@
     "autoFollow": "Otomatik takip",
     "autoFollowDesc": "Her birkaç saniyede bir farklı bir kişiyi takip eder. Durdurmak için birine tıklayın.",
     "warnFollowedOnly": "Yalnızca takip edilen kabileler için uyar",
-    "warnFollowedOnlyDesc": "Kapalı: açlık tehlikesindeki her kabile uyarı alır. Açık: yalnızca takip ettiklerin. Tehlikedeki her kabile haritada yine renklendirilir."
+    "warnFollowedOnlyDesc": "Kapalı: açlık tehlikesindeki her kabile uyarı alır. Açık: yalnızca takip ettiklerin. Tehlikedeki her kabile haritada yine renklendirilir.",
+    "toolNames": "Araç adları",
+    "toolNamesDesc": "Alt çubukta her aracın adını simgesinin altında göster."
   },
   "accessibility": {
     "section": "Erişilebilirlik",

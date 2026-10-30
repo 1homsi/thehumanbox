@@ -415,6 +415,13 @@
     },
     "follow": "Obserwuj to plemię",
     "unfollow": "Przestań obserwować to plemię",
+    "timeline": {
+      "title": "W czasie",
+      "people": "Ludzie",
+      "food": "Jedzenie",
+      "health": "Zdrowie",
+      "notEnough": "Na razie za mało historii. Wykresy wypełnią się, gdy świat będzie działać."
+    },
     "fallen": {
       "diedOut": "Wymarło w roku {year}",
       "endTitle": "Jak się skończyło",

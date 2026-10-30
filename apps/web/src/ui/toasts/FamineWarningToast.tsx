@@ -50,6 +50,18 @@ export function FamineWarningToast({ world }: { world: WorldState | null }) {
   const nextId = useRef(1)
   const seen = useRef<{ key: string; tick: number } | null>(null)
 
+  // A world swapped in mid-session (a save restored, a recovery copy) is only learned, never warned about. This runs before
+  // the look at the world below, so a swap and its first frame arriving together start over and then learn that frame.
+  const replaced = useWorldReplaced((st) => st.generation)
+  const replacedSeen = useRef(replaced)
+  useEffect(() => {
+    if (replaced === replacedSeen.current) return
+    replacedSeen.current = replaced
+    watch.current = null
+    seen.current = null
+    setQueue([])
+  }, [replaced])
+
   // Look at the world each time it changes; warnings join the queue. A new world (no world for a moment, a
   // different seed, or the tick going back, as when a save loads) starts the watch over and drops warnings
   // still waiting about the old one, so nothing is said about a world that is no longer there.
@@ -75,17 +87,6 @@ export function FamineWarningToast({ world }: { world: WorldState | null }) {
     const added = due.map((w) => ({ id: nextId.current++, lineage: w.lineage, stage: w.stage, count: 1 }))
     setQueue((q) => enqueueFamine(q, added, MAX_QUEUED))
   }, [world])
-
-  // A world swapped in mid-session (a save restored, a recovery copy) is only learned, never warned about.
-  const replaced = useWorldReplaced((st) => st.generation)
-  const replacedSeen = useRef(replaced)
-  useEffect(() => {
-    if (replaced === replacedSeen.current) return
-    replacedSeen.current = replaced
-    watch.current = null
-    seen.current = null
-    setQueue([])
-  }, [replaced])
 
   // Warnings still waiting follow the follow settings as they change: a tribe unfollowed, or warnings limited
   // to followed tribes, drops its waiting warnings. The "N more" summary stays.

@@ -30,7 +30,9 @@
     "autoFollow": "자동 따라가기",
     "autoFollowDesc": "몇 초마다 다른 사람을 따라갑니다. 누구든 클릭하면 멈춥니다.",
     "warnFollowedOnly": "팔로우한 부족에 대해서만 경고",
-    "warnFollowedOnlyDesc": "끄기: 기근 위험에 처한 모든 부족에게 경고합니다. 켜기: 팔로우한 부족에게만 경고합니다. 위험한 부족은 지도에서 계속 색으로 표시됩니다."
+    "warnFollowedOnlyDesc": "끄기: 기근 위험에 처한 모든 부족에게 경고합니다. 켜기: 팔로우한 부족에게만 경고합니다. 위험한 부족은 지도에서 계속 색으로 표시됩니다.",
+    "toolNames": "도구 이름",
+    "toolNamesDesc": "아래 막대에서 각 도구 아이콘 아래에 이름을 보여 줍니다."
   },
   "accessibility": {
     "section": "접근성",

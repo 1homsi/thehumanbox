@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { typingTarget } from '../../game/model/shortcuts'
 import type { SandboxTool } from '../../simulation/sandbox'
 import { WASM_BASE_TICK_MS } from '../../simulation/runtimeControls'
-import { formatSpeed, nextSpeedStep } from '../../simulation/speedSteps'
+import { formatAchievedSpeed, formatSpeed, nextSpeedStep } from '../../simulation/speedSteps'
 import { useWorldStore } from '../../state/worldStore'
 import { t } from '../../i18n'
 import { speedTools } from './dock-tabs'
@@ -17,6 +17,9 @@ function speedNote(mult: number): string | undefined {
   if (mult >= 500) return t('dock.time.flatOutNote')
   return undefined
 }
+
+/** The share of the asked speed under which the readout says the world is falling behind. */
+const LAGGING_SHARE = 0.8
 
 /** Keys that step the speed. `[` and `]` already walk through people, so these sit beside them. */
 const SLOWER_KEY = ','
@@ -81,8 +84,9 @@ export function TimeControl({ paused, speed, onPick }: Props) {
   const [listOpen, setListOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const achieved = useAchievedSpeed(paused)
-  // Past what the machine can sustain, say what it is really doing.
-  const lagging = !paused && achieved !== null && speed > 10 && achieved < speed * 0.8
+  // Short of what was asked, at any speed: say what the world is really doing, so a press of faster that
+  // the machine cannot follow is not taken for a press that did nothing.
+  const lagging = !paused && achieved !== null && achieved < speed * LAGGING_SHARE
   const slower = nextSpeedStep(speed, -1)
   const faster = nextSpeedStep(speed, 1)
 
@@ -135,7 +139,7 @@ export function TimeControl({ paused, speed, onPick }: Props) {
   const lagNote = lagging
     ? t('dock.time.lag', {
         asked: formatSpeed(speed),
-        actual: formatSpeed(Math.round(achieved ?? 0)),
+        actual: formatAchievedSpeed(achieved ?? 0),
       })
     : undefined
 
@@ -198,13 +202,24 @@ export function TimeControl({ paused, speed, onPick }: Props) {
         <button
           type="button"
           className="time-speed-value"
-          aria-label={t('dock.time.speedAria', { speed: formatSpeed(speed) })}
+          aria-label={
+            lagNote
+              ? `${t('dock.time.speedAria', { speed: formatSpeed(speed) })}. ${lagNote}`
+              : t('dock.time.speedAria', { speed: formatSpeed(speed) })
+          }
           aria-haspopup="menu"
           aria-expanded={listOpen}
           onClick={() => setListOpen((open) => !open)}
         >
-          {formatSpeed(speed)}
-          {lagging && <span className="time-lag" aria-hidden="true" />}
+          {/* Keyed by the speed, so each change replays its highlight. */}
+          <span key={speed} className="time-speed-number">
+            {formatSpeed(speed)}
+          </span>
+          {lagging && (
+            <small className="time-actual" aria-hidden="true">
+              ≈{formatAchievedSpeed(achieved ?? 0)}
+            </small>
+          )}
         </button>
       </Tooltip>
       <Tooltip
@@ -215,7 +230,7 @@ export function TimeControl({ paused, speed, onPick }: Props) {
                 ? t('dock.time.faster')
                 : t('dock.time.fasterTo', { speed: formatSpeed(faster) })
             }
-            body={faster === null ? t('dock.time.fastest') : undefined}
+            body={faster === null ? t('dock.time.fastest') : lagNote}
             how={FASTER_KEY}
           />
         }
@@ -231,6 +246,10 @@ export function TimeControl({ paused, speed, onPick }: Props) {
           ›
         </button>
       </Tooltip>
+      {/* Says when the world falls behind or catches up, without moving focus. */}
+      <span className="time-sr" role="status" aria-live="polite">
+        {lagNote ?? ''}
+      </span>
       {listOpen && (
         <div className="time-speed-list" role="menu" aria-label={t('dock.time.speedsAria')}>
           {speedTools().map((tool) => {

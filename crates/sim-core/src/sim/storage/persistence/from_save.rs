@@ -275,6 +275,7 @@ impl Simulation {
             serialized_planting_revision: 0,
             serialized_structure: None,
             serialized_static_tick: 0,
+            settlement_snapshots: std::sync::Mutex::new(None),
             buildings: buildings.into(),
             next_building_id,
             governments: state.governments,

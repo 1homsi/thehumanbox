@@ -228,15 +228,41 @@ describe('world dock buttons', { timeout: 20_000 }, () => {
     expect(tab('world')?.classList.contains('engaged')).toBe(true)
   })
 
-  it('changes brush size within bounds while a tool is armed', () => {
+  it('steps the brush from size to size, and greys out each button at its end', () => {
     const props = render({ armedToolId: 'fire', brush: 0 })
     click(container.querySelector('[aria-label="Larger brush"]'))
     expect(props.onBrush).toHaveBeenLastCalledWith(1)
-    click(container.querySelector('[aria-label="Smaller brush"]'))
-    expect(props.onBrush).toHaveBeenLastCalledWith(0)
-    render({ ...props, brush: 20 })
+    expect(container.querySelector<HTMLButtonElement>('[aria-label="Smaller brush"]')!.disabled).toBe(true)
+    render({ ...props, brush: 4 })
     click(container.querySelector('[aria-label="Larger brush"]'))
-    expect(props.onBrush).toHaveBeenLastCalledWith(20)
+    expect(props.onBrush).toHaveBeenLastCalledWith(7)
+    click(container.querySelector('[aria-label="Smaller brush"]'))
+    expect(props.onBrush).toHaveBeenLastCalledWith(2)
+    render({ ...props, brush: 11 })
+    expect(container.querySelector<HTMLButtonElement>('[aria-label="Larger brush"]')!.disabled).toBe(true)
+  })
+
+  it('on touch, names a tool that acts at once on the first tap and starts it on the second', () => {
+    const props = render({ armedToolId: null })
+    click(tab('deadly'))
+    const storm = container.querySelector<HTMLElement>('.dock-tile[data-tool="storm"]')!
+    const tap = () =>
+      act(() => {
+        storm.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'touch', bubbles: true }))
+        storm.click()
+      })
+    tap()
+    expect(props.onPick).not.toHaveBeenCalled()
+    expect(document.querySelector('.dock-tile-confirm')?.textContent).toContain('storm')
+    tap()
+    expect(props.onPick).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'storm' }))
+  })
+
+  it('with a mouse, a tool that acts at once still starts on one click', () => {
+    const props = render({ armedToolId: null })
+    click(tab('deadly'))
+    click(container.querySelector('.dock-tile[data-tool="storm"]'))
+    expect(props.onPick).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'storm' }))
   })
 
   it('hides brush controls when no tool is armed', () => {

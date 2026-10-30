@@ -30,7 +30,9 @@
     "autoFollow": "Automatyczne śledzenie",
     "autoFollowDesc": "Śledzi inną osobę co kilka sekund. Kliknij kogoś, aby przerwać.",
     "warnFollowedOnly": "Ostrzegaj tylko o obserwowanych plemionach",
-    "warnFollowedOnlyDesc": "Wyłączone: każde plemię zagrożone głodem dostaje ostrzeżenie. Włączone: tylko obserwowane plemiona. Każde zagrożone plemię nadal jest podkreślone na mapie."
+    "warnFollowedOnlyDesc": "Wyłączone: każde plemię zagrożone głodem dostaje ostrzeżenie. Włączone: tylko obserwowane plemiona. Każde zagrożone plemię nadal jest podkreślone na mapie.",
+    "toolNames": "Nazwy narzędzi",
+    "toolNamesDesc": "Pokazuj nazwę każdego narzędzia pod jego ikoną na dolnym pasku."
   },
   "accessibility": {
     "section": "Dostępność",

@@ -384,6 +384,13 @@
     },
     "follow": "이 부족 팔로우",
     "unfollow": "이 부족 팔로우 해제",
+    "timeline": {
+      "title": "시간에 따른 변화",
+      "people": "인구",
+      "food": "식량",
+      "health": "건강",
+      "notEnough": "아직 기록이 부족합니다. 세상이 흘러가면서 그래프가 채워집니다."
+    },
     "fallen": {
       "diedOut": "{year}년에 멸망했다",
       "endTitle": "마지막 기록",

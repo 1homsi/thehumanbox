@@ -30,7 +30,9 @@
     "autoFollow": "Auto-follow",
     "autoFollowDesc": "Follow a different person every few seconds. Click anyone to stop.",
     "warnFollowedOnly": "Warn only about followed tribes",
-    "warnFollowedOnlyDesc": "Off: every tribe in danger of famine gets a warning. On: only the tribes you follow do. Every tribe at risk is still tinted on the map."
+    "warnFollowedOnlyDesc": "Off: every tribe in danger of famine gets a warning. On: only the tribes you follow do. Every tribe at risk is still tinted on the map.",
+    "toolNames": "Tool names",
+    "toolNamesDesc": "Show each tool’s name under its icon in the bottom bar."
   },
   "accessibility": {
     "section": "Accessibility",

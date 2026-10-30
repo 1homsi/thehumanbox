@@ -30,7 +30,9 @@
     "autoFollow": "Seguimiento automático",
     "autoFollowDesc": "Sigue a una persona distinta cada pocos segundos. Haz clic en alguien para detenerlo.",
     "warnFollowedOnly": "Avisar solo de las tribus que sigues",
-    "warnFollowedOnlyDesc": "Desactivado: cada tribu en peligro de hambruna recibe un aviso. Activado: solo las que sigues. Toda tribu en riesgo sigue teñida en el mapa."
+    "warnFollowedOnlyDesc": "Desactivado: cada tribu en peligro de hambruna recibe un aviso. Activado: solo las que sigues. Toda tribu en riesgo sigue teñida en el mapa.",
+    "toolNames": "Nombres de herramientas",
+    "toolNamesDesc": "Muestra el nombre de cada herramienta bajo su icono en la barra inferior."
   },
   "accessibility": {
     "section": "Accesibilidad",

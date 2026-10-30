@@ -397,6 +397,13 @@
     },
     "follow": "Follow this tribe",
     "unfollow": "Stop following this tribe",
+    "timeline": {
+      "title": "Over time",
+      "people": "People",
+      "food": "Food",
+      "health": "Health",
+      "notEnough": "Not enough history yet. The charts fill in as the world runs."
+    },
     "fallen": {
       "diedOut": "Died out in year {year}",
       "endTitle": "How it ended",

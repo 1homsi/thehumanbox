@@ -39,8 +39,17 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.map-control-btn:active {
+.map-control-btn:active:not(:disabled) {
   background: #54422f;
+}
+
+/* At a zoom limit: flat and dim, so a press that can do nothing looks like it. */
+.map-control-btn:disabled {
+  background: #221a13;
+  box-shadow: 0 3px 0 rgb(0 0 0 / 45%);
+  color: #6f6150;
+  cursor: default;
+  opacity: 0.55;
 }
 
 .map-control-btn:focus-visible {

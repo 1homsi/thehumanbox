@@ -17,5 +17,7 @@
   "terrainLabel": "세계의 지형과 주민",
   "boundaryTitle": "세계가 멈칫했습니다",
   "boundaryBody": "화면을 그리는 중 예상치 못한 문제가 생겼습니다. 다시 불러오면 지금의 시뮬레이션에 다시 연결됩니다.",
-  "boundaryReload": "새로고침"
+  "boundaryReload": "새로고침",
+  "zoomInLimit": "더 이상 확대할 수 없습니다",
+  "zoomOutLimit": "더 이상 축소할 수 없습니다"
 }

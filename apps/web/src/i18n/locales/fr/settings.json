@@ -30,7 +30,9 @@
     "autoFollow": "Suivi automatique",
     "autoFollowDesc": "Suit une personne différente toutes les quelques secondes. Cliquez sur quelqu'un pour arrêter.",
     "warnFollowedOnly": "N'avertir que pour les tribus suivies",
-    "warnFollowedOnlyDesc": "Désactivé : chaque tribu menacée de famine reçoit un avertissement. Activé : seulement les tribus suivies. Toute tribu à risque reste teintée sur la carte."
+    "warnFollowedOnlyDesc": "Désactivé : chaque tribu menacée de famine reçoit un avertissement. Activé : seulement les tribus suivies. Toute tribu à risque reste teintée sur la carte.",
+    "toolNames": "Noms des outils",
+    "toolNamesDesc": "Affiche le nom de chaque outil sous son icône dans la barre du bas."
   },
   "accessibility": {
     "section": "Accessibilité",

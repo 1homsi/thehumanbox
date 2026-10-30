@@ -384,6 +384,13 @@
     },
     "follow": "关注该部落",
     "unfollow": "取消关注该部落",
+    "timeline": {
+      "title": "随时间变化",
+      "people": "人口",
+      "food": "食物",
+      "health": "健康",
+      "notEnough": "历史还不够。随着世界运行，图表会逐渐填充。"
+    },
     "fallen": {
       "diedOut": "在第{year}年灭绝",
       "endTitle": "终局",

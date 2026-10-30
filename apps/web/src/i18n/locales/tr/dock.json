@@ -432,7 +432,9 @@
     "brushTiles": {
       "one": "Fırça {count} kare genişliğinde",
       "other": "Fırça {count} kare genişliğinde"
-    }
+    },
+    "smallestBrush": "Zaten en küçük fırça",
+    "largestBrush": "Zaten en büyük fırça"
   },
   "failures": {
     "noRoom": "dünya artık daha fazla insanı taşıyamaz",
@@ -476,7 +478,7 @@
     "slowest": "Zaten en yavaş adımda.",
     "faster": "daha hızlı",
     "fasterTo": "daha hızlı · {speed}",
-    "fastest": "Bunun ötesinde listeden bir hız seçin.",
+    "fastest": "Bu en yüksek hız.",
     "pausedAt": "{speed} hızında duraklatıldı",
     "speedAt": "hız {speed}",
     "chooseAny": "Herhangi bir hız seçin.",
@@ -649,5 +651,6 @@
     "placeOnMap": "haritaya yerleştir",
     "applyNow": "hemen uygula",
     "empty": "Eşleşen araç yok. Bir arazi türü, hayvan, harita katmanı ya da zaman kontrolü deneyin."
-  }
+  },
+  "tapAgain": "{tool}: başlatmak için tekrar dokun"
 }

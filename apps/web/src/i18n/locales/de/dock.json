@@ -432,7 +432,9 @@
     "brushTiles": {
       "one": "Pinsel {count} Kachel breit",
       "other": "Pinsel {count} Kacheln breit"
-    }
+    },
+    "smallestBrush": "Schon der kleinste Pinsel",
+    "largestBrush": "Schon der größte Pinsel"
   },
   "failures": {
     "noRoom": "die Welt kann keine weiteren Menschen aufnehmen",
@@ -476,7 +478,7 @@
     "slowest": "Bereits auf der langsamsten Stufe.",
     "faster": "schneller",
     "fasterTo": "schneller · {speed}",
-    "fastest": "Darüber hinaus wähle eine Geschwindigkeit aus der Liste.",
+    "fastest": "Das ist die höchste Geschwindigkeit.",
     "pausedAt": "pausiert bei {speed}",
     "speedAt": "Tempo {speed}",
     "chooseAny": "Wähle eine beliebige Geschwindigkeit.",
@@ -649,5 +651,6 @@
     "placeOnMap": "auf der Karte platzieren",
     "applyNow": "sofort anwenden",
     "empty": "Keine passenden Werkzeuge. Versuche einen Geländetyp, ein Tier, eine Kartenebene oder eine Zeitsteuerung."
-  }
+  },
+  "tapAgain": "{tool}: zum Starten noch einmal tippen"
 }

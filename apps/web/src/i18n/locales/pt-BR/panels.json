@@ -391,6 +391,13 @@
     },
     "follow": "Seguir esta tribo",
     "unfollow": "Deixar de seguir esta tribo",
+    "timeline": {
+      "title": "Ao longo do tempo",
+      "people": "Pessoas",
+      "food": "Comida",
+      "health": "Saúde",
+      "notEnough": "Ainda não há histórico suficiente. Os gráficos se preenchem enquanto o mundo roda."
+    },
     "fallen": {
       "diedOut": "Extinguiu-se no ano {year}",
       "endTitle": "Como terminou",

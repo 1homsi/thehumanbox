@@ -391,6 +391,13 @@
     },
     "follow": "Diesem Stamm folgen",
     "unfollow": "Diesem Stamm nicht mehr folgen",
+    "timeline": {
+      "title": "Im Verlauf",
+      "people": "Leute",
+      "food": "Essen",
+      "health": "Gesundheit",
+      "notEnough": "Noch nicht genug Verlauf. Die Diagramme füllen sich, während die Welt läuft."
+    },
     "fallen": {
       "diedOut": "Erloschen im Jahr {year}",
       "endTitle": "Wie es endete",

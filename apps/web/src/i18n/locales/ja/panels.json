@@ -384,6 +384,13 @@
     },
     "follow": "この部族をフォロー",
     "unfollow": "この部族のフォローを解除",
+    "timeline": {
+      "title": "推移",
+      "people": "人口",
+      "food": "食料",
+      "health": "健康",
+      "notEnough": "まだ記録が足りません。世界が進むにつれてグラフが埋まります。"
+    },
     "fallen": {
       "diedOut": "{year}年に滅びた",
       "endTitle": "最期",

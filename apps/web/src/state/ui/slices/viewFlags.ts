@@ -35,10 +35,12 @@ const DEFAULTS: ViewFlags = {
   colorBlind: false,
   territoryMap: false,
   headlineTicker: false,
+  toolNames: false,
 }
 
 const TRACKED_FLAGS: Set<keyof ViewFlags> = new Set(['photoMode', 'randomTour', 'hideUI'])
-const MAP_FLAGS = ['territory', 'history'] as const
+// The view choices a reload keeps (stored under the map key for older saves' sake).
+const MAP_FLAGS = ['territory', 'history', 'toolNames'] as const
 const MAP_FLAGS_STORAGE_KEY = 'thb-map-view-flags'
 
 function readSavedMapFlags(): Partial<ViewFlags> {

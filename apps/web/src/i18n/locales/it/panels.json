@@ -391,6 +391,13 @@
     },
     "follow": "Segui questa tribù",
     "unfollow": "Smetti di seguire questa tribù",
+    "timeline": {
+      "title": "Nel tempo",
+      "people": "Persone",
+      "food": "Cibo",
+      "health": "Salute",
+      "notEnough": "Non c'è ancora abbastanza storia. I grafici si riempiono mentre il mondo va avanti."
+    },
     "fallen": {
       "diedOut": "Estinta nell'anno {year}",
       "endTitle": "Come è finita",

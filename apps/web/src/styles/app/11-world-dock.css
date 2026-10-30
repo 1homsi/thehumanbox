@@ -196,6 +196,41 @@
 .dock-tile:active svg {
   transform: translateY(1px);
 }
+/* With the setting on, each tool's name sits under its icon. */
+.dock-tile.named {
+  grid-template-rows: 1fr auto;
+  width: auto;
+  min-width: var(--bar-tool);
+  height: auto;
+  min-height: var(--bar-tool);
+  padding: 2px 3px 1px;
+}
+.dock-tile-name {
+  max-width: 64px;
+  overflow: hidden;
+  color: var(--bar-dim);
+  font-size: 9px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A world tool tapped once on a touch screen: its name over it, waiting for the tap that starts it. */
+.dock-tile.confirming {
+  border-color: var(--px-gold);
+}
+.dock-tile-confirm {
+  position: fixed;
+  z-index: 60;
+  padding: 4px 8px;
+  transform: translate(-50%, -100%);
+  background: var(--px-ink);
+  border: 2px solid var(--px-gold);
+  color: var(--px-gold-text);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  pointer-events: none;
+}
 /* The held tool: pressed in, with a gold rim. */
 .dock-tile.active {
   background: var(--px-active);
@@ -229,8 +264,16 @@
   color: var(--bar-cream);
   font-size: 11px;
 }
-.dock-brush button:hover {
+.dock-brush button:hover:not(:disabled) {
   background: var(--px-raised-hover);
+}
+/* − at the smallest size and + at the largest: flat and dim. */
+.dock-brush button:disabled {
+  background: var(--px-ink);
+  box-shadow: none;
+  color: var(--bar-dim);
+  cursor: default;
+  opacity: 0.45;
 }
 .dock-brush button.active {
   background: var(--px-active);
@@ -364,14 +407,36 @@
 .time-control.paused .time-speed-value {
   color: var(--bar-dim);
 }
-/* Asked for more speed than this computer can give: a small ember on the value. */
-.time-lag {
-  position: absolute;
-  top: 3px;
-  right: 1px;
-  width: 4px;
-  height: 4px;
-  background: #e0894a;
+/* A new speed lights up for a moment, so a press always shows. */
+.time-speed-number {
+  display: inline-block;
+  animation: time-speed-changed 0.6s ease-out;
+}
+@keyframes time-speed-changed {
+  0% {
+    color: #fff3c4;
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .time-speed-number {
+    animation: none;
+  }
+}
+/* Asked for more speed than this computer can give: the speed it really reaches, in ember, under the asked one. */
+.time-speed-value:has(.time-actual) {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1;
+}
+.time-actual {
+  color: #e0894a;
+  font-size: 9px;
+  font-weight: 700;
 }
 /* The speeds, in a framed wood panel like the header's ⋯ menu. */
 .time-speed-list {
@@ -488,6 +553,10 @@
     min-width: 28px;
     height: 28px;
   }
+  /* No room for six sizes on a phone: − and + with the current size between them. */
+  .dock-brush button[aria-pressed='false'] {
+    display: none;
+  }
   .time-step {
     width: 20px;
   }
@@ -552,4 +621,14 @@
 }
 .hotkey-help-close {
   margin-top: 10px;
+}
+
+/* Read out by screen readers, not shown: the time control's lag note. */
+.time-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

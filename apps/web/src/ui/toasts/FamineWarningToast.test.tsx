@@ -131,4 +131,20 @@ describe('FamineWarningToast', () => {
     act(() => useTribeFollow.setState({ followed: [], warnFollowedOnly: true }))
     expect(host.querySelector('.famine-toast')).toBeNull()
   })
+
+  it('a swap and its first frame arriving together learn that frame, so the next drop into famine still warns', () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    roots.push(root)
+    act(() => root.render(<FamineWarningToast world={world(100, 0.8)} />))
+    act(() => {
+      useWorldReplaced.getState().bump()
+      root.render(<FamineWarningToast world={world(200, 0.8)} />)
+    })
+    act(() => root.render(<FamineWarningToast world={world(300, 0.1)} />))
+    expect(host.querySelector('.famine-toast')?.textContent).toContain(
+      t('panels.famine.risk', { name: 'Ash' }),
+    )
+  })
 })

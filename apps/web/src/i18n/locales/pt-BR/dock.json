@@ -432,7 +432,9 @@
     "brushTiles": {
       "one": "Pincel com {count} tile de largura",
       "other": "Pincel com {count} tiles de largura"
-    }
+    },
+    "smallestBrush": "Já é o menor pincel",
+    "largestBrush": "Já é o maior pincel"
   },
   "failures": {
     "noRoom": "o mundo não comporta mais pessoas",
@@ -476,7 +478,7 @@
     "slowest": "Já está no passo mais lento.",
     "faster": "mais rápido",
     "fasterTo": "mais rápido · {speed}",
-    "fastest": "Além disso, escolha uma velocidade da lista.",
+    "fastest": "Esta é a velocidade máxima.",
     "pausedAt": "pausado a {speed}",
     "speedAt": "velocidade {speed}",
     "chooseAny": "Escolha qualquer velocidade.",
@@ -649,5 +651,6 @@
     "placeOnMap": "colocar no mapa",
     "applyNow": "aplicar imediatamente",
     "empty": "Nenhuma ferramenta corresponde. Tente um tipo de terreno, animal, camada do mapa ou controle de tempo."
-  }
+  },
+  "tapAgain": "{tool}: toque de novo para começar"
 }

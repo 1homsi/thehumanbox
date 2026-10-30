@@ -25,6 +25,8 @@ export interface ViewFlags {
   colorBlind: boolean
   territoryMap: boolean
   headlineTicker: boolean
+  /** Each dock tool's name under its icon. */
+  toolNames: boolean
 }
 
 import type {

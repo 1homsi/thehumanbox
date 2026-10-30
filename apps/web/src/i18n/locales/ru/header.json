@@ -87,7 +87,10 @@
         "other": "пришло людей: {count}"
       },
       "family_arrived": "пришла новая семья",
-      "healed_animals": { "one": "накормлено животное", "other": "накормлено животных: {count}" },
+      "healed_animals": {
+        "one": "накормлено животное",
+        "other": "накормлено животных: {count}"
+      },
       "healed": {
         "one": "вылечен: {name}",
         "other": "вылечено людей: {count}"
@@ -144,6 +147,31 @@
       "animals": {
         "one": "появилось животное",
         "other": "появилось животных: {count}"
+      },
+      "disaster_killed": {
+        "one": "погиб: {name}",
+        "other": "погибло людей: {count}"
+      },
+      "disaster_hurt": {
+        "one": "ранен: {name}",
+        "other": "ранено людей: {count}"
+      },
+      "disaster_buildings": {
+        "one": "повреждено зданий: 1",
+        "other": "повреждено зданий: {count}"
+      },
+      "disaster_in_reach": {
+        "one": "на пути: {name}",
+        "other": "людей на пути: {count}"
+      },
+      "disaster_none": "на пути никого не было",
+      "disaster_sick": {
+        "one": "заболел: {name}",
+        "other": "заболело людей: {count}"
+      },
+      "disaster_food": {
+        "one": "лишился еды: {name}",
+        "other": "людей лишилось еды: {count}"
       }
     }
   }

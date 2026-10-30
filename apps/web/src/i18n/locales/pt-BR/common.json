@@ -17,5 +17,7 @@
   "terrainLabel": "Terreno do mundo e habitantes",
   "boundaryTitle": "O mundo engasgou",
   "boundaryBody": "Algo inesperado aconteceu na renderização. Recarregue a página para se reconectar à simulação atual.",
-  "boundaryReload": "Recarregar"
+  "boundaryReload": "Recarregar",
+  "zoomInLimit": "Não dá para aproximar mais",
+  "zoomOutLimit": "Não dá para afastar mais"
 }

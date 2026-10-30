@@ -391,6 +391,13 @@
     },
     "follow": "Bu kabileyi takip et",
     "unfollow": "Bu kabileyi takibi bırak",
+    "timeline": {
+      "title": "Zaman içinde",
+      "people": "Nüfus",
+      "food": "Yiyecek",
+      "health": "Sağlık",
+      "notEnough": "Henüz yeterli geçmiş yok. Dünya ilerledikçe grafikler dolar."
+    },
     "fallen": {
       "diedOut": "{year} yılında tükendi",
       "endTitle": "Nasıl bitti",
