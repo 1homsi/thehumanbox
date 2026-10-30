@@ -81,10 +81,14 @@ pub(super) fn route_direction(
     }
 }
 
+/// The route a caravan from `actor_idx` would take. `fresh` checks each destination against a fresh
+/// census, for a caravan really being sent; the cheaper per-tick snapshots serve a check of whether one
+/// could be.
 pub(super) fn dispatch_route_index(
     sim: &Simulation,
     actor_idx: usize,
     partner_lineage: Option<&str>,
+    fresh: bool,
 ) -> Option<usize> {
     let actor = sim.organisms.get(actor_idx).filter(|organism| organism.alive)?;
     if sim.caravans.len() >= MAX_CARAVANS || cargo_candidate(sim, actor_idx).is_none() {
@@ -105,7 +109,11 @@ pub(super) fn dispatch_route_index(
                 return None;
             };
             if partner_lineage.is_some_and(|requested| requested != receiver_lineage)
-                || settlement_endpoints(sim, &actor_lineage, receiver_lineage).is_none()
+                || if fresh {
+                    settlement_endpoints_now(sim, &actor_lineage, receiver_lineage).is_none()
+                } else {
+                    settlement_endpoints(sim, &actor_lineage, receiver_lineage).is_none()
+                }
                 || route_is_embargoed(sim, &actor_lineage, receiver_lineage)
             {
                 return None;
@@ -130,7 +138,7 @@ pub(super) fn dispatch_route_index(
 }
 
 pub fn can_dispatch_caravan(sim: &Simulation, actor_idx: usize) -> bool {
-    dispatch_route_index(sim, actor_idx, None).is_some()
+    dispatch_route_index(sim, actor_idx, None, false).is_some()
 }
 
 pub(super) fn dispatch_caravan_on_route_index(
@@ -255,7 +263,7 @@ pub(super) fn dispatch_cargo_on_route_index(
 }
 
 pub fn dispatch_caravan_on_route(sim: &mut Simulation, actor_idx: usize) -> bool {
-    let Some(route_index) = dispatch_route_index(sim, actor_idx, None) else {
+    let Some(route_index) = dispatch_route_index(sim, actor_idx, None, true) else {
         return false;
     };
     dispatch_caravan_on_route_index(sim, actor_idx, route_index)
@@ -272,7 +280,7 @@ pub fn dispatch_caravan(sim: &mut Simulation, actor_idx: usize, partner_idx: usi
         return false;
     }
     let partner_lineage = partner.lineage_id.clone();
-    let Some(route_index) = dispatch_route_index(sim, actor_idx, Some(&partner_lineage)) else {
+    let Some(route_index) = dispatch_route_index(sim, actor_idx, Some(&partner_lineage), true) else {
         return false;
     };
     dispatch_caravan_on_route_index(sim, actor_idx, route_index)
