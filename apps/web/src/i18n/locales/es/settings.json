@@ -28,7 +28,9 @@
     "headlineTicker": "Ticker de titulares",
     "headlineTickerDesc": "Una franja que se desplaza con nacimientos, muertes y descubrimientos en la parte superior.",
     "autoFollow": "Seguimiento automático",
-    "autoFollowDesc": "Sigue a una persona distinta cada pocos segundos. Haz clic en alguien para detenerlo."
+    "autoFollowDesc": "Sigue a una persona distinta cada pocos segundos. Haz clic en alguien para detenerlo.",
+    "toolNames": "Nombres de herramientas",
+    "toolNamesDesc": "Muestra el nombre de cada herramienta bajo su icono en la barra inferior."
   },
   "accessibility": {
     "section": "Accesibilidad",

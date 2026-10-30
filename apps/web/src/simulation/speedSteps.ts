@@ -1,8 +1,9 @@
 /**
- * The speeds the slower and faster buttons step through, in multiples of normal speed: finer than the
- * preset tiles (a quarter speed, and eight and twenty times as well), from a quarter to forty times.
+ * The speeds the slower and faster buttons step through, in multiples of normal speed. Each is at least
+ * twice the last, so every press is a change the eye can see, and they run from a quarter to the top of
+ * the speed list (5000×), so the buttons alone reach every speed the list offers.
  */
-export const SPEED_STEPS = [0.25, 0.5, 1, 2, 4, 8, 10, 20, 40] as const
+export const SPEED_STEPS = [0.25, 0.5, 1, 2, 5, 10, 20, 50, 100, 500, 5000] as const
 
 // A speed within this factor of a step counts as being on it, so 1.0000001 steps like 1.
 const ON_STEP = 1.0001
@@ -27,4 +28,15 @@ const FRACTIONS: Record<number, string> = { 0.25: '¼', 0.5: '½' }
 export function formatSpeed(speed: number): string {
   const whole = Number.isInteger(speed) ? speed.toFixed(0) : String(speed)
   return `${FRACTIONS[speed] ?? whole}×`
+}
+
+/**
+ * The speed a world is really reaching, for the readout: whole numbers from 10×, one decimal from 1×, and
+ * two significant figures below that, so a crawl is not rounded up to look faster than it is.
+ */
+export function formatAchievedSpeed(achieved: number): string {
+  if (!Number.isFinite(achieved) || achieved <= 0) return formatSpeed(0)
+  if (achieved >= 10) return formatSpeed(Math.round(achieved))
+  if (achieved >= 1) return formatSpeed(Math.round(achieved * 10) / 10)
+  return formatSpeed(Number(achieved.toPrecision(2)))
 }

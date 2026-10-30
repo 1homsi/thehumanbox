@@ -71,14 +71,14 @@ describe('the time control', () => {
   })
 
   it('steps with the , and . keys', () => {
-    const props = render({ speed: 4 })
+    const props = render({ speed: 2 })
     key('.')
     expect(props.onPick).toHaveBeenLastCalledWith(
-      expect.objectContaining({ time: { control: 'speed', mult: 8 } }),
+      expect.objectContaining({ time: { control: 'speed', mult: 5 } }),
     )
     key(',')
     expect(props.onPick).toHaveBeenLastCalledWith(
-      expect.objectContaining({ time: { control: 'speed', mult: 2 } }),
+      expect.objectContaining({ time: { control: 'speed', mult: 1 } }),
     )
   })
 
@@ -158,7 +158,19 @@ describe('the lagging mark', () => {
       [2000, 100],
     ])
     expect(q('.time-control')?.classList.contains('lagging')).toBe(true)
-    expect(q('.time-lag')).not.toBeNull()
+    // The speed it really reaches shows under the one asked for.
+    expect(q('.time-actual')?.textContent).toBe('≈6×')
+  })
+
+  it('says so at low speeds too, not only past 10×', () => {
+    render({ speed: 5 })
+    // 25 ticks a second is 3× at the 120 ms base tick, short of 5×.
+    runTicks([
+      [0, 0],
+      [1000, 25],
+      [2000, 50],
+    ])
+    expect(q('.time-actual')?.textContent).toBe('≈3×')
   })
 
   it('does not carry a lag from before a pause into the run after it', () => {
@@ -168,12 +180,12 @@ describe('the lagging mark', () => {
       [1000, 50],
       [2000, 100],
     ])
-    expect(q('.time-lag')).not.toBeNull()
+    expect(q('.time-actual')).not.toBeNull()
 
     render({ speed: 40, paused: true })
     render({ speed: 40, paused: false })
     // No new ticks yet: the run has not been measured, so there is nothing to say about it.
-    expect(q('.time-lag')).toBeNull()
+    expect(q('.time-actual')).toBeNull()
   })
 
   it('stays quiet while the world keeps up', () => {
@@ -184,7 +196,7 @@ describe('the lagging mark', () => {
       [1000, 333],
       [2000, 667],
     ])
-    expect(q('.time-lag')).toBeNull()
+    expect(q('.time-actual')).toBeNull()
   })
 })
 

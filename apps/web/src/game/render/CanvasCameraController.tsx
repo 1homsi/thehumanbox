@@ -4,6 +4,7 @@ import {
   clampMapCamera,
   doubleClickZoomTarget,
   DOUBLE_CLICK_ZOOM_MS,
+  buttonZoomTarget,
   initialMapCamera,
   isMapControl,
   MAX_MAP_ZOOM,
@@ -13,6 +14,7 @@ import {
   type MapCamera,
   type MapCommand,
 } from './camera-controls'
+import { prefersReducedMotion } from '../../shared/motion'
 import { keyName, releasedKeyName } from '../model/shortcuts'
 
 interface Props {
@@ -201,10 +203,42 @@ export function CanvasCameraController({
       if (command) {
         commandRef.current = null
         stopFollow()
+        const settling = tween.current
         tween.current = null
         if (command.kind === 'fit') {
           const opening = initialMapCamera({ w: worldW, h: worldH }, { w: containerW, h: containerH })
           if (opening) applyRef.current(opening)
+        } else if (command.kind === 'zoom' && command.smooth) {
+          // A zoom button eases about the centre (see buttonZoomTarget).
+          const current = cameraStateRef.current
+          const to = buttonZoomTarget(
+            current.zoom,
+            settling ? settling.to : null,
+            command.factor,
+            minZoom,
+            MAX_MAP_ZOOM,
+          )
+          if (prefersReducedMotion()) {
+            // No easing for players who asked for less motion: the new zoom at once.
+            applyRef.current(
+              zoomMapAt(
+                current,
+                to,
+                { x: containerW / 2, y: containerH / 2 },
+                { w: containerW, h: containerH },
+              ),
+            )
+          } else if (settling && settling.to === to) {
+            // An ease already heading to this zoom (as at a limit) carries on rather than starting over.
+            tween.current = settling
+          } else if (to !== current.zoom) {
+            tween.current = {
+              from: { ...current },
+              to,
+              point: { x: containerW / 2, y: containerH / 2 },
+              start: performance.now(),
+            }
+          }
         } else if (command.kind === 'zoom') zoom(command.factor)
         else applyRef.current({ x: command.x, y: command.y, zoom: Math.max(cameraStateRef.current.zoom, 2) })
       }

@@ -17,5 +17,7 @@
   "terrainLabel": "Terreno del mondo e abitanti",
   "boundaryTitle": "Il mondo ha avuto un intoppo",
   "boundaryBody": "È successo qualcosa di inatteso nel motore grafico. Ricarica per riconnetterti alla simulazione in corso.",
-  "boundaryReload": "Ricarica"
+  "boundaryReload": "Ricarica",
+  "zoomInLimit": "Ingrandimento al massimo",
+  "zoomOutLimit": "Riduzione al massimo"
 }

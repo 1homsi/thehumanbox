@@ -38,7 +38,11 @@ export function wasmSpeedConfig(
   }
 
   const minimumSteps = Math.max(1, Math.ceil((multiplier * minTickMs) / baseTickMs))
-  const maxSteps = Math.min(256, Math.max(minimumSteps + 8, minimumSteps * 4))
+  // Up to 1024 ticks a batch, enough for the top speed (5000× at the 16 ms floor needs 667): at 256 the
+  // fastest a world could be set to was 1920×, so picking 5000× quietly gave 1920×. The worker still stops a
+  // batch after 16 ms of work, so a machine that cannot keep up runs as fast as it can, and the time control
+  // says how fast that is.
+  const maxSteps = Math.min(1024, Math.max(minimumSteps + 8, minimumSteps * 4))
   let best: WasmSpeedConfig | null = null
   let bestError = Number.POSITIVE_INFINITY
 

@@ -5,6 +5,7 @@ import {
   clampMapCamera,
   doubleClickZoomTarget,
   DOUBLE_CLICK_ZOOM_MS,
+  buttonZoomTarget,
   initialMapCamera,
   isMapControl,
   MAX_MAP_ZOOM,
@@ -14,6 +15,7 @@ import {
   type MapCamera,
   type MapCommand,
 } from '../../camera-controls'
+import { prefersReducedMotion } from '../../../../shared/motion'
 import { wakeRenderLoops } from '../render-loop'
 import { drawnPersonAt } from '../picking'
 import { KEY_ZOOM_STEP, WHEEL_SPEED, commandCamera, keyboardPanDelta, panKey } from './camera-rig'
@@ -311,10 +313,35 @@ export function CfMapCameraController({
     if (command) {
       commandRef.current = null
       stopFollowRef.current()
-      // A fit or focus request takes over from a double-click zoom still settling.
-      tween.current = null
-      const target = commandCamera(command, next, world, viewport)
-      if (target) next = target
+      if (command.kind === 'zoom' && command.smooth) {
+        // A zoom button eases about the centre (see buttonZoomTarget).
+        const settling = tween.current
+        const to = buttonZoomTarget(
+          next.zoom,
+          settling ? settling.to : null,
+          command.factor,
+          minZoom,
+          MAX_MAP_ZOOM,
+        )
+        if (prefersReducedMotion()) {
+          // No easing for players who asked for less motion: the new zoom at once.
+          tween.current = null
+          next = zoomMapAt(next, to, { x: containerW / 2, y: containerH / 2 }, viewport)
+        } else if (to !== next.zoom && settling?.to !== to) {
+          // A new ease, unless one is already heading to this zoom (as at a limit): that one carries on.
+          tween.current = {
+            from: { ...next },
+            to,
+            point: { x: containerW / 2, y: containerH / 2 },
+            start: performance.now(),
+          }
+        }
+      } else {
+        // A fit or focus request takes over from a double-click zoom still settling.
+        tween.current = null
+        const target = commandCamera(command, next, world, viewport)
+        if (target) next = target
+      }
     }
     const now = performance.now()
     const zooming = tween.current

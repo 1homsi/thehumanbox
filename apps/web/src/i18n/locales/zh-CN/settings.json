@@ -28,7 +28,9 @@
     "headlineTicker": "头条滚动条",
     "headlineTickerDesc": "顶部滚动显示出生、死亡和发现的消息。",
     "autoFollow": "自动跟随",
-    "autoFollowDesc": "每隔几秒跟随一个不同的人。点击任意人即可停止。"
+    "autoFollowDesc": "每隔几秒跟随一个不同的人。点击任意人即可停止。",
+    "toolNames": "工具名称",
+    "toolNamesDesc": "在底部工具栏的每个图标下显示工具名称。"
   },
   "accessibility": {
     "section": "无障碍",

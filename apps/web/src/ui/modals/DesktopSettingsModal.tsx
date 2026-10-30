@@ -215,8 +215,16 @@ function DisplayTab() {
   const photoMode = useViewFlag('photoMode')
   const headlineTicker = useViewFlag('headlineTicker')
   const randomTour = useViewFlag('randomTour')
+  const toolNames = useViewFlag('toolNames')
   return (
     <>
+      <SettingRow title={t('settings.display.toolNames')} desc={t('settings.display.toolNamesDesc')}>
+        <Switch
+          checked={!!toolNames}
+          onChange={(v) => setViewFlag('toolNames', v)}
+          label={t('settings.display.toolNames')}
+        />
+      </SettingRow>
       <SettingRow title={t('settings.display.photoMode')} desc={t('settings.display.photoModeDesc')}>
         <Switch
           checked={!!photoMode}

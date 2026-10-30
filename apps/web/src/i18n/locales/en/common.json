@@ -17,5 +17,7 @@
   "terrainLabel": "World terrain and inhabitants",
   "boundaryTitle": "The world stuttered",
   "boundaryBody": "Something unexpected happened in the renderer. Reload to reconnect to the current simulation.",
-  "boundaryReload": "Reload"
+  "boundaryReload": "Reload",
+  "zoomInLimit": "Zoomed in as far as it goes",
+  "zoomOutLimit": "Zoomed out as far as it goes"
 }

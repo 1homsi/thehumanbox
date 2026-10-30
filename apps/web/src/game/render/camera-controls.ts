@@ -8,7 +8,10 @@ export interface MapSize {
   h: number
 }
 export type MapCommand =
-  { kind: 'fit' } | { kind: 'zoom'; factor: number } | { kind: 'focus'; x: number; y: number }
+  | { kind: 'fit' }
+  /** Zoom about the centre; `smooth` eases there like a double-click instead of jumping. */
+  | { kind: 'zoom'; factor: number; smooth?: boolean }
+  | { kind: 'focus'; x: number; y: number }
 
 /** Most a camera may zoom in. */
 export const MAX_MAP_ZOOM = 8
@@ -96,4 +99,34 @@ export function isMapControl(target: EventTarget | null): boolean {
     target instanceof HTMLElement &&
     !!target.closest('button, input, select, textarea, a, [contenteditable="true"], [data-map-ui]')
   )
+}
+
+/** One press of a zoom button zooms by this factor: a step big enough to see at once. */
+export const BUTTON_ZOOM_STEP = 1.6
+
+/** A zoom this close to a limit counts as at it. */
+const AT_LIMIT = 1.001
+
+/** 'max' at the most zoomed-in, 'min' at the most zoomed-out, else null. */
+export function zoomLimitAt(zoom: number, min: number, max: number): 'min' | 'max' | null {
+  if (zoom * AT_LIMIT >= max) return 'max'
+  if (zoom <= min * AT_LIMIT) return 'min'
+  return null
+}
+
+/**
+ * Where a zoom-button press takes the camera. A press while an earlier one is still easing builds on
+ * where that one was heading, so quick presses each count in full, but only in the same direction: a
+ * press the other way starts from where the camera is now, so it never moves the wrong way.
+ */
+export function buttonZoomTarget(
+  current: number,
+  settlingTo: number | null,
+  factor: number,
+  min: number,
+  max: number,
+): number {
+  const sameWay = settlingTo !== null && Math.sign(settlingTo - current) === Math.sign(factor - 1)
+  const from = sameWay ? settlingTo : current
+  return Math.max(min, Math.min(max, from * factor))
 }

@@ -28,7 +28,9 @@
     "headlineTicker": "Headline ticker",
     "headlineTickerDesc": "A scrolling strip of births, deaths and discoveries at the top.",
     "autoFollow": "Auto-follow",
-    "autoFollowDesc": "Follow a different person every few seconds. Click anyone to stop."
+    "autoFollowDesc": "Follow a different person every few seconds. Click anyone to stop.",
+    "toolNames": "Tool names",
+    "toolNamesDesc": "Show each tool’s name under its icon in the bottom bar."
   },
   "accessibility": {
     "section": "Accessibility",

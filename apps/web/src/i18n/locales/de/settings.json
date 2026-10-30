@@ -28,7 +28,9 @@
     "headlineTicker": "Schlagzeilen-Ticker",
     "headlineTickerDesc": "Ein laufendes Band mit Geburten, Todesfällen und Entdeckungen am oberen Rand.",
     "autoFollow": "Automatisch folgen",
-    "autoFollowDesc": "Folgt alle paar Sekunden einer anderen Person. Klicke auf jemanden, um es zu beenden."
+    "autoFollowDesc": "Folgt alle paar Sekunden einer anderen Person. Klicke auf jemanden, um es zu beenden.",
+    "toolNames": "Werkzeugnamen",
+    "toolNamesDesc": "Den Namen jedes Werkzeugs unter seinem Symbol in der unteren Leiste zeigen."
   },
   "accessibility": {
     "section": "Barrierefreiheit",

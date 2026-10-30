@@ -1,9 +1,11 @@
 import { ToolSprite } from './ToolSprite'
 import { Tooltip } from './Tooltip'
 import { TimeControl } from './TimeControl'
-import { toolHowTo, toolName, toolTip } from './tool-tips'
+import { firesOnPick, toolHowTo, toolName, toolTip } from './tool-tips'
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useWorldStore } from '../../state/worldStore'
+import { useUIStore } from '../../state/store'
 import clsx from 'clsx'
 import {
   SANDBOX_CATEGORIES,
@@ -14,6 +16,7 @@ import {
 } from '../../simulation/sandbox'
 import {
   BRUSH_SIZES,
+  nextBrush,
   DOCK_TABS,
   groupLabel,
   groupsFor,
@@ -101,27 +104,95 @@ interface DockTileProps {
   hotkey: string | undefined
   body: string
   how: string
+  /** The tool's name shown under its icon (a setting). */
+  showName: boolean
   onPick: (tool: SandboxTool) => void
 }
+
+/** Widest the tap-again prompt grows, and how far it keeps from the window's edges. */
+const CONFIRM_MAX_W = 240
+const EDGE_PAD = 8
+
+/** The name of a world tool tapped once, over its tile, asking for the tap that starts it. */
+function TapAgain({ anchor, name }: { anchor: HTMLElement; name: string }) {
+  const rect = anchor.getBoundingClientRect()
+  // Kept inside the window like the tooltips, so a tool at the end of the bar still shows its name.
+  const half = CONFIRM_MAX_W / 2
+  const left = Math.min(
+    Math.max(rect.left + rect.width / 2, half + EDGE_PAD),
+    window.innerWidth - half - EDGE_PAD,
+  )
+  return createPortal(
+    <span
+      className="dock-tile-confirm"
+      role="status"
+      style={{ left, top: rect.top - 8, maxWidth: CONFIRM_MAX_W }}
+    >
+      {t('dock.tapAgain', { tool: name })}
+    </span>,
+    document.body,
+  )
+}
+
+/** How long a first tap on touch waits for the second that confirms it. */
+const TOUCH_CONFIRM_MS = 3000
 
 /**
  * One tool on the bar: its icon, no frame. Memoized: a pick re-renders the bar to flash its tool,
  * and only that tool's props change, so the others (each with its tooltip and sprite) are not
  * reconciled again.
  */
-const DockTile = memo(function DockTile({ tool, active, flashed, hotkey, body, how, onPick }: DockTileProps) {
+const DockTile = memo(function DockTile({
+  tool,
+  active,
+  flashed,
+  hotkey,
+  body,
+  how,
+  showName,
+  onPick,
+}: DockTileProps) {
+  const lastPointer = useRef<string>('mouse')
+  const button = useRef<HTMLButtonElement>(null)
+  const [confirming, setConfirming] = useState(false)
+  useEffect(() => {
+    if (!confirming) return
+    const timer = window.setTimeout(() => setConfirming(false), TOUCH_CONFIRM_MS)
+    return () => window.clearTimeout(timer)
+  }, [confirming])
+  const name = toolName(tool)
   return (
-    <Tooltip tip={<TipCard title={toolName(tool)} body={body} how={how} />}>
+    <Tooltip tip={<TipCard title={name} body={body} how={how} />}>
       <button
+        ref={button}
         type="button"
-        className={clsx('dock-tile', active && 'active', flashed && 'flash')}
+        className={clsx(
+          'dock-tile',
+          active && 'active',
+          flashed && 'flash',
+          showName && 'named',
+          confirming && 'confirming',
+        )}
         data-tool={tool.id}
-        aria-label={toolName(tool)}
+        aria-label={name}
         aria-keyshortcuts={hotkey}
         aria-pressed={active}
-        onClick={() => onPick(tool)}
+        onPointerDown={(e) => {
+          lastPointer.current = e.pointerType
+        }}
+        onClick={() => {
+          // A tap fires a world tool only once its name has been seen: the first tap names it.
+          if (lastPointer.current !== 'mouse' && firesOnPick(tool) && !confirming) {
+            setConfirming(true)
+            return
+          }
+          setConfirming(false)
+          onPick(tool)
+        }}
       >
         <ToolSprite icon={tool.icon} size={26} />
+        {showName && <span className="dock-tile-name">{name}</span>}
+        {confirming && button.current && <TapAgain anchor={button.current} name={name} />}
       </button>
     </Tooltip>
   )
@@ -290,6 +361,7 @@ export function SandboxToolbar({
   }, [tabId, groupId])
 
   // One tool on the row: a click arms or fires it.
+  const showNames = useUIStore((st) => st.viewFlags.toolNames)
   const renderTile = (tool: SandboxTool) => {
     const active = armedToolId === tool.id || isViewActive(tool) || isStateActive(tool)
     const how = isStateActive(tool)
@@ -306,11 +378,14 @@ export function SandboxToolbar({
         hotkey={hotkeys.get(tool.id)}
         body={toolTip(tool)}
         how={how}
+        showName={showNames}
         onPick={pickStable}
       />
     )
   }
 
+  const smaller = nextBrush(brush, -1)
+  const larger = nextBrush(brush, 1)
   return (
     <section className="sandbox-bar" aria-label={t('dock.aria.world')} ref={barRef}>
       {armedToolId && heldName && (
@@ -408,7 +483,9 @@ export function SandboxToolbar({
             <button
               type="button"
               aria-label={t('dock.aria.smallerBrush')}
-              onClick={() => onBrush(Math.max(0, brush - 1))}
+              title={smaller === null ? t('dock.aria.smallestBrush') : undefined}
+              disabled={smaller === null}
+              onClick={() => smaller !== null && onBrush(smaller)}
             >
               −
             </button>
@@ -428,7 +505,9 @@ export function SandboxToolbar({
             <button
               type="button"
               aria-label={t('dock.aria.largerBrush')}
-              onClick={() => onBrush(Math.min(20, brush + 1))}
+              title={larger === null ? t('dock.aria.largestBrush') : undefined}
+              disabled={larger === null}
+              onClick={() => larger !== null && onBrush(larger)}
             >
               +
             </button>

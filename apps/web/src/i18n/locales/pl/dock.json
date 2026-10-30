@@ -432,7 +432,9 @@
     "brushTiles": {
       "one": "Pędzel o szerokości {count} pola",
       "other": "Pędzel o szerokości {count} pól"
-    }
+    },
+    "smallestBrush": "To już najmniejszy pędzel",
+    "largestBrush": "To już największy pędzel"
   },
   "failures": {
     "noRoom": "świat nie może pomieścić więcej ludzi",
@@ -476,7 +478,7 @@
     "slowest": "Już na najniższym kroku.",
     "faster": "szybciej",
     "fasterTo": "szybciej · {speed}",
-    "fastest": "Powyżej tego wybierz prędkość z listy.",
+    "fastest": "To najszybsza prędkość.",
     "pausedAt": "wstrzymane przy {speed}",
     "speedAt": "prędkość {speed}",
     "chooseAny": "Wybierz dowolną prędkość.",
@@ -649,5 +651,6 @@
     "placeOnMap": "umieść na mapie",
     "applyNow": "zastosuj od razu",
     "empty": "Brak pasujących narzędzi. Spróbuj typu terenu, zwierzęcia, warstwy mapy lub sterowania czasem."
-  }
+  },
+  "tapAgain": "{tool}: dotknij ponownie, aby zacząć"
 }

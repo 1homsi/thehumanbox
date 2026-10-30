@@ -28,7 +28,9 @@
     "headlineTicker": "Ticker delle notizie",
     "headlineTickerDesc": "Una striscia scorrevole con nascite, morti e scoperte in alto.",
     "autoFollow": "Segui automaticamente",
-    "autoFollowDesc": "Segue una persona diversa ogni pochi secondi. Clicca su qualcuno per fermarlo."
+    "autoFollowDesc": "Segue una persona diversa ogni pochi secondi. Clicca su qualcuno per fermarlo.",
+    "toolNames": "Nomi degli strumenti",
+    "toolNamesDesc": "Mostra il nome di ogni strumento sotto la sua icona nella barra in basso."
   },
   "accessibility": {
     "section": "Accessibilità",

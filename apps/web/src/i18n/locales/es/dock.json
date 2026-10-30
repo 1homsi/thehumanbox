@@ -432,7 +432,9 @@
     "brushTiles": {
       "one": "Pincel de {count} casilla de ancho",
       "other": "Pincel de {count} casillas de ancho"
-    }
+    },
+    "smallestBrush": "Ya es el pincel más pequeño",
+    "largestBrush": "Ya es el pincel más grande"
   },
   "failures": {
     "noRoom": "el mundo no puede albergar más personas",
@@ -476,7 +478,7 @@
     "slowest": "Ya está en el paso más lento.",
     "faster": "más rápido",
     "fasterTo": "más rápido · {speed}",
-    "fastest": "Más allá de esto, elige una velocidad de la lista.",
+    "fastest": "Esta es la velocidad máxima.",
     "pausedAt": "en pausa a {speed}",
     "speedAt": "velocidad {speed}",
     "chooseAny": "Elige la velocidad que quieras.",
@@ -649,5 +651,6 @@
     "placeOnMap": "colocar en el mapa",
     "applyNow": "aplicar de inmediato",
     "empty": "No hay herramientas que coincidan. Prueba con un tipo de terreno, un animal, una capa del mapa o un control de tiempo."
-  }
+  },
+  "tapAgain": "{tool}: toca otra vez para empezar"
 }

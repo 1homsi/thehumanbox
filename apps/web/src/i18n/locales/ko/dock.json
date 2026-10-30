@@ -432,7 +432,9 @@
     "brushTiles": {
       "one": "브러시 폭 {count} 타일",
       "other": "브러시 폭 {count} 타일"
-    }
+    },
+    "smallestBrush": "이미 가장 작은 브러시입니다",
+    "largestBrush": "이미 가장 큰 브러시입니다"
   },
   "failures": {
     "noRoom": "세계가 더 이상 사람을 수용할 수 없습니다",
@@ -476,7 +478,7 @@
     "slowest": "이미 가장 느린 단계입니다.",
     "faster": "빠르게",
     "fasterTo": "빠르게 · {speed}",
-    "fastest": "이 이상은 목록에서 속도를 고르세요.",
+    "fastest": "가장 빠른 속도입니다.",
     "pausedAt": "{speed} 속도에서 일시 정지됨",
     "speedAt": "속도 {speed}",
     "chooseAny": "원하는 속도를 고르세요.",
@@ -649,5 +651,6 @@
     "placeOnMap": "지도에 두기",
     "applyNow": "즉시 적용",
     "empty": "일치하는 도구가 없습니다. 지형 종류, 동물, 지도 레이어, 시간 조절을 시도해 보세요."
-  }
+  },
+  "tapAgain": "{tool}: 한 번 더 탭하면 시작합니다"
 }

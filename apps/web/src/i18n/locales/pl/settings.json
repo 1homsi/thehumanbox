@@ -28,7 +28,9 @@
     "headlineTicker": "Pasek nagłówków",
     "headlineTickerDesc": "Przewijany pasek narodzin, zgonów i odkryć u góry ekranu.",
     "autoFollow": "Automatyczne śledzenie",
-    "autoFollowDesc": "Śledzi inną osobę co kilka sekund. Kliknij kogoś, aby przerwać."
+    "autoFollowDesc": "Śledzi inną osobę co kilka sekund. Kliknij kogoś, aby przerwać.",
+    "toolNames": "Nazwy narzędzi",
+    "toolNamesDesc": "Pokazuj nazwę każdego narzędzia pod jego ikoną na dolnym pasku."
   },
   "accessibility": {
     "section": "Dostępność",

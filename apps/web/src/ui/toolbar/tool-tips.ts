@@ -156,3 +156,12 @@ export function toolFailure(tool: SandboxTool): string {
       return t('dock.failures.didNotWork')
   }
 }
+
+/**
+ * Whether a tool acts on the world the moment it is picked (a storm, a drought), rather than arming
+ * for a click on the map or changing what the map shows. On touch, where there is no hover to read
+ * its name first, such a tool asks for a second tap.
+ */
+export function firesOnPick(tool: SandboxTool): boolean {
+  return tool.mode === 'instant' && tool.fire !== undefined
+}
