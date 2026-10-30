@@ -5,7 +5,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { ThingHoverCard } from './ThingHoverCard'
 import type { WorldState } from '../../../shared/types'
 import type { MapCamera } from '../camera-controls'
-import { loadLocale } from '../../../i18n'
+import { loadLocale, t } from '../../../i18n'
+import { prayerPlea } from '../../model/prayers'
 import { registerPeopleLayer } from '../cf/picking'
 import { buildTerritoryIndex } from '../../model/territory'
 
@@ -158,5 +159,22 @@ describe('ThingHoverCard', () => {
     } finally {
       unregister()
     }
+  })
+
+  it('names the prayer under the pointer, with a line that says a click opens it', () => {
+    // A bubble over tile (10, 12) with its tail at the tile: the pointer at the map centre is inside its box.
+    const prayer = {
+      id: 1,
+      lineage_id: 'l1',
+      tribe: 'The Reds',
+      kind: 'children',
+      x: 10,
+      y: 12,
+      created: 0,
+      expires: 100,
+    }
+    const text = cardTextAt({ ...townWorld(), prayers: [prayer] } as unknown as WorldState)
+    expect(text).toContain(prayerPlea(prayer))
+    expect(text).toContain(t('panels.prayerHover.open'))
   })
 })

@@ -5,14 +5,13 @@
     "ok": "OK"
   },
   "welcome": {
-    "quickTour": "Kurze Tour",
     "back": "Zurück",
     "skip": "Überspringen",
     "start": "Starten",
     "useEnglish": "Englisch verwenden",
     "next": "Weiter",
     "localTitle": "Du bist ihr Gott",
-    "localBody": "Kleine Stämme leben, lieben, bauen und ziehen eigenständig in den Krieg. Wenn Gefahr droht, beten sie zu dir: Klicke auf eine Gebetsblase, und die Kraft, die hilft, liegt in deiner Hand. Alles läuft und wird auf diesem Gerät gespeichert."
+    "localBody": "Stämme leben von allein. Betet einer, klicke auf seine Blase, um zu antworten."
   },
   "worlds": {
     "introArchives": "Deine Weltarchive werden auf diesem Computer gespeichert.",

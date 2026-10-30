@@ -224,4 +224,19 @@ describe('WelcomeModal', () => {
       vi.unstubAllGlobals()
     }
   })
+
+  it('the first screen offers one action, Start, and one way out, Skip', () => {
+    mount()
+    const buttons = [...document.querySelectorAll<HTMLButtonElement>('.welcome-modal .welcome-btn')]
+    expect(buttons.map((b) => b.textContent)).toEqual([t('dialogs.welcome.skip'), t('dialogs.welcome.start')])
+    expect(buttons[1].classList.contains('welcome-btn--primary')).toBe(true)
+  })
+
+  it('Skip closes the card in one click and it does not come back', () => {
+    mount()
+    const skip = [...document.querySelectorAll<HTMLButtonElement>('.welcome-modal .welcome-btn--ghost')][0]
+    act(() => skip.click())
+    expect(document.querySelector('.welcome-modal')).toBeNull()
+    expect(window.localStorage.getItem('thb-welcome-seen-v1')).toBe('1')
+  })
 })

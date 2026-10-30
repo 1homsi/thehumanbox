@@ -265,6 +265,12 @@ describe('the language the game starts in', () => {
     expect(detectedLocale()).toBe('en')
   })
 
+  it('reports no detection when the browser asks for no language the game has, and still starts in English', () => {
+    startAs(['nl-NL', 'sv-SE'])
+    expect(detectedLocale()).toBeNull()
+    expect(preferredLocale()).toBe('en')
+  })
+
   it('a saved code the game no longer ships is ignored', () => {
     startAs(['en-US'], 'xx')
     expect(preferredLocale()).toBe('en')

@@ -172,8 +172,32 @@ export function prayerBubbleScale(zoom: number): number {
 }
 
 /**
- * The prayer whose bubble covers a point in map pixels, if any. Uses the
- * same anchor and box as `drawPrayerBubble`, padded a little for fingers.
+ * The bubbles the map draws, one per group of prayers close enough to merge, each anchored where its
+ * most urgent prayer is. Renderer, click and hover all read this, so they agree on which prayer a glyph is.
+ * Anchors are in map pixels (the bubble's tail point).
+ */
+export function mergedPrayerBubbles<T extends { x: number; y: number }>(
+  prayers: readonly T[],
+  timeLeft: (prayer: T) => number,
+  origin: { x: number; y: number },
+  tile: number,
+  zoom: number,
+) {
+  const scale = prayerBubbleScale(zoom)
+  return mergePrayerBubbles(
+    prayers.map((prayer) => ({
+      prayer,
+      x: (prayer.x - origin.x) * tile + tile / 2,
+      y: (prayer.y - origin.y) * tile,
+      left: timeLeft(prayer),
+    })),
+    16 * scale,
+  )
+}
+
+/**
+ * The prayer whose drawn bubble covers a point in map pixels, if any. Uses the same anchor and box as
+ * `drawPrayerBubble`, padded a little for fingers. A merged group answers as its drawn prayer.
  */
 export function prayerAtPoint<T extends { x: number; y: number }>(
   prayers: readonly T[],
@@ -182,20 +206,21 @@ export function prayerAtPoint<T extends { x: number; y: number }>(
   origin: { x: number; y: number },
   tile: number,
   zoom: number,
+  timeLeft: (prayer: T) => number,
 ): T | null {
   const s = prayerBubbleScale(zoom)
   let best: T | null = null
   let bestD = Infinity
-  for (const p of prayers) {
-    const ax = (p.x - origin.x) * tile + tile / 2
-    const ay = (p.y - origin.y) * tile - 8
+  for (const bubble of mergedPrayerBubbles(prayers, timeLeft, origin, tile, zoom)) {
+    const ax = bubble.x
+    const ay = bubble.y - 8
     const lx = (px - ax) / s
     const ly = (py - ay) / s
     if (lx < -10 || lx > 10 || ly < -20 || ly > 0) continue
     const d = Math.hypot(lx, ly + 11)
     if (d < bestD) {
       bestD = d
-      best = p
+      best = bubble.prayer
     }
   }
   return best

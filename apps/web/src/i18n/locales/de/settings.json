@@ -18,7 +18,8 @@
     "desc": "Menüs, Tooltips und Einstellungen. Namen und alles, was die Welt schreibt, bleiben unverändert. Beim Wechsel wird das Spiel neu geladen; deine Welt wird vorher gespeichert.",
     "failed": "Die Welt konnte nicht vorher gespeichert werden; die Sprache wurde nicht geändert",
     "storageFailed": "die Auswahl konnte in diesem Browser nicht gespeichert werden; die Sprache wurde nicht geändert",
-    "contribute": "Fehlt deine Sprache? Übersetzungen sind einfache Dateien im Repository, neue sind willkommen."
+    "contribute": "Fehlt deine Sprache? Übersetzungen sind einfache Dateien im Repository, neue sind willkommen.",
+    "notDetected": "Die Sprache deines Browsers gibt es im Spiel noch nicht, daher ist es auf Englisch."
   },
   "display": {
     "section": "Anzeige",

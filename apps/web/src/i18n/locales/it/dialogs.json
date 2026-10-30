@@ -5,14 +5,13 @@
     "ok": "ok"
   },
   "welcome": {
-    "quickTour": "Tour rapido",
     "back": "Indietro",
     "skip": "Salta",
     "start": "Avvia",
     "useEnglish": "Usa l’inglese",
     "next": "Avanti",
     "localTitle": "Sei il loro dio",
-    "localBody": "Le piccole tribù vivono, amano, costruiscono e fanno guerra da sole. Quando arrivano i guai ti pregano: clicca una bolla di preghiera e il potere che aiuta è nelle tue mani. Tutto gira e viene salvato su questo dispositivo."
+    "localBody": "Le tribù vivono da sole. Quando una prega, clicca sulla sua bolla per rispondere."
   },
   "worlds": {
     "introArchives": "Gli archivi del tuo mondo sono salvati su questo computer.",

@@ -129,18 +129,19 @@ function browserLanguages(): readonly unknown[] {
 }
 
 /**
- * The language the browser's own list asks for first that the game ships, else English. Ignores a
- * saved choice, so the first-launch card can show what the browser asked for.
+ * The language the browser's own list asks for first that the game ships, or null when it asks for
+ * none of them. Ignores a saved choice, so the first-launch card can show what the browser asked for;
+ * English as the fallback is `preferredLocale`'s business, not a detection.
  */
-export function detectedLocale(): string {
-  return matchLocale(browserLanguages()) ?? SOURCE_LOCALE
+export function detectedLocale(): string | null {
+  return matchLocale(browserLanguages())
 }
 
 /** The language to start in: the saved choice, else the browser's, else English. */
 export function preferredLocale(): string {
   const saved = readSaved()
   if (saved && LOCALES.includes(saved)) return saved
-  return detectedLocale()
+  return detectedLocale() ?? SOURCE_LOCALE
 }
 
 export function getLocale(): string {
