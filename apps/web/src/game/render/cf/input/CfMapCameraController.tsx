@@ -17,7 +17,7 @@ import {
 import { wakeRenderLoops } from '../render-loop'
 import { drawnPersonAt } from '../picking'
 import { KEY_ZOOM_STEP, WHEEL_SPEED, commandCamera, keyboardPanDelta, panKey } from './camera-rig'
-import { keyName } from '../../../model/shortcuts'
+import { keyName, releasedKeyName } from '../../../model/shortcuts'
 
 interface Props {
   worldW: number
@@ -213,7 +213,7 @@ export function CfMapCameraController({
       }
     }
     const keyUp = (e: KeyboardEvent) => {
-      const key = keyName(e)
+      const key = releasedKeyName(e)
       if (key !== null) pressed.delete(key)
     }
     // Double-click zooms in on the spot (Shift: out): the zoom a laptop trackpad can always make.

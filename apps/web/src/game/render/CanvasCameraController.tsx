@@ -13,7 +13,7 @@ import {
   type MapCamera,
   type MapCommand,
 } from './camera-controls'
-import { keyName } from '../model/shortcuts'
+import { keyName, releasedKeyName } from '../model/shortcuts'
 
 interface Props {
   worldW: number
@@ -170,7 +170,7 @@ export function CanvasCameraController({
       }
     }
     const keyUp = (e: KeyboardEvent) => {
-      const key = keyName(e)
+      const key = releasedKeyName(e)
       if (key !== null) keys.delete(key)
     }
     const reset = () => {

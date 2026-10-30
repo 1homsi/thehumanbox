@@ -3,6 +3,7 @@ import {
   escapeHandledElsewhere,
   gameKeyAction,
   keyName,
+  releasedKeyName,
   mapOwnsZoomKeys,
   rightClickDisarms,
   shortcutFor,
@@ -152,5 +153,13 @@ describe('rightClickDisarms', () => {
     expect(rightClickDisarms(onMap, false)).toBe(false)
     expect(rightClickDisarms(onPanel, true)).toBe(false)
     expect(rightClickDisarms(null, true)).toBe(false)
+  })
+})
+
+describe('releasedKeyName', () => {
+  it('lets a held key go even while an input method is composing', () => {
+    expect(releasedKeyName({ key: 'W' })).toBe('w')
+    expect(releasedKeyName({ key: 'w', isComposing: true } as { key: string })).toBe('w')
+    expect(releasedKeyName({})).toBeNull()
   })
 })

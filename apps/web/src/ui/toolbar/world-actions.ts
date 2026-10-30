@@ -68,7 +68,7 @@ export function worldActionForKey(event: {
   shiftKey?: boolean
   target: EventTarget | null
 }): 'save' | 'find' | null {
-  if (event.altKey) return null
+  if (event.altKey || event.isComposing) return null
   // ⌘⇧S is the desktop app's own shortcut, so only a plain ⌘S saves.
   if ((event.metaKey || event.ctrlKey) && !event.shiftKey && keyName(event) === 's') return 'save'
   if (event.key === '/' && !event.metaKey && !event.ctrlKey && !typingTarget(event.target)) return 'find'

@@ -8,6 +8,16 @@ export function keyName(event: { key?: string | null; isComposing?: boolean }): 
   return event.key.toLowerCase()
 }
 
+/**
+ * The key a key-up releases, lowercased, or null when it names none. Unlike `keyName` it does not skip
+ * a key released while an input method is composing: a key held from before the composition began
+ * still has to be let go.
+ */
+export function releasedKeyName(event: { key?: string | null }): string | null {
+  if (typeof event.key !== 'string' || event.key === '') return null
+  return event.key.toLowerCase()
+}
+
 /** What a game key does, or null for keys the game does not use. */
 export type ShortcutAction =
   | { kind: 'speed'; tool: 'normal' | 'fast2' | 'fast4' | 'fast10' }
