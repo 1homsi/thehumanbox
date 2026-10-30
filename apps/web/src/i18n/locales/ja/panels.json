@@ -150,6 +150,9 @@
     "showMe": "見せて",
     "dismiss": "閉じる"
   },
+  "prayerHover": {
+    "open": "クリックして開き、助ける"
+  },
   "prayerChip": {
     "tipTitle": "祈り",
     "tipBody": {
@@ -326,7 +329,9 @@
         "building": "建築",
         "crafting": "細工",
         "healing": "治療"
-      }
+      },
+      "extinct": "滅びた",
+      "extinctCause": "滅びた（最後の死因: {cause}）"
     },
     "why": {
       "title": "なぜそう動くか",
@@ -376,6 +381,18 @@
       "known": "秘密を{known}／{required}知っている",
       "worldPeople": "この時代に必要な{need}人のうち、世界には{have}人いる（あと{short}人）",
       "ready": "準備完了: 次に世界が確かめるとき、時代が訪れる"
+    },
+    "fallen": {
+      "diedOut": "{year}年に滅びた",
+      "endTitle": "最期",
+      "cause": "最後の死因: {cause}",
+      "noCause": "最後の一人が死んだ",
+      "causeTag": "原因",
+      "contextTag": "背景",
+      "openOther": "その部族のカードを開く",
+      "marker": "{name}はここで{year}年に滅びた。カードを開く",
+      "markerCause": "{name}はここで{year}年に滅びた（最後の死因: {cause}）。カードを開く",
+      "listHeading": "滅びた部族"
     }
   },
   "scene": {

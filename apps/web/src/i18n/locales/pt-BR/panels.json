@@ -151,6 +151,9 @@
     "showMe": "me mostre",
     "dismiss": "Dispensar"
   },
+  "prayerHover": {
+    "open": "Clique para abrir e ajudar"
+  },
   "prayerChip": {
     "tipTitle": "orações",
     "tipBody": {
@@ -333,7 +336,9 @@
         "building": "a construção",
         "crafting": "o artesanato",
         "healing": "a cura"
-      }
+      },
+      "extinct": "se extinguiu",
+      "extinctCause": "se extinguiu (última morte: {cause})"
     },
     "why": {
       "title": "Por que agem assim",
@@ -383,6 +388,18 @@
       "known": "{known} de {required} segredos conhecidos",
       "worldPeople": "o mundo tem {have} das {need} pessoas que esta era exige (faltam {short})",
       "ready": "pronto: a era chega na próxima verificação do mundo"
+    },
+    "fallen": {
+      "diedOut": "Extinguiu-se no ano {year}",
+      "endTitle": "Como terminou",
+      "cause": "Última morte: {cause}",
+      "noCause": "Seu último membro morreu",
+      "causeTag": "Causa",
+      "contextTag": "Contexto",
+      "openOther": "Abrir a ficha dessa tribo",
+      "marker": "{name} se extinguiu aqui no ano {year}. Abrir a ficha",
+      "markerCause": "{name} se extinguiu aqui no ano {year} (última morte: {cause}). Abrir a ficha",
+      "listHeading": "Tribos extintas"
     }
   },
   "scene": {

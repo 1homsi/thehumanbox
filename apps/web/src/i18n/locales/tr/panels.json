@@ -151,6 +151,9 @@
     "showMe": "göster",
     "dismiss": "Kapat"
   },
+  "prayerHover": {
+    "open": "Açmak ve yardım etmek için tıklayın"
+  },
   "prayerChip": {
     "tipTitle": "dualar",
     "tipBody": {
@@ -333,7 +336,9 @@
         "building": "inşaat",
         "crafting": "zanaat",
         "healing": "şifacılık"
-      }
+      },
+      "extinct": "tükendi",
+      "extinctCause": "tükendi (son ölüm: {cause})"
     },
     "why": {
       "title": "Neden böyle davranıyorlar",
@@ -383,6 +388,18 @@
       "known": "{required} sırdan {known} tanesi biliniyor",
       "worldPeople": "dünyada bu çağın gerektirdiği {need} kişiden {have} var ({short} eksik)",
       "ready": "hazır: çağ dünyanın bir sonraki kontrolünde gelir"
+    },
+    "fallen": {
+      "diedOut": "{year} yılında tükendi",
+      "endTitle": "Nasıl bitti",
+      "cause": "Son ölüm: {cause}",
+      "noCause": "Son üyesi öldü",
+      "causeTag": "Neden",
+      "contextTag": "Bağlam",
+      "openOther": "O kabilenin kartını aç",
+      "marker": "{name} {year} yılında burada tükendi. Kartını aç",
+      "markerCause": "{name} {year} yılında burada tükendi (son ölüm: {cause}). Kartını aç",
+      "listHeading": "Tükenen kabileler"
     }
   },
   "scene": {

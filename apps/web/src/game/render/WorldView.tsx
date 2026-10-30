@@ -10,6 +10,7 @@ import { TILE } from '../model/palette'
 import { CanvasCameraController } from './CanvasCameraController'
 import { World2DErrorBoundary } from './World2DErrorBoundary'
 import { WorldMapHud } from './WorldMapHud'
+import { FallenMarkers } from './FallenMarkers'
 import { MapControls } from './MapControls'
 import { TerritoryHoverCard } from './hover/TerritoryHoverCard'
 import { ThingHoverCard } from './hover/ThingHoverCard'
@@ -23,6 +24,7 @@ import { useRendererBackend } from './world-view/useRendererBackend'
 import { useMapPointer } from './world-view/useMapPointer'
 import { CfWorld } from './cf/CfWorld'
 import { CfMapCameraController } from './cf/input/CfMapCameraController'
+import { placementSpacing } from './cf/input/placement-stroke'
 import { CfOverlays } from './cf/overlays/CfOverlays'
 import { AnimalSpriteLayers } from './cf/animals/AnimalSpriteLayers'
 import { PeopleSpriteLayers } from './cf/people/PeopleSpriteLayers'
@@ -41,6 +43,10 @@ interface Props {
   /** Armed tool id, used to pick the effect that plays where it lands. */
   sandboxToolId?: string | null
   sandboxRadius?: number
+  /** The armed tool places one thing per point: a mouse drag lays a line of them. */
+  sandboxDragPlaces?: boolean
+  /** The brush setting, which spaces the placements of a drag. */
+  sandboxBrush?: number
   onSandboxApply?: (worldX: number, worldY: number) => void
   /** A prayer bubble on the map was clicked. */
   onPrayerClick?: (prayer: PrayerInfo) => void
@@ -54,6 +60,8 @@ export function WorldView({
   sandboxLabel,
   sandboxToolId,
   sandboxRadius,
+  sandboxDragPlaces = false,
+  sandboxBrush = 2,
   onSandboxApply,
   onPrayerClick,
 }: Props) {
@@ -291,6 +299,9 @@ export function WorldView({
                   followTarget={followTarget}
                   onTap={handleTap}
                   toolArmed={sandboxArmed}
+                  placeAlongDrag={sandboxDragPlaces}
+                  placeSpacing={placementSpacing(sandboxBrush)}
+                  onPlace={handleTap}
                 />
               </World>
             </Game>
@@ -360,6 +371,9 @@ export function WorldView({
           toolLabel={sandboxArmed ? sandboxLabel : null}
           toolRadius={sandboxRadius}
         />
+      )}
+      {mapReady && !viewFlags.hideUI && (
+        <FallenMarkers world={world} cameraRef={cameraStateRef} viewport={dims} />
       )}
       {mapReady && !viewFlags.hideUI && (
         <TerritoryHoverCard

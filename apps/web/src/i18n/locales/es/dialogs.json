@@ -5,13 +5,12 @@
     "ok": "aceptar"
   },
   "welcome": {
-    "quickTour": "recorrido rápido",
     "back": "Atrás",
     "skip": "Omitir",
     "start": "Empezar",
     "next": "Siguiente",
     "localTitle": "Eres su dios",
-    "localBody": "Las pequeñas tribus viven, aman, construyen y van a la guerra por su cuenta. Cuando llegan los problemas, te rezan: haz clic en una burbuja de plegaria y el poder que ayuda queda en tus manos. Todo funciona y se guarda en este dispositivo."
+    "localBody": "Las tribus viven por su cuenta. Cuando una reza, haz clic en su burbuja para responder."
   },
   "worlds": {
     "introArchives": "Tus archivos de mundo se guardan en este equipo.",

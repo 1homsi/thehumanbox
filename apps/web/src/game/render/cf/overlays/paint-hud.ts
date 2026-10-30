@@ -1,6 +1,6 @@
 import { TILE } from '../../../model/palette'
 import { prayerTimeLeft } from '../../../model/prayers'
-import { drawPrayerBubble, mergePrayerBubbles, prayerBubbleScale } from '../../prayer-bubbles'
+import { drawPrayerBubble, mergedPrayerBubbles, prayerBubbleScale } from '../../prayer-bubbles'
 import { drawPrayerFeedback, updatePrayerFeedback } from '../../prayer-feedback'
 import type { LabelPresence } from '../../label-presence'
 import { drawSettlementLabels, titleFont, type LabelKind, type PlacedLabel } from '../../settlement-labels'
@@ -54,14 +54,12 @@ export function paintHud(
   }
   if (world.prayers && world.prayers.length > 0 && !viewFlags.hideUI) {
     const bubbleScale = prayerBubbleScale(zoom)
-    const merged = mergePrayerBubbles(
-      world.prayers.map((prayer) => ({
-        prayer,
-        x: (prayer.x - ox) * TILE + TILE / 2,
-        y: (prayer.y - oy) * TILE,
-        left: prayerTimeLeft(prayer, world.tick),
-      })),
-      16 * bubbleScale,
+    const merged = mergedPrayerBubbles(
+      world.prayers,
+      (prayer) => prayerTimeLeft(prayer, world.tick),
+      { x: ox, y: oy },
+      TILE,
+      zoom,
     )
     // A bubble is drawn only where the camera sees it (the merge above is over every prayer, so
     // which bubbles merge does not depend on the view).

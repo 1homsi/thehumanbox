@@ -291,7 +291,15 @@ export function SandboxToolbar({
   const hotkeys = hotkeysFor(rowTools)
   useEffect(() => {
     const onHotkey = (event: KeyboardEvent) => {
-      if (event.metaKey || event.ctrlKey || event.altKey || event.repeat || typingTarget(event.target)) return
+      if (
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.repeat ||
+        event.isComposing ||
+        typingTarget(event.target)
+      )
+        return
       const tool = toolForHotkey(rowTools, event.key)
       if (!tool) return
       event.preventDefault()

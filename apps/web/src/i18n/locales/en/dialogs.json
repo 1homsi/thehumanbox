@@ -5,13 +5,12 @@
     "ok": "ok"
   },
   "welcome": {
-    "quickTour": "Quick tour",
     "back": "Back",
     "skip": "Skip",
     "start": "Start",
     "next": "Next",
     "localTitle": "You are their god",
-    "localBody": "Small tribes live, love, build and go to war on their own. When trouble comes they pray to you: click a prayer bubble and the power that helps is in your hand. It all runs and saves on this device."
+    "localBody": "Tribes live on their own. When one prays, click its bubble to answer."
   },
   "worlds": {
     "introArchives": "Your world archives are saved on this computer.",

@@ -151,6 +151,9 @@
     "showMe": "show me",
     "dismiss": "Dismiss"
   },
+  "prayerHover": {
+    "open": "Click to open and help"
+  },
   "prayerChip": {
     "tipTitle": "prayers",
     "tipBody": {
@@ -339,7 +342,9 @@
         "building": "building",
         "crafting": "crafting",
         "healing": "healing"
-      }
+      },
+      "extinct": "died out",
+      "extinctCause": "died out (last death: {cause})"
     },
     "why": {
       "title": "Why they act",
@@ -389,6 +394,18 @@
       "known": "{known} of {required} secrets known",
       "worldPeople": "the world has {have} of the {need} people this age needs ({short} more)",
       "ready": "ready: the age comes at the world's next check"
+    },
+    "fallen": {
+      "diedOut": "Died out in year {year}",
+      "endTitle": "How it ended",
+      "cause": "Last death: {cause}",
+      "noCause": "Its last member died",
+      "causeTag": "Cause",
+      "contextTag": "Context",
+      "openOther": "Open that tribe's card",
+      "marker": "{name} died out here in year {year}. Open its card",
+      "markerCause": "{name} died out here in year {year} (last death: {cause}). Open its card",
+      "listHeading": "Tribes that died out"
     }
   },
   "scene": {

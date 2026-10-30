@@ -19,6 +19,8 @@ import { prefersReducedMotion } from '../../../../shared/motion'
 import { wakeRenderLoops } from '../render-loop'
 import { drawnPersonAt } from '../picking'
 import { KEY_ZOOM_STEP, WHEEL_SPEED, commandCamera, keyboardPanDelta, panKey } from './camera-rig'
+import { keyName, releasedKeyName } from '../../../model/shortcuts'
+import { usePlacementDrag, type PlacementTap } from './placement-drag'
 
 interface Props {
   worldW: number
@@ -37,6 +39,12 @@ interface Props {
   onTap?: (tap: { worldX: number; worldY: number; screenX: number; screenY: number }) => void
   /** A god tool is armed: a double-click paints twice rather than zooming. */
   toolArmed?: boolean
+  /** The armed tool places one thing per point, so a mouse drag lays a line of them rather than panning. */
+  placeAlongDrag?: boolean
+  /** Tiles between two placements in a drag: the brush's reach. */
+  placeSpacing?: number
+  /** A placement from a drag (the press and each step along it). */
+  onPlace?: (tap: PlacementTap) => void
 }
 
 interface CameraLike {
@@ -69,12 +77,17 @@ export function CfMapCameraController({
   followTarget,
   onTap,
   toolArmed = false,
+  placeAlongDrag = false,
+  placeSpacing = 1,
+  onPlace,
 }: Props) {
   const engine = useGame()
   const camera = useCamera()
   const world = { w: worldW, h: worldH }
   const viewport = { w: containerW, h: containerH }
   const minZoom = minMapZoom(world, viewport)
+  // While a placing tool is armed, the primary mouse button places (see usePlacementDrag) instead of panning.
+  const placing = toolArmed && placeAlongDrag
 
   const tapRef = useRef(onTap)
   tapRef.current = onTap
@@ -85,10 +98,19 @@ export function CfMapCameraController({
     // The map has never glided after a drag.
     inertia: false,
     dragThreshold: 6,
-    buttons: [0, 1],
+    buttons: placing ? [1] : [0, 1],
     onTap: (e) => {
       if (e.button === 0) tapRef.current?.(e)
     },
+  })
+  usePlacementDrag({
+    enabled: placing && !!onPlace,
+    containerEl,
+    cameraStateRef,
+    containerW,
+    containerH,
+    spacingTiles: placeSpacing,
+    onPlace: (tap) => onPlace?.(tap),
   })
 
   // The camera as this controller last left it. Anything else seen on the
@@ -192,7 +214,8 @@ export function CfMapCameraController({
     const inMap = () => containerEl.contains(document.activeElement)
     const onKey = (e: KeyboardEvent) => {
       if (isMapControl(e.target) || e.ctrlKey || e.metaKey || e.altKey || !inMap()) return
-      const key = e.key.toLowerCase()
+      const key = keyName(e)
+      if (key === null) return
       if (panKey(key)) {
         e.preventDefault()
         stopFollowRef.current()
@@ -212,7 +235,10 @@ export function CfMapCameraController({
         engine.loop.markDirty()
       }
     }
-    const keyUp = (e: KeyboardEvent) => pressed.delete(e.key.toLowerCase())
+    const keyUp = (e: KeyboardEvent) => {
+      const key = releasedKeyName(e)
+      if (key !== null) pressed.delete(key)
+    }
     // Double-click zooms in on the spot (Shift: out): the zoom a laptop trackpad can always make.
     const onDoubleClick = (e: MouseEvent) => {
       if (isMapControl(e.target) || toolArmedRef.current || e.button !== 0) return

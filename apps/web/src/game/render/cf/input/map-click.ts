@@ -5,6 +5,7 @@ import { hasRuinedBuildingAtWorldTile, isRuinedBuilding } from '../../../model/b
 import { lineageAtTerritoryTile, type TerritoryIndex } from '../../../model/territory'
 import { TILE } from '../../../model/palette'
 import { prayerAtPoint } from '../../prayer-bubbles'
+import { prayerTimeLeft } from '../../../model/prayers'
 import { resolveBuildingFootprint } from '../../building-draw/footprints'
 
 /** Everything the map needs to decide what a click at one point means. */
@@ -68,7 +69,9 @@ export function resolveMapClick(input: MapClickInput): MapClickOutcome {
 
   // A prayer bubble is a button: clicking it goes to help that tribe.
   if (input.prayerClicksEnabled && world.prayers?.length && !viewFlags.hideUI) {
-    const prayer = prayerAtPoint(world.prayers, input.mapX, input.mapY, { x: ox, y: oy }, TILE, zoom)
+    const prayer = prayerAtPoint(world.prayers, input.mapX, input.mapY, { x: ox, y: oy }, TILE, zoom, (p) =>
+      prayerTimeLeft(p, world.tick),
+    )
     if (prayer) return { kind: 'prayer', prayer }
   }
 

@@ -150,6 +150,9 @@
     "showMe": "보여 주기",
     "dismiss": "닫기"
   },
+  "prayerHover": {
+    "open": "클릭해서 열고 도와주기"
+  },
   "prayerChip": {
     "tipTitle": "기도",
     "tipBody": {
@@ -326,7 +329,9 @@
         "building": "건설",
         "crafting": "공예",
         "healing": "치료"
-      }
+      },
+      "extinct": "멸망했다",
+      "extinctCause": "멸망했다 (마지막 사망 원인: {cause})"
     },
     "why": {
       "title": "왜 이렇게 행동하는가",
@@ -376,6 +381,18 @@
       "known": "비밀 {required}개 중 {known}개를 앎",
       "worldPeople": "이 시대에 필요한 {need}명 중 세계에 {have}명이 있음 ({short}명 부족)",
       "ready": "준비됨: 세계의 다음 점검 때 시대가 옴"
+    },
+    "fallen": {
+      "diedOut": "{year}년에 멸망했다",
+      "endTitle": "마지막 기록",
+      "cause": "마지막 사망 원인: {cause}",
+      "noCause": "마지막 구성원이 죽었다",
+      "causeTag": "원인",
+      "contextTag": "배경",
+      "openOther": "그 부족의 카드 열기",
+      "marker": "{name}은(는) {year}년에 여기서 멸망했다. 카드 열기",
+      "markerCause": "{name}은(는) {year}년에 여기서 멸망했다 (마지막 사망 원인: {cause}). 카드 열기",
+      "listHeading": "멸망한 부족"
     }
   },
   "scene": {

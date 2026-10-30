@@ -1,5 +1,8 @@
 import type { OrganismState, TribePeril } from '../../shared/types'
 import { useUIStore } from '../../state/store'
+import { knownTribeName } from '../../state/worldStore'
+import { calendarAt } from '../../game/model/calendar'
+import { causeText, type FallenTribe } from '../../game/model/tribe-end'
 import { factsLine, type LineageFacts } from '../../game/model/lineage-facts'
 import { PERIL_HELP, remainingLine, visibleLineages } from '../../game/model/tribe-peril'
 import { lineageColor, lineageWord } from '../../shared/constants'
@@ -20,12 +23,22 @@ interface Props {
   lineageNames?: Record<string, string>
   peril?: TribePeril[]
   facts?: Record<string, LineageFacts>
+  /** Tribes that have died out and whose cards still open, newest first. */
+  fallen?: FallenTribe[]
   onClose: () => void
 }
 
-export function AllLineagesModal({ lineages, lineageWords, lineageNames, peril, facts, onClose }: Props) {
+export function AllLineagesModal({
+  lineages,
+  lineageWords,
+  lineageNames,
+  peril,
+  facts,
+  fallen = [],
+  onClose,
+}: Props) {
   const setFocus = useUIStore((s) => s.setFocus)
-  const tribeName = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
+  const tribeName = (lid: string) => knownTribeName(lineageNames, lid) ?? (lid ?? '').slice(0, 6)
   const brink = new Map((peril ?? []).map((p) => [p.lineage_id, p.cause]))
   const rows = visibleLineages(
     Object.entries(lineages).map(([lid, info]) => ({ lid, info, count: info.count, peril: brink.get(lid) })),
@@ -93,6 +106,39 @@ export function AllLineagesModal({ lineages, lineageWords, lineageNames, peril, 
             </div>
           ))}
         </div>
+        {fallen.length > 0 && (
+          <>
+            <div className="stats-section-title">{t('panels.tribe.fallen.listHeading')}</div>
+            <div className="lineage-list">
+              {fallen.map((f) => (
+                <div
+                  key={f.lineage}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setFocus(`lineage:${f.lineage}`)
+                    onClose()
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setFocus(`lineage:${f.lineage}`)
+                      onClose()
+                    }
+                  }}
+                  className="lineage-row all-lineages-row fallen-row"
+                >
+                  <span className="lineage-dot" style={{ background: lineageColor(f.lineage) }} />
+                  <span className="lineage-id">{tribeName(f.lineage)}</span>
+                  <span className="lineage-gen">
+                    {t('panels.tribe.fallen.diedOut', { year: calendarAt(f.tick).year })}
+                  </span>
+                  <span className="lineage-facts">{f.cause ? causeText(f.cause) : ''}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </Modal>
   )

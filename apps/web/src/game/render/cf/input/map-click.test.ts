@@ -4,6 +4,7 @@ import { TILE_ID, isWaterTile } from '../../../model/terrain-ids'
 import { hasRuinedBuildingAtWorldTile } from '../../../model/building-state'
 import { lineageAtTerritoryTile, type TerritoryIndex } from '../../../model/territory'
 import { TILE } from '../../../model/palette'
+import { prayerTimeLeft } from '../../../model/prayers'
 import { prayerAtPoint } from '../../prayer-bubbles'
 import { residentOf, resolveMapClick, type MapClickInput, type MapClickOutcome } from './map-click'
 
@@ -50,6 +51,7 @@ function legacy(input: MapClickInput): MapClickOutcome {
       { x: ox, y: oy },
       TILE,
       zoom,
+      (p) => prayerTimeLeft(p, world.tick),
     )
     if (prayer) return { kind: 'prayer', prayer }
   }

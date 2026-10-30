@@ -4,6 +4,7 @@ import { useUIStore, type ViewFlags } from '../../../state/store'
 import { useSceneStore } from '../../../state/scene'
 import type { TerritoryIndex } from '../../model/territory'
 import { TILE } from '../../model/palette'
+import { prayerTimeLeft } from '../../model/prayers'
 import { prayerAtPoint } from '../prayer-bubbles'
 import { burstForTool, type useSandboxBursts } from '../sandbox-bursts'
 import { isMapControl } from '../camera-controls'
@@ -148,7 +149,9 @@ export function useMapPointer({
       const { x: camX, y: camY, zoom } = cameraStateRef.current
       const mx = camX + (e.clientX - rect.left - dims.w / 2) / zoom
       const my = camY + (e.clientY - rect.top - dims.h / 2) / zoom
-      hovering = !!prayerAtPoint(world.prayers, mx, my, { x: ox, y: oy }, TILE, zoom)
+      hovering = !!prayerAtPoint(world.prayers, mx, my, { x: ox, y: oy }, TILE, zoom, (p) =>
+        prayerTimeLeft(p, world.tick),
+      )
     }
     if (hovering !== overPrayer) setOverPrayer(hovering)
   }

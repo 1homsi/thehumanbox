@@ -16,6 +16,8 @@
   <a href="https://github.com/1homsi/thehumanbox/releases/latest">Desktop app</a>
   &nbsp;·&nbsp;
   <a href="docs/ARCHITECTURE.md">How it works</a>
+  &nbsp;·&nbsp;
+  <a href="docs/FAQ.md">FAQ</a>
 </p>
 
 <p align="center">
@@ -51,6 +53,7 @@ thehumanbox/
 
 ## Working on the code
 
+- [docs/FAQ.md](docs/FAQ.md): how the language works (what words do, grammar, abstract words) and what tribes, states and wars are.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): what runs where, how a tick and a decision work, where each kind of change goes.
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): setup, the checks CI runs, profiling and proving a change is behaviour-neutral.
 - [docs/ADDING_ACTIONS.md](docs/ADDING_ACTIONS.md): a new action is one file and one line.
