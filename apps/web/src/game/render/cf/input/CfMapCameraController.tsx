@@ -5,6 +5,7 @@ import {
   clampMapCamera,
   doubleClickZoomTarget,
   DOUBLE_CLICK_ZOOM_MS,
+  buttonZoomTarget,
   initialMapCamera,
   isMapControl,
   MAX_MAP_ZOOM,
@@ -14,6 +15,7 @@ import {
   type MapCamera,
   type MapCommand,
 } from '../../camera-controls'
+import { prefersReducedMotion } from '../../../../shared/motion'
 import { wakeRenderLoops } from '../render-loop'
 import { drawnPersonAt } from '../picking'
 import { KEY_ZOOM_STEP, WHEEL_SPEED, commandCamera, keyboardPanDelta, panKey } from './camera-rig'
@@ -286,12 +288,20 @@ export function CfMapCameraController({
       commandRef.current = null
       stopFollowRef.current()
       if (command.kind === 'zoom' && command.smooth) {
-        // A zoom button eases about the centre. A press while the last one is still easing builds on
-        // where that one was heading, so quick presses each count in full.
+        // A zoom button eases about the centre (see buttonZoomTarget).
         const settling = tween.current
-        const from = settling ? settling.to : next.zoom
-        const to = Math.max(minZoom, Math.min(MAX_MAP_ZOOM, from * command.factor))
-        if (to !== next.zoom) {
+        const to = buttonZoomTarget(
+          next.zoom,
+          settling ? settling.to : null,
+          command.factor,
+          minZoom,
+          MAX_MAP_ZOOM,
+        )
+        if (prefersReducedMotion()) {
+          // No easing for players who asked for less motion: the new zoom at once.
+          tween.current = null
+          next = zoomMapAt(next, to, { x: containerW / 2, y: containerH / 2 }, viewport)
+        } else if (to !== next.zoom) {
           tween.current = {
             from: { ...next },
             to,

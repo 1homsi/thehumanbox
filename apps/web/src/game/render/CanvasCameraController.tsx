@@ -4,6 +4,7 @@ import {
   clampMapCamera,
   doubleClickZoomTarget,
   DOUBLE_CLICK_ZOOM_MS,
+  buttonZoomTarget,
   initialMapCamera,
   isMapControl,
   MAX_MAP_ZOOM,
@@ -13,6 +14,7 @@ import {
   type MapCamera,
   type MapCommand,
 } from './camera-controls'
+import { prefersReducedMotion } from '../../shared/motion'
 
 interface Props {
   worldW: number
@@ -202,13 +204,26 @@ export function CanvasCameraController({
           const opening = initialMapCamera({ w: worldW, h: worldH }, { w: containerW, h: containerH })
           if (opening) applyRef.current(opening)
         } else if (command.kind === 'zoom' && command.smooth) {
-          // A zoom button eases about the centre; a press while the last is easing builds on where it was heading.
+          // A zoom button eases about the centre (see buttonZoomTarget).
           const current = cameraStateRef.current
-          const to = Math.max(
+          const to = buttonZoomTarget(
+            current.zoom,
+            settling ? settling.to : null,
+            command.factor,
             minZoom,
-            Math.min(MAX_MAP_ZOOM, (settling ? settling.to : current.zoom) * command.factor),
+            MAX_MAP_ZOOM,
           )
-          if (to !== current.zoom) {
+          if (prefersReducedMotion()) {
+            // No easing for players who asked for less motion: the new zoom at once.
+            applyRef.current(
+              zoomMapAt(
+                current,
+                to,
+                { x: containerW / 2, y: containerH / 2 },
+                { w: containerW, h: containerH },
+              ),
+            )
+          } else if (to !== current.zoom) {
             tween.current = {
               from: { ...current },
               to,

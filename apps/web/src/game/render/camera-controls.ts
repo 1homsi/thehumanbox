@@ -113,3 +113,20 @@ export function zoomLimitAt(zoom: number, min: number, max: number): 'min' | 'ma
   if (zoom <= min * AT_LIMIT) return 'min'
   return null
 }
+
+/**
+ * Where a zoom-button press takes the camera. A press while an earlier one is still easing builds on
+ * where that one was heading, so quick presses each count in full, but only in the same direction: a
+ * press the other way starts from where the camera is now, so it never moves the wrong way.
+ */
+export function buttonZoomTarget(
+  current: number,
+  settlingTo: number | null,
+  factor: number,
+  min: number,
+  max: number,
+): number {
+  const sameWay = settlingTo !== null && Math.sign(settlingTo - current) === Math.sign(factor - 1)
+  const from = sameWay ? settlingTo : current
+  return Math.max(min, Math.min(max, from * factor))
+}

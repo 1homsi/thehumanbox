@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { MapControls } from './MapControls'
-import { BUTTON_ZOOM_STEP, zoomLimitAt, type MapCommand } from './camera-controls'
+import { BUTTON_ZOOM_STEP, buttonZoomTarget, zoomLimitAt, type MapCommand } from './camera-controls'
 import { loadLocale, t } from '../../i18n'
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
@@ -59,6 +59,15 @@ describe('MapControls', () => {
 describe('zoom limits', () => {
   it('zooms by a step big enough to see', () => {
     expect(BUTTON_ZOOM_STEP).toBeGreaterThanOrEqual(1.5)
+  })
+
+  it('builds quick presses on the zoom already heading there, but never zooms the wrong way', () => {
+    expect(buttonZoomTarget(1, null, 1.6, 0.2, 8)).toBeCloseTo(1.6)
+    // Still easing in towards 2.56: another press in goes on from there.
+    expect(buttonZoomTarget(1.4, 2.56, 1.6, 0.2, 8)).toBeCloseTo(4.096)
+    // A press out while easing in starts from where the camera is, so it zooms out.
+    expect(buttonZoomTarget(1.4, 2.56, 1 / 1.6, 0.2, 8)).toBeCloseTo(0.875)
+    expect(buttonZoomTarget(6, 7, 1.6, 0.2, 8)).toBe(8)
   })
 
   it('names the limit the camera is at', () => {
