@@ -53,6 +53,8 @@ fn main() {
         profile_every,
         summon_wolves,
         summon_at,
+        load,
+        save,
     } = args::parse();
 
     if world_report {
@@ -93,7 +95,14 @@ fn main() {
     );
     println!("{}", "-".repeat(80));
 
-    let mut sim = Simulation::new(seed);
+    // A run from a saved world (see scripts/sim-compare.sh) skips the ticks every comparison shares.
+    let mut sim = match load.as_deref() {
+        Some(path) => Simulation::load_strict(seed, path).unwrap_or_else(|err| {
+            eprintln!("--load {path}: {err}");
+            std::process::exit(2);
+        }),
+        None => Simulation::new(seed),
+    };
     let mut peak_pop = 0usize;
     let mut thought_freq: HashMap<String, u64> = HashMap::new();
     let mut trace_writer = trace_out.as_ref().map(|path| {
@@ -246,6 +255,13 @@ fn main() {
 
             let json_bytes = sim.state_json().to_string().len();
             json_sizes_bytes.push(json_bytes);
+        }
+    }
+
+    if let Some(path) = save.as_deref() {
+        if let Err(err) = sim.save_result(path) {
+            eprintln!("--save {path}: {err}");
+            std::process::exit(2);
         }
     }
 

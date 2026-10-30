@@ -215,6 +215,34 @@ const ESTIMATE_PER_TILE: i32 = 14;
 /// A remembered route toward a goal, followed one waypoint per step so the
 /// next tick cannot undo the last one (the cause of people pacing between
 /// two tiles in front of a mountain).
+/// A walker's [`RouteCache`] behind a lock, so the world can be read from several threads at once (see
+/// `sim::par`). Each walker's cache is only ever touched by the thread working that walker, so the lock is
+/// never contended; it is there to make sharing the world sound, not to coordinate anything.
+#[derive(Default, Debug)]
+pub struct RouteCell(std::sync::Mutex<RouteCache>);
+
+impl RouteCell {
+    pub fn borrow_mut(&self) -> std::sync::MutexGuard<'_, RouteCache> {
+        self.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    pub fn borrow(&self) -> std::sync::MutexGuard<'_, RouteCache> {
+        self.borrow_mut()
+    }
+
+    pub fn get_mut(&mut self) -> &mut RouteCache {
+        self.0
+            .get_mut()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+}
+
+impl Clone for RouteCell {
+    fn clone(&self) -> Self {
+        RouteCell(std::sync::Mutex::new(self.borrow().clone()))
+    }
+}
+
 #[derive(Default, Clone, Debug)]
 pub struct RouteCache {
     pub goal: (i32, i32),

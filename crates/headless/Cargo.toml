@@ -11,3 +11,9 @@ path = "src/main.rs"
 [dependencies]
 sim-core   = { path = "../sim-core" }
 serde_json = "1"
+
+[features]
+# Spread a tick across cores, as the desktop and the server do. `--no-default-features` runs it on one
+# thread, as the web build does; both must give the same world.
+default = ["parallel"]
+parallel = ["sim-core/parallel"]

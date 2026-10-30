@@ -8,7 +8,7 @@ name = "simulation-rs"
 path = "src/main.rs"
 
 [dependencies]
-sim-core    = { path = "../../crates/sim-core" }
+sim-core    = { path = "../../crates/sim-core", features = ["parallel"] }
 tokio       = { version = "1",   features = ["full"] }
 axum        = { version = "0.8", features = ["ws"] }
 serde       = { version = "1",   features = ["derive"] }

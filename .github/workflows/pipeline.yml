@@ -242,7 +242,9 @@ jobs:
         with:
           workspaces: . -> target
       - name: Build headless benchmark
-        run: cargo build --release --locked --bin headless
+        # One thread, as the web build runs: the budget guards what a browser pays per tick, and a runner's
+        # cores would otherwise hide a slower tick.
+        run: cargo build --release --locked --bin headless --no-default-features
       - name: Enforce multi-seed tick budget
         run: scripts/perf-gate.sh
 

@@ -12,7 +12,7 @@ use super::*;
 pub struct BuildingList {
     items: Vec<Building>,
     version: u64,
-    index: std::cell::RefCell<PositionIndex>,
+    index: std::sync::RwLock<PositionIndex>,
 }
 
 /// Side of an index cell, in tiles.
@@ -84,10 +84,26 @@ impl BuildingList {
         radius: i32,
         mut visit: impl FnMut(usize, &Building) -> bool,
     ) -> bool {
-        let mut index = self.index.borrow_mut();
-        if index.built_for != Some(self.version) {
-            index.rebuild(&self.items, self.version);
+        // Many threads may read at once (see `sim::par`); only a stale index takes the write lock to rebuild.
+        let stale = self
+            .index
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .built_for
+            != Some(self.version);
+        if stale {
+            let mut index = self
+                .index
+                .write()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            if index.built_for != Some(self.version) {
+                index.rebuild(&self.items, self.version);
+            }
         }
+        let index = self
+            .index
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let (x0, y0) = index.cell(x - radius, y - radius);
         let (x1, y1) = index.cell(x + radius, y + radius);
         for cy in y0..=y1 {

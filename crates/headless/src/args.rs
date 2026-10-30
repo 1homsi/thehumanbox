@@ -18,6 +18,10 @@ pub(super) struct Args {
     /// `--summon-wolves N --summon-at T`: at tick T the player summons N wolves beside the first living person.
     pub(super) summon_wolves: u32,
     pub(super) summon_at: u64,
+    /// `--load <path>`: start from a saved world instead of a new one (`--ticks` is still the tick to stop at).
+    pub(super) load: Option<String>,
+    /// `--save <path>`: write the world there when the run ends, to start later runs from.
+    pub(super) save: Option<String>,
 }
 
 pub(super) fn parse() -> Args {
@@ -104,6 +108,14 @@ pub(super) fn parse() -> Args {
         .and_then(|i| args.get(i + 1))
         .and_then(|s| s.parse().ok())
         .unwrap_or(6_000);
+    let path_after = |flag: &str| {
+        args.iter()
+            .position(|a| a == flag)
+            .and_then(|i| args.get(i + 1))
+            .cloned()
+    };
+    let load = path_after("--load");
+    let save = path_after("--save");
     Args {
         seed,
         max_ticks,
@@ -121,5 +133,7 @@ pub(super) fn parse() -> Args {
         profile_every,
         summon_wolves,
         summon_at,
+        load,
+        save,
     }
 }

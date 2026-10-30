@@ -391,17 +391,45 @@ impl Simulation {
             }
         }
         self.separate_crowds();
-        for i in 0..self.organisms.len() {
+        // A person's turn runs in three passes over everyone. First they all sense, in order (setup and
+        // threats, which write to them); then they all choose at once, on all cores (see `sim::par`), from
+        // the world as the choosing begins; then each acts on their choice, in order, as before.
+        let n = self.organisms.len();
+        let mut sensed: Vec<Option<organism_tick::Sensed>> = Vec::with_capacity(n);
+        {
+            let cx = organism_tick::TurnContext {
+                lineage_counts: &lineage_counts,
+                spatial: &spatial,
+                animal_spatial: &animal_spatial,
+                org_idx_by_id: &org_idx_by_id,
+            };
+            for i in 0..n {
+                sensed.push(self.organisms[i].alive.then(|| {
+                    self.org_sense(i, population_slots_used, &cx, &mut buffers, &mut lineage_members)
+                }));
+            }
+        }
+        let tick_seed: u64 = self.rng.random();
+        let mut choices = self.choose_all(&sensed, &spatial, tick_seed);
+        for i in 0..n {
+            let (Some(sense), Some(choice)) = (sensed[i].take(), choices[i].take()) else {
+                continue;
+            };
+            // Someone killed earlier this tick, after they chose, takes no turn.
             if self.organisms[i].alive {
                 let prev_len = self.organisms.len();
-                self.tick_organism(
-                    i,
+                let cx = organism_tick::TurnContext {
+                    lineage_counts: &lineage_counts,
+                    spatial: &spatial,
+                    animal_spatial: &animal_spatial,
+                    org_idx_by_id: &org_idx_by_id,
+                };
+                self.org_turn(
+                    sense,
+                    choice,
                     population_slots_used,
-                    &lineage_counts,
-                    &spatial,
-                    &animal_spatial,
+                    &cx,
                     &mut buffers,
-                    &org_idx_by_id,
                     &mut lineage_members,
                 );
 

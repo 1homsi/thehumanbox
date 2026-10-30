@@ -135,7 +135,7 @@ pub struct Organism {
     /// Today's stint of everyday work, if any (see `sim::agents::daily_work`). Runtime only.
     pub work: Option<crate::sim::agents::daily_work::WorkPlan>,
     /// Remembered route around obstacles; runtime only, never saved.
-    pub route: std::cell::RefCell<super::navigation::RouteCache>,
+    pub route: super::navigation::RouteCell,
     pub last_groomed: u64,
     pub last_fed_kin: u64,
     pub last_ancestral_thought: u64,
