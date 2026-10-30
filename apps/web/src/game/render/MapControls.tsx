@@ -1,5 +1,11 @@
-import { useEffect, useState, type MutableRefObject } from 'react'
-import { BUTTON_ZOOM_STEP, zoomLimitAt, type MapCommand } from './camera-controls'
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react'
+import {
+  BUTTON_ZOOM_STEP,
+  DOUBLE_CLICK_ZOOM_MS,
+  buttonZoomTarget,
+  zoomLimitAt,
+  type MapCommand,
+} from './camera-controls'
 import { t } from '../../i18n'
 import './map-controls.css'
 
@@ -21,7 +27,7 @@ interface Props {
  * the keyboard do not exist.
  */
 export function MapControls({ commandRef, cameraRef, zoomRange, onLocate }: Props) {
-  const limit = useZoomLimit(cameraRef, zoomRange)
+  const { limit, pressed } = useZoomLimit(cameraRef, zoomRange)
   const icon = (variant: string) => (
     <span className={`map-control-icon map-control-icon--${variant}`} aria-hidden="true" />
   )
@@ -40,6 +46,7 @@ export function MapControls({ commandRef, cameraRef, zoomRange, onLocate }: Prop
         disabled={limit === 'max'}
         onClick={press(() => {
           commandRef.current = { kind: 'zoom', factor: BUTTON_ZOOM_STEP, smooth: true }
+          pressed(BUTTON_ZOOM_STEP)
         })}
       >
         {icon('in')}
@@ -52,6 +59,7 @@ export function MapControls({ commandRef, cameraRef, zoomRange, onLocate }: Prop
         disabled={limit === 'min'}
         onClick={press(() => {
           commandRef.current = { kind: 'zoom', factor: 1 / BUTTON_ZOOM_STEP, smooth: true }
+          pressed(1 / BUTTON_ZOOM_STEP)
         })}
       >
         {icon('out')}
@@ -80,20 +88,41 @@ export function MapControls({ commandRef, cameraRef, zoomRange, onLocate }: Prop
   )
 }
 
-/** Which zoom limit the camera is at, if either; checked a few times a second while shown. */
+/**
+ * Which zoom limit the camera is at, if either; checked a few times a second while shown. A press
+ * counts at once: while its ease runs, the limit is judged by where the camera is heading, so a
+ * press that reaches a limit greys its button straight away instead of leaving one more dead press.
+ */
 function useZoomLimit(
   cameraRef: MutableRefObject<{ zoom: number }> | undefined,
   range: { min: number; max: number } | undefined,
-): 'min' | 'max' | null {
+): { limit: 'min' | 'max' | null; pressed: (factor: number) => void } {
   const [limit, setLimit] = useState<'min' | 'max' | null>(null)
+  const heading = useRef<{ zoom: number; until: number } | null>(null)
   const min = range?.min
   const max = range?.max
-  useEffect(() => {
+  const check = useCallback(() => {
     if (!cameraRef || min === undefined || max === undefined) return
-    const check = () => setLimit(zoomLimitAt(cameraRef.current.zoom, min, max))
+    const pending = heading.current && performance.now() < heading.current.until ? heading.current.zoom : null
+    if (pending === null) heading.current = null
+    setLimit(zoomLimitAt(pending ?? cameraRef.current.zoom, min, max))
+  }, [cameraRef, min, max])
+  useEffect(() => {
     check()
     const timer = window.setInterval(check, 150)
     return () => window.clearInterval(timer)
-  }, [cameraRef, min, max])
-  return limit
+  }, [check])
+  const pressed = useCallback(
+    (factor: number) => {
+      if (!cameraRef || min === undefined || max === undefined) return
+      const now = performance.now()
+      const settling = heading.current && now < heading.current.until ? heading.current.zoom : null
+      // The same target the camera computes for this press; the margin covers the frame that starts the ease.
+      const zoom = buttonZoomTarget(cameraRef.current.zoom, settling, factor, min, max)
+      heading.current = { zoom, until: now + DOUBLE_CLICK_ZOOM_MS + 100 }
+      check()
+    },
+    [cameraRef, min, max, check],
+  )
+  return { limit, pressed }
 }

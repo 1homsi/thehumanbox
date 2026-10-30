@@ -87,6 +87,32 @@ describe('zoom limits', () => {
     expect(out.button('Zoom out')!.disabled).toBe(true)
     out.unmount()
   })
+
+  it('greys out zoom in as soon as a press heads for the limit, before the camera gets there', () => {
+    // 5 x 1.6 = 8: this press reaches the most zoomed-in while the camera is still easing from 5.
+    const cameraRef = { current: { zoom: 5 } }
+    const { button, unmount } = mount({ cameraRef, zoomRange: { min: 0.2, max: 8 } })
+    expect(button('Zoom in')!.disabled).toBe(false)
+    act(() => button('Zoom in')!.click())
+    expect(button('Zoom in')!.disabled).toBe(true)
+    expect(button('Zoom out')!.disabled).toBe(false)
+    unmount()
+  })
+
+  it('judges by the camera again once the ease is over, so a wheel zoom back out re-enables the button', () => {
+    vi.useFakeTimers()
+    try {
+      const cameraRef = { current: { zoom: 5 } }
+      const { button, unmount } = mount({ cameraRef, zoomRange: { min: 0.2, max: 8 } })
+      act(() => button('Zoom in')!.click())
+      expect(button('Zoom in')!.disabled).toBe(true)
+      act(() => vi.advanceTimersByTime(600))
+      expect(button('Zoom in')!.disabled).toBe(false)
+      unmount()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('MapControls in another language', () => {
