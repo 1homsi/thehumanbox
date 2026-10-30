@@ -5,7 +5,7 @@ describe('local-player copy', () => {
   it('describes every local runtime as owned and device-backed', () => {
     const steps = welcomeStepsFor('local')
     expect(steps[0].title).toBe('You are their god')
-    expect(steps[steps.length - 1].body).toContain('runs and saves on this device')
+    expect(steps[steps.length - 1].body).toContain('bubble')
     expect(tourWorldCopy('local').closing).toContain('saves on this device')
     expect(worldsIntroCopy('local', true)).toContain('saved on this computer')
   })

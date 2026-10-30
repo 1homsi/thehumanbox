@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { startTour, isTourSupported, preloadTour } from '../tour/tour'
-import { useIsMobile } from '../../shared/hooks/useIsMobile'
 import { useSimulationData } from '../../simulation/simulationData'
 import { welcomeStepsFor } from '../../simulation/playerWorldCopy'
 import { LOCALES, nativeName, t } from '../../i18n'
@@ -11,8 +9,6 @@ const STORAGE_KEY = 'thb-welcome-seen-v1'
 export function WelcomeModal() {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0)
-  const isMobile = useIsMobile()
-  const tourAvailable = !isMobile && isTourSupported()
   const { playerWorldKind } = useSimulationData()
   const steps = welcomeStepsFor(playerWorldKind)
   const cardRef = useRef<HTMLDivElement>(null)
@@ -28,25 +24,15 @@ export function WelcomeModal() {
     if (!seen) setOpen(true)
   }, [])
 
-  // Fetch the tour code while the welcome steps are being read.
-  useEffect(() => {
-    if (open && tourAvailable) preloadTour()
-  }, [open, tourAvailable])
-
-  const finish = useCallback(
-    (withTour: boolean) => {
-      try {
-        window.localStorage.setItem(STORAGE_KEY, '1')
-      } catch {
-        /* ignore */
-      }
-      setOpen(false)
-      if (withTour) {
-        window.setTimeout(() => startTour(playerWorldKind), 350)
-      }
-    },
-    [playerWorldKind],
-  )
+  // One click or Escape ends the card for good. The guided tour is not offered here: it stays in Settings and the command palette.
+  const finish = useCallback(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, '1')
+    } catch {
+      /* ignore */
+    }
+    setOpen(false)
+  }, [])
 
   // The card is a modal: Escape skips it, and Tab cycles between its buttons instead of
   // leaving for the page behind the backdrop. The keys listen on the document because a
@@ -65,7 +51,7 @@ export function WelcomeModal() {
       if (owned) return
       if (e.key === 'Escape') {
         e.preventDefault()
-        finish(false)
+        finish()
         return
       }
       if (e.key !== 'Tab') return
@@ -96,7 +82,7 @@ export function WelcomeModal() {
   const current = steps[step]
 
   const next = () => {
-    if (isLast) finish(false)
+    if (isLast) finish()
     else setStep((s) => s + 1)
   }
 
@@ -104,15 +90,11 @@ export function WelcomeModal() {
     if (step > 0) setStep((s) => s - 1)
   }
 
-  // The last card starts the game; the tour is an offer beside it, never the default.
+  // The card has one action, Start, and one way out, Skip. Back appears only once there is a step before this one.
   const secondary =
-    isLast && tourAvailable
-      ? { label: t('dialogs.welcome.quickTour'), onClick: () => finish(true) }
-      : step > 0
-        ? { label: t('dialogs.welcome.back'), onClick: back }
-        : isLast
-          ? null
-          : { label: t('dialogs.welcome.skip'), onClick: () => finish(false) }
+    step > 0
+      ? { label: t('dialogs.welcome.back'), onClick: back }
+      : { label: t('dialogs.welcome.skip'), onClick: () => finish() }
 
   return (
     <div className="welcome-backdrop" role="dialog" aria-modal="true" aria-labelledby="welcome-title">

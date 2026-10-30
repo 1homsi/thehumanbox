@@ -150,6 +150,9 @@
     "showMe": "给我看看",
     "dismiss": "关闭"
   },
+  "prayerHover": {
+    "open": "点击打开并提供帮助"
+  },
   "prayerChip": {
     "tipTitle": "祈祷",
     "tipBody": {

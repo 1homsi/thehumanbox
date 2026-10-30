@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type MutableRefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import type { WorldState } from '../../../shared/types'
 import { mapThingCard, type ThingCard } from '../../model/map-thing-card'
+import { prayerPlea, prayerTimeLeft } from '../../model/prayers'
 import { leavesTribeCard, mapThingAt, thingKey, type MapThing, type TilePoint } from '../../model/map-things'
 import { groundIsNotable, terrainAt } from '../../model/map-terrain'
 import { lineageAtTerritoryTile, type TerritoryIndex } from '../../model/territory'
@@ -9,6 +10,8 @@ import { isMapControl, screenToMap, type MapCamera, type MapSize } from '../came
 import { pickPersonAt } from '../cf/picking'
 import { CARD } from './card-style'
 import { DRAWN_THINGS } from './drawn-things'
+import { prayerAtPoint } from '../prayer-bubbles'
+import { t } from '../../../i18n'
 
 interface Props {
   world: WorldState
@@ -29,6 +32,9 @@ interface Props {
 export function ThingHoverCard({ world, cameraRef, viewport, container, enabled, territoryIndex }: Props) {
   const box = useRef<HTMLDivElement>(null)
   const [hover, setHover] = useState<MapThing | null>(null)
+  // The prayer whose bubble the pointer rests on, by id. Its card is read from the world on each render, so it
+  // goes away when the prayer is answered or expires, even while the pointer stays still.
+  const [prayerId, setPrayerId] = useState<number | null>(null)
   const latest = useRef({ world, territoryIndex })
   latest.current = { world, territoryIndex }
 
@@ -38,6 +44,7 @@ export function ThingHoverCard({ world, cameraRef, viewport, container, enabled,
     const hide = () => {
       el.style.display = 'none'
       setHover(null)
+      setPrayerId(null)
     }
     // A tool armed while a card shows takes the card down at once, not on the next pointer move.
     if (!enabled) hide()
@@ -47,29 +54,45 @@ export function ThingHoverCard({ world, cameraRef, viewport, container, enabled,
       const cx = e.clientX - bounds.left
       const cy = e.clientY - bounds.top
       const at = screenToMap(cameraRef.current, { x: cx, y: cy }, viewport)
-      if (pickPersonAt(at.x, at.y)) return hide()
       const { world: current, territoryIndex: index } = latest.current
+      // A prayer bubble is a button and wins over the person beneath it, as it does for a click.
+      const prayer = prayerAtPoint(
+        current.prayers ?? [],
+        at.x,
+        at.y,
+        { x: current.grid.origin_x ?? 0, y: current.grid.origin_y ?? 0 },
+        TILE,
+        cameraRef.current.zoom,
+        (p) => prayerTimeLeft(p, current.tick),
+      )
+      if (!prayer && pickPersonAt(at.x, at.y)) return hide()
       const point = {
         x: at.x / TILE + (current.grid.origin_x ?? 0),
         y: at.y / TILE + (current.grid.origin_y ?? 0),
       }
-      const found = mapThingAt(current, point, DRAWN_THINGS)
-      // On a tribe's land a tree or planting leaves the tribe's card in place (most of a forest is claimed).
-      const thing =
-        found &&
-        !(leavesTribeCard(found) && lineageAtTerritoryTile(index, Math.floor(point.x), Math.floor(point.y)))
-          ? found
-          : groundThingAt(current, point, index)
-      if (!thing) return hide()
-      // A thing whose card is empty (a planting of an unknown kind, a caravan that has just left) shows no box.
-      if (!mapThingCard(current, thing)) return hide()
+      if (prayer) {
+        setHover(null)
+        setPrayerId(prayer.id)
+      } else {
+        const found = mapThingAt(current, point, DRAWN_THINGS)
+        // On a tribe's land a tree or planting leaves the tribe's card in place (most of a forest is claimed).
+        const thing =
+          found &&
+          !(leavesTribeCard(found) && lineageAtTerritoryTile(index, Math.floor(point.x), Math.floor(point.y)))
+            ? found
+            : groundThingAt(current, point, index)
+        if (!thing) return hide()
+        // A thing whose card is empty (a planting of an unknown kind, a caravan that has just left) shows no box.
+        if (!mapThingCard(current, thing)) return hide()
+        setPrayerId(null)
+        setHover((prev) => (prev && thingKey(prev) === thingKey(thing) ? prev : thing))
+      }
       el.style.display = 'block'
       // Keep the box inside the map: move it back from the right and bottom edges when it would spill over.
       const maxLeft = Math.max(0, bounds.width - el.offsetWidth)
       const maxTop = Math.max(0, bounds.height - el.offsetHeight)
       el.style.left = `${Math.round(Math.min(cx + 18, maxLeft))}px`
       el.style.top = `${Math.round(Math.min(cy + 18, maxTop))}px`
-      setHover((prev) => (prev && thingKey(prev) === thingKey(thing) ? prev : thing))
     }
     container.addEventListener('pointermove', move)
     container.addEventListener('pointerleave', hide)
@@ -81,7 +104,11 @@ export function ThingHoverCard({ world, cameraRef, viewport, container, enabled,
     }
   }, [container, cameraRef, viewport, enabled])
 
-  const card = hover ? mapThingCard(world, hover) : null
+  const prayer = prayerId === null ? null : ((world.prayers ?? []).find((p) => p.id === prayerId) ?? null)
+  const card = useMemo<ThingCard | null>(() => {
+    if (prayer) return { title: prayerPlea(prayer), lines: [t('panels.prayerHover.open')] }
+    return hover ? mapThingCard(world, hover) : null
+  }, [prayer, hover, world])
   // The thing may be gone (a building fell, a caravan arrived) while the pointer still rests: hide the box then.
   useEffect(() => {
     if (!card && box.current) box.current.style.display = 'none'
