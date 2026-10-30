@@ -63,20 +63,11 @@ pub(super) fn lineage_strategy_payload(sim: &Simulation) -> serde_json::Value {
     serde_json::to_value(active_strategies).unwrap()
 }
 
-/// Each living tribe's own history, oldest first: `{lineage: [{tick, kind, other, word, x, y}]}`. A tribe
-/// that has died out is left out, since no card can show it.
+/// Each tribe's own history, oldest first: `{lineage: [{tick, kind, other, word, x, y}]}`. A tribe that has
+/// died out keeps its history too (its last entry is `extinct`), so its card and end summary stay reachable.
 pub(super) fn tribe_chronicle_payload(sim: &Simulation) -> serde_json::Value {
-    let living: crate::hashing::FxHashSet<&str> = sim
-        .organisms
-        .iter()
-        .filter(|o| o.alive)
-        .map(|o| o.lineage_id.as_str())
-        .collect();
     let mut out = serde_json::Map::new();
     for (lid, entries) in sim.tribe_chronicle.tribes() {
-        if !living.contains(lid) {
-            continue;
-        }
         let rows: Vec<serde_json::Value> = entries
             .iter()
             .map(|e| {

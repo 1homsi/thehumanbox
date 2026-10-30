@@ -336,7 +336,9 @@
         "building": "Bauen",
         "crafting": "Handwerk",
         "healing": "Heilen"
-      }
+      },
+      "extinct": "ausgestorben",
+      "extinctCause": "ausgestorben (letzter Tod: {cause})"
     },
     "why": {
       "title": "Warum sie handeln",
@@ -386,6 +388,18 @@
       "known": "{known} von {required} Geheimnissen bekannt",
       "worldPeople": "die Welt hat {have} von {need} Menschen, die dieses Zeitalter braucht ({short} fehlen)",
       "ready": "bereit: das Zeitalter kommt bei der nächsten Prüfung der Welt"
+    },
+    "fallen": {
+      "diedOut": "Erloschen im Jahr {year}",
+      "endTitle": "Wie es endete",
+      "cause": "Letzter Tod: {cause}",
+      "noCause": "Das letzte Mitglied starb",
+      "causeTag": "Ursache",
+      "contextTag": "Kontext",
+      "openOther": "Karte dieses Stammes öffnen",
+      "marker": "{name} erlosch hier im Jahr {year}. Karte öffnen",
+      "markerCause": "{name} erlosch hier im Jahr {year} (letzter Tod: {cause}). Karte öffnen",
+      "listHeading": "Erloschene Stämme"
     }
   },
   "scene": {

@@ -336,7 +336,9 @@
         "building": "la costruzione",
         "crafting": "l'artigianato",
         "healing": "la cura"
-      }
+      },
+      "extinct": "si è estinta",
+      "extinctCause": "si è estinta (ultima morte: {cause})"
     },
     "why": {
       "title": "Perché agiscono così",
@@ -386,6 +388,18 @@
       "known": "{known} segreti su {required} conosciuti",
       "worldPeople": "il mondo ha {have} delle {need} persone che questa era richiede (ne mancano {short})",
       "ready": "pronti: l'era arriva al prossimo controllo del mondo"
+    },
+    "fallen": {
+      "diedOut": "Estinta nell'anno {year}",
+      "endTitle": "Come è finita",
+      "cause": "Ultima morte: {cause}",
+      "noCause": "Il suo ultimo membro è morto",
+      "causeTag": "Causa",
+      "contextTag": "Contesto",
+      "openOther": "Apri la scheda di quella tribù",
+      "marker": "{name} si è estinta qui nell'anno {year}. Apri la scheda",
+      "markerCause": "{name} si è estinta qui nell'anno {year} (ultima morte: {cause}). Apri la scheda",
+      "listHeading": "Tribù estinte"
     }
   },
   "scene": {

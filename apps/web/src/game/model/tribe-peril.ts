@@ -61,7 +61,7 @@ export function tribeHome(
 }
 
 /** How each cause of death reads on a tribe card. */
-const LOSS_WORDS: Record<string, MessageKey> = {
+export const LOSS_WORDS: Record<string, MessageKey> = {
   war: 'model.loss.war',
   combat: 'model.loss.fights',
   beasts: 'model.loss.beasts',
