@@ -82,6 +82,7 @@ import { type ScenarioPreset } from './simulation/scenarios'
 import { setSandboxSender } from './simulation/commandBus'
 import { useSkyOverlay } from './game/render/sky-overlay'
 import { WelcomeModal } from './ui/modals/WelcomeModal'
+import { openPrayerOnMap } from './game/render/open-prayer'
 import { UpdateToast } from './ui/toasts/UpdateToast'
 import { DesktopUpdateToast } from './ui/toasts/DesktopUpdateToast'
 import { useCurrentScene } from './state/scene'
@@ -885,7 +886,7 @@ function LiveApp() {
                       return preview && 'radius' in preview ? (preview.radius ?? 0) : 0
                     })()}
                     onSandboxApply={handleSandboxApply}
-                    onPrayerClick={handleAnswerPrayer}
+                    onPrayerClick={openPrayerOnMap}
                   />
                 </Suspense>
               )}

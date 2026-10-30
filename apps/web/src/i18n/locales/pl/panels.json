@@ -153,6 +153,9 @@
     "showMe": "pokaż mi",
     "dismiss": "Zamknij"
   },
+  "prayerHover": {
+    "open": "Kliknij, aby otworzyć i pomóc"
+  },
   "prayerChip": {
     "tipTitle": "modlitwy",
     "tipBody": {
