@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSimulationData } from '../../simulation/simulationData'
 import { welcomeStepsFor } from '../../simulation/playerWorldCopy'
-import { LOCALES, nativeName, t } from '../../i18n'
+import { detectedLocale, LOCALES, nativeName, SOURCE_LOCALE, t } from '../../i18n'
 import { languageFailureText, useLanguageChoice } from './useLanguageChoice'
 
 const STORAGE_KEY = 'thb-welcome-seen-v1'
@@ -13,6 +13,9 @@ export function WelcomeModal() {
   const steps = welcomeStepsFor(playerWorldKind)
   const cardRef = useRef<HTMLDivElement>(null)
   const language = useLanguageChoice()
+  // What the browser asked for first, shown even when a saved choice is in use, so a wrong guess is visible.
+  // Null when the browser asked for no language the game has: the card says English is the fallback.
+  const detected = detectedLocale()
 
   useEffect(() => {
     let seen = true
@@ -126,6 +129,22 @@ export function WelcomeModal() {
             ))}
           </select>
         </label>
+        <div className="welcome-language-detected">
+          {detected ? (
+            <span>{t('settings.language.detected', { language: nativeName(detected) })}</span>
+          ) : (
+            // "So it's in English" is true only while it is: a chosen language says nothing about the browser.
+            language.current === SOURCE_LOCALE && <span>{t('settings.language.notDetected')}</span>
+          )}
+          <button
+            type="button"
+            className="welcome-language-english"
+            disabled={!!language.pending || language.current === SOURCE_LOCALE}
+            onClick={() => language.choose(SOURCE_LOCALE)}
+          >
+            {t('dialogs.welcome.useEnglish')}
+          </button>
+        </div>
         {language.failed && (
           <div className="welcome-language-note" role="alert">
             {languageFailureText(language.failed)}

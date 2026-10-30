@@ -104,6 +104,9 @@ test("language tags match the same code, else the same base language, else nothi
   assert.equal(matchLocale("zh-Hans-CN"), "zh-CN");
   assert.equal(matchLocale("xx-YY"), null);
   assert.equal(matchLocale("fr", ["en", "fr-CA"]), "fr-CA");
+  assert.equal(matchLocale("en_US.UTF-8"), "en");
+  assert.equal(matchLocale("C"), null);
+  assert.equal(matchLocale("POSIX"), null);
 });
 
 test("the first preferred tag that ships wins, and English is the last resort", () => {
@@ -111,6 +114,9 @@ test("the first preferred tag that ships wins, and English is the last resort", 
   assert.equal(resolveLocale(["xx", "fr-CA", "de"]), "fr");
   assert.equal(resolveLocale(["", "xx"]), "en");
   assert.equal(resolveLocale([]), "en");
+  // An English system written in POSIX form must not fall through to a later, non-English entry.
+  assert.equal(resolveLocale(["en_US.UTF-8", "de_DE"]), "en");
+  assert.equal(resolveLocale(["C", "de"]), "de");
 });
 
 test("setLocale changes the text t() returns, and an unknown code falls back to English", () => {
