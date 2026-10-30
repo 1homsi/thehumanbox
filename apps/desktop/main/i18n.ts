@@ -73,7 +73,9 @@ export function matchLocale(
   tag: string,
   available: readonly string[] = LOCALE_CODES,
 ): string | null {
-  const wanted = tag.toLowerCase();
+  // The same reading as the game's (apps/web/src/i18n): `en_US.UTF-8` is `en-US`, and `C` or `POSIX` names no language.
+  const wanted = tag.trim().split(/[.@]/)[0].replace(/_/g, "-").toLowerCase();
+  if (!wanted || wanted === "c" || wanted === "posix") return null;
   const exact = available.find((code) => code.toLowerCase() === wanted);
   if (exact) return exact;
   const base = wanted.split("-")[0];

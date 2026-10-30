@@ -1,15 +1,18 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   countValue,
+  detectedLocale,
   formatNumber,
   getLocale,
+  initI18n,
   loadLocale,
   LOCALES,
   matchLocale,
   nativeName,
+  preferredLocale,
   t,
   type Messages,
 } from './index'
@@ -225,5 +228,108 @@ describe('matchLocale', () => {
 
   it('returns null when nothing matches', () => {
     expect(matchLocale(['nl', 'sv'], available)).toBeNull()
+  })
+})
+
+/** A saved choice in place of localStorage, and a browser language list in place of navigator. */
+function startAs(languages: string[], saved: string | null = null) {
+  vi.stubGlobal('navigator', { languages, language: languages[0] })
+  vi.stubGlobal('localStorage', { getItem: () => saved, setItem: () => undefined })
+}
+
+describe('the language the game starts in', () => {
+  afterEach(async () => {
+    vi.unstubAllGlobals()
+    await loadLocale('en')
+  })
+
+  it('starts in English for an English browser with no saved choice', async () => {
+    startAs(['en-US', 'en'])
+    expect(preferredLocale()).toBe('en')
+    expect(await initI18n()).toBe('en')
+    expect(getLocale()).toBe('en')
+  })
+
+  it("takes the browser's first preferred language that the game ships", () => {
+    startAs(['en-US', 'de-DE'])
+    expect(preferredLocale()).toBe('en')
+    startAs(['de-DE', 'en-US'])
+    expect(preferredLocale()).toBe('de')
+    startAs(['nl-NL', 'fr-CA'])
+    expect(preferredLocale()).toBe('fr')
+  })
+
+  it('a saved choice beats the browser list, and detectedLocale still reports the browser', () => {
+    startAs(['en-US', 'en'], 'de')
+    expect(preferredLocale()).toBe('de')
+    expect(detectedLocale()).toBe('en')
+  })
+
+  it('a saved code the game no longer ships is ignored', () => {
+    startAs(['en-US'], 'xx')
+    expect(preferredLocale()).toBe('en')
+  })
+
+  it('reads POSIX-style tags and skips entries that name no language', () => {
+    expect(matchLocale(['en_US.UTF-8', 'de'])).toBe('en')
+    expect(matchLocale(['C', 'de'])).toBe('de')
+    expect(matchLocale(['POSIX'])).toBeNull()
+    expect(matchLocale(['', undefined, 42, 'ja'] as unknown[])).toBe('ja')
+  })
+
+  it('falls back to English when the browser gives no usable list', () => {
+    startAs([])
+    expect(preferredLocale()).toBe('en')
+    vi.stubGlobal('navigator', {})
+    expect(preferredLocale()).toBe('en')
+  })
+})
+
+describe('splash-locale.js', () => {
+  // The splash is a plain script that runs before the app, so it keeps its own copy of the matching
+  // rules. Running it here checks that it lands on the same language as the app for the same browser.
+  const splashPath = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '..',
+    '..',
+    'public',
+    'splash-locale.js',
+  )
+  const source = readFileSync(splashPath, 'utf8')
+
+  function splashLanguage(languages: string[], saved: string | null = null): string {
+    const element = () => ({ textContent: '', setAttribute: () => undefined })
+    const doc = { documentElement: { lang: '' }, getElementById: element, querySelector: element }
+    const storage = { getItem: () => saved }
+    new Function('document', 'navigator', 'localStorage', 'window', source)(
+      doc,
+      { languages, language: languages[0] },
+      storage,
+      {},
+    )
+    return doc.documentElement.lang
+  }
+
+  it('has a row for every shipped language', () => {
+    const rows = [...source.matchAll(/^\s+(?:'([^']+)'|(\w+)): \[/gm)].map((m) => m[1] ?? m[2])
+    expect(rows.sort()).toEqual([...LOCALES].sort())
+  })
+
+  it('lands on the same language as the app for the same browser lists', () => {
+    const lists = [
+      ['en-US', 'en'],
+      ['de-DE', 'en-US'],
+      ['en_US.UTF-8', 'de'],
+      ['C', 'de'],
+      ['pt-PT'],
+      ['zh-TW', 'en'],
+      ['es-MX'],
+      ['xx-YY'],
+      [],
+    ]
+    for (const list of lists) {
+      startAs(list)
+      expect(splashLanguage(list), JSON.stringify(list)).toBe(preferredLocale())
+    }
   })
 })

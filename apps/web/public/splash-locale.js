@@ -18,8 +18,10 @@
     uk: ['світ прокидається…', 'Ще триває. Великим світам може знадобитися трохи часу, щоб прокинутися.', 'перезавантажити', 'завантаження', 'Завантаження The Human Box'],
     'zh-CN': ['正在唤醒世界…', '仍在进行中。大型世界需要一点时间才能醒来。', '重新加载', '下载中', '正在加载 The Human Box']
   };
+  // The same rules as matchLocale in src/i18n/index.ts: `en_US.UTF-8` reads as `en-US`, and `C` or `POSIX` names no language.
   function match(tag) {
-    tag = String(tag).toLowerCase();
+    tag = String(tag).trim().split(/[.@]/)[0].replace(/_/g, '-').toLowerCase();
+    if (!tag || tag === 'c' || tag === 'posix') return null;
     var base = tag.split('-')[0], found = null;
     for (var c in T) {
       var l = c.toLowerCase();
@@ -30,7 +32,8 @@
   }
   var tags = [];
   try { var saved = localStorage.getItem('thb-locale'); if (saved) tags.push(saved); } catch (e) {}
-  tags = tags.concat(navigator.languages || [navigator.language || 'en']);
+  var browser = Array.isArray(navigator.languages) && navigator.languages.length ? navigator.languages : [navigator.language || 'en'];
+  tags = tags.concat(browser);
   var code = 'en';
   for (var i = 0; i < tags.length; i++) { var m = match(tags[i]); if (m) { code = m; break; } }
   var s = T[code];

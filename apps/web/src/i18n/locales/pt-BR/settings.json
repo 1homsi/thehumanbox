@@ -14,6 +14,7 @@
   "language": {
     "section": "Idioma",
     "title": "Idioma da interface",
+    "detected": "Detectado no seu navegador: {language}",
     "desc": "Menus, dicas e configurações. Nomes e tudo o que o mundo escreve continuam como estão. Ao mudar, o jogo é recarregado; seu mundo é salvo antes.",
     "failed": "não foi possível salvar o mundo antes; o idioma não foi alterado",
     "storageFailed": "não foi possível salvar a escolha neste navegador, então o idioma não mudou",

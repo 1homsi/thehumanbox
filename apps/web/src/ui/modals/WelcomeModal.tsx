@@ -3,7 +3,7 @@ import { startTour, isTourSupported, preloadTour } from '../tour/tour'
 import { useIsMobile } from '../../shared/hooks/useIsMobile'
 import { useSimulationData } from '../../simulation/simulationData'
 import { welcomeStepsFor } from '../../simulation/playerWorldCopy'
-import { LOCALES, nativeName, t } from '../../i18n'
+import { detectedLocale, LOCALES, nativeName, SOURCE_LOCALE, t } from '../../i18n'
 import { languageFailureText, useLanguageChoice } from './useLanguageChoice'
 
 const STORAGE_KEY = 'thb-welcome-seen-v1'
@@ -17,6 +17,8 @@ export function WelcomeModal() {
   const steps = welcomeStepsFor(playerWorldKind)
   const cardRef = useRef<HTMLDivElement>(null)
   const language = useLanguageChoice()
+  // What the browser asked for first, shown even when a saved choice is in use, so a wrong guess is visible.
+  const detected = detectedLocale()
 
   useEffect(() => {
     let seen = true
@@ -144,6 +146,17 @@ export function WelcomeModal() {
             ))}
           </select>
         </label>
+        <div className="welcome-language-detected">
+          <span>{t('settings.language.detected', { language: nativeName(detected) })}</span>
+          <button
+            type="button"
+            className="welcome-language-english"
+            disabled={!!language.pending || language.current === SOURCE_LOCALE}
+            onClick={() => language.choose(SOURCE_LOCALE)}
+          >
+            {t('dialogs.welcome.useEnglish')}
+          </button>
+        </div>
         {language.failed && (
           <div className="welcome-language-note" role="alert">
             {languageFailureText(language.failed)}
