@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { openingSpot } from './opening-view'
+import { claimOpeningView, openingSpot, resetOpeningView } from './opening-view'
 
 const person = (x: number, y: number, lineage_id: string, alive = true) => ({ x, y, lineage_id, alive })
 
@@ -29,5 +29,15 @@ describe('openingSpot', () => {
     const people = [person(1, 1, 'b'), person(50, 50, 'a')]
     expect(openingSpot(people)).toEqual({ x: 50, y: 50 })
     expect(openingSpot([...people].reverse())).toEqual({ x: 50, y: 50 })
+  })
+})
+
+describe('claimOpeningView', () => {
+  it('is granted once per page load', () => {
+    resetOpeningView()
+    expect(claimOpeningView()).toBe(true)
+    expect(claimOpeningView()).toBe(false)
+    resetOpeningView()
+    expect(claimOpeningView()).toBe(true)
   })
 })

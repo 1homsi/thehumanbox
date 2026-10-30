@@ -7,7 +7,7 @@ import { useCameraFocus } from '../../state/camera-focus'
 import { t } from '../../i18n'
 import { buildTerritoryIndex } from '../model/territory'
 import { TILE } from '../model/palette'
-import { openingSpot } from '../model/opening-view'
+import { claimOpeningView, openingSpot } from '../model/opening-view'
 import { CanvasCameraController } from './CanvasCameraController'
 import { World2DErrorBoundary } from './World2DErrorBoundary'
 import { WorldMapHud } from './WorldMapHud'
@@ -128,13 +128,13 @@ export function WorldView({
   } = useRendererBackend({ rendererPaused, containerRef, dims })
 
   // The first view is the biggest tribe up close, at a size where people and huts can be told apart.
-  // "Fit world" (or 0) still shows the whole map. Once per mount, so it never fights the player.
-  const openedOnPeople = useRef(false)
+  // Once per page load: coming back out of a home remounts the map, and that must not pull the camera
+  // away from where the player was. A focus already asked for (the prayer list) wins over it.
   useEffect(() => {
-    if (openedOnPeople.current || !mapReady) return
+    if (!mapReady || !claimOpeningView()) return
+    if (useCameraFocus.getState().request) return
     const spot = openingSpot(world.organisms)
     if (!spot) return
-    openedOnPeople.current = true
     const { ox, oy } = originRef.current
     commandRef.current = { kind: 'focus', x: (spot.x - ox + 0.5) * TILE, y: (spot.y - oy + 0.5) * TILE }
   }, [mapReady, world.organisms])

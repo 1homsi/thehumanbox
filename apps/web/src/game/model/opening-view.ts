@@ -45,3 +45,20 @@ export function openingSpot(people: readonly PlacedPerson[]): { x: number; y: nu
   }
   return { x: nearest.x, y: nearest.y }
 }
+
+let openingViewUsed = false
+
+/**
+ * True the first time it is asked in a page load, false after: the opening view is shown once, not
+ * each time the map remounts (coming back out of a home does that).
+ */
+export function claimOpeningView(): boolean {
+  if (openingViewUsed) return false
+  openingViewUsed = true
+  return true
+}
+
+/** For tests: the next map to open shows the opening view again. */
+export function resetOpeningView(): void {
+  openingViewUsed = false
+}
