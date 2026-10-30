@@ -6,6 +6,7 @@ import { FamineWarningToast } from './FamineWarningToast'
 import { useCameraFocus } from '../../state/camera-focus'
 import { useUIStore } from '../../state/store'
 import { useTribeFollow } from '../../state/tribe-follow'
+import { useWorldReplaced } from '../../state/world-replaced'
 import { t } from '../../i18n'
 import type { WorldState } from '../../shared/types'
 
@@ -109,6 +110,25 @@ describe('FamineWarningToast', () => {
     const { host, rerender } = mount(world(100, 0.8))
     rerender(world(200, 0.1))
     rerender(world(50, 0.1))
+    expect(host.querySelector('.famine-toast')).toBeNull()
+  })
+
+  it('a world swapped in mid-session drops the waiting warning and is only learned, not warned about', () => {
+    const { host, rerender } = mount(world(100, 0.8))
+    rerender(world(200, 0.1))
+    expect(host.querySelector('.famine-toast')).not.toBeNull()
+    act(() => useWorldReplaced.getState().bump())
+    expect(host.querySelector('.famine-toast')).toBeNull()
+    // Same seed, a later tick, already hungry: the restored world is learned, not announced.
+    rerender(world(300, 0.1))
+    expect(host.querySelector('.famine-toast')).toBeNull()
+  })
+
+  it('limiting warnings to followed tribes drops a waiting warning for a tribe not followed', () => {
+    const { host, rerender } = mount(world(100, 0.8))
+    rerender(world(200, 0.1))
+    expect(host.querySelector('.famine-toast')).not.toBeNull()
+    act(() => useTribeFollow.setState({ followed: [], warnFollowedOnly: true }))
     expect(host.querySelector('.famine-toast')).toBeNull()
   })
 })

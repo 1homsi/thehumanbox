@@ -87,6 +87,10 @@ export function watchFamine(
     if (!before || RANK[stage] > RANK[before]) {
       warnings.push({ lineage, stage })
       announced.set(lineage, stage)
+    } else if (RANK[stage] < RANK[before]) {
+      // Easing off (losing people, then only at risk) is not warned about, but is remembered, so falling back
+      // to the worse stage warns again.
+      announced.set(lineage, stage)
     }
   }
   // A tribe that has recovered may be warned again later. A tribe that is gone stays warned.
@@ -122,6 +126,7 @@ export function enqueueFamine(
     singles.splice(0, singles.length - room)
   }
   if (extra === 0) return singles
-  const id = summary?.id ?? added[added.length - 1].id
+  // A summary's id is negative, so it never matches a warning's (those count up from 1).
+  const id = summary?.id ?? -added[added.length - 1].id
   return [...singles, { id, lineage: null, stage: 'risk', count: extra }]
 }

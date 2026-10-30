@@ -13,6 +13,7 @@ import { useUIStore } from '../../state/store'
 import { useTribeFollow } from '../../state/tribe-follow'
 import { knownTribeName } from '../../state/worldStore'
 import { getOwnWorldSeed } from '../../simulation/worldSource'
+import { useWorldReplaced } from '../../state/world-replaced'
 import { screenBusy, TOAST_RETRY_MS } from './screenBusy'
 import './famine-toast.css'
 
@@ -74,6 +75,29 @@ export function FamineWarningToast({ world }: { world: WorldState | null }) {
     const added = due.map((w) => ({ id: nextId.current++, lineage: w.lineage, stage: w.stage, count: 1 }))
     setQueue((q) => enqueueFamine(q, added, MAX_QUEUED))
   }, [world])
+
+  // A world swapped in mid-session (a save restored, a recovery copy) is only learned, never warned about.
+  const replaced = useWorldReplaced((st) => st.generation)
+  const replacedSeen = useRef(replaced)
+  useEffect(() => {
+    if (replaced === replacedSeen.current) return
+    replacedSeen.current = replaced
+    watch.current = null
+    seen.current = null
+    setQueue([])
+  }, [replaced])
+
+  // Warnings still waiting follow the follow settings as they change: a tribe unfollowed, or warnings limited
+  // to followed tribes, drops its waiting warnings. The "N more" summary stays.
+  const warnFollowedOnly = useTribeFollow((st) => st.warnFollowedOnly)
+  const followed = useTribeFollow((st) => st.followed)
+  useEffect(() => {
+    if (!warnFollowedOnly) return
+    setQueue((q) => {
+      const kept = q.filter((w) => w.lineage === null || followed.includes(w.lineage))
+      return kept.length === q.length ? q : kept
+    })
+  }, [warnFollowedOnly, followed])
 
   // A warning that is due waits while the screen is busy; a look again happens on a timer.
   useEffect(() => {

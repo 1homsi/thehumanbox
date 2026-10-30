@@ -106,6 +106,18 @@ describe('watchFamine', () => {
     expect(again.warnings).toEqual([{ lineage: 'a', stage: 'risk' }])
   })
 
+  it('a tribe that eases from losing people back to risk is warned again when it starts losing people again', () => {
+    const hunger = { tribes_in_peril: [{ lineage_id: 'a', cause: 'hunger' }] } as unknown as Parameters<
+      typeof frame
+    >[2]
+    let watch: FamineWatch | null = watchFamine(null, frame(100, { a: 0.8 })).watch
+    watch = watchFamine(watch, frame(200, { a: 0.1 }, hunger)).watch
+    const eased = watchFamine(watch, frame(300, { a: 0.1 }))
+    expect(eased.warnings).toEqual([])
+    const again = watchFamine(eased.watch, frame(400, { a: 0.1 }, hunger))
+    expect(again.warnings).toEqual([{ lineage: 'a', stage: 'losing' }])
+  })
+
   it('a new world (time went back) starts the watch afresh', () => {
     const first = watchFamine(null, frame(900, { a: 0.8 })).watch
     const replaced = watchFamine(first, frame(10, { a: 0.1 }))
@@ -126,6 +138,8 @@ describe('enqueueFamine', () => {
     expect(queue).toHaveLength(5)
     expect(queue.slice(0, 4).map((q) => q.lineage)).toEqual(['t3', 't4', 't5', 't6'])
     expect(queue[4]).toMatchObject({ lineage: null, count: 2 })
+    // Dismissing one warning by id must never take the summary with it.
+    expect(new Set(queue.map((q) => q.id)).size).toBe(queue.length)
   })
 
   it('adds to the summary already waiting rather than adding a second one', () => {
