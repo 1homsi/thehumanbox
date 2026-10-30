@@ -34,6 +34,8 @@
   transform: translateX(-50%);
   z-index: 40;
   width: min(260px, calc(100vw - 32px));
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
   padding: 8px 10px 10px;
   background: var(--px-wood, #2c231f);
   color: var(--px-text, #f2e6cc);
