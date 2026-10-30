@@ -1,3 +1,24 @@
+/* Where a tribe that died out lost its last member: a small grave mark, outlined in the tribe's colour. */
+.fallen-marker {
+  position: absolute;
+  z-index: 10;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid;
+  border-radius: 50%;
+  background: rgba(30, 25, 20, 0.86);
+  color: #f0e6d2;
+  font-size: 11px;
+  line-height: 15px;
+  text-align: center;
+  cursor: pointer;
+}
+.fallen-marker:hover,
+.fallen-marker:focus-visible {
+  transform: translate(-50%, -50%) scale(1.25);
+}
 .map2d-brush {
   display: none;
   pointer-events: none;

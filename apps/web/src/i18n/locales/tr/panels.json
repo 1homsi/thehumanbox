@@ -336,7 +336,9 @@
         "building": "inşaat",
         "crafting": "zanaat",
         "healing": "şifacılık"
-      }
+      },
+      "extinct": "tükendi",
+      "extinctCause": "tükendi (son ölüm: {cause})"
     },
     "why": {
       "title": "Neden böyle davranıyorlar",
@@ -393,6 +395,18 @@
       "food": "Yiyecek",
       "health": "Sağlık",
       "notEnough": "Henüz yeterli geçmiş yok. Dünya ilerledikçe grafikler dolar."
+    },
+    "fallen": {
+      "diedOut": "{year} yılında tükendi",
+      "endTitle": "Nasıl bitti",
+      "cause": "Son ölüm: {cause}",
+      "noCause": "Son üyesi öldü",
+      "causeTag": "Neden",
+      "contextTag": "Bağlam",
+      "openOther": "O kabilenin kartını aç",
+      "marker": "{name} {year} yılında burada tükendi. Kartını aç",
+      "markerCause": "{name} {year} yılında burada tükendi (son ölüm: {cause}). Kartını aç",
+      "listHeading": "Tükenen kabileler"
     }
   },
   "scene": {

@@ -51,15 +51,35 @@ describe('recordTribeSeries', () => {
     expect(series.has('a')).toBe(false)
     expect(series.get('b')?.[0]?.tick).toBe(10)
   })
+
+  it('a save loaded between two samples still clears the old world, judged by the last tick seen', () => {
+    const series: TribeSeries = new Map()
+    const state = { lastTick: -Infinity }
+    recordTribeSeries(series, state, { tick: 900, organisms: [org('a', 0.5, 0.5)] })
+    // A frame that is too soon to sample, then a save from between them.
+    expect(recordTribeSeries(series, state, { tick: 1190, organisms: [org('a', 0.5, 0.5)] })).toBe(false)
+    recordTribeSeries(series, state, { tick: 1000, organisms: [org('b', 0.5, 0.5)] })
+    expect(series.has('a')).toBe(false)
+    expect(series.get('b')?.[0]?.tick).toBe(1000)
+  })
 })
 
 describe('seriesPoints', () => {
+  const at = (...pairs: [number, number][]) => pairs.map(([tick, value]) => ({ tick, value }))
+
   it('scales to the fixed range, so a steady value is a flat line', () => {
-    expect(seriesPoints([0.5, 0.5], 100, 20, 0, 1)).toBe('0.0,10.0 100.0,10.0')
-    expect(seriesPoints([0, 1], 100, 20, 0, 1)).toBe('0.0,19.0 100.0,1.0')
+    expect(seriesPoints(at([0, 0.5], [300, 0.5]), 100, 20, 0, 1, 0, 300)).toBe('0.0,10.0 100.0,10.0')
+    expect(seriesPoints(at([0, 0], [300, 1]), 100, 20, 0, 1, 0, 300)).toBe('0.0,19.0 100.0,1.0')
+  })
+
+  it('places each point by its tick, so uneven gaps between samples stay uneven', () => {
+    // Samples at 0, 300 and 1200: the middle one sits a quarter of the way across, not half.
+    expect(seriesPoints(at([0, 0], [300, 0], [1200, 0]), 100, 20, 0, 1, 0, 1200)).toBe(
+      '0.0,19.0 25.0,19.0 100.0,19.0',
+    )
   })
 
   it('draws nothing for fewer than two points', () => {
-    expect(seriesPoints([3], 100, 20, 0, 5)).toBe('')
+    expect(seriesPoints(at([0, 3]), 100, 20, 0, 5, 0, 0)).toBe('')
   })
 })

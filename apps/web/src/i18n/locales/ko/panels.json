@@ -329,7 +329,9 @@
         "building": "건설",
         "crafting": "공예",
         "healing": "치료"
-      }
+      },
+      "extinct": "멸망했다",
+      "extinctCause": "멸망했다 (마지막 사망 원인: {cause})"
     },
     "why": {
       "title": "왜 이렇게 행동하는가",
@@ -386,6 +388,18 @@
       "food": "식량",
       "health": "건강",
       "notEnough": "아직 기록이 부족합니다. 세상이 흘러가면서 그래프가 채워집니다."
+    },
+    "fallen": {
+      "diedOut": "{year}년에 멸망했다",
+      "endTitle": "마지막 기록",
+      "cause": "마지막 사망 원인: {cause}",
+      "noCause": "마지막 구성원이 죽었다",
+      "causeTag": "원인",
+      "contextTag": "배경",
+      "openOther": "그 부족의 카드 열기",
+      "marker": "{name}은(는) {year}년에 여기서 멸망했다. 카드 열기",
+      "markerCause": "{name}은(는) {year}년에 여기서 멸망했다 (마지막 사망 원인: {cause}). 카드 열기",
+      "listHeading": "멸망한 부족"
     }
   },
   "scene": {

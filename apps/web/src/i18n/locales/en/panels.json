@@ -342,7 +342,9 @@
         "building": "building",
         "crafting": "crafting",
         "healing": "healing"
-      }
+      },
+      "extinct": "died out",
+      "extinctCause": "died out (last death: {cause})"
     },
     "why": {
       "title": "Why they act",
@@ -399,6 +401,18 @@
       "food": "Food",
       "health": "Health",
       "notEnough": "Not enough history yet. The charts fill in as the world runs."
+    },
+    "fallen": {
+      "diedOut": "Died out in year {year}",
+      "endTitle": "How it ended",
+      "cause": "Last death: {cause}",
+      "noCause": "Its last member died",
+      "causeTag": "Cause",
+      "contextTag": "Context",
+      "openOther": "Open that tribe's card",
+      "marker": "{name} died out here in year {year}. Open its card",
+      "markerCause": "{name} died out here in year {year} (last death: {cause}). Open its card",
+      "listHeading": "Tribes that died out"
     }
   },
   "scene": {

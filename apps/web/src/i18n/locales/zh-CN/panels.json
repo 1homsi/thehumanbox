@@ -329,7 +329,9 @@
         "building": "营建",
         "crafting": "手艺",
         "healing": "医治"
-      }
+      },
+      "extinct": "灭绝了",
+      "extinctCause": "灭绝了（最后一个人的死因：{cause}）"
     },
     "why": {
       "title": "行动的缘由",
@@ -386,6 +388,18 @@
       "food": "食物",
       "health": "健康",
       "notEnough": "历史还不够。随着世界运行，图表会逐渐填充。"
+    },
+    "fallen": {
+      "diedOut": "在第{year}年灭绝",
+      "endTitle": "终局",
+      "cause": "最后一死：{cause}",
+      "noCause": "最后一人死去",
+      "causeTag": "原因",
+      "contextTag": "背景",
+      "openOther": "打开该部落的卡片",
+      "marker": "{name}在第{year}年于此灭绝。打开卡片",
+      "markerCause": "{name}在第{year}年于此灭绝（最后一死：{cause}）。打开卡片",
+      "listHeading": "已灭绝的部落"
     }
   },
   "scene": {

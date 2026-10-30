@@ -1,3 +1,4 @@
+import { causeText } from '../../game/model/tribe-end'
 import { eraWord } from '../../shared/era-words'
 import type { TribeChronicleRow, WorldState } from '../../shared/types'
 import { knownTribeName } from '../../state/worldStore'
@@ -19,6 +20,10 @@ const CRAFT_KEYS: Record<string, MessageKey> = {
 export function lineText(row: TribeChronicleRow, world: WorldState): string {
   const other = row.other ? (knownTribeName(world.lineage_names, row.other) ?? row.other.slice(0, 6)) : ''
   switch (row.kind) {
+    case 'extinct':
+      return row.word
+        ? t('panels.tribe.history.extinctCause', { cause: causeText(row.word) })
+        : t('panels.tribe.history.extinct')
     case 'raid':
       return t('panels.tribe.history.raid', { other })
     case 'war':

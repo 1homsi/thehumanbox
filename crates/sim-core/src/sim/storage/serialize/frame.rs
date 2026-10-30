@@ -513,7 +513,7 @@ impl Simulation {
                     serde_json::to_value(&self.lineage_names).unwrap(),
                 );
                 obj.insert("lineage_lore".to_string(), lineage_lore(self));
-                // Each living tribe's own history, for its card (see `simulation/tribe_chronicle.rs`).
+                // Each tribe's own history, for its card, dead tribes included (see `simulation/tribe_chronicle.rs`).
                 obj.insert("tribe_chronicle".to_string(), tribe_chronicle_payload(self));
                 obj.insert(
                     "lineage_centroid_history".to_string(),

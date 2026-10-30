@@ -329,7 +329,9 @@
         "building": "建築",
         "crafting": "細工",
         "healing": "治療"
-      }
+      },
+      "extinct": "滅びた",
+      "extinctCause": "滅びた（最後の死因: {cause}）"
     },
     "why": {
       "title": "なぜそう動くか",
@@ -386,6 +388,18 @@
       "food": "食料",
       "health": "健康",
       "notEnough": "まだ記録が足りません。世界が進むにつれてグラフが埋まります。"
+    },
+    "fallen": {
+      "diedOut": "{year}年に滅びた",
+      "endTitle": "最期",
+      "cause": "最後の死因: {cause}",
+      "noCause": "最後の一人が死んだ",
+      "causeTag": "原因",
+      "contextTag": "背景",
+      "openOther": "その部族のカードを開く",
+      "marker": "{name}はここで{year}年に滅びた。カードを開く",
+      "markerCause": "{name}はここで{year}年に滅びた（最後の死因: {cause}）。カードを開く",
+      "listHeading": "滅びた部族"
     }
   },
   "scene": {

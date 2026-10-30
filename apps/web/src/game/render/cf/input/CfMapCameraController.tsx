@@ -17,6 +17,7 @@ import {
 import { wakeRenderLoops } from '../render-loop'
 import { drawnPersonAt } from '../picking'
 import { KEY_ZOOM_STEP, WHEEL_SPEED, commandCamera, keyboardPanDelta, panKey } from './camera-rig'
+import { keyName, releasedKeyName } from '../../../model/shortcuts'
 import { usePlacementDrag, type PlacementTap } from './placement-drag'
 
 interface Props {
@@ -211,7 +212,8 @@ export function CfMapCameraController({
     const inMap = () => containerEl.contains(document.activeElement)
     const onKey = (e: KeyboardEvent) => {
       if (isMapControl(e.target) || e.ctrlKey || e.metaKey || e.altKey || !inMap()) return
-      const key = e.key.toLowerCase()
+      const key = keyName(e)
+      if (key === null) return
       if (panKey(key)) {
         e.preventDefault()
         stopFollowRef.current()
@@ -231,7 +233,10 @@ export function CfMapCameraController({
         engine.loop.markDirty()
       }
     }
-    const keyUp = (e: KeyboardEvent) => pressed.delete(e.key.toLowerCase())
+    const keyUp = (e: KeyboardEvent) => {
+      const key = releasedKeyName(e)
+      if (key !== null) pressed.delete(key)
+    }
     // Double-click zooms in on the spot (Shift: out): the zoom a laptop trackpad can always make.
     const onDoubleClick = (e: MouseEvent) => {
       if (isMapControl(e.target) || toolArmedRef.current || e.button !== 0) return

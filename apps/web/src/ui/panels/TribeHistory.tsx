@@ -9,8 +9,17 @@ import { lineText } from './tribe-history-text'
  * A tribe's own history on its card: its newest wars, ages, famines, arrivals, splits, crafts and lost
  * leaders. A line with a place takes the camera there when clicked.
  */
-export function TribeHistory({ world, lineage }: { world: WorldState; lineage: string }) {
-  const rows = historyRows(world.tribe_chronicle?.[lineage])
+export function TribeHistory({
+  world,
+  lineage,
+  limit,
+}: {
+  world: WorldState
+  lineage: string
+  /** How many of the newest lines to show; the living card shows the latest 12. */
+  limit?: number
+}) {
+  const rows = historyRows(world.tribe_chronicle?.[lineage], limit)
   return (
     <section className="tribe-history" aria-label={t('panels.tribe.history.title')}>
       <div className="tribe-history-title">{t('panels.tribe.history.title')}</div>

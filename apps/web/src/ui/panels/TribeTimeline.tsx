@@ -43,6 +43,7 @@ export function TribeTimeline({ world, lineage, samples }: Props) {
   }
   const first = samples[0]!
   const last = samples[samples.length - 1]!
+  // The charts and the markers share this one tick range, so a point and an event at the same tick line up.
   const span = Math.max(1, last.tick - first.tick)
   const at = (tick: number) => ((tick - first.tick) / span) * 100
   const events = (world.tribe_chronicle?.[lineage] ?? []).filter(
@@ -55,11 +56,13 @@ export function TribeTimeline({ world, lineage, samples }: Props) {
       label: t('panels.tribe.timeline.people'),
       value: formatNumber(last.people),
       points: seriesPoints(
-        samples.map((s) => s.people),
+        samples.map((s) => ({ tick: s.tick, value: s.people })),
         CHART_W,
         CHART_H,
         0,
         peopleTop,
+        first.tick,
+        last.tick,
       ),
     },
     {
@@ -67,11 +70,13 @@ export function TribeTimeline({ world, lineage, samples }: Props) {
       label: t('panels.tribe.timeline.food'),
       value: `${Math.round(last.food * 100)}%`,
       points: seriesPoints(
-        samples.map((s) => s.food),
+        samples.map((s) => ({ tick: s.tick, value: s.food })),
         CHART_W,
         CHART_H,
         0,
         1,
+        first.tick,
+        last.tick,
       ),
     },
     {
@@ -79,11 +84,13 @@ export function TribeTimeline({ world, lineage, samples }: Props) {
       label: t('panels.tribe.timeline.health'),
       value: `${Math.round(last.health * 100)}%`,
       points: seriesPoints(
-        samples.map((s) => s.health),
+        samples.map((s) => ({ tick: s.tick, value: s.health })),
         CHART_W,
         CHART_H,
         0,
         1,
+        first.tick,
+        last.tick,
       ),
     },
   ]

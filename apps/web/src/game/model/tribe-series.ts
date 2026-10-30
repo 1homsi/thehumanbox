@@ -18,17 +18,19 @@ export type TribeSeries = Map<string, SeriesSample[]>
 /**
  * Record a sample for every tribe with living people, at most once per sample interval. Unlike the headcount
  * history, a tribe that has died out keeps its samples, so its trend stays readable. Rewinding time (a loaded
- * save) starts the series afresh. Returns whether a sample was taken.
+ * save) starts the series afresh: judged against the last tick seen, not the last sampled, so a save loaded
+ * between two samples still clears the old world's. Returns whether a sample was taken.
  */
 export function recordTribeSeries(
   series: TribeSeries,
-  state: { lastTick: number },
+  state: { lastTick: number; seenTick?: number },
   world: Pick<WorldState, 'tick' | 'organisms'>,
 ): boolean {
-  if (world.tick < state.lastTick) {
+  if (world.tick < Math.max(state.lastTick, state.seenTick ?? -Infinity)) {
     series.clear()
     state.lastTick = -Infinity
   }
+  state.seenTick = world.tick
   if (world.tick - state.lastTick < SERIES_SAMPLE_TICKS) return false
   state.lastTick = world.tick
   const totals = new Map<string, { people: number; energy: number; health: number }>()
@@ -55,22 +57,27 @@ export function recordTribeSeries(
 }
 
 /**
- * Points for an SVG polyline in a w×h box. The values are scaled to a fixed range `[lo, hi]`, so two tribes'
- * charts read on the same scale and a flat line means a steady number.
+ * Points for an SVG polyline in a w×h box, each placed across by its tick within `[from, to]`, the same range
+ * the event markers use, so a point and an event at the same tick line up even when samples are unevenly
+ * spaced. The values are scaled to a fixed range `[lo, hi]`, so two tribes' charts read on the same scale and
+ * a flat line means a steady number.
  */
 export function seriesPoints(
-  values: readonly number[],
+  points: readonly { tick: number; value: number }[],
   w: number,
   h: number,
   lo: number,
   hi: number,
+  from: number,
+  to: number,
 ): string {
-  if (values.length < 2) return ''
+  if (points.length < 2) return ''
   const span = Math.max(1e-9, hi - lo)
-  return values
-    .map((v, i) => {
-      const x = (i / (values.length - 1)) * w
-      const y = h - ((Math.max(lo, Math.min(hi, v)) - lo) / span) * (h - 2) - 1
+  const ticks = Math.max(1, to - from)
+  return points
+    .map(({ tick, value }) => {
+      const x = ((tick - from) / ticks) * w
+      const y = h - ((Math.max(lo, Math.min(hi, value)) - lo) / span) * (h - 2) - 1
       return `${x.toFixed(1)},${y.toFixed(1)}`
     })
     .join(' ')

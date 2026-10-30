@@ -336,7 +336,9 @@
         "building": "la construction",
         "crafting": "l'artisanat",
         "healing": "les soins"
-      }
+      },
+      "extinct": "s'est éteinte",
+      "extinctCause": "s'est éteinte (dernière mort : {cause})"
     },
     "why": {
       "title": "Pourquoi ils agissent",
@@ -393,6 +395,18 @@
       "food": "Vivres",
       "health": "Santé",
       "notEnough": "Pas encore assez d'historique. Les graphiques se remplissent au fil du jeu."
+    },
+    "fallen": {
+      "diedOut": "Éteinte l'an {year}",
+      "endTitle": "Comment elle a pris fin",
+      "cause": "Dernière mort : {cause}",
+      "noCause": "Son dernier membre est mort",
+      "causeTag": "Cause",
+      "contextTag": "Contexte",
+      "openOther": "Ouvrir la fiche de cette tribu",
+      "marker": "{name} s'est éteinte ici en l'an {year}. Ouvrir sa fiche",
+      "markerCause": "{name} s'est éteinte ici en l'an {year} (dernière mort : {cause}). Ouvrir sa fiche",
+      "listHeading": "Tribus éteintes"
     }
   },
   "scene": {
