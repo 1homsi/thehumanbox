@@ -1,5 +1,41 @@
 import { describe, expect, it } from 'vitest'
-import { PAIR_TOOLS, SANDBOX_CATEGORIES, canSendSandboxCommand, isSandboxViewControlActive } from './sandbox'
+import {
+  PAIR_TOOLS,
+  SANDBOX_CATEGORIES,
+  canPlaceAlongDrag,
+  canSendSandboxCommand,
+  isSandboxViewControlActive,
+  type SandboxTool,
+} from './sandbox'
+
+const TOOLS = SANDBOX_CATEGORIES.flatMap((c) => c.tools)
+const toolNamed = (id: string) => TOOLS.find((t) => t.id === id)
+
+describe('dragging a placement tool', () => {
+  it('places a single-place tool along the drag', () => {
+    expect(canPlaceAlongDrag(toolNamed('smite'))).toBe(true)
+  })
+
+  it('does not place pair tools, which need two clicks', () => {
+    expect(canPlaceAlongDrag(toolNamed('marry'))).toBe(false)
+    expect(Object.keys(PAIR_TOOLS).every((id) => !canPlaceAlongDrag(toolNamed(id)))).toBe(true)
+  })
+
+  it('does not place follow or name, which act on the person under one point', () => {
+    expect(canPlaceAlongDrag(toolNamed('follow'))).toBe(false)
+    expect(canPlaceAlongDrag(toolNamed('name'))).toBe(false)
+  })
+
+  it('does not place instant tools, view toggles, or no tool', () => {
+    const instant = TOOLS.find((t) => t.mode === 'instant')
+    expect(instant).toBeDefined()
+    expect(canPlaceAlongDrag(instant)).toBe(false)
+    expect(canPlaceAlongDrag(null)).toBe(false)
+    expect(canPlaceAlongDrag(undefined)).toBe(false)
+    const noBuild: SandboxTool = { id: 'x', label: 'x', icon: 'x', mode: 'point' }
+    expect(canPlaceAlongDrag(noBuild)).toBe(false)
+  })
+})
 
 describe('sandbox command permission', () => {
   it('allows commands for a browser-owned world', () => {

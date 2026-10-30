@@ -1577,3 +1577,12 @@ export const PAIR_TOOLS: Record<string, PairTool> = {
     failed: 'model.pair.mergeTribes.failed',
   },
 }
+
+/**
+ * Whether dragging with this tool armed should place it along the drag. Only single-place tools
+ * qualify: pair tools need two clicks, and follow and name act on the person under one point.
+ */
+export function canPlaceAlongDrag(tool: SandboxTool | null | undefined): boolean {
+  if (!tool?.build || tool.mode !== 'point') return false
+  return !PAIR_TOOLS[tool.id] && tool.id !== 'follow' && tool.id !== 'name'
+}
