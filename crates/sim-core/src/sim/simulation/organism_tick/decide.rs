@@ -100,15 +100,21 @@ impl Simulation {
             } else {
                 self.refresh_lineage_guidance(idx);
                 let (oa_ix, oa_iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
-                crate::sim::actions::available_actions_into(
-                    self,
-                    idx,
-                    oa_ix,
-                    oa_iy,
-                    spatial,
-                    available_buf,
-                    spatial_buf,
-                );
+                match f.prepared.take() {
+                    Some(prepared) if prepared.at == (oa_ix, oa_iy) => {
+                        available_buf.clear();
+                        available_buf.extend_from_slice(&prepared.actions);
+                    }
+                    _ => crate::sim::actions::available_actions_into(
+                        self,
+                        idx,
+                        oa_ix,
+                        oa_iy,
+                        spatial,
+                        available_buf,
+                        spatial_buf,
+                    ),
+                }
                 let q_seen = self.organisms[idx].q_table.contains_key(&perception);
                 let active_directive = if self.tick_count < self.organisms[idx].directive_until
                     && !self.organisms[idx].directive.is_empty()

@@ -391,9 +391,11 @@ impl Simulation {
             }
         }
         self.separate_crowds();
+        let mut prepared_actions = self.prepare_available_actions(&spatial);
         for i in 0..self.organisms.len() {
             if self.organisms[i].alive {
                 let prev_len = self.organisms.len();
+                let prepared = prepared_actions.get_mut(i).and_then(Option::take);
                 self.tick_organism(
                     i,
                     population_slots_used,
@@ -403,6 +405,7 @@ impl Simulation {
                     &mut buffers,
                     &org_idx_by_id,
                     &mut lineage_members,
+                    prepared,
                 );
 
                 if self.organisms.len() > prev_len {

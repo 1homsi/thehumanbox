@@ -217,3 +217,9 @@ mod wasm_frame_tests {
         );
     }
 }
+
+#[allow(dead_code)]
+fn _assert_sim_sync() {
+    fn is_sync<T: Sync>() {}
+    is_sync::<crate::sim::simulation::Simulation>();
+}

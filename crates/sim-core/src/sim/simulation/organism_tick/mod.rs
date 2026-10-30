@@ -25,6 +25,8 @@ pub(super) struct OrgFrame<'a> {
     pub(super) lineage_members: &'a mut FxHashMap<String, Vec<usize>>,
     pub(super) spatial_buf: &'a mut Vec<usize>,
     pub(super) available_buf: &'a mut Vec<usize>,
+    /// This person's possible actions, worked out before the turns began (see [`PreparedActions`]).
+    pub(super) prepared: Option<PreparedActions>,
     pub(super) perception_buf: &'a mut Vec<usize>,
     pub(super) action: usize,
     pub(super) action_succeeded: bool,
@@ -66,7 +68,40 @@ pub(super) struct OrgFrame<'a> {
     pub(super) summoned_threat: Option<(f32, f32, f32)>,
 }
 
+/// A person's possible actions, worked out on all cores before the turns began, from where they stood then.
+pub(super) struct PreparedActions {
+    pub(super) at: (i32, i32),
+    pub(super) actions: Vec<usize>,
+}
+
 impl Simulation {
+    /// Every living person's possible actions, worked out on all cores (see `sim::par`) from the world as
+    /// the turns begin. A person's turn uses theirs when they still stand where it was worked out.
+    pub(super) fn prepare_available_actions(&self, spatial: &SpatialIndex) -> Vec<Option<PreparedActions>> {
+        crate::sim::par::map_with(
+            self.organisms.len(),
+            || Vec::with_capacity(32),
+            |nearby, i| {
+                let o = &self.organisms[i];
+                if !o.alive {
+                    return None;
+                }
+                let at = (o.x as i32, o.y as i32);
+                let mut actions = Vec::with_capacity(64);
+                crate::sim::actions::available_actions_into(
+                    self,
+                    i,
+                    at.0,
+                    at.1,
+                    spatial,
+                    &mut actions,
+                    nearby,
+                );
+                Some(PreparedActions { at, actions })
+            },
+        )
+    }
+
     /// One organism's turn. Runs the phases in order, each in its own module:
     /// setup, threats, decide, act, vitals, ageing, bonds, learning, routines,
     /// pairing and mortality. Values that outlive a phase travel in [`OrgFrame`].
@@ -80,6 +115,7 @@ impl Simulation {
         buffers: &mut TickBuffers,
         org_idx_by_id: &FxHashMap<String, usize>,
         lineage_members: &mut FxHashMap<String, Vec<usize>>,
+        prepared: Option<PreparedActions>,
     ) {
         let TickBuffers {
             spatial: spatial_buf,
@@ -96,6 +132,7 @@ impl Simulation {
             lineage_members,
             spatial_buf,
             available_buf,
+            prepared,
             perception_buf,
             action: 0,
             action_succeeded: false,
