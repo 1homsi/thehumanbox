@@ -38,10 +38,14 @@ trade come to share words.
 Some are used directly; most are not.
 
 - **Used directly:** the calls people make. When someone finds food, or sees danger or fire, they call
-  out their word for it. Everyone nearby remembers where it is, but how strongly depends on the word.
-  A listener whose word for "food" (or "danger", "fire") matches the speaker's takes in the full memory.
-  A listener with a different word keeps only 30% of it. So two tribes with different words for food
-  really do warn and help each other less well (`crates/sim-core/src/sim/agents/social/signals.rs`).
+  out their word for it, and everyone nearby remembers the place. How strongly depends on whether the
+  listener's word for that thing matches the speaker's (`crates/sim-core/src/sim/agents/social/signals.rs`):
+  - **Food:** a listener with a different word keeps 30% of the memory a matching word would give.
+  - **Danger and fire:** strength depends on kinship as well as the word. Kin who share the word take in
+    0.70, kin with a different word 0.35, outsiders who share the word 0.30, and outsiders with a different
+    word 0.08.
+
+  So two tribes with different words really do help and warn each other less well.
 - **Not used directly:** the other concepts don't change what anyone does. Those words drift, spread
   and get forgotten, and you can read them in a person's panel, but nobody acts differently because of
   their word for "honor".
@@ -66,8 +70,9 @@ Partly. Each tribe (a lineage):
 
 - claims territory on the map;
 - grows its settlement through six tiers: wilderness, camp, hamlet, village, town, city;
-- takes a form of government, one of nine (tribal, chiefdom, monarchy, theocracy, republic,
-  democracy, empire, federation, corporate), which changes as its era and size allow;
+- takes a form of government that changes as its era, size and literacy allow: tribal, chiefdom,
+  monarchy, empire, republic, democracy, then federation. (The code also names theocracy and corporate
+  rule, but nothing in a running world chooses them yet.);
 - enacts laws and collects taxes once it has a law for them.
 
 Tribes sign treaties with each other: non-aggression, alliance, trade, defensive pacts, and vassalage,
@@ -86,5 +91,6 @@ Yes. Tribes fight at five scales:
 
 The weapons change by era, from brawling and spears to swords, pikes, muskets, rifles and modern arms.
 Battles have attackers, defenders, a place and an outcome, and armies march. Tribes can build field
-fortifications, and war weariness pushes long wars toward peace and treaties
-(`crates/sim-core/src/sim/civ/society/warfare/`).
+fortifications (`crates/sim-core/src/sim/civ/society/warfare/`). Every death in battle makes a tribe
+wearier of war; a weary tribe often calls off a raid, and two weary tribes that have fought make peace
+(`crates/sim-core/src/sim/civ/society/war_weariness.rs`).
