@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   escapeHandledElsewhere,
   gameKeyAction,
+  keyName,
   mapOwnsZoomKeys,
+  rightClickDisarms,
   shortcutFor,
   SHORTCUT_HELP,
   typingTarget,
@@ -112,5 +114,43 @@ describe('gameKeyAction', () => {
     expect(gameKeyAction({ key: 'b' }, false)).toBeNull()
     expect(gameKeyAction({ key: '-' }, false)).toBeNull()
     expect(gameKeyAction({ key: 'x' }, true)).toBeNull()
+  })
+})
+
+describe('keyName', () => {
+  it('lowercases a named key', () => {
+    expect(keyName({ key: 'K' })).toBe('k')
+    expect(keyName({ key: 'ArrowUp' })).toBe('arrowup')
+  })
+
+  it('names nothing for the key events Safari sends without a key, and while composing', () => {
+    expect(keyName({})).toBeNull()
+    expect(keyName({ key: undefined })).toBeNull()
+    expect(keyName({ key: null })).toBeNull()
+    expect(keyName({ key: '' })).toBeNull()
+    expect(keyName({ key: 'a', isComposing: true })).toBeNull()
+  })
+
+  it('keeps shortcuts from throwing on a keyless event', () => {
+    expect(() => shortcutFor({} as { key?: string })).not.toThrow()
+    expect(shortcutFor({} as { key?: string })).toBeNull()
+    expect(gameKeyAction({ key: undefined }, true)).toBeNull()
+    expect(shortcutFor({ key: '.' })).toEqual(shortcutFor({ key: '.' }))
+    expect(shortcutFor({ key: 'P' })).toEqual({ kind: 'prayer' })
+  })
+})
+
+describe('rightClickDisarms', () => {
+  const onMap = element(['.map2d-world'])
+  const onPanel = element(['aside'])
+
+  it('puts a held tool down on a right-click over the map', () => {
+    expect(rightClickDisarms(onMap, true)).toBe(true)
+  })
+
+  it('leaves the browser menu alone with no tool held or off the map', () => {
+    expect(rightClickDisarms(onMap, false)).toBe(false)
+    expect(rightClickDisarms(onPanel, true)).toBe(false)
+    expect(rightClickDisarms(null, true)).toBe(false)
   })
 })

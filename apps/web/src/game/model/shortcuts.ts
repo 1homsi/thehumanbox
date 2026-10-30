@@ -1,3 +1,13 @@
+/**
+ * The key a keyboard event names, lowercased, or null when there is none to act on. Safari sends
+ * some key events with no `key` at all (autofill, input-method composition, synthetic events), and
+ * a key pressed while an input method is composing belongs to that input method.
+ */
+export function keyName(event: { key?: string | null; isComposing?: boolean }): string | null {
+  if (event.isComposing || typeof event.key !== 'string' || event.key === '') return null
+  return event.key.toLowerCase()
+}
+
 /** What a game key does, or null for keys the game does not use. */
 export type ShortcutAction =
   | { kind: 'speed'; tool: 'normal' | 'fast2' | 'fast4' | 'fast10' }
@@ -9,13 +19,15 @@ export type ShortcutAction =
 const SPEEDS = { '1': 'normal', '2': 'fast2', '3': 'fast4', '4': 'fast10' } as const
 
 export function shortcutFor(event: {
-  key: string
+  key?: string | null
+  isComposing?: boolean
   metaKey?: boolean
   ctrlKey?: boolean
   altKey?: boolean
 }): ShortcutAction | null {
   if (event.metaKey || event.ctrlKey || event.altKey) return null
-  const key = event.key.toLowerCase()
+  const key = keyName(event)
+  if (key === null) return null
   if (key in SPEEDS) return { kind: 'speed', tool: SPEEDS[key as keyof typeof SPEEDS] }
   if (key === 'p') return { kind: 'prayer' }
   if (key === 'b') return { kind: 'brink' }
@@ -32,7 +44,13 @@ export function shortcutFor(event: {
  * open); every other game key needs them.
  */
 export function gameKeyAction(
-  event: { key: string; metaKey?: boolean; ctrlKey?: boolean; altKey?: boolean },
+  event: {
+    key?: string | null
+    isComposing?: boolean
+    metaKey?: boolean
+    ctrlKey?: boolean
+    altKey?: boolean
+  },
   sandboxControlsEnabled: boolean,
 ): ShortcutAction | null {
   const action = shortcutFor(event)
@@ -89,3 +107,14 @@ export const SHORTCUT_HELP: ReadonlyArray<[string, string]> = [
   ['double-click', 'zoom in on that spot (with Shift, zoom out)'],
   ['Q E R T Y U I O F G', 'pick the first ten tools on the bar'],
 ]
+
+/**
+ * Whether a right-click should put the held tool down instead of opening the browser's menu: only
+ * on the map itself, and only while a tool is held. Anywhere else, or with no tool, the menu is
+ * left alone.
+ */
+export function rightClickDisarms(target: EventTarget | null, toolArmed: boolean): boolean {
+  const node = target as { closest?: (selector: string) => unknown } | null
+  if (!toolArmed || typeof node?.closest !== 'function') return false
+  return node.closest('.map2d-world') !== null
+}

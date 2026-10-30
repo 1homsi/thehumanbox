@@ -37,7 +37,14 @@ import { GUIDANCE_LABEL } from './shared/guidance-words'
 import { PAIR_TOOLS, SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
 import { changeReason, watchChanges, type ChangeWatch } from './game/model/pause-on'
 import { prayerRows, prayerTool } from './game/model/prayers'
-import { escapeHandledElsewhere, gameKeyAction, mapOwnsZoomKeys, typingTarget } from './game/model/shortcuts'
+import {
+  escapeHandledElsewhere,
+  gameKeyAction,
+  keyName,
+  mapOwnsZoomKeys,
+  rightClickDisarms,
+  typingTarget,
+} from './game/model/shortcuts'
 import { tribeHome } from './game/model/tribe-peril'
 import { useCameraFocus } from './state/camera-focus'
 import type { PrayerInfo } from './shared/types'
@@ -669,10 +676,22 @@ function LiveApp() {
   }, [hotkeysOpen, setTemporarySandboxStatus])
 
   useEffect(() => {
+    // A right-click on the map puts the held tool down, as Esc does, without the browser's menu.
+    const putToolDown = (event: MouseEvent) => {
+      if (!rightClickDisarms(event.target, armedTool !== null)) return
+      event.preventDefault()
+      setArmedTool(null)
+      setTemporarySandboxStatus(null)
+    }
+    window.addEventListener('contextmenu', putToolDown)
+    return () => window.removeEventListener('contextmenu', putToolDown)
+  }, [armedTool, setTemporarySandboxStatus])
+
+  useEffect(() => {
     // H toggles immersive mode (hides panels + bottom dock). Matches
     // the observation-mode option in the command palette.
     function onKey(e: KeyboardEvent): void {
-      if (e.key.toLowerCase() !== 'h' || e.metaKey || e.ctrlKey || e.altKey) return
+      if (keyName(e) !== 'h' || e.metaKey || e.ctrlKey || e.altKey) return
       const target = e.target as HTMLElement | null
       if (
         target &&
