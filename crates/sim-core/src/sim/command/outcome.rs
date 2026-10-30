@@ -72,13 +72,17 @@ pub(crate) struct DisasterBefore {
     own_report: bool,
 }
 
+/// The least and most a tsunami's wave reaches from its coast point.
+pub(super) const TSUNAMI_MIN_REACH: i32 = 6;
+pub(super) const TSUNAMI_MAX_REACH: i32 = 20;
+
 /// How far a nuke's own reach counts for the report (its crater and fallout reach further).
 const NUKE_REACH: f32 = 8.0;
 
 /// The tools that harm the world, where each lands and how far it reaches, as its handler works it out
 /// (a radius of 0 means the handler's own default). `Some(None)` is a disaster with no one place (a
-/// plague breaking out); `None` is any other command. Tornado, tsunami and locusts move along a path,
-/// so their reach is only the fallback when nothing changed.
+/// plague breaking out); `None` is any other command. Tornado and locusts move along a path, so their
+/// reach is only the fallback when nothing changed.
 fn disaster_area(cmd: &Command) -> Option<Option<(f32, f32, f32)>> {
     let or = |radius: i32, default: i32, max: i32| if radius <= 0 { default } else { radius.min(max) } as f32;
     let orf = |radius: f32, default: f32, max: f32| if radius <= 0.0 { default } else { radius.min(max) };
@@ -94,7 +98,12 @@ fn disaster_area(cmd: &Command) -> Option<Option<(f32, f32, f32)>> {
         Command::Blizzard { x, y, radius } => at(x as f32, y as f32, or(radius, 6, 24)),
         Command::Volcano { x, y, radius } => at(x as f32, y as f32, or(radius, 6, 12)),
         Command::Tornado { x, y, radius } => at(x as f32, y as f32, radius.clamp(4, 24) as f32),
-        Command::Tsunami { x, y, radius } => at(x as f32, y as f32, radius.clamp(4, 24) as f32),
+        // Placeholder: the wave rises at the nearest sea, which `disaster_before` finds on the map.
+        Command::Tsunami { x, y, radius } => at(
+            x as f32,
+            y as f32,
+            radius.clamp(TSUNAMI_MIN_REACH, TSUNAMI_MAX_REACH) as f32,
+        ),
         Command::Locusts { x, y, radius } => at(x as f32, y as f32, radius.clamp(6, 30) as f32),
         Command::Wildfire { x, y, radius } => at(x as f32, y as f32, radius.clamp(4, 20) as f32),
         Command::Smite { x, y, radius } | Command::Thunder { x, y, radius } => at(x, y, radius),
@@ -110,7 +119,17 @@ fn disaster_area(cmd: &Command) -> Option<Option<(f32, f32, f32)>> {
 impl Simulation {
     /// The state a disaster command will be judged against, or None for a command that is not one.
     pub(crate) fn disaster_before(&self, cmd: &Command) -> Option<DisasterBefore> {
-        let area = disaster_area(cmd)?;
+        let mut area = disaster_area(cmd)?;
+        // A tsunami rises at the sea nearest the click, not at the click, and reaches its clamped radius from there.
+        if let Command::Tsunami { x, y, radius } = *cmd {
+            area = self.tsunami_coast(x, y).map(|(sx, sy)| {
+                (
+                    sx as f32,
+                    sy as f32,
+                    radius.clamp(TSUNAMI_MIN_REACH, TSUNAMI_MAX_REACH) as f32,
+                )
+            });
+        }
         Some(DisasterBefore {
             people: self
                 .organisms

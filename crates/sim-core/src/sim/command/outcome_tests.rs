@@ -286,3 +286,32 @@ fn a_zero_radius_blight_counts_reach_with_the_handlers_default() {
         "four tiles away is inside blight's default of five"
     );
 }
+
+#[test]
+fn a_tsunami_counts_the_people_by_the_coast_it_rises_on_not_by_the_click() {
+    use crate::world::{grid::WorldGrid, tiles::Tile};
+    let mut sim = Simulation::new(21);
+    // Dry land all round, with one sea tile 10 tiles east of the click: the wave rises there.
+    for x in 40..100 {
+        for y in 40..80 {
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
+    sim.grid.set(70, 60, Tile::Water);
+    assert!(WorldGrid::in_bounds(70, 60));
+    // Within the wave's least reach (6) of the sea, but 9 tiles from the click.
+    people_at(&mut sim, &[(69.0, 60.0, 1.0)]);
+    sim.buildings.clear();
+    let before = sim
+        .disaster_before(&crate::sim::command::Command::Tsunami {
+            x: 60,
+            y: 60,
+            radius: 4,
+        })
+        .expect("a tsunami is a disaster");
+    // Nobody hurt and nothing wrecked: the report falls back to who stood in the wave's reach.
+    sim.report_disaster(before);
+    let report = sim.command_report.take().expect("a report");
+    assert_eq!(report.code, "disaster_in_reach");
+    assert_eq!(report.count, 1);
+}
