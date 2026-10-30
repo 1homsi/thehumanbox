@@ -7,6 +7,8 @@ import { useCameraFocus } from '../../state/camera-focus'
 import { t } from '../../i18n'
 import { buildTerritoryIndex } from '../model/territory'
 import { TILE } from '../model/palette'
+import { claimOpeningView, openingSpot, openingViewTaken } from '../model/opening-view'
+import { panKey } from './cf/input/camera-rig'
 import { CanvasCameraController } from './CanvasCameraController'
 import { World2DErrorBoundary } from './World2DErrorBoundary'
 import { WorldMapHud } from './WorldMapHud'
@@ -51,6 +53,9 @@ interface Props {
   /** A prayer bubble on the map was clicked. */
   onPrayerClick?: (prayer: PrayerInfo) => void
 }
+
+/** The zoom and fit keys; with the pan keys (see `panKey`) these are the keys that move the camera. */
+const CAMERA_KEYS = new Set(['+', '=', '-', '0'])
 
 export function WorldView({
   world,
@@ -112,6 +117,8 @@ export function WorldView({
   originRef.current = { ox, oy }
   useEffect(() => {
     if (!focusRequest) return
+    // A panel asked to look somewhere: that is where the map opens, not on the biggest tribe.
+    claimOpeningView()
     const { ox, oy } = originRef.current
     commandRef.current = {
       kind: 'focus',
@@ -133,6 +140,47 @@ export function WorldView({
     handleGPUFailure,
     handleGameReady,
   } = useRendererBackend({ rendererPaused, containerRef, dims })
+
+  // The first view is the biggest tribe up close, at a size where people and huts can be told apart.
+  // Once per page load: coming back out of a home remounts the map, and that must not pull the camera
+  // away from where the player was. It waits for people to exist, and gives way for good to the player
+  // moving the camera first or to a focus asked for by a panel (the prayer list).
+  const playerMovedCamera = useRef(false)
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const mark = () => {
+      playerMovedCamera.current = true
+    }
+    // Only the keys that move the camera count, not Tab or the tool keys.
+    const markKey = (event: KeyboardEvent) => {
+      // Safari sends some key events with no key at all.
+      const key = typeof event.key === 'string' ? event.key.toLowerCase() : null
+      if (key !== null && (panKey(key) || CAMERA_KEYS.has(key))) mark()
+    }
+    el.addEventListener('pointerdown', mark, true)
+    el.addEventListener('wheel', mark, { capture: true, passive: true })
+    el.addEventListener('keydown', markKey, true)
+    return () => {
+      el.removeEventListener('pointerdown', mark, true)
+      el.removeEventListener('wheel', mark, true)
+      el.removeEventListener('keydown', markKey, true)
+    }
+  }, [])
+  useEffect(() => {
+    if (!mapReady || openingViewTaken()) return
+    // Someone being followed (the [ and ] keys can pick one before the map is ready) wins too.
+    if (playerMovedCamera.current || followOrgId || commandRef.current || useCameraFocus.getState().request) {
+      claimOpeningView()
+      return
+    }
+    const spot = openingSpot(world.organisms)
+    if (!spot) return
+    claimOpeningView()
+    const { ox, oy } = originRef.current
+    commandRef.current = { kind: 'focus', x: (spot.x - ox + 0.5) * TILE, y: (spot.y - oy + 0.5) * TILE }
+  }, [mapReady, world.organisms, followOrgId])
 
   const followTarget = followOrgId
     ? (() => {
