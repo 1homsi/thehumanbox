@@ -147,6 +147,31 @@
       "animals": {
         "one": "bir hayvan belirdi",
         "other": "{count} hayvan belirdi"
+      },
+      "disaster_killed": {
+        "one": "{name} öldü",
+        "other": "{count} kişi öldü"
+      },
+      "disaster_hurt": {
+        "one": "{name} yaralandı",
+        "other": "{count} kişi yaralandı"
+      },
+      "disaster_buildings": {
+        "one": "bir bina hasar gördü",
+        "other": "{count} bina hasar gördü"
+      },
+      "disaster_in_reach": {
+        "one": "{name} yolunun üzerinde",
+        "other": "{count} kişi yolunun üzerinde"
+      },
+      "disaster_none": "yolunda kimse yoktu",
+      "disaster_sick": {
+        "one": "{name} hastalandı",
+        "other": "{count} kişi hastalandı"
+      },
+      "disaster_food": {
+        "one": "{name} yiyecek kaybetti",
+        "other": "{count} kişi yiyecek kaybetti"
       }
     }
   }

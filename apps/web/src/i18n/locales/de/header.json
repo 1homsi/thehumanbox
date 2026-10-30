@@ -87,7 +87,10 @@
         "other": "{count} Menschen sind angekommen"
       },
       "family_arrived": "eine neue Familie ist angekommen",
-      "healed_animals": { "one": "ein Tier gestärkt", "other": "{count} Tiere gestärkt" },
+      "healed_animals": {
+        "one": "ein Tier gestärkt",
+        "other": "{count} Tiere gestärkt"
+      },
       "healed": {
         "one": "{name} wurde geheilt",
         "other": "{count} Menschen geheilt"
@@ -144,6 +147,31 @@
       "animals": {
         "one": "ein Tier erschien",
         "other": "{count} Tiere erschienen"
+      },
+      "disaster_killed": {
+        "one": "{name} kam ums Leben",
+        "other": "{count} Menschen kamen ums Leben"
+      },
+      "disaster_hurt": {
+        "one": "{name} wurde verletzt",
+        "other": "{count} Menschen verletzt"
+      },
+      "disaster_buildings": {
+        "one": "ein Gebäude beschädigt",
+        "other": "{count} Gebäude beschädigt"
+      },
+      "disaster_in_reach": {
+        "one": "{name} ist im Weg",
+        "other": "{count} Menschen im Weg"
+      },
+      "disaster_none": "niemand war im Weg",
+      "disaster_sick": {
+        "one": "{name} ist erkrankt",
+        "other": "{count} Menschen erkrankt"
+      },
+      "disaster_food": {
+        "one": "{name} verlor Vorräte",
+        "other": "{count} Menschen verloren Vorräte"
       }
     }
   }

@@ -76,6 +76,13 @@ const RESULT_KEYS: Record<string, MessageKey | undefined> = {
   struck_beast: 'header.sandbox.result.struck_beast',
   struck_roof: 'header.sandbox.result.struck_roof',
   animals: 'header.sandbox.result.animals',
+  disaster_killed: 'header.sandbox.result.disaster_killed',
+  disaster_hurt: 'header.sandbox.result.disaster_hurt',
+  disaster_sick: 'header.sandbox.result.disaster_sick',
+  disaster_food: 'header.sandbox.result.disaster_food',
+  disaster_buildings: 'header.sandbox.result.disaster_buildings',
+  disaster_in_reach: 'header.sandbox.result.disaster_in_reach',
+  disaster_none: 'header.sandbox.result.disaster_none',
 }
 
 /** The player-facing sentence for an outcome, or null when its code has none of its own. */

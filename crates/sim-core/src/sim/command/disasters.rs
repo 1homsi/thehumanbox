@@ -567,12 +567,8 @@ impl Simulation {
     }
 
     /// A tsunami: a wave out of the nearest sea runs up the coast and inland.
-    /// Every land tile within `radius` of the coast point floods (and drains
-    /// again later); buildings near the shore are wrecked, people in the wave
-    /// are hurt and land animals in it drown. Fails when no sea lies near the
-    /// click.
-    pub(super) fn cmd_tsunami(&mut self, x: i32, y: i32, radius: i32) -> bool {
-        use crate::sim::civ::building_damage::{strike_buildings, DamageCause};
+    /// The sea tile nearest a tsunami click, within 12 tiles, where the wave rises; None with no sea near.
+    pub(super) fn tsunami_coast(&self, x: i32, y: i32) -> Option<(i32, i32)> {
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
         let mut coast: Option<(i32, i32, i32)> = None;
         for dx in -12..=12 {
@@ -587,10 +583,22 @@ impl Simulation {
                 }
             }
         }
-        let Some((sx, sy, _)) = coast else {
+        coast.map(|(sx, sy, _)| (sx, sy))
+    }
+
+    /// Every land tile within `radius` of the coast point floods (and drains
+    /// again later); buildings near the shore are wrecked, people in the wave
+    /// are hurt and land animals in it drown. Fails when no sea lies near the
+    /// click.
+    pub(super) fn cmd_tsunami(&mut self, x: i32, y: i32, radius: i32) -> bool {
+        use crate::sim::civ::building_damage::{strike_buildings, DamageCause};
+        let Some((sx, sy)) = self.tsunami_coast(x, y) else {
             return false;
         };
-        let r = radius.clamp(6, 20);
+        let r = radius.clamp(
+            super::outcome::TSUNAMI_MIN_REACH,
+            super::outcome::TSUNAMI_MAX_REACH,
+        );
         let mut flooded = 0;
         for dx in -r..=r {
             for dy in -r..=r {

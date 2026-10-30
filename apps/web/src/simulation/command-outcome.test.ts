@@ -25,6 +25,24 @@ describe('parseCommandOutcome', () => {
 })
 
 describe('describeOutcome', () => {
+  it('says whom a disaster hit', () => {
+    expect(describeOutcome({ applied: true, code: 'disaster_killed', count: 3, name: null })).toBe(
+      '3 people killed',
+    )
+    expect(describeOutcome({ applied: true, code: 'disaster_hurt', count: 1, name: 'Ada' })).toBe(
+      'Ada was hurt',
+    )
+    expect(describeOutcome({ applied: true, code: 'disaster_buildings', count: 2, name: null })).toBe(
+      '2 buildings damaged',
+    )
+    expect(describeOutcome({ applied: true, code: 'disaster_in_reach', count: 5, name: null })).toBe(
+      '5 people in its way',
+    )
+    expect(describeOutcome({ applied: true, code: 'disaster_none', count: 0, name: null })).toBe(
+      'nobody was in its way',
+    )
+  })
+
   it('says how many people were healed', () => {
     const text = describeOutcome({ applied: true, code: 'healed', count: 3, name: null })
     expect(text).toBe('healed 3 people')
