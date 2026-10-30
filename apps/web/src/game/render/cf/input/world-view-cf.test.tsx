@@ -208,6 +208,33 @@ describe('the map on xipjs', () => {
 })
 
 describe('placing a tool on the xipjs map', () => {
+  it('with a placing tool armed, a mouse drag lays placements along its path and does not pan', async () => {
+    const onSandboxApply = vi.fn()
+    // Brush 2 spaces placements 3 tiles apart.
+    const h = await open({ sandboxArmed: true, sandboxDragPlaces: true, sandboxBrush: 2, onSandboxApply })
+    const camera = probeCamera()
+    const canvas = h.canvas()
+    const screen = (tileX: number, tileY: number) => ({
+      x: (tileX * TILE - camera.x) * camera.zoom + 400,
+      y: (tileY * TILE - camera.y) * camera.zoom + 250,
+    })
+    const start = screen(2.5, 2.5)
+    const end = screen(13.5, 2.5)
+    canvas.dispatchEvent(pointer('pointerdown', start.x, start.y))
+    canvas.dispatchEvent(pointer('pointermove', (start.x + end.x) / 2, start.y))
+    canvas.dispatchEvent(pointer('pointermove', end.x, end.y))
+    canvas.dispatchEvent(pointer('pointerup', end.x, end.y))
+    await h.frame(3)
+    // Press at 2.5, then every 3 tiles along the row: 2.5, 5.5, 8.5, 11.5 (the last 14.5 is past the drag).
+    const xs = onSandboxApply.mock.calls.map(([x]) => x as number)
+    expect(xs).toHaveLength(4)
+    xs.forEach((x, i) => expect(x).toBeCloseTo(2.5 + 3 * i, 1))
+    for (const [, y] of onSandboxApply.mock.calls) expect(y).toBeCloseTo(2.5, 1)
+    // The camera did not pan.
+    expect(probeCamera().x).toBeCloseTo(camera.x, 6)
+    expect(probeCamera().y).toBeCloseTo(camera.y, 6)
+  })
+
   it('a tap applies the armed tool where it landed; a drag pans and applies nothing', async () => {
     const onSandboxApply = vi.fn()
     const h = await open({ sandboxArmed: true, onSandboxApply, sandboxToolId: null })

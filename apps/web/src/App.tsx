@@ -34,7 +34,13 @@ import { toolFailure, toolName } from './ui/toolbar/tool-tips'
 import { formatNumber, t } from './i18n'
 import { describeOutcome } from './simulation/command-outcome'
 import { GUIDANCE_LABEL } from './shared/guidance-words'
-import { PAIR_TOOLS, SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
+import {
+  PAIR_TOOLS,
+  SANDBOX_CATEGORIES,
+  canPlaceAlongDrag,
+  type LineageStrategy,
+  type SandboxTool,
+} from './simulation/sandbox'
 import { changeReason, watchChanges, type ChangeWatch } from './game/model/pause-on'
 import { prayerRows, prayerTool } from './game/model/prayers'
 import { escapeHandledElsewhere, gameKeyAction, mapOwnsZoomKeys, typingTarget } from './game/model/shortcuts'
@@ -884,6 +890,8 @@ function LiveApp() {
                       const preview = armedTool?.build?.(0, 0, brush)
                       return preview && 'radius' in preview ? (preview.radius ?? 0) : 0
                     })()}
+                    sandboxDragPlaces={sandboxControlsEnabled && canPlaceAlongDrag(armedTool)}
+                    sandboxBrush={brush}
                     onSandboxApply={handleSandboxApply}
                     onPrayerClick={handleAnswerPrayer}
                   />
