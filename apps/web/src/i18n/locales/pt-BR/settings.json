@@ -29,6 +29,8 @@
     "headlineTickerDesc": "Uma faixa em rolagem com nascimentos, mortes e descobertas no topo.",
     "autoFollow": "Seguir automaticamente",
     "autoFollowDesc": "Segue uma pessoa diferente a cada poucos segundos. Clique em alguém para parar.",
+    "warnFollowedOnly": "Avisar só sobre as tribos seguidas",
+    "warnFollowedOnlyDesc": "Desligado: toda tribo em perigo de fome recebe um aviso. Ligado: só as tribos que você segue. Toda tribo em risco continua destacada no mapa.",
     "toolNames": "Nomes das ferramentas",
     "toolNamesDesc": "Mostra o nome de cada ferramenta sob o ícone na barra inferior."
   },

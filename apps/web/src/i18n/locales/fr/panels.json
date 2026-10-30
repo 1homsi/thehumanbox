@@ -389,6 +389,8 @@
       "worldPeople": "le monde compte {have} personnes sur les {need} que demande cette ère ({short} manquent)",
       "ready": "prêt : l'ère arrive au prochain contrôle du monde"
     },
+    "follow": "Suivre cette tribu",
+    "unfollow": "Ne plus suivre cette tribu",
     "timeline": {
       "title": "Au fil du temps",
       "people": "Gens",
@@ -508,5 +510,13 @@
       "atAltar": "{count} devant l’autel",
       "nearbyCount": "{count} à proximité"
     }
+  },
+  "famine": {
+    "risk": "{name} risque la famine",
+    "losing": "{name} perd des gens à cause de la famine",
+    "gone": "{name} a disparu de faim",
+    "go": "Aller à {name}",
+    "more": "{count} autres tribus manquent de nourriture",
+    "dismiss": "Fermer"
   }
 }

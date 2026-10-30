@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { reconcileFocus, reconcileViewerSelection } from './viewerSelection'
+import { focusedTribe, reconcileFocus, reconcileViewerSelection, tribeFocus } from './viewerSelection'
 
 const world = {
   featured_org_id: 'first-player',
@@ -51,5 +51,33 @@ describe('reconcileFocus', () => {
   it('drops the focus on a tribe that died out or is gone, so the map is not left dimmed', () => {
     expect(reconcileFocus('lineage:L2', tribes)).toBe('all')
     expect(reconcileFocus('lineage:L9', tribes)).toBe('all')
+  })
+})
+
+describe("a fallen tribe's card", () => {
+  const tribes = {
+    organisms: [
+      { id: 'a', alive: true, lineage_id: 'L1' },
+      { id: 'b', alive: false, lineage_id: 'L2' },
+    ],
+    tribe_chronicle: { L2: [{ kind: 'extinct' }] },
+  }
+
+  it('opens with its own focus, so the map is not dimmed for people who are gone', () => {
+    expect(tribeFocus('L2', tribes)).toBe('fallen:L2')
+    expect(tribeFocus('L1', tribes)).toBe('lineage:L1')
+    // Died out with no record of it yet: the living kind, which the next frame resets as before.
+    expect(tribeFocus('L9', tribes)).toBe('lineage:L9')
+  })
+
+  it('stays open: only a living tribe focus falls back to everyone', () => {
+    expect(reconcileFocus('fallen:L2', tribes)).toBe('fallen:L2')
+    expect(reconcileFocus('lineage:L2', tribes)).toBe('all')
+  })
+
+  it('names the tribe of either kind of focus, and no other', () => {
+    expect(focusedTribe('fallen:L2')).toBe('L2')
+    expect(focusedTribe('lineage:L1')).toBe('L1')
+    expect(focusedTribe('sick')).toBeNull()
   })
 })

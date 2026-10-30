@@ -382,6 +382,8 @@
       "worldPeople": "この時代に必要な{need}人のうち、世界には{have}人いる（あと{short}人）",
       "ready": "準備完了: 次に世界が確かめるとき、時代が訪れる"
     },
+    "follow": "この部族をフォロー",
+    "unfollow": "この部族のフォローを解除",
     "timeline": {
       "title": "推移",
       "people": "人口",
@@ -495,5 +497,13 @@
       "atAltar": "祭壇の前に{count}人",
       "nearbyCount": "近くに{count}人"
     }
+  },
+  "famine": {
+    "risk": "{name}は飢饉の危機にある",
+    "losing": "{name}は飢えで人を失っている",
+    "gone": "{name}は飢えて滅びた",
+    "go": "{name}へ移動",
+    "more": "ほかに{count}の部族が食料不足です",
+    "dismiss": "閉じる"
   }
 }

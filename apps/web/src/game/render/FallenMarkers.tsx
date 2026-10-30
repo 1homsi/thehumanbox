@@ -3,6 +3,7 @@ import type { WorldState } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
 import { knownTribeName } from '../../state/worldStore'
 import { useUIStore } from '../../state/store'
+import { fallenFocus } from '../../shared/viewerSelection'
 import { t } from '../../i18n'
 import { calendarAt } from '../model/calendar'
 import { causeText, fallenTribes, type FallenTribe } from '../model/tribe-end'
@@ -71,7 +72,7 @@ export function FallenMarkers({ world, cameraRef, viewport }: Props) {
             style={{ borderColor: lineageColor(f.lineage), display: 'none' }}
             title={title}
             aria-label={title}
-            onClick={() => useUIStore.getState().setFocus(`lineage:${f.lineage}`)}
+            onClick={() => useUIStore.getState().setFocus(fallenFocus(f.lineage))}
           >
             <span aria-hidden="true">✝</span>
           </button>

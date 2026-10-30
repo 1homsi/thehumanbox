@@ -5,6 +5,7 @@ import { useWorldStore } from '../../state/worldStore'
 import { EVENT_ICONS, EVENT_COLORS } from '../../shared/constants'
 import { eventTarget } from '../../game/model/event-target'
 import { formatNumber, t } from '../../i18n'
+import { tribeFocus } from '../../shared/viewerSelection'
 
 /** Rows about the player's own role: prayers and how they ended. */
 const GODLY = new Set(['prayer', 'answered', 'forsaken'])
@@ -16,7 +17,7 @@ function goTo(event: SimEvent) {
   const target = eventTarget(world, event)
   if (!target) return
   const ui = useUIStore.getState()
-  if (target.kind === 'tribe') ui.setFocus(`lineage:${target.lineage}`)
+  if (target.kind === 'tribe') ui.setFocus(tribeFocus(target.lineage, world))
   else ui.selectOrg(target.id)
   if (target.at) useCameraFocus.getState().focusTile(Math.round(target.at.x), Math.round(target.at.y))
 }

@@ -389,6 +389,8 @@
       "worldPeople": "el mundo tiene {have} de las {need} personas que necesita esta era (faltan {short})",
       "ready": "listo: la era llega en la próxima revisión del mundo"
     },
+    "follow": "Seguir a esta tribu",
+    "unfollow": "Dejar de seguir a esta tribu",
     "timeline": {
       "title": "A lo largo del tiempo",
       "people": "Gente",
@@ -508,5 +510,13 @@
       "atAltar": "{count} ante el altar",
       "nearbyCount": "{count} cerca"
     }
+  },
+  "famine": {
+    "risk": "{name} corre riesgo de hambruna",
+    "losing": "{name} está perdiendo gente por el hambre",
+    "gone": "{name} se ha extinguido por hambre",
+    "go": "Ir a {name}",
+    "more": "{count} tribus más se están quedando sin comida",
+    "dismiss": "Cerrar"
   }
 }

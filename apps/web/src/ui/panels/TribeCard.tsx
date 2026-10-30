@@ -22,8 +22,10 @@ import { ToolSprite } from '../toolbar/ToolSprite'
 import { TribeHistory } from './TribeHistory'
 import { TribeTimeline } from './TribeTimeline'
 import { TribeReasoning } from './TribeReasoning'
+import { FollowTribe } from './FollowTribe'
 import { FallenTribe } from './FallenTribe'
 import { extinctionOf } from '../../game/model/tribe-end'
+import { focusedTribe } from '../../shared/viewerSelection'
 import { formatNumber, t, type MessageKey } from '../../i18n'
 import { knownTribeName } from '../../state/worldStore'
 
@@ -218,8 +220,8 @@ const CRAFT_KEYS: Record<string, MessageKey> = {
 export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props) {
   const focus = useUIStore((s) => s.focus)
   const setFocus = useUIStore((s) => s.setFocus)
-  if (!focus.startsWith('lineage:')) return null
-  const lineage = focus.slice('lineage:'.length)
+  const lineage = focusedTribe(focus)
+  if (lineage === null) return null
   const status = tribeStatus(world, lineage)
   // A tribe with no one alive keeps its card while its history is kept: how it ended, and its last events.
   if (!status)
@@ -260,6 +262,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
       <div className="tribe-card-head">
         <span className="lineage-dot" style={{ background: lineageColor(status.id) }} />
         <TribeName key={status.id} lineage={status.id} name={status.name} onRename={onRename} />
+        <FollowTribe lineage={status.id} />
         <button
           className="tribe-card-close"
           aria-label={t('panels.tribe.close')}

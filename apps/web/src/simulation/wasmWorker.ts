@@ -211,6 +211,8 @@ function replaceSimulation(candidate: Sim, nextSeed: string) {
   sim = candidate
   seed = nextSeed
   previous?.free()
+  // The page's watches (famine warnings and the like) start over: the world they were watching is gone.
+  post({ type: 'world_replaced' })
 }
 
 function markStorageReady(restored: boolean) {

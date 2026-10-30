@@ -12,6 +12,7 @@ import { panKey } from './cf/input/camera-rig'
 import { CanvasCameraController } from './CanvasCameraController'
 import { World2DErrorBoundary } from './World2DErrorBoundary'
 import { WorldMapHud } from './WorldMapHud'
+import { FamineTints } from './FamineTints'
 import { FallenMarkers } from './FallenMarkers'
 import { MapControls } from './MapControls'
 import { TerritoryHoverCard } from './hover/TerritoryHoverCard'
@@ -410,6 +411,9 @@ export function WorldView({
       )}
       <SandboxBursts bursts={bursts} width={dims.w} height={dims.h} />
       <SkyOverlay />
+      {mapReady && !viewFlags.hideUI && (
+        <FamineTints world={world} cameraRef={cameraStateRef} viewport={dims} />
+      )}
       {mapReady && !viewFlags.hideUI && (
         <WorldMapHud
           world={world}

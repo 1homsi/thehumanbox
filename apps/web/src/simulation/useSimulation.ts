@@ -4,6 +4,7 @@ import { WS_BASE, API_BASE, IS_LOCAL_SERVER, sandboxHeaders } from '../shared/co
 import { FAILED_OUTCOME, parseCommandOutcome, type CommandOutcome } from './command-outcome'
 import { useWorldStore } from '../state/worldStore'
 import { useUIStore } from '../state/store'
+import { useWorldReplaced } from '../state/world-replaced'
 import { binaryFramesReady, fetchSnapshotWithProgress, loadBinaryFrameDecoder, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
 import { signalSimFrame } from './frame-signal'
@@ -393,6 +394,8 @@ export function useSimulation(source: WorldSource = 'native'): {
               tick: m.tick ?? 0,
             })
           }
+        } else if (m.type === 'world_replaced') {
+          useWorldReplaced.getState().bump()
         } else if (m.type === 'reset_done') {
           clearOwnWorldResetRequest()
         } else if (m.type === 'recovery_done') {

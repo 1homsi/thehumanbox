@@ -413,6 +413,8 @@
       "worldPeople": "świat ma {have} z {need} ludzi potrzebnych tej epoce (brakuje {short})",
       "ready": "gotowe: epoka nadejdzie przy następnym sprawdzeniu świata"
     },
+    "follow": "Obserwuj to plemię",
+    "unfollow": "Przestań obserwować to plemię",
     "timeline": {
       "title": "W czasie",
       "people": "Ludzie",
@@ -543,5 +545,13 @@
       "atAltar": "{count} przy ołtarzu",
       "nearbyCount": "{count} w pobliżu"
     }
+  },
+  "famine": {
+    "risk": "{name} grozi głód",
+    "losing": "{name} traci ludzi z powodu głodu",
+    "gone": "{name} wymarło z głodu",
+    "go": "Idź do: {name}",
+    "more": "Jeszcze {count} plemion ma za mało jedzenia",
+    "dismiss": "Zamknij"
   }
 }

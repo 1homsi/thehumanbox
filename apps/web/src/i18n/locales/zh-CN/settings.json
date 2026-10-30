@@ -29,6 +29,8 @@
     "headlineTickerDesc": "顶部滚动显示出生、死亡和发现的消息。",
     "autoFollow": "自动跟随",
     "autoFollowDesc": "每隔几秒跟随一个不同的人。点击任意人即可停止。",
+    "warnFollowedOnly": "仅对关注的部落发出警告",
+    "warnFollowedOnlyDesc": "关闭：每个面临饥荒危险的部落都会收到警告。开启：只警告您关注的部落。所有面临危险的部落仍会在地图上标示。",
     "toolNames": "工具名称",
     "toolNamesDesc": "在底部工具栏的每个图标下显示工具名称。"
   },

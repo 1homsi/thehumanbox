@@ -389,6 +389,8 @@
       "worldPeople": "dünyada bu çağın gerektirdiği {need} kişiden {have} var ({short} eksik)",
       "ready": "hazır: çağ dünyanın bir sonraki kontrolünde gelir"
     },
+    "follow": "Bu kabileyi takip et",
+    "unfollow": "Bu kabileyi takibi bırak",
     "timeline": {
       "title": "Zaman içinde",
       "people": "Nüfus",
@@ -505,5 +507,13 @@
       "atAltar": "sunakta {count}",
       "nearbyCount": "{count} yakında"
     }
+  },
+  "famine": {
+    "risk": "{name} açlık tehlikesiyle karşı karşıya",
+    "losing": "{name} açlık yüzünden insan kaybediyor",
+    "gone": "{name} açlıktan tükendi",
+    "go": "{name} kabilesine git",
+    "more": "{count} kabilenin daha yiyeceği az",
+    "dismiss": "Kapat"
   }
 }

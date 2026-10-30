@@ -29,6 +29,8 @@
     "headlineTickerDesc": "上部に出生、死亡、発見を流すスクロールバーです。",
     "autoFollow": "自動追跡",
     "autoFollowDesc": "数秒ごとに別の人を追跡します。誰かをクリックすると停止します。",
+    "warnFollowedOnly": "フォローした部族の警告だけ出す",
+    "warnFollowedOnlyDesc": "オフ: 飢饉の危機にある部族すべてに警告が出ます。オン: フォローした部族だけに出ます。危険な部族は、地図上では引き続き色付きで示されます。",
     "toolNames": "ツール名",
     "toolNamesDesc": "下のバーで各ツールのアイコンの下に名前を表示します。"
   },

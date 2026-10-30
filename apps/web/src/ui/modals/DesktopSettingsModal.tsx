@@ -23,6 +23,7 @@ import { deleteWorld, listRecoveryWorlds, loadWorld, type RecoveryWorld } from '
 import { DESKTOP_PAUSE_WHEN_HIDDEN_EVENT } from '../../shared/desktopVisibility'
 import { formatDateTime, formatNumber, t } from '../../i18n'
 import { LanguageTab } from './LanguageTab'
+import { useTribeFollow } from '../../state/tribe-follow'
 import { updateCheckMessage } from './updateCheckMessage'
 
 interface Props {
@@ -210,6 +211,20 @@ const DESKTOP_TABS: ReadonlyArray<{ id: TabId; label: TabLabel; icon: string }> 
 ]
 
 /** Preferences that apply in both the web game and the desktop app. */
+/** Limits the famine warnings to the tribes the player follows (the map tint stays for every tribe). */
+function WarnFollowedRow() {
+  const on = useTribeFollow((s) => s.warnFollowedOnly)
+  const setOn = useTribeFollow((s) => s.setWarnFollowedOnly)
+  return (
+    <SettingRow
+      title={t('settings.display.warnFollowedOnly')}
+      desc={t('settings.display.warnFollowedOnlyDesc')}
+    >
+      <Switch checked={on} onChange={setOn} label={t('settings.display.warnFollowedOnly')} />
+    </SettingRow>
+  )
+}
+
 function DisplayTab() {
   const setViewFlag = useUIStore((s) => s.setViewFlag)
   const photoMode = useViewFlag('photoMode')
@@ -249,6 +264,7 @@ function DisplayTab() {
           label={t('settings.display.autoFollow')}
         />
       </SettingRow>
+      <WarnFollowedRow />
     </>
   )
 }

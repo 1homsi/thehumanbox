@@ -389,6 +389,8 @@
       "worldPeople": "die Welt hat {have} von {need} Menschen, die dieses Zeitalter braucht ({short} fehlen)",
       "ready": "bereit: das Zeitalter kommt bei der nächsten Prüfung der Welt"
     },
+    "follow": "Diesem Stamm folgen",
+    "unfollow": "Diesem Stamm nicht mehr folgen",
     "timeline": {
       "title": "Im Verlauf",
       "people": "Leute",
@@ -511,5 +513,13 @@
       "atAltar": "{count} am Altar",
       "nearbyCount": "{count} in der Nähe"
     }
+  },
+  "famine": {
+    "risk": "{name} ist von Hungersnot bedroht",
+    "losing": "{name} verliert Menschen durch Hunger",
+    "gone": "{name} ist verhungert",
+    "go": "Zu {name}",
+    "more": "{count} weitere Stämme haben zu wenig Nahrung",
+    "dismiss": "Schließen"
   }
 }

@@ -389,6 +389,8 @@
       "worldPeople": "il mondo ha {have} delle {need} persone che questa era richiede (ne mancano {short})",
       "ready": "pronti: l'era arriva al prossimo controllo del mondo"
     },
+    "follow": "Segui questa tribù",
+    "unfollow": "Smetti di seguire questa tribù",
     "timeline": {
       "title": "Nel tempo",
       "people": "Persone",
@@ -511,5 +513,13 @@
       "atAltar": "{count} all’altare",
       "nearbyCount": "{count} nei dintorni"
     }
+  },
+  "famine": {
+    "risk": "{name} rischia la carestia",
+    "losing": "{name} perde persone per la fame",
+    "gone": "{name} è scomparsa per fame",
+    "go": "Vai a {name}",
+    "more": "Altre {count} tribù sono a corto di cibo",
+    "dismiss": "Chiudi"
   }
 }

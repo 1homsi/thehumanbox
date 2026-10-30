@@ -29,6 +29,8 @@
     "headlineTickerDesc": "Ein laufendes Band mit Geburten, Todesfällen und Entdeckungen am oberen Rand.",
     "autoFollow": "Automatisch folgen",
     "autoFollowDesc": "Folgt alle paar Sekunden einer anderen Person. Klicke auf jemanden, um es zu beenden.",
+    "warnFollowedOnly": "Nur vor gefolgten Stämmen warnen",
+    "warnFollowedOnlyDesc": "Aus: Jeder Stamm in Hungersnot-Gefahr bekommt eine Warnung. An: Nur gefolgte Stämme. Jeder gefährdete Stamm wird weiterhin auf der Karte getönt.",
     "toolNames": "Werkzeugnamen",
     "toolNamesDesc": "Den Namen jedes Werkzeugs unter seinem Symbol in der unteren Leiste zeigen."
   },

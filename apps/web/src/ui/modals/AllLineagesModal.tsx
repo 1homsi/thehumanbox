@@ -9,6 +9,7 @@ import { lineageColor, lineageWord } from '../../shared/constants'
 import { Modal } from './Modal'
 import { shownGeneration } from '../../game/model/generations'
 import { formatNumber, t } from '../../i18n'
+import { fallenFocus } from '../../shared/viewerSelection'
 
 interface LineageInfo {
   count: number
@@ -116,13 +117,13 @@ export function AllLineagesModal({
                   role="button"
                   tabIndex={0}
                   onClick={() => {
-                    setFocus(`lineage:${f.lineage}`)
+                    setFocus(fallenFocus(f.lineage))
                     onClose()
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
-                      setFocus(`lineage:${f.lineage}`)
+                      setFocus(fallenFocus(f.lineage))
                       onClose()
                     }
                   }}
