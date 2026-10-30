@@ -87,7 +87,10 @@
         "other": "{count}人来到了这里"
       },
       "family_arrived": "一个新家庭来到了这里",
-      "healed_animals": { "one": "恢复了一只动物的体力", "other": "恢复了{count}只动物的体力" },
+      "healed_animals": {
+        "one": "恢复了一只动物的体力",
+        "other": "恢复了{count}只动物的体力"
+      },
       "healed": {
         "one": "治愈了{name}",
         "other": "治愈了{count}人"
@@ -144,6 +147,31 @@
       "animals": {
         "one": "出现了一只动物",
         "other": "出现了{count}只动物"
+      },
+      "disaster_killed": {
+        "one": "{name}遇难",
+        "other": "{count}人遇难"
+      },
+      "disaster_hurt": {
+        "one": "{name}受伤",
+        "other": "{count}人受伤"
+      },
+      "disaster_buildings": {
+        "one": "1座建筑受损",
+        "other": "{count}座建筑受损"
+      },
+      "disaster_in_reach": {
+        "one": "{name}在它的路径上",
+        "other": "{count}人在它的路径上"
+      },
+      "disaster_none": "它的路径上没有人",
+      "disaster_sick": {
+        "one": "{name}病倒了",
+        "other": "{count}人病倒了"
+      },
+      "disaster_food": {
+        "one": "{name}失去了食物",
+        "other": "{count}人失去了食物"
       }
     }
   }

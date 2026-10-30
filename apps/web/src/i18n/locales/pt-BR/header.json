@@ -147,6 +147,31 @@
       "animals": {
         "one": "um animal apareceu",
         "other": "{count} animais apareceram"
+      },
+      "disaster_killed": {
+        "one": "{name} morreu",
+        "other": "{count} pessoas mortas"
+      },
+      "disaster_hurt": {
+        "one": "{name} ficou ferido",
+        "other": "{count} pessoas feridas"
+      },
+      "disaster_buildings": {
+        "one": "um prédio danificado",
+        "other": "{count} prédios danificados"
+      },
+      "disaster_in_reach": {
+        "one": "{name} está no caminho",
+        "other": "{count} pessoas no caminho"
+      },
+      "disaster_none": "ninguém estava no caminho",
+      "disaster_sick": {
+        "one": "{name} adoeceu",
+        "other": "{count} pessoas adoeceram"
+      },
+      "disaster_food": {
+        "one": "{name} perdeu comida",
+        "other": "{count} pessoas perderam comida"
       }
     }
   }
