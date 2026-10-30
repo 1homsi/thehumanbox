@@ -15,7 +15,7 @@ CARGO_RELEASE := cargo
         build build-client build-sim build-desktop wasm \
         wipe wipe-archive logs profile metrics snapshot \
         install install-client install-desktop install-sim \
-        clean clean-sim clean-client clean-desktop perf-gate \
+        clean clean-sim clean-client clean-desktop perf-gate sim-compare \
         ci-status ci-watch ci-log redeploy worlds-list tag-list release-latest
 
 help: ## Show this help (default)
@@ -105,9 +105,13 @@ profile: ## Headless perf profile CSV — `make profile OUT=a.csv TICKS=12000`
 		--seed $(SEED) --ticks $(TICKS) --every $(TICKS) \
 		--profile $(OUT) --profile-every 100
 
-perf-gate: ## Multi-seed sim budget — `make perf-gate TICKS=8000 MAX_TICK_MS=80`
-	$(CARGO_RELEASE) build --release --locked --bin headless
+perf-gate: ## Multi-seed sim budget, on one thread as the web runs — `make perf-gate TICKS=8000 MAX_TICK_MS=80`
+	$(CARGO_RELEASE) build --release --locked --bin headless --no-default-features
 	TICKS=$(TICKS) MAX_TICK_MS=$${MAX_TICK_MS:-80} scripts/perf-gate.sh
+
+sim-compare: ## Deaths with a change vs another build, gently (low priority, one run at a time) — `make sim-compare BASE=path/to/main-headless`
+	$(CARGO_RELEASE) build --release --locked --bin headless --no-default-features
+	scripts/sim-compare.sh $(BASE) target/release/headless
 
 metrics: ## Scrape /metrics once from a running sim — `make metrics HOST=...`
 	@curl -s $(HOST)/metrics

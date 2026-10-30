@@ -59,6 +59,29 @@ impl OrgFrame<'_> {
         }
     }
 
+    /// What the person sensed, as it stands in their turn.
+    fn sensed_copy(&self) -> Sensed {
+        Sensed {
+            idx: self.idx,
+            epsilon: self.epsilon,
+            night: self.night,
+            prev_energy: self.prev_energy,
+            prev_hydration: self.prev_hydration,
+            prev_inv_food: self.prev_inv_food,
+            prev_inv_water: self.prev_inv_water,
+            animal_near: self.animal_near,
+            fear_trait: self.fear_trait,
+            ox: self.ox,
+            oy: self.oy,
+            perception: self.perception.clone(),
+            storm_build: self.storm_build.clone(),
+            threat_kind: self.threat_kind,
+            wolf_threat: self.wolf_threat,
+            threat_summoned: self.threat_summoned,
+            summoned_threat: self.summoned_threat,
+        }
+    }
+
     fn put_sensed(&mut self, s: Sensed) {
         self.epsilon = s.epsilon;
         self.night = s.night;
@@ -249,8 +272,13 @@ impl Simulation {
             || (Vec::with_capacity(256), Vec::with_capacity(32)),
             |(available, nearby), i| {
                 let s = sensed[i].as_ref()?;
-                let mut rng = decide::choice_rng(tick_seed, s.idx);
-                Some(self.org_choose(s, spatial, available, nearby, &mut rng))
+                Some(self.org_choose(
+                    s,
+                    spatial,
+                    available,
+                    nearby,
+                    decide::choice_rng(tick_seed, s.idx),
+                ))
             },
         )
     }
@@ -311,14 +339,14 @@ impl Simulation {
             org_idx_by_id,
         };
         let sensed = self.org_sense(idx, population_slots_used, &cx, buffers, lineage_members);
-        let mut rng = decide::choice_rng(self.rng.random(), idx);
+        let rng = decide::choice_rng(self.rng.random(), idx);
         let choice = {
             let TickBuffers {
                 spatial: nearby,
                 available_actions: available,
                 ..
             } = &mut *buffers;
-            self.org_choose(&sensed, spatial, available, nearby, &mut rng)
+            self.org_choose(&sensed, spatial, available, nearby, rng)
         };
         self.org_turn(
             sensed,

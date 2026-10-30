@@ -6,13 +6,27 @@ pub(in crate::sim::simulation) struct Choice {
     pub(super) action: usize,
     pub(super) thought: Option<String>,
     pub(super) origin: &'static str,
+    /// The tile they chose from, and their random numbers after choosing: someone moved off it before
+    /// their turn (pushed, or carried) chooses again from where they are, so a step aimed from the old tile
+    /// cannot walk them into water.
+    pub(super) at: (i32, i32),
+    pub(super) rng: ChoiceRng,
     /// Fleeing a threat: where to keep running, and the fear it put them in.
     pub(super) flight: Option<(Option<(i32, i32)>, f32)>,
 }
 
+/// An action, its thought, where the choice came from, and a flight's course and fear.
+type ChoiceParts = (
+    usize,
+    Option<String>,
+    &'static str,
+    Option<(Option<(i32, i32)>, f32)>,
+);
+
 /// The random numbers one person's choice draws on, from the tick's seed and their place in the list: the
 /// same whichever core works it out, and whatever order the cores take people in. A SplitMix64 stream:
 /// seeding a full ChaCha generator for every person every tick cost more than the choice it served.
+#[derive(Clone)]
 pub(in crate::sim::simulation) struct ChoiceRng(u64);
 
 pub(super) fn choice_rng(tick_seed: u64, idx: usize) -> ChoiceRng {
@@ -71,17 +85,34 @@ impl Simulation {
         spatial: &SpatialIndex,
         available_buf: &mut Vec<usize>,
         spatial_buf: &mut Vec<usize>,
-        rng: &mut ChoiceRng,
+        mut rng: ChoiceRng,
     ) -> Choice {
+        let o = &self.organisms[s.idx];
+        let at = (o.x as i32, o.y as i32);
+        let (action, thought, origin, flight) =
+            self.choose_from(s, spatial, available_buf, spatial_buf, &mut rng);
+        Choice {
+            action,
+            thought,
+            origin,
+            at,
+            rng,
+            flight,
+        }
+    }
+
+    fn choose_from(
+        &self,
+        s: &Sensed,
+        spatial: &SpatialIndex,
+        available_buf: &mut Vec<usize>,
+        spatial_buf: &mut Vec<usize>,
+        rng: &mut ChoiceRng,
+    ) -> ChoiceParts {
         let idx = s.idx;
         let (ox, oy) = (s.ox, s.oy);
         if let Some((action, thought)) = s.storm_build.clone() {
-            return Choice {
-                action,
-                thought,
-                origin: "emergency_reflex",
-                flight: None,
-            };
+            return (action, thought, "emergency_reflex", None);
         }
         if let Some(((dist, wx, wy), from_pack)) = self.flight(s) {
             let fdx = (ox - wx).signum();
@@ -141,12 +172,12 @@ impl Simulation {
             let wet_target = from_pack && self.grid.is_wet(self.grid.get(tx, ty), tx, ty);
             // The fear grows with closeness; a threat beyond the close range adds nothing.
             let fear = (self.organisms[idx].fear_level + 0.07 + ((2.5 - dist) * 0.02).max(0.0)).min(1.0);
-            return Choice {
-                action: dir,
-                thought: Some(format!("{}! run!", s.threat_kind.name())),
-                origin: "emergency_reflex",
-                flight: Some(((!wet_target).then_some((tx, ty)), fear)),
-            };
+            return (
+                dir,
+                Some(format!("{}! run!", s.threat_kind.name())),
+                "emergency_reflex",
+                Some(((!wet_target).then_some((tx, ty)), fear)),
+            );
         }
         let org = &self.organisms[idx];
         let (oa_ix, oa_iy) = (org.x as i32, org.y as i32);
@@ -192,18 +223,21 @@ impl Simulation {
         } else {
             "seed_or_explore"
         };
-        Choice {
-            action: chosen.0,
-            thought: chosen.1,
-            origin,
-            flight: None,
-        }
+        (chosen.0, chosen.1, origin, None)
     }
 
     /// Make a person's choice count, in their turn: a ferry or a boat takes precedence, a flight sets their
     /// course and fear, goals walled off by terrain are dropped, and a retreat from danger is committed to.
     pub(super) fn org_apply_choice(&mut self, f: &mut OrgFrame<'_>, choice: Choice) {
         let idx = f.idx;
+        let here = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
+        let choice = if here == choice.at {
+            choice
+        } else {
+            let sensed = f.sensed_copy();
+            let (mut available, mut nearby) = (Vec::new(), Vec::new());
+            self.org_choose(&sensed, f.spatial, &mut available, &mut nearby, choice.rng)
+        };
         let (action, new_thought, decision_origin) = if let Some(boat_action) = self.boat_action(idx) {
             boat_action
         } else {

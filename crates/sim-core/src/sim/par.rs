@@ -30,6 +30,12 @@ where
     }
 }
 
+// Several cores read the world at once, so it must be safe to share: a `RefCell` or `Rc` in it fails here.
+const _: fn() = || {
+    fn shareable<T: Sync>() {}
+    shareable::<crate::sim::simulation::Simulation>();
+};
+
 /// The fewest items one worker takes at a time.
 #[cfg(feature = "parallel")]
 const MIN_BATCH: usize = 16;
