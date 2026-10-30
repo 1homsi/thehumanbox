@@ -150,6 +150,9 @@
     "showMe": "보여 주기",
     "dismiss": "닫기"
   },
+  "prayerHover": {
+    "open": "클릭해서 열고 도와주기"
+  },
   "prayerChip": {
     "tipTitle": "기도",
     "tipBody": {

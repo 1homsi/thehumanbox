@@ -150,6 +150,9 @@
     "showMe": "見せて",
     "dismiss": "閉じる"
   },
+  "prayerHover": {
+    "open": "クリックして開き、助ける"
+  },
   "prayerChip": {
     "tipTitle": "祈り",
     "tipBody": {
