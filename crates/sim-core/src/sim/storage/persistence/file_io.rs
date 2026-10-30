@@ -102,6 +102,15 @@ impl Simulation {
                 state.version, SAVE_SCHEMA_VERSION
             ));
         }
+        // `from_save` grows a fresh grid for any size it does not know, which would quietly run a different world.
+        let cells = state.grid.tiles.len();
+        if cells != WIDTH * HEIGHT && cells != resize::OLD_WIDTH * resize::OLD_HEIGHT {
+            return Err(format!(
+                "its map has {cells} cells; this build reads {WIDTH}x{HEIGHT} or the older {}x{}",
+                resize::OLD_WIDTH,
+                resize::OLD_HEIGHT
+            ));
+        }
         let world_seed = if state.world_seed > 0 {
             state.world_seed
         } else {

@@ -545,3 +545,33 @@ fn a_newborn_animal_keeps_its_birth_tick_through_a_save_and_old_saves_load_as_gr
     .unwrap();
     assert_eq!(super::organism::animal_from_save(old).born_tick, 0);
 }
+
+#[test]
+fn a_strict_load_refuses_a_map_size_it_would_have_to_regrow_and_leaves_the_file() {
+    let sim = Simulation::new(9);
+    let mut state = sim.to_save_state();
+    state.grid.tiles.truncate(1234);
+    let dir = std::env::temp_dir().join(format!("thb-strict-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("odd.json");
+    std::fs::write(&path, serde_json::to_vec(&state).unwrap()).unwrap();
+    let err = Simulation::load_strict(9, path.to_str().unwrap())
+        .err()
+        .expect("an odd map is refused");
+    assert!(err.contains("1234 cells"), "{err}");
+    assert!(path.exists(), "the file stays where it was");
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn a_strict_load_reads_a_world_this_build_saved() {
+    let mut sim = Simulation::new(9);
+    sim.tick_n(5);
+    let dir = std::env::temp_dir().join(format!("thb-strict-ok-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("ok.json");
+    sim.save_result(path.to_str().unwrap()).unwrap();
+    let loaded = Simulation::load_strict(9, path.to_str().unwrap()).expect("its own save loads");
+    assert_eq!(loaded.tick_count, 5);
+    std::fs::remove_dir_all(&dir).ok();
+}
