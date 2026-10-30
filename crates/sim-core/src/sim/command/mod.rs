@@ -774,7 +774,14 @@ impl Simulation {
     pub fn apply_command_reported(&mut self, cmd: Command) -> outcome::CommandOutcome {
         let answers = prayer_answers(&cmd);
         self.command_report = None;
+        let disaster = self.disaster_before(&cmd);
         let applied = self.apply_command_inner(cmd);
+        // A disaster whose handler did not say whom it hit gets the count from what changed.
+        if applied && self.command_report.is_none() {
+            if let Some(before) = disaster {
+                self.report_disaster(before);
+            }
+        }
         if applied {
             if let Some((kinds, at)) = answers {
                 self.answer_prayers(kinds, at);

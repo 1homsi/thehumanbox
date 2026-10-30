@@ -82,31 +82,89 @@
       "blocked": "nobody can stand on water or rock",
       "no_government": "that tribe has no one to lead it",
       "cannot_teach": "they cannot be taught again yet",
-      "spawned": { "one": "{name} arrived", "other": "{count} people arrived" },
+      "spawned": {
+        "one": "{name} arrived",
+        "other": "{count} people arrived"
+      },
       "family_arrived": "a new family arrived",
-      "healed_animals": { "one": "restored an animal", "other": "restored {count} animals" },
-      "healed": { "one": "healed {name}", "other": "healed {count} people" },
+      "healed_animals": {
+        "one": "restored an animal",
+        "other": "restored {count} animals"
+      },
+      "healed": {
+        "one": "healed {name}",
+        "other": "healed {count} people"
+      },
       "revived": "{name} was raised from the dead",
-      "blessed": { "one": "blessed {name}", "other": "blessed {count} people" },
-      "inspired": { "one": "inspired {name}", "other": "inspired {count} people" },
-      "cured": { "one": "cured {name}", "other": "cured {count} people" },
-      "cured_tribe": { "one": "cured one person in the tribe", "other": "cured {count} people in the tribe" },
-      "loved": { "one": "{name} fell in love", "other": "filled {count} hearts with love" },
-      "paired": { "one": "brought a couple together", "other": "brought {count} couples together" },
+      "blessed": {
+        "one": "blessed {name}",
+        "other": "blessed {count} people"
+      },
+      "inspired": {
+        "one": "inspired {name}",
+        "other": "inspired {count} people"
+      },
+      "cured": {
+        "one": "cured {name}",
+        "other": "cured {count} people"
+      },
+      "cured_tribe": {
+        "one": "cured one person in the tribe",
+        "other": "cured {count} people in the tribe"
+      },
+      "loved": {
+        "one": "{name} fell in love",
+        "other": "filled {count} hearts with love"
+      },
+      "paired": {
+        "one": "brought a couple together",
+        "other": "brought {count} couples together"
+      },
       "mutated": "{name} mutated",
       "cursed": "cursed {name}",
       "taught": "{name}'s tribe learned a secret",
       "moved": "moved {name}",
-      "gifted_food": { "one": "gave {name} food", "other": "gave food to {count} people" },
-      "gifted_tool": { "one": "gave {name} a tool", "other": "gave tools to {count} people" },
+      "gifted_food": {
+        "one": "gave {name} food",
+        "other": "gave food to {count} people"
+      },
+      "gifted_tool": {
+        "one": "gave {name} a tool",
+        "other": "gave tools to {count} people"
+      },
       "crowned": "crowned {name}",
-      "split": { "other": "{count} people broke off to found a tribe" },
-      "tamed": { "one": "a wild beast became a loyal dog", "other": "{count} wild beasts became loyal dogs" },
+      "split": {
+        "other": "{count} people broke off to found a tribe"
+      },
+      "tamed": {
+        "one": "a wild beast became a loyal dog",
+        "other": "{count} wild beasts became loyal dogs"
+      },
       "guardian": "a guardian dog stood by {name}",
       "smitten": "lightning struck {name}",
       "struck_beast": "lightning struck down a beast",
       "struck_roof": "lightning cracked a roof",
-      "animals": { "one": "an animal appeared", "other": "{count} animals appeared" }
+      "animals": {
+        "one": "an animal appeared",
+        "other": "{count} animals appeared"
+      },
+      "disaster_killed": {
+        "one": "{name} was killed",
+        "other": "{count} people killed"
+      },
+      "disaster_hurt": {
+        "one": "{name} was hurt",
+        "other": "{count} people hurt"
+      },
+      "disaster_buildings": {
+        "one": "a building was damaged",
+        "other": "{count} buildings damaged"
+      },
+      "disaster_in_reach": {
+        "one": "{name} is in its way",
+        "other": "{count} people in its way"
+      },
+      "disaster_none": "nobody was in its way"
     }
   }
 }

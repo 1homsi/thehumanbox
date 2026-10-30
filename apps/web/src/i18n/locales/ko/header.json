@@ -147,7 +147,24 @@
       "animals": {
         "one": "동물 한 마리가 나타났습니다",
         "other": "동물 {count}마리가 나타났습니다"
-      }
+      },
+      "disaster_killed": {
+        "one": "{name}이(가) 죽었습니다",
+        "other": "{count}명이 죽었습니다"
+      },
+      "disaster_hurt": {
+        "one": "{name}이(가) 다쳤습니다",
+        "other": "{count}명이 다쳤습니다"
+      },
+      "disaster_buildings": {
+        "one": "건물 1채가 부서졌습니다",
+        "other": "건물 {count}채가 부서졌습니다"
+      },
+      "disaster_in_reach": {
+        "one": "{name}이(가) 길목에 있습니다",
+        "other": "{count}명이 길목에 있습니다"
+      },
+      "disaster_none": "길목에 아무도 없었습니다"
     }
   }
 }

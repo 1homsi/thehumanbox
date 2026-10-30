@@ -87,7 +87,10 @@
         "other": "{count}人がやって来ました"
       },
       "family_arrived": "新しい家族がやって来ました",
-      "healed_animals": { "one": "動物の体力を回復しました", "other": "動物{count}匹の体力を回復しました" },
+      "healed_animals": {
+        "one": "動物の体力を回復しました",
+        "other": "動物{count}匹の体力を回復しました"
+      },
       "healed": {
         "one": "{name}を癒やしました",
         "other": "{count}人を癒やしました"
@@ -144,7 +147,24 @@
       "animals": {
         "one": "動物が現れました",
         "other": "{count}匹の動物が現れました"
-      }
+      },
+      "disaster_killed": {
+        "one": "{name}が亡くなりました",
+        "other": "{count}人が亡くなりました"
+      },
+      "disaster_hurt": {
+        "one": "{name}がけがをしました",
+        "other": "{count}人がけがをしました"
+      },
+      "disaster_buildings": {
+        "one": "建物が1つ壊れました",
+        "other": "建物が{count}つ壊れました"
+      },
+      "disaster_in_reach": {
+        "one": "{name}が巻き込まれそうです",
+        "other": "{count}人が巻き込まれそうです"
+      },
+      "disaster_none": "巻き込まれた人はいません"
     }
   }
 }

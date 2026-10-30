@@ -152,3 +152,69 @@ fn a_well_crowd_with_a_hungry_beast_reports_the_beast_fed() {
         "nobody was hurt, but the deer was fed"
     );
 }
+
+#[test]
+fn a_meteor_on_a_crowd_says_whom_it_killed_or_hurt() {
+    let mut sim = Simulation::new(21);
+    people_at(
+        &mut sim,
+        &[(60.0, 60.0, 1.0), (61.0, 60.0, 1.0), (60.0, 61.0, 1.0)],
+    );
+    let outcome = sim.apply_command_reported(crate::sim::command::Command::Meteor {
+        x: 60,
+        y: 60,
+        radius: 4,
+    });
+    assert!(outcome.applied);
+    assert!(
+        matches!(outcome.code, "disaster_killed" | "disaster_hurt"),
+        "got {}",
+        outcome.code
+    );
+    assert!(outcome.count >= 1);
+}
+
+#[test]
+fn a_quake_far_from_everyone_and_everything_says_nobody_was_in_its_way() {
+    let mut sim = Simulation::new(21);
+    people_at(&mut sim, &[(10.0, 10.0, 1.0)]);
+    sim.buildings.clear();
+    let outcome = sim.apply_command_reported(crate::sim::command::Command::Earthquake {
+        x: 300,
+        y: 200,
+        radius: 3,
+    });
+    if outcome.applied {
+        assert_eq!(outcome.code, "disaster_none");
+        assert_eq!(outcome.count, 0);
+    }
+}
+
+#[test]
+fn a_disaster_that_takes_time_counts_the_people_in_its_reach() {
+    let mut sim = Simulation::new(21);
+    people_at(&mut sim, &[(60.0, 60.0, 1.0), (62.0, 60.0, 1.0)]);
+    let before = sim.disaster_before(&crate::sim::command::Command::Blight {
+        x: 60,
+        y: 60,
+        radius: 5,
+    });
+    let before = before.expect("blight is a disaster");
+    // Nothing changed yet (as with a blight on fields, or a fire still spreading): the report counts reach.
+    sim.report_disaster(before);
+    let report = sim.command_report.take().expect("a report");
+    assert_eq!(report.code, "disaster_in_reach");
+    assert_eq!(report.count, 2);
+}
+
+#[test]
+fn a_helpful_tool_is_not_judged_as_a_disaster() {
+    let sim = Simulation::new(21);
+    assert!(sim
+        .disaster_before(&crate::sim::command::Command::Heal {
+            x: 1.0,
+            y: 1.0,
+            radius: 2.0
+        })
+        .is_none());
+}
