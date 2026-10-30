@@ -6,7 +6,7 @@ import { useCameraFocus } from '../../../../state/camera-focus'
 import { useUIStore } from '../../../../state/store'
 import { TILE } from '../../../model/palette'
 import { WorldView } from '../../WorldView'
-import { resetOpeningView } from '../../../model/opening-view'
+import { openingViewTaken, resetOpeningView } from '../../../model/opening-view'
 import { setWorldGPUForTests } from '../../world-view/gpu'
 import { engineHarness, pointer, wheel, type EngineHarness } from '../engine-harness.test-util'
 
@@ -172,6 +172,31 @@ describe('the map on xipjs', () => {
     harness = null
     const reopened = await open({ world: bigWorld })
     await reopened.frame(6)
+    expect(probeCamera().x).toBe((80 * TILE) / 2)
+  })
+
+  it('waits for people before using up the opening view', async () => {
+    resetOpeningView()
+    const empty = world(80, 50)
+    empty.organisms = []
+    const h = await open({ world: empty })
+    await h.frame(6)
+    expect(openingViewTaken()).toBe(false)
+    expect(probeCamera().x).toBe((80 * TILE) / 2)
+  })
+
+  it('gives the opening view up when the player moves the camera first', async () => {
+    resetOpeningView()
+    const empty = world(80, 50)
+    empty.organisms = []
+    const h = await open({ world: empty })
+    h.canvas().dispatchEvent(pointer('pointerdown', 10, 10))
+    h.canvas().dispatchEvent(pointer('pointerup', 10, 10))
+    const peopled = world(80, 50)
+    peopled.organisms[0] = { ...peopled.organisms[0], x: 60, y: 10 }
+    await h.renderRaw(<WorldView world={peopled} />)
+    await h.frame(6)
+    expect(openingViewTaken()).toBe(true)
     expect(probeCamera().x).toBe((80 * TILE) / 2)
   })
 

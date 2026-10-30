@@ -7,7 +7,7 @@ import { useCameraFocus } from '../../state/camera-focus'
 import { t } from '../../i18n'
 import { buildTerritoryIndex } from '../model/territory'
 import { TILE } from '../model/palette'
-import { claimOpeningView, openingSpot } from '../model/opening-view'
+import { claimOpeningView, openingSpot, openingViewTaken } from '../model/opening-view'
 import { CanvasCameraController } from './CanvasCameraController'
 import { World2DErrorBoundary } from './World2DErrorBoundary'
 import { WorldMapHud } from './WorldMapHud'
@@ -105,6 +105,8 @@ export function WorldView({
   originRef.current = { ox, oy }
   useEffect(() => {
     if (!focusRequest) return
+    // A panel asked to look somewhere: that is where the map opens, not on the biggest tribe.
+    claimOpeningView()
     const { ox, oy } = originRef.current
     commandRef.current = {
       kind: 'focus',
@@ -129,12 +131,33 @@ export function WorldView({
 
   // The first view is the biggest tribe up close, at a size where people and huts can be told apart.
   // Once per page load: coming back out of a home remounts the map, and that must not pull the camera
-  // away from where the player was. A focus already asked for (the prayer list) wins over it.
+  // away from where the player was. It waits for people to exist, and gives way for good to the player
+  // moving the camera first or to a focus asked for by a panel (the prayer list).
+  const playerMovedCamera = useRef(false)
   useEffect(() => {
-    if (!mapReady || !claimOpeningView()) return
-    if (useCameraFocus.getState().request) return
+    const el = containerRef.current
+    if (!el) return
+    const mark = () => {
+      playerMovedCamera.current = true
+    }
+    el.addEventListener('pointerdown', mark, true)
+    el.addEventListener('wheel', mark, { capture: true, passive: true })
+    el.addEventListener('keydown', mark, true)
+    return () => {
+      el.removeEventListener('pointerdown', mark, true)
+      el.removeEventListener('wheel', mark, true)
+      el.removeEventListener('keydown', mark, true)
+    }
+  }, [])
+  useEffect(() => {
+    if (!mapReady || openingViewTaken()) return
+    if (playerMovedCamera.current || commandRef.current || useCameraFocus.getState().request) {
+      claimOpeningView()
+      return
+    }
     const spot = openingSpot(world.organisms)
     if (!spot) return
+    claimOpeningView()
     const { ox, oy } = originRef.current
     commandRef.current = { kind: 'focus', x: (spot.x - ox + 0.5) * TILE, y: (spot.y - oy + 0.5) * TILE }
   }, [mapReady, world.organisms])

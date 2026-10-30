@@ -58,6 +58,11 @@ export function claimOpeningView(): boolean {
   return true
 }
 
+/** Whether the opening view has been shown or given up on in this page load. */
+export function openingViewTaken(): boolean {
+  return openingViewUsed
+}
+
 /** For tests: the next map to open shows the opening view again. */
 export function resetOpeningView(): void {
   openingViewUsed = false
