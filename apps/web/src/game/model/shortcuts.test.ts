@@ -149,6 +149,10 @@ describe('rightClickDisarms', () => {
     expect(rightClickDisarms(onMap, true)).toBe(true)
   })
 
+  it('leaves the map controls alone even with a tool held', () => {
+    expect(rightClickDisarms(element(['.map2d-world', '[data-map-ui]']), true)).toBe(false)
+  })
+
   it('leaves the browser menu alone with no tool held or off the map', () => {
     expect(rightClickDisarms(onMap, false)).toBe(false)
     expect(rightClickDisarms(onPanel, true)).toBe(false)

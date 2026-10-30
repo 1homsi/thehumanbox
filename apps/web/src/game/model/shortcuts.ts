@@ -120,11 +120,12 @@ export const SHORTCUT_HELP: ReadonlyArray<[string, string]> = [
 
 /**
  * Whether a right-click should put the held tool down instead of opening the browser's menu: only
- * on the map itself, and only while a tool is held. Anywhere else, or with no tool, the menu is
+ * on the map itself (not its own controls), and only while a tool is held. Anywhere else, or with no tool, the menu is
  * left alone.
  */
 export function rightClickDisarms(target: EventTarget | null, toolArmed: boolean): boolean {
   const node = target as { closest?: (selector: string) => unknown } | null
   if (!toolArmed || typeof node?.closest !== 'function') return false
-  return node.closest('.map2d-world') !== null
+  // The map's own controls (zoom, fit, hover cards) sit inside it but are not the map.
+  return node.closest('.map2d-world') !== null && node.closest('[data-map-ui]') === null
 }
