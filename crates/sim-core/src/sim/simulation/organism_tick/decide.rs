@@ -234,6 +234,9 @@ impl Simulation {
         let choice = if here == choice.at {
             choice
         } else {
+            // Choose from where they stand now: a flight's dry step is judged from this tile, not the old one.
+            f.ox = self.organisms[idx].x;
+            f.oy = self.organisms[idx].y;
             let sensed = f.sensed_copy();
             let (mut available, mut nearby) = (Vec::new(), Vec::new());
             self.org_choose(&sensed, f.spatial, &mut available, &mut nearby, choice.rng)

@@ -97,14 +97,10 @@ fn main() {
 
     // A run from a saved world (see scripts/sim-compare.sh) skips the ticks every comparison shares.
     let mut sim = match load.as_deref() {
-        Some(path) => {
-            let sim = Simulation::load_or_new(seed, path);
-            if sim.tick_count == 0 {
-                eprintln!("--load {path}: no saved world there");
-                std::process::exit(2);
-            }
-            sim
-        }
+        Some(path) => Simulation::load_strict(seed, path).unwrap_or_else(|err| {
+            eprintln!("--load {path}: {err}");
+            std::process::exit(2);
+        }),
         None => Simulation::new(seed),
     };
     let mut peak_pop = 0usize;

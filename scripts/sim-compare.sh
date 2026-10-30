@@ -36,39 +36,63 @@ trap 'rm -rf "$work"' EXIT
 
 deaths() { grep '^births:' || true; }
 
+# run_to <out-line> <log> <bin> <args...>: the history line at the end of a headless run, at the lowest
+# priority. A run that fails, or prints no history line, stops the comparison: a crash must never read as a
+# seed with no deaths. Its stderr is kept in <log>.
+run_to() {
+  local out=$1 log=$2
+  shift 2
+  if ! nice -n 20 "$@" 2>"$log" | deaths >"$out.part" || [[ ! -s "$out.part" ]]; then
+    rm -f "$out.part"
+    echo "headless failed: $* (see the log below)" >&2
+    tail -20 "$log" >&2
+    return 1
+  fi
+  mv "$out.part" "$out"
+}
+
 # checkpoint <seed>: the base build's world at FROM (gzipped) and its history line there.
 checkpoint() {
   local seed=$1 ck="$store/seed-$1-$FROM"
   if [[ ! -s "$ck.json.gz" || ! -s "$ck.line" ]]; then
-    nice -n 20 "$BASE" --seed "$seed" --ticks "$FROM" --every "$FROM" --save "$work/ck-$seed.json" 2>/dev/null |
-      deaths >"$ck.line"
-    gzip -c "$work/ck-$seed.json" >"$ck.json.gz"
+    run_to "$work/ck-$seed.line" "$work/ck-$seed.log" \
+      "$BASE" --seed "$seed" --ticks "$FROM" --every "$FROM" --save "$work/ck-$seed.json" || return 1
+    gzip -c "$work/ck-$seed.json" >"$ck.json.gz.part" && mv "$ck.json.gz.part" "$ck.json.gz"
+    mv "$work/ck-$seed.line" "$ck.line"
     rm -f "$work/ck-$seed.json"
   fi
 }
 
 # window <bin> <seed> <out>: the history line at TO, run from the seed's checkpoint.
 window() {
-  local bin=$1 seed=$2 out=$3
-  gunzip -c "$store/seed-$seed-$FROM.json.gz" >"$work/run-$seed-$$.json"
-  nice -n 20 "$bin" --seed "$seed" --load "$work/run-$seed-$$.json" --ticks "$TO" --every "$TO" 2>/dev/null |
-    deaths >"$out"
-  rm -f "$work/run-$seed-$$.json"
+  local bin=$1 seed=$2 out=$3 tag
+  tag=$(basename "$out")
+  gunzip -c "$store/seed-$seed-$FROM.json.gz" >"$work/$tag.json"
+  run_to "$out" "$work/$tag.log" "$bin" --seed "$seed" --load "$work/$tag.json" --ticks "$TO" --every "$TO" ||
+    return 1
+  rm -f "$work/$tag.json"
 }
 
 one_seed() {
   local seed=$1
-  checkpoint "$seed"
+  checkpoint "$seed" || return 1
   local cached="$store/seed-$seed-$FROM-$TO.line"
-  [[ -s "$cached" ]] || window "$BASE" "$seed" "$cached"
+  [[ -s "$cached" ]] || window "$BASE" "$seed" "$cached" || return 1
   window "$NEW" "$seed" "$work/new-$seed.line"
 }
 
+pids=()
 for seed in $SEEDS; do
   while [[ $(jobs -r | wc -l) -ge $JOBS ]]; do sleep 0.5; done
   one_seed "$seed" &
+  pids+=($!)
 done
-wait
+failed=0
+for pid in "${pids[@]}"; do wait "$pid" || failed=1; done
+if [[ $failed -ne 0 ]]; then
+  echo "a seed failed to run; no comparison printed" >&2
+  exit 1
+fi
 
 for seed in $SEEDS; do
   printf '%s\t%s\t%s\t%s\n' "$seed" "$(cat "$store/seed-$seed-$FROM.line")" \
