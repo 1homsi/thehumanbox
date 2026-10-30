@@ -130,11 +130,12 @@ export function WelcomeModal() {
           </select>
         </label>
         <div className="welcome-language-detected">
-          <span>
-            {detected
-              ? t('settings.language.detected', { language: nativeName(detected) })
-              : t('settings.language.notDetected')}
-          </span>
+          {detected ? (
+            <span>{t('settings.language.detected', { language: nativeName(detected) })}</span>
+          ) : (
+            // "So it's in English" is true only while it is: a chosen language says nothing about the browser.
+            language.current === SOURCE_LOCALE && <span>{t('settings.language.notDetected')}</span>
+          )}
           <button
             type="button"
             className="welcome-language-english"
