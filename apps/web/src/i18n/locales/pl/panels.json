@@ -413,6 +413,13 @@
       "worldPeople": "świat ma {have} z {need} ludzi potrzebnych tej epoce (brakuje {short})",
       "ready": "gotowe: epoka nadejdzie przy następnym sprawdzeniu świata"
     },
+    "timeline": {
+      "title": "W czasie",
+      "people": "Ludzie",
+      "food": "Jedzenie",
+      "health": "Zdrowie",
+      "notEnough": "Na razie za mało historii. Wykresy wypełnią się, gdy świat będzie działać."
+    },
     "fallen": {
       "diedOut": "Wymarło w roku {year}",
       "endTitle": "Jak się skończyło",

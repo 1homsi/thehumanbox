@@ -389,6 +389,13 @@
       "worldPeople": "dünyada bu çağın gerektirdiği {need} kişiden {have} var ({short} eksik)",
       "ready": "hazır: çağ dünyanın bir sonraki kontrolünde gelir"
     },
+    "timeline": {
+      "title": "Zaman içinde",
+      "people": "Nüfus",
+      "food": "Yiyecek",
+      "health": "Sağlık",
+      "notEnough": "Henüz yeterli geçmiş yok. Dünya ilerledikçe grafikler dolar."
+    },
     "fallen": {
       "diedOut": "{year} yılında tükendi",
       "endTitle": "Nasıl bitti",

@@ -389,6 +389,13 @@
       "worldPeople": "il mondo ha {have} delle {need} persone che questa era richiede (ne mancano {short})",
       "ready": "pronti: l'era arriva al prossimo controllo del mondo"
     },
+    "timeline": {
+      "title": "Nel tempo",
+      "people": "Persone",
+      "food": "Cibo",
+      "health": "Salute",
+      "notEnough": "Non c'è ancora abbastanza storia. I grafici si riempiono mentre il mondo va avanti."
+    },
     "fallen": {
       "diedOut": "Estinta nell'anno {year}",
       "endTitle": "Come è finita",

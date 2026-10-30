@@ -382,6 +382,13 @@
       "worldPeople": "この時代に必要な{need}人のうち、世界には{have}人いる（あと{short}人）",
       "ready": "準備完了: 次に世界が確かめるとき、時代が訪れる"
     },
+    "timeline": {
+      "title": "推移",
+      "people": "人口",
+      "food": "食料",
+      "health": "健康",
+      "notEnough": "まだ記録が足りません。世界が進むにつれてグラフが埋まります。"
+    },
     "fallen": {
       "diedOut": "{year}年に滅びた",
       "endTitle": "最期",

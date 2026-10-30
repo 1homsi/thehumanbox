@@ -389,6 +389,13 @@
       "worldPeople": "le monde compte {have} personnes sur les {need} que demande cette ère ({short} manquent)",
       "ready": "prêt : l'ère arrive au prochain contrôle du monde"
     },
+    "timeline": {
+      "title": "Au fil du temps",
+      "people": "Gens",
+      "food": "Vivres",
+      "health": "Santé",
+      "notEnough": "Pas encore assez d'historique. Les graphiques se remplissent au fil du jeu."
+    },
     "fallen": {
       "diedOut": "Éteinte l'an {year}",
       "endTitle": "Comment elle a pris fin",
