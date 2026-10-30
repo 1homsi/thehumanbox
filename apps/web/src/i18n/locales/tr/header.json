@@ -164,7 +164,15 @@
         "one": "{name} yolunun üzerinde",
         "other": "{count} kişi yolunun üzerinde"
       },
-      "disaster_none": "yolunda kimse yoktu"
+      "disaster_none": "yolunda kimse yoktu",
+      "disaster_sick": {
+        "one": "{name} hastalandı",
+        "other": "{count} kişi hastalandı"
+      },
+      "disaster_food": {
+        "one": "{name} yiyecek kaybetti",
+        "other": "{count} kişi yiyecek kaybetti"
+      }
     }
   }
 }

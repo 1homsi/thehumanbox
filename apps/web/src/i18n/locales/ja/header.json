@@ -164,7 +164,15 @@
         "one": "{name}が巻き込まれそうです",
         "other": "{count}人が巻き込まれそうです"
       },
-      "disaster_none": "巻き込まれた人はいません"
+      "disaster_none": "巻き込まれた人はいません",
+      "disaster_sick": {
+        "one": "{name}が病気になりました",
+        "other": "{count}人が病気になりました"
+      },
+      "disaster_food": {
+        "one": "{name}が食料を失いました",
+        "other": "{count}人が食料を失いました"
+      }
     }
   }
 }

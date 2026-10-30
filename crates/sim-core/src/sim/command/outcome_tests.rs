@@ -166,11 +166,8 @@ fn a_meteor_on_a_crowd_says_whom_it_killed_or_hurt() {
         radius: 4,
     });
     assert!(outcome.applied);
-    assert!(
-        matches!(outcome.code, "disaster_killed" | "disaster_hurt"),
-        "got {}",
-        outcome.code
-    );
+    // A meteor leaves the people it lands on at no health: they are counted as killed, not hurt.
+    assert_eq!(outcome.code, "disaster_killed");
     assert!(outcome.count >= 1);
 }
 
@@ -217,4 +214,75 @@ fn a_helpful_tool_is_not_judged_as_a_disaster() {
             radius: 2.0
         })
         .is_none());
+}
+
+#[test]
+fn a_plague_says_how_many_fell_sick() {
+    let mut sim = Simulation::new(21);
+    people_at(
+        &mut sim,
+        &[(60.0, 60.0, 1.0), (61.0, 60.0, 1.0), (62.0, 60.0, 1.0)],
+    );
+    let outcome = sim.apply_command_reported(crate::sim::command::Command::Outbreak { count: 2 });
+    if outcome.applied {
+        assert_eq!(outcome.code, "disaster_sick", "got {}", outcome.code);
+        assert!(outcome.count >= 1);
+    }
+}
+
+#[test]
+fn locusts_say_whose_food_they_took() {
+    let mut sim = Simulation::new(21);
+    people_at(&mut sim, &[(60.0, 60.0, 1.0)]);
+    sim.organisms[0].inv_food = 10;
+    let before = sim
+        .disaster_before(&crate::sim::command::Command::Locusts {
+            x: 60,
+            y: 60,
+            radius: 6,
+        })
+        .expect("locusts are a disaster");
+    sim.organisms[0].inv_food = 5;
+    sim.report_disaster(before);
+    let report = sim.command_report.take().expect("a report");
+    assert_eq!(report.code, "disaster_food");
+    assert_eq!(report.count, 1);
+}
+
+#[test]
+fn a_tornado_reports_the_whole_storm_not_its_last_strike() {
+    let mut sim = Simulation::new(21);
+    people_at(&mut sim, &[(60.0, 60.0, 1.0)]);
+    let before = sim
+        .disaster_before(&crate::sim::command::Command::Tornado {
+            x: 60,
+            y: 60,
+            radius: 6,
+        })
+        .expect("a tornado is a disaster");
+    sim.organisms[0].health = 0.5;
+    // Its last nested strike missed and said so.
+    sim.report("none_here", 0, None);
+    sim.report_disaster(before);
+    let report = sim.command_report.take().expect("a report");
+    assert_eq!(report.code, "disaster_hurt");
+}
+
+#[test]
+fn a_zero_radius_blight_counts_reach_with_the_handlers_default() {
+    let mut sim = Simulation::new(21);
+    people_at(&mut sim, &[(64.0, 60.0, 1.0)]);
+    let before = sim
+        .disaster_before(&crate::sim::command::Command::Blight {
+            x: 60,
+            y: 60,
+            radius: 0,
+        })
+        .expect("blight is a disaster");
+    sim.report_disaster(before);
+    let report = sim.command_report.take().expect("a report");
+    assert_eq!(
+        report.code, "disaster_in_reach",
+        "four tiles away is inside blight's default of five"
+    );
 }

@@ -164,7 +164,15 @@
         "one": "{name} ist im Weg",
         "other": "{count} Menschen im Weg"
       },
-      "disaster_none": "niemand war im Weg"
+      "disaster_none": "niemand war im Weg",
+      "disaster_sick": {
+        "one": "{name} ist erkrankt",
+        "other": "{count} Menschen erkrankt"
+      },
+      "disaster_food": {
+        "one": "{name} verlor Vorräte",
+        "other": "{count} Menschen verloren Vorräte"
+      }
     }
   }
 }

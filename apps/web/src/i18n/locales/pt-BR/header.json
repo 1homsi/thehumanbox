@@ -164,7 +164,15 @@
         "one": "{name} está no caminho",
         "other": "{count} pessoas no caminho"
       },
-      "disaster_none": "ninguém estava no caminho"
+      "disaster_none": "ninguém estava no caminho",
+      "disaster_sick": {
+        "one": "{name} adoeceu",
+        "other": "{count} pessoas adoeceram"
+      },
+      "disaster_food": {
+        "one": "{name} perdeu comida",
+        "other": "{count} pessoas perderam comida"
+      }
     }
   }
 }

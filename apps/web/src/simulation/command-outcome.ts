@@ -78,6 +78,8 @@ const RESULT_KEYS: Record<string, MessageKey | undefined> = {
   animals: 'header.sandbox.result.animals',
   disaster_killed: 'header.sandbox.result.disaster_killed',
   disaster_hurt: 'header.sandbox.result.disaster_hurt',
+  disaster_sick: 'header.sandbox.result.disaster_sick',
+  disaster_food: 'header.sandbox.result.disaster_food',
   disaster_buildings: 'header.sandbox.result.disaster_buildings',
   disaster_in_reach: 'header.sandbox.result.disaster_in_reach',
   disaster_none: 'header.sandbox.result.disaster_none',

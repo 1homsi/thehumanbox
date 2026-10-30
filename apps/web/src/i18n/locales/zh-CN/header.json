@@ -164,7 +164,15 @@
         "one": "{name}在它的路径上",
         "other": "{count}人在它的路径上"
       },
-      "disaster_none": "它的路径上没有人"
+      "disaster_none": "它的路径上没有人",
+      "disaster_sick": {
+        "one": "{name}病倒了",
+        "other": "{count}人病倒了"
+      },
+      "disaster_food": {
+        "one": "{name}失去了食物",
+        "other": "{count}人失去了食物"
+      }
     }
   }
 }

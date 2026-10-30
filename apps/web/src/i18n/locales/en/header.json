@@ -164,7 +164,15 @@
         "one": "{name} is in its way",
         "other": "{count} people in its way"
       },
-      "disaster_none": "nobody was in its way"
+      "disaster_none": "nobody was in its way",
+      "disaster_sick": {
+        "one": "{name} fell sick",
+        "other": "{count} people fell sick"
+      },
+      "disaster_food": {
+        "one": "{name} lost food",
+        "other": "{count} people lost food"
+      }
     }
   }
 }

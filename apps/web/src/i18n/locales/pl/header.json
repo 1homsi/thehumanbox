@@ -164,7 +164,15 @@
         "one": "na drodze: {name}",
         "other": "osób na drodze: {count}"
       },
-      "disaster_none": "nikogo nie było na drodze"
+      "disaster_none": "nikogo nie było na drodze",
+      "disaster_sick": {
+        "one": "zachorował: {name}",
+        "other": "zachorowało osób: {count}"
+      },
+      "disaster_food": {
+        "one": "stracił jedzenie: {name}",
+        "other": "osób bez części jedzenia: {count}"
+      }
     }
   }
 }

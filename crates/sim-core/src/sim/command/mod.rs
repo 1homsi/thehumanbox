@@ -776,8 +776,8 @@ impl Simulation {
         self.command_report = None;
         let disaster = self.disaster_before(&cmd);
         let applied = self.apply_command_inner(cmd);
-        // A disaster whose handler did not say whom it hit gets the count from what changed.
-        if applied && self.command_report.is_none() {
+        // A disaster says whom it hit, counted from what changed (see `report_disaster`).
+        if applied {
             if let Some(before) = disaster {
                 self.report_disaster(before);
             }

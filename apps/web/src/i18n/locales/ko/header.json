@@ -164,7 +164,15 @@
         "one": "{name}이(가) 길목에 있습니다",
         "other": "{count}명이 길목에 있습니다"
       },
-      "disaster_none": "길목에 아무도 없었습니다"
+      "disaster_none": "길목에 아무도 없었습니다",
+      "disaster_sick": {
+        "one": "{name}이(가) 병에 걸렸습니다",
+        "other": "{count}명이 병에 걸렸습니다"
+      },
+      "disaster_food": {
+        "one": "{name}이(가) 식량을 잃었습니다",
+        "other": "{count}명이 식량을 잃었습니다"
+      }
     }
   }
 }

@@ -164,7 +164,15 @@
         "one": "на шляху: {name}",
         "other": "людей на шляху: {count}"
       },
-      "disaster_none": "на шляху нікого не було"
+      "disaster_none": "на шляху нікого не було",
+      "disaster_sick": {
+        "one": "захворів: {name}",
+        "other": "захворіло людей: {count}"
+      },
+      "disaster_food": {
+        "one": "втратив їжу: {name}",
+        "other": "людей втратило їжу: {count}"
+      }
     }
   }
 }
