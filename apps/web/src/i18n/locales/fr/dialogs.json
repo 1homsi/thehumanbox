@@ -5,13 +5,12 @@
     "ok": "OK"
   },
   "welcome": {
-    "quickTour": "visite rapide",
     "back": "Retour",
     "skip": "Passer",
     "start": "Démarrer",
     "next": "Suivant",
     "localTitle": "Vous êtes leur dieu",
-    "localBody": "De petites tribus vivent, aiment, bâtissent et partent en guerre par elles-mêmes. Quand les ennuis arrivent, elles vous prient : cliquez sur une bulle de prière et le pouvoir qui aide est entre vos mains. Tout fonctionne et est sauvegardé sur cet appareil."
+    "localBody": "Les tribus vivent seules. Quand l’une prie, cliquez sur sa bulle pour répondre."
   },
   "worlds": {
     "introArchives": "Vos archives de monde sont sauvegardées sur cet ordinateur.",
