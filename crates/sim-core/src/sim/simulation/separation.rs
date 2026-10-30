@@ -20,6 +20,19 @@ impl Simulation {
         }
         let index = SpatialIndex::build(&self.organisms, 4);
         let mut near: Vec<usize> = Vec::new();
+        // Someone aboard a boat stays on it: their boat only sails from the tile beside its next stretch of
+        // water, so easing a waiting colonist a tile inland stranded them on the shore.
+        let aboard: crate::hashing::FxHashSet<&str> = self
+            .vehicles
+            .iter()
+            .flat_map(|v| v.occupants.iter().map(String::as_str))
+            .collect();
+        let held: Vec<bool> = self
+            .organisms
+            .iter()
+            .map(|o| aboard.contains(o.id.as_str()))
+            .collect();
+        drop(aboard);
         for i in 0..self.organisms.len() {
             if !self.organisms[i].alive {
                 continue;
@@ -48,11 +61,11 @@ impl Simulation {
                 let push = (PERSONAL_SPACE - d) * PUSH_SHARE;
                 let (ni_x, ni_y) = (xi + ux * push, yi + uy * push);
                 let (nj_x, nj_y) = (xj - ux * push, yj - uy * push);
-                if self.walkable_at(ni_x, ni_y) {
+                if !held[i] && self.walkable_at(ni_x, ni_y) {
                     self.organisms[i].x = ni_x;
                     self.organisms[i].y = ni_y;
                 }
-                if self.walkable_at(nj_x, nj_y) {
+                if !held[j] && self.walkable_at(nj_x, nj_y) {
                     self.organisms[j].x = nj_x;
                     self.organisms[j].y = nj_y;
                 }
@@ -102,6 +115,44 @@ mod tests {
         sim.separate_crowds();
         let gap = (sim.organisms[1].x - sim.organisms[0].x).abs();
         assert!(gap > 0.1, "people on one spot are eased apart, gap {gap}");
+    }
+
+    #[test]
+    fn someone_aboard_a_boat_stays_on_it_while_the_crowd_eases_apart() {
+        use crate::sim::tech::transportation::{TransportKind, Vehicle};
+        let mut sim = Simulation::new(5);
+        sim.organisms.clear();
+        for y in 40..44 {
+            for x in 40..44 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        sim.organisms.push(person("a", 41.0, 41.0));
+        sim.organisms.push(person("b", 41.0, 41.0));
+        sim.vehicles.push(Vehicle {
+            id: 1,
+            kind: TransportKind::Boat,
+            owner_lineage: "lin".into(),
+            x: 41,
+            y: 41,
+            occupants: vec!["a".into()],
+            cargo: 0,
+            route: vec![(41, 42)],
+            ready_tick: 0,
+            harbour: None,
+            bound_for: None,
+            ferry: None,
+            rail_line: None,
+        });
+        for _ in 0..30 {
+            sim.separate_crowds();
+        }
+        assert_eq!(
+            (sim.organisms[0].x, sim.organisms[0].y),
+            (41.0, 41.0),
+            "the passenger stays aboard"
+        );
+        assert!(sim.organisms[1].x != 41.0, "the one on foot still steps aside");
     }
 
     #[test]
