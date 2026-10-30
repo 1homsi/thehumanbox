@@ -168,7 +168,8 @@ pub(super) fn dispatch_cargo_on_route_index(
     } else {
         return false;
     };
-    let Some((actor_center, receiver_center)) = settlement_endpoints(sim, &actor_lineage, &receiver_lineage)
+    let Some((actor_center, receiver_center)) =
+        settlement_endpoints_now(sim, &actor_lineage, &receiver_lineage)
     else {
         return false;
     };

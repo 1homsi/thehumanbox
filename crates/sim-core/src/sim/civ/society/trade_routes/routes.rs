@@ -52,7 +52,32 @@ pub(super) fn settlement_endpoints(
     if first_lineage.is_empty() || second_lineage.is_empty() || first_lineage == second_lineage {
         return None;
     }
-    let snapshots = settlements::snapshots_this_tick(sim);
+    endpoints_in(
+        &settlements::snapshots_this_tick(sim),
+        first_lineage,
+        second_lineage,
+    )
+}
+
+/// `settlement_endpoints` from a fresh census, for the steps that commit something (a route laid, a
+/// caravan sent with cargo): within a tick the shared snapshots can be stale, and a tribe whose last
+/// person died earlier in the tick must not be sent goods.
+pub(super) fn settlement_endpoints_now(
+    sim: &Simulation,
+    first_lineage: &str,
+    second_lineage: &str,
+) -> Option<([i32; 2], [i32; 2])> {
+    if first_lineage.is_empty() || second_lineage.is_empty() || first_lineage == second_lineage {
+        return None;
+    }
+    endpoints_in(&settlements::snapshots(sim), first_lineage, second_lineage)
+}
+
+fn endpoints_in(
+    snapshots: &[settlements::SettlementSnapshot],
+    first_lineage: &str,
+    second_lineage: &str,
+) -> Option<([i32; 2], [i32; 2])> {
     let first = snapshots
         .iter()
         .find(|settlement| settlement.lineage_id == first_lineage && settlement.tier >= 1)?;
@@ -79,7 +104,8 @@ pub fn establish_route(sim: &mut Simulation, actor_idx: usize, partner_idx: usiz
     let actor_lineage = actor.lineage_id.clone();
     let partner_lineage = partner.lineage_id.clone();
     let actor_name = actor.name.clone();
-    let Some((actor_center, partner_center)) = settlement_endpoints(sim, &actor_lineage, &partner_lineage)
+    let Some((actor_center, partner_center)) =
+        settlement_endpoints_now(sim, &actor_lineage, &partner_lineage)
     else {
         return false;
     };
