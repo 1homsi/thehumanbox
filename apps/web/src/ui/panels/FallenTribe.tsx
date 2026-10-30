@@ -10,6 +10,7 @@ import { knownTribeName } from '../../state/worldStore'
 import { t } from '../../i18n'
 import { lineText } from './tribe-history-text'
 import { TribeHistory } from './TribeHistory'
+import { tribeFocus } from '../../shared/viewerSelection'
 
 interface Props {
   world: WorldState
@@ -88,7 +89,7 @@ export function FallenTribe({ world, lineage }: Props) {
                     <button
                       className="tribe-history-go"
                       title={t('panels.tribe.fallen.openOther')}
-                      onClick={() => setFocus(`lineage:${row.other}`)}
+                      onClick={() => row.other && setFocus(tribeFocus(row.other, world))}
                     >
                       {label}
                     </button>

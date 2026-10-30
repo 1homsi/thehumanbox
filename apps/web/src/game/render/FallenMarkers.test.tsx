@@ -79,6 +79,6 @@ describe('FallenMarkers', () => {
     const host = mount(world)
     const mark = host.querySelector('button.fallen-marker') as HTMLButtonElement
     act(() => mark.click())
-    expect(useUIStore.getState().focus).toBe('lineage:gone')
+    expect(useUIStore.getState().focus).toBe('fallen:gone')
   })
 })

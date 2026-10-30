@@ -16,6 +16,8 @@ import { getOwnWorldSeed } from '../../simulation/worldSource'
 import { useWorldReplaced } from '../../state/world-replaced'
 import { screenBusy, TOAST_RETRY_MS } from './screenBusy'
 import './famine-toast.css'
+import { tribeFocus } from '../../shared/viewerSelection'
+import { extinctionOf } from '../../game/model/tribe-end'
 
 /** How long a warning stays up before it goes away on its own. */
 export const FAMINE_SHOW_MS = 12_000
@@ -129,12 +131,15 @@ export function FamineWarningToast({ world }: { world: WorldState | null }) {
   const lineage = shown.lineage
   const name = knownTribeName(world?.lineage_names, lineage) ?? lineage.slice(0, 6)
   const goTo = () => {
-    // The world this warning was drawn with: the click belongs to that render.
+    // The world this warning was drawn with: the click belongs to that render. A tribe that starved out has
+    // no home left, so the camera goes to where it ended, and its card is the one of how it ended.
     if (world) {
       const home = tribeHome(world, lineage)
-      if (home) useCameraFocus.getState().focusTile(Math.round(home.x), Math.round(home.y))
+      const end = home ? null : extinctionOf(world.tribe_chronicle?.[lineage])
+      const at = home ? [home.x, home.y] : end && end.x !== null && end.y !== null ? [end.x, end.y] : null
+      if (at) useCameraFocus.getState().focusTile(Math.round(at[0]), Math.round(at[1]))
+      useUIStore.getState().setFocus(tribeFocus(lineage, world))
     }
-    useUIStore.getState().setFocus(`lineage:${lineage}`)
     dismiss()
   }
 

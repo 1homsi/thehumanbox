@@ -147,4 +147,21 @@ describe('FamineWarningToast', () => {
       t('panels.famine.risk', { name: 'Ash' }),
     )
   })
+
+  it('a tribe that starved out opens its fallen card and takes the camera to where it ended', () => {
+    const { host, rerender } = mount(world(100, 0.8))
+    const gone = {
+      ...world(200, 0.8),
+      organisms: [],
+      settlements: [],
+      tribe_chronicle: { a: [{ tick: 150, kind: 'extinct', other: null, word: 'starvation', x: 9, y: 11 }] },
+    } as unknown as WorldState
+    rerender(gone)
+    expect(host.querySelector('.famine-toast')?.textContent).toContain(
+      t('panels.famine.gone', { name: 'Ash' }),
+    )
+    act(() => (host.querySelector('.famine-toast-go') as HTMLButtonElement).click())
+    expect(useUIStore.getState().focus).toBe('fallen:a')
+    expect(useCameraFocus.getState().request).toMatchObject({ x: 9, y: 11 })
+  })
 })
