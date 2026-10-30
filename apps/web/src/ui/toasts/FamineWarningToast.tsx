@@ -43,8 +43,6 @@ const STAGE_KEYS = {
  */
 export function FamineWarningToast({ world }: { world: WorldState | null }) {
   const watch = useRef<FamineWatch | null>(null)
-  const latest = useRef<WorldState | null>(world)
-  latest.current = world
   const [queue, setQueue] = useState<QueuedFamine[]>([])
   const [, setTick] = useState(0)
   const nextId = useRef(1)
@@ -131,9 +129,9 @@ export function FamineWarningToast({ world }: { world: WorldState | null }) {
   const lineage = shown.lineage
   const name = knownTribeName(world?.lineage_names, lineage) ?? lineage.slice(0, 6)
   const goTo = () => {
-    const current = latest.current
-    if (current) {
-      const home = tribeHome(current, lineage)
+    // The world this warning was drawn with: the click belongs to that render.
+    if (world) {
+      const home = tribeHome(world, lineage)
       if (home) useCameraFocus.getState().focusTile(Math.round(home.x), Math.round(home.y))
     }
     useUIStore.getState().setFocus(`lineage:${lineage}`)
