@@ -379,6 +379,13 @@
       "known": "已知{known}/{required}项秘密",
       "worldPeople": "世界有{have}人，此纪元需要{need}人（还差{short}人）",
       "ready": "已就绪：纪元将在世界的下一次检查时到来"
+    },
+    "timeline": {
+      "title": "随时间变化",
+      "people": "人口",
+      "food": "食物",
+      "health": "健康",
+      "notEnough": "历史还不够。随着世界运行，图表会逐渐填充。"
     }
   },
   "scene": {

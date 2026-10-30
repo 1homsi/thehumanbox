@@ -392,6 +392,13 @@
       "known": "{known} of {required} secrets known",
       "worldPeople": "the world has {have} of the {need} people this age needs ({short} more)",
       "ready": "ready: the age comes at the world's next check"
+    },
+    "timeline": {
+      "title": "Over time",
+      "people": "People",
+      "food": "Food",
+      "health": "Health",
+      "notEnough": "Not enough history yet. The charts fill in as the world runs."
     }
   },
   "scene": {

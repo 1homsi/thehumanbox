@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { useEffect, useRef, useState } from 'react'
 import { useUIStore } from '../../state/store'
-import { popHistory } from '../../state/worldStore'
+import { popHistory, tribeSeries } from '../../state/worldStore'
 import { sparklinePoints, trend } from '../../game/model/pop-history'
 import type { PrayerInfo, WorldState } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
@@ -20,6 +20,7 @@ import { familyLineText, familyLines } from '../../game/model/family-lines'
 import { eldestByLineage, eldestLine } from '../../game/model/tribe-eldest'
 import { ToolSprite } from '../toolbar/ToolSprite'
 import { TribeHistory } from './TribeHistory'
+import { TribeTimeline } from './TribeTimeline'
 import { TribeReasoning } from './TribeReasoning'
 import { formatNumber, t, type MessageKey } from '../../i18n'
 import { knownTribeName } from '../../state/worldStore'
@@ -330,6 +331,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
       )}
       <Need label={t('panels.tribe.water')} value={status.water} />
       <Need label={t('panels.tribe.health')} value={status.health} />
+      <TribeTimeline world={world} lineage={status.id} samples={tribeSeries.get(status.id) ?? []} />
       <TribeHistory world={world} lineage={status.id} />
       <TribeReasoning world={world} status={status} />
       {losses && <div className="tribe-card-losses">{t('panels.tribe.lostLately', { losses })}</div>}

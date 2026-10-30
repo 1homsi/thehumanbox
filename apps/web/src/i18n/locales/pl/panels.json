@@ -410,6 +410,13 @@
       "known": "znane tajemnice: {known} z {required}",
       "worldPeople": "świat ma {have} z {need} ludzi potrzebnych tej epoce (brakuje {short})",
       "ready": "gotowe: epoka nadejdzie przy następnym sprawdzeniu świata"
+    },
+    "timeline": {
+      "title": "W czasie",
+      "people": "Ludzie",
+      "food": "Jedzenie",
+      "health": "Zdrowie",
+      "notEnough": "Na razie za mało historii. Wykresy wypełnią się, gdy świat będzie działać."
     }
   },
   "scene": {

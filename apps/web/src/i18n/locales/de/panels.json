@@ -386,6 +386,13 @@
       "known": "{known} von {required} Geheimnissen bekannt",
       "worldPeople": "die Welt hat {have} von {need} Menschen, die dieses Zeitalter braucht ({short} fehlen)",
       "ready": "bereit: das Zeitalter kommt bei der nächsten Prüfung der Welt"
+    },
+    "timeline": {
+      "title": "Im Verlauf",
+      "people": "Leute",
+      "food": "Essen",
+      "health": "Gesundheit",
+      "notEnough": "Noch nicht genug Verlauf. Die Diagramme füllen sich, während die Welt läuft."
     }
   },
   "scene": {

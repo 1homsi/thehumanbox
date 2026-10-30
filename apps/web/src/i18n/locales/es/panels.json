@@ -386,6 +386,13 @@
       "known": "{known} de {required} secretos conocidos",
       "worldPeople": "el mundo tiene {have} de las {need} personas que necesita esta era (faltan {short})",
       "ready": "listo: la era llega en la próxima revisión del mundo"
+    },
+    "timeline": {
+      "title": "A lo largo del tiempo",
+      "people": "Gente",
+      "food": "Comida",
+      "health": "Salud",
+      "notEnough": "Aún no hay suficiente historial. Las gráficas se llenan mientras corre el mundo."
     }
   },
   "scene": {

@@ -1,10 +1,15 @@
 import { create } from 'zustand'
 import type { OrganismState, WorldState } from '../shared/types'
 import { recordPopulations, type PopHistory } from '../game/model/pop-history'
+import { recordTribeSeries, type TribeSeries } from '../game/model/tribe-series'
 
 /** Each tribe's headcount over time, sampled as snapshots arrive. */
 export const popHistory: PopHistory = new Map()
 const popSampling = { lastTick: -Infinity }
+
+/** Each tribe's people, food and health over time, sampled as snapshots arrive (dead tribes keep theirs). */
+export const tribeSeries: TribeSeries = new Map()
+const seriesSampling = { lastTick: -Infinity }
 
 // Every tribe name the player has been shown while the tribe lived. The simulation drops a name once no one of
 // that tribe is alive, but a stats row can still mention the tribe for a while after that.
@@ -29,6 +34,7 @@ export const useWorldStore = create<WorldStore>((set, get) => ({
   byId: new Map(),
   setWorld: (world) => {
     recordPopulations(popHistory, popSampling, world)
+    recordTribeSeries(tribeSeries, seriesSampling, world)
     if (world.tick < namesSampling.lastTick) tribeNames.clear()
     namesSampling.lastTick = world.tick
     for (const [id, name] of Object.entries(world.lineage_names ?? {})) tribeNames.set(id, name)
