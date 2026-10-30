@@ -223,6 +223,9 @@ export function CanvasCameraController({
                 { w: containerW, h: containerH },
               ),
             )
+          } else if (settling && settling.to === to) {
+            // An ease already heading to this zoom (as at a limit) carries on rather than starting over.
+            tween.current = settling
           } else if (to !== current.zoom) {
             tween.current = {
               from: { ...current },

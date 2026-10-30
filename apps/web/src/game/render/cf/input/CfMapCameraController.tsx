@@ -301,7 +301,8 @@ export function CfMapCameraController({
           // No easing for players who asked for less motion: the new zoom at once.
           tween.current = null
           next = zoomMapAt(next, to, { x: containerW / 2, y: containerH / 2 }, viewport)
-        } else if (to !== next.zoom) {
+        } else if (to !== next.zoom && settling?.to !== to) {
+          // A new ease, unless one is already heading to this zoom (as at a limit): that one carries on.
           tween.current = {
             from: { ...next },
             to,
