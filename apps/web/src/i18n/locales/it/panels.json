@@ -336,7 +336,9 @@
         "building": "la costruzione",
         "crafting": "l'artigianato",
         "healing": "la cura"
-      }
+      },
+      "extinct": "si è estinta",
+      "extinctCause": "si è estinta (ultima morte: {cause})"
     },
     "why": {
       "title": "Perché agiscono così",
@@ -388,7 +390,19 @@
       "ready": "pronti: l'era arriva al prossimo controllo del mondo"
     },
     "follow": "Segui questa tribù",
-    "unfollow": "Smetti di seguire questa tribù"
+    "unfollow": "Smetti di seguire questa tribù",
+    "fallen": {
+      "diedOut": "Estinta nell'anno {year}",
+      "endTitle": "Come è finita",
+      "cause": "Ultima morte: {cause}",
+      "noCause": "Il suo ultimo membro è morto",
+      "causeTag": "Causa",
+      "contextTag": "Contesto",
+      "openOther": "Apri la scheda di quella tribù",
+      "marker": "{name} si è estinta qui nell'anno {year}. Apri la scheda",
+      "markerCause": "{name} si è estinta qui nell'anno {year} (ultima morte: {cause}). Apri la scheda",
+      "listHeading": "Tribù estinte"
+    }
   },
   "scene": {
     "out": "fuori",
@@ -498,6 +512,7 @@
     "losing": "{name} perde persone per la fame",
     "gone": "{name} è scomparsa per fame",
     "go": "Vai a {name}",
+    "more": "Altre {count} tribù sono a corto di cibo",
     "dismiss": "Chiudi"
   }
 }

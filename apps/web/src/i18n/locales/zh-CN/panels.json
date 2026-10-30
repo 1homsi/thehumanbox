@@ -329,7 +329,9 @@
         "building": "营建",
         "crafting": "手艺",
         "healing": "医治"
-      }
+      },
+      "extinct": "灭绝了",
+      "extinctCause": "灭绝了（最后一个人的死因：{cause}）"
     },
     "why": {
       "title": "行动的缘由",
@@ -381,7 +383,19 @@
       "ready": "已就绪：纪元将在世界的下一次检查时到来"
     },
     "follow": "关注该部落",
-    "unfollow": "取消关注该部落"
+    "unfollow": "取消关注该部落",
+    "fallen": {
+      "diedOut": "在第{year}年灭绝",
+      "endTitle": "终局",
+      "cause": "最后一死：{cause}",
+      "noCause": "最后一人死去",
+      "causeTag": "原因",
+      "contextTag": "背景",
+      "openOther": "打开该部落的卡片",
+      "marker": "{name}在第{year}年于此灭绝。打开卡片",
+      "markerCause": "{name}在第{year}年于此灭绝（最后一死：{cause}）。打开卡片",
+      "listHeading": "已灭绝的部落"
+    }
   },
   "scene": {
     "out": "外出",
@@ -482,6 +496,7 @@
     "losing": "{name}正因饥荒失去族人",
     "gone": "{name}因饥荒灭绝",
     "go": "前往{name}",
+    "more": "另有 {count} 个部落缺少食物",
     "dismiss": "关闭"
   }
 }

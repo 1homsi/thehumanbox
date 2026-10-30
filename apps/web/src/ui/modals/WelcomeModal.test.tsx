@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { WelcomeModal } from './WelcomeModal'
-import { LOCALES, t } from '../../i18n'
+import { LOCALES, loadLocale, t } from '../../i18n'
 
 const reload = vi.hoisted(() => vi.fn(() => true))
 vi.mock('../../simulation/worldSource', async (importOriginal) => ({
@@ -191,6 +191,38 @@ describe('WelcomeModal', () => {
     act(() => last.focus())
     press(last, 'Tab')
     expect(document.activeElement).toBe(picker())
+  })
+
+  it('shows the language the browser asked for, and a one-click English option', async () => {
+    vi.stubGlobal('navigator', { languages: ['de-DE', 'en-US'], language: 'de-DE' })
+    await loadLocale('de')
+    try {
+      mount()
+      expect(document.querySelector('.welcome-language-detected span')?.textContent).toBe(
+        t('settings.language.detected', { language: 'Deutsch' }),
+      )
+      const english = document.querySelector<HTMLButtonElement>('.welcome-language-english')!
+      expect(english.disabled).toBe(false)
+      act(() => english.click())
+      expect(window.localStorage.getItem('thb-locale')).toBe('en')
+      expect(reload).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.unstubAllGlobals()
+      await loadLocale('en')
+    }
+  })
+
+  it('the English option is off while English is already the language', () => {
+    vi.stubGlobal('navigator', { languages: ['en-US', 'en'], language: 'en-US' })
+    try {
+      mount()
+      expect(document.querySelector<HTMLButtonElement>('.welcome-language-english')!.disabled).toBe(true)
+      expect(document.querySelector('.welcome-language-detected span')?.textContent).toBe(
+        t('settings.language.detected', { language: 'English' }),
+      )
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('the first screen offers one action, Start, and one way out, Skip', () => {

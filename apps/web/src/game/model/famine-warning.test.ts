@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { WorldState } from '../../shared/types'
-import { famineStages, FAMINE_RISK_FOOD, watchFamine, type FamineWatch } from './famine-warning'
+import {
+  enqueueFamine,
+  famineStages,
+  FAMINE_RISK_FOOD,
+  watchFamine,
+  type FamineWatch,
+  type QueuedFamine,
+} from './famine-warning'
 
 const org = (lineage_id: string, energy: number, alive = true) => ({ lineage_id, energy, alive })
 // The chronicle's `extinct` kind comes with the tribe-history change; this test only needs the shape.
@@ -104,5 +111,28 @@ describe('watchFamine', () => {
     const replaced = watchFamine(first, frame(10, { a: 0.1 }))
     expect(replaced.warnings).toEqual([])
     expect(replaced.watch.worldTick).toBe(10)
+  })
+})
+
+describe('enqueueFamine', () => {
+  const warn = (id: number): QueuedFamine => ({ id, lineage: `t${id}`, stage: 'risk', count: 1 })
+
+  it('queues warnings while there is room', () => {
+    expect(enqueueFamine([warn(1)], [warn(2)], 5).map((q) => q.id)).toEqual([1, 2])
+  })
+
+  it('folds warnings past the limit into one summary that counts them, keeping the queue at the limit', () => {
+    const queue = enqueueFamine([], [1, 2, 3, 4, 5, 6].map(warn), 5)
+    expect(queue).toHaveLength(5)
+    expect(queue.slice(0, 4).map((q) => q.lineage)).toEqual(['t3', 't4', 't5', 't6'])
+    expect(queue[4]).toMatchObject({ lineage: null, count: 2 })
+  })
+
+  it('adds to the summary already waiting rather than adding a second one', () => {
+    const first = enqueueFamine([], [1, 2, 3, 4, 5, 6].map(warn), 5)
+    const second = enqueueFamine(first, [warn(7)], 5)
+    expect(second).toHaveLength(5)
+    expect(second.filter((q) => q.lineage === null)).toEqual([expect.objectContaining({ count: 3 })])
+    expect(second.map((q) => q.lineage).slice(0, 4)).toEqual(['t4', 't5', 't6', 't7'])
   })
 })

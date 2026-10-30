@@ -304,6 +304,22 @@
   margin: 2px 0 0;
   opacity: 0.7;
 }
+/* A fallen tribe's card: the end summary's tags. A recorded cause is the only line in amber; context stays quiet. */
+.tribe-end-tag {
+  display: inline-block;
+  min-width: 52px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+.tribe-end-tag.cause {
+  color: #ffb27a;
+  opacity: 1;
+}
+.tribe-card-fallen .tribe-card-name {
+  font-weight: 600;
+}
 .tribe-why-next {
   color: #ffd98a;
 }

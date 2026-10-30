@@ -78,16 +78,35 @@ export function nativeName(code: string): string {
   return code
 }
 
-/** The best shipped locale for a list of preferred tags, or null. */
+/**
+ * A language tag as browsers and operating systems write it, reduced to the form matched below:
+ * `en-US`, `en_US` and `en_US.UTF-8` all give `en-US`. Null for an entry that names no language
+ * (`C`, `POSIX`, an empty or non-text value), which the matcher skips.
+ */
+function normalizeTag(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const tag = raw.trim().split(/[.@]/)[0].replace(/_/g, '-')
+  if (!tag || tag.toUpperCase() === 'C' || tag.toUpperCase() === 'POSIX') return null
+  return tag
+}
+
+/**
+ * The first preferred tag the game ships a language for, or null. An exact tag wins over the same
+ * language in another region (`pt-PT` gives `pt-BR` only when no `pt-PT` ships), and the list's order
+ * decides between languages: the browser's first preferred language that the game has wins.
+ */
 export function matchLocale(
-  preferred: readonly string[],
+  preferred: readonly unknown[],
   available: readonly string[] = LOCALES,
 ): string | null {
   const byLower = new Map(available.map((code) => [code.toLowerCase(), code]))
-  for (const tag of preferred) {
-    const exact = byLower.get(tag.toLowerCase())
+  for (const raw of preferred) {
+    const tag = normalizeTag(raw)
+    if (!tag) continue
+    const lower = tag.toLowerCase()
+    const exact = byLower.get(lower)
     if (exact) return exact
-    const base = tag.split('-')[0].toLowerCase()
+    const base = lower.split('-')[0]
     const sameBase = byLower.get(base) ?? available.find((code) => code.toLowerCase().split('-')[0] === base)
     if (sameBase) return sameBase
   }
@@ -102,12 +121,27 @@ function readSaved(): string | null {
   }
 }
 
+/** The languages the browser asks for, most preferred first. */
+function browserLanguages(): readonly unknown[] {
+  if (typeof navigator === 'undefined') return []
+  const list: unknown = navigator.languages
+  return Array.isArray(list) && list.length > 0 ? list : [navigator.language]
+}
+
+/**
+ * The language the browser's own list asks for first that the game ships, or null when it asks for
+ * none of them. Ignores a saved choice, so the first-launch card can show what the browser asked for;
+ * English as the fallback is `preferredLocale`'s business, not a detection.
+ */
+export function detectedLocale(): string | null {
+  return matchLocale(browserLanguages())
+}
+
 /** The language to start in: the saved choice, else the browser's, else English. */
 export function preferredLocale(): string {
   const saved = readSaved()
   if (saved && LOCALES.includes(saved)) return saved
-  const browser = typeof navigator === 'undefined' ? [] : (navigator.languages ?? [navigator.language])
-  return matchLocale(browser) ?? SOURCE_LOCALE
+  return detectedLocale() ?? SOURCE_LOCALE
 }
 
 export function getLocale(): string {

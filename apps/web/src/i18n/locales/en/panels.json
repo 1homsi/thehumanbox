@@ -342,7 +342,9 @@
         "building": "building",
         "crafting": "crafting",
         "healing": "healing"
-      }
+      },
+      "extinct": "died out",
+      "extinctCause": "died out (last death: {cause})"
     },
     "why": {
       "title": "Why they act",
@@ -394,7 +396,19 @@
       "ready": "ready: the age comes at the world's next check"
     },
     "follow": "Follow this tribe",
-    "unfollow": "Stop following this tribe"
+    "unfollow": "Stop following this tribe",
+    "fallen": {
+      "diedOut": "Died out in year {year}",
+      "endTitle": "How it ended",
+      "cause": "Last death: {cause}",
+      "noCause": "Its last member died",
+      "causeTag": "Cause",
+      "contextTag": "Context",
+      "openOther": "Open that tribe's card",
+      "marker": "{name} died out here in year {year}. Open its card",
+      "markerCause": "{name} died out here in year {year} (last death: {cause}). Open its card",
+      "listHeading": "Tribes that died out"
+    }
   },
   "scene": {
     "out": "out",
@@ -498,6 +512,7 @@
     "losing": "{name} is losing people to famine",
     "gone": "{name} has starved out",
     "go": "Go to {name}",
+    "more": "{count} more tribes are short of food",
     "dismiss": "Dismiss"
   }
 }

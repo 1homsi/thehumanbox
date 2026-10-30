@@ -360,7 +360,9 @@
         "building": "budownictwo",
         "crafting": "rzemiosło",
         "healing": "uzdrawianie"
-      }
+      },
+      "extinct": "wymarło",
+      "extinctCause": "wymarło (ostatnia śmierć: {cause})"
     },
     "why": {
       "title": "Dlaczego tak postępują",
@@ -412,7 +414,19 @@
       "ready": "gotowe: epoka nadejdzie przy następnym sprawdzeniu świata"
     },
     "follow": "Obserwuj to plemię",
-    "unfollow": "Przestań obserwować to plemię"
+    "unfollow": "Przestań obserwować to plemię",
+    "fallen": {
+      "diedOut": "Wymarło w roku {year}",
+      "endTitle": "Jak się skończyło",
+      "cause": "Ostatnia śmierć: {cause}",
+      "noCause": "Umarł jego ostatni członek",
+      "causeTag": "Przyczyna",
+      "contextTag": "Kontekst",
+      "openOther": "Otwórz kartę tego plemienia",
+      "marker": "{name} wymarło tutaj w roku {year}. Otwórz kartę",
+      "markerCause": "{name} wymarło tutaj w roku {year} (ostatnia śmierć: {cause}). Otwórz kartę",
+      "listHeading": "Plemiona, które wymarły"
+    }
   },
   "scene": {
     "out": "poza",
@@ -530,6 +544,7 @@
     "losing": "{name} traci ludzi z powodu głodu",
     "gone": "{name} wymarło z głodu",
     "go": "Idź do: {name}",
+    "more": "Jeszcze {count} plemion ma za mało jedzenia",
     "dismiss": "Zamknij"
   }
 }

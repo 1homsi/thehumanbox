@@ -95,3 +95,33 @@ export function watchFamine(
   }
   return { warnings, watch: { announced, worldTick: world.tick }, stages }
 }
+
+/** A warning waiting to be shown, or (with no lineage) a summary of `count` warnings the queue had no room for. */
+export interface QueuedFamine {
+  id: number
+  lineage: string | null
+  stage: FamineStage
+  count: number
+}
+
+/**
+ * Adds warnings to the queue, keeping it at most `max` long. Warnings the queue has no room for are not lost
+ * without a word: they fold into one summary at its end that says how many more tribes are short of food.
+ */
+export function enqueueFamine(
+  queue: readonly QueuedFamine[],
+  added: readonly QueuedFamine[],
+  max: number,
+): QueuedFamine[] {
+  const summary = queue.find((q) => q.lineage === null)
+  const singles = [...queue.filter((q) => q.lineage !== null), ...added]
+  let extra = summary?.count ?? 0
+  const room = summary || singles.length > max ? max - 1 : max
+  if (singles.length > room) {
+    extra += singles.length - room
+    singles.splice(0, singles.length - room)
+  }
+  if (extra === 0) return singles
+  const id = summary?.id ?? added[added.length - 1].id
+  return [...singles, { id, lineage: null, stage: 'risk', count: extra }]
+}

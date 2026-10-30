@@ -336,7 +336,9 @@
         "building": "la construction",
         "crafting": "l'artisanat",
         "healing": "les soins"
-      }
+      },
+      "extinct": "s'est éteinte",
+      "extinctCause": "s'est éteinte (dernière mort : {cause})"
     },
     "why": {
       "title": "Pourquoi ils agissent",
@@ -388,7 +390,19 @@
       "ready": "prêt : l'ère arrive au prochain contrôle du monde"
     },
     "follow": "Suivre cette tribu",
-    "unfollow": "Ne plus suivre cette tribu"
+    "unfollow": "Ne plus suivre cette tribu",
+    "fallen": {
+      "diedOut": "Éteinte l'an {year}",
+      "endTitle": "Comment elle a pris fin",
+      "cause": "Dernière mort : {cause}",
+      "noCause": "Son dernier membre est mort",
+      "causeTag": "Cause",
+      "contextTag": "Contexte",
+      "openOther": "Ouvrir la fiche de cette tribu",
+      "marker": "{name} s'est éteinte ici en l'an {year}. Ouvrir sa fiche",
+      "markerCause": "{name} s'est éteinte ici en l'an {year} (dernière mort : {cause}). Ouvrir sa fiche",
+      "listHeading": "Tribus éteintes"
+    }
   },
   "scene": {
     "out": "absent",
@@ -495,6 +509,7 @@
     "losing": "{name} perd des gens à cause de la famine",
     "gone": "{name} a disparu de faim",
     "go": "Aller à {name}",
+    "more": "{count} autres tribus manquent de nourriture",
     "dismiss": "Fermer"
   }
 }
