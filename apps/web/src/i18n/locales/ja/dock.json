@@ -432,7 +432,9 @@
     "brushTiles": {
       "one": "ブラシの幅 {count} マス",
       "other": "ブラシの幅 {count} マス"
-    }
+    },
+    "smallestBrush": "すでに最小のブラシです",
+    "largestBrush": "すでに最大のブラシです"
   },
   "failures": {
     "noRoom": "世界にはこれ以上人を置けません",
@@ -476,7 +478,7 @@
     "slowest": "すでに最も遅い速度です。",
     "faster": "速く",
     "fasterTo": "速く · {speed}",
-    "fastest": "これ以上は、一覧から速度を選んでください。",
+    "fastest": "これが最速です。",
     "pausedAt": "{speed} で一時停止中",
     "speedAt": "速度 {speed}",
     "chooseAny": "任意の速度を選べます。",
@@ -649,5 +651,6 @@
     "placeOnMap": "マップに配置",
     "applyNow": "すぐに適用",
     "empty": "一致するツールがありません。地形、動物、マップのレイヤー、時間の操作を試してください。"
-  }
+  },
+  "tapAgain": "{tool}：もう一度タップで開始"
 }

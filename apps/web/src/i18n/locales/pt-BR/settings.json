@@ -26,7 +26,9 @@
     "headlineTicker": "Ticker de manchetes",
     "headlineTickerDesc": "Uma faixa em rolagem com nascimentos, mortes e descobertas no topo.",
     "autoFollow": "Seguir automaticamente",
-    "autoFollowDesc": "Segue uma pessoa diferente a cada poucos segundos. Clique em alguém para parar."
+    "autoFollowDesc": "Segue uma pessoa diferente a cada poucos segundos. Clique em alguém para parar.",
+    "toolNames": "Nomes das ferramentas",
+    "toolNamesDesc": "Mostra o nome de cada ferramenta sob o ícone na barra inferior."
   },
   "accessibility": {
     "section": "Acessibilidade",

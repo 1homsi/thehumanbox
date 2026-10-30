@@ -17,5 +17,7 @@
   "terrainLabel": "Terreno del mundo y habitantes",
   "boundaryTitle": "El mundo se atascó",
   "boundaryBody": "Algo inesperado ocurrió al dibujar la pantalla. Recarga para volver a conectarte a la simulación actual.",
-  "boundaryReload": "Recargar"
+  "boundaryReload": "Recargar",
+  "zoomInLimit": "No se puede acercar más",
+  "zoomOutLimit": "No se puede alejar más"
 }

@@ -20,6 +20,7 @@ import {
 } from './simulation/worldSource'
 import { SimulationDataProvider } from './simulation/SimulationDataProvider'
 import { SandboxToolbar } from './ui/toolbar/SandboxToolbar'
+import { nextBrush } from './ui/toolbar/dock-tabs'
 import { WorldToolSearch } from './ui/toolbar/WorldToolSearch'
 import { saveBlocked, worldActionForKey, type WorldActions, type WorldSave } from './ui/toolbar/world-actions'
 import { HotkeyHelp } from './ui/toolbar/HotkeyHelp'
@@ -590,7 +591,7 @@ function LiveApp() {
         const tool = SANDBOX_CATEGORIES.flatMap((c) => c.tools).find((t) => t.id === action.tool)
         if (tool) onPickTool(tool)
       } else if (action.kind === 'brush') {
-        setBrush((b) => Math.max(0, Math.min(20, b + action.delta)))
+        setBrush((b) => nextBrush(b, action.delta) ?? b)
       } else if (action.kind === 'help') {
         setHotkeysOpen((open) => !open)
       } else if (action.kind === 'prayer') {

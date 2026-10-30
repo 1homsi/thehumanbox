@@ -432,7 +432,9 @@
     "brushTiles": {
       "one": "画笔宽 {count} 格",
       "other": "画笔宽 {count} 格"
-    }
+    },
+    "smallestBrush": "已是最小的笔刷",
+    "largestBrush": "已是最大的笔刷"
   },
   "failures": {
     "noRoom": "世界已容不下更多人",
@@ -476,7 +478,7 @@
     "slowest": "已经是最慢的档位。",
     "faster": "加速",
     "fasterTo": "加速 · {speed}",
-    "fastest": "超出此范围，请从列表中选择速度。",
+    "fastest": "这已是最快的速度。",
     "pausedAt": "已以 {speed} 暂停",
     "speedAt": "速度 {speed}",
     "chooseAny": "选择任意速度。",
@@ -649,5 +651,6 @@
     "placeOnMap": "放置到地图上",
     "applyNow": "立即应用",
     "empty": "没有匹配的工具。试试某种地形、动物、地图图层或时间控制。"
-  }
+  },
+  "tapAgain": "{tool}：再点一次开始"
 }

@@ -17,5 +17,7 @@
   "terrainLabel": "世界地形与居民",
   "boundaryTitle": "世界卡住了",
   "boundaryBody": "渲染过程中出现了意外。重新加载即可重新连接到当前的模拟。",
-  "boundaryReload": "重新加载"
+  "boundaryReload": "重新加载",
+  "zoomInLimit": "已放到最大",
+  "zoomOutLimit": "已缩到最小"
 }

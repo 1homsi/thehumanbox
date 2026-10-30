@@ -432,7 +432,9 @@
     "brushTiles": {
       "one": "Pinceau de {count} tuile de large",
       "other": "Pinceau de {count} tuiles de large"
-    }
+    },
+    "smallestBrush": "Déjà le plus petit pinceau",
+    "largestBrush": "Déjà le plus grand pinceau"
   },
   "failures": {
     "noRoom": "le monde ne peut pas accueillir davantage de personnes",
@@ -476,7 +478,7 @@
     "slowest": "Déjà à la vitesse la plus lente.",
     "faster": "plus rapide",
     "fasterTo": "plus rapide · {speed}",
-    "fastest": "Au-delà, choisissez une vitesse dans la liste.",
+    "fastest": "C’est la vitesse la plus rapide.",
     "pausedAt": "en pause à {speed}",
     "speedAt": "vitesse {speed}",
     "chooseAny": "Choisissez la vitesse que vous voulez.",
@@ -649,5 +651,6 @@
     "placeOnMap": "placer sur la carte",
     "applyNow": "appliquer immédiatement",
     "empty": "Aucun outil correspondant. Essayez un type de terrain, un animal, un calque de carte ou une commande de temps."
-  }
+  },
+  "tapAgain": "{tool} : touchez encore pour lancer"
 }

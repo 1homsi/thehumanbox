@@ -17,5 +17,7 @@
   "terrainLabel": "Weltgelände und Bewohner",
   "boundaryTitle": "Die Welt hat gestockt",
   "boundaryBody": "In der Darstellung ist etwas Unerwartetes passiert. Lade neu, um dich wieder mit der laufenden Simulation zu verbinden.",
-  "boundaryReload": "Neu laden"
+  "boundaryReload": "Neu laden",
+  "zoomInLimit": "Weiter geht es nicht hinein",
+  "zoomOutLimit": "Weiter geht es nicht hinaus"
 }

@@ -285,10 +285,26 @@ export function CfMapCameraController({
     if (command) {
       commandRef.current = null
       stopFollowRef.current()
-      // A fit or focus request takes over from a double-click zoom still settling.
-      tween.current = null
-      const target = commandCamera(command, next, world, viewport)
-      if (target) next = target
+      if (command.kind === 'zoom' && command.smooth) {
+        // A zoom button eases about the centre. A press while the last one is still easing builds on
+        // where that one was heading, so quick presses each count in full.
+        const settling = tween.current
+        const from = settling ? settling.to : next.zoom
+        const to = Math.max(minZoom, Math.min(MAX_MAP_ZOOM, from * command.factor))
+        if (to !== next.zoom) {
+          tween.current = {
+            from: { ...next },
+            to,
+            point: { x: containerW / 2, y: containerH / 2 },
+            start: performance.now(),
+          }
+        }
+      } else {
+        // A fit or focus request takes over from a double-click zoom still settling.
+        tween.current = null
+        const target = commandCamera(command, next, world, viewport)
+        if (target) next = target
+      }
     }
     const now = performance.now()
     const zooming = tween.current

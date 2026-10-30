@@ -17,7 +17,7 @@ import { installBenchHooks } from './bench-hooks'
 import { SandboxBursts } from './SandboxBursts'
 import { SkyOverlay } from './SkyOverlay'
 import { useSandboxBursts } from './sandbox-bursts'
-import type { MapCommand } from './camera-controls'
+import { MAX_MAP_ZOOM, minMapZoom, type MapCommand } from './camera-controls'
 import { CanvasWorldFallback } from './world-view/CanvasWorldFallback'
 import { useRendererBackend } from './world-view/useRendererBackend'
 import { useMapPointer } from './world-view/useMapPointer'
@@ -138,6 +138,10 @@ export function WorldView({
   const selectedOrg = selectedOrgId
     ? world.organisms.find((o) => o.id === selectedOrgId && o.alive)
     : undefined
+  const zoomRange = useMemo(
+    () => ({ min: minMapZoom({ w: W, h: H }, { w: dims.w, h: dims.h }), max: MAX_MAP_ZOOM }),
+    [W, H, dims.w, dims.h],
+  )
   const locateSelected = selectedOrg
     ? () => {
         commandRef.current = {
@@ -377,7 +381,14 @@ export function WorldView({
           territoryIndex={territoryIndex}
         />
       )}
-      {mapReady && !viewFlags.hideUI && <MapControls commandRef={commandRef} onLocate={locateSelected} />}
+      {mapReady && !viewFlags.hideUI && (
+        <MapControls
+          commandRef={commandRef}
+          cameraRef={cameraStateRef}
+          zoomRange={zoomRange}
+          onLocate={locateSelected}
+        />
+      )}
     </div>
   )
 }

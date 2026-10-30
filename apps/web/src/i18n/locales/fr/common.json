@@ -17,5 +17,7 @@
   "terrainLabel": "Terrain du monde et habitants",
   "boundaryTitle": "Le monde a trébuché",
   "boundaryBody": "Un incident inattendu s'est produit dans l'affichage. Rechargez la page pour vous reconnecter à la simulation en cours.",
-  "boundaryReload": "Recharger"
+  "boundaryReload": "Recharger",
+  "zoomInLimit": "Zoom avant au maximum",
+  "zoomOutLimit": "Zoom arrière au maximum"
 }

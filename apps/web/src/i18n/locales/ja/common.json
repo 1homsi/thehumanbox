@@ -17,5 +17,7 @@
   "terrainLabel": "世界の地形と住民",
   "boundaryTitle": "世界がつかえました",
   "boundaryBody": "描画で予期しないことが起きました。再読み込みすると、いまのシミュレーションに再接続します。",
-  "boundaryReload": "再読み込み"
+  "boundaryReload": "再読み込み",
+  "zoomInLimit": "これ以上拡大できません",
+  "zoomOutLimit": "これ以上縮小できません"
 }

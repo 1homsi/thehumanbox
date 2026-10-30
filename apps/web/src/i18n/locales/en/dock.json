@@ -432,7 +432,9 @@
     "brushTiles": {
       "one": "Brush {count} tile across",
       "other": "Brush {count} tiles across"
-    }
+    },
+    "smallestBrush": "Already the smallest brush",
+    "largestBrush": "Already the largest brush"
   },
   "failures": {
     "noRoom": "the world cannot hold any more people",
@@ -476,7 +478,7 @@
     "slowest": "Already at the slowest step.",
     "faster": "faster",
     "fasterTo": "faster · {speed}",
-    "fastest": "Past this, pick a speed from the list.",
+    "fastest": "This is the fastest speed.",
     "pausedAt": "paused at {speed}",
     "speedAt": "speed {speed}",
     "chooseAny": "Choose any speed.",
@@ -655,5 +657,6 @@
     "placeOnMap": "place on the map",
     "applyNow": "apply immediately",
     "empty": "No matching tools. Try a terrain type, animal, map layer, or time control."
-  }
+  },
+  "tapAgain": "{tool}: tap again to start"
 }
