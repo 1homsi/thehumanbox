@@ -357,7 +357,9 @@
         "building": "budownictwo",
         "crafting": "rzemiosło",
         "healing": "uzdrawianie"
-      }
+      },
+      "extinct": "wymarło",
+      "extinctCause": "wymarło (ostatnia śmierć: {cause})"
     },
     "why": {
       "title": "Dlaczego tak postępują",
@@ -407,6 +409,18 @@
       "known": "znane tajemnice: {known} z {required}",
       "worldPeople": "świat ma {have} z {need} ludzi potrzebnych tej epoce (brakuje {short})",
       "ready": "gotowe: epoka nadejdzie przy następnym sprawdzeniu świata"
+    },
+    "fallen": {
+      "diedOut": "Wymarło w roku {year}",
+      "endTitle": "Jak się skończyło",
+      "cause": "Ostatnia śmierć: {cause}",
+      "noCause": "Umarł jego ostatni członek",
+      "causeTag": "Przyczyna",
+      "contextTag": "Kontekst",
+      "openOther": "Otwórz kartę tego plemienia",
+      "marker": "{name} wymarło tutaj w roku {year}. Otwórz kartę",
+      "markerCause": "{name} wymarło tutaj w roku {year} (ostatnia śmierć: {cause}). Otwórz kartę",
+      "listHeading": "Plemiona, które wymarły"
     }
   },
   "scene": {

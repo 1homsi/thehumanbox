@@ -16,11 +16,12 @@ pub const KEEP_TRIBES: usize = 64;
 #[derive(Clone, Debug, PartialEq)]
 pub struct ChronicleEntry {
     pub tick: u64,
-    /// `raid`, `war`, `era`, `famine`, `arrival`, `split`, `craft` or `leader_died`.
+    /// `raid`, `war`, `era`, `famine`, `arrival`, `split`, `craft`, `leader_died` or `extinct`.
     pub kind: &'static str,
     /// The other tribe in a raid, war or split.
     pub other: Option<String>,
-    /// An era, craft or leader's name, where the kind has one.
+    /// An era, craft or leader's name, where the kind has one. For `extinct`, the death cause the sim recorded
+    /// for the tribe's last member (`old_age`, `starvation`, `war`, ...), when it has one.
     pub word: Option<String>,
     /// Where it happened, in tiles.
     pub place: Option<(i32, i32)>,
@@ -105,6 +106,31 @@ impl Simulation {
         }
     }
 
+    /// A tribe whose last living member has just died. Its history gets an `extinct` entry at the place that
+    /// member died, with the death cause the sim recorded for them. The member who died last is the one whose
+    /// life log has the latest death.
+    pub(crate) fn record_extinction(&mut self, lineage: &str) {
+        let last = self
+            .organisms
+            .iter()
+            .filter(|o| !o.alive && o.lineage_id == lineage)
+            .max_by_key(|o| {
+                o.life_log
+                    .iter()
+                    .rev()
+                    .find(|e| e.category == "death")
+                    .map_or(0, |e| e.tick)
+            });
+        let (cause, place) = match last {
+            Some(o) => (
+                (!o.death_cause.is_empty()).then(|| o.death_cause.replace(' ', "_")),
+                Some((o.x.round() as i32, o.y.round() as i32)),
+            ),
+            None => (None, None),
+        };
+        self.chronicle(lineage, "extinct", None, cause.as_deref(), place);
+    }
+
     /// A battle that has just begun: each side's history names the other and the place.
     pub(crate) fn chronicle_battle(&mut self, battle: &Battle) {
         let kind = if matches!(battle.scale, BattleScale::Raid) {
@@ -187,6 +213,45 @@ mod tests {
         assert_eq!(entry.kind, "leader_died");
         assert_eq!(entry.word.as_deref(), Some("Ana"));
         assert_eq!(entry.place, Some((10, 21)));
+    }
+
+    #[test]
+    fn a_tribe_that_dies_out_records_how_and_where_its_last_member_fell() {
+        let mut sim = Simulation::new(42);
+        sim.organisms.truncate(1);
+        sim.organisms[0].lineage_id = "gone".into();
+        sim.organisms[0].alive = true;
+        sim.rebuild_lineage_aggregates();
+        assert!(
+            sim.tribe_chronicle.tribes().next().is_none(),
+            "a tribe still alive writes no extinction"
+        );
+        let tick = sim.tick_count;
+        {
+            let o = &mut sim.organisms[0];
+            o.alive = false;
+            o.death_cause = "old age".into();
+            o.x = 10.4;
+            o.y = 20.6;
+            o.log_life(tick, "death", "died of old age".into());
+        }
+        sim.rebuild_lineage_aggregates();
+        let (_, entries) = sim
+            .tribe_chronicle
+            .tribes()
+            .find(|(lid, _)| *lid == "gone")
+            .expect("the tribe that died out has a history");
+        let entry = entries.back().expect("the extinction is written");
+        assert_eq!(entry.kind, "extinct");
+        assert_eq!(entry.word.as_deref(), Some("old_age"));
+        assert_eq!(entry.place, Some((10, 21)));
+        sim.rebuild_lineage_aggregates();
+        let (_, entries) = sim
+            .tribe_chronicle
+            .tribes()
+            .find(|(lid, _)| *lid == "gone")
+            .expect("history kept");
+        assert_eq!(entries.len(), 1, "a tribe that stays gone is written once");
     }
 
     #[test]

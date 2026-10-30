@@ -333,7 +333,9 @@
         "building": "la construction",
         "crafting": "l'artisanat",
         "healing": "les soins"
-      }
+      },
+      "extinct": "s'est éteinte",
+      "extinctCause": "s'est éteinte (dernière mort : {cause})"
     },
     "why": {
       "title": "Pourquoi ils agissent",
@@ -383,6 +385,18 @@
       "known": "{known} secrets sur {required} connus",
       "worldPeople": "le monde compte {have} personnes sur les {need} que demande cette ère ({short} manquent)",
       "ready": "prêt : l'ère arrive au prochain contrôle du monde"
+    },
+    "fallen": {
+      "diedOut": "Éteinte l'an {year}",
+      "endTitle": "Comment elle a pris fin",
+      "cause": "Dernière mort : {cause}",
+      "noCause": "Son dernier membre est mort",
+      "causeTag": "Cause",
+      "contextTag": "Contexte",
+      "openOther": "Ouvrir la fiche de cette tribu",
+      "marker": "{name} s'est éteinte ici en l'an {year}. Ouvrir sa fiche",
+      "markerCause": "{name} s'est éteinte ici en l'an {year} (dernière mort : {cause}). Ouvrir sa fiche",
+      "listHeading": "Tribus éteintes"
     }
   },
   "scene": {

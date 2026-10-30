@@ -10,7 +10,7 @@ fn add_member(entry: &mut LineageAggregate, org: &Organism) {
 
 impl Simulation {
     pub(crate) fn rebuild_lineage_aggregates(&mut self) {
-        self.lineage_aggregates.clear();
+        let previous = std::mem::take(&mut self.lineage_aggregates);
         self.lineage_aggregates.reserve(self.lineage_names.len().max(8));
         // Copy a lineage's id only the first time the tick meets it.
         for org in self.organisms.iter().filter(|org| org.alive) {
@@ -21,6 +21,14 @@ impl Simulation {
                 add_member(&mut entry, org);
                 self.lineage_aggregates.insert(org.lineage_id.clone(), entry);
             }
+        }
+        // A tribe counted at the last rebuild with no one alive now has died out since then.
+        let gone: Vec<String> = previous
+            .into_keys()
+            .filter(|lid| !self.lineage_aggregates.contains_key(lid))
+            .collect();
+        for lid in gone {
+            self.record_extinction(&lid);
         }
     }
 

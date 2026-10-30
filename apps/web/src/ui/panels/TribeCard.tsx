@@ -21,6 +21,8 @@ import { eldestByLineage, eldestLine } from '../../game/model/tribe-eldest'
 import { ToolSprite } from '../toolbar/ToolSprite'
 import { TribeHistory } from './TribeHistory'
 import { TribeReasoning } from './TribeReasoning'
+import { FallenTribe } from './FallenTribe'
+import { extinctionOf } from '../../game/model/tribe-end'
 import { formatNumber, t, type MessageKey } from '../../i18n'
 import { knownTribeName } from '../../state/worldStore'
 
@@ -216,8 +218,13 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
   const focus = useUIStore((s) => s.focus)
   const setFocus = useUIStore((s) => s.setFocus)
   if (!focus.startsWith('lineage:')) return null
-  const status = tribeStatus(world, focus.slice('lineage:'.length))
-  if (!status) return null
+  const lineage = focus.slice('lineage:'.length)
+  const status = tribeStatus(world, lineage)
+  // A tribe with no one alive keeps its card while its history is kept: how it ended, and its last events.
+  if (!status)
+    return extinctionOf(world.tribe_chronicle?.[lineage]) ? (
+      <FallenTribe world={world} lineage={lineage} />
+    ) : null
   const gap = wealthGapOf(world.lineage_inequality, status.id)
   const gens = generationsOf(world.lineage_generations, status.id)
   const crime = crimeLineOf(world.lineage_crime, status.id)

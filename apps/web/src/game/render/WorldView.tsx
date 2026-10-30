@@ -10,6 +10,7 @@ import { TILE } from '../model/palette'
 import { CanvasCameraController } from './CanvasCameraController'
 import { World2DErrorBoundary } from './World2DErrorBoundary'
 import { WorldMapHud } from './WorldMapHud'
+import { FallenMarkers } from './FallenMarkers'
 import { MapControls } from './MapControls'
 import { TerritoryHoverCard } from './hover/TerritoryHoverCard'
 import { ThingHoverCard } from './hover/ThingHoverCard'
@@ -356,6 +357,9 @@ export function WorldView({
           toolLabel={sandboxArmed ? sandboxLabel : null}
           toolRadius={sandboxRadius}
         />
+      )}
+      {mapReady && !viewFlags.hideUI && (
+        <FallenMarkers world={world} cameraRef={cameraStateRef} viewport={dims} />
       )}
       {mapReady && !viewFlags.hideUI && (
         <TerritoryHoverCard

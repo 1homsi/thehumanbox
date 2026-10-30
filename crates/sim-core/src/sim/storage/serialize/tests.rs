@@ -9,7 +9,7 @@ fn lookahead_uses_the_same_safe_tick_bounds_as_the_runtime() {
 }
 
 #[test]
-fn full_payload_carries_each_living_tribes_history_with_its_place() {
+fn full_payload_carries_each_tribes_history_with_its_place_dead_or_alive() {
     let mut sim = Simulation::new(42);
     let lid = sim
         .organisms
@@ -29,10 +29,12 @@ fn full_payload_carries_each_living_tribes_history_with_its_place() {
     assert_eq!(rows[0]["kind"], "famine");
     assert_eq!(rows[0]["x"], 12);
     assert_eq!(rows[0]["y"], 34);
-    assert!(
-        payload["tribe_chronicle"].get("a tribe that died out").is_none(),
-        "a tribe that has died out is not sent"
-    );
+    // A tribe that has died out keeps its history, so its card can still be read.
+    let dead = payload["tribe_chronicle"]["a tribe that died out"]
+        .as_array()
+        .expect("the tribe that died out keeps its history");
+    assert_eq!(dead.len(), 1);
+    assert_eq!(dead[0]["kind"], "war");
 }
 
 #[test]
