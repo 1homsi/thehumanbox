@@ -202,7 +202,11 @@ export function TimeControl({ paused, speed, onPick }: Props) {
         <button
           type="button"
           className="time-speed-value"
-          aria-label={t('dock.time.speedAria', { speed: formatSpeed(speed) })}
+          aria-label={
+            lagNote
+              ? `${t('dock.time.speedAria', { speed: formatSpeed(speed) })}. ${lagNote}`
+              : t('dock.time.speedAria', { speed: formatSpeed(speed) })
+          }
           aria-haspopup="menu"
           aria-expanded={listOpen}
           onClick={() => setListOpen((open) => !open)}
@@ -242,6 +246,10 @@ export function TimeControl({ paused, speed, onPick }: Props) {
           ›
         </button>
       </Tooltip>
+      {/* Says when the world falls behind or catches up, without moving focus. */}
+      <span className="time-sr" role="status" aria-live="polite">
+        {lagNote ?? ''}
+      </span>
       {listOpen && (
         <div className="time-speed-list" role="menu" aria-label={t('dock.time.speedsAria')}>
           {speedTools().map((tool) => {

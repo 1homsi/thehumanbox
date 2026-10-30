@@ -109,14 +109,24 @@ interface DockTileProps {
   onPick: (tool: SandboxTool) => void
 }
 
+/** Widest the tap-again prompt grows, and how far it keeps from the window's edges. */
+const CONFIRM_MAX_W = 240
+const EDGE_PAD = 8
+
 /** The name of a world tool tapped once, over its tile, asking for the tap that starts it. */
 function TapAgain({ anchor, name }: { anchor: HTMLElement; name: string }) {
   const rect = anchor.getBoundingClientRect()
+  // Kept inside the window like the tooltips, so a tool at the end of the bar still shows its name.
+  const half = CONFIRM_MAX_W / 2
+  const left = Math.min(
+    Math.max(rect.left + rect.width / 2, half + EDGE_PAD),
+    window.innerWidth - half - EDGE_PAD,
+  )
   return createPortal(
     <span
       className="dock-tile-confirm"
       role="status"
-      style={{ left: rect.left + rect.width / 2, top: rect.top - 8 }}
+      style={{ left, top: rect.top - 8, maxWidth: CONFIRM_MAX_W }}
     >
       {t('dock.tapAgain', { tool: name })}
     </span>,

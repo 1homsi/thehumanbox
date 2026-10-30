@@ -44,9 +44,10 @@ describe('speed steps', () => {
     }
   })
 
-  it('shows the speed a world really reaches in whole numbers from ten, a decimal below', () => {
+  it('shows the speed a world really reaches in whole numbers from ten, a decimal from one, and two figures below', () => {
     expect(formatAchievedSpeed(37.6)).toBe('38×')
     expect(formatAchievedSpeed(3.14)).toBe('3.1×')
-    expect(formatAchievedSpeed(0.02)).toBe('0.1×')
+    expect(formatAchievedSpeed(0.02)).toBe('0.02×')
+    expect(formatAchievedSpeed(0.456)).toBe('0.46×')
   })
 })

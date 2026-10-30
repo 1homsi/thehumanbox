@@ -196,10 +196,26 @@ export function CanvasCameraController({
       if (command) {
         commandRef.current = null
         stopFollow()
+        const settling = tween.current
         tween.current = null
         if (command.kind === 'fit') {
           const opening = initialMapCamera({ w: worldW, h: worldH }, { w: containerW, h: containerH })
           if (opening) applyRef.current(opening)
+        } else if (command.kind === 'zoom' && command.smooth) {
+          // A zoom button eases about the centre; a press while the last is easing builds on where it was heading.
+          const current = cameraStateRef.current
+          const to = Math.max(
+            minZoom,
+            Math.min(MAX_MAP_ZOOM, (settling ? settling.to : current.zoom) * command.factor),
+          )
+          if (to !== current.zoom) {
+            tween.current = {
+              from: { ...current },
+              to,
+              point: { x: containerW / 2, y: containerH / 2 },
+              start: performance.now(),
+            }
+          }
         } else if (command.kind === 'zoom') zoom(command.factor)
         else applyRef.current({ x: command.x, y: command.y, zoom: Math.max(cameraStateRef.current.zoom, 2) })
       }

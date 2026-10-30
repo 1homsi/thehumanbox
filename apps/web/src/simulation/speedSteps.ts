@@ -30,8 +30,13 @@ export function formatSpeed(speed: number): string {
   return `${FRACTIONS[speed] ?? whole}×`
 }
 
-/** The speed a world is really reaching, for the readout: whole numbers from 10×, one decimal below. */
+/**
+ * The speed a world is really reaching, for the readout: whole numbers from 10×, one decimal from 1×, and
+ * two significant figures below that, so a crawl is not rounded up to look faster than it is.
+ */
 export function formatAchievedSpeed(achieved: number): string {
+  if (!Number.isFinite(achieved) || achieved <= 0) return formatSpeed(0)
   if (achieved >= 10) return formatSpeed(Math.round(achieved))
-  return formatSpeed(Math.max(0.1, Math.round(achieved * 10) / 10))
+  if (achieved >= 1) return formatSpeed(Math.round(achieved * 10) / 10)
+  return formatSpeed(Number(achieved.toPrecision(2)))
 }
