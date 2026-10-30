@@ -52,7 +52,7 @@ pub(super) fn settlement_endpoints(
     if first_lineage.is_empty() || second_lineage.is_empty() || first_lineage == second_lineage {
         return None;
     }
-    let snapshots = settlements::snapshots(sim);
+    let snapshots = settlements::snapshots_this_tick(sim);
     let first = snapshots
         .iter()
         .find(|settlement| settlement.lineage_id == first_lineage && settlement.tier >= 1)?;
