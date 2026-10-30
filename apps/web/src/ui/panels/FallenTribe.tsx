@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { calendarAt } from '../../game/model/calendar'
 import { placeOf } from '../../game/model/tribe-history'
-import { causeText, endSummary, extinctionOf } from '../../game/model/tribe-end'
+import { causeText, endSummary, extinctionOf, FALLEN_HISTORY_SHOWN } from '../../game/model/tribe-end'
 import { lineageColor } from '../../shared/constants'
 import type { TribeChronicleRow, WorldState } from '../../shared/types'
 import { useCameraFocus } from '../../state/camera-focus'
@@ -18,7 +18,7 @@ interface Props {
 
 /** What an end-summary line says. The extinction line states the recorded death cause; the rest are history. */
 function summaryText(row: TribeChronicleRow, world: WorldState, causal: boolean): string {
-  if (!causal) return lineText(row, world)
+  if (!causal && row.kind !== 'extinct') return lineText(row, world)
   return row.word
     ? t('panels.tribe.fallen.cause', { cause: causeText(row.word) })
     : t('panels.tribe.fallen.noCause')
@@ -101,7 +101,7 @@ export function FallenTribe({ world, lineage }: Props) {
           </ol>
         </section>
       )}
-      <TribeHistory world={world} lineage={lineage} />
+      <TribeHistory world={world} lineage={lineage} limit={FALLEN_HISTORY_SHOWN} />
     </div>
   )
 }

@@ -5,6 +5,8 @@ import { LOSS_WORDS } from './tribe-peril'
 
 /** How many of a fallen tribe's latest events its end summary shows. */
 export const END_SHOWN = 6
+/** How many lines a fallen tribe's full history shows: the sim keeps this many entries for each tribe. */
+export const FALLEN_HISTORY_SHOWN = 40
 
 /** A tribe that has died out, as its history says. */
 export interface FallenTribe {
@@ -57,5 +59,5 @@ export interface EndLine {
 
 /** A fallen tribe's last events, newest first. */
 export function endSummary(rows: readonly TribeChronicleRow[] | undefined, limit = END_SHOWN): EndLine[] {
-  return historyRows(rows, limit).map((row) => ({ row, causal: row.kind === 'extinct' }))
+  return historyRows(rows, limit).map((row) => ({ row, causal: row.kind === 'extinct' && row.word !== null }))
 }

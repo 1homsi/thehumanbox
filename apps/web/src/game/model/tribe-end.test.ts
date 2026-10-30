@@ -50,6 +50,11 @@ describe('endSummary', () => {
     expect(lines.map((l) => l.causal)).toEqual([true, false, false, false])
   })
 
+  it('an extinction without a recorded cause is context, not a cause', () => {
+    const lines = endSummary([row(4, 'extinct', { word: null })])
+    expect(lines.map((l) => l.causal)).toEqual([false])
+  })
+
   it('keeps the summary short', () => {
     const rows = Array.from({ length: END_SHOWN + 5 }, (_, i) => row(i, 'famine'))
     expect(endSummary(rows)).toHaveLength(END_SHOWN)
