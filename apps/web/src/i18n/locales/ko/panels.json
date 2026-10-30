@@ -379,7 +379,9 @@
       "known": "비밀 {required}개 중 {known}개를 앎",
       "worldPeople": "이 시대에 필요한 {need}명 중 세계에 {have}명이 있음 ({short}명 부족)",
       "ready": "준비됨: 세계의 다음 점검 때 시대가 옴"
-    }
+    },
+    "follow": "이 부족 팔로우",
+    "unfollow": "이 부족 팔로우 해제"
   },
   "scene": {
     "out": "외출 중",
@@ -474,5 +476,12 @@
       "atAltar": "제단 앞 {count}명",
       "nearbyCount": "근처 {count}명"
     }
+  },
+  "famine": {
+    "risk": "{name}은(는) 기근의 위기에 놓였다",
+    "losing": "{name}은(는) 굶주림으로 사람들을 잃고 있다",
+    "gone": "{name}은(는) 굶주려 사라졌다",
+    "go": "{name}(으)로 이동",
+    "dismiss": "닫기"
   }
 }

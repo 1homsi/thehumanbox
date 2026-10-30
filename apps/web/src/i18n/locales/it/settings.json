@@ -26,7 +26,9 @@
     "headlineTicker": "Ticker delle notizie",
     "headlineTickerDesc": "Una striscia scorrevole con nascite, morti e scoperte in alto.",
     "autoFollow": "Segui automaticamente",
-    "autoFollowDesc": "Segue una persona diversa ogni pochi secondi. Clicca su qualcuno per fermarlo."
+    "autoFollowDesc": "Segue una persona diversa ogni pochi secondi. Clicca su qualcuno per fermarlo.",
+    "warnFollowedOnly": "Avvisa solo per le tribù seguite",
+    "warnFollowedOnlyDesc": "Disattivato: ogni tribù in pericolo di carestia riceve un avviso. Attivato: solo le tribù seguite. Ogni tribù a rischio resta evidenziata sulla mappa."
   },
   "accessibility": {
     "section": "Accessibilità",

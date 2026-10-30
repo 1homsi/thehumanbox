@@ -386,7 +386,9 @@
       "known": "{known} de {required} segredos conhecidos",
       "worldPeople": "o mundo tem {have} das {need} pessoas que esta era exige (faltam {short})",
       "ready": "pronto: a era chega na próxima verificação do mundo"
-    }
+    },
+    "follow": "Seguir esta tribo",
+    "unfollow": "Deixar de seguir esta tribo"
   },
   "scene": {
     "out": "fora",
@@ -487,5 +489,12 @@
       "atAltar": "{count} no altar",
       "nearbyCount": "{count} por perto"
     }
+  },
+  "famine": {
+    "risk": "{name} corre risco de fome",
+    "losing": "{name} está perdendo gente para a fome",
+    "gone": "{name} foi extinta pela fome",
+    "go": "Ir para {name}",
+    "dismiss": "Fechar"
   }
 }

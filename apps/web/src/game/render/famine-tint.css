@@ -1,0 +1,14 @@
+/* A tribe in danger of famine: a soft glow over its home. Amber while it is at risk, red while it loses people. */
+.famine-tint {
+  position: absolute;
+  z-index: 4;
+  width: 110px;
+  height: 110px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 170, 70, 0.3) 0%, rgba(255, 170, 70, 0) 70%);
+}
+.famine-tint.famine-tint-losing {
+  background: radial-gradient(circle, rgba(230, 75, 55, 0.36) 0%, rgba(230, 75, 55, 0) 70%);
+}

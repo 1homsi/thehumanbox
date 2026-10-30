@@ -392,7 +392,9 @@
       "known": "{known} of {required} secrets known",
       "worldPeople": "the world has {have} of the {need} people this age needs ({short} more)",
       "ready": "ready: the age comes at the world's next check"
-    }
+    },
+    "follow": "Follow this tribe",
+    "unfollow": "Stop following this tribe"
   },
   "scene": {
     "out": "out",
@@ -490,5 +492,12 @@
       "atAltar": "{count} at the altar",
       "nearbyCount": "{count} nearby"
     }
+  },
+  "famine": {
+    "risk": "{name} is at risk of famine",
+    "losing": "{name} is losing people to famine",
+    "gone": "{name} has starved out",
+    "go": "Go to {name}",
+    "dismiss": "Dismiss"
   }
 }

@@ -21,6 +21,7 @@ import { eldestByLineage, eldestLine } from '../../game/model/tribe-eldest'
 import { ToolSprite } from '../toolbar/ToolSprite'
 import { TribeHistory } from './TribeHistory'
 import { TribeReasoning } from './TribeReasoning'
+import { FollowTribe } from './FollowTribe'
 import { formatNumber, t, type MessageKey } from '../../i18n'
 import { knownTribeName } from '../../state/worldStore'
 
@@ -252,6 +253,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
       <div className="tribe-card-head">
         <span className="lineage-dot" style={{ background: lineageColor(status.id) }} />
         <TribeName key={status.id} lineage={status.id} name={status.name} onRename={onRename} />
+        <FollowTribe lineage={status.id} />
         <button
           className="tribe-card-close"
           aria-label={t('panels.tribe.close')}

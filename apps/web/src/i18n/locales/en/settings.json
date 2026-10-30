@@ -26,7 +26,9 @@
     "headlineTicker": "Headline ticker",
     "headlineTickerDesc": "A scrolling strip of births, deaths and discoveries at the top.",
     "autoFollow": "Auto-follow",
-    "autoFollowDesc": "Follow a different person every few seconds. Click anyone to stop."
+    "autoFollowDesc": "Follow a different person every few seconds. Click anyone to stop.",
+    "warnFollowedOnly": "Warn only about followed tribes",
+    "warnFollowedOnlyDesc": "Off: every tribe in danger of famine gets a warning. On: only the tribes you follow do. Every tribe at risk is still tinted on the map."
   },
   "accessibility": {
     "section": "Accessibility",

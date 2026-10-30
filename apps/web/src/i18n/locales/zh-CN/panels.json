@@ -379,7 +379,9 @@
       "known": "已知{known}/{required}项秘密",
       "worldPeople": "世界有{have}人，此纪元需要{need}人（还差{short}人）",
       "ready": "已就绪：纪元将在世界的下一次检查时到来"
-    }
+    },
+    "follow": "关注该部落",
+    "unfollow": "取消关注该部落"
   },
   "scene": {
     "out": "外出",
@@ -474,5 +476,12 @@
       "atAltar": "祭坛前{count}人",
       "nearbyCount": "附近{count}人"
     }
+  },
+  "famine": {
+    "risk": "{name}面临饥荒危险",
+    "losing": "{name}正因饥荒失去族人",
+    "gone": "{name}因饥荒灭绝",
+    "go": "前往{name}",
+    "dismiss": "关闭"
   }
 }

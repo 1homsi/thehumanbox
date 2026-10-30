@@ -26,7 +26,9 @@
     "headlineTicker": "Pasek nagłówków",
     "headlineTickerDesc": "Przewijany pasek narodzin, zgonów i odkryć u góry ekranu.",
     "autoFollow": "Automatyczne śledzenie",
-    "autoFollowDesc": "Śledzi inną osobę co kilka sekund. Kliknij kogoś, aby przerwać."
+    "autoFollowDesc": "Śledzi inną osobę co kilka sekund. Kliknij kogoś, aby przerwać.",
+    "warnFollowedOnly": "Ostrzegaj tylko o obserwowanych plemionach",
+    "warnFollowedOnlyDesc": "Wyłączone: każde plemię zagrożone głodem dostaje ostrzeżenie. Włączone: tylko obserwowane plemiona. Każde zagrożone plemię nadal jest podkreślone na mapie."
   },
   "accessibility": {
     "section": "Dostępność",

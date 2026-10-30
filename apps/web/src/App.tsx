@@ -50,6 +50,7 @@ import type { PrayerInfo } from './shared/types'
 import { DesktopDownloadToast } from './ui/toasts/DesktopDownloadToast'
 import { StarToast } from './ui/toasts/StarToast'
 import { WordSplitToast } from './ui/toasts/WordSplitToast'
+import { FamineWarningToast } from './ui/toasts/FamineWarningToast'
 import { CommandPalette } from './ui/toolbar/CommandPalette'
 import { HeadlineTicker } from './ui/panels/HeadlineTicker'
 import { countToolApply, setWorldSummary, trackEvent } from './shared/observability'
@@ -851,6 +852,7 @@ function LiveApp() {
         <DesktopDownloadToast />
         <StarToast />
         <WordSplitToast world={world ?? null} />
+        <FamineWarningToast world={world ?? null} />
         <CommandPalette />
         <PhotoModeExit />
         <ConfirmHost />

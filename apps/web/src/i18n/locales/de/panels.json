@@ -386,7 +386,9 @@
       "known": "{known} von {required} Geheimnissen bekannt",
       "worldPeople": "die Welt hat {have} von {need} Menschen, die dieses Zeitalter braucht ({short} fehlen)",
       "ready": "bereit: das Zeitalter kommt bei der nächsten Prüfung der Welt"
-    }
+    },
+    "follow": "Diesem Stamm folgen",
+    "unfollow": "Diesem Stamm nicht mehr folgen"
   },
   "scene": {
     "out": "weg",
@@ -490,5 +492,12 @@
       "atAltar": "{count} am Altar",
       "nearbyCount": "{count} in der Nähe"
     }
+  },
+  "famine": {
+    "risk": "{name} ist von Hungersnot bedroht",
+    "losing": "{name} verliert Menschen durch Hunger",
+    "gone": "{name} ist verhungert",
+    "go": "Zu {name}",
+    "dismiss": "Schließen"
   }
 }
