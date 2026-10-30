@@ -8,7 +8,6 @@ import { t } from '../../i18n'
 import { buildTerritoryIndex } from '../model/territory'
 import { TILE } from '../model/palette'
 import { claimOpeningView, openingSpot, openingViewTaken } from '../model/opening-view'
-import { keyName } from '../model/shortcuts'
 import { panKey } from './cf/input/camera-rig'
 import { CanvasCameraController } from './CanvasCameraController'
 import { World2DErrorBoundary } from './World2DErrorBoundary'
@@ -148,7 +147,8 @@ export function WorldView({
     }
     // Only the keys that move the camera count, not Tab or the tool keys.
     const markKey = (event: KeyboardEvent) => {
-      const key = keyName(event)
+      // Safari sends some key events with no key at all.
+      const key = typeof event.key === 'string' ? event.key.toLowerCase() : null
       if (key !== null && (panKey(key) || CAMERA_KEYS.has(key))) mark()
     }
     el.addEventListener('pointerdown', mark, true)
