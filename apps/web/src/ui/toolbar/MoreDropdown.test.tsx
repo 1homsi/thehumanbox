@@ -103,6 +103,12 @@ describe('the find and save keys', () => {
     expect(worldActionForKey({ key: 's', target: null })).toBeNull()
   })
 
+  it('does nothing for a key an input method is composing', () => {
+    expect(worldActionForKey({ key: '/', isComposing: true, target: null })).toBeNull()
+    expect(worldActionForKey({ key: 's', metaKey: true, isComposing: true, target: null })).toBeNull()
+    expect(worldActionForKey({ target: null })).toBeNull()
+  })
+
   it('finds a tool on /, unless the player is typing', () => {
     expect(worldActionForKey({ key: '/', target: document.body })).toBe('find')
     expect(worldActionForKey({ key: '/', target: field })).toBeNull()

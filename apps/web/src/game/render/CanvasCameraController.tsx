@@ -13,6 +13,7 @@ import {
   type MapCamera,
   type MapCommand,
 } from './camera-controls'
+import { keyName, releasedKeyName } from '../model/shortcuts'
 
 interface Props {
   worldW: number
@@ -150,7 +151,8 @@ export function CanvasCameraController({
         !containerEl.contains(document.activeElement)
       )
         return
-      const key = e.key.toLowerCase()
+      const key = keyName(e)
+      if (key === null) return
       if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(key)) {
         e.preventDefault()
         stopFollow()
@@ -167,7 +169,10 @@ export function CanvasCameraController({
         commandRef.current = { kind: 'fit' }
       }
     }
-    const keyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase())
+    const keyUp = (e: KeyboardEvent) => {
+      const key = releasedKeyName(e)
+      if (key !== null) keys.delete(key)
+    }
     const reset = () => {
       keys.clear()
       drag = null

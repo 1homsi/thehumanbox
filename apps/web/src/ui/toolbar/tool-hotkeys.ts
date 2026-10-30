@@ -15,7 +15,9 @@ export function hotkeysFor(tools: readonly SandboxTool[]): Map<string, string> {
 }
 
 /** The tool a pressed key picks from this row, or null when the key is not a tool hotkey. */
-export function toolForHotkey(tools: readonly SandboxTool[], key: string): SandboxTool | null {
+export function toolForHotkey(tools: readonly SandboxTool[], key: string | undefined): SandboxTool | null {
+  // Safari sends some key events with no key at all.
+  if (typeof key !== 'string') return null
   const index = (TOOL_HOTKEYS as readonly string[]).indexOf(key.toLowerCase())
   if (index < 0) return null
   return tools[index] ?? null

@@ -1,4 +1,4 @@
-import { typingTarget } from '../../game/model/shortcuts'
+import { keyName, typingTarget } from '../../game/model/shortcuts'
 import { t } from '../../i18n'
 
 /**
@@ -60,16 +60,17 @@ export function saveShortcutLabel(): string {
  * finds a tool unless the player is typing.
  */
 export function worldActionForKey(event: {
-  key: string
+  key?: string | null
+  isComposing?: boolean
   metaKey?: boolean
   ctrlKey?: boolean
   altKey?: boolean
   shiftKey?: boolean
   target: EventTarget | null
 }): 'save' | 'find' | null {
-  if (event.altKey) return null
+  if (event.altKey || event.isComposing) return null
   // ⌘⇧S is the desktop app's own shortcut, so only a plain ⌘S saves.
-  if ((event.metaKey || event.ctrlKey) && !event.shiftKey && event.key.toLowerCase() === 's') return 'save'
+  if ((event.metaKey || event.ctrlKey) && !event.shiftKey && keyName(event) === 's') return 'save'
   if (event.key === '/' && !event.metaKey && !event.ctrlKey && !typingTarget(event.target)) return 'find'
   return null
 }
