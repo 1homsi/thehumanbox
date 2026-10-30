@@ -371,7 +371,6 @@ fn lonely_org_with_only_distant_friends_stays_put() {
         &mut buffers,
         &org_idx_by_id,
         &mut lineage_members,
-        None,
     );
 
     assert!(
@@ -455,7 +454,6 @@ fn lonely_org_with_nearby_friend_walks_toward_them() {
         &mut buffers2,
         &org_idx_by_id2,
         &mut lineage_members,
-        None,
     );
 
     let wt = sim.organisms[0].wander_target;

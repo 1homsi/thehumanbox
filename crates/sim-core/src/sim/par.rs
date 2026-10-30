@@ -51,4 +51,25 @@ mod tests {
     fn nothing_to_do_returns_nothing() {
         assert!(map_with(0, || (), |_, i| i).is_empty());
     }
+
+    /// The world a seed grows into does not depend on how many cores worked on it.
+    #[cfg(feature = "parallel")]
+    #[test]
+    fn a_world_is_the_same_on_one_core_and_on_many() {
+        let grow = |threads: usize| {
+            let pool = rayon::ThreadPoolBuilder::new()
+                .num_threads(threads)
+                .build()
+                .expect("a pool");
+            pool.install(|| {
+                let mut sim = crate::sim::simulation::Simulation::new(3);
+                sim.tick_n(400);
+                rmp_serde::to_vec_named(&sim.to_save_state()).expect("a save")
+            })
+        };
+        assert!(
+            grow(1) == grow(4),
+            "the world grew differently on four cores than on one"
+        );
+    }
 }

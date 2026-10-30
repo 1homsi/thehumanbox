@@ -1,162 +1,220 @@
 use super::*;
 
-impl Simulation {
-    /// Choose this tick's action (learned policy, directives, storm needs), drop goals walled off by terrain, and commit to a retreat from danger.
-    pub(super) fn org_decide(&mut self, f: &mut OrgFrame<'_>) {
-        self.organisms[f.idx].route.get_mut().decay_blocked();
-        let animal_near = f.animal_near;
-        let available_buf = &mut *f.available_buf;
-        let epsilon = f.epsilon;
-        let fear_trait = f.fear_trait;
-        let idx = f.idx;
-        let night = f.night;
-        let ox = f.ox;
-        let oy = f.oy;
-        let perception = std::mem::take(&mut f.perception);
-        let spatial = f.spatial;
-        let spatial_buf = &mut *f.spatial_buf;
-        let storm_build = std::mem::take(&mut f.storm_build);
-        let threat_kind = f.threat_kind;
-        let wolf_threat = f.wolf_threat;
+/// What a person chose this tick, worked out from the world as the choosing began (see
+/// [`Simulation::org_choose`]); their turn applies it in order with everyone else's.
+pub(in crate::sim::simulation) struct Choice {
+    pub(super) action: usize,
+    pub(super) thought: Option<String>,
+    pub(super) origin: &'static str,
+    /// Fleeing a threat: where to keep running, and the fear it put them in.
+    pub(super) flight: Option<(Option<(i32, i32)>, f32)>,
+}
 
-        let (action, new_thought, decision_origin): (usize, Option<String>, &'static str) =
-            if let Some(boat_action) = self.boat_action(idx) {
-                boat_action
-            } else if let Some((action, thought)) = storm_build {
-                (action, thought, "emergency_reflex")
-            } else if let Some(((dist, wx, wy), from_pack)) =
-                flight_threat(wolf_threat, f.threat_summoned, f.summoned_threat).filter(|&(_, from_pack)| {
-                    // Already home and sheltered from a pack: no need to run, so the normal choice stands.
-                    let home = (self.organisms[idx].home_x, self.organisms[idx].home_y);
-                    !(from_pack && (home.0 - ox).abs() < 1.0 && (home.1 - oy).abs() < 1.0)
-                })
-            {
-                let fdx = (ox - wx).signum();
-                let fdy = (oy - wy).signum();
-                // Set a distant flee target so they keep running after the wolf leaves range.
-                // When home is near and lies on the far side from the threat, they run for home.
-                let flee_dist = 20.0 + fear_trait * 30.0;
-                let (hx, hy) = (self.organisms[idx].home_x, self.organisms[idx].home_y);
-                // A summoned pack sends people home to shelter when home is within reach and the way there
-                // is dry land (running home across water is how people drowned in the sweeps); otherwise
-                // they run as they do from any beast.
-                let shelter_near = (hx - ox).abs() + (hy - oy).abs() <= SHELTER_REACH;
-                let shelter_dry = dry_line(&self.grid, (ox, oy), (hx, hy));
-                let run_home = if from_pack {
-                    shelter_near && shelter_dry
-                } else {
-                    home_is_the_way_out((hx, hy), (ox, oy), (wx, wy))
-                };
-                let (tx, ty) = if run_home {
-                    (hx.round() as i32, hy.round() as i32)
-                } else {
-                    // A pack's direction uses sign_of: f32::signum would call a zero offset 1.
-                    let (pdx, pdy) = if from_pack {
-                        (sign_of(ox - wx), sign_of(oy - wy))
-                    } else {
-                        (fdx, fdy)
-                    };
-                    safe_flee_target(&self.grid, ox, oy, pdx, pdy, flee_dist)
-                };
-                // The step follows the way it is going: towards home when running there, else away.
-                let (sx, sy) = if from_pack {
-                    if run_home {
-                        (sign_of(hx - ox), sign_of(hy - oy))
-                    } else {
-                        (sign_of(ox - wx), sign_of(oy - wy))
-                    }
+/// The random numbers one person's choice draws on, from the tick's seed and their place in the list: the
+/// same whichever core works it out, and whatever order the cores take people in. A SplitMix64 stream:
+/// seeding a full ChaCha generator for every person every tick cost more than the choice it served.
+pub(in crate::sim::simulation) struct ChoiceRng(u64);
+
+pub(super) fn choice_rng(tick_seed: u64, idx: usize) -> ChoiceRng {
+    ChoiceRng(tick_seed ^ (idx as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15))
+}
+
+impl rand::TryRng for ChoiceRng {
+    type Error = std::convert::Infallible;
+
+    fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+        Ok((self.try_next_u64()? >> 32) as u32)
+    }
+
+    fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
+        self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut z = self.0;
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        Ok(z ^ (z >> 31))
+    }
+
+    fn try_fill_bytes(&mut self, dst: &mut [u8]) -> Result<(), Self::Error> {
+        for chunk in dst.chunks_mut(8) {
+            let bytes = self.try_next_u64()?.to_le_bytes();
+            chunk.copy_from_slice(&bytes[..chunk.len()]);
+        }
+        Ok(())
+    }
+}
+
+impl Simulation {
+    /// Ready a person to choose: run down their memory of failed goals and, when nothing forces their hand,
+    /// take up their tribe's current guidance. Runs in the in-order sensing pass, as it writes to them.
+    pub(super) fn org_ready_to_choose(&mut self, s: &Sensed) {
+        let idx = s.idx;
+        self.organisms[idx].route.get_mut().decay_blocked();
+        if s.storm_build.is_none() && self.flight(s).is_none() {
+            self.refresh_lineage_guidance(idx);
+        }
+    }
+
+    /// The threat a person runs from this tick, unless they are already home and sheltered from a pack.
+    fn flight(&self, s: &Sensed) -> Option<((f32, f32, f32), bool)> {
+        let home = (self.organisms[s.idx].home_x, self.organisms[s.idx].home_y);
+        flight_threat(s.wolf_threat, s.threat_summoned, s.summoned_threat).filter(|&(_, from_pack)| {
+            !(from_pack && (home.0 - s.ox).abs() < 1.0 && (home.1 - s.oy).abs() < 1.0)
+        })
+    }
+
+    /// Choose this tick's action (storm needs, flight from a threat, else the learned policy and
+    /// directives). Only reads the world: everyone chooses at once, on all cores (see `sim::par`), and
+    /// [`Simulation::org_apply_choice`] makes the choice count in the person's turn.
+    pub(super) fn org_choose(
+        &self,
+        s: &Sensed,
+        spatial: &SpatialIndex,
+        available_buf: &mut Vec<usize>,
+        spatial_buf: &mut Vec<usize>,
+        rng: &mut ChoiceRng,
+    ) -> Choice {
+        let idx = s.idx;
+        let (ox, oy) = (s.ox, s.oy);
+        if let Some((action, thought)) = s.storm_build.clone() {
+            return Choice {
+                action,
+                thought,
+                origin: "emergency_reflex",
+                flight: None,
+            };
+        }
+        if let Some(((dist, wx, wy), from_pack)) = self.flight(s) {
+            let fdx = (ox - wx).signum();
+            let fdy = (oy - wy).signum();
+            // Set a distant flee target so they keep running after the wolf leaves range.
+            // When home is near and lies on the far side from the threat, they run for home.
+            let flee_dist = 20.0 + s.fear_trait * 30.0;
+            let (hx, hy) = (self.organisms[idx].home_x, self.organisms[idx].home_y);
+            // A summoned pack sends people home to shelter when home is within reach and the way there
+            // is dry land (running home across water is how people drowned in the sweeps); otherwise
+            // they run as they do from any beast.
+            let shelter_near = (hx - ox).abs() + (hy - oy).abs() <= SHELTER_REACH;
+            let shelter_dry = dry_line(&self.grid, (ox, oy), (hx, hy));
+            let run_home = if from_pack {
+                shelter_near && shelter_dry
+            } else {
+                home_is_the_way_out((hx, hy), (ox, oy), (wx, wy))
+            };
+            let (tx, ty) = if run_home {
+                (hx.round() as i32, hy.round() as i32)
+            } else {
+                // A pack's direction uses sign_of: f32::signum would call a zero offset 1.
+                let (pdx, pdy) = if from_pack {
+                    (sign_of(ox - wx), sign_of(oy - wy))
                 } else {
                     (fdx, fdy)
                 };
-                let mut dir = match (sx as i32, sy as i32) {
-                    (0, -1) => 0,
-                    (0, 1) => 1,
-                    (-1, 0) => 2,
-                    (1, 0) => 3,
-                    (-1, -1) => 4,
-                    (1, -1) => 5,
-                    (-1, 1) => 6,
-                    (1, 1) => 7,
-                    _ => 0,
-                };
-                // A pack flight's immediate step never enters water: it takes the dry neighbour nearest
-                // its target instead, or keeps the step if there is none.
-                if from_pack && step_is_wet(&self.grid, ox, oy, dir) {
-                    dir = dry_step_towards(&self.grid, ox, oy, tx, ty).unwrap_or(dir);
-                }
-                // A pack flight never aims at water; with no dry target it keeps its old course.
-                let wet_target = from_pack && self.grid.is_wet(self.grid.get(tx, ty), tx, ty);
-                if !wet_target {
-                    self.organisms[idx].wander_target = Some((tx, ty));
-                }
-                // The fear grows with closeness; a threat beyond the close range adds nothing.
-                self.organisms[idx].fear_level =
-                    (self.organisms[idx].fear_level + 0.07 + ((2.5 - dist) * 0.02).max(0.0)).min(1.0);
-                (
-                    dir,
-                    Some(format!("{}! run!", threat_kind.name())),
-                    "emergency_reflex",
-                )
-            } else {
-                self.refresh_lineage_guidance(idx);
-                let (oa_ix, oa_iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
-                match f.prepared.take() {
-                    Some(prepared) if prepared.at == (oa_ix, oa_iy) => {
-                        available_buf.clear();
-                        available_buf.extend_from_slice(&prepared.actions);
-                    }
-                    _ => crate::sim::actions::available_actions_into(
-                        self,
-                        idx,
-                        oa_ix,
-                        oa_iy,
-                        spatial,
-                        available_buf,
-                        spatial_buf,
-                    ),
-                }
-                let q_seen = self.organisms[idx].q_table.contains_key(&perception);
-                let active_directive = if self.tick_count < self.organisms[idx].directive_until
-                    && !self.organisms[idx].directive.is_empty()
-                {
-                    Some(self.organisms[idx].directive.clone())
-                } else {
-                    None
-                };
-                let active_wander_action = self.organisms[idx]
-                    .wander_target
-                    .map(|target| self.organisms[idx].toward(target, &self.grid));
-                spatial.query_into(oa_ix, oa_iy, 16, spatial_buf);
-                // Preserve population order for tie-breaking and resource followers.
-                spatial_buf.sort_unstable();
-                let chosen = self.organisms[idx].choose_action_with_neighbors(
-                    &self.grid,
-                    &self.buildings,
-                    self.tick_count,
-                    epsilon,
-                    &self.organisms,
-                    night,
-                    self.weather.kind,
-                    &mut self.rng,
-                    animal_near,
-                    &perception,
-                    available_buf,
-                    Some(spatial_buf),
-                );
-                let decision_origin = if active_wander_action == Some(chosen.0) {
-                    "soft_wander"
-                } else if active_directive
-                    .as_deref()
-                    .is_some_and(|directive| directive_aligns_action(directive, chosen.0))
-                {
-                    "soft_directive"
-                } else if q_seen {
-                    "learned_q"
-                } else {
-                    "seed_or_explore"
-                };
-                (chosen.0, chosen.1, decision_origin)
+                safe_flee_target(&self.grid, ox, oy, pdx, pdy, flee_dist)
             };
+            // The step follows the way it is going: towards home when running there, else away.
+            let (sx, sy) = if from_pack {
+                if run_home {
+                    (sign_of(hx - ox), sign_of(hy - oy))
+                } else {
+                    (sign_of(ox - wx), sign_of(oy - wy))
+                }
+            } else {
+                (fdx, fdy)
+            };
+            let mut dir = match (sx as i32, sy as i32) {
+                (0, -1) => 0,
+                (0, 1) => 1,
+                (-1, 0) => 2,
+                (1, 0) => 3,
+                (-1, -1) => 4,
+                (1, -1) => 5,
+                (-1, 1) => 6,
+                (1, 1) => 7,
+                _ => 0,
+            };
+            // A pack flight's immediate step never enters water: it takes the dry neighbour nearest
+            // its target instead, or keeps the step if there is none.
+            if from_pack && step_is_wet(&self.grid, ox, oy, dir) {
+                dir = dry_step_towards(&self.grid, ox, oy, tx, ty).unwrap_or(dir);
+            }
+            // A pack flight never aims at water; with no dry target it keeps its old course.
+            let wet_target = from_pack && self.grid.is_wet(self.grid.get(tx, ty), tx, ty);
+            // The fear grows with closeness; a threat beyond the close range adds nothing.
+            let fear = (self.organisms[idx].fear_level + 0.07 + ((2.5 - dist) * 0.02).max(0.0)).min(1.0);
+            return Choice {
+                action: dir,
+                thought: Some(format!("{}! run!", s.threat_kind.name())),
+                origin: "emergency_reflex",
+                flight: Some(((!wet_target).then_some((tx, ty)), fear)),
+            };
+        }
+        let org = &self.organisms[idx];
+        let (oa_ix, oa_iy) = (org.x as i32, org.y as i32);
+        crate::sim::actions::available_actions_into(
+            self,
+            idx,
+            oa_ix,
+            oa_iy,
+            spatial,
+            available_buf,
+            spatial_buf,
+        );
+        let q_seen = org.q_table.contains_key(&s.perception);
+        let active_directive = (self.tick_count < org.directive_until && !org.directive.is_empty())
+            .then(|| org.directive.clone());
+        let active_wander_action = org.wander_target.map(|target| org.toward(target, &self.grid));
+        spatial.query_into(oa_ix, oa_iy, 16, spatial_buf);
+        // Preserve population order for tie-breaking and resource followers.
+        spatial_buf.sort_unstable();
+        let chosen = org.choose_action_with_neighbors(
+            &self.grid,
+            &self.buildings,
+            self.tick_count,
+            s.epsilon,
+            &self.organisms,
+            s.night,
+            self.weather.kind,
+            rng,
+            s.animal_near,
+            &s.perception,
+            available_buf,
+            Some(spatial_buf),
+        );
+        let origin = if active_wander_action == Some(chosen.0) {
+            "soft_wander"
+        } else if active_directive
+            .as_deref()
+            .is_some_and(|directive| directive_aligns_action(directive, chosen.0))
+        {
+            "soft_directive"
+        } else if q_seen {
+            "learned_q"
+        } else {
+            "seed_or_explore"
+        };
+        Choice {
+            action: chosen.0,
+            thought: chosen.1,
+            origin,
+            flight: None,
+        }
+    }
+
+    /// Make a person's choice count, in their turn: a ferry or a boat takes precedence, a flight sets their
+    /// course and fear, goals walled off by terrain are dropped, and a retreat from danger is committed to.
+    pub(super) fn org_apply_choice(&mut self, f: &mut OrgFrame<'_>, choice: Choice) {
+        let idx = f.idx;
+        let (action, new_thought, decision_origin) = if let Some(boat_action) = self.boat_action(idx) {
+            boat_action
+        } else {
+            if let Some((target, fear)) = choice.flight {
+                if target.is_some() {
+                    self.organisms[idx].wander_target = target;
+                }
+                self.organisms[idx].fear_level = fear;
+            }
+            (choice.action, choice.thought, choice.origin)
+        };
         *self.decision_counts.entry(decision_origin).or_insert(0) += 1;
         if let Some(ref t) = new_thought {
             self.organisms[idx].think(t, self.tick_count);
@@ -204,8 +262,6 @@ impl Simulation {
             }
         }
 
-        f.animal_near = animal_near;
-        f.perception = perception;
         f.action = action;
         f.decision_origin = decision_origin;
         f.new_thought = new_thought;
@@ -311,5 +367,31 @@ mod tests {
         assert!(!home_is_the_way_out((12.0, 10.0), (20.0, 10.0), (15.0, 10.0)));
         // Home far away is not an escape, even on the far side.
         assert!(!home_is_the_way_out((90.0, 10.0), (20.0, 10.0), (15.0, 10.0)));
+    }
+}
+
+#[cfg(test)]
+mod choice_rng_tests {
+    use super::*;
+    use rand::RngExt;
+
+    #[test]
+    fn a_person_draws_the_same_numbers_for_the_same_tick_and_different_ones_from_their_neighbour() {
+        let draw = |idx| {
+            let mut rng = choice_rng(42, idx);
+            (0..4).map(|_| rng.random::<u64>()).collect::<Vec<_>>()
+        };
+        assert_eq!(draw(3), draw(3));
+        assert_ne!(draw(3), draw(4));
+    }
+
+    #[test]
+    fn draws_spread_evenly() {
+        let mut rng = choice_rng(7, 0);
+        let below_half = (0..10_000).filter(|_| rng.random::<f32>() < 0.5).count();
+        assert!(
+            (4_700..5_300).contains(&below_half),
+            "{below_half} of 10000 below one half"
+        );
     }
 }

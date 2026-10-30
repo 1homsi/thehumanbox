@@ -135,7 +135,6 @@ fn tick_first_org(sim: &mut Simulation) {
         &mut buffers,
         &org_idx_by_id,
         &mut lineage_members,
-        None,
     );
 }
 
