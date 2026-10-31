@@ -38,6 +38,13 @@ describe('the ragged edge between kinds of ground', () => {
     expect(buildFringe(tiles, undefined, undefined, 'abundance', width, height)).toEqual([])
   })
 
+  it('leaves shades inside one biome alone', () => {
+    const { tiles, width, height } = split()
+    const same = Array.from({ length: height }, () => Array(width).fill(BIOME_ID.GRASSLAND))
+    // A dry patch would differ in colour from the meadow beside it; still no fringe without a biome border.
+    expect(buildFringe(tiles, same, undefined, 'scarcity', width, height)).toEqual([])
+  })
+
   it('is the same every time it is built', () => {
     const { tiles, biomes, width, height } = split()
     expect(buildFringe(tiles, biomes, undefined, 'abundance', width, height)).toEqual(

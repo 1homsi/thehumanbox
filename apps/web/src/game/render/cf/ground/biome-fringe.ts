@@ -3,6 +3,7 @@ import { TILE } from '../../../model/palette'
 import { TILE_ID, isWaterTile } from '../../../model/terrain-ids'
 import { tileColor } from '../../base-parts/tile-paint'
 import { landscapeHash } from '../../landscape-style'
+import { terrainSeason } from '../../terrain-season'
 import type { CfDriver, CfFrame } from '../frame'
 import { packRgba } from '../overlays/color'
 
@@ -68,6 +69,8 @@ export function buildFringe(
         if (nc < 0 || nr < 0 || nc >= width || nr >= height) continue
         const n = nr * width + nc
         if (!kinds[n]) continue
+        // Only between two biomes: shades inside one (a dry patch in a meadow) keep their straight steps.
+        if ((biomes[row]?.[col] ?? 0) === (biomes[nr]?.[nc] ?? 0)) continue
         const diff =
           Math.abs(colors[i * 3] - colors[n * 3]) +
           Math.abs(colors[i * 3 + 1] - colors[n * 3 + 1]) +
@@ -114,11 +117,14 @@ export class FringeDriver implements CfDriver {
 
   update(f: CfFrame): boolean {
     if (f.terrainRevision === 0) return false
-    const key = `${f.terrainRevision}|${f.world.season ?? ''}`
+    // The terrain's own season (a hard winter repaints the ground), so the runs match the tiles they sit on.
+    const season = terrainSeason(f.world)
+    const key = `${f.terrainRevision}|${season}`
     if (key === this.builtKey) return false
     this.builtKey = key
     const { tiles, width, height } = f.world.grid
-    const runs = buildFringe(tiles, f.biomes, f.world.depth_map, f.world.season, width, height)
+    // No depth map: it only colours water, and water takes no fringe.
+    const runs = buildFringe(tiles, f.biomes, undefined, season, width, height)
     const layer = this.layer
     const n = runs.length / 5
     layer.resize(n)
