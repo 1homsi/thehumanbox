@@ -14,6 +14,7 @@ dist-ssr
 
 # Generated wasm-pack output (built by `make wasm` / CI before the client build)
 src/wasm/sim-core
+src/wasm/sim-core-threads
 
 # Editor directories and files
 .vscode/*

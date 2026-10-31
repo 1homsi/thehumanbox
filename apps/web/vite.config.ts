@@ -94,7 +94,29 @@ function preloadSimAssets(): Plugin {
       const tags: string[] = ['<!-- thb-preload-sim -->']
       // crossorigin matches fetch()'s default cors mode so the preload
       // is reused instead of triggering a second download.
-      if (wasm) {
+      const threadedWasm = names.find((n) => /^sim_core_threads_bg-.*\.wasm$/.test(n))
+      if (wasm && threadedWasm) {
+        // A cross-origin isolated page runs the threaded engine (src/simulation/wasmThreads.ts), so it preloads
+        // that one and not the single-thread module it would never use. A script picks, because the choice is
+        // made in the browser; it is a file, not inline, so the desktop app's script policy allows it.
+        const pick = [
+          '(function () {',
+          "  var threads = self.crossOriginIsolated === true && typeof SharedArrayBuffer === 'function';",
+          "  var link = document.createElement('link');",
+          "  link.rel = 'preload';",
+          "  link.as = 'fetch';",
+          "  link.crossOrigin = '';",
+          "  link.fetchPriority = 'high';",
+          `  link.href = threads ? '${join(threadedWasm)}' : '${join(wasm)}';`,
+          '  document.head.appendChild(link);',
+          '})();',
+          '',
+        ].join('\n')
+        // Named by its content, since /assets/* is cached for a year.
+        const pickName = `thb-sim-preload-${createHash('sha256').update(pick).digest('hex').slice(0, 10)}.js`
+        await writeFile(path.join(distDir, 'assets', pickName), pick, 'utf8')
+        tags.push(`<script src="${join(pickName)}"></script>`)
+      } else if (wasm) {
         tags.push(`<link rel="preload" href="${join(wasm)}" as="fetch" crossorigin fetchpriority="high" />`)
       }
       if (worker) {
