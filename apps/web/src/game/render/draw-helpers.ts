@@ -192,18 +192,21 @@ export function visualTileHash(col: number, row: number, salt = 0): number {
  */
 const foodLarge = (seed: number) => ((seed >>> 14) & 7) === 0
 const foodBerry = (seed: number) => (seed >>> 17) & 1
+/** How far a patch sits from the tile's corner: a large bush is four pixels wide, so it moves less. */
+const foodOffset = (seed: number, shift: number, large: boolean) => (seed >>> shift) & (large ? 1 : 3)
 
 /** What a food patch painted from `seed` depends on, for sharing atlas cells. */
 export function foodPatchKey(seed: number): string {
-  return `${(seed >>> 11) & 3}|${(seed >>> 9) & 3}|${foodLarge(seed) ? 1 : 0}|${foodBerry(seed)}`
+  const large = foodLarge(seed)
+  return `${foodOffset(seed, 11, large)}|${foodOffset(seed, 9, large)}|${large ? 1 : 0}|${foodBerry(seed)}`
 }
 
 export function drawFoodPatch(ctx: CanvasRenderingContext2D, px: number, py: number, seed: number) {
   // Keep every resource tile legible without carpeting the whole landscape
   // with identical dark bushes. Larger shrubs punctuate smaller forage plants.
-  const x = px + 2 + ((seed >>> 11) & 3)
-  const y = py + 2 + ((seed >>> 9) & 3)
   const large = foodLarge(seed)
+  const x = px + 2 + foodOffset(seed, 11, large)
+  const y = py + 2 + foodOffset(seed, 9, large)
   ctx.fillStyle = '#536a3b'
   ctx.fillRect(x, y + 1, large ? 4 : 2, large ? 3 : 2)
   ctx.fillStyle = '#81924d'
