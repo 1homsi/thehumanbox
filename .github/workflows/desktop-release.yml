@@ -146,7 +146,7 @@ jobs:
       # The renderer imports the threaded build too (the worker picks it on a cross-origin isolated page).
       - name: Setup nightly toolchain for the threaded wasm
         if: steps.wasm.outcome != 'success'
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master at the time of writing, pinned to a commit
         with:
           toolchain: nightly-2025-11-15
           targets: wasm32-unknown-unknown

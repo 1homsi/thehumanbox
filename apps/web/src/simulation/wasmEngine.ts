@@ -6,7 +6,7 @@ import initThreadedWasm, {
 } from '../wasm/sim-core-threads/sim_core_threads.js'
 import threadedWasmUrl from '../wasm/sim-core-threads/sim_core_threads_bg.wasm?url'
 import { logger } from '../shared/logger'
-import { threadCount, wantsThreads } from './wasmThreads'
+import { POOL_START_MS, threadCount, wantsThreads, withTimeout } from './wasmThreads'
 
 /** The engine's class. Both builds export the same API, so the worker uses either one the same way. */
 export type SimClass = typeof Sim
@@ -27,7 +27,9 @@ export async function startSimEngine(): Promise<SimEngine> {
     const threads = threadCount(navigator.hardwareConcurrency)
     try {
       await initThreadedWasm({ module_or_path: threadedWasmUrl })
-      await initThreadPool(threads)
+      // wasm-bindgen-rayon keeps its spawned workers in module state with no way to stop them, so a stalled pool
+      // stays as idle workers beside the single-thread engine; the timeout only stops the wait.
+      await withTimeout(initThreadPool(threads), POOL_START_MS)
       return { Sim: ThreadedSim as SimClass, threads }
     } catch (error) {
       logger.warn('wasm', 'threaded sim unavailable, using one thread:', error)

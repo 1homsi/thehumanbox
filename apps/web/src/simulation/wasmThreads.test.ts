@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_SIM_THREADS, threadCount, wantsThreads } from './wasmThreads'
+import { MAX_SIM_THREADS, threadCount, withTimeout, wantsThreads } from './wasmThreads'
 
 describe('wantsThreads', () => {
   it('needs a cross-origin isolated page with SharedArrayBuffer', () => {
@@ -13,6 +13,20 @@ describe('wantsThreads', () => {
 
   it('keeps a browser without SharedArrayBuffer on the single-thread engine', () => {
     expect(wantsThreads({ crossOriginIsolated: true, SharedArrayBuffer: undefined })).toBe(false)
+  })
+})
+
+describe('withTimeout', () => {
+  it('passes through a start that finishes in time', async () => {
+    await expect(withTimeout(Promise.resolve(7), 1000)).resolves.toBe(7)
+  })
+
+  it('rejects a start that never settles, so the worker can fall back', async () => {
+    await expect(withTimeout(new Promise<never>(() => {}), 5)).rejects.toThrow('not started after 5 ms')
+  })
+
+  it('keeps a failure of the start as it was', async () => {
+    await expect(withTimeout(Promise.reject(new Error('no worker')), 1000)).rejects.toThrow('no worker')
   })
 })
 

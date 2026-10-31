@@ -26,7 +26,7 @@ describe('the allowlist', () => {
     expect(upstreamFor('/ingest/e', '?ip=1')?.href).toBe('https://us.i.posthog.com/e?ip=1')
     expect(upstreamFor('/ingest/flags/', '?v=2')?.href).toBe('https://us.i.posthog.com/flags/?v=2')
     expect(upstreamFor('/ingest/array/phc_abc123/config.js', '')?.href).toBe(
-      'https://us.i.posthog.com/array/phc_abc123/config.js',
+      'https://us-assets.i.posthog.com/array/phc_abc123/config.js',
     )
     expect(upstreamFor('/ingest/static/1.438.12/exception-autocapture.js', '')?.href).toBe(
       'https://us-assets.i.posthog.com/static/1.438.12/exception-autocapture.js',

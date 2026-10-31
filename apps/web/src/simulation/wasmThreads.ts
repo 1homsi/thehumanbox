@@ -2,6 +2,21 @@
 export const MAX_SIM_THREADS = 4
 
 /**
+ * How long the worker pool may take to start. A pool that starts takes milliseconds; one whose worker never
+ * loads never settles, so after this the worker falls back to the single-thread engine.
+ */
+export const POOL_START_MS = 10_000
+
+/** Rejects if `work` has not settled within `ms`, so a stalled start cannot hold the worker forever. */
+export function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const expired = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`not started after ${ms} ms`)), ms)
+  })
+  return Promise.race([work, expired]).finally(() => clearTimeout(timer))
+}
+
+/**
  * Whether this page can run the threaded engine. Browsers only give out SharedArrayBuffer on a cross-origin
  * isolated page (the COOP and COEP headers in public/_headers). Anywhere else the single-thread engine runs,
  * exactly as before.

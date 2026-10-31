@@ -1,7 +1,8 @@
 // Forwards the website's analytics to PostHog, so the browser only talks to this origin. The threaded simulation
 // needs a cross-origin isolated page (COEP in public/_headers), and on that page PostHog's own cross-origin
 // scripts and hosts would be blocked. Routed by public/_routes.json, which is also what keeps the SPA fallback
-// from taking /ingest. /static/* comes from the assets host, and every other path from the ingest host.
+// from taking /ingest. /static/* and /array/* (remote config) come from the assets host, and every other path
+// from the ingest host, as PostHog's proxy reference lays out.
 //
 // This is not an open proxy: only the paths posthog-js calls with this site's configuration are forwarded, and
 // only with the methods it uses. Everything else is a 404.
@@ -36,7 +37,7 @@ export function upstreamFor(pathname: string, search: string): URL | null {
   if (!pathname.startsWith(PREFIX)) return null
   const rest = pathname.slice(PREFIX.length)
   if (!ALLOWED_PATHS.some((allowed) => allowed.test(rest))) return null
-  const host = rest.startsWith('/static/') ? ASSETS_HOST : INGEST_HOST
+  const host = rest.startsWith('/static/') || rest.startsWith('/array/') ? ASSETS_HOST : INGEST_HOST
   return new URL(host + rest + search)
 }
 

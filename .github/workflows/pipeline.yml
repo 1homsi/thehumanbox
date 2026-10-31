@@ -336,7 +336,8 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       # The threaded build rebuilds std with atomics, so it needs this nightly (see scripts/build-wasm-threads.sh).
-      - uses: dtolnay/rust-toolchain@master
+      # Pinned to a full commit (master at the time of writing), not a branch.
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
         if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
         with:
           toolchain: nightly-2025-11-15
