@@ -3,11 +3,12 @@ import { getWorldSource } from '../simulation/worldSource'
 import { getLocale } from '../i18n'
 import { isPhoneViewport } from './phone'
 import { readLowPerf } from './perf-mode'
+import { analyticsHost } from './analytics-host'
 
 declare const __APP_VERSION__: string | undefined
 
 const KEY = import.meta.env.VITE_POSTHOG_KEY as string | undefined
-const HOST = (import.meta.env.VITE_POSTHOG_HOST as string | undefined) ?? 'https://us.i.posthog.com'
+const HOST_OVERRIDE = import.meta.env.VITE_POSTHOG_HOST as string | undefined
 const BUILD_SHA = import.meta.env.VITE_GIT_SHA as string | undefined
 
 /** How often the session clock ticks, and how long after the last input a player still counts as active. */
@@ -68,7 +69,11 @@ export function initAnalytics(): void {
   void import('posthog-js')
     .then(({ default: posthog }) => {
       posthog.init(KEY, {
-        api_host: HOST,
+        ...analyticsHost({
+          override: HOST_OVERRIDE,
+          desktop: !!window.thbDesktop,
+          origin: window.location.origin,
+        }),
         person_profiles: 'identified_only',
         capture_pageview: 'history_change',
         capture_pageleave: true,

@@ -47,6 +47,12 @@ vi.mock('../wasm/sim-core/sim_core.js', () => ({
     free() {}
   },
 }))
+// The threaded engine is only started on a cross-origin isolated page, which these tests never are.
+vi.mock('../wasm/sim-core-threads/sim_core_threads.js', () => ({
+  default: vi.fn(async () => {}),
+  initThreadPool: vi.fn(async () => {}),
+  Sim: class {},
+}))
 vi.mock('./wasmDb', () => ({
   loadWorld: model.loadWorld,
   saveWorld: model.saveWorld,

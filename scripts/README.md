@@ -6,6 +6,9 @@ Dev and CI helpers, plus the published desktop installer. Run them from anywhere
 One-line macOS installer. The README publishes its raw GitHub URL
 (`.../main/scripts/install-desktop.sh`), so keep this path stable.
 
+### build-wasm-threads.sh
+The threaded build of the same engine (`wasm-threads` feature), into `apps/web/src/wasm/sim-core-threads`. It needs the pinned nightly named in the script, because the standard library is rebuilt with atomics. The worker only uses it on a cross-origin isolated page; every other browser runs `build-wasm.sh`'s build.
+
 ### build-wasm.sh
 Builds the browser WebAssembly engine with the tuned wasm profile (fat LTO, one codegen unit, opt-level 2). `make wasm` and both CI workflows call it; the flags are per invocation, so native builds and tests keep the quick release profile.
 

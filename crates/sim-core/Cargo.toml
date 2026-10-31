@@ -20,12 +20,16 @@ rayon = { version = "1.10", optional = true }
 
 [features]
 # Spread the parts of a tick that only read the world across the machine's cores (see `sim::par`). On for the
-# native builds (desktop, server, headless); the web build runs on one thread until wasm threads land.
+# native builds (desktop, server, headless); the default browser build runs on one thread.
 parallel = ["dep:rayon"]
+# The threaded browser build (scripts/build-wasm-threads.sh): `parallel` on a pool of Web Workers, which needs
+# SharedArrayBuffer, so the page must be cross-origin isolated. The page calls `initThreadPool` before the sim.
+wasm-threads = ["parallel", "dep:wasm-bindgen-rayon"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.4", features = ["wasm_js"] }
 wasm-bindgen = "0.2"
+wasm-bindgen-rayon = { version = "1.3", optional = true }
 
 [dev-dependencies]
 flate2 = "1"

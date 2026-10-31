@@ -4,6 +4,9 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   Cross-Origin-Opener-Policy: same-origin
+  # Lets the page use SharedArrayBuffer, so the sim runs on several cores (see src/simulation/wasmThreads.ts).
+  # credentialless rather than require-corp: a cross-origin no-cors load still works, and it carries no cookies.
+  Cross-Origin-Embedder-Policy: credentialless
 
 # Hashed build output is safe to cache forever. Without this every
 # revisit re-downloaded the full app and the 3.4MB simulation WASM.

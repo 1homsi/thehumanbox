@@ -6,6 +6,10 @@ pub mod physics;
 pub mod sim;
 pub mod world;
 
+// The browser's worker pool for the threaded build. The page calls it once, right after the module starts.
+#[cfg(all(target_arch = "wasm32", feature = "wasm-threads"))]
+pub use wasm_bindgen_rayon::init_thread_pool;
+
 #[cfg(any(target_arch = "wasm32", test))]
 use crate::sim::serialize::FramePayload;
 

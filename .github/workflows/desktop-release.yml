@@ -105,7 +105,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: sim-core-wasm
-          path: apps/web/src/wasm/sim-core
+          path: apps/web/src/wasm
           run-id: ${{ inputs.pipeline_run_id }}
           github-token: ${{ github.token }}
 
@@ -142,6 +142,20 @@ jobs:
         if: steps.wasm.outcome != 'success'
         shell: bash
         run: scripts/build-wasm.sh
+
+      # The renderer imports the threaded build too (the worker picks it on a cross-origin isolated page).
+      - name: Setup nightly toolchain for the threaded wasm
+        if: steps.wasm.outcome != 'success'
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master at the time of writing, pinned to a commit
+        with:
+          toolchain: nightly-2025-11-15
+          targets: wasm32-unknown-unknown
+          components: rust-src
+
+      - name: Build threaded wasm sim-core
+        if: steps.wasm.outcome != 'success'
+        shell: bash
+        run: scripts/build-wasm-threads.sh
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
