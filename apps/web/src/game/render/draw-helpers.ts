@@ -186,31 +186,66 @@ export function visualTileHash(col: number, row: number, salt = 0): number {
   return hash >>> 0
 }
 
+/**
+ * `visualTileHash` multiplies past 2^53, so its low bits are nearly always 0; the painters read bit 9
+ * and up, where every bit is an even coin.
+ */
+const foodLarge = (seed: number) => ((seed >>> 14) & 7) === 0
+const foodBerry = (seed: number) => (seed >>> 17) & 1
+/** How far a patch sits from the tile's corner: a large bush is four pixels wide, so it moves less. */
+const foodOffset = (seed: number, shift: number, large: boolean) => (seed >>> shift) & (large ? 1 : 3)
+
+/** What a food patch painted from `seed` depends on, for sharing atlas cells. */
+export function foodPatchKey(seed: number): string {
+  const large = foodLarge(seed)
+  return `${foodOffset(seed, 11, large)}|${foodOffset(seed, 9, large)}|${large ? 1 : 0}|${foodBerry(seed)}`
+}
+
 export function drawFoodPatch(ctx: CanvasRenderingContext2D, px: number, py: number, seed: number) {
   // Keep every resource tile legible without carpeting the whole landscape
   // with identical dark bushes. Larger shrubs punctuate smaller forage plants.
-  const x = px + 2 + ((seed >>> 5) & 3)
-  const y = py + 2 + ((seed >>> 9) & 3)
-  const large = (seed & 7) === 0
+  const large = foodLarge(seed)
+  const x = px + 2 + foodOffset(seed, 11, large)
+  const y = py + 2 + foodOffset(seed, 9, large)
   ctx.fillStyle = '#536a3b'
   ctx.fillRect(x, y + 1, large ? 4 : 2, large ? 3 : 2)
   ctx.fillStyle = '#81924d'
   ctx.fillRect(x + 1, y, large ? 3 : 1, large ? 2 : 1)
-  ctx.fillStyle = (seed & 1) === 0 ? '#b46e52' : '#b6a35c'
+  ctx.fillStyle = foodBerry(seed) === 0 ? '#b46e52' : '#b6a35c'
   ctx.fillRect(x + 1, y + 1, 1, 1)
 }
 
+/**
+ * The rock shapes an outcrop picks from, as rows of keys: d dark stone, l lit stone, o the ore. Four shapes and
+ * a pixel or two of offset per tile, so a deposit reads as a scatter of rocks rather than one stamp repeated on
+ * a grid.
+ */
+const OUTCROPS: readonly (readonly string[])[] = [
+  ['...dd..', '..dlld.', '.dlodd.', 'ddddddd'],
+  ['..dd...', '.dlod..', 'dlldddd', 'ddddod.'],
+  ['....dd.', '.dd.dld', 'dlod.dd', 'ddddddd'],
+  ['..ddd..', '.dlldd.', '.dodld.', 'dddddd.'],
+]
+
+/** What an outcrop painted from `seed` depends on, for sharing atlas cells. */
+export function mineralOutcropKey(seed: number): string {
+  return `${(seed >>> 13) & 1}|${(seed >>> 10) & 3}|${(seed >>> 12) & 1}|${(seed >>> 9) & 1}`
+}
+
 export function drawMineralOutcrop(ctx: CanvasRenderingContext2D, px: number, py: number, seed: number) {
-  ctx.fillStyle = '#3d3937'
-  ctx.fillRect(px + 1, py + 5, 7, 2)
-  ctx.fillRect(px + 2, py + 3, 5, 3)
-  ctx.fillRect(px + 4, py + 2, 3, 2)
-  ctx.fillStyle = '#716a62'
-  ctx.fillRect(px + 3, py + 3, 2, 1)
-  ctx.fillRect(px + 5, py + 4, 2, 1)
-  ctx.fillStyle = (seed & 1) === 0 ? '#e2b84d' : '#7fc9c7'
-  ctx.fillRect(px + 5, py + 3, 1, 1)
-  ctx.fillRect(px + 3, py + 5, 1, 1)
+  const shape = OUTCROPS[(seed >>> 10) & 3]
+  const ox = px + ((seed >>> 12) & 1)
+  const oy = py + 7 - shape.length - ((seed >>> 9) & 1)
+  const ore = ((seed >>> 13) & 1) === 0 ? '#e2b84d' : '#7fc9c7'
+  const colors: Record<string, string> = { d: '#3d3937', l: '#716a62', o: ore }
+  shape.forEach((row, r) => {
+    for (let c = 0; c < row.length; c++) {
+      const color = colors[row[c]]
+      if (!color) continue
+      ctx.fillStyle = color
+      ctx.fillRect(ox + c, oy + r, 1, 1)
+    }
+  })
 }
 
 export function drawPixelFire(
