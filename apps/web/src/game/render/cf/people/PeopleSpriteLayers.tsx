@@ -64,7 +64,7 @@ export function PeopleSpriteLayers({
     () => [{ dynamicSrc: emoteAtlas, frameWidth: EMOTE_CELL, frameHeight: EMOTE_CELL }],
     [emoteAtlas],
   )
-  // Nearest keeps the pixel art crisp; the soft decals are anti-aliased shapes and want linear.
+  // Nearest keeps the pixel art crisp, the decals and glyphs included: they are pixel shapes too.
   const body = useSpriteLayer({
     atlases: bodyAtlases,
     sortByKey: true,
@@ -78,8 +78,8 @@ export function PeopleSpriteLayers({
     zIndex: PEOPLE_Z.afloat,
     sampling: 'nearest',
   })
-  const soft = useSpriteLayer({ atlases: softAtlases, zIndex: PEOPLE_Z.soft, sampling: 'linear' })
-  const over = useSpriteLayer({ atlases: overAtlases, zIndex: PEOPLE_Z.over, sampling: 'linear' })
+  const soft = useSpriteLayer({ atlases: softAtlases, zIndex: PEOPLE_Z.soft, sampling: 'nearest' })
+  const over = useSpriteLayer({ atlases: overAtlases, zIndex: PEOPLE_Z.over, sampling: 'nearest' })
 
   const emote = useSpriteLayer({ atlases: emoteAtlases, zIndex: PEOPLE_Z.emote, sampling: 'nearest' })
 

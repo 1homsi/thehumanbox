@@ -46,8 +46,8 @@ export function AnimalSpriteLayers({ world, interp, viewFlags, rendererPaused }:
     zIndex: ANIMAL_Z.body,
     sampling: 'nearest',
   })
-  const shadow = useSpriteLayer({ atlases: decalAtlases, zIndex: ANIMAL_Z.shadow, sampling: 'linear' })
-  const sleep = useSpriteLayer({ atlases: glyphAtlases, zIndex: ANIMAL_Z.sleep, sampling: 'linear' })
+  const shadow = useSpriteLayer({ atlases: decalAtlases, zIndex: ANIMAL_Z.shadow, sampling: 'nearest' })
+  const sleep = useSpriteLayer({ atlases: glyphAtlases, zIndex: ANIMAL_Z.sleep, sampling: 'nearest' })
   const sprites = useMemo(() => new AnimalSprites({ body, shadow, sleep }), [body, shadow, sleep])
 
   const ox = world.grid.origin_x ?? 0
