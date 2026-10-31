@@ -398,7 +398,7 @@ export function paintDecorTile(
   if (t === TILE_ID.SNOW && r0 < 0.18) {
     const snowX = Math.round(px + TILE / 2 + (r2 - 0.5) * TILE * 0.3)
     const snowY = Math.round(py + TILE / 2 + (r1 - 0.5) * TILE * 0.3)
-    ctx.fillStyle = 'rgba(245,250,255,0.7)'
+    ctx.fillStyle = '#f2f5f9'
     ctx.fillRect(snowX - 2, snowY, 4, 1)
     ctx.fillRect(snowX - 1, snowY - 1, 3, 1)
     return
@@ -408,7 +408,7 @@ export function paintDecorTile(
     const bx = Math.round(px + TILE / 2 + (r1 - 0.5) * TILE * 0.4)
     const by = Math.round(py + TILE - 1)
     const hgt = 4 + Math.floor(r2 * 5)
-    ctx.fillStyle = 'rgba(40,16,8,0.3)'
+    ctx.fillStyle = '#6a4a30'
     ctx.fillRect(bx - 2, by, 6, 1)
     ctx.fillStyle = '#8a3f22'
     ctx.fillRect(bx - 2, by - hgt, 4, hgt)
@@ -446,7 +446,7 @@ export function paintDecorTile(
 
   if (
     biome === BIOME_ID.GRASSLAND &&
-    r0 < (Math.sin(worldX * 0.13) + Math.sin(worldY * 0.17) > 1 ? 0.22 : 0.018)
+    r0 < (Math.sin(worldX * 0.13) + Math.sin(worldY * 0.17) > 1 ? 0.12 : 0.012)
   ) {
     const colors = ['#f1b9bf', '#f6e3a0', '#cfc0e9', '#f5eade']
     ctx.fillStyle = colors[Math.floor(r2 * colors.length)]
@@ -457,44 +457,39 @@ export function paintDecorTile(
     ctx.fillStyle = '#e4bc68'
     ctx.fillRect(Math.round(fx), Math.round(fy), 1, 1)
     ctx.fillStyle = '#3a6b32'
-    ctx.fillRect(fx, fy + 1, 1, 2)
+    ctx.fillRect(Math.round(fx), Math.round(fy) + 2, 1, 1)
   } else if (biome === BIOME_ID.FOREST && r0 < 0.06) {
-    const mx = px + TILE / 2 + (r2 - 0.5) * TILE * 0.4
-    const my = py + TILE / 2 + (r1 - 0.5) * TILE * 0.4
-    ctx.fillStyle = r1 < 0.5 ? '#c54a4a' : '#ddd5b8'
-    ctx.beginPath()
-    ctx.arc(mx, my, 2, 0, Math.PI * 2)
-    ctx.fill()
+    // A mushroom in whole pixels: a three-wide cap with a lit corner, over a pale stem.
+    const mx = Math.round(px + TILE / 2 + (r2 - 0.5) * TILE * 0.4)
+    const my = Math.round(py + TILE / 2 + (r1 - 0.5) * TILE * 0.4)
+    const red = r1 < 0.5
+    ctx.fillStyle = red ? '#a83c3c' : '#b9ae8e'
+    ctx.fillRect(mx - 1, my, 3, 1)
+    ctx.fillStyle = red ? '#c54a4a' : '#ddd5b8'
+    ctx.fillRect(mx, my - 1, 2, 1)
+    ctx.fillRect(mx - 1, my, 2, 1)
     ctx.fillStyle = '#f0e8d8'
-    ctx.fillRect(mx - 1, my + 1, 2, 2)
+    ctx.fillRect(mx, my + 1, 1, 1)
   } else if ((biome === BIOME_ID.GRASSLAND || biome === BIOME_ID.WETLAND) && r1 < 0.12) {
-    ctx.strokeStyle = biome === BIOME_ID.WETLAND ? '#5a8848' : '#7ea860'
-    ctx.lineWidth = 1
-    const gx = px + TILE / 2 + (r0 - 0.5) * TILE * 0.5
+    // A tuft of two blades, a pixel apart, the taller one leaning with the hash.
+    ctx.fillStyle = biome === BIOME_ID.WETLAND ? '#5a8848' : '#7ea860'
+    const gx = Math.round(px + TILE / 2 + (r0 - 0.5) * TILE * 0.5)
     const gy = py + TILE - 1
-    ctx.beginPath()
-    ctx.moveTo(gx, gy)
-    ctx.lineTo(gx + (r2 - 0.5) * 2, gy - 3)
-    ctx.moveTo(gx + 1, gy)
-    ctx.lineTo(gx + 1 + (r2 - 0.5) * 2, gy - 2)
-    ctx.stroke()
+    const lean = r2 < 0.33 ? -1 : r2 > 0.66 ? 1 : 0
+    ctx.fillRect(gx, gy - 1, 1, 2)
+    ctx.fillRect(gx + lean, gy - 2, 1, 1)
+    ctx.fillRect(gx + 2, gy - 1, 1, 2)
   } else if (biome === BIOME_ID.TUNDRA && r0 < 0.08) {
-    ctx.fillStyle = 'rgba(220,225,235,0.55)'
-    ctx.beginPath()
-    ctx.ellipse(
-      px + TILE / 2 + (r2 - 0.5) * TILE * 0.4,
-      py + TILE / 2 + (r1 - 0.5) * TILE * 0.4,
-      2.5,
-      1.4,
-      0,
-      0,
-      Math.PI * 2,
-    )
-    ctx.fill()
+    // A patch of frost: two short rows, not a soft translucent oval.
+    const fx = Math.round(px + TILE / 2 + (r2 - 0.5) * TILE * 0.4)
+    const fy = Math.round(py + TILE / 2 + (r1 - 0.5) * TILE * 0.4)
+    ctx.fillStyle = '#d6dbe3'
+    ctx.fillRect(fx - 2, fy, 5, 1)
+    ctx.fillRect(fx - 1, fy - 1, 3, 1)
   }
 
   if (r2 < 0.003) {
-    ctx.fillStyle = 'rgba(220,210,190,0.55)'
+    ctx.fillStyle = '#a9a48a'
     ctx.fillRect(px + TILE / 2 - 1, py + TILE / 2, 3, 1)
     ctx.fillRect(px + TILE / 2 - 1, py + TILE / 2 + 1, 2, 1)
   }

@@ -35,6 +35,18 @@ const SHADOW = rgba(
  */
 const SWAY_INTERVAL_MS = 80
 
+/**
+ * Below this zoom a tree is a few screen pixels, and its shrunk sprite (outline, leaf shading, trunk) breaks
+ * into dark speckle: forests turned into noise on the whole-map view. Under it each tree is drawn as one
+ * flat block of its canopy colour, so woods read as solid fields with crisp edges.
+ */
+export const FAR_TREE_ZOOM = 0.8
+
+/** The canopy colour of a far tree when its sprite cannot be read (no 2D canvas, as in tests). */
+const FAR_FALLBACK = rgba(58, 84, 46, 255)
+/** A far acacia: a flat strip of its olive crown. */
+const FAR_ACACIA = rgba(112, 122, 58, 255)
+
 /** A tree as it will draw: its sprite cell and the pixel position the canvas painter used. */
 interface TreeSprite {
   /** Whole-pixel top-left of the sprite and its size. */
@@ -81,6 +93,12 @@ export class TreesDriver {
   /** Scratch for the visible canopies of one frame: tree index and pixel shift. */
   private picked = new Int32Array(0)
   private shifts = new Int8Array(0)
+  /** Whether the trees are drawn as far blocks (see FAR_TREE_ZOOM), and what they were built from. */
+  private far = false
+  private placedTrees: PlacedTree[] = []
+  private placedAcacias: PlacedAcacia[] = []
+  private acaciaBlocks: Array<{ x: number; y: number; w: number; h: number; key: number }> = []
+  private canopyColors = new Map<string, number>()
 
   constructor(layer: SpriteLayer, swayLayer: SpriteLayer, atlas: CellAtlas, dressLayer: SpriteLayer) {
     this.layer = layer
@@ -103,6 +121,8 @@ export class TreesDriver {
     const p0 = performance.now()
     const placed = placeTrees(width, height, tiles, biomes, f.ox, f.oy, undefined, season)
     indexTrees(placed.trees, placed.acacias, width, { x: f.ox, y: f.oy })
+    this.placedTrees = placed.trees
+    this.placedAcacias = placed.acacias
     this.stats.placeMs += performance.now() - p0
     for (let pass = 0; pass < 2; pass++) {
       const epoch = this.atlas.epoch
@@ -195,6 +215,14 @@ export class TreesDriver {
       if (c) acaciaCells.push({ ...c, key: 1e5 + a.y })
     }
     this.sprites = sprites
+    // The crown's own box: the atlas cell carries a gutter on every side.
+    this.acaciaBlocks = acaciaCells.map((a) => ({
+      x: a.x,
+      y: a.y,
+      w: a.cell.cw - CELL_GUTTER * 2,
+      h: a.cell.ch - CELL_GUTTER * 2,
+      key: a.key,
+    }))
     this.bottoms = sprites.map((s) => s.sortKey)
     const n = sprites.length * 2 + acaciaCells.length
     layer.resize(n)
@@ -244,6 +272,80 @@ export class TreesDriver {
     this.buildDressing(sprites)
     this.stats.trees = sprites.length
     this.stats.acacias = acaciaCells.length
+    if (this.far) this.writeFar()
+  }
+
+  /** The mean colour of a tree's opaque pixels, read once per sprite. */
+  private canopyColor(s: TreeSprite): number {
+    const key = s.crop ? `${s.tile[0]},${s.tile[1]}|${s.w}x${s.h}` : `${s.tile[0]},${s.tile[1]}|${s.w}`
+    const known = this.canopyColors.get(key)
+    if (known !== undefined) return known
+    let color = FAR_FALLBACK
+    try {
+      const canvas = document.createElement('canvas')
+      canvas.width = s.w
+      canvas.height = s.h
+      const ctx = canvas.getContext('2d')
+      if (ctx) {
+        if (s.crop) drawVegetationCrop(ctx, s.crop, 0, 0)
+        else drawTile(ctx, ATLAS_TOWN, s.tile, 0, 0, s.w)
+        const d = ctx.getImageData(0, 0, s.w, s.h).data
+        let r = 0
+        let g = 0
+        let b = 0
+        let n = 0
+        for (let o = 0; o < d.length; o += 4) {
+          if (d[o + 3] < 128) continue
+          r += d[o]
+          g += d[o + 1]
+          b += d[o + 2]
+          n++
+        }
+        if (n > 0) color = rgba(Math.round(r / n), Math.round(g / n), Math.round(b / n), 255)
+      }
+    } catch {
+      // No canvas: the fallback green.
+    }
+    this.canopyColors.set(key, color)
+    return color
+  }
+
+  /**
+   * Every tree as one flat blob of its canopy colour, for the far zoom (see FAR_TREE_ZOOM): two crossed
+   * rectangles, so a lone tree reads as a round crown rather than a square.
+   */
+  private writeFar(): void {
+    const layer = this.layer
+    const sprites = this.sprites
+    layer.resize(sprites.length * 2 + this.acaciaBlocks.length)
+    let i = 0
+    for (const s of sprites) {
+      const w = Math.max(3, Math.round(s.w * 0.8))
+      const h = Math.max(3, Math.round(s.h * 0.6))
+      const x = Math.round(s.dx + s.w / 2 - w / 2) + w / 2
+      const y = Math.round(s.dy + s.h * 0.4 - h / 2) + h / 2
+      const color = this.canopyColor(s)
+      writeSprite(layer, i++, x, y, w, h - 2, 0, 0, color, SPRITE_UNTEXTURED, s.sortKey, 0)
+      writeSprite(layer, i++, x, y, w - 2, h, 0, 0, color, SPRITE_UNTEXTURED, s.sortKey, 0)
+    }
+    for (const a of this.acaciaBlocks) {
+      const w = Math.max(2, Math.round(a.w * 0.7))
+      writeSprite(
+        layer,
+        i++,
+        a.x + a.w / 2,
+        a.y + a.h * 0.3,
+        w,
+        2,
+        0,
+        0,
+        FAR_ACACIA,
+        SPRITE_UNTEXTURED,
+        a.key,
+        0,
+      )
+    }
+    layer.touch()
   }
 
   /** The season's specks on every tree that sways (cacti and dead trees have no crown to dress). */
@@ -301,8 +403,16 @@ export class TreesDriver {
       }
       dressChanged = true
     }
+    let farChanged = false
+    const far = f.camera.zoom < FAR_TREE_ZOOM
+    if (far !== this.far) {
+      this.far = far
+      if (far) this.writeFar()
+      else this.build(this.placedTrees, this.placedAcacias)
+      farChanged = true
+    }
     const sway = this.updateSway(f)
-    return dressChanged || sway
+    return farChanged || dressChanged || sway
   }
 
   private updateSway(f: CfFrame): boolean {

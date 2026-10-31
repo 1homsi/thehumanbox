@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
-import { SpriteLayer } from 'xipjs'
+import { SPRITE_UNTEXTURED, SpriteLayer } from 'xipjs'
 import type { WorldState } from '../../../../shared/types'
 import type { CellAtlas } from '../atlas/cell-atlas'
 import { makeFrame } from '../frame'
@@ -14,7 +14,8 @@ function driverWithTrees() {
     epoch: 0,
     bake: () => ({ atlas: 0, frame: 1, cw: 18, ch: 12 }),
   } as unknown as CellAtlas
-  const driver = new TreesDriver(new SpriteLayer(), sway, atlas, new SpriteLayer())
+  const layer = new SpriteLayer()
+  const driver = new TreesDriver(layer, sway, atlas, new SpriteLayer())
   const trees = [0, 1, 2].map((i) => ({
     dx: 40 + i * 20,
     dy: 40,
@@ -33,7 +34,7 @@ function driverWithTrees() {
   const inner = driver as unknown as { sprites: unknown[]; bottoms: number[] }
   inner.sprites = trees
   inner.bottoms = trees.map((t) => t.cy)
-  return { driver, sway }
+  return { driver, sway, layer }
 }
 
 const world = {
@@ -72,7 +73,19 @@ describe('trees driver wind', () => {
 
   it('does not sway zoomed out', () => {
     const { driver, sway } = driverWithTrees()
-    expect(driver.update(frame(1000, { x: 100, y: 60, zoom: 0.3 }))).toBe(false)
+    // The first far frame swaps the trees for flat crowns; after that nothing moves.
+    driver.update(frame(1000, { x: 100, y: 60, zoom: 0.3 }))
+    expect(driver.update(frame(1100, { x: 100, y: 60, zoom: 0.3 }))).toBe(false)
     expect(sway.count).toBe(0)
+  })
+
+  it('draws far trees as flat crowns: two crossed untextured rectangles per tree', () => {
+    const { driver, layer } = driverWithTrees()
+    expect(driver.update(frame(1000, { x: 100, y: 60, zoom: 0.3 }))).toBe(true)
+    expect(layer.count).toBe(6)
+    for (let i = 0; i < layer.count; i++) {
+      expect(layer.flags[i] & SPRITE_UNTEXTURED).toBe(SPRITE_UNTEXTURED)
+      expect(Number.isInteger(layer.x[i] - layer.w[i] / 2)).toBe(true)
+    }
   })
 })

@@ -1,6 +1,7 @@
 import type { SpriteLayer } from 'xipjs'
 import { TILE } from '../../../model/palette'
 import { paintDecorTile } from '../../decorations'
+import { FAR_TREE_ZOOM } from './trees-driver'
 import { CELL_GUTTER, type CellAtlas, type CellRef } from '../atlas/cell-atlas'
 import { WHITE, writeSprite, type CfFrame } from '../frame'
 import { createProbe } from './draw-probe'
@@ -20,6 +21,8 @@ export class DecorDriver {
   private readonly probe = createProbe()
   private cells: CellRef[] = []
   private pos: number[] = []
+  /** Zoomed far out (see FAR_TREE_ZOOM) the decor is hidden: flowers and pebbles a pixel across are speckle. */
+  private far = false
 
   constructor(layer: SpriteLayer, atlas: CellAtlas) {
     this.layer = layer
@@ -64,6 +67,26 @@ export class DecorDriver {
       }
       if (epoch === this.atlas.epoch) break
     }
+    if (!this.far) this.write()
+    const n = this.cells.length
+    this.stats.sprites = n
+    this.stats.rebuilds++
+    this.stats.rebuildMs += performance.now() - t0
+  }
+
+  /** Hide the decor when zoomed far out, and bring it back when closer. */
+  update(f: CfFrame): boolean {
+    const far = f.camera.zoom < FAR_TREE_ZOOM
+    if (far === this.far) return false
+    this.far = far
+    if (far) {
+      this.layer.resize(0)
+      this.layer.touch()
+    } else this.write()
+    return true
+  }
+
+  private write(): void {
     const n = this.cells.length
     const layer = this.layer
     layer.resize(n)
@@ -87,8 +110,5 @@ export class DecorDriver {
       )
     }
     layer.touch()
-    this.stats.sprites = n
-    this.stats.rebuilds++
-    this.stats.rebuildMs += performance.now() - t0
   }
 }

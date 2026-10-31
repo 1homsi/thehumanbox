@@ -42,6 +42,7 @@ export class VegetationDriver implements CfDriver {
       this.built.trees = rev
       changed = true
     }
+    if (this.decor.update(f)) changed = true
     if (this.trees.update(f)) changed = true
     this.stats = {
       revision: rev,
