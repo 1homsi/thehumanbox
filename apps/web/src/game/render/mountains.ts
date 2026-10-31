@@ -225,18 +225,18 @@ function massPixel(px: number, py: number, volcanic: boolean): Rgb {
   else if (toLight <= -FACE) color = stone.shade
   else color = stone.mid
   // Broad bands of height, each a step lighter, give the mass its volume without a line at every step.
-  return e >= BAND * 2 ? lighter(color, 2) : e >= BAND ? lighter(color, 1) : color
+  return e >= BAND * 2 ? lighter(color, stone.lit, 2) : e >= BAND ? lighter(color, stone.lit, 1) : color
 }
 
 /** Heights per light band (see massPixel). */
 const BAND = 3.5
 const bands = new Map<string, Rgb>()
-/** `c` a band or two lighter, toward the lit stone. */
-function lighter(c: Rgb, steps: number): Rgb {
-  const key = `${c}|${steps}`
+/** `c` a band or two lighter, toward its own material's lit colour (snow stays white, not rock-brown). */
+function lighter(c: Rgb, lit: Rgb, steps: number): Rgb {
+  const key = `${c}|${lit}|${steps}`
   let out = bands.get(key)
   if (!out) {
-    out = mix(c, ROCK.lit, 0.12 * steps)
+    out = mix(c, lit, 0.12 * steps)
     bands.set(key, out)
   }
   return out
