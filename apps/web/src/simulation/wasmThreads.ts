@@ -7,6 +7,12 @@ export const MAX_SIM_THREADS = 4
  */
 export const POOL_START_MS = 10_000
 
+/**
+ * How long fetching and compiling the threaded module may take. It is about 5 MB, so this is longer than the pool
+ * start; past it the worker falls back to the single-thread engine.
+ */
+export const THREADED_WASM_START_MS = 30_000
+
 /** Rejects if `work` has not settled within `ms`, so a stalled start cannot hold the worker forever. */
 export function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined
