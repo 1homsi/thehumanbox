@@ -438,3 +438,36 @@ export function paintEarlyHome(p: P) {
   door(p, x0 + w * 0.5, y1, Math.max(3, w * 0.25), h * 0.3)
   cracks(p, x0, top, w, y1 - top)
 }
+
+/**
+ * An open-sided shelter (a pavilion, gazebo or bandstand): a peaked roof on four posts over a raised
+ * floor, so it reads as somewhere to gather, not as a tent.
+ */
+export function paintGazebo(p: P) {
+  const { ctx, x0, y1, w, h } = p
+  const left = Math.round(x0)
+  const right = Math.round(x0 + w) - 1
+  const floorY = Math.round(y1) - 2
+  const roofBase = Math.round(y1 - h * 0.55)
+  const roof = tintRoof(p, p.kind === 'Bandstand' ? '#9c3b32' : p.kind === 'Gazebo' ? '#5b7a5a' : '#a8743c')
+  // Floor: a plank deck, lit on top.
+  px(ctx, left, floorY, right - left + 1, 2, '#7a5634')
+  px(ctx, left, floorY, right - left + 1, 1, '#a07448')
+  // Posts at the corners and one in the middle on a wide shelter.
+  const posts = w >= 14 ? [left + 1, Math.round((left + right) / 2), right - 1] : [left + 1, right - 1]
+  for (const x of posts) px(ctx, x, roofBase, 1, floorY - roofBase, '#5a3e26')
+  // Roof: stepped rows to a peak, lit on the left, with the warm ink outline added by the finish pass.
+  const rh = Math.max(3, Math.round(h * 0.4))
+  for (let r = 0; r < rh; r++) {
+    const inset = Math.round(((w / 2) * r) / rh)
+    const x = left - 1 + inset
+    const len = right - left + 3 - inset * 2
+    if (len <= 0) break
+    const y = roofBase - r
+    const half = Math.floor(len / 2)
+    px(ctx, x, y, half, 1, shade(roof, 1.12))
+    px(ctx, x + half, y, len - half, 1, shade(roof, 0.78))
+  }
+  px(ctx, left - 1, roofBase, right - left + 3, 1, shade(roof, 0.6))
+  if (p.kind === 'Bandstand') px(ctx, Math.round((left + right) / 2), roofBase - rh - 1, 1, 2, '#e0c060')
+}

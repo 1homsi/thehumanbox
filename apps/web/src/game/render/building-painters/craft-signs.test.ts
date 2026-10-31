@@ -55,18 +55,17 @@ describe('trade signs', () => {
     expect(new Set(boards).size).toBe(boards.length)
   })
 
+  it('draws a mill as a windmill and the open shelters as roofs on posts, not cottages or tents', async () => {
+    const { ARCHETYPE } = await import('./registry')
+    const { paintWindmill } = await import('./civic')
+    const { paintGazebo } = await import('./dwellings')
+    expect(ARCHETYPE.Mill).toBe(paintWindmill)
+    for (const kind of ['Pavilion', 'Gazebo', 'Bandstand']) expect(ARCHETYPE[kind]).toBe(paintGazebo)
+    expect(hasCraftSign('Mill')).toBe(false)
+  })
+
   it('knows the trade kinds and not a plain house', () => {
-    for (const kind of [
-      'Bakery',
-      'Tavern',
-      'Inn',
-      'Mill',
-      'Brewery',
-      'Cobbler',
-      'Herbalist',
-      'Spa',
-      'Kennel',
-    ]) {
+    for (const kind of ['Bakery', 'Tavern', 'Inn', 'Brewery', 'Cobbler', 'Herbalist', 'Spa', 'Kennel']) {
       expect(hasCraftSign(kind)).toBe(true)
     }
     expect(hasCraftSign('House')).toBe(false)
