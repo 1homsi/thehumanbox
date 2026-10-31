@@ -67,7 +67,7 @@ jobs:
           sim=("${ci[@]}" .config apps/server crates Cargo.toml Cargo.lock rustfmt.toml clippy.toml
             scripts/perf-gate.sh scripts/determinism-fingerprint.json)
           client=("${ci[@]}" apps/web crates/sim-core Cargo.toml Cargo.lock .node-version
-            scripts/build-wasm.sh scripts/check-wasm-determinism.mjs scripts/determinism-fingerprint.json)
+            scripts/build-wasm.sh scripts/build-wasm-threads.sh scripts/check-wasm-determinism.mjs scripts/determinism-fingerprint.json)
           desktop=("${ci[@]}" apps/desktop .node-version)
           base=""
           if [ "$EVENT" = pull_request ] && git rev-parse -q --verify 'HEAD^2' >/dev/null; then
@@ -307,14 +307,15 @@ jobs:
             find crates/sim-core -type f -not -path '*/target/*' -print0 | sort -z | xargs -0 sha256sum
             sed '/^name = "simulation-rs"$/{n;d;}' Cargo.lock
             grep -v '^version = ' apps/server/Cargo.toml
-            cat Cargo.toml scripts/build-wasm.sh
+            cat Cargo.toml scripts/build-wasm.sh scripts/build-wasm-threads.sh
           } | sha256sum | cut -c1-32 > /tmp/wasm-key
           echo "key=wasm-sim-core-$(cat /tmp/wasm-key)" >> "$GITHUB_OUTPUT"
+      # Both packages (the single-thread and the threaded build) live under apps/web/src/wasm.
       - name: Restore wasm build
         id: wasm-cache
         uses: actions/cache@v6
         with:
-          path: apps/web/src/wasm/sim-core
+          path: apps/web/src/wasm
           key: ${{ steps.wasm-key.outputs.key }}
       # PR caches are not visible to main, so a merge that changed sim-core
       # would rebuild here. The run that passed the client area already built
@@ -326,13 +327,20 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: sim-core-wasm
-          path: apps/web/src/wasm/sim-core
+          path: apps/web/src/wasm
           run-id: ${{ needs.changes.outputs.client_run }}
           github-token: ${{ github.token }}
       - uses: dtolnay/rust-toolchain@stable
         if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
         with:
           targets: wasm32-unknown-unknown
+      # The threaded build rebuilds std with atomics, so it needs this nightly (see scripts/build-wasm-threads.sh).
+      - uses: dtolnay/rust-toolchain@master
+        if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
+        with:
+          toolchain: nightly-2025-11-15
+          targets: wasm32-unknown-unknown
+          components: rust-src
       - uses: Swatinem/rust-cache@v2
         if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
         with:
@@ -346,6 +354,9 @@ jobs:
         id: wasm-build
         if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
         run: scripts/build-wasm.sh
+      - name: Build threaded wasm sim-core
+        if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
+        run: scripts/build-wasm-threads.sh
       # The browser sim must reproduce the committed native fingerprint (see
       # scripts/determinism-fingerprint.json). Runs on cached and fresh builds;
       # when an earlier run passed the client area it checked this same wasm,
@@ -356,7 +367,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: sim-core-wasm
-          path: apps/web/src/wasm/sim-core
+          path: apps/web/src/wasm
           retention-days: 7
 
   build-frontend:
@@ -395,7 +406,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: sim-core-wasm
-          path: apps/web/src/wasm/sim-core
+          path: apps/web/src/wasm
 
       - name: pnpm run build
         working-directory: apps/web
@@ -403,13 +414,11 @@ jobs:
         env:
           VITE_GIT_SHA:      ${{ github.sha }}
           VITE_BUILD_TS:     ${{ steps.ts.outputs.build_ts }}
-          # PostHog analytics. Token + host pulled from repo secrets so
-          # the key never lands in the repo. Build-time injection means
-          # the bundle only includes them on prod CI builds — local
-          # `pnpm dev` reads the developer's own .env (or simply doesn't
-          # initialize, see analytics.ts).
+          # PostHog analytics. The key comes from repo secrets so it never lands in the repo. Build-time injection
+          # means the bundle only includes it on prod CI builds — local `pnpm dev` reads the developer's own .env
+          # (or simply doesn't initialize, see analytics.ts). The host is not set here: the website sends through
+          # its own /ingest proxy (functions/ingest), see shared/analytics-host.ts.
           VITE_POSTHOG_KEY:  ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST || 'https://us.i.posthog.com' }}
 
       # A PR bundle without the analytics key (Dependabot PRs get no secrets)
       # is not the production bundle, so main rebuilds instead of shipping it.

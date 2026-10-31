@@ -1,5 +1,4 @@
-import init, { Sim } from '../wasm/sim-core/sim_core.js'
-import wasmUrl from '../wasm/sim-core/sim_core_bg.wasm?url'
+import { startSimEngine, type SimClass } from './wasmEngine'
 import {
   archiveAndDeleteWorld,
   listRecoveryWorlds,
@@ -66,7 +65,10 @@ const DEEP_FULL_EVERY_MS = 300 * WASM_BASE_TICK_MS
 const DEFAULT_AUTOSAVE_MS = 5 * 60_000
 const LOCK_WAIT_MS = 4_000
 
-let sim: Sim | null = null
+type SimInstance = InstanceType<SimClass>
+// Set when the engine starts, before any world is made or loaded.
+let Sim: SimClass
+let sim: SimInstance | null = null
 let worldId = 'browser-own'
 let seed = '0'
 let tickMs = WASM_BASE_TICK_MS
@@ -195,7 +197,7 @@ function rememberRetry(next: StorageRetry<SavedWorld>) {
   storageRetry = rememberStorageRetry(storageRetry, next)
 }
 
-function restoreSavedWorld(saved: SavedWorld): Sim {
+function restoreSavedWorld(saved: SavedWorld): SimInstance {
   if (saved.blob.byteLength === 0) throw new Error('save is empty')
   const candidate = Sim.fromSerialized(BigInt(saved.seed), saved.blob)
   const restoredTick = Number(candidate.tickCount())
@@ -206,7 +208,7 @@ function restoreSavedWorld(saved: SavedWorld): Sim {
   return candidate
 }
 
-function replaceSimulation(candidate: Sim, nextSeed: string) {
+function replaceSimulation(candidate: SimInstance, nextSeed: string) {
   const previous = sim
   sim = candidate
   seed = nextSeed
@@ -337,7 +339,7 @@ async function retryRestoreStorage(recoveryId: string): Promise<boolean> {
     return resumeAfterUnavailableRecovery('recovery copy no longer exists; normal local saving resumed')
   }
 
-  let candidate: Sim
+  let candidate: SimInstance
   try {
     candidate = restoreSavedWorld(recovery)
   } catch (error) {
@@ -433,7 +435,7 @@ function msPerTick() {
 }
 
 /** Run the ticks a hidden world owes for the real time since the last wake-up. */
-function catchUpInBackground(running: Sim, startedAt: number) {
+function catchUpInBackground(running: SimInstance, startedAt: number) {
   const sinceLastMs = startedAt - backgroundClockAt
   backgroundOwedMs = Math.min(MAX_BACKGROUND_OWED_MS, backgroundOwedMs + sinceLastMs)
   backgroundClockAt = startedAt
@@ -499,7 +501,7 @@ async function start(msg: StartMsg) {
   autosaveEveryMs = msg.autosaveEveryMs ?? DEFAULT_AUTOSAVE_MS
 
   try {
-    await init({ module_or_path: wasmUrl })
+    Sim = (await startSimEngine()).Sim
   } catch (e) {
     post({
       type: 'error',

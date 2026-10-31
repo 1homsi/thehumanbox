@@ -83,10 +83,12 @@ build: build-sim wasm build-client ## Build sim, wasm, and client for production
 build-sim: ## cargo build --release for the simulation
 	$(CARGO_RELEASE) build --release --bin simulation-rs
 
-wasm: ## Build the browser WASM sim-core into apps/web/src/wasm/sim-core (needs rustup + wasm-pack)
+wasm: ## Build both browser WASM sim-core packages into apps/web/src/wasm (needs rustup + wasm-pack)
 	rustup target add --toolchain stable wasm32-unknown-unknown >/dev/null 2>&1 || true
 	PATH="$$(dirname "$$(rustup which rustc --toolchain stable)"):$$PATH" \
 		scripts/build-wasm.sh
+	rustup toolchain install nightly-2025-11-15 --profile minimal -c rust-src -t wasm32-unknown-unknown
+	scripts/build-wasm-threads.sh
 
 build-client: ## Production Vite build (web target)
 	cd apps/web && pnpm run build
