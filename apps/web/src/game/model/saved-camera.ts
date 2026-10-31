@@ -83,11 +83,25 @@ export function clearSavedCamera(): void {
  * identity across a reset, so that view would open on the new world. `resume` undoes it if the reload fails.
  */
 export function forgetSavedCameraForReload(): { resume: () => void } {
+  // Kept so a reload that never happens (the worker could not save first) gives the player their view back.
+  let kept: string | null = null
+  try {
+    kept = window.localStorage.getItem(KEY)
+  } catch {
+    kept = null
+  }
+  const waiting = pending
   clearSavedCamera()
   frozen = true
   return {
     resume: () => {
       frozen = false
+      try {
+        if (kept !== null) window.localStorage.setItem(KEY, kept)
+      } catch {
+        // Storage gone: the next move saves the view again.
+      }
+      if (waiting) saveCamera(waiting.camera, waiting.world)
     },
   }
 }
