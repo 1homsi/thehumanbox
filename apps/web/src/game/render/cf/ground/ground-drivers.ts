@@ -2,7 +2,13 @@ import { SPRITE_UNTEXTURED, type SpriteLayer } from 'xipjs'
 import { TILE } from '../../../model/palette'
 import { TILE_ID } from '../../../model/terrain-ids'
 import { paintReed, paintShoreTile, reedAt, shoreTileKey } from '../../decorations'
-import { drawFoodPatch, drawMineralOutcrop, foodPatchKey, mineralOutcropKey, visualTileHash } from '../../draw-helpers'
+import {
+  drawFoodPatch,
+  drawMineralOutcrop,
+  foodPatchKey,
+  mineralOutcropKey,
+  visualTileHash,
+} from '../../draw-helpers'
 import { buildFoamRects } from '../../foam'
 import { paintStructureTile, structureStrength } from '../../structure-marks'
 import { CELL_GUTTER, type CellAtlas, type CellRef } from '../atlas/cell-atlas'
@@ -167,9 +173,7 @@ export class PatchDriver {
           const seed = visualTileHash(x + ox, y + oy)
           const food = t === TILE_ID.FOOD
           // What the painters read from the seed, and nothing else.
-          const key = food
-            ? `food|${foodPatchKey(seed)}`
-            : `mineral|${mineralOutcropKey(seed)}`
+          const key = food ? `food|${foodPatchKey(seed)}` : `mineral|${mineralOutcropKey(seed)}`
           const cell =
             this.atlas.get(key) ??
             this.atlas.bake(key, TILE, TILE, (ctx) =>
