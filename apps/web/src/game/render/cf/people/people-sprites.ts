@@ -28,6 +28,8 @@ import {
   DEGREE_EMOJI,
   SICK_EMOJI,
   emoteFrame,
+  CARRY_STONE_GLYPH,
+  CARRY_WOOD_GLYPH,
   glyphFrame,
 } from '../atlas-bake'
 import { emoteFor } from '../../activity-emotes'
@@ -490,12 +492,12 @@ export class PeopleSprites {
         soft.push(j, 0, 0, 16, 16, DECAL.disc, 0, withAlpha(rgba32(187, 255, 68), org.infection * 0.3 * fa))
       }
       if (isSelected) {
-        // a warm halo, then the white dashed ring turning slowly over it
-        soft.push(j, 0, 2, 16, 9, DECAL.ring, 0, withAlpha(rgba32(255, 210, 138), 0.35 * fa))
-        soft.push(j, 0, 2, 16, 9, DECAL.dashed, 0, withAlpha(WHITE, 0.95 * fa), 0, 0.0006)
+        // a warm ring, then white dashes over it: whole pixels, so it holds still rather than turning
+        soft.push(j, 0, 2, 16, 9, DECAL.selectRing, 0, withAlpha(rgba32(255, 210, 138), 0.6 * fa))
+        soft.push(j, 0, 2, 16, 9, DECAL.selectDashed, 0, withAlpha(WHITE, 0.95 * fa))
       }
       if (standard && (!crowded || isSelected) && org.lineage_id) {
-        soft.push(j, 0, 3, 13, 6, DECAL.ring, 0, withAlpha(cssToRgba32(lineageColor(org.lineage_id)), fa))
+        soft.push(j, 0, 3, 13, 6, DECAL.footRing, 0, withAlpha(cssToRgba32(lineageColor(org.lineage_id)), fa))
       }
 
       // Simulation state as a restrained aura behind the character art.
@@ -593,24 +595,14 @@ export class PeopleSprites {
         this.glyph(j, fa, SICK_EMOJI, -bodyR - 1, -bodyR * 0.4, 8)
       if (full && org.tools) {
         const tool = pickToolEmoji(org.tools)
-        if (tool) this.glyph(j, fa, tool, bodyR + 4, bodyR * 0.6, 9)
+        if (tool) this.glyph(j, fa, tool, bodyR + 4, bodyR * 0.6, 8)
       }
       if (full && org.degrees && org.degrees.length > 0)
         this.glyph(j, fa, DEGREE_EMOJI, -bodyR - 4, bodyR * 0.6, 8)
 
-      if (standard && org.carrying > 0) {
-        over.push(
-          j,
-          4,
-          -1,
-          5,
-          4,
-          0,
-          0,
-          withAlpha(cssToRgba32(org.carrying_type === 2 ? '#9a9a9a' : '#8b5e3c'), fa),
-          ATTACHED_UNTEXTURED | ATTACHED_SNAP,
-        )
-      }
+      // A bundle of wood or a lump of stone at the hip, drawn like the sprites rather than a flat patch of colour.
+      if (standard && org.carrying > 0)
+        this.glyph(j, fa, org.carrying_type === 2 ? CARRY_STONE_GLYPH : CARRY_WOOD_GLYPH, 3, -4, 8)
 
       const showVitals = isSelected || org.energy < 0.22 || org.hydration < 0.22 || org.health < 0.22
       if (showVitals) {

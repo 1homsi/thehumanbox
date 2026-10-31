@@ -230,11 +230,9 @@ describe('PeopleSprites', () => {
     one.sprites.animate(1000, 1)
     // shadow, halo ring, dashed ring, lineage ring, aura
     expect(one.soft.count).toBeGreaterThanOrEqual(5)
-    expect(one.soft.rotation[0]).toBe(0)
-    const dashedSpin = Array.from({ length: one.soft.count }, (_, i) => one.soft.rotation[i]).some(
-      (r) => r !== 0,
-    )
-    expect(dashedSpin).toBe(true)
+    // Every ring is whole pixels, so none is turned (a turned one blurs off the pixel grid).
+    const turned = Array.from({ length: one.soft.count }, (_, i) => one.soft.rotation[i]).some((r) => r !== 0)
+    expect(turned).toBe(false)
 
     const crowd = Array.from({ length: 450 }, (_, i) => org(`c${i}`, i % 50, Math.floor(i / 50)))
     const many = setup()

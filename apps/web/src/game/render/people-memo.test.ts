@@ -217,10 +217,11 @@ describe('per-person values cached across frames', () => {
       G: '#4e8a3a',
       b: '#7cc8ff',
       B: '#3b7fb8',
-      k: '#2a1f16',
-      p: '#d68be0',
+      k: '#2b2117',
+      p: '#b25fc0',
+      s: '#7d8590',
     }
-    // The previous drawEmote, verbatim, as the reference.
+    // A plain drawEmote, one fillStyle per pixel, as the reference.
     const record = () => {
       const out: string[] = []
       let style = ''
@@ -249,17 +250,17 @@ describe('per-person values cached across frames', () => {
       'joy',
     ]
     const art: Record<string, string[]> = {
-      fight: ['w.....w', '.w...w.', '..w.w..', '...w...', '..w.w..', '.Y...Y.', 'Y.....Y'],
+      fight: ['s.....s', '.s...s.', '..s.s..', '...s...', '..s.s..', '.Y...Y.', 'Y.....Y'],
       fear: ['...r...', '...r...', '...r...', '...r...', '...r...', '.......', '...r...'],
       sick: ['...g...', '..ggg..', '.gggGg.', '.ggGgg.', '.gggGg.', '..ggg..', '.......'],
       grief: ['...b...', '..bbb..', '.bbbbb.', '.bbbbb.', '.bbBbb.', '..bbb..', '.......'],
       love: ['.rr.rr.', 'rrrrrrr', 'rwrrrrr', 'rrrrrrr', '.rrrrr.', '..rrr..', '...r...'],
-      pray: ['...y...', '.y.y.y.', '..yyy..', 'yyywyyy', '..yyy..', '.y.y.y.', '...y...'],
+      pray: ['...Y...', '.Y.Y.Y.', '..YyY..', 'YYyyyYY', '..YyY..', '.Y.Y.Y.', '...Y...'],
       trade: ['..yyy..', '.yYYYy.', 'yYyyyYy', 'yYyyyYy', 'yYyyyYy', '.yYYYy.', '..yyy..'],
       teach: ['.......', 'bbb.bbb', 'bwb.bwb', 'bwbBbwb', 'bwbBbwb', 'bbbBbbb', '...B...'],
       party: ['....pp.', '....p.p', '....p..', '....p..', '.ppp...', 'pppp...', '.pp....'],
-      idea: ['..yyy..', '.yywyy.', '.ywyyy.', '.yyyyy.', '..yyy..', '..YYY..', '...Y...'],
-      joy: ['.......', 'y.....y', '.......', '.y...y.', '..yyy..', '.......', '.......'],
+      idea: ['..YYY..', '.YyyyY.', '.YywyY.', '.YyyyY.', '..YyY..', '..sss..', '...s...'],
+      joy: ['.......', '.k...k.', '.k...k.', '.......', '.R...R.', '..RRR..', '.......'],
     }
     const refDraw = (
       ctx: CanvasRenderingContext2D,
@@ -274,9 +275,16 @@ describe('per-person values cached across frames', () => {
       const size = rows.length
       const x0 = Math.round(x - size / 2) - 1
       const y0 = Math.round(y - size - 2) + bob
-      ctx.fillStyle = 'rgba(26,19,13,0.82)'
-      ctx.fillRect(x0 - 1, y0 - 1, size + 4, size + 4)
+      const w = size + 4
+      ctx.fillStyle = '#2b2117'
+      ctx.fillRect(x0, y0 - 1, w - 2, 1)
+      ctx.fillRect(x0, y0 + size + 2, w - 2, 1)
+      ctx.fillRect(x0 - 1, y0, 1, size + 2)
+      ctx.fillRect(x0 + w - 2, y0, 1, size + 2)
       ctx.fillRect(x0 + 1, y0 + size + 3, 2, 1)
+      ctx.fillRect(x0 + 1, y0 + size + 4, 1, 1)
+      ctx.fillStyle = '#f2e6c8'
+      ctx.fillRect(x0, y0, w - 2, size + 2)
       for (let r = 0; r < size; r++) {
         const row = rows[r]
         for (let c = 0; c < row.length; c++) {

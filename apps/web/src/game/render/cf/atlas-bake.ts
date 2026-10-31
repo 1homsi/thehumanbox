@@ -11,44 +11,90 @@ import { FAUNA_RECTS } from '../fauna-layout'
 import { animalSize } from '../animal-visuals'
 import { EMOTES, drawEmote, type Emote } from '../activity-emotes'
 
-// ---- Decals: soft white shapes, tinted and scaled per sprite ----------------
+// ---- Decals: white pixel shapes, tinted and scaled per sprite -----------------
 
 export const DECAL_CELL = 32
-export const DECAL = { disc: 0, ring: 1, diamond: 2, dashed: 3 } as const
-export const DECAL_COLUMNS = 4
+export const DECAL = {
+  disc: 0,
+  ring: 1,
+  diamond: 2,
+  dashed: 3,
+  /** The tribe's ring at a person's feet, made for 13 × 6. */
+  footRing: 4,
+  /** The selected person's ring and its dashes, made for 16 × 9. */
+  selectRing: 5,
+  selectDashed: 6,
+} as const
+export const DECAL_COLUMNS = 7
 export const DECAL_SIZE = { width: DECAL_CELL * DECAL_COLUMNS, height: DECAL_CELL }
 
-export function bakeDecals(ctx: CanvasRenderingContext2D): void {
+/** Whether the middle of pixel (i, j) of a w × h grid lies inside the ellipse that fills it. */
+function insideEllipse(i: number, j: number, w: number, h: number): boolean {
+  const x = (i + 0.5 - w / 2) / (w / 2)
+  const y = (j + 0.5 - h / 2) / (h / 2)
+  return x * x + y * y <= 1
+}
+
+/** The pixels of a w × h ellipse: filled, or only its one-pixel edge (dashed: every other run of three). */
+export function ellipsePixels(w: number, h: number, shape: 'disc' | 'ring' | 'dashed'): [number, number][] {
+  const out: [number, number][] = []
+  for (let j = 0; j < h; j++)
+    for (let i = 0; i < w; i++) {
+      if (!insideEllipse(i, j, w, h)) continue
+      const edge =
+        !insideEllipse(i - 1, j, w, h) ||
+        !insideEllipse(i + 1, j, w, h) ||
+        !insideEllipse(i, j - 1, w, h) ||
+        !insideEllipse(i, j + 1, w, h)
+      if (shape !== 'disc' && !edge) continue
+      if (shape === 'dashed') {
+        const turn = Math.atan2((j + 0.5 - h / 2) / h, (i + 0.5 - w / 2) / w) / (Math.PI * 2) + 0.5
+        if (Math.floor(turn * 12) % 2 === 1) continue
+      }
+      out.push([i, j])
+    }
+  return out
+}
+
+/**
+ * Paints a w × h pixel grid into decal cell `column`, each grid pixel a block of the 32-pixel cell. Drawn at
+ * w × h with nearest sampling, every block lands on exactly one screen pixel: crisp, whole pixels like the
+ * sprites, where a smooth circle shrunk down came out as a blurred vector ring.
+ */
+function paintGrid(
+  ctx: CanvasRenderingContext2D,
+  column: number,
+  w: number,
+  h: number,
+  pixels: [number, number][],
+) {
   const c = DECAL_CELL
+  for (const [i, j] of pixels) {
+    const x0 = Math.floor((i * c) / w)
+    const x1 = Math.floor(((i + 1) * c) / w)
+    const y0 = Math.floor((j * c) / h)
+    const y1 = Math.floor(((j + 1) * c) / h)
+    ctx.fillRect(column * c + x0, y0, x1 - x0, y1 - y0)
+  }
+}
+
+export function bakeDecals(ctx: CanvasRenderingContext2D): void {
   ctx.clearRect(0, 0, DECAL_SIZE.width, DECAL_SIZE.height)
   ctx.fillStyle = '#fff'
-  ctx.strokeStyle = '#fff'
-  // disc
-  ctx.beginPath()
-  ctx.arc(c * DECAL.disc + c / 2, c / 2, c / 2 - 0.5, 0, Math.PI * 2)
-  ctx.fill()
-  // ring, thick enough to read as ~1.5px at the drawn size of 20px
-  ctx.lineWidth = 2.6
-  ctx.beginPath()
-  ctx.arc(c * DECAL.ring + c / 2, c / 2, c / 2 - 1.8, 0, Math.PI * 2)
-  ctx.stroke()
-  // diamond ring
-  ctx.lineWidth = 3
-  ctx.beginPath()
-  const dx = c * DECAL.diamond + c / 2
-  ctx.moveTo(dx, 2)
-  ctx.lineTo(dx + c / 2 - 2, c / 2)
-  ctx.lineTo(dx, c - 2)
-  ctx.lineTo(dx - c / 2 + 2, c / 2)
-  ctx.closePath()
-  ctx.stroke()
-  // dashed ring: the selection marker, rotated a little each frame
-  ctx.lineWidth = 2.6
-  ctx.setLineDash([6, 4])
-  ctx.beginPath()
-  ctx.arc(c * DECAL.dashed + c / 2, c / 2, c / 2 - 1.8, 0, Math.PI * 2)
-  ctx.stroke()
-  ctx.setLineDash([])
+  // The free-sized shapes are drawn on a 16-pixel grid: whole pixels at their usual 16 to 22 pixels.
+  paintGrid(ctx, DECAL.disc, 16, 16, ellipsePixels(16, 16, 'disc'))
+  paintGrid(ctx, DECAL.ring, 16, 16, ellipsePixels(16, 16, 'ring'))
+  const diamond: [number, number][] = []
+  for (let j = 0; j < 16; j++)
+    for (let i = 0; i < 16; i++) {
+      const d = Math.abs(i - 7.5) + Math.abs(j - 7.5)
+      if (d <= 7.5 && d > 6) diamond.push([i, j])
+    }
+  paintGrid(ctx, DECAL.diamond, 16, 16, diamond)
+  paintGrid(ctx, DECAL.dashed, 16, 16, ellipsePixels(16, 16, 'dashed'))
+  paintGrid(ctx, DECAL.footRing, 13, 6, ellipsePixels(13, 6, 'ring'))
+  paintGrid(ctx, DECAL.selectRing, 16, 9, ellipsePixels(16, 9, 'ring'))
+  paintGrid(ctx, DECAL.selectDashed, 16, 9, ellipsePixels(16, 9, 'dashed'))
 }
 
 // ---- Glyphs: emoji and a letter, baked at twice the size they are drawn -------
@@ -71,6 +117,9 @@ export const DEGREE_EMOJI = '\u{1F393}'
 /** The white cane an elder leans on. */
 export const ELDER_CANE_EMOJI = '\u{1F9AF}'
 export const SLEEP_GLYPH = 'z'
+/** What a person carries home: a bundle of wood or a lump of stone (`carrying_type` 1 and 2). */
+export const CARRY_WOOD_GLYPH = 'carry:wood'
+export const CARRY_STONE_GLYPH = 'carry:stone'
 
 export const GLYPHS: readonly string[] = Array.from(
   new Set([
@@ -80,6 +129,8 @@ export const GLYPHS: readonly string[] = Array.from(
     DEGREE_EMOJI,
     ELDER_CANE_EMOJI,
     SLEEP_GLYPH,
+    CARRY_WOOD_GLYPH,
+    CARRY_STONE_GLYPH,
   ]),
 )
 const glyphIndex = new Map(GLYPHS.map((g, i) => [g, i] as const))
@@ -93,22 +144,197 @@ export const GLYPH_SIZE = {
   height: GLYPH_CELL * Math.ceil(GLYPHS.length / GLYPH_COLUMNS),
 }
 
+/** Colours of the glyph icons: the map's warm ink, steel, wood and a few flat fills. */
+const ICON_COLORS: Record<string, string> = {
+  k: '#2b2117',
+  s: '#8d949c',
+  S: '#5f666e',
+  W: '#9a6a3e',
+  w: '#f2e6c8',
+  g: '#7fbf5a',
+  G: '#4c8a3a',
+  b: '#6fb3e0',
+  B: '#2f5f8a',
+  R: '#b2453a',
+  D: '#3a4560',
+  y: '#e8c25a',
+}
+
+/**
+ * The glyphs drawn over people and animals, as 8 × 8 pixel icons with the same ink outline as the sprites
+ * under them. These were system emoji: smooth, glossy and in another style from everything around them.
+ */
+const PIXEL_ICONS: Record<string, readonly string[]> = {
+  [SICK_EMOJI]: [
+    '...kk...',
+    '..kgGk..',
+    '.kggGgk.',
+    '.kgggGk.',
+    'kgwgggGk',
+    'kggggGGk',
+    '.kgGGGk.',
+    '..kkkk..',
+  ],
+  [DEGREE_EMOJI]: [
+    '........',
+    '...kk...',
+    '.kkDDkk.',
+    'kDDDDDDk',
+    '.kkDDkky',
+    '..kDDk.y',
+    '..kkkk.y',
+    '........',
+  ],
+  // rifle
+  [TOOL_EMOJI[0]]: [
+    '........',
+    '........',
+    'kkkkkkk.',
+    'kSSSSSSk',
+    'kWWkkkk.',
+    'kWWk....',
+    'kkk.....',
+    '........',
+  ],
+  // sword
+  [TOOL_EMOJI[1]]: [
+    '......kk',
+    '.....ksk',
+    '....ksk.',
+    '.k.ksk..',
+    '.kksk...',
+    '..kWk...',
+    '.kWkk...',
+    '.kk.....',
+  ],
+  // bow
+  [TOOL_EMOJI[2]]: [
+    '.kk.....',
+    '.kWkk...',
+    '..kWwk..',
+    '...kWw..',
+    '...kWw..',
+    '..kWwk..',
+    '.kWkk...',
+    '.kk.....',
+  ],
+  // computer
+  [TOOL_EMOJI[3]]: [
+    '........',
+    'kkkkkkkk',
+    'kbbbbbbk',
+    'kbwbbbbk',
+    'kbbbbbbk',
+    'kkkkkkkk',
+    '...kk...',
+    '.kkkkkk.',
+  ],
+  // book
+  [TOOL_EMOJI[4]]: [
+    '........',
+    '.kkkkkk.',
+    'kRRRRRRk',
+    'kRwwwwRk',
+    'kRRRRRRk',
+    'kwwwwwwk',
+    '.kkkkkk.',
+    '........',
+  ],
+  // hammer
+  [TOOL_EMOJI[5]]: [
+    '.kkkkk..',
+    'kssssSk.',
+    'kssssSk.',
+    '.kkWkk..',
+    '..kWk...',
+    '..kWk...',
+    '..kWk...',
+    '..kkk...',
+  ],
+  // hoe (the plough)
+  [TOOL_EMOJI[6]]: [
+    'kkkk....',
+    'ksSk....',
+    '.kkWk...',
+    '...kWk..',
+    '....kWk.',
+    '.....kWk',
+    '......kk',
+    '........',
+  ],
+  [ELDER_CANE_EMOJI]: [
+    '..kkk...',
+    '.kWWWk..',
+    '.kWkkWk.',
+    '.kk.kWk.',
+    '....kWk.',
+    '....kWk.',
+    '....kWk.',
+    '....kkk.',
+  ],
+  [CARRY_WOOD_GLYPH]: [
+    '........',
+    '........',
+    '........',
+    '.kkkkkk.',
+    'kWwWWwWk',
+    'kWWWWWWk',
+    '.kkkkkk.',
+    '........',
+  ],
+  [CARRY_STONE_GLYPH]: [
+    '........',
+    '........',
+    '........',
+    '...kkk..',
+    '..kssSk.',
+    '.ksssSSk',
+    '.kSSSSSk',
+    '..kkkkk.',
+  ],
+  [SLEEP_GLYPH]: [
+    '........',
+    'kkkkkk..',
+    'kwwwwk..',
+    '.kkwk...',
+    '.kwkk...',
+    'kwwwwk..',
+    'kkkkkk..',
+    '........',
+  ],
+}
+
+/** Each icon pixel is this many atlas pixels: the cell is 16 and the icon is drawn at 8, so one pixel lands on one. */
+const ICON_SCALE = GLYPH_CELL / 8
+
 export function bakeGlyphs(ctx: CanvasRenderingContext2D): void {
   ctx.clearRect(0, 0, GLYPH_SIZE.width, GLYPH_SIZE.height)
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   GLYPHS.forEach((glyph, i) => {
-    const cx = (i % GLYPH_COLUMNS) * GLYPH_CELL + GLYPH_CELL / 2
-    const cy = Math.floor(i / GLYPH_COLUMNS) * GLYPH_CELL + GLYPH_CELL / 2
-    if (glyph === SLEEP_GLYPH) {
-      ctx.font = 'bold 14px monospace'
-      ctx.fillStyle = '#e8eef8'
-    } else {
-      ctx.font = '14px serif'
-      ctx.fillStyle = '#000'
+    const x0 = (i % GLYPH_COLUMNS) * GLYPH_CELL
+    const y0 = Math.floor(i / GLYPH_COLUMNS) * GLYPH_CELL
+    const icon = PIXEL_ICONS[glyph]
+    if (icon) {
+      icon.forEach((row, r) => {
+        for (let c = 0; c < row.length; c++) {
+          const color = ICON_COLORS[row[c]]
+          if (!color) continue
+          ctx.fillStyle = color
+          ctx.fillRect(x0 + c * ICON_SCALE, y0 + r * ICON_SCALE, ICON_SCALE, ICON_SCALE)
+        }
+      })
+      return
     }
-    ctx.fillText(glyph, cx, cy)
+    ctx.font = '14px serif'
+    ctx.fillStyle = '#000'
+    ctx.fillText(glyph, x0 + GLYPH_CELL / 2, y0 + GLYPH_CELL / 2)
   })
+}
+
+/** Whether a glyph is drawn as a pixel icon (a test keeps every glyph the map draws in this set). */
+export function hasPixelIcon(glyph: string): boolean {
+  return glyph in PIXEL_ICONS
 }
 
 // ---- Boats -------------------------------------------------------------------

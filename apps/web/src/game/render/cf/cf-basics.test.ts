@@ -21,6 +21,9 @@ import {
   faunaCellKind,
   faunaDrawSize,
   glyphFrame,
+  hasPixelIcon,
+  ELDER_CANE_EMOJI,
+  SLEEP_GLYPH,
   pixelFaunaFrame,
   pixelFaunaOffset,
 } from './atlas-bake'
@@ -98,6 +101,11 @@ describe('glyph atlas', () => {
     expect(glyphFrame('not a glyph')).toBe(-1)
     expect(new Set(GLYPHS).size).toBe(GLYPHS.length)
     expect(GLYPH_COLUMNS).toBe(8)
+  })
+
+  it('draws every glyph the map shows as a pixel icon, not a system emoji', () => {
+    for (const glyph of [SICK_EMOJI, DEGREE_EMOJI, ELDER_CANE_EMOJI, SLEEP_GLYPH, ...TOOL_EMOJI])
+      expect(hasPixelIcon(glyph)).toBe(true)
   })
 
   it('covers every tool emoji pickToolEmoji can return', () => {

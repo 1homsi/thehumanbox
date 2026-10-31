@@ -13,7 +13,6 @@ import {
   type VegetationPlacement,
 } from '../../vegetation-sprites'
 import { CELL_GUTTER, type CellAtlas, type CellRef } from '../atlas/cell-atlas'
-import { castSun } from './cast-shadows'
 import { crownSpeck, dressingFor } from './tree-dressing'
 import { WHITE, rgba, writeSprite, type CfFrame } from '../frame'
 
@@ -66,9 +65,6 @@ export class TreesDriver {
   stats = { trees: 0, acacias: 0, sway: 0, rebuilds: 0, rebuildMs: 0, swayMs: 0, placeMs: 0 }
   private readonly layer: SpriteLayer
   private readonly swayLayer: SpriteLayer
-  /** Long shadows thrown by the sun, under the trees (rewritten as the sun moves). */
-  private readonly castLayer: SpriteLayer
-  private castKey = ''
   /** Seasonal specks on the crowns (blossom, leaves, snow), above the trees. */
   private readonly dressLayer: SpriteLayer
   private season = ''
@@ -86,16 +82,9 @@ export class TreesDriver {
   private picked = new Int32Array(0)
   private shifts = new Int8Array(0)
 
-  constructor(
-    layer: SpriteLayer,
-    swayLayer: SpriteLayer,
-    atlas: CellAtlas,
-    castLayer: SpriteLayer,
-    dressLayer: SpriteLayer,
-  ) {
+  constructor(layer: SpriteLayer, swayLayer: SpriteLayer, atlas: CellAtlas, dressLayer: SpriteLayer) {
     this.layer = layer
     this.swayLayer = swayLayer
-    this.castLayer = castLayer
     this.dressLayer = dressLayer
     this.atlas = atlas
   }
@@ -206,7 +195,6 @@ export class TreesDriver {
       if (c) acaciaCells.push({ ...c, key: 1e5 + a.y })
     }
     this.sprites = sprites
-    this.castKey = ''
     this.bottoms = sprites.map((s) => s.sortKey)
     const n = sprites.length * 2 + acaciaCells.length
     layer.resize(n)
@@ -313,54 +301,8 @@ export class TreesDriver {
       }
       dressChanged = true
     }
-    const cast = this.updateCast(f.world)
     const sway = this.updateSway(f)
-    return dressChanged || cast || sway
-  }
-
-  /**
-   * The cast shadows: each tree's shadow stretched away from the sun. Rewritten only when the sun
-   * has moved on (a few times per day) or the trees were rebuilt; none at night.
-   */
-  private updateCast(world: WorldState): boolean {
-    const sun = castSun(world)
-    const key = sun ? `${sun.key}|${this.sprites.length}|${this.atlas.epoch}` : 'night'
-    if (key === this.castKey) return false
-    this.castKey = key
-    const cast = this.castLayer
-    if (!sun) {
-      if (cast.count === 0) return false
-      cast.clear()
-      cast.touch()
-      return true
-    }
-    const sprites = this.sprites
-    cast.resize(sprites.length)
-    const color = rgba(ART_SHADOW.rgb[0], ART_SHADOW.rgb[1], ART_SHADOW.rgb[2], Math.round(sun.alpha * 255))
-    for (let i = 0; i < sprites.length; i++) {
-      const s = sprites[i]
-      const length = s.h * sun.length
-      const x0 = s.dx + s.w * 0.5
-      const y0 = s.dy + s.h - 1
-      const h = Math.max(1, Math.round(s.w * 0.22))
-      writeSprite(
-        cast,
-        i,
-        x0 + (sun.dx * length) / 2,
-        y0 + (sun.dy * length) / 2,
-        length,
-        h,
-        0,
-        0,
-        color,
-        SPRITE_UNTEXTURED,
-        -1,
-        0,
-        Math.atan2(sun.dy, sun.dx),
-      )
-    }
-    cast.touch()
-    return true
+    return dressChanged || sway
   }
 
   private updateSway(f: CfFrame): boolean {
