@@ -3,7 +3,7 @@ import { baseTerrainTile } from '../../model/terrain-visuals'
 import { OCEAN_BANDS, seaBandAt } from '../landscape-style'
 import { FRESH_WATER, GRASS, type Rgb } from '../art-palette'
 import { TILE_RGB, BIOME_RGBA, SEASON_LAND_TINT } from '../../model/palette'
-import { biomePatchNoise, dryNoise, macroNoise, macroNoiseFine } from './noise'
+import { dryNoise, macroNoise, macroNoiseFine } from './noise'
 
 export function varAmountForTile(tid: number): number {
   if (tid === 2 || tid === 9) return 2
@@ -40,7 +40,6 @@ const biomeScratch = new Float64Array(4)
  * The blended biome overlay at (row, col), written into `out` as `[r, g, b, a]`. Edges of the grid
  * count their own biome for the cells that fall outside it, so the map border does not fade. Where
  * all nine cells share one biome this is that biome's overlay exactly (before the patch noise).
- * Neighbouring biome patches vary the strength by a slow noise so big areas are not one flat tint.
  */
 export function biomeOverlayAt(
   out: Float64Array,
@@ -67,11 +66,10 @@ export function biomeOverlayAt(
     out[3] = 0
     return
   }
-  const strength = 0.8 + biomePatchNoise.at(col / 70, row / 70) * 0.4
   out[0] = rSum / alpha
   out[1] = gSum / alpha
   out[2] = bSum / alpha
-  out[3] = (alpha / BIOME_KERNEL_WEIGHT) * strength
+  out[3] = alpha / BIOME_KERNEL_WEIGHT
 }
 
 /**
@@ -141,9 +139,10 @@ export function tileColor(
     // Open grass dries to ochre in patches; forest, jungle and wetland stay green.
     const biome = biomes?.[row]?.[col]
     if (biome === BIOME_ID.GRASSLAND || biome === BIOME_ID.SAVANNA) {
+      // Two flat shades, not a gradient: a soft ramp across 8-pixel tiles reads as blotchy squares.
       const dry = dryNoise.at(col / 25 + 31, row / 25 + 17)
-      if (dry > 0.55) {
-        const w = dry > 0.8 ? 0.6 : (dry - 0.55) * 2.4
+      if (dry > 0.62) {
+        const w = 0.5
         r = (r + (GRASS.dry[0] - r) * w) | 0
         g = (g + (GRASS.dry[1] - g) * w) | 0
         b = (b + (GRASS.dry[2] - b) * w) | 0
@@ -151,20 +150,20 @@ export function tileColor(
     }
   }
 
+  // Broad light and shade in three flat steps rather than a smooth ramp: the ramp gave every 8-pixel tile its
+  // own shade, and the ground read as soft blotchy squares instead of flat pixel-art fields.
   const macro =
     macroNoise.at(col / 42, row / 42) * 0.65 + macroNoiseFine.at(col / 13 + 7, row / 13 + 7) * 0.35
-  let shading = ((macro - 0.5) * (isWater ? 5 : 25)) | 0
+  const shading = isWater ? 0 : macro < 0.36 ? -5 : macro > 0.64 ? 5 : 0
   if (!isWater) {
     const grassy = tid === 1 || tid === 3 || tid === 6 || tid === 13
     const landTint = SEASON_LAND_TINT[season ?? '']
     if (grassy && landTint) {
-      let w = landTint.w * (0.55 + macro * 0.9)
-      if (w > 0.85) w = 0.85
+      const w = Math.min(0.85, landTint.w)
       const iw = 1 - w
       r = (r * iw + landTint.rgb[0] * w) | 0
       g = (g * iw + landTint.rgb[1] * w) | 0
       b = (b * iw + landTint.rgb[2] * w) | 0
-      shading += ((macro - 0.5) * 8) | 0
     }
   }
   out[0] = r
