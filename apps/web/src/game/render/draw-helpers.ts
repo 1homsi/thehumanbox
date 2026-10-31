@@ -200,17 +200,37 @@ export function drawFoodPatch(ctx: CanvasRenderingContext2D, px: number, py: num
   ctx.fillRect(x + 1, y + 1, 1, 1)
 }
 
+/**
+ * The rock shapes an outcrop picks from, as rows of keys: d dark stone, l lit stone, o the ore. Four shapes and
+ * a pixel or two of offset per tile, so a deposit reads as a scatter of rocks rather than one stamp repeated on
+ * a grid.
+ */
+const OUTCROPS: readonly (readonly string[])[] = [
+  ['...dd..', '..dlld.', '.dlodd.', 'ddddddd'],
+  ['..dd...', '.dlod..', 'dlldddd', 'ddddod.'],
+  ['....dd.', '.dd.dld', 'dlod.dd', 'ddddddd'],
+  ['..ddd..', '.dlldd.', '.dodld.', 'dddddd.'],
+]
+
+/** What an outcrop painted from `seed` depends on, for sharing atlas cells. */
+export function mineralOutcropKey(seed: number): string {
+  return `${seed & 1}|${(seed >>> 3) & 3}|${(seed >>> 6) % 2}|${(seed >>> 9) & 1}`
+}
+
 export function drawMineralOutcrop(ctx: CanvasRenderingContext2D, px: number, py: number, seed: number) {
-  ctx.fillStyle = '#3d3937'
-  ctx.fillRect(px + 1, py + 5, 7, 2)
-  ctx.fillRect(px + 2, py + 3, 5, 3)
-  ctx.fillRect(px + 4, py + 2, 3, 2)
-  ctx.fillStyle = '#716a62'
-  ctx.fillRect(px + 3, py + 3, 2, 1)
-  ctx.fillRect(px + 5, py + 4, 2, 1)
-  ctx.fillStyle = (seed & 1) === 0 ? '#e2b84d' : '#7fc9c7'
-  ctx.fillRect(px + 5, py + 3, 1, 1)
-  ctx.fillRect(px + 3, py + 5, 1, 1)
+  const shape = OUTCROPS[(seed >>> 3) & 3]
+  const ox = px + ((seed >>> 6) % 2)
+  const oy = py + 7 - shape.length - ((seed >>> 9) & 1)
+  const ore = (seed & 1) === 0 ? '#e2b84d' : '#7fc9c7'
+  const colors: Record<string, string> = { d: '#3d3937', l: '#716a62', o: ore }
+  shape.forEach((row, r) => {
+    for (let c = 0; c < row.length; c++) {
+      const color = colors[row[c]]
+      if (!color) continue
+      ctx.fillStyle = color
+      ctx.fillRect(ox + c, oy + r, 1, 1)
+    }
+  })
 }
 
 export function drawPixelFire(
