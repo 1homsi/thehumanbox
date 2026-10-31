@@ -215,7 +215,14 @@ export class TreesDriver {
       if (c) acaciaCells.push({ ...c, key: 1e5 + a.y })
     }
     this.sprites = sprites
-    this.acaciaBlocks = acaciaCells.map((a) => ({ x: a.x, y: a.y, w: a.cell.cw, h: a.cell.ch, key: a.key }))
+    // The crown's own box: the atlas cell carries a gutter on every side.
+    this.acaciaBlocks = acaciaCells.map((a) => ({
+      x: a.x,
+      y: a.y,
+      w: a.cell.cw - CELL_GUTTER * 2,
+      h: a.cell.ch - CELL_GUTTER * 2,
+      key: a.key,
+    }))
     this.bottoms = sprites.map((s) => s.sortKey)
     const n = sprites.length * 2 + acaciaCells.length
     layer.resize(n)
