@@ -15,31 +15,14 @@ export function varAmountForTile(tid: number): number {
   return 4
 }
 
-/**
- * How much each cell of the biome kernel counts, centre first. Every cell takes the overlay of its
- * own biome and of the eight around it, so a border between two biomes fades over about three
- * cells instead of a hard line. The weights sum to 16.
- */
-const BIOME_KERNEL: ReadonlyArray<readonly [number, number, number]> = [
-  [-1, -1, 1],
-  [0, -1, 2],
-  [1, -1, 1],
-  [-1, 0, 2],
-  [0, 0, 4],
-  [1, 0, 2],
-  [-1, 1, 1],
-  [0, 1, 2],
-  [1, 1, 1],
-]
-const BIOME_KERNEL_WEIGHT = 16
-
-/** Scratch for `biomeOverlayAt`: r, g, b and the alpha of the blended overlay. */
+/** Scratch for `biomeOverlayAt`: r, g, b and the alpha of the overlay. */
 const biomeScratch = new Float64Array(4)
 
 /**
- * The blended biome overlay at (row, col), written into `out` as `[r, g, b, a]`. Edges of the grid
- * count their own biome for the cells that fall outside it, so the map border does not fade. Where
- * all nine cells share one biome this is that biome's overlay exactly (before the patch noise).
+ * The biome overlay at (row, col), written into `out` as `[r, g, b, a]`: the cell's own biome, flat. It used
+ * to be blended with the eight cells around it, which faded a border over three tiles: blurred from afar and a
+ * staircase of shaded squares up close. The border is now hard here and made ragged at the pixel level by the
+ * fringe (`cf/ground/biome-fringe.ts`). Without a biome grid every cell is grassland.
  */
 export function biomeOverlayAt(
   out: Float64Array,
@@ -48,28 +31,15 @@ export function biomeOverlayAt(
   col: number,
 ): void {
   const own = biomes?.[row]?.[col] ?? 0
-  let alpha = 0
-  let rSum = 0
-  let gSum = 0
-  let bSum = 0
-  for (const [dc, dr, w] of BIOME_KERNEL) {
-    const v = biomes?.[row + dr]?.[col + dc]
-    const bo = BIOME_RGBA[v === undefined ? own : v]
-    if (!bo || bo[3] <= 0) continue
-    const wa = w * bo[3]
-    alpha += wa
-    rSum += wa * bo[0]
-    gSum += wa * bo[1]
-    bSum += wa * bo[2]
-  }
-  if (alpha <= 0) {
+  const bo = BIOME_RGBA[own]
+  if (!bo || bo[3] <= 0) {
     out[3] = 0
     return
   }
-  out[0] = rSum / alpha
-  out[1] = gSum / alpha
-  out[2] = bSum / alpha
-  out[3] = alpha / BIOME_KERNEL_WEIGHT
+  out[0] = bo[0]
+  out[1] = bo[1]
+  out[2] = bo[2]
+  out[3] = bo[3]
 }
 
 /**
