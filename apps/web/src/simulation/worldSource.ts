@@ -135,6 +135,16 @@ export function setOwnWorldSeed(seed: string): void {
   }
 }
 
+/** This browser's world seed as stored, without making one up: null before a world exists or after a reset. */
+export function readOwnWorldSeed(): string | null {
+  try {
+    const seed = window.localStorage.getItem(SEED_KEY)
+    return seed && /^\d+$/.test(seed) ? seed : null
+  } catch {
+    return null
+  }
+}
+
 export function getOwnWorldSeed(): string {
   if (typeof window === 'undefined') return '42'
   try {
