@@ -261,14 +261,15 @@ export function wallTexture(p: P, x: number, y: number, w: number, h: number, ba
   px(p.ctx, x, y, fw, 1, shade(base, 1.18))
   px(p.ctx, x, y + 1, 1, Math.max(1, h - 3), shade(base, 1.1))
   px(p.ctx, x, y + h - 2, w, 2, shade(base, 0.78))
-  // The wall's surface: a few pixels a tone lighter or darker than the wall itself, as plaster, stone
-  // and timber weather, rather than flecks of grey over everything.
+  // The wall's surface: courses every third row a tone darker, with joints staggered course by course on a
+  // wall tall enough, as laid blocks or boards are. Random flecks scattered over every wall read as
+  // generated noise rather than a drawn surface.
   const r = p.rng
-  const lighter = shade(base, 1.08)
-  const darker = shade(base, 0.9)
-  for (let i = 0; i < (fw * h) / 30; i++) {
-    const c = r() < 0.5 ? lighter : darker
-    px(p.ctx, x + 1 + r() * (fw - 3), y + 2 + r() * (h - 5), r() < 0.6 ? 2 : 1, 1, c)
+  const course = shade(base, 0.9)
+  for (let row = 3, k = 0; row < h - 3; row += 3, k++) {
+    px(p.ctx, x + 1, y + row, fw - 2, 1, course)
+    if (h < 10) continue
+    for (let jx = 2 + (k % 2) * 2; jx < fw - 2; jx += 4) px(p.ctx, x + jx, y + row + 1, 1, 2, course)
   }
   // A footing of uneven stones along the ground.
   if (h >= 8 && fw >= 6) {

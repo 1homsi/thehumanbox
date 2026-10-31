@@ -5,6 +5,7 @@ import {
   paintEarlyHome,
   paintHut,
   paintManor,
+  paintGazebo,
   paintTent,
   paintTownhouse,
 } from './dwellings'
@@ -37,7 +38,8 @@ function reg(painter: (p: P) => void | boolean, kinds: string[]) {
 }
 
 reg(paintHut, ['Hut', 'Dovecote'])
-reg(paintTent, ['Tent', 'Pavilion', 'Gazebo', 'Bandstand'])
+reg(paintTent, ['Tent'])
+reg(paintGazebo, ['Pavilion', 'Gazebo', 'Bandstand'])
 reg(paintCottage, ['House'])
 // Trades keep a cottage body but show their sign on the shop window (craft-signs.ts).
 reg(paintCraftHome, Object.keys(CRAFT_SIGNS))
@@ -92,7 +94,7 @@ reg(paintCastle, ['Castle', 'Barracks', 'Watchtower', 'Wall', 'PoliceStation'])
 reg(paintGate, ['Gate'])
 reg(paintTower, ['Tower'])
 reg(paintTowerTall, ['Lighthouse', 'Lighthouse2', 'ClockTower', 'Observatory', 'WaterTower', 'RadioTower'])
-reg(paintWindmill, ['Windmill'])
+reg(paintWindmill, ['Windmill', 'Mill'])
 reg(paintWatermill, ['Watermill'])
 reg(paintIndustrial, [
   'Factory',
