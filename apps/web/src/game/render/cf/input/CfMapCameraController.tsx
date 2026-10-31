@@ -21,6 +21,8 @@ import { drawnPersonAt } from '../picking'
 import { KEY_ZOOM_STEP, WHEEL_SPEED, commandCamera, keyboardPanDelta, panKey } from './camera-rig'
 import { keyName, releasedKeyName } from '../../../model/shortcuts'
 import { usePlacementDrag, type PlacementTap } from './placement-drag'
+import { flushSavedCamera, readSavedCamera, saveCamera } from '../../../model/saved-camera'
+import { useWorldReplaced } from '../../../../state/world-replaced'
 
 interface Props {
   worldW: number
@@ -144,7 +146,11 @@ export function CfMapCameraController({
     const before = cameraStateRef.current
     cameraStateRef.current = bounded
     // The render loops sleep while the world is still: a moved camera wakes them.
-    if (before.x !== bounded.x || before.y !== bounded.y || before.zoom !== bounded.zoom) wakeRenderLoops()
+    if (before.x !== bounded.x || before.y !== bounded.y || before.zoom !== bounded.zoom) {
+      wakeRenderLoops()
+      // The next visit (or the map coming back out of a home) opens where the player left it.
+      saveCamera(bounded, world)
+    }
   }
   /** Same, from an event: the sleeping loop is woken to draw it. */
   const apply = (next: MapCamera) => {
@@ -178,6 +184,25 @@ export function CfMapCameraController({
       applyRef.current({ ...target, zoom: previousFollow.current ? cameraStateRef.current.zoom : 3.5 })
     previousFollow.current = following
   }, [followOrgId, following, cameraStateRef])
+
+  // A camera still waiting to be written down is written before the page goes or the map unmounts.
+  useEffect(() => {
+    window.addEventListener('pagehide', flushSavedCamera)
+    return () => {
+      window.removeEventListener('pagehide', flushSavedCamera)
+      flushSavedCamera()
+    }
+  }, [])
+
+  // Another world took this one's place (the simulation hook has dropped the saved view): show it whole.
+  useEffect(
+    () =>
+      useWorldReplaced.subscribe((state, previous) => {
+        if (state.generation === previous.generation) return
+        commandRef.current = { kind: 'fit' }
+      }),
+    [commandRef],
+  )
 
   // A new viewport or world: draw once so the camera is clamped to it (the loop sleeps until woken).
   useEffect(() => {
@@ -287,7 +312,11 @@ export function CfMapCameraController({
     if (!opening) return
     if (!initialized.current) {
       initialized.current = true
-      commitRef.current(opening)
+      // Where the player left the camera on this world; the whole world on a first visit.
+      const saved = readSavedCamera(world)
+      commitRef.current(
+        saved ? { ...saved, zoom: Math.max(minZoom, Math.min(MAX_MAP_ZOOM, saved.zoom)) } : opening,
+      )
       return
     }
     const live = camera.getPosition()

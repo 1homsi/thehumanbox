@@ -5,6 +5,7 @@ import { FAILED_OUTCOME, parseCommandOutcome, type CommandOutcome } from './comm
 import { useWorldStore } from '../state/worldStore'
 import { useUIStore } from '../state/store'
 import { useWorldReplaced } from '../state/world-replaced'
+import { clearSavedCamera } from '../game/model/saved-camera'
 import { binaryFramesReady, fetchSnapshotWithProgress, loadBinaryFrameDecoder, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
 import { signalSimFrame } from './frame-signal'
@@ -395,6 +396,8 @@ export function useSimulation(source: WorldSource = 'native'): {
             })
           }
         } else if (m.type === 'world_replaced') {
+          // Here rather than in the map, which is not mounted while a home is open: the old view goes either way.
+          clearSavedCamera()
           useWorldReplaced.getState().bump()
         } else if (m.type === 'reset_done') {
           clearOwnWorldResetRequest()

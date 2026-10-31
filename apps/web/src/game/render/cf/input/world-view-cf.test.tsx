@@ -1,13 +1,14 @@
 // @vitest-environment happy-dom
 import { act, type ComponentProps } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { WorldState } from '../../../../shared/types'
 import { useCameraFocus } from '../../../../state/camera-focus'
 import { useUIStore } from '../../../../state/store'
 import { TILE } from '../../../model/palette'
 import { WorldView } from '../../WorldView'
-import { openingViewTaken, resetOpeningView } from '../../../model/opening-view'
 import { setWorldGPUForTests } from '../../world-view/gpu'
+import { clearSavedCamera, flushSavedCamera } from '../../../model/saved-camera'
+import { useWorldReplaced } from '../../../../state/world-replaced'
 import { engineHarness, pointer, wheel, type EngineHarness } from '../engine-harness.test-util'
 
 /**
@@ -75,13 +76,31 @@ function world(width = WIDTH, height = HEIGHT): WorldState {
   } as unknown as WorldState
 }
 
+function memoryStorage(): Storage {
+  const data = new Map<string, string>()
+  return {
+    get length() {
+      return data.size
+    },
+    clear: () => data.clear(),
+    getItem: (key) => data.get(key) ?? null,
+    key: (i) => [...data.keys()][i] ?? null,
+    removeItem: (key) => void data.delete(key),
+    setItem: (key, value) => void data.set(key, String(value)),
+  }
+}
+
 let harness: EngineHarness | null = null
+beforeEach(() => {
+  Object.defineProperty(window, 'localStorage', { value: memoryStorage(), configurable: true })
+})
 afterEach(async () => {
   await harness?.unmount()
   harness = null
   useUIStore.setState({ selectedOrgId: null })
   useCameraFocus.setState({ request: null })
   setWorldGPUForTests(null)
+  clearSavedCamera()
 })
 
 async function open(props: Partial<ComponentProps<typeof WorldView>> = {}) {
@@ -100,6 +119,11 @@ async function open(props: Partial<ComponentProps<typeof WorldView>> = {}) {
   await harness.renderRaw(<WorldView world={world()} {...props} />)
   await harness.frame(8)
   return harness
+}
+
+/** Ask the map to look at a tile, the way a panel does. */
+function commandRefFocus(x: number, y: number) {
+  act(() => useCameraFocus.getState().focusTile(x, y))
 }
 
 /** The camera the map is showing: the engine's own Camera2D, which the controller keeps clamped. */
@@ -147,57 +171,55 @@ describe('the map on xipjs', () => {
     await h.frame(6)
     expect(useCameraFocus.getState().request).toBeNull()
     expect(probeCamera().x).toBeGreaterThan((80 * TILE) / 2)
+    const looked = probeCamera()
     await h.unmount()
     harness = null
-    // Back from a home interior: the map opens on the whole world again.
+    // Back from a home interior: the map opens where the player was, and the request is not replayed.
     const reopened = await open({ world: bigWorld })
     await reopened.frame(6)
-    const camera = probeCamera()
-    expect(camera.x).toBe((80 * TILE) / 2)
-    expect(camera.y).toBe((50 * TILE) / 2)
+    expect(probeCamera()).toEqual(looked)
   })
 
-  it('opens once on the biggest tribe up close, and a reopened map keeps the whole-world view', async () => {
-    resetOpeningView()
+  it('a new visit opens where the player left the camera on that world', async () => {
     const bigWorld = world(80, 50)
-    bigWorld.organisms[0] = { ...bigWorld.organisms[0], x: 60, y: 10 }
     const h = await open({ world: bigWorld })
+    commandRefFocus(60, 10)
     await h.frame(6)
-    const first = probeCamera()
-    expect(first.zoom).toBeGreaterThanOrEqual(2)
-    // Towards the tribe in the north-east (clamped at the world's edge), not the middle of the map.
-    expect(first.x).toBeGreaterThan((80 * TILE) / 2)
-    expect(first.y).toBeLessThan((50 * TILE) / 2)
+    const looked = probeCamera()
+    expect(looked.x).toBeGreaterThan((80 * TILE) / 2)
     await h.unmount()
     harness = null
+    flushSavedCamera()
+    const reopened = await open({ world: bigWorld })
+    await reopened.frame(6)
+    expect(probeCamera()).toEqual(looked)
+  })
+
+  it('another world opens whole, not on the view saved for the last one', async () => {
+    window.localStorage.setItem('thb-wasm-seed', '1')
+    const bigWorld = world(80, 50)
+    const h = await open({ world: bigWorld })
+    commandRefFocus(60, 10)
+    await h.frame(6)
+    await h.unmount()
+    harness = null
+    flushSavedCamera()
+    window.localStorage.setItem('thb-wasm-seed', '2')
     const reopened = await open({ world: bigWorld })
     await reopened.frame(6)
     expect(probeCamera().x).toBe((80 * TILE) / 2)
   })
 
-  it('waits for people before using up the opening view', async () => {
-    resetOpeningView()
-    const empty = world(80, 50)
-    empty.organisms = []
-    const h = await open({ world: empty })
+  it('a world swapped in while playing shows whole, and its view is the one remembered', async () => {
+    const bigWorld = world(80, 50)
+    const h = await open({ world: bigWorld })
+    commandRefFocus(60, 10)
     await h.frame(6)
-    expect(openingViewTaken()).toBe(false)
-    expect(probeCamera().x).toBe((80 * TILE) / 2)
-  })
-
-  it('gives the opening view up when the player moves the camera first', async () => {
-    resetOpeningView()
-    const empty = world(80, 50)
-    empty.organisms = []
-    const h = await open({ world: empty })
-    h.canvas().dispatchEvent(pointer('pointerdown', 10, 10))
-    h.canvas().dispatchEvent(pointer('pointerup', 10, 10))
-    const peopled = world(80, 50)
-    peopled.organisms[0] = { ...peopled.organisms[0], x: 60, y: 10 }
-    await h.renderRaw(<WorldView world={peopled} />)
+    act(() => useWorldReplaced.getState().bump())
     await h.frame(6)
-    expect(openingViewTaken()).toBe(true)
     expect(probeCamera().x).toBe((80 * TILE) / 2)
+    flushSavedCamera()
+    expect(JSON.parse(window.localStorage.getItem('thb-map-camera')!).x).toBe((80 * TILE) / 2)
   })
 
   it('following a person centres the camera on the sprite, the middle of their tile', async () => {

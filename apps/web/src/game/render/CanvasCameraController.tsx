@@ -16,6 +16,8 @@ import {
 } from './camera-controls'
 import { prefersReducedMotion } from '../../shared/motion'
 import { keyName, releasedKeyName } from '../model/shortcuts'
+import { flushSavedCamera, readSavedCamera, saveCamera } from '../model/saved-camera'
+import { useWorldReplaced } from '../../state/world-replaced'
 
 interface Props {
   worldW: number
@@ -55,7 +57,10 @@ export function CanvasCameraController({
   const minZoom = minMapZoom({ w: worldW, h: worldH }, { w: containerW, h: containerH })
   const apply = (next: MapCamera) => {
     const bounded = clampMapCamera(next, { w: worldW, h: worldH }, { w: containerW, h: containerH })
+    const before = cameraStateRef.current
     cameraStateRef.current = bounded
+    if (before.x !== bounded.x || before.y !== bounded.y || before.zoom !== bounded.zoom)
+      saveCamera(bounded, { w: worldW, h: worldH })
   }
   const applyRef = useRef(apply)
   applyRef.current = apply
@@ -66,9 +71,27 @@ export function CanvasCameraController({
     if (!opening) return
     if (!initialized.current) {
       initialized.current = true
-      applyRef.current(opening)
+      // Where the player left the camera on this world; the whole world on a first visit.
+      const saved = readSavedCamera({ w: worldW, h: worldH })
+      applyRef.current(
+        saved ? { ...saved, zoom: Math.max(minZoom, Math.min(MAX_MAP_ZOOM, saved.zoom)) } : opening,
+      )
     } else applyRef.current(cameraStateRef.current)
-  }, [worldW, worldH, containerW, containerH, cameraStateRef])
+  }, [worldW, worldH, containerW, containerH, cameraStateRef, minZoom])
+
+  useEffect(() => {
+    window.addEventListener('pagehide', flushSavedCamera)
+    // Another world took this one's place: show the whole new world, not the old one's saved view.
+    const unsubscribe = useWorldReplaced.subscribe((state, previous) => {
+      if (state.generation === previous.generation) return
+      commandRef.current = { kind: 'fit' }
+    })
+    return () => {
+      window.removeEventListener('pagehide', flushSavedCamera)
+      unsubscribe()
+      flushSavedCamera()
+    }
+  }, [commandRef])
 
   useEffect(() => {
     if (followTarget)

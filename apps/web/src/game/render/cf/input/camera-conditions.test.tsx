@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { MapCamera, MapCommand } from '../../camera-controls'
 import { engineHarness, pointer, wheel, type EngineHarness } from '../engine-harness.test-util'
 import { CfMapCameraController } from './CfMapCameraController'
+import { clearSavedCamera } from '../../../model/saved-camera'
 
 /** Display and window conditions: device pixel ratio, resizing, a hidden tab, and focus. */
 
@@ -56,6 +57,8 @@ async function mount(dpr = 1): Promise<Rig> {
 const rigs: Rig[] = []
 afterEach(async () => {
   while (rigs.length) await rigs.pop()!.h.unmount()
+  // Each map here starts on the whole world, not on the view an earlier one left saved.
+  clearSavedCamera()
 })
 
 async function send(rig: Rig, ...events: Event[]) {
@@ -94,6 +97,7 @@ describe('display and window conditions', () => {
       expect(rig.h.canvas().style.width).toBe(VIEW.w + 'px')
       cameras.push(await gesture(rig))
       await rig.h.unmount()
+      clearSavedCamera()
     }
     expectSame(cameras[0], cameras[1])
     expectSame(cameras[0], cameras[2])
