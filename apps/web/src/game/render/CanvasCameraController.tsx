@@ -16,7 +16,7 @@ import {
 } from './camera-controls'
 import { prefersReducedMotion } from '../../shared/motion'
 import { keyName, releasedKeyName } from '../model/shortcuts'
-import { clearSavedCamera, flushSavedCamera, readSavedCamera, saveCamera } from '../model/saved-camera'
+import { flushSavedCamera, readSavedCamera, saveCamera } from '../model/saved-camera'
 import { useWorldReplaced } from '../../state/world-replaced'
 
 interface Props {
@@ -84,7 +84,6 @@ export function CanvasCameraController({
     // Another world took this one's place: show the whole new world, not the old one's saved view.
     const unsubscribe = useWorldReplaced.subscribe((state, previous) => {
       if (state.generation === previous.generation) return
-      clearSavedCamera()
       commandRef.current = { kind: 'fit' }
     })
     return () => {

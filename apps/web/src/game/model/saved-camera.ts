@@ -34,7 +34,11 @@ export function readSavedCamera(world: MapSize): MapCamera | null {
   }
 }
 
+/** Set while the page reloads into another world: nothing more is written down for the old one. */
+let frozen = false
+
 function write(camera: MapCamera, world: MapSize): void {
+  if (frozen) return
   try {
     const saved: Saved = { ...camera, world: worldKey(), w: world.w, h: world.h }
     window.localStorage.setItem(KEY, JSON.stringify(saved))
@@ -70,5 +74,20 @@ export function clearSavedCamera(): void {
     window.localStorage.removeItem(KEY)
   } catch {
     // nothing saved, nothing to forget
+  }
+}
+
+/**
+ * Forget the camera for a reload into another world (a reset or a recovery). The page is about to go, and a
+ * frame or the page-hide flush must not write the old world's view back: a desktop world keeps the same
+ * identity across a reset, so that view would open on the new world. `resume` undoes it if the reload fails.
+ */
+export function forgetSavedCameraForReload(): { resume: () => void } {
+  clearSavedCamera()
+  frozen = true
+  return {
+    resume: () => {
+      frozen = false
+    },
   }
 }

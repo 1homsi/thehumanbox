@@ -1,5 +1,6 @@
 import { t } from '../i18n'
 import { showNotice } from '../shared/confirm'
+import { forgetSavedCameraForReload } from '../game/model/saved-camera'
 
 export type WorldSource = 'native' | 'wasm'
 export type PlayerWorldKind = 'local'
@@ -179,9 +180,14 @@ export function requestOwnWorldReset(): boolean {
     void showNotice(t('dialogs.worldNotice.storageUnavailable'), t('dialogs.worldNotice.notReset'))
     return false
   }
+  // The new world opens whole, not on the old one's saved view.
+  const camera = forgetSavedCameraForReload()
   return reloadAppSafely({
     operation: 'reset',
-    onFailure: () => restoreLocalWorldRequestSnapshot(snapshot),
+    onFailure: () => {
+      camera.resume()
+      restoreLocalWorldRequestSnapshot(snapshot)
+    },
     failureMessage: t('dialogs.worldNotice.checkpointReset'),
     requireLocalWorld: true,
     unavailableMessage: t('dialogs.worldNotice.loadingReset'),
@@ -222,9 +228,13 @@ export function requestOwnWorldRecovery(recoveryId: string): boolean {
     void showNotice(t('dialogs.worldNotice.storageUnavailable'), t('dialogs.worldNotice.notRecovered'))
     return false
   }
+  const camera = forgetSavedCameraForReload()
   return reloadAppSafely({
     operation: 'recovery',
-    onFailure: () => restoreLocalWorldRequestSnapshot(snapshot),
+    onFailure: () => {
+      camera.resume()
+      restoreLocalWorldRequestSnapshot(snapshot)
+    },
     failureMessage: t('dialogs.worldNotice.checkpointRestore'),
     requireLocalWorld: true,
     unavailableMessage: t('dialogs.worldNotice.loadingRestore'),

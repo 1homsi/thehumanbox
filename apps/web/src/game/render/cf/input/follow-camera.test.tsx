@@ -7,6 +7,7 @@ import type { PeopleLabelSource } from '../people/people-labels'
 import { registerPeopleLayer } from '../picking'
 import { engineHarness, pointer, type EngineHarness } from '../engine-harness.test-util'
 import { CfMapCameraController } from './CfMapCameraController'
+import { clearSavedCamera } from '../../../model/saved-camera'
 
 /**
  * Following a person: the camera centres on where the people layer draws them this frame, which moves between
@@ -55,6 +56,7 @@ afterEach(async () => {
   unregister?.()
   unregister = null
   while (rigs.length) await rigs.pop()!.h.unmount()
+  clearSavedCamera()
 })
 
 async function mount(): Promise<Rig> {

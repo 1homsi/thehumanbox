@@ -2,6 +2,7 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, expect, it, vi } from 'vitest'
+import { clearSavedCamera } from '../model/saved-camera'
 import type { WorldState } from '../../shared/types'
 import type { InterpRefs } from '../../simulation/useSimulation'
 import { WorldView } from './WorldView'
@@ -10,6 +11,7 @@ import { logger } from '../../shared/logger'
 // Canvas commands are recorded here; this test exercises React mounting,
 // first-frame readiness, camera invalidation and error recovery without a GPU.
 afterEach(() => {
+  clearSavedCamera()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   document.body.replaceChildren()

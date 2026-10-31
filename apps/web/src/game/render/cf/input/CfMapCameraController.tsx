@@ -21,7 +21,7 @@ import { drawnPersonAt } from '../picking'
 import { KEY_ZOOM_STEP, WHEEL_SPEED, commandCamera, keyboardPanDelta, panKey } from './camera-rig'
 import { keyName, releasedKeyName } from '../../../model/shortcuts'
 import { usePlacementDrag, type PlacementTap } from './placement-drag'
-import { clearSavedCamera, flushSavedCamera, readSavedCamera, saveCamera } from '../../../model/saved-camera'
+import { flushSavedCamera, readSavedCamera, saveCamera } from '../../../model/saved-camera'
 import { useWorldReplaced } from '../../../../state/world-replaced'
 
 interface Props {
@@ -194,12 +194,11 @@ export function CfMapCameraController({
     }
   }, [])
 
-  // Another world took this one's place: the saved view belonged to the old one, so show the whole new world.
+  // Another world took this one's place (the simulation hook has dropped the saved view): show it whole.
   useEffect(
     () =>
       useWorldReplaced.subscribe((state, previous) => {
         if (state.generation === previous.generation) return
-        clearSavedCamera()
         commandRef.current = { kind: 'fit' }
       }),
     [commandRef],
