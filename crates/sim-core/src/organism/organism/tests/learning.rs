@@ -149,3 +149,58 @@ fn q_row_available_action_max_treats_unseen_actions_as_zero() {
 
     assert_eq!(row.max_q_for_actions(&[3, 99]), 0.0);
 }
+
+#[test]
+fn delayed_reward_reaches_recent_steps_but_not_older_ones() {
+    let mut org = learning_test_org(0.5, 0.5, 0.5, 0.5);
+    for n in 0..6 {
+        org.learn_transition(&format!("s{n}"), n, 0.0, "missing", None, Some(false), false);
+    }
+    let before_recent = org.q_table["s5"].get_q(5);
+    let before_old = org.q_table["s0"].get_q(0);
+    org.learn_transition("food", 20, 1.0, "missing", None, Some(true), false);
+    assert!(org.q_table["s5"].get_q(5) > before_recent);
+    assert_eq!(org.q_table["s0"].get_q(0), before_old);
+    assert_eq!(org.learning_trace.len(), 4);
+}
+
+#[test]
+fn terminal_transition_does_not_bootstrap_and_clears_trace() {
+    let mut org = learning_test_org(0.5, 0.5, 0.5, 0.5);
+    org.learn_transition("before", 1, 0.1, "missing", None, None, false);
+    org.q_table.insert("next".into(), vec![(2, 100.0)]);
+    org.learn_transition("last", 3, -1.0, "next", Some(&[2]), None, true);
+    assert!(org.q_table["last"].get_q(3) < 0.0);
+    assert!(org.learning_trace.is_empty());
+}
+
+#[test]
+fn small_success_is_not_treated_as_a_failed_repeat() {
+    let mut success = learning_test_org(0.5, 0.5, 0.5, 0.5);
+    let mut failure = learning_test_org(0.5, 0.5, 0.5, 0.5);
+    success.q_table.insert("s".into(), vec![(7, 0.0)]);
+    failure.q_table.insert("s".into(), vec![(7, 0.0)]);
+    success.learn_transition("s", 7, 0.002, "missing", None, Some(true), false);
+    failure.learn_transition("s", 7, 0.002, "missing", None, Some(false), false);
+    assert!(success.q_table["s"].get_q(7) > 0.0);
+    assert!(failure.q_table["s"].get_q(7) < 0.0);
+}
+
+#[test]
+fn similar_states_share_experience_but_changed_hazards_do_not() {
+    let mut org = learning_test_org(0.5, 0.5, 0.5, 0.5);
+    let state = "000000000000000000000";
+    let mut similar = state.as_bytes().to_vec();
+    similar[7] = b'1'; // a neighbour appeared
+    let similar = String::from_utf8(similar).unwrap();
+    let mut hazardous = state.as_bytes().to_vec();
+    hazardous[20] = b'H';
+    let hazardous = String::from_utf8(hazardous).unwrap();
+    for _ in 0..20 {
+        org.learn_transition(state, 24, 1.0, "missing", None, Some(true), false);
+    }
+    assert!(!org.q_table.contains_key(&similar));
+    let shared = generalization_key(&similar).unwrap();
+    assert!(org.q_table[&shared].get_q(24) > 0.1);
+    assert!(!org.q_table.contains_key(&generalization_key(&hazardous).unwrap()));
+}

@@ -6,6 +6,22 @@ pub const ACTION_ID_SPACE: usize = 6144;
 
 pub type QRow = Vec<(u16, f32)>;
 
+/// A coarser view of a real perception, retaining needs, nearby resources,
+/// infection and hazards while ignoring less relevant social/detail changes.
+/// The reserved prefix cannot occur in the simulation's 21-byte state keys.
+pub(crate) fn generalization_key(perception: &str) -> Option<String> {
+    let bytes = perception.as_bytes();
+    if bytes.len() != 21 || !bytes.is_ascii() {
+        return None;
+    }
+    let mut key = String::with_capacity(10);
+    key.push('~');
+    for i in [0, 1, 2, 3, 6, 12, 13, 19, 20] {
+        key.push(bytes[i] as char);
+    }
+    Some(key)
+}
+
 pub trait QRowExt {
     fn get_q(&self, action: u16) -> f32;
     fn set_q(&mut self, action: u16, value: f32);

@@ -188,13 +188,7 @@ impl Organism {
             }
         };
 
-        let inf_level = if self.infection > 0.4 {
-            '2'
-        } else if self.infection > 0.15 {
-            '1'
-        } else {
-            '0'
-        };
+        let inf_level = health_infection_key(self.health, self.infection);
 
         let danger_near = self
             .danger_memory
@@ -455,6 +449,27 @@ fn digit(n: impl Into<i32>) -> char {
     (b'0' + n.into() as u8) as char
 }
 
+/// Encode health and infection together without changing the key width.
+/// Healthy organisms retain the original 0/1/2 infection codes so existing
+/// learned states remain usable. Injured organisms have distinct states.
+fn health_infection_key(health: f32, infection: f32) -> char {
+    let infection_level = if infection > 0.4 {
+        2
+    } else if infection > 0.15 {
+        1
+    } else {
+        0
+    };
+    let injury_level = if health < 0.35 {
+        2
+    } else if health < 0.65 {
+        1
+    } else {
+        0
+    };
+    char::from(b'0' + infection_level + 3 * injury_level)
+}
+
 /// Join the pieces into the Q-table key: 21 characters, one allocation, no
 /// formatting machinery.
 pub(super) fn perception_key(k: &KeyParts) -> String {
@@ -515,6 +530,15 @@ pub(super) fn perception_key_reference(k: &KeyParts) -> String {
 #[cfg(test)]
 mod key_tests {
     use super::*;
+
+    #[test]
+    fn health_and_infection_are_distinct_and_healthy_keys_are_compatible() {
+        for (i, infection) in [0.0, 0.2, 0.5].into_iter().enumerate() {
+            assert_eq!(health_infection_key(1.0, infection), char::from(b'0' + i as u8));
+            assert_eq!(health_infection_key(0.5, infection), char::from(b'3' + i as u8));
+            assert_eq!(health_infection_key(0.2, infection), char::from(b'6' + i as u8));
+        }
+    }
 
     #[test]
     fn the_key_writer_matches_format() {

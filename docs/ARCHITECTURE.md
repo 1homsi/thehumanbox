@@ -90,7 +90,24 @@ needs on entry and writes back the ones it changed.
 3. **Choose** (`organism/choose_action.rs`): survival needs first, then
    epsilon-greedy over learned Q values with novelty seeds and directives.
 4. **Apply** (`actions/mod.rs`, one module per action family): returns a reward.
-5. **Learn** (`organism/organism/learning.rs`): Q-learning update.
+5. **Learn** (`organism/organism/learning.rs`): Q-learning with a bounded
+   four-decision trace. The temporal-difference error also updates recent
+   state/action pairs with a decaying weight, allowing delayed outcomes to
+   reinforce or discourage earlier steps. This is a short off-policy credit
+   assignment heuristic, not a neural network or an exact Watkins Q(lambda)
+   implementation. The trace is saved with the organism and cleared at a
+   terminal transition; old saves start with an empty trace.
+   A second sparse row groups perceptions with matching needs, nearby food and
+   water, infection and hazards. Its slowly learned values seed choices in
+   similar situations; positive transferred scores retain the local novelty
+   bonus but have a capped advantage, while negative scores discourage risks.
+   An exact learned value takes precedence. These rows use
+   the existing Q-table persistence and inheritance, so this is deliberately
+   limited generalization rather than a neural network or learned world model.
+   Perception also distinguishes injured from healthy people, while healthy
+   infection codes retain the old key format. Health lost during the person's
+   own turn contributes a negative learning signal; modest recovery has a
+   smaller positive signal so passive healing is not an easy reward exploit.
 
 Action ids live in a space of 6144 (`ACTION_ID_SPACE`). Ids below 5930 are
 dispatched by id range in `actions/mod.rs` and gated by the band tables; ids

@@ -355,6 +355,21 @@ pub(super) fn recipient_source_trust_factor(
     }
 }
 
+// Repeating the same second-hand story must not make it more certain than
+// the speaker's evidence. Direct experience can still strengthen a memory.
+fn remember_hearsay(
+    memory: &mut FxHashMap<(i32, i32), f32>,
+    cell: (i32, i32),
+    strength: f32,
+    memory_trait: f32,
+) -> bool {
+    let effective = (strength * (0.7 + 0.6 * memory_trait)).min(1.0);
+    let known = memory.entry(cell).or_insert(0.0);
+    let is_new = *known == 0.0 && effective > 0.0;
+    *known = (*known).max(effective);
+    is_new
+}
+
 pub fn social_knowledge_share(
     org_idx: usize,
     organisms: &mut [Organism],
@@ -425,34 +440,40 @@ pub fn social_knowledge_share(
         let resource_strength = relationship_strength * source_factor;
         let danger_strength = relationship_strength * source_factor.max(0.60);
         for &((x, y), v) in &food_to_share {
-            Organism::remember(
+            remember_hearsay(
                 &mut organisms[ki].food_memory,
-                x,
-                y,
+                (x, y),
                 v * resource_strength,
                 recipient_memory,
             );
             shared_any = true;
         }
         for &((x, y), v) in &water_to_share {
-            Organism::remember(
+            remember_hearsay(
                 &mut organisms[ki].water_memory,
-                x,
-                y,
+                (x, y),
                 v * resource_strength,
                 recipient_memory,
             );
             shared_any = true;
         }
+        let mut new_danger = None;
         for &((x, y), v) in &danger_to_share {
-            Organism::remember(
+            let learned = remember_hearsay(
                 &mut organisms[ki].danger_memory,
-                x,
-                y,
+                (x, y),
                 v * danger_strength * 1.25,
                 recipient_memory,
             );
+            if learned && new_danger.is_none() {
+                new_danger = Some((x, y));
+            }
             shared_any = true;
+        }
+        if let Some((x, y)) = new_danger {
+            let speaker = &organisms[org_idx].name;
+            let thought = format!("{speaker} warned me about danger near {x}, {y}");
+            organisms[ki].think(&thought, tick);
         }
         let ki_id = organisms[ki].id.clone();
         let t = organisms[ki].org_trust.entry(org_id.clone()).or_insert(0.0);

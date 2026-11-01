@@ -388,6 +388,7 @@ impl Organism {
         self.danger_memory.clear();
         self.thought_history.clear();
         self.q_table.clear();
+        self.learning_trace.clear();
         self.lineage_attitudes.clear();
         self.org_trust.clear();
         self.life_log.clear();

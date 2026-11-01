@@ -13,12 +13,19 @@ impl Simulation {
         let spatial = f.spatial;
         let spatial_buf = &mut *f.spatial_buf;
 
-        self.organisms[idx].learn_with_available_actions(
+        let org = &self.organisms[idx];
+        let terminal = org.energy <= 0.0
+            || org.hydration <= 0.0
+            || org.health <= 0.0
+            || (org.max_age > 0 && org.age >= mortality::lifespan(org));
+        self.organisms[idx].learn_transition(
             &perception,
             action,
             reward,
             &next_perception,
             Some(available_buf),
+            Some(f.action_succeeded),
+            terminal,
         );
 
         if self.organisms[idx].energy > 0.7 && self.organisms[idx].hydration > 0.7 {
