@@ -3,6 +3,61 @@
 use super::*;
 
 #[test]
+fn choice_uses_experience_from_a_similar_situation() {
+    let mut rng = StdRng::seed_from_u64(0);
+    let mut grid = WorldGrid::new(4);
+    for x in 40..=60 {
+        for y in 40..=60 {
+            grid.set(x, y, Tile::Sand);
+        }
+    }
+    let mut org = learning_test_org(0.5, 0.5, 0.5, 0.5);
+    org.x = 50.0;
+    org.y = 50.0;
+    org.energy = 0.8;
+    org.hydration = 0.8;
+    org.health = 0.9;
+    org.age = 1500;
+    let original = "000000000000000000000";
+    let similar = "000000010000000000000";
+    for _ in 0..30 {
+        org.learn_transition(original, 24, 1.0, "missing", None, Some(true), false);
+    }
+    assert!(!org.q_table.contains_key(similar));
+    let (chosen, _) = org.choose_action(
+        &grid,
+        &BuildingList::new(),
+        100,
+        0.0,
+        &[],
+        false,
+        0,
+        &mut rng,
+        false,
+        similar,
+        &[12, 24],
+    );
+    assert_eq!(chosen, 24);
+
+    // Direct experience in this particular situation overrides the prior.
+    org.q_table.insert(similar.into(), vec![(12, 2.0), (24, -1.0)]);
+    let (chosen, _) = org.choose_action(
+        &grid,
+        &BuildingList::new(),
+        100,
+        0.0,
+        &[],
+        false,
+        0,
+        &mut rng,
+        false,
+        similar,
+        &[12, 24],
+    );
+    assert_eq!(chosen, 12);
+}
+
+#[test]
 fn hungry_organism_filters_learned_choice_to_survival_actions() {
     let mut rng = StdRng::seed_from_u64(0);
     let traits = Traits::random(&mut rng);

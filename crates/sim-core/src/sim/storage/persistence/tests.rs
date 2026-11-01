@@ -1,5 +1,17 @@
 use super::*;
 
+#[test]
+fn learning_trace_round_trips_and_old_saves_default_to_empty() {
+    let mut saved: organism::OrgSave = serde_json::from_str("{}").unwrap();
+    assert!(saved.learning_trace.is_empty());
+    saved.learning_trace.push(("state".into(), 17));
+    let encoded = serde_json::to_string(&saved).unwrap();
+    let decoded: organism::OrgSave = serde_json::from_str(&encoded).unwrap();
+    let loaded = organism::org_from_save(decoded, 0);
+    let round_trip = organism::org_to_save(&loaded);
+    assert_eq!(round_trip.learning_trace, vec![("state".into(), 17)]);
+}
+
 fn saved_battle(id: &str) -> crate::sim::warfare::Battle {
     crate::sim::warfare::Battle {
         id: id.to_string(),

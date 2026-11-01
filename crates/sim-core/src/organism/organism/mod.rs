@@ -70,6 +70,8 @@ pub struct Organism {
     pub thought_history: VecDeque<ThoughtEntry>,
 
     pub q_table: FxHashMap<String, QRow>,
+    /// Recent state/action pairs for short-horizon temporal credit assignment.
+    pub learning_trace: Vec<(String, u16)>,
 
     pub last_reproduced: u64,
     pub last_challenged: u64,
@@ -244,6 +246,7 @@ impl Organism {
             danger_memory: FxHashMap::default(),
             thought_history: VecDeque::new(),
             q_table: FxHashMap::default(),
+            learning_trace: Vec::new(),
             last_reproduced: 0,
             last_challenged: 0,
             lineage_attitudes: BTreeMap::new(),

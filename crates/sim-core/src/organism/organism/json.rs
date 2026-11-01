@@ -6,11 +6,16 @@ impl Organism {
     }
 
     pub(super) fn learning_summary(&self) -> LearningSummary {
-        let states = self.q_table.len();
-        let tried_actions = self.q_table.values().map(Vec::len).sum();
+        let exact_rows: Vec<&QRow> = self
+            .q_table
+            .iter()
+            .filter_map(|(state, row)| (!state.starts_with('~')).then_some(row))
+            .collect();
+        let states = exact_rows.len();
+        let tried_actions = exact_rows.iter().map(|row| row.len()).sum();
         // One scan of every row for its best value, shared by the promising
         // count and the confidence sum (each used to rescan every row).
-        let best: Vec<f32> = self.q_table.values().map(|row| row.max_q()).collect();
+        let best: Vec<f32> = exact_rows.iter().map(|row| row.max_q()).collect();
         let promising_states = best.iter().filter(|&&q| q > 0.01).count();
         let confidence = if states == 0 {
             0.0
