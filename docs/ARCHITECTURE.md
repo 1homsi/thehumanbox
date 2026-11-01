@@ -102,6 +102,10 @@ needs on entry and writes back the ones it changed.
    similar situations; an exact learned value takes precedence. These rows use
    the existing Q-table persistence and inheritance, so this is deliberately
    limited generalization rather than a neural network or learned world model.
+   Perception also distinguishes injured from healthy people, while healthy
+   infection codes retain the old key format. Health lost during the person's
+   own turn contributes a negative learning signal; modest recovery has a
+   smaller positive signal so passive healing is not an easy reward exploit.
 
 Action ids live in a space of 6144 (`ACTION_ID_SPACE`). Ids below 5930 are
 dispatched by id range in `actions/mod.rs` and gated by the band tables; ids

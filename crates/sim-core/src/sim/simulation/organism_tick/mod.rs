@@ -140,6 +140,7 @@ pub(super) struct OrgFrame<'a> {
     pub(super) perception: String,
     pub(super) prev_energy: f32,
     pub(super) prev_hydration: f32,
+    pub(super) prev_health: f32,
     pub(super) prev_inv_food: u8,
     pub(super) prev_inv_water: u8,
     pub(super) resilience: f32,
@@ -208,6 +209,7 @@ fn new_frame<'a>(
         perception: String::new(),
         prev_energy: 0.0,
         prev_hydration: 0.0,
+        prev_health: 0.0,
         prev_inv_food: 0,
         prev_inv_water: 0,
         resilience: 0.0,
@@ -306,6 +308,9 @@ impl Simulation {
             lineage_members,
         );
         f.put_sensed(sensed);
+        // Others may have acted since sensing. Attribute only health changes
+        // during this person's own turn to their decision.
+        f.prev_health = self.organisms[f.idx].health;
         self.org_apply_choice(&mut f, choice);
         self.org_act(&mut f);
         self.org_vitals(&mut f);
