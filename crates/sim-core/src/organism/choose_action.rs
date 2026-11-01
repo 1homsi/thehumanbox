@@ -22,6 +22,13 @@ const NIGHT_HOME_REACH: f32 = 16.0;
 /// must get out before the cold and panic set in (from 12 ticks).
 const CROSSING_PATIENCE: u32 = 8;
 
+/// A transferred estimate is uncertain: keep the novelty bonus for a locally
+/// untried action and bound the positive advantage of hearsay. Negative
+/// experience can still discourage dangerous choices. Exact Q wins later.
+pub(crate) fn transferred_action_score(value: f32, novelty_seed: f32) -> f32 {
+    novelty_seed + (value * 0.6).clamp(-0.05, novelty_seed * 0.5)
+}
+
 fn survival_relevant_action(
     action: usize,
     needs_food: bool,
@@ -1359,7 +1366,7 @@ impl Organism {
                 for &(a, v) in r.iter() {
                     let ai = a as usize;
                     if ai < ACTION_ID_SPACE {
-                        dense[ai] = v * 0.6;
+                        dense[ai] = transferred_action_score(v, novelty_seed);
                         seen[ai] = true;
                     }
                 }
@@ -1384,7 +1391,7 @@ impl Organism {
                             .or_else(|| {
                                 general_row
                                     .and_then(|r| r.iter().find(|&&(id, _)| id as usize == a))
-                                    .map(|&(_, v)| v * 0.6)
+                                    .map(|&(_, v)| transferred_action_score(v, novelty_seed))
                             })
                             .unwrap_or(0.0),
                         q_row.is_some_and(|r| r.iter().any(|&(known, _)| known as usize == a))

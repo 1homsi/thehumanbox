@@ -99,7 +99,9 @@ needs on entry and writes back the ones it changed.
    terminal transition; old saves start with an empty trace.
    A second sparse row groups perceptions with matching needs, nearby food and
    water, infection and hazards. Its slowly learned values seed choices in
-   similar situations; an exact learned value takes precedence. These rows use
+   similar situations; positive transferred scores retain the local novelty
+   bonus but have a capped advantage, while negative scores discourage risks.
+   An exact learned value takes precedence. These rows use
    the existing Q-table persistence and inheritance, so this is deliberately
    limited generalization rather than a neural network or learned world model.
    Perception also distinguishes injured from healthy people, while healthy

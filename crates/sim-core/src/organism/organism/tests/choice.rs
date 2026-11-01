@@ -58,6 +58,16 @@ fn choice_uses_experience_from_a_similar_situation() {
 }
 
 #[test]
+fn transferred_experience_keeps_novelty_and_limits_optimism() {
+    let novelty = 0.01;
+    let score = crate::organism::choose_action::transferred_action_score;
+    assert_eq!(score(0.0, novelty), novelty);
+    assert!(score(0.1, novelty) > novelty);
+    assert!(score(100.0, novelty) <= novelty * 1.5 + f32::EPSILON);
+    assert!(score(-0.1, novelty) < 0.0);
+}
+
+#[test]
 fn hungry_organism_filters_learned_choice_to_survival_actions() {
     let mut rng = StdRng::seed_from_u64(0);
     let traits = Traits::random(&mut rng);
