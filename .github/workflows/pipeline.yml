@@ -706,6 +706,13 @@ jobs:
       actions:     read
       deployments: write
     steps:
+      # The artifact is only the static build; the Pages Functions (the /ingest analytics proxy) live in the
+      # source and must sit next to dist for wrangler to upload them. Without them every /ingest request got
+      # the static site's 405 and no website analytics arrived (#909).
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: apps/web/functions
+          sparse-checkout-cone-mode: false
       - name: Download the static frontend that passed
         uses: actions/download-artifact@v8
         with:
@@ -731,12 +738,28 @@ jobs:
           echo "stamped $built -> $(cat version.json)"
 
       - name: Deploy to Cloudflare Pages
+        id: deploy
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/web
           command: pages deploy dist --project-name=thehumanbox --branch=main
+
+      # A made-up /ingest path must reach the function (its own 404), not the static site (405).
+      - name: Check the analytics proxy is live
+        env:
+          URL: ${{ steps.deploy.outputs.deployment-url || 'https://thehumanbox.com' }}
+        run: |
+          set -euo pipefail
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$URL/ingest/not-a-posthog-path")
+            [ "$code" = 404 ] && { echo "proxy answered $code at $URL"; exit 0; }
+            echo "attempt $i: $code"
+            sleep 10
+          done
+          echo "the /ingest function is not deployed at $URL (expected 404 from it, got $code)" >&2
+          exit 1
 
   deploy-frontend:
     name: Deploy frontend (Cloudflare Pages)
@@ -750,6 +773,13 @@ jobs:
       contents:    read
       deployments: write
     steps:
+      # The artifact is only the static build; the Pages Functions (the /ingest analytics proxy) live in the
+      # source and must sit next to dist for wrangler to upload them. Without them every /ingest request got
+      # the static site's 405 and no website analytics arrived (#909).
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: apps/web/functions
+          sparse-checkout-cone-mode: false
       - name: Download static frontend
         uses: actions/download-artifact@v8
         with:
@@ -757,12 +787,28 @@ jobs:
           path: apps/web/dist
 
       - name: Deploy to Cloudflare Pages
+        id: deploy
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/web
           command: pages deploy dist --project-name=thehumanbox --branch=main
+
+      # A made-up /ingest path must reach the function (its own 404), not the static site (405).
+      - name: Check the analytics proxy is live
+        env:
+          URL: ${{ steps.deploy.outputs.deployment-url || 'https://thehumanbox.com' }}
+        run: |
+          set -euo pipefail
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$URL/ingest/not-a-posthog-path")
+            [ "$code" = 404 ] && { echo "proxy answered $code at $URL"; exit 0; }
+            echo "attempt $i: $code"
+            sleep 10
+          done
+          echo "the /ingest function is not deployed at $URL (expected 404 from it, got $code)" >&2
+          exit 1
 
   # Leaves `pass-<area>-<key>` for each area whose suites all ran and passed
   # here; a later run with the same key skips them (see changes). The record
