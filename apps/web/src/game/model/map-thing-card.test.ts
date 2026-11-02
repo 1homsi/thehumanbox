@@ -45,7 +45,8 @@ describe('ground cards', () => {
   it('gives the ground in one line for a tribe card, with its notes after it', () => {
     const w = world({ grid: burningWaterGrid() } as Partial<WorldState>)
     expect(groundLine(w, 1.5, 1.5)).toBe('deep water · on fire')
-    expect(groundLine(w, 0.5, 0.5)).toBe('grass')
+    // Plain grass is plain to see: no line for it.
+    expect(groundLine(w, 0.5, 0.5)).toBeNull()
     expect(groundLine(w, 9.5, 9.5)).toBeNull()
   })
 

@@ -9,6 +9,7 @@ import { loadLocale, t } from '../../../i18n'
 import { prayerPlea } from '../../model/prayers'
 import { registerPeopleLayer } from '../cf/picking'
 import { buildTerritoryIndex } from '../../model/territory'
+import { TILE_ID } from '../../model/terrain-ids'
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
 afterAll(() => vi.unstubAllGlobals())
@@ -101,11 +102,11 @@ function townWorld(): WorldState {
   } as unknown as WorldState
 }
 
-/** Open sea-side ground: grass everywhere, and deep water on the tile (10, 10) under the pointer. */
-function waterWorld(): WorldState {
+/** Open sea-side ground: grass everywhere, and deep water (or `tile`) on the tile (10, 10) under the pointer. */
+function waterWorld(tile = 2): WorldState {
   const tiles = Array.from({ length: 12 }, () => Array.from({ length: 12 }, () => 1))
   const depth = Array.from({ length: 12 }, () => Array.from({ length: 12 }, () => 255))
-  tiles[10][10] = 2
+  tiles[10][10] = tile
   depth[10][10] = 100
   return {
     tick: 1,
@@ -127,10 +128,15 @@ describe('ThingHoverCard', () => {
     expect(cardTextAt(townWorld())).toContain('Kornspeicher')
   })
 
-  it('names unclaimed ground under the pointer, and nothing while a god tool is armed', () => {
+  it('names a resource on unclaimed ground, and nothing while a god tool is armed', () => {
     expect(cardTextAt({ ...townWorld(), buildings: [] } as unknown as WorldState)).toBe('')
     expect(cardTextAt(townWorld(), { enabled: false })).toBe('')
-    expect(cardTextAt(waterWorld())).toBe('Deep water')
+    expect(cardTextAt(waterWorld(TILE_ID.MINERAL)).toLowerCase()).toContain('ore')
+  })
+
+  it('names no plain ground: the sea, like grass, is plain to see', () => {
+    expect(cardTextAt(waterWorld())).toBe('')
+    expect(lastBox?.style.display).toBe('none')
   })
 
   it('leaves claimed ground to the tribe card, which names the ground in its own line', () => {
