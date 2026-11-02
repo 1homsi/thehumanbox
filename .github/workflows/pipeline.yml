@@ -65,9 +65,9 @@ jobs:
           # touch them.
           ci=(.github/workflows/pipeline.yml scripts/source-key.sh)
           sim=("${ci[@]}" .config apps/server crates Cargo.toml Cargo.lock rustfmt.toml clippy.toml
-            scripts/perf-gate.sh scripts/determinism-fingerprint.json)
+            scripts/perf-gate.sh)
           client=("${ci[@]}" apps/web crates/sim-core Cargo.toml Cargo.lock .node-version
-            scripts/build-wasm.sh scripts/build-wasm-threads.sh scripts/check-wasm-determinism.mjs scripts/determinism-fingerprint.json)
+            scripts/build-wasm.sh scripts/build-wasm-threads.sh scripts/check-wasm-determinism.mjs)
           desktop=("${ci[@]}" apps/desktop .node-version)
           base=""
           if [ "$EVENT" = pull_request ] && git rev-parse -q --verify 'HEAD^2' >/dev/null; then
@@ -217,6 +217,17 @@ jobs:
       - name: cargo test --doc
         if: matrix.shard == 1
         run: cargo test --release --locked --workspace --doc
+      # The hash of a native world's save, for the determinism job to compare with
+      # the wasm of this same commit.
+      - name: Native save fingerprint
+        if: matrix.shard == 1
+        run: cargo run --release --locked -p sim-core --example save_fingerprint -- 42 3000 | tee native-fingerprint.txt
+      - uses: actions/upload-artifact@v7
+        if: matrix.shard == 1
+        with:
+          name: native-fingerprint
+          path: native-fingerprint.txt
+          retention-days: 7
 
   simulation-performance:
     name: Simulation performance budget
@@ -359,18 +370,37 @@ jobs:
       - name: Build threaded wasm sim-core
         if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
         run: scripts/build-wasm-threads.sh
-      # The browser sim must reproduce the committed native fingerprint (see
-      # scripts/determinism-fingerprint.json). Runs on cached and fresh builds;
-      # when an earlier run passed the client area it checked this same wasm,
-      # so this is skipped unless the wasm was built here.
-      - name: Check wasm determinism fingerprint
-        if: needs.changes.outputs.client_run == '' || steps.wasm-build.outcome == 'success'
-        run: node scripts/check-wasm-determinism.mjs apps/web/src/wasm/sim-core
       - uses: actions/upload-artifact@v7
         with:
           name: sim-core-wasm
           path: apps/web/src/wasm
           retention-days: 7
+
+  # The browser sim must make the same world as the native one. Both sides come
+  # from this commit, so changing the world's rules needs no committed value
+  # updated. When the simulation tests were skipped, sim-core is unchanged since
+  # a run that passed (the client area includes sim-core), so that run compared
+  # this same wasm.
+  determinism:
+    name: Native and wasm worlds match
+    needs: [changes, simulation-tests, build-wasm]
+    if: ${{ !cancelled() && needs.simulation-tests.result == 'success' && needs.build-wasm.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@v8
+        with:
+          name: sim-core-wasm
+          path: apps/web/src/wasm
+      - uses: actions/download-artifact@v8
+        with:
+          name: native-fingerprint
+      - name: Compare the wasm world with the native one
+        run: node scripts/check-wasm-determinism.mjs apps/web/src/wasm/sim-core --native "$(cat native-fingerprint.txt)"
 
   build-frontend:
     name: Build frontend
@@ -544,7 +574,7 @@ jobs:
     # suites must pass here, or skip because an earlier run passed the same
     # inputs; the wasm and a shipped frontend are always needed.
     if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip-bump]') }}
-    needs: [changes, simulation-lint, simulation-tests, simulation-performance, test-frontend, build-wasm, build-frontend, test-desktop, ship-web]
+    needs: [changes, simulation-lint, simulation-tests, simulation-performance, test-frontend, build-wasm, determinism, build-frontend, test-desktop, ship-web]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -560,6 +590,7 @@ jobs:
           FRONTEND_TESTS: ${{ needs.test-frontend.result }}
           DESKTOP_TESTS: ${{ needs.test-desktop.result }}
           WASM: ${{ needs.build-wasm.result }}
+          DETERMINISM: ${{ needs.determinism.result }}
           FRONTEND: ${{ needs.build-frontend.result }}
           SHIPPED: ${{ needs.ship-web.result }}
         run: |
@@ -578,6 +609,8 @@ jobs:
           }
           [ "$CHANGES" = success ] || fail "change detection did not succeed ($CHANGES)"
           [ "$WASM" = success ] || fail "the wasm build did not succeed ($WASM)"
+          # Skipped only when the simulation tests were (see the determinism job).
+          [ "$DETERMINISM" = success ] || [ "$DETERMINISM" = skipped ] || fail "the wasm world differs from the native one ($DETERMINISM)"
           [ "$FRONTEND" = success ] || [ "$SHIPPED" = success ] || fail "no frontend was built or shipped"
           area "$SIM_RUN" "$LINT" "$TESTS" "$PERF"
           area "$CLIENT_RUN" "$FRONTEND_TESTS"
@@ -706,7 +739,7 @@ jobs:
   record-passes:
     name: Record the areas that passed
     if: ${{ always() && needs.changes.result == 'success' }}
-    needs: [changes, simulation-lint, simulation-tests, simulation-performance, test-frontend, build-wasm, build-frontend, test-desktop]
+    needs: [changes, simulation-lint, simulation-tests, simulation-performance, test-frontend, build-wasm, determinism, build-frontend, test-desktop]
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
@@ -715,7 +748,8 @@ jobs:
       - name: Record sim
         if: >-
           ${{ needs.changes.outputs.sim == 'true' && needs.simulation-lint.result == 'success'
-            && needs.simulation-tests.result == 'success' && needs.simulation-performance.result == 'success' }}
+            && needs.simulation-tests.result == 'success' && needs.simulation-performance.result == 'success'
+            && needs.determinism.result != 'failure' }}
         uses: actions/upload-artifact@v7
         with:
           name: pass-sim-${{ needs.changes.outputs.sim_key }}
@@ -724,7 +758,8 @@ jobs:
       - name: Record client
         if: >-
           ${{ needs.changes.outputs.client == 'true' && needs.test-frontend.result == 'success'
-            && needs.build-wasm.result == 'success' && needs.build-frontend.result == 'success' }}
+            && needs.build-wasm.result == 'success' && needs.build-frontend.result == 'success'
+            && needs.determinism.result != 'failure' }}
         uses: actions/upload-artifact@v7
         with:
           name: pass-client-${{ needs.changes.outputs.client_key }}
