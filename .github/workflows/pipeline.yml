@@ -221,7 +221,9 @@ jobs:
       # the wasm of this same commit.
       - name: Native save fingerprint
         if: matrix.shard == 1
-        run: cargo run --release --locked -p sim-core --example save_fingerprint -- 42 3000 | tee native-fingerprint.txt
+        run: |
+          cargo run --release --locked -p sim-core --example save_fingerprint -- 42 3000 > native-fingerprint.txt
+          cat native-fingerprint.txt
       - uses: actions/upload-artifact@v7
         if: matrix.shard == 1
         with:
@@ -427,7 +429,9 @@ jobs:
           workspaces: . -> target
       - name: Build the native fingerprint here
         if: steps.here.outcome != 'success' && steps.earlier.outcome != 'success'
-        run: cargo run --release --locked -p sim-core --example save_fingerprint -- 42 3000 | tee native-fingerprint.txt
+        run: |
+          cargo run --release --locked -p sim-core --example save_fingerprint -- 42 3000 > native-fingerprint.txt
+          cat native-fingerprint.txt
       - name: Compare the wasm world with the native one
         run: node scripts/check-wasm-determinism.mjs apps/web/src/wasm/sim-core --native "$(cat native-fingerprint.txt)"
 
