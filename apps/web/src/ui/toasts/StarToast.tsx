@@ -45,7 +45,14 @@ function readState(): ReadResult {
       return { ok: true, state: null }
     }
     const parsed = JSON.parse(raw) as StarPromptState
-    return { ok: true, state: typeof parsed.asks === 'number' ? parsed : null }
+    if (typeof parsed.asks !== 'number') return { ok: true, state: null }
+    // A tab still on the v1 bundle can record a star after v2 state exists.
+    if (!parsed.starred && window.localStorage.getItem(LEGACY_STAR_PROMPT_KEY) === 'starred') {
+      const migrated: StarPromptState = { ...parsed, starred: true }
+      if (!writeState(migrated)) return { ok: false }
+      return { ok: true, state: migrated }
+    }
+    return { ok: true, state: parsed }
   } catch {
     return { ok: false }
   }
@@ -99,8 +106,11 @@ export function StarToast() {
 
   const dismiss = () => {
     const read = readState()
-    const asks = read.ok ? (read.state?.asks ?? 1) : 1
-    writeState({ asks, dismissedAt: Date.now() })
+    // A star recorded in another tab wins: closing the stale toast must not clear it.
+    if (!read.ok || !read.state?.starred) {
+      const asks = read.ok ? (read.state?.asks ?? 1) : 1
+      writeState({ asks, dismissedAt: Date.now() })
+    }
     setVisible(false)
     trackEvent('star_prompt_dismissed')
   }

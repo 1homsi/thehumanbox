@@ -122,6 +122,37 @@ describe('StarToast', () => {
     expect(toast()).not.toBeNull()
   })
 
+  it('keeps a star recorded in another tab when the stale toast is dismissed', () => {
+    mount()
+    wait(STAR_DELAY_MIN_MS)
+    expect(toast()).not.toBeNull()
+    window.localStorage.setItem(STAR_PROMPT_KEY, JSON.stringify({ asks: 1, starred: true }))
+    act(() => (toast()?.querySelector('.desktop-toast-secondary') as HTMLButtonElement).click())
+    expect(toast()).toBeNull()
+    expect(state()).toMatchObject({ asks: 1, starred: true })
+    mount()
+    wait(STAR_DELAY_MIN_MS * 4)
+    expect(toast()).toBeNull()
+  })
+
+  it('carries over a v1 star that appears after v2 state exists', () => {
+    window.localStorage.setItem(STAR_PROMPT_KEY, JSON.stringify({ asks: 1, dismissedAt: Date.now() }))
+    window.localStorage.setItem(LEGACY_STAR_PROMPT_KEY, 'starred')
+    mount()
+    wait(STAR_DELAY_MIN_MS * 4)
+    expect(toast()).toBeNull()
+    expect(state()).toMatchObject({ asks: 1, starred: true })
+  })
+
+  it('stays hidden when recording an ask fails', () => {
+    vi.spyOn(window.localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    mount()
+    wait(STAR_DELAY_MIN_MS * 4)
+    expect(toast()).toBeNull()
+  })
+
   it('stays hidden when storage is unavailable instead of asking every visit', () => {
     Object.defineProperty(window, 'localStorage', {
       configurable: true,
