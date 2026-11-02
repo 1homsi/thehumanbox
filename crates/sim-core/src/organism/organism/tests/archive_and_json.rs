@@ -138,15 +138,20 @@ fn direct_org_value_matches_the_serde_conversion() {
         }
         for org in &sim.organisms {
             // `learning_summary` scans each row once; the previous version
-            // scanned them twice. Same numbers, to the bit.
-            let states = org.q_table.len();
-            let old_promising = org.q_table.values().filter(|row| row.max_q() > 0.01).count();
+            // scanned them twice. Same numbers, to the bit. Both count only the
+            // situations a person met, not the `~` rows that generalize them.
+            let exact = || {
+                org.q_table
+                    .iter()
+                    .filter(|(state, _)| !state.starts_with('~'))
+                    .map(|(_, row)| row)
+            };
+            let states = exact().count();
+            let old_promising = exact().filter(|row| row.max_q() > 0.01).count();
             let old_confidence = if states == 0 {
                 0.0
             } else {
-                let total: f32 = org
-                    .q_table
-                    .values()
+                let total: f32 = exact()
                     .map(|row| (row.max_q().max(0.0) / 0.25).clamp(0.0, 1.0))
                     .sum();
                 (total / states as f32 * 100.0).round() / 100.0
