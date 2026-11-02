@@ -1,10 +1,30 @@
+import { useLayoutEffect, useRef, useState } from 'react'
 import { Tooltip } from '../../toolbar/Tooltip'
 import { cbColor } from '../../../shared/constants'
 
+/** Whether the element's text is cut off, kept current as it is resized. */
+function useTruncated<T extends HTMLElement>(text: string) {
+  const ref = useRef<T>(null)
+  const [cut, setCut] = useState(false)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const measure = () => setCut(el.scrollWidth > el.clientWidth)
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [text])
+  return [ref, cut] as const
+}
+
 export function Bar({ label, value, color }: { label: string; value: number; color: string }) {
+  // The full word on hover only when it does not fit.
+  const [labelRef, cut] = useTruncated<HTMLSpanElement>(label)
   return (
     <div className="bar-row">
-      <span className="bar-label bar-label-word" title={label}>
+      <span ref={labelRef} className="bar-label bar-label-word" title={cut ? label : undefined}>
         {label}
       </span>
       <div className="bar-track">
