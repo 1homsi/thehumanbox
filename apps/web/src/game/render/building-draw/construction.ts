@@ -8,8 +8,8 @@ import { finishedSprite } from './finished-sprite'
 
 /** How far through the build the walls start to rise; the cleared plot and foundation come first. */
 const RISE_FROM = 0.16
-/** Alpha of the planned building above the part already standing. */
-const PLAN_ALPHA = 0.2
+/** The chalk line marking out the planned building above the part already standing. */
+const PLAN_LINE = '#d9c79c'
 /** Pips in the progress marker over a site seen up close. */
 export const PROGRESS_PIPS = 5
 
@@ -21,7 +21,7 @@ const SCAFFOLD = '#c99a52'
 /**
  * A building under construction: a cleared plot and foundation, then the building itself rising
  * course by course, so each site already reads as the house, dock or temple it will be. A kind with
- * a sprite reveals that sprite from the ground up under a faint outline of the whole; a kind drawn
+ * a sprite reveals that sprite from the ground up under a dotted chalk outline of the whole; a kind drawn
  * by hand gets a timber frame in its own wall and roof colours. Scaffolding stands around the
  * rising part, and up close a row of pips shows how far along it is.
  */
@@ -164,20 +164,16 @@ function drawRisingSprite(
   const builtTopRow = groundRow - builtRows
 
   if (builtTopRow > contentTop) {
-    ctx.save()
-    ctx.globalAlpha = PLAN_ALPHA
-    ctx.drawImage(
-      sprite,
-      0,
-      contentTop,
-      sprite.width,
-      builtTopRow - contentTop,
-      dx,
-      dy + contentTop,
-      sprite.width,
-      builtTopRow - contentTop,
-    )
-    ctx.restore()
+    // The rest of the building as a dotted line along its outline, in whole solid pixels. A see-through
+    // copy of the finished sprite read as a soft blurred ghost on the grass.
+    const edge = spriteOutline(sprite)
+    ctx.fillStyle = PLAN_LINE
+    for (let i = 0; i < edge.length; i += 2) {
+      const ex = edge[i]
+      const ey = edge[i + 1]
+      if (ey >= builtTopRow || (ex + ey) % 2 !== 0) continue
+      ctx.fillRect(dx + ex, dy + ey, 1, 1)
+    }
   }
   if (builtRows === 0) return { built: dy + groundRow, plan: dy + contentTop }
   // What stands so far, with the shadow it casts below the ground line.
@@ -313,7 +309,52 @@ function drawProgressPips(
 }
 
 const contentTops = new WeakMap<HTMLCanvasElement, number>()
+const outlines = new WeakMap<HTMLCanvasElement, Int16Array>()
 let scratch: CanvasRenderingContext2D | null = null
+
+/** A sprite's pixels, read through the scratch canvas (the sprite canvases themselves are never read back). */
+function spritePixels(sprite: HTMLCanvasElement): Uint8ClampedArray | null {
+  if (!scratch) {
+    const canvas = document.createElement('canvas')
+    scratch = canvas.getContext('2d', { willReadFrequently: true })
+  }
+  if (!scratch) return null
+  const { width, height } = sprite
+  if (scratch.canvas.width < width || scratch.canvas.height < height) {
+    scratch.canvas.width = Math.max(scratch.canvas.width, width)
+    scratch.canvas.height = Math.max(scratch.canvas.height, height)
+  }
+  scratch.clearRect(0, 0, width, height)
+  scratch.drawImage(sprite, 0, 0)
+  return scratch.getImageData(0, 0, width, height).data
+}
+
+/**
+ * The outline of a sprite's solid body, as x, y pairs: every solid pixel with an empty one beside it.
+ * The cast shadow is see-through, so it is not part of the body. Read once per sprite.
+ */
+export function spriteOutline(sprite: HTMLCanvasElement): Int16Array {
+  const known = outlines.get(sprite)
+  if (known) return known
+  const out: number[] = []
+  try {
+    const data = spritePixels(sprite)
+    if (data) {
+      const { width, height } = sprite
+      const solid = (x: number, y: number) =>
+        x >= 0 && y >= 0 && x < width && y < height && data[(y * width + x) * 4 + 3] >= 128
+      for (let y = 0; y < height; y++)
+        for (let x = 0; x < width; x++)
+          if (solid(x, y) && (!solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1)))
+            out.push(x, y)
+    }
+  } catch {
+    out.length = 0
+  }
+  const edge = Int16Array.from(out)
+  outlines.set(sprite, edge)
+  return edge
+}
 
 /**
  * The first row of a sprite with any opaque pixel, so a site rises through the building, not the
@@ -325,19 +366,9 @@ function spriteContentTop(sprite: HTMLCanvasElement): number {
   if (known !== undefined) return known
   let top = 0
   try {
-    if (!scratch) {
-      const canvas = document.createElement('canvas')
-      scratch = canvas.getContext('2d', { willReadFrequently: true })
-    }
-    if (scratch) {
+    const data = spritePixels(sprite)
+    if (data) {
       const { width, height } = sprite
-      if (scratch.canvas.width < width || scratch.canvas.height < height) {
-        scratch.canvas.width = Math.max(scratch.canvas.width, width)
-        scratch.canvas.height = Math.max(scratch.canvas.height, height)
-      }
-      scratch.clearRect(0, 0, width, height)
-      scratch.drawImage(sprite, 0, 0)
-      const data = scratch.getImageData(0, 0, width, height).data
       top = height
       for (let row = 0; row < height && top === height; row++) {
         for (let col = 0; col < width; col++) {

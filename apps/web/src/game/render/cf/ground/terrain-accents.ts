@@ -33,6 +33,19 @@ export function isLavaTile(tid: number, biome: number): boolean {
 }
 
 /**
+ * Whether tile (col, row) carries a dune ridge. Ridges lie every third row; along a ridge each run of
+ * four tiles may sit a row higher or lower than the last, so the lines kink like wind-cut dunes, and one
+ * tile in eight is a gap between them.
+ */
+export function duneRidgeAt(col: number, row: number): boolean {
+  const run = col >> 2
+  const band = Math.floor(row / 3)
+  const shift = landscapeHash(run + 31, band + 17) % 3
+  if ((row + shift) % 3 !== 0) return false
+  return landscapeHash(col + 3, row + 101) % 8 !== 0
+}
+
+/**
  * The accent rectangles for the grid. With no biome grid nothing is drawn. Each tile's marks come
  * from a hash of its position, so the pattern is the same every time the grid is built.
  */
@@ -56,19 +69,18 @@ export function buildAccentRects(
       const px = col * TILE
       const py = row * TILE
       const h = landscapeHash(col * 3 + 5, row * 7 + 11)
-      if (isDuneTile(tid, biome) && h % 5 < 2) {
-        // A crest in the lower half of the tile, its shade just under it. A tile is only TILE px wide,
-        // so the mark's start and length are small offsets, never a modulus by (TILE - n).
-        const x = px + ((h >>> 8) % 3)
-        const y = py + TILE * 0.55 + ((h >>> 16) % 2)
-        const len = TILE - 4 + ((h >>> 20) % 2)
-        crest.push(x, y, len, 2)
-        shade.push(x, y + 2, len, 2)
+      if (isDuneTile(tid, biome) && duneRidgeAt(col, row)) {
+        // A ridge runs the whole tile, so the next tile's carries it on: one long dune line with a light
+        // crest over its shade, not a short dash stamped at the same spot in tile after tile. It wanders
+        // a pixel up or down every two tiles.
+        const y = py + 3 + (landscapeHash(col >> 1, row + 7) % 2)
+        crest.push(px, y, TILE, 1)
+        shade.push(px, y + 1, TILE, 1)
       }
       if (isLavaTile(tid, biome) && h % 7 < 3) {
         const x = px + ((h >>> 9) % (TILE - 2))
         const y = py + ((h >>> 13) % (TILE - 1))
-        lava[(h >>> 4) % 4].push(x, y, 2 + ((h >>> 18) % 2), 1.5)
+        lava[(h >>> 4) % 4].push(x, y, 2 + ((h >>> 18) % 2), 1)
       }
     }
   }

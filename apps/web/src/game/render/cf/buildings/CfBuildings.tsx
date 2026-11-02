@@ -44,7 +44,7 @@ export function CfBuildings({ registry }: { registry: CfRegistry }) {
   // Yards are untextured rectangles; like the foam, they borrow an atlas to have one.
   const yards = useSpriteLayer({ atlases: p.atlases, zIndex: YARD_Z, sampling: 'nearest' })
   const g = useCellAtlas(GLOW_PAGES, GLOW_CLASSES)
-  const glow = useSpriteLayer({ atlases: g.atlases, sortByKey: true, zIndex: GLOW_Z, sampling: 'linear' })
+  const glow = useSpriteLayer({ atlases: g.atlases, sortByKey: true, zIndex: GLOW_Z, sampling: 'nearest' })
 
   const buildingsDriver = useMemo(
     () => new BuildingsDriver(buildings, b.atlas, hits),

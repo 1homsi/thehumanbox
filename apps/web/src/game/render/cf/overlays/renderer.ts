@@ -201,7 +201,9 @@ export class CfOverlayRenderer {
         new SpriteLayer({
           atlases: [this.shapes.layerAtlas()],
           zIndex: z,
-          sampling: 'linear',
+          // Whole pixels, like every sprite: a 128-texel disc or ring shrunk with smooth sampling came out
+          // as a soft blurred blob (puddles, ripples, smoke, dust).
+          sampling: 'nearest',
           capacity: 512,
         }),
       )
