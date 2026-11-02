@@ -5,31 +5,53 @@ import { ToolSprite } from '../toolbar/ToolSprite'
 import { screenBusy, TOAST_RETRY_MS } from './screenBusy'
 import { t } from '../../i18n'
 
-export const STAR_PROMPT_KEY = 'thb-star-prompt-v1'
+export const STAR_PROMPT_KEY = 'thb-star-prompt-v2'
 // Late enough that the first minutes belong to the world, not to prompts.
 export const STAR_DELAY_MIN_MS = 3 * 60_000
 export const STAR_DELAY_MAX_MS = 5 * 60_000
+// A dismissal is not forever: ask again after a week, at most three times.
+export const STAR_REASK_AFTER_MS = 7 * 24 * 60 * 60_000
+export const STAR_MAX_ASKS = 3
 
-function alreadyAsked(): boolean {
+type StarPromptState = {
+  asks: number
+  starred?: boolean
+  dismissedAt?: number
+}
+
+function readState(): StarPromptState | null {
   try {
-    return window.localStorage.getItem(STAR_PROMPT_KEY) !== null
+    const raw = window.localStorage.getItem(STAR_PROMPT_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as StarPromptState
+    return typeof parsed.asks === 'number' ? parsed : null
   } catch {
-    // Without storage the prompt could not remember it was shown, and would ask every visit.
-    return true
+    return null
   }
 }
 
-function remember(outcome: 'shown' | 'starred' | 'dismissed') {
+function writeState(state: StarPromptState) {
   try {
-    window.localStorage.setItem(STAR_PROMPT_KEY, outcome)
+    window.localStorage.setItem(STAR_PROMPT_KEY, JSON.stringify(state))
   } catch {
     /* noop */
   }
 }
 
+/** True when the prompt must stay hidden for this browser. */
+function alreadyAsked(): boolean {
+  const state = readState()
+  if (!state) return false
+  if (state.starred) return true
+  if (state.asks >= STAR_MAX_ASKS) return true
+  // Closing the tab mid-prompt is not a dismissal: ask again next visit.
+  return state.dismissedAt !== undefined && Date.now() - state.dismissedAt < STAR_REASK_AFTER_MS
+}
+
 /**
- * Asks once, during the first visit, for a star on GitHub. It turns up at a random moment a few minutes
- * in, once the player has had time to watch the world, and only when nothing else is on screen.
+ * Asks once per visit for a star on GitHub, up to three times over the player's lifetime,
+ * with a week between dismissals. It turns up at a random moment a few minutes in, once the
+ * player has had time to watch the world, and only when nothing else is on screen.
  */
 export function StarToast() {
   const [visible, setVisible] = useState(false)
@@ -42,7 +64,8 @@ export function StarToast() {
         timer = window.setTimeout(show, TOAST_RETRY_MS)
         return
       }
-      remember('shown')
+      const state = readState()
+      writeState({ ...state, asks: (state?.asks ?? 0) + 1 })
       setVisible(true)
       trackEvent('star_prompt_shown')
     }
@@ -56,7 +79,8 @@ export function StarToast() {
   if (!visible) return null
 
   const dismiss = () => {
-    remember('dismissed')
+    const state = readState()
+    writeState({ ...state, asks: state?.asks ?? 1, dismissedAt: Date.now() })
     setVisible(false)
     trackEvent('star_prompt_dismissed')
   }
@@ -80,7 +104,8 @@ export function StarToast() {
           target="_blank"
           rel="noreferrer"
           onClick={() => {
-            remember('starred')
+            const state = readState()
+            writeState({ ...state, asks: state?.asks ?? 1, starred: true })
             setVisible(false)
             trackEvent('star_prompt_clicked')
           }}
