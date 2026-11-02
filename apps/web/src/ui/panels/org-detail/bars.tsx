@@ -20,13 +20,15 @@ function useTruncated<T extends HTMLElement>(text: string) {
 }
 
 export function Bar({ label, value, color }: { label: string; value: number; color: string }) {
-  // The full word on hover only when it does not fit.
+  // The full word only when it does not fit: on hover, keyboard focus or a long press (see Tooltip).
   const [labelRef, cut] = useTruncated<HTMLSpanElement>(label)
   return (
     <div className="bar-row">
-      <span ref={labelRef} className="bar-label bar-label-word" title={cut ? label : undefined}>
-        {label}
-      </span>
+      <Tooltip tip={cut ? label : null}>
+        <span ref={labelRef} className="bar-label bar-label-word" tabIndex={cut ? 0 : undefined}>
+          {label}
+        </span>
+      </Tooltip>
       <div className="bar-track">
         <div
           className="bar-fill"
