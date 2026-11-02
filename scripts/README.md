@@ -20,7 +20,8 @@ Wipes the local `world.save` (and `.tmp`/`.bak` siblings) and rebuilds the relea
 **When to run:** local dev only. Use when iterating on world-gen or spawn logic and you need a known-clean seed. It does not touch any deployment.
 
 ### check-wasm-determinism.mjs
-Checks the browser build against the committed native fingerprint:
-`node scripts/check-wasm-determinism.mjs apps/web/src/wasm/sim-core`.
-After an intentional simulation change, add `--update` to regenerate the fingerprint,
-then run the native determinism test to verify both targets agree.
+Checks that the browser build makes the same world as the native one: it ticks seed 42 for
+3000 ticks in both and compares the hashes of the saves.
+`node scripts/check-wasm-determinism.mjs apps/web/src/wasm/sim-core` runs the native side itself
+(`cargo run --release -p sim-core --example save_fingerprint`); CI passes `--native <hex>` from the
+simulation tests. Nothing is committed, so changing the world's rules needs no update here.
