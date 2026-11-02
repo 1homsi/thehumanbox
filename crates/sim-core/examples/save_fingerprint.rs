@@ -18,7 +18,9 @@ fn save_fnv1a64(bytes: &[u8]) -> u64 {
 fn main() {
     let mut args = std::env::args().skip(1);
     let seed: u64 = args.next().map_or(42, |s| s.parse().expect("seed is a number"));
-    let ticks: u64 = args.next().map_or(3000, |s| s.parse().expect("ticks is a number"));
+    let ticks: u64 = args
+        .next()
+        .map_or(3000, |s| s.parse().expect("ticks is a number"));
     let mut sim = Simulation::new(seed);
     while sim.tick_count < ticks {
         sim.tick();
