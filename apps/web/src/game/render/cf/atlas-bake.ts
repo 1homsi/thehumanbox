@@ -517,18 +517,18 @@ export function bakeFauna(ctx: CanvasRenderingContext2D, sheet: CanvasImageSourc
   })
 }
 
-// ---- Emotes: the little thought bubbles over people's heads ---------------------
+// ---- Emotes: the little outlined icons over people's heads ---------------------
 
 export const EMOTE_CELL = 16
 export const EMOTE_SIZE = { width: EMOTE_CELL * EMOTES.length, height: EMOTE_CELL }
-/** Where the painter's bubble is drawn inside a cell: `drawEmote` at (8, 12) with no bob. */
+/** Where the painter's icon is drawn inside a cell: `drawEmote` at (8, 12) with no bob. */
 export const EMOTE_ORIGIN = { x: 8, y: 12 }
 
 export function emoteFrame(emote: Emote): number {
   return EMOTES.indexOf(emote)
 }
 
-/** Bakes each bubble with the painter's own `drawEmote`, so the pixels cannot drift. */
+/** Bakes each icon with the painter's own `drawEmote`, so the pixels cannot drift. */
 export function bakeEmotes(ctx: CanvasRenderingContext2D): void {
   ctx.clearRect(0, 0, EMOTE_SIZE.width, EMOTE_SIZE.height)
   EMOTES.forEach((emote, i) => {

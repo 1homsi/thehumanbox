@@ -116,7 +116,7 @@ const CROWN_RECTS = [
  *  - `soft`  (under the people): shadows, auras and rings
  *  - `body`  (depth-sorted):      people and boats
  *  - `over`  (above the people):  crowns, vitals, emoji
- *  - `emote` (above those, pixel-crisp): thought bubbles
+ *  - `emote` (above those, pixel-crisp): emote icons
  * Names and thoughts are text and work poses are free-form strokes: they stay
  * on the canvas painter.
  *
@@ -547,7 +547,7 @@ export class PeopleSprites {
 
       if (standard) {
         const emote = emoteFor(org)
-        // The painter's bubble: whole-pixel corner at round(x - 3.5) - 1, bottom 2px above the head.
+        // The painter's outlined icon (see drawEmote), its bottom a pixel above the head.
         if (emote)
           emotes.push(
             j,
