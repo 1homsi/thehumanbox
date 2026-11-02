@@ -6,6 +6,7 @@ import { REPO_URL } from '../../shared/links'
 import { useUIStore } from '../../state/store'
 import { TOAST_RETRY_MS } from './screenBusy'
 import {
+  LEGACY_STAR_PROMPT_KEY,
   STAR_DELAY_MIN_MS,
   STAR_MAX_ASKS,
   STAR_PROMPT_KEY,
@@ -98,7 +99,36 @@ describe('StarToast', () => {
     expect(toast()).toBeNull()
     expect(state().dismissedAt).toBeGreaterThan(stale)
 
-    window.localStorage.setItem(STAR_PROMPT_KEY, JSON.stringify({ asks: 1, starred: true, dismissedAt: stale }))
+    window.localStorage.setItem(
+      STAR_PROMPT_KEY,
+      JSON.stringify({ asks: 1, starred: true, dismissedAt: stale }),
+    )
+    mount()
+    wait(STAR_DELAY_MIN_MS * 4)
+    expect(toast()).toBeNull()
+  })
+
+  it('carries over a v1 star but re-asks a v1 dismissal', () => {
+    window.localStorage.setItem(LEGACY_STAR_PROMPT_KEY, 'starred')
+    mount()
+    wait(STAR_DELAY_MIN_MS * 4)
+    expect(toast()).toBeNull()
+    expect(state().starred).toBe(true)
+
+    window.localStorage.clear()
+    window.localStorage.setItem(LEGACY_STAR_PROMPT_KEY, 'dismissed')
+    mount()
+    wait(STAR_DELAY_MIN_MS)
+    expect(toast()).not.toBeNull()
+  })
+
+  it('stays hidden when storage is unavailable instead of asking every visit', () => {
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new Error('blocked')
+      },
+    })
     mount()
     wait(STAR_DELAY_MIN_MS * 4)
     expect(toast()).toBeNull()

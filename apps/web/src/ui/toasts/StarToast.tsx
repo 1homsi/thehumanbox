@@ -6,6 +6,8 @@ import { screenBusy, TOAST_RETRY_MS } from './screenBusy'
 import { t } from '../../i18n'
 
 export const STAR_PROMPT_KEY = 'thb-star-prompt-v2'
+/** v1 stored a bare 'shown' | 'dismissed' | 'starred'; only the starred outcome is carried over. */
+export const LEGACY_STAR_PROMPT_KEY = 'thb-star-prompt-v1'
 // Late enough that the first minutes belong to the world, not to prompts.
 export const STAR_DELAY_MIN_MS = 3 * 60_000
 export const STAR_DELAY_MAX_MS = 5 * 60_000
@@ -19,28 +21,41 @@ type StarPromptState = {
   dismissedAt?: number
 }
 
-function readState(): StarPromptState | null {
-  try {
-    const raw = window.localStorage.getItem(STAR_PROMPT_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as StarPromptState
-    return typeof parsed.asks === 'number' ? parsed : null
-  } catch {
-    return null
-  }
-}
+type ReadResult = { ok: true; state: StarPromptState | null } | { ok: false }
 
-function writeState(state: StarPromptState) {
+function writeState(state: StarPromptState): boolean {
   try {
     window.localStorage.setItem(STAR_PROMPT_KEY, JSON.stringify(state))
+    return true
   } catch {
-    /* noop */
+    return false
   }
 }
 
-/** True when the prompt must stay hidden for this browser. */
+function readState(): ReadResult {
+  try {
+    const raw = window.localStorage.getItem(STAR_PROMPT_KEY)
+    if (!raw) {
+      // Players who already starred under v1 must never be asked again; dismissals may be re-asked.
+      if (window.localStorage.getItem(LEGACY_STAR_PROMPT_KEY) === 'starred') {
+        const migrated: StarPromptState = { asks: 1, starred: true }
+        if (!writeState(migrated)) return { ok: false }
+        return { ok: true, state: migrated }
+      }
+      return { ok: true, state: null }
+    }
+    const parsed = JSON.parse(raw) as StarPromptState
+    return { ok: true, state: typeof parsed.asks === 'number' ? parsed : null }
+  } catch {
+    return { ok: false }
+  }
+}
+
+/** True when the prompt must stay hidden: already handled, out of asks, cooling down, or storage is unusable. */
 function alreadyAsked(): boolean {
-  const state = readState()
+  const read = readState()
+  if (!read.ok) return true
+  const state = read.state
   if (!state) return false
   if (state.starred) return true
   if (state.asks >= STAR_MAX_ASKS) return true
@@ -64,8 +79,12 @@ export function StarToast() {
         timer = window.setTimeout(show, TOAST_RETRY_MS)
         return
       }
-      const state = readState()
-      writeState({ ...state, asks: (state?.asks ?? 0) + 1 })
+      // Another window may have handled the prompt while this one waited.
+      if (alreadyAsked()) return
+      const read = readState()
+      if (!read.ok) return
+      const asks = (read.state?.asks ?? 0) + 1
+      if (!writeState({ ...read.state, asks })) return
       setVisible(true)
       trackEvent('star_prompt_shown')
     }
@@ -79,8 +98,9 @@ export function StarToast() {
   if (!visible) return null
 
   const dismiss = () => {
-    const state = readState()
-    writeState({ ...state, asks: state?.asks ?? 1, dismissedAt: Date.now() })
+    const read = readState()
+    const asks = read.ok ? (read.state?.asks ?? 1) : 1
+    writeState({ asks, dismissedAt: Date.now() })
     setVisible(false)
     trackEvent('star_prompt_dismissed')
   }
@@ -104,8 +124,9 @@ export function StarToast() {
           target="_blank"
           rel="noreferrer"
           onClick={() => {
-            const state = readState()
-            writeState({ ...state, asks: state?.asks ?? 1, starred: true })
+            const read = readState()
+            const asks = read.ok ? (read.state?.asks ?? 1) : 1
+            writeState({ asks, starred: true })
             setVisible(false)
             trackEvent('star_prompt_clicked')
           }}
