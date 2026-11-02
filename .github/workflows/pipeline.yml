@@ -746,19 +746,25 @@ jobs:
           workingDirectory: apps/web
           command: pages deploy dist --project-name=thehumanbox --branch=main
 
-      # A made-up /ingest path must reach the function (its own 404), not the static site (405).
+      # The function, not the static site, must answer /ingest: the preflight PostHog sends gets a 2xx, and
+      # a made-up path the function's own 404 (the static site answers both with 405).
       - name: Check the analytics proxy is live
         env:
           URL: ${{ steps.deploy.outputs.deployment-url || 'https://thehumanbox.com' }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          status() { curl -s -o /dev/null --max-time 10 -w '%{http_code}' -X "$1" "$URL$2" || echo 000; }
           for i in 1 2 3 4 5 6; do
-            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$URL/ingest/not-a-posthog-path")
-            [ "$code" = 404 ] && { echo "proxy answered $code at $URL"; exit 0; }
-            echo "attempt $i: $code"
+            pre=$(status OPTIONS /ingest/e/)
+            miss=$(status POST /ingest/not-a-posthog-path)
+            if [[ "$pre" == 2?? && "$miss" == 404 ]]; then
+              echo "proxy live at $URL: OPTIONS /ingest/e/ $pre, unknown path $miss"
+              exit 0
+            fi
+            echo "attempt $i: OPTIONS /ingest/e/ $pre, unknown path $miss"
             sleep 10
           done
-          echo "the /ingest function is not deployed at $URL (expected 404 from it, got $code)" >&2
+          echo "the /ingest function is not live at $URL (want a 2xx preflight and a 404 for an unknown path)" >&2
           exit 1
 
   deploy-frontend:
@@ -795,19 +801,25 @@ jobs:
           workingDirectory: apps/web
           command: pages deploy dist --project-name=thehumanbox --branch=main
 
-      # A made-up /ingest path must reach the function (its own 404), not the static site (405).
+      # The function, not the static site, must answer /ingest: the preflight PostHog sends gets a 2xx, and
+      # a made-up path the function's own 404 (the static site answers both with 405).
       - name: Check the analytics proxy is live
         env:
           URL: ${{ steps.deploy.outputs.deployment-url || 'https://thehumanbox.com' }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          status() { curl -s -o /dev/null --max-time 10 -w '%{http_code}' -X "$1" "$URL$2" || echo 000; }
           for i in 1 2 3 4 5 6; do
-            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$URL/ingest/not-a-posthog-path")
-            [ "$code" = 404 ] && { echo "proxy answered $code at $URL"; exit 0; }
-            echo "attempt $i: $code"
+            pre=$(status OPTIONS /ingest/e/)
+            miss=$(status POST /ingest/not-a-posthog-path)
+            if [[ "$pre" == 2?? && "$miss" == 404 ]]; then
+              echo "proxy live at $URL: OPTIONS /ingest/e/ $pre, unknown path $miss"
+              exit 0
+            fi
+            echo "attempt $i: OPTIONS /ingest/e/ $pre, unknown path $miss"
             sleep 10
           done
-          echo "the /ingest function is not deployed at $URL (expected 404 from it, got $code)" >&2
+          echo "the /ingest function is not live at $URL (want a 2xx preflight and a 404 for an unknown path)" >&2
           exit 1
 
   # Leaves `pass-<area>-<key>` for each area whose suites all ran and passed
