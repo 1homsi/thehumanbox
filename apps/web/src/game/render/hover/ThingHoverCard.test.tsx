@@ -9,6 +9,7 @@ import { loadLocale, t } from '../../../i18n'
 import { prayerPlea } from '../../model/prayers'
 import { registerPeopleLayer } from '../cf/picking'
 import { buildTerritoryIndex } from '../../model/territory'
+import { TILE_ID } from '../../model/terrain-ids'
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
 afterAll(() => vi.unstubAllGlobals())
@@ -127,10 +128,17 @@ describe('ThingHoverCard', () => {
     expect(cardTextAt(townWorld())).toContain('Kornspeicher')
   })
 
-  it('names unclaimed ground under the pointer, and nothing while a god tool is armed', () => {
+  it('names a resource on unclaimed ground, and nothing while a god tool is armed', () => {
     expect(cardTextAt({ ...townWorld(), buildings: [] } as unknown as WorldState)).toBe('')
     expect(cardTextAt(townWorld(), { enabled: false })).toBe('')
-    expect(cardTextAt(waterWorld())).toBe('Deep water')
+    const ore = waterWorld()
+    ore.grid.tiles[10][10] = TILE_ID.MINERAL
+    expect(cardTextAt(ore).toLowerCase()).toContain('ore')
+  })
+
+  it('names no plain ground: the sea, like grass, is plain to see', () => {
+    expect(cardTextAt(waterWorld())).toBe('')
+    expect(lastBox?.style.display).toBe('none')
   })
 
   it('leaves claimed ground to the tribe card, which names the ground in its own line', () => {

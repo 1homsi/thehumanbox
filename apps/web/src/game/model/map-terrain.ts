@@ -86,12 +86,25 @@ function groundOf(tile: number, depth: number | undefined): GroundKey | null {
 }
 
 /**
- * Whether the ground under a point is worth a card of its own on unclaimed land: water, snow, ice, sand and
- * the rest, or grass with a road or a fire on it. Plain grass (fertile or not) is most of the map, and a card
- * for it under every pointer move was noise.
+ * Ground the picture alone does not explain: resources, fire and lava, floodwater. Plain land and water
+ * (grass, sea, sand, snow, rock and the rest) is most of the map and plain to see; a card naming it under
+ * every pointer move was noise that hid the cards that matter.
+ */
+const NOTABLE_GROUND: ReadonlySet<GroundKey> = new Set([
+  'mineral',
+  'foodGround',
+  'fire',
+  'campfire',
+  'lava',
+  'floodwater',
+])
+
+/**
+ * Whether the ground under a point is worth a card of its own on unclaimed land: a resource, fire, lava or
+ * floodwater, or any ground with a road, rail, canal, bridge or fire on it. Fertility alone is not.
  */
 export function groundIsNotable(facts: TerrainFacts | null): boolean {
   if (!facts) return false
-  if (facts.ground !== 'grass') return true
+  if (NOTABLE_GROUND.has(facts.ground)) return true
   return facts.notes.some((note) => note !== 'fertile')
 }

@@ -12,7 +12,7 @@ import { PLANT_KIND } from '../render/plantings'
 import { getBuildingState, type BuildingState } from './building-state'
 import { farmStage, type FarmStage } from './farms'
 import { animalsInView, type MapThing, type TreeKind } from './map-things'
-import { terrainAt, type GroundKey, type GroundNote } from './map-terrain'
+import { terrainAt, type GroundKey, type GroundNote, groundIsNotable } from './map-terrain'
 
 /** A thing's card: its name, then a few plain lines about it. */
 export interface ThingCard {
@@ -64,11 +64,11 @@ export function mapThingCard(world: WorldState, thing: MapThing): ThingCard | nu
 
 /**
  * The ground under a world point in one line for a tribe's card, for example "shallow water · on fire".
- * Null off the grid.
+ * Null off the grid, and for plain ground the picture already shows (see groundIsNotable).
  */
 export function groundLine(world: WorldState, worldX: number, worldY: number): string | null {
   const facts = terrainAt(world, worldX, worldY)
-  if (!facts) return null
+  if (!facts || !groundIsNotable(facts)) return null
   return [t(GROUND_WORDS[facts.ground]), ...facts.notes.map((note) => t(NOTE_WORDS[note]))].join(' · ')
 }
 
