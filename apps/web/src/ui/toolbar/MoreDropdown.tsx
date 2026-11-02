@@ -347,20 +347,6 @@ export function MoreDropdown({
             ⊞ {t('dock.more.world')}
           </button>
         </Tooltip>
-        <div className="more-pause" role="group" aria-label={t('dock.more.pauseOnTip')}>
-          <span className="more-pause-label">⏸ {t('dock.more.pauseOn')}</span>
-          {PAUSE_TRIGGERS.map((trigger) => (
-            <Tooltip key={trigger} tip={t(`dock.more.pauseTip.${trigger}`)}>
-              <button
-                className={clsx('lang-btn', pauseOn[trigger] && 'active')}
-                aria-pressed={pauseOn[trigger]}
-                onClick={() => setPauseOn(trigger, !pauseOn[trigger])}
-              >
-                {t(`dock.more.pause.${trigger}`)}
-              </button>
-            </Tooltip>
-          ))}
-        </div>
         <Tooltip
           tip={
             <span className="tip-card">
@@ -397,6 +383,22 @@ export function MoreDropdown({
             ✦ {t('dock.more.notable')}
           </button>
         </Tooltip>
+      </div>
+
+      <div className="more-dropdown-divider" />
+      <div className="more-dropdown-section">⏸ {t('dock.more.pauseOn')}</div>
+      <div className="more-dropdown-grid" role="group" aria-label={t('dock.more.pauseOnTip')}>
+        {PAUSE_TRIGGERS.map((trigger) => (
+          <Tooltip key={trigger} tip={t(`dock.more.pauseTip.${trigger}`)}>
+            <button
+              className={clsx('lang-btn', pauseOn[trigger] && 'active')}
+              aria-pressed={pauseOn[trigger]}
+              onClick={() => setPauseOn(trigger, !pauseOn[trigger])}
+            >
+              {t(`dock.more.pause.${trigger}`)}
+            </button>
+          </Tooltip>
+        ))}
       </div>
     </div>
   )
