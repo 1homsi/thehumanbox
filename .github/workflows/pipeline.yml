@@ -227,7 +227,8 @@ jobs:
         with:
           name: native-fingerprint
           path: native-fingerprint.txt
-          retention-days: 7
+          # As long as the pass records, so a later run that skips these tests can use it.
+          retention-days: 90
 
   simulation-performance:
     name: Simulation performance budget
@@ -377,16 +378,23 @@ jobs:
           retention-days: 7
 
   # The browser sim must make the same world as the native one. Both sides come
-  # from this commit, so changing the world's rules needs no committed value
-  # updated. Everything the wasm is built from is in the sim area too, so when the
-  # simulation tests were skipped an earlier run that passed the same sources
-  # compared this same wasm.
+  # from this commit's sources, so changing the world's rules needs no committed
+  # value updated. Runs for every wasm built or reused, so a client pass always
+  # covers one. The native hash comes from this run's simulation tests, or from
+  # the run that passed the same sim sources when they were skipped, or, when
+  # neither has it (an older run, an expired artifact), is built here.
   determinism:
     name: Native and wasm worlds match
     needs: [changes, simulation-tests, build-wasm]
-    if: ${{ !cancelled() && needs.simulation-tests.result == 'success' && needs.build-wasm.result == 'success' }}
+    if: >-
+      ${{ !cancelled()
+        && needs.build-wasm.result == 'success'
+        && (needs.simulation-tests.result == 'success' || needs.simulation-tests.result == 'skipped') }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_NET_RETRY: 10
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -396,9 +404,30 @@ jobs:
         with:
           name: sim-core-wasm
           path: apps/web/src/wasm
-      - uses: actions/download-artifact@v8
+      - name: Native fingerprint of this run
+        id: here
+        if: needs.simulation-tests.result == 'success'
+        uses: actions/download-artifact@v8
         with:
           name: native-fingerprint
+      - name: Native fingerprint of the run that passed the sim sources
+        id: earlier
+        if: needs.simulation-tests.result == 'skipped' && needs.changes.outputs.sim_run != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: native-fingerprint
+          run-id: ${{ needs.changes.outputs.sim_run }}
+          github-token: ${{ github.token }}
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.here.outcome != 'success' && steps.earlier.outcome != 'success'
+      - uses: Swatinem/rust-cache@v2
+        if: steps.here.outcome != 'success' && steps.earlier.outcome != 'success'
+        with:
+          workspaces: . -> target
+      - name: Build the native fingerprint here
+        if: steps.here.outcome != 'success' && steps.earlier.outcome != 'success'
+        run: cargo run --release --locked -p sim-core --example save_fingerprint -- 42 3000 | tee native-fingerprint.txt
       - name: Compare the wasm world with the native one
         run: node scripts/check-wasm-determinism.mjs apps/web/src/wasm/sim-core --native "$(cat native-fingerprint.txt)"
 
@@ -609,8 +638,7 @@ jobs:
           }
           [ "$CHANGES" = success ] || fail "change detection did not succeed ($CHANGES)"
           [ "$WASM" = success ] || fail "the wasm build did not succeed ($WASM)"
-          # Skipped only when the simulation tests were (see the determinism job).
-          [ "$DETERMINISM" = success ] || [ "$DETERMINISM" = skipped ] || fail "the wasm world differs from the native one ($DETERMINISM)"
+          [ "$DETERMINISM" = success ] || fail "the wasm world was not shown to match the native one ($DETERMINISM)"
           [ "$FRONTEND" = success ] || [ "$SHIPPED" = success ] || fail "no frontend was built or shipped"
           area "$SIM_RUN" "$LINT" "$TESTS" "$PERF"
           area "$CLIENT_RUN" "$FRONTEND_TESTS"
@@ -759,7 +787,7 @@ jobs:
         if: >-
           ${{ needs.changes.outputs.client == 'true' && needs.test-frontend.result == 'success'
             && needs.build-wasm.result == 'success' && needs.build-frontend.result == 'success'
-            && (needs.determinism.result == 'success' || needs.determinism.result == 'skipped') }}
+            && needs.determinism.result == 'success' }}
         uses: actions/upload-artifact@v7
         with:
           name: pass-client-${{ needs.changes.outputs.client_key }}
