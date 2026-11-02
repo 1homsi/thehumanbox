@@ -4,7 +4,9 @@ import { cbColor } from '../../../shared/constants'
 export function Bar({ label, value, color }: { label: string; value: number; color: string }) {
   return (
     <div className="bar-row">
-      <span className="bar-label">{label}</span>
+      <span className="bar-label bar-label-word" title={label}>
+        {label}
+      </span>
       <div className="bar-track">
         <div
           className="bar-fill"

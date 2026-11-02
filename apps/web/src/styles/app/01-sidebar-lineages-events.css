@@ -297,8 +297,20 @@
   color: #888;
   width: 10px;
 }
+/* A word, not a one-glyph label: wide enough for "hydration" in most languages, so the bars line up, and
+   allowed to grow for longer words rather than run under the bar. */
+.bar-label-word {
+  width: auto;
+  min-width: 11ch;
+  max-width: 40%;
+  flex: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .bar-track {
   flex: 1;
+  min-width: 0;
   height: 3px;
   background: #3f2f23;
   border-radius: 2px;
