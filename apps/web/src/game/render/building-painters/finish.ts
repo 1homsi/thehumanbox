@@ -101,28 +101,147 @@ export function snapToPixels(d: Uint8ClampedArray) {
   }
 }
 
+/** How much darker the receding side wall is than the front, and how much lighter the top. */
+const SIDE_SHADE = 0.7
+const TOP_LIGHT = 1.1
+/** The inner ink line where the front meets the side or the top. */
+const FOLD_INK = 0.55
+
+/** How far a building of this footprint depth (in pixels) recedes up and to the right. */
+export function depthFor(depthPx: number, room: number): number {
+  return Math.max(0, Math.min(room, 5, Math.round(depthPx * 0.2)))
+}
+
+/**
+ * The most common front colour in the five rows around each row: the wall or roof there, not a window,
+ * a beam or one course of its bricks.
+ */
+function rowColours(d: Uint8ClampedArray, width: number, height: number, front: Uint8Array): number[] {
+  const perRow: Map<number, number>[] = []
+  for (let y = 0; y < height; y++) {
+    const counts = new Map<number, number>()
+    for (let x = 0; x < width; x++) {
+      if (!front[y * width + x]) continue
+      const o = (y * width + x) * 4
+      const c = (d[o] << 16) | (d[o + 1] << 8) | d[o + 2]
+      counts.set(c, (counts.get(c) ?? 0) + 1)
+    }
+    perRow.push(counts)
+  }
+  const out = new Array<number>(height).fill(-1)
+  const sum = new Map<number, number>()
+  for (let y = 0; y < height; y++) {
+    if (perRow[y].size === 0) continue
+    sum.clear()
+    for (let r = Math.max(0, y - 2); r <= Math.min(height - 1, y + 2); r++) {
+      for (const [c, n] of perRow[r]) sum.set(c, (sum.get(c) ?? 0) + n)
+    }
+    let bestN = 0
+    for (const [c, n] of sum) {
+      if (n > bestN || (n === bestN && c < out[y])) {
+        bestN = n
+        out[y] = c
+      }
+    }
+  }
+  return out
+}
+
+/** Length of the run of front pixels through (x, y) in its row. */
+function runAt(front: Uint8Array, width: number, x: number, y: number): number {
+  let a = x
+  let b = x
+  while (a > 0 && front[y * width + a - 1]) a--
+  while (b < width - 1 && front[y * width + b + 1]) b++
+  return b - a + 1
+}
+
+/**
+ * The building seen a little from above, as the trees and people are: every solid pixel is carried up to
+ * `depth` pixels back, up and to the right, behind the front. What shows of it is a side wall along the
+ * right (in shade) and a top along the upper edge (in light): roofs become a slope going back, towers a
+ * block. Each face takes the most common colour of the rows it continues, so it is that wall or roof in one
+ * flat tone and a window at the corner does not smear along it. Thin upright
+ * parts (chimneys, masts, spires) go back only as far as they are wide. Returns the new silhouette:
+ * 1 for the front, 2 for what the depth added.
+ */
+export function extrude(
+  d: Uint8ClampedArray,
+  width: number,
+  height: number,
+  front: Uint8Array,
+  depth: number,
+): Uint8Array {
+  const solid = new Uint8Array(front)
+  if (depth <= 0) return solid
+  const at = (x: number, y: number) =>
+    x >= 0 && y >= 0 && x < width && y < height && front[y * width + x] === 1
+  const rows = rowColours(d, width, height, front)
+  // How far each front pixel may go back: thin where its row and the row two below are both thin.
+  const reach = new Uint8Array(width * height)
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (!at(x, y)) continue
+      const run = runAt(front, width, x, y)
+      const below = at(x, y + 2) ? runAt(front, width, x, y + 2) : 0
+      reach[y * width + x] = run <= 3 && below <= 3 ? Math.min(depth, Math.max(1, run - 1)) : depth
+    }
+  }
+  for (let k = 1; k <= depth; k++) {
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (!at(x, y) || reach[y * width + x] < k) continue
+        const tx = x + k
+        const ty = y - k
+        if (tx >= width || ty < 0) continue
+        const t = ty * width + tx
+        if (solid[t]) continue
+        const o = t * 4
+        // A flat top (nothing above, solid to the right) is in light; a side, or a slope going down to
+        // the right, is in shade. Either way one flat tone from the rows it continues.
+        const c = rows[y]
+        const f = !at(x, y - 1) && at(x + 1, y) ? TOP_LIGHT : SIDE_SHADE
+        d[o] = Math.min(255, Math.round(((c >> 16) & 255) * f))
+        d[o + 1] = Math.min(255, Math.round(((c >> 8) & 255) * f))
+        d[o + 2] = Math.min(255, Math.round((c & 255) * f))
+        d[o + 3] = 255
+        solid[t] = 2
+      }
+    }
+  }
+  return solid
+}
+
 /**
  * The last step of a building sprite, over what the painter drew: every pixel made whole or empty, the
- * colours go earthy, the outer edge becomes the warm ink, and a flat cast shadow lies under it to the
- * bottom-right. Done on pixels because ~200 painters share it; the sprite is cached, so this runs once per
- * look, not per frame.
+ * colours go earthy, the building gets its depth (see extrude), the outer edge becomes the warm ink, and
+ * a flat cast shadow lies under it to the bottom-right. Done on pixels because ~200 painters share it;
+ * the sprite is cached, so this runs once per look, not per frame. `depthPx` is the footprint's depth.
  */
-export function finishSprite(ctx: CanvasRenderingContext2D, width: number, height: number, kind: string) {
+export function finishSprite(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  kind: string,
+  depthPx = 0,
+) {
   const groundY = height - PAD_BOT
   const img = ctx.getImageData(0, 0, width, height)
   const d = img.data
   snapToPixels(d)
-  const solid = (x: number, y: number) =>
-    x >= 0 && y >= 0 && x < width && y < height && d[(y * width + x) * 4 + 3] >= SOLID
-  const edge = new Uint8Array(width * height)
+  const front = new Uint8Array(width * height)
   let bx0 = width
   let bx1 = -1
   let top = height
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      if (!solid(x, y)) continue
-      if (!solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1))
-        edge[y * width + x] = 1
+      const o = (y * width + x) * 4
+      if (d[o + 3] < SOLID) continue
+      front[y * width + x] = 1
+      const [r, g, b] = earthy(d[o], d[o + 1], d[o + 2])
+      d[o] = r
+      d[o + 1] = g
+      d[o + 2] = b
       if (y < groundY && y >= groundY - 4) {
         if (x < bx0) bx0 = x
         if (x > bx1) bx1 = x
@@ -130,24 +249,30 @@ export function finishSprite(ctx: CanvasRenderingContext2D, width: number, heigh
       if (y < top) top = y
     }
   }
-  for (let i = 0, n = width * height; i < n; i++) {
-    const o = i * 4
-    if (d[o + 3] === 0) continue
-    const [r, g, b] = earthy(d[o], d[o + 1], d[o + 2])
-    if (edge[i]) {
-      d[o] = Math.round(r + (INK[0] - r) * EDGE_INK)
-      d[o + 1] = Math.round(g + (INK[1] - g) * EDGE_INK)
-      d[o + 2] = Math.round(b + (INK[2] - b) * EDGE_INK)
-    } else {
-      d[o] = r
-      d[o + 1] = g
-      d[o + 2] = b
+  const buildingHeight = groundY - top
+  const raised = bx1 >= 0 && buildingHeight >= 7 && !FLAT_KINDS.has(kind)
+  const depth = raised ? depthFor(depthPx, Math.min(top, width - 1 - bx1 - 2)) : 0
+  const solid = extrude(d, width, height, front, depth)
+  const filled = (x: number, y: number) =>
+    x >= 0 && y >= 0 && x < width && y < height && solid[y * width + x] !== 0
+  const ink = (o: number, share: number) => {
+    d[o] = Math.round(d[o] + (INK[0] - d[o]) * share)
+    d[o + 1] = Math.round(d[o + 1] + (INK[1] - d[o + 1]) * share)
+    d[o + 2] = Math.round(d[o + 2] + (INK[2] - d[o + 2]) * share)
+  }
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x
+      if (!solid[i]) continue
+      if (!filled(x - 1, y) || !filled(x + 1, y) || !filled(x, y - 1) || !filled(x, y + 1))
+        ink(i * 4, EDGE_INK)
+      // The fold between the front and its side or top.
+      else if (solid[i] === 1 && (solid[i + 1] === 2 || solid[i - width] === 2)) ink(i * 4, FOLD_INK)
     }
   }
   ctx.putImageData(img, 0, 0)
 
-  const buildingHeight = groundY - top
-  if (bx1 < 0 || buildingHeight < 7 || FLAT_KINDS.has(kind)) return
+  if (!raised) return
   const room = width - 1 - bx1
   ctx.save()
   ctx.globalCompositeOperation = 'destination-over'

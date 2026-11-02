@@ -70,7 +70,7 @@ export function getBuildingSprite(
     }
     ctx.restore()
   }
-  finishSprite(ctx, canvas.width, canvas.height, kind)
+  finishSprite(ctx, canvas.width, canvas.height, kind, fh * tile)
   if (spriteCache.size > 900) spriteCache.clear()
   spriteCache.set(key, canvas)
   return canvas
