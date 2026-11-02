@@ -65,7 +65,7 @@ jobs:
           # touch them.
           ci=(.github/workflows/pipeline.yml scripts/source-key.sh)
           sim=("${ci[@]}" .config apps/server crates Cargo.toml Cargo.lock rustfmt.toml clippy.toml
-            scripts/perf-gate.sh)
+            scripts/perf-gate.sh scripts/build-wasm.sh scripts/build-wasm-threads.sh scripts/check-wasm-determinism.mjs)
           client=("${ci[@]}" apps/web crates/sim-core Cargo.toml Cargo.lock .node-version
             scripts/build-wasm.sh scripts/build-wasm-threads.sh scripts/check-wasm-determinism.mjs)
           desktop=("${ci[@]}" apps/desktop .node-version)
@@ -378,9 +378,9 @@ jobs:
 
   # The browser sim must make the same world as the native one. Both sides come
   # from this commit, so changing the world's rules needs no committed value
-  # updated. When the simulation tests were skipped, sim-core is unchanged since
-  # a run that passed (the client area includes sim-core), so that run compared
-  # this same wasm.
+  # updated. Everything the wasm is built from is in the sim area too, so when the
+  # simulation tests were skipped an earlier run that passed the same sources
+  # compared this same wasm.
   determinism:
     name: Native and wasm worlds match
     needs: [changes, simulation-tests, build-wasm]
@@ -749,7 +749,7 @@ jobs:
         if: >-
           ${{ needs.changes.outputs.sim == 'true' && needs.simulation-lint.result == 'success'
             && needs.simulation-tests.result == 'success' && needs.simulation-performance.result == 'success'
-            && needs.determinism.result != 'failure' }}
+            && (needs.determinism.result == 'success' || needs.determinism.result == 'skipped') }}
         uses: actions/upload-artifact@v7
         with:
           name: pass-sim-${{ needs.changes.outputs.sim_key }}
@@ -759,7 +759,7 @@ jobs:
         if: >-
           ${{ needs.changes.outputs.client == 'true' && needs.test-frontend.result == 'success'
             && needs.build-wasm.result == 'success' && needs.build-frontend.result == 'success'
-            && needs.determinism.result != 'failure' }}
+            && (needs.determinism.result == 'success' || needs.determinism.result == 'skipped') }}
         uses: actions/upload-artifact@v7
         with:
           name: pass-client-${{ needs.changes.outputs.client_key }}
