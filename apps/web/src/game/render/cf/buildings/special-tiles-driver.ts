@@ -1,3 +1,4 @@
+import { ellipsePixels } from '../atlas-bake'
 import { SPRITE_UNTEXTURED, type SpriteLayer } from 'xipjs'
 import { TILE_ID } from '../../../model/terrain-ids'
 import { TILE } from '../../../model/palette'
@@ -16,7 +17,7 @@ export const PROP_CLASSES: ReadonlyArray<readonly [number, number]> = [
   [34, 48],
   [48, 48],
 ]
-/** The two night glows, each one soft radial gradient scaled per flicker. */
+/** The two night glows, each a few flat steps of whole pixels (see paintGlow). */
 export const GLOW_CLASSES: ReadonlyArray<readonly [number, number]> = [
   [54, 54],
   [70, 70],
@@ -64,15 +65,25 @@ function paintTownHall(ctx: CanvasRenderingContext2D, fx: number, fy: number) {
   ctx.fillRect(tx + TH - 8, ty + TH * 0.42, 4, 4)
 }
 
-/** One soft light: the canvas painter's radial gradient at its resting radius. */
-function paintGlow(ctx: CanvasRenderingContext2D, size: number, inner: number) {
-  const c = size / 2
-  const grad = ctx.createRadialGradient(c, c, inner, c, c, c)
-  grad.addColorStop(0, 'rgba(255,190,90,0.36)')
-  grad.addColorStop(0.45, 'rgba(255,150,50,0.14)')
-  grad.addColorStop(1, 'rgba(255,120,30,0)')
-  ctx.fillStyle = grad
-  ctx.fillRect(0, 0, size, size)
+/** The steps of a fire's light, outermost first: the share of its radius each covers, and its alpha. */
+const GLOW_STEPS: ReadonlyArray<readonly [number, number]> = [
+  [1, 0.1],
+  [0.66, 0.12],
+  [0.36, 0.14],
+]
+
+/**
+ * One fire's light at night: three discs of whole pixels, each a flat warmer step over the last. A smooth
+ * radial gradient scaled up and down every frame, many of them over a wildfire, came out as soft blurred
+ * blobs: the airbrushed look the rest of the map no longer has.
+ */
+function paintGlow(ctx: CanvasRenderingContext2D, size: number) {
+  for (const [share, alpha] of GLOW_STEPS) {
+    const d = Math.max(2, Math.round(size * share))
+    const off = Math.floor((size - d) / 2)
+    ctx.fillStyle = `rgba(255,170,70,${alpha})`
+    for (const [i, j] of ellipsePixels(d, d, 'disc')) ctx.fillRect(off + i, off + j, 1, 1)
+  }
 }
 
 /**
@@ -195,25 +206,21 @@ export class SpecialTilesDriver implements CfDriver {
         const fi = fireIntensity?.[row]?.[col] ?? 1
         const seed = visualTileHash(col + ox, row + oy)
         if (night && !overview) {
+          // The light flickers in strength, not size: a whole-pixel disc scaled by a fraction would shimmer.
           const flicker = 0.88 + Math.sin(now * 0.011 + col * 3.1 + row * 1.7) * 0.12
-          const r0g = camp ? CAMP_GLOW_R : FIRE_GLOW_R
-          // Baked at the nearest even size; the quad is scaled so its radius is r0g * flicker.
-          const side = Math.ceil(r0g * 2)
-          const cell = this.glowAtlas.bake(`G${camp ? 1 : 0}`, side, side, (ctx) =>
-            paintGlow(ctx, side, (TILE * 0.4 * side) / 2 / r0g),
-          )
+          const side = Math.ceil((camp ? CAMP_GLOW_R : FIRE_GLOW_R) * 2)
+          const cell = this.glowAtlas.bake(`G${camp ? 1 : 0}`, side, side, (ctx) => paintGlow(ctx, side))
           if (cell) {
-            const k = (flicker * r0g) / (side / 2)
             writeSprite(
               glow,
               nf++,
               px + TILE / 2,
               py + TILE / 2,
-              cell.cw * k,
-              cell.ch * k,
+              cell.cw,
+              cell.ch,
               cell.atlas,
               cell.frame,
-              rgba(255, 255, 255, Math.round(Math.max(0, Math.min(1, fi)) * 255)),
+              rgba(255, 255, 255, Math.round(Math.max(0, Math.min(1, fi * flicker)) * 255)),
               0,
               order,
               row * width + col,
