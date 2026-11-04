@@ -81,6 +81,34 @@ describe('paintEmbers', () => {
     expect(none.log.fills).toBe(0)
   })
 
+  it('paints the same embers from the list of burning cells as from a scan of the grid', () => {
+    const big = Array.from({ length: 30 }, (_, r) =>
+      Array.from({ length: 30 }, (_, c) => ((r * 7 + c * 3) % 11 === 0 ? 0.8 : 0)),
+    )
+    const hot: number[] = []
+    big.forEach((row, r) => row.forEach((v, c) => v > 0 && hot.push(r, c)))
+    const record = () => {
+      const rects: string[] = []
+      const ctx = {
+        save() {},
+        restore() {},
+        globalAlpha: 1,
+        fillStyle: '',
+        fillRect(x: number, y: number) {
+          rects.push(`${x},${y},${ctx.fillStyle},${ctx.globalAlpha.toFixed(3)}`)
+        },
+      }
+      return { ctx: ctx as unknown as CanvasRenderingContext2D, rects }
+    }
+    const v = { c0: 3, c1: 28, r0: 2, r1: 25, ox: 0, oy: 0 }
+    const scanned = record()
+    paintEmbers(scanned.ctx, big, v, 777)
+    const listed = record()
+    paintEmbers(listed.ctx, big, v, 777, Int32Array.from(hot))
+    expect(listed.rects.length).toBeGreaterThan(0)
+    expect(listed.rects).toEqual(scanned.rects)
+  })
+
   it('reads the grid at the offset of the origin', () => {
     const { ctx, log } = countingContext()
     paintEmbers(ctx, fire, { ...view, c0: 10, c1: 13, ox: 10 }, 500)

@@ -2,6 +2,7 @@ import { TILE } from '../../../model/palette'
 import { TILE_ID } from '../../../model/terrain-ids'
 import { EDGE_EAST, EDGE_NORTH, EDGE_SOUTH, EDGE_WEST } from '../../../model/terrain-visuals'
 import { unitHash } from './weather-fx'
+import { cellsWhere, forCellsInView } from './cell-index'
 
 type Ctx = CanvasRenderingContext2D
 
@@ -60,33 +61,28 @@ export function paintFloodFront(
   t: number,
 ): void {
   if (!tiles) return
+  const flooded = cellsWhere(tiles, 'flooded', (row, col) => tiles[row][col] === TILE_ID.FLOODED)
+  if (flooded.length === 0) return
   ctx.save()
   ctx.fillStyle = FLOOD_SHEEN
-  for (let r = view.r0; r < view.r1; r++) {
-    const gr = r - view.oy
-    const row = tiles[gr]
-    if (!row) continue
-    for (let c = view.c0; c < view.c1; c++) {
-      const gc = c - view.ox
-      if (row[gc] !== TILE_ID.FLOODED) continue
-      const px = gc * TILE
-      const py = gr * TILE
-      ctx.fillRect(px, py, TILE, TILE)
-      const edges = dryEdges(tiles, gr, gc)
-      if (edges === 0) continue
-      // Broken foam: about one cell in four is left out, the same cells every time.
-      if (unitHash(gc * 3 + 1, gr * 5 + 2) < 0.25) continue
-      const crest = foamCrest(gr, gc, t)
-      if (crest < 0.05) continue
-      ctx.globalAlpha = 0.3 + 0.6 * crest
-      ctx.fillStyle = FOAM_COLOUR
-      if (edges & EDGE_NORTH) ctx.fillRect(px, py, TILE, FOAM_WIDTH)
-      if (edges & EDGE_SOUTH) ctx.fillRect(px, py + TILE - FOAM_WIDTH, TILE, FOAM_WIDTH)
-      if (edges & EDGE_WEST) ctx.fillRect(px, py, FOAM_WIDTH, TILE)
-      if (edges & EDGE_EAST) ctx.fillRect(px + TILE - FOAM_WIDTH, py, FOAM_WIDTH, TILE)
-      ctx.fillStyle = FLOOD_SHEEN
-      ctx.globalAlpha = 1
-    }
-  }
+  forCellsInView(flooded, view, (gr, gc) => {
+    const px = gc * TILE
+    const py = gr * TILE
+    ctx.fillRect(px, py, TILE, TILE)
+    const edges = dryEdges(tiles, gr, gc)
+    if (edges === 0) return
+    // Broken foam: about one cell in four is left out, the same cells every time.
+    if (unitHash(gc * 3 + 1, gr * 5 + 2) < 0.25) return
+    const crest = foamCrest(gr, gc, t)
+    if (crest < 0.05) return
+    ctx.globalAlpha = 0.3 + 0.6 * crest
+    ctx.fillStyle = FOAM_COLOUR
+    if (edges & EDGE_NORTH) ctx.fillRect(px, py, TILE, FOAM_WIDTH)
+    if (edges & EDGE_SOUTH) ctx.fillRect(px, py + TILE - FOAM_WIDTH, TILE, FOAM_WIDTH)
+    if (edges & EDGE_WEST) ctx.fillRect(px, py, FOAM_WIDTH, TILE)
+    if (edges & EDGE_EAST) ctx.fillRect(px + TILE - FOAM_WIDTH, py, FOAM_WIDTH, TILE)
+    ctx.fillStyle = FLOOD_SHEEN
+    ctx.globalAlpha = 1
+  })
   ctx.restore()
 }
