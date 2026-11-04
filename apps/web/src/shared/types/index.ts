@@ -601,6 +601,12 @@ export interface GridState {
   origin_y: number
   tiles: ArrayLike<number>[]
   fire_intensity: number[][]
+  /**
+   * The cells listed in this frame's fire layer, as flattened `row, col` pairs in row-major order, so
+   * the renderer looks at the burning cells instead of the whole grid. Absent when the grid was not
+   * built from a wire.
+   */
+  fire_hot?: Int32Array
   structure: number[][]
   /** Bumped when a frame carried a new `structure` layer, so the renderer re-reads it only then. */
   structure_revision?: number

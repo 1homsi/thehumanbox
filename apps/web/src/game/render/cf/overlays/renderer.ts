@@ -32,10 +32,10 @@ import { paintFallingBlossoms } from './falling-blossoms'
 import { paintFallingLeaves } from './falling-leaves'
 import { paintCampfireSparks, paintEmbers } from './embers'
 import { paintEruption } from './eruption'
-import { paintGroundSnow } from './ground-snow'
+import { paintGroundSnow, snowCover } from './ground-snow'
 import { paintFloodFront } from './flood-front'
 import { paintSkyFlyers } from './sky-flyers'
-import { paintGroundIce } from './ground-ice'
+import { iceCover, paintGroundIce } from './ground-ice'
 import { paintPlagueHaze } from './plague-haze'
 import { ANIMAL_DUST, FootstepDust } from './footstep-dust'
 import { zoomDetailLevel } from '../../character-visuals'
@@ -70,6 +70,7 @@ export const Z = {
   precip: 6,
   heat: 10,
   groundStatic: 11,
+  groundStill: 11.25,
   ground: 12,
   roads: 15,
   traffic: 25,
@@ -104,6 +105,11 @@ export interface OverlayExtras {
 
 /** The ground effects are rewritten at most this often when nothing else changed. */
 const GROUND_INTERVAL_MS = 66
+/**
+ * The still ground (puddles, snow, shore ice) is drawn over the view widened out to blocks of this
+ * many tiles, so panning a little reuses it instead of drawing it all again.
+ */
+const STILL_BLOCK = 32
 /** Time-driven overlay layers need at most 15 updates per second. */
 const ANIMATED_SECTION_INTERVAL_MS = 66
 /** While a label fades, the labels repaint at this interval (about 60 times a second). */
@@ -138,6 +144,8 @@ export class CfOverlayRenderer {
   private readonly tintLayer: SpriteLayer
   private readonly precipLayer: SpriteLayer
   private readonly groundStatic: SpriteRecorder
+  /** Ground that holds still between changes of weather, season or tiles: puddles, snow, shore ice. */
+  private readonly groundStill: SpriteRecorder
   private readonly ground: SpriteRecorder
   private readonly roads: SpriteRecorder
   private readonly traffic: SpriteRecorder
@@ -161,6 +169,8 @@ export class CfOverlayRenderer {
   private territoryRef: unknown = null
   private contestedKey = ''
   private groundKey = ''
+  private stillKey = ''
+  private stillTiles: unknown = null
   private groundFlags: unknown = null
   private groundAt = -Infinity
   private atmosphereKey = ''
@@ -246,6 +256,7 @@ export class CfOverlayRenderer {
       this.shapes,
       this.glyphs,
     )
+    this.groundStill = new SpriteRecorder(shape(Z.groundStill), text(Z.groundStill), this.shapes, this.glyphs)
     this.ground = new SpriteRecorder(shape(Z.ground), text(Z.ground), this.shapes, this.glyphs)
     this.roads = new SpriteRecorder(shape(Z.roads), text(Z.roads), this.shapes, this.glyphs)
     this.traffic = new SpriteRecorder(shape(Z.traffic), text(Z.traffic), this.shapes, this.glyphs)
@@ -321,6 +332,8 @@ export class CfOverlayRenderer {
     const heatRebuilt = this.updateHeat(f)
     lap('heat')
 
+    this.updateStillGround(f)
+
     // Ground effects: clouds, lines, water glints and fire light. They drift slowly, so they are
     // rewritten about 15 times a second, at once when the view or the settings change.
     const gv = { zoom: f.zoom, dpr: f.dpr }
@@ -353,16 +366,12 @@ export class CfOverlayRenderer {
         !f.world.is_day,
         f.world.volcanoes,
       )
-      const snowView = { ...f.bounds, ox: f.ox, oy: f.oy }
-      paintGroundSnow(ground, f.world.grid.tiles, snowView, terrainSeason(f.world), f.world.season_progress)
-      paintGroundIce(ground, f.world.grid.tiles, snowView, terrainSeason(f.world), f.world.season_progress)
       const floodView = { ...f.bounds, ox: f.ox, oy: f.oy }
       paintFloodFront(ground, f.world.grid.tiles, floodView, f.t)
       paintFireGlow(ground, f)
       const emberView = { ...f.bounds, ox: f.ox, oy: f.oy }
-      paintEmbers(ground, f.world.grid.fire_intensity, emberView, f.t)
+      paintEmbers(ground, f.world.grid.fire_intensity, emberView, f.t, f.world.grid.fire_hot)
       paintCampfireSparks(ground, f.world.grid.tiles, emberView, f.t)
-      paintPuddles(ground, f, wetnessOf(f.world))
       paintStars(ground, f.bounds, f.ox, f.oy, f.t, nightLevel(f.world))
       const { c0, c1, r0, r1 } = f.bounds
       const win = { x0: c0, y0: r0, x1: c1, y1: r1 }
@@ -505,6 +514,7 @@ export class CfOverlayRenderer {
       this.effects,
       this.hud,
       this.groundStatic,
+      this.groundStill,
     ]) {
       for (const [k, v] of Object.entries(r.stats.unsupported)) unsupported[k] = (unsupported[k] ?? 0) + v
     }
@@ -601,6 +611,49 @@ export class CfOverlayRenderer {
   }
 
   // ── heat map ───────────────────────────────────────────────────────────────
+
+  /**
+   * Puddles, snow and shore ice change only with the weather, the season, the tiles or the view,
+   * not with the clock, so they are drawn again only when one of those moves (the cover levels in
+   * steps of a hundredth), over the view widened to whole blocks. Thousands of them on a
+   * zoomed-out map were most of the main thread when they were drawn with the animated ground.
+   */
+  private updateStillGround(f: CfFrame): void {
+    const cols = Math.round(f.W / TILE)
+    const rows = Math.round(f.H / TILE)
+    const block = (v: number) => Math.floor(v / STILL_BLOCK) * STILL_BLOCK
+    const win = {
+      c0: Math.max(f.ox, block(f.bounds.c0)),
+      c1: Math.min(f.ox + cols, block(f.bounds.c1 - 1) + STILL_BLOCK),
+      r0: Math.max(f.oy, block(f.bounds.r0)),
+      r1: Math.min(f.oy + rows, block(f.bounds.r1 - 1) + STILL_BLOCK),
+    }
+    const season = terrainSeason(f.world)
+    const progress = f.world.season_progress
+    const wetness = wetnessOf(f.world)
+    const key = [
+      win.c0,
+      win.c1,
+      win.r0,
+      win.r1,
+      f.ox,
+      f.oy,
+      wetness.toFixed(2),
+      snowCover(season, progress).toFixed(2),
+      iceCover(season, progress).toFixed(2),
+    ].join('|')
+    const tiles = f.world.grid.tiles
+    if (key === this.stillKey && tiles === this.stillTiles) return
+    this.stillKey = key
+    this.stillTiles = tiles
+    this.groundStill.begin({ zoom: f.zoom, dpr: f.dpr })
+    const ctx = this.groundStill.asContext()
+    const view = { ...win, ox: f.ox, oy: f.oy }
+    paintGroundSnow(ctx, tiles, view, season, progress)
+    paintGroundIce(ctx, tiles, view, season, progress)
+    paintPuddles(ctx, { bounds: win, ox: f.ox, oy: f.oy }, wetness)
+    this.groundStill.end()
+  }
 
   private updateHeat(f: CfFrame): boolean {
     const { world, viewFlags } = f

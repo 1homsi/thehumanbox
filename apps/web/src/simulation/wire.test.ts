@@ -29,6 +29,24 @@ describe('applyGridWire', () => {
     expect(second.structure[0]).toBe(firstStructureRow0)
   })
 
+  it('lists the burning cells, and clears the ones that stopped burning', () => {
+    const w1 = emptyWire(4, 3)
+    w1.fire = [
+      [2, 1, 500],
+      [0, 3, 300],
+    ]
+    const first = applyGridWire(w1, null)
+    expect(Array.from(first.fire_hot!)).toEqual([0, 3, 2, 1])
+    const w2 = emptyWire(4, 3)
+    w2.fire = [[1, 1, 900]]
+    const second = applyGridWire(w2, first)
+    expect(second.fire_intensity).toBe(first.fire_intensity)
+    expect(second.fire_intensity[2][1]).toBe(0)
+    expect(second.fire_intensity[0][3]).toBe(0)
+    expect(second.fire_intensity[1][1]).toBeCloseTo(0.9, 5)
+    expect(Array.from(second.fire_hot!)).toEqual([1, 1])
+  })
+
   it('allocates fresh arrays when the grid resizes', () => {
     const first = applyGridWire(emptyWire(4, 3), null)
     const second = applyGridWire(emptyWire(5, 3), first)

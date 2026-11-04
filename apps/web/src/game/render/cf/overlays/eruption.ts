@@ -1,6 +1,7 @@
 import { TILE } from '../../../model/palette'
 import { BIOME_ID, TILE_ID } from '../../../model/terrain-ids'
 import { unitHash } from './weather-fx'
+import { cellsWhere, forCellsInView } from './cell-index'
 
 type Ctx = CanvasRenderingContext2D
 
@@ -69,28 +70,38 @@ export function isCraterMouth(
   )
 }
 
-/** The vents in the view, as grid cells, at most `VENT_LIMIT` of them; crater mouths come first. */
+/**
+ * The vents in the view, as grid cells, at most `VENT_LIMIT` of them; crater mouths come first.
+ * The mouths and vents of a grid are found once (see `cellsWhere`) and filtered to the view here.
+ */
 export function findVents(
   tiles: readonly ArrayLike<number>[] | undefined,
   biomes: readonly ArrayLike<number>[] | undefined,
   view: VentView,
 ): { row: number; col: number }[] {
-  const mouths: { row: number; col: number }[] = []
-  const vents: { row: number; col: number }[] = []
-  if (!tiles || !biomes) return mouths
-  for (let r = view.r0; r < view.r1 && mouths.length < VENT_LIMIT; r++) {
-    const row = r - view.oy
-    const tr = tiles[row]
-    const br = biomes[row]
-    if (!tr || !br) continue
-    for (let c = view.c0; c < view.c1 && mouths.length < VENT_LIMIT; c++) {
-      const col = c - view.ox
-      if (isCraterMouth(tiles, biomes, row, col)) mouths.push({ row, col })
-      else if (vents.length < VENT_LIMIT && isVent(tr[col] ?? 0, br[col] ?? 0, row, col))
-        vents.push({ row, col })
-    }
+  const found: { row: number; col: number }[] = []
+  if (!tiles || !biomes) return found
+  const mouthCells = cellsWhere(
+    tiles,
+    'crater-mouth',
+    (row, col) => isCraterMouth(tiles, biomes, row, col),
+    biomes,
+  )
+  const ventCells = cellsWhere(
+    tiles,
+    'vent',
+    (row, col) =>
+      !isCraterMouth(tiles, biomes, row, col) &&
+      isVent(tiles[row][col] ?? 0, biomes[row]?.[col] ?? 0, row, col),
+    biomes,
+  )
+  const take = (row: number, col: number) => {
+    found.push({ row, col })
+    return found.length < VENT_LIMIT
   }
-  return [...mouths, ...vents].slice(0, VENT_LIMIT)
+  forCellsInView(mouthCells, view, take)
+  if (found.length < VENT_LIMIT) forCellsInView(ventCells, view, take)
+  return found
 }
 
 /** One smoke puff of a vent at clock `t`: centre and radius in pixels, and its alpha. */

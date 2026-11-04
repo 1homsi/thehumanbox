@@ -1,6 +1,7 @@
 import { TILE } from '../../../model/palette'
 import { isPermanentWaterTile } from '../../../model/terrain-ids'
 import { unitHash } from './weather-fx'
+import { cellsWhere, forCellsInView } from './cell-index'
 import type { SnowView } from './ground-snow'
 
 type Ctx = CanvasRenderingContext2D
@@ -57,17 +58,11 @@ export function paintGroundIce(
 ): void {
   const cover = iceCover(season, progress)
   if (cover <= 0 || !tiles) return
+  const shore = cellsWhere(tiles, 'shore', (row, col) => isShore(tiles, row, col))
   ctx.save()
-  for (let r = view.r0; r < view.r1; r++) {
-    const row = r - view.oy
-    if (!tiles[row]) continue
-    for (let c = view.c0; c < view.c1; c++) {
-      const col = c - view.ox
-      if (!isShore(tiles, row, col)) continue
-      if (!isIced(row, col, cover)) continue
-      paintIcedCell(ctx, tiles, row, col)
-    }
-  }
+  forCellsInView(shore, view, (row, col) => {
+    if (isIced(row, col, cover)) paintIcedCell(ctx, tiles, row, col)
+  })
   ctx.restore()
 }
 
