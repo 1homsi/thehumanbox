@@ -1,17 +1,18 @@
 /**
  * Small pixel emotes over people's heads, so a glance at a village shows what
- * everyone is up to. Derived from the current thought and a few state fields
- * the client already has; the strongest feeling wins.
+ * someone is in the middle of. Derived from the current thought and a few state
+ * fields the client already has; the strongest feeling wins. A settled good mood
+ * is not an emote: it is how most people are most of the time, and a smiley over
+ * every head in a calm town said nothing and covered the people.
  */
 export type Emote =
-  'fight' | 'fear' | 'sick' | 'grief' | 'love' | 'pray' | 'trade' | 'teach' | 'party' | 'idea' | 'joy'
+  'fight' | 'fear' | 'sick' | 'grief' | 'love' | 'pray' | 'trade' | 'teach' | 'party' | 'idea'
 
 interface EmoteSource {
   thought?: string | null
   fear_level?: number
   infection?: number
   grief_ticks?: number
-  joy_ticks?: number
 }
 
 const RULES: Array<[Emote, RegExp]> = [
@@ -52,7 +53,6 @@ export function emoteFor(org: EmoteSource): Emote | null {
   if ((org.fear_level ?? 0) > 0.7) return 'fear'
   if ((org.infection ?? 0) > 0.4) return 'sick'
   if ((org.grief_ticks ?? 0) > 40) return 'grief'
-  if ((org.joy_ticks ?? 0) > 400) return 'joy'
   return null
 }
 
@@ -71,9 +71,8 @@ const COLORS: Record<string, string> = {
   s: '#7d8590',
 }
 
-/** The bubble: warm parchment inside a one-pixel ink line, like the map's other outlined sprites. */
-const BUBBLE_FILL = '#f2e6c8'
-const BUBBLE_INK = '#2b2117'
+/** The warm ink every sprite on the map is outlined in. */
+const INK = '#2b2117'
 
 const ICONS: Record<Emote, string[]> = {
   fight: ['s.....s', '.s...s.', '..s.s..', '...s...', '..s.s..', '.Y...Y.', 'Y.....Y'],
@@ -86,7 +85,6 @@ const ICONS: Record<Emote, string[]> = {
   teach: ['.......', 'bbb.bbb', 'bwb.bwb', 'bwbBbwb', 'bwbBbwb', 'bbbBbbb', '...B...'],
   party: ['....pp.', '....p.p', '....p..', '....p..', '.ppp...', 'pppp...', '.pp....'],
   idea: ['..YYY..', '.YyyyY.', '.YywyY.', '.YyyyY.', '..YyY..', '..sss..', '...s...'],
-  joy: ['.......', '.k...k.', '.k...k.', '.......', '.R...R.', '..RRR..', '.......'],
 }
 
 /** Every emote, in a stable order. */
@@ -98,6 +96,9 @@ interface EmotePixels {
   cols: Uint8Array
   rowIdx: Uint8Array
   colors: string[]
+  /** Column and row of every ink pixel around the icon, one cell outside it (so -1..size). */
+  inkCols: Int8Array
+  inkRows: Int8Array
 }
 
 const emotePixels = new Map<Emote, EmotePixels>()
@@ -118,12 +119,35 @@ function pixelsFor(emote: Emote): EmotePixels {
       colors.push(color)
     }
   }
-  px = { size: rows.length, cols: Uint8Array.from(cols), rowIdx: Uint8Array.from(rowIdx), colors }
+  // The ink: every empty cell next to a painted one, left, right, above or below.
+  const painted = (c: number, r: number) => !!COLORS[rows[r]?.[c] ?? '.']
+  const inkCols: number[] = []
+  const inkRows: number[] = []
+  for (let r = -1; r <= rows.length; r++) {
+    for (let c = -1; c <= rows.length; c++) {
+      if (painted(c, r)) continue
+      if (painted(c - 1, r) || painted(c + 1, r) || painted(c, r - 1) || painted(c, r + 1)) {
+        inkCols.push(c)
+        inkRows.push(r)
+      }
+    }
+  }
+  px = {
+    size: rows.length,
+    cols: Uint8Array.from(cols),
+    rowIdx: Uint8Array.from(rowIdx),
+    colors,
+    inkCols: Int8Array.from(inkCols),
+    inkRows: Int8Array.from(inkRows),
+  }
   emotePixels.set(emote, px)
   return px
 }
 
-/** Draws `emote` in a small bubble whose bottom sits at (x, y). */
+/**
+ * Draws `emote` with its bottom at (x, y): the icon itself, outlined in ink, with no box behind it. A
+ * parchment bubble as wide as a person, over every head, read as a sticker and hid the people under it.
+ */
 export function drawEmote(
   ctx: CanvasRenderingContext2D,
   emote: Emote,
@@ -132,31 +156,21 @@ export function drawEmote(
   time: number,
   phase: number,
 ) {
-  // The pixel list is flattened once per emote, and the fill colour is only set when it
-  // changes along the same draw order (the bubble first, then the pixels row by row).
-  const { size, cols, rowIdx, colors } = pixelsFor(emote)
+  // The pixel lists are flattened once per emote, and the fill colour is only set when it
+  // changes along the same draw order (the ink first, then the icon row by row).
+  const { size, cols, rowIdx, colors, inkCols, inkRows } = pixelsFor(emote)
   const bob = Math.round(Math.sin(time / 420 + phase) * 1.2)
-  const x0 = Math.round(x - size / 2) - 1
-  const y0 = Math.round(y - size - 2) + bob
-  // An outlined bubble with its corners cut and a tail toward the head, not a dark box: the same ink line and
-  // flat fill as every other sprite on the map.
-  const w = size + 4
-  ctx.fillStyle = BUBBLE_INK
-  ctx.fillRect(x0, y0 - 1, w - 2, 1)
-  ctx.fillRect(x0, y0 + size + 2, w - 2, 1)
-  ctx.fillRect(x0 - 1, y0, 1, size + 2)
-  ctx.fillRect(x0 + w - 2, y0, 1, size + 2)
-  ctx.fillRect(x0 + 1, y0 + size + 3, 2, 1)
-  ctx.fillRect(x0 + 1, y0 + size + 4, 1, 1)
-  ctx.fillStyle = BUBBLE_FILL
-  ctx.fillRect(x0, y0, w - 2, size + 2)
-  let last = ''
+  const x0 = Math.round(x - size / 2)
+  const y0 = Math.round(y - size - 1) + bob
+  ctx.fillStyle = INK
+  for (let i = 0; i < inkCols.length; i++) ctx.fillRect(x0 + inkCols[i], y0 + inkRows[i], 1, 1)
+  let last = INK
   for (let i = 0; i < colors.length; i++) {
     const color = colors[i]
     if (color !== last) {
       ctx.fillStyle = color
       last = color
     }
-    ctx.fillRect(x0 + 1 + cols[i], y0 + 1 + rowIdx[i], 1, 1)
+    ctx.fillRect(x0 + cols[i], y0 + rowIdx[i], 1, 1)
   }
 }

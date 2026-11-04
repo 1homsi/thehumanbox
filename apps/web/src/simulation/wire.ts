@@ -656,10 +656,25 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
   const w = wire.width
   const h = wire.height
 
-  const fire = take2D(cache?.fire_intensity, h, w, 0)
-  for (const [row, col, v] of wire.fire) {
-    if (row < h && col < w) fire[row][col] = v / 1000
+  // Every frame lists all the burning cells. Clear only the cells that burned last frame when the
+  // grid kept its shape, rather than the whole grid, and keep this frame's list for the renderer.
+  const prevFire = cache?.fire_intensity
+  let fire: number[][]
+  if (prevFire && cache?.fire_hot && prevFire.length === h && prevFire[0]?.length === w) {
+    fire = prevFire
+    const prevHot = cache.fire_hot
+    for (let i = 0; i < prevHot.length; i += 2) fire[prevHot[i]][prevHot[i + 1]] = 0
+  } else {
+    fire = take2D(prevFire, h, w, 0)
   }
+  const burning: number[] = []
+  for (const [row, col, v] of wire.fire) {
+    if (row >= 0 && row < h && col >= 0 && col < w) {
+      fire[row][col] = v / 1000
+      burning.push(row, col)
+    }
+  }
+  const fire_hot = sortedUniqueCells(burning, w)
 
   // The server omits the full layer on hot frames and sends only changed cells. A full layer
   // replaces (and resizes) what we hold; a hot frame may only patch a layer of the same shape.
@@ -748,6 +763,7 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
     biomes: (wire.biomes && cellRows(wire.biomes, w, h, false)) ?? cache?.biomes,
     depth_map: (wire.depth_map && cellRows(wire.depth_map, w, h, false)) ?? cache?.depth_map,
     fire_intensity: fire,
+    fire_hot,
     structure,
     structure_revision,
     food_trail,

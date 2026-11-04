@@ -1,6 +1,7 @@
 import { TILE } from '../../../model/palette'
 import { TILE_ID } from '../../../model/terrain-ids'
 import { unitHash } from './weather-fx'
+import { cellsWhere, forCellsInView } from './cell-index'
 
 type Ctx = CanvasRenderingContext2D
 
@@ -59,27 +60,24 @@ export function paintGroundSnow(
   season: string,
   progress: number,
 ): void {
-  const cover = snowCover(season, progress)
+  // In steps of a hundredth: the still ground is redrawn when the cover moves a step (see renderer.ts).
+  const cover = Number(snowCover(season, progress).toFixed(2))
   if (cover <= 0 || !tiles) return
+  // Snow only lies on grass and food: look at those cells alone.
+  const ground = cellsWhere(tiles, 'snowable', (row, col) => isSnowed(tiles[row][col] ?? 0, row, col, 1))
   ctx.save()
-  for (let r = view.r0; r < view.r1; r++) {
-    const row = r - view.oy
-    const tr = tiles[row]
-    if (!tr) continue
-    for (let c = view.c0; c < view.c1; c++) {
-      const col = c - view.ox
-      if (!isSnowed(tr[col] ?? 0, row, col, cover)) continue
-      const px = col * TILE
-      const py = row * TILE
-      ctx.fillStyle = SNOW_BASE
-      ctx.fillRect(px, py, TILE, TILE)
-      ctx.fillStyle = SNOW_SPECK
-      for (let k = 0; k < SPECKS; k++) {
-        const sx = px + Math.floor(unitHash(col * 11 + k, row + 3) * (TILE - 2))
-        const sy = py + Math.floor(unitHash(row * 13 + k, col + 9) * (TILE - 2))
-        ctx.fillRect(sx, sy, 2, 2)
-      }
+  forCellsInView(ground, view, (row, col) => {
+    if (!isSnowed(tiles[row][col] ?? 0, row, col, cover)) return
+    const px = col * TILE
+    const py = row * TILE
+    ctx.fillStyle = SNOW_BASE
+    ctx.fillRect(px, py, TILE, TILE)
+    ctx.fillStyle = SNOW_SPECK
+    for (let k = 0; k < SPECKS; k++) {
+      const sx = px + Math.floor(unitHash(col * 11 + k, row + 3) * (TILE - 2))
+      const sy = py + Math.floor(unitHash(row * 13 + k, col + 9) * (TILE - 2))
+      ctx.fillRect(sx, sy, 2, 2)
     }
-  }
+  })
   ctx.restore()
 }

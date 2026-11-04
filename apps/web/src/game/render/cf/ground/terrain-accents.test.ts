@@ -40,7 +40,7 @@ describe('buildAccentRects', () => {
     expect(out.crest.length).toBeGreaterThan(0)
     expect(out.crest.length % 4).toBe(0)
     expect(out.shade.length).toBe(out.crest.length)
-    for (let i = 0; i < out.crest.length; i += 4) expect(out.shade[i + 1]).toBe(out.crest[i + 1] + 2)
+    for (let i = 0; i < out.crest.length; i += 4) expect(out.shade[i + 1]).toBe(out.crest[i + 1] + 1)
   })
 
   it('places lava veins only on volcanic ground', () => {
@@ -75,5 +75,16 @@ describe('buildAccentRects', () => {
       // A mark stays within the tile it starts in (crests may end at the tile edge).
       expect(x + w).toBeLessThanOrEqual((col + 1) * TILE + 1e-9)
     }
+  })
+
+  it('lays dunes as long ridges across tiles, in whole pixels, not one dash per tile', () => {
+    const out = buildAccentRects(grid(TILE_ID.SAND), grid(BIOME_ID.DESERT), W, H)
+    for (const v of [...out.crest, ...out.shade, ...out.lava.flat()]) expect(Number.isInteger(v)).toBe(true)
+    // Each crest spans its whole tile, so neighbours join into one line.
+    for (let i = 0; i < out.crest.length; i += 4) expect(out.crest[i + 2]).toBe(TILE)
+    // Ridges sit on about one row in three, and most of a ridge row is ridge.
+    const marked = out.crest.length / 4
+    expect(marked).toBeGreaterThan(W * H * 0.2)
+    expect(marked).toBeLessThan(W * H * 0.45)
   })
 })

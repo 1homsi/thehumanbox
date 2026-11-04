@@ -7,6 +7,7 @@ import { buildTerritoryIndex } from '../../model/territory'
 import type { WorldState } from '../../../shared/types'
 import type { MapCamera } from '../camera-controls'
 import { loadLocale, t } from '../../../i18n'
+import { TILE_ID } from '../../model/terrain-ids'
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
 afterAll(() => vi.unstubAllGlobals())
@@ -103,18 +104,20 @@ describe('TerritoryHoverCard', () => {
     expect(text).not.toContain('no leader')
   })
 
-  it('gives the ground under the pointer in the tribe card, on its own line', () => {
-    const world = tribeWorld()
-    world.grid = {
-      ...world.grid,
-      tiles: Array.from({ length: 100 }, (_, row) =>
-        Array.from({ length: 100 }, (_c, col) => (row === 10 && col === 10 ? 2 : 1)),
-      ),
-      depth_map: Array.from({ length: 100 }, (_, row) =>
-        Array.from({ length: 100 }, (_c, col) => (row === 10 && col === 10 ? 120 : 255)),
-      ),
-    } as WorldState['grid']
-    expect(hoverCardText(world)).toContain('deep water')
+  it('gives notable ground under the pointer in the tribe card, on its own line, and not plain ground', () => {
+    const at = (tile: number) => {
+      const world = tribeWorld()
+      world.grid = {
+        ...world.grid,
+        tiles: Array.from({ length: 100 }, (_, row) =>
+          Array.from({ length: 100 }, (_c, col) => (row === 10 && col === 10 ? tile : 1)),
+        ),
+      } as WorldState['grid']
+      return hoverCardText(world)
+    }
+    expect(at(TILE_ID.MINERAL)).toContain('ore')
+    // Grass or water is plain to see; the tribe's card does not name it.
+    expect(at(TILE_ID.GRASS)).not.toContain('grass')
   })
 
   // Polish writes 10,001 with a space and picks its plural from the number, so the card must pass the number.

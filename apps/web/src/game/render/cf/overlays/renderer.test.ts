@@ -250,6 +250,27 @@ describe('CfOverlayRenderer', () => {
     expect(alphas.some((a) => a >= 30 && a <= 72)).toBe(true)
   })
 
+  it('draws puddles on the still ground once, and again only when the weather changes', () => {
+    make()
+    const still = host.layers.find((l) => l.zIndex === Z.groundStill)!
+    const wet = world({ weather: { kind: 'rain', intensity: 1 } } as unknown as Partial<WorldState>)
+    renderer.update(frameOf(wet, null, 5000))
+    const puddles = still.count
+    expect(puddles).toBeGreaterThan(0)
+    // The clock runs on and a new frame arrives with the same weather and tiles: nothing is redrawn.
+    const later = { ...wet, frame_id: 2 } as WorldState
+    const spy = vi.spyOn(still, 'clear')
+    renderer.update(frameOf(later, null, 9000))
+    expect(spy).not.toHaveBeenCalled()
+    expect(still.count).toBe(puddles)
+    const dry = world({
+      frame_id: 3,
+      weather: { kind: 'clear', intensity: 0 },
+    } as unknown as Partial<WorldState>)
+    renderer.update(frameOf(dry, null, 9100))
+    expect(still.count).toBe(0)
+  })
+
   it('outlines built-up tiles in the structures view', () => {
     make()
     const structure = Array.from({ length: GH }, () => Array(GW).fill(0))

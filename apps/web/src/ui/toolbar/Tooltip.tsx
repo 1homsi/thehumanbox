@@ -150,6 +150,8 @@ export function Tooltip({ tip, children }: Props) {
     <>
       {child}
       {rect &&
+        tip != null &&
+        tip !== '' &&
         createPortal(
           <div
             className={clsx('ui-tooltip', above ? 'ui-tooltip--above' : 'ui-tooltip--below')}

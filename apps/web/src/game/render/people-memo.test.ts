@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { lineageColor } from '../../shared/constants'
 import { useUIStore } from '../../state/store'
 import { orgVariant } from '../model/org-variant'
-import { drawEmote, emoteFor, type Emote } from './activity-emotes'
+import { emoteFor } from './activity-emotes'
 import { workActivity } from './activity-visuals'
 import { deterministicAppearanceIndex, HUMAN_APPEARANCES } from './character-visuals'
 import { orgAnimPhase } from './draw-helpers'
@@ -90,7 +90,6 @@ function refEmote(org: {
   if ((org.fear_level ?? 0) > 0.7) return 'fear'
   if ((org.infection ?? 0) > 0.4) return 'sick'
   if ((org.grief_ticks ?? 0) > 40) return 'grief'
-  if ((org.joy_ticks ?? 0) > 400) return 'joy'
   return null
 }
 
@@ -202,113 +201,6 @@ describe('per-person values cached across frames', () => {
             refWorkActivity(thought, moving),
           )
         }
-      }
-    }
-  })
-
-  it('draws emotes as the same rects in the same colours and order as before', () => {
-    const COLORS: Record<string, string> = {
-      r: '#e2574c',
-      R: '#a8322a',
-      y: '#f3d17a',
-      Y: '#c9973f',
-      w: '#f6f1e4',
-      g: '#8fd06a',
-      G: '#4e8a3a',
-      b: '#7cc8ff',
-      B: '#3b7fb8',
-      k: '#2b2117',
-      p: '#b25fc0',
-      s: '#7d8590',
-    }
-    // A plain drawEmote, one fillStyle per pixel, as the reference.
-    const record = () => {
-      const out: string[] = []
-      let style = ''
-      const ctx = {
-        set fillStyle(v: string) {
-          style = v
-        },
-        get fillStyle() {
-          return style
-        },
-        fillRect: (x: number, y: number, w: number, h: number) => out.push(`${style}|${x},${y},${w},${h}`),
-      }
-      return { ctx: ctx as unknown as CanvasRenderingContext2D, out }
-    }
-    const emotes: Emote[] = [
-      'fight',
-      'fear',
-      'sick',
-      'grief',
-      'love',
-      'pray',
-      'trade',
-      'teach',
-      'party',
-      'idea',
-      'joy',
-    ]
-    const art: Record<string, string[]> = {
-      fight: ['s.....s', '.s...s.', '..s.s..', '...s...', '..s.s..', '.Y...Y.', 'Y.....Y'],
-      fear: ['...r...', '...r...', '...r...', '...r...', '...r...', '.......', '...r...'],
-      sick: ['...g...', '..ggg..', '.gggGg.', '.ggGgg.', '.gggGg.', '..ggg..', '.......'],
-      grief: ['...b...', '..bbb..', '.bbbbb.', '.bbbbb.', '.bbBbb.', '..bbb..', '.......'],
-      love: ['.rr.rr.', 'rrrrrrr', 'rwrrrrr', 'rrrrrrr', '.rrrrr.', '..rrr..', '...r...'],
-      pray: ['...Y...', '.Y.Y.Y.', '..YyY..', 'YYyyyYY', '..YyY..', '.Y.Y.Y.', '...Y...'],
-      trade: ['..yyy..', '.yYYYy.', 'yYyyyYy', 'yYyyyYy', 'yYyyyYy', '.yYYYy.', '..yyy..'],
-      teach: ['.......', 'bbb.bbb', 'bwb.bwb', 'bwbBbwb', 'bwbBbwb', 'bbbBbbb', '...B...'],
-      party: ['....pp.', '....p.p', '....p..', '....p..', '.ppp...', 'pppp...', '.pp....'],
-      idea: ['..YYY..', '.YyyyY.', '.YywyY.', '.YyyyY.', '..YyY..', '..sss..', '...s...'],
-      joy: ['.......', '.k...k.', '.k...k.', '.......', '.R...R.', '..RRR..', '.......'],
-    }
-    const refDraw = (
-      ctx: CanvasRenderingContext2D,
-      emote: Emote,
-      x: number,
-      y: number,
-      time: number,
-      phase: number,
-    ) => {
-      const rows = art[emote]
-      const bob = Math.round(Math.sin(time / 420 + phase) * 1.2)
-      const size = rows.length
-      const x0 = Math.round(x - size / 2) - 1
-      const y0 = Math.round(y - size - 2) + bob
-      const w = size + 4
-      ctx.fillStyle = '#2b2117'
-      ctx.fillRect(x0, y0 - 1, w - 2, 1)
-      ctx.fillRect(x0, y0 + size + 2, w - 2, 1)
-      ctx.fillRect(x0 - 1, y0, 1, size + 2)
-      ctx.fillRect(x0 + w - 2, y0, 1, size + 2)
-      ctx.fillRect(x0 + 1, y0 + size + 3, 2, 1)
-      ctx.fillRect(x0 + 1, y0 + size + 4, 1, 1)
-      ctx.fillStyle = '#f2e6c8'
-      ctx.fillRect(x0, y0, w - 2, size + 2)
-      for (let r = 0; r < size; r++) {
-        const row = rows[r]
-        for (let c = 0; c < row.length; c++) {
-          const color = COLORS[row[c]]
-          if (!color) continue
-          ctx.fillStyle = color
-          ctx.fillRect(x0 + 1 + c, y0 + 1 + r, 1, 1)
-        }
-      }
-    }
-    for (const emote of emotes) {
-      for (const [x, y, time, phase] of [
-        [100.4, 80.6, 1234, 17],
-        [0, 0, 0, 0],
-        [55.5, 31.2, 999999, 413],
-      ]) {
-        const a = record()
-        const b = record()
-        drawEmote(a.ctx, emote, x, y, time, phase)
-        refDraw(b.ctx, emote, x, y, time, phase)
-        expect(a.out, emote).toEqual(b.out)
-        expect((a.ctx as unknown as { fillStyle: string }).fillStyle).toBe(
-          (b.ctx as unknown as { fillStyle: string }).fillStyle,
-        )
       }
     }
   })

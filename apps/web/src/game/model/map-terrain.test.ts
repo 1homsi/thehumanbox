@@ -113,15 +113,28 @@ describe('terrainAt', () => {
 })
 
 describe('groundIsNotable', () => {
-  it('leaves plain grass, fertile or not, without a card of its own', () => {
-    expect(groundIsNotable({ ground: 'grass', notes: [] })).toBe(false)
+  it('leaves plain land and water without a card of its own', () => {
+    for (const ground of [
+      'grass',
+      'shallowWater',
+      'deepWater',
+      'sand',
+      'snow',
+      'ice',
+      'rock',
+      'ash',
+      'scorched',
+    ] as const)
+      expect(groundIsNotable({ ground, notes: [] }), ground).toBe(false)
     expect(groundIsNotable({ ground: 'grass', notes: ['fertile'] })).toBe(false)
+    expect(groundIsNotable(null)).toBe(false)
   })
 
-  it('names water, snow and the like, and grass with a road or a fire on it', () => {
-    expect(groundIsNotable({ ground: 'deepWater', notes: [] })).toBe(true)
+  it('names resources, fire, lava and floodwater, and any ground with a road or a fire on it', () => {
+    for (const ground of ['mineral', 'foodGround', 'fire', 'campfire', 'lava', 'floodwater'] as const)
+      expect(groundIsNotable({ ground, notes: [] }), ground).toBe(true)
     expect(groundIsNotable({ ground: 'grass', notes: ['track'] })).toBe(true)
+    expect(groundIsNotable({ ground: 'shallowWater', notes: ['bridge'] })).toBe(true)
     expect(groundIsNotable({ ground: 'grass', notes: ['fertile', 'onFire'] })).toBe(true)
-    expect(groundIsNotable(null)).toBe(false)
   })
 })
