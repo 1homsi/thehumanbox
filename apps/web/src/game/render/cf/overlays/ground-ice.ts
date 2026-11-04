@@ -56,7 +56,8 @@ export function paintGroundIce(
   season: string,
   progress: number,
 ): void {
-  const cover = iceCover(season, progress)
+  // In steps of a hundredth: the still ground is redrawn when the cover moves a step (see renderer.ts).
+  const cover = Number(iceCover(season, progress).toFixed(2))
   if (cover <= 0 || !tiles) return
   const shore = cellsWhere(tiles, 'shore', (row, col) => isShore(tiles, row, col))
   ctx.save()

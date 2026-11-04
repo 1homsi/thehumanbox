@@ -60,7 +60,8 @@ export function paintGroundSnow(
   season: string,
   progress: number,
 ): void {
-  const cover = snowCover(season, progress)
+  // In steps of a hundredth: the still ground is redrawn when the cover moves a step (see renderer.ts).
+  const cover = Number(snowCover(season, progress).toFixed(2))
   if (cover <= 0 || !tiles) return
   // Snow only lies on grass and food: look at those cells alone.
   const ground = cellsWhere(tiles, 'snowable', (row, col) => isSnowed(tiles[row][col] ?? 0, row, col, 1))

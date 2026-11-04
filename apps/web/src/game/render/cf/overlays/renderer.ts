@@ -630,7 +630,8 @@ export class CfOverlayRenderer {
     }
     const season = terrainSeason(f.world)
     const progress = f.world.season_progress
-    const wetness = wetnessOf(f.world)
+    // Levels in steps of a hundredth, the same steps the key changes in, so the drawing matches it.
+    const wetness = Number(wetnessOf(f.world).toFixed(2))
     const key = [
       win.c0,
       win.c1,
