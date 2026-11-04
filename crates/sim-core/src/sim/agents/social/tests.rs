@@ -37,6 +37,22 @@ fn social_knowledge_share_spreads_memories_to_trusted_friend() {
     assert!(organisms[1].water_memory.get(&(12, 50)).copied().unwrap_or(0.0) > 0.03);
     assert!(organisms[1].danger_memory.get(&(20, 20)).copied().unwrap_or(0.0) > 0.04);
     assert_eq!(organisms[0].thought, "sharing what I know");
+    assert_eq!(organisms[1].thought, "Teacher warned me about danger near 20, 20");
+}
+
+#[test]
+fn repeated_hearsay_does_not_amplify_the_same_warning() {
+    let mut rng = StdRng::seed_from_u64(0);
+    let mut organisms = vec![
+        test_org("teacher", "Teacher", "a", 10.0, 10.0),
+        test_org("student", "Student", "a", 11.0, 10.0),
+    ];
+    organisms[0].danger_memory.insert((20, 20), 0.8);
+    let spatial = SpatialIndex::build(&organisms, 10);
+    social_knowledge_share(0, &mut organisms, &spatial, 42, &mut rng);
+    let first = organisms[1].danger_memory[&(20, 20)];
+    social_knowledge_share(0, &mut organisms, &spatial, 43, &mut rng);
+    assert_eq!(organisms[1].danger_memory[&(20, 20)], first);
 }
 
 #[test]

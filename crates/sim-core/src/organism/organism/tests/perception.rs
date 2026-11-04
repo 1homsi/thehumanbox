@@ -3,6 +3,23 @@
 use super::*;
 
 #[test]
+fn perception_distinguishes_injury_without_losing_infection() {
+    let grid = WorldGrid::new(3);
+    let spatial = crate::sim::spatial::SpatialIndex::build(&[], 10);
+    let mut org = learning_test_org(0.5, 0.5, 0.5, 0.5);
+    org.x = 50.0;
+    org.y = 50.0;
+    org.infection = 0.2;
+    org.health = 0.9;
+    let healthy = org.perceive(&grid, &[], false, false, &spatial);
+    org.health = 0.3;
+    let injured = org.perceive(&grid, &[], false, false, &spatial);
+    assert_eq!(healthy.as_bytes()[12], b'1');
+    assert_eq!(injured.as_bytes()[12], b'7');
+    assert_ne!(healthy, injured);
+}
+
+#[test]
 fn remembered_resource_selection_avoids_known_danger() {
     let mut water = FxHashMap::default();
     water.insert((80, 5), 1.0);

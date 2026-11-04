@@ -8,7 +8,7 @@ use crate::world::{
 
 use super::decision_bias::{directive_action_boost, preferred_action_boost, Directive};
 use super::lessons::Lesson;
-use super::organism::{Hot, Organism, QRowExt, ACTION_ID_SPACE, N_ACTIONS};
+use super::organism::{generalization_key, Hot, Organism, ACTION_ID_SPACE, N_ACTIONS};
 use super::skills::Skill;
 
 /// Farthest a person walks home at night, in tiles (Manhattan). Routes to
@@ -21,6 +21,13 @@ const NIGHT_HOME_REACH: f32 = 16.0;
 /// strip takes a few steps; someone still in it this long is going nowhere and
 /// must get out before the cold and panic set in (from 12 ticks).
 const CROSSING_PATIENCE: u32 = 8;
+
+/// A transferred estimate is uncertain: keep the novelty bonus for a locally
+/// untried action and bound the positive advantage of hearsay. Negative
+/// experience can still discourage dangerous choices. Exact Q wins later.
+pub(crate) fn transferred_action_score(value: f32, novelty_seed: f32) -> f32 {
+    novelty_seed + (value * 0.6).clamp(-0.05, novelty_seed * 0.5)
+}
 
 fn survival_relevant_action(
     action: usize,
@@ -1215,6 +1222,7 @@ impl Organism {
             _ => true,
         };
         let q_row = self.q_table.get(cached_perception);
+        let general_row = generalization_key(cached_perception).and_then(|key| self.q_table.get(&key));
         let active_directive = if tick < self.directive_until {
             self.directive.as_str()
         } else {
@@ -1354,6 +1362,15 @@ impl Organism {
         // set are cleared again, instead of zeroing 30 KB for every choice.
         let (best_avail, _) = QVALUES.with_borrow_mut(|scratch| {
             let (dense, seen) = scratch.tables();
+            if let Some(r) = general_row {
+                for &(a, v) in r.iter() {
+                    let ai = a as usize;
+                    if ai < ACTION_ID_SPACE {
+                        dense[ai] = transferred_action_score(v, novelty_seed);
+                        seen[ai] = true;
+                    }
+                }
+            }
             if let Some(r) = q_row {
                 for &(a, v) in r.iter() {
                     let ai = a as usize;
@@ -1368,8 +1385,17 @@ impl Organism {
                     (dense[a], seen[a])
                 } else {
                     (
-                        q_row.map(|r| r.get_q(a as u16)).unwrap_or(0.0),
-                        q_row.is_some_and(|r| r.iter().any(|&(known, _)| known as usize == a)),
+                        q_row
+                            .and_then(|r| r.iter().find(|&&(id, _)| id as usize == a))
+                            .map(|&(_, v)| v)
+                            .or_else(|| {
+                                general_row
+                                    .and_then(|r| r.iter().find(|&&(id, _)| id as usize == a))
+                                    .map(|&(_, v)| transferred_action_score(v, novelty_seed))
+                            })
+                            .unwrap_or(0.0),
+                        q_row.is_some_and(|r| r.iter().any(|&(known, _)| known as usize == a))
+                            || general_row.is_some_and(|r| r.iter().any(|&(known, _)| known as usize == a)),
                     )
                 };
                 let learned = if tried { v } else { novelty_seed };
@@ -1410,6 +1436,15 @@ impl Organism {
                 }
             }
             if let Some(r) = q_row {
+                for &(a, _) in r.iter() {
+                    let ai = a as usize;
+                    if ai < ACTION_ID_SPACE {
+                        dense[ai] = 0.0;
+                        seen[ai] = false;
+                    }
+                }
+            }
+            if let Some(r) = general_row {
                 for &(a, _) in r.iter() {
                     let ai = a as usize;
                     if ai < ACTION_ID_SPACE {

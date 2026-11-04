@@ -22,6 +22,8 @@ pub(crate) struct OrgSave {
     pub(super) danger_memory: HashMap<String, f32>,
     pub(super) thought_history: Vec<crate::organism::organism::ThoughtEntry>,
     pub(super) q_table: FxHashMap<String, Vec<(u16, f32)>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(super) learning_trace: Vec<(String, u16)>,
     pub(super) last_reproduced: u64,
     pub(super) last_challenged: u64,
     pub(super) water_ticks: u32,
@@ -263,6 +265,7 @@ pub(super) fn org_to_save(o: &Organism) -> OrgSave {
         danger_memory: mem_encode(&o.danger_memory),
         thought_history: o.thought_history.iter().cloned().collect(),
         q_table: o.q_table.clone(),
+        learning_trace: o.learning_trace.clone(),
         last_reproduced: o.last_reproduced,
         last_challenged: o.last_challenged,
         water_ticks: o.water_ticks,
@@ -390,6 +393,7 @@ pub(super) fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
     o.danger_memory = mem_decode(s.danger_memory);
     o.thought_history = s.thought_history.into_iter().collect();
     o.q_table = s.q_table;
+    o.learning_trace = s.learning_trace;
     o.last_reproduced = s.last_reproduced;
     o.last_challenged = s.last_challenged;
     o.water_ticks = s.water_ticks;

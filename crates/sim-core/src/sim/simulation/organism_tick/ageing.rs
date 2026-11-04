@@ -1,5 +1,16 @@
 use super::*;
 
+/// Health is a resource too: injury should outweigh passive healing and make
+/// dangerous actions less attractive in similar future situations.
+fn health_feedback(before: f32, after: f32) -> f32 {
+    let delta = after - before;
+    if delta < 0.0 {
+        delta * 2.0
+    } else {
+        delta * 0.25
+    }
+}
+
 impl Simulation {
     /// Ageing and senescence, and the base reward for how the body fared this tick.
     pub(super) fn org_ageing(&mut self, f: &mut OrgFrame<'_>) {
@@ -47,6 +58,7 @@ impl Simulation {
 
         let mut reward = (self.organisms[idx].energy - prev_energy) * 2.0
             + (self.organisms[idx].hydration - prev_hydration) * 2.0;
+        reward += health_feedback(f.prev_health, self.organisms[idx].health);
         reward += reserve_inventory_feedback(
             prev_energy,
             prev_hydration,
@@ -59,5 +71,46 @@ impl Simulation {
         }
 
         f.reward = reward;
+    }
+}
+
+#[cfg(test)]
+mod health_tests {
+    use super::health_feedback;
+    use crate::organism::{organism::Organism, traits::Traits};
+
+    #[test]
+    fn injury_penalty_outweighs_equal_passive_healing() {
+        assert!(health_feedback(1.0, 0.8) < 0.0);
+        assert!(health_feedback(0.8, 1.0) > 0.0);
+        assert!(-health_feedback(1.0, 0.8) > health_feedback(0.8, 1.0));
+        assert_eq!(health_feedback(0.8, 0.8), 0.0);
+    }
+
+    #[test]
+    fn injury_lowers_learned_value_of_the_action() {
+        let mut person = Organism::new(
+            "test".into(),
+            "Test".into(),
+            0.0,
+            0.0,
+            0,
+            String::new(),
+            "tribe".into(),
+            5000,
+            Traits::default(),
+        );
+        person.learn_transition(
+            "injury",
+            24,
+            health_feedback(1.0, 0.8),
+            "next",
+            None,
+            Some(true),
+            false,
+        );
+        assert!(person.q_table["injury"]
+            .iter()
+            .any(|&(action, value)| action == 24 && value < 0.0));
     }
 }
