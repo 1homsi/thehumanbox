@@ -950,7 +950,7 @@ function LiveApp() {
           ) : (
             <StartupScreen
               failed={localStartupFailed}
-              desktop={desktop}
+              desktop={!!desktop}
               detail={localStartupFailed ? localSaveStatus.message : undefined}
             />
           )}
