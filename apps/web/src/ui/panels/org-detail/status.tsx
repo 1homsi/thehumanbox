@@ -1,5 +1,5 @@
 import { Bar } from './bars'
-import { AGE_STAGE_ICON, ERA_ICON } from './icons'
+import { AGE_STAGE_ICON, ERA_ICON, moodLabel, ownEntry } from './icons'
 import type { OrganismState } from '../../../shared/types'
 import { skillPercent, skillWord } from '../../../game/model/skills'
 import { hasMessage, t, type MessageKey } from '../../../i18n'
@@ -111,7 +111,7 @@ export function StatusChips({ org }: { org: OrganismState }) {
             style={{ background: '#1a1a24', color: '#c8c2d8', cursor: 'default' }}
             title={t('person.status.moodTip')}
           >
-            {MOOD_ICON[org.mood] ?? '·'} {t('person.status.feels', { mood: org.mood })}
+            {ownEntry(MOOD_ICON, org.mood) ?? '·'} {t('person.status.feels', { mood: moodLabel(org.mood) })}
           </span>
         )}
         {(org.mounted_vehicle ?? null) !== null && org.mounted_vehicle !== undefined && (

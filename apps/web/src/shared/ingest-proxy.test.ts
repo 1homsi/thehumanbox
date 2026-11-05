@@ -24,6 +24,10 @@ describe('the allowlist', () => {
   it('forwards the paths posthog-js calls with this configuration', () => {
     expect(upstreamFor('/ingest/e/', '')?.href).toBe('https://us.i.posthog.com/e/')
     expect(upstreamFor('/ingest/e', '?ip=1')?.href).toBe('https://us.i.posthog.com/e?ip=1')
+    expect(upstreamFor('/ingest/i/v0/e/', '?ip=0&ver=1.444.0')?.href).toBe(
+      'https://us.i.posthog.com/i/v0/e/?ip=0&ver=1.444.0',
+    )
+    expect(upstreamFor('/ingest/i/v0/e', '')?.href).toBe('https://us.i.posthog.com/i/v0/e')
     expect(upstreamFor('/ingest/flags/', '?v=2')?.href).toBe('https://us.i.posthog.com/flags/?v=2')
     expect(upstreamFor('/ingest/array/phc_abc123/config.js', '')?.href).toBe(
       'https://us-assets.i.posthog.com/array/phc_abc123/config.js',
@@ -36,7 +40,9 @@ describe('the allowlist', () => {
   it('refuses every other path', () => {
     expect(upstreamFor('/ingest/decide/', '')).toBeNull()
     expect(upstreamFor('/ingest/s/', '')).toBeNull()
-    expect(upstreamFor('/ingest/i/v0/e/', '')).toBeNull()
+    expect(upstreamFor('/ingest/i/v0/', '')).toBeNull()
+    expect(upstreamFor('/ingest/i/v1/logs', '')).toBeNull()
+    expect(upstreamFor('/ingest/i/v0/e/extra', '')).toBeNull()
     expect(upstreamFor('/ingest/array/phc_abc/../../admin', '')).toBeNull()
     expect(upstreamFor('/ingest/static/../secret.js', '')).toBeNull()
     expect(upstreamFor('/ingest/static/a.html', '')).toBeNull()
@@ -49,6 +55,16 @@ describe('the /ingest proxy', () => {
   it('sends capture requests to the PostHog ingest host', async () => {
     const { url, method } = await forward('/ingest/e/?ip=1&_=2', { method: 'POST', body: '{}' })
     expect(url).toBe('https://us.i.posthog.com/e/?ip=1&_=2')
+    expect(method).toBe('POST')
+  })
+
+  it('sends captures on the path remote config hands out to the ingest host', async () => {
+    const { response, url, method } = await forward('/ingest/i/v0/e/?ip=0&_=3', {
+      method: 'POST',
+      body: '{}',
+    })
+    expect(response.status).toBe(202)
+    expect(url).toBe('https://us.i.posthog.com/i/v0/e/?ip=0&_=3')
     expect(method).toBe('POST')
   })
 

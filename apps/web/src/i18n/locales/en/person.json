@@ -138,6 +138,16 @@
       "miller": "miller"
     }
   },
+  "mood": {
+    "grieving": "grieving",
+    "afraid": "afraid",
+    "hungry": "hungry",
+    "thirsty": "thirsty",
+    "angry": "angry",
+    "joyful": "joyful",
+    "content": "content",
+    "calm": "calm"
+  },
   "vitals": {
     "energy": "energy",
     "hydration": "hydration",
@@ -185,6 +195,18 @@
   },
   "aspiration": {
     "title": "ASPIRATION",
+    "label": {
+      "seeker": "seeker",
+      "wanderer": "wanderer",
+      "warrior": "warrior",
+      "connector": "connector",
+      "builder": "builder",
+      "devout": "devout",
+      "sage": "sage",
+      "provider": "provider",
+      "artist": "artist",
+      "healer": "healer"
+    },
     "tip": {
       "seeker": "Drawn to knowledge — pursues exploration, science, and learning.",
       "wanderer": "Restless and curious — happiest on the road, far from settlements.",

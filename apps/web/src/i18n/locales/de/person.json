@@ -129,6 +129,16 @@
       "miller": "Müller"
     }
   },
+  "mood": {
+    "grieving": "voller Trauer",
+    "afraid": "ängstlich",
+    "hungry": "hungrig",
+    "thirsty": "durstig",
+    "angry": "wütend",
+    "joyful": "fröhlich",
+    "content": "zufrieden",
+    "calm": "ruhig"
+  },
   "vitals": {
     "energy": "Energie",
     "hydration": "Hydration",
@@ -173,6 +183,18 @@
   },
   "aspiration": {
     "title": "BESTREBUNG",
+    "label": {
+      "seeker": "Sucher",
+      "wanderer": "Wanderer",
+      "warrior": "Krieger",
+      "connector": "Vermittler",
+      "builder": "Baumeister",
+      "devout": "Gläubiger",
+      "sage": "Weiser",
+      "provider": "Versorger",
+      "artist": "Künstler",
+      "healer": "Heiler"
+    },
     "tip": {
       "seeker": "Zieht es zum Wissen – strebt nach Erkundung, Wissenschaft und Lernen.",
       "wanderer": "Ruhelos und neugierig – am glücklichsten unterwegs, weit weg von Siedlungen.",

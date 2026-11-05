@@ -86,7 +86,7 @@
     },
     "traitTip": "Un trait avec lequel ils sont nés, transmis par leurs parents",
     "moodTip": "Ce qu'ils ressentent en ce moment, selon ce qu'ils traversent",
-    "feels": "se sent {mood}",
+    "feels": "humeur : {mood}",
     "mounted": "monté",
     "ageStage": {
       "infant": "nourrisson",
@@ -128,6 +128,16 @@
       "politician": "politicien",
       "miller": "meunier"
     }
+  },
+  "mood": {
+    "grieving": "deuil",
+    "afraid": "peur",
+    "hungry": "faim",
+    "thirsty": "soif",
+    "angry": "colère",
+    "joyful": "joie",
+    "content": "contentement",
+    "calm": "calme"
   },
   "vitals": {
     "energy": "énergie",
@@ -173,6 +183,18 @@
   },
   "aspiration": {
     "title": "ASPIRATION",
+    "label": {
+      "seeker": "chercheur",
+      "wanderer": "vagabond",
+      "warrior": "guerrier",
+      "connector": "rassembleur",
+      "builder": "bâtisseur",
+      "devout": "dévot",
+      "sage": "sage",
+      "provider": "nourricier",
+      "artist": "artiste",
+      "healer": "guérisseur"
+    },
     "tip": {
       "seeker": "Attiré par le savoir – recherche l'exploration, la science et l'apprentissage.",
       "wanderer": "Agité et curieux – heureux sur les routes, loin des villages.",
