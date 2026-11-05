@@ -7,6 +7,7 @@ import { OrgDetail } from '../panels/OrgDetail'
 import { Modal } from './Modal'
 import { shownGeneration } from '../../game/model/generations'
 import { formatNumber, t, type MessageKey } from '../../i18n'
+import { ASPIRATIONS, ASPIRATION_EMOJI, aspirationLabel, ownEntry } from '../panels/org-detail/icons'
 
 const DAY_LENGTH = 600
 
@@ -25,31 +26,7 @@ const STATUS_LABEL: Record<StatusFilter, MessageKey> = {
   dead: 'dialogs.orgSearch.statusDead',
 }
 type DiscoveryFilter = 'all' | 'fire' | 'shelter'
-type AspirationFilter =
-  | 'all'
-  | 'seeker'
-  | 'wanderer'
-  | 'warrior'
-  | 'connector'
-  | 'builder'
-  | 'devout'
-  | 'sage'
-  | 'provider'
-  | 'artist'
-  | 'healer'
-
-const ASPIRATION_EMOJI: Record<string, string> = {
-  seeker: '🔍',
-  wanderer: '🧭',
-  warrior: '⚔️',
-  connector: '🤝',
-  builder: '🔨',
-  devout: '🕯️',
-  sage: '📜',
-  provider: '🌾',
-  artist: '🎨',
-  healer: '🌿',
-}
+type AspirationFilter = 'all' | (typeof ASPIRATIONS)[number]
 
 import { discoveryWord } from '../sim-words'
 
@@ -202,25 +179,13 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
               ♂
             </button>
             <span className="filter-sep">·</span>
-            {(
-              [
-                'seeker',
-                'wanderer',
-                'warrior',
-                'connector',
-                'builder',
-                'devout',
-                'sage',
-                'provider',
-                'artist',
-                'healer',
-              ] as AspirationFilter[]
-            ).map((a) => (
+            {ASPIRATIONS.map((a) => (
               <button
                 key={a}
                 className={clsx('filter-chip', aspirationF === a && 'active')}
                 onClick={() => setAspirationF(aspirationF === a ? 'all' : a)}
-                title={a}
+                title={aspirationLabel(a)}
+                aria-label={aspirationLabel(a)}
               >
                 {ASPIRATION_EMOJI[a]}
               </button>
@@ -288,9 +253,10 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                     {personName(org)}
                   </span>
                   <span className="org-search-badges">
-                    {org.aspiration && ASPIRATION_EMOJI[org.aspiration] && (
-                      <span title={org.aspiration} style={{ marginRight: 2 }}>
-                        {ASPIRATION_EMOJI[org.aspiration]}
+                    {/* An aspiration this build does not know still shows, as ✦ like the person panel. */}
+                    {org.aspiration && (
+                      <span title={aspirationLabel(org.aspiration)} style={{ marginRight: 2 }}>
+                        {ownEntry(ASPIRATION_EMOJI, org.aspiration) ?? '✦'}
                       </span>
                     )}
                     {discs.includes('fire') && '🔥'}

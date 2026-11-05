@@ -129,6 +129,16 @@
       "miller": "moleiro"
     }
   },
+  "mood": {
+    "grieving": "de luto",
+    "afraid": "com medo",
+    "hungry": "com fome",
+    "thirsty": "com sede",
+    "angry": "com raiva",
+    "joyful": "alegre",
+    "content": "bem",
+    "calm": "em paz"
+  },
   "vitals": {
     "energy": "energia",
     "hydration": "hidratação",
@@ -173,6 +183,18 @@
   },
   "aspiration": {
     "title": "ASPIRAÇÃO",
+    "label": {
+      "seeker": "buscador",
+      "wanderer": "andarilho",
+      "warrior": "guerreiro",
+      "connector": "agregador",
+      "builder": "construtor",
+      "devout": "devoto",
+      "sage": "sábio",
+      "provider": "provedor",
+      "artist": "artista",
+      "healer": "curandeiro"
+    },
     "tip": {
       "seeker": "Atraído pelo conhecimento – busca exploração, ciência e aprendizado.",
       "wanderer": "Inquieto e curioso – mais feliz na estrada, longe dos assentamentos.",

@@ -48,6 +48,15 @@ describe('OrgSearchModal', () => {
     expect(el('.org-search-filters').lastElementChild?.classList.contains('filter-sep')).toBe(true)
   })
 
+  it('badges each person with their aspiration, named in the tip, and ✦ for one it does not know', () => {
+    render([organism('a'), { ...organism('b'), aspiration: 'stargazer' } as OrganismState])
+    const badges = [...document.querySelectorAll('.org-search-badges > span[title]')]
+    expect(badges.map((b) => [b.textContent, b.getAttribute('title')])).toEqual([
+      ['🔍', 'seeker'],
+      ['✦', 'stargazer'],
+    ])
+  })
+
   it('returning from a person to the list starts the list at the top', () => {
     render([organism('a'), organism('b')])
     const list = el('.org-search-list')
