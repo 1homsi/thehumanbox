@@ -127,6 +127,16 @@
       "miller": "방앗간 주인"
     }
   },
+  "mood": {
+    "grieving": "슬픔",
+    "afraid": "두려움",
+    "hungry": "배고픔",
+    "thirsty": "목마름",
+    "angry": "분노",
+    "joyful": "기쁨",
+    "content": "만족",
+    "calm": "평온"
+  },
   "vitals": {
     "energy": "에너지",
     "hydration": "수분",
@@ -171,6 +181,18 @@
   },
   "aspiration": {
     "title": "열망",
+    "label": {
+      "seeker": "탐구자",
+      "wanderer": "방랑자",
+      "warrior": "전사",
+      "connector": "연결자",
+      "builder": "건설자",
+      "devout": "신자",
+      "sage": "현자",
+      "provider": "부양자",
+      "artist": "예술가",
+      "healer": "치유사"
+    },
     "tip": {
       "seeker": "지식을 향합니다 – 탐험, 과학, 배움을 추구합니다.",
       "wanderer": "안절부절못하고 호기심이 많습니다 – 정착지에서 멀리 떨어진 길 위에서 가장 행복합니다.",

@@ -127,6 +127,16 @@
       "miller": "değirmenci"
     }
   },
+  "mood": {
+    "grieving": "kederli",
+    "afraid": "korkmuş",
+    "hungry": "aç",
+    "thirsty": "susuz",
+    "angry": "öfkeli",
+    "joyful": "neşeli",
+    "content": "memnun",
+    "calm": "sakin"
+  },
   "vitals": {
     "energy": "enerji",
     "hydration": "hidrasyon",
@@ -171,6 +181,18 @@
   },
   "aspiration": {
     "title": "ARZU",
+    "label": {
+      "seeker": "kâşif",
+      "wanderer": "gezgin",
+      "warrior": "savaşçı",
+      "connector": "bağ kurucu",
+      "builder": "yapıcı",
+      "devout": "dindar",
+      "sage": "bilge",
+      "provider": "geçim sağlayan",
+      "artist": "sanatçı",
+      "healer": "şifacı"
+    },
     "tip": {
       "seeker": "Bilgiye yönelir – keşfi, bilimi ve öğrenmeyi arar.",
       "wanderer": "Huzursuz ve meraklı – yerleşimlerden uzakta, yolda en mutlu.",

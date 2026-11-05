@@ -59,7 +59,10 @@ describe('the /ingest proxy', () => {
   })
 
   it('sends captures on the path remote config hands out to the ingest host', async () => {
-    const { response, url, method } = await forward('/ingest/i/v0/e/?ip=0&_=3', { method: 'POST', body: '{}' })
+    const { response, url, method } = await forward('/ingest/i/v0/e/?ip=0&_=3', {
+      method: 'POST',
+      body: '{}',
+    })
     expect(response.status).toBe(202)
     expect(url).toBe('https://us.i.posthog.com/i/v0/e/?ip=0&_=3')
     expect(method).toBe('POST')

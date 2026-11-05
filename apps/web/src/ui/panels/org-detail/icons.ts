@@ -1,5 +1,13 @@
 import { t, type MessageKey } from '../../../i18n'
 
+/**
+ * The entry for an id the simulation sent, or undefined. Only the table's own keys count, so an id such as
+ * `constructor` or `toString` misses instead of finding a function every object inherits.
+ */
+export function ownEntry<T>(table: Readonly<Record<string, T>>, id: string): T | undefined {
+  return Object.hasOwn(table, id) ? table[id] : undefined
+}
+
 export const AGE_STAGE_ICON: Record<string, string> = {
   infant: '👶',
   child: '🧒',
@@ -32,6 +40,51 @@ export const ASPIRATION_EMOJI: Record<string, string> = {
   provider: '🌾',
   artist: '🎨',
   healer: '🌿',
+}
+
+/** Every aspiration the simulation hands out (crates/sim-core civ_tick/people.rs), in the order the search lists them. */
+export const ASPIRATIONS = [
+  'seeker',
+  'wanderer',
+  'warrior',
+  'connector',
+  'builder',
+  'devout',
+  'sage',
+  'provider',
+  'artist',
+  'healer',
+] as const
+
+/** Every mood word the simulation sends (crates/sim-core organism/mood.rs). */
+export const MOODS = [
+  'grieving',
+  'afraid',
+  'hungry',
+  'thirsty',
+  'angry',
+  'joyful',
+  'content',
+  'calm',
+] as const
+
+// Maps, not plain objects: an id from the simulation such as `constructor` must miss, not find Object's own.
+const ASPIRATION_LABEL_KEY = new Map<string, MessageKey>(
+  ASPIRATIONS.map((id) => [id, `person.aspiration.label.${id}` as MessageKey]),
+)
+
+const MOOD_LABEL_KEY = new Map<string, MessageKey>(MOODS.map((id) => [id, `person.mood.${id}` as MessageKey]))
+
+/** An aspiration's name in the player's language; an id the panel does not know is shown as sent. */
+export function aspirationLabel(id: string): string {
+  const key = ASPIRATION_LABEL_KEY.get(id)
+  return key ? t(key) : id
+}
+
+/** A mood word in the player's language; a word the panel does not know is shown as sent. */
+export function moodLabel(id: string): string {
+  const key = MOOD_LABEL_KEY.get(id)
+  return key ? t(key) : id
 }
 
 export const ASPIRATION_TIP_KEY: Record<string, MessageKey | undefined> = {
@@ -79,13 +132,13 @@ export const ZODIAC_FLAVOR_KEY: Record<string, MessageKey | undefined> = {
 
 /** The tip for an aspiration, or '' when the simulation sends one the panel does not know. */
 export function aspirationTip(id: string): string {
-  const key = ASPIRATION_TIP_KEY[id]
+  const key = ownEntry(ASPIRATION_TIP_KEY, id)
   return key ? t(key) : ''
 }
 
 /** The flavour line for a zodiac sign, or '' when the sign is unknown. */
 export function zodiacFlavor(sign: string): string {
-  const key = ZODIAC_FLAVOR_KEY[sign]
+  const key = ownEntry(ZODIAC_FLAVOR_KEY, sign)
   return key ? t(key) : ''
 }
 

@@ -84,7 +84,7 @@
     },
     "traitTip": "生まれつき持っていた特性で、親から受け継がれたもの",
     "moodTip": "今、置かれている状況からくる気持ち",
-    "feels": "{mood}と感じている",
+    "feels": "気分: {mood}",
     "mounted": "乗り物に乗車中",
     "ageStage": {
       "infant": "乳児",
@@ -126,6 +126,16 @@
       "politician": "政治家",
       "miller": "製粉業者"
     }
+  },
+  "mood": {
+    "grieving": "悲しみ",
+    "afraid": "恐怖",
+    "hungry": "空腹",
+    "thirsty": "渇き",
+    "angry": "怒り",
+    "joyful": "喜び",
+    "content": "満足",
+    "calm": "穏やか"
   },
   "vitals": {
     "energy": "エネルギー",
@@ -171,6 +181,18 @@
   },
   "aspiration": {
     "title": "志向",
+    "label": {
+      "seeker": "探求者",
+      "wanderer": "放浪者",
+      "warrior": "戦士",
+      "connector": "結び手",
+      "builder": "建設者",
+      "devout": "信徒",
+      "sage": "賢者",
+      "provider": "養い手",
+      "artist": "芸術家",
+      "healer": "癒し手"
+    },
     "tip": {
       "seeker": "知識に引かれる――探索、科学、学びを追い求めます。",
       "wanderer": "落ち着かず好奇心が強い――旅の途中が一番幸せで、集落から遠く離れたところを好みます。",

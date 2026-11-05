@@ -127,6 +127,16 @@
       "miller": "磨坊主"
     }
   },
+  "mood": {
+    "grieving": "悲伤",
+    "afraid": "害怕",
+    "hungry": "饥饿",
+    "thirsty": "口渴",
+    "angry": "愤怒",
+    "joyful": "快乐",
+    "content": "满足",
+    "calm": "平静"
+  },
   "vitals": {
     "energy": "能量",
     "hydration": "水分",
@@ -171,6 +181,18 @@
   },
   "aspiration": {
     "title": "志向",
+    "label": {
+      "seeker": "求知者",
+      "wanderer": "漫游者",
+      "warrior": "战士",
+      "connector": "联结者",
+      "builder": "建造者",
+      "devout": "虔信者",
+      "sage": "智者",
+      "provider": "供养者",
+      "artist": "艺术家",
+      "healer": "治愈者"
+    },
     "tip": {
       "seeker": "被知识吸引——追求探索、科学和学习。",
       "wanderer": "不安分且好奇——在路上最快乐，远离定居点。",
