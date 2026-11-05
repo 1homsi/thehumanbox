@@ -22,8 +22,93 @@ import {
   permanentWaterNeighborMask,
 } from '../model/terrain-visuals'
 
+/** Clouds are laid out on this grid (world px, one tile), so their edges are whole steps, never soft. */
+export const CLOUD_CELL = TILE
+
+export interface Puff {
+  x: number
+  y: number
+  rx: number
+  ry: number
+}
+
+/** The puffs that make one cloud: a wide flat base and a row of bumps along its top, from `seed`. */
+function cloudPuffs(cx: number, cy: number, cloudW: number, cloudH: number, seed: number): Puff[] {
+  let state = seed | 0 || 1
+  const rand = () => {
+    state = (state * 1664525 + 1013904223) | 0
+    return ((state >>> 0) % 10000) / 10000
+  }
+  const puffs: Puff[] = [{ x: cx, y: cy + cloudH * 0.2, rx: cloudW * 0.72, ry: cloudH * 0.3 }]
+  const n = 6 + Math.floor(rand() * 4)
+  for (let p = 0; p < n; p++) {
+    const t = p / (n - 1)
+    const edgeBias = 1 - Math.abs(t - 0.5) * 1.6
+    const r = cloudH * (0.45 + rand() * 0.55 * edgeBias)
+    puffs.push({
+      x: cx + (t - 0.5) * cloudW * 1.55 + (rand() - 0.5) * cloudW * 0.25,
+      y: cy - cloudH * (0.05 + rand() * 0.5 * edgeBias),
+      rx: r,
+      ry: r * 0.62,
+    })
+  }
+  return puffs
+}
+
+const inside = (puffs: readonly Puff[], x: number, y: number, scale: number) =>
+  puffs.some((p) => {
+    const dx = (x - p.x) / (p.rx * scale)
+    const dy = (y - p.y) / (p.ry * scale)
+    return dx * dx + dy * dy <= 1
+  })
+
+/** A row run of cloud cells: from cell `c` for `n` cells in row `r`, relative to the cloud's anchor cell. */
+type CloudRun = readonly [r: number, c: number, n: number]
+
+/**
+ * The runs of CLOUD_CELL cells whose centres fall inside the puffs (grown or shrunk by `scale`). Runs never overlap,
+ * so a translucent fill is one flat tone.
+ */
+export function cloudRuns(puffs: readonly Puff[], scale: number): CloudRun[] {
+  let x0 = Infinity
+  let x1 = -Infinity
+  let y0 = Infinity
+  let y1 = -Infinity
+  for (const p of puffs) {
+    x0 = Math.min(x0, p.x - p.rx * scale)
+    x1 = Math.max(x1, p.x + p.rx * scale)
+    y0 = Math.min(y0, p.y - p.ry * scale)
+    y1 = Math.max(y1, p.y + p.ry * scale)
+  }
+  const runs: CloudRun[] = []
+  const c0 = Math.floor(x0 / CLOUD_CELL)
+  const c1 = Math.ceil(x1 / CLOUD_CELL)
+  for (let r = Math.floor(y0 / CLOUD_CELL); r <= Math.ceil(y1 / CLOUD_CELL); r++) {
+    const cy = (r + 0.5) * CLOUD_CELL
+    // Cells left of the anchor are negative, so an open run is marked by null, not by -1.
+    let run: number | null = null
+    for (let c = c0; c <= c1 + 1; c++) {
+      const on = c <= c1 && inside(puffs, (c + 0.5) * CLOUD_CELL, cy, scale)
+      if (on && run === null) run = c
+      else if (!on && run !== null) {
+        runs.push([r, run, c - run])
+        run = null
+      }
+    }
+  }
+  return runs
+}
+
+/** A cloud's two tones of runs, built about its anchor once: a drifting cloud only moves, it never changes shape. */
+const cloudShapes = new Map<string, { outer: CloudRun[]; core: CloudRun[] }>()
+
+/**
+ * One cloud's shadow as flat pixel art: a hard-edged silhouette on the tile grid in one tone, and a smaller core in
+ * a second tone over it, moving across the map a whole cell at a time. It was a stack of soft translucent rects at
+ * every size, which read as a blur over the map (#883).
+ */
 export function drawCloudShape(
-  ctx: CanvasRenderingContext2D,
+  ctx: Pick<CanvasRenderingContext2D, 'fillRect' | 'fillStyle'>,
   cx: number,
   cy: number,
   cloudW: number,
@@ -32,51 +117,24 @@ export function drawCloudShape(
   color: string,
   bumpSeed: number,
 ) {
-  let state = bumpSeed | 0 || 1
-  const rand = () => {
-    state = (state * 1664525 + 1013904223) | 0
-    return ((state >>> 0) % 10000) / 10000
+  const key = `${Math.round(cloudW)}|${Math.round(cloudH)}|${bumpSeed}`
+  let shape = cloudShapes.get(key)
+  if (!shape) {
+    const puffs = cloudPuffs(0, 0, cloudW, cloudH, bumpSeed)
+    shape = { outer: cloudRuns(puffs, 1), core: cloudRuns(puffs, 0.6) }
+    if (cloudShapes.size > 64) cloudShapes.clear()
+    cloudShapes.set(key, shape)
   }
-
-  const drawPuff = (px: number, py: number, pr: number, pa: number) => {
-    const radius = Math.max(3, Math.round(pr))
-    const x = Math.round(px)
-    const y = Math.round(py)
-    ctx.fillStyle = `rgba(${color},${pa * 0.25})`
-    ctx.fillRect(x - radius, y - Math.round(radius * 0.24), radius * 2, Math.max(2, radius))
-    ctx.fillStyle = `rgba(${color},${pa * 0.58})`
-    ctx.fillRect(
-      x - Math.round(radius * 0.72),
-      y - Math.round(radius * 0.52),
-      Math.round(radius * 1.44),
-      Math.max(2, Math.round(radius * 0.84)),
-    )
-    ctx.fillStyle = `rgba(${color},${pa})`
-    ctx.fillRect(
-      x - Math.round(radius * 0.42),
-      y - Math.round(radius * 0.68),
-      Math.max(2, Math.round(radius * 0.84)),
-      Math.max(2, Math.round(radius * 0.5)),
-    )
+  const ac = Math.round(cx / CLOUD_CELL)
+  const ar = Math.round(cy / CLOUD_CELL)
+  const fill = (runs: readonly CloudRun[]) => {
+    for (const [r, c, n] of runs)
+      ctx.fillRect((ac + c) * CLOUD_CELL, (ar + r) * CLOUD_CELL, n * CLOUD_CELL, CLOUD_CELL)
   }
-
-  ctx.fillStyle = `rgba(${color},${alpha * 0.42})`
-  ctx.fillRect(
-    Math.round(cx - cloudW * 0.72),
-    Math.round(cy - cloudH * 0.08),
-    Math.round(cloudW * 1.44),
-    Math.max(3, Math.round(cloudH * 0.55)),
-  )
-
-  const nPuffs = 6 + Math.floor(rand() * 4)
-  for (let p = 0; p < nPuffs; p++) {
-    const t = p / (nPuffs - 1)
-    const edgeBias = 1 - Math.abs(t - 0.5) * 1.6
-    const px = cx + (t - 0.5) * cloudW * 1.55 + (rand() - 0.5) * cloudW * 0.25
-    const py = cy - cloudH * (0.05 + rand() * 0.5 * edgeBias)
-    const pr = cloudH * (0.45 + rand() * 0.55 * edgeBias)
-    drawPuff(px, py, pr, alpha * (0.55 + rand() * 0.45))
-  }
+  ctx.fillStyle = `rgba(${color},${alpha * 0.55})`
+  fill(shape.outer)
+  ctx.fillStyle = `rgba(${color},${alpha * 0.45})`
+  fill(shape.core)
 }
 
 export interface DecorRegion {
@@ -734,19 +792,6 @@ export function drawClouds(
     const alpha = baseAlpha * (0.75 + (0.25 * ((i * 13 + 7) % 10)) / 10)
 
     drawCloudShape(ctx, cx, cy, cloudW, cloudH, alpha, color, i * 7 + 3)
-
-    if (isStorm) {
-      drawCloudShape(
-        ctx,
-        cx + cloudW * 0.08,
-        cy + cloudH * 0.25,
-        cloudW * 0.88,
-        cloudH * 0.7,
-        alpha * 0.55,
-        '8,10,24',
-        i * 5 + 11,
-      )
-    }
   }
   ctx.restore()
 }

@@ -372,7 +372,8 @@ export class CfOverlayRenderer {
       const emberView = { ...f.bounds, ox: f.ox, oy: f.oy }
       paintEmbers(ground, f.world.grid.fire_intensity, emberView, f.t, f.world.grid.fire_hot)
       paintCampfireSparks(ground, f.world.grid.tiles, emberView, f.t)
-      paintStars(ground, f.bounds, f.ox, f.oy, f.t, nightLevel(f.world))
+      // Stars are 2 px marks: zoomed out to the whole map they shrink to a speckle over everything (#883).
+      if (detailed) paintStars(ground, f.bounds, f.ox, f.oy, f.t, nightLevel(f.world))
       const { c0, c1, r0, r1 } = f.bounds
       const win = { x0: c0, y0: r0, x1: c1, y1: r1 }
       if (extras.people) this.dust.observeSlots(extras.people, f.t, win)
@@ -554,7 +555,7 @@ export class CfOverlayRenderer {
     const flash = lightningFlash(world, t, this.viewOf(f))
     if (flash > 0) this.addTint({ r: 226, g: 236, b: 255, a: 0.34 * flash }, W, H)
     this.tintLayer.touch()
-    if (precipitating(world)) writePrecipitation(this.precipLayer, this.shapes.softLine(), world, t, W, H)
+    if (precipitating(world)) writePrecipitation(this.precipLayer, world, t, W, H)
     else if (this.precipLayer.count > 0) {
       this.precipLayer.clear()
       this.precipLayer.touch()
@@ -632,7 +633,10 @@ export class CfOverlayRenderer {
     const progress = f.world.season_progress
     // Levels in steps of a hundredth, the same steps the key changes in, so the drawing matches it.
     const wetness = Number(wetnessOf(f.world).toFixed(2))
+    // A puddle is a few pixels across: at the whole-map zoom it shrinks to a speck, so none are drawn there.
+    const puddles = zoomDetailLevel(f.zoom) !== 'overview'
     const key = [
+      puddles ? 1 : 0,
       win.c0,
       win.c1,
       win.r0,
@@ -652,7 +656,7 @@ export class CfOverlayRenderer {
     const view = { ...win, ox: f.ox, oy: f.oy }
     paintGroundSnow(ctx, tiles, view, season, progress)
     paintGroundIce(ctx, tiles, view, season, progress)
-    paintPuddles(ctx, { bounds: win, ox: f.ox, oy: f.oy }, wetness)
+    if (puddles) paintPuddles(ctx, tiles, view, wetness)
     this.groundStill.end()
   }
 

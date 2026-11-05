@@ -32,8 +32,8 @@ export function paintStars(
     for (let c = Math.floor(bounds.c0 / cell); c * cell < bounds.c1; c++) {
       const id = r * 1000 + c
       if (unitHash(id, 3) > 0.34) continue
-      const x = (c * cell + unitHash(id, 5) * cell - ox) * TILE
-      const y = (r * cell + unitHash(id, 9) * cell - oy) * TILE
+      const x = Math.round((c * cell + unitHash(id, 5) * cell - ox) * TILE)
+      const y = Math.round((r * cell + unitHash(id, 9) * cell - oy) * TILE)
       const twinkle = 0.45 + 0.55 * Math.abs(Math.sin(t * 0.0009 + unitHash(id, 17) * 6.28))
       ctx.globalAlpha = night * twinkle * 0.8
       ctx.fillStyle = unitHash(id, 23) > 0.8 ? '#ffe9b0' : '#ffffff'

@@ -82,6 +82,9 @@ export function precipitating(world: Pick<WorldState, 'weather' | 'hard_winter' 
   return k === 'rain' || k === 'storm'
 }
 
+/** Steps in one rain streak's staircase. */
+export const RAIN_STEPS = 4
+
 function addRect(layer: SpriteLayer, x: number, y: number, w: number, h: number, color: number): void {
   const i = layer.add(x + w / 2, y + h / 2, w, h)
   layer.color[i] = color
@@ -94,7 +97,6 @@ function addRect(layer: SpriteLayer, x: number, y: number, w: number, h: number,
  */
 export function writePrecipitation(
   layer: SpriteLayer,
-  softLine: number,
   world: Pick<WorldState, 'weather' | 'hard_winter' | 'season'>,
   t: number,
   W: number,
@@ -107,8 +109,8 @@ export function writePrecipitation(
     const flakes = LOW_PERF ? 160 : 320
     for (let i = 0; i < flakes; i++) {
       const drift = Math.sin(t * 0.0011 + i * 1.3) * 7 + wx * 14
-      const fx = (((i * 137 + t * 0.1 + drift) % W) + W) % W
-      const fy = (i * 251 + t * (0.18 + (i % 3) * 0.05)) % H
+      const fx = Math.round((((i * 137 + t * 0.1 + drift) % W) + W) % W)
+      const fy = Math.round((i * 251 + t * (0.18 + (i % 3) * 0.05)) % H)
       const size = 1 + ((i * 7) % 2)
       addRect(layer, fx, fy, size, size, packRgba(245, 249, 255, 0.5 + ((i * 13) % 5) * 0.08))
     }
@@ -124,8 +126,8 @@ export function writePrecipitation(
       const flakes = Math.round(90 * (0.4 + wi * 0.6))
       for (let i = 0; i < flakes; i++) {
         const drift = Math.sin(t * 0.0012 + i * 1.7) * 6 + wx * 10
-        const sx = (i * 137 + t * 0.12 + drift) % W
-        const sy = (i * 251 + t * 0.25) % H
+        const sx = Math.round((i * 137 + t * 0.12 + drift) % W)
+        const sy = Math.round((i * 251 + t * 0.25) % H)
         const sz = 1 + ((i * 7) % 2)
         addRect(layer, sx, sy, sz, sz, color)
       }
@@ -136,15 +138,15 @@ export function writePrecipitation(
       const streaks = Math.round((isStorm ? 80 : 50) * (0.4 + wi * 0.6))
       const slantX = wx * (isStorm ? 10 : 6)
       const slantY = (1 + wy * 0.5) * 8
-      const len = Math.hypot(slantX, slantY)
-      const rot = Math.atan2(slantY, slantX)
+      // Whole pixels: each streak is a staircase of short upright steps along the wind's slant, never a rotated,
+      // feathered quad (a smooth diagonal is one of the things that made the map read as generated, #883).
+      const stepH = Math.max(1, Math.round(slantY / RAIN_STEPS))
       for (let i = 0; i < streaks; i++) {
-        const sx = (i * 137 + t * 0.7) % W
-        const sy = (i * 251 + t * (isStorm ? 1.4 : 1.0)) % H
-        // Anti-aliased like the canvas stroke: a feathered quad twice the line's width.
-        const s = layer.add(sx + slantX / 2, sy + slantY / 2, len, 2, softLine)
-        layer.rotation[s] = rot
-        layer.color[s] = color
+        const sx = Math.round((i * 137 + t * 0.7) % W)
+        const sy = Math.round((i * 251 + t * (isStorm ? 1.4 : 1.0)) % H)
+        for (let step = 0; step < RAIN_STEPS; step++) {
+          addRect(layer, sx + Math.round((slantX * step) / RAIN_STEPS), sy + step * stepH, 1, stepH, color)
+        }
       }
     }
   }
