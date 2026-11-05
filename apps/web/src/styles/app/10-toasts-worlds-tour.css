@@ -3,7 +3,8 @@
   position: fixed;
   right: calc(20px + var(--safe-right));
   bottom: var(--toast-clearance);
-  z-index: 9700;
+  /* Over the dock and the other toasts (90), under the dialog backdrop (100): a toast never sits on an open dialog. */
+  z-index: 95;
   display: flex;
   align-items: center;
   gap: 12px;

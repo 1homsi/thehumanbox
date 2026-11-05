@@ -3,8 +3,11 @@ import type { PrayerInfo, WorldState } from '../../shared/types'
 import { sortPrayers } from '../../game/model/prayers'
 import { ToolSprite } from '../toolbar/ToolSprite'
 import { t } from '../../i18n'
+import { screenBusy } from '../toasts/screenBusy'
 
 const SEEN_KEY = 'thb-prayer-hint-seen-v1'
+/** How often the hint checks whether a dialog or another card came or went. Quicker than TOAST_RETRY_MS, since it must also step aside. */
+const HINT_LOOK_MS = 1_000
 
 function seen(): boolean {
   try {
@@ -22,10 +25,12 @@ function markSeen() {
   }
 }
 
-/** The welcome card or the tour is up. The hint waits for them, so a first visit meets one thing at a time. */
-function onboardingOpen(): boolean {
-  return typeof document !== 'undefined' && document.querySelector('.welcome-modal, .thb-shepherd') !== null
-}
+/**
+ * Something else holds the screen: the welcome card, the tour, a dialog, or another card such as the star prompt,
+ * which sits in the same bottom-left spot. The hint waits, so the player meets one thing at a time and never gets a
+ * card over a dialog or over another card's buttons.
+ */
+const busy = () => typeof document !== 'undefined' && screenBusy('.prayer-hint')
 
 interface Props {
   world: WorldState | null
@@ -42,6 +47,16 @@ export function PrayerHint({ world, onAnswer }: Props) {
   const prayers = world?.prayers ?? []
   const answered = world?.faith?.answered ?? 0
 
+  // A paused world sends no frames, so look again on a timer: a dialog opened over the hint hides it, and the hint
+  // comes back once the dialog closes.
+  const [, setLook] = useState(0)
+  const waiting = !done && prayers.length > 0
+  useEffect(() => {
+    if (!waiting) return
+    const id = window.setInterval(() => setLook((n) => n + 1), HINT_LOOK_MS)
+    return () => window.clearInterval(id)
+  }, [waiting])
+
   useEffect(() => {
     if (!done && answered > 0) {
       markSeen()
@@ -49,7 +64,7 @@ export function PrayerHint({ world, onAnswer }: Props) {
     }
   }, [answered, done])
 
-  if (done || prayers.length === 0 || !world || onboardingOpen()) return null
+  if (done || prayers.length === 0 || !world || busy()) return null
   const close = () => {
     markSeen()
     setDone(true)

@@ -75,13 +75,17 @@
 }
 .phone-menu-list {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, …): a plain 1fr column grows to its longest label ("Stern auf GitHub"), and the pair
+   * then overflowed the sheet and clipped the right column (#920). Long labels end in an ellipsis
+   * instead, with the full text in the row's title. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 .phone-menu-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
   min-height: 48px;
   padding: 0 12px;
   border: 2px solid var(--px-ink);
@@ -141,12 +145,23 @@
   box-shadow: none;
 }
 .phone-menu-body .more-dropdown-grid {
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 .phone-menu-body .more-dropdown .lang-btn {
+  min-width: 0;
   min-height: 44px;
+  overflow: hidden;
   font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The smallest phones: two columns leave too little for a label, so stack them. */
+@media (max-width: 359px) {
+  .phone-menu-list,
+  .phone-menu-body .more-dropdown-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 /* `.header .btn-count` only styles the header badge; the chronicles row is in a sheet. */
 .phone-menu-modal .btn-count {
