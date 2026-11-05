@@ -90,7 +90,7 @@
     },
     "traitTip": "Cecha, z którą się urodzili, przekazana przez rodziców",
     "moodTip": "Jak się czują w tej chwili, zależnie od tego, co przeżywają",
-    "feels": "czuje się {mood}",
+    "feels": "nastrój: {mood}",
     "mounted": "na pojeździe",
     "ageStage": {
       "infant": "niemowlę",
@@ -132,6 +132,16 @@
       "politician": "polityk",
       "miller": "młynarz"
     }
+  },
+  "mood": {
+    "grieving": "żałoba",
+    "afraid": "strach",
+    "hungry": "głód",
+    "thirsty": "pragnienie",
+    "angry": "złość",
+    "joyful": "radość",
+    "content": "zadowolenie",
+    "calm": "spokój"
   },
   "vitals": {
     "energy": "energia",
@@ -177,6 +187,18 @@
   },
   "aspiration": {
     "title": "ASPIRACJA",
+    "label": {
+      "seeker": "poszukiwacz",
+      "wanderer": "wędrowiec",
+      "warrior": "wojownik",
+      "connector": "łącznik",
+      "builder": "budowniczy",
+      "devout": "pobożny",
+      "sage": "mędrzec",
+      "provider": "żywiciel",
+      "artist": "artysta",
+      "healer": "uzdrowiciel"
+    },
     "tip": {
       "seeker": "Pociąga go wiedza – dąży do eksploracji, nauki i poznawania.",
       "wanderer": "Niespokojny i ciekawski – najszczęśliwszy w drodze, daleko od osad.",

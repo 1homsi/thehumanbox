@@ -34,6 +34,52 @@ export const ASPIRATION_EMOJI: Record<string, string> = {
   healer: '🌿',
 }
 
+/** Every aspiration the simulation hands out (crates/sim-core civ_tick/people.rs), in the order the search lists them. */
+export const ASPIRATIONS = [
+  'seeker',
+  'wanderer',
+  'warrior',
+  'connector',
+  'builder',
+  'devout',
+  'sage',
+  'provider',
+  'artist',
+  'healer',
+] as const
+
+/** Every mood word the simulation sends (crates/sim-core organism/mood.rs). */
+export const MOODS = [
+  'grieving',
+  'afraid',
+  'hungry',
+  'thirsty',
+  'angry',
+  'joyful',
+  'content',
+  'calm',
+] as const
+
+const ASPIRATION_LABEL_KEY: Record<string, MessageKey | undefined> = Object.fromEntries(
+  ASPIRATIONS.map((id) => [id, `person.aspiration.label.${id}` as MessageKey]),
+)
+
+const MOOD_LABEL_KEY: Record<string, MessageKey | undefined> = Object.fromEntries(
+  MOODS.map((id) => [id, `person.mood.${id}` as MessageKey]),
+)
+
+/** An aspiration's name in the player's language; an id the panel does not know is shown as sent. */
+export function aspirationLabel(id: string): string {
+  const key = ASPIRATION_LABEL_KEY[id]
+  return key ? t(key) : id
+}
+
+/** A mood word in the player's language; a word the panel does not know is shown as sent. */
+export function moodLabel(id: string): string {
+  const key = MOOD_LABEL_KEY[id]
+  return key ? t(key) : id
+}
+
 export const ASPIRATION_TIP_KEY: Record<string, MessageKey | undefined> = {
   seeker: 'person.aspiration.tip.seeker',
   wanderer: 'person.aspiration.tip.wanderer',
