@@ -1,5 +1,13 @@
 import { t, type MessageKey } from '../../../i18n'
 
+/**
+ * The entry for an id the simulation sent, or undefined. Only the table's own keys count, so an id such as
+ * `constructor` or `toString` misses instead of finding a function every object inherits.
+ */
+export function ownEntry<T>(table: Readonly<Record<string, T>>, id: string): T | undefined {
+  return Object.hasOwn(table, id) ? table[id] : undefined
+}
+
 export const AGE_STAGE_ICON: Record<string, string> = {
   infant: '👶',
   child: '🧒',
@@ -124,13 +132,13 @@ export const ZODIAC_FLAVOR_KEY: Record<string, MessageKey | undefined> = {
 
 /** The tip for an aspiration, or '' when the simulation sends one the panel does not know. */
 export function aspirationTip(id: string): string {
-  const key = ASPIRATION_TIP_KEY[id]
+  const key = ownEntry(ASPIRATION_TIP_KEY, id)
   return key ? t(key) : ''
 }
 
 /** The flavour line for a zodiac sign, or '' when the sign is unknown. */
 export function zodiacFlavor(sign: string): string {
-  const key = ZODIAC_FLAVOR_KEY[sign]
+  const key = ownEntry(ZODIAC_FLAVOR_KEY, sign)
   return key ? t(key) : ''
 }
 

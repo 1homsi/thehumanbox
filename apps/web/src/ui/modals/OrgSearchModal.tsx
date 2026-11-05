@@ -7,7 +7,7 @@ import { OrgDetail } from '../panels/OrgDetail'
 import { Modal } from './Modal'
 import { shownGeneration } from '../../game/model/generations'
 import { formatNumber, t, type MessageKey } from '../../i18n'
-import { ASPIRATIONS, ASPIRATION_EMOJI, aspirationLabel } from '../panels/org-detail/icons'
+import { ASPIRATIONS, ASPIRATION_EMOJI, aspirationLabel, ownEntry } from '../panels/org-detail/icons'
 
 const DAY_LENGTH = 600
 
@@ -253,9 +253,9 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                     {personName(org)}
                   </span>
                   <span className="org-search-badges">
-                    {org.aspiration && ASPIRATION_EMOJI[org.aspiration] && (
+                    {org.aspiration && ownEntry(ASPIRATION_EMOJI, org.aspiration) && (
                       <span title={aspirationLabel(org.aspiration)} style={{ marginRight: 2 }}>
-                        {ASPIRATION_EMOJI[org.aspiration]}
+                        {ownEntry(ASPIRATION_EMOJI, org.aspiration)}
                       </span>
                     )}
                     {discs.includes('fire') && '🔥'}

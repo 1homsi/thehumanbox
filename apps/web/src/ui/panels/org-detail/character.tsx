@@ -1,7 +1,14 @@
 import { Tooltip } from '../../toolbar/Tooltip'
 import { cbColor } from '../../../shared/constants'
 import { MiniBar } from './bars'
-import { ASPIRATION_EMOJI, ZODIAC_GLYPH, aspirationLabel, aspirationTip, zodiacFlavor } from './icons'
+import {
+  ASPIRATION_EMOJI,
+  ZODIAC_GLYPH,
+  aspirationLabel,
+  aspirationTip,
+  ownEntry,
+  zodiacFlavor,
+} from './icons'
 import type { OrganismState, OrgDetail } from '../../../shared/types'
 import { t, type MessageKey } from '../../../i18n'
 
@@ -17,7 +24,7 @@ export function AspirationSection({ org }: { org: OrganismState }) {
               style={{ background: '#1a1408', color: '#f6d062', cursor: 'default' }}
               title={aspirationTip(org.aspiration)}
             >
-              {ASPIRATION_EMOJI[org.aspiration] ?? '✦'} {aspirationLabel(org.aspiration)}
+              {ownEntry(ASPIRATION_EMOJI, org.aspiration) ?? '✦'} {aspirationLabel(org.aspiration)}
             </span>
           </div>
         </>
@@ -123,7 +130,7 @@ export function ZodiacSection({ org }: { org: OrganismState }) {
               style={{ background: '#0e1018', color: '#9ad0f0', cursor: 'default' }}
               title={zodiacFlavor(org.zodiac)}
             >
-              {ZODIAC_GLYPH[org.zodiac] ?? '✦'} {org.zodiac}
+              {ownEntry(ZODIAC_GLYPH, org.zodiac) ?? '✦'} {org.zodiac}
             </span>
             <span style={{ color: '#666', fontSize: 11, marginLeft: 6, fontStyle: 'italic' }}>
               {zodiacFlavor(org.zodiac)}

@@ -30,11 +30,12 @@ function render(node: React.ReactNode): HTMLElement {
   return host
 }
 
+// Line endings normalised, so a Windows checkout (core.autocrlf) reads the same.
 const simSource = (file: string) =>
   readFileSync(
     path.join(path.dirname(fileURLToPath(import.meta.url)), '../../../../../../crates/sim-core/src', file),
     'utf8',
-  )
+  ).replace(/\r\n/g, '\n')
 /** The quoted words a Rust function returns, read from the code that is not a test. */
 const quotedWords = (source: string) =>
   new Set([...source.split('#[cfg(test)]')[0].matchAll(/^\s*"([a-z]+)"\s*$/gm)].map((m) => m[1]))
@@ -81,6 +82,14 @@ describe('mood and aspiration in the person panel', () => {
     const aspiration = render(<AspirationSection org={org} />).textContent ?? ''
     expect(aspiration).toContain('Sucher')
     expect(aspiration).not.toContain('seeker')
+  })
+
+  it('shows an id that happens to name an Object property as sent', () => {
+    const odd = { ...org, mood: 'constructor', aspiration: 'toString' } as unknown as OrganismState
+    expect(render(<StatusChips org={odd} />).textContent).toContain('feels constructor')
+    act(() => root?.unmount())
+    root = null
+    expect(render(<AspirationSection org={odd} />).textContent).toContain('toString')
   })
 
   it('shows a word it does not know as sent', async () => {
