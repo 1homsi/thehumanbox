@@ -253,9 +253,10 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                     {personName(org)}
                   </span>
                   <span className="org-search-badges">
-                    {org.aspiration && ownEntry(ASPIRATION_EMOJI, org.aspiration) && (
+                    {/* An aspiration this build does not know still shows, as ✦ like the person panel. */}
+                    {org.aspiration && (
                       <span title={aspirationLabel(org.aspiration)} style={{ marginRight: 2 }}>
-                        {ownEntry(ASPIRATION_EMOJI, org.aspiration)}
+                        {ownEntry(ASPIRATION_EMOJI, org.aspiration) ?? '✦'}
                       </span>
                     )}
                     {discs.includes('fire') && '🔥'}
