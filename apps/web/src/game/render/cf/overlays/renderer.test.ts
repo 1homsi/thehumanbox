@@ -271,6 +271,25 @@ describe('CfOverlayRenderer', () => {
     expect(still.count).toBe(0)
   })
 
+  it('draws no puddles or stars zoomed out to the whole map, where they would be a speckle (#883)', () => {
+    make()
+    const still = host.layers.find((l) => l.zIndex === Z.groundStill)!
+    const ground = host.layers.find((l) => l.zIndex === Z.ground)!
+    const wetNight = world({
+      is_day: false,
+      weather: { kind: 'rain', intensity: 1 },
+    } as unknown as Partial<WorldState>)
+    const far = frameOf(wetNight, null, 5000)
+    far.zoom = 0.5
+    renderer.update(far)
+    expect(still.count).toBe(0)
+    const farGround = ground.count
+    const near = frameOf({ ...wetNight, frame_id: 2 } as WorldState, null, 5100)
+    renderer.update(near)
+    expect(still.count).toBeGreaterThan(0)
+    expect(ground.count).toBeGreaterThan(farGround)
+  })
+
   it('outlines built-up tiles in the structures view', () => {
     make()
     const structure = Array.from({ length: GH }, () => Array(GW).fill(0))

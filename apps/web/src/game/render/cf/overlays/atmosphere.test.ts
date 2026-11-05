@@ -2,7 +2,7 @@
 import { SpriteLayer } from 'xipjs'
 import { describe, expect, it } from 'vitest'
 import type { WorldState } from '../../../../shared/types'
-import { atmosphereTints, hardWinter, precipitating, writePrecipitation } from './atmosphere'
+import { atmosphereTints, hardWinter, precipitating, RAIN_STEPS, writePrecipitation } from './atmosphere'
 
 type W = Parameters<typeof atmosphereTints>[0]
 
@@ -61,29 +61,34 @@ describe('precipitation', () => {
   const Wpx = 4800
   const Hpx = 2400
 
-  it('writes rain streaks that are slanted, translucent and inside the world', () => {
+  it('writes rain streaks as whole-pixel staircases along the wind, inside the world', () => {
     const layer = new SpriteLayer()
     const w = world({ weather: { kind: 'rain', intensity: 1, wind_x: 0.5, wind_y: 0 } })
-    writePrecipitation(layer, 7, w as unknown as WorldState, 123456, Wpx, Hpx)
-    expect(layer.count).toBe(50)
+    writePrecipitation(layer, w as unknown as WorldState, 123456, Wpx, Hpx)
+    expect(layer.count).toBe(50 * RAIN_STEPS)
     for (let i = 0; i < layer.count; i++) {
       expect(layer.x[i]).toBeGreaterThan(-20)
       expect(layer.x[i]).toBeLessThan(Wpx + 20)
       expect(layer.y[i]).toBeGreaterThanOrEqual(0)
       expect(layer.y[i]).toBeLessThan(Hpx + 20)
-      expect(layer.rotation[i]).toBeGreaterThan(0.5)
-      expect(layer.frame[i]).toBe(7)
+      // Upright and on the pixel grid: a rect's left and top edges are whole numbers, nothing is rotated.
+      expect(layer.rotation[i]).toBe(0)
+      expect(Number.isInteger(layer.x[i] - layer.w[i] / 2)).toBe(true)
+      expect(Number.isInteger(layer.y[i] - layer.h[i] / 2)).toBe(true)
     }
+    // With wind from the west, each streak's steps move east as they fall.
+    expect(layer.x[RAIN_STEPS - 1]).toBeGreaterThan(layer.x[0])
+    expect(layer.y[RAIN_STEPS - 1]).toBeGreaterThan(layer.y[0])
   })
 
   it('is a pure function of the clock, so a repaint at the same time is identical', () => {
     const a = new SpriteLayer()
     const b = new SpriteLayer()
     const w = world({ weather: { kind: 'storm', intensity: 0.5 } })
-    writePrecipitation(a, 0, w as unknown as WorldState, 99999, Wpx, Hpx)
-    writePrecipitation(b, 0, w as unknown as WorldState, 99999, Wpx, Hpx)
+    writePrecipitation(a, w as unknown as WorldState, 99999, Wpx, Hpx)
+    writePrecipitation(b, w as unknown as WorldState, 99999, Wpx, Hpx)
     expect(Array.from(a.x.subarray(0, a.count))).toEqual(Array.from(b.x.subarray(0, b.count)))
-    writePrecipitation(b, 0, w as unknown as WorldState, 100500, Wpx, Hpx)
+    writePrecipitation(b, w as unknown as WorldState, 100500, Wpx, Hpx)
     expect(Array.from(a.y.subarray(0, a.count))).not.toEqual(Array.from(b.y.subarray(0, b.count)))
   })
 
@@ -91,7 +96,6 @@ describe('precipitation', () => {
     const snow = new SpriteLayer()
     writePrecipitation(
       snow,
-      0,
       world({ season: 'scarcity', weather: { kind: 'rain', intensity: 1 } }) as unknown as WorldState,
       1,
       Wpx,
@@ -102,7 +106,6 @@ describe('precipitation', () => {
     const winter = new SpriteLayer()
     writePrecipitation(
       winter,
-      0,
       world({ season: 'scarcity', hard_winter: true }) as unknown as WorldState,
       1,
       Wpx,
@@ -115,14 +118,13 @@ describe('precipitation', () => {
     const layer = new SpriteLayer()
     writePrecipitation(
       layer,
-      0,
       world({ weather: { kind: 'rain', intensity: 1 } }) as unknown as WorldState,
       1,
       Wpx,
       Hpx,
     )
     expect(layer.count).toBeGreaterThan(0)
-    writePrecipitation(layer, 0, world() as unknown as WorldState, 1, Wpx, Hpx)
+    writePrecipitation(layer, world() as unknown as WorldState, 1, Wpx, Hpx)
     expect(layer.count).toBe(0)
   })
 })

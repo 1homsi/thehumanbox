@@ -1,6 +1,7 @@
 import type { WorldState } from '../../../../shared/types'
 import { TILE } from '../../../model/palette'
-import type { CfFrame } from './frame'
+import { TILE_ID } from '../../../model/terrain-ids'
+import { cellsWhere, forCellsInView, type CellView } from './cell-index'
 
 type Ctx = CanvasRenderingContext2D
 
@@ -138,41 +139,70 @@ export function paintSplashes(
   const h = window.y1 - window.y0
   if (w <= 0 || h <= 0) return
   ctx.save()
-  ctx.lineWidth = 0.9
-  ctx.strokeStyle = '#d9ecff'
+  ctx.fillStyle = '#d9ecff'
   for (let i = 0; i < count; i++) {
     const phase = (t + unitHash(i, 5) * SPLASH_MS) % SPLASH_MS
     const k = phase / SPLASH_MS
     // Positions change each cycle, so the rings do not stay in one place.
     const cycle = Math.floor((t + unitHash(i, 5) * SPLASH_MS) / SPLASH_MS)
-    const x = window.x0 + unitHash(i * 3 + 1, cycle) * w
-    const y = window.y0 + unitHash(i * 3 + 2, cycle) * h
+    const x = Math.round(window.x0 + unitHash(i * 3 + 1, cycle) * w)
+    const y = Math.round(window.y0 + unitHash(i * 3 + 2, cycle) * h)
     ctx.globalAlpha = (1 - k) * 0.5
-    ctx.beginPath()
-    ctx.arc(x, y, 1 + k * 3.2, 0, Math.PI * 2)
-    ctx.stroke()
+    pixelRing(ctx, x, y, 1 + Math.round(k * 3))
   }
   ctx.restore()
 }
 
-/** Puddles on the ground in the visible window, more of them the wetter the weather is. */
-export function paintPuddles(ctx: Ctx, f: Pick<CfFrame, 'bounds' | 'ox' | 'oy'>, wetness: number): void {
+/**
+ * A ripple seen from above in whole pixels: a flat oval outline `r` pixels to each side and half that up and down,
+ * its corners left open. Four rects that never overlap, so a translucent ring has one even tone; an anti-aliased
+ * arc at a fractional position was one of the soft, generated-looking marks (#883).
+ */
+export function pixelRing(ctx: Pick<Ctx, 'fillRect'>, x: number, y: number, r: number): void {
+  const ry = Math.max(1, Math.round(r / 2))
+  ctx.fillRect(x - r, y, 1, 1)
+  ctx.fillRect(x + r, y, 1, 1)
+  if (r < 2) return
+  ctx.fillRect(x - r + 1, y - ry, 2 * r - 1, 1)
+  ctx.fillRect(x - r + 1, y + ry, 2 * r - 1, 1)
+}
+
+/**
+ * A puddle in whole pixels: a two-pixel band `2 rx` wide with a one-pixel band above and below, each a pixel
+ * shorter at both ends. Non-overlapping rects, so the translucent water is one flat tone.
+ */
+export function pixelPuddle(ctx: Pick<Ctx, 'fillRect'>, x: number, y: number, rx: number): void {
+  ctx.fillRect(x - rx, y - 1, 2 * rx, 2)
+  ctx.fillRect(x - rx + 1, y - 2, 2 * rx - 2, 1)
+  ctx.fillRect(x - rx + 1, y + 1, 2 * rx - 2, 1)
+}
+
+/** Ground a puddle can lie on: not water, rock, snow, ice, lava, fire or a building. */
+const PUDDLE_GROUND: ReadonlySet<number> = new Set([
+  TILE_ID.GRASS,
+  TILE_ID.FOOD,
+  TILE_ID.ASH,
+  TILE_ID.SCORCHED,
+  TILE_ID.SAND,
+])
+
+/**
+ * Puddles on open ground in the view, more of them the wetter the weather is. Only on ground that can hold one:
+ * they were laid on every tile, the sea included, which zoomed out read as a speckle over the whole map (#883).
+ */
+export function paintPuddles(ctx: Ctx, tiles: ArrayLike<number>[], view: CellView, wetness: number): void {
   if (wetness <= 0) return
-  const { c0, c1, r0, r1 } = f.bounds
+  const ground = cellsWhere(tiles, 'puddle-ground', (row, col) => PUDDLE_GROUND.has(tiles[row][col] ?? 0))
   ctx.save()
   ctx.fillStyle = 'rgba(170,200,226,0.32)'
-  for (let r = r0; r < r1; r++) {
-    for (let c = c0; c < c1; c++) {
-      const pick = unitHash(c * 7 + 3, r * 13 + 1)
-      if (pick > wetness * 0.16) continue
-      const x = (c - f.ox) * TILE + TILE * (0.2 + unitHash(c, r + 9) * 0.6)
-      const y = (r - f.oy) * TILE + TILE * (0.2 + unitHash(r, c + 4) * 0.6)
-      const rx = 2 + unitHash(c + 1, r + 2) * 3
-      ctx.beginPath()
-      ctx.ellipse(x, y, rx, rx * 0.5, 0, 0, Math.PI * 2)
-      ctx.fill()
-    }
-  }
+  forCellsInView(ground, view, (row, col) => {
+    const c = col + view.ox
+    const r = row + view.oy
+    if (unitHash(c * 7 + 3, r * 13 + 1) > wetness * 0.16) return
+    const x = Math.round(col * TILE + TILE * (0.2 + unitHash(c, r + 9) * 0.6))
+    const y = Math.round(row * TILE + TILE * (0.2 + unitHash(r, c + 4) * 0.6))
+    pixelPuddle(ctx, x, y, 2 + Math.round(unitHash(c + 1, r + 2) * 3))
+  })
   ctx.restore()
 }
 
