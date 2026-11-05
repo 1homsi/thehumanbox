@@ -14,12 +14,15 @@ const PREFIX = '/ingest'
 const ALLOWED_METHODS = ['GET', 'POST', 'OPTIONS']
 
 // The paths posthog-js calls here (capture_exceptions and remote config on, session recording off):
-//   /e and /e/            event capture
+//   /e and /e/            event capture (posthog-js's built-in default)
+//   /i/v0/e and /i/v0/e/  event capture: PostHog's remote config moves analytics here, so this is what a
+//                         loaded page actually posts to
 //   /flags and /flags/    feature flags
 //   /array/<key>/config   remote config (and its .js form)
 //   /static/<name>.js     lazily loaded extensions such as exception autocapture
 const ALLOWED_PATHS: RegExp[] = [
   /^\/e\/?$/,
+  /^\/i\/v0\/e\/?$/,
   /^\/flags\/?$/,
   /^\/array\/phc_[A-Za-z0-9_-]+\/config(\.js)?$/,
   /^\/static\/[A-Za-z0-9][A-Za-z0-9._-]*(\/[A-Za-z0-9][A-Za-z0-9._-]*)*\.js$/,

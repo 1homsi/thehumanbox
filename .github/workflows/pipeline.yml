@@ -759,17 +759,27 @@ jobs:
             exit 1
           fi
           status() { curl -s -o /dev/null --max-time 10 -w '%{http_code}' -X "$1" "$URL$2" || echo 000; }
+          # Both capture paths must reach PostHog. A body without a distinct_id is refused there with a 4xx that
+          # is not 404, so a 404 means the function itself turned the path away: #919, where every capture
+          # went to /i/v0/e/ while this check only tried /e/.
+          capture() {
+            curl -s -o /dev/null --max-time 10 -w '%{http_code}' -X POST -H 'content-type: application/json' \
+              -d '{"api_key":"deploy-check","event":"deploy-check"}' "$URL$1" || echo 000
+          }
           for i in 1 2 3 4 5 6; do
             pre=$(status OPTIONS /ingest/e/)
             miss=$(status POST /ingest/not-a-posthog-path)
-            if [[ "$pre" == 2?? && "$miss" == 404 ]]; then
-              echo "proxy live at $URL: OPTIONS /ingest/e/ $pre, unknown path $miss"
+            e=$(capture /ingest/e/)
+            v0=$(capture /ingest/i/v0/e/)
+            summary="OPTIONS /ingest/e/ $pre, unknown path $miss, capture /e/ $e, capture /i/v0/e/ $v0"
+            if [[ "$pre" == 2?? && "$miss" == 404 && "$e" != 404 && "$e" != 000 && "$v0" != 404 && "$v0" != 000 ]]; then
+              echo "proxy live at $URL: $summary"
               exit 0
             fi
-            echo "attempt $i: OPTIONS /ingest/e/ $pre, unknown path $miss"
+            echo "attempt $i: $summary"
             sleep 10
           done
-          echo "the /ingest function is not live at $URL (want a 2xx preflight and a 404 for an unknown path)" >&2
+          echo "the /ingest function is not live at $URL (want a 2xx preflight, a 404 for an unknown path, and both capture paths forwarded)" >&2
           exit 1
 
   deploy-frontend:
@@ -819,17 +829,27 @@ jobs:
             exit 1
           fi
           status() { curl -s -o /dev/null --max-time 10 -w '%{http_code}' -X "$1" "$URL$2" || echo 000; }
+          # Both capture paths must reach PostHog. A body without a distinct_id is refused there with a 4xx that
+          # is not 404, so a 404 means the function itself turned the path away: #919, where every capture
+          # went to /i/v0/e/ while this check only tried /e/.
+          capture() {
+            curl -s -o /dev/null --max-time 10 -w '%{http_code}' -X POST -H 'content-type: application/json' \
+              -d '{"api_key":"deploy-check","event":"deploy-check"}' "$URL$1" || echo 000
+          }
           for i in 1 2 3 4 5 6; do
             pre=$(status OPTIONS /ingest/e/)
             miss=$(status POST /ingest/not-a-posthog-path)
-            if [[ "$pre" == 2?? && "$miss" == 404 ]]; then
-              echo "proxy live at $URL: OPTIONS /ingest/e/ $pre, unknown path $miss"
+            e=$(capture /ingest/e/)
+            v0=$(capture /ingest/i/v0/e/)
+            summary="OPTIONS /ingest/e/ $pre, unknown path $miss, capture /e/ $e, capture /i/v0/e/ $v0"
+            if [[ "$pre" == 2?? && "$miss" == 404 && "$e" != 404 && "$e" != 000 && "$v0" != 404 && "$v0" != 000 ]]; then
+              echo "proxy live at $URL: $summary"
               exit 0
             fi
-            echo "attempt $i: OPTIONS /ingest/e/ $pre, unknown path $miss"
+            echo "attempt $i: $summary"
             sleep 10
           done
-          echo "the /ingest function is not live at $URL (want a 2xx preflight and a 404 for an unknown path)" >&2
+          echo "the /ingest function is not live at $URL (want a 2xx preflight, a 404 for an unknown path, and both capture paths forwarded)" >&2
           exit 1
 
   # Leaves `pass-<area>-<key>` for each area whose suites all ran and passed
