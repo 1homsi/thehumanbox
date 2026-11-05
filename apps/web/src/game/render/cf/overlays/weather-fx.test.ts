@@ -125,12 +125,14 @@ describe('weather in whole pixels (#883)', () => {
     const { ctx, rects } = rectRecorder()
     paintPuddles(ctx, tiles, { c0: 0, c1: 50, r0: 0, r1: 40, ox: 0, oy: 0 }, 1)
     expect(rects.length).toBeGreaterThan(0)
-    // Each puddle's two-pixel middle band is centred on the puddle.
-    const middles = rects.filter(([, , , h]) => h === 2)
-    expect(middles.length).toBeGreaterThan(0)
-    for (const [x, y, w] of middles) {
-      const kind = tiles[Math.floor((y + 1) / TILE)][Math.floor((x + w / 2) / TILE)]
-      expect([TILE_ID.GRASS, TILE_ID.SAND]).toContain(kind)
+    // Every pixel of every puddle is on open ground, edges included, not only its centre.
+    for (const [x, y, w, h] of rects) {
+      for (let i = 0; i < w; i++) {
+        for (let j = 0; j < h; j++) {
+          const kind = tiles[Math.floor((y + j) / TILE)][Math.floor((x + i) / TILE)]
+          expect([TILE_ID.GRASS, TILE_ID.SAND]).toContain(kind)
+        }
+      }
     }
   })
 })

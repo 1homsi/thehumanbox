@@ -177,6 +177,9 @@ export function pixelPuddle(ctx: Pick<Ctx, 'fillRect'>, x: number, y: number, rx
   ctx.fillRect(x - rx + 1, y + 1, 2 * rx - 2, 1)
 }
 
+/** Widest puddle half-width that fits a tile: 2 rx pixels across, inside TILE. */
+const PUDDLE_MAX_RX = Math.floor(TILE / 2) - 1
+
 /** Ground a puddle can lie on: not water, rock, snow, ice, lava, fire or a building. */
 const PUDDLE_GROUND: ReadonlySet<number> = new Set([
   TILE_ID.GRASS,
@@ -199,9 +202,12 @@ export function paintPuddles(ctx: Ctx, tiles: ArrayLike<number>[], view: CellVie
     const c = col + view.ox
     const r = row + view.oy
     if (unitHash(c * 7 + 3, r * 13 + 1) > wetness * 0.16) return
-    const x = Math.round(col * TILE + TILE * (0.2 + unitHash(c, r + 9) * 0.6))
-    const y = Math.round(row * TILE + TILE * (0.2 + unitHash(r, c + 4) * 0.6))
-    pixelPuddle(ctx, x, y, 2 + Math.round(unitHash(c + 1, r + 2) * 3))
+    // The whole puddle stays inside its own tile, so none spills onto the water or rock next to it: `2 rx` wide
+    // and four pixels tall (rows y - 2 to y + 1), placed by the hash within what the tile leaves.
+    const rx = Math.min(PUDDLE_MAX_RX, 2 + Math.round(unitHash(c + 1, r + 2)))
+    const x = col * TILE + rx + Math.round(unitHash(c, r + 9) * (TILE - 2 * rx))
+    const y = row * TILE + 2 + Math.round(unitHash(r, c + 4) * (TILE - 4))
+    pixelPuddle(ctx, x, y, rx)
   })
   ctx.restore()
 }
