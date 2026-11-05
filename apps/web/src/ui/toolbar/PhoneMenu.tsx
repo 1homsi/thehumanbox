@@ -94,6 +94,7 @@ export function PhoneMenu({ chronicleCount, isFullscreen, onToggleFullscreen, wo
                 <button
                   type="button"
                   className="phone-menu-row phone-menu-save"
+                  title={phoneSaveLabel(worldActions.save)}
                   // Saving keeps the sheet open, so the status below the label can be read.
                   onClick={worldActions.save.onSave}
                   disabled={saveBlocked(worldActions.save)}

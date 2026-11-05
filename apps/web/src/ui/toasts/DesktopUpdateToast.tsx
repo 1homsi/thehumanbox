@@ -96,7 +96,8 @@ const wrap: React.CSSProperties = {
   position: 'fixed',
   bottom: 'var(--toast-clearance)',
   right: 16,
-  zIndex: 1500,
+  // Under the dialog backdrop (100), like the other toasts: an update never covers an open dialog's controls.
+  zIndex: 95,
   display: 'flex',
   alignItems: 'center',
   gap: 12,

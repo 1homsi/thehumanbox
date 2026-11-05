@@ -13,7 +13,7 @@ import { PAUSE_TRIGGERS } from '../../game/model/pause-on'
 
 /**
  * A menu icon drawn as a pixel sprite. Used where no common font has the symbol: on stock Linux ⌖ and ⌕ (Misc
- * Technical) and ⏳ ⏱ (emoji) came out as empty boxes (#925).
+ * Technical) and ⏳ ⏱ ⏸ (emoji) came out as empty boxes (#925).
  */
 function MenuGlyph({ icon }: { icon: string }) {
   return (
@@ -401,7 +401,9 @@ export function MoreDropdown({
       </div>
 
       <div className="more-dropdown-divider" />
-      <div className="more-dropdown-section">⏸ {t('dock.more.pauseOn')}</div>
+      <div className="more-dropdown-section">
+        <MenuGlyph icon="⏸️" /> {t('dock.more.pauseOn')}
+      </div>
       <div className="more-dropdown-grid" role="group" aria-label={t('dock.more.pauseOnTip')}>
         {PAUSE_TRIGGERS.map((trigger) => (
           <Tooltip key={trigger} tip={t(`dock.more.pauseTip.${trigger}`)}>
