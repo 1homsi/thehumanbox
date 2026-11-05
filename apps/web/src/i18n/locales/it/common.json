@@ -19,5 +19,13 @@
   "boundaryBody": "È successo qualcosa di inatteso nel motore grafico. Ricarica per riconnetterti alla simulazione in corso.",
   "boundaryReload": "Ricarica",
   "zoomInLimit": "Ingrandimento al massimo",
-  "zoomOutLimit": "Riduzione al massimo"
+  "zoomOutLimit": "Riduzione al massimo",
+  "startup": {
+    "title": "avvio del mondo…",
+    "failedTitle": "il mondo locale non si è avviato",
+    "web": "caricamento della simulazione WebAssembly privata salvata in questo browser",
+    "desktop": "avvio della simulazione nativa su questo computer",
+    "failed": "la simulazione non è riuscita ad avviarsi in questo browser. Di solito riprovare funziona.",
+    "retry": "riprova il mondo locale"
+  }
 }

@@ -19,5 +19,13 @@
   "boundaryBody": "Algo inesperado aconteceu na renderização. Recarregue a página para se reconectar à simulação atual.",
   "boundaryReload": "Recarregar",
   "zoomInLimit": "Não dá para aproximar mais",
-  "zoomOutLimit": "Não dá para afastar mais"
+  "zoomOutLimit": "Não dá para afastar mais",
+  "startup": {
+    "title": "iniciando seu mundo…",
+    "failedTitle": "o mundo local não conseguiu iniciar",
+    "web": "carregando a simulação WebAssembly privada salva neste navegador",
+    "desktop": "iniciando a simulação nativa neste computador",
+    "failed": "a simulação não conseguiu iniciar neste navegador. Tentar de novo costuma resolver.",
+    "retry": "tentar o mundo local de novo"
+  }
 }

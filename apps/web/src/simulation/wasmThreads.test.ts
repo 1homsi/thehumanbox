@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { MAX_SIM_THREADS, threadCount, withTimeout, wantsThreads } from './wasmThreads'
+import { describe, expect, it, vi } from 'vitest'
+import { MAX_SIM_THREADS, raceEngines, threadCount, withTimeout, wantsThreads } from './wasmThreads'
 
 describe('wantsThreads', () => {
   it('needs a cross-origin isolated page with SharedArrayBuffer', () => {
@@ -50,5 +50,70 @@ describe('threadCount', () => {
   it('runs one thread when the core count is unknown', () => {
     expect(threadCount(undefined)).toBe(1)
     expect(threadCount(Number.NaN)).toBe(1)
+  })
+})
+
+describe('raceEngines', () => {
+  /** A sleep the test releases by hand, so the head start ends exactly when the test says. */
+  function manualSleep() {
+    let wake = () => {}
+    const sleep = () => new Promise<void>((resolve) => (wake = resolve))
+    return { sleep, wake: () => wake() }
+  }
+  const never = <T>() => new Promise<T>(() => {})
+
+  it('runs the threaded engine and never starts the single one when threads are ready in time', async () => {
+    const startSingle = vi.fn(async () => 'single')
+    const { sleep } = manualSleep()
+    await expect(raceEngines(Promise.resolve('threads'), startSingle, 3000, sleep)).resolves.toEqual({
+      engine: 'threads',
+      fallback: null,
+    })
+    expect(startSingle).not.toHaveBeenCalled()
+  })
+
+  it('starts the single engine at once when the threaded start fails', async () => {
+    const { sleep } = manualSleep()
+    await expect(
+      raceEngines(Promise.reject(new Error('no pool')), async () => 'single', 3000, sleep),
+    ).resolves.toEqual({ engine: 'single', fallback: 'failed' })
+  })
+
+  it('a stalled threaded start costs the head start, not the 40 s of timeouts', async () => {
+    const clock = manualSleep()
+    const startSingle = vi.fn(async () => 'single')
+    const choice = raceEngines(never<string>(), startSingle, 3000, clock.sleep)
+    await Promise.resolve()
+    expect(startSingle).not.toHaveBeenCalled()
+    clock.wake()
+    await expect(choice).resolves.toEqual({ engine: 'single', fallback: 'slow' })
+    expect(startSingle).toHaveBeenCalledOnce()
+  })
+
+  it('keeps the threaded engine when it finishes first after the single one started', async () => {
+    const clock = manualSleep()
+    let readyThreads: (engine: string) => void = () => {}
+    const threaded = new Promise<string>((resolve) => (readyThreads = resolve))
+    const choice = raceEngines(threaded, () => never<string>(), 3000, clock.sleep)
+    clock.wake()
+    await Promise.resolve()
+    readyThreads('threads')
+    await expect(choice).resolves.toEqual({ engine: 'threads', fallback: null })
+  })
+
+  it('waits for the threaded engine when the single one fails, and fails only if both do', async () => {
+    const clock = manualSleep()
+    let failThreads: (error: Error) => void = () => {}
+    const threaded = new Promise<string>((_resolve, reject) => (failThreads = reject))
+    const choice = raceEngines(
+      threaded,
+      async () => Promise.reject(new Error('single broke')),
+      3000,
+      clock.sleep,
+    )
+    clock.wake()
+    await Promise.resolve()
+    failThreads(new Error('threads broke'))
+    await expect(choice).rejects.toThrow(/broke/)
   })
 })

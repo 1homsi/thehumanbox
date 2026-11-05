@@ -19,5 +19,13 @@
   "boundaryBody": "渲染过程中出现了意外。重新加载即可重新连接到当前的模拟。",
   "boundaryReload": "重新加载",
   "zoomInLimit": "已放到最大",
-  "zoomOutLimit": "已缩到最小"
+  "zoomOutLimit": "已缩到最小",
+  "startup": {
+    "title": "正在启动你的世界…",
+    "failedTitle": "本地世界无法启动",
+    "web": "正在加载保存在此浏览器中的 WebAssembly 模拟",
+    "desktop": "正在此电脑上启动原生模拟",
+    "failed": "模拟无法在此浏览器中启动。重试通常可以解决。",
+    "retry": "重试本地世界"
+  }
 }

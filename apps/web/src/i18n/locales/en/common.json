@@ -19,5 +19,13 @@
   "boundaryBody": "Something unexpected happened in the renderer. Reload to reconnect to the current simulation.",
   "boundaryReload": "Reload",
   "zoomInLimit": "Zoomed in as far as it goes",
-  "zoomOutLimit": "Zoomed out as far as it goes"
+  "zoomOutLimit": "Zoomed out as far as it goes",
+  "startup": {
+    "title": "starting your world…",
+    "failedTitle": "local world could not start",
+    "web": "loading the private WebAssembly simulation saved in this browser",
+    "desktop": "starting the native simulation on this computer",
+    "failed": "the simulation could not start in this browser. Retrying usually helps.",
+    "retry": "retry local world"
+  }
 }

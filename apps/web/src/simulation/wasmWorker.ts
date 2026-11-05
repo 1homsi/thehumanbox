@@ -1,4 +1,6 @@
-import { startSimEngine, type SimClass } from './wasmEngine'
+import { startSimEngine, type SimClass, type SimEngine } from './wasmEngine'
+import type { WorkerStartup } from './startup-timing'
+import { logger } from '../shared/logger'
 import {
   archiveAndDeleteWorld,
   listRecoveryWorlds,
@@ -500,8 +502,13 @@ async function start(msg: StartMsg) {
   stepsPerEmit = Math.max(1, Math.floor(msg.stepsPerEmit ?? stepsPerEmit))
   autosaveEveryMs = msg.autosaveEveryMs ?? DEFAULT_AUTOSAVE_MS
 
+  // Each startup phase is timed and sent with `ready`, so a slow start on a visitor's machine shows where it went.
+  const startedAt = performance.now()
+  const since = (from: number) => Math.round(performance.now() - from)
+  let engine: SimEngine
   try {
-    Sim = (await startSimEngine()).Sim
+    engine = await startSimEngine()
+    Sim = engine.Sim
   } catch (e) {
     post({
       type: 'error',
@@ -512,8 +519,11 @@ async function start(msg: StartMsg) {
   }
 
   if (reloadPreparing) return
+  const engineMs = since(startedAt)
 
+  const lockAt = performance.now()
   worldLockAcquired = await acquireWorldLock(worldId)
+  const lockMs = since(lockAt)
   if (reloadPreparing) {
     await releaseLocalWorldLock()
     return
@@ -526,6 +536,7 @@ async function start(msg: StartMsg) {
     })
   }
 
+  const restoreAt = performance.now()
   let restored = false
   let saved = null
   let resetApplied = false
@@ -648,11 +659,24 @@ async function start(msg: StartMsg) {
     }
   }
   if (reloadPreparing) return
+  const restoreMs = since(restoreAt)
+  const generateAt = performance.now()
   if (!sim) {
     sim = new Sim(BigInt(seed))
   }
+  const startup: WorkerStartup = {
+    engine: engine.fallback === null ? 'threads' : 'single',
+    threads: engine.threads,
+    fallback: engine.fallback,
+    engine_ms: engineMs,
+    lock_ms: lockMs,
+    restore_ms: restoreMs,
+    generate_ms: since(generateAt),
+    total_ms: since(startedAt),
+  }
+  logger.info('wasm', 'world started', startup)
 
-  post({ type: 'ready', restored, tick: Number(sim.tickCount()), persistenceReady: storageReady })
+  post({ type: 'ready', restored, tick: Number(sim.tickCount()), persistenceReady: storageReady, startup })
 
   emit(true)
   beginLoop(autosaveEveryMs)

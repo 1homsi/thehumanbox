@@ -19,5 +19,13 @@
   "boundaryBody": "W renderowaniu wydarzyło się coś nieoczekiwanego. Przeładuj stronę, aby połączyć się ponownie z bieżącą symulacją.",
   "boundaryReload": "Przeładuj",
   "zoomInLimit": "Bardziej się nie przybliży",
-  "zoomOutLimit": "Bardziej się nie oddali"
+  "zoomOutLimit": "Bardziej się nie oddali",
+  "startup": {
+    "title": "uruchamianie świata…",
+    "failedTitle": "nie udało się uruchomić lokalnego świata",
+    "web": "wczytywanie prywatnej symulacji WebAssembly zapisanej w tej przeglądarce",
+    "desktop": "uruchamianie natywnej symulacji na tym komputerze",
+    "failed": "symulacja nie uruchomiła się w tej przeglądarce. Ponowna próba zwykle pomaga.",
+    "retry": "uruchom lokalny świat ponownie"
+  }
 }

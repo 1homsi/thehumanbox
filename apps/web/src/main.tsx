@@ -45,9 +45,9 @@ setTimeout(() => {
   if (startupPending && reload) reload.hidden = true
   if (!startupPending) reload?.addEventListener('click', () => reloadAppSafely())
 }, 15_000)
-if (!isDesktopStartupPending(!!window.thbDesktop, window.location.search)) {
-  setTimeout(hideSplash, 30_000)
-}
+// No timer hides the splash: it goes when the world is ready or its start failed (App dispatches thb-world-ready
+// for both). Hiding it early only swapped it for a bare "starting your world…" screen (#923); a stuck start keeps
+// the splash with the hint and reload button above.
 
 type SnapshotProgress = { loaded: number; total: number | null }
 window.addEventListener('thb-snapshot-progress', (e: Event) => {

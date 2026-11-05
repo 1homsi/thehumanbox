@@ -621,6 +621,14 @@ body.thb-photo-mode .headline-ticker {
   max-width: 380px;
   line-height: 1.5;
 }
+/* The worker's untranslated error under the translated line: small, selectable, kept for bug reports. */
+.waiting-detail {
+  max-width: 380px;
+  font-size: 10px;
+  color: #6b5f50;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
 
 .panel {
   display: flex;

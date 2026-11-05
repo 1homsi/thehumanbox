@@ -13,7 +13,6 @@ import { lazyWithRetry } from './shared/lazyWithRetry'
 import { useSimulation } from './simulation/useSimulation'
 import {
   getWorldSource,
-  reloadAppSafely,
   requestOwnWorldReset,
   resolvePlayerWorldKind,
   shouldUseSimulationApi,
@@ -105,6 +104,7 @@ import type { OrganismState } from './shared/types'
 import { OCEAN, hex } from './game/render/art-palette'
 import clsx from 'clsx'
 import './App.css'
+import { StartupScreen } from './ui/StartupScreen'
 import './pixel-theme.css'
 
 // The map renderer (the xipjs engine plus every draw layer and sprite painter) is a
@@ -948,24 +948,11 @@ function LiveApp() {
               />
             </div>
           ) : (
-            <div className="waiting">
-              {!localStartupFailed && <div className="waiting-spinner" aria-hidden="true" />}
-              <div className="waiting-title">
-                {localStartupFailed ? 'local world could not start' : 'starting your world…'}
-              </div>
-              <div className="waiting-sub">
-                {localStartupFailed
-                  ? localSaveStatus.message
-                  : desktop
-                    ? 'starting the native simulation on this computer'
-                    : 'loading the private WebAssembly simulation saved in this browser'}
-              </div>
-              {localStartupFailed && (
-                <button className="lang-btn" onClick={() => reloadAppSafely()}>
-                  retry local world
-                </button>
-              )}
-            </div>
+            <StartupScreen
+              failed={localStartupFailed}
+              desktop={desktop}
+              detail={localStartupFailed ? localSaveStatus.message : undefined}
+            />
           )}
         </main>
 

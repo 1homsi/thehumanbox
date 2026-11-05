@@ -19,5 +19,13 @@
   "boundaryBody": "In der Darstellung ist etwas Unerwartetes passiert. Lade neu, um dich wieder mit der laufenden Simulation zu verbinden.",
   "boundaryReload": "Neu laden",
   "zoomInLimit": "Weiter geht es nicht hinein",
-  "zoomOutLimit": "Weiter geht es nicht hinaus"
+  "zoomOutLimit": "Weiter geht es nicht hinaus",
+  "startup": {
+    "title": "Welt wird gestartet…",
+    "failedTitle": "Die lokale Welt konnte nicht starten",
+    "web": "Die private WebAssembly-Simulation aus diesem Browser wird geladen",
+    "desktop": "Die native Simulation startet auf diesem Computer",
+    "failed": "Die Simulation konnte in diesem Browser nicht starten. Ein neuer Versuch hilft meistens.",
+    "retry": "Lokale Welt neu starten"
+  }
 }
