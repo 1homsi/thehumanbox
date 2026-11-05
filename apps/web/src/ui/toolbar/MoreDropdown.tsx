@@ -5,10 +5,23 @@ import { SHORTCUT_HELP } from '../../game/model/shortcuts'
 import { saveMapPicture } from '../../shared/mapPicture'
 import { useWorldStore } from '../../state/worldStore'
 import { Tooltip } from './Tooltip'
+import { ToolSprite } from './ToolSprite'
 import { saveBlocked, saveLabel, saveShortcutLabel, type WorldActions } from './world-actions'
 import { shortcutKeys, shortcutWhat } from './shortcut-text'
 import { t } from '../../i18n'
 import { PAUSE_TRIGGERS } from '../../game/model/pause-on'
+
+/**
+ * A menu icon drawn as a pixel sprite. Used where no common font has the symbol: on stock Linux ⌖ and ⌕ (Misc
+ * Technical) and ⏳ ⏱ (emoji) came out as empty boxes (#925).
+ */
+function MenuGlyph({ icon }: { icon: string }) {
+  return (
+    <span className="menu-glyph">
+      <ToolSprite icon={icon} size={11} />
+    </span>
+  )
+}
 
 /**
  * `onAction` runs whenever the dropdown closes (an action or a toggle). `worldActions` puts
@@ -81,7 +94,9 @@ export function MoreDropdown({
                   findTool()
                 }}
               >
-                <span>⌕ {t('dock.more.findTool')}</span>
+                <span>
+                  <MenuGlyph icon="🔍" /> {t('dock.more.findTool')}
+                </span>
                 <kbd>/</kbd>
               </button>
             )}
@@ -192,7 +207,7 @@ export function MoreDropdown({
             aria-pressed={!!age}
             onClick={() => setViewFlag('age', !age)}
           >
-            ⏳ {t('dock.more.age')}
+            <MenuGlyph icon="⏳" /> {t('dock.more.age')}
           </button>
         </Tooltip>
         <Tooltip tip={t('dock.more.fearTip')}>
@@ -273,7 +288,7 @@ export function MoreDropdown({
             aria-pressed={!!fps}
             onClick={() => setViewFlag('fps', !fps)}
           >
-            ⏱ {t('dock.more.perf')}
+            <MenuGlyph icon="⏱️" /> {t('dock.more.perf')}
           </button>
         </Tooltip>
       </div>
@@ -288,7 +303,7 @@ export function MoreDropdown({
               closeMore()
             }}
           >
-            ⌖ {t('dock.more.lang')}
+            <MenuGlyph icon="💭" /> {t('dock.more.lang')}
           </button>
         </Tooltip>
         <Tooltip tip={t('dock.more.scenesTip')}>

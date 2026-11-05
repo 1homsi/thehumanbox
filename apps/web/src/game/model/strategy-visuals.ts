@@ -1,5 +1,5 @@
 export const STRATEGY_VISUALS = {
-  hunt: { symbol: '⌖', label: 'hunt', color: '#e6a85c' },
+  hunt: { symbol: '⊕', label: 'hunt', color: '#e6a85c' },
   explore: { symbol: '✦', label: 'explore', color: '#70c8ff' },
   settle: { symbol: '⌂', label: 'settle', color: '#8ed081' },
   trade: { symbol: '⇄', label: 'trade', color: '#e6ca72' },

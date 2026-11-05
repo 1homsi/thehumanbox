@@ -52,6 +52,7 @@ export function PhoneMenu({ chronicleCount, isFullscreen, onToggleFullscreen, wo
     <button
       type="button"
       className="phone-menu-row"
+      title={label}
       onClick={run(onClick)}
       {...(pressed === undefined ? {} : { 'aria-pressed': pressed })}
     >

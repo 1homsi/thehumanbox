@@ -52,4 +52,40 @@ describe('PrayerHint', () => {
     rerender() // the world ticks, the hint looks again
     expect(hint()).not.toBeNull()
   })
+
+  it('stays off an open dialog and comes back when it closes, even with the world paused', () => {
+    vi.useFakeTimers()
+    try {
+      mount()
+      expect(hint()).not.toBeNull()
+      const dialog = document.createElement('div')
+      dialog.className = 'thb-modal'
+      document.body.append(dialog)
+      act(() => vi.advanceTimersByTime(1_000))
+      expect(hint()).toBeNull()
+      dialog.remove()
+      act(() => vi.advanceTimersByTime(1_000))
+      expect(hint()).not.toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('waits for the star prompt in the same corner instead of covering its buttons', () => {
+    const star = document.createElement('div')
+    star.className = 'desktop-toast'
+    document.body.append(star)
+    const rerender = mount()
+    expect(hint()).toBeNull()
+    star.remove()
+    rerender()
+    expect(hint()).not.toBeNull()
+  })
+
+  it('does not count itself as another card', () => {
+    const rerender = mount()
+    rerender()
+    rerender()
+    expect(hint()).not.toBeNull()
+  })
 })

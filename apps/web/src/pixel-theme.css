@@ -79,6 +79,11 @@
   padding: 3px 10px;
   font-size: 11px;
 }
+/* A pixel icon in a line of menu text: sits on the text's baseline like the glyph icons beside it. */
+.menu-glyph {
+  display: inline-block;
+  vertical-align: -1px;
+}
 .lang-btn:hover,
 .close-btn:hover,
 .welcome-btn:hover,

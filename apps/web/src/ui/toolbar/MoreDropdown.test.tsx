@@ -38,14 +38,16 @@ afterEach(() => {
 describe('the ⋯ menu', () => {
   it('starts with find a tool and save world', () => {
     render({ findTool: vi.fn(), save: save() })
-    expect(actions().map((b) => b.querySelector('span')?.textContent)).toEqual([
-      '⌕ Find a tool…',
+    expect(actions().map((b) => b.querySelector('span')?.textContent?.trim())).toEqual([
+      'Find a tool…',
       'Save world',
     ])
     expect(container.querySelector('.more-dropdown')?.firstElementChild?.className).toBe(
       'more-dropdown-actions',
     )
     expect(item('Find a tool')?.querySelector('kbd')?.textContent).toBe('/')
+    // Drawn as a sprite: the ⌕ glyph it used had no font on stock Linux (#925).
+    expect(item('Find a tool')?.querySelector('.menu-glyph svg')).not.toBeNull()
   })
 
   it('opens the tool search and closes the menu', () => {
