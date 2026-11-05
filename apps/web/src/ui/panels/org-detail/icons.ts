@@ -60,23 +60,22 @@ export const MOODS = [
   'calm',
 ] as const
 
-const ASPIRATION_LABEL_KEY: Record<string, MessageKey | undefined> = Object.fromEntries(
+// Maps, not plain objects: an id from the simulation such as `constructor` must miss, not find Object's own.
+const ASPIRATION_LABEL_KEY = new Map<string, MessageKey>(
   ASPIRATIONS.map((id) => [id, `person.aspiration.label.${id}` as MessageKey]),
 )
 
-const MOOD_LABEL_KEY: Record<string, MessageKey | undefined> = Object.fromEntries(
-  MOODS.map((id) => [id, `person.mood.${id}` as MessageKey]),
-)
+const MOOD_LABEL_KEY = new Map<string, MessageKey>(MOODS.map((id) => [id, `person.mood.${id}` as MessageKey]))
 
 /** An aspiration's name in the player's language; an id the panel does not know is shown as sent. */
 export function aspirationLabel(id: string): string {
-  const key = ASPIRATION_LABEL_KEY[id]
+  const key = ASPIRATION_LABEL_KEY.get(id)
   return key ? t(key) : id
 }
 
 /** A mood word in the player's language; a word the panel does not know is shown as sent. */
 export function moodLabel(id: string): string {
-  const key = MOOD_LABEL_KEY[id]
+  const key = MOOD_LABEL_KEY.get(id)
   return key ? t(key) : id
 }
 
