@@ -19,5 +19,13 @@
   "boundaryBody": "Un incident inattendu s'est produit dans l'affichage. Rechargez la page pour vous reconnecter à la simulation en cours.",
   "boundaryReload": "Recharger",
   "zoomInLimit": "Zoom avant au maximum",
-  "zoomOutLimit": "Zoom arrière au maximum"
+  "zoomOutLimit": "Zoom arrière au maximum",
+  "startup": {
+    "title": "démarrage du monde…",
+    "failedTitle": "le monde local n'a pas pu démarrer",
+    "web": "chargement de la simulation WebAssembly privée enregistrée dans ce navigateur",
+    "desktop": "démarrage de la simulation native sur cet ordinateur",
+    "failed": "la simulation n'a pas pu démarrer dans ce navigateur. Réessayer suffit souvent.",
+    "retry": "relancer le monde local"
+  }
 }

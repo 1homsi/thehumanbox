@@ -32,6 +32,7 @@ import { isDesktopStartupPending } from '../shared/desktopStartup'
 import { readRunInBackground, RUN_IN_BACKGROUND_EVENT } from '../shared/run-in-background'
 import { localSaveWorkerRequest } from './wasmPersistence'
 import { FrameSequence } from './frameSequence'
+import { readStartup, reportWorldStartup } from './startup-timing'
 import {
   fetchRuntimeControlState,
   WASM_BASE_TICK_MS,
@@ -376,6 +377,7 @@ export function useSimulation(source: WorldSource = 'native'): {
           speed?: number
           seed?: string
           outcome?: unknown
+          startup?: unknown
         }
         if (m.type === 'frame' && (typeof m.frame === 'string' || m.frame instanceof Uint8Array)) {
           if (!announced) {
@@ -384,6 +386,10 @@ export function useSimulation(source: WorldSource = 'native'): {
           }
           enqueueMessage(m.frame)
         } else if (m.type === 'ready' || m.type === 'storage_ready') {
+          if (m.type === 'ready') {
+            const startup = readStartup(m.startup)
+            if (startup) reportWorldStartup(startup, performance.now())
+          }
           if (!announced) {
             announced = true
             setConnected(true)

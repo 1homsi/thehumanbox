@@ -19,5 +19,13 @@
   "boundaryBody": "Algo inesperado ocurrió al dibujar la pantalla. Recarga para volver a conectarte a la simulación actual.",
   "boundaryReload": "Recargar",
   "zoomInLimit": "No se puede acercar más",
-  "zoomOutLimit": "No se puede alejar más"
+  "zoomOutLimit": "No se puede alejar más",
+  "startup": {
+    "title": "iniciando tu mundo…",
+    "failedTitle": "el mundo local no pudo iniciarse",
+    "web": "cargando la simulación privada de WebAssembly guardada en este navegador",
+    "desktop": "iniciando la simulación nativa en este ordenador",
+    "failed": "la simulación no pudo iniciarse en este navegador. Volver a intentarlo suele funcionar.",
+    "retry": "reintentar mundo local"
+  }
 }
