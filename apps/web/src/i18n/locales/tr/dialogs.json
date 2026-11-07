@@ -575,5 +575,14 @@
     "versionBody": "Bu pencere ile bu bilgisayardaki simülasyon birlikte çalışamaz: simülasyon {server}. The Human Box'ı tamamen kapatın, sonra yeniden açın.",
     "versionOlder": "eski bir derleme",
     "versionNumber": "sürüm {version}"
+  },
+  "opening": {
+    "meet": "Bu, {tribe} kabilesi. Kendi başlarına yaşıyorlar: kimse onlara ne yapacaklarını söylemiyor.",
+    "powers": "Araya girebilirsin. Güçlerin aşağıdaki çubukta: birini seç, sonra {tribe} yakınına tıkla.",
+    "powersPrayer": "{tribe} sana dua ediyor. Cevap vermek için köylerinin üstündeki baloncuğa tıkla.",
+    "history": "Her doğum, ölüm ve savaş kayda geçer. Üstteki Kronik onların hikâyesini saklar.",
+    "world": "{tribe}, bu dünyadaki {count} kabileden yalnızca biri. Karşılaşmalarını, ticaretlerini ve savaşlarını izle; istediğinde araya gir.",
+    "skip": "Girişi geç",
+    "done": "Anladım"
   }
 }

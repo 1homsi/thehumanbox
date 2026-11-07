@@ -3,6 +3,7 @@ import { useSimulationData } from '../../simulation/simulationData'
 import { welcomeStepsFor } from '../../simulation/playerWorldCopy'
 import { detectedLocale, LOCALES, nativeName, SOURCE_LOCALE, t } from '../../i18n'
 import { languageFailureText, useLanguageChoice } from './useLanguageChoice'
+import { useOpeningGuide } from '../../state/opening-guide'
 
 const STORAGE_KEY = 'thb-welcome-seen-v1'
 
@@ -27,7 +28,8 @@ export function WelcomeModal() {
     if (!seen) setOpen(true)
   }, [])
 
-  // One click or Escape ends the card for good. The guided tour is not offered here: it stays in Settings and the command palette.
+  // One click or Escape ends the card for good, and the opening starts: the game shows itself one part at a time
+  // while it plays, rather than in a slideshow up front. The guided tour stays in Settings and the command palette.
   const finish = useCallback(() => {
     try {
       window.localStorage.setItem(STORAGE_KEY, '1')
@@ -35,6 +37,7 @@ export function WelcomeModal() {
       /* ignore */
     }
     setOpen(false)
+    useOpeningGuide.getState().start()
   }, [])
 
   // The card is a modal: Escape skips it, and Tab cycles between its buttons instead of

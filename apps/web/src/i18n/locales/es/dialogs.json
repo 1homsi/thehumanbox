@@ -575,5 +575,14 @@
     "versionBody": "Esta ventana y la simulación de este ordenador no pueden funcionar juntas: la simulación es {server}. Cierra The Human Box por completo y vuelve a abrirlo.",
     "versionOlder": "una versión anterior",
     "versionNumber": "la versión {version}"
+  },
+  "opening": {
+    "meet": "Esta es la tribu {tribe}. Viven por su cuenta: nadie les dice qué hacer.",
+    "powers": "Puedes intervenir. Tus poderes están en la barra de abajo: elige uno y haz clic cerca de {tribe}.",
+    "powersPrayer": "{tribe} te está rezando. Haz clic en la burbuja sobre su aldea para responder.",
+    "history": "Cada nacimiento, muerte y guerra queda escrito. La Crónica de arriba guarda su historia.",
+    "world": "{tribe} es solo una de {count} tribus en este mundo. Mira cómo se encuentran, comercian y luchan, e interviene cuando quieras.",
+    "skip": "Saltar introducción",
+    "done": "Entendido"
   }
 }

@@ -575,5 +575,14 @@
     "versionBody": "Dieses Fenster und die Simulation auf diesem Computer können nicht zusammenarbeiten: Die Simulation ist {server}. Beende The Human Box vollständig und öffne es dann erneut.",
     "versionOlder": "ein älterer Build",
     "versionNumber": "Version {version}"
+  },
+  "opening": {
+    "meet": "Das ist {tribe}. Sie leben für sich: Niemand sagt ihnen, was sie tun sollen.",
+    "powers": "Du kannst eingreifen. Deine Kräfte sind in der Leiste unten: Wähle eine und klicke dann nahe {tribe}.",
+    "powersPrayer": "{tribe} betet zu dir. Klicke auf die Blase über ihrem Dorf, um zu antworten.",
+    "history": "Jede Geburt, jeder Tod und jeder Krieg wird festgehalten. Die Chronik oben bewahrt ihre Geschichte.",
+    "world": "{tribe} ist nur einer von {count} Stämmen auf dieser Welt. Sieh zu, wie sie sich begegnen, handeln und kämpfen, und greif ein, wann du willst.",
+    "skip": "Einführung überspringen",
+    "done": "Verstanden"
   }
 }
