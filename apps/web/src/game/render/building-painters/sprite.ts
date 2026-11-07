@@ -34,7 +34,10 @@ export function getBuildingSprite(
   const canvas = document.createElement('canvas')
   canvas.width = w + PAD * 2
   canvas.height = h + PAD_TOP + PAD_BOT
-  const ctx = canvas.getContext('2d')
+  // The finish (and the snow) read the pixels back. A canvas the browser keeps on the GPU makes each read a
+  // GPU round trip: a season turning or night falling re-paints every building look on the map, and that took
+  // over half a second in one frame on a grown world. Kept in memory, the reads are copies.
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
   if (!ctx) return null
   ctx.imageSmoothingEnabled = false
 
