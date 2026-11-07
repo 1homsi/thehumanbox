@@ -32,9 +32,9 @@ const home = (land: string, ctx: CanvasRenderingContext2D): P => ({
 })
 
 describe('homeLandOfBiome', () => {
-  it('gives each cold biome an igloo and each dry biome an adobe hut', () => {
+  it('gives the tundra igloos, the taiga turf halls and each dry biome a courtyard house', () => {
     expect(homeLandOfBiome(BIOME_ID.TUNDRA)).toBe('snow')
-    expect(homeLandOfBiome(BIOME_ID.TAIGA)).toBe('snow')
+    expect(homeLandOfBiome(BIOME_ID.TAIGA)).toBe('turf')
     expect(homeLandOfBiome(BIOME_ID.DESERT)).toBe('adobe')
     expect(homeLandOfBiome(BIOME_ID.BADLANDS)).toBe('adobe')
   })
@@ -45,9 +45,9 @@ describe('homeLandOfBiome', () => {
     expect(homeLandOfBiome(BIOME_ID.JUNGLE)).toBe('longhouse')
   })
 
-  it('keeps the default hut on grassland, savanna and volcanic ground', () => {
-    expect(homeLandOfBiome(BIOME_ID.GRASSLAND)).toBe('')
-    expect(homeLandOfBiome(BIOME_ID.SAVANNA)).toBe('')
+  it('builds round houses on grassland and savanna, and keeps the default hut on volcanic ground', () => {
+    expect(homeLandOfBiome(BIOME_ID.GRASSLAND)).toBe('round')
+    expect(homeLandOfBiome(BIOME_ID.SAVANNA)).toBe('round')
     expect(homeLandOfBiome(BIOME_ID.VOLCANIC)).toBe('')
   })
 })
@@ -60,11 +60,12 @@ describe('paintLandHome', () => {
   })
 
   it('paints each land style above the stilts and within the tile column', () => {
-    for (const land of ['snow', 'adobe', 'stilt', 'longhouse'] as const) {
+    for (const land of ['snow', 'adobe', 'stilt', 'longhouse', 'round', 'turf'] as const) {
       const { ctx, pixels } = recorder()
       expect(paintLandHome(home(land, ctx))).toBe(true)
       expect(pixels.length).toBeGreaterThan(20)
-      expect(Math.min(...pixels.map((p) => p.x))).toBeGreaterThanOrEqual(7)
+      // Roofs may overhang the tile by a pixel or two on each side, no more.
+      expect(Math.min(...pixels.map((p) => p.x))).toBeGreaterThanOrEqual(6)
       expect(Math.max(...pixels.map((p) => p.x))).toBeLessThanOrEqual(17)
       // The house stands on the tile's bottom edge; only stilt legs reach into the water below.
       expect(Math.max(...pixels.map((p) => p.y))).toBeLessThanOrEqual(34 + 2)
@@ -77,7 +78,7 @@ describe('paintLandHome', () => {
       paintLandHome(home(land, ctx))
       return pixels.map((p) => `${p.x},${p.y},${p.color}`).join(';')
     }
-    const looks = ['snow', 'adobe', 'stilt', 'longhouse'].map(look)
-    expect(new Set(looks).size).toBe(4)
+    const looks = ['snow', 'adobe', 'stilt', 'longhouse', 'round', 'turf'].map(look)
+    expect(new Set(looks).size).toBe(6)
   })
 })

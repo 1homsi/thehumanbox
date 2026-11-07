@@ -95,6 +95,43 @@ praying or trading). Tribe rings, signal rings, sickness glows and mood auras ap
 the selected person; fear, sickness and grief emotes, which a whole crowd shares in a raid or a plague, show close up
 only. The health and age views keep their colour discs.
 
+A person is a round head five pixels wide (hair on top, a face with two dark eyes, a narrower chin) over a body
+seven wide at the shoulders, on two legs: a big readable head and a broad block of clothing, the clothing's colour
+and cut (hides, robes, coats, suits, spacesuits) carrying the era. A three-wide head on a five-wide body read as a
+coloured stick.
+
+### Labels
+
+At the standard zoom the map shows settlement names, and the selected or followed person's name. Everyone else's
+name fades in only close up (from zoom 2.1, `NAMES_FROM_ZOOM`), in a small 7 px face, so names never cover the map.
+
+### Villages
+
+- **One hut per 2x2 block.** The simulation marks every occupied tile as a hut, and huts packed side by side drew
+  their roofs into one another. The renderer draws one hut in the middle of each 2x2 block of hut tiles, so ground
+  shows round every house. A village of ten or more huts gets its meeting hall: a longhouse painted and finished
+  like every other building (no hand-drawn icon, no glowing square).
+- **The ground light under a hut is for the night only.**
+- **Roof colour says what a building is for** (`KIND_ROOF_TINTS` in `building-painters/tribe-palette.ts`): homes take
+  their tribe's colour; stores gold straw, workshops slate, temples green-blue, halls of government and learning
+  blue, markets and inns red.
+- **Shapes of their own.** The granary is a round stone store on short posts under a tall cone of thatch; the market
+  is a paved square with rows of stalls under striped awnings; the early temple stands on a stepped stone plinth
+  with a gilded finial on its ridge.
+
+### Homes follow the land
+
+Up to the village age homes are built the land's way (`building-painters/land-homes.ts`), so villages on different
+land look different: round houses (a daub drum under a cone of thatch) on grassland and savanna, flat-roofed
+mud-brick houses with a white dome behind a low courtyard wall in the desert and badlands, long low turf halls in
+the taiga, igloos on the tundra, stilt houses over the marsh, longhouses in forest and jungle.
+
+### Ground
+
+- A speck of one biome (one or two cells) inside a field of another is painted as its surroundings
+  (`paintedBiome` in `base-parts/tile-paint.ts`), so the ground is not a patchwork of 8-pixel squares.
+- Ice is frozen water: the river's colour under a frost, not a pale grey square.
+
 ## What to avoid
 
 These are the details players recognise from WorldBox:

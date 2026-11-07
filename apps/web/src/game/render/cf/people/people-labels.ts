@@ -55,8 +55,13 @@ export const LABEL_SEED_EVEN = 8
 
 /** Fade names across the overview boundary so the first zoom step does not add every tag at once. */
 export function nameVisibilityAlpha(zoom: number): number {
-  return Math.max(0, Math.min(1, (zoom - 0.72) / 0.16))
+  // Names come in only close up. At the standard zoom a name over every head covered the map (#883): there
+  // the settlement names show, and the selected or followed person's name (drawn whatever the zoom).
+  return Math.max(0, Math.min(1, (zoom - NAMES_FROM_ZOOM) / 0.2))
 }
+
+/** The zoom from which everyone's name fades in (the detail zoom is 2.2). */
+export const NAMES_FROM_ZOOM = 2.1
 
 export function labelFlagsOf(org: OrganismState): number {
   const thought = org.thought ?? ''
@@ -353,10 +358,10 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
       anchorY[c] = labelY
       const nameFits =
         (mask & NAME) !== 0 &&
-        placer.place(labelX, labelY, labelWidth(org.name, isSelected ? 10 : 9), 10, isSelected)
+        placer.place(labelX, labelY, labelWidth(org.name, isSelected ? 9 : 7), 8, isSelected)
       const thoughtFits =
         (mask & THOUGHT) !== 0 &&
-        placer.place(labelX, labelY - (nameFits ? 10 : 0), labelWidth(org.thought ?? '', 8), 9, isSelected)
+        placer.place(labelX, labelY - (nameFits ? 8 : 0), labelWidth(org.thought ?? '', 7), 8, isSelected)
       nameOk[c] = nameFits ? 1 : 0
       thoughtOk[c] = thoughtFits ? 1 : 0
       if (fade) {
@@ -374,7 +379,7 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
             ? {
                 text: org.thought ?? '',
                 x: labelX,
-                y: labelY - (nameFits ? 10 : 0),
+                y: labelY - (nameFits ? 8 : 0),
                 style: isSelected ? 'thoughtSelected' : 'thought',
               }
             : undefined,
@@ -454,7 +459,7 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
           j,
         )
       else {
-        ctx.font = isSelected ? 'bold 10px monospace' : '9px monospace'
+        ctx.font = isSelected ? 'bold 9px monospace' : '7px monospace'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'bottom'
         ctx.lineWidth = 3
@@ -470,7 +475,7 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
       if (held) drawHeldLabel(ctx, names, held, alpha * nameAlphaZoom * nameFade)
     }
     if (thoughtShown) {
-      const thoughtY = labelY - (nameShown ? 10 : 0)
+      const thoughtY = labelY - (nameShown ? 8 : 0)
       if (names)
         names.text(
           org.thought ?? '',
@@ -481,7 +486,7 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
           j,
         )
       else {
-        ctx.font = '8px monospace'
+        ctx.font = '7px monospace'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'bottom'
         ctx.lineWidth = 2.5
@@ -535,7 +540,7 @@ function drawHeldLabel(
   }
   const selected = held.style === 'nameSelected' || held.style === 'thoughtSelected'
   const isName = held.style === 'name' || held.style === 'nameSelected'
-  ctx.font = isName ? (selected ? 'bold 10px monospace' : '9px monospace') : '8px monospace'
+  ctx.font = isName ? (selected ? 'bold 9px monospace' : '7px monospace') : '7px monospace'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'bottom'
   ctx.lineWidth = isName ? 3 : 2.5

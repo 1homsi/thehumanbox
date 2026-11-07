@@ -23,7 +23,49 @@ export function tribeTintIndex(lineageId: string): number {
   return hashId(lineageId) % TRIBE_ROOF_TINTS.length
 }
 
-/** The roof tint of a home of this kind, or undefined for buildings that keep their own roofs. */
+/**
+ * The roof colour of each kind of building that is not a home, by what it is for, so a village reads at a
+ * glance: gold straw on the stores, slate on the workshops, green-blue on the temples, blue on the halls of
+ * government and learning, red on the market and the inns. Homes take their tribe's colour instead.
+ */
+export const KIND_ROOF_TINTS = {
+  store: '#c49a3e',
+  craft: '#4e5a66',
+  faith: '#3f7f78',
+  hall: '#46598c',
+  trade: '#a8432f',
+} as const
+
+const KIND_ROOF: Record<string, keyof typeof KIND_ROOF_TINTS> = {
+  Granary: 'store',
+  Barn: 'store',
+  Silo: 'store',
+  Warehouse: 'store',
+  Workshop: 'craft',
+  Smithy: 'craft',
+  Forge: 'craft',
+  Sawmill: 'craft',
+  Tannery: 'craft',
+  Temple: 'faith',
+  Cathedral: 'faith',
+  Chapel: 'faith',
+  Church: 'faith',
+  Monastery: 'faith',
+  GuildHall: 'hall',
+  CityHall: 'hall',
+  Courthouse: 'hall',
+  School: 'hall',
+  Library: 'hall',
+  University: 'hall',
+  Market: 'trade',
+  Tavern: 'trade',
+  Inn: 'trade',
+  Bakery: 'trade',
+}
+
+/** The roof tint of a building of this kind, or undefined for buildings that keep their own roofs. */
 export function roofTintFor(kind: string, lineageId: string): string | undefined {
-  return TINTED_HOMES.has(kind) && lineageId ? TRIBE_ROOF_TINTS[tribeTintIndex(lineageId)] : undefined
+  if (TINTED_HOMES.has(kind)) return lineageId ? TRIBE_ROOF_TINTS[tribeTintIndex(lineageId)] : undefined
+  const use = KIND_ROOF[kind]
+  return use ? KIND_ROOF_TINTS[use] : undefined
 }

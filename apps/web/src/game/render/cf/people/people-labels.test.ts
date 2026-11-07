@@ -76,10 +76,12 @@ function input(over: Partial<PeopleLabelInput> & { people: PeopleLabelSource }):
 }
 
 describe('people labels', () => {
-  it('fades unselected names in across the overview zoom boundary', () => {
+  it('shows unselected names only close up, never at the standard zoom (#883)', () => {
     expect(nameVisibilityAlpha(0.7)).toBe(0)
-    expect(nameVisibilityAlpha(0.8)).toBeCloseTo(0.5)
-    expect(nameVisibilityAlpha(1)).toBe(1)
+    expect(nameVisibilityAlpha(1)).toBe(0)
+    expect(nameVisibilityAlpha(1.5)).toBe(0)
+    expect(nameVisibilityAlpha(2)).toBe(0)
+    expect(nameVisibilityAlpha(2.4)).toBe(1)
   })
 
   it('writes a name above each person when zoomed in', () => {

@@ -53,14 +53,16 @@ describe('describeBuilding', () => {
     expect(describeBuilding(house({ integrity: 0.3, damage: 0.7 }), info()).key).not.toBe(base)
   })
 
-  it('gives a stone-age hut the style of its land, and leaves later homes alone', () => {
+  it('gives an early home the style of its land, and leaves later homes alone', () => {
     const tundra = info({ landAt: () => 'snow' })
     const hut = house({ kind: 'Hut' })
     expect(describeBuilding(hut, tundra).record.land).toBe('snow')
     expect(describeBuilding(hut, tundra).key).not.toBe(describeBuilding(hut, info()).key)
-    // Past the stone age the tribe's era style wins, so the land stays out of the look.
-    const bronze = info({ landAt: () => 'snow', tiers: new Map([['', 1]]) })
-    expect(describeBuilding(house({ kind: 'House' }), bronze).record.land).toBe('')
+    // Up to the village age a house is built the land's way too; past it the tribe's era style wins.
+    const village = info({ landAt: () => 'snow', tiers: new Map([['', 1]]) })
+    expect(describeBuilding(house({ kind: 'House' }), village).record.land).toBe('snow')
+    const classical = info({ landAt: () => 'snow', tiers: new Map([['', 2]]) })
+    expect(describeBuilding(house({ kind: 'House' }), classical).record.land).toBe('')
   })
 
   it('gives each tribe its own roof colour on its homes, and leaves other buildings alone', () => {
