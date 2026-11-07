@@ -131,23 +131,14 @@ export function gableRoof(p: P, x: number, y: number, w: number, rh: number, col
     ctx.fillStyle = 'rgba(24,16,10,0.26)'
     ctx.fill()
   }
-  // Tile courses, each a darker tone of the slope's own colour, laid a little unevenly.
+  // Tile courses: an unbroken line a tone darker than the slope every third row. Courses with random gaps
+  // and odd single tiles scattered over every roof read as generated noise, not as a drawn roof.
   ctx.fillStyle = 'rgba(40,26,14,0.16)'
   for (let row = 2; row < rh; row += 3) {
     const half = ((w + over * 2) / 2) * (1 - row / rh)
     const start = Math.round(apex - half + 1)
     const len = Math.max(1, Math.round(half * 2 - 2))
-    for (let i = 0; i < len; i++) if (p.rng() > 0.12) ctx.fillRect(start + i, Math.round(y - row), 1, 1)
-  }
-  // A few odd tiles: one weathered lighter, one darker where it was replaced.
-  if (colour.startsWith('#')) {
-    for (let i = 0; i < Math.max(1, Math.floor(w / 6)); i++) {
-      const row = 1 + Math.floor(p.rng() * Math.max(1, rh - 2))
-      const half = ((w + over * 2) / 2) * (1 - row / rh)
-      if (half < 2) continue
-      const tx = Math.round(apex - half + 1 + p.rng() * (half * 2 - 2))
-      px(ctx, tx, Math.round(y - row), 1, 1, shade(tintRoof(p, colour), i % 2 ? 0.62 : 1.24))
-    }
+    ctx.fillRect(start, Math.round(y - row), len, 1)
   }
   ctx.strokeStyle = OUTLINE
   ctx.lineWidth = 1

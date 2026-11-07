@@ -102,12 +102,22 @@ export function paintProp(p: P): boolean {
   const cx = x0 + w / 2
   switch (kind) {
     case 'Well': {
-      px(p.ctx, cx - 4, y1 - 4, 8, 4, '#8c8678')
-      outline(p.ctx, cx - 4, y1 - 4, 8, 4)
-      px(p.ctx, cx - 3, y1 - 3, 6, 2, '#23364a')
-      px(p.ctx, cx - 4, y1 - 9, 1, 6, '#5a4028')
-      px(p.ctx, cx + 3, y1 - 9, 1, 6, '#5a4028')
-      gableRoof(p, cx - 5, y1 - 9, 10, 3, '#6a4226', 0)
+      // A ring of laid stone with water showing at its mouth, two posts, a little roof and the bucket on its
+      // rope: it was a dark box, which read as a hole or a crate, never as a well.
+      const l = Math.round(cx - 4)
+      const g = Math.round(y1)
+      px(p.ctx, l, g - 4, 8, 4, '#a39b8a')
+      px(p.ctx, l, g - 2, 8, 1, '#7d7668')
+      px(p.ctx, l + 2, g - 4, 1, 2, '#7d7668')
+      px(p.ctx, l + 5, g - 2, 1, 2, '#7d7668')
+      px(p.ctx, l, g - 5, 8, 1, '#c4bca8')
+      px(p.ctx, l + 1, g - 5, 6, 1, '#4d7a7e')
+      px(p.ctx, l, g - 11, 1, 6, '#6e4d30')
+      px(p.ctx, l + 7, g - 11, 1, 6, '#6e4d30')
+      px(p.ctx, l + 1, g - 10, 6, 1, '#8e6642')
+      px(p.ctx, l + 4, g - 9, 1, 2, '#c8b48a')
+      px(p.ctx, l + 3, g - 7, 3, 2, '#8e6642')
+      gableRoof(p, l - 1, g - 11, 10, 3, '#8a5a34', 0)
       return true
     }
     case 'Lamppost':
@@ -188,17 +198,27 @@ export function paintProp(p: P): boolean {
       return true
     }
     case 'Signpost': {
-      px(p.ctx, cx - 0.5, y1 - 8, 1, 8, '#785030')
-      px(p.ctx, cx - 3, y1 - 8, 7, 2, '#a8825a')
+      // A post with two boards cut to points, one each way: a flat bar on a stick read as a little tree.
+      const x = Math.round(cx)
+      const g = Math.round(y1)
+      px(p.ctx, x, g - 9, 1, 9, '#6e4d30')
+      px(p.ctx, x - 3, g - 9, 6, 2, '#c8a46e')
+      px(p.ctx, x + 3, g - 8, 1, 1, '#c8a46e')
+      px(p.ctx, x - 2, g - 6, 5, 2, '#a8865a')
+      px(p.ctx, x - 3, g - 5, 1, 1, '#a8865a')
       return true
     }
     case 'Cart': {
-      px(p.ctx, cx - 4, y1 - 4, 8, 3, '#7a5e3e')
-      p.ctx.strokeStyle = '#3a2c1c'
-      p.ctx.beginPath()
-      p.ctx.arc(cx - 2, y1 - 1, 1.5, 0, Math.PI * 2)
-      p.ctx.arc(cx + 2, y1 - 1, 1.5, 0, Math.PI * 2)
-      p.ctx.stroke()
+      // A plank bed with a raised side, a shaft to the front and two spoked wheels, in whole pixels.
+      const l = Math.round(cx - 4)
+      const g = Math.round(y1)
+      px(p.ctx, l, g - 5, 8, 2, '#8e6642')
+      px(p.ctx, l, g - 6, 8, 1, '#a87c50')
+      px(p.ctx, l + 8, g - 4, 2, 1, '#6e4d30')
+      for (const wx of [l + 1, l + 5]) {
+        px(p.ctx, wx, g - 3, 3, 3, '#4e3622')
+        px(p.ctx, wx + 1, g - 2, 1, 1, '#a87c50')
+      }
       return true
     }
     case 'Fence': {

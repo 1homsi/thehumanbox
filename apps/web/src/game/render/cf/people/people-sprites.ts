@@ -101,6 +101,8 @@ export function isFocused(org: OrganismState, focus: string): boolean {
 }
 
 const WHITE = 0xffffffff
+/** Emotes for a state many people share at once: shown close up only (see rebuild). */
+const CLOSE_ONLY_EMOTES = new Set(['fear', 'sick', 'grief'])
 const BLACK = rgba32(...INK)
 const CAST_SHADOW = rgba32(...SHADOW.rgb)
 const CROWN = rgba32(...SAND.desert)
@@ -463,7 +465,9 @@ export class PeopleSprites {
 
       const thought = org.thought ?? ''
       const signalling = thought.startsWith('"') || thought.startsWith("'")
-      if (standard && (signalling || thought === 'sounding alarm')) {
+      // Signal rings, sickness glows and tribe rings under every figure turned a crowd into overlapping
+      // coloured circles at the standard zoom: they show close up (detail) and on the selected person only.
+      if (full && (signalling || thought === 'sounding alarm')) {
         const hot = thought.includes('!') || thought === 'sounding alarm'
         soft.push(
           j,
@@ -488,7 +492,7 @@ export class PeopleSprites {
           withAlpha(hot ? rgba32(255, 34, 0) : rgba32(204, 68, 34), (hot ? 0.85 : 0.7) * fa),
         )
       }
-      if (standard && org.infection > 0.15) {
+      if (full && org.infection > 0.15) {
         soft.push(j, 0, 0, 16, 16, DECAL.disc, 0, withAlpha(rgba32(187, 255, 68), org.infection * 0.3 * fa))
       }
       if (isSelected) {
@@ -496,7 +500,7 @@ export class PeopleSprites {
         soft.push(j, 0, 2, 16, 9, DECAL.selectRing, 0, withAlpha(rgba32(255, 210, 138), 0.6 * fa))
         soft.push(j, 0, 2, 16, 9, DECAL.selectDashed, 0, withAlpha(WHITE, 0.95 * fa))
       }
-      if (standard && (!crowded || isSelected) && org.lineage_id) {
+      if ((isSelected || (full && !crowded)) && org.lineage_id) {
         soft.push(j, 0, 3, 13, 6, DECAL.footRing, 0, withAlpha(cssToRgba32(lineageColor(org.lineage_id)), fa))
       }
 
@@ -515,8 +519,9 @@ export class PeopleSprites {
         bodyFill =
           stage === 'elder' ? '#e9c87a' : stage === 'infant' || stage === 'child' ? '#8db5d6' : '#b8b8a8'
       }
-      if (isSelected || viewFlags.health || viewFlags.age || (standard && !crowded)) {
-        const k = viewFlags.health || viewFlags.age ? 0.3 : standard ? 0.16 : 0.1
+      // The mood glow is for the health and age views; at play it only muddied the ground under people.
+      if (viewFlags.health || viewFlags.age) {
+        const k = 0.3
         const d = 2 * (bodyR + 1.5)
         soft.push(j, 0, 0, d, d, DECAL.disc, 0, withAlpha(cssToRgba32(bodyFill), k * fa))
       }
@@ -546,7 +551,10 @@ export class PeopleSprites {
       if (boat) riders.push(j, fa)
 
       if (standard) {
-        const emote = emoteFor(org)
+        // A fright or a fever is shown on everyone it touches, so in a raid or a plague a whole crowd wore red
+        // marks; at the standard zoom only what someone is doing shows (praying, trading, fighting).
+        const found = emoteFor(org)
+        const emote = found && (full || isSelected || !CLOSE_ONLY_EMOTES.has(found)) ? found : null
         // The painter's outlined icon (see drawEmote), its bottom a pixel above the head.
         if (emote)
           emotes.push(

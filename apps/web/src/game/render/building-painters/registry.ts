@@ -30,6 +30,7 @@ import { CRAFT_SIGNS, paintCraftHome } from './craft-signs'
 import { paintBarn, paintWatermill } from './farm-buildings'
 import { paintLonghouse } from './longhouse'
 import { paintShipyard } from './shipyard'
+import { paintGranary, paintMarket } from './stores'
 
 export const ARCHETYPE: Record<string, (p: P) => void | boolean> = {}
 
@@ -62,7 +63,6 @@ reg(
 reg(
   (p) => paintTownhouse(p, true),
   [
-    'Market',
     'Butcher',
     'Fishmonger',
     'Cheesemonger',
@@ -114,8 +114,10 @@ reg(paintIndustrial, [
   'FireStation',
   'Drydock',
 ])
-reg(paintFarm, ['Granary', 'Silo', 'Stable', 'Ranch', 'Greenhouse', 'Greenhouse2', 'Vineyard', 'Orchard'])
+reg(paintFarm, ['Silo', 'Stable', 'Ranch', 'Greenhouse', 'Greenhouse2', 'Vineyard', 'Orchard'])
 reg(paintPen, ['Pen'])
+reg(paintGranary, ['Granary'])
+reg(paintMarket, ['Market'])
 reg(paintBarn, ['Barn'])
 reg(paintLonghouse, ['Longhouse'])
 reg(paintShipyard, ['Shipyard'])
