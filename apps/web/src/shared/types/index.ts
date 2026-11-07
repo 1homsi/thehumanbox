@@ -480,6 +480,15 @@ export interface WardInfo {
   until: number
 }
 
+/** Ground a bomb poisoned: it sickens whoever stands in it until `until`, weakening as it settles. */
+export interface FalloutInfo {
+  x: number
+  y: number
+  radius: number
+  cast: number
+  until: number
+}
+
 /** A chimney fouling the air; `s` is how thick its smoke is. */
 export interface SmogInfo {
   x: number
@@ -757,6 +766,8 @@ export interface WorldState {
   tribe_losses?: Record<string, Record<string, number>>
   /** The gods' wards over the land. */
   wards?: WardInfo[]
+  /** Fallout a bomb left on the land. */
+  fallout?: FalloutInfo[]
   /** Smoke from industry. */
   smog?: SmogInfo[]
   /** Volcano cones as [x, y, radius] in tiles: world generation's, then those raised with the god tool. */

@@ -223,7 +223,12 @@ fn a_plague_says_how_many_fell_sick() {
         &mut sim,
         &[(60.0, 60.0, 1.0), (61.0, 60.0, 1.0), (62.0, 60.0, 1.0)],
     );
-    let outcome = sim.apply_command_reported(crate::sim::command::Command::Outbreak { count: 2 });
+    let outcome = sim.apply_command_reported(crate::sim::command::Command::Outbreak {
+        count: 2,
+        x: None,
+        y: None,
+        radius: 0.0,
+    });
     if outcome.applied {
         assert_eq!(outcome.code, "disaster_sick", "got {}", outcome.code);
         assert!(outcome.count >= 1);

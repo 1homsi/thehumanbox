@@ -55,6 +55,19 @@ fn sunshine_moves_growing_fields_on_but_never_ripens_them_alone() {
 }
 
 #[test]
+fn sunshine_with_nothing_planted_melts_the_snow_and_warms_the_people() {
+    use crate::world::tiles::Tile;
+    let mut sim = Simulation::new(3);
+    one_person_at_100(&mut sim);
+    sim.plantings.clear();
+    sim.grid.set(101, 100, Tile::Snow);
+    sim.organisms[0].comfort = 0.1;
+    assert!(sim.apply_command_json(r#"{"cmd":"sunshine","x":100,"y":100,"radius":3}"#));
+    assert_eq!(sim.grid.get(101, 100), Tile::Grass, "the snow melts");
+    assert!(sim.organisms[0].comfort > 0.1, "the person is warmed");
+}
+
+#[test]
 fn courage_drains_fear_and_leaves_calm_people_alone() {
     let mut sim = Simulation::new(3);
     one_person_at_100(&mut sim);

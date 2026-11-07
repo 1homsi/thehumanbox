@@ -137,8 +137,16 @@ pub(super) fn tick_governments(sim: &mut Simulation) {
         }
         let era = lineage_era(sim, lid);
         let literacy_avg = lineage_literacy(sim, lid);
-        let target_kind = Government::pick_kind_for(era, pop, literacy_avg);
+        let mut target_kind = Government::pick_kind_for(era, pop, literacy_avg);
         let existing = sim.governments.get(lid).map(|g| g.kind);
+        // A small band keeps the chief it has while the chief lives (one the gods crowned, or a
+        // chiefdom whose numbers fell): it only falls back to a leaderless band once the chief is gone.
+        if target_kind == GovernmentKind::Tribal && existing == Some(GovernmentKind::Chiefdom) {
+            let chief = sim.governments.get(lid).and_then(|g| g.leader_id.as_deref());
+            if chief.is_some_and(|id| sim.organisms.iter().any(|o| o.alive && o.id == id)) {
+                target_kind = GovernmentKind::Chiefdom;
+            }
+        }
         if existing != Some(target_kind) {
             if let Some(government) = sim.governments.get_mut(lid) {
                 government.transition_to(target_kind, sim.tick_count);

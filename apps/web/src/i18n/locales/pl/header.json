@@ -173,6 +173,9 @@
         "one": "stracił jedzenie: {name}",
         "other": "osób bez części jedzenia: {count}"
       }
+    },
+    "float": {
+      "noEffect": "bez efektu"
     }
   }
 }

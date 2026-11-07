@@ -99,6 +99,7 @@ export type IncomingWorldFrame = Pick<
   tribes_in_peril?: WorldState['tribes_in_peril']
   tribe_losses?: WorldState['tribe_losses']
   wards?: WorldState['wards']
+  fallout?: WorldState['fallout']
   smog?: WorldState['smog']
   volcanoes?: WorldState['volcanoes']
   settlements?: WorldState['settlements']

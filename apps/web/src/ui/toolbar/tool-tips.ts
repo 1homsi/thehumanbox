@@ -58,6 +58,7 @@ export function toolFailure(tool: SandboxTool): string {
     case 'poison':
     case 'bless':
     case 'inspire':
+    case 'plague':
     case 'cure':
     case 'arm':
     case 'bounty':
@@ -96,8 +97,6 @@ export function toolFailure(tool: SandboxTool): string {
       return t('dock.failures.nobodyToChange')
     case 'teach_tribe':
       return t('dock.failures.noSecretLeft')
-    case 'nuke':
-      return t('dock.failures.noIndustrial')
     case 'eclipse':
       return t('dock.failures.noOneToSeeEclipse')
     case 'aurora':
@@ -113,6 +112,9 @@ export function toolFailure(tool: SandboxTool): string {
     case 'locusts':
     case 'wildfire':
     case 'blight':
+    case 'sinkhole':
+    case 'black_hole':
+    case 'acid_rain':
     case 'flood':
     case 'blizzard':
     case 'volcano':
@@ -146,6 +148,7 @@ export function toolFailure(tool: SandboxTool): string {
     case 'whale':
     case 'dog':
     case 'zombie':
+    case 'horde':
     case 'demon':
     case 'dragon':
     case 'alien':

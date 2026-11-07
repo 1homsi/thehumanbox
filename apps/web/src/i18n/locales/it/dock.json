@@ -118,7 +118,7 @@
     "noon": "mezzogiorno",
     "dusk": "crepuscolo",
     "midnight": "mezzanotte",
-    "nuke": "bomba",
+    "nuke": "bomba atomica",
     "eclipse": "eclissi",
     "rain_patch": "acquazzone",
     "aurora": "aurora",
@@ -224,7 +224,11 @@
     "fast40": "40×",
     "fast50": "50×",
     "fast500": "500×",
-    "fast5000": "5000×"
+    "fast5000": "5000×",
+    "black_hole": "buco nero",
+    "sinkhole": "voragine",
+    "acid_rain": "pioggia acida",
+    "horde": "orda di zombi"
   },
   "tips": {
     "spawn1": "Manda una persona adulta. Accanto a una tribù si unisce a essa, come l'uomo o la donna che le manca.",
@@ -294,7 +298,7 @@
     "frog": "Libera una rana, o qualche esemplare, su terreno umido vicino all'acqua, nella zona umida o nella giungla. Le rane sono una piccola preda per lupi e orsi.",
     "whale": "Libera una balena, o qualche esemplare, in acque profonde. Nuotano dove c'è il mare e non arrivano mai a riva.",
     "hail": "La grandine si abbatte sull'area del pennello. Schiaccia coltivazioni e cibo selvatico, ferisce le persone che si trovano sotto (soprattutto al centro), incrina un po' i tetti e uccide alcuni piccoli animali.",
-    "nuke": "Lancia una bomba dove clicchi: lascia un cratere come quello di una meteora, una ricaduta radioattiva che avvelena tutti in un ampio anello e una piaga sulle coltivazioni di quel punto. Solo una tribù che abbia raggiunto l'età industriale può costruirne una.",
+    "nuke": "Sgancia una bomba atomica dove clicchi. Tutti quelli nell'esplosione muoiono e ogni edificio crolla, il cratere sfregia la terra per sempre, la foresta intorno brucia e la ricaduta radioattiva fa ammalare per due stagioni chi resta nei dintorni.",
     "eclipse": "Il sole si oscura per un po'. Tutti gli esseri viventi ne sono spaventati e un po' sopraffatti, e il presagio viene scritto nella cronaca.",
     "bless_river": "Il fiume benedice la terra: i pesci si radunano nell'acqua più vicina al punto, quanti ne porta il pennello. Richiede acqua a portata.",
     "bless_forest": "Una foresta si gonfia: il cibo selvatico spunta sul terreno aperto tra gli alberi, e le coltivazioni che vi sono crescono rigogliose. Richiede boschi a portata.",
@@ -367,7 +371,7 @@
     "drought_on": "Fa iniziare una siccità. L'acqua diminuisce e la sete cresce.",
     "drought_off": "Pone fine alla siccità.",
     "fire": "Dà fuoco all'area del pennello. Il fuoco si propaga alle terre infiammabili vicine; la cenere che lascia fa ricrescere una terra più ricca.",
-    "plague": "Scatena un focolaio che si diffonde per contatto ravvicinato.",
+    "plague": "Scatena una pestilenza sulle persone più vicine al punto in cui clicchi. Si diffonde per contatto ravvicinato.",
     "poison": "Ammala tutti quelli che si trovano nell'area del pennello.",
     "meteor": "Fa schiantare una meteora. Uccide tutto ciò che colpisce e lascia un cratere ardente, con minerale sul fondo da estrarre.",
     "earthquake": "Scuote la terra. Crepa il suolo, danneggia gli edifici e ferisce le persone.",
@@ -404,7 +408,11 @@
     "love": "Gli adulti single si accoppiano e si sentono pronti ad avere figli.",
     "tame": "Trasforma lupi e orsi in cani fedeli, legati alla persona più vicina.",
     "meteor_shower": "Fa piovere diverse piccole meteore sull'area del pennello.",
-    "volcano": "Innalza un vulcano: un cratere ardente, un cono di roccia e un manto di cenere che si trasforma nel suolo più ricco. Uccide chiunque si trovi dove sorge."
+    "volcano": "Innalza un vulcano: un cratere ardente, un cono di roccia e un manto di cenere che si trasforma nel suolo più ricco. Uccide chiunque si trovi dove sorge.",
+    "black_hole": "Apre un buco nero dove clicchi. Inghiotte tutti quelli vicini al suo cuore, trascina gli altri verso di sé e lascia terra morta.",
+    "sinkhole": "Apre una voragine dove clicchi. Chi ci sta sopra ci cade dentro, gli edifici vi sprofondano e si riempie d'acqua per sempre.",
+    "acid_rain": "Fa cadere pioggia acida dove clicchi. Brucia tutti quelli all'aperto (i deboli e i feriti muoiono), uccide gli animali, fa appassire i raccolti e inacidisce il suolo.",
+    "horde": "Fa sorgere un'orda di sei zombi dove clicchi."
   },
   "how": {
     "press": "premi {key} · ",
@@ -454,7 +462,6 @@
     "needTwoPeople": "il gruppo deve avere almeno due persone che vanno e due che restano",
     "nobodyToChange": "nessuno è abbastanza vicino da cambiare",
     "noSecretLeft": "nessuno è vicino, oppure la loro tribù non ha più segreti da imparare ora",
-    "noIndustrial": "nessuna tribù ha ancora raggiunto l'età industriale",
     "noOneToSeeEclipse": "non c'è nessuno vivo che possa vederla",
     "noOneToSeeLights": "non c'è nessuno vivo che possa vedere le luci",
     "nobodyInReach": "nessuno è a portata per vederla",

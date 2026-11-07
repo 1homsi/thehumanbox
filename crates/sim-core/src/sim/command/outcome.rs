@@ -76,9 +76,6 @@ pub(crate) struct DisasterBefore {
 pub(super) const TSUNAMI_MIN_REACH: i32 = 6;
 pub(super) const TSUNAMI_MAX_REACH: i32 = 20;
 
-/// How far a nuke's own reach counts for the report (its crater and fallout reach further).
-const NUKE_REACH: f32 = 8.0;
-
 /// The tools that harm the world, where each lands and how far it reaches, as its handler works it out
 /// (a radius of 0 means the handler's own default). `Some(None)` is a disaster with no one place (a
 /// plague breaking out); `None` is any other command. Tornado and locusts move along a path, so their
@@ -110,8 +107,33 @@ fn disaster_area(cmd: &Command) -> Option<Option<(f32, f32, f32)>> {
         Command::Poison { x, y, radius } => at(x, y, orf(radius, 3.0, 32.0)),
         Command::Frenzy { x, y, radius } => at(x, y, orf(radius, 4.0, 24.0)),
         Command::MeteorShower { x, y, radius } => at(x, y, orf(radius, 10.0, 40.0)),
-        Command::Nuke { x, y } => at(x as f32, y as f32, NUKE_REACH),
+        Command::Nuke { x, y } => at(x as f32, y as f32, super::nuke::BLAST_RADIUS as f32),
+        Command::Outbreak {
+            x: Some(x),
+            y: Some(y),
+            radius,
+            ..
+        } => at(
+            x,
+            y,
+            super::catastrophes::reach_f(radius, super::catastrophes::PLAGUE_REACH),
+        ),
         Command::Outbreak { .. } => Some(None),
+        Command::Sinkhole { x, y, radius } => at(
+            x as f32,
+            y as f32,
+            super::catastrophes::reach_i(radius, super::catastrophes::SINKHOLE_REACH) as f32,
+        ),
+        Command::BlackHole { x, y, radius } => at(
+            x,
+            y,
+            super::catastrophes::reach_f(radius, super::catastrophes::BLACK_HOLE_REACH),
+        ),
+        Command::AcidRain { x, y, radius } => at(
+            x as f32,
+            y as f32,
+            super::catastrophes::reach_i(radius, super::catastrophes::ACID_REACH) as f32,
+        ),
         _ => None,
     }
 }

@@ -311,6 +311,12 @@ impl Simulation {
         // Others may have acted since sensing. Attribute only health changes
         // during this person's own turn to their decision.
         f.prev_health = self.organisms[f.idx].health;
+        // Health below zero is a death already dealt (a meteor, a lightning strike, a bomb): it goes
+        // straight to mortality, before a hurt clamped to zero and a little rest could undo it.
+        if self.organisms[f.idx].health < 0.0 {
+            self.org_mortality(&mut f);
+            return;
+        }
         self.org_apply_choice(&mut f, choice);
         self.org_act(&mut f);
         self.org_vitals(&mut f);

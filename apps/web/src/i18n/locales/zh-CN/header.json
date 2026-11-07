@@ -173,6 +173,9 @@
         "one": "{name}失去了食物",
         "other": "{count}人失去了食物"
       }
+    },
+    "float": {
+      "noEffect": "没有效果"
     }
   }
 }
