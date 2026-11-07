@@ -1,6 +1,6 @@
-import clsx from 'clsx'
-import { LOCALES, nativeName, t } from '../../i18n'
+import { t } from '../../i18n'
 import { REPO_URL } from '../../shared/links'
+import { LanguageSelect } from './LanguageSelect'
 import { languageFailureText, useLanguageChoice } from './useLanguageChoice'
 
 /** The interface language picker. Choosing one saves the world and reloads the game in it. */
@@ -15,22 +15,12 @@ export function LanguageTab() {
           <div className="settings-row-desc">{t('settings.language.desc')}</div>
         </div>
       </div>
-      <div className="settings-languages" role="radiogroup" aria-label={t('settings.language.title')}>
-        {LOCALES.map((code) => (
-          <button
-            key={code}
-            type="button"
-            role="radio"
-            lang={code}
-            aria-checked={code === current}
-            className={clsx('lang-btn', code === (pending ?? current) && 'active')}
-            disabled={!!pending}
-            onClick={() => choose(code)}
-          >
-            {nativeName(code)}
-          </button>
-        ))}
-      </div>
+      <LanguageSelect
+        value={current}
+        pending={pending}
+        label={t('settings.language.title')}
+        onChoose={choose}
+      />
       {failed && (
         <div className="settings-note" role="alert">
           {languageFailureText(failed)}
