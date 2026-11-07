@@ -193,7 +193,10 @@ impl Simulation {
         let q_seen = org.q_table.contains_key(&s.perception);
         let active_directive = (self.tick_count < org.directive_until && !org.directive.is_empty())
             .then(|| org.directive.clone());
-        let active_wander_action = org.wander_target.map(|target| org.toward(target, &self.grid));
+        // Only labels the decision below, so it must not plan a route or touch the route memory.
+        let active_wander_action = org
+            .wander_target
+            .map(|target| org.toward_preview(target, &self.grid));
         spatial.query_into(oa_ix, oa_iy, 16, spatial_buf);
         // Preserve population order for tie-breaking and resource followers.
         spatial_buf.sort_unstable();

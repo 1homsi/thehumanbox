@@ -27,8 +27,11 @@ fn digest(sim: &Simulation) -> u64 {
 struct Stage {
     /// The middle of the biggest crowd.
     crowd: (f32, f32),
-    /// A small lake beside it.
+    /// A small lake beside it, and the water at its near shore.
     lake: (f32, f32),
+    shore: (f32, f32),
+    /// The wooded ground nearest the crowd.
+    wood: (f32, f32),
     /// A burning tile beside it.
     fire: (f32, f32),
     /// An unpartnered man and woman of the crowd's tribe.
@@ -93,6 +96,8 @@ fn staged_world() -> (Simulation, Stage) {
         o.age = o.max_age / 2;
         o.lineage_id = lineage.clone();
         o.partner_id = None;
+        // Food to spare, for the tribe's trade gift.
+        o.inv_food = o.inv_food.max(3);
     }
     // Clear the old partners' side of any marriage the two were in.
     let ids = [sim.organisms[m].id.clone(), sim.organisms[w].id.clone()];
@@ -165,9 +170,19 @@ fn staged_world() -> (Simulation, Stage) {
     sim.organisms[near[4]].health = -1.0;
     sim.tick();
     let at = |i: usize| (sim.organisms[i].x, sim.organisms[i].y);
+    // The tools are checked against what the world holds, not against where this seed happens to put it:
+    // the wooded tile nearest the crowd, wherever its people settled.
+    let wood = (0..=80)
+        .flat_map(|r: i32| (-r..=r).flat_map(move |dy| (-r..=r).map(move |dx| (dx, dy, r))))
+        .filter(|&(dx, dy, r)| dx.abs().max(dy.abs()) == r)
+        .map(|(dx, dy, _)| (cx + dx, cy + dy))
+        .find(|&(x, y)| WorldGrid::in_bounds(x, y) && sim.grid.biome_at(x, y).wooded())
+        .map_or(crowd, |(x, y)| (x as f32, y as f32));
     let stage = Stage {
         crowd,
         lake: ((cx + 8) as f32, cy as f32),
+        shore: ((cx + 7) as f32, cy as f32),
+        wood,
         fire: (fire.0 as f32, fire.1 as f32),
         man: at(m),
         woman: at(w),
@@ -195,6 +210,8 @@ fn targets(tool: &str, cmd: &Value, s: &Stage) -> Vec<Value> {
     if cmd.get("ax").is_some() {
         let (a, b) = match tool {
             "marry" => (s.man, s.woman),
+            // The man is of the crowd's tribe and has food to spare.
+            "trade_gift" => (s.man, s.other),
             _ => (s.crowd, s.other),
         };
         let mut c = cmd.clone();
@@ -208,7 +225,10 @@ fn targets(tool: &str, cmd: &Value, s: &Stage) -> Vec<Value> {
         return vec![cmd.clone()];
     }
     let primary = match tool {
-        "frost" | "boat" | "bless_river" | "tsunami" => s.lake,
+        // A boat is set down on water beside land.
+        "boat" => s.shore,
+        "bless_forest" => s.wood,
+        "frost" | "bless_river" | "tsunami" => s.lake,
         "douse" | "rain_patch" => s.fire,
         "repair" => s.building,
         _ => s.crowd,
