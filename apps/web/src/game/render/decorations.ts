@@ -344,7 +344,8 @@ export function placeTrees(
           })
           continue
         }
-        sprite = SPRITE.trees.dead
+        // A green thorn bush between the acacias: bare dead sticks scattered over the grass read as litter.
+        sprite = SPRITE.trees.bush
         break
     }
     const deciduous =

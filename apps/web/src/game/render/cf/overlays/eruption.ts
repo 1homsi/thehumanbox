@@ -128,6 +128,20 @@ export function plumePuff(mx: number, my: number, seed: number, k: number, t: nu
   }
 }
 
+/**
+ * A filled disc in whole-pixel rows: smoke drawn as soft anti-aliased circles read as a blur over the map,
+ * next to sprites whose curves are pixel staircases (#883).
+ */
+export function pixelDisc(ctx: Ctx, cx: number, cy: number, r: number): void {
+  const x = Math.round(cx)
+  const y = Math.round(cy)
+  const rr = Math.max(1, Math.round(r))
+  for (let dy = -rr; dy <= rr; dy++) {
+    const half = Math.round(Math.sqrt(rr * rr - dy * dy))
+    ctx.fillRect(x - half, y + dy, half * 2 + 1, 1)
+  }
+}
+
 /** A volcano's cone as the sim sends it: crater x, y and radius, in tiles. */
 export type VolcanoCone = readonly [number, number, number]
 
@@ -270,10 +284,9 @@ export function paintEruption(
     for (let k = 0; k < PUFFS; k++) {
       const puff = plumePuff(mx, my, seed, k, t)
       if (puff.a <= 0.01) continue
-      ctx.fillStyle = `rgba(${SMOKE_RGB},${puff.a.toFixed(3)})`
-      ctx.beginPath()
-      ctx.arc(puff.x, puff.y, puff.r, 0, Math.PI * 2)
-      ctx.fill()
+      // In two alpha steps so a fading puff changes tone a few times, not smoothly.
+      ctx.fillStyle = `rgba(${SMOKE_RGB},${(Math.ceil(puff.a * 10) / 10).toFixed(1)})`
+      pixelDisc(ctx, puff.x, puff.y, puff.r)
     }
     // Ash: specks that fall from the top of the column over the ground round it.
     ctx.fillStyle = ASH_COLOUR
