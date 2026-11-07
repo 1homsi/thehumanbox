@@ -38,13 +38,13 @@ describe('dewLevel', () => {
 })
 
 describe('hasDew', () => {
-  it('is grass only, about one tile in three', () => {
+  it('is grass only, about one tile in twelve', () => {
     expect(hasDew(TILE_ID.WATER, 3, 3)).toBe(false)
     expect(hasDew(TILE_ID.SAND, 3, 3)).toBe(false)
     let n = 0
     for (let y = 0; y < 60; y++) for (let x = 0; x < 60; x++) if (hasDew(TILE_ID.GRASS, x, y)) n++
-    expect(n / 3600).toBeGreaterThan(0.2)
-    expect(n / 3600).toBeLessThan(0.45)
+    expect(n / 3600).toBeGreaterThan(0.05)
+    expect(n / 3600).toBeLessThan(0.12)
   })
 })
 

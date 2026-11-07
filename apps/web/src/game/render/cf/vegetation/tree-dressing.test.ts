@@ -4,8 +4,8 @@ import { crownCentre, crownSpeck, dressingFor } from './tree-dressing'
 describe('dressingFor', () => {
   it('dresses spring, autumn and winter, and leaves summer bare', () => {
     expect(dressingFor('summer')).toBeNull()
-    expect(dressingFor('spring')?.count).toBe(9)
-    expect(dressingFor('autumn')?.count).toBe(7)
+    expect(dressingFor('spring')?.count).toBe(4)
+    expect(dressingFor('autumn')?.count).toBe(3)
     expect(dressingFor('winter')?.topOnly).toBe(true)
     expect(dressingFor('spring')?.topOnly).toBe(false)
   })

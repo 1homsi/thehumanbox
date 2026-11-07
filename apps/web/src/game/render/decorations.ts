@@ -22,8 +22,12 @@ import {
   permanentWaterNeighborMask,
 } from '../model/terrain-visuals'
 
-/** Clouds are laid out on this grid (world px, one tile), so their edges are whole steps, never soft. */
-export const CLOUD_CELL = TILE
+/**
+ * Clouds are laid out on this grid (world px, half a tile), so their edges are whole steps, never soft. On the
+ * tile grid the steps were eight pixels tall and a cloud read as a stack of dark blocks; at four it is a
+ * rounded patch of shade in the same staircase as the sprites' own curves.
+ */
+export const CLOUD_CELL = TILE / 2
 
 export interface Puff {
   x: number
@@ -478,16 +482,15 @@ export function paintDecorTile(
   }
   if (t !== TILE_ID.GRASS && t !== TILE_ID.FOOD) return
 
-  if (biome === BIOME_ID.SAVANNA && r0 < 0.2) {
-    // Tall dry grass in tufts.
+  if (biome === BIOME_ID.SAVANNA && r0 < 0.07) {
+    // Tall dry grass in tufts, one tone darker than the ground. One tile in five with a bright-tipped tuft
+    // covered the savanna in a speckle that hid the huts and animals standing on it.
     const gx = Math.round(px + TILE / 2 + (r1 - 0.5) * TILE * 0.5)
     const gy = Math.round(py + TILE / 2 + (r2 - 0.5) * TILE * 0.4)
-    ctx.fillStyle = '#b9a45a'
+    ctx.fillStyle = '#9c8a4e'
     ctx.fillRect(gx - 2, gy - 2, 1, 3)
     ctx.fillRect(gx, gy - 3, 1, 4)
     ctx.fillRect(gx + 2, gy - 2, 1, 3)
-    ctx.fillStyle = '#e1cd7c'
-    ctx.fillRect(gx, gy - 3, 1, 1)
     return
   }
   if (biome === BIOME_ID.JUNGLE && r0 < 0.14) {
@@ -504,7 +507,9 @@ export function paintDecorTile(
 
   if (
     biome === BIOME_ID.GRASSLAND &&
-    r0 < (Math.sin(worldX * 0.13) + Math.sin(worldY * 0.17) > 1 ? 0.12 : 0.012)
+    // Flowers grow in meadows (where two slow waves meet), not one by one over every field.
+    Math.sin(worldX * 0.13) + Math.sin(worldY * 0.17) > 1 &&
+    r0 < 0.08
   ) {
     const colors = ['#f1b9bf', '#f6e3a0', '#cfc0e9', '#f5eade']
     ctx.fillStyle = colors[Math.floor(r2 * colors.length)]
@@ -528,9 +533,10 @@ export function paintDecorTile(
     ctx.fillRect(mx - 1, my, 2, 1)
     ctx.fillStyle = '#f0e8d8'
     ctx.fillRect(mx, my + 1, 1, 1)
-  } else if ((biome === BIOME_ID.GRASSLAND || biome === BIOME_ID.WETLAND) && r1 < 0.12) {
-    // A tuft of two blades, a pixel apart, the taller one leaning with the hash.
-    ctx.fillStyle = biome === BIOME_ID.WETLAND ? '#5a8848' : '#7ea860'
+  } else if ((biome === BIOME_ID.GRASSLAND || biome === BIOME_ID.WETLAND) && r1 < 0.06) {
+    // A tuft of two blades, a pixel apart, the taller one leaning with the hash: a darker tone of the grass,
+    // not a brighter green, so it textures the ground without reading as an object.
+    ctx.fillStyle = biome === BIOME_ID.WETLAND ? '#4f6a3e' : '#687a3e'
     const gx = Math.round(px + TILE / 2 + (r0 - 0.5) * TILE * 0.5)
     const gy = py + TILE - 1
     const lean = r2 < 0.33 ? -1 : r2 > 0.66 ? 1 : 0
@@ -773,8 +779,10 @@ export function drawClouds(
   if (!weather || weather.kind === 'clear') return
   const isStorm = weather.kind === 'storm'
   const count = isStorm ? 9 : 5
-  const baseAlpha = weather.intensity * (isStorm ? 0.62 : 0.38)
-  const color = isStorm ? '16,20,42' : '130,148,170'
+  // The shade of a cloud is the map's one shadow colour, light enough that the ground and everything on it
+  // stays readable under it: a cool navy at up to 0.6 turned storm clouds into dark holes in the map.
+  const baseAlpha = weather.intensity * (isStorm ? 0.4 : 0.24)
+  const color = SHADOW.rgb.join(',')
 
   ctx.save()
   for (let i = 0; i < count; i++) {

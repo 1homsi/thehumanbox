@@ -18,13 +18,15 @@ export interface Dressing {
 }
 
 const DRESSING: Record<string, Dressing> = {
+  // A few blossoms in one soft pink, not a confetti of two colours: nine white and pink specks on every
+  // crown read as noise over the woods.
   spring: {
-    count: 9,
-    colours: [rgba(224, 168, 178, 255), rgba(236, 238, 228, 255)],
+    count: 4,
+    colours: [rgba(224, 168, 178, 255)],
     topOnly: false,
   },
   autumn: {
-    count: 7,
+    count: 3,
     colours: [rgba(196, 104, 62, 255), rgba(214, 174, 78, 255)],
     topOnly: false,
   },

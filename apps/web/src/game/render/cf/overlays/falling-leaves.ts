@@ -8,7 +8,8 @@ type Ctx = CanvasRenderingContext2D
  * with the throttled ground pass (about 15 times a second), not on every display frame.
  */
 
-export const LEAF_COUNT = 90
+/** A light fall in whole pixels: ninety tilted, soft-edged leaves read as noise over the map (#883). */
+export const LEAF_COUNT = 40
 const LEAF_COLOURS = ['#c85a2a', '#e0a53a', '#b4462c', '#d68a32']
 
 export interface LeafView {
@@ -36,13 +37,9 @@ export function paintFallingLeaves(ctx: Ctx, view: LeafView, t: number, strength
   ctx.save()
   ctx.globalAlpha = Math.min(1, strength) * 0.9
   for (let i = 0; i < LEAF_COUNT; i++) {
-    const { x, y, rot } = leafAt(i, t, view)
+    const { x, y } = leafAt(i, t, view)
     ctx.fillStyle = LEAF_COLOURS[i % LEAF_COLOURS.length]
-    ctx.save()
-    ctx.translate(x, y)
-    ctx.rotate(rot)
-    ctx.fillRect(-1.5, -0.75, 3, 1.5)
-    ctx.restore()
+    ctx.fillRect(Math.round(x) - 1, Math.round(y), 2, 1)
   }
   ctx.restore()
 }

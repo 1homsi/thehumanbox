@@ -8,7 +8,10 @@ type Ctx = CanvasRenderingContext2D
  * The night sky over the map: stars that twinkle over the land while it is dark.
  */
 
-/** Stars fill a cell of this many tiles; one cell in three holds one. */
+/**
+ * Stars fill a cell of this many tiles; one cell in six holds one, a single dim pixel. Bright 2x2 dots in a
+ * third of the cells read as specks of something on the map, not as a sky (#883).
+ */
 const STAR_CELL_TILES = 9
 
 /** 0 in daylight, 1 at night. */
@@ -31,13 +34,13 @@ export function paintStars(
   for (let r = Math.floor(bounds.r0 / cell); r * cell < bounds.r1; r++) {
     for (let c = Math.floor(bounds.c0 / cell); c * cell < bounds.c1; c++) {
       const id = r * 1000 + c
-      if (unitHash(id, 3) > 0.34) continue
+      if (unitHash(id, 3) > 0.17) continue
       const x = Math.round((c * cell + unitHash(id, 5) * cell - ox) * TILE)
       const y = Math.round((r * cell + unitHash(id, 9) * cell - oy) * TILE)
       const twinkle = 0.45 + 0.55 * Math.abs(Math.sin(t * 0.0009 + unitHash(id, 17) * 6.28))
-      ctx.globalAlpha = night * twinkle * 0.8
+      ctx.globalAlpha = night * twinkle * 0.55
       ctx.fillStyle = unitHash(id, 23) > 0.8 ? '#ffe9b0' : '#ffffff'
-      ctx.fillRect(x, y, 2, 2)
+      ctx.fillRect(x, y, 1, 1)
     }
   }
   ctx.restore()
