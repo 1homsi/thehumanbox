@@ -18,10 +18,11 @@ interface NameLook {
 
 const OUTLINE = 'rgba(0,0,0,0.85)'
 const LOOKS: Record<NameStyle, NameLook> = {
-  name: { fontSize: 9, weight: 'normal', color: '#ffffff', outlineWidth: 3, alpha: 0.95 },
-  nameSelected: { fontSize: 10, weight: 'bold', color: '#ffffff', outlineWidth: 3, alpha: 1 },
-  thought: { fontSize: 8, weight: 'normal', color: 'rgb(180,220,255)', outlineWidth: 2.5, alpha: 0.9 },
-  thoughtSelected: { fontSize: 8, weight: 'normal', color: 'rgb(180,220,255)', outlineWidth: 2.5, alpha: 1 },
+  // Small and light: a name labels a figure 16 px tall, it should not be wider than the house beside it.
+  name: { fontSize: 7, weight: 'normal', color: '#f3e8cb', outlineWidth: 2, alpha: 0.95 },
+  nameSelected: { fontSize: 9, weight: 'bold', color: '#ffffff', outlineWidth: 2.5, alpha: 1 },
+  thought: { fontSize: 7, weight: 'normal', color: 'rgb(180,220,255)', outlineWidth: 2, alpha: 0.9 },
+  thoughtSelected: { fontSize: 7, weight: 'normal', color: 'rgb(180,220,255)', outlineWidth: 2, alpha: 1 },
 }
 
 function styleOf(look: NameLook) {

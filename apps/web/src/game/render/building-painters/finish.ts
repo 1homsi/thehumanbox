@@ -101,6 +101,54 @@ export function snapToPixels(d: Uint8ClampedArray) {
   }
 }
 
+/** Colours closer than this (RGB distance) are one tone of one material, and are made the same. */
+const NEAR_TONE = 13
+
+/**
+ * A limited palette: every colour within `NEAR_TONE` of a more common one becomes that one. Painters jitter
+ * hues per building and lay translucent shading over flat fills, which leaves walls and roofs made of many
+ * almost-equal tones; merged, each material is the few flat tones it was meant to be (lit, mid, shade).
+ */
+export function mergeNearTones(d: Uint8ClampedArray, front: Uint8Array) {
+  const counts = new Map<number, number>()
+  for (let i = 0; i < front.length; i++) {
+    if (!front[i]) continue
+    const o = i * 4
+    const c = (d[o] << 16) | (d[o + 1] << 8) | d[o + 2]
+    counts.set(c, (counts.get(c) ?? 0) + 1)
+  }
+  if (counts.size < 2) return
+  const byUse = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0]).map(([c]) => c)
+  const kept: number[] = []
+  const to = new Map<number, number>()
+  const near = NEAR_TONE * NEAR_TONE
+  for (const c of byUse) {
+    const r = (c >> 16) & 255
+    const g = (c >> 8) & 255
+    const b = c & 255
+    let into = c
+    for (const k of kept) {
+      const dr = r - ((k >> 16) & 255)
+      const dg = g - ((k >> 8) & 255)
+      const db = b - (k & 255)
+      if (dr * dr + dg * dg + db * db < near) {
+        into = k
+        break
+      }
+    }
+    if (into === c) kept.push(c)
+    to.set(c, into)
+  }
+  for (let i = 0; i < front.length; i++) {
+    if (!front[i]) continue
+    const o = i * 4
+    const c = to.get((d[o] << 16) | (d[o + 1] << 8) | d[o + 2])!
+    d[o] = (c >> 16) & 255
+    d[o + 1] = (c >> 8) & 255
+    d[o + 2] = c & 255
+  }
+}
+
 /** How much darker the receding side wall is than the front, and how much lighter the top. */
 const SIDE_SHADE = 0.7
 const TOP_LIGHT = 1.1
@@ -249,6 +297,7 @@ export function finishSprite(
       if (y < top) top = y
     }
   }
+  mergeNearTones(d, front)
   const buildingHeight = groundY - top
   const raised = bx1 >= 0 && buildingHeight >= 7 && !FLAT_KINDS.has(kind)
   const depth = raised ? depthFor(depthPx, Math.min(top, width - 1 - bx1 - 2)) : 0

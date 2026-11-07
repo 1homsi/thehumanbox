@@ -11,7 +11,7 @@ import {
 } from '../../character-visuals'
 import { celebrating, drawCelebrationGlyph, drawPrayingGlyph } from '../../prayer-feedback'
 import { isFocused } from './people-sprites'
-import type { PeopleLabelInput } from './people-labels'
+import { nameVisibilityAlpha, type PeopleLabelInput } from './people-labels'
 
 /** Bound unreadable overlapping labels while retaining every person's sprite. */
 export function referenceCrowdLabelIds(
@@ -137,7 +137,9 @@ export function paintPeopleLabelsReference(ctx: CanvasRenderingContext2D, input:
     const vital = isSelected ? 0 : Math.min(org.energy, org.hydration, org.health)
     const lift = 2 + 8 * Math.min(1, Math.max(0, (0.3 - vital) / (0.3 - 0.22)))
     const showName =
-      !!org.name && (isSelected || (standard && viewFlags.names && (!labelIds || labelIds.has(org.id))))
+      !!org.name &&
+      (isSelected ||
+        (standard && viewFlags.names && nameVisibilityAlpha(zoom) > 0 && (!labelIds || labelIds.has(org.id))))
     const showThought =
       (isSelected || (full && viewFlags.thoughts)) && org.thought && org.thought !== 'observing'
     const labelY = spriteTop - lift
@@ -155,13 +157,13 @@ export function paintPeopleLabelsReference(ctx: CanvasRenderingContext2D, input:
     // Names and thoughts that would sit on top of another label are left out; the selected
     // person's always shows.
     const nameShown =
-      showName && placer.place(labelX, labelY, labelWidth(org.name, isSelected ? 10 : 9), 10, isSelected)
+      showName && placer.place(labelX, labelY, labelWidth(org.name, isSelected ? 9 : 7), 8, isSelected)
     const thoughtShown =
       showThought &&
-      placer.place(labelX, labelY - (nameShown ? 10 : 0), labelWidth(org.thought ?? '', 8), 9, isSelected)
+      placer.place(labelX, labelY - (nameShown ? 8 : 0), labelWidth(org.thought ?? '', 7), 8, isSelected)
 
     if (nameShown) {
-      ctx.font = isSelected ? 'bold 10px monospace' : '9px monospace'
+      ctx.font = isSelected ? 'bold 9px monospace' : '7px monospace'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'bottom'
       ctx.lineWidth = 3
@@ -171,12 +173,12 @@ export function paintPeopleLabelsReference(ctx: CanvasRenderingContext2D, input:
       ctx.fillText(org.name, labelX, labelY)
     }
     if (thoughtShown) {
-      ctx.font = '8px monospace'
+      ctx.font = '7px monospace'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'bottom'
       ctx.lineWidth = 2.5
       ctx.strokeStyle = 'rgba(0,0,0,0.85)'
-      const thoughtY = labelY - (nameShown ? 10 : 0)
+      const thoughtY = labelY - (nameShown ? 8 : 0)
       ctx.strokeText(org.thought, labelX, thoughtY)
       ctx.fillStyle = isSelected ? 'rgba(180,220,255,1)' : 'rgba(180,220,255,0.9)'
       ctx.fillText(org.thought, labelX, thoughtY)

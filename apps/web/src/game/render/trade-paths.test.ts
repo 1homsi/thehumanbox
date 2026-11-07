@@ -416,6 +416,29 @@ describe('TradePathPlanner', () => {
     expect(planner.stats.planned).toBe(12)
   })
 
+  it('leaves the drawn roads alone when a terrain change replans every route the same way', () => {
+    const grid = open(60, 30)
+    const routes = Array.from({ length: 6 }, (_, i) => ({
+      id: i + 1,
+      a: [2, 2 + i * 4] as [number, number],
+      b: [50, 2 + i * 4] as [number, number],
+    }))
+    const world = worldWith(grid, routes)
+    const planner = new TradePathPlanner()
+    for (let i = 0; i < 6; i++) planner.update(world, 1)
+    // The first replan sees every route at once (the first plan saw only those before it), so it may join
+    // them differently; from then on the same ground gives the same roads.
+    for (let i = 0; i < 6; i++) planner.update(world, 2)
+    expect(planner.settled).toBe(true)
+    const revision = planner.revision
+    const path = planner.pathOf(3)
+    for (let i = 0; i < 6; i++) expect(planner.update(world, 3)).toBe(false)
+    expect(planner.settled).toBe(true)
+    expect(planner.stats.planned).toBe(18)
+    expect(planner.revision).toBe(revision)
+    expect(planner.pathOf(3)).toBe(path)
+  })
+
   it('plans over the land: round the water, with the planned cells marked', () => {
     const grid = land([
       '....................',

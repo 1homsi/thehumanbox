@@ -614,5 +614,14 @@
     "versionBody": "This window and the simulation on this computer cannot work together: the simulation is {server}. Quit The Human Box completely, then open it again.",
     "versionOlder": "an older build",
     "versionNumber": "version {version}"
+  },
+  "opening": {
+    "meet": "This is {tribe}. They live on their own: nobody tells them what to do.",
+    "powers": "You can step in. Your powers are in the bar below: pick one, then click near {tribe}.",
+    "powersPrayer": "{tribe} is praying to you. Click the bubble over their village to answer.",
+    "history": "Every birth, death and war is written down. The Chronicle at the top keeps their story.",
+    "world": "{tribe} is only one of {count} tribes on this world. Watch them meet, trade and fight, and step in when you like.",
+    "skip": "Skip intro",
+    "done": "Got it"
   }
 }

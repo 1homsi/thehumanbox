@@ -82,8 +82,8 @@ function recorder() {
 // surf line and the banks' shade); the calls themselves are those from before the per-tile
 // allocations were removed.
 const GOLDEN: Record<string, string> = {
-  'whole map': '7e69ea30',
-  'offset origin': '2d50bde5',
+  'whole map': '3c017d3b',
+  'offset origin': '209136ea',
 }
 
 function run(name: string) {

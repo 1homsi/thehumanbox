@@ -1,4 +1,5 @@
 import { TILE } from '../../../model/palette'
+import { shade } from '../../sprite-colors'
 
 /**
  * How a crop looks in the field. Each family has its own silhouette so a village
@@ -57,9 +58,24 @@ export function farmLookKey(look: FarmLook): string {
 }
 
 /**
- * One farm tile: furrowed soil, the crop in its style, a field edge on the open sides. Painted with
- * its top-left at (x, y); also used to bake the tile into a sprite atlas, so it must depend only on
- * its arguments.
+ * Field tones. Every field is drawn from the same few ramps (tilled soil, leaf green, straw), so a farm
+ * reads as one material next to the grass and the huts, not as a scatter of unrelated greens.
+ */
+const SOIL = { lit: '#8a6440', mid: '#6e4e30', furrow: '#4e3622' }
+const FALLOW = { lit: '#9a7448', mid: '#7d5a38', furrow: '#5e4128' }
+const LEAF = { lit: '#8f9c55', mid: '#6a8344', shade: '#4f6838' }
+const STRAW = { lit: '#c8a668', mid: '#a6854c', shade: '#7d6236' }
+const PADDY_WATER = { lit: '#7da39a', mid: '#608d84', shade: '#4d766f' }
+const RICE_GOLD = { lit: '#ecc96e', mid: '#d6ae4e', shade: '#b88a36' }
+const SNOW_FIELD = '#e6eae0'
+const FIELD_EDGE = '#3a2a1c'
+
+/**
+ * One farm tile: furrowed soil and the crop in its style, in rows that run on unbroken from tile to tile
+ * (every pattern repeats every 2 or 4 pixels, so a field of many tiles is one field, not a grid of
+ * stamps). A ripe crop changes colour as a whole, gold grain or white cotton, so a ripe field reads at a
+ * glance without a frame round every tile. Painted with its top-left at (x, y); also used to bake the tile
+ * into a sprite atlas, so it must depend only on its arguments.
  */
 export function paintFarmTile(
   ctx: CanvasRenderingContext2D,
@@ -68,12 +84,10 @@ export function paintFarmTile(
   look: FarmLook,
   cropColor = look.cropColor,
 ) {
-  const { stage, season, crop, variant, edges } = look
+  const { stage, season, crop, edges } = look
   const style = farmCropStyle(crop)
-  // A ruined field is dead: no ripe gold edge, and every green stalk goes straw-brown.
+  // A ruined field is dead: every leaf goes straw-brown and nothing ripens.
   const withered = !!look.withered && stage !== 'fallow'
-  const green = (color: string) => (withered ? '#8b6a3a' : color)
-  const head = withered ? '#9a7a4a' : cropColor
   const fill = (dx: number, dy: number, w: number, h: number, color: string) => {
     ctx.fillStyle = color
     ctx.fillRect(x + dx, y + dy, w, h)
@@ -82,137 +96,129 @@ export function paintFarmTile(
   const fallow = stage === 'fallow'
   const winter = season === 'scarcity'
   const autumn = season === 'decline'
-  const height = fallow ? 0 : Math.max(1, Math.round(1 + look.progress * 4))
-  const offset = variant % 2
-  // A paddy drains as its rice ripens: the water goes off it in autumn, whether or not the
-  // harvest is due yet, so an autumn paddy never looks like a spring one.
+  // How many rows the crop stands above its furrow: 1 when just up, 3 when grown.
+  const height = fallow ? 0 : Math.max(1, Math.min(3, Math.round(1 + look.progress * 2.4)))
+  const leaf = withered ? STRAW : LEAF
+  // The ripe colour of this crop, in three tones from its own colour.
+  const ripeRamp = { lit: shade(cropColor, 1.18), mid: cropColor, shade: shade(cropColor, 0.74) }
   const drained = ripe || (autumn && look.progress >= 0.5)
 
-  // Soil. A planted field is dark tilled loam; a fallow one shows its season: bare furrows in spring
-  // and summer, golden stubble after the autumn harvest, and snow over the ground in winter.
-  if (style === 'paddy' && !fallow) {
-    fill(0, 0, TILE, TILE, '#3f2c21')
-    fill(0, 0, TILE, TILE, drained ? '#a88a4c' : '#4f7f86')
-    for (const row of [2, 5]) fill(0, row, TILE, 1, drained ? '#7d6231' : '#3d6b72')
-  } else if (style === 'paddy') {
-    // A harvested paddy: drained mud with the cut rice stubble standing in rows.
-    fill(0, 0, TILE, TILE, '#5a3f24')
-    fill(0, 0, TILE, TILE, '#8a6a3a')
-    for (let row = 1; row < TILE; row += 2) {
-      for (let c = 1 + offset; c < TILE - 1; c += 2) fill(c, row, 1, 1, '#d9bd72')
-    }
+  // Soil: the furrow line every fourth row, the ridge above it catching the light.
+  const soil = fallow ? FALLOW : SOIL
+  if (style === 'paddy' && !fallow && !drained) {
+    fill(0, 0, TILE, TILE, PADDY_WATER.mid)
+    for (const row of [3, 7]) fill(0, row, TILE, 1, PADDY_WATER.shade)
+    for (const row of [0, 4]) fill(0, row, TILE, 1, PADDY_WATER.lit)
   } else {
-    fill(0, 0, TILE, TILE, '#3a2719')
-    fill(0, 0, TILE, TILE, fallow ? '#6b4c32' : '#5e4128')
-    // Furrows: a dark cut and a lit ridge on every third row, so a field reads as rows.
-    for (let row = 2; row < TILE - 1; row += 3) {
-      fill(0, row, TILE, 1, ripe ? '#b98b45' : '#3a2719')
-      fill(0, row + 1, TILE, 1, fallow ? '#8a6239' : '#7a5232')
-    }
-    if (fallow && autumn) {
-      for (let row = 1; row < TILE; row += 3) {
-        for (let c = 1 + offset; c < TILE - 1; c += 2) fill(c, row, 1, 2, '#c9a45c')
-      }
-    }
+    fill(0, 0, TILE, TILE, soil.mid)
+    for (const row of [3, 7]) fill(0, row, TILE, 1, soil.furrow)
+    for (const row of [0, 4]) fill(0, row, TILE, 1, soil.lit)
+  }
+  if (fallow && autumn) {
+    // Golden stubble left after the harvest, along the ridges.
+    for (const row of [1, 5]) for (let c = 0; c < TILE; c += 2) fill(c, row, 1, 2, STRAW.lit)
   }
 
+  // Each crop row stands on a furrow line (rows 3 and 7) and grows up from it.
+  const rows = [3, 7]
+  const stand = (c: number, base: number, h: number, color: string) => fill(c, base - h, 1, h, color)
   if (height > 0) {
     switch (style) {
       case 'grain':
-        for (let c = 2 + offset; c < TILE - 1; c += 3) {
-          fill(c, TILE - height - 1, 1, height, green('#9dbb48'))
-          if (height >= 3) fill(c + 1, TILE - height, 1, 1, head)
-        }
-        break
       case 'paddy':
-        for (let c = 2 + offset; c < TILE - 1; c += 3) {
-          if (drained) {
-            // Ripe rice: a golden head two pixels deep on a straw stem, the look of the harvest.
-            fill(c, TILE - height - 1, 1, height, green('#8c6d2a'))
-            fill(c - 1, TILE - height - 1, 3, 2, ripe ? green('#f2c94c') : green('#d9b04a'))
-          } else {
-            fill(c, TILE - height - 1, 1, height, green('#8fc26a'))
+        for (const base of rows) {
+          for (let c = 0; c < TILE; c++) {
+            const golden = ripe || (style === 'paddy' && drained)
+            // Young grain stands in tufts with soil between; ripe grain closes into one gold sheet.
+            if (c % 4 === 3 && !golden) continue
+            if (golden) {
+              const r = style === 'paddy' ? (ripe ? RICE_GOLD : STRAW) : ripeRamp
+              stand(c, base, height, r.mid)
+              fill(c, base - height, 1, 1, c % 4 === 0 ? r.lit : r.mid)
+              fill(c, base - 1, 1, 1, r.shade)
+            } else {
+              stand(c, base, height, c % 2 ? leaf.mid : leaf.lit)
+              if (height > 1) fill(c, base - 1, 1, 1, leaf.shade)
+            }
           }
         }
         break
-      case 'stalk': {
-        const tall = Math.min(TILE - 1, height + 2)
-        for (let c = 2 + offset; c < TILE - 1; c += 3) {
-          fill(c, TILE - tall - 1, 1, tall, green('#6f9b3c'))
-          if (ripe) fill(c + 1, TILE - tall, 1, 2, head)
+      case 'stalk':
+        // Tall maize: one stalk every four pixels, leaves out to each side, a cob when ripe.
+        for (let c = 1; c < TILE; c += 4) {
+          const tall = height + 3
+          stand(c, 7, tall, ripe ? STRAW.mid : leaf.mid)
+          fill(c - 1, 7 - tall + 1, 1, 1, ripe ? STRAW.lit : leaf.lit)
+          fill(c + 1, 7 - tall + 3, 1, 1, ripe ? STRAW.shade : leaf.shade)
+          if (ripe) fill(c + 1, 7 - tall + 1, 1, 2, ripeRamp.lit)
         }
         break
-      }
       case 'mound':
-        for (const row of [3, 6]) {
-          for (let c = 1 + offset; c < TILE - 2; c += 3) {
-            fill(c, row - Math.min(height, 2), 2, Math.min(height, 2) + 1, green('#4f7a3a'))
-            if (ripe) fill(c, row, 1, 1, green('#8a6a3e'))
+        // Potato plants: low round bushes three wide along each row.
+        for (const base of rows) {
+          for (let c = 0; c < TILE; c += 4) {
+            const h = Math.min(2, height)
+            fill(c, base - h, 3, h, ripe ? STRAW.mid : leaf.mid)
+            fill(c, base - h, 2, 1, ripe ? STRAW.lit : leaf.lit)
+            fill(c + 2, base - 1, 1, 1, ripe ? STRAW.shade : leaf.shade)
           }
         }
         break
       case 'vine':
-        for (const row of [2, 5]) {
-          fill(1, row, TILE - 2, 1, green('#4f8a3f'))
-          for (let c = 2 + offset; c < TILE - 1; c += 3) {
-            fill(c, row - 1, 1, 1, green('#6fae52'))
-            if (ripe) fill(c, row + 1, 1, 1, head)
-          }
+        // Beans climbing a line strung along each row, pods hanging when ripe.
+        for (const base of rows) {
+          fill(0, base - 2, TILE, 1, leaf.mid)
+          for (let c = 0; c < TILE; c += 2) fill(c, base - 3, 1, 1, leaf.lit)
+          if (ripe) for (let c = 1; c < TILE; c += 4) fill(c, base - 1, 1, 1, ripeRamp.mid)
         }
         break
       case 'tuft':
-        for (let c = 1 + offset; c < TILE - 2; c += 3) {
-          for (const row of [2, 5]) {
-            fill(c, row, 2, 2, green('#6aa04f'))
-            if (ripe) fill(c, row, 2, 1, head)
+      case 'shrub':
+        // Cotton and tea: bushes two wide; cotton opens white, coffee and tea show their berries.
+        for (const base of rows) {
+          for (let c = 0; c < TILE; c += 4) {
+            const h = Math.min(2, height)
+            fill(c, base - h, 3, h, leaf.mid)
+            fill(c, base - h, 1, 1, leaf.lit)
+            fill(c + 2, base - 1, 1, 1, leaf.shade)
+            if (ripe) {
+              fill(c, base - h - (style === 'tuft' ? 1 : 0), 2, 1, ripeRamp.lit)
+              if (style === 'tuft') fill(c + 1, base - h, 1, 1, ripeRamp.mid)
+            }
           }
         }
         break
       case 'leaf':
-        for (const row of [1, 4]) {
-          for (let c = 1 + offset; c < TILE - 2; c += 3) {
-            fill(c, row + (height > 2 ? 0 : 1), 2, 2, ripe ? green('#a88a4a') : green('#7f9a4a'))
+        // Tobacco: broad leaves, yellowing when ripe.
+        for (const base of rows) {
+          for (let c = 0; c < TILE; c += 4) {
+            const h = Math.min(3, height + 1)
+            const r = ripe ? ripeRamp : leaf
+            fill(c, base - h, 3, h - 1, r.mid)
+            fill(c, base - h, 2, 1, r.lit)
+            fill(c + 1, base - 1, 1, 1, r.shade)
           }
         }
         break
       case 'cane':
-        for (let c = 1 + offset; c < TILE - 1; c += 2) {
-          const tall = Math.min(TILE - 1, height + 3)
-          fill(c, TILE - tall - 1, 1, tall, green('#5f8f3a'))
-          if (ripe) fill(c, TILE - tall - 1, 1, 1, head)
-        }
-        break
-      case 'shrub':
-        for (const row of [2, 5]) {
-          for (let c = 1 + offset; c < TILE - 2; c += 4) {
-            fill(c, row, 3, 2, ripe ? green('#4d7d43') : green('#3e6b3a'))
-            if (ripe) fill(c + 1, row - 1, 1, 1, head)
-          }
+        // Sugarcane: a dense stand of tall canes over the whole tile.
+        for (let c = 0; c < TILE; c += 2) {
+          const tall = Math.min(TILE - 1, height + 4)
+          stand(c, 7, tall, ripe ? STRAW.mid : leaf.mid)
+          fill(c, 7 - tall, 1, 1, ripe ? ripeRamp.lit : leaf.lit)
         }
         break
     }
   }
 
-  // Winter: snow lies on the ground and on the lower crop.
-  if (winter) {
-    fill(0, 0, TILE, 2, '#e6eef2')
-    for (let c = 1 + offset; c < TILE - 1; c += 3) fill(c, 3, 1, 1, '#eef4f7')
-  }
+  // Winter: snow lies in the furrows between the rows.
+  if (winter) for (const row of [0, 4]) fill(0, row, TILE, 1, SNOW_FIELD)
 
-  // Field edges: a dark boundary on each side that faces open ground, so a field reads as a plot.
-  const EDGE = '#2b1e14'
-  if (edges & EDGE_TOP) fill(0, 0, TILE, 1, EDGE)
-  if (edges & EDGE_BOTTOM) fill(0, TILE - 1, TILE, 1, EDGE)
-  if (edges & EDGE_LEFT) fill(0, 0, 1, TILE, EDGE)
-  if (edges & EDGE_RIGHT) fill(TILE - 1, 0, 1, TILE, EDGE)
-
-  if (ripe) {
-    ctx.fillStyle = 'rgba(255, 232, 145, 0.9)'
-    ctx.fillRect(x, y, TILE, 1)
-    ctx.fillRect(x, y + TILE - 1, TILE, 1)
-    ctx.fillRect(x, y, 1, TILE)
-    ctx.fillRect(x + TILE - 1, y, 1, TILE)
-  }
+  // A field ends in a dark bank on each side that faces open ground, so a farm reads as one plot.
+  if (edges & EDGE_TOP) fill(0, 0, TILE, 1, FIELD_EDGE)
+  if (edges & EDGE_BOTTOM) fill(0, TILE - 1, TILE, 1, FIELD_EDGE)
+  if (edges & EDGE_LEFT) fill(0, 0, 1, TILE, FIELD_EDGE)
+  if (edges & EDGE_RIGHT) fill(TILE - 1, 0, 1, TILE, FIELD_EDGE)
 
   // The plough that broke a field just sown: an ox or a tractor standing in the furrows.
   if (look.plough) {

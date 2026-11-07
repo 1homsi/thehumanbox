@@ -97,14 +97,15 @@ function deepen(color) {
 
 /**
  * Rows of each body part, counted from the top of the figure (row 0 is the outline above the hair). The head is
- * three pixels wide; the shoulder row is five, one pixel wider on each side, which is what makes the figure read
- * as a person rather than a capsule.
+ * a round five pixels wide (hair on top, a face with two eyes, a narrower chin), the torso five wide with an arm
+ * on each side, so the body is seven wide at the shoulders: a big readable head over a broad body. At the
+ * standard zoom the old three-wide head on a five-wide body read as a coloured stick, not a person (#883).
  */
 const PLAN = {
-  adult: { face: 2, eye: 3, chin: 4, shoulder: 5, hand: HUMAN_HAND_ROW.adult, legs: 11, foot: 15 },
-  teen: { face: 2, eye: 3, chin: 4, shoulder: 5, hand: HUMAN_HAND_ROW.teen, legs: 10, foot: 13 },
-  elder: { face: 2, eye: 3, chin: 4, shoulder: 5, hand: HUMAN_HAND_ROW.elder, legs: 10, foot: 13 },
-  child: { face: 2, eye: 2, chin: 3, shoulder: 4, hand: HUMAN_HAND_ROW.child, legs: 7, foot: 9 },
+  adult: { face: 2, eye: 4, chin: 5, shoulder: 6, hand: HUMAN_HAND_ROW.adult, legs: 11, foot: 15 },
+  teen: { face: 2, eye: 4, chin: 5, shoulder: 6, hand: HUMAN_HAND_ROW.teen, legs: 10, foot: 13 },
+  elder: { face: 2, eye: 4, chin: 5, shoulder: 6, hand: HUMAN_HAND_ROW.elder, legs: 10, foot: 13 },
+  child: { face: 2, eye: 3, chin: 4, shoulder: 5, hand: HUMAN_HAND_ROW.child, legs: 7, foot: 9 },
 }
 
 function drawCell(frame, row, sex, stage, appearance, era, facing) {
@@ -131,22 +132,17 @@ function drawCell(frame, row, sex, stage, appearance, era, facing) {
     const helmet = era === 'spacesuit' && appearance % 2 === 0 && stage !== 'child'
     const outfit = garment(era, appearance, female, stage)
 
-    // Head: hair, a three-row face with the lit side on the left and two dark eyes.
+    // Head: a round face five wide, lit on the left, the top and chin rows three wide, two dark eyes.
     for (let r = 1; r <= plan.chin; r++) {
-      head(-1, r, skin[0])
-      head(0, r, skin[1])
-      head(1, r, skin[2])
+      const half = r === 1 || r === plan.chin ? 1 : 2
+      for (let x = -half; x <= half; x++) head(x, r, x < 0 ? skin[0] : x === 0 ? skin[1] : skin[2])
     }
     head(-1, plan.eye, ink)
     head(1, plan.eye, ink)
-    // Ears keep the eyes off the outline, so they read as eyes and not as notches in the head.
-    head(-2, plan.eye, skin[1])
-    head(2, plan.eye, skin[2])
     if (helmet) {
       // A clear visor: the face stays visible inside a light shell with a glint on the lit side.
       for (const x of [-1, 0, 1]) head(x, 1, x < 0 ? SUIT[0] : x > 0 ? SUIT[2] : SUIT[1])
       head(-1, plan.face, GLASS)
-      head(0, plan.face, hair[0])
       for (let r = plan.face; r < plan.chin; r++) {
         head(-2, r, SUIT[0])
         head(2, r, SUIT[2])
@@ -155,18 +151,20 @@ function drawCell(frame, row, sex, stage, appearance, era, facing) {
     if (outfit.cap && stage !== 'child') {
       // A flat cap with its peak toward where the person walks.
       for (const x of [-1, 0, 1]) head(x, 1, x < 0 ? outfit.cap[0] : outfit.cap[1])
-      head(dir * 2, 1, outfit.cap[1])
+      for (const x of [-2, -1, 0, 1, 2]) head(x, plan.face, x < 0 ? outfit.cap[0] : outfit.cap[1])
+      head(dir * 3, plan.face, outfit.cap[1])
     }
 
     // Torso, arms and hands. Arms are a step darker than the chest so they separate from it.
     const swing = (side) => (frame === 1 && side > 0) || (frame === 3 && side < 0)
     const lowest = plan.legs - 1
     for (let r = plan.shoulder; r <= lowest; r++) {
-      for (const x of [-1, 0, 1]) body(x, r, outfit.chest(x, r - plan.shoulder, r === lowest))
+      for (const x of [-2, -1, 0, 1, 2]) body(x, r, outfit.chest(x, r - plan.shoulder, r === lowest))
       for (const side of [-1, 1]) {
         const hand = plan.hand - (swing(side) ? 1 : 0)
-        if (r > hand) continue
-        const x = side * 2
+        // Arms hang from just below the shoulder line, so the shoulders round off.
+        if (r > hand || r === plan.shoulder) continue
+        const x = side * 3
         if (r === hand) body(x, r, side < 0 ? skin[0] : skin[1])
         else body(x, r, outfit.arm(side, r - plan.shoulder))
       }
@@ -192,7 +190,7 @@ function drawCell(frame, row, sex, stage, appearance, era, facing) {
     }
 
     if (stage === 'elder' && era !== 'spacesuit') {
-      for (let r = plan.shoulder + 1; r <= footRow; r++) at(dir * 4, r, stick)
+      for (let r = plan.shoulder + 1; r <= footRow; r++) at(dir * 5, r, stick)
     }
   }
 
@@ -231,85 +229,96 @@ function drawCell(frame, row, sex, stage, appearance, era, facing) {
   return [...paths].map(([color, d]) => `<path fill="${color}" d="${d}"/>`).join('')
 }
 
-/** Six hairstyles per sex, so a crowd of one era still differs at a glance. */
+/** Six hairstyles per sex, so a crowd of one era still differs at a glance. Every one covers the crown. */
 function drawHair(head, plan, [lit, mid], sex, appearance, stage, dir, accent, era) {
   const back = -dir
-  const cap = () => {
-    head(-1, 1, lit)
-    head(0, 1, mid)
-    head(1, 1, mid)
+  // The crown: the top row, and the forehead row across the whole head.
+  const crown = () => {
+    for (const x of [-1, 0, 1]) head(x, 1, x < 0 ? lit : mid)
+    for (const x of [-2, -1, 0, 1, 2]) head(x, plan.face, x < 0 ? lit : mid)
   }
   if (stage === 'elder' && appearance % 3 === 2) {
     // Bald crown with grey at the sides.
-    head(-1, 1, lit)
-    head(1, 1, mid)
+    head(-2, plan.face, lit)
+    head(2, plan.face, mid)
+    head(-2, plan.face + 1, lit)
+    head(2, plan.face + 1, mid)
     return
   }
-  cap()
+  crown()
   if (stage === 'child') {
-    if (sex === 'female') head(back * 2, plan.face, mid)
+    if (sex === 'female') head(back * 3, plan.face + 1, mid)
     return
+  }
+  // Hair down the sides of the face, `rows` rows below the forehead.
+  const sides = (rows) => {
+    for (let r = plan.face + 1; r < plan.face + 1 + rows; r++) {
+      head(-2, r, lit)
+      head(2, r, mid)
+    }
   }
   if (sex === 'male') {
     switch (appearance) {
-      case 1:
-        head(back, plan.face, mid)
-        break
       case 2:
-        head(-1, plan.face, lit)
-        head(1, plan.face, mid)
+        // Cropped: the crown only.
         break
       case 3:
-        head(back * 2, plan.face, mid)
+        sides(1)
+        head(back * 3, plan.face + 1, mid)
         break
       case 5:
-        // A beard along the chin.
-        head(-1, plan.chin, lit)
-        head(0, plan.chin, mid)
-        head(1, plan.chin, mid)
+        // A beard along the jaw.
+        sides(1)
+        head(-2, plan.eye, lit)
+        head(2, plan.eye, mid)
+        for (const x of [-1, 0, 1]) head(x, plan.chin, x < 0 ? lit : mid)
         break
       default:
+        sides(1)
         break
     }
     return
   }
+  const down = plan.chin - plan.face - 1
   switch (appearance) {
     case 0:
-      // Bob framing the face.
-      head(-2, plan.face, lit)
-      head(2, plan.face, mid)
-      head(-2, plan.eye, lit)
-      head(2, plan.eye, mid)
+      // A bob framing the face.
+      sides(down)
       break
     case 1:
-      // Ponytail behind.
-      head(back, plan.face, mid)
-      head(back * 2, plan.face, mid)
-      head(back * 2, plan.eye, mid)
-      head(back * 2, plan.chin, mid)
+      // A ponytail behind.
+      sides(1)
+      head(back * 3, plan.face + 1, mid)
+      head(back * 3, plan.eye, mid)
+      head(back * 3, plan.chin, mid)
       break
     case 2:
-      // Bun on top.
+      // A bun on top.
+      sides(1)
       head(0, 0, mid)
-      head(back, plan.face, mid)
+      head(back, 0, mid)
       break
-    case 3:
-      // Headscarf in the appearance's accent.
-      for (const x of [-1, 0, 1]) head(x, 1, era === 'spacesuit' ? mid : accent)
-      head(-2, plan.face, era === 'spacesuit' ? lit : accent)
-      head(2, plan.face, era === 'spacesuit' ? mid : accent)
+    case 3: {
+      // A headscarf in the appearance's accent.
+      const scarf = era === 'spacesuit' ? mid : accent
+      for (const x of [-1, 0, 1]) head(x, 1, scarf)
+      for (const x of [-2, -1, 0, 1, 2]) head(x, plan.face, scarf)
+      for (let r = plan.face + 1; r < plan.chin; r++) {
+        head(-2, r, scarf)
+        head(2, r, scarf)
+      }
       break
+    }
     case 4:
       // Long hair down the back.
-      head(back * 2, plan.face, mid)
-      head(back * 2, plan.eye, mid)
-      head(back * 2, plan.chin, mid)
-      head(back * 2, plan.chin + 1, mid)
+      sides(down)
+      head(back * 3, plan.eye, mid)
+      head(back * 3, plan.chin, mid)
+      head(back * 3, plan.chin + 1, mid)
       break
     default:
-      // Fringe.
-      head(-1, plan.face, lit)
-      head(1, plan.face, mid)
+      // A fringe.
+      sides(1)
       break
   }
 }

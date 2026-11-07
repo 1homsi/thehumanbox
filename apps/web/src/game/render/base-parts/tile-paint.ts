@@ -1,9 +1,12 @@
 import { BIOME_ID, TILE_ID, isPermanentWaterTile, isWaterTile } from '../../model/terrain-ids'
 import { baseTerrainTile } from '../../model/terrain-visuals'
 import { OCEAN_BANDS, seaBandAt } from '../landscape-style'
-import { FRESH_WATER, GRASS, type Rgb } from '../art-palette'
+import { FRESH_WATER, GRASS, SNOW, type Rgb } from '../art-palette'
 import { TILE_RGB, BIOME_RGBA, SEASON_LAND_TINT } from '../../model/palette'
 import { dryNoise, macroNoise, macroNoiseFine } from './noise'
+
+/** The frost over frozen water. */
+const ICE_FROST = SNOW.shade
 
 export function varAmountForTile(tid: number): number {
   if (tid === 2 || tid === 9) return 2
@@ -13,6 +16,35 @@ export function varAmountForTile(tid: number): number {
   if (tid === 12) return 3
   if (tid === 13) return 2
   return 4
+}
+
+/**
+ * The biome a cell is painted as: its own, unless it is a speck (one or two cells) of another biome inside a
+ * field where six or more of its eight neighbours share one biome; then it takes theirs. The biome grid has
+ * single cells of jungle in a savanna or wetland on a beach, and painted one tile at a time they made the
+ * ground a patchwork of 8-pixel squares (#883).
+ */
+export function paintedBiome(biomes: ArrayLike<number>[] | undefined, row: number, col: number): number {
+  const own = biomes?.[row]?.[col] ?? 0
+  if (!biomes) return own
+  let other = -1
+  let n = 0
+  let same = 0
+  for (let dr = -1; dr <= 1; dr++) {
+    const r = biomes[row + dr]
+    if (!r) continue
+    for (let dc = -1; dc <= 1; dc++) {
+      if (dr === 0 && dc === 0) continue
+      const b = r[col + dc]
+      if (b === undefined) continue
+      if (b === own) same++
+      else if (other === -1 || b === other) {
+        other = b
+        n++
+      }
+    }
+  }
+  return same <= 1 && n >= 6 ? other : own
 }
 
 /** Scratch for `biomeOverlayAt`: r, g, b and the alpha of the overlay. */
@@ -30,7 +62,7 @@ export function biomeOverlayAt(
   row: number,
   col: number,
 ): void {
-  const own = biomes?.[row]?.[col] ?? 0
+  const own = paintedBiome(biomes, row, col)
   const bo = BIOME_RGBA[own]
   if (!bo || bo[3] <= 0) {
     out[3] = 0
@@ -91,6 +123,15 @@ export function tileColor(
     return tid
   }
 
+  if (tid === TILE_ID.ICE) {
+    // Ice is frozen water: the river's own colour under a frost, so a one-tile frozen stream reads as a stream,
+    // not as a trail of pale squares across the grass (#883).
+    out[0] = (FRESH_WATER.edge[0] * 0.55 + ICE_FROST[0] * 0.45) | 0
+    out[1] = (FRESH_WATER.edge[1] * 0.55 + ICE_FROST[1] * 0.45) | 0
+    out[2] = (FRESH_WATER.edge[2] * 0.55 + ICE_FROST[2] * 0.45) | 0
+    out[3] = 0
+    return tid
+  }
   const base = TILE_RGB[tid] ?? TILE_RGB[0]
   let r = base[0]
   let g = base[1]

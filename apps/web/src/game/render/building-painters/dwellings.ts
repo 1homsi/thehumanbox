@@ -70,40 +70,42 @@ export function paintHut(p: P) {
   cracks(p, cx - rw / 2, y1 - wallH, rw, wallH)
 }
 
+/**
+ * A hide tent: a squat cone a little wider than its tile, lit on the left of the ridge and shaded on the
+ * right, a painted band round it, a dark door at the front and the poles crossing above the top. It was a
+ * spike as tall as two tiles, which read as a rock or a tree, not a tent.
+ */
 export function paintTent(p: P) {
-  const { x0, y1, w, h } = p
-  const cx = x0 + w / 2
-  const c = hueShift('#b09060', (p.rng() - 0.5) * 40)
-  // Hide lit on the left of the ridge, in shade on the right.
-  p.ctx.fillStyle = shade(c, 1.1)
-  p.ctx.beginPath()
-  p.ctx.moveTo(x0, y1)
-  p.ctx.lineTo(cx, y1)
-  p.ctx.lineTo(cx, y1 - h * 0.95)
-  p.ctx.closePath()
-  p.ctx.fill()
-  p.ctx.fillStyle = shade(c, 0.72)
-  p.ctx.beginPath()
-  p.ctx.moveTo(cx, y1)
-  p.ctx.lineTo(x0 + w, y1)
-  p.ctx.lineTo(cx, y1 - h * 0.95)
-  p.ctx.closePath()
-  p.ctx.fill()
-  p.ctx.strokeStyle = OUTLINE
-  p.ctx.beginPath()
-  p.ctx.moveTo(x0, y1)
-  p.ctx.lineTo(x0 + w, y1)
-  p.ctx.lineTo(cx, y1 - h * 0.95)
-  p.ctx.closePath()
-  p.ctx.stroke()
-  p.ctx.fillStyle = 'rgba(20,12,6,0.4)'
-  p.ctx.beginPath()
-  p.ctx.moveTo(cx - w * 0.14, y1)
-  p.ctx.lineTo(cx + w * 0.14, y1)
-  p.ctx.lineTo(cx, y1 - h * 0.5)
-  p.ctx.closePath()
-  p.ctx.fill()
-  px(p.ctx, cx, y1 - h * 0.95 - 3, 1, 4, '#5a4028')
+  const { ctx, x0, y1, w } = p
+  const hide = hueShift('#b89a6a', (p.rng() - 0.5) * 30, 0.9)
+  const lit = shade(hide, 1.12)
+  const mid = hide
+  const dark = shade(hide, 0.74)
+  const band = shade(hide, 0.58)
+  const tw = Math.round(w) + 4 + (Math.round(w) % 2)
+  const th = Math.max(8, Math.round(tw * 0.85))
+  const cx = Math.round(x0 + w / 2)
+  const ground = Math.round(y1)
+  const bandRow = Math.round(th * 0.45)
+  for (let r = 0; r < th; r++) {
+    const y = ground - th + r
+    const half = Math.max(1, Math.round(((r + 1) / th) * (tw / 2)))
+    px(ctx, cx - half, y, half, 1, r === bandRow ? shade(lit, 0.7) : lit)
+    px(ctx, cx, y, half, 1, r === bandRow ? band : dark)
+    // The seam down the middle of the lit face.
+    if (r > 1) px(ctx, cx - 1, y, 1, 1, r === bandRow ? band : mid)
+  }
+  // The door: a dark triangle at the front, its flap turned back on the lit side.
+  const dh = Math.max(3, Math.round(th * 0.45))
+  for (let r = 0; r < dh; r++) {
+    const half = Math.round(((r + 1) / dh) * Math.max(1, tw / 6))
+    px(ctx, cx - half, ground - dh + r, half * 2, 1, '#3a2616')
+  }
+  px(ctx, cx - Math.round(tw / 6) - 1, ground - 2, 1, 2, lit)
+  // Poles crossing above the top.
+  px(ctx, cx - 2, ground - th - 2, 1, 1, '#5a4028')
+  px(ctx, cx + 1, ground - th - 2, 1, 1, '#5a4028')
+  px(ctx, cx - 1, ground - th - 1, 2, 1, '#5a4028')
 }
 
 export function paintCottage(p: P) {

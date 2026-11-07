@@ -565,7 +565,8 @@ describe('browser simulation scheduling', () => {
     send({ type: 'speed', tickMs: 24, stepsPerEmit: 10, speed: 50 })
     await vi.advanceTimersByTimeAsync(24)
     expect(model.tick).toBe(1n)
-    await vi.advanceTimersByTimeAsync(79)
+    // 80 ms of work is followed by 40 ms of rest (a third of the cycle).
+    await vi.advanceTimersByTimeAsync(39)
     expect(model.tick).toBe(1n)
     await vi.advanceTimersByTimeAsync(1)
     expect(model.tick).toBe(2n)

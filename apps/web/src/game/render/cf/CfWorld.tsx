@@ -18,6 +18,12 @@ import { CfRoads } from './roads/CfRoads'
 import { CfVegetation } from './vegetation/CfVegetation'
 import { TerrainWatch } from './vegetation/terrain-watch'
 
+/**
+ * Least time between two rebuilds of the ground layers for a terrain change (ms). At normal speed the ground
+ * changes less often than this; a fast-forwarded world changes it on nearly every frame (see TerrainWatch).
+ */
+const TERRAIN_REBUILD_MS = 1500
+
 interface Props {
   world: WorldState
   interp?: InterpRefs
@@ -48,7 +54,7 @@ export function CfWorld({
 }: Props) {
   const engine = useGame()
   const registry = useMemo(() => new CfRegistry(), [])
-  const watch = useMemo(() => new TerrainWatch(), [])
+  const watch = useMemo(() => new TerrainWatch(TERRAIN_REBUILD_MS), [])
   const terrainSyncRef = useRef<TerrainSyncFn | null>(null)
   const worldRef = useRef(world)
   worldRef.current = world
@@ -57,6 +63,7 @@ export function CfWorld({
   const cachedBiomes = useRef<ArrayLike<number>[] | undefined>(undefined)
   const cachedDepth = useRef<ArrayLike<number>[] | undefined>(undefined)
   const hasDrawn = useRef(false)
+  const painted = useRef(false)
   const onFirstDrawRef = useRef(onFirstDraw)
   onFirstDrawRef.current = onFirstDraw
   const onDrawErrorRef = useRef(onDrawError)
@@ -112,7 +119,10 @@ export function CfWorld({
         watch.revision,
         showTradeRef.current,
       )
-      if (registry.update(frame)) wakeEngine(engine, 30)
+      // The first paint of the ground is drawn whole, so the cover comes off a finished map; after it, the
+      // drivers keep to the frame budget.
+      if (registry.update(frame, painted.current)) wakeEngine(engine, 30)
+      if (frame.terrainRevision > 0) painted.current = true
       signalFirstDraw()
     },
     [engine, cameraStateRef, viewportDims, registry, watch],
@@ -143,7 +153,10 @@ export function CfWorld({
       // the loop sleeps, and a new frame, a pan or a zoom wakes it.
       const cam = cameraStateRef.current
       const key = `${interp?.currentServerAt.current ?? 0}|${cam.x}|${cam.y}|${cam.zoom}|${viewportDims.w}x${viewportDims.h}|${showTradeRef.current ? 1 : 0}`
-      if (interp && key === lastKey && isSettled(interp, now)) return false
+      // Work held for later (a terrain change waiting out its interval, drivers past the frame's budget)
+      // keeps it awake.
+      const owed = registry.pending || watch.pending
+      if (interp && key === lastKey && isSettled(interp, now) && !owed) return false
       lastKey = key
       try {
         step(w)
@@ -156,7 +169,7 @@ export function CfWorld({
     })
     loop.wake()
     return () => loop.stop()
-  }, [interp, rendererPaused, step, cameraStateRef, viewportDims])
+  }, [interp, rendererPaused, step, cameraStateRef, viewportDims, registry, watch])
 
   // The loop sleeps while nothing changes; the lens is read from a ref, so wake it.
   useEffect(() => wakeRenderLoops(), [showTrade])

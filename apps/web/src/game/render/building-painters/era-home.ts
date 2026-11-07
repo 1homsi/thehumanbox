@@ -38,8 +38,9 @@ export function paintEraHome(p: P) {
   // A manor keeps its Medieval shape until the tribe builds in the Renaissance
   // style, when it becomes a villa with a colonnaded front.
   if (p.kind === 'Manor' && tier >= 4) return paintVilla(p)
-  // Stone-age huts take their shape from the land (igloo, adobe, stilt, longhouse).
-  if (tier === 0 && p.land && paintLandHome(p)) return true
+  // Early homes, up to the village age, take their shape from the land (round houses, domed courtyard houses,
+  // turf halls, igloos, stilt houses, longhouses), so tribes on different land build different villages.
+  if (tier <= 1 && p.land && paintLandHome(p)) return true
   // Each era has several house forms; the building's stable variant picks
   // one, so a street of the same era still mixes shapes.
   const form = p.variant

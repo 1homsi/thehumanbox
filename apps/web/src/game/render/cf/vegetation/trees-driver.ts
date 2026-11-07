@@ -285,7 +285,8 @@ export class TreesDriver {
       const canvas = document.createElement('canvas')
       canvas.width = s.w
       canvas.height = s.h
-      const ctx = canvas.getContext('2d')
+      // Read back at once: in memory, the read is a copy, not a GPU round trip.
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
       if (ctx) {
         if (s.crop) drawVegetationCrop(ctx, s.crop, 0, 0)
         else drawTile(ctx, ATLAS_TOWN, s.tile, 0, 0, s.w)

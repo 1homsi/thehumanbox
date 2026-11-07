@@ -44,8 +44,10 @@ export function paintFortress(p: P) {
  */
 export function paintWoodenTemple(p: P) {
   const { x0, y1, w, h, rng } = p
-  const plinth = 2
-  px(p.ctx, x0 - 1, y1 - plinth, w + 2, plinth, '#6a4a2c')
+  // A stepped stone plinth: the temple stands raised above the houses round it.
+  const plinth = 3
+  px(p.ctx, x0 - 2, y1 - 1, w + 4, 1, '#8c8474')
+  px(p.ctx, x0 - 1, y1 - plinth, w + 2, 2, '#b0a690')
   const wallH = h * 0.5
   const wallY = y1 - plinth - wallH
   px(p.ctx, x0, wallY, w, wallH, '#9a7040')
@@ -61,6 +63,10 @@ export function paintWoodenTemple(p: P) {
   }
   const cx = x0 + w / 2
   door(p, cx, y1 - plinth, Math.max(3, w * 0.2), wallH * 0.62, '#3a2414')
+  // A gilded finial on the ridge, the mark no house has.
+  const apex = Math.round(wallY - h * 0.42)
+  px(p.ctx, Math.round(cx) - 1, apex - 4, 1, 4, '#8a6a30')
+  px(p.ctx, Math.round(cx) - 2, apex - 6, 3, 2, '#e0b84a')
 }
 
 export function paintTemple(p: P) {

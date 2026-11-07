@@ -5,6 +5,8 @@ import { TILE } from '../../../model/palette'
 import { cachedHutClusters, hutTileList, ruinedBuildingTiles } from '../../base-parts/terrain-scans'
 import { PAD, PAD_TOP } from '../../building-painters/kit'
 import { getBuildingSprite } from '../../building-sprites'
+import { homeLandOfBiome } from '../../building-painters/land-homes'
+import { paintedBiome } from '../../base-parts/tile-paint'
 import { drawPixelFire, visualTileHash } from '../../draw-helpers'
 import { firstCellAtRow, specialTileIndex } from '../../special-tiles'
 import { CELL_GUTTER, type CellAtlas } from '../atlas/cell-atlas'
@@ -28,42 +30,11 @@ const CAMP_GLOW_R = TILE * 4.2
 const FIRE_STEPS = 24
 const FIRE_FRAMES = 6
 
-/** Town hall icon over a cluster of five or more huts: the canvas painter's shapes, baked once. */
-function paintTownHall(ctx: CanvasRenderingContext2D, fx: number, fy: number) {
-  const TH = TILE * 3.5
-  // The cell's (0,0) is (tx - TILE, ty - TILE) of the painter's coordinates.
-  ctx.translate(TILE + fx, TILE + fy)
-  const tx = 0
-  const ty = 0
-  const px2 = TH / 2
-  ctx.fillStyle = 'rgba(255,220,130,0.22)'
-  ctx.fillRect(tx - TILE, ty - TILE, TH + TILE * 2, TH + TILE * 2)
-  ctx.fillStyle = '#d4b87a'
-  ctx.fillRect(tx + 2, ty + TH * 0.36, TH - 4, TH * 0.64 - 1)
-  ctx.fillStyle = '#6a3820'
-  ctx.beginPath()
-  ctx.moveTo(px2, ty)
-  ctx.lineTo(tx + TH, ty + TH * 0.38)
-  ctx.lineTo(tx, ty + TH * 0.38)
-  ctx.closePath()
-  ctx.fill()
-  const tw = TH * 0.22
-  const th2 = TH * 0.85
-  ctx.fillStyle = '#c0a870'
-  ctx.fillRect(px2 - tw / 2, ty - th2 * 0.2, tw, th2 * 0.65)
-  ctx.fillStyle = '#6a3820'
-  ctx.beginPath()
-  ctx.moveTo(px2, ty - th2 * 0.28)
-  ctx.lineTo(px2 + tw / 2 + 1, ty - th2 * 0.2)
-  ctx.lineTo(px2 - tw / 2 - 1, ty - th2 * 0.2)
-  ctx.closePath()
-  ctx.fill()
-  ctx.fillStyle = '#2a1000'
-  ctx.fillRect(px2 - TH * 0.06, ty + TH * 0.55, TH * 0.12, TH * 0.45 - 1)
-  ctx.fillStyle = 'rgba(255,235,150,0.65)'
-  ctx.fillRect(tx + 4, ty + TH * 0.42, 4, 4)
-  ctx.fillRect(tx + TH - 8, ty + TH * 0.42, 4, 4)
-}
+/** The meeting hall's footprint in tiles (a longhouse). */
+const HALL_W = 3
+/** Huts a cluster needs before it gets a hall: a real village, not every hamlet of a few families. */
+const HALL_MIN_HUTS = 10
+const HALL_H = 2
 
 /** The steps of a fire's light, outermost first: the share of its radius each covers, and its alpha. */
 const GLOW_STEPS: ReadonlyArray<readonly [number, number]> = [
@@ -139,7 +110,9 @@ export class SpecialTilesDriver implements CfDriver {
     const nightBucket = nightBucketOf(world)
     const dp = world.day_progress ?? 0.5
     const nightFactor = world.is_day ? 0 : 1 - Math.abs(dp - 0.5) * 2
-    const glowAlpha = 0.04 + 0.18 * nightFactor
+    // The warm ground light round a hut is a night thing: by day a yellow square under every hut tinted
+    // whole villages into one glowing block.
+    const glowAlpha = 0.18 * nightFactor
     const smokeAlpha = night && !overview ? 0.25 : 0
     const ruined = ruinedBuildingTiles(world.buildings)
     const special = specialTileIndex(tiles)
@@ -192,6 +165,20 @@ export class SpecialTilesDriver implements CfDriver {
     let nf = 0
     let huts = 0
     let fires = 0
+    // A village of ten or more huts gets its meeting hall, standing on the huts at the cluster's middle.
+    const hutList = hutTileList(tiles)
+    const halls: Array<{ col: number; row: number }> = []
+    if (hutList.length >= 3) {
+      for (const { cx, cy, count } of cachedHutClusters(hutList)) {
+        if (count >= HALL_MIN_HUTS) halls.push({ col: Math.round(cx) - 1, row: Math.round(cy) - 1 })
+      }
+    }
+    const underHall = (col: number, row: number) =>
+      halls.some((h) => col >= h.col && col < h.col + HALL_W && row >= h.row && row < h.row + HALL_H)
+    const isHut = (col: number, row: number) =>
+      tiles[row]?.[col] === TILE_ID.HUT &&
+      !(ruined.size > 0 && ruined.has(`${col + ox},${row + oy}`)) &&
+      !underHall(col, row)
     for (let i = start; i < cells.length; i += 2) {
       const row = cells[i]
       if (row >= r1) break
@@ -252,35 +239,55 @@ export class SpecialTilesDriver implements CfDriver {
         }
         continue
       }
-      if (tile !== TILE_ID.HUT || (ruined.size > 0 && ruined.has(`${col + ox},${row + oy}`))) continue
+      if (tile !== TILE_ID.HUT || !isHut(col, row)) continue
+      // One hut per 2x2 block of hut tiles, standing in the middle of the block. Hut tiles packed side by
+      // side drew their roofs into one another, and a village was a mush of brown cones; one per block
+      // leaves ground showing round every hut, so each reads as a house (#883).
+      const bx = (col + ox) & ~1
+      const by = (row + oy) & ~1
+      const firstInBlock = (() => {
+        for (let r = by; r < by + 2; r++)
+          for (let c = bx; c < bx + 2; c++) {
+            if (r === row + oy && c === col + ox) return true
+            if (isHut(c - ox, r - oy)) return false
+          }
+        return true
+      })()
+      if (!firstInBlock) continue
+      const hx = (bx - ox) * TILE + TILE / 2 + (((bx * 7 + by * 3) & 1) === 0 ? 0 : -1)
+      const hy = (by - oy) * TILE + TILE / 2
       huts++
-      // The ground glow under the hut.
-      writeSprite(
-        props,
-        np++,
-        px + TILE / 2,
-        py + TILE / 2,
-        TILE * 2,
-        TILE * 2,
-        0,
-        0,
-        rgba(255, 215, 110, Math.round(glowAlpha * 255)),
-        SPRITE_UNTEXTURED,
-        order,
-        -1,
-      )
+      // The ground glow under the hut, at night.
+      if (glowAlpha > 0)
+        writeSprite(
+          props,
+          np++,
+          hx + TILE / 2,
+          hy + TILE / 2,
+          TILE * 2,
+          TILE * 2,
+          0,
+          0,
+          rgba(255, 215, 110, Math.round(glowAlpha * 255)),
+          SPRITE_UNTEXTURED,
+          order,
+          -1,
+        )
       const variant = (((col * 73856093) ^ (row * 19349663)) >>> 0) & 7
+      // The hut takes the shape of its land: round houses on the grass, domes in the desert, turf halls in the
+      // cold, stilt houses in the marsh (land-homes.ts).
+      const land = homeLandOfBiome(paintedBiome(f.biomes, row, col))
       const { w: cw, h: ch } = contentSize(1, 1)
-      const cell = this.propAtlas.bake(`H|${variant}|${nightBucket}`, cw, ch, (ctx) => {
-        const sprite = getBuildingSprite('Hut', 1, 1, TILE, variant, nightBucket, 1)
+      const cell = this.propAtlas.bake(`H|${variant}|${nightBucket}|${land}`, cw, ch, (ctx) => {
+        const sprite = getBuildingSprite('Hut', 1, 1, TILE, variant, nightBucket, 1, 0, '', false, land)
         if (sprite) ctx.drawImage(sprite, 0, 0)
       })
       if (cell) {
         writeSprite(
           props,
           np++,
-          px - PAD - CELL_GUTTER + cell.cw / 2,
-          py - PAD_TOP - CELL_GUTTER + cell.ch / 2,
+          hx - PAD - CELL_GUTTER + cell.cw / 2,
+          hy - PAD_TOP - CELL_GUTTER + cell.ch / 2,
           cell.cw,
           cell.ch,
           cell.atlas,
@@ -295,8 +302,8 @@ export class SpecialTilesDriver implements CfDriver {
         for (let s = 0; s < 3; s++) {
           const phase = (now * 0.0008 + s * 0.4) % 1
           const size = 1 + Math.floor(phase * 2)
-          const x = Math.round(px + TILE / 2 + Math.sin(phase * Math.PI) * 2)
-          const y = Math.round(py - phase * 10)
+          const x = Math.round(hx + TILE / 2 + Math.sin(phase * Math.PI) * 2)
+          const y = Math.round(hy - phase * 10)
           writeSprite(
             props,
             np++,
@@ -314,50 +321,47 @@ export class SpecialTilesDriver implements CfDriver {
         }
       }
     }
-    // Settlement marks over clusters of five or more huts.
-    const hutList = hutTileList(tiles)
-    let halls = 0
-    if (hutList.length >= 3) {
-      for (const { cx, cy, count } of cachedHutClusters(hutList)) {
-        if (count < 5) continue
-        const px2 = cx * TILE + TILE / 2
-        const py2 = cy * TILE + TILE / 2
-        const TH = TILE * 3.5
-        const tx = px2 - TH / 2
-        const ty = py2 - TH / 2
-        if (
-          tx + TH < c0 * TILE - 64 ||
-          tx > c1 * TILE + 64 ||
-          ty + TH < r0 * TILE - 64 ||
-          ty > r1 * TILE + 64
-        )
-          continue
-        // The cluster centre is fractional, and the shapes antialias to it: bake per position.
-        const ix = Math.floor(tx)
-        const iy = Math.floor(ty)
-        const fx = tx - ix
-        const fy = ty - iy
-        const cell = this.propAtlas.bake(`TH|${tx}|${ty}`, TH + TILE * 2 + 1, TH + TILE * 2 + 1, (ctx) =>
-          paintTownHall(ctx, fx, fy),
-        )
-        if (!cell) continue
-        if (np >= props.count) props.resize(np + 1)
-        writeSprite(
-          props,
-          np++,
-          ix - TILE - CELL_GUTTER + cell.cw / 2,
-          iy - TILE - CELL_GUTTER + cell.ch / 2,
-          cell.cw,
-          cell.ch,
-          cell.atlas,
-          cell.frame,
-          WHITE,
+    // The meeting hall of each village of ten or more huts: a longhouse painted and finished like every other
+    // building. It was a hand-drawn icon with a translucent yellow square round it, in a style of its own.
+    let hallCount = 0
+    for (const h of halls) {
+      if (h.col + HALL_W < c0 - 2 || h.col > c1 + 2 || h.row + HALL_H < r0 - 2 || h.row > r1 + 4) continue
+      const variant = ((h.col * 73856093) ^ (h.row * 19349663)) & 7
+      const land = homeLandOfBiome(paintedBiome(f.biomes, h.row, h.col))
+      const { w: cw, h: ch } = contentSize(HALL_W, HALL_H)
+      const cell = this.propAtlas.bake(`HALL|${variant}|${nightBucket}|${land}`, cw, ch, (ctx) => {
+        const sprite = getBuildingSprite(
+          'Longhouse',
+          HALL_W,
+          HALL_H,
+          TILE,
+          variant,
+          nightBucket,
+          1,
           0,
-          width * 1000 * 4 + halls,
-          -1,
+          '',
+          false,
+          land,
         )
-        halls++
-      }
+        if (sprite) ctx.drawImage(sprite, 0, 0)
+      })
+      if (!cell) continue
+      if (np >= props.count) props.resize(np + 1)
+      writeSprite(
+        props,
+        np++,
+        h.col * TILE - PAD - CELL_GUTTER + cell.cw / 2,
+        h.row * TILE - PAD_TOP - CELL_GUTTER + cell.ch / 2,
+        cell.cw,
+        cell.ch,
+        cell.atlas,
+        cell.frame,
+        WHITE,
+        0,
+        ((h.row + HALL_H - 1) * width + h.col) * 4 + 1,
+        -1,
+      )
+      hallCount++
     }
     props.resize(np)
     glow.resize(nf)
@@ -365,7 +369,7 @@ export class SpecialTilesDriver implements CfDriver {
     glow.touch()
     this.stats.huts = huts
     this.stats.fires = fires
-    this.stats.townHalls = halls
+    this.stats.townHalls = hallCount
     this.stats.bakes = this.propAtlas.bakes + this.glowAtlas.bakes
     this.stats.resets = this.propAtlas.resets + this.glowAtlas.resets
     this.built = {

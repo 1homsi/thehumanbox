@@ -596,7 +596,11 @@ export class TradePathPlanner {
     return changed
   }
 
-  /** Plans queued routes until the per-call allowance runs out. True when a route was planned. */
+  /**
+   * Plans queued routes until the per-call allowance runs out. True when a route's path changed: a terrain
+   * change queues every route again, and most come back the same way, so those leave the drawn roads alone
+   * (each change rebuilds the road layer over the whole view, and a fast world changes its terrain often).
+   */
   private planSome(world: WorldState): boolean {
     const t0 = performance.now()
     const grid: PlanGrid = {
@@ -608,6 +612,7 @@ export class TradePathPlanner {
       planned: this.cells,
     }
     let did = 0
+    let changed = false
     while (this.queue.length > 0 && did < PLAN_PER_UPDATE && performance.now() - t0 < PLAN_MS_PER_UPDATE) {
       const key = this.queue.shift()!
       this.queued.delete(key)
@@ -615,10 +620,16 @@ export class TradePathPlanner {
       if (!route) continue
       const t1 = performance.now()
       const cells = planRoute(grid, route.a, route.b)
-      this.entries.set(key, {
-        path: cells ? buildPath(cells, this.width, route.a, route.b) : null,
-        gen: this.gen,
-      })
+      const previous = this.entries.get(key)
+      if (previous && sameCells(previous.path?.cells ?? null, cells)) {
+        previous.gen = this.gen
+      } else {
+        this.entries.set(key, {
+          path: cells ? buildPath(cells, this.width, route.a, route.b) : null,
+          gen: this.gen,
+        })
+        changed = true
+      }
       this.stats.ms += performance.now() - t1
       this.stats.planned++
       did++
@@ -627,7 +638,7 @@ export class TradePathPlanner {
     }
     this.stats.pending = this.queue.length
     this.stats.slowestUpdateMs = Math.max(this.stats.slowestUpdateMs, performance.now() - t0)
-    return did > 0
+    return changed
   }
 
   /** Lays one planned route into `cells` straight away, so the next search can follow it. */
@@ -660,6 +671,14 @@ export class TradePathPlanner {
     this.stats.routes = this.routes.length
     this.stats.noWay = noWay
   }
+}
+
+/** Whether two planned routes run over the same cells (both null: neither found a way). */
+function sameCells(a: Int32Array | null, b: Int32Array | null): boolean {
+  if (a === b) return true
+  if (!a || !b || a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false
+  return true
 }
 
 /** A number that changes when a route's ends or tribes do; computed without allocating. */

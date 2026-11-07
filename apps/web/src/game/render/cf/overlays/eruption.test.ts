@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { TILE } from '../../../model/palette'
 import { BIOME_ID, TILE_ID } from '../../../model/terrain-ids'
 import {
-  PUFFS,
   VENT_LIMIT,
   coneErupting,
   coneGeometry,
@@ -127,10 +126,9 @@ describe('paintEruption', () => {
     const { ctx, log } = recordingContext()
     paintEruption(ctx, tiles, biomes, { c0: 0, c1: 120, r0: 0, r1: 120, ox: 0, oy: 0 }, 500, false)
     expect(log.gradients).toBe(vents.length)
-    // A mouth and up to PUFFS puffs (a puff that has thinned to nothing is skipped).
-    expect(log.arcs).toBeLessThanOrEqual(vents.length * (1 + PUFFS))
-    expect(log.arcs).toBeGreaterThan(vents.length)
-    expect(log.specks).toBeGreaterThan(0)
+    // One round glow per mouth; the puffs are whole-pixel rows, not circles.
+    expect(log.arcs).toBe(vents.length)
+    expect(log.specks).toBeGreaterThan(vents.length * 8)
   })
 
   it('draws nothing where there is no volcanic ground', () => {
