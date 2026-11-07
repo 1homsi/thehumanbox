@@ -75,8 +75,12 @@ impl Organism {
         let distance = dx.abs().max(dy.abs());
         // Already routing around something toward this goal: keep to the
         // route, or the greedy step below walks straight back into it.
-        if let Some(action) = self.route.borrow_mut().follow(grid, (ix, iy), target) {
-            return action;
+        {
+            let mut route = self.route.borrow_mut();
+            route.recall(target);
+            if let Some(action) = route.follow(grid, (ix, iy), target) {
+                return action;
+            }
         }
         // Where the walker stood at its last decision, and where it stood before that.
         let moved = {
@@ -88,6 +92,69 @@ impl Organism {
             }
             moved
         };
+        let (best_action, best_progress) = self.greedy_step(target, grid);
+        // The greedy step is not enough when it gets no closer at all (a local minimum behind a
+        // wall, water or a hut), or when it steps straight back onto the tile the walker came from.
+        // One such step is ordinary wiggling; a run of them is pacing between two tiles.
+        let (bdx, bdy) = DIRECTIONS[best_action];
+        let reversal = self.route.borrow().before == Some((ix + bdx, iy + bdy));
+        if moved {
+            let mut route = self.route.borrow_mut();
+            route.reversals = if reversal {
+                route.reversals.saturating_add(1)
+            } else {
+                0
+            };
+        }
+        let pacing = self.route.borrow().reversals >= 2;
+        // First a short local detour, one step at a time: it gets round a small obstacle far more cheaply
+        // than a full route. A detour that steps back onto the tile just left is not trusted.
+        if distance > 1 && !blocked && (pacing || best_progress <= 0) {
+            if let Some(action) = crate::organism::navigation::detour_step(grid, (ix, iy), target) {
+                let (ddx, ddy) = DIRECTIONS[action];
+                if self.route.borrow().before != Some((ix + ddx, iy + ddy)) {
+                    return action;
+                }
+            }
+        }
+        // Otherwise plan a route round it, or give the goal up for a while when there is none.
+        if distance > 1 && (blocked || pacing || best_progress <= 0) {
+            let mut route = self.route.borrow_mut();
+            let plan = if route.skip_blocked(target) {
+                None
+            } else {
+                crate::organism::navigation::plan_route(grid, (ix, iy), target)
+            };
+            match plan {
+                Some(steps) => {
+                    route.remember(target, steps);
+                    if let Some(action) = route.follow(grid, (ix, iy), target) {
+                        return action;
+                    }
+                }
+                None => {
+                    if !route.recently_blocked(target) {
+                        route.mark_blocked(target);
+                    }
+                    drop(route);
+                    if blocked {
+                        if let Some(action) = crate::organism::navigation::detour_step(grid, (ix, iy), target)
+                        {
+                            return action;
+                        }
+                    }
+                }
+            }
+        }
+        best_action
+    }
+
+    /// The best single step toward `target` by local scoring alone (progress, momentum, hazard, water,
+    /// roads), with the progress it makes. Reads nothing but the walker and the grid.
+    fn greedy_step(&self, target: (i32, i32), grid: &WorldGrid) -> (usize, i32) {
+        let (ix, iy) = (self.x as i32, self.y as i32);
+        let (dx, dy) = (target.0 - ix, target.1 - iy);
+        let target_is_water = grid.get(target.0, target.1) == Tile::Water;
         let through_houses = self.parched();
         let mut best_action = 0;
         let mut best_score = f32::NEG_INFINITY;
@@ -145,62 +212,21 @@ impl Organism {
                 best_progress = progress;
             }
         }
-        // The greedy step is not enough when it gets no closer at all (a local minimum behind a
-        // wall, water or a hut), or when it steps straight back onto the tile the walker came from.
-        // One such step is ordinary wiggling; a run of them is pacing between two tiles.
-        let (bdx, bdy) = DIRECTIONS[best_action];
-        let reversal = self.route.borrow().before == Some((ix + bdx, iy + bdy));
-        if moved {
-            let mut route = self.route.borrow_mut();
-            route.reversals = if reversal {
-                route.reversals.saturating_add(1)
-            } else {
-                0
-            };
+        (best_action, best_progress)
+    }
+
+    /// The step `toward` would start with for `target`, for labelling a decision: the remembered route's
+    /// next waypoint when it serves `target`, else the greedy step. Unlike `toward` it never plans a route
+    /// and leaves the route memory as it is. Labelling with `toward` itself planned a route for the wander
+    /// target on every decision, which then pushed out the route to whatever goal was really chosen: half
+    /// of all route searches on a grown world were made for the label, and the rest were mostly replans of
+    /// routes it had pushed out.
+    pub(crate) fn toward_preview(&self, target: (i32, i32), grid: &WorldGrid) -> usize {
+        let (ix, iy) = (self.x as i32, self.y as i32);
+        if let Some(action) = self.route.borrow().peek(grid, (ix, iy), target) {
+            return action;
         }
-        let pacing = self.route.borrow().reversals >= 2;
-        // First a short local detour, one step at a time: it gets round a small obstacle far more cheaply
-        // than a full route. A detour that steps back onto the tile just left is not trusted.
-        if distance > 1 && !blocked && (pacing || best_progress <= 0) {
-            if let Some(action) = crate::organism::navigation::detour_step(grid, (ix, iy), target) {
-                let (ddx, ddy) = DIRECTIONS[action];
-                if self.route.borrow().before != Some((ix + ddx, iy + ddy)) {
-                    return action;
-                }
-            }
-        }
-        // Otherwise plan a route round it, or give the goal up for a while when there is none.
-        if distance > 1 && (blocked || pacing || best_progress <= 0) {
-            let mut route = self.route.borrow_mut();
-            let plan = if route.skip_blocked(target) {
-                None
-            } else {
-                crate::organism::navigation::plan_route(grid, (ix, iy), target)
-            };
-            match plan {
-                Some(steps) => {
-                    route.goal = target;
-                    route.steps = steps;
-                    route.next = 0;
-                    if let Some(action) = route.follow(grid, (ix, iy), target) {
-                        return action;
-                    }
-                }
-                None => {
-                    if !route.recently_blocked(target) {
-                        route.mark_blocked(target);
-                    }
-                    drop(route);
-                    if blocked {
-                        if let Some(action) = crate::organism::navigation::detour_step(grid, (ix, iy), target)
-                        {
-                            return action;
-                        }
-                    }
-                }
-            }
-        }
-        best_action
+        self.greedy_step(target, grid).0
     }
 
     pub(crate) fn nearest_land(&self, grid: &WorldGrid, radius: i32) -> Option<(i32, i32)> {
