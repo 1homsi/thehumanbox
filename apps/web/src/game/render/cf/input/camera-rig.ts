@@ -49,5 +49,9 @@ export function commandCamera(
     const zoom = Math.max(minMapZoom(world, viewport), Math.min(MAX_MAP_ZOOM, current.zoom * command.factor))
     return zoomMapAt(current, zoom, { x: viewport.w / 2, y: viewport.h / 2 }, viewport)
   }
-  return { x: command.x, y: command.y, zoom: Math.max(current.zoom, 2) }
+  return {
+    x: command.x,
+    y: command.y,
+    zoom: Math.min(MAX_MAP_ZOOM, Math.max(current.zoom, command.zoom ?? 2)),
+  }
 }

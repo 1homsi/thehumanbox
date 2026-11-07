@@ -263,7 +263,12 @@ export function CanvasCameraController({
             }
           }
         } else if (command.kind === 'zoom') zoom(command.factor)
-        else applyRef.current({ x: command.x, y: command.y, zoom: Math.max(cameraStateRef.current.zoom, 2) })
+        else
+          applyRef.current({
+            x: command.x,
+            y: command.y,
+            zoom: Math.min(MAX_MAP_ZOOM, Math.max(cameraStateRef.current.zoom, command.zoom ?? 2)),
+          })
       }
       if (keys.size && document.activeElement === containerEl) {
         const x =
