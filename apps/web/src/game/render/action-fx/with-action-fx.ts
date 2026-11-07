@@ -28,9 +28,15 @@ export function floatTone(outcome: CommandOutcome): FloatTone {
   return 'help'
 }
 
-/** The short line that floats up where a tool landed, or null when there is nothing worth saying. */
+/**
+ * The short line that floats up where a tool landed, or null when there is nothing worth saying. A
+ * disaster tells its whole toll: whom it hit and, beside that, the buildings it wrecked.
+ */
 export function floatText(outcome: CommandOutcome): string | null {
   const said = describeOutcome(outcome)
+  const buildings = outcome.buildings ?? 0
+  if (said && buildings > 0 && outcome.code.startsWith('disaster_') && outcome.code !== 'disaster_buildings')
+    return `${said} · ${t('header.sandbox.result.disaster_buildings', { count: buildings })}`
   if (said) return said
   return outcome.applied ? null : t('header.sandbox.float.noEffect')
 }

@@ -97,8 +97,8 @@ impl Simulation {
         true
     }
 
-    /// A black hole opens over the point for a moment: everyone near its heart is pulled in and gone,
-    /// those further out are dragged toward it and battered, buildings are torn apart, and the ground
+    /// A black hole opens over the point for a moment: everyone on the ground it leaves dead is pulled
+    /// in and gone, those just past it are dragged toward it and battered, buildings are torn apart, and the ground
     /// where it stood is left a dead ring of ash around a core of strange ore.
     pub(super) fn cmd_black_hole(&mut self, x: f32, y: f32, radius: f32) -> bool {
         let (tx, ty) = (cmd_tile(x), cmd_tile(y));
@@ -115,15 +115,16 @@ impl Simulation {
                 continue;
             }
             let d = (o.x - x).det_hypot(o.y - y);
-            if d <= core {
+            // Everyone on the ground it leaves dead is pulled in.
+            if d <= r {
                 o.health = -1.0;
                 o.mark_harm(Harm::Disaster, now);
                 o.x = x;
                 o.y = y;
                 taken += 1;
-            } else if d <= r * 1.5 {
+            } else if d <= r * 1.6 {
                 // Dragged most of the way in, and thrown about.
-                let pull = 0.6 * (1.0 - (d - core) / (r * 1.5 - core));
+                let pull = 0.6 * (1.0 - (d - r) / (r * 0.6));
                 o.x += (x - o.x) * pull;
                 o.y += (y - o.y) * pull;
                 o.health -= 0.3 + 0.3 * pull;
@@ -324,6 +325,51 @@ mod tests {
         assert!(sim.organisms[0].health < 0.0);
         assert!(sim.organisms[1].x < 158.0, "the one further out is dragged in");
         assert_eq!(sim.grid.get(150, 150), Tile::Mineral);
+    }
+
+    /// One person alive, at (x, y), well; returns their index.
+    fn one_at(sim: &mut Simulation, x: f32, y: f32) -> usize {
+        let i = sim.organisms.iter().position(|o| o.alive).expect("someone lives");
+        for (k, o) in sim.organisms.iter_mut().enumerate() {
+            if k != i {
+                o.alive = false;
+            }
+        }
+        sim.organisms[i].x = x;
+        sim.organisms[i].y = y;
+        sim.organisms[i].health = 1.0;
+        i
+    }
+
+    #[test]
+    fn the_big_killers_kill_whoever_stands_on_the_ground_they_wreck() {
+        // The volcano's ash and lava apron reaches past its cone: whoever stands on it is buried.
+        let mut sim = Simulation::new(5);
+        let i = one_at(&mut sim, 156.5, 150.0);
+        assert!(sim.apply_command_json(r#"{"cmd":"volcano","x":150,"y":150,"radius":6}"#));
+        assert!(sim.organisms[i].health < 0.0, "buried on the apron");
+        // A meteor kills across its ash, and burns those in the ring of fire past it.
+        let mut sim = Simulation::new(5);
+        let i = one_at(&mut sim, 153.9, 150.0);
+        assert!(sim.apply_command_json(r#"{"cmd":"meteor","x":150,"y":150,"radius":4}"#));
+        assert!(sim.organisms[i].health < 0.0, "killed on the crater's ash");
+        let mut sim = Simulation::new(5);
+        let i = one_at(&mut sim, 155.0, 150.0);
+        assert!(sim.apply_command_json(r#"{"cmd":"meteor","x":150,"y":150,"radius":4}"#));
+        assert!(
+            (sim.organisms[i].health - 0.7).abs() < 1e-5,
+            "burned in the ring of fire"
+        );
+        // A black hole takes everyone on the dead ground it leaves.
+        let mut sim = Simulation::new(5);
+        let i = one_at(&mut sim, 155.5, 150.0);
+        assert!(sim.apply_command_json(r#"{"cmd":"black_hole","x":150,"y":150,"radius":6}"#));
+        assert!(sim.organisms[i].health < 0.0);
+        assert_eq!(
+            sim.grid.get(155, 150),
+            Tile::Ash,
+            "where they stood is dead ground"
+        );
     }
 
     #[test]

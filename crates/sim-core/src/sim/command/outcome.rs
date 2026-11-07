@@ -12,6 +12,8 @@ pub(crate) struct Report {
     pub code: &'static str,
     pub count: u32,
     pub name: Option<String>,
+    /// Buildings a disaster damaged or destroyed, told beside whom it killed or hurt.
+    pub buildings: u32,
 }
 
 /// The result of one command, as the client receives it.
@@ -25,6 +27,8 @@ pub struct CommandOutcome {
     pub count: u32,
     /// The one person it touched, when it touched exactly one.
     pub name: Option<String>,
+    /// Buildings a disaster damaged or destroyed alongside the people it hit.
+    pub buildings: u32,
 }
 
 impl CommandOutcome {
@@ -34,6 +38,7 @@ impl CommandOutcome {
             code: "failed",
             count: 0,
             name: None,
+            buildings: 0,
         }
     }
 }
@@ -45,6 +50,7 @@ impl Simulation {
             code,
             count,
             name: name.map(str::to_owned),
+            buildings: 0,
         });
     }
 
@@ -194,19 +200,6 @@ impl Simulation {
                 robbed.push(i);
             }
         }
-        let name_of =
-            |sim: &Simulation, list: &[usize]| (list.len() == 1).then(|| sim.organisms[list[0]].name.clone());
-        for (code, list) in [
-            ("disaster_killed", &killed),
-            ("disaster_hurt", &hurt),
-            ("disaster_sick", &sick),
-            ("disaster_food", &robbed),
-        ] {
-            if !list.is_empty() {
-                let name = name_of(self, list);
-                return self.report(code, list.len() as u32, name.as_deref());
-            }
-        }
         let damaged = before
             .buildings
             .iter()
@@ -217,6 +210,23 @@ impl Simulation {
                     .is_none_or(|b| b.damage > damage + 0.001 || (b.is_ruined() && !ruined))
             })
             .count();
+        let name_of =
+            |sim: &Simulation, list: &[usize]| (list.len() == 1).then(|| sim.organisms[list[0]].name.clone());
+        for (code, list) in [
+            ("disaster_killed", &killed),
+            ("disaster_hurt", &hurt),
+            ("disaster_sick", &sick),
+            ("disaster_food", &robbed),
+        ] {
+            if !list.is_empty() {
+                let name = name_of(self, list);
+                self.report(code, list.len() as u32, name.as_deref());
+                if let Some(report) = self.command_report.as_mut() {
+                    report.buildings = damaged as u32;
+                }
+                return;
+            }
+        }
         if damaged > 0 {
             return self.report("disaster_buildings", damaged as u32, None);
         }

@@ -10,6 +10,8 @@ export interface CommandOutcome {
   code: string
   count: number
   name: string | null
+  /** Buildings a disaster damaged or destroyed besides the people it hit; absent when none. */
+  buildings?: number
 }
 
 /** The outcome when a command could not be sent or read back. */
@@ -31,6 +33,9 @@ export function parseCommandOutcome(json: string): CommandOutcome | null {
     code: v.code,
     count: typeof v.count === 'number' && Number.isFinite(v.count) ? v.count : 0,
     name: typeof v.name === 'string' ? v.name : null,
+    ...(typeof v.buildings === 'number' && Number.isFinite(v.buildings) && v.buildings > 0
+      ? { buildings: v.buildings }
+      : {}),
   }
 }
 

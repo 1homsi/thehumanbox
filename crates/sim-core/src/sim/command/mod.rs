@@ -825,12 +825,14 @@ impl Simulation {
             code: if applied { "applied" } else { "failed" },
             count: 0,
             name: None,
+            buildings: 0,
         });
         outcome::CommandOutcome {
             applied,
             code: report.code,
             count: report.count,
             name: report.name,
+            buildings: report.buildings,
         }
     }
 

@@ -218,7 +218,8 @@ export function fxForCommand(cmd: SandboxCommand): PlannedFx | null {
 function defaultReach(kind: FxKind): number {
   switch (kind) {
     case 'nuke':
-      return 14
+      // The bomb's blast (crates/sim-core/src/sim/command/nuke.rs BLAST_RADIUS).
+      return 16
     case 'eruption':
       return 6
     case 'wave':

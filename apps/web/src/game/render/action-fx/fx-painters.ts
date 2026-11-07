@@ -418,7 +418,7 @@ export const PAINTERS: Record<FxKind, FxPainter> = {
       const w = stage(f.t, delay, delay + 0.3)
       if (w > 0 && w < 1) {
         p.alpha(1 - w)
-        ring(p, r * (0.3 + 2.6 * ease(w)), color, thick)
+        ring(p, r * (0.3 + 1.1 * ease(w)), color, thick)
         p.alpha(1)
       }
     }
@@ -433,7 +433,7 @@ export const PAINTERS: Record<FxKind, FxPainter> = {
       p.alpha(1 - skirt)
       for (let i = 0; i < 18; i++) {
         const a = (i / 18) * Math.PI * 2
-        const d = r * (0.4 + 1.3 * ease(skirt))
+        const d = r * (0.4 + 1.0 * ease(skirt))
         puff(p, Math.cos(a) * d, Math.sin(a) * d * 0.72, 3 + skirt * 4, C.dustD, C.dustM)
       }
       p.alpha(1)

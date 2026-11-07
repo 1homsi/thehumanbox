@@ -335,10 +335,19 @@ impl Simulation {
         let (fx, fy, fr) = (x as f32, y as f32, r as f32);
         let mut killed = 0;
         for o in self.organisms.iter_mut() {
-            if o.alive && (o.x - fx).det_hypot(o.y - fy) <= fr {
+            if !o.alive {
+                continue;
+            }
+            let d = (o.x - fx).det_hypot(o.y - fy);
+            if d <= fr {
                 o.health = -1.0;
                 o.mark_harm(crate::organism::organism::Harm::Disaster, self.tick_count);
                 killed += 1;
+            } else if d <= fr + 2.0 {
+                // The burning ring round the crater scorches whoever stands in it.
+                o.health -= 0.3;
+                o.mark_harm(crate::organism::organism::Harm::Fire, self.tick_count);
+                o.fear_level = 1.0;
             }
         }
         let what = match killed {
@@ -627,7 +636,15 @@ impl Simulation {
         self.grid.wash_roads(sx, sy, r);
         let rf = r as f32;
         for o in self.organisms.iter_mut() {
-            if o.alive && (o.x - sx as f32).det_hypot(o.y - sy as f32) <= rf {
+            if !o.alive {
+                continue;
+            }
+            let d = (o.x - sx as f32).det_hypot(o.y - sy as f32);
+            if d <= rf * 0.5 {
+                // The wall of water takes everyone near the shore it breaks on.
+                o.health = -1.0;
+                o.mark_harm(crate::organism::organism::Harm::Drowning, self.tick_count);
+            } else if d <= rf {
                 o.health = (o.health - 0.35).max(0.01);
                 o.mark_harm(crate::organism::organism::Harm::Disaster, self.tick_count);
                 o.fear_level = (o.fear_level + 0.5).min(1.0);
@@ -884,16 +901,25 @@ impl Simulation {
                 changed = true;
             }
         }
+        // The cone and the ash and lava apron bury everyone on them; the burning ring past it scorches.
         let mut killed = 0;
         for o in self.organisms.iter_mut() {
-            if o.alive && (o.x - x as f32).det_hypot(o.y - y as f32) < rf * 0.6 {
+            if !o.alive {
+                continue;
+            }
+            let d = (o.x - x as f32).det_hypot(o.y - y as f32);
+            if d < rf * 1.2 {
                 o.health = -1.0;
                 o.mark_harm(crate::organism::organism::Harm::Disaster, self.tick_count);
                 killed += 1;
+            } else if d < rf * 1.5 {
+                o.health -= 0.35;
+                o.mark_harm(crate::organism::organism::Harm::Fire, self.tick_count);
+                o.fear_level = 1.0;
             }
         }
         for a in self.animals.iter_mut() {
-            if a.alive && (a.x - x as f32).det_hypot(a.y - y as f32) < rf * 0.6 {
+            if a.alive && (a.x - x as f32).det_hypot(a.y - y as f32) < rf * 1.2 {
                 a.alive = false;
             }
         }

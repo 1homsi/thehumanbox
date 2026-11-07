@@ -8,13 +8,17 @@ use crate::world::tiles::Biome;
 use rand::RngExt;
 
 /// Radius of the crater the bomb digs, in tiles: bare rock, scarred for good.
-pub(super) const CRATER_RADIUS: i32 = 4;
-/// Radius of the blast, in tiles: everyone and everything inside dies, and every building falls.
-pub(super) const BLAST_RADIUS: i32 = 10;
-/// How far past the blast the firestorm reaches: what burns there catches.
-const FIRE_RING: i32 = 4;
+pub(super) const CRATER_RADIUS: i32 = 5;
+/// Radius of the blast, in tiles: everyone and everything inside dies, every building falls and the
+/// ground is scorched barren. A whole village fits inside it.
+pub(super) const BLAST_RADIUS: i32 = 16;
+/// Radius of the firestorm, in tiles: past the blast, everything that burns catches, most people
+/// there die of their burns and the rest are badly burned, and buildings are wrecked.
+pub(super) const FIRESTORM_RADIUS: i32 = 22;
+/// The share of the people in the firestorm who die of it.
+const FIRESTORM_DEATHS: f32 = 0.75;
 /// Radius the fallout settles over, in tiles (see `world_events::fallout`).
-pub(super) const FALLOUT_RADIUS: i32 = 24;
+pub(super) const FALLOUT_RADIUS: i32 = 28;
 
 impl Simulation {
     /// A bomb falls on the point. Everyone inside the blast dies and every building there falls; the
@@ -29,38 +33,50 @@ impl Simulation {
         let now = self.tick_count;
         let (fx, fy) = (x as f32, y as f32);
         let blast = BLAST_RADIUS as f32;
+        let storm = FIRESTORM_RADIUS as f32;
         let mut killed = 0u32;
         let mut tribes: Vec<String> = Vec::new();
-        for o in self.organisms.iter_mut() {
-            if !o.alive {
+        for i in 0..self.organisms.len() {
+            if !self.organisms[i].alive {
                 continue;
             }
-            let d = (o.x - fx).det_hypot(o.y - fy);
-            if d <= blast {
+            let d = (self.organisms[i].x - fx).det_hypot(self.organisms[i].y - fy);
+            if d > storm * 1.3 {
+                continue;
+            }
+            // In the firestorm most die of their burns; who lives is the world's own dice.
+            let dies = d <= blast || (d <= storm && self.rng.random::<f32>() < FIRESTORM_DEATHS);
+            let o = &mut self.organisms[i];
+            if dies {
                 o.health = -1.0;
-                o.mark_harm(Harm::Disaster, now);
+                o.mark_harm(if d <= blast { Harm::Disaster } else { Harm::Fire }, now);
                 killed += 1;
                 if !tribes.contains(&o.lineage_id) {
                     tribes.push(o.lineage_id.clone());
                 }
-            } else if d <= blast * 2.0 {
-                // The shockwave and the heat reach further: burns, and terror.
-                o.health -= 0.35 * (1.0 - (d - blast) / blast);
+            } else {
+                // Survivors of the firestorm are badly burned; those just past it are scorched and terrified.
+                o.health -= if d <= storm { 0.6 } else { 0.25 };
                 o.mark_harm(Harm::Fire, now);
                 o.fear_level = 1.0;
                 o.think("saw the sky turn white", now);
             }
         }
-        for a in self.animals.iter_mut() {
-            if a.alive && (a.x - fx).det_hypot(a.y - fy) <= blast {
-                a.alive = false;
+        for i in 0..self.animals.len() {
+            let a = &self.animals[i];
+            if !a.alive {
+                continue;
+            }
+            let d = (a.x - fx).det_hypot(a.y - fy);
+            if d <= blast || (d <= storm && self.rng.random::<f32>() < FIRESTORM_DEATHS) {
+                self.animals[i].alive = false;
             }
         }
-        // Every building in the blast falls; the shockwave cracks those further out.
+        // Every building in the blast falls; those in the firestorm are wrecked.
         strike_buildings(self, x, y, blast, 1.0, 1.0, DamageCause::Meteor);
-        strike_buildings(self, x, y, blast * 2.0, 0.5, 0.1, DamageCause::Fire);
-        self.wither_plantings(x, y, BLAST_RADIUS + FIRE_RING);
-        let outer = BLAST_RADIUS + FIRE_RING;
+        strike_buildings(self, x, y, storm, 0.9, 0.7, DamageCause::Fire);
+        self.wither_plantings(x, y, FIRESTORM_RADIUS);
+        let outer = FIRESTORM_RADIUS;
         for dy in -outer..=outer {
             for dx in -outer..=outer {
                 let (nx, ny) = (x + dx, y + dy);
@@ -90,11 +106,16 @@ impl Simulation {
                     self.grid.biome[i] = Biome::Badlands as u8;
                     self.grid.fertility[i] = 0.0;
                     *self.grid.fire_intensity_mut(nx, ny) = 0.0;
-                } else if self.grid.get(nx, ny).flammable() && self.rng.random::<f32>() < 0.6 {
-                    // The firestorm: the forest and fields past the blast catch.
-                    self.grid.set(nx, ny, Tile::Fire);
-                    *self.grid.fire_intensity_mut(nx, ny) = 1.0;
-                    self.physics.register_fire(nx, ny);
+                } else {
+                    // The firestorm: everything that burns is alight, and what does not is charred.
+                    if cur.flammable() || protected(cur) {
+                        self.grid.set(nx, ny, Tile::Fire);
+                        *self.grid.fire_intensity_mut(nx, ny) = 1.0;
+                        self.physics.register_fire(nx, ny);
+                    } else if matches!(cur, Tile::Sand | Tile::Snow | Tile::Flooded) {
+                        self.grid.set(nx, ny, Tile::Ash);
+                    }
+                    self.grid.fertility[i] *= 0.3;
                 }
             }
         }
@@ -127,19 +148,25 @@ impl Simulation {
 
 #[cfg(test)]
 mod tests {
-    use super::{BLAST_RADIUS, FALLOUT_RADIUS};
+    use super::{BLAST_RADIUS, FALLOUT_RADIUS, FIRESTORM_RADIUS};
     use crate::sim::simulation::Simulation;
     use crate::world::grid::WorldGrid;
     use crate::world::tiles::Tile;
 
+    /// Everyone alive stands at (x, y), well.
     fn all_people_at(sim: &mut Simulation, x: f32, y: f32) {
-        for o in sim.organisms.iter_mut() {
-            o.alive = true;
+        for o in sim.organisms.iter_mut().filter(|o| o.alive) {
             o.x = x;
             o.y = y;
             o.infection = 0.0;
             o.health = 1.0;
         }
+    }
+
+    fn living(sim: &Simulation) -> Vec<usize> {
+        (0..sim.organisms.len())
+            .filter(|&i| sim.organisms[i].alive)
+            .collect()
     }
 
     #[test]
@@ -151,45 +178,102 @@ mod tests {
     }
 
     #[test]
-    fn a_bomb_kills_everyone_in_the_blast_and_leaves_fallout_beyond_it() {
+    fn a_bomb_wipes_out_a_village_across_the_whole_blast() {
         let mut sim = Simulation::new(6);
-        all_people_at(&mut sim, 120.0, 120.0);
-        // One person stands past the blast, inside the fallout.
-        let out = 120.0 + BLAST_RADIUS as f32 * 2.0 + 2.0;
-        assert!(out - 120.0 < FALLOUT_RADIUS as f32);
-        sim.organisms[1].x = out;
-        let outcome = sim.apply_command_json_reported(r#"{"cmd":"nuke","x":120,"y":120}"#);
-        assert!(outcome.applied);
-        assert_eq!(outcome.code, "disaster_killed");
-        assert!(
-            sim.organisms[0].health < 0.0,
-            "the blast takes the person at the point"
-        );
-        assert_eq!(
-            sim.organisms[1].health, 1.0,
-            "the person past the blast is not burnt"
-        );
-        assert_eq!(sim.fallout.len(), 1, "fallout settles");
-        // Ticking the world on: the dead are recorded, and the fallout sickens the survivor.
-        let deaths_before = sim.history.deaths_disaster;
-        for _ in 0..crate::sim::world_events::FALLOUT_STEP * 3 {
-            sim.tick();
+        all_people_at(&mut sim, 30.0, 30.0);
+        let people = living(&sim);
+        // A village spread right out to the edge of the blast.
+        for (k, &i) in people.iter().enumerate() {
+            let a = k as f32 * 0.7;
+            let d = (k % 16) as f32;
+            sim.organisms[i].x = 120.0 + a.cos() * d;
+            sim.organisms[i].y = 120.0 + a.sin() * d;
         }
-        assert!(
-            sim.history.deaths_disaster > deaths_before,
-            "the blast's dead are recorded"
-        );
-        assert!(!sim.organisms[0].alive);
+        let outcome = sim.apply_command_json_reported(r#"{"cmd":"nuke","x":120,"y":120}"#);
+        assert_eq!(outcome.code, "disaster_killed");
+        assert_eq!(outcome.count as usize, people.len(), "everyone in the blast dies");
+        assert!(people.iter().all(|&i| sim.organisms[i].health < 0.0));
+        // The dead are buried by the tick and counted in the history.
+        let deaths_before = sim.history.deaths_disaster;
+        sim.tick();
+        assert!(people.iter().all(|&i| !sim.organisms[i].alive));
+        assert!(sim.history.deaths_disaster >= deaths_before + people.len() as u64);
     }
 
     #[test]
-    fn a_bomb_scars_the_ground_for_good() {
+    fn most_in_the_firestorm_die_and_the_same_world_always_loses_the_same_people() {
+        let run = || {
+            let mut sim = Simulation::new(6);
+            let people = living(&sim);
+            for &i in &people {
+                sim.organisms[i].x = 120.0 + (BLAST_RADIUS + 3) as f32;
+                sim.organisms[i].y = 120.0;
+                sim.organisms[i].health = 1.0;
+            }
+            assert!(sim.apply_command_json(r#"{"cmd":"nuke","x":120,"y":120}"#));
+            let dead: Vec<usize> = people
+                .iter()
+                .copied()
+                .filter(|&i| sim.organisms[i].health < 0.0)
+                .collect();
+            let burned = people
+                .iter()
+                .filter(|&&i| (sim.organisms[i].health - 0.4).abs() < 1e-5)
+                .count();
+            (people.len(), dead, burned)
+        };
+        let (n, dead, burned) = run();
+        assert!(dead.len() * 2 > n, "most die: {} of {n}", dead.len());
+        assert!(dead.len() < n, "a few survive");
+        assert_eq!(dead.len() + burned, n, "the survivors are badly burned");
+        assert_eq!(run().1, dead, "deterministic");
+    }
+
+    #[test]
+    fn past_the_firestorm_people_live_under_the_fallout() {
         let mut sim = Simulation::new(6);
         all_people_at(&mut sim, 30.0, 30.0);
+        let i = living(&sim)[0];
+        let out = 120.0 + FIRESTORM_RADIUS as f32 + 3.0;
+        assert!(out - 120.0 < FALLOUT_RADIUS as f32);
+        sim.organisms[i].x = out;
+        sim.organisms[i].y = 120.0;
+        assert!(sim.apply_command_json(r#"{"cmd":"nuke","x":120,"y":120}"#));
+        assert!(
+            (sim.organisms[i].health - 0.75).abs() < 1e-5,
+            "scorched, not killed"
+        );
+        assert_eq!(sim.fallout.len(), 1, "fallout settles");
+        assert!(sim.fallout[0].covers(out, 120.0));
+    }
+
+    #[test]
+    fn the_ground_shows_exactly_what_the_bomb_destroyed() {
+        let mut sim = Simulation::new(6);
+        all_people_at(&mut sim, 30.0, 30.0);
+        for dx in -30..=30 {
+            sim.grid.set(120 + dx, 120, Tile::Grass);
+        }
         assert!(sim.apply_command_json(r#"{"cmd":"nuke","x":120,"y":120}"#));
         assert_eq!(sim.grid.get(120, 120), Tile::Rock, "the crater is bare rock");
+        assert_eq!(
+            sim.grid.get(120 + BLAST_RADIUS, 120),
+            Tile::Scorched,
+            "the blast's edge is scorched"
+        );
         let i = WorldGrid::idx(120 + BLAST_RADIUS - 1, 120);
         assert_eq!(sim.grid.fertility[i], 0.0, "nothing grows in the blast");
+        assert_eq!(
+            sim.grid.get(120 + BLAST_RADIUS + 1, 120),
+            Tile::Fire,
+            "the firestorm burns"
+        );
+        assert_eq!(sim.grid.get(120 + FIRESTORM_RADIUS, 120), Tile::Fire);
+        assert_eq!(
+            sim.grid.get(120 + FIRESTORM_RADIUS + 1, 120),
+            Tile::Grass,
+            "and stops at its edge"
+        );
         // A loaded world keeps the crater and the fallout.
         let loaded = Simulation::from_save(6, sim.to_save_state());
         assert_eq!(loaded.grid.get(120, 120), Tile::Rock);

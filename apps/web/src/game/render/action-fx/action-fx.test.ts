@@ -3,7 +3,7 @@ import { SANDBOX_CATEGORIES } from '../../../simulation/sandbox'
 import { FX_SPECS, fxForCommand, type FxKind } from './fx-kinds'
 import { PAINTERS, seeded, type FxFrame, type Painter } from './fx-painters'
 import { FLOAT_MS, isIdle, playFx, resetFxForTests, showFloat, snapshot } from './fx-store'
-import { floatTone, withActionFx } from './with-action-fx'
+import { floatText, floatTone, withActionFx } from './with-action-fx'
 
 /** A painter that records what it was asked to draw. */
 function recorder() {
@@ -69,7 +69,7 @@ describe('the action effect painters', () => {
 
 describe('the effect each command plays', () => {
   it('plays the nuke over a wide reach and weather over the whole view', () => {
-    expect(fxForCommand({ cmd: 'nuke', x: 10, y: 20 })).toEqual({ kind: 'nuke', x: 10, y: 20, r: 14 })
+    expect(fxForCommand({ cmd: 'nuke', x: 10, y: 20 })).toEqual({ kind: 'nuke', x: 10, y: 20, r: 16 })
     expect(fxForCommand({ cmd: 'weather', kind: 'storm' })).toMatchObject({ kind: 'sky_storm', x: null })
     expect(fxForCommand({ cmd: 'drought', active: true })).toMatchObject({ kind: 'sky_heat' })
   })
@@ -133,6 +133,14 @@ describe('sending a command with its effect', () => {
     const send = withActionFx(async () => ({ applied: false, code: 'failed', count: 0, name: null }))
     await send({ cmd: 'tsunami', x: 1, y: 1 })
     expect(snapshot().floats[0]).toMatchObject({ tone: 'info' })
+  })
+
+  it('tells the whole toll of a disaster: the dead and the buildings', () => {
+    const text = floatText({ applied: true, code: 'disaster_killed', count: 37, name: null, buildings: 12 })
+    expect(text).toBe('37 people killed · 12 buildings damaged')
+    expect(floatText({ applied: true, code: 'disaster_killed', count: 37, name: null })).toBe(
+      '37 people killed',
+    )
   })
 
   it('colours help and harm apart', () => {
