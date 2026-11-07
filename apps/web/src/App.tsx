@@ -96,6 +96,8 @@ import { type ScenarioPreset } from './simulation/scenarios'
 import { setSandboxSender } from './simulation/commandBus'
 import { useSkyOverlay } from './game/render/sky-overlay'
 import { WelcomeModal } from './ui/modals/WelcomeModal'
+import { OpeningGuide } from './ui/opening/OpeningGuide'
+import { useOpeningGuide } from './state/opening-guide'
 import { openPrayerOnMap } from './game/render/open-prayer'
 import { UpdateToast } from './ui/toasts/UpdateToast'
 import { DesktopUpdateToast } from './ui/toasts/DesktopUpdateToast'
@@ -449,6 +451,7 @@ function LiveApp() {
   const handleSandboxApply = useCallback(
     (wx: number, wy: number) => {
       if (!sandboxControlsEnabled || !armedTool) return
+      useOpeningGuide.getState().noteAction()
       if (armedTool.id === 'follow') {
         // Following is the camera's business, not a world command: keep the nearest person in view.
         const person = nearestLivingPerson(useWorldStore.getState().world?.organisms ?? [], wx, wy, 4)
@@ -1012,6 +1015,7 @@ function LiveApp() {
         {hotkeysOpen && <HotkeyHelp onClose={() => setHotkeysOpen(false)} />}
 
         {world && <WelcomeModal />}
+        <OpeningGuide world={world ?? null} />
         <UpdateToast />
         <PrayerHint world={world ?? null} onAnswer={handleAnswerPrayer} />
         <DesktopUpdateToast />

@@ -11,7 +11,8 @@ export type MapCommand =
   | { kind: 'fit' }
   /** Zoom about the centre; `smooth` eases there like a double-click instead of jumping. */
   | { kind: 'zoom'; factor: number; smooth?: boolean }
-  | { kind: 'focus'; x: number; y: number }
+  /** Look at a point, at least `zoom` close (2 when not given). */
+  | { kind: 'focus'; x: number; y: number; zoom?: number }
 
 /** Most a camera may zoom in. */
 export const MAX_MAP_ZOOM = 8

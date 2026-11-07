@@ -575,5 +575,14 @@
     "versionBody": "此窗口与这台电脑上的模拟无法协同工作：模拟是{server}。请完全退出 The Human Box，然后重新打开。",
     "versionOlder": "较旧的版本",
     "versionNumber": "{version} 版"
+  },
+  "opening": {
+    "meet": "这是{tribe}。他们自己生活，没有人告诉他们该做什么。",
+    "powers": "你可以插手。你的神力在下方的工具栏里：选一个，然后点击{tribe}附近。",
+    "powersPrayer": "{tribe}正在向你祈祷。点击他们村庄上方的气泡来回应。",
+    "history": "每一次出生、死亡和战争都会被记下。顶部的编年史保存着他们的故事。",
+    "world": "{tribe}只是这个世界上{count}个部落之一。看他们相遇、交易、争斗，想插手时随时插手。",
+    "skip": "跳过介绍",
+    "done": "知道了"
   }
 }

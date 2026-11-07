@@ -591,5 +591,14 @@
     "versionBody": "To okno i symulacja na tym komputerze nie mogą działać razem: symulacja to {server}. Zamknij całkowicie The Human Box, a potem otwórz go ponownie.",
     "versionOlder": "starszy build",
     "versionNumber": "wersja {version}"
+  },
+  "opening": {
+    "meet": "To jest plemię {tribe}. Żyją sami: nikt nie mówi im, co mają robić.",
+    "powers": "Możesz się wtrącić. Twoje moce są na pasku poniżej: wybierz jedną i kliknij w pobliżu plemienia {tribe}.",
+    "powersPrayer": "Plemię {tribe} modli się do ciebie. Kliknij dymek nad ich wioską, aby odpowiedzieć.",
+    "history": "Każde narodziny, śmierć i wojna zostają zapisane. Kronika na górze przechowuje ich historię.",
+    "world": "{tribe} to tylko jedno z plemion na tym świecie (wszystkich: {count}). Patrz, jak się spotykają, handlują i walczą, i wtrącaj się, kiedy chcesz.",
+    "skip": "Pomiń wstęp",
+    "done": "Rozumiem"
   }
 }

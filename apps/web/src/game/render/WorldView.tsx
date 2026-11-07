@@ -114,11 +114,15 @@ export function WorldView({
   useEffect(() => {
     if (!focusRequest) return
     const { ox, oy } = originRef.current
-    commandRef.current = {
-      kind: 'focus',
-      x: (focusRequest.x - ox + 0.5) * TILE,
-      y: (focusRequest.y - oy + 0.5) * TILE,
-    }
+    commandRef.current =
+      focusRequest.kind === 'fit'
+        ? { kind: 'fit' }
+        : {
+            kind: 'focus',
+            x: (focusRequest.x - ox + 0.5) * TILE,
+            y: (focusRequest.y - oy + 0.5) * TILE,
+            zoom: focusRequest.zoom,
+          }
     useCameraFocus.setState((s) => (s.request === focusRequest ? { request: null } : s))
   }, [focusRequest])
   const [dims, setDims] = useState({ w: 0, h: 0 })
