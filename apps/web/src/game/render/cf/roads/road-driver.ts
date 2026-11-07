@@ -115,8 +115,14 @@ export class RoadDriver implements CfDriver {
     const planAt = (r: number, c: number) =>
       planned && r >= 0 && c >= 0 && r < height && c < width ? planned[r * width + c]! : 0
     for (let r = Math.max(0, r0); r < Math.min(height, r1); r++) {
+      const simRow = roads?.[r]
+      const planRow = planned ? r * width : -1
       for (let c = Math.max(0, c0); c < Math.min(width, c1); c++) {
-        const spec = resolveCell(simAt(r, c), planAt(r, c), baseStyle)
+        // Most of the map has no road: skip it before the cell is resolved (a whole-world view is 320k cells).
+        const sim = simRow?.[c] ?? 0
+        const plan = planRow >= 0 ? planned![planRow + c]! : 0
+        if (sim === 0 && plan === 0) continue
+        const spec = resolveCell(sim, plan, baseStyle)
         if (spec < 0) continue
         const kind = (spec >> 4) & 0xf
         const joinSim = (spec & SPEC_JOIN_SIM) !== 0

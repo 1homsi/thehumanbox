@@ -127,7 +127,8 @@ describe('worker CPU budget', () => {
     expect(wasmTickDelay(120, 5)).toBe(115)
   })
   it('leaves CPU headroom instead of scheduling catch-up work under load', () => {
-    expect(wasmTickDelay(24, 80)).toBe(80)
+    // A third of the cycle stays idle: 80 ms of work is followed by 40 ms of rest.
+    expect(wasmTickDelay(24, 80)).toBe(40)
     expect(wasmTickDelay(16, 1)).toBe(16)
   })
 })
