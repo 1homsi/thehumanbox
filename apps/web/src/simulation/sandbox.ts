@@ -24,7 +24,10 @@ export type SandboxCommand =
   | { cmd: 'wildfire'; x: number; y: number; radius?: number }
   | { cmd: 'sunshine'; x: number; y: number; radius?: number }
   | { cmd: 'drought'; active: boolean }
-  | { cmd: 'outbreak'; count?: number }
+  | { cmd: 'outbreak'; count?: number; x?: number; y?: number; radius?: number }
+  | { cmd: 'sinkhole'; x: number; y: number; radius?: number }
+  | { cmd: 'black_hole'; x: number; y: number; radius?: number }
+  | { cmd: 'acid_rain'; x: number; y: number; radius?: number }
   | { cmd: 'restore'; x: number; y: number; radius?: number }
   | { cmd: 'spawn_animal'; x: number; y: number; kind?: string; count?: number; radius?: number }
   | { cmd: 'poison'; x: number; y: number; radius?: number }
@@ -464,6 +467,111 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         build: (x, y, b) => ({ cmd: 'smite', x, y, radius: 2 + b }),
       },
       {
+        id: 'fire',
+        label: 'fire',
+        icon: '🔥',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'ignite', x, y, radius: 1 + b }),
+      },
+      {
+        id: 'nuke',
+        label: 'nuke',
+        icon: '☢️',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'nuke', x, y }),
+      },
+      {
+        id: 'meteor',
+        label: 'meteor',
+        icon: '☄️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'meteor', x, y, radius: 2 + b }),
+      },
+      {
+        id: 'volcano',
+        label: 'volcano',
+        icon: '🌋',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'volcano', x, y, radius: 4 + b }),
+      },
+      {
+        id: 'earthquake',
+        label: 'quake',
+        icon: '〽️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'earthquake', x, y, radius: 3 + b }),
+      },
+      {
+        id: 'tsunami',
+        label: 'tsunami',
+        icon: '🫧',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'tsunami', x, y, radius: 8 + b }),
+      },
+      {
+        id: 'tornado',
+        label: 'tornado',
+        icon: '🌪️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'tornado', x, y, radius: 6 + b }),
+      },
+      {
+        id: 'black_hole',
+        label: 'black hole',
+        icon: '⚫',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'black_hole', x, y, radius: 4 + b }),
+      },
+      {
+        id: 'sinkhole',
+        label: 'sinkhole',
+        icon: '🕳️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'sinkhole', x, y, radius: 2 + b }),
+      },
+      {
+        id: 'plague',
+        label: 'plague',
+        icon: '🦠',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'outbreak', x, y, radius: 3 + b, count: 12 }),
+      },
+      {
+        id: 'acid_rain',
+        label: 'acid rain',
+        icon: '☣️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'acid_rain', x, y, radius: 4 + b }),
+      },
+      {
+        id: 'horde',
+        label: 'zombie horde',
+        icon: '⚰️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'spawn_animal', x, y, kind: 'zombie', count: 6, radius: 2 + b }),
+      },
+      {
+        id: 'thunder',
+        label: 'thunder',
+        icon: '🌩️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'thunder', x, y, radius: 5 + b }),
+      },
+      {
+        id: 'wildfire',
+        label: 'wildfire',
+        icon: '🪵',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'wildfire', x, y, radius: 6 + b }),
+      },
+      {
+        id: 'meteor_shower',
+        label: 'starfall',
+        icon: '🌠',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'meteor_shower', x, y, radius: 8 + b }),
+      },
+      {
         id: 'war',
         label: 'war',
         icon: '⚔️',
@@ -477,21 +585,6 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'frenzy', x, y, radius: 2 + b }),
       },
-      {
-        id: 'thunder',
-        label: 'thunder',
-        icon: '🌩️',
-        mode: 'point',
-        build: (x, y, b) => ({ cmd: 'thunder', x, y, radius: 5 + b }),
-      },
-      {
-        id: 'fire',
-        label: 'fire',
-        icon: '🔥',
-        mode: 'point',
-        build: (x, y, b) => ({ cmd: 'ignite', x, y, radius: 1 + b }),
-      },
-      { id: 'plague', label: 'plague', icon: '🦠', mode: 'instant', fire: { cmd: 'outbreak', count: 12 } },
       {
         id: 'poison',
         label: 'poison',
@@ -507,60 +600,11 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         build: (x, y, b) => ({ cmd: 'blight', x, y, radius: 3 + b }),
       },
       {
-        id: 'earthquake',
-        label: 'quake',
-        icon: '〽️',
-        mode: 'point',
-        build: (x, y, b) => ({ cmd: 'earthquake', x, y, radius: 3 + b }),
-      },
-      {
-        id: 'tornado',
-        label: 'tornado',
-        icon: '🌪️',
-        mode: 'point',
-        build: (x, y, b) => ({ cmd: 'tornado', x, y, radius: 6 + b }),
-      },
-      {
-        id: 'tsunami',
-        label: 'tsunami',
-        icon: '🫧',
-        mode: 'point',
-        build: (x, y, b) => ({ cmd: 'tsunami', x, y, radius: 8 + b }),
-      },
-      {
         id: 'locusts',
         label: 'locusts',
         icon: '🦗',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'locusts', x, y, radius: 10 + b }),
-      },
-      {
-        id: 'wildfire',
-        label: 'wildfire',
-        icon: '🪵',
-        mode: 'point',
-        build: (x, y, b) => ({ cmd: 'wildfire', x, y, radius: 6 + b }),
-      },
-      {
-        id: 'meteor',
-        label: 'meteor',
-        icon: '☄️',
-        mode: 'point',
-        build: (x, y, b) => ({ cmd: 'meteor', x, y, radius: 2 + b }),
-      },
-      {
-        id: 'meteor_shower',
-        label: 'starfall',
-        icon: '🌠',
-        mode: 'point',
-        build: (x, y, b) => ({ cmd: 'meteor_shower', x, y, radius: 8 + b }),
-      },
-      {
-        id: 'volcano',
-        label: 'volcano',
-        icon: '🌋',
-        mode: 'point',
-        build: (x, y, b) => ({ cmd: 'volcano', x, y, radius: 4 + b }),
       },
       {
         id: 'flood',
@@ -772,13 +816,6 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🌙',
         mode: 'instant',
         fire: { cmd: 'time_of_day', phase: 'midnight' },
-      },
-      {
-        id: 'nuke',
-        label: 'bomb',
-        icon: '☢️',
-        mode: 'point',
-        build: (x, y) => ({ cmd: 'nuke', x, y }),
       },
       {
         id: 'eclipse',

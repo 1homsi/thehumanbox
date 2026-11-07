@@ -103,7 +103,38 @@ impl Simulation {
     /// nothing is growing there.
     pub(super) fn cmd_sunshine(&mut self, x: i32, y: i32, radius: i32) -> bool {
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
-        let warmed = self.warm_plantings(x, y, radius.clamp(2, 24));
+        let r = radius.clamp(2, 24);
+        let warmed = self.warm_plantings(x, y, r);
+        // The sun also melts the snow and ice, dries the flooded ground and warms the people under it,
+        // so it does something where nothing is planted too.
+        let mut thawed = 0;
+        for dy in -r..=r {
+            for dx in -r..=r {
+                let (nx, ny) = (x + dx, y + dy);
+                if !WorldGrid::in_bounds(nx, ny) || dx * dx + dy * dy > r * r {
+                    continue;
+                }
+                let after = match self.grid.get(nx, ny) {
+                    Tile::Snow | Tile::Flooded => Tile::Grass,
+                    Tile::Ice => Tile::Water,
+                    _ => continue,
+                };
+                self.grid.set(nx, ny, after);
+                thawed += 1;
+            }
+        }
+        let now = self.tick_count;
+        let rf = r as f32;
+        let mut cheered = 0;
+        for o in self.organisms.iter_mut() {
+            if o.alive && (o.x - x as f32).det_hypot(o.y - y as f32) <= rf {
+                o.comfort = (o.comfort + 0.2).min(1.0);
+                o.hope = (o.hope + 0.1).min(1.0);
+                o.energy = (o.energy + 0.1).min(1.0);
+                o.think("warmed by the sun", now);
+                cheered += 1;
+            }
+        }
         if warmed > 0 {
             let now = self.tick_count;
             push_event(
@@ -114,7 +145,7 @@ impl Simulation {
                 &format!("warmed {warmed} growing plantings"),
             );
         }
-        warmed > 0
+        warmed > 0 || thawed > 0 || cheered > 0
     }
 
     pub(super) fn cmd_bless(&mut self, x: f32, y: f32, radius: f32) -> bool {

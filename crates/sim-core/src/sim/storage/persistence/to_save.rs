@@ -117,6 +117,8 @@ impl Simulation {
             rng: Some(self.rng.clone()),
             flood_tiles: self.flood_tiles.clone(),
             wards: self.wards.clone(),
+            fallout: self.fallout.clone(),
+            fallen: self.fallen.clone(),
             plantings: self.plantings.clone(),
             prayers: self.prayers.clone(),
             hard_winter: self.hard_winter,

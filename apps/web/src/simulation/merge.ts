@@ -217,6 +217,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     tribes_in_peril: parsed.tribes_in_peril ?? base?.tribes_in_peril,
     tribe_losses: parsed.tribe_losses ?? base?.tribe_losses,
     wards: parsed.wards ?? base?.wards,
+    fallout: parsed.fallout ?? base?.fallout,
     smog: parsed.smog ?? base?.smog,
     volcanoes: parsed.volcanoes ?? base?.volcanoes,
     settlements: parsed.settlements ?? base?.settlements,

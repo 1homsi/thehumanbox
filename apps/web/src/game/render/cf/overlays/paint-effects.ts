@@ -9,6 +9,7 @@ import { drawEraTraffic } from '../../rails'
 import { labelScale } from '../../settlement-labels'
 import { drawSmog } from '../../smog'
 import { drawWard } from '../../wards'
+import { drawFallout } from '../../action-fx/fallout'
 import type { CfFrame } from './frame'
 import { painterView } from './frame'
 
@@ -104,6 +105,12 @@ export function paintEffects(ctx: Ctx, f: CfFrame): void {
     const cy = (fest.y - oy) * TILE + TILE / 2
     if (!seen(cx, cy)) continue
     drawFestival(ctx, fest, cx, cy, TILE, world.tick, motionTime(t), lineageColor(fest.lineage_id))
+  }
+  for (const zone of world.fallout ?? []) {
+    const cx = (zone.x - ox) * TILE + TILE / 2
+    const cy = (zone.y - oy) * TILE + TILE / 2
+    if (!seen(cx, cy)) continue
+    drawFallout(ctx, zone, cx, cy, TILE, world.tick, motionTime(t))
   }
   for (const ward of world.wards ?? []) {
     const cx = (ward.x - ox) * TILE + TILE / 2

@@ -118,7 +118,7 @@
     "noon": "öğle",
     "dusk": "alacakaranlık",
     "midnight": "gece yarısı",
-    "nuke": "bomba",
+    "nuke": "nükleer bomba",
     "eclipse": "tutulma",
     "rain_patch": "yağmur lekesi",
     "aurora": "kuzey ışıkları",
@@ -224,7 +224,11 @@
     "fast40": "40×",
     "fast50": "50×",
     "fast500": "500×",
-    "fast5000": "5000×"
+    "fast5000": "5000×",
+    "black_hole": "kara delik",
+    "sinkhole": "obruk",
+    "acid_rain": "asit yağmuru",
+    "horde": "zombi sürüsü"
   },
   "tips": {
     "spawn1": "Bir yetişkin gönderin. Bir kabilenin yanına gelince, eksik olan kadın ya da erkek olarak ona katılır.",
@@ -294,7 +298,7 @@
     "frog": "Bir kurbağa ya da birkaçını suya yakın, nemli zemine; sulak alana ya da cengele bırakın. Kurbağalar kurtlar ve ayılar için küçük avdır.",
     "whale": "Bir balina ya da birkaçını derin suya bırakın. Denizin olduğu yerde yüzerler ve asla karaya çıkmazlar.",
     "hail": "Fırça alanına dolu düşer. Ekimleri ve yabani yiyecekleri yere serer, altındaki insanları yaralar (en çok merkezde), çatıları biraz çatlatır ve küçük hayvanların bazılarını öldürür.",
-    "nuke": "Tıkladığınız yere bir bomba atın: bir meteorun bıraktığı gibi bir krater, geniş bir halkadaki herkesi zehirleyen serpinti ve oradaki ekimlerde hastalık. Yalnızca Sanayi çağına ulaşmış bir kabile bunu inşa edebilir.",
+    "nuke": "Tıkladığınız yere bir nükleer bomba atın. Patlamanın içindeki herkes ölür ve bütün binalar yıkılır, krater toprağı sonsuza dek yaralar, çevredeki orman yanar ve serpinti iki mevsim boyunca yakında kalan herkesi hasta eder.",
     "eclipse": "Güneş bir süre kararır. Hayatta olan herkes korkar ve biraz hayrete düşer; bu alamet kroniğe yazılır.",
     "bless_river": "Nehir toprağı kutsar: balıklar, fırçanın getirdiği kadar, noktaya en yakın sudan toplanır. Erişim alanında su olmalıdır.",
     "bless_forest": "Bir orman yükselir: ağaçların arasındaki açık zeminde yabani yiyecek filizlenir ve oradaki ekimler büyümeye devam eder. Erişim alanında orman olmalıdır.",
@@ -367,7 +371,7 @@
     "drought_on": "Bir kuraklık başlatın. Su azalır ve susuzluk artar.",
     "drought_off": "Kuraklığı bitirin.",
     "fire": "Fırça alanını alevlere verin. Ateş yakındaki yanabilir araziye yayılır; geride bıraktığı kül daha verimli olarak yeniden büyür.",
-    "plague": "Yakın temasla yayılan bir salgın başlatın.",
+    "plague": "Tıkladığınız yere en yakın insanların arasına bir veba salın. Yakın temasla yayılır.",
     "poison": "Fırça alanının içindeki herkesi hasta edin.",
     "meteor": "Bir meteor çarptırın. Çarptığı her şeyi öldürür ve yanan bir krater bırakır; çukurunda çıkarılacak cevher bulunur.",
     "earthquake": "Arazi sarsın. Zemini çatlatır, yapıları hasarlandırır ve insanları yaralar.",
@@ -404,7 +408,11 @@
     "love": "Tek yetişkinler çift olur ve çocuk sahibi olmaya hazır hissederler.",
     "tame": "Kurtları ve ayıları, en yakın kişiye bağlı sadık köpeklere dönüştürün.",
     "meteor_shower": "Fırça alanına birkaç küçük meteor yağdırın.",
-    "volcano": "Bir yanardağ yükseltin: yanan bir krater, bir kaya konisi ve en zengin toprağa dönüşen küllü bir etek. Yükseldiği yerde herkesi öldürür."
+    "volcano": "Bir yanardağ yükseltin: yanan bir krater, bir kaya konisi ve en zengin toprağa dönüşen küllü bir etek. Yükseldiği yerde herkesi öldürür.",
+    "black_hole": "Tıkladığınız yerde bir kara delik açın. Merkezine yakın herkesi yutar, geri kalanları kendine çeker ve ardında ölü toprak bırakır.",
+    "sinkhole": "Tıkladığınız yerde bir obruk açın. Üzerinde duran herkes içine düşer, binalar içine çöker ve obruk sonsuza dek suyla dolar.",
+    "acid_rain": "Tıkladığınız yere asit yağmuru yağdırın. Dışarıdaki herkesi yakar (zayıflar ve yaralılar ölür), hayvanları öldürür, ekinleri soldurur ve toprağı bozar.",
+    "horde": "Tıkladığınız yerde altı zombiden oluşan bir sürü diriltin."
   },
   "how": {
     "press": "{key} tuşuna basın · ",
@@ -454,7 +462,6 @@
     "needTwoPeople": "grubun gitmek için en az iki kişiye, kalmak için de iki kişiye ihtiyacı var",
     "nobodyToChange": "değiştirmek için yeterince yakında kimse yok",
     "noSecretLeft": "yakında kimse yok ya da kabilelerinin şu anda öğrenilecek bir sırrı kalmadı",
-    "noIndustrial": "henüz hiçbir kabile Sanayi çağına ulaşmadı",
     "noOneToSeeEclipse": "onu görecek hayatta kimse yok",
     "noOneToSeeLights": "ışıkları görecek hayatta kimse yok",
     "nobodyInReach": "onu görebilecek erişim alanında kimse yok",

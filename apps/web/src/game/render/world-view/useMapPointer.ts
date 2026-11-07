@@ -6,7 +6,6 @@ import type { TerritoryIndex } from '../../model/territory'
 import { TILE } from '../../model/palette'
 import { prayerTimeLeft } from '../../model/prayers'
 import { prayerAtPoint } from '../prayer-bubbles'
-import { burstForTool, type useSandboxBursts } from '../sandbox-bursts'
 import { isMapControl } from '../camera-controls'
 import { resolveMapClick, type MapClickOutcome } from '../cf/input/map-click'
 import { pickBuildingAt, pickPersonAt } from '../cf/picking'
@@ -21,9 +20,6 @@ export function useMapPointer({
   oy,
   sandboxArmed,
   onSandboxApply,
-  sandboxToolId,
-  sandboxRadius,
-  spawnBurst,
   onPrayerClick,
   viewFlags,
   focus,
@@ -39,9 +35,6 @@ export function useMapPointer({
   oy: number
   sandboxArmed?: boolean
   onSandboxApply?: (worldX: number, worldY: number) => void
-  sandboxToolId?: string | null
-  sandboxRadius?: number
-  spawnBurst: ReturnType<typeof useSandboxBursts>['spawn']
   onPrayerClick?: (prayer: PrayerInfo) => void
   viewFlags: ViewFlags
   focus: string
@@ -63,16 +56,14 @@ export function useMapPointer({
     }
     pointerDownPos.current = { x: e.clientX, y: e.clientY, moved: false, id: e.pointerId }
   }
-  /** Carry out what a click on the map means. `screen` is where it landed, in container pixels. */
-  const act = (outcome: MapClickOutcome, screen: { x: number; y: number }, zoom: number) => {
+  /** Carry out what a click on the map means. */
+  const act = (outcome: MapClickOutcome) => {
     switch (outcome.kind) {
       case 'ignore':
         return
       case 'sandbox': {
-        if (!onSandboxApply) return
-        const burst = burstForTool(sandboxToolId)
-        if (burst) spawnBurst(burst, screen.x, screen.y, (sandboxRadius ?? 0) * TILE * zoom)
-        onSandboxApply(outcome.worldX, outcome.worldY)
+        // The effect plays where the command lands (see action-fx/with-action-fx.ts).
+        onSandboxApply?.(outcome.worldX, outcome.worldY)
         return
       }
       case 'prayer':
@@ -120,22 +111,14 @@ export function useMapPointer({
     const sx = e.clientX - rect.left
     const sy = e.clientY - rect.top
     const { x: camX, y: camY, zoom } = cameraStateRef.current
-    act(
-      resolve(camX + (sx - dims.w / 2) / zoom, camY + (sy - dims.h / 2) / zoom, zoom),
-      { x: sx, y: sy },
-      zoom,
-    )
+    act(resolve(camX + (sx - dims.w / 2) / zoom, camY + (sy - dims.h / 2) / zoom, zoom))
   }
   /**
    * A tap reported by the xipjs camera (`useCameraPanZoom` onTap): the map
    * point and the container point it landed on. Same rules as a click.
    */
   const handleTap = (tap: { worldX: number; worldY: number; screenX: number; screenY: number }) => {
-    act(
-      resolve(tap.worldX, tap.worldY, cameraStateRef.current.zoom),
-      { x: tap.screenX, y: tap.screenY },
-      cameraStateRef.current.zoom,
-    )
+    act(resolve(tap.worldX, tap.worldY, cameraStateRef.current.zoom))
   }
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {

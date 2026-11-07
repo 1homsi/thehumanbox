@@ -150,6 +150,11 @@ pub struct SaveState {
     #[serde(default)]
     pub(super) wards: Vec<crate::sim::civ::wards::Ward>,
     #[serde(default)]
+    pub(super) fallout: Vec<crate::sim::world_events::Fallout>,
+    /// The recent dead the revive tool may still raise.
+    #[serde(default)]
+    pub(super) fallen: std::collections::VecDeque<(String, u64)>,
+    #[serde(default)]
     pub(super) plantings: std::collections::BTreeMap<u32, crate::sim::tech::plantings::Planting>,
     #[serde(default)]
     pub(super) prayers: crate::sim::civ::prayers::PrayerState,

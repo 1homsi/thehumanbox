@@ -118,7 +118,7 @@
     "noon": "midi",
     "dusk": "crépuscule",
     "midnight": "minuit",
-    "nuke": "bombe",
+    "nuke": "bombe atomique",
     "eclipse": "éclipse",
     "rain_patch": "averse",
     "aurora": "aurore",
@@ -224,7 +224,11 @@
     "fast40": "40×",
     "fast50": "50×",
     "fast500": "500×",
-    "fast5000": "5000×"
+    "fast5000": "5000×",
+    "black_hole": "trou noir",
+    "sinkhole": "gouffre",
+    "acid_rain": "pluie acide",
+    "horde": "horde de zombies"
   },
   "tips": {
     "spawn1": "Envoie une personne adulte. À côté d'une tribu, elle la rejoint, en tant qu'homme ou femme qui lui manque.",
@@ -294,7 +298,7 @@
     "frog": "Relâche une grenouille, ou quelques-unes, sur un sol humide près de l'eau, dans la zone humide ou la jungle. Les grenouilles sont un petit gibier pour les loups et les ours.",
     "whale": "Relâche une baleine, ou quelques-unes, dans les eaux profondes. Elles nagent là où se trouve la mer et ne reviennent jamais sur le rivage.",
     "hail": "La grêle s'abat sur la zone du pinceau. Elle écrase les cultures et la nourriture sauvage, blesse les personnes en dessous (surtout au centre), fissure un peu les toits et tue quelques petits animaux.",
-    "nuke": "Lâche une bombe à l'endroit où vous cliquez : un cratère comme celui d'une météorite, des retombées qui empoisonnent tous ceux qui vivent dans un large anneau, et une rouille sur les cultures de cet endroit. Seule une tribu ayant atteint l'âge industriel peut en construire une.",
+    "nuke": "Lâche une bombe atomique à l'endroit où vous cliquez. Tous ceux qui sont dans le souffle meurent et tous les bâtiments s'effondrent, le cratère marque la terre pour toujours, la forêt alentour brûle, et les retombées rendent malade pendant deux saisons quiconque reste à proximité.",
     "eclipse": "Le soleil s'assombrit pendant un moment. Tous les êtres vivants en ont peur et en restent un peu saisis, et le présage est consigné dans la chronique.",
     "bless_river": "La rivière bénit la terre : les poissons se rassemblent dans l'eau la plus proche du point, en autant que le pinceau en apporte. Nécessite de l'eau à portée.",
     "bless_forest": "Une forêt jaillit : la nourriture sauvage pousse sur le sol dégagé entre les arbres, et les cultures qui s'y trouvent prospèrent. Nécessite des bois à portée.",
@@ -367,7 +371,7 @@
     "drought_on": "Déclenche une sécheresse. L'eau diminue et la soif monte.",
     "drought_off": "Met fin à la sécheresse.",
     "fire": "Met le feu à la zone du pinceau. Le feu se propage aux terres inflammables voisines ; la cendre qu'il laisse fait repousser une terre plus riche.",
-    "plague": "Déclenche une épidémie qui se propage par contact étroit.",
+    "plague": "Lâche une peste sur les personnes les plus proches de l'endroit où vous cliquez. Elle se propage par contact étroit.",
     "poison": "Rend malades tous ceux qui se trouvent dans la zone du pinceau.",
     "meteor": "Fait s'écraser une météorite. Elle tue tout ce qu'elle touche et laisse un cratère brûlant, avec du minerai au fond à extraire.",
     "earthquake": "Fait trembler la terre. Fissure le sol, endommage les bâtiments et blesse les personnes.",
@@ -404,7 +408,11 @@
     "love": "Les adultes célibataires se mettent en couple et se sentent prêts à avoir des enfants.",
     "tame": "Transforme les loups et les ours en chiens fidèles, attachés à la personne la plus proche.",
     "meteor_shower": "Fait tomber plusieurs petites météorites sur la zone du pinceau.",
-    "volcano": "Élève un volcan : un cratère brûlant, un cône de roche et un épandage de cendres qui s'altère en un sol très riche. Tue quiconque se trouve là où il surgit."
+    "volcano": "Élève un volcan : un cratère brûlant, un cône de roche et un épandage de cendres qui s'altère en un sol très riche. Tue quiconque se trouve là où il surgit.",
+    "black_hole": "Ouvre un trou noir à l'endroit où vous cliquez. Il engloutit tous ceux qui sont près de son cœur, attire les autres vers lui et laisse une terre morte.",
+    "sinkhole": "Ouvre un gouffre à l'endroit où vous cliquez. Tous ceux qui se tiennent au-dessus y tombent, les bâtiments s'y effondrent, et il se remplit d'eau pour toujours.",
+    "acid_rain": "Fait tomber une pluie acide à l'endroit où vous cliquez. Elle brûle tous ceux qui sont dehors (les faibles et les blessés en meurent), tue des animaux, flétrit les cultures et aigrit le sol.",
+    "horde": "Fait surgir une horde de six zombies à l'endroit où vous cliquez."
   },
   "how": {
     "press": "appuyez sur {key} · ",
@@ -454,7 +462,6 @@
     "needTwoPeople": "le groupe a besoin d'au moins deux personnes pour partir et deux pour rester",
     "nobodyToChange": "personne n'est assez proche pour être changé",
     "noSecretLeft": "personne n'est proche, ou leur tribu n'a plus de secret à apprendre pour l'instant",
-    "noIndustrial": "aucune tribu n'a encore atteint l'âge industriel",
     "noOneToSeeEclipse": "personne de vivant pour la voir",
     "noOneToSeeLights": "personne de vivant pour voir les lumières",
     "nobodyInReach": "personne n'est à portée pour le voir",

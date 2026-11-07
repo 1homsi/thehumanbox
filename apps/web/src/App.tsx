@@ -107,6 +107,7 @@ import { OCEAN, hex } from './game/render/art-palette'
 import clsx from 'clsx'
 import './App.css'
 import { StartupScreen } from './ui/StartupScreen'
+import { withActionFx } from './game/render/action-fx/with-action-fx'
 import './pixel-theme.css'
 
 // The map renderer (the xipjs engine plus every draw layer and sprite painter) is a
@@ -155,7 +156,7 @@ function LiveApp() {
     interp,
     resume,
     sandboxAvailable,
-    sendCommand,
+    sendCommand: sendWorldCommand,
     pauseSim,
     setSpeed,
     runtimeState,
@@ -164,6 +165,8 @@ function LiveApp() {
     loadLocalOrgDetail,
     loadLocalOrgLife,
   } = useSimulation(worldSourceRef.current)
+  // Every god tool plays its effect where it lands and floats what it did (see game/render/action-fx).
+  const sendCommand = useMemo(() => withActionFx(sendWorldCommand), [sendWorldCommand])
   const localStartupFailed = !world && localSaveStatus.phase === 'error' && localSaveStatus.fatal === true
   const playerWorldKind = resolvePlayerWorldKind(worldSourceRef.current, {
     desktop: !!desktop,
@@ -911,7 +914,6 @@ function LiveApp() {
                     rendererPaused={desktopRendererPaused || pauseForPhoneSheet}
                     sandboxArmed={sandboxControlsEnabled && !!armedTool}
                     sandboxLabel={armedTool?.label}
-                    sandboxToolId={armedTool?.id}
                     sandboxRadius={(() => {
                       const preview = armedTool?.build?.(0, 0, brush)
                       return preview && 'radius' in preview ? (preview.radius ?? 0) : 0

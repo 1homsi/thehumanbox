@@ -16,9 +16,8 @@ import { MapControls } from './MapControls'
 import { TerritoryHoverCard } from './hover/TerritoryHoverCard'
 import { ThingHoverCard } from './hover/ThingHoverCard'
 import { installBenchHooks } from './bench-hooks'
-import { SandboxBursts } from './SandboxBursts'
 import { SkyOverlay } from './SkyOverlay'
-import { useSandboxBursts } from './sandbox-bursts'
+import { ActionFxLayer } from './action-fx/ActionFxLayer'
 import { MAX_MAP_ZOOM, minMapZoom, type MapCommand } from './camera-controls'
 import { CanvasWorldFallback } from './world-view/CanvasWorldFallback'
 import { useRendererBackend } from './world-view/useRendererBackend'
@@ -41,8 +40,6 @@ interface Props {
   rendererPaused?: boolean
   sandboxArmed?: boolean
   sandboxLabel?: string | null
-  /** Armed tool id, used to pick the effect that plays where it lands. */
-  sandboxToolId?: string | null
   sandboxRadius?: number
   /** The armed tool places one thing per point: a mouse drag lays a line of them. */
   sandboxDragPlaces?: boolean
@@ -59,14 +56,12 @@ export function WorldView({
   rendererPaused = false,
   sandboxArmed,
   sandboxLabel,
-  sandboxToolId,
   sandboxRadius,
   sandboxDragPlaces = false,
   sandboxBrush = 2,
   onSandboxApply,
   onPrayerClick,
 }: Props) {
-  const { bursts, spawn: spawnBurst } = useSandboxBursts()
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
   const followOrgId = useUIStore((s) => s.followOrgId)
   const overlay = useUIStore((s) => s.overlay)
@@ -175,9 +170,6 @@ export function WorldView({
       oy,
       sandboxArmed,
       onSandboxApply,
-      sandboxToolId,
-      sandboxRadius,
-      spawnBurst,
       onPrayerClick,
       viewFlags,
       focus,
@@ -365,7 +357,7 @@ export function WorldView({
           </button>
         </div>
       )}
-      <SandboxBursts bursts={bursts} width={dims.w} height={dims.h} />
+      <ActionFxLayer cameraRef={cameraStateRef} viewport={dims} ox={ox} oy={oy} shakeTarget={containerRef} />
       <SkyOverlay />
       {mapReady && !viewFlags.hideUI && (
         <FamineTints world={world} cameraRef={cameraStateRef} viewport={dims} />

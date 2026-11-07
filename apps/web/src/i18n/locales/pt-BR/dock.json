@@ -118,7 +118,7 @@
     "noon": "meio-dia",
     "dusk": "anoitecer",
     "midnight": "meia-noite",
-    "nuke": "bomba",
+    "nuke": "bomba nuclear",
     "eclipse": "eclipse",
     "rain_patch": "chuva localizada",
     "aurora": "aurora",
@@ -224,7 +224,11 @@
     "fast40": "40×",
     "fast50": "50×",
     "fast500": "500×",
-    "fast5000": "5000×"
+    "fast5000": "5000×",
+    "black_hole": "buraco negro",
+    "sinkhole": "cratera de afundamento",
+    "acid_rain": "chuva ácida",
+    "horde": "horda zumbi"
   },
   "tips": {
     "spawn1": "Envia uma pessoa adulta. Ao lado de uma tribo, ela se junta a ela como o homem ou a mulher que faltava.",
@@ -294,7 +298,7 @@
     "frog": "Solta um sapo, ou alguns, em solo úmido perto de água, em pântano ou selva. Sapos são pequenas presas para lobos e ursos.",
     "whale": "Solta uma baleia, ou algumas, em águas profundas. Elas nadam onde há mar e nunca chegam à costa.",
     "hail": "Granizo cai sobre a área do pincel. Ele derruba plantações e comida selvagem, fere as pessoas embaixo (mais no centro), racha um pouco os telhados e mata alguns animais pequenos.",
-    "nuke": "Lança uma bomba no lugar onde você clicar: uma cratera como a de um meteoro, uma precipitação radioativa que envenena todos num anel amplo e uma praga nas plantações ali. Só uma tribo que tenha chegado à Era Industrial pode construí-la.",
+    "nuke": "Lança uma bomba nuclear no lugar onde você clicar. Todos na explosão morrem e todos os prédios caem, a cratera marca a terra para sempre, a floresta em volta pega fogo e a precipitação radioativa adoece por duas estações quem ficar por perto.",
     "eclipse": "O sol escurece por um tempo. Todos os vivos ficam assustados e um pouco maravilhados, e o presságio é registrado na crônica.",
     "bless_river": "O rio abençoa a terra: peixes se reúnem na água mais próxima do ponto, tantos quantos o pincel trouxer. Precisa de água ao alcance.",
     "bless_forest": "Uma floresta se expande: comida selvagem brota no terreno aberto entre as árvores, e as plantações ali continuam crescendo. Precisa de bosque ao alcance.",
@@ -367,7 +371,7 @@
     "drought_on": "Começa uma seca. A água diminui e a sede aumenta.",
     "drought_off": "Encerra a seca.",
     "fire": "Incendeia a área do pincel. O fogo se espalha pelo terreno inflamável próximo; as cinzas que deixa voltam a crescer mais ricas.",
-    "plague": "Inicia um surto que se espalha pelo contato próximo.",
+    "plague": "Solta uma praga sobre as pessoas mais próximas de onde você clicar. Ela se espalha pelo contato próximo.",
     "poison": "Adoece todos dentro da área do pincel.",
     "meteor": "Faz cair um meteoro. Mata tudo o que atinge e deixa uma cratera em chamas, com minério no fundo para ser extraído.",
     "earthquake": "Sacode a terra. Racha o chão, danifica construções e fere pessoas.",
@@ -404,7 +408,11 @@
     "love": "Adultos solteiros formam casais e sentem-se prontos para ter filhos.",
     "tame": "Transforma lobos e ursos em cães leais, vinculados à pessoa mais próxima.",
     "meteor_shower": "Espalha vários meteoros pequenos pela área do pincel.",
-    "volcano": "Ergue um vulcão: uma cratera em chamas, um cone de rocha e uma faixa de cinzas que se desgasta até formar o solo mais rico. Mata quem estiver no lugar onde ele surgir."
+    "volcano": "Ergue um vulcão: uma cratera em chamas, um cone de rocha e uma faixa de cinzas que se desgasta até formar o solo mais rico. Mata quem estiver no lugar onde ele surgir.",
+    "black_hole": "Abre um buraco negro onde você clicar. Ele engole todos perto do seu centro, arrasta o resto em sua direção e deixa terra morta para trás.",
+    "sinkhole": "Abre uma cratera de afundamento onde você clicar. Todos que estiverem em cima caem, os prédios desabam dentro dela e ela se enche de água para sempre.",
+    "acid_rain": "Faz cair chuva ácida onde você clicar. Ela queima todos que estiverem ao ar livre (os fracos e os feridos morrem), mata animais, murcha as plantações e azeda o solo.",
+    "horde": "Ergue uma horda de seis zumbis onde você clicar."
   },
   "how": {
     "press": "pressione {key} · ",
@@ -454,7 +462,6 @@
     "needTwoPeople": "o grupo precisa de pelo menos duas pessoas para partir e duas para ficar",
     "nobodyToChange": "ninguém está perto o bastante para ser mudado",
     "noSecretLeft": "ninguém está perto, ou a tribo dela não tem mais segredo a aprender agora",
-    "noIndustrial": "nenhuma tribo chegou ainda à Era Industrial",
     "noOneToSeeEclipse": "não há ninguém vivo para vê-lo",
     "noOneToSeeLights": "não há ninguém vivo para ver as luzes",
     "nobodyInReach": "ninguém está ao alcance para vê-lo",
