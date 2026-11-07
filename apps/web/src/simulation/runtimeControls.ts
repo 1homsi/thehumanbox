@@ -161,8 +161,10 @@ export function nextRuntimeState(
   return reconcileRuntimeState(current, { ok: true, paused, speed })
 }
 
-/** Leave at least half of each worker cycle idle under load. Requested speed
- * remains an upper bound; never queue catch-up work that starves controls. */
+/** Leave a third of each worker cycle idle under load (the world at full tilt then runs a third faster than
+ * with half of it idle, as it did). Requested speed remains an upper bound; never queue catch-up work that
+ * starves controls: the worker yields between batches of at most 32 ms, so a pause or a speed change waits
+ * no longer than that. */
 export function wasmTickDelay(targetIntervalMs: number, workMs: number): number {
-  return Math.max(MIN_WASM_TICK_MS, targetIntervalMs - workMs, workMs)
+  return Math.max(MIN_WASM_TICK_MS, targetIntervalMs - workMs, workMs / 2)
 }

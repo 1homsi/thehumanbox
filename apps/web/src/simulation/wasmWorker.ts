@@ -65,6 +65,10 @@ const DEEP_FULL_EVERY_MS = 300 * WASM_BASE_TICK_MS
 // Five minutes bounds passive-play loss while avoiding a large write every
 // 30 seconds.
 const DEFAULT_AUTOSAVE_MS = 5 * 60_000
+// Longest run of ticks between two yields of a world that cannot keep up. With the rest wasmTickDelay leaves
+// (a third of the cycle, and never under MIN_WASM_TICK_MS), 32 ms keeps the worker simulating two thirds of
+// the time; at 16 ms the timer floor made it half. A pause or speed change waits at most this long.
+const FAST_BATCH_MS = 32
 const LOCK_WAIT_MS = 4_000
 
 type SimInstance = InstanceType<SimClass>
@@ -469,7 +473,7 @@ function tickOnce() {
     do {
       running.tickN(1)
       completed += 1
-    } while (completed < stepsPerEmit && performance.now() - startedAt < 16)
+    } while (completed < stepsPerEmit && performance.now() - startedAt < FAST_BATCH_MS)
     if (tickMs >= WASM_BASE_TICK_MS || performance.now() - lastEmittedAt >= WASM_BASE_TICK_MS) {
       emit(performance.now() - lastDeepFullAt >= DEEP_FULL_EVERY_MS)
     }

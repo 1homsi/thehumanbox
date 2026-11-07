@@ -72,14 +72,27 @@ node bench/run.mjs --builds main=dist --fixtures crowd --zooms mid --modes playi
 
 Three passes per scenario, because tracing slows the page down a little:
 
-| pass | how | gives |
-|---|---|---|
+| pass      | how                                                       | gives                                                                                                                                                                                                 |
+| --------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `metrics` | `Performance.getMetrics`, process CPU times, engine stats | main-thread busy % (wall time in tasks), main-thread CPU %, script ms, process CPU of renderer / GPU / browser, long tasks, JS heap after a forced GC, engine texture bytes, draw calls and instances |
-| `trace` | Chrome trace of the window | frames delivered (compositor frames drawn), GPU process main-thread busy %, GC count and pauses, long tasks, a breakdown of main-thread time |
-| `memory` | Chrome memory dump | GPU process memory (ANGLE/Metal: textures, buffers, surfaces), renderer footprint, canvas backing stores, V8 |
+| `trace`   | Chrome trace of the window                                | frames delivered (compositor frames drawn), GPU process main-thread busy %, GC count and pauses, long tasks, a breakdown of main-thread time                                                          |
+| `memory`  | Chrome memory dump                                        | GPU process memory (ANGLE/Metal: textures, buffers, surfaces), renderer footprint, canvas backing stores, V8                                                                                          |
 
 First-frame time is the moment the startup cover comes off, measured from navigation start (local server, so
 network time is about zero).
+
+## Smoothness at each speed
+
+`speeds.mjs` opens one build on one saved world, fits the whole world in view, then steps the time control up
+(its `.` key) through the speeds asked for and measures a window at each: animation frames a second, the gaps
+between them (p50, p99, max, and how many went over 50 ms), main-thread busy %, long tasks, the speed the world
+really reached, the JS heap, DOM nodes and the five costliest map layer drivers. Any `<name>.bin` + `<name>.json`
+in the cache is a fixture, so a late save from `gen-save.mjs` (`s42-t24000`) measures a long run.
+
+```sh
+node bench/gen-save.mjs --seed 42 --tick 24000
+node bench/speeds.mjs --dist dist --fixture s42-t24000 --speeds 1,5,20,100,5000 [--profile out-dir]
+```
 
 ## Visual check of one feature
 
@@ -136,11 +149,11 @@ node bench/report.mjs bench/results/old bench/results/main   # tables and a comp
 
 Three flags make the same scenarios harder, to see how the map holds up on a weak machine or a phone:
 
-| flag | what it does |
-|---|---|
+| flag                 | what it does                                                                                                                                       |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--cpu-throttle <n>` | slows the page's CPU `n` times (`Emulation.setCPUThrottlingRate`, applied before navigation). 4 is a decent laptop on battery, 6 a mid-range phone |
-| `--mobile` | phone preset: 390x844 at DPR 3, touch emulation, mobile user agent (`--size` and `--dpr` still override the viewport) |
-| `--gpu-off` | renders with SwiftShader (software WebGL) instead of the GPU; very slow at phone DPR, so combine it with a small `--size` or `--dpr 1` |
+| `--mobile`           | phone preset: 390x844 at DPR 3, touch emulation, mobile user agent (`--size` and `--dpr` still override the viewport)                              |
+| `--gpu-off`          | renders with SwiftShader (software WebGL) instead of the GPU; very slow at phone DPR, so combine it with a small `--size` or `--dpr 1`             |
 
 A 390 px wide viewport also switches the app to its mobile layout (the banner, welcome modal and toolbar differ), so
 `--mobile` measures that UI, not just a smaller canvas.
