@@ -685,14 +685,53 @@
   border-bottom: 0;
   padding-bottom: 4px;
 }
-.settings-languages {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 6px;
+.lang-select {
+  position: relative;
+  width: min(100%, 280px);
   margin: 4px 0 10px;
 }
-.settings-languages .lang-btn {
+.lang-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 30px;
   text-align: left;
+}
+.lang-select-caret {
+  font-size: 10px;
+  color: var(--px-gold-text);
+}
+.lang-select-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  max-height: 232px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 2px;
+  list-style: none;
+  background: var(--px-inset);
+  border: 2px solid var(--px-ink);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.45);
+}
+.lang-select-option {
+  padding: 6px 10px;
+  font-family: var(--dialog-font);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--px-text);
+  cursor: pointer;
+}
+.lang-select-option.focused {
+  background: var(--px-raised-hover);
+  color: #fff3d6;
+}
+.lang-select-option.selected {
+  color: var(--px-gold-text);
+  box-shadow: inset 3px 0 0 var(--px-gold);
 }
 .settings-note a {
   color: inherit;
