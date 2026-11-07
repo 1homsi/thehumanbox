@@ -101,11 +101,7 @@ export function LanguageSelect({
               role="option"
               lang={code}
               aria-selected={code === value}
-              className={clsx(
-                'lang-select-option',
-                code === value && 'selected',
-                i === active && 'focused',
-              )}
+              className={clsx('lang-select-option', code === value && 'selected', i === active && 'focused')}
               onPointerEnter={() => setActive(i)}
               onClick={() => pick(code)}
             >
