@@ -53,22 +53,22 @@ describe('authored people pixels', () => {
     const row = 18
     for (const col of [0, 4]) {
       const cell = cells[row * HUMAN_ATLAS_COLS + col]
-      // Adults are 16 px with feet at row 25, so the face starts at row 11 and the eyes sit on row 12.
-      expect(cell.get(11 * 32 + 15)).toBe('#d5a477')
-      expect(cell.get(11 * 32 + 17)).toBe('#81513b')
-      expect(cell.get(12 * 32 + 15)).toBe(hex(INK))
-      expect(cell.get(12 * 32 + 17)).toBe(hex(INK))
+      // Adults are 16 px with feet at row 25: the hair line is row 11, the face below it and the eyes on row 13.
+      expect(cell.get(12 * 32 + 15)).toBe('#d5a477')
+      expect(cell.get(12 * 32 + 17)).toBe('#81513b')
+      expect(cell.get(13 * 32 + 15)).toBe(hex(INK))
+      expect(cell.get(13 * 32 + 17)).toBe(hex(INK))
     }
   })
 
-  it('gives adults shoulders wider than the head, with a neck notch between them', () => {
+  it('gives adults a body wider than the chin, so the figure has shoulders', () => {
     const width = (cell: Map<number, string>, y: number) =>
       [...cell.keys()].filter((key) => Math.floor(key / HUMAN_ATLAS_CELL) === y).length
     for (let appearance = 0; appearance < 6; appearance++) {
       for (const era of [0, 8, 16, 24, 32]) {
-        // Feet at row 25, so the adult chin is row 13 and the shoulders row 14.
+        // Feet at row 25, so the adult chin is row 14 and the arms start on row 16, below the shoulder line.
         const cell = cells[(18 + appearance) * HUMAN_ATLAS_COLS + era]
-        expect(width(cell, 14)).toBeGreaterThan(width(cell, 13))
+        expect(width(cell, 16)).toBeGreaterThan(width(cell, 14))
       }
     }
   })

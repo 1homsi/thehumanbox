@@ -7,7 +7,7 @@ type Ctx = CanvasRenderingContext2D
 
 /**
  * Dew on the grass in the early morning: a fine glint on the blades of about one grass tile in
- * three, twinkling as the light catches them. It is strongest just after dawn and burns off by
+ * twelve (one in three covered the land in white speckle that read as objects, #883), twinkling as the light catches them. It is strongest just after dawn and burns off by
  * mid-morning, and it is not drawn in winter (there the ground is frost, not dew). Each glint sits
  * on a fixed spot of its tile, so the dew stays put as the camera moves.
  */
@@ -23,10 +23,10 @@ export function dewLevel(world: Pick<WorldState, 'is_day' | 'day_progress'>): nu
   return Math.min(1, 1 - dp / 0.2)
 }
 
-/** Whether a grid cell gets a glint: grass, and one tile in three by its own hash. */
+/** Whether a grid cell gets a glint: grass, and one tile in twelve by its own hash. */
 export function hasDew(tile: number | undefined, worldX: number, worldY: number): boolean {
   if (tile !== TILE_ID.GRASS) return false
-  return landscapeHash(worldX, worldY) % 3 === 0
+  return landscapeHash(worldX, worldY) % 12 === 0
 }
 
 /**
@@ -55,7 +55,7 @@ export function paintDew(
       if (!hasDew(tile, wx, wy)) continue
       const h = landscapeHash(wx + 7, wy + 3)
       const twinkle = 0.4 + 0.6 * Math.abs(Math.sin(t * 0.0022 + (h & 1023) * 0.006))
-      ctx.globalAlpha = Math.min(1, level) * twinkle * 0.8
+      ctx.globalAlpha = Math.min(1, level) * twinkle * 0.5
       const px = (wx - ox) * TILE + 1 + ((h >>> 10) % (TILE - 2))
       const py = (wy - oy) * TILE + 1 + ((h >>> 16) % (TILE - 2))
       ctx.fillRect(px, py, 1, 1)

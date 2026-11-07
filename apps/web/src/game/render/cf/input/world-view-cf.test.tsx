@@ -303,7 +303,7 @@ describe('placing a tool on the xipjs map', () => {
 
   it('a tap applies the armed tool where it landed; a drag pans and applies nothing', async () => {
     const onSandboxApply = vi.fn()
-    const h = await open({ sandboxArmed: true, onSandboxApply, sandboxToolId: null })
+    const h = await open({ sandboxArmed: true, onSandboxApply })
     const camera = probeCamera()
     const canvas = h.canvas()
     // A point of open ground: tile (3, 2) of the 16 x 10 map.

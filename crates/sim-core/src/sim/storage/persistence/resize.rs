@@ -106,6 +106,10 @@ fn shift_coordinates(s: &mut SaveState, dx: i32, dy: i32) {
         ward.x += dx as f32;
         ward.y += dy as f32;
     }
+    for zone in &mut s.fallout {
+        zone.x += dx as f32;
+        zone.y += dy as f32;
+    }
     macro_rules! shift_xy {
         ($items:expr) => {
             for item in $items {

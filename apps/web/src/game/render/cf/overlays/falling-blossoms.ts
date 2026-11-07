@@ -10,8 +10,12 @@ type Ctx = CanvasRenderingContext2D
  * Petals are lighter and slower than leaves, and sway more.
  */
 
-export const PETAL_COUNT = 120
-const PETAL_COLOURS = ['#f7c9d9', '#f2a7c3', '#fbe3ec', '#ffffff']
+/**
+ * A light fall, in two soft pinks and whole pixels. A hundred and twenty tilted petals in four colours, white
+ * among them, covered the map (the sea too) in a confetti that read as noise rather than as spring (#883).
+ */
+export const PETAL_COUNT = 40
+const PETAL_COLOURS = ['#e8b4c2', '#d89aae']
 
 /** Position and tilt of petal `i` at wall-clock `t`, inside the view. */
 export function petalAt(i: number, t: number, view: LeafView): { x: number; y: number; rot: number } {
@@ -31,13 +35,9 @@ export function paintFallingBlossoms(ctx: Ctx, view: LeafView, t: number, streng
   ctx.save()
   ctx.globalAlpha = Math.min(1, strength) * 0.85
   for (let i = 0; i < PETAL_COUNT; i++) {
-    const { x, y, rot } = petalAt(i, t, view)
+    const { x, y } = petalAt(i, t, view)
     ctx.fillStyle = PETAL_COLOURS[i % PETAL_COLOURS.length]!
-    ctx.save()
-    ctx.translate(x, y)
-    ctx.rotate(rot)
-    ctx.fillRect(-1.5, -1, 3, 2)
-    ctx.restore()
+    ctx.fillRect(Math.round(x) - 1, Math.round(y), 2, 1)
   }
   ctx.restore()
 }

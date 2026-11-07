@@ -78,6 +78,8 @@ pub struct Simulation {
     pub flood_tiles: Vec<(i32, i32, u64)>,
     /// The gods' wards over the land (see `civ::wards`).
     pub wards: Vec<super::civ::wards::Ward>,
+    /// Poisoned ground a bomb left behind (see `world_events::fallout`).
+    pub fallout: Vec<crate::sim::world_events::Fallout>,
     /// Today's smoke from industry (runtime; recomputed daily).
     pub(crate) smog: Vec<super::civ::smog::SmogSource>,
     /// Player-planted crops, orchards and saplings, keyed by tile index.
@@ -284,6 +286,7 @@ impl Simulation {
             weather: WeatherState::default(),
             flood_tiles: Vec::new(),
             wards: Vec::new(),
+            fallout: Vec::new(),
             smog: Vec::new(),
             plantings: Default::default(),
             prayers: Default::default(),

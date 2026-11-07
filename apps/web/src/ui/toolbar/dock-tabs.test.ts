@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createElement } from 'react'
-import { SANDBOX_CATEGORIES } from '../../simulation/sandbox'
+import { PAIR_TOOLS, SANDBOX_CATEGORIES } from '../../simulation/sandbox'
 import {
   DOCK_TABS,
   TIME_CATEGORY_ID,
@@ -14,7 +14,7 @@ import {
 } from './dock-tabs'
 import { toolTip, toolFailure } from './tool-tips'
 import { ToolSprite } from './ToolSprite'
-import { burstForTool } from '../../game/render/sandbox-bursts'
+import { fxForCommand } from '../../game/render/action-fx/fx-kinds'
 
 const dockCategories = SANDBOX_CATEGORIES.filter((c) => c.id !== TIME_CATEGORY_ID)
 const dockTools = dockCategories.flatMap((c) => c.tools)
@@ -71,8 +71,11 @@ describe('dock layout stays complete as tools are added', () => {
           const command = tool.build?.(120, 80, 2)
           expect(command, `point tool ${tool.id} builds a command`).toBeDefined()
           expect(command).toMatchObject({ x: 120, y: 80 })
+          expect(fxForCommand(command!), `point tool ${tool.id} plays an effect`).not.toBeNull()
+        } else if (PAIR_TOOLS[tool.id]) {
+          const command = PAIR_TOOLS[tool.id].build({ x: 1, y: 2 }, { x: 3, y: 4 })
+          expect(fxForCommand(command), `pair tool ${tool.id} plays an effect`).toMatchObject({ x: 3, y: 4 })
         }
-        expect(burstForTool(tool.id), `point tool ${tool.id} plays an effect`).not.toBeNull()
       } else {
         expect(tool.fire ?? tool.time ?? tool.view, `instant tool ${tool.id} has an action`).toBeDefined()
       }

@@ -68,7 +68,7 @@ export function describeBuilding(b: Building, info: BuildingFrameInfo): Building
   const state = passingState(b, info.tick)
   const snow = info.winter && isHouseLike(k)
   // Only stone-age huts change shape with the land; the land joins their look.
-  const land = k === 'Hut' && tier === 0 ? (info.landAt?.(b.x, b.y) ?? '') : ''
+  const land = (k === 'Hut' || k === 'House') && tier <= 1 ? (info.landAt?.(b.x, b.y) ?? '') : ''
   const landKey = land ? `|l${land}` : ''
   // A tribe's homes carry its roof colour, so the tint splits their look (and cell) by tribe.
   const roofTint = roofTintFor(k, b.owner_lineage ?? b.lineage_id ?? '')

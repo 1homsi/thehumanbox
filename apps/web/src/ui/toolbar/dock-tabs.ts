@@ -10,7 +10,7 @@ import { SANDBOX_CATEGORIES, type SandboxCategory, type SandboxTool } from '../.
  *   1. Add it to its category in `simulation/sandbox.ts`.
  *   2. Give it a sprite in `ToolSprite.tsx`, and its name and tip under `dock.tools` and `dock.tips`
       in every language folder of `i18n/locales` (English is the source).
- *   3. If it needs a new effect when it lands, map it in `2d/world/SandboxBursts.tsx`.
+ *   3. Map its command to the effect it plays where it lands in `game/render/action-fx/fx-kinds.ts`.
  * Adding a category: create it in `sandbox.ts`, then list its id in one tab
  * below. `dock-tabs.test.ts` fails if any tool or category is left out.
  */
@@ -163,6 +163,11 @@ export function rememberGroup(
  * show a "new" mark; opening the group marks its new tools seen. Remove an id once it is old news.
  */
 export const NEW_TOOL_IDS: readonly string[] = [
+  'nuke',
+  'black_hole',
+  'sinkhole',
+  'acid_rain',
+  'horde',
   'heat_wave',
   'owl',
   'eagle',

@@ -118,7 +118,7 @@
     "noon": "mediodía",
     "dusk": "atardecer",
     "midnight": "medianoche",
-    "nuke": "bomba",
+    "nuke": "bomba nuclear",
     "eclipse": "eclipse",
     "rain_patch": "chubasco",
     "aurora": "aurora",
@@ -224,7 +224,11 @@
     "fast40": "40×",
     "fast50": "50×",
     "fast500": "500×",
-    "fast5000": "5000×"
+    "fast5000": "5000×",
+    "black_hole": "agujero negro",
+    "sinkhole": "socavón",
+    "acid_rain": "lluvia ácida",
+    "horde": "horda zombi"
   },
   "tips": {
     "spawn1": "Envía a una persona adulta. Junto a una tribu se une a ella, como el hombre o la mujer que le falta.",
@@ -294,7 +298,7 @@
     "frog": "Suelta una rana, o unas pocas, en suelo húmedo cerca del agua, en el humedal o en la selva. Las ranas son caza menor para lobos y osos.",
     "whale": "Suelta una ballena, o unas pocas, en aguas profundas. Nadan donde está el mar y nunca llegan a la orilla.",
     "hail": "El granizo cae sobre el área del pincel. Aplasta cultivos y comida silvestre, hiere a las personas que quedan debajo (más en el centro), agrieta un poco los tejados y mata a algunos animales pequeños.",
-    "nuke": "Lanza una bomba donde haces clic: deja un cráter como el de un meteorito, una lluvia radiactiva que envenena a todos en un anillo amplio y un tizón sobre los cultivos de ese lugar. Solo una tribu que haya llegado a la Edad Industrial puede construir una.",
+    "nuke": "Lanza una bomba nuclear donde haces clic. Todos los que estén en la explosión mueren y todos los edificios caen, el cráter marca la tierra para siempre, el bosque de alrededor arde y la lluvia radiactiva enferma durante dos estaciones a quien se quede cerca.",
     "eclipse": "El sol se oscurece durante un rato. Todos los seres vivos se asustan y quedan un poco sobrecogidos, y el presagio queda escrito en la crónica.",
     "bless_river": "El río bendice la tierra: los peces se reúnen en el agua más cercana al punto, tantos como traiga el pincel. Necesita agua al alcance.",
     "bless_forest": "Un bosque crece con fuerza: la comida silvestre brota en el terreno abierto entre los árboles, y los cultivos de allí prosperan. Necesita bosque al alcance.",
@@ -367,7 +371,7 @@
     "drought_on": "Provoca una sequía. El agua disminuye y la sed aumenta.",
     "drought_off": "Pone fin a la sequía.",
     "fire": "Prende fuego al área del pincel. El fuego se extiende a la tierra inflamable cercana; la ceniza que deja hace crecer la tierra con más riqueza.",
-    "plague": "Desencadena un brote que se propaga por el contacto cercano.",
+    "plague": "Desata una plaga sobre las personas más cercanas a donde haces clic. Se propaga por el contacto cercano.",
     "poison": "Enferma a todos los que están dentro del área del pincel.",
     "meteor": "Hace caer un meteorito. Mata todo lo que golpea y deja un cráter ardiendo, con mineral en el fondo para extraer.",
     "earthquake": "Sacude la tierra. Abre grietas en el suelo, daña edificios y hiere a las personas.",
@@ -404,7 +408,11 @@
     "love": "Los adultos solteros se emparejan y se sienten listos para tener hijos.",
     "tame": "Convierte a los lobos y osos en perros leales vinculados a la persona más cercana.",
     "meteor_shower": "Hace llover varios meteoritos pequeños sobre el área del pincel.",
-    "volcano": "Levanta un volcán: un cráter ardiente, un cono de roca y una capa de ceniza que se convierte en el suelo más rico. Mata a quien esté donde surja."
+    "volcano": "Levanta un volcán: un cráter ardiente, un cono de roca y una capa de ceniza que se convierte en el suelo más rico. Mata a quien esté donde surja.",
+    "black_hole": "Abre un agujero negro donde haces clic. Se traga a todos los que están cerca de su centro, arrastra hacia él al resto y deja tierra muerta.",
+    "sinkhole": "Abre un socavón donde haces clic. Todos los que estén encima caen dentro, los edificios se hunden en él y se llena de agua para siempre.",
+    "acid_rain": "Hace caer lluvia ácida donde haces clic. Quema a todos los que estén a la intemperie (los débiles y los heridos mueren), mata animales, marchita los cultivos y agria la tierra.",
+    "horde": "Levanta una horda de seis zombis donde haces clic."
   },
   "how": {
     "press": "pulsa {key} · ",
@@ -454,7 +462,6 @@
     "needTwoPeople": "el grupo necesita al menos dos personas que se vayan y dos que se queden",
     "nobodyToChange": "nadie está lo bastante cerca para cambiar",
     "noSecretLeft": "nadie está cerca, o su tribu no tiene ningún secreto que aprender ahora",
-    "noIndustrial": "ninguna tribu ha llegado todavía a la Edad Industrial",
     "noOneToSeeEclipse": "no hay nadie vivo para verlo",
     "noOneToSeeLights": "no hay nadie vivo para ver las luces",
     "nobodyInReach": "nadie está al alcance para verlo",

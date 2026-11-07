@@ -347,3 +347,76 @@
   color: #8b8270;
   font-style: italic;
 }
+
+/* ── First-game opening ─────────────────────────────────────────────── */
+/* One line about the followed tribe, low over the map, with a quiet way out. */
+.opening-caption {
+  position: fixed;
+  left: 50%;
+  bottom: var(--toast-clearance, 96px);
+  z-index: 60;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: max-content;
+  max-width: min(640px, calc(100vw - 32px));
+  padding: 8px 12px;
+  background: var(--px-wood, #2c231f);
+  color: var(--px-text, #f2e6cc);
+  border: 2px solid var(--px-ink, #140e0a);
+  clip-path: var(--px-notch);
+  box-shadow: var(--px-raised-shadow);
+  font-family: var(--dialog-font);
+  font-size: 12px;
+  line-height: 1.45;
+  pointer-events: auto;
+}
+.opening-line {
+  margin: 0;
+  animation: opening-line-in 600ms ease-out both;
+}
+.opening-skip {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--px-muted, #b8a888);
+  font: inherit;
+  font-size: 10px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.opening-skip:hover {
+  color: var(--px-gold-text, #f3d17a);
+}
+@keyframes opening-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* Parts the opening has not introduced yet: hidden in place, so nothing moves when they come in. */
+.sandbox-bar,
+.header-badges,
+.header-actions {
+  transition: opacity 700ms ease;
+}
+body[data-opening~='powers'] :is(.sandbox-bar, .header-badges),
+body[data-opening~='header'] .header-actions {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opening-line {
+    animation: none;
+  }
+  .sandbox-bar,
+  .header-badges,
+  .header-actions {
+    transition: none;
+  }
+}

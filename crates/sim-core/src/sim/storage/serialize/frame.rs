@@ -325,6 +325,17 @@ impl Simulation {
                         .collect(),
                 ),
             );
+            // Fallout a bomb left, while it lasts.
+            obj.insert(
+                "fallout".to_string(),
+                serde_json::Value::Array(
+                    self.fallout
+                        .iter()
+                        .filter(|f| now < f.until)
+                        .map(|f| json!({"x": f.x, "y": f.y, "radius": f.radius, "cast": f.cast, "until": f.until}))
+                        .collect(),
+                ),
+            );
             obj.insert(
                 "smog".to_string(),
                 serde_json::Value::Array(

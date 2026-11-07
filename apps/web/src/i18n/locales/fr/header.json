@@ -173,6 +173,9 @@
         "one": "{name} a perdu des vivres",
         "other": "{count} personnes ont perdu des vivres"
       }
+    },
+    "float": {
+      "noEffect": "aucun effet"
     }
   }
 }

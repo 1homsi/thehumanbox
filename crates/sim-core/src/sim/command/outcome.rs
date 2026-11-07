@@ -12,6 +12,8 @@ pub(crate) struct Report {
     pub code: &'static str,
     pub count: u32,
     pub name: Option<String>,
+    /// Buildings a disaster damaged or destroyed, told beside whom it killed or hurt.
+    pub buildings: u32,
 }
 
 /// The result of one command, as the client receives it.
@@ -25,6 +27,8 @@ pub struct CommandOutcome {
     pub count: u32,
     /// The one person it touched, when it touched exactly one.
     pub name: Option<String>,
+    /// Buildings a disaster damaged or destroyed alongside the people it hit.
+    pub buildings: u32,
 }
 
 impl CommandOutcome {
@@ -34,6 +38,7 @@ impl CommandOutcome {
             code: "failed",
             count: 0,
             name: None,
+            buildings: 0,
         }
     }
 }
@@ -45,6 +50,7 @@ impl Simulation {
             code,
             count,
             name: name.map(str::to_owned),
+            buildings: 0,
         });
     }
 
@@ -75,9 +81,6 @@ pub(crate) struct DisasterBefore {
 /// The least and most a tsunami's wave reaches from its coast point.
 pub(super) const TSUNAMI_MIN_REACH: i32 = 6;
 pub(super) const TSUNAMI_MAX_REACH: i32 = 20;
-
-/// How far a nuke's own reach counts for the report (its crater and fallout reach further).
-const NUKE_REACH: f32 = 8.0;
 
 /// The tools that harm the world, where each lands and how far it reaches, as its handler works it out
 /// (a radius of 0 means the handler's own default). `Some(None)` is a disaster with no one place (a
@@ -110,8 +113,33 @@ fn disaster_area(cmd: &Command) -> Option<Option<(f32, f32, f32)>> {
         Command::Poison { x, y, radius } => at(x, y, orf(radius, 3.0, 32.0)),
         Command::Frenzy { x, y, radius } => at(x, y, orf(radius, 4.0, 24.0)),
         Command::MeteorShower { x, y, radius } => at(x, y, orf(radius, 10.0, 40.0)),
-        Command::Nuke { x, y } => at(x as f32, y as f32, NUKE_REACH),
+        Command::Nuke { x, y } => at(x as f32, y as f32, super::nuke::BLAST_RADIUS as f32),
+        Command::Outbreak {
+            x: Some(x),
+            y: Some(y),
+            radius,
+            ..
+        } => at(
+            x,
+            y,
+            super::catastrophes::reach_f(radius, super::catastrophes::PLAGUE_REACH),
+        ),
         Command::Outbreak { .. } => Some(None),
+        Command::Sinkhole { x, y, radius } => at(
+            x as f32,
+            y as f32,
+            super::catastrophes::reach_i(radius, super::catastrophes::SINKHOLE_REACH) as f32,
+        ),
+        Command::BlackHole { x, y, radius } => at(
+            x,
+            y,
+            super::catastrophes::reach_f(radius, super::catastrophes::BLACK_HOLE_REACH),
+        ),
+        Command::AcidRain { x, y, radius } => at(
+            x as f32,
+            y as f32,
+            super::catastrophes::reach_i(radius, super::catastrophes::ACID_REACH) as f32,
+        ),
         _ => None,
     }
 }
@@ -172,19 +200,6 @@ impl Simulation {
                 robbed.push(i);
             }
         }
-        let name_of =
-            |sim: &Simulation, list: &[usize]| (list.len() == 1).then(|| sim.organisms[list[0]].name.clone());
-        for (code, list) in [
-            ("disaster_killed", &killed),
-            ("disaster_hurt", &hurt),
-            ("disaster_sick", &sick),
-            ("disaster_food", &robbed),
-        ] {
-            if !list.is_empty() {
-                let name = name_of(self, list);
-                return self.report(code, list.len() as u32, name.as_deref());
-            }
-        }
         let damaged = before
             .buildings
             .iter()
@@ -195,6 +210,23 @@ impl Simulation {
                     .is_none_or(|b| b.damage > damage + 0.001 || (b.is_ruined() && !ruined))
             })
             .count();
+        let name_of =
+            |sim: &Simulation, list: &[usize]| (list.len() == 1).then(|| sim.organisms[list[0]].name.clone());
+        for (code, list) in [
+            ("disaster_killed", &killed),
+            ("disaster_hurt", &hurt),
+            ("disaster_sick", &sick),
+            ("disaster_food", &robbed),
+        ] {
+            if !list.is_empty() {
+                let name = name_of(self, list);
+                self.report(code, list.len() as u32, name.as_deref());
+                if let Some(report) = self.command_report.as_mut() {
+                    report.buildings = damaged as u32;
+                }
+                return;
+            }
+        }
         if damaged > 0 {
             return self.report("disaster_buildings", damaged as u32, None);
         }

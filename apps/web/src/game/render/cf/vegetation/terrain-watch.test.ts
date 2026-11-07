@@ -47,4 +47,24 @@ describe('TerrainWatch', () => {
     expect(w.update(grid(1, 8, 4), grid(0, 8, 4), 8, 4, 0, 0, 'summer')).toBe(true)
     expect(w.update(grid(1, 8, 4), grid(0, 8, 4), 8, 4, 5, 0, 'summer')).toBe(true)
   })
+
+  it('spaces rebuilds out by its interval, holding a change until it has passed', () => {
+    const w = new TerrainWatch(1000)
+    const biomes = grid(0)
+    expect(w.update(grid(1), biomes, 6, 4, 0, 0, 'summer', 0)).toBe(true)
+    const burnt = grid(1)
+    burnt[1][1] = 4
+    // Too soon after the first: held, not lost.
+    expect(w.update(burnt, biomes, 6, 4, 0, 0, 'summer', 200)).toBe(false)
+    expect(w.pending).toBe(true)
+    expect(w.revision).toBe(1)
+    // Nothing new arrives, but the interval passes: the held change is announced.
+    expect(w.update(burnt, biomes, 6, 4, 0, 0, 'summer', 900)).toBe(false)
+    expect(w.update(burnt, biomes, 6, 4, 0, 0, 'summer', 1000)).toBe(true)
+    expect(w.pending).toBe(false)
+    expect(w.revision).toBe(2)
+    // A turned season does not wait.
+    expect(w.update(burnt, biomes, 6, 4, 0, 0, 'autumn', 1100)).toBe(true)
+    expect(w.revision).toBe(3)
+  })
 })

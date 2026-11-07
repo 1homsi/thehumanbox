@@ -96,6 +96,8 @@ import { type ScenarioPreset } from './simulation/scenarios'
 import { setSandboxSender } from './simulation/commandBus'
 import { useSkyOverlay } from './game/render/sky-overlay'
 import { WelcomeModal } from './ui/modals/WelcomeModal'
+import { OpeningGuide } from './ui/opening/OpeningGuide'
+import { useOpeningGuide } from './state/opening-guide'
 import { openPrayerOnMap } from './game/render/open-prayer'
 import { UpdateToast } from './ui/toasts/UpdateToast'
 import { DesktopUpdateToast } from './ui/toasts/DesktopUpdateToast'
@@ -105,6 +107,7 @@ import { OCEAN, hex } from './game/render/art-palette'
 import clsx from 'clsx'
 import './App.css'
 import { StartupScreen } from './ui/StartupScreen'
+import { withActionFx } from './game/render/action-fx/with-action-fx'
 import './pixel-theme.css'
 
 // The map renderer (the xipjs engine plus every draw layer and sprite painter) is a
@@ -153,7 +156,7 @@ function LiveApp() {
     interp,
     resume,
     sandboxAvailable,
-    sendCommand,
+    sendCommand: sendWorldCommand,
     pauseSim,
     setSpeed,
     runtimeState,
@@ -162,6 +165,8 @@ function LiveApp() {
     loadLocalOrgDetail,
     loadLocalOrgLife,
   } = useSimulation(worldSourceRef.current)
+  // Every god tool plays its effect where it lands and floats what it did (see game/render/action-fx).
+  const sendCommand = useMemo(() => withActionFx(sendWorldCommand), [sendWorldCommand])
   const localStartupFailed = !world && localSaveStatus.phase === 'error' && localSaveStatus.fatal === true
   const playerWorldKind = resolvePlayerWorldKind(worldSourceRef.current, {
     desktop: !!desktop,
@@ -449,6 +454,7 @@ function LiveApp() {
   const handleSandboxApply = useCallback(
     (wx: number, wy: number) => {
       if (!sandboxControlsEnabled || !armedTool) return
+      useOpeningGuide.getState().noteAction()
       if (armedTool.id === 'follow') {
         // Following is the camera's business, not a world command: keep the nearest person in view.
         const person = nearestLivingPerson(useWorldStore.getState().world?.organisms ?? [], wx, wy, 4)
@@ -908,7 +914,6 @@ function LiveApp() {
                     rendererPaused={desktopRendererPaused || pauseForPhoneSheet}
                     sandboxArmed={sandboxControlsEnabled && !!armedTool}
                     sandboxLabel={armedTool?.label}
-                    sandboxToolId={armedTool?.id}
                     sandboxRadius={(() => {
                       const preview = armedTool?.build?.(0, 0, brush)
                       return preview && 'radius' in preview ? (preview.radius ?? 0) : 0
@@ -1012,6 +1017,7 @@ function LiveApp() {
         {hotkeysOpen && <HotkeyHelp onClose={() => setHotkeysOpen(false)} />}
 
         {world && <WelcomeModal />}
+        <OpeningGuide world={world ?? null} />
         <UpdateToast />
         <PrayerHint world={world ?? null} onAnswer={handleAnswerPrayer} />
         <DesktopUpdateToast />

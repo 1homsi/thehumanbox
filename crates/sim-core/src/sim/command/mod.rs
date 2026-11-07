@@ -207,7 +207,9 @@ pub enum Command {
         x: i32,
         y: i32,
     },
-    /// Move the clock forward to the next `dawn`, `noon`, `dusk` or `midnight`.
+    /// Move the clock forward to the next `dawn`, `noon`, `dusk` or `midnight`. The dock sends it as
+    /// `time_of_day`.
+    #[serde(alias = "time_of_day")]
     SetTimeOfDay {
         phase: String,
     },
@@ -249,9 +251,38 @@ pub enum Command {
     Drought {
         active: bool,
     },
+    /// Plague breaks out: among the people nearest (x, y) within the radius when a point is given,
+    /// else among the first people of the world.
     Outbreak {
         #[serde(default)]
         count: u32,
+        #[serde(default)]
+        x: Option<f32>,
+        #[serde(default)]
+        y: Option<f32>,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// The ground opens into a pit that fills with water: everyone over it falls in and dies.
+    Sinkhole {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
+    /// A black hole swallows everyone near the point and drags the rest toward it.
+    BlackHole {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// Acid falls over the radius, burning people, beasts, crops and soil.
+    AcidRain {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
     },
     /// Release animals of a kind on ground that suits them. `count` animals
     /// (one per brush step) are spread over the `radius` around the point.
@@ -702,10 +733,13 @@ mod blessing_tests;
 mod blessings;
 mod boat;
 mod buildings;
+mod catastrophes;
 mod clear_region;
 mod clock;
 mod creation;
 mod disasters;
+#[cfg(test)]
+mod dock_audit_tests;
 mod era_tribe;
 mod frost;
 mod gift;
@@ -791,12 +825,14 @@ impl Simulation {
             code: if applied { "applied" } else { "failed" },
             count: 0,
             name: None,
+            buildings: 0,
         });
         outcome::CommandOutcome {
             applied,
             code: report.code,
             count: report.count,
             name: report.name,
+            buildings: report.buildings,
         }
     }
 
@@ -853,7 +889,16 @@ impl Simulation {
             Command::Ignite { x, y, radius } => self.cmd_ignite(x, y, radius),
             Command::Weather { kind } => self.cmd_weather(kind),
             Command::Drought { active } => self.cmd_drought(active),
-            Command::Outbreak { count } => self.cmd_outbreak(count),
+            Command::Outbreak {
+                count,
+                x: Some(x),
+                y: Some(y),
+                radius,
+            } => self.cmd_outbreak_at(x, y, radius, count),
+            Command::Outbreak { count, .. } => self.cmd_outbreak(count),
+            Command::Sinkhole { x, y, radius } => self.cmd_sinkhole(x, y, radius),
+            Command::BlackHole { x, y, radius } => self.cmd_black_hole(x, y, radius),
+            Command::AcidRain { x, y, radius } => self.cmd_acid_rain(x, y, radius),
             Command::SpawnAnimal {
                 x,
                 y,

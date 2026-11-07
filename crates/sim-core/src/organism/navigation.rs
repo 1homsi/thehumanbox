@@ -243,6 +243,9 @@ impl Clone for RouteCell {
     }
 }
 
+/// A route kept aside: its goal, its waypoints and the next one to walk to.
+pub type KeptRoute = ((i32, i32), Vec<(i32, i32)>, usize);
+
 #[derive(Default, Clone, Debug)]
 pub struct RouteCache {
     pub goal: (i32, i32),
@@ -261,6 +264,10 @@ pub struct RouteCache {
     pub before: Option<(i32, i32)>,
     /// Steps in a row straight back onto the tile before.
     pub reversals: u8,
+    /// The route kept from the goal before the current one: (goal, steps, next). People often weigh two
+    /// goals turn about (food and home, a partner and the fire); with one route remembered, each turn's goal
+    /// pushed out the other's route and both were searched again every turn.
+    pub other: Option<KeptRoute>,
 }
 
 fn near(a: (i32, i32), b: (i32, i32)) -> bool {
@@ -288,6 +295,68 @@ impl RouteCache {
         self.unreachable = Some(goal);
         self.blocked = Some(goal);
         self.blocked_for = 60;
+    }
+
+    /// True when the current route leads toward `goal` (within the three tiles `follow` allows).
+    fn serves(&self, goal: (i32, i32)) -> bool {
+        !self.steps.is_empty() && near(self.goal, goal)
+    }
+
+    /// Make the kept route current when it, and not the current one, leads toward `goal`.
+    pub fn recall(&mut self, goal: (i32, i32)) {
+        if self.serves(goal) {
+            return;
+        }
+        if let Some((g, steps, next)) = self.other.take() {
+            if !steps.is_empty() && near(g, goal) {
+                let previous = (
+                    self.goal,
+                    std::mem::replace(&mut self.steps, steps),
+                    std::mem::replace(&mut self.next, next),
+                );
+                self.goal = g;
+                if !previous.1.is_empty() {
+                    self.other = Some(previous);
+                }
+            } else {
+                self.other = Some((g, steps, next));
+            }
+        }
+    }
+
+    /// Take a newly planned route toward `goal`, keeping the current one when it leads somewhere else.
+    pub fn remember(&mut self, goal: (i32, i32), steps: Vec<(i32, i32)>) {
+        if !self.steps.is_empty() && !near(self.goal, goal) {
+            self.other = Some((self.goal, std::mem::take(&mut self.steps), self.next));
+        } else if self.other.as_ref().is_some_and(|(g, _, _)| near(*g, goal)) {
+            self.other = None;
+        }
+        self.goal = goal;
+        self.steps = steps;
+        self.next = 0;
+    }
+
+    /// What `follow` would answer, without moving along the route or forgetting it.
+    pub fn peek(&self, grid: &WorldGrid, at: (i32, i32), goal: (i32, i32)) -> Option<usize> {
+        let (steps, next) = if self.serves(goal) {
+            (&self.steps, self.next)
+        } else {
+            match &self.other {
+                Some((g, steps, next)) if !steps.is_empty() && near(*g, goal) => (steps, *next),
+                _ => return None,
+            }
+        };
+        let mut next = next;
+        if let Some(k) = steps.get(next..)?.iter().take(4).position(|&p| p == at) {
+            next += k + 1;
+        }
+        let &(wx, wy) = steps.get(next)?;
+        let (dx, dy) = (wx - at.0, wy - at.1);
+        let tile = grid.get(wx, wy);
+        if dx.abs().max(dy.abs()) != 1 || !tile.walkable() || tile == Tile::Fire {
+            return None;
+        }
+        DIRECTIONS.iter().position(|&d| d == (dx, dy))
     }
 
     /// Direction of the next waypoint when this cached route still serves
@@ -322,6 +391,47 @@ pub(crate) fn plan_route(grid: &WorldGrid, start: (i32, i32), target: (i32, i32)
         .unwrap_or_else(|| wide::plan_route(grid, start, target))
 }
 
+/// How near to `target` a route search from `start` can possibly get, in tiles: the search stops at the
+/// first tile this near, as it always stopped on the goal itself. Two things keep it off the goal: a goal
+/// that cannot be stood on (see `nearest_enterable_ring`), and a goal beyond the search window, which no
+/// tile of the window is nearer to than the window's own edge. Both used to run the search on to its node
+/// budget, still looking for a nearer tile than there is.
+fn search_floor(grid: &WorldGrid, start: (i32, i32), target: (i32, i32)) -> i32 {
+    let distance = (target.0 - start.0).abs().max((target.1 - start.1).abs());
+    nearest_enterable_ring(grid, target).max(distance - PLAN_RADIUS)
+}
+
+/// How near a route to `target` can possibly end, in tiles: 0 when the goal can be stood on, else the
+/// first ring around it holding a tile a walker may enter (up to `NEAR_ENOUGH`; beyond that no bound).
+/// Goals that cannot be stood on (a hut, a home in a block of huts, a rock) were over half of all route
+/// search work on a grown world.
+fn nearest_enterable_ring(grid: &WorldGrid, target: (i32, i32)) -> i32 {
+    let target_water = grid.get(target.0, target.1) == Tile::Water;
+    let enterable = |x: i32, y: i32| {
+        if !WorldGrid::in_bounds(x, y) {
+            return false;
+        }
+        let tile = grid.get(x, y);
+        if !tile.walkable() || tile == Tile::Fire {
+            return false;
+        }
+        !(grid.is_wet(tile, x, y) && grid.depth_at(x, y) > 0.18 && !(target_water && (x, y) == target))
+    };
+    if enterable(target.0, target.1) {
+        return 0;
+    }
+    for ring in 1..=NEAR_ENOUGH {
+        for dy in -ring..=ring {
+            for dx in -ring..=ring {
+                if dx.abs().max(dy.abs()) == ring && enterable(target.0 + dx, target.1 + dy) {
+                    return ring;
+                }
+            }
+        }
+    }
+    0
+}
+
 /// `None` when a frontier entry would not pack; otherwise the answer.
 fn plan_route_in(
     scratch: &mut Scratch,
@@ -345,6 +455,7 @@ fn plan_route_in(
         usize::MAX,
     )?));
     let start_distance = distance(start.0, start.1);
+    let floor = search_floor(grid, start, target);
     let mut best = (start_distance, 0, start);
     let mut expanded = 0;
     while let Some(Reverse(key)) = scratch.frontier.pop() {
@@ -357,7 +468,7 @@ fn plan_route_in(
             best = (remaining, cost, (x, y));
         }
         expanded += 1;
-        if remaining == 0 || expanded >= PLAN_BUDGET {
+        if remaining <= floor || expanded >= PLAN_BUDGET {
             break;
         }
         for &(dx, dy) in DIRECTIONS.iter() {
@@ -518,6 +629,7 @@ mod wide {
             start.1,
         )));
         let start_distance = distance(start.0, start.1);
+        let floor = super::search_floor(grid, start, target);
         let mut best = (start_distance, 0, start);
         let mut expanded = 0;
         while let Some(Reverse((_, cost, x, y))) = frontier.pop() {
@@ -529,7 +641,7 @@ mod wide {
                 best = (remaining, cost, (x, y));
             }
             expanded += 1;
-            if remaining == 0 || expanded >= PLAN_BUDGET {
+            if remaining <= floor || expanded >= PLAN_BUDGET {
                 break;
             }
             for &(dx, dy) in DIRECTIONS.iter() {
@@ -764,6 +876,48 @@ mod tests {
             at = (at.0 + DIRECTIONS[dir].0, at.1 + DIRECTIONS[dir].1);
         }
         assert_eq!(at, (125, 100));
+    }
+
+    #[test]
+    fn a_search_stops_as_near_as_its_goal_can_be_reached() {
+        let mut grid = walled();
+        // Open ground: the goal itself.
+        assert_eq!(search_floor(&grid, (100, 100), (120, 100)), 0);
+        // A rock: the ring round it.
+        grid.set(120, 100, Tile::Rock);
+        assert_eq!(search_floor(&grid, (100, 100), (120, 100)), 1);
+        let steps = plan_route(&grid, (100, 100), (120, 100)).expect("a route beside the rock");
+        let &(ex, ey) = steps.last().unwrap();
+        assert_eq!((120 - ex).abs().max((100 - ey).abs()), 1);
+        // Beyond the window: no tile of it is nearer than the window's edge.
+        assert_eq!(search_floor(&grid, (70, 100), (135, 100)), 65 - PLAN_RADIUS);
+        let steps = plan_route(&grid, (70, 100), (135, 100)).expect("a route to the window's edge");
+        let &(ex, _) = steps.last().unwrap();
+        assert_eq!(135 - ex, 65 - PLAN_RADIUS);
+    }
+
+    #[test]
+    fn the_cache_keeps_the_route_to_the_goal_before() {
+        let grid = walled();
+        let to_east = plan_route(&grid, (100, 100), (125, 100)).unwrap();
+        let to_north = plan_route(&grid, (100, 100), (100, 70)).unwrap();
+        let mut cache = RouteCache::default();
+        cache.remember((125, 100), to_east.clone());
+        cache.remember((100, 70), to_north.clone());
+        assert_eq!(cache.steps, to_north);
+        // Weighing the first goal again: its route is still there, and the other is kept in turn.
+        let first_east = cache.peek(&grid, (100, 100), (125, 100));
+        assert!(first_east.is_some());
+        assert_eq!(cache.steps, to_north, "peek changes nothing");
+        cache.recall((125, 100));
+        assert_eq!(cache.goal, (125, 100));
+        assert_eq!(cache.steps, to_east);
+        assert_eq!(cache.follow(&grid, (100, 100), (125, 100)), first_east);
+        cache.recall((100, 70));
+        assert_eq!(cache.steps, to_north);
+        // A new route to a goal near the kept one replaces it rather than keeping two for one place.
+        cache.remember((124, 100), to_east.clone());
+        assert!(cache.other.as_ref().is_some_and(|(g, _, _)| *g == (100, 70)));
     }
 
     #[test]

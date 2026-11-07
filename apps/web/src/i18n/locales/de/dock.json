@@ -118,7 +118,7 @@
     "noon": "Mittag",
     "dusk": "Dämmerung",
     "midnight": "Mitternacht",
-    "nuke": "Bombe",
+    "nuke": "Atombombe",
     "eclipse": "Finsternis",
     "rain_patch": "Regenschauer",
     "aurora": "Polarlicht",
@@ -224,7 +224,11 @@
     "fast40": "40×",
     "fast50": "50×",
     "fast500": "500×",
-    "fast5000": "5000×"
+    "fast5000": "5000×",
+    "black_hole": "Schwarzes Loch",
+    "sinkhole": "Erdfall",
+    "acid_rain": "saurer Regen",
+    "horde": "Zombiehorde"
   },
   "tips": {
     "spawn1": "Schicke einen erwachsenen Menschen. Neben einem Stamm schließt er sich ihm an, als der Mann oder die Frau, die fehlt.",
@@ -294,7 +298,7 @@
     "frog": "Setzt einen Frosch oder einige auf nassen Boden nahe dem Wasser aus, im Feuchtgebiet oder Dschungel. Frösche sind kleines Wild für Wölfe und Bären.",
     "whale": "Setzt einen Wal oder einige ins tiefe Wasser aus. Sie schwimmen dort, wo das Meer ist, und kommen nie an Land.",
     "hail": "Hagel prasselt auf den Pinselbereich nieder. Er plättet Pflanzungen und wilde Nahrung, verletzt die Menschen darunter (am meisten in der Mitte), beschädigt Dächer ein wenig und tötet einige kleine Tiere.",
-    "nuke": "Wirft dort eine Bombe ab, wo du klickst: ein Krater wie der eines Meteors entsteht, Fallout vergiftet alle in einem weiten Ring, und Fäule befällt die Pflanzungen dort. Nur ein Stamm, der das Industriezeitalter erreicht hat, kann eine bauen.",
+    "nuke": "Wirft dort eine Atombombe ab, wo du klickst. Alle in der Druckwelle sterben und jedes Gebäude stürzt ein, der Krater vernarbt das Land für immer, der Wald ringsum brennt, und der Fallout macht zwei Jahreszeiten lang jeden krank, der in der Nähe bleibt.",
     "eclipse": "Die Sonne wird für eine Weile dunkel. Alle Lebenden erschrecken darüber und staunen ein wenig, und das Vorzeichen wird in die Chronik geschrieben.",
     "bless_river": "Der Fluss segnet das Land: Fische sammeln sich im Wasser nahe dem Punkt, so viele, wie der Pinsel bringt. Braucht Wasser in Reichweite.",
     "bless_forest": "Ein Wald wallt auf: wilde Nahrung sprießt auf dem offenen Boden zwischen den Bäumen, und die Pflanzungen dort gedeihen. Braucht Wald in Reichweite.",
@@ -367,7 +371,7 @@
     "drought_on": "Löst eine Dürre aus. Das Wasser schwindet und der Durst steigt.",
     "drought_off": "Beendet die Dürre.",
     "fire": "Setzt den Pinselbereich in Brand. Das Feuer breitet sich auf benachbartes brennbares Land aus; die Asche, die es hinterlässt, lässt wieder reicheres Land wachsen.",
-    "plague": "Löst einen Ausbruch aus, der sich durch engen Kontakt verbreitet.",
+    "plague": "Lässt eine Seuche auf die Menschen los, die dem Klick am nächsten sind. Sie verbreitet sich durch engen Kontakt.",
     "poison": "Macht jeden im Pinselbereich krank.",
     "meteor": "Lässt einen Meteor einschlagen. Er tötet alles, was er trifft, und hinterlässt einen brennenden Krater, in dessen Boden Erz zum Abbau liegt.",
     "earthquake": "Erschüttert das Land. Reißt den Boden auf, beschädigt Gebäude und verletzt Menschen.",
@@ -404,7 +408,11 @@
     "love": "Einzelne Erwachsene finden zueinander und fühlen sich bereit für Kinder.",
     "tame": "Verwandelt Wölfe und Bären in treue Hunde, die an die nächste Person gebunden sind.",
     "meteor_shower": "Lässt mehrere kleine Meteore über den Pinselbereich regnen.",
-    "volcano": "Errichtet einen Vulkan: einen brennenden Krater, einen Felskegel und eine Aschedecke, die zum fruchtbarsten Boden verwittert. Tötet jeden, wo er sich erhebt."
+    "volcano": "Errichtet einen Vulkan: einen brennenden Krater, einen Felskegel und eine Aschedecke, die zum fruchtbarsten Boden verwittert. Tötet jeden, wo er sich erhebt.",
+    "black_hole": "Öffnet dort ein Schwarzes Loch, wo du klickst. Es verschlingt alle nahe seinem Kern, zieht die übrigen zu sich und lässt totes Land zurück.",
+    "sinkhole": "Öffnet dort einen Erdfall, wo du klickst. Alle, die darüber stehen, stürzen hinein, Gebäude brechen ein, und er füllt sich für immer mit Wasser.",
+    "acid_rain": "Lässt dort sauren Regen fallen, wo du klickst. Er verätzt alle, die draußen sind (Schwache und Verletzte sterben), tötet Tiere, lässt die Ernte welken und verdirbt den Boden.",
+    "horde": "Erweckt dort eine Horde von sechs Zombies, wo du klickst."
   },
   "how": {
     "press": "drücke {key} · ",
@@ -454,7 +462,6 @@
     "needTwoPeople": "die Gruppe braucht mindestens zwei Menschen zum Gehen und zwei zum Bleiben",
     "nobodyToChange": "niemand ist nah genug zum Verändern",
     "noSecretLeft": "niemand ist in der Nähe, oder ihr Stamm hat im Moment kein Geheimnis mehr zu lernen",
-    "noIndustrial": "noch kein Stamm hat das Industriezeitalter erreicht",
     "noOneToSeeEclipse": "niemand lebt, der sie sehen könnte",
     "noOneToSeeLights": "niemand lebt, der die Lichter sehen könnte",
     "nobodyInReach": "niemand ist in Reichweite, um es zu sehen",

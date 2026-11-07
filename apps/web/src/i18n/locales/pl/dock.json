@@ -118,7 +118,7 @@
     "noon": "południe",
     "dusk": "zmierzch",
     "midnight": "północ",
-    "nuke": "bomba",
+    "nuke": "bomba atomowa",
     "eclipse": "zaćmienie",
     "rain_patch": "lokalny deszcz",
     "aurora": "zorza",
@@ -224,7 +224,11 @@
     "fast40": "40×",
     "fast50": "50×",
     "fast500": "500×",
-    "fast5000": "5000×"
+    "fast5000": "5000×",
+    "black_hole": "czarna dziura",
+    "sinkhole": "zapadlisko",
+    "acid_rain": "kwaśny deszcz",
+    "horde": "horda zombie"
   },
   "tips": {
     "spawn1": "Wysyła jedną dorosłą osobę. Obok plemienia dołącza do niego jako brakujący mężczyzna lub kobieta.",
@@ -294,7 +298,7 @@
     "frog": "Wypuszcza żabę lub kilka na mokry grunt przy wodzie, na bagnie lub w dżungli. Żaby są drobną zdobyczą dla wilków i niedźwiedzi.",
     "whale": "Wypuszcza wieloryba lub kilka na głęboką wodę. Pływają tam, gdzie jest morze, i nigdy nie wychodzą na brzeg.",
     "hail": "Grad spada na obszar pędzla. Kładzie uprawy i dziką roślinność, rani ludzi pod nim (najbardziej w środku), lekko pęka dachy i zabija kilka małych zwierząt.",
-    "nuke": "Zrzuca bombę w miejscu kliknięcia: krater taki jak po meteorze, opad radioaktywny, który truje wszystkich w szerokim pierścieniu, i zarazę na tamtejszych uprawach. Może ją zbudować tylko plemię, które osiągnęło epokę przemysłową.",
+    "nuke": "Zrzuca bombę atomową w miejscu kliknięcia. Wszyscy w zasięgu wybuchu giną, a każdy budynek się wali, krater na zawsze znaczy ziemię, okoliczny las płonie, a opad radioaktywny przez dwie pory roku zatruwa każdego, kto zostanie w pobliżu.",
     "eclipse": "Słońce na jakiś czas gaśnie. Wszyscy żyjący przeraża to i trochę zdumiewa, a znak zostaje zapisany w kronice.",
     "bless_river": "Rzeka błogosławi ziemię: ryby zbierają się w wodzie najbliżej punktu, tyle ile przyniesie pędzel. Potrzebuje wody w zasięgu.",
     "bless_forest": "Las buja: dzika roślinność wyrasta na otwartym terenie wśród drzew, a uprawy tam rosną dalej. Potrzebuje lasu w zasięgu.",
@@ -367,7 +371,7 @@
     "drought_on": "Zaczyna suszę. Woda się kurczy, a pragnienie rośnie.",
     "drought_off": "Kończy suszę.",
     "fire": "Podpala obszar pędzla. Ogień rozprzestrzenia się na pobliski palny teren; popiół, który zostawia, odrasta bogatszy.",
-    "plague": "Wywołuje epidemię, która rozprzestrzenia się przez bliski kontakt.",
+    "plague": "Wypuszcza zarazę na ludzi najbliżej miejsca kliknięcia. Rozprzestrzenia się przez bliski kontakt.",
     "poison": "Zatruwa każdego w obszarze pędzla.",
     "meteor": "Rozbija meteor. Zabija wszystko, w co uderzy, i zostawia płonący krater z rudą na dnie do wydobycia.",
     "earthquake": "Trzęsie ziemią. Pęka grunt, uszkadza budynki i rani ludzi.",
@@ -404,7 +408,11 @@
     "love": "Samotni dorośli łączą się w pary i czują gotowość na dzieci.",
     "tame": "Zamienia wilki i niedźwiedzie w wierne psy związane z najbliższą osobą.",
     "meteor_shower": "Rozrzuca kilka małych meteorów po obszarze pędzla.",
-    "volcano": "Wznosi wulkan: płonący krater, skalny stożek i popielisty płaszcz, który wietrzeje w najbogatszą glebę. Zabija każdego, kto znajdzie się w miejscu, gdzie się wznosi."
+    "volcano": "Wznosi wulkan: płonący krater, skalny stożek i popielisty płaszcz, który wietrzeje w najbogatszą glebę. Zabija każdego, kto znajdzie się w miejscu, gdzie się wznosi.",
+    "black_hole": "Otwiera czarną dziurę w miejscu kliknięcia. Pochłania wszystkich blisko jej środka, przyciąga resztę i zostawia martwą ziemię.",
+    "sinkhole": "Otwiera zapadlisko w miejscu kliknięcia. Każdy, kto nad nim stoi, wpada do środka, budynki się w nie zapadają, a ono na zawsze napełnia się wodą.",
+    "acid_rain": "Spuszcza kwaśny deszcz w miejscu kliknięcia. Parzy wszystkich pod gołym niebem (słabi i ranni giną), zabija zwierzęta, niszczy plony i jałowi glebę.",
+    "horde": "Wskrzesza hordę sześciu zombie w miejscu kliknięcia."
   },
   "how": {
     "press": "naciśnij {key} · ",
@@ -454,7 +462,6 @@
     "needTwoPeople": "grupa potrzebuje co najmniej dwóch osób, by odejść, i dwóch, by zostać",
     "nobodyToChange": "nikt nie jest dość blisko, by go zmienić",
     "noSecretLeft": "nikt nie jest blisko albo ich plemię nie ma już żadnej tajemnicy do poznania w tej chwili",
-    "noIndustrial": "żadne plemię nie osiągnęło jeszcze epoki przemysłowej",
     "noOneToSeeEclipse": "nie ma nikogo żyjącego, kto by to zobaczył",
     "noOneToSeeLights": "nie ma nikogo żyjącego, kto by zobaczył światła",
     "nobodyInReach": "nikt w zasięgu tego nie zobaczy",

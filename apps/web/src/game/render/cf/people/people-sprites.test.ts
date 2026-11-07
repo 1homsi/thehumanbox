@@ -224,12 +224,20 @@ describe('PeopleSprites', () => {
     expect(body.flags[0] & SPRITE_HIDDEN).toBe(0)
   })
 
-  it('draws the selection ring, lineage ring and aura at standard zoom, and fewer in a crowd', () => {
+  it('draws the selection ring and lineage ring at standard zoom, no mood aura, and fewer in a crowd', () => {
     const one = setup()
     one.sprites.rebuild(input([org('a', 10, 10)], { selectedId: 'a' }))
     one.sprites.animate(1000, 1)
-    // shadow, halo ring, dashed ring, lineage ring, aura
-    expect(one.soft.count).toBeGreaterThanOrEqual(5)
+    // shadow, halo ring, dashed ring, lineage ring; the mood aura is for the health and age views only
+    expect(one.soft.count).toBe(4)
+    const other = setup()
+    other.sprites.rebuild(input([org('a', 10, 10)], { zoom: 1 }))
+    // Someone not selected at the standard zoom keeps only the shadow: no ring or glow under every figure.
+    expect(other.soft.count).toBe(1)
+    // Close up, the tribe ring comes back.
+    const close = setup()
+    close.sprites.rebuild(input([org('a', 10, 10)]))
+    expect(close.soft.count).toBe(2)
     // Every ring is whole pixels, so none is turned (a turned one blurs off the pixel grid).
     const turned = Array.from({ length: one.soft.count }, (_, i) => one.soft.rotation[i]).some((r) => r !== 0)
     expect(turned).toBe(false)

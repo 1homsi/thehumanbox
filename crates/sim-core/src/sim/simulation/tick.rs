@@ -568,6 +568,7 @@ impl Simulation {
         self.tick_plantings();
         self.tick_prayers();
         self.tick_wards();
+        self.tick_fallout();
         self.tick_smog();
         self.tick_winter_memories();
         self.tick_tribe_crafts();

@@ -35,14 +35,33 @@ impl Simulation {
         };
         let lineage = self.organisms[i].lineage_id.clone();
         let person_id = self.organisms[i].id.clone();
+        // A band with no one to lead it gathers around the one the gods crowned: it becomes a chiefdom.
+        let tick = self.tick_count;
+        let government = self.governments.entry(lineage.clone()).or_insert_with(|| {
+            crate::sim::government::Government::new(
+                lineage.clone(),
+                crate::sim::government::GovernmentKind::Tribal,
+                tick,
+            )
+        });
+        if government.kind.leader_count() == 0 {
+            government.transition_to(crate::sim::government::GovernmentKind::Chiefdom, tick);
+            let tribe = self
+                .lineage_names
+                .get(&lineage)
+                .cloned()
+                .unwrap_or_else(|| "a tribe".to_string());
+            crate::sim::world_events::push_event(
+                &mut self.events,
+                tick,
+                "government_changed",
+                &tribe,
+                "gathered around a chief the gods crowned",
+            );
+        }
         let Some(government) = self.governments.get_mut(&lineage) else {
-            self.report("no_government", 0, None);
             return false;
         };
-        if government.kind.leader_count() == 0 {
-            self.report("no_government", 0, None);
-            return false;
-        }
         let previous = government.leader_id.replace(person_id);
         if let Some(previous) = previous {
             if let Some(old) = self.organisms.iter_mut().find(|o| o.id == previous) {
@@ -95,7 +114,7 @@ mod tests {
     }
 
     #[test]
-    fn make_leader_refuses_children_and_tribes_without_a_ruler() {
+    fn make_leader_refuses_children_and_makes_a_band_a_chiefdom() {
         let mut sim = Simulation::new(4);
         for o in sim.organisms.iter_mut() {
             o.alive = false;
@@ -113,11 +132,15 @@ mod tests {
         sim.organisms[0].x = 80.0;
         sim.organisms[0].y = 80.0;
         assert!(
-            !sim.apply_command_json(r#"{"cmd":"make_leader","x":80.0,"y":80.0}"#),
-            "a tribal band has no ruler"
+            sim.apply_command_json(r#"{"cmd":"make_leader","x":80.0,"y":80.0}"#),
+            "a tribal band gathers around the one crowned"
         );
+        assert_eq!(sim.governments[&lineage].kind, GovernmentKind::Chiefdom);
+        assert!(sim.organisms[0].is_leader);
 
         sim.governments.get_mut(&lineage).unwrap().kind = GovernmentKind::Monarchy;
+        sim.organisms[0].is_leader = false;
+        sim.governments.get_mut(&lineage).unwrap().leader_id = None;
         sim.organisms[0].age = 100;
         assert!(
             !sim.apply_command_json(r#"{"cmd":"make_leader","x":80.0,"y":80.0}"#),
