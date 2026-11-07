@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { TILE } from '../../../model/palette'
 import { BIOME_ID, TILE_ID } from '../../../model/terrain-ids'
 import {
-  PUFFS,
   VENT_LIMIT,
   coneErupting,
   coneGeometry,
