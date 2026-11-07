@@ -1,12 +1,21 @@
 import { create } from 'zustand'
 
-/** A one-shot request for the world camera to centre on a tile; the map clears it once queued. */
+/**
+ * A one-shot request for the world camera, which the map clears once queued: centre on a tile (at least `zoom`
+ * close, 2 when not given), or pull back to the whole world.
+ */
+export type CameraFocusRequest =
+  { kind?: 'tile'; x: number; y: number; zoom?: number; n: number } | { kind: 'fit'; n: number }
+
 interface CameraFocusState {
-  request: { x: number; y: number; n: number } | null
-  focusTile: (x: number, y: number) => void
+  request: CameraFocusRequest | null
+  focusTile: (x: number, y: number, zoom?: number) => void
+  fitWorld: () => void
 }
 
 export const useCameraFocus = create<CameraFocusState>()((set) => ({
   request: null,
-  focusTile: (x, y) => set((s) => ({ request: { x, y, n: (s.request?.n ?? 0) + 1 } })),
+  focusTile: (x, y, zoom) =>
+    set((s) => ({ request: { kind: 'tile', x, y, zoom, n: (s.request?.n ?? 0) + 1 } })),
+  fitWorld: () => set((s) => ({ request: { kind: 'fit', n: (s.request?.n ?? 0) + 1 } })),
 }))
