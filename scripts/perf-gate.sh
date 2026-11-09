@@ -42,7 +42,8 @@ run_one() {
     --profile "$TMPDIR/$seed-$ticks.csv" --profile-every "$PROFILE_EVERY" >"$TMPDIR/$seed-$ticks.out" ||
     { echo "headless run failed (seed $seed, $ticks ticks)" >&2; exit 1; }
 }
-if [[ -z "${SEEDS// /}" && "$LONG_TICKS" -le 0 ]]; then
+read -rd "" -a SEED_LIST <<<"$SEEDS" || true
+if [[ ${#SEED_LIST[@]} -eq 0 && "$LONG_TICKS" -le 0 ]]; then
   echo "nothing to run: SEEDS is empty and LONG_TICKS is 0" >&2
   exit 2
 fi

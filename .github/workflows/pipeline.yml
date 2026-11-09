@@ -167,8 +167,7 @@ jobs:
       RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
     steps:
       - uses: actions/checkout@v7
-      - name: Install mold linker
-        run: sudo apt-get install -y mold
+      - uses: rui314/setup-mold@v1
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
@@ -196,36 +195,84 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # build: what the shard compiles. The dispersal test lives in sim-core's
+        # unit tests, so its shard builds only those (about half the work of
+        # the workspace); `parallel` is the feature the workspace turns on.
+        # cache: the incremental-compilation cache the shard restores, and
+        # save: the one shard of each that saves it.
         include:
           - shard: 1/4
+            build: --workspace
             run: --partition hash:1/4 -E 'not test(=sim::simulation::tests::dispersal::population_stays_dispersed_after_many_days)'
+            cache: workspace
+            save: true
           - shard: 2/4
+            build: --workspace
             run: --partition hash:2/4 -E 'not test(=sim::simulation::tests::dispersal::population_stays_dispersed_after_many_days)'
+            cache: workspace
           - shard: 3/4
+            build: --workspace
             run: --partition hash:3/4 -E 'not test(=sim::simulation::tests::dispersal::population_stays_dispersed_after_many_days)'
+            cache: workspace
           - shard: 4/4
+            build: --workspace
             run: --partition hash:4/4 -E 'not test(=sim::simulation::tests::dispersal::population_stays_dispersed_after_many_days)'
+            cache: workspace
           - shard: dispersal
+            build: -p sim-core --features parallel --lib
             run: -E 'test(=sim::simulation::tests::dispersal::population_stays_dispersed_after_many_days)'
+            cache: sim-core-lib
+            save: true
     env:
-      CARGO_INCREMENTAL: 0
+      # Incremental: a PR's next push recompiles only what changed in sim-core
+      # (163k lines), about 40% less work than compiling it all again. Tests
+      # run as fast from it. The perf gate keeps the full release build it
+      # measures.
+      CARGO_INCREMENTAL: 1
       CARGO_NET_RETRY: 10
       RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
     steps:
       - uses: actions/checkout@v7
-      - name: Install mold linker
-        run: sudo apt-get install -y mold
+      - uses: rui314/setup-mold@v1
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: . -> target
+      # rust-cache keeps only the dependencies; this keeps the workspace's own
+      # incremental state, from this PR's last push or else from main.
+      - name: Restore incremental compilation
+        uses: actions/cache/restore@v6
+        with:
+          path: target/release/incremental
+          key: incr-${{ matrix.cache }}-${{ hashFiles('Cargo.lock') }}-${{ github.sha }}
+          restore-keys: |
+            incr-${{ matrix.cache }}-${{ hashFiles('Cargo.lock') }}-
+            incr-${{ matrix.cache }}-
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-nextest
-      - name: cargo nextest run --release --locked --workspace (shard ${{ matrix.shard }})
-        # --workspace so the sim-core crate's tests run too (the bulk of the
-        # suite lives there after the core was split out for the wasm build).
-        run: cargo nextest run --release --locked --workspace --no-fail-fast ${{ matrix.run }}
+      - name: Build the tests
+        run: cargo nextest run --release --locked --no-run ${{ matrix.build }}
+      # The tests run in the background while the cache uploads, so saving it
+      # adds nothing to the shard's time.
+      - name: Start the tests (shard ${{ matrix.shard }})
+        # set +e: the step's shell runs with -e, which would end the subshell
+        # on a failing test before it records the status the last step waits for.
+        run: |
+          (set +e
+           cargo nextest run --release --locked --no-fail-fast ${{ matrix.build }} ${{ matrix.run }} > nextest.log 2>&1
+           echo $? > nextest.status.tmp && mv nextest.status.tmp nextest.status) &
+      - name: Save incremental compilation
+        if: matrix.save
+        uses: actions/cache/save@v6
+        with:
+          path: target/release/incremental
+          key: incr-${{ matrix.cache }}-${{ hashFiles('Cargo.lock') }}-${{ github.sha }}
+      - name: Test results (shard ${{ matrix.shard }})
+        run: |
+          while [ ! -f nextest.status ]; do sleep 2; done
+          cat nextest.log
+          exit "$(cat nextest.status)"
       # nextest does not run doc tests.
       - name: cargo test --doc
         if: matrix.shard == '1/4'
@@ -259,9 +306,8 @@ jobs:
           github-token: ${{ github.token }}
       - uses: actions/checkout@v7
         if: steps.earlier.outcome != 'success'
-      - name: Install mold linker
+      - uses: rui314/setup-mold@v1
         if: steps.earlier.outcome != 'success'
-        run: sudo apt-get install -y mold
       - uses: dtolnay/rust-toolchain@stable
         if: steps.earlier.outcome != 'success'
       - uses: Swatinem/rust-cache@v2
@@ -316,8 +362,7 @@ jobs:
       LONG_TICKS: ${{ matrix.long_ticks }}
     steps:
       - uses: actions/checkout@v7
-      - name: Install mold linker
-        run: sudo apt-get install -y mold
+      - uses: rui314/setup-mold@v1
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -448,8 +493,10 @@ jobs:
           single=$!
           CARGO_TARGET_DIR=target-wasm-threads scripts/build-wasm-threads.sh > threads.log 2>&1 &
           threads=$!
-          wait "$single"; single_status=$?
-          wait "$threads"; threads_status=$?
+          # The step's shell runs with -e: a bare failing wait would end it before either log is shown.
+          single_status=0 threads_status=0
+          wait "$single" || single_status=$?
+          wait "$threads" || threads_status=$?
           echo "::group::single-thread build (exit $single_status)"; cat single.log; echo "::endgroup::"
           echo "::group::threaded build (exit $threads_status)"; cat threads.log; echo "::endgroup::"
           [ "$single_status" -eq 0 ] && [ "$threads_status" -eq 0 ]

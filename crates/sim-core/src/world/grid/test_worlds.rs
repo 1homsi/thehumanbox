@@ -14,6 +14,7 @@ use super::{Volcano, WorldGrid, HEIGHT, WIDTH};
 use std::fs;
 use std::hash::Hasher;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::OnceLock;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -35,7 +36,10 @@ pub(super) fn generated(seed: u64) -> WorldGrid {
     }
     let grid = fresh(seed);
     // Written whole and renamed into place, so a test running at the same time never reads half a world.
-    let tmp = dir.join(format!("{seed}.bin.{}.tmp", std::process::id()));
+    // Unique to this write: threads of one process (plain `cargo test`) can write the same seed at once.
+    static WRITES: AtomicU64 = AtomicU64::new(0);
+    let write = WRITES.fetch_add(1, Ordering::Relaxed);
+    let tmp = dir.join(format!("{seed}.bin.{}.{write}.tmp", std::process::id()));
     if fs::write(&tmp, deflate(&encode(&grid, seed))).is_ok() && fs::rename(&tmp, &path).is_err() {
         let _ = fs::remove_file(&tmp);
     }
@@ -63,6 +67,10 @@ fn cache_dir() -> Option<&'static Path> {
         let dir = root.join(format!("{DIR_PREFIX}{:016x}", key.finish()));
         if fs::create_dir(&dir).is_ok() {
             remove_stale_dirs(&root, &dir);
+        } else {
+            // Reading files leaves the folder's modified time alone, so each process that uses the cache
+            // marks it as in use: a folder still being read is never an hour stale.
+            let _ = fs::File::open(&dir).and_then(|d| d.set_modified(SystemTime::now()));
         }
         dir.is_dir().then_some(dir)
     })
