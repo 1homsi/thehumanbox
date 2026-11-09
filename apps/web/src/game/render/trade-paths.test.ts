@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { WorldState } from '../../shared/types'
 import { TILE_ID } from '../model/terrain-ids'
 import { ROAD_BRIDGE, ROAD_CANAL, ROAD_RAIL, ROAD_TRACK } from './cf/roads/road-art'
@@ -16,6 +16,15 @@ import {
   type PathPoint,
   type PlanGrid,
 } from './trade-paths'
+
+// The planner also stops an update after a few milliseconds, so on a slow or busy machine (a CI runner) it
+// planned fewer routes than these tests count. With the clock stopped, only the routes-per-update limit applies.
+beforeEach(() => {
+  vi.spyOn(performance, 'now').mockReturnValue(0)
+})
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 /**
  * A grid from a map of rows: `.` grass, `~` water, `^` rock, `h` hut, `#` a building, `+` a road,
