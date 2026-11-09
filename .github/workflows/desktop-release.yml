@@ -44,7 +44,9 @@ jobs:
       matrix:
         include:
           - label: macOS-arm64
-            os: macos-14
+            # The newest macOS image. macos-14 stopped getting a machine: its
+            # jobs were cancelled before they started (no macOS installer after 0.7.62).
+            os: macos-26
             sim_target: aarch64-apple-darwin
             bin_name: simulation-rs
           - label: Linux-x64
