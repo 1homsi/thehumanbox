@@ -224,11 +224,8 @@ jobs:
             cache: sim-core-lib
             save: true
     env:
-      # Incremental: a PR's next push recompiles only what changed in sim-core
-      # (163k lines), about 40% less work than compiling it all again. Tests
-      # run as fast from it. The perf gate keeps the full release build it
-      # measures.
-      CARGO_INCREMENTAL: 1
+      # Incremental compilation is turned on per step below: rust-cache sets
+      # CARGO_INCREMENTAL=0 for the steps after it, over the job's env.
       CARGO_NET_RETRY: 10
       RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
     steps:
@@ -252,10 +249,17 @@ jobs:
         with:
           tool: cargo-nextest
       - name: Build the tests
+        env:
+          # Incremental: a PR's next push recompiles only what changed in sim-core
+          # (163k lines), about 40% less work than compiling it all again. Tests
+          # run as fast from it. The perf gate keeps the full release build it measures.
+          CARGO_INCREMENTAL: 1
         run: cargo nextest run --release --locked --no-run ${{ matrix.build }}
       # The tests run in the background while the cache uploads, so saving it
       # adds nothing to the shard's time.
       - name: Start the tests (shard ${{ matrix.shard }})
+        env:
+          CARGO_INCREMENTAL: 1
         # set +e: the step's shell runs with -e, which would end the subshell
         # on a failing test before it records the status the last step waits for.
         run: |
@@ -276,6 +280,8 @@ jobs:
       # nextest does not run doc tests.
       - name: cargo test --doc
         if: matrix.shard == '1/4'
+        env:
+          CARGO_INCREMENTAL: 1
         run: cargo test --release --locked --workspace --doc
 
   # The hash of a native world's save, for the determinism job to compare with
