@@ -380,12 +380,24 @@ jobs:
       - name: Enforce multi-seed tick budget
         run: scripts/perf-gate.sh
 
+  # Lint and format on one runner, the vitest suite split over two: one runner
+  # took 100 s for all of it, one after another.
   test-frontend:
-    name: Test frontend
+    name: Test frontend (${{ matrix.part }})
     needs: [changes]
     if: ${{ needs.changes.outputs.client == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - part: lint
+            run: pnpm lint && pnpm format:check
+          - part: tests 1/2
+            run: pnpm test --shard=1/2
+          - part: tests 2/2
+            run: pnpm test --shard=2/2
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -400,20 +412,9 @@ jobs:
         working-directory: apps/web
         run: pnpm install --frozen-lockfile
 
-      - id: ts
-        run: echo "build_ts=$(date -u +%s)" >> "$GITHUB_OUTPUT"
-
-      - name: pnpm lint
+      - name: ${{ matrix.part }}
         working-directory: apps/web
-        run: pnpm lint
-
-      - name: pnpm format:check
-        working-directory: apps/web
-        run: pnpm format:check
-
-      - name: pnpm test
-        working-directory: apps/web
-        run: pnpm test
+        run: ${{ matrix.run }}
 
   # The single-thread and the threaded package, each on a runner of its own:
   # two fat-LTO builds on one 4-core runner slowed each other to over four
@@ -554,15 +555,16 @@ jobs:
 
   build-frontend:
     name: Build frontend
-    needs: [changes, test-frontend, build-wasm]
+    # Builds while the frontend tests run: nothing ships before they pass (the
+    # release gate on main, and a client pass needs them for ship-web).
+    needs: [changes, build-wasm]
     # When the run that passed the client area has a production bundle, main
     # ships that instead (ship-web).
     if: >-
       ${{ !cancelled()
         && needs.changes.outputs.build_client == 'true'
         && needs.changes.outputs.bundle != 'true'
-        && needs.build-wasm.result == 'success'
-        && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') }}
+        && needs.build-wasm.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
