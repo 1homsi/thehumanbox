@@ -1,4 +1,7 @@
 mod worldgen;
+// Tests read the worlds they generate again from disk (see test_worlds.rs).
+#[cfg(test)]
+mod test_worlds;
 
 use super::tiles::{Biome, Tile};
 use crate::math::DetMath;
@@ -97,7 +100,11 @@ impl WorldGrid {
     }
 
     pub fn new(seed: u64) -> Self {
-        Self::new_sized::<WIDTH, HEIGHT>(seed, false)
+        #[cfg(test)]
+        let grid = test_worlds::generated(seed);
+        #[cfg(not(test))]
+        let grid = Self::new_sized::<WIDTH, HEIGHT>(seed, false);
+        grid
     }
 
     pub(crate) fn new_sized<const W: usize, const H: usize>(seed: u64, legacy: bool) -> Self {

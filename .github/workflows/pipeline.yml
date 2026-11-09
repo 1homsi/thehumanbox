@@ -182,10 +182,13 @@ jobs:
 
   # The suite is about 20 CPU-minutes, so one 4-core runner took 6 minutes
   # to run it after compiling. Each shard compiles the tests (cached deps) and
-  # runs a third of them with cargo-nextest, which also runs every test
-  # binary at once instead of one binary after another.
+  # runs its part with cargo-nextest, which also runs every test binary at
+  # once instead of one binary after another. The dispersal test (eight
+  # worlds for 9000 ticks, in threads of its own) runs on a runner of its
+  # own: sharing one with other tests it took four minutes, and set the
+  # length of whatever shard it hashed into.
   simulation-tests:
-    name: Simulation tests (shard ${{ matrix.shard }}/3)
+    name: Simulation tests (${{ matrix.shard }})
     needs: [changes]
     if: ${{ needs.changes.outputs.sim == 'true' }}
     runs-on: ubuntu-24.04
@@ -193,7 +196,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        include:
+          - shard: 1/4
+            run: --partition hash:1/4 -E 'not test(=sim::simulation::tests::dispersal::population_stays_dispersed_after_many_days)'
+          - shard: 2/4
+            run: --partition hash:2/4 -E 'not test(=sim::simulation::tests::dispersal::population_stays_dispersed_after_many_days)'
+          - shard: 3/4
+            run: --partition hash:3/4 -E 'not test(=sim::simulation::tests::dispersal::population_stays_dispersed_after_many_days)'
+          - shard: 4/4
+            run: --partition hash:4/4 -E 'not test(=sim::simulation::tests::dispersal::population_stays_dispersed_after_many_days)'
+          - shard: dispersal
+            run: -E 'test(=sim::simulation::tests::dispersal::population_stays_dispersed_after_many_days)'
     env:
       CARGO_INCREMENTAL: 0
       CARGO_NET_RETRY: 10
@@ -209,35 +222,89 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-nextest
-      - name: cargo nextest run --release --locked --workspace (one shard)
+      - name: cargo nextest run --release --locked --workspace (shard ${{ matrix.shard }})
         # --workspace so the sim-core crate's tests run too (the bulk of the
         # suite lives there after the core was split out for the wasm build).
-        run: cargo nextest run --release --locked --workspace --no-fail-fast --partition hash:${{ matrix.shard }}/3
+        run: cargo nextest run --release --locked --workspace --no-fail-fast ${{ matrix.run }}
       # nextest does not run doc tests.
       - name: cargo test --doc
-        if: matrix.shard == 1
+        if: matrix.shard == '1/4'
         run: cargo test --release --locked --workspace --doc
-      # The hash of a native world's save, for the determinism job to compare with
-      # the wasm of this same commit.
-      - name: Native save fingerprint
-        if: matrix.shard == 1
-        run: |
-          cargo run --release --locked -p sim-core --example save_fingerprint -- 42 3000 > native-fingerprint.txt
-          cat native-fingerprint.txt
+
+  # The hash of a native world's save, for the determinism job to compare with
+  # the wasm of this same commit. A job of its own, so the comparison waits on
+  # this minute or two and not on the simulation tests. When this run skips
+  # the sim area, the run that passed it already made the same hash.
+  native-fingerprint:
+    name: Native save fingerprint
+    needs: [changes]
+    if: ${{ needs.changes.outputs.build_client == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_NET_RETRY: 10
+      RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
+    outputs:
+      fingerprint: ${{ steps.out.outputs.fingerprint }}
+    steps:
+      - name: The fingerprint of the run that passed the sim sources
+        id: earlier
+        if: needs.changes.outputs.sim == 'false' && needs.changes.outputs.sim_run != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: native-fingerprint
+          run-id: ${{ needs.changes.outputs.sim_run }}
+          github-token: ${{ github.token }}
+      - uses: actions/checkout@v7
+        if: steps.earlier.outcome != 'success'
+      - name: Install mold linker
+        if: steps.earlier.outcome != 'success'
+        run: sudo apt-get install -y mold
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.earlier.outcome != 'success'
+      - uses: Swatinem/rust-cache@v2
+        if: steps.earlier.outcome != 'success'
+        with:
+          workspaces: . -> target
+      - name: Build the native fingerprint
+        if: steps.earlier.outcome != 'success'
+        run: cargo run --release --locked -p sim-core --example save_fingerprint -- 42 3000 > native-fingerprint.txt
       - uses: actions/upload-artifact@v7
-        if: matrix.shard == 1
+        if: steps.earlier.outcome != 'success'
         with:
           name: native-fingerprint
           path: native-fingerprint.txt
-          # As long as the pass records, so a later run that skips these tests can use it.
+          # As long as the pass records, so a later run that skips the sim area can use it.
           retention-days: 90
+      - name: Hand it to the determinism job
+        id: out
+        run: |
+          set -euo pipefail
+          cat native-fingerprint.txt
+          { echo 'fingerprint<<EOF_FINGERPRINT'; cat native-fingerprint.txt; echo 'EOF_FINGERPRINT'; } >> "$GITHUB_OUTPUT"
 
+  # Each run of the gate on a runner of its own: one run alone on a machine is
+  # what keeps its timings steady (see scripts/perf-gate.sh), and the long
+  # mature-world run no longer waits behind the three short ones.
   simulation-performance:
-    name: Simulation performance budget
+    name: Simulation performance budget (${{ matrix.runs }})
     needs: [changes]
     if: ${{ needs.changes.outputs.sim == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # This also covers the old headless smoke test: seed 42 runs 8000 ticks.
+          - runs: 3 seeds x 8000 ticks
+            seeds: "42 1337 2026"
+            long_ticks: 0
+          - runs: seed 42 x 25000 ticks
+            seeds: ""
+            long_ticks: 25000
     env:
       CARGO_INCREMENTAL: 0
       CARGO_NET_RETRY: 10
@@ -245,8 +312,8 @@ jobs:
       TICKS: 8000
       MAX_TICK_MS: 80
       MAX_RSS_MB: 256
-      SEEDS: "42 1337 2026"
-      # This also covers the old headless smoke test: seed 42 runs 8000 ticks.
+      SEEDS: ${{ matrix.seeds }}
+      LONG_TICKS: ${{ matrix.long_ticks }}
     steps:
       - uses: actions/checkout@v7
       - name: Install mold linker
@@ -360,19 +427,32 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
         with:
-          workspaces: . -> target
+          workspaces: |
+            . -> target
+            . -> target-wasm-threads
       - name: Install wasm-pack
         if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
         uses: taiki-e/install-action@v2
         with:
           tool: wasm-pack
-      - name: Build wasm sim-core
+      # Both builds at once, each in a target dir of its own (cargo locks a
+      # target dir for the whole build). A fat-LTO build with one codegen unit
+      # spends most of its time on a single core, so on a 4-core runner the two
+      # take about as long as the slower one did alone.
+      - name: Build both wasm sim-cores
         id: wasm-build
         if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
-        run: scripts/build-wasm.sh
-      - name: Build threaded wasm sim-core
-        if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
-        run: scripts/build-wasm-threads.sh
+        run: |
+          set -uo pipefail
+          scripts/build-wasm.sh > single.log 2>&1 &
+          single=$!
+          CARGO_TARGET_DIR=target-wasm-threads scripts/build-wasm-threads.sh > threads.log 2>&1 &
+          threads=$!
+          wait "$single"; single_status=$?
+          wait "$threads"; threads_status=$?
+          echo "::group::single-thread build (exit $single_status)"; cat single.log; echo "::endgroup::"
+          echo "::group::threaded build (exit $threads_status)"; cat threads.log; echo "::endgroup::"
+          [ "$single_status" -eq 0 ] && [ "$threads_status" -eq 0 ]
       - uses: actions/upload-artifact@v7
         with:
           name: sim-core-wasm
@@ -382,23 +462,20 @@ jobs:
   # The browser sim must make the same world as the native one. Both sides come
   # from this commit's sources, so changing the world's rules needs no committed
   # value updated. Runs for every wasm built or reused, so a client pass always
-  # covers one. The native hash comes from this run's simulation tests, or from
-  # the run that passed the same sim sources when they were skipped, or, when
-  # neither has it (an older run, an expired artifact), is built here.
+  # covers one. The native hash comes from native-fingerprint.
   determinism:
     name: Native and wasm worlds match
-    needs: [changes, simulation-tests, build-wasm]
+    needs: [changes, native-fingerprint, build-wasm]
     if: >-
       ${{ !cancelled()
         && needs.build-wasm.result == 'success'
-        && (needs.simulation-tests.result == 'success' || needs.simulation-tests.result == 'skipped') }}
+        && needs.native-fingerprint.result == 'success' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    env:
-      CARGO_INCREMENTAL: 0
-      CARGO_NET_RETRY: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts
       - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
@@ -406,34 +483,12 @@ jobs:
         with:
           name: sim-core-wasm
           path: apps/web/src/wasm
-      - name: Native fingerprint of this run
-        id: here
-        if: needs.simulation-tests.result == 'success'
-        uses: actions/download-artifact@v8
-        with:
-          name: native-fingerprint
-      - name: Native fingerprint of the run that passed the sim sources
-        id: earlier
-        if: needs.simulation-tests.result == 'skipped' && needs.changes.outputs.sim_run != ''
-        continue-on-error: true
-        uses: actions/download-artifact@v8
-        with:
-          name: native-fingerprint
-          run-id: ${{ needs.changes.outputs.sim_run }}
-          github-token: ${{ github.token }}
-      - uses: dtolnay/rust-toolchain@stable
-        if: steps.here.outcome != 'success' && steps.earlier.outcome != 'success'
-      - uses: Swatinem/rust-cache@v2
-        if: steps.here.outcome != 'success' && steps.earlier.outcome != 'success'
-        with:
-          workspaces: . -> target
-      - name: Build the native fingerprint here
-        if: steps.here.outcome != 'success' && steps.earlier.outcome != 'success'
-        run: |
-          cargo run --release --locked -p sim-core --example save_fingerprint -- 42 3000 > native-fingerprint.txt
-          cat native-fingerprint.txt
       - name: Compare the wasm world with the native one
-        run: node scripts/check-wasm-determinism.mjs apps/web/src/wasm/sim-core --native "$(cat native-fingerprint.txt)"
+        env:
+          NATIVE: ${{ needs.native-fingerprint.outputs.fingerprint }}
+        run: |
+          [[ "$NATIVE" =~ ^0x[0-9a-f]{16}$ ]] || { echo "no native fingerprint ('$NATIVE')" >&2; exit 1; }
+          node scripts/check-wasm-determinism.mjs apps/web/src/wasm/sim-core --native "$NATIVE"
 
   build-frontend:
     name: Build frontend

@@ -1,11 +1,13 @@
-# cargo-nextest settings for the simulation tests (CI runs them as three shards; see pipeline.yml).
+# cargo-nextest settings for the simulation tests (CI runs them as four hash shards plus one for the
+# dispersal test alone; see pipeline.yml).
 #
 # A shard cannot finish before its longest test, and nextest starts tests in name order, so a
 # test that runs for minutes used to start a minute or two in and set the shard's length on its
 # own. These start first instead, while the short tests fill the other threads. The list comes
 # from CI timings (nextest prints SLOW for anything past a minute); keep the longest at the top.
 
-# Several worlds for fifteen days each, in threads of its own: the longest test by far.
+# Several worlds for fifteen days each, in threads of its own: the longest test by far. CI gives it a
+# runner of its own; this still matters for a local `cargo nextest run`.
 [[profile.default.overrides]]
 filter = 'test(=sim::simulation::tests::dispersal::population_stays_dispersed_after_many_days)'
 priority = 100
