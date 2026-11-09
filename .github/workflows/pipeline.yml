@@ -415,16 +415,34 @@ jobs:
         working-directory: apps/web
         run: pnpm test
 
+  # The single-thread and the threaded package, each on a runner of its own:
+  # two fat-LTO builds on one 4-core runner slowed each other to over four
+  # minutes. Each uploads `sim-core-wasm-<variant>` holding its own folder
+  # under apps/web/src/wasm; consumers download `sim-core-wasm*` merged, which
+  # also takes the combined `sim-core-wasm` that older runs uploaded.
   build-wasm:
-    name: Build wasm sim-core
+    name: Build wasm sim-core (${{ matrix.variant }})
     needs: [changes]
     if: ${{ needs.changes.outputs.build_client == 'true' }}
     runs-on: ubuntu-24.04
-    # Two fat-LTO builds (about 5 minutes each on a runner) plus setup; a cache hit skips them.
+    # A fat-LTO build (three to four minutes on a runner) plus setup; a cache hit skips it.
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: single
+            dir: sim-core
+            js: sim_core.js
+            build: scripts/build-wasm.sh
+          - variant: threads
+            dir: sim-core-threads
+            js: sim_core_threads.js
+            build: scripts/build-wasm-threads.sh
     env:
       CARGO_INCREMENTAL: 0
       CARGO_NET_RETRY: 10
+      OUT: apps/web/src/wasm/${{ matrix.dir }}
     steps:
       - uses: actions/checkout@v7
 
@@ -442,73 +460,63 @@ jobs:
             grep -v '^version = ' apps/server/Cargo.toml
             cat Cargo.toml scripts/build-wasm.sh scripts/build-wasm-threads.sh
           } | sha256sum | cut -c1-32 > /tmp/wasm-key
-          echo "key=wasm-sim-core-$(cat /tmp/wasm-key)" >> "$GITHUB_OUTPUT"
-      # Both packages (the single-thread and the threaded build) live under apps/web/src/wasm.
+          echo "key=wasm-${{ matrix.dir }}-$(cat /tmp/wasm-key)" >> "$GITHUB_OUTPUT"
       - name: Restore wasm build
         id: wasm-cache
         uses: actions/cache@v6
         with:
-          path: apps/web/src/wasm
+          path: ${{ env.OUT }}
           key: ${{ steps.wasm-key.outputs.key }}
       # PR caches are not visible to main, so a merge that changed sim-core
       # would rebuild here. The run that passed the client area already built
       # this exact wasm; take it (the cache step then saves it for main).
       - name: Reuse the wasm of the run that passed the client area
-        id: wasm-pr
         if: ${{ steps.wasm-cache.outputs.cache-hit != 'true' && needs.changes.outputs.client_run != '' }}
         continue-on-error: true
         uses: actions/download-artifact@v8
         with:
-          name: sim-core-wasm
+          pattern: sim-core-wasm*
+          merge-multiple: true
           path: apps/web/src/wasm
           run-id: ${{ needs.changes.outputs.client_run }}
           github-token: ${{ github.token }}
+      # A pattern that matches nothing downloads nothing without failing, so
+      # what counts is whether this package arrived.
+      - name: Is this package here?
+        id: have
+        run: |
+          if [ -f "$OUT/${{ matrix.js }}" ]; then echo "wasm=true" >> "$GITHUB_OUTPUT"; else echo "wasm=false" >> "$GITHUB_OUTPUT"; fi
       - uses: dtolnay/rust-toolchain@stable
-        if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
+        if: steps.have.outputs.wasm != 'true'
         with:
           targets: wasm32-unknown-unknown
       # The threaded build rebuilds std with atomics, so it needs this nightly (see scripts/build-wasm-threads.sh).
       # Pinned to a full commit (master at the time of writing), not a branch.
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
-        if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
+        if: steps.have.outputs.wasm != 'true' && matrix.variant == 'threads'
         with:
           toolchain: nightly-2025-11-15
           targets: wasm32-unknown-unknown
           components: rust-src
       - uses: Swatinem/rust-cache@v2
-        if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
+        if: steps.have.outputs.wasm != 'true'
         with:
-          workspaces: |
-            . -> target
-            . -> target-wasm-threads
+          workspaces: . -> target
+          key: ${{ matrix.variant }}
       - name: Install wasm-pack
-        if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
+        if: steps.have.outputs.wasm != 'true'
         uses: taiki-e/install-action@v2
         with:
           tool: wasm-pack
-      # Both builds at once, each in a target dir of its own (cargo locks a
-      # target dir for the whole build). A fat-LTO build with one codegen unit
-      # spends most of its time on a single core, so on a 4-core runner the two
-      # take about as long as the slower one did alone.
-      - name: Build both wasm sim-cores
-        id: wasm-build
-        if: steps.wasm-cache.outputs.cache-hit != 'true' && steps.wasm-pr.outcome != 'success'
-        run: |
-          set -uo pipefail
-          scripts/build-wasm.sh > single.log 2>&1 &
-          single=$!
-          CARGO_TARGET_DIR=target-wasm-threads scripts/build-wasm-threads.sh > threads.log 2>&1 &
-          threads=$!
-          # The step's shell runs with -e: a bare failing wait would end it before either log is shown.
-          single_status=0 threads_status=0
-          wait "$single" || single_status=$?
-          wait "$threads" || threads_status=$?
-          echo "::group::single-thread build (exit $single_status)"; cat single.log; echo "::endgroup::"
-          echo "::group::threaded build (exit $threads_status)"; cat threads.log; echo "::endgroup::"
-          [ "$single_status" -eq 0 ] && [ "$threads_status" -eq 0 ]
+      - name: Build wasm sim-core (${{ matrix.variant }})
+        if: steps.have.outputs.wasm != 'true'
+        run: ${{ matrix.build }}
+      # Only this package's folder: the other one may have come with a reused artifact.
+      - name: Keep only this package
+        run: find apps/web/src/wasm -mindepth 1 -maxdepth 1 ! -name '${{ matrix.dir }}' -exec rm -rf {} +
       - uses: actions/upload-artifact@v7
         with:
-          name: sim-core-wasm
+          name: sim-core-wasm-${{ matrix.variant }}
           path: apps/web/src/wasm
           retention-days: 7
 
@@ -534,7 +542,8 @@ jobs:
           node-version-file: .node-version
       - uses: actions/download-artifact@v8
         with:
-          name: sim-core-wasm
+          pattern: sim-core-wasm*
+          merge-multiple: true
           path: apps/web/src/wasm
       - name: Compare the wasm world with the native one
         env:
@@ -578,7 +587,8 @@ jobs:
       - name: Download wasm sim-core
         uses: actions/download-artifact@v8
         with:
-          name: sim-core-wasm
+          pattern: sim-core-wasm*
+          merge-multiple: true
           path: apps/web/src/wasm
 
       - name: pnpm run build

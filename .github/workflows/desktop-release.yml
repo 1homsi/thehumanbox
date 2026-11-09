@@ -98,16 +98,25 @@ jobs:
       # The wasm is platform independent and the pipeline already built it;
       # rebuilding it here cost 5 to 9 minutes per OS. A manual dispatch has
       # no pipeline run, so it falls back to building.
-      - name: Reuse wasm sim-core from the pipeline
-        id: wasm
+      # The pipeline uploads one artifact per package (sim-core-wasm-single,
+      # -threads; older runs one sim-core-wasm with both).
+      - name: Download wasm sim-core from the pipeline
         if: ${{ inputs.pipeline_run_id != '' }}
         continue-on-error: true
         uses: actions/download-artifact@v8
         with:
-          name: sim-core-wasm
+          pattern: sim-core-wasm*
+          merge-multiple: true
           path: apps/web/src/wasm
           run-id: ${{ inputs.pipeline_run_id }}
           github-token: ${{ github.token }}
+      # Succeeds only when both packages arrived; a pattern matching nothing does not fail the download.
+      - name: Reuse wasm sim-core from the pipeline
+        id: wasm
+        if: ${{ inputs.pipeline_run_id != '' }}
+        continue-on-error: true
+        shell: bash
+        run: test -f apps/web/src/wasm/sim-core/sim_core.js && test -f apps/web/src/wasm/sim-core-threads/sim_core_threads.js
 
       - name: Setup Rust toolchain
         if: steps.sim-bin.outputs.cache-hit != 'true' || steps.wasm.outcome != 'success'
