@@ -273,9 +273,13 @@ jobs:
           path: target/release/incremental
           key: incr-${{ matrix.cache }}-${{ hashFiles('Cargo.lock') }}-${{ github.sha }}
       - name: Test results (shard ${{ matrix.shard }})
+        # Streamed while it runs: a test that hangs until the job's timeout still shows what nextest reported.
         run: |
+          tail -n +1 -F nextest.log &
+          tailer=$!
           while [ ! -f nextest.status ]; do sleep 2; done
-          cat nextest.log
+          sleep 2
+          kill "$tailer"
           exit "$(cat nextest.status)"
       # nextest does not run doc tests.
       - name: cargo test --doc

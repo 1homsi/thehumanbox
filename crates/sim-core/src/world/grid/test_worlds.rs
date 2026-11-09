@@ -19,6 +19,8 @@ use std::sync::OnceLock;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 const DIR_PREFIX: &str = "thehumanbox-test-worlds-";
+/// A file in the cache folder whose modified time says when a test process last used the folder.
+const IN_USE: &str = "in-use";
 const MAGIC: &[u8; 8] = b"THBWRLD1";
 
 /// `WorldGrid::new` in tests: the world for `seed`, read from the cache when an earlier test of this
@@ -40,7 +42,10 @@ pub(super) fn generated(seed: u64) -> WorldGrid {
     static WRITES: AtomicU64 = AtomicU64::new(0);
     let write = WRITES.fetch_add(1, Ordering::Relaxed);
     let tmp = dir.join(format!("{seed}.bin.{}.{write}.tmp", std::process::id()));
-    if fs::write(&tmp, deflate(&encode(&grid, seed))).is_ok() && fs::rename(&tmp, &path).is_err() {
+    // Made again if another build's cleanup took the folder away while this process ran.
+    let _ = fs::create_dir_all(dir);
+    let written = fs::write(&tmp, deflate(&encode(&grid, seed))).and_then(|()| fs::rename(&tmp, &path));
+    if written.is_err() {
         let _ = fs::remove_file(&tmp);
     }
     grid
@@ -65,12 +70,13 @@ fn cache_dir() -> Option<&'static Path> {
         key.write_u128(built.as_nanos());
         let root = std::env::temp_dir();
         let dir = root.join(format!("{DIR_PREFIX}{:016x}", key.finish()));
-        if fs::create_dir(&dir).is_ok() {
+        let new = fs::create_dir(&dir).is_ok();
+        // Reading files leaves the folder's own modified time alone, so each process that uses the cache
+        // rewrites this file: a folder still being read is never an hour stale. (A file, as a directory's
+        // time cannot be set through std on Windows.)
+        let _ = fs::write(dir.join(IN_USE), []);
+        if new {
             remove_stale_dirs(&root, &dir);
-        } else {
-            // Reading files leaves the folder's modified time alone, so each process that uses the cache
-            // marks it as in use: a folder still being read is never an hour stale.
-            let _ = fs::File::open(&dir).and_then(|d| d.set_modified(SystemTime::now()));
         }
         dir.is_dir().then_some(dir)
     })
@@ -87,10 +93,9 @@ fn remove_stale_dirs(root: &Path, keep: &Path) {
     for entry in entries.flatten() {
         let path = entry.path();
         let ours = entry.file_name().to_string_lossy().starts_with(DIR_PREFIX);
-        let old = entry
-            .metadata()
-            .and_then(|m| m.modified())
-            .is_ok_and(|t| t < stale);
+        // Last used: the in-use mark, or the folder itself for one made before the mark existed.
+        let used = fs::metadata(path.join(IN_USE)).or_else(|_| entry.metadata());
+        let old = used.and_then(|m| m.modified()).is_ok_and(|t| t < stale);
         if ours && old && path != keep {
             let _ = fs::remove_dir_all(path);
         }
@@ -316,6 +321,29 @@ mod tests {
             let (first, second) = (generated(seed), generated(seed));
             assert!(bytes == encode(&first, seed) && bytes == encode(&second, seed));
         }
+    }
+
+    #[test]
+    fn cleanup_removes_only_folders_unused_for_an_hour() {
+        let root = std::env::temp_dir().join(format!("thb-stale-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        let folder = |name: &str, used_secs_ago: u64| {
+            let dir = root.join(format!("{DIR_PREFIX}{name}"));
+            fs::create_dir_all(&dir).unwrap();
+            let mark = fs::File::create(dir.join(IN_USE)).unwrap();
+            mark.set_modified(SystemTime::now() - Duration::from_secs(used_secs_ago))
+                .unwrap();
+            dir
+        };
+        let (keep, recent, old) = (folder("keep", 7200), folder("recent", 60), folder("old", 7200));
+        let other = root.join("someone-elses-folder");
+        fs::create_dir_all(&other).unwrap();
+        remove_stale_dirs(&root, &keep);
+        assert!(keep.is_dir(), "this build's own folder stays, however old");
+        assert!(recent.is_dir(), "a folder used within the hour stays");
+        assert!(!old.exists(), "a folder unused for two hours goes");
+        assert!(other.is_dir(), "only the cache's own folders are touched");
+        let _ = fs::remove_dir_all(&root);
     }
 
     #[test]
