@@ -13,9 +13,12 @@ MAX_TICK_MS=${MAX_TICK_MS:-80}
 MAX_P99_MS=${MAX_P99_MS:-60}
 MAX_MEAN_MS=${MAX_MEAN_MS:-8}
 MAX_RSS_MB=${MAX_RSS_MB:-256}
-SEEDS=${SEEDS:-"42 1337 2026"}
+# Unset gives the three seeds; set empty, no short runs.
+SEEDS=${SEEDS-"42 1337 2026"}
 # One long run of a single seed reaches the mature world, where a tick costs
-# about 5x the early game and the worst ticks are 100+ ms.
+# about 5x the early game and the worst ticks are 100+ ms. CI runs the short
+# seeds and the long run on separate runners: SEEDS="" skips the short runs,
+# LONG_TICKS=0 the long one.
 LONG_SEED=${LONG_SEED:-42}
 LONG_TICKS=${LONG_TICKS:-25000}
 MAX_LONG_TICK_MS=${MAX_LONG_TICK_MS:-300}
@@ -39,10 +42,17 @@ run_one() {
     --profile "$TMPDIR/$seed-$ticks.csv" --profile-every "$PROFILE_EVERY" >"$TMPDIR/$seed-$ticks.out" ||
     { echo "headless run failed (seed $seed, $ticks ticks)" >&2; exit 1; }
 }
+read -rd "" -a SEED_LIST <<<"$SEEDS" || true
+if [[ ${#SEED_LIST[@]} -eq 0 && "$LONG_TICKS" -le 0 ]]; then
+  echo "nothing to run: SEEDS is empty and LONG_TICKS is 0" >&2
+  exit 2
+fi
 for seed in $SEEDS; do
   run_one "$seed" "$TICKS"
 done
-run_one "$LONG_SEED" "$LONG_TICKS"
+if [[ "$LONG_TICKS" -gt 0 ]]; then
+  run_one "$LONG_SEED" "$LONG_TICKS"
+fi
 
 # check_run <seed> <ticks> <max_tick_ms> <max_p99_ms> <max_mean_ms>
 check_run() {
@@ -98,5 +108,7 @@ failed=0
 for seed in $SEEDS; do
   check_run "$seed" "$TICKS" "$MAX_TICK_MS" "$MAX_P99_MS" "$MAX_MEAN_MS" || failed=1
 done
-check_run "$LONG_SEED" "$LONG_TICKS" "$MAX_LONG_TICK_MS" "$MAX_LONG_P99_MS" "$MAX_LONG_MEAN_MS" || failed=1
+if [[ "$LONG_TICKS" -gt 0 ]]; then
+  check_run "$LONG_SEED" "$LONG_TICKS" "$MAX_LONG_TICK_MS" "$MAX_LONG_P99_MS" "$MAX_LONG_MEAN_MS" || failed=1
+fi
 exit "$failed"

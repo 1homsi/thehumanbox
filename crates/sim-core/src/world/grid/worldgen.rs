@@ -1114,7 +1114,10 @@ mod determinism {
 
     #[test]
     fn the_same_seed_builds_the_same_world() {
-        let (a, b) = (WorldGrid::new(42), WorldGrid::new(42));
+        // Generated twice: `WorldGrid::new` in tests reads a world it already made from disk.
+        let generate =
+            || WorldGrid::new_sized::<{ super::super::WIDTH }, { super::super::HEIGHT }>(42, false);
+        let (a, b) = (generate(), generate());
         assert!(a.tiles == b.tiles && a.biome == b.biome);
         assert_eq!(a.pool_centers, b.pool_centers);
     }

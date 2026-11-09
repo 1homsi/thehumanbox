@@ -72,6 +72,13 @@ export function Tooltip({ tip, children }: Props) {
       longPressTimer.current = null
     }
   }
+  // A long press still running when the control goes away would otherwise fire on a tooltip that no longer exists.
+  useEffect(
+    () => () => {
+      if (longPressTimer.current !== null) window.clearTimeout(longPressTimer.current)
+    },
+    [],
+  )
 
   const endTouch = () => {
     clearLongPressTimer()
