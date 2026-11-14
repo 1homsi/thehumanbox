@@ -297,7 +297,8 @@
     "refresh": "更新",
     "checkpointFailed": "現在の世界を保存できませんでした。更新は安全に取り消されました",
     "starTitle": "世界を楽しんでいますか？",
-    "starSub": "The Human Box は無料のオープンソースです。GitHub でスターを付けると、ほかの人が見つけやすくなります。",
+    "starSettlementTitle": "初めての集落！",
+    "starSub": "The Human Box は無料のオープンソースです。スターでより多くの人に届きます。無料の GitHub アカウントだけで参加できます。",
     "starCta": "GitHub でスターを付ける",
     "starLater": "あとで"
   },

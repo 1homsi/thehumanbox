@@ -297,7 +297,8 @@
     "refresh": "Atualizar",
     "checkpointFailed": "não foi possível salvar o mundo atual; a atualização foi cancelada com segurança",
     "starTitle": "Gostando do seu mundo?",
-    "starSub": "The Human Box é gratuito e de código aberto. Uma estrela no GitHub ajuda outras pessoas a encontrá-lo.",
+    "starSettlementTitle": "Seu primeiro assentamento!",
+    "starSub": "The Human Box é gratuito e de código aberto. Uma estrela ajuda outras pessoas a encontrá-lo — você só precisa de uma conta gratuita no GitHub.",
     "starCta": "Dar estrela no GitHub",
     "starLater": "Talvez depois"
   },

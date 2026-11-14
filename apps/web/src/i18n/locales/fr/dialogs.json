@@ -297,7 +297,8 @@
     "refresh": "Actualiser",
     "checkpointFailed": "le monde actuel n'a pas pu être sauvegardé ; l'actualisation pour la mise à jour a été annulée par sécurité",
     "starTitle": "Vous appréciez votre monde ?",
-    "starSub": "The Human Box est gratuit et open source. Une étoile sur GitHub aide d'autres personnes à le trouver.",
+    "starSettlementTitle": "Votre première colonie !",
+    "starSub": "The Human Box est gratuit et open source. Une étoile aide les autres à le découvrir — il vous faut seulement un compte GitHub gratuit.",
     "starCta": "Mettre une étoile sur GitHub",
     "starLater": "Peut-être plus tard"
   },

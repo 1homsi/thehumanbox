@@ -297,7 +297,8 @@
     "refresh": "刷新",
     "checkpointFailed": "无法保存当前世界，已安全取消更新刷新",
     "starTitle": "喜欢你的世界吗？",
-    "starSub": "The Human Box 免费且开源。在 GitHub 上点星可以帮助更多人找到它。",
+    "starSettlementTitle": "你的第一个定居点！",
+    "starSub": "The Human Box 免费且开源。点星能帮助更多人发现它，只需一个免费的 GitHub 账户。",
     "starCta": "在 GitHub 上点星",
     "starLater": "以后再说"
   },

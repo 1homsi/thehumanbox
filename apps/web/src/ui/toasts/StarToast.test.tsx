@@ -3,16 +3,21 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { REPO_URL } from '../../shared/links'
+import { trackEvent } from '../../shared/observability'
+import type { SettlementInfo, WorldState } from '../../shared/types'
 import { useUIStore } from '../../state/store'
 import { TOAST_RETRY_MS } from './screenBusy'
 import {
   LEGACY_STAR_PROMPT_KEY,
   STAR_DELAY_MIN_MS,
   STAR_MAX_ASKS,
+  STAR_MIN_PLAY_MS,
   STAR_PROMPT_KEY,
   STAR_REASK_AFTER_MS,
   StarToast,
 } from './StarToast'
+
+vi.mock('../../shared/observability', () => ({ trackEvent: vi.fn() }))
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
 afterAll(() => vi.unstubAllGlobals())
@@ -38,6 +43,7 @@ function state() {
 beforeEach(() => {
   vi.useFakeTimers()
   vi.spyOn(Math, 'random').mockReturnValue(0)
+  vi.mocked(trackEvent).mockClear()
   Object.defineProperty(window, 'localStorage', { value: memoryStorage(), configurable: true })
 })
 afterEach(() => {
@@ -49,25 +55,110 @@ afterEach(() => {
   if (flags.photoMode) useUIStore.getState().setViewFlag('photoMode', false)
 })
 
-function mount() {
+function mount(world: WorldState | null = null) {
   const host = document.createElement('div')
   document.body.append(host)
   const root = createRoot(host)
   roots.push(root)
-  act(() => root.render(<StarToast />))
+  act(() => root.render(<StarToast world={world} />))
+  return (next: WorldState | null) => act(() => root.render(<StarToast world={next} />))
 }
 const toast = () => document.querySelector('.star-toast')
 const wait = (ms: number) => act(() => void vi.advanceTimersByTime(ms))
+const shownCalls = () => vi.mocked(trackEvent).mock.calls.filter(([name]) => name === 'star_prompt_shown')
+
+function settlement(tier = 1): SettlementInfo {
+  return {
+    lineage_id: 'lineage-a',
+    name: 'Firstfolk',
+    tier,
+    tier_name: tier >= 1 ? 'camp' : 'wilderness',
+    center: [10, 10],
+    population: 10,
+    building_count: tier >= 1 ? 1 : 0,
+    capacity: tier >= 1 ? 4 : 0,
+    score: tier >= 1 ? 10 : 0,
+  }
+}
+
+function worldWith(settlements: SettlementInfo[] = [], tick = 0): WorldState {
+  return { tick, settlements } as WorldState
+}
+
+const timerHref = `${REPO_URL}?utm_source=thehumanbox&utm_medium=star_toast&utm_campaign=star_prompt_timer`
+const momentHref = `${REPO_URL}?utm_source=thehumanbox&utm_medium=star_toast&utm_campaign=star_prompt_first_settlement`
 
 describe('StarToast', () => {
-  it('asks once, after the first-visit delay, and links to the repository', () => {
+  it('uses the timer as a fallback and links to the tagged repository URL', () => {
     mount()
     wait(STAR_DELAY_MIN_MS - 1)
     expect(toast()).toBeNull()
     wait(1)
     expect(toast()).not.toBeNull()
-    expect(toast()?.querySelector('a')?.getAttribute('href')).toBe(REPO_URL)
+    expect(toast()?.querySelector('a')?.getAttribute('href')).toBe(timerHref)
     expect(state().asks).toBe(1)
+    expect(trackEvent).toHaveBeenCalledWith('star_prompt_shown', {
+      trigger: 'timer',
+      play_ms: STAR_DELAY_MIN_MS,
+      ask_number: 1,
+    })
+  })
+
+  it('shows at the first settlement and records the moment trigger', () => {
+    const update = mount(worldWith())
+    wait(STAR_MIN_PLAY_MS)
+    update(worldWith([settlement()], 600))
+    expect(toast()).not.toBeNull()
+    expect(toast()?.textContent).toContain('Your first settlement!')
+    expect(toast()?.querySelector('a')?.getAttribute('href')).toBe(momentHref)
+    expect(trackEvent).toHaveBeenCalledWith('star_prompt_shown', {
+      trigger: 'first_settlement',
+      play_ms: STAR_MIN_PLAY_MS,
+      ask_number: 1,
+    })
+    const link = toast()?.querySelector('a') as HTMLAnchorElement
+    link.addEventListener('click', (event) => event.preventDefault())
+    act(() => link.click())
+    expect(trackEvent).toHaveBeenCalledWith('star_prompt_clicked', { trigger: 'first_settlement' })
+  })
+
+  it('holds an early settlement until the minimum play time', () => {
+    const update = mount(worldWith())
+    update(worldWith([settlement()], 600))
+    wait(STAR_MIN_PLAY_MS - 1)
+    expect(toast()).toBeNull()
+    expect(shownCalls()).toHaveLength(0)
+    wait(1)
+    expect(toast()).not.toBeNull()
+    expect(shownCalls()[0]?.[1]).toMatchObject({ trigger: 'first_settlement', play_ms: STAR_MIN_PLAY_MS })
+  })
+
+  it('does not mistake a settlement already in a loaded world for a new moment', () => {
+    const update = mount(worldWith([settlement()], 4_000))
+    update(worldWith([settlement()], 4_100))
+    wait(STAR_MIN_PLAY_MS)
+    expect(toast()).toBeNull()
+    expect(shownCalls()).toHaveLength(0)
+  })
+
+  it('shows at most once when more moments and the fallback arrive', () => {
+    const update = mount(worldWith())
+    wait(STAR_MIN_PLAY_MS)
+    update(worldWith([settlement()], 600))
+    expect(toast()).not.toBeNull()
+    update(worldWith([settlement(), { ...settlement(), lineage_id: 'lineage-b' }], 1_200))
+    wait(STAR_DELAY_MIN_MS * 2)
+    expect(shownCalls()).toHaveLength(1)
+    expect(state().asks).toBe(1)
+  })
+
+  it('keeps the timer as the winner when it becomes due before the moment', () => {
+    const update = mount(worldWith())
+    wait(STAR_DELAY_MIN_MS)
+    expect(toast()).not.toBeNull()
+    update(worldWith([settlement()], 600))
+    expect(shownCalls()).toHaveLength(1)
+    expect(shownCalls()[0]?.[1]).toMatchObject({ trigger: 'timer' })
   })
 
   it('stays away while a dismissal is still in its cooldown', () => {
@@ -181,13 +272,14 @@ describe('StarToast', () => {
     expect(toast()).not.toBeNull()
   })
 
-  it('remembers whether the player starred or dismissed it', () => {
+  it('remembers whether the player starred or dismissed it and tags both outcomes', () => {
     mount()
     wait(STAR_DELAY_MIN_MS)
     act(() => (toast()?.querySelector('.desktop-toast-secondary') as HTMLButtonElement).click())
     expect(toast()).toBeNull()
     expect(state()).toMatchObject({ asks: 1 })
     expect(typeof state().dismissedAt).toBe('number')
+    expect(trackEvent).toHaveBeenCalledWith('star_prompt_dismissed', { trigger: 'timer' })
 
     window.localStorage.removeItem(STAR_PROMPT_KEY)
     mount()
@@ -197,5 +289,10 @@ describe('StarToast', () => {
     act(() => link.click())
     expect(toast()).toBeNull()
     expect(state().starred).toBe(true)
+    expect(trackEvent).toHaveBeenCalledWith('star_prompt_clicked', { trigger: 'timer' })
+
+    mount()
+    wait(STAR_DELAY_MIN_MS * 4)
+    expect(toast()).toBeNull()
   })
 })

@@ -876,7 +876,7 @@ function LiveApp() {
         <HeadlineTicker world={world ?? null} enabled={viewFlags.headlineTicker} />
 
         <DesktopDownloadToast />
-        <StarToast />
+        <StarToast world={world ?? null} />
         <WordSplitToast world={world ?? null} />
         <FamineWarningToast world={world ?? null} />
         <CommandPalette />
