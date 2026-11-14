@@ -24,6 +24,16 @@ export function RenameForm({ org }: { org: Pick<OrganismState, 'id' | 'name' | '
     }
   }, [])
 
+  // Mounted by a click on the map: the people panel may be opening, or already scrolled down its list.
+  // Focus and reveal the field here rather than leaning on autoFocus alone, so it is never off screen.
+  const input = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    const el = input.current
+    if (!el) return
+    el.scrollIntoView?.({ block: 'nearest' })
+    el.focus({ preventScroll: true })
+  }, [])
+
   const save = () => {
     if (pending) return
     const name = value.trim()
@@ -60,6 +70,7 @@ export function RenameForm({ org }: { org: Pick<OrganismState, 'id' | 'name' | '
       }}
     >
       <input
+        ref={input}
         autoFocus
         aria-label={t('panels.rename.label')}
         maxLength={MAX_NAME}
