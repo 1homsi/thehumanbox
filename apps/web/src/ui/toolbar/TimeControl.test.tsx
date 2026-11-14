@@ -188,6 +188,49 @@ describe('the lagging mark', () => {
     expect(q('.time-actual')).toBeNull()
   })
 
+  it('holds faster back while the world is behind, and flashes the real speed instead', () => {
+    const props = render({ speed: 40 })
+    runTicks([
+      [0, 0],
+      [1000, 50],
+      [2000, 100],
+    ])
+    const faster = q('[aria-label="faster"]')
+    expect(faster?.classList.contains('maxed')).toBe(true)
+    expect(faster?.getAttribute('aria-disabled')).toBe('true')
+    // Left enabled, so the tip saying why still shows on hover and focus.
+    expect(faster?.hasAttribute('disabled')).toBe(false)
+    vi.mocked(props.onPick).mockClear()
+    click(faster)
+    key('.')
+    expect(props.onPick).not.toHaveBeenCalled()
+    expect(q('.time-actual')?.classList.contains('nudged')).toBe(true)
+    // Slower and the speed list still work.
+    click(q('[aria-label="slower"]'))
+    expect(props.onPick).toHaveBeenLastCalledWith(
+      expect.objectContaining({ time: { control: 'speed', mult: 20 } }),
+    )
+    click(q('.time-speed-value'))
+    click(q('[aria-label="Speed 5000×"]'))
+    expect(props.onPick).toHaveBeenLastCalledWith(speedTools().find((t) => t.id === 'fast5000'))
+  })
+
+  it('lets faster step again once the world keeps up', () => {
+    const props = render({ speed: 40 })
+    runTicks([
+      [0, 0],
+      [1000, 333],
+      [2000, 667],
+    ])
+    const faster = q('[aria-label="faster"]')
+    expect(faster?.classList.contains('maxed')).toBe(false)
+    expect(faster?.hasAttribute('aria-disabled')).toBe(false)
+    click(faster)
+    expect(props.onPick).toHaveBeenLastCalledWith(
+      expect.objectContaining({ time: { control: 'speed', mult: 50 } }),
+    )
+  })
+
   it('stays quiet while the world keeps up', () => {
     render({ speed: 40 })
     // 333 ticks a second is 40×.

@@ -486,6 +486,7 @@
     "faster": "mais rápido",
     "fasterTo": "mais rápido · {speed}",
     "fastest": "Esta é a velocidade máxima.",
+    "maxed": "Já está o mais rápido que este computador consegue (cerca de {actual}). Escolha uma velocidade na lista para tentar mais alto mesmo assim.",
     "pausedAt": "pausado a {speed}",
     "speedAt": "velocidade {speed}",
     "chooseAny": "Escolha qualquer velocidade.",

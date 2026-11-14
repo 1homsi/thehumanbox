@@ -89,6 +89,11 @@ export function TimeControl({ paused, speed, onPick }: Props) {
   const lagging = !paused && achieved !== null && achieved < speed * LAGGING_SHARE
   const slower = nextSpeedStep(speed, -1)
   const faster = nextSpeedStep(speed, 1)
+  // Already behind the speed asked for: a faster step would only raise a target the machine cannot reach, so the
+  // press would look like it did nothing. Faster is held back, and a press of it points at the real speed instead.
+  // The speed list still takes any speed for someone who wants to try.
+  const maxed = lagging && faster !== null
+  const [nudges, setNudges] = useState(0)
 
   const togglePause = () =>
     onPick({
@@ -99,6 +104,10 @@ export function TimeControl({ paused, speed, onPick }: Props) {
       time: { control: paused ? 'resume' : 'pause' },
     })
   const step = (direction: 1 | -1) => {
+    if (direction > 0 && maxed) {
+      setNudges((n) => n + 1)
+      return
+    }
     const next = direction > 0 ? faster : slower
     if (next !== null) onPick(speedTool(next, direction))
   }
@@ -216,7 +225,8 @@ export function TimeControl({ paused, speed, onPick }: Props) {
             {formatSpeed(speed)}
           </span>
           {lagging && (
-            <small className="time-actual" aria-hidden="true">
+            // Keyed by the held-back presses, so each one replays the readout's flash.
+            <small key={nudges} className={clsx('time-actual', nudges > 0 && 'nudged')} aria-hidden="true">
               ≈{formatAchievedSpeed(achieved ?? 0)}
             </small>
           )}
@@ -226,20 +236,28 @@ export function TimeControl({ paused, speed, onPick }: Props) {
         tip={
           <Tip
             title={
-              faster === null
+              faster === null || maxed
                 ? t('dock.time.faster')
                 : t('dock.time.fasterTo', { speed: formatSpeed(faster) })
             }
-            body={faster === null ? t('dock.time.fastest') : lagNote}
+            body={
+              faster === null
+                ? t('dock.time.fastest')
+                : maxed
+                  ? t('dock.time.maxed', { actual: formatAchievedSpeed(achieved ?? 0) })
+                  : undefined
+            }
             how={FASTER_KEY}
           />
         }
       >
         <button
           type="button"
-          className="time-step"
+          className={clsx('time-step', maxed && 'maxed')}
           aria-label={t('dock.time.faster')}
           aria-keyshortcuts={FASTER_KEY}
+          // Not `disabled`: the tip saying why has to stay reachable by hover, long press and focus.
+          aria-disabled={maxed || undefined}
           disabled={faster === null}
           onClick={() => step(1)}
         >
