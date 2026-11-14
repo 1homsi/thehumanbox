@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { REPO_URL } from '../../shared/links'
 import { trackEvent } from '../../shared/observability'
+import type { WorldState } from '../../shared/types'
 import { ToolSprite } from '../toolbar/ToolSprite'
 import { screenBusy, TOAST_RETRY_MS } from './screenBusy'
 import { t } from '../../i18n'
@@ -8,12 +9,16 @@ import { t } from '../../i18n'
 export const STAR_PROMPT_KEY = 'thb-star-prompt-v2'
 /** v1 stored a bare 'shown' | 'dismissed' | 'starred'; only the starred outcome is carried over. */
 export const LEGACY_STAR_PROMPT_KEY = 'thb-star-prompt-v1'
+// A world must have been played for a little while before its first big moment can become an ask.
+export const STAR_MIN_PLAY_MS = 60_000
 // Late enough that the first minutes belong to the world, not to prompts.
 export const STAR_DELAY_MIN_MS = 3 * 60_000
 export const STAR_DELAY_MAX_MS = 5 * 60_000
 // A dismissal is not forever: ask again after a week, at most three times.
 export const STAR_REASK_AFTER_MS = 7 * 24 * 60 * 60_000
 export const STAR_MAX_ASKS = 3
+
+export type StarPromptTrigger = 'first_settlement' | 'timer'
 
 type StarPromptState = {
   asks: number
@@ -22,6 +27,12 @@ type StarPromptState = {
 }
 
 type ReadResult = { ok: true; state: StarPromptState | null } | { ok: false }
+
+type SettlementWatch = {
+  tick: number
+  hasData: boolean
+  seenSettlement: boolean
+}
 
 function writeState(state: StarPromptState): boolean {
   try {
@@ -70,40 +81,125 @@ function alreadyAsked(): boolean {
   return state.dismissedAt !== undefined && Date.now() - state.dismissedAt < STAR_REASK_AFTER_MS
 }
 
+function hasSettlement(world: WorldState): boolean {
+  return world.settlements?.some((settlement) => settlement.tier >= 1) ?? false
+}
+
 /**
  * Asks once per visit for a star on GitHub, up to three times over the player's lifetime,
- * with a week between dismissals. It turns up at a random moment a few minutes in, once the
- * player has had time to watch the world, and only when nothing else is on screen.
+ * with a week between dismissals. The first settlement is the preferred moment; the old
+ * three-to-five-minute timer remains as a fallback. Nothing is shown during the first minute
+ * or while another card is on screen.
  */
-export function StarToast() {
+export function StarToast({ world = null }: { world?: WorldState | null }) {
   const [visible, setVisible] = useState(false)
+  const [shownTrigger, setShownTrigger] = useState<StarPromptTrigger | null>(null)
+  const requestMoment = useRef<(trigger: StarPromptTrigger) => void>(() => undefined)
+  const settlementWatch = useRef<SettlementWatch | null>(null)
 
   useEffect(() => {
     if (alreadyAsked()) return
-    let timer = 0
+    const startedAt = Date.now()
+    let timer: number | null = null
+    let disposed = false
+    let settled = false
+    let pending: StarPromptTrigger | null = null
+
     const show = () => {
+      timer = null
+      const trigger = pending
+      if (disposed || settled || !trigger) return
+      const playMs = Date.now() - startedAt
+      if (playMs < STAR_MIN_PLAY_MS) {
+        timer = window.setTimeout(show, STAR_MIN_PLAY_MS - playMs)
+        return
+      }
       if (screenBusy()) {
         timer = window.setTimeout(show, TOAST_RETRY_MS)
         return
       }
       // Another window may have handled the prompt while this one waited.
-      if (alreadyAsked()) return
+      if (alreadyAsked()) {
+        settled = true
+        return
+      }
       const read = readState()
-      if (!read.ok) return
+      if (!read.ok) {
+        settled = true
+        return
+      }
       const asks = (read.state?.asks ?? 0) + 1
-      if (!writeState({ ...read.state, asks })) return
+      if (!writeState({ ...read.state, asks })) {
+        settled = true
+        return
+      }
+      settled = true
+      setShownTrigger(trigger)
       setVisible(true)
-      trackEvent('star_prompt_shown')
+      trackEvent('star_prompt_shown', {
+        trigger,
+        play_ms: Math.max(0, Math.round(playMs)),
+        ask_number: asks,
+      })
     }
+
+    const request = (trigger: StarPromptTrigger) => {
+      // The first due trigger owns this visit, even if its toast has to wait behind a modal.
+      if (disposed || settled || pending !== null) return
+      pending = trigger
+      if (timer !== null) {
+        window.clearTimeout(timer)
+        timer = null
+      }
+      show()
+    }
+
+    requestMoment.current = request
     timer = window.setTimeout(
-      show,
+      () => request('timer'),
       STAR_DELAY_MIN_MS + Math.random() * (STAR_DELAY_MAX_MS - STAR_DELAY_MIN_MS),
     )
-    return () => window.clearTimeout(timer)
+    return () => {
+      disposed = true
+      requestMoment.current = () => undefined
+      if (timer !== null) window.clearTimeout(timer)
+    }
   }, [])
 
-  if (!visible) return null
+  useEffect(() => {
+    if (!world) {
+      settlementWatch.current = null
+      return
+    }
+    const previous = settlementWatch.current
+    const settlements = world.settlements
+    const found = hasSettlement(world)
+    // The first census is a baseline, not news. This is what keeps a loaded save (and a world
+    // that was already running when the page opened) from immediately producing a star prompt.
+    if (previous === null || world.tick < previous.tick || (!previous.hasData && settlements !== undefined)) {
+      settlementWatch.current = {
+        tick: world.tick,
+        hasData: settlements !== undefined,
+        seenSettlement: found,
+      }
+      return
+    }
+    if (settlements === undefined) {
+      settlementWatch.current = { ...previous, tick: world.tick }
+      return
+    }
+    const firstSettlement = previous.hasData && !previous.seenSettlement && found
+    settlementWatch.current = {
+      tick: world.tick,
+      hasData: true,
+      // Once a settlement has been seen, a later decline and refounding is not another first moment.
+      seenSettlement: previous.seenSettlement || found,
+    }
+    if (firstSettlement) requestMoment.current('first_settlement')
+  }, [world])
 
+  if (!visible || !shownTrigger) return null
+  const trigger = shownTrigger
   const dismiss = () => {
     const read = readState()
     // A star recorded in another tab wins: closing the stale toast must not clear it.
@@ -112,9 +208,10 @@ export function StarToast() {
       writeState({ asks, dismissedAt: Date.now() })
     }
     setVisible(false)
-    trackEvent('star_prompt_dismissed')
+    trackEvent('star_prompt_dismissed', { trigger })
   }
 
+  const href = `${REPO_URL}?utm_source=thehumanbox&utm_medium=star_toast&utm_campaign=star_prompt_${trigger}`
   return (
     <div className="desktop-toast star-toast" role="status" aria-live="polite">
       <button className="desktop-toast-close" aria-label={t('dialogs.toast.dismiss')} onClick={dismiss}>
@@ -124,13 +221,17 @@ export function StarToast() {
         <span className="star-toast-star" aria-hidden="true">
           <ToolSprite icon="⭐" size={28} />
         </span>
-        <div className="desktop-toast-title">{t('dialogs.toast.starTitle')}</div>
+        <div className="desktop-toast-title">
+          {t(
+            trigger === 'first_settlement' ? 'dialogs.toast.starSettlementTitle' : 'dialogs.toast.starTitle',
+          )}
+        </div>
       </div>
       <div className="desktop-toast-sub">{t('dialogs.toast.starSub')}</div>
       <div className="desktop-toast-actions">
         <a
           className="desktop-toast-primary"
-          href={REPO_URL}
+          href={href}
           target="_blank"
           rel="noreferrer"
           onClick={() => {
@@ -138,7 +239,7 @@ export function StarToast() {
             const asks = read.ok ? (read.state?.asks ?? 1) : 1
             writeState({ asks, starred: true })
             setVisible(false)
-            trackEvent('star_prompt_clicked')
+            trackEvent('star_prompt_clicked', { trigger })
           }}
         >
           <span className="star-toast-glyph" aria-hidden="true">

@@ -297,7 +297,8 @@
     "refresh": "Yenile",
     "checkpointFailed": "mevcut dünya kaydedilemedi; güncelleme yenilemesi güvenli şekilde iptal edildi",
     "starTitle": "Dünyandan memnun musun?",
-    "starSub": "The Human Box ücretsiz ve açık kaynaklıdır. GitHub'da yıldız vermek, başkalarının onu bulmasına yardımcı olur.",
+    "starSettlementTitle": "İlk yerleşkeniz!",
+    "starSub": "The Human Box ücretsiz ve açık kaynaklıdır. Yıldız vererek başkalarının onu bulmasına yardımcı olun; ücretsiz bir GitHub hesabı yeterli.",
     "starCta": "GitHub'da yıldız ver",
     "starLater": "Belki sonra"
   },

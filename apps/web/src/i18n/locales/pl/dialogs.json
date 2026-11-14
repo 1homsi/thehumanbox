@@ -305,7 +305,8 @@
     "refresh": "Odśwież",
     "checkpointFailed": "nie udało się zapisać bieżącego świata; odświeżenie aktualizacji zostało bezpiecznie anulowane",
     "starTitle": "Podoba ci się twój świat?",
-    "starSub": "The Human Box jest darmowy i open source. Gwiazdka na GitHubie pomaga innym go znaleźć.",
+    "starSettlementTitle": "Twoja pierwsza osada!",
+    "starSub": "The Human Box jest darmowy i open source. Gwiazdka pomaga innym go znaleźć — wystarczy darmowe konto na GitHubie.",
     "starCta": "Daj gwiazdkę na GitHubie",
     "starLater": "Może później"
   },

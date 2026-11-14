@@ -309,7 +309,8 @@
     "refresh": "Refresh",
     "checkpointFailed": "could not checkpoint the current world; update refresh was cancelled safely",
     "starTitle": "Enjoying your world?",
-    "starSub": "The Human Box is free and open source. A star on GitHub helps other people find it.",
+    "starSettlementTitle": "Your first settlement!",
+    "starSub": "The Human Box is free and open source. A star helps others find it — all you need is a free GitHub account.",
     "starCta": "Star on GitHub",
     "starLater": "Maybe later"
   },
