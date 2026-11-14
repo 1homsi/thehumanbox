@@ -5,7 +5,6 @@ import { lineageColor, cbColor } from '../../shared/constants'
 import { useUIStore } from '../../state/store'
 import { useOrganism, useWorldStore } from '../../state/worldStore'
 import { Tooltip } from '../toolbar/Tooltip'
-import { RenameForm } from './RenameForm'
 import { ageInYears } from '../../game/model/calendar'
 import { shownGeneration } from '../../game/model/generations'
 import { formatNumber, t } from '../../i18n'
@@ -47,7 +46,6 @@ function OrgCardImpl({ orgId }: OrgCardProps) {
   const openConvo = useUIStore((s) => s.openConvo)
   const onTrack = useCallback(() => orgId && followOrg(orgId), [orgId, followOrg])
   const onConvos = useCallback(() => orgId && openConvo(orgId), [orgId, openConvo])
-  const renamingOrgId = useUIStore((s) => s.renamingOrgId)
   const startRename = useUIStore((s) => s.startRename)
 
   if (!org) return null
@@ -175,7 +173,6 @@ function OrgCardImpl({ orgId }: OrgCardProps) {
         </span>
       </div>
 
-      {renamingOrgId === org.id && <RenameForm org={org} />}
       {org.attracted_to && !org.partner_id && (
         <Tooltip tip={t('person.card.attractionTip')}>
           <div className="org-attraction" style={{ cursor: 'default' }}>

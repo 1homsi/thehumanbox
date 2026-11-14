@@ -7,6 +7,7 @@ import { lazyWithRetry as lazy } from '../../shared/lazyWithRetry'
 import { shownGeneration } from '../../game/model/generations'
 import { ageInYears } from '../../game/model/calendar'
 import { formatNumber, t } from '../../i18n'
+import { RenameForm } from './RenameForm'
 
 // The person cards and the detail view (with the life-story modal) are only drawn
 // once the drawer is open, so they ship as their own chunk instead of in the first
@@ -49,6 +50,7 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
   const throttledLive = useThrottledValue(liveOrgs)
   const throttledDead = useThrottledValue(deadOrgs)
   const panelOpen = useUIStore((s) => s.panelOpen)
+  const renamingOrgId = useUIStore((s) => s.renamingOrgId)
   const followOrgId = useUIStore((s) => s.followOrgId)
   const selectOrg = useUIStore((s) => s.selectOrg)
   const followOrg = useUIStore((s) => s.followOrg)
@@ -75,6 +77,17 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
     for (const o of throttledDead) knownIds.add(o.id)
   }
   const starredGone = panelOpen && showStarredOnly ? starredOrgIds.filter((id) => !knownIds.has(id)) : []
+  // The name tool opens the panel on someone who may be anywhere in the list: past the
+  // first page of cards, or not drawn at all while a chunk loads. The field therefore
+  // lives at the top of the panel, not inside that person's card.
+  const renamingOrg =
+    renamingOrgId == null
+      ? null
+      : selectedOrg?.id === renamingOrgId
+        ? selectedOrg
+        : (liveOrgs.find((o) => o.id === renamingOrgId) ??
+          deadOrgs.find((o) => o.id === renamingOrgId) ??
+          null)
 
   useEffect(() => {
     setVisibleLimit(LIVE_PAGE_SIZE)
@@ -84,6 +97,14 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
     <>
       {panelOpen && <div className="panel-overlay" onClick={togglePanel} />}
       <aside data-tour="right-panel" className={clsx('panel', 'panel-right', panelOpen && 'open')}>
+        {panelOpen && renamingOrg && (
+          <div className="org-card org-rename-panel">
+            <div className="org-header">
+              <span className="org-name">{personName(renamingOrg)}</span>
+            </div>
+            <RenameForm key={renamingOrg.id} org={renamingOrg} />
+          </div>
+        )}
         {panelOpen && (
           <Suspense fallback={null}>
             {selectedOrg && (

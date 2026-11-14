@@ -47,6 +47,14 @@ function submitName(host: HTMLElement, name: string) {
 }
 
 describe('RenameForm', () => {
+  it('focuses its field and brings it into view as it opens', () => {
+    const reveal = vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(() => undefined)
+    const host = mount()
+    expect(document.activeElement).toBe(host.querySelector('input'))
+    expect(reveal).toHaveBeenCalled()
+    reveal.mockRestore()
+  })
+
   it('closes once the world saves the name', async () => {
     vi.mocked(sendSandboxCommand).mockResolvedValue(true)
     const host = mount()

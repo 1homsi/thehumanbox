@@ -252,6 +252,16 @@
   padding: 6px 10px;
 }
 
+/* The name field the name tool opens: kept at the top of the panel, above the person's
+   details and the card list, so it is visible wherever that person sits in the list. */
+.org-rename-panel {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin-bottom: 6px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+}
+
 .org-header {
   display: flex;
   align-items: baseline;
