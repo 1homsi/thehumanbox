@@ -3,6 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { FamineWarningToast } from './FamineWarningToast'
+import { TribeCard } from '../panels/TribeCard'
 import { useCameraFocus } from '../../state/camera-focus'
 import { useUIStore } from '../../state/store'
 import { useTribeFollow } from '../../state/tribe-follow'
@@ -146,6 +147,36 @@ describe('FamineWarningToast', () => {
     expect(host.querySelector('.famine-toast')?.textContent).toContain(
       t('panels.famine.risk', { name: 'Ash' }),
     )
+  })
+
+  it('does not cover an open tribe card, and warns once the card is closed', () => {
+    // The warning is drawn at the top centre, where the tribe card is. While a card was open its × sat
+    // under the warning's "go to" button, so a click there did not close the card at all.
+    const cardHost = document.createElement('div')
+    document.body.append(cardHost)
+    const cardRoot = createRoot(cardHost)
+    roots.push(cardRoot)
+    act(() => useUIStore.setState({ focus: 'lineage:a' }))
+    act(() =>
+      cardRoot.render(
+        <TribeCard
+          world={world(100, 0.8)}
+          onAnswer={() => {}}
+          onTool={() => {}}
+          onRename={() => Promise.resolve(true)}
+          onTeach={() => {}}
+        />,
+      ),
+    )
+    expect(cardHost.querySelector('.tribe-card')).not.toBeNull()
+
+    const { host, rerender } = mount(world(100, 0.8))
+    rerender(world(200, 0.1))
+    expect(host.querySelector('.famine-toast')).toBeNull()
+
+    // Closing the card (its × sets the focus to 'all') lets the waiting warning through at once.
+    act(() => useUIStore.setState({ focus: 'all' }))
+    expect(host.querySelector('.famine-toast')).not.toBeNull()
   })
 
   it('a tribe that starved out opens its fallen card and takes the camera to where it ended', () => {

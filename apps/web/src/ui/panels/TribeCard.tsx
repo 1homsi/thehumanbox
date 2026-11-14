@@ -264,6 +264,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
         <TribeName key={status.id} lineage={status.id} name={status.name} onRename={onRename} />
         <FollowTribe lineage={status.id} />
         <button
+          type="button"
           className="tribe-card-close"
           aria-label={t('panels.tribe.close')}
           onClick={() => setFocus('all')}

@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { TribeCard } from './TribeCard'
 import { useUIStore } from '../../state/store'
 import { useWorldStore } from '../../state/worldStore'
+import { useTribeFollow } from '../../state/tribe-follow'
 import { t } from '../../i18n'
 import type { OrganismState, WorldState } from '../../shared/types'
 
@@ -73,6 +74,24 @@ function typeInto(input: HTMLInputElement, value: string) {
 }
 
 describe('TribeCard', () => {
+  it('closes on one press of the ×, without following the tribe', () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    roots.push(root)
+
+    act(() => useUIStore.setState({ focus: 'lineage:a' }))
+    act(() => root.render(card(world(['a', 'b']))))
+    const close = host.querySelector<HTMLButtonElement>('.tribe-card-close')!
+    expect(close.getAttribute('type')).toBe('button')
+    act(() => close.click())
+
+    expect(useUIStore.getState().focus).toBe('all')
+    act(() => root.render(card(world(['a', 'b']))))
+    expect(host.querySelector('.tribe-card')).toBeNull()
+    expect(useTribeFollow.getState().followed).not.toContain('a')
+  })
+
   it('does not carry a rename draft over to another tribe', () => {
     const host = document.createElement('div')
     document.body.append(host)
