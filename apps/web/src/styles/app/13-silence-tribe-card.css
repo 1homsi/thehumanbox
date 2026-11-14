@@ -54,17 +54,51 @@
   font-weight: 700;
   color: #ffe0a0;
 }
+/* The star and the ×: plain glyphs on the wood, not grey browser buttons. */
+.tribe-card-follow,
 .tribe-card-close {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  padding: 0;
   border: 0;
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 14px;
+  line-height: 1;
   cursor: pointer;
+}
+.tribe-card-follow {
+  width: 22px;
+  height: 22px;
+  font-size: 13px;
+  opacity: 0.75;
+}
+.tribe-card-follow.on {
+  color: #ffd27a;
+  opacity: 1;
+}
+/* The × was a bare 14px glyph right beside the star: presses aimed at it landed on the card, or on the star,
+ * and players pressed again and again (#952). It now takes the card's top-right corner, 28px square (36px for
+ * a finger), with the extra reaching into the card's padding so the head row keeps its height, and a gap
+ * that keeps it clear of the star. */
+.tribe-card-close {
+  width: 28px;
+  height: 28px;
+  margin: -6px -10px -6px 4px;
+  font-size: 16px;
   opacity: 0.7;
 }
+.tribe-card-follow:hover,
 .tribe-card-close:hover {
   opacity: 1;
+}
+@media (pointer: coarse) {
+  .tribe-card-close {
+    width: 36px;
+    height: 36px;
+    margin: -8px -10px -8px 4px;
+  }
 }
 .tribe-card-sub {
   margin: 2px 0 6px;

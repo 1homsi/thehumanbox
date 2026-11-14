@@ -9,6 +9,7 @@ export function FollowTribe({ lineage }: { lineage: string }) {
   const label = following ? t('panels.tribe.unfollow') : t('panels.tribe.follow')
   return (
     <button
+      type="button"
       className={clsx('tribe-card-follow', following && 'on')}
       aria-pressed={following}
       aria-label={label}
