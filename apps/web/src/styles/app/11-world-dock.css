@@ -385,6 +385,14 @@
   cursor: default;
   opacity: 0.35;
 }
+/* Faster while the world is already behind: dimmed, since a press cannot speed it up. */
+.time-step.maxed {
+  cursor: default;
+  opacity: 0.35;
+}
+.time-step.maxed:hover {
+  color: var(--bar-dim);
+}
 .time-step:last-of-type {
   margin-right: 6px;
 }
@@ -437,6 +445,19 @@
   color: #e0894a;
   font-size: 9px;
   font-weight: 700;
+}
+/* A held-back press of faster flashes the real speed, so the press still answers. */
+.time-actual.nudged {
+  animation: time-actual-nudged 0.6s ease-out;
+}
+@keyframes time-actual-nudged {
+  0% {
+    color: #ffd2a8;
+    transform: scale(1.4);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 /* The speeds, in a framed wood panel like the header's ⋯ menu. */
 .time-speed-list {

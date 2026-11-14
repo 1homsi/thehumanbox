@@ -486,6 +486,7 @@
     "faster": "빠르게",
     "fasterTo": "빠르게 · {speed}",
     "fastest": "가장 빠른 속도입니다.",
+    "maxed": "이미 이 컴퓨터가 낼 수 있는 최대 속도입니다(약 {actual}). 그래도 더 올리려면 목록에서 속도를 고르세요.",
     "pausedAt": "{speed} 속도에서 일시 정지됨",
     "speedAt": "속도 {speed}",
     "chooseAny": "원하는 속도를 고르세요.",

@@ -486,6 +486,7 @@
     "faster": "daha hızlı",
     "fasterTo": "daha hızlı · {speed}",
     "fastest": "Bu en yüksek hız.",
+    "maxed": "Bu bilgisayar zaten olabildiğince hızlı (yaklaşık {actual}). Yine de daha yükseğini denemek için listeden bir hız seç.",
     "pausedAt": "{speed} hızında duraklatıldı",
     "speedAt": "hız {speed}",
     "chooseAny": "Herhangi bir hız seçin.",
