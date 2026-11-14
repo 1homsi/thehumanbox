@@ -16,7 +16,7 @@ import { getOwnWorldSeed } from '../../simulation/worldSource'
 import { useWorldReplaced } from '../../state/world-replaced'
 import { screenBusy, TOAST_RETRY_MS } from './screenBusy'
 import './famine-toast.css'
-import { tribeFocus } from '../../shared/viewerSelection'
+import { focusedTribe, tribeFocus } from '../../shared/viewerSelection'
 import { extinctionOf } from '../../game/model/tribe-end'
 
 /** How long a warning stays up before it goes away on its own. */
@@ -40,8 +40,9 @@ const STAGE_KEYS = {
 
 /**
  * Escalating famine warnings for tribes: at risk, losing people, then gone. Each names its tribe and a click
- * takes the camera to it and opens its card. Warnings wait for an empty screen, like the other notices. With
- * "warn only about followed tribes" on, only the tribes the player follows are warned about.
+ * takes the camera to it and opens its card. Warnings wait for an empty screen, like the other notices, and for a
+ * tribe's card to close (the card is drawn where the warning goes). With "warn only about followed tribes" on,
+ * only the tribes the player follows are warned about.
  */
 export function FamineWarningToast({ world }: { world: WorldState | null }) {
   const watch = useRef<FamineWatch | null>(null)
@@ -106,7 +107,12 @@ export function FamineWarningToast({ world }: { world: WorldState | null }) {
     return () => window.clearInterval(timer)
   }, [])
 
-  const shown = queue[0] && !screenBusy() ? queue[0] : null
+  // A warning is drawn at the top centre, where a focused tribe's card is: while one is open the warning would sit
+  // on the card's header and cover its ×, so the click that should close the card landed on the warning's own
+  // button instead. The focus is read here so that closing the card shows the waiting warning at once.
+  const focus = useUIStore((s) => s.focus)
+  const tribeCardOpen = focusedTribe(focus) !== null
+  const shown = queue[0] && !screenBusy() && !tribeCardOpen ? queue[0] : null
 
   // The shown warning goes away on its own after a while.
   useEffect(() => {
