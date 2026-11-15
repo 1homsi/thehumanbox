@@ -4,10 +4,10 @@
   <b>A free browser sim where Stone Age tribes invent, fight and evolve — no install needed.</b>
 </p>
 
-<h2 align="center"><a href="https://thehumanbox.com">▶ Play in your browser</a></h2>
+<h2 align="center"><a href="https://thehumanbox.com/?utm_source=github&utm_medium=readme">▶ Play in your browser</a></h2>
 
 <p align="center">
-  <a href="https://thehumanbox.com"><img src="docs/readme-hero.gif" alt="A Stone Age tribe builds its first settlement in The Human Box" width="800" /></a>
+  <a href="https://thehumanbox.com/?utm_source=github&utm_medium=readme"><img src="docs/readme-hero.gif" alt="A Stone Age tribe builds its first settlement in The Human Box" width="800" /></a>
 </p>
 
 <p align="center">
