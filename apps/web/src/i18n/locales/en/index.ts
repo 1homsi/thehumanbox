@@ -10,7 +10,8 @@ import model from './model.json'
 import panels from './panels.json'
 import person from './person.json'
 import settings from './settings.json'
+import share from './share.json'
 import tour from './tour.json'
 import updates from './updates.json'
 
-export default { common, dialogs, dock, header, model, panels, person, settings, tour, updates }
+export default { common, dialogs, dock, header, model, panels, person, settings, share, tour, updates }

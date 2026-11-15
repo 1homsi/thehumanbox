@@ -1,0 +1,26 @@
+{
+  "menu": "udostępnij",
+  "menuTip": "Udostępnij ten świat jako obraz",
+  "shareWorld": "Udostępnij ten świat",
+  "shareText": "Mój świat w The Human Box — {line}.",
+  "toastTitle": "Skopiowano! Wklej gdziekolwiek",
+  "toastSub": "Obraz jest w schowku. Słowa i link czekają poniżej.",
+  "copyText": "Kopiuj tekst",
+  "copied": "Skopiowano",
+  "card": {
+    "year": "Rok {year}",
+    "play": "zagraj na {url}",
+    "people": {
+      "one": "{count} osoba",
+      "few": "{count} osoby",
+      "many": "{count} osób",
+      "other": "{count} osoby"
+    },
+    "tribes": {
+      "one": "{count} plemię",
+      "few": "{count} plemiona",
+      "many": "{count} plemion",
+      "other": "{count} plemienia"
+    }
+  }
+}

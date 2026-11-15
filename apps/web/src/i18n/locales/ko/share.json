@@ -1,0 +1,20 @@
+{
+  "menu": "공유",
+  "menuTip": "이 세계를 그림으로 공유",
+  "shareWorld": "이 세계 공유",
+  "shareText": "The Human Box 속 나의 세계 — {line}.",
+  "toastTitle": "복사했습니다! 어디에나 붙여넣으세요",
+  "toastSub": "그림이 클립보드에 있습니다. 말과 링크는 아래에 있습니다.",
+  "copyText": "텍스트 복사",
+  "copied": "복사됨",
+  "card": {
+    "year": "{year}년",
+    "play": "{url}에서 플레이",
+    "people": {
+      "other": "{count}명"
+    },
+    "tribes": {
+      "other": "{count}개 부족"
+    }
+  }
+}

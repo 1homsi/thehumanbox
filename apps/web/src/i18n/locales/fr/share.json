@@ -1,0 +1,22 @@
+{
+  "menu": "partager",
+  "menuTip": "Partager ce monde en image",
+  "shareWorld": "Partager ce monde",
+  "shareText": "Mon monde dans The Human Box — {line}.",
+  "toastTitle": "Copié ! Collez-le où vous voulez",
+  "toastSub": "L'image est dans votre presse-papiers. Les mots et le lien sont prêts ci-dessous.",
+  "copyText": "Copier le texte",
+  "copied": "Copié",
+  "card": {
+    "year": "An {year}",
+    "play": "jouer sur {url}",
+    "people": {
+      "one": "{count} personne",
+      "other": "{count} personnes"
+    },
+    "tribes": {
+      "one": "{count} tribu",
+      "other": "{count} tribus"
+    }
+  }
+}
