@@ -84,7 +84,7 @@ describe('sharing a world card', () => {
       expect(canShare).toHaveBeenCalledWith({ files: [expect.any(File)] })
     } finally {
       if (original) Object.defineProperty(navigator, 'canShare', original)
-      else delete (navigator as Navigator & { canShare?: unknown }).canShare
+      else Reflect.deleteProperty(navigator, 'canShare')
     }
   })
 
