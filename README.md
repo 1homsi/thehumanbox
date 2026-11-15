@@ -1,30 +1,33 @@
-<p align="center">
-  <a href="https://thehumanbox.com"><img src="docs/readme-hero.gif" alt="The Human Box: tribes think, invent language, build cities, found religions, wage war, sign treaties and invent computers" width="100%" /></a>
-</p>
-
 <h1 align="center">The Human Box</h1>
 
 <p align="center">
-  <b>A free civilization sandbox in your browser.</b><br />
-  Tribes invent their own languages, cultures and wars, from the stone age to computers.<br />
-  Nothing is scripted. Only world laws.
+  <b>A free browser sim where Stone Age tribes invent, fight and evolve — no install needed.</b>
+</p>
+
+<h2 align="center"><a href="https://thehumanbox.com">▶ Play in your browser</a></h2>
+
+<p align="center">
+  <a href="https://thehumanbox.com"><img src="docs/readme-hero.gif" alt="A Stone Age tribe builds its first settlement in The Human Box" width="800" /></a>
 </p>
 
 <p align="center">
-  <a href="https://thehumanbox.com"><b>▶ Play now at thehumanbox.com</b></a>
-  &nbsp;·&nbsp;
+  If the tribes made you smile, a star helps more people find it.
+  <a href="https://github.com/1homsi/thehumanbox/stargazers">★ Star the repo</a>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-c9a227" height="20" /></a>
+  <img alt="Rust compiled to WebAssembly" src="https://img.shields.io/badge/Rust-%E2%86%92%20WASM-b7410e?logo=rust" height="20" />
+  <a href="https://github.com/1homsi/thehumanbox/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/1homsi/thehumanbox?color=c9a227" height="20" /></a>
+  <a href="https://github.com/1homsi/thehumanbox/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/1homsi/thehumanbox?style=social" height="20" /></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/1homsi/thehumanbox/releases/latest">Desktop app</a>
   &nbsp;·&nbsp;
   <a href="docs/ARCHITECTURE.md">How it works</a>
   &nbsp;·&nbsp;
   <a href="docs/FAQ.md">FAQ</a>
-</p>
-
-<p align="center">
-  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-c9a227" /></a>
-  <img alt="Rust compiled to WebAssembly" src="https://img.shields.io/badge/Rust-%E2%86%92%20WASM-b7410e?logo=rust" />
-  <a href="https://github.com/1homsi/thehumanbox/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/1homsi/thehumanbox?color=c9a227" /></a>
-  <a href="https://github.com/1homsi/thehumanbox/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/1homsi/thehumanbox?style=social" /></a>
 </p>
 
 Autonomous people learn, form tribes, develop language, build cities, found
