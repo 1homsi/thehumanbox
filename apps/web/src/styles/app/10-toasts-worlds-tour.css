@@ -436,3 +436,26 @@
   cursor: pointer;
   font-family: inherit;
 }
+
+/* ── Share card copied ────────────────────────────────────────────────── */
+.share-toast-text {
+  max-height: 56px;
+  overflow-y: auto;
+  margin-bottom: 6px;
+  color: var(--px-text);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.share-toast-link {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--px-gold-text);
+  font-size: 11px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.share-toast-link:hover {
+  color: #fff3d6;
+}

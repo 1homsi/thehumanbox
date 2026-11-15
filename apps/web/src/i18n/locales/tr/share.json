@@ -1,0 +1,22 @@
+{
+  "menu": "paylaş",
+  "menuTip": "Bu dünyayı resim olarak paylaş",
+  "shareWorld": "Bu dünyayı paylaş",
+  "shareText": "The Human Box'taki dünyam — {line}.",
+  "toastTitle": "Kopyalandı! İstediğin yere yapıştır",
+  "toastSub": "Resim panonda. Sözler ve bağlantı aşağıda hazır.",
+  "copyText": "Metni kopyala",
+  "copied": "Kopyalandı",
+  "card": {
+    "year": "Yıl {year}",
+    "play": "{url} adresinde oyna",
+    "people": {
+      "one": "{count} kişi",
+      "other": "{count} kişi"
+    },
+    "tribes": {
+      "one": "{count} kabile",
+      "other": "{count} kabile"
+    }
+  }
+}

@@ -56,6 +56,7 @@ import { useCameraFocus } from './state/camera-focus'
 import type { PrayerInfo } from './shared/types'
 import { DesktopDownloadToast } from './ui/toasts/DesktopDownloadToast'
 import { StarToast } from './ui/toasts/StarToast'
+import { ShareToast } from './ui/toasts/ShareToast'
 import { WordSplitToast } from './ui/toasts/WordSplitToast'
 import { FamineWarningToast } from './ui/toasts/FamineWarningToast'
 import { CommandPalette } from './ui/toolbar/CommandPalette'
@@ -877,6 +878,7 @@ function LiveApp() {
 
         <DesktopDownloadToast />
         <StarToast world={world ?? null} />
+        <ShareToast />
         <WordSplitToast world={world ?? null} />
         <FamineWarningToast world={world ?? null} />
         <CommandPalette />

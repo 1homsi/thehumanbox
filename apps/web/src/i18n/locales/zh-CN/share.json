@@ -1,0 +1,20 @@
+{
+  "menu": "分享",
+  "menuTip": "将这个世界作为图片分享",
+  "shareWorld": "分享这个世界",
+  "shareText": "我在 The Human Box 中的世界 — {line}。",
+  "toastTitle": "已复制！可粘贴到任何地方",
+  "toastSub": "图片已在剪贴板中。文字和链接也已在下方准备好。",
+  "copyText": "复制文字",
+  "copied": "已复制",
+  "card": {
+    "year": "第{year}年",
+    "play": "在 {url} 游玩",
+    "people": {
+      "other": "{count} 人"
+    },
+    "tribes": {
+      "other": "{count} 个部落"
+    }
+  }
+}

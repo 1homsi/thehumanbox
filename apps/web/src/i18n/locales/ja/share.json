@@ -1,0 +1,20 @@
+{
+  "menu": "共有",
+  "menuTip": "この世界を画像として共有",
+  "shareWorld": "この世界を共有",
+  "shareText": "The Human Box の私の世界 — {line}。",
+  "toastTitle": "コピーしました！どこにでも貼り付けられます",
+  "toastSub": "画像はクリップボードにあります。言葉とリンクは下にあります。",
+  "copyText": "テキストをコピー",
+  "copied": "コピーしました",
+  "card": {
+    "year": "{year}年",
+    "play": "{url} でプレイ",
+    "people": {
+      "other": "{count}人"
+    },
+    "tribes": {
+      "other": "{count}の部族"
+    }
+  }
+}

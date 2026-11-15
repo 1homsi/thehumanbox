@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { useUIStore, useViewFlag } from '../../state/store'
 import { SHORTCUT_HELP } from '../../game/model/shortcuts'
 import { saveMapPicture } from '../../shared/mapPicture'
+import { shareWorldCard } from '../../shared/shareWorld'
 import { useWorldStore } from '../../state/worldStore'
 import { Tooltip } from './Tooltip'
 import { ToolSprite } from './ToolSprite'
@@ -375,6 +376,18 @@ export function MoreDropdown({
           }
         >
           <button className="lang-btn">⌨ {t('dock.more.keys')}</button>
+        </Tooltip>
+        <Tooltip tip={t('share.menuTip')}>
+          <button
+            className="lang-btn"
+            onClick={() => {
+              const world = useWorldStore.getState().world
+              if (world) void shareWorldCard(world)
+              closeMore()
+            }}
+          >
+            ↗ {t('share.menu')}
+          </button>
         </Tooltip>
         <Tooltip tip={t('dock.more.pictureTip')}>
           <button

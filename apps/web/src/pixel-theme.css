@@ -410,6 +410,23 @@
 .star-toast-head .desktop-toast-title {
   margin: 0;
 }
+/* A first settlement is worth showing off: a quiet second offer under the star. */
+.star-toast-share {
+  margin-top: 9px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--px-gold-text);
+  font-family: var(--dialog-font);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.star-toast-share:hover {
+  color: #fff3d6;
+}
 .star-toast-glyph {
   font-size: 15px;
   line-height: 1;

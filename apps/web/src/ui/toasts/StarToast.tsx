@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { REPO_URL } from '../../shared/links'
 import { trackEvent } from '../../shared/observability'
+import { shareWorldCard } from '../../shared/shareWorld'
 import type { WorldState } from '../../shared/types'
 import { ToolSprite } from '../toolbar/ToolSprite'
 import { screenBusy, TOAST_RETRY_MS } from './screenBusy'
@@ -251,6 +252,17 @@ export function StarToast({ world = null }: { world?: WorldState | null }) {
           {t('dialogs.toast.starLater')}
         </button>
       </div>
+      {trigger === 'first_settlement' && world && (
+        <button
+          className="star-toast-share"
+          onClick={() => {
+            setVisible(false)
+            void shareWorldCard(world)
+          }}
+        >
+          ↗ {t('share.shareWorld')}
+        </button>
+      )}
     </div>
   )
 }
