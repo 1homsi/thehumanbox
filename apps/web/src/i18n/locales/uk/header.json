@@ -174,6 +174,40 @@
         "other": "людей втратило їжу: {count}"
       }
     },
+    "damage": {
+      "cause": {
+        "flood": "Повінь",
+        "tsunami": "Цунамі",
+        "earthquake": "Землетрус",
+        "meteor": "Метеорит",
+        "fire": "Вогонь",
+        "storm": "Буря",
+        "lightning": "Блискавка",
+        "volcano": "Вулкан",
+        "frost": "Мороз",
+        "sinkhole": "Провалля",
+        "blackHole": "Чорна діра",
+        "acid": "Кислотний дощ",
+        "nuke": "Бомба",
+        "disaster": "Лихо"
+      },
+      "tribeHomes": {
+        "one": "{cause}: пошкоджено дім племені {tribe}",
+        "other": "{cause}: пошкоджено будинків племені {tribe}: {count}"
+      },
+      "tribeBuildings": {
+        "one": "{cause}: пошкоджено будівлю племені {tribe}",
+        "other": "{cause}: пошкоджено будівель племені {tribe}: {count}"
+      },
+      "homes": {
+        "one": "{cause}: пошкоджено дім",
+        "other": "{cause}: пошкоджено будинків: {count}"
+      },
+      "buildings": {
+        "one": "{cause}: пошкоджено будівлю",
+        "other": "{cause}: пошкоджено будівель: {count}"
+      }
+    },
     "float": {
       "noEffect": "без наслідків"
     }

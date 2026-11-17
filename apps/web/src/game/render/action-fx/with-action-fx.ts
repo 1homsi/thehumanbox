@@ -1,5 +1,5 @@
 import { t } from '../../../i18n'
-import { describeOutcome, type CommandOutcome } from '../../../simulation/command-outcome'
+import { damageCauseOf, describeOutcome, type CommandOutcome } from '../../../simulation/command-outcome'
 import type { SandboxCommand } from '../../../simulation/sandbox'
 import { fxForCommand, type PlannedFx } from './fx-kinds'
 import { playFx, showFloat, type FloatTone } from './fx-store'
@@ -34,9 +34,6 @@ export function floatTone(outcome: CommandOutcome): FloatTone {
  */
 export function floatText(outcome: CommandOutcome): string | null {
   const said = describeOutcome(outcome)
-  const buildings = outcome.buildings ?? 0
-  if (said && buildings > 0 && outcome.code.startsWith('disaster_') && outcome.code !== 'disaster_buildings')
-    return `${said} · ${t('header.sandbox.result.disaster_buildings', { count: buildings })}`
   if (said) return said
   return outcome.applied ? null : t('header.sandbox.float.noEffect')
 }
@@ -49,7 +46,8 @@ export function withActionFx(send: Sender): Sender {
   return (cmd) => {
     const planned: PlannedFx | null = fxForCommand(cmd)
     if (planned) playFx(planned.kind, planned.x, planned.y, planned.r)
-    return send(cmd).then((outcome) => {
+    return send(cmd).then((sent) => {
+      const outcome = sent.code.startsWith('disaster_') ? { ...sent, cause: damageCauseOf(cmd.cmd) } : sent
       if (planned && planned.x !== null && planned.y !== null) {
         const text = floatText(outcome)
         if (text) showFloat(text, planned.x, planned.y, floatTone(outcome))

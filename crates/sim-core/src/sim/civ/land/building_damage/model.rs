@@ -40,6 +40,23 @@ impl DamageCause {
             Self::Dragonfire => "dragonfire",
         }
     }
+
+    pub(super) fn icon(self) -> &'static str {
+        match self {
+            Self::Fire => "\u{1F525}",
+            Self::Flood => "\u{1F30A}",
+            Self::Storm => "\u{26C8}\u{FE0F}",
+            Self::Battle => "\u{2694}\u{FE0F}",
+            Self::Age => "\u{1F3DA}\u{FE0F}",
+            Self::Meteor => "\u{2604}\u{FE0F}",
+            Self::Lightning => "\u{26A1}",
+            Self::Quake => "\u{1F4A5}",
+            Self::Lava => "\u{1F30B}",
+            Self::Frost => "\u{2744}\u{FE0F}",
+            Self::Buried => "\u{1FAA8}",
+            Self::Dragonfire => "\u{1F409}",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]

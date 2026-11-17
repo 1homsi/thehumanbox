@@ -12,6 +12,82 @@ export interface CommandOutcome {
   name: string | null
   /** Buildings a disaster damaged or destroyed besides the people it hit; absent when none. */
   buildings?: number
+  tribe?: string
+  homes?: boolean
+  cause?: DamageCause
+}
+
+export type DamageCause =
+  | 'flood'
+  | 'tsunami'
+  | 'earthquake'
+  | 'meteor'
+  | 'fire'
+  | 'storm'
+  | 'lightning'
+  | 'volcano'
+  | 'frost'
+  | 'sinkhole'
+  | 'blackHole'
+  | 'acid'
+  | 'nuke'
+  | 'disaster'
+
+const CAUSE_OF_COMMAND: Record<string, DamageCause> = {
+  flood: 'flood',
+  tsunami: 'tsunami',
+  earthquake: 'earthquake',
+  meteor: 'meteor',
+  meteor_shower: 'meteor',
+  ignite: 'fire',
+  wildfire: 'fire',
+  tornado: 'storm',
+  hail: 'storm',
+  smite: 'lightning',
+  thunder: 'lightning',
+  volcano: 'volcano',
+  blizzard: 'frost',
+  freeze: 'frost',
+  sinkhole: 'sinkhole',
+  black_hole: 'blackHole',
+  acid_rain: 'acid',
+  nuke: 'nuke',
+}
+
+export function damageCauseOf(cmd: string): DamageCause {
+  return Object.prototype.hasOwnProperty.call(CAUSE_OF_COMMAND, cmd) ? CAUSE_OF_COMMAND[cmd] : 'disaster'
+}
+
+const CAUSE_KEYS: Record<DamageCause, MessageKey> = {
+  flood: 'header.sandbox.damage.cause.flood',
+  tsunami: 'header.sandbox.damage.cause.tsunami',
+  earthquake: 'header.sandbox.damage.cause.earthquake',
+  meteor: 'header.sandbox.damage.cause.meteor',
+  fire: 'header.sandbox.damage.cause.fire',
+  storm: 'header.sandbox.damage.cause.storm',
+  lightning: 'header.sandbox.damage.cause.lightning',
+  volcano: 'header.sandbox.damage.cause.volcano',
+  frost: 'header.sandbox.damage.cause.frost',
+  sinkhole: 'header.sandbox.damage.cause.sinkhole',
+  blackHole: 'header.sandbox.damage.cause.blackHole',
+  acid: 'header.sandbox.damage.cause.acid',
+  nuke: 'header.sandbox.damage.cause.nuke',
+  disaster: 'header.sandbox.damage.cause.disaster',
+}
+
+export function describeDamage(outcome: CommandOutcome): string | null {
+  const count = outcome.buildings ?? (outcome.code === 'disaster_buildings' ? outcome.count : 0)
+  if (!(count > 0)) return null
+  const cause = t(CAUSE_KEYS[outcome.cause ?? 'disaster'])
+  const tribe = outcome.tribe ?? ''
+  const key: MessageKey = tribe
+    ? outcome.homes
+      ? 'header.sandbox.damage.tribeHomes'
+      : 'header.sandbox.damage.tribeBuildings'
+    : outcome.homes
+      ? 'header.sandbox.damage.homes'
+      : 'header.sandbox.damage.buildings'
+  return t(key, { count, cause, tribe })
 }
 
 /** The outcome when a command could not be sent or read back. */
@@ -36,6 +112,8 @@ export function parseCommandOutcome(json: string): CommandOutcome | null {
     ...(typeof v.buildings === 'number' && Number.isFinite(v.buildings) && v.buildings > 0
       ? { buildings: v.buildings }
       : {}),
+    ...(typeof v.tribe === 'string' && v.tribe ? { tribe: v.tribe } : {}),
+    ...(v.homes === true ? { homes: true } : {}),
   }
 }
 
@@ -96,5 +174,8 @@ export function describeOutcome(outcome: CommandOutcome): string | null {
   if (!Object.prototype.hasOwnProperty.call(RESULT_KEYS, outcome.code)) return null
   const key = RESULT_KEYS[outcome.code]
   if (!key) return null
-  return t(key, { count: outcome.count, name: outcome.name ?? '' })
+  const damage = outcome.code.startsWith('disaster_') ? describeDamage(outcome) : null
+  if (outcome.code === 'disaster_buildings' && damage) return damage
+  const said = t(key, { count: outcome.count, name: outcome.name ?? '' })
+  return damage ? `${said} · ${damage}` : said
 }

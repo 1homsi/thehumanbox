@@ -14,6 +14,8 @@ pub(crate) struct Report {
     pub name: Option<String>,
     /// Buildings a disaster damaged or destroyed, told beside whom it killed or hurt.
     pub buildings: u32,
+    pub tribe: Option<String>,
+    pub homes: bool,
 }
 
 /// The result of one command, as the client receives it.
@@ -29,6 +31,8 @@ pub struct CommandOutcome {
     pub name: Option<String>,
     /// Buildings a disaster damaged or destroyed alongside the people it hit.
     pub buildings: u32,
+    pub tribe: Option<String>,
+    pub homes: bool,
 }
 
 impl CommandOutcome {
@@ -39,6 +43,8 @@ impl CommandOutcome {
             count: 0,
             name: None,
             buildings: 0,
+            tribe: None,
+            homes: false,
         }
     }
 }
@@ -51,6 +57,8 @@ impl Simulation {
             count,
             name: name.map(str::to_owned),
             buildings: 0,
+            tribe: None,
+            homes: false,
         });
     }
 
@@ -71,7 +79,7 @@ pub(crate) struct DisasterBefore {
     /// Index into `organisms`, with health, infection and stored food, for everyone alive.
     people: Vec<(usize, f32, f32, u8)>,
     /// Building id, damage and whether it already lay in ruins.
-    buildings: Vec<(u32, f32, bool)>,
+    buildings: Vec<(u32, f32, bool, Option<String>, bool)>,
     /// Where the disaster lands and how far it reaches, when it lands somewhere.
     area: Option<(f32, f32, f32)>,
     /// Whether its handler's own report is the one to keep (smite and thunder name whom they struck).
@@ -170,7 +178,15 @@ impl Simulation {
                 .buildings
                 .iter()
                 .filter(|b| !b.decorative)
-                .map(|b| (b.id, b.damage, b.is_ruined()))
+                .map(|b| {
+                    (
+                        b.id,
+                        b.damage,
+                        b.is_ruined(),
+                        b.owner_lineage.clone(),
+                        crate::sim::civ::society::vacancy::is_home(b.kind),
+                    )
+                })
                 .collect(),
             area,
             own_report: matches!(cmd, Command::Smite { .. } | Command::Thunder { .. }),
@@ -200,16 +216,26 @@ impl Simulation {
                 robbed.push(i);
             }
         }
-        let damaged = before
+        let hit: Vec<&(u32, f32, bool, Option<String>, bool)> = before
             .buildings
             .iter()
-            .filter(|&&(id, damage, ruined)| {
+            .filter(|&&(id, damage, ruined, _, _)| {
                 self.buildings
                     .iter()
                     .find(|b| b.id == id)
                     .is_none_or(|b| b.damage > damage + 0.001 || (b.is_ruined() && !ruined))
             })
-            .count();
+            .collect();
+        let damaged = hit.len();
+        let homes = !hit.is_empty() && hit.iter().all(|b| b.4);
+        let tribe = match hit.first().and_then(|b| b.3.as_deref()) {
+            Some(owner) if hit.iter().all(|b| b.3.as_deref() == Some(owner)) => self
+                .lineage_names
+                .get(owner)
+                .cloned()
+                .filter(|name| !name.is_empty()),
+            _ => None,
+        };
         let name_of =
             |sim: &Simulation, list: &[usize]| (list.len() == 1).then(|| sim.organisms[list[0]].name.clone());
         for (code, list) in [
@@ -223,12 +249,20 @@ impl Simulation {
                 self.report(code, list.len() as u32, name.as_deref());
                 if let Some(report) = self.command_report.as_mut() {
                     report.buildings = damaged as u32;
+                    report.tribe = tribe;
+                    report.homes = homes;
                 }
                 return;
             }
         }
         if damaged > 0 {
-            return self.report("disaster_buildings", damaged as u32, None);
+            self.report("disaster_buildings", damaged as u32, None);
+            if let Some(report) = self.command_report.as_mut() {
+                report.buildings = damaged as u32;
+                report.tribe = tribe;
+                report.homes = homes;
+            }
+            return;
         }
         let in_reach: Vec<usize> = match before.area {
             Some((x, y, r)) => self

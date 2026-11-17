@@ -174,6 +174,40 @@
         "other": "{count}명이 식량을 잃었습니다"
       }
     },
+    "damage": {
+      "cause": {
+        "flood": "홍수",
+        "tsunami": "해일",
+        "earthquake": "지진",
+        "meteor": "운석",
+        "fire": "불",
+        "storm": "폭풍",
+        "lightning": "번개",
+        "volcano": "화산",
+        "frost": "서리",
+        "sinkhole": "싱크홀",
+        "blackHole": "블랙홀",
+        "acid": "산성비",
+        "nuke": "폭탄",
+        "disaster": "재해"
+      },
+      "tribeHomes": {
+        "one": "{cause} 때문에 {tribe}의 집 1채가 부서졌습니다",
+        "other": "{cause} 때문에 {tribe}의 집 {count}채가 부서졌습니다"
+      },
+      "tribeBuildings": {
+        "one": "{cause} 때문에 {tribe}의 건물 1채가 부서졌습니다",
+        "other": "{cause} 때문에 {tribe}의 건물 {count}채가 부서졌습니다"
+      },
+      "homes": {
+        "one": "{cause} 때문에 집 1채가 부서졌습니다",
+        "other": "{cause} 때문에 집 {count}채가 부서졌습니다"
+      },
+      "buildings": {
+        "one": "{cause} 때문에 건물 1채가 부서졌습니다",
+        "other": "{cause} 때문에 건물 {count}채가 부서졌습니다"
+      }
+    },
     "float": {
       "noEffect": "효과 없음"
     }
