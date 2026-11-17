@@ -113,3 +113,20 @@ fn world_report_verdict_marks_fragmented_worlds() {
 
     assert_eq!(report.verdict(), WorldVerdict::Fragmented);
 }
+
+#[test]
+fn a_crowd_is_the_same_people_in_the_same_places_every_time() {
+    let spawn = || {
+        let mut sim = Simulation::new(42);
+        let placed = crowd::spawn_crowd(&mut sim, 230);
+        let spots: Vec<(String, i32, i32)> = sim
+            .organisms
+            .iter()
+            .map(|o| (o.lineage_id.clone(), o.x as i32, o.y as i32))
+            .collect();
+        (placed, spots)
+    };
+    let (placed, spots) = spawn();
+    assert_eq!(placed, 230);
+    assert_eq!(spawn(), (placed, spots));
+}

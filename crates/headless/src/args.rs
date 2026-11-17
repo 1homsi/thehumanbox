@@ -22,6 +22,8 @@ pub(super) struct Args {
     pub(super) load: Option<String>,
     /// `--save <path>`: write the world there when the run ends, to start later runs from.
     pub(super) save: Option<String>,
+    pub(super) crowd: u32,
+    pub(super) crowd_at: u64,
 }
 
 pub(super) fn parse() -> Args {
@@ -114,6 +116,18 @@ pub(super) fn parse() -> Args {
             .and_then(|i| args.get(i + 1))
             .cloned()
     };
+    let crowd: u32 = args
+        .iter()
+        .position(|a| a == "--crowd")
+        .and_then(|i| args.get(i + 1))
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
+    let crowd_at: u64 = args
+        .iter()
+        .position(|a| a == "--crowd-at")
+        .and_then(|i| args.get(i + 1))
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
     let load = path_after("--load");
     let save = path_after("--save");
     Args {
@@ -135,5 +149,7 @@ pub(super) fn parse() -> Args {
         summon_at,
         load,
         save,
+        crowd,
+        crowd_at,
     }
 }

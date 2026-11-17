@@ -358,9 +358,15 @@ jobs:
           - runs: 3 seeds x 8000 ticks
             seeds: "42 1337 2026"
             long_ticks: 0
+            crowd: 0
           - runs: seed 42 x 25000 ticks
             seeds: ""
             long_ticks: 25000
+            crowd: 0
+          - runs: 2900 people spawned at tick 2000
+            seeds: ""
+            long_ticks: 0
+            crowd: 2900
     env:
       CARGO_INCREMENTAL: 0
       CARGO_NET_RETRY: 10
@@ -370,6 +376,7 @@ jobs:
       MAX_RSS_MB: 256
       SEEDS: ${{ matrix.seeds }}
       LONG_TICKS: ${{ matrix.long_ticks }}
+      CROWD: ${{ matrix.crowd }}
     steps:
       - uses: actions/checkout@v7
       - uses: rui314/setup-mold@v1
@@ -380,7 +387,7 @@ jobs:
       - name: Build headless benchmark
         # One thread, as the web build runs: the budget guards what a browser pays per tick, and a runner's
         # cores would otherwise hide a slower tick.
-        run: cargo build --release --locked --bin headless --no-default-features
+        run: cargo build --release --locked -p headless --bin headless --no-default-features
       - name: Enforce multi-seed tick budget
         run: scripts/perf-gate.sh
 
