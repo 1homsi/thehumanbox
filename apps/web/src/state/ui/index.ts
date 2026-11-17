@@ -31,3 +31,7 @@ export const useUIStore = create<UIState>()((...a) => ({
 export function useViewFlag<K extends keyof ViewFlags>(key: K): ViewFlags[K] {
   return useUIStore((s) => s.viewFlags[key])
 }
+
+export function useNerdStats(): boolean {
+  return useUIStore((s) => s.nerdStats)
+}

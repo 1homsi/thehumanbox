@@ -22,6 +22,8 @@
   },
   "display": {
     "section": "Display",
+    "nerdStats": "Stats for nerds",
+    "nerdStatsDesc": "Show the raw numbers behind the game: exact trait values, needs in percent, family codes, generations and counters, plus the tick and build in the header. Off keeps everything in plain words.",
     "photoMode": "Photo mode",
     "photoModeDesc": "Hide every panel and the dock for clean screenshots. Press Esc or hover the top edge to get the header back.",
     "headlineTicker": "Headline ticker",
@@ -52,9 +54,7 @@
     "tourDesc": "A short walkthrough of the map, the dock and the panels.",
     "startTour": "start tour",
     "about": "About",
-    "aboutDesc": "Version, build and links.",
-    "nerdStats": "Stats for nerds",
-    "nerdStatsDesc": "Tick counter, connection status and build details in the header."
+    "aboutDesc": "Version, build and links."
   },
   "web": {
     "playMode": "Play mode",

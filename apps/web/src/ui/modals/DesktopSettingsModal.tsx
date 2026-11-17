@@ -3,7 +3,7 @@ import clsx from 'clsx'
 import { Modal } from './Modal'
 import { askConfirm } from '../../shared/confirm'
 import { ToolSprite } from '../toolbar/ToolSprite'
-import { useUIStore, useViewFlag } from '../../state/store'
+import { useNerdStats, useUIStore, useViewFlag } from '../../state/store'
 import { startTour, isTourSupported } from '../tour/tour'
 import { useIsMobile } from '../../shared/hooks/useIsMobile'
 import { useSimulationData } from '../../simulation/simulationData'
@@ -231,8 +231,13 @@ function DisplayTab() {
   const headlineTicker = useViewFlag('headlineTicker')
   const randomTour = useViewFlag('randomTour')
   const toolNames = useViewFlag('toolNames')
+  const nerdStats = useNerdStats()
+  const setNerdStats = useUIStore((s) => s.setNerdStats)
   return (
     <>
+      <SettingRow title={t('settings.display.nerdStats')} desc={t('settings.display.nerdStatsDesc')}>
+        <Switch checked={nerdStats} onChange={setNerdStats} label={t('settings.display.nerdStats')} />
+      </SettingRow>
       <SettingRow title={t('settings.display.toolNames')} desc={t('settings.display.toolNamesDesc')}>
         <Switch
           checked={!!toolNames}
@@ -325,8 +330,6 @@ function RunInBackgroundRow() {
 
 function HelpTab({ onClose }: { onClose: () => void }) {
   const openAbout = useUIStore((s) => s.openAbout)
-  const nerdStats = useUIStore((s) => s.nerdStats)
-  const setNerdStats = useUIStore((s) => s.setNerdStats)
   const { playerWorldKind } = useSimulationData()
   const isMobile = useIsMobile()
   return (
@@ -354,9 +357,6 @@ function HelpTab({ onClose }: { onClose: () => void }) {
         >
           {t('common.open')}
         </button>
-      </SettingRow>
-      <SettingRow title={t('settings.help.nerdStats')} desc={t('settings.help.nerdStatsDesc')}>
-        <Switch checked={!!nerdStats} onChange={setNerdStats} label={t('settings.help.nerdStats')} />
       </SettingRow>
     </>
   )

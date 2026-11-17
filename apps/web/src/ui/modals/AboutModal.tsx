@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Modal } from './Modal'
 import { API_BASE } from '../../shared/config'
-import { useUIStore } from '../../state/store'
+import { useNerdStats } from '../../state/store'
 import { useSimulationData } from '../../simulation/simulationData'
 import { t } from '../../i18n'
 
@@ -36,7 +36,7 @@ function shortSha(sha: string): string {
 export function AboutModal({ onClose }: Props) {
   const [backend, setBackend] = useState<BackendVersion | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const nerdStats = useUIStore((s) => s.nerdStats)
+  const nerdStats = useNerdStats()
   const { apiEnabled } = useSimulationData()
 
   useEffect(() => {

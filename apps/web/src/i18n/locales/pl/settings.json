@@ -22,6 +22,8 @@
   },
   "display": {
     "section": "Ekran",
+    "nerdStats": "Statystyki dla zaawansowanych",
+    "nerdStatsDesc": "Pokazuje surowe liczby stojące za grą: dokładne wartości cech, potrzeby w procentach, kody rodów, pokolenia i liczniki oraz takt i kompilację w nagłówku. Wyłączone zostawia wszystko w prostych słowach.",
     "photoMode": "Tryb zdjęć",
     "photoModeDesc": "Ukrywa wszystkie panele i dolny pasek, aby robić czyste zrzuty ekranu. Naciśnij Esc lub najedź na górną krawędź, aby przywrócić nagłówek.",
     "headlineTicker": "Pasek nagłówków",
@@ -52,9 +54,7 @@
     "tourDesc": "Krótkie wprowadzenie do mapy, dolnego paska i paneli.",
     "startTour": "uruchom przewodnik",
     "about": "O programie",
-    "aboutDesc": "Wersja, kompilacja i linki.",
-    "nerdStats": "Statystyki dla zaawansowanych",
-    "nerdStatsDesc": "Licznik taktów, stan połączenia i szczegóły kompilacji w nagłówku."
+    "aboutDesc": "Wersja, kompilacja i linki."
   },
   "web": {
     "playMode": "Tryb gry",
