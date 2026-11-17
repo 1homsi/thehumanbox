@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="UTF-8" />
+  <title>Worker speed</title>
+  <body>
+    <script type="module">
+      import { decodeBinaryFrame } from '/src/simulation/binary-frames.ts'
+      import { wasmSpeedConfig } from '/src/simulation/runtimeControls.ts'
+
+      const state = {
+        tick: 0,
+        frames: 0,
+        fullFrames: 0,
+        bytes: 0,
+        decodeMs: 0,
+        saves: [],
+        ready: null,
+        errors: [],
+      }
+      const worker = new Worker(new URL('/src/simulation/wasmWorker.ts', import.meta.url), { type: 'module' })
+      let savingAt = 0
+      worker.onmessage = (event) => {
+        const m = event.data
+        if (m.type === 'frame') {
+          state.bytes += m.frame.byteLength
+          const started = performance.now()
+          const frame = decodeBinaryFrame(m.frame)
+          state.decodeMs += performance.now() - started
+          state.frames += 1
+          if (frame.frame_kind === 'full') state.fullFrames += 1
+          if (typeof frame.tick === 'number') state.tick = frame.tick
+        } else if (m.type === 'ready') {
+          state.ready = m
+        } else if (m.type === 'saving') {
+          savingAt = performance.now()
+        } else if (m.type === 'saved') {
+          state.saves.push({ tick: m.tick, ms: Math.round(performance.now() - savingAt) })
+        } else if (m.type === 'error') {
+          state.errors.push(m.message)
+        }
+      }
+      worker.postMessage({ type: 'visibility', hidden: false })
+      worker.postMessage({
+        type: 'start',
+        id: 'browser-own',
+        seed: localStorage.getItem('thb-wasm-seed') ?? '1',
+      })
+      window.__bench = {
+        state,
+        speed(mult) {
+          worker.postMessage({ type: 'speed', ...wasmSpeedConfig(mult) })
+        },
+        save() {
+          worker.postMessage({ type: 'save', requestId: 1 })
+        },
+        command(json) {
+          worker.postMessage({ type: 'command', json, requestId: Math.floor(Math.random() * 1e9) })
+        },
+      }
+    </script>
+  </body>
+</html>

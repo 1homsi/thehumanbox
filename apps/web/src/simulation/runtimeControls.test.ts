@@ -126,9 +126,9 @@ describe('worker CPU budget', () => {
   it('maintains normal tick cadence when work is cheap', () => {
     expect(wasmTickDelay(120, 5)).toBe(115)
   })
-  it('leaves CPU headroom instead of scheduling catch-up work under load', () => {
-    // A third of the cycle stays idle: 80 ms of work is followed by 40 ms of rest.
-    expect(wasmTickDelay(24, 80)).toBe(40)
-    expect(wasmTickDelay(16, 1)).toBe(16)
+  it('only yields briefly under load, so a world that cannot keep up runs at the machine maximum', () => {
+    expect(wasmTickDelay(24, 80)).toBe(4)
+    expect(wasmTickDelay(0, 400)).toBe(4)
+    expect(wasmTickDelay(16, 1)).toBe(15)
   })
 })

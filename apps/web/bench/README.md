@@ -112,6 +112,23 @@ node bench/gen-save.mjs --seed 42 --tick 24000
 node bench/speeds.mjs --dist dist --fixture s42-t24000 --speeds 1,5,20,100,5000 [--profile out-dir]
 ```
 
+## Simulation worker speed
+
+`worker-speed.mjs` runs the browser simulation worker on its own, without the map or the rest of the page, so
+it measures how fast the worker itself gets through a world: ticks reached in each window as a multiple of 1x,
+frames a second, average frame size and decode time, and how long each save took from `saving` to `saved`.
+`--save` seeds a `.world.save` export (or any saved blob) as the browser's own world first; without it the
+worker starts a fresh world. It drives the dev server, which serves `bench/worker-speed.html` and the worker
+source:
+
+```sh
+pnpm exec vite --port 5205 --strictPort
+node bench/worker-speed.mjs --port 5205 --save my-world.world.save --save-tick 9538 --speeds 1,100,5000
+```
+
+A world whose ticks take longer than 120 ms cannot reach 1x on that machine; the worker should then still keep
+simulating almost all the time, at every speed above 1x alike.
+
 ## Visual check of one feature
 
 `capture-feature.mjs` is the tool for "does this feature look right on the map". It takes a seed and a tick,

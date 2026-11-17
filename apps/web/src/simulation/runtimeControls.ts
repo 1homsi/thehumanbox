@@ -5,6 +5,7 @@ export type RuntimeControl = 'pause' | 'resume' | 'speed'
 
 export const WASM_BASE_TICK_MS = 120
 export const MIN_WASM_TICK_MS = 16
+export const WASM_YIELD_MS = 4
 export const MIN_RUNTIME_SPEED = 0.25
 // Past ~30x most machines run flat out; the cap only bounds the request.
 export const MAX_RUNTIME_SPEED = 5000
@@ -161,10 +162,6 @@ export function nextRuntimeState(
   return reconcileRuntimeState(current, { ok: true, paused, speed })
 }
 
-/** Leave a third of each worker cycle idle under load (the world at full tilt then runs a third faster than
- * with half of it idle, as it did). Requested speed remains an upper bound; never queue catch-up work that
- * starves controls: the worker yields between batches of at most 32 ms, so a pause or a speed change waits
- * no longer than that. */
 export function wasmTickDelay(targetIntervalMs: number, workMs: number): number {
-  return Math.max(MIN_WASM_TICK_MS, targetIntervalMs - workMs, workMs / 2)
+  return Math.max(WASM_YIELD_MS, targetIntervalMs - workMs)
 }
