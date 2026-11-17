@@ -97,7 +97,7 @@ beforeEach(() => {
 afterEach(async () => {
   await harness?.unmount()
   harness = null
-  useUIStore.setState({ selectedOrgId: null })
+  useUIStore.setState({ selectedOrgId: null, followOrgId: null })
   useCameraFocus.setState({ request: null })
   setWorldGPUForTests(null)
   clearSavedCamera()
