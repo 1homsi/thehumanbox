@@ -125,6 +125,45 @@ describe('special tiles driver', () => {
     expect(d.stats.updates).toBe(3)
   })
 
+  it('draws a crowded world of villages and their halls quickly, every night frame', () => {
+    const width = 800
+    const height = 400
+    const tiles = Array.from({ length: height }, () => Array<number>(width).fill(TILE_ID.GRASS))
+    let villages = 0
+    for (let vy = 4; vy + 6 < height; vy += 10) {
+      for (let vx = 4; vx + 6 < width; vx += 10) {
+        for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) tiles[vy + r][vx + c] = TILE_ID.HUT
+        villages++
+      }
+    }
+    const w = {
+      grid: { width, height, origin_x: 0, origin_y: 0, tiles },
+      frame_id: 1,
+      tick: 100,
+      is_day: false,
+      day_progress: 0.1,
+      buildings: [],
+      organisms: [],
+    } as unknown as WorldState
+    const d = driver()
+    const view = (now: number) =>
+      makeFrame(
+        w,
+        undefined,
+        { x: (width * TILE) / 2, y: (height * TILE) / 2, zoom: 0.2 },
+        { w: 1600, h: 900 },
+        now,
+        2,
+        1,
+      )
+    d.update(view(1000))
+    expect(d.stats.townHalls).toBe(villages)
+    expect(d.stats.huts).toBe(villages * 4)
+    const started = performance.now()
+    for (let i = 1; i <= 3; i++) d.update(view(1000 + i * 17))
+    expect((performance.now() - started) / 3).toBeLessThan(100)
+  })
+
   it('rewrites when the day ends, even if the inputs match', () => {
     const d = driver()
     const w = world(false)

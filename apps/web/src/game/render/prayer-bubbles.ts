@@ -171,6 +171,13 @@ export function prayerBubbleScale(zoom: number): number {
   return Math.max(1, 1.6 / Math.max(0.05, zoom))
 }
 
+export const PRAYER_CLUSTER_SPREAD = 3
+
+export function prayerMergeSpacing(zoom: number): number {
+  const spread = Math.min(PRAYER_CLUSTER_SPREAD, Math.max(1, 1 / Math.max(0.05, zoom)))
+  return 16 * prayerBubbleScale(zoom) * spread
+}
+
 /**
  * The bubbles the map draws, one per group of prayers close enough to merge, each anchored where its
  * most urgent prayer is. Renderer, click and hover all read this, so they agree on which prayer a glyph is.
@@ -183,7 +190,6 @@ export function mergedPrayerBubbles<T extends { x: number; y: number }>(
   tile: number,
   zoom: number,
 ) {
-  const scale = prayerBubbleScale(zoom)
   return mergePrayerBubbles(
     prayers.map((prayer) => ({
       prayer,
@@ -191,7 +197,7 @@ export function mergedPrayerBubbles<T extends { x: number; y: number }>(
       y: (prayer.y - origin.y) * tile,
       left: timeLeft(prayer),
     })),
-    16 * scale,
+    prayerMergeSpacing(zoom),
   )
 }
 

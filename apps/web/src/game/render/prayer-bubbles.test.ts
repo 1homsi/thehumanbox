@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { mergedPrayerBubbles, prayerAtPoint, prayerBubbleScale } from './prayer-bubbles'
+import {
+  mergedPrayerBubbles,
+  prayerAtPoint,
+  prayerBubbleScale,
+  prayerMergeSpacing,
+  PRAYER_CLUSTER_SPREAD,
+} from './prayer-bubbles'
 
 describe('prayer bubble hit-testing', () => {
   const prayers = [
@@ -46,5 +52,32 @@ describe('merged prayer bubbles', () => {
     // (92, 64) is above the quieter prayer's own anchor (92, 72); it still answers as prayer 1, the glyph drawn.
     expect(prayerAtPoint(prayers, 92, 64, origin, 8, 2, timeLeft)?.id).toBe(1)
     expect(prayerAtPoint(prayers, 84, 64, origin, 8, 2, timeLeft)?.id).toBe(1)
+  })
+})
+
+describe('prayer bubbles zoomed out', () => {
+  const origin = { x: 0, y: 0 }
+  const row = Array.from({ length: 12 }, (_, i) => ({ id: i, x: 10 + i * 8, y: 10, left: 0.5 + i / 100 }))
+  const timeLeft = (p: { left: number }) => p.left
+
+  it('keeps bubbles a bubble apart from each other close up', () => {
+    expect(prayerMergeSpacing(2)).toBe(16)
+    expect(prayerMergeSpacing(1)).toBe(16 * prayerBubbleScale(1))
+    expect(mergedPrayerBubbles(row, timeLeft, origin, 8, 2)).toHaveLength(12)
+  })
+
+  it('gathers nearby prayers into fewer counted bubbles as the camera pulls back', () => {
+    expect(prayerMergeSpacing(0.5)).toBe(16 * prayerBubbleScale(0.5) * 2)
+    expect(prayerMergeSpacing(0.1)).toBe(16 * prayerBubbleScale(0.1) * PRAYER_CLUSTER_SPREAD)
+    const far = mergedPrayerBubbles(row, timeLeft, origin, 8, 0.25)
+    expect(far.length).toBeLessThan(row.length / 2)
+    expect(far.reduce((sum, bubble) => sum + bubble.count, 0)).toBe(row.length)
+    expect(far[0]!.prayer.id).toBe(0)
+  })
+
+  it('answers a click on a gathered bubble with the prayer it shows', () => {
+    const far = mergedPrayerBubbles(row, timeLeft, origin, 8, 0.25)
+    const first = far[0]!
+    expect(prayerAtPoint(row, first.x, first.y - 30, origin, 8, 0.25, timeLeft)?.id).toBe(first.prayer.id)
   })
 })
