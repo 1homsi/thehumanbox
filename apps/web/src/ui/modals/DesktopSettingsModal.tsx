@@ -26,6 +26,8 @@ import { LanguageTab } from './LanguageTab'
 import { useTribeFollow } from '../../state/tribe-follow'
 import { updateCheckMessage } from './updateCheckMessage'
 import { useTutorial } from '../../state/tutorial'
+import { SHORTCUT_HELP } from '../../game/model/shortcuts'
+import { shortcutKeys, shortcutWhat } from '../toolbar/shortcut-text'
 
 interface Props {
   onClose: () => void
@@ -329,6 +331,27 @@ function RunInBackgroundRow() {
   )
 }
 
+function KeysRow() {
+  return (
+    <>
+      <div className="settings-row settings-row-stacked">
+        <div className="settings-row-text">
+          <div className="settings-row-title">{t('settings.help.keys')}</div>
+          <div className="settings-row-desc">{t('settings.help.keysDesc')}</div>
+        </div>
+      </div>
+      <dl className="hotkey-help-list settings-keys">
+        {SHORTCUT_HELP.map(([keys, what]) => (
+          <div key={keys} className="hotkey-help-row">
+            <dt>{shortcutKeys(keys)}</dt>
+            <dd>{shortcutWhat(keys, what)}</dd>
+          </div>
+        ))}
+      </dl>
+    </>
+  )
+}
+
 function HelpTab({ onClose }: { onClose: () => void }) {
   const openAbout = useUIStore((s) => s.openAbout)
   const { playerWorldKind } = useSimulationData()
@@ -368,6 +391,7 @@ function HelpTab({ onClose }: { onClose: () => void }) {
           </button>
         </SettingRow>
       )}
+      {!isMobile && <KeysRow />}
       <SettingRow title={t('settings.help.about')} desc={t('settings.help.aboutDesc')}>
         <button
           className="lang-btn"

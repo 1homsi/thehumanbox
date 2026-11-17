@@ -59,7 +59,9 @@
     "tourDesc": "Una breve panoramica della mappa, della barra inferiore e dei pannelli.",
     "startTour": "avvia tour",
     "about": "Info",
-    "aboutDesc": "Versione, build e link."
+    "aboutDesc": "Versione, build e link.",
+    "keys": "Tasti",
+    "keysDesc": "I tasti a cui il gioco risponde. Premi ? sulla mappa per vederli anche lì."
   },
   "web": {
     "playMode": "Modalità di gioco",

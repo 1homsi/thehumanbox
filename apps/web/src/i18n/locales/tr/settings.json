@@ -59,7 +59,9 @@
     "tourDesc": "Harita, dock ve panellerin kısa bir turu.",
     "startTour": "turu başlat",
     "about": "Hakkında",
-    "aboutDesc": "Sürüm, derleme ve bağlantılar."
+    "aboutDesc": "Sürüm, derleme ve bağlantılar.",
+    "keys": "Klavye tuşları",
+    "keysDesc": "Oyunun tepki verdiği tuşlar. Haritada ? tuşuna basarak orada da görebilirsin."
   },
   "web": {
     "playMode": "Oyun modu",

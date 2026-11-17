@@ -161,3 +161,47 @@ describe('the ⋯ menu and Escape', () => {
     }
   })
 })
+
+describe('the ⋯ menu and Stats for nerds', () => {
+  const labels = () => [...container.querySelectorAll('.lang-btn')].map((b) => b.textContent?.trim() ?? '')
+  const flags = () => useUIStore.getState().viewFlags
+
+  afterEach(() => {
+    useUIStore.setState({ nerdStats: false, viewFlags: { ...flags(), fps: false, hazard: false } })
+  })
+
+  it('keeps the debug overlays out of the menu by default', () => {
+    useUIStore.setState({ nerdStats: false })
+    render()
+    expect(labels().some((l) => l.includes('perf'))).toBe(false)
+    expect(labels().some((l) => l.includes('hazard'))).toBe(false)
+    expect(labels().some((l) => l.includes('tribe'))).toBe(true)
+    expect(container.textContent).not.toContain('for nerds')
+  })
+
+  it('shows them with Stats for nerds on', () => {
+    useUIStore.setState({ nerdStats: true })
+    render()
+    expect(container.textContent).toContain('for nerds')
+    for (const label of ['trails', 'fertility', 'hazard', 'history', 'perf']) {
+      expect(labels().some((l) => l.includes(label))).toBe(true)
+    }
+  })
+
+  it('still offers an overlay that is on, so it can be turned off', () => {
+    useUIStore.setState({ nerdStats: false, viewFlags: { ...flags(), fps: true } })
+    render()
+    const perf = [...container.querySelectorAll<HTMLButtonElement>('.lang-btn')].find((b) =>
+      b.textContent?.includes('perf'),
+    )
+    expect(perf?.getAttribute('aria-pressed')).toBe('true')
+    act(() => perf!.click())
+    expect(flags().fps).toBe(false)
+  })
+
+  it('leaves out what lives elsewhere: the world panel and the key list', () => {
+    render()
+    expect(labels().some((l) => l.includes('world'))).toBe(false)
+    expect(labels().some((l) => l.includes('keys'))).toBe(false)
+  })
+})

@@ -59,7 +59,9 @@
     "tourDesc": "Krótkie wprowadzenie do mapy, dolnego paska i paneli.",
     "startTour": "uruchom przewodnik",
     "about": "O programie",
-    "aboutDesc": "Wersja, kompilacja i linki."
+    "aboutDesc": "Wersja, kompilacja i linki.",
+    "keys": "Klawisze",
+    "keysDesc": "Klawisze, na które reaguje gra. Naciśnij ? na mapie, by zobaczyć je także tam."
   },
   "web": {
     "playMode": "Tryb gry",

@@ -1051,3 +1051,12 @@ body.thb-photo-mode .thb-action-ticker {
     background: var(--px-raised);
   }
 }
+.settings-keys {
+  padding: 0 0 10px;
+  border-bottom: 2px solid var(--px-ink);
+  box-shadow: 0 1px 0 var(--px-groove);
+}
+.more-dropdown-nerd {
+  color: var(--px-gold-text);
+  cursor: help;
+}

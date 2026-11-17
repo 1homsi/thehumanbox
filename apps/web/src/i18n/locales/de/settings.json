@@ -59,7 +59,9 @@
     "tourDesc": "Ein kurzer Rundgang durch die Karte, das Dock und die Panels.",
     "startTour": "Tour starten",
     "about": "Über",
-    "aboutDesc": "Version, Build und Links."
+    "aboutDesc": "Version, Build und Links.",
+    "keys": "Tastenkürzel",
+    "keysDesc": "Die Tasten, auf die das Spiel reagiert. Drück ? auf der Karte, um sie dort zu sehen."
   },
   "web": {
     "playMode": "Spielmodus",
