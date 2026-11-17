@@ -283,6 +283,7 @@
     "nextAge": "次の時代: {era}",
     "inspire": "鼓舞",
     "inspireTitle": "鼓舞する: 次の発見を早める",
+    "inspireReady": "鼓舞の準備ができました: 地図で彼らの近くをクリックしてください",
     "teach": "教える",
     "teachTitle": "まだ知らない次の知恵を教える（季節に一度）",
     "stillToLearn": "未習得: {list}",

@@ -6,7 +6,7 @@ import { sparklinePoints, trend } from '../../game/model/pop-history'
 import type { PrayerInfo, WorldState } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
 import { PRAYER_KINDS, prayerPleaText } from '../../game/model/prayers'
-import { lossLine, PERIL_HELP, perilOf, remainingLine } from '../../game/model/tribe-peril'
+import { lossLine, PERIL_HELP, perilOf, remainingLine, tribeHome } from '../../game/model/tribe-peril'
 import { activeBattles, enemiesOf } from '../../game/render/battles'
 import { relationsLine, relationsOf } from '../../game/model/diplomacy'
 import { leadershipOf } from '../../game/model/leadership'
@@ -36,8 +36,79 @@ interface Props {
   onTool: (toolId: string, at: { x: number; y: number }) => void
   /** Give the tribe a name of the player's choosing. */
   onRename: (lineage: string, name: string) => Promise<boolean>
-  /** Teach the tribe the next secret it lacks. */
-  onTeach: (lineage: string) => void
+  /** Teach the tribe the next secret it lacks; resolves to whether it was taught. */
+  onTeach: (lineage: string) => Promise<boolean> | void
+}
+
+/** How long a note under the next-age buttons stays. */
+const NOTE_MS = 5_000
+
+/**
+ * The inspire and teach buttons, with a note under them saying what a press did: inspire only picks up the tool
+ * (the player still has to touch the tribe on the map), and teach can be refused, so a press with no note looked
+ * like it did nothing.
+ */
+function NextAgeActions({
+  canTeach,
+  onInspire,
+  onTeach,
+}: {
+  canTeach: boolean
+  onInspire: () => void
+  onTeach: () => Promise<boolean> | void
+}) {
+  const [note, setNote] = useState<string | null>(null)
+  const timer = useRef<number | null>(null)
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      if (timer.current !== null) window.clearTimeout(timer.current)
+    }
+  }, [])
+  const show = (text: string) => {
+    if (!mounted.current) return
+    setNote(text)
+    if (timer.current !== null) window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => setNote(null), NOTE_MS)
+  }
+  return (
+    <>
+      <span className="tribe-next-actions">
+        <button
+          type="button"
+          className="tribe-inspire"
+          title={t('panels.tribe.inspireTitle')}
+          onClick={() => {
+            onInspire()
+            show(t('panels.tribe.inspireReady'))
+          }}
+        >
+          ✦ {t('panels.tribe.inspire')}
+        </button>
+        {canTeach && (
+          <button
+            type="button"
+            className="tribe-inspire"
+            title={t('panels.tribe.teachTitle')}
+            onClick={() => {
+              void onTeach()?.then((taught) =>
+                show(taught ? t('header.sandbox.taughtSecret') : t('header.sandbox.cannotTeach')),
+              )
+            }}
+          >
+            ✎ {t('panels.tribe.teach')}
+          </button>
+        )}
+      </span>
+      {note && (
+        <span className="tribe-next-note" role="status">
+          {note}
+        </span>
+      )}
+    </>
+  )
 }
 
 function Need({ label, value }: { label: string; value: number }) {
@@ -248,9 +319,10 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
   const lore = world.lineage_lore?.[status.id]
   const craftKey = lore?.craft ? CRAFT_KEYS[lore.craft] : undefined
   const help = peril ? PERIL_HELP[peril.cause] : null
+  // Their settlement, or where their people are when they have none yet (a young tribe often has none).
   const lookAtTribe = (tool: string) => {
-    const home = world.settlements?.find((s) => s.lineage_id === status.id)
-    if (home) onTool(tool, { x: home.center[0], y: home.center[1] })
+    const home = tribeHome(world, status.id)
+    if (home) onTool(tool, { x: Math.round(home.x), y: Math.round(home.y) })
   }
 
   return (
@@ -394,24 +466,11 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
         <div className="tribe-next">
           <div className="tribe-next-head">
             <span>{t('panels.tribe.nextAge', { era: status.nextAge.era })}</span>
-            <span className="tribe-next-actions">
-              <button
-                className="tribe-inspire"
-                title={t('panels.tribe.inspireTitle')}
-                onClick={() => lookAtTribe('inspire')}
-              >
-                ✦ {t('panels.tribe.inspire')}
-              </button>
-              {status.nextAge.missing.length > 0 && (
-                <button
-                  className="tribe-inspire"
-                  title={t('panels.tribe.teachTitle')}
-                  onClick={() => onTeach(status.id)}
-                >
-                  ✎ {t('panels.tribe.teach')}
-                </button>
-              )}
-            </span>
+            <NextAgeActions
+              canTeach={status.nextAge.missing.length > 0}
+              onInspire={() => lookAtTribe('inspire')}
+              onTeach={() => onTeach(status.id)}
+            />
           </div>
           <span className="tribe-need-bar">
             <span

@@ -937,11 +937,12 @@ function LiveApp() {
                     sendCommand({ cmd: 'rename_tribe', lineage, name }).then((outcome) => outcome.applied)
                   }
                   onTeach={(lineage) =>
-                    void sendCommand({ cmd: 'teach', lineage }).then((outcome) =>
+                    sendCommand({ cmd: 'teach', lineage }).then((outcome) => {
                       setTemporarySandboxStatus(
                         outcome.applied ? t('header.sandbox.taughtSecret') : t('header.sandbox.cannotTeach'),
-                      ),
-                    )
+                      )
+                      return outcome.applied
+                    })
                   }
                 />
               )}

@@ -342,4 +342,57 @@ describe('TribeCard', () => {
       t('panels.tribe.guide.worldPeople', { have: '2', need: '6', short: '4' }),
     )
   })
+
+  it('says what an inspire or teach press did, and inspires a tribe with no settlement yet', async () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    roots.push(root)
+
+    const w = {
+      ...world(['a', 'b']),
+      lineage_era_progress: [
+        {
+          lineage_id: 'a',
+          era_name: 'stone',
+          next_era: 'bronze',
+          required: ['farming'],
+          known: [],
+          missing: ['farming'],
+          ready: false,
+        },
+      ],
+    } as unknown as WorldState
+    const onTool = vi.fn()
+    let taught = true
+    const onTeach = vi.fn(() => Promise.resolve(taught))
+    act(() => useUIStore.setState({ focus: 'lineage:a' }))
+    act(() =>
+      root.render(
+        <TribeCard
+          world={w}
+          onAnswer={() => {}}
+          onTool={onTool}
+          onRename={() => Promise.resolve(true)}
+          onTeach={onTeach}
+        />,
+      ),
+    )
+    const button = (label: string) =>
+      [...host.querySelectorAll<HTMLButtonElement>('.tribe-inspire')].find((b) =>
+        b.textContent?.includes(label),
+      )!
+
+    act(() => button(t('panels.tribe.inspire')).click())
+    expect(onTool).toHaveBeenCalledWith('inspire', { x: 0, y: 0 })
+    expect(host.querySelector('.tribe-next-note')?.textContent).toBe(t('panels.tribe.inspireReady'))
+
+    await act(async () => button(t('panels.tribe.teach')).click())
+    expect(onTeach).toHaveBeenCalledWith('a')
+    expect(host.querySelector('.tribe-next-note')?.textContent).toBe(t('header.sandbox.taughtSecret'))
+
+    taught = false
+    await act(async () => button(t('panels.tribe.teach')).click())
+    expect(host.querySelector('.tribe-next-note')?.textContent).toBe(t('header.sandbox.cannotTeach'))
+  })
 })

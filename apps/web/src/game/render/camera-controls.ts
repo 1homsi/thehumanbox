@@ -105,6 +105,18 @@ export function isMapControl(target: EventTarget | null): boolean {
 /** One press of a zoom button zooms by this factor: a step big enough to see at once. */
 export const BUTTON_ZOOM_STEP = 1.6
 
+/**
+ * Queue a zoom-button press in the one-shot command slot. The camera takes the slot once a frame, so two presses
+ * inside one frame (a fast double press) would otherwise leave only the last: a press in the same direction as a
+ * zoom still waiting there adds to it, and a press the other way replaces it.
+ */
+export function queueButtonZoom(slot: { current: MapCommand | null }, factor: number): void {
+  const pending = slot.current
+  const sameWay =
+    pending?.kind === 'zoom' && pending.smooth && Math.sign(pending.factor - 1) === Math.sign(factor - 1)
+  slot.current = { kind: 'zoom', factor: sameWay ? pending.factor * factor : factor, smooth: true }
+}
+
 /** A zoom this close to a limit counts as at it. */
 const AT_LIMIT = 1.001
 

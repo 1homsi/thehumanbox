@@ -304,6 +304,7 @@
     "nextAge": "następna: epoka {era}",
     "inspire": "zainspiruj",
     "inspireTitle": "Zainspiruj ich: przyspieszy następne odkrycie",
+    "inspireReady": "Inspiracja gotowa: kliknij w ich pobliżu na mapie",
     "teach": "naucz",
     "teachTitle": "Naucz ich kolejnej tajemnicy, której im brakuje (raz na sezon)",
     "stillToLearn": "do nauczenia: {list}",

@@ -196,7 +196,9 @@ export function WorldView({
   return (
     <div
       ref={containerRef}
-      className="map2d-world"
+      // With a tool held, clicking the map again and again is how the tool is used (rain, food, a line of walls),
+      // not frustration: keep those clicks out of PostHog's rage-click count (#960).
+      className={sandboxArmed ? 'map2d-world ph-no-rageclick' : 'map2d-world'}
       tabIndex={0}
       aria-label={t('common.worldMapLabel')}
       style={{

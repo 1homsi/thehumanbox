@@ -293,6 +293,7 @@
     "nextAge": "next: {era} age",
     "inspire": "inspire",
     "inspireTitle": "Inspire them: speeds up their next discovery",
+    "inspireReady": "Inspire is ready: click near them on the map",
     "teach": "teach",
     "teachTitle": "Teach them the next secret they lack (once a season)",
     "stillToLearn": "still to learn: {list}",

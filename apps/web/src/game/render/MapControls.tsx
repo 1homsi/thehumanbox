@@ -3,6 +3,7 @@ import {
   BUTTON_ZOOM_STEP,
   DOUBLE_CLICK_ZOOM_MS,
   buttonZoomTarget,
+  queueButtonZoom,
   zoomLimitAt,
   type MapCommand,
 } from './camera-controls'
@@ -45,7 +46,7 @@ export function MapControls({ commandRef, cameraRef, zoomRange, onLocate }: Prop
         title={limit === 'max' ? t('common.zoomInLimit') : undefined}
         disabled={limit === 'max'}
         onClick={press(() => {
-          commandRef.current = { kind: 'zoom', factor: BUTTON_ZOOM_STEP, smooth: true }
+          queueButtonZoom(commandRef, BUTTON_ZOOM_STEP)
           pressed(BUTTON_ZOOM_STEP)
         })}
       >
@@ -58,7 +59,7 @@ export function MapControls({ commandRef, cameraRef, zoomRange, onLocate }: Prop
         title={limit === 'min' ? t('common.zoomOutLimit') : undefined}
         disabled={limit === 'min'}
         onClick={press(() => {
-          commandRef.current = { kind: 'zoom', factor: 1 / BUTTON_ZOOM_STEP, smooth: true }
+          queueButtonZoom(commandRef, 1 / BUTTON_ZOOM_STEP)
           pressed(1 / BUTTON_ZOOM_STEP)
         })}
       >

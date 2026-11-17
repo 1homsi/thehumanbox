@@ -283,6 +283,7 @@
     "nextAge": "下一时代：{era}时代",
     "inspire": "激励",
     "inspireTitle": "激励他们：加快下一次发现",
+    "inspireReady": "激励已就绪：在地图上点击他们附近",
     "teach": "传授",
     "teachTitle": "传授他们缺少的下一个秘密（每季一次）",
     "stillToLearn": "尚未掌握：{list}",
