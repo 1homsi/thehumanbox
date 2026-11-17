@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { OrganismState, WorldState } from '../../shared/types'
 import { useUIStore } from '../../state/store'
 import { PEOPLE_PAGE_SIZE, RightPanel } from './RightPanel'
@@ -10,6 +10,26 @@ vi.mock('./OrgCard', () => ({
   OrgCard: ({ orgId }: { orgId: string }) => <div className="fake-org-card">{orgId}</div>,
 }))
 vi.mock('../../shared/observability', () => ({ trackEvent: vi.fn() }))
+
+const lazyLoads = vi.hoisted(() => [] as Promise<unknown>[])
+vi.mock('../../shared/lazyWithRetry', async () => {
+  const { lazy } = await import('react')
+  type Component = import('react').ComponentType<object>
+  return {
+    lazyWithRetry: (factory: () => Promise<{ default: Component }>) => {
+      let loaded: { default: Component } | undefined
+      const load = factory().then((m) => (loaded = m))
+      lazyLoads.push(load)
+      return lazy(() => {
+        if (!loaded) throw new Error('lazy chunk was rendered before the test preloaded it')
+        const ready = loaded
+        return { then: (resolve: (m: { default: Component }) => void) => resolve(ready) } as Promise<{
+          default: Component
+        }>
+      })
+    },
+  }
+})
 
 const observers: Array<{ fire: (visible: boolean) => void }> = []
 class FakeObserver {
@@ -22,15 +42,20 @@ class FakeObserver {
   disconnect() {}
 }
 
-beforeAll(() => {
+beforeAll(async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   vi.stubGlobal('IntersectionObserver', FakeObserver)
+  await Promise.all(lazyLoads)
 })
 afterAll(() => vi.unstubAllGlobals())
+beforeEach(() => {
+  vi.useFakeTimers()
+})
 let root: Root | null = null
 afterEach(() => {
   if (root) act(() => root?.unmount())
   root = null
+  vi.useRealTimers()
   observers.length = 0
   document.body.replaceChildren()
   useUIStore.setState({ panelOpen: false, selectedOrgId: null, renamingOrgId: null })
@@ -132,7 +157,7 @@ describe('RightPanel', () => {
     const { host, draw } = await renderPanel(people)
     await act(async () => useUIStore.getState().selectOrg('p3'))
     await act(async () => draw())
-    await vi.waitFor(() => expect(host.querySelector('.person-drawer')).not.toBeNull())
+    expect(host.querySelector('.person-drawer')).not.toBeNull()
     expect(host.querySelector('.person-drawer')?.getAttribute('data-person-id')).toBe('p3')
     expect(host.querySelector('.person-drawer.beside-list')).not.toBeNull()
     expect(cardIds(host)).toHaveLength(PEOPLE_PAGE_SIZE)
@@ -148,7 +173,7 @@ describe('RightPanel', () => {
     const { host, draw } = await renderPanel(people)
     await act(async () => useUIStore.getState().startRename('p99'))
     await act(async () => draw())
-    await vi.waitFor(() => expect(host.querySelector('.person-drawer input')).not.toBeNull())
+    expect(host.querySelector('.person-drawer input')).not.toBeNull()
     const input = host.querySelector<HTMLInputElement>('.person-drawer input')!
     expect(input.value).toBe('Person99')
     expect(document.activeElement).toBe(input)
@@ -163,7 +188,7 @@ describe('RightPanel', () => {
     const { host, draw } = await renderPanel(people)
     await act(async () => useUIStore.getState().startRename('p5'))
     await act(async () => draw())
-    await vi.waitFor(() => expect(host.querySelector('.person-drawer input')).not.toBeNull())
+    expect(host.querySelector('.person-drawer input')).not.toBeNull()
     await act(async () => useUIStore.getState().startRename('p6'))
     await act(async () => draw())
     const input = host.querySelector<HTMLInputElement>('.person-drawer input')
