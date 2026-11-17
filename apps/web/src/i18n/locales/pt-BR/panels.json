@@ -56,11 +56,9 @@
     "outbreaksTip": "Surtos de doença que se espalharam pela população"
   },
   "wildlife": {
-    "title": "VIDA SELVAGEM",
     "danger": "Caça pessoas quando está com fome",
     "herds": "Ovelhas, vacas, cavalos e galinhas",
     "game": "Caça selvagem, abatida para comida: a caça excessiva a reduz",
-    "away": "+{count} fora",
     "animals": {
       "rabbits": "coelhos",
       "deer": "veados",
@@ -519,5 +517,96 @@
     "go": "Ir para {name}",
     "more": "Mais {count} tribos estão com pouca comida",
     "dismiss": "Fechar"
+  },
+  "world": {
+    "now": {
+      "title": "AGORA",
+      "when": "Ano {year}, {season}, {phase}.",
+      "weather": {
+        "clear": "Céu limpo.",
+        "rain": "Está chovendo e a terra bebe a água.",
+        "storm": "Uma tempestade cai. O povo corre para se abrigar.",
+        "snow": "Está nevando.",
+        "fog": "A neblina cobre a terra.",
+        "wet": "O chão ainda está molhado da chuva."
+      },
+      "drought": "Uma seca está secando a água.",
+      "hardWinter": "Um inverno rigoroso domina a terra.",
+      "hardWinterAhead": "Um inverno rigoroso está chegando: vai faltar comida.",
+      "people": {
+        "one": "{count} pessoa",
+        "other": "{count} pessoas"
+      },
+      "tribes": {
+        "one": "{count} tribo",
+        "other": "{count} tribos"
+      },
+      "peopleLine": "{people} vivem em {tribes}.",
+      "ageYoung": "O mundo é jovem: nenhuma tribo aprendeu muito ainda.",
+      "age": "As tribos mais avançadas chegaram à era {era}.",
+      "ageTip": "A era do mundo é a da sua tribo mais avançada. Ela define o que o povo pode construir e como vive."
+    },
+    "feed": {
+      "title": "O QUE ESTÁ ACONTECENDO",
+      "tip": "As coisas mais importantes acontecendo agora, das mais novas para as mais antigas. Clique para voar até lá.",
+      "peril": "está em apuros: {reason}.",
+      "war": "{a} e {b} estão em guerra.",
+      "drought": "Seca: rios e lagos estão encolhendo.",
+      "hardWinter": "Inverno rigoroso: a comida fica escassa até a primavera.",
+      "hardWinterAhead": "Um inverno rigoroso vem aí.",
+      "quiet": "Tudo calmo. As tribos seguem com seus dias.",
+      "now": "agora mesmo",
+      "days": {
+        "one": "ontem",
+        "other": "há {count} dias"
+      },
+      "years": {
+        "one": "há um ano",
+        "other": "há {count} anos"
+      },
+      "chronicles": "Leia a história toda nas Crônicas",
+      "goThere": "Voar até lá"
+    },
+    "tribes": {
+      "title": "TRIBOS",
+      "tip": "Como cada tribo está: seu povo, se cresce (▲) ou encolhe (▼) e uma palavra sobre como vai a vida. Clique numa tribo para segui-la.",
+      "mood": {
+        "starving": "passando fome",
+        "thirsty": "com sede",
+        "dying": "em perigo",
+        "war": "em guerra",
+        "sick": "doente",
+        "hungry": "com fome",
+        "growing": "crescendo",
+        "shrinking": "encolhendo",
+        "thriving": "próspera",
+        "steady": "estável"
+      },
+      "moodTip": {
+        "starving": "A comida está acabando e gente está morrendo de fome.",
+        "thirsty": "Não têm água e gente está morrendo de sede.",
+        "dying": "Podem desaparecer logo. Veja por quê.",
+        "war": "Estão lutando contra outra tribo agora.",
+        "sick": "Uma doença está se espalhando pela tribo.",
+        "hungry": "A comida está acabando. Ajude a encontrar mais.",
+        "growing": "Nasce mais gente do que morre.",
+        "shrinking": "Estão perdendo gente.",
+        "thriving": "Bem alimentados e saudáveis.",
+        "steady": "Pouca coisa está mudando."
+      },
+      "viewAll": {
+        "one": "ver a tribo",
+        "other": "ver todas as {count} tribos"
+      }
+    },
+    "wildlife": {
+      "title": "VIDA SELVAGEM",
+      "tip": "Animais que vivem na terra. Caça e rebanhos alimentam as tribos; os vermelhos caçam pessoas."
+    },
+    "nerd": {
+      "title": "PARA NERDS",
+      "tip": "Contadores brutos, cada linhagem e o registro completo de eventos. Aparece porque \"Estatísticas para nerds\" está ligado.",
+      "hint": "Quer os números brutos? Ligue \"Estatísticas para nerds\" nas configurações."
+    }
   }
 }

@@ -56,11 +56,9 @@
     "outbreaksTip": "Brotes de enfermedad que se extendieron por la población"
   },
   "wildlife": {
-    "title": "FAUNA",
     "danger": "Caza a las personas cuando tiene hambre",
     "herds": "Ovejas, vacas, caballos y gallinas",
     "game": "Caza silvestre para comer: la caza excesiva la reduce",
-    "away": "+{count} fuera",
     "animals": {
       "rabbits": "conejos",
       "deer": "ciervos",
@@ -519,5 +517,96 @@
     "go": "Ir a {name}",
     "more": "{count} tribus más se están quedando sin comida",
     "dismiss": "Cerrar"
+  },
+  "world": {
+    "now": {
+      "title": "AHORA MISMO",
+      "when": "Año {year}, {season}, {phase}.",
+      "weather": {
+        "clear": "Cielo despejado.",
+        "rain": "Llueve y la tierra lo agradece.",
+        "storm": "Una tormenta arrecia. La gente corre a refugiarse.",
+        "snow": "Está nevando.",
+        "fog": "La niebla cubre la tierra.",
+        "wet": "El suelo sigue mojado por la lluvia."
+      },
+      "drought": "Una sequía está secando el agua.",
+      "hardWinter": "Un invierno duro azota la tierra.",
+      "hardWinterAhead": "Se acerca un invierno duro: escaseará la comida.",
+      "people": {
+        "one": "{count} persona",
+        "other": "{count} personas"
+      },
+      "tribes": {
+        "one": "{count} tribu",
+        "other": "{count} tribus"
+      },
+      "peopleLine": "{people} viven en {tribes}.",
+      "ageYoung": "El mundo es joven: ninguna tribu ha aprendido mucho todavía.",
+      "age": "Las tribus más avanzadas han llegado a la edad {era}.",
+      "ageTip": "La edad del mundo la marca su tribu más avanzada. Define lo que la gente puede construir y cómo vive."
+    },
+    "feed": {
+      "title": "QUÉ ESTÁ PASANDO",
+      "tip": "Lo más importante que ocurre ahora, lo más nuevo primero. Haz clic para volar allí.",
+      "peril": "está en apuros: {reason}.",
+      "war": "{a} y {b} están en guerra.",
+      "drought": "Sequía: ríos y lagos se encogen.",
+      "hardWinter": "Invierno duro: la comida escasea hasta la primavera.",
+      "hardWinterAhead": "Se acerca un invierno duro.",
+      "quiet": "Todo tranquilo. Las tribus siguen con su día a día.",
+      "now": "ahora mismo",
+      "days": {
+        "one": "ayer",
+        "other": "hace {count} días"
+      },
+      "years": {
+        "one": "hace un año",
+        "other": "hace {count} años"
+      },
+      "chronicles": "Lee toda la historia en las Crónicas",
+      "goThere": "Volar allí"
+    },
+    "tribes": {
+      "title": "TRIBUS",
+      "tip": "Cómo le va a cada tribu: su gente, si crece (▲) o mengua (▼) y una palabra sobre cómo va la vida. Haz clic en una tribu para seguirla.",
+      "mood": {
+        "starving": "hambruna",
+        "thirsty": "sedienta",
+        "dying": "en peligro",
+        "war": "en guerra",
+        "sick": "enferma",
+        "hungry": "con hambre",
+        "growing": "creciendo",
+        "shrinking": "menguando",
+        "thriving": "próspera",
+        "steady": "estable"
+      },
+      "moodTip": {
+        "starving": "Se quedan sin comida y la gente muere de hambre.",
+        "thirsty": "No tienen agua y la gente muere de sed.",
+        "dying": "Podrían desaparecer pronto. Mira por qué.",
+        "war": "Ahora mismo luchan contra otra tribu.",
+        "sick": "Una enfermedad se extiende por la tribu.",
+        "hungry": "La comida escasea. Ayúdales a encontrar más.",
+        "growing": "Nacen más personas de las que mueren.",
+        "shrinking": "Están perdiendo gente.",
+        "thriving": "Bien alimentados y sanos.",
+        "steady": "No cambia gran cosa."
+      },
+      "viewAll": {
+        "one": "ver la tribu",
+        "other": "ver las {count} tribus"
+      }
+    },
+    "wildlife": {
+      "title": "FAUNA",
+      "tip": "Animales que viven en la tierra. La caza y los rebaños alimentan a las tribus; los rojos cazan personas."
+    },
+    "nerd": {
+      "title": "PARA EXPERTOS",
+      "tip": "Contadores en bruto, cada linaje y el registro completo de eventos. Se ve porque «Estadísticas para expertos» está activado.",
+      "hint": "¿Quieres los números en bruto? Activa «Estadísticas para expertos» en Ajustes."
+    }
   }
 }
