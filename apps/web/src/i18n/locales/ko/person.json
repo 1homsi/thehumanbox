@@ -351,5 +351,95 @@
     "days": {
       "other": "{count}일"
     }
+  },
+  "list": {
+    "info": "{name} 정보",
+    "follow": "지도에서 {name} 따라가기",
+    "unfollow": "{name} 따라가기 멈추기",
+    "conditionTip": "가장 급한 욕구로 본 상태"
+  },
+  "condition": {
+    "well": "잘 지냄",
+    "hungry": "배고픔",
+    "thirsty": "목마름",
+    "hurt": "다침",
+    "sick": "아픔",
+    "dead": "세상을 떠남"
+  },
+  "age": {
+    "firstYear": "첫해",
+    "stageAndSpan": "{stage}, {span}"
+  },
+  "now": {
+    "idle": "느긋하게 쉬는 중"
+  },
+  "tribe": {
+    "unnamed": "이름 없는 부족"
+  },
+  "traitWord": {
+    "curiosity": {
+      "high": "호기심 많음",
+      "low": "변화를 싫어함"
+    },
+    "aggression": {
+      "high": "다혈질",
+      "low": "온순함"
+    },
+    "fear": {
+      "high": "조심성 많음",
+      "low": "겁이 없음"
+    },
+    "memory": {
+      "high": "기억력 좋음",
+      "low": "잘 잊음"
+    },
+    "social": {
+      "high": "사교적",
+      "low": "외톨이"
+    },
+    "resilience": {
+      "high": "강인함",
+      "low": "허약함"
+    }
+  },
+  "sheet": {
+    "aria": "{name} 정보",
+    "now": "지금",
+    "needs": "욕구",
+    "personality": "성격",
+    "people": "사람들",
+    "story": "이야기",
+    "nerd": "상세 통계",
+    "food": "음식",
+    "water": "물",
+    "health": "건강",
+    "sickness": "질병",
+    "low": "부족",
+    "allTraits": "모든 특성",
+    "noPeople": "아직 가까운 사람이 없습니다.",
+    "noStory": "이야기가 이제 막 시작되었습니다.",
+    "partner": "배우자",
+    "dream": "타고난 {dream}",
+    "inLove": "누군가에게 끌림",
+    "nerdLine": "혈통 {lineage} · {generation}세대 · {ticks} tick · 최대 {max}",
+    "action": {
+      "follow": "따라가기",
+      "following": "따라가는 중",
+      "rename": "이름 바꾸기",
+      "tree": "가계도",
+      "talks": "대화 ({count})",
+      "life": "일생",
+      "home": "집",
+      "star": "즐겨찾기",
+      "starred": "즐겨찾기됨"
+    },
+    "tip": {
+      "follow": "지도에서 따라가기",
+      "following": "따라가기 멈추기",
+      "rename": "이름 지어 주기",
+      "tree": "가계도 열기",
+      "talks": "나눈 대화 읽기",
+      "life": "일생 전체 읽기"
+    }
   }
 }

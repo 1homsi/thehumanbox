@@ -14,12 +14,7 @@ export const createPanelsSlice: StateCreator<UIState, [], [], PanelsSlice> = (se
   panelOpen: false,
   leftOpen: false,
   showMore: false,
-  togglePanel: () =>
-    set((s) =>
-      s.panelOpen
-        ? { panelOpen: false, selectedOrgId: null, followOrgId: null, renamingOrgId: null }
-        : { panelOpen: true },
-    ),
+  togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
   toggleLeft: () => set((s) => ({ leftOpen: !s.leftOpen })),
   toggleMore: () => set((s) => ({ showMore: !s.showMore })),
 })

@@ -354,5 +354,95 @@
       "one": "{count} Tag",
       "other": "{count} Tage"
     }
+  },
+  "list": {
+    "info": "Über {name}",
+    "follow": "{name} auf der Karte folgen",
+    "unfollow": "{name} nicht mehr folgen",
+    "conditionTip": "Wie es ihnen geht, nach ihrem dringendsten Bedürfnis"
+  },
+  "condition": {
+    "well": "geht es gut",
+    "hungry": "hungrig",
+    "thirsty": "durstig",
+    "hurt": "verletzt",
+    "sick": "krank",
+    "dead": "ist gestorben"
+  },
+  "age": {
+    "firstYear": "erstes Jahr",
+    "stageAndSpan": "{stage}, {span}"
+  },
+  "now": {
+    "idle": "Ruht sich aus"
+  },
+  "tribe": {
+    "unnamed": "namenloser Stamm"
+  },
+  "traitWord": {
+    "curiosity": {
+      "high": "neugierig",
+      "low": "gewohnheitsliebend"
+    },
+    "aggression": {
+      "high": "hitzköpfig",
+      "low": "sanft"
+    },
+    "fear": {
+      "high": "vorsichtig",
+      "low": "furchtlos"
+    },
+    "memory": {
+      "high": "gutes Gedächtnis",
+      "low": "vergesslich"
+    },
+    "social": {
+      "high": "gesellig",
+      "low": "Einzelgänger"
+    },
+    "resilience": {
+      "high": "zäh",
+      "low": "gebrechlich"
+    }
+  },
+  "sheet": {
+    "aria": "Über {name}",
+    "now": "Jetzt",
+    "needs": "Bedürfnisse",
+    "personality": "Persönlichkeit",
+    "people": "Menschen",
+    "story": "Geschichte",
+    "nerd": "Statistiken für Nerds",
+    "food": "Essen",
+    "water": "Wasser",
+    "health": "Gesundheit",
+    "sickness": "Krankheit",
+    "low": "niedrig",
+    "allTraits": "Alle Eigenschaften",
+    "noPeople": "Noch keine engen Bindungen.",
+    "noStory": "Ihre Geschichte fängt gerade erst an.",
+    "partner": "Partner",
+    "dream": "im Herzen {dream}",
+    "inLove": "zu jemandem hingezogen",
+    "nerdLine": "Linie {lineage} · Generation {generation} · {ticks} Ticks alt · lebt bis zu {max}",
+    "action": {
+      "follow": "Folgen",
+      "following": "Folge ich",
+      "rename": "Umbenennen",
+      "tree": "Stammbaum",
+      "talks": "Gespräche ({count})",
+      "life": "Lebensgeschichte",
+      "home": "Zuhause",
+      "star": "Merken",
+      "starred": "Gemerkt"
+    },
+    "tip": {
+      "follow": "Auf der Karte folgen",
+      "following": "Nicht mehr folgen",
+      "rename": "Einen Namen geben",
+      "tree": "Ihren Stammbaum öffnen",
+      "talks": "Lesen, worüber sie gesprochen haben",
+      "life": "Ihr ganzes Leben lesen"
+    }
   }
 }

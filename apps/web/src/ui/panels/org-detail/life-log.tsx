@@ -1,6 +1,3 @@
-import { deathLine } from '../../../game/model/death'
-import { lifeStory } from '../../../game/model/life-story'
-import { familySentence } from '../../../game/model/family-lines'
 import { Tooltip } from '../../toolbar/Tooltip'
 import type { OrganismState, OrgDetail } from '../../../shared/types'
 import { formatNumber, t } from '../../../i18n'
@@ -26,50 +23,6 @@ export function MemoryCountsSection({ org }: { org: OrganismState }) {
           </span>
         </Tooltip>
       </div>
-    </>
-  )
-}
-
-export function DeathSection({ org }: { org: OrganismState }) {
-  const line = deathLine(org)
-  if (!line) return null
-  return (
-    <>
-      <div className="org-detail-section">{t('person.life.death')}</div>
-      <div className="thought-row" style={{ marginBottom: 6 }}>
-        <span className="thought-text">{line}</span>
-      </div>
-    </>
-  )
-}
-
-/** The person's story in a few plain sentences, from what the card already knows. */
-export function LifeStorySection({
-  org,
-  organisms,
-  detail,
-}: {
-  org: OrganismState
-  organisms?: OrganismState[]
-  detail: OrgDetail | null
-}) {
-  const lines = lifeStory(org, organisms ?? [], detail?.life_log ?? [])
-  const family = familySentence(org, organisms ?? [])
-  return (
-    <>
-      <div className="org-detail-section">{t('person.life.story')}</div>
-      <ul className="life-story">
-        {lines.map((line, i) => (
-          <li key={i} className="thought-text">
-            {line}
-          </li>
-        ))}
-        {family && (
-          <li className="thought-text" style={{ color: '#9fb7c9' }}>
-            {family}
-          </li>
-        )}
-      </ul>
     </>
   )
 }
@@ -138,7 +91,7 @@ export function InnerLifeSection({ detail }: { detail: OrgDetail | null }) {
           const heaviest = [...mems]
             .filter((m) => m.kind !== 'core' && m.emotion <= -2)
             .sort((a, b) => b.salience - a.salience)[0]
-          if (!oldest && !proudest && !heaviest) return null
+          if ((!oldest || oldest.kind === 'core') && !proudest && !heaviest) return null
           return (
             <>
               <div className="org-detail-section">{t('person.life.innerLife')}</div>

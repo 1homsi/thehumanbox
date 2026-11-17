@@ -354,5 +354,95 @@
       "one": "{count} dia",
       "other": "{count} dias"
     }
+  },
+  "list": {
+    "info": "Sobre {name}",
+    "follow": "Seguir {name} no mapa",
+    "unfollow": "Parar de seguir {name}",
+    "conditionTip": "Como estão, pela necessidade mais urgente"
+  },
+  "condition": {
+    "well": "está bem",
+    "hungry": "com fome",
+    "thirsty": "com sede",
+    "hurt": "ferido",
+    "sick": "doente",
+    "dead": "morreu"
+  },
+  "age": {
+    "firstYear": "primeiro ano",
+    "stageAndSpan": "{stage}, {span}"
+  },
+  "now": {
+    "idle": "De boa"
+  },
+  "tribe": {
+    "unnamed": "tribo sem nome"
+  },
+  "traitWord": {
+    "curiosity": {
+      "high": "curioso",
+      "low": "apegado ao costume"
+    },
+    "aggression": {
+      "high": "esquentado",
+      "low": "gentil"
+    },
+    "fear": {
+      "high": "cauteloso",
+      "low": "destemido"
+    },
+    "memory": {
+      "high": "boa memória",
+      "low": "esquecido"
+    },
+    "social": {
+      "high": "sociável",
+      "low": "solitário"
+    },
+    "resilience": {
+      "high": "durão",
+      "low": "frágil"
+    }
+  },
+  "sheet": {
+    "aria": "Sobre {name}",
+    "now": "Agora",
+    "needs": "Necessidades",
+    "personality": "Personalidade",
+    "people": "Pessoas",
+    "story": "História",
+    "nerd": "Estatísticas para nerds",
+    "food": "Comida",
+    "water": "Água",
+    "health": "Saúde",
+    "sickness": "Doença",
+    "low": "baixo",
+    "allTraits": "Todos os traços",
+    "noPeople": "Ainda sem laços próximos.",
+    "noStory": "A história está só começando.",
+    "partner": "parceiro",
+    "dream": "{dream} de coração",
+    "inLove": "atraído por alguém",
+    "nerdLine": "linhagem {lineage} · geração {generation} · {ticks} ticks de idade · vive até {max}",
+    "action": {
+      "follow": "Seguir",
+      "following": "Seguindo",
+      "rename": "Renomear",
+      "tree": "Árvore genealógica",
+      "talks": "Conversas ({count})",
+      "life": "Biografia",
+      "home": "Casa",
+      "star": "Favoritar",
+      "starred": "Favorito"
+    },
+    "tip": {
+      "follow": "Seguir no mapa",
+      "following": "Parar de seguir",
+      "rename": "Dar um nome",
+      "tree": "Abrir a árvore genealógica",
+      "talks": "Ler sobre o que conversou",
+      "life": "Ler a vida inteira"
+    }
   }
 }

@@ -351,5 +351,95 @@
     "days": {
       "other": "{count} gün"
     }
+  },
+  "list": {
+    "info": "{name} hakkında",
+    "follow": "{name} kişisini haritada izle",
+    "unfollow": "{name} kişisini izlemeyi bırak",
+    "conditionTip": "En acil ihtiyacına göre nasıl olduğu"
+  },
+  "condition": {
+    "well": "iyi durumda",
+    "hungry": "aç",
+    "thirsty": "susuz",
+    "hurt": "yaralı",
+    "sick": "hasta",
+    "dead": "öldü"
+  },
+  "age": {
+    "firstYear": "ilk yılı",
+    "stageAndSpan": "{stage}, {span}"
+  },
+  "now": {
+    "idle": "Dinleniyor"
+  },
+  "tribe": {
+    "unnamed": "adsız kabile"
+  },
+  "traitWord": {
+    "curiosity": {
+      "high": "meraklı",
+      "low": "alışkanlıklarına bağlı"
+    },
+    "aggression": {
+      "high": "öfkeli",
+      "low": "yumuşak huylu"
+    },
+    "fear": {
+      "high": "temkinli",
+      "low": "korkusuz"
+    },
+    "memory": {
+      "high": "hafızası güçlü",
+      "low": "unutkan"
+    },
+    "social": {
+      "high": "sosyal",
+      "low": "yalnız kurt"
+    },
+    "resilience": {
+      "high": "dayanıklı",
+      "low": "narin"
+    }
+  },
+  "sheet": {
+    "aria": "{name} hakkında",
+    "now": "Şu an",
+    "needs": "İhtiyaçlar",
+    "personality": "Kişilik",
+    "people": "Yakınları",
+    "story": "Hikâye",
+    "nerd": "Ayrıntılı istatistikler",
+    "food": "Yiyecek",
+    "water": "Su",
+    "health": "Sağlık",
+    "sickness": "Hastalık",
+    "low": "düşük",
+    "allTraits": "Tüm özellikler",
+    "noPeople": "Henüz yakın bağı yok.",
+    "noStory": "Hikâyesi daha yeni başlıyor.",
+    "partner": "eş",
+    "dream": "özünde {dream}",
+    "inLove": "birinden hoşlanıyor",
+    "nerdLine": "soy {lineage} · {generation}. kuşak · {ticks} tik yaşında · en fazla {max}",
+    "action": {
+      "follow": "İzle",
+      "following": "İzleniyor",
+      "rename": "Adlandır",
+      "tree": "Soy ağacı",
+      "talks": "Sohbetler ({count})",
+      "life": "Hayatı",
+      "home": "Ev",
+      "star": "Yıldızla",
+      "starred": "Yıldızlı"
+    },
+    "tip": {
+      "follow": "Haritada izle",
+      "following": "İzlemeyi bırak",
+      "rename": "Bir ad ver",
+      "tree": "Soy ağacını aç",
+      "talks": "Neler konuştuğunu oku",
+      "life": "Tüm hayatını oku"
+    }
   }
 }

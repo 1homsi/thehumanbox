@@ -54,8 +54,9 @@ function rectsFor(name: string, rows: readonly string[]): ReactElement[] {
 
 const SPRITE_STYLE = { display: 'block', flexShrink: 0 } as const
 
-export const ToolSprite = memo(function ToolSprite({ icon, size = 24 }: { icon: string; size?: number }) {
-  const name = icons[icon] ?? 'cursor'
+export type SpriteName = keyof typeof sprites
+
+export const PixelIcon = memo(function PixelIcon({ name, size = 24 }: { name: SpriteName; size?: number }) {
   const rows = sprites[name]
   return (
     <svg
@@ -70,4 +71,8 @@ export const ToolSprite = memo(function ToolSprite({ icon, size = 24 }: { icon: 
       {rectsFor(name, rows)}
     </svg>
   )
+})
+
+export const ToolSprite = memo(function ToolSprite({ icon, size = 24 }: { icon: string; size?: number }) {
+  return <PixelIcon name={icons[icon] ?? 'cursor'} size={size} />
 })

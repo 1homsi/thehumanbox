@@ -360,5 +360,95 @@
       "many": "{count} dni",
       "other": "{count} dnia"
     }
+  },
+  "list": {
+    "info": "O postaci {name}",
+    "follow": "Śledź {name} na mapie",
+    "unfollow": "Przestań śledzić {name}",
+    "conditionTip": "Jak się mają, według najpilniejszej potrzeby"
+  },
+  "condition": {
+    "well": "ma się dobrze",
+    "hungry": "głodny",
+    "thirsty": "spragniony",
+    "hurt": "ranny",
+    "sick": "chory",
+    "dead": "nie żyje"
+  },
+  "age": {
+    "firstYear": "pierwszy rok",
+    "stageAndSpan": "{stage}, {span}"
+  },
+  "now": {
+    "idle": "Odpoczywa"
+  },
+  "tribe": {
+    "unnamed": "plemię bez nazwy"
+  },
+  "traitWord": {
+    "curiosity": {
+      "high": "ciekawski",
+      "low": "przywiązany do zwyczajów"
+    },
+    "aggression": {
+      "high": "porywczy",
+      "low": "łagodny"
+    },
+    "fear": {
+      "high": "ostrożny",
+      "low": "nieustraszony"
+    },
+    "memory": {
+      "high": "dobra pamięć",
+      "low": "zapominalski"
+    },
+    "social": {
+      "high": "towarzyski",
+      "low": "samotnik"
+    },
+    "resilience": {
+      "high": "twardy",
+      "low": "wątły"
+    }
+  },
+  "sheet": {
+    "aria": "O postaci {name}",
+    "now": "Teraz",
+    "needs": "Potrzeby",
+    "personality": "Osobowość",
+    "people": "Bliscy",
+    "story": "Historia",
+    "nerd": "Statystyki dla zaawansowanych",
+    "food": "Jedzenie",
+    "water": "Woda",
+    "health": "Zdrowie",
+    "sickness": "Choroba",
+    "low": "nisko",
+    "allTraits": "Wszystkie cechy",
+    "noPeople": "Brak jeszcze bliskich więzi.",
+    "noStory": "Ich historia dopiero się zaczyna.",
+    "partner": "partner",
+    "dream": "w głębi duszy {dream}",
+    "inLove": "zauroczony kimś",
+    "nerdLine": "ród {lineage} · pokolenie {generation} · {ticks} taktów · żyje do {max}",
+    "action": {
+      "follow": "Śledź",
+      "following": "Śledzisz",
+      "rename": "Zmień imię",
+      "tree": "Drzewo rodzinne",
+      "talks": "Rozmowy ({count})",
+      "life": "Życiorys",
+      "home": "Dom",
+      "star": "Oznacz",
+      "starred": "Oznaczony"
+    },
+    "tip": {
+      "follow": "Śledź na mapie",
+      "following": "Przestań śledzić",
+      "rename": "Nadaj imię",
+      "tree": "Otwórz drzewo rodzinne",
+      "talks": "Przeczytaj, o czym rozmawiali",
+      "life": "Przeczytaj całe życie"
+    }
   }
 }
