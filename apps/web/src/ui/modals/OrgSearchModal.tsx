@@ -4,10 +4,11 @@ import clsx from 'clsx'
 import type { OrganismState } from '../../shared/types'
 import { lineageColor, cbColor } from '../../shared/constants'
 import { OrgDetail } from '../panels/OrgDetail'
-import { Modal } from './Modal'
+import { Modal, ModalHeader } from './Modal'
+import { PixelIcon, type SpriteName } from '../toolbar/ToolSprite'
 import { shownGeneration } from '../../game/model/generations'
 import { formatNumber, t, type MessageKey } from '../../i18n'
-import { ASPIRATIONS, ASPIRATION_EMOJI, aspirationLabel, ownEntry } from '../panels/org-detail/icons'
+import { ASPIRATIONS, aspirationLabel, ownEntry } from '../panels/org-detail/icons'
 
 const DAY_LENGTH = 600
 
@@ -29,6 +30,19 @@ type DiscoveryFilter = 'all' | 'fire' | 'shelter'
 type AspirationFilter = 'all' | (typeof ASPIRATIONS)[number]
 
 import { discoveryWord } from '../sim-words'
+
+const ASPIRATION_SPRITE: Record<string, SpriteName> = {
+  seeker: 'search',
+  wanderer: 'compass',
+  warrior: 'swords',
+  connector: 'tribe',
+  builder: 'hammer',
+  devout: 'dove',
+  sage: 'scroll',
+  provider: 'wheat',
+  artist: 'pencil',
+  healer: 'bandage',
+}
 
 export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Props) {
   const [query, setQuery] = useState('')
@@ -115,20 +129,16 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
         setTribeOpen(false)
       }}
     >
-      {}
-      <div className="lang-modal-header">
-        <span className="lang-modal-title">{t('dialogs.orgSearch.heading')}</span>
-        <span className="tree-modal-sub">
-          {t('dialogs.orgSearch.summary', {
-            shown: formatNumber(filtered.length),
-            alive: formatNumber(organisms.filter((o) => o.alive).length),
-            dead: formatNumber(organisms.filter((o) => !o.alive).length),
-          })}
-        </span>
-        <button aria-label={t('dialogs.orgSearch.close')} className="close-btn" onClick={onClose}>
-          ✕
-        </button>
-      </div>
+      <ModalHeader
+        title={t('dialogs.orgSearch.heading')}
+        sub={t('dialogs.orgSearch.summary', {
+          shown: formatNumber(filtered.length),
+          alive: formatNumber(organisms.filter((o) => o.alive).length),
+          dead: formatNumber(organisms.filter((o) => !o.alive).length),
+        })}
+        onClose={onClose}
+        closeLabel={t('dialogs.orgSearch.close')}
+      />
 
       {}
       <div className={clsx('org-search-toolbar', selectedOrg && 'org-search-toolbar--behind-detail')}>
@@ -155,13 +165,15 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
               className={clsx('filter-chip', discF === 'fire' && 'active')}
               onClick={() => setDiscF(discF === 'fire' ? 'all' : 'fire')}
             >
-              🔥 {t('dialogs.orgSearch.fire')}
+              <PixelIcon name="fire" size={11} />
+              {t('dialogs.orgSearch.fire')}
             </button>
             <button
               className={clsx('filter-chip', discF === 'shelter' && 'active')}
               onClick={() => setDiscF(discF === 'shelter' ? 'all' : 'shelter')}
             >
-              🏠 {t('dialogs.orgSearch.shelter')}
+              <PixelIcon name="house" size={11} />
+              {t('dialogs.orgSearch.shelter')}
             </button>
             <span className="filter-sep">·</span>
             <button
@@ -187,7 +199,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                 title={aspirationLabel(a)}
                 aria-label={aspirationLabel(a)}
               >
-                {ASPIRATION_EMOJI[a]}
+                <PixelIcon name={ASPIRATION_SPRITE[a] ?? 'star'} size={12} />
               </button>
             ))}
             <span className="filter-sep">·</span>
@@ -254,15 +266,19 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                   </span>
                   <span className="org-search-badges">
                     {/* An aspiration this build does not know still shows, as ✦ like the person panel. */}
-                    {org.aspiration && (
-                      <span title={aspirationLabel(org.aspiration)} style={{ marginRight: 2 }}>
-                        {ownEntry(ASPIRATION_EMOJI, org.aspiration) ?? '✦'}
-                      </span>
-                    )}
-                    {discs.includes('fire') && '🔥'}
-                    {discs.includes('shelter') && '🏠'}
-                    {discs.includes('cooking') && '🍖'}
-                    {discs.includes('spear') && '🗡️'}
+                    {org.aspiration &&
+                      (() => {
+                        const sprite = ownEntry(ASPIRATION_SPRITE, org.aspiration)
+                        return (
+                          <span title={aspirationLabel(org.aspiration)} className="org-search-badge">
+                            {sprite ? <PixelIcon name={sprite} size={11} /> : '✦'}
+                          </span>
+                        )
+                      })()}
+                    {discs.includes('fire') && <PixelIcon name="fire" size={11} />}
+                    {discs.includes('shelter') && <PixelIcon name="house" size={11} />}
+                    {discs.includes('cooking') && <PixelIcon name="apple" size={11} />}
+                    {discs.includes('spear') && <PixelIcon name="sword" size={11} />}
                   </span>
                   <span className="org-search-meta" style={{ color: 'var(--dialog-muted)' }}>
                     {t('dialogs.orgSearch.genAge', {
@@ -274,6 +290,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                     <button
                       className="org-action-btn org-track-btn"
                       title={t('dialogs.orgSearch.track')}
+                      aria-label={t('dialogs.orgSearch.track')}
                       onClick={(e) => {
                         e.stopPropagation()
                         onTrack(org.id)

@@ -589,3 +589,9 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+@media (pointer: coarse) {
+  .person-action {
+    min-width: 40px;
+    min-height: 40px;
+  }
+}

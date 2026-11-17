@@ -4,7 +4,7 @@ import type { WorldState } from '../../shared/types'
 import { eraWord } from '../../shared/era-words'
 import { useFrozenSnapshot } from '../../shared/hooks/useFrozenSnapshot'
 import { useNerdStats, useUIStore } from '../../state/store'
-import { Modal } from './Modal'
+import { Modal, ModalHeader } from './Modal'
 import { ToolSprite } from '../toolbar/ToolSprite'
 import { calendarAt } from '../../game/model/calendar'
 import { yearlySeries } from '../../game/model/yearly'
@@ -252,31 +252,36 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
 
   return (
     <Modal open onClose={onClose} className="stats-modal" title={t('dialogs.stats.title')} hideTitle>
-      <div className="lang-modal-header">
-        <span className="lang-modal-title">{t('dialogs.stats.heading')}</span>
-        <span className="tree-modal-sub">
-          {world.cosmos ? (
-            <>
-              {t('dialogs.stats.yearDay', {
-                year: formatNumber(calendarAt(world.tick).year),
-                day: formatNumber(calendarAt(world.tick).dayOfSeason),
-              })}{' '}
-              ·{' '}
-            </>
-          ) : (
-            <>{t('dialogs.stats.day', { day: formatNumber(currentDay) })} · </>
-          )}
-          {t('dialogs.stats.aliveCount', { count: formatNumber(liveCount) })}
-        </span>
-        <div className="modal-header-actions">
-          <button className="reload-btn" onClick={reload} title={t('dialogs.stats.reload')}>
-            ⟳
-          </button>
-          <button aria-label={t('dialogs.stats.close')} className="close-btn" onClick={onClose}>
-            ✕
-          </button>
-        </div>
-      </div>
+      <ModalHeader
+        title={t('dialogs.stats.heading')}
+        sub={
+          <>
+            {world.cosmos ? (
+              <>
+                {t('dialogs.stats.yearDay', {
+                  year: formatNumber(calendarAt(world.tick).year),
+                  day: formatNumber(calendarAt(world.tick).dayOfSeason),
+                })}{' '}
+                ·{' '}
+              </>
+            ) : (
+              <>{t('dialogs.stats.day', { day: formatNumber(currentDay) })} · </>
+            )}
+            {t('dialogs.stats.aliveCount', { count: formatNumber(liveCount) })}
+          </>
+        }
+        onClose={onClose}
+        closeLabel={t('dialogs.stats.close')}
+      >
+        <button
+          className="reload-btn"
+          onClick={reload}
+          title={t('dialogs.stats.reload')}
+          aria-label={t('dialogs.stats.reload')}
+        >
+          ⟳
+        </button>
+      </ModalHeader>
 
       <div className="stats-body">
         <StatsHeadlines world={world} />

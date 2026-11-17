@@ -9,7 +9,9 @@ import {
 import type { Difficulty, WorldState } from '../../shared/types'
 import { sendSandboxCommand } from '../../simulation/commandBus'
 import { t, type MessageKey } from '../../i18n'
-import { Modal } from './Modal'
+import { Modal, ModalHeader } from './Modal'
+import { PixelIcon } from '../toolbar/ToolSprite'
+import clsx from 'clsx'
 
 const DIFFICULTY_LABEL: Record<Difficulty, MessageKey> = {
   calm: 'dialogs.goals.levels.calm',
@@ -65,70 +67,57 @@ export function GoalsModal({ world, onClose }: Props) {
       title={t('dialogs.goals.title')}
       hideTitle
     >
-      <div className="lang-modal-header">
-        <span className="lang-modal-title">{t('dialogs.goals.heading')}</span>
-        <span className="tree-modal-sub">{summary.headline}</span>
-      </div>
-
-      {summary.lost && (
-        <p role="status" data-testid="goals-lost" style={{ color: '#e07060', margin: '10px 0 0' }}>
-          {t('dialogs.goals.lost')}
-        </p>
-      )}
-
-      <ul className="goal-list" style={{ listStyle: 'none', padding: 0, margin: '12px 0 0' }}>
-        {goals.map((g) => (
-          <li
-            key={g.id}
-            data-done={g.done}
-            style={{ padding: '8px 0', borderBottom: '1px solid #3a3020', opacity: g.done ? 1 : 0.85 }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-              <span style={{ color: g.done ? '#e8b060' : '#f4e6c0' }}>
-                {g.done ? '★ ' : '☆ '}
-                {g.title}
-              </span>
-              <span className="tree-modal-sub">{goalProgressText(g)}</span>
-            </div>
-            <div
-              aria-hidden="true"
-              style={{ height: 4, marginTop: 6, background: '#3a3020', borderRadius: 2, overflow: 'hidden' }}
-            >
-              <div
-                style={{
-                  width: `${Math.round(goalFraction(g) * 100)}%`,
-                  height: '100%',
-                  background: g.done ? '#e8b060' : '#a08040',
-                }}
-              />
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      <div style={{ marginTop: 14 }}>
-        <div className="tree-modal-sub" style={{ marginBottom: 6 }}>
-          {t('dialogs.goals.difficulty', { notes: t(DIFFICULTY_NOTES[difficulty]) })}
-        </div>
-        <div role="group" aria-label={t('dialogs.goals.difficultyGroup')} style={{ display: 'flex', gap: 6 }}>
-          {DIFFICULTY_ORDER.map((level) => (
-            <button
-              key={level}
-              type="button"
-              className="lang-btn"
-              aria-pressed={level === difficulty}
-              disabled={sending !== null}
-              onClick={() => choose(level)}
-            >
-              {t(DIFFICULTY_LABEL[level])}
-            </button>
-          ))}
-        </div>
-        {refused && (
-          <p role="alert" style={{ color: '#e07060', fontSize: 11, margin: '8px 0 0' }}>
-            {t('dialogs.goals.difficultyRefused')}
+      <ModalHeader title={t('dialogs.goals.heading')} sub={summary.headline} onClose={onClose} />
+      <div className="thb-modal-body">
+        {summary.lost && (
+          <p role="status" data-testid="goals-lost" className="goals-alert">
+            {t('dialogs.goals.lost')}
           </p>
         )}
+
+        <ul className="goal-list">
+          {goals.map((g) => (
+            <li key={g.id} className="goal-row" data-done={g.done}>
+              <div className="goal-head">
+                <span className="goal-title">
+                  <span className="achievement-star" aria-hidden="true">
+                    <PixelIcon name="star" size={12} />
+                  </span>
+                  {g.title}
+                </span>
+                <span className="tree-modal-sub">{goalProgressText(g)}</span>
+              </div>
+              <div className="bar-track goal-bar" aria-hidden="true">
+                <div className="bar-fill" style={{ width: `${Math.round(goalFraction(g) * 100)}%` }} />
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <div className="goals-difficulty">
+          <div className="tree-modal-sub">
+            {t('dialogs.goals.difficulty', { notes: t(DIFFICULTY_NOTES[difficulty]) })}
+          </div>
+          <div role="group" aria-label={t('dialogs.goals.difficultyGroup')} className="goals-levels">
+            {DIFFICULTY_ORDER.map((level) => (
+              <button
+                key={level}
+                type="button"
+                className={clsx('lang-btn', level === difficulty && 'active')}
+                aria-pressed={level === difficulty}
+                disabled={sending !== null}
+                onClick={() => choose(level)}
+              >
+                {t(DIFFICULTY_LABEL[level])}
+              </button>
+            ))}
+          </div>
+          {refused && (
+            <p role="alert" className="goals-alert">
+              {t('dialogs.goals.difficultyRefused')}
+            </p>
+          )}
+        </div>
       </div>
     </Modal>
   )

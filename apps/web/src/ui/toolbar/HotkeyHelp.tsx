@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { SHORTCUT_HELP, typingTarget } from '../../game/model/shortcuts'
 import { t } from '../../i18n'
+import { Modal } from '../modals/LazyModal'
 import { shortcutKeys, shortcutWhat } from './shortcut-text'
 
 /** The keys the game answers to, from the same list the More menu shows. Press ? or Escape to close it. */
@@ -16,9 +17,19 @@ export function HotkeyHelp({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
   return (
-    <div className="hotkey-help" role="dialog" aria-label={t('dock.keys.aria')} onClick={onClose}>
-      <div className="hotkey-help-card" onClick={(e) => e.stopPropagation()}>
-        <div className="hotkey-help-title">{t('dock.keys.title')}</div>
+    <Modal open onClose={onClose} className="hotkey-help-modal" title={t('dock.keys.aria')} hideTitle>
+      <div className="lang-modal-header thb-modal-header">
+        <span className="lang-modal-title thb-modal-title">{t('dock.keys.title')}</span>
+        <button
+          type="button"
+          className="close-btn thb-modal-close hotkey-help-close"
+          aria-label={t('dock.keys.close')}
+          onClick={onClose}
+        >
+          ✕
+        </button>
+      </div>
+      <div className="thb-modal-body">
         <dl className="hotkey-help-list">
           {SHORTCUT_HELP.map(([keys, what]) => (
             <div key={keys} className="hotkey-help-row">
@@ -27,10 +38,7 @@ export function HotkeyHelp({ onClose }: { onClose: () => void }) {
             </div>
           ))}
         </dl>
-        <button type="button" className="hotkey-help-close" onClick={onClose}>
-          {t('dock.keys.close')}
-        </button>
       </div>
-    </div>
+    </Modal>
   )
 }

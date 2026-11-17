@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Modal } from './Modal'
+import { Modal, ModalHeader } from './Modal'
 import { API_BASE } from '../../shared/config'
 import { useNerdStats } from '../../state/store'
 import { useSimulationData } from '../../simulation/simulationData'
@@ -57,12 +57,11 @@ export function AboutModal({ onClose }: Props) {
 
   return (
     <Modal open onClose={onClose} className="about-modal" title={t('dialogs.about.title')} hideTitle>
-      <div className="about-head">
-        <span className="about-title">{t('dialogs.about.heading')}</span>
-        <button aria-label={t('dialogs.about.close')} className="close-btn" onClick={onClose}>
-          ✕
-        </button>
-      </div>
+      <ModalHeader
+        title={t('dialogs.about.heading')}
+        onClose={onClose}
+        closeLabel={t('dialogs.about.close')}
+      />
 
       <div className="about-body">
         <p className="about-blurb">{t('dialogs.about.blurb')}</p>

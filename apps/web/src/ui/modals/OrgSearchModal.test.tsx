@@ -51,9 +51,9 @@ describe('OrgSearchModal', () => {
   it('badges each person with their aspiration, named in the tip, and ✦ for one it does not know', () => {
     render([organism('a'), { ...organism('b'), aspiration: 'stargazer' } as OrganismState])
     const badges = [...document.querySelectorAll('.org-search-badges > span[title]')]
-    expect(badges.map((b) => [b.textContent, b.getAttribute('title')])).toEqual([
-      ['🔍', 'seeker'],
-      ['✦', 'stargazer'],
+    expect(badges.map((b) => [!!b.querySelector('svg'), b.textContent, b.getAttribute('title')])).toEqual([
+      [true, '', 'seeker'],
+      [false, '✦', 'stargazer'],
     ])
   })
 

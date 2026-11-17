@@ -17,7 +17,7 @@ import { linkVertical as d3linkVertical } from 'd3-shape'
 import type { OrganismState } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
 import { useFrozenSnapshot } from '../../shared/hooks/useFrozenSnapshot'
-import { Modal } from './Modal'
+import { Modal, ModalHeader } from './Modal'
 import { shownGeneration } from '../../game/model/generations'
 import { formatNumber, t } from '../../i18n'
 
@@ -532,24 +532,25 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, 
 
   return (
     <Modal open onClose={onClose} className="tree-modal" title={t('dialogs.tree.title')} hideTitle>
-      <div className="lang-modal-header">
-        <span className="lang-modal-title">{t('dialogs.tree.heading')}</span>
-        <span className="tree-modal-sub">
-          {t('dialogs.tree.summary', {
-            alive: formatNumber(organisms.filter((o) => o.alive).length),
-            ancestors: formatNumber(organisms.filter((o) => !o.alive).length),
-            generations: formatNumber((maxGen ?? 0) + 1),
-          })}
-        </span>
-        <div className="modal-header-actions">
-          <button className="reload-btn" onClick={reload} title={t('dialogs.tree.reload')}>
-            ⟳
-          </button>
-          <button aria-label={t('dialogs.tree.close')} className="close-btn" onClick={onClose}>
-            ✕
-          </button>
-        </div>
-      </div>
+      <ModalHeader
+        title={t('dialogs.tree.heading')}
+        sub={t('dialogs.tree.summary', {
+          alive: formatNumber(organisms.filter((o) => o.alive).length),
+          ancestors: formatNumber(organisms.filter((o) => !o.alive).length),
+          generations: formatNumber((maxGen ?? 0) + 1),
+        })}
+        onClose={onClose}
+        closeLabel={t('dialogs.tree.close')}
+      >
+        <button
+          className="reload-btn"
+          onClick={reload}
+          title={t('dialogs.tree.reload')}
+          aria-label={t('dialogs.tree.reload')}
+        >
+          ⟳
+        </button>
+      </ModalHeader>
 
       <div className="tree-tooltip">
         {hovered ? (

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { WorldState } from '../../shared/types'
 import type { LineageStrategy } from '../../simulation/sandbox'
-import { Modal } from './Modal'
+import { Modal, ModalHeader } from './Modal'
 import { askConfirm } from '../../shared/confirm'
 import { personName } from '../../shared/personName'
 import { normalizeLineageEras } from '../../shared/lineageEras'
@@ -296,10 +296,8 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
   }
 
   return (
-    <Modal open onClose={onClose} className="civ-modal" title={'\u{1F30D} ' + t('dialogs.civ.title')}>
-      <button aria-label={t('dialogs.civ.close')} className="close-btn civ-close" onClick={onClose}>
-        ✕
-      </button>
+    <Modal open onClose={onClose} className="civ-modal" title={t('dialogs.civ.title')} hideTitle>
+      <ModalHeader title={t('dialogs.civ.title')} onClose={onClose} closeLabel={t('dialogs.civ.close')} />
       {world.cosmos && (
         <div className="civ-calendar">
           <div className="civ-cal-item">
