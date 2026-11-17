@@ -395,10 +395,6 @@ impl WorldGrid {
         }
     }
 
-    pub fn biome_growth_mult(&self, x: i32, y: i32) -> f32 {
-        self.biome_at(x, y).food_growth_mult()
-    }
-
     pub fn structure_at(&self, x: i32, y: i32) -> f32 {
         if Self::in_bounds(x, y) {
             self.structure[Self::idx(x, y)]
@@ -487,18 +483,6 @@ impl WorldGrid {
     // out of `trail_dirty`. Below this the value is invisible to all
     // queries (perception thresholds are ≥ 0.05).
     const TRAIL_EPS: f32 = 1e-4;
-
-    pub fn decay_trails(&mut self) {
-        Self::decay_dirty(
-            &mut self.trail_dirty,
-            &mut self.food_trail,
-            &mut self.water_trail,
-            &mut self.path_trail,
-            0.988,
-            0.988,
-            0.997,
-        );
-    }
 
     /// Aggregated decay: applies the equivalent of three single-step
     /// decay passes in one go. Called once per 3 physics ticks to
