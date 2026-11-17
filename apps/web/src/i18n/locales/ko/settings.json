@@ -9,7 +9,8 @@
     "performance": "성능",
     "help": "도움말",
     "simulation": "시뮬레이션",
-    "app": "앱"
+    "app": "앱",
+    "mods": "모드"
   },
   "language": {
     "section": "언어",
@@ -159,5 +160,72 @@
     "saveFailed": "설정을 저장할 수 없습니다: {error}",
     "launchFailed": "저장했지만 로그인 시 실행 설정을 업데이트할 수 없습니다: {error}",
     "restartFailed": "시뮬레이션을 다시 시작할 수 없습니다: {error}"
+  },
+  "mods": {
+    "section": "모드",
+    "intro": "모드는 독에 이미 있는 능력으로 만든 새 능력을 담은 JSON 파일입니다. 그 능력은 독에서 따로 모드 탭을 갖습니다. 모드는 데이터일 뿐이며, 그 안의 어떤 것도 코드로 실행되지 않습니다.",
+    "rules": "각 능력은 세상이 이미 아는 명령을 한 번에 최대 {steps}개까지 보내며, 최대 {radius}칸까지 닿습니다.",
+    "sample": "예제 모드 내려받기",
+    "pick": "모드 파일 고르기",
+    "drop": "모드의 .json 파일을 여기에 놓거나 클릭해서 고르세요",
+    "pasteLabel": "또는 모드의 JSON 붙여넣기",
+    "pastePlaceholder": "파일 내용을 여기에 붙여넣으세요",
+    "import": "가져오기",
+    "failed": "이 모드는 가져올 수 없습니다:",
+    "added": "“{name}”을(를) 추가했습니다. 능력은 독의 모드 탭에 있습니다.",
+    "updated": "“{name}”을(를) 업데이트했습니다. 능력은 독의 모드 탭에 있습니다.",
+    "installed": "내 모드",
+    "none": "아직 모드가 없습니다.",
+    "storedNote": "모드는 이 브라우저에 보관되며, 세상으로 돌아오면 다시 함께합니다.",
+    "by": "만든 이: {author}",
+    "enable": "{name} 사용",
+    "remove": "제거",
+    "removeTitle": "{name}을(를) 제거할까요?",
+    "removeBody": "그 능력이 독에서 사라집니다. 나중에 파일을 다시 가져올 수 있습니다.",
+    "actionsLabel": "{name}의 능력",
+    "brokenName": "더 이상 불러올 수 없는 모드",
+    "broken": "이 모드는 더 이상 검사를 통과하지 못해 능력이 꺼져 있습니다:",
+    "where": {
+      "mod": "모드",
+      "action": "능력 {n} ({label})",
+      "group": "그룹 {n} ({label})"
+    },
+    "problems": {
+      "type": "{where}: 값의 종류가 맞지 않습니다({detail}이어야 합니다).",
+      "value": "{where}: 다음 중 하나여야 합니다: {detail}.",
+      "pattern": "{where}: “{detail}”에는 소문자, 숫자, _만 쓸 수 있고 글자로 시작해야 합니다.",
+      "short": "{where}: 너무 짧습니다(최소 {detail}자).",
+      "long": "{where}: 너무 깁니다(최대 {detail}자).",
+      "small": "{where}: 너무 작습니다(최소 {detail}).",
+      "tooFew": "{where}: 항목이 최소 {detail}개 필요합니다.",
+      "tooMany": "{where}: 항목이 {detail}개를 넘습니다.",
+      "missing": "{where}: “{detail}”이(가) 없습니다.",
+      "unknownField": "{where}: 게임이 모르는 항목이 있습니다: “{detail}”.",
+      "shape": "{where}: 게임이 이해할 수 있는 형태가 아닙니다.",
+      "placeholder": "{where}: 이런 종류의 능력에서는 “{slot}”을(를) 쓸 수 없습니다.",
+      "number": "{where}: -{most}에서 {most} 사이의 숫자여야 합니다.",
+      "nested": "{where}: 중첩된 객체를 담을 수 없습니다.",
+      "command": "{where}: “{cmd}”은(는) 세상이 아는 능력이 아닙니다.",
+      "compositeInComposite": "{where}: 조합한 능력 안에 다른 조합한 능력을 넣을 수 없습니다.",
+      "steps": "{where}: 조합한 능력에는 1~{most}개의 단계가 필요합니다.",
+      "step": "{where}: 각 단계는 “cmd”가 있는 명령이어야 합니다.",
+      "target": "{where}: 모드는 브러시, 클릭, 세상 전체 능력만 만들 수 있으며 “{target}”은(는) 안 됩니다.",
+      "tooBig": "파일 크기는 {size} KB입니다. 모드는 최대 {most} KB입니다.",
+      "notJson": "파일이 올바른 JSON이 아닙니다({detail}).",
+      "notManifest": "파일이 모드가 아닙니다. JSON 객체 하나여야 합니다.",
+      "noId": "모드에는 “id”가 필요합니다.",
+      "noName": "모드에는 “name”이 필요합니다.",
+      "noActions": "모드에 능력이 없습니다.",
+      "tooManyActions": "모드의 능력은 최대 {most}개입니다.",
+      "tooManyGroups": "모드의 그룹은 최대 {most}개입니다.",
+      "duplicate": "{where}: id “{id}”가 두 번 쓰였습니다.",
+      "group": "{where}: 그룹 “{group}”이(가) groups에 없습니다.",
+      "tooManyMods": "모드는 최대 {most}개까지 둘 수 있습니다. 먼저 하나를 제거하세요.",
+      "unreadable": "파일을 읽을 수 없습니다({detail})."
+    },
+    "notes": {
+      "radius": "{where}: 범위를 {most}칸으로 줄였습니다.",
+      "count": "{where}: 수를 {count}(으)로 줄였습니다."
+    }
   }
 }

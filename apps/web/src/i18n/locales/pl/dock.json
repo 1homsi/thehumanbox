@@ -4,14 +4,16 @@
     "nature": "przyroda",
     "resources": "zasoby",
     "deadly": "zagłada",
-    "world": "świat"
+    "world": "świat",
+    "mods": "mody"
   },
   "tabTips": {
     "life": "Ludzie, ich pomocnicy, potwory czyhające na nich i każde zwierzę, od lisów po wieloryby",
     "nature": "Ukształtowanie terenu i biomy, niebo i pora dnia, zaćmienia i komety, epoki oraz błogosławieństwa ziemi",
     "resources": "Jedzenie, uprawy i budowle oraz błogosławieństwa, pogoda i leczenie, które możesz zesłać",
     "deadly": "Katastrofy, zarazy i wojna",
-    "world": "Całe plemiona (jedzenie i narzędzia dla każdego członka, przymusowa migracja, wymiana jedzenia) oraz warstwy mapy"
+    "world": "Całe plemiona (jedzenie i narzędzia dla każdego członka, przymusowa migracja, wymiana jedzenia) oraz warstwy mapy",
+    "mods": "Moce z modów zaimportowanych w ustawieniach"
   },
   "groups": {
     "life": "życie",
@@ -442,7 +444,13 @@
       "other": "Pędzel o szerokości {count} pól"
     },
     "smallestBrush": "To już najmniejszy pędzel",
-    "largestBrush": "To już największy pędzel"
+    "largestBrush": "To już największy pędzel",
+    "count": "Ile",
+    "fewer": "O jeden mniej",
+    "more": "O jeden więcej",
+    "brushWheel": "Shift + kółko na mapie też to zmienia",
+    "largeBrushes": "Pędzle wielkości regionu, od 16 do 64 pól",
+    "smallBrushes": "Wróć do zwykłych pędzli"
   },
   "failures": {
     "noRoom": "świat nie może pomieścić więcej ludzi",
@@ -666,5 +674,16 @@
     "applyNow": "zastosuj od razu",
     "empty": "Brak pasujących narzędzi. Spróbuj typu terenu, zwierzęcia, warstwy mapy lub sterowania czasem."
   },
-  "tapAgain": "{tool}: dotknij ponownie, aby zacząć"
+  "tapAgain": "{tool}: dotknij ponownie, aby zacząć",
+  "count": {
+    "tribe": {
+      "one": "Załóż plemię, osób: {count}",
+      "other": "Załóż plemię, osób: {count}"
+    },
+    "animals": {
+      "one": "Sprowadź zwierzęta: {count}",
+      "other": "Sprowadź zwierzęta: {count}"
+    },
+    "generic": "Ile: {count}"
+  }
 }

@@ -9,7 +9,8 @@
     "performance": "performans",
     "help": "yardım",
     "simulation": "simülasyon",
-    "app": "uygulama"
+    "app": "uygulama",
+    "mods": "modlar"
   },
   "language": {
     "section": "Dil",
@@ -159,5 +160,72 @@
     "saveFailed": "ayarlar kaydedilemedi: {error}",
     "launchFailed": "kaydedildi, ancak oturum açınca başlatma güncellenemedi: {error}",
     "restartFailed": "simülasyon yeniden başlatılamadı: {error}"
+  },
+  "mods": {
+    "section": "Modlar",
+    "intro": "Mod, dokta zaten bulunan güçlerden yapılmış yeni güçleri içeren bir JSON dosyasıdır. Güçleri dokta kendi modlar sekmesine sahip olur. Mod yalnızca veridir: içindeki hiçbir şey kod olarak çalışmaz.",
+    "rules": "Her güç dünyanın zaten bildiği komutları bir seferde en fazla {steps} tane gönderir ve en fazla {radius} kare uzağa ulaşır.",
+    "sample": "Örnek modu indir",
+    "pick": "Bir mod dosyası seç",
+    "drop": "Bir modun .json dosyasını buraya bırak ya da seçmek için tıkla",
+    "pasteLabel": "Ya da bir modun JSON'unu yapıştır",
+    "pastePlaceholder": "Dosyanın metnini buraya yapıştır",
+    "import": "İçe aktar",
+    "failed": "Bu mod içe aktarılamıyor:",
+    "added": "“{name}” eklendi. Güçleri dokun modlar sekmesinde.",
+    "updated": "“{name}” güncellendi. Güçleri dokun modlar sekmesinde.",
+    "installed": "Modların",
+    "none": "Henüz mod yok.",
+    "storedNote": "Modlar bu tarayıcıda saklanır ve dünyana döndüğünde seninle gelir.",
+    "by": "yapan: {author}",
+    "enable": "{name} kullan",
+    "remove": "Kaldır",
+    "removeTitle": "{name} kaldırılsın mı?",
+    "removeBody": "Güçleri doktan çıkar. Dosyayı daha sonra yeniden içe aktarabilirsin.",
+    "actionsLabel": "{name} içindeki güçler",
+    "brokenName": "Artık yüklenmeyen bir mod",
+    "broken": "Bu mod artık denetimlerden geçmiyor, bu yüzden güçleri kapalı:",
+    "where": {
+      "mod": "Mod",
+      "action": "Güç {n} ({label})",
+      "group": "Grup {n} ({label})"
+    },
+    "problems": {
+      "type": "{where}: değer türü yanlış ({detail} olmalı).",
+      "value": "{where}: şunlardan biri olmalı: {detail}.",
+      "pattern": "{where}: “{detail}” yalnızca küçük harf, rakam ve _ içerebilir ve bir harfle başlamalı.",
+      "short": "{where}: çok kısa (en az {detail} karakter).",
+      "long": "{where}: çok uzun (en fazla {detail} karakter).",
+      "small": "{where}: çok küçük (en az {detail}).",
+      "tooFew": "{where}: en az {detail} öge gerekir.",
+      "tooMany": "{where}: {detail} ögeden fazla var.",
+      "missing": "{where}: “{detail}” eksik.",
+      "unknownField": "{where}: oyunun bilmediği bir alan var: “{detail}”.",
+      "shape": "{where}: oyunun anlayacağı bir biçimde değil.",
+      "placeholder": "{where}: “{slot}” bu tür bir güçte kullanılamaz.",
+      "number": "{where}: -{most} ile {most} arasında bir sayı olmalı.",
+      "nested": "{where}: iç içe bir nesne içeremez.",
+      "command": "{where}: “{cmd}” dünyanın bildiği bir güç değil.",
+      "compositeInComposite": "{where}: birleşik bir güç başka bir birleşik güç içeremez.",
+      "steps": "{where}: birleşik bir güç 1 ile {most} arasında adım ister.",
+      "step": "{where}: her adım “cmd” içeren bir komut olmalı.",
+      "target": "{where}: bir mod yalnızca fırça, tıklama ya da tüm dünya güçleri yapabilir, “{target}” değil.",
+      "tooBig": "Dosya {size} KB; bir mod en fazla {most} KB olabilir.",
+      "notJson": "Dosya geçerli bir JSON değil ({detail}).",
+      "notManifest": "Dosya bir mod değil: tek bir JSON nesnesi olmalı.",
+      "noId": "Modun bir “id” alanı olmalı.",
+      "noName": "Modun bir “name” alanı olmalı.",
+      "noActions": "Modda hiç güç yok.",
+      "tooManyActions": "Bir modda en fazla {most} güç olabilir.",
+      "tooManyGroups": "Bir modda en fazla {most} grup olabilir.",
+      "duplicate": "{where}: “{id}” kimliği iki kez kullanılmış.",
+      "group": "{where}: “{group}” grubu groups altında yok.",
+      "tooManyMods": "En fazla {most} mod tutabilirsin. Önce birini kaldır.",
+      "unreadable": "Dosya okunamadı ({detail})."
+    },
+    "notes": {
+      "radius": "{where}: menzil {most} kareyle sınırlandı.",
+      "count": "{where}: sayı {count} ile sınırlandı."
+    }
   }
 }

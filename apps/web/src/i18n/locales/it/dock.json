@@ -4,14 +4,16 @@
     "nature": "natura",
     "resources": "risorse",
     "deadly": "letale",
-    "world": "mondo"
+    "world": "mondo",
+    "mods": "mod"
   },
   "tabTips": {
     "life": "Persone, i loro aiutanti, i mostri che le perseguitano e ogni animale, dalle volpi alle balene",
     "nature": "Terreni e biomi, il cielo e l'ora del giorno, eclissi e comete, le età e le benedizioni della terra",
     "resources": "Cibo, coltivazioni ed edifici, e le benedizioni, il meteo e le cure che puoi donare",
     "deadly": "Disastri, epidemie e guerra",
-    "world": "Intere tribù (cibo e strumenti per ogni membro, una migrazione forzata, uno scambio di cibo) e i livelli della mappa"
+    "world": "Intere tribù (cibo e strumenti per ogni membro, una migrazione forzata, uno scambio di cibo) e i livelli della mappa",
+    "mods": "I poteri delle mod importate nelle Impostazioni"
   },
   "groups": {
     "life": "vita",
@@ -442,7 +444,13 @@
       "other": "Pennello largo {count} riquadri"
     },
     "smallestBrush": "È già il pennello più piccolo",
-    "largestBrush": "È già il pennello più grande"
+    "largestBrush": "È già il pennello più grande",
+    "count": "Quanti",
+    "fewer": "Uno in meno",
+    "more": "Uno in più",
+    "brushWheel": "Maiusc + rotellina sulla mappa lo cambia anche",
+    "largeBrushes": "Pennelli grandi come una regione, da 16 a 64 caselle",
+    "smallBrushes": "Torna ai pennelli normali"
   },
   "failures": {
     "noRoom": "il mondo non può contenere altre persone",
@@ -666,5 +674,16 @@
     "applyNow": "applica subito",
     "empty": "Nessuno strumento corrispondente. Prova con un tipo di terreno, un animale, un livello della mappa o un controllo del tempo."
   },
-  "tapAgain": "{tool}: tocca di nuovo per avviare"
+  "tapAgain": "{tool}: tocca di nuovo per avviare",
+  "count": {
+    "tribe": {
+      "one": "Fonda la tribù con {count} persona",
+      "other": "Fonda la tribù con {count} persone"
+    },
+    "animals": {
+      "one": "Porta {count} animale",
+      "other": "Porta {count} animali"
+    },
+    "generic": "Quanti: {count}"
+  }
 }

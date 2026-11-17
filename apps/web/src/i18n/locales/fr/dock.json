@@ -4,14 +4,16 @@
     "nature": "nature",
     "resources": "ressources",
     "deadly": "mortel",
-    "world": "monde"
+    "world": "monde",
+    "mods": "mods"
   },
   "tabTips": {
     "life": "Les personnes, leurs aides, les monstres qui les traquent et chaque animal, des renards aux baleines",
     "nature": "Terrains et biomes, le ciel et l'heure du jour, éclipses et comètes, les âges et les bénédictions de la terre",
     "resources": "Nourriture, cultures et bâtiments, ainsi que les bénédictions, la météo et les soins que vous pouvez donner",
     "deadly": "Catastrophes, épidémies et guerre",
-    "world": "Tribus entières (nourriture et outils pour chaque membre, migration forcée, troc de nourriture) et les calques de la carte"
+    "world": "Tribus entières (nourriture et outils pour chaque membre, migration forcée, troc de nourriture) et les calques de la carte",
+    "mods": "Les pouvoirs des mods importés dans les réglages"
   },
   "groups": {
     "life": "vie",
@@ -442,7 +444,13 @@
       "other": "Pinceau de {count} tuiles de large"
     },
     "smallestBrush": "Déjà le plus petit pinceau",
-    "largestBrush": "Déjà le plus grand pinceau"
+    "largestBrush": "Déjà le plus grand pinceau",
+    "count": "Combien",
+    "fewer": "Un de moins",
+    "more": "Un de plus",
+    "brushWheel": "Maj + molette sur la carte le change aussi",
+    "largeBrushes": "Pinceaux à l’échelle d’une région, de 16 à 64 cases",
+    "smallBrushes": "Revenir aux pinceaux normaux"
   },
   "failures": {
     "noRoom": "le monde ne peut pas accueillir davantage de personnes",
@@ -666,5 +674,16 @@
     "applyNow": "appliquer immédiatement",
     "empty": "Aucun outil correspondant. Essayez un type de terrain, un animal, un calque de carte ou une commande de temps."
   },
-  "tapAgain": "{tool} : touchez encore pour lancer"
+  "tapAgain": "{tool} : touchez encore pour lancer",
+  "count": {
+    "tribe": {
+      "one": "Fonder la tribu avec {count} personne",
+      "other": "Fonder la tribu avec {count} personnes"
+    },
+    "animals": {
+      "one": "Amener {count} animal",
+      "other": "Amener {count} animaux"
+    },
+    "generic": "Combien : {count}"
+  }
 }

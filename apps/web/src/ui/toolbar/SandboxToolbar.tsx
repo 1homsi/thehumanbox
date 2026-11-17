@@ -2,14 +2,26 @@ import { ToolSprite } from './ToolSprite'
 import { Tooltip } from './Tooltip'
 import { TimeControl } from './TimeControl'
 import { firesOnPick, toolHowTo, toolName, toolTip } from './tool-tips'
-import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from 'react'
+import { registryVersion, subscribeRegistry } from '../../simulation/actions/registry'
 import { createPortal } from 'react-dom'
 import { useWorldStore } from '../../state/worldStore'
 import { useUIStore } from '../../state/store'
 import clsx from 'clsx'
 import {
-  SANDBOX_CATEGORIES,
+  toolById,
   commandReach,
+  reachesArea,
+  usesBrush,
   isSandboxViewControlActive,
   rollRandomEvent,
   type SandboxTool,
@@ -17,6 +29,8 @@ import {
 } from '../../simulation/sandbox'
 import {
   BRUSH_SIZES,
+  LARGE_BRUSH_SIZES,
+  isLargeBrush,
   nextBrush,
   DOCK_TABS,
   groupLabel,
@@ -33,7 +47,7 @@ import {
 } from './dock-tabs'
 import { hotkeysFor, toolForHotkey } from './tool-hotkeys'
 import { typingTarget } from '../../game/model/shortcuts'
-import { t } from '../../i18n'
+import { formatNumber, t } from '../../i18n'
 import { openingHides, useOpeningGuide } from '../../state/opening-guide'
 
 const TAB_STORAGE_KEY = 'thb-sandbox-category'
@@ -48,6 +62,8 @@ interface Props {
   activeOverlay?: string | null
   activeViewFlags?: Partial<Record<SandboxViewFlag, boolean>>
   onBrush: (n: number) => void
+  count?: number
+  onCount?: (n: number) => void
   onPick: (tool: SandboxTool) => void
   onClearArmed: () => void
   onClearView?: () => void
@@ -71,16 +87,6 @@ function TipCard({ title, body, how }: { title: string; body?: string; how?: str
       {how && <span className="tip-how">{how}</span>}
     </span>
   )
-}
-
-const ALL_TOOLS = SANDBOX_CATEGORIES.flatMap((c) => c.tools)
-
-/** Whether a tool's reach changes with the brush, so the brush sizes are worth showing for it. */
-function usesBrush(tool: SandboxTool | undefined): boolean {
-  if (!tool?.build) return false
-  const small = tool.build(0, 0, 0) as { radius?: number; count?: number }
-  const large = tool.build(0, 0, 4) as { radius?: number; count?: number }
-  return small.radius !== large.radius || small.count !== large.count
 }
 
 const SIZE_DISCS = [4, 6, 8, 10, 12, 14]
@@ -111,10 +117,95 @@ function PixelDisc({ size }: { size: number }) {
   )
 }
 
+const SIZE_RINGS = [8, 10, 12, 14, 16]
+
+function PixelRing({ size }: { size: number }) {
+  const rows = discRows(size)
+  const inner = discRows(size - 4)
+  return (
+    <svg
+      className="dock-size-disc"
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      shapeRendering="crispEdges"
+      aria-hidden="true"
+    >
+      {rows.map((w, row) => {
+        const hole = row >= 2 && row < size - 2 ? inner[row - 2] : 0
+        if (!hole) return <rect key={row} x={(size - w) / 2} y={row} width={w} height={1} />
+        const side = (w - hole) / 2
+        return (
+          <g key={row}>
+            <rect x={(size - w) / 2} y={row} width={side} height={1} />
+            <rect x={(size + hole) / 2} y={row} width={side} height={1} />
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
+const COUNT_PICKS = [2, 5, 10, 20, 50]
+
+function countText(slot: NonNullable<SandboxTool['count']>, count: number): string {
+  return t(slot.text ?? 'dock.count.generic', { count })
+}
+
+function CountControl({
+  slot,
+  value,
+  onChange,
+}: {
+  slot: NonNullable<SandboxTool['count']>
+  value: number
+  onChange: (count: number) => void
+}) {
+  const picks = COUNT_PICKS.filter((p) => p >= slot.min && p <= slot.max)
+  return (
+    <div className="dock-size dock-count" role="group" aria-label={t('dock.aria.count')}>
+      <button
+        type="button"
+        className="dock-size-nudge"
+        aria-label={t('dock.aria.fewer')}
+        disabled={value <= slot.min}
+        onClick={() => onChange(value - 1)}
+      >
+        −
+      </button>
+      <output className="dock-count-value" aria-live="polite" title={countText(slot, value)}>
+        {formatNumber(value)}
+      </output>
+      <button
+        type="button"
+        className="dock-size-nudge"
+        aria-label={t('dock.aria.more')}
+        disabled={value >= slot.max}
+        onClick={() => onChange(value + 1)}
+      >
+        +
+      </button>
+      {picks.map((p) => (
+        <button
+          key={p}
+          type="button"
+          className={clsx('dock-size-step dock-count-pick', p === value && 'active')}
+          title={countText(slot, p)}
+          aria-label={countText(slot, p)}
+          aria-pressed={p === value}
+          onClick={() => onChange(p)}
+        >
+          {formatNumber(p)}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function sizeTitle(tool: SandboxTool | undefined, size: number, value: number): string {
   const label = t('dock.aria.brushSize', { size })
   const built = tool?.build?.(0, 0, value)
-  if (!built || !('radius' in built) || typeof built.radius !== 'number') return label
+  if (!built || !reachesArea(built)) return label
   return `${label} · ${t('dock.how.reachTiles', { tiles: Math.round(commandReach(built)) })}`
 }
 
@@ -245,10 +336,20 @@ export function SandboxToolbar({
   activeOverlay = null,
   activeViewFlags = {},
   onBrush,
+  count,
+  onCount,
   onPick,
   onClearArmed,
 }: Props) {
-  const [tabId, setTabId] = useState(readInitialTab)
+  useSyncExternalStore(subscribeRegistry, registryVersion, registryVersion)
+  const [largeChoice, setLargeChoice] = useState<boolean | null>(null)
+  const [seenBrush, setSeenBrush] = useState(brush)
+  if (seenBrush !== brush) {
+    setSeenBrush(brush)
+    setLargeChoice(null)
+  }
+  const [savedTabId, setTabId] = useState(readInitialTab)
+  const tabId = DOCK_TABS.some((tab) => tab.id === savedTabId) ? savedTabId : DOCK_TABS[0].id
   const locked = useOpeningGuide((st) => openingHides(st.beat, 'powers'))
   const [remembered, setRemembered] = useState(readRememberedGroups)
   const groupId = resolveGroup(tabId, remembered[tabId])
@@ -355,7 +456,7 @@ export function SandboxToolbar({
   })
   const pickStable = useCallback((tool: SandboxTool) => pickRef.current(tool), [])
 
-  const armedTool = armedToolId ? ALL_TOOLS.find((t) => t.id === armedToolId) : undefined
+  const armedTool = armedToolId ? toolById(armedToolId) : undefined
   const heldName = armedTool ? toolName(armedTool) : (armedToolLabel ?? undefined)
 
   // The held tool's name sits above its icon; it follows the icon as the row scrolls, stays inside
@@ -426,6 +527,9 @@ export function SandboxToolbar({
   const smaller = nextBrush(brush, -1)
   const larger = nextBrush(brush, 1)
   const sized = usesBrush(armedTool)
+  const countSlot = sized ? undefined : armedTool?.count
+  const showLarge = largeChoice ?? isLargeBrush(brush)
+  const sizes = showLarge ? LARGE_BRUSH_SIZES : BRUSH_SIZES
   return (
     <section
       className="sandbox-bar"
@@ -521,48 +625,72 @@ export function SandboxToolbar({
           {rowTools.map(renderTile)}
         </div>
         <div className="dock-corner">
-          <div
-            className={clsx('dock-size', !sized && 'idle')}
-            role="group"
-            aria-label={t('dock.aria.brushSizes')}
-            aria-hidden={!sized || undefined}
-            inert={!sized}
-            title={t('dock.aria.brushTitle')}
-          >
-            <button
-              type="button"
-              className="dock-size-nudge"
-              aria-label={t('dock.aria.smallerBrush')}
-              title={smaller === null ? t('dock.aria.smallestBrush') : undefined}
-              disabled={smaller === null}
-              onClick={() => smaller !== null && onBrush(smaller)}
+          {countSlot && onCount ? (
+            <CountControl
+              slot={countSlot}
+              value={count ?? countSlot.default}
+              onChange={(n) => onCount(Math.min(countSlot.max, Math.max(countSlot.min, n)))}
+            />
+          ) : (
+            <div
+              className={clsx('dock-size', !sized && 'idle', showLarge && 'large')}
+              role="group"
+              aria-label={t('dock.aria.brushSizes')}
+              aria-hidden={!sized || undefined}
+              inert={!sized}
+              title={`${t('dock.aria.brushTitle')} · ${t('dock.aria.brushWheel')}`}
             >
-              −
-            </button>
-            {BRUSH_SIZES.map(([size, value], step) => (
               <button
-                key={size}
                 type="button"
-                className={clsx('dock-size-step', brush === value && 'active')}
-                title={sizeTitle(armedTool, size, value)}
-                aria-label={t('dock.aria.brushSize', { size })}
-                aria-pressed={brush === value}
-                onClick={() => onBrush(value)}
+                className="dock-size-nudge"
+                aria-label={t('dock.aria.smallerBrush')}
+                title={smaller === null ? t('dock.aria.smallestBrush') : undefined}
+                disabled={smaller === null}
+                onClick={() => smaller !== null && onBrush(smaller)}
               >
-                <PixelDisc size={SIZE_DISCS[step] ?? SIZE_DISCS[SIZE_DISCS.length - 1]} />
+                −
               </button>
-            ))}
-            <button
-              type="button"
-              className="dock-size-nudge"
-              aria-label={t('dock.aria.largerBrush')}
-              title={larger === null ? t('dock.aria.largestBrush') : undefined}
-              disabled={larger === null}
-              onClick={() => larger !== null && onBrush(larger)}
-            >
-              +
-            </button>
-          </div>
+              {sizes.map(([size, value], step) => (
+                <button
+                  key={size}
+                  type="button"
+                  className={clsx('dock-size-step', brush === value && 'active')}
+                  title={sizeTitle(armedTool, size, value)}
+                  aria-label={t('dock.aria.brushSize', { size })}
+                  aria-pressed={brush === value}
+                  onClick={() => onBrush(value)}
+                >
+                  {showLarge ? (
+                    <PixelRing size={SIZE_RINGS[step] ?? SIZE_RINGS[SIZE_RINGS.length - 1]} />
+                  ) : (
+                    <PixelDisc size={SIZE_DISCS[step] ?? SIZE_DISCS[SIZE_DISCS.length - 1]} />
+                  )}
+                </button>
+              ))}
+              {LARGE_BRUSH_SIZES.length > 0 && (
+                <button
+                  type="button"
+                  className={clsx('dock-size-step dock-size-more', showLarge && 'on')}
+                  aria-label={t(showLarge ? 'dock.aria.smallBrushes' : 'dock.aria.largeBrushes')}
+                  title={t(showLarge ? 'dock.aria.smallBrushes' : 'dock.aria.largeBrushes')}
+                  aria-pressed={showLarge}
+                  onClick={() => setLargeChoice(!showLarge)}
+                >
+                  {showLarge ? '−' : '+'}
+                </button>
+              )}
+              <button
+                type="button"
+                className="dock-size-nudge"
+                aria-label={t('dock.aria.largerBrush')}
+                title={larger === null ? t('dock.aria.largestBrush') : undefined}
+                disabled={larger === null}
+                onClick={() => larger !== null && onBrush(larger)}
+              >
+                +
+              </button>
+            </div>
+          )}
           <TimeControl paused={runtimePaused} speed={runtimeSpeed} onPick={onPick} />
         </div>
       </div>

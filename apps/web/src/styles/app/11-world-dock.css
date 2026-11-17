@@ -302,6 +302,37 @@
 .dock-size-nudge {
   display: none;
 }
+.dock-size-more {
+  flex: 0 0 auto;
+  min-width: 16px;
+  color: var(--bar-cream);
+  font-size: 13px;
+}
+.dock-size-more.on {
+  color: var(--px-gold-text);
+}
+.dock-count .dock-size-nudge {
+  display: block;
+  min-width: 16px;
+  height: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--bar-cream);
+  font-size: 14px;
+}
+.dock-count .dock-size-nudge:disabled {
+  opacity: 0.35;
+}
+.dock-count-value {
+  min-width: 22px;
+  color: var(--px-gold-text);
+  font-size: 12px;
+  text-align: center;
+}
+.dock-count-pick {
+  font-size: 10px;
+}
 
 /* The held tool's name, on a parchment tag above its icon (kept inside the bar near its ends; see
  * measureRow in SandboxToolbar.tsx). */
@@ -619,6 +650,10 @@
   }
   .dock-size-nudge:disabled {
     opacity: 0.35;
+  }
+  .dock-size-more,
+  .dock-count-pick {
+    display: none;
   }
   .time-step {
     width: 20px;

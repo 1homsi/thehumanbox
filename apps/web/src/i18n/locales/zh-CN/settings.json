@@ -9,7 +9,8 @@
     "performance": "性能",
     "help": "帮助",
     "simulation": "模拟",
-    "app": "应用"
+    "app": "应用",
+    "mods": "模组"
   },
   "language": {
     "section": "语言",
@@ -159,5 +160,72 @@
     "saveFailed": "无法保存设置：{error}",
     "launchFailed": "已保存，但无法更新登录时启动：{error}",
     "restartFailed": "无法重启模拟：{error}"
+  },
+  "mods": {
+    "section": "模组",
+    "intro": "模组是一个 JSON 文件，里面是用工具栏已有能力组合出的新能力。它的能力会在工具栏上拥有自己的模组标签页。模组只是数据：其中没有任何内容会作为代码运行。",
+    "rules": "每个能力发送世界已经认识的命令，一次最多 {steps} 条，作用范围最多 {radius} 格。",
+    "sample": "下载示例模组",
+    "pick": "选择模组文件",
+    "drop": "把模组的 .json 文件拖到这里，或点击选择",
+    "pasteLabel": "或粘贴模组的 JSON",
+    "pastePlaceholder": "在这里粘贴文件内容",
+    "import": "导入",
+    "failed": "无法导入这个模组：",
+    "added": "已添加“{name}”。它的能力在工具栏的模组标签页里。",
+    "updated": "已更新“{name}”。它的能力在工具栏的模组标签页里。",
+    "installed": "你的模组",
+    "none": "还没有模组。",
+    "storedNote": "模组保存在这个浏览器里，你回到世界时它们也会回来。",
+    "by": "作者：{author}",
+    "enable": "使用 {name}",
+    "remove": "移除",
+    "removeTitle": "移除 {name}？",
+    "removeBody": "它的能力会离开工具栏。之后你可以再次导入这个文件。",
+    "actionsLabel": "{name} 中的能力",
+    "brokenName": "一个无法再加载的模组",
+    "broken": "这个模组已无法通过检查，所以它的能力已关闭：",
+    "where": {
+      "mod": "模组",
+      "action": "能力 {n}（{label}）",
+      "group": "分组 {n}（{label}）"
+    },
+    "problems": {
+      "type": "{where}：值的类型不对（应为 {detail}）。",
+      "value": "{where}：必须是以下之一：{detail}。",
+      "pattern": "{where}：“{detail}”只能使用小写字母、数字和 _，并且必须以字母开头。",
+      "short": "{where}：太短（至少 {detail} 个字符）。",
+      "long": "{where}：太长（最多 {detail} 个字符）。",
+      "small": "{where}：太小（至少 {detail}）。",
+      "tooFew": "{where}：至少需要 {detail} 项。",
+      "tooMany": "{where}：超过了 {detail} 项。",
+      "missing": "{where}：缺少“{detail}”。",
+      "unknownField": "{where}：有游戏不认识的字段：“{detail}”。",
+      "shape": "{where}：不是游戏能理解的形式。",
+      "placeholder": "{where}：这种能力不能使用“{slot}”。",
+      "number": "{where}：必须是 -{most} 到 {most} 之间的数字。",
+      "nested": "{where}：不能包含嵌套对象。",
+      "command": "{where}：“{cmd}”不是世界认识的能力。",
+      "compositeInComposite": "{where}：组合能力里不能再包含另一个组合能力。",
+      "steps": "{where}：组合能力需要 1 到 {most} 个步骤。",
+      "step": "{where}：每个步骤都必须是带有“cmd”的命令。",
+      "target": "{where}：模组只能做笔刷、点击或作用于整个世界的能力，不能是“{target}”。",
+      "tooBig": "文件大小为 {size} KB；模组最多 {most} KB。",
+      "notJson": "文件不是有效的 JSON（{detail}）。",
+      "notManifest": "文件不是模组：它应该是单个 JSON 对象。",
+      "noId": "模组需要一个“id”。",
+      "noName": "模组需要一个“name”。",
+      "noActions": "模组里没有能力。",
+      "tooManyActions": "一个模组最多有 {most} 个能力。",
+      "tooManyGroups": "一个模组最多有 {most} 个分组。",
+      "duplicate": "{where}：id“{id}”用了两次。",
+      "group": "{where}：分组“{group}”没有列在 groups 中。",
+      "tooManyMods": "最多只能保留 {most} 个模组。请先移除一个。",
+      "unreadable": "无法读取文件（{detail}）。"
+    },
+    "notes": {
+      "radius": "{where}：范围已限制为 {most} 格。",
+      "count": "{where}：数量已限制为 {count}。"
+    }
   }
 }

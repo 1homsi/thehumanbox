@@ -21,6 +21,20 @@ export interface ReachRule {
   scale?: number
 }
 
+export interface CountSlot {
+  min: number
+  max: number
+  default: number
+  text?: string
+}
+
+export type BrushSize = readonly [size: number, value: number]
+
+export interface BrushSizes {
+  sizes: BrushSize[]
+  largeSizes?: BrushSize[]
+}
+
 export interface PairText {
   next: string
   done: string
@@ -34,6 +48,7 @@ export interface ActionDef {
   icon: string
   name?: string
   tip?: string
+  description?: string
   target: ActionTarget
   command?: CommandTemplate
   radius?: RadiusRule
@@ -46,6 +61,7 @@ export interface ActionDef {
   failure?: string
   cause?: DamageCause
   hotkey?: string
+  count?: CountSlot
 }
 
 export interface GroupDef {
@@ -64,13 +80,20 @@ export interface TabDef {
 }
 
 export interface ActionManifest {
+  id?: string
+  name?: string
+  author?: string
+  description?: string
   version: 1
+  brush?: BrushSizes
   tabs?: TabDef[]
   groups: GroupDef[]
   actions: ActionDef[]
 }
 
-export type TemplateSlots = Partial<Record<'x' | 'y' | 'radius' | 'ax' | 'ay' | 'bx' | 'by', number>>
+export type TemplateSlots = Partial<
+  Record<'x' | 'y' | 'radius' | 'count' | 'ax' | 'ay' | 'bx' | 'by', number>
+>
 
 export function fillTemplate(value: TemplateValue, slots: TemplateSlots): TemplateValue {
   if (typeof value === 'string' && value.startsWith('$')) {
@@ -87,6 +110,10 @@ export function fillTemplate(value: TemplateValue, slots: TemplateSlots): Templa
 export function brushRadius(rule: RadiusRule, brush: number): number {
   const raw = rule.base + rule.perBrush * brush
   return Math.min(rule.max ?? raw, Math.max(rule.min ?? raw, raw))
+}
+
+export function clampCount(slot: CountSlot, count: number): number {
+  return Math.min(slot.max, Math.max(slot.min, Math.round(count)))
 }
 
 export function reachOf(rule: ReachRule | undefined, radius: number): number {

@@ -9,7 +9,8 @@
     "performance": "Leistung",
     "help": "Hilfe",
     "simulation": "Simulation",
-    "app": "App"
+    "app": "App",
+    "mods": "Mods"
   },
   "language": {
     "section": "Sprache",
@@ -159,5 +160,72 @@
     "saveFailed": "Einstellungen konnten nicht gespeichert werden: {error}",
     "launchFailed": "Gespeichert, aber der Start bei der Anmeldung konnte nicht aktualisiert werden: {error}",
     "restartFailed": "Die Simulation konnte nicht neu gestartet werden: {error}"
+  },
+  "mods": {
+    "section": "Mods",
+    "intro": "Eine Mod ist eine JSON-Datei mit neuen Kräften, gebaut aus denen, die das Dock schon hat. Ihre Kräfte bekommen im Dock einen eigenen Mods-Reiter. Eine Mod ist nur Daten: nichts darin läuft als Code.",
+    "rules": "Jede Kraft sendet Befehle, die die Welt schon kennt, bis zu {steps} auf einmal, mit höchstens {radius} Feldern Reichweite.",
+    "sample": "Beispiel-Mod herunterladen",
+    "pick": "Mod-Datei wählen",
+    "drop": "Lege hier die .json-Datei einer Mod ab oder klicke, um eine zu wählen",
+    "pasteLabel": "Oder füge das JSON einer Mod ein",
+    "pastePlaceholder": "Füge hier den Text der Datei ein",
+    "import": "Importieren",
+    "failed": "Diese Mod kann nicht importiert werden:",
+    "added": "„{name}“ hinzugefügt. Ihre Kräfte findest du im Mods-Reiter des Docks.",
+    "updated": "„{name}“ aktualisiert. Ihre Kräfte findest du im Mods-Reiter des Docks.",
+    "installed": "Deine Mods",
+    "none": "Noch keine Mods.",
+    "storedNote": "Mods bleiben in diesem Browser und sind wieder da, wenn du zu deiner Welt zurückkehrst.",
+    "by": "von {author}",
+    "enable": "{name} verwenden",
+    "remove": "Entfernen",
+    "removeTitle": "{name} entfernen?",
+    "removeBody": "Ihre Kräfte verschwinden aus dem Dock. Du kannst die Datei später wieder importieren.",
+    "actionsLabel": "Kräfte in {name}",
+    "brokenName": "Eine Mod, die nicht mehr lädt",
+    "broken": "Diese Mod besteht die Prüfungen nicht mehr, deshalb sind ihre Kräfte aus:",
+    "where": {
+      "mod": "Die Mod",
+      "action": "Kraft {n} ({label})",
+      "group": "Gruppe {n} ({label})"
+    },
+    "problems": {
+      "type": "{where}: hat die falsche Art von Wert (erwartet: {detail}).",
+      "value": "{where}: muss eines davon sein: {detail}.",
+      "pattern": "{where}: „{detail}“ darf nur Kleinbuchstaben, Ziffern und _ enthalten und muss mit einem Buchstaben beginnen.",
+      "short": "{where}: ist zu kurz (mindestens {detail} Zeichen).",
+      "long": "{where}: ist zu lang (höchstens {detail} Zeichen).",
+      "small": "{where}: ist zu klein (mindestens {detail}).",
+      "tooFew": "{where}: braucht mindestens {detail} Einträge.",
+      "tooMany": "{where}: hat mehr als {detail} Einträge.",
+      "missing": "{where}: „{detail}“ fehlt.",
+      "unknownField": "{where}: hat ein Feld, das das Spiel nicht kennt: „{detail}“.",
+      "shape": "{where}: hat keine Form, die das Spiel versteht.",
+      "placeholder": "{where}: „{slot}“ kann diese Art von Kraft nicht verwenden.",
+      "number": "{where}: muss eine Zahl zwischen -{most} und {most} sein.",
+      "nested": "{where}: darf kein verschachteltes Objekt enthalten.",
+      "command": "{where}: „{cmd}“ ist keine Kraft, die die Welt kennt.",
+      "compositeInComposite": "{where}: eine kombinierte Kraft darf keine andere kombinierte Kraft enthalten.",
+      "steps": "{where}: eine kombinierte Kraft braucht 1 bis {most} Schritte.",
+      "step": "{where}: jeder Schritt muss ein Befehl mit „cmd“ sein.",
+      "target": "{where}: eine Mod kann nur Pinsel-, Klick- oder weltweite Kräfte machen, nicht „{target}“.",
+      "tooBig": "Die Datei hat {size} KB; eine Mod darf höchstens {most} KB haben.",
+      "notJson": "Die Datei ist kein gültiges JSON ({detail}).",
+      "notManifest": "Die Datei ist keine Mod: sie sollte ein einzelnes JSON-Objekt sein.",
+      "noId": "Die Mod braucht eine „id“.",
+      "noName": "Die Mod braucht einen „name“.",
+      "noActions": "Die Mod hat keine Kräfte.",
+      "tooManyActions": "Eine Mod kann höchstens {most} Kräfte haben.",
+      "tooManyGroups": "Eine Mod kann höchstens {most} Gruppen haben.",
+      "duplicate": "{where}: die ID „{id}“ kommt doppelt vor.",
+      "group": "{where}: die Gruppe „{group}“ steht nicht unter groups.",
+      "tooManyMods": "Du kannst höchstens {most} Mods behalten. Entferne zuerst eine.",
+      "unreadable": "Die Datei konnte nicht gelesen werden ({detail})."
+    },
+    "notes": {
+      "radius": "{where}: die Reichweite wurde auf {most} Felder begrenzt.",
+      "count": "{where}: die Anzahl wurde auf {count} begrenzt."
+    }
   }
 }

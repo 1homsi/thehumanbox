@@ -38,6 +38,7 @@ import {
   PAIR_TOOLS,
   toolById,
   canPlaceAlongDrag,
+  usesBrush,
   commandReach,
   type LineageStrategy,
   type SandboxTool,
@@ -108,6 +109,8 @@ import type { OrganismState } from './shared/types'
 import { OCEAN, hex } from './game/render/art-palette'
 import clsx from 'clsx'
 import './App.css'
+import './simulation/actions/mod-store'
+import { clampCount } from './simulation/actions/manifest'
 import { StartupScreen } from './ui/StartupScreen'
 import { withActionFx } from './game/render/action-fx/with-action-fx'
 import './pixel-theme.css'
@@ -192,6 +195,44 @@ function LiveApp() {
   /** The first click of a two-click tool (see PAIR_TOOLS), waiting for the second. */
   const pairFirstRef = useRef<{ x: number; y: number } | null>(null)
   const [brush, setBrush] = useState(2)
+  const [counts, setCounts] = useState<Record<string, number>>({})
+  const armedSlot = armedTool?.count
+  const armedCount = armedTool && armedSlot ? (counts[armedTool.id] ?? armedSlot.default) : undefined
+  const setArmedCount = useCallback(
+    (count: number) => {
+      if (!armedTool?.count) return
+      const slot = armedTool.count
+      setCounts((all) => ({ ...all, [armedTool.id]: clampCount(slot, count) }))
+    },
+    [armedTool],
+  )
+  const adjustArmed = useCallback(
+    (delta: 1 | -1) => {
+      if (armedTool?.count && !usesBrush(armedTool)) {
+        const slot = armedTool.count
+        const id = armedTool.id
+        setCounts((all) => ({ ...all, [id]: clampCount(slot, (all[id] ?? slot.default) + delta) }))
+      } else setBrush((b) => nextBrush(b, delta) ?? b)
+    },
+    [armedTool],
+  )
+  useEffect(() => {
+    if (!armedTool || (!usesBrush(armedTool) && !armedTool.count)) return
+    let carried = 0
+    const onWheel = (event: WheelEvent) => {
+      if (!event.shiftKey) return
+      const target = event.target as HTMLElement | null
+      if (!target?.closest?.('.map2d-world')) return
+      event.preventDefault()
+      event.stopPropagation()
+      carried += event.deltaY || event.deltaX
+      if (Math.abs(carried) < 40) return
+      adjustArmed(carried < 0 ? 1 : -1)
+      carried = 0
+    }
+    window.addEventListener('wheel', onWheel, { capture: true, passive: false })
+    return () => window.removeEventListener('wheel', onWheel, { capture: true })
+  }, [armedTool, adjustArmed])
   const [hotkeysOpen, setHotkeysOpen] = useState(false)
   const [sandboxStatus, setSandboxStatus] = useState<string | null>(null)
   const showScenarios = useUIStore((s) => s.showScenarios)
@@ -507,7 +548,7 @@ function LiveApp() {
       const y = Math.round(wy)
       setSandboxStatus(t('header.sandbox.toolAt', { tool: label, x, y }))
       const tool = armedTool
-      void sendCommand(tool.build!(x, y, brush)).then((outcome) => {
+      void sendCommand(tool.build!(x, y, brush, armedCount)).then((outcome) => {
         if (outcome.applied) {
           countToolApply(tool.id)
           useTutorial.getState().noteTool(tool.id)
@@ -520,7 +561,7 @@ function LiveApp() {
         )
       })
     },
-    [armedTool, brush, sandboxControlsEnabled, sendCommand, setTemporarySandboxStatus],
+    [armedTool, armedCount, brush, sandboxControlsEnabled, sendCommand, setTemporarySandboxStatus],
   )
 
   const guideLineage = useCallback(
@@ -613,16 +654,16 @@ function LiveApp() {
   const brinkIndex = useRef(0)
   useEffect(() => {
     const onGameKey = (event: KeyboardEvent) => {
-      if (event.repeat || typingTarget(event.target)) return
+      if (typingTarget(event.target)) return
       const action = gameKeyAction(event, sandboxControlsEnabled)
-      if (!action) return
+      if (!action || (event.repeat && action.kind !== 'brush')) return
       if (action.kind === 'brush' && mapOwnsZoomKeys(event.target)) return
       event.preventDefault()
       if (action.kind === 'speed') {
         const tool = toolById(action.tool)
         if (tool) onPickTool(tool)
       } else if (action.kind === 'brush') {
-        setBrush((b) => nextBrush(b, action.delta) ?? b)
+        adjustArmed(action.delta)
       } else if (action.kind === 'help') {
         setHotkeysOpen((open) => !open)
       } else if (action.kind === 'prayer') {
@@ -644,7 +685,7 @@ function LiveApp() {
     }
     window.addEventListener('keydown', onGameKey)
     return () => window.removeEventListener('keydown', onGameKey)
-  }, [onPickTool, sandboxControlsEnabled, world, handleAnswerPrayer, setTemporarySandboxStatus])
+  }, [onPickTool, adjustArmed, sandboxControlsEnabled, world, handleAnswerPrayer, setTemporarySandboxStatus])
 
   const runScenario = useCallback(
     (preset: ScenarioPreset, width: number, height: number) => {
@@ -923,7 +964,7 @@ function LiveApp() {
                     sandboxArmed={sandboxControlsEnabled && !!armedTool}
                     sandboxLabel={armedTool?.label}
                     sandboxRadius={(() => {
-                      const preview = armedTool?.build?.(0, 0, brush)
+                      const preview = armedTool?.build?.(0, 0, brush, armedCount)
                       return preview ? commandReach(preview) : 0
                     })()}
                     sandboxDragPlaces={sandboxControlsEnabled && canPlaceAlongDrag(armedTool)}
@@ -995,6 +1036,8 @@ function LiveApp() {
               tradeRoutes: viewFlags.tradeRoutes,
             }}
             onBrush={setBrush}
+            count={armedCount}
+            onCount={setArmedCount}
             onPick={onPickTool}
             onClearArmed={() => {
               setArmedTool(null)

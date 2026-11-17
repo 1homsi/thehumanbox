@@ -1,5 +1,5 @@
 import type { MessageKey } from '../i18n'
-import type { ActionTarget } from './actions/manifest'
+import type { ActionTarget, CountSlot } from './actions/manifest'
 import { REGISTRY } from './actions/registry'
 
 export type SandboxCommand =
@@ -103,6 +103,7 @@ export type SandboxCommand =
   | { cmd: 'road'; x: number; y: number; radius?: number; kind: 'road' | 'bridge' | 'erase' }
   | { cmd: 'place_building'; x: number; y: number; kind: string }
   | { cmd: 'place_boat'; x: number; y: number }
+  | { cmd: 'composite'; steps: SandboxCommand[] }
   | {
       cmd: 'guide'
       lineage: string
@@ -110,7 +111,7 @@ export type SandboxCommand =
       duration_ticks?: number
     }
 
-export { commandReach } from './actions/registry'
+export { commandReach, reachesArea } from './actions/registry'
 
 export function rollRandomEvent(
   width: number,
@@ -160,11 +161,13 @@ export interface SandboxTool {
   target?: ActionTarget
   name?: MessageKey
   tip?: MessageKey
+  description?: string
   failure?: MessageKey
   hotkey?: string
+  count?: CountSlot & { text?: MessageKey }
   /** A sky effect drawn over the map for a while once the command lands (see game/render/sky-overlay.ts). */
   overlay?: SkyOverlayKind
-  build?: (x: number, y: number, brush: number) => SandboxCommand
+  build?: (x: number, y: number, brush: number, count?: number) => SandboxCommand
   fire?: SandboxCommand
   time?: TimeControl
   view?: SandboxViewControl
@@ -188,6 +191,11 @@ export function isSandboxViewControlActive(
 }
 
 export const SANDBOX_CATEGORIES: SandboxCategory[] = REGISTRY.categories
+
+export function usesBrush(tool: SandboxTool | null | undefined): boolean {
+  if (!tool?.build) return false
+  return JSON.stringify(tool.build(0, 0, 0)) !== JSON.stringify(tool.build(0, 0, 4))
+}
 
 export function toolById(id: string | null): SandboxTool | undefined {
   return id === null ? undefined : REGISTRY.tools.get(id)

@@ -4,14 +4,16 @@
     "nature": "naturaleza",
     "resources": "recursos",
     "deadly": "mortal",
-    "world": "mundo"
+    "world": "mundo",
+    "mods": "mods"
   },
   "tabTips": {
     "life": "Personas, sus ayudantes, los monstruos que las acechan y cada animal, desde zorros hasta ballenas",
     "nature": "Terreno y biomas, el cielo y la hora del día, eclipses y cometas, las edades y las bendiciones de la tierra",
     "resources": "Comida, cultivos y edificios, y las bendiciones, el clima y la curación que puedes dar",
     "deadly": "Desastres, pestes y guerra",
-    "world": "Tribus enteras (comida y herramientas para cada miembro, una migración forzada, un intercambio de comida) y las capas del mapa"
+    "world": "Tribus enteras (comida y herramientas para cada miembro, una migración forzada, un intercambio de comida) y las capas del mapa",
+    "mods": "Poderes de los mods que importaste en Ajustes"
   },
   "groups": {
     "life": "vida",
@@ -442,7 +444,13 @@
       "other": "Pincel de {count} casillas de ancho"
     },
     "smallestBrush": "Ya es el pincel más pequeño",
-    "largestBrush": "Ya es el pincel más grande"
+    "largestBrush": "Ya es el pincel más grande",
+    "count": "Cuántos",
+    "fewer": "Uno menos",
+    "more": "Uno más",
+    "brushWheel": "Mayús + rueda sobre el mapa también lo cambia",
+    "largeBrushes": "Pinceles del tamaño de una región, de 16 a 64 casillas",
+    "smallBrushes": "Volver a los pinceles normales"
   },
   "failures": {
     "noRoom": "el mundo no puede albergar más personas",
@@ -666,5 +674,16 @@
     "applyNow": "aplicar de inmediato",
     "empty": "No hay herramientas que coincidan. Prueba con un tipo de terreno, un animal, una capa del mapa o un control de tiempo."
   },
-  "tapAgain": "{tool}: toca otra vez para empezar"
+  "tapAgain": "{tool}: toca otra vez para empezar",
+  "count": {
+    "tribe": {
+      "one": "Fundar la tribu con {count} persona",
+      "other": "Fundar la tribu con {count} personas"
+    },
+    "animals": {
+      "one": "Traer {count} animal",
+      "other": "Traer {count} animales"
+    },
+    "generic": "Cuántos: {count}"
+  }
 }

@@ -9,7 +9,8 @@
     "performance": "wydajność",
     "help": "pomoc",
     "simulation": "symulacja",
-    "app": "aplikacja"
+    "app": "aplikacja",
+    "mods": "mody"
   },
   "language": {
     "section": "Język",
@@ -159,5 +160,72 @@
     "saveFailed": "nie udało się zapisać ustawień: {error}",
     "launchFailed": "zapisano, ale nie udało się zaktualizować uruchamiania przy logowaniu: {error}",
     "restartFailed": "nie udało się zrestartować symulacji: {error}"
+  },
+  "mods": {
+    "section": "Mody",
+    "intro": "Mod to plik JSON z nowymi mocami zbudowanymi z tych, które dok już ma. Jego moce dostają w doku własną kartę modów. Mod to tylko dane: nic w nim nie działa jako kod.",
+    "rules": "Każda moc wysyła polecenia, które świat już zna, najwyżej {steps} naraz, sięgając najwyżej na odległość {radius} pól.",
+    "sample": "Pobierz przykładowy mod",
+    "pick": "Wybierz plik moda",
+    "drop": "Upuść tu plik .json moda albo kliknij, aby go wybrać",
+    "pasteLabel": "Albo wklej JSON moda",
+    "pastePlaceholder": "Wklej tu tekst pliku",
+    "import": "Importuj",
+    "failed": "Tego moda nie da się zaimportować:",
+    "added": "Dodano „{name}”. Jego moce są na karcie modów w doku.",
+    "updated": "Zaktualizowano „{name}”. Jego moce są na karcie modów w doku.",
+    "installed": "Twoje mody",
+    "none": "Na razie brak modów.",
+    "storedNote": "Mody zostają w tej przeglądarce i wracają z twoim światem, gdy do niego wrócisz.",
+    "by": "autor: {author}",
+    "enable": "Używaj {name}",
+    "remove": "Usuń",
+    "removeTitle": "Usunąć {name}?",
+    "removeBody": "Jego moce znikną z doku. Plik można później zaimportować ponownie.",
+    "actionsLabel": "Moce w {name}",
+    "brokenName": "Mod, który już się nie wczytuje",
+    "broken": "Ten mod nie przechodzi już kontroli, więc jego moce są wyłączone:",
+    "where": {
+      "mod": "Mod",
+      "action": "Moc {n} ({label})",
+      "group": "Grupa {n} ({label})"
+    },
+    "problems": {
+      "type": "{where}: ma zły rodzaj wartości (powinno być: {detail}).",
+      "value": "{where}: musi być jednym z: {detail}.",
+      "pattern": "{where}: „{detail}” może zawierać tylko małe litery, cyfry i _ oraz musi zaczynać się od litery.",
+      "short": "{where}: jest za krótkie (co najmniej {detail} znaków).",
+      "long": "{where}: jest za długie (najwyżej {detail} znaków).",
+      "small": "{where}: jest za małe (co najmniej {detail}).",
+      "tooFew": "{where}: potrzeba co najmniej {detail} pozycji.",
+      "tooMany": "{where}: ma ponad {detail} pozycji.",
+      "missing": "{where}: brakuje „{detail}”.",
+      "unknownField": "{where}: ma pole, którego gra nie zna: „{detail}”.",
+      "shape": "{where}: nie ma postaci, którą gra rozumie.",
+      "placeholder": "{where}: „{slot}” nie może być użyte w tym rodzaju mocy.",
+      "number": "{where}: musi być liczbą od -{most} do {most}.",
+      "nested": "{where}: nie może zawierać zagnieżdżonego obiektu.",
+      "command": "{where}: „{cmd}” to nie moc znana światu.",
+      "compositeInComposite": "{where}: złożona moc nie może zawierać innej złożonej mocy.",
+      "steps": "{where}: złożona moc potrzebuje od 1 do {most} kroków.",
+      "step": "{where}: każdy krok musi być poleceniem z „cmd”.",
+      "target": "{where}: mod może tworzyć tylko moce pędzla, kliknięcia lub dla całego świata, nie „{target}”.",
+      "tooBig": "Plik ma {size} KB; mod może mieć najwyżej {most} KB.",
+      "notJson": "Plik nie jest poprawnym JSON-em ({detail}).",
+      "notManifest": "Plik nie jest modem: powinien być jednym obiektem JSON.",
+      "noId": "Mod potrzebuje pola „id”.",
+      "noName": "Mod potrzebuje pola „name”.",
+      "noActions": "Mod nie ma żadnych mocy.",
+      "tooManyActions": "Mod może mieć najwyżej {most} mocy.",
+      "tooManyGroups": "Mod może mieć najwyżej {most} grup.",
+      "duplicate": "{where}: id „{id}” występuje dwa razy.",
+      "group": "{where}: grupy „{group}” nie ma w groups.",
+      "tooManyMods": "Możesz mieć najwyżej {most} modów. Najpierw usuń jeden.",
+      "unreadable": "Nie udało się odczytać pliku ({detail})."
+    },
+    "notes": {
+      "radius": "{where}: zasięg ograniczono do {most} pól.",
+      "count": "{where}: liczbę ograniczono do {count}."
+    }
   }
 }

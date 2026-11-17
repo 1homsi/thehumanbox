@@ -4,14 +4,16 @@
     "nature": "自然",
     "resources": "資源",
     "deadly": "災厄",
-    "world": "世界"
+    "world": "世界",
+    "mods": "MOD"
   },
   "tabTips": {
     "life": "人々、その助け手、彼らを狙う怪物、キツネからクジラまであらゆる動物",
     "nature": "地形と生態域、空と時刻、日食と彗星、時代、土地の祝福",
     "resources": "食料、植物と建物、そしてあなたが与える祝福、天候、癒し",
     "deadly": "災害、疫病、戦争",
-    "world": "部族まるごと（全員への食料と道具、強制移住、食料の交易）と地図のレイヤー"
+    "world": "部族まるごと（全員への食料と道具、強制移住、食料の交易）と地図のレイヤー",
+    "mods": "設定で読み込んだMODの力"
   },
   "groups": {
     "life": "生命",
@@ -442,7 +444,13 @@
       "other": "ブラシの幅 {count} マス"
     },
     "smallestBrush": "すでに最小のブラシです",
-    "largestBrush": "すでに最大のブラシです"
+    "largestBrush": "すでに最大のブラシです",
+    "count": "数",
+    "fewer": "1つ減らす",
+    "more": "1つ増やす",
+    "brushWheel": "マップ上でShift＋ホイールでも変えられます",
+    "largeBrushes": "地域サイズのブラシ（16〜64マス）",
+    "smallBrushes": "通常のブラシに戻す"
   },
   "failures": {
     "noRoom": "世界にはこれ以上人を置けません",
@@ -666,5 +674,16 @@
     "applyNow": "すぐに適用",
     "empty": "一致するツールがありません。地形、動物、マップのレイヤー、時間の操作を試してください。"
   },
-  "tapAgain": "{tool}：もう一度タップで開始"
+  "tapAgain": "{tool}：もう一度タップで開始",
+  "count": {
+    "tribe": {
+      "one": "{count}人で部族を始める",
+      "other": "{count}人で部族を始める"
+    },
+    "animals": {
+      "one": "動物を{count}匹連れてくる",
+      "other": "動物を{count}匹連れてくる"
+    },
+    "generic": "数：{count}"
+  }
 }

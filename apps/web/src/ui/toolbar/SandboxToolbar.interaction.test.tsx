@@ -241,7 +241,57 @@ describe('world dock buttons', { timeout: 20_000 }, () => {
     click(container.querySelector('[aria-label="Smaller brush"]'))
     expect(props.onBrush).toHaveBeenLastCalledWith(2)
     render({ ...props, brush: 11 })
+    click(container.querySelector('[aria-label="Larger brush"]'))
+    expect(props.onBrush).toHaveBeenLastCalledWith(15)
+    render({ ...props, brush: 63 })
     expect(container.querySelector<HTMLButtonElement>('[aria-label="Larger brush"]')!.disabled).toBe(true)
+  })
+
+  it('swaps the six brush discs for the region-sized rings, and back', () => {
+    const props = render({ armedToolId: 'fire', brush: 2 })
+    const steps = () => [...container.querySelectorAll('.dock-size .dock-size-step:not(.dock-size-more)')]
+    expect(steps().map((b) => b.getAttribute('aria-label'))).toEqual([
+      'Brush size 1',
+      'Brush size 2',
+      'Brush size 3',
+      'Brush size 5',
+      'Brush size 8',
+      'Brush size 12',
+    ])
+    click(container.querySelector('[aria-label="Region-sized brushes, 16 to 64 tiles"]'))
+    expect(steps().map((b) => b.getAttribute('aria-label'))).toEqual([
+      'Brush size 16',
+      'Brush size 24',
+      'Brush size 32',
+      'Brush size 48',
+      'Brush size 64',
+    ])
+    click(steps()[4])
+    expect(props.onBrush).toHaveBeenLastCalledWith(63)
+    render({ ...props, brush: 47 })
+    expect(container.querySelector('.dock-size-step.active')?.getAttribute('aria-label')).toBe(
+      'Brush size 48',
+    )
+    click(container.querySelector('[aria-label="Back to the regular brushes"]'))
+    expect(steps()).toHaveLength(6)
+  })
+
+  it('shows a count instead of the brush for the tribe tool, and sends the count picked', () => {
+    const onCount = vi.fn()
+    render({ armedToolId: 'spawn5', brush: 2, count: 5, onCount })
+    expect(container.querySelector('.dock-count-value')?.textContent).toBe('5')
+    expect(container.querySelector('.dock-count-value')?.getAttribute('title')).toBe(
+      'Start the tribe with 5 people',
+    )
+    click(container.querySelector('[aria-label="Start the tribe with 20 people"]'))
+    expect(onCount).toHaveBeenLastCalledWith(20)
+    click(container.querySelector('[aria-label="One more"]'))
+    expect(onCount).toHaveBeenLastCalledWith(6)
+    render({ armedToolId: 'spawn5', brush: 2, count: 50, onCount })
+    expect(container.querySelector<HTMLButtonElement>('[aria-label="One more"]')!.disabled).toBe(true)
+    render({ armedToolId: 'deer', brush: 2, count: 1, onCount })
+    expect(container.querySelector('.dock-count-value')?.getAttribute('title')).toBe('Bring 1 animal')
+    expect(container.querySelector('[aria-label="Bring 20 animals"]')).toBeNull()
   })
 
   it('on touch, names a tool that acts at once on the first tap and starts it on the second', () => {

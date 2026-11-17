@@ -4,14 +4,16 @@
     "nature": "自然",
     "resources": "资源",
     "deadly": "致命",
-    "world": "世界"
+    "world": "世界",
+    "mods": "模组"
   },
   "tabTips": {
     "life": "人、他们的帮手、追捕他们的怪物，以及从狐狸到鲸鱼的每一种动物",
     "nature": "地形与生态区、天空与一天中的时段、日食与彗星、时代以及土地的祝福",
     "resources": "食物、种植物与建筑，以及你可以施予的祝福、天气和治疗",
     "deadly": "灾难、瘟疫与战争",
-    "world": "整个部落（为每位成员提供食物和工具、强制迁徙、食物交易）以及地图图层"
+    "world": "整个部落（为每位成员提供食物和工具、强制迁徙、食物交易）以及地图图层",
+    "mods": "你在设置中导入的模组带来的能力"
   },
   "groups": {
     "life": "生命",
@@ -442,7 +444,13 @@
       "other": "画笔宽 {count} 格"
     },
     "smallestBrush": "已是最小的笔刷",
-    "largestBrush": "已是最大的笔刷"
+    "largestBrush": "已是最大的笔刷",
+    "count": "数量",
+    "fewer": "少一个",
+    "more": "多一个",
+    "brushWheel": "在地图上按住 Shift 滚动滚轮也能调整",
+    "largeBrushes": "区域大小的笔刷，16 到 64 格",
+    "smallBrushes": "回到普通笔刷"
   },
   "failures": {
     "noRoom": "世界已容不下更多人",
@@ -666,5 +674,16 @@
     "applyNow": "立即应用",
     "empty": "没有匹配的工具。试试某种地形、动物、地图图层或时间控制。"
   },
-  "tapAgain": "{tool}：再点一次开始"
+  "tapAgain": "{tool}：再点一次开始",
+  "count": {
+    "tribe": {
+      "one": "以 {count} 人建立部落",
+      "other": "以 {count} 人建立部落"
+    },
+    "animals": {
+      "one": "带来 {count} 只动物",
+      "other": "带来 {count} 只动物"
+    },
+    "generic": "数量：{count}"
+  }
 }

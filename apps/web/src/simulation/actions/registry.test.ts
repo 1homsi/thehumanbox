@@ -114,11 +114,12 @@ describe('the built-in action manifest', () => {
   })
 
   it('names only English text that exists', () => {
-    const has = (key: string) =>
-      typeof key
+    const has = (key: string) => {
+      const text = key
         .split('.')
-        .reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], en) ===
-      'string'
+        .reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], en)
+      return typeof text === 'string' || typeof (text as { other?: unknown } | undefined)?.other === 'string'
+    }
     const keys = [
       ...BUILTIN_ACTIONS.actions.flatMap((a) => [
         a.name,
@@ -127,6 +128,7 @@ describe('the built-in action manifest', () => {
         a.pair?.next,
         a.pair?.done,
         a.pair?.failed,
+        a.count?.text,
       ]),
       ...BUILTIN_ACTIONS.groups.map((g) => g.name),
       ...(BUILTIN_ACTIONS.tabs ?? []).flatMap((tab) => [tab.name, tab.tip]),

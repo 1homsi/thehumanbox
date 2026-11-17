@@ -9,7 +9,8 @@
     "performance": "desempenho",
     "help": "ajuda",
     "simulation": "simulação",
-    "app": "app"
+    "app": "app",
+    "mods": "mods"
   },
   "language": {
     "section": "Idioma",
@@ -159,5 +160,72 @@
     "saveFailed": "não foi possível salvar as configurações: {error}",
     "launchFailed": "salvo, mas não foi possível atualizar a inicialização no login: {error}",
     "restartFailed": "não foi possível reiniciar a simulação: {error}"
+  },
+  "mods": {
+    "section": "Mods",
+    "intro": "Um mod é um arquivo JSON com poderes novos feitos a partir dos que o dock já tem. Os poderes dele ganham uma aba de mods própria no dock. Um mod é só dados: nada nele roda como código.",
+    "rules": "Cada poder envia comandos que o mundo já conhece, até {steps} de uma vez, com alcance de no máximo {radius} casas.",
+    "sample": "Baixar o mod de exemplo",
+    "pick": "Escolher um arquivo de mod",
+    "drop": "Solte aqui o arquivo .json de um mod ou clique para escolher um",
+    "pasteLabel": "Ou cole o JSON de um mod",
+    "pastePlaceholder": "Cole aqui o texto do arquivo",
+    "import": "Importar",
+    "failed": "Este mod não pode ser importado:",
+    "added": "“{name}” adicionado. Os poderes estão na aba de mods do dock.",
+    "updated": "“{name}” atualizado. Os poderes estão na aba de mods do dock.",
+    "installed": "Seus mods",
+    "none": "Nenhum mod ainda.",
+    "storedNote": "Os mods ficam neste navegador e voltam com o seu mundo quando você retorna.",
+    "by": "por {author}",
+    "enable": "Usar {name}",
+    "remove": "Remover",
+    "removeTitle": "Remover {name}?",
+    "removeBody": "Os poderes dele saem do dock. Você pode importar o arquivo de novo depois.",
+    "actionsLabel": "Poderes de {name}",
+    "brokenName": "Um mod que não carrega mais",
+    "broken": "Este mod não passa mais nas verificações, então os poderes dele estão desligados:",
+    "where": {
+      "mod": "O mod",
+      "action": "Poder {n} ({label})",
+      "group": "Grupo {n} ({label})"
+    },
+    "problems": {
+      "type": "{where}: tem o tipo de valor errado (deveria ser {detail}).",
+      "value": "{where}: deve ser um destes: {detail}.",
+      "pattern": "{where}: “{detail}” só pode usar letras minúsculas, dígitos e _, e deve começar com uma letra.",
+      "short": "{where}: é curto demais (pelo menos {detail} caracteres).",
+      "long": "{where}: é longo demais (no máximo {detail} caracteres).",
+      "small": "{where}: é pequeno demais (pelo menos {detail}).",
+      "tooFew": "{where}: precisa de pelo menos {detail} itens.",
+      "tooMany": "{where}: tem mais de {detail} itens.",
+      "missing": "{where}: falta “{detail}”.",
+      "unknownField": "{where}: tem um campo que o jogo não conhece: “{detail}”.",
+      "shape": "{where}: não está numa forma que o jogo entenda.",
+      "placeholder": "{where}: “{slot}” não pode ser usado neste tipo de poder.",
+      "number": "{where}: deve ser um número entre -{most} e {most}.",
+      "nested": "{where}: não pode conter um objeto aninhado.",
+      "command": "{where}: “{cmd}” não é um poder que o mundo conheça.",
+      "compositeInComposite": "{where}: um poder combinado não pode conter outro poder combinado.",
+      "steps": "{where}: um poder combinado precisa de 1 a {most} passos.",
+      "step": "{where}: cada passo deve ser um comando com “cmd”.",
+      "target": "{where}: um mod só pode criar poderes de pincel, de clique ou para o mundo todo, não “{target}”.",
+      "tooBig": "O arquivo tem {size} KB; um mod pode ter no máximo {most} KB.",
+      "notJson": "O arquivo não é um JSON válido ({detail}).",
+      "notManifest": "O arquivo não é um mod: deveria ser um único objeto JSON.",
+      "noId": "O mod precisa de um “id”.",
+      "noName": "O mod precisa de um “name”.",
+      "noActions": "O mod não tem poderes.",
+      "tooManyActions": "Um mod pode ter no máximo {most} poderes.",
+      "tooManyGroups": "Um mod pode ter no máximo {most} grupos.",
+      "duplicate": "{where}: o id “{id}” é usado duas vezes.",
+      "group": "{where}: o grupo “{group}” não está listado em groups.",
+      "tooManyMods": "Você pode manter no máximo {most} mods. Remova um primeiro.",
+      "unreadable": "Não foi possível ler o arquivo ({detail})."
+    },
+    "notes": {
+      "radius": "{where}: o alcance foi limitado a {most} casas.",
+      "count": "{where}: a quantidade foi limitada a {count}."
+    }
   }
 }
