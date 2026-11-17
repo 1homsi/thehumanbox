@@ -1,4 +1,18 @@
-import { Art, C, INK, ROOF, WALL, finish, finishGround, isLit, legend, rows } from './kit.ts'
+import {
+  Art,
+  C,
+  DOOR,
+  INK,
+  ROOF,
+  WALL,
+  finish,
+  finishGround,
+  isLit,
+  legend,
+  rows,
+  slabRoof,
+  wall,
+} from './kit.ts'
 import type { Look } from './kit.ts'
 import { plot, spread } from './house-forms.ts'
 import { steps } from './shapes.ts'
@@ -374,50 +388,75 @@ export function bridge(look: Look): Art {
   return finish(a)
 }
 
-/** A jetty of planks on piles, `len` long, running down from (x, y). */
-function jetty(a: Art, x: number, y: number, w: number, len: number) {
-  a.rect(x, y, w, len, C.tan3)
-  for (let j = 1; j < len; j += 2) a.hline(x, y + j, w, C.tan2)
-  a.vline(x, y, len, C.gold2).vline(x + w - 1, y, len, C.gold1)
-}
-
-/** A boat seen from above, lying alongside: a pointed hull, its thwarts, and a furled sail. */
-const boatAbove = rows('boat', '.ee.', 'eGGe', 'eeee', 'eGGe', 'ehhe', 'eGGe', 'eeee', 'eGGe', '.ee.')
-const skiffAbove = rows('skiff', '.ee.', 'eGGe', 'eeee', 'eGGe', '.ee.')
+/** A boat pulled up on the shore, seen from the side: a hull on two chocks, its mast and a furled sail. */
+const boatAshore = rows(
+  'boat',
+  '....e....',
+  '....eh...',
+  '....ehh..',
+  '....e....',
+  'egggggggf',
+  '.eeeeeff.',
+  '..o...o..',
+)
 
 /**
- * A dock, a marina or a port, all seen from above: a quay along the shore, jetties running out from it, and
- * boats moored against the jetties, each with a ripple of water at its stern.
+ * A dock, a marina or a port, standing on the shore and seen from the front like every other building: a
+ * plank quay on piles with a boathouse on it, and what marks each one out. The dock has one boat hauled
+ * out; the marina a clubhouse and a row of masts; the port a warehouse, a crane and its cargo.
  */
 export function harbour(look: Look): Art {
-  const w = look.fw * 8
-  const h = look.fh * 8
-  const a = new Art(w + 6, h + 6)
-  const x = 3
-  const y = 3
-  const L = legend(ROOF.tile, WALL.stone, isLit(look))
-  const port = look.kind === 'Port'
-  const piers = spread(x, w, Math.max(1, Math.floor(w / 14)), 4)
-  // Boats first, so the jetty they are tied to overlaps their mooring.
-  piers.forEach((px, i) => {
-    const big = look.kind === 'Marina' || i % 2 === 0
-    const by = y + 6 + (i % 2) * 3
-    if (by + (big ? 9 : 5) <= y + h) {
-      a.stamp(big ? boatAbove : skiffAbove, px + 5, by, L)
-      a.hline(px + 5, by + (big ? 10 : 6), 3, C.blue4)
-    }
-    if (look.kind === 'Marina' && px - 5 >= x && by + 8 <= y + h) a.stamp(skiffAbove, px - 5, by + 3, L)
-  })
-  piers.forEach((px) => jetty(a, px, y + 4, 4, h - 4))
-  // The quay along the shore: stone for a port, planks otherwise, with bollards.
-  a.rect(x, y, w, 4, port ? C.grey7 : C.tan3)
-    .hline(x, y, w, port ? C.grey9 : C.tan4)
-    .hline(x, y + 3, w, port ? C.grey5 : C.gold2)
-  for (let i = 3; i < w; i += 6) a.rect(x + i, y + 1, 2, 2, C.grey3)
-  if (port) {
-    // Crates stacked on the quay, and a lamp at the head of the first pier.
-    a.stamp(rows('crates', 'gggg.ggg', 'gefg.gfg', 'gggg.ggg'), x + w - 10, y, L)
-    a.rect(piers[0] + 1, y + h - 2, 2, 2, isLit(look) ? C.gold5 : C.grey8)
+  const w = W(look, 14)
+  const { a, g, x } = plot(look, w)
+  const L = legend(ROOF.slate, WALL.wood, isLit(look))
+  // The quay: planks on piles, water showing between the piles.
+  a.rect(x - 1, g - 4, w + 2, 2, C.tan3)
+    .hline(x - 1, g - 4, w + 2, C.tan4)
+    .hline(x - 1, g - 3, w + 2, C.tan2)
+  for (let i = 0; i < w; i += 4) a.vline(x + i, g - 2, 2, C.gold1)
+  for (let i = 1; i < w; i += 4) a.hline(x + i, g - 1, 3, C.blue3)
+  const q = g - 4
+  if (look.kind === 'Port') {
+    // The warehouse, its doors open on the dark, under a long slate roof.
+    const ww = Math.round(w * 0.5)
+    wall(a, x, q - 10, ww, 10, WALL.brick, false)
+    a.rect(x + 2, q - 7, 6, 7, INK).hline(x + 2, q - 7, 6, C.grey8)
+    slabRoof(a, x - 1, q - 15, ww + 2, 5, ROOF.slate, 1)
+    // Cargo on the quay: crates, and a stack of barrels.
+    a.stamp(rows('crates', 'gggg....', 'gefg.ggg', 'gggg.gfg', 'gefg.ggg'), x + ww + 1, q - 4, L)
+    // The crane: a mast, a jib out over the water, a crate swinging from it.
+    const cx = x + w - 5
+    const ch = Math.min(look.fh * 6, 26)
+    a.vline(cx, q - ch, ch, C.gold4).vline(cx + 1, q - ch, ch, C.gold3)
+    a.hline(cx - 9, q - ch, 12, C.gold4).hline(cx - 9, q - ch + 1, 12, C.gold3)
+    a.vline(cx - 8, q - ch + 2, 6, C.grey3).rect(cx - 9, q - ch + 8, 3, 3, C.gold2)
+    a.rect(cx - 1, q - 2, 4, 2, C.grey6)
+    return finish(a)
   }
+  if (look.kind === 'Marina') {
+    // The clubhouse: white boards, a blue roof, a flag.
+    const cw = Math.round(w * 0.45)
+    wall(a, x, q - 8, cw, 8, WALL.white, false)
+    for (let j = q - 6; j < q - 1; j += 2) a.hline(x, j, cw - 1, C.grey8)
+    a.stamp(DOOR.low, x + 2, q - 4, L).rect(x + cw - 5, q - 6, 3, 2, L.x)
+    slabRoof(a, x - 1, q - 13, cw + 2, 5, ROOF.slate, 2)
+    a.vline(x + 1, q - 19, 6, C.grey6).rect(x + 2, q - 19, 3, 2, C.red4)
+    // The boats: a row of masts with furled sails, hulls just showing over the quay.
+    for (let i = x + cw + 3; i + 4 < x + w; i += 6) {
+      const mh = 9 + ((i * 7) % 5)
+      a.vline(i + 2, q - mh, mh, C.gold1).vline(i + 3, q - mh + 2, mh - 5, C.grey9)
+      a.hline(i, q - 2, 6, C.gold3).hline(i + 1, q - 1, 4, C.gold2)
+    }
+    return finish(a)
+  }
+  // The dock: a small boathouse and one boat hauled out beside it.
+  const bw = Math.min(10, Math.round(w * 0.5))
+  wall(a, x, q - 7, bw, 7, WALL.wood, false)
+  for (let j = q - 5; j < q - 1; j += 2) a.hline(x, j, bw - 1, C.tan1)
+  a.rect(x + 2, q - 5, bw - 4, 5, INK).hline(x + 2, q - 5, bw - 4, C.gold2)
+  slabRoof(a, x - 1, q - 11, bw + 2, 4, ROOF.wood, 1, false)
+  a.stamp(boatAshore, x + bw + 1, q - 7, L)
+  // A mooring post with a coil of rope.
+  a.vline(x + w - 1, q - 4, 4, C.gold1).set(x + w - 2, q - 3, C.tan4)
   return finish(a)
 }
