@@ -321,3 +321,9 @@
     font-size: 11px;
   }
 }
+@media (pointer: coarse) {
+  .wp-tribe,
+  .wp-link {
+    min-height: 40px;
+  }
+}
