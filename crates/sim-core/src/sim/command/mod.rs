@@ -761,6 +761,9 @@ pub mod outcome;
 mod outcome_tests;
 mod place;
 mod rain_patch;
+pub mod registry;
+#[cfg(test)]
+mod registry_tests;
 #[cfg(test)]
 mod release_tests;
 mod rename_person;
@@ -843,122 +846,6 @@ impl Simulation {
     }
 
     fn apply_command_inner(&mut self, cmd: Command) -> bool {
-        match cmd {
-            Command::Spawn {
-                x,
-                y,
-                count,
-                lineage,
-                speak_like,
-            } => self.cmd_spawn(x, y, count, lineage, speak_like),
-            Command::Family { x, y } => self.cmd_family(x, y),
-            Command::Teleport { x, y, radius } => self.cmd_teleport(x, y, radius),
-            Command::MakeLeader { x, y, radius } => self.cmd_make_leader(x, y, radius),
-            Command::PlaceBuilding { x, y, kind } => self.cmd_place_building(x, y, kind),
-            Command::PlaceBoat { x, y } => self.cmd_place_boat(x, y),
-            Command::HealOne { x, y, radius } => self.cmd_heal_one(x, y, radius),
-            Command::Gift { x, y, radius, what } => self.cmd_gift(x, y, radius, what),
-            Command::SetTimeOfDay { phase } => self.cmd_set_time_of_day(phase),
-            Command::Hail { x, y, radius } => self.cmd_hail(x, y, radius),
-            Command::Nuke { x, y, radius } => self.cmd_nuke(x, y, radius),
-            Command::Eclipse => self.cmd_eclipse(),
-            Command::RainPatch { x, y, radius } => self.cmd_rain_patch(x, y, radius),
-            Command::CureTribe { x, y } => self.cmd_cure_tribe(x, y),
-            Command::Guardian { x, y } => self.cmd_guardian(x, y),
-            Command::Aurora => self.cmd_aurora(),
-            Command::HeatWave => self.cmd_heat_wave(),
-            Command::Freeze { x, y, radius } => self.cmd_freeze(x, y, radius),
-            Command::BlessRiver { x, y, radius } => self.cmd_bless_river(x, y, radius),
-            Command::BlessForest { x, y, radius } => self.cmd_bless_forest(x, y, radius),
-            Command::Talent { x, y, radius } => self.cmd_talent(x, y, radius),
-            Command::EraTribe { x, y, era } => self.cmd_era_tribe(x, y, era),
-            Command::TribeGift { x, y, radius, what } => self.cmd_tribe_gift(x, y, radius, what),
-            Command::MigrateTribe { x, y, radius } => self.cmd_migrate_tribe(x, y, radius),
-            Command::TradeGift { ax, ay, bx, by } => self.cmd_trade_gift(ax, ay, bx, by),
-            Command::ClearRegion { x, y, radius } => self.cmd_clear_region(x, y, radius),
-            Command::Mutate { x, y, radius } => self.cmd_mutate(x, y, radius),
-            Command::MergeTribes { ax, ay, bx, by } => self.cmd_merge_tribes(ax, ay, bx, by),
-            Command::SplitTribe { x, y, radius } => self.cmd_split_tribe(x, y, radius),
-            Command::TeachNearby { x, y, radius } => self.cmd_teach_nearby(x, y, radius),
-            Command::SetDifficulty { level } => match crate::sim::goals::Difficulty::parse(&level) {
-                Some(d) => {
-                    self.set_difficulty(d);
-                    true
-                }
-                None => false,
-            },
-            Command::Curse { x, y, radius } => self.cmd_curse(x, y, radius),
-            Command::Comet { x, y, radius } => self.cmd_comet(x, y, radius),
-            Command::Smite { x, y, radius } => self.cmd_smite(x, y, radius),
-            Command::Heal { x, y, radius } => self.cmd_heal(x, y, radius),
-            Command::Paint { x, y, tile, radius } => self.cmd_paint(x, y, tile, radius),
-            Command::Ignite { x, y, radius } => self.cmd_ignite(x, y, radius),
-            Command::Weather { kind } => self.cmd_weather(kind),
-            Command::Drought { active } => self.cmd_drought(active),
-            Command::Outbreak {
-                count,
-                x: Some(x),
-                y: Some(y),
-                radius,
-            } => self.cmd_outbreak_at(x, y, radius, count),
-            Command::Outbreak { count, .. } => self.cmd_outbreak(count),
-            Command::Sinkhole { x, y, radius } => self.cmd_sinkhole(x, y, radius),
-            Command::BlackHole { x, y, radius } => self.cmd_black_hole(x, y, radius),
-            Command::AcidRain { x, y, radius } => self.cmd_acid_rain(x, y, radius),
-            Command::SpawnAnimal {
-                x,
-                y,
-                kind,
-                count,
-                radius,
-            } => self.cmd_spawn_animal(x, y, kind, count, radius),
-            Command::Poison { x, y, radius } => self.cmd_poison(x, y, radius),
-            Command::Bless { x, y, radius } => self.cmd_bless(x, y, radius),
-            Command::LongLife { x, y, radius } => self.cmd_long_life(x, y, radius),
-            Command::Courage { x, y, radius } => self.cmd_courage(x, y, radius),
-            Command::Sunshine { x, y, radius } => self.cmd_sunshine(x, y, radius),
-            Command::Inspire { x, y, radius } => self.cmd_inspire(x, y, radius),
-            Command::Earthquake { x, y, radius } => self.cmd_earthquake(x, y, radius),
-            Command::War { x, y } => self.cmd_war(x, y),
-            Command::Peace { x, y } => self.cmd_peace(x, y),
-            Command::Meteor { x, y, radius } => self.cmd_meteor(x, y, radius),
-            Command::Harvest { x, y, radius } => self.cmd_harvest(x, y, radius),
-            Command::Cure { x, y, radius } => self.cmd_cure(x, y, radius),
-            Command::Arm { x, y, radius } => self.cmd_arm(x, y, radius),
-            Command::Bounty { x, y, radius } => self.cmd_bounty(x, y, radius),
-            Command::Douse { x, y, radius } => self.cmd_douse(x, y, radius),
-            Command::Ward { x, y, radius } => self.cmd_ward(x, y, radius),
-            Command::Teach { lineage } => self.cmd_teach(lineage),
-            Command::Revive { x, y } => self.cmd_revive(x, y),
-            Command::Banish { x, y, radius } => self.cmd_banish(x, y, radius),
-            Command::Blight { x, y, radius } => self.cmd_blight(x, y, radius),
-            Command::Frenzy { x, y, radius } => self.cmd_frenzy(x, y, radius),
-            Command::Flood { x, y, radius } => self.cmd_flood(x, y, radius),
-            Command::Blizzard { x, y, radius } => self.cmd_blizzard(x, y, radius),
-            Command::Thunder { x, y, radius } => self.cmd_thunder(x, y, radius),
-            Command::Plant { x, y, kind, radius } => self.cmd_plant(x, y, kind, radius),
-            Command::RenameTribe { lineage, name } => self.cmd_rename_tribe(lineage, name),
-            Command::PaintBiome { x, y, biome, radius } => self.cmd_paint_biome(x, y, biome, radius),
-            Command::Volcano { x, y, radius } => self.cmd_volcano(x, y, radius),
-            Command::MeteorShower { x, y, radius } => self.cmd_meteor_shower(x, y, radius),
-            Command::Love { x, y, radius } => self.cmd_love(x, y, radius),
-            Command::Marry { ax, ay, bx, by } => self.cmd_marry(ax, ay, bx, by),
-            Command::RenamePerson { id, name } => self.cmd_rename_person(id, name),
-            Command::Tame { x, y, radius } => self.cmd_tame(x, y, radius),
-            Command::Road { x, y, radius, kind } => self.cmd_road(x, y, radius, kind),
-            Command::Demolish { x, y, radius } => self.cmd_demolish(x, y, radius),
-            Command::Repair { x, y, radius } => self.cmd_repair(x, y, radius),
-            Command::Restore { x, y, radius } => self.cmd_restore(x, y, radius),
-            Command::Gale => self.cmd_gale(),
-            Command::Tornado { x, y, radius } => self.cmd_tornado(x, y, radius),
-            Command::Tsunami { x, y, radius } => self.cmd_tsunami(x, y, radius),
-            Command::Locusts { x, y, radius } => self.cmd_locusts(x, y, radius),
-            Command::Wildfire { x, y, radius } => self.cmd_wildfire(x, y, radius),
-            Command::Guide {
-                lineage,
-                strategy,
-                duration_ticks,
-            } => self.cmd_guide(lineage, strategy, duration_ticks),
-        }
+        registry::lookup(cmd.id()).is_some_and(|spec| (spec.run)(self, cmd))
     }
 }
