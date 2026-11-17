@@ -86,7 +86,6 @@ export function initAnalytics(): void {
         capture_exceptions: true,
         capture_performance: false,
         disable_session_recording: true,
-        // The desktop page URL carries the local API token: keep it out of every URL property (#953).
         before_send: scrubEventUrls,
       })
       posthog.register(contextProps())
