@@ -20,6 +20,7 @@ import {
   requestOwnWorldReset,
 } from '../../simulation/worldSource'
 import { deleteWorld, listRecoveryWorlds, loadWorld, type RecoveryWorld } from '../../simulation/wasmDb'
+import { unpackSave } from '../../simulation/saveContainer'
 import { DESKTOP_PAUSE_WHEN_HIDDEN_EVENT } from '../../shared/desktopVisibility'
 import { formatDateTime, formatNumber, t } from '../../i18n'
 import { LanguageTab } from './LanguageTab'
@@ -56,7 +57,7 @@ function WorldSourceSection() {
       }
       const saved = await loadWorld(id)
       if (!saved) throw new Error(t('settings.web.saveGone'))
-      const bytes = new Uint8Array(saved.blob).buffer
+      const bytes = new Uint8Array(await unpackSave(saved.blob)).buffer
       const url = URL.createObjectURL(new Blob([bytes], { type: 'application/json' }))
       const link = document.createElement('a')
       link.href = url

@@ -8,23 +8,37 @@ const model = vi.hoisted(() => ({
   tickN: vi.fn(),
   deltaFrame: vi.fn(),
   fullFrame: vi.fn(),
-  fromSerialized: vi.fn(),
+  fromSerialized: vi.fn<(seed: bigint, bytes: Uint8Array) => unknown>(),
   loadWorld: vi.fn(
     async (): Promise<{ blob: Uint8Array; seed: string; tick: number; savedAt: number } | null> => null,
   ),
   serialize: vi.fn(() => new Uint8Array([1])),
   command: vi.fn(() => APPLIED_JSON),
-  saveWorld: vi.fn(async () => {}),
+  saveWorld: vi.fn<(id: string, world: unknown) => Promise<void>>(async () => {}),
   archiveAndDeleteWorld: vi.fn(async () => 'recovery-1'),
   restoreRecoveryWorld: vi.fn(async () => 'previous-1'),
   listRecoveryWorlds: vi.fn(async () => [] as { id: string }[]),
   recoveryPrefix: vi.fn((worldId: string) => `recovery:${worldId}:`),
+  packSave: vi.fn<(payload: Uint8Array, options?: { signal?: AbortSignal }) => Promise<Uint8Array>>(
+    async (payload) => Uint8Array.from([0x89, ...payload]),
+  ),
+  unpackSave: vi.fn(async (bytes: Uint8Array) => bytes),
+  writeVerified: vi.fn<(store: unknown, id: string, world: unknown) => Promise<boolean>>(
+    async (_store, id, world) => {
+      await model.saveWorld(id, world)
+      return true
+    },
+  ),
+  migrateStoredWorlds: vi.fn<
+    (store: unknown, include: (key: string) => boolean) => Promise<{ migrated: string[]; failed: string[] }>
+  >(async () => ({ migrated: [], failed: [] })),
+  removeMigrationLeftovers: vi.fn(async () => {}),
 }))
 vi.mock('../wasm/sim-core/sim_core.js', () => ({
   default: model.init,
   Sim: class {
-    static fromSerialized() {
-      return model.fromSerialized()
+    static fromSerialized(seed: bigint, bytes: Uint8Array) {
+      return model.fromSerialized(seed, bytes)
     }
     tickN(n: number) {
       model.tickN(n)
@@ -56,9 +70,22 @@ vi.mock('../wasm/sim-core-threads/sim_core_threads.js', () => ({
   initThreadPool: vi.fn(async () => {}),
   Sim: class {},
 }))
+vi.mock('./saveContainer', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./saveContainer')>()),
+  packSave: model.packSave,
+  unpackSave: model.unpackSave,
+}))
+vi.mock('./saveMigration', () => ({
+  writeVerified: model.writeVerified,
+  migrateStoredWorlds: model.migrateStoredWorlds,
+  removeMigrationLeftovers: model.removeMigrationLeftovers,
+}))
 vi.mock('./wasmDb', () => ({
   loadWorld: model.loadWorld,
   saveWorld: model.saveWorld,
+  deleteWorld: vi.fn(async () => {}),
+  moveWorld: vi.fn(async () => true),
+  listWorldKeys: vi.fn(async () => [] as string[]),
   archiveAndDeleteWorld: model.archiveAndDeleteWorld,
   listRecoveryWorlds: model.listRecoveryWorlds,
   recoveryPrefix: model.recoveryPrefix,
@@ -119,6 +146,10 @@ beforeEach(async () => {
   model.init.mockReset().mockResolvedValue(undefined)
   model.serialize.mockReset().mockImplementation(() => new Uint8Array([1]))
   model.fullFrame.mockReset()
+  model.packSave
+    .mockReset()
+    .mockImplementation(async (payload: Uint8Array) => Uint8Array.from([0x89, ...payload]))
+  model.unpackSave.mockReset().mockImplementation(async (bytes: Uint8Array) => bytes)
   model.saveWorld.mockClear()
   model.archiveAndDeleteWorld.mockReset().mockResolvedValue('recovery-1')
   model.restoreRecoveryWorld.mockReset().mockResolvedValue('previous-1')
@@ -679,6 +710,92 @@ describe('browser simulation scheduling', () => {
     expect(model.saveWorld).toHaveBeenCalledTimes(1)
     await vi.advanceTimersByTimeAsync(2_000)
     expect(model.saveWorld).toHaveBeenCalledTimes(2)
+  })
+
+  const lastSavedBlob = () => (model.saveWorld.mock.calls.at(-1)?.[1] as { blob: Uint8Array }).blob
+
+  it('compresses an autosave but writes a requested save as it is, at once', async () => {
+    model.serialize.mockImplementation(() => new Uint8Array([7, 8]))
+    model.saveWorld.mockClear()
+    await vi.advanceTimersByTimeAsync(5 * 60_000)
+    expect(model.packSave).toHaveBeenCalled()
+    expect([...lastSavedBlob()]).toEqual([0x89, 7, 8])
+    model.packSave.mockClear()
+    send({ type: 'save', requestId: 3 })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(model.packSave).not.toHaveBeenCalled()
+    expect([...lastSavedBlob()]).toEqual([7, 8])
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'save_result', requestId: 3, ok: true })
+  })
+
+  it('drops a compression in progress when the page asks for a save, and saves at once', async () => {
+    let signal: AbortSignal | undefined
+    model.packSave.mockImplementation(
+      (_payload: Uint8Array, options?: { signal?: AbortSignal }) =>
+        new Promise<Uint8Array>((_resolve, reject) => {
+          signal = options?.signal
+          signal?.addEventListener('abort', () => reject(new Error('cancelled')))
+        }),
+    )
+    model.saveWorld.mockClear()
+    send({ type: 'command', json: '{}', requestId: 4 })
+    await vi.advanceTimersByTimeAsync(1_600)
+    expect(signal).toBeDefined()
+    expect(model.saveWorld).not.toHaveBeenCalled()
+    send({ type: 'save', requestId: 5 })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(signal?.aborted).toBe(true)
+    expect(model.saveWorld).toHaveBeenCalledTimes(1)
+    expect([...lastSavedBlob()]).toEqual([1])
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'save_result', requestId: 5, ok: true })
+  })
+
+  it('saves uncompressed when compression fails, so the world is never left unsaved', async () => {
+    model.packSave.mockRejectedValue(new Error('no compression here'))
+    model.saveWorld.mockClear()
+    send({ type: 'command', json: '{}', requestId: 6 })
+    await vi.advanceTimersByTimeAsync(1_600)
+    expect(model.saveWorld).toHaveBeenCalledTimes(1)
+    expect([...lastSavedBlob()]).toEqual([1])
+    expect(worker.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ code: 'autosave_failed' }))
+  })
+
+  it('checks the first compressed save of a session by reading it back, then writes directly', async () => {
+    expect(model.writeVerified).toHaveBeenCalledTimes(1)
+    model.writeVerified.mockClear()
+    await vi.advanceTimersByTimeAsync(5 * 60_000)
+    expect(model.writeVerified).not.toHaveBeenCalled()
+    expect([...lastSavedBlob()]).toEqual([0x89, 1])
+  })
+
+  it('hands the simulation the unpacked save, whichever format it was stored in', async () => {
+    const stored = Uint8Array.from([0x89, 0x54, 0x48, 0x42, 1, 1, 9])
+    const payload = new TextEncoder().encode('{"version":7}')
+    model.loadWorld.mockResolvedValue({ blob: stored, seed: '7', tick: 3, savedAt: 1 })
+    model.unpackSave.mockImplementation(async (bytes: Uint8Array) => (bytes === stored ? payload : bytes))
+    model.fromSerialized.mockReturnValue({
+      tickCount: () => 3n,
+      free: () => {},
+      deltaFrameBytes: () => new Uint8Array([0x80]),
+      fullFrameBytes: () => new Uint8Array([0x80]),
+      serialize: () => payload,
+      tickN: () => {},
+    })
+    await restartWorker({})
+    send({ type: 'start', id: 'test', seed: '42' })
+    await vi.waitFor(() => expect(model.fromSerialized).toHaveBeenCalled())
+    expect(model.unpackSave).toHaveBeenCalledWith(stored)
+    expect(model.fromSerialized).toHaveBeenCalledWith(7n, payload)
+  })
+
+  it('compresses old recovery saves in the background some time after the world starts', async () => {
+    expect(model.removeMigrationLeftovers).toHaveBeenCalled()
+    expect(model.migrateStoredWorlds).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(20_000)
+    expect(model.migrateStoredWorlds).toHaveBeenCalledTimes(1)
+    const include = model.migrateStoredWorlds.mock.calls[0][1]
+    expect(include('recovery:test:123')).toBe(true)
+    expect(include('test')).toBe(false)
   })
 
   it('spaces full frames for commands by what the last one cost', async () => {

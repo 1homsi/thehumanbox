@@ -3,13 +3,23 @@ import type { WorkerStartup } from './startup-timing'
 import { logger } from '../shared/logger'
 import {
   archiveAndDeleteWorld,
+  deleteWorld,
   listRecoveryWorlds,
+  listWorldKeys,
   loadWorld,
+  moveWorld,
   recoveryPrefix,
   restoreRecoveryWorld,
   saveWorld,
   type SavedWorld,
 } from './wasmDb'
+import { packSave, SaveFormatError, unpackSave } from './saveContainer'
+import {
+  migrateStoredWorlds,
+  removeMigrationLeftovers,
+  writeVerified,
+  type WorldStore,
+} from './saveMigration'
 import {
   findRequestedRecovery,
   rememberStorageRetry,
@@ -74,6 +84,8 @@ const COMMAND_FULL_FRAME_MS = 250
 const COMMAND_SAVE_DEBOUNCE_MS = 1_500
 const FULL_FRAME_SPACING = 10
 const SAVE_SPACING = 20
+const MIGRATION_DELAY_MS = 20_000
+const MIGRATION_PAUSE_MS = 2_000
 const LOCK_WAIT_MS = 4_000
 
 type SimInstance = InstanceType<SimClass>
@@ -92,6 +104,10 @@ let lastDeepFullAt = -Infinity
 let lastFullFrameCostMs = 0
 let lastSaveAt = -Infinity
 let lastSaveCostMs = 0
+let urgentPersist = false
+let packCancel: AbortController | null = null
+let containerVerified = false
+let migrationTimer: ReturnType<typeof setTimeout> | null = null
 let started = false
 let manuallyPaused = false
 let hiddenPaused = false
@@ -300,9 +316,9 @@ function postError(
   })
 }
 
-function restoreSavedWorld(saved: SavedWorld): SimInstance {
+async function restoreSavedWorld(saved: SavedWorld): Promise<SimInstance> {
   if (saved.blob.byteLength === 0) throw new Error('save is empty')
-  const candidate = Sim.fromSerialized(BigInt(saved.seed), saved.blob)
+  const candidate = Sim.fromSerialized(BigInt(saved.seed), await unpackSave(saved.blob))
   const restoredTick = Number(candidate.tickCount())
   if (restoredTick !== saved.tick) {
     candidate.free()
@@ -327,10 +343,79 @@ function markStorageReady(restored: boolean) {
   post({ type: 'storage_ready', restored, tick: Number(sim?.tickCount() ?? 0n) })
 }
 
-async function persist(): Promise<boolean> {
+const worldStore: WorldStore = {
+  load: loadWorld,
+  save: saveWorld,
+  remove: deleteWorld,
+  move: moveWorld,
+  keys: listWorldKeys,
+}
+
+async function writeCompressed(world: SavedWorld, payload: Uint8Array): Promise<'written' | 'cancelled'> {
+  const cancel = new AbortController()
+  packCancel = cancel
+  let packed: Uint8Array
+  try {
+    packed = await packSave(payload, { signal: cancel.signal })
+  } catch (error) {
+    if (cancel.signal.aborted) return 'cancelled'
+    logger.warn('wasm', 'save compression failed; saving uncompressed:', error)
+    await saveWorld(worldId, world)
+    return 'written'
+  } finally {
+    if (packCancel === cancel) packCancel = null
+  }
+  const compressed = { ...world, blob: packed }
+  if (containerVerified) {
+    await saveWorld(worldId, compressed)
+    return 'written'
+  }
+  try {
+    await writeVerified(worldStore, worldId, compressed, payload)
+    containerVerified = true
+  } catch (error) {
+    if (!(error instanceof SaveFormatError)) throw error
+    logger.warn('wasm', 'compressed save did not read back; saving uncompressed:', error)
+    await saveWorld(worldId, world)
+  }
+  return 'written'
+}
+
+function belongsToWorld(key: string): boolean {
+  return key === worldId || key.startsWith(recoveryPrefix(worldId))
+}
+
+function scheduleRecoveryMigration() {
+  migrationTimer = setTimeout(() => {
+    migrationTimer = null
+    if (!sim || !storageReady || reloadPreparing) return
+    const prefix = recoveryPrefix(worldId)
+    void migrateStoredWorlds(
+      worldStore,
+      (key) => key.startsWith(prefix),
+      () => new Promise((resolve) => setTimeout(resolve, MIGRATION_PAUSE_MS)),
+    )
+      .then(({ migrated, failed }) => {
+        if (migrated.length || failed.length) {
+          logger.info(
+            'wasm',
+            'recovery saves compressed:',
+            migrated.length,
+            'kept as they were:',
+            failed.length,
+          )
+        }
+      })
+      .catch((error: unknown) => logger.warn('wasm', 'recovery save migration stopped:', error))
+  }, MIGRATION_DELAY_MS)
+}
+
+async function persist(urgent = false): Promise<boolean> {
   if (!sim || !storageReady) return false
+  if (urgent) urgentPersist = true
   if (persistInFlight) {
     persistAgain = true
+    if (urgent) packCancel?.abort()
     return persistInFlight
   }
 
@@ -338,6 +423,8 @@ async function persist(): Promise<boolean> {
     try {
       do {
         persistAgain = false
+        const quick = urgentPersist
+        urgentPersist = false
         const running = sim
         if (!running) return false
         const tick = guarded(null, () => Number(running.tickCount()))
@@ -350,7 +437,9 @@ async function persist(): Promise<boolean> {
         if (!blob) return false
         if (blob.byteLength === 0) throw new Error('simulation produced an empty save')
         const savedAt = Date.now()
-        await saveWorld(worldId, { blob, seed, tick, savedAt })
+        const world = { blob, seed, tick, savedAt }
+        if (quick) await saveWorld(worldId, world)
+        else if ((await writeCompressed(world, blob)) === 'cancelled') continue
         post({ type: 'saved', tick, savedAt })
       } while (persistAgain)
       return true
@@ -373,7 +462,7 @@ async function retryReadStorage(): Promise<boolean> {
 
   if (saved) {
     try {
-      const candidate = restoreSavedWorld(saved)
+      const candidate = await restoreSavedWorld(saved)
       replaceSimulation(candidate, saved.seed)
       restored = true
     } catch (restoreError) {
@@ -456,7 +545,7 @@ async function retryRestoreStorage(recoveryId: string): Promise<boolean> {
 
   let candidate: SimInstance
   try {
-    candidate = restoreSavedWorld(recovery)
+    candidate = await restoreSavedWorld(recovery)
   } catch (error) {
     return resumeAfterUnavailableRecovery(
       'recovery_unusable',
@@ -546,6 +635,10 @@ function stopTimers() {
   if (commandSaveTimer !== null) {
     clearTimeout(commandSaveTimer)
     commandSaveTimer = null
+  }
+  if (migrationTimer !== null) {
+    clearTimeout(migrationTimer)
+    migrationTimer = null
   }
 }
 
@@ -664,6 +757,15 @@ async function start(msg: StartMsg) {
     await releaseLocalWorldLock()
     return
   }
+  if (worldLockAcquired) {
+    await removeMigrationLeftovers(worldStore, (key) => belongsToWorld(key)).catch((error: unknown) =>
+      logger.warn('wasm', 'could not clear unfinished save copies:', error),
+    )
+    if (reloadPreparing) {
+      await releaseLocalWorldLock()
+      return
+    }
+  }
   if (!worldLockAcquired) {
     storageReady = false
     postError(
@@ -696,7 +798,9 @@ async function start(msg: StartMsg) {
       if (reloadPreparing) return
       if (!recovery) throw new Error('recovery save no longer exists')
       if (recovery.blob.byteLength === 0) throw new Error('recovery save is empty')
-      const candidate = Sim.fromSerialized(BigInt(recovery.seed), recovery.blob)
+      const recoveryPayload = await unpackSave(recovery.blob)
+      if (reloadPreparing) return
+      const candidate = Sim.fromSerialized(BigInt(recovery.seed), recoveryPayload)
       const recoveredTick = Number(candidate.tickCount())
       candidate.free()
       if (recoveredTick !== recovery.tick) {
@@ -738,7 +842,9 @@ async function start(msg: StartMsg) {
   if (saved) {
     try {
       if (saved.blob.byteLength === 0) throw new Error('save is empty')
-      sim = Sim.fromSerialized(BigInt(saved.seed), saved.blob)
+      const payload = await unpackSave(saved.blob)
+      if (reloadPreparing) return
+      sim = Sim.fromSerialized(BigInt(saved.seed), payload)
       const restoredTick = Number(sim.tickCount())
       if (restoredTick !== saved.tick) {
         throw new Error(`save expected tick ${saved.tick}, restored tick ${restoredTick}`)
@@ -808,6 +914,7 @@ async function start(msg: StartMsg) {
   // Establish a known-good durable record immediately, including for a
   // brand-new world that is reloaded before the first autosave interval.
   void persist()
+  if (worldLockAcquired) scheduleRecoveryMigration()
 }
 
 self.onmessage = (e: MessageEvent) => {
@@ -877,7 +984,7 @@ self.onmessage = (e: MessageEvent) => {
       break
     }
     case 'save':
-      void persist().then((ok) => {
+      void persist(true).then((ok) => {
         if (msg.requestId !== undefined) post({ type: 'save_result', requestId: msg.requestId, ok })
       })
       break
@@ -914,7 +1021,7 @@ self.onmessage = (e: MessageEvent) => {
       reloadPreparing = true
       void runReloadCheckpoint(msg.deadlineAt, {
         quiesce: stopTimers,
-        persist,
+        persist: () => persist(true),
         resume: () => {
           reloadPreparing = false
           if (sim) beginLoop(autosaveEveryMs)
@@ -1000,7 +1107,7 @@ self.onmessage = (e: MessageEvent) => {
       break
     case 'stop':
       stopTimers()
-      void persist().finally(async () => {
+      void persist(true).finally(async () => {
         if (sim) {
           sim.free()
           sim = null

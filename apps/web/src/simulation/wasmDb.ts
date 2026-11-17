@@ -216,3 +216,45 @@ export async function restoreRecoveryWorld(id: string, recoveryId: string): Prom
     ),
   )
 }
+
+export async function listWorldKeys(): Promise<string[]> {
+  const keys = await withRetry(() => tx<IDBValidKey[]>('readonly', (s) => s.getAllKeys()))
+  return keys.filter((key): key is string => typeof key === 'string')
+}
+
+export async function moveWorld(from: string, to: string, onlyIfPresent = false): Promise<boolean> {
+  return withRetry(() =>
+    openDb().then(
+      (db) =>
+        new Promise<boolean>((resolve, reject) => {
+          const transaction = db.transaction(STORE, 'readwrite')
+          const store = transaction.objectStore(STORE)
+          const getSource = store.get(from) as IDBRequest<SavedWorld | undefined>
+          const getTarget = store.get(to) as IDBRequest<SavedWorld | undefined>
+          let reads = 0
+          let moved = false
+          const apply = () => {
+            reads += 1
+            if (reads !== 2) return
+            if (!getSource.result) {
+              transaction.abort()
+              reject(new Error('the world to move no longer exists'))
+              return
+            }
+            store.delete(from)
+            if (onlyIfPresent && !getTarget.result) return
+            store.put(getSource.result, to)
+            moved = true
+          }
+          getSource.onerror = () => reject(getSource.error ?? new Error('could not read the world to move'))
+          getTarget.onerror = () =>
+            reject(getTarget.error ?? new Error('could not read the world to replace'))
+          getSource.onsuccess = apply
+          getTarget.onsuccess = apply
+          transaction.oncomplete = () => resolve(moved)
+          transaction.onerror = () => reject(transaction.error ?? new Error('world move failed'))
+          transaction.onabort = () => reject(transaction.error ?? new Error('world move aborted'))
+        }),
+    ),
+  )
+}
