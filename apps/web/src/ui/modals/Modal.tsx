@@ -1,5 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { useEffect, useRef, type PointerEvent, type ReactNode } from 'react'
+import { t } from '../../i18n'
 import './modal-theme.css'
 import { registerOpenSheet } from './openSheets'
 
@@ -132,5 +133,35 @@ export function Modal({
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  )
+}
+
+interface ModalHeaderProps {
+  title: ReactNode
+  sub?: ReactNode
+  onClose?: () => void
+  closeLabel?: string
+  children?: ReactNode
+}
+
+export function ModalHeader({ title, sub, onClose, closeLabel, children }: ModalHeaderProps) {
+  return (
+    <div className="lang-modal-header thb-modal-header">
+      <span className="lang-modal-title thb-modal-title">{title}</span>
+      {sub !== undefined && sub !== null && sub !== '' && (
+        <span className="tree-modal-sub thb-modal-sub">{sub}</span>
+      )}
+      {children}
+      {onClose && (
+        <button
+          type="button"
+          className="close-btn thb-modal-close"
+          aria-label={closeLabel ?? t('common.close')}
+          onClick={onClose}
+        >
+          ✕
+        </button>
+      )}
+    </div>
   )
 }

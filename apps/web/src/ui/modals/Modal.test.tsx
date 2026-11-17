@@ -2,7 +2,7 @@
 import { act, useState, type ReactElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { Modal } from './Modal'
+import { Modal, ModalHeader } from './Modal'
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
 afterAll(() => vi.unstubAllGlobals())
@@ -75,5 +75,31 @@ describe('Modal', () => {
     }
     mount(<WithAutoFocus />)
     expect(document.activeElement?.id).toBe('confirm')
+  })
+
+  it('renders a header with a gold title, a subtitle and a close button that closes the dialog', () => {
+    const onClose = vi.fn()
+    mount(
+      <Modal open onClose={onClose} className="goals-modal" title="Goals" hideTitle>
+        <ModalHeader title="Goals" sub="1 of 2" onClose={onClose} />
+      </Modal>,
+    )
+    const header = document.querySelector('.thb-modal-header')!
+    expect(header.querySelector('.thb-modal-title')?.textContent).toBe('Goals')
+    expect(header.querySelector('.thb-modal-sub')?.textContent).toBe('1 of 2')
+    const close = header.querySelector<HTMLButtonElement>('.thb-modal-close')!
+    expect(close.getAttribute('aria-label')).toBe('Close')
+    act(() => close.click())
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaves out the close button and subtitle when none is given', () => {
+    mount(
+      <Modal open onClose={() => undefined} className="goals-modal" title="Goals" hideTitle>
+        <ModalHeader title="Goals" />
+      </Modal>,
+    )
+    expect(document.querySelector('.thb-modal-close')).toBeNull()
+    expect(document.querySelector('.thb-modal-sub')).toBeNull()
   })
 })
