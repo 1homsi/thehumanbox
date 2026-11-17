@@ -587,3 +587,38 @@ fn a_strict_load_reads_a_world_this_build_saved() {
     assert_eq!(loaded.tick_count, 5);
     std::fs::remove_dir_all(&dir).ok();
 }
+
+#[test]
+fn load_or_new_backs_up_a_save_whose_map_size_it_does_not_know() {
+    let mut sim = Simulation::new(9);
+    sim.tick_n(3);
+    let mut state = sim.to_save_state();
+    state.grid.tiles.truncate(1234);
+    let bytes = serde_json::to_vec(&state).unwrap();
+    let dir = std::env::temp_dir().join(format!("thb-grid-mismatch-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("odd.json");
+    std::fs::write(&path, &bytes).unwrap();
+
+    let fresh = Simulation::load_or_new(9, path.to_str().unwrap());
+
+    assert_eq!(
+        fresh.tick_count, 0,
+        "a fresh world, not the saved people on regrown terrain"
+    );
+    assert!(
+        !path.exists(),
+        "the original is moved aside so the next save cannot overwrite it"
+    );
+    let backup = std::fs::read_dir(&dir)
+        .unwrap()
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .find(|p| {
+            p.file_name()
+                .is_some_and(|n| n.to_string_lossy().starts_with("odd.json.grid-mismatch-"))
+        })
+        .expect("the mismatched save is preserved");
+    assert_eq!(std::fs::read(&backup).unwrap(), bytes);
+    std::fs::remove_dir_all(&dir).ok();
+}

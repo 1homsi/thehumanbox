@@ -67,7 +67,12 @@ impl Organism {
                     self.org_trust
                         .iter()
                         .filter(|(_, &v)| v.abs() > 0.15)
-                        .map(|(k, &v)| (k[..k.len().min(8)].to_string(), (v * 100.0).round() / 100.0))
+                        .map(|(k, &v)| {
+                            (
+                                crate::text::prefix_chars(k, 8).to_string(),
+                                (v * 100.0).round() / 100.0,
+                            )
+                        })
                         .collect(),
                 )
             } else {
@@ -389,7 +394,7 @@ impl Organism {
                     self.org_trust
                         .iter()
                         .filter(|(_, &v)| v.abs() > 0.15)
-                        .map(|(k, &v)| (k[..k.len().min(8)].to_string(), r2(v)))
+                        .map(|(k, &v)| (crate::text::prefix_chars(k, 8).to_string(), r2(v)))
                         .collect(),
                 ),
             );

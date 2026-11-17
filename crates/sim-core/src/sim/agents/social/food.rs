@@ -167,11 +167,11 @@ pub fn share_food(
     }
 
     organisms[org_idx].think(
-        &format!("sharing food with {}", &target_name[..4.min(target_name.len())]),
+        &format!("sharing food with {}", crate::text::prefix_chars(&target_name, 4)),
         tick,
     );
     organisms[ti].think("received food from kin", tick);
-    organisms[ti].log_event(format!("fed by kin {}", &org_name[..4.min(org_name.len())]));
+    organisms[ti].log_event(format!("fed by kin {}", crate::text::prefix_chars(&org_name, 4)));
 
     push_event(
         events,

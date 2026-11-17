@@ -426,6 +426,7 @@ pub struct Animal {
     pub summoned: bool,
     /// A summoned wolf is out hunting this tick (it is night). Recomputed every tick, not saved.
     pub hunting: bool,
+    pub pack_quarry: Option<(usize, f32, f32)>,
 }
 
 /// How far a kept animal may wander from its pen, in tiles: right beside it, inside the fence or
@@ -463,6 +464,7 @@ impl Animal {
             pen: None,
             summoned: false,
             hunting: false,
+            pack_quarry: None,
         }
     }
 
@@ -537,6 +539,14 @@ impl Animal {
                 livestock_positions
             } else {
                 &[]
+            };
+            let quarry: [(f32, f32); 1];
+            let (prey, raid) = match self.pack_quarry.filter(|_| !monster) {
+                Some((_, qx, qy)) => {
+                    quarry = [(qx, qy)];
+                    (&quarry[..], &[][..])
+                }
+                None => (prey, raid),
             };
             let target = prey
                 .iter()

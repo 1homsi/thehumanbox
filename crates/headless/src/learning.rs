@@ -21,7 +21,7 @@ pub(super) fn print_learning(sim: &Simulation) {
                 "{} (year {}, {:.2})",
                 sim.lineage_names
                     .get(l)
-                    .map_or(&l[..6.min(l.len())], |n| n.as_str()),
+                    .map_or(sim_core::text::prefix_chars(l, 6), |n| n.as_str()),
                 m.year + 1,
                 m.strength
             )
@@ -41,7 +41,7 @@ pub(super) fn print_learning(sim: &Simulation) {
                 "{} ({} fallen, {:.2})",
                 sim.lineage_names
                     .get(l)
-                    .map_or(&l[..6.min(l.len())], |n| n.as_str()),
+                    .map_or(sim_core::text::prefix_chars(l, 6), |n| n.as_str()),
                 w.fallen,
                 w.weariness
             )

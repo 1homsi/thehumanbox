@@ -39,6 +39,20 @@ pub struct PendingMemoryFlush {
     pub memories: Vec<crate::organism::memory::MemoryEntry>,
 }
 
+impl PendingMemoryFlush {
+    pub const KEEP: usize = 8;
+
+    pub fn of(o: &crate::organism::organism::Organism, tick: u64) -> Option<Self> {
+        (!o.memories.is_empty()).then(|| PendingMemoryFlush {
+            org_id: o.id.clone(),
+            org_name: o.name.clone(),
+            lineage_id: o.lineage_id.clone(),
+            flushed_tick: tick,
+            memories: o.memories.top(Self::KEEP).into_iter().cloned().collect(),
+        })
+    }
+}
+
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Event {

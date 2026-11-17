@@ -245,3 +245,53 @@ fn food_recipient_matches_the_original_in_a_lived_in_world() {
     }
     assert!(picked > 5, "nobody had anyone to feed: {picked}");
 }
+
+#[test]
+fn knowledge_gift_between_non_ascii_lineages_does_not_panic() {
+    use crate::sim::simulation::Simulation;
+    let mut sim = Simulation::new(3);
+    assert!(sim.apply_command_json(r#"{"cmd":"spawn","x":100.0,"y":100.0,"count":2,"lineage":"aéé"}"#));
+    assert!(sim.apply_command_json(r#"{"cmd":"spawn","x":101.0,"y":100.0,"count":2,"lineage":"zé€x"}"#));
+    let giver = sim
+        .organisms
+        .iter()
+        .position(|o| o.alive && o.lineage_id == "aéé")
+        .expect("spawned");
+    let taker = sim
+        .organisms
+        .iter()
+        .position(|o| o.alive && o.lineage_id == "zé€x")
+        .expect("spawned");
+    for (i, o) in sim.organisms.iter_mut().enumerate() {
+        o.alive = i == giver || i == taker;
+    }
+    let organisms = &mut sim.organisms;
+    organisms[giver].x = 100.0;
+    organisms[giver].y = 100.0;
+    organisms[taker].x = 102.0;
+    organisms[taker].y = 100.0;
+    organisms[giver].food_memory.insert((105, 100), 0.9);
+    organisms[giver].lineage_attitudes.insert("zé€x".into(), 0.24);
+
+    let spatial = SpatialIndex::build(organisms, 10);
+    let mut events = std::collections::VecDeque::new();
+    let mut history = History::default();
+    let mut rng = StdRng::seed_from_u64(0);
+    gift_knowledge(
+        giver,
+        organisms,
+        &spatial,
+        500,
+        &mut events,
+        &mut history,
+        &mut rng,
+    );
+
+    assert_eq!(history.gifts_total, 1);
+    assert!(organisms[giver].thought.starts_with("gifting"));
+    assert!(
+        events.iter().any(|e| e.detail.contains("aéé ↔ zé€x")),
+        "treaty/gift events: {:?}",
+        events.iter().map(|e| e.detail.clone()).collect::<Vec<_>>()
+    );
+}

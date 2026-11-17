@@ -70,8 +70,8 @@ pub fn gift_knowledge(
             &organisms[org_idx].name.clone(),
             &format!(
                 "{} ↔ {}",
-                &org_lineage[..4.min(org_lineage.len())],
-                &target_lid[..4.min(target_lid.len())]
+                crate::text::prefix_chars(&org_lineage, 4),
+                crate::text::prefix_chars(&target_lid, 4)
             ),
         );
         history.alliances_formed += 1;
@@ -122,7 +122,7 @@ pub fn gift_knowledge(
 
     let org_name = organisms[org_idx].name.clone();
     organisms[org_idx].think(
-        &format!("gifting {}", &target_name[..4.min(target_name.len())]),
+        &format!("gifting {}", crate::text::prefix_chars(&target_name, 4)),
         tick,
     );
     push_event(
@@ -133,8 +133,8 @@ pub fn gift_knowledge(
         &format!(
             "→ {} ({} ↔ {})",
             target_name,
-            &org_lineage[..4.min(org_lineage.len())],
-            &target_lid[..4.min(target_lid.len())]
+            crate::text::prefix_chars(&org_lineage, 4),
+            crate::text::prefix_chars(&target_lid, 4)
         ),
     );
     history.gifts_total += 1;
@@ -274,11 +274,11 @@ pub fn teach(
 
     let role = if is_elder { "elder" } else { "kin" };
     organisms[org_idx].think(
-        &format!("teaching {}", &target_name[..4.min(target_name.len())]),
+        &format!("teaching {}", crate::text::prefix_chars(&target_name, 4)),
         tick,
     );
     organisms[ti].think(
-        &format!("learning from {}", &org_name[..4.min(org_name.len())]),
+        &format!("learning from {}", crate::text::prefix_chars(&org_name, 4)),
         tick,
     );
     organisms[ti].log_life(tick, "discovery", format!("mentored by {} {}", role, org_name));

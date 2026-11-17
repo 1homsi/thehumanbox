@@ -4,6 +4,7 @@ pub mod math;
 pub mod organism;
 pub mod physics;
 pub mod sim;
+pub mod text;
 pub mod world;
 
 // The browser's worker pool for the threaded build. The page calls it once, right after the module starts.

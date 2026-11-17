@@ -164,7 +164,7 @@ impl Organism {
                 let dist = 120.0 + self.traits.curiosity * 380.0;
                 let tx = (self.x + angle.det_sin() * dist).round() as i32;
                 let ty = (self.y + angle.det_cos() * dist).round() as i32;
-                self.wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
+                self.wander_target = Some(crate::world::grid::clamp_to_map(tx, ty));
             }
         } else {
             self.last_area_cell = cell;
@@ -214,7 +214,7 @@ impl Organism {
                 let dist = 150.0 + self.traits.curiosity * 400.0;
                 let tx = (self.x + angle.det_sin() * dist).round() as i32;
                 let ty = (self.y + angle.det_cos() * dist).round() as i32;
-                self.wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
+                self.wander_target = Some(crate::world::grid::clamp_to_map(tx, ty));
             }
         }
 

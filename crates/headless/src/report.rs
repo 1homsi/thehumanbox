@@ -310,8 +310,8 @@ pub(super) fn print_mood(sim: &Simulation) {
             println!("  {:>6} {}", n, k);
         }
         if let Some((name, rc, text)) = most_recalled {
-            let preview = if text.len() > 64 {
-                format!("{}…", &text[..64])
+            let preview = if text.chars().count() > 64 {
+                format!("{}…", sim_core::text::prefix_chars(&text, 64))
             } else {
                 text
             };
@@ -341,16 +341,16 @@ pub(super) fn print_mood(sim: &Simulation) {
             }
         }
         if let Some((name, text)) = greatest_joy {
-            let preview = if text.len() > 64 {
-                format!("{}…", &text[..64])
+            let preview = if text.chars().count() > 64 {
+                format!("{}…", sim_core::text::prefix_chars(&text, 64))
             } else {
                 text
             };
             println!("  greatest joy: {} — {}", name, preview);
         }
         if let Some((name, text)) = deepest_grief {
-            let preview = if text.len() > 64 {
-                format!("{}…", &text[..64])
+            let preview = if text.chars().count() > 64 {
+                format!("{}…", sim_core::text::prefix_chars(&text, 64))
             } else {
                 text
             };
@@ -663,7 +663,7 @@ pub(super) fn print_progress(sim: &Simulation) {
         };
         println!(
             "  {}…  count={}  avg_gen={:.1}",
-            &lid[..lid.len().min(8)],
+            sim_core::text::prefix_chars(lid, 8),
             count,
             gen_avg
         );

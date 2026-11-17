@@ -70,7 +70,7 @@ impl Simulation {
             return;
         }
         let leader_name = self.organisms[leader].name.clone();
-        let short = &leader_name[..4.min(leader_name.len())];
+        let short = crate::text::prefix_chars(&leader_name, 4);
         self.organisms[idx].begin_journey(journey.target, &format!("travelling behind {short}"), tick);
     }
 }

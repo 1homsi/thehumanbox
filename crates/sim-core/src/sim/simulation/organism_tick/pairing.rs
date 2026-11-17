@@ -71,7 +71,7 @@ impl Simulation {
                 .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
                 .map(|(o, _)| (o.x as i32, o.y as i32));
             if let Some((tx, ty)) = target {
-                let mate_at = (tx.clamp(5, 595), ty.clamp(5, 295));
+                let mate_at = crate::world::grid::clamp_to_map(tx, ty);
                 self.organisms[idx].wander_target = Some(mate_at);
                 self.mark_mate_rivals(idx, mate_at, spatial);
             }
@@ -103,8 +103,8 @@ impl Simulation {
                 .min_by_key(|(_, d)| (*d * 10.0) as i32)
                 .map(|(o, _)| (o.x as i32, o.y as i32, o.name.clone()));
             if let Some((tx, ty, fname)) = best {
-                self.organisms[idx].wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
-                let short = &fname[..4.min(fname.len())];
+                self.organisms[idx].wander_target = Some(crate::world::grid::clamp_to_map(tx, ty));
+                let short = crate::text::prefix_chars(&fname, 4);
                 self.organisms[idx].think(&format!("going to find {}", short), self.tick_count);
             }
             // Prune dead friends using the per-tick resident index.
