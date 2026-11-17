@@ -3,7 +3,12 @@ import type { P } from './kit'
 import { ARCHETYPE } from './registry'
 import { isHouseLike } from '../building-draw/colors'
 import { paintRoofSnow } from './snow'
-import { finishSprite } from './finish'
+import { finishSprite, shadowRows } from './finish'
+import { SHADOW } from '../art-palette'
+import { DRAWN, FLAT, drawBuildingArt } from '../pixel-art/buildings/index.ts'
+import { drawArt } from '../pixel-art/to-canvas.ts'
+import type { RoofName } from '../pixel-art/palette.ts'
+import { ROOF } from '../pixel-art/palette.ts'
 
 const spriteCache = new Map<string, HTMLCanvasElement>()
 
@@ -21,8 +26,9 @@ export function getBuildingSprite(
   land = '',
   roofTint = '',
 ): HTMLCanvasElement | null {
+  const drawn = kind in DRAWN
   const painter = ARCHETYPE[kind]
-  if (!painter) return null
+  if (!painter && !drawn) return null
   // Snow only lies on house roofs, so the flag only splits the cache for those.
   const snowy = snow && isHouseLike(kind)
   const key = `${kind}|${fw}x${fh}|${tile}|v${variant}|n${night}|c${condBucket}|t${tier}|s${state}|w${snowy ? 1 : 0}|l${land}|r${roofTint}`
@@ -40,6 +46,37 @@ export function getBuildingSprite(
   const ctx = canvas.getContext('2d', { willReadFrequently: true })
   if (!ctx) return null
   ctx.imageSmoothingEnabled = false
+
+  if (drawn) {
+    const art = drawBuildingArt({
+      kind,
+      fw,
+      fh,
+      variant,
+      night,
+      tier,
+      state,
+      land,
+      roof: roofTint in ROOF ? (roofTint as RoofName) : undefined,
+    })
+    if (!art) return null
+    // The sprite stands on the bottom edge of its footprint, centred on it.
+    const ox = PAD + Math.round((w - art.w) / 2)
+    const oy = canvas.height - PAD_BOT - art.h
+    const flat = FLAT.has(kind) || art.h <= 6
+    if (!flat) {
+      ctx.fillStyle = `rgba(${SHADOW.rgb[0]},${SHADOW.rgb[1]},${SHADOW.rgb[2]},${SHADOW.alpha})`
+      const groundY = canvas.height - PAD_BOT
+      const right = ox + art.w - 1
+      for (const row of shadowRows(ox, right, groundY, art.h, Math.min(PAD, canvas.width - 1 - right)))
+        ctx.fillRect(row.x0, row.y, row.x1 - row.x0, 1)
+    }
+    drawArt(ctx, art, ox, oy)
+    if (spriteCache.size > 900) spriteCache.clear()
+    spriteCache.set(key, canvas)
+    return canvas
+  }
+  if (!painter) return null
 
   const p: P = {
     ctx,
