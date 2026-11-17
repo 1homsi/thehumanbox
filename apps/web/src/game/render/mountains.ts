@@ -1,6 +1,7 @@
 import { TILE } from '../model/palette'
 import { BIOME_ID, TILE_ID } from '../model/terrain-ids'
-import { INK, ROCK, SHADOW, SNOW, type Rgb } from './art-palette'
+import { INK, SHADOW, type Rgb } from './art-palette'
+import { C, PALETTE_RGB } from './pixel-art/palette.ts'
 import type { DecorRegion } from './decorations'
 
 /**
@@ -80,33 +81,33 @@ interface Stone {
   deep: Rgb
 }
 
-const mix = (a: Rgb, b: Rgb, t: number): Rgb =>
-  [0, 1, 2].map((c) => Math.round(a[c] + (b[c] - a[c]) * t)) as unknown as Rgb
+const tone = (index: number): Rgb => PALETTE_RGB[index]
 
+/** Stone in the master palette's greys, one step a face: no tone mixed between two of them. */
 const GRANITE: Stone = {
-  ridge: mix(ROCK.lit, SNOW.lit, 0.35),
-  lit: ROCK.lit,
-  tread: mix(ROCK.lit, ROCK.mid, 0.4),
-  mid: ROCK.mid,
-  shade: ROCK.shade,
-  deep: ROCK.deep,
+  ridge: tone(C.grey8),
+  lit: tone(C.grey7),
+  tread: tone(C.grey7),
+  mid: tone(C.grey6),
+  shade: tone(C.grey5),
+  deep: tone(C.grey4),
 }
 /** Volcanic rock: the same light on dark basalt. */
 const BASALT: Stone = {
-  ridge: [128, 112, 100],
-  lit: [108, 94, 86],
-  tread: [92, 80, 73],
-  mid: [74, 64, 59],
-  shade: [52, 45, 42],
-  deep: [37, 31, 29],
+  ridge: tone(C.grey6),
+  lit: tone(C.grey5),
+  tread: tone(C.grey5),
+  mid: tone(C.grey4),
+  shade: tone(C.grey3),
+  deep: tone(C.grey2),
 }
 const SNOWCAP: Stone = {
-  ridge: SNOW.lit,
-  lit: SNOW.lit,
-  tread: mix(SNOW.lit, SNOW.shade, 0.18),
-  mid: mix(SNOW.lit, SNOW.shade, 0.4),
-  shade: SNOW.shade,
-  deep: mix(SNOW.shade, ROCK.shade, 0.35),
+  ridge: tone(C.grey9),
+  lit: tone(C.grey9),
+  tread: tone(C.grey9),
+  mid: tone(C.grey8),
+  shade: tone(C.grey8),
+  deep: tone(C.grey7),
 }
 
 /** Height (on the interpolated relief) above which rock lies under snow. */
@@ -224,22 +225,18 @@ function massPixel(px: number, py: number, volcanic: boolean): Rgb {
   } else if (toLight <= -DEEP_FACE) color = stone.deep
   else if (toLight <= -FACE) color = stone.shade
   else color = stone.mid
-  // Broad bands of height, each a step lighter, give the mass its volume without a line at every step.
-  return e >= BAND * 2 ? lighter(color, stone.lit, 2) : e >= BAND ? lighter(color, stone.lit, 1) : color
+  // The high ground of a wide range is one palette step lighter than its flanks: volume, with no tone of
+  // its own in between.
+  return e >= BAND * 2 ? lighter(color, stone) : color
 }
 
-/** Heights per light band (see massPixel). */
+/** Height (see massPixel) above which a range's faces take the next tone up. */
 const BAND = 3.5
-const bands = new Map<string, Rgb>()
-/** `c` a band or two lighter, toward its own material's lit colour (snow stays white, not rock-brown). */
-function lighter(c: Rgb, lit: Rgb, steps: number): Rgb {
-  const key = `${c}|${lit}|${steps}`
-  let out = bands.get(key)
-  if (!out) {
-    out = mix(c, lit, 0.12 * steps)
-    bands.set(key, out)
-  }
-  return out
+/** `c` one step up its own stone's ladder of tones, toward the ridge (snow stays white, not rock-grey). */
+function lighter(c: Rgb, stone: Stone): Rgb {
+  const ladder = [stone.deep, stone.shade, stone.mid, stone.lit, stone.ridge]
+  const i = ladder.indexOf(c)
+  return i < 0 ? c : ladder[Math.min(ladder.length - 1, i + 1)]
 }
 
 /**

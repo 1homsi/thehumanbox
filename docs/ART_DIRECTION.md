@@ -1,11 +1,10 @@
 # Art direction
 
-The map should read as **a living, hand-inked survey map**: warm, earthy and readable, in the same family as the
-brown, parchment and gold interface around it. Every rule below exists to make the world look like one piece of
-art, and to move it away from the bright lime-and-cyan look players compare to WorldBox.
+The map should read as **one piece of pixel art drawn by one hand**: clear, colourful and readable, every
+sprite and every tile from the same small palette. Every rule below exists to keep it that way.
 
-The colours live in code in [`apps/web/src/game/render/art-palette.ts`](../apps/web/src/game/render/art-palette.ts).
-This page explains them; the module is the source of truth.
+The colours live in code in [`apps/web/src/game/render/pixel-art/palette.ts`](../apps/web/src/game/render/pixel-art/palette.ts).
+This page explains the rules; the modules are the source of truth.
 
 ## Drawn, not generated
 
@@ -37,8 +36,9 @@ result, it reads as processed, not drawn. The rule that replaces all of that:
 - **Light from the top-left.** The right side of every wall, drum and dome is in shade; cast shadows fall to the
   bottom-right as one flat translucent shape.
 
-Buildings are the first family redrawn this way (`pixel-art/buildings/`). Terrain, trees, animals and people
-still follow the older rules below until they are redrawn; where the two disagree, this section wins.
+Buildings (`pixel-art/buildings/`) and the ground (`base-parts/ground-palette.ts`) are drawn this way. Trees,
+animals and people still carry their older sprites until they are redrawn; where an older rule below
+disagrees with this section, this section wins.
 
 To look at the art, run `node bench/art-sheet.mjs --out <dir>` in `apps/web`: it writes labelled sheets of every
 building kind, every home by era and the first homes by land, straight from the pixel grids (no browser, no
@@ -68,22 +68,26 @@ Light comes from the **top-left (north-west)**, everywhere.
 
 ### 3. One palette
 
-Earthy and slightly muted, never neon. Colours come from `art-palette.ts`, not ad-hoc hex values.
+Everything on the map takes its colours from the master palette (`pixel-art/palette.ts`). The ground, sea,
+rock and snow are named in [`art-palette.ts`](../apps/web/src/game/render/art-palette.ts), each one a colour of
+that palette.
 
-- **Ocean**: deep slate-teal, not cobalt. Depth reads as **stepped bands** with a thin, slightly lighter contour line
-  where one band meets the next, like soundings on a sea chart. There is **no soft glow** around coasts. A narrow
-  light surf line hugs the shore.
-- **Grass**: olive and sage, sliding to ochre where it is dry. Never lime.
-- **Forest**: deep moss greens.
-- **Sand and desert**: parchment and ochre.
-- **Rock**: warm stone with a cool shadow side.
-- **Snow**: off-white, with a blue-grey shade side.
-- **Outlines**: the warm dark ink `INK`, not pure black. Outline the outer silhouette; inner lines are a darker tone
-  of the material, not ink.
+- **Ground is a flat colour picked, not mixed.** Each biome has two tones, its ground and the tone of its
+  patches (`base-parts/ground-palette.ts`); a tile is one or the other. There is no biome tint blended over a
+  tile colour, no season tint, no shade of noise, and no grain under the surface marks. A season changes which
+  two tones a biome uses (open grass yellows in autumn, pales in winter, frosts in a hard winter).
+- **Sea**: three flat blues, deep to shallow, with a thin lighter contour where one meets the next and a light
+  surf line on the shore. Three, not five: rings round every island read as a generated height map.
+- **Fresh water** is lighter than the sea, so a river reads across open country.
+- **Rock and snow** step through the palette's greys, one tone a face; nothing is a blend of two.
+- **Fields, roads and the marks people leave** (worn earth, puddles, ore, forage) are solid palette pixels.
+  Nothing on the ground is translucent.
+- **Outlines**: the ink `INK`, not pure black. Outline the outer silhouette; inner lines are a darker tone of
+  the material, not ink.
 
 ## The world's edge
 
-The world has no visible rectangle. Past the last tile the ocean continues in the deepest band (`OCEAN.abyss`), so
+The world has no visible rectangle. Past the last tile the ocean continues in the deepest band (`OCEAN.deep`), so
 the map seems to sit in an open sea. Land can come close to the edge.
 
 ## Readable at the standard zoom (#883)
@@ -174,12 +178,12 @@ the taiga, igloos on the tundra, stilt houses over the marsh, longhouses in fore
 
 ## What to avoid
 
-These are the details players recognise from WorldBox:
+These read as generated, or as someone else's game:
 
-- saturated lime grass;
-- cyan halos or blurred glow around islands;
+- a tint, a blend or a noise shade over the ground: every tile a slightly different colour;
+- blurred glow around islands, or more than three rings of depth;
 - flat grey mountain blobs with no lit or shaded side;
-- black outlines on everything;
+- pure black outlines;
 - detailed artwork scaled down next to chunky pixels;
 - random single-pixel speckle inside sprites or scattered over the ground;
 - rings, glows and badges under or over every figure in a crowd;
