@@ -444,35 +444,15 @@
     "totalDeaths": "total deaths",
     "totalBirths": "total births",
     "daysElapsed": "days elapsed",
-    "knowFire": "know fire",
-    "haveShelter": "have shelter",
-    "animals": "animals",
-    "populationOverTime": "POPULATION OVER TIME",
-    "birthsDeathsByYear": "BIRTHS AND DEATHS BY YEAR",
-    "wealthGapByYear": "WEALTH GAP BY YEAR",
-    "agePyramid": "AGE PYRAMID",
     "populationTraits": "POPULATION TRAITS",
-    "tribalRelations": "TRIBAL RELATIONS",
     "discoveryRollup": "DISCOVERY ROLLUP",
-    "legends": "LEGENDS",
     "generationsAlive": "GENERATIONS ALIVE",
-    "oldestLiving": "OLDEST LIVING",
-    "longevity": "LONGEVITY",
-    "noOldAgeDeaths": "nobody has died of old age yet",
-    "causesOfDeath": "CAUSES OF DEATH",
     "causes": {
-      "starvation": "starvation",
       "dehydration": "dehydration",
-      "sickness": "sickness",
-      "combat": "combat",
-      "oldAge": "old age",
       "droughts": "droughts",
       "outbreaks": "outbreaks"
     },
-    "bondsFamily": "BONDS & FAMILY",
     "notableOrganisms": "NOTABLE ORGANISMS",
-    "discoveryLog": "DISCOVERY LOG",
-    "worldEras": "WORLD ERAS",
     "dayShort": "d{day}",
     "accumulating": "accumulating data…",
     "firstYear": "the first year is still turning…",
@@ -515,7 +495,103 @@
     "withKids": "with kids",
     "thirsty": "thirsty",
     "collapse": "collapse",
-    "distinctShown": "{total} distinct · top {shown} shown"
+    "distinctShown": "{total} distinct · top {shown} shown",
+    "tabs": {
+      "people": "People",
+      "tribes": "Tribes",
+      "world": "World",
+      "records": "Records"
+    },
+    "tabsAria": "Stats sections",
+    "head": {
+      "population": "Population",
+      "change": {
+        "year": "{change} this year",
+        "start": "{change} since the start"
+      },
+      "why": {
+        "food": "Plenty of food: more babies than burials.",
+        "tightFood": "Growing, but many are going hungry.",
+        "deaths": "Losing people, mostly to {cause}.",
+        "deathsUnknown": "More people are dying than being born.",
+        "steady": "Holding steady.",
+        "young": "The story has only just begun."
+      },
+      "born": "Born this year",
+      "died": {
+        "one": "{count} died",
+        "other": "{count} died"
+      },
+      "yearWhy": {
+        "boom": "A baby boom: far more births than deaths.",
+        "more": "More births than deaths.",
+        "fewer": "More deaths than births this year.",
+        "quiet": "Nobody has been born or died yet this year."
+      },
+      "ideas": "Know-how",
+      "ideasSub": {
+        "one": "idea known",
+        "other": "ideas known"
+      },
+      "ideasWhy": "Most people know {list}.",
+      "ideasNone": "Nobody has discovered anything yet.",
+      "ties": "Between tribes",
+      "wars": {
+        "one": "war going on",
+        "other": "wars going on"
+      },
+      "friendships": {
+        "one": "friendship",
+        "other": "friendships"
+      },
+      "tiesWhy": {
+        "war": "Tribes are fighting. {rivals} rivalries, {allies} friendships.",
+        "tense": "Tense: {rivals} rivalries against {allies} friendships.",
+        "peace": "Mostly at peace: {allies} friendships, {rivals} rivalries.",
+        "met": "The tribes have met, but no friendships or rivalries yet.",
+        "alone": "The tribes have not met each other yet."
+      }
+    },
+    "level": {
+      "veryLow": "very low",
+      "low": "low",
+      "average": "average",
+      "high": "high",
+      "veryHigh": "very high"
+    },
+    "ideaShare": "{percent}%",
+    "sec": {
+      "population": "How many people",
+      "populationTip": "Everyone alive, counted over time.",
+      "birthsDeaths": "Born and died, year by year",
+      "birthsDeathsTip": "Green bars are births and purple bars are deaths, one pair per year.",
+      "ages": "Children, adults and elders",
+      "agesTip": "Blue is men and boys, pink is women and girls.",
+      "families": "Families and health",
+      "personality": "What people are like",
+      "personalityTip": "The average temperament of everyone alive.",
+      "relations": "Friends and rivals",
+      "relationsTip": "How each pair of tribes feels about each other. Friends trade and help; rivals fight. The numbers are each tribe's size.",
+      "tribeDetails": "Each tribe up close",
+      "tribeDetailsBody": "Every tribe's age, rulers, faith, wars and trade are on the Civilization screen.",
+      "openCiv": "Open Civilization",
+      "deaths": "How people died",
+      "deathsTip": "Every death since the world began, by cause.",
+      "ideas": "What people know",
+      "ideasTip": "The ideas most people know, and the share of people who know each.",
+      "wealth": "Rich and poor",
+      "wealthTip": "How unevenly wealth is shared each year. Higher means a few people hold most of it.",
+      "eras": "Ages of the world",
+      "erasTip": "When the most advanced tribe reached each new age.",
+      "totals": "Raw totals",
+      "oldest": "Oldest living",
+      "longevity": "Long lives",
+      "longevityTip": "How old people were when they died of old age.",
+      "legends": "Legends",
+      "legendsTip": "The world's most memorable moments.",
+      "discoveries": "Great discoveries",
+      "emptyRecords": "No records yet. Let the world run a little longer."
+    }
   },
   "tree": {
     "title": "Family tree",

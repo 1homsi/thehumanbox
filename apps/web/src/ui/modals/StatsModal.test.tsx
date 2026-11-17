@@ -6,6 +6,7 @@ import type { WorldState } from '../../shared/types'
 import { formatNumber, t } from '../../i18n'
 import { StatsModal } from './StatsModal'
 import { useWorldStore } from '../../state/worldStore'
+import { useUIStore } from '../../state/store'
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
 afterAll(() => vi.unstubAllGlobals())
@@ -15,7 +16,12 @@ afterEach(() => {
   if (root) act(() => root?.unmount())
   root = null
   document.body.replaceChildren()
+  useUIStore.setState({ nerdStats: false })
 })
+
+function openTab(id: string) {
+  act(() => document.getElementById(`stats-tab-${id}`)?.click())
+}
 
 /** A world with nobody alive, just enough history to open the stats modal. */
 function emptyWorld(history: Partial<WorldState['history']>): WorldState {
@@ -68,17 +74,64 @@ describe('StatsModal calendar', () => {
   })
 })
 
+describe('StatsModal story', () => {
+  const person = (id: string, curiosity: number) => ({
+    id,
+    name: id,
+    alive: true,
+    lineage_id: 'a',
+    sex: 'female',
+    age: 100,
+    max_age: 1000,
+    energy: 0.8,
+    hydration: 0.8,
+    infection: 0,
+    generation: 1,
+    discoveries: ['fire'],
+    traits: {
+      curiosity,
+      fear: 0.5,
+      social_tendency: 0.5,
+      resilience: 0.5,
+      aggression: 0.5,
+      memory_strength: 0.5,
+    },
+  })
+
+  it('leads with headlines and hides charts that have no data yet', () => {
+    renderStats({ ...emptyWorld({}), organisms: [person('Ana', 0.81)] } as unknown as WorldState)
+    expect(document.querySelectorAll('.stats-headline')).toHaveLength(4)
+    expect(document.body.textContent).toContain('The story has only just begun.')
+    expect(document.body.textContent).not.toContain(t('dialogs.stats.accumulating'))
+    expect(document.body.textContent).not.toContain(t('dialogs.stats.firstYear'))
+  })
+
+  it('shows traits as words, and the numbers only with Stats for nerds', () => {
+    renderStats({ ...emptyWorld({}), organisms: [person('Ana', 0.81)] } as unknown as WorldState)
+    expect(document.body.textContent).toContain('very high')
+    expect(document.body.textContent).not.toContain(formatNumber(0.81, { minimumFractionDigits: 2 }))
+    act(() => root?.unmount())
+    useUIStore.setState({ nerdStats: true })
+    renderStats({ ...emptyWorld({}), organisms: [person('Ana', 0.81)] } as unknown as WorldState)
+    expect(document.body.textContent).toContain(formatNumber(0.81, { minimumFractionDigits: 2 }))
+  })
+})
+
 describe('StatsModal counts', () => {
   it('writes the births count with the same grouping as every other count', () => {
+    useUIStore.setState({ nerdStats: true })
     renderStats(emptyWorld({ births: 12345 }))
-    const cards = [...document.querySelectorAll('.stats-num')].map((el) => el.textContent)
-    expect(cards).toContain(formatNumber(12345))
-    expect(cards).not.toContain('12345')
+    openTab('world')
+    const values = [...document.querySelectorAll('.hist-val')].map((el) => el.textContent)
+    expect(values).toContain(formatNumber(12345))
+    expect(values).not.toContain('12345')
   })
 
   it('writes each cause of death with the same grouping', () => {
+    useUIStore.setState({ nerdStats: true })
     renderStats(emptyWorld({ deaths_starvation: 2345, deaths_old_age: 1000, droughts: 1200 }))
-    const values = [...document.querySelectorAll('.hist-val')].map((el) => el.textContent)
+    openTab('world')
+    const values = [...document.querySelectorAll('.stats-bar-value, .hist-val')].map((el) => el.textContent)
     expect(values).toContain(formatNumber(2345))
     expect(values).toContain(formatNumber(1000))
     expect(values).toContain(formatNumber(1200))
@@ -102,6 +155,7 @@ describe('StatsModal counts', () => {
       sex: 'female',
     }
     renderStats({ ...emptyWorld({}), organisms: [oldAge] } as unknown as WorldState)
+    openTab('records')
 
     expect(document.body.textContent).toContain('Gonefolk')
     expect(document.body.textContent).not.toContain('gone-l')

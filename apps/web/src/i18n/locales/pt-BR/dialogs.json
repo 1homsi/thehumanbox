@@ -411,35 +411,15 @@
     "totalDeaths": "total de mortes",
     "totalBirths": "total de nascimentos",
     "daysElapsed": "dias decorridos",
-    "knowFire": "conhecem o fogo",
-    "haveShelter": "têm abrigo",
-    "animals": "animais",
-    "populationOverTime": "POPULAÇÃO AO LONGO DO TEMPO",
-    "birthsDeathsByYear": "NASCIMENTOS E MORTES POR ANO",
-    "wealthGapByYear": "DIFERENÇA DE RIQUEZA POR ANO",
-    "agePyramid": "PIRÂMIDE ETÁRIA",
     "populationTraits": "TRAÇOS DA POPULAÇÃO",
-    "tribalRelations": "RELAÇÕES ENTRE TRIBOS",
     "discoveryRollup": "RESUMO DE DESCOBERTAS",
-    "legends": "LENDAS",
     "generationsAlive": "GERAÇÕES VIVAS",
-    "oldestLiving": "MAIS VELHOS VIVOS",
-    "longevity": "LONGEVIDADE",
-    "noOldAgeDeaths": "ninguém morreu de velhice ainda",
-    "causesOfDeath": "CAUSAS DE MORTE",
     "causes": {
-      "starvation": "fome",
       "dehydration": "desidratação",
-      "sickness": "doença",
-      "combat": "combate",
-      "oldAge": "velhice",
       "droughts": "secas",
       "outbreaks": "surtos"
     },
-    "bondsFamily": "VÍNCULOS E FAMÍLIA",
     "notableOrganisms": "ORGANISMOS EM DESTAQUE",
-    "discoveryLog": "REGISTRO DE DESCOBERTAS",
-    "worldEras": "ERAS DO MUNDO",
     "dayShort": "d{day}",
     "accumulating": "acumulando dados…",
     "firstYear": "o primeiro ano ainda está correndo…",
@@ -479,7 +459,103 @@
     "withKids": "com filhos",
     "thirsty": "com sede",
     "collapse": "recolher",
-    "distinctShown": "{total} distintas · {shown} exibidas"
+    "distinctShown": "{total} distintas · {shown} exibidas",
+    "tabs": {
+      "people": "Pessoas",
+      "tribes": "Tribos",
+      "world": "Mundo",
+      "records": "Recordes"
+    },
+    "tabsAria": "Seções de estatísticas",
+    "head": {
+      "population": "População",
+      "change": {
+        "year": "{change} este ano",
+        "start": "{change} desde o início"
+      },
+      "why": {
+        "food": "Comida de sobra: mais nascimentos que enterros.",
+        "tightFood": "Crescendo, mas muitos passam fome.",
+        "deaths": "Perdendo gente, principalmente para {cause}.",
+        "deathsUnknown": "Morre mais gente do que nasce.",
+        "steady": "Estável.",
+        "young": "A história mal começou."
+      },
+      "born": "Nascidos este ano",
+      "died": {
+        "one": "{count} morreu",
+        "other": "{count} morreram"
+      },
+      "yearWhy": {
+        "boom": "Um baby boom: muito mais nascimentos que mortes.",
+        "more": "Mais nascimentos que mortes.",
+        "fewer": "Mais mortes que nascimentos este ano.",
+        "quiet": "Ninguém nasceu nem morreu ainda este ano."
+      },
+      "ideas": "Saber",
+      "ideasSub": {
+        "one": "ideia conhecida",
+        "other": "ideias conhecidas"
+      },
+      "ideasWhy": "Quase todos conhecem {list}.",
+      "ideasNone": "Ninguém descobriu nada ainda.",
+      "ties": "Entre tribos",
+      "wars": {
+        "one": "guerra em andamento",
+        "other": "guerras em andamento"
+      },
+      "friendships": {
+        "one": "amizade",
+        "other": "amizades"
+      },
+      "tiesWhy": {
+        "war": "Há tribos lutando. {rivals} rivalidades, {allies} amizades.",
+        "tense": "Tensão: {rivals} rivalidades contra {allies} amizades.",
+        "peace": "Quase tudo em paz: {allies} amizades, {rivals} rivalidades.",
+        "met": "As tribos já se conhecem, mas ainda sem amizades nem rivalidades.",
+        "alone": "As tribos ainda não se conheceram."
+      }
+    },
+    "level": {
+      "veryLow": "muito baixa",
+      "low": "baixa",
+      "average": "média",
+      "high": "alta",
+      "veryHigh": "muito alta"
+    },
+    "ideaShare": "{percent}%",
+    "sec": {
+      "population": "Quanta gente",
+      "populationTip": "Todos os vivos, contados ao longo do tempo.",
+      "birthsDeaths": "Nascidos e mortos, ano a ano",
+      "birthsDeathsTip": "As barras verdes são nascimentos e as roxas são mortes, um par por ano.",
+      "ages": "Crianças, adultos e anciãos",
+      "agesTip": "Azul são homens e meninos, rosa são mulheres e meninas.",
+      "families": "Famílias e saúde",
+      "personality": "Como as pessoas são",
+      "personalityTip": "O temperamento médio de todos os vivos.",
+      "relations": "Amigos e rivais",
+      "relationsTip": "Como cada par de tribos se sente. Amigos comerciam e se ajudam; rivais lutam. Os números são o tamanho de cada tribo.",
+      "tribeDetails": "Cada tribo de perto",
+      "tribeDetailsBody": "A era, os governantes, a fé, as guerras e o comércio de cada tribo estão na tela de Civilização.",
+      "openCiv": "Abrir Civilização",
+      "deaths": "Do que as pessoas morreram",
+      "deathsTip": "Cada morte desde o começo do mundo, por causa.",
+      "ideas": "O que as pessoas sabem",
+      "ideasTip": "As ideias que mais gente conhece e a parcela de pessoas que conhece cada uma.",
+      "wealth": "Ricos e pobres",
+      "wealthTip": "O quão desigual é a riqueza a cada ano. Mais alto quer dizer que poucos têm quase tudo.",
+      "eras": "Eras do mundo",
+      "erasTip": "Quando a tribo mais avançada chegou a cada nova era.",
+      "totals": "Totais brutos",
+      "oldest": "Os mais velhos",
+      "longevity": "Vidas longas",
+      "longevityTip": "Com que idade as pessoas morreram de velhice.",
+      "legends": "Lendas",
+      "legendsTip": "Os momentos mais marcantes do mundo.",
+      "discoveries": "Grandes descobertas",
+      "emptyRecords": "Ainda sem recordes. Deixe o mundo rodar mais um pouco."
+    }
   },
   "tree": {
     "title": "Árvore genealógica",

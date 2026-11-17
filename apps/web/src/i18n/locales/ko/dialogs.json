@@ -411,35 +411,15 @@
     "totalDeaths": "총 사망",
     "totalBirths": "총 출생",
     "daysElapsed": "경과한 일수",
-    "knowFire": "불을 안다",
-    "haveShelter": "거처가 있음",
-    "animals": "동물",
-    "populationOverTime": "시간에 따른 인구",
-    "birthsDeathsByYear": "연도별 출생과 사망",
-    "wealthGapByYear": "연도별 부의 격차",
-    "agePyramid": "연령 피라미드",
     "populationTraits": "인구 특성",
-    "tribalRelations": "부족 간 관계",
     "discoveryRollup": "발견 요약",
-    "legends": "전설",
     "generationsAlive": "생존 세대",
-    "oldestLiving": "생존 최고령",
-    "longevity": "수명",
-    "noOldAgeDeaths": "아직 노환으로 죽은 사람이 없습니다",
-    "causesOfDeath": "사인",
     "causes": {
-      "starvation": "기아",
       "dehydration": "탈수",
-      "sickness": "질병",
-      "combat": "전투",
-      "oldAge": "노환",
       "droughts": "가뭄",
       "outbreaks": "유행병"
     },
-    "bondsFamily": "유대와 가족",
     "notableOrganisms": "주목할 만한 생명체",
-    "discoveryLog": "발견 기록",
-    "worldEras": "세계의 시대",
     "dayShort": "{day}일",
     "accumulating": "데이터를 모으는 중…",
     "firstYear": "첫 해가 아직 지나는 중…",
@@ -479,7 +459,103 @@
     "withKids": "자녀 있음",
     "thirsty": "목마름",
     "collapse": "접기",
-    "distinctShown": "{total}가지 · 상위 {shown}개 표시"
+    "distinctShown": "{total}가지 · 상위 {shown}개 표시",
+    "tabs": {
+      "people": "사람",
+      "tribes": "부족",
+      "world": "세계",
+      "records": "기록"
+    },
+    "tabsAria": "통계 항목",
+    "head": {
+      "population": "인구",
+      "change": {
+        "year": "올해 {change}",
+        "start": "처음부터 {change}"
+      },
+      "why": {
+        "food": "먹을 것이 넉넉하다. 장례보다 출생이 많다.",
+        "tightFood": "늘고 있지만 굶는 사람이 많다.",
+        "deaths": "사람을 잃고 있다. 주된 원인은 {cause}.",
+        "deathsUnknown": "태어나는 사람보다 죽는 사람이 많다.",
+        "steady": "변화가 없다.",
+        "young": "이야기가 막 시작되었다."
+      },
+      "born": "올해 태어남",
+      "died": {
+        "one": "{count}명 사망",
+        "other": "{count}명 사망"
+      },
+      "yearWhy": {
+        "boom": "베이비붐: 죽음보다 출생이 훨씬 많다.",
+        "more": "죽음보다 출생이 많다.",
+        "fewer": "올해는 출생보다 죽음이 많다.",
+        "quiet": "올해는 아직 아무도 태어나거나 죽지 않았다."
+      },
+      "ideas": "지식",
+      "ideasSub": {
+        "one": "개의 지식",
+        "other": "개의 지식"
+      },
+      "ideasWhy": "대부분이 {list}을(를) 안다.",
+      "ideasNone": "아직 아무도 아무것도 발견하지 못했다.",
+      "ties": "부족 사이",
+      "wars": {
+        "one": "건의 전쟁",
+        "other": "건의 전쟁"
+      },
+      "friendships": {
+        "one": "개의 우호",
+        "other": "개의 우호"
+      },
+      "tiesWhy": {
+        "war": "부족들이 싸우고 있다. 적대 {rivals}, 우호 {allies}.",
+        "tense": "긴장 상태: 적대 {rivals} 대 우호 {allies}.",
+        "peace": "대체로 평화롭다: 우호 {allies}, 적대 {rivals}.",
+        "met": "부족들이 서로 만났지만 아직 우호도 적대도 없다.",
+        "alone": "부족들이 아직 서로 만나지 않았다."
+      }
+    },
+    "level": {
+      "veryLow": "매우 낮음",
+      "low": "낮음",
+      "average": "보통",
+      "high": "높음",
+      "veryHigh": "매우 높음"
+    },
+    "ideaShare": "{percent}%",
+    "sec": {
+      "population": "인구 변화",
+      "populationTip": "살아 있는 모든 사람을 시간에 따라 센 것.",
+      "birthsDeaths": "해마다 태어나고 죽은 사람",
+      "birthsDeathsTip": "초록 막대는 출생, 보라 막대는 죽음. 한 해에 한 쌍.",
+      "ages": "아이, 어른, 노인",
+      "agesTip": "파랑은 남자와 소년, 분홍은 여자와 소녀.",
+      "families": "가족과 건강",
+      "personality": "사람들의 성향",
+      "personalityTip": "살아 있는 모든 사람의 평균 기질.",
+      "relations": "친구와 적",
+      "relationsTip": "부족끼리 서로를 어떻게 느끼는지. 친구는 교역하고 돕고, 적은 싸운다. 숫자는 각 부족의 크기.",
+      "tribeDetails": "부족 자세히 보기",
+      "tribeDetailsBody": "각 부족의 시대, 지도자, 신앙, 전쟁, 교역은 문명 화면에 있다.",
+      "openCiv": "문명 열기",
+      "deaths": "사람들이 죽은 이유",
+      "deathsTip": "세계가 시작된 뒤의 모든 죽음, 원인별.",
+      "ideas": "사람들이 아는 것",
+      "ideasTip": "가장 많은 사람이 아는 지식과 각각을 아는 사람의 비율.",
+      "wealth": "부자와 가난한 자",
+      "wealthTip": "해마다 부가 얼마나 고르지 않게 나뉘는지. 높을수록 소수가 대부분을 가진다.",
+      "eras": "세계의 시대",
+      "erasTip": "가장 앞선 부족이 새 시대에 이른 때.",
+      "totals": "원시 합계",
+      "oldest": "최고령",
+      "longevity": "장수",
+      "longevityTip": "노환으로 죽은 사람들의 나이.",
+      "legends": "전설",
+      "legendsTip": "세계에서 가장 기억에 남는 순간들.",
+      "discoveries": "위대한 발견",
+      "emptyRecords": "아직 기록이 없다. 세계를 조금 더 돌려 보자."
+    }
   },
   "tree": {
     "title": "가계도",
