@@ -872,6 +872,7 @@ function LiveApp() {
           world={world ?? null}
           connected={connected}
           sickOrgs={sickOrgs}
+          livePopulation={liveOrgs.length}
           onAnswerPrayer={handleAnswerPrayer}
           worldActions={worldActions}
         />

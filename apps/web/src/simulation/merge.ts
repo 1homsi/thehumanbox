@@ -174,9 +174,9 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     tribe_chronicle: parsed.tribe_chronicle ?? base?.tribe_chronicle,
     goals: parsed.goals ?? base?.goals ?? [],
     difficulty: parsed.difficulty ?? base?.difficulty ?? 'normal',
-    lost_tick: parsed.lost_tick ?? base?.lost_tick ?? null,
+    lost_tick: 'lost_tick' in parsed ? (parsed.lost_tick ?? null) : (base?.lost_tick ?? null),
     current_era: parsed.current_era ?? base?.current_era,
-    featured_org_id: parsed.featured_org_id ?? base?.featured_org_id,
+    featured_org_id: 'lost_tick' in parsed ? parsed.featured_org_id : base?.featured_org_id,
     sex_words: reuseArrayIfShallowEqual(
       incomingSexWords as string[] | undefined,
       base?.sex_words as string[] | undefined,
