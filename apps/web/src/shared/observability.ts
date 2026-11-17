@@ -4,6 +4,7 @@ import { getLocale } from '../i18n'
 import { isPhoneViewport } from './phone'
 import { readLowPerf } from './perf-mode'
 import { analyticsHost } from './analytics-host'
+import { scrubEventUrls } from './analytics-url'
 
 declare const __APP_VERSION__: string | undefined
 
@@ -85,6 +86,7 @@ export function initAnalytics(): void {
         capture_exceptions: true,
         capture_performance: false,
         disable_session_recording: true,
+        before_send: scrubEventUrls,
       })
       posthog.register(contextProps())
       client = posthog

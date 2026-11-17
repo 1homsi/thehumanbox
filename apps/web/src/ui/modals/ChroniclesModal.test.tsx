@@ -47,6 +47,23 @@ describe('ChroniclesModal day labels', () => {
   })
 })
 
+describe('ChroniclesModal tabs', () => {
+  it('tells a screen reader which tab is selected', () => {
+    renderChronicles([], [])
+    const tab = (label: string) =>
+      [...document.querySelectorAll('button')].find((b) => b.textContent === label)!
+    const history = tab(t('dialogs.chronicles.tabHistory'))
+    const lives = tab(t('dialogs.chronicles.tabLives'))
+    expect(history.type).toBe('button')
+    expect(lives.type).toBe('button')
+    const pressed = () => [history, lives].map((b) => b.getAttribute('aria-pressed'))
+    const before = pressed()
+    expect(before.filter((p) => p === 'true')).toHaveLength(1)
+    act(() => (before[0] === 'true' ? lives : history).click())
+    expect(pressed()).toEqual([...before].reverse())
+  })
+})
+
 /** Opens the Lives tab of the modal. */
 function openLivesTab() {
   const tab = [...document.querySelectorAll('button')].find(
