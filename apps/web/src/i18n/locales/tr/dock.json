@@ -444,7 +444,13 @@
       "other": "Fırça {count} kare genişliğinde"
     },
     "smallestBrush": "Zaten en küçük fırça",
-    "largestBrush": "Zaten en büyük fırça"
+    "largestBrush": "Zaten en büyük fırça",
+    "count": "Kaç tane",
+    "fewer": "Bir eksik",
+    "more": "Bir fazla",
+    "brushWheel": "Haritada Shift + tekerlek de değiştirir",
+    "largeBrushes": "Bölge büyüklüğünde fırçalar, 16 ile 64 kare arası",
+    "smallBrushes": "Normal fırçalara dön"
   },
   "failures": {
     "noRoom": "dünya artık daha fazla insanı taşıyamaz",
@@ -668,5 +674,16 @@
     "applyNow": "hemen uygula",
     "empty": "Eşleşen araç yok. Bir arazi türü, hayvan, harita katmanı ya da zaman kontrolü deneyin."
   },
-  "tapAgain": "{tool}: başlatmak için tekrar dokun"
+  "tapAgain": "{tool}: başlatmak için tekrar dokun",
+  "count": {
+    "tribe": {
+      "one": "Kabileyi {count} kişiyle kur",
+      "other": "Kabileyi {count} kişiyle kur"
+    },
+    "animals": {
+      "one": "{count} hayvan getir",
+      "other": "{count} hayvan getir"
+    },
+    "generic": "Kaç tane: {count}"
+  }
 }

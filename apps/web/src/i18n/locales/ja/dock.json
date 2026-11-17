@@ -444,7 +444,13 @@
       "other": "ブラシの幅 {count} マス"
     },
     "smallestBrush": "すでに最小のブラシです",
-    "largestBrush": "すでに最大のブラシです"
+    "largestBrush": "すでに最大のブラシです",
+    "count": "数",
+    "fewer": "1つ減らす",
+    "more": "1つ増やす",
+    "brushWheel": "マップ上でShift＋ホイールでも変えられます",
+    "largeBrushes": "地域サイズのブラシ（16〜64マス）",
+    "smallBrushes": "通常のブラシに戻す"
   },
   "failures": {
     "noRoom": "世界にはこれ以上人を置けません",
@@ -668,5 +674,16 @@
     "applyNow": "すぐに適用",
     "empty": "一致するツールがありません。地形、動物、マップのレイヤー、時間の操作を試してください。"
   },
-  "tapAgain": "{tool}：もう一度タップで開始"
+  "tapAgain": "{tool}：もう一度タップで開始",
+  "count": {
+    "tribe": {
+      "one": "{count}人で部族を始める",
+      "other": "{count}人で部族を始める"
+    },
+    "animals": {
+      "one": "動物を{count}匹連れてくる",
+      "other": "動物を{count}匹連れてくる"
+    },
+    "generic": "数：{count}"
+  }
 }

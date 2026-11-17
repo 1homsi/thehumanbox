@@ -444,7 +444,13 @@
       "other": "Pinceau de {count} tuiles de large"
     },
     "smallestBrush": "Déjà le plus petit pinceau",
-    "largestBrush": "Déjà le plus grand pinceau"
+    "largestBrush": "Déjà le plus grand pinceau",
+    "count": "Combien",
+    "fewer": "Un de moins",
+    "more": "Un de plus",
+    "brushWheel": "Maj + molette sur la carte le change aussi",
+    "largeBrushes": "Pinceaux à l’échelle d’une région, de 16 à 64 cases",
+    "smallBrushes": "Revenir aux pinceaux normaux"
   },
   "failures": {
     "noRoom": "le monde ne peut pas accueillir davantage de personnes",
@@ -668,5 +674,16 @@
     "applyNow": "appliquer immédiatement",
     "empty": "Aucun outil correspondant. Essayez un type de terrain, un animal, un calque de carte ou une commande de temps."
   },
-  "tapAgain": "{tool} : touchez encore pour lancer"
+  "tapAgain": "{tool} : touchez encore pour lancer",
+  "count": {
+    "tribe": {
+      "one": "Fonder la tribu avec {count} personne",
+      "other": "Fonder la tribu avec {count} personnes"
+    },
+    "animals": {
+      "one": "Amener {count} animal",
+      "other": "Amener {count} animaux"
+    },
+    "generic": "Combien : {count}"
+  }
 }

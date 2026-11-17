@@ -205,6 +205,31 @@ describe('reading a mod', () => {
   })
 })
 
+describe('a mod power with a count', () => {
+  const herd = (count: unknown) => ({
+    id: 'herd',
+    group: 'g',
+    label: 'herd',
+    icon: '🐑',
+    target: 'point',
+    command: { cmd: 'spawn_animal', x: '$x', y: '$y', kind: 'sheep', count: '$count' },
+    ...(count ? { count } : {}),
+  })
+
+  it('may use $count only when it declares a count, kept within what the sim allows', () => {
+    expect(problems(mod([herd(null)]))).toEqual(['settings.mods.problems.placeholder'])
+    const parsed = parseMod(mod([herd({ min: 1, max: 500, default: 300 })]))
+    expect(parsed.ok).toBe(true)
+    if (!parsed.ok) return
+    expect(parsed.mod.manifest.actions[0].count).toEqual({
+      min: 1,
+      max: MOD_LIMITS.count,
+      default: MOD_LIMITS.count,
+    })
+    expect(parsed.mod.notes.map((n) => n.key)).toEqual(['settings.mods.notes.count'])
+  })
+})
+
 describe('installed mods', () => {
   it('get a mods tab of their own, and leave the built-in dock as it was', () => {
     const builtInTabs = DOCK_TABS.map((t) => t.id)

@@ -444,7 +444,13 @@
       "other": "Pincel com {count} tiles de largura"
     },
     "smallestBrush": "Já é o menor pincel",
-    "largestBrush": "Já é o maior pincel"
+    "largestBrush": "Já é o maior pincel",
+    "count": "Quantos",
+    "fewer": "Um a menos",
+    "more": "Um a mais",
+    "brushWheel": "Shift + roda sobre o mapa também muda",
+    "largeBrushes": "Pincéis do tamanho de uma região, de 16 a 64 casas",
+    "smallBrushes": "Voltar aos pincéis normais"
   },
   "failures": {
     "noRoom": "o mundo não comporta mais pessoas",
@@ -668,5 +674,16 @@
     "applyNow": "aplicar imediatamente",
     "empty": "Nenhuma ferramenta corresponde. Tente um tipo de terreno, animal, camada do mapa ou controle de tempo."
   },
-  "tapAgain": "{tool}: toque de novo para começar"
+  "tapAgain": "{tool}: toque de novo para começar",
+  "count": {
+    "tribe": {
+      "one": "Começar a tribo com {count} pessoa",
+      "other": "Começar a tribo com {count} pessoas"
+    },
+    "animals": {
+      "one": "Trazer {count} animal",
+      "other": "Trazer {count} animais"
+    },
+    "generic": "Quantos: {count}"
+  }
 }

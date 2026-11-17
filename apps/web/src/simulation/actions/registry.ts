@@ -4,6 +4,7 @@ import type { PairTool, SandboxCategory, SandboxCommand, SandboxTool } from '../
 import builtin from './builtin-actions.json'
 import {
   brushRadius,
+  clampCount,
   fillTemplate,
   reachOf,
   type ActionDef,
@@ -14,7 +15,7 @@ import {
   type TemplateSlots,
 } from './manifest'
 
-export const BUILTIN_ACTIONS = builtin as ActionManifest
+export const BUILTIN_ACTIONS = builtin as unknown as ActionManifest
 
 function emit(template: CommandTemplate, slots: TemplateSlots): SandboxCommand {
   return fillTemplate(template, slots) as unknown as SandboxCommand
@@ -39,9 +40,15 @@ export function toolFromAction(action: ActionDef): SandboxTool {
   if (action.hotkey) tool.hotkey = action.hotkey
   if (action.view) tool.view = action.view
   if (action.time) tool.time = action.time
+  const slot = action.count
+  if (slot) tool.count = { ...slot, text: slot.text as MessageKey | undefined }
+  const count = (chosen: number | undefined) =>
+    slot ? { count: clampCount(slot, chosen ?? slot.default) } : {}
   if (command && action.target === 'brush' && radius)
-    tool.build = (x, y, brush) => emit(command, { x, y, radius: brushRadius(radius, brush) })
-  else if (command && action.target === 'point') tool.build = (x, y) => emit(command, { x, y })
+    tool.build = (x, y, brush, chosen) =>
+      emit(command, { x, y, radius: brushRadius(radius, brush), ...count(chosen) })
+  else if (command && action.target === 'point')
+    tool.build = (x, y, _brush, chosen) => emit(command, { x, y, ...count(chosen) })
   else if (command && (action.target === 'global' || action.target === 'random'))
     tool.fire = emit(command, {})
   return tool

@@ -1,6 +1,6 @@
 import { t, type MessageKey } from '../../i18n'
-import type { TabDef } from '../../simulation/actions/manifest'
-import { REGISTRY, subscribeRegistry } from '../../simulation/actions/registry'
+import type { BrushSize, TabDef } from '../../simulation/actions/manifest'
+import { BUILTIN_ACTIONS, REGISTRY, subscribeRegistry } from '../../simulation/actions/registry'
 import { SANDBOX_CATEGORIES, type SandboxCategory, type SandboxTool } from '../../simulation/sandbox'
 
 /**
@@ -50,21 +50,24 @@ export function speedTools(): SandboxTool[] {
  * value it sets. Each has its own button, and − and + step between them, so every press of either
  * lands on a size the bar lights up.
  */
-export const BRUSH_SIZES: ReadonlyArray<readonly [number, number]> = [
-  [1, 0],
-  [2, 1],
-  [3, 2],
-  [5, 4],
-  [8, 7],
-  [12, 11],
-]
+export const BRUSH_SIZES: ReadonlyArray<BrushSize> = BUILTIN_ACTIONS.brush?.sizes ?? []
+
+export const LARGE_BRUSH_SIZES: ReadonlyArray<BrushSize> = BUILTIN_ACTIONS.brush?.largeSizes ?? []
+
+export function isLargeBrush(value: number): boolean {
+  return LARGE_BRUSH_SIZES.some(([, v]) => v === value) || value > (BRUSH_SIZES.at(-1)?.[1] ?? 0)
+}
+
+export function brushTiles(value: number): number {
+  return [...BRUSH_SIZES, ...LARGE_BRUSH_SIZES].find(([, v]) => v === value)?.[0] ?? value + 1
+}
 
 /**
  * The brush value one step from `value` in `direction` (+1 bigger), or null at the end of the sizes.
  * A value between two sizes steps to the nearest size in the direction asked for.
  */
 export function nextBrush(value: number, direction: 1 | -1): number | null {
-  const values = BRUSH_SIZES.map(([, v]) => v)
+  const values = [...BRUSH_SIZES, ...LARGE_BRUSH_SIZES].map(([, v]) => v)
   if (direction > 0) return values.find((v) => v > value) ?? null
   const below = values.filter((v) => v < value)
   return below.length ? below[below.length - 1] : null

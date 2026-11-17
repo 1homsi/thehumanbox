@@ -444,7 +444,13 @@
       "other": "Brush {count} tiles across"
     },
     "smallestBrush": "Already the smallest brush",
-    "largestBrush": "Already the largest brush"
+    "largestBrush": "Already the largest brush",
+    "count": "How many",
+    "fewer": "One fewer",
+    "more": "One more",
+    "brushWheel": "Shift + wheel on the map changes it too",
+    "largeBrushes": "Region-sized brushes, 16 to 64 tiles",
+    "smallBrushes": "Back to the regular brushes"
   },
   "failures": {
     "noRoom": "the world cannot hold any more people",
@@ -674,5 +680,16 @@
     "applyNow": "apply immediately",
     "empty": "No matching tools. Try a terrain type, animal, map layer, or time control."
   },
-  "tapAgain": "{tool}: tap again to start"
+  "tapAgain": "{tool}: tap again to start",
+  "count": {
+    "tribe": {
+      "one": "Start the tribe with {count} person",
+      "other": "Start the tribe with {count} people"
+    },
+    "animals": {
+      "one": "Bring {count} animal",
+      "other": "Bring {count} animals"
+    },
+    "generic": "How many: {count}"
+  }
 }

@@ -444,7 +444,13 @@
       "other": "画笔宽 {count} 格"
     },
     "smallestBrush": "已是最小的笔刷",
-    "largestBrush": "已是最大的笔刷"
+    "largestBrush": "已是最大的笔刷",
+    "count": "数量",
+    "fewer": "少一个",
+    "more": "多一个",
+    "brushWheel": "在地图上按住 Shift 滚动滚轮也能调整",
+    "largeBrushes": "区域大小的笔刷，16 到 64 格",
+    "smallBrushes": "回到普通笔刷"
   },
   "failures": {
     "noRoom": "世界已容不下更多人",
@@ -668,5 +674,16 @@
     "applyNow": "立即应用",
     "empty": "没有匹配的工具。试试某种地形、动物、地图图层或时间控制。"
   },
-  "tapAgain": "{tool}：再点一次开始"
+  "tapAgain": "{tool}：再点一次开始",
+  "count": {
+    "tribe": {
+      "one": "以 {count} 人建立部落",
+      "other": "以 {count} 人建立部落"
+    },
+    "animals": {
+      "one": "带来 {count} 只动物",
+      "other": "带来 {count} 只动物"
+    },
+    "generic": "数量：{count}"
+  }
 }

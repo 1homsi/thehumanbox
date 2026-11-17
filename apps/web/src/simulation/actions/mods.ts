@@ -93,12 +93,12 @@ function checkValue(
   value: TemplateValue,
   field: string,
   cmd: string,
-  target: ModTarget,
+  slots: readonly string[],
   path: ModPath,
   out: Checker,
 ): TemplateValue {
   if (typeof value === 'string') {
-    if (value.startsWith('$') && !SLOTS[target].includes(value.slice(1)))
+    if (value.startsWith('$') && !slots.includes(value.slice(1)))
       out.problems.push({ key: 'settings.mods.problems.placeholder', path, params: { slot: value } })
     return value
   }
@@ -118,7 +118,7 @@ function checkValue(
     }
     return value
   }
-  if (Array.isArray(value)) return value.map((v, i) => checkValue(v, field, cmd, target, [...path, i], out))
+  if (Array.isArray(value)) return value.map((v, i) => checkValue(v, field, cmd, slots, [...path, i], out))
   if (value && typeof value === 'object') {
     out.problems.push({ key: 'settings.mods.problems.nested', path })
     return value
@@ -128,7 +128,7 @@ function checkValue(
 
 function checkCommand(
   command: CommandTemplate,
-  target: ModTarget,
+  slots: readonly string[],
   path: ModPath,
   out: Checker,
   inComposite: boolean,
@@ -153,12 +153,12 @@ function checkCommand(
         out.problems.push({ key: 'settings.mods.problems.step', path: [...path, 'steps', i] })
         return step
       }
-      return checkCommand(step as CommandTemplate, target, [...path, 'steps', i], out, true)
+      return checkCommand(step as CommandTemplate, slots, [...path, 'steps', i], out, true)
     })
     return { cmd, steps: checked }
   }
   const fields = Object.entries(command).map(([field, value]) =>
-    field === 'cmd' ? [field, value] : [field, checkValue(value, field, cmd, target, [...path, field], out)],
+    field === 'cmd' ? [field, value] : [field, checkValue(value, field, cmd, slots, [...path, field], out)],
   )
   return Object.fromEntries(fields) as CommandTemplate
 }
@@ -169,7 +169,13 @@ function checkAction(action: ActionDef, key: string, path: ModPath, out: Checker
     return null
   }
   if (!action.command) return null
-  const command = checkCommand(action.command, action.target, [...path, 'command'], out, false)
+  const command = checkCommand(
+    action.command,
+    [...SLOTS[action.target], ...(action.count ? ['count'] : [])],
+    [...path, 'command'],
+    out,
+    false,
+  )
   const kept: ActionDef = {
     id: modId(key, action.id),
     group: modId(key, action.group),
@@ -180,6 +186,13 @@ function checkAction(action: ActionDef, key: string, path: ModPath, out: Checker
   }
   if (action.description) kept.description = action.description
   if (action.hotkey) kept.hotkey = action.hotkey
+  if (action.count) {
+    const max = Math.min(MOD_LIMITS.count, Math.max(1, action.count.max))
+    const min = Math.min(max, Math.max(1, action.count.min))
+    if (action.count.max > max || action.count.min < min)
+      out.notes.push({ key: 'settings.mods.notes.count', path: [...path, 'count'], params: { count: max } })
+    kept.count = { min, max, default: Math.min(max, Math.max(min, action.count.default)) }
+  }
   if (action.overlay) kept.overlay = action.overlay
   if (action.target === 'brush' && action.radius) {
     const { base, perBrush, min, max } = action.radius

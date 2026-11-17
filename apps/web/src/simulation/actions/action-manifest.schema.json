@@ -19,11 +19,43 @@
     },
     "author": { "type": "string", "maxLength": 60 },
     "description": { "type": "string", "maxLength": 300 },
+    "brush": {
+      "description": "The brush sizes the dock offers: each pair is the size shown, in tiles from the centre to the edge, and the brush value it sets. largeSizes are the region-sized set behind the dock's large toggle.",
+      "type": "object",
+      "required": ["sizes"],
+      "additionalProperties": false,
+      "properties": {
+        "sizes": { "$ref": "#/$defs/brushSizes" },
+        "largeSizes": { "$ref": "#/$defs/brushSizes" }
+      }
+    },
     "tabs": { "type": "array", "items": { "$ref": "#/$defs/tab" } },
     "groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
     "actions": { "type": "array", "items": { "$ref": "#/$defs/action" } }
   },
   "$defs": {
+    "brushSizes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "count": {
+      "description": "How many the action brings, chosen by the player between min and max, starting at default. Fills the $count placeholder.",
+      "type": "object",
+      "required": ["min", "max", "default"],
+      "additionalProperties": false,
+      "properties": {
+        "min": { "type": "integer", "minimum": 1 },
+        "max": { "type": "integer", "minimum": 1 },
+        "default": { "type": "integer", "minimum": 1 },
+        "text": { "$ref": "#/$defs/textKey" }
+      }
+    },
     "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
     "textKey": {
       "description": "A translation key, read with t(). The label is shown when the key has no text.",
@@ -54,7 +86,7 @@
       }
     },
     "templateValue": {
-      "description": "A literal, or a placeholder filled in when the action is used: $x, $y (the tile clicked), $radius (from the brush), $ax, $ay, $bx, $by (the two picks of a pair).",
+      "description": "A literal, or a placeholder filled in when the action is used: $x, $y (the tile clicked), $radius (from the brush), $count (from the count control), $ax, $ay, $bx, $by (the two picks of a pair).",
       "oneOf": [
         { "type": "string" },
         { "type": "number" },
@@ -205,6 +237,7 @@
             "disaster"
           ]
         },
+        "count": { "$ref": "#/$defs/count" },
         "hotkey": { "enum": ["q", "e", "r", "t", "y", "u", "i", "o", "f", "g"] }
       },
       "allOf": [
