@@ -407,17 +407,30 @@
 .welcome-tutorial {
   margin-left: auto;
 }
+.tutorial-caption {
+  gap: 14px;
+  max-width: min(720px, calc(100vw - 32px));
+  padding: 12px 14px;
+  clip-path: none;
+  box-shadow: var(--px-frame-shadow);
+  font-size: 13px;
+}
 .tutorial-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
   min-width: 0;
 }
 .tutorial-count {
   color: var(--px-gold-text, #f3d17a);
-  font-size: 9px;
-  letter-spacing: 0.12em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+  text-shadow: 0 2px 0 #000;
+}
+.tutorial-skip {
+  flex: none;
 }
 .tutorial-action {
   flex: none;
