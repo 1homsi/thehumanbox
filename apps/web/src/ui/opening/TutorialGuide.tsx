@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { t } from '../../i18n'
 import type { WorldState } from '../../shared/types'
-import { SANDBOX_CATEGORIES, type SandboxTool } from '../../simulation/sandbox'
+import { toolById, type SandboxTool } from '../../simulation/sandbox'
 import { tribeStatus } from '../../game/model/tribe-status'
 import { useCameraFocus } from '../../state/camera-focus'
 import { TUTORIAL_HOME, TUTORIAL_STEPS, useTutorial } from '../../state/tutorial'
@@ -16,7 +16,7 @@ const STEP_TEXT = {
 } as const
 
 function findTool(id: string): SandboxTool | undefined {
-  return SANDBOX_CATEGORIES.flatMap((c) => c.tools).find((tool) => tool.id === id)
+  return toolById(id)
 }
 
 function nearestTribe(world: WorldState): string | null {

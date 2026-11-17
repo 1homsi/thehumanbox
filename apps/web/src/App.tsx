@@ -36,7 +36,7 @@ import { describeOutcome } from './simulation/command-outcome'
 import { GUIDANCE_LABEL } from './shared/guidance-words'
 import {
   PAIR_TOOLS,
-  SANDBOX_CATEGORIES,
+  toolById,
   canPlaceAlongDrag,
   commandReach,
   type LineageStrategy,
@@ -417,7 +417,7 @@ function LiveApp() {
     (prayer: PrayerInfo) => {
       useCameraFocus.getState().focusTile(prayer.x, prayer.y)
       const id = prayerTool(prayer.kind)
-      const tool = SANDBOX_CATEGORIES.flatMap((c) => c.tools).find((t) => t.id === id)
+      const tool = toolById(id)
       if (!tool || armedTool?.id === tool.id) return
       onPickTool(tool)
     },
@@ -426,7 +426,7 @@ function LiveApp() {
 
   // After the last person dies: seed new people by hand, or start over.
   const handleSeedPeople = useCallback(() => {
-    const tool = SANDBOX_CATEGORIES.flatMap((c) => c.tools).find((t) => t.id === 'spawn5')
+    const tool = toolById('spawn5')
     if (tool && armedTool?.id !== tool.id) onPickTool(tool)
     setSandboxStatus(t('header.sandbox.seedHint'))
   }, [armedTool, onPickTool])
@@ -452,7 +452,7 @@ function LiveApp() {
   const handlePickToolAt = useCallback(
     (toolId: string, at: { x: number; y: number }) => {
       useCameraFocus.getState().focusTile(at.x, at.y)
-      const tool = SANDBOX_CATEGORIES.flatMap((c) => c.tools).find((t) => t.id === toolId)
+      const tool = toolById(toolId)
       if (tool && armedTool?.id !== tool.id) onPickTool(tool)
     },
     [armedTool, onPickTool],
@@ -619,7 +619,7 @@ function LiveApp() {
       if (action.kind === 'brush' && mapOwnsZoomKeys(event.target)) return
       event.preventDefault()
       if (action.kind === 'speed') {
-        const tool = SANDBOX_CATEGORIES.flatMap((c) => c.tools).find((t) => t.id === action.tool)
+        const tool = toolById(action.tool)
         if (tool) onPickTool(tool)
       } else if (action.kind === 'brush') {
         setBrush((b) => nextBrush(b, action.delta) ?? b)

@@ -1,18 +1,11 @@
 import { t, type MessageKey } from '../../i18n'
+import { REGISTRY } from '../../simulation/actions/registry'
 import { SANDBOX_CATEGORIES, type SandboxCategory, type SandboxTool } from '../../simulation/sandbox'
 
 /**
  * Layout of the world dock. Each tab is a category word on the bar and lists the sandbox
  * categories it holds; every one of those becomes a group chip, and the open group's tools fill
  * the bar's single row.
- *
- * Adding a tool:
- *   1. Add it to its category in `simulation/sandbox.ts`.
- *   2. Give it a sprite in `ToolSprite.tsx`, and its name and tip under `dock.tools` and `dock.tips`
-      in every language folder of `i18n/locales` (English is the source).
- *   3. Map its command to the effect it plays where it lands in `game/render/action-fx/fx-kinds.ts`.
- * Adding a category: create it in `sandbox.ts`, then list its id in one tab
- * below. `dock-tabs.test.ts` fails if any tool or category is left out.
  */
 export interface DockTab {
   id: string
@@ -24,43 +17,13 @@ export interface DockTab {
   groups: string[]
 }
 
-export const DOCK_TABS: DockTab[] = [
-  {
-    id: 'life',
-    label: 'dock.tabs.life',
-    icon: '🚶',
-    tip: 'dock.tabTips.life',
-    groups: ['life', 'monsters', 'animals', 'birds', 'reptiles', 'safari'],
-  },
-  {
-    id: 'nature',
-    label: 'dock.tabs.nature',
-    icon: '⛰️',
-    tip: 'dock.tabTips.nature',
-    groups: ['terrain', 'biomes', 'sky', 'miracles', 'eras'],
-  },
-  {
-    id: 'resources',
-    label: 'dock.tabs.resources',
-    icon: '🍎',
-    tip: 'dock.tabTips.resources',
-    groups: ['resources', 'build', 'good'],
-  },
-  {
-    id: 'deadly',
-    label: 'dock.tabs.deadly',
-    icon: '💀',
-    tip: 'dock.tabTips.deadly',
-    groups: ['bad'],
-  },
-  {
-    id: 'world',
-    label: 'dock.tabs.world',
-    icon: '🗺️',
-    tip: 'dock.tabTips.world',
-    groups: ['tribes', 'maps', 'view'],
-  },
-]
+export const DOCK_TABS: DockTab[] = REGISTRY.tabs.map((tab) => ({
+  id: tab.id,
+  label: tab.name as MessageKey,
+  icon: tab.icon,
+  tip: tab.tip as MessageKey,
+  groups: tab.groups,
+}))
 
 /** Time controls live in the bar's time control rather than in a tab. */
 export const TIME_CATEGORY_ID = 'time'
@@ -111,7 +74,7 @@ export function tabLabel(id: string): string {
 
 /** A group's name in the active language. The life group's name is only its chip's: see groupLabel. */
 export function groupName(group: SandboxCategory): string {
-  const key = `dock.groups.${group.id}` as MessageKey
+  const key = group.name ?? (`dock.groups.${group.id}` as MessageKey)
   const text = t(key)
   // t() hands back the key itself when no text exists for it.
   return text === key ? group.label : text
