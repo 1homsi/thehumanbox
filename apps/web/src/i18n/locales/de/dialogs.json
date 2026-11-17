@@ -411,35 +411,15 @@
     "totalDeaths": "Todesfälle insgesamt",
     "totalBirths": "Geburten insgesamt",
     "daysElapsed": "vergangene Tage",
-    "knowFire": "kennen Feuer",
-    "haveShelter": "haben Unterschlupf",
-    "animals": "Tiere",
-    "populationOverTime": "BEVÖLKERUNG IM ZEITVERLAUF",
-    "birthsDeathsByYear": "GEBURTEN UND TODESFÄLLE NACH JAHR",
-    "wealthGapByYear": "VERMÖGENSUNTERSCHIED NACH JAHR",
-    "agePyramid": "ALTERSPYRAMIDE",
     "populationTraits": "BEVÖLKERUNGSMERKMALE",
-    "tribalRelations": "BEZIEHUNGEN ZWISCHEN STÄMMEN",
     "discoveryRollup": "ENTDECKUNGSÜBERSICHT",
-    "legends": "LEGENDEN",
     "generationsAlive": "LEBENDE GENERATIONEN",
-    "oldestLiving": "ÄLTESTE LEBENDE",
-    "longevity": "LANGLEBIGKEIT",
-    "noOldAgeDeaths": "Bisher ist niemand an Altersschwäche gestorben",
-    "causesOfDeath": "TODESURSACHEN",
     "causes": {
-      "starvation": "Verhungern",
       "dehydration": "Austrocknung",
-      "sickness": "Krankheit",
-      "combat": "Kampf",
-      "oldAge": "Altersschwäche",
       "droughts": "Dürren",
       "outbreaks": "Ausbrüche"
     },
-    "bondsFamily": "BINDUNGEN & FAMILIE",
     "notableOrganisms": "BEMERKENSWERTE ORGANISMEN",
-    "discoveryLog": "ENTDECKUNGSPROTOKOLL",
-    "worldEras": "WELTEPOCHEN",
     "dayShort": "T{day}",
     "accumulating": "sammelt Daten…",
     "firstYear": "das erste Jahr läuft noch…",
@@ -479,7 +459,103 @@
     "withKids": "mit Kindern",
     "thirsty": "durstig",
     "collapse": "einklappen",
-    "distinctShown": "{total} verschiedene · die ersten {shown} angezeigt"
+    "distinctShown": "{total} verschiedene · die ersten {shown} angezeigt",
+    "tabs": {
+      "people": "Menschen",
+      "tribes": "Stämme",
+      "world": "Welt",
+      "records": "Rekorde"
+    },
+    "tabsAria": "Statistik-Bereiche",
+    "head": {
+      "population": "Bevölkerung",
+      "change": {
+        "year": "{change} dieses Jahr",
+        "start": "{change} seit Beginn"
+      },
+      "why": {
+        "food": "Genug zu essen: mehr Geburten als Begräbnisse.",
+        "tightFood": "Sie wächst, aber viele hungern.",
+        "deaths": "Sie verliert Menschen, vor allem durch {cause}.",
+        "deathsUnknown": "Es sterben mehr Menschen, als geboren werden.",
+        "steady": "Sie bleibt stabil.",
+        "young": "Die Geschichte hat gerade erst begonnen."
+      },
+      "born": "Geboren dieses Jahr",
+      "died": {
+        "one": "{count} gestorben",
+        "other": "{count} gestorben"
+      },
+      "yearWhy": {
+        "boom": "Ein Babyboom: weit mehr Geburten als Todesfälle.",
+        "more": "Mehr Geburten als Todesfälle.",
+        "fewer": "Dieses Jahr mehr Todesfälle als Geburten.",
+        "quiet": "Dieses Jahr wurde noch niemand geboren und niemand ist gestorben."
+      },
+      "ideas": "Wissen",
+      "ideasSub": {
+        "one": "Idee bekannt",
+        "other": "Ideen bekannt"
+      },
+      "ideasWhy": "Die meisten kennen {list}.",
+      "ideasNone": "Noch hat niemand etwas entdeckt.",
+      "ties": "Zwischen Stämmen",
+      "wars": {
+        "one": "Krieg im Gange",
+        "other": "Kriege im Gange"
+      },
+      "friendships": {
+        "one": "Freundschaft",
+        "other": "Freundschaften"
+      },
+      "tiesWhy": {
+        "war": "Stämme kämpfen. {rivals} Rivalitäten, {allies} Freundschaften.",
+        "tense": "Angespannt: {rivals} Rivalitäten gegen {allies} Freundschaften.",
+        "peace": "Meist friedlich: {allies} Freundschaften, {rivals} Rivalitäten.",
+        "met": "Die Stämme kennen sich, aber noch ohne Freundschaften oder Rivalitäten.",
+        "alone": "Die Stämme haben sich noch nicht getroffen."
+      }
+    },
+    "level": {
+      "veryLow": "sehr niedrig",
+      "low": "niedrig",
+      "average": "mittel",
+      "high": "hoch",
+      "veryHigh": "sehr hoch"
+    },
+    "ideaShare": "{percent} %",
+    "sec": {
+      "population": "Wie viele Menschen",
+      "populationTip": "Alle Lebenden, über die Zeit gezählt.",
+      "birthsDeaths": "Geboren und gestorben, Jahr für Jahr",
+      "birthsDeathsTip": "Grüne Balken sind Geburten, lila Balken Todesfälle, ein Paar pro Jahr.",
+      "ages": "Kinder, Erwachsene und Alte",
+      "agesTip": "Blau sind Männer und Jungen, rosa Frauen und Mädchen.",
+      "families": "Familie und Gesundheit",
+      "personality": "Wie die Leute sind",
+      "personalityTip": "Das durchschnittliche Wesen aller Lebenden.",
+      "relations": "Freunde und Rivalen",
+      "relationsTip": "Wie jedes Stammespaar zueinander steht. Freunde handeln und helfen; Rivalen kämpfen. Die Zahlen sind die Größe jedes Stammes.",
+      "tribeDetails": "Jeder Stamm aus der Nähe",
+      "tribeDetailsBody": "Zeitalter, Herrscher, Glaube, Kriege und Handel jedes Stammes stehen im Zivilisationsbildschirm.",
+      "openCiv": "Zivilisation öffnen",
+      "deaths": "Woran Menschen starben",
+      "deathsTip": "Jeder Tod seit Beginn der Welt, nach Ursache.",
+      "ideas": "Was die Leute wissen",
+      "ideasTip": "Die Ideen, die die meisten kennen, und wie viele sie jeweils kennen.",
+      "wealth": "Arm und Reich",
+      "wealthTip": "Wie ungleich der Reichtum jedes Jahr verteilt ist. Höher heißt: Wenige besitzen das meiste.",
+      "eras": "Zeitalter der Welt",
+      "erasTip": "Wann der fortschrittlichste Stamm jedes neue Zeitalter erreichte.",
+      "totals": "Rohe Summen",
+      "oldest": "Älteste Lebende",
+      "longevity": "Lange Leben",
+      "longevityTip": "Wie alt die Leute wurden, die an Altersschwäche starben.",
+      "legends": "Legenden",
+      "legendsTip": "Die denkwürdigsten Momente der Welt.",
+      "discoveries": "Große Entdeckungen",
+      "emptyRecords": "Noch keine Rekorde. Lass die Welt noch ein wenig laufen."
+    }
   },
   "tree": {
     "title": "Familienbaum",

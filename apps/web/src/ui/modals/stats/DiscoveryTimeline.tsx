@@ -1,17 +1,10 @@
 import type { WorldState } from '../../../shared/types'
 import { eventDate } from '../../event-date'
 import { t } from '../../../i18n'
+import { discoveryMilestones } from '../../../game/model/stats-story'
 
 export function DiscoveryTimeline({ events }: { events: WorldState['events'] }) {
-  const milestones = events
-    .filter(
-      (e) =>
-        e.type === 'build' &&
-        (e.detail.includes('mastered') ||
-          e.detail.includes('discovered') ||
-          e.detail.includes('planted a farm')),
-    )
-    .slice(-20)
+  const milestones = discoveryMilestones(events)
 
   if (milestones.length === 0) {
     return (

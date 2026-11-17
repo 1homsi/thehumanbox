@@ -411,35 +411,15 @@
     "totalDeaths": "死亡总数",
     "totalBirths": "出生总数",
     "daysElapsed": "已过天数",
-    "knowFire": "懂得用火",
-    "haveShelter": "有庇护所",
-    "animals": "动物",
-    "populationOverTime": "人口变化",
-    "birthsDeathsByYear": "历年出生与死亡",
-    "wealthGapByYear": "历年财富差距",
-    "agePyramid": "年龄金字塔",
     "populationTraits": "人口特征",
-    "tribalRelations": "部落关系",
     "discoveryRollup": "发现汇总",
-    "legends": "传说",
     "generationsAlive": "在世的代数",
-    "oldestLiving": "在世最年长者",
-    "longevity": "寿命",
-    "noOldAgeDeaths": "尚无人死于老年",
-    "causesOfDeath": "死亡原因",
     "causes": {
-      "starvation": "饥饿",
       "dehydration": "脱水",
-      "sickness": "疾病",
-      "combat": "战斗",
-      "oldAge": "老年",
       "droughts": "干旱",
       "outbreaks": "疫情"
     },
-    "bondsFamily": "关系与家庭",
     "notableOrganisms": "值得关注的生物",
-    "discoveryLog": "发现日志",
-    "worldEras": "世界纪元",
     "dayShort": "第{day}天",
     "accumulating": "数据积累中…",
     "firstYear": "第一年仍在进行中…",
@@ -479,7 +459,103 @@
     "withKids": "有孩子",
     "thirsty": "口渴",
     "collapse": "收起",
-    "distinctShown": "共{total}种 · 显示前{shown}种"
+    "distinctShown": "共{total}种 · 显示前{shown}种",
+    "tabs": {
+      "people": "人口",
+      "tribes": "部落",
+      "world": "世界",
+      "records": "纪录"
+    },
+    "tabsAria": "统计分区",
+    "head": {
+      "population": "人口",
+      "change": {
+        "year": "今年 {change}",
+        "start": "开局以来 {change}"
+      },
+      "why": {
+        "food": "食物充足：出生多于葬礼。",
+        "tightFood": "在增长，但很多人在挨饿。",
+        "deaths": "正在失去人口，主要死于{cause}。",
+        "deathsUnknown": "死去的人多于出生的人。",
+        "steady": "保持平稳。",
+        "young": "故事才刚刚开始。"
+      },
+      "born": "今年出生",
+      "died": {
+        "one": "{count}人死亡",
+        "other": "{count}人死亡"
+      },
+      "yearWhy": {
+        "boom": "婴儿潮：出生远多于死亡。",
+        "more": "出生多于死亡。",
+        "fewer": "今年死亡多于出生。",
+        "quiet": "今年还没有人出生或死亡。"
+      },
+      "ideas": "知识",
+      "ideasSub": {
+        "one": "项已知",
+        "other": "项已知"
+      },
+      "ideasWhy": "大多数人都懂{list}。",
+      "ideasNone": "还没有人发现任何东西。",
+      "ties": "部落之间",
+      "wars": {
+        "one": "场战争进行中",
+        "other": "场战争进行中"
+      },
+      "friendships": {
+        "one": "段友谊",
+        "other": "段友谊"
+      },
+      "tiesWhy": {
+        "war": "部落正在交战。敌对{rivals}，友好{allies}。",
+        "tense": "局势紧张：敌对{rivals}对友好{allies}。",
+        "peace": "大体和平：友好{allies}，敌对{rivals}。",
+        "met": "各部落已经相遇，但还没有结下友谊或敌意。",
+        "alone": "各部落还没有相遇。"
+      }
+    },
+    "level": {
+      "veryLow": "很低",
+      "low": "低",
+      "average": "一般",
+      "high": "高",
+      "veryHigh": "很高"
+    },
+    "ideaShare": "{percent}%",
+    "sec": {
+      "population": "人口变化",
+      "populationTip": "所有在世的人，随时间统计。",
+      "birthsDeaths": "每年的出生与死亡",
+      "birthsDeathsTip": "绿色柱是出生，紫色柱是死亡，每年一组。",
+      "ages": "儿童、成人与长者",
+      "agesTip": "蓝色是男性和男孩，粉色是女性和女孩。",
+      "families": "家庭与健康",
+      "personality": "人们的性情",
+      "personalityTip": "所有在世者的平均性情。",
+      "relations": "朋友与对手",
+      "relationsTip": "每对部落之间的感情。朋友会贸易互助，对手会交战。数字是各部落的人数。",
+      "tribeDetails": "细看每个部落",
+      "tribeDetailsBody": "每个部落的时代、统治者、信仰、战争和贸易都在文明界面。",
+      "openCiv": "打开文明",
+      "deaths": "人们的死因",
+      "deathsTip": "自世界诞生以来的每一次死亡，按原因分类。",
+      "ideas": "人们懂什么",
+      "ideasTip": "最多人掌握的知识，以及掌握每项知识的人所占比例。",
+      "wealth": "贫富差距",
+      "wealthTip": "每年财富分配有多不均。越高表示少数人占有了大部分财富。",
+      "eras": "世界的时代",
+      "erasTip": "最先进的部落进入每个新时代的时间。",
+      "totals": "原始总数",
+      "oldest": "最年长者",
+      "longevity": "长寿",
+      "longevityTip": "老死者去世时的年龄。",
+      "legends": "传说",
+      "legendsTip": "世界上最难忘的时刻。",
+      "discoveries": "伟大发现",
+      "emptyRecords": "还没有纪录。让世界再运行一会儿。"
+    }
   },
   "tree": {
     "title": "家谱",

@@ -411,35 +411,15 @@
     "totalDeaths": "死亡の合計",
     "totalBirths": "出生の合計",
     "daysElapsed": "経過日数",
-    "knowFire": "火を知っている",
-    "haveShelter": "住居を持つ",
-    "animals": "動物",
-    "populationOverTime": "人口の推移",
-    "birthsDeathsByYear": "年ごとの出生と死亡",
-    "wealthGapByYear": "年ごとの富の格差",
-    "agePyramid": "年齢ピラミッド",
     "populationTraits": "人口の特性",
-    "tribalRelations": "部族間の関係",
     "discoveryRollup": "発見の集計",
-    "legends": "伝説",
     "generationsAlive": "生存している世代",
-    "oldestLiving": "存命の最年長",
-    "longevity": "寿命",
-    "noOldAgeDeaths": "まだ老衰で亡くなった者はいません",
-    "causesOfDeath": "死因",
     "causes": {
-      "starvation": "飢餓",
       "dehydration": "脱水",
-      "sickness": "病気",
-      "combat": "戦闘",
-      "oldAge": "老衰",
       "droughts": "干ばつ",
       "outbreaks": "流行"
     },
-    "bondsFamily": "絆と家族",
     "notableOrganisms": "注目の生物",
-    "discoveryLog": "発見の記録",
-    "worldEras": "世界の時代",
     "dayShort": "{day}日",
     "accumulating": "データを蓄積中…",
     "firstYear": "最初の年はまだ進行中…",
@@ -479,7 +459,103 @@
     "withKids": "子あり",
     "thirsty": "喉が渇いている",
     "collapse": "たたむ",
-    "distinctShown": "{total}種 · 上位{shown}件を表示"
+    "distinctShown": "{total}種 · 上位{shown}件を表示",
+    "tabs": {
+      "people": "人々",
+      "tribes": "部族",
+      "world": "世界",
+      "records": "記録"
+    },
+    "tabsAria": "統計の項目",
+    "head": {
+      "population": "人口",
+      "change": {
+        "year": "今年 {change}",
+        "start": "開始から {change}"
+      },
+      "why": {
+        "food": "食べ物は十分。葬式より誕生が多い。",
+        "tightFood": "増えているが、飢えている人が多い。",
+        "deaths": "人が減っている。主な原因は{cause}。",
+        "deathsUnknown": "生まれる人より死ぬ人が多い。",
+        "steady": "横ばい。",
+        "young": "物語は始まったばかり。"
+      },
+      "born": "今年の誕生",
+      "died": {
+        "one": "{count}人死亡",
+        "other": "{count}人死亡"
+      },
+      "yearWhy": {
+        "boom": "ベビーブーム。死より誕生がずっと多い。",
+        "more": "死より誕生が多い。",
+        "fewer": "今年は誕生より死が多い。",
+        "quiet": "今年はまだ誰も生まれず、誰も死んでいない。"
+      },
+      "ideas": "知恵",
+      "ideasSub": {
+        "one": "の知識",
+        "other": "の知識"
+      },
+      "ideasWhy": "多くの人が{list}を知っている。",
+      "ideasNone": "まだ誰も何も発見していない。",
+      "ties": "部族の関係",
+      "wars": {
+        "one": "件の戦争中",
+        "other": "件の戦争中"
+      },
+      "friendships": {
+        "one": "の友好",
+        "other": "の友好"
+      },
+      "tiesWhy": {
+        "war": "部族が戦っている。対立{rivals}、友好{allies}。",
+        "tense": "緊張状態。対立{rivals}に対し友好{allies}。",
+        "peace": "おおむね平和。友好{allies}、対立{rivals}。",
+        "met": "部族同士は出会ったが、まだ友好も対立もない。",
+        "alone": "部族同士はまだ出会っていない。"
+      }
+    },
+    "level": {
+      "veryLow": "とても低い",
+      "low": "低い",
+      "average": "普通",
+      "high": "高い",
+      "veryHigh": "とても高い"
+    },
+    "ideaShare": "{percent}%",
+    "sec": {
+      "population": "人口の推移",
+      "populationTip": "生きている全員を時間を追って数えたもの。",
+      "birthsDeaths": "毎年の誕生と死",
+      "birthsDeathsTip": "緑の棒が誕生、紫の棒が死。1年に1組。",
+      "ages": "子ども・大人・長老",
+      "agesTip": "青は男性と男の子、ピンクは女性と女の子。",
+      "families": "家族と健康",
+      "personality": "人々の気質",
+      "personalityTip": "生きている全員の平均的な気質。",
+      "relations": "友と敵",
+      "relationsTip": "部族どうしの感情。友は交易し助け合い、敵は戦う。数字は各部族の人数。",
+      "tribeDetails": "部族の詳細",
+      "tribeDetailsBody": "各部族の時代、支配者、信仰、戦争、交易は文明画面にある。",
+      "openCiv": "文明を開く",
+      "deaths": "死因",
+      "deathsTip": "世界の始まりからのすべての死を原因別に。",
+      "ideas": "人々の知識",
+      "ideasTip": "最も多くの人が知っている知識と、それを知る人の割合。",
+      "wealth": "貧富の差",
+      "wealthTip": "毎年の富の偏り。高いほど一部の人がほとんどを持っている。",
+      "eras": "世界の時代",
+      "erasTip": "最も進んだ部族が新しい時代に達した時。",
+      "totals": "生の合計",
+      "oldest": "最年長",
+      "longevity": "長寿",
+      "longevityTip": "老衰で亡くなった人の年齢。",
+      "legends": "伝説",
+      "legendsTip": "世界で最も記憶に残る瞬間。",
+      "discoveries": "大発見",
+      "emptyRecords": "まだ記録はない。もう少し世界を進めてみよう。"
+    }
   },
   "tree": {
     "title": "家系図",

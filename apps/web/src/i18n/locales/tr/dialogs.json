@@ -411,35 +411,15 @@
     "totalDeaths": "toplam ölüm",
     "totalBirths": "toplam doğum",
     "daysElapsed": "geçen gün",
-    "knowFire": "ateşi biliyor",
-    "haveShelter": "barınağı var",
-    "animals": "hayvanlar",
-    "populationOverTime": "ZAMANA GÖRE NÜFUS",
-    "birthsDeathsByYear": "YILA GÖRE DOĞUM VE ÖLÜMLER",
-    "wealthGapByYear": "YILA GÖRE SERVET FARKI",
-    "agePyramid": "YAŞ PİRAMİDİ",
     "populationTraits": "NÜFUS ÖZELLİKLERİ",
-    "tribalRelations": "KABİLELER ARASI İLİŞKİLER",
     "discoveryRollup": "KEŞİF ÖZETİ",
-    "legends": "EFSANELER",
     "generationsAlive": "HAYATTA OLAN KUŞAKLAR",
-    "oldestLiving": "EN YAŞLI HAYATTAKİLER",
-    "longevity": "UZUN ÖMÜRLÜLÜK",
-    "noOldAgeDeaths": "Henüz kimse yaşlılıktan ölmedi",
-    "causesOfDeath": "ÖLÜM NEDENLERİ",
     "causes": {
-      "starvation": "açlık",
       "dehydration": "susuzluk",
-      "sickness": "hastalık",
-      "combat": "çatışma",
-      "oldAge": "yaşlılık",
       "droughts": "kuraklık",
       "outbreaks": "salgın"
     },
-    "bondsFamily": "BAĞLAR VE AİLE",
     "notableOrganisms": "DİKKATE DEĞER CANLILAR",
-    "discoveryLog": "KEŞİF GÜNLÜĞÜ",
-    "worldEras": "DÜNYA ÇAĞLARI",
     "dayShort": "g{day}",
     "accumulating": "veri toplanıyor…",
     "firstYear": "ilk yıl hâlâ dönüyor…",
@@ -479,7 +459,103 @@
     "withKids": "çocuklu",
     "thirsty": "susuz",
     "collapse": "daralt",
-    "distinctShown": "{total} farklı · ilk {shown} gösteriliyor"
+    "distinctShown": "{total} farklı · ilk {shown} gösteriliyor",
+    "tabs": {
+      "people": "İnsanlar",
+      "tribes": "Kabileler",
+      "world": "Dünya",
+      "records": "Rekorlar"
+    },
+    "tabsAria": "İstatistik bölümleri",
+    "head": {
+      "population": "Nüfus",
+      "change": {
+        "year": "bu yıl {change}",
+        "start": "başlangıçtan beri {change}"
+      },
+      "why": {
+        "food": "Bol yiyecek: cenazeden çok doğum var.",
+        "tightFood": "Büyüyor ama birçoğu aç.",
+        "deaths": "İnsan kaybediyor, çoğunlukla {cause} yüzünden.",
+        "deathsUnknown": "Doğandan çok ölen var.",
+        "steady": "Durağan.",
+        "young": "Hikâye daha yeni başladı."
+      },
+      "born": "Bu yıl doğanlar",
+      "died": {
+        "one": "{count} öldü",
+        "other": "{count} öldü"
+      },
+      "yearWhy": {
+        "boom": "Doğum patlaması: ölümden çok daha fazla doğum.",
+        "more": "Ölümden çok doğum var.",
+        "fewer": "Bu yıl doğumdan çok ölüm var.",
+        "quiet": "Bu yıl henüz kimse doğmadı ya da ölmedi."
+      },
+      "ideas": "Bilgi",
+      "ideasSub": {
+        "one": "fikir biliniyor",
+        "other": "fikir biliniyor"
+      },
+      "ideasWhy": "Çoğu kişi şunları biliyor: {list}.",
+      "ideasNone": "Henüz kimse bir şey keşfetmedi.",
+      "ties": "Kabileler arası",
+      "wars": {
+        "one": "süren savaş",
+        "other": "süren savaş"
+      },
+      "friendships": {
+        "one": "dostluk",
+        "other": "dostluk"
+      },
+      "tiesWhy": {
+        "war": "Kabileler savaşıyor. {rivals} rekabet, {allies} dostluk.",
+        "tense": "Gergin: {allies} dostluğa karşı {rivals} rekabet.",
+        "peace": "Çoğunlukla barış: {allies} dostluk, {rivals} rekabet.",
+        "met": "Kabileler tanıştı ama henüz dostluk ya da rekabet yok.",
+        "alone": "Kabileler henüz birbiriyle karşılaşmadı."
+      }
+    },
+    "level": {
+      "veryLow": "çok düşük",
+      "low": "düşük",
+      "average": "orta",
+      "high": "yüksek",
+      "veryHigh": "çok yüksek"
+    },
+    "ideaShare": "%{percent}",
+    "sec": {
+      "population": "Kaç kişi",
+      "populationTip": "Yaşayan herkes, zaman içinde sayıldı.",
+      "birthsDeaths": "Yıl yıl doğanlar ve ölenler",
+      "birthsDeathsTip": "Yeşil çubuklar doğum, mor çubuklar ölüm; her yıl için bir çift.",
+      "ages": "Çocuklar, yetişkinler ve yaşlılar",
+      "agesTip": "Mavi erkekler ve oğlanlar, pembe kadınlar ve kızlar.",
+      "families": "Aileler ve sağlık",
+      "personality": "İnsanlar nasıl",
+      "personalityTip": "Yaşayan herkesin ortalama mizacı.",
+      "relations": "Dostlar ve rakipler",
+      "relationsTip": "Her kabile çiftinin birbirine bakışı. Dostlar ticaret yapar ve yardımlaşır; rakipler savaşır. Sayılar her kabilenin büyüklüğü.",
+      "tribeDetails": "Her kabile yakından",
+      "tribeDetailsBody": "Her kabilenin çağı, yöneticileri, inancı, savaşları ve ticareti Medeniyet ekranında.",
+      "openCiv": "Medeniyeti aç",
+      "deaths": "İnsanlar neden öldü",
+      "deathsTip": "Dünyanın başından beri her ölüm, nedenine göre.",
+      "ideas": "İnsanlar ne biliyor",
+      "ideasTip": "En çok kişinin bildiği fikirler ve her birini bilenlerin oranı.",
+      "wealth": "Zengin ve yoksul",
+      "wealthTip": "Servetin her yıl ne kadar eşitsiz paylaşıldığı. Yüksek olması, birkaç kişinin neredeyse her şeye sahip olduğu demek.",
+      "eras": "Dünyanın çağları",
+      "erasTip": "En gelişmiş kabilenin her yeni çağa ulaştığı zaman.",
+      "totals": "Ham toplamlar",
+      "oldest": "En yaşlılar",
+      "longevity": "Uzun ömürler",
+      "longevityTip": "Yaşlılıktan ölenlerin kaç yaşında öldüğü.",
+      "legends": "Efsaneler",
+      "legendsTip": "Dünyanın en unutulmaz anları.",
+      "discoveries": "Büyük keşifler",
+      "emptyRecords": "Henüz rekor yok. Dünyayı biraz daha çalıştır."
+    }
   },
   "tree": {
     "title": "Aile ağacı",

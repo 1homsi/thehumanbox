@@ -423,35 +423,15 @@
     "totalDeaths": "łączna liczba zgonów",
     "totalBirths": "łączna liczba narodzin",
     "daysElapsed": "minęło dni",
-    "knowFire": "znają ogień",
-    "haveShelter": "mają schronienie",
-    "animals": "zwierzęta",
-    "populationOverTime": "POPULACJA W CZASIE",
-    "birthsDeathsByYear": "NARODZINY I ZGONY WEDŁUG ROKU",
-    "wealthGapByYear": "RÓŻNICA MAJĄTKOWA WEDŁUG ROKU",
-    "agePyramid": "PIRAMIDA WIEKU",
     "populationTraits": "CECHY POPULACJI",
-    "tribalRelations": "RELACJE MIĘDZY PLEMIONAMI",
     "discoveryRollup": "PODSUMOWANIE ODKRYĆ",
-    "legends": "LEGENDY",
     "generationsAlive": "ŻYJĄCE POKOLENIA",
-    "oldestLiving": "NAJSTARSZY ŻYJĄCY",
-    "longevity": "DŁUGOWIECZNOŚĆ",
-    "noOldAgeDeaths": "nikt jeszcze nie umarł ze starości",
-    "causesOfDeath": "PRZYCZYNY ZGONÓW",
     "causes": {
-      "starvation": "głód",
       "dehydration": "odwodnienie",
-      "sickness": "choroba",
-      "combat": "walka",
-      "oldAge": "starość",
       "droughts": "susze",
       "outbreaks": "epidemie"
     },
-    "bondsFamily": "WIĘZI I RODZINA",
     "notableOrganisms": "WYRÓŻNIONE ORGANIZMY",
-    "discoveryLog": "DZIENNIK ODKRYĆ",
-    "worldEras": "EPOKI ŚWIATA",
     "dayShort": "d{day}",
     "accumulating": "zbieranie danych…",
     "firstYear": "pierwszy rok wciąż trwa…",
@@ -493,7 +473,111 @@
     "withKids": "z dziećmi",
     "thirsty": "spragniony",
     "collapse": "zwiń",
-    "distinctShown": "{total} różnych · pokazano {shown}"
+    "distinctShown": "{total} różnych · pokazano {shown}",
+    "tabs": {
+      "people": "Ludzie",
+      "tribes": "Plemiona",
+      "world": "Świat",
+      "records": "Rekordy"
+    },
+    "tabsAria": "Sekcje statystyk",
+    "head": {
+      "population": "Ludność",
+      "change": {
+        "year": "{change} w tym roku",
+        "start": "{change} od początku"
+      },
+      "why": {
+        "food": "Jedzenia pod dostatkiem: więcej narodzin niż pogrzebów.",
+        "tightFood": "Rośnie, ale wielu głoduje.",
+        "deaths": "Traci ludzi, głównie przez: {cause}.",
+        "deathsUnknown": "Umiera więcej ludzi, niż się rodzi.",
+        "steady": "Bez zmian.",
+        "young": "Historia dopiero się zaczęła."
+      },
+      "born": "Urodzeni w tym roku",
+      "died": {
+        "one": "{count} zmarł",
+        "few": "{count} zmarło",
+        "many": "{count} zmarło",
+        "other": "{count} zmarło"
+      },
+      "yearWhy": {
+        "boom": "Wyż demograficzny: znacznie więcej narodzin niż zgonów.",
+        "more": "Więcej narodzin niż zgonów.",
+        "fewer": "W tym roku więcej zgonów niż narodzin.",
+        "quiet": "W tym roku nikt się jeszcze nie urodził ani nie zmarł."
+      },
+      "ideas": "Wiedza",
+      "ideasSub": {
+        "one": "znana idea",
+        "few": "znane idee",
+        "many": "znanych idei",
+        "other": "znanej idei"
+      },
+      "ideasWhy": "Większość zna: {list}.",
+      "ideasNone": "Nikt jeszcze niczego nie odkrył.",
+      "ties": "Między plemionami",
+      "wars": {
+        "one": "trwająca wojna",
+        "few": "trwające wojny",
+        "many": "trwających wojen",
+        "other": "trwającej wojny"
+      },
+      "friendships": {
+        "one": "przyjaźń",
+        "few": "przyjaźnie",
+        "many": "przyjaźni",
+        "other": "przyjaźni"
+      },
+      "tiesWhy": {
+        "war": "Plemiona walczą. Rywalizacje: {rivals}, przyjaźnie: {allies}.",
+        "tense": "Napięcie: rywalizacje {rivals} wobec przyjaźni {allies}.",
+        "peace": "Głównie pokój: przyjaźnie {allies}, rywalizacje {rivals}.",
+        "met": "Plemiona się poznały, ale nie ma jeszcze przyjaźni ani rywalizacji.",
+        "alone": "Plemiona jeszcze się nie spotkały."
+      }
+    },
+    "level": {
+      "veryLow": "bardzo niska",
+      "low": "niska",
+      "average": "średnia",
+      "high": "wysoka",
+      "veryHigh": "bardzo wysoka"
+    },
+    "ideaShare": "{percent}%",
+    "sec": {
+      "population": "Ilu jest ludzi",
+      "populationTip": "Wszyscy żyjący, liczeni w czasie.",
+      "birthsDeaths": "Narodziny i zgony rok po roku",
+      "birthsDeathsTip": "Zielone słupki to narodziny, fioletowe to zgony, para na każdy rok.",
+      "ages": "Dzieci, dorośli i starsi",
+      "agesTip": "Niebieski to mężczyźni i chłopcy, różowy to kobiety i dziewczęta.",
+      "families": "Rodziny i zdrowie",
+      "personality": "Jacy są ludzie",
+      "personalityTip": "Przeciętny charakter wszystkich żyjących.",
+      "relations": "Przyjaciele i rywale",
+      "relationsTip": "Co czuje do siebie każda para plemion. Przyjaciele handlują i pomagają; rywale walczą. Liczby to wielkość każdego plemienia.",
+      "tribeDetails": "Każde plemię z bliska",
+      "tribeDetailsBody": "Epoka, władcy, wiara, wojny i handel każdego plemienia są na ekranie Cywilizacji.",
+      "openCiv": "Otwórz Cywilizację",
+      "deaths": "Na co umierali ludzie",
+      "deathsTip": "Każda śmierć od początku świata, według przyczyny.",
+      "ideas": "Co wiedzą ludzie",
+      "ideasTip": "Idee, które zna najwięcej ludzi, i jaka część ludzi zna każdą z nich.",
+      "wealth": "Bogaci i biedni",
+      "wealthTip": "Jak nierówno dzielone jest bogactwo w każdym roku. Wyżej znaczy, że kilka osób ma prawie wszystko.",
+      "eras": "Epoki świata",
+      "erasTip": "Kiedy najbardziej rozwinięte plemię weszło w każdą nową epokę.",
+      "totals": "Surowe sumy",
+      "oldest": "Najstarsi żyjący",
+      "longevity": "Długie życie",
+      "longevityTip": "W jakim wieku ludzie umierali ze starości.",
+      "legends": "Legendy",
+      "legendsTip": "Najbardziej pamiętne chwile świata.",
+      "discoveries": "Wielkie odkrycia",
+      "emptyRecords": "Jeszcze brak rekordów. Pozwól światu pobiec trochę dłużej."
+    }
   },
   "tree": {
     "title": "Drzewo rodzinne",
