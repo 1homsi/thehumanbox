@@ -597,10 +597,13 @@ impl Simulation {
                     demote.push((x, y));
                 }
             }
-            for (x, y) in to_remove {
-                self.active_structure_tiles.swap_remove(&(x, y));
+            if !to_remove.is_empty() {
+                for tile in &to_remove {
+                    self.active_structure_tiles.swap_remove(tile);
+                }
+                let removed: crate::hashing::FxHashSet<(i32, i32)> = to_remove.into_iter().collect();
                 self.field_fortifications
-                    .retain(|fortification| fortification.x != x || fortification.y != y);
+                    .retain(|fortification| !removed.contains(&(fortification.x, fortification.y)));
             }
             for (x, y) in promote {
                 self.grid.set(x, y, Tile::Hut);
