@@ -53,7 +53,8 @@ const FROSTED = new Set<number>([
 const TILE_GROUND: Record<number, Tone> = {
   [TILE_ID.VOID]: tone(C.grey0),
   [TILE_ID.ROCK]: tone(C.grey6),
-  [TILE_ID.ASH]: tone(C.grey5),
+  // Ash is bare earth where the grass burnt off: a brown that sits in a meadow, not a slate square punched in it.
+  [TILE_ID.ASH]: tone(C.tan2),
   [TILE_ID.FLOODED]: tone(C.blue3),
   [TILE_ID.SCORCHED]: tone(C.tan0),
   [TILE_ID.SNOW]: tone(C.grey9),
