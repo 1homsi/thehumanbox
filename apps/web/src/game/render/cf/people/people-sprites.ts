@@ -74,6 +74,7 @@ export interface PeopleFrameInput {
   /** The frame before, for walking from where each person was. */
   prevOrgs: readonly OrganismState[] | null
   selectedId: string | null
+  hoveredId?: string | null
   focus: string
   viewFlags: Pick<ViewFlags, 'health' | 'age' | 'fear' | 'lineageDot' | 'pregnancy'>
   zoom: number
@@ -303,6 +304,8 @@ export class PeopleSprites {
 
   rebuild(input: PeopleFrameInput): void {
     const { orgs, selectedId, focus, viewFlags, zoom, ox, oy } = input
+    const hoveredId = input.hoveredId ?? null
+    const focusTribe = focus.startsWith('lineage:') ? focus.slice(8) : null
     this.ox = ox
     this.oy = oy
     // Swap the motion stores: the old ones feed the new order. The previous ids (slot order) are
@@ -500,7 +503,8 @@ export class PeopleSprites {
         soft.push(j, 0, 2, 16, 9, DECAL.selectRing, 0, withAlpha(rgba32(255, 210, 138), 0.6 * fa))
         soft.push(j, 0, 2, 16, 9, DECAL.selectDashed, 0, withAlpha(WHITE, 0.95 * fa))
       }
-      if ((isSelected || (full && !crowded)) && org.lineage_id) {
+      const tribeRing = isSelected || id === hoveredId || (full && !crowded && org.lineage_id === focusTribe)
+      if (tribeRing && org.lineage_id) {
         soft.push(j, 0, 3, 13, 6, DECAL.footRing, 0, withAlpha(cssToRgba32(lineageColor(org.lineage_id)), fa))
       }
 

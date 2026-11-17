@@ -159,23 +159,30 @@ export function WorldView({
       }
     : undefined
 
-  const { overPrayer, handlePointerDown, handlePointerMove, handlePointerCancel, handleClick, handleTap } =
-    useMapPointer({
-      containerRef,
-      cameraStateRef,
-      dims,
-      world,
-      ox,
-      oy,
-      sandboxArmed,
-      onSandboxApply,
-      onPrayerClick,
-      viewFlags,
-      focus,
-      territoryIndex,
-      setFocus,
-      onOrgSelect,
-    })
+  const {
+    overPrayer,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerLeave,
+    handlePointerCancel,
+    handleClick,
+    handleTap,
+  } = useMapPointer({
+    containerRef,
+    cameraStateRef,
+    dims,
+    world,
+    ox,
+    oy,
+    sandboxArmed,
+    onSandboxApply,
+    onPrayerClick,
+    viewFlags,
+    focus,
+    territoryIndex,
+    setFocus,
+    onOrgSelect,
+  })
 
   useLayoutEffect(() => {
     const el = containerRef.current
@@ -212,6 +219,7 @@ export function WorldView({
       // On the GPU path xipjs's camera reports taps; the 2D fallback reads clicks itself.
       onPointerDown={renderBackend === 'gpu' ? undefined : handlePointerDown}
       onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
       onPointerCancel={handlePointerCancel}
       onClick={renderBackend === 'gpu' ? undefined : handleClick}
     >

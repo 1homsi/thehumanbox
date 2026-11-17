@@ -9,7 +9,7 @@ import { ruinedBuildingTiles } from '../../base-parts/terrain-scans'
 import { useBoatAtlas, useDecalAtlas, useEmoteAtlas, useGlyphAtlas, usePeopleAtlas } from '../atlas-hooks'
 import { useSpriteClock, wakeEngine } from '../frame-clock'
 import { wakeRenderLoops } from '../render-loop'
-import { registerPeopleLayer } from '../picking'
+import { hoveredPerson, registerPeopleLayer } from '../picking'
 import { PeopleSprites } from './people-sprites'
 import { PEOPLE_Z } from './z-order'
 import { HUMAN_ATLAS_CELL } from '../../character-visuals'
@@ -98,6 +98,7 @@ export function PeopleSpriteLayers({
     prev: unknown
     ui: unknown
     selected: string | null
+    hovered: string | null
     focus: string
     detail: string
     vehicles: unknown
@@ -159,6 +160,7 @@ export function PeopleSpriteLayers({
       : null
     const { selectedOrgId: selected, focus: foc, viewFlags: flags } = ui.current
     const detail = zoomDetailLevel(zoom)
+    const hovered = hoveredPerson()
     const l = last.current
     const stale =
       !l ||
@@ -166,6 +168,7 @@ export function PeopleSpriteLayers({
       l.prev !== prevOrgs ||
       l.ui !== flags ||
       l.selected !== selected ||
+      l.hovered !== hovered ||
       l.focus !== foc ||
       l.detail !== detail ||
       l.vehicles !== w.vehicles ||
@@ -176,6 +179,7 @@ export function PeopleSpriteLayers({
         orgs,
         prevOrgs,
         selectedId: selected,
+        hoveredId: hovered,
         focus: foc,
         viewFlags: flags,
         zoom,
@@ -191,6 +195,7 @@ export function PeopleSpriteLayers({
         prev: prevOrgs,
         ui: flags,
         selected,
+        hovered,
         focus: foc,
         detail,
         vehicles: w.vehicles,

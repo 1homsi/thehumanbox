@@ -8,7 +8,8 @@ import { prayerTimeLeft } from '../../model/prayers'
 import { prayerAtPoint } from '../prayer-bubbles'
 import { isMapControl } from '../camera-controls'
 import { resolveMapClick, type MapClickOutcome } from '../cf/input/map-click'
-import { pickBuildingAt, pickPersonAt } from '../cf/picking'
+import { pickBuildingAt, pickPersonAt, setHoveredPerson } from '../cf/picking'
+import { wakeRenderLoops } from '../cf/render-loop'
 
 /** Taps, drags and hovers on the map: selection, sandbox tools, prayer bubbles, territory focus. */
 export function useMapPointer({
@@ -127,20 +128,36 @@ export function useMapPointer({
       down.moved = true
     // Show a hand over prayer bubbles so they read as buttons.
     let hovering = false
-    if (!sandboxArmed && !down && world.prayers?.length && containerRef.current) {
+    let person: string | null = null
+    if (!down && e.pointerType !== 'touch' && containerRef.current && !isMapControl(e.target)) {
       const rect = containerRef.current.getBoundingClientRect()
       const { x: camX, y: camY, zoom } = cameraStateRef.current
       const mx = camX + (e.clientX - rect.left - dims.w / 2) / zoom
       const my = camY + (e.clientY - rect.top - dims.h / 2) / zoom
-      hovering = !!prayerAtPoint(world.prayers, mx, my, { x: ox, y: oy }, TILE, zoom, (p) =>
-        prayerTimeLeft(p, world.tick),
-      )
+      if (!sandboxArmed && world.prayers?.length)
+        hovering = !!prayerAtPoint(world.prayers, mx, my, { x: ox, y: oy }, TILE, zoom, (p) =>
+          prayerTimeLeft(p, world.tick),
+        )
+      if (!sandboxArmed) person = pickPersonAt(mx, my) ?? null
     }
     if (hovering !== overPrayer) setOverPrayer(hovering)
+    if (setHoveredPerson(person)) wakeRenderLoops()
+  }
+  const handlePointerLeave = () => {
+    if (setHoveredPerson(null)) wakeRenderLoops()
   }
   const handlePointerCancel = () => {
     if (pointerDownPos.current) pointerDownPos.current.moved = true
+    handlePointerLeave()
   }
 
-  return { overPrayer, handlePointerDown, handlePointerMove, handlePointerCancel, handleClick, handleTap }
+  return {
+    overPrayer,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerLeave,
+    handlePointerCancel,
+    handleClick,
+    handleTap,
+  }
 }
