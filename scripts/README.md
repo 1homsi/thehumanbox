@@ -15,10 +15,6 @@ Builds the browser WebAssembly engine with the tuned wasm profile (fat LTO, one 
 ### perf-gate.sh
 Deterministic multi-seed performance budget used by CI (`make perf-gate`). It samples every tick and gates the max, p99 and mean tick time for three seeds at 8,000 ticks, plus one 25,000-tick run of seed 42 that reaches the mature world. Each run's line also gives the people alive at the end (`alive=`) and a checksum of the world's printed history (`world=`). The same checksum comes from `headless --seed <seed> --ticks <ticks> --every <ticks> | grep -v -e 'µs' -e 'wall' | cksum`, so a CI number can be checked against a local run of the same world: a slower tick on a bigger world is not the same as a slower tick. Every run is reported before the gate fails. The runs go one at a time: run together on a two-core CI runner, they shared cores and the same code swung from 5.1 to 8.5 ms a tick.
 
-### rebuild-fresh.sh
-Wipes the local `world.save` (and `.tmp`/`.bak` siblings) and rebuilds the release binaries from scratch.
-**When to run:** local dev only. Use when iterating on world-gen or spawn logic and you need a known-clean seed. It does not touch any deployment.
-
 ### check-wasm-determinism.mjs
 Checks that the browser build makes the same world as the native one: it ticks seed 42 for
 3000 ticks in both and compares the hashes of the saves.

@@ -163,7 +163,7 @@ The conditions are recorded in every `results.json` row. `report.mjs` prints the
 Use one `--out` directory per condition:
 
 ```sh
-/Users/mhomsi/dev/extra/overnight/bench-lock.sh node bench/run.mjs --builds main=dist --fixtures crowd --zooms mid \
+node bench/run.mjs --builds main=dist --fixtures crowd --zooms mid \
   --modes playing --passes metrics --runs 2 --out bench/results/cpu6 --cpu-throttle 6
 node bench/score.mjs bench/results/cpu6       # one line per scenario
 ```

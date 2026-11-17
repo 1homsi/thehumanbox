@@ -143,7 +143,7 @@ worlds-list: ## List the locally archived worlds with their meta
 			name=$$(basename "$$d"); \
 			meta="$$d/meta.json"; \
 			if [ -f "$$meta" ]; then \
-				echo "  $$name  $$(jq -r '.created // empty' "$$meta")"; \
+				echo "  $$name  $$(jq -r '"tick \(.final_tick), \(.top_era)"' "$$meta")"; \
 			else \
 				echo "  $$name  (no meta)"; \
 			fi; \
