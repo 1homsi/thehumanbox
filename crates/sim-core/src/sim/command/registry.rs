@@ -18,7 +18,7 @@ macro_rules! registry {
             }
         }
 
-        pub const COMMANDS: &[CommandSpec] = &[
+        pub static COMMANDS: &[CommandSpec] = &[
             $(CommandSpec {
                 id: $id,
                 run: |sim, cmd| match cmd {

@@ -29,7 +29,7 @@ fn every_command_id_is_registered_once() {
         "a command id is registered twice: {ids:?}"
     );
     for spec in COMMANDS {
-        assert!(std::ptr::eq(lookup(spec.id).expect("registered"), spec));
+        assert_eq!(lookup(spec.id).map(|found| found.id), Some(spec.id));
     }
 }
 
@@ -71,6 +71,7 @@ fn every_registered_command_is_sent_by_the_dock_or_named_here() {
             spec.id
         );
     }
+    assert_eq!(COMMANDS.len(), dock.len() + outside.len());
     for id in outside {
         assert!(lookup(id).is_some(), "{id} is not a registered command");
     }
