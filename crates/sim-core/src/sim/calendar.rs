@@ -64,11 +64,6 @@ pub fn whole_years_of(age_ticks: u64) -> u64 {
 }
 
 impl Simulation {
-    /// The calendar date of the current tick.
-    pub fn calendar_date(&self) -> CalendarDate {
-        date_at(self.tick_count)
-    }
-
     /// Each new year is announced in the chronicle and the headlines.
     pub(crate) fn tick_new_year(&mut self) {
         let tick = self.tick_count;
