@@ -2,6 +2,5 @@ allowBuilds:
   core-js: false
 minimumReleaseAgeExclude:
   - xipjs@0.15.3
-# Security floors for transitive dependencies (#963): posthog-js pulls dompurify.
 overrides:
   dompurify: ^3.4.17
