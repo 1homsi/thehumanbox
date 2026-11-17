@@ -593,6 +593,9 @@ pub enum Command {
         #[serde(default = "default_strategy_duration", alias = "duration")]
         duration_ticks: u64,
     },
+    Composite {
+        steps: Vec<Command>,
+    },
 }
 
 /// Natural breeding stops near 1000 animals (see `tick_animals`), so the
@@ -738,6 +741,9 @@ mod buildings;
 mod catastrophes;
 mod clear_region;
 mod clock;
+mod composite;
+#[cfg(test)]
+mod composite_tests;
 mod creation;
 mod disasters;
 #[cfg(test)]

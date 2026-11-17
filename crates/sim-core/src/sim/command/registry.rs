@@ -116,6 +116,7 @@ registry! {
     "locusts" => Locusts { x, y, radius } => cmd_locusts(x, y, radius);
     "wildfire" => Wildfire { x, y, radius } => cmd_wildfire(x, y, radius);
     "guide" => Guide { lineage, strategy, duration_ticks } => cmd_guide(lineage, strategy, duration_ticks);
+    "composite" => Composite { steps } => cmd_composite(steps);
     "set_difficulty" => SetDifficulty { level } => cmd_set_difficulty(level);
     "outbreak" => Outbreak { count, x, y, radius } => cmd_outbreak_any(count, x, y, radius);
 }

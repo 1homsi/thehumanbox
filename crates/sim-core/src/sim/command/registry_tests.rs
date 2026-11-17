@@ -12,6 +12,7 @@ const SENT_OUTSIDE_THE_DOCK: &[(&str, &str)] = &[
     ("rename_tribe", "the tribe card"),
     ("rename_person", "the rename form"),
     ("guide", "the tribe card"),
+    ("composite", "mod actions"),
 ];
 
 fn dock_commands() -> Vec<Value> {
