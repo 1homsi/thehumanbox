@@ -73,7 +73,7 @@ describe('opening guide', () => {
     expect(useOpeningGuide.getState().beat).toBeNull()
   })
 
-  it('keeps the powers and the header hidden until their beats', () => {
+  it('keeps the powers and the header dimmed and out of reach until their beats', () => {
     expect(openingHides('meet', 'powers')).toBe(true)
     expect(openingHides('meet', 'header')).toBe(true)
     expect(openingHides('powers', 'powers')).toBe(false)
@@ -89,6 +89,20 @@ describe('opening guide', () => {
     expect(useCameraFocus.getState().request).toMatchObject({ x: 21, y: 30, zoom: 3 })
     expect(host.textContent).toContain(t('dialogs.opening.meet', { tribe: 'Bren' }))
     expect(document.body.dataset.opening).toBe('powers header')
+  })
+
+  it('reaches the powers beat, where the dock lights up, about 15 seconds in', () => {
+    useOpeningGuide.getState().start()
+    render(world)
+    const seconds = (n: number) => {
+      for (let i = 0; i < n; i++) act(() => vi.advanceTimersByTime(1000))
+    }
+    seconds(14)
+    expect(useOpeningGuide.getState().beat).toBe('need')
+    expect(document.body.dataset.opening).toBe('powers header')
+    seconds(1)
+    expect(useOpeningGuide.getState().beat).toBe('powers')
+    expect(document.body.dataset.opening).toBe('header')
   })
 
   it('moves through the beats on its own and pulls back to the whole world at the end', () => {

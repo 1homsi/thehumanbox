@@ -397,16 +397,19 @@
   }
 }
 
-/* Parts the opening has not introduced yet: hidden in place, so nothing moves when they come in. */
+/* Parts the opening has not introduced yet: shown dimmed and out of reach (the elements are also inert), so the
+   player sees the dock is there and nothing moves when it lights up. */
 .sandbox-bar,
 .header-badges,
 .header-actions {
-  transition: opacity 700ms ease;
+  transition:
+    opacity 700ms ease,
+    filter 700ms ease;
 }
 body[data-opening~='powers'] :is(.sandbox-bar, .header-badges),
 body[data-opening~='header'] .header-actions {
-  opacity: 0;
-  visibility: hidden;
+  opacity: 0.35;
+  filter: saturate(0.4);
   pointer-events: none;
 }
 

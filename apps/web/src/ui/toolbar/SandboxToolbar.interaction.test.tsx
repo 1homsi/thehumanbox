@@ -6,6 +6,7 @@ import { SANDBOX_CATEGORIES, type SandboxTool } from '../../simulation/sandbox'
 import { DOCK_TABS, groupLabel, groupsFor, NEW_TOOL_IDS } from './dock-tabs'
 import { SandboxToolbar } from './SandboxToolbar'
 import { useWorldStore } from '../../state/worldStore'
+import { useOpeningGuide } from '../../state/opening-guide'
 import type { WorldState } from '../../shared/types'
 
 // Every button in the world dock, clicked through the real component.
@@ -72,6 +73,7 @@ afterEach(() => {
   act(() => root.unmount())
   container.remove()
   useWorldStore.setState({ world: null })
+  useOpeningGuide.setState({ beat: null })
   vi.restoreAllMocks()
 })
 
@@ -279,5 +281,21 @@ describe('world dock buttons', { timeout: 20_000 }, () => {
   it('shows tool status messages in the hint line', () => {
     render({ status: 'smite · no one there' })
     expect(container.querySelector('.dock-hint')?.textContent).toContain('smite · no one there')
+  })
+
+  it('stays on screen but out of reach before the opening reaches its powers, then lights up', () => {
+    useOpeningGuide.setState({ beat: 'meet' })
+    const props = render()
+    const bar = container.querySelector<HTMLElement>('.sandbox-bar')!
+    expect(bar.inert).toBe(true)
+    expect(bar.getAttribute('aria-disabled')).toBe('true')
+    key('q')
+    expect(props.onPick).not.toHaveBeenCalled()
+
+    act(() => useOpeningGuide.setState({ beat: 'powers' }))
+    expect(bar.inert).toBe(false)
+    expect(bar.hasAttribute('aria-disabled')).toBe(false)
+    key('q')
+    expect(props.onPick).toHaveBeenCalled()
   })
 })

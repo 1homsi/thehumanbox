@@ -4,10 +4,10 @@ const DONE_KEY = 'thb-opening-done-v1'
 
 /**
  * The beats of a first game, in order. Each one shows a little more of the screen:
- * - meet: the camera is close on one tribe and nothing else is on screen but the map;
- * - work / need: what that tribe is doing and what it lacks, still nothing else;
- * - powers: the dock and the prayer chip come in, and the player is invited to act;
- * - history: the header's screens come in (the chronicle, stats, search);
+ * - meet: the camera is close on one tribe; the dock and header sit dimmed and out of reach;
+ * - work / need: what that tribe is doing and what it lacks, still with the dock dimmed;
+ * - powers: the dock and the prayer chip light up, and the player is invited to act;
+ * - history: the header's screens light up (the chronicle, stats, search);
  * - world: the camera pulls back to the whole map and everything is on screen.
  */
 export const OPENING_BEATS = ['meet', 'work', 'need', 'powers', 'history', 'world'] as const
@@ -77,7 +77,10 @@ export const useOpeningGuide = create<OpeningGuideState>((set, get) => ({
   },
 }))
 
-/** True while the beat keeps this part of the screen hidden. */
+/**
+ * True while the beat keeps this part of the screen dimmed and out of reach (shown, so the player can see it is
+ * there, but not yet usable).
+ */
 export function openingHides(beat: OpeningBeat | null, part: 'powers' | 'header'): boolean {
   if (!beat) return false
   const shownFrom: OpeningBeat = part === 'powers' ? 'powers' : 'history'

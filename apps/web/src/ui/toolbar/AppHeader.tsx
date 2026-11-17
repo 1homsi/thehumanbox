@@ -20,6 +20,7 @@ import { formatNumber, t } from '../../i18n'
 import { updateCheckMessage } from '../modals/updateCheckMessage'
 import { moonPhaseWord } from '../sim-words'
 import { calendarAt } from '../../game/model/calendar'
+import { openingHides, useOpeningGuide } from '../../state/opening-guide'
 
 interface Props {
   world: WorldState | null
@@ -35,6 +36,9 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer, worldAct
   const panelOpen = useUIStore((s) => s.panelOpen)
   const isFullscreen = useUIStore((s) => s.isFullscreen)
   const nerdStats = useUIStore((s) => s.nerdStats)
+  // A first game's opening shows these dimmed and out of reach until their beats.
+  const badgesLocked = useOpeningGuide((s) => openingHides(s.beat, 'powers'))
+  const actionsLocked = useOpeningGuide((s) => openingHides(s.beat, 'header'))
 
   const togglePanel = useUIStore((s) => s.togglePanel)
   const toggleLeft = useUIStore((s) => s.toggleLeft)
@@ -133,7 +137,7 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer, worldAct
           </Tooltip>
         )}
       </div>
-      <div className="header-badges">
+      <div className="header-badges" aria-disabled={badgesLocked || undefined} inert={badgesLocked}>
         {world && <CalendarTag world={world} />}
         {world && <PerilChip world={world} />}
         {world && <PrayerChip world={world} onAnswer={onAnswerPrayer} />}
@@ -168,7 +172,7 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer, worldAct
         {world && <WeatherChip world={world} />}
       </div>
       {world && (
-        <div className="header-actions">
+        <div className="header-actions" aria-disabled={actionsLocked || undefined} inert={actionsLocked}>
           <Tooltip tip={tip(t('header.stats'), t('header.statsBody'))}>
             <button className="hdr-btn" data-tour="stats-btn" onClick={openStats}>
               <ToolSprite icon="📊" size={16} />
