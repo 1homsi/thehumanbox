@@ -3,6 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { FamineTints } from './FamineTints'
+import { mergeTintSpots, TINT_MERGE_DISTANCE, tintGrowth } from './famine-tint-merge'
 import type { WorldState } from '../../shared/types'
 import type { MapCamera } from './camera-controls'
 
@@ -44,5 +45,40 @@ describe('FamineTints', () => {
       expect.stringContaining('famine-tint-risk'),
       expect.stringContaining('famine-tint-losing'),
     ])
+  })
+})
+
+describe('merging famine tints', () => {
+  it('draws one glow for tribes whose glows would overlap, led by the one losing people', () => {
+    const groups = mergeTintSpots(
+      [
+        { x: 100, y: 100, severity: 1 },
+        { x: 130, y: 110, severity: 2 },
+        { x: 400, y: 100, severity: 1 },
+      ],
+      TINT_MERGE_DISTANCE,
+    )
+    expect(groups).toHaveLength(2)
+    expect(groups[0]).toEqual({ lead: 1, x: 115, y: 105, count: 2 })
+    expect(groups[1]).toEqual({ lead: 2, x: 400, y: 100, count: 1 })
+  })
+
+  it('keeps glows apart when the camera is close enough to tell the tribes apart', () => {
+    const spread = Array.from({ length: 5 }, (_, i) => ({ x: i * 200, y: 0, severity: 1 }))
+    expect(mergeTintSpots(spread, TINT_MERGE_DISTANCE)).toHaveLength(5)
+  })
+
+  it('turns a crowd of glows seen from afar into a few, each a little larger but never huge', () => {
+    const crowd = Array.from({ length: 150 }, (_, i) => ({
+      x: (i % 15) * 20,
+      y: Math.floor(i / 15) * 20,
+      severity: 1,
+    }))
+    const groups = mergeTintSpots(crowd, TINT_MERGE_DISTANCE)
+    expect(groups.length).toBeLessThan(20)
+    expect(groups.reduce((sum, group) => sum + group.count, 0)).toBe(150)
+    expect(tintGrowth(1)).toBe(1)
+    expect(tintGrowth(4)).toBe(1.5)
+    expect(tintGrowth(1000)).toBe(1.8)
   })
 })

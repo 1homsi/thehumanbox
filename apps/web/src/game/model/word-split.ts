@@ -27,9 +27,8 @@ type LineageWords = Record<string, Record<string, string>>
  * goes back) starts the watch again.
  */
 export class WordSplitWatch {
-  private shared = new Set<string>()
-  /** Pairs that differ now, keyed by the tick they were first seen apart. */
-  private apartSince = new Map<string, number>()
+  private lastWords = new Map<string, Map<string, string>>()
+  private apart = new Map<string, Map<string, { first: string; second: string; since: number | null }>>()
   private lastTick = -Infinity
   private reported = false
 
@@ -40,47 +39,86 @@ export class WordSplitWatch {
     const words = world.lineage_words as LineageWords | undefined
     if (this.reported || !words) return null
     const lineages = Object.keys(words).sort()
-    for (let i = 0; i < lineages.length; i++) {
-      for (let j = i + 1; j < lineages.length; j++) {
-        const a = lineages[i]!
-        const b = lineages[j]!
-        const wordsA = words[a] ?? {}
-        const wordsB = words[b] ?? {}
-        const concepts = new Set([...Object.keys(wordsA), ...Object.keys(wordsB)])
-        for (const concept of concepts) {
-          const wa = wordsA[concept]
-          const wb = wordsB[concept]
-          const key = `${a}\u0000${b}\u0000${concept}`
-          // A frame that leaves one word out says nothing about the pair, so the apart-clock stops rather than
-          // counting the missing ticks.
-          if (!wa || !wb) {
-            this.apartSince.delete(key)
-            continue
-          }
-          if (wa === wb) {
-            this.shared.add(key)
-            this.apartSince.delete(key)
-            continue
-          }
-          if (!this.shared.has(key)) continue
-          const since = this.apartSince.get(key)
-          if (since === undefined) {
-            this.apartSince.set(key, world.tick)
-            continue
-          }
-          if (world.tick - since >= SPLIT_CONFIRM_TICKS) {
-            this.reported = true
-            return { first: a, second: b, concept, firstWord: wa, secondWord: wb, tick: world.tick }
-          }
+    const concepts = new Set<string>()
+    for (const lineage of lineages)
+      for (const concept of Object.keys(words[lineage] ?? {})) concepts.add(concept)
+    for (const concept of this.apart.keys()) concepts.add(concept)
+    let found: WordSplit | null = null
+    for (const concept of concepts) {
+      const split = this.updateConcept(concept, lineages, words, world.tick)
+      if (split && (!found || splitOrder(split, found) < 0)) found = split
+    }
+    if (found) this.reported = true
+    return found
+  }
+
+  private updateConcept(
+    concept: string,
+    lineages: string[],
+    words: LineageWords,
+    tick: number,
+  ): WordSplit | null {
+    let last = this.lastWords.get(concept)
+    if (!last) {
+      last = new Map()
+      this.lastWords.set(concept, last)
+    }
+    let apart = this.apart.get(concept)
+    const sayingBefore = new Map<string, string[]>()
+    for (const [lineage, word] of last) {
+      const list = sayingBefore.get(word)
+      if (list) list.push(lineage)
+      else sayingBefore.set(word, [lineage])
+    }
+    for (const lineage of lineages) {
+      const word = words[lineage]?.[concept]
+      if (!word) continue
+      const before = last.get(lineage)
+      if (before !== undefined && before !== word) {
+        for (const other of sayingBefore.get(before) ?? []) {
+          if (other === lineage) continue
+          const [first, second] = lineage < other ? [lineage, other] : [other, lineage]
+          const key = `${first}\u0000${second}`
+          apart ??= new Map()
+          if (!apart.has(key)) apart.set(key, { first, second, since: null })
         }
       }
+      last.set(lineage, word)
     }
-    return null
+    if (!apart) return null
+    this.apart.set(concept, apart)
+    let found: WordSplit | null = null
+    for (const [key, pair] of apart) {
+      const firstWord = words[pair.first]?.[concept]
+      const secondWord = words[pair.second]?.[concept]
+      if (!firstWord || !secondWord) {
+        pair.since = null
+        continue
+      }
+      if (firstWord === secondWord) {
+        apart.delete(key)
+        continue
+      }
+      if (pair.since === null) {
+        pair.since = tick
+        continue
+      }
+      if (tick - pair.since < SPLIT_CONFIRM_TICKS) continue
+      const split = { first: pair.first, second: pair.second, concept, firstWord, secondWord, tick }
+      if (!found || splitOrder(split, found) < 0) found = split
+    }
+    return found
   }
 
   private reset() {
-    this.shared.clear()
-    this.apartSince.clear()
+    this.lastWords.clear()
+    this.apart.clear()
     this.reported = false
   }
+}
+
+function splitOrder(a: WordSplit, b: WordSplit): number {
+  if (a.first !== b.first) return a.first < b.first ? -1 : 1
+  if (a.second !== b.second) return a.second < b.second ? -1 : 1
+  return 0
 }

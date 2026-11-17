@@ -5,10 +5,16 @@ import { tribeHome } from '../model/tribe-peril'
 import type { MapCamera, MapSize } from './camera-controls'
 import { tileOnScreen } from './map-screen'
 import './famine-tint.css'
+import {
+  mergeTintSpots,
+  TINT_MERGE_DISTANCE,
+  TINT_SIZE,
+  tintGrowth,
+  type TintGroup,
+} from './famine-tint-merge'
 
 /** A tint this far outside the view is not placed on screen at all. */
 const EDGE_PAD = 80
-
 interface Tint {
   lineage: string
   stage: Exclude<FamineStage, 'gone'>
@@ -43,16 +49,30 @@ export function FamineTints({ world, cameraRef, viewport }: Props) {
     let frame = 0
     const place = () => {
       const { tints: now, ox: x0, oy: y0, viewport: view } = latest.current
-      for (const tint of now) {
-        const el = boxes.current.get(tint.lineage)
-        if (!el) continue
+      const spots = now.map((tint) => {
         const p = tileOnScreen([tint.home.x, tint.home.y], { x: x0, y: y0 }, cameraRef.current, view)
+        return { x: p.x, y: p.y, severity: tint.stage === 'losing' ? 2 : 1 }
+      })
+      const shownAt = new Map<number, TintGroup>()
+      for (const group of mergeTintSpots(spots, TINT_MERGE_DISTANCE)) shownAt.set(group.lead, group)
+      now.forEach((tint, i) => {
+        const el = boxes.current.get(tint.lineage)
+        if (!el) return
+        const group = shownAt.get(i)
         const shown =
-          p.x >= -EDGE_PAD && p.x <= view.w + EDGE_PAD && p.y >= -EDGE_PAD && p.y <= view.h + EDGE_PAD
+          group !== undefined &&
+          group.x >= -EDGE_PAD &&
+          group.x <= view.w + EDGE_PAD &&
+          group.y >= -EDGE_PAD &&
+          group.y <= view.h + EDGE_PAD
         el.style.display = shown ? '' : 'none'
-        el.style.left = `${p.x}px`
-        el.style.top = `${p.y}px`
-      }
+        if (!group || !shown) return
+        const size = `${Math.round(TINT_SIZE * tintGrowth(group.count))}px`
+        el.style.left = `${group.x}px`
+        el.style.top = `${group.y}px`
+        el.style.width = size
+        el.style.height = size
+      })
       frame = requestAnimationFrame(place)
     }
     frame = requestAnimationFrame(place)

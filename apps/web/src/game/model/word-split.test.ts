@@ -88,3 +88,108 @@ describe('WordSplitWatch', () => {
     expect(watch.update(frame(3000, { La: { water: 'pi' }, Lb: { water: 'pi' } }))).toBeNull()
   })
 })
+
+class PairwiseWatch {
+  private shared = new Set<string>()
+  private apartSince = new Map<string, number>()
+  private reported = false
+
+  update(world: { tick: number; lineage_words: Words }) {
+    if (this.reported) return null
+    const words = world.lineage_words
+    const lineages = Object.keys(words).sort()
+    for (let i = 0; i < lineages.length; i++) {
+      for (let j = i + 1; j < lineages.length; j++) {
+        const a = lineages[i]!
+        const b = lineages[j]!
+        const wordsA = words[a] ?? {}
+        const wordsB = words[b] ?? {}
+        for (const concept of new Set([...Object.keys(wordsA), ...Object.keys(wordsB)])) {
+          const wa = wordsA[concept]
+          const wb = wordsB[concept]
+          const key = `${a}|${b}|${concept}`
+          if (!wa || !wb) {
+            this.apartSince.delete(key)
+            continue
+          }
+          if (wa === wb) {
+            this.shared.add(key)
+            this.apartSince.delete(key)
+            continue
+          }
+          if (!this.shared.has(key)) continue
+          const since = this.apartSince.get(key)
+          if (since === undefined) {
+            this.apartSince.set(key, world.tick)
+            continue
+          }
+          if (world.tick - since >= SPLIT_CONFIRM_TICKS) {
+            this.reported = true
+            return { first: a, second: b, concept, firstWord: wa, secondWord: wb, tick: world.tick }
+          }
+        }
+      }
+    }
+    return null
+  }
+}
+
+function random(seed: number) {
+  let state = seed
+  return () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0
+    return state / 2 ** 32
+  }
+}
+
+describe('WordSplitWatch at scale', () => {
+  it('finds the same first split as comparing every pair of tribes, when every tribe names every thing', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const next = random(seed)
+      const lineages = Array.from({ length: 6 }, (_, i) => `L${i}`)
+      const concepts = ['water', 'fire', 'food']
+      const syllables = ['pi', 'ka', 'tu']
+      const fast = new WordSplitWatch()
+      const slow = new PairwiseWatch()
+      let current: Words = {}
+      for (let step = 0; step < 30; step++) {
+        const words: Words = {}
+        for (const lineage of lineages) {
+          words[lineage] = {}
+          for (const concept of concepts) {
+            const keep = current[lineage]?.[concept]
+            const roll = next()
+            words[lineage]![concept] =
+              keep && roll < 0.85 ? keep : syllables[Math.floor(next() * syllables.length)]!
+          }
+        }
+        current = words
+        const tick = 1000 + step * 300
+        const expected = slow.update({ tick, lineage_words: words })
+        const actual = fast.update({ tick, lineage_words: words })
+        const pick = (s: { first: string; second: string; tick: number } | null) =>
+          s === null ? null : { first: s.first, second: s.second, tick: s.tick }
+        expect(pick(actual)).toEqual(pick(expected))
+        if (expected) break
+      }
+    }
+  })
+
+  it('reads a frame of 700 tribes that mostly share their words in well under a second', () => {
+    const concepts = Array.from({ length: 30 }, (_, i) => `c${i}`)
+    const make = (changed: number): Words =>
+      Object.fromEntries(
+        Array.from({ length: 700 }, (_, i) => [
+          `L${String(i).padStart(3, '0')}`,
+          Object.fromEntries(concepts.map((c) => [c, i < changed ? 'new' : 'old'])),
+        ]),
+      )
+    const watch = new WordSplitWatch()
+    const started = performance.now()
+    watch.update(frame(1000, make(0)))
+    watch.update(frame(1300, make(5)))
+    watch.update(frame(1600, make(5)))
+    expect(performance.now() - started).toBeLessThan(1_000)
+    expect(watch.update(frame(1300 + SPLIT_CONFIRM_TICKS, make(5)))).toMatchObject({ first: 'L000' })
+  })
+})

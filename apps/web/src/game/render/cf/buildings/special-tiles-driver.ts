@@ -173,8 +173,17 @@ export class SpecialTilesDriver implements CfDriver {
         if (count >= HALL_MIN_HUTS) halls.push({ col: Math.round(cx) - 1, row: Math.round(cy) - 1 })
       }
     }
+    const hallStride = width + 2 * HALL_W
+    const hallCells = new Set<number>()
+    for (const h of halls) {
+      for (let r = h.row; r < h.row + HALL_H; r++)
+        for (let c = h.col; c < h.col + HALL_W; c++) hallCells.add(r * hallStride + c + HALL_W)
+    }
     const underHall = (col: number, row: number) =>
-      halls.some((h) => col >= h.col && col < h.col + HALL_W && row >= h.row && row < h.row + HALL_H)
+      hallCells.size > 0 &&
+      col >= -HALL_W &&
+      col < width + HALL_W &&
+      hallCells.has(row * hallStride + col + HALL_W)
     const isHut = (col: number, row: number) =>
       tiles[row]?.[col] === TILE_ID.HUT &&
       !(ruined.size > 0 && ruined.has(`${col + ox},${row + oy}`)) &&
