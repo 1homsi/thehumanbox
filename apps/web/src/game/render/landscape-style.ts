@@ -4,14 +4,17 @@ import { OCEAN, ROCK, SAND, SNOW, hex, type Rgb } from './art-palette'
 import { valueNoise } from './base-parts/noise'
 
 /** The sea's depth bands, deepest first. A band is one flat colour, like the tints of a sea chart. */
-export const OCEAN_BANDS: readonly Rgb[] = [OCEAN.deep, OCEAN.open, OCEAN.shallows]
+export const OCEAN_BANDS: readonly Rgb[] = [OCEAN.deep, OCEAN.open]
 /**
- * Wire depth where each band above the deep begins. The simulation's open sea, away from any coast, sits
- * around wire 65; it is deep here, the same colour as past the map, so the edge of the world never meets
- * the open sea in a straight line. The two lighter bands are the shelf rising toward a coast. Three bands,
- * not five: five thin rings round every island read as a generated height map, not as a drawn sea.
+ * Wire depth where the shelf begins. The simulation's open sea, away from any coast, sits around wire 65; it
+ * is deep here, the same colour as past the map, so the edge of the world never meets the open sea in a
+ * straight line. One shelf, not several: rings at even distances round every island read as a generated
+ * height map, not as a drawn sea. `seaBandAt` moves this line in and out along the coast.
  */
-const BAND_FLOORS = [128, 168]
+const BAND_FLOORS = [150]
+/** How far (in wire depth) the shelf's edge wanders, and over how many tiles. */
+const SHELF_WANDER = 44
+const SHELF_NOISE_SCALE = 7
 export const SHALLOWS_BAND = OCEAN_BANDS.length - 1
 
 /** The band of a wire depth (0 is deep ocean, 200 the shoreline): 0 is the deep, SHALLOWS_BAND the shallows. */
@@ -119,7 +122,10 @@ export function seaBandAt(
   if (tileRow?.[col] !== TILE_ID.WATER) return -1
   if (isFreshWaterAt(tiles, depth, row, col)) return -1
   const wire = permanentWaterDepth(TILE_ID.WATER, depth?.[row]?.[col]) ?? 200
-  return oceanBand(seaDepthAt(wire, row, col, tileRow.length, tiles.length))
+  // The shelf is wide in one bay and narrow off the next headland: its edge follows a slow noise, not the
+  // exact distance from the shore.
+  const wander = (valueNoise(col / SHELF_NOISE_SCALE + 5, row / SHELF_NOISE_SCALE + 9) - 0.5) * SHELF_WANDER
+  return oceanBand(seaDepthAt(wire, row, col, tileRow.length, tiles.length) + wander)
 }
 
 /** Bank and rim of a beach: the bank is the strip of land on the water, the rim its lit edge. */

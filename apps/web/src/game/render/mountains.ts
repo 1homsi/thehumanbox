@@ -7,11 +7,9 @@ import type { DecorRegion } from './decorations'
 /**
  * Mountains drawn as one sculpted mass rather than sprites dropped on rock.
  *
- * Every rock or snow tile gets a height: how many tiles deep it sits inside its range. The heights
- * are interpolated between tile centres into a smooth relief, and every pixel is shaded like a
- * relief map lit from the north-west: the faces turned to the light are bright, the far faces
- * fall into cool shade, the crest between them carries a ridge line, and the high core lies under
- * snow. The range throws a flat shadow to the south-east.
+ * Every rock or snow tile gets a height: how many tiles deep it sits inside its range. The foot of the
+ * range is shaded from those heights in a few flat facets lit from the north-west, and throws a flat shadow
+ * to the south-east; the peaks that stand on it are sprites (pixel-art/peaks.ts).
  */
 
 /** Deepest height counted: wide ranges keep rising to a crest instead of flattening out. */
@@ -101,17 +99,6 @@ const BASALT: Stone = {
   shade: tone(C.grey3),
   deep: tone(C.grey2),
 }
-const SNOWCAP: Stone = {
-  ridge: tone(C.grey9),
-  lit: tone(C.grey9),
-  tread: tone(C.grey9),
-  mid: tone(C.grey8),
-  shade: tone(C.grey8),
-  deep: tone(C.grey7),
-}
-
-/** Height (on the interpolated relief) above which rock lies under snow. */
-const SNOW_LINE = 9.5
 /** How far (pixels) a range's cast shadow falls toward the bottom-right onto the lowland. */
 export const MASS_SHADOW = 4
 /** A mountain cell: the tile and the shadow strip right of it and below it. */
@@ -205,38 +192,26 @@ function slopeToLight(px: number, py: number): number {
 const onMass = (px: number, py: number) => nearAt(Math.floor(px / TILE), Math.floor(py / TILE)) > 0
 
 /**
- * The colour of mountain pixel (px, py), lit from the north-west, in a few broad flat facets: faces rising
- * toward the bottom-right look up into the light, faces falling toward it are in shade, the crest between
- * them carries a bright ridge line and the high core lies under snow. The range is outlined in the warm ink
- * every sprite on the map has. Terrace lines at each whole height used to stripe every slope like a contour
- * map, which read as generated rather than drawn.
+ * The colour of a pixel of a range's foot, lit from the north-west, in a few broad flat facets: faces rising
+ * toward the bottom-right look up into the light, faces falling toward it are in shade, and the crest between
+ * them carries a bright ridge line. The range is outlined in the ink every sprite on the map has. This is only
+ * the rock the range stands on: its height and its snow are in the peaks drawn over it (pixel-art/peaks.ts).
+ * A band of lighter tone and a cap of snow used to be shaded onto this relief, and came out as a soft rounded
+ * slab on top of every range.
  */
 function massPixel(px: number, py: number, volcanic: boolean): Rgb {
   if (!onMass(px, py + 1) || !onMass(px + 1, py) || !onMass(px, py - 1) || !onMass(px - 1, py)) return INK
-  const e = reliefAt(px, py)
   const toLight = slopeToLight(px, py)
-  const stone = volcanic ? BASALT : e >= SNOW_LINE ? SNOWCAP : GRANITE
-  let color: Rgb
+  const stone = volcanic ? BASALT : GRANITE
   if (toLight >= FACE) {
     // The last lit pixel before the ground falls away beyond it.
     if (slopeToLight(px + 1, py + 1) < FACE && reliefAt(px + 4, py + 4) < reliefAt(px + 1, py + 1))
       return stone.ridge
-    color = stone.tread
-  } else if (toLight <= -DEEP_FACE) color = stone.deep
-  else if (toLight <= -FACE) color = stone.shade
-  else color = stone.mid
-  // The high ground of a wide range is one palette step lighter than its flanks: volume, with no tone of
-  // its own in between.
-  return e >= BAND * 2 ? lighter(color, stone) : color
-}
-
-/** Height (see massPixel) above which a range's faces take the next tone up. */
-const BAND = 3.5
-/** `c` one step up its own stone's ladder of tones, toward the ridge (snow stays white, not rock-grey). */
-function lighter(c: Rgb, stone: Stone): Rgb {
-  const ladder = [stone.deep, stone.shade, stone.mid, stone.lit, stone.ridge]
-  const i = ladder.indexOf(c)
-  return i < 0 ? c : ladder[Math.min(ladder.length - 1, i + 1)]
+    return stone.tread
+  }
+  if (toLight <= -DEEP_FACE) return stone.deep
+  if (toLight <= -FACE) return stone.shade
+  return stone.mid
 }
 
 /**

@@ -23,9 +23,9 @@ describe('landscape art direction', () => {
     expect(oceanColor(-1)).toEqual(deep)
   })
 
-  it('steps the sea through the chart bands, abyss to shallows, with no smooth ramp between', () => {
+  it('steps the sea from the deep to the shelf, with no smooth ramp between', () => {
     expect(oceanColor(0)).toEqual(OCEAN.deep)
-    expect(oceanColor(200)).toEqual(OCEAN.shallows)
+    expect(oceanColor(200)).toEqual(OCEAN.open)
     const seen = new Set<string>()
     let last = -1
     for (let wire = 0; wire <= 200; wire++) {

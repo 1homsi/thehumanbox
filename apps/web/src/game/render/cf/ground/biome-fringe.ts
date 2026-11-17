@@ -69,8 +69,8 @@ export function buildFringe(
         if (nc < 0 || nr < 0 || nc >= width || nr >= height) continue
         const n = nr * width + nc
         if (!kinds[n]) continue
-        // Only between two biomes: shades inside one (a dry patch in a meadow) keep their straight steps.
-        if ((biomes[row]?.[col] ?? 0) === (biomes[nr]?.[nc] ?? 0)) continue
+        // Every edge between two colours of land: between biomes, round a patch inside one, round bare earth.
+        // A patch with straight sides is a square dropped on the map.
         const diff =
           Math.abs(colors[i * 3] - colors[n * 3]) +
           Math.abs(colors[i * 3 + 1] - colors[n * 3 + 1]) +

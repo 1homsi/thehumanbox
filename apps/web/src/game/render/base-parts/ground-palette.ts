@@ -13,7 +13,7 @@ const tone = (index: number): Tone => PALETTE_RGB[index]
  * gave every tile a slightly different olive and the map the look of a filtered photograph.
  */
 const BIOME_GROUND: Record<number, readonly [Tone, Tone]> = {
-  [BIOME_ID.GRASSLAND]: [tone(C.green3), tone(C.green4)],
+  [BIOME_ID.GRASSLAND]: [tone(C.green3), tone(C.green2)],
   [BIOME_ID.FOREST]: [tone(C.green2), tone(C.green2)],
   [BIOME_ID.JUNGLE]: [tone(C.green1), tone(C.green2)],
   [BIOME_ID.WETLAND]: [tone(C.grey5), tone(C.green1)],

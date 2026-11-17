@@ -29,18 +29,18 @@ describe('sea chart cells', () => {
   })
 
   it('shows each tile centre in its own band and a one-pixel light contour on the deeper side', () => {
-    // The north half deep (0), the south half in the shallows (2): the boundary runs east-west.
-    const key = chartCellKey(Int8Array.from([0, 0, 2, 2]), 2, 0, 0)!
+    // The north half deep (0), the south half on the shelf (1): the boundary runs east-west.
+    const key = chartCellKey(Int8Array.from([0, 0, 1, 1]), 2, 0, 0)!
     const px = paint(key)
     expect(px[0][0]).toBe(css(OCEAN_BANDS[0]))
-    expect(px[TILE - 1][TILE - 1]).toBe(css(OCEAN_BANDS[2]))
+    expect(px[TILE - 1][TILE - 1]).toBe(css(OCEAN_BANDS[1]))
     for (let x = 0; x < TILE; x++) {
       const column = px.map((row) => row[x])
       const contours = column.filter(
         (c) => c !== css(OCEAN_BANDS[0]) && !OCEAN_BANDS.some((b) => css(b) === c),
       )
-      // One contour pixel per band edge crossed (deep to open, open to shelf).
-      expect(contours.length).toBe(2)
+      // One contour pixel where the deep meets the shelf.
+      expect(contours.length).toBe(1)
     }
   })
 
@@ -54,7 +54,7 @@ describe('sea chart cells', () => {
   })
 
   it('leaves the quarters over land and fresh water clear', () => {
-    const px = paint(chartCellKey(Int8Array.from([1, -1, 2, 2]), 2, 0, 0)!)
+    const px = paint(chartCellKey(Int8Array.from([0, -1, 1, 1]), 2, 0, 0)!)
     expect(px[0][TILE - 1]).toBe('')
     expect(px[0][0]).not.toBe('')
     expect(px[TILE - 1][0]).not.toBe('')

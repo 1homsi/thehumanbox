@@ -62,15 +62,15 @@ export function farmLookKey(look: FarmLook): string {
  * Field tones. Every field is drawn from the same few ramps (tilled soil, leaf green, straw), so a farm
  * reads as one material next to the grass and the huts, not as a scatter of unrelated greens.
  */
-const SOIL = { lit: hexOf(C.tan2), mid: hexOf(C.tan1), furrow: hexOf(C.tan0) }
-const FALLOW = { lit: hexOf(C.tan3), mid: hexOf(C.tan2), furrow: hexOf(C.tan1) }
+const SOIL = { lit: hexOf(C.tan3), mid: hexOf(C.tan2), furrow: hexOf(C.tan1) }
+const FALLOW = { lit: hexOf(C.tan4), mid: hexOf(C.tan3), furrow: hexOf(C.tan2) }
 const LEAF = { lit: hexOf(C.green4), mid: hexOf(C.green3), shade: hexOf(C.green2) }
 const STRAW = { lit: hexOf(C.gold5), mid: hexOf(C.gold4), shade: hexOf(C.gold3) }
 const PADDY_WATER = { lit: hexOf(C.blue4), mid: hexOf(C.blue3), shade: hexOf(C.blue2) }
 const RICE_GOLD = { lit: hexOf(C.gold5), mid: hexOf(C.gold4), shade: hexOf(C.gold3) }
 const SNOW_FIELD = hexOf(C.grey9)
 /** The bank round a field: the soil's own darkest tone, not ink. A field is ground, not a thing on it. */
-const FIELD_EDGE = hexOf(C.tan0)
+const FIELD_EDGE = hexOf(C.tan1)
 
 /** The ripe colour of a crop as three palette tones: the nearest palette colour to the sim's, and its neighbours. */
 function ripeTones(cropColor: string): { lit: string; mid: string; shade: string } {

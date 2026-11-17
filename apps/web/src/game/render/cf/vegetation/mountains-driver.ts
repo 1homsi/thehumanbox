@@ -4,16 +4,25 @@ import { BIOME_ID } from '../../../model/terrain-ids'
 import { MASS_CELL, drawMassTile, massTileKey, mountainHeights } from '../../mountains'
 import { CELL_GUTTER, type CellAtlas, type CellRef } from '../atlas/cell-atlas'
 import { WHITE, writeSprite, type CfFrame } from '../frame'
+import { PEAK_H, PEAK_W, mountainPeaks, peakArt } from '../../pixel-art/peaks.ts'
+import { drawArt } from '../../pixel-art/to-canvas.ts'
 
-/** A mountain tile is 8x8 with the strip of cast shadow it throws right of it and below it. */
-export const MOUNTAIN_CLASSES: ReadonlyArray<readonly [number, number]> = [[MASS_CELL + 2, MASS_CELL + 2]]
+/**
+ * Two cell sizes: a mountain tile (8x8 with the strip of cast shadow it throws right of it and below it), and
+ * a peak.
+ */
+export const MOUNTAIN_CLASSES: ReadonlyArray<readonly [number, number]> = [
+  [MASS_CELL + 2, MASS_CELL + 2],
+  [PEAK_W + 2, PEAK_H + 2],
+]
 
-/** The sculpted mountain mass: one sprite per rock or snow tile of a range. */
+/** The mountains: one sprite per rock or snow tile for the foot of a range, and the peaks standing on it. */
 export class MountainsDriver {
   stats = { sprites: 0, rebuilds: 0, rebuildMs: 0 }
   private readonly layer: SpriteLayer
   private readonly atlas: CellAtlas
   private cells: CellRef[] = []
+  /** The top-left of each sprite's content, in world pixels. */
   private pos: number[] = []
 
   constructor(layer: SpriteLayer, atlas: CellAtlas) {
@@ -43,8 +52,21 @@ export class MountainsDriver {
             )
           if (!cell) continue
           this.cells.push(cell)
-          this.pos.push(x, y)
+          this.pos.push(x * TILE, y * TILE)
         }
+      }
+      // The peaks, north to south, after every tile of the foot: the nearer peak overlaps the farther.
+      for (const p of mountainPeaks(h, width, height)) {
+        const volcanic = biomes?.[p.y]?.[p.x] === BIOME_ID.VOLCANIC
+        const art = peakArt(p.size, p.snow && !volcanic, volcanic, p.variant)
+        const key = `P|${p.size}|${p.snow && !volcanic ? 1 : 0}|${volcanic ? 1 : 0}|${p.variant}`
+        const cell =
+          this.atlas.get(key) ??
+          this.atlas.bake(key, PEAK_W, PEAK_H, (ctx) => drawArt(ctx, art, 0, PEAK_H - art.h))
+        if (!cell) continue
+        this.cells.push(cell)
+        // The cell's top-left: the peak centred on its tile (nudged), its foot on the tile's bottom edge.
+        this.pos.push(p.x * TILE + (TILE >> 1) + p.nudge - (art.w >> 1), (p.y + 1) * TILE - PEAK_H)
       }
       if (epoch === this.atlas.epoch) break
     }
@@ -56,8 +78,8 @@ export class MountainsDriver {
       writeSprite(
         layer,
         i,
-        this.pos[i * 2] * TILE - CELL_GUTTER + cell.cw / 2,
-        this.pos[i * 2 + 1] * TILE - CELL_GUTTER + cell.ch / 2,
+        this.pos[i * 2] - CELL_GUTTER + cell.cw / 2,
+        this.pos[i * 2 + 1] - CELL_GUTTER + cell.ch / 2,
         cell.cw,
         cell.ch,
         cell.atlas,

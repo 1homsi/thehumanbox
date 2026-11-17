@@ -12,8 +12,9 @@ export const INK: Rgb = [52, 28, 39]
 export const SHADOW = { rgb: [9, 10, 20] as Rgb, alpha: 0.3 } as const
 
 /**
- * Sea depth, deepest first: three flat tints of the master palette's blues, like the tints of a sea chart.
- * Past the edge of the world the sea stays `deep`.
+ * The sea: `deep` water and the lighter `open` shelf round the land, two flat tints of the master palette's
+ * blues. `shallows` is the tone of flooded ground and of things that live in the water. Past the edge of the
+ * world the sea stays `deep`.
  */
 export const OCEAN = {
   deep: [37, 58, 94],

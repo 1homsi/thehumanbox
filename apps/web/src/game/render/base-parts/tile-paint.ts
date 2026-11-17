@@ -85,7 +85,9 @@ export function tileColor(
   // Land is one flat palette colour: its biome's ground, or the tone of the biome's patches where the
   // patch noise runs high. No tint, no blend and no shade of noise (see ground-palette.ts).
   const biome = isWater ? 0 : paintedBiome(biomes, row, col)
-  const patch = tid === TILE_ID.GRASS && dryNoise.at(col / 25 + 31, row / 25 + 17) > 0.62
+  // Patches are clumps a handful of tiles across: big enough to read as a change in the land, small enough
+  // that no stretch of ground is one flat fill.
+  const patch = tid === TILE_ID.GRASS && dryNoise.at(col / 9 + 31, row / 9 + 17) > 0.66
   const rgb = groundTone(tid, biome, season, patch)
   out[0] = rgb[0]
   out[1] = rgb[1]

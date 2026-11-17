@@ -179,8 +179,8 @@ export function pixelPuddle(ctx: Pick<Ctx, 'fillRect'>, x: number, y: number, rx
   ctx.fillRect(x - rx + 1, y + 1, 2 * rx - 2, 1)
 }
 
-const PUDDLE = hexOf(C.blue4)
-const PUDDLE_GLINT = hexOf(C.blue5)
+const PUDDLE = hexOf(C.blue3)
+const PUDDLE_GLINT = hexOf(C.blue4)
 
 /** Widest puddle half-width that fits a tile: 2 rx pixels across, inside TILE. */
 const PUDDLE_MAX_RX = Math.floor(TILE / 2) - 1
@@ -205,10 +205,10 @@ export function paintPuddles(ctx: Ctx, tiles: ArrayLike<number>[], view: CellVie
   forCellsInView(ground, view, (row, col) => {
     const c = col + view.ox
     const r = row + view.oy
-    if (unitHash(c * 7 + 3, r * 13 + 1) > wetness * 0.08) return
+    if (unitHash(c * 7 + 3, r * 13 + 1) > wetness * 0.03) return
     // The whole puddle stays inside its own tile, so none spills onto the water or rock next to it: `2 rx` wide
     // and four pixels tall (rows y - 2 to y + 1), placed by the hash within what the tile leaves.
-    const rx = Math.min(PUDDLE_MAX_RX, 1 + Math.round(unitHash(c + 1, r + 2)))
+    const rx = Math.min(PUDDLE_MAX_RX, 2 + Math.round(unitHash(c + 1, r + 2)))
     const x = col * TILE + rx + Math.round(unitHash(c, r + 9) * (TILE - 2 * rx))
     const y = row * TILE + 2 + Math.round(unitHash(r, c + 4) * (TILE - 4))
     ctx.fillStyle = PUDDLE
