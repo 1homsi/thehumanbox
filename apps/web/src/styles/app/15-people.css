@@ -594,4 +594,16 @@
     min-width: 40px;
     min-height: 40px;
   }
+  .person-card-top {
+    align-items: stretch;
+  }
+  .person-card-name,
+  .people-load-more {
+    min-height: 40px;
+  }
+  .starred-toggle,
+  .unstar-dead-btn {
+    min-width: 40px;
+    min-height: 40px;
+  }
 }
