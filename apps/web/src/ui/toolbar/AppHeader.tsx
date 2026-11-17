@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import type { PrayerInfo, WorldState } from '../../shared/types'
-import { useUIStore } from '../../state/store'
+import { useNerdStats, useUIStore } from '../../state/store'
 import { Tooltip } from './Tooltip'
 import { MoreDropdown } from './MoreDropdown'
 import { PhoneMenu } from './PhoneMenu'
@@ -45,7 +45,7 @@ export function AppHeader({
   const showMore = useUIStore((s) => s.showMore)
   const panelOpen = useUIStore((s) => s.panelOpen)
   const isFullscreen = useUIStore((s) => s.isFullscreen)
-  const nerdStats = useUIStore((s) => s.nerdStats)
+  const nerdStats = useNerdStats()
   const badgesLocked = useOpeningGuide((s) => openingHides(s.beat, 'powers'))
   const actionsLocked = useOpeningGuide((s) => openingHides(s.beat, 'header'))
 

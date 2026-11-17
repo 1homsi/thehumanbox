@@ -22,6 +22,8 @@
   },
   "display": {
     "section": "Schermo",
+    "nerdStats": "Statistiche per esperti",
+    "nerdStatsDesc": "Mostra i numeri grezzi del gioco: valori esatti dei tratti, bisogni in percentuale, codici di famiglia, generazioni e contatori, più il tick e la build nell'intestazione. Spento, tutto resta in parole semplici.",
     "photoMode": "Modalità foto",
     "photoModeDesc": "Nasconde tutti i pannelli e la barra inferiore per screenshot puliti. Premi Esc o passa il mouse sul bordo superiore per riavere l'intestazione.",
     "headlineTicker": "Ticker delle notizie",
@@ -52,9 +54,7 @@
     "tourDesc": "Una breve panoramica della mappa, della barra inferiore e dei pannelli.",
     "startTour": "avvia tour",
     "about": "Info",
-    "aboutDesc": "Versione, build e link.",
-    "nerdStats": "Statistiche per esperti",
-    "nerdStatsDesc": "Contatore dei tick, stato della connessione e dettagli della build nell'intestazione."
+    "aboutDesc": "Versione, build e link."
   },
   "web": {
     "playMode": "Modalità di gioco",

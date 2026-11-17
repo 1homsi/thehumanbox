@@ -1,2 +1,2 @@
-export { useUIStore, useViewFlag } from './ui'
+export { useNerdStats, useUIStore, useViewFlag } from './ui'
 export type { UIState, ViewFlags } from './ui'

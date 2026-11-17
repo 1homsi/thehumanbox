@@ -22,6 +22,8 @@
   },
   "display": {
     "section": "显示",
+    "nerdStats": "技术统计",
+    "nerdStatsDesc": "显示游戏背后的原始数字：精确的性格数值、需求百分比、家族代码、世代和各类计数，以及顶栏的 tick 和构建信息。关闭时一切都用简单的文字表达。",
     "photoMode": "拍照模式",
     "photoModeDesc": "隐藏所有面板和底栏，便于截取干净的截图。按 Esc 或将鼠标移到顶部边缘即可恢复顶栏。",
     "headlineTicker": "头条滚动条",
@@ -52,9 +54,7 @@
     "tourDesc": "简要介绍地图、底栏和面板。",
     "startTour": "开始引导",
     "about": "关于",
-    "aboutDesc": "版本、构建信息和链接。",
-    "nerdStats": "技术统计",
-    "nerdStatsDesc": "在顶栏显示 tick 计数器、连接状态和构建详情。"
+    "aboutDesc": "版本、构建信息和链接。"
   },
   "web": {
     "playMode": "游戏模式",
