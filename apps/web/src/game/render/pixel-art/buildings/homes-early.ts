@@ -33,7 +33,13 @@ function doorway(a: Art, x: number, g: number, w: number, h: number) {
 
 /** A round house: a daub drum under a tall cone of thatch. */
 function roundHouse(look: Look, roof: Ramp, wallRamp: Ramp = WALL.daub): Art {
-  const [w, ch, wh, dw] = ([[8, 5, 3, 2], [14, 8, 5, 2], [22, 12, 6, 4]] as const)[sizeOf(look)]
+  const [w, ch, wh, dw] = (
+    [
+      [8, 5, 3, 2],
+      [14, 8, 5, 2],
+      [22, 12, 6, 4],
+    ] as const
+  )[sizeOf(look)]
   const a = new Art(w + 8, ch + wh + 6)
   const cx = (a.w >> 1) - 1
   const top = 3
@@ -51,13 +57,22 @@ function roundHouse(look: Look, roof: Ramp, wallRamp: Ramp = WALL.daub): Art {
 
 /** A hide tent: skins over poles that cross above the smoke hole. */
 function tent(look: Look): Art {
-  const [w, h] = ([[8, 8], [14, 12], [20, 16]] as const)[sizeOf(look)]
+  const [w, h] = (
+    [
+      [8, 8],
+      [14, 12],
+      [20, 16],
+    ] as const
+  )[sizeOf(look)]
   const a = new Art(w + 8, h + 8)
   const cx = (a.w >> 1) - 1
   const top = 4
   cone(a, cx, top, w, h, ROOF.hide, 2, false)
   // Poles above the hides.
-  a.set(cx - 1, top - 2, C.gold1).set(cx, top - 1, C.gold1).set(cx + 2, top - 2, C.gold1).set(cx + 1, top - 1, C.gold1)
+  a.set(cx - 1, top - 2, C.gold1)
+    .set(cx, top - 1, C.gold1)
+    .set(cx + 2, top - 2, C.gold1)
+    .set(cx + 1, top - 1, C.gold1)
   // The door flap: a dark wedge, widening to the ground.
   const flap = Math.max(3, Math.round(h * 0.55))
   for (let j = 0; j < flap; j++) {
@@ -68,7 +83,8 @@ function tent(look: Look): Art {
   if (w >= 14) {
     const j = Math.round(h * 0.35)
     const half = Math.round((2 + ((w - 2) * j) / (h - 1)) / 2)
-    for (let i = -half + 2; i <= half - 1; i++) if (a.get(cx + i, top + j) !== C.gold0) a.set(cx + i, top + j, C.red3)
+    for (let i = -half + 2; i <= half - 1; i++)
+      if (a.get(cx + i, top + j) !== C.gold0) a.set(cx + i, top + j, C.red3)
   }
   return finish(a)
 }
@@ -104,7 +120,13 @@ function igloo(look: Look): Art {
 /** A mud-brick house: flat roof behind a parapet, beam ends under it, a white dome, a courtyard wall. */
 function adobe(look: Look): Art {
   const size = sizeOf(look)
-  const [w, h, r] = ([[9, 5, 2], [14, 7, 3], [22, 9, 4]] as const)[size]
+  const [w, h, r] = (
+    [
+      [9, 5, 2],
+      [14, 7, 3],
+      [22, 9, 4],
+    ] as const
+  )[size]
   const a = new Art(w + 12, h + 14)
   const x = 4
   const g = a.h - 2
@@ -134,7 +156,13 @@ function adobe(look: Look): Art {
 /** A thatched house on stilts over the marsh, with a ladder to its door. */
 function stiltHouse(look: Look): Art {
   const size = sizeOf(look)
-  const [w, rh, wh, legs] = ([[8, 4, 3, 2], [14, 6, 4, 3], [22, 7, 5, 4]] as const)[size]
+  const [w, rh, wh, legs] = (
+    [
+      [8, 4, 3, 2],
+      [14, 6, 4, 3],
+      [22, 7, 5, 4],
+    ] as const
+  )[size]
   const a = new Art(w + 8, rh + wh + legs + 8)
   const x = 4
   const top = 3
@@ -144,7 +172,8 @@ function stiltHouse(look: Look): Art {
   doorway(a, x + (size === 0 ? 3 : 3), wy + wh, 2, wh - 1)
   // The platform, and the stilts under it.
   a.hline(x - 1, wy + wh, w + 2, C.gold2)
-  for (let i = 0; i < w; i += size === 0 ? 3 : 4) a.vline(x + i + (size === 0 ? 1 : 1), wy + wh + 1, legs, C.gold1)
+  for (let i = 0; i < w; i += size === 0 ? 3 : 4)
+    a.vline(x + i + (size === 0 ? 1 : 1), wy + wh + 1, legs, C.gold1)
   if (size > 0) {
     // The ladder: two rails and its rungs.
     const lx = x + 2
@@ -157,12 +186,18 @@ function stiltHouse(look: Look): Art {
 /** A turf hall: a long low house under a roof of living grass. */
 function turfHall(look: Look): Art {
   const size = sizeOf(look)
-  const [w, rh, wh] = ([[9, 4, 2], [15, 6, 3], [23, 7, 4]] as const)[size]
+  const [w, rh, wh] = (
+    [
+      [9, 4, 2],
+      [15, 6, 3],
+      [23, 7, 4],
+    ] as const
+  )[size]
   const a = new Art(w + 8, rh + wh + 8)
   const x = 4
   const top = 3
   wall(a, x + 1, top + rh, w - 2, wh, WALL.darkStone, false)
-  slabRoof(a, x, top, w, rh, WALL.turf, 3, false)
+  slabRoof(a, x, top, w, rh, WALL.turf, size === 0 ? 1 : 3, false)
   // Tufts along the ridge, and one line of sod.
   for (let i = 4; i < w - 4; i += 3) a.set(x + i, top - 1, C.green3)
   if (size > 0) for (let i = 3; i < w - 3; i += 2) a.set(x + i, top + rh - 3, C.green2)
@@ -174,7 +209,13 @@ function turfHall(look: Look): Art {
 /** A forest longhouse: a long thatch over a wall of upright logs. */
 function forestHouse(look: Look, roof: Ramp): Art {
   const size = sizeOf(look)
-  const [w, rh, wh] = ([[9, 4, 3], [15, 6, 4], [23, 8, 5]] as const)[size]
+  const [w, rh, wh] = (
+    [
+      [9, 4, 3],
+      [15, 6, 4],
+      [23, 8, 5],
+    ] as const
+  )[size]
   const a = new Art(w + 8, rh + wh + 8)
   const x = 4
   const top = 3
@@ -194,7 +235,13 @@ function forestHouse(look: Look, roof: Ramp): Art {
 /** A hut of branches and bark, its gable to the front. */
 function barkHut(look: Look, roof: Ramp): Art {
   const size = sizeOf(look)
-  const [half, wh] = ([[5, 2], [8, 4], [11, 6]] as const)[size]
+  const [half, wh] = (
+    [
+      [5, 2],
+      [8, 4],
+      [11, 6],
+    ] as const
+  )[size]
   const a = new Art(half * 2 + 8, half + wh + 10)
   const cx = (a.w >> 1) - 1
   const top = 3
@@ -218,11 +265,11 @@ export function earlyHome(look: Look): Art {
     case 'stilt':
       return stiltHouse(look)
     case 'longhouse':
-      return look.variant % 3 === 2 ? barkHut(look, roof) : forestHouse(look, roof)
+      return forestHouse(look, roof)
     case 'round':
       return look.variant % 4 === 3 ? tent(look) : roundHouse(look, roof)
     default:
-      return [roundHouse, barkHut, roundHouse][look.variant % 3](look, roof)
+      return look.variant % 3 === 2 ? tent(look) : [roundHouse, barkHut][look.variant % 3](look, roof)
   }
 }
 

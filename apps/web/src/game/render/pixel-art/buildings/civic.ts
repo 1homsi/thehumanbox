@@ -1,4 +1,20 @@
-import { Art, C, CHIMNEY, DOOR, ROOF, WALL, WINDOW, finish, flatRoof, gable, isLit, legend, rows, slabRoof, wall } from './kit.ts'
+import {
+  Art,
+  C,
+  CHIMNEY,
+  DOOR,
+  ROOF,
+  WALL,
+  WINDOW,
+  finish,
+  flatRoof,
+  gable,
+  isLit,
+  legend,
+  rows,
+  slabRoof,
+  wall,
+} from './kit.ts'
 import type { Look, Ramp } from './kit.ts'
 import { plot, spread } from './house-forms.ts'
 import { cone, dome } from './shapes.ts'
@@ -33,16 +49,27 @@ export function flag(a: Art, x: number, y: number, colour: number, h = 7) {
   a.rect(x + 1, y - h, 3, 2, colour).set(x + 4, y - h, colour)
 }
 
-/** A bank: a strong front of columns, a bronze door, a coin in the pediment. */
+/** A bank: heavy stone, four thick columns, a round vault door between them, a coin over the roof. */
 export function bank(look: Look): Art {
   const w = W(look, 22)
   const { a, g, x, cx } = plot(look, w)
+  const L = legend(ROOF.stone, WALL.stone, isLit(look))
   stairs(a, x, g, w, 2)
-  columns(a, x, g - 2, w, 11, w >= 28 ? 6 : 4, C.grey5)
-  a.rect(cx - 2, g - 10, 6, 8, C.gold2).rect(cx - 1, g - 9, 4, 7, C.gold3).vline(cx + 1, g - 9, 7, C.gold2).set(cx, g - 6, C.gold5)
-  a.rect(x - 1, g - 15, w + 2, 2, C.grey9).hline(x - 1, g - 14, w + 2, C.grey7)
-  const top = pediment(a, x, g - 15, w, ROOF.stone, WALL.stone)
-  a.rect(cx, top + 4, 2, 2, C.gold5)
+  a.rect(x, g - 13, w, 11, C.grey5)
+  // Columns three pixels thick: a bank is built to look immovable.
+  for (const colX of spread(x, w, 4, 3)) {
+    a.rect(colX, g - 13, 3, 11, C.grey8)
+      .vline(colX, g - 13, 11, C.grey9)
+      .vline(colX + 2, g - 13, 11, C.grey6)
+    a.hline(colX - 1, g - 13, 5, C.grey9).hline(colX - 1, g - 3, 5, C.grey7)
+  }
+  // The vault: a round steel door with its wheel.
+  a.stamp(rows('vault', '.uuuu.', 'utsstu', 'usYYsu', 'usYYsu', 'utsstu', '.uuuu.'), cx - 2, g - 9, L)
+  a.rect(x - 1, g - 16, w + 2, 3, C.grey8)
+    .hline(x - 1, g - 16, w + 2, C.grey9)
+    .hline(x - 1, g - 14, w + 2, C.grey6)
+  a.rect(x + 1, g - 18, w - 2, 2, C.grey7).hline(x + 1, g - 18, w - 2, C.grey9)
+  a.stamp(rows('coin', '.YYY.', 'YyYyY', 'YyYyY', '.YYY.'), cx - 1, g - 22, L)
   return finish(a)
 }
 
@@ -84,7 +111,10 @@ export function cityHall(look: Look): Art {
   // The tower, with its clock and its steep roof.
   wall(a, cx - 3, g - 31, 8, 13, WALL.plaster, false)
   a.rect(cx - 2, g - 29, 6, 6, C.grey9).rect(cx - 1, g - 28, 4, 4, C.grey9)
-  a.hline(cx - 1, g - 30, 4, C.gold1).hline(cx - 1, g - 23, 4, C.gold1).vline(cx - 3, g - 28, 4, C.gold1).vline(cx + 4, g - 28, 4, C.gold1)
+  a.hline(cx - 1, g - 30, 4, C.gold1)
+    .hline(cx - 1, g - 23, 4, C.gold1)
+    .vline(cx - 3, g - 28, 4, C.gold1)
+    .vline(cx + 4, g - 28, 4, C.gold1)
   a.vline(cx, g - 28, 3, C.grey2).hline(cx, g - 26, 2, C.grey2)
   cone(a, cx, g - 38, 10, 7, ROOF.slate, 2, false)
   flag(a, cx, g - 38, C.red4, 6)
@@ -104,12 +134,17 @@ export function library(look: Look): Art {
     if (Math.abs(wx + 2 - cx) < 5) return
     // An arched window, and the shelves behind it.
     a.rect(wx, g - 12, 5, 9, C.gold1).hline(wx + 1, g - 13, 3, C.gold1)
-    for (let j = 0; j < 3; j++) for (let k = 0; k < 3; k++) a.vline(wx + 1 + k, g - 11 + j * 3, 2, isLit(look) && j === 0 ? C.gold5 : spines[(i + j * 2 + k) % 5])
+    for (let j = 0; j < 3; j++)
+      for (let k = 0; k < 3; k++)
+        a.vline(wx + 1 + k, g - 11 + j * 3, 2, isLit(look) && j === 0 ? C.gold5 : spines[(i + j * 2 + k) % 5])
   })
   a.stamp(DOOR.double, cx - 2, g - 9, L)
   slabRoof(a, x - 1, g - 22, w + 2, 7, ROOF.slate, 3)
   // The lantern over the reading room.
-  a.rect(cx - 2, g - 26, 6, 4, C.grey8).rect(cx - 1, g - 25, 4, 2, L.w).hline(cx - 3, g - 27, 8, C.blue2).hline(cx - 2, g - 28, 6, C.blue3)
+  a.rect(cx - 2, g - 26, 6, 4, C.grey8)
+    .rect(cx - 1, g - 25, 4, 2, L.w)
+    .hline(cx - 3, g - 27, 8, C.blue2)
+    .hline(cx - 2, g - 28, 6, C.blue3)
   return finish(a)
 }
 
@@ -168,7 +203,10 @@ export function university(look: Look): Art {
     for (const px of spread(wx, wing, Math.floor(wing / 5), 3)) {
       a.stamp(rows('win', 'fff', 'fwx', 'fxx'), px, g - 13, L)
       // The arcade: an arch under each window.
-      a.rect(px, g - 5, 3, 5, C.grey4).hline(px, g - 6, 3, C.grey5).set(px, g - 6, C.grey7).set(px + 2, g - 6, C.grey7)
+      a.rect(px, g - 5, 3, 5, C.grey4)
+        .hline(px, g - 6, 3, C.grey5)
+        .set(px, g - 6, C.grey7)
+        .set(px + 2, g - 6, C.grey7)
     }
     slabRoof(a, wx - 1, g - 20, wing + 2, 6, ROOF.plum, 2)
   }
@@ -186,45 +224,35 @@ export function university(look: Look): Art {
   return finish(a)
 }
 
-/** A stadium: the bowl seen from above the near stand, the pitch in the middle, lights at the corners. */
+/** A stadium: a white bowl seen from outside, the far stands in the club's colours over its rim, lights at the corners. */
 export function stadium(look: Look): Art {
   const w = W(look, 38)
   const { a, g, x, cx } = plot(look, w)
-  const half = w >> 1
-  const depth = Math.min(30, look.fh * 5)
-  const top = g - depth - 4
-  // The bowl: an ellipse of stands, banded in the colours of the seats.
-  for (let j = 0; j < depth; j++) {
-    const t = (j + 0.5) / depth
-    const hw = Math.round(half * Math.sqrt(Math.max(0, 1 - (2 * t - 1) ** 2)))
-    for (let i = -hw + 1; i <= hw; i++) {
-      const d = Math.hypot(i / half, (2 * t - 1) * 1.0)
-      let c: number = C.green3
-      if (d > 0.9) c = C.grey8
-      else if (d > 0.74) c = C.red4
-      else if (d > 0.58) c = C.blue3
-      else if (d > 0.5) c = C.grey9
-      a.set(cx + i, top + j, c)
-    }
+  const h = 16
+  // The far stands over the near rim: banks of red and blue seats under the roof's white edge.
+  for (let j = 0; j < 7; j++) {
+    const inset = j === 0 ? 7 : j === 1 ? 5 : j === 2 ? 4 : 3
+    a.hline(
+      x + inset,
+      g - h - 7 + j,
+      w - inset * 2,
+      j === 0 ? C.grey9 : j === 1 ? C.grey7 : j < 4 ? C.red4 : j < 6 ? C.blue3 : C.grey8,
+    )
   }
-  // The pitch markings.
-  a.vline(cx, top + Math.round(depth * 0.3), Math.round(depth * 0.4), C.green4)
-  a.rect(cx - 1, top + (depth >> 1) - 1, 3, 2, C.green4)
-  // The outer wall along the near side, arched.
-  for (let j = 0; j < 5; j++) {
-    const hw = Math.round(half * Math.sqrt(Math.max(0, 1 - ((depth - 6 + j * 1.2) / depth) ** 2)))
-    for (let i = -hw + 1; i <= hw; i++) a.set(cx + i, g - 5 + j, j === 0 ? C.grey9 : i > hw * 0.6 ? C.grey6 : C.grey7)
+  // The bowl: a curved concrete wall, a band of glass, ribs, and the gates at its foot.
+  for (let j = 0; j < h; j++) {
+    const inset = j === 0 ? 3 : j === 1 ? 2 : j < 4 ? 1 : 0
+    for (let i = inset; i < w - inset; i++)
+      a.set(x + i, g - h + j, i < 3 ? C.grey9 : i >= w - 4 ? C.grey6 : C.grey8)
   }
-  for (let i = -half + 6; i < half - 4; i += 4) a.rect(cx + i, g - 3, 2, 3, C.grey4)
-  // Floodlights on masts at the four corners.
-  for (const [mx, my] of [
-    [x + 2, top + 6],
-    [x + w - 3, top + 6],
-    [x + 2, g - 4],
-    [x + w - 3, g - 4],
-  ] as const) {
-    a.vline(mx, my - 9, 9, C.grey5)
-    a.rect(mx - 1, my - 11, 3, 2, isLit(look) ? C.gold5 : C.grey9)
+  a.hline(x + 1, g - h + 4, w - 2, C.grey9).rect(x + 2, g - h + 6, w - 4, 2, isLit(look) ? C.gold5 : C.blue3)
+  for (let i = 4; i < w - 3; i += 5) a.vline(x + i, g - h + 1, h - 1, C.grey6)
+  for (let i = 6; i < w - 6; i += 10) a.rect(x + i, g - 5, 4, 5, C.grey3)
+  a.rect(cx - 5, g - 9, 12, 2, C.red4)
+  // Floodlights on masts at the corners.
+  for (const mx of [x + 1, x + w - 2]) {
+    a.vline(mx, g - h - 16, 16, C.grey5)
+    a.rect(mx - 1, g - h - 19, 3, 3, isLit(look) ? C.gold5 : C.grey9).hline(mx - 1, g - h - 16, 3, C.grey4)
   }
   return finish(a)
 }
@@ -258,7 +286,9 @@ export function trainStation(look: Look): Art {
   slabRoof(a, x - 1, gy - 20, hallW + 2, 6, ROOF.slate, 1)
   const cxh = x + (hallW >> 1) - 1
   gable(a, cxh, gy - 26, 5, ROOF.slate, WALL.brick, 2)
-  a.rect(cxh - 1, gy - 22, 4, 4, C.grey9).vline(cxh, gy - 21, 2, C.grey2).set(cxh + 1, gy - 20, C.grey2)
+  a.rect(cxh - 1, gy - 22, 4, 4, C.grey9)
+    .vline(cxh, gy - 21, 2, C.grey2)
+    .set(cxh + 1, gy - 20, C.grey2)
   a.stamp(CHIMNEY.brick, x + 1, gy - 23, L)
   return finish(a)
 }
@@ -270,7 +300,8 @@ export function policeStation(look: Look): Art {
   const L = legend(ROOF.slate, WALL.concrete, isLit(look))
   wall(a, x, g - 11, w, 11, WALL.concrete, false)
   a.rect(x, g - 11, w, 3, C.blue2).hline(x, g - 9, w, C.blue1)
-  for (const wx of spread(x, w, w >= 20 ? 3 : 2, 4)) if (Math.abs(wx + 2 - cx) > 3) a.stamp(WINDOW.framed, wx, g - 7, L)
+  for (const wx of spread(x, w, w >= 20 ? 3 : 2, 4))
+    if (Math.abs(wx + 2 - cx) > 3) a.stamp(WINDOW.framed, wx, g - 7, L)
   a.stamp(DOOR.glass, cx - 1, g - 5, L)
   flatRoof(a, x - 1, g - 13, w + 2, 2, ROOF.stone)
   // The lamp, blue by day and lit at night, and the badge.
@@ -289,7 +320,10 @@ export function fireStation(look: Look): Art {
   wall(a, x, g - 10, w - tw, 10, WALL.brick, false)
   // The engine doors: tall, red, with a row of little panes.
   for (const dx of spread(x, w - tw, w - tw >= 14 ? 2 : 1, 6)) {
-    a.rect(dx, g - 8, 6, 8, C.red3).rect(dx, g - 8, 6, 1, C.grey9).hline(dx + 1, g - 6, 4, L.w).vline(dx + 3, g - 8, 8, C.red2)
+    a.rect(dx, g - 8, 6, 8, C.red3)
+      .rect(dx, g - 8, 6, 1, C.grey9)
+      .hline(dx + 1, g - 6, 4, L.w)
+      .vline(dx + 3, g - 8, 8, C.red2)
   }
   flatRoof(a, x - 1, g - 12, w - tw + 2, 2, ROOF.dark)
   // The tower.

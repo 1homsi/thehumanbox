@@ -34,7 +34,9 @@ function draw(kind, extra = {}) {
     const art = drawBuildingArt(look)
     if (art && (art.w > fw * 8 + 16 || art.h > fh * 8 + 26)) {
       misfits++
-      console.log(`does not fit: ${kind} ${JSON.stringify(extra)} is ${art.w}x${art.h}, cell holds ${fw * 8 + 16}x${fh * 8 + 26}`)
+      console.log(
+        `does not fit: ${kind} ${JSON.stringify(extra)} is ${art.w}x${art.h}, cell holds ${fw * 8 + 16}x${fh * 8 + 26}`,
+      )
     }
     return art
   } catch (e) {
@@ -45,6 +47,8 @@ function draw(kind, extra = {}) {
 }
 
 const HOMES = ['Hut', 'House', 'TownHouse', 'Manor', 'Apartment', 'Skyscraper']
+// A home kind never looks older than the era it first appears in, so its sheet starts there.
+const FIRST_TIER = { Hut: 0, House: 1, Manor: 3, TownHouse: 4, Apartment: 6, Skyscraper: 7 }
 const TRIBE_ROOFS = [undefined, 'slate', 'moss', 'straw']
 
 if (!only || only === 'kinds') {
@@ -52,7 +56,11 @@ if (!only || only === 'kinds') {
   const per = 40
   for (let i = 0, n = 0; i < kinds.length; i += per, n++) {
     const items = kinds.slice(i, i + per).map((kind) => ({ label: kind, art: draw(kind) }))
-    saveSheet(path.join(out, `kinds-${n}.png`), `BUILDINGS ${n + 1}`, items, PALETTE_RGB, { scale, cols: 8, ground })
+    saveSheet(path.join(out, `kinds-${n}.png`), `BUILDINGS ${n + 1}`, items, PALETTE_RGB, {
+      scale,
+      cols: 8,
+      ground,
+    })
   }
   console.log(`${kinds.length} kinds`)
 }
@@ -60,10 +68,17 @@ if (!only || only === 'kinds') {
 if (!only || only === 'homes') {
   for (const kind of HOMES) {
     const items = []
-    for (let tier = 0; tier <= 8; tier++)
+    for (let tier = FIRST_TIER[kind]; tier <= 8; tier++)
       for (const variant of [0, 1, 2, 3])
-        items.push({ label: `t${tier} v${variant}`, art: draw(kind, { tier, variant, roof: TRIBE_ROOFS[variant], night: variant === 3 ? 2 : night }) })
-    saveSheet(path.join(out, `homes-${kind}.png`), `${kind} BY ERA`, items, PALETTE_RGB, { scale: Math.min(scale, kind === 'Hut' || kind === 'House' ? 4 : 3), cols: 12, ground })
+        items.push({
+          label: `t${tier} v${variant}`,
+          art: draw(kind, { tier, variant, roof: TRIBE_ROOFS[variant], night: variant === 3 ? 2 : night }),
+        })
+    saveSheet(path.join(out, `homes-${kind}.png`), `${kind} BY ERA`, items, PALETTE_RGB, {
+      scale: Math.min(scale, kind === 'Hut' || kind === 'House' ? 4 : 3),
+      cols: 12,
+      ground,
+    })
   }
 }
 
@@ -72,8 +87,15 @@ if (!only || only === 'early') {
   for (const land of ['', 'round', 'adobe', 'snow', 'turf', 'stilt', 'longhouse'])
     for (const fw of [1, 2, 3])
       for (const variant of [0, 2, 3])
-        items.push({ label: `${land || 'plain'} ${fw} v${variant}`, art: draw('Hut', { fp: [fw, fw], tier: 0, variant, land, roof: TRIBE_ROOFS[variant] }) })
-  saveSheet(path.join(out, 'early.png'), 'EARLY HOMES BY LAND', items, PALETTE_RGB, { scale, cols: 9, ground })
+        items.push({
+          label: `${land || 'plain'} ${fw} v${variant}`,
+          art: draw('Hut', { fp: [fw, fw], tier: 0, variant, land, roof: TRIBE_ROOFS[variant] }),
+        })
+  saveSheet(path.join(out, 'early.png'), 'EARLY HOMES BY LAND', items, PALETTE_RGB, {
+    scale,
+    cols: 9,
+    ground,
+  })
 }
 
 if (misfits) {

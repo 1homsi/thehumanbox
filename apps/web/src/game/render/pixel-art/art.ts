@@ -73,7 +73,8 @@ export class Art {
 
   /** Recolours every pixel of colour `from` inside the rectangle. */
   swap(from: number, to: number, x = 0, y = 0, w = this.w, h = this.h): this {
-    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (this.get(i, j) === from) this.set(i, j, to)
+    for (let j = y; j < y + h; j++)
+      for (let i = x; i < x + w; i++) if (this.get(i, j) === from) this.set(i, j, to)
     return this
   }
 
@@ -112,7 +113,8 @@ export class Art {
     const b = this.bounds()
     if (!b) return new Art(1, 1)
     const out = new Art(b.x1 - b.x0 + 1, b.y1 - b.y0 + 1)
-    for (let y = 0; y < out.h; y++) for (let x = 0; x < out.w; x++) out.px[y * out.w + x] = this.get(b.x0 + x, b.y0 + y)
+    for (let y = 0; y < out.h; y++)
+      for (let x = 0; x < out.w; x++) out.px[y * out.w + x] = this.get(b.x0 + x, b.y0 + y)
     return out
   }
 }
@@ -121,6 +123,7 @@ export class Art {
 export function rows(name: string, ...lines: string[]): readonly string[] {
   const w = lines[0].length
   for (let i = 0; i < lines.length; i++)
-    if (lines[i].length !== w) throw new Error(`${name}: row ${i} is ${lines[i].length} wide, not ${w}: "${lines[i]}"`)
+    if (lines[i].length !== w)
+      throw new Error(`${name}: row ${i} is ${lines[i].length} wide, not ${w}: "${lines[i]}"`)
   return lines
 }

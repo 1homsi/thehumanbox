@@ -42,7 +42,8 @@ export interface HouseSpec {
   boards?: number
 }
 
-export const legendOf = (look: Look, s: HouseSpec): Legend => legend(s.roof, s.wall, isLit(look), s.alt ?? ROOF.slate)
+export const legendOf = (look: Look, s: HouseSpec): Legend =>
+  legend(s.roof, s.wall, isLit(look), s.alt ?? ROOF.slate)
 
 /** The floors of a house on the wall whose top-left is (x, y): windows in every bay, the door in one. */
 export function floors(a: Art, x: number, y: number, s: HouseSpec, L: Legend) {
@@ -79,7 +80,13 @@ export function floors(a: Art, x: number, y: number, s: HouseSpec, L: Legend) {
  * A house with its eaves to the front, standing on row `g` with its wall's left edge at `x`: the roof a long
  * slope above the wall, the ridge running left to right. Returns the row of the ridge.
  */
-export function eaveOn(a: Art, look: Look, x: number, g: number, s: HouseSpec & { roofH: number; hip?: number }): number {
+export function eaveOn(
+  a: Art,
+  look: Look,
+  x: number,
+  g: number,
+  s: HouseSpec & { roofH: number; hip?: number },
+): number {
   const L = legendOf(look, s)
   const wh = s.floors * s.floorH
   const wy = g - wh
@@ -126,7 +133,13 @@ export function gableOn(
 }
 
 /** A flat-roofed block standing on row `g`: floors under a parapet. Returns the row of the parapet. */
-export function flatOn(a: Art, look: Look, x: number, g: number, s: HouseSpec & { cornice?: number }): number {
+export function flatOn(
+  a: Art,
+  look: Look,
+  x: number,
+  g: number,
+  s: HouseSpec & { cornice?: number },
+): number {
   const L = legendOf(look, s)
   const wh = s.floors * s.floorH
   const wy = g - wh

@@ -31,7 +31,8 @@ function chunk(type, data) {
 export function writePng(path, w, h, rgba) {
   const stride = w * 4 + 1
   const raw = Buffer.alloc(stride * h)
-  for (let y = 0; y < h; y++) Buffer.from(rgba.buffer, rgba.byteOffset + y * w * 4, w * 4).copy(raw, y * stride + 1)
+  for (let y = 0; y < h; y++)
+    Buffer.from(rgba.buffer, rgba.byteOffset + y * w * 4, w * 4).copy(raw, y * stride + 1)
   const head = Buffer.alloc(13)
   head.writeUInt32BE(w, 0)
   head.writeUInt32BE(h, 4)

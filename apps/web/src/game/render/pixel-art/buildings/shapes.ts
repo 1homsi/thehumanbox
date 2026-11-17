@@ -101,7 +101,16 @@ export function battlements(a: Art, x: number, y: number, w: number, ramp: Ramp,
 }
 
 /** A stepped pyramid or stair: `steps` tiers, each `rise` tall and `run` narrower on each side than the one below. */
-export function steps(a: Art, x: number, y: number, w: number, n: number, rise: number, run: number, ramp: Ramp) {
+export function steps(
+  a: Art,
+  x: number,
+  y: number,
+  w: number,
+  n: number,
+  rise: number,
+  run: number,
+  ramp: Ramp,
+) {
   for (let s = 0; s < n; s++) {
     const inset = (n - 1 - s) * run
     const sw = w - inset * 2

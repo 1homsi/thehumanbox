@@ -1,4 +1,19 @@
-import { Art, C, DOOR, INK, ROOF, WALL, WINDOW, finish, isLit, legend, rows, slabRoof, wall } from './kit.ts'
+import {
+  Art,
+  C,
+  DOOR,
+  INK,
+  ROOF,
+  WALL,
+  WINDOW,
+  finish,
+  finishGround,
+  isLit,
+  legend,
+  rows,
+  slabRoof,
+  wall,
+} from './kit.ts'
 import type { Look } from './kit.ts'
 import { plot, spread } from './house-forms.ts'
 import { cone, dome, drum } from './shapes.ts'
@@ -38,13 +53,19 @@ export function barn(look: Look): Art {
   for (let j = 0; j < 7; j++) {
     const inset = j < 3 ? 5 - j * 1 - (j === 0 ? 1 : 0) : j < 5 ? 2 : 1
     const row = g - 15 + j
-    for (let i = x - 1 + inset; i < x + w + 1 - inset; i++) a.set(i, row, i < cx ? ROOF.dark[1] : ROOF.dark[2])
+    for (let i = x - 1 + inset; i < x + w + 1 - inset; i++)
+      a.set(i, row, i < cx ? ROOF.dark[1] : ROOF.dark[2])
     a.set(x - 1 + inset, row, ROOF.dark[0])
   }
   a.rect(cx - 3, g - 13, 8, 5, red[0]).vline(cx + 4, g - 13, 5, red[3])
   a.rect(cx - 1, g - 12, 4, 3, INK).hline(cx - 1, g - 13, 4, C.grey9)
   // The doors.
-  a.stamp(rows('doors', 'hhhhhhhh', 'hqrhhrqh', 'hrhqqhrh', 'hrhqqhrh', 'hqrhhrqh', 'hrqrrqrh'), cx - 3, g - 6, L)
+  a.stamp(
+    rows('doors', 'hhhhhhhh', 'hqrhhrqh', 'hrhqqhrh', 'hrhqqhrh', 'hqrhhrqh', 'hrqrrqrh'),
+    cx - 3,
+    g - 6,
+    L,
+  )
   return finish(a)
 }
 
@@ -55,13 +76,17 @@ export function stable(look: Look): Art {
   const L = legend(ROOF.wood, WALL.wood, isLit(look))
   wall(a, x, g - 9, w, 9, WALL.wood)
   spread(x, w, Math.floor(w / 7), 5).forEach((bx, i) => {
-    a.rect(bx, g - 7, 5, 3, INK).rect(bx, g - 4, 5, 4, C.gold2).hline(bx, g - 4, 5, C.gold3)
+    a.rect(bx, g - 7, 5, 3, INK)
+      .rect(bx, g - 4, 5, 4, C.gold2)
+      .hline(bx, g - 4, 5, C.gold3)
     a.set(bx + 2, g - 2, C.gold1)
     if (i === 1) a.stamp(rows('horse', '.e.', 'eee', '.eT'), bx + 1, g - 7, L)
   })
   slabRoof(a, x - 1, g - 14, w + 2, 5, ROOF.wood, 1)
   // A bale of hay at the end.
-  a.rect(x + w, g - 3, 3, 3, C.gold4).hline(x + w, g - 3, 3, C.gold5).hline(x + w, g - 2, 3, C.gold3)
+  a.rect(x + w, g - 3, 3, 3, C.gold4)
+    .hline(x + w, g - 3, 3, C.gold5)
+    .hline(x + w, g - 2, 3, C.gold3)
   return finish(a)
 }
 
@@ -93,8 +118,13 @@ export function greenhouse(look: Look): Art {
   if (lab) {
     const r = [7, 8, 9, 10].filter((v) => v * 2 <= w).pop() ?? 7
     dome(a, cx, g - r, r, [C.grey9, C.blue5, C.blue4, C.blue3])
-    for (let i = -r + 3; i < r; i += 4) for (let j = 0; j < r; j++) if (a.get(cx + i, g - r + j)) a.set(cx + i, g - r + j, C.grey9)
-    for (let i = -r + 2; i <= r - 1; i++) if (a.get(cx + i, g - 3)) a.set(cx + i, g - 3, isLit(look) ? C.plum5 : C.plum4).set(cx + i, g - 2, C.green3).set(cx + i, g - 1, C.green2)
+    for (let i = -r + 3; i < r; i += 4)
+      for (let j = 0; j < r; j++) if (a.get(cx + i, g - r + j)) a.set(cx + i, g - r + j, C.grey9)
+    for (let i = -r + 2; i <= r - 1; i++)
+      if (a.get(cx + i, g - 3))
+        a.set(cx + i, g - 3, isLit(look) ? C.plum5 : C.plum4)
+          .set(cx + i, g - 2, C.green3)
+          .set(cx + i, g - 1, C.green2)
     return finish(a)
   }
   const h = 8
@@ -107,15 +137,26 @@ export function greenhouse(look: Look): Art {
     a.set(cx - d, top, C.grey9).set(cx + 1 + d, top, C.grey8)
   }
   for (let i = x; i < x + w; i += 4) a.vline(i, g - h, h, C.grey9)
-  a.vline(x + w - 1, g - h, h, C.grey8).hline(x, g - h, w, C.grey9).hline(x, g - 1, w, C.grey8)
+  a.vline(x + w - 1, g - h, h, C.grey8)
+    .hline(x, g - h, w, C.grey9)
+    .hline(x, g - 1, w, C.grey8)
   // The plants: a green row along the bench, and three red fruits.
-  for (let i = x + 1; i < x + w - 1; i++) if (a.get(i, g - 3) === C.blue4) a.set(i, g - 3, C.green3).set(i, g - 2, C.green2)
-  a.set(x + 2, g - 4, C.red4).set(x + 6, g - 4, C.red4).set(x + w - 4, g - 4, C.red4)
+  for (let i = x + 1; i < x + w - 1; i++)
+    if (a.get(i, g - 3) === C.blue4) a.set(i, g - 3, C.green3).set(i, g - 2, C.green2)
+  a.set(x + 2, g - 4, C.red4)
+    .set(x + 6, g - 4, C.red4)
+    .set(x + w - 4, g - 4, C.red4)
   return finish(a)
 }
 
 /** A plot of ground with something planted on it in rows: the vineyard, the orchard, the garden. */
-function plantedPlot(look: Look, soil: number, draw: (a: Art, x: number, y: number, col: number, row: number) => void, stepX: number, stepY: number): Art {
+function plantedPlot(
+  look: Look,
+  soil: number,
+  draw: (a: Art, x: number, y: number, col: number, row: number) => void,
+  stepX: number,
+  stepY: number,
+): Art {
   const w = look.fw * 8
   const h = look.fh * 8
   const a = new Art(w + 4, h + 6)
@@ -125,24 +166,30 @@ function plantedPlot(look: Look, soil: number, draw: (a: Art, x: number, y: numb
   return a
 }
 
-/** A vineyard: vines trained along wires, heavy with purple grapes. */
+/** A vineyard: rows of vines on bare soil, each a post, a spread of leaf and a bunch of grapes. */
 export function vineyard(look: Look): Art {
   const a = plantedPlot(
     look,
-    C.tan2,
-    (art, x, y, col) => {
-      art.vline(x, y - 4, 5, C.gold1)
-      art.rect(x + 1, y - 4, 3, 2, C.green2).hline(x + 1, y - 4, 3, C.green3)
-      art.set(x + 1 + (col % 2), y - 2, C.plum2).set(x + 2 + (col % 2), y - 2, C.plum3).set(x + 1 + (col % 2), y - 1, C.plum2)
+    C.tan3,
+    (art, x, y, col, row) => {
+      const shift = row % 2 ? 2 : 0
+      if (x + shift + 3 > art.w - 2) return
+      art.vline(x + shift + 1, y - 3, 4, C.gold1)
+      art
+        .hline(x + shift, y - 4, 4, C.green3)
+        .hline(x + shift, y - 3, 4, C.green2)
+        .set(x + shift + 1, y - 3, C.gold1)
+      art
+        .set(x + shift + (col % 2 ? 0 : 3), y - 2, C.plum3)
+        .set(x + shift + (col % 2 ? 0 : 3), y - 1, C.plum2)
     },
-    4,
-    7,
+    6,
+    6,
   )
-  for (let y = 5; y < a.h - 2; y += 7) a.hline(2, y, a.w - 4, C.tan3)
-  return finish(a)
+  return finishGround(a, C.tan1)
 }
 
-/** An orchard: fruit trees in rows on mown grass. */
+/** An orchard: fruit trees in rows on mown grass, each with its trunk and its apples. */
 export function orchard(look: Look): Art {
   const L = legend(ROOF.moss, WALL.wood)
   const a = plantedPlot(
@@ -155,7 +202,7 @@ export function orchard(look: Look): Art {
     6,
     8,
   )
-  return finish(a)
+  return finishGround(a, C.green1)
 }
 
 /** A garden: beds of flowers round a path, and a clipped hedge at the back. */
@@ -177,38 +224,48 @@ export function garden(look: Look): Art {
       for (let i = 0; i < bw; i += 2) a.set(bx + i, by + 1 + (i % 4 ? 1 : 0), flowers[n % 4])
       n++
     }
-  return finish(a)
+  return finishGround(a, C.green1)
 }
 
-/** A mushroom farm: logs in the shade, pale caps growing along them. */
+/** A mushroom farm: beds of dark compost, and red-capped mushrooms standing in rows on them. */
 export function mushroomFarm(look: Look): Art {
   const a = plantedPlot(
     look,
-    C.tan1,
-    (art, x, y, col) => {
-      art.hline(x, y, 5, C.gold1).hline(x, y - 1, 5, C.gold2)
-      art.rect(x + (col % 2), y - 3, 2, 2, C.grey9).set(x + (col % 2), y - 3, C.red4).set(x + 3, y - 2, C.tan5)
+    C.tan0,
+    (art, x, y, col, row) => {
+      const shift = row % 2 ? 3 : 0
+      if (x + shift + 3 > art.w - 2) return
+      art
+        .hline(x + shift, y - 3, 3, C.red4)
+        .set(x + shift + (col % 2 ? 0 : 2), y - 3, C.grey9)
+        .set(x + shift + 1, y - 4, C.red4)
+      art.set(x + shift + 1, y - 2, C.tan5).set(x + shift + 1, y - 1, C.tan4)
     },
-    7,
+    6,
     5,
   )
-  return finish(a)
+  for (let y = 4 + 5; y < a.h - 3; y += 5) a.hline(2, y, a.w - 4, C.tan1)
+  return finishGround(a, C.gold0)
 }
 
-/** A pen: a fenced yard of trodden earth, a trough and a gate. */
+/** A pen: a fenced square of grass, trodden bare by the gate, a trough, and a sheep and a pig in it. */
 export function pen(look: Look): Art {
   const w = look.fw * 8
   const h = look.fh * 8
   const a = new Art(w + 4, h + 8)
   const g = a.h - 2
-  a.rect(2, g - h, w, h, C.tan2)
-  a.rect(4, g - h + 3, 3, 2, C.tan3).rect(w - 4, g - 5, 3, 2, C.tan3).rect(8, g - 4, 2, 1, C.tan1)
+  const L = legend(ROOF.tile, WALL.wood)
+  a.rect(2, g - h, w, h, C.green3)
+  a.rect(2 + (w >> 1) - 3, g - 5, 6, 5, C.tan3).rect(5, g - h + 6, 4, 2, C.green2)
+  // The animals: a white sheep with a dark face, a pink pig.
+  a.stamp(rows('sheep', '.hhh.', 'ohhhh', '.o.o.'), 4, g - h + 8, L)
+  a.stamp(rows('pig', 'PPPP.', 'PPPPo', '.q.q.'), w - 6, g - 7, { ...L, P: C.plum5, q: C.plum3 })
+  // The trough along the back rail.
+  a.rect(w - 6, g - h + 5, 6, 2, C.gold1).hline(w - 5, g - h + 5, 4, C.blue4)
   rail(a, 2, g - h + 3, w)
   a.vline(2, g - h, h, C.gold2).vline(w + 1, g - h, h, C.gold2)
-  rail(a, 2, g, w)
-  // The trough, and the gate standing ajar.
-  a.rect(w - 5, g - h + 5, 5, 2, C.gold1).hline(w - 4, g - h + 5, 3, C.blue4)
-  a.rect(2 + (w >> 1) - 2, g - 4, 4, 4, C.tan2).vline(2 + (w >> 1) + 2, g - 5, 5, C.gold3)
+  rail(a, 2, g, (w >> 1) - 2)
+  rail(a, 2 + (w >> 1) + 2, g, (w >> 1) - 2)
   return finish(a)
 }
 
@@ -227,16 +284,17 @@ export function granary(look: Look): Art {
   return finish(a)
 }
 
-/** A market: a paved square with rows of stalls under striped awnings. */
+/** A market: a paved square, and on it stalls under striped awnings, each selling something else. */
 export function market(look: Look): Art {
   const w = look.fw * 8
   const h = look.fh * 8
   const a = new Art(w + 4, h + 10)
   const g = a.h - 2
-  const L = legend(ROOF.tile, WALL.stone)
-  a.rect(2, g - h, w, h, C.tan4)
-  // Paving: joints in a brick bond.
-  for (let j = g - h + 2; j < g; j += 3) for (let i = 2 + (((j - g) / 3) & 1 ? 0 : 3); i < w + 2; i += 6) a.set(i, j, C.tan3)
+  a.rect(2, g - h, w, h, C.tan5)
+  // Paving: joints in a brick bond, drawn sparsely.
+  for (let j = g - h + 2; j < g; j += 4)
+    for (let i = 2 + ((j >> 2) & 1 ? 1 : 5); i < w + 1; i += 8) a.set(i, j, C.tan4)
+  a.outline(C.tan3)
   const awnings: [number, number][] = [
     [C.red4, C.grey9],
     [C.blue3, C.grey9],
@@ -247,15 +305,24 @@ export function market(look: Look): Art {
   ]
   const goods = [C.red4, C.gold5, C.green3, C.tan2, C.blue4, C.plum4]
   let n = 0
-  for (let y = g - h + 8; y <= g - 1; y += 9)
-    for (const sx of spread(2, w, Math.floor(w / 10), 8)) {
+  // Each stall is its own inked thing standing on the paving: awning, posts, a counter of goods.
+  for (let y = g - h + 10; y <= g - 1; y += 11) {
+    const count = Math.max(1, Math.floor((w - 2) / 11))
+    for (const sx of spread(2, w, count, 9)) {
       const [c0, c1] = awnings[n % awnings.length]
-      for (let i = 0; i < 8; i++) a.set(sx + i, y - 7, i % 2 ? c1 : c0).set(sx + i, y - 6, i % 2 ? C.grey8 : c0)
-      a.vline(sx, y - 5, 5, C.gold2).vline(sx + 7, y - 5, 5, C.gold1)
-      a.hline(sx + 1, y - 2, 6, C.gold3).hline(sx + 1, y - 1, 6, C.gold2)
-      for (let i = 1; i < 7; i += 2) a.set(sx + i, y - 3, goods[(n + i) % goods.length])
+      a.rect(sx - 1, y - 9, 11, 10, C.gold0)
+      for (let i = 0; i < 9; i++)
+        a.set(sx + i, y - 8, (i >> 1) % 2 ? c1 : c0)
+          .set(sx + i, y - 7, (i >> 1) % 2 ? c1 : c0)
+          .set(sx + i, y - 6, (i >> 1) % 2 ? C.grey7 : c0)
+      a.rect(sx, y - 5, 9, 2, C.gold0)
+        .vline(sx, y - 5, 5, C.gold2)
+        .vline(sx + 8, y - 5, 5, C.gold1)
+      a.rect(sx + 1, y - 3, 7, 3, C.gold2).hline(sx + 1, y - 3, 7, C.gold3)
+      for (let i = 0; i < 3; i++)
+        a.rect(sx + 1 + i * 2 + (i ? 1 : 0), y - 4, 2, 1, goods[(n + i * 2) % goods.length])
       n++
     }
-  void L
-  return finish(a)
+  }
+  return a.trim()
 }

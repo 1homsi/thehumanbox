@@ -30,20 +30,55 @@ export interface Look {
  */
 export function legend(roof: Ramp, wall: Ramp, lit = false, alt: Ramp = ROOF.slate): Legend {
   return {
-    1: roof[0], 2: roof[1], 3: roof[2], 4: roof[3],
-    a: wall[0], b: wall[1], c: wall[2], d: wall[3],
-    5: alt[0], 6: alt[1], 7: alt[2], 8: alt[3],
-    w: lit ? C.gold5 : C.blue4, x: lit ? C.gold4 : C.blue2,
+    1: roof[0],
+    2: roof[1],
+    3: roof[2],
+    4: roof[3],
+    a: wall[0],
+    b: wall[1],
+    c: wall[2],
+    d: wall[3],
+    5: alt[0],
+    6: alt[1],
+    7: alt[2],
+    8: alt[3],
+    w: lit ? C.gold5 : C.blue4,
+    x: lit ? C.gold4 : C.blue2,
     k: INK,
-    e: C.gold2, f: C.gold1, g: C.gold3, G: C.tan2,
-    s: C.grey8, t: C.grey7, u: C.grey6, v: C.grey5, z: C.grey4,
-    h: C.grey9, o: C.grey3, O: C.grey2,
-    y: C.gold5, Y: C.gold4,
-    r: C.red3, R: C.red4, q: C.red2, Q: C.red1,
-    n: C.green2, N: C.green3, m: C.green1, M: C.green4,
-    l: C.blue4, L: C.blue3, j: C.blue2, J: C.blue1, i: C.blue5,
-    p: C.plum2, P: C.plum4,
-    T: C.tan5, U: C.tan4, V: C.tan3, H: C.tan1, I: C.tan0,
+    e: C.gold2,
+    f: C.gold1,
+    g: C.gold3,
+    G: C.tan2,
+    s: C.grey8,
+    t: C.grey7,
+    u: C.grey6,
+    v: C.grey5,
+    z: C.grey4,
+    h: C.grey9,
+    o: C.grey3,
+    O: C.grey2,
+    y: C.gold5,
+    Y: C.gold4,
+    r: C.red3,
+    R: C.red4,
+    q: C.red2,
+    Q: C.red1,
+    n: C.green2,
+    N: C.green3,
+    m: C.green1,
+    M: C.green4,
+    l: C.blue4,
+    L: C.blue3,
+    j: C.blue2,
+    J: C.blue1,
+    i: C.blue5,
+    p: C.plum2,
+    P: C.plum4,
+    T: C.tan5,
+    U: C.tan4,
+    V: C.tan3,
+    H: C.tan1,
+    I: C.tan0,
   }
 }
 
@@ -55,7 +90,16 @@ export const isLit = (look: Look) => look.night >= 1
  * main tone with a course of tiles every third row, the right end in shade, and a dark eave along the bottom.
  * `hip` rounds the top corners off, one pixel every two rows.
  */
-export function slabRoof(a: Art, x: number, y: number, w: number, h: number, r: Ramp, hip = 2, courses = true) {
+export function slabRoof(
+  a: Art,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: Ramp,
+  hip = 2,
+  courses = true,
+) {
   for (let j = 0; j < h; j++) {
     const inset = Math.max(0, hip - (j >> 1))
     for (let px = x + inset; px < x + w - inset; px++) {
@@ -107,15 +151,28 @@ export function gable(
   return bottom
 }
 
+/** Materials built of blocks: a wall of them carries a few drawn joints, so it is not a blank panel. */
+const BLOCKY = new Set<Ramp>([WALL.brick, WALL.darkBrick, WALL.stone, WALL.darkStone])
+
 /**
- * A wall seen from the front: the lit tone, a band of shadow under the eave, the right edge in shade and a
- * darker footing. No courses and no texture: a wall is a flat tone, and what is on it is drawn on purpose.
+ * A wall seen from the front, lit from the top-left: the lit tone, a band of shadow under the eave, the right
+ * side in shade and a darker footing. A brick or stone wall also gets a few joints, placed in the two corners
+ * the eye skips (low on the lit side, high on the shaded side): enough to say what it is built of, with none
+ * of the all-over grid that reads as a filled texture.
  */
 export function wall(a: Art, x: number, y: number, w: number, h: number, r: Ramp, eave = true) {
   a.rect(x, y, w, h, r[0])
-  a.vline(x + w - 1, y, h, r[1])
+  const side = w >= 14 ? 2 : 1
+  a.rect(x + w - side, y, side, h, r[1])
   if (eave) a.hline(x, y, w, r[2])
   a.hline(x, y + h - 1, w, r[2])
+  if (BLOCKY.has(r) && w >= 12 && h >= 9) {
+    const bottom = y + h - 1
+    a.hline(x + 1, bottom - 2, 2, r[1])
+      .hline(x + 4, bottom - 4, 2, r[1])
+      .set(x + 2, bottom - 4, r[1])
+    a.hline(x + w - side - 3, y + 2, 2, r[1]).set(x + w - side - 5, y + 4, r[1])
+  }
 }
 
 /** A flat roof behind a parapet: the top surface lit, the parapet's inner edge in shade. */
@@ -173,6 +230,14 @@ export const CHIMNEY = {
 /** Finishes a drawing: the ink outline round its silhouette, then cut down to what was drawn. */
 export function finish(a: Art): Art {
   return a.outline(INK).trim()
+}
+
+/**
+ * Finishes something that lies on the ground (a plot, a pond, paving): it is edged in a darker tone of
+ * itself, not in ink, because it is part of the land and not a thing standing on it.
+ */
+export function finishGround(a: Art, edge: number): Art {
+  return a.outline(edge).trim()
 }
 
 /** A blank sheet with room for any building of this footprint and the outline round it. */

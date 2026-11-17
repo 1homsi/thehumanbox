@@ -15,6 +15,21 @@ Quick look at one scenario while working on something:
 node bench/run.mjs --builds main=dist --fixtures crowd --zooms close --modes playing --runs 1
 ```
 
+## Art sheets
+
+`art-sheet.mjs` writes labelled contact sheets of the drawn sprites straight from their pixel grids: no browser,
+no build, about a second. Use it to review art before and after a change, at 4x and at 1x.
+
+```sh
+node bench/art-sheet.mjs --out /tmp/art                 # every kind, every home by era, the first homes by land
+node bench/art-sheet.mjs --out /tmp/art --scale 1       # as the map shows them
+node bench/art-sheet.mjs --out /tmp/art --only kinds --kinds Bakery,Forge --night 2
+```
+
+It prints every sprite that does not fit the cell the map bakes it into (footprint plus padding) and exits 1
+if any does. `buildings-sheet.mjs` is the browser version: it paints through the map's own canvas path, so it
+also shows the cast shadow, construction and damage.
+
 ## Dialog screenshots
 
 `modal-shots.mjs` opens every dialog, drawer and overlay (about, achievements, civilization, confirm,

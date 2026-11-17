@@ -81,7 +81,6 @@ export function watchtower(look: Look): Art {
   const w = W(look, 12)
   const { a, g, x } = plot(look, w)
   const legs = Math.min(18, look.fh * 8)
-  const L = legend(ROOF.straw, WALL.wood, isLit(look))
   // Legs, cross-braced.
   a.vline(x + 1, g - legs, legs, C.gold1).vline(x + w - 2, g - legs, legs, C.gold2)
   for (let j = 0; j < legs - 2; j++) {
@@ -98,37 +97,49 @@ export function watchtower(look: Look): Art {
   a.rect(x + 2, g - legs - 5, w - 4, 2, INK)
   a.vline(x, g - legs - 10, 4, C.gold1).vline(x + w - 1, g - legs - 10, 4, C.gold1)
   slabRoof(a, x - 2, g - legs - 14, w + 4, 4, ROOF.straw, 2, false)
-  void L
   return finish(a)
 }
 
-/** A stretch of town wall. It is drawn without ink on its two ends, so a row of them joins up. */
+/** A stretch of town wall: merlons, a walk, courses of block. Drawn without ink on its two ends, so a row joins up. */
 export function townWall(look: Look): Art {
   const w = look.fw * 8
-  const a = new Art(w + 2, 14)
-  const g = 13
-  wall(a, 1, g - 8, w, 8, STONE, false)
-  a.hline(1, g - 8, w, C.grey7)
-  battlements(a, 1, g - 10, w, STONE)
-  // A course line, and two joints.
-  a.hline(1, g - 4, w, C.grey5).set(3, g - 6, C.grey5).set(6, g - 2, C.grey5)
+  const a = new Art(w + 2, 13)
+  const course = rows(
+    'wall',
+    'ss.ss.ss',
+    'tt.tt.tt',
+    'ssssssss',
+    'tttuttut',
+    'tttttttt',
+    'uttttutt',
+    'tttttttt',
+    'tutttttu',
+    'vvvvvvvv',
+  )
+  const L = legend(ROOF.slate, STONE)
+  for (let i = 0; i < w; i += 8) a.stamp(course, 1 + i, 2, L)
   a.outline(INK)
   for (let y = 0; y < a.h; y++) a.set(0, y, 0).set(a.w - 1, y, 0)
   return a.trim()
 }
 
-/** A town gate: an arch through the wall with its doors, and a room over it. */
+/** A town gate: two capped posts, an arch between them, and the portcullis hanging in it. */
 export function gate(look: Look): Art {
   const w = look.fw * 8
-  const a = new Art(w + 4, 20)
-  const g = 19
+  const a = new Art(w + 4, 22)
+  const g = 21
   const x = 2
-  wall(a, x, g - 13, w, 13, STONE, false)
-  a.hline(x, g - 13, w, C.grey7)
-  battlements(a, x, g - 15, w, STONE)
-  a.rect(x + 2, g - 7, w - 4, 7, C.gold1).hline(x + 3, g - 8, w - 6, C.gold1)
-  a.vline(x + (w >> 1) - 1, g - 7, 7, C.gold0).vline(x + (w >> 1), g - 7, 7, C.gold2)
-  a.set(x + (w >> 1) - 1, g - 11, C.grey2).set(x + (w >> 1), g - 11, C.grey2)
+  // The posts, taller than the wall, and the arch that joins them.
+  a.rect(x, g - 15, 2, 15, C.grey7)
+    .vline(x, g - 15, 15, C.grey8)
+    .rect(x + w - 2, g - 15, 2, 15, C.grey6)
+    .vline(x + w - 1, g - 15, 15, C.grey5)
+  a.hline(x - 1, g - 16, 4, C.grey9).hline(x + w - 3, g - 16, 4, C.grey8)
+  a.rect(x + 2, g - 12, w - 4, 3, C.grey7).hline(x + 2, g - 12, w - 4, C.grey9)
+  // The opening, and the portcullis: bars with their points.
+  a.rect(x + 2, g - 9, w - 4, 9, INK)
+  for (let i = x + 2; i < x + w - 2; i += 2) a.vline(i, g - 9, 6, C.grey5)
+  a.hline(x + 2, g - 7, w - 4, C.grey5)
   return finish(a)
 }
 
@@ -145,27 +156,59 @@ export function tower(look: Look): Art {
   return finish(a)
 }
 
-/** A lighthouse: a tapering tower in bands of colour, a gallery, and the lantern. */
+/**
+ * A lighthouse: a tapering tower in bands of red and white, a gallery, and the lantern. The harbour light is
+ * another thing altogether: a short white tower on a stone pier head, showing green.
+ */
 export function lighthouse(look: Look): Art {
   const { a, g, cx } = plot(look, 12)
+  const lit = isLit(look)
+  if (look.kind === 'Lighthouse2') {
+    // The pier head: rough stone, wider than the tower.
+    a.rect(cx - 5, g - 5, 12, 5, C.grey6)
+      .hline(cx - 5, g - 5, 12, C.grey8)
+      .rect(cx + 5, g - 4, 2, 4, C.grey5)
+    a.set(cx - 3, g - 3, C.grey5)
+      .set(cx + 1, g - 2, C.grey5)
+      .hline(cx - 6, g - 1, 14, C.blue3)
+    const h = 12
+    for (let j = 0; j < h; j++)
+      for (let i = -2; i <= 3; i++)
+        a.set(
+          cx + i,
+          g - 5 - h + j,
+          j === 5 || j === 6 ? (i > 1 ? C.green2 : C.green3) : i > 1 ? C.grey7 : C.grey9,
+        )
+    a.rect(cx, g - 9, 2, 4, C.gold1)
+    a.hline(cx - 3, g - 5 - h, 8, C.grey4)
+    a.rect(cx - 1, g - 9 - h, 4, 4, lit ? C.green4 : C.green3).vline(
+      cx,
+      g - 9 - h,
+      4,
+      lit ? C.grey9 : C.green4,
+    )
+    a.hline(cx - 2, g - 10 - h, 6, C.green1).hline(cx, g - 11 - h, 2, C.green2)
+    return finish(a)
+  }
   const h = Math.min(30, look.fh * 8 + 6)
-  const band = look.kind === 'Lighthouse2' ? C.blue3 : C.red4
-  const bandShade = look.kind === 'Lighthouse2' ? C.blue2 : C.red3
   for (let j = 0; j < h; j++) {
     const half = j < h * 0.33 ? 3 : j < h * 0.66 ? 4 : 5
     const stripe = Math.floor(j / 5) % 2 === 0
     for (let i = -half + 1; i <= half; i++) {
       const shade = i > half - 2
-      a.set(cx + i, g - h + j, stripe ? (shade ? bandShade : band) : shade ? C.grey7 : C.grey9)
+      a.set(cx + i, g - h + j, stripe ? (shade ? C.red3 : C.red4) : shade ? C.grey7 : C.grey9)
     }
   }
   a.rect(cx, g - 4, 2, 4, C.gold1)
   a.set(cx, g - Math.round(h * 0.6), C.grey2).set(cx, g - Math.round(h * 0.6) + 1, C.grey2)
   // The gallery and the lantern room.
   a.hline(cx - 4, g - h, 10, C.grey3).hline(cx - 4, g - h - 1, 10, C.grey5)
-  const lit = isLit(look)
-  a.rect(cx - 2, g - h - 5, 6, 4, lit ? C.gold5 : C.blue5).vline(cx, g - h - 5, 4, lit ? C.grey9 : C.blue4).vline(cx + 3, g - h - 5, 4, lit ? C.gold4 : C.blue3)
-  a.hline(cx - 3, g - h - 6, 8, bandShade).hline(cx - 2, g - h - 7, 6, band).hline(cx, g - h - 8, 2, band)
+  a.rect(cx - 2, g - h - 5, 6, 4, lit ? C.gold5 : C.blue5)
+    .vline(cx, g - h - 5, 4, lit ? C.grey9 : C.blue4)
+    .vline(cx + 3, g - h - 5, 4, lit ? C.gold4 : C.blue3)
+  a.hline(cx - 3, g - h - 6, 8, C.red3)
+    .hline(cx - 2, g - h - 7, 6, C.red4)
+    .hline(cx, g - h - 8, 2, C.red4)
   a.vline(cx, g - h - 10, 2, C.grey5)
   if (lit) {
     // The beam, sweeping left.
@@ -183,8 +226,16 @@ export function clockTower(look: Look): Art {
   wall(a, x, g - h, w, h, WALL.brick, false)
   a.hline(x, g - h + 9, w, C.grey8).hline(x, g - 7, w, C.red2)
   // The clock: a pale face in a dark ring, the hands at ten past ten.
-  a.rect(x + 2, g - h + 1, w - 4, 7, C.gold1).rect(x + 3, g - h + 2, w - 6, 5, isLit(look) ? C.gold5 : C.grey9)
-  a.vline(cx, g - h + 3, 3, C.grey2).set(cx + 1, g - h + 3, C.grey2).set(cx - 1, g - h + 3, C.grey2)
+  a.rect(x + 2, g - h + 1, w - 4, 7, C.gold1).rect(
+    x + 3,
+    g - h + 2,
+    w - 6,
+    5,
+    isLit(look) ? C.gold5 : C.grey9,
+  )
+  a.vline(cx, g - h + 3, 3, C.grey2)
+    .set(cx + 1, g - h + 3, C.grey2)
+    .set(cx - 1, g - h + 3, C.grey2)
   a.stamp(WINDOW.slit, cx, g - h + 12, L).stamp(DOOR.arch, cx - 1, g - 6, L)
   a.hline(x - 1, g - h - 1, w + 2, C.grey8)
   cone(a, cx, g - h - 9, w + 2, 8, ROOF.slate, 2, false)
@@ -203,7 +254,9 @@ export function observatory(look: Look): Art {
   dome(a, cx, g - 9 - r, r, [C.grey9, C.grey9, C.grey8, C.grey7])
   // The slit, and the telescope pointing out of it.
   for (let j = 1; j < r; j++) a.rect(cx + 1, g - 9 - r + j, 2, 1, C.blue1)
-  a.rect(cx + 2, g - 11 - r, 2, 4, C.grey4).rect(cx + 3, g - 13 - r, 2, 3, C.grey5).set(cx + 4, g - 14 - r, C.blue4)
+  a.rect(cx + 2, g - 11 - r, 2, 4, C.grey4)
+    .rect(cx + 3, g - 13 - r, 2, 3, C.grey5)
+    .set(cx + 4, g - 14 - r, C.blue4)
   a.stamp(DOOR.low, cx - 4, g - 4, L)
   a.set(x, g - 1, C.grey6)
   return finish(a)
@@ -214,7 +267,9 @@ export function waterTower(look: Look): Art {
   const w = W(look, 12) - 2
   const { a, g, x, cx } = plot(look, w)
   const legs = Math.min(12, look.fh * 6)
-  a.vline(x + 1, g - legs, legs, C.grey4).vline(x + w - 2, g - legs, legs, C.grey4).vline(cx, g - legs, legs, C.grey5)
+  a.vline(x + 1, g - legs, legs, C.grey4)
+    .vline(x + w - 2, g - legs, legs, C.grey4)
+    .vline(cx, g - legs, legs, C.grey5)
   for (let j = 0; j < legs; j++) a.set(x + 2 + (j % (w - 4)), g - legs + j, C.grey4)
   drum(a, x, g - legs - 9, w, 9, [C.blue5, C.blue4, C.blue3, C.blue2])
   a.hline(x, g - legs - 6, w, C.grey5).hline(x, g - legs - 2, w, C.grey5)
@@ -235,27 +290,30 @@ export function radioTower(look: Look): Art {
     // The lattice: a diagonal that reverses every band.
     const t = j % 5
     const span = half * 2 - 1
-    if (span > 1) a.set(cx - half + 1 + Math.round((Math.floor(j / 5) % 2 ? t : 4 - t) * (span / 4)), g - h + j, C.grey5)
+    if (span > 1)
+      a.set(cx - half + 1 + Math.round((Math.floor(j / 5) % 2 ? t : 4 - t) * (span / 4)), g - h + j, C.grey5)
     if (t === 0) a.hline(cx - half + 1, g - h + j, half * 2, c)
   }
   a.vline(cx, g - h - 4, 4, C.grey5).set(cx, g - h - 5, isLit(look) ? C.red5 : C.red4)
   a.rect(cx + 2, g - h + 8, 3, 3, C.grey8).set(cx + 4, g - h + 9, C.grey6)
   // The equipment hut.
-  a.rect(cx - 6, g - 5, 5, 5, C.grey8).hline(cx - 6, g - 5, 5, C.grey9).rect(cx - 5, g - 3, 2, 3, C.grey4)
+  a.rect(cx - 6, g - 5, 5, 5, C.grey8)
+    .hline(cx - 6, g - 5, 5, C.grey9)
+    .rect(cx - 5, g - 3, 2, 3, C.grey4)
   return finish(a)
 }
 
-/** A sail: a lattice arm from the hub, running out by (dx, dy) per pixel, with its canvas along one side. */
+/**
+ * A sail: an arm from the hub running out by (dx, dy) per pixel, and a canvas two pixels deep along its
+ * trailing side, pale on the arm and a tone darker at its edge. Four of these make a clean cross.
+ */
 function sail(a: Art, hx: number, hy: number, dx: number, dy: number, len: number) {
-  for (let i = 2; i <= len; i++) {
+  for (let i = 1; i <= len; i++) {
     const px = hx + dx * i
     const py = hy + dy * i
     a.set(px, py, C.gold1)
-    if (i > 3) {
-      // The canvas lies on the trailing side of the arm.
-      a.set(px - dy, py + dx, C.tan5)
-      if (i % 2 === 0) a.set(px - dy * 2, py + dx * 2, C.tan4)
-    }
+    if (i > 2)
+      a.set(px - dy, py + dx, C.grey9).set(px - dy * 2, py + dx * 2, i === len || i === 3 ? C.gold1 : C.tan4)
   }
 }
 
@@ -277,18 +335,33 @@ export function windmill(look: Look): Art {
     // A tapering stone tower, white-washed, under a boat-shaped cap.
     for (let j = 0; j < h; j++) {
       const half = j < 6 ? 4 : j < 12 ? 5 : 6
-      for (let i = -half + 1; i <= half; i++) a.set(cx + i, g - h + j, i > half - 2 ? C.tan4 : i === -half + 1 ? C.grey9 : C.tan5)
+      for (let i = -half + 1; i <= half; i++)
+        a.set(cx + i, g - h + j, i > half - 2 ? C.tan4 : i === -half + 1 ? C.grey9 : C.tan5)
     }
     a.stamp(DOOR.low, cx - 1, g - 4, L).stamp(WINDOW.small, cx - 1, g - 12, L)
-    a.hline(cx - 4, g - h, 10, C.grey4).hline(cx - 3, g - h - 1, 8, C.grey5).hline(cx - 2, g - h - 2, 6, C.grey5).hline(cx - 1, g - h - 3, 4, C.grey6)
+    a.hline(cx - 4, g - h, 10, C.grey4)
+      .hline(cx - 3, g - h - 1, 8, C.grey5)
+      .hline(cx - 2, g - h - 2, 6, C.grey5)
+      .hline(cx - 1, g - h - 3, 4, C.grey6)
   }
   // Four sails from the hub.
   const hx = cx + 1
   const hy = g - h + 1
-  sail(a, hx, hy, -1, -1, 9)
-  sail(a, hx, hy, 1, -1, 9)
-  sail(a, hx, hy, 1, 1, 9)
-  sail(a, hx, hy, -1, 1, 9)
+  // The tower mill's sails stand as a saltire; the post mill's, mid-turn, as an upright cross.
+  const arms: [number, number][] = post
+    ? [
+        [0, -1],
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+      ]
+    : [
+        [-1, -1],
+        [1, -1],
+        [1, 1],
+        [-1, 1],
+      ]
+  for (const [dx, dy] of arms) sail(a, hx, hy, dx, dy, post ? 8 : 9)
   a.rect(hx - 1, hy - 1, 2, 2, C.gold1)
   return finish(a)
 }
@@ -305,9 +378,22 @@ export function watermill(look: Look): Art {
   const wx = x + w + 4
   const wy = g - 6
   a.rect(x + w - 1, g - 2, 10, 2, C.blue3).hline(x + w - 1, g - 2, 10, C.blue4)
-  const rim = rows('wheel', '..eeeee..', '.ee.e.ee.', 'ee..e..ee', 'e.e.e.e.e', 'eeeeoeeee', 'e.e.e.e.e', 'ee..e..ee', '.ee.e.ee.', '..eeeee..')
+  const rim = rows(
+    'wheel',
+    '..eeeee..',
+    '.ee.e.ee.',
+    'ee..e..ee',
+    'e.e.e.e.e',
+    'eeeeoeeee',
+    'e.e.e.e.e',
+    'ee..e..ee',
+    '.ee.e.ee.',
+    '..eeeee..',
+  )
   a.stamp(rim, wx - 4, wy - 4, L)
-  a.set(wx - 5, wy, C.gold1).set(wx + 5, wy, C.gold1).set(wx, wy - 5, C.gold1)
+  a.set(wx - 5, wy, C.gold1)
+    .set(wx + 5, wy, C.gold1)
+    .set(wx, wy - 5, C.gold1)
   a.hline(x + w, wy, 2, C.gold1)
   return finish(a)
 }

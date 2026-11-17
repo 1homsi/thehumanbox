@@ -1,28 +1,36 @@
 import type { BuildingState } from '../../model/building-state'
 import type { BuildingLike, BuildingVisualDetail } from './types'
-import { hasBuildingSprite, PAD, PAD_BOT } from '../building-sprites'
-import { drawPixelLine, visualHash } from './primitives'
+import { PAD, PAD_BOT } from '../building-sprites'
+import { visualHash } from './primitives'
 import { normKind, resolveBuildingFootprint } from './footprints'
-import { roofColor, wallColor } from './colors'
 import { finishedSprite } from './finished-sprite'
+import { C, hexOf } from '../pixel-art/palette.ts'
 
 /** How far through the build the walls start to rise; the cleared plot and foundation come first. */
 const RISE_FROM = 0.16
 /** The chalk line marking out the planned building above the part already standing. */
-const PLAN_LINE = '#d9c79c'
+const PLAN_LINE = hexOf(C.tan5)
 /** Pips in the progress marker over a site seen up close. */
 export const PROGRESS_PIPS = 5
 
-const FRAME = '#76502f'
-const FRAME_LIGHT = '#a87945'
-const BRACE = '#5d3c25'
-const SCAFFOLD = '#c99a52'
+const FRAME = hexOf(C.gold2)
+const SCAFFOLD = hexOf(C.gold4)
+const EARTH = hexOf(C.tan1)
+const FOOTING_EDGE = hexOf(C.gold0)
+const FOOTING = hexOf(C.grey6)
+const FOOTING_LIGHT = hexOf(C.grey8)
+const TIMBER = hexOf(C.gold3)
+const TIMBER_DARK = hexOf(C.gold1)
+const STONE = hexOf(C.grey5)
+const STONE_LIGHT = hexOf(C.grey7)
+const STAKE = hexOf(C.gold1)
+const PIP_ON = hexOf(C.gold5)
+const PIP_OFF = hexOf(C.tan4)
 
 /**
  * A building under construction: a cleared plot and foundation, then the building itself rising
- * course by course, so each site already reads as the house, dock or temple it will be. A kind with
- * a sprite reveals that sprite from the ground up under a dotted chalk outline of the whole; a kind drawn
- * by hand gets a timber frame in its own wall and roof colours. Scaffolding stands around the
+ * course by course, so each site already reads as the house, dock or temple it will be: its sprite is
+ * revealed from the ground up under a dotted chalk outline of the whole. Scaffolding stands around the
  * rising part, and up close a row of pips shows how far along it is.
  */
 export function drawConstructionSite(
@@ -51,18 +59,18 @@ export function drawConstructionSite(
 
   // Cleared earth and a foundation make even a zero-progress reservation
   // distinguishable from an operational building.
-  ctx.fillStyle = '#493727'
+  ctx.fillStyle = EARTH
   ctx.fillRect(
     x,
     groundY - Math.max(2, Math.round(tileSize * 0.3)),
     width,
     Math.max(2, Math.round(tileSize * 0.3)),
   )
-  ctx.fillStyle = '#30251d'
+  ctx.fillStyle = FOOTING_EDGE
   ctx.fillRect(foundationX - 1, foundationY - 1, foundationWidth + 2, foundationHeight + 2)
-  ctx.fillStyle = '#807566'
+  ctx.fillStyle = FOOTING
   ctx.fillRect(foundationX, foundationY, foundationWidth, foundationHeight)
-  ctx.fillStyle = '#a59a87'
+  ctx.fillStyle = FOOTING_LIGHT
   ctx.fillRect(foundationX, foundationY, foundationWidth, 1)
 
   // Material stacks remain visible through the early build and disappear as
@@ -71,46 +79,28 @@ export function drawConstructionSite(
     const stackWidth = Math.max(2, Math.min(5, Math.round(tileSize * 0.26)))
     const stackX = x + 1 + Math.round(visualHash(building, 31) * Math.max(0, width - stackWidth - 2))
     const stackY = groundY - foundationHeight - 2
-    ctx.fillStyle = '#4a2f1d'
+    ctx.fillStyle = TIMBER_DARK
     ctx.fillRect(stackX, stackY, stackWidth, 2)
-    ctx.fillStyle = '#b07943'
+    ctx.fillStyle = TIMBER
     ctx.fillRect(stackX, stackY - 1, stackWidth, 1)
 
     const stoneX = x + width - Math.max(3, Math.round(tileSize * 0.3))
-    ctx.fillStyle = '#5c554d'
+    ctx.fillStyle = STONE
     ctx.fillRect(stoneX, groundY - foundationHeight - 2, 3, 2)
-    ctx.fillStyle = '#81766a'
+    ctx.fillStyle = STONE_LIGHT
     ctx.fillRect(stoneX + 1, groundY - foundationHeight - 3, 2, 1)
   }
 
   // The plot is staked out from the day it is marked.
   if (detail !== 'overview') drawPlotStakes(ctx, x, y, width, height, tileSize)
 
-  // A kind with a sprite shows its planned shape faintly from the start, then rises into it; one
-  // drawn by hand puts up a timber frame once the foundation is down.
+  // The planned shape shows as a dotted outline from the start, and the building rises into it.
   const rise = progress < RISE_FROM ? 0 : Math.min(1, (progress - RISE_FROM) / (1 - RISE_FROM))
   const kind = normKind(building.kind)
   const [fw, fh] = resolveBuildingFootprint(building)
-  const sprite = hasBuildingSprite(kind)
-    ? finishedSprite(building, kind, fw, fh, tileSize, nightFactor, 1)
-    : null
+  const sprite = finishedSprite(building, kind, fw, fh, tileSize, nightFactor, 1)
   let tops = { built: foundationY, plan: foundationY }
-  if (sprite) {
-    tops = drawRisingSprite(ctx, sprite, px, py, w, h, rise)
-  } else if (progress >= RISE_FROM) {
-    tops = drawTimberShell(
-      ctx,
-      kind,
-      x,
-      width,
-      height,
-      foundationY,
-      foundationHeight,
-      tileSize,
-      progress,
-      rise,
-    )
-  }
+  if (sprite) tops = drawRisingSprite(ctx, sprite, px, py, w, h, rise)
   if (rise > 0 && detail !== 'overview') drawScaffold(ctx, x, width, tops.built, groundY, tileSize)
 
   if (detail === 'detail')
@@ -127,12 +117,17 @@ function drawPlotStakes(
   tileSize: number,
 ) {
   const stake = Math.max(2, Math.round(tileSize * 0.16))
-  ctx.fillStyle = 'rgba(232, 214, 170, 0.55)'
-  ctx.fillRect(x, y, width, 1)
-  ctx.fillRect(x, y + height - 1, width, 1)
-  ctx.fillRect(x, y, 1, height)
-  ctx.fillRect(x + width - 1, y, 1, height)
-  ctx.fillStyle = '#6b4a2b'
+  // The string: a dotted line of whole pixels, one on and two off.
+  ctx.fillStyle = PLAN_LINE
+  for (let i = 0; i < width; i += 3) {
+    ctx.fillRect(x + i, y, 1, 1)
+    ctx.fillRect(x + i, y + height - 1, 1, 1)
+  }
+  for (let j = 0; j < height; j += 3) {
+    ctx.fillRect(x, y + j, 1, 1)
+    ctx.fillRect(x + width - 1, y + j, 1, 1)
+  }
+  ctx.fillStyle = STAKE
   for (const [sx, sy] of [
     [x, y],
     [x + width - 1, y],
@@ -187,75 +182,6 @@ function drawRisingSprite(
   return { built: dy + builtTopRow, plan: dy + contentTop }
 }
 
-/**
- * A timber frame for a kind with no sprite: posts and beams in the kind's own wall colour fill
- * upward, and the roof's rafters go up in its roof colour near the end.
- */
-function drawTimberShell(
-  ctx: CanvasRenderingContext2D,
-  kind: string,
-  x: number,
-  width: number,
-  height: number,
-  foundationY: number,
-  foundationHeight: number,
-  tileSize: number,
-  progress: number,
-  rise: number,
-): { built: number; plan: number } {
-  const maximumShellHeight = Math.max(4, height - foundationHeight)
-  const shellHeight = Math.max(3, Math.round(maximumShellHeight * (0.18 + rise * 0.82)))
-  const shellTop = foundationY - shellHeight
-  const plan = foundationY - maximumShellHeight
-
-  // Unfinished walls fill upward in courses; exposed posts and braces keep it
-  // visibly under construction even at 99%.
-  if (progress >= 0.36) {
-    const wallInset = Math.max(2, Math.round(tileSize * 0.14))
-    const wallTop = Math.round(
-      foundationY - shellHeight * Math.min(0.9, Math.max(0.15, (progress - 0.28) / 0.72)),
-    )
-    ctx.fillStyle = wallColor(kind)
-    ctx.fillRect(
-      x + wallInset,
-      wallTop,
-      Math.max(1, width - wallInset * 2),
-      Math.max(1, foundationY - wallTop),
-    )
-    ctx.fillStyle = 'rgba(0,0,0,0.18)'
-    for (let row = wallTop + 3; row < foundationY; row += 4) {
-      ctx.fillRect(x + wallInset, row, Math.max(1, width - wallInset * 2), 1)
-    }
-  }
-
-  const postWidth = Math.max(1, Math.round(tileSize * 0.1))
-  const postCount = Math.max(2, Math.min(5, Math.ceil(width / Math.max(8, tileSize))))
-  for (let i = 0; i < postCount; i++) {
-    const postX = Math.round(x + (i * (width - postWidth)) / Math.max(1, postCount - 1))
-    ctx.fillStyle = FRAME
-    ctx.fillRect(postX, shellTop, postWidth, foundationY - shellTop)
-    ctx.fillStyle = FRAME_LIGHT
-    ctx.fillRect(postX, shellTop, 1, foundationY - shellTop)
-  }
-
-  const beamStep = Math.max(5, Math.round(tileSize * 0.42))
-  for (let beamY = foundationY - 2; beamY >= shellTop; beamY -= beamStep) {
-    ctx.fillStyle = FRAME
-    ctx.fillRect(x, beamY, width, Math.max(1, postWidth))
-  }
-  drawPixelLine(ctx, x, foundationY - 1, x + width - 1, shellTop, BRACE)
-  drawPixelLine(ctx, x + width - 1, foundationY - 1, x, shellTop, BRACE)
-
-  if (progress >= 0.78) {
-    const rafter = roofColor(kind) ?? FRAME
-    const roofPeakY = shellTop - Math.max(3, Math.round(tileSize * 0.28))
-    drawPixelLine(ctx, x - 1, shellTop, x + Math.floor(width / 2), roofPeakY, rafter, postWidth)
-    drawPixelLine(ctx, x + Math.floor(width / 2), roofPeakY, x + width, shellTop, rafter, postWidth)
-    return { built: roofPeakY, plan: Math.min(plan, roofPeakY) }
-  }
-  return { built: shellTop, plan }
-}
-
 /** Two poles beside the rising walls, with planks across at each lift, up to the working height. */
 function drawScaffold(
   ctx: CanvasRenderingContext2D,
@@ -300,10 +226,10 @@ function drawProgressPips(
   const lit = litPips(progress)
   for (let i = 0; i < PROGRESS_PIPS; i++) {
     const pipX = x0 + i * (size + gap)
-    // A one-pixel drop shadow keeps each pip readable on light ground without joining them into a bar.
-    ctx.fillStyle = 'rgba(28, 21, 15, 0.7)'
-    ctx.fillRect(pipX + 1, y + 1, size, size)
-    ctx.fillStyle = i < lit ? '#f0c55a' : '#cdbb94'
+    // An ink edge keeps each pip readable on light ground without joining them into a bar.
+    ctx.fillStyle = FOOTING_EDGE
+    ctx.fillRect(pipX - 1, y - 1, size + 2, size + 2)
+    ctx.fillStyle = i < lit ? PIP_ON : PIP_OFF
     ctx.fillRect(pipX, y, size, size)
   }
 }

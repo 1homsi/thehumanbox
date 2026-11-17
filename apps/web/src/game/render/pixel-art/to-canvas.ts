@@ -5,7 +5,14 @@ import { PALETTE_RGB } from './palette.ts'
  * Writes a sprite into RGBA bytes (`width` pixels per row) with its top-left at (ox, oy). Pixels that fall
  * outside the buffer are dropped. Shared by the canvas path and the tests, which have no canvas.
  */
-export function blitRgba(art: Art, out: Uint8ClampedArray, width: number, height: number, ox: number, oy: number) {
+export function blitRgba(
+  art: Art,
+  out: Uint8ClampedArray,
+  width: number,
+  height: number,
+  ox: number,
+  oy: number,
+) {
   for (let y = 0; y < art.h; y++) {
     const ty = oy + y
     if (ty < 0 || ty >= height) continue

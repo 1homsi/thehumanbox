@@ -17,30 +17,50 @@ function windowBands(a: Art, x: number, y: number, w: number, floors: number, fl
   }
 }
 
-/** A hospital: white wards over a canopied entrance, the red cross high on the front. */
+/**
+ * A hospital: white wards over a canopied entrance, the red cross high on the front. The great hospital is
+ * a tower between two lower wings, with a landing pad on its roof.
+ */
 export function hospital(look: Look): Art {
   const w = W(look, 22)
   const { a, g, x, cx } = plot(look, w)
   const L = legend(ROOF.stone, WALL.white, isLit(look))
   const big = look.kind === 'Hospital2'
-  const floors = big ? 6 : 4
-  const h = floors * 5 + 6
-  wall(a, x, g - h, w, h, WALL.white, false)
-  windowBands(a, x, g - h, w, floors, 5, look)
-  flatRoof(a, x - 1, g - h - 2, w + 2, 2, ROOF.stone)
-  // The cross on its white panel, breaking the top two floors.
-  a.rect(cx - 3, g - h + 1, 8, 8, C.grey9).rect(cx, g - h + 2, 2, 6, C.red4).rect(cx - 2, g - h + 4, 6, 2, C.red4)
-  // The entrance: glass doors under a red canopy, and the ambulance bay.
+  let crossY: number
+  if (big) {
+    const wingH = 17
+    const towerW = Math.round(w * 0.4)
+    const towerH = Math.min(look.fh * 8 + 2, 38)
+    for (const wx of [x, x + w - Math.round(w * 0.36)]) {
+      const ww = Math.round(w * 0.36)
+      wall(a, wx, g - wingH, ww, wingH, WALL.white, false)
+      windowBands(a, wx, g - wingH, ww, 3, 5, look)
+      flatRoof(a, wx - 1, g - wingH - 2, ww + 2, 2, ROOF.stone)
+    }
+    const tx = cx - (towerW >> 1) + 1
+    wall(a, tx, g - towerH, towerW, towerH, WALL.white, false)
+    windowBands(a, tx, g - towerH + 10, towerW, Math.floor((towerH - 16) / 5), 5, look)
+    flatRoof(a, tx - 1, g - towerH - 2, towerW + 2, 2, ROOF.stone)
+    // The landing pad, on a deck over the roof.
+    a.rect(tx + 1, g - towerH - 4, towerW - 2, 2, C.grey5).hline(tx + 1, g - towerH - 4, towerW - 2, C.grey7)
+    a.stamp(rows('h', 'Y.Y', 'YYY', 'Y.Y'), cx - 1, g - towerH - 8, L)
+    crossY = g - towerH + 1
+  } else {
+    const h = 4 * 5 + 6
+    wall(a, x, g - h, w, h, WALL.white, false)
+    windowBands(a, x, g - h, w, 4, 5, look)
+    flatRoof(a, x - 1, g - h - 2, w + 2, 2, ROOF.stone)
+    a.vline(x + w - 4, g - h - 7, 5, C.grey5).set(x + w - 4, g - h - 8, C.red4)
+    crossY = g - h + 1
+  }
+  // The cross on its white panel.
+  a.rect(cx - 3, crossY, 8, 8, C.grey9)
+    .rect(cx, crossY + 1, 2, 6, C.red4)
+    .rect(cx - 2, crossY + 3, 6, 2, C.red4)
+  // The entrance: glass doors under a red canopy, and an ambulance waiting.
   a.rect(cx - 6, g - 7, 14, 2, C.red4).hline(cx - 6, g - 5, 14, C.red2)
   a.stamp(DOOR.glass, cx - 3, g - 5, L).stamp(DOOR.glass, cx + 1, g - 5, L)
   a.stamp(rows('ambulance', 'hhhhh.', 'hRhhii', 'hhhhhh', 'o...o.'), x + 2, g - 4, L)
-  if (big) {
-    // The helipad on the roof.
-    a.rect(x + w - 11, g - h - 4, 9, 2, C.grey5).hline(x + w - 11, g - h - 4, 9, C.grey7)
-    a.stamp(rows('h', 'Y.Y', 'YYY', 'Y.Y'), x + w - 8, g - h - 7, L)
-  } else {
-    a.vline(x + w - 4, g - h - 7, 5, C.grey5).set(x + w - 4, g - h - 8, C.red4)
-  }
   return finish(a)
 }
 
@@ -53,12 +73,16 @@ export function datacenter(look: Look): Art {
   a.hline(x, g - 12, w, C.grey6)
   // Racks behind louvres: three rows of lights, green with one amber.
   for (let j = 0; j < 3; j++)
-    for (let i = x + 2; i < x + w - 2; i += 3) a.set(i, g - 9 + j * 3, (i + j) % 7 === 0 ? C.gold4 : isLit(look) ? C.green4 : C.green3)
+    for (let i = x + 2; i < x + w - 2; i += 3)
+      a.set(i, g - 9 + j * 3, (i + j) % 7 === 0 ? C.gold4 : isLit(look) ? C.green4 : C.green3)
   for (let i = x + 1; i < x + w - 1; i += 6) a.vline(i, g - 11, 10, C.grey3)
   a.rect(x + 2, g - 5, 3, 5, C.grey2)
   // The cooling plant.
   for (const fx of spread(x, w, Math.floor(w / 9), 6)) {
-    a.rect(fx, g - 16, 6, 4, C.grey7).hline(fx, g - 16, 6, C.grey9).rect(fx + 1, g - 15, 4, 2, C.grey4).set(fx + 2, g - 15, C.grey6)
+    a.rect(fx, g - 16, 6, 4, C.grey7)
+      .hline(fx, g - 16, 6, C.grey9)
+      .rect(fx + 1, g - 15, 4, 2, C.grey4)
+      .set(fx + 2, g - 15, C.grey6)
   }
   return finish(a)
 }
@@ -136,7 +160,9 @@ export function airport(look: Look): Art {
   drum(a, cxT, ty - th, 4, th, WALL.concrete)
   a.rect(cxT - 2, ty - th - 4, 8, 4, glow(look, C.blue5)).hline(cxT - 2, ty - th - 1, 8, C.grey7)
   for (let i = cxT; i < cxT + 6; i += 2) a.vline(i, ty - th - 4, 3, C.grey4)
-  a.hline(cxT - 3, ty - th - 5, 10, C.grey9).vline(cxT + 2, ty - th - 9, 4, C.grey5).set(cxT + 2, ty - th - 10, C.red4)
+  a.hline(cxT - 3, ty - th - 5, 10, C.grey9)
+    .vline(cxT + 2, ty - th - 9, 4, C.grey5)
+    .set(cxT + 2, ty - th - 10, C.red4)
   return finish(a)
 }
 
@@ -151,10 +177,16 @@ export function gasStation(look: Look): Art {
   a.stamp(DOOR.glass, x + w - 5, g - 5, L)
   flatRoof(a, x + w - sw - 1, g - 10, sw + 2, 2, ROOF.stone)
   // The canopy: red and yellow edge, two posts.
-  a.rect(x - 1, g - 13, w - sw + 4, 3, C.red4).hline(x - 1, g - 13, w - sw + 4, C.gold5).hline(x - 1, g - 11, w - sw + 4, C.red2)
+  a.rect(x - 1, g - 13, w - sw + 4, 3, C.red4)
+    .hline(x - 1, g - 13, w - sw + 4, C.gold5)
+    .hline(x - 1, g - 11, w - sw + 4, C.red2)
   a.vline(x, g - 10, 10, C.grey8).vline(x + w - sw + 1, g - 10, 2, C.grey8)
   // The pumps.
-  for (const px of [x + 3, x + 7]) a.rect(px, g - 5, 3, 5, C.grey9).rect(px, g - 5, 3, 2, C.red4).set(px + 1, g - 3, C.grey3).vline(px + 2, g - 3, 3, C.grey7)
+  for (const px of [x + 3, x + 7])
+    a.rect(px, g - 5, 3, 5, C.grey9)
+      .rect(px, g - 5, 3, 2, C.red4)
+      .set(px + 1, g - 3, C.grey3)
+      .vline(px + 2, g - 3, 3, C.grey7)
   return finish(a)
 }
 
@@ -171,9 +203,14 @@ export function officeTower(look: Look): Art {
     const tx = cx - (tw >> 1) + 1
     a.rect(tx, y - th, tw, th, GLASS[2])
     for (let j = y - th + 2; j < y - 1; j += 3) a.hline(tx, j, tw, GLASS[3])
-    for (let j = y - th; j < y; j++) for (let i = 0; i < Math.round(tw * 0.35); i++) if (a.get(tx + i, j) === GLASS[2]) a.set(tx + i, j, GLASS[1])
-    if (isLit(look)) for (let j = y - th + 3; j < y - 2; j += 6) a.rect(tx + 2 + ((j / 3) & 1) * 3, j, 2, 2, C.gold5)
-    a.vline(tx + tw - 1, y - th, th, C.blue1).hline(tx - 1, y - th - 1, tw + 2, C.grey9).hline(tx - 1, y - th, tw + 2, C.grey7)
+    for (let j = y - th; j < y; j++)
+      for (let i = 0; i < Math.round(tw * 0.35); i++)
+        if (a.get(tx + i, j) === GLASS[2]) a.set(tx + i, j, GLASS[1])
+    if (isLit(look))
+      for (let j = y - th + 3; j < y - 2; j += 6) a.rect(tx + 2 + ((j / 3) & 1) * 3, j, 2, 2, C.gold5)
+    a.vline(tx + tw - 1, y - th, th, C.blue1)
+      .hline(tx - 1, y - th - 1, tw + 2, C.grey9)
+      .hline(tx - 1, y - th, tw + 2, C.grey7)
     y -= th + 1
   }
   a.rect(cx - 1, g - 4, 4, 4, glow(look, C.blue5))
@@ -199,12 +236,20 @@ export function spaceport(look: Look): Art {
     a.set(gx + 1 + (j % 4 < 2 ? 0 : 1), g - 4 - j, C.red3)
     if (j % 4 === 0) a.hline(gx, g - 4 - j, 4, C.red4)
   }
-  a.hline(gx + 4, g - 4 - Math.round(gh * 0.7), 4, C.red3).hline(gx + 4, g - 4 - Math.round(gh * 0.35), 4, C.red3)
+  a.hline(gx + 4, g - 4 - Math.round(gh * 0.7), 4, C.red3).hline(
+    gx + 4,
+    g - 4 - Math.round(gh * 0.35),
+    4,
+    C.red3,
+  )
   a.set(gx + 1, g - 5 - gh, isLit(look) ? C.red5 : C.red4)
   // Fuel: two white spheres on legs.
   for (const sx of [x + w - 9, x + w - 17]) {
     dome(a, sx + 3, g - 12, 4, [C.grey9, C.grey9, C.grey8, C.grey7])
-    a.rect(sx, g - 8, 8, 2, C.grey8).hline(sx + 1, g - 6, 6, C.grey7).vline(sx + 1, g - 6, 2, C.grey5).vline(sx + 6, g - 6, 2, C.grey5)
+    a.rect(sx, g - 8, 8, 2, C.grey8)
+      .hline(sx + 1, g - 6, 6, C.grey7)
+      .vline(sx + 1, g - 6, 2, C.grey5)
+      .vline(sx + 6, g - 6, 2, C.grey5)
   }
   if (look.state === 'empty') {
     // Just launched: a scorch on the pad.
@@ -214,7 +259,9 @@ export function spaceport(look: Look): Art {
   // The rocket: white, a red nose, a blue band, fins and the engine bell.
   const rh = Math.round(gh * 0.86)
   const rx = cx - 1
-  a.rect(rx, g - 6 - rh + 4, 5, rh - 4, C.grey9).vline(rx + 3, g - 6 - rh + 4, rh - 4, C.grey8).vline(rx + 4, g - 6 - rh + 4, rh - 4, C.grey7)
+  a.rect(rx, g - 6 - rh + 4, 5, rh - 4, C.grey9)
+    .vline(rx + 3, g - 6 - rh + 4, rh - 4, C.grey8)
+    .vline(rx + 4, g - 6 - rh + 4, rh - 4, C.grey7)
   a.stamp(rows('nose', '..R..', '.RRr.', '.RRr.', 'RRRrq'), rx, g - 6 - rh, L)
   a.rect(rx, g - 6 - Math.round(rh * 0.55), 5, 2, C.blue3).rect(rx + 1, g - 6 - rh + 7, 2, 2, C.blue4)
   a.stamp(rows('fins', 'R.....R', 'RR...RR', 'RRo.oRq'), rx - 1, g - 9, L)
@@ -235,7 +282,9 @@ export function orbitalLift(look: Look): Art {
   a.rect(cx - r, g - 3, r * 2 + 2, 3, C.grey5).hline(cx - r, g - 3, r * 2 + 2, C.grey7)
   for (let i = -r + 2; i < r; i += 3) a.set(cx + i, g - 2, glow(look))
   // The climber: a gold car part-way up.
-  a.rect(cx - 2, g - Math.round(h * 0.6), 6, 4, C.gold4).hline(cx - 2, g - Math.round(h * 0.6), 6, C.gold5).rect(cx - 1, g - Math.round(h * 0.6) + 1, 4, 1, C.blue2)
+  a.rect(cx - 2, g - Math.round(h * 0.6), 6, 4, C.gold4)
+    .hline(cx - 2, g - Math.round(h * 0.6), 6, C.gold5)
+    .rect(cx - 1, g - Math.round(h * 0.6) + 1, 4, 1, C.blue2)
   return finish(a)
 }
 
@@ -259,24 +308,32 @@ export function fusionPlant(look: Look): Art {
       a.set(cx + i, cy + j, d > 0.82 ? C.plum2 : d > 0.5 ? C.plum4 : C.plum5)
     }
   // Field coils round the ring.
-  for (const i of [-rx + 2, -(rx >> 1), 0, rx >> 1, rx - 2]) for (let j = -ry; j <= ry; j++) if (a.get(cx + i, cy + j)) a.set(cx + i, cy + j, C.grey8)
+  for (const i of [-rx + 2, -(rx >> 1), 0, rx >> 1, rx - 2])
+    for (let j = -ry; j <= ry; j++) if (a.get(cx + i, cy + j)) a.set(cx + i, cy + j, C.grey8)
   return finish(a)
 }
 
-/** A neural hub: a dome of thinking glass and its three smaller nodes, linked by lines of light. */
+/** A neural hub: a ribbed dome of violet glass on a ring wall, a node of light at each rib, an aerial on top. */
 export function neuralHub(look: Look): Art {
   const w = W(look, 22)
   const { a, g, x, cx } = plot(look, w)
-  const mind: Ramp = [C.plum5, C.plum4, C.plum3, C.plum2]
-  a.rect(x, g - 3, w, 3, C.grey5).hline(x, g - 3, w, C.grey7)
-  // Links first, so the domes sit over their ends.
-  a.hline(x + 4, g - 6, w - 8, glow(look, C.blue5))
-  dome(a, cx, g - 3 - 9, 9, mind)
-  dome(a, x + 4, g - 3 - 4, 4, mind)
-  dome(a, x + w - 6, g - 3 - 4, 4, mind)
-  // Folds on the big dome, like a brain's.
-  a.stamp(rows('folds', '.p..p.', 'p.pp.p', '.p..p.'), cx - 2, g - 9, legend(ROOF.plum, WALL.white))
-  a.vline(cx, g - 16, 4, C.grey7).set(cx, g - 17, glow(look, C.plum5))
+  const r = [8, 9, 10, 12, 14].filter((v) => v * 2 <= w).pop() ?? 8
+  const wallH = 5
+  // The ring wall, with a band of light round it.
+  a.rect(x, g - wallH, w, wallH, C.grey6)
+    .hline(x, g - wallH, w, C.grey8)
+    .rect(x + w - 3, g - wallH + 1, 3, wallH - 1, C.grey5)
+  a.hline(x + 1, g - 3, w - 2, glow(look, C.blue4))
+  a.rect(cx - 1, g - 4, 4, 4, C.grey3)
+  dome(a, cx, g - wallH - r, r, [C.plum5, C.plum4, C.plum3, C.plum2])
+  // The ribs, and a node where each meets the wall.
+  for (const off of [-Math.round(r * 0.62), 0, Math.round(r * 0.62)]) {
+    for (let j = 0; j < r; j++)
+      if (a.get(cx + off, g - wallH - r + j) && a.get(cx + off, g - wallH - r + j) !== C.grey6)
+        a.set(cx + off, g - wallH - r + j, C.grey9)
+    a.rect(cx + off, g - wallH - 1, 2, 2, glow(look, C.blue5))
+  }
+  a.vline(cx, g - wallH - r - 5, 5, C.grey7).set(cx, g - wallH - r - 6, glow(look, C.plum5))
   return finish(a)
 }
 
@@ -286,12 +343,22 @@ export function aiCore(look: Look): Art {
   const { a, g, cx } = plot(look, w)
   const h = Math.min(look.fh * 8 + 8, 30)
   const x = cx - (w >> 1) + 1
-  a.rect(x, g - h, w, h, C.grey2).vline(x, g - h, h, C.grey4).vline(x + w - 1, g - h, h, C.grey1).hline(x, g - h, w, C.grey4)
+  a.rect(x, g - h, w, h, C.grey2)
+    .vline(x, g - h, h, C.grey4)
+    .vline(x + w - 1, g - h, h, C.grey1)
+    .hline(x, g - h, w, C.grey4)
   const eye = glow(look, C.blue4)
-  a.stamp(rows('eye', '.AAAA.', 'A....A', 'A.BB.A', 'A.BB.A', 'A....A', '.AAAA.'), cx - 2, g - h + 4, { A: eye, B: C.blue5 })
+  a.stamp(rows('eye', '.AAAA.', 'A....A', 'A.BB.A', 'A.BB.A', 'A....A', '.AAAA.'), cx - 2, g - h + 4, {
+    A: eye,
+    B: C.blue5,
+  })
   // Circuit traces: down from the eye, branching to the edges.
   a.vline(cx, g - h + 10, h - 14, C.blue2).vline(cx + 1, g - h + 10, h - 14, C.blue2)
-  a.hline(x + 2, g - 8, w - 4, C.blue2).set(x + 2, g - 6, eye).set(x + w - 3, g - 6, eye).vline(x + 2, g - 8, 2, C.blue2).vline(x + w - 3, g - 8, 2, C.blue2)
+  a.hline(x + 2, g - 8, w - 4, C.blue2)
+    .set(x + 2, g - 6, eye)
+    .set(x + w - 3, g - 6, eye)
+    .vline(x + 2, g - 8, 2, C.blue2)
+    .vline(x + w - 3, g - 8, 2, C.blue2)
   a.rect(x - 1, g - 2, w + 2, 2, C.grey4)
   return finish(a)
 }
@@ -305,11 +372,19 @@ export function biodome(look: Look): Art {
   dome(a, cx, top, r, [C.grey9, C.blue5, C.blue4, C.blue3])
   const L = legend(ROOF.moss, WALL.white)
   // The forest floor and the canopy, seen through the glass.
-  for (let j = Math.round(r * 0.6); j < r; j++) for (let i = -r; i <= r; i++) if (a.get(cx + i, top + j)) a.set(cx + i, top + j, j < r * 0.7 ? C.green3 : C.green2)
+  for (let j = Math.round(r * 0.6); j < r; j++)
+    for (let i = -r; i <= r; i++)
+      if (a.get(cx + i, top + j)) a.set(cx + i, top + j, j < r * 0.7 ? C.green3 : C.green2)
   const tree = rows('tree', '.MNN.', 'MNNNn', 'NNNnn', '.NnI.', '..I..')
-  for (const tx of spread(cx - r + 3, r * 2 - 6, Math.floor(r / 4), 5)) a.stamp(tree, tx, top + Math.round(r * 0.6) - 4, L)
+  for (const tx of spread(cx - r + 3, r * 2 - 6, Math.floor(r / 4), 5))
+    a.stamp(tree, tx, top + Math.round(r * 0.6) - 4, L)
   // The waterfall and its pool.
-  a.vline(cx + 2, top + Math.round(r * 0.45), Math.round(r * 0.4), C.grey9).vline(cx + 3, top + Math.round(r * 0.45), Math.round(r * 0.4), C.blue5)
+  a.vline(cx + 2, top + Math.round(r * 0.45), Math.round(r * 0.4), C.grey9).vline(
+    cx + 3,
+    top + Math.round(r * 0.45),
+    Math.round(r * 0.4),
+    C.blue5,
+  )
   a.hline(cx, top + r - 2, 6, C.blue4)
   // The frame.
   for (let j = 0; j < r * 0.5; j++) a.set(cx - (j >> 1), top + j, C.grey9)
@@ -333,7 +408,9 @@ export function cryolab(look: Look): Art {
   // Tanks, banded, with a gauge light each.
   for (const tx of spread(x + bw, w - bw, w - bw >= 12 ? 2 : 1, 5)) {
     drum(a, tx, g - 14, 5, 14, [C.grey9, C.blue5, C.blue4, C.blue3])
-    a.hline(tx + 1, g - 15, 3, C.grey9).hline(tx, g - 9, 5, C.blue3).set(tx + 1, g - 6, glow(look, C.blue2))
+    a.hline(tx + 1, g - 15, 3, C.grey9)
+      .hline(tx, g - 9, 5, C.blue3)
+      .set(tx + 1, g - 6, glow(look, C.blue2))
   }
   a.hline(x + bw - 1, g - 1, w - bw + 2, C.grey9)
   return finish(a)
@@ -346,13 +423,26 @@ export function nanoFab(look: Look): Art {
   const L = legend(ROOF.stone, WALL.white, isLit(look))
   wall(a, x, g - 13, w, 13, WALL.white, false)
   // Chamfered top corners: a works with no square edges.
-  a.set(x, g - 13, 0).set(x + w - 1, g - 13, 0).set(x + 1, g - 13, C.grey8)
-  for (let j = g - 11; j < g - 5; j += 3) a.hline(x + 2, j, w - 4, isLit(look) ? C.plum5 : C.plum4).hline(x + 2, j + 1, w - 4, C.plum2)
+  a.set(x, g - 13, 0)
+    .set(x + w - 1, g - 13, 0)
+    .set(x + 1, g - 13, C.grey8)
+  for (let j = g - 11; j < g - 5; j += 3)
+    a.hline(x + 2, j, w - 4, isLit(look) ? C.plum5 : C.plum4).hline(x + 2, j + 1, w - 4, C.plum2)
   a.rect(x + (w >> 1) - 2, g - 4, 4, 4, C.grey3)
   // The belt, with three finished cubes on it.
-  a.hline(x + (w >> 1) + 2, g - 2, (w >> 1) + 1, C.grey5).hline(x + (w >> 1) + 2, g - 1, (w >> 1) + 1, C.grey3)
+  a.hline(x + (w >> 1) + 2, g - 2, (w >> 1) + 1, C.grey5).hline(
+    x + (w >> 1) + 2,
+    g - 1,
+    (w >> 1) + 1,
+    C.grey3,
+  )
   for (let i = 0; i < 3; i++) a.rect(x + (w >> 1) + 3 + i * 3, g - 4, 2, 2, [C.blue4, C.gold5, C.plum4][i])
-  a.stamp(rows('vent', 'sts', 'ttu'), x + 2, g - 15, L).stamp(rows('vent', 'sts', 'ttu'), x + w - 5, g - 15, L)
+  a.stamp(rows('vent', 'sts', 'ttu'), x + 2, g - 15, L).stamp(
+    rows('vent', 'sts', 'ttu'),
+    x + w - 5,
+    g - 15,
+    L,
+  )
   return finish(a)
 }
 
@@ -362,9 +452,21 @@ function turbine(a: Art, cx: number, g: number, h: number, turn: number) {
   a.rect(cx - 1, g - h - 1, 4, 2, C.grey8)
   // Blades: three arms, a different pose for each turbine so a farm is not in step.
   const poses: [number, number][][] = [
-    [[0, -1], [1, 1], [-1, 1]],
-    [[1, 0], [-1, -1], [-1, 1]],
-    [[0, 1], [1, -1], [-1, -1]],
+    [
+      [0, -1],
+      [1, 1],
+      [-1, 1],
+    ],
+    [
+      [1, 0],
+      [-1, -1],
+      [-1, 1],
+    ],
+    [
+      [0, 1],
+      [1, -1],
+      [-1, -1],
+    ],
   ]
   for (const [dx, dy] of poses[turn % 3])
     for (let i = 1; i <= 7; i++) a.set(cx + dx * i, g - h + dy * i, i > 5 ? C.grey8 : C.grey9)
@@ -395,38 +497,94 @@ export function transitLine(look: Look): Art {
   const tube = look.kind === 'Hyperloop'
   for (let i = 3; i < w; i += 8) a.rect(2 + i, g - 5, 2, 5, C.grey6).vline(2 + i + 1, g - 5, 5, C.grey5)
   if (tube) {
-    a.rect(2, g - 9, w, 4, C.blue4).hline(2, g - 9, w, C.grey9).hline(2, g - 6, w, C.blue3)
+    a.rect(2, g - 9, w, 4, C.blue4)
+      .hline(2, g - 9, w, C.grey9)
+      .hline(2, g - 6, w, C.blue3)
     for (let i = 7; i < w; i += 8) a.vline(2 + i, g - 9, 4, C.grey8)
     a.rect(2 + (w >> 1) - 4, g - 8, 8, 2, C.grey9).set(2 + (w >> 1) + 3, g - 8, glow(look, C.red4))
   } else {
     a.rect(2, g - 6, w, 2, C.grey7).hline(2, g - 6, w, C.grey9)
     // The train: a white wedge with a band of window.
     const tx = 2 + (w >> 1) - 9
-    a.rect(tx + 2, g - 10, 16, 4, C.grey9).hline(tx + 4, g - 11, 12, C.grey9).set(tx + 1, g - 8, C.grey9).set(tx + 1, g - 7, C.grey9).set(tx, g - 7, C.grey8)
-    a.hline(tx + 3, g - 9, 14, glow(look, C.blue3)).hline(tx + 2, g - 7, 16, C.blue3).set(tx + 18, g - 8, C.red4)
+    a.rect(tx + 2, g - 10, 16, 4, C.grey9)
+      .hline(tx + 4, g - 11, 12, C.grey9)
+      .set(tx + 1, g - 8, C.grey9)
+      .set(tx + 1, g - 7, C.grey9)
+      .set(tx, g - 7, C.grey8)
+    a.hline(tx + 3, g - 9, 14, glow(look, C.blue3))
+      .hline(tx + 2, g - 7, 16, C.blue3)
+      .set(tx + 18, g - 8, C.red4)
   }
   return finish(a)
 }
 
-/** A megastructure: a city in one building, terrace on terrace with gardens between, a spire over all. */
+/** One block of the megastructure: white structure, ranks of windows, a lit edge and a shaded one. */
+function megaBlock(a: Art, x: number, g: number, w: number, h: number, look: Look) {
+  a.rect(x, g - h, w, h, C.grey8)
+    .vline(x, g - h, h, C.grey9)
+    .rect(x + w - 2, g - h, 2, h, C.grey6)
+  a.hline(x, g - h, w, C.grey9)
+  for (let j = g - h + 3; j < g - 2; j += 4) {
+    a.hline(x + 2, j, w - 5, C.blue3).hline(x + 2, j + 1, w - 5, C.blue2)
+    if (isLit(look))
+      for (let i = x + 3 + ((j >> 2) % 3) * 2; i < x + w - 4; i += 7) a.rect(i, j, 2, 2, C.gold5)
+  }
+}
+
+/**
+ * A megastructure: a city in one building. Three towers of unequal height stand on one podium, joined by
+ * bridges high in the air, each crowned differently: a spire, a landing pad, a garden.
+ */
 export function megastructure(look: Look): Art {
   const w = W(look, 30)
-  const { a, g, cx } = plot(look, w)
-  const tiers = 5
-  const total = Math.min(look.fh * 8 + 12, 72)
-  const th = Math.floor((total - 10) / tiers)
-  let y = g
-  for (let t = 0; t < tiers; t++) {
-    const tw = w - t * Math.round(w / (tiers + 1.5))
-    const tx = cx - (tw >> 1) + 1
-    a.rect(tx, y - th, tw, th, C.grey8).vline(tx, y - th, th, C.grey9).rect(tx + tw - 3, y - th, 3, th, C.grey6)
-    // Windows in ranks, some lit; a garden along the terrace.
-    for (let j = y - th + 2; j < y - 1; j += 3)
-      for (let i = tx + 2; i < tx + tw - 4; i += 3) a.set(i, j, isLit(look) && (i + j + t) % 3 === 0 ? C.gold5 : C.blue3).set(i + 1, j, C.blue2)
-    a.hline(tx - 1, y - th, tw + 2, C.green3).hline(tx - 1, y - th - 1, tw + 2, C.green4).dots(tx, y - th - 2, tw, 4, C.green2)
-    y -= th
-  }
-  a.rect(cx - 2, g - 6, 6, 6, C.grey3).rect(cx - 1, g - 5, 4, 5, glow(look, C.blue5))
-  a.vline(cx, y - 10, 10, C.grey8).vline(cx + 1, y - 8, 8, C.grey6).set(cx, y - 11, glow(look, C.red4))
+  const { a, g, x, cx } = plot(look, w)
+  const total = Math.min(look.fh * 8 + 14, 74)
+  const podium = 10
+  const base = g - podium
+  // The far tower first, then the two in front of it.
+  const farW = Math.round(w * 0.26)
+  const farH = Math.round((total - podium) * 0.62)
+  megaBlock(a, x + w - farW - 2, base, farW, farH, look)
+  const mainW = Math.round(w * 0.34)
+  const mainX = cx - (mainW >> 1) - 2
+  megaBlock(a, mainX, base, mainW, total - podium, look)
+  const nearW = Math.round(w * 0.24)
+  const nearH = Math.round((total - podium) * 0.4)
+  megaBlock(a, x + 2, base, nearW, nearH, look)
+  // The bridges: one from the near tower, one to the far tower, at different heights.
+  a.rect(x + 2 + nearW, base - nearH + 4, mainX - (x + 2 + nearW), 2, C.blue4).hline(
+    x + 2 + nearW,
+    base - nearH + 6,
+    mainX - (x + 2 + nearW),
+    C.grey6,
+  )
+  const fx = mainX + mainW
+  a.rect(fx, base - farH + 8, x + w - farW - 2 - fx, 2, C.blue4).hline(
+    fx,
+    base - farH + 10,
+    x + w - farW - 2 - fx,
+    C.grey6,
+  )
+  // The crowns: a spire on the tallest, a pad on the far tower, trees on the near one.
+  a.vline(mainX + (mainW >> 1), base - (total - podium) - 9, 9, C.grey7).set(
+    mainX + (mainW >> 1),
+    base - (total - podium) - 10,
+    isLit(look) ? C.red5 : C.red4,
+  )
+  a.hline(x + w - farW - 3, base - farH - 1, farW + 2, C.grey5).rect(
+    x + w - farW + 1,
+    base - farH - 2,
+    3,
+    1,
+    C.gold5,
+  )
+  for (let i = 1; i + 3 < nearW; i += 4)
+    a.stamp(rows('tree', '.MN.', 'MNNn', '.nn.'), x + 2 + i, base - nearH - 3, legend(ROOF.moss, WALL.white))
+  // The podium: one wide dark base, a strip of light along it, the gate at the middle.
+  a.rect(x, base, w, podium, C.grey5)
+    .hline(x, base, w, C.grey7)
+    .rect(x + w - 3, base + 1, 3, podium - 1, C.grey4)
+  a.hline(x + 2, base + 3, w - 5, glow(look, C.blue4))
+  a.rect(cx - 3, g - 6, 7, 6, C.grey3).rect(cx - 2, g - 5, 5, 5, glow(look, C.blue5))
   return finish(a)
 }

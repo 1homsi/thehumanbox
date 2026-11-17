@@ -1,4 +1,19 @@
-import { Art, C, CHIMNEY, DOOR, ROOF, WALL, WINDOW, finish, gable, isLit, legend, rows, slabRoof, wall } from './kit.ts'
+import {
+  Art,
+  C,
+  CHIMNEY,
+  DOOR,
+  ROOF,
+  WALL,
+  WINDOW,
+  finish,
+  gable,
+  isLit,
+  legend,
+  rows,
+  slabRoof,
+  wall,
+} from './kit.ts'
 import type { Look, Ramp } from './kit.ts'
 import { eaveOn, flatOn, floors, gableOn, plot, spread } from './house-forms.ts'
 import { MUD, earlyHome, earlyRoof } from './homes-early.ts'
@@ -242,7 +257,15 @@ function manor(look: Look): Art {
   if (plan === 0) {
     // A hall with a gabled wing standing forward at one end.
     eaveOn(a, look, x, g, { ...hall, w, doorAt: 0.75, chimneyAt: 0.9 })
-    gableOn(a, look, x + 7, g, { ...hall, w: 14, floors: 2, door: DOOR.plank, doorAt: -1, attic: null, chimney: undefined })
+    gableOn(a, look, x + 7, g, {
+      ...hall,
+      w: 14,
+      floors: 2,
+      door: DOOR.plank,
+      doorAt: -1,
+      attic: null,
+      chimney: undefined,
+    })
   } else if (plan === 1) {
     // A stone hall with a round stair tower under a cone.
     eaveOn(a, look, x, g, { ...hall, w: w - 9, doorAt: 0.5, chimneyAt: 0.1 })
@@ -251,21 +274,44 @@ function manor(look: Look): Art {
     a.rect(x + w - 6, g - 19, 1, 3, C.grey3).rect(x + w - 6, g - 9, 1, 3, C.grey3)
   } else if (plan === 2) {
     // Two gabled ranges joined by a lower hall.
-    eaveOn(a, look, x + 12, g, { ...hall, w: w - 24, floors: 1, floorH: 8, roofH: 7, doorAt: 0.5, bays: 3, chimney: undefined })
+    eaveOn(a, look, x + 12, g, {
+      ...hall,
+      w: w - 24,
+      floors: 1,
+      floorH: 8,
+      roofH: 7,
+      doorAt: 0.5,
+      bays: 3,
+      chimney: undefined,
+    })
     gableOn(a, look, x + 7, g, { ...hall, w: 14, doorAt: -1, attic: WINDOW.small, chimney: undefined })
     gableOn(a, look, x + w - 9, g, { ...hall, w: 14, doorAt: -1, attic: WINDOW.small })
   } else {
     // A long hall with a gabled porch at its middle and a chimney at each end.
     eaveOn(a, look, x, g, { ...hall, w, doorAt: -1, chimneyAt: 0.05 })
     a.stamp(CHIMNEY.stone, x + w - 6, g - 14 - 9 - 3, legend(roof, WALL.stone))
-    gableOn(a, look, x + (w >> 1) - 1, g, { ...hall, w: 12, floors: 1, floorH: 9, doorAt: 0.5, bays: 1, attic: null, chimney: undefined })
+    gableOn(a, look, x + (w >> 1) - 1, g, {
+      ...hall,
+      w: 12,
+      floors: 1,
+      floorH: 9,
+      doorAt: 0.5,
+      bays: 1,
+      attic: null,
+      chimney: undefined,
+    })
   }
   return finish(a)
 }
 
 // ── Renaissance ───────────────────────────────────────────────────────────────────────────────────
 
-const PASTEL: Ramp[] = [WALL.plaster, WALL.daub, [C.gold5, C.gold5, C.gold4, C.gold3], [C.grey9, C.grey8, C.grey7, C.grey6]]
+const PASTEL: Ramp[] = [
+  WALL.plaster,
+  WALL.daub,
+  [C.gold5, C.gold5, C.gold4, C.gold3],
+  [C.grey9, C.grey8, C.grey7, C.grey6],
+]
 const SHUTTER: Ramp[] = [ROOF.moss, ROOF.slate, ROOF.plum, ROOF.tile]
 
 function townhouse(look: Look): Art {
@@ -349,9 +395,14 @@ function mansard(look: Look): Art {
   for (let j = 0; j < mh; j++) {
     const inset = j < 2 ? 2 - j : 0
     for (let i = x - 1 + inset; i < x + w + 1 - inset; i++)
-      a.set(i, top - mh + j, j === 0 ? C.grey7 : i >= x + w - 2 - inset ? roof[2] : j % 3 === 0 ? roof[2] : roof[1])
+      a.set(
+        i,
+        top - mh + j,
+        j === 0 ? C.grey7 : i >= x + w - 2 - inset ? roof[2] : j % 3 === 0 ? roof[2] : roof[1],
+      )
   }
-  for (const dx of spread(x, w, big(look) ? 3 : 2, 4)) a.stamp(rows('dormer', '.hh.', 'hwxh', 'hxxh'), dx, top - 5, L)
+  for (const dx of spread(x, w, big(look) ? 3 : 2, 4))
+    a.stamp(rows('dormer', '.hh.', 'hwxh', 'hxxh'), dx, top - 5, L)
   a.stamp(CHIMNEY.brick, x + 1, top - mh - 3, L)
   return finish(a)
 }
@@ -373,7 +424,7 @@ function grandVilla(look: Look): Art {
     alt: SHUTTER[look.variant % 4],
     window: WINDOW.shutter,
     door: DOOR.double,
-    doorAt: 0.5,
+    doorAt: -1,
     bays: 5,
     band: C.tan4,
     footing: C.grey7,
@@ -381,12 +432,14 @@ function grandVilla(look: Look): Art {
     chimneyAt: 0.1,
   })
   a.stamp(CHIMNEY.brick, x + w - 7, g - 16 - 7 - 3, L)
-  // The portico: four columns carrying a pediment, in front of the door.
+  // The portico: a plain bay of wall at the middle, four columns in front of the door, a pediment over them.
   const pw = 16
   const px = cx - (pw >> 1) + 1
-  a.rect(px, g - 9, pw, 1, C.grey9)
-  for (const colX of spread(px, pw, 4, 1)) a.vline(colX, g - 8, 7, C.grey9).vline(colX + 1, g - 8, 7, C.grey7)
-  gable(a, cx, g - 9 - 5, (pw >> 1) + 1, roof, WALL.plaster, 2, true, 1)
+  a.rect(px - 1, g - 15, pw + 2, 14, WALL.plaster[0])
+  a.stamp(DOOR.double, cx - 2, g - 8, L)
+  a.rect(px, g - 10, pw, 1, C.grey9)
+  for (const colX of spread(px, pw, 4, 1)) a.vline(colX, g - 9, 8, C.grey9).vline(colX + 1, g - 9, 8, C.grey7)
+  gable(a, cx, g - 10 - 5, (pw >> 1) + 1, roof, WALL.plaster, 2, true, 1)
   a.hline(px - 1, g - 1, pw + 2, C.grey8)
   return finish(a)
 }
@@ -448,7 +501,7 @@ function porchHouse(look: Look): Art {
 function tenement(look: Look): Art {
   const w = wallW(look)
   const { a, g, x } = plot(look, w)
-  const storeys = Math.min(5, look.fh + 1)
+  const storeys = Math.min(5, Math.max(2, look.fh))
   const L = legend(ROOF.dark, WALL.darkBrick, isLit(look))
   const top = flatOn(a, look, x, g, {
     w,
@@ -480,14 +533,26 @@ function mansion(look: Look): Art {
   const { a, g, x, cx } = plot(look, w)
   const roof = roofOf(look, ROOF.slate)
   const base = { roof, wall: WALL.brick, window: WINDOW.sash, door: DOOR.double, footing: C.grey5, floorH: 7 }
-  eaveOn(a, look, x, g, { ...base, w, floors: 2, roofH: 7, hip: 1, doorAt: -1, chimney: CHIMNEY.brick, chimneyAt: 0.02, bays: 5 })
+  eaveOn(a, look, x, g, {
+    ...base,
+    w,
+    floors: 2,
+    roofH: 7,
+    hip: 1,
+    doorAt: -1,
+    chimney: CHIMNEY.brick,
+    chimneyAt: 0.02,
+    bays: 5,
+  })
   a.stamp(CHIMNEY.brick, x + w - 5, g - 14 - 7 - 3, legend(roof, WALL.brick))
   gableOn(a, look, x + 6, g, { ...base, w: 12, floors: 2, doorAt: -1, bays: 1, attic: null })
   gableOn(a, look, x + w - 8, g, { ...base, w: 12, floors: 2, doorAt: -1, bays: 1, attic: null })
   // The tower: one storey higher than the house, under a steep little roof with a finial.
   wall(a, cx - 4, g - 30, 10, 30, WALL.brick, false)
   const L = legend(roof, WALL.brick, isLit(look))
-  a.stamp(WINDOW.sash, cx - 1, g - 28, L).stamp(WINDOW.sash, cx - 1, g - 20, L).stamp(DOOR.double, cx - 2, g - 7, L)
+  a.stamp(WINDOW.sash, cx - 1, g - 28, L)
+    .stamp(WINDOW.sash, cx - 1, g - 20, L)
+    .stamp(DOOR.double, cx - 2, g - 7, L)
   cone(a, cx, g - 38, 12, 8, roof, 2, false)
   a.vline(cx, g - 41, 3, C.gold4)
   return finish(a)
@@ -498,7 +563,7 @@ function mansion(look: Look): Art {
 function apartments(look: Look): Art {
   const w = wallW(look)
   const { a, g, x } = plot(look, w)
-  const storeys = Math.min(8, look.fh + 2)
+  const storeys = Math.min(7, look.fh + 1)
   const tone: Ramp = look.variant & 2 ? [C.tan5, C.tan4, C.tan3, C.tan2] : WALL.concrete
   const L = legend(ROOF.dark, tone, isLit(look))
   const top = flatOn(a, look, x, g, {
@@ -514,7 +579,8 @@ function apartments(look: Look): Art {
   })
   // A balcony rail under every other window, and the lift housing on the roof.
   for (let f = 0; f < storeys - 1; f++)
-    for (const bx of spread(x, w, Math.max(1, Math.floor(w / 12)), 6)) a.hline(bx, top + 2 + f * 5 + 4, 6, C.grey4)
+    for (const bx of spread(x, w, Math.max(1, Math.floor(w / 12)), 6))
+      a.hline(bx, top + 2 + f * 5 + 4, 6, C.grey4)
   a.stamp(rows('lift', 'uuuu', 'tuuv', 'tuuv'), x + 2, top - 3, L)
   a.vline(x + w - 4, top - 5, 5, C.grey3)
   return finish(a)
@@ -565,7 +631,12 @@ function cubeHouse(look: Look): Art {
   wall(a, ux, g - lh - 8, uw, 7, WALL.wood, false)
   a.hline(ux - 1, g - lh - 9, uw + 2, C.grey4)
   for (let j = g - lh - 6; j < g - lh - 1; j += 2) a.hline(ux, j, uw - 1, C.tan1)
-  a.rect(ux + 2, g - lh - 6, uw - 5, 3, isLit(look) ? C.gold5 : C.blue4).hline(ux + 2, g - lh - 4, uw - 5, isLit(look) ? C.gold4 : C.blue2)
+  a.rect(ux + 2, g - lh - 6, uw - 5, 3, isLit(look) ? C.gold5 : C.blue4).hline(
+    ux + 2,
+    g - lh - 4,
+    uw - 5,
+    isLit(look) ? C.gold4 : C.blue2,
+  )
   return finish(a)
 }
 
@@ -588,7 +659,9 @@ function glassTower(look: Look): Art {
     const run = Math.max(0, Math.round((w * 0.55 * (h - 8 - j)) / (h - 8)))
     for (let i = 0; i < run; i++) if (a.get(x + i, g - h + j) === C.blue3) a.set(x + i, g - h + j, C.blue4)
   }
-  if (lit) for (let j = g - h + 5; j < g - 6; j += 8) for (let i = x + 5; i < x + w - 2; i += 8) a.rect(i, j, 2, 2, C.gold5)
+  if (lit)
+    for (let j = g - h + 5; j < g - 6; j += 8)
+      for (let i = x + 5; i < x + w - 2; i += 8) a.rect(i, j, 2, 2, C.gold5)
   a.vline(x + w - 1, g - h, h, C.blue1).vline(x + w - 2, g - h, h, C.blue2)
   // The lobby and the crown.
   a.rect(x, g - 4, w, 4, C.grey3).rect(x + (w >> 1) - 2, g - 4, 4, 4, lit ? C.gold5 : C.blue5)
@@ -603,9 +676,16 @@ function ecoTower(look: Look): Art {
   const h = towerH(look) - 4
   const { a, g, x } = plot(look, w)
   const lit = isLit(look)
-  a.rect(x, g - h, w, h, C.grey9).vline(x + w - 1, g - h, h, C.grey7).vline(x + w - 2, g - h, h, C.grey8)
+  a.rect(x, g - h, w, h, C.grey9)
+    .vline(x + w - 1, g - h, h, C.grey7)
+    .vline(x + w - 2, g - h, h, C.grey8)
   for (let f = 0, y = g - h; y < g - 6; f++, y += 6) {
-    a.rect(x + 1, y + 1, w - 3, 3, lit ? C.gold5 : C.blue3).hline(x + 1, y + 1, w - 3, lit ? C.gold5 : C.blue4)
+    a.rect(x + 1, y + 1, w - 3, 3, lit ? C.gold5 : C.blue3).hline(
+      x + 1,
+      y + 1,
+      w - 3,
+      lit ? C.gold5 : C.blue4,
+    )
     // The planter: a hedge along the slab, hanging over on alternate sides.
     const left = f % 2 === 0
     a.hline(x, y + 4, w, C.green2).hline(x, y + 5, w, C.grey8)
@@ -614,7 +694,8 @@ function ecoTower(look: Look): Art {
   }
   a.rect(x + (w >> 1) - 2, g - 5, 4, 5, lit ? C.gold5 : C.blue2)
   // Trees on the roof.
-  for (const tx of spread(x, w, Math.max(2, Math.floor(w / 8)), 4)) a.stamp(rows('tree', '.MM.', 'MNNn', 'NNnn', '.nn.'), tx, g - h - 4, legend(ROOF.moss, WALL.white))
+  for (const tx of spread(x, w, Math.max(2, Math.floor(w / 8)), 4))
+    a.stamp(rows('tree', '.MM.', 'MNNn', 'NNnn', '.nn.'), tx, g - h - 4, legend(ROOF.moss, WALL.white))
   return finish(a)
 }
 
@@ -633,6 +714,93 @@ function capsuleTower(look: Look): Art {
   }
   a.rect(cx - 1, g - 4, 3, 4, isLit(look) ? C.gold5 : C.blue4)
   a.vline(cx, g - h - 4, 4, C.grey6).set(cx, g - h - 5, C.red4)
+  return finish(a)
+}
+
+/** A porthole: a round window in a grey ring. */
+const PORTHOLE = rows('porthole', '.uu.', 'uwxu', 'uxxu', '.uu.')
+
+/** A rounded shell `w` wide and `h` tall with its top-left at (x, y): white, shaded down the right. */
+function capsule(
+  a: Art,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  body: number = C.grey9,
+  shade: number = C.grey8,
+) {
+  for (let j = 0; j < h; j++) {
+    const inset = j === 0 || j === h - 1 ? 2 : j === 1 || j === h - 2 ? 1 : 0
+    for (let i = inset; i < w - inset; i++)
+      a.set(x + i, y + j, j === h - 1 ? C.grey7 : i >= w - inset - 3 ? shade : body)
+  }
+}
+
+/** A small home of the space age: one white capsule on feet, solar cells on its roof. */
+function podHome(look: Look): Art {
+  const w = wallW(look)
+  const { a, g, x } = plot(look, w)
+  const L = legend(ROOF.slate, WALL.white, isLit(look))
+  const h = big(look) ? 11 : 9
+  a.rect(x + 2, g - 2, 2, 2, C.grey5).rect(x + w - 4, g - 2, 2, 2, C.grey5)
+  capsule(a, x, g - 2 - h, w, h)
+  a.hline(x + 2, g - 2 - (h >> 1) + 2, w - 5, C.blue4)
+  for (const wx of spread(x, w - 6, big(look) ? 2 : 1, 4)) a.stamp(PORTHOLE, wx, g - h, L)
+  a.rect(x + w - 6, g - 8, 3, 6, C.blue1).hline(x + w - 6, g - 8, 3, isLit(look) ? C.gold5 : C.blue4)
+  // Solar cells laid along the top.
+  a.hline(x + 3, g - 3 - h, w - 6, C.blue1).dots(x + 3, g - 3 - h, w - 6, 3, C.blue3)
+  return finish(a)
+}
+
+/** A low house under a roof of living grass, glass across its front, a tree growing beside the door. */
+function ecoHome(look: Look): Art {
+  const w = wallW(look)
+  const { a, g, x } = plot(look, w)
+  const L = legend(ROOF.moss, WALL.white, isLit(look))
+  wall(a, x, g - 8, w, 8, WALL.white, false)
+  a.rect(x + 1, g - 6, w - 8, 4, L.x).hline(x + 1, g - 6, w - 8, L.w)
+  for (let i = x + 4; i < x + w - 8; i += 4) a.vline(i, g - 6, 4, C.grey9)
+  a.rect(x + w - 6, g - 6, 3, 6, C.gold2).set(x + w - 4, g - 3, C.gold5)
+  slabRoof(a, x - 1, g - 12, w + 2, 4, WALL.turf, 2, false)
+  for (let i = x + 2; i < x + w - 2; i += 3) a.set(i, g - 13, C.green4)
+  a.stamp(rows('sapling', '.MN.', 'MNNn', '.Nn.', '.I..'), x + w - 2, g - 5, L)
+  return finish(a)
+}
+
+/** Two capsules, one set on the other and turned: a home that grew by a room. */
+function stackHome(look: Look): Art {
+  const w = wallW(look)
+  const { a, g, x } = plot(look, w)
+  const L = legend(ROOF.slate, WALL.white, isLit(look))
+  const uw = Math.round(w * 0.7)
+  const ux = side(look) ? x : x + w - uw
+  const tint = [C.gold4, C.blue4, C.red4, C.green3][look.variant % 4]
+  const tintShade = [C.gold3, C.blue3, C.red3, C.green2][look.variant % 4]
+  capsule(a, ux, g - 15, uw, 8, tint, tintShade)
+  a.stamp(PORTHOLE, ux + (uw >> 1) - 2, g - 13, L)
+  capsule(a, x, g - 8, w, 8)
+  a.stamp(PORTHOLE, x + 2, g - 6, L)
+  a.rect(x + w - 6, g - 6, 3, 6, C.blue1).hline(x + w - 6, g - 6, 3, isLit(look) ? C.gold5 : C.blue4)
+  a.vline(ux + 2, g - 19, 4, C.grey6).set(ux + 2, g - 20, C.red4)
+  return finish(a)
+}
+
+/** A small whitewashed house of the classical world: a flat roof, a tiled upper room, a blue door. */
+function whiteHouse(look: Look): Art {
+  const w = wallW(look)
+  const { a, g, x } = plot(look, w)
+  const roof = roofOf(look, ROOF.tile)
+  wall(a, x, g - 8, w, 8, WALL.white, false)
+  a.hline(x - 1, g - 9, w + 2, C.grey9).hline(x - 1, g - 8, w + 2, C.grey7)
+  a.rect(x + 2, g - 6, 3, 6, C.blue2).hline(x + 2, g - 6, 3, C.blue3)
+  a.rect(x + w - 5, g - 6, 2, 2, C.blue1)
+  // The upper room, under four courses of tile.
+  const uw = Math.max(7, w - 6)
+  const ux = side(look) ? x + w - uw : x
+  wall(a, ux, g - 14, uw, 5, WALL.white, false)
+  a.rect(ux + (uw >> 1) - 1, g - 12, 2, 2, C.blue1)
+  slabRoof(a, ux - 1, g - 17, uw + 2, 3, roof, 1, false)
   return finish(a)
 }
 
@@ -670,13 +838,17 @@ function domeHabitat(look: Look): Art {
   dome(a, cx, top, r, [C.grey9, C.blue5, C.blue4, C.blue3])
   // The garden seen through the glass: grass along the floor and a tree.
   for (let j = Math.round(r * 0.72); j < r; j++)
-    for (let i = -r; i <= r; i++) if (a.get(cx + i, top + j)) a.set(cx + i, top + j, j === Math.round(r * 0.72) ? C.green3 : C.green2)
+    for (let i = -r; i <= r; i++)
+      if (a.get(cx + i, top + j)) a.set(cx + i, top + j, j === Math.round(r * 0.72) ? C.green3 : C.green2)
   if (r >= 8) {
     const L = legend(ROOF.moss, WALL.white)
     a.stamp(rows('tree', '.MNN.', 'MNNNn', 'NNNnn', '.NnnI', '..I..', '..I..'), cx - 2, top + r - 8, L)
   }
   // The frame: a rib over the top and the ring at the base.
-  if (r >= 8) for (let j = 0; j < r; j++) if (a.get(cx, top + j) !== C.green2 && a.get(cx, top + j) !== C.green3 && j < r * 0.4) a.set(cx, top + j, C.grey9)
+  if (r >= 8)
+    for (let j = 0; j < r; j++)
+      if (a.get(cx, top + j) !== C.green2 && a.get(cx, top + j) !== C.green3 && j < r * 0.4)
+        a.set(cx, top + j, C.grey9)
   a.rect(cx - r + 1, g - 2, r * 2, 2, C.grey7).hline(cx - r + 1, g - 2, r * 2, C.grey9)
   a.rect(cx + r - 5, g - 4, 4, 4, C.grey6).rect(cx + r - 4, g - 3, 2, 3, isLit(look) ? C.gold5 : C.blue1)
   return finish(a)
@@ -699,12 +871,21 @@ function hoverHome(look: Look): Art {
   for (let j = 0; j < hullH; j++) {
     const inset = j === 0 || j === hullH - 1 ? 2 : j === 1 || j === hullH - 2 ? 1 : 0
     const row = y + 1 + j
-    for (let i = -half + 1 + inset; i <= half - inset; i++) a.set(cx + i, row, j === 0 ? C.grey9 : j >= hullH - 1 ? C.grey6 : i > half * 0.5 ? C.grey7 : C.grey8)
+    for (let i = -half + 1 + inset; i <= half - inset; i++)
+      a.set(cx + i, row, j === 0 ? C.grey9 : j >= hullH - 1 ? C.grey6 : i > half * 0.5 ? C.grey7 : C.grey8)
   }
   for (let i = -half + 3; i <= half - 2; i += 3) a.set(cx + i, y + 1 + (hullH >> 1), glow)
-  // The lift beam: two faint columns down to a pad on the ground.
-  for (let j = y + 1 + hullH + 1; j < g - 1; j += 2) a.set(cx - 1, j, C.blue4).set(cx + 2, j, C.blue4)
-  a.hline(cx - 2, g - 1, 6, C.grey5).hline(cx - 1, g - 1, 4, glow)
+  // Landing legs: three struts splayed out from under the hull, each on a pad.
+  const legTop = y + 1 + hullH
+  const reach = Math.max(2, half >> 1)
+  for (let j = 0; legTop + j < g - 1; j++) {
+    a.set(cx - reach - (j >> 1), legTop + j, C.grey5).set(cx + 1 + reach + (j >> 1), legTop + j, C.grey5)
+    if (j % 2 === 0) a.set(cx, legTop + j, C.grey6)
+  }
+  const spreadOut = (g - 1 - legTop) >> 1
+  a.hline(cx - reach - spreadOut - 1, g - 1, 3, C.grey4)
+    .hline(cx + reach + spreadOut, g - 1, 3, C.grey4)
+    .hline(cx - 1, g - 1, 3, C.grey4)
   return finish(a)
 }
 
@@ -723,19 +904,24 @@ export function home(look: Look): Art {
     case 1:
       return [thatchCottage, logHouse, stoneCottage][form % 3](look)
     case 2:
-      return [columnHouse, mudBrickHouse, villa][form % 3](look)
+      return [big(look) ? columnHouse : whiteHouse, mudBrickHouse, villa][form % 3](look)
     case 3:
       return grand(look) ? manor(look) : [timberCottage, timberGable, stoneHouse][form % 3](look)
     case 4:
       return grand(look) ? grandVilla(look) : [townhouse, steppedGable, mansard][form % 3](look)
     case 5:
-      return grand(look) && look.kind === 'Manor' ? mansion(look) : [rowhouse, porchHouse, tenement][form % 3](look)
+      return grand(look) && look.kind === 'Manor'
+        ? mansion(look)
+        : [rowhouse, porchHouse, tenement][form % 3](look)
     case 6:
       return look.kind === 'Apartment' || look.kind === 'Skyscraper'
         ? apartments(look)
         : [apartments, grand(look) ? cubeHouse : bungalow, cubeHouse][form % 3](look)
     case 7:
-      return [glassTower, ecoTower, capsuleTower][form % 3](look)
+      // A small plot stays a small home; the towers are for the kinds that were always tall.
+      return look.kind === 'Hut' || look.kind === 'House'
+        ? [podHome, ecoHome, stackHome][form % 3](look)
+        : [glassTower, ecoTower, capsuleTower][form % 3](look)
     default:
       return [shellHome, domeHabitat, shellHome, hoverHome][form % 4](look)
   }
