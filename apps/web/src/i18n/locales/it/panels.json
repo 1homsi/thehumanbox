@@ -56,11 +56,9 @@
     "outbreaksTip": "Epidemie che si sono diffuse nella popolazione"
   },
   "wildlife": {
-    "title": "FAUNA",
     "danger": "Caccia le persone quando ha fame",
     "herds": "Pecore, mucche, cavalli e polli",
     "game": "Selvaggina cacciata per il cibo: la caccia eccessiva la riduce",
-    "away": "+{count} fuori",
     "animals": {
       "rabbits": "conigli",
       "deer": "cervi",
@@ -522,5 +520,96 @@
     "go": "Vai a {name}",
     "more": "Altre {count} tribù sono a corto di cibo",
     "dismiss": "Chiudi"
+  },
+  "world": {
+    "now": {
+      "title": "IN QUESTO MOMENTO",
+      "when": "Anno {year}, {season}, {phase}.",
+      "weather": {
+        "clear": "Cielo sereno.",
+        "rain": "Piove e la terra se ne abbevera.",
+        "storm": "Infuria una tempesta. La gente corre al riparo.",
+        "snow": "Sta nevicando.",
+        "fog": "La nebbia avvolge la terra.",
+        "wet": "Il terreno è ancora bagnato dalla pioggia."
+      },
+      "drought": "Una siccità sta prosciugando l’acqua.",
+      "hardWinter": "Un inverno rigido stringe la terra.",
+      "hardWinterAhead": "Arriva un inverno rigido: il cibo scarseggerà.",
+      "people": {
+        "one": "{count} persona",
+        "other": "{count} persone"
+      },
+      "tribes": {
+        "one": "{count} tribù",
+        "other": "{count} tribù"
+      },
+      "peopleLine": "{people} vivono in {tribes}.",
+      "ageYoung": "Il mondo è giovane: nessuna tribù ha ancora imparato molto.",
+      "age": "Le tribù più avanzate hanno raggiunto l’età {era}.",
+      "ageTip": "L’età del mondo è quella della sua tribù più avanzata. Decide cosa la gente può costruire e come vive."
+    },
+    "feed": {
+      "title": "COSA STA SUCCEDENDO",
+      "tip": "Le cose più importanti di adesso, le più recenti prima. Clicca per volare lì.",
+      "peril": "è nei guai: {reason}.",
+      "war": "{a} e {b} sono in guerra.",
+      "drought": "Siccità: fiumi e laghi si ritirano.",
+      "hardWinter": "Inverno rigido: il cibo scarseggia fino alla primavera.",
+      "hardWinterAhead": "Sta arrivando un inverno rigido.",
+      "quiet": "Tutto tranquillo. Le tribù vivono la loro giornata.",
+      "now": "proprio ora",
+      "days": {
+        "one": "ieri",
+        "other": "{count} giorni fa"
+      },
+      "years": {
+        "one": "un anno fa",
+        "other": "{count} anni fa"
+      },
+      "chronicles": "Leggi tutta la storia nelle Cronache",
+      "goThere": "Vola lì"
+    },
+    "tribes": {
+      "title": "TRIBÙ",
+      "tip": "Come se la passa ogni tribù: la sua gente, se cresce (▲) o cala (▼) e una parola su come va la vita. Clicca una tribù per seguirla.",
+      "mood": {
+        "starving": "affamata",
+        "thirsty": "assetata",
+        "dying": "in pericolo",
+        "war": "in guerra",
+        "sick": "malata",
+        "hungry": "ha fame",
+        "growing": "cresce",
+        "shrinking": "cala",
+        "thriving": "prospera",
+        "steady": "stabile"
+      },
+      "moodTip": {
+        "starving": "Il cibo sta finendo e la gente muore di fame.",
+        "thirsty": "Non ha acqua e la gente muore di sete.",
+        "dying": "Potrebbe estinguersi presto. Guarda perché.",
+        "war": "Sta combattendo contro un’altra tribù.",
+        "sick": "Una malattia si sta diffondendo nella tribù.",
+        "hungry": "Il cibo scarseggia. Aiutala a trovarne altro.",
+        "growing": "Nascono più persone di quante ne muoiano.",
+        "shrinking": "Sta perdendo persone.",
+        "thriving": "Ben nutrita e in salute.",
+        "steady": "Non cambia granché."
+      },
+      "viewAll": {
+        "one": "vedi la tribù",
+        "other": "vedi tutte le {count} tribù"
+      }
+    },
+    "wildlife": {
+      "title": "FAUNA",
+      "tip": "Gli animali che vivono sulla terra. Selvaggina e mandrie sfamano le tribù; quelli rossi cacciano le persone."
+    },
+    "nerd": {
+      "title": "PER ESPERTI",
+      "tip": "Contatori grezzi, ogni stirpe e il registro completo degli eventi. Visibile perché «Statistiche per esperti» è attivo.",
+      "hint": "Vuoi i numeri grezzi? Attiva «Statistiche per esperti» nelle impostazioni."
+    }
   }
 }

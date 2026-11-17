@@ -56,11 +56,9 @@
     "outbreaksTip": "席卷人口的疾病疫情"
   },
   "wildlife": {
-    "title": "野生动物",
     "danger": "饥饿时会猎杀人类",
     "herds": "羊、牛、马和鸡",
     "game": "供食用猎取的野味：过度狩猎会使其减少",
-    "away": "+{count} 外出",
     "animals": {
       "rabbits": "兔子",
       "deer": "鹿",
@@ -506,5 +504,96 @@
     "go": "前往{name}",
     "more": "另有 {count} 个部落缺少食物",
     "dismiss": "关闭"
+  },
+  "world": {
+    "now": {
+      "title": "此刻",
+      "when": "第{year}年，{season}，{phase}。",
+      "weather": {
+        "clear": "晴空万里。",
+        "rain": "正在下雨，大地吸饱了水。",
+        "storm": "暴风雨肆虐，人们赶紧躲避。",
+        "snow": "正在下雪。",
+        "fog": "大雾笼罩着大地。",
+        "wet": "地面还被雨水打湿着。"
+      },
+      "drought": "干旱正在让水源枯竭。",
+      "hardWinter": "严冬笼罩着大地。",
+      "hardWinterAhead": "严冬将至：食物会变得稀缺。",
+      "people": {
+        "one": "{count}人",
+        "other": "{count}人"
+      },
+      "tribes": {
+        "one": "{count}个部落",
+        "other": "{count}个部落"
+      },
+      "peopleLine": "{people}生活在{tribes}中。",
+      "ageYoung": "世界还很年轻：还没有哪个部落学到多少东西。",
+      "age": "最先进的部落已进入{era}时代。",
+      "ageTip": "世界的时代由最先进的部落决定。它影响人们能建造什么、怎样生活。"
+    },
+    "feed": {
+      "title": "正在发生",
+      "tip": "此刻最重要的事，最新的在前。点击可飞到那里。",
+      "peril": "陷入困境：{reason}。",
+      "war": "{a}与{b}正在交战。",
+      "drought": "干旱：河流和湖泊正在缩小。",
+      "hardWinter": "严冬：开春前食物稀缺。",
+      "hardWinterAhead": "严冬正在逼近。",
+      "quiet": "一切平静。部落们过着日常生活。",
+      "now": "刚刚",
+      "days": {
+        "one": "昨天",
+        "other": "{count}天前"
+      },
+      "years": {
+        "one": "一年前",
+        "other": "{count}年前"
+      },
+      "chronicles": "在编年史中阅读完整故事",
+      "goThere": "飞到那里"
+    },
+    "tribes": {
+      "title": "部落",
+      "tip": "每个部落的情况：人口、在增长（▲）还是减少（▼），以及一个词概括生活状况。点击部落即可跟随。",
+      "mood": {
+        "starving": "饥荒",
+        "thirsty": "缺水",
+        "dying": "危急",
+        "war": "交战中",
+        "sick": "患病",
+        "hungry": "饥饿",
+        "growing": "增长中",
+        "shrinking": "减少中",
+        "thriving": "繁荣",
+        "steady": "平稳"
+      },
+      "moodTip": {
+        "starving": "食物将尽，有人饿死。",
+        "thirsty": "没有水，有人渴死。",
+        "dying": "可能很快灭绝。看看原因。",
+        "war": "正在与另一个部落交战。",
+        "sick": "疾病正在部落中蔓延。",
+        "hungry": "食物不多了。帮他们找到更多。",
+        "growing": "出生的人多于死去的人。",
+        "shrinking": "正在失去人口。",
+        "thriving": "吃得饱，身体好。",
+        "steady": "没什么变化。"
+      },
+      "viewAll": {
+        "one": "查看部落",
+        "other": "查看全部{count}个部落"
+      }
+    },
+    "wildlife": {
+      "title": "野生动物",
+      "tip": "生活在大地上的动物。猎物和牲畜养活部落；红色的会猎杀人类。"
+    },
+    "nerd": {
+      "title": "技术",
+      "tip": "原始计数、每个血脉和完整的事件日志。因为开启了“技术统计”才显示。",
+      "hint": "想看原始数字？在设置中开启“技术统计”。"
+    }
   }
 }

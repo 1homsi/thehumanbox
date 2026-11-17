@@ -56,11 +56,9 @@
     "outbreaksTip": "Nüfus arasında yayılan hastalık salgınları"
   },
   "wildlife": {
-    "title": "YABAN HAYATI",
     "danger": "Acıktığında insanları avlar",
     "herds": "Koyunlar, inekler, atlar ve tavuklar",
     "game": "Yiyecek için avlanan yaban hayvanları: aşırı avlanma sayılarını azaltır",
-    "away": "+{count} uzakta",
     "animals": {
       "rabbits": "tavşanlar",
       "deer": "geyikler",
@@ -516,5 +514,96 @@
     "go": "{name} kabilesine git",
     "more": "{count} kabilenin daha yiyeceği az",
     "dismiss": "Kapat"
+  },
+  "world": {
+    "now": {
+      "title": "ŞU ANDA",
+      "when": "{year}. yıl, {season}, {phase}.",
+      "weather": {
+        "clear": "Gökyüzü açık.",
+        "rain": "Yağmur yağıyor, toprak suya kanıyor.",
+        "storm": "Fırtına kopuyor. İnsanlar sığınak arıyor.",
+        "snow": "Kar yağıyor.",
+        "fog": "Toprağın üstünde sis var.",
+        "wet": "Toprak yağmurdan hâlâ ıslak."
+      },
+      "drought": "Kuraklık suları kurutuyor.",
+      "hardWinter": "Sert bir kış toprakları sardı.",
+      "hardWinterAhead": "Sert bir kış geliyor: yiyecek azalacak.",
+      "people": {
+        "one": "{count} kişi",
+        "other": "{count} kişi"
+      },
+      "tribes": {
+        "one": "{count} kabilede",
+        "other": "{count} kabilede"
+      },
+      "peopleLine": "{people} {tribes} yaşıyor.",
+      "ageYoung": "Dünya henüz genç: hiçbir kabile çok şey öğrenmedi.",
+      "age": "En gelişmiş kabileler {era} çağına ulaştı.",
+      "ageTip": "Dünyanın çağını en gelişmiş kabilesi belirler. İnsanların ne inşa edebileceğini ve nasıl yaşadığını etkiler."
+    },
+    "feed": {
+      "title": "NELER OLUYOR",
+      "tip": "Şu anda olan en önemli şeyler, en yenisi önce. Oraya uçmak için tıkla.",
+      "peril": "zor durumda: {reason}.",
+      "war": "{a} ile {b} savaşta.",
+      "drought": "Kuraklık: nehirler ve göller küçülüyor.",
+      "hardWinter": "Sert kış: bahara kadar yiyecek az.",
+      "hardWinterAhead": "Sert bir kış yolda.",
+      "quiet": "Her şey sakin. Kabileler günlük hayatlarına devam ediyor.",
+      "now": "az önce",
+      "days": {
+        "one": "dün",
+        "other": "{count} gün önce"
+      },
+      "years": {
+        "one": "bir yıl önce",
+        "other": "{count} yıl önce"
+      },
+      "chronicles": "Tüm hikâyeyi Kroniklerde oku",
+      "goThere": "Oraya uç"
+    },
+    "tribes": {
+      "title": "KABİLELER",
+      "tip": "Her kabilenin durumu: nüfusu, büyüyor mu (▲) küçülüyor mu (▼) ve hayatın nasıl gittiğine dair tek kelime. Takip etmek için bir kabileye tıkla.",
+      "mood": {
+        "starving": "açlıkta",
+        "thirsty": "susuz",
+        "dying": "tehlikede",
+        "war": "savaşta",
+        "sick": "hasta",
+        "hungry": "aç",
+        "growing": "büyüyor",
+        "shrinking": "küçülüyor",
+        "thriving": "gelişiyor",
+        "steady": "durağan"
+      },
+      "moodTip": {
+        "starving": "Yiyecekleri tükeniyor ve insanlar açlıktan ölüyor.",
+        "thirsty": "Suları yok ve insanlar susuzluktan ölüyor.",
+        "dying": "Yakında yok olabilirler. Nedenine bak.",
+        "war": "Şu anda başka bir kabileyle savaşıyorlar.",
+        "sick": "Kabilede bir hastalık yayılıyor.",
+        "hungry": "Yiyecek azalıyor. Daha fazlasını bulmalarına yardım et.",
+        "growing": "Ölenden çok doğan var.",
+        "shrinking": "İnsan kaybediyorlar.",
+        "thriving": "Tok ve sağlıklılar.",
+        "steady": "Pek bir şey değişmiyor."
+      },
+      "viewAll": {
+        "one": "kabileyi gör",
+        "other": "{count} kabilenin hepsini gör"
+      }
+    },
+    "wildlife": {
+      "title": "YABAN HAYATI",
+      "tip": "Topraklarda yaşayan hayvanlar. Av hayvanları ve sürüler kabileleri besler; kırmızılar insan avlar."
+    },
+    "nerd": {
+      "title": "AYRINTILI",
+      "tip": "Ham sayaçlar, her soy ve tam olay kaydı. \"Ayrıntılı istatistikler\" açık olduğu için görünüyor.",
+      "hint": "Ham sayıları mı istiyorsun? Ayarlardan \"Ayrıntılı istatistikler\"i aç."
+    }
   }
 }

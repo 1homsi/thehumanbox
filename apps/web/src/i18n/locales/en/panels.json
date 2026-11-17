@@ -56,11 +56,9 @@
     "outbreaksTip": "Disease outbreaks that swept through the population"
   },
   "wildlife": {
-    "title": "WILDLIFE",
     "danger": "Hunts people when hungry",
     "herds": "Sheep, cows, horses and chickens",
     "game": "Wild game, hunted for food: overhunting thins it",
-    "away": "+{count} away",
     "animals": {
       "rabbits": "rabbits",
       "deer": "deer",
@@ -522,5 +520,96 @@
     "go": "Go to {name}",
     "more": "{count} more tribes are short of food",
     "dismiss": "Dismiss"
+  },
+  "world": {
+    "now": {
+      "title": "RIGHT NOW",
+      "when": "Year {year}, {season}, {phase}.",
+      "weather": {
+        "clear": "Clear skies.",
+        "rain": "Rain is falling and the land drinks it in.",
+        "storm": "A storm is raging. People hurry for shelter.",
+        "snow": "Snow is falling.",
+        "fog": "Fog hangs over the land.",
+        "wet": "The ground is still wet from the rain."
+      },
+      "drought": "A drought is drying up the water.",
+      "hardWinter": "A hard winter grips the land.",
+      "hardWinterAhead": "A hard winter is coming: food will be scarce.",
+      "people": {
+        "one": "{count} person",
+        "other": "{count} people"
+      },
+      "tribes": {
+        "one": "{count} tribe",
+        "other": "{count} tribes"
+      },
+      "peopleLine": "{people} live in {tribes}.",
+      "ageYoung": "The world is young: no tribe has learned much yet.",
+      "age": "The most advanced tribes have reached the {era} age.",
+      "ageTip": "The world's age is set by its most advanced tribe. It shapes what people can build and how they live."
+    },
+    "feed": {
+      "title": "WHAT'S HAPPENING",
+      "tip": "The biggest things going on right now, newest first. Click one to fly there.",
+      "peril": "is in trouble: {reason}.",
+      "war": "{a} and {b} are at war.",
+      "drought": "Drought: rivers and lakes are shrinking.",
+      "hardWinter": "Hard winter: food is scarce until spring.",
+      "hardWinterAhead": "A hard winter is on its way.",
+      "quiet": "All quiet. The tribes are going about their days.",
+      "now": "just now",
+      "days": {
+        "one": "yesterday",
+        "other": "{count} days ago"
+      },
+      "years": {
+        "one": "a year ago",
+        "other": "{count} years ago"
+      },
+      "chronicles": "Read the whole story in Chronicles",
+      "goThere": "Fly there"
+    },
+    "tribes": {
+      "title": "TRIBES",
+      "tip": "How each tribe is doing: its people, whether it is growing (▲) or shrinking (▼), and one word for how life is going. Click a tribe to follow it.",
+      "mood": {
+        "starving": "starving",
+        "thirsty": "thirsty",
+        "dying": "in danger",
+        "war": "at war",
+        "sick": "sick",
+        "hungry": "hungry",
+        "growing": "growing",
+        "shrinking": "shrinking",
+        "thriving": "thriving",
+        "steady": "steady"
+      },
+      "moodTip": {
+        "starving": "They are running out of food and people are dying of hunger.",
+        "thirsty": "They have no water and people are dying of thirst.",
+        "dying": "They could die out soon. Look at them to see why.",
+        "war": "They are fighting another tribe right now.",
+        "sick": "Sickness is spreading through the tribe.",
+        "hungry": "Food is running low. Help them find more.",
+        "growing": "More people are being born than are dying.",
+        "shrinking": "They are losing people.",
+        "thriving": "Well fed and healthy.",
+        "steady": "Nothing much is changing."
+      },
+      "viewAll": {
+        "one": "see the tribe",
+        "other": "see all {count} tribes"
+      }
+    },
+    "wildlife": {
+      "title": "WILDLIFE",
+      "tip": "Animals living on the land. Game and herds feed the tribes; the red ones hunt people."
+    },
+    "nerd": {
+      "title": "FOR NERDS",
+      "tip": "Raw counters, every tribe line and the full event log. Shown because Stats for nerds is on.",
+      "hint": "Want the raw numbers? Turn on Stats for nerds in Settings."
+    }
   }
 }

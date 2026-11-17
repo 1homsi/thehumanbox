@@ -85,11 +85,7 @@ import {
   shouldPauseDesktopRenderer,
 } from './shared/desktopVisibility'
 
-import { EventLog } from './ui/panels/EventLog'
-import { HistoryGrid } from './ui/panels/HistoryGrid'
-import { WildlifePanel } from './ui/panels/WildlifePanel'
-import { LineagesList } from './ui/panels/LineagesList'
-import { WorldFooter } from './ui/panels/WorldFooter'
+import { WorldPanel } from './ui/panels/world/WorldPanel'
 import { AppHeader } from './ui/toolbar/AppHeader'
 import { WorldCrashedNotice } from './ui/WorldCrashedNotice'
 import { RightPanel } from './ui/panels/RightPanel'
@@ -908,11 +904,7 @@ function LiveApp() {
                   // Keyed by palette: these bake lineage colours in at
                   // render, so the colourblind toggle remounts them.
                   <Fragment key={palette}>
-                    <HistoryGrid />
-                    <WildlifePanel />
-                    <LineagesList />
-                    <EventLog />
-                    <WorldFooter world={world} />
+                    <WorldPanel world={world} />
                   </Fragment>
                 )}
               </aside>

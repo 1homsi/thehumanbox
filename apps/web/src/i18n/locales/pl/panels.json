@@ -56,11 +56,9 @@
     "outbreaksTip": "Epidemie, które przeszły przez populację"
   },
   "wildlife": {
-    "title": "DZIKA FAUNA",
     "danger": "Poluje na ludzi, gdy jest głodne",
     "herds": "Owce, krowy, konie i kury",
     "game": "Dzika zwierzyna łowiona na jedzenie: nadmierne łowy ją przerzedzają",
-    "away": "+{count} poza",
     "animals": {
       "rabbits": "króliki",
       "deer": "jelenie",
@@ -554,5 +552,106 @@
     "go": "Idź do: {name}",
     "more": "Jeszcze {count} plemion ma za mało jedzenia",
     "dismiss": "Zamknij"
+  },
+  "world": {
+    "now": {
+      "title": "TERAZ",
+      "when": "Rok {year}, {season}, {phase}.",
+      "weather": {
+        "clear": "Czyste niebo.",
+        "rain": "Pada deszcz, a ziemia go pije.",
+        "storm": "Szaleje burza. Ludzie szukają schronienia.",
+        "snow": "Pada śnieg.",
+        "fog": "Mgła wisi nad ziemią.",
+        "wet": "Ziemia jest jeszcze mokra po deszczu."
+      },
+      "drought": "Susza wysusza wodę.",
+      "hardWinter": "Ciężka zima ściska ziemię.",
+      "hardWinterAhead": "Nadchodzi ciężka zima: zabraknie jedzenia.",
+      "people": {
+        "one": "{count} osoba",
+        "few": "{count} osoby",
+        "many": "{count} osób",
+        "other": "{count} osoby"
+      },
+      "tribes": {
+        "one": "{count} plemieniu",
+        "few": "{count} plemionach",
+        "many": "{count} plemionach",
+        "other": "{count} plemionach"
+      },
+      "peopleLine": "{people} żyje w {tribes}.",
+      "ageYoung": "Świat jest młody: żadne plemię nie nauczyło się jeszcze wiele.",
+      "age": "Najbardziej rozwinięte plemiona osiągnęły epokę: {era}.",
+      "ageTip": "Epokę świata wyznacza jego najbardziej rozwinięte plemię. Decyduje, co ludzie mogą budować i jak żyją."
+    },
+    "feed": {
+      "title": "CO SIĘ DZIEJE",
+      "tip": "Najważniejsze rzeczy, które dzieją się teraz, od najnowszych. Kliknij, by tam polecieć.",
+      "peril": "ma kłopoty: {reason}.",
+      "war": "{a} i {b} toczą wojnę.",
+      "drought": "Susza: rzeki i jeziora się kurczą.",
+      "hardWinter": "Ciężka zima: do wiosny brakuje jedzenia.",
+      "hardWinterAhead": "Nadciąga ciężka zima.",
+      "quiet": "Spokojnie. Plemiona żyją swoim codziennym życiem.",
+      "now": "przed chwilą",
+      "days": {
+        "one": "wczoraj",
+        "few": "{count} dni temu",
+        "many": "{count} dni temu",
+        "other": "{count} dnia temu"
+      },
+      "years": {
+        "one": "rok temu",
+        "few": "{count} lata temu",
+        "many": "{count} lat temu",
+        "other": "{count} roku temu"
+      },
+      "chronicles": "Przeczytaj całą historię w Kronikach",
+      "goThere": "Leć tam"
+    },
+    "tribes": {
+      "title": "PLEMIONA",
+      "tip": "Jak radzi sobie każde plemię: ludzie, czy rośnie (▲) czy maleje (▼), i jedno słowo o tym, jak im się żyje. Kliknij plemię, by je śledzić.",
+      "mood": {
+        "starving": "głoduje",
+        "thirsty": "spragnione",
+        "dying": "w niebezpieczeństwie",
+        "war": "na wojnie",
+        "sick": "chore",
+        "hungry": "głodne",
+        "growing": "rośnie",
+        "shrinking": "maleje",
+        "thriving": "kwitnie",
+        "steady": "stabilne"
+      },
+      "moodTip": {
+        "starving": "Kończy się jedzenie i ludzie umierają z głodu.",
+        "thirsty": "Nie mają wody i ludzie umierają z pragnienia.",
+        "dying": "Mogą wkrótce wymrzeć. Zobacz dlaczego.",
+        "war": "Walczą teraz z innym plemieniem.",
+        "sick": "Choroba szerzy się w plemieniu.",
+        "hungry": "Jedzenia jest mało. Pomóż im znaleźć więcej.",
+        "growing": "Rodzi się więcej ludzi, niż umiera.",
+        "shrinking": "Tracą ludzi.",
+        "thriving": "Syci i zdrowi.",
+        "steady": "Niewiele się zmienia."
+      },
+      "viewAll": {
+        "one": "zobacz plemię",
+        "few": "zobacz wszystkie {count} plemiona",
+        "many": "zobacz wszystkie {count} plemion",
+        "other": "zobacz wszystkie {count} plemienia"
+      }
+    },
+    "wildlife": {
+      "title": "DZIKA PRZYRODA",
+      "tip": "Zwierzęta żyjące na lądzie. Zwierzyna i stada karmią plemiona; czerwone polują na ludzi."
+    },
+    "nerd": {
+      "title": "DLA ZAAWANSOWANYCH",
+      "tip": "Surowe liczniki, każdy ród i pełny dziennik zdarzeń. Widoczne, bo „Statystyki dla zaawansowanych” są włączone.",
+      "hint": "Chcesz surowe liczby? Włącz „Statystyki dla zaawansowanych” w ustawieniach."
+    }
   }
 }

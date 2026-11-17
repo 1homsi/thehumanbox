@@ -56,11 +56,9 @@
     "outbreaksTip": "Épidémies qui ont traversé la population"
   },
   "wildlife": {
-    "title": "FAUNE",
     "danger": "Chasse les gens quand elle a faim",
     "herds": "Moutons, vaches, chevaux et poules",
     "game": "Gibier sauvage, chassé pour se nourrir : la surchasse le réduit",
-    "away": "+{count} absents",
     "animals": {
       "rabbits": "lapins",
       "deer": "cerfs",
@@ -519,5 +517,96 @@
     "go": "Aller à {name}",
     "more": "{count} autres tribus manquent de nourriture",
     "dismiss": "Fermer"
+  },
+  "world": {
+    "now": {
+      "title": "EN CE MOMENT",
+      "when": "An {year}, {season}, {phase}.",
+      "weather": {
+        "clear": "Ciel dégagé.",
+        "rain": "La pluie tombe et la terre la boit.",
+        "storm": "Une tempête fait rage. Les gens courent se mettre à l’abri.",
+        "snow": "Il neige.",
+        "fog": "Le brouillard recouvre la terre.",
+        "wet": "Le sol est encore mouillé par la pluie."
+      },
+      "drought": "Une sécheresse assèche l’eau.",
+      "hardWinter": "Un hiver rude s’abat sur la terre.",
+      "hardWinterAhead": "Un hiver rude approche : la nourriture va manquer.",
+      "people": {
+        "one": "{count} personne",
+        "other": "{count} personnes"
+      },
+      "tribes": {
+        "one": "{count} tribu",
+        "other": "{count} tribus"
+      },
+      "peopleLine": "{people} vivent dans {tribes}.",
+      "ageYoung": "Le monde est jeune : aucune tribu n’a encore appris grand-chose.",
+      "age": "Les tribus les plus avancées ont atteint l’âge {era}.",
+      "ageTip": "L’âge du monde est celui de sa tribu la plus avancée. Il décide de ce que les gens peuvent bâtir et de leur façon de vivre."
+    },
+    "feed": {
+      "title": "CE QUI SE PASSE",
+      "tip": "Les faits marquants du moment, les plus récents d’abord. Clique pour t’y rendre.",
+      "peril": "est en difficulté : {reason}.",
+      "war": "{a} et {b} sont en guerre.",
+      "drought": "Sécheresse : rivières et lacs rétrécissent.",
+      "hardWinter": "Hiver rude : la nourriture manque jusqu’au printemps.",
+      "hardWinterAhead": "Un hiver rude arrive.",
+      "quiet": "Tout est calme. Les tribus vaquent à leurs occupations.",
+      "now": "à l’instant",
+      "days": {
+        "one": "hier",
+        "other": "il y a {count} jours"
+      },
+      "years": {
+        "one": "il y a un an",
+        "other": "il y a {count} ans"
+      },
+      "chronicles": "Lire toute l’histoire dans les Chroniques",
+      "goThere": "Y aller"
+    },
+    "tribes": {
+      "title": "TRIBUS",
+      "tip": "Comment va chaque tribu : ses gens, si elle grandit (▲) ou décline (▼), et un mot sur sa vie. Clique sur une tribu pour la suivre.",
+      "mood": {
+        "starving": "affamée",
+        "thirsty": "assoiffée",
+        "dying": "en danger",
+        "war": "en guerre",
+        "sick": "malade",
+        "hungry": "a faim",
+        "growing": "grandit",
+        "shrinking": "décline",
+        "thriving": "prospère",
+        "steady": "stable"
+      },
+      "moodTip": {
+        "starving": "Elle manque de nourriture et des gens meurent de faim.",
+        "thirsty": "Elle n’a plus d’eau et des gens meurent de soif.",
+        "dying": "Elle pourrait bientôt disparaître. Regarde pourquoi.",
+        "war": "Elle se bat contre une autre tribu en ce moment.",
+        "sick": "Une maladie se répand dans la tribu.",
+        "hungry": "La nourriture se fait rare. Aide-la à en trouver.",
+        "growing": "Il naît plus de gens qu’il n’en meurt.",
+        "shrinking": "Elle perd des gens.",
+        "thriving": "Bien nourrie et en bonne santé.",
+        "steady": "Peu de choses changent."
+      },
+      "viewAll": {
+        "one": "voir la tribu",
+        "other": "voir les {count} tribus"
+      }
+    },
+    "wildlife": {
+      "title": "FAUNE",
+      "tip": "Les animaux qui vivent sur la terre. Le gibier et les troupeaux nourrissent les tribus ; les rouges chassent les gens."
+    },
+    "nerd": {
+      "title": "POUR EXPERTS",
+      "tip": "Compteurs bruts, chaque lignée et le journal complet des événements. Visible car « Statistiques pour experts » est activé.",
+      "hint": "Envie des chiffres bruts ? Active « Statistiques pour experts » dans les réglages."
+    }
   }
 }

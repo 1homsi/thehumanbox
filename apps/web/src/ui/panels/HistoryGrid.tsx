@@ -32,7 +32,7 @@ function HistoryGridImpl() {
         {ROWS.map(([label, tip, value]) => {
           const n = value(h)
           // Saves from before a cause was told apart have no count for it.
-          if (n === undefined) return null
+          if (n === undefined || n === 0) return null
           return (
             <span key={label} style={{ display: 'contents' }}>
               <Tooltip tip={t(tip)}>

@@ -56,11 +56,9 @@
     "outbreaksTip": "Krankheitsausbrüche, die durch die Bevölkerung zogen"
   },
   "wildlife": {
-    "title": "WILDTIERE",
     "danger": "Jagt Menschen, wenn es hungrig ist",
     "herds": "Schafe, Kühe, Pferde und Hühner",
     "game": "Wild zur Nahrung gejagt: Überjagung dezimiert es",
-    "away": "+{count} unterwegs",
     "animals": {
       "rabbits": "Kaninchen",
       "deer": "Hirsche",
@@ -522,5 +520,96 @@
     "go": "Zu {name}",
     "more": "{count} weitere Stämme haben zu wenig Nahrung",
     "dismiss": "Schließen"
+  },
+  "world": {
+    "now": {
+      "title": "GERADE JETZT",
+      "when": "Jahr {year}, {season}, {phase}.",
+      "weather": {
+        "clear": "Klarer Himmel.",
+        "rain": "Es regnet und das Land saugt das Wasser auf.",
+        "storm": "Ein Sturm tobt. Die Leute suchen Schutz.",
+        "snow": "Es schneit.",
+        "fog": "Nebel liegt über dem Land.",
+        "wet": "Der Boden ist noch nass vom Regen."
+      },
+      "drought": "Eine Dürre lässt das Wasser versiegen.",
+      "hardWinter": "Ein harter Winter hält das Land im Griff.",
+      "hardWinterAhead": "Ein harter Winter naht: Nahrung wird knapp.",
+      "people": {
+        "one": "{count} Mensch",
+        "other": "{count} Menschen"
+      },
+      "tribes": {
+        "one": "{count} Stamm",
+        "other": "{count} Stämmen"
+      },
+      "peopleLine": "{people} leben in {tribes}.",
+      "ageYoung": "Die Welt ist jung: Noch hat kein Stamm viel gelernt.",
+      "age": "Die fortschrittlichsten Stämme haben das Zeitalter {era} erreicht.",
+      "ageTip": "Das Zeitalter der Welt richtet sich nach ihrem fortschrittlichsten Stamm. Es bestimmt, was die Leute bauen können und wie sie leben."
+    },
+    "feed": {
+      "title": "WAS GERADE PASSIERT",
+      "tip": "Das Wichtigste, was gerade geschieht, das Neueste zuerst. Klick darauf, um hinzufliegen.",
+      "peril": "steckt in Not: {reason}.",
+      "war": "{a} und {b} führen Krieg.",
+      "drought": "Dürre: Flüsse und Seen schrumpfen.",
+      "hardWinter": "Harter Winter: Nahrung ist bis zum Frühling knapp.",
+      "hardWinterAhead": "Ein harter Winter ist im Anmarsch.",
+      "quiet": "Alles ruhig. Die Stämme gehen ihrem Alltag nach.",
+      "now": "gerade eben",
+      "days": {
+        "one": "gestern",
+        "other": "vor {count} Tagen"
+      },
+      "years": {
+        "one": "vor einem Jahr",
+        "other": "vor {count} Jahren"
+      },
+      "chronicles": "Die ganze Geschichte in den Chroniken lesen",
+      "goThere": "Hinfliegen"
+    },
+    "tribes": {
+      "title": "STÄMME",
+      "tip": "Wie es jedem Stamm geht: seine Leute, ob er wächst (▲) oder schrumpft (▼), und ein Wort dazu, wie das Leben läuft. Klick auf einen Stamm, um ihm zu folgen.",
+      "mood": {
+        "starving": "hungert",
+        "thirsty": "durstig",
+        "dying": "in Gefahr",
+        "war": "im Krieg",
+        "sick": "krank",
+        "hungry": "hungrig",
+        "growing": "wächst",
+        "shrinking": "schrumpft",
+        "thriving": "blüht auf",
+        "steady": "stabil"
+      },
+      "moodTip": {
+        "starving": "Die Nahrung geht aus und Leute sterben an Hunger.",
+        "thirsty": "Sie haben kein Wasser und Leute sterben an Durst.",
+        "dying": "Sie könnten bald aussterben. Sieh nach, warum.",
+        "war": "Sie kämpfen gerade gegen einen anderen Stamm.",
+        "sick": "Eine Krankheit breitet sich im Stamm aus.",
+        "hungry": "Die Nahrung wird knapp. Hilf ihnen, mehr zu finden.",
+        "growing": "Es werden mehr Leute geboren, als sterben.",
+        "shrinking": "Sie verlieren Leute.",
+        "thriving": "Satt und gesund.",
+        "steady": "Es ändert sich kaum etwas."
+      },
+      "viewAll": {
+        "one": "den Stamm ansehen",
+        "other": "alle {count} Stämme ansehen"
+      }
+    },
+    "wildlife": {
+      "title": "TIERWELT",
+      "tip": "Tiere, die auf dem Land leben. Wild und Herden ernähren die Stämme; die roten jagen Menschen."
+    },
+    "nerd": {
+      "title": "FÜR NERDS",
+      "tip": "Rohe Zähler, jede Stammeslinie und das volle Ereignisprotokoll. Sichtbar, weil „Statistiken für Nerds“ an ist.",
+      "hint": "Lieber die rohen Zahlen? Schalte „Statistiken für Nerds“ in den Einstellungen ein."
+    }
   }
 }
