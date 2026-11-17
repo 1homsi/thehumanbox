@@ -1,3 +1,6 @@
 allowBuilds:
   electron: set this to true or false
   electron-winstaller: set this to true or false
+# Security floors for transitive dependencies (#963): electron-updater pulls js-yaml (it parses latest.yml).
+overrides:
+  js-yaml: ^4.3.2

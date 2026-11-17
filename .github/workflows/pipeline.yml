@@ -397,7 +397,8 @@ jobs:
       matrix:
         include:
           - part: lint
-            run: pnpm lint && pnpm format:check
+            # High or critical advisories in shipped dependencies fail the build (#963).
+            run: pnpm lint && pnpm format:check && pnpm audit --prod --audit-level high
           - part: tests 1/2
             run: pnpm test --shard=1/2
           - part: tests 2/2
@@ -643,6 +644,9 @@ jobs:
       - name: desktop main-process tests
         working-directory: apps/desktop
         run: pnpm run test:main
+      - name: no high or critical advisories in shipped dependencies
+        working-directory: apps/desktop
+        run: pnpm audit --prod --audit-level high
 
   bump-version:
     name: Bump version
