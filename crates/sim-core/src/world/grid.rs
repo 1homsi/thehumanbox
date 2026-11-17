@@ -10,6 +10,15 @@ use serde::Serialize;
 
 pub const WIDTH: usize = 800;
 pub const HEIGHT: usize = 400;
+
+pub const TARGET_MARGIN: i32 = 5;
+
+pub fn clamp_to_map(x: i32, y: i32) -> (i32, i32) {
+    (
+        x.clamp(TARGET_MARGIN, WIDTH as i32 - TARGET_MARGIN),
+        y.clamp(TARGET_MARGIN, HEIGHT as i32 - TARGET_MARGIN),
+    )
+}
 /// How far enriched soil settles back toward its biome's fertility each
 /// time the world layers decay (every 500 ticks).
 pub const SOIL_SETTLE: f32 = 0.002;
@@ -1433,6 +1442,16 @@ pub fn structure_delta(prev: &[[u16; 3]], cur: &[[u16; 3]]) -> Vec<[u16; 3]> {
 mod tests {
     use super::*;
     use std::collections::VecDeque;
+
+    #[test]
+    fn clamp_to_map_keeps_south_east_targets() {
+        assert_eq!(clamp_to_map(700, 350), (700, 350));
+        assert_eq!(
+            clamp_to_map(WIDTH as i32 + 50, HEIGHT as i32 + 50),
+            (WIDTH as i32 - 5, HEIGHT as i32 - 5)
+        );
+        assert_eq!(clamp_to_map(-10, -10), (5, 5));
+    }
 
     #[test]
     fn structure_delta_lists_changed_added_and_dropped_cells() {

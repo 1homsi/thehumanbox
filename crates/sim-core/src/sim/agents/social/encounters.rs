@@ -225,7 +225,7 @@ pub fn groom(
 
     let org_name = organisms[org_idx].name.clone();
     organisms[org_idx].think(
-        &format!("grooming {}", &target_name[..4.min(target_name.len())]),
+        &format!("grooming {}", crate::text::prefix_chars(&target_name, 4)),
         tick,
     );
 

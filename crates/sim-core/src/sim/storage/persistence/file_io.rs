@@ -88,6 +88,16 @@ pub fn write_save_to_disk(state: &SaveState, path: &str) -> io::Result<()> {
     Ok(())
 }
 
+fn grid_size_problem(cells: usize) -> Option<String> {
+    (cells != WIDTH * HEIGHT && cells != resize::OLD_WIDTH * resize::OLD_HEIGHT).then(|| {
+        format!(
+            "its map has {cells} cells; this build reads {WIDTH}x{HEIGHT} or the older {}x{}",
+            resize::OLD_WIDTH,
+            resize::OLD_HEIGHT
+        )
+    })
+}
+
 impl Simulation {
     /// A saved world, read without touching the file, or why it cannot be. Unlike [`Self::load_or_new`], an
     /// unreadable or newer save is an error rather than moved aside for a fresh world: for tools such as
@@ -103,13 +113,8 @@ impl Simulation {
             ));
         }
         // `from_save` grows a fresh grid for any size it does not know, which would quietly run a different world.
-        let cells = state.grid.tiles.len();
-        if cells != WIDTH * HEIGHT && cells != resize::OLD_WIDTH * resize::OLD_HEIGHT {
-            return Err(format!(
-                "its map has {cells} cells; this build reads {WIDTH}x{HEIGHT} or the older {}x{}",
-                resize::OLD_WIDTH,
-                resize::OLD_HEIGHT
-            ));
+        if let Some(problem) = grid_size_problem(state.grid.tiles.len()) {
+            return Err(problem);
         }
         let world_seed = if state.world_seed > 0 {
             state.world_seed
@@ -159,6 +164,23 @@ impl Simulation {
                             path,
                             state.version,
                             SAVE_SCHEMA_VERSION,
+                            backup
+                        );
+                        return Self::new(seed);
+                    }
+                    let cells = state.grid.tiles.len();
+                    if let Some(problem) = (cells != 0).then(|| grid_size_problem(cells)).flatten() {
+                        let backup = backup_path(path, "grid-mismatch");
+                        std::fs::rename(path, &backup).unwrap_or_else(|backup_error| {
+                            panic!(
+                                "Save at {} cannot be loaded ({}), and could not be preserved at {} ({}); refusing to start a fresh world",
+                                path, problem, backup, backup_error
+                            )
+                        });
+                        tracing::warn!(
+                            "Save at {} cannot be loaded ({}). Backed up to {} and starting fresh world.",
+                            path,
+                            problem,
                             backup
                         );
                         return Self::new(seed);

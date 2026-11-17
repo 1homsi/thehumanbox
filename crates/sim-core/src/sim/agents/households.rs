@@ -113,7 +113,7 @@ impl Simulation {
         let trust = e.org_trust.entry(child_id.clone()).or_insert(0.0);
         *trust = (*trust + 0.05).min(1.0);
         self.organisms[idx].think(
-            &format!("bringing food to {}", &elder_name[..4.min(elder_name.len())]),
+            &format!("bringing food to {}", crate::text::prefix_chars(&elder_name, 4)),
             tick,
         );
         self.organisms[elder].log_life_rel(

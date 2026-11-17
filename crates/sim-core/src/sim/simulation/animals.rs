@@ -167,6 +167,7 @@ impl Simulation {
                 _ => {}
             }
         }
+        super::wolf_packs::assign_pack_quarries(&mut self.animals);
         for animal in &mut self.animals {
             // Livestock grazes on its pasture: it does not flee people or join the herds.
             if animal.is_kept() {
@@ -248,6 +249,17 @@ impl Simulation {
             });
             let reach = if packed { PACK_REACH } else { 1.5 };
             let raid: &[(usize, f32, f32, AnimalKind)] = if pred.hunting { &livestock } else { &[] };
+            let quarry = pred.pack_quarry.and_then(|(qid, _, _)| {
+                prey_positions
+                    .iter()
+                    .chain(raid.iter())
+                    .find(|&&(vi, ..)| vi != pi && self.animals[vi].id == qid)
+                    .filter(|&&(_, vx, vy, _)| (vx - pred.x).abs() + (vy - pred.y).abs() <= reach)
+            });
+            if let Some(&(vi, ..)) = quarry {
+                kills.push((pi, vi));
+                continue;
+            }
             for (vi, vx, vy, _) in prey_positions.iter().chain(raid.iter()).copied() {
                 if vi == pi {
                     continue;

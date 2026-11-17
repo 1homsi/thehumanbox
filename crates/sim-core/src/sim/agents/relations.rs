@@ -29,7 +29,7 @@ const FRIEND_FAR: i32 = 30;
 const COMPETE_RANGE: i32 = 30;
 
 fn short(name: &str) -> &str {
-    &name[..4.min(name.len())]
+    crate::text::prefix_chars(name, 4)
 }
 
 impl Simulation {

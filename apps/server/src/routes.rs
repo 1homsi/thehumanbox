@@ -626,6 +626,22 @@ pub async fn metrics_handler(State(s): State<AppState>) -> impl IntoResponse {
     let _ = writeln!(body, "thb_memory_pressure {}", pressure_n);
     let _ = writeln!(
         body,
+        "# HELP thb_memory_trims_total Memory-pressure trims run since start"
+    );
+    let _ = writeln!(body, "# TYPE thb_memory_trims_total counter");
+    let _ = writeln!(body, "thb_memory_trims_total {}", s.memory_watch.trims_total());
+    let _ = writeln!(
+        body,
+        "# HELP thb_memory_trimmed_orgs_total Dead people dropped by memory-pressure trims"
+    );
+    let _ = writeln!(body, "# TYPE thb_memory_trimmed_orgs_total counter");
+    let _ = writeln!(
+        body,
+        "thb_memory_trimmed_orgs_total {}",
+        s.memory_watch.trimmed_orgs_total()
+    );
+    let _ = writeln!(
+        body,
         "# HELP thb_org_memories_total Total per-org memory entries across living orgs"
     );
     let _ = writeln!(body, "# TYPE thb_org_memories_total gauge");

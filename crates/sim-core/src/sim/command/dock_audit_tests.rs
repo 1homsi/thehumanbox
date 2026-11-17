@@ -78,16 +78,32 @@ fn staged_world() -> (Simulation, Stage) {
     *sim.grid.fire_intensity_mut(fire.0, fire.1) = 1.0;
     sim.physics.register_fire(fire.0, fire.1);
     // Someone hurt and someone sick in the crowd, and two who could marry.
-    let near: Vec<usize> = (0..sim.organisms.len())
-        .filter(|&i| {
-            let o = &sim.organisms[i];
-            o.alive && (o.x - crowd.0).hypot(o.y - crowd.1) <= 6.0
-        })
+    let dist = |o: &crate::organism::organism::Organism| (o.x - crowd.0).hypot(o.y - crowd.1);
+    let mut near: Vec<usize> = (0..sim.organisms.len())
+        .filter(|&i| sim.organisms[i].alive)
         .collect();
-    assert!(near.len() >= 5, "the crowd has a few people");
+    near.sort_by(|&a, &b| {
+        dist(&sim.organisms[a])
+            .total_cmp(&dist(&sim.organisms[b]))
+            .then(a.cmp(&b))
+    });
+    near.truncate(5);
+    assert!(near.len() >= 5, "the world has a few people");
+    for (k, &i) in near.iter().enumerate() {
+        if dist(&sim.organisms[i]) > 6.0 {
+            sim.organisms[i].x = crowd.0 + k as f32 * 0.5;
+            sim.organisms[i].y = crowd.1;
+        }
+    }
     sim.organisms[near[0]].health = 0.4;
     sim.organisms[near[1]].infection = 0.9;
     let lineage = sim.organisms[near[2]].lineage_id.clone();
+    for &i in &near {
+        sim.organisms[i].lineage_id = lineage.clone();
+    }
+    sim.lineage_eras
+        .entry(lineage.clone())
+        .or_insert(crate::sim::era::Era::PreStone);
     let (m, w) = (near[2], near[3]);
     for (i, sex) in [(m, Sex::Male), (w, Sex::Female)] {
         let o = &mut sim.organisms[i];

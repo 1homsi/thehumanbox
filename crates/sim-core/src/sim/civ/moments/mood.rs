@@ -138,6 +138,10 @@ pub(in crate::sim::civ) fn tick_jealousy_rivalries(sim: &mut Simulation) {
     }
 }
 
+fn curiosity_angle(hash: u64, tick: u64) -> f32 {
+    ((hash ^ tick.wrapping_mul(0x9E37_79B9_7F4A_7C15)) % 6283) as f32 * 0.001
+}
+
 pub(in crate::sim::civ) fn tick_curiosity_exploration(sim: &mut Simulation) {
     let n = sim.organisms.len();
     if n == 0 {
@@ -154,11 +158,11 @@ pub(in crate::sim::civ) fn tick_curiosity_exploration(sim: &mut Simulation) {
         let hash =
             o.id.bytes()
                 .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
-        let angle = ((hash ^ sim.tick_count) as f32) * 0.0000014;
+        let angle = curiosity_angle(hash, sim.tick_count);
         let dist = 200.0 + o.curiosity_drive * 350.0;
         let tx = (o.x + angle.det_sin() * dist).round() as i32;
         let ty = (o.y + angle.det_cos() * dist).round() as i32;
-        o.wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
+        o.wander_target = Some(crate::world::grid::clamp_to_map(tx, ty));
         o.curiosity_drive = (o.curiosity_drive * 0.4).max(0.0);
     }
 }
@@ -368,5 +372,63 @@ pub(in crate::sim::civ) fn tick_mood_contagion(sim: &mut Simulation) {
         if dcomf != 0.0 {
             me.comfort = (me.comfort + dcomf).clamp(0.0, 1.0);
         }
+    }
+}
+
+#[cfg(test)]
+mod curiosity_tests {
+    use super::*;
+    use crate::organism::organism::Organism;
+    use crate::organism::traits::Traits;
+    use crate::world::grid::{HEIGHT, WIDTH};
+
+    #[test]
+    fn curiosity_angle_changes_with_the_tick() {
+        let hash = "org-1234"
+            .bytes()
+            .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
+        let angles: std::collections::BTreeSet<u32> = (0..20u64)
+            .map(|t| curiosity_angle(hash, 1_000 + t).to_bits())
+            .collect();
+        assert!(
+            angles.len() > 10,
+            "angles should vary with the tick, got {angles:?}"
+        );
+        for t in 0..20u64 {
+            assert!((0.0..6.3).contains(&curiosity_angle(hash, t)));
+        }
+    }
+
+    #[test]
+    fn exploration_targets_reach_the_south_east_of_the_map() {
+        let mut sim = Simulation::new(7);
+        sim.organisms.clear();
+        let mut o = Organism::new(
+            "explorer".into(),
+            "explorer".into(),
+            WIDTH as f32 - 20.0,
+            HEIGHT as f32 - 20.0,
+            0,
+            String::new(),
+            "clan".into(),
+            20_000,
+            Traits::default(),
+        );
+        o.alive = true;
+        o.energy = 1.0;
+        sim.organisms.push(o);
+        let mut south_east = 0;
+        for t in 0..40u64 {
+            sim.tick_count = 10_000 + t;
+            sim.organisms[0].wander_target = None;
+            sim.organisms[0].curiosity_drive = 1.0;
+            tick_curiosity_exploration(&mut sim);
+            let (tx, ty) = sim.organisms[0].wander_target.expect("curious and rested");
+            assert!((5..=WIDTH as i32 - 5).contains(&tx) && (5..=HEIGHT as i32 - 5).contains(&ty));
+            if tx > 595 && ty > 295 {
+                south_east += 1;
+            }
+        }
+        assert!(south_east > 0, "no target ever landed past the old 600x300 edge");
     }
 }

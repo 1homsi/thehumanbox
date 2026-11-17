@@ -512,17 +512,8 @@ impl Simulation {
                         break;
                     }
                     if !o.alive && !growth::is_pending_birth(o) && !o.q_table.is_empty() {
-                        if !o.memories.is_empty() {
-                            let top: Vec<crate::organism::memory::MemoryEntry> =
-                                o.memories.top(8).into_iter().cloned().collect();
-                            self.pending_memory_flushes.push(PendingMemoryFlush {
-                                org_id: o.id.clone(),
-                                org_name: o.name.clone(),
-                                lineage_id: o.lineage_id.clone(),
-                                flushed_tick: tick_now,
-                                memories: top,
-                            });
-                        }
+                        self.pending_memory_flushes
+                            .extend(PendingMemoryFlush::of(o, tick_now));
                         o.compress_for_archive();
                         compressed += 1;
                     }

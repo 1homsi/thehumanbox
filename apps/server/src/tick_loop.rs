@@ -182,8 +182,11 @@ async fn step_period(
 
         if s.tick_count / 30 > tick_count_before / 30 {
             let p = memory_watch.pressure();
-            if !matches!(p, memory_watch::MemoryPressure::Normal) {
-                s.apply_memory_pressure(p);
+            if memory_watch.claim_trim(s.tick_count, p) {
+                let dropped = s.apply_memory_pressure(p);
+                memory_watch.record_trim(dropped);
+                tracing::info!(target: "mem", "memory-pressure trim at tick {} ({:?}): dropped {} dead, rss={} MB",
+                    s.tick_count, p, dropped, memory_watch.rss_mb());
             }
         }
 

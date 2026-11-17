@@ -42,6 +42,7 @@ mod tick;
 mod tribe_chronicle;
 mod types;
 pub(crate) mod wary_game;
+mod wolf_packs;
 mod world;
 
 pub use types::*;

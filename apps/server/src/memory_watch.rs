@@ -12,11 +12,21 @@ fn pressure_from_u8(v: u8) -> MemoryPressure {
     }
 }
 
+pub const TRIM_COOLDOWN_TICKS: u64 = 1_200;
+
+const RELAX_MARGIN_PCT: u64 = 10;
+
+const NEVER: u64 = u64::MAX;
+
 pub struct MemoryWatch {
     own_rss_kb: AtomicU64,
     box_available_kb: AtomicU64,
     box_total_kb: AtomicU64,
     pressure: AtomicU8,
+    last_trim_tick: AtomicU64,
+    last_trim_level: AtomicU8,
+    trims_total: AtomicU64,
+    trimmed_orgs_total: AtomicU64,
     floor_mb_elevated: u64,
     floor_mb_critical: u64,
     rss_mb_elevated: u64,
@@ -37,6 +47,10 @@ impl MemoryWatch {
             box_available_kb: AtomicU64::new(0),
             box_total_kb: AtomicU64::new(0),
             pressure: AtomicU8::new(MemoryPressure::Normal as u8),
+            last_trim_tick: AtomicU64::new(NEVER),
+            last_trim_level: AtomicU8::new(MemoryPressure::Normal as u8),
+            trims_total: AtomicU64::new(0),
+            trimmed_orgs_total: AtomicU64::new(0),
             floor_mb_elevated,
             floor_mb_critical,
             rss_mb_elevated,
@@ -66,8 +80,9 @@ impl MemoryWatch {
                     w.box_total_kb.store(total, Ordering::Relaxed);
                     w.box_available_kb.store(avail, Ordering::Relaxed);
                 }
-                let pressure = w.classify(avail, own);
-                let prev = w.pressure.swap(pressure as u8, Ordering::Relaxed);
+                let prev = w.pressure.load(Ordering::Relaxed);
+                let pressure = w.classify_from(pressure_from_u8(prev), avail, own);
+                w.pressure.store(pressure as u8, Ordering::Relaxed);
                 if prev != pressure as u8 {
                     tracing::warn!(target: "mem", "pressure {:?} → {:?} (avail={:.0} MB, own_rss={:.0} MB)",
                         pressure_from_u8(prev), pressure,
@@ -79,12 +94,27 @@ impl MemoryWatch {
     }
 
     fn classify(&self, avail_kb: u64, own_rss_kb: u64) -> MemoryPressure {
+        self.classify_with_margin(avail_kb, own_rss_kb, 0)
+    }
+
+    fn classify_from(&self, prev: MemoryPressure, avail_kb: u64, own_rss_kb: u64) -> MemoryPressure {
+        let raw = self.classify(avail_kb, own_rss_kb);
+        if raw as u8 >= prev as u8 {
+            return raw;
+        }
+        let sticky = self.classify_with_margin(avail_kb, own_rss_kb, RELAX_MARGIN_PCT);
+        pressure_from_u8((prev as u8).min(sticky as u8))
+    }
+
+    fn classify_with_margin(&self, avail_kb: u64, own_rss_kb: u64, margin_pct: u64) -> MemoryPressure {
         let avail_mb = avail_kb / 1024;
         let own_mb = own_rss_kb / 1024;
-        let host_critical = avail_mb > 0 && avail_mb <= self.floor_mb_critical;
-        let host_elevated = avail_mb > 0 && avail_mb <= self.floor_mb_elevated;
-        let rss_critical = self.rss_mb_critical > 0 && own_mb >= self.rss_mb_critical;
-        let rss_elevated = self.rss_mb_elevated > 0 && own_mb >= self.rss_mb_elevated;
+        let raise = |mb: u64| mb.saturating_mul(100 + margin_pct) / 100;
+        let lower = |mb: u64| mb.saturating_mul(100 - margin_pct) / 100;
+        let host_critical = avail_mb > 0 && avail_mb <= raise(self.floor_mb_critical);
+        let host_elevated = avail_mb > 0 && avail_mb <= raise(self.floor_mb_elevated);
+        let rss_critical = self.rss_mb_critical > 0 && own_mb >= lower(self.rss_mb_critical);
+        let rss_elevated = self.rss_mb_elevated > 0 && own_mb >= lower(self.rss_mb_elevated);
         if host_critical || rss_critical {
             MemoryPressure::Critical
         } else if host_elevated || rss_elevated {
@@ -96,6 +126,35 @@ impl MemoryWatch {
 
     pub fn pressure(&self) -> MemoryPressure {
         pressure_from_u8(self.pressure.load(Ordering::Relaxed))
+    }
+
+    pub fn claim_trim(&self, tick: u64, pressure: MemoryPressure) -> bool {
+        if matches!(pressure, MemoryPressure::Normal) {
+            return false;
+        }
+        let last = self.last_trim_tick.load(Ordering::Relaxed);
+        let last_level = self.last_trim_level.load(Ordering::Relaxed);
+        let due =
+            last == NEVER || tick < last || pressure as u8 > last_level || tick - last >= TRIM_COOLDOWN_TICKS;
+        if due {
+            self.last_trim_tick.store(tick, Ordering::Relaxed);
+            self.last_trim_level.store(pressure as u8, Ordering::Relaxed);
+        }
+        due
+    }
+
+    pub fn record_trim(&self, dropped: usize) {
+        self.trims_total.fetch_add(1, Ordering::Relaxed);
+        self.trimmed_orgs_total
+            .fetch_add(dropped as u64, Ordering::Relaxed);
+    }
+
+    pub fn trims_total(&self) -> u64 {
+        self.trims_total.load(Ordering::Relaxed)
+    }
+
+    pub fn trimmed_orgs_total(&self) -> u64 {
+        self.trimmed_orgs_total.load(Ordering::Relaxed)
     }
 
     pub fn rss_mb(&self) -> u64 {
@@ -179,6 +238,10 @@ mod tests {
             box_available_kb: AtomicU64::new(0),
             box_total_kb: AtomicU64::new(0),
             pressure: AtomicU8::new(MemoryPressure::Normal as u8),
+            last_trim_tick: AtomicU64::new(NEVER),
+            last_trim_level: AtomicU8::new(MemoryPressure::Normal as u8),
+            trims_total: AtomicU64::new(0),
+            trimmed_orgs_total: AtomicU64::new(0),
             floor_mb_elevated: floor_elevated,
             floor_mb_critical: floor_critical,
             rss_mb_elevated: 256,
@@ -249,5 +312,44 @@ mod tests {
         let w = make_watch(400, 200);
         assert!(matches!(w.classify(0, 300 * 1024), MemoryPressure::Elevated));
         assert!(matches!(w.classify(0, 400 * 1024), MemoryPressure::Critical));
+    }
+
+    #[test]
+    fn pressure_relaxes_only_past_the_margin() {
+        let w = make_watch(0, 0);
+        let mb = |m: u64| m * 1024;
+        assert!(matches!(
+            w.classify_from(MemoryPressure::Critical, 0, mb(380)),
+            MemoryPressure::Critical
+        ));
+        assert!(matches!(
+            w.classify_from(MemoryPressure::Critical, 0, mb(340)),
+            MemoryPressure::Elevated
+        ));
+        assert!(matches!(
+            w.classify_from(MemoryPressure::Elevated, 0, mb(240)),
+            MemoryPressure::Elevated
+        ));
+        assert!(matches!(
+            w.classify_from(MemoryPressure::Elevated, 0, mb(200)),
+            MemoryPressure::Normal
+        ));
+        assert!(matches!(
+            w.classify_from(MemoryPressure::Normal, 0, mb(400)),
+            MemoryPressure::Critical
+        ));
+    }
+
+    #[test]
+    fn trims_are_spaced_by_the_cooldown_unless_the_level_rises() {
+        let w = make_watch(0, 0);
+        assert!(!w.claim_trim(30, MemoryPressure::Normal));
+        assert!(w.claim_trim(30, MemoryPressure::Elevated));
+        assert!(!w.claim_trim(60, MemoryPressure::Elevated));
+        assert!(w.claim_trim(90, MemoryPressure::Critical));
+        assert!(!w.claim_trim(120, MemoryPressure::Critical));
+        assert!(!w.claim_trim(120, MemoryPressure::Elevated));
+        assert!(w.claim_trim(90 + TRIM_COOLDOWN_TICKS, MemoryPressure::Critical));
+        assert!(w.claim_trim(30, MemoryPressure::Critical));
     }
 }
