@@ -17,6 +17,7 @@ import { CfLanduse } from './landuse/CfLanduse'
 import { CfRoads } from './roads/CfRoads'
 import { CfVegetation } from './vegetation/CfVegetation'
 import { TerrainWatch } from './vegetation/terrain-watch'
+import { t } from '../../../i18n'
 
 /**
  * Least time between two rebuilds of the ground layers for a terrain change (ms). At normal speed the ground
@@ -136,7 +137,7 @@ export function CfWorld({
       step(w)
     } catch (error) {
       logger.error('2d-world', 'GPU world drawing failed', error)
-      onDrawErrorRef.current('The world could not be drawn. Retry the renderer to restore the map.')
+      onDrawErrorRef.current(t('common.renderer.drawFailed'))
     }
   }, [interp, step])
 
@@ -162,7 +163,7 @@ export function CfWorld({
         step(w)
       } catch (error) {
         logger.error('2d-world', 'GPU world drawing failed', error)
-        onDrawErrorRef.current('The world could not be drawn. Retry the renderer to restore the map.')
+        onDrawErrorRef.current(t('common.renderer.drawFailed'))
         return false
       }
       return true

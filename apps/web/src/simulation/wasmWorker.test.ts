@@ -141,6 +141,51 @@ describe('browser simulation scheduling', () => {
     ])
   })
 
+  it('sends a code and the raw detail with a save error, for the page to translate', async () => {
+    model.saveWorld.mockRejectedValueOnce(new Error('QuotaExceededError'))
+    send({ type: 'save', requestId: 30 })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(worker.postMessage).toHaveBeenCalledWith({
+      type: 'error',
+      code: 'autosave_failed',
+      detail: 'QuotaExceededError',
+      message: 'autosave failed: QuotaExceededError',
+      retryable: true,
+    })
+  })
+
+  it('reports a startup that throws as a fatal error with the phase it reached', async () => {
+    await restartWorker({
+      locks: {
+        request: () => {
+          throw new Error('boom')
+        },
+      },
+    })
+    send({ type: 'start', id: 'test', seed: '42' })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(worker.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'error',
+        code: 'startup_failed',
+        fatal: true,
+        phase: 'lock',
+        detail: 'boom',
+      }),
+    )
+    expect(worker.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ready' }))
+  })
+
+  it('reports an engine that cannot load in the engine phase', async () => {
+    model.init.mockRejectedValueOnce(new Error('out of memory'))
+    await restartWorker({})
+    send({ type: 'start', id: 'test', seed: '42' })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(worker.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'error', code: 'engine_failed', fatal: true, phase: 'engine' }),
+    )
+  })
+
   it('accepts a safe reload while WASM is still booting', async () => {
     send({ type: 'stop' })
     await vi.advanceTimersByTimeAsync(0)

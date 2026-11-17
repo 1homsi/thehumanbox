@@ -160,6 +160,7 @@ export default defineConfig({
 
   build: {
     chunkSizeWarningLimit: 400,
+    sourcemap: process.env.THB_SOURCEMAPS === '1' ? 'hidden' : false,
 
     // rolldown-vite emits <link rel="modulepreload"> for every chunk in
     // the dependency map, including lazily imported ones. The vendor

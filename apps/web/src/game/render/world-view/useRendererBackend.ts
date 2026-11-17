@@ -6,6 +6,8 @@ import { watchForGpuStartupFailure } from './gpuStartupWatchdog'
 import { watchForWebGLContextRecovery } from './webglContextRecovery'
 import { wakeRenderLoopsAfterContextRestore } from '../cf/render-loop'
 
+export const GPU_DRAW_FAILURES_BEFORE_CANVAS = 2
+
 /** Which backend draws the map, whether its first frame has arrived, and recovery from failures. */
 export function useRendererBackend({
   rendererPaused,
@@ -36,6 +38,30 @@ export function useRendererBackend({
   }, [])
   const rendererPausedRef = useRef(rendererPaused)
   rendererPausedRef.current = rendererPaused
+  const gpuDrawFailuresRef = useRef(0)
+  const renderBackendRef = useRef(renderBackend)
+  renderBackendRef.current = renderBackend
+
+  const reportDrawError = useCallback(
+    (message: string) => {
+      if (renderBackendRef.current === 'gpu') {
+        gpuDrawFailuresRef.current += 1
+        if (gpuDrawFailuresRef.current >= GPU_DRAW_FAILURES_BEFORE_CANVAS) {
+          setDrawError(null)
+          handleGPUFailure()
+          return
+        }
+      }
+      setDrawError(message)
+    },
+    [handleGPUFailure],
+  )
+
+  const retryRenderer = useCallback(() => {
+    setDrawError(null)
+    setMapReady(false)
+    setRendererKey((key) => key + 1)
+  }, [])
 
   const handleGameReady = useCallback((controls: GameControls) => {
     gameControlsRef.current = controls
@@ -91,9 +117,9 @@ export function useRendererBackend({
     setMapReady,
     renderBackend,
     drawError,
-    setDrawError,
+    reportDrawError,
+    retryRenderer,
     rendererKey,
-    setRendererKey,
     handleFirstDraw,
     handleGPUFailure,
     handleGameReady,

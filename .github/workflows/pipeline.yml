@@ -573,6 +573,7 @@ jobs:
     timeout-minutes: 10
     env:
       HAS_ANALYTICS_KEY: ${{ secrets.VITE_POSTHOG_KEY != '' }}
+      HAS_SOURCEMAP_KEY: ${{ secrets.POSTHOG_CLI_API_KEY != '' }}
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -608,6 +609,23 @@ jobs:
           # (or simply doesn't initialize, see analytics.ts). The host is not set here: the website sends through
           # its own /ingest proxy (functions/ingest), see shared/analytics-host.ts.
           VITE_POSTHOG_KEY:  ${{ secrets.VITE_POSTHOG_KEY }}
+          THB_SOURCEMAPS: ${{ env.HAS_SOURCEMAP_KEY == 'true' && '1' || '0' }}
+
+      - name: Upload source maps to PostHog
+        if: env.HAS_SOURCEMAP_KEY == 'true'
+        continue-on-error: true
+        working-directory: apps/web
+        env:
+          POSTHOG_CLI_API_KEY: ${{ secrets.POSTHOG_CLI_API_KEY }}
+          POSTHOG_CLI_PROJECT_ID: ${{ secrets.POSTHOG_CLI_PROJECT_ID }}
+          POSTHOG_CLI_HOST: https://us.posthog.com
+        run: |
+          npx --yes @posthog/cli@0.19.0 sourcemap inject --directory dist
+          npx --yes @posthog/cli@0.19.0 sourcemap upload --directory dist
+
+      - name: Keep source maps out of the deployed bundle
+        if: env.HAS_SOURCEMAP_KEY == 'true'
+        run: find apps/web/dist -name '*.map' -delete
 
       # A PR bundle without the analytics key (Dependabot PRs get no secrets)
       # is not the production bundle, so main rebuilds instead of shipping it.

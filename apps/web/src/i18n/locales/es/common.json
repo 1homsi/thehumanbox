@@ -27,5 +27,29 @@
     "desktop": "iniciando la simulación nativa en este ordenador",
     "failed": "la simulación no pudo iniciarse en este navegador. Volver a intentarlo suele funcionar.",
     "retry": "reintentar mundo local"
+  },
+  "workerError": {
+    "lockFailed": "no se pudo bloquear el guardado local",
+    "lockedElsewhere": "este mundo ya está abierto en otra pestaña; esta pestaña no sobrescribirá su guardado",
+    "autosaveFailed": "falló el autoguardado",
+    "restoreFailed": "no se pudo restaurar el guardado local",
+    "restoreFailedKept": "no se pudo restaurar el guardado local; se conservó una copia de recuperación",
+    "recoveryInvalid": "la solicitud de recuperación no es válida; el guardado normal se reanudó",
+    "recoveryMissing": "la copia de recuperación ya no existe; el guardado normal se reanudó",
+    "recoveryUnusable": "la copia de recuperación no se puede usar; el guardado normal se reanudó",
+    "resetFailed": "no se pudo reiniciar el guardado local",
+    "recoveryRestoreFailed": "no se pudo restaurar el guardado de recuperación",
+    "preserveFailed": "no se pudo crear una copia de recuperación; se conserva el guardado original",
+    "readFailed": "no se pudo leer el guardado local",
+    "engineFailed": "no se pudo cargar el motor de la simulación",
+    "startupFailed": "el mundo no pudo iniciarse",
+    "simCrashed": "la simulación falló",
+    "workerStopped": "la simulación local se detuvo inesperadamente",
+    "saveFailed": "falló el guardado"
+  },
+  "renderer": {
+    "drawFailed": "No se pudo dibujar el mundo. Reintenta el renderizador para recuperar el mapa.",
+    "canvasUnavailable": "El navegador no pudo crear un lienzo 2D. Prueba a recargar la página.",
+    "retry": "Reintentar renderizador"
   }
 }

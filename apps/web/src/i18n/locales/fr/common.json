@@ -27,5 +27,29 @@
     "desktop": "démarrage de la simulation native sur cet ordinateur",
     "failed": "la simulation n'a pas pu démarrer dans ce navigateur. Réessayer suffit souvent.",
     "retry": "relancer le monde local"
+  },
+  "workerError": {
+    "lockFailed": "impossible de verrouiller la sauvegarde locale",
+    "lockedElsewhere": "ce monde est déjà ouvert dans un autre onglet ; cet onglet n’écrasera pas sa sauvegarde",
+    "autosaveFailed": "la sauvegarde automatique a échoué",
+    "restoreFailed": "impossible de restaurer la sauvegarde locale",
+    "restoreFailedKept": "impossible de restaurer la sauvegarde locale ; une copie de secours a été gardée",
+    "recoveryInvalid": "la demande de récupération est invalide ; la sauvegarde normale a repris",
+    "recoveryMissing": "la copie de secours n’existe plus ; la sauvegarde normale a repris",
+    "recoveryUnusable": "la copie de secours est inutilisable ; la sauvegarde normale a repris",
+    "resetFailed": "impossible de réinitialiser la sauvegarde locale",
+    "recoveryRestoreFailed": "impossible de restaurer la sauvegarde de secours",
+    "preserveFailed": "impossible de créer une copie de secours ; la sauvegarde d’origine est conservée",
+    "readFailed": "impossible de lire la sauvegarde locale",
+    "engineFailed": "le moteur de simulation n’a pas pu se charger",
+    "startupFailed": "le monde n’a pas pu démarrer",
+    "simCrashed": "la simulation a planté",
+    "workerStopped": "la simulation locale s’est arrêtée de façon inattendue",
+    "saveFailed": "échec de la sauvegarde"
+  },
+  "renderer": {
+    "drawFailed": "Le monde n’a pas pu être dessiné. Relance le moteur de rendu pour retrouver la carte.",
+    "canvasUnavailable": "Le navigateur n’a pas pu créer de canevas 2D. Essaie de recharger la page.",
+    "retry": "Relancer le rendu"
   }
 }

@@ -27,5 +27,29 @@
     "desktop": "Die native Simulation startet auf diesem Computer",
     "failed": "Die Simulation konnte in diesem Browser nicht starten. Ein neuer Versuch hilft meistens.",
     "retry": "Lokale Welt neu starten"
+  },
+  "workerError": {
+    "lockFailed": "Der lokale Spielstand konnte nicht gesperrt werden",
+    "lockedElsewhere": "Diese Welt ist bereits in einem anderen Tab geöffnet; dieser Tab überschreibt ihren Spielstand nicht",
+    "autosaveFailed": "Automatisches Speichern fehlgeschlagen",
+    "restoreFailed": "Der lokale Spielstand konnte nicht wiederhergestellt werden",
+    "restoreFailedKept": "Der lokale Spielstand konnte nicht wiederhergestellt werden; eine Sicherungskopie wurde behalten",
+    "recoveryInvalid": "Die Wiederherstellungsanfrage ist ungültig; normales Speichern läuft wieder",
+    "recoveryMissing": "Die Sicherungskopie existiert nicht mehr; normales Speichern läuft wieder",
+    "recoveryUnusable": "Die Sicherungskopie ist unbrauchbar; normales Speichern läuft wieder",
+    "resetFailed": "Der lokale Spielstand konnte nicht zurückgesetzt werden",
+    "recoveryRestoreFailed": "Der Sicherungsstand konnte nicht wiederhergestellt werden",
+    "preserveFailed": "Es konnte keine Sicherungskopie angelegt werden; der ursprüngliche Spielstand bleibt erhalten",
+    "readFailed": "Der lokale Spielstand konnte nicht gelesen werden",
+    "engineFailed": "Die Simulation konnte nicht geladen werden",
+    "startupFailed": "Die Welt konnte nicht starten",
+    "simCrashed": "Die Simulation ist abgestürzt",
+    "workerStopped": "Die lokale Simulation wurde unerwartet beendet",
+    "saveFailed": "Speichern fehlgeschlagen"
+  },
+  "renderer": {
+    "drawFailed": "Die Welt konnte nicht gezeichnet werden. Starte den Renderer neu, um die Karte wiederherzustellen.",
+    "canvasUnavailable": "Der Browser konnte keine 2D-Zeichenfläche erstellen. Lade die Seite neu.",
+    "retry": "Renderer neu starten"
   }
 }

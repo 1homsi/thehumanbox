@@ -14,6 +14,10 @@ import { TILE } from '../../model/palette'
 import { OCEAN, hex } from '../art-palette'
 import { t } from '../../../i18n'
 
+function drawFailedText(): string {
+  return t('common.renderer.drawFailed')
+}
+
 /** Past the map the sea stays in its deepest band. */
 const WORLD_EDGE = hex(OCEAN.abyss)
 
@@ -72,7 +76,7 @@ export function CanvasWorldFallback({
       logger.error('2d-world', 'Canvas setup failed', error)
     }
     if (!canvas || !context) {
-      onDrawError('The browser could not create a 2D canvas. Try reloading this page.')
+      onDrawError(t('common.renderer.canvasUnavailable'))
       return
     }
     const ctx = context
@@ -219,7 +223,7 @@ export function CanvasWorldFallback({
         stopped = true
         cancelAnimationFrame(raf)
         logger.error('2d-world', 'Canvas drawing failed', error)
-        onDrawError('The world could not be drawn. Retry the renderer to restore the map.')
+        onDrawError(drawFailedText())
         return
       }
       lastWorld = w

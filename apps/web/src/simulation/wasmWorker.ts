@@ -18,6 +18,7 @@ import {
   type StorageRetry,
 } from './wasmPersistence'
 import { FAILED_OUTCOME, parseCommandOutcome } from './command-outcome'
+import type { StartupPhase, WorkerErrorCode } from './worker-errors'
 import {
   MAX_RUNTIME_SPEED,
   MIN_RUNTIME_SPEED,
@@ -112,6 +113,7 @@ let worldLockAcquired = true
 let releaseWorldLock: (() => void) | null = null
 let startup: Promise<void> | null = null
 let startupRunning = false
+let startupPhase: StartupPhase = 'engine'
 
 function post(msg: unknown) {
   ;(self as unknown as Worker).postMessage(msg)
@@ -158,10 +160,7 @@ async function acquireWorldLock(id: string): Promise<boolean> {
       clearTimeout(giveUp)
       decide(false)
       if (wait.signal.aborted) return
-      post({
-        type: 'error',
-        message: `could not lock local save: ${error instanceof Error ? error.message : String(error)}`,
-      })
+      postError('lock_failed', 'could not lock local save', { error })
     })
 
   return decision
@@ -201,6 +200,27 @@ function emit(deepFull: boolean) {
 
 function rememberRetry(next: StorageRetry<SavedWorld>) {
   storageRetry = rememberStorageRetry(storageRetry, next)
+}
+
+function errorDetail(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+function postError(
+  code: WorkerErrorCode,
+  text: string,
+  options: { error?: unknown; retryable?: boolean; fatal?: boolean; phase?: StartupPhase } = {},
+) {
+  const detail = options.error === undefined ? undefined : errorDetail(options.error)
+  post({
+    type: 'error',
+    code,
+    message: detail === undefined ? text : `${text}: ${detail}`,
+    ...(detail === undefined ? {} : { detail }),
+    ...(options.retryable === undefined ? {} : { retryable: options.retryable }),
+    ...(options.fatal === undefined ? {} : { fatal: options.fatal }),
+    ...(options.phase === undefined ? {} : { phase: options.phase }),
+  })
 }
 
 function restoreSavedWorld(saved: SavedWorld): SimInstance {
@@ -252,11 +272,7 @@ async function persist(): Promise<boolean> {
       } while (persistAgain)
       return true
     } catch (e) {
-      post({
-        type: 'error',
-        retryable: true,
-        message: `autosave failed: ${e instanceof Error ? e.message : String(e)}`,
-      })
+      postError('autosave_failed', 'autosave failed', { error: e, retryable: true })
       return false
     }
   })()
@@ -285,12 +301,9 @@ async function retryReadStorage(): Promise<boolean> {
         rememberRetry({ kind: 'preserve', world: saved, recoveryId })
         throw preserveError
       }
-      post({
-        type: 'error',
+      postError('restore_failed_kept', 'local save could not be restored; recovery copy kept', {
+        error: restoreError,
         retryable: true,
-        message: `local save could not be restored; recovery copy kept: ${
-          restoreError instanceof Error ? restoreError.message : String(restoreError)
-        }`,
       })
     }
   }
@@ -310,8 +323,12 @@ async function retryResetStorage(resetSeed: string): Promise<boolean> {
   return persist()
 }
 
-async function resumeAfterUnavailableRecovery(message: string): Promise<boolean> {
-  post({ type: 'error', message })
+async function resumeAfterUnavailableRecovery(
+  code: WorkerErrorCode,
+  text: string,
+  error?: unknown,
+): Promise<boolean> {
+  postError(code, text, { error })
   post({ type: 'recovery_cancelled' })
   const fallback = recoveryFallbackRetry
   recoveryFallbackRetry = null
@@ -328,7 +345,10 @@ async function resumeAfterUnavailableRecovery(message: string): Promise<boolean>
 
 async function retryRestoreStorage(recoveryId: string): Promise<boolean> {
   if (!recoveryId.startsWith(recoveryPrefix(worldId))) {
-    return resumeAfterUnavailableRecovery('recovery request is invalid; normal local saving resumed')
+    return resumeAfterUnavailableRecovery(
+      'recovery_invalid',
+      'recovery request is invalid; normal local saving resumed',
+    )
   }
 
   // Re-read the recovery index rather than trusting a stale settings entry.
@@ -337,12 +357,18 @@ async function retryRestoreStorage(recoveryId: string): Promise<boolean> {
   const recoveries = await listRecoveryWorlds(worldId)
   const current = findRequestedRecovery(recoveryId, recoveries)
   if (!current) {
-    return resumeAfterUnavailableRecovery('recovery copy no longer exists; normal local saving resumed')
+    return resumeAfterUnavailableRecovery(
+      'recovery_missing',
+      'recovery copy no longer exists; normal local saving resumed',
+    )
   }
 
   const recovery = await loadWorld(current.id)
   if (!recovery) {
-    return resumeAfterUnavailableRecovery('recovery copy no longer exists; normal local saving resumed')
+    return resumeAfterUnavailableRecovery(
+      'recovery_missing',
+      'recovery copy no longer exists; normal local saving resumed',
+    )
   }
 
   let candidate: SimInstance
@@ -350,9 +376,9 @@ async function retryRestoreStorage(recoveryId: string): Promise<boolean> {
     candidate = restoreSavedWorld(recovery)
   } catch (error) {
     return resumeAfterUnavailableRecovery(
-      `recovery copy is unusable; normal local saving resumed: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+      'recovery_unusable',
+      'recovery copy is unusable; normal local saving resumed',
+      error,
     )
   }
 
@@ -381,17 +407,16 @@ async function retryPreserveStorage(saved: SavedWorld, recoveryId: string): Prom
   return persist()
 }
 
-function storageRetryMessage(retry: StorageRetry<SavedWorld> | null, error: unknown): string {
-  const detail = error instanceof Error ? error.message : String(error)
+function storageRetryError(retry: StorageRetry<SavedWorld> | null): [WorkerErrorCode, string] {
   switch (retry?.kind) {
     case 'reset':
-      return `could not reset local save: ${detail}`
+      return ['reset_failed', 'could not reset local save']
     case 'restore':
-      return `recovery save could not be restored: ${detail}`
+      return ['recovery_restore_failed', 'recovery save could not be restored']
     case 'preserve':
-      return `local save recovery copy failed; original preserved: ${detail}`
+      return ['preserve_failed', 'local save recovery copy failed; original preserved']
     default:
-      return `could not read local save: ${detail}`
+      return ['read_failed', 'could not read local save']
   }
 }
 
@@ -410,11 +435,8 @@ async function retryStorage(): Promise<boolean> {
         preserve: retryPreserveStorage,
       })
     } catch (error) {
-      post({
-        type: 'error',
-        retryable: true,
-        message: storageRetryMessage(storageRetry ?? retry, error),
-      })
+      const [code, text] = storageRetryError(storageRetry ?? retry)
+      postError(code, text, { error, retryable: true })
       return false
     }
   })()
@@ -514,17 +536,14 @@ async function start(msg: StartMsg) {
     engine = await startSimEngine()
     Sim = engine.Sim
   } catch (e) {
-    post({
-      type: 'error',
-      fatal: true,
-      message: `wasm init failed: ${e instanceof Error ? e.message : String(e)}`,
-    })
+    postError('engine_failed', 'wasm init failed', { error: e, fatal: true, phase: 'engine' })
     return
   }
 
   if (reloadPreparing) return
   const engineMs = since(startedAt)
 
+  startupPhase = 'lock'
   const lockAt = performance.now()
   worldLockAcquired = await acquireWorldLock(worldId)
   const lockMs = since(lockAt)
@@ -534,12 +553,13 @@ async function start(msg: StartMsg) {
   }
   if (!worldLockAcquired) {
     storageReady = false
-    post({
-      type: 'error',
-      message: 'this local world is already open in another tab; this tab will not overwrite its save',
-    })
+    postError(
+      'locked_elsewhere',
+      'this local world is already open in another tab; this tab will not overwrite its save',
+    )
   }
 
+  startupPhase = 'restore'
   const restoreAt = performance.now()
   let restored = false
   let saved = null
@@ -553,11 +573,7 @@ async function start(msg: StartMsg) {
     } catch (e) {
       storageReady = false
       rememberRetry({ kind: 'reset', seed: msg.seed })
-      post({
-        type: 'error',
-        retryable: true,
-        message: `could not reset local save: ${e instanceof Error ? e.message : String(e)}`,
-      })
+      postError('reset_failed', 'could not reset local save', { error: e, retryable: true })
     }
   }
   if (!resetApplied && msg.recoveryId && storageReady) {
@@ -586,10 +602,9 @@ async function start(msg: StartMsg) {
     } catch (e) {
       storageReady = false
       rememberRetry({ kind: 'restore', recoveryId: msg.recoveryId })
-      post({
-        type: 'error',
+      postError('recovery_restore_failed', 'recovery save could not be restored', {
+        error: e,
         retryable: true,
-        message: `recovery save could not be restored: ${e instanceof Error ? e.message : String(e)}`,
       })
     }
   }
@@ -604,11 +619,7 @@ async function start(msg: StartMsg) {
       if (storageRetry?.kind === 'restore') recoveryFallbackRetry = { kind: 'read' }
       else rememberRetry({ kind: 'read' })
     }
-    post({
-      type: 'error',
-      retryable: worldLockAcquired,
-      message: `could not read local save: ${e instanceof Error ? e.message : String(e)}`,
-    })
+    postError('read_failed', 'could not read local save', { error: e, retryable: worldLockAcquired })
   }
   if (reloadPreparing) return
   if (saved) {
@@ -643,27 +654,23 @@ async function start(msg: StartMsg) {
           storageReady = false
           if (storageRetry?.kind === 'restore') recoveryFallbackRetry = preserveRetry
           else rememberRetry(preserveRetry)
-          post({
-            type: 'error',
+          postError('preserve_failed', 'local save recovery copy failed; original preserved', {
+            error: recoveryError,
             retryable: true,
-            message: `local save recovery copy failed; original preserved: ${
-              recoveryError instanceof Error ? recoveryError.message : String(recoveryError)
-            }`,
           })
         }
       }
-      post({
-        type: 'error',
-        retryable: storageReady || storageRetry !== null,
-        message: `local save could not be restored${recoverySaved ? '; recovery copy kept' : ''}: ${
-          e instanceof Error ? e.message : String(e)
-        }`,
-      })
+      postError(
+        recoverySaved ? 'restore_failed_kept' : 'restore_failed',
+        `local save could not be restored${recoverySaved ? '; recovery copy kept' : ''}`,
+        { error: e, retryable: storageReady || storageRetry !== null },
+      )
       sim = null
     }
   }
   if (reloadPreparing) return
   const restoreMs = since(restoreAt)
+  startupPhase = 'generate'
   const generateAt = performance.now()
   if (!sim) {
     sim = new Sim(BigInt(seed))
@@ -680,6 +687,7 @@ async function start(msg: StartMsg) {
   }
   logger.info('wasm', 'world started', startup)
 
+  startupPhase = 'ready'
   post({ type: 'ready', restored, tick: Number(sim.tickCount()), persistenceReady: storageReady, startup })
 
   emit(true)
@@ -697,9 +705,18 @@ self.onmessage = (e: MessageEvent) => {
       // duplicate message replace the promise a pending reload waits on.
       if (!startup) {
         startupRunning = true
-        startup = start(msg).finally(() => {
-          startupRunning = false
-        })
+        startup = start(msg)
+          .catch((error: unknown) => {
+            stopTimers()
+            postError('startup_failed', 'the world could not start', {
+              error,
+              fatal: true,
+              phase: startupPhase,
+            })
+          })
+          .finally(() => {
+            startupRunning = false
+          })
       }
       break
     case 'pause':

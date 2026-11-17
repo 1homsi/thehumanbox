@@ -27,5 +27,29 @@
     "desktop": "正在此电脑上启动原生模拟",
     "failed": "模拟无法在此浏览器中启动。重试通常可以解决。",
     "retry": "重试本地世界"
+  },
+  "workerError": {
+    "lockFailed": "无法锁定本地存档",
+    "lockedElsewhere": "这个世界已在另一个标签页中打开；此标签页不会覆盖它的存档",
+    "autosaveFailed": "自动保存失败",
+    "restoreFailed": "无法恢复本地存档",
+    "restoreFailedKept": "无法恢复本地存档；已保留一份恢复副本",
+    "recoveryInvalid": "恢复请求无效；已恢复正常保存",
+    "recoveryMissing": "恢复副本已不存在；已恢复正常保存",
+    "recoveryUnusable": "恢复副本无法使用；已恢复正常保存",
+    "resetFailed": "无法重置本地存档",
+    "recoveryRestoreFailed": "无法恢复备用存档",
+    "preserveFailed": "无法创建恢复副本；原存档保持不变",
+    "readFailed": "无法读取本地存档",
+    "engineFailed": "模拟引擎无法加载",
+    "startupFailed": "世界无法启动",
+    "simCrashed": "模拟崩溃了",
+    "workerStopped": "本地模拟意外停止",
+    "saveFailed": "保存失败"
+  },
+  "renderer": {
+    "drawFailed": "无法绘制世界。重试渲染器即可恢复地图。",
+    "canvasUnavailable": "浏览器无法创建 2D 画布。请尝试重新加载页面。",
+    "retry": "重试渲染器"
   }
 }

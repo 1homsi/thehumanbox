@@ -27,5 +27,29 @@
     "desktop": "avvio della simulazione nativa su questo computer",
     "failed": "la simulazione non è riuscita ad avviarsi in questo browser. Di solito riprovare funziona.",
     "retry": "riprova il mondo locale"
+  },
+  "workerError": {
+    "lockFailed": "impossibile bloccare il salvataggio locale",
+    "lockedElsewhere": "questo mondo è già aperto in un’altra scheda; questa scheda non sovrascriverà il suo salvataggio",
+    "autosaveFailed": "salvataggio automatico non riuscito",
+    "restoreFailed": "impossibile ripristinare il salvataggio locale",
+    "restoreFailedKept": "impossibile ripristinare il salvataggio locale; è stata conservata una copia di recupero",
+    "recoveryInvalid": "la richiesta di recupero non è valida; il salvataggio normale è ripreso",
+    "recoveryMissing": "la copia di recupero non esiste più; il salvataggio normale è ripreso",
+    "recoveryUnusable": "la copia di recupero è inutilizzabile; il salvataggio normale è ripreso",
+    "resetFailed": "impossibile azzerare il salvataggio locale",
+    "recoveryRestoreFailed": "impossibile ripristinare il salvataggio di recupero",
+    "preserveFailed": "impossibile creare una copia di recupero; il salvataggio originale è conservato",
+    "readFailed": "impossibile leggere il salvataggio locale",
+    "engineFailed": "impossibile caricare il motore della simulazione",
+    "startupFailed": "il mondo non è riuscito ad avviarsi",
+    "simCrashed": "la simulazione si è bloccata",
+    "workerStopped": "la simulazione locale si è fermata inaspettatamente",
+    "saveFailed": "salvataggio non riuscito"
+  },
+  "renderer": {
+    "drawFailed": "Impossibile disegnare il mondo. Riavvia il renderer per ripristinare la mappa.",
+    "canvasUnavailable": "Il browser non è riuscito a creare un canvas 2D. Prova a ricaricare la pagina.",
+    "retry": "Riavvia renderer"
   }
 }

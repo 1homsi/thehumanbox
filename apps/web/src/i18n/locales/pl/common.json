@@ -27,5 +27,29 @@
     "desktop": "uruchamianie natywnej symulacji na tym komputerze",
     "failed": "symulacja nie uruchomiła się w tej przeglądarce. Ponowna próba zwykle pomaga.",
     "retry": "uruchom lokalny świat ponownie"
+  },
+  "workerError": {
+    "lockFailed": "nie udało się zablokować lokalnego zapisu",
+    "lockedElsewhere": "ten świat jest już otwarty w innej karcie; ta karta nie nadpisze jego zapisu",
+    "autosaveFailed": "autozapis nie powiódł się",
+    "restoreFailed": "nie udało się przywrócić lokalnego zapisu",
+    "restoreFailedKept": "nie udało się przywrócić lokalnego zapisu; zachowano kopię zapasową",
+    "recoveryInvalid": "żądanie odzyskania jest nieprawidłowe; zwykłe zapisywanie wznowione",
+    "recoveryMissing": "kopia zapasowa już nie istnieje; zwykłe zapisywanie wznowione",
+    "recoveryUnusable": "kopia zapasowa jest bezużyteczna; zwykłe zapisywanie wznowione",
+    "resetFailed": "nie udało się zresetować lokalnego zapisu",
+    "recoveryRestoreFailed": "nie udało się przywrócić zapisu zapasowego",
+    "preserveFailed": "nie udało się utworzyć kopii zapasowej; oryginalny zapis zachowano",
+    "readFailed": "nie udało się odczytać lokalnego zapisu",
+    "engineFailed": "nie udało się wczytać silnika symulacji",
+    "startupFailed": "świat nie mógł wystartować",
+    "simCrashed": "symulacja uległa awarii",
+    "workerStopped": "lokalna symulacja nieoczekiwanie się zatrzymała",
+    "saveFailed": "zapis nie powiódł się"
+  },
+  "renderer": {
+    "drawFailed": "Nie udało się narysować świata. Uruchom renderer ponownie, aby przywrócić mapę.",
+    "canvasUnavailable": "Przeglądarka nie mogła utworzyć płótna 2D. Spróbuj odświeżyć stronę.",
+    "retry": "Uruchom renderer ponownie"
   }
 }
