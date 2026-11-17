@@ -27,5 +27,29 @@
     "desktop": "이 컴퓨터에서 네이티브 시뮬레이션을 시작하는 중",
     "failed": "이 브라우저에서 시뮬레이션을 시작하지 못했습니다. 다시 시도하면 대개 해결됩니다.",
     "retry": "로컬 세계 다시 시도"
+  },
+  "workerError": {
+    "lockFailed": "로컬 저장 파일을 잠글 수 없습니다",
+    "lockedElsewhere": "이 세계는 이미 다른 탭에서 열려 있습니다. 이 탭은 저장 파일을 덮어쓰지 않습니다",
+    "autosaveFailed": "자동 저장에 실패했습니다",
+    "restoreFailed": "로컬 저장 파일을 복원할 수 없습니다",
+    "restoreFailedKept": "로컬 저장 파일을 복원할 수 없습니다. 복구용 사본은 보관했습니다",
+    "recoveryInvalid": "복구 요청이 올바르지 않습니다. 일반 저장을 다시 시작했습니다",
+    "recoveryMissing": "복구용 사본이 더 이상 없습니다. 일반 저장을 다시 시작했습니다",
+    "recoveryUnusable": "복구용 사본을 사용할 수 없습니다. 일반 저장을 다시 시작했습니다",
+    "resetFailed": "로컬 저장 파일을 초기화할 수 없습니다",
+    "recoveryRestoreFailed": "복구 저장 파일을 복원할 수 없습니다",
+    "preserveFailed": "복구용 사본을 만들 수 없습니다. 원래 저장 파일은 그대로 있습니다",
+    "readFailed": "로컬 저장 파일을 읽을 수 없습니다",
+    "engineFailed": "시뮬레이션 엔진을 불러올 수 없습니다",
+    "startupFailed": "세계를 시작할 수 없습니다",
+    "simCrashed": "시뮬레이션이 멈췄습니다",
+    "workerStopped": "로컬 시뮬레이션이 예기치 않게 중지되었습니다",
+    "saveFailed": "저장에 실패했습니다"
+  },
+  "renderer": {
+    "drawFailed": "세계를 그릴 수 없습니다. 렌더러를 다시 시도하면 지도가 돌아옵니다.",
+    "canvasUnavailable": "브라우저가 2D 캔버스를 만들 수 없습니다. 페이지를 새로고침해 보세요.",
+    "retry": "렌더러 다시 시도"
   }
 }

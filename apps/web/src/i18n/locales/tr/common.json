@@ -27,5 +27,29 @@
     "desktop": "yerel simülasyon bu bilgisayarda başlatılıyor",
     "failed": "simülasyon bu tarayıcıda başlatılamadı. Yeniden denemek genellikle işe yarar.",
     "retry": "yerel dünyayı yeniden dene"
+  },
+  "workerError": {
+    "lockFailed": "yerel kayıt kilitlenemedi",
+    "lockedElsewhere": "bu dünya başka bir sekmede zaten açık; bu sekme kaydının üzerine yazmayacak",
+    "autosaveFailed": "otomatik kayıt başarısız oldu",
+    "restoreFailed": "yerel kayıt geri yüklenemedi",
+    "restoreFailedKept": "yerel kayıt geri yüklenemedi; bir kurtarma kopyası saklandı",
+    "recoveryInvalid": "kurtarma isteği geçersiz; normal kayıt yeniden başladı",
+    "recoveryMissing": "kurtarma kopyası artık yok; normal kayıt yeniden başladı",
+    "recoveryUnusable": "kurtarma kopyası kullanılamaz; normal kayıt yeniden başladı",
+    "resetFailed": "yerel kayıt sıfırlanamadı",
+    "recoveryRestoreFailed": "kurtarma kaydı geri yüklenemedi",
+    "preserveFailed": "kurtarma kopyası oluşturulamadı; asıl kayıt korunuyor",
+    "readFailed": "yerel kayıt okunamadı",
+    "engineFailed": "simülasyon motoru yüklenemedi",
+    "startupFailed": "dünya başlatılamadı",
+    "simCrashed": "simülasyon çöktü",
+    "workerStopped": "yerel simülasyon beklenmedik şekilde durdu",
+    "saveFailed": "kayıt başarısız oldu"
+  },
+  "renderer": {
+    "drawFailed": "Dünya çizilemedi. Haritayı geri getirmek için çiziciyi yeniden dene.",
+    "canvasUnavailable": "Tarayıcı 2D tuval oluşturamadı. Sayfayı yeniden yüklemeyi dene.",
+    "retry": "Çiziciyi yeniden dene"
   }
 }

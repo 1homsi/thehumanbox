@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { logger } from '../shared/logger'
+import { captureException } from '../shared/observability'
 import { reloadAppSafely } from '../simulation/worldSource'
 import { t } from '../i18n'
 
@@ -33,6 +34,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(err: Error, info: ErrorInfo) {
     logger.error('boundary', err.message, info.componentStack)
+    captureException(err, { source: 'error_boundary', component_stack: info.componentStack ?? null })
   }
 
   render() {

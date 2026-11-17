@@ -34,6 +34,8 @@ import { readRunInBackground, RUN_IN_BACKGROUND_EVENT } from '../shared/run-in-b
 import { localSaveWorkerRequest } from './wasmPersistence'
 import { FrameSequence } from './frameSequence'
 import { readStartup, reportWorldStartup } from './startup-timing'
+import { workerErrorText } from './worker-errors'
+import { captureException, trackEvent } from '../shared/observability'
 import {
   fetchRuntimeControlState,
   WASM_BASE_TICK_MS,
@@ -362,6 +364,16 @@ export function useSimulation(source: WorldSource = 'native'): {
       wasmWorkerRef.current = worker
       let announced = false
       let workerFailed = false
+      let worldReady = false
+      let failureReported = false
+      const reportWorkerFailure = (message: string, code: string, phase?: string) => {
+        if (failureReported) return
+        failureReported = true
+        captureException(new Error(message), { source: 'wasm_worker', code, phase: phase ?? null })
+        if (!worldReady) {
+          trackEvent('world_startup_failed', { code, phase: phase ?? null, message })
+        }
+      }
       worker.onmessage = (e: MessageEvent) => {
         if (destroyed) return
         const m = e.data as {
@@ -383,6 +395,9 @@ export function useSimulation(source: WorldSource = 'native'): {
           seed?: string
           outcome?: unknown
           startup?: unknown
+          code?: string
+          detail?: string
+          phase?: string
         }
         if (m.type === 'frame' && (typeof m.frame === 'string' || m.frame instanceof Uint8Array)) {
           if (!announced) {
@@ -392,6 +407,7 @@ export function useSimulation(source: WorldSource = 'native'): {
           enqueueMessage(m.frame)
         } else if (m.type === 'ready' || m.type === 'storage_ready') {
           if (m.type === 'ready') {
+            worldReady = true
             const startup = readStartup(m.startup)
             if (startup) reportWorldStartup(startup, performance.now())
           }
@@ -468,11 +484,14 @@ export function useSimulation(source: WorldSource = 'native'): {
           }
         } else if (m.type === 'error' && m.message) {
           logger.warn('wasm', m.message)
+          if (m.fatal === true) {
+            reportWorkerFailure(m.message, m.code ?? 'unknown', m.phase)
+          }
           workerFailed ||= m.fatal === true
           if (workerFailed) setConnected(false)
           setLocalSaveStatus({
             phase: 'error',
-            message: m.message,
+            message: workerErrorText(m.code, m.detail, m.message),
             retryable: m.retryable === true,
             fatal: workerFailed,
           })
@@ -483,10 +502,15 @@ export function useSimulation(source: WorldSource = 'native'): {
         workerFailed = true
         setConnected(false)
         logger.warn('wasm', 'worker error:', e.message)
+        reportWorkerFailure(
+          e.message || 'the local simulation worker stopped unexpectedly',
+          'worker_stopped',
+          worldReady ? 'ready' : undefined,
+        )
         setLocalSaveStatus({
           phase: 'error',
           fatal: true,
-          message: e.message || 'the local simulation worker stopped unexpectedly',
+          message: workerErrorText('worker_stopped', e.message, e.message),
         })
       }
       const postVisibility = () =>
@@ -1120,7 +1144,7 @@ export function useSimulation(source: WorldSource = 'native'): {
     setLocalSaveStatus({ phase: 'saving', tick })
     try {
       const response = await fetch(`${API_BASE}/save`, { method: 'POST', headers: sandboxHeaders() })
-      if (!response.ok) throw new Error(`save failed (${response.status})`)
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const result = (await response.json()) as { tick?: number; saved_at?: number }
       setLocalSaveStatus({
         phase: 'saved',
@@ -1131,7 +1155,11 @@ export function useSimulation(source: WorldSource = 'native'): {
     } catch (error) {
       setLocalSaveStatus({
         phase: 'error',
-        message: error instanceof Error ? error.message : 'save failed',
+        message: workerErrorText(
+          'save_failed',
+          error instanceof Error ? error.message : undefined,
+          'save failed',
+        ),
       })
       return false
     }

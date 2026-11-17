@@ -5,6 +5,9 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { loadLocale } from '../i18n'
 import { ErrorBoundary } from './ErrorBoundary'
 
+const { captureException } = vi.hoisted(() => ({ captureException: vi.fn() }))
+vi.mock('../shared/observability', () => ({ captureException }))
+
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
 afterAll(() => vi.unstubAllGlobals())
 let root: Root | null = null
@@ -20,6 +23,27 @@ function Broken(): never {
 }
 
 describe('ErrorBoundary fallback', () => {
+  it('reports the error and its component stack to error tracking', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    captureException.mockClear()
+    const host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+    act(() =>
+      root?.render(
+        <ErrorBoundary>
+          <Broken />
+        </ErrorBoundary>,
+      ),
+    )
+    expect(captureException).toHaveBeenCalledOnce()
+    const [error, props] = captureException.mock.calls[0] as [Error, Record<string, unknown>]
+    expect(error.message).toBe('renderer broke')
+    expect(props.source).toBe('error_boundary')
+    expect(String(props.component_stack)).toContain('Broken')
+    vi.restoreAllMocks()
+  })
+
   it('says what happened in the language the player chose', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     await loadLocale('de')

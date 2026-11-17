@@ -144,3 +144,49 @@ describe('useRendererBackend startup watchdog', () => {
     expect(rendered.backend).toBe('canvas')
   })
 })
+
+describe('useRendererBackend draw failures', () => {
+  afterEach(() => {
+    for (const root of roots.splice(0)) act(() => root.unmount())
+    setWorldGPUForTests(null)
+  })
+
+  function renderApi() {
+    let api: ReturnType<typeof useRendererBackend> | undefined
+    const containerRef = { current: document.createElement('div') }
+    function Harness() {
+      api = useRendererBackend({ rendererPaused: true, containerRef, dims: { w: 100, h: 100 } })
+      return null
+    }
+    const root = createRoot(document.createElement('div'))
+    roots.push(root)
+    act(() => root.render(createElement(Harness)))
+    return () => api!
+  }
+
+  it('offers a GPU retry after the first failure and lands on the canvas after the second', () => {
+    setWorldGPUForTests(true)
+    const api = renderApi()
+
+    act(() => api().reportDrawError('drawing failed'))
+    expect(api().drawError).toBe('drawing failed')
+    expect(api().renderBackend).toBe('gpu')
+
+    act(() => api().retryRenderer())
+    expect(api().drawError).toBeNull()
+    expect(api().rendererKey).toBe(1)
+
+    act(() => api().reportDrawError('drawing failed'))
+    expect(api().renderBackend).toBe('canvas')
+    expect(api().drawError).toBeNull()
+  })
+
+  it('shows a canvas failure, since there is nothing further to fall back to', () => {
+    setWorldGPUForTests(false)
+    const api = renderApi()
+    act(() => api().reportDrawError('no canvas'))
+    act(() => api().reportDrawError('no canvas'))
+    expect(api().renderBackend).toBe('canvas')
+    expect(api().drawError).toBe('no canvas')
+  })
+})

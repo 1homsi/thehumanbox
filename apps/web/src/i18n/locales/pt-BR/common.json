@@ -27,5 +27,29 @@
     "desktop": "iniciando a simulação nativa neste computador",
     "failed": "a simulação não conseguiu iniciar neste navegador. Tentar de novo costuma resolver.",
     "retry": "tentar o mundo local de novo"
+  },
+  "workerError": {
+    "lockFailed": "não foi possível bloquear o salvamento local",
+    "lockedElsewhere": "este mundo já está aberto em outra aba; esta aba não vai sobrescrever o salvamento",
+    "autosaveFailed": "o salvamento automático falhou",
+    "restoreFailed": "não foi possível restaurar o salvamento local",
+    "restoreFailedKept": "não foi possível restaurar o salvamento local; uma cópia de recuperação foi mantida",
+    "recoveryInvalid": "o pedido de recuperação é inválido; o salvamento normal foi retomado",
+    "recoveryMissing": "a cópia de recuperação não existe mais; o salvamento normal foi retomado",
+    "recoveryUnusable": "a cópia de recuperação está inutilizável; o salvamento normal foi retomado",
+    "resetFailed": "não foi possível redefinir o salvamento local",
+    "recoveryRestoreFailed": "não foi possível restaurar o salvamento de recuperação",
+    "preserveFailed": "não foi possível criar uma cópia de recuperação; o salvamento original foi mantido",
+    "readFailed": "não foi possível ler o salvamento local",
+    "engineFailed": "não foi possível carregar o motor da simulação",
+    "startupFailed": "o mundo não conseguiu iniciar",
+    "simCrashed": "a simulação travou",
+    "workerStopped": "a simulação local parou inesperadamente",
+    "saveFailed": "falha ao salvar"
+  },
+  "renderer": {
+    "drawFailed": "Não foi possível desenhar o mundo. Tente o renderizador de novo para recuperar o mapa.",
+    "canvasUnavailable": "O navegador não conseguiu criar um canvas 2D. Tente recarregar a página.",
+    "retry": "Tentar renderizador de novo"
   }
 }

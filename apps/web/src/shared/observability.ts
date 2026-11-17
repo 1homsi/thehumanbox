@@ -213,3 +213,8 @@ function sendSummary(): void {
     { send_instantly: true, transport: 'sendBeacon' },
   )
 }
+
+export function captureException(error: unknown, props?: Record<string, unknown>): void {
+  if (!client && !loading) return
+  whenReady(() => client?.captureException(error, props))
+}

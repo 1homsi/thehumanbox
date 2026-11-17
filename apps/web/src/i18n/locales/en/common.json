@@ -27,5 +27,29 @@
     "desktop": "starting the native simulation on this computer",
     "failed": "the simulation could not start in this browser. Retrying usually helps.",
     "retry": "retry local world"
+  },
+  "workerError": {
+    "lockFailed": "could not lock the local save",
+    "lockedElsewhere": "this world is already open in another tab; this tab will not overwrite its save",
+    "autosaveFailed": "autosave failed",
+    "restoreFailed": "the local save could not be restored",
+    "restoreFailedKept": "the local save could not be restored; a recovery copy was kept",
+    "recoveryInvalid": "the recovery request is invalid; normal saving resumed",
+    "recoveryMissing": "the recovery copy no longer exists; normal saving resumed",
+    "recoveryUnusable": "the recovery copy is unusable; normal saving resumed",
+    "resetFailed": "could not reset the local save",
+    "recoveryRestoreFailed": "the recovery save could not be restored",
+    "preserveFailed": "could not make a recovery copy; the original save is kept",
+    "readFailed": "could not read the local save",
+    "engineFailed": "the simulation engine could not load",
+    "startupFailed": "the world could not start",
+    "simCrashed": "the simulation crashed",
+    "workerStopped": "the local simulation stopped unexpectedly",
+    "saveFailed": "save failed"
+  },
+  "renderer": {
+    "drawFailed": "The world could not be drawn. Retry the renderer to restore the map.",
+    "canvasUnavailable": "The browser could not create a 2D canvas. Try reloading this page.",
+    "retry": "Retry renderer"
   }
 }

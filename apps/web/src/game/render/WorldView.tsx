@@ -123,12 +123,11 @@ export function WorldView({
   const [dims, setDims] = useState({ w: 0, h: 0 })
   const {
     mapReady,
-    setMapReady,
     renderBackend,
     drawError,
-    setDrawError,
+    reportDrawError,
+    retryRenderer,
     rendererKey,
-    setRendererKey,
     handleFirstDraw,
     handleGPUFailure,
     handleGameReady,
@@ -255,7 +254,7 @@ export function WorldView({
                   rendererPaused={rendererPaused}
                   showTrade={viewFlags.tradeRoutes}
                   onFirstDraw={handleFirstDraw}
-                  onDrawError={setDrawError}
+                  onDrawError={reportDrawError}
                 />
                 <AnimalSpriteLayers
                   world={world}
@@ -315,7 +314,7 @@ export function WorldView({
               viewFlags={viewFlags}
               rendererPaused={rendererPaused}
               onFirstDraw={handleFirstDraw}
-              onDrawError={setDrawError}
+              onDrawError={reportDrawError}
               cameraStateRef={cameraStateRef}
               viewportDims={dims}
             />
@@ -346,15 +345,7 @@ export function WorldView({
           }}
         >
           <p>{drawError}</p>
-          <button
-            onClick={() => {
-              setDrawError(null)
-              setMapReady(false)
-              setRendererKey((key) => key + 1)
-            }}
-          >
-            Retry renderer
-          </button>
+          <button onClick={retryRenderer}>{t('common.renderer.retry')}</button>
         </div>
       )}
       <ActionFxLayer cameraRef={cameraStateRef} viewport={dims} ox={ox} oy={oy} shakeTarget={containerRef} />
