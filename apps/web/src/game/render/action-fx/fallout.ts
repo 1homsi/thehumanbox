@@ -7,7 +7,7 @@ import type { FalloutInfo } from '../../../shared/types'
 type Ctx = CanvasRenderingContext2D
 
 /** How much of the fallout is left: 1 when fresh, 0 as it lifts. */
-export function falloutStrength(zone: FalloutInfo, tick: number): number {
+function falloutStrength(zone: FalloutInfo, tick: number): number {
   const span = Math.max(1, zone.until - zone.cast)
   return Math.max(0, Math.min(1, (zone.until - tick) / span))
 }

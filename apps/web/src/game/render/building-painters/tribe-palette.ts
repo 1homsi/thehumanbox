@@ -28,7 +28,7 @@ export function tribeTintIndex(lineageId: string): number {
  * glance: gold straw on the stores, slate on the workshops, green-blue on the temples, blue on the halls of
  * government and learning, red on the market and the inns. Homes take their tribe's colour instead.
  */
-export const KIND_ROOF_TINTS = {
+const KIND_ROOF_TINTS = {
   store: '#c49a3e',
   craft: '#4e5a66',
   faith: '#3f7f78',

@@ -1,7 +1,7 @@
 import * as net from "node:net";
 
 /** The server's `/version` reports its crate name; a foreign listener will not. */
-export const SIM_SERVICE_NAME = "simulation-rs";
+const SIM_SERVICE_NAME = "simulation-rs";
 
 /**
  * The websocket protocol this app speaks. The server reports its own on `/version` and in the hello it sends first on
@@ -75,7 +75,7 @@ export interface WaitForSimulationOptions {
 }
 
 /** The message for a simulation on the port that speaks another protocol than this app. */
-export function versionMismatchMessage(
+function versionMismatchMessage(
   port: number,
   found: { protocol: number | null; version: string | null },
 ): string {

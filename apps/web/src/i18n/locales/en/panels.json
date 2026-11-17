@@ -295,10 +295,6 @@
     "teach": "teach",
     "teachTitle": "Teach them the next secret they lack (once a season)",
     "stillToLearn": "still to learn: {list}",
-    "needsPeople": {
-      "one": "needs {count} more person",
-      "other": "needs {count} more people"
-    },
     "praying": "praying",
     "help": "help",
     "lore": {

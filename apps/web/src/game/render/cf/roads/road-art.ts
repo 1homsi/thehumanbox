@@ -98,7 +98,7 @@ function isPavedDash(mask: number, x: number, y: number): boolean {
 }
 
 /** The colour of road pixel (x, y): deterministic in the position and the mask, so a cell always looks the same. */
-export function roadPixelColor(style: RoadStyle, mask: number, x: number, y: number): string {
+function roadPixelColor(style: RoadStyle, mask: number, x: number, y: number): string {
   if (style === 'track') {
     // Worn ruts and pale stones scattered over the dirt.
     if ((x * 7 + y * 13 + mask * 5) % 11 === 0) return TRACK_COLORS[1]
@@ -215,7 +215,7 @@ export function bridgeCellKey(vertical: boolean): string {
 /** The simulation's `ROAD_CANAL`: a dug irrigation channel. */
 export const ROAD_CANAL = 4
 export const CANAL_WATER = '#3f7fa8'
-export const CANAL_SHINE = '#7fb4d2'
+const CANAL_SHINE = '#7fb4d2'
 export const CANAL_BANK = '#6b5a3e'
 
 /**

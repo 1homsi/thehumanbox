@@ -309,7 +309,6 @@
     "title": "Vida de {name}",
     "heading": "VIDA DE {name}",
     "close": "cerrar",
-    "day": "día {day}",
     "failed": "no se pudo cargar",
     "gen": "g{gen}",
     "age": {
@@ -344,7 +343,6 @@
     "relFriend": "amigo",
     "relTrusts": "confía en",
     "relWary": "desconfía",
-    "day": "día {day}",
     "title": "Conversaciones de {name}",
     "heading": "CONVERSACIONES",
     "close": "cerrar",

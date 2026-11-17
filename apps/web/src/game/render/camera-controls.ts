@@ -61,7 +61,7 @@ export function zoomMapAt(
 }
 
 /** How much one double-click zooms the map: twice as close, or with Shift twice as far. */
-export const DOUBLE_CLICK_ZOOM = 2
+const DOUBLE_CLICK_ZOOM = 2
 /** How long the double-click zoom takes to settle, in milliseconds. */
 export const DOUBLE_CLICK_ZOOM_MS = 180
 

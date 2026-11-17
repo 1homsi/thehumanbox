@@ -11,8 +11,8 @@ export const SHARE_URL =
 /** The name over the picture. The game's name is the same in every language. */
 export const SHARE_TITLE = 'The Human Box'
 
-export const SHARE_CARD_WIDTH = 1200
-export const SHARE_CARD_HEIGHT = 630
+const SHARE_CARD_WIDTH = 1200
+const SHARE_CARD_HEIGHT = 630
 
 /** The card's visible address: the play link without the campaign marks. */
 export const SHARE_CARD_URL = 'thehumanbox.com'

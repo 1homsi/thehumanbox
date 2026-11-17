@@ -309,7 +309,6 @@
     "title": "La vita di {name}",
     "heading": "LA VITA DI {name}",
     "close": "Chiudi",
-    "day": "giorno {day}",
     "failed": "caricamento non riuscito",
     "gen": "gen {gen}",
     "age": {
@@ -344,7 +343,6 @@
     "relFriend": "amico",
     "relTrusts": "si fida",
     "relWary": "diffidente",
-    "day": "giorno {day}",
     "title": "Conversazioni di {name}",
     "heading": "CONVERSAZIONI",
     "close": "Chiudi",

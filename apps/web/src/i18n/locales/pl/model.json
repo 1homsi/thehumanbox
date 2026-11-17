@@ -234,7 +234,6 @@
     "failed": "{label} · {reason}",
     "following": "podąża za: {name}",
     "naming": "nazwa · wpisz nowe imię dla: {name}",
-    "paused": "wstrzymano: {names} na krawędzi",
     "pausedFor": "wstrzymano: {reasons}"
   },
   "legends": {

@@ -124,35 +124,6 @@
 }
 
 /* Stories section */
-.lang-stories {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.lang-stories-title {
-  font-size: 9px;
-  color: #888;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  border-top: 1px solid #3b2d22;
-  padding-top: 8px;
-}
-.lang-story-row {
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
-  font-size: 10px;
-}
-.lang-story-name {
-  font-weight: 700;
-  min-width: 55px;
-  flex-shrink: 0;
-}
-.lang-story-text {
-  color: #aabbcc;
-  font-style: italic;
-  line-height: 1.4;
-}
 .lang-no-stories {
   font-size: 9px;
   color: #778;
@@ -252,16 +223,6 @@
   overflow: auto;
   padding: 8px;
   background: #231d17;
-}
-.tree-svg {
-  display: block;
-}
-.tree-gen-label {
-  fill: #444;
-  font-size: 9px;
-  font-family: monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 .tree-tooltip {
   padding: 6px 12px;
@@ -465,28 +426,6 @@
   flex-direction: column;
   gap: 4px;
   margin-top: 3px;
-}
-.org-memorial-story {
-  font-size: 9px;
-  color: #556;
-  font-style: italic;
-  line-height: 1.4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.org-memorial-log {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-}
-.org-memorial-entry {
-  font-size: 8px;
-  color: #445;
-  background: #28201a;
-  border: 1px solid #3b2d22;
-  border-radius: 3px;
-  padding: 1px 4px;
 }
 .org-memorial-discs {
   display: flex;

@@ -269,11 +269,6 @@ export function registerIpc(
     }),
   );
 
-  ipc.handle("app:reload", async () => {
-    const win = getWindow();
-    win?.reload();
-  });
-
   ipc.handle(
     "world:migrateDataRoot",
     exclusiveIpcHandler(

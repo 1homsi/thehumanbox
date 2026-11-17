@@ -14,8 +14,7 @@
 .welcome-modal,
 .shepherd-element.thb-shepherd,
 .desktop-toast,
-.update-toast,
-.idle-resume-panel {
+.update-toast {
   background: var(--px-wood);
   color: var(--px-text);
   border: 2px solid var(--px-ink);
@@ -27,7 +26,6 @@
 }
 
 /* ── Dialog title bars ──────────────────────────────────────────────── */
-.thb-modal :is(.lang-modal-header, .cv-modal-head, .worlds-head),
 .thb-shepherd .shepherd-header {
   background: var(--px-grain);
   border-bottom: 2px solid var(--px-ink);
@@ -36,27 +34,20 @@
     inset 0 2px 0 var(--px-brass);
   border-radius: 0;
 }
-.thb-modal :is(.lang-modal-title, .cv-modal-title, .worlds-title),
 .world-tool-search header span,
 .thb-shepherd .shepherd-title,
 .welcome-title,
-.desktop-toast-title,
-.idle-resume-title {
+.desktop-toast-title {
   color: var(--px-gold-text);
   font-weight: 700;
   letter-spacing: 0.14em;
   text-shadow: 0 2px 0 #000;
-}
-.thb-modal :is(.lang-modal-title, .cv-modal-title, .worlds-title) {
-  font-size: 12px;
-  text-transform: uppercase;
 }
 
 /* ── Buttons ────────────────────────────────────────────────────────── */
 .lang-btn,
 .close-btn,
 .welcome-btn,
-.idle-resume-btn,
 .desktop-toast-close,
 .desktop-toast-copy,
 .desktop-toast-primary,
@@ -87,7 +78,6 @@
 .lang-btn:hover,
 .close-btn:hover,
 .welcome-btn:hover,
-.idle-resume-btn:hover,
 .desktop-toast-close:hover,
 .desktop-toast-copy:hover,
 .desktop-toast-secondary:hover,
@@ -100,7 +90,6 @@
 .lang-btn:active,
 .close-btn:active,
 .welcome-btn:active,
-.idle-resume-btn:active,
 .thb-shepherd .shepherd-button:active {
   box-shadow: var(--px-pressed-shadow);
 }
@@ -115,7 +104,6 @@
 /* The one primary action per surface is a gold plate. */
 .welcome-btn--primary,
 .desktop-toast-primary,
-.idle-resume-btn,
 .lang-btn.primary,
 .thb-shepherd .shepherd-button:not(.shepherd-button-secondary) {
   background: #c9973f;
@@ -126,7 +114,6 @@
 }
 .welcome-btn--primary:hover,
 .desktop-toast-primary:hover,
-.idle-resume-btn:hover,
 .lang-btn.primary:hover,
 .thb-shepherd .shepherd-button:not(.shepherd-button-secondary):hover {
   background: #dcaa4c;
@@ -388,7 +375,6 @@
 }
 .welcome-body,
 .desktop-toast-sub,
-.idle-resume-sub,
 .thb-shepherd .shepherd-text {
   color: var(--px-text);
 }
@@ -533,8 +519,7 @@
 
 /* ── Cards, chips and bars inside drawers and dialogs ────────────────── */
 .org-card,
-.org-detail,
-.stats-num-card {
+.org-detail {
   background: var(--px-wood);
   border: 2px solid var(--px-ink);
   border-radius: 0;
@@ -543,24 +528,11 @@
 .org-card.dead {
   box-shadow: none;
 }
-.attitude-tag,
-.relation-tag,
-.org-tag {
+.relation-tag {
   background: var(--px-inset);
   border: 1px solid var(--px-ink);
   border-radius: 0;
   box-shadow: var(--px-sunken-shadow);
-}
-.icon-btn {
-  border: 2px solid var(--px-ink);
-  border-radius: 0;
-  background: var(--px-raised);
-  box-shadow: var(--px-raised-shadow);
-  color: var(--px-text);
-}
-.icon-btn:hover {
-  background: var(--px-raised-hover);
-  color: #fff3d6;
 }
 .bar-track,
 .trait-bar-wrap {
@@ -577,12 +549,6 @@
   color: var(--px-gold-text);
   letter-spacing: 0.14em;
   text-shadow: 0 1px 0 #000;
-}
-.stats-num {
-  color: var(--px-gold-text);
-}
-.stats-num-label {
-  color: var(--px-muted);
 }
 
 /* ── Settings ────────────────────────────────────────────────────────── */
@@ -851,8 +817,7 @@
 
 /* Photo mode hides the dock and ticker too; Esc brings everything back. */
 body.thb-photo-mode .sandbox-bar,
-body.thb-photo-mode .headline-ticker,
-body.thb-photo-mode .thb-action-ticker {
+body.thb-photo-mode .headline-ticker {
   display: none !important;
 }
 

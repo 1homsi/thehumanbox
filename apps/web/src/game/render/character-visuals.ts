@@ -1,10 +1,9 @@
 export const HUMAN_ATLAS_CELL = 32
 export const HUMAN_ATLAS_FRAMES = 4
 /** Six authored skin, hair and clothing combinations; no hue rotations. */
-export const HUMAN_SHEET_APPEARANCES = 6
-export const HUMAN_APPEARANCES = HUMAN_SHEET_APPEARANCES
+export const HUMAN_APPEARANCES = 6
 export const HUMAN_CLOTHING_ERAS = ['hide', 'robe', 'coat', 'uniform', 'spacesuit'] as const
-export const HUMAN_DIRECTIONS = 2
+const HUMAN_DIRECTIONS = 2
 /** The padded cell keeps room scenes compatible. Art is drawn at one world pixel per source pixel. */
 export const HUMAN_FEET_ROW = 25
 export const HUMAN_HEIGHT = { infant: 6, child: 10, teen: 14, adult: 16, elder: 14 } as const

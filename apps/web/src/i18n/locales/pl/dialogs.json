@@ -317,7 +317,6 @@
     "title": "Życie {name}",
     "heading": "ŻYCIE {name}",
     "close": "Zamknij",
-    "day": "dzień {day}",
     "failed": "nie udało się wczytać",
     "gen": "pokolenie {gen}",
     "age": {
@@ -356,7 +355,6 @@
     "relFriend": "przyjaciel",
     "relTrusts": "ufa",
     "relWary": "nieufny",
-    "day": "dzień {day}",
     "title": "Rozmowy: {name}",
     "heading": "ROZMOWY",
     "close": "Zamknij",

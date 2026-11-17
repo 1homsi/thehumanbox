@@ -234,7 +234,6 @@
     "failed": "{label} · {reason}",
     "following": "стежить за: {name}",
     "naming": "ім’я · введіть нове ім’я для: {name}",
-    "paused": "пауза: {names} на межі",
     "pausedFor": "пауза: {reasons}"
   },
   "legends": {

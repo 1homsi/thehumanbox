@@ -89,7 +89,7 @@ export function devBinaryPath(): string {
   );
 }
 
-export function locateSimBinary(): string | null {
+function locateSimBinary(): string | null {
   const candidates = app.isPackaged
     ? [packagedBinaryPath()]
     : [devBinaryPath(), packagedBinaryPath()];

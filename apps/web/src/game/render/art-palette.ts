@@ -10,12 +10,6 @@ export const INK: Rgb = [43, 33, 23]
 /** Cast shadows: one flat translucent tone, falling to the bottom-right. */
 export const SHADOW = { rgb: [28, 20, 12] as Rgb, alpha: 0.32 } as const
 
-/** Screen-space direction the light comes from (x right, y down): the top-left. */
-export const LIGHT_FROM = { x: -1, y: -1 } as const
-
-/** How far a cast shadow falls per pixel of height, toward the bottom-right. */
-export const SHADOW_STEP = { x: 1, y: 1 } as const
-
 /** Sea depth bands, deepest first. Past the edge of the world the sea stays `abyss`. */
 export const OCEAN = {
   abyss: [22, 48, 61],

@@ -230,7 +230,6 @@
     "failed": "{label} · {reason}",
     "following": "{name}を追跡中",
     "naming": "名前 · {name}の新しい名前を入力",
-    "paused": "一時停止：{names} が存亡の危機",
     "pausedFor": "一時停止: {reasons}"
   },
   "legends": {

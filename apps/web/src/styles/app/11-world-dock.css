@@ -11,8 +11,6 @@
   --dock-over-map: 0px;
 }
 .sandbox-bar {
-  --bar-wood: rgba(36, 27, 20, 0.95);
-  --bar-line: #5d4632;
   --bar-dim: #9c8b66;
   --bar-cream: #e8d7ab;
   --bar-parchment: #ebdfbd;

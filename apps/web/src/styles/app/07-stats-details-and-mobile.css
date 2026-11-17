@@ -137,18 +137,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Wider animal-totals card with sub-breakdown of top kinds. Replaces
-   the row of N per-kind chips that crowded the quick-numbers strip. */
-.stats-num-card-wide {
-  min-width: 160px;
-}
-.stats-num-sub {
-  font-size: 10px;
-  color: #888;
-  margin-top: 2px;
-  letter-spacing: 0.02em;
-}
-
 /* Notable orgs */
 .notable-grid {
   display: flex;
@@ -232,7 +220,6 @@
   }
 
   /* Minimal mobile: hide everything except the brand + a live dot. */
-  .github-link,
   .star-link,
   .tick,
   .header-actions,

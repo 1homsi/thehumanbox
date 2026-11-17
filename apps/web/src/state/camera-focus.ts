@@ -4,7 +4,7 @@ import { create } from 'zustand'
  * A one-shot request for the world camera, which the map clears once queued: centre on a tile (at least `zoom`
  * close, 2 when not given), or pull back to the whole world.
  */
-export type CameraFocusRequest =
+type CameraFocusRequest =
   { kind?: 'tile'; x: number; y: number; zoom?: number; n: number } | { kind: 'fit'; n: number }
 
 interface CameraFocusState {

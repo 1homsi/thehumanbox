@@ -5,7 +5,7 @@
 import { t } from '../../i18n'
 import { ageInYears } from './calendar'
 
-export interface LongestLife {
+interface LongestLife {
   name: string
   lineage_id: string
   age: number

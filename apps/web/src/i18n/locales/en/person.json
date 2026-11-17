@@ -1,45 +1,13 @@
 {
   "card": {
     "energyShort": "E",
-    "energyTip": "Energy - depletes over time, restored by eating food tiles. At 0% the organism starves.",
     "hydrationShort": "H",
-    "hydrationTip": "Hydration - depletes over time, restored by drinking water. At 0% the organism dehydrates.",
-    "healthTip": "Health - damaged by starvation, infection, and combat. Recovers slowly when needs are met.",
-    "infectionTip": "Infection level - organism is sick and may spread illness to others nearby. Clears over time or near shelter.",
     "sick": "sick",
-    "infectedTip": "Infected ({percent}%) - illness spreads through close contact with others",
     "expecting": "expecting",
-    "pregnantTip": "Pregnant - a child will be born in ~3 in-world days",
-    "sexWordsTip": "their words for the two kinds",
-    "sexWordsOrigin": "coined by the founding generation",
-    "meta": "Generation {generation} · {years}",
-    "ageTip": "Generation {generation} · {years} old ({ticks} ticks)",
-    "rename": "give this person a name",
     "renameAria": "Rename person",
-    "conversations": {
-      "one": "{count} conversation",
-      "other": "{count} conversations"
-    },
-    "familyTree": "family tree",
-    "track": "track in world",
-    "attractionTip": "This organism is drawn to another - they are building attraction and may bond",
-    "drawnTo": "drawn to someone ✦",
-    "friends": "friends:",
     "memoryFoodShort": "f",
     "memoryWaterShort": "w",
     "memoryDangerShort": "d",
-    "memoryFoodTip": {
-      "one": "{count} food location memorized",
-      "other": "{count} food locations memorized"
-    },
-    "memoryWaterTip": {
-      "one": "{count} water source memorized",
-      "other": "{count} water sources memorized"
-    },
-    "memoryDangerTip": {
-      "one": "{count} danger zone memorized",
-      "other": "{count} danger zones memorized"
-    },
     "traitLabel": {
       "curiosity": "cur",
       "aggression": "agg",
@@ -47,40 +15,16 @@
       "memory": "mem",
       "social": "soc",
       "resilience": "res"
-    },
-    "traitTip": {
-      "curiosity": "Curiosity - drives exploration and willingness to take risks",
-      "aggression": "Aggression - determines combat and territorial behaviour",
-      "fear": "Fear - how cautious the organism is around danger and predators",
-      "memory": "Memory - how many locations they can remember and how well",
-      "social": "Social - tendency to form bonds, trade, and travel with groups",
-      "resilience": "Resilience - resistance to disease, temperature stress, and starvation"
     }
   },
   "header": {
-    "sick": "sick",
     "carrying": "Carrying wood",
     "starTip": "Star this organism (saved across reloads)",
-    "star": "Star",
     "unstar": "Unstar",
-    "lifeTip": "View full life history",
-    "life": "Life",
-    "following": "Following",
-    "followTip": "Follow this organism",
-    "follow": "Follow",
-    "unfollow": "Unfollow",
     "close": "Close",
-    "gen": "gen {generation}",
-    "ageDays": {
-      "one": "{count} day old",
-      "other": "{count} days old"
-    },
-    "newborn": "newborn",
-    "maxAge": "max {time}"
+    "gen": "gen {generation}"
   },
   "home": {
-    "enterTip": "Step inside their home",
-    "visitTip": "Visit their home (they are out)",
     "lookInside": "Look inside"
   },
   "status": {
@@ -321,8 +265,6 @@
     "food": "food ×{count}",
     "water": "water ×{count}",
     "danger": "danger ×{count}",
-    "death": "DEATH",
-    "story": "STORY",
     "recent": "RECENT LIFE",
     "witnessed": "WHAT THEY'VE SEEN",
     "tick": "t{tick}",
@@ -341,7 +283,6 @@
     "salienceOnly": "salience {percent}%"
   },
   "kin": {
-    "title": "KIN & FRIENDS",
     "mother": "mother",
     "father": "father",
     "child": "child",

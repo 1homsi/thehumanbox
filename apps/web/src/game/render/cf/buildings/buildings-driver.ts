@@ -35,9 +35,9 @@ export const BUILDING_CLASSES: ReadonlyArray<readonly [number, number]> = [
 ]
 
 /** Tiles beyond the view that still get sprites (the tallest footprint reaches 8). */
-export const BUILDING_MARGIN = 6
+const BUILDING_MARGIN = 6
 
-export function bakeBuilding(atlas: CellAtlas, v: BuildingVisual) {
+function bakeBuilding(atlas: CellAtlas, v: BuildingVisual) {
   return atlas.bake(v.key, v.contentW, v.contentH, (ctx) => {
     ctx.translate(PAD, PAD_TOP)
     // ox/oy = the building's own tile, so its tile origin lands on the translate.

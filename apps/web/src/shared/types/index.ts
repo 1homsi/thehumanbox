@@ -1,4 +1,4 @@
-export interface ThoughtEntry {
+interface ThoughtEntry {
   tick: number
   text: string
 }
@@ -122,7 +122,7 @@ export interface OrganismState extends ExtendedEmotions {
   birth_tick?: number
 }
 
-export interface CosmosState {
+interface CosmosState {
   moon_phase:
     | 'new_moon'
     | 'waxing_crescent'
@@ -147,7 +147,7 @@ export interface ReligionInfo {
   founder_lineage?: string
 }
 
-export interface BookInfo {
+interface BookInfo {
   id?: string
   title: string
   author_id?: string
@@ -179,14 +179,14 @@ export interface BattleInfo {
   initial_d: number
 }
 
-export interface TreatyInfo {
+interface TreatyInfo {
   tick: number
   a_lineage: string
   b_lineage: string
   kind?: string
 }
 
-export interface TradeInfo {
+interface TradeInfo {
   tick: number
   buyer_id: string
   seller_id: string
@@ -226,7 +226,7 @@ export interface CaravanInfo {
   to: [number, number]
 }
 
-export interface GovernmentInfo {
+interface GovernmentInfo {
   lineage_id: string
   kind: string
   leader_id?: string | null
@@ -235,7 +235,7 @@ export interface GovernmentInfo {
   laws?: string[]
 }
 
-export interface ArtworkInfo {
+interface ArtworkInfo {
   id: number
   kind: string
   title: string
@@ -244,7 +244,7 @@ export interface ArtworkInfo {
   y?: number
 }
 
-export interface OutbreakInfo {
+interface OutbreakInfo {
   kind: string
   started?: number
   infected?: number
@@ -293,7 +293,7 @@ export interface SettlementInfo {
   score: number
 }
 
-export interface CarcassInfo {
+interface CarcassInfo {
   x: number
   y: number
   /** The prey's kind (`deer`, `rabbit`, ...). */
@@ -353,7 +353,7 @@ export interface LifeEvent {
   related_name?: string
 }
 
-export interface MemoryEntry {
+interface MemoryEntry {
   kind: 'core' | 'episode' | 'fact' | 'bond' | 'place' | 'dream'
   text: string
   salience: number
@@ -811,7 +811,7 @@ export interface WorldState {
   cosmos?: CosmosState
 }
 
-export interface StrategyCampaignInfo {
+interface StrategyCampaignInfo {
   lineage_id: string
   lineage_name: string
   strategy: string
@@ -823,7 +823,7 @@ export interface StrategyCampaignInfo {
   reason?: 'deadline' | 'player_redirected' | 'lineage_extinct' | null
 }
 
-export interface LineageEraProgress {
+interface LineageEraProgress {
   lineage_id: string
   era_name: string
   next_era?: string | null
@@ -841,187 +841,7 @@ export interface LineageEraProgress {
   ready: boolean
 }
 
-export type BuildingKind =
-  | 'Hut'
-  | 'House'
-  | 'Manor'
-  | 'TownHouse'
-  | 'Apartment'
-  | 'School'
-  | 'University'
-  | 'Library'
-  | 'Market'
-  | 'Temple'
-  | 'Factory'
-  | 'Hospital'
-  | 'Forge'
-  | 'Mill'
-  | 'Bakery'
-  | 'Inn'
-  | 'Bank'
-  | 'Workshop'
-  | 'Granary'
-  | 'Barracks'
-  | 'Lighthouse'
-  | 'Windmill'
-  | 'Watermill'
-  | 'Aqueduct'
-  | 'Bridge'
-  | 'Wall'
-  | 'Tower'
-  | 'Plaza'
-  | 'Statue'
-  | 'Fountain'
-  | 'TrainStation'
-  | 'Airport'
-  | 'Port'
-  | 'Stadium'
-  | 'Museum'
-  | 'Cathedral'
-  | 'Castle'
-  | 'Theatre'
-  | 'Observatory'
-  | 'Tavern'
-  | 'Brewery'
-  | 'Butcher'
-  | 'Fishmonger'
-  | 'Cheesemonger'
-  | 'Tailor'
-  | 'Cobbler'
-  | 'ClothingShop'
-  | 'Jeweler'
-  | 'Apothecary'
-  | 'Herbalist'
-  | 'Barbershop'
-  | 'Scribe'
-  | 'BookStore'
-  | 'ArtGallery'
-  | 'MusicHall'
-  | 'Cafe'
-  | 'Restaurant'
-  | 'Hotel'
-  | 'GuildHall'
-  | 'Courthouse'
-  | 'CityHall'
-  | 'PostOffice'
-  | 'PoliceStation'
-  | 'FireStation'
-  | 'Pharmacy'
-  | 'Clinic'
-  | 'Spa'
-  | 'Bathhouse'
-  | 'Greenhouse'
-  | 'Vineyard'
-  | 'Ranch'
-  | 'Stable'
-  | 'Kennel'
-  | 'Dovecote'
-  | 'Quarry'
-  | 'Mine'
-  | 'SawMill'
-  | 'Tannery'
-  | 'Smithy'
-  | 'Goldsmith'
-  | 'Refinery'
-  | 'PowerPlant'
-  | 'Substation'
-  | 'WaterTower'
-  | 'Reservoir'
-  | 'GasStation'
-  | 'AutoShop'
-  | 'Garage'
-  | 'MallShop'
-  | 'Supermarket'
-  | 'OfficeTower'
-  | 'Skyscraper'
-  | 'Datacenter'
-  | 'Studio'
-  | 'Spaceport'
-  | 'OrbitalLift'
-  | 'SolarArray'
-  | 'WindFarm'
-  | 'FusionPlant'
-  | 'NeuralHub'
-  | 'AiCore'
-  | 'Biodome'
-  | 'Cryolab'
-  | 'NanoFab'
-  | 'Hyperloop'
-  | 'Maglev'
-  | 'Hospital2'
-  | 'ResearchLab'
-  | 'Megastructure'
-  | 'Well'
-  | 'Lamppost'
-  | 'Signpost'
-  | 'MarketStall'
-  | 'FoodCart'
-  | 'Cart'
-  | 'Tent'
-  | 'Pavilion'
-  | 'Gazebo'
-  | 'Bench'
-  | 'Fence'
-  | 'Gate'
-  | 'Watchtower'
-  | 'Gallows'
-  | 'Monument'
-  | 'Obelisk'
-  | 'Shrine'
-  | 'Cemetery'
-  | 'GraveStone'
-  | 'Garden'
-  | 'Orchard'
-  | 'Pond'
-  | 'PlayGround'
-  | 'FlagPole'
-  | 'Bandstand'
-  | 'Kiosk'
-  | 'BillBoard'
-  | 'TelephonePole'
-  | 'StreetLight'
-  | 'BusStop'
-  | 'ParkingLot'
-  | 'Crosswalk'
-  | 'Pyramid'
-  | 'Ziggurat'
-  | 'Coliseum'
-  | 'TriumphalArch'
-  | 'ClockTower'
-  | 'Mosque'
-  | 'Synagogue'
-  | 'Pagoda'
-  | 'Stupa'
-  | 'Mausoleum'
-  | 'Hangar'
-  | 'Silo'
-  | 'Warehouse'
-  | 'Dock'
-  | 'Marina'
-  | 'Lighthouse2'
-  | 'Drydock'
-  | 'Shipyard'
-  | 'Crane'
-  | 'RadioTower'
-  | 'SatelliteDish'
-  | 'WindTurbine'
-  | 'SolarPanel'
-  | 'ChargingStation'
-  | 'RoboticArm'
-  | 'Drone'
-  | 'HoloBoard'
-  | 'NeonSign'
-  | 'ArcadeBox'
-  | 'Fountain2'
-  | 'FoodTruck'
-  | 'Greenhouse2'
-  | 'MushroomFarm'
-  | 'Aquaculture'
-  | 'Pen'
-  | 'Barn'
-  | 'Longhouse'
-
-export type BuildingFunction =
+type BuildingFunction =
   | 'Housing'
   | 'Education'
   | 'Industry'

@@ -205,7 +205,7 @@ const BUILDING_KINDS = new Map<string, MessageKey>([
 ])
 
 /** An id shown as words: underscores become spaces. */
-export function idWords(id: string): string {
+function idWords(id: string): string {
   return id.replace(/_/g, ' ')
 }
 

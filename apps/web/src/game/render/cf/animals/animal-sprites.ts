@@ -29,7 +29,7 @@ import { AttachedSprites } from '../attached'
 import { rgba32, withAlpha } from '../colors'
 import { MotionStore } from '../motion'
 
-export const ANIMAL_ATLAS = { pixel: 0, fauna: 1 } as const
+const ANIMAL_ATLAS = { pixel: 0, fauna: 1 } as const
 
 export interface AnimalFrameInput {
   animals: readonly AnimalState[]

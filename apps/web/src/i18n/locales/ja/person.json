@@ -1,35 +1,13 @@
 {
   "card": {
     "energyShort": "エ",
-    "energyTip": "エネルギー――時間とともに減り、食べ物のタイルを食べると回復します。0%になると餓死します。",
     "hydrationShort": "水",
-    "hydrationTip": "水分――時間とともに減り、水を飲むと回復します。0%になると脱水します。",
-    "healthTip": "健康――飢え、感染、戦闘で損なわれます。欲求が満たされると少しずつ回復します。",
-    "infectionTip": "感染度――病気にかかっており、近くの他の生き物にうつすことがあります。時間が経つか、住まいの近くにいると減ります。",
     "sick": "病気",
-    "infectedTip": "感染（{percent}%）――密接な接触を通じて病気が広がります",
     "expecting": "妊娠中",
-    "pregnantTip": "妊娠中――約3世界日のうちに子どもが生まれます",
-    "sexWordsTip": "二つの種類を表す彼ら独自の言葉",
-    "sexWordsOrigin": "始祖の世代が作った言葉",
-    "meta": "第{generation}世代 · {years}",
-    "ageTip": "第{generation}世代 · {years}（{ticks} ティック）",
-    "rename": "この人に名前をつける",
     "renameAria": "名前を変更",
-    "conversations": {
-      "other": "会話 {count} 件"
-    },
-    "familyTree": "家系図",
-    "track": "世界で追跡",
-    "attractionTip": "この生き物は別の生き物に惹かれています――惹かれ合いが深まり、絆が生まれるかもしれません",
-    "drawnTo": "誰かに惹かれている ✦",
-    "friends": "友人:",
     "memoryFoodShort": "食",
     "memoryWaterShort": "水",
     "memoryDangerShort": "危",
-    "memoryFoodTip": "覚えている食べ物の場所 {count} か所",
-    "memoryWaterTip": "覚えている水源 {count} か所",
-    "memoryDangerTip": "覚えている危険地帯 {count} か所",
     "traitLabel": {
       "curiosity": "好奇",
       "aggression": "攻撃",
@@ -37,39 +15,16 @@
       "memory": "記憶",
       "social": "社交",
       "resilience": "耐性"
-    },
-    "traitTip": {
-      "curiosity": "好奇心――探索と危険への挑戦を促します",
-      "aggression": "攻撃性――戦闘や縄張りの振る舞いを決めます",
-      "fear": "恐怖――危険や捕食者の前でどれだけ慎重か",
-      "memory": "記憶力――どれだけ多くの場所をどれだけ正確に覚えられるか",
-      "social": "社交性――絆を結び、交易し、集団で移動する傾向",
-      "resilience": "耐性――病気、極端な温度、飢えへの抵抗力"
     }
   },
   "header": {
-    "sick": "病気",
     "carrying": "木材を運んでいる",
     "starTip": "この生き物にスターを付ける（再読み込み後も保存されます）",
-    "star": "スターを付ける",
     "unstar": "スターを外す",
-    "lifeTip": "生涯の全記録を見る",
-    "life": "生涯",
-    "following": "追跡中",
-    "followTip": "この生き物を追跡する",
-    "follow": "追跡",
-    "unfollow": "追跡をやめる",
     "close": "閉じる",
-    "gen": "第{generation}世代",
-    "ageDays": {
-      "other": "生後 {count} 日"
-    },
-    "newborn": "生まれたばかり",
-    "maxAge": "寿命 {time}"
+    "gen": "第{generation}世代"
   },
   "home": {
-    "enterTip": "住まいの中に入る",
-    "visitTip": "住まいを訪ねる（外出中です）",
     "lookInside": "中をのぞく"
   },
   "status": {
@@ -298,8 +253,6 @@
     "food": "食べ物 ×{count}",
     "water": "水 ×{count}",
     "danger": "危険 ×{count}",
-    "death": "死",
-    "story": "物語",
     "recent": "最近の生活",
     "witnessed": "目撃したこと",
     "tick": "t{tick}",
@@ -318,7 +271,6 @@
     "salienceOnly": "印象度 {percent}%"
   },
   "kin": {
-    "title": "家族と友人",
     "mother": "母",
     "father": "父",
     "child": "子",

@@ -42,7 +42,7 @@ export function createTerrainSyncState(): TerrainSyncState {
 }
 
 /** Tiles written incrementally per sync before a full rewrite is cheaper (a wildfire can touch thousands). */
-export const MAX_INCREMENTAL_TILES = 6000
+const MAX_INCREMENTAL_TILES = 6000
 
 /** Level of detail: below `flatBelowPx` device pixels per tile the flat tileset is shown. */
 export const terrainLod = { enabled: true, flatBelowPx: 7, detailAbovePx: 9 }

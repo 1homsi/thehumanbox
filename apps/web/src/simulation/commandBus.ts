@@ -11,7 +11,7 @@ export function setSandboxSender(next: Sender | null): void {
 }
 
 /** Sends a command and says what it did (see command-outcome.ts). */
-export function sendSandboxCommandOutcome(cmd: SandboxCommand): Promise<CommandOutcome> {
+function sendSandboxCommandOutcome(cmd: SandboxCommand): Promise<CommandOutcome> {
   return sender ? sender(cmd) : Promise.resolve(FAILED_OUTCOME)
 }
 

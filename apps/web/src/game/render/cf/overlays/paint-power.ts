@@ -6,9 +6,9 @@ import type { CfFrame } from './frame'
 type Ctx = CanvasRenderingContext2D
 
 /** The era tier a tribe needs to string poles and wires: industrial (tier 5) and later. */
-export const POWER_TIER = 5
+const POWER_TIER = 5
 /** Two poles this close (Manhattan tiles) are wired together; each pole wires to its two nearest in reach. */
-export const WIRE_REACH = 7
+const WIRE_REACH = 7
 
 const WOOD = '#4a3a2a'
 const WIRE = 'rgba(40,36,32,0.75)'

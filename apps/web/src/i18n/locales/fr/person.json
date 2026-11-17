@@ -1,36 +1,13 @@
 {
   "card": {
     "energyShort": "E",
-    "energyTip": "Énergie – diminue avec le temps, se recharge en mangeant des cases de nourriture. À 0 %, l'organisme meurt de faim.",
     "hydrationShort": "H",
-    "hydrationTip": "Hydratation – diminue avec le temps, se recharge en buvant de l'eau. À 0 %, l'organisme se déshydrate.",
-    "healthTip": "Santé – affaiblie par la faim, l'infection et les combats. Se rétablit lentement quand les besoins sont satisfaits.",
-    "infectionTip": "Niveau d'infection – l'organisme est malade et peut transmettre la maladie aux autres à proximité. Diminue avec le temps ou près d'un abri.",
     "sick": "malade",
-    "infectedTip": "Infecté ({percent} %) – la maladie se propage par contact étroit avec d'autres",
     "expecting": "attend un enfant",
-    "pregnantTip": "Enceinte – un enfant naîtra dans environ 3 jours du monde",
-    "sexWordsTip": "leurs mots pour les deux genres",
-    "sexWordsOrigin": "forgés par la génération fondatrice",
-    "meta": "Génération {generation} · {years}",
-    "ageTip": "Génération {generation} · {years} ({ticks} ticks)",
-    "rename": "donner un nom à cette personne",
     "renameAria": "Renommer la personne",
-    "conversations": {
-      "one": "{count} conversation",
-      "other": "{count} conversations"
-    },
-    "familyTree": "arbre généalogique",
-    "track": "suivre dans le monde",
-    "attractionTip": "Cet organisme est attiré par un autre – une attirance se construit et un lien peut se former",
-    "drawnTo": "attiré par quelqu'un ✦",
-    "friends": "amis :",
     "memoryFoodShort": "N",
     "memoryWaterShort": "E",
     "memoryDangerShort": "D",
-    "memoryFoodTip": "{count} lieux de nourriture mémorisés",
-    "memoryWaterTip": "{count} sources d'eau mémorisées",
-    "memoryDangerTip": "{count} zones de danger mémorisées",
     "traitLabel": {
       "curiosity": "cur",
       "aggression": "agr",
@@ -38,40 +15,16 @@
       "memory": "mém",
       "social": "soc",
       "resilience": "rés"
-    },
-    "traitTip": {
-      "curiosity": "Curiosité – pousse à explorer et à prendre des risques",
-      "aggression": "Agressivité – détermine les combats et le comportement territorial",
-      "fear": "Peur – à quel point l'organisme est prudent face au danger et aux prédateurs",
-      "memory": "Mémoire – combien de lieux ils peuvent retenir et avec quelle précision",
-      "social": "Sociabilité – tendance à créer des liens, commercer et voyager en groupe",
-      "resilience": "Résilience – résistance aux maladies, aux températures extrêmes et à la faim"
     }
   },
   "header": {
-    "sick": "malade",
     "carrying": "transporte du bois",
     "starTip": "Mettre cet organisme en favori (conservé après rechargement)",
-    "star": "Mettre en favori",
     "unstar": "Retirer des favoris",
-    "lifeTip": "Voir l'historique complet de la vie",
-    "life": "Vie",
-    "following": "Suivi",
-    "followTip": "Suivre cet organisme",
-    "follow": "Suivre",
-    "unfollow": "Ne plus suivre",
     "close": "Fermer",
-    "gen": "gén. {generation}",
-    "ageDays": {
-      "one": "{count} jour d'âge",
-      "other": "{count} jours d'âge"
-    },
-    "newborn": "nouveau-né",
-    "maxAge": "max {time}"
+    "gen": "gén. {generation}"
   },
   "home": {
-    "enterTip": "Entrer dans son foyer",
-    "visitTip": "Visiter son foyer (il est sorti)",
     "lookInside": "Regarder à l'intérieur"
   },
   "status": {
@@ -300,8 +253,6 @@
     "food": "nourriture ×{count}",
     "water": "eau ×{count}",
     "danger": "danger ×{count}",
-    "death": "MORT",
-    "story": "HISTOIRE",
     "recent": "VIE RÉCENTE",
     "witnessed": "CE QU'ILS ONT VU",
     "tick": "t{tick}",
@@ -320,7 +271,6 @@
     "salienceOnly": "saillance {percent} %"
   },
   "kin": {
-    "title": "FAMILLE ET AMIS",
     "mother": "mère",
     "father": "père",
     "child": "enfant",

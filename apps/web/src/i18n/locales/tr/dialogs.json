@@ -309,7 +309,6 @@
     "title": "{name}'in hayatı",
     "heading": "{name}'İN HAYATI",
     "close": "Kapat",
-    "day": "gün {day}",
     "failed": "yüklenemedi",
     "gen": "kuşak {gen}",
     "age": {
@@ -344,7 +343,6 @@
     "relFriend": "arkadaş",
     "relTrusts": "güveniyor",
     "relWary": "temkinli",
-    "day": "gün {day}",
     "title": "{name} kişisinin konuşmaları",
     "heading": "KONUŞMALAR",
     "close": "Kapat",

@@ -309,7 +309,6 @@
     "title": "Leben von {name}",
     "heading": "LEBEN VON {name}",
     "close": "Schließen",
-    "day": "Tag {day}",
     "failed": "Laden fehlgeschlagen",
     "gen": "G{gen}",
     "age": {
@@ -344,7 +343,6 @@
     "relFriend": "Freund",
     "relTrusts": "vertraut",
     "relWary": "misstrauisch",
-    "day": "Tag {day}",
     "title": "Gespräche von {name}",
     "heading": "GESPRÄCHE",
     "close": "Schließen",

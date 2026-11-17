@@ -6,7 +6,7 @@ export function loadString(key: string): string | null {
   }
 }
 
-export function saveString(key: string, value: string): void {
+function saveString(key: string, value: string): void {
   try {
     window.localStorage.setItem(key, value)
   } catch {

@@ -3,16 +3,13 @@
 // resets and migrating the save folder. Split by concern under ./world-safety/;
 // this file keeps the original import path working.
 export {
-  MAX_REMOTE_SAVE_BYTES,
   SUPPORTED_SAVE_SCHEMA_VERSION,
   validateWorldSaveBytes,
   validateWorldSaveBytesInWorker,
   assertSameLoadedWorld,
   downloadAndValidateWorldSave,
-  validateWorldHash,
   chooseAvailableWorldHash,
 } from "./world-safety/save-validation";
-export type { ValidatedWorldSave, MigrationWorldExpectation } from "./world-safety/save-validation";
 export {
   syncDirectoryBestEffort,
   syncDirectoryBestEffortAsync,
@@ -27,13 +24,11 @@ export {
   assertEmptyOrIdentifiedDataRoot,
   requireOrUpgradeDataRootIdentity,
 } from "./world-safety/data-root";
-export type { DataRootIdentity, ActiveWorldFiles } from "./world-safety/data-root";
 export {
   recoverInterruptedFileReplacement,
   recoverInterruptedWorldReset,
   restoreParkedLiveWorld,
 } from "./world-safety/recovery";
-export type { ResetRollbackResult } from "./world-safety/recovery";
 export {
   rootsOverlap,
   pathsReferToSameLocation,
@@ -55,4 +50,3 @@ export {
   copyWorldsToStaging,
   copyWorldsToStagingInWorker,
 } from "./world-safety/save-folder-migration";
-export type { InterruptedMigrationRecovery } from "./world-safety/save-folder-migration";

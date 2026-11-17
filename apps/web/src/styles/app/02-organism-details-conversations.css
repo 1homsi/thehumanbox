@@ -1,109 +1,6 @@
-/* Organism attribute tags */
-.org-attributes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  margin-top: 3px;
-  margin-bottom: 1px;
-}
-.org-attr-tag {
-  font-size: 7px;
-  font-family: monospace;
-  color: #b8a080;
-  background: #1e1810;
-  border: 1px solid #3a2e1e;
-  border-radius: 2px;
-  padding: 1px 4px;
-  letter-spacing: 0.03em;
-}
-.org-attr-more {
-  color: #665544;
-  border-color: #2a2010;
-}
-
-/* Traits mini bars */
-.trait-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 2px;
-  margin-top: 3px;
-}
-.trait-bar-track {
-  height: 3px;
-  background: #3f2f23;
-  border-radius: 1px;
-  overflow: hidden;
-}
-.trait-bar-fill {
-  height: 100%;
-  border-radius: 1px;
-}
-.trait-labels {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  font-size: 7px;
-  color: #777;
-  text-align: center;
-  gap: 2px;
-  margin-top: 1px;
-}
-
 /* Sick organism styling */
 .org-card.sick {
   background: #121a00;
-}
-.org-sick-badge {
-  font-size: 8px;
-  color: #bbff44;
-  background: #1a2200;
-  padding: 1px 4px;
-  border-radius: 2px;
-}
-.org-title-badge {
-  font-size: 9px;
-  color: #e8c46a;
-  background: rgba(232, 196, 106, 0.1);
-  padding: 1px 5px;
-  border-radius: 2px;
-  white-space: nowrap;
-}
-.org-sex-badge {
-  font-size: 8px;
-  font-family: monospace;
-  font-weight: 600;
-  padding: 1px 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.05);
-  letter-spacing: 0.02em;
-}
-.org-pregnant-badge {
-  font-size: 8px;
-  color: #f0c8d8;
-  background: rgba(200, 80, 120, 0.18);
-  padding: 1px 4px;
-  border-radius: 2px;
-  animation: pulse-soft 2s ease-in-out infinite;
-}
-@keyframes pulse-soft {
-  0%,
-  100% {
-    opacity: 0.85;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-.org-attraction {
-  font-size: 9px;
-  color: #e8c84a;
-  font-style: italic;
-  padding: 2px 0 1px;
-  opacity: 0.8;
-}
-.org-action-btns {
-  display: flex;
-  gap: 3px;
-  margin-left: auto;
 }
 .org-action-btn {
   background: rgba(255, 255, 255, 0.06);
@@ -125,9 +22,6 @@
 .org-track-btn {
   font-size: 11px;
   font-weight: 700;
-}
-.org-convo-btn {
-  letter-spacing: 0.01em;
 }
 
 /* ── Conversations modal (cv-*) ───────────────────────────────────────────── */

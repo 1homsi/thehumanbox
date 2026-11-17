@@ -230,7 +230,6 @@
     "failed": "{label} · {reason}",
     "following": "{name} 따라가는 중",
     "naming": "이름 · {name}의 새 이름을 입력",
-    "paused": "일시정지: {names} 존속 위기",
     "pausedFor": "일시정지: {reasons}"
   },
   "legends": {

@@ -12,7 +12,7 @@ const GOLD_MID: Rgb = [184, 138, 54]
 const BEAK_ORANGE: Rgb = [196, 104, 62]
 const COLLAR_RED: Rgb = [176, 66, 52]
 
-export const FAUNA_PALETTE: Record<string, string> = {
+const FAUNA_PALETTE: Record<string, string> = {
   k: hex(INK),
   w: hex(SNOW.lit),
   s: hex(SAND.light),
@@ -34,7 +34,7 @@ export const FAUNA_PALETTE: Record<string, string> = {
   v: hex(FRESH_WATER.deep),
 }
 
-export const FAUNA_GRIDS = {
+const FAUNA_GRIDS = {
   rabbit: ['.kk...', 'ksk...', 'kskkk.', '.kssSk', 'kwsSSk', '.kkkkk'],
   deer: [
     'kk..kk......',

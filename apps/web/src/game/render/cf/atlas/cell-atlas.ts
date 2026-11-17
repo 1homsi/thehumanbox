@@ -23,7 +23,7 @@ export interface AtlasPageSlot {
 }
 
 /** Rows a page starts with when a size class claims it; it doubles when full, up to its limit. */
-export const INITIAL_ROWS = 4
+const INITIAL_ROWS = 4
 
 /** A baked cell: which atlas of the layer it lives in and its frame index. */
 export interface CellRef {

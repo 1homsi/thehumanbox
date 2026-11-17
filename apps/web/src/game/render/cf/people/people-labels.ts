@@ -17,7 +17,7 @@ import type { NameStyle } from './people-names'
 import type { LabelPresence } from '../../label-presence'
 
 /** Where names and thoughts go instead of the canvas (a `TextLayer`, see `PeopleNameLayer`). */
-export interface NameSink {
+interface NameSink {
   text(text: string, x: number, y: number, style: NameStyle, alpha: number, slot: number): void
 }
 
@@ -48,10 +48,10 @@ export interface PeopleLabelSource {
 }
 
 /** Facts about a person that only change with a simulation frame (see `PeopleLabelSource.labelFlags`). */
-export const LABEL_NAME = 1
-export const LABEL_THOUGHT = 2
-export const LABEL_ACTIVITY = 4
-export const LABEL_SEED_EVEN = 8
+const LABEL_NAME = 1
+const LABEL_THOUGHT = 2
+const LABEL_ACTIVITY = 4
+const LABEL_SEED_EVEN = 8
 
 /** Fade names across the overview boundary so the first zoom step does not add every tag at once. */
 export function nameVisibilityAlpha(zoom: number): number {
@@ -61,7 +61,7 @@ export function nameVisibilityAlpha(zoom: number): number {
 }
 
 /** The zoom from which everyone's name fades in (the detail zoom is 2.2). */
-export const NAMES_FROM_ZOOM = 2.1
+const NAMES_FROM_ZOOM = 2.1
 
 export function labelFlagsOf(org: OrganismState): number {
   const thought = org.thought ?? ''
@@ -145,7 +145,7 @@ let anchorYScratch = new Float32Array(0)
 let stickyScratch = new Uint8Array(0)
 
 /** A person's prayer glyph seed: whether they join in, and where in the dance they start. */
-export function prayerSeed(id: string): number {
+function prayerSeed(id: string): number {
   return id.charCodeAt(0) + id.charCodeAt(id.length - 1)
 }
 

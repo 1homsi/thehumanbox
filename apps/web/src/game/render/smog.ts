@@ -6,7 +6,7 @@ import type { SmogInfo } from '../../shared/types'
 type Ctx = CanvasRenderingContext2D
 
 /** Tiles a source's haze reaches (the sim's `SMOG_REACH`). */
-export const SMOG_REACH = 9
+const SMOG_REACH = 9
 
 export function drawSmog(ctx: Ctx, source: SmogInfo, cx: number, cy: number, tile: number, t: number) {
   const strength = Math.min(2, source.s)

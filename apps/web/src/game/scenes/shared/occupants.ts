@@ -28,14 +28,6 @@ function isInsideHome(org: OrganismState, world: WorldState): boolean {
   return structureAt(world, org.home_x, org.home_y) >= STRUCTURE_MIN
 }
 
-export function isAtHome(
-  org: OrganismState | undefined | null,
-  world: WorldState | undefined | null,
-): boolean {
-  if (!org || !org.alive || !world) return false
-  return isInsideHome(org, world)
-}
-
 export function hasBuiltHome(
   org: OrganismState | undefined | null,
   world: WorldState | undefined | null,

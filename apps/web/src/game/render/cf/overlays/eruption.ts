@@ -15,11 +15,11 @@ type Ctx = CanvasRenderingContext2D
  */
 
 /** One cell in this many volcanic cells is a vent. */
-export const VENT_ODDS = 1 / 23
+const VENT_ODDS = 1 / 23
 /** Most vents drawn in one pass; the rest are left out. */
 export const VENT_LIMIT = 24
 /** Smoke puffs per vent, spread over one rising cycle. */
-export const PUFFS = 4
+const PUFFS = 4
 /** Ash specks per vent. */
 const ASH_SPECKS = 3
 /** How far a smoke column climbs, in tiles. */
@@ -132,7 +132,7 @@ export function plumePuff(mx: number, my: number, seed: number, k: number, t: nu
  * A filled disc in whole-pixel rows: smoke drawn as soft anti-aliased circles read as a blur over the map,
  * next to sprites whose curves are pixel staircases (#883).
  */
-export function pixelDisc(ctx: Ctx, cx: number, cy: number, r: number): void {
+function pixelDisc(ctx: Ctx, cx: number, cy: number, r: number): void {
   const x = Math.round(cx)
   const y = Math.round(cy)
   const rr = Math.max(1, Math.round(r))
@@ -193,7 +193,7 @@ export function conesInView(
  * One volcano's cone, standing over its crater: rock lit from the west and shaded on the east, a
  * crater on top, and while it erupts, lava in the crater running down its flanks.
  */
-export function paintCone(ctx: Ctx, v: VolcanoCone, view: VentView, erupting: boolean): void {
+function paintCone(ctx: Ctx, v: VolcanoCone, view: VentView, erupting: boolean): void {
   const { mx, peakY, baseY, topHalf, baseHalf } = coneGeometry(v, view)
   const height = Math.max(1, baseY - peakY)
   const [vx, vy] = v

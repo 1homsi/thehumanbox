@@ -118,10 +118,6 @@
     width: auto;
     max-width: none;
   }
-  .idle-resume-panel {
-    margin: 0 16px;
-    padding: 22px 20px;
-  }
 }
 
 body.thb-colorblind .header .time-tag.season-abundance {
@@ -138,10 +134,6 @@ body.thb-colorblind .header .time-tag.season-recovery {
 }
 body.thb-colorblind .header .time-tag.hard-winter {
   --season-dot: #b9e2ff;
-}
-body.thb-colorblind .org-sick-badge {
-  background: #fb8500;
-  color: #1a0a00;
 }
 
 .life-skeleton {
@@ -191,56 +183,6 @@ body.thb-colorblind .org-sick-badge {
   100% {
     background-position: -100% 50%;
   }
-}
-
-.org-detail-actions {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  flex-shrink: 0;
-}
-.icon-btn {
-  width: 22px;
-  height: 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  line-height: 1;
-  padding: 0;
-  border-radius: 4px;
-  border: 1px solid #443329;
-  background: #24201a;
-  color: #aaa;
-  cursor: pointer;
-  font-family: inherit;
-}
-.icon-btn:hover {
-  color: #fff;
-  border-color: #6a5240;
-  background: #2c2620;
-}
-.icon-btn.active {
-  background: #001a10;
-  color: #44ffaa;
-  border-color: #1a4a2a;
-}
-.icon-btn.active-star {
-  color: #ffcc44;
-  border-color: #5a4422;
-}
-.icon-btn.icon-close:hover {
-  color: #cc4444;
-  border-color: #4a1a1a;
-}
-.icon-btn:focus-visible {
-  outline: 2px solid #cfe6ff;
-  outline-offset: 1px;
-}
-
-.org-detail-header {
-  flex-wrap: nowrap;
 }
 
 .section-title-row {
@@ -531,10 +473,8 @@ body.thb-colorblind .org-sick-badge {
   flex-wrap: wrap;
   gap: 4px;
 }
-.empty-state,
 .civ-empty,
-.org-search-empty,
-.worlds-empty {
+.org-search-empty {
   font-size: 11px;
   color: #8c7c63;
   font-style: italic;
@@ -547,10 +487,8 @@ body.thb-colorblind .org-sick-badge {
   gap: 8px;
   opacity: 0.9;
 }
-.empty-state::before,
 .civ-empty::before,
-.org-search-empty::before,
-.worlds-empty::before {
+.org-search-empty::before {
   content: '◯';
   font-size: 16px;
   color: #5a4838;
@@ -632,28 +570,8 @@ body.thb-colorblind .org-sick-badge {
 .civ-strategy-status {
   color: #d0a66f;
 }
-.civ-strategy-objective {
-  display: grid;
-  gap: 3px;
-  min-width: 112px;
-}
 .civ-strategy-complete {
   color: #e3c470;
-}
-.civ-strategy-progress {
-  display: block;
-  width: 100%;
-  height: 3px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(216, 178, 112, 0.16);
-}
-.civ-strategy-progress > span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #6da673, #e3c470);
-  transition: width 180ms ease-out;
 }
 .civ-campaign-board {
   display: grid;

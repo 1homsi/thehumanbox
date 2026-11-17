@@ -3,7 +3,7 @@ import type { SceneContext, SceneFixture, SceneId, SceneOccupant } from '../core
 import type { WorldState } from '../../../shared/types'
 import { getBuildingState } from '../../model/building-state'
 
-export const TAVERN_RADIUS = 18
+const TAVERN_RADIUS = 18
 
 function findTavernAnchor(world: WorldState, lineageId: string): { x: number; y: number } | null {
   const buildings = world.buildings ?? []

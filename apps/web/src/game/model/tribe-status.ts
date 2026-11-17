@@ -1,7 +1,7 @@
 import type { OrganismState, PrayerInfo, WorldState } from '../../shared/types'
 
 /** At or below this faith a tribe has given up on its gods (matches the sim). */
-export const LOST_FAITH = -6
+const LOST_FAITH = -6
 
 export interface TribeStatus {
   id: string

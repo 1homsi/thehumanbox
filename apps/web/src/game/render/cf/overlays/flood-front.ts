@@ -13,7 +13,7 @@ type Ctx = CanvasRenderingContext2D
  * rather than a line that blinks. The pass is painted with the throttled ground layer.
  */
 
-export const FLOOD_SHEEN = 'rgba(122,98,62,0.22)'
+const FLOOD_SHEEN = 'rgba(122,98,62,0.22)'
 const FOAM_COLOUR = '#eaf6ff'
 /** Foam band width in map pixels (the front is a band, not a line). */
 const FOAM_WIDTH = 3

@@ -105,7 +105,7 @@ function hash2(a: number, b: number): number {
  * The additive texture term `k` for pixel (gx, gy) of a tile whose texture rules are those of `tid`.
  * Water has none: its depth bands are flat fills, and the contour sprites over them must match.
  */
-export function textureTerm(tid: number, gx: number, gy: number): number {
+function textureTerm(tid: number, gx: number, gy: number): number {
   if (tid === TILE_ID.WATER) return 0
   const clusterX = gx >> 1
   const clusterY = gy >> 1
@@ -148,7 +148,7 @@ export function terrainTilesetPixels(): TilesetPixels {
 }
 
 /** Build the atlas pixels. Pure (no DOM), so it can be tested and reused off the main thread. */
-export function buildTilesetPixels(): TilesetPixels {
+function buildTilesetPixels(): TilesetPixels {
   const columns = VARIANTS
   const rows = TERRAIN_KINDS.length
   const width = columns * TILE

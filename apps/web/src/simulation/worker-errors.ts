@@ -41,7 +41,7 @@ const KEYS: Record<WorkerErrorCode, MessageKey> = {
   save_failed: 'common.workerError.saveFailed',
 }
 
-export function isWorkerErrorCode(value: unknown): value is WorkerErrorCode {
+function isWorkerErrorCode(value: unknown): value is WorkerErrorCode {
   return typeof value === 'string' && Object.hasOwn(KEYS, value)
 }
 

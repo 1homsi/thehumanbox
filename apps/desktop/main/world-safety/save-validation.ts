@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { Worker } from "node:worker_threads";
 
-export const MAX_REMOTE_SAVE_BYTES = 256 * 1024 * 1024;
+const MAX_REMOTE_SAVE_BYTES = 256 * 1024 * 1024;
 
 export const SUPPORTED_SAVE_SCHEMA_VERSION = 7;
 

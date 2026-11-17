@@ -11,12 +11,12 @@ import { VegetationDriver } from './vegetation-driver'
  * Ground vegetation sits between the terrain (0) and the ground overlays (10): in the
  * canvas painter it was baked into the terrain, under every overlay.
  */
-export const DECOR_Z = 2
-export const MOUNTAINS_Z = 3
-export const TREES_Z = 4
-export const SWAY_Z = 4.5
+const DECOR_Z = 2
+const MOUNTAINS_Z = 3
+const TREES_Z = 4
+const SWAY_Z = 4.5
 /** Seasonal specks on the crowns: above the trees, under the wind's canopy copies. */
-export const DRESS_Z = 4.2
+const DRESS_Z = 4.2
 
 const DECOR_PAGES = [1024, 1024]
 const MOUNTAIN_PAGES = [1024, 1024]

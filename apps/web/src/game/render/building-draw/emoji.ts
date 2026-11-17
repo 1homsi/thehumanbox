@@ -1,6 +1,6 @@
 import { normKind } from './footprints'
 
-export const BUILDING_EMOJI: Record<string, string> = {
+const BUILDING_EMOJI: Record<string, string> = {
   Hut: '\u{1F6D6}',
   House: '\u{1F3E0}',
   Manor: '\u{1F3F0}',

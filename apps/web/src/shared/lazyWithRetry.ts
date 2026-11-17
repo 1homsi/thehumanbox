@@ -6,7 +6,7 @@ import { reportStaleBuild } from './staleBuild'
 const RELOAD_KEY = 'thb-chunk-reload-at'
 const RELOAD_COOLDOWN_MS = 15_000
 
-export function isChunkLoadError(err: unknown): boolean {
+function isChunkLoadError(err: unknown): boolean {
   if (!err) return false
   const msg = err instanceof Error ? err.message : String(err)
   return /Failed to fetch dynamically imported module|Importing a module script failed|Failed to load module script|Loading chunk \d+ failed|Unable to preload CSS/i.test(

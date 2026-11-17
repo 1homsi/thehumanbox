@@ -13,10 +13,10 @@ import { motionTime } from '../../../shared/motion'
 import { TILE } from '../../model/palette'
 import { cargoColorOf } from '../../model/cargo'
 
-export const MAX_TRADE_ROUTES_2D = 48
-export const MAX_CARAVANS_2D = 64
+const MAX_TRADE_ROUTES_2D = 48
+const MAX_CARAVANS_2D = 64
 
-export function isFinitePoint(point: [number, number]): boolean {
+function isFinitePoint(point: [number, number]): boolean {
   return Number.isFinite(point[0]) && Number.isFinite(point[1])
 }
 

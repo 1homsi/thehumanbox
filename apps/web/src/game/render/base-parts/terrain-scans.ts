@@ -4,8 +4,8 @@ import { isRuinedBuilding } from '../../model/building-state'
 
 // Hut tiles are terrain-derived too; cache the positions per tiles array
 // so the settlement-ring pass stops rescanning all 180k tiles per frame.
-export let _hutSource: ArrayLike<number>[] | null = null
-export let _hutTiles: Array<[number, number]> = []
+let _hutSource: ArrayLike<number>[] | null = null
+let _hutTiles: Array<[number, number]> = []
 export function hutTileList(tiles: ArrayLike<number>[]): Array<[number, number]> {
   if (tiles === _hutSource) return _hutTiles
   const out: Array<[number, number]> = []
@@ -26,8 +26,8 @@ export interface HutCluster {
   cy: number
   count: number
 }
-export let _hutClusterSource: Array<[number, number]> | null = null
-export let _hutClusters: HutCluster[] = []
+let _hutClusterSource: Array<[number, number]> | null = null
+let _hutClusters: HutCluster[] = []
 export function cachedHutClusters(hutPositions: Array<[number, number]>): HutCluster[] {
   if (hutPositions === _hutClusterSource) return _hutClusters
   const clusters: HutCluster[] = []
@@ -57,8 +57,8 @@ export function cachedHutClusters(hutPositions: Array<[number, number]>): HutClu
   return clusters
 }
 
-export let _ruinedBuildingSource: WorldState['buildings']
-export let _ruinedBuildingTiles = new Set<string>()
+let _ruinedBuildingSource: WorldState['buildings']
+let _ruinedBuildingTiles = new Set<string>()
 
 export function ruinedBuildingTiles(buildings: WorldState['buildings']): ReadonlySet<string> {
   if (buildings === _ruinedBuildingSource) return _ruinedBuildingTiles

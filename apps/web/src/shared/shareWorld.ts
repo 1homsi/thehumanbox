@@ -18,7 +18,7 @@ function canShareData(data: ShareData): boolean {
 }
 
 /** True when the browser can put an image on the clipboard, not just text. */
-export function canCopyImage(): boolean {
+function canCopyImage(): boolean {
   return (
     typeof ClipboardItem !== 'undefined' &&
     typeof navigator !== 'undefined' &&

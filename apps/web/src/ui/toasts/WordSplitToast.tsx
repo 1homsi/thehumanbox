@@ -8,7 +8,7 @@ import { screenBusy, TOAST_RETRY_MS } from './screenBusy'
 /** Holds the seeds of the worlds the notice has been shown for (a JSON list), so each world shows it once. */
 export const WORD_SPLIT_KEY = 'thb-word-split-shown'
 /** How long the notice stays up before it goes away on its own. */
-export const WORD_SPLIT_SHOW_MS = 12_000
+const WORD_SPLIT_SHOW_MS = 12_000
 /** The most seeds remembered; the oldest drop off first. */
 const MAX_REMEMBERED = 50
 

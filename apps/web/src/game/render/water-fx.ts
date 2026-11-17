@@ -6,7 +6,7 @@ import { TILE } from '../model/palette'
 // recomputing the same position hash for it. The hash (and which tiles take part)
 // only depends on the terrain grid, so the cells are listed once per terrain grid,
 // in row-major order so rects are emitted in the same order as the old tile scan.
-export interface CellList {
+interface CellList {
   rows: Int32Array
   cols: Int32Array
   /** The tile's position hash; its low byte, bits 8-9 and bits 10-11 drive the animation. */
@@ -42,7 +42,7 @@ const finishList = (b: CellListBuilder): CellList => ({
   hashes: Uint32Array.from(b.hashes),
 })
 
-export function tileHash(col: number, row: number): number {
+function tileHash(col: number, row: number): number {
   let h = (col * 374761393 + row * 668265263) | 0
   h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0
   return h

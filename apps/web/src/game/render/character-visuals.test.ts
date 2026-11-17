@@ -13,7 +13,6 @@ import {
   HUMAN_ATLAS_ROWS,
   HUMAN_ATLAS_WIDTH,
   HUMAN_SEX_ORDER,
-  HUMAN_SHEET_APPEARANCES,
   HUMAN_STAGE_ORDER,
   deterministicAppearanceIndex,
   humanAtlasRow,
@@ -191,7 +190,7 @@ describe('character motion and draw order', () => {
     const svg = readFileSync(new URL('../../../public/sprites/people/people.svg', import.meta.url), 'utf8')
     // Each row holds all five clothing eras, both facings and four walk frames.
     expect(svg).toContain('viewBox="0 0 1280 1920"')
-    expect(svg.match(/<!-- sex /g)?.length).toBe(2 * 5 * HUMAN_SHEET_APPEARANCES)
+    expect(svg.match(/<!-- sex /g)?.length).toBe(2 * 5 * HUMAN_APPEARANCES)
   })
   it('ships the rasterised sheet at the SVG size (IHDR width and height)', () => {
     const png = readFileSync(new URL('../../../public/sprites/people/people.png', import.meta.url))

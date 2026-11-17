@@ -292,7 +292,6 @@
     "teach": "enseigner",
     "teachTitle": "Enseigner le prochain savoir qui leur manque (une fois par saison)",
     "stillToLearn": "reste à apprendre : {list}",
-    "needsPeople": "besoin de {count} personnes de plus",
     "praying": "en prière",
     "help": "aider",
     "lore": {

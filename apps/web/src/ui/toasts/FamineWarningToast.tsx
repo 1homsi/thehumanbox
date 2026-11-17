@@ -20,7 +20,7 @@ import { focusedTribe, tribeFocus } from '../../shared/viewerSelection'
 import { extinctionOf } from '../../game/model/tribe-end'
 
 /** How long a warning stays up before it goes away on its own. */
-export const FAMINE_SHOW_MS = 12_000
+const FAMINE_SHOW_MS = 12_000
 /** Warnings waiting for a free screen; past this the oldest fold into one "and N more" warning. */
 const MAX_QUEUED = 5
 

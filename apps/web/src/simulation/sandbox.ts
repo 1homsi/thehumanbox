@@ -157,7 +157,7 @@ export function canSendSandboxCommand(
 
 export type TimeControl = { control: 'pause' | 'resume' | 'speed'; mult?: number }
 
-export type SandboxOverlay =
+type SandboxOverlay =
   'density' | 'hazard' | 'fertility' | 'structures' | 'trails' | 'age' | 'threat' | 'food' | 'wealth' | 'mood'
 
 export type SandboxViewFlag =

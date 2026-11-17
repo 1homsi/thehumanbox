@@ -309,7 +309,6 @@
     "title": "{name}의 삶",
     "heading": "{name}의 삶",
     "close": "닫기",
-    "day": "{day}일",
     "failed": "불러오지 못했습니다",
     "gen": "{gen}세대",
     "age": {
@@ -344,7 +343,6 @@
     "relFriend": "친구",
     "relTrusts": "신뢰",
     "relWary": "경계",
-    "day": "{day}일",
     "title": "{name}의 대화",
     "heading": "대화",
     "close": "닫기",

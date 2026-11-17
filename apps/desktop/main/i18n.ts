@@ -41,7 +41,7 @@ type Leaves<T, P extends string = ""> = {
 /** Every key `en.json` defines, so a typo fails the type check. */
 export type MessageKey = Leaves<typeof en>;
 
-export const SOURCE_LOCALE = "en";
+const SOURCE_LOCALE = "en";
 
 const CATALOGS: Readonly<Record<string, Messages>> = {
   en,

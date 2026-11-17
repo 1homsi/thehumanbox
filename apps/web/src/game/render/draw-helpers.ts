@@ -62,17 +62,6 @@ export interface AnimalInterpCache {
   prevById: Map<number, AnimalState>
 }
 
-export const ERA_STRIPE_COLOR: Record<string, string> = {
-  bronze: '#b07a2a',
-  iron: '#7a7a7a',
-  classical: '#d4a04a',
-  medieval: '#5a4030',
-  renaissance: '#c08850',
-  industrial: '#3e2e22',
-  modern: '#9aa0a8',
-  information: '#7cc6ff',
-}
-
 export function pickToolEmoji(tools: Record<string, number> | undefined): string {
   if (!tools) return ''
   if (tools.rifle || tools.musket) return '\u{1F52B}'

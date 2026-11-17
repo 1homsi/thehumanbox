@@ -33,7 +33,7 @@ const ROAD_NOTE: Record<number, GroundNote> = { 1: 'track', 2: 'bridge', 3: 'rai
 /** Water with a wire depth below this is deep: the same bar the simulation uses (a depth above 0.18). */
 export const DEEP_WATER_WIRE = 164
 /** Soil at or above this fertility is fertile (the sim counts a fertility above 0.4 as good land). */
-export const FERTILE_SOIL = 0.6
+const FERTILE_SOIL = 0.6
 
 const GROUND: Partial<Record<number, GroundKey>> = {
   [TILE_ID.GRASS]: 'grass',

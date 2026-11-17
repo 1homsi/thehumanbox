@@ -42,7 +42,7 @@ export function paintFortress(p: P) {
  * plinth, a steep thatched gable, a plank door between two carved posts. It becomes the stone
  * colonnade of `paintTemple` from the classical age.
  */
-export function paintWoodenTemple(p: P) {
+function paintWoodenTemple(p: P) {
   const { x0, y1, w, h, rng } = p
   // A stepped stone plinth: the temple stands raised above the houses round it.
   const plinth = 3

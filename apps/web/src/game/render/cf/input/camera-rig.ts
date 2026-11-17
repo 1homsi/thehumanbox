@@ -11,7 +11,7 @@ import {
 /** Zoom per wheel pixel, exponential. The 2D map has always used 0.0025. */
 export const WHEEL_SPEED = 0.0025
 /** World pixels per second the arrow keys and WASD pan at zoom 1. */
-export const KEY_PAN_SPEED = 480
+const KEY_PAN_SPEED = 480
 /** One press of + or - zooms by this factor. */
 export const KEY_ZOOM_STEP = 1.2
 

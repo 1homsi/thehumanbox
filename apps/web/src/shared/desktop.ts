@@ -1,7 +1,6 @@
 import type { DesktopVisibility } from './desktopVisibility'
 
 export type SimMode = 'local'
-export type { DesktopVisibility } from './desktopVisibility'
 
 export interface DesktopSettings {
   mode: SimMode
@@ -26,8 +25,7 @@ export interface UpdateInfo {
   releaseDate?: string
 }
 
-export type UpdateCheckStatus =
-  'checking' | 'available' | 'downloaded' | 'up-to-date' | 'unsupported' | 'error'
+type UpdateCheckStatus = 'checking' | 'available' | 'downloaded' | 'up-to-date' | 'unsupported' | 'error'
 
 export interface UpdateCheckResult {
   status: UpdateCheckStatus
@@ -49,9 +47,7 @@ export interface DesktopBridge {
     restart(): Promise<SimStatus>
   }
   app: {
-    reload(): Promise<void>
     notify(payload: { title: string; body: string }): Promise<void>
-    trayToggle(): Promise<void>
     screenshot(): Promise<string | null>
     openLogs(): Promise<void>
     openWorlds(): Promise<void>

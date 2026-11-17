@@ -16,7 +16,7 @@ import { packRgba } from '../overlays/color'
  */
 
 /** How different two tile colours must be (sum over r, g, b) before their edge gets a fringe. */
-export const FRINGE_MIN_DIFF = 18
+const FRINGE_MIN_DIFF = 18
 
 /** Ground that takes a fringe: not water (the shore has its own banks), rock or snow (their own edges). */
 function fringed(tid: number): boolean {

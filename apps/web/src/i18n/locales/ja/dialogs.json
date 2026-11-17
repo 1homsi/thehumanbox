@@ -309,7 +309,6 @@
     "title": "{name}の人生",
     "heading": "{name}の人生",
     "close": "閉じる",
-    "day": "{day}日目",
     "failed": "読み込みに失敗しました",
     "gen": "世代 {gen}",
     "age": {
@@ -344,7 +343,6 @@
     "relFriend": "友人",
     "relTrusts": "信頼",
     "relWary": "警戒",
-    "day": "{day}日目",
     "title": "{name}の会話",
     "heading": "会話",
     "close": "閉じる",

@@ -230,7 +230,6 @@
     "failed": "{label} · {reason}",
     "following": "folgt {name}",
     "naming": "Name · neuen Namen für {name} eingeben",
-    "paused": "pausiert: {names} am Abgrund",
     "pausedFor": "angehalten: {reasons}"
   },
   "legends": {

@@ -148,7 +148,7 @@ export function residentOf(world: WorldState, buildingId: number): string | null
  * move onto a xipjs SpriteLayer, replace the loop with `layer.pick()` and
  * keep the rest.
  */
-export function nearestOrganism(
+function nearestOrganism(
   world: WorldState,
   worldX: number,
   worldY: number,
