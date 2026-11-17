@@ -184,7 +184,7 @@ function stiltHouse(look: Look): Art {
 }
 
 /** A turf hall: a long low house under a roof of living grass. */
-function turfHall(look: Look): Art {
+function turfHall(look: Look, snowy = false): Art {
   const size = sizeOf(look)
   const [w, rh, wh] = (
     [
@@ -198,8 +198,15 @@ function turfHall(look: Look): Art {
   const top = 3
   wall(a, x + 1, top + rh, w - 2, wh, WALL.darkStone, false)
   slabRoof(a, x, top, w, rh, WALL.turf, size === 0 ? 1 : 3, false)
+  if (snowy) {
+    // On the tundra the turf lies under snow: the top of the roof is white, the grass shows at the eaves.
+    for (let j = 0; j < Math.max(2, rh - 3); j++)
+      for (let i = 0; i < w; i++)
+        if (a.get(x + i, top + j))
+          a.set(x + i, top + j, j === Math.max(2, rh - 3) - 1 && i % 3 === 0 ? C.grey8 : C.grey9)
+  }
   // Tufts along the ridge, and one line of sod.
-  for (let i = 4; i < w - 4; i += 3) a.set(x + i, top - 1, C.green3)
+  if (!snowy) for (let i = 4; i < w - 4; i += 3) a.set(x + i, top - 1, C.green3)
   if (size > 0) for (let i = 3; i < w - 3; i += 2) a.set(x + i, top + rh - 3, C.green2)
   doorway(a, x + (w >> 1) - 1, top + rh + wh, 2, wh)
   if (size === 2) a.rect(x + w - 7, top + rh + 1, 2, 2, C.gold0)
@@ -257,7 +264,7 @@ export function earlyHome(look: Look): Art {
   const roof = earlyRoof(look)
   switch (look.land) {
     case 'snow':
-      return look.variant % 4 === 3 ? turfHall(look) : igloo(look)
+      return look.variant % 4 === 3 ? turfHall(look, true) : igloo(look)
     case 'turf':
       return turfHall(look)
     case 'adobe':
@@ -269,7 +276,7 @@ export function earlyHome(look: Look): Art {
     case 'round':
       return look.variant % 4 === 3 ? tent(look) : roundHouse(look, roof)
     default:
-      return look.variant % 3 === 2 ? tent(look) : [roundHouse, barkHut][look.variant % 3](look, roof)
+      return look.variant % 3 === 2 ? tent(look) : [barkHut, roundHouse][look.variant % 3](look, roof)
   }
 }
 

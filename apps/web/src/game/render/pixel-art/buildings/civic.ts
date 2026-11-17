@@ -110,12 +110,13 @@ export function cityHall(look: Look): Art {
   slabRoof(a, x - 1, g - 20, w + 2, 6, ROOF.slate, 2)
   // The tower, with its clock and its steep roof.
   wall(a, cx - 3, g - 31, 8, 13, WALL.plaster, false)
-  a.rect(cx - 2, g - 29, 6, 6, C.grey9).rect(cx - 1, g - 28, 4, 4, C.grey9)
-  a.hline(cx - 1, g - 30, 4, C.gold1)
-    .hline(cx - 1, g - 23, 4, C.gold1)
-    .vline(cx - 3, g - 28, 4, C.gold1)
-    .vline(cx + 4, g - 28, 4, C.gold1)
-  a.vline(cx, g - 28, 3, C.grey2).hline(cx, g - 26, 2, C.grey2)
+  // The clock: a round pale face in a dark ring, its hands at ten to two.
+  a.stamp(
+    rows('clock', '.kkkk.', 'khhhhk', 'khkhhk', 'khhkhk', 'khhhhk', '.kkkk.'),
+    cx - 2,
+    g - 29,
+    legend(ROOF.slate, WALL.plaster, isLit(look)),
+  )
   cone(a, cx, g - 38, 10, 7, ROOF.slate, 2, false)
   flag(a, cx, g - 38, C.red4, 6)
   return finish(a)

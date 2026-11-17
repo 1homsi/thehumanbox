@@ -225,17 +225,11 @@ export function clockTower(look: Look): Art {
   const L = legend(ROOF.slate, WALL.brick, isLit(look))
   wall(a, x, g - h, w, h, WALL.brick, false)
   a.hline(x, g - h + 9, w, C.grey8).hline(x, g - 7, w, C.red2)
-  // The clock: a pale face in a dark ring, the hands at ten past ten.
-  a.rect(x + 2, g - h + 1, w - 4, 7, C.gold1).rect(
-    x + 3,
-    g - h + 2,
-    w - 6,
-    5,
-    isLit(look) ? C.gold5 : C.grey9,
-  )
-  a.vline(cx, g - h + 3, 3, C.grey2)
-    .set(cx + 1, g - h + 3, C.grey2)
-    .set(cx - 1, g - h + 3, C.grey2)
+  // The clock: a round pale face in a dark ring, its hands at ten to two.
+  a.stamp(rows('clock', '.kkkk.', 'kAAAAk', 'kAkAAk', 'kAAkAk', 'kAAAAk', '.kkkk.'), cx - 2, g - h + 2, {
+    ...L,
+    A: isLit(look) ? C.gold5 : C.grey9,
+  })
   a.stamp(WINDOW.slit, cx, g - h + 12, L).stamp(DOOR.arch, cx - 1, g - 6, L)
   a.hline(x - 1, g - h - 1, w + 2, C.grey8)
   cone(a, cx, g - h - 9, w + 2, 8, ROOF.slate, 2, false)
@@ -327,8 +321,8 @@ export function windmill(look: Look): Art {
     // The trestle, then the boarded body of the mill, with its ladder.
     a.vline(cx, g - 6, 6, C.gold1).vline(cx + 1, g - 6, 6, C.gold2)
     for (let i = 0; i < 5; i++) a.set(cx - 1 - i, g - 1 - i, C.gold1).set(cx + 2 + i, g - 1 - i, C.gold2)
-    wall(a, cx - 4, g - h, 10, 12, WALL.wood, false)
-    for (let j = g - h + 2; j < g - 7; j += 2) a.hline(cx - 4, j, 9, C.tan1)
+    wall(a, cx - 4, g - h, 10, 12, WALL.white, false)
+    for (let j = g - h + 3; j < g - 7; j += 3) a.hline(cx - 4, j, 8, C.grey8)
     a.stamp(WINDOW.small, cx - 1, g - h + 6, L)
     slabRoof(a, cx - 5, g - h - 4, 12, 4, ROOF.wood, 2, false)
   } else {

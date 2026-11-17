@@ -288,7 +288,7 @@ export function orbitalLift(look: Look): Art {
   return finish(a)
 }
 
-/** A fusion plant: a ring of plasma held over the reactor hall, coils round it. */
+/** A fusion plant: a steel ring held over the reactor hall, the plasma showing only along its inner edge. */
 export function fusionPlant(look: Look): Art {
   const w = W(look, 22)
   const { a, g, x, cx } = plot(look, w)
@@ -297,19 +297,38 @@ export function fusionPlant(look: Look): Art {
   a.hline(x + 2, g - 10, w - 4, C.grey7)
   for (let i = x + 4; i < x + w - 4; i += 5) a.rect(i, g - 7, 3, 2, isLit(look) ? C.plum5 : C.plum4)
   a.rect(cx - 1, g - 4, 4, 4, C.grey2)
-  // The torus, seen from a little above: a flattened ring, bright where the plasma runs.
+  // The torus, seen from a little above: steel outside, a line of plasma inside, the hole dark.
   const rx = (w >> 1) - 1
-  const ry = 5
-  const cy = g - 16
+  const ry = 6
+  const cy = g - 17
   for (let j = -ry; j <= ry; j++)
     for (let i = -rx; i <= rx; i++) {
       const d = (i / rx) ** 2 + (j / ry) ** 2
-      if (d > 1 || d < 0.3) continue
-      a.set(cx + i, cy + j, d > 0.82 ? C.plum2 : d > 0.5 ? C.plum4 : C.plum5)
+      if (d > 1) continue
+      a.set(
+        cx + i,
+        cy + j,
+        d < 0.22
+          ? C.grey2
+          : d < 0.34
+            ? isLit(look)
+              ? C.plum5
+              : C.plum4
+            : j < -ry * 0.3
+              ? C.grey8
+              : i > rx * 0.5 || j > ry * 0.4
+                ? C.grey6
+                : C.grey7,
+      )
     }
-  // Field coils round the ring.
-  for (const i of [-rx + 2, -(rx >> 1), 0, rx >> 1, rx - 2])
-    for (let j = -ry; j <= ry; j++) if (a.get(cx + i, cy + j)) a.set(cx + i, cy + j, C.grey8)
+  // Field coils: bands of copper round the ring.
+  for (const i of [-rx + 3, -(rx >> 1), rx >> 1, rx - 3])
+    for (let j = -ry; j <= ry; j++) {
+      const c = a.get(cx + i, cy + j)
+      if (c === C.grey8 || c === C.grey7 || c === C.grey6) a.set(cx + i, cy + j, C.gold3)
+    }
+  // The legs that carry it.
+  a.vline(x + 4, g - 12, 2, C.grey5).vline(x + w - 5, g - 12, 2, C.grey5)
   return finish(a)
 }
 
@@ -337,7 +356,7 @@ export function neuralHub(look: Look): Art {
   return finish(a)
 }
 
-/** An AI core: a black monolith with one ring of light and lines of circuit running from it. */
+/** An AI core: a black monolith, one lit eye, slits of light down its face, coolant pipes at its foot. */
 export function aiCore(look: Look): Art {
   const w = W(look, 14) - 4
   const { a, g, cx } = plot(look, w)
@@ -345,21 +364,23 @@ export function aiCore(look: Look): Art {
   const x = cx - (w >> 1) + 1
   a.rect(x, g - h, w, h, C.grey2)
     .vline(x, g - h, h, C.grey4)
+    .vline(x + 1, g - h, h, C.grey3)
     .vline(x + w - 1, g - h, h, C.grey1)
-    .hline(x, g - h, w, C.grey4)
+  a.hline(x, g - h, w, C.grey4)
   const eye = glow(look, C.blue4)
-  a.stamp(rows('eye', '.AAAA.', 'A....A', 'A.BB.A', 'A.BB.A', 'A....A', '.AAAA.'), cx - 2, g - h + 4, {
+  a.stamp(rows('eye', '.AAAA.', 'A....A', 'A.BB.A', 'A.BB.A', 'A....A', '.AAAA.'), cx - 2, g - h + 3, {
     A: eye,
     B: C.blue5,
   })
-  // Circuit traces: down from the eye, branching to the edges.
-  a.vline(cx, g - h + 10, h - 14, C.blue2).vline(cx + 1, g - h + 10, h - 14, C.blue2)
-  a.hline(x + 2, g - 8, w - 4, C.blue2)
-    .set(x + 2, g - 6, eye)
-    .set(x + w - 3, g - 6, eye)
-    .vline(x + 2, g - 8, 2, C.blue2)
-    .vline(x + w - 3, g - 8, 2, C.blue2)
-  a.rect(x - 1, g - 2, w + 2, 2, C.grey4)
+  // Slits of light, shorter as they go down: the machine thinking.
+  for (let k = 0, j = g - h + 12; j < g - 6; k++, j += 3)
+    a.hline(x + 3 + (k % 2), j, w - 6 - (k % 3), k % 2 ? C.blue2 : C.blue3)
+  // The plinth, and the coolant pipes running out of it.
+  a.rect(x - 1, g - 3, w + 2, 3, C.grey4).hline(x - 1, g - 3, w + 2, C.grey5)
+  a.hline(x - 3, g - 1, 3, C.blue4)
+    .hline(x + w, g - 1, 3, C.blue4)
+    .set(x - 3, g - 2, C.blue4)
+    .set(x + w + 2, g - 2, C.blue4)
   return finish(a)
 }
 
@@ -416,33 +437,29 @@ export function cryolab(look: Look): Art {
   return finish(a)
 }
 
-/** A nanofab: a sealed white works, violet light in its slit windows, parts leaving on a belt. */
+/** A nanofab: a white clean-room works under a saw-tooth roof, violet light in its slits, parts leaving on a belt. */
 export function nanoFab(look: Look): Art {
   const w = W(look, 14)
   const { a, g, x } = plot(look, w)
   const L = legend(ROOF.stone, WALL.white, isLit(look))
-  wall(a, x, g - 13, w, 13, WALL.white, false)
-  // Chamfered top corners: a works with no square edges.
-  a.set(x, g - 13, 0)
-    .set(x + w - 1, g - 13, 0)
-    .set(x + 1, g - 13, C.grey8)
-  for (let j = g - 11; j < g - 5; j += 3)
+  wall(a, x, g - 11, w, 11, WALL.white, false)
+  // The saw-tooth: three glazed teeth, each lit violet from inside.
+  for (let i = 0; i + 6 <= w; i += 7) {
+    for (let j = 0; j < 4; j++) a.hline(x + i, g - 15 + j, 3 + j, j === 0 ? C.grey9 : C.grey8)
+    a.vline(x + i, g - 15, 4, isLit(look) ? C.plum5 : C.plum4)
+  }
+  a.hline(x, g - 11, w, C.grey7)
+  for (let j = g - 9; j < g - 5; j += 3)
     a.hline(x + 2, j, w - 4, isLit(look) ? C.plum5 : C.plum4).hline(x + 2, j + 1, w - 4, C.plum2)
-  a.rect(x + (w >> 1) - 2, g - 4, 4, 4, C.grey3)
-  // The belt, with three finished cubes on it.
-  a.hline(x + (w >> 1) + 2, g - 2, (w >> 1) + 1, C.grey5).hline(
-    x + (w >> 1) + 2,
-    g - 1,
-    (w >> 1) + 1,
-    C.grey3,
-  )
-  for (let i = 0; i < 3; i++) a.rect(x + (w >> 1) + 3 + i * 3, g - 4, 2, 2, [C.blue4, C.gold5, C.plum4][i])
-  a.stamp(rows('vent', 'sts', 'ttu'), x + 2, g - 15, L).stamp(
-    rows('vent', 'sts', 'ttu'),
-    x + w - 5,
-    g - 15,
-    L,
-  )
+  // The loading door and the belt, with three finished cubes on it.
+  a.rect(x + 2, g - 4, 5, 4, C.grey5)
+    .hline(x + 2, g - 4, 5, C.grey7)
+    .hline(x + 2, g - 2, 5, C.grey6)
+  a.hline(x + 8, g - 2, w - 7, C.grey5).hline(x + 8, g - 1, w - 7, C.grey3)
+  for (let i = 0; i < 3 && 9 + i * 3 + 2 <= w; i++)
+    a.rect(x + 9 + i * 3, g - 4, 2, 2, [C.blue4, C.gold5, C.plum4][i])
+  // Two vent stacks.
+  a.stamp(rows('vent', 'ooo', 'tuv', 'tuv', 'tuv'), x + w - 4, g - 19, L)
   return finish(a)
 }
 

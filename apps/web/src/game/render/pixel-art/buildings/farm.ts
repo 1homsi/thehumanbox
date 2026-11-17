@@ -231,7 +231,7 @@ export function garden(look: Look): Art {
 export function mushroomFarm(look: Look): Art {
   const a = plantedPlot(
     look,
-    C.tan0,
+    C.tan1,
     (art, x, y, col, row) => {
       const shift = row % 2 ? 3 : 0
       if (x + shift + 3 > art.w - 2) return
@@ -244,7 +244,7 @@ export function mushroomFarm(look: Look): Art {
     6,
     5,
   )
-  for (let y = 4 + 5; y < a.h - 3; y += 5) a.hline(2, y, a.w - 4, C.tan1)
+  for (let y = 4 + 5; y < a.h - 3; y += 5) a.hline(2, y, a.w - 4, C.tan0)
   return finishGround(a, C.gold0)
 }
 

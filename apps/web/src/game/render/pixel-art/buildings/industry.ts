@@ -83,7 +83,6 @@ export function forge(look: Look): Art {
   a.rect(x + 2, g - 7, 8, 7, INK).hline(x + 3, g - 8, 6, INK)
   a.stamp(rows('fire', '..R..', '.RyR.', 'RyyyR', 'RyhyR'), x + 3, g - 5, L)
   a.stamp(anvil, x + w - 7, g - 4, L)
-  signboard(a, 'Smithy', x + 2, g - 20, L)
   return finish(a)
 }
 
@@ -377,7 +376,11 @@ export function shipyard(look: Look): Art {
   a.rect(x + w, g - 1, 3, 1, C.blue3)
   const stage = look.state.startsWith('hull') ? Number(look.state.slice(4)) : 0
   if (stage) hull(a, x + 2, g - 3, w - 4, stage)
-  else for (let i = x + 3; i < x + w - 2; i += 3) a.rect(i, g - 3, 2, 1, C.gold2)
+  else {
+    // Nothing on the slip: the keel blocks wait, and a finished skiff lies upturned beside them.
+    for (let i = x + 3; i < x + w - 2; i += 3) a.rect(i, g - 3, 2, 1, C.gold2)
+    a.hline(x + 3, g - 5, w - 7, C.gold3).hline(x + 2, g - 4, w - 5, C.gold2)
+  }
   // The lifting frame: two legs, a beam, the tackle hanging from it.
   a.vline(x, g - 14, 12, C.gold2).vline(x + w - 1, g - 14, 12, C.gold1)
   a.hline(x - 1, g - 15, w + 2, C.gold3).hline(x - 1, g - 14, w + 2, C.gold1)

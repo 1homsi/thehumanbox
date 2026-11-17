@@ -171,20 +171,33 @@ function ground(look: Look, colour: number): { a: Art; x: number; y: number; w: 
 
 const edged = finishGround
 
-/** A plaza: stone paving in a bond, a border of darker slabs, a round mosaic at the centre. */
+/** A plaza: slabs laid in a grid inside a border of darker stone, a basin of water at the centre. */
 export function plaza(look: Look): Art {
   const { a, x, y, w, h } = ground(look, C.tan5)
-  for (let j = 2; j < h; j += 3) for (let i = (j / 3) & 1 ? 1 : 4; i < w; i += 6) a.set(x + i, y + j, C.tan4)
-  a.hline(x, y, w, C.tan4)
-    .hline(x, y + h - 1, w, C.tan3)
-    .vline(x, y, h, C.tan4)
-    .vline(x + w - 1, y, h, C.tan3)
+  for (let j = 2; j < h - 2; j += 4) a.hline(x + 2, y + j, w - 4, C.tan4)
+  for (let j = 2; j < h - 2; j += 4)
+    for (let i = (j >> 2) % 2 ? 4 : 6; i < w - 2; i += 4) a.vline(x + i, y + j, 4, C.tan4)
+  a.rect(x, y, w, 2, C.tan3)
+    .rect(x, y + h - 2, w, 2, C.tan3)
+    .rect(x, y, 2, h, C.tan3)
+    .rect(x + w - 2, y, 2, h, C.tan3)
+  a.hline(x, y, w, C.tan4).vline(x, y, h, C.tan4)
   const cx = x + (w >> 1) - 1
   const cy = y + (h >> 1) - 1
   a.stamp(
-    rows('mosaic', '.jLLj.', 'jLyyLj', 'LyhhyL', 'LyhhyL', 'jLyyLj', '.jLLj.'),
-    cx - 2,
-    cy - 2,
+    rows(
+      'basin',
+      '..ssss..',
+      '.sllLLu.',
+      'slihLLju',
+      'slhLLjju',
+      'slLLjjju',
+      'sLLjjjju',
+      '.uLjjju.',
+      '..uuuu..',
+    ),
+    cx - 3,
+    cy - 3,
     legend(ROOF.tile, WALL.stone),
   )
   return edged(a, C.tan2)
@@ -246,17 +259,28 @@ export function cemetery(look: Look): Art {
   return edged(a, C.green1)
 }
 
-/** A playground: a swing, a slide and a seesaw on a square of sand. */
+/** A playground: a swing, a slide and a sandpit on mown grass. */
 export function playGround(look: Look): Art {
-  const { a, x, y, w, h } = ground(look, C.tan5)
+  const { a, x, y, w, h } = ground(look, C.green3)
   const L = legend(ROOF.tile, WALL.stone)
-  a.stamp(rows('swing', 'RRRRRRR', 'R.o.o.R', 'R.o.o.R', 'R.ee.eR', 'R.....R'), x + 2, y + 2, L)
-  a.stamp(rows('slide', 'LL....', 'LjYY..', 'L..YY.', 'L...YY'), x + w - 9, y + 3, L)
-  a.stamp(rows('seesaw', 'n......', '.nnnnnn', '...o...'), x + 3, y + h - 6, L)
-  a.rect(x + w - 8, y + h - 7, 5, 4, C.gold5)
-    .hline(x + w - 8, y + h - 7, 5, C.gold2)
-    .vline(x + w - 8, y + h - 7, 4, C.gold2)
-  return edged(a, C.tan3)
+  a.stamp(
+    rows('swing', 'RRRRRRRRR', 'R.o...o.R', 'R.o...o.R', 'R.o...o.R', 'R.ee.ee.R', 'R.......R', 'q.......q'),
+    x + 1,
+    y + 2,
+    L,
+  )
+  a.stamp(
+    rows('slide', 'LLL.....', 'LjLYY...', 'L.L.YY..', 'L.L..YY.', 'L.L...YY', 'j.j....y'),
+    x + w - 10,
+    y + 2,
+    L,
+  )
+  // The sandpit, with a red bucket.
+  a.rect(x + 2, y + h - 9, 9, 7, C.gold2)
+    .rect(x + 3, y + h - 8, 7, 5, C.gold5)
+    .rect(x + 7, y + h - 6, 2, 2, C.red4)
+  a.stamp(rows('seesaw', 'n.......', '.nnnnnnn', '...oo...'), x + w - 10, y + h - 5, L)
+  return edged(a, C.green1)
 }
 
 /** A fish farm: round net pens in open water, a walkway between them, fish turning in each. */
@@ -324,32 +348,31 @@ export function aqueduct(look: Look): Art {
   const w = look.fw * 8
   const a = new Art(w + 4, 18)
   const g = 16
-  a.rect(2, g - 12, w, 12, C.grey8)
+  a.rect(2, g - 12, w, 12, C.tan4)
   a.hline(2, g - 12, w, C.blue4)
     .hline(2, g - 11, w, C.grey9)
     .hline(2, g - 9, w, C.grey6)
   // The arches: cut out of the wall, one to a tile.
   for (let i = 0; i + 8 <= w; i += 8) {
     a.rect(2 + i + 2, g - 6, 5, 6, 0).rect(2 + i + 3, g - 7, 3, 1, 0)
-    a.vline(2 + i + 1, g - 8, 8, C.grey9).vline(2 + i + 7, g - 8, 8, C.grey6)
+    a.vline(2 + i + 1, g - 8, 8, C.tan5).vline(2 + i + 7, g - 8, 8, C.tan3)
   }
   return finish(a)
 }
 
-/** A bridge deck seen from above: planks between two rails. */
+/** A bridge deck seen from above: planks laid across, a rail along each long edge. */
 export function bridge(look: Look): Art {
   const w = look.fw * 8
   const h = look.fh * 8
-  const a = new Art(w + 4, h + 6)
-  a.rect(2, 3, w, h, C.tan3)
-  for (let i = 2; i < w; i += 3) a.vline(2 + i, 3, h, C.tan2)
-  a.hline(2, 3, w, C.gold2).hline(2, 2 + h, w, C.gold1)
-  for (let i = 0; i < w; i += 5) a.vline(2 + i, 1, 3, C.gold2).vline(2 + i, h, 3, C.gold1)
+  const a = new Art(w + 4, h + 4)
+  a.rect(2, 2, w, h, C.tan3)
+  for (let i = 3; i < w; i += 4) a.vline(2 + i, 3, h - 2, C.tan2)
+  a.hline(2, 2, w, C.gold3)
+    .hline(2, 3, w, C.gold1)
+    .hline(2, h, w, C.gold3)
+    .hline(2, h + 1, w, C.gold1)
   return finish(a)
 }
-
-const boat = rows('boat', '...h...', '..hh...', '.hhh...', '...e...', 'eggggge', '.eeeee.')
-const dinghy = rows('dinghy', 'eggge', '.eee.')
 
 /** A jetty of planks on piles, `len` long, running down from (x, y). */
 function jetty(a: Art, x: number, y: number, w: number, len: number) {
@@ -358,34 +381,43 @@ function jetty(a: Art, x: number, y: number, w: number, len: number) {
   a.vline(x, y, len, C.gold2).vline(x + w - 1, y, len, C.gold1)
 }
 
-/** A dock, a marina or a port: a quay along the shore, jetties out into the water, boats tied up. */
+/** A boat seen from above, lying alongside: a pointed hull, its thwarts, and a furled sail. */
+const boatAbove = rows('boat', '.ee.', 'eGGe', 'eeee', 'eGGe', 'ehhe', 'eGGe', 'eeee', 'eGGe', '.ee.')
+const skiffAbove = rows('skiff', '.ee.', 'eGGe', 'eeee', 'eGGe', '.ee.')
+
+/**
+ * A dock, a marina or a port, all seen from above: a quay along the shore, jetties running out from it, and
+ * boats moored against the jetties, each with a ripple of water at its stern.
+ */
 export function harbour(look: Look): Art {
   const w = look.fw * 8
   const h = look.fh * 8
-  const a = new Art(w + 6, h + 12)
+  const a = new Art(w + 6, h + 6)
   const x = 3
-  const y = 8
+  const y = 3
   const L = legend(ROOF.tile, WALL.stone, isLit(look))
   const port = look.kind === 'Port'
-  // The quay along the top: stone for a port, planks otherwise.
+  const piers = spread(x, w, Math.max(1, Math.floor(w / 14)), 4)
+  // Boats first, so the jetty they are tied to overlaps their mooring.
+  piers.forEach((px, i) => {
+    const big = look.kind === 'Marina' || i % 2 === 0
+    const by = y + 6 + (i % 2) * 3
+    if (by + (big ? 9 : 5) <= y + h) {
+      a.stamp(big ? boatAbove : skiffAbove, px + 5, by, L)
+      a.hline(px + 5, by + (big ? 10 : 6), 3, C.blue4)
+    }
+    if (look.kind === 'Marina' && px - 5 >= x && by + 8 <= y + h) a.stamp(skiffAbove, px - 5, by + 3, L)
+  })
+  piers.forEach((px) => jetty(a, px, y + 4, 4, h - 4))
+  // The quay along the shore: stone for a port, planks otherwise, with bollards.
   a.rect(x, y, w, 4, port ? C.grey7 : C.tan3)
     .hline(x, y, w, port ? C.grey9 : C.tan4)
     .hline(x, y + 3, w, port ? C.grey5 : C.gold2)
   for (let i = 3; i < w; i += 6) a.rect(x + i, y + 1, 2, 2, C.grey3)
-  const piers = spread(x, w, Math.max(1, Math.floor(w / 14)), 4)
-  piers.forEach((px, i) => {
-    jetty(a, px, y + 4, 4, h - 6)
-    if (look.kind === 'Marina' || i % 2 === 0) a.stamp(boat, px + 5, y + 5 + (i % 2) * 6, L)
-    else a.stamp(dinghy, px + 5, y + 8, L)
-  })
   if (port) {
-    // Crates on the quay, a crane over them, and a lamp at the pier head.
-    a.stamp(rows('crates', 'gggg.gg', 'gefg.ge', 'gggg.gg'), x + 2, y - 3, L)
-    a.vline(x + w - 5, y - 8, 9, C.gold4)
-      .hline(x + w - 12, y - 8, 9, C.gold4)
-      .vline(x + w - 11, y - 7, 4, C.grey3)
-    a.rect(x + w - 12, y - 3, 3, 2, C.gold2)
-    a.rect(piers[0] + 1, y + h - 3, 2, 2, isLit(look) ? C.gold5 : C.grey8)
+    // Crates stacked on the quay, and a lamp at the head of the first pier.
+    a.stamp(rows('crates', 'gggg.ggg', 'gefg.gfg', 'gggg.ggg'), x + w - 10, y, L)
+    a.rect(piers[0] + 1, y + h - 2, 2, 2, isLit(look) ? C.gold5 : C.grey8)
   }
   return finish(a)
 }

@@ -50,10 +50,10 @@ export const SIGNS: Record<string, readonly string[]> = {
   Spa: rows('lotus', '..P..', 'P.P.P', 'PPPPP', '.nnn.'),
   Kennel: rows('bone', '.....', 'h...h', 'hhhhh', 'h...h'),
   Goldsmith: rows('ring', '.YYY.', 'Y...Y', 'Y...Y', '.YYY.'),
-  Smithy: rows('anvil', 'ooooo', '.ooo.', '..o..', '.ooo.'),
+  Smithy: rows('horseshoe', 'u...u', 'u...u', 'u...u', '.uuu.'),
   ArtGallery: rows('frame', 'eeeee', 'eRlNe', 'eYPle', 'eeeee'),
   MusicHall: rows('note', '..ooo', '..o.o', 'oo.oo', 'oo.oo'),
-  Theatre: rows('mask', 'hhhhh', 'hohoh', 'hhhhh', '.hoh.'),
+  Theatre: rows('curtain', 'RRRRR', 'Rr.rR', 'R...R', 'R...R'),
   MallShop: rows('bag', '.o.o.', 'RRRRR', 'RRRRR', 'RRRRR'),
   Supermarket: rows('trolley', 'o....', '.uuuu', '.uuu.', '.o.o.'),
   GuildHall: rows('shield', 'LLYLL', 'LLYLL', '.LYL.', '..Y..'),
@@ -303,6 +303,9 @@ export function shop(look: Look): Art {
     flatRoof(a, x - 1, g - wh - 2, w + 2, 2, s.roof)
     a.rect(x - 1, g - wh, w + 2, 3, s.awning[0]).hline(x - 1, g - wh + 2, w + 2, s.wall[3])
     signboard(a, look.kind, cx - 2, g - wh - 5, L)
+    // The supermarket keeps its trolleys in a rack by the door.
+    if (look.kind === 'Supermarket')
+      a.stamp(rows('trolleys', 'u.u.u', 'uuuuu', 'o.o.o'), doorLeft ? x + w : x - 5, g - 3, L)
     return finish(a)
   }
 

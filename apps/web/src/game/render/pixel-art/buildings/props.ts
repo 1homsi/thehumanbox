@@ -81,17 +81,7 @@ export const flagPole = (look: Look) =>
 export const fountain = (look: Look) =>
   prop(
     look,
-    rows(
-      'fountain',
-      '...ii...',
-      '..i.li..',
-      '...ss...',
-      '..sttu..',
-      '.sssttu.',
-      'slllLLju',
-      'stlLLjuv',
-      '.tttuuv.',
-    ),
+    rows('fountain', '...hh...', '..h..h..', '...ss...', '.ssttuu.', 'slilLLju', 'slLLLjjv', '.ttuuvv.'),
   )
 
 export const grandFountain = (look: Look) =>
@@ -146,17 +136,18 @@ export const gallows = (look: Look) =>
     look,
     rows(
       'gallows',
-      '.eeeeeeee.',
-      '.e.e...T..',
-      '.ee....T..',
-      '.e....TTT.',
-      '.e....T.T.',
-      '.e.....T..',
-      '.e........',
-      'eeeeeeeeee',
-      'e........f',
-      'e..gg....f',
-      'e.ggg....f',
+      'eeeeeee.',
+      'e.e..T..',
+      'ee...T..',
+      'e...TTT.',
+      'e...T.T.',
+      'e....T..',
+      'e.......',
+      'e.......',
+      'gggggggg',
+      'eeeeeeef',
+      'e.gg...f',
+      'e.ggg..f',
     ),
   )
 
@@ -289,7 +280,17 @@ export const arcadeBox = (look: Look) =>
 export const chargingStation = (look: Look) =>
   prop(
     look,
-    rows('charger', '.hhhh.', 'hhNNhs', 'hhNNhs', 'hhhhhs', 'hhoohs', 'hhhhso', 'hhhhso', 'hhhhs.', 'tttttu'),
+    rows(
+      'charger',
+      'hhhhs...',
+      'hNNhs...',
+      'hNNhs.o.',
+      'hhhhsoo.',
+      'hRhhs.o.',
+      'hhhhs.o.',
+      'hhhhsoo.',
+      'tttttu..',
+    ),
     {
       N: isLit(look) ? C.green4 : C.green3,
     },
@@ -321,12 +322,13 @@ export const dovecote = (look: Look) =>
     ),
   )
 
-/** A crossing is paint on the road, not a thing standing on it: stripes on tarmac, edged in tarmac. */
+/** A crossing is paint on the road, not a thing standing on it: white bars across a strip of tarmac. */
 export function crosswalk(look: Look): Art {
   const w = look.fw * 8
-  const a = new Art(w + 2, look.fh * 8 + 2)
-  a.rect(1, 1, w, look.fh * 8, C.grey4)
-  for (let i = 1; i < w; i += 3) a.rect(1 + i, 2, 2, look.fh * 8 - 2, C.grey9)
+  const h = look.fh * 8
+  const a = new Art(w + 2, h + 2)
+  a.rect(1, 1, w, h, C.grey4)
+  for (let j = 1; j < h; j += 2) a.hline(2, 1 + j, w - 2, C.grey9)
   return a.outline(C.grey3).trim()
 }
 
