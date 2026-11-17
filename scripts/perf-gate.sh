@@ -24,6 +24,14 @@ LONG_TICKS=${LONG_TICKS:-25000}
 MAX_LONG_TICK_MS=${MAX_LONG_TICK_MS:-300}
 MAX_LONG_P99_MS=${MAX_LONG_P99_MS:-120}
 MAX_LONG_MEAN_MS=${MAX_LONG_MEAN_MS:-20}
+CROWD=${CROWD:-0}
+CROWD_SEED=${CROWD_SEED:-42}
+CROWD_AT=${CROWD_AT:-2000}
+CROWD_TICKS=${CROWD_TICKS:-2600}
+MAX_CROWD_TICK_MS=${MAX_CROWD_TICK_MS:-600}
+MAX_CROWD_P99_MS=${MAX_CROWD_P99_MS:-300}
+MAX_CROWD_MEAN_MS=${MAX_CROWD_MEAN_MS:-150}
+MAX_CROWD_RSS_MB=${MAX_CROWD_RSS_MB:-1024}
 TMPDIR=${TMPDIR:-/tmp}/thehumanbox-perf-$$
 mkdir -p "$TMPDIR"
 trap 'rm -rf "$TMPDIR"' EXIT
@@ -38,13 +46,14 @@ fi
 # run to the next: the gate failed main itself. Alone, a run is timed on a core of its own.
 run_one() {
   local seed=$1 ticks=$2
-  "$BIN" --seed "$seed" --ticks "$ticks" --every "$ticks" \
+  shift 2
+  "$BIN" --seed "$seed" --ticks "$ticks" --every "$ticks" "$@" \
     --profile "$TMPDIR/$seed-$ticks.csv" --profile-every "$PROFILE_EVERY" >"$TMPDIR/$seed-$ticks.out" ||
     { echo "headless run failed (seed $seed, $ticks ticks)" >&2; exit 1; }
 }
 read -rd "" -a SEED_LIST <<<"$SEEDS" || true
-if [[ ${#SEED_LIST[@]} -eq 0 && "$LONG_TICKS" -le 0 ]]; then
-  echo "nothing to run: SEEDS is empty and LONG_TICKS is 0" >&2
+if [[ ${#SEED_LIST[@]} -eq 0 && "$LONG_TICKS" -le 0 && "$CROWD" -le 0 ]]; then
+  echo "nothing to run: SEEDS is empty, LONG_TICKS is 0 and CROWD is 0" >&2
   exit 2
 fi
 for seed in $SEEDS; do
@@ -53,11 +62,18 @@ done
 if [[ "$LONG_TICKS" -gt 0 ]]; then
   run_one "$LONG_SEED" "$LONG_TICKS"
 fi
+if [[ "$CROWD" -gt 0 ]]; then
+  run_one "$CROWD_SEED" "$CROWD_TICKS" --crowd "$CROWD" --crowd-at "$CROWD_AT"
+fi
 
 # check_run <seed> <ticks> <max_tick_ms> <max_p99_ms> <max_mean_ms>
 check_run() {
-  local seed=$1 ticks=$2 max_tick=$3 max_p99=$4 max_mean=$5
+  local seed=$1 ticks=$2 max_tick=$3 max_p99=$4 max_mean=$5 max_rss=${6:-$MAX_RSS_MB} after=${7:-0}
   local profile="$TMPDIR/$seed-$ticks.csv"
+  if [[ "$after" -gt 0 ]]; then
+    awk -F, -v after="$after" 'NR == 1 || $1 > after' "$profile" >"$profile.after"
+    profile="$profile.after"
+  fi
   # A profile with no samples (only the header) makes every awk below
   # report 0, so the budget check passed while measuring nothing. This is
   # reachable via the documented `make perf-gate TICKS=<small>`, which has
@@ -82,7 +98,7 @@ check_run() {
   local out="$TMPDIR/$seed-$ticks.out" alive world
   alive=$(awk -v t="$ticks" '$1 == t && NF > 3 { print $2; exit }' "$out")
   world=$(grep -v -e 'µs' -e 'wall' "$out" | cksum | awk '{ print $1 }')
-  echo "seed=$seed ticks=$ticks mean_tick_ms=$mean_ms p99_tick_ms=$p99_ms max_tick_ms=$max_ms peak_rss_mb=$peak_rss_mb alive=${alive:-?} world=$world budgets=${max_tick}ms/${max_p99}ms/${max_mean}ms/${MAX_RSS_MB}MB"
+  echo "seed=$seed ticks=$ticks mean_tick_ms=$mean_ms p99_tick_ms=$p99_ms max_tick_ms=$max_ms peak_rss_mb=$peak_rss_mb alive=${alive:-?} world=$world budgets=${max_tick}ms/${max_p99}ms/${max_mean}ms/${max_rss}MB"
   awk -v max="$max_tick" -v actual="$max_ms" 'BEGIN { exit actual > max }' || {
     echo "performance budget exceeded for seed $seed: ${max_ms}ms > ${max_tick}ms" >&2
     return 1
@@ -96,8 +112,8 @@ check_run() {
     return 1
   }
   if [[ "$peak_rss_kb" -gt 0 ]]; then
-    awk -v max="$MAX_RSS_MB" -v actual="$peak_rss_mb" 'BEGIN { exit actual > max }' || {
-      echo "memory budget exceeded for seed $seed: ${peak_rss_mb}MB > ${MAX_RSS_MB}MB" >&2
+    awk -v max="$max_rss" -v actual="$peak_rss_mb" 'BEGIN { exit actual > max }' || {
+      echo "memory budget exceeded for seed $seed: ${peak_rss_mb}MB > ${max_rss}MB" >&2
       return 1
     }
   fi
@@ -110,5 +126,9 @@ for seed in $SEEDS; do
 done
 if [[ "$LONG_TICKS" -gt 0 ]]; then
   check_run "$LONG_SEED" "$LONG_TICKS" "$MAX_LONG_TICK_MS" "$MAX_LONG_P99_MS" "$MAX_LONG_MEAN_MS" || failed=1
+fi
+if [[ "$CROWD" -gt 0 ]]; then
+  check_run "$CROWD_SEED" "$CROWD_TICKS" "$MAX_CROWD_TICK_MS" "$MAX_CROWD_P99_MS" "$MAX_CROWD_MEAN_MS" \
+    "$MAX_CROWD_RSS_MB" "$CROWD_AT" || failed=1
 fi
 exit "$failed"

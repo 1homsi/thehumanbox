@@ -108,11 +108,11 @@ profile: ## Headless perf profile CSV — `make profile OUT=a.csv TICKS=12000`
 		--profile $(OUT) --profile-every 100
 
 perf-gate: ## Multi-seed sim budget, on one thread as the web runs — `make perf-gate TICKS=8000 MAX_TICK_MS=80`
-	$(CARGO_RELEASE) build --release --locked --bin headless --no-default-features
-	TICKS=$(TICKS) MAX_TICK_MS=$${MAX_TICK_MS:-80} scripts/perf-gate.sh
+	$(CARGO_RELEASE) build --release --locked -p headless --bin headless --no-default-features
+	TICKS=$(TICKS) MAX_TICK_MS=$${MAX_TICK_MS:-80} CROWD=$${CROWD:-2900} scripts/perf-gate.sh
 
 sim-compare: ## Deaths with a change vs another build, gently (low priority, one run at a time) — `make sim-compare BASE=path/to/main-headless`
-	$(CARGO_RELEASE) build --release --locked --bin headless --no-default-features
+	$(CARGO_RELEASE) build --release --locked -p headless --bin headless --no-default-features
 	scripts/sim-compare.sh $(BASE) target/release/headless
 
 metrics: ## Scrape /metrics once from a running sim — `make metrics HOST=...`

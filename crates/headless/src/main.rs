@@ -17,6 +17,7 @@ use world::grid::{WorldGrid, HEIGHT, WIDTH};
 use world::tiles::{Biome, Tile};
 
 mod args;
+mod crowd;
 mod learning;
 mod report;
 mod rows;
@@ -55,6 +56,8 @@ fn main() {
         summon_at,
         load,
         save,
+        crowd,
+        crowd_at,
     } = args::parse();
 
     if world_report {
@@ -73,8 +76,10 @@ fn main() {
     if sweep_seeds > 0 {
         // The seed sweep runs its own worlds, which never see the summon command: refuse rather than
         // report worlds without the requested wolves.
-        if summon_wolves > 0 {
-            eprintln!("--summon-wolves is not supported with --sweep-seeds; run one seed at a time");
+        if summon_wolves > 0 || crowd > 0 {
+            eprintln!(
+                "--summon-wolves and --crowd are not supported with --sweep-seeds; run one seed at a time"
+            );
             std::process::exit(2);
         }
         let unhealthy = run_seed_sweep(seed, sweep_seeds, max_ticks);
@@ -127,6 +132,10 @@ fn main() {
     let death_probe = std::env::var("THB_DEATHS").ok();
     let mut reported: std::collections::HashSet<String> = std::collections::HashSet::new();
     while sim.tick_count < max_ticks {
+        if crowd > 0 && sim.tick_count == crowd_at {
+            let placed = crowd::spawn_crowd(&mut sim, crowd);
+            println!("crowd: {placed} people spawned at tick {crowd_at}");
+        }
         let t0 = std::time::Instant::now();
         if summon_wolves > 0 && sim.tick_count == summon_at {
             // The player summons wolves beside the first living person (the same command as the sandbox
