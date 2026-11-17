@@ -90,6 +90,7 @@ async fn main() {
     });
     let (tx, _rx) = broadcast::channel::<Bytes>(WS_BROADCAST_BUFFER);
     let latest_full: LatestFull = Arc::new(std::sync::RwLock::new(None));
+    let resync_request: ResyncRequest = Arc::new(std::sync::atomic::AtomicBool::new(false));
     let latest_full_at: Arc<std::sync::atomic::AtomicU64> = Arc::new(std::sync::atomic::AtomicU64::new(0));
     let last_tick_at: Arc<std::sync::atomic::AtomicU64> = Arc::new(std::sync::atomic::AtomicU64::new(0));
     let frame_clock: FrameClock = Arc::new(AtomicU64::new(0));
@@ -139,6 +140,7 @@ async fn main() {
         tx: tx.clone(),
         latest_full: latest_full.clone(),
         latest_full_at: latest_full_at.clone(),
+        resync_request: resync_request.clone(),
         frame_clock: frame_clock.clone(),
         transport_stats: transport_stats.clone(),
     }
@@ -150,21 +152,27 @@ async fn main() {
     let og_cache: OgCache = Arc::new(tokio::sync::Mutex::new(None));
 
     world_archive::ensure_worlds_dir();
-    let world_started_at = Arc::new(std::sync::atomic::AtomicU64::new(start_ms));
-    let peak_pop = Arc::new(std::sync::atomic::AtomicU64::new(0));
-    rollover::spawn_monthly_rollover(
-        sim.clone(),
-        world_started_at.clone(),
-        peak_pop.clone(),
-        population_limit,
-        save_gate.clone(),
-        world_store.clone(),
+    let live_meta = rollover::load_or_start_live_meta(
+        world_store::live_world_hash().as_deref(),
+        world_archive::current_year_month_utc(),
+        start_ms,
     );
+    let world_started_at = Arc::new(std::sync::atomic::AtomicU64::new(live_meta.started_at_ms));
+    let peak_pop = Arc::new(std::sync::atomic::AtomicU64::new(live_meta.peak_pop));
+    rollover::spawn_monthly_rollover(rollover::Rollover {
+        sim: sim.clone(),
+        world_started_at: world_started_at.clone(),
+        peak_pop: peak_pop.clone(),
+        population_limit,
+        save_gate: save_gate.clone(),
+        world_store: world_store.clone(),
+    });
 
     let state = AppState {
         sim: sim.clone(),
         tx,
         latest_full,
+        resync_request,
         latest_full_at: latest_full_at.clone(),
         last_tick_at: last_tick_at.clone(),
         transport_stats,
@@ -181,7 +189,14 @@ async fn main() {
 
     let app = router::build_app(state);
 
-    let bind_host = std::env::var("BIND_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
+    let sandbox = std::env::var("THB_SANDBOX").ok().as_deref() == Some("1");
+    let bind_host = std::env::var("BIND_HOST").unwrap_or_else(|_| default_bind_host(sandbox).to_string());
+    if sandbox && !is_loopback_host(&bind_host) {
+        tracing::warn!(
+            "THB_SANDBOX=1 on {}: /command, /runtime and /save are open to anyone who can reach this address",
+            bind_host
+        );
+    }
     let bind_port = std::env::var("PORT")
         .ok()
         .and_then(|s| s.parse::<u16>().ok())
@@ -251,5 +266,38 @@ async fn main() {
 
     if let Some(Err(error)) = server_result {
         tracing::error!("axum::serve exited: {}", error);
+    }
+}
+
+fn default_bind_host(sandbox: bool) -> &'static str {
+    if sandbox {
+        "127.0.0.1"
+    } else {
+        "0.0.0.0"
+    }
+}
+
+fn is_loopback_host(host: &str) -> bool {
+    host == "localhost"
+        || host
+            .trim_matches(|c| c == '[' || c == ']')
+            .parse::<std::net::IpAddr>()
+            .is_ok_and(|ip| ip.is_loopback())
+}
+
+#[cfg(test)]
+mod bind_tests {
+    use super::*;
+
+    #[test]
+    fn a_sandbox_listens_on_loopback_unless_told_otherwise() {
+        assert_eq!(default_bind_host(true), "127.0.0.1");
+        assert_eq!(default_bind_host(false), "0.0.0.0");
+        assert!(is_loopback_host("127.0.0.1"));
+        assert!(is_loopback_host("::1"));
+        assert!(is_loopback_host("[::1]"));
+        assert!(is_loopback_host("localhost"));
+        assert!(!is_loopback_host("0.0.0.0"));
+        assert!(!is_loopback_host("192.168.1.10"));
     }
 }
