@@ -124,6 +124,7 @@ export function useSimulation(source: WorldSource = 'native'): {
   const frameSequenceRef = useRef(new FrameSequence())
   const snapshotPendingRef = useRef(false)
   const bootstrapPendingRef = useRef(true)
+  const mergeBaseResetRef = useRef(false)
 
   const REACT_THROTTLE_MS = 500
   const lastSetWorldAtRef = useRef<number>(0)
@@ -290,9 +291,10 @@ export function useSimulation(source: WorldSource = 'native'): {
             organisms: organismCache.current,
             animals: animalCache.current,
             grid: gridCache.current,
-            prevWorld: currentWorldRef.current,
+            prevWorld: mergeBaseResetRef.current ? null : currentWorldRef.current,
           }
           const { next, grid } = mergeFrame(parsed, caches)
+          mergeBaseResetRef.current = false
           organismCache.current = caches.organisms
           animalCache.current = caches.animals
           gridCache.current = grid
@@ -402,6 +404,11 @@ export function useSimulation(source: WorldSource = 'native'): {
             })
           }
         } else if (m.type === 'world_replaced') {
+          queuedMsgs.current = []
+          organismCache.current = new Map()
+          animalCache.current = new Map()
+          gridCache.current = null
+          mergeBaseResetRef.current = true
           // Here rather than in the map, which is not mounted while a home is open: the old view goes either way.
           clearSavedCamera()
           useWorldReplaced.getState().bump()

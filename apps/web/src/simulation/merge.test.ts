@@ -629,3 +629,53 @@ describe('mergeFrame civilization state handling', () => {
     expect(cleared.next.buildings).toEqual([])
   })
 })
+
+describe('mergeFrame world swaps', () => {
+  it('clears the lost banner when a live world replaces a lost one', () => {
+    const caches = emptyCaches()
+    const lost = mergeFrame(
+      baseFrame({ frame_kind: 'full', organisms_complete: true, lost_tick: 900, featured_org_id: 'old' }),
+      caches,
+    )
+    caches.prevWorld = lost.next
+    expect(lost.next.lost_tick).toBe(900)
+
+    const live = mergeFrame(
+      baseFrame({ frame_id: 2, frame_kind: 'full', organisms_complete: true, lost_tick: null }),
+      caches,
+    )
+    expect(live.next.lost_tick).toBeNull()
+    expect(live.next.featured_org_id).toBeUndefined()
+  })
+
+  it('keeps the lost tick and featured person across deltas that omit them', () => {
+    const caches = emptyCaches()
+    const first = mergeFrame(
+      baseFrame({ frame_kind: 'full', organisms_complete: true, lost_tick: 900, featured_org_id: 'ada' }),
+      caches,
+    )
+    caches.prevWorld = first.next
+    const delta = mergeFrame(baseFrame({ frame_id: 2 }), caches)
+    expect(delta.next.lost_tick).toBe(900)
+    expect(delta.next.featured_org_id).toBe('ada')
+  })
+
+  it('takes a new featured person from a deep frame', () => {
+    const caches = emptyCaches()
+    caches.prevWorld = mergeFrame(
+      baseFrame({ frame_kind: 'full', organisms_complete: true, lost_tick: null, featured_org_id: 'ada' }),
+      caches,
+    ).next
+    const next = mergeFrame(
+      baseFrame({
+        frame_id: 2,
+        frame_kind: 'full',
+        organisms_complete: true,
+        lost_tick: null,
+        featured_org_id: 'bo',
+      }),
+      caches,
+    )
+    expect(next.next.featured_org_id).toBe('bo')
+  })
+})

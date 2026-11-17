@@ -14,6 +14,7 @@ import { PrayerChip } from '../panels/PrayerChip'
 import { PerilChip } from '../panels/PerilChip'
 import { CalendarTag } from '../panels/CalendarTag'
 import { PopulationChip } from '../panels/PopulationChip'
+import { headerPopulation } from '../panels/header-population'
 import { WeatherChip } from '../panels/WeatherChip'
 import type { WorldActions } from './world-actions'
 import { formatNumber, t } from '../../i18n'
@@ -26,12 +27,20 @@ interface Props {
   world: WorldState | null
   connected: boolean
   sickOrgs: number
+  livePopulation?: number
   onAnswerPrayer: (prayer: PrayerInfo) => void
   /** Find a tool and save the world, offered first in the ⋯ menu and the phone menu. */
   worldActions?: WorldActions
 }
 
-export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer, worldActions }: Props) {
+export function AppHeader({
+  world,
+  connected,
+  sickOrgs,
+  livePopulation: livePeople,
+  onAnswerPrayer,
+  worldActions,
+}: Props) {
   const showMore = useUIStore((s) => s.showMore)
   const panelOpen = useUIStore((s) => s.panelOpen)
   const isFullscreen = useUIStore((s) => s.isFullscreen)
@@ -51,7 +60,7 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer, worldAct
   const setFullscreen = useUIStore((s) => s.setFullscreen)
 
   const moreRef = useRef<HTMLDivElement>(null)
-  const livePopulation = world?.lineage_sizes?.reduce((total, lineage) => total + lineage.count, 0) ?? 0
+  const livePopulation = headerPopulation(world, livePeople)
   // iPhone Safari has no element fullscreen; hide the toggle rather than throw on every tap.
   const fullscreenAvailable = canUseFullscreen()
 
