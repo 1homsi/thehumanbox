@@ -11,7 +11,13 @@ const LEAF_DEEP = tone(C.green0)
 const PINE: readonly Rgb[] = [tone(C.grey5), tone(C.green1), tone(C.green0), tone(C.grey3)]
 const BIRCH: readonly Rgb[] = [tone(C.green5), tone(C.green4), tone(C.green3), tone(C.green2)]
 const AUTUMN_RED: readonly Rgb[] = [tone(C.red5), tone(C.red4), tone(C.red3), tone(C.red2), tone(C.red1)]
-const AUTUMN_GOLD: readonly Rgb[] = [tone(C.gold5), tone(C.gold4), tone(C.gold3), tone(C.gold2), tone(C.gold1)]
+const AUTUMN_GOLD: readonly Rgb[] = [
+  tone(C.gold5),
+  tone(C.gold4),
+  tone(C.gold3),
+  tone(C.gold2),
+  tone(C.gold1),
+]
 const BARK_LIT = tone(C.tan2)
 const BARK_MID = tone(C.tan1)
 const BARK_SHADE = tone(C.tan0)
