@@ -9,6 +9,7 @@ pub(super) struct Broadcaster {
     pub(super) tx: Tx,
     pub(super) latest_full: LatestFull,
     pub(super) latest_full_at: Arc<std::sync::atomic::AtomicU64>,
+    pub(super) resync_request: ResyncRequest,
     pub(super) frame_clock: FrameClock,
     pub(super) transport_stats: SharedTransportStats,
 }
@@ -20,6 +21,7 @@ impl Broadcaster {
             tx,
             latest_full,
             latest_full_at,
+            resync_request,
             frame_clock,
             transport_stats,
         } = self;
@@ -63,6 +65,7 @@ impl Broadcaster {
                 // msgpack + gzip encoding (about half the cost of a frame, and
                 // most of it for a delta) runs after the lock is released so
                 // the tick loop and the command handlers are not held up by it.
+                cadence.take_resync_request(&resync_request);
                 let values = {
                     let mut s = sim_clone.lock().await;
                     let frame_id = next_frame_id(&frame_clock_w);
@@ -179,6 +182,22 @@ impl FrameCadence {
     /// every entity and the buildings section regardless of revisions.
     pub(super) fn recover_with_a_full_frame(&mut self) {
         self.last_broadcast_tick = 0;
+    }
+
+    pub(super) fn take_resync_request(&mut self, request: &ResyncRequest) -> bool {
+        let requested = request.swap(false, std::sync::atomic::Ordering::Relaxed);
+        if requested {
+            self.recover_with_a_full_frame();
+        }
+        requested
+    }
+}
+
+pub(super) fn note_lag(skipped: u64, stats: &SharedTransportStats, request: &ResyncRequest) {
+    stats.record_lagged(skipped);
+    if skipped >= WS_RESYNC_LAG_THRESHOLD {
+        stats.record_resync();
+        request.store(true, std::sync::atomic::Ordering::Relaxed);
     }
 }
 
@@ -356,6 +375,64 @@ mod tests {
             matches!(cadence.build(&mut sim, 3).kind, FrameKind::Full),
             "a dropped frame must be re-sent as a full one"
         );
+    }
+
+    #[tokio::test]
+    async fn a_client_lagging_three_frames_is_caught_up_by_a_fresh_full_frame() {
+        let mut sim = Simulation::new(42);
+        sim.tick_n(70);
+        let stats: SharedTransportStats = Arc::new(TransportStats::default());
+        let request: ResyncRequest = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let (tx, mut rx) = broadcast::channel::<Bytes>(2);
+        let mut cadence = FrameCadence::default();
+        let mut last_id = 0;
+        for id in 1..=5u64 {
+            let kind = cadence.build(&mut sim, id).kind;
+            assert!(id == 1 || matches!(kind, FrameKind::Delta));
+            let _ = tx.send(Bytes::from(vec![id as u8]));
+            last_id = id;
+        }
+        let skipped = match rx.recv().await {
+            Err(broadcast::error::RecvError::Lagged(n)) => n,
+            other => panic!("expected a lag, got {other:?}"),
+        };
+        assert!(skipped >= WS_RESYNC_LAG_THRESHOLD);
+        note_lag(skipped, &stats, &request);
+        assert!(cadence.take_resync_request(&request));
+        assert!(
+            !cadence.take_resync_request(&request),
+            "one request, one full frame"
+        );
+        let resync_id = last_id + 1;
+        let values = cadence.build(&mut sim, resync_id);
+        assert!(matches!(values.kind, FrameKind::Full));
+        assert!(
+            values.frame_id > last_id,
+            "newer than every frame the client has seen"
+        );
+        let encoded = encode_cycle(values, &stats, || 0);
+        assert!(encoded.frame.is_some());
+        let _ = tx.send(encoded.frame.unwrap());
+        let mut got = None;
+        loop {
+            match rx.try_recv() {
+                Ok(frame) => got = Some(frame),
+                Err(broadcast::error::TryRecvError::Lagged(_)) => continue,
+                Err(_) => break,
+            }
+        }
+        assert!(
+            got.is_some_and(|f| f.len() > 1),
+            "the full frame reaches the lagging client"
+        );
+    }
+
+    #[test]
+    fn a_small_lag_does_not_ask_for_a_full_frame() {
+        let stats: SharedTransportStats = Arc::new(TransportStats::default());
+        let request: ResyncRequest = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        note_lag(WS_RESYNC_LAG_THRESHOLD - 1, &stats, &request);
+        assert!(!request.load(std::sync::atomic::Ordering::Relaxed));
     }
 
     /// Two identical worlds, one driven by the old inline cycle and one by

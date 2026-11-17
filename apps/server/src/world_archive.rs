@@ -242,8 +242,10 @@ pub async fn archive_and_reset(
         tracing::error!(target: "archive", "failed to encode the world snapshot; keeping the live world");
         return None;
     };
-    let hash_input = format!("{}|{}|{}", started_at_ms, ended_at_ms, final_tick);
-    let hash = short_hash(&hash_input);
+    let hash = archive_hash(
+        crate::world_store::live_world_hash(),
+        &format!("{}|{}|{}", started_at_ms, ended_at_ms, final_tick),
+    );
     let (top_era, lineage_count, _, top_lineage, top_pop, _) = compute_summary(&mut sim, peak_pop);
     let final_pop: usize = sim.organisms.iter().filter(|o| o.alive).count();
     let meta = WorldMeta {
@@ -261,38 +263,38 @@ pub async fn archive_and_reset(
     let save_state = sim.to_save_state();
 
     let world_folder = crate::world_store::world_dir(&hash);
-    if let Err(e) = std::fs::create_dir_all(&world_folder) {
-        tracing::error!(target: "archive", "failed to create world folder {}: {}",
-            world_folder.display(), e);
-        return None;
-    }
-    let snap_path = world_folder.join("snapshot");
-    let meta_path = world_folder.join("meta.json");
     let archive_save_path = world_folder.join("world.save");
-    let archive_save_path_str = archive_save_path.to_string_lossy().to_string();
-    if let Err(e) = crate::sim::persistence::write_save_to_disk(&save_state, &archive_save_path_str) {
-        tracing::error!(target: "archive", "failed to write restorable world save: {}", e);
-        return None;
-    }
-    if let Err(e) = write_file_atomic(&snap_path, &snapshot_bytes) {
-        tracing::error!(target: "archive", "failed to write snapshot: {}", e);
-        let _ = std::fs::remove_file(&archive_save_path);
-        return None;
-    }
     let meta_bytes = match serde_json::to_vec_pretty(&meta) {
         Ok(b) => b,
         Err(e) => {
             tracing::error!(target: "archive", "meta encode: {}", e);
-            let _ = std::fs::remove_file(&snap_path);
-            let _ = std::fs::remove_file(&archive_save_path);
             return None;
         }
     };
-    if let Err(e) = write_file_atomic(&meta_path, &meta_bytes) {
-        tracing::error!(target: "archive", "failed to write meta: {}", e);
-        let _ = std::fs::remove_file(&snap_path);
-        let _ = std::fs::remove_file(&archive_save_path);
-        return None;
+    let written = tokio::task::spawn_blocking({
+        let world_folder = world_folder.clone();
+        let archive_save_path = archive_save_path.clone();
+        move || {
+            write_archive(
+                &world_folder,
+                &archive_save_path,
+                &save_state,
+                &snapshot_bytes,
+                &meta_bytes,
+            )
+        }
+    })
+    .await;
+    match written {
+        Ok(Ok(())) => {}
+        Ok(Err(e)) => {
+            tracing::error!(target: "archive", "failed to write the archive in {}: {}", world_folder.display(), e);
+            return None;
+        }
+        Err(e) => {
+            tracing::error!(target: "archive", "archive writer task failed: {}", e);
+            return None;
+        }
     }
 
     let mut next = Simulation::new(new_seed);
@@ -324,7 +326,9 @@ pub async fn archive_and_reset(
     });
     drop(sim);
 
-    let _ = std::fs::remove_file(save_path);
+    if Path::new(save_path) != archive_save_path {
+        let _ = std::fs::remove_file(save_path);
+    }
     tracing::warn!(target: "archive",
         "rolled live world -> {} (previous {} archived)", new_hash, hash);
 
@@ -332,6 +336,31 @@ pub async fn archive_and_reset(
         "archived world {} (ended tick={}, pop={}, era={}) and reset",
         hash, meta.final_tick, meta.final_population, meta.top_era);
     Some(hash)
+}
+
+fn archive_hash(live_hash: Option<String>, fallback_input: &str) -> String {
+    live_hash
+        .filter(|h| !h.starts_with('_'))
+        .unwrap_or_else(|| short_hash(fallback_input))
+}
+
+fn write_archive(
+    world_folder: &Path,
+    save_path: &Path,
+    save_state: &crate::sim::persistence::SaveState,
+    snapshot: &[u8],
+    meta: &[u8],
+) -> std::io::Result<()> {
+    std::fs::create_dir_all(world_folder)?;
+    let snap_path = world_folder.join("snapshot");
+    let meta_path = world_folder.join("meta.json");
+    crate::sim::persistence::write_save_to_disk(save_state, &save_path.to_string_lossy())?;
+    let rest = write_file_atomic(&snap_path, snapshot).and_then(|()| write_file_atomic(&meta_path, meta));
+    if rest.is_err() {
+        let _ = std::fs::remove_file(&snap_path);
+        let _ = std::fs::remove_file(&meta_path);
+    }
+    rest
 }
 
 fn write_file_atomic(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
@@ -387,5 +416,70 @@ mod tests {
         assert!(archived.is_some(), "the world was archived");
         assert_ne!(new_hash.as_deref(), Some(old_hash), "a new live world was minted");
         assert_eq!(store_hash, new_hash, "the memory store follows the live world");
+    }
+
+    #[test]
+    fn reset_archives_into_the_live_folder_with_its_memories() {
+        let _cwd = crate::world_store::CWD_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let root = std::env::temp_dir().join(format!("thb_reset_folder_test_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        let previous = std::env::current_dir().unwrap();
+        std::env::set_current_dir(&root).unwrap();
+
+        let old_hash = "00aa11bb22cc";
+        crate::world_store::set_live_world_hash(old_hash).unwrap();
+        let store =
+            crate::SharedWorldStore::new(Some(crate::world_store::WorldStore::open(old_hash).unwrap()));
+        let live_save = crate::world_store::world_save_path(old_hash);
+        std::fs::write(&live_save, b"{}").unwrap();
+        let mut world = Simulation::new(7);
+        world.tick_count = 600;
+        let sim = Arc::new(tokio::sync::Mutex::new(world));
+
+        let runtime = tokio::runtime::Builder::new_current_thread().build().unwrap();
+        let archived = runtime.block_on(archive_and_reset(
+            sim,
+            0,
+            0,
+            &live_save.to_string_lossy(),
+            None,
+            Arc::new(tokio::sync::Mutex::new(())),
+            &store,
+        ));
+        let folder = crate::world_store::world_dir(old_hash);
+        let has_sqlite = crate::world_store::world_sqlite_path(old_hash).exists();
+        let has_meta = folder.join("meta.json").exists();
+        let has_snapshot = folder.join("snapshot").exists();
+        let saved = std::fs::read(&live_save).unwrap_or_default();
+        let listed: Vec<String> = list_archived_worlds().into_iter().map(|m| m.hash).collect();
+        let folders = std::fs::read_dir(worlds_dir())
+            .unwrap()
+            .flatten()
+            .filter(|e| e.path().is_dir())
+            .count();
+        std::env::set_current_dir(previous).unwrap();
+        let _ = std::fs::remove_dir_all(&root);
+
+        assert_eq!(
+            archived.as_deref(),
+            Some(old_hash),
+            "archived under the live world's own hash"
+        );
+        assert!(
+            has_sqlite && has_meta && has_snapshot,
+            "the folder keeps its memories and is complete"
+        );
+        assert!(
+            saved.len() > 2,
+            "the archive save is the world at reset, not removed"
+        );
+        assert_eq!(listed, vec![old_hash.to_string()]);
+        assert_eq!(
+            folders, 2,
+            "the archived world and the new live one, nothing orphaned"
+        );
     }
 }

@@ -9,6 +9,8 @@ pub type Tx = broadcast::Sender<Bytes>;
 
 pub type LatestFull = Arc<std::sync::RwLock<Option<Bytes>>>;
 
+pub type ResyncRequest = Arc<std::sync::atomic::AtomicBool>;
+
 /// Cached OG image bytes + epoch_ms of the render time. Wrapped in an
 /// async mutex so the route handler can do a brief await across the
 /// PNG encode without blocking the world-broadcast tasks.
@@ -42,6 +44,7 @@ pub struct AppState {
     pub sim: SharedSim,
     pub tx: Tx,
     pub latest_full: LatestFull,
+    pub resync_request: ResyncRequest,
     /// Timestamp of the last *deep full* frame. This is a 30 s cadence at
     /// the default `TICK_MS` and is NOT a liveness signal — use
     /// `last_tick_at` for that.

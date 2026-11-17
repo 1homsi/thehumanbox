@@ -11,7 +11,7 @@ use axum::{
 use tokio::sync::broadcast;
 
 use crate::transport::SharedTransportStats;
-use crate::{AppState, LatestFull, SharedSim, WS_RESYNC_LAG_THRESHOLD};
+use crate::{AppState, SharedSim};
 
 /// The version of the websocket conversation: the frames a client decodes and what it must do with them. Bump it
 /// when a frame changes shape. The web client (`apps/web/src/simulation/wire-protocol.ts`) and the desktop app
@@ -33,14 +33,14 @@ pub fn hello_message() -> String {
 pub async fn ws_handler(ws: WebSocketUpgrade, State(s): State<AppState>) -> impl IntoResponse {
     let rx = s.tx.subscribe();
     let sim = s.sim.clone();
-    let latest_full = s.latest_full.clone();
+    let resync_request = s.resync_request.clone();
     let transport_stats = s.transport_stats.clone();
     // Clients never legitimately send anything beyond ping/pong/close
     // on this socket, so cap inbound frames hard. Axum's default is
     // 64 MiB which is a memory-exhaustion DoS vector.
     ws.max_message_size(4 * 1024)
         .max_frame_size(4 * 1024)
-        .on_upgrade(move |socket| handle_socket(socket, rx, sim, latest_full, transport_stats))
+        .on_upgrade(move |socket| handle_socket(socket, rx, sim, resync_request, transport_stats))
 }
 
 pub async fn admin_reset_world_handler(
@@ -52,7 +52,10 @@ pub async fn admin_reset_world_handler(
         .get("x-admin-token")
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
-    if expected.trim().is_empty() || provided != expected.trim() {
+    let expected = expected.trim();
+    if expected.is_empty()
+        || !crate::sandbox_guard::constant_time_eq(provided.as_bytes(), expected.as_bytes())
+    {
         return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({"ok": false}))).into_response();
     }
 
@@ -85,8 +88,12 @@ pub async fn admin_reset_world_handler(
             .into_response();
     };
 
+    let next = crate::rollover::start_new_live_meta(
+        crate::world_archive::current_year_month_utc(),
+        crate::transport::now_ms(),
+    );
     s.world_started_at
-        .store(crate::transport::now_ms(), std::sync::atomic::Ordering::Relaxed);
+        .store(next.started_at_ms, std::sync::atomic::Ordering::Relaxed);
     s.peak_pop.store(0, std::sync::atomic::Ordering::Relaxed);
 
     let new_hash = crate::world_store::live_world_hash();
@@ -830,7 +837,7 @@ async fn handle_socket(
     mut socket: WebSocket,
     mut rx: broadcast::Receiver<Bytes>,
     _sim: SharedSim,
-    latest_full: LatestFull,
+    resync_request: crate::ResyncRequest,
     transport_stats: SharedTransportStats,
 ) {
     const IDLE_PING_INTERVAL: std::time::Duration = std::time::Duration::from_secs(30);
@@ -853,28 +860,7 @@ async fn handle_socket(
                         transport_stats.record_sent();
                     }
                     Err(broadcast::error::RecvError::Lagged(skipped)) => {
-                        transport_stats.record_lagged(skipped);
-                        if skipped >= WS_RESYNC_LAG_THRESHOLD {
-                            transport_stats.record_resync();
-                            // Without this, the client only learns it's
-                            // drifted via the next frame-id gap detection
-                            // (which only triggers a snapshot fetch if the
-                            // gap is > 2). Push the cached latest_full
-                            // directly so the laggy client catches up
-                            // immediately instead of running stale for
-                            // minutes.
-                            // Snapshot the cached frame (a refcount clone) while we hold the
-                            // RwLockReadGuard, then drop the guard before
-                            // .await - guards aren't Send across awaits.
-                            let payload: Option<Bytes> = latest_full.read().ok()
-                                .and_then(|slot| slot.clone());
-                            if let Some(full) = payload {
-                                if socket.send(Message::Binary(full)).await.is_err() {
-                                    break;
-                                }
-                                transport_stats.record_sent();
-                            }
-                        }
+                        crate::broadcaster::note_lag(skipped, &transport_stats, &resync_request);
                     }
                     Err(_) => break,
                 }
