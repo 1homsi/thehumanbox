@@ -174,6 +174,40 @@
         "other": "{count} pessoas perderam comida"
       }
     },
+    "damage": {
+      "cause": {
+        "flood": "Uma enchente",
+        "tsunami": "Um tsunami",
+        "earthquake": "Um terremoto",
+        "meteor": "Um meteoro",
+        "fire": "O fogo",
+        "storm": "A tempestade",
+        "lightning": "Um raio",
+        "volcano": "O vulcão",
+        "frost": "A geada",
+        "sinkhole": "A cratera",
+        "blackHole": "O buraco negro",
+        "acid": "A chuva ácida",
+        "nuke": "A bomba",
+        "disaster": "O desastre"
+      },
+      "tribeHomes": {
+        "one": "{cause} danificou uma casa de {tribe}",
+        "other": "{cause} danificou {count} casas de {tribe}"
+      },
+      "tribeBuildings": {
+        "one": "{cause} danificou um prédio de {tribe}",
+        "other": "{cause} danificou {count} prédios de {tribe}"
+      },
+      "homes": {
+        "one": "{cause} danificou uma casa",
+        "other": "{cause} danificou {count} casas"
+      },
+      "buildings": {
+        "one": "{cause} danificou um prédio",
+        "other": "{cause} danificou {count} prédios"
+      }
+    },
     "float": {
       "noEffect": "sem efeito"
     }

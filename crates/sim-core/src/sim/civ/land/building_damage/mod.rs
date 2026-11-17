@@ -2,6 +2,7 @@ use crate::hashing::FxHashSet as HashSet;
 
 use crate::sim::age_stage::AgeStage;
 use crate::sim::buildings::{Building, BuildingKind, REPAIR_ACTIVITY_TICKS};
+use crate::sim::civ::society::vacancy::is_home;
 use crate::sim::simulation::Simulation;
 use crate::sim::warfare::BattleScale;
 use crate::sim::world_events::push_event;

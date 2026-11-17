@@ -90,3 +90,33 @@ fn distant_disasters_spare_the_home() {
     sim.apply_command_json(r#"{"cmd":"meteor","x":140,"y":140,"radius":4}"#);
     assert_eq!(damage(&sim, id), 0.0);
 }
+
+#[test]
+fn many_homes_ruined_at_once_make_one_headline() {
+    let (mut sim, _) = house_world();
+    for k in 0..4 {
+        let mut hut = Building::new(
+            950 + k,
+            BuildingKind::Hut,
+            95 + 2 * k as i32,
+            95,
+            Some("tz".into()),
+            1,
+        );
+        hut.condition = 1.0;
+        sim.buildings.push(hut);
+    }
+    sim.lineage_names.insert("tz".into(), "Tiseznag".into());
+    let before = sim.headlines.len();
+    strike_buildings(&mut sim, 98, 95, 4.0, 1.0, 1.0, DamageCause::Flood);
+    let ruined = sim.events.iter().filter(|e| e.etype == "building_ruined").count();
+    assert_eq!(ruined, 4);
+    let lines: Vec<&String> = sim.headlines.iter().skip(before).map(|(_, l)| l).collect();
+    assert_eq!(lines.len(), 1, "{lines:?}");
+    assert!(
+        lines[0].ends_with("4 homes of the Tiseznag fell to flooding."),
+        "{}",
+        lines[0]
+    );
+    assert!(lines[0].starts_with('\u{1F30A}'));
+}

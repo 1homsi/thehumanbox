@@ -73,7 +73,9 @@ export function playFx(kind: FxKind, x: number | null, y: number | null, r: numb
 
 /** Floats a short line of text up from a tile. */
 export function showFloat(text: string, x: number, y: number, tone: FloatTone, at = now()): void {
-  const live = floats.filter((f) => at - f.start < FLOAT_MS)
+  const live = floats.filter(
+    (f) => at - f.start < FLOAT_MS && !(f.text === text && Math.abs(f.x - x) < 6 && Math.abs(f.y - y) < 6),
+  )
   const slot = live.filter((f) => Math.abs(f.x - x) < 3 && Math.abs(f.y - y) < 3).length
   floats = [...live.slice(-(MAX_FLOATS - 1)), { id: nextId++, text, x, y, tone, start: at, slot }]
   wake()

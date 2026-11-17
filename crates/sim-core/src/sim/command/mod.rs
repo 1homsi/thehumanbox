@@ -826,6 +826,8 @@ impl Simulation {
             count: 0,
             name: None,
             buildings: 0,
+            tribe: None,
+            homes: false,
         });
         outcome::CommandOutcome {
             applied,
@@ -833,6 +835,8 @@ impl Simulation {
             count: report.count,
             name: report.name,
             buildings: report.buildings,
+            tribe: report.tribe,
+            homes: report.homes,
         }
     }
 

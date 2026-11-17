@@ -52,40 +52,61 @@ pub(super) fn apply_damage(sim: &mut Simulation) -> HashSet<usize> {
         }
     }
 
-    for (lineage, kind, x, y, cause) in ruined_events {
-        announce_ruin(sim, lineage, kind, x, y, cause);
-    }
+    announce_ruins(sim, ruined_events);
     exposed
 }
 
-pub(super) fn announce_ruin(
+pub(super) fn announce_ruins(
     sim: &mut Simulation,
-    lineage: String,
-    kind: BuildingKind,
-    x: i32,
-    y: i32,
-    cause: DamageCause,
+    ruins: Vec<(String, BuildingKind, i32, i32, DamageCause)>,
 ) {
-    push_event(
-        &mut sim.events,
-        sim.tick_count,
-        "building_ruined",
-        &lineage,
-        &format!("{} at ({},{}) was ruined by {}", kind.name(), x, y, cause.label()),
-    );
-    let lineage_name = sim.lineage_names.get(&lineage).cloned().unwrap_or(lineage);
-    sim.headlines.push_back((
-        sim.tick_count,
-        format!(
-            "\u{1F525} A {} of the {} fell to {}.",
-            kind.name(),
-            lineage_name,
-            cause.label()
-        ),
-    ));
+    let mut groups: Vec<(String, DamageCause, BuildingKind, usize, bool)> = Vec::new();
+    for (lineage, kind, x, y, cause) in ruins {
+        push_event(
+            &mut sim.events,
+            sim.tick_count,
+            "building_ruined",
+            &lineage,
+            &format!("{} at ({},{}) was ruined by {}", kind.name(), x, y, cause.label()),
+        );
+        let home = is_home(kind);
+        match groups.iter_mut().find(|g| g.0 == lineage && g.1 == cause) {
+            Some(group) => {
+                group.3 += 1;
+                group.4 &= home;
+            }
+            None => groups.push((lineage, cause, kind, 1, home)),
+        }
+    }
+    for (lineage, cause, kind, count, homes) in groups {
+        let line = ruin_headline(sim, &lineage, cause, kind, count, homes);
+        sim.headlines.push_back((sim.tick_count, line));
+    }
     while sim.headlines.len() > 80 {
         sim.headlines.pop_front();
     }
+}
+
+fn ruin_headline(
+    sim: &Simulation,
+    lineage: &str,
+    cause: DamageCause,
+    kind: BuildingKind,
+    count: usize,
+    homes: bool,
+) -> String {
+    let owner = sim
+        .lineage_names
+        .get(lineage)
+        .filter(|name| !name.is_empty() && lineage != "world");
+    let what = if homes { "homes" } else { "buildings" };
+    let told = match (owner, count) {
+        (Some(name), 1) => format!("A {} of the {} fell to {}.", kind.name(), name, cause.label()),
+        (Some(name), n) => format!("{n} {what} of the {} fell to {}.", name, cause.label()),
+        (None, 1) => format!("An abandoned {} fell to {}.", kind.name(), cause.label()),
+        (None, n) => format!("{n} abandoned {what} fell to {}.", cause.label()),
+    };
+    format!("{} {told}", cause.icon())
 }
 
 /// A disaster landing on the world: every completed building with any part
@@ -135,6 +156,7 @@ pub(crate) fn strike_buildings(
     if hit > 0 {
         sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
     }
+    let mut ruins = Vec::new();
     for (lineage, kind, (bx, by, fw, fh), occupants) in ruined {
         // Whoever was inside is hurt; the household loses its home.
         for o in sim.organisms.iter_mut().filter(|o| o.alive) {
@@ -150,8 +172,9 @@ pub(crate) fn strike_buildings(
                 o.think("our home was destroyed", tick);
             }
         }
-        announce_ruin(sim, lineage, kind, bx, by, cause);
+        ruins.push((lineage, kind, bx, by, cause));
     }
+    announce_ruins(sim, ruins);
     hit
 }
 

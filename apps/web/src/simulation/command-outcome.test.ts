@@ -17,6 +17,19 @@ describe('parseCommandOutcome', () => {
     )
   })
 
+  it('reads the tribe and whether the damaged buildings were homes', () => {
+    expect(
+      parseCommandOutcome(
+        '{"applied":true,"code":"disaster_buildings","count":2,"name":null,"buildings":2,"tribe":"Tiseznag","homes":true}',
+      ),
+    ).toMatchObject({ buildings: 2, tribe: 'Tiseznag', homes: true })
+    const plain = parseCommandOutcome(
+      '{"applied":true,"code":"healed","count":1,"name":null,"buildings":0,"tribe":null,"homes":false}',
+    )
+    expect(plain).not.toHaveProperty('tribe')
+    expect(plain).not.toHaveProperty('homes')
+  })
+
   it('returns null for anything that is not an outcome', () => {
     expect(parseCommandOutcome('')).toBeNull()
     expect(parseCommandOutcome('true')).toBeNull()
@@ -33,8 +46,31 @@ describe('describeOutcome', () => {
       'Ada was hurt',
     )
     expect(describeOutcome({ applied: true, code: 'disaster_buildings', count: 2, name: null })).toBe(
-      '2 buildings damaged',
+      'The disaster damaged 2 buildings',
     )
+    expect(
+      describeOutcome({
+        applied: true,
+        code: 'disaster_buildings',
+        count: 1,
+        name: null,
+        buildings: 1,
+        tribe: 'Tiseznag',
+        homes: true,
+        cause: 'tsunami',
+      }),
+    ).toBe("A tsunami damaged one of Tiseznag's homes")
+    expect(
+      describeOutcome({
+        applied: true,
+        code: 'disaster_hurt',
+        count: 3,
+        name: null,
+        buildings: 4,
+        homes: true,
+        cause: 'earthquake',
+      }),
+    ).toBe('3 people hurt · An earthquake damaged 4 homes')
     expect(describeOutcome({ applied: true, code: 'disaster_in_reach', count: 5, name: null })).toBe(
       '5 people in its way',
     )

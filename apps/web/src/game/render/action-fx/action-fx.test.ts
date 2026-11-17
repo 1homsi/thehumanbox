@@ -137,10 +137,41 @@ describe('sending a command with its effect', () => {
 
   it('tells the whole toll of a disaster: the dead and the buildings', () => {
     const text = floatText({ applied: true, code: 'disaster_killed', count: 37, name: null, buildings: 12 })
-    expect(text).toBe('37 people killed · 12 buildings damaged')
+    expect(text).toBe('37 people killed · The disaster damaged 12 buildings')
     expect(floatText({ applied: true, code: 'disaster_killed', count: 37, name: null })).toBe(
       '37 people killed',
     )
+  })
+
+  it('names the disaster and the tribe whose homes it damaged', async () => {
+    const send = withActionFx(async () => ({
+      applied: true,
+      code: 'disaster_buildings',
+      count: 10,
+      name: null,
+      buildings: 10,
+      tribe: 'Tiseznag',
+      homes: true,
+    }))
+    const outcome = await send({ cmd: 'flood', x: 4, y: 4, radius: 6 })
+    expect(floatText(outcome)).toBe("A flood damaged 10 of Tiseznag's homes")
+    expect(snapshot().floats.at(-1)?.text).toBe("A flood damaged 10 of Tiseznag's homes")
+  })
+
+  it('lets a repeated line replace the last one on the same spot instead of stacking', async () => {
+    const send = withActionFx(async () => ({
+      applied: true,
+      code: 'disaster_buildings',
+      count: 2,
+      name: null,
+      buildings: 2,
+    }))
+    await send({ cmd: 'flood', x: 4, y: 4, radius: 6 })
+    await send({ cmd: 'flood', x: 5, y: 4, radius: 6 })
+    await send({ cmd: 'flood', x: 6, y: 5, radius: 6 })
+    const same = snapshot().floats.filter((f) => f.text === 'A flood damaged 2 buildings')
+    expect(same).toHaveLength(1)
+    expect(same[0]).toMatchObject({ x: 6, y: 5, slot: 0 })
   })
 
   it('colours help and harm apart', () => {

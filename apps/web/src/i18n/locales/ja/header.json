@@ -174,6 +174,40 @@
         "other": "{count}人が食料を失いました"
       }
     },
+    "damage": {
+      "cause": {
+        "flood": "洪水",
+        "tsunami": "津波",
+        "earthquake": "地震",
+        "meteor": "隕石",
+        "fire": "火事",
+        "storm": "嵐",
+        "lightning": "落雷",
+        "volcano": "噴火",
+        "frost": "霜",
+        "sinkhole": "陥没穴",
+        "blackHole": "ブラックホール",
+        "acid": "酸性雨",
+        "nuke": "爆弾",
+        "disaster": "災害"
+      },
+      "tribeHomes": {
+        "one": "{cause}で{tribe}の家が1軒壊れました",
+        "other": "{cause}で{tribe}の家が{count}軒壊れました"
+      },
+      "tribeBuildings": {
+        "one": "{cause}で{tribe}の建物が1つ壊れました",
+        "other": "{cause}で{tribe}の建物が{count}つ壊れました"
+      },
+      "homes": {
+        "one": "{cause}で家が1軒壊れました",
+        "other": "{cause}で家が{count}軒壊れました"
+      },
+      "buildings": {
+        "one": "{cause}で建物が1つ壊れました",
+        "other": "{cause}で建物が{count}つ壊れました"
+      }
+    },
     "float": {
       "noEffect": "効果なし"
     }

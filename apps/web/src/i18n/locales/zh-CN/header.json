@@ -174,6 +174,40 @@
         "other": "{count}人失去了食物"
       }
     },
+    "damage": {
+      "cause": {
+        "flood": "洪水",
+        "tsunami": "海啸",
+        "earthquake": "地震",
+        "meteor": "陨石",
+        "fire": "大火",
+        "storm": "风暴",
+        "lightning": "雷电",
+        "volcano": "火山",
+        "frost": "霜冻",
+        "sinkhole": "天坑",
+        "blackHole": "黑洞",
+        "acid": "酸雨",
+        "nuke": "炸弹",
+        "disaster": "灾难"
+      },
+      "tribeHomes": {
+        "one": "{cause}损坏了{tribe}的一座房屋",
+        "other": "{cause}损坏了{tribe}的{count}座房屋"
+      },
+      "tribeBuildings": {
+        "one": "{cause}损坏了{tribe}的一座建筑",
+        "other": "{cause}损坏了{tribe}的{count}座建筑"
+      },
+      "homes": {
+        "one": "{cause}损坏了一座房屋",
+        "other": "{cause}损坏了{count}座房屋"
+      },
+      "buildings": {
+        "one": "{cause}损坏了一座建筑",
+        "other": "{cause}损坏了{count}座建筑"
+      }
+    },
     "float": {
       "noEffect": "没有效果"
     }

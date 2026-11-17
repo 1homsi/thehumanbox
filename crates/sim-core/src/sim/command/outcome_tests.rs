@@ -320,3 +320,65 @@ fn a_tsunami_counts_the_people_by_the_coast_it_rises_on_not_by_the_click() {
     assert_eq!(report.code, "disaster_in_reach");
     assert_eq!(report.count, 1);
 }
+
+fn huts_at(sim: &mut Simulation, owners: &[Option<&str>]) {
+    use crate::sim::buildings::{Building, BuildingKind};
+    use crate::world::tiles::Tile;
+    for x in 40..80 {
+        for y in 40..80 {
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
+    sim.buildings.clear();
+    for (k, owner) in owners.iter().enumerate() {
+        let mut hut = Building::new(
+            7_000 + k as u32,
+            BuildingKind::Hut,
+            58 + 2 * k as i32,
+            60,
+            owner.map(str::to_owned),
+            1,
+        );
+        hut.condition = 1.0;
+        sim.buildings.push(hut);
+    }
+}
+
+#[test]
+fn a_flood_on_one_tribes_huts_names_the_tribe_and_says_they_were_homes() {
+    let mut sim = Simulation::new(21);
+    people_at(&mut sim, &[(10.0, 10.0, 1.0)]);
+    huts_at(&mut sim, &[Some("tz"), Some("tz"), Some("tz")]);
+    sim.lineage_names.insert("tz".into(), "Tiseznag".into());
+    let outcome = sim.apply_command_reported(crate::sim::command::Command::Flood {
+        x: 60,
+        y: 60,
+        radius: 6,
+    });
+    assert!(outcome.applied);
+    assert_eq!(outcome.code, "disaster_buildings");
+    assert_eq!(outcome.count, 3);
+    assert_eq!(outcome.buildings, 3);
+    assert_eq!(outcome.tribe.as_deref(), Some("Tiseznag"));
+    assert!(outcome.homes);
+    let json = serde_json::to_value(&outcome).expect("an outcome serializes");
+    assert_eq!(json["tribe"], "Tiseznag");
+    assert_eq!(json["homes"], true);
+}
+
+#[test]
+fn a_flood_on_two_tribes_buildings_names_no_tribe() {
+    let mut sim = Simulation::new(21);
+    people_at(&mut sim, &[(10.0, 10.0, 1.0)]);
+    huts_at(&mut sim, &[Some("tz"), Some("ok")]);
+    sim.lineage_names.insert("tz".into(), "Tiseznag".into());
+    sim.lineage_names.insert("ok".into(), "Okoro".into());
+    let outcome = sim.apply_command_reported(crate::sim::command::Command::Flood {
+        x: 60,
+        y: 60,
+        radius: 6,
+    });
+    assert_eq!(outcome.code, "disaster_buildings");
+    assert_eq!(outcome.count, 2);
+    assert_eq!(outcome.tribe, None);
+}
