@@ -9,12 +9,11 @@ import { trackEvent } from '../../shared/observability'
 import { screenBusy } from '../toasts/screenBusy'
 import { FIRST_LOOK_ZOOM } from './FirstLook'
 
-/** How close the camera sits on the followed tribe: near enough to see people at work (as the first look does). */
+/** How close the camera sits on the followed tribe: near enough to see people at work. */
 const MEET_ZOOM = FIRST_LOOK_ZOOM
 
 /**
- * Seconds each beat stays before the next one: the first three are short, so the powers beat (and a usable dock)
- * arrives about 15 seconds in. The powers beat waits for the player to try a power or answer a
+ * Seconds each beat stays before the next one. The powers beat waits for the player to try a power or answer a
  * prayer, and moves on by itself after its time only if they never do.
  */
 const BEAT_SECONDS: Record<OpeningBeat, number> = {
@@ -81,8 +80,6 @@ export function OpeningGuide({ world }: { world: WorldState | null }) {
     if (beat === 'world') useCameraFocus.getState().fitWorld()
   }, [beat])
 
-  // The parts of the screen not yet introduced stay dimmed and out of reach (in place, so nothing shifts when they
-  // light up). The dock and header read the beat themselves to go inert; this only drives the styling.
   useEffect(() => {
     const body = document.body
     const hidden = [

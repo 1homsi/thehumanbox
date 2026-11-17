@@ -6,15 +6,9 @@ import { tribeHome } from '../../game/model/tribe-peril'
 import { useCameraFocus } from '../../state/camera-focus'
 import { largestTribe } from './opening-lines'
 
-/** How close the first look sits: people and their work readable on a phone as on a desktop. */
 export const FIRST_LOOK_ZOOM = 3
-/** After this long with no one to look at, the map keeps the whole-world view the player may already be using. */
 const FIRST_LOOK_WAIT_MS = 5_000
 
-/**
- * The first view of a world the player has no saved camera for: close on its largest tribe, rather than the whole
- * map, where people are specks. Runs once per page load; a saved camera (a returning player) is left alone.
- */
 export function FirstLook({ world }: { world: WorldState | null }) {
   const state = useRef<{ fresh: boolean; since: number } | null>(null)
   const done = useRef(false)

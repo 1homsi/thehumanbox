@@ -317,8 +317,6 @@ export function CfMapCameraController({
       commitRef.current(
         saved ? { ...saved, zoom: Math.max(minZoom, Math.min(MAX_MAP_ZOOM, saved.zoom)) } : opening,
       )
-      // A request made before the first frame (the first look at a tribe) runs on the next one: the loop would
-      // otherwise sleep with it pending until the player touched the map.
       if (commandRef.current) engine.loop.markDirty()
       return
     }

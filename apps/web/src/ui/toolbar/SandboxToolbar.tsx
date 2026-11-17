@@ -213,7 +213,6 @@ export function SandboxToolbar({
   onClearArmed,
 }: Props) {
   const [tabId, setTabId] = useState(readInitialTab)
-  // A first game's opening shows the dock dimmed before its powers beat; it is out of reach until then.
   const locked = useOpeningGuide((st) => openingHides(st.beat, 'powers'))
   const [remembered, setRemembered] = useState(readRememberedGroups)
   const groupId = resolveGroup(tabId, remembered[tabId])

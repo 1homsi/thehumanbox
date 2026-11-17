@@ -35,7 +35,6 @@ const DEFAULTS: ViewFlags = {
   colorBlind: false,
   territoryMap: false,
   headlineTicker: false,
-  // New players see what each dock tool is called; Settings can hide the names.
   toolNames: true,
 }
 

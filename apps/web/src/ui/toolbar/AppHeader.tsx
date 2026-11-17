@@ -36,7 +36,6 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer, worldAct
   const panelOpen = useUIStore((s) => s.panelOpen)
   const isFullscreen = useUIStore((s) => s.isFullscreen)
   const nerdStats = useUIStore((s) => s.nerdStats)
-  // A first game's opening shows these dimmed and out of reach until their beats.
   const badgesLocked = useOpeningGuide((s) => openingHides(s.beat, 'powers'))
   const actionsLocked = useOpeningGuide((s) => openingHides(s.beat, 'header'))
 

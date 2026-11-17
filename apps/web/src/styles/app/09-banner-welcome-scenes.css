@@ -397,8 +397,6 @@
   }
 }
 
-/* Parts the opening has not introduced yet: shown dimmed and out of reach (the elements are also inert), so the
-   player sees the dock is there and nothing moves when it lights up. */
 .sandbox-bar,
 .header-badges,
 .header-actions {
