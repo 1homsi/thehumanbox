@@ -59,8 +59,49 @@
     "historyIntro": "The great turns of this world — eras, wars, dynasties and wonders.",
     "noHistory": "No notable events yet. The story is just beginning.",
     "day": "day {day}",
-    "livesIntro": "Stories told by the world's inhabitants, ordered by when they were lived.",
-    "noLives": "No stories yet. Stories appear after organisms complete a full day cycle."
+    "livesIntro": "The lives of its people and the deeds of its tribes: who grew old, who loved, who was lost.",
+    "noLives": "No lives recorded yet. They appear as people grow old, pair up and pass on.",
+    "date": "Year {year} · {season} · Day {day}",
+    "tabsAria": "Chronicle sections",
+    "filtersAria": "Show only",
+    "filters": {
+      "all": "All",
+      "wars": "Wars",
+      "rulers": "Rulers",
+      "wonders": "Wonders",
+      "disasters": "Disasters",
+      "people": "People"
+    },
+    "noMatch": "Nothing of this kind has happened yet.",
+    "goThere": "Go there",
+    "seeLives": "see Lives",
+    "tick": "tick {tick}",
+    "people": {
+      "elder": {
+        "one": "{count} became an elder",
+        "other": "{count} became elders"
+      },
+      "death": {
+        "one": "{count} passed on",
+        "other": "{count} passed on"
+      },
+      "bond": {
+        "one": "{count} couple pledged",
+        "other": "{count} couples pledged"
+      },
+      "parting": {
+        "one": "{count} couple parted",
+        "other": "{count} couples parted"
+      },
+      "crime": {
+        "one": "{count} thief caught",
+        "other": "{count} thieves caught"
+      },
+      "murder": {
+        "one": "{count} killing",
+        "other": "{count} killings"
+      }
+    }
   },
   "goals": {
     "title": "Goals",

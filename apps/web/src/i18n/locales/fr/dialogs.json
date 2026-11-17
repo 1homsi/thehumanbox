@@ -59,8 +59,49 @@
     "historyIntro": "Les grands tournants de ce monde : ères, guerres, dynasties et merveilles.",
     "noHistory": "Aucun événement notable pour l'instant. L'histoire commence tout juste.",
     "day": "jour {day}",
-    "livesIntro": "Récits racontés par les habitants du monde, classés selon le moment où ils ont été vécus.",
-    "noLives": "Aucun récit pour l'instant. Les récits apparaissent lorsque les organismes achèvent un cycle complet d'une journée."
+    "livesIntro": "La vie de ses habitants et les hauts faits de ses tribus : qui a vieilli, qui a aimé, qui s'est éteint.",
+    "noLives": "Aucune vie consignée pour l'instant. Elles apparaissent quand les gens vieillissent, s'unissent et meurent.",
+    "date": "An {year} · {season} · Jour {day}",
+    "tabsAria": "Sections de la chronique",
+    "filtersAria": "Afficher seulement",
+    "filters": {
+      "all": "Tout",
+      "wars": "Guerres",
+      "rulers": "Dirigeants",
+      "wonders": "Merveilles",
+      "disasters": "Catastrophes",
+      "people": "Habitants"
+    },
+    "noMatch": "Rien de ce genre n'est encore arrivé.",
+    "goThere": "Y aller",
+    "seeLives": "voir Vies",
+    "tick": "tick {tick}",
+    "people": {
+      "elder": {
+        "one": "{count} est devenu ancien",
+        "other": "{count} sont devenus anciens"
+      },
+      "death": {
+        "one": "{count} s'est éteint",
+        "other": "{count} se sont éteints"
+      },
+      "bond": {
+        "one": "{count} couple s'est uni",
+        "other": "{count} couples se sont unis"
+      },
+      "parting": {
+        "one": "{count} couple s'est séparé",
+        "other": "{count} couples se sont séparés"
+      },
+      "crime": {
+        "one": "{count} voleur pris",
+        "other": "{count} voleurs pris"
+      },
+      "murder": {
+        "one": "{count} meurtre",
+        "other": "{count} meurtres"
+      }
+    }
   },
   "goals": {
     "title": "Objectifs",

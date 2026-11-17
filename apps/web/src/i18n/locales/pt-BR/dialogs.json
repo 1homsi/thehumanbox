@@ -59,8 +59,49 @@
     "historyIntro": "As grandes viradas deste mundo — eras, guerras, dinastias e maravilhas.",
     "noHistory": "Nenhum evento notável ainda. A história está apenas começando.",
     "day": "dia {day}",
-    "livesIntro": "Histórias contadas pelos habitantes do mundo, em ordem de quando foram vividas.",
-    "noLives": "Nenhuma história ainda. Elas aparecem depois que os organismos completam um ciclo de dia inteiro."
+    "livesIntro": "A vida do seu povo e os feitos das suas tribos: quem envelheceu, quem amou, quem se perdeu.",
+    "noLives": "Nenhuma vida registrada ainda. Elas aparecem quando as pessoas envelhecem, formam casais e morrem.",
+    "date": "Ano {year} · {season} · Dia {day}",
+    "tabsAria": "Seções da crônica",
+    "filtersAria": "Mostrar só",
+    "filters": {
+      "all": "Tudo",
+      "wars": "Guerras",
+      "rulers": "Governantes",
+      "wonders": "Maravilhas",
+      "disasters": "Desastres",
+      "people": "Pessoas"
+    },
+    "noMatch": "Nada desse tipo aconteceu ainda.",
+    "goThere": "Ir até lá",
+    "seeLives": "ver Vidas",
+    "tick": "tick {tick}",
+    "people": {
+      "elder": {
+        "one": "{count} virou ancião",
+        "other": "{count} viraram anciãos"
+      },
+      "death": {
+        "one": "{count} partiu",
+        "other": "{count} partiram"
+      },
+      "bond": {
+        "one": "{count} casal se prometeu",
+        "other": "{count} casais se prometeram"
+      },
+      "parting": {
+        "one": "{count} casal se separou",
+        "other": "{count} casais se separaram"
+      },
+      "crime": {
+        "one": "{count} ladrão pego",
+        "other": "{count} ladrões pegos"
+      },
+      "murder": {
+        "one": "{count} assassinato",
+        "other": "{count} assassinatos"
+      }
+    }
   },
   "goals": {
     "title": "Objetivos",

@@ -123,18 +123,6 @@
   padding: 30px 0;
 }
 
-/* Stories section */
-.lang-no-stories {
-  font-size: 9px;
-  color: #778;
-  font-style: italic;
-}
-
-/* Chronicles modal */
-.chronicles-modal {
-  max-width: 720px;
-}
-
 /* Life modal */
 .life-modal {
   width: min(900px, calc(100vw - 80px));
@@ -167,36 +155,6 @@
   margin-bottom: 10px;
   font-size: 10px;
   letter-spacing: 0.04em;
-}
-.chronicle-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  overflow-y: auto;
-}
-.chronicle-row {
-  display: grid;
-  grid-template-columns: 52px 70px 1fr;
-  gap: 8px;
-  align-items: baseline;
-  border-bottom: 1px solid #32271f;
-  padding-bottom: 8px;
-}
-.chronicle-day {
-  font-size: 9px;
-  color: #666;
-  flex-shrink: 0;
-}
-.chronicle-name {
-  font-size: 11px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-.chronicle-text {
-  font-size: 10px;
-  color: #ccd;
-  font-style: italic;
-  line-height: 1.5;
 }
 
 /* Family tree modal */

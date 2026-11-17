@@ -447,17 +447,4 @@
     height: 90vh;
     height: 90dvh;
   }
-
-  /* Chronicles: readable on small screens */
-  .chronicle-row {
-    grid-template-columns: 44px 1fr;
-    grid-template-rows: auto auto;
-  }
-  .chronicle-name {
-    grid-column: 2;
-  }
-  .chronicle-text {
-    grid-column: 1 / -1;
-    padding-top: 2px;
-  }
 }

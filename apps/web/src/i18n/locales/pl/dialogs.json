@@ -59,8 +59,61 @@
     "historyIntro": "Najważniejsze zwroty tego świata — epoki, wojny, dynastie i cuda.",
     "noHistory": "Brak znaczących wydarzeń. Historia dopiero się zaczyna.",
     "day": "dzień {day}",
-    "livesIntro": "Historie opowiedziane przez mieszkańców świata, uporządkowane według czasu, w którym je przeżyto.",
-    "noLives": "Brak historii. Pojawiają się, gdy organizmy przejdą pełny cykl dnia."
+    "livesIntro": "Życie jego ludzi i czyny jego plemion: kto się zestarzał, kto kochał, kto odszedł.",
+    "noLives": "Nie zapisano jeszcze żadnych żyć. Pojawią się, gdy ludzie się zestarzeją, połączą w pary i odejdą.",
+    "date": "Rok {year} · {season} · Dzień {day}",
+    "tabsAria": "Działy kroniki",
+    "filtersAria": "Pokaż tylko",
+    "filters": {
+      "all": "Wszystko",
+      "wars": "Wojny",
+      "rulers": "Władcy",
+      "wonders": "Cuda",
+      "disasters": "Katastrofy",
+      "people": "Ludzie"
+    },
+    "noMatch": "Nic takiego jeszcze się nie wydarzyło.",
+    "goThere": "Przejdź tam",
+    "seeLives": "zobacz Życia",
+    "tick": "tik {tick}",
+    "people": {
+      "elder": {
+        "one": "{count} osoba została starszyzną",
+        "few": "{count} osoby zostały starszyzną",
+        "many": "{count} osób zostało starszyzną",
+        "other": "{count} osoby zostało starszyzną"
+      },
+      "death": {
+        "one": "{count} osoba odeszła",
+        "few": "{count} osoby odeszły",
+        "many": "{count} osób odeszło",
+        "other": "{count} osoby odeszło"
+      },
+      "bond": {
+        "one": "{count} para się zaręczyła",
+        "few": "{count} pary się zaręczyły",
+        "many": "{count} par się zaręczyło",
+        "other": "{count} pary się zaręczyło"
+      },
+      "parting": {
+        "one": "{count} para się rozstała",
+        "few": "{count} pary się rozstały",
+        "many": "{count} par się rozstało",
+        "other": "{count} pary się rozstało"
+      },
+      "crime": {
+        "one": "{count} złodziej złapany",
+        "few": "{count} złodziei złapanych",
+        "many": "{count} złodziei złapanych",
+        "other": "{count} złodzieja złapanych"
+      },
+      "murder": {
+        "one": "{count} zabójstwo",
+        "few": "{count} zabójstwa",
+        "many": "{count} zabójstw",
+        "other": "{count} zabójstwa"
+      }
+    }
   },
   "goals": {
     "title": "Cele",

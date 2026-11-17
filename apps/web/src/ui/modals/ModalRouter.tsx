@@ -90,6 +90,7 @@ export function ModalRouter({ world, lineages, onGuide }: Props) {
           <ChroniclesModal
             stories={world.story_history ?? []}
             headlines={world.headlines ?? []}
+            world={world}
             onClose={closeChronicles}
           />
         )}
