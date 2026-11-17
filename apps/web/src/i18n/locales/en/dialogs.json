@@ -305,6 +305,8 @@
     "restart": "restart",
     "newVersion": "New version available",
     "newVersionSub": "refresh to load the latest world",
+    "staleBuild": "A new version is ready",
+    "staleBuildSub": "Reload to open this. Your world is saved first.",
     "refreshing": "refreshing…",
     "refresh": "Refresh",
     "checkpointFailed": "could not checkpoint the current world; update refresh was cancelled safely",

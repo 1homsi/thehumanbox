@@ -118,8 +118,9 @@ import './pixel-theme.css'
 // arrived, which takes seconds of WebAssembly start-up. It is its own chunk, fetched in
 // parallel with the entry through a modulepreload hint (see vite.config.ts), so the app
 // shell parses and the simulation worker starts without waiting for it.
-const WorldView = lazyWithRetry(() =>
-  import('./game/render/WorldView').then((m) => ({ default: m.WorldView })),
+const WorldView = lazyWithRetry(
+  () => import('./game/render/WorldView').then((m) => ({ default: m.WorldView })),
+  { onMissingChunk: 'reload', prefetch: false },
 )
 function WorldViewPending() {
   // Same footprint and colour as the map's own loading cover.

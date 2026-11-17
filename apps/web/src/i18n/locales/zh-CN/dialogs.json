@@ -293,6 +293,8 @@
     "restart": "重启",
     "newVersion": "有新版本",
     "newVersionSub": "刷新以加载最新世界",
+    "staleBuild": "新版本已就绪",
+    "staleBuildSub": "重新加载即可打开。你的世界会先保存。",
     "refreshing": "正在刷新…",
     "refresh": "刷新",
     "checkpointFailed": "无法保存当前世界，已安全取消更新刷新",
