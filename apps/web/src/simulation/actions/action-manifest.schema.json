@@ -1,0 +1,216 @@
+{
+  "title": "The Human Box action manifest",
+  "description": "Player actions as data: where each sits in the dock, how it is aimed, and the simulation command it sends. The built-in dock is one such manifest; a mod is another.",
+  "type": "object",
+  "required": ["version", "groups", "actions"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "const": 1 },
+    "tabs": { "type": "array", "items": { "$ref": "#/$defs/tab" } },
+    "groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
+    "actions": { "type": "array", "items": { "$ref": "#/$defs/action" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "textKey": {
+      "description": "A translation key, read with t(). The label is shown when the key has no text.",
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z0-9_]+)+$"
+    },
+    "tab": {
+      "type": "object",
+      "required": ["id", "icon", "name", "tip", "groups"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "icon": { "type": "string", "minLength": 1 },
+        "name": { "$ref": "#/$defs/textKey" },
+        "tip": { "$ref": "#/$defs/textKey" },
+        "groups": { "type": "array", "items": { "$ref": "#/$defs/id" } }
+      }
+    },
+    "group": {
+      "type": "object",
+      "required": ["id", "label", "icon"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1 },
+        "icon": { "type": "string", "minLength": 1 },
+        "name": { "$ref": "#/$defs/textKey" }
+      }
+    },
+    "templateValue": {
+      "description": "A literal, or a placeholder filled in when the action is used: $x, $y (the tile clicked), $radius (from the brush), $ax, $ay, $bx, $by (the two picks of a pair).",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "array", "items": { "$ref": "#/$defs/templateValue" } },
+        {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/templateValue" }
+        }
+      ]
+    },
+    "command": {
+      "description": "The simulation command the action sends, field by field in the order they are sent.",
+      "type": "object",
+      "required": ["cmd"],
+      "properties": { "cmd": { "$ref": "#/$defs/id" } },
+      "additionalProperties": { "$ref": "#/$defs/templateValue" }
+    },
+    "radius": {
+      "description": "The radius sent for a brush action: base + perBrush x brush, kept within min and max when given.",
+      "type": "object",
+      "required": ["base", "perBrush"],
+      "additionalProperties": false,
+      "properties": {
+        "base": { "type": "number", "minimum": 0 },
+        "perBrush": { "type": "number", "minimum": 0 },
+        "min": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 }
+      }
+    },
+    "reach": {
+      "description": "How far the command's effect reaches for a sent radius, as the simulation clamps it: the preview ring and the tooltip read it.",
+      "type": "object",
+      "required": ["min", "max"],
+      "additionalProperties": false,
+      "properties": {
+        "min": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 },
+        "default": { "type": "number", "minimum": 0 },
+        "scale": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "pair": {
+      "type": "object",
+      "required": ["next", "done", "failed"],
+      "additionalProperties": false,
+      "properties": {
+        "next": { "$ref": "#/$defs/textKey" },
+        "done": { "$ref": "#/$defs/textKey" },
+        "failed": { "$ref": "#/$defs/textKey" }
+      }
+    },
+    "view": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["control", "value"],
+          "additionalProperties": false,
+          "properties": {
+            "control": { "const": "overlay" },
+            "value": {
+              "enum": [
+                "density",
+                "hazard",
+                "fertility",
+                "structures",
+                "trails",
+                "age",
+                "threat",
+                "food",
+                "wealth",
+                "mood"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["control", "value"],
+          "additionalProperties": false,
+          "properties": {
+            "control": { "const": "flag" },
+            "value": {
+              "enum": ["territory", "history", "names", "thoughts", "animals", "grid", "tradeRoutes"]
+            }
+          }
+        }
+      ]
+    },
+    "time": {
+      "type": "object",
+      "required": ["control"],
+      "additionalProperties": false,
+      "properties": {
+        "control": { "enum": ["pause", "resume", "speed"] },
+        "mult": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "action": {
+      "type": "object",
+      "required": ["id", "group", "label", "icon", "target"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "group": { "$ref": "#/$defs/id" },
+        "label": { "description": "The name in English, shown when name has no text.", "type": "string" },
+        "icon": { "description": "The dock sprite, by its key in the icon table.", "type": "string" },
+        "name": { "$ref": "#/$defs/textKey" },
+        "tip": { "$ref": "#/$defs/textKey" },
+        "target": {
+          "description": "brush: a click, with a radius from the brush. point: a click. pair: two clicks. global: the whole world, at once. random: one of its events at a random place. person: the app acts on the person clicked. view and time: change what the map shows or how fast time runs.",
+          "enum": ["brush", "point", "pair", "global", "random", "person", "view", "time"]
+        },
+        "command": { "$ref": "#/$defs/command" },
+        "radius": { "$ref": "#/$defs/radius" },
+        "reach": { "$ref": "#/$defs/reach" },
+        "pair": { "$ref": "#/$defs/pair" },
+        "events": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/command" } },
+        "view": { "$ref": "#/$defs/view" },
+        "time": { "$ref": "#/$defs/time" },
+        "overlay": { "enum": ["eclipse", "aurora"] },
+        "failure": { "$ref": "#/$defs/textKey" },
+        "cause": {
+          "enum": [
+            "flood",
+            "tsunami",
+            "earthquake",
+            "meteor",
+            "fire",
+            "storm",
+            "lightning",
+            "volcano",
+            "frost",
+            "sinkhole",
+            "blackHole",
+            "acid",
+            "nuke",
+            "disaster"
+          ]
+        },
+        "hotkey": { "enum": ["q", "e", "r", "t", "y", "u", "i", "o", "f", "g"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "target": { "const": "brush" } } },
+          "then": { "required": ["command", "radius"] }
+        },
+        {
+          "if": { "properties": { "target": { "enum": ["point", "global"] } } },
+          "then": { "required": ["command"] }
+        },
+        {
+          "if": { "properties": { "target": { "const": "pair" } } },
+          "then": { "required": ["command", "pair"] }
+        },
+        {
+          "if": { "properties": { "target": { "const": "random" } } },
+          "then": { "required": ["command", "events"] }
+        },
+        {
+          "if": { "properties": { "target": { "const": "view" } } },
+          "then": { "required": ["view"] }
+        },
+        {
+          "if": { "properties": { "target": { "const": "time" } } },
+          "then": { "required": ["time"] }
+        }
+      ]
+    }
+  }
+}

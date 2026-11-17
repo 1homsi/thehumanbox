@@ -7,10 +7,24 @@ import type { SandboxTool } from '../../simulation/sandbox'
  */
 export const TOOL_HOTKEYS = ['q', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'f', 'g'] as const
 
+function rowKeys(tools: readonly SandboxTool[]): (string | undefined)[] {
+  const all: readonly string[] = TOOL_HOTKEYS
+  const own = new Set(
+    tools.flatMap((tool) => (tool.hotkey && all.includes(tool.hotkey) ? [tool.hotkey] : [])),
+  )
+  const free = all.filter((key) => !own.has(key))
+  let next = 0
+  return tools.map((tool, i) =>
+    tool.hotkey && own.has(tool.hotkey) ? tool.hotkey : i < all.length ? free[next++] : undefined,
+  )
+}
+
 /** The hotkey for each of the row's first ten tools, keyed by tool id. */
 export function hotkeysFor(tools: readonly SandboxTool[]): Map<string, string> {
   const keys = new Map<string, string>()
-  tools.slice(0, TOOL_HOTKEYS.length).forEach((tool, i) => keys.set(tool.id, TOOL_HOTKEYS[i].toUpperCase()))
+  rowKeys(tools).forEach((key, i) => {
+    if (key) keys.set(tools[i].id, key.toUpperCase())
+  })
   return keys
 }
 
@@ -18,7 +32,6 @@ export function hotkeysFor(tools: readonly SandboxTool[]): Map<string, string> {
 export function toolForHotkey(tools: readonly SandboxTool[], key: string | undefined): SandboxTool | null {
   // Safari sends some key events with no key at all.
   if (typeof key !== 'string') return null
-  const index = (TOOL_HOTKEYS as readonly string[]).indexOf(key.toLowerCase())
-  if (index < 0) return null
-  return tools[index] ?? null
+  const index = rowKeys(tools).indexOf(key.toLowerCase())
+  return index < 0 ? null : tools[index]
 }

@@ -1,4 +1,5 @@
 import { t, type MessageKey } from '../i18n'
+import { REGISTRY } from './actions/registry'
 
 /**
  * What a sandbox command did, as the simulation reports it (see
@@ -33,29 +34,8 @@ export type DamageCause =
   | 'nuke'
   | 'disaster'
 
-const CAUSE_OF_COMMAND: Record<string, DamageCause> = {
-  flood: 'flood',
-  tsunami: 'tsunami',
-  earthquake: 'earthquake',
-  meteor: 'meteor',
-  meteor_shower: 'meteor',
-  ignite: 'fire',
-  wildfire: 'fire',
-  tornado: 'storm',
-  hail: 'storm',
-  smite: 'lightning',
-  thunder: 'lightning',
-  volcano: 'volcano',
-  blizzard: 'frost',
-  freeze: 'frost',
-  sinkhole: 'sinkhole',
-  black_hole: 'blackHole',
-  acid_rain: 'acid',
-  nuke: 'nuke',
-}
-
 export function damageCauseOf(cmd: string): DamageCause {
-  return Object.prototype.hasOwnProperty.call(CAUSE_OF_COMMAND, cmd) ? CAUSE_OF_COMMAND[cmd] : 'disaster'
+  return REGISTRY.causeByCommand.get(cmd) ?? 'disaster'
 }
 
 const CAUSE_KEYS: Record<DamageCause, MessageKey> = {
