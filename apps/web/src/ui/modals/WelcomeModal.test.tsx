@@ -193,14 +193,12 @@ describe('WelcomeModal', () => {
     expect(document.activeElement).toBe(picker())
   })
 
-  it('shows the language the browser asked for, and a one-click English option', async () => {
+  it('offers a one-click English option without restating the browser language', async () => {
     vi.stubGlobal('navigator', { languages: ['de-DE', 'en-US'], language: 'de-DE' })
     await loadLocale('de')
     try {
       mount()
-      expect(document.querySelector('.welcome-language-detected span')?.textContent).toBe(
-        t('settings.language.detected', { language: 'Deutsch' }),
-      )
+      expect(document.querySelector('.welcome-language-detected span')).toBeNull()
       const english = document.querySelector<HTMLButtonElement>('.welcome-language-english')!
       expect(english.disabled).toBe(false)
       act(() => english.click())
@@ -217,9 +215,7 @@ describe('WelcomeModal', () => {
     try {
       mount()
       expect(document.querySelector<HTMLButtonElement>('.welcome-language-english')!.disabled).toBe(true)
-      expect(document.querySelector('.welcome-language-detected span')?.textContent).toBe(
-        t('settings.language.detected', { language: 'English' }),
-      )
+      expect(document.querySelector('.welcome-language-detected span')).toBeNull()
     } finally {
       vi.unstubAllGlobals()
     }

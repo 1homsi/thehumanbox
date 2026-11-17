@@ -116,7 +116,6 @@ export function WelcomeModal() {
           {current.title}
         </h2>
         <p className="welcome-body">{current.body}</p>
-        {/* The browser's language is picked automatically; this card is where a player corrects it. */}
         <label className="welcome-language">
           <span className="welcome-language-label">{t('settings.language.title')}</span>
           <select
@@ -133,11 +132,8 @@ export function WelcomeModal() {
           </select>
         </label>
         <div className="welcome-language-detected">
-          {detected ? (
-            <span>{t('settings.language.detected', { language: nativeName(detected) })}</span>
-          ) : (
-            // "So it's in English" is true only while it is: a chosen language says nothing about the browser.
-            language.current === SOURCE_LOCALE && <span>{t('settings.language.notDetected')}</span>
+          {!detected && language.current === SOURCE_LOCALE && (
+            <span>{t('settings.language.notDetected')}</span>
           )}
           <button
             type="button"
