@@ -293,6 +293,8 @@
     "restart": "yeniden başlat",
     "newVersion": "Yeni sürüm var",
     "newVersionSub": "en son dünyayı yüklemek için yenile",
+    "staleBuild": "Yeni bir sürüm hazır",
+    "staleBuildSub": "Bunu açmak için yeniden yükle. Dünyan önce kaydedilir.",
     "refreshing": "yenileniyor…",
     "refresh": "Yenile",
     "checkpointFailed": "mevcut dünya kaydedilemedi; güncelleme yenilemesi güvenli şekilde iptal edildi",

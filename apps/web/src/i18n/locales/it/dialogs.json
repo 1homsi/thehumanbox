@@ -293,6 +293,8 @@
     "restart": "riavvia",
     "newVersion": "Nuova versione disponibile",
     "newVersionSub": "aggiorna per caricare il mondo più recente",
+    "staleBuild": "È pronta una nuova versione",
+    "staleBuildSub": "Ricarica per aprirlo. Il tuo mondo viene salvato prima.",
     "refreshing": "aggiornamento…",
     "refresh": "Aggiorna",
     "checkpointFailed": "impossibile salvare il mondo attuale; l'aggiornamento è stato annullato in sicurezza",

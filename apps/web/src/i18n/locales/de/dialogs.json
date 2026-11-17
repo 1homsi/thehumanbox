@@ -293,6 +293,8 @@
     "restart": "neu starten",
     "newVersion": "Neue Version verfügbar",
     "newVersionSub": "neu laden, um die aktuellste Welt zu laden",
+    "staleBuild": "Eine neue Version ist bereit",
+    "staleBuildSub": "Neu laden, um das zu öffnen. Deine Welt wird vorher gespeichert.",
     "refreshing": "wird aktualisiert…",
     "refresh": "Aktualisieren",
     "checkpointFailed": "Die aktuelle Welt konnte nicht gespeichert werden; das Aktualisieren für das Update wurde sicherheitshalber abgebrochen",

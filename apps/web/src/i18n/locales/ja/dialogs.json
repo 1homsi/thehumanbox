@@ -293,6 +293,8 @@
     "restart": "再起動",
     "newVersion": "新しいバージョンがあります",
     "newVersionSub": "更新して最新の世界を読み込む",
+    "staleBuild": "新しいバージョンの準備ができました",
+    "staleBuildSub": "再読み込みすると開けます。世界は先に保存されます。",
     "refreshing": "更新中…",
     "refresh": "更新",
     "checkpointFailed": "現在の世界を保存できませんでした。更新は安全に取り消されました",

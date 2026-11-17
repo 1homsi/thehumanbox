@@ -301,6 +301,8 @@
     "restart": "uruchom ponownie",
     "newVersion": "Dostępna nowa wersja",
     "newVersionSub": "odśwież, aby wczytać najnowszy świat",
+    "staleBuild": "Nowa wersja jest gotowa",
+    "staleBuildSub": "Odśwież, aby to otworzyć. Twój świat zostanie najpierw zapisany.",
     "refreshing": "odświeżanie…",
     "refresh": "Odśwież",
     "checkpointFailed": "nie udało się zapisać bieżącego świata; odświeżenie aktualizacji zostało bezpiecznie anulowane",
