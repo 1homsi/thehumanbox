@@ -14,4 +14,9 @@ describe('person name', () => {
   it('ignores a blank custom name', () => {
     expect(personName({ name: 'Tomas', custom_name: '   ' })).toBe('Tomas')
   })
+
+  it('gives an empty name, not undefined, when a frame has not sent the name yet', () => {
+    expect(personName({ name: undefined })).toBe('')
+    expect(personName({ name: null, custom_name: '  ' })).toBe('')
+  })
 })
