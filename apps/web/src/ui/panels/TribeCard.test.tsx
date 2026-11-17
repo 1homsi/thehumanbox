@@ -74,6 +74,21 @@ function typeInto(input: HTMLInputElement, value: string) {
 }
 
 describe('TribeCard', () => {
+  it('shows why the tribe acts before its timeline and history', () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    roots.push(root)
+
+    act(() => useUIStore.setState({ focus: 'lineage:a' }))
+    act(() => root.render(card(world(['a', 'b']))))
+    const order = [...host.querySelectorAll('.tribe-why, .tribe-timeline, .tribe-history')].map(
+      (el) => el.className,
+    )
+    expect(order[0]).toBe('tribe-why')
+    expect(order.slice(1)).toEqual(expect.arrayContaining(['tribe-history']))
+  })
+
   it('closes on one press of the ×, without following the tribe', () => {
     const host = document.createElement('div')
     document.body.append(host)
