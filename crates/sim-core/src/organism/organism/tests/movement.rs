@@ -506,12 +506,28 @@ fn indexed_local_decisions_match_population_scan() {
             o.hydration = 0.15 + (i % 7) as f32 * 0.1;
             o.fear_level = if i % 5 == 0 { 0.7 } else { 0.0 };
             o.infection = if i % 9 == 0 { 0.4 } else { 0.0 };
+            o.is_elder = i % 11 == 0;
+            o.loneliness = if i % 4 == 0 { 0.9 } else { 0.1 };
+            o.alive = i % 13 != 7;
+            if i % 2 == 0 {
+                o.partner_id = Some(format!("org-{}", (i * 31 + 5) % 180));
+            }
+            if i % 6 == 1 {
+                o.attracted_to = Some(format!("org-{}", (i * 7 + 3) % 180));
+            }
+            if i % 3 == 0 {
+                for f in [i * 5 + 1, i * 11 + 2, i + 40] {
+                    o.friends.insert(format!("org-{}", f % 180), String::new());
+                }
+            }
             o
         })
         .collect();
     people[0].x = 50.0;
     people[0].y = 50.0;
     let spatial = SpatialIndex::build(&people, 10);
+    let index = crate::organism::people_index::PeopleIndex::build(&people);
+    assert!(index.is_some());
     for (i, org) in people.iter().enumerate().take(60) {
         let mut near = spatial.query(org.x as i32, org.y as i32, 16);
         near.sort_unstable();
@@ -544,6 +560,7 @@ fn indexed_local_decisions_match_population_scan() {
                 "",
                 &[0, 1, 2, 3, 4, 5, 6, 7, 17, 20, 21],
                 Some(&near),
+                index.as_ref(),
             );
             assert_eq!(full, indexed, "person {i}, seed {seed}");
             assert_eq!(full_rng.random::<u64>(), indexed_rng.random::<u64>());

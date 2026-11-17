@@ -269,6 +269,7 @@ impl Simulation {
         spatial: &SpatialIndex,
         tick_seed: u64,
     ) -> Vec<Option<Choice>> {
+        let people = crate::organism::people_index::PeopleIndex::build(&self.organisms);
         crate::sim::par::map_with(
             sensed.len(),
             || (Vec::with_capacity(256), Vec::with_capacity(32)),
@@ -280,6 +281,7 @@ impl Simulation {
                     available,
                     nearby,
                     decide::choice_rng(tick_seed, s.idx),
+                    people.as_ref(),
                 ))
             },
         )
@@ -357,7 +359,7 @@ impl Simulation {
                 available_actions: available,
                 ..
             } = &mut *buffers;
-            self.org_choose(&sensed, spatial, available, nearby, rng)
+            self.org_choose(&sensed, spatial, available, nearby, rng, None)
         };
         self.org_turn(
             sensed,
