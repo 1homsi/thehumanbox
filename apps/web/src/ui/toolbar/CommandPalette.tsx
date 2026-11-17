@@ -45,6 +45,12 @@ export function CommandPalette() {
   const openOrgSearch = useUIStore((s) => s.openOrgSearch)
   const openDesktopSettings = useUIStore((s) => s.openDesktopSettings)
   const toggleLeft = useUIStore((s) => s.toggleLeft)
+  const openGoals = useUIStore((s) => s.openGoals)
+  const openAchievements = useUIStore((s) => s.openAchievements)
+  const openScenarios = useUIStore((s) => s.openScenarios)
+  const openFamilyTree = useUIStore((s) => s.openFamilyTree)
+  const openNotable = useUIStore((s) => s.openNotable)
+  const openLanguages = useUIStore((s) => s.openLanguages)
   const setViewFlag = useUIStore((s) => s.setViewFlag)
   const viewFlags = useUIStore((s) => s.viewFlags)
 
@@ -62,6 +68,12 @@ export function CommandPalette() {
         run: () => openOrgSearch(),
       },
       { id: 'left', label: t('dock.commands.toggleLeft'), run: () => toggleLeft() },
+      { id: 'goals', label: t('dock.commands.openGoals'), run: () => openGoals() },
+      { id: 'feats', label: t('dock.commands.openFeats'), run: () => openAchievements() },
+      { id: 'scenes', label: t('dock.commands.openScenes'), run: () => openScenarios() },
+      { id: 'tree', label: t('dock.commands.openFamilyTree'), run: () => openFamilyTree() },
+      { id: 'notable', label: t('dock.commands.openNotable'), run: () => openNotable() },
+      { id: 'tongues', label: t('dock.commands.openTongues'), run: () => openLanguages() },
       {
         id: 'tour',
         label: viewFlags.randomTour ? t('dock.commands.stopTour') : t('dock.commands.startTour'),
@@ -106,6 +118,12 @@ export function CommandPalette() {
     openOrgSearch,
     openDesktopSettings,
     toggleLeft,
+    openGoals,
+    openAchievements,
+    openScenarios,
+    openFamilyTree,
+    openNotable,
+    openLanguages,
     setViewFlag,
     viewFlags,
     desktop,

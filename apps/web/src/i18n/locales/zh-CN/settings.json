@@ -59,7 +59,9 @@
     "tourDesc": "简要介绍地图、底栏和面板。",
     "startTour": "开始引导",
     "about": "关于",
-    "aboutDesc": "版本、构建信息和链接。"
+    "aboutDesc": "版本、构建信息和链接。",
+    "keys": "键盘按键",
+    "keysDesc": "游戏响应的按键。在地图上按 ? 也能看到。"
   },
   "web": {
     "playMode": "游戏模式",

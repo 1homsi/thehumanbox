@@ -59,7 +59,9 @@
     "tourDesc": "A short walkthrough of the map, the dock and the panels.",
     "startTour": "start tour",
     "about": "About",
-    "aboutDesc": "Version, build and links."
+    "aboutDesc": "Version, build and links.",
+    "keys": "Keyboard keys",
+    "keysDesc": "The keys the game answers to. Press ? on the map to see them there too."
   },
   "web": {
     "playMode": "Play mode",

@@ -1,15 +1,14 @@
 import clsx from 'clsx'
-import { useEffect } from 'react'
-import { useUIStore, useViewFlag } from '../../state/store'
-import { SHORTCUT_HELP } from '../../game/model/shortcuts'
+import { useEffect, type ReactNode } from 'react'
+import { useNerdStats, useUIStore } from '../../state/store'
+import type { ViewFlags } from '../../state/ui/types'
 import { saveMapPicture } from '../../shared/mapPicture'
 import { shareWorldCard } from '../../shared/shareWorld'
 import { useWorldStore } from '../../state/worldStore'
 import { Tooltip } from './Tooltip'
 import { ToolSprite } from './ToolSprite'
 import { saveBlocked, saveLabel, saveShortcutLabel, type WorldActions } from './world-actions'
-import { shortcutKeys, shortcutWhat } from './shortcut-text'
-import { t } from '../../i18n'
+import { t, type MessageKey } from '../../i18n'
 import { PAUSE_TRIGGERS } from '../../game/model/pause-on'
 
 /**
@@ -24,6 +23,57 @@ function MenuGlyph({ icon }: { icon: string }) {
   )
 }
 
+type Focus = 'sick' | 'hungry' | 'elders' | 'builders' | 'thriving'
+
+const FOCUSES: { id: Focus; icon: ReactNode }[] = [
+  { id: 'sick', icon: '🤒' },
+  { id: 'hungry', icon: '😫' },
+  { id: 'elders', icon: '👴' },
+  { id: 'builders', icon: '🏗' },
+  { id: 'thriving', icon: '✦' },
+]
+
+interface FlagItem {
+  flag: keyof ViewFlags
+  icon: ReactNode
+  label: MessageKey
+  tip: MessageKey
+}
+
+const MAP_MARKS: FlagItem[] = [
+  { flag: 'lineageDot', icon: '⬤', label: 'dock.more.lineage', tip: 'dock.more.lineageTip' },
+  { flag: 'health', icon: '♥', label: 'dock.more.health', tip: 'dock.more.healthTip' },
+  { flag: 'age', icon: <MenuGlyph icon="⏳" />, label: 'dock.more.age', tip: 'dock.more.ageTip' },
+  { flag: 'fear', icon: '⚠', label: 'dock.more.fear', tip: 'dock.more.fearTip' },
+  { flag: 'partners', icon: '♥♥', label: 'dock.more.pairs', tip: 'dock.more.pairsTip' },
+  { flag: 'pregnancy', icon: '◯', label: 'dock.more.pregnant', tip: 'dock.more.pregnantTip' },
+  { flag: 'structures', icon: '⌂', label: 'dock.more.builds', tip: 'dock.more.buildsTip' },
+]
+
+const NERD_OVERLAYS: FlagItem[] = [
+  { flag: 'trails', icon: '⋯', label: 'dock.more.trails', tip: 'dock.more.trailsTip' },
+  { flag: 'fertility', icon: '✿', label: 'dock.more.fertility', tip: 'dock.more.fertilityTip' },
+  { flag: 'hazard', icon: '✶', label: 'dock.more.hazard', tip: 'dock.more.hazardTip' },
+  { flag: 'history', icon: '↝', label: 'dock.more.history', tip: 'dock.more.historyTip' },
+  { flag: 'fps', icon: <MenuGlyph icon="⏱️" />, label: 'dock.more.perf', tip: 'dock.more.perfTip' },
+]
+
+function FlagButton({ item }: { item: FlagItem }) {
+  const on = useUIStore((s) => !!s.viewFlags[item.flag])
+  const setViewFlag = useUIStore((s) => s.setViewFlag)
+  return (
+    <Tooltip tip={t(item.tip)}>
+      <button
+        className={clsx('lang-btn', on && 'active')}
+        aria-pressed={on}
+        onClick={() => setViewFlag(item.flag, !on)}
+      >
+        {item.icon} {t(item.label)}
+      </button>
+    </Tooltip>
+  )
+}
+
 /**
  * `onAction` runs whenever the dropdown closes (an action or a toggle). `worldActions` puts
  * "Find a tool" and "Save world" at the top; the phone menu has rows of its own for them.
@@ -33,10 +83,9 @@ export function MoreDropdown({
   worldActions,
 }: { onAction?: () => void; worldActions?: WorldActions } = {}) {
   const focus = useUIStore((s) => s.focus)
-  const leftOpen = useUIStore((s) => s.leftOpen)
   const setFocus = useUIStore((s) => s.setFocus)
-  const setViewFlag = useUIStore((s) => s.setViewFlag)
-  const toggleLeft = useUIStore((s) => s.toggleLeft)
+  const nerdStats = useNerdStats()
+  const viewFlags = useUIStore((s) => s.viewFlags)
   const openLanguages = useUIStore((s) => s.openLanguages)
   const openFamilyTree = useUIStore((s) => s.openFamilyTree)
   const openAchievements = useUIStore((s) => s.openAchievements)
@@ -45,19 +94,6 @@ export function MoreDropdown({
   const openNotable = useUIStore((s) => s.openNotable)
   const pauseOn = useUIStore((s) => s.pauseOn)
   const setPauseOn = useUIStore((s) => s.setPauseOn)
-
-  const lineageDot = useViewFlag('lineageDot')
-  const health = useViewFlag('health')
-  const age = useViewFlag('age')
-  const fear = useViewFlag('fear')
-  const partners = useViewFlag('partners')
-  const pregnancy = useViewFlag('pregnancy')
-  const trails = useViewFlag('trails')
-  const structures = useViewFlag('structures')
-  const fertility = useViewFlag('fertility')
-  const hazard = useViewFlag('hazard')
-  const history = useViewFlag('history')
-  const fps = useViewFlag('fps')
 
   const closeMore = () => {
     useUIStore.setState({ showMore: false })
@@ -80,6 +116,51 @@ export function MoreDropdown({
   }, [])
 
   const { findTool, save } = worldActions ?? {}
+  const nerdOverlays = NERD_OVERLAYS.filter((item) => nerdStats || viewFlags[item.flag])
+
+  const screens: { id: string; icon: ReactNode; label: MessageKey; tip: MessageKey; open: () => void }[] = [
+    { id: 'goals', icon: '◎', label: 'dock.more.goals', tip: 'dock.more.goalsTip', open: openGoals },
+    { id: 'feats', icon: '★', label: 'dock.more.feats', tip: 'dock.more.featsTip', open: openAchievements },
+    { id: 'scenes', icon: '✦', label: 'dock.more.scenes', tip: 'dock.more.scenesTip', open: openScenarios },
+    {
+      id: 'tree',
+      icon: '⬡',
+      label: 'dock.more.tree',
+      tip: 'dock.more.treeTip',
+      open: () => openFamilyTree(),
+    },
+    {
+      id: 'notable',
+      icon: '◆',
+      label: 'dock.more.notable',
+      tip: 'dock.more.notableTip',
+      open: openNotable,
+    },
+    {
+      id: 'lang',
+      icon: <MenuGlyph icon="💭" />,
+      label: 'dock.more.lang',
+      tip: 'dock.more.langTip',
+      open: openLanguages,
+    },
+    {
+      id: 'share',
+      icon: '↗',
+      label: 'share.menu',
+      tip: 'share.menuTip',
+      open: () => {
+        const world = useWorldStore.getState().world
+        if (world) void shareWorldCard(world)
+      },
+    },
+    {
+      id: 'picture',
+      icon: '▣',
+      label: 'dock.more.picture',
+      tip: 'dock.more.pictureTip',
+      open: () => void saveMapPicture(useWorldStore.getState().world?.tick),
+    },
+  ]
 
   return (
     <div className="more-dropdown">
@@ -124,294 +205,48 @@ export function MoreDropdown({
         </>
       )}
       <div className="more-dropdown-section">{t('dock.more.focus')}</div>
-      <div className="more-dropdown-grid">
+      <div className="more-dropdown-grid" role="group" aria-label={t('dock.more.focus')}>
         <Tooltip tip={t('dock.more.showAllTip')}>
           <button
             className={clsx('lang-btn', focus === 'all' && 'active')}
-            aria-pressed={!!(focus === 'all')}
+            aria-pressed={focus === 'all'}
             onClick={() => setFocus('all')}
           >
             · {t('dock.more.all')}
           </button>
         </Tooltip>
-        <Tooltip tip={t('dock.more.sickTip')}>
-          <button
-            className={clsx('lang-btn', focus === 'sick' && 'active')}
-            aria-pressed={!!(focus === 'sick')}
-            onClick={() => setFocus(focus === 'sick' ? 'all' : 'sick')}
-          >
-            🤒 {t('dock.more.sick')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.hungryTip')}>
-          <button
-            className={clsx('lang-btn', focus === 'hungry' && 'active')}
-            aria-pressed={!!(focus === 'hungry')}
-            onClick={() => setFocus(focus === 'hungry' ? 'all' : 'hungry')}
-          >
-            😫 {t('dock.more.hungry')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.eldersTip')}>
-          <button
-            className={clsx('lang-btn', focus === 'elders' && 'active')}
-            aria-pressed={!!(focus === 'elders')}
-            onClick={() => setFocus(focus === 'elders' ? 'all' : 'elders')}
-          >
-            👴 {t('dock.more.elders')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.buildersTip')}>
-          <button
-            className={clsx('lang-btn', focus === 'builders' && 'active')}
-            aria-pressed={!!(focus === 'builders')}
-            onClick={() => setFocus(focus === 'builders' ? 'all' : 'builders')}
-          >
-            🏗 {t('dock.more.builders')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.thrivingTip')}>
-          <button
-            className={clsx('lang-btn', focus === 'thriving' && 'active')}
-            aria-pressed={!!(focus === 'thriving')}
-            onClick={() => setFocus(focus === 'thriving' ? 'all' : 'thriving')}
-          >
-            ✦ {t('dock.more.thriving')}
-          </button>
-        </Tooltip>
+        {FOCUSES.map(({ id, icon }) => (
+          <Tooltip key={id} tip={t(`dock.more.${id}Tip`)}>
+            <button
+              className={clsx('lang-btn', focus === id && 'active')}
+              aria-pressed={focus === id}
+              onClick={() => setFocus(focus === id ? 'all' : id)}
+            >
+              {icon} {t(`dock.more.${id}`)}
+            </button>
+          </Tooltip>
+        ))}
       </div>
 
       <div className="more-dropdown-divider" />
       <div className="more-dropdown-section">{t('dock.more.decorations')}</div>
-      <div className="more-dropdown-grid">
-        <Tooltip tip={t('dock.more.lineageTip')}>
-          <button
-            className={clsx('lang-btn', lineageDot && 'active')}
-            aria-pressed={!!lineageDot}
-            onClick={() => setViewFlag('lineageDot', !lineageDot)}
-          >
-            ⬤ {t('dock.more.lineage')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.healthTip')}>
-          <button
-            className={clsx('lang-btn', health && 'active')}
-            aria-pressed={!!health}
-            onClick={() => setViewFlag('health', !health)}
-          >
-            ♥ {t('dock.more.health')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.ageTip')}>
-          <button
-            className={clsx('lang-btn', age && 'active')}
-            aria-pressed={!!age}
-            onClick={() => setViewFlag('age', !age)}
-          >
-            <MenuGlyph icon="⏳" /> {t('dock.more.age')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.fearTip')}>
-          <button
-            className={clsx('lang-btn', fear && 'active')}
-            aria-pressed={!!fear}
-            onClick={() => setViewFlag('fear', !fear)}
-          >
-            ⚠ {t('dock.more.fear')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.pairsTip')}>
-          <button
-            className={clsx('lang-btn', partners && 'active')}
-            aria-pressed={!!partners}
-            onClick={() => setViewFlag('partners', !partners)}
-          >
-            ♥♥ {t('dock.more.pairs')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.pregnantTip')}>
-          <button
-            className={clsx('lang-btn', pregnancy && 'active')}
-            aria-pressed={!!pregnancy}
-            onClick={() => setViewFlag('pregnancy', !pregnancy)}
-          >
-            ◯ {t('dock.more.pregnant')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.trailsTip')}>
-          <button
-            className={clsx('lang-btn', trails && 'active')}
-            aria-pressed={!!trails}
-            onClick={() => setViewFlag('trails', !trails)}
-          >
-            ⋯ {t('dock.more.trails')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.buildsTip')}>
-          <button
-            className={clsx('lang-btn', structures && 'active')}
-            aria-pressed={!!structures}
-            onClick={() => setViewFlag('structures', !structures)}
-          >
-            ⌂ {t('dock.more.builds')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.fertilityTip')}>
-          <button
-            className={clsx('lang-btn', fertility && 'active')}
-            aria-pressed={!!fertility}
-            onClick={() => setViewFlag('fertility', !fertility)}
-          >
-            ✿ {t('dock.more.fertility')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.hazardTip')}>
-          <button
-            className={clsx('lang-btn', hazard && 'active')}
-            aria-pressed={!!hazard}
-            onClick={() => setViewFlag('hazard', !hazard)}
-          >
-            ✶ {t('dock.more.hazard')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.historyTip')}>
-          <button
-            className={clsx('lang-btn', history && 'active')}
-            aria-pressed={!!history}
-            onClick={() => setViewFlag('history', !history)}
-          >
-            ↝ {t('dock.more.history')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.perfTip')}>
-          <button
-            className={clsx('lang-btn', fps && 'active')}
-            aria-pressed={!!fps}
-            onClick={() => setViewFlag('fps', !fps)}
-          >
-            <MenuGlyph icon="⏱️" /> {t('dock.more.perf')}
-          </button>
-        </Tooltip>
+      <div className="more-dropdown-grid" role="group" aria-label={t('dock.more.decorations')}>
+        {MAP_MARKS.map((item) => (
+          <FlagButton key={item.flag} item={item} />
+        ))}
       </div>
-
-      <div className="more-dropdown-divider" />
-      <div className="more-dropdown-grid">
-        <Tooltip tip={t('dock.more.langTip')}>
-          <button
-            className="lang-btn"
-            onClick={() => {
-              openLanguages()
-              closeMore()
-            }}
-          >
-            <MenuGlyph icon="💭" /> {t('dock.more.lang')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.scenesTip')}>
-          <button
-            className="lang-btn"
-            onClick={() => {
-              openScenarios()
-              closeMore()
-            }}
-          >
-            ✦ {t('dock.more.scenes')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.featsTip')}>
-          <button
-            className="lang-btn"
-            onClick={() => {
-              openAchievements()
-              closeMore()
-            }}
-          >
-            ★ {t('dock.more.feats')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.goalsTip')}>
-          <button
-            className="lang-btn"
-            onClick={() => {
-              openGoals()
-              closeMore()
-            }}
-          >
-            ◎ {t('dock.more.goals')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.treeTip')}>
-          <button
-            className="lang-btn"
-            onClick={() => {
-              openFamilyTree()
-              closeMore()
-            }}
-          >
-            ⬡ {t('dock.more.tree')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.worldTip')}>
-          <button
-            className={clsx('lang-btn', leftOpen && 'active')}
-            aria-pressed={!!leftOpen}
-            onClick={() => {
-              toggleLeft()
-              closeMore()
-            }}
-          >
-            ⊞ {t('dock.more.world')}
-          </button>
-        </Tooltip>
-        <Tooltip
-          tip={
-            <span className="tip-card">
-              <strong>{t('dock.more.keys')}</strong>
-              {SHORTCUT_HELP.map(([key, what]) => (
-                <span key={key}>
-                  <b>{shortcutKeys(key)}</b> {shortcutWhat(key, what)}
-                </span>
-              ))}
-            </span>
-          }
-        >
-          <button className="lang-btn">⌨ {t('dock.more.keys')}</button>
-        </Tooltip>
-        <Tooltip tip={t('share.menuTip')}>
-          <button
-            className="lang-btn"
-            onClick={() => {
-              const world = useWorldStore.getState().world
-              if (world) void shareWorldCard(world)
-              closeMore()
-            }}
-          >
-            ↗ {t('share.menu')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.pictureTip')}>
-          <button
-            className="lang-btn"
-            onClick={() => {
-              void saveMapPicture(useWorldStore.getState().world?.tick)
-              closeMore()
-            }}
-          >
-            ▣ {t('dock.more.picture')}
-          </button>
-        </Tooltip>
-        <Tooltip tip={t('dock.more.notableTip')}>
-          <button
-            className="lang-btn"
-            onClick={() => {
-              openNotable()
-              closeMore()
-            }}
-          >
-            ✦ {t('dock.more.notable')}
-          </button>
-        </Tooltip>
-      </div>
+      {nerdOverlays.length > 0 && (
+        <>
+          <Tooltip tip={t('dock.more.nerdOverlaysTip')}>
+            <div className="more-dropdown-section more-dropdown-nerd">{t('dock.more.nerdOverlays')}</div>
+          </Tooltip>
+          <div className="more-dropdown-grid" role="group" aria-label={t('dock.more.nerdOverlays')}>
+            {nerdOverlays.map((item) => (
+              <FlagButton key={item.flag} item={item} />
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="more-dropdown-divider" />
       <div className="more-dropdown-section">
@@ -426,6 +261,24 @@ export function MoreDropdown({
               onClick={() => setPauseOn(trigger, !pauseOn[trigger])}
             >
               {t(`dock.more.pause.${trigger}`)}
+            </button>
+          </Tooltip>
+        ))}
+      </div>
+
+      <div className="more-dropdown-divider" />
+      <div className="more-dropdown-section">{t('dock.more.screens')}</div>
+      <div className="more-dropdown-grid" role="group" aria-label={t('dock.more.screens')}>
+        {screens.map((screen) => (
+          <Tooltip key={screen.id} tip={t(screen.tip)}>
+            <button
+              className="lang-btn"
+              onClick={() => {
+                screen.open()
+                closeMore()
+              }}
+            >
+              {screen.icon} {t(screen.label)}
             </button>
           </Tooltip>
         ))}

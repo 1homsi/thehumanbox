@@ -59,7 +59,9 @@
     "tourDesc": "Une courte présentation de la carte, de la barre inférieure et des panneaux.",
     "startTour": "démarrer la visite",
     "about": "À propos",
-    "aboutDesc": "Version, build et liens."
+    "aboutDesc": "Version, build et liens.",
+    "keys": "Touches du clavier",
+    "keysDesc": "Les touches auxquelles le jeu répond. Appuie sur ? sur la carte pour les voir là aussi."
   },
   "web": {
     "playMode": "Mode de jeu",

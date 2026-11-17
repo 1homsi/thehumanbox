@@ -59,7 +59,9 @@
     "tourDesc": "Um passeio rápido pelo mapa, pela barra inferior e pelos painéis.",
     "startTour": "iniciar tour",
     "about": "Sobre",
-    "aboutDesc": "Versão, build e links."
+    "aboutDesc": "Versão, build e links.",
+    "keys": "Teclas",
+    "keysDesc": "As teclas às quais o jogo responde. Aperte ? no mapa para vê-las lá também."
   },
   "web": {
     "playMode": "Modo de jogo",
