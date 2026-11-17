@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { TILE } from '../model/palette'
 import { TILE_ID } from '../model/terrain-ids'
-import { SHADOW } from './art-palette'
-import { MASS_CELL, MASS_SHADOW, drawMassTile, massTileKey, mountainHeights } from './mountains'
+import {
+  MASS_CELL,
+  MASS_SHADOW,
+  MOUNTAIN_SHADOW as SHADOW,
+  MOUNTAIN_SNOW as SNOW,
+  drawMassTile,
+  massTileKey,
+  mountainHeights,
+} from './mountains'
 
 /** A square range of rock `size` tiles across, centred in a map of `map` tiles. */
 function range(size: number, map: number) {
@@ -49,12 +56,17 @@ describe('mountain relief', () => {
     expect(nw).toBeGreaterThan(se + 60)
   })
 
-  it('keeps the foot of a range bare rock: the snow is on the peaks, not shaded onto the ground', () => {
+  it('puts snow on the high core of a wide range only', () => {
     // Every snow tone is brighter than the brightest rock (the ridge line included).
-    const snowy = (px: string[][]) => px.flat().some((c) => c.startsWith('rgb(') && brightness(c) > 640)
+    const snowy = (px: string[][]) => px.flat().some((c) => c.startsWith('rgb(') && brightness(c) > 600)
+    expect(SNOW.lit[0] + SNOW.lit[1] + SNOW.lit[2]).toBeGreaterThan(600)
+    const narrow = range(6, 16)
+    for (let y = narrow.start; y < narrow.start + 6; y++)
+      for (let x = narrow.start; x < narrow.start + 6; x++)
+        expect(snowy(paint(narrow.h, 16, x, y))).toBe(false)
     const wide = range(30, 40)
     const mid = wide.start + 15
-    expect(snowy(paint(wide.h, 40, mid, mid))).toBe(false)
+    expect(snowy(paint(wide.h, 40, mid, mid))).toBe(true)
     expect(snowy(paint(wide.h, 40, wide.start + 1, mid))).toBe(false)
   })
 

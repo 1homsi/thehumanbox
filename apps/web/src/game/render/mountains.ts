@@ -1,16 +1,37 @@
 import { TILE } from '../model/palette'
 import { BIOME_ID, TILE_ID } from '../model/terrain-ids'
-import { INK, SHADOW, type Rgb } from './art-palette'
-import { C, PALETTE_RGB } from './pixel-art/palette.ts'
+import type { Rgb } from './art-palette'
 import type { DecorRegion } from './decorations'
 
 /**
  * Mountains drawn as one sculpted mass rather than sprites dropped on rock.
  *
- * Every rock or snow tile gets a height: how many tiles deep it sits inside its range. The foot of the
- * range is shaded from those heights in a few flat facets lit from the north-west, and throws a flat shadow
- * to the south-east; the peaks that stand on it are sprites (pixel-art/peaks.ts).
+ * Every rock or snow tile gets a height: how many tiles deep it sits inside its range. The heights
+ * are interpolated between tile centres into a smooth relief, and every pixel is shaded like a
+ * relief map lit from the north-west: the faces turned to the light are bright, the far faces
+ * fall into cool shade, the crest between them carries a ridge line, and the high core lies under
+ * snow. The range throws a flat shadow to the south-east.
  */
+
+/**
+ * The mountains keep their own colours. The rest of the map moved to the master palette; the ranges are
+ * shaded as a relief in these warm stone tones and are meant to stay exactly as they are, so nothing here is
+ * read from the shared palette (a change there must not reach the mountains).
+ */
+const INK: Rgb = [43, 33, 23]
+export const MOUNTAIN_SHADOW = { rgb: [28, 20, 12] as Rgb, alpha: 0.32 } as const
+const SHADOW = MOUNTAIN_SHADOW
+const ROCK = {
+  lit: [176, 164, 139],
+  mid: [133, 123, 105],
+  shade: [90, 81, 71],
+  deep: [60, 53, 46],
+} as const satisfies Record<string, Rgb>
+export const MOUNTAIN_SNOW = {
+  lit: [236, 238, 228],
+  shade: [183, 193, 192],
+} as const satisfies Record<string, Rgb>
+const SNOW = MOUNTAIN_SNOW
 
 /** Deepest height counted: wide ranges keep rising to a crest instead of flattening out. */
 export const MAX_HEIGHT = 14
@@ -79,26 +100,37 @@ interface Stone {
   deep: Rgb
 }
 
-const tone = (index: number): Rgb => PALETTE_RGB[index]
+const mix = (a: Rgb, b: Rgb, t: number): Rgb =>
+  [0, 1, 2].map((c) => Math.round(a[c] + (b[c] - a[c]) * t)) as unknown as Rgb
 
-/** Stone in the master palette's greys, one step a face: no tone mixed between two of them. */
 const GRANITE: Stone = {
-  ridge: tone(C.grey8),
-  lit: tone(C.grey7),
-  tread: tone(C.grey7),
-  mid: tone(C.grey6),
-  shade: tone(C.grey5),
-  deep: tone(C.grey4),
+  ridge: mix(ROCK.lit, SNOW.lit, 0.35),
+  lit: ROCK.lit,
+  tread: mix(ROCK.lit, ROCK.mid, 0.4),
+  mid: ROCK.mid,
+  shade: ROCK.shade,
+  deep: ROCK.deep,
 }
 /** Volcanic rock: the same light on dark basalt. */
 const BASALT: Stone = {
-  ridge: tone(C.grey6),
-  lit: tone(C.grey5),
-  tread: tone(C.grey5),
-  mid: tone(C.grey4),
-  shade: tone(C.grey3),
-  deep: tone(C.grey2),
+  ridge: [128, 112, 100],
+  lit: [108, 94, 86],
+  tread: [92, 80, 73],
+  mid: [74, 64, 59],
+  shade: [52, 45, 42],
+  deep: [37, 31, 29],
 }
+const SNOWCAP: Stone = {
+  ridge: SNOW.lit,
+  lit: SNOW.lit,
+  tread: mix(SNOW.lit, SNOW.shade, 0.18),
+  mid: mix(SNOW.lit, SNOW.shade, 0.4),
+  shade: SNOW.shade,
+  deep: mix(SNOW.shade, ROCK.shade, 0.35),
+}
+
+/** Height (on the interpolated relief) above which rock lies under snow. */
+const SNOW_LINE = 9.5
 /** How far (pixels) a range's cast shadow falls toward the bottom-right onto the lowland. */
 export const MASS_SHADOW = 4
 /** A mountain cell: the tile and the shadow strip right of it and below it. */
@@ -192,26 +224,42 @@ function slopeToLight(px: number, py: number): number {
 const onMass = (px: number, py: number) => nearAt(Math.floor(px / TILE), Math.floor(py / TILE)) > 0
 
 /**
- * The colour of a pixel of a range's foot, lit from the north-west, in a few broad flat facets: faces rising
- * toward the bottom-right look up into the light, faces falling toward it are in shade, and the crest between
- * them carries a bright ridge line. The range is outlined in the ink every sprite on the map has. This is only
- * the rock the range stands on: its height and its snow are in the peaks drawn over it (pixel-art/peaks.ts).
- * A band of lighter tone and a cap of snow used to be shaded onto this relief, and came out as a soft rounded
- * slab on top of every range.
+ * The colour of mountain pixel (px, py), lit from the north-west, in a few broad flat facets: faces rising
+ * toward the bottom-right look up into the light, faces falling toward it are in shade, the crest between
+ * them carries a bright ridge line and the high core lies under snow. The range is outlined in the warm ink
+ * every sprite on the map has. Terrace lines at each whole height used to stripe every slope like a contour
+ * map, which read as generated rather than drawn.
  */
 function massPixel(px: number, py: number, volcanic: boolean): Rgb {
   if (!onMass(px, py + 1) || !onMass(px + 1, py) || !onMass(px, py - 1) || !onMass(px - 1, py)) return INK
+  const e = reliefAt(px, py)
   const toLight = slopeToLight(px, py)
-  const stone = volcanic ? BASALT : GRANITE
+  const stone = volcanic ? BASALT : e >= SNOW_LINE ? SNOWCAP : GRANITE
+  let color: Rgb
   if (toLight >= FACE) {
     // The last lit pixel before the ground falls away beyond it.
     if (slopeToLight(px + 1, py + 1) < FACE && reliefAt(px + 4, py + 4) < reliefAt(px + 1, py + 1))
       return stone.ridge
-    return stone.tread
+    color = stone.tread
+  } else if (toLight <= -DEEP_FACE) color = stone.deep
+  else if (toLight <= -FACE) color = stone.shade
+  else color = stone.mid
+  // Broad bands of height, each a step lighter, give the mass its volume without a line at every step.
+  return e >= BAND * 2 ? lighter(color, stone.lit, 2) : e >= BAND ? lighter(color, stone.lit, 1) : color
+}
+
+/** Heights per light band (see massPixel). */
+const BAND = 3.5
+const bands = new Map<string, Rgb>()
+/** `c` a band or two lighter, toward its own material's lit colour (snow stays white, not rock-brown). */
+function lighter(c: Rgb, lit: Rgb, steps: number): Rgb {
+  const key = `${c}|${lit}|${steps}`
+  let out = bands.get(key)
+  if (!out) {
+    out = mix(c, lit, 0.12 * steps)
+    bands.set(key, out)
   }
-  if (toLight <= -DEEP_FACE) return stone.deep
-  if (toLight <= -FACE) return stone.shade
-  return stone.mid
+  return out
 }
 
 /**

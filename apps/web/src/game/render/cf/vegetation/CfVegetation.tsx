@@ -19,7 +19,7 @@ const SWAY_Z = 4.5
 const DRESS_Z = 4.2
 
 const DECOR_PAGES = [1024, 1024]
-const MOUNTAIN_PAGES = [1024, 1024, 256]
+const MOUNTAIN_PAGES = [1024, 1024]
 const TREE_PAGES = [512, 512, 512]
 
 /** Trees, decor and mountains as SpriteLayers, rebuilt on terrain change. */

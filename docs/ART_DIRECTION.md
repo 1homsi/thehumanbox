@@ -79,7 +79,9 @@ that palette.
 - **Sea**: three flat blues, deep to shallow, with a thin lighter contour where one meets the next and a light
   surf line on the shore. Three, not five: rings round every island read as a generated height map.
 - **Fresh water** is lighter than the sea, so a river reads across open country.
-- **Rock and snow** step through the palette's greys, one tone a face; nothing is a blend of two.
+- **Mountains keep their own look and colours.** The ranges are a sculpted relief in warm stone, lit from the
+  north-west, with snow on the high core (`mountains.ts`). They hold their own colour constants so that palette
+  changes elsewhere cannot reach them. Do not restyle them.
 - **Fields, roads and the marks people leave** (worn earth, puddles, ore, forage) are solid palette pixels.
   Nothing on the ground is translucent.
 - **Outlines**: the ink `INK`, not pure black. Outline the outer silhouette; inner lines are a darker tone of
