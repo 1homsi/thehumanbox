@@ -59,8 +59,49 @@
     "historyIntro": "Bu dünyanın büyük dönemeçleri — çağlar, savaşlar, hanedanlar ve harikalar.",
     "noHistory": "Henüz dikkate değer bir olay yok. Hikâye yeni başlıyor.",
     "day": "gün {day}",
-    "livesIntro": "Dünyanın sakinleri tarafından anlatılan hikâyeler, yaşandıkları zamana göre sıralanmış.",
-    "noLives": "Henüz hikâye yok. Hikâyeler, canlılar tam bir gün döngüsünü tamamladığında belirir."
+    "livesIntro": "Halkının hayatları ve kabilelerinin işleri: kim yaşlandı, kim sevdi, kim kayboldu.",
+    "noLives": "Henüz kayıtlı hayat yok. İnsanlar yaşlandıkça, eşleştikçe ve öldükçe belirirler.",
+    "date": "Yıl {year} · {season} · Gün {day}",
+    "tabsAria": "Kronik bölümleri",
+    "filtersAria": "Yalnızca göster",
+    "filters": {
+      "all": "Tümü",
+      "wars": "Savaşlar",
+      "rulers": "Yöneticiler",
+      "wonders": "Harikalar",
+      "disasters": "Felaketler",
+      "people": "İnsanlar"
+    },
+    "noMatch": "Bu türden bir şey henüz olmadı.",
+    "goThere": "Oraya git",
+    "seeLives": "Hayatlar'a bak",
+    "tick": "tik {tick}",
+    "people": {
+      "elder": {
+        "one": "{count} kişi yaşlı bilge oldu",
+        "other": "{count} kişi yaşlı bilge oldu"
+      },
+      "death": {
+        "one": "{count} kişi hayatını kaybetti",
+        "other": "{count} kişi hayatını kaybetti"
+      },
+      "bond": {
+        "one": "{count} çift söz verdi",
+        "other": "{count} çift söz verdi"
+      },
+      "parting": {
+        "one": "{count} çift ayrıldı",
+        "other": "{count} çift ayrıldı"
+      },
+      "crime": {
+        "one": "{count} hırsız yakalandı",
+        "other": "{count} hırsız yakalandı"
+      },
+      "murder": {
+        "one": "{count} cinayet",
+        "other": "{count} cinayet"
+      }
+    }
   },
   "goals": {
     "title": "Hedefler",

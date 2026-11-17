@@ -20,3 +20,13 @@ export function eventDate(tick: number): string {
   const when = t('model.legends.when', { year: date.year, season: seasonKey ? t(seasonKey) : date.season })
   return `${when} · ${t('dialogs.chronicles.day', { day: date.dayOfSeason })}`
 }
+
+export function dayHeading(tick: number): string {
+  const date = calendarAt(tick)
+  const seasonKey = SEASON_KEY[date.season]
+  return t('dialogs.chronicles.date', {
+    year: date.year,
+    season: seasonKey ? t(seasonKey) : date.season,
+    day: date.dayOfSeason,
+  })
+}

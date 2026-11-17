@@ -1,0 +1,229 @@
+.thb-modal.chronicles-modal {
+  width: 760px;
+  max-width: calc(100vw - 24px);
+  height: 86vh;
+  overflow: hidden;
+}
+.chronicles-modal .lang-modal-header {
+  background: var(--px-wood);
+  border-bottom: 2px solid var(--px-ink);
+  box-shadow: 0 1px 0 var(--px-groove);
+}
+.chronicles-modal .lang-modal-title {
+  color: var(--px-gold-text);
+  font-size: 13px;
+  text-shadow: 0 2px 0 #000;
+}
+.chron-body {
+  flex: 1;
+  padding-top: 0;
+  gap: 8px;
+  font-style: normal;
+}
+.chron-body > * {
+  flex-shrink: 0;
+}
+.chron-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin-top: 0;
+  padding-top: 10px;
+  background: var(--px-wood);
+}
+.chron-count {
+  min-width: 18px;
+  padding: 0 4px;
+  border: 2px solid var(--px-ink);
+  background: var(--px-inset);
+  color: var(--px-gold-text);
+  font-size: 10px;
+  line-height: 14px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.chron-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chron-intro {
+  margin: 0;
+}
+.chron-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chron-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.chron-empty {
+  margin: 0;
+  padding: 24px 0;
+  color: var(--px-muted);
+  font-size: 12px;
+  text-align: center;
+}
+.chron-day {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chron-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 2px;
+  color: var(--px-gold-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.chron-date::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: var(--px-ink);
+  box-shadow: 0 1px 0 var(--px-groove);
+}
+.chron-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.chron-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 2px solid var(--px-ink);
+  border-left-width: 4px;
+  clip-path: var(--px-notch);
+  background: var(--px-raised);
+  box-shadow: var(--px-raised-shadow);
+  color: var(--px-text);
+  font: inherit;
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.4;
+  text-align: left;
+}
+div.chron-row {
+  background: var(--px-wood-dark);
+  box-shadow: none;
+}
+button.chron-row {
+  cursor: pointer;
+}
+button.chron-row:hover {
+  background: var(--px-raised-hover);
+}
+button.chron-row:focus-visible {
+  outline: 2px solid var(--px-gold);
+  outline-offset: -4px;
+}
+.chron-row.tone-bad {
+  border-left-color: #c8553d;
+}
+.chron-row.tone-warn {
+  border-left-color: #d79a3a;
+}
+.chron-row.tone-good {
+  border-left-color: #7fa650;
+}
+.chron-row.tone-news {
+  border-left-color: var(--px-brass);
+}
+.chron-icon {
+  flex: 0 0 18px;
+  display: grid;
+  place-items: center;
+  min-height: 18px;
+}
+.chron-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.chron-lead {
+  color: var(--px-gold-text);
+  font-weight: 700;
+}
+.chron-tick,
+.chron-more {
+  flex-shrink: 0;
+  align-self: center;
+  color: var(--px-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.chron-people {
+  background: var(--px-inset);
+  box-shadow: var(--px-sunken-shadow);
+  color: var(--px-muted);
+}
+.chron-people .chron-more {
+  color: var(--px-gold-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  .thb-modal[class].thb-modal--sheet.chronicles-modal {
+    top: 0;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    border-radius: 0;
+    border-top: none;
+    padding-top: var(--safe-top);
+  }
+  .chronicles-modal .lang-modal-header {
+    border-radius: 0;
+    padding-top: 14px;
+  }
+  .chron-body {
+    padding: 0 12px 16px;
+  }
+  .chron-tabs .stats-tab {
+    flex: 1 1 0;
+    justify-content: center;
+    min-height: 40px;
+  }
+  .chron-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0 -12px;
+    padding: 0 12px 2px;
+    scrollbar-width: none;
+  }
+  .chron-chip {
+    flex: 0 0 auto;
+    min-height: 36px;
+  }
+  .chron-row {
+    flex-wrap: wrap;
+    align-items: center;
+    min-height: 44px;
+    font-size: 13px;
+  }
+  .chron-tick {
+    flex-basis: 100%;
+    padding-left: 26px;
+  }
+  .chron-more {
+    display: none;
+  }
+}

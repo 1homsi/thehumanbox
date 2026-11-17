@@ -59,8 +59,49 @@
     "historyIntro": "Le grandi svolte di questo mondo — ere, guerre, dinastie e meraviglie.",
     "noHistory": "Nessun evento notevole per ora. La storia è appena iniziata.",
     "day": "giorno {day}",
-    "livesIntro": "Storie raccontate dagli abitanti del mondo, in ordine di quando sono state vissute.",
-    "noLives": "Ancora nessuna storia. Le storie compaiono quando gli organismi completano un ciclo di un giorno intero."
+    "livesIntro": "Le vite della sua gente e le imprese delle sue tribù: chi è invecchiato, chi ha amato, chi è andato perduto.",
+    "noLives": "Ancora nessuna vita registrata. Compaiono quando le persone invecchiano, si uniscono e muoiono.",
+    "date": "Anno {year} · {season} · Giorno {day}",
+    "tabsAria": "Sezioni della cronaca",
+    "filtersAria": "Mostra solo",
+    "filters": {
+      "all": "Tutto",
+      "wars": "Guerre",
+      "rulers": "Sovrani",
+      "wonders": "Meraviglie",
+      "disasters": "Disastri",
+      "people": "Persone"
+    },
+    "noMatch": "Non è ancora successo nulla di questo tipo.",
+    "goThere": "Vai lì",
+    "seeLives": "vedi Vite",
+    "tick": "tick {tick}",
+    "people": {
+      "elder": {
+        "one": "{count} è diventato anziano",
+        "other": "{count} sono diventati anziani"
+      },
+      "death": {
+        "one": "{count} se n'è andato",
+        "other": "{count} se ne sono andati"
+      },
+      "bond": {
+        "one": "{count} coppia si è promessa",
+        "other": "{count} coppie si sono promesse"
+      },
+      "parting": {
+        "one": "{count} coppia si è separata",
+        "other": "{count} coppie si sono separate"
+      },
+      "crime": {
+        "one": "{count} ladro preso",
+        "other": "{count} ladri presi"
+      },
+      "murder": {
+        "one": "{count} omicidio",
+        "other": "{count} omicidi"
+      }
+    }
   },
   "goals": {
     "title": "Obiettivi",

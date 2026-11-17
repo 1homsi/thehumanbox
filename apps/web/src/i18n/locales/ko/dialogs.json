@@ -59,8 +59,49 @@
     "historyIntro": "이 세계의 큰 전환점 — 시대, 전쟁, 왕조, 불가사의.",
     "noHistory": "아직 주목할 만한 사건이 없습니다. 이야기는 막 시작되었습니다.",
     "day": "{day}일",
-    "livesIntro": "세계의 주민들이 들려주는 이야기이며, 살았던 시기 순으로 정렬됩니다.",
-    "noLives": "아직 이야기가 없습니다. 생명체가 하루 주기를 온전히 보내면 이야기가 나타납니다."
+    "livesIntro": "사람들의 삶과 부족의 업적. 누가 늙었고, 누가 사랑했고, 누가 떠났는지.",
+    "noLives": "아직 기록된 삶이 없습니다. 사람들이 늙고, 짝을 짓고, 세상을 떠나면 나타납니다.",
+    "date": "{year}년 · {season} · {day}일",
+    "tabsAria": "연대기 항목",
+    "filtersAria": "골라 보기",
+    "filters": {
+      "all": "전체",
+      "wars": "전쟁",
+      "rulers": "통치자",
+      "wonders": "불가사의",
+      "disasters": "재해",
+      "people": "사람들"
+    },
+    "noMatch": "아직 이런 일은 일어나지 않았습니다.",
+    "goThere": "그곳으로 이동",
+    "seeLives": "삶 보기",
+    "tick": "틱 {tick}",
+    "people": {
+      "elder": {
+        "one": "{count}명이 원로가 됨",
+        "other": "{count}명이 원로가 됨"
+      },
+      "death": {
+        "one": "{count}명이 세상을 떠남",
+        "other": "{count}명이 세상을 떠남"
+      },
+      "bond": {
+        "one": "{count}쌍이 맺어짐",
+        "other": "{count}쌍이 맺어짐"
+      },
+      "parting": {
+        "one": "{count}쌍이 헤어짐",
+        "other": "{count}쌍이 헤어짐"
+      },
+      "crime": {
+        "one": "도둑 {count}명 붙잡힘",
+        "other": "도둑 {count}명 붙잡힘"
+      },
+      "murder": {
+        "one": "살인 {count}건",
+        "other": "살인 {count}건"
+      }
+    }
   },
   "goals": {
     "title": "목표",

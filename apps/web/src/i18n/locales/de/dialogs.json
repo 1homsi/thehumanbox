@@ -59,8 +59,49 @@
     "historyIntro": "Die großen Wendepunkte dieser Welt: Epochen, Kriege, Dynastien und Wunder.",
     "noHistory": "Noch keine nennenswerten Ereignisse. Die Geschichte beginnt gerade erst.",
     "day": "Tag {day}",
-    "livesIntro": "Geschichten der Bewohner der Welt, sortiert nach dem Zeitpunkt, zu dem sie gelebt wurden.",
-    "noLives": "Noch keine Geschichten. Geschichten erscheinen, nachdem Organismen einen vollen Tageszyklus abgeschlossen haben."
+    "livesIntro": "Das Leben seiner Menschen und die Taten seiner Stämme: wer alt wurde, wer liebte, wer verloren ging.",
+    "noLives": "Noch keine Leben verzeichnet. Sie erscheinen, wenn Menschen alt werden, sich verbinden und sterben.",
+    "date": "Jahr {year} · {season} · Tag {day}",
+    "tabsAria": "Bereiche der Chronik",
+    "filtersAria": "Nur zeigen",
+    "filters": {
+      "all": "Alle",
+      "wars": "Kriege",
+      "rulers": "Herrscher",
+      "wonders": "Wunder",
+      "disasters": "Katastrophen",
+      "people": "Menschen"
+    },
+    "noMatch": "So etwas ist noch nicht geschehen.",
+    "goThere": "Hinfliegen",
+    "seeLives": "zu Leben",
+    "tick": "Tick {tick}",
+    "people": {
+      "elder": {
+        "one": "{count} wurde Älteste(r)",
+        "other": "{count} wurden Älteste"
+      },
+      "death": {
+        "one": "{count} ist gestorben",
+        "other": "{count} sind gestorben"
+      },
+      "bond": {
+        "one": "{count} Paar hat sich versprochen",
+        "other": "{count} Paare haben sich versprochen"
+      },
+      "parting": {
+        "one": "{count} Paar hat sich getrennt",
+        "other": "{count} Paare haben sich getrennt"
+      },
+      "crime": {
+        "one": "{count} Dieb gefasst",
+        "other": "{count} Diebe gefasst"
+      },
+      "murder": {
+        "one": "{count} Mord",
+        "other": "{count} Morde"
+      }
+    }
   },
   "goals": {
     "title": "Ziele",

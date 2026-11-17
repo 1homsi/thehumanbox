@@ -59,8 +59,49 @@
     "historyIntro": "这个世界的重大转折 — 纪元、战争、王朝与奇迹。",
     "noHistory": "暂无值得记录的事件。故事才刚刚开始。",
     "day": "第 {day} 天",
-    "livesIntro": "由世界居民讲述的故事，按其生活的时间排列。",
-    "noLives": "暂无故事。生物完成一整个昼夜循环后，故事便会出现。"
+    "livesIntro": "这里记录人们的一生与部落的事迹：谁老去，谁相爱，谁离开。",
+    "noLives": "还没有记录任何生平。人们变老、结为伴侣、离世时，这里便会出现记录。",
+    "date": "第 {year} 年 · {season} · 第 {day} 天",
+    "tabsAria": "编年史分区",
+    "filtersAria": "只显示",
+    "filters": {
+      "all": "全部",
+      "wars": "战争",
+      "rulers": "统治者",
+      "wonders": "奇迹",
+      "disasters": "灾害",
+      "people": "人们"
+    },
+    "noMatch": "还没有发生过这类事。",
+    "goThere": "前往那里",
+    "seeLives": "查看生平",
+    "tick": "刻 {tick}",
+    "people": {
+      "elder": {
+        "one": "{count} 人成为长者",
+        "other": "{count} 人成为长者"
+      },
+      "death": {
+        "one": "{count} 人离世",
+        "other": "{count} 人离世"
+      },
+      "bond": {
+        "one": "{count} 对结为伴侣",
+        "other": "{count} 对结为伴侣"
+      },
+      "parting": {
+        "one": "{count} 对分开",
+        "other": "{count} 对分开"
+      },
+      "crime": {
+        "one": "{count} 名小偷落网",
+        "other": "{count} 名小偷落网"
+      },
+      "murder": {
+        "one": "{count} 起杀人",
+        "other": "{count} 起杀人"
+      }
+    }
   },
   "goals": {
     "title": "目标",

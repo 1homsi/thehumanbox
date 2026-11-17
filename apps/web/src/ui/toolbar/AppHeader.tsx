@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import type { PrayerInfo, WorldState } from '../../shared/types'
 import { useNerdStats, useUIStore } from '../../state/store'
@@ -22,7 +22,7 @@ import { updateCheckMessage } from '../modals/updateCheckMessage'
 import { moonPhaseWord } from '../sim-words'
 import { calendarAt } from '../../game/model/calendar'
 import { openingHides, useOpeningGuide } from '../../state/opening-guide'
-import { chroniclesBadgeCount } from '../modals/chronicles-tab'
+import { chronicleCounts, chroniclesBadgeCount } from '../modals/chronicles-tab'
 
 interface Props {
   world: WorldState | null
@@ -89,10 +89,10 @@ export function AppHeader({
     return () => document.removeEventListener('pointerdown', handler)
   }, [showMore])
 
-  const chroniclesCount = chroniclesBadgeCount(
-    world?.story_history?.length ?? 0,
-    world?.headlines?.length ?? 0,
-  )
+  const stories = world?.story_history
+  const headlines = world?.headlines
+  const counts = useMemo(() => chronicleCounts(stories, headlines), [stories, headlines])
+  const chroniclesCount = chroniclesBadgeCount(counts.lives, counts.history)
 
   const tip = (title: string, body?: string, how?: string) => (
     <span className="tip-card">

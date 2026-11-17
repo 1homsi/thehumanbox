@@ -900,16 +900,6 @@ body.thb-photo-mode .headline-ticker {
   z-index: 1;
 }
 
-/* World-history rows have no name column; the text always fills the rest
- * of the row instead of landing in the name track. */
-.chronicle-row > .chronicle-text:nth-child(2) {
-  grid-column: 2 / -1;
-}
-.chronicle-row {
-  border-bottom: 2px solid var(--px-ink);
-  box-shadow: 0 1px 0 var(--px-groove);
-}
-
 /* Small pixel tag for experimental settings. */
 .settings-beta {
   display: inline-block;

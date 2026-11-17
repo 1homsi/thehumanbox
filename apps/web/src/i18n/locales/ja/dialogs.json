@@ -59,8 +59,49 @@
     "historyIntro": "この世界の大きな転換点 — 時代、戦争、王朝、驚異の建造物。",
     "noHistory": "まだ注目すべき出来事はありません。物語はまだ始まったばかりです。",
     "day": "{day}日目",
-    "livesIntro": "世界の住人が語る物語。生きた時期順に並んでいます。",
-    "noLives": "まだ物語はありません。生物が 1 日の周期を最後まで過ごすと、物語が現れます。"
+    "livesIntro": "人々の人生と部族の功績。誰が年老い、誰が愛し、誰が失われたか。",
+    "noLives": "まだ記録された人生はありません。人々が年老い、結ばれ、世を去ると現れます。",
+    "date": "{year}年目 · {season} · {day}日目",
+    "tabsAria": "年代記の項目",
+    "filtersAria": "絞り込み",
+    "filters": {
+      "all": "すべて",
+      "wars": "戦争",
+      "rulers": "統治者",
+      "wonders": "驚異",
+      "disasters": "災害",
+      "people": "人々"
+    },
+    "noMatch": "この種の出来事はまだ起きていません。",
+    "goThere": "そこへ移動",
+    "seeLives": "人生を見る",
+    "tick": "ティック {tick}",
+    "people": {
+      "elder": {
+        "one": "{count}人が長老に",
+        "other": "{count}人が長老に"
+      },
+      "death": {
+        "one": "{count}人が世を去った",
+        "other": "{count}人が世を去った"
+      },
+      "bond": {
+        "one": "{count}組が契りを結んだ",
+        "other": "{count}組が契りを結んだ"
+      },
+      "parting": {
+        "one": "{count}組が別れた",
+        "other": "{count}組が別れた"
+      },
+      "crime": {
+        "one": "{count}人の盗人が捕まった",
+        "other": "{count}人の盗人が捕まった"
+      },
+      "murder": {
+        "one": "{count}件の殺人",
+        "other": "{count}件の殺人"
+      }
+    }
   },
   "goals": {
     "title": "目標",
