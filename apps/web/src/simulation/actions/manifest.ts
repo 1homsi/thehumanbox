@@ -34,6 +34,7 @@ export interface ActionDef {
   icon: string
   name?: string
   tip?: string
+  description?: string
   target: ActionTarget
   command?: CommandTemplate
   radius?: RadiusRule
@@ -64,6 +65,10 @@ export interface TabDef {
 }
 
 export interface ActionManifest {
+  id?: string
+  name?: string
+  author?: string
+  description?: string
   version: 1
   tabs?: TabDef[]
   groups: GroupDef[]

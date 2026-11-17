@@ -1,5 +1,6 @@
 import { t, type MessageKey } from '../../i18n'
-import { REGISTRY } from '../../simulation/actions/registry'
+import type { TabDef } from '../../simulation/actions/manifest'
+import { REGISTRY, subscribeRegistry } from '../../simulation/actions/registry'
 import { SANDBOX_CATEGORIES, type SandboxCategory, type SandboxTool } from '../../simulation/sandbox'
 
 /**
@@ -17,13 +18,21 @@ export interface DockTab {
   groups: string[]
 }
 
-export const DOCK_TABS: DockTab[] = REGISTRY.tabs.map((tab) => ({
-  id: tab.id,
-  label: tab.name as MessageKey,
-  icon: tab.icon,
-  tip: tab.tip as MessageKey,
-  groups: tab.groups,
-}))
+function dockTab(tab: TabDef): DockTab {
+  return {
+    id: tab.id,
+    label: tab.name as MessageKey,
+    icon: tab.icon,
+    tip: tab.tip as MessageKey,
+    groups: tab.groups,
+  }
+}
+
+export const DOCK_TABS: DockTab[] = REGISTRY.tabs.map(dockTab)
+
+subscribeRegistry(() => {
+  DOCK_TABS.splice(0, DOCK_TABS.length, ...REGISTRY.tabs.map(dockTab))
+})
 
 /** Time controls live in the bar's time control rather than in a tab. */
 export const TIME_CATEGORY_ID = 'time'

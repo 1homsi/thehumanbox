@@ -4,14 +4,16 @@
     "nature": "przyroda",
     "resources": "zasoby",
     "deadly": "zagłada",
-    "world": "świat"
+    "world": "świat",
+    "mods": "mody"
   },
   "tabTips": {
     "life": "Ludzie, ich pomocnicy, potwory czyhające na nich i każde zwierzę, od lisów po wieloryby",
     "nature": "Ukształtowanie terenu i biomy, niebo i pora dnia, zaćmienia i komety, epoki oraz błogosławieństwa ziemi",
     "resources": "Jedzenie, uprawy i budowle oraz błogosławieństwa, pogoda i leczenie, które możesz zesłać",
     "deadly": "Katastrofy, zarazy i wojna",
-    "world": "Całe plemiona (jedzenie i narzędzia dla każdego członka, przymusowa migracja, wymiana jedzenia) oraz warstwy mapy"
+    "world": "Całe plemiona (jedzenie i narzędzia dla każdego członka, przymusowa migracja, wymiana jedzenia) oraz warstwy mapy",
+    "mods": "Moce z modów zaimportowanych w ustawieniach"
   },
   "groups": {
     "life": "życie",

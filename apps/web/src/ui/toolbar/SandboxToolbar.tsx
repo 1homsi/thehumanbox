@@ -2,14 +2,25 @@ import { ToolSprite } from './ToolSprite'
 import { Tooltip } from './Tooltip'
 import { TimeControl } from './TimeControl'
 import { firesOnPick, toolHowTo, toolName, toolTip } from './tool-tips'
-import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from 'react'
+import { registryVersion, subscribeRegistry } from '../../simulation/actions/registry'
 import { createPortal } from 'react-dom'
 import { useWorldStore } from '../../state/worldStore'
 import { useUIStore } from '../../state/store'
 import clsx from 'clsx'
 import {
-  SANDBOX_CATEGORIES,
+  toolById,
   commandReach,
+  reachesArea,
   isSandboxViewControlActive,
   rollRandomEvent,
   type SandboxTool,
@@ -73,14 +84,10 @@ function TipCard({ title, body, how }: { title: string; body?: string; how?: str
   )
 }
 
-const ALL_TOOLS = SANDBOX_CATEGORIES.flatMap((c) => c.tools)
-
 /** Whether a tool's reach changes with the brush, so the brush sizes are worth showing for it. */
 function usesBrush(tool: SandboxTool | undefined): boolean {
   if (!tool?.build) return false
-  const small = tool.build(0, 0, 0) as { radius?: number; count?: number }
-  const large = tool.build(0, 0, 4) as { radius?: number; count?: number }
-  return small.radius !== large.radius || small.count !== large.count
+  return JSON.stringify(tool.build(0, 0, 0)) !== JSON.stringify(tool.build(0, 0, 4))
 }
 
 const SIZE_DISCS = [4, 6, 8, 10, 12, 14]
@@ -114,7 +121,7 @@ function PixelDisc({ size }: { size: number }) {
 function sizeTitle(tool: SandboxTool | undefined, size: number, value: number): string {
   const label = t('dock.aria.brushSize', { size })
   const built = tool?.build?.(0, 0, value)
-  if (!built || !('radius' in built) || typeof built.radius !== 'number') return label
+  if (!built || !reachesArea(built)) return label
   return `${label} · ${t('dock.how.reachTiles', { tiles: Math.round(commandReach(built)) })}`
 }
 
@@ -248,7 +255,9 @@ export function SandboxToolbar({
   onPick,
   onClearArmed,
 }: Props) {
-  const [tabId, setTabId] = useState(readInitialTab)
+  useSyncExternalStore(subscribeRegistry, registryVersion, registryVersion)
+  const [savedTabId, setTabId] = useState(readInitialTab)
+  const tabId = DOCK_TABS.some((tab) => tab.id === savedTabId) ? savedTabId : DOCK_TABS[0].id
   const locked = useOpeningGuide((st) => openingHides(st.beat, 'powers'))
   const [remembered, setRemembered] = useState(readRememberedGroups)
   const groupId = resolveGroup(tabId, remembered[tabId])
@@ -355,7 +364,7 @@ export function SandboxToolbar({
   })
   const pickStable = useCallback((tool: SandboxTool) => pickRef.current(tool), [])
 
-  const armedTool = armedToolId ? ALL_TOOLS.find((t) => t.id === armedToolId) : undefined
+  const armedTool = armedToolId ? toolById(armedToolId) : undefined
   const heldName = armedTool ? toolName(armedTool) : (armedToolLabel ?? undefined)
 
   // The held tool's name sits above its icon; it follows the icon as the row scrolls, stays inside

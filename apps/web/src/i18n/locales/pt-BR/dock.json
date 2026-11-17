@@ -4,14 +4,16 @@
     "nature": "natureza",
     "resources": "recursos",
     "deadly": "letal",
-    "world": "mundo"
+    "world": "mundo",
+    "mods": "mods"
   },
   "tabTips": {
     "life": "Pessoas, seus ajudantes, os monstros que as espreitam e todo animal, de raposas a baleias",
     "nature": "Terreno e biomas, céu e hora do dia, eclipses e cometas, as eras e as bênçãos da terra",
     "resources": "Comida, plantações e construções, e as bênçãos, o clima e a cura que você pode dar",
     "deadly": "Desastres, pragas e guerra",
-    "world": "Tribos inteiras (comida e ferramentas para cada membro, uma migração forçada, uma troca de comida) e as camadas do mapa"
+    "world": "Tribos inteiras (comida e ferramentas para cada membro, uma migração forçada, uma troca de comida) e as camadas do mapa",
+    "mods": "Poderes dos mods que você importou nas Configurações"
   },
   "groups": {
     "life": "vida",

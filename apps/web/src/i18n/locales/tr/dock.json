@@ -4,14 +4,16 @@
     "nature": "doğa",
     "resources": "kaynaklar",
     "deadly": "ölümcül",
-    "world": "dünya"
+    "world": "dünya",
+    "mods": "modlar"
   },
   "tabTips": {
     "life": "İnsanlar, yardımcıları, onları avlayan canavarlar ve tilkiden balinaya her hayvan",
     "nature": "Arazi ve biyomlar, gökyüzü ve günün saati, tutulmalar ve kuyruklu yıldızlar, çağlar ve toprağın kutsamaları",
     "resources": "Yiyecek, ekimler ve yapılar; verebileceğiniz kutsamalar, hava durumu ve iyileştirmeler",
     "deadly": "Felaketler, salgınlar ve savaş",
-    "world": "Tüm kabileler (her üyeye yiyecek ve alet, zorunlu göç, yiyecek ticareti) ve harita katmanları"
+    "world": "Tüm kabileler (her üyeye yiyecek ve alet, zorunlu göç, yiyecek ticareti) ve harita katmanları",
+    "mods": "Ayarlar'da içe aktardığın modların güçleri"
   },
   "groups": {
     "life": "yaşam",

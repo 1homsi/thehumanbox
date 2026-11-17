@@ -7,6 +7,18 @@
   "properties": {
     "$schema": { "type": "string" },
     "version": { "const": 1 },
+    "id": {
+      "description": "A mod's id. Its actions and groups are known as mod:<id>:<their id> once imported.",
+      "$ref": "#/$defs/id"
+    },
+    "name": {
+      "description": "A mod's name, as players see it.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60
+    },
+    "author": { "type": "string", "maxLength": 60 },
+    "description": { "type": "string", "maxLength": 300 },
     "tabs": { "type": "array", "items": { "$ref": "#/$defs/tab" } },
     "groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
     "actions": { "type": "array", "items": { "$ref": "#/$defs/action" } }
@@ -148,10 +160,20 @@
       "properties": {
         "id": { "$ref": "#/$defs/id" },
         "group": { "$ref": "#/$defs/id" },
-        "label": { "description": "The name in English, shown when name has no text.", "type": "string" },
+        "label": {
+          "description": "The name in English, shown when name has no text.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
         "icon": { "description": "The dock sprite, by its key in the icon table.", "type": "string" },
         "name": { "$ref": "#/$defs/textKey" },
         "tip": { "$ref": "#/$defs/textKey" },
+        "description": {
+          "description": "What the action does, shown in its tooltip when tip has no text.",
+          "type": "string",
+          "maxLength": 200
+        },
         "target": {
           "description": "brush: a click, with a radius from the brush. point: a click. pair: two clicks. global: the whole world, at once. random: one of its events at a random place. person: the app acts on the person clicked. view and time: change what the map shows or how fast time runs.",
           "enum": ["brush", "point", "pair", "global", "random", "person", "view", "time"]

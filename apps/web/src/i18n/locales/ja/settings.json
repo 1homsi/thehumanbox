@@ -9,7 +9,8 @@
     "performance": "パフォーマンス",
     "help": "ヘルプ",
     "simulation": "シミュレーション",
-    "app": "アプリ"
+    "app": "アプリ",
+    "mods": "MOD"
   },
   "language": {
     "section": "言語",
@@ -159,5 +160,72 @@
     "saveFailed": "設定を保存できませんでした: {error}",
     "launchFailed": "保存しましたが、サインイン時の起動設定を更新できませんでした: {error}",
     "restartFailed": "シミュレーションを再起動できませんでした: {error}"
+  },
+  "mods": {
+    "section": "MOD",
+    "intro": "MODは、ドックにある力を組み合わせた新しい力のJSONファイルです。その力はドックに専用のMODタブを持ちます。MODはデータだけで、コードとして実行されるものはありません。",
+    "rules": "それぞれの力は世界がすでに知っている命令を一度に{steps}個まで送り、届く範囲は最大{radius}マスです。",
+    "sample": "サンプルMODをダウンロード",
+    "pick": "MODファイルを選ぶ",
+    "drop": "MODの.jsonファイルをここにドロップするか、クリックして選んでください",
+    "pasteLabel": "またはMODのJSONを貼り付け",
+    "pastePlaceholder": "ここにファイルの中身を貼り付けてください",
+    "import": "読み込む",
+    "failed": "このMODは読み込めません：",
+    "added": "「{name}」を追加しました。力はドックのMODタブにあります。",
+    "updated": "「{name}」を更新しました。力はドックのMODタブにあります。",
+    "installed": "あなたのMOD",
+    "none": "MODはまだありません。",
+    "storedNote": "MODはこのブラウザに保存され、世界に戻ってきたときにも使えます。",
+    "by": "作者：{author}",
+    "enable": "{name}を使う",
+    "remove": "削除",
+    "removeTitle": "{name}を削除しますか？",
+    "removeBody": "その力はドックから消えます。ファイルはあとでまた読み込めます。",
+    "actionsLabel": "{name}の力",
+    "brokenName": "読み込めなくなったMOD",
+    "broken": "このMODはチェックを通らなくなったため、力は止まっています：",
+    "where": {
+      "mod": "MOD",
+      "action": "力{n}（{label}）",
+      "group": "グループ{n}（{label}）"
+    },
+    "problems": {
+      "type": "{where}：値の種類が違います（{detail}であるべきです）。",
+      "value": "{where}：次のどれかでなければなりません：{detail}。",
+      "pattern": "{where}：「{detail}」には小文字・数字・_ だけが使え、文字で始める必要があります。",
+      "short": "{where}：短すぎます（{detail}文字以上）。",
+      "long": "{where}：長すぎます（{detail}文字以下）。",
+      "small": "{where}：小さすぎます（{detail}以上）。",
+      "tooFew": "{where}：{detail}個以上の項目が必要です。",
+      "tooMany": "{where}：項目が{detail}個を超えています。",
+      "missing": "{where}：「{detail}」がありません。",
+      "unknownField": "{where}：ゲームが知らない項目があります：「{detail}」。",
+      "shape": "{where}：ゲームが理解できる形になっていません。",
+      "placeholder": "{where}：この種類の力では「{slot}」を使えません。",
+      "number": "{where}：-{most}から{most}までの数でなければなりません。",
+      "nested": "{where}：入れ子のオブジェクトは使えません。",
+      "command": "{where}：「{cmd}」は世界が知っている力ではありません。",
+      "compositeInComposite": "{where}：組み合わせた力の中に別の組み合わせた力は入れられません。",
+      "steps": "{where}：組み合わせた力には1〜{most}個の手順が必要です。",
+      "step": "{where}：各手順は「cmd」を持つ命令でなければなりません。",
+      "target": "{where}：MODが作れるのはブラシ・クリック・世界全体の力だけで、「{target}」は作れません。",
+      "tooBig": "ファイルは{size} KBです。MODは最大{most} KBまでです。",
+      "notJson": "ファイルが正しいJSONではありません（{detail}）。",
+      "notManifest": "ファイルがMODではありません。JSONオブジェクト1つである必要があります。",
+      "noId": "MODには「id」が必要です。",
+      "noName": "MODには「name」が必要です。",
+      "noActions": "MODに力がありません。",
+      "tooManyActions": "MODの力は最大{most}個までです。",
+      "tooManyGroups": "MODのグループは最大{most}個までです。",
+      "duplicate": "{where}：id「{id}」が2回使われています。",
+      "group": "{where}：グループ「{group}」がgroupsにありません。",
+      "tooManyMods": "MODは最大{most}個までです。先に1つ削除してください。",
+      "unreadable": "ファイルを読めませんでした（{detail}）。"
+    },
+    "notes": {
+      "radius": "{where}：範囲を{most}マスまでにしました。",
+      "count": "{where}：数を{count}にしました。"
+    }
   }
 }

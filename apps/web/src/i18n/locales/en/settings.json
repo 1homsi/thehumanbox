@@ -9,7 +9,8 @@
     "performance": "performance",
     "help": "help",
     "simulation": "simulation",
-    "app": "app"
+    "app": "app",
+    "mods": "mods"
   },
   "language": {
     "section": "Language",
@@ -159,5 +160,72 @@
     "saveFailed": "could not save settings: {error}",
     "launchFailed": "saved, but could not update launch at sign-in: {error}",
     "restartFailed": "could not restart the simulation: {error}"
+  },
+  "mods": {
+    "section": "Mods",
+    "intro": "A mod is a JSON file of new powers built from the ones the dock already has. Its powers get a mods tab of their own on the dock. A mod is only data: nothing in it runs as code.",
+    "rules": "Each power sends commands the world already knows, up to {steps} at once, reaching at most {radius} tiles.",
+    "sample": "Download the example mod",
+    "pick": "Choose a mod file",
+    "drop": "Drop a mod's .json file here, or click to choose one",
+    "pasteLabel": "Or paste a mod's JSON",
+    "pastePlaceholder": "Paste the file's text here",
+    "import": "Import",
+    "failed": "This mod can't be imported:",
+    "added": "Added “{name}”. Its powers are in the mods tab of the dock.",
+    "updated": "Updated “{name}”. Its powers are in the mods tab of the dock.",
+    "installed": "Your mods",
+    "none": "No mods yet.",
+    "storedNote": "Mods are kept in this browser and come back with your world when you return.",
+    "by": "by {author}",
+    "enable": "Use {name}",
+    "remove": "Remove",
+    "removeTitle": "Remove {name}?",
+    "removeBody": "Its powers leave the dock. You can import the file again later.",
+    "actionsLabel": "Powers in {name}",
+    "brokenName": "A mod that no longer loads",
+    "broken": "This mod no longer passes the checks, so its powers are off:",
+    "where": {
+      "mod": "The mod",
+      "action": "Power {n} ({label})",
+      "group": "Group {n} ({label})"
+    },
+    "problems": {
+      "type": "{where}: has the wrong kind of value (it should be a {detail}).",
+      "value": "{where}: must be one of: {detail}.",
+      "pattern": "{where}: “{detail}” may only use lowercase letters, digits and _, and must start with a letter.",
+      "short": "{where}: is too short (at least {detail} characters).",
+      "long": "{where}: is too long (at most {detail} characters).",
+      "small": "{where}: is too small (at least {detail}).",
+      "tooFew": "{where}: needs at least {detail} entries.",
+      "tooMany": "{where}: has more than {detail} entries.",
+      "missing": "{where}: is missing “{detail}”.",
+      "unknownField": "{where}: has a field the game doesn't know: “{detail}”.",
+      "shape": "{where}: isn't in a form the game understands.",
+      "placeholder": "{where}: “{slot}” can't be used by this kind of power.",
+      "number": "{where}: must be a number between -{most} and {most}.",
+      "nested": "{where}: can't hold a nested object.",
+      "command": "{where}: “{cmd}” isn't a power the world knows.",
+      "compositeInComposite": "{where}: a combined power can't contain another combined power.",
+      "steps": "{where}: a combined power needs 1 to {most} steps.",
+      "step": "{where}: each step must be a command with a “cmd”.",
+      "target": "{where}: a mod can only make brush, click or world-wide powers, not “{target}”.",
+      "tooBig": "The file is {size} KB; a mod can be at most {most} KB.",
+      "notJson": "The file isn't valid JSON ({detail}).",
+      "notManifest": "The file isn't a mod: it should be a single JSON object.",
+      "noId": "The mod needs an “id”.",
+      "noName": "The mod needs a “name”.",
+      "noActions": "The mod has no powers.",
+      "tooManyActions": "A mod can have at most {most} powers.",
+      "tooManyGroups": "A mod can have at most {most} groups.",
+      "duplicate": "{where}: the id “{id}” is used twice.",
+      "group": "{where}: the group “{group}” isn't listed under groups.",
+      "tooManyMods": "You can keep at most {most} mods. Remove one first.",
+      "unreadable": "The file couldn't be read ({detail})."
+    },
+    "notes": {
+      "radius": "{where}: the reach was kept to {most} tiles.",
+      "count": "{where}: the count was kept to {count}."
+    }
   }
 }

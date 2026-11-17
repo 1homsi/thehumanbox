@@ -4,14 +4,16 @@
     "nature": "nature",
     "resources": "resources",
     "deadly": "deadly",
-    "world": "world"
+    "world": "world",
+    "mods": "mods"
   },
   "tabTips": {
     "life": "People, their helpers, the monsters that stalk them, and every animal from foxes to whales",
     "nature": "Terrain and biomes, the sky and the time of day, eclipses and comets, the eras, and blessings of the land",
     "resources": "Food, plantings and buildings, and the blessings, weather and healing you can give",
     "deadly": "Disasters, plagues, and war",
-    "world": "Whole tribes (food and tools for every member, a forced migration, a trade of food) and the map layers"
+    "world": "Whole tribes (food and tools for every member, a forced migration, a trade of food) and the map layers",
+    "mods": "Powers from the mods you imported in Settings"
   },
   "groups": {
     "life": "life",

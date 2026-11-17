@@ -23,6 +23,7 @@ import { deleteWorld, listRecoveryWorlds, loadWorld, type RecoveryWorld } from '
 import { DESKTOP_PAUSE_WHEN_HIDDEN_EVENT } from '../../shared/desktopVisibility'
 import { formatDateTime, formatNumber, t } from '../../i18n'
 import { LanguageTab } from './LanguageTab'
+import { ModsTab } from './ModsTab'
 import { useTribeFollow } from '../../state/tribe-follow'
 import { updateCheckMessage } from './updateCheckMessage'
 import { useTutorial } from '../../state/tutorial'
@@ -194,10 +195,11 @@ const POPULATION_CAP_PRESETS = [
   [2000, 'settings.desktop.presetExperimental'],
 ] as const
 
-type TabId = 'world' | 'language' | 'display' | 'access' | 'performance' | 'help' | 'simulation' | 'app'
+type TabId =
+  'world' | 'language' | 'display' | 'access' | 'performance' | 'mods' | 'help' | 'simulation' | 'app'
 
 type TabLabel =
-  `settings.tabs.${'world' | 'language' | 'display' | 'accessibility' | 'performance' | 'help' | 'simulation' | 'app'}`
+  `settings.tabs.${'world' | 'language' | 'display' | 'accessibility' | 'performance' | 'mods' | 'help' | 'simulation' | 'app'}`
 
 const WEB_TABS: ReadonlyArray<{ id: TabId; label: TabLabel; icon: string }> = [
   { id: 'world', label: 'settings.tabs.world', icon: '🗺️' },
@@ -205,6 +207,7 @@ const WEB_TABS: ReadonlyArray<{ id: TabId; label: TabLabel; icon: string }> = [
   { id: 'display', label: 'settings.tabs.display', icon: '☀️' },
   { id: 'access', label: 'settings.tabs.accessibility', icon: '✨' },
   { id: 'performance', label: 'settings.tabs.performance', icon: '🐢' },
+  { id: 'mods', label: 'settings.tabs.mods', icon: '✨' },
   { id: 'help', label: 'settings.tabs.help', icon: '📖' },
 ]
 
@@ -646,6 +649,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
               <PerformanceTab />
             </Section>
           )}
+          {tab === 'mods' && <ModsTab />}
           {tab === 'help' && (
             <Section title={t('settings.help.section')}>
               <HelpTab onClose={onClose} />
@@ -913,7 +917,7 @@ function UpdateCheckButton({ desktop }: { desktop: DesktopBridge }) {
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+export function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="settings-section">
       <h3 className="settings-section-title">{title}</h3>
@@ -922,7 +926,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function SettingRow({
+export function SettingRow({
   title,
   desc,
   beta,
@@ -947,7 +951,7 @@ function SettingRow({
   )
 }
 
-function Switch({
+export function Switch({
   checked,
   onChange,
   label,

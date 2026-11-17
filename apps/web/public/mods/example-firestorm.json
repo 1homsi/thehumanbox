@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "id": "firestorm",
+  "name": "Firestorm",
+  "author": "The Human Box",
+  "description": "An example mod: three new powers built from the ones the dock already has. Copy it, change the numbers and import it again.",
+  "groups": [{ "id": "storms", "label": "storms", "icon": "🔥" }],
+  "actions": [
+    {
+      "id": "firestorm",
+      "group": "storms",
+      "label": "firestorm",
+      "icon": "🔥",
+      "description": "Sets the ground ablaze, then calls lightning down on the same spot and whips up a gale.",
+      "target": "brush",
+      "command": {
+        "cmd": "composite",
+        "steps": [
+          { "cmd": "ignite", "x": "$x", "y": "$y", "radius": "$radius" },
+          { "cmd": "thunder", "x": "$x", "y": "$y", "radius": "$radius" },
+          { "cmd": "gale" }
+        ]
+      },
+      "radius": { "base": 3, "perBrush": 1, "max": 20 }
+    },
+    {
+      "id": "frog_rain",
+      "group": "storms",
+      "label": "frog rain",
+      "icon": "🐸",
+      "description": "Rain falls, and a dozen frogs with it.",
+      "target": "point",
+      "command": {
+        "cmd": "composite",
+        "steps": [
+          { "cmd": "rain_patch", "x": "$x", "y": "$y", "radius": 5 },
+          { "cmd": "spawn_animal", "x": "$x", "y": "$y", "kind": "frog", "count": 12, "radius": 4 }
+        ]
+      }
+    },
+    {
+      "id": "grove",
+      "group": "storms",
+      "label": "sacred grove",
+      "icon": "🌳",
+      "description": "Plants a ring of oaks and blesses the forest around them.",
+      "target": "brush",
+      "command": {
+        "cmd": "composite",
+        "steps": [
+          { "cmd": "plant", "x": "$x", "y": "$y", "kind": "oak", "radius": "$radius" },
+          { "cmd": "bless_forest", "x": "$x", "y": "$y", "radius": "$radius" }
+        ]
+      },
+      "radius": { "base": 3, "perBrush": 1, "max": 16 }
+    }
+  ]
+}

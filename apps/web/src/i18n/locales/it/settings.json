@@ -9,7 +9,8 @@
     "performance": "prestazioni",
     "help": "aiuto",
     "simulation": "simulazione",
-    "app": "app"
+    "app": "app",
+    "mods": "mod"
   },
   "language": {
     "section": "Lingua",
@@ -159,5 +160,72 @@
     "saveFailed": "impossibile salvare le impostazioni: {error}",
     "launchFailed": "salvato, ma impossibile aggiornare l'avvio all'accesso: {error}",
     "restartFailed": "impossibile riavviare la simulazione: {error}"
+  },
+  "mods": {
+    "section": "Mod",
+    "intro": "Una mod è un file JSON di nuovi poteri costruiti con quelli che il dock ha già. I suoi poteri hanno una scheda mod tutta loro nel dock. Una mod è solo dati: niente al suo interno viene eseguito come codice.",
+    "rules": "Ogni potere invia comandi che il mondo conosce già, fino a {steps} alla volta, con una portata di al massimo {radius} caselle.",
+    "sample": "Scarica la mod di esempio",
+    "pick": "Scegli un file di mod",
+    "drop": "Trascina qui il file .json di una mod o fai clic per sceglierne uno",
+    "pasteLabel": "Oppure incolla il JSON di una mod",
+    "pastePlaceholder": "Incolla qui il testo del file",
+    "import": "Importa",
+    "failed": "Questa mod non può essere importata:",
+    "added": "Aggiunta «{name}». I suoi poteri sono nella scheda mod del dock.",
+    "updated": "Aggiornata «{name}». I suoi poteri sono nella scheda mod del dock.",
+    "installed": "Le tue mod",
+    "none": "Ancora nessuna mod.",
+    "storedNote": "Le mod restano in questo browser e tornano con il tuo mondo quando ritorni.",
+    "by": "di {author}",
+    "enable": "Usa {name}",
+    "remove": "Rimuovi",
+    "removeTitle": "Rimuovere {name}?",
+    "removeBody": "I suoi poteri lasciano il dock. Potrai importare di nuovo il file più tardi.",
+    "actionsLabel": "Poteri di {name}",
+    "brokenName": "Una mod che non si carica più",
+    "broken": "Questa mod non supera più i controlli, quindi i suoi poteri sono disattivati:",
+    "where": {
+      "mod": "La mod",
+      "action": "Potere {n} ({label})",
+      "group": "Gruppo {n} ({label})"
+    },
+    "problems": {
+      "type": "{where}: ha il tipo di valore sbagliato (dovrebbe essere {detail}).",
+      "value": "{where}: deve essere uno di: {detail}.",
+      "pattern": "{where}: «{detail}» può usare solo lettere minuscole, cifre e _, e deve iniziare con una lettera.",
+      "short": "{where}: è troppo corto (almeno {detail} caratteri).",
+      "long": "{where}: è troppo lungo (al massimo {detail} caratteri).",
+      "small": "{where}: è troppo piccolo (almeno {detail}).",
+      "tooFew": "{where}: servono almeno {detail} voci.",
+      "tooMany": "{where}: ha più di {detail} voci.",
+      "missing": "{where}: manca «{detail}».",
+      "unknownField": "{where}: ha un campo che il gioco non conosce: «{detail}».",
+      "shape": "{where}: non ha una forma che il gioco capisca.",
+      "placeholder": "{where}: «{slot}» non si può usare in questo tipo di potere.",
+      "number": "{where}: deve essere un numero tra -{most} e {most}.",
+      "nested": "{where}: non può contenere un oggetto annidato.",
+      "command": "{where}: «{cmd}» non è un potere che il mondo conosca.",
+      "compositeInComposite": "{where}: un potere combinato non può contenerne un altro.",
+      "steps": "{where}: un potere combinato ha bisogno di 1-{most} passi.",
+      "step": "{where}: ogni passo deve essere un comando con «cmd».",
+      "target": "{where}: una mod può creare solo poteri a pennello, a clic o per tutto il mondo, non «{target}».",
+      "tooBig": "Il file pesa {size} KB; una mod può pesare al massimo {most} KB.",
+      "notJson": "Il file non è un JSON valido ({detail}).",
+      "notManifest": "Il file non è una mod: dovrebbe essere un solo oggetto JSON.",
+      "noId": "Alla mod serve un «id».",
+      "noName": "Alla mod serve un «name».",
+      "noActions": "La mod non ha poteri.",
+      "tooManyActions": "Una mod può avere al massimo {most} poteri.",
+      "tooManyGroups": "Una mod può avere al massimo {most} gruppi.",
+      "duplicate": "{where}: l’id «{id}» è usato due volte.",
+      "group": "{where}: il gruppo «{group}» non è elencato in groups.",
+      "tooManyMods": "Puoi tenere al massimo {most} mod. Rimuovine prima una.",
+      "unreadable": "Impossibile leggere il file ({detail})."
+    },
+    "notes": {
+      "radius": "{where}: la portata è stata limitata a {most} caselle.",
+      "count": "{where}: il numero è stato limitato a {count}."
+    }
   }
 }

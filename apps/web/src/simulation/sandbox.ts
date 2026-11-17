@@ -103,6 +103,7 @@ export type SandboxCommand =
   | { cmd: 'road'; x: number; y: number; radius?: number; kind: 'road' | 'bridge' | 'erase' }
   | { cmd: 'place_building'; x: number; y: number; kind: string }
   | { cmd: 'place_boat'; x: number; y: number }
+  | { cmd: 'composite'; steps: SandboxCommand[] }
   | {
       cmd: 'guide'
       lineage: string
@@ -110,7 +111,7 @@ export type SandboxCommand =
       duration_ticks?: number
     }
 
-export { commandReach } from './actions/registry'
+export { commandReach, reachesArea } from './actions/registry'
 
 export function rollRandomEvent(
   width: number,
@@ -160,6 +161,7 @@ export interface SandboxTool {
   target?: ActionTarget
   name?: MessageKey
   tip?: MessageKey
+  description?: string
   failure?: MessageKey
   hotkey?: string
   /** A sky effect drawn over the map for a while once the command lands (see game/render/sky-overlay.ts). */

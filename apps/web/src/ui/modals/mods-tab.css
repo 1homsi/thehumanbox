@@ -1,0 +1,104 @@
+.mods-drop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 64px;
+  margin: 12px 0 10px;
+  padding: 10px 12px;
+  background: var(--px-inset);
+  border: 2px dashed var(--px-brass);
+  color: var(--px-text);
+  font-size: 12px;
+  text-align: center;
+  cursor: pointer;
+}
+.mods-drop:hover,
+.mods-drop.dragging {
+  border-color: var(--px-gold);
+  color: var(--px-gold-text);
+}
+.mods-drop:focus-visible {
+  outline: 2px solid var(--px-gold);
+  outline-offset: 2px;
+}
+.mods-paste {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mods-paste textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: 7px 9px;
+  background: var(--px-inset);
+  border: 2px solid var(--px-ink);
+  box-shadow: var(--px-sunken-shadow);
+  color: var(--px-text);
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+.mods-result {
+  margin-top: 10px;
+}
+.mods-ok {
+  color: #8fd06a;
+}
+.mods-problems {
+  margin: 4px 0 0;
+  padding-left: 16px;
+}
+.mods-problems li {
+  margin: 2px 0;
+}
+.mods-list {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.mods-card {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--px-groove);
+}
+.mods-card:last-child {
+  border-bottom: 0;
+}
+.mods-card.off .mods-actions {
+  opacity: 0.5;
+}
+.mods-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.mods-card-text {
+  flex: 1;
+  min-width: 0;
+}
+.mods-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.mods-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  background: var(--px-inset);
+  border: 2px solid var(--px-ink);
+  color: var(--px-text);
+  font-size: 11px;
+}
+@media (max-width: 600px) {
+  .mods-card-head {
+    flex-wrap: wrap;
+  }
+  .mods-remove {
+    margin-left: auto;
+  }
+}

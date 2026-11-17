@@ -4,14 +4,16 @@
     "nature": "nature",
     "resources": "ressources",
     "deadly": "mortel",
-    "world": "monde"
+    "world": "monde",
+    "mods": "mods"
   },
   "tabTips": {
     "life": "Les personnes, leurs aides, les monstres qui les traquent et chaque animal, des renards aux baleines",
     "nature": "Terrains et biomes, le ciel et l'heure du jour, éclipses et comètes, les âges et les bénédictions de la terre",
     "resources": "Nourriture, cultures et bâtiments, ainsi que les bénédictions, la météo et les soins que vous pouvez donner",
     "deadly": "Catastrophes, épidémies et guerre",
-    "world": "Tribus entières (nourriture et outils pour chaque membre, migration forcée, troc de nourriture) et les calques de la carte"
+    "world": "Tribus entières (nourriture et outils pour chaque membre, migration forcée, troc de nourriture) et les calques de la carte",
+    "mods": "Les pouvoirs des mods importés dans les réglages"
   },
   "groups": {
     "life": "vie",

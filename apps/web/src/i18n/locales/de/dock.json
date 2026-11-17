@@ -4,14 +4,16 @@
     "nature": "Natur",
     "resources": "Ressourcen",
     "deadly": "tödlich",
-    "world": "Welt"
+    "world": "Welt",
+    "mods": "Mods"
   },
   "tabTips": {
     "life": "Personen, ihre Helfer, die Monster, die ihnen nachstellen, und jedes Tier von Füchsen bis zu Walen",
     "nature": "Gelände und Biome, der Himmel und die Tageszeit, Finsternisse und Kometen, die Epochen und die Segnungen des Landes",
     "resources": "Nahrung, Pflanzungen und Gebäude sowie die Segnungen, das Wetter und die Heilung, die du gewähren kannst",
     "deadly": "Katastrophen, Seuchen und Krieg",
-    "world": "Ganze Stämme (Nahrung und Werkzeuge für jedes Mitglied, eine erzwungene Wanderung, ein Nahrungshandel) und die Kartenebenen"
+    "world": "Ganze Stämme (Nahrung und Werkzeuge für jedes Mitglied, eine erzwungene Wanderung, ein Nahrungshandel) und die Kartenebenen",
+    "mods": "Kräfte aus den Mods, die du in den Einstellungen importiert hast"
   },
   "groups": {
     "life": "Leben",

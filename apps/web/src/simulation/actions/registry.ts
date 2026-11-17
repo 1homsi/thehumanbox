@@ -33,6 +33,7 @@ export function toolFromAction(action: ActionDef): SandboxTool {
   }
   if (action.name) tool.name = action.name as MessageKey
   if (action.tip) tool.tip = action.tip as MessageKey
+  if (action.description) tool.description = action.description
   if (action.failure) tool.failure = action.failure as MessageKey
   if (action.overlay) tool.overlay = action.overlay
   if (action.hotkey) tool.hotkey = action.hotkey
@@ -100,9 +101,66 @@ export function buildRegistry(manifest: ActionManifest): ActionRegistry {
   return { categories, tools, tabs: manifest.tabs ?? [], pairs, randomEvents, reachByCommand, causeByCommand }
 }
 
-export const REGISTRY = buildRegistry(BUILTIN_ACTIONS)
+const BUILTIN = buildRegistry(BUILTIN_ACTIONS)
+const liveCategories = [...BUILTIN.categories]
+const liveTools = new Map(BUILTIN.tools)
+const liveTabs = [...BUILTIN.tabs]
+
+export const REGISTRY: ActionRegistry = {
+  ...BUILTIN,
+  categories: liveCategories,
+  tools: liveTools,
+  tabs: liveTabs,
+}
+
+export const MOD_TAB_ID = 'mods'
+
+const listeners = new Set<() => void>()
+let version = 0
+
+export function setModManifests(mods: readonly ActionManifest[]): void {
+  const added = buildRegistry({
+    version: 1,
+    groups: mods.flatMap((m) => m.groups),
+    actions: mods.flatMap((m) => m.actions),
+  })
+  liveCategories.splice(0, liveCategories.length, ...BUILTIN.categories, ...added.categories)
+  liveTools.clear()
+  for (const category of liveCategories) for (const tool of category.tools) liveTools.set(tool.id, tool)
+  const modTab: TabDef[] = added.categories.length
+    ? [
+        {
+          id: MOD_TAB_ID,
+          icon: '✨',
+          name: 'dock.tabs.mods',
+          tip: 'dock.tabTips.mods',
+          groups: added.categories.map((c) => c.id),
+        },
+      ]
+    : []
+  liveTabs.splice(0, liveTabs.length, ...BUILTIN.tabs, ...modTab)
+  version += 1
+  for (const listener of listeners) listener()
+}
+
+export function subscribeRegistry(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
+}
+
+export function registryVersion(): number {
+  return version
+}
+
+export function reachesArea(cmd: SandboxCommand): boolean {
+  if (cmd.cmd === 'composite') return cmd.steps.some(reachesArea)
+  return 'radius' in cmd && typeof cmd.radius === 'number'
+}
 
 export function commandReach(cmd: SandboxCommand): number {
+  if (cmd.cmd === 'composite') return Math.max(0, ...cmd.steps.map(commandReach))
   const radius = 'radius' in cmd && typeof cmd.radius === 'number' ? cmd.radius : 0
   return reachOf(REGISTRY.reachByCommand.get(cmd.cmd), radius)
 }
