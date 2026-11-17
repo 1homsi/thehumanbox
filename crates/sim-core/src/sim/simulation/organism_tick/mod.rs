@@ -113,7 +113,6 @@ pub(super) struct OrgFrame<'a> {
     pub(super) org_idx_by_id: &'a FxHashMap<String, usize>,
     pub(super) lineage_members: &'a mut FxHashMap<String, Vec<usize>>,
     pub(super) spatial_buf: &'a mut Vec<usize>,
-    pub(super) available_buf: &'a mut Vec<usize>,
     pub(super) perception_buf: &'a mut Vec<usize>,
     pub(super) action: usize,
     pub(super) action_succeeded: bool,
@@ -131,7 +130,7 @@ pub(super) struct OrgFrame<'a> {
     pub(super) loneliness: f32,
     pub(super) movement_reward: f32,
     pub(super) new_thought: Option<String>,
-    pub(super) next_perception: String,
+    pub(super) next_best: f32,
     pub(super) night: bool,
     pub(super) ox: f32,
     pub(super) ox_2: f32,
@@ -170,8 +169,8 @@ fn new_frame<'a>(
 ) -> OrgFrame<'a> {
     let TickBuffers {
         spatial: spatial_buf,
-        available_actions: available_buf,
         perception: perception_buf,
+        ..
     } = buffers;
     OrgFrame {
         idx,
@@ -182,7 +181,6 @@ fn new_frame<'a>(
         org_idx_by_id,
         lineage_members,
         spatial_buf,
-        available_buf,
         perception_buf,
         action: 0,
         action_succeeded: false,
@@ -200,7 +198,7 @@ fn new_frame<'a>(
         loneliness: 0.0,
         movement_reward: 0.0,
         new_thought: None,
-        next_perception: String::new(),
+        next_best: 0.0,
         night: false,
         ox: 0.0,
         ox_2: 0.0,
@@ -354,12 +352,8 @@ impl Simulation {
         let sensed = self.org_sense(idx, population_slots_used, &cx, buffers, lineage_members);
         let rng = decide::choice_rng(self.rng.random(), idx);
         let choice = {
-            let TickBuffers {
-                spatial: nearby,
-                available_actions: available,
-                ..
-            } = &mut *buffers;
-            self.org_choose(&sensed, spatial, available, nearby, rng, None)
+            let mut available = Vec::new();
+            self.org_choose(&sensed, spatial, &mut available, &mut buffers.spatial, rng, None)
         };
         self.org_turn(
             sensed,

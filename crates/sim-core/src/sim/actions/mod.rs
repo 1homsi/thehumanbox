@@ -25,7 +25,7 @@ mod resolved;
 mod tests;
 
 use action_set::ActionSet;
-pub use available::{available_actions, available_actions_into};
+pub use available::{available_actions, available_actions_into, best_next_q};
 use band_table::*;
 use band_types::*;
 use base_bands::*;
