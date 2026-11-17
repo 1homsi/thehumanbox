@@ -1,5 +1,5 @@
 import { SCENARIO_PRESETS, type ScenarioPreset } from '../../simulation/scenarios'
-import { Modal } from './Modal'
+import { Modal, ModalHeader } from './Modal'
 import { t } from '../../i18n'
 
 interface Props {
@@ -11,32 +11,23 @@ interface Props {
 export function ScenariosModal({ onStart, onClose }: Props) {
   return (
     <Modal open onClose={onClose} className="scenarios-modal" title={t('dialogs.scenarios.title')} hideTitle>
-      <div className="lang-modal-header">
-        <span className="lang-modal-title">{t('dialogs.scenarios.heading')}</span>
+      <ModalHeader title={t('dialogs.scenarios.heading')} onClose={onClose} />
+      <div className="thb-modal-body">
+        <p className="tree-modal-sub scenario-intro">{t('dialogs.scenarios.intro')}</p>
+        <ul className="scenario-list">
+          {SCENARIO_PRESETS.map((preset) => (
+            <li key={preset.id} className="scenario-row">
+              <span className="scenario-text">
+                <span className="scenario-title">{t(preset.title)}</span>
+                <span className="tree-modal-sub">{t(preset.detail)}</span>
+              </span>
+              <button type="button" className="lang-btn" onClick={() => onStart(preset)}>
+                {t('dialogs.scenarios.start')}
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
-      <p className="tree-modal-sub">{t('dialogs.scenarios.intro')}</p>
-      <ul className="scenario-list" style={{ listStyle: 'none', padding: 0, margin: '12px 0 0' }}>
-        {SCENARIO_PRESETS.map((preset) => (
-          <li
-            key={preset.id}
-            style={{
-              display: 'flex',
-              gap: 12,
-              alignItems: 'center',
-              padding: '8px 0',
-              borderBottom: '1px solid #3a3020',
-            }}
-          >
-            <span style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
-              <span style={{ color: '#f4e6c0' }}>{t(preset.title)}</span>
-              <span className="tree-modal-sub">{t(preset.detail)}</span>
-            </span>
-            <button type="button" className="tree-zoom-btn" onClick={() => onStart(preset)}>
-              {t('dialogs.scenarios.start')}
-            </button>
-          </li>
-        ))}
-      </ul>
     </Modal>
   )
 }

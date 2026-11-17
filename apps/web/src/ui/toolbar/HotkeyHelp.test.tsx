@@ -30,12 +30,16 @@ describe('HotkeyHelp', () => {
     unmount()
   })
 
-  it('closes on Escape, and on ? when focus is inside the list', () => {
+  it('closes on Escape, and on ? when focus is inside the list', async () => {
     const onClose = vi.fn()
     const unmount = mount(onClose)
     act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })))
     expect(onClose).toHaveBeenCalledTimes(1)
-    const button = document.querySelector('.hotkey-help-close') as HTMLElement
+    const button = await vi.waitFor(() => {
+      const found = document.querySelector<HTMLElement>('.hotkey-help-close')
+      if (!found) throw new Error('not open yet')
+      return found
+    })
     act(() => button.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true })))
     expect(onClose).toHaveBeenCalledTimes(2)
     unmount()

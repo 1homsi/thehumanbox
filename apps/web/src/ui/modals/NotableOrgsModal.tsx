@@ -1,6 +1,8 @@
 import { personName } from '../../shared/personName'
 import { useMemo, useState } from 'react'
-import { Modal } from './Modal'
+import clsx from 'clsx'
+import { Modal, ModalHeader } from './Modal'
+import { PixelIcon, type SpriteName } from '../toolbar/ToolSprite'
 import type { OrganismState } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
 import { useUIStore } from '../../state/store'
@@ -29,7 +31,7 @@ interface Props {
 const CATEGORIES: Array<{
   id: Category
   label: MessageKey
-  emoji: string
+  icon: SpriteName
   scoreOf: (o: OrganismState) => number
   format: (o: OrganismState) => string
   filter?: (o: OrganismState) => boolean
@@ -37,7 +39,7 @@ const CATEGORIES: Array<{
   {
     id: 'oldest',
     label: 'dialogs.notable.oldest',
-    emoji: '⌛',
+    icon: 'v_hourglass',
     scoreOf: (o) => o.age,
     format: (o) => t('dialogs.notable.days', { count: formatNumber(Math.floor(o.age / DAY_LENGTH)) }),
     filter: (o) => o.alive,
@@ -45,7 +47,7 @@ const CATEGORIES: Array<{
   {
     id: 'children',
     label: 'dialogs.notable.children',
-    emoji: '🍼',
+    icon: 'family',
     scoreOf: (o) => o.children_count ?? 0,
     format: (o) => t('dialogs.notable.childrenCount', { count: formatNumber(o.children_count ?? 0) }),
     filter: (o) => (o.children_count ?? 0) > 0,
@@ -53,7 +55,7 @@ const CATEGORIES: Array<{
   {
     id: 'friends',
     label: 'dialogs.notable.friends',
-    emoji: '🤝',
+    icon: 'tribe',
     scoreOf: (o) => Object.keys(o.friends ?? {}).length,
     format: (o) =>
       t('dialogs.notable.friendsCount', { count: formatNumber(Object.keys(o.friends ?? {}).length) }),
@@ -62,7 +64,7 @@ const CATEGORIES: Array<{
   {
     id: 'wealth',
     label: 'dialogs.notable.wealth',
-    emoji: '💰',
+    icon: 'coin',
     scoreOf: (o) => o.wealth ?? 0,
     format: (o) => t('dialogs.notable.coin', { count: formatNumber(o.wealth ?? 0) }),
     filter: (o) => o.alive && (o.wealth ?? 0) > 0,
@@ -70,7 +72,7 @@ const CATEGORIES: Array<{
   {
     id: 'discoveries',
     label: 'dialogs.notable.discoveries',
-    emoji: '🔎',
+    icon: 'search',
     scoreOf: (o) => (o.discoveries ?? []).length,
     format: (o) =>
       t('dialogs.notable.discoveriesCount', { count: formatNumber((o.discoveries ?? []).length) }),
@@ -79,7 +81,7 @@ const CATEGORIES: Array<{
   {
     id: 'literacy',
     label: 'dialogs.notable.literate',
-    emoji: '📜',
+    icon: 'scroll',
     scoreOf: (o) => o.literacy ?? 0,
     format: (o) =>
       t('dialogs.notable.literacy', { percent: formatNumber(Math.round((o.literacy ?? 0) * 100)) }),
@@ -88,7 +90,7 @@ const CATEGORIES: Array<{
   {
     id: 'piety',
     label: 'dialogs.notable.devout',
-    emoji: '🕯️',
+    icon: 'dove',
     scoreOf: (o) => o.piety ?? 0,
     format: (o) => t('dialogs.notable.piety', { percent: formatNumber(Math.round((o.piety ?? 0) * 100)) }),
     filter: (o) => o.alive && (o.piety ?? 0) > 0.05,
@@ -96,7 +98,7 @@ const CATEGORIES: Array<{
   {
     id: 'joy',
     label: 'dialogs.notable.joy',
-    emoji: '☀',
+    icon: 'sun',
     scoreOf: (o) => o.joy_ticks ?? 0,
     format: (o) => t('dialogs.notable.joyTicks', { count: formatNumber(o.joy_ticks ?? 0) }),
     filter: (o) => o.alive && (o.joy_ticks ?? 0) > 0,
@@ -104,7 +106,7 @@ const CATEGORIES: Array<{
   {
     id: 'grief',
     label: 'dialogs.notable.grief',
-    emoji: '◌',
+    icon: 'drop',
     scoreOf: (o) => o.grief_ticks ?? 0,
     format: (o) => t('dialogs.notable.griefTicks', { count: formatNumber(o.grief_ticks ?? 0) }),
     filter: (o) => o.alive && (o.grief_ticks ?? 0) > 0,
@@ -112,7 +114,7 @@ const CATEGORIES: Array<{
   {
     id: 'aspiration',
     label: 'dialogs.notable.aspiration',
-    emoji: '✦',
+    icon: 'star',
     scoreOf: (o) => o.age,
     format: (o) => o.aspiration ?? '',
     filter: (o) => o.alive && !!o.aspiration && o.aspiration.length > 0,
@@ -134,57 +136,36 @@ export function NotableOrgsModal({ organisms, onClose }: Props) {
 
   return (
     <Modal open onClose={onClose} className="notable-modal" title={t('dialogs.notable.title')} hideTitle>
-      <div className="lang-modal-header">
-        <span className="lang-modal-title">{t('dialogs.notable.heading')}</span>
-        <span className="tree-modal-sub">
-          {t('dialogs.notable.alive', { count: formatNumber(livingCount) })}
-        </span>
-        <div className="modal-header-actions">
-          <button aria-label={t('dialogs.notable.close')} className="close-btn" onClick={onClose}>
-            ✕
-          </button>
-        </div>
-      </div>
+      <ModalHeader
+        title={t('dialogs.notable.heading')}
+        sub={t('dialogs.notable.alive', { count: formatNumber(livingCount) })}
+        onClose={onClose}
+        closeLabel={t('dialogs.notable.close')}
+      />
 
-      <div
-        style={{
-          display: 'flex',
-          gap: 6,
-          padding: '8px 12px',
-          flexWrap: 'wrap',
-          borderBottom: '1px solid #1a1612',
-        }}
-      >
+      <div className="notable-lenses">
         {CATEGORIES.map((cat) => {
           const isActive = activeCat === cat.id
           return (
             <button
               key={cat.id}
+              type="button"
+              className={clsx('filter-chip notable-lens', isActive && 'active')}
+              aria-pressed={isActive}
               onClick={() => setActiveCat(cat.id)}
-              style={{
-                background: isActive ? '#2a2218' : 'transparent',
-                border: `1px solid ${isActive ? '#d8a060' : '#2a2520'}`,
-                color: isActive ? '#f0d088' : '#888',
-                padding: '5px 10px',
-                borderRadius: 4,
-                fontSize: 11,
-                cursor: 'pointer',
-                letterSpacing: '0.03em',
-              }}
             >
-              {cat.emoji} {t(cat.label)}
+              <PixelIcon name={cat.icon} size={12} />
+              {t(cat.label)}
             </button>
           )
         })}
       </div>
 
-      <div style={{ overflowY: 'auto', maxHeight: 'calc(80vh - 140px)', padding: '8px 12px' }}>
+      <div className="thb-modal-body notable-body">
         {rows.length === 0 ? (
-          <div style={{ color: '#555', fontStyle: 'italic', textAlign: 'center', padding: 40 }}>
-            {t('dialogs.notable.empty')}
-          </div>
+          <div className="notable-empty">{t('dialogs.notable.empty')}</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div className="notable-list">
             {rows.map((r, i) => {
               const color = lineageColor(r.org.lineage_id)
               return (
@@ -194,34 +175,11 @@ export function NotableOrgsModal({ organisms, onClose }: Props) {
                     selectOrg(r.org.id)
                     onClose()
                   }}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '30px 1fr auto',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '6px 10px',
-                    background: 'transparent',
-                    border: '1px solid transparent',
-                    borderLeft: `3px solid ${color}`,
-                    color: '#d0c8c0',
-                    fontSize: 12,
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#1a1612'
-                    e.currentTarget.style.borderColor = '#3a3028'
-                    e.currentTarget.style.borderLeftColor = color
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent'
-                    e.currentTarget.style.borderColor = 'transparent'
-                    e.currentTarget.style.borderLeftColor = color
-                  }}
+                  type="button"
+                  className="notable-row"
+                  style={{ borderLeftColor: color }}
                 >
-                  <span style={{ color: '#666', fontFamily: 'monospace', fontSize: 11 }}>
-                    {(i + 1).toString().padStart(2, '0')}
-                  </span>
+                  <span className="notable-rank">{(i + 1).toString().padStart(2, '0')}</span>
                   <span>
                     <span style={{ color, fontWeight: 600 }}>{personName(r.org)}</span>
                     {r.org.is_elder && <span style={{ color: '#ffcf6a', marginLeft: 6 }}>◈</span>}
@@ -237,12 +195,12 @@ export function NotableOrgsModal({ organisms, onClose }: Props) {
                         {r.org.sex === 'female' ? '♀' : '♂'}
                       </span>
                     )}
-                    <span style={{ color: '#555', marginLeft: 8, fontSize: 10 }}>
+                    <span className="notable-gen">
                       {t('dialogs.notable.gen', { gen: shownGeneration(r.org.generation) })}
                     </span>
                     {!r.org.alive && <span style={{ color: '#444', marginLeft: 6 }}>†</span>}
                   </span>
-                  <span style={{ color: '#9a8870', fontSize: 11, fontFamily: 'monospace' }}>{r.label}</span>
+                  <span className="notable-value">{r.label}</span>
                 </button>
               )
             })}

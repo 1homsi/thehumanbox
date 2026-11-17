@@ -188,7 +188,7 @@ async function runViewport([width, height], index, report) {
         report.push({ viewport: label, screen: screen.id, error: String(err.message ?? err) })
         console.log(`${label} ${screen.id} FAILED ${err.message ?? err}`)
       }
-      await press(page, key('Escape'))
+      await press(page, key('Escape')).catch(() => undefined)
       if (screen.close) await evaluate(page, screen.close).catch(() => undefined)
       await evaluate(page, closeAll).catch(() => undefined)
       await sleep(400)
