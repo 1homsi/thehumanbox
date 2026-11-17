@@ -1,4 +1,5 @@
 use super::*;
+use crate::organism::people_index::PeopleIndex;
 
 /// What a person chose this tick, worked out from the world as the choosing began (see
 /// [`Simulation::org_choose`]); their turn applies it in order with everyone else's.
@@ -86,11 +87,12 @@ impl Simulation {
         available_buf: &mut Vec<usize>,
         spatial_buf: &mut Vec<usize>,
         mut rng: ChoiceRng,
+        people: Option<&PeopleIndex<'_>>,
     ) -> Choice {
         let o = &self.organisms[s.idx];
         let at = (o.x as i32, o.y as i32);
         let (action, thought, origin, flight) =
-            self.choose_from(s, spatial, available_buf, spatial_buf, &mut rng);
+            self.choose_from(s, spatial, available_buf, spatial_buf, &mut rng, people);
         Choice {
             action,
             thought,
@@ -108,6 +110,7 @@ impl Simulation {
         available_buf: &mut Vec<usize>,
         spatial_buf: &mut Vec<usize>,
         rng: &mut ChoiceRng,
+        people: Option<&PeopleIndex<'_>>,
     ) -> ChoiceParts {
         let idx = s.idx;
         let (ox, oy) = (s.ox, s.oy);
@@ -213,6 +216,7 @@ impl Simulation {
             &s.perception,
             available_buf,
             Some(spatial_buf),
+            people,
         );
         let origin = if active_wander_action == Some(chosen.0) {
             "soft_wander"
@@ -242,7 +246,7 @@ impl Simulation {
             f.oy = self.organisms[idx].y;
             let sensed = f.sensed_copy();
             let (mut available, mut nearby) = (Vec::new(), Vec::new());
-            self.org_choose(&sensed, f.spatial, &mut available, &mut nearby, choice.rng)
+            self.org_choose(&sensed, f.spatial, &mut available, &mut nearby, choice.rng, None)
         };
         let (action, new_thought, decision_origin) = if let Some(boat_action) = self.boat_action(idx) {
             boat_action

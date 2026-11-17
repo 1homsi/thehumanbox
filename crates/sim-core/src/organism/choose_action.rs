@@ -9,6 +9,7 @@ use crate::world::{
 use super::decision_bias::{directive_action_boost, preferred_action_boost, Directive};
 use super::lessons::Lesson;
 use super::organism::{generalization_key, Hot, Organism, ACTION_ID_SPACE, N_ACTIONS};
+use super::people_index::PeopleIndex;
 use super::skills::Skill;
 
 /// Farthest a person walks home at night, in tiles (Manhattan). Routes to
@@ -140,6 +141,7 @@ impl Organism {
             cached_perception,
             available,
             None,
+            None,
         )
     }
 
@@ -158,6 +160,7 @@ impl Organism {
         cached_perception: &str,
         available: &[usize],
         nearby: Option<&[usize]>,
+        people: Option<&PeopleIndex<'_>>,
     ) -> (usize, Option<String>) {
         // Use the tick's spatial index for bounded local checks, retaining the
         // full population for long-distance partners, friends, and kin.
@@ -167,6 +170,20 @@ impl Organism {
                     .iter()
                     .take(if nearby.is_some() { 0 } else { organisms.len() }),
             )
+        };
+        let kin_people = || {
+            let listed = people.map(|p| p.kin(&self.lineage_id));
+            listed.into_iter().flatten().map(|&i| &organisms[i]).chain(
+                organisms
+                    .iter()
+                    .take(if listed.is_some() { 0 } else { organisms.len() }),
+            )
+        };
+        let alive_with_id = |id: &str| -> Option<&Organism> {
+            match people {
+                Some(p) => p.alive_with_id(id).map(|i| &organisms[i]),
+                None => organisms.iter().find(|o| o.alive && o.id == id),
+            }
         };
         let (ix, iy) = (self.x as i32, self.y as i32);
         let tile = grid.get(ix, iy);
@@ -837,8 +854,7 @@ impl Organism {
         }
 
         if self.age < 350 {
-            let elder_pos: Option<(i32, i32)> = organisms
-                .iter()
+            let elder_pos: Option<(i32, i32)> = kin_people()
                 .filter(|o| {
                     !std::ptr::eq(*o, self) && o.alive && o.lineage_id == self.lineage_id && o.is_elder
                 })
@@ -861,7 +877,7 @@ impl Organism {
             let mut sum_y = 0.0f32;
             let mut n = 0usize;
             let mut nearest = f32::INFINITY;
-            for o in organisms.iter() {
+            for o in kin_people() {
                 if std::ptr::eq(o, self) || !o.alive || o.lineage_id != self.lineage_id {
                     continue;
                 }
@@ -883,9 +899,7 @@ impl Organism {
 
         if let Some(ref aid) = self.attracted_to {
             // Someone across water or walls: no way there, so no pull toward them.
-            let target = organisms
-                .iter()
-                .find(|o| o.alive && &o.id == aid)
+            let target = alive_with_id(aid)
                 .map(|o| (o.x as i32, o.y as i32))
                 .filter(|&tp| !self.route.borrow().recently_blocked(tp));
             if let Some(tp) = target {
@@ -903,10 +917,7 @@ impl Organism {
 
         if let Some(ref pid) = self.partner_id {
             if needs_ok && self.fear_level < 0.5 {
-                let partner = organisms
-                    .iter()
-                    .find(|o| o.alive && &o.id == pid)
-                    .map(|o| (o.x as i32, o.y as i32));
+                let partner = alive_with_id(pid).map(|o| (o.x as i32, o.y as i32));
                 if let Some(pp) = partner.filter(|&pp| !self.route.borrow().recently_blocked(pp)) {
                     let dist = (pp.0 - ix).abs() + (pp.1 - iy).abs();
                     let walking = self.thought == "walking with partner";
@@ -927,8 +938,20 @@ impl Organism {
             && self.loneliness > 0.40
             && rng.random::<f32>() < 0.20
         {
-            let friend_pos: Option<(i32, i32)> = organisms
+            let mut friend_idx: Vec<usize> = Vec::new();
+            if let Some(p) = people {
+                friend_idx.extend(self.friends.keys().filter_map(|id| p.alive_with_id(id)));
+                friend_idx.sort_unstable();
+            }
+            let friends_listed = people.is_some();
+            let friend_pos: Option<(i32, i32)> = friend_idx
                 .iter()
+                .map(|&i| &organisms[i])
+                .chain(
+                    organisms
+                        .iter()
+                        .take(if friends_listed { 0 } else { organisms.len() }),
+                )
                 .filter(|o| !std::ptr::eq(*o, self) && o.alive && self.friends.contains_key(&o.id))
                 .map(|o| {
                     let d = ((o.x - self.x).abs() + (o.y - self.y).abs()) as i32;
@@ -949,8 +972,7 @@ impl Organism {
             && self.wander_target.is_none()
             && rng.random::<f32>() < 0.35
         {
-            let kin_pos: Option<(i32, i32)> = organisms
-                .iter()
+            let kin_pos: Option<(i32, i32)> = kin_people()
                 .filter(|o| !std::ptr::eq(*o, self) && o.alive && o.lineage_id == self.lineage_id)
                 .map(|o| {
                     let d = ((o.x - self.x).abs() + (o.y - self.y).abs()) as i32;
