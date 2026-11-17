@@ -36,6 +36,16 @@ describe('MapControls', () => {
     unmount()
   })
 
+  it('keeps every quick press when the camera has not taken the last one yet', () => {
+    const { commandRef, button, unmount } = mount()
+    act(() => button('Zoom in')!.click())
+    act(() => button('Zoom in')!.click())
+    expect(commandRef.current).toEqual({ kind: 'zoom', factor: BUTTON_ZOOM_STEP ** 2, smooth: true })
+    act(() => button('Zoom out')!.click())
+    expect(commandRef.current).toEqual({ kind: 'zoom', factor: 1 / BUTTON_ZOOM_STEP, smooth: true })
+    unmount()
+  })
+
   it('fits the world', () => {
     const { commandRef, button, unmount } = mount()
     act(() => button('Fit world')!.click())

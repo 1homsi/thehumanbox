@@ -181,6 +181,7 @@
 }
 .tribe-next-head {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 4px;
@@ -214,6 +215,13 @@
 }
 .tribe-inspire:hover {
   background: rgba(124, 200, 255, 0.18);
+}
+.tribe-next-note {
+  flex-basis: 100%;
+  margin-top: 3px;
+  color: #9fd4ff;
+  font-size: 10px;
+  text-align: right;
 }
 .tribe-peril {
   display: flex;

@@ -196,7 +196,7 @@ export function WorldView({
   return (
     <div
       ref={containerRef}
-      className="map2d-world"
+      className={sandboxArmed ? 'map2d-world ph-no-rageclick' : 'map2d-world'}
       tabIndex={0}
       aria-label={t('common.worldMapLabel')}
       style={{

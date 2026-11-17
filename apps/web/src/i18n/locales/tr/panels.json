@@ -290,6 +290,7 @@
     "nextAge": "sonraki: {era} dönemi",
     "inspire": "ilham ver",
     "inspireTitle": "İlham ver: bir sonraki keşfi hızlandırır",
+    "inspireReady": "İlham hazır: haritada onlara yakın bir yere tıklayın",
     "teach": "öğret",
     "teachTitle": "Eksik olduğu bir sonraki sırrı öğret (mevsimde bir kez)",
     "stillToLearn": "öğrenilmesi gereken: {list}",

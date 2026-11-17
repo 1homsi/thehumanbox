@@ -290,6 +290,7 @@
     "nextAge": "próxima: era {era}",
     "inspire": "inspirar",
     "inspireTitle": "Inspirar: acelera a próxima descoberta",
+    "inspireReady": "Inspirar está pronto: clique perto deles no mapa",
     "teach": "ensinar",
     "teachTitle": "Ensinar o próximo segredo que lhes falta (uma vez por estação)",
     "stillToLearn": "ainda a aprender: {list}",

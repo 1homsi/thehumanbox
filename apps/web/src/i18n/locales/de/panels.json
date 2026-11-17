@@ -290,6 +290,7 @@
     "nextAge": "nächstes: Zeitalter {era}",
     "inspire": "inspirieren",
     "inspireTitle": "Inspirieren: beschleunigt ihre nächste Entdeckung",
+    "inspireReady": "Inspirieren ist bereit: klicke auf der Karte in ihre Nähe",
     "teach": "lehren",
     "teachTitle": "Lehre ihnen das nächste Geheimnis, das ihnen fehlt (einmal pro Jahreszeit)",
     "stillToLearn": "noch zu lernen: {list}",

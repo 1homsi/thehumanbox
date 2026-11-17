@@ -283,6 +283,7 @@
     "nextAge": "다음 시대: {era}",
     "inspire": "고무하기",
     "inspireTitle": "고무하기: 다음 발견을 앞당깁니다",
+    "inspireReady": "고무하기 준비 완료: 지도에서 그들 근처를 클릭하세요",
     "teach": "가르치기",
     "teachTitle": "아직 모르는 다음 비법을 가르칩니다 (계절당 한 번)",
     "stillToLearn": "아직 배울 것: {list}",
