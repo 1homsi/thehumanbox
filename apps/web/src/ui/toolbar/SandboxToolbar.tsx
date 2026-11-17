@@ -9,6 +9,7 @@ import { useUIStore } from '../../state/store'
 import clsx from 'clsx'
 import {
   SANDBOX_CATEGORIES,
+  commandReach,
   isSandboxViewControlActive,
   rollRandomEvent,
   type SandboxTool,
@@ -80,6 +81,41 @@ function usesBrush(tool: SandboxTool | undefined): boolean {
   const small = tool.build(0, 0, 0) as { radius?: number; count?: number }
   const large = tool.build(0, 0, 4) as { radius?: number; count?: number }
   return small.radius !== large.radius || small.count !== large.count
+}
+
+const SIZE_DISCS = [4, 6, 8, 10, 12, 14]
+
+function discRows(size: number): number[] {
+  const r = size / 2
+  return Array.from({ length: size }, (_, row) => {
+    const dy = row + 0.5 - r
+    return Math.max(2, 2 * Math.round(Math.sqrt(Math.max(0, r * r - dy * dy))))
+  })
+}
+
+function PixelDisc({ size }: { size: number }) {
+  const rows = discRows(size)
+  return (
+    <svg
+      className="dock-size-disc"
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      shapeRendering="crispEdges"
+      aria-hidden="true"
+    >
+      {rows.map((w, row) => (
+        <rect key={row} x={(size - w) / 2} y={row} width={w} height={1} />
+      ))}
+    </svg>
+  )
+}
+
+function sizeTitle(tool: SandboxTool | undefined, size: number, value: number): string {
+  const label = t('dock.aria.brushSize', { size })
+  const built = tool?.build?.(0, 0, value)
+  if (!built || !('radius' in built) || typeof built.radius !== 'number') return label
+  return `${label} · ${t('dock.how.reachTiles', { tiles: Math.round(commandReach(built)) })}`
 }
 
 /** Scrolls the nearest sideways-scrolling line that holds `el` just far enough to show it. */
@@ -389,6 +425,7 @@ export function SandboxToolbar({
 
   const smaller = nextBrush(brush, -1)
   const larger = nextBrush(brush, 1)
+  const sized = usesBrush(armedTool)
   return (
     <section
       className="sandbox-bar"
@@ -483,15 +520,18 @@ export function SandboxToolbar({
         >
           {rowTools.map(renderTile)}
         </div>
-        {usesBrush(armedTool) && (
+        <div className="dock-corner">
           <div
-            className="dock-brush"
+            className={clsx('dock-size', !sized && 'idle')}
             role="group"
             aria-label={t('dock.aria.brushSizes')}
+            aria-hidden={!sized || undefined}
+            inert={!sized}
             title={t('dock.aria.brushTitle')}
           >
             <button
               type="button"
+              className="dock-size-nudge"
               aria-label={t('dock.aria.smallerBrush')}
               title={smaller === null ? t('dock.aria.smallestBrush') : undefined}
               disabled={smaller === null}
@@ -499,21 +539,22 @@ export function SandboxToolbar({
             >
               −
             </button>
-            {BRUSH_SIZES.map(([size, value]) => (
+            {BRUSH_SIZES.map(([size, value], step) => (
               <button
                 key={size}
                 type="button"
-                title={t('dock.aria.brushTiles', { count: size })}
+                className={clsx('dock-size-step', brush === value && 'active')}
+                title={sizeTitle(armedTool, size, value)}
                 aria-label={t('dock.aria.brushSize', { size })}
                 aria-pressed={brush === value}
-                className={brush === value ? 'active' : undefined}
                 onClick={() => onBrush(value)}
               >
-                {size}
+                <PixelDisc size={SIZE_DISCS[step] ?? SIZE_DISCS[SIZE_DISCS.length - 1]} />
               </button>
             ))}
             <button
               type="button"
+              className="dock-size-nudge"
               aria-label={t('dock.aria.largerBrush')}
               title={larger === null ? t('dock.aria.largestBrush') : undefined}
               disabled={larger === null}
@@ -522,8 +563,8 @@ export function SandboxToolbar({
               +
             </button>
           </div>
-        )}
-        <TimeControl paused={runtimePaused} speed={runtimeSpeed} onPick={onPick} />
+          <TimeControl paused={runtimePaused} speed={runtimeSpeed} onPick={onPick} />
+        </div>
       </div>
     </section>
   )

@@ -38,6 +38,7 @@ import {
   PAIR_TOOLS,
   SANDBOX_CATEGORIES,
   canPlaceAlongDrag,
+  commandReach,
   type LineageStrategy,
   type SandboxTool,
 } from './simulation/sandbox'
@@ -923,7 +924,7 @@ function LiveApp() {
                     sandboxLabel={armedTool?.label}
                     sandboxRadius={(() => {
                       const preview = armedTool?.build?.(0, 0, brush)
-                      return preview && 'radius' in preview ? (preview.radius ?? 0) : 0
+                      return preview ? commandReach(preview) : 0
                     })()}
                     sandboxDragPlaces={sandboxControlsEnabled && canPlaceAlongDrag(armedTool)}
                     sandboxBrush={brush}

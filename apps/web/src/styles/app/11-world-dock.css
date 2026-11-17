@@ -243,46 +243,64 @@
   outline-offset: -2px;
 }
 
-/* Brush sizes, beside the row while an area tool is held. */
-.dock-brush {
+.dock-corner {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
   gap: 3px;
   flex: 0 0 auto;
-  padding-left: 10px;
-  border-left: 2px solid var(--px-ink);
-  box-shadow: inset 2px 0 0 var(--px-groove);
 }
-.dock-brush button {
-  min-width: 22px;
-  height: 22px;
-  padding: 0 4px;
-  background: var(--px-raised);
-  border: 0;
-  box-shadow:
-    inset 1px 1px 0 var(--px-raised-hi),
-    inset -1px -2px 0 var(--px-raised-lo);
+.dock-size {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  height: calc(var(--bar-tool) - 4px);
+  padding: 2px 6px;
+}
+.dock-size::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--px-inset);
+  border: 2px solid var(--px-ink);
+  box-shadow: var(--px-sunken-shadow);
   clip-path: var(--px-notch);
-  color: var(--bar-cream);
-  font-size: 11px;
 }
-.dock-brush button:hover:not(:disabled) {
-  background: var(--px-raised-hover);
+.dock-size.idle {
+  visibility: hidden;
 }
-/* − at the smallest size and + at the largest: flat and dim. */
-.dock-brush button:disabled {
-  background: var(--px-ink);
-  box-shadow: none;
+.dock-size-step {
+  display: grid;
+  place-items: center;
+  flex: 1 1 0;
+  min-width: 18px;
+  height: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  clip-path: var(--px-notch);
   color: var(--bar-dim);
-  cursor: default;
-  opacity: 0.45;
 }
-.dock-brush button.active {
+.dock-size-step:hover {
+  background: rgba(233, 196, 90, 0.12);
+  color: var(--bar-cream);
+}
+.dock-size-step.active {
   background: var(--px-active);
-  box-shadow:
-    inset 1px 2px 0 var(--px-raised-lo),
-    inset -1px -1px 0 var(--px-raised-hi);
+  box-shadow: var(--px-pressed-shadow);
   color: var(--px-gold-text);
+}
+.dock-size-disc {
+  display: block;
+  fill: currentColor;
+}
+.dock-size-nudge {
+  display: none;
 }
 
 /* The held tool's name, on a parchment tag above its icon (kept inside the bar near its ends; see
@@ -571,18 +589,36 @@
   .dock-hint {
     max-width: 70%;
   }
-  /* Brush sizes and a narrower time control leave room for at least the held tool's tile. */
-  .dock-brush {
-    gap: 2px;
-    padding-left: 8px;
+  .dock-corner {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
   }
-  .dock-brush button {
-    min-width: 28px;
-    height: 28px;
+  .dock-size {
+    height: var(--bar-tool);
+    padding: 2px 4px;
   }
-  /* No room for six sizes on a phone: − and + with the current size between them. */
-  .dock-brush button[aria-pressed='false'] {
+  .dock-size.idle {
     display: none;
+  }
+  .dock-size-step:not(.active) {
+    display: none;
+  }
+  .dock-size-step {
+    min-width: 28px;
+  }
+  .dock-size-nudge {
+    display: block;
+    min-width: 26px;
+    height: 100%;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--bar-cream);
+    font-size: 16px;
+  }
+  .dock-size-nudge:disabled {
+    opacity: 0.35;
   }
   .time-step {
     width: 20px;
