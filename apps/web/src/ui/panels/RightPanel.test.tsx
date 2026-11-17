@@ -4,20 +4,34 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { OrganismState, WorldState } from '../../shared/types'
 import { useUIStore } from '../../state/store'
-import { RightPanel } from './RightPanel'
+import { PEOPLE_PAGE_SIZE, RightPanel } from './RightPanel'
 
-// The cards are lazy chunks in the app; keep them small and synchronous here.
 vi.mock('./OrgCard', () => ({
   OrgCard: ({ orgId }: { orgId: string }) => <div className="fake-org-card">{orgId}</div>,
 }))
-vi.mock('./OrgDetail', () => ({ OrgDetail: () => null }))
+vi.mock('../../shared/observability', () => ({ trackEvent: vi.fn() }))
 
-beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
+const observers: Array<{ fire: (visible: boolean) => void }> = []
+class FakeObserver {
+  constructor(callback: IntersectionObserverCallback) {
+    observers.push({
+      fire: (visible) => callback([{ isIntersecting: visible } as IntersectionObserverEntry], this as never),
+    })
+  }
+  observe() {}
+  disconnect() {}
+}
+
+beforeAll(() => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  vi.stubGlobal('IntersectionObserver', FakeObserver)
+})
 afterAll(() => vi.unstubAllGlobals())
 let root: Root | null = null
 afterEach(() => {
   if (root) act(() => root?.unmount())
   root = null
+  observers.length = 0
   document.body.replaceChildren()
   useUIStore.setState({ panelOpen: false, selectedOrgId: null, renamingOrgId: null })
 })
@@ -32,18 +46,36 @@ const person = (i: number) =>
     generation: 1,
     thought: '',
     lineage_id: 'L',
+    energy: 1,
+    hydration: 1,
+    health: 1,
+    infection: 0,
+    carrying: 0,
+    traits: {
+      curiosity: 0.5,
+      aggression: 0.5,
+      fear: 0.5,
+      memory_strength: 0.5,
+      social_tendency: 0.5,
+      resilience: 0.5,
+    },
   }) as unknown as OrganismState
 
-async function renderPanel(people: OrganismState[], selectedOrg: OrganismState | null = null) {
+async function renderPanel(people: OrganismState[]) {
   const world = { organisms: people, lineage_names: {} } as unknown as WorldState
   const host = document.createElement('div')
   document.body.append(host)
   root = createRoot(host)
-  await act(async () =>
-    root?.render(<RightPanel world={world} liveOrgs={people} deadOrgs={[]} selectedOrg={selectedOrg} />),
-  )
-  return host
+  const draw = () => {
+    const id = useUIStore.getState().selectedOrgId
+    const selected = people.find((p) => p.id === id) ?? null
+    root?.render(<RightPanel world={world} liveOrgs={people} deadOrgs={[]} selectedOrg={selected} />)
+  }
+  await act(async () => draw())
+  return { host, draw }
 }
+
+const cardIds = (host: HTMLElement) => [...host.querySelectorAll('.fake-org-card')].map((c) => c.textContent)
 
 describe('RightPanel', () => {
   it('shows a dead person’s age in years, as the living cards do, not in ticks', () => {
@@ -77,42 +109,64 @@ describe('RightPanel', () => {
     expect(card).toContain('yrs')
   })
 
-  it('shows the name box for a person past the first page of cards', async () => {
+  it('draws a short page of cards and adds more as the list scrolls', async () => {
+    useUIStore.setState({ panelOpen: true })
+    const people = Array.from({ length: 600 }, (_, i) => person(i))
+    const { host } = await renderPanel(people)
+    expect(cardIds(host)).toHaveLength(PEOPLE_PAGE_SIZE)
+
+    await act(async () => observers.at(-1)!.fire(true))
+    expect(cardIds(host)).toHaveLength(PEOPLE_PAGE_SIZE * 2)
+    expect(cardIds(host).slice(0, 3)).toEqual(['p0', 'p1', 'p2'])
+
+    await act(async () => observers.at(-1)!.fire(false))
+    expect(cardIds(host)).toHaveLength(PEOPLE_PAGE_SIZE * 2)
+
+    await act(async () => host.querySelector<HTMLButtonElement>('.people-load-more')!.click())
+    expect(cardIds(host)).toHaveLength(PEOPLE_PAGE_SIZE * 3)
+  })
+
+  it('opens a person in their own drawer and keeps the list as it is', async () => {
+    useUIStore.setState({ panelOpen: true })
+    const people = Array.from({ length: 30 }, (_, i) => person(i))
+    const { host, draw } = await renderPanel(people)
+    await act(async () => useUIStore.getState().selectOrg('p3'))
+    await act(async () => draw())
+    await vi.waitFor(() => expect(host.querySelector('.person-drawer')).not.toBeNull())
+    expect(host.querySelector('.person-drawer')?.getAttribute('data-person-id')).toBe('p3')
+    expect(host.querySelector('.person-drawer.beside-list')).not.toBeNull()
+    expect(cardIds(host)).toHaveLength(PEOPLE_PAGE_SIZE)
+
+    await act(async () =>
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+    )
+    expect(useUIStore.getState().selectedOrgId).toBeNull()
+  })
+
+  it('gives the name tool a focused field in the person drawer, wherever they are in the list', async () => {
     const people = Array.from({ length: 100 }, (_, i) => person(i))
-    const host = await renderPanel(people)
-
+    const { host, draw } = await renderPanel(people)
     await act(async () => useUIStore.getState().startRename('p99'))
-
-    // The list draws only its first page, so that person's card is not there...
-    const cards = [...host.querySelectorAll('.fake-org-card')].map((card) => card.textContent)
-    expect(cards).toHaveLength(80)
-    expect(cards).not.toContain('p99')
-
-    // ...but the name tool still gives the player a visible field, already focused.
-    const input = host.querySelector<HTMLInputElement>('.org-rename-panel input')
-    expect(input).not.toBeNull()
+    await act(async () => draw())
+    await vi.waitFor(() => expect(host.querySelector('.person-drawer input')).not.toBeNull())
+    const input = host.querySelector<HTMLInputElement>('.person-drawer input')!
+    expect(input.value).toBe('Person99')
     expect(document.activeElement).toBe(input)
     expect(host.querySelectorAll('input')).toHaveLength(1)
+
+    await act(async () => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+    expect(useUIStore.getState().selectedOrgId).toBe('p99')
   })
 
-  it('shows one name box, at the top, for a person whose card is on the first page', async () => {
-    const people = Array.from({ length: 100 }, (_, i) => person(i))
-    const host = await renderPanel(people, people[5])
-
+  it('starts fresh when the name tool is pointed at someone else', async () => {
+    const people = Array.from({ length: 10 }, (_, i) => person(i))
+    const { host, draw } = await renderPanel(people)
     await act(async () => useUIStore.getState().startRename('p5'))
-
-    expect(host.querySelectorAll('input')).toHaveLength(1)
-    expect(host.querySelector('.org-rename-panel input')).toBe(document.activeElement)
-  })
-
-  it('starts empty-fresh when the name tool is pointed at someone else', async () => {
-    const people = Array.from({ length: 100 }, (_, i) => person(i))
-    const host = await renderPanel(people, people[5])
-
-    await act(async () => useUIStore.getState().startRename('p5'))
+    await act(async () => draw())
+    await vi.waitFor(() => expect(host.querySelector('.person-drawer input')).not.toBeNull())
     await act(async () => useUIStore.getState().startRename('p6'))
-
-    const input = host.querySelector<HTMLInputElement>('.org-rename-panel input')
+    await act(async () => draw())
+    const input = host.querySelector<HTMLInputElement>('.person-drawer input')
     expect(input?.value).toBe('Person6')
     expect(input).toBe(document.activeElement)
   })

@@ -375,5 +375,95 @@
       "one": "{count} day",
       "other": "{count} days"
     }
+  },
+  "list": {
+    "info": "About {name}",
+    "follow": "Follow {name} on the map",
+    "unfollow": "Stop following {name}",
+    "conditionTip": "How they are doing, from their most pressing need"
+  },
+  "condition": {
+    "well": "doing well",
+    "hungry": "hungry",
+    "thirsty": "thirsty",
+    "hurt": "hurt",
+    "sick": "sick",
+    "dead": "has died"
+  },
+  "age": {
+    "firstYear": "first year",
+    "stageAndSpan": "{stage}, {span}"
+  },
+  "now": {
+    "idle": "Taking it easy"
+  },
+  "tribe": {
+    "unnamed": "unnamed tribe"
+  },
+  "traitWord": {
+    "curiosity": {
+      "high": "curious",
+      "low": "set in their ways"
+    },
+    "aggression": {
+      "high": "hot-headed",
+      "low": "gentle"
+    },
+    "fear": {
+      "high": "cautious",
+      "low": "fearless"
+    },
+    "memory": {
+      "high": "sharp memory",
+      "low": "forgetful"
+    },
+    "social": {
+      "high": "sociable",
+      "low": "loner"
+    },
+    "resilience": {
+      "high": "tough",
+      "low": "frail"
+    }
+  },
+  "sheet": {
+    "aria": "About {name}",
+    "now": "Now",
+    "needs": "Needs",
+    "personality": "Personality",
+    "people": "People",
+    "story": "Story",
+    "nerd": "Stats for nerds",
+    "food": "Food",
+    "water": "Water",
+    "health": "Health",
+    "sickness": "Sickness",
+    "low": "low",
+    "allTraits": "All traits",
+    "noPeople": "No close ties yet.",
+    "noStory": "Their story is just beginning.",
+    "partner": "partner",
+    "dream": "{dream} at heart",
+    "inLove": "drawn to someone",
+    "nerdLine": "lineage {lineage} · generation {generation} · {ticks} ticks old · lives up to {max}",
+    "action": {
+      "follow": "Follow",
+      "following": "Following",
+      "rename": "Rename",
+      "tree": "Family tree",
+      "talks": "Talks ({count})",
+      "life": "Life story",
+      "home": "Home",
+      "star": "Star",
+      "starred": "Starred"
+    },
+    "tip": {
+      "follow": "Follow them on the map",
+      "following": "Stop following them",
+      "rename": "Give them a name",
+      "tree": "Open their family tree",
+      "talks": "Read what they talked about",
+      "life": "Read their whole life"
+    }
   }
 }

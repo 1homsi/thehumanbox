@@ -354,5 +354,95 @@
       "one": "{count} jour",
       "other": "{count} jours"
     }
+  },
+  "list": {
+    "info": "À propos de {name}",
+    "follow": "Suivre {name} sur la carte",
+    "unfollow": "Ne plus suivre {name}",
+    "conditionTip": "Comment ils vont, d'après leur besoin le plus pressant"
+  },
+  "condition": {
+    "well": "en forme",
+    "hungry": "affamé",
+    "thirsty": "assoiffé",
+    "hurt": "blessé",
+    "sick": "malade",
+    "dead": "est mort"
+  },
+  "age": {
+    "firstYear": "première année",
+    "stageAndSpan": "{stage}, {span}"
+  },
+  "now": {
+    "idle": "Prend son temps"
+  },
+  "tribe": {
+    "unnamed": "tribu sans nom"
+  },
+  "traitWord": {
+    "curiosity": {
+      "high": "curieux",
+      "low": "attaché à ses habitudes"
+    },
+    "aggression": {
+      "high": "colérique",
+      "low": "doux"
+    },
+    "fear": {
+      "high": "prudent",
+      "low": "intrépide"
+    },
+    "memory": {
+      "high": "bonne mémoire",
+      "low": "distrait"
+    },
+    "social": {
+      "high": "sociable",
+      "low": "solitaire"
+    },
+    "resilience": {
+      "high": "robuste",
+      "low": "fragile"
+    }
+  },
+  "sheet": {
+    "aria": "À propos de {name}",
+    "now": "En ce moment",
+    "needs": "Besoins",
+    "personality": "Personnalité",
+    "people": "Proches",
+    "story": "Histoire",
+    "nerd": "Statistiques pour experts",
+    "food": "Nourriture",
+    "water": "Eau",
+    "health": "Santé",
+    "sickness": "Maladie",
+    "low": "bas",
+    "allTraits": "Tous les traits",
+    "noPeople": "Pas encore de liens proches.",
+    "noStory": "Son histoire ne fait que commencer.",
+    "partner": "partenaire",
+    "dream": "{dream} dans l'âme",
+    "inLove": "attiré par quelqu'un",
+    "nerdLine": "lignée {lineage} · génération {generation} · {ticks} ticks · vit jusqu'à {max}",
+    "action": {
+      "follow": "Suivre",
+      "following": "Suivi",
+      "rename": "Renommer",
+      "tree": "Arbre généalogique",
+      "talks": "Discussions ({count})",
+      "life": "Biographie",
+      "home": "Maison",
+      "star": "Favori",
+      "starred": "En favori"
+    },
+    "tip": {
+      "follow": "Le suivre sur la carte",
+      "following": "Ne plus le suivre",
+      "rename": "Lui donner un nom",
+      "tree": "Ouvrir son arbre généalogique",
+      "talks": "Lire ses conversations",
+      "life": "Lire toute sa vie"
+    }
   }
 }

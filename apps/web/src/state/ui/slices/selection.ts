@@ -17,7 +17,7 @@ export const createSelectionSlice: StateCreator<UIState, [], [], SelectionSlice>
   selectedOrgId: null,
   followOrgId: null,
   renamingOrgId: null,
-  startRename: (id) => set({ renamingOrgId: id, selectedOrgId: id, panelOpen: true }),
+  startRename: (id) => set({ renamingOrgId: id, selectedOrgId: id }),
   stopRename: () => set({ renamingOrgId: null }),
   selectOrg: (id) => {
     const prev = get().selectedOrgId
@@ -32,7 +32,6 @@ export const createSelectionSlice: StateCreator<UIState, [], [], SelectionSlice>
         : {
             selectedOrgId: id,
             followOrgId: get().followOrgId === id ? id : null,
-            panelOpen: true,
             renamingOrgId,
           },
     )

@@ -351,5 +351,95 @@
     "days": {
       "other": "{count} 日"
     }
+  },
+  "list": {
+    "info": "{name} について",
+    "follow": "地図で {name} を追う",
+    "unfollow": "{name} の追跡をやめる",
+    "conditionTip": "いちばん差し迫った欲求から見た調子"
+  },
+  "condition": {
+    "well": "元気",
+    "hungry": "空腹",
+    "thirsty": "のどが渇いている",
+    "hurt": "けがをしている",
+    "sick": "病気",
+    "dead": "亡くなった"
+  },
+  "age": {
+    "firstYear": "1年目",
+    "stageAndSpan": "{stage}・{span}"
+  },
+  "now": {
+    "idle": "のんびりしている"
+  },
+  "tribe": {
+    "unnamed": "名もない部族"
+  },
+  "traitWord": {
+    "curiosity": {
+      "high": "好奇心旺盛",
+      "low": "保守的"
+    },
+    "aggression": {
+      "high": "短気",
+      "low": "穏やか"
+    },
+    "fear": {
+      "high": "慎重",
+      "low": "恐れ知らず"
+    },
+    "memory": {
+      "high": "記憶力がよい",
+      "low": "忘れっぽい"
+    },
+    "social": {
+      "high": "社交的",
+      "low": "一匹狼"
+    },
+    "resilience": {
+      "high": "たくましい",
+      "low": "ひ弱"
+    }
+  },
+  "sheet": {
+    "aria": "{name} について",
+    "now": "いま",
+    "needs": "欲求",
+    "personality": "性格",
+    "people": "人間関係",
+    "story": "物語",
+    "nerd": "詳細な統計",
+    "food": "食べ物",
+    "water": "水",
+    "health": "体力",
+    "sickness": "病気",
+    "low": "不足",
+    "allTraits": "すべての特性",
+    "noPeople": "まだ親しい人はいません。",
+    "noStory": "物語は始まったばかり。",
+    "partner": "伴侶",
+    "dream": "根っからの{dream}",
+    "inLove": "誰かに惹かれている",
+    "nerdLine": "家系 {lineage} ・ 第{generation}世代 ・ {ticks} tick ・ 寿命 {max}",
+    "action": {
+      "follow": "追う",
+      "following": "追跡中",
+      "rename": "名前を変える",
+      "tree": "家系図",
+      "talks": "会話 ({count})",
+      "life": "生涯",
+      "home": "家",
+      "star": "お気に入り",
+      "starred": "お気に入り済み"
+    },
+    "tip": {
+      "follow": "地図でこの人を追う",
+      "following": "追跡をやめる",
+      "rename": "名前をつける",
+      "tree": "家系図を開く",
+      "talks": "話した内容を読む",
+      "life": "生涯をすべて読む"
+    }
   }
 }

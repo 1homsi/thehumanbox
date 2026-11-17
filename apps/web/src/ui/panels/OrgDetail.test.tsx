@@ -5,6 +5,9 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { OrgDetail } from './OrgDetail'
 import { BondsRememberedSection, MemoriesSection } from './org-detail/memories'
 import type { OrganismState } from '../../shared/types'
+import { useUIStore } from '../../state/store'
+
+vi.mock('../../shared/observability', () => ({ trackEvent: vi.fn() }))
 
 beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
 afterAll(() => vi.unstubAllGlobals())
@@ -12,6 +15,7 @@ const roots: Root[] = []
 afterEach(() => {
   act(() => roots.splice(0).forEach((root) => root.unmount()))
   document.body.innerHTML = ''
+  useUIStore.setState({ nerdStats: false })
 })
 
 function org(id: string): OrganismState {
@@ -58,7 +62,7 @@ describe('OrgDetail', () => {
     roots.push(root)
     act(() => root.render(panel(org('a'))))
 
-    act(() => host.querySelector<HTMLButtonElement>('button[aria-label="Life"]')!.click())
+    act(() => host.querySelector<HTMLButtonElement>('button[aria-label="Read their whole life"]')!.click())
     // The life modal is lazy-loaded, so poll until the import lands.
     await vi.waitFor(() => expect(document.querySelector('.life-modal')).not.toBeNull())
 
@@ -66,18 +70,47 @@ describe('OrgDetail', () => {
     expect(document.querySelector('.life-modal')).toBeNull()
   })
 
-  it('shows the founders of a tribe as generation 1, as the card does', () => {
+  it('reads like a character sheet, with the raw numbers only for nerds', () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    roots.push(root)
+    const person = {
+      ...org('a'),
+      thought: 'packing_shelter',
+      energy: 0.1,
+      traits: { ...org('a').traits, curiosity: 0.95, fear: 0.5 },
+    } as OrganismState
+    act(() => root.render(panel(person)))
+    const titles = [...host.querySelectorAll('.person-sheet-title')].map((h) => h.textContent)
+    expect(titles).toEqual(['Now', 'Needs', 'Personality', 'People', 'Story'])
+    expect(host.querySelector('.person-now')?.textContent).toBe('Packing shelter')
+    expect(host.querySelector('.person-need.bad')?.textContent).toContain('Food')
+    expect(host.querySelector('.person-trait.strong')?.textContent).toBe('curious')
+    expect(host.querySelector('[aria-label="Open their family tree"]')).not.toBeNull()
+    expect(host.textContent).not.toContain('%')
+    expect(host.textContent).not.toContain('gen 1')
+
+    act(() => useUIStore.getState().setNerdStats(true))
+    expect(host.querySelector('.person-nerd')).not.toBeNull()
+    expect(host.textContent).toContain('10%')
+    act(() => useUIStore.getState().setNerdStats(false))
+  })
+
+  it('shows the founders of a tribe as generation 1 to nerds', () => {
+    useUIStore.setState({ nerdStats: true })
     const host = document.createElement('div')
     document.body.append(host)
     const root = createRoot(host)
     roots.push(root)
     act(() => root.render(panel({ ...org('a'), generation: 0 } as OrganismState)))
     const text = host.textContent ?? ''
-    expect(text).toContain('gen 1')
-    expect(text).not.toContain('gen 0')
+    expect(text).toContain('generation 1')
+    expect(text).not.toContain('generation 0')
   })
 
   it('names a bond partner as the player named them', () => {
+    useUIStore.setState({ nerdStats: true })
     const partner = { ...org('b'), name: 'B-GEN', custom_name: 'Bea' } as OrganismState
     const self = { ...org('a'), org_trust: { b: 0.6 } } as unknown as OrganismState
     const host = document.createElement('div')

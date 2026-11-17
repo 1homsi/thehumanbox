@@ -351,5 +351,95 @@
     "days": {
       "other": "{count} 天"
     }
+  },
+  "list": {
+    "info": "关于 {name}",
+    "follow": "在地图上跟随 {name}",
+    "unfollow": "停止跟随 {name}",
+    "conditionTip": "按最迫切的需求看他们的状况"
+  },
+  "condition": {
+    "well": "状态良好",
+    "hungry": "饿了",
+    "thirsty": "渴了",
+    "hurt": "受伤",
+    "sick": "生病",
+    "dead": "已去世"
+  },
+  "age": {
+    "firstYear": "第一年",
+    "stageAndSpan": "{stage}，{span}"
+  },
+  "now": {
+    "idle": "正在歇着"
+  },
+  "tribe": {
+    "unnamed": "未命名的部族"
+  },
+  "traitWord": {
+    "curiosity": {
+      "high": "好奇",
+      "low": "守旧"
+    },
+    "aggression": {
+      "high": "急躁",
+      "low": "温和"
+    },
+    "fear": {
+      "high": "谨慎",
+      "low": "无畏"
+    },
+    "memory": {
+      "high": "记性好",
+      "low": "健忘"
+    },
+    "social": {
+      "high": "合群",
+      "low": "独来独往"
+    },
+    "resilience": {
+      "high": "坚韧",
+      "low": "体弱"
+    }
+  },
+  "sheet": {
+    "aria": "关于 {name}",
+    "now": "现在",
+    "needs": "需求",
+    "personality": "性格",
+    "people": "亲友",
+    "story": "故事",
+    "nerd": "技术统计",
+    "food": "食物",
+    "water": "水",
+    "health": "健康",
+    "sickness": "疾病",
+    "low": "不足",
+    "allTraits": "全部特质",
+    "noPeople": "还没有亲近的人。",
+    "noStory": "他们的故事才刚刚开始。",
+    "partner": "伴侣",
+    "dream": "天生的{dream}",
+    "inLove": "对某人心动",
+    "nerdLine": "血脉 {lineage} · 第 {generation} 代 · {ticks} tick · 寿命上限 {max}",
+    "action": {
+      "follow": "跟随",
+      "following": "跟随中",
+      "rename": "改名",
+      "tree": "家谱",
+      "talks": "对话 ({count})",
+      "life": "生平",
+      "home": "家",
+      "star": "标星",
+      "starred": "已标星"
+    },
+    "tip": {
+      "follow": "在地图上跟随",
+      "following": "停止跟随",
+      "rename": "给他们起个名字",
+      "tree": "打开家谱",
+      "talks": "看看他们聊了什么",
+      "life": "阅读完整生平"
+    }
   }
 }

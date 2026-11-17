@@ -354,5 +354,95 @@
       "one": "{count} giorno",
       "other": "{count} giorni"
     }
+  },
+  "list": {
+    "info": "Su {name}",
+    "follow": "Segui {name} sulla mappa",
+    "unfollow": "Smetti di seguire {name}",
+    "conditionTip": "Come stanno, in base al bisogno più urgente"
+  },
+  "condition": {
+    "well": "sta bene",
+    "hungry": "affamato",
+    "thirsty": "assetato",
+    "hurt": "ferito",
+    "sick": "malato",
+    "dead": "è morto"
+  },
+  "age": {
+    "firstYear": "primo anno",
+    "stageAndSpan": "{stage}, {span}"
+  },
+  "now": {
+    "idle": "Se la prende comoda"
+  },
+  "tribe": {
+    "unnamed": "tribù senza nome"
+  },
+  "traitWord": {
+    "curiosity": {
+      "high": "curioso",
+      "low": "abitudinario"
+    },
+    "aggression": {
+      "high": "irascibile",
+      "low": "mite"
+    },
+    "fear": {
+      "high": "prudente",
+      "low": "impavido"
+    },
+    "memory": {
+      "high": "buona memoria",
+      "low": "smemorato"
+    },
+    "social": {
+      "high": "socievole",
+      "low": "solitario"
+    },
+    "resilience": {
+      "high": "tenace",
+      "low": "fragile"
+    }
+  },
+  "sheet": {
+    "aria": "Su {name}",
+    "now": "Adesso",
+    "needs": "Bisogni",
+    "personality": "Carattere",
+    "people": "Persone",
+    "story": "Storia",
+    "nerd": "Statistiche per esperti",
+    "food": "Cibo",
+    "water": "Acqua",
+    "health": "Salute",
+    "sickness": "Malattia",
+    "low": "basso",
+    "allTraits": "Tutti i tratti",
+    "noPeople": "Ancora nessun legame stretto.",
+    "noStory": "La sua storia è appena iniziata.",
+    "partner": "partner",
+    "dream": "{dream} nel cuore",
+    "inLove": "attratto da qualcuno",
+    "nerdLine": "stirpe {lineage} · generazione {generation} · {ticks} tick di età · vive fino a {max}",
+    "action": {
+      "follow": "Segui",
+      "following": "Seguito",
+      "rename": "Rinomina",
+      "tree": "Albero genealogico",
+      "talks": "Dialoghi ({count})",
+      "life": "Biografia",
+      "home": "Casa",
+      "star": "Preferito",
+      "starred": "Nei preferiti"
+    },
+    "tip": {
+      "follow": "Seguilo sulla mappa",
+      "following": "Smetti di seguirlo",
+      "rename": "Dagli un nome",
+      "tree": "Apri il suo albero genealogico",
+      "talks": "Leggi di cosa ha parlato",
+      "life": "Leggi tutta la sua vita"
+    }
   }
 }

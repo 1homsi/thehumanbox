@@ -32,12 +32,17 @@ describe('renaming a person', () => {
     expect(useUIStore.getState().renamingOrgId).toBeNull()
   })
 
-  it('survives re-selecting the same person, and ends when the details panel closes', () => {
+  it('survives re-selecting the same person, and ends when their drawer closes', () => {
     useUIStore.getState().startRename('a')
     useUIStore.getState().selectOrg('a')
     expect(useUIStore.getState().renamingOrgId).toBe('a')
-    useUIStore.getState().togglePanel()
+    useUIStore.getState().selectOrg(null)
     expect(useUIStore.getState().renamingOrgId).toBeNull()
+  })
+
+  it('opens the person drawer without opening the people list', () => {
+    useUIStore.getState().startRename('a')
+    expect(useUIStore.getState()).toMatchObject({ selectedOrgId: 'a', renamingOrgId: 'a', panelOpen: false })
   })
 })
 
@@ -52,18 +57,18 @@ describe('world-first panels', () => {
     expect(useUIStore.getState().panelOpen).toBe(false)
   })
 
-  it('opens organism details only after an explicit selection', () => {
+  it('opens a person in their own drawer, leaving the people list as it was', () => {
     useUIStore.setState(initialSelection)
     useUIStore.getState().selectOrg('person-1')
     expect(useUIStore.getState().selectedOrgId).toBe('person-1')
-    expect(useUIStore.getState().panelOpen).toBe(true)
+    expect(useUIStore.getState().panelOpen).toBe(false)
   })
 
-  it('releases the selected organism when details are explicitly closed', () => {
+  it('keeps the person drawer open when the people list closes', () => {
     useUIStore.setState({ ...initialSelection, selectedOrgId: 'person-1', panelOpen: true })
     useUIStore.getState().togglePanel()
     expect(useUIStore.getState().panelOpen).toBe(false)
-    expect(useUIStore.getState().selectedOrgId).toBeNull()
+    expect(useUIStore.getState().selectedOrgId).toBe('person-1')
   })
 
   it('stops following the old organism when selection changes', () => {
