@@ -91,6 +91,7 @@ import { WildlifePanel } from './ui/panels/WildlifePanel'
 import { LineagesList } from './ui/panels/LineagesList'
 import { WorldFooter } from './ui/panels/WorldFooter'
 import { AppHeader } from './ui/toolbar/AppHeader'
+import { WorldCrashedNotice } from './ui/WorldCrashedNotice'
 import { RightPanel } from './ui/panels/RightPanel'
 import { ModalRouter } from './ui/modals/ModalRouter'
 import { type ScenarioPreset } from './simulation/scenarios'
@@ -170,6 +171,7 @@ function LiveApp() {
   // Every god tool plays its effect where it lands and floats what it did (see game/render/action-fx).
   const sendCommand = useMemo(() => withActionFx(sendWorldCommand), [sendWorldCommand])
   const localStartupFailed = !world && localSaveStatus.phase === 'error' && localSaveStatus.fatal === true
+  const localWorldCrashed = !!world && localSaveStatus.phase === 'error' && localSaveStatus.fatal === true
   const playerWorldKind = resolvePlayerWorldKind(worldSourceRef.current, {
     desktop: !!desktop,
     desktopMode,
@@ -965,6 +967,9 @@ function LiveApp() {
             />
           )}
         </main>
+        {localWorldCrashed && localSaveStatus.phase === 'error' && (
+          <WorldCrashedNotice detail={localSaveStatus.message} />
+        )}
 
         {canFindTool && (
           <WorldToolSearch open={toolSearchOpen} onClose={closeToolSearch} onPick={onPickTool} />

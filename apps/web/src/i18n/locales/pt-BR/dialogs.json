@@ -558,6 +558,9 @@
     "confirm": "começar novo"
   },
   "worldNotice": {
+    "crashedTitle": "O mundo parou",
+    "crashedBody": "A simulação encontrou um erro e não pode continuar. Recarregue para voltar ao último salvamento.",
+    "crashedReload": "Recarregar",
     "worldLoading": "O mundo ainda está carregando",
     "loadingRefresh": "O mundo local ainda está carregando. Espere um pouco e atualize a página.",
     "loadingReset": "O mundo local ainda está carregando. Espere um pouco e tente começar um novo mundo de novo.",

@@ -558,6 +558,9 @@
     "confirm": "开始新世界"
   },
   "worldNotice": {
+    "crashedTitle": "世界停止了",
+    "crashedBody": "模拟出现错误，无法继续。重新加载即可从上次存档继续。",
+    "crashedReload": "重新加载",
     "worldLoading": "世界仍在加载",
     "loadingRefresh": "本地世界仍在加载。请稍等片刻，然后刷新页面。",
     "loadingReset": "本地世界仍在加载。请稍等片刻，然后再次尝试开始新世界。",

@@ -558,6 +558,9 @@
     "confirm": "neu starten"
   },
   "worldNotice": {
+    "crashedTitle": "Die Welt ist stehen geblieben",
+    "crashedBody": "In der Simulation ist ein Fehler aufgetreten, sie kann nicht weiterlaufen. Lade neu, um beim letzten Spielstand weiterzumachen.",
+    "crashedReload": "Neu laden",
     "worldLoading": "Welt wird noch geladen",
     "loadingRefresh": "Die lokale Welt wird noch geladen. Warte einen Moment und lade die Seite dann neu.",
     "loadingReset": "Die lokale Welt wird noch geladen. Warte einen Moment und starte dann erneut eine neue Welt.",

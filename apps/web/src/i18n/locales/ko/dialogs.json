@@ -558,6 +558,9 @@
     "confirm": "새로 시작"
   },
   "worldNotice": {
+    "crashedTitle": "세계가 멈췄습니다",
+    "crashedBody": "시뮬레이션에 오류가 생겨 계속할 수 없습니다. 새로고침하면 마지막 저장 지점부터 이어집니다.",
+    "crashedReload": "새로고침",
     "worldLoading": "세계를 아직 불러오는 중입니다",
     "loadingRefresh": "로컬 세계를 아직 불러오는 중입니다. 잠시 기다린 뒤 페이지를 새로고침하세요.",
     "loadingReset": "로컬 세계를 아직 불러오는 중입니다. 잠시 기다린 뒤 새 세계를 다시 시작하세요.",

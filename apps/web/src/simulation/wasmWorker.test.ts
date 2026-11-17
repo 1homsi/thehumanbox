@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+const APPLIED_JSON = '{"applied":true,"code":"applied","count":0,"name":null}'
 const model = vi.hoisted(() => ({
   init: vi.fn(async () => {}),
   tick: 0n,
@@ -11,6 +12,7 @@ const model = vi.hoisted(() => ({
     async (): Promise<{ blob: Uint8Array; seed: string; tick: number; savedAt: number } | null> => null,
   ),
   serialize: vi.fn(() => new Uint8Array([1])),
+  command: vi.fn(() => APPLIED_JSON),
   saveWorld: vi.fn(async () => {}),
   archiveAndDeleteWorld: vi.fn(async () => 'recovery-1'),
   restoreRecoveryWorld: vi.fn(async () => 'previous-1'),
@@ -39,7 +41,7 @@ vi.mock('../wasm/sim-core/sim_core.js', () => ({
       return new Uint8Array([0x80])
     }
     command() {
-      return '{"applied":true,"code":"applied","count":0,"name":null}'
+      return model.command()
     }
     serialize() {
       return model.serialize()
@@ -120,6 +122,8 @@ beforeEach(async () => {
   model.restoreRecoveryWorld.mockReset().mockResolvedValue('previous-1')
   model.listRecoveryWorlds.mockReset().mockResolvedValue([])
   model.recoveryPrefix.mockReset().mockImplementation((worldId: string) => `recovery:${worldId}:`)
+  model.command.mockReset().mockImplementation(() => APPLIED_JSON)
+  vi.spyOn(performance, 'now').mockImplementation(() => Date.now())
   worker = { onmessage: null, postMessage: vi.fn(), close: vi.fn() }
   vi.stubGlobal('self', worker)
   vi.stubGlobal('navigator', {})
@@ -422,8 +426,8 @@ describe('browser simulation scheduling', () => {
 
   it('refreshes cold world data by wall time even at 50x', async () => {
     vi.spyOn(performance, 'now').mockImplementation(() => Date.now())
-    // Restart timing from a known frame timestamp.
     send({ type: 'command', json: '{}', requestId: 4 })
+    await vi.advanceTimersByTimeAsync(250)
     model.fullFrame.mockClear()
     send({ type: 'speed', tickMs: 24, stepsPerEmit: 10, speed: 50 })
     await vi.advanceTimersByTimeAsync(35_000)
@@ -557,10 +561,10 @@ describe('browser simulation scheduling', () => {
   })
 
   it('yields after an expensive tick instead of running the rest of a fast batch', async () => {
-    let clock = 0
-    vi.spyOn(performance, 'now').mockImplementation(() => clock)
+    let work = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => Date.now() + work)
     model.tickN.mockImplementation(() => {
-      clock += 80
+      work += 80
     })
     send({ type: 'speed', tickMs: 24, stepsPerEmit: 10, speed: 50 })
     await vi.advanceTimersByTimeAsync(24)
@@ -570,5 +574,112 @@ describe('browser simulation scheduling', () => {
     expect(model.tick).toBe(1n)
     await vi.advanceTimersByTimeAsync(1)
     expect(model.tick).toBe(2n)
+  })
+
+  it('keeps the requested rate when timers fire late, without replaying a backlog', async () => {
+    const fakeSetTimeout = globalThis.setTimeout
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((fn: () => void, ms?: number) =>
+      fakeSetTimeout(fn, (ms ?? 0) + 30)) as typeof setTimeout)
+    send({ type: 'speed', tickMs: 120, stepsPerEmit: 1, speed: 1 })
+    const before = model.tick
+    await vi.advanceTimersByTimeAsync(12_000)
+    expect(model.tick - before).toBeGreaterThanOrEqual(97n)
+    expect(model.tick - before).toBeLessThanOrEqual(101n)
+  })
+
+  it('caps catch-up after a long stall to two batches', async () => {
+    let stall = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => Date.now() + stall)
+    send({ type: 'speed', tickMs: 120, stepsPerEmit: 1, speed: 1 })
+    await vi.advanceTimersByTimeAsync(240)
+    const before = model.tick
+    stall = 10_000
+    await vi.advanceTimersByTimeAsync(130)
+    expect(model.tick - before).toBeLessThanOrEqual(3n)
+  })
+
+  it('answers a burst of commands with a few full frames and one save', async () => {
+    await vi.advanceTimersByTimeAsync(300)
+    model.fullFrame.mockClear()
+    model.saveWorld.mockClear()
+    for (let i = 0; i < 40; i += 1) {
+      send({ type: 'command', json: '{}', requestId: 100 + i })
+      await vi.advanceTimersByTimeAsync(50)
+    }
+    expect(worker.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'command_result', requestId: 139, ok: true }),
+    )
+    expect(model.fullFrame.mock.calls.length).toBeLessThanOrEqual(9)
+    expect(model.saveWorld).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(1_500)
+    expect(model.saveWorld).toHaveBeenCalledTimes(1)
+  })
+
+  it('still saves a command when the world stops before the debounce', async () => {
+    model.saveWorld.mockClear()
+    send({ type: 'command', json: '{}', requestId: 5 })
+    send({ type: 'stop' })
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalledWith({ type: 'stopped' }))
+    expect(model.saveWorld).toHaveBeenCalledTimes(1)
+  })
+
+  it('drops a command that arrives after the page gave up on it', async () => {
+    send({ type: 'command', json: '{}', requestId: 6, deadlineAt: Date.now() - 1 })
+    expect(model.command).not.toHaveBeenCalled()
+    expect(worker.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'command_result', requestId: 6, ok: false }),
+    )
+    send({ type: 'command', json: '{}', requestId: 7, deadlineAt: Date.now() + 4_500 })
+    expect(model.command).toHaveBeenCalledOnce()
+  })
+
+  it('sends a fresh full frame on request, even while paused', async () => {
+    send({ type: 'pause' })
+    await vi.advanceTimersByTimeAsync(1_000)
+    model.fullFrame.mockClear()
+    send({ type: 'full_frame' })
+    expect(model.fullFrame).toHaveBeenCalledOnce()
+  })
+
+  it('stops calling into a simulation that panicked and reports the panic once', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await restartWorker({})
+    send({ type: 'start', id: 'test', seed: '42' })
+    await vi.advanceTimersByTimeAsync(0)
+    model.tickN.mockImplementation(() => {
+      globalThis.console.error('panicked at crates/sim-core/src/sim/tick.rs:10:5:\nindex out of bounds')
+      throw new Error('unreachable')
+    })
+    await vi.advanceTimersByTimeAsync(500)
+    const fatal = worker.postMessage.mock.calls
+      .map(([msg]) => msg as { type?: string; fatal?: boolean; message?: string; code?: string })
+      .filter((msg) => msg.type === 'error' && msg.fatal)
+    expect(fatal).toHaveLength(1)
+    expect(fatal[0].code).toBe('sim_crashed')
+    expect(fatal[0].message).toContain('index out of bounds')
+    expect(model.tickN).toHaveBeenCalledOnce()
+    send({ type: 'command', json: '{}', requestId: 9 })
+    expect(model.command).not.toHaveBeenCalled()
+    expect(worker.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'command_result', requestId: 9, ok: false }),
+    )
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(model.tickN).toHaveBeenCalledOnce()
+    expect(vi.getTimerCount()).toBe(0)
+    consoleError.mockRestore()
+  })
+
+  it('answers a command that throws and reports the crash', async () => {
+    model.command.mockImplementation(() => {
+      throw new Error('recursive use of an object detected which would lead to unsafe aliasing in rust')
+    })
+    send({ type: 'command', json: '{}', requestId: 10 })
+    expect(worker.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'command_result', requestId: 10, ok: false }),
+    )
+    expect(worker.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'error', fatal: true, code: 'sim_crashed' }),
+    )
   })
 })

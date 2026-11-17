@@ -45,7 +45,8 @@ type InMsg =
   | { type: 'retry_storage'; requestId?: number }
   | { type: 'prepare_reload'; requestId: number; deadlineAt: number; requireLocalWorld?: boolean }
   | { type: 'stop' }
-  | { type: 'command'; json: string; requestId: number }
+  | { type: 'command'; json: string; requestId: number; deadlineAt?: number }
+  | { type: 'full_frame' }
   | { type: 'org_detail'; id: string; requestId: number }
   | { type: 'org_life'; id: string; requestId: number }
   | {
@@ -69,6 +70,10 @@ const DEFAULT_AUTOSAVE_MS = 5 * 60_000
 // (a third of the cycle, and never under MIN_WASM_TICK_MS), 32 ms keeps the worker simulating two thirds of
 // the time; at 16 ms the timer floor made it half. A pause or speed change waits at most this long.
 const FAST_BATCH_MS = 32
+const MAX_CATCHUP_BATCHES = 2
+const TICK_EPSILON = 1e-6
+const COMMAND_FULL_FRAME_MS = 250
+const COMMAND_SAVE_DEBOUNCE_MS = 1_500
 const LOCK_WAIT_MS = 4_000
 
 type SimInstance = InstanceType<SimClass>
@@ -99,9 +104,15 @@ const MIN_BACKGROUND_SLICE_MS = 50
 const MAX_BACKGROUND_SLICE_MS = 500
 let backgroundOwedMs = 0
 let backgroundClockAt = 0
+let owedTicks = 0
+let clockAt = 0
 let reloadPreparing = false
 let tickTimer: ReturnType<typeof setTimeout> | null = null
 let saveTimer: ReturnType<typeof setInterval> | null = null
+let fullFrameTimer: ReturnType<typeof setTimeout> | null = null
+let commandSaveTimer: ReturnType<typeof setTimeout> | null = null
+let simFailed = false
+let lastPanic: string | null = null
 let persistInFlight: Promise<boolean> | null = null
 let persistAgain = false
 let storageReady = true
@@ -119,6 +130,34 @@ function post(msg: unknown) {
 
 function postFrame(frame: Uint8Array) {
   ;(self as unknown as Worker).postMessage({ type: 'frame', frame }, [frame.buffer as ArrayBuffer])
+}
+
+const PANIC_PREFIX = 'panicked at'
+const workerConsole = globalThis.console
+const originalConsoleError = workerConsole.error
+workerConsole.error = (...args: unknown[]) => {
+  if (typeof args[0] === 'string' && args[0].startsWith(PANIC_PREFIX)) lastPanic = args[0]
+  originalConsoleError.apply(workerConsole, args)
+}
+
+function failSimulation(error: unknown) {
+  if (simFailed) return
+  simFailed = true
+  sim = null
+  stopTimers()
+  const detail = lastPanic ?? (error instanceof Error ? error.message : String(error))
+  logger.warn('wasm', 'simulation crashed:', detail)
+  post({ type: 'error', fatal: true, code: 'sim_crashed', message: `the simulation crashed: ${detail}` })
+}
+
+function guarded<T>(fallback: T, run: () => T): T {
+  if (simFailed) return fallback
+  try {
+    return run()
+  } catch (error) {
+    failSimulation(error)
+    return fallback
+  }
 }
 
 async function acquireWorldLock(id: string): Promise<boolean> {
@@ -191,12 +230,42 @@ async function releaseWorldLockAfterStartup() {
 function emit(deepFull: boolean) {
   // Nothing draws a hidden tab; a full frame resyncs it on return.
   if (!sim || hiddenRunning) return
+  const running = sim
   frameId += 1
   const now = Date.now()
   lastEmittedAt = performance.now()
-  if (deepFull) lastDeepFullAt = lastEmittedAt
-  const frame = deepFull ? sim.fullFrameBytes(frameId, now) : sim.deltaFrameBytes(frameId, now)
-  postFrame(frame)
+  if (deepFull) {
+    lastDeepFullAt = lastEmittedAt
+    if (fullFrameTimer !== null) {
+      clearTimeout(fullFrameTimer)
+      fullFrameTimer = null
+    }
+  }
+  const frame = guarded(null, () =>
+    deepFull ? running.fullFrameBytes(frameId, now) : running.deltaFrameBytes(frameId, now),
+  )
+  if (frame) postFrame(frame)
+}
+
+function requestFullFrame() {
+  if (!sim || hiddenRunning) return
+  const waitMs = COMMAND_FULL_FRAME_MS - (performance.now() - lastDeepFullAt)
+  if (waitMs <= 0) {
+    emit(true)
+  } else if (fullFrameTimer === null) {
+    fullFrameTimer = setTimeout(() => {
+      fullFrameTimer = null
+      emit(true)
+    }, waitMs)
+  }
+}
+
+function schedulePersistAfterCommand() {
+  if (commandSaveTimer !== null) clearTimeout(commandSaveTimer)
+  commandSaveTimer = setTimeout(() => {
+    commandSaveTimer = null
+    void persist()
+  }, COMMAND_SAVE_DEBOUNCE_MS)
 }
 
 function rememberRetry(next: StorageRetry<SavedWorld>) {
@@ -241,10 +310,13 @@ async function persist(): Promise<boolean> {
     try {
       do {
         persistAgain = false
-        if (!sim) return false
-        const tick = Number(sim.tickCount())
+        const running = sim
+        if (!running) return false
+        const tick = guarded(null, () => Number(running.tickCount()))
+        if (tick === null) return false
         post({ type: 'saving', tick })
-        const blob = sim.serialize()
+        const blob = guarded(null, () => running.serialize())
+        if (!blob) return false
         if (blob.byteLength === 0) throw new Error('simulation produced an empty save')
         const savedAt = Date.now()
         await saveWorld(worldId, { blob, seed, tick, savedAt })
@@ -434,6 +506,14 @@ function stopTimers() {
     clearInterval(saveTimer)
     saveTimer = null
   }
+  if (fullFrameTimer !== null) {
+    clearTimeout(fullFrameTimer)
+    fullFrameTimer = null
+  }
+  if (commandSaveTimer !== null) {
+    clearTimeout(commandSaveTimer)
+    commandSaveTimer = null
+  }
 }
 
 function msPerTick() {
@@ -454,11 +534,15 @@ function catchUpInBackground(running: SimInstance, startedAt: number) {
 }
 
 function tickOnce() {
+  tickTimer = null
+  if (simFailed) return
   const startedAt = performance.now()
-  let completed = 0
   const running = manuallyPaused || hiddenPaused || reloadPreparing ? null : sim
   if (running && hiddenRunning) {
-    catchUpInBackground(running, startedAt)
+    owedTicks = 0
+    clockAt = startedAt
+    guarded(undefined, () => catchUpInBackground(running, startedAt))
+    if (simFailed) return
     const workMs = performance.now() - startedAt
     const behind = backgroundOwedMs >= msPerTick()
     // Still behind: come straight back, idling at least as long as the slice took.
@@ -468,23 +552,41 @@ function tickOnce() {
   }
   backgroundOwedMs = 0
   backgroundClockAt = startedAt
-  if (running) {
-    // Bound a fast-forward batch, yielding between slices for pause/save/input.
-    do {
-      running.tickN(1)
-      completed += 1
-    } while (completed < stepsPerEmit && performance.now() - startedAt < FAST_BATCH_MS)
+  if (!running) {
+    owedTicks = 0
+    clockAt = startedAt
+    tickTimer = setTimeout(tickOnce, Math.max(250, tickMs))
+    return
+  }
+  const maxOwed = stepsPerEmit * MAX_CATCHUP_BATCHES
+  owedTicks = Math.min(maxOwed, owedTicks + Math.max(0, startedAt - clockAt) / msPerTick())
+  clockAt = startedAt
+  let completed = 0
+  while (
+    owedTicks + TICK_EPSILON >= 1 &&
+    completed < maxOwed &&
+    (completed === 0 || performance.now() - startedAt < FAST_BATCH_MS)
+  ) {
+    guarded(undefined, () => running.tickN(1))
+    if (simFailed) return
+    completed += 1
+    owedTicks -= 1
+  }
+  if (completed > 0) {
     if (tickMs >= WASM_BASE_TICK_MS || performance.now() - lastEmittedAt >= WASM_BASE_TICK_MS) {
       emit(performance.now() - lastDeepFullAt >= DEEP_FULL_EVERY_MS)
+      if (simFailed) return
     }
   }
   const workMs = performance.now() - startedAt
-  const interval = completed > 0 ? (tickMs * completed) / stepsPerEmit : Math.max(250, tickMs)
-  tickTimer = setTimeout(tickOnce, wasmTickDelay(interval, workMs))
+  const untilNextBatchMs = Math.max(0, stepsPerEmit - owedTicks) * msPerTick()
+  tickTimer = setTimeout(tickOnce, wasmTickDelay(untilNextBatchMs, workMs))
 }
 
 function startTickTimer() {
   if (tickTimer !== null) clearTimeout(tickTimer)
+  owedTicks = 0
+  clockAt = performance.now()
   tickTimer = setTimeout(tickOnce, Math.max(MIN_WASM_TICK_MS, tickMs))
 }
 
@@ -737,7 +839,8 @@ self.onmessage = (e: MessageEvent) => {
       if (wasHiddenRunning && !msg.hidden && sim && !manuallyPaused && !reloadPreparing) {
         // A throttled timer may not have fired since the last catch-up: run what is owed up
         // to now (within one slice) so the resync frame shows the world on time.
-        catchUpInBackground(sim, performance.now())
+        const running = sim
+        guarded(undefined, () => catchUpInBackground(running, performance.now()))
       }
       if (resyncOnReturn && !msg.hidden) {
         resyncOnReturn = false
@@ -800,34 +903,43 @@ self.onmessage = (e: MessageEvent) => {
         if (ok) self.close()
       })
       break
-    case 'command':
-      if (sim && !reloadPreparing) {
-        const outcome = parseCommandOutcome(sim.command(msg.json)) ?? FAILED_OUTCOME
+    case 'command': {
+      const running = sim
+      const expired = msg.deadlineAt !== undefined && Date.now() > msg.deadlineAt
+      if (running && !reloadPreparing && !expired) {
+        const json = guarded(null, () => String(running.command(msg.json)))
+        const outcome = (json === null ? null : parseCommandOutcome(json)) ?? FAILED_OUTCOME
         if (outcome.applied) {
-          emit(true)
-          // Player actions are important checkpoints. Save them immediately
-          // so terrain edits, disasters, and spawned life survive a reload.
-          void persist()
+          requestFullFrame()
+          schedulePersistAfterCommand()
         }
         post({ type: 'command_result', requestId: msg.requestId, ok: outcome.applied, outcome })
       } else {
         post({ type: 'command_result', requestId: msg.requestId, ok: false, outcome: FAILED_OUTCOME })
       }
       break
-    case 'org_detail':
+    }
+    case 'full_frame':
+      requestFullFrame()
+      break
+    case 'org_detail': {
+      const running = sim
       post({
         type: 'org_detail_result',
         requestId: msg.requestId,
-        json: sim?.orgDetail(msg.id) ?? '',
+        json: running ? guarded('', () => running.orgDetail(msg.id)) : '',
       })
       break
-    case 'org_life':
+    }
+    case 'org_life': {
+      const running = sim
       post({
         type: 'org_life_result',
         requestId: msg.requestId,
-        json: sim?.orgLife(msg.id) ?? '',
+        json: running ? guarded('', () => running.orgLife(msg.id)) : '',
       })
       break
+    }
     case 'speed':
       {
         const valid =

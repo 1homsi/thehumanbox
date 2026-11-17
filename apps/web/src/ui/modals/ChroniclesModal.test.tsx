@@ -3,6 +3,8 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { ChroniclesModal } from './ChroniclesModal'
+import { chroniclesBadgeCount, chroniclesDefaultTab } from './chronicles-tab'
+import { onFreshFrameRequest } from '../../simulation/fresh-frame'
 import { eventDate } from '../event-date'
 import { t } from '../../i18n'
 import { DAY_TICKS, SEASON_TICKS, YEAR_TICKS } from '../../game/model/calendar'
@@ -61,6 +63,34 @@ describe('ChroniclesModal tabs', () => {
     expect(before.filter((p) => p === 'true')).toHaveLength(1)
     act(() => (before[0] === 'true' ? lives : history).click())
     expect(pressed()).toEqual([...before].reverse())
+  })
+})
+
+describe('ChroniclesModal opening', () => {
+  it('asks the local world for a fresh full frame when it opens', () => {
+    const request = vi.fn()
+    const stop = onFreshFrameRequest(request)
+    renderChronicles([], [])
+    stop()
+    expect(request).toHaveBeenCalledOnce()
+  })
+
+  it('opens on lives when only lives have entries, as the header badge counts', () => {
+    const stories = [{ tick: 5, org_name: 'Ada', lineage_id: 'a', story: 'Lived well.' }]
+    renderChronicles(stories, [])
+    expect(document.body.textContent).toContain(t('dialogs.chronicles.livesIntro'))
+    expect(document.body.textContent).not.toContain(t('dialogs.chronicles.noHistory'))
+    expect(chroniclesBadgeCount(stories.length, 0)).toBe(1)
+  })
+
+  it('opens on history when it has entries, and counts those', () => {
+    renderChronicles(
+      [{ tick: 5, org_name: 'Ada', lineage_id: 'a', story: 'Lived well.' }],
+      [{ tick: 0, text: 'The first fire is lit.' }],
+    )
+    expect(document.body.textContent).toContain('The first fire is lit.')
+    expect(chroniclesBadgeCount(1, 1)).toBe(1)
+    expect(chroniclesDefaultTab(0, 0)).toBe('history')
   })
 })
 

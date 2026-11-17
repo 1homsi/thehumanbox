@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { StoryEntry, HeadlineInfo } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
 import { Modal } from './Modal'
 import { t } from '../../i18n'
 import { eventDate } from '../event-date'
+import { requestFreshFrame } from '../../simulation/fresh-frame'
+import { chroniclesDefaultTab, type ChroniclesTab } from './chronicles-tab'
 
 interface Props {
   stories: StoryEntry[]
@@ -11,10 +13,12 @@ interface Props {
   onClose: () => void
 }
 
-type Tab = 'history' | 'lives'
+type Tab = ChroniclesTab
 
 export function ChroniclesModal({ stories, headlines = [], onClose }: Props) {
-  const [tab, setTab] = useState<Tab>('history')
+  useEffect(() => requestFreshFrame(), [])
+  const [picked, setTab] = useState<Tab | null>(null)
+  const tab = picked ?? chroniclesDefaultTab(stories.length, headlines.length)
   const sortedStories = [...stories]
   // Headlines arrive newest-first; show as a descending timeline.
   const timeline = [...headlines]

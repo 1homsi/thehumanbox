@@ -558,6 +558,9 @@
     "confirm": "yeni başlat"
   },
   "worldNotice": {
+    "crashedTitle": "Dünya durdu",
+    "crashedBody": "Simülasyon bir hatayla karşılaştı ve devam edemiyor. Son kayıttan sürdürmek için yeniden yükle.",
+    "crashedReload": "Yeniden yükle",
     "worldLoading": "Dünya hâlâ yükleniyor",
     "loadingRefresh": "Yerel dünya hâlâ yükleniyor. Biraz bekleyip sayfayı yenileyin.",
     "loadingReset": "Yerel dünya hâlâ yükleniyor. Biraz bekleyip yeni bir dünya başlatmayı yeniden deneyin.",
