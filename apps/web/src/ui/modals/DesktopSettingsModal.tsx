@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import clsx from 'clsx'
-import { Modal } from './Modal'
+import { Modal, ModalHeader } from './Modal'
 import { askConfirm } from '../../shared/confirm'
 import { ToolSprite } from '../toolbar/ToolSprite'
 import { useNerdStats, useUIStore, useViewFlag } from '../../state/store'
@@ -581,17 +581,11 @@ export function DesktopSettingsModal({ onClose }: Props) {
 
   return (
     <Modal open onClose={onClose} className="settings-modal" title={t('settings.title')} hideTitle>
-      <div className="lang-modal-header">
-        <span className="lang-modal-title">{t('settings.title').toLocaleUpperCase()}</span>
-        {desktop && (
-          <span className="tree-modal-sub">
-            v{desktop.appVersion} · {desktop.platform}
-          </span>
-        )}
-        <button aria-label={t('common.close')} className="close-btn" onClick={onClose}>
-          ✕
-        </button>
-      </div>
+      <ModalHeader
+        title={t('settings.title')}
+        sub={desktop ? `v${desktop.appVersion} · ${desktop.platform}` : undefined}
+        onClose={onClose}
+      />
       <div className="settings-layout">
         <nav className="settings-tabs" aria-label={t('settings.sectionsAria')}>
           {tabs.map((entry) => (

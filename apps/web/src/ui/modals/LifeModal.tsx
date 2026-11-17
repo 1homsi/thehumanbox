@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { OrgLife, LifeEvent } from '../../shared/types'
-import { Modal } from './Modal'
+import { Modal, ModalHeader } from './Modal'
 import { eventDate } from '../event-date'
 import { API_BASE } from '../../shared/config'
 import { useSimulationData } from '../../simulation/simulationData'
@@ -150,12 +150,11 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
       title={t('dialogs.life.title', { name: orgName })}
       hideTitle
     >
-      <div className="lang-modal-header">
-        <span className="lang-modal-title">{t('dialogs.life.heading', { name: orgName.toUpperCase() })}</span>
-        <button aria-label={t('dialogs.life.close')} className="close-btn" onClick={onClose}>
-          ✕
-        </button>
-      </div>
+      <ModalHeader
+        title={t('dialogs.life.heading', { name: orgName.toUpperCase() })}
+        onClose={onClose}
+        closeLabel={t('dialogs.life.close')}
+      />
       <div className="lang-modal-body">
         {loading && (
           <div className="life-skeleton">

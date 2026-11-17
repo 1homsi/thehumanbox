@@ -50,6 +50,9 @@
 .thb-modal-header > .thb-modal-title {
   margin-right: auto;
 }
+.thb-modal .thb-modal-header > .thb-modal-close {
+  margin-left: 0;
+}
 .thb-modal .lang-modal-header .tree-modal-sub {
   min-width: 0;
 }

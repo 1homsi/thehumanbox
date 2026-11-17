@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import type { OrganismState } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
 import { useFrozenSnapshot } from '../../shared/hooks/useFrozenSnapshot'
-import { Modal } from './Modal'
+import { Modal, ModalHeader } from './Modal'
 import { formatNumber, t, type MessageKey } from '../../i18n'
 
 const CONCEPT_SECTIONS: { label: MessageKey; concepts: string[] }[] = [
@@ -602,17 +602,20 @@ export function LanguageModal({ organisms, lineageWords, sexWords, onClose, line
 
   return (
     <Modal open onClose={onClose} className="lang-modal" title={t('dialogs.language.title')} hideTitle>
-      <div className="lang-modal-header">
-        <span className="lang-modal-title">{t('dialogs.language.heading')}</span>
-        <div className="modal-header-actions">
-          <button className="reload-btn" onClick={reload} title={t('dialogs.language.reload')}>
-            ⟳
-          </button>
-          <button aria-label={t('dialogs.language.close')} className="close-btn" onClick={onClose}>
-            ✕
-          </button>
-        </div>
-      </div>
+      <ModalHeader
+        title={t('dialogs.language.heading')}
+        onClose={onClose}
+        closeLabel={t('dialogs.language.close')}
+      >
+        <button
+          className="reload-btn"
+          onClick={reload}
+          title={t('dialogs.language.reload')}
+          aria-label={t('dialogs.language.reload')}
+        >
+          ⟳
+        </button>
+      </ModalHeader>
       <div className="lang-modal-body">
         <p className="lang-modal-sub">{t('dialogs.language.intro')}</p>
 

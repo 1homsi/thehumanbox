@@ -6,7 +6,7 @@ import { causeText, type FallenTribe } from '../../game/model/tribe-end'
 import { factsLine, type LineageFacts } from '../../game/model/lineage-facts'
 import { PERIL_HELP, remainingLine, visibleLineages } from '../../game/model/tribe-peril'
 import { lineageColor, lineageWord } from '../../shared/constants'
-import { Modal } from './Modal'
+import { Modal, ModalHeader } from './Modal'
 import { shownGeneration } from '../../game/model/generations'
 import { formatNumber, t } from '../../i18n'
 import { fallenFocus } from '../../shared/viewerSelection'
@@ -48,14 +48,11 @@ export function AllLineagesModal({
 
   return (
     <Modal open onClose={onClose} className="lang-modal" title={t('dialogs.lineages.title')} hideTitle>
-      <div className="lang-modal-header">
-        <span className="lang-modal-title">
-          {t('dialogs.lineages.heading', { count: formatNumber(Object.keys(lineages).length) })}
-        </span>
-        <button aria-label={t('dialogs.lineages.close')} className="close-btn" onClick={onClose}>
-          ✕
-        </button>
-      </div>
+      <ModalHeader
+        title={t('dialogs.lineages.heading', { count: formatNumber(Object.keys(lineages).length) })}
+        onClose={onClose}
+        closeLabel={t('dialogs.lineages.close')}
+      />
       <div className="lang-modal-body">
         <div className="lineage-list">
           {rows.map(({ lid, info, peril: cause }) => (

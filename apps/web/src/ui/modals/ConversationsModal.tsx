@@ -5,9 +5,10 @@ import type { OrganismState, ConversationEntry } from '../../shared/types'
 import { lineageColor } from '../../shared/constants'
 import { useOrgConversations } from '../../shared/hooks/useOrgConversations'
 import { WithQueryClient } from '../../shared/query'
-import { Modal } from './Modal'
+import { Modal, ModalHeader } from './Modal'
 import { eventDate } from '../event-date'
 import { t, type MessageKey } from '../../i18n'
+import { PixelIcon, type SpriteName } from '../toolbar/ToolSprite'
 
 interface Props {
   org: OrganismState
@@ -16,21 +17,21 @@ interface Props {
   onClose: () => void
 }
 
-const KIND_META: Record<string, { icon: string; label: MessageKey; color: string }> = {
-  courtship: { icon: '💛', label: 'dialogs.conversations.kinds.courtship', color: '#d4a843' },
-  bonded: { icon: '♥', label: 'dialogs.conversations.kinds.bonded', color: '#c07090' },
-  farewell: { icon: '✦', label: 'dialogs.conversations.kinds.farewell', color: '#778' },
-  chat: { icon: '💬', label: 'dialogs.conversations.kinds.chat', color: '#5b9' },
-  gossip: { icon: '🗣', label: 'dialogs.conversations.kinds.gossip', color: '#b98ad0' },
-  excited: { icon: '✨', label: 'dialogs.conversations.kinds.excited', color: '#7bbbff' },
-  argue: { icon: '⚡', label: 'dialogs.conversations.kinds.argue', color: '#e06030' },
+const KIND_META: Record<string, { icon: SpriteName; label: MessageKey; color: string }> = {
+  courtship: { icon: 'ring', label: 'dialogs.conversations.kinds.courtship', color: '#d4a843' },
+  bonded: { icon: 'heart', label: 'dialogs.conversations.kinds.bonded', color: '#c07090' },
+  farewell: { icon: 'dove', label: 'dialogs.conversations.kinds.farewell', color: '#778' },
+  chat: { icon: 'v_bubble', label: 'dialogs.conversations.kinds.chat', color: '#5b9' },
+  gossip: { icon: 'v_eye', label: 'dialogs.conversations.kinds.gossip', color: '#b98ad0' },
+  excited: { icon: 'sparkle', label: 'dialogs.conversations.kinds.excited', color: '#7bbbff' },
+  argue: { icon: 'bolt', label: 'dialogs.conversations.kinds.argue', color: '#e06030' },
 }
 
-function kindMeta(kind: string): { icon: string; label: string; color: string } {
+function kindMeta(kind: string): { icon: SpriteName; label: string; color: string } {
   const meta = KIND_META[kind]
   return meta
     ? { icon: meta.icon, label: t(meta.label), color: meta.color }
-    : { icon: '💬', label: kind, color: '#666' }
+    : { icon: 'v_bubble', label: kind, color: '#666' }
 }
 
 const ConvoBlock = memo(function ConvoBlock({
@@ -64,7 +65,9 @@ const ConvoBlock = memo(function ConvoBlock({
     <div className="cv-block">
       {}
       <div className="cv-block-head">
-        <span className="cv-kind-icon">{meta.icon}</span>
+        <span className="cv-kind-icon">
+          <PixelIcon name={meta.icon} size={12} />
+        </span>
         <span className="cv-kind-label" style={{ color: meta.color }}>
           {meta.label}
         </span>
@@ -141,9 +144,11 @@ function ConversationsModalBody({ org, allOrgs, sexWords, onClose }: Props) {
       title={t('dialogs.conversations.title', { name: personName(org) })}
       hideTitle
     >
-      {}
-      <div className="cv-modal-head">
-        <span className="cv-modal-title">{t('dialogs.conversations.heading')}</span>
+      <ModalHeader
+        title={t('dialogs.conversations.heading')}
+        onClose={onClose}
+        closeLabel={t('dialogs.conversations.close')}
+      >
         <div className="cv-modal-who">
           <span style={{ color: lineageColor(org.lineage_id), fontWeight: 700 }}>{personName(org)}</span>
           {sexLabel && (
@@ -157,42 +162,28 @@ function ConversationsModalBody({ org, allOrgs, sexWords, onClose }: Props) {
             </span>
           )}
         </div>
-        <button aria-label={t('dialogs.conversations.close')} className="close-btn" onClick={onClose}>
-          ✕
-        </button>
-      </div>
+      </ModalHeader>
 
       {allConvos.length > 1 && (
-        <div
-          className="cv-filters"
-          style={{ display: 'flex', gap: 6, padding: '6px 12px', flexWrap: 'wrap' }}
-        >
+        <div className="cv-filters">
           {(
             ['all', 'courtship', 'bonded', 'chat', 'gossip', 'excited', 'argue', 'farewell'] as KindFilter[]
           ).map((k) => {
             const count = k === 'all' ? allConvos.length : (kindCounts[k] ?? 0)
             if (k !== 'all' && count === 0) return null
             const isActive = kindFilter === k
-            const meta =
-              k === 'all'
-                ? { icon: '∗', label: t('dialogs.conversations.filterAll'), color: '#999' }
-                : kindMeta(k)
+            const meta = k === 'all' ? null : kindMeta(k)
             return (
               <button
                 key={k}
+                type="button"
+                className={clsx('filter-chip cv-filter', isActive && 'active')}
+                aria-pressed={isActive}
                 onClick={() => setKindFilter(k)}
-                style={{
-                  background: isActive ? meta.color + '22' : 'transparent',
-                  border: `1px solid ${isActive ? meta.color : '#2a2520'}`,
-                  color: isActive ? meta.color : '#888',
-                  padding: '3px 8px',
-                  borderRadius: 3,
-                  fontSize: 10,
-                  cursor: 'pointer',
-                  letterSpacing: '0.04em',
-                }}
               >
-                {meta.icon} {meta.label} {count > 0 && <span style={{ opacity: 0.6 }}>({count})</span>}
+                {meta && <PixelIcon name={meta.icon} size={11} />}
+                {meta ? meta.label : t('dialogs.conversations.filterAll')}
+                {count > 0 && <span className="cv-filter-count">({count})</span>}
               </button>
             )
           })}
@@ -206,14 +197,16 @@ function ConversationsModalBody({ org, allOrgs, sexWords, onClose }: Props) {
             <div className="cv-loading-dot" aria-hidden>
               •••
             </div>
-            <div style={{ fontSize: 11, fontStyle: 'italic', color: '#555', textAlign: 'center' }}>
+            <div className="cv-empty-text">
               {t('dialogs.conversations.loading', { name: personName(org) })}
             </div>
           </div>
         ) : filteredConvos.length === 0 ? (
           <div className="cv-empty">
-            <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
-            <div style={{ fontSize: 11, fontStyle: 'italic', color: '#555', textAlign: 'center' }}>
+            <div className="cv-empty-icon">
+              <PixelIcon name="v_bubble" size={28} />
+            </div>
+            <div className="cv-empty-text">
               {allConvos.length === 0
                 ? org.attracted_to
                   ? t('dialogs.conversations.drawn', { name: personName(org) })
