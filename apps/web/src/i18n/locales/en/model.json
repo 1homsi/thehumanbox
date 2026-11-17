@@ -239,6 +239,7 @@
   "legends": {
     "when": "Year {year}, {season}",
     "notable": "A notable event",
+    "repeated": "{title} ×{count}",
     "titles": {
       "meteor": "A star falls",
       "eruption": "The mountain wakes",

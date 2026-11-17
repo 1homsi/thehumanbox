@@ -240,6 +240,7 @@
   "legends": {
     "when": "Rok {year}, {season}",
     "notable": "Godne uwagi wydarzenie",
+    "repeated": "{title} ×{count}",
     "titles": {
       "meteor": "Spada gwiazda",
       "eruption": "Góra się budzi",

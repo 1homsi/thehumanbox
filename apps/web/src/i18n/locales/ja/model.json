@@ -236,6 +236,7 @@
   "legends": {
     "when": "{year}年目 {season}",
     "notable": "注目すべき出来事",
+    "repeated": "{title} ×{count}",
     "titles": {
       "meteor": "星が落ちる",
       "eruption": "山が目覚める",

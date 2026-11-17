@@ -236,6 +236,7 @@
   "legends": {
     "when": "Año {year}, {season}",
     "notable": "Un suceso notable",
+    "repeated": "{title} ×{count}",
     "titles": {
       "meteor": "Cae una estrella",
       "eruption": "La montaña despierta",

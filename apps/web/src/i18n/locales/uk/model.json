@@ -240,6 +240,7 @@
   "legends": {
     "when": "Рік {year}, {season}",
     "notable": "Помітна подія",
+    "repeated": "{title} ×{count}",
     "titles": {
       "meteor": "Падає зоря",
       "eruption": "Гора прокидається",

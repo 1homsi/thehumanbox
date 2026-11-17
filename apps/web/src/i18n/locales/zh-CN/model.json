@@ -236,6 +236,7 @@
   "legends": {
     "when": "第 {year} 年{season}",
     "notable": "一件值得注意的事",
+    "repeated": "{title} ×{count}",
     "titles": {
       "meteor": "一颗星坠落",
       "eruption": "山岳苏醒",
