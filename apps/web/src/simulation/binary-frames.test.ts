@@ -1,7 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { encode as msgpackEncode } from '@msgpack/msgpack'
 import { gzipSync } from 'fflate'
-import { binaryFramesReady, loadBinaryFrameDecoder, parseWorldFrame } from './wire'
+
+let wire: typeof import('./wire')
+
+beforeEach(async () => {
+  vi.resetModules()
+  wire = await import('./wire')
+})
 
 const frame = {
   frame_id: 7,
@@ -23,6 +29,7 @@ function withEnvelope(tag: number, body: Uint8Array): Uint8Array {
 
 describe('lazily loaded binary frame decoder', () => {
   it('reports a clear error for binary frames until the decoder is loaded, never for text frames', async () => {
+    const { binaryFramesReady, loadBinaryFrameDecoder, parseWorldFrame } = wire
     expect(binaryFramesReady()).toBe(false)
     const early = parseWorldFrame(msgpackEncode(frame))
     expect(early.isErr()).toBe(true)
@@ -35,6 +42,7 @@ describe('lazily loaded binary frame decoder', () => {
   })
 
   it('decodes bare, plain-envelope and gzip-envelope MessagePack once loaded', async () => {
+    const { loadBinaryFrameDecoder, parseWorldFrame } = wire
     await loadBinaryFrameDecoder()
     const packed = msgpackEncode(frame)
     const asBuffer = packed.buffer.slice(packed.byteOffset, packed.byteOffset + packed.byteLength)

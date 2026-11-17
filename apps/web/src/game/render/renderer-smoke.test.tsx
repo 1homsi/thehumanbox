@@ -6,12 +6,14 @@ import { clearSavedCamera } from '../model/saved-camera'
 import type { WorldState } from '../../shared/types'
 import type { InterpRefs } from '../../simulation/useSimulation'
 import { WorldView } from './WorldView'
+import { setWorldGPUForTests } from './world-view/gpu'
 import { logger } from '../../shared/logger'
 
 // Canvas commands are recorded here; this test exercises React mounting,
 // first-frame readiness, camera invalidation and error recovery without a GPU.
 afterEach(() => {
   clearSavedCamera()
+  setWorldGPUForTests(null)
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   document.body.replaceChildren()

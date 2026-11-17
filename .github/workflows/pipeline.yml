@@ -399,9 +399,9 @@ jobs:
           - part: lint
             run: pnpm lint && pnpm format:check && pnpm audit --prod --audit-level high
           - part: tests 1/2
-            run: pnpm test --shard=1/2
+            run: pnpm test --shard=1/2 --sequence.shuffle
           - part: tests 2/2
-            run: pnpm test --shard=2/2
+            run: pnpm test --shard=2/2 --sequence.shuffle
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
