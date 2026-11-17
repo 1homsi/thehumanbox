@@ -407,9 +407,9 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
       )}
       <Need label={t('panels.tribe.water')} value={status.water} />
       <Need label={t('panels.tribe.health')} value={status.health} />
+      <TribeReasoning world={world} status={status} />
       <TribeTimeline world={world} lineage={status.id} samples={tribeSeries.get(status.id) ?? []} />
       <TribeHistory world={world} lineage={status.id} />
-      <TribeReasoning world={world} status={status} />
       {losses && <div className="tribe-card-losses">{t('panels.tribe.lostLately', { losses })}</div>}
       {relations && <div className="tribe-card-relations">{relations}</div>}
       {craftKey && (
