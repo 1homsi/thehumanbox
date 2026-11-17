@@ -50,6 +50,11 @@
   },
   "help": {
     "section": "Ayuda",
+    "tutorial": "Tutorial",
+    "tutorialDesc": "Un mundo de práctica donde pruebas tres poderes en una tribu, uno a uno.",
+    "startTutorial": "iniciar tutorial",
+    "tutorialConfirmTitle": "¿Empezar el tutorial?",
+    "tutorialConfirmBody": "Este mundo se guarda en las copias de recuperación y se abre un mundo de práctica. Al terminar, empieza un mundo nuevo.",
     "tour": "Recorrido guiado",
     "tourDesc": "Un recorrido breve por el mapa, la barra inferior y los paneles.",
     "startTour": "iniciar recorrido",

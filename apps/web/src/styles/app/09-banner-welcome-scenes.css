@@ -404,6 +404,37 @@
     opacity 700ms ease,
     filter 700ms ease;
 }
+.welcome-tutorial {
+  margin-left: auto;
+}
+.tutorial-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tutorial-count {
+  color: var(--px-gold-text, #f3d17a);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.tutorial-action {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+@media (max-width: 480px) {
+  .tutorial-caption {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .tutorial-text {
+    flex: 1 0 100%;
+  }
+}
+
 body[data-opening~='powers'] :is(.sandbox-bar, .header-badges),
 body[data-opening~='header'] .header-actions {
   opacity: 0.35;

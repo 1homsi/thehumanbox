@@ -50,6 +50,11 @@
   },
   "help": {
     "section": "Ajuda",
+    "tutorial": "Tutorial",
+    "tutorialDesc": "Um mundo de treino onde você testa três poderes em uma tribo, um de cada vez.",
+    "startTutorial": "iniciar tutorial",
+    "tutorialConfirmTitle": "Começar o tutorial?",
+    "tutorialConfirmBody": "Este mundo fica guardado nos salvamentos de recuperação e um mundo de treino se abre. Ao terminar, um mundo novo começa.",
     "tour": "Tour guiado",
     "tourDesc": "Um passeio rápido pelo mapa, pela barra inferior e pelos painéis.",
     "startTour": "iniciar tour",

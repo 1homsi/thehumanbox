@@ -50,6 +50,11 @@
   },
   "help": {
     "section": "Aide",
+    "tutorial": "Tutoriel",
+    "tutorialDesc": "Un monde d'entraînement où vous essayez trois pouvoirs sur une tribu, un par un.",
+    "startTutorial": "lancer le tutoriel",
+    "tutorialConfirmTitle": "Lancer le tutoriel ?",
+    "tutorialConfirmBody": "Ce monde est conservé dans les sauvegardes de récupération et un monde d'entraînement s'ouvre. À la fin, un nouveau monde commence.",
     "tour": "Visite guidée",
     "tourDesc": "Une courte présentation de la carte, de la barre inférieure et des panneaux.",
     "startTour": "démarrer la visite",

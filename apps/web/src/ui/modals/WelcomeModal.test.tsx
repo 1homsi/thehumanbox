@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { WelcomeModal } from './WelcomeModal'
 import { LOCALES, loadLocale, t } from '../../i18n'
+import { LOCAL_WORLD_RELOAD_EVENT } from '../../simulation/worldSource'
 
 const reload = vi.hoisted(() => vi.fn(() => true))
 vi.mock('../../simulation/worldSource', async (importOriginal) => ({
@@ -221,11 +222,29 @@ describe('WelcomeModal', () => {
     }
   })
 
-  it('the first screen offers one action, Start, and one way out, Skip', () => {
+  it('the first screen offers one action, Start, a Tutorial beside it, and one way out, Skip', () => {
     mount()
     const buttons = [...document.querySelectorAll<HTMLButtonElement>('.welcome-modal .welcome-btn')]
-    expect(buttons.map((b) => b.textContent)).toEqual([t('dialogs.welcome.skip'), t('dialogs.welcome.start')])
-    expect(buttons[1].classList.contains('welcome-btn--primary')).toBe(true)
+    expect(buttons.map((b) => b.textContent)).toEqual([
+      t('dialogs.welcome.skip'),
+      t('dialogs.welcome.tutorial'),
+      t('dialogs.welcome.start'),
+    ])
+    expect(buttons[2].classList.contains('welcome-btn--primary')).toBe(true)
+  })
+
+  it('Tutorial closes the card and opens the tutorial world', () => {
+    const worker = vi.fn((e: Event) => e.preventDefault())
+    window.addEventListener(LOCAL_WORLD_RELOAD_EVENT, worker)
+    mount()
+    act(() => document.querySelector<HTMLButtonElement>('.welcome-tutorial')!.click())
+    window.removeEventListener(LOCAL_WORLD_RELOAD_EVENT, worker)
+    expect(worker).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('.welcome-modal')).toBeNull()
+    expect(window.localStorage.getItem('thb-welcome-seen-v1')).toBe('1')
+    expect(window.localStorage.getItem('thb-tutorial-step-v1')).toBe('0')
+    expect(window.localStorage.getItem('thb-wasm-seed')).toBe('42')
+    expect(window.localStorage.getItem('thb-wasm-reset-pending')).toBe('1')
   })
 
   it('Skip closes the card in one click and it does not come back', () => {

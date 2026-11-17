@@ -50,6 +50,11 @@
   },
   "help": {
     "section": "Aiuto",
+    "tutorial": "Tutorial",
+    "tutorialDesc": "Un mondo di prova dove provi tre poteri su una tribù, uno alla volta.",
+    "startTutorial": "avvia tutorial",
+    "tutorialConfirmTitle": "Avviare il tutorial?",
+    "tutorialConfirmBody": "Questo mondo è conservato nei salvataggi di ripristino e si apre un mondo di prova. Alla fine inizia un mondo nuovo.",
     "tour": "Tour guidato",
     "tourDesc": "Una breve panoramica della mappa, della barra inferiore e dei pannelli.",
     "startTour": "avvia tour",

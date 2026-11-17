@@ -50,6 +50,11 @@
   },
   "help": {
     "section": "帮助",
+    "tutorial": "教程",
+    "tutorialDesc": "一个练习世界，你可以在一个部落身上逐一试用三种力量。",
+    "startTutorial": "开始教程",
+    "tutorialConfirmTitle": "开始教程？",
+    "tutorialConfirmBody": "这个世界将保存在恢复存档中，并打开一个练习世界。完成后会开始一个新世界。",
     "tour": "新手引导",
     "tourDesc": "简要介绍地图、底栏和面板。",
     "startTour": "开始引导",

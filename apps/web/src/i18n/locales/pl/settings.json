@@ -50,6 +50,11 @@
   },
   "help": {
     "section": "Pomoc",
+    "tutorial": "Samouczek",
+    "tutorialDesc": "Świat ćwiczeniowy, w którym wypróbujesz trzy moce na jednym plemieniu, jedną po drugiej.",
+    "startTutorial": "uruchom samouczek",
+    "tutorialConfirmTitle": "Uruchomić samouczek?",
+    "tutorialConfirmBody": "Ten świat zostanie zachowany w zapisach awaryjnych i otworzy się świat ćwiczeniowy. Na koniec zacznie się nowy świat.",
     "tour": "Przewodnik",
     "tourDesc": "Krótkie wprowadzenie do mapy, dolnego paska i paneli.",
     "startTour": "uruchom przewodnik",

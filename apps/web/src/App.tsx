@@ -99,8 +99,10 @@ import { setSandboxSender } from './simulation/commandBus'
 import { useSkyOverlay } from './game/render/sky-overlay'
 import { WelcomeModal } from './ui/modals/WelcomeModal'
 import { OpeningGuide } from './ui/opening/OpeningGuide'
+import { TutorialGuide } from './ui/opening/TutorialGuide'
 import { FirstLook } from './ui/opening/FirstLook'
 import { useOpeningGuide } from './state/opening-guide'
+import { useTutorial } from './state/tutorial'
 import { openPrayerOnMap } from './game/render/open-prayer'
 import { UpdateToast } from './ui/toasts/UpdateToast'
 import { DesktopUpdateToast } from './ui/toasts/DesktopUpdateToast'
@@ -381,7 +383,10 @@ function LiveApp() {
           )
         } else if (tool.fire) {
           void sendCommand(tool.fire).then((outcome) => {
-            if (outcome.applied) countToolApply(tool.id)
+            if (outcome.applied) {
+              countToolApply(tool.id)
+              useTutorial.getState().noteTool(tool.id)
+            }
             if (outcome.applied && tool.overlay) useSkyOverlay.getState().start(tool.overlay)
             setTemporarySandboxStatus(
               describeOutcome(outcome) ??
@@ -506,7 +511,10 @@ function LiveApp() {
       setSandboxStatus(t('header.sandbox.toolAt', { tool: label, x, y }))
       const tool = armedTool
       void sendCommand(tool.build!(x, y, brush)).then((outcome) => {
-        if (outcome.applied) countToolApply(tool.id)
+        if (outcome.applied) {
+          countToolApply(tool.id)
+          useTutorial.getState().noteTool(tool.id)
+        }
         setTemporarySandboxStatus(
           describeOutcome(outcome) ??
             (outcome.applied
@@ -1030,6 +1038,9 @@ function LiveApp() {
         {world && <WelcomeModal />}
         <FirstLook world={world ?? null} />
         <OpeningGuide world={world ?? null} />
+        {sandboxControlsEnabled && (
+          <TutorialGuide world={world ?? null} armedToolId={armedTool?.id ?? null} onPickTool={onPickTool} />
+        )}
         <UpdateToast />
         <PrayerHint world={world ?? null} onAnswer={handleAnswerPrayer} />
         <DesktopUpdateToast />

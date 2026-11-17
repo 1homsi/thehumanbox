@@ -11,7 +11,8 @@
     "useEnglish": "Use English",
     "next": "Next",
     "localTitle": "You watch over them",
-    "localBody": "Tribes live on their own. When one prays, click its bubble to answer."
+    "localBody": "Tribes live on their own. When one prays, click its bubble to answer.",
+    "tutorial": "Tutorial"
   },
   "worlds": {
     "introArchives": "Your world archives are saved on this computer.",
@@ -629,5 +630,17 @@
     "world": "{tribe} is only one of {count} tribes on this world. Watch them meet, trade and fight, and step in when you like.",
     "skip": "Skip intro",
     "done": "Got it"
+  },
+  "tutorial": {
+    "count": "Tutorial · {step} of {total}",
+    "rain": "This is {tribe}. Their land is dry: press “{tool}” to send a shower.",
+    "food": "{tribe} could use a meal. Pick “{tool}”, then click on their people.",
+    "foodArmed": "Now click on {tribe}'s people to give them food.",
+    "inspire": "Ideas help {tribe} discover new things. Pick “{tool}”, then click on one of them.",
+    "inspireArmed": "Now click on one of {tribe}'s people to give them an idea.",
+    "doneTitle": "Tutorial done",
+    "done": "Well done! The real world has a dozen tribes like {tribe}. They live, trade and fight on their own, and pray when they need you.",
+    "realWorld": "Start the real world",
+    "leave": "Skip tutorial"
   }
 }

@@ -25,6 +25,7 @@ import { formatDateTime, formatNumber, t } from '../../i18n'
 import { LanguageTab } from './LanguageTab'
 import { useTribeFollow } from '../../state/tribe-follow'
 import { updateCheckMessage } from './updateCheckMessage'
+import { useTutorial } from '../../state/tutorial'
 
 interface Props {
   onClose: () => void
@@ -334,6 +335,26 @@ function HelpTab({ onClose }: { onClose: () => void }) {
   const isMobile = useIsMobile()
   return (
     <>
+      {getWorldSource() === 'wasm' && (
+        <SettingRow title={t('settings.help.tutorial')} desc={t('settings.help.tutorialDesc')}>
+          <button
+            className="lang-btn"
+            onClick={() => {
+              void askConfirm({
+                title: t('settings.help.tutorialConfirmTitle'),
+                body: t('settings.help.tutorialConfirmBody'),
+                confirmLabel: t('settings.help.startTutorial'),
+              }).then((ok) => {
+                if (!ok) return
+                onClose()
+                useTutorial.getState().begin('settings')
+              })
+            }}
+          >
+            {t('settings.help.startTutorial')}
+          </button>
+        </SettingRow>
+      )}
       {!isMobile && isTourSupported() && (
         <SettingRow title={t('settings.help.tour')} desc={t('settings.help.tourDesc')}>
           <button

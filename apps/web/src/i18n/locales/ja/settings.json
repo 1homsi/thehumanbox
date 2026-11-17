@@ -50,6 +50,11 @@
   },
   "help": {
     "section": "ヘルプ",
+    "tutorial": "チュートリアル",
+    "tutorialDesc": "ひとつの部族で三つの力を一つずつ試せる練習用の世界です。",
+    "startTutorial": "チュートリアルを開始",
+    "tutorialConfirmTitle": "チュートリアルを始めますか？",
+    "tutorialConfirmBody": "この世界は復元用の保存データとして残り、練習用の世界が開きます。終わると新しい世界が始まります。",
     "tour": "ガイドツアー",
     "tourDesc": "マップ、ドック、パネルの簡単な案内です。",
     "startTour": "ツアーを開始",

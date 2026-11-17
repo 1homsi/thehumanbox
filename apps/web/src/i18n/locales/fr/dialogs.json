@@ -11,7 +11,8 @@
     "useEnglish": "Utiliser l’anglais",
     "next": "Suivant",
     "localTitle": "Vous veillez sur eux",
-    "localBody": "Les tribus vivent seules. Quand l’une prie, cliquez sur sa bulle pour répondre."
+    "localBody": "Les tribus vivent seules. Quand l’une prie, cliquez sur sa bulle pour répondre.",
+    "tutorial": "Tutoriel"
   },
   "worlds": {
     "introArchives": "Vos archives de monde sont sauvegardées sur cet ordinateur.",
@@ -590,5 +591,17 @@
     "world": "{tribe} n'est qu'une des {count} tribus de ce monde. Regardez-les se rencontrer, commercer et se battre, et intervenez quand vous voulez.",
     "skip": "Passer l'intro",
     "done": "Compris"
+  },
+  "tutorial": {
+    "count": "Tutoriel · {step} sur {total}",
+    "rain": "Voici {tribe}. Leur terre est sèche : appuyez sur « {tool} » pour envoyer une averse.",
+    "food": "{tribe} aurait bien besoin d'un repas. Choisissez « {tool} », puis cliquez sur leurs gens.",
+    "foodArmed": "Cliquez maintenant sur les gens de {tribe} pour leur donner à manger.",
+    "inspire": "Les idées aident {tribe} à découvrir du nouveau. Choisissez « {tool} », puis cliquez sur l'un d'eux.",
+    "inspireArmed": "Cliquez maintenant sur l'un des membres de {tribe} pour lui donner une idée.",
+    "doneTitle": "Tutoriel terminé",
+    "done": "Bravo ! Le vrai monde compte une douzaine de tribus comme {tribe}. Elles vivent, commercent et se battent seules, et prient quand elles ont besoin de vous.",
+    "realWorld": "Lancer le vrai monde",
+    "leave": "Passer le tutoriel"
   }
 }

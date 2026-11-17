@@ -11,7 +11,8 @@
     "useEnglish": "Usar inglés",
     "next": "Siguiente",
     "localTitle": "Tú velas por ellos",
-    "localBody": "Las tribus viven por su cuenta. Cuando una reza, haz clic en su burbuja para responder."
+    "localBody": "Las tribus viven por su cuenta. Cuando una reza, haz clic en su burbuja para responder.",
+    "tutorial": "Tutorial"
   },
   "worlds": {
     "introArchives": "Tus archivos de mundo se guardan en este equipo.",
@@ -590,5 +591,17 @@
     "world": "{tribe} es solo una de {count} tribus en este mundo. Mira cómo se encuentran, comercian y luchan, e interviene cuando quieras.",
     "skip": "Saltar introducción",
     "done": "Entendido"
+  },
+  "tutorial": {
+    "count": "Tutorial · {step} de {total}",
+    "rain": "Esta es {tribe}. Su tierra está seca: pulsa «{tool}» para enviar un chaparrón.",
+    "food": "A {tribe} le vendría bien comer. Elige «{tool}» y luego haz clic sobre su gente.",
+    "foodArmed": "Ahora haz clic sobre la gente de {tribe} para darles comida.",
+    "inspire": "Las ideas ayudan a {tribe} a descubrir cosas nuevas. Elige «{tool}» y luego haz clic sobre alguien.",
+    "inspireArmed": "Ahora haz clic sobre alguien de {tribe} para darle una idea.",
+    "doneTitle": "Tutorial completado",
+    "done": "¡Bien hecho! El mundo real tiene una docena de tribus como {tribe}. Viven, comercian y luchan por su cuenta, y rezan cuando te necesitan.",
+    "realWorld": "Empezar el mundo real",
+    "leave": "Saltar tutorial"
   }
 }

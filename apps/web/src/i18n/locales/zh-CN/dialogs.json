@@ -11,7 +11,8 @@
     "useEnglish": "使用英语",
     "next": "下一步",
     "localTitle": "你守望着他们",
-    "localBody": "部落自己生活。当某个部落祈祷时，点击它的气泡即可回应。"
+    "localBody": "部落自己生活。当某个部落祈祷时，点击它的气泡即可回应。",
+    "tutorial": "教程"
   },
   "worlds": {
     "introArchives": "你的世界存档保存在这台电脑上。",
@@ -590,5 +591,17 @@
     "world": "{tribe}只是这个世界上{count}个部落之一。看他们相遇、交易、争斗，想插手时随时插手。",
     "skip": "跳过介绍",
     "done": "知道了"
+  },
+  "tutorial": {
+    "count": "教程 · {step}/{total}",
+    "rain": "这是{tribe}。他们的土地很干：按下“{tool}”降一场阵雨。",
+    "food": "{tribe}需要吃顿饭。选择“{tool}”，然后点击他们的人。",
+    "foodArmed": "现在点击{tribe}的人，给他们食物。",
+    "inspire": "灵感帮助{tribe}发现新事物。选择“{tool}”，然后点击其中一人。",
+    "inspireArmed": "现在点击{tribe}中的一人，给他一个灵感。",
+    "doneTitle": "教程完成",
+    "done": "做得好！真正的世界里有十几个像{tribe}这样的部落。他们自己生活、交易和战斗，需要你时会向你祈祷。",
+    "realWorld": "开始真正的世界",
+    "leave": "跳过教程"
   }
 }

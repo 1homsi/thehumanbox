@@ -165,7 +165,7 @@ export function getOwnWorldSeed(): string {
   return seed
 }
 
-export function requestOwnWorldReset(): boolean {
+export function requestOwnWorldReset(seed?: string): boolean {
   const snapshot = readLocalWorldRequestSnapshot()
   if (!snapshot) {
     void showNotice(t('dialogs.worldNotice.storageUnavailable'), t('dialogs.worldNotice.notReset'))
@@ -174,7 +174,8 @@ export function requestOwnWorldReset(): boolean {
   try {
     window.localStorage.setItem(RESET_KEY, '1')
     window.localStorage.removeItem(RECOVERY_KEY)
-    window.localStorage.removeItem(SEED_KEY)
+    if (seed && /^\d+$/.test(seed)) window.localStorage.setItem(SEED_KEY, seed)
+    else window.localStorage.removeItem(SEED_KEY)
   } catch {
     restoreLocalWorldRequestSnapshot(snapshot)
     void showNotice(t('dialogs.worldNotice.storageUnavailable'), t('dialogs.worldNotice.notReset'))

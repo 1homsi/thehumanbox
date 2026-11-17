@@ -11,7 +11,8 @@
     "useEnglish": "İngilizceyi kullan",
     "next": "İleri",
     "localTitle": "Onları sen gözetiyorsun",
-    "localBody": "Kabileler kendi başlarına yaşar. Biri dua ettiğinde, yanıtlamak için balonuna tıklayın."
+    "localBody": "Kabileler kendi başlarına yaşar. Biri dua ettiğinde, yanıtlamak için balonuna tıklayın.",
+    "tutorial": "Eğitim"
   },
   "worlds": {
     "introArchives": "Dünya arşivlerin bu bilgisayarda kaydedilir.",
@@ -590,5 +591,17 @@
     "world": "{tribe}, bu dünyadaki {count} kabileden yalnızca biri. Karşılaşmalarını, ticaretlerini ve savaşlarını izle; istediğinde araya gir.",
     "skip": "Girişi geç",
     "done": "Anladım"
+  },
+  "tutorial": {
+    "count": "Eğitim · {step}/{total}",
+    "rain": "Bu {tribe}. Toprakları kurumuş: sağanak göndermek için “{tool}” düğmesine bas.",
+    "food": "{tribe} bir öğüne ihtiyaç duyuyor. “{tool}” seç, sonra insanlarına tıkla.",
+    "foodArmed": "Şimdi yiyecek vermek için {tribe} insanlarına tıkla.",
+    "inspire": "Fikirler {tribe} için yeni şeyler keşfetmeyi kolaylaştırır. “{tool}” seç, sonra birine tıkla.",
+    "inspireArmed": "Şimdi bir fikir vermek için {tribe} içinden birine tıkla.",
+    "doneTitle": "Eğitim tamamlandı",
+    "done": "Aferin! Gerçek dünyada {tribe} gibi bir düzine kabile var. Kendi başlarına yaşar, ticaret yapar, savaşır ve sana ihtiyaç duyduklarında dua ederler.",
+    "realWorld": "Gerçek dünyayı başlat",
+    "leave": "Eğitimi geç"
   }
 }
