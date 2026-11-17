@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { wasmSpeedConfig, type WasmSpeedConfig } from './runtimeControls'
 
 const APPLIED_JSON = '{"applied":true,"code":"applied","count":0,"name":null}'
 const model = vi.hoisted(() => ({
@@ -116,7 +117,8 @@ beforeEach(async () => {
   model.loadWorld.mockReset().mockResolvedValue(null)
   model.fromSerialized.mockReset()
   model.init.mockReset().mockResolvedValue(undefined)
-  model.serialize.mockClear()
+  model.serialize.mockReset().mockImplementation(() => new Uint8Array([1]))
+  model.fullFrame.mockReset()
   model.saveWorld.mockClear()
   model.archiveAndDeleteWorld.mockReset().mockResolvedValue('recovery-1')
   model.restoreRecoveryWorld.mockReset().mockResolvedValue('previous-1')
@@ -614,11 +616,88 @@ describe('browser simulation scheduling', () => {
     send({ type: 'speed', tickMs: 24, stepsPerEmit: 10, speed: 50 })
     await vi.advanceTimersByTimeAsync(24)
     expect(model.tick).toBe(1n)
-    // 80 ms of work is followed by 40 ms of rest (a third of the cycle).
-    await vi.advanceTimersByTimeAsync(39)
+    await vi.advanceTimersByTimeAsync(3)
     expect(model.tick).toBe(1n)
     await vi.advanceTimersByTimeAsync(1)
     expect(model.tick).toBe(2n)
+  })
+
+  async function achievedSpeed(tickCostMs: number, config: WasmSpeedConfig, wallMs: number) {
+    let work = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => Date.now() + work)
+    model.tickN.mockImplementation(() => {
+      work += tickCostMs
+    })
+    send({ type: 'speed', ...config })
+    await vi.advanceTimersByTimeAsync(0)
+    const startTick = model.tick
+    const startedAt = performance.now()
+    while (performance.now() - startedAt < wallMs) await vi.advanceTimersByTimeAsync(1)
+    return (Number(model.tick - startTick) * 120) / (performance.now() - startedAt)
+  }
+
+  it('runs a world whose ticks cost almost a whole tick at no less than normal speed', async () => {
+    const config = wasmSpeedConfig(1)
+    expect(config).not.toBeNull()
+    expect(await achievedSpeed(100, config!, 12_000)).toBeGreaterThanOrEqual(0.99)
+  })
+
+  it('runs a world that cannot keep up at its maximum at the top speed, not below normal speed', async () => {
+    const config = wasmSpeedConfig(5000)
+    expect(config).not.toBeNull()
+    const achieved = await achievedSpeed(100, config!, 12_000)
+    expect(achieved).toBeGreaterThanOrEqual(1.1)
+    expect(achieved).toBeLessThanOrEqual(1.2)
+  })
+
+  it('keeps simulating most of the time at the top speed when ticks are cheap', async () => {
+    const config = wasmSpeedConfig(5000)
+    expect(config).not.toBeNull()
+    expect(await achievedSpeed(2, config!, 6_000)).toBeGreaterThanOrEqual(50)
+  })
+
+  it('spaces command saves by what the last save cost, so a big world is not saved after every click', async () => {
+    let work = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => Date.now() + work)
+    model.serialize.mockImplementation(() => {
+      work += 1_000
+      return new Uint8Array([1])
+    })
+    send({ type: 'save', requestId: 1 })
+    await vi.advanceTimersByTimeAsync(0)
+    model.saveWorld.mockClear()
+    send({ type: 'command', json: '{}', requestId: 2 })
+    await vi.advanceTimersByTimeAsync(1_600)
+    expect(model.saveWorld).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(17_000)
+    expect(model.saveWorld).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(2_000)
+    expect(model.saveWorld).toHaveBeenCalledTimes(1)
+    send({ type: 'command', json: '{}', requestId: 3 })
+    await vi.advanceTimersByTimeAsync(1_600)
+    await vi.advanceTimersByTimeAsync(17_000)
+    expect(model.saveWorld).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(2_000)
+    expect(model.saveWorld).toHaveBeenCalledTimes(2)
+  })
+
+  it('spaces full frames for commands by what the last one cost', async () => {
+    let work = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => Date.now() + work)
+    send({ type: 'pause' })
+    model.fullFrame.mockImplementation(() => {
+      work += 200
+    })
+    await vi.advanceTimersByTimeAsync(1_000)
+    model.fullFrame.mockClear()
+    send({ type: 'full_frame' })
+    expect(model.fullFrame).toHaveBeenCalledTimes(1)
+    model.fullFrame.mockClear()
+    send({ type: 'command', json: '{}', requestId: 9 })
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(model.fullFrame).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(model.fullFrame).toHaveBeenCalledTimes(1)
   })
 
   it('keeps the requested rate when timers fire late, without replaying a backlog', async () => {

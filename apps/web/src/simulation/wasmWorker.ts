@@ -67,14 +67,13 @@ const DEEP_FULL_EVERY_MS = 300 * WASM_BASE_TICK_MS
 // Five minutes bounds passive-play loss while avoiding a large write every
 // 30 seconds.
 const DEFAULT_AUTOSAVE_MS = 5 * 60_000
-// Longest run of ticks between two yields of a world that cannot keep up. With the rest wasmTickDelay leaves
-// (a third of the cycle, and never under MIN_WASM_TICK_MS), 32 ms keeps the worker simulating two thirds of
-// the time; at 16 ms the timer floor made it half. A pause or speed change waits at most this long.
 const FAST_BATCH_MS = 32
 const MAX_CATCHUP_BATCHES = 2
 const TICK_EPSILON = 1e-6
 const COMMAND_FULL_FRAME_MS = 250
 const COMMAND_SAVE_DEBOUNCE_MS = 1_500
+const FULL_FRAME_SPACING = 10
+const SAVE_SPACING = 20
 const LOCK_WAIT_MS = 4_000
 
 type SimInstance = InstanceType<SimClass>
@@ -90,6 +89,9 @@ let autosaveEveryMs = DEFAULT_AUTOSAVE_MS
 let frameId = 0
 let lastEmittedAt = -Infinity
 let lastDeepFullAt = -Infinity
+let lastFullFrameCostMs = 0
+let lastSaveAt = -Infinity
+let lastSaveCostMs = 0
 let started = false
 let manuallyPaused = false
 let hiddenPaused = false
@@ -243,12 +245,14 @@ function emit(deepFull: boolean) {
   const frame = guarded(null, () =>
     deepFull ? running.fullFrameBytes(frameId, now) : running.deltaFrameBytes(frameId, now),
   )
+  if (deepFull) lastFullFrameCostMs = performance.now() - lastEmittedAt
   if (frame) postFrame(frame)
 }
 
 function requestFullFrame() {
   if (!sim || hiddenRunning) return
-  const waitMs = COMMAND_FULL_FRAME_MS - (performance.now() - lastDeepFullAt)
+  const spacingMs = Math.max(COMMAND_FULL_FRAME_MS, lastFullFrameCostMs * FULL_FRAME_SPACING)
+  const waitMs = spacingMs - (performance.now() - lastDeepFullAt)
   if (waitMs <= 0) {
     emit(true)
   } else if (fullFrameTimer === null) {
@@ -261,10 +265,14 @@ function requestFullFrame() {
 
 function schedulePersistAfterCommand() {
   if (commandSaveTimer !== null) clearTimeout(commandSaveTimer)
-  commandSaveTimer = setTimeout(() => {
-    commandSaveTimer = null
-    void persist()
-  }, COMMAND_SAVE_DEBOUNCE_MS)
+  const spacedUntil = lastSaveAt + lastSaveCostMs * SAVE_SPACING
+  commandSaveTimer = setTimeout(
+    () => {
+      commandSaveTimer = null
+      void persist()
+    },
+    Math.max(COMMAND_SAVE_DEBOUNCE_MS, spacedUntil - performance.now()),
+  )
 }
 
 function rememberRetry(next: StorageRetry<SavedWorld>) {
@@ -335,7 +343,10 @@ async function persist(): Promise<boolean> {
         const tick = guarded(null, () => Number(running.tickCount()))
         if (tick === null) return false
         post({ type: 'saving', tick })
+        const serializeStartedAt = performance.now()
         const blob = guarded(null, () => running.serialize())
+        lastSaveAt = performance.now()
+        lastSaveCostMs = lastSaveAt - serializeStartedAt
         if (!blob) return false
         if (blob.byteLength === 0) throw new Error('simulation produced an empty save')
         const savedAt = Date.now()
