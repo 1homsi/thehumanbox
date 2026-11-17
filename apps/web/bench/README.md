@@ -15,6 +15,24 @@ Quick look at one scenario while working on something:
 node bench/run.mjs --builds main=dist --fixtures crowd --zooms close --modes playing --runs 1
 ```
 
+## Dialog screenshots
+
+`modal-shots.mjs` opens every dialog, drawer and overlay (about, achievements, civilization, confirm,
+conversations, family tree, goals, languages, notable people, find people, scenarios, settings, stats, the
+more menu, the phone menu, both drawers, the person sheet, a life story, hotkeys, the command palette, tool
+search and the tour) at 1920x1080, 1280x720, 768x1024 and 390x844, and saves one PNG per screen and size. It
+drives the dev server (`--port`, or `--url` for another host), because it opens each screen through the app's own store modules:
+
+```sh
+pnpm exec vite --port 5205 --strictPort
+node bench/modal-shots.mjs --port 5205 --out /tmp/thb-shots
+node bench/modal-shots.mjs --only goals,about --viewports 390x844 --out /tmp/thb-shots
+```
+
+Shots land in `<out>/<width>x<height>/<screen>.png`. Each shot also checks for sideways scrolling and, at
+touch sizes, for buttons in the open dialog under 40 px; it prints what it finds and writes `<out>/report.json`.
+Compare two runs (before and after a change) side by side to catch theme or layout regressions.
+
 ## Mobile touch checks
 
 `mobile.mjs` opens a production build in headless Chrome with touch emulation and checks horizontal overflow
