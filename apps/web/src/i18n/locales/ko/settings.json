@@ -50,6 +50,11 @@
   },
   "help": {
     "section": "도움말",
+    "tutorial": "튜토리얼",
+    "tutorialDesc": "한 부족에게 세 가지 힘을 하나씩 시험해 보는 연습용 세계입니다.",
+    "startTutorial": "튜토리얼 시작",
+    "tutorialConfirmTitle": "튜토리얼을 시작할까요?",
+    "tutorialConfirmBody": "이 세계는 복구 저장본으로 보관되고 연습용 세계가 열립니다. 끝나면 새 세계가 시작됩니다.",
     "tour": "안내 투어",
     "tourDesc": "지도, 독, 패널을 짧게 소개합니다.",
     "startTour": "투어 시작",

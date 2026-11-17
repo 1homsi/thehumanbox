@@ -11,7 +11,8 @@
     "useEnglish": "Użyj angielskiego",
     "next": "Dalej",
     "localTitle": "Czuwasz nad nimi",
-    "localBody": "Plemiona żyją same. Gdy któryś się modli, kliknij jego dymek, aby odpowiedzieć."
+    "localBody": "Plemiona żyją same. Gdy któryś się modli, kliknij jego dymek, aby odpowiedzieć.",
+    "tutorial": "Samouczek"
   },
   "worlds": {
     "introArchives": "Archiwa twojego świata są zapisane na tym komputerze.",
@@ -606,5 +607,17 @@
     "world": "{tribe} to tylko jedno z plemion na tym świecie (wszystkich: {count}). Patrz, jak się spotykają, handlują i walczą, i wtrącaj się, kiedy chcesz.",
     "skip": "Pomiń wstęp",
     "done": "Rozumiem"
+  },
+  "tutorial": {
+    "count": "Samouczek · {step} z {total}",
+    "rain": "To jest {tribe}. Ich ziemia jest sucha: naciśnij „{tool}”, aby zesłać ulewę.",
+    "food": "{tribe} przyda się posiłek. Wybierz „{tool}”, a potem kliknij ich ludzi.",
+    "foodArmed": "Teraz kliknij ludzi z {tribe}, aby dać im jedzenie.",
+    "inspire": "Pomysły pomagają {tribe} odkrywać nowe rzeczy. Wybierz „{tool}”, a potem kliknij kogoś z nich.",
+    "inspireArmed": "Teraz kliknij kogoś z {tribe}, aby dać mu pomysł.",
+    "doneTitle": "Samouczek ukończony",
+    "done": "Brawo! Prawdziwy świat ma kilkanaście plemion takich jak {tribe}. Żyją, handlują i walczą same, a modlą się, gdy cię potrzebują.",
+    "realWorld": "Uruchom prawdziwy świat",
+    "leave": "Pomiń samouczek"
   }
 }

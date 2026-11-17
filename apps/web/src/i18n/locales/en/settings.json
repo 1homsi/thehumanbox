@@ -50,6 +50,11 @@
   },
   "help": {
     "section": "Help",
+    "tutorial": "Tutorial",
+    "tutorialDesc": "A practice world where you try three powers on one tribe, one at a time.",
+    "startTutorial": "start tutorial",
+    "tutorialConfirmTitle": "Start the tutorial?",
+    "tutorialConfirmBody": "This world is kept in recovery saves and a practice world opens. When you finish, a new world begins.",
     "tour": "Guided tour",
     "tourDesc": "A short walkthrough of the map, the dock and the panels.",
     "startTour": "start tour",

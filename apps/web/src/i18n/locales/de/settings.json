@@ -50,6 +50,11 @@
   },
   "help": {
     "section": "Hilfe",
+    "tutorial": "Tutorial",
+    "tutorialDesc": "Eine Übungswelt, in der du drei Kräfte nacheinander an einem Stamm ausprobierst.",
+    "startTutorial": "Tutorial starten",
+    "tutorialConfirmTitle": "Tutorial starten?",
+    "tutorialConfirmBody": "Diese Welt wird in Wiederherstellungsständen aufbewahrt, und eine Übungswelt öffnet sich. Danach beginnt eine neue Welt.",
     "tour": "Geführte Tour",
     "tourDesc": "Ein kurzer Rundgang durch die Karte, das Dock und die Panels.",
     "startTour": "Tour starten",

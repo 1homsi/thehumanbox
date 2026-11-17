@@ -11,7 +11,8 @@
     "useEnglish": "Englisch verwenden",
     "next": "Weiter",
     "localTitle": "Du wachst über sie",
-    "localBody": "Stämme leben von allein. Betet einer, klicke auf seine Blase, um zu antworten."
+    "localBody": "Stämme leben von allein. Betet einer, klicke auf seine Blase, um zu antworten.",
+    "tutorial": "Tutorial"
   },
   "worlds": {
     "introArchives": "Deine Weltarchive werden auf diesem Computer gespeichert.",
@@ -590,5 +591,17 @@
     "world": "{tribe} ist nur einer von {count} Stämmen auf dieser Welt. Sieh zu, wie sie sich begegnen, handeln und kämpfen, und greif ein, wann du willst.",
     "skip": "Einführung überspringen",
     "done": "Verstanden"
+  },
+  "tutorial": {
+    "count": "Tutorial · {step} von {total}",
+    "rain": "Das ist {tribe}. Ihr Land ist trocken: Drücke „{tool}“, um einen Schauer zu schicken.",
+    "food": "{tribe} könnte eine Mahlzeit gebrauchen. Wähle „{tool}“ und klicke dann auf ihre Leute.",
+    "foodArmed": "Klicke jetzt auf die Leute von {tribe}, um ihnen Nahrung zu geben.",
+    "inspire": "Ideen helfen {tribe}, Neues zu entdecken. Wähle „{tool}“ und klicke dann auf eine Person.",
+    "inspireArmed": "Klicke jetzt auf eine Person von {tribe}, um ihr eine Idee zu geben.",
+    "doneTitle": "Tutorial geschafft",
+    "done": "Gut gemacht! Die echte Welt hat ein Dutzend Stämme wie {tribe}. Sie leben, handeln und kämpfen allein und beten, wenn sie dich brauchen.",
+    "realWorld": "Echte Welt starten",
+    "leave": "Tutorial überspringen"
   }
 }

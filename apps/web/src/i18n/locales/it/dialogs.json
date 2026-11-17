@@ -11,7 +11,8 @@
     "useEnglish": "Usa l’inglese",
     "next": "Avanti",
     "localTitle": "Tu vegli su di loro",
-    "localBody": "Le tribù vivono da sole. Quando una prega, clicca sulla sua bolla per rispondere."
+    "localBody": "Le tribù vivono da sole. Quando una prega, clicca sulla sua bolla per rispondere.",
+    "tutorial": "Tutorial"
   },
   "worlds": {
     "introArchives": "Gli archivi del tuo mondo sono salvati su questo computer.",
@@ -590,5 +591,17 @@
     "world": "{tribe} è solo una delle {count} tribù di questo mondo. Guardale incontrarsi, commerciare e combattere, e intervieni quando vuoi.",
     "skip": "Salta l'introduzione",
     "done": "Ho capito"
+  },
+  "tutorial": {
+    "count": "Tutorial · {step} di {total}",
+    "rain": "Questa è {tribe}. La loro terra è secca: premi «{tool}» per mandare un acquazzone.",
+    "food": "A {tribe} farebbe comodo un pasto. Scegli «{tool}», poi clicca sulla loro gente.",
+    "foodArmed": "Ora clicca sulla gente di {tribe} per dare loro del cibo.",
+    "inspire": "Le idee aiutano {tribe} a scoprire cose nuove. Scegli «{tool}», poi clicca su qualcuno.",
+    "inspireArmed": "Ora clicca su qualcuno di {tribe} per dargli un'idea.",
+    "doneTitle": "Tutorial completato",
+    "done": "Ben fatto! Il mondo vero ha una dozzina di tribù come {tribe}. Vivono, commerciano e combattono da sole, e pregano quando hanno bisogno di te.",
+    "realWorld": "Avvia il mondo vero",
+    "leave": "Salta il tutorial"
   }
 }

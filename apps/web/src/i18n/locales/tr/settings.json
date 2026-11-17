@@ -50,6 +50,11 @@
   },
   "help": {
     "section": "Yardım",
+    "tutorial": "Eğitim",
+    "tutorialDesc": "Tek bir kabile üzerinde üç gücü sırayla denediğin bir alıştırma dünyası.",
+    "startTutorial": "eğitimi başlat",
+    "tutorialConfirmTitle": "Eğitim başlasın mı?",
+    "tutorialConfirmBody": "Bu dünya kurtarma kayıtlarında saklanır ve bir alıştırma dünyası açılır. Bitirince yeni bir dünya başlar.",
     "tour": "Rehberli tur",
     "tourDesc": "Harita, dock ve panellerin kısa bir turu.",
     "startTour": "turu başlat",

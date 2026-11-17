@@ -4,6 +4,8 @@ import { welcomeStepsFor } from '../../simulation/playerWorldCopy'
 import { detectedLocale, LOCALES, nativeName, SOURCE_LOCALE, t } from '../../i18n'
 import { languageFailureText, useLanguageChoice } from './useLanguageChoice'
 import { useOpeningGuide } from '../../state/opening-guide'
+import { useTutorial } from '../../state/tutorial'
+import { getWorldSource } from '../../simulation/worldSource'
 
 const STORAGE_KEY = 'thb-welcome-seen-v1'
 
@@ -30,14 +32,15 @@ export function WelcomeModal() {
 
   // One click or Escape ends the card for good, and the opening starts: the game shows itself one part at a time
   // while it plays, rather than in a slideshow up front. The guided tour stays in Settings and the command palette.
-  const finish = useCallback(() => {
+  const finish = useCallback((tutorial = false) => {
     try {
       window.localStorage.setItem(STORAGE_KEY, '1')
     } catch {
       /* ignore */
     }
     setOpen(false)
-    useOpeningGuide.getState().start()
+    if (tutorial) useTutorial.getState().begin('welcome')
+    else useOpeningGuide.getState().start()
   }, [])
 
   // The card is a modal: Escape skips it, and Tab cycles between its buttons instead of
@@ -153,6 +156,15 @@ export function WelcomeModal() {
           {secondary && (
             <button type="button" className="welcome-btn welcome-btn--ghost" onClick={secondary.onClick}>
               {secondary.label}
+            </button>
+          )}
+          {isLast && getWorldSource() === 'wasm' && (
+            <button
+              type="button"
+              className="welcome-btn welcome-btn--ghost welcome-tutorial"
+              onClick={() => finish(true)}
+            >
+              {t('dialogs.welcome.tutorial')}
             </button>
           )}
           <button type="button" className="welcome-btn welcome-btn--primary" onClick={next} autoFocus>

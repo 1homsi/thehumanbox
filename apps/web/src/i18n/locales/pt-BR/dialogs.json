@@ -11,7 +11,8 @@
     "useEnglish": "Usar inglês",
     "next": "Próximo",
     "localTitle": "Você cuida deles",
-    "localBody": "As tribos vivem por conta própria. Quando uma reza, clique na bolha dela para responder."
+    "localBody": "As tribos vivem por conta própria. Quando uma reza, clique na bolha dela para responder.",
+    "tutorial": "Tutorial"
   },
   "worlds": {
     "introArchives": "Os arquivos do seu mundo são salvos neste computador.",
@@ -590,5 +591,17 @@
     "world": "{tribe} é só uma das {count} tribos deste mundo. Veja-as se encontrar, negociar e lutar, e intervenha quando quiser.",
     "skip": "Pular introdução",
     "done": "Entendi"
+  },
+  "tutorial": {
+    "count": "Tutorial · {step} de {total}",
+    "rain": "Esta é {tribe}. A terra deles está seca: aperte “{tool}” para mandar uma chuvarada.",
+    "food": "{tribe} precisa de uma refeição. Escolha “{tool}” e clique no seu povo.",
+    "foodArmed": "Agora clique no povo de {tribe} para dar comida a eles.",
+    "inspire": "Ideias ajudam {tribe} a descobrir coisas novas. Escolha “{tool}” e clique em alguém.",
+    "inspireArmed": "Agora clique em alguém de {tribe} para dar uma ideia.",
+    "doneTitle": "Tutorial concluído",
+    "done": "Muito bem! O mundo de verdade tem uma dúzia de tribos como {tribe}. Elas vivem, negociam e lutam por conta própria, e rezam quando precisam de você.",
+    "realWorld": "Começar o mundo de verdade",
+    "leave": "Pular tutorial"
   }
 }
