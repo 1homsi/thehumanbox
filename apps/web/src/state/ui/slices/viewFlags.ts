@@ -35,7 +35,8 @@ const DEFAULTS: ViewFlags = {
   colorBlind: false,
   territoryMap: false,
   headlineTicker: false,
-  toolNames: false,
+  // New players see what each dock tool is called; Settings can hide the names.
+  toolNames: true,
 }
 
 const TRACKED_FLAGS: Set<keyof ViewFlags> = new Set(['photoMode', 'randomTour', 'hideUI'])
