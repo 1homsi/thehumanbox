@@ -107,7 +107,7 @@ export function TutorialGuide({ world, armedToolId, onPickTool }: Props) {
           {toolName(tool)}
         </button>
       )}
-      <button type="button" className="opening-skip" onClick={leave}>
+      <button type="button" className="lang-btn tutorial-skip" onClick={leave}>
         {t('dialogs.tutorial.leave')}
       </button>
     </div>
