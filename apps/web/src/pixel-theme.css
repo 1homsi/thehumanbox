@@ -316,12 +316,18 @@
 /* Find a tool and save the world, first in the menu now that the dock has no buttons for them. */
 .more-dropdown-actions {
   display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  align-items: stretch;
   gap: 6px;
 }
 .more-dropdown-action {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 10px;
+  column-gap: 10px;
+  row-gap: 2px;
+  min-width: 0;
   min-height: 32px;
   padding: 5px 10px;
   border: 2px solid var(--px-ink);
@@ -350,6 +356,8 @@
   font-size: 12px;
 }
 .more-dropdown-status {
+  order: 3;
+  flex-basis: 100%;
   min-width: 0;
   overflow: hidden;
   color: var(--px-muted);

@@ -35,7 +35,7 @@ const DEFAULTS: ViewFlags = {
   colorBlind: false,
   territoryMap: false,
   headlineTicker: false,
-  toolNames: true,
+  toolNames: false,
 }
 
 const TRACKED_FLAGS: Set<keyof ViewFlags> = new Set(['photoMode', 'randomTour', 'hideUI'])

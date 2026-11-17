@@ -42,8 +42,8 @@ describe('renaming a person', () => {
 })
 
 describe('world-first panels', () => {
-  it('names the dock tools by default', () => {
-    expect(useUIStore.getState().viewFlags.toolNames).toBe(true)
+  it('leaves dock tool names to their tooltips by default', () => {
+    expect(useUIStore.getState().viewFlags.toolNames).toBe(false)
   })
 
   it('starts with both side panels collapsed', () => {
