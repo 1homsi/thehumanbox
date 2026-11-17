@@ -22,6 +22,8 @@
   },
   "display": {
     "section": "Ekran",
+    "nerdStats": "Ayrıntılı istatistikler",
+    "nerdStatsDesc": "Oyunun arkasındaki ham sayıları gösterir: kesin özellik değerleri, yüzde olarak ihtiyaçlar, aile kodları, kuşaklar ve sayaçlar, ayrıca üst başlıkta tik ve derleme bilgisi. Kapalıyken her şey sade sözcüklerle kalır.",
     "photoMode": "Fotoğraf modu",
     "photoModeDesc": "Temiz ekran görüntüleri için tüm panelleri ve dock'u gizler. Üst başlığı geri getirmek için Esc tuşuna basın ya da üst kenara gelin.",
     "headlineTicker": "Manşet bandı",
@@ -52,9 +54,7 @@
     "tourDesc": "Harita, dock ve panellerin kısa bir turu.",
     "startTour": "turu başlat",
     "about": "Hakkında",
-    "aboutDesc": "Sürüm, derleme ve bağlantılar.",
-    "nerdStats": "Ayrıntılı istatistikler",
-    "nerdStatsDesc": "Üst başlıkta tik sayacı, bağlantı durumu ve derleme ayrıntıları."
+    "aboutDesc": "Sürüm, derleme ve bağlantılar."
   },
   "web": {
     "playMode": "Oyun modu",

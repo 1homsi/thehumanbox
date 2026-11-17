@@ -22,6 +22,8 @@
   },
   "display": {
     "section": "Affichage",
+    "nerdStats": "Statistiques pour experts",
+    "nerdStatsDesc": "Affiche les chiffres bruts du jeu : valeurs exactes des traits, besoins en pourcentage, codes de famille, générations et compteurs, ainsi que le tick et le build dans l'en-tête. Désactivé, tout reste en mots simples.",
     "photoMode": "Mode photo",
     "photoModeDesc": "Masque tous les panneaux et la barre inférieure pour des captures d'écran propres. Appuyez sur Échap ou placez le curseur sur le bord supérieur pour rétablir l'en-tête.",
     "headlineTicker": "Bandeau d'actualités",
@@ -52,9 +54,7 @@
     "tourDesc": "Une courte présentation de la carte, de la barre inférieure et des panneaux.",
     "startTour": "démarrer la visite",
     "about": "À propos",
-    "aboutDesc": "Version, build et liens.",
-    "nerdStats": "Statistiques pour experts",
-    "nerdStatsDesc": "Compteur de ticks, état de la connexion et détails du build dans l'en-tête."
+    "aboutDesc": "Version, build et liens."
   },
   "web": {
     "playMode": "Mode de jeu",

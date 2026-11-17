@@ -22,6 +22,8 @@
   },
   "display": {
     "section": "Pantalla",
+    "nerdStats": "Estadísticas para expertos",
+    "nerdStatsDesc": "Muestra los números en bruto del juego: valores exactos de los rasgos, necesidades en porcentaje, códigos de familia, generaciones y contadores, además del tick y la compilación en la cabecera. Desactivado, todo queda en palabras sencillas.",
     "photoMode": "Modo foto",
     "photoModeDesc": "Oculta todos los paneles y la barra inferior para hacer capturas limpias. Pulsa Esc o pasa el cursor por el borde superior para recuperar la cabecera.",
     "headlineTicker": "Ticker de titulares",
@@ -52,9 +54,7 @@
     "tourDesc": "Un recorrido breve por el mapa, la barra inferior y los paneles.",
     "startTour": "iniciar recorrido",
     "about": "Acerca de",
-    "aboutDesc": "Versión, compilación y enlaces.",
-    "nerdStats": "Estadísticas para expertos",
-    "nerdStatsDesc": "Contador de ticks, estado de la conexión y datos de compilación en la cabecera."
+    "aboutDesc": "Versión, compilación y enlaces."
   },
   "web": {
     "playMode": "Modo de juego",

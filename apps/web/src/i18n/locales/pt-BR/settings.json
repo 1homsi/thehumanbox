@@ -22,6 +22,8 @@
   },
   "display": {
     "section": "Tela",
+    "nerdStats": "Estatísticas para nerds",
+    "nerdStatsDesc": "Mostra os números brutos do jogo: valores exatos dos traços, necessidades em porcentagem, códigos de família, gerações e contadores, além do tick e do build no cabeçalho. Desligado, tudo fica em palavras simples.",
     "photoMode": "Modo foto",
     "photoModeDesc": "Oculta todos os painéis e a barra inferior para capturas limpas. Pressione Esc ou passe o mouse na borda superior para mostrar o cabeçalho de novo.",
     "headlineTicker": "Ticker de manchetes",
@@ -52,9 +54,7 @@
     "tourDesc": "Um passeio rápido pelo mapa, pela barra inferior e pelos painéis.",
     "startTour": "iniciar tour",
     "about": "Sobre",
-    "aboutDesc": "Versão, build e links.",
-    "nerdStats": "Estatísticas para nerds",
-    "nerdStatsDesc": "Contador de ticks, status da conexão e detalhes do build no cabeçalho."
+    "aboutDesc": "Versão, build e links."
   },
   "web": {
     "playMode": "Modo de jogo",

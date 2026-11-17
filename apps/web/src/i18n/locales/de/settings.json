@@ -22,6 +22,8 @@
   },
   "display": {
     "section": "Anzeige",
+    "nerdStats": "Statistiken für Nerds",
+    "nerdStatsDesc": "Zeigt die rohen Zahlen hinter dem Spiel: genaue Eigenschaftswerte, Bedürfnisse in Prozent, Familienkürzel, Generationen und Zähler, dazu Tick und Build in der Kopfzeile. Aus lässt alles in einfachen Worten.",
     "photoMode": "Fotomodus",
     "photoModeDesc": "Blendet alle Panels und das Dock für saubere Screenshots aus. Drücke Esc oder fahre mit der Maus an den oberen Rand, um die Kopfzeile zurückzuholen.",
     "headlineTicker": "Schlagzeilen-Ticker",
@@ -52,9 +54,7 @@
     "tourDesc": "Ein kurzer Rundgang durch die Karte, das Dock und die Panels.",
     "startTour": "Tour starten",
     "about": "Über",
-    "aboutDesc": "Version, Build und Links.",
-    "nerdStats": "Statistiken für Nerds",
-    "nerdStatsDesc": "Tick-Zähler, Verbindungsstatus und Build-Details in der Kopfzeile."
+    "aboutDesc": "Version, Build und Links."
   },
   "web": {
     "playMode": "Spielmodus",

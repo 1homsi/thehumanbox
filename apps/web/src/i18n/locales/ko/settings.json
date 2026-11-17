@@ -22,6 +22,8 @@
   },
   "display": {
     "section": "화면",
+    "nerdStats": "상세 통계",
+    "nerdStatsDesc": "게임 뒤의 원래 숫자를 보여 줍니다: 정확한 성격 값, 욕구 퍼센트, 가문 코드, 세대와 각종 카운터, 헤더의 tick과 빌드 정보. 끄면 모두 쉬운 말로 보입니다.",
     "photoMode": "사진 모드",
     "photoModeDesc": "깔끔한 스크린샷을 위해 모든 패널과 독을 숨깁니다. Esc를 누르거나 상단 가장자리에 마우스를 올리면 헤더가 다시 나타납니다.",
     "headlineTicker": "헤드라인 띠",
@@ -52,9 +54,7 @@
     "tourDesc": "지도, 독, 패널을 짧게 소개합니다.",
     "startTour": "투어 시작",
     "about": "정보",
-    "aboutDesc": "버전, 빌드, 링크.",
-    "nerdStats": "상세 통계",
-    "nerdStatsDesc": "헤더에 tick 카운터, 연결 상태, 빌드 정보를 표시합니다."
+    "aboutDesc": "버전, 빌드, 링크."
   },
   "web": {
     "playMode": "플레이 모드",
