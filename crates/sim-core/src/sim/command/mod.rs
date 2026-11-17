@@ -206,6 +206,8 @@ pub enum Command {
     Nuke {
         x: i32,
         y: i32,
+        #[serde(default)]
+        radius: Option<i32>,
     },
     /// Move the clock forward to the next `dawn`, `noon`, `dusk` or `midnight`. The dock sends it as
     /// `time_of_day`.
@@ -854,7 +856,7 @@ impl Simulation {
             Command::Gift { x, y, radius, what } => self.cmd_gift(x, y, radius, what),
             Command::SetTimeOfDay { phase } => self.cmd_set_time_of_day(phase),
             Command::Hail { x, y, radius } => self.cmd_hail(x, y, radius),
-            Command::Nuke { x, y } => self.cmd_nuke(x, y),
+            Command::Nuke { x, y, radius } => self.cmd_nuke(x, y, radius),
             Command::Eclipse => self.cmd_eclipse(),
             Command::RainPatch { x, y, radius } => self.cmd_rain_patch(x, y, radius),
             Command::CureTribe { x, y } => self.cmd_cure_tribe(x, y),

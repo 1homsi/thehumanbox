@@ -269,7 +269,7 @@ describe('world dock buttons', { timeout: 20_000 }, () => {
 
   it('hides brush controls when no tool is armed', () => {
     render()
-    expect(container.querySelector('[aria-label="Larger brush"]')).toBeNull()
+    expect(container.querySelector('.dock-size')?.getAttribute('aria-hidden')).toBe('true')
   })
 
   it('has no save or search buttons of its own, now that both are in the ⋯ menu', () => {

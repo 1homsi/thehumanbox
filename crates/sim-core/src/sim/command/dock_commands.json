@@ -37,7 +37,7 @@
   {"tool":"drought_off","cmd":{"cmd":"drought","active":false}},
   {"tool":"smite","cmd":{"cmd":"smite","x":0,"y":0,"radius":4}},
   {"tool":"fire","cmd":{"cmd":"ignite","x":0,"y":0,"radius":3}},
-  {"tool":"nuke","cmd":{"cmd":"nuke","x":0,"y":0}},
+  {"tool":"nuke","cmd":{"cmd":"nuke","x":0,"y":0,"radius":16}},
   {"tool":"meteor","cmd":{"cmd":"meteor","x":0,"y":0,"radius":4}},
   {"tool":"volcano","cmd":{"cmd":"volcano","x":0,"y":0,"radius":6}},
   {"tool":"earthquake","cmd":{"cmd":"earthquake","x":0,"y":0,"radius":5}},

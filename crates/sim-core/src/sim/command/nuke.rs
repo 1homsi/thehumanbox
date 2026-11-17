@@ -19,21 +19,55 @@ pub(super) const FIRESTORM_RADIUS: i32 = 22;
 const FIRESTORM_DEATHS: f32 = 0.75;
 /// Radius the fallout settles over, in tiles (see `world_events::fallout`).
 pub(super) const FALLOUT_RADIUS: i32 = 28;
+pub(super) const MIN_BLAST_RADIUS: i32 = 4;
+pub(super) const MAX_BLAST_RADIUS: i32 = 32;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) struct NukeRings {
+    pub crater: i32,
+    pub blast: i32,
+    pub storm: i32,
+    pub fallout: i32,
+}
+
+impl NukeRings {
+    pub(super) fn of(radius: Option<i32>) -> Self {
+        match radius {
+            None => Self {
+                crater: CRATER_RADIUS,
+                blast: BLAST_RADIUS,
+                storm: FIRESTORM_RADIUS,
+                fallout: FALLOUT_RADIUS,
+            },
+            Some(r) => {
+                let blast = r.clamp(MIN_BLAST_RADIUS, MAX_BLAST_RADIUS);
+                let scale = |ring: i32| ((blast * ring + BLAST_RADIUS / 2) / BLAST_RADIUS).max(1);
+                Self {
+                    crater: scale(CRATER_RADIUS),
+                    blast,
+                    storm: scale(FIRESTORM_RADIUS).max(blast + 1),
+                    fallout: scale(FALLOUT_RADIUS).max(blast + 2),
+                }
+            }
+        }
+    }
+}
 
 impl Simulation {
     /// A bomb falls on the point. Everyone inside the blast dies and every building there falls; the
     /// crater at its heart is scarred into bare rock for good, the land around it is burnt to ash and
     /// the forest past it catches fire. Fallout then poisons a wider ring for two seasons, sickening
     /// whoever stays in it. Fails only off the map.
-    pub(super) fn cmd_nuke(&mut self, x: i32, y: i32) -> bool {
+    pub(super) fn cmd_nuke(&mut self, x: i32, y: i32, radius: Option<i32>) -> bool {
+        let rings = NukeRings::of(radius);
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
         if !WorldGrid::in_bounds(x, y) {
             return false;
         }
         let now = self.tick_count;
         let (fx, fy) = (x as f32, y as f32);
-        let blast = BLAST_RADIUS as f32;
-        let storm = FIRESTORM_RADIUS as f32;
+        let blast = rings.blast as f32;
+        let storm = rings.storm as f32;
         let mut killed = 0u32;
         let mut tribes: Vec<String> = Vec::new();
         for i in 0..self.organisms.len() {
@@ -75,8 +109,8 @@ impl Simulation {
         // Every building in the blast falls; those in the firestorm are wrecked.
         strike_buildings(self, x, y, blast, 1.0, 1.0, DamageCause::Meteor);
         strike_buildings(self, x, y, storm, 0.9, 0.7, DamageCause::Fire);
-        self.wither_plantings(x, y, FIRESTORM_RADIUS);
-        let outer = FIRESTORM_RADIUS;
+        self.wither_plantings(x, y, rings.storm);
+        let outer = rings.storm;
         for dy in -outer..=outer {
             for dx in -outer..=outer {
                 let (nx, ny) = (x + dx, y + dy);
@@ -89,15 +123,15 @@ impl Simulation {
                     continue;
                 }
                 let i = WorldGrid::idx(nx, ny);
-                if d2 <= CRATER_RADIUS * CRATER_RADIUS {
+                if d2 <= rings.crater * rings.crater {
                     // The crater: bare rock, sunk into the ground, scarred for good.
                     self.grid.set(nx, ny, Tile::Rock);
                     self.grid.biome[i] = Biome::Volcanic as u8;
                     self.grid.fertility[i] = 0.0;
-                    let depth = 1.0 - (d2 as f32).sqrt() / CRATER_RADIUS as f32;
+                    let depth = 1.0 - (d2 as f32).sqrt() / rings.crater as f32;
                     self.grid.elevation[i] = (self.grid.elevation[i] - 0.25 * depth).max(0.05);
                     *self.grid.fire_intensity_mut(nx, ny) = 0.0;
-                } else if d2 <= BLAST_RADIUS * BLAST_RADIUS {
+                } else if d2 <= rings.blast * rings.blast {
                     // The blast: everything standing is flattened and burnt to ash; water boils off the shallows.
                     if cur != Tile::Water && cur != Tile::Rock && cur != Tile::Mineral {
                         self.grid
@@ -119,9 +153,9 @@ impl Simulation {
                 }
             }
         }
-        self.grid.wash_roads(x, y, BLAST_RADIUS);
+        self.grid.wash_roads(x, y, rings.blast);
         self.planting_revision = self.planting_revision.wrapping_add(1);
-        self.lay_fallout(fx, fy, FALLOUT_RADIUS as f32);
+        self.lay_fallout(fx, fy, rings.fallout as f32);
         let what = match killed {
             0 => format!("a bomb fell at ({x}, {y}); fallout settles on the land around it"),
             1 => format!("a bomb fell at ({x}, {y}) and killed one person; fallout settles around it"),
@@ -148,7 +182,7 @@ impl Simulation {
 
 #[cfg(test)]
 mod tests {
-    use super::{BLAST_RADIUS, FALLOUT_RADIUS, FIRESTORM_RADIUS};
+    use super::{NukeRings, BLAST_RADIUS, CRATER_RADIUS, FALLOUT_RADIUS, FIRESTORM_RADIUS};
     use crate::sim::simulation::Simulation;
     use crate::world::grid::WorldGrid;
     use crate::world::tiles::Tile;
@@ -278,5 +312,46 @@ mod tests {
         let loaded = Simulation::from_save(6, sim.to_save_state());
         assert_eq!(loaded.grid.get(120, 120), Tile::Rock);
         assert_eq!(loaded.fallout, sim.fallout);
+    }
+
+    #[test]
+    fn no_radius_keeps_the_old_rings() {
+        assert_eq!(
+            NukeRings::of(None),
+            NukeRings {
+                crater: CRATER_RADIUS,
+                blast: BLAST_RADIUS,
+                storm: FIRESTORM_RADIUS,
+                fallout: FALLOUT_RADIUS,
+            }
+        );
+        assert_eq!(NukeRings::of(Some(BLAST_RADIUS)), NukeRings::of(None));
+    }
+
+    #[test]
+    fn the_radius_scales_every_ring_and_is_clamped() {
+        let small = NukeRings::of(Some(4));
+        let large = NukeRings::of(Some(32));
+        assert!(small.crater >= 1 && small.crater < small.blast);
+        assert!(small.blast < small.storm && small.storm < small.fallout);
+        assert!(large.blast > BLAST_RADIUS && large.fallout > FALLOUT_RADIUS);
+        assert_eq!(NukeRings::of(Some(-5)), small);
+        assert_eq!(NukeRings::of(Some(i32::MAX)), large);
+    }
+
+    #[test]
+    fn a_small_bomb_spares_what_a_full_one_would_reach() {
+        let mut sim = Simulation::new(6);
+        all_people_at(&mut sim, 30.0, 30.0);
+        for dx in -30..=30 {
+            sim.grid.set(120 + dx, 120, Tile::Grass);
+        }
+        assert!(sim.apply_command_json(r#"{"cmd":"nuke","x":120,"y":120,"radius":4}"#));
+        let rings = NukeRings::of(Some(4));
+        assert_eq!(sim.grid.get(120, 120), Tile::Rock);
+        assert_eq!(sim.grid.get(120 + rings.blast, 120), Tile::Scorched);
+        assert_eq!(sim.grid.get(120 + rings.storm + 2, 120), Tile::Grass);
+        assert!(sim.fallout[0].covers(120.0 + rings.fallout as f32 - 1.0, 120.0));
+        assert!(!sim.fallout[0].covers(120.0 + FALLOUT_RADIUS as f32 - 1.0, 120.0));
     }
 }

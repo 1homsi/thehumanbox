@@ -1,6 +1,6 @@
 import { t, type MessageKey } from '../../i18n'
 import en from '../../i18n/locales/en'
-import type { SandboxTool } from '../../simulation/sandbox'
+import { commandReach, type SandboxTool } from '../../simulation/sandbox'
 
 /** The dock's text for a tool, from `dock.tools` or `dock.tips`; undefined when the tool has none. */
 function textFor(section: 'tools' | 'tips', id: string): string | undefined {
@@ -39,9 +39,11 @@ export function toolHowTo(tool: SandboxTool, brush = 0): string {
  */
 export function toolReach(tool: SandboxTool, brush: number): string {
   if (!tool.build) return ''
-  const cmd = tool.build(0, 0, brush) as { radius?: number; count?: number }
+  const built = tool.build(0, 0, brush)
+  const cmd = built as { radius?: number; count?: number }
   const bits: string[] = []
-  if (typeof cmd.radius === 'number') bits.push(t('dock.how.reachTiles', { tiles: Math.round(cmd.radius) }))
+  if (typeof cmd.radius === 'number')
+    bits.push(t('dock.how.reachTiles', { tiles: Math.round(commandReach(built)) }))
   // One animal per click is the norm and not worth saying; only a tool that brings several does.
   if (typeof cmd.count === 'number' && cmd.count > 1) bits.push(t('dock.how.brings', { count: cmd.count }))
   return bits.length ? `${bits.join(' · ')} · ` : ''

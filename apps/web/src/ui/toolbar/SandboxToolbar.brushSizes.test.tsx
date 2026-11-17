@@ -65,8 +65,20 @@ describe('brush size presets', { timeout: 20_000 }, () => {
     expect(container.querySelector('[aria-label="Brush size 2"]')?.getAttribute('aria-pressed')).toBe('false')
   })
 
-  it('hides the presets when no tool is armed', () => {
+  it('hides the presets when no tool is armed but keeps their place beside the time control', () => {
     render({ armedToolId: null })
-    expect(container.querySelector('[aria-label="Brush size 5"]')).toBeNull()
+    const sizes = container.querySelector('.dock-size')
+    expect(sizes?.classList.contains('idle')).toBe(true)
+    expect(sizes?.getAttribute('aria-hidden')).toBe('true')
+    expect(sizes?.parentElement?.querySelector('.time-control')).not.toBeNull()
+  })
+
+  it('shows the presets for the nuke, with the reach each size gives', () => {
+    render({ armedToolId: 'nuke', brush: 2 })
+    expect(container.querySelector('.dock-size')?.classList.contains('idle')).toBe(false)
+    const small = container.querySelector('[aria-label="Brush size 1"]')?.getAttribute('title') ?? ''
+    const large = container.querySelector('[aria-label="Brush size 12"]')?.getAttribute('title') ?? ''
+    expect(small).toContain('reaches 17 tiles')
+    expect(large).toContain('reaches 44 tiles')
   })
 })

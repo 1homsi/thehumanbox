@@ -113,7 +113,11 @@ fn disaster_area(cmd: &Command) -> Option<Option<(f32, f32, f32)>> {
         Command::Poison { x, y, radius } => at(x, y, orf(radius, 3.0, 32.0)),
         Command::Frenzy { x, y, radius } => at(x, y, orf(radius, 4.0, 24.0)),
         Command::MeteorShower { x, y, radius } => at(x, y, orf(radius, 10.0, 40.0)),
-        Command::Nuke { x, y } => at(x as f32, y as f32, super::nuke::BLAST_RADIUS as f32),
+        Command::Nuke { x, y, radius } => at(
+            x as f32,
+            y as f32,
+            super::nuke::NukeRings::of(radius).blast as f32,
+        ),
         Command::Outbreak {
             x: Some(x),
             y: Some(y),

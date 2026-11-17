@@ -80,7 +80,7 @@ export type SandboxCommand =
   | { cmd: 'gift'; x: number; y: number; radius?: number; what: 'food' | 'tool' }
   | { cmd: 'time_of_day'; phase: 'dawn' | 'noon' | 'dusk' | 'midnight' }
   | { cmd: 'hail'; x: number; y: number; radius?: number }
-  | { cmd: 'nuke'; x: number; y: number }
+  | { cmd: 'nuke'; x: number; y: number; radius?: number }
   | { cmd: 'eclipse' }
   | { cmd: 'rain_patch'; x: number; y: number; radius?: number }
   | { cmd: 'cure_tribe'; x: number; y: number }
@@ -130,6 +130,39 @@ const DICE_EVENTS: ReadonlyArray<(x: number, y: number) => SandboxCommand> = [
  * Roll the dice: one random event at a random place on a world of the given
  * size. `random` is injectable so the roll can be tested.
  */
+const REACH_LIMITS: Readonly<Record<string, readonly [number, number]>> = {
+  hail: [2, 24],
+  freeze: [1, 24],
+  ignite: [1, 21],
+  earthquake: [1, 16],
+  meteor: [1, 12],
+  blight: [1, 24],
+  flood: [1, 20],
+  blizzard: [1, 24],
+  volcano: [1, 12],
+  tornado: [4, 24],
+  tsunami: [6, 20],
+  locusts: [6, 30],
+  wildfire: [4, 20],
+  poison: [1, 32],
+  frenzy: [1, 24],
+  meteor_shower: [1, 40],
+}
+
+const NUKE_BLAST_DEFAULT = 16
+const NUKE_BLAST_LIMITS = [4, 32] as const
+const NUKE_STORM_SHARE = 22 / 16
+
+export function commandReach(cmd: SandboxCommand): number {
+  const radius = 'radius' in cmd && typeof cmd.radius === 'number' ? cmd.radius : 0
+  if (cmd.cmd === 'nuke') {
+    const blast = Math.min(NUKE_BLAST_LIMITS[1], Math.max(NUKE_BLAST_LIMITS[0], radius || NUKE_BLAST_DEFAULT))
+    return Math.round(blast * NUKE_STORM_SHARE)
+  }
+  const limits = Object.prototype.hasOwnProperty.call(REACH_LIMITS, cmd.cmd) ? REACH_LIMITS[cmd.cmd] : null
+  return limits && radius > 0 ? Math.min(limits[1], Math.max(limits[0], radius)) : radius
+}
+
 export function rollRandomEvent(
   width: number,
   height: number,
@@ -230,28 +263,28 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         label: 'heal one',
         icon: '💚',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'heal_one', x, y, radius: 4 }),
+        build: (x, y, b) => ({ cmd: 'heal_one', x, y, radius: 2 + b }),
       },
       {
         id: 'mutate',
         label: 'mutate',
         icon: '🧬',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'mutate', x, y, radius: 4 }),
+        build: (x, y, b) => ({ cmd: 'mutate', x, y, radius: 2 + b }),
       },
       {
         id: 'curse',
         label: 'curse one',
         icon: '🧿',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'curse', x, y, radius: 4 }),
+        build: (x, y, b) => ({ cmd: 'curse', x, y, radius: 2 + b }),
       },
       {
         id: 'teach_tribe',
         label: 'teach',
         icon: '📜',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'teach_nearby', x, y, radius: 4 }),
+        build: (x, y, b) => ({ cmd: 'teach_nearby', x, y, radius: 2 + b }),
       },
       {
         id: 'follow',
@@ -292,28 +325,28 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         label: 'teleport',
         icon: '🌀',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'teleport', x, y, radius: 4 }),
+        build: (x, y, b) => ({ cmd: 'teleport', x, y, radius: 2 + b }),
       },
       {
         id: 'gift_food',
         label: 'gift food',
         icon: '🎁',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'gift', x, y, radius: 4, what: 'food' }),
+        build: (x, y, b) => ({ cmd: 'gift', x, y, radius: 2 + b, what: 'food' }),
       },
       {
         id: 'gift_tool',
         label: 'gift tool',
         icon: '🔧',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'gift', x, y, radius: 4, what: 'tool' }),
+        build: (x, y, b) => ({ cmd: 'gift', x, y, radius: 2 + b, what: 'tool' }),
       },
       {
         id: 'leader',
         label: 'crown',
         icon: '🤴',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'make_leader', x, y, radius: 4 }),
+        build: (x, y, b) => ({ cmd: 'make_leader', x, y, radius: 2 + b }),
       },
     ],
   },
@@ -478,7 +511,7 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         label: 'nuke',
         icon: '☢️',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'nuke', x, y }),
+        build: (x, y, b) => ({ cmd: 'nuke', x, y, radius: 12 + b * 2 }),
       },
       {
         id: 'meteor',
