@@ -192,9 +192,8 @@ ci-watch: ## gh run watch the latest pipeline run
 ci-log: ## Print the failed-step log of the latest pipeline run
 	@gh run view $$(gh run list --workflow pipeline.yml --limit 1 --json databaseId --jq '.[0].databaseId') --log-failed
 
-redeploy: ## Empty-commit + push to main to trigger the deploy pipeline
-	git commit --allow-empty -m "chore: redeploy"
-	git push
+redeploy: ## Re-run the full pipeline on main (manual dispatch, no commit)
+	gh workflow run pipeline -r main
 
 tag-list: ## Show recent release tags
 	@git tag --sort=-creatordate | head -10
