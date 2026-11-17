@@ -317,6 +317,7 @@ export function CfMapCameraController({
       commitRef.current(
         saved ? { ...saved, zoom: Math.max(minZoom, Math.min(MAX_MAP_ZOOM, saved.zoom)) } : opening,
       )
+      if (commandRef.current) engine.loop.markDirty()
       return
     }
     const live = camera.getPosition()

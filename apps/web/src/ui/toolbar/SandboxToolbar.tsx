@@ -33,6 +33,7 @@ import {
 import { hotkeysFor, toolForHotkey } from './tool-hotkeys'
 import { typingTarget } from '../../game/model/shortcuts'
 import { t } from '../../i18n'
+import { openingHides, useOpeningGuide } from '../../state/opening-guide'
 
 const TAB_STORAGE_KEY = 'thb-sandbox-category'
 
@@ -212,6 +213,7 @@ export function SandboxToolbar({
   onClearArmed,
 }: Props) {
   const [tabId, setTabId] = useState(readInitialTab)
+  const locked = useOpeningGuide((st) => openingHides(st.beat, 'powers'))
   const [remembered, setRemembered] = useState(readRememberedGroups)
   const groupId = resolveGroup(tabId, remembered[tabId])
   const [seenNew, setSeenNew] = useState(() => markNewToolsSeen(groupId, readSeenNewTools()))
@@ -297,6 +299,7 @@ export function SandboxToolbar({
         event.altKey ||
         event.repeat ||
         event.isComposing ||
+        locked ||
         typingTarget(event.target)
       )
         return
@@ -387,7 +390,13 @@ export function SandboxToolbar({
   const smaller = nextBrush(brush, -1)
   const larger = nextBrush(brush, 1)
   return (
-    <section className="sandbox-bar" aria-label={t('dock.aria.world')} ref={barRef}>
+    <section
+      className="sandbox-bar"
+      aria-label={t('dock.aria.world')}
+      aria-disabled={locked || undefined}
+      inert={locked}
+      ref={barRef}
+    >
       {armedToolId && heldName && (
         <div
           ref={heldRef}

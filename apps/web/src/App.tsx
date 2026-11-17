@@ -98,6 +98,7 @@ import { setSandboxSender } from './simulation/commandBus'
 import { useSkyOverlay } from './game/render/sky-overlay'
 import { WelcomeModal } from './ui/modals/WelcomeModal'
 import { OpeningGuide } from './ui/opening/OpeningGuide'
+import { FirstLook } from './ui/opening/FirstLook'
 import { useOpeningGuide } from './state/opening-guide'
 import { openPrayerOnMap } from './game/render/open-prayer'
 import { UpdateToast } from './ui/toasts/UpdateToast'
@@ -1019,6 +1020,7 @@ function LiveApp() {
         {hotkeysOpen && <HotkeyHelp onClose={() => setHotkeysOpen(false)} />}
 
         {world && <WelcomeModal />}
+        <FirstLook world={world ?? null} />
         <OpeningGuide world={world ?? null} />
         <UpdateToast />
         <PrayerHint world={world ?? null} onAnswer={handleAnswerPrayer} />

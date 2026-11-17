@@ -7,18 +7,19 @@ import { largestTribe, openingLine } from './opening-lines'
 import { openingHides, useOpeningGuide, type OpeningBeat } from '../../state/opening-guide'
 import { trackEvent } from '../../shared/observability'
 import { screenBusy } from '../toasts/screenBusy'
+import { FIRST_LOOK_ZOOM } from './FirstLook'
 
 /** How close the camera sits on the followed tribe: near enough to see people at work. */
-const MEET_ZOOM = 3
+const MEET_ZOOM = FIRST_LOOK_ZOOM
 
 /**
  * Seconds each beat stays before the next one. The powers beat waits for the player to try a power or answer a
  * prayer, and moves on by itself after its time only if they never do.
  */
 const BEAT_SECONDS: Record<OpeningBeat, number> = {
-  meet: 9,
-  work: 11,
-  need: 13,
+  meet: 4,
+  work: 5,
+  need: 6,
   powers: 45,
   history: 12,
   world: 15,
@@ -79,7 +80,6 @@ export function OpeningGuide({ world }: { world: WorldState | null }) {
     if (beat === 'world') useCameraFocus.getState().fitWorld()
   }, [beat])
 
-  // The parts of the screen not yet introduced stay hidden (in place, so nothing shifts when they come in).
   useEffect(() => {
     const body = document.body
     const hidden = [
