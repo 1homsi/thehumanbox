@@ -10,6 +10,17 @@ let labelSource: PeopleLabelSource | null = null
 let buildingPicker: ((worldX: number, worldY: number) => number) | null = null
 /** The slot `drawnPersonAt` found for its person last time. */
 let followSlot = -1
+let hovered: string | null = null
+
+export function setHoveredPerson(id: string | null): boolean {
+  if (id === hovered) return false
+  hovered = id
+  return true
+}
+
+export function hoveredPerson(): string | null {
+  return hovered
+}
 
 export function registerPeopleLayer(
   pick: (worldX: number, worldY: number) => string | null,

@@ -234,10 +234,19 @@ describe('PeopleSprites', () => {
     other.sprites.rebuild(input([org('a', 10, 10)], { zoom: 1 }))
     // Someone not selected at the standard zoom keeps only the shadow: no ring or glow under every figure.
     expect(other.soft.count).toBe(1)
-    // Close up, the tribe ring comes back.
     const close = setup()
-    close.sprites.rebuild(input([org('a', 10, 10)]))
-    expect(close.soft.count).toBe(2)
+    close.sprites.rebuild(input([org('a', 10, 10, { lineage_id: 'x' })]))
+    expect(close.soft.count).toBe(1)
+    const hovered = setup()
+    hovered.sprites.rebuild(input([org('a', 10, 10, { lineage_id: 'x' })], { hoveredId: 'a', zoom: 1 }))
+    expect(hovered.soft.count).toBe(2)
+    const followed = setup()
+    followed.sprites.rebuild(
+      input([org('a', 10, 10, { lineage_id: 'x' }), org('b', 12, 10, { lineage_id: 'y' })], {
+        focus: 'lineage:x',
+      }),
+    )
+    expect(followed.soft.count).toBe(3)
     // Every ring is whole pixels, so none is turned (a turned one blurs off the pixel grid).
     const turned = Array.from({ length: one.soft.count }, (_, i) => one.soft.rotation[i]).some((r) => r !== 0)
     expect(turned).toBe(false)
