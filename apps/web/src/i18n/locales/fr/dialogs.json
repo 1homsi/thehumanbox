@@ -558,6 +558,9 @@
     "confirm": "nouveau monde"
   },
   "worldNotice": {
+    "crashedTitle": "Le monde s’est arrêté",
+    "crashedBody": "La simulation a rencontré une erreur et ne peut pas continuer. Recharge pour reprendre à la dernière sauvegarde.",
+    "crashedReload": "Recharger",
     "worldLoading": "Le monde est encore en cours de chargement",
     "loadingRefresh": "Le monde local est encore en cours de chargement. Attendez un instant, puis actualisez la page.",
     "loadingReset": "Le monde local est encore en cours de chargement. Attendez un instant, puis recommencez un nouveau monde.",

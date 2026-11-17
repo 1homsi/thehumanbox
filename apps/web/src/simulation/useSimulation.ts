@@ -9,6 +9,7 @@ import { clearSavedCamera } from '../game/model/saved-camera'
 import { binaryFramesReady, fetchSnapshotWithProgress, loadBinaryFrameDecoder, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
 import { signalSimFrame } from './frame-signal'
+import { onFreshFrameRequest } from './fresh-frame'
 import { t } from '../i18n'
 import { logger } from '../shared/logger'
 import { showNotice } from '../shared/confirm'
@@ -46,6 +47,8 @@ import {
 
 const RELOAD_CHECKPOINT_DEADLINE_MS = 6_000
 const RELOAD_CHECKPOINT_TIMEOUT_MS = 7_000
+const COMMAND_TIMEOUT_MS = 5_000
+const COMMAND_DEADLINE_MS = 4_500
 
 const WS_URL = `${WS_BASE}/ws`
 const SNAPSHOT_URL = `${API_BASE}/snapshot`
@@ -572,6 +575,7 @@ export function useSimulation(source: WorldSource = 'native'): {
       }
       window.addEventListener(LOCAL_WORLD_CHECKPOINT_EVENT, onCheckpointRequest)
       window.addEventListener(LOCAL_WORLD_RELOAD_EVENT, onSafeReloadRequest)
+      const stopFreshFrameRequests = onFreshFrameRequest(() => worker.postMessage({ type: 'full_frame' }))
 
       const onVisibility = () => {
         if (document.visibilityState === 'hidden') worker.postMessage({ type: 'save' })
@@ -593,6 +597,7 @@ export function useSimulation(source: WorldSource = 'native'): {
         window.removeEventListener('pagehide', onPageHide)
         window.removeEventListener(LOCAL_WORLD_CHECKPOINT_EVENT, onCheckpointRequest)
         window.removeEventListener(LOCAL_WORLD_RELOAD_EVENT, onSafeReloadRequest)
+        stopFreshFrameRequests()
         if (rafPending.current !== null) {
           cancelAnimationFrame(rafPending.current)
           rafPending.current = null
@@ -942,11 +947,12 @@ export function useSimulation(source: WorldSource = 'native'): {
     const worker = wasmWorkerRef.current
     if (!worker) return Promise.resolve(FAILED_OUTCOME)
     const requestId = nextWorkerRequestRef.current++
+    const deadlineAt = Date.now() + COMMAND_DEADLINE_MS
     return new Promise<CommandOutcome>((resolve) => {
       const timer = setTimeout(() => {
         pendingWorkerRequestsRef.current.delete(requestId)
         resolve(FAILED_OUTCOME)
-      }, 5000)
+      }, COMMAND_TIMEOUT_MS)
       pendingWorkerRequestsRef.current.set(requestId, {
         resolve: (result) =>
           resolve(
@@ -955,7 +961,7 @@ export function useSimulation(source: WorldSource = 'native'): {
           ),
         timer,
       })
-      worker.postMessage({ type: 'command', json, requestId })
+      worker.postMessage({ type: 'command', json, requestId, deadlineAt })
     })
   }, [])
 

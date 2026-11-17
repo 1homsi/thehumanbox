@@ -157,8 +157,16 @@ mod wasm_facade {
         }
     }
 
+    #[wasm_bindgen]
+    extern "C" {
+        #[wasm_bindgen(js_namespace = console, js_name = error)]
+        fn console_error(message: &str);
+    }
+
     #[wasm_bindgen(start)]
-    pub fn __start() {}
+    pub fn __start() {
+        std::panic::set_hook(Box::new(|info| console_error(&info.to_string())));
+    }
 }
 
 #[cfg(test)]

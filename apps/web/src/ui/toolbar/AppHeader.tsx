@@ -21,6 +21,7 @@ import { updateCheckMessage } from '../modals/updateCheckMessage'
 import { moonPhaseWord } from '../sim-words'
 import { calendarAt } from '../../game/model/calendar'
 import { openingHides, useOpeningGuide } from '../../state/opening-guide'
+import { chroniclesBadgeCount } from '../modals/chronicles-tab'
 
 interface Props {
   world: WorldState | null
@@ -78,6 +79,11 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer, worldAct
     document.addEventListener('pointerdown', handler)
     return () => document.removeEventListener('pointerdown', handler)
   }, [showMore])
+
+  const chroniclesCount = chroniclesBadgeCount(
+    world?.story_history?.length ?? 0,
+    world?.headlines?.length ?? 0,
+  )
 
   const tip = (title: string, body?: string, how?: string) => (
     <span className="tip-card">
@@ -194,9 +200,7 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer, worldAct
             <button className="hdr-btn" data-tour="chronicles-btn" onClick={openChronicles}>
               <ToolSprite icon="📖" size={16} />
               <span className="btn-label">{t('header.chronicles')}</span>
-              {world.story_history?.length > 0 && (
-                <span className="btn-count">{world.story_history.length}</span>
-              )}
+              {chroniclesCount > 0 && <span className="btn-count">{chroniclesCount}</span>}
             </button>
           </Tooltip>
           <div className="more-menu" ref={moreRef}>
@@ -275,7 +279,7 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer, worldAct
       )}
       {world && (
         <PhoneMenu
-          chronicleCount={world.story_history?.length ?? 0}
+          chronicleCount={chroniclesCount}
           isFullscreen={isFullscreen}
           onToggleFullscreen={toggleFullscreen}
           worldActions={worldActions}

@@ -574,6 +574,9 @@
     "confirm": "zacznij nowy"
   },
   "worldNotice": {
+    "crashedTitle": "Świat się zatrzymał",
+    "crashedBody": "Symulacja napotkała błąd i nie może działać dalej. Wczytaj ponownie, aby wrócić do ostatniego zapisu.",
+    "crashedReload": "Wczytaj ponownie",
     "worldLoading": "Świat wciąż się wczytuje",
     "loadingRefresh": "Lokalny świat wciąż się wczytuje. Poczekaj chwilę, a potem odśwież stronę.",
     "loadingReset": "Lokalny świat wciąż się wczytuje. Poczekaj chwilę i spróbuj ponownie zacząć nowy świat.",

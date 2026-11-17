@@ -597,6 +597,9 @@
     "confirm": "start new"
   },
   "worldNotice": {
+    "crashedTitle": "The world stopped",
+    "crashedBody": "The simulation hit an error and cannot continue. Reload to pick up from the last save.",
+    "crashedReload": "Reload",
     "worldLoading": "World still loading",
     "loadingRefresh": "The local world is still loading. Wait a moment, then try refreshing again.",
     "loadingReset": "The local world is still loading. Wait a moment, then try starting a new world again.",
