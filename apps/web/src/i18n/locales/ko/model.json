@@ -236,6 +236,7 @@
   "legends": {
     "when": "{year}년 {season}",
     "notable": "주목할 만한 사건",
+    "repeated": "{title} ×{count}",
     "titles": {
       "meteor": "별이 떨어진다",
       "eruption": "산이 깨어난다",

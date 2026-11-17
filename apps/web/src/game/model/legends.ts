@@ -2,7 +2,7 @@
 // events the sim marks as news (game/model/news.ts), newest first. Each kind has
 // a title; the event's own detail says what happened.
 
-import { t, type MessageKey } from '../../i18n'
+import { formatNumber, t, type MessageKey } from '../../i18n'
 import { calendarAt } from './calendar'
 import { isNewsEvent } from './news'
 
@@ -12,6 +12,7 @@ export interface Legend {
   when: string
   title: string
   text: string
+  count: number
 }
 
 /** The title of each kind of news event, as a key read with t() where it is shown. */
@@ -36,6 +37,19 @@ const TITLES = new Map<string, MessageKey>([
   ['danger', 'model.legends.titles.danger'],
 ])
 
+const ROUTINE = new Set([
+  'answered',
+  'forsaken',
+  'prayer',
+  'smite',
+  'outbreak',
+  'disease_death',
+  'building_ruined',
+  'weather',
+  'drought',
+  'danger',
+])
+
 /** The panel's name for each season the calendar counts (see calendarAt). */
 const SEASON_KEY: Record<string, MessageKey> = {
   Spring: 'panels.calendar.seasonName.spring',
@@ -49,20 +63,33 @@ export function legendsOf(
   events: ReadonlyArray<{ tick: number; type: string; detail: string; news?: boolean }>,
   limit = 12,
 ): Legend[] {
-  return events
+  const newest = events
     .filter((e) => isNewsEvent({ type: e.type, news: e.news }))
     .slice()
     .sort((a, b) => b.tick - a.tick)
-    .slice(0, limit)
-    .map((e) => {
-      const d = calendarAt(e.tick)
-      const seasonKey = SEASON_KEY[d.season]
-      const titleKey = TITLES.get(e.type)
-      return {
-        tick: e.tick,
-        when: t('model.legends.when', { year: d.year, season: seasonKey ? t(seasonKey) : d.season }),
-        title: titleKey ? t(titleKey) : t('model.legends.notable'),
-        text: e.detail,
-      }
-    })
+  const told: Array<{ event: (typeof newest)[number]; count: number }> = []
+  const byKind = new Map<string, { count: number }>()
+  for (const e of newest) {
+    const seen = ROUTINE.has(e.type) ? byKind.get(e.type) : undefined
+    if (seen) {
+      seen.count += 1
+      continue
+    }
+    const entry = { event: e, count: 1 }
+    told.push(entry)
+    if (ROUTINE.has(e.type)) byKind.set(e.type, entry)
+  }
+  return told.slice(0, limit).map(({ event: e, count }) => {
+    const d = calendarAt(e.tick)
+    const seasonKey = SEASON_KEY[d.season]
+    const titleKey = TITLES.get(e.type)
+    const title = titleKey ? t(titleKey) : t('model.legends.notable')
+    return {
+      tick: e.tick,
+      when: t('model.legends.when', { year: d.year, season: seasonKey ? t(seasonKey) : d.season }),
+      title: count > 1 ? t('model.legends.repeated', { title, count: formatNumber(count) }) : title,
+      text: e.detail,
+      count,
+    }
+  })
 }
