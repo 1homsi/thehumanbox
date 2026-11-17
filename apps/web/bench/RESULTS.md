@@ -283,7 +283,7 @@ and judge a change by an interleaved A/B against its own base.
 | `--mobile --cpu-throttle 6` | standard | 58 | 43.4 (43.2-43.5) | 91.5 | 6.53 | 35 | 36 |
 | `--mobile --cpu-throttle 6` | crowd | 55 | 56.7 (56.0-57.5) | 93.5 | 9.42 | 95 | 38 |
 
-Reproduce, one `--out` per condition (under `bench-lock.sh` when the machine is shared):
+Reproduce, one `--out` per condition:
 `node bench/run.mjs --builds main=dist --fixtures crowd,standard --zooms mid --modes playing --passes metrics --runs 2 --out bench/results/<name> [--cpu-throttle 6] [--mobile]`,
 then `node bench/score.mjs bench/results/<name>/main`.
 
