@@ -60,7 +60,7 @@ const PALETTE: Record<string, string> = {
   V: hex(FOREST.mid), // frog / dragon mid
   d: hex(FOREST.dark), // dragon / croc shade
   e: hex(SAND.light), // underbelly
-  u: hex(OCEAN.shelf), // whale lit
+  u: hex(OCEAN.shallows), // whale lit
   U: hex(OCEAN.open), // whale shade
   z: hex(SNOW.lit), // whale belly
   i: hex(GOLD_LIT), // bee gold

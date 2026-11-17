@@ -64,6 +64,25 @@ export const PALETTE_RGB: readonly (readonly [number, number, number])[] = [
 /** `#rrggbb` for a palette index, for the canvas code that draws round the sprites (sites, ruins). */
 export const hexOf = (index: number): string => `#${PALETTE_HEX[index - 1]}`
 
+/** The index of the palette colour nearest a `#rrggbb` colour: how a colour from outside (a crop's, a tribe's) comes onto the palette. */
+export function nearestIndex(colour: string): number {
+  const h = colour.replace('#', '')
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  let best = 1
+  let bestD = Infinity
+  for (let i = 1; i < PALETTE_RGB.length; i++) {
+    const p = PALETTE_RGB[i]
+    const d = (p[0] - r) ** 2 + (p[1] - g) ** 2 + (p[2] - b) ** 2
+    if (d < bestD) {
+      bestD = d
+      best = i
+    }
+  }
+  return best
+}
+
 /** Palette indexes by name: each ramp runs from 0 (darkest) upward. */
 export const C = {
   blue0: 1,

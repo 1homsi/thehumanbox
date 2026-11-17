@@ -4,16 +4,17 @@ import { OCEAN, ROCK, SAND, SNOW, hex, type Rgb } from './art-palette'
 import { valueNoise } from './base-parts/noise'
 
 /** The sea's depth bands, deepest first. A band is one flat colour, like the tints of a sea chart. */
-export const OCEAN_BANDS: readonly Rgb[] = [OCEAN.abyss, OCEAN.deep, OCEAN.open, OCEAN.shelf, OCEAN.shallows]
+export const OCEAN_BANDS: readonly Rgb[] = [OCEAN.deep, OCEAN.open, OCEAN.shallows]
 /**
- * Wire depth where each band above the abyss begins. The simulation's open sea, away from any coast,
- * sits around wire 65; it is abyss here, the same colour as past the map, so the edge of the world never
- * meets the open sea in a straight line. The lighter bands are the shelf rising toward a coast.
+ * Wire depth where each band above the deep begins. The simulation's open sea, away from any coast, sits
+ * around wire 65; it is deep here, the same colour as past the map, so the edge of the world never meets
+ * the open sea in a straight line. The two lighter bands are the shelf rising toward a coast. Three bands,
+ * not five: five thin rings round every island read as a generated height map, not as a drawn sea.
  */
-const BAND_FLOORS = [100, 128, 156, 180]
+const BAND_FLOORS = [128, 168]
 export const SHALLOWS_BAND = OCEAN_BANDS.length - 1
 
-/** The band of a wire depth (0 is deep ocean, 200 the shoreline): 0 is the abyss, SHALLOWS_BAND the shallows. */
+/** The band of a wire depth (0 is deep ocean, 200 the shoreline): 0 is the deep, SHALLOWS_BAND the shallows. */
 export function oceanBand(wireDepth: number): number {
   let band = 0
   while (band < BAND_FLOORS.length && wireDepth >= BAND_FLOORS[band]) band++

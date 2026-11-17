@@ -32,8 +32,8 @@ describe('dug irrigation channels', () => {
 
   it('is water down the middle with a bank of earth beside it, and runs to the edge where it joins', () => {
     const north = canalCellPixels(ROAD_N)
-    expect(colourAt(north, Math.floor(TILE / 2), Math.floor(TILE / 2))).toMatch(/^#(3f7fa8|7fb4d2)$/)
-    expect(colourAt(north, Math.floor(TILE / 2), 0)).toMatch(/^#(3f7fa8|7fb4d2)$/)
+    expect(colourAt(north, Math.floor(TILE / 2), Math.floor(TILE / 2))).toMatch(/^#(4f8fba|73bed3)$/)
+    expect(colourAt(north, Math.floor(TILE / 2), 0)).toMatch(/^#(4f8fba|73bed3)$/)
     expect(colourAt(north, 1, Math.floor(TILE / 2))).toBe(CANAL_BANK)
     expect(colourAt(north, 0, Math.floor(TILE / 2))).toBeUndefined()
   })
@@ -188,7 +188,7 @@ describe('paved roads', () => {
     const dashes = (mask: number) => {
       const pixels = roadCellPixels('paved', mask)
       const base = new Set(pixels.map(([, , c]) => c))
-      const line = pixels.filter(([, , c]) => c === '#cdb588')
+      const line = pixels.filter(([, , c]) => c === '#e7d5b3')
       return { line, base }
     }
     const horizontal = dashes(ROAD_E | ROAD_W).line

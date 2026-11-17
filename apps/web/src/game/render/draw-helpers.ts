@@ -1,3 +1,4 @@
+import { C, hexOf } from './pixel-art/palette.ts'
 import type { AnimalState, OrganismState } from '../../shared/types'
 
 import { cbFireRgba } from '../../shared/constants'
@@ -196,11 +197,11 @@ export function drawFoodPatch(ctx: CanvasRenderingContext2D, px: number, py: num
   const large = foodLarge(seed)
   const x = px + 2 + foodOffset(seed, 11, large)
   const y = py + 2 + foodOffset(seed, 9, large)
-  ctx.fillStyle = '#536a3b'
+  ctx.fillStyle = hexOf(C.green1)
   ctx.fillRect(x, y + 1, large ? 4 : 2, large ? 3 : 2)
-  ctx.fillStyle = '#81924d'
+  ctx.fillStyle = hexOf(C.green2)
   ctx.fillRect(x + 1, y, large ? 3 : 1, large ? 2 : 1)
-  ctx.fillStyle = foodBerry(seed) === 0 ? '#b46e52' : '#b6a35c'
+  ctx.fillStyle = foodBerry(seed) === 0 ? hexOf(C.red4) : hexOf(C.gold5)
   ctx.fillRect(x + 1, y + 1, 1, 1)
 }
 
@@ -225,8 +226,8 @@ export function drawMineralOutcrop(ctx: CanvasRenderingContext2D, px: number, py
   const shape = OUTCROPS[(seed >>> 10) & 3]
   const ox = px + ((seed >>> 12) & 1)
   const oy = py + 7 - shape.length - ((seed >>> 9) & 1)
-  const ore = ((seed >>> 13) & 1) === 0 ? '#e2b84d' : '#7fc9c7'
-  const colors: Record<string, string> = { d: '#3d3937', l: '#716a62', o: ore }
+  const ore = ((seed >>> 13) & 1) === 0 ? hexOf(C.gold5) : hexOf(C.blue4)
+  const colors: Record<string, string> = { d: hexOf(C.grey4), l: hexOf(C.grey7), o: ore }
   shape.forEach((row, r) => {
     for (let c = 0; c < row.length; c++) {
       const color = colors[row[c]]

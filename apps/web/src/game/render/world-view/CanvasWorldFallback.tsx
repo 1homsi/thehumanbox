@@ -19,7 +19,7 @@ function drawFailedText(): string {
 }
 
 /** Past the map the sea stays in its deepest band. */
-const WORLD_EDGE = hex(OCEAN.abyss)
+const WORLD_EDGE = hex(OCEAN.deep)
 
 export function CanvasWorldFallback({
   world,

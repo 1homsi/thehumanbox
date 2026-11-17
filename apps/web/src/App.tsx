@@ -126,7 +126,7 @@ const WorldView = lazyWithRetry(
 )
 function WorldViewPending() {
   // Same footprint and colour as the map's own loading cover.
-  return <div className="map2d-world" style={{ flex: 1, minWidth: 0, background: hex(OCEAN.abyss) }} />
+  return <div className="map2d-world" style={{ flex: 1, minWidth: 0, background: hex(OCEAN.deep) }} />
 }
 
 const SceneView = lazyWithRetry(() =>

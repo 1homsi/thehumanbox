@@ -52,7 +52,5 @@ class CellNoise {
     return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy
   }
 }
-export const macroNoise = new CellNoise()
-export const macroNoiseFine = new CellNoise()
-/** Dry patches (about 25 cells across) where open grass slides from olive to ochre. */
+/** Patches (about 25 cells across) where a biome's ground takes its second tone. */
 export const dryNoise = new CellNoise()

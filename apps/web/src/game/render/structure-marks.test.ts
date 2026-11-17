@@ -19,20 +19,24 @@ describe('settlement structure marks', () => {
     expect(structureStrength(0.6049)).toBe(0.6)
   })
 
-  it('draws a house for dense land, a hut for medium land and a mound for sparse land', () => {
-    const calls = (s: number) => {
+  it('wears the ground more the denser the land: a scuff, a worn patch, a packed yard', () => {
+    const pixels = (s: number) => {
       const r = recorder()
       paintStructureTile(r.ctx, 0, 0, s)
-      return r.log
+      return r.log.filter((c) => c.startsWith('fillRect'))
     }
-    // Dense and medium have a roof (a filled triangle); sparse is one flat rectangle.
-    expect(calls(0.9).filter((c) => c.startsWith('lineTo'))).toHaveLength(2)
-    expect(calls(0.5).filter((c) => c.startsWith('lineTo'))).toHaveLength(2)
-    expect(calls(0.1).filter((c) => c.startsWith('lineTo'))).toHaveLength(0)
-    expect(calls(0.1).filter((c) => c.startsWith('fillRect'))).toHaveLength(1)
-    expect(calls(0.9).filter((c) => c.startsWith('fillRect')).length).toBeGreaterThan(
-      calls(0.5).filter((c) => c.startsWith('fillRect')).length,
-    )
+    expect(pixels(0.1).length).toBeGreaterThan(0)
+    expect(pixels(0.5).length).toBeGreaterThan(pixels(0.1).length)
+    expect(pixels(0.9).length).toBeGreaterThan(pixels(0.5).length)
+    // Whole pixels only: no paths, and every rectangle is one pixel.
+    const r = recorder()
+    paintStructureTile(r.ctx, 0, 0, 0.9)
+    expect(r.log.some((c) => c.startsWith('lineTo') || c.startsWith('beginPath'))).toBe(false)
+    expect(r.log.filter((c) => c.startsWith('fillRect')).every((c) => c.endsWith(',1,1)'))).toBe(true)
+    // Solid palette colours, never a translucent wash.
+    expect(
+      r.log.filter((c) => c.startsWith('fillStyle=')).every((c) => /^fillStyle=#[0-9a-f]{6}$/.test(c)),
+    ).toBe(true)
   })
 
   it('paints the same pixels for the same key', () => {

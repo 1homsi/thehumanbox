@@ -24,7 +24,7 @@ describe('landscape art direction', () => {
   })
 
   it('steps the sea through the chart bands, abyss to shallows, with no smooth ramp between', () => {
-    expect(oceanColor(0)).toEqual(OCEAN.abyss)
+    expect(oceanColor(0)).toEqual(OCEAN.deep)
     expect(oceanColor(200)).toEqual(OCEAN.shallows)
     const seen = new Set<string>()
     let last = -1

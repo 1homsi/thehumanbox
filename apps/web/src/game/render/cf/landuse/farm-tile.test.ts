@@ -35,8 +35,9 @@ describe('the plough in a field', () => {
       season: 'recovery',
       edges: 0,
     }
-    expect(paintedColours({ ...look, plough: 'ox' })).toContain('#a06c40')
-    expect(paintedColours(look)).not.toContain('#a06c40')
+    // The ox's pale head is the one colour only the plough brings to a spring field.
+    expect(paintedColours({ ...look, plough: 'ox' })).toContain('#ebede9')
+    expect(paintedColours(look)).not.toContain('#ebede9')
   })
 
   it('keys a field by its plough, so a ploughed field and a bare one are different sprites', () => {

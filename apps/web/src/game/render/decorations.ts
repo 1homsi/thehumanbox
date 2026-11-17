@@ -1,3 +1,4 @@
+import { C, hexOf } from './pixel-art/palette.ts'
 import { isFreshWaterAt, shorelineColors, vegetationSeason, landscapeHash } from './landscape-style'
 import { FRESH_WATER, OCEAN, SHADOW, hex } from './art-palette'
 /**
@@ -452,16 +453,16 @@ export function paintDecorTile(
     const sz = 2 + Math.floor(r1 * 2)
     const rockX = Math.round(px + TILE / 2 + (r2 - 0.5) * TILE * 0.4 - sz / 2)
     const rockY = Math.round(py + TILE / 2 + (r0 - 0.5) * TILE * 0.4)
-    ctx.fillStyle = t === TILE_ID.ROCK ? '#443f3b' : '#705f45'
+    ctx.fillStyle = t === TILE_ID.ROCK ? hexOf(C.grey5) : hexOf(C.tan3)
     ctx.fillRect(rockX, rockY, sz + 1, 2)
-    ctx.fillStyle = t === TILE_ID.ROCK ? '#77706a' : '#a58a5e'
+    ctx.fillStyle = t === TILE_ID.ROCK ? hexOf(C.grey7) : hexOf(C.tan4)
     ctx.fillRect(rockX + 1, rockY - 1, Math.max(1, sz - 1), 1)
     return
   }
   if (t === TILE_ID.SNOW && r0 < 0.18) {
     const snowX = Math.round(px + TILE / 2 + (r2 - 0.5) * TILE * 0.3)
     const snowY = Math.round(py + TILE / 2 + (r1 - 0.5) * TILE * 0.3)
-    ctx.fillStyle = '#f2f5f9'
+    ctx.fillStyle = hexOf(C.grey8)
     ctx.fillRect(snowX - 2, snowY, 4, 1)
     ctx.fillRect(snowX - 1, snowY - 1, 3, 1)
     return
@@ -471,13 +472,13 @@ export function paintDecorTile(
     const bx = Math.round(px + TILE / 2 + (r1 - 0.5) * TILE * 0.4)
     const by = Math.round(py + TILE - 1)
     const hgt = 4 + Math.floor(r2 * 5)
-    ctx.fillStyle = '#6a4a30'
+    ctx.fillStyle = hexOf(C.tan1)
     ctx.fillRect(bx - 2, by, 6, 1)
-    ctx.fillStyle = '#8a3f22'
+    ctx.fillStyle = hexOf(C.red2)
     ctx.fillRect(bx - 2, by - hgt, 4, hgt)
-    ctx.fillStyle = '#c26a3e'
+    ctx.fillStyle = hexOf(C.red4)
     ctx.fillRect(bx - 2, by - hgt, 2, hgt)
-    ctx.fillStyle = '#e09160'
+    ctx.fillStyle = hexOf(C.red5)
     ctx.fillRect(bx - 3, by - hgt - 1, 6, 1)
     return
   }
@@ -488,7 +489,7 @@ export function paintDecorTile(
     // covered the savanna in a speckle that hid the huts and animals standing on it.
     const gx = Math.round(px + TILE / 2 + (r1 - 0.5) * TILE * 0.5)
     const gy = Math.round(py + TILE / 2 + (r2 - 0.5) * TILE * 0.4)
-    ctx.fillStyle = '#9c8a4e'
+    ctx.fillStyle = hexOf(C.gold3)
     ctx.fillRect(gx - 2, gy - 2, 1, 3)
     ctx.fillRect(gx, gy - 3, 1, 4)
     ctx.fillRect(gx + 2, gy - 2, 1, 3)
@@ -498,10 +499,10 @@ export function paintDecorTile(
     // Ferns in the undergrowth.
     const fx = Math.round(px + TILE / 2 + (r1 - 0.5) * TILE * 0.5)
     const fy = Math.round(py + TILE / 2 + (r2 - 0.5) * TILE * 0.4)
-    ctx.fillStyle = '#1f5a28'
+    ctx.fillStyle = hexOf(C.green0)
     ctx.fillRect(fx - 2, fy, 5, 1)
     ctx.fillRect(fx - 1, fy - 1, 3, 1)
-    ctx.fillStyle = '#3f8a3a'
+    ctx.fillStyle = hexOf(C.green3)
     ctx.fillRect(fx, fy - 2, 1, 2)
     return
   }
@@ -512,32 +513,32 @@ export function paintDecorTile(
     Math.sin(worldX * 0.13) + Math.sin(worldY * 0.17) > 1 &&
     r0 < 0.08
   ) {
-    const colors = ['#f1b9bf', '#f6e3a0', '#cfc0e9', '#f5eade']
+    const colors = [hexOf(C.plum5), hexOf(C.gold5), hexOf(C.plum4), hexOf(C.grey9)]
     ctx.fillStyle = colors[Math.floor(r2 * colors.length)]
     const fx = px + TILE / 2 + (r1 - 0.5) * TILE * 0.4
     const fy = py + TILE / 2 + (r2 - 0.5) * TILE * 0.4
     ctx.fillRect(Math.round(fx) - 1, Math.round(fy), 3, 1)
     ctx.fillRect(Math.round(fx), Math.round(fy) - 1, 1, 3)
-    ctx.fillStyle = '#e4bc68'
+    ctx.fillStyle = hexOf(C.gold4)
     ctx.fillRect(Math.round(fx), Math.round(fy), 1, 1)
-    ctx.fillStyle = '#3a6b32'
+    ctx.fillStyle = hexOf(C.green2)
     ctx.fillRect(Math.round(fx), Math.round(fy) + 2, 1, 1)
   } else if (biome === BIOME_ID.FOREST && r0 < 0.06) {
     // A mushroom in whole pixels: a three-wide cap with a lit corner, over a pale stem.
     const mx = Math.round(px + TILE / 2 + (r2 - 0.5) * TILE * 0.4)
     const my = Math.round(py + TILE / 2 + (r1 - 0.5) * TILE * 0.4)
     const red = r1 < 0.5
-    ctx.fillStyle = red ? '#a83c3c' : '#b9ae8e'
+    ctx.fillStyle = red ? hexOf(C.red3) : hexOf(C.tan3)
     ctx.fillRect(mx - 1, my, 3, 1)
-    ctx.fillStyle = red ? '#c54a4a' : '#ddd5b8'
+    ctx.fillStyle = red ? hexOf(C.red4) : hexOf(C.tan5)
     ctx.fillRect(mx, my - 1, 2, 1)
     ctx.fillRect(mx - 1, my, 2, 1)
-    ctx.fillStyle = '#f0e8d8'
+    ctx.fillStyle = hexOf(C.grey9)
     ctx.fillRect(mx, my + 1, 1, 1)
   } else if ((biome === BIOME_ID.GRASSLAND || biome === BIOME_ID.WETLAND) && r1 < 0.06) {
     // A tuft of two blades, a pixel apart, the taller one leaning with the hash: a darker tone of the grass,
     // not a brighter green, so it textures the ground without reading as an object.
-    ctx.fillStyle = biome === BIOME_ID.WETLAND ? '#4f6a3e' : '#687a3e'
+    ctx.fillStyle = biome === BIOME_ID.WETLAND ? hexOf(C.green1) : hexOf(C.green2)
     const gx = Math.round(px + TILE / 2 + (r0 - 0.5) * TILE * 0.5)
     const gy = py + TILE - 1
     const lean = r2 < 0.33 ? -1 : r2 > 0.66 ? 1 : 0
@@ -548,13 +549,13 @@ export function paintDecorTile(
     // A patch of frost: two short rows, not a soft translucent oval.
     const fx = Math.round(px + TILE / 2 + (r2 - 0.5) * TILE * 0.4)
     const fy = Math.round(py + TILE / 2 + (r1 - 0.5) * TILE * 0.4)
-    ctx.fillStyle = '#d6dbe3'
+    ctx.fillStyle = hexOf(C.grey9)
     ctx.fillRect(fx - 2, fy, 5, 1)
     ctx.fillRect(fx - 1, fy - 1, 3, 1)
   }
 
   if (r2 < 0.003) {
-    ctx.fillStyle = '#a9a48a'
+    ctx.fillStyle = hexOf(C.grey7)
     ctx.fillRect(px + TILE / 2 - 1, py + TILE / 2, 3, 1)
     ctx.fillRect(px + TILE / 2 - 1, py + TILE / 2 + 1, 2, 1)
   }

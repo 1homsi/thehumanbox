@@ -32,7 +32,7 @@ import { WORLD_MAX_DPR } from './world-dpr'
 import { OCEAN, hex } from './art-palette'
 
 /** Past the map the sea stays in its deepest band, so the world has no visible edge. */
-const WORLD_EDGE = hex(OCEAN.abyss)
+const WORLD_EDGE = hex(OCEAN.deep)
 
 interface Props {
   world: WorldState

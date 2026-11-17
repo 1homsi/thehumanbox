@@ -1,72 +1,74 @@
 /**
- * The map's shared palette and light direction. `docs/ART_DIRECTION.md` explains the rules; this module holds
- * the values. Colours are `[r, g, b]` so painters can mix and shade them without parsing strings.
+ * The map's ground, sea, rock and snow, and its light direction. `docs/ART_DIRECTION.md` explains the rules;
+ * this module holds the values. Every colour here is one of the master palette's (pixel-art/palette.ts), as
+ * `[r, g, b]` for the painters that take triples.
  */
 export type Rgb = readonly [number, number, number]
 
-/** Warm dark ink for the outer outline of sprites. Never pure black. */
-export const INK: Rgb = [43, 33, 23]
+/** Warm dark ink for the outer outline of sprites: the master palette's darkest warm tone. Never pure black. */
+export const INK: Rgb = [52, 28, 39]
 
 /** Cast shadows: one flat translucent tone, falling to the bottom-right. */
-export const SHADOW = { rgb: [28, 20, 12] as Rgb, alpha: 0.32 } as const
+export const SHADOW = { rgb: [9, 10, 20] as Rgb, alpha: 0.3 } as const
 
-/** Sea depth bands, deepest first. Past the edge of the world the sea stays `abyss`. */
+/**
+ * Sea depth, deepest first: three flat tints of the master palette's blues, like the tints of a sea chart.
+ * Past the edge of the world the sea stays `deep`.
+ */
 export const OCEAN = {
-  abyss: [22, 48, 61],
-  deep: [28, 61, 76],
-  open: [35, 80, 93],
-  shelf: [46, 101, 105],
-  shallows: [74, 128, 121],
+  deep: [37, 58, 94],
+  open: [60, 94, 139],
+  shallows: [79, 143, 186],
   /** The thin light line where water meets the shore. */
-  surf: [185, 205, 176],
+  surf: [164, 221, 219],
 } as const satisfies Record<string, Rgb>
 
-/** Rivers and lakes: calmer and greener than the open sea. */
+/** Rivers and lakes: lighter and brighter than the sea, so a river reads across open country. */
 export const FRESH_WATER = {
-  deep: [52, 98, 104],
-  mid: [61, 111, 116],
-  edge: [96, 141, 132],
+  deep: [79, 143, 186],
+  mid: [79, 143, 186],
+  edge: [115, 190, 211],
 } as const satisfies Record<string, Rgb>
 
 export const GRASS = {
-  lush: [107, 127, 63],
-  base: [125, 139, 74],
-  light: [143, 156, 85],
-  dry: [156, 148, 85],
+  lush: [70, 130, 50],
+  base: [117, 167, 67],
+  light: [168, 202, 88],
+  dry: [208, 218, 145],
 } as const satisfies Record<string, Rgb>
 
 export const FOREST = {
-  dark: [61, 82, 48],
-  mid: [79, 104, 56],
-  light: [106, 131, 68],
+  dark: [25, 51, 45],
+  mid: [37, 86, 46],
+  light: [70, 130, 50],
 } as const satisfies Record<string, Rgb>
 
 export const SAND = {
-  light: [205, 181, 136],
-  wet: [169, 148, 112],
-  desert: [199, 164, 104],
-  dune: [168, 133, 78],
+  light: [231, 213, 179],
+  wet: [215, 181, 148],
+  desert: [232, 193, 112],
+  dune: [192, 148, 115],
 } as const satisfies Record<string, Rgb>
 
 export const BIOME_TONES = {
-  savanna: [179, 156, 92],
-  tundra: [155, 164, 140],
-  wetland: [95, 110, 72],
-  badlands: [168, 97, 62],
-  volcanic: [74, 63, 58],
+  savanna: [232, 193, 112],
+  tundra: [168, 181, 178],
+  wetland: [87, 114, 119],
+  badlands: [173, 119, 87],
+  volcanic: [57, 74, 80],
 } as const satisfies Record<string, Rgb>
 
 /** Stone, from the face turned to the light down to the deepest shade. */
 export const ROCK = {
-  lit: [176, 164, 139],
-  mid: [133, 123, 105],
-  shade: [90, 81, 71],
-  deep: [60, 53, 46],
+  lit: [168, 181, 178],
+  mid: [129, 151, 150],
+  shade: [87, 114, 119],
+  deep: [57, 74, 80],
 } as const satisfies Record<string, Rgb>
 
 export const SNOW = {
-  lit: [236, 238, 228],
-  shade: [183, 193, 192],
+  lit: [235, 237, 233],
+  shade: [199, 207, 204],
 } as const satisfies Record<string, Rgb>
 
 /** `#rrggbb` for a palette colour, for the places that take a CSS colour. */

@@ -1,5 +1,6 @@
 import { TILE } from '../../../model/palette'
 import { shade } from '../../sprite-colors'
+import { C, hexOf, nearestIndex } from '../../pixel-art/palette.ts'
 
 /**
  * How a crop looks in the field. Each family has its own silhouette so a village
@@ -61,14 +62,24 @@ export function farmLookKey(look: FarmLook): string {
  * Field tones. Every field is drawn from the same few ramps (tilled soil, leaf green, straw), so a farm
  * reads as one material next to the grass and the huts, not as a scatter of unrelated greens.
  */
-const SOIL = { lit: '#8a6440', mid: '#6e4e30', furrow: '#4e3622' }
-const FALLOW = { lit: '#9a7448', mid: '#7d5a38', furrow: '#5e4128' }
-const LEAF = { lit: '#8f9c55', mid: '#6a8344', shade: '#4f6838' }
-const STRAW = { lit: '#c8a668', mid: '#a6854c', shade: '#7d6236' }
-const PADDY_WATER = { lit: '#7da39a', mid: '#608d84', shade: '#4d766f' }
-const RICE_GOLD = { lit: '#ecc96e', mid: '#d6ae4e', shade: '#b88a36' }
-const SNOW_FIELD = '#e6eae0'
-const FIELD_EDGE = '#3a2a1c'
+const SOIL = { lit: hexOf(C.tan2), mid: hexOf(C.tan1), furrow: hexOf(C.tan0) }
+const FALLOW = { lit: hexOf(C.tan3), mid: hexOf(C.tan2), furrow: hexOf(C.tan1) }
+const LEAF = { lit: hexOf(C.green4), mid: hexOf(C.green3), shade: hexOf(C.green2) }
+const STRAW = { lit: hexOf(C.gold5), mid: hexOf(C.gold4), shade: hexOf(C.gold3) }
+const PADDY_WATER = { lit: hexOf(C.blue4), mid: hexOf(C.blue3), shade: hexOf(C.blue2) }
+const RICE_GOLD = { lit: hexOf(C.gold5), mid: hexOf(C.gold4), shade: hexOf(C.gold3) }
+const SNOW_FIELD = hexOf(C.grey9)
+/** The bank round a field: the soil's own darkest tone, not ink. A field is ground, not a thing on it. */
+const FIELD_EDGE = hexOf(C.tan0)
+
+/** The ripe colour of a crop as three palette tones: the nearest palette colour to the sim's, and its neighbours. */
+function ripeTones(cropColor: string): { lit: string; mid: string; shade: string } {
+  return {
+    lit: hexOf(nearestIndex(shade(cropColor, 1.18))),
+    mid: hexOf(nearestIndex(cropColor)),
+    shade: hexOf(nearestIndex(shade(cropColor, 0.74))),
+  }
+}
 
 /**
  * One farm tile: furrowed soil and the crop in its style, in rows that run on unbroken from tile to tile
@@ -100,7 +111,7 @@ export function paintFarmTile(
   const height = fallow ? 0 : Math.max(1, Math.min(3, Math.round(1 + look.progress * 2.4)))
   const leaf = withered ? STRAW : LEAF
   // The ripe colour of this crop, in three tones from its own colour.
-  const ripeRamp = { lit: shade(cropColor, 1.18), mid: cropColor, shade: shade(cropColor, 0.74) }
+  const ripeRamp = ripeTones(cropColor)
   const drained = ripe || (autumn && look.progress >= 0.5)
 
   // Soil: the furrow line every fourth row, the ridge above it catching the light.
@@ -214,10 +225,12 @@ export function paintFarmTile(
   // Winter: snow lies in the furrows between the rows.
   if (winter) for (const row of [0, 4]) fill(0, row, TILE, 1, SNOW_FIELD)
 
-  // A field ends in a dark bank on each side that faces open ground, so a farm reads as one plot.
-  if (edges & EDGE_TOP) fill(0, 0, TILE, 1, FIELD_EDGE)
+  // A field ends in a bank on each side that faces open ground, so a farm reads as one plot. Lit from the
+  // top-left like everything else: the top and left banks catch the light, the bottom and right are in shade.
+  // A dark line all the way round made every one-tile field look like a crate.
+  if (edges & EDGE_TOP) fill(0, 0, TILE, 1, soil.lit)
+  if (edges & EDGE_LEFT) fill(0, 0, 1, TILE, soil.lit)
   if (edges & EDGE_BOTTOM) fill(0, TILE - 1, TILE, 1, FIELD_EDGE)
-  if (edges & EDGE_LEFT) fill(0, 0, 1, TILE, FIELD_EDGE)
   if (edges & EDGE_RIGHT) fill(TILE - 1, 0, 1, TILE, FIELD_EDGE)
 
   // The plough that broke a field just sown: an ox or a tractor standing in the furrows.
@@ -228,11 +241,11 @@ export function paintFarmTile(
 
 /** The ox is the village cart's ox (era-traffic.ts drawCart), so the two read as the same animal. */
 const PLOUGH_COLORS: Record<string, string> = {
-  b: '#a06c40',
-  h: '#f2ead8',
-  k: '#3a2a1a',
-  g: '#3f7a3a',
-  r: '#b8432f',
+  b: hexOf(C.tan2),
+  h: hexOf(C.grey9),
+  k: hexOf(C.gold0),
+  g: hexOf(C.green2),
+  r: hexOf(C.red3),
 }
 
 /** A 6 by 4 pixel ox (brown, pale head, dark hooves) or tractor (green body, red cab, black wheels). */

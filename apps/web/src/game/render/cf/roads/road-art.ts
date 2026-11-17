@@ -1,3 +1,4 @@
+import { C, hexOf } from '../../pixel-art/palette.ts'
 import { TILE } from '../../../model/palette'
 import { ERA_TIERS, eraTier } from '../../../model/era-tier'
 import { ROCK, SAND, hex } from '../../art-palette'
@@ -79,12 +80,12 @@ export function isRoadPixel(style: RoadStyle, mask: number, x: number, y: number
   return false
 }
 
-const TRACK_COLORS = ['#a88a5c', '#8a6c44', '#c3a77a'] as const
-const COBBLE_COLORS = ['#9b968b', '#8c877c', '#a7a295'] as const
-const MORTAR = '#6e675c'
+const TRACK_COLORS = [hexOf(C.tan3), hexOf(C.tan2), hexOf(C.tan4)] as const
+const COBBLE_COLORS = [hexOf(C.grey7), hexOf(C.grey6), hexOf(C.grey8)] as const
+const MORTAR = hexOf(C.grey5)
 /** Asphalt: dark and warm, lit on its top-left edge (the art direction's light), with sparse darker grit. */
-const ASPHALT = '#48413a'
-const ASPHALT_GRIT = '#3e3832'
+const ASPHALT = hexOf(C.grey4)
+const ASPHALT_GRIT = hexOf(C.grey3)
 const ASPHALT_EDGE = hex(ROCK.shade)
 const ASPHALT_EDGE_LIT = hex(ROCK.mid)
 const ASPHALT_LINE = hex(SAND.light)
@@ -129,8 +130,8 @@ export function roadCellPixels(style: RoadStyle, mask: number): [number, number,
   return out
 }
 
-export const RAIL_COLOR = '#4a3825'
-const PLANK = ['#8a6a45', '#7a5c3a'] as const
+export const RAIL_COLOR = hexOf(C.gold1)
+const PLANK = [hexOf(C.tan2), hexOf(C.tan1)] as const
 
 /**
  * Every painted pixel of a bridge cell, as `[x, y, colour]`: planks across the crossing with a dark
@@ -150,8 +151,8 @@ export function bridgeCellPixels(vertical: boolean): [number, number, string][] 
   return out
 }
 
-export const RAIL_STEEL = '#8d9399'
-export const RAIL_TIE = '#5b4430'
+export const RAIL_STEEL = hexOf(C.grey7)
+export const RAIL_TIE = hexOf(C.gold1)
 
 /**
  * Every painted pixel of a railway cell, as `[x, y, colour]`: two steel rails running along the way the track
@@ -214,9 +215,9 @@ export function bridgeCellKey(vertical: boolean): string {
 
 /** The simulation's `ROAD_CANAL`: a dug irrigation channel. */
 export const ROAD_CANAL = 4
-export const CANAL_WATER = '#3f7fa8'
-const CANAL_SHINE = '#7fb4d2'
-export const CANAL_BANK = '#6b5a3e'
+export const CANAL_WATER = hexOf(C.blue3)
+const CANAL_SHINE = hexOf(C.blue4)
+export const CANAL_BANK = hexOf(C.tan1)
 
 /**
  * Whether a canal cell's pixel (x, y) is water: a 4-pixel channel down the middle of the cell, running to

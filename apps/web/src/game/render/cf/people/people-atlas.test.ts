@@ -8,7 +8,14 @@ import {
   HUMAN_HEIGHT,
   HUMAN_STAGE_ORDER,
 } from '../../character-visuals'
-import { INK, hex } from '../../art-palette'
+import { hex } from '../../art-palette'
+
+/**
+ * The ink baked into people.png. The atlas is generated (scripts/gen_people_sprites.mjs) and still carries the
+ * ink it was generated with; the map's ink moved to the master palette's, and the atlas follows when the
+ * people are redrawn.
+ */
+const INK = [43, 33, 23] as const
 
 const svg = readFileSync(new URL('../../../../../public/sprites/people/people.svg', import.meta.url), 'utf8')
 const cells = Array.from({ length: HUMAN_ATLAS_ROWS * HUMAN_ATLAS_COLS }, () => new Map<number, string>())

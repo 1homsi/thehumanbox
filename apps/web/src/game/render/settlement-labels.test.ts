@@ -131,7 +131,7 @@ describe('settlement labels', () => {
       calls.some((c) => c.op === 'strokeText' && c.args[0] === 'JELZOBAF' && c.args[3] === PARCHMENT_HALO),
     ).toBe(true)
     expect(
-      calls.some((c) => c.op === 'fillText' && c.args[0] === 'JELZOBAF' && c.args[3] === '#2b2117'),
+      calls.some((c) => c.op === 'fillText' && c.args[0] === 'JELZOBAF' && c.args[3] === '#341c27'),
     ).toBe(true)
   })
 })
