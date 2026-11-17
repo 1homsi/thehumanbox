@@ -148,9 +148,13 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
+  min-height: calc(var(--bar-tool) * 2 + 3px);
 }
 .dock-tools {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(var(--dock-cols, 1), max-content);
+  grid-auto-rows: max-content;
+  align-content: center;
   gap: 3px;
   flex: 1 1 auto;
   min-width: 0;
@@ -543,6 +547,10 @@
   /* Taller hit areas for thumbs, without making the words any bigger. */
   .dock-row {
     gap: 6px;
+    min-height: 0;
+  }
+  .dock-tools {
+    display: flex;
   }
   .dock-tab {
     padding: 9px 0 6px;

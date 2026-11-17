@@ -2,7 +2,7 @@ import { ToolSprite } from './ToolSprite'
 import { Tooltip } from './Tooltip'
 import { TimeControl } from './TimeControl'
 import { firesOnPick, toolHowTo, toolName, toolTip } from './tool-tips'
-import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { useWorldStore } from '../../state/worldStore'
 import { useUIStore } from '../../state/store'
@@ -471,6 +471,7 @@ export function SandboxToolbar({
           className={clsx('dock-tools', edges.before && 'more-before', edges.after && 'more-after')}
           role="group"
           aria-label={t('dock.aria.tools', { name: group ? groupLabel(group) : tabLabel(tabId) })}
+          style={{ '--dock-cols': Math.max(1, Math.ceil(rowTools.length / 2)) } as CSSProperties}
           ref={toolsRef}
           onScroll={measureRow}
           onWheel={(e) => {
