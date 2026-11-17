@@ -33,6 +33,8 @@ export function ChroniclesModal({ stories, headlines = [], onClose }: Props) {
           {(['history', 'lives'] as Tab[]).map((kind) => (
             <button
               key={kind}
+              type="button"
+              aria-pressed={tab === kind}
               onClick={() => setTab(kind)}
               style={{
                 background: tab === kind ? 'rgba(216,178,112,0.18)' : 'transparent',
