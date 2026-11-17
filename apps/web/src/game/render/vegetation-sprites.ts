@@ -1,39 +1,21 @@
 import { FOREST, GRASS, INK, SNOW, hex, type Rgb } from './art-palette'
+import { C, PALETTE_RGB } from './pixel-art/palette.ts'
 
-// Tones beyond art-palette.ts. Each crown has a ramp from the leaves catching the light to the deep shade
-// between them, so overlapping trees read as a canopy with volume rather than flat discs.
-const LEAF_HIGHLIGHT: Rgb = [146, 164, 84]
-const LEAF_DEEP: Rgb = [42, 58, 36]
-const PINE: readonly Rgb[] = [
-  [96, 128, 88],
-  [70, 100, 70],
-  [50, 76, 56],
-  [34, 54, 42],
-]
-const BIRCH: readonly Rgb[] = [
-  [170, 178, 96],
-  [140, 152, 78],
-  [108, 124, 62],
-  [78, 94, 48],
-]
-const AUTUMN_RED: readonly Rgb[] = [
-  [222, 140, 84],
-  [196, 104, 62],
-  [168, 74, 44],
-  [118, 48, 30],
-  [84, 34, 24],
-]
-const AUTUMN_GOLD: readonly Rgb[] = [
-  [236, 204, 110],
-  [214, 174, 78],
-  [184, 138, 54],
-  [138, 96, 36],
-  [98, 66, 28],
-]
-const BARK_LIT: Rgb = [142, 102, 66]
-const BARK_MID: Rgb = [110, 77, 48]
-const BARK_SHADE: Rgb = [78, 54, 34]
-const BIRCH_MARK: Rgb = [60, 53, 46]
+const tone = (index: number): Rgb => PALETTE_RGB[index]
+
+// Every tone of a tree is a colour of the master palette. Each crown has a ramp from the leaves catching the
+// light to the deep shade between them, so overlapping trees read as a canopy with volume rather than flat discs.
+const LEAF_HIGHLIGHT = tone(C.green3)
+const LEAF_DEEP = tone(C.green0)
+/** Pines are the bluest greens the palette has, so a conifer wood reads apart from a broadleaf one. */
+const PINE: readonly Rgb[] = [tone(C.grey5), tone(C.green1), tone(C.green0), tone(C.grey3)]
+const BIRCH: readonly Rgb[] = [tone(C.green5), tone(C.green4), tone(C.green3), tone(C.green2)]
+const AUTUMN_RED: readonly Rgb[] = [tone(C.red5), tone(C.red4), tone(C.red3), tone(C.red2), tone(C.red1)]
+const AUTUMN_GOLD: readonly Rgb[] = [tone(C.gold5), tone(C.gold4), tone(C.gold3), tone(C.gold2), tone(C.gold1)]
+const BARK_LIT = tone(C.tan2)
+const BARK_MID = tone(C.tan1)
+const BARK_SHADE = tone(C.tan0)
+const BIRCH_MARK = tone(C.grey3)
 
 export const VEGETATION_ATLAS_WIDTH = 100
 export const VEGETATION_ATLAS_HEIGHT = 37
