@@ -41,7 +41,6 @@ describe('MapControls', () => {
     act(() => button('Zoom in')!.click())
     act(() => button('Zoom in')!.click())
     expect(commandRef.current).toEqual({ kind: 'zoom', factor: BUTTON_ZOOM_STEP ** 2, smooth: true })
-    // A press the other way replaces what is waiting, so the camera never zooms the wrong way.
     act(() => button('Zoom out')!.click())
     expect(commandRef.current).toEqual({ kind: 'zoom', factor: 1 / BUTTON_ZOOM_STEP, smooth: true })
     unmount()

@@ -36,18 +36,12 @@ interface Props {
   onTool: (toolId: string, at: { x: number; y: number }) => void
   /** Give the tribe a name of the player's choosing. */
   onRename: (lineage: string, name: string) => Promise<boolean>
-  /** Teach the tribe the next secret it lacks; resolves to whether it was taught. */
+  /** Teach the tribe the next secret it lacks. */
   onTeach: (lineage: string) => Promise<boolean> | void
 }
 
-/** How long a note under the next-age buttons stays. */
 const NOTE_MS = 5_000
 
-/**
- * The inspire and teach buttons, with a note under them saying what a press did: inspire only picks up the tool
- * (the player still has to touch the tribe on the map), and teach can be refused, so a press with no note looked
- * like it did nothing.
- */
 function NextAgeActions({
   canTeach,
   onInspire,
@@ -319,7 +313,6 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
   const lore = world.lineage_lore?.[status.id]
   const craftKey = lore?.craft ? CRAFT_KEYS[lore.craft] : undefined
   const help = peril ? PERIL_HELP[peril.cause] : null
-  // Their settlement, or where their people are when they have none yet (a young tribe often has none).
   const lookAtTribe = (tool: string) => {
     const home = tribeHome(world, status.id)
     if (home) onTool(tool, { x: Math.round(home.x), y: Math.round(home.y) })
