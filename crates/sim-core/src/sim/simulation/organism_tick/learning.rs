@@ -4,10 +4,8 @@ impl Simulation {
     /// Learn from the tick (reinforcement update), then what a well-fed, hydrated organism does: share knowledge with kin.
     pub(super) fn org_learning(&mut self, f: &mut OrgFrame<'_>) {
         let action = f.action;
-        let available_buf = &mut *f.available_buf;
         let idx = f.idx;
         let lineage = std::mem::take(&mut f.lineage);
-        let next_perception = std::mem::take(&mut f.next_perception);
         let perception = std::mem::take(&mut f.perception);
         let reward = f.reward;
         let spatial = f.spatial;
@@ -18,12 +16,12 @@ impl Simulation {
             || org.hydration <= 0.0
             || org.health <= 0.0
             || (org.max_age > 0 && org.age >= mortality::lifespan(org));
-        self.organisms[idx].learn_transition(
+        let best_next = if terminal { 0.0 } else { f.next_best };
+        self.organisms[idx].learn_from_best_next(
             &perception,
             action,
             reward,
-            &next_perception,
-            Some(available_buf),
+            best_next,
             Some(f.action_succeeded),
             terminal,
         );

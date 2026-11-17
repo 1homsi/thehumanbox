@@ -23,13 +23,11 @@ impl ActionSet {
         Self([0; WORDS])
     }
 
-    #[cfg(test)]
     pub(super) fn contains(&self, action: usize) -> bool {
         self.0[action / 64] & (1 << (action % 64)) != 0
     }
 
     /// Adds `action`; true when it was not already present.
-    #[cfg(test)]
     pub(super) fn insert(&mut self, action: usize) -> bool {
         let word = &mut self.0[action / 64];
         let bit = 1 << (action % 64);

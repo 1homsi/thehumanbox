@@ -30,7 +30,6 @@ pub(super) fn lineage_member_index(organisms: &[Organism]) -> FxHashMap<String, 
 
 pub(super) struct TickBuffers {
     pub(super) spatial: Vec<usize>,
-    pub(super) available_actions: Vec<usize>,
     pub(super) perception: Vec<usize>,
 }
 
@@ -38,7 +37,6 @@ impl TickBuffers {
     pub(super) fn new() -> Self {
         Self {
             spatial: Vec::with_capacity(32),
-            available_actions: Vec::with_capacity(256),
             perception: Vec::with_capacity(32),
         }
     }

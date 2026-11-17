@@ -38,14 +38,6 @@ impl Organism {
         action_succeeded: Option<bool>,
         terminal: bool,
     ) {
-        let alpha = (0.08 + self.traits.memory_strength.clamp(0.0, 1.0) * 0.14).clamp(0.08, 0.22);
-        let gamma = (0.82 + self.traits.curiosity.clamp(0.0, 1.0) * 0.12).clamp(0.82, 0.94);
-        let action_u16 = action as u16;
-        let first_attempt = !self
-            .q_table
-            .get(perception)
-            .is_some_and(|row| row.iter().any(|&(known, _)| known == action_u16));
-
         let best_next = if terminal {
             0.0
         } else {
@@ -57,6 +49,25 @@ impl Organism {
                 })
                 .unwrap_or(0.0)
         };
+        self.learn_from_best_next(perception, action, reward, best_next, action_succeeded, terminal);
+    }
+
+    pub fn learn_from_best_next(
+        &mut self,
+        perception: &str,
+        action: usize,
+        reward: f32,
+        best_next: f32,
+        action_succeeded: Option<bool>,
+        terminal: bool,
+    ) {
+        let alpha = (0.08 + self.traits.memory_strength.clamp(0.0, 1.0) * 0.14).clamp(0.08, 0.22);
+        let gamma = (0.82 + self.traits.curiosity.clamp(0.0, 1.0) * 0.12).clamp(0.82, 0.94);
+        let action_u16 = action as u16;
+        let first_attempt = !self
+            .q_table
+            .get(perception)
+            .is_some_and(|row| row.iter().any(|&(known, _)| known == action_u16));
 
         // Novel choices carry a small intrinsic reward. Curious organisms
         // value that first attempt more, while repeating an unrewarding

@@ -26,6 +26,137 @@ pub fn available_actions_into(
     actions: &mut Vec<usize>,
     nearby: &mut Vec<usize>,
 ) {
+    actions.clear();
+    let Some(offer) = plan_offer(sim, idx, ix, iy, spatial, nearby) else {
+        return;
+    };
+    offer.walk(sim, idx, ix, iy, nearby, |action| {
+        actions.push(action);
+        false
+    });
+    recycle_plan(offer.plan);
+}
+
+pub fn best_next_q(
+    sim: &Simulation,
+    idx: usize,
+    ix: i32,
+    iy: i32,
+    spatial: &crate::sim::spatial::SpatialIndex,
+    nearby: &mut Vec<usize>,
+    row: &crate::organism::organism::QRow,
+) -> f32 {
+    let Some(offer) = plan_offer(sim, idx, ix, iy, spatial, nearby) else {
+        return 0.0;
+    };
+    let mut planned = ActionSet::new();
+    for &(start, end) in offer.plan.iter() {
+        planned.insert_range(usize::from(start), usize::from(end));
+    }
+    let tables = filter_tables();
+    let eligible = offer.eligible.words();
+    let mut best = f32::NEG_INFINITY;
+    let mut in_row = ActionSet::new();
+    let mut repeated = false;
+    for &(action, value) in row.iter() {
+        let action = usize::from(action);
+        if action >= crate::organism::organism::ACTION_ID_SPACE {
+            continue;
+        }
+        let (word, bit) = (action / 64, action % 64);
+        if planned.words()[word] >> bit & 1 == 0
+            || (tables.semantic[word] >> bit & 1 == 1 && eligible[word] >> bit & 1 == 0)
+            || (tables.judged[word] >> bit & 1 == 1
+                && !action_passes_judges(sim, idx, action, ix, iy, offer.near_water, nearby))
+        {
+            continue;
+        }
+        repeated |= !in_row.insert(action);
+        if value > best {
+            best = value;
+        }
+    }
+    let result = if !best.is_finite() {
+        0.0
+    } else if best >= 0.0 {
+        best
+    } else if repeated {
+        let mut available = Vec::new();
+        offer.walk(sim, idx, ix, iy, nearby, |action| {
+            available.push(action);
+            false
+        });
+        recycle_plan(offer.plan);
+        return crate::organism::organism::QRowExt::max_q_for_actions(row, &available);
+    } else {
+        let mut other = false;
+        offer.walk(sim, idx, ix, iy, nearby, |action| {
+            other = !in_row.contains(action);
+            other
+        });
+        if other {
+            0.0
+        } else {
+            best
+        }
+    };
+    recycle_plan(offer.plan);
+    result
+}
+
+struct Offer {
+    plan: Plan,
+    eligible: ActionSet,
+    near_water: bool,
+}
+
+impl Offer {
+    fn walk(
+        &self,
+        sim: &Simulation,
+        idx: usize,
+        ix: i32,
+        iy: i32,
+        nearby: &[usize],
+        mut keep: impl FnMut(usize) -> bool,
+    ) {
+        let tables = filter_tables();
+        let eligible = self.eligible.words();
+        let mut seen = ActionSet::new();
+        let seen_words = seen.words_mut();
+        for &(start, end) in self.plan.iter() {
+            let (start, end) = (usize::from(start), usize::from(end));
+            for word in start / 64..=end / 64 {
+                let mut candidates = range_bits(word, start, end)
+                    & !seen_words[word]
+                    & (!tables.semantic[word] | eligible[word]);
+                while candidates != 0 {
+                    let bit = candidates.trailing_zeros() as usize;
+                    candidates &= candidates - 1;
+                    let action = word * 64 + bit;
+                    if tables.judged[word] >> bit & 1 == 1
+                        && !action_passes_judges(sim, idx, action, ix, iy, self.near_water, nearby)
+                    {
+                        continue;
+                    }
+                    seen_words[word] |= 1 << bit;
+                    if keep(action) {
+                        return;
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn plan_offer(
+    sim: &Simulation,
+    idx: usize,
+    ix: i32,
+    iy: i32,
+    spatial: &crate::sim::spatial::SpatialIndex,
+    nearby: &mut Vec<usize>,
+) -> Option<Offer> {
     let org = &sim.organisms[idx];
     let tile = sim.grid.get(ix, iy);
     let lid = &org.lineage_id;
@@ -43,8 +174,6 @@ pub fn available_actions_into(
     let needs_low = org.energy < 0.5 || org.hydration < 0.5;
     let near_rock = context.near_rock;
 
-    actions.clear();
-    let a = actions;
     let mut plan = Plan::new();
 
     plan.range(0, 25);
@@ -211,40 +340,15 @@ pub fn available_actions_into(
     }
     plan_rotating_family_masks(&mut plan, &eligible_by_family, phase);
 
-    // A dead organism is turned down for every action by the trade-route check.
     if !org.alive {
         recycle_plan(plan);
-        return;
+        return None;
     }
-    // Walk the candidate ranges in the order they were offered, keeping an id
-    // when every check passes and it has not been kept already. Most ids are
-    // turned down by the semantic gate, so that and the "already kept" test are
-    // applied to a whole word of ids at once, and only the survivors are looked
-    // at one by one; the ones the per-module checks can judge are checked then.
-    let tables = filter_tables();
-    let eligible = semantically_eligible.words();
-    let mut seen = ActionSet::new();
-    let seen_words = seen.words_mut();
-    for &(start, end) in plan.iter() {
-        let (start, end) = (usize::from(start), usize::from(end));
-        for word in start / 64..=end / 64 {
-            let mut candidates =
-                range_bits(word, start, end) & !seen_words[word] & (!tables.semantic[word] | eligible[word]);
-            while candidates != 0 {
-                let bit = candidates.trailing_zeros() as usize;
-                candidates &= candidates - 1;
-                let action = word * 64 + bit;
-                if tables.judged[word] >> bit & 1 == 1
-                    && !action_passes_judges(sim, idx, action, ix, iy, near_water, nearby)
-                {
-                    continue;
-                }
-                seen_words[word] |= 1 << bit;
-                a.push(action);
-            }
-        }
-    }
-    recycle_plan(plan);
+    Some(Offer {
+        plan,
+        eligible: semantically_eligible,
+        near_water,
+    })
 }
 
 thread_local! {
@@ -340,25 +444,47 @@ impl Plan {
 
 /// `extend_rotating_family_masks` for a plan: the same rotation, as unit ranges.
 fn plan_rotating_family_masks(plan: &mut Plan, families: &[u64; ACTION_FAMILY_COUNT], phase: u64) {
-    let mut candidates = [0usize; ACTION_FAMILY_WIDTH];
     for (family, &mask) in families.iter().enumerate() {
-        let mut remaining = mask;
-        let mut len = 0;
-        while remaining != 0 {
-            candidates[len] = family * ACTION_FAMILY_WIDTH + remaining.trailing_zeros() as usize;
-            len += 1;
-            remaining &= remaining - 1;
-        }
-        if len == 0 {
+        if mask == 0 {
             continue;
         }
+        let len = mask.count_ones() as usize;
         let take = ACTIONS_PER_BAND.min(len);
         let offset = (phase % len as u64) as usize;
-        for step in 0..take {
-            let id = candidates[(offset + step) % len];
+        let base = family * ACTION_FAMILY_WIDTH;
+        let mut remaining = mask & !low_bits(nth_set_bit(mask, offset));
+        let mut wrapped = false;
+        for _ in 0..take {
+            if remaining == 0 && !wrapped {
+                remaining = mask;
+                wrapped = true;
+            }
+            let id = base + remaining.trailing_zeros() as usize;
+            remaining &= remaining - 1;
             plan.range(id, id);
         }
     }
+}
+
+fn low_bits(bit: u32) -> u64 {
+    (1u64 << bit) - 1
+}
+
+fn nth_set_bit(mask: u64, n: usize) -> u32 {
+    let mut n = n as u32;
+    let mut shift = 0u32;
+    for width in [32u32, 16, 8] {
+        let low = ((mask >> shift) & ((1u64 << width) - 1)).count_ones();
+        if n >= low {
+            n -= low;
+            shift += width;
+        }
+    }
+    let mut rest = mask >> shift;
+    for _ in 0..n {
+        rest &= rest - 1;
+    }
+    shift + rest.trailing_zeros()
 }
 
 /// The candidate list built id by id and filtered with `retain`, kept to check

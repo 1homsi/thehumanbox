@@ -2,7 +2,7 @@
 //! `retain` construction produced, in the same order.
 
 use super::available::available_actions_into_reference;
-use super::available_actions_into;
+use super::{available_actions_into, best_next_q};
 use crate::sim::simulation::Simulation;
 use crate::sim::spatial::SpatialIndex;
 
@@ -32,6 +32,56 @@ fn range_plan_matches_the_retain_construction() {
         compared > 2_000 && total_ids > 100_000,
         "{compared} lists, {total_ids} ids"
     );
+}
+
+#[test]
+fn best_next_q_matches_the_maximum_over_the_full_list() {
+    use crate::organism::organism::{QRow, QRowExt};
+    let mut checked = 0usize;
+    for seed in [11u64, 42] {
+        let mut sim = Simulation::new(seed);
+        sim.tick_n(1500);
+        let spatial = SpatialIndex::build(&sim.organisms, 10);
+        let (mut available, mut near_a, mut near_b) = (Vec::new(), Vec::new(), Vec::new());
+        for idx in 0..sim.organisms.len() {
+            let (ix, iy) = (sim.organisms[idx].x as i32, sim.organisms[idx].y as i32);
+            available_actions_into(&sim, idx, ix, iy, &spatial, &mut available, &mut near_a);
+            let as_ids = |ids: &[usize], value: f32| -> QRow {
+                ids.iter()
+                    .enumerate()
+                    .map(|(k, &a)| (a as u16, value - k as f32 * 0.01))
+                    .collect()
+            };
+            let mut rows: Vec<QRow> = vec![
+                QRow::new(),
+                as_ids(&available, -0.2),
+                as_ids(&available[..available.len().min(3)], -0.1),
+                as_ids(&available[..available.len().min(3)], 0.3),
+                vec![(6000, 0.5), (4000, 0.4)],
+            ];
+            let mut mixed = as_ids(&available[..available.len().min(2)], -0.4);
+            mixed.push((5999, 0.9));
+            rows.push(mixed);
+            if let Some(&first) = available.first() {
+                rows.push(vec![(first as u16, -0.3), (first as u16, -0.2)]);
+                let mut all_dup = as_ids(&available, -0.5);
+                all_dup.push((first as u16, -0.6));
+                rows.push(all_dup);
+            }
+            rows.extend(sim.organisms[idx].q_table.values().take(4).cloned());
+            for row in &rows {
+                let fast = best_next_q(&sim, idx, ix, iy, &spatial, &mut near_b, row);
+                let full = row.max_q_for_actions(&available);
+                assert_eq!(
+                    fast.to_bits(),
+                    full.to_bits(),
+                    "seed {seed} organism {idx} row {row:?}"
+                );
+                checked += 1;
+            }
+        }
+    }
+    assert!(checked > 2_000, "{checked} rows");
 }
 
 /// Two organisms whose gate keys are equal must be let through the same bands:
