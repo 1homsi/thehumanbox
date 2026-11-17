@@ -124,10 +124,13 @@ describe('cached kind lookups', () => {
 describe('ruins', () => {
   it('break apart in the material the building was made of', async () => {
     const { ruinMaterial } = await import('./buildings2d')
-    expect(ruinMaterial('hut').wall).toBe('#7a5636')
-    expect(ruinMaterial('house', 0).wall).toBe('#7a5636')
-    expect(ruinMaterial('house', 3).wall).toBe('#8b8173')
-    expect(ruinMaterial('apartment', 6).wall).toBe('#8d9196')
-    expect(ruinMaterial('temple', 2).wall).toBe('#8b8173')
+    const [wood, stone, concrete] = [
+      ruinMaterial('hut'),
+      ruinMaterial('temple', 2),
+      ruinMaterial('apartment', 6),
+    ]
+    expect(new Set([wood.wall, stone.wall, concrete.wall]).size).toBe(3)
+    expect(ruinMaterial('house', 0)).toBe(wood)
+    expect(ruinMaterial('house', 3)).toBe(stone)
   })
 })

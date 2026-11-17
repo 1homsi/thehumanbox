@@ -1,9 +1,9 @@
 /**
- * Each tribe has one roof colour for its homes: terracotta, slate, moss or ochre, muted to sit with the map's palette.
- * The colour is chosen from the tribe's id, so a tribe keeps it for its whole
- * life and across eras, and two neighbouring tribes usually look different.
+ * Each tribe has one roof colour for its homes: terracotta tile, blue slate, moss green or golden straw (the
+ * names of roof ramps in pixel-art/palette.ts). The colour is chosen from the tribe's id, so a tribe keeps it
+ * for its whole life and across eras, and two neighbouring tribes usually look different.
  */
-export const TRIBE_ROOF_TINTS = ['#93513a', '#56646b', '#66793f', '#ad8a45'] as const
+export const TRIBE_ROOF_TINTS = ['tile', 'slate', 'moss', 'straw'] as const
 
 /** Kinds that take their tribe's roof colour: the homes with pitched or thatched roofs. */
 const TINTED_HOMES = new Set(['Hut', 'House', 'Longhouse', 'TownHouse', 'Manor'])

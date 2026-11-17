@@ -19,6 +19,10 @@ Clothing stays mid to light, with one strong accent per appearance, so people st
 
 Trade marks use the shared palette and native integer pixels, centred on the five-pixel head. Future suits keep their helmet silhouette rather than receiving a historical trade hat. Elder walking sticks are drawn into the atlas.
 
+### Buildings
+
+Buildings have no image file. Each kind is drawn as a grid of palette indexes in `src/game/render/pixel-art/buildings/` (see `docs/ART_DIRECTION.md`, "Drawn, not generated") and baked into the map's atlas at run time. `node bench/art-sheet.mjs --out <dir>` writes sheets of all of them.
+
 ### Other atlases
 
 - `fauna.png`: native 1:1 pixel-art animal atlas, drawn from `FAUNA_GRIDS` at `FAUNA_RECTS` (regenerate it when a grid changes) (`64 × 32`, eight `16 × 16` cells). See `fauna-layout.ts` for exact source rectangles and pixel grids: rabbit (`6 × 6`), deer (`12 × 12`), wild boar (`10 × 8`), small brown bird (`5 × 4`), wolf (`12 × 9`), dog (`10 × 8`), river fish (`6 × 5`), and golden bird (`5 × 4`).

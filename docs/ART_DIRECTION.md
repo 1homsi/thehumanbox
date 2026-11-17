@@ -7,6 +7,44 @@ art, and to move it away from the bright lime-and-cyan look players compare to W
 The colours live in code in [`apps/web/src/game/render/art-palette.ts`](../apps/web/src/game/render/art-palette.ts).
 This page explains them; the module is the source of truth.
 
+## Drawn, not generated
+
+Players kept saying the map "looks AI-generated". They were right about the cause: the old sprites were painted
+with canvas shapes (paths, arcs, translucent overlays) by one recipe per family, then pushed through filters that
+snapped them to pixels, merged near tones, tinted everything warm and extruded a side wall. However tidy the
+result, it reads as processed, not drawn. The rule that replaces all of that:
+
+**A sprite is a grid of pixels chosen one by one from one palette.**
+
+- **One master palette.** [`pixel-art/palette.ts`](../apps/web/src/game/render/pixel-art/palette.ts) holds 46
+  colours in ramps whose shades shift in hue as they darken (the Apollo palette by AdamCYounis). A sprite stores
+  palette indexes, so it cannot contain a colour from outside the palette. There are no tints, blends or filters
+  after drawing.
+- **Whole pixels only.** [`pixel-art/art.ts`](../apps/web/src/game/render/pixel-art/art.ts) is the whole toolkit:
+  set a pixel, fill a rectangle, stamp rows of letters (one letter, one pixel). No curves, no anti-aliasing, no
+  scaling, no rotation.
+- **Every kind has a drawing of its own.** No two building kinds share a sprite (a test checks it). Kinds of one
+  family may share parts (a window, a door, a roof), as an artist's tile set does, but each has its own silhouette
+  and something only it has: the bank its vault door, the fishmonger its rack of fish, the forge its fire.
+- **Flat tones, placed detail.** A wall is one tone with a shaded side, a shadow under the eave and a footing. A
+  brick or stone wall carries a few joints in two corners, never an all-over grid. A roof has a lit ridge, a
+  course line every third row and a dark eave.
+- **One ink.** The outline is the palette's darkest warm tone (`INK`), one pixel, round the whole silhouette.
+  Things that lie on the ground (a pond, a plaza, a plot) are edged in a darker tone of themselves instead,
+  because they are part of the land.
+- **Standing things are seen from the front, lying things from above.** A house, a tower, a stadium show their
+  front. A plaza, a pond, a field, a jetty are seen from above.
+- **Light from the top-left.** The right side of every wall, drum and dome is in shade; cast shadows fall to the
+  bottom-right as one flat translucent shape.
+
+Buildings are the first family redrawn this way (`pixel-art/buildings/`). Terrain, trees, animals and people
+still follow the older rules below until they are redrawn; where the two disagree, this section wins.
+
+To look at the art, run `node bench/art-sheet.mjs --out <dir>` in `apps/web`: it writes labelled sheets of every
+building kind, every home by era and the first homes by land, straight from the pixel grids (no browser, no
+build), and fails if any sprite does not fit the cell the map bakes it into. Review a sheet at 4x and at 1x
+before merging art; a second pair of eyes that has not seen the code is worth more than the author's.
+
 ## The three rules
 
 ### 1. One pixel size
@@ -67,9 +105,8 @@ objects (people, huts and tents, trees, animals, fields) be told apart without h
   either regular (roof courses, wall courses, crop rows) or clumped (leaf clumps); never random single pixels. A crown
   is a few round clumps, each lit on its top-left and darker where the clump in front overlaps it. Roof courses are
   unbroken lines; no random gaps or odd tiles.
-- **Few colours per sprite.** The building finish pass merges every colour within `NEAR_TONE` of a more common one
-  (`mergeNearTones` in `building-painters/finish.ts`), so hue jitter and translucent shading over a flat fill leave
-  one tone, not a cloud of almost-equal ones.
+- **Few colours per sprite.** Buildings take theirs from the master palette's ramps (four tones a material); they
+  need no clean-up pass, because nothing in them is blended.
 
 ### Fields
 
@@ -112,16 +149,19 @@ name fades in only close up (from zoom 2.1, `NAMES_FROM_ZOOM`), in a small 7 px 
   shows round every house. A village of ten or more huts gets its meeting hall: a longhouse painted and finished
   like every other building (no hand-drawn icon, no glowing square).
 - **The ground light under a hut is for the night only.**
-- **Roof colour says what a building is for** (`KIND_ROOF_TINTS` in `building-painters/tribe-palette.ts`): homes take
-  their tribe's colour; stores gold straw, workshops slate, temples green-blue, halls of government and learning
-  blue, markets and inns red.
-- **Shapes of their own.** The granary is a round stone store on short posts under a tall cone of thatch; the market
-  is a paved square with rows of stalls under striped awnings; the early temple stands on a stepped stone plinth
-  with a gilded finial on its ridge.
+- **Roof colour says whose a home is.** A tribe's homes carry one of four roofs (terracotta tile, blue slate,
+  moss, golden straw: `TRIBE_ROOF_TINTS` in `building-painters/tribe-palette.ts`), from its first huts to its last
+  villas, so two tribes' villages differ across the map. Other buildings keep the roof their drawing gives them.
+- **Shops are read by what stands outside.** Each trade has a signboard with its picture and puts its goods in
+  the street (hams on hooks, a dummy in a dress, a red pillar box), and trades are built to different plans: a
+  gabled front, an open stall, a tall jettied house, a long front under the eaves, a modern box.
+- **Homes change with every era and stay the size of their plot.** Each era has three or four forms (see
+  `pixel-art/buildings/homes.ts`). A hut on a two-tile plot is still a small home in the space age (a capsule, a
+  house under a grass roof), not a tower; the towers belong to the kinds that were always tall.
 
 ### Homes follow the land
 
-Up to the village age homes are built the land's way (`building-painters/land-homes.ts`), so villages on different
+Up to the village age homes are built the land's way (`pixel-art/buildings/homes-early.ts`), so villages on different
 land look different: round houses (a daub drum under a cone of thatch) on grassland and savanna, flat-roofed
 mud-brick houses with a white dome behind a low courtyard wall in the desert and badlands, long low turf halls in
 the taiga, igloos on the tundra, stilt houses over the marsh, longhouses in forest and jungle.
@@ -142,18 +182,24 @@ These are the details players recognise from WorldBox:
 - black outlines on everything;
 - detailed artwork scaled down next to chunky pixels;
 - random single-pixel speckle inside sprites or scattered over the ground;
-- rings, glows and badges under or over every figure in a crowd.
+- rings, glows and badges under or over every figure in a crowd;
+- anything drawn with canvas paths, arcs, gradients or alpha and then "pixelated";
+- one body reused for several kinds with only the colours changed;
+- a texture filled over a whole surface (a brick grid on every wall);
+- a filter over finished art (a warm tint, tone merging, an automatic side wall).
 
 ## Where the art lives
 
 | Area                     | Files                                                                                                                                                                                |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Terrain, sea, world edge | `landscape-style.ts`, `base-parts/` (the sea chart is `sea-chart.ts`), `mountains.ts`, `model/palette.ts`, `cf/ground/`                                                              |
-| Buildings                | `building-painters/` (shared shading in `kit.ts`, the outline and shadow pass in `finish.ts`), `building-draw/`                                                                      |
+| Buildings                | `pixel-art/buildings/` (one file a family; parts in `kit.ts`, shapes in `shapes.ts`, snow and cracks in `wear.ts`), baked by `building-painters/sprite.ts`; sites and ruins in `building-draw/` |
 | People                   | `apps/web/scripts/gen_people_sprites.mjs` writes `public/sprites/people/`; `character-visuals.ts`, `cf/people/`                                                                      |
 | Trees and animals        | `vegetation-sprites.ts` (pixel grids), `fauna-layout.ts`, `pixel-fauna.ts`, `public/sprites/fauna.png` (the `FAUNA_GRIDS` drawn at `FAUNA_RECTS`; regenerate it when a grid changes) |
 | Fields                   | `cf/landuse/farm-tile.ts`                                                                                                                                                            |
 | Ground decor, clouds     | `decorations.ts` (`paintDecorTile`, `drawClouds`), `cf/overlays/` (petals, leaves, stars)                                                                                            |
 | Map lettering            | `settlement-labels.ts`, `cf/overlays/settlement-label-list.ts`, `cf/people/people-names.ts`                                                                                          |
 
-New colours go in `art-palette.ts` once a second file needs them; a colour only one painter uses can stay local to it.
+Drawn sprites use only the master palette (`pixel-art/palette.ts`); a new material is a new ramp of four of its
+colours, never a new hex. For the families not yet redrawn, new colours go in `art-palette.ts` once a second file
+needs them.

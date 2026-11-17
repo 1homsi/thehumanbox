@@ -38,7 +38,7 @@
     }
   </style>
   <h1>Architecture across the ages</h1>
-  <p>Stable variants · daylight and night · damage · construction and ruins. Development review gallery.</p>
+  <p>Homes in four eras · daylight and night · damage · construction and ruins. For labelled sheets of every sprite, run <code>node bench/art-sheet.mjs --out &lt;dir&gt;</code>.</p>
   <button id="night">Toggle night</button
   ><button id="damage">Toggle damage</button>
   <div id="gallery"></div>
@@ -50,7 +50,7 @@
     function render() {
       const root = document.querySelector('#gallery')
       root.replaceChildren()
-      const featured = ['Hut', 'House', 'TownHouse', 'Manor', 'Castle', 'Apartment', 'Skyscraper', 'Biodome']
+      const featured = ['Hut', 'House', 'TownHouse', 'Manor', 'Apartment', 'Skyscraper']
       for (const kind of [...featured, ...BUILDING_SPRITE_KINDS.filter((k) => !featured.includes(k))]) {
         const b = { kind, x: 0, y: 0, condition: 1 }
         const [fw, fh] = resolveBuildingFootprint(b)
@@ -61,12 +61,14 @@
         label.textContent = kind
         card.append(label)
         for (let v = 0; v < (featured.includes(kind) ? 4 : 1); v++) {
-          const sprite = getBuildingSprite(kind, fw, fh, 12, v, night, damage ? 0 : 1)
+          const sprite = getBuildingSprite(kind, fw, fh, 8, v, night, damage ? 0 : 1, v * 2)
           if (sprite) {
             const canvas = document.createElement('canvas')
             canvas.width = sprite.width
             canvas.height = sprite.height
             canvas.getContext('2d').drawImage(sprite, 0, 0)
+            // One sprite pixel is one map pixel; show it three times the size.
+            canvas.style.width = sprite.width * 3 + 'px'
             card.append(canvas)
           }
         }
@@ -86,16 +88,17 @@
         card.className = 'card'
         card.textContent = label
         const c = document.createElement('canvas')
-        c.width = 160
-        c.height = 140
+        c.width = 56
+        c.height = 60
+        c.style.width = '168px'
         const ctx = c.getContext('2d')
-        ctx.translate(25, 40)
+        ctx.translate(16, 30)
         drawBuilding(
           ctx,
           { id: 8, kind: 'House', x: 0, y: 0, condition, damage, ruined, repairing },
           0,
           0,
-          24,
+          8,
           night / 3,
           'detail',
         )
