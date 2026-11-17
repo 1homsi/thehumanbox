@@ -44,10 +44,16 @@ function paint(state: string) {
     keel: count(HULL_KEEL),
     frames: count(HULL_FRAME),
     xs: hull.map((q) => q.x),
+    filled: new Set(pixels.map((q) => `${q.x},${q.y}`)).size,
   }
 }
 
 describe('paintShipyard', () => {
+  it('stands as a timber yard, not a solid block', () => {
+    for (const state of ['', 'hull1', 'hull2', 'hull3'])
+      expect(paint(state).filled).toBeLessThan((24 * 28) / 2)
+  })
+
   it('is registered for shipyards', () => {
     expect(hasBuildingSprite('Shipyard')).toBe(true)
   })

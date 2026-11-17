@@ -7,13 +7,27 @@ import type { BuildingLike } from './types'
 const normKindCache = new Map<string, string>()
 const NORM_KIND_CACHE_MAX = 2048
 
+const WIRE_KIND_ALIASES: Readonly<Record<string, string>> = {
+  townhouse: 'TownHouse',
+  bookstore: 'BookStore',
+  mega_hospital: 'Hospital2',
+  gravestone: 'GraveStone',
+  playground: 'PlayGround',
+  flagpole: 'FlagPole',
+  billboard: 'BillBoard',
+  harbor_light: 'Lighthouse2',
+  arcade: 'ArcadeBox',
+  grand_fountain: 'Fountain2',
+  biolab: 'Greenhouse2',
+}
+
 export function normKind(kind: string): string {
   const cached = normKindCache.get(kind)
   if (cached !== undefined) return cached
-  const normalized = kind
-    .toLowerCase()
-    .replace(/_([a-z])/g, (_, c) => c.toUpperCase())
-    .replace(/^([a-z])/, (_, c) => c.toUpperCase())
+  const lower = kind.toLowerCase()
+  const normalized = Object.prototype.hasOwnProperty.call(WIRE_KIND_ALIASES, lower)
+    ? WIRE_KIND_ALIASES[lower]
+    : lower.replace(/_([a-z])/g, (_, c) => c.toUpperCase()).replace(/^([a-z])/, (_, c) => c.toUpperCase())
   if (normKindCache.size >= NORM_KIND_CACHE_MAX) normKindCache.clear()
   normKindCache.set(kind, normalized)
   return normalized
