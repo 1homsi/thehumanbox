@@ -444,7 +444,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, focusId = null, 
           ctx.fillStyle = isAlive ? color : '#444'
           ctx.globalAlpha = isAlive ? 0.9 : 0.4
           ctx.textAlign = 'center'
-          ctx.fillText(personName(org)[0], x, y - 3)
+          ctx.fillText(personName(org)[0] ?? '?', x, y - 3)
           ctx.globalAlpha = 1
         }
 
