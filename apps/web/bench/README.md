@@ -126,6 +126,9 @@ pnpm exec vite --port 5205 --strictPort
 node bench/worker-speed.mjs --port 5205 --save my-world.world.save --save-tick 9538 --speeds 1,100,5000
 ```
 
+At the end it prints the size and format of the stored save; `--reload` then reopens the page and prints how
+long the stored save took to restore.
+
 A world whose ticks take longer than 120 ms cannot reach 1x on that machine; the worker should then still keep
 simulating almost all the time, at every speed above 1x alike.
 

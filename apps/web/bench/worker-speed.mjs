@@ -62,7 +62,9 @@ async function main() {
         .catch(() => null)
     }
     if (!ready) throw new Error('the world never sent its first frame')
-    console.log(`ready: restored=${ready.restored} tick=${ready.tick} engine=${ready.startup?.engine}`)
+    const describe = (r) =>
+      `restored=${r.restored} tick=${r.tick} engine=${r.startup?.engine} restore_ms=${r.startup?.restore_ms}`
+    console.log(`ready: ${describe(ready)}`)
     const snap = () =>
       page.evaluate(
         '(() => { const s = window.__bench.state; return { tick: s.tick, frames: s.frames, full: s.fullFrames, bytes: s.bytes, decodeMs: s.decodeMs, saves: s.saves.length, at: performance.now() } })()',
@@ -91,6 +93,37 @@ async function main() {
     }
     const saves = await page.evaluate('window.__bench.state.saves')
     if (saves.length) console.log('saves (ms from saving to saved):', saves.map((s) => s.ms).join(', '))
+    const stored = await page.evaluate(`(async () => {
+      const db = await new Promise((resolve, reject) => {
+        const open = indexedDB.open('thb-own-world', 1)
+        open.onsuccess = () => resolve(open.result)
+        open.onerror = () => reject(open.error)
+      })
+      const record = await new Promise((resolve, reject) => {
+        const get = db.transaction('worlds').objectStore('worlds').get('browser-own')
+        get.onsuccess = () => resolve(get.result)
+        get.onerror = () => reject(get.error)
+      })
+      db.close()
+      if (!record) return null
+      const head = Array.from(record.blob.subarray(0, 4))
+      return { bytes: record.blob.byteLength, container: head.join() === '137,84,72,66', tick: record.tick }
+    })()`)
+    if (stored) {
+      const format = stored.container ? 'compressed container' : 'plain'
+      console.log(`stored save: ${(stored.bytes / 1048576).toFixed(1)} MB, ${format}, tick ${stored.tick}`)
+    }
+    if (argv.includes('--reload')) {
+      await page.send('Page.navigate', { url: `${origin}/bench/worker-speed.html` })
+      let again = null
+      for (let i = 0; i < 1800 && !again; i++) {
+        await sleep(100)
+        again = await page
+          .evaluate('window.__bench?.state.tick > 0 ? window.__bench.state.ready : null')
+          .catch(() => null)
+      }
+      if (again) console.log(`reloaded: ${describe(again)}`)
+    }
     const errors = await page.evaluate('window.__bench.state.errors')
     if (errors.length) console.log('worker errors:', errors.join(' | '))
   } finally {
