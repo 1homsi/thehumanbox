@@ -12,7 +12,7 @@ export type FeedItem =
   | { kind: 'season'; key: string; what: 'drought' | 'hardWinter' | 'hardWinterAhead' }
   | { kind: 'event'; key: string; event: SimEvent }
 
-export interface Point {
+interface Point {
   x: number
   y: number
 }

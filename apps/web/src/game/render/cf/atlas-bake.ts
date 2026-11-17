@@ -25,7 +25,7 @@ export const DECAL = {
   selectRing: 5,
   selectDashed: 6,
 } as const
-export const DECAL_COLUMNS = 7
+const DECAL_COLUMNS = 7
 export const DECAL_SIZE = { width: DECAL_CELL * DECAL_COLUMNS, height: DECAL_CELL }
 
 /** Whether the middle of pixel (i, j) of a w × h grid lies inside the ellipse that fills it. */
@@ -341,14 +341,14 @@ export function hasPixelIcon(glyph: string): boolean {
 
 export const BOAT_CELL = { width: 32, height: 32 }
 /** Where the canvas painter's boat origin sits inside a cell (the hull sits where it always did; the cell is taller for a mast and a funnel). */
-export const BOAT_ORIGIN = { x: 16, y: 13 }
+const BOAT_ORIGIN = { x: 16, y: 13 }
 /** Frames per boat variant: idle, under construction, then six moving frames (stroke and wake). */
-export const BOAT_FRAMES = 8
+const BOAT_FRAMES = 8
 /** Variants: each hull without goods, then with goods on deck. */
-export const BOAT_VARIANTS = BOAT_HULLS.length * 2
+const BOAT_VARIANTS = BOAT_HULLS.length * 2
 export const BOAT_COLUMNS = BOAT_FRAMES * BOAT_VARIANTS
 /** The four ways a pier can run from its harbour to the dry land: right, left, down, up (after the boat columns). */
-export const PIER_DIRECTIONS: ReadonlyArray<readonly [number, number]> = [
+const PIER_DIRECTIONS: ReadonlyArray<readonly [number, number]> = [
   [1, 0],
   [-1, 0],
   [0, 1],
@@ -448,7 +448,7 @@ export function bakeBoats(ctx: CanvasRenderingContext2D): void {
 export const PIXEL_FAUNA_CELL = 16
 export const PIXEL_FAUNA_KINDS: readonly string[] = pixelFaunaKinds()
 /** Poses per kind in the atlas: two walk frames, then a still pose (a sleeping bear lies down). */
-export const PIXEL_FAUNA_POSES = 3
+const PIXEL_FAUNA_POSES = 3
 export const PIXEL_FAUNA_SIZE = {
   width: PIXEL_FAUNA_CELL * PIXEL_FAUNA_KINDS.length * PIXEL_FAUNA_POSES,
   height: PIXEL_FAUNA_CELL,
@@ -504,25 +504,12 @@ export function faunaDrawSize(kind: FaunaKind): { w: number; h: number } {
   return { w: Math.max(1, Math.round(sw * scale)), h: Math.max(1, Math.round(sh * scale)) }
 }
 
-/** Cut each animal out of the sheet at the size it is drawn, nearest-neighbour like the painter. */
-export function bakeFauna(ctx: CanvasRenderingContext2D, sheet: CanvasImageSource): void {
-  ctx.clearRect(0, 0, FAUNA_SIZE.width, FAUNA_SIZE.height)
-  ctx.imageSmoothingEnabled = false
-  FAUNA_KINDS.forEach((kind, i) => {
-    const [sx, sy, sw, sh] = FAUNA_RECTS[kind]
-    const { w, h } = faunaDrawSize(kind)
-    const tx = i * FAUNA_CELL + FAUNA_CELL / 2 - Math.round(w / 2)
-    const ty = FAUNA_CELL / 2 - Math.round(h / 2)
-    ctx.drawImage(sheet, sx, sy, sw, sh, tx, ty, w, h)
-  })
-}
-
 // ---- Emotes: the little outlined icons over people's heads ---------------------
 
 export const EMOTE_CELL = 16
 export const EMOTE_SIZE = { width: EMOTE_CELL * EMOTES.length, height: EMOTE_CELL }
 /** Where the painter's icon is drawn inside a cell: `drawEmote` at (8, 12) with no bob. */
-export const EMOTE_ORIGIN = { x: 8, y: 12 }
+const EMOTE_ORIGIN = { x: 8, y: 12 }
 
 export function emoteFrame(emote: Emote): number {
   return EMOTES.indexOf(emote)

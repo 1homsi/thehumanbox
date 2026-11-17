@@ -8,12 +8,12 @@ import { GLOW_CLASSES, PROP_CLASSES, SpecialTilesDriver } from './special-tiles-
 import { YardDriver } from './yard-driver'
 
 /** z-order agreed with the other layers: buildings and props. */
-export const BUILDINGS_Z = 20
+const BUILDINGS_Z = 20
 /** Huts, fires and their light sit under the buildings, as they did in the canvas. */
-export const PROPS_Z = 19
-export const GLOW_Z = 18
+const PROPS_Z = 19
+const GLOW_Z = 18
 /** Home yards (plots and fences) on the ground, under the glow of the fires. */
-export const YARD_Z = 17.5
+const YARD_Z = 17.5
 
 // 2048 wide: a page only takes the rows it fills, and a town on screen never needs a clear.
 const BUILDING_PAGES = [2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048]

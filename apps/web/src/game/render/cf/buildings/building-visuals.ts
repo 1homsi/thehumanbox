@@ -25,9 +25,9 @@ export interface BuildingFrameInfo {
 }
 
 /** Construction progress and ruin age are quantised so a site does not bake a cell per tick. */
-export const PROGRESS_STEPS = 48
+const PROGRESS_STEPS = 48
 export const RUIN_AGE_STEPS = 12
-export const DAMAGE_STEPS = 32
+const DAMAGE_STEPS = 32
 
 const q = (v: number, steps: number) => Math.round(Math.max(0, Math.min(1, v)) * steps)
 

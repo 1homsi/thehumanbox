@@ -1,35 +1,13 @@
 {
   "card": {
     "energyShort": "에",
-    "energyTip": "에너지 – 시간이 지나면 줄고, 음식 타일을 먹으면 회복합니다. 0%가 되면 굶주립니다.",
     "hydrationShort": "수",
-    "hydrationTip": "수분 – 시간이 지나면 줄고, 물을 마시면 회복합니다. 0%가 되면 탈수됩니다.",
-    "healthTip": "건강 – 굶주림, 감염, 전투로 손상됩니다. 욕구가 채워지면 천천히 회복합니다.",
-    "infectionTip": "감염 수준 – 병에 걸려 근처 다른 생명체에게 병을 옮길 수 있습니다. 시간이 지나거나 쉼터 근처에서 줄어듭니다.",
     "sick": "아픔",
-    "infectedTip": "감염됨 ({percent}%) – 다른 사람과 가까이 접촉하면 병이 퍼집니다",
     "expecting": "임신 중",
-    "pregnantTip": "임신 – 세계 시간으로 약 3일 안에 아이가 태어납니다",
-    "sexWordsTip": "두 종류를 부르는 말",
-    "sexWordsOrigin": "초기 세대가 만든 말",
-    "meta": "{generation}세대 · {years}",
-    "ageTip": "{generation}세대 · {years} (틱 {ticks})",
-    "rename": "이 사람에게 이름 짓기",
     "renameAria": "이름 바꾸기",
-    "conversations": {
-      "other": "대화 {count}회"
-    },
-    "familyTree": "가계도",
-    "track": "세계에서 추적",
-    "attractionTip": "이 생명체는 다른 생명체에게 끌리고 있습니다 – 호감이 쌓이며 유대가 생길 수 있습니다",
-    "drawnTo": "누군가에게 끌림 ✦",
-    "friends": "친구:",
     "memoryFoodShort": "식",
     "memoryWaterShort": "수",
     "memoryDangerShort": "위",
-    "memoryFoodTip": "기억하는 음식 장소 {count}곳",
-    "memoryWaterTip": "기억하는 물 근원 {count}곳",
-    "memoryDangerTip": "기억하는 위험 지역 {count}곳",
     "traitLabel": {
       "curiosity": "호기",
       "aggression": "공격",
@@ -37,39 +15,16 @@
       "memory": "기억",
       "social": "사교",
       "resilience": "회복"
-    },
-    "traitTip": {
-      "curiosity": "호기심 – 탐험과 모험을 이끕니다",
-      "aggression": "공격성 – 전투와 영역 행동을 결정합니다",
-      "fear": "두려움 – 위험과 포식자 앞에서 얼마나 조심스러운지",
-      "memory": "기억력 – 얼마나 많은 장소를 얼마나 잘 기억하는지",
-      "social": "사교성 – 유대, 교역, 무리와의 이동을 향한 성향",
-      "resilience": "회복력 – 질병, 극심한 온도, 굶주림에 대한 저항력"
     }
   },
   "header": {
-    "sick": "아픔",
     "carrying": "나무를 나르는 중",
     "starTip": "이 생명체에 별표 표시 (다시 불러와도 유지됨)",
-    "star": "별표",
     "unstar": "별표 해제",
-    "lifeTip": "전체 생애 보기",
-    "life": "생애",
-    "following": "따라가는 중",
-    "followTip": "이 생명체 따라가기",
-    "follow": "따라가기",
-    "unfollow": "따라가기 해제",
     "close": "닫기",
-    "gen": "{generation}세대",
-    "ageDays": {
-      "other": "태어난 지 {count}일"
-    },
-    "newborn": "갓 태어남",
-    "maxAge": "최대 {time}"
+    "gen": "{generation}세대"
   },
   "home": {
-    "enterTip": "그 사람의 집 안으로 들어가기",
-    "visitTip": "그 사람의 집 방문하기 (외출 중)",
     "lookInside": "들여다보기"
   },
   "status": {
@@ -298,8 +253,6 @@
     "food": "음식 ×{count}",
     "water": "물 ×{count}",
     "danger": "위험 ×{count}",
-    "death": "죽음",
-    "story": "이야기",
     "recent": "최근의 삶",
     "witnessed": "목격한 것",
     "tick": "t{tick}",
@@ -318,7 +271,6 @@
     "salienceOnly": "중요도 {percent}%"
   },
   "kin": {
-    "title": "가족과 친구",
     "mother": "어머니",
     "father": "아버지",
     "child": "자녀",

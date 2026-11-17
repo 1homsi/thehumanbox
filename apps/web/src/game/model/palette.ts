@@ -12,7 +12,7 @@ export const TILE = 8
  * Ground colour per tile id, before the biome tint, the season and the texture. Earthy and muted to
  * match the interface (render/art-palette.ts): olive grass, parchment sand, warm stone.
  */
-export const TILE_COLORS: Record<number, string> = {
+const TILE_COLORS: Record<number, string> = {
   0: '#0a0a0a',
   1: hex(GRASS.base),
   2: hex(OCEAN.open),
@@ -44,7 +44,7 @@ const TAIGA: Rgb = [58, 84, 84]
  * neighbouring biomes stay apart: moss forest, deep wet jungle, cold blue-green taiga, gold savanna,
  * rust badlands, ochre desert, grey-green tundra, reed-olive wetland, ash-dark volcanic land.
  */
-export const BIOME_OVERLAYS: Record<number, string> = {
+const BIOME_OVERLAYS: Record<number, string> = {
   0: tone(GRASS.lush, 0.2),
   1: tone(FOREST.mid, 0.62),
   2: tone(SAND.desert, 0.62),
@@ -61,12 +61,12 @@ function tone([r, g, b]: Rgb, strength: number): string {
   return `rgba(${r},${g},${b},${strength})`
 }
 
-export function parseHex(h: string): [number, number, number] {
+function parseHex(h: string): [number, number, number] {
   const s = h.replace('#', '')
   return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16)]
 }
 
-export function parseRgbaStr(s: string): [number, number, number, number] {
+function parseRgbaStr(s: string): [number, number, number, number] {
   const m = s.match(/[\d.]+/g)!
   return [+m[0], +m[1], +m[2], +m[3]]
 }

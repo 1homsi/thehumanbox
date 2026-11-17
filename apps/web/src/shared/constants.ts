@@ -4,7 +4,7 @@ import type { OrganismState } from './types'
 // Read the flag from the store, not the body class: the class is applied in
 // an effect after render, so components rendering on the toggle drew the old
 // palette and kept it until something else re-rendered them.
-export function isColorBlind(): boolean {
+function isColorBlind(): boolean {
   return useUIStore.getState().viewFlags.colorBlind
 }
 

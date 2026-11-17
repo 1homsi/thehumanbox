@@ -795,8 +795,6 @@ function registerAppIpcHandlers(): void {
     },
   );
 
-  ipcMain.handle("app:trayToggle", () => toggleWindow());
-
   // A failed capture rejects, and the renderer shows the reason.
   ipcMain.handle("app:screenshot", async () => {
     const fp = await captureScreenshot();

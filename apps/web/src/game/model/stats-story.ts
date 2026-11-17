@@ -129,7 +129,7 @@ export function traitLevel(value: number): TraitLevel {
   return 'veryHigh'
 }
 
-export const DEATH_CAUSES = [
+const DEATH_CAUSES = [
   ['deaths_old_age', 'oldAge'],
   ['deaths_starvation', 'starvation'],
   ['deaths_dehydration', 'dehydration'],

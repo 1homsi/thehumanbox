@@ -14,7 +14,7 @@ export const LEGACY_STAR_PROMPT_KEY = 'thb-star-prompt-v1'
 export const STAR_MIN_PLAY_MS = 60_000
 // Late enough that the first minutes belong to the world, not to prompts.
 export const STAR_DELAY_MIN_MS = 3 * 60_000
-export const STAR_DELAY_MAX_MS = 5 * 60_000
+const STAR_DELAY_MAX_MS = 5 * 60_000
 // A dismissal is not forever: ask again after a week, at most three times.
 export const STAR_REASK_AFTER_MS = 7 * 24 * 60 * 60_000
 export const STAR_MAX_ASKS = 3

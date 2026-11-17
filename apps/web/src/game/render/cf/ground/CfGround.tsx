@@ -13,20 +13,20 @@ import { SeaChartDriver } from './sea-chart-driver'
  * Where the ground detail sits: the shore banks and reeds were part of the terrain (under the
  * day/night tint, which is at 5), the rest was drawn after it.
  */
-export const SHORE_Z = 2.5
+const SHORE_Z = 2.5
 /** The sea chart's contours: on the ground's water, under the shore and everything on it. */
-export const SEA_CHART_Z = 1
-export const FOAM_Z = 5.2
-export const PATCH_Z = 5.5
-export const STRUCTURE_Z = 5.6
+const SEA_CHART_Z = 1
+const FOAM_Z = 5.2
+const PATCH_Z = 5.5
+const STRUCTURE_Z = 5.6
 /** The ragged edges between kinds of ground: on the terrain, under the sea chart and everything else. */
-export const FRINGE_Z = 0.8
+const FRINGE_Z = 0.8
 /** Dune marks and lava veins: over the tint (so the lava glows at night), under the buildings. */
-export const ACCENT_Z = 5.25
+const ACCENT_Z = 5.25
 /** Lily pads: on the open water, over the shore marks, under the foam and the ice's wash. */
-export const WATER_PLANT_Z = 2.6
+const WATER_PLANT_Z = 2.6
 /** Cattails stand on the wetland shore: over the ground, under the trees and the people. */
-export const CATTAIL_Z = 4.4
+const CATTAIL_Z = 4.4
 
 /** Shoreline, foam, food and mineral patches and the settlement marks, as SpriteLayers. */
 export function CfGround({ registry }: { registry: CfRegistry }) {

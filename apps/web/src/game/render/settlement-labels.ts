@@ -73,7 +73,7 @@ const SUB_SIZE = 10
 /** A monospace letter is about this much of its size wide; the warning line is placed without measuring it. */
 const MONO_ADVANCE = 0.6
 
-export function subFont(scale: number): string {
+function subFont(scale: number): string {
   return `bold ${(SUB_SIZE * scale).toFixed(2)}px monospace`
 }
 

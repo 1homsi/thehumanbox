@@ -125,7 +125,7 @@ export interface ProcessIdentity {
  * Only called when a stale-looking lock names a live pid, so a normal launch
  * never spawns anything here.
  */
-export function describeProcess(pid: number): ProcessIdentity | null {
+function describeProcess(pid: number): ProcessIdentity | null {
   try {
     if (process.platform === "win32") {
       const out = execFileSync(

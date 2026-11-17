@@ -6,7 +6,7 @@ import type { CfDriver, CfFrame } from './frame'
  * visible hitch, and a fast-forwarded world did it every second or so. Over the budget, the drivers not
  * yet run this frame run first on the next one, so the work is spread over a few frames instead.
  */
-export const DRIVER_BUDGET_MS = 10
+const DRIVER_BUDGET_MS = 10
 
 /** The drivers of the xipjs layers that are mounted; CfWorld's loop updates them each frame. */
 export class CfRegistry {

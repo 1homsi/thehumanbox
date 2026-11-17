@@ -309,7 +309,6 @@
     "title": "{name}的生平",
     "heading": "{name}的生平",
     "close": "关闭",
-    "day": "第 {day} 天",
     "failed": "加载失败",
     "gen": "第 {gen} 代",
     "age": {
@@ -344,7 +343,6 @@
     "relFriend": "朋友",
     "relTrusts": "信任",
     "relWary": "戒备",
-    "day": "第 {day} 天",
     "title": "{name}的对话",
     "heading": "对话",
     "close": "关闭",

@@ -8,7 +8,7 @@ const DONE_KEY = 'thb-opening-done-v1'
  * - history: the header's screens come in (the chronicle, stats, search);
  * - world: the camera pulls back to the whole map and everything is on screen.
  */
-export const OPENING_BEATS = ['meet', 'work', 'need', 'powers', 'history', 'world'] as const
+const OPENING_BEATS = ['meet', 'work', 'need', 'powers', 'history', 'world'] as const
 export type OpeningBeat = (typeof OPENING_BEATS)[number]
 
 function wasDone(): boolean {

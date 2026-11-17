@@ -8,7 +8,7 @@ import { ROAD_CLASSES, RoadDriver } from './road-driver'
  * Agreed z-order: roads lie on the ground, over the ground decor (z 2), under the mountains, shadows,
  * the trees and the buildings.
  */
-export const ROADS_Z = 2.2
+const ROADS_Z = 2.2
 const PAGES = [512]
 
 /** Roads the people have built, as a SpriteLayer over the terrain. */

@@ -14,7 +14,7 @@ import { isFocused } from './people-sprites'
 import { nameVisibilityAlpha, type PeopleLabelInput } from './people-labels'
 
 /** Bound unreadable overlapping labels while retaining every person's sprite. */
-export function referenceCrowdLabelIds(
+function referenceCrowdLabelIds(
   people: readonly { id: string; x: number; y: number }[],
   zoom: number,
 ): Set<string> | null {
@@ -34,7 +34,7 @@ export function referenceCrowdLabelIds(
  * overlap a box already claimed is skipped. Boxes are bucketed in a coarse
  * grid so a crowd of hundreds stays cheap.
  */
-export class ReferenceLabelPlacer {
+class ReferenceLabelPlacer {
   private cells = new Map<string, [number, number, number, number][]>()
   private readonly cell: number
   constructor(cell = 48) {
@@ -70,7 +70,7 @@ export class ReferenceLabelPlacer {
 }
 
 /** Approximate width of a monospace label, so placement needs no measuring. */
-export function labelWidth(text: string, px: number): number {
+function labelWidth(text: string, px: number): number {
   return text.length * px * 0.6 + 4
 }
 

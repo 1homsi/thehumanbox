@@ -1,35 +1,13 @@
 {
   "card": {
     "energyShort": "能",
-    "energyTip": "能量——随时间减少，吃到食物格子时恢复。降到 0% 时会饿死。",
     "hydrationShort": "水",
-    "hydrationTip": "水分——随时间减少，喝水可恢复。降到 0% 时会脱水。",
-    "healthTip": "健康——会因饥饿、感染和战斗受损。需求得到满足时会缓慢恢复。",
-    "infectionTip": "感染程度——生物患病，可能把疾病传给附近的其他生物。随时间或在住所附近会减轻。",
     "sick": "患病",
-    "infectedTip": "已感染（{percent}%）——疾病通过密切接触传播",
     "expecting": "怀孕",
-    "pregnantTip": "怀孕——约 3 个世界日后会有孩子出生",
-    "sexWordsTip": "他们对两种人的称呼",
-    "sexWordsOrigin": "由开创世代所造",
-    "meta": "第 {generation} 代 · {years}",
-    "ageTip": "第 {generation} 代 · {years}（{ticks} tick）",
-    "rename": "给这个人起个名字",
     "renameAria": "为此人改名",
-    "conversations": {
-      "other": "{count} 次对话"
-    },
-    "familyTree": "家谱",
-    "track": "在世界中追踪",
-    "attractionTip": "这个生物被另一个吸引——好感在增长，可能会结成联系",
-    "drawnTo": "被某人吸引 ✦",
-    "friends": "朋友：",
     "memoryFoodShort": "食",
     "memoryWaterShort": "水",
     "memoryDangerShort": "险",
-    "memoryFoodTip": "记住的食物地点 {count} 处",
-    "memoryWaterTip": "记住的水源 {count} 处",
-    "memoryDangerTip": "记住的危险区域 {count} 处",
     "traitLabel": {
       "curiosity": "好奇",
       "aggression": "攻击",
@@ -37,39 +15,16 @@
       "memory": "记忆",
       "social": "社交",
       "resilience": "韧性"
-    },
-    "traitTip": {
-      "curiosity": "好奇心——驱动探索和冒险意愿",
-      "aggression": "攻击性——决定战斗和领地行为",
-      "fear": "恐惧——面对危险和捕食者时有多谨慎",
-      "memory": "记忆力——能记住多少地点，记得多牢",
-      "social": "社交倾向——驱动结交、交易和结伴出行",
-      "resilience": "韧性——抵抗疾病、极端温度和饥饿的能力"
     }
   },
   "header": {
-    "sick": "患病",
     "carrying": "正在搬运木材",
     "starTip": "给这个生物加星标（重新加载后仍保留）",
-    "star": "加星标",
     "unstar": "取消星标",
-    "lifeTip": "查看完整生平",
-    "life": "生平",
-    "following": "正在跟随",
-    "followTip": "跟随此生物",
-    "follow": "跟随",
-    "unfollow": "取消跟随",
     "close": "关闭",
-    "gen": "第 {generation} 代",
-    "ageDays": {
-      "other": "{count} 日龄"
-    },
-    "newborn": "新生",
-    "maxAge": "寿限 {time}"
+    "gen": "第 {generation} 代"
   },
   "home": {
-    "enterTip": "进入他们的家",
-    "visitTip": "拜访他们的家（他们外出了）",
     "lookInside": "查看内部"
   },
   "status": {
@@ -298,8 +253,6 @@
     "food": "食物 ×{count}",
     "water": "水 ×{count}",
     "danger": "危险 ×{count}",
-    "death": "死亡",
-    "story": "经历",
     "recent": "近期生活",
     "witnessed": "他们目睹的",
     "tick": "t{tick}",
@@ -318,7 +271,6 @@
     "salienceOnly": "显著度 {percent}%"
   },
   "kin": {
-    "title": "家人与朋友",
     "mother": "母亲",
     "father": "父亲",
     "child": "孩子",

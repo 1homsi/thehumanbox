@@ -7,8 +7,7 @@ function unit(value: number | undefined, fallback: number): number {
   return Number.isFinite(value) ? Math.max(0, Math.min(1, value as number)) : fallback
 }
 
-export type BuildingVisualPhase =
-  'construction' | 'intact' | 'damaged' | 'repairing' | 'ruined' | 'rebuilding'
+type BuildingVisualPhase = 'construction' | 'intact' | 'damaged' | 'repairing' | 'ruined' | 'rebuilding'
 
 export interface BuildingState {
   /** Existing construction progress. Never derived from structural damage. */

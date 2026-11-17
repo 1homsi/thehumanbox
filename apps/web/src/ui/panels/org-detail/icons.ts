@@ -87,7 +87,7 @@ export function moodLabel(id: string): string {
   return key ? t(key) : id
 }
 
-export const ASPIRATION_TIP_KEY: Record<string, MessageKey | undefined> = {
+const ASPIRATION_TIP_KEY: Record<string, MessageKey | undefined> = {
   seeker: 'person.aspiration.tip.seeker',
   wanderer: 'person.aspiration.tip.wanderer',
   warrior: 'person.aspiration.tip.warrior',
@@ -115,7 +115,7 @@ export const ZODIAC_GLYPH: Record<string, string> = {
   seed: '᛫',
 }
 
-export const ZODIAC_FLAVOR_KEY: Record<string, MessageKey | undefined> = {
+const ZODIAC_FLAVOR_KEY: Record<string, MessageKey | undefined> = {
   ember: 'person.zodiac.flavor.ember',
   wave: 'person.zodiac.flavor.wave',
   stone: 'person.zodiac.flavor.stone',

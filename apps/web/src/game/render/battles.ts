@@ -137,7 +137,7 @@ export function drawBattle(
 }
 
 /** "raid", "battle", "war": how the plaque names the fight. */
-export function fightName(scale: string): string {
+function fightName(scale: string): string {
   const s = scale.toLowerCase()
   if (s.includes('siege')) return 'siege'
   if (s.includes('war')) return 'war'

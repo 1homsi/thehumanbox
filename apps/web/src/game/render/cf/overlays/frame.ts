@@ -2,7 +2,7 @@ import type { WorldState } from '../../../../shared/types'
 import type { ViewFlags } from '../../../../state/store'
 import { TILE } from '../../../model/palette'
 
-export interface TileWindow {
+interface TileWindow {
   c0: number
   c1: number
   r0: number
@@ -44,7 +44,7 @@ export interface FrameInput {
 }
 
 /** Tile window covering the camera's view plus `margin` tiles, clipped to the grid. */
-export function visibleWindow(
+function visibleWindow(
   cam: { x: number; y: number },
   zoom: number,
   viewport: { w: number; h: number },

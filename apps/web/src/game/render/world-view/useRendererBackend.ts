@@ -6,7 +6,7 @@ import { watchForGpuStartupFailure } from './gpuStartupWatchdog'
 import { watchForWebGLContextRecovery } from './webglContextRecovery'
 import { wakeRenderLoopsAfterContextRestore } from '../cf/render-loop'
 
-export const GPU_DRAW_FAILURES_BEFORE_CANVAS = 2
+const GPU_DRAW_FAILURES_BEFORE_CANVAS = 2
 
 /** Which backend draws the map, whether its first frame has arrived, and recovery from failures. */
 export function useRendererBackend({

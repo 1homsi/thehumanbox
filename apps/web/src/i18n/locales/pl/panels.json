@@ -306,12 +306,6 @@
     "teach": "naucz",
     "teachTitle": "Naucz ich kolejnej tajemnicy, której im brakuje (raz na sezon)",
     "stillToLearn": "do nauczenia: {list}",
-    "needsPeople": {
-      "one": "potrzeba jeszcze {count} osoby",
-      "few": "potrzeba jeszcze {count} osoby",
-      "many": "potrzeba jeszcze {count} osób",
-      "other": "potrzeba jeszcze {count} osób"
-    },
     "praying": "modli się",
     "help": "pomoc",
     "lore": {

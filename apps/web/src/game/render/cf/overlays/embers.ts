@@ -14,7 +14,7 @@ type Ctx = CanvasRenderingContext2D
 /** A cell counts as burning from this fire intensity (0..1). */
 export const EMBER_FIRE_MIN = 0.25
 /** Most burning cells that throw embers in one pass; the rest are left out, not sampled badly. */
-export const EMBER_CELL_LIMIT = 80
+const EMBER_CELL_LIMIT = 80
 const EMBERS_PER_CELL = 3
 /** One ember's life, in ms. */
 export const EMBER_LIFE_MS = 1300
@@ -107,7 +107,7 @@ export function paintEmbers(
 }
 
 /** A campfire is a small fire: it throws two embers a cell at a steady heat, not a wildfire's three. */
-export const CAMPFIRE_HEAT = 0.6
+const CAMPFIRE_HEAT = 0.6
 const CAMPFIRE_EMBERS = 2
 
 /** Paints a few embers over each campfire tile in the view (`tiles` is the grid's tile ids). */

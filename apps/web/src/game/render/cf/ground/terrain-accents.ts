@@ -37,7 +37,7 @@ export function isLavaTile(tid: number, biome: number): boolean {
  * four tiles may sit a row higher or lower than the last, so the lines kink like wind-cut dunes, and one
  * tile in eight is a gap between them.
  */
-export function duneRidgeAt(col: number, row: number): boolean {
+function duneRidgeAt(col: number, row: number): boolean {
   const run = col >> 2
   const band = Math.floor(row / 3)
   const shift = landscapeHash(run + 31, band + 17) % 3

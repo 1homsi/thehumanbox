@@ -176,12 +176,7 @@ export default defineConfig({
           if (id.includes('/d3-') || id.includes('/d3/')) return 'd3-vendor'
           if (id.includes('/react-dom/') || id.includes('/scheduler/')) return 'react-vendor'
           if (id.includes('/react/')) return 'react-vendor'
-          if (
-            id.includes('/zustand/') ||
-            id.includes('/neverthrow/') ||
-            id.includes('/zod/') ||
-            id.includes('/clsx/')
-          )
+          if (id.includes('/zustand/') || id.includes('/neverthrow/') || id.includes('/clsx/'))
             return 'state-vendor'
         },
       },

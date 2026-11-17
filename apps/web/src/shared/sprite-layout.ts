@@ -57,7 +57,6 @@ export const SPRITE = {
 export const CUSTOM_PIXEL_ANIMAL_KINDS = ['wolf', 'dog'] as const
 
 export type AtlasAnimalSpriteKind = keyof typeof SPRITE.animals
-export type CustomPixelAnimalKind = (typeof CUSTOM_PIXEL_ANIMAL_KINDS)[number]
 
 const customPixelAnimalKinds = new Set<string>(CUSTOM_PIXEL_ANIMAL_KINDS)
 

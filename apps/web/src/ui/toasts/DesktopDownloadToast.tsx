@@ -11,7 +11,7 @@ const STORAGE_KEY = 'thb-desktop-toast-dismissed-at'
 const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000
 // Well after the star prompt (3-5 min), so a first visit meets at most one ask at a time.
 export const FIRST_DELAY_MIN_MS = 6 * 60_000
-export const FIRST_DELAY_MAX_MS = 10 * 60_000
+const FIRST_DELAY_MAX_MS = 10 * 60_000
 
 function isMac(): boolean {
   if (typeof navigator === 'undefined') return false

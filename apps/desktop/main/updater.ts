@@ -5,7 +5,7 @@ import { appBundleFromExe, hasDeveloperIdSignature, startUnsignedMacInstall } fr
 import { t } from './i18n'
 import { currentDesktopOperation } from './exclusive-operation'
 
-export type UpdateCheckStatus = 'checking' | 'available' | 'downloaded' | 'up-to-date' | 'unsupported' | 'error'
+type UpdateCheckStatus = 'checking' | 'available' | 'downloaded' | 'up-to-date' | 'unsupported' | 'error'
 
 export interface UpdateCheckResult {
   status: UpdateCheckStatus

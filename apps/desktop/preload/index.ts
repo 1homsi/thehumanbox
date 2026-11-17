@@ -20,9 +20,7 @@ export interface DesktopBridge {
   };
 
   app: {
-    reload(): Promise<void>;
     notify(payload: { title: string; body: string }): Promise<void>;
-    trayToggle(): Promise<void>;
     screenshot(): Promise<string | null>;
     openLogs(): Promise<void>;
     openWorlds(): Promise<void>;
@@ -95,9 +93,7 @@ const bridge: DesktopBridge = {
   },
 
   app: {
-    reload: () => ipcRenderer.invoke("app:reload"),
     notify: (payload) => ipcRenderer.invoke("app:notify", payload),
-    trayToggle: () => ipcRenderer.invoke("app:trayToggle"),
     screenshot: () => ipcRenderer.invoke("app:screenshot"),
     openLogs: () => ipcRenderer.invoke("app:openLogs"),
     openWorlds: () => ipcRenderer.invoke("app:openWorlds"),

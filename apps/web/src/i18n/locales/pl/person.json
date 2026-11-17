@@ -1,38 +1,13 @@
 {
   "card": {
     "energyShort": "E",
-    "energyTip": "Energia – maleje z czasem i odnawia się, gdy organizm zjada pola z jedzeniem. Przy 0% organizm głoduje.",
     "hydrationShort": "H",
-    "hydrationTip": "Nawodnienie – maleje z czasem i odnawia się przez picie wody. Przy 0% organizm się odwadnia.",
-    "healthTip": "Zdrowie – osłabiane przez głód, zakażenie i walkę. Powoli się regeneruje, gdy potrzeby są zaspokojone.",
-    "infectionTip": "Poziom zakażenia – organizm jest chory i może przenosić chorobę na pobliskie istoty. Słabnie z czasem lub w pobliżu schronienia.",
     "sick": "chory",
-    "infectedTip": "Zakażony ({percent}%) – choroba rozprzestrzenia się przy bliskim kontakcie z innymi",
     "expecting": "spodziewa się dziecka",
-    "pregnantTip": "W ciąży – dziecko urodzi się za około 3 dni świata",
-    "sexWordsTip": "ich słowa na oba rodzaje",
-    "sexWordsOrigin": "ukute przez pokolenie założycieli",
-    "meta": "Pokolenie {generation} · {years}",
-    "ageTip": "Pokolenie {generation} · {years} ({ticks} tyknięć)",
-    "rename": "nadaj tej osobie imię",
     "renameAria": "Zmień imię osoby",
-    "conversations": {
-      "one": "{count} rozmowa",
-      "few": "{count} rozmowy",
-      "many": "{count} rozmów",
-      "other": "{count} rozmowy"
-    },
-    "familyTree": "drzewo rodzinne",
-    "track": "śledź w świecie",
-    "attractionTip": "Ten organizm jest przyciągany przez innego – przyciąganie rośnie i może powstać więź",
-    "drawnTo": "przyciągany przez kogoś ✦",
-    "friends": "przyjaciele:",
     "memoryFoodShort": "J",
     "memoryWaterShort": "W",
     "memoryDangerShort": "Z",
-    "memoryFoodTip": "zapamiętane miejsca z jedzeniem: {count}",
-    "memoryWaterTip": "zapamiętane źródła wody: {count}",
-    "memoryDangerTip": "zapamiętane strefy zagrożenia: {count}",
     "traitLabel": {
       "curiosity": "cie",
       "aggression": "agr",
@@ -40,42 +15,16 @@
       "memory": "pam",
       "social": "spo",
       "resilience": "odp"
-    },
-    "traitTip": {
-      "curiosity": "Ciekawość – pobudza eksplorację i gotowość do ryzyka",
-      "aggression": "Agresja – decyduje o walkach i zachowaniu terytorialnym",
-      "fear": "Lęk – jak ostrożny jest organizm wobec niebezpieczeństwa i drapieżników",
-      "memory": "Pamięć – ile miejsc potrafią zapamiętać i jak dobrze",
-      "social": "Towarzyskość – skłonność do więzi, handlu i wędrówek w grupie",
-      "resilience": "Odporność – odporność na choroby, skrajne temperatury i głód"
     }
   },
   "header": {
-    "sick": "chory",
     "carrying": "niesie drewno",
     "starTip": "Oznacz ten organizm gwiazdką (zapisane po przeładowaniu)",
-    "star": "Oznacz gwiazdką",
     "unstar": "Usuń gwiazdkę",
-    "lifeTip": "Pokaż pełną historię życia",
-    "life": "Życie",
-    "following": "Śledzony",
-    "followTip": "Śledź ten organizm",
-    "follow": "Śledź",
-    "unfollow": "Przestań śledzić",
     "close": "Zamknij",
-    "gen": "pok. {generation}",
-    "ageDays": {
-      "one": "{count} dzień życia",
-      "few": "{count} dni życia",
-      "many": "{count} dni życia",
-      "other": "{count} dnia życia"
-    },
-    "newborn": "noworodek",
-    "maxAge": "maks. {time}"
+    "gen": "pok. {generation}"
   },
   "home": {
-    "enterTip": "Wejdź do ich domu",
-    "visitTip": "Odwiedź ich dom (są poza domem)",
     "lookInside": "Zajrzyj do środka"
   },
   "status": {
@@ -304,8 +253,6 @@
     "food": "jedzenie ×{count}",
     "water": "woda ×{count}",
     "danger": "zagrożenie ×{count}",
-    "death": "ŚMIERĆ",
-    "story": "HISTORIA",
     "recent": "NIEDAWNE ŻYCIE",
     "witnessed": "CO WIDZIELI",
     "tick": "t{tick}",
@@ -324,7 +271,6 @@
     "salienceOnly": "waga {percent}%"
   },
   "kin": {
-    "title": "RODZINA I PRZYJACIELE",
     "mother": "matka",
     "father": "ojciec",
     "child": "dziecko",

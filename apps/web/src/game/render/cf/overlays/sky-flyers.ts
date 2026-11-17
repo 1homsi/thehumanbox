@@ -13,7 +13,7 @@ type Ctx = CanvasRenderingContext2D
 
 /** Flocks crossing the world at once, and the birds in each flock (a V of up to this many). */
 export const FLOCK_COUNT = 6
-export const FLOCK_SIZE = 5
+const FLOCK_SIZE = 5
 /** Bats that flit at dusk and night. */
 export const BAT_COUNT = 16
 

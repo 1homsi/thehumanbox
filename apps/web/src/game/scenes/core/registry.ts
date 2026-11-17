@@ -13,7 +13,3 @@ export function getSceneRenderer(kind: SceneKind, mode: RenderMode): SceneRender
   if (!entry) return undefined
   return entry[mode]
 }
-
-export function listRegisteredScenes(): SceneKind[] {
-  return Object.keys(registry) as SceneKind[]
-}

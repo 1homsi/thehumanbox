@@ -109,7 +109,7 @@ const NEAR_TONE = 13
  * hues per building and lay translucent shading over flat fills, which leaves walls and roofs made of many
  * almost-equal tones; merged, each material is the few flat tones it was meant to be (lit, mid, shade).
  */
-export function mergeNearTones(d: Uint8ClampedArray, front: Uint8Array) {
+function mergeNearTones(d: Uint8ClampedArray, front: Uint8Array) {
   const counts = new Map<number, number>()
   for (let i = 0; i < front.length; i++) {
     if (!front[i]) continue

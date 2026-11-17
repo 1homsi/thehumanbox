@@ -99,20 +99,6 @@
 .settings-modal {
   width: 760px;
 }
-.desktop-toggle-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  min-height: 28px;
-  padding: 4px 0;
-  cursor: pointer;
-  font-size: 12px;
-  line-height: 1.35;
-}
-.desktop-toggle-row input {
-  flex: 0 0 auto;
-  margin-top: 1px;
-}
 .desktop-cap-presets {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -135,16 +121,6 @@
   color: #f0d088;
   background: #33271d;
 }
-.stats-quick {
-  gap: 8px;
-}
-.stats-num-card {
-  min-width: 78px;
-  padding: 6px 12px;
-}
-.stats-num {
-  font-size: 17px !important;
-}
 /* stats modal header already inherits padding/border from .lang-modal-header */
 .stats-body {
   flex: 1;
@@ -163,29 +139,6 @@
   padding: 4px 0 2px;
   border-bottom: 1px solid #372a21;
 }
-.stats-quick {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.stats-num-card {
-  background: #28201a;
-  border: 1px solid #372a21;
-  border-radius: 4px;
-  padding: 8px 14px;
-  min-width: 72px;
-  text-align: center;
-}
-.stats-num {
-  font-size: 20px;
-  font-weight: 600;
-  color: #ddd;
-}
-.stats-num-label {
-  font-size: 9px;
-  color: #444;
-  margin-top: 2px;
-}
 /* Population chart - explicit min-height so the responsive viewBox SVG
    actually paints. With just `width: 100%; height: auto` flex children
    sometimes resolve height to 0 and the chart disappears. */
@@ -200,22 +153,6 @@
   height: 170px;
 }
 
-/* Two-column grid for the lower sections so the wide modal isn't a
-   long single column with whitespace on the right. Each grid panel has
-   its own header + content stacked vertically, and the grid wraps to
-   one column on narrow viewports. */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 24px;
-  align-items: start;
-}
-.stats-grid > section {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
 .stats-relations {
   display: flex;
   flex-direction: column;

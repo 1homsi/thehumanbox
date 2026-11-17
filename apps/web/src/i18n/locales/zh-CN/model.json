@@ -230,7 +230,6 @@
     "failed": "{label} · {reason}",
     "following": "正在跟随{name}",
     "naming": "命名 · 为{name}输入新名字",
-    "paused": "已暂停：{names}濒临灭亡",
     "pausedFor": "已暂停：{reasons}"
   },
   "legends": {

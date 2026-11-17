@@ -1,35 +1,13 @@
 {
   "card": {
     "energyShort": "E",
-    "energyTip": "Enerji – zamanla azalır, yiyecek karolarında yemek yiyerek yenilenir. %0'da organizma açlıktan ölür.",
     "hydrationShort": "S",
-    "hydrationTip": "Hidrasyon – zamanla azalır, su içerek yenilenir. %0'da organizma susuzlaşır.",
-    "healthTip": "Sağlık – açlık, enfeksiyon ve savaşla zarar görür. İhtiyaçlar karşılandığında yavaşça toparlanır.",
-    "infectionTip": "Enfeksiyon düzeyi – organizma hasta ve yakındakilere hastalık bulaştırabilir. Zamanla ya da bir barınağın yakınında azalır.",
     "sick": "hasta",
-    "infectedTip": "Enfekte (%{percent}) – hastalık diğerleriyle yakın temas yoluyla yayılır",
     "expecting": "çocuk bekliyor",
-    "pregnantTip": "Hamile – dünyada yaklaşık 3 gün içinde bir çocuk doğacak",
-    "sexWordsTip": "iki tür için kullandıkları kelimeler",
-    "sexWordsOrigin": "kurucu kuşak tarafından türetildi",
-    "meta": "Nesil {generation} · {years}",
-    "ageTip": "Nesil {generation} · {years} yaşında ({ticks} tik)",
-    "rename": "bu kişiye bir isim ver",
     "renameAria": "Kişiyi yeniden adlandır",
-    "conversations": {
-      "other": "{count} konuşma"
-    },
-    "familyTree": "soy ağacı",
-    "track": "dünyada takip et",
-    "attractionTip": "Bu organizma bir başkasına çekiliyor – çekim büyüyor ve bir bağ kurulabilir",
-    "drawnTo": "birine çekiliyor ✦",
-    "friends": "arkadaşlar:",
     "memoryFoodShort": "Y",
     "memoryWaterShort": "S",
     "memoryDangerShort": "T",
-    "memoryFoodTip": "{count} yiyecek yeri hatırlanıyor",
-    "memoryWaterTip": "{count} su kaynağı hatırlanıyor",
-    "memoryDangerTip": "{count} tehlikeli bölge hatırlanıyor",
     "traitLabel": {
       "curiosity": "mer",
       "aggression": "agr",
@@ -37,39 +15,16 @@
       "memory": "haf",
       "social": "sos",
       "resilience": "dir"
-    },
-    "traitTip": {
-      "curiosity": "Merak – keşfi ve riski teşvik eder",
-      "aggression": "Saldırganlık – savaşları ve bölgesel davranışı belirler",
-      "fear": "Korku – organizmanın tehlike ve avcılara karşı ne kadar temkinli olduğu",
-      "memory": "Hafıza – kaç yeri ve ne kadar iyi hatırladıkları",
-      "social": "Sosyallik – bağ kurma, ticaret ve grupla seyahat eğilimi",
-      "resilience": "Dayanıklılık – hastalıklara, aşırı sıcaklıklara ve açlığa direnç"
     }
   },
   "header": {
-    "sick": "hasta",
     "carrying": "odun taşıyor",
     "starTip": "Bu organizmayı yıldızla (yeniden yüklemeden sonra da kalır)",
-    "star": "Yıldızla",
     "unstar": "Yıldızı kaldır",
-    "lifeTip": "Tam yaşam öyküsünü gör",
-    "life": "Yaşam",
-    "following": "Takip ediliyor",
-    "followTip": "Bu organizmayı takip et",
-    "follow": "Takip et",
-    "unfollow": "Takibi bırak",
     "close": "Kapat",
-    "gen": "nesil {generation}",
-    "ageDays": {
-      "other": "{count} günlük"
-    },
-    "newborn": "yeni doğmuş",
-    "maxAge": "en fazla {time}"
+    "gen": "nesil {generation}"
   },
   "home": {
-    "enterTip": "Evlerinin içine gir",
-    "visitTip": "Evlerini ziyaret et (dışarıdalar)",
     "lookInside": "İçeri bak"
   },
   "status": {
@@ -298,8 +253,6 @@
     "food": "yiyecek ×{count}",
     "water": "su ×{count}",
     "danger": "tehlike ×{count}",
-    "death": "ÖLÜM",
-    "story": "HİKÂYE",
     "recent": "SON YAŞAM",
     "witnessed": "TANIK OLDUKLARI",
     "tick": "t{tick}",
@@ -318,7 +271,6 @@
     "salienceOnly": "önem %{percent}"
   },
   "kin": {
-    "title": "AİLE VE ARKADAŞLAR",
     "mother": "anne",
     "father": "baba",
     "child": "çocuk",

@@ -333,7 +333,7 @@ function spritePixels(sprite: HTMLCanvasElement): Uint8ClampedArray | null {
  * The outline of a sprite's solid body, as x, y pairs: every solid pixel with an empty one beside it.
  * The cast shadow is see-through, so it is not part of the body. Read once per sprite.
  */
-export function spriteOutline(sprite: HTMLCanvasElement): Int16Array {
+function spriteOutline(sprite: HTMLCanvasElement): Int16Array {
   const known = outlines.get(sprite)
   if (known) return known
   const out: number[] = []

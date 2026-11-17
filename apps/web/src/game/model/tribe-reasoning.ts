@@ -8,12 +8,12 @@ import type { TribeStatus } from './tribe-status'
  * and the map show. The thresholds are the card's own: a bar under 45% is low.
  */
 
-export const NEEDS = ['food', 'water', 'health', 'shelter', 'safety', 'land'] as const
+const NEEDS = ['food', 'water', 'health', 'shelter', 'safety', 'land'] as const
 export type Need = (typeof NEEDS)[number]
 export type Shortfalls = Record<Need, number>
 
 /** A shortfall at or past this reads as pressing: the same line the card marks a bar low (under 45%). */
-export const PRESSING = 0.55
+const PRESSING = 0.55
 
 /** Causes of a tribe's decline that are violence, not want. */
 const VIOLENT_CAUSES = new Set(['war', 'beasts', 'fire', 'drowning'])

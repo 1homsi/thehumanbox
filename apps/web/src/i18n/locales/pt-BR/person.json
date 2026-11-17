@@ -1,36 +1,13 @@
 {
   "card": {
     "energyShort": "E",
-    "energyTip": "Energia – diminui com o tempo e é restaurada ao comer comida. Em 0%, o organismo morre de fome.",
     "hydrationShort": "H",
-    "hydrationTip": "Hidratação – diminui com o tempo e é restaurada ao beber água. Em 0%, o organismo desidrata.",
-    "healthTip": "Saúde – prejudicada por fome, infecção e combate. Recupera-se devagar quando as necessidades são atendidas.",
-    "infectionTip": "Nível de infecção – o organismo está doente e pode espalhar a doença para outros por perto. Diminui com o tempo ou perto de um abrigo.",
     "sick": "doente",
-    "infectedTip": "Infectado ({percent}%) – a doença se espalha por contato próximo com outros",
     "expecting": "esperando",
-    "pregnantTip": "Grávida – um filho nascerá em cerca de 3 dias do mundo",
-    "sexWordsTip": "as palavras deles para os dois tipos",
-    "sexWordsOrigin": "criadas pela geração fundadora",
-    "meta": "Geração {generation} · {years}",
-    "ageTip": "Geração {generation} · {years} ({ticks} ticks)",
-    "rename": "dê um nome a esta pessoa",
     "renameAria": "Renomear pessoa",
-    "conversations": {
-      "one": "{count} conversa",
-      "other": "{count} conversas"
-    },
-    "familyTree": "árvore genealógica",
-    "track": "acompanhar no mundo",
-    "attractionTip": "Este organismo está atraído por outro – a atração está crescendo e pode surgir um vínculo",
-    "drawnTo": "atraído por alguém ✦",
-    "friends": "amigos:",
     "memoryFoodShort": "C",
     "memoryWaterShort": "A",
     "memoryDangerShort": "P",
-    "memoryFoodTip": "{count} locais de comida memorizados",
-    "memoryWaterTip": "{count} fontes de água memorizadas",
-    "memoryDangerTip": "{count} zonas de perigo memorizadas",
     "traitLabel": {
       "curiosity": "cur",
       "aggression": "agr",
@@ -38,40 +15,16 @@
       "memory": "mem",
       "social": "soc",
       "resilience": "res"
-    },
-    "traitTip": {
-      "curiosity": "Curiosidade – impulsiona a exploração e a disposição para correr riscos",
-      "aggression": "Agressividade – define combates e comportamento territorial",
-      "fear": "Medo – quão cauteloso o organismo é diante de perigos e predadores",
-      "memory": "Memória – quantos locais conseguem lembrar e com que clareza",
-      "social": "Sociabilidade – tendência a criar vínculos, negociar e viajar em grupo",
-      "resilience": "Resiliência – resistência a doenças, estresse térmico e fome"
     }
   },
   "header": {
-    "sick": "doente",
     "carrying": "carregando madeira",
     "starTip": "Marcar este organismo com estrela (salvo entre recarregamentos)",
-    "star": "Marcar",
     "unstar": "Desmarcar",
-    "lifeTip": "Ver o histórico de vida completo",
-    "life": "Vida",
-    "following": "Seguindo",
-    "followTip": "Seguir este organismo",
-    "follow": "Seguir",
-    "unfollow": "Deixar de seguir",
     "close": "Fechar",
-    "gen": "ger. {generation}",
-    "ageDays": {
-      "one": "{count} dia de vida",
-      "other": "{count} dias de vida"
-    },
-    "newborn": "recém-nascido",
-    "maxAge": "máx. {time}"
+    "gen": "ger. {generation}"
   },
   "home": {
-    "enterTip": "Entrar na casa deles",
-    "visitTip": "Visitar a casa deles (estão fora)",
     "lookInside": "Espiar por dentro"
   },
   "status": {
@@ -300,8 +253,6 @@
     "food": "comida ×{count}",
     "water": "água ×{count}",
     "danger": "perigo ×{count}",
-    "death": "MORTE",
-    "story": "HISTÓRIA",
     "recent": "VIDA RECENTE",
     "witnessed": "O QUE VIRAM",
     "tick": "t{tick}",
@@ -320,7 +271,6 @@
     "salienceOnly": "saliência {percent}%"
   },
   "kin": {
-    "title": "FAMÍLIA E AMIGOS",
     "mother": "mãe",
     "father": "pai",
     "child": "filho(a)",

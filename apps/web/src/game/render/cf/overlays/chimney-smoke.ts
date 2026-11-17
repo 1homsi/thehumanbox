@@ -12,13 +12,13 @@ type Ctx = CanvasRenderingContext2D
  */
 
 /** The chimney's top, in tiles relative to the home's top-left corner: near the right-hand end of the roof. */
-export const CHIMNEY_OFFSET_X = -0.75
-export const CHIMNEY_OFFSET_Y = -0.5
+const CHIMNEY_OFFSET_X = -0.75
+const CHIMNEY_OFFSET_Y = -0.5
 /** Puffs per chimney, and the length of one puff's climb, in ms. */
 export const PUFFS_PER_CHIMNEY = 3
-export const PUFF_CYCLE_MS = 2400
+const PUFF_CYCLE_MS = 2400
 /** Homes past this many visible tiles get no smoke (the whole-world view). */
-export const SMOKE_MAX_TILES = 4000
+const SMOKE_MAX_TILES = 4000
 
 export interface Puff {
   /** Centre in painter px, relative to the grid origin. */

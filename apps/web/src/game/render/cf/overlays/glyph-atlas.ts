@@ -3,7 +3,7 @@ import { atlasId, makeCanvas, type AtlasHost } from './atlas-host'
 export type Weight = 'normal' | 'bold'
 
 /** Atlas font sizes (texels per em). A label picks the smallest one that still covers its on-screen size. */
-export const GLYPH_BUCKETS = [9, 14, 22, 36] as const
+const GLYPH_BUCKETS = [9, 14, 22, 36] as const
 
 const COLS = 16
 const ROWS = 10

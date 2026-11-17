@@ -14,7 +14,7 @@ export const LOCAL_WORLD_CHECKPOINT_EVENT = 'thb:local-world-checkpoint'
 export const LOCAL_WORLD_RELOAD_EVENT = 'thb:local-world-safe-reload'
 export const OWN_WORLD_ID = 'browser-own'
 
-export type LocalWorldReloadOperation = 'reload' | 'reset' | 'recovery'
+type LocalWorldReloadOperation = 'reload' | 'reset' | 'recovery'
 
 export interface LocalWorldReloadDetail {
   operation: LocalWorldReloadOperation

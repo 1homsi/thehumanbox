@@ -7,7 +7,7 @@ import {
   requireOrUpgradeDataRootIdentity,
 } from "./world-safety";
 
-export type SimMode = "local";
+type SimMode = "local";
 
 export interface Settings {
   mode: SimMode;
@@ -23,7 +23,7 @@ export interface Settings {
   locale: string | null;
 }
 
-export const DEFAULT_SETTINGS: Settings = {
+const DEFAULT_SETTINGS: Settings = {
   mode: "local",
   tickMs: 100,
   populationCap: 500,

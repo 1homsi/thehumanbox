@@ -234,7 +234,6 @@
     "failed": "{label} · {reason}",
     "following": "следует за: {name}",
     "naming": "имя · введите новое имя для: {name}",
-    "paused": "пауза: {names} на грани",
     "pausedFor": "пауза: {reasons}"
   },
   "legends": {

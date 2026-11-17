@@ -4,7 +4,7 @@ import { useUIStore } from '../../state/store'
 export const TOAST_RETRY_MS = 5_000
 /** Cards a first-visit toast waits behind: the welcome, the opening, the tour, any dialog, and the other toasts. */
 const BUSY =
-  '.welcome-modal, .opening-caption, .thb-shepherd, .thb-modal, .desktop-toast, .update-toast, .mobile-banner, .idle-resume-panel'
+  '.welcome-modal, .opening-caption, .thb-shepherd, .thb-modal, .desktop-toast, .update-toast, .mobile-banner'
 
 /**
  * True while a toast should hold off: something else is up, the tab is hidden, or the player is in photo mode or hid

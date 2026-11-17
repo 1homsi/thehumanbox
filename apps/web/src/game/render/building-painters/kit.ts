@@ -53,7 +53,7 @@ export function tintRoof(p: P, c: string): string {
 }
 
 /** How much of a tribe's roof colour goes into its roofs. */
-export const ROOF_TINT_SHARE = 0.6
+const ROOF_TINT_SHARE = 0.6
 
 export function px(ctx: Ctx, x: number, y: number, w: number, h: number, c: string) {
   ctx.fillStyle = c

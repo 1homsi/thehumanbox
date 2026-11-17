@@ -1,4 +1,4 @@
-export function vnHash(x: number, y: number): number {
+function vnHash(x: number, y: number): number {
   let h = (x * 374761393 + y * 668265263) | 0
   h = Math.imul(h ^ (h >>> 13), 1274126177) | 0
   return ((h >>> 0) & 0xffff) / 0xffff
@@ -54,7 +54,5 @@ class CellNoise {
 }
 export const macroNoise = new CellNoise()
 export const macroNoiseFine = new CellNoise()
-/** Slow patches (about 70 cells across) that vary how strongly a biome tints its own land. */
-export const biomePatchNoise = new CellNoise()
 /** Dry patches (about 25 cells across) where open grass slides from olive to ochre. */
 export const dryNoise = new CellNoise()

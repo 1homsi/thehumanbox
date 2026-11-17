@@ -321,7 +321,6 @@
     "title": "{name}'s Life",
     "heading": "{name}'S LIFE",
     "close": "Close",
-    "day": "day {day}",
     "failed": "failed to load",
     "gen": "gen {gen}",
     "age": {
@@ -356,7 +355,6 @@
     "relFriend": "friend",
     "relTrusts": "trusts",
     "relWary": "wary",
-    "day": "day {day}",
     "title": "Conversations of {name}",
     "heading": "CONVERSATIONS",
     "close": "Close",

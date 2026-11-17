@@ -6,7 +6,7 @@ export const STRATEGY_VISUALS = {
   defend: { symbol: '◆', label: 'defend', color: '#ff806d' },
 } as const
 
-export type StrategyName = keyof typeof STRATEGY_VISUALS
+type StrategyName = keyof typeof STRATEGY_VISUALS
 
 export interface StrategyEntry {
   strategy: string

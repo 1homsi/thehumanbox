@@ -33,12 +33,6 @@
 .header h1 svg {
   filter: drop-shadow(0 2px 0 #000);
 }
-.header .github-link {
-  color: #8f8272;
-}
-.header .github-link:hover {
-  color: var(--hdr-gold);
-}
 /* The repository link reads as an action: a raised button with a gold star. */
 .header .star-link {
   gap: 5px;
@@ -109,13 +103,6 @@
 }
 .header .hdr-chip:not(.moon-badge):not(.time-tag) {
   text-transform: uppercase;
-}
-.header .hdr-dim {
-  color: #9d8c6e;
-  font-weight: 400;
-}
-.header .hdr-chip.population-badge .hdr-dim {
-  margin-left: -2px;
 }
 
 /* The calendar and the light in one tag: "Y15 · SUMMER · night". The season's
@@ -299,8 +286,7 @@
   }
 }
 @media (max-width: 1080px) {
-  .header .era-badge,
-  .header .github-link {
+  .header .era-badge {
     display: none;
   }
   .header .star-link .btn-label {

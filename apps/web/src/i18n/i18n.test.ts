@@ -203,10 +203,7 @@ describe('English singular and plural nouns', () => {
     await loadLocale('en')
   })
 
-  // A memory count starts at 1 for most people, so the tooltips must not say "1 food locations".
   it('uses the singular noun for one', () => {
-    expect(t('person.card.memoryFoodTip', { count: formatNumber(1) })).toBe('1 food location memorized')
-    expect(t('person.card.memoryFoodTip', { count: formatNumber(2) })).toBe('2 food locations memorized')
     expect(t('dialogs.notable.childrenCount', { count: formatNumber(1) })).toBe('1 child')
     expect(t('dialogs.notable.childrenCount', { count: formatNumber(0) })).toBe('0 children')
     expect(t('dock.search.found', { count: formatNumber(1) })).toBe(

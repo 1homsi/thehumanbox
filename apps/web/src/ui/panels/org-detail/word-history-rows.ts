@@ -5,16 +5,7 @@ import type { MessageKey } from '../../../i18n'
  * The common things the sim compares family words for. Must match
  * `FAMILY_WORD_CONCEPTS` in `crates/sim-core/src/organism/family_words.rs`.
  */
-export const FAMILY_WORD_CONCEPTS = [
-  'food',
-  'water',
-  'fire',
-  'home',
-  'friend',
-  'sun',
-  'river',
-  'danger',
-] as const
+const FAMILY_WORD_CONCEPTS = ['food', 'water', 'fire', 'home', 'friend', 'sun', 'river', 'danger'] as const
 
 export const RELATION_LABEL: Record<FamilyWords['relation'], MessageKey> = {
   mother: 'person.words.mother',
@@ -25,7 +16,7 @@ export const RELATION_LABEL: Record<FamilyWords['relation'], MessageKey> = {
   paternal_grandfather: 'person.words.paternalGrandfather',
 }
 
-export interface WordRelative {
+interface WordRelative {
   id: string
   name: string
   relation: FamilyWords['relation']

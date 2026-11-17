@@ -47,7 +47,7 @@ export function goodsOfTribe(world: Pick<WorldState, 'land_goods'>, lineage: str
  * no route, so a tribe that does not trade shows nothing.
  */
 /** The town a tribe is known for, in words ("a mining town"), or null when it has no specialty. */
-export function specialtyOfTribe(world: Pick<WorldState, 'specialties'>, lineage: string): string | null {
+function specialtyOfTribe(world: Pick<WorldState, 'specialties'>, lineage: string): string | null {
   const good = world.specialties?.[lineage]
   if (!good) return null
   const key = TOWNS.get(good)

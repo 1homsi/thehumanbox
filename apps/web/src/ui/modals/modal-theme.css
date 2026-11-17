@@ -20,22 +20,6 @@
   scrollbar-color: var(--px-brass) var(--dialog-inset);
   scrollbar-width: thin;
 }
-.thb-modal :is(.lang-modal-header, .cv-modal-head, .worlds-head) {
-  background: var(--px-grain);
-  border-bottom: 2px solid var(--px-ink);
-  box-shadow: inset 0 -2px 0 var(--px-brass);
-  min-height: 52px;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.thb-modal :is(.lang-modal-title, .cv-modal-title, .worlds-title) {
-  color: var(--dialog-accent);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.5;
-  letter-spacing: 0.14em;
-  text-shadow: 0 2px 0 #000;
-}
 .thb-modal :is(.lang-modal-sub, .tree-modal-sub) {
   color: var(--dialog-muted);
   font-size: 11px;
@@ -58,11 +42,6 @@
 .thb-modal :is(button, input, select, textarea):focus-visible {
   outline: 2px solid var(--px-gold);
   outline-offset: -4px;
-}
-@media (max-width: 600px) {
-  .thb-modal :is(.lang-modal-header, .cv-modal-head, .worlds-head) {
-    padding: 10px 12px;
-  }
 }
 
 .thb-modal .filter-chip {

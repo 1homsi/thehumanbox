@@ -1,6 +1,6 @@
 import { Tooltip } from '../../toolbar/Tooltip'
 
-export function InfoTip({ tip }: { tip: string }) {
+function InfoTip({ tip }: { tip: string }) {
   return (
     <Tooltip tip={tip}>
       <span className="wp-info" role="img" aria-label={tip} tabIndex={0}>
