@@ -530,6 +530,7 @@ export function useSimulation(source: WorldSource = 'native'): {
         seed: ownSeed,
         reset: hasOwnWorldResetRequest(),
         recoveryId: getOwnWorldRecoveryRequest(),
+        touch: navigator.maxTouchPoints > 1,
       })
 
       const checkpointWorker = (): Promise<boolean> => {

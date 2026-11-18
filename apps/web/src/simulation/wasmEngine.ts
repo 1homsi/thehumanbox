@@ -3,6 +3,7 @@ import wasmUrl from '../wasm/sim-core/sim_core_bg.wasm?url'
 import initThreadedWasm, {
   Sim as ThreadedSim,
   initThreadPool,
+  reserveHeap,
 } from '../wasm/sim-core-threads/sim_core_threads.js'
 import threadedWasmUrl from '../wasm/sim-core-threads/sim_core_threads_bg.wasm?url'
 import { logger } from '../shared/logger'
@@ -12,7 +13,10 @@ import {
   THREADED_WASM_START_MS,
   THREADS_HEAD_START_MS,
   threadCount,
+  mobileWebKit,
   wantsThreads,
+  WEBKIT_HEAP_RESERVE_MB,
+  WEBKIT_MAX_THREADS,
   webkitEngine,
   withTimeout,
   type SingleThreadReason,
@@ -35,17 +39,20 @@ export interface SimEngine {
  * it and whichever is ready first runs the world; a page that is not isolated only gets the single-thread build.
  * Both builds give the same world for a seed, so a save loads in either.
  */
-export async function startSimEngine(): Promise<SimEngine> {
+export async function startSimEngine({ touch = false }: { touch?: boolean } = {}): Promise<SimEngine> {
   const startSingle = async () => {
     await init({ module_or_path: wasmUrl })
     return { Sim, threads: 1 }
   }
   if (!wantsThreads(self)) return { ...(await startSingle()), fallback: 'not_isolated' }
-  if (webkitEngine(navigator.userAgent)) return { ...(await startSingle()), fallback: 'webkit' }
+  if (mobileWebKit(navigator.userAgent, touch)) return { ...(await startSingle()), fallback: 'webkit' }
 
-  const threads = threadCount(navigator.hardwareConcurrency)
+  const webkit = webkitEngine(navigator.userAgent)
+  const cores = threadCount(navigator.hardwareConcurrency)
+  const threads = webkit ? Math.min(cores, WEBKIT_MAX_THREADS) : cores
   const threaded = (async () => {
     await withTimeout(initThreadedWasm({ module_or_path: threadedWasmUrl }), THREADED_WASM_START_MS)
+    if (webkit && !reserveHeap(WEBKIT_HEAP_RESERVE_MB)) throw new Error('could not reserve the heap')
     // wasm-bindgen-rayon keeps its spawned workers in module state with no way to stop them, so a stalled pool
     // stays as idle workers beside the single-thread engine; the timeout only stops the wait.
     await withTimeout(initThreadPool(threads), POOL_START_MS)
