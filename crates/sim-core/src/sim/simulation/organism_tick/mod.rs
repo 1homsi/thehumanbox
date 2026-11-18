@@ -176,7 +176,9 @@ const LORE: &[&str] = &[
 
 const COMMAND_FOCUS_REACH: i32 = 24;
 
-const BATTLE_FOCUS_REACH: i32 = 20;
+const BATTLE_FOCUS_REACH: i32 = 8;
+
+const BATTLE_CALM_REACH: i32 = 20;
 
 const HOLD: usize = usize::MAX;
 
@@ -197,6 +199,8 @@ impl Simulation {
             .iter()
             .flat_map(|v| v.occupants.iter().map(String::as_str))
             .collect();
+        let ongoing: Vec<&crate::sim::warfare::Battle> =
+            self.battles.iter().filter(|b| b.ended_tick.is_none()).collect();
         let mut tribes_by_cell: crate::hashing::FxHashMap<(i32, i32), (&str, bool)> = Default::default();
         for o in self.organisms.iter().filter(|o| o.alive) {
             let cell = ((o.x as i32).div_euclid(10), (o.y as i32).div_euclid(10));
@@ -233,10 +237,9 @@ impl Simulation {
                     .focus_points
                     .iter()
                     .any(|&(fx, fy, _)| (fx - x).abs().max((fy - y).abs()) <= COMMAND_FOCUS_REACH)
-                    || self.battles.iter().any(|b| {
-                        b.ended_tick.is_none()
-                            && (b.location.0 - x).abs().max((b.location.1 - y).abs()) <= BATTLE_FOCUS_REACH
-                    })
+                    || ongoing
+                        .iter()
+                        .any(|b| (b.location.0 - x).abs().max((b.location.1 - y).abs()) <= BATTLE_FOCUS_REACH)
                 {
                     return true;
                 }
@@ -247,13 +250,17 @@ impl Simulation {
                 }) {
                     return true;
                 }
-                strangers[i] = (-1..=1).any(|dy| {
-                    (-1..=1).any(|dx| {
-                        tribes_by_cell
-                            .get(&(x.div_euclid(10) + dx, y.div_euclid(10) + dy))
-                            .is_some_and(|&(first, mixed)| mixed || first != o.lineage_id.as_str())
-                    })
-                });
+                let war_near = ongoing
+                    .iter()
+                    .any(|b| (b.location.0 - x).abs().max((b.location.1 - y).abs()) <= BATTLE_CALM_REACH);
+                strangers[i] = !war_near
+                    && (-1..=1).any(|dy| {
+                        (-1..=1).any(|dx| {
+                            tribes_by_cell
+                                .get(&(x.div_euclid(10) + dx, y.div_euclid(10) + dy))
+                                .is_some_and(|&(first, mixed)| mixed || first != o.lineage_id.as_str())
+                        })
+                    });
                 false
             })
             .collect();
