@@ -42,6 +42,9 @@ pub struct BuildingJson {
     condition: Num32,
     construction_progress: Num32,
     damage: Num32,
+    /// Ambient scenery rather than a working building (props, graves). The client
+    /// needs it to tell scenery from function.
+    decorative: bool,
     fh: u8,
     function: &'static str,
     fw: u8,
@@ -69,6 +72,7 @@ impl BuildingJson {
             condition: Num32(b.condition),
             construction_progress: Num32(b.condition),
             damage: Num32(b.damage_fraction()),
+            decorative: b.decorative,
             fh,
             function: b.kind.function().label(),
             fw,

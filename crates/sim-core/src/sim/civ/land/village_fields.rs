@@ -242,12 +242,9 @@ fn sow_fields(sim: &mut Simulation, tribe: &Tribe, now: u64) {
         let site = match fallow {
             Some(site) => Some(site),
             None if plots < cap => {
-                let occupied: FxHashSet<(i32, i32)> = sim
-                    .farms
-                    .iter()
-                    .map(|f| (f.x, f.y))
-                    .chain(sim.buildings.iter().map(|b| (b.x, b.y)))
-                    .collect();
+                // Every tile a building covers, not only its origin: a 2x2 house or barn
+                // keeps its whole footprint clear, so no field is sown under it.
+                let occupied = village_stores::occupied_tiles(sim);
                 field_site(sim, &tribe.dwellings, &occupied)
             }
             None => None,
@@ -361,6 +358,63 @@ mod tests {
         assert!(
             farm.progress(SPRING + 1_000) < 1.0,
             "a spring field is still growing"
+        );
+    }
+
+    #[test]
+    fn a_field_is_never_sown_under_a_larger_building() {
+        let (mut sim, lineage, (hx, hy)) = farming_tribe(4_247);
+        sim.tick_count = SPRING;
+        // A 2x2 house east of the hut, covering (hx+2..=hx+3, hy..=hy+1). Everything else
+        // but one open tile beyond it is sand, so the house's own outer tiles are the only
+        // appealing ground in between.
+        for dy in -8..=8 {
+            for dx in -8..=8 {
+                sim.grid.set(hx + dx, hy + dy, Tile::Sand);
+                sim.grid.fertility[WorldGrid::idx(hx + dx, hy + dy)] = 0.0;
+            }
+        }
+        let mut house = Building::new(901, BuildingKind::House, hx + 2, hy, Some(lineage.clone()), 0);
+        house.condition = 1.0;
+        sim.buildings.push(house);
+        for (x, y) in [(hx + 2, hy), (hx + 3, hy), (hx + 2, hy + 1), (hx + 3, hy + 1)] {
+            sim.grid.set(x, y, Tile::Grass);
+            sim.grid.fertility[WorldGrid::idx(x, y)] = 0.8;
+        }
+        sim.grid.set(hx + 4, hy, Tile::Grass);
+        sim.grid.fertility[WorldGrid::idx(hx + 4, hy)] = 0.8;
+        let members: Vec<usize> = sim
+            .organisms
+            .iter()
+            .enumerate()
+            .filter(|(_, o)| o.lineage_id == lineage)
+            .map(|(i, _)| i)
+            .collect();
+        let tribe = Tribe {
+            lineage,
+            members,
+            dwellings: vec![(hx, hy)],
+        };
+        sow_fields(&mut sim, &tribe, SPRING);
+        for farm in &sim.farms {
+            for building in &sim.buildings {
+                let (fw, fh) = building.kind.footprint();
+                let under = farm.x >= building.x
+                    && farm.x < building.x + i32::from(fw)
+                    && farm.y >= building.y
+                    && farm.y < building.y + i32::from(fh);
+                assert!(
+                    !under,
+                    "a field at {:?} lies under a {:?}",
+                    (farm.x, farm.y),
+                    building.kind
+                );
+            }
+        }
+        assert_eq!(
+            sim.farms.first().map(|f| (f.x, f.y)),
+            Some((hx + 4, hy)),
+            "the only open ground past the house's footprint"
         );
     }
 

@@ -216,6 +216,42 @@ fn loading_latches_timestamp_less_full_damage_as_a_ruin() {
 }
 
 #[test]
+fn loading_renumbers_duplicate_building_ids() {
+    use crate::sim::buildings::{Building, BuildingKind};
+
+    let mut state = SaveState {
+        version: SAVE_SCHEMA_VERSION,
+        next_building_id: 1,
+        ..SaveState::default()
+    };
+    for (id, kind) in [
+        (7, BuildingKind::Hut),
+        (7, BuildingKind::Granary),
+        (9, BuildingKind::House),
+    ] {
+        let mut building = Building::new(id, kind, 10, 10, None, 1);
+        building.condition = 1.0;
+        state.buildings.push(building);
+    }
+
+    let loaded = Simulation::from_save(7, state);
+
+    let ids: Vec<u32> = loaded.buildings.iter().map(|b| b.id).collect();
+    assert_eq!(ids[0], 7, "the first id is kept");
+    assert_eq!(ids[2], 9, "a distinct id is kept");
+    assert_eq!(ids[1], 10, "the repeat is moved above every id the save held");
+    assert_eq!(loaded.buildings[1].kind, BuildingKind::Granary);
+    let mut unique = ids.clone();
+    unique.sort_unstable();
+    unique.dedup();
+    assert_eq!(unique.len(), ids.len(), "every loaded building has its own id");
+    assert_eq!(
+        loaded.next_building_id, 11,
+        "the counter is left clear of the repaired ids"
+    );
+}
+
+#[test]
 fn legacy_default_counters_advance_past_all_persisted_ids() {
     use crate::sim::agriculture::{CropKind, Farm};
     use crate::sim::buildings::{Building, BuildingKind};

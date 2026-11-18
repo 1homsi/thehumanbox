@@ -34,3 +34,27 @@ pub(super) fn repaired_next_sequence(saved_next: u32, persisted_count: usize) ->
             .saturating_add(1),
     )
 }
+
+/// Give duplicate building ids fresh ids and return the repaired counter.
+///
+/// Saves written before the village stores advanced `next_building_id` can hold
+/// two buildings with the same id (the stores took the highest id plus one
+/// without moving the counter). Starting fresh worlds off that save would keep
+/// duplicating ids, so every repeat gets a new id above the highest persisted
+/// one, in load order, and the counter is left past all of them.
+pub(super) fn repaired_building_ids(
+    buildings: &mut [crate::sim::buildings::Building],
+    saved_next: u32,
+) -> u32 {
+    let mut next = repaired_next_u32_id(saved_next, buildings.iter().map(|building| building.id));
+    let mut seen = crate::hashing::FxHashSet::default();
+    for building in buildings {
+        if seen.insert(building.id) {
+            continue;
+        }
+        building.id = next;
+        next = next.saturating_add(1);
+        seen.insert(building.id);
+    }
+    next
+}

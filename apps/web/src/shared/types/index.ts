@@ -865,6 +865,8 @@ export interface Building {
   construction_progress?: number
   /** Structural damage, kept separate from construction progress. */
   damage?: number
+  /** Ambient scenery rather than a working building (props, graves). */
+  decorative?: boolean
   /** Remaining structural integrity (`1 - damage`). */
   integrity?: number
   /** Destroyed buildings remain non-operational until rebuilt. */
