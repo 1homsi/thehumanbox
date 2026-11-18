@@ -1,7 +1,7 @@
 import type { Building } from '../../../../shared/types'
 import { TILE } from '../../../model/palette'
 import { landscapeHash } from '../../landscape-style'
-import { normKind } from '../../building-draw/footprints'
+import { normKind, resolveBuildingFootprint } from '../../building-draw/footprints'
 
 /**
  * The yard of a home: a small vegetable plot beside it, with sprouts, and a picket fence along the
@@ -46,8 +46,9 @@ export function yardRects(buildings: readonly Building[], ox: number, oy: number
   const out: YardRect[] = []
   for (const b of buildings) {
     if (typeof b.x !== 'number' || typeof b.y !== 'number' || !hasYard(b)) continue
-    const x0 = (b.x + 1 - ox) * TILE + 1
-    const y0 = (b.y - oy) * TILE + TILE * 0.4
+    const [fw, fh] = resolveBuildingFootprint(b)
+    const x0 = (b.x + fw - ox) * TILE + 1
+    const y0 = (b.y + fh - 1 - oy) * TILE + TILE * 0.4
     const plot = TILE - 2
     const depth = TILE * 0.75
     out.push({ x: x0, y: y0, w: plot, h: depth, colour: SOIL })

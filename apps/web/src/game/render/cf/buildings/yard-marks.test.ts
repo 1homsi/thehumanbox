@@ -29,12 +29,23 @@ describe('yardRects', () => {
     const rects = yardRects([home(id, 'House', 10, 20)], 0, 0)
     expect(rects).toHaveLength(11)
     for (const r of rects) {
-      expect(r.x).toBeGreaterThanOrEqual(11 * TILE)
-      expect(r.x + r.w).toBeLessThanOrEqual(12 * TILE)
-      expect(r.y).toBeGreaterThanOrEqual(20 * TILE)
-      // The plot and its fence reach a few pixels past the home's own row.
-      expect(r.y + r.h).toBeLessThanOrEqual(21 * TILE + 4)
+      expect(r.x).toBeGreaterThanOrEqual(13 * TILE)
+      expect(r.x + r.w).toBeLessThanOrEqual(14 * TILE)
+      expect(r.y).toBeGreaterThanOrEqual(22 * TILE)
+      expect(r.y + r.h).toBeLessThanOrEqual(23 * TILE + 4)
       expect(Number.isFinite(r.x) && Number.isFinite(r.y)).toBe(true)
+    }
+  })
+
+  it('clears the footprint the simulation sends for a 2x2 house', () => {
+    const id = Array.from({ length: 50 }, (_, i) => i).find((i) => hasYard(home(i)))!
+    const house = { ...home(id, 'House', 10, 20), footprint: [2, 2] } as Building
+    const rects = yardRects([house], 0, 0)
+    expect(rects.length).toBeGreaterThan(0)
+    for (const r of rects) {
+      const overlaps = r.x < 12 * TILE && r.x + r.w > 10 * TILE && r.y < 22 * TILE && r.y + r.h > 20 * TILE
+      expect(overlaps).toBe(false)
+      expect(r.x).toBeGreaterThanOrEqual(12 * TILE)
     }
   })
 
