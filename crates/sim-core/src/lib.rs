@@ -56,7 +56,7 @@ mod wasm_facade {
 
         #[wasm_bindgen(js_name = fromSerialized)]
         pub fn from_serialized(seed: u64, bytes: &[u8]) -> Result<Sim, JsValue> {
-            let state = serde_json::from_slice::<SaveState>(bytes)
+            let state = SaveState::from_bytes(bytes)
                 .map_err(|error| JsValue::from_str(&format!("invalid world save: {error}")))?;
             if state.version != 0 && state.version > crate::sim::simulation::SAVE_SCHEMA_VERSION {
                 return Err(JsValue::from_str(&format!(
@@ -119,7 +119,7 @@ mod wasm_facade {
         }
 
         pub fn serialize(&self) -> Vec<u8> {
-            serde_json::to_vec(&self.inner.to_save_state()).unwrap_or_default()
+            self.inner.to_save_state().to_bytes()
         }
 
         /// Runs a player command and returns its outcome as JSON: `{"applied", "code", "count", "name"}`.

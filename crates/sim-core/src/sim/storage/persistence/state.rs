@@ -243,3 +243,56 @@ pub struct SaveState {
     #[serde(default)]
     pub(super) town_plazas: Vec<crate::sim::civ::civ_tick::town::TownPlaza>,
 }
+
+impl SaveState {
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut seen = crate::hashing::FxHashSet::default();
+        let mut keys: Vec<String> = Vec::new();
+        for o in &self.organisms {
+            for key in o.q_table.keys() {
+                if seen.insert(key.as_str()) {
+                    keys.push(key.clone());
+                }
+            }
+        }
+        let mut out = compact::MAGIC.to_vec();
+        compact::q_table::writing_with(&keys, || {
+            rmp_serde::encode::write_named(&mut out, &(&keys, self)).expect("a save state always encodes");
+        });
+        out
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
+        let Some(body) = bytes.strip_prefix(compact::MAGIC.as_slice()) else {
+            return serde_json::from_slice(bytes).map_err(|err| err.to_string());
+        };
+        let out = rmp_serde::from_slice::<Compact>(body).map(|c| c.0);
+        compact::q_table::reading_done();
+        out.map_err(|err| err.to_string())
+    }
+}
+
+struct Compact(SaveState);
+
+impl<'de> Deserialize<'de> for Compact {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct V;
+        impl<'de> serde::de::Visitor<'de> for V {
+            type Value = Compact;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("the q_table keys, then the world")
+            }
+            fn visit_seq<A: serde::de::SeqAccess<'de>>(self, mut seq: A) -> Result<Compact, A::Error> {
+                let keys: Vec<String> = seq
+                    .next_element()?
+                    .ok_or_else(|| serde::de::Error::custom("a compact save has no q_table keys"))?;
+                compact::q_table::reading_with(keys);
+                let state: SaveState = seq
+                    .next_element()?
+                    .ok_or_else(|| serde::de::Error::custom("a compact save has no world"))?;
+                Ok(Compact(state))
+            }
+        }
+        deserializer.deserialize_seq(V)
+    }
+}

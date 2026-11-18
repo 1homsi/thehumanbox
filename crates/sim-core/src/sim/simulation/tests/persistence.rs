@@ -14,9 +14,9 @@ fn save_result_writes_schema_version_and_cleans_temp_file() {
     let sim = Simulation::new(11);
     sim.save_result(&path_s).unwrap();
 
-    let saved = std::fs::read_to_string(&path_s).unwrap();
-    let parsed: serde_json::Value = serde_json::from_str(&saved).unwrap();
-    assert_eq!(parsed["version"], SAVE_SCHEMA_VERSION);
+    let saved = std::fs::read(&path_s).unwrap();
+    let parsed = crate::sim::persistence::SaveState::from_bytes(&saved).unwrap();
+    assert_eq!(parsed.version, SAVE_SCHEMA_VERSION);
     assert!(!std::path::Path::new(&tmp_s).exists());
 
     let _ = std::fs::remove_file(&path_s);
@@ -32,7 +32,7 @@ fn streamed_save_matches_the_in_memory_document() {
         sim.tick();
     }
     let state = sim.to_save_state();
-    let expected = serde_json::to_string(&state).unwrap();
+    let expected = state.to_bytes();
 
     let mut path = std::env::temp_dir();
     path.push(format!(
@@ -45,7 +45,7 @@ fn streamed_save_matches_the_in_memory_document() {
     let written = std::fs::read(&path_s).unwrap();
     assert!(written.len() > 100_000, "the world should produce a real save");
     assert!(
-        written == expected.as_bytes(),
+        written == expected,
         "streamed save differs from the in-memory one"
     );
     assert!(!std::path::Path::new(&tmp_s).exists());

@@ -622,3 +622,38 @@ fn load_or_new_backs_up_a_save_whose_map_size_it_does_not_know() {
     assert_eq!(std::fs::read(&backup).unwrap(), bytes);
     std::fs::remove_dir_all(&dir).ok();
 }
+
+#[test]
+fn a_compact_save_reads_back_as_the_json_save_with_rounded_learning() {
+    let mut sim = Simulation::new(7);
+    sim.tick_n(900);
+    let state = sim.to_save_state();
+    let bytes = state.to_bytes();
+    assert!(bytes.starts_with(compact::MAGIC));
+    let read = SaveState::from_bytes(&bytes).expect("a compact save reads back");
+    let mut expected = serde_json::to_value(&state).unwrap();
+    for org in expected["organisms"].as_array_mut().unwrap() {
+        for row in org["q_table"].as_object_mut().unwrap().values_mut() {
+            for entry in row.as_array_mut().unwrap() {
+                let value = entry[1].as_f64().unwrap() as f32;
+                entry[1] = serde_json::json!(compact::quantize(value));
+            }
+        }
+    }
+    assert_eq!(serde_json::to_value(&read).unwrap(), expected);
+    let json = serde_json::to_vec(&state).unwrap();
+    let from_json = SaveState::from_bytes(&json).expect("a JSON save still reads");
+    assert_eq!(
+        serde_json::to_value(&from_json).unwrap(),
+        serde_json::to_value(&state).unwrap()
+    );
+}
+
+#[test]
+fn a_compact_save_of_a_compact_save_is_the_same_bytes() {
+    let mut sim = Simulation::new(11);
+    sim.tick_n(600);
+    let first = sim.to_save_state().to_bytes();
+    let again = SaveState::from_bytes(&first).unwrap().to_bytes();
+    assert_eq!(first, again);
+}
