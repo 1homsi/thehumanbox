@@ -309,7 +309,7 @@ pub(crate) fn tick_village_roads(sim: &mut Simulation) {
         return;
     }
     let knowing = lineages_that_build_roads(sim);
-    let snapshots = settlements::snapshots(sim);
+    let snapshots = settlements::at_town_centres(sim, settlements::snapshots(sim));
     let villages: Vec<SettlementSnapshot> =
         snapshots.into_iter().filter(|s| s.tier >= VILLAGE_TIER).collect();
     let standing: crate::hashing::FxHashSet<(i32, i32)> = sim

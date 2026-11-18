@@ -18,6 +18,7 @@ const HUT_NEGLECT_DAYS: f32 = 40.0;
 pub(crate) const CRUMBLE_TICKS: u64 = DAY_LENGTH * 20;
 /// Ticks after a repair before a ruin can crumble.
 const REPAIR_GRACE_TICKS: u64 = 600;
+const STALE_SITE_TICKS: u64 = DAY_LENGTH * 2;
 /// Furthest an empty home may lie from a tribe's centre for it to move in.
 const MOVE_IN_RADIUS: i32 = 30;
 
@@ -247,10 +248,11 @@ pub(crate) fn tick_vacancy(sim: &mut Simulation) {
     let now = sim.tick_count;
     let mut neglected: Vec<usize> = empty_homes(sim).into_iter().collect();
     neglected.extend(abandoned_buildings(sim));
-    let orphans = crate::sim::tech::networks::orphaned_infrastructure(sim);
+    let orphans = crate::sim::tech::networks::orphans(sim);
     let already: FxHashSet<usize> = neglected.iter().copied().collect();
     neglected.extend(sim.buildings.iter().enumerate().filter_map(|(i, b)| {
-        (orphans.contains(&b.id) && b.is_complete() && !b.is_ruined() && !already.contains(&i)).then_some(i)
+        (orphans.contains_key(&b.id) && b.is_complete() && !b.is_ruined() && !already.contains(&i))
+            .then_some(i)
     }));
     let mut people: FxHashMap<String, u32> = FxHashMap::default();
     for o in sim.organisms.iter().filter(|o| o.alive) {
@@ -272,8 +274,8 @@ pub(crate) fn tick_vacancy(sim: &mut Simulation) {
         if hurried {
             wear *= DECLINE_WEAR;
         }
-        if orphans.contains(&b.id) {
-            wear = wear.max(crate::sim::tech::networks::ORPHAN_WEAR);
+        if let Some(&orphan_wear) = orphans.get(&b.id) {
+            wear = wear.max(orphan_wear);
         }
         b.damage = (b.damage_fraction() + wear).min(1.0);
         b.last_damage_tick = Some(now);
@@ -301,14 +303,14 @@ pub(crate) fn tick_vacancy(sim: &mut Simulation) {
         .map(|b| {
             let gone_tribe = b.owner_lineage.as_deref().is_none_or(|l| !living.contains(l));
             (is_home(b.kind)
-                || orphans.contains(&b.id)
+                || orphans.contains_key(&b.id)
                 || (gone_tribe && weathers(b.kind) && !landmark(b.kind)))
-                && !b.decorative
+                && (!b.decorative || orphans.contains_key(&b.id))
                 && b.ruined_at_tick
                     .is_some_and(|t| now.saturating_sub(t) >= CRUMBLE_TICKS)
                 && b.last_repair_tick
                     .is_none_or(|t| now.saturating_sub(t) > REPAIR_GRACE_TICKS)
-                && (orphans.contains(&b.id)
+                && (orphans.contains_key(&b.id)
                     || b.owner_lineage.as_deref().is_none_or(|l| !needs_room.contains(l)))
         })
         .collect();
@@ -334,6 +336,13 @@ pub(crate) fn tick_vacancy(sim: &mut Simulation) {
         };
         push_event(&mut sim.events, now, "life", "the old village", &detail);
     }
+    let before = sim.buildings.len();
+    sim.buildings.retain(|b| {
+        b.is_complete()
+            || !orphans.contains_key(&b.id)
+            || now.saturating_sub(b.built_at_tick) <= STALE_SITE_TICKS
+    });
+    changed |= sim.buildings.len() != before;
     if changed {
         sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
     }

@@ -9,7 +9,7 @@ pub(super) fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
         .filter(|o| o.alive)
         .map(|o| o.lineage_id.clone())
         .collect();
-    let orphans = crate::sim::tech::networks::orphaned_infrastructure(sim);
+    let orphans = crate::sim::tech::networks::orphans(sim);
 
     for building_index in 0..sim.buildings.len() {
         if exposed.contains(&building_index) {
@@ -20,7 +20,7 @@ pub(super) fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
             || building.decorative
             || !building.is_damaged()
             || !supports_damage(building.kind)
-            || orphans.contains(&building.id)
+            || orphans.contains_key(&building.id)
         {
             continue;
         }

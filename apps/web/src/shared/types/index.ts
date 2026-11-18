@@ -291,6 +291,14 @@ export interface SettlementInfo {
   building_count: number
   capacity: number
   score: number
+  town_center?: [number, number] | null
+}
+
+export interface TownInfo {
+  id: number
+  lineage_id: string
+  center: [number, number]
+  planned: boolean
 }
 
 interface CarcassInfo {
@@ -775,6 +783,7 @@ export interface WorldState {
   /** Tribes on the brink, and what is killing them. */
   tribes_in_peril?: TribePeril[]
   settlements?: SettlementInfo[]
+  towns?: TownInfo[]
   vehicles?: VehicleInfo[]
   /** Prey a predator killed, where birds gather: how long ago, and how much is picked over (0 to 40). */
   carcasses?: CarcassInfo[]
@@ -867,6 +876,7 @@ export interface Building {
   damage?: number
   /** Ambient scenery rather than a working building (props, graves). */
   decorative?: boolean
+  town?: number
   /** Remaining structural integrity (`1 - damage`). */
   integrity?: number
   /** Destroyed buildings remain non-operational until rebuilt. */

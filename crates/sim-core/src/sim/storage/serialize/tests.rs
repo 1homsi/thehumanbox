@@ -544,6 +544,7 @@ fn full_payload_exposes_authoritative_settlement_contract() {
         "building_count",
         "capacity",
         "score",
+        "town_center",
     ]
     .into_iter()
     .collect();

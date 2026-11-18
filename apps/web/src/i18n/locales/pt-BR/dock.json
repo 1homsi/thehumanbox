@@ -546,6 +546,8 @@
     "hazardTip": "Marcas de perigo — violência e morte",
     "history": "histórico",
     "historyTip": "Deriva de cada linhagem nos últimos ~60 dias de simulação",
+    "owners": "donos",
+    "ownersTip": "A que pertence cada construção: verde uma cidade, azul enfeite da cidade, laranja decaindo, vermelho sem motivo, cinza ruínas",
     "perf": "desempenho",
     "perfTip": "Quadros por segundo e tempo de quadro",
     "nerdOverlays": "para nerds",

@@ -546,6 +546,8 @@
     "hazardTip": "危险痕迹：暴力与死亡",
     "history": "历史",
     "historyTip": "过去约 60 个模拟日内各血脉的变化",
+    "owners": "归属",
+    "ownersTip": "每座建筑的归属：绿色属于城镇，蓝色为城镇装饰，橙色正在衰败，红色毫无理由，灰色为废墟",
     "perf": "性能",
     "perfTip": "帧率与帧耗时",
     "nerdOverlays": "技术",

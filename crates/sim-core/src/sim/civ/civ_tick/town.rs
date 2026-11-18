@@ -807,7 +807,7 @@ pub fn town_counts(sim: &Simulation) -> TownCounts {
             }
             continue;
         };
-        if let Some((lo, hi)) = zone_of(b.kind).ring() {
+        if let Some((lo, hi)) = zone_of(b.kind).ring().filter(|_| !b.decorative) {
             let d = town.distance(b.x, b.y);
             if d < lo || d > hi {
                 counts.outside_zone += 1;

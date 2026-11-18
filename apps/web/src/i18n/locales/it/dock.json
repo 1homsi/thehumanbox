@@ -546,6 +546,8 @@
     "hazardTip": "Cicatrici di pericolo: violenza e morte",
     "history": "storia",
     "historyTip": "Deriva per stirpe negli ultimi ~60 giorni di simulazione",
+    "owners": "proprietà",
+    "ownersTip": "A cosa appartiene ogni edificio: verde una città, blu arredo urbano, arancio in rovina, rosso senza motivo, grigio rovine",
     "perf": "prest.",
     "perfTip": "Fotogrammi al secondo e tempi di fotogramma",
     "nerdOverlays": "per esperti",

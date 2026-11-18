@@ -546,6 +546,8 @@
     "hazardTip": "Gefahrennarben: Gewalt und Tod",
     "history": "Geschichte",
     "historyTip": "Veränderung pro Linie über die letzten ~60 Simulationstage",
+    "owners": "Besitz",
+    "ownersTip": "Wozu jedes Gebäude gehört: grün eine Stadt, blau Stadtschmuck, orange verfallend, rot ohne Grund, grau Ruinen",
     "perf": "Leistung",
     "perfTip": "Bilder pro Sekunde und Bildzeit",
     "nerdOverlays": "für Nerds",

@@ -55,6 +55,7 @@ const NERD_OVERLAYS: FlagItem[] = [
   { flag: 'fertility', icon: '✿', label: 'dock.more.fertility', tip: 'dock.more.fertilityTip' },
   { flag: 'hazard', icon: '✶', label: 'dock.more.hazard', tip: 'dock.more.hazardTip' },
   { flag: 'history', icon: '↝', label: 'dock.more.history', tip: 'dock.more.historyTip' },
+  { flag: 'owners', icon: '▣', label: 'dock.more.owners', tip: 'dock.more.ownersTip' },
   { flag: 'fps', icon: <MenuGlyph icon="⏱️" />, label: 'dock.more.perf', tip: 'dock.more.perfTip' },
 ]
 

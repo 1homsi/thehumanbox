@@ -16,6 +16,7 @@ export interface ViewFlags {
   partners: boolean
   pregnancy: boolean
   history: boolean
+  owners: boolean
   fps: boolean
   hideUI: boolean
   photoMode: boolean

@@ -663,6 +663,8 @@ pub(super) fn print_progress(sim: &Simulation) {
             .map(|(l, [x, y])| format!("{l}@{x},{y}"))
             .collect();
         println!("Lineage centres: {}", anchors.join(" "));
+        let unowned = sim::tech::networks::unowned_infrastructure(sim);
+        println!("Unowned infrastructure at end: {}", unowned.len());
         let strays = sim::tech::networks::network_strays(sim);
         println!(
             "Network strays at end: stray rail cells {}, stations with no line {}, substations with no grid {}, ways under buildings {}",

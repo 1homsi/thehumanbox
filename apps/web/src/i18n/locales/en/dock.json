@@ -546,6 +546,8 @@
     "hazardTip": "Hazard scars — violence and death",
     "history": "history",
     "historyTip": "Per-lineage drift over the last ~60 sim-days",
+    "owners": "owners",
+    "ownersTip": "What each building belongs to: green a town, blue town scenery, orange fading, red no reason, grey ruins",
     "perf": "perf",
     "perfTip": "Frames-per-second and frame timing",
     "nerdOverlays": "for nerds",

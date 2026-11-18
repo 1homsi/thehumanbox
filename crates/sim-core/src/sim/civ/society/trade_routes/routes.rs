@@ -53,7 +53,7 @@ pub(super) fn settlement_endpoints(
         return None;
     }
     endpoints_in(
-        &settlements::snapshots_this_tick(sim),
+        &settlements::at_town_centres(sim, settlements::snapshots_this_tick(sim).to_vec()),
         first_lineage,
         second_lineage,
     )
@@ -70,7 +70,11 @@ pub(super) fn settlement_endpoints_now(
     if first_lineage.is_empty() || second_lineage.is_empty() || first_lineage == second_lineage {
         return None;
     }
-    endpoints_in(&settlements::snapshots(sim), first_lineage, second_lineage)
+    endpoints_in(
+        &settlements::at_town_centres(sim, settlements::snapshots(sim)),
+        first_lineage,
+        second_lineage,
+    )
 }
 
 fn endpoints_in(

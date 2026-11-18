@@ -22,6 +22,7 @@ import {
   paintClouds,
   paintFireGlow,
   paintLines,
+  paintOwners,
   paintTerritoryBorders,
   paintWaterShimmer,
   paintWaterStars,
@@ -454,6 +455,7 @@ export class CfOverlayRenderer {
       this.effects.begin(gv)
       paintEffects(this.effects.asContext(), f)
       paintPower(this.effects.asContext(), f)
+      if (f.viewFlags.owners) paintOwners(this.effects.asContext(), f)
       paintEraFlourish(this.effects.asContext(), f, this.eraWatch.active(f.world.tick))
       this.paintWeather(this.effects.asContext(), f)
       if (detailed) paintSkyFlyers(this.effects.asContext(), f)

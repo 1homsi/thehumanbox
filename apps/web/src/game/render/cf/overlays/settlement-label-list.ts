@@ -31,7 +31,7 @@ export function collectSettlementLabels(
   const lineageNames = world.lineage_names ?? {}
   const perilBy = new Map((world.tribes_in_peril ?? []).map((p) => [p.lineage_id, p]))
   for (const s of settlements) {
-    const [cx, cy] = s.center
+    const [cx, cy] = s.town_center ?? s.center
     if (cx - ox < bounds.c0 - MARGIN || cx - ox > bounds.c1 + MARGIN) continue
     if (cy - oy < bounds.r0 - MARGIN || cy - oy > bounds.r1 + MARGIN) continue
     const rank = s.tier ?? 0
