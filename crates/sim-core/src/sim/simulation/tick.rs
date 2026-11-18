@@ -430,7 +430,9 @@ impl Simulation {
             .map(|s| s.as_ref().is_some_and(|s| s.dormant))
             .collect();
         let tick_seed: u64 = self.rng.random();
+        self.choosing_tribes = Some(crate::sim::civ::fields::tribe_people_and_plots(self));
         let mut choices = self.choose_all(&sensed, &spatial, tick_seed);
+        self.choosing_tribes = None;
         for i in 0..n {
             let (Some(sense), Some(choice)) = (sensed[i].take(), choices[i].take()) else {
                 continue;

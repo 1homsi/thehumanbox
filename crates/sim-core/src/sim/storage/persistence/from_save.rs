@@ -211,6 +211,7 @@ impl Simulation {
             story_history: state.story_history.into_iter().collect(),
             pending_memory_flushes: Vec::new(),
             pending_learning: Vec::new(),
+            choosing_tribes: None,
             focus_points: state.focus_points,
             lineage_strategies: state.lineage_strategies,
             lineage_strategy_objectives: state.lineage_strategy_objectives,
