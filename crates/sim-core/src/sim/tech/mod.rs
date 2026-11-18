@@ -10,6 +10,7 @@ pub mod transportation;
 pub mod boats;
 pub mod ferry;
 pub mod fleet;
+pub mod networks;
 #[cfg(test)]
 mod plant_kinds_tests;
 pub mod plantings;

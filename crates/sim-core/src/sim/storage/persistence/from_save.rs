@@ -328,6 +328,7 @@ impl Simulation {
             trade_routes: state.trade_routes,
             village_roads: state.village_roads,
             rail_lines: state.rail_lines,
+            rail_remnants: state.rail_remnants,
             cart_grain: state.cart_grain,
             town_plazas: state.town_plazas,
             caravans: state.caravans,

@@ -158,6 +158,7 @@ impl Simulation {
             trade_routes: self.trade_routes.clone(),
             village_roads: self.village_roads.clone(),
             rail_lines: self.rail_lines.clone(),
+            rail_remnants: self.rail_remnants.clone(),
             cart_grain: self.cart_grain.clone(),
             town_plazas: self.town_plazas.clone(),
             caravans: self.caravans.clone(),

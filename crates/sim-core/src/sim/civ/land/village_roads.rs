@@ -278,11 +278,11 @@ pub fn plan_road_avoiding(
 }
 
 /// Mark each cell of `path` as a road where the ground takes one. Returns how many cells changed.
-fn lay(grid: &mut WorldGrid, path: &[[i32; 2]]) -> usize {
+fn lay(grid: &mut WorldGrid, path: &[[i32; 2]], built: &dyn Fn(i32, i32) -> bool) -> usize {
     let mut changed = 0;
     for &[x, y] in path {
         let tile = grid.get(x, y);
-        if !tile.road_ground() || grid.road_at(x, y) != ROAD_NONE {
+        if !tile.road_ground() || grid.road_at(x, y) != ROAD_NONE || built(x, y) {
             continue;
         }
         grid.road[WorldGrid::idx(x, y)] = ROAD_TRACK;
@@ -312,6 +312,14 @@ pub(crate) fn tick_village_roads(sim: &mut Simulation) {
     let snapshots = settlements::snapshots(sim);
     let villages: Vec<SettlementSnapshot> =
         snapshots.into_iter().filter(|s| s.tier >= VILLAGE_TIER).collect();
+    let standing: crate::hashing::FxHashSet<(i32, i32)> = sim
+        .buildings
+        .iter()
+        .flat_map(|b| {
+            let (w, h) = b.footprint();
+            (b.y..b.y + i32::from(h)).flat_map(move |y| (b.x..b.x + i32::from(w)).map(move |x| (x, y)))
+        })
+        .collect();
     let mut laid = 0;
     for village in villages.iter().filter(|v| knowing.contains(&v.lineage_id)) {
         if laid >= MAX_LINKS_PER_PASS || sim.village_roads.len() >= MAX_LINKS {
@@ -336,7 +344,7 @@ pub(crate) fn tick_village_roads(sim: &mut Simulation) {
                 None => continue,
             },
         };
-        let cells = lay(&mut sim.grid, &path)
+        let cells = lay(&mut sim.grid, &path, &|x, y| standing.contains(&(x, y)))
             + if bridged {
                 lay_bridges(&mut sim.grid, &path)
             } else {
@@ -452,12 +460,12 @@ mod tests {
     fn laying_a_path_marks_open_ground_and_skips_the_rest() {
         let mut grid = walled();
         grid.set(92, 100, Tile::Water);
-        let laid = lay(&mut grid, &[[91, 100], [92, 100], [93, 100]]);
+        let laid = lay(&mut grid, &[[91, 100], [92, 100], [93, 100]], &|_, _| false);
         assert_eq!(laid, 2, "the water cell stays bare");
         assert_eq!(grid.road_at(91, 100), ROAD_TRACK);
         assert_eq!(grid.road_at(92, 100), ROAD_NONE);
         assert_eq!(
-            lay(&mut grid, &[[91, 100]]),
+            lay(&mut grid, &[[91, 100]], &|_, _| false),
             0,
             "a road already there is not counted twice"
         );

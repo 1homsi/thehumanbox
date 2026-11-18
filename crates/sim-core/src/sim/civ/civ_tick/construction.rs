@@ -199,7 +199,10 @@ pub(super) fn construction_terrain_is_valid(sim: &Simulation, kind: BuildingKind
             return false;
         }
     }
-    true
+    (y..y + i32::from(height)).all(|tile_y| {
+        (x..x + i32::from(width))
+            .all(|tile_x| !crate::sim::tech::networks::way_blocks(kind, sim.grid.road_at(tile_x, tile_y)))
+    })
 }
 
 pub(super) fn apply_completed_building_effect(sim: &mut Simulation, kind: BuildingKind, x: i32, y: i32) {

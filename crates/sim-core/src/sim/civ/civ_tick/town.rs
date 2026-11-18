@@ -11,7 +11,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::*;
-use crate::world::grid::{WorldGrid, ROAD_TRACK};
+use crate::world::grid::{WorldGrid, ROAD_NONE, ROAD_TRACK};
 
 /// The lowest settlement tier that lays out a town (tier 2, a hamlet).
 pub(super) const TOWN_TIER: u8 = 2;
@@ -78,7 +78,7 @@ impl TownPlaza {
 
 /// Whether a tile is the plaza or a street of any town. Automatic placement
 /// keeps buildings off these tiles.
-pub(super) fn town_reserved(sim: &Simulation, x: i32, y: i32) -> bool {
+pub(crate) fn town_reserved(sim: &Simulation, x: i32, y: i32) -> bool {
     sim.town_plazas.iter().any(|town| town.reserves(x, y))
 }
 
@@ -128,11 +128,19 @@ pub(crate) fn tick_town_plazas(sim: &mut Simulation) {
             continue;
         };
         let streets = lay_town(sim, &covered, center);
-        sim.town_plazas.push(TownPlaza {
+        let town = TownPlaza {
             lineage: lid,
             center,
             streets,
+        };
+        let paved: HashSet<(i32, i32)> = town.reserved_tiles().into_iter().collect();
+        sim.buildings.retain(|b| {
+            let (w, h) = b.footprint();
+            !b.decorative
+                || !(b.y..b.y + i32::from(h))
+                    .any(|y| (b.x..b.x + i32::from(w)).any(|x| paved.contains(&(x, y))))
         });
+        sim.town_plazas.push(town);
     }
 }
 
@@ -161,6 +169,7 @@ fn plaza_fits(sim: &Simulation, covered: &HashSet<(i32, i32)>, center: [i32; 2])
             let (x, y) = (center[0] + dx, center[1] + dy);
             WorldGrid::in_bounds(x, y)
                 && sim.grid.get(x, y).road_ground()
+                && pavable(sim, x, y)
                 && !covered.contains(&(x, y))
                 && !town_reserved(sim, x, y)
         })
@@ -169,11 +178,21 @@ fn plaza_fits(sim: &Simulation, covered: &HashSet<(i32, i32)>, center: [i32; 2])
 
 /// Paves the plaza and runs a street out along each arm until it meets open
 /// ground that is not free. Returns the street tiles, arm by arm.
+fn pavable(sim: &Simulation, x: i32, y: i32) -> bool {
+    matches!(sim.grid.road_at(x, y), ROAD_NONE | ROAD_TRACK)
+}
+
+fn pave(sim: &mut Simulation, x: i32, y: i32) {
+    if pavable(sim, x, y) {
+        sim.grid.road[WorldGrid::idx(x, y)] = ROAD_TRACK;
+    }
+}
+
 fn lay_town(sim: &mut Simulation, covered: &HashSet<(i32, i32)>, center: [i32; 2]) -> Vec<[i32; 2]> {
     let [cx, cy] = center;
     for dy in -PLAZA_RADIUS..=PLAZA_RADIUS {
         for dx in -PLAZA_RADIUS..=PLAZA_RADIUS {
-            sim.grid.road[WorldGrid::idx(cx + dx, cy + dy)] = ROAD_TRACK;
+            pave(sim, cx + dx, cy + dy);
         }
     }
     let mut streets = Vec::new();
@@ -187,7 +206,7 @@ fn lay_town(sim: &mut Simulation, covered: &HashSet<(i32, i32)>, center: [i32; 2
             {
                 break;
             }
-            sim.grid.road[WorldGrid::idx(x, y)] = ROAD_TRACK;
+            pave(sim, x, y);
             streets.push([x, y]);
         }
     }
@@ -448,6 +467,30 @@ mod tests {
         // Founding again changes nothing: a lineage gets one plaza.
         tick_town_plazas(&mut sim);
         assert_eq!(sim.town_plazas.len(), 1);
+    }
+
+    #[test]
+    fn a_town_laid_out_on_a_rail_line_keeps_the_line_whole() {
+        use crate::world::grid::ROAD_RAIL;
+        let mut sim = clan_sim(12, TOWN_TIER);
+        let (cx, cy) = lineage_center(&sim, "clan");
+        let line: Vec<(i32, i32)> = (30..=70)
+            .map(|x| (x, cy))
+            .chain((30..=70).map(|y| (cx, y)))
+            .collect();
+        for &(x, y) in &line {
+            sim.grid.road[WorldGrid::idx(x, y)] = ROAD_RAIL;
+        }
+        tick_town_plazas(&mut sim);
+        assert_eq!(sim.town_plazas.len(), 1);
+        let town = sim.town_plazas[0].clone();
+        for &(x, y) in &line {
+            assert_eq!(sim.grid.road_at(x, y), ROAD_RAIL, "the rail at {x},{y} stays");
+            assert!(
+                !in_plaza(&town, x, y),
+                "the plaza is paved over the line at {x},{y}"
+            );
+        }
     }
 
     #[test]
