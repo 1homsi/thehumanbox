@@ -26,6 +26,7 @@ pub(in crate::sim::civ) fn prop_site_is_clear(
             && tx < WIDTH as i32
             && ty < HEIGHT as i32
             && !occupied.contains(&(tx, ty))
+            && grid.road_at(tx, ty) == crate::world::grid::ROAD_NONE
             && matches!(
                 grid.get(tx, ty),
                 Tile::Grass | Tile::Food | Tile::Ash | Tile::Scorched | Tile::Snow | Tile::Sand

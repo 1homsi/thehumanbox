@@ -1209,3 +1209,43 @@ fn a_town_street_on_the_shore_is_passed_over() {
         "{point:?} keeps off the street"
     );
 }
+
+#[test]
+fn no_building_goes_up_on_a_road_or_a_rail_line() {
+    use crate::world::grid::{WorldGrid, ROAD_NONE, ROAD_RAIL, ROAD_TRACK};
+    use crate::world::tiles::Tile;
+
+    let mut sim = Simulation::new(0x7A_11);
+    sim.organisms.clear();
+    sim.buildings.clear();
+    for y in 40..=60 {
+        for x in 40..=60 {
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
+    for x in 40..=60 {
+        sim.grid.road[WorldGrid::idx(x, 50)] = ROAD_RAIL;
+        sim.grid.road[WorldGrid::idx(x, 45)] = ROAD_TRACK;
+    }
+    assert!(!construction_site_is_valid(&sim, BuildingKind::Hut, 50, 50));
+    assert!(!construction_site_is_valid(&sim, BuildingKind::House, 50, 49));
+    assert!(!construction_site_is_valid(&sim, BuildingKind::Hut, 50, 45));
+    assert!(!construction_site_is_valid(&sim, BuildingKind::Gate, 50, 50));
+    assert!(construction_site_is_valid(&sim, BuildingKind::Gate, 50, 45));
+    assert!(construction_site_is_valid(&sim, BuildingKind::Hut, 50, 52));
+
+    let mut builder = test_org("builder", "Builder", "lineage-a", 50.0, 50.0);
+    builder.age = 10_000;
+    builder.inv_wood = 200;
+    builder.inv_stone = 200;
+    builder.wealth = 200;
+    sim.organisms.push(builder);
+    let (x, y) =
+        find_construction_site(&sim, "lineage-a", BuildingKind::House, 50, 50).expect("a site off the line");
+    let (w, h) = BuildingKind::House.footprint();
+    for ty in y..y + i32::from(h) {
+        for tx in x..x + i32::from(w) {
+            assert_eq!(sim.grid.road_at(tx, ty), ROAD_NONE, "{tx},{ty} is a way");
+        }
+    }
+}

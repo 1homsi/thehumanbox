@@ -264,12 +264,10 @@ export function trainStation(look: Look): Art {
   const { a, g, x } = plot(look, w)
   const L = legend(ROOF.slate, WALL.brick, isLit(look))
   const hallW = Math.round(w * 0.45)
-  const track = 3
-  const gy = g - track
-  // The track: sleepers and two rails across the whole front.
-  a.rect(x - 2, gy, w + 4, track, C.tan1)
-  for (let i = x - 2; i < x + w + 2; i += 3) a.vline(i, gy, track, C.gold1)
-  a.hline(x - 2, gy, w + 4, C.grey7).hline(x - 2, gy + 2, w + 4, C.grey7)
+  const platform = 3
+  const gy = g - platform
+  a.rect(x, gy, w, platform, C.grey7)
+  a.hline(x, gy + platform - 1, w, C.gold5)
   // The train shed: iron arches glazed over, open at the front.
   const sx = x + hallW
   const sw = w - hallW

@@ -184,7 +184,6 @@ pub(super) fn next_target_building(
     }
     if era >= Era::Industrial && meets(60) {
         wishlist.push(Factory);
-        wishlist.push(TrainStation);
         wishlist.push(Barracks);
         wishlist.push(PoliceStation);
         wishlist.push(FireStation);
@@ -193,7 +192,12 @@ pub(super) fn next_target_building(
         wishlist.push(Spa);
         wishlist.push(Refinery);
         wishlist.push(PowerPlant);
-        wishlist.push(Substation);
+        if crate::sim::tech::networks::POWER_SOURCES
+            .iter()
+            .any(|k| existing.contains(k))
+        {
+            wishlist.push(Substation);
+        }
         wishlist.push(WaterTower);
         wishlist.push(Reservoir);
         wishlist.push(Warehouse);
@@ -447,6 +451,25 @@ mod tests {
             most_lacking_craft(Era::Stone, 5, false, &owned, &considered),
             None
         );
+    }
+
+    #[test]
+    fn the_wishlist_raises_no_station_and_no_substation_before_its_power_source() {
+        let mut existing: HashSet<BuildingKind> = HashSet::default();
+        while let Some(kind) = next_target_building(Era::Galactic, 1_000, 1_000, &existing) {
+            assert_ne!(kind, TrainStation, "stations come with the lines that serve them");
+            if kind == Substation {
+                assert!(
+                    crate::sim::tech::networks::POWER_SOURCES
+                        .iter()
+                        .any(|k| existing.contains(k)),
+                    "a substation needs a power source to feed it"
+                );
+            }
+            existing.insert(kind);
+        }
+        assert!(existing.contains(&Substation));
+        assert!(!existing.contains(&TrainStation));
     }
 
     #[test]

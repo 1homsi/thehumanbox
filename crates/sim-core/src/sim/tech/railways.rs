@@ -39,7 +39,7 @@ const MAX_PATH: usize = 110;
 /// The share of a line's tiles that must be a busy way (a road, or a path people have trodden) for the line
 /// to be laid, and the trodden strength a bare path needs to count (walkers leave 0.06 a step).
 const BUSY_SHARE: f32 = 0.4;
-const BUSY_TRAIL: f32 = 0.3;
+pub(crate) const BUSY_TRAIL: f32 = 0.3;
 const MAX_LINES_PER_TRIBE: usize = 3;
 const MAX_LINES: usize = 16;
 /// Path searches one pass may run.
@@ -99,7 +99,7 @@ fn stop_of_anchor(anchor: (i32, i32)) -> [i32; 2] {
     [anchor.0 + i32::from(fw) / 2, anchor.1 + i32::from(fh)]
 }
 
-fn station_at(sim: &Simulation, lineage: &str, stop: [i32; 2]) -> bool {
+pub(crate) fn station_at(sim: &Simulation, lineage: &str, stop: [i32; 2]) -> bool {
     sim.buildings.iter().any(|b| {
         b.kind == BuildingKind::TrainStation
             && b.is_operational()
@@ -203,6 +203,9 @@ impl Simulation {
         if now > 0 && now.is_multiple_of(RAIL_STEP) {
             self.plan_rail_lines();
         }
+        if now > 0 && now.is_multiple_of(crate::sim::cosmos::DAY_LENGTH) {
+            self.tend_rail();
+        }
         if now.is_multiple_of(TRAIN_STEP_TICKS) && !self.vehicles.is_empty() {
             self.run_trains();
         }
@@ -218,7 +221,14 @@ impl Simulation {
             .trade_routes
             .iter()
             .filter(|r| r.deliveries >= BUSY_DELIVERIES)
-            .map(|r| (r.lineage_a.clone(), r.lineage_b.clone(), r.a_center, r.b_center))
+            .map(|r| {
+                (
+                    r.lineage_a.clone(),
+                    r.lineage_b.clone(),
+                    self.town_centre(&r.lineage_a, r.a_center),
+                    self.town_centre(&r.lineage_b, r.b_center),
+                )
+            })
             .collect();
         routes.sort();
         let mut plans = 0;
@@ -351,6 +361,13 @@ impl Simulation {
         }
     }
 
+    fn town_centre(&self, lineage: &str, fallback: [i32; 2]) -> [i32; 2] {
+        self.town_plazas
+            .iter()
+            .find(|t| t.lineage == lineage)
+            .map_or(fallback, |t| t.center)
+    }
+
     /// A cell people use: a road or track they built, or a path they have trodden.
     fn is_busy_way(&self, x: i32, y: i32) -> bool {
         self.grid.road_at(x, y) != ROAD_NONE || self.grid.trail_at(x, y, TrailKind::Path) >= BUSY_TRAIL
@@ -408,13 +425,8 @@ impl Simulation {
 
     /// Raises a station at `anchor` for the tribe, complete at once like the harbour works.
     fn raise_station(&mut self, owner: &str, anchor: (i32, i32)) {
-        let id = self
-            .buildings
-            .iter()
-            .map(|b| b.id)
-            .max()
-            .unwrap_or(0)
-            .saturating_add(1);
+        let id = self.next_building_id;
+        self.next_building_id = id.saturating_add(1);
         let mut station = Building::new(
             id,
             BuildingKind::TrainStation,
@@ -774,6 +786,99 @@ mod tests {
             o.y
         );
         assert!(o.journey.is_none());
+    }
+
+    fn pass_days(sim: &mut Simulation, days: u64) {
+        for _ in 0..days {
+            sim.tick_count =
+                (sim.tick_count / crate::sim::cosmos::DAY_LENGTH + 1) * crate::sim::cosmos::DAY_LENGTH;
+            sim.tend_rail();
+            crate::sim::civ::vacancy::tick_vacancy(sim);
+        }
+    }
+
+    fn rail_cells(sim: &Simulation) -> usize {
+        sim.grid.road.iter().filter(|&&r| r == ROAD_RAIL).count()
+    }
+
+    #[test]
+    fn a_line_in_use_keeps_its_track_and_mends_a_cut() {
+        let mut sim = two_towns();
+        assert!(plan(&mut sim));
+        let line = sim.rail_lines[0].clone();
+        let [gx, gy] = line.path[line.path.len() / 2];
+        sim.grid.road[WorldGrid::idx(gx, gy)] = ROAD_TRACK;
+        pass_days(&mut sim, 6);
+        assert_eq!(sim.rail_lines.len(), 1, "the line still joins two towns");
+        assert!(line
+            .path
+            .iter()
+            .all(|&[x, y]| sim.grid.road_at(x, y) == ROAD_RAIL));
+        let strays = crate::sim::tech::networks::network_strays(&sim);
+        assert_eq!(strays.stray_rail, 0);
+        assert_eq!(strays.stations_without_line, 0);
+        assert!(sim
+            .buildings
+            .iter()
+            .filter(|b| b.kind == BuildingKind::TrainStation)
+            .all(|b| b.is_operational() && b.damage_fraction() == 0.0));
+    }
+
+    #[test]
+    fn a_line_that_loses_a_station_closes_and_its_track_fades_away() {
+        let mut sim = two_towns();
+        assert!(plan(&mut sim));
+        let line = sim.rail_lines[0].clone();
+        let trodden = line.path[3];
+        sim.grid.path_trail[WorldGrid::idx(trodden[0], trodden[1])] = 0.5;
+        let now = sim.tick_count;
+        let station = sim
+            .buildings
+            .iter_mut()
+            .find(|b| b.kind == BuildingKind::TrainStation && stop_of(b) == line.b)
+            .expect("the far station");
+        station.damage = 1.0;
+        station.ruined_at_tick = Some(now);
+        pass_days(&mut sim, 1);
+        assert!(sim.rail_lines.is_empty(), "a line with a ruined station closes");
+        assert!(!sim.vehicles.iter().any(|v| v.kind == TransportKind::Train));
+        assert!(rail_cells(&sim) > 0, "its track lies a day before it goes");
+        pass_days(&mut sim, 1);
+        assert_eq!(rail_cells(&sim), 0, "no rail outside a live line after two days");
+        pass_days(&mut sim, 4);
+        assert_eq!(
+            sim.grid.road_at(trodden[0], trodden[1]),
+            ROAD_TRACK,
+            "a path people walk stays"
+        );
+        let [x, y] = line.path[line.path.len() / 2];
+        assert_eq!(sim.grid.road_at(x, y), ROAD_NONE, "the rest of the bed is gone");
+        assert!(sim.rail_remnants.is_empty());
+    }
+
+    #[test]
+    fn a_station_with_no_line_falls_to_ruin_and_crumbles_away() {
+        let mut sim = two_towns();
+        let id = sim.next_building_id;
+        sim.next_building_id += 1;
+        let mut station = Building::new(
+            id,
+            BuildingKind::TrainStation,
+            120,
+            92,
+            Some(OWNER.to_string()),
+            0,
+        );
+        station.condition = 1.0;
+        sim.buildings.push(station);
+        pass_days(&mut sim, 4);
+        let station = sim.buildings.iter().find(|b| b.id == id).expect("still standing");
+        assert!(station.is_ruined(), "a station no train calls at falls in");
+        pass_days(&mut sim, 21);
+        assert!(
+            !sim.buildings.iter().any(|b| b.id == id),
+            "and its ruin crumbles away"
+        );
     }
 
     #[test]

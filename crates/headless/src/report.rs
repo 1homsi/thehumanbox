@@ -640,6 +640,11 @@ pub(super) fn print_progress(sim: &Simulation) {
             rail_cells,
             stations
         );
+        let strays = sim::tech::networks::network_strays(sim);
+        println!(
+            "Network strays at end: stray rail cells {}, stations with no line {}, substations with no grid {}, ways under buildings {}",
+            strays.stray_rail, strays.stations_without_line, strays.substations_without_grid, strays.ways_under_buildings
+        );
     }
 
     let mut lineage_alive: HashMap<&str, usize> = HashMap::new();
