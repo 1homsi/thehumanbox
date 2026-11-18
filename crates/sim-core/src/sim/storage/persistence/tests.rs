@@ -672,7 +672,7 @@ fn a_compact_save_reads_back_as_the_json_save_with_rounded_learning() {
         for row in org["q_table"].as_object_mut().unwrap().values_mut() {
             for entry in row.as_array_mut().unwrap() {
                 let value = entry[1].as_f64().unwrap() as f32;
-                entry[1] = serde_json::json!(compact::quantize(value));
+                entry[1] = serde_json::json!(compact::quantize_byte(value));
             }
         }
     }
@@ -692,4 +692,46 @@ fn a_compact_save_of_a_compact_save_is_the_same_bytes() {
     let first = sim.to_save_state().to_bytes();
     let again = SaveState::from_bytes(&first).unwrap().to_bytes();
     assert_eq!(first, again);
+}
+
+#[test]
+fn a_first_compact_save_still_reads_with_its_half_float_values() {
+    let mut sim = Simulation::new(5);
+    sim.tick_n(700);
+    let state = sim.to_save_state();
+    let bytes = state.to_bytes_v1();
+    assert!(bytes.starts_with(compact::MAGIC_V1));
+    let read = SaveState::from_bytes(&bytes).expect("a first compact save reads back");
+    let mut expected = serde_json::to_value(&state).unwrap();
+    for org in expected["organisms"].as_array_mut().unwrap() {
+        for row in org["q_table"].as_object_mut().unwrap().values_mut() {
+            for entry in row.as_array_mut().unwrap() {
+                let value = entry[1].as_f64().unwrap() as f32;
+                entry[1] = serde_json::json!(compact::quantize(value));
+            }
+        }
+    }
+    assert_eq!(serde_json::to_value(&read).unwrap(), expected);
+}
+
+#[test]
+fn the_dead_are_saved_without_what_only_the_living_use() {
+    let mut sim = Simulation::new(3);
+    sim.tick_n(600);
+    let dead = sim
+        .organisms
+        .iter()
+        .position(|o| o.alive && !o.q_table.is_empty() && !o.vocabulary.is_empty())
+        .expect("someone has learned things");
+    sim.organisms[dead].alive = false;
+    let saved = organism::org_to_save(&sim.organisms[dead]);
+    assert!(saved.q_table.is_empty());
+    assert!(saved.vocabulary.is_empty());
+    assert!(saved.conversations.is_empty());
+    assert!(saved.memories.entries.len() <= crate::sim::simulation::PendingMemoryFlush::KEEP);
+    assert_eq!(saved.archived, Some(false));
+    let back = organism::org_from_save(saved, SAVE_SCHEMA_VERSION);
+    assert!(!back.archived);
+    assert_eq!(back.name, sim.organisms[dead].name);
+    assert_eq!(back.lineage_id, sim.organisms[dead].lineage_id);
 }

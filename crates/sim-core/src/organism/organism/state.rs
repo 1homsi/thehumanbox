@@ -383,6 +383,7 @@ impl Organism {
         if self.alive {
             return;
         }
+        self.archived = true;
         self.food_memory.clear();
         self.water_memory.clear();
         self.danger_memory.clear();
