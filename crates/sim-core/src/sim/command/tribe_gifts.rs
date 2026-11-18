@@ -1,11 +1,10 @@
-use super::Simulation;
+use super::{Simulation, MAX_BRUSH_REACH};
 use crate::sim::world_events::push_event;
 use crate::world::grid::{HEIGHT, WIDTH};
 use rand::RngExt;
 
 /// How far from a click the tribe nearest to it is found, in tiles, unless the radius says otherwise.
 const DEFAULT_REACH: f32 = 8.0;
-const MAX_REACH: f32 = 20.0;
 /// Portions of food each living member of a tribe gets from a tribe food gift.
 const FOOD_PER_PERSON: u8 = 1;
 /// The tool a tribe tool gift hands to each member.
@@ -17,7 +16,7 @@ const MAX_TRADE: usize = 30;
 
 fn reach_of(radius: f32) -> f32 {
     if radius > 0.0 {
-        radius.min(MAX_REACH)
+        radius.min(MAX_BRUSH_REACH)
     } else {
         DEFAULT_REACH
     }

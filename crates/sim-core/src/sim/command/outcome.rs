@@ -4,7 +4,7 @@
 //! A handler records its result with `Simulation::report`. Handlers that do not
 //! report get the generic `applied` or `failed` code.
 
-use super::{Command, Simulation};
+use super::{Command, Simulation, MAX_BRUSH_RADIUS, MAX_BRUSH_REACH};
 
 /// A handler's own note on what it did. `code` is a fixed word the client maps to a sentence.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -100,13 +100,13 @@ fn disaster_area(cmd: &Command) -> Option<Option<(f32, f32, f32)>> {
     let at = |x: f32, y: f32, r: f32| Some(Some((x, y, r.max(1.0))));
     match *cmd {
         Command::Hail { x, y, radius } => at(x as f32, y as f32, radius.clamp(2, 24) as f32),
-        Command::Freeze { x, y, radius } => at(x as f32, y as f32, or(radius, 4, 24)),
+        Command::Freeze { x, y, radius } => at(x as f32, y as f32, or(radius, 4, MAX_BRUSH_RADIUS)),
         Command::Ignite { x, y, radius } => at(x as f32, y as f32, radius.clamp(1, 21) as f32),
         Command::Earthquake { x, y, radius } => at(x as f32, y as f32, or(radius, 5, 16)),
         Command::Meteor { x, y, radius } => at(x as f32, y as f32, or(radius, 4, 12)),
-        Command::Blight { x, y, radius } => at(x as f32, y as f32, or(radius, 5, 24)),
-        Command::Flood { x, y, radius } => at(x as f32, y as f32, or(radius, 4, 20)),
-        Command::Blizzard { x, y, radius } => at(x as f32, y as f32, or(radius, 6, 24)),
+        Command::Blight { x, y, radius } => at(x as f32, y as f32, or(radius, 5, MAX_BRUSH_RADIUS)),
+        Command::Flood { x, y, radius } => at(x as f32, y as f32, or(radius, 4, MAX_BRUSH_RADIUS)),
+        Command::Blizzard { x, y, radius } => at(x as f32, y as f32, or(radius, 6, MAX_BRUSH_RADIUS)),
         Command::Volcano { x, y, radius } => at(x as f32, y as f32, or(radius, 6, 12)),
         Command::Tornado { x, y, radius } => at(x as f32, y as f32, radius.clamp(4, 24) as f32),
         // Placeholder: the wave rises at the nearest sea, which `disaster_before` finds on the map.
@@ -118,9 +118,9 @@ fn disaster_area(cmd: &Command) -> Option<Option<(f32, f32, f32)>> {
         Command::Locusts { x, y, radius } => at(x as f32, y as f32, radius.clamp(6, 30) as f32),
         Command::Wildfire { x, y, radius } => at(x as f32, y as f32, radius.clamp(4, 20) as f32),
         Command::Smite { x, y, radius } | Command::Thunder { x, y, radius } => at(x, y, radius),
-        Command::Poison { x, y, radius } => at(x, y, orf(radius, 3.0, 32.0)),
-        Command::Frenzy { x, y, radius } => at(x, y, orf(radius, 4.0, 24.0)),
-        Command::MeteorShower { x, y, radius } => at(x, y, orf(radius, 10.0, 40.0)),
+        Command::Poison { x, y, radius } => at(x, y, orf(radius, 3.0, MAX_BRUSH_REACH)),
+        Command::Frenzy { x, y, radius } => at(x, y, orf(radius, 4.0, MAX_BRUSH_REACH)),
+        Command::MeteorShower { x, y, radius } => at(x, y, orf(radius, 10.0, MAX_BRUSH_REACH)),
         Command::Nuke { x, y, radius } => at(
             x as f32,
             y as f32,

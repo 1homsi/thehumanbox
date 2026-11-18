@@ -3,7 +3,11 @@ use crate::math::DetMath;
 
 impl Simulation {
     pub(super) fn cmd_heal(&mut self, x: f32, y: f32, radius: f32) -> bool {
-        let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
+        let r = if radius <= 0.0 {
+            4.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let mut healed = 0;
         let mut people = 0;
         let mut hurt = 0;
@@ -51,7 +55,11 @@ impl Simulation {
         // Natural spans run from about 9,000 to 26,000 ticks; the blessing stops
         // lengthening anyone past a span no natural birth reaches.
         const CEILING: u32 = 24_000;
-        let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
+        let r = if radius <= 0.0 {
+            4.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let mut blessed = 0;
         for o in self.organisms.iter_mut() {
             if o.alive && (o.x - x).det_hypot(o.y - y) <= r && o.max_age < CEILING {
@@ -76,7 +84,11 @@ impl Simulation {
     /// Courage: fear drains out of everyone in the radius, so they stop fleeing
     /// the danger that frightened them and hold their ground.
     pub(super) fn cmd_courage(&mut self, x: f32, y: f32, radius: f32) -> bool {
-        let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
+        let r = if radius <= 0.0 {
+            4.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let mut braced = 0;
         for o in self.organisms.iter_mut() {
             if o.alive && (o.x - x).det_hypot(o.y - y) <= r && o.fear_level > 0.05 {
@@ -103,7 +115,7 @@ impl Simulation {
     /// nothing is growing there.
     pub(super) fn cmd_sunshine(&mut self, x: i32, y: i32, radius: i32) -> bool {
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
-        let r = radius.clamp(2, 24);
+        let r = radius.clamp(2, MAX_BRUSH_RADIUS);
         let warmed = self.warm_plantings(x, y, r);
         // The sun also melts the snow and ice, dries the flooded ground and warms the people under it,
         // so it does something where nothing is planted too.
@@ -149,7 +161,11 @@ impl Simulation {
     }
 
     pub(super) fn cmd_bless(&mut self, x: f32, y: f32, radius: f32) -> bool {
-        let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
+        let r = if radius <= 0.0 {
+            4.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let mut blessed = 0;
         let mut last_name = None;
         for o in self.organisms.iter_mut() {
@@ -180,7 +196,11 @@ impl Simulation {
     }
 
     pub(super) fn cmd_inspire(&mut self, x: f32, y: f32, radius: f32) -> bool {
-        let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
+        let r = if radius <= 0.0 {
+            4.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let tech = crate::sim::tech::tech_tree::all_tech();
         let tick = self.tick_count;
         let mut inspired = 0;
@@ -220,7 +240,11 @@ impl Simulation {
     }
 
     pub(super) fn cmd_harvest(&mut self, x: f32, y: f32, radius: f32) -> bool {
-        let r = if radius <= 0.0 { 5.0 } else { radius.min(24.0) };
+        let r = if radius <= 0.0 {
+            5.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let (cx, cy, ri) = (cmd_tile(x), cmd_tile(y), r.ceil() as i32);
         let mut grown = 0;
         for dx in -ri..=ri {
@@ -257,7 +281,11 @@ impl Simulation {
     }
 
     pub(super) fn cmd_cure(&mut self, x: f32, y: f32, radius: f32) -> bool {
-        let r = if radius <= 0.0 { 10.0 } else { radius.min(48.0) };
+        let r = if radius <= 0.0 {
+            10.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let until = self.tick_count + 6_000;
         let mut cured = 0;
         let mut in_reach = 0;
@@ -297,7 +325,11 @@ impl Simulation {
     }
 
     pub(super) fn cmd_arm(&mut self, x: f32, y: f32, radius: f32) -> bool {
-        let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
+        let r = if radius <= 0.0 {
+            4.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let mut armed = 0;
         for o in self.organisms.iter_mut() {
             if !o.alive || o.age < 700 || (o.x - x).det_hypot(o.y - y) > r {
@@ -323,7 +355,11 @@ impl Simulation {
     }
 
     pub(super) fn cmd_bounty(&mut self, x: f32, y: f32, radius: f32) -> bool {
-        let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
+        let r = if radius <= 0.0 {
+            4.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let mut gifted = 0;
         for o in self.organisms.iter_mut() {
             if !o.alive || (o.x - x).det_hypot(o.y - y) > r {
@@ -350,7 +386,11 @@ impl Simulation {
 
     pub(super) fn cmd_douse(&mut self, x: i32, y: i32, radius: i32) -> bool {
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
-        let r = if radius <= 0 { 5 } else { radius.min(24) };
+        let r = if radius <= 0 {
+            5
+        } else {
+            radius.min(MAX_BRUSH_RADIUS)
+        };
         let mut doused = 0;
         for dx in -r..=r {
             for dy in -r..=r {
@@ -378,7 +418,11 @@ impl Simulation {
 
     pub(super) fn cmd_love(&mut self, x: f32, y: f32, radius: f32) -> bool {
         use crate::organism::organism::Sex;
-        let r = if radius <= 0.0 { 5.0 } else { radius.min(32.0) };
+        let r = if radius <= 0.0 {
+            5.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let in_range: Vec<usize> = (0..self.organisms.len())
             .filter(|&i| {
                 let o = &self.organisms[i];
@@ -428,7 +472,11 @@ impl Simulation {
     }
 
     pub(super) fn cmd_tame(&mut self, x: f32, y: f32, radius: f32) -> bool {
-        let r = if radius <= 0.0 { 6.0 } else { radius.min(32.0) };
+        let r = if radius <= 0.0 {
+            6.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let mut tamed = 0;
         for ai in 0..self.animals.len() {
             let a = &self.animals[ai];

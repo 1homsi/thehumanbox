@@ -1,4 +1,4 @@
-use super::{cmd_tile, Simulation};
+use super::{cmd_tile, Simulation, MAX_BRUSH_REACH};
 use crate::math::DetMath;
 use crate::organism::organism::Harm;
 use crate::sim::world_events::push_event;
@@ -7,7 +7,6 @@ use crate::world::tiles::Tile;
 
 /// How far from the click the land is swept, in tiles, unless the radius says otherwise.
 const DEFAULT_RADIUS: f32 = 4.0;
-const MAX_RADIUS: f32 = 24.0;
 
 impl Simulation {
     /// Wipes everything living in a brush area: people (who die through the normal tick, so kin grieve),
@@ -18,7 +17,7 @@ impl Simulation {
             return false;
         }
         let reach = if radius > 0.0 {
-            radius.min(MAX_RADIUS)
+            radius.min(MAX_BRUSH_REACH)
         } else {
             DEFAULT_RADIUS
         };

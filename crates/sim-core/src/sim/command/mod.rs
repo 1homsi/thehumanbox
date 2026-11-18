@@ -6,6 +6,10 @@ use crate::world::tiles::Tile;
 use rand::RngExt;
 use serde::Deserialize;
 
+pub(crate) const MAX_BRUSH_RADIUS: i32 = 64;
+
+pub(crate) const MAX_BRUSH_REACH: f32 = MAX_BRUSH_RADIUS as f32;
+
 #[derive(Deserialize)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
 pub enum Command {
@@ -737,6 +741,8 @@ fn prayer_answers(cmd: &Command) -> Option<PrayerAnswer> {
 mod blessing_tests;
 mod blessings;
 mod boat;
+#[cfg(test)]
+mod brush_cap_tests;
 mod buildings;
 mod catastrophes;
 mod clear_region;

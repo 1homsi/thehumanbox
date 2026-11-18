@@ -1,4 +1,4 @@
-use super::{clamp_cmd_coord, Simulation};
+use super::{clamp_cmd_coord, Simulation, MAX_BRUSH_RADIUS};
 use crate::sim::buildings::Building;
 use crate::world::grid::WorldGrid;
 use crate::world::tiles::Tile;
@@ -18,7 +18,7 @@ impl Simulation {
     pub(super) fn cmd_demolish(&mut self, x: i32, y: i32, radius: i32) -> bool {
         // Command coordinates are untrusted: clamp before any offset is added.
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
-        let r = radius.clamp(0, 24);
+        let r = radius.clamp(0, MAX_BRUSH_RADIUS);
         let before = self.buildings.len();
         self.buildings.retain(|b| !footprint_touches(b, x, y, r));
         let mut cleared = 0usize;
@@ -49,7 +49,7 @@ impl Simulation {
     /// condition. Returns false when none of them needed it.
     pub(super) fn cmd_repair(&mut self, x: i32, y: i32, radius: i32) -> bool {
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
-        let r = radius.clamp(0, 24);
+        let r = radius.clamp(0, MAX_BRUSH_RADIUS);
         let tick = self.tick_count;
         let mut repaired = 0usize;
         for building in self.buildings.iter_mut() {

@@ -271,7 +271,7 @@
       "tip": "dock.tips.heal",
       "target": "brush",
       "command": { "cmd": "heal", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 2, "perBrush": 1, "max": 32 },
+      "radius": { "base": 2, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noOneThere"
     },
     {
@@ -294,7 +294,7 @@
       "tip": "dock.tips.bless",
       "target": "brush",
       "command": { "cmd": "bless", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 2, "perBrush": 1, "max": 32 },
+      "radius": { "base": 2, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noOneThere"
     },
     {
@@ -306,7 +306,7 @@
       "tip": "dock.tips.inspire",
       "target": "brush",
       "command": { "cmd": "inspire", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 2, "perBrush": 1, "max": 32 },
+      "radius": { "base": 2, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noOneThere"
     },
     {
@@ -318,7 +318,7 @@
       "tip": "dock.tips.long_life",
       "target": "brush",
       "command": { "cmd": "long_life", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 2, "perBrush": 1, "max": 32 },
+      "radius": { "base": 2, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noOneThere"
     },
     {
@@ -330,7 +330,7 @@
       "tip": "dock.tips.courage",
       "target": "brush",
       "command": { "cmd": "courage", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 3, "perBrush": 1, "max": 32 },
+      "radius": { "base": 3, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noOneAfraid"
     },
     {
@@ -342,7 +342,7 @@
       "tip": "dock.tips.sunshine",
       "target": "brush",
       "command": { "cmd": "sunshine", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 4, "perBrush": 1, "max": 24 },
+      "radius": { "base": 4, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.nothingToChange"
     },
     {
@@ -365,7 +365,7 @@
       "tip": "dock.tips.cure",
       "target": "brush",
       "command": { "cmd": "cure", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 6, "perBrush": 1, "max": 48 },
+      "radius": { "base": 6, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noOneThere"
     },
     {
@@ -388,7 +388,7 @@
       "tip": "dock.tips.harvest",
       "target": "brush",
       "command": { "cmd": "harvest", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 3, "perBrush": 1, "max": 24 },
+      "radius": { "base": 3, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.nothingToChange"
     },
     {
@@ -400,7 +400,7 @@
       "tip": "dock.tips.arm",
       "target": "brush",
       "command": { "cmd": "arm", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 2, "perBrush": 1, "max": 32 },
+      "radius": { "base": 2, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noOneThere"
     },
     {
@@ -412,7 +412,7 @@
       "tip": "dock.tips.bounty",
       "target": "brush",
       "command": { "cmd": "bounty", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 2, "perBrush": 1, "max": 32 },
+      "radius": { "base": 2, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noOneThere"
     },
     {
@@ -424,7 +424,7 @@
       "tip": "dock.tips.douse",
       "target": "brush",
       "command": { "cmd": "douse", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 3, "perBrush": 1, "max": 24 },
+      "radius": { "base": 3, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noFire"
     },
     {
@@ -447,7 +447,7 @@
       "tip": "dock.tips.banish",
       "target": "brush",
       "command": { "cmd": "banish", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 4, "perBrush": 1, "max": 32 },
+      "radius": { "base": 4, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.nothingToBanish"
     },
     {
@@ -459,7 +459,7 @@
       "tip": "dock.tips.love",
       "target": "brush",
       "command": { "cmd": "love", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 4, "perBrush": 1, "max": 32 },
+      "radius": { "base": 4, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noOneThere"
     },
     {
@@ -521,7 +521,7 @@
       "tip": "dock.tips.smite",
       "target": "brush",
       "command": { "cmd": "smite", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 2, "perBrush": 1, "max": 32 },
+      "radius": { "base": 2, "perBrush": 1, "max": 64 },
       "cause": "lightning",
       "failure": "dock.failures.noOneThere"
     },
@@ -698,7 +698,7 @@
       "tip": "dock.tips.thunder",
       "target": "brush",
       "command": { "cmd": "thunder", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 5, "perBrush": 1, "max": 32 },
+      "radius": { "base": 5, "perBrush": 1, "max": 64 },
       "cause": "lightning",
       "failure": "dock.failures.lightningMissed"
     },
@@ -725,7 +725,7 @@
       "tip": "dock.tips.meteor_shower",
       "target": "brush",
       "command": { "cmd": "meteor_shower", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 8, "perBrush": 1, "max": 40 },
+      "radius": { "base": 8, "perBrush": 1, "max": 64 },
       "reach": { "min": 1, "max": 40 },
       "cause": "meteor",
       "failure": "dock.failures.nothingToChange"
@@ -750,7 +750,7 @@
       "tip": "dock.tips.frenzy",
       "target": "brush",
       "command": { "cmd": "frenzy", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 2, "perBrush": 1, "max": 24 },
+      "radius": { "base": 2, "perBrush": 1, "max": 64 },
       "reach": { "min": 1, "max": 24 },
       "failure": "dock.failures.noOneThere"
     },
@@ -763,7 +763,7 @@
       "tip": "dock.tips.poison",
       "target": "brush",
       "command": { "cmd": "poison", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 1, "perBrush": 1, "max": 32 },
+      "radius": { "base": 1, "perBrush": 1, "max": 64 },
       "reach": { "min": 1, "max": 32 },
       "failure": "dock.failures.noOneThere"
     },
@@ -776,7 +776,7 @@
       "tip": "dock.tips.blight",
       "target": "brush",
       "command": { "cmd": "blight", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 3, "perBrush": 1, "max": 24 },
+      "radius": { "base": 3, "perBrush": 1, "max": 64 },
       "reach": { "min": 1, "max": 24 },
       "failure": "dock.failures.nothingToChange"
     },
@@ -802,7 +802,7 @@
       "tip": "dock.tips.flood",
       "target": "brush",
       "command": { "cmd": "flood", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 2, "perBrush": 1, "max": 20 },
+      "radius": { "base": 2, "perBrush": 1, "max": 64 },
       "reach": { "min": 1, "max": 20 },
       "cause": "flood",
       "failure": "dock.failures.nothingToChange"
@@ -816,7 +816,7 @@
       "tip": "dock.tips.blizzard",
       "target": "brush",
       "command": { "cmd": "blizzard", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 4, "perBrush": 1, "max": 24 },
+      "radius": { "base": 4, "perBrush": 1, "max": 64 },
       "reach": { "min": 1, "max": 24 },
       "cause": "frost",
       "failure": "dock.failures.nothingToChange"
@@ -894,7 +894,7 @@
       "tip": "dock.tips.demolish",
       "target": "brush",
       "command": { "cmd": "demolish", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 1, "perBrush": 1, "max": 24 }
+      "radius": { "base": 1, "perBrush": 1, "max": 64 }
     },
     {
       "id": "repair",
@@ -905,7 +905,7 @@
       "tip": "dock.tips.repair",
       "target": "brush",
       "command": { "cmd": "repair", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 2, "perBrush": 1, "max": 24 }
+      "radius": { "base": 2, "perBrush": 1, "max": 64 }
     },
     {
       "id": "road",
@@ -916,7 +916,7 @@
       "tip": "dock.tips.road",
       "target": "brush",
       "command": { "cmd": "road", "x": "$x", "y": "$y", "radius": "$radius", "kind": "road" },
-      "radius": { "base": 0, "perBrush": 1, "max": 24 }
+      "radius": { "base": 0, "perBrush": 1, "max": 63 }
     },
     {
       "id": "bridge",
@@ -927,7 +927,7 @@
       "tip": "dock.tips.bridge",
       "target": "brush",
       "command": { "cmd": "road", "x": "$x", "y": "$y", "radius": "$radius", "kind": "bridge" },
-      "radius": { "base": 0, "perBrush": 1, "max": 24 }
+      "radius": { "base": 0, "perBrush": 1, "max": 63 }
     },
     {
       "id": "road_erase",
@@ -938,7 +938,7 @@
       "tip": "dock.tips.road_erase",
       "target": "brush",
       "command": { "cmd": "road", "x": "$x", "y": "$y", "radius": "$radius", "kind": "erase" },
-      "radius": { "base": 0, "perBrush": 1, "max": 24 }
+      "radius": { "base": 0, "perBrush": 1, "max": 63 }
     },
     {
       "id": "place_house",
@@ -980,7 +980,7 @@
       "tip": "dock.tips.clear_region",
       "target": "brush",
       "command": { "cmd": "clear_region", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 2, "perBrush": 1, "max": 24 },
+      "radius": { "base": 2, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.nothingToClear"
     },
     {
@@ -992,7 +992,7 @@
       "tip": "dock.tips.restore",
       "target": "brush",
       "command": { "cmd": "restore", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 0, "perBrush": 1, "max": 24 },
+      "radius": { "base": 0, "perBrush": 1, "max": 63 },
       "failure": "dock.failures.nothingToChange"
     },
     {
@@ -1004,7 +1004,7 @@
       "tip": "dock.tips.grass",
       "target": "brush",
       "command": { "cmd": "paint", "x": "$x", "y": "$y", "tile": "grass", "radius": "$radius" },
-      "radius": { "base": 0, "perBrush": 1, "max": 24 }
+      "radius": { "base": 0, "perBrush": 1, "max": 63 }
     },
     {
       "id": "water",
@@ -1015,7 +1015,7 @@
       "tip": "dock.tips.water",
       "target": "brush",
       "command": { "cmd": "paint", "x": "$x", "y": "$y", "tile": "water", "radius": "$radius" },
-      "radius": { "base": 0, "perBrush": 1, "max": 24 }
+      "radius": { "base": 0, "perBrush": 1, "max": 63 }
     },
     {
       "id": "rock",
@@ -1026,7 +1026,7 @@
       "tip": "dock.tips.rock",
       "target": "brush",
       "command": { "cmd": "paint", "x": "$x", "y": "$y", "tile": "rock", "radius": "$radius" },
-      "radius": { "base": 0, "perBrush": 1, "max": 24 }
+      "radius": { "base": 0, "perBrush": 1, "max": 63 }
     },
     {
       "id": "sand",
@@ -1037,7 +1037,7 @@
       "tip": "dock.tips.sand",
       "target": "brush",
       "command": { "cmd": "paint", "x": "$x", "y": "$y", "tile": "sand", "radius": "$radius" },
-      "radius": { "base": 0, "perBrush": 1, "max": 24 }
+      "radius": { "base": 0, "perBrush": 1, "max": 63 }
     },
     {
       "id": "snow",
@@ -1048,7 +1048,7 @@
       "tip": "dock.tips.snow",
       "target": "brush",
       "command": { "cmd": "paint", "x": "$x", "y": "$y", "tile": "snow", "radius": "$radius" },
-      "radius": { "base": 0, "perBrush": 1, "max": 24 }
+      "radius": { "base": 0, "perBrush": 1, "max": 63 }
     },
     {
       "id": "lava",
@@ -1059,7 +1059,7 @@
       "tip": "dock.tips.lava",
       "target": "brush",
       "command": { "cmd": "paint", "x": "$x", "y": "$y", "tile": "lava", "radius": "$radius" },
-      "radius": { "base": 0, "perBrush": 1, "max": 24 }
+      "radius": { "base": 0, "perBrush": 1, "max": 63 }
     },
     {
       "id": "dawn",
@@ -1122,7 +1122,7 @@
       "tip": "dock.tips.rain_patch",
       "target": "brush",
       "command": { "cmd": "rain_patch", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 4, "perBrush": 1, "max": 20 },
+      "radius": { "base": 4, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noFireToDrink"
     },
     {
@@ -1176,7 +1176,7 @@
       "tip": "dock.tips.frost",
       "target": "brush",
       "command": { "cmd": "freeze", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 2, "perBrush": 1, "max": 24 },
+      "radius": { "base": 2, "perBrush": 1, "max": 64 },
       "reach": { "min": 1, "max": 24 },
       "cause": "frost",
       "failure": "dock.failures.noWaterToFreeze"
@@ -1225,7 +1225,7 @@
       "tip": "dock.tips.biome_grassland",
       "target": "brush",
       "command": { "cmd": "paint_biome", "x": "$x", "y": "$y", "biome": "grassland", "radius": "$radius" },
-      "radius": { "base": 3, "perBrush": 1, "max": 24 },
+      "radius": { "base": 3, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noLand"
     },
     {
@@ -1237,7 +1237,7 @@
       "tip": "dock.tips.biome_forest",
       "target": "brush",
       "command": { "cmd": "paint_biome", "x": "$x", "y": "$y", "biome": "forest", "radius": "$radius" },
-      "radius": { "base": 3, "perBrush": 1, "max": 24 },
+      "radius": { "base": 3, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noLand"
     },
     {
@@ -1249,7 +1249,7 @@
       "tip": "dock.tips.biome_jungle",
       "target": "brush",
       "command": { "cmd": "paint_biome", "x": "$x", "y": "$y", "biome": "jungle", "radius": "$radius" },
-      "radius": { "base": 3, "perBrush": 1, "max": 24 },
+      "radius": { "base": 3, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noLand"
     },
     {
@@ -1261,7 +1261,7 @@
       "tip": "dock.tips.biome_savanna",
       "target": "brush",
       "command": { "cmd": "paint_biome", "x": "$x", "y": "$y", "biome": "savanna", "radius": "$radius" },
-      "radius": { "base": 3, "perBrush": 1, "max": 24 },
+      "radius": { "base": 3, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noLand"
     },
     {
@@ -1273,7 +1273,7 @@
       "tip": "dock.tips.biome_desert",
       "target": "brush",
       "command": { "cmd": "paint_biome", "x": "$x", "y": "$y", "biome": "desert", "radius": "$radius" },
-      "radius": { "base": 3, "perBrush": 1, "max": 24 },
+      "radius": { "base": 3, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noLand"
     },
     {
@@ -1285,7 +1285,7 @@
       "tip": "dock.tips.biome_badlands",
       "target": "brush",
       "command": { "cmd": "paint_biome", "x": "$x", "y": "$y", "biome": "badlands", "radius": "$radius" },
-      "radius": { "base": 3, "perBrush": 1, "max": 24 },
+      "radius": { "base": 3, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noLand"
     },
     {
@@ -1297,7 +1297,7 @@
       "tip": "dock.tips.biome_wetland",
       "target": "brush",
       "command": { "cmd": "paint_biome", "x": "$x", "y": "$y", "biome": "wetland", "radius": "$radius" },
-      "radius": { "base": 3, "perBrush": 1, "max": 24 },
+      "radius": { "base": 3, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noLand"
     },
     {
@@ -1309,7 +1309,7 @@
       "tip": "dock.tips.biome_tundra",
       "target": "brush",
       "command": { "cmd": "paint_biome", "x": "$x", "y": "$y", "biome": "tundra", "radius": "$radius" },
-      "radius": { "base": 3, "perBrush": 1, "max": 24 },
+      "radius": { "base": 3, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noLand"
     },
     {
@@ -1321,7 +1321,7 @@
       "tip": "dock.tips.biome_taiga",
       "target": "brush",
       "command": { "cmd": "paint_biome", "x": "$x", "y": "$y", "biome": "taiga", "radius": "$radius" },
-      "radius": { "base": 3, "perBrush": 1, "max": 24 },
+      "radius": { "base": 3, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noLand"
     },
     {
@@ -1333,7 +1333,7 @@
       "tip": "dock.tips.food",
       "target": "brush",
       "command": { "cmd": "paint", "x": "$x", "y": "$y", "tile": "food", "radius": "$radius" },
-      "radius": { "base": 0, "perBrush": 1, "max": 24 }
+      "radius": { "base": 0, "perBrush": 1, "max": 63 }
     },
     {
       "id": "drink",
@@ -1344,7 +1344,7 @@
       "tip": "dock.tips.drink",
       "target": "brush",
       "command": { "cmd": "paint", "x": "$x", "y": "$y", "tile": "water", "radius": "$radius" },
-      "radius": { "base": 0, "perBrush": 1, "max": 24 }
+      "radius": { "base": 0, "perBrush": 1, "max": 63 }
     },
     {
       "id": "plant_crop",
@@ -1852,7 +1852,7 @@
       "tip": "dock.tips.tame",
       "target": "brush",
       "command": { "cmd": "tame", "x": "$x", "y": "$y", "radius": "$radius" },
-      "radius": { "base": 4, "perBrush": 1, "max": 32 },
+      "radius": { "base": 4, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noWolves"
     },
     {
@@ -2081,7 +2081,7 @@
       "tip": "dock.tips.tribe_food",
       "target": "brush",
       "command": { "cmd": "tribe_gift", "x": "$x", "y": "$y", "radius": "$radius", "what": "food" },
-      "radius": { "base": 6, "perBrush": 1, "max": 20 }
+      "radius": { "base": 6, "perBrush": 1, "max": 64 }
     },
     {
       "id": "tribe_tools",
@@ -2092,7 +2092,7 @@
       "tip": "dock.tips.tribe_tools",
       "target": "brush",
       "command": { "cmd": "tribe_gift", "x": "$x", "y": "$y", "radius": "$radius", "what": "tool" },
-      "radius": { "base": 6, "perBrush": 1, "max": 20 }
+      "radius": { "base": 6, "perBrush": 1, "max": 64 }
     },
     {
       "id": "migrate_tribe",

@@ -1,4 +1,4 @@
-use super::{clamp_cmd_coord, Simulation};
+use super::{clamp_cmd_coord, Simulation, MAX_BRUSH_RADIUS};
 use crate::sim::world_events::push_event;
 use crate::world::grid::WorldGrid;
 use crate::world::tiles::Tile;
@@ -8,7 +8,11 @@ impl Simulation {
     /// when the warm season comes (see `world_events::ice`). Returns false when no water is there.
     pub(super) fn cmd_freeze(&mut self, x: i32, y: i32, radius: i32) -> bool {
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
-        let r = if radius <= 0 { 4 } else { radius.min(24) };
+        let r = if radius <= 0 {
+            4
+        } else {
+            radius.min(MAX_BRUSH_RADIUS)
+        };
         let mut frozen = 0;
         for dx in -r..=r {
             for dy in -r..=r {
