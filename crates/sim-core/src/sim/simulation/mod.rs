@@ -201,7 +201,8 @@ pub struct Simulation {
     /// Harvests waiting at their fields for a village cart (see `civ::land::village_carts`).
     pub cart_grain: Vec<super::civ::land::village_carts::CartGrain>,
     /// Each town's plaza and streets (see `civ::civ_tick::town`).
-    pub town_plazas: Vec<super::civ::civ_tick::town::TownPlaza>,
+    pub towns: Vec<super::civ::civ_tick::town::Town>,
+    pub next_town_id: u32,
     pub next_trade_route_id: u32,
     pub next_caravan_id: u32,
     /// Coin a tribe has earned by selling goods to other tribes, by lineage (what the
@@ -369,7 +370,8 @@ impl Simulation {
             rail_lines: Vec::new(),
             rail_remnants: Vec::new(),
             cart_grain: Vec::new(),
-            town_plazas: Vec::new(),
+            towns: Vec::new(),
+            next_town_id: 1,
             caravans: Vec::new(),
             next_trade_route_id: 1,
             next_caravan_id: 1,

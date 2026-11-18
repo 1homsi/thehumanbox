@@ -56,7 +56,7 @@ fn old_world_preserves_every_grid_layer_and_coordinate() {
     v["village_roads"] = json!([{"lineage":"a","from":[12,24],"to":[12,24]}]);
     v["rail_lines"] = json!([{"id":1,"lineage":"a","a":[12,24],"b":[12,24],"path":[[12,24]]}]);
     v["cart_grain"] = json!([{"lineage":"a","at":[12,24],"grain":7}]);
-    v["town_plazas"] = json!([{"lineage":"a","center":[12,24],"streets":[[12,24]]}]);
+    v["towns"] = json!([{"lineage":"a","center":[12,24],"streets":[[12,24]]}]);
     v["grid"]["placed_volcanoes"] = json!([{"x":12,"y":24,"r":5}]);
     s = serde_json::from_value(v).expect("enriched fixture");
     for layer in [
@@ -172,8 +172,8 @@ fn old_world_preserves_every_grid_layer_and_coordinate() {
         "/rail_lines/0/b",
         "/rail_lines/0/path/0",
         "/cart_grain/0/at",
-        "/town_plazas/0/center",
-        "/town_plazas/0/streets/0",
+        "/towns/0/center",
+        "/towns/0/streets/0",
     ] {
         assert_eq!(after.pointer(path).unwrap(), &json!([112, 74]), "{path}");
     }

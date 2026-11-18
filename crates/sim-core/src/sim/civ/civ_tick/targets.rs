@@ -52,11 +52,94 @@ pub(super) fn research_target(
     })
 }
 
+pub(super) const GREAT_WORSHIP: [BuildingKind; 5] = [
+    BuildingKind::Cathedral,
+    BuildingKind::Mosque,
+    BuildingKind::Synagogue,
+    BuildingKind::Pagoda,
+    BuildingKind::Stupa,
+];
+
+pub(super) struct Needs {
+    pub(super) shore: bool,
+    pub(super) rock: bool,
+    pub(super) fields: bool,
+    pub(super) streets: bool,
+    pub(super) agriculture: bool,
+    pub(super) worship: Option<BuildingKind>,
+}
+
+impl Needs {
+    #[cfg(test)]
+    pub(super) fn any() -> Self {
+        Needs {
+            shore: true,
+            rock: true,
+            fields: true,
+            streets: true,
+            agriculture: true,
+            worship: None,
+        }
+    }
+
+    pub(super) fn of(sim: &Simulation, lineage: &str, agriculture: bool) -> Self {
+        use crate::world::tiles::Tile;
+        let town = super::town::main_town(sim, lineage);
+        let (cx, cy) = town
+            .map(|t| (t.center[0], t.center[1]))
+            .unwrap_or_else(|| lineage_center(sim, lineage));
+        let near = |reach: i32, want: &dyn Fn(Tile) -> bool| {
+            (-reach..=reach).any(|dy| (-reach..=reach).any(|dx| want(sim.grid.get(cx + dx, cy + dy))))
+        };
+        let pick = lineage.bytes().map(usize::from).sum::<usize>() % GREAT_WORSHIP.len();
+        Needs {
+            shore: near(16, &|t| t == Tile::Water),
+            rock: near(20, &|t| matches!(t, Tile::Rock | Tile::Mineral)),
+            fields: sim.farms.iter().any(|f| f.owner_lineage == lineage)
+                || sim
+                    .buildings
+                    .iter()
+                    .any(|b| b.kind == BuildingKind::Pen && b.owner_lineage.as_deref() == Some(lineage)),
+            streets: town.is_some_and(|t| t.planned && t.streets.len() >= 6),
+            agriculture,
+            worship: Some(GREAT_WORSHIP[pick]),
+        }
+    }
+
+    pub(super) fn allows(&self, kind: BuildingKind, existing: &HashSet<BuildingKind>) -> bool {
+        use BuildingKind::*;
+        match kind {
+            Port | Marina | Drydock | Dock | Lighthouse | Fishmonger | Aquaculture | Shipyard => self.shore,
+            Lighthouse2 => self.shore && !existing.contains(&Lighthouse),
+            Greenhouse2 => !existing.contains(&Greenhouse),
+            Fountain2 => !existing.contains(&Fountain),
+            Hospital2 => !existing.contains(&Hospital),
+            Quarry | Mine => self.rock,
+            Fence => self.fields,
+            Mill | Windmill | Vineyard | Ranch | Orchard | Silo => self.agriculture,
+            BusStop | StreetLight | Lamppost | Crosswalk | ParkingLot | TelephonePole => self.streets,
+            Cathedral | Mosque | Synagogue | Pagoda | Stupa => self.worship.is_none_or(|w| w == kind),
+            _ => true,
+        }
+    }
+}
+
+#[cfg(test)]
 pub(super) fn next_target_building(
     era: Era,
     pop: usize,
     population_limit: usize,
     existing: &HashSet<BuildingKind>,
+) -> Option<BuildingKind> {
+    next_needed_building(era, pop, population_limit, existing, &Needs::any())
+}
+
+pub(super) fn next_needed_building(
+    era: Era,
+    pop: usize,
+    population_limit: usize,
+    existing: &HashSet<BuildingKind>,
+    needs: &Needs,
 ) -> Option<BuildingKind> {
     use BuildingKind::*;
     let mut wishlist: Vec<BuildingKind> = Vec::new();
@@ -277,7 +360,9 @@ pub(super) fn next_target_building(
     if era >= Era::Galactic && meets(450) {
         wishlist.push(Megastructure);
     }
-    wishlist.into_iter().find(|&k| !existing.contains(&k))
+    wishlist
+        .into_iter()
+        .find(|&k| !existing.contains(&k) && needs.allows(k, existing))
 }
 
 /// A craft or civic building a tribe keeps a share of once its homes cover
@@ -470,6 +555,29 @@ mod tests {
         }
         assert!(existing.contains(&Substation));
         assert!(!existing.contains(&TrainStation));
+    }
+
+    #[test]
+    fn a_landlocked_tribe_builds_what_its_land_calls_for_and_one_great_temple() {
+        let needs = Needs {
+            shore: false,
+            rock: false,
+            fields: false,
+            streets: false,
+            agriculture: true,
+            worship: Some(Mosque),
+        };
+        let mut existing: HashSet<BuildingKind> = HashSet::default();
+        while let Some(kind) = next_needed_building(Era::Galactic, 1_000, 1_000, &existing, &needs) {
+            existing.insert(kind);
+        }
+        for kind in [
+            Port, Dock, Marina, Lighthouse, Quarry, Mine, Fence, BusStop, Cathedral, Pagoda,
+        ] {
+            assert!(!existing.contains(&kind), "{kind:?} has no reason here");
+        }
+        assert!(existing.contains(&Mosque));
+        assert!(existing.contains(&Windmill));
     }
 
     #[test]

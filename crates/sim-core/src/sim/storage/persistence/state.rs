@@ -244,8 +244,10 @@ pub struct SaveState {
     pub(super) rail_remnants: Vec<crate::sim::tech::networks::RailRemnant>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(super) cart_grain: Vec<crate::sim::civ::land::village_carts::CartGrain>,
+    #[serde(default, alias = "town_plazas")]
+    pub(super) towns: Vec<crate::sim::civ::civ_tick::town::Town>,
     #[serde(default)]
-    pub(super) town_plazas: Vec<crate::sim::civ::civ_tick::town::TownPlaza>,
+    pub(super) next_town_id: u32,
 }
 
 impl SaveState {

@@ -129,7 +129,8 @@ fn take_over(
 ) -> Option<BuildingKind> {
     let tribes = living_tribes(sim);
     let t = tribes.get(lineage)?;
-    let (cx, cy) = (t.x, t.y);
+    let (cx, cy) = crate::sim::civ::civ_tick::town::main_town(sim, lineage)
+        .map_or((t.x, t.y), |town| (town.center[0] as f32, town.center[1] as f32));
     let best = sim
         .buildings
         .iter()
@@ -143,6 +144,8 @@ fn take_over(
     let (_, i) = best?;
     let kind = sim.buildings[i].kind;
     sim.buildings[i].owner_lineage = Some(lineage.to_string());
+    sim.buildings[i].town =
+        crate::sim::civ::civ_tick::town::parent_for(sim, lineage, sim.buildings[i].x, sim.buildings[i].y);
     sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
     let name = sim
         .lineage_names

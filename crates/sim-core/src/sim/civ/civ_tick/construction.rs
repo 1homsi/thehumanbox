@@ -340,11 +340,22 @@ impl<'a> SiteSearch<'a> {
         preferred_x: i32,
         preferred_y: i32,
     ) -> Self {
+        Self::around(sim, lineage, kind, preferred_x, preferred_y, SITE_WINDOW_MARGIN)
+    }
+
+    fn around(
+        sim: &'a Simulation,
+        lineage: &str,
+        kind: BuildingKind,
+        preferred_x: i32,
+        preferred_y: i32,
+        margin: i32,
+    ) -> Self {
         let (width, height) = kind.footprint();
-        let window_x = preferred_x - SITE_WINDOW_MARGIN;
-        let window_y = preferred_y - SITE_WINDOW_MARGIN;
-        let window_width = 2 * SITE_WINDOW_MARGIN + i32::from(width) + 4;
-        let window_height = 2 * SITE_WINDOW_MARGIN + i32::from(height) + 4;
+        let window_x = preferred_x - margin;
+        let window_y = preferred_y - margin;
+        let window_width = 2 * margin + i32::from(width) + 4;
+        let window_height = 2 * margin + i32::from(height) + 4;
         let mut occupied = vec![false; (window_width * window_height) as usize];
         for building in sim.buildings.iter().filter(|building| !building.decorative) {
             let (building_width, building_height) = building.footprint();
@@ -359,7 +370,7 @@ impl<'a> SiteSearch<'a> {
             }
         }
         let mut reserved = vec![false; occupied.len()];
-        for town in &sim.town_plazas {
+        for town in &sim.towns {
             let tiles = town.reserved_tiles();
             for (x, y) in tiles {
                 if (window_x..window_x + window_width).contains(&x)
@@ -479,6 +490,106 @@ pub(super) fn find_construction_site(
     None
 }
 
+fn find_zone_site(
+    sim: &Simulation,
+    lineage: &str,
+    kind: BuildingKind,
+    town: &super::town::Town,
+) -> Option<(i32, i32)> {
+    let (lo, hi) = super::town::zone_of(kind).ring()?;
+    let (w, h) = kind.footprint();
+    let (w, h) = (i32::from(w), i32::from(h));
+    let [cx, cy] = town.center;
+    let search = SiteSearch::around(sim, lineage, kind, cx, cy, hi + 4);
+    let homes = is_home_kind(kind) && town.planned;
+    let mut fallback = None;
+    for d in lo..=hi {
+        for dy in -d..=d {
+            for dx in -d..=d {
+                if dx.abs() != d && dy.abs() != d {
+                    continue;
+                }
+                let (x, y) = (cx + dx, cy + dy);
+                if !search.accepts(x, y) {
+                    continue;
+                }
+                if !homes || super::town::fronts_a_street(town, x, y, w, h) {
+                    return Some((x, y));
+                }
+                if fallback.is_none() {
+                    fallback = Some((x, y));
+                }
+            }
+        }
+    }
+    fallback
+}
+
+fn jitter(sim: &Simulation) -> (i32, i32) {
+    (
+        (sim.next_building_id as i32 * 3) % 16 - 8,
+        (sim.next_building_id as i32 * 5) % 14 - 7,
+    )
+}
+
+pub(super) fn try_start_in_town(
+    sim: &mut Simulation,
+    lineage: &str,
+    kind: BuildingKind,
+    failed: &mut FailedSites,
+) -> bool {
+    let Some(index) = super::town::town_for(sim, lineage, kind) else {
+        let (cx, cy) = lineage_center(sim, lineage);
+        if (cx, cy) == (0, 0) {
+            return false;
+        }
+        let (ox, oy) = jitter(sim);
+        let (x, y) = if kind.needs_shore() {
+            match super::town::shore_point(sim, kind, (cx, cy)) {
+                Some(point) => point,
+                None => return false,
+            }
+        } else {
+            (cx + ox, cy + oy)
+        };
+        return try_start_building_with(sim, lineage, kind, x, y, failed);
+    };
+    let town = sim.towns[index].clone();
+    let [cx, cy] = town.center;
+    let zone = super::town::zone_of(kind);
+    let started = if kind.needs_shore() {
+        match super::town::shore_point(sim, kind, (cx, cy)) {
+            Some((x, y)) => try_start_building_with(sim, lineage, kind, x, y, failed),
+            None => false,
+        }
+    } else if zone == super::town::Zone::Free {
+        let (ox, oy) = jitter(sim);
+        try_start_building_with(sim, lineage, kind, cx + ox, cy + oy, failed)
+    } else if zone == super::town::Zone::Civic && town.planned {
+        super::town::civic_anchors(sim, lineage, kind)
+            .into_iter()
+            .any(|(x, y)| try_start_building_with(sim, lineage, kind, x, y, failed))
+    } else if !construction_cost_available(sim, lineage, kind) || failed.covers(kind, cx, cy) {
+        false
+    } else {
+        let started = find_zone_site(sim, lineage, kind, &town)
+            .is_some_and(|(x, y)| start_building_at_valid_site(sim, lineage, kind, x, y));
+        if started {
+            failed.0.clear();
+        } else {
+            failed.0.extend(FailedSites::key(kind, cx, cy));
+        }
+        started
+    };
+    if started {
+        let id = sim.next_building_id.wrapping_sub(1);
+        if let Some(b) = sim.buildings.iter_mut().rev().find(|b| b.id == id) {
+            b.town = Some(town.id);
+        }
+    }
+    started
+}
+
 pub(super) fn start_building_at_valid_site(
     sim: &mut Simulation,
     lineage: &str,
@@ -532,14 +643,16 @@ pub(super) fn start_building_at_valid_site(
     });
     let id = sim.next_building_id;
     sim.next_building_id += 1;
-    sim.buildings.push(Building::new(
+    let mut building = Building::new(
         id,
         kind,
         site_x,
         site_y,
         Some(lineage.to_string()),
         sim.tick_count,
-    ));
+    );
+    building.town = super::town::parent_for(sim, lineage, site_x, site_y);
+    sim.buildings.push(building);
     sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
     let cost = project_cost(sim, lineage, kind);
     push_event(
@@ -791,7 +904,9 @@ const PALISADE_TOWERS: usize = 4;
 /// a gate on each road that crosses the ring and a few towers, and upgrades the
 /// fences it already has to walls.
 pub(super) fn raise_palisade(sim: &mut Simulation, lineage: &str) -> usize {
-    let (cx, cy) = lineage_center(sim, lineage);
+    let (cx, cy) = super::town::main_town(sim, lineage)
+        .map(|t| (t.center[0], t.center[1]))
+        .unwrap_or_else(|| lineage_center(sim, lineage));
     if (cx, cy) == (0, 0) {
         return 0;
     }
@@ -1053,7 +1168,7 @@ pub(super) fn at_war(sim: &Simulation, lineage: &str) -> bool {
 }
 
 pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
-    super::town::tick_town_plazas(sim);
+    super::town::tick_towns(sim);
     abandon_stalled_palisade(sim);
     let functional_count = sim
         .buildings
@@ -1133,24 +1248,12 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                 .map(|b| b.kind)
                 .collect();
             if let Some(kind) = research_target(era, pop, sim.population_limit(), &owned) {
-                let (cx, cy) = lineage_center(sim, &lid);
-                if (cx, cy) != (0, 0) {
-                    let mut failed_sites = FailedSites::default();
-                    let offset_x = (sim.next_building_id as i32 * 3) % 16 - 8;
-                    let offset_y = (sim.next_building_id as i32 * 5) % 14 - 7;
-                    if crate::sim::civ::vacancy::take_over_empty(sim, &lid, kind)
-                        || try_start_building_with(
-                            sim,
-                            &lid,
-                            kind,
-                            cx + offset_x,
-                            cy + offset_y,
-                            &mut failed_sites,
-                        )
-                    {
-                        functional_slots -= 1;
-                        continue;
-                    }
+                let mut failed_sites = FailedSites::default();
+                if crate::sim::civ::vacancy::take_over_empty(sim, &lid, kind)
+                    || try_start_in_town(sim, &lid, kind, &mut failed_sites)
+                {
+                    functional_slots -= 1;
+                    continue;
                 }
             }
         }
@@ -1233,6 +1336,7 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
             .organisms
             .iter()
             .any(|o| o.alive && o.lineage_id == lid && o.discoveries.contains("agriculture"));
+        let needs = Needs::of(sim, &lid, agriculture);
         // Set when a craft or civic project the tribe wants waits on stone it
         // does not hold. The lineage's people then fetch stone for the next pass.
         // A tribe waiting on stone for its next house fetches it too.
@@ -1269,10 +1373,7 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                 // A tribe of six raises its workshop before its next home: craft
                 // work needs one, and housing would otherwise always come first.
                 if let Some(kind) = first_workshop_target(era, pop, &existing) {
-                    let (cx, cy) = lineage_center(sim, &lid);
-                    if (cx, cy) != (0, 0)
-                        && try_start_building_with(sim, &lid, kind, cx, cy, &mut failed_sites)
-                    {
+                    if try_start_in_town(sim, &lid, kind, &mut failed_sites) {
                         started = Some(kind);
                     }
                 }
@@ -1283,12 +1384,10 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                     .filter(|_| started.is_none() && !craft_turn && !civic_first)
                 {
                     // Move into a home a vanished tribe left before raising one.
-                    if !crate::sim::civ::vacancy::move_into_empty_home(sim, &lid) {
-                        let center = lineage_center(sim, &lid);
-                        let (cx, cy) = super::town::placement_point(sim, &lid, kind, center, (0, 0));
-                        if try_start_building_with(sim, &lid, kind, cx, cy, &mut failed_sites) {
-                            started = Some(kind);
-                        }
+                    if !crate::sim::civ::vacancy::move_into_empty_home(sim, &lid)
+                        && try_start_in_town(sim, &lid, kind, &mut failed_sites)
+                    {
+                        started = Some(kind);
                     }
                 }
             }
@@ -1296,11 +1395,8 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
             if started.is_none() {
                 if let Some(kind) = devout_target(sim, &lid, era, pop, &considered) {
                     considered.insert(kind);
-                    let center = lineage_center(sim, &lid);
-                    let (cx, cy) = super::town::placement_point(sim, &lid, kind, center, (0, 0));
                     if crate::sim::civ::vacancy::take_over_empty(sim, &lid, kind)
-                        || ((cx, cy) != (0, 0)
-                            && try_start_building_with(sim, &lid, kind, cx, cy, &mut failed_sites))
+                        || try_start_in_town(sim, &lid, kind, &mut failed_sites)
                     {
                         started = Some(kind);
                     }
@@ -1311,8 +1407,8 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                 // the rest of the wishlist; a project it cannot pay for yet
                 // leaves the stone it needs on the lineage's wants.
                 let craft = most_lacking_craft(era, pop, agriculture, &craft_held, &considered);
-                let Some(kind) =
-                    craft.or_else(|| next_target_building(era, pop, sim.population_limit(), &considered))
+                let Some(kind) = craft
+                    .or_else(|| next_needed_building(era, pop, sim.population_limit(), &considered, &needs))
                 else {
                     break;
                 };
@@ -1333,14 +1429,10 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                     started = Some(kind);
                     break;
                 }
-                let center = lineage_center(sim, &lid);
-                if center == (0, 0) {
+                if lineage_center(sim, &lid) == (0, 0) {
                     break;
                 }
-                let offset_x = (sim.next_building_id as i32 * 3) % 16 - 8;
-                let offset_y = (sim.next_building_id as i32 * 5) % 14 - 7;
-                let (cx, cy) = super::town::placement_point(sim, &lid, kind, center, (offset_x, offset_y));
-                if try_start_building_with(sim, &lid, kind, cx, cy, &mut failed_sites) {
+                if try_start_in_town(sim, &lid, kind, &mut failed_sites) {
                     started = Some(kind);
                     break;
                 }
@@ -1685,7 +1777,9 @@ pub(super) fn tick_building_progress(sim: &mut Simulation) {
 /// the lineage's project limit, so a tribe whose projects were all stranded
 /// could never start another one.
 pub(super) fn relocate_stalled_projects(sim: &mut Simulation, lineage: &str) {
-    let (cx, cy) = lineage_center(sim, lineage);
+    let (cx, cy) = super::town::main_town(sim, lineage)
+        .map(|t| (t.center[0], t.center[1]))
+        .unwrap_or_else(|| lineage_center(sim, lineage));
     if (cx, cy) == (0, 0) {
         return;
     }

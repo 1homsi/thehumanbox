@@ -173,9 +173,21 @@ impl Simulation {
             }
             let taken_set: crate::hashing::FxHashSet<(i32, i32)> = taken.iter().copied().collect();
             let mut buildings_captured = false;
+            let winner_towns: Vec<(u32, crate::sim::civ::civ_tick::town::Town)> = self
+                .towns
+                .iter()
+                .filter(|t| t.lineage == winner)
+                .map(|t| (t.id, t.clone()))
+                .collect();
             for b in self.buildings.iter_mut() {
                 if taken_set.contains(&(b.x, b.y)) {
                     b.owner_lineage = Some(winner.clone());
+                    b.town = winner_towns
+                        .iter()
+                        .map(|(id, t)| (t.distance(b.x, b.y), *id))
+                        .filter(|&(d, _)| d <= crate::sim::civ::civ_tick::town::PARENT_REACH)
+                        .min()
+                        .map(|(_, id)| id);
                     buildings_captured = true;
                 }
             }

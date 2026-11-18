@@ -362,7 +362,7 @@ impl Simulation {
     }
 
     fn town_centre(&self, lineage: &str, fallback: [i32; 2]) -> [i32; 2] {
-        self.town_plazas
+        self.towns
             .iter()
             .find(|t| t.lineage == lineage)
             .map_or(fallback, |t| t.center)

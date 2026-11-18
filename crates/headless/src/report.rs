@@ -640,6 +640,29 @@ pub(super) fn print_progress(sim: &Simulation) {
             rail_cells,
             stations
         );
+        let towns = sim::civ_tick::town::town_counts(sim);
+        println!(
+            "Towns at end: towns {}, planned {}, tribes with several {}, buildings {}, decorative {}, without a town {}, of living tribes {}, functional of living tribes {}, outside their zone {}",
+            towns.towns,
+            towns.planned,
+            towns.lineages_with_several,
+            towns.buildings,
+            towns.decorative,
+            towns.without_town,
+            towns.without_town_living,
+            towns.without_town_functional,
+            towns.outside_zone
+        );
+        let centres: Vec<String> = sim::civ_tick::town::town_centres(sim)
+            .into_iter()
+            .map(|(id, [x, y])| format!("{id}@{x},{y}"))
+            .collect();
+        println!("Town centres: {}", centres.join(" "));
+        let anchors: Vec<String> = sim::civ_tick::town::lineage_centres(sim)
+            .into_iter()
+            .map(|(l, [x, y])| format!("{l}@{x},{y}"))
+            .collect();
+        println!("Lineage centres: {}", anchors.join(" "));
         let strays = sim::tech::networks::network_strays(sim);
         println!(
             "Network strays at end: stray rail cells {}, stations with no line {}, substations with no grid {}, ways under buildings {}",

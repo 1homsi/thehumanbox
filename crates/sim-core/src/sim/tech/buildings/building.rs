@@ -123,6 +123,8 @@ pub struct Building {
     /// Ticks of work a hull on a shipyard's slip still needs (see `tech/ports.rs`). `None` when no hull is on the slip.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hull_work: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub town: Option<u32>,
 }
 
 impl Building {
@@ -145,6 +147,7 @@ impl Building {
             stock: 0,
             spoiled_tick: None,
             hull_work: None,
+            town: None,
         }
     }
 

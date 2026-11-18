@@ -331,10 +331,14 @@ fn a_full_project_limit_does_not_keep_a_farming_tribe_from_the_bakery_it_lacks()
     ));
     // A craft goes on the town's plaza corners, and a plaza starts its market first: a finished
     // market means no civic project is waiting, so the bakery is the one that goes outside the limit.
-    sim.town_plazas.push(super::super::town::TownPlaza {
+    sim.towns.push(super::super::town::Town {
         lineage: "lineage-a".into(),
         center: [36, 36],
         streets: Vec::new(),
+        id: 1,
+        founded_tick: 0,
+        planned: true,
+        growth: 0,
     });
     let mut market = Building::new(7, BuildingKind::Market, 36, 36, Some("lineage-a".into()), 0);
     market.condition = 1.0;
@@ -719,7 +723,7 @@ fn check_site_search_parity(seed: u64, from: u64, to: u64, every: u64) -> (usize
         if sim.tick_count < from || !sim.tick_count.is_multiple_of(every) {
             continue;
         }
-        if !sim.town_plazas.is_empty() {
+        if !sim.towns.is_empty() {
             with_plazas += 1;
         }
         let mut lineages: Vec<String> = sim
@@ -819,10 +823,14 @@ fn a_house_site_skips_the_plaza_it_was_placed_on() {
         org.inv_stone = 10;
         sim.organisms.push(org);
     }
-    sim.town_plazas.push(super::super::town::TownPlaza {
+    sim.towns.push(super::super::town::Town {
         lineage: "plaza-town".into(),
         center: [cx, cy],
         streets: Vec::new(),
+        id: 1,
+        founded_tick: 0,
+        planned: true,
+        growth: 0,
     });
     let expected = reference_site(&sim, "plaza-town", BuildingKind::House, cx, cy);
     let found = find_construction_site(&sim, "plaza-town", BuildingKind::House, cx, cy);
@@ -898,10 +906,14 @@ fn plaza_town(seed: u64, lineage: &str, era: Era) -> Simulation {
         org.inv_stone = 10;
         sim.organisms.push(org);
     }
-    sim.town_plazas.push(super::super::town::TownPlaza {
+    sim.towns.push(super::super::town::Town {
         lineage: lineage.into(),
         center: [cx, cy],
         streets: Vec::new(),
+        id: 1,
+        founded_tick: 0,
+        planned: true,
+        growth: 0,
     });
     sim.lineage_eras.insert(lineage.into(), era);
     sim
@@ -911,7 +923,7 @@ fn plaza_town(seed: u64, lineage: &str, era: Era) -> Simulation {
 fn a_classical_town_puts_a_fountain_in_its_plaza_and_the_basin_holds_water() {
     use crate::world::tiles::Tile;
     let mut sim = plaza_town(0xF0_07, "fountain-town", Era::Classical);
-    let (cx, cy) = (sim.town_plazas[0].center[0], sim.town_plazas[0].center[1]);
+    let (cx, cy) = (sim.towns[0].center[0], sim.towns[0].center[1]);
     tick_buildings_construct(&mut sim);
     let fountain = sim
         .buildings
@@ -1112,7 +1124,7 @@ fn a_harbour_is_aimed_at_the_nearest_shore_and_found_there() {
     builder.age = 10_000;
     builder.health = 1.0;
     sim.organisms.push(builder);
-    let point = super::town::placement_point(&sim, "lineage-a", BuildingKind::Dock, (80, 80), (-7, 3));
+    let point = super::town::shore_point(&sim, BuildingKind::Dock, (80, 80)).expect("a shore");
     assert_eq!(
         point,
         (98, 80),
@@ -1160,7 +1172,7 @@ fn a_cramped_shore_is_passed_over_for_one_a_harbour_fits() {
         sim.grid.set(98, y, Tile::Hut);
     }
     sim.grid.set(99, 80, Tile::Grass);
-    let point = super::town::placement_point(&sim, "lineage-a", BuildingKind::Dock, (80, 80), (0, 0));
+    let point = super::town::shore_point(&sim, BuildingKind::Dock, (80, 80)).expect("a shore");
     assert!(
         construction_terrain_is_valid(&sim, BuildingKind::Dock, point.0, point.1),
         "{point:?} fits a dock"
@@ -1182,7 +1194,7 @@ fn a_built_up_shore_is_passed_over_for_a_free_one() {
             0,
         ));
     }
-    let point = super::town::placement_point(&sim, "lineage-a", BuildingKind::Dock, (80, 80), (0, 0));
+    let point = super::town::shore_point(&sim, BuildingKind::Dock, (80, 80)).expect("a shore");
     assert!(
         construction_site_is_valid(&sim, BuildingKind::Dock, point.0, point.1),
         "{point:?} is free shore"
@@ -1194,15 +1206,19 @@ fn a_built_up_shore_is_passed_over_for_a_free_one() {
 fn a_town_street_on_the_shore_is_passed_over() {
     let mut sim = lakeside(100);
     // A town's street runs along the shore near the centre; the dock goes past it.
-    sim.town_plazas.push(super::town::TownPlaza {
+    sim.towns.push(super::town::Town {
         lineage: "lineage-a".into(),
         center: [96, 80],
         streets: (66..=94)
             .map(|y| [98, y])
             .chain((66..=94).map(|y| [99, y]))
             .collect(),
+        id: 1,
+        founded_tick: 0,
+        planned: true,
+        growth: 0,
     });
-    let point = super::town::placement_point(&sim, "lineage-a", BuildingKind::Dock, (80, 80), (0, 0));
+    let point = super::town::shore_point(&sim, BuildingKind::Dock, (80, 80)).expect("a shore");
     assert!(
         !(point.1..point.1 + 2)
             .any(|y| (point.0..point.0 + 2).any(|x| super::town::town_reserved(&sim, x, y))),
