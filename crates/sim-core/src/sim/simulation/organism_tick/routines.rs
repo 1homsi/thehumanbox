@@ -37,15 +37,17 @@ impl Simulation {
         }
 
         // Children keep close to their mother and play near home; elders sit by the fire after dark.
-        self.assign_family_outing(idx, spatial, org_idx_by_id);
-        self.assign_working_day(idx);
-        self.assign_daily_work(idx);
-        self.assign_service(idx);
-        self.assign_speech(idx);
-        self.keep_away_from_rivals(idx, org_idx_by_id);
-        self.walk_to_a_friend(idx, org_idx_by_id);
-        self.fall_in_behind_leader(idx, spatial);
-        self.care_for_elder_parent(idx, org_idx_by_id);
+        if !f.dormant || (self.tick_count + idx as u64).is_multiple_of(DORMANT_ROUTINE_EVERY) {
+            self.assign_family_outing(idx, spatial, org_idx_by_id);
+            self.assign_working_day(idx);
+            self.assign_daily_work(idx);
+            self.assign_service(idx);
+            self.assign_speech(idx);
+            self.keep_away_from_rivals(idx, org_idx_by_id);
+            self.walk_to_a_friend(idx, org_idx_by_id);
+            self.fall_in_behind_leader(idx, spatial);
+            self.care_for_elder_parent(idx, org_idx_by_id);
+        }
 
         if self.tick_count % 2000 == (idx as u64 % 2000) {
             {

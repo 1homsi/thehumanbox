@@ -368,7 +368,7 @@ impl Simulation {
     ) -> Choice {
         let o = &self.organisms[s.idx];
         let action = match o.last_action.map(usize::from) {
-            Some(a) if a >= 8 => a,
+            Some(a) if a >= 8 && !stirs_others(a) => a,
             _ => {
                 let goal = {
                     let route = o.route.borrow();
@@ -572,6 +572,12 @@ fn lore_known(names: &[&str], discoveries: &std::collections::BTreeSet<String>) 
     }
     known
 }
+
+fn stirs_others(action: usize) -> bool {
+    matches!(action, 10 | 11 | 21)
+}
+
+pub(super) const DORMANT_ROUTINE_EVERY: u64 = 8;
 
 fn upkeep_roll(tick: u64, idx: usize) -> f32 {
     let mut z = tick.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ (idx as u64).wrapping_add(0xD1B5_4A32_D192_ED03);
