@@ -771,7 +771,7 @@ fn site_search_picks_the_same_tile_as_the_single_site_rules() {
     // 3000 have plazas and streets, which the single-site rules keep open.
     let (mut compared, mut found, mut with_plazas) = (0, 0, 0);
     for seed in [42u64, 1337] {
-        let (c, f, p) = check_site_search_parity(seed, 1_500, 3_000, 240);
+        let (c, f, p) = check_site_search_parity(seed, 1_500, 4_800, 240);
         compared += c;
         found += f;
         with_plazas += p;

@@ -157,9 +157,10 @@ impl Simulation {
             if let Some(aid) = self.organisms[idx].attracted_to.clone() {
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
                 let attraction_age = tc.saturating_sub(self.organisms[idx].attraction_tick);
+                let reach = if f.dormant { 40.0 } else { 8.0 };
                 let partner_close = org_idx_by_id.get(&aid).is_some_and(|&i| {
                     let o = &self.organisms[i];
-                    o.alive && (o.x - ox).det_hypot(o.y - oy) < 8.0
+                    o.alive && (o.x - ox).det_hypot(o.y - oy) < reach
                 });
                 if partner_close && attraction_age >= 150 && self.rng.random::<f32>() < 0.08 {
                     if let Some(pi) = org_idx_by_id

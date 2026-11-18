@@ -116,9 +116,11 @@ pub(crate) struct PendingLearn {
     animal_near: bool,
 }
 
-const LOD_EVERY: u64 = 8;
+const LOD_EVERY: u64 = 16;
 
-const COURTING_EVERY: u64 = 2;
+const LORE_EVERY: u64 = 60;
+
+const LORE_CHANCE_PERCENT: u64 = 10;
 
 const COMMAND_FOCUS_REACH: i32 = 24;
 
@@ -143,11 +145,6 @@ impl Simulation {
                     || o.health < 0.6
                     || o.infection > 0.3
                     || o.water_ticks > 0
-                    || o.is_elder
-                    || (o.partner_id.is_none()
-                        && o.age > 1000
-                        && o.traits.social_tendency > 0.15
-                        && (self.tick_count + i as u64).is_multiple_of(COURTING_EVERY))
                     || o.last_action.is_none()
                 {
                     return true;
@@ -171,6 +168,43 @@ impl Simulation {
                 })
             })
             .collect()
+    }
+
+    pub(super) fn lineage_lore(&mut self, awake: &[bool]) {
+        if !self.tick_count.is_multiple_of(LORE_EVERY) {
+            return;
+        }
+        let mut lore: std::collections::BTreeMap<String, std::collections::BTreeSet<String>> =
+            std::collections::BTreeMap::new();
+        for o in self.organisms.iter().filter(|o| o.alive) {
+            lore.entry(o.lineage_id.clone())
+                .or_default()
+                .extend(o.discoveries.iter().cloned());
+        }
+        let tick = self.tick_count;
+        for (i, o) in self.organisms.iter_mut().enumerate() {
+            if !o.alive || awake.get(i).copied().unwrap_or(true) {
+                continue;
+            }
+            let Some(known) = lore.get(&o.lineage_id) else {
+                continue;
+            };
+            for d in known {
+                if o.discoveries.contains(d.as_str()) {
+                    continue;
+                }
+                let roll = d
+                    .bytes()
+                    .chain(tick.to_le_bytes())
+                    .chain((i as u64).to_le_bytes())
+                    .fold(0xcbf2_9ce4_8422_2325u64, |h, b| {
+                        (h ^ u64::from(b)).wrapping_mul(0x0000_0100_0000_01b3)
+                    });
+                if roll % 100 < LORE_CHANCE_PERCENT {
+                    o.discover(d);
+                }
+            }
+        }
     }
 
     pub(super) fn dormant_sensed(&self, idx: usize) -> Sensed {
@@ -324,6 +358,7 @@ pub(super) struct OrgFrame<'a> {
     pub(super) epsilon: f32,
     pub(super) fear_trait: f32,
     pub(super) is_unpartnered_adult: bool,
+    pub(super) dormant: bool,
     pub(super) kin_count_2: usize,
     pub(super) kin_sum: f32,
     pub(super) lineage: String,
@@ -392,6 +427,7 @@ fn new_frame<'a>(
         epsilon: 0.0,
         fear_trait: 0.0,
         is_unpartnered_adult: false,
+        dormant: false,
         kin_count_2: 0,
         kin_sum: 0.0,
         lineage: String::new(),
@@ -513,6 +549,7 @@ impl Simulation {
             lineage_members,
         );
         let sensed_dormant = sensed.dormant;
+        f.dormant = sensed_dormant;
         f.put_sensed(sensed);
         // Others may have acted since sensing. Attribute only health changes
         // during this person's own turn to their decision.

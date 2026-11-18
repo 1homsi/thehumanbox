@@ -28,6 +28,7 @@ struct Stage {
     /// The middle of the biggest crowd.
     crowd: (f32, f32),
     beast: (f32, f32),
+    hurt: (f32, f32),
     /// A small lake beside it, and the water at its near shore.
     lake: (f32, f32),
     shore: (f32, f32),
@@ -209,6 +210,7 @@ fn staged_world() -> (Simulation, Stage) {
     let stage = Stage {
         crowd,
         beast,
+        hurt: at(near[0]),
         lake: ((cx + 8) as f32, cy as f32),
         shore: ((cx + 7) as f32, cy as f32),
         wood,
@@ -240,7 +242,7 @@ fn targets(tool: &str, cmd: &Value, s: &Stage) -> Vec<Value> {
         let (a, b) = match tool {
             "marry" => (s.man, s.woman),
             // The man is of the crowd's tribe and has food to spare.
-            "trade_gift" => (s.man, s.other),
+            "trade_gift" | "merge_tribes" => (s.man, s.other),
             _ => (s.crowd, s.other),
         };
         let mut c = cmd.clone();
@@ -261,6 +263,7 @@ fn targets(tool: &str, cmd: &Value, s: &Stage) -> Vec<Value> {
         "douse" | "rain_patch" => s.fire,
         "repair" => s.building,
         "tame" => s.beast,
+        "heal_one" => s.hurt,
         _ => s.crowd,
     };
     // Open ground around the crowd, for tools that need a free footprint or a particular ground.
