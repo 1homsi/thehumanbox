@@ -81,6 +81,7 @@ pub fn tick_tech_progress(
         }
     }
     let evidence_kinds = node_evidence_kinds();
+    let index = node_index();
     for (lid, disc, members) in &tribes {
         let pop = members.len();
         if pop == 0 {
@@ -96,11 +97,15 @@ pub fn tick_tech_progress(
             governments.get(lid),
         );
 
-        for (node, &evidence_kind) in tech.iter().zip(evidence_kinds) {
-            if disc.contains(node.name) {
+        let known = index.known(disc);
+        for ((i, node), &evidence_kind) in tech.iter().enumerate().zip(evidence_kinds) {
+            if known.has(i) {
                 continue;
             }
-            if !node.prerequisites.iter().all(|p| disc.contains(*p)) {
+            if !index.prerequisites[i].iter().all(|&(p, at)| match at {
+                Some(at) => known.has(at),
+                None => disc.contains(p),
+            }) {
                 continue;
             }
             if !research_requirements_met(node.era, &profile) {
@@ -502,6 +507,54 @@ fn evidence_kind(discovery: &str) -> Evidence {
     } else {
         Evidence::Learning
     }
+}
+
+struct NodeIndex {
+    by_name: HashMap<&'static str, Vec<usize>>,
+    prerequisites: Vec<Vec<(&'static str, Option<usize>)>>,
+}
+
+struct KnownNodes(Vec<u64>);
+
+impl KnownNodes {
+    fn has(&self, i: usize) -> bool {
+        self.0[i / 64] & (1 << (i % 64)) != 0
+    }
+}
+
+impl NodeIndex {
+    fn known(&self, disc: &HashSet<String>) -> KnownNodes {
+        let mut bits = vec![0u64; all_tech().len().div_ceil(64)];
+        for name in disc {
+            for &i in self.by_name.get(name.as_str()).map_or(&[][..], Vec::as_slice) {
+                bits[i / 64] |= 1 << (i % 64);
+            }
+        }
+        KnownNodes(bits)
+    }
+}
+
+fn node_index() -> &'static NodeIndex {
+    static INDEX: std::sync::OnceLock<NodeIndex> = std::sync::OnceLock::new();
+    INDEX.get_or_init(|| {
+        let mut by_name: HashMap<&'static str, Vec<usize>> = HashMap::default();
+        for (i, node) in all_tech().iter().enumerate() {
+            by_name.entry(node.name).or_default().push(i);
+        }
+        let prerequisites = all_tech()
+            .iter()
+            .map(|node| {
+                node.prerequisites
+                    .iter()
+                    .map(|&p| (p, by_name.get(p).and_then(|at| at.first().copied())))
+                    .collect()
+            })
+            .collect();
+        NodeIndex {
+            by_name,
+            prerequisites,
+        }
+    })
 }
 
 fn node_evidence_kinds() -> &'static [Evidence] {

@@ -122,7 +122,31 @@ pub(crate) fn plot_allowance(population: usize) -> usize {
 }
 
 /// True when a tribe may break new ground rather than reuse a plot it has.
+pub(crate) fn tribe_people_and_plots(sim: &Simulation) -> FxHashMap<String, (usize, usize)> {
+    let mut tribes: FxHashMap<String, (usize, usize)> = FxHashMap::default();
+    for o in sim.organisms.iter().filter(|o| o.alive) {
+        if let Some(tribe) = tribes.get_mut(&o.lineage_id) {
+            tribe.0 += 1;
+        } else {
+            tribes.insert(o.lineage_id.clone(), (1, 0));
+        }
+    }
+    for farm in &sim.farms {
+        if let Some(tribe) = tribes.get_mut(&farm.owner_lineage) {
+            tribe.1 += 1;
+        }
+    }
+    tribes
+}
+
 pub(crate) fn can_open_new_plot(sim: &Simulation, lineage: &str) -> bool {
+    if let Some(&(population, plots)) = sim
+        .choosing_tribes
+        .as_ref()
+        .and_then(|tribes| tribes.get(lineage))
+    {
+        return plots < plot_allowance(population);
+    }
     let population = sim
         .organisms
         .iter()
