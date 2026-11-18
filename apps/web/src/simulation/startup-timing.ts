@@ -1,3 +1,4 @@
+import { create } from 'zustand'
 import { trackEvent } from '../shared/observability'
 import type { SingleThreadReason } from './wasmThreads'
 
@@ -22,6 +23,10 @@ export interface WorkerStartup {
 
 const MS_FIELDS = ['engine_ms', 'lock_ms', 'restore_ms', 'generate_ms', 'total_ms'] as const
 
+export const useSimEngine = create<{
+  engine: Pick<WorkerStartup, 'engine' | 'threads' | 'fallback'> | null
+}>()(() => ({ engine: null }))
+
 /** The startup report in a worker message, or null when it is missing or malformed. */
 export function readStartup(value: unknown): WorkerStartup | null {
   if (!value || typeof value !== 'object') return null
@@ -31,6 +36,7 @@ export function readStartup(value: unknown): WorkerStartup | null {
   if (
     v.fallback !== null &&
     v.fallback !== 'not_isolated' &&
+    v.fallback !== 'webkit' &&
     v.fallback !== 'failed' &&
     v.fallback !== 'slow'
   )
@@ -44,10 +50,17 @@ export function readStartup(value: unknown): WorkerStartup | null {
  * loading the page and the worker script before the start message.
  */
 let reported = false
-export function reportWorldStartup(startup: WorkerStartup, pageMs: number): void {
+export function reportWorldStartup(
+  startup: WorkerStartup,
+  pageMs: number,
+  cores: number | null = globalThis.navigator?.hardwareConcurrency ?? null,
+): void {
+  useSimEngine.setState({
+    engine: { engine: startup.engine, threads: startup.threads, fallback: startup.fallback },
+  })
   if (reported) return
   reported = true
-  trackEvent('world_startup', { ...startup, page_ms: Math.round(pageMs) })
+  trackEvent('world_startup', { ...startup, page_ms: Math.round(pageMs), cores })
 }
 
 /** Tests only. */

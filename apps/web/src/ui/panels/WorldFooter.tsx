@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import type { WorldState } from '../../shared/types'
-import { t, type MessageKey } from '../../i18n'
+import { formatNumber, t, type MessageKey } from '../../i18n'
+import { useSimEngine } from '../../simulation/startup-timing'
+import type { SingleThreadReason } from '../../simulation/wasmThreads'
 
 interface Props {
   world: WorldState
@@ -25,6 +27,28 @@ const WEATHER_KEY: Record<string, MessageKey> = {
   snow: 'panels.weather.snow',
   fog: 'panels.weather.fog',
   wet: 'panels.weather.wet',
+}
+
+const FALLBACK_KEY: Record<SingleThreadReason, MessageKey> = {
+  not_isolated: 'panels.footer.engineReasons.notIsolated',
+  webkit: 'panels.footer.engineReasons.webkit',
+  failed: 'panels.footer.engineReasons.failed',
+  slow: 'panels.footer.engineReasons.slow',
+}
+
+function EngineRow() {
+  const engine = useSimEngine((s) => s.engine)
+  if (!engine) return null
+  const value =
+    engine.engine === 'threads' || !engine.fallback
+      ? t('panels.footer.engineThreads', { count: formatNumber(engine.threads) })
+      : t('panels.footer.engineSingle', { reason: t(FALLBACK_KEY[engine.fallback]) })
+  return (
+    <div className="footer-row">
+      <span className="footer-label">{t('panels.footer.engine')}</span>
+      <span className="footer-value">{value}</span>
+    </div>
+  )
 }
 
 export function WorldFooter({ world }: Props) {
@@ -78,6 +102,7 @@ export function WorldFooter({ world }: Props) {
           <span className="mood-rivals">{moodCounts.rivals}⚔</span>
         </span>
       </div>
+      <EngineRow />
     </div>
   )
 }

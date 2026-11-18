@@ -106,7 +106,19 @@
     "night": "gece",
     "weather": "hava",
     "droughtTag": "· {label}",
-    "tribes": "kabileler"
+    "tribes": "kabileler",
+    "engine": "motor",
+    "engineThreads": {
+      "one": "{count} iş parçacığı",
+      "other": "{count} iş parçacığı"
+    },
+    "engineSingle": "tek iş parçacığı: {reason}",
+    "engineReasons": {
+      "notIsolated": "tarayıcı yalıtılmamış",
+      "webkit": "bu tarayıcı henüz iş parçacıklarını desteklemiyor",
+      "failed": "iş parçacıkları başlamadı",
+      "slow": "iş parçacıkları çok yavaş başladı"
+    }
   },
   "weather": {
     "clear": "açık",

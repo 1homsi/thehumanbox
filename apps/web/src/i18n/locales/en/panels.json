@@ -106,7 +106,19 @@
     "night": "night",
     "weather": "weather",
     "droughtTag": "· {label}",
-    "tribes": "tribes"
+    "tribes": "tribes",
+    "engine": "sim engine",
+    "engineThreads": {
+      "one": "{count} thread",
+      "other": "{count} threads"
+    },
+    "engineSingle": "single thread: {reason}",
+    "engineReasons": {
+      "notIsolated": "browser not isolated",
+      "webkit": "this browser can't run threads yet",
+      "failed": "threads failed to start",
+      "slow": "threads too slow to start"
+    }
   },
   "weather": {
     "clear": "clear",

@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useUIStore } from '../../../state/store'
 import { useWorldStore } from '../../../state/worldStore'
+import { useSimEngine } from '../../../simulation/startup-timing'
 import type { WorldState } from '../../../shared/types'
 import { WorldPanel } from './WorldPanel'
 
@@ -56,6 +57,7 @@ afterEach(() => {
   host.remove()
   useWorldStore.setState({ world: null, byId: new Map() })
   useUIStore.setState({ nerdStats: false })
+  useSimEngine.setState({ engine: null })
 })
 
 function render() {
@@ -85,5 +87,23 @@ describe('the world panel', () => {
     expect(text).toContain('starvation')
     expect(text).not.toContain('old age')
     expect(host.querySelector('.event-tick')).not.toBeNull()
+  })
+
+  it('shows the engine with Stats for nerds on', () => {
+    useUIStore.setState({ nerdStats: true })
+    useSimEngine.setState({ engine: { engine: 'threads', threads: 4, fallback: null } })
+    render()
+    expect(host.textContent).toContain('4 threads')
+    act(() => useSimEngine.setState({ engine: { engine: 'single', threads: 1, fallback: 'not_isolated' } }))
+    render()
+    expect(host.textContent).toContain('single thread: browser not isolated')
+    act(() => useSimEngine.setState({ engine: { engine: 'single', threads: 1, fallback: 'webkit' } }))
+    expect(host.textContent).toContain("single thread: this browser can't run threads yet")
+  })
+
+  it('leaves the engine out with Stats for nerds off', () => {
+    useSimEngine.setState({ engine: { engine: 'threads', threads: 4, fallback: null } })
+    render()
+    expect(host.textContent).not.toContain('4 threads')
   })
 })

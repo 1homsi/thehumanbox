@@ -13,6 +13,7 @@ import {
   THREADS_HEAD_START_MS,
   threadCount,
   wantsThreads,
+  webkitEngine,
   withTimeout,
   type SingleThreadReason,
 } from './wasmThreads'
@@ -40,6 +41,7 @@ export async function startSimEngine(): Promise<SimEngine> {
     return { Sim, threads: 1 }
   }
   if (!wantsThreads(self)) return { ...(await startSingle()), fallback: 'not_isolated' }
+  if (webkitEngine(navigator.userAgent)) return { ...(await startSingle()), fallback: 'webkit' }
 
   const threads = threadCount(navigator.hardwareConcurrency)
   const threaded = (async () => {

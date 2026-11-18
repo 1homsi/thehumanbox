@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
-import { MAX_SIM_THREADS, raceEngines, threadCount, withTimeout, wantsThreads } from './wasmThreads'
+import {
+  MAX_SIM_THREADS,
+  raceEngines,
+  threadCount,
+  withTimeout,
+  wantsThreads,
+  webkitEngine,
+} from './wasmThreads'
 
 describe('wantsThreads', () => {
   it('needs a cross-origin isolated page with SharedArrayBuffer', () => {
@@ -13,6 +20,38 @@ describe('wantsThreads', () => {
 
   it('keeps a browser without SharedArrayBuffer on the single-thread engine', () => {
     expect(wantsThreads({ crossOriginIsolated: true, SharedArrayBuffer: undefined })).toBe(false)
+  })
+})
+
+describe('webkitEngine', () => {
+  it('finds Safari and the other WebKit browsers', () => {
+    expect(
+      webkitEngine(
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
+      ),
+    ).toBe(true)
+    expect(
+      webkitEngine(
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/140.0.0.0 Mobile/15E148 Safari/604.1',
+      ),
+    ).toBe(true)
+  })
+
+  it('leaves Chromium and Firefox alone', () => {
+    expect(
+      webkitEngine(
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36',
+      ),
+    ).toBe(false)
+    expect(
+      webkitEngine(
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0',
+      ),
+    ).toBe(false)
+    expect(
+      webkitEngine('Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:150.0) Gecko/20100101 Firefox/150.0'),
+    ).toBe(false)
+    expect(webkitEngine(undefined)).toBe(false)
   })
 })
 
@@ -31,12 +70,14 @@ describe('withTimeout', () => {
 })
 
 describe('threadCount', () => {
-  it('leaves one core for the page', () => {
-    expect(threadCount(4)).toBe(3)
-    expect(threadCount(3)).toBe(2)
+  it('leaves two cores for the page and its renderer', () => {
+    expect(threadCount(4)).toBe(2)
+    expect(threadCount(6)).toBe(4)
+    expect(threadCount(8)).toBe(6)
   })
 
   it('never takes more than the cap, however many cores the machine has', () => {
+    expect(threadCount(12)).toBe(MAX_SIM_THREADS)
     expect(threadCount(16)).toBe(MAX_SIM_THREADS)
     expect(threadCount(64)).toBe(MAX_SIM_THREADS)
   })
@@ -44,6 +85,7 @@ describe('threadCount', () => {
   it('runs at least one thread', () => {
     expect(threadCount(1)).toBe(1)
     expect(threadCount(2)).toBe(1)
+    expect(threadCount(3)).toBe(1)
     expect(threadCount(0)).toBe(1)
   })
 
