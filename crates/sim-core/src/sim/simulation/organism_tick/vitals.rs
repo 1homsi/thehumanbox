@@ -10,6 +10,7 @@ impl Simulation {
         let night = f.night;
         let spatial = f.spatial;
         let spatial_buf = &mut *f.spatial_buf;
+        let dormant = f.dormant;
 
         let (cx, cy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
         let current_tile = self.grid.get(cx, cy);
@@ -32,16 +33,18 @@ impl Simulation {
             }
         }
 
-        verify_local_resource_memory(&mut self.organisms[idx], &self.grid, cx, cy);
-        verify_local_danger_memory(
-            &mut self.organisms[idx],
-            &self.grid,
-            &self.animals,
-            animal_spatial,
-            spatial_buf,
-            cx,
-            cy,
-        );
+        if !dormant {
+            verify_local_resource_memory(&mut self.organisms[idx], &self.grid, cx, cy);
+            verify_local_danger_memory(
+                &mut self.organisms[idx],
+                &self.grid,
+                &self.animals,
+                animal_spatial,
+                spatial_buf,
+                cx,
+                cy,
+            );
+        }
 
         if self.organisms[idx].carrying > 0 {
             self.organisms[idx].carrying -= 1;
@@ -111,51 +114,13 @@ impl Simulation {
             }
         }
 
-        let shelter_strength = {
-            let mut s = 0.0f32;
-            'sw: for ddx in -3i32..=3 {
-                for ddy in -3i32..=3 {
-                    let nx = cx + ddx;
-                    let ny = cy + ddy;
-                    let t = self.grid.get(nx, ny);
-                    if t == Tile::Campfire {
-                        s = 0.55;
-                        break 'sw;
-                    }
-                    if t == Tile::Hut {
-                        s = 0.90;
-                        break 'sw;
-                    }
-                    let st = self.grid.structure_at(nx, ny);
-                    if st >= 0.35 {
-                        s = s.max(st);
-                    }
-                }
-            }
-            s
+        let shelter_strength = if dormant {
+            0.0
+        } else {
+            shelter_strength(&self.grid, cx, cy)
         };
-        if shelter_strength > 0.0 {
-            let energy_bonus = 0.0008 + shelter_strength * 0.0022;
-            self.organisms[idx].energy = (self.organisms[idx].energy + energy_bonus).min(1.0);
-
-            let health_regen = 0.0006 + shelter_strength * 0.0010;
-            self.organisms[idx].health = (self.organisms[idx].health + health_regen).min(1.0);
-
-            if self.organisms[idx].infection > 0.01 {
-                let inf_mult = 0.992 - shelter_strength * 0.006;
-                self.organisms[idx].infection =
-                    (self.organisms[idx].infection * inf_mult.max(0.980)).max(0.0);
-            }
-
-            if self.organisms[idx].fear_level > 0.0 {
-                self.organisms[idx].fear_level =
-                    (self.organisms[idx].fear_level - shelter_strength * 0.008).max(0.0);
-            }
-
-            if self.organisms[idx].grief_ticks > 0 && self.rng.random::<f32>() < shelter_strength * 0.12 {
-                self.organisms[idx].grief_ticks = self.organisms[idx].grief_ticks.saturating_sub(3);
-            }
-        }
+        let rng = &mut self.rng;
+        shelter_comfort(&mut self.organisms[idx], shelter_strength, || rng.random::<f32>());
 
         if decision_origin.starts_with("boat_") {
             if let Some(thought) = new_thought {
@@ -163,97 +128,25 @@ impl Simulation {
             }
         }
 
-        let shelter_drain_mult = if shelter_strength > 0.0 {
-            (1.0 - shelter_strength * 0.35).max(0.65)
-        } else {
-            1.0
-        };
-        let mut water_near = false;
-        'wn: for ddx in -4i32..=4 {
-            for ddy in -4i32..=4 {
-                if self.grid.get(cx + ddx, cy + ddy) == Tile::Water {
-                    water_near = true;
-                    break 'wn;
-                }
-            }
-        }
-        let hydration_mult = if water_near { 0.5 } else { 1.0 };
-        // A heat wave: people drink more and tire faster.
-        let (heat_thirst, heat_tire) = if self.weather.heat_active(self.tick_count) {
-            (1.6, 1.25)
-        } else {
-            (1.0, 1.0)
-        };
-
-        let hunger = self.goals.difficulty.hunger_mult();
-        self.organisms[idx].energy =
-            (self.organisms[idx].energy - 0.0022 * shelter_drain_mult * heat_tire * hunger).max(0.0);
-        self.organisms[idx].hydration =
-            (self.organisms[idx].hydration - 0.0014 * hydration_mult * heat_thirst).max(0.0);
-
-        let (used_food_reserve, _) = use_needed_reserves(&mut self.organisms[idx], self.tick_count);
-        if used_food_reserve {
-            self.organisms[idx].think("eating stored food", self.tick_count);
-        }
-        self.apply_water_fatigue(idx, cx, cy);
-        if night {
-            let has_torch = self.organisms[idx].discoveries.has(Hot::Torch);
-            let night_base = if has_torch { 0.0002 } else { 0.0005 };
-            let night_drain = night_base * shelter_drain_mult;
-            self.organisms[idx].energy = (self.organisms[idx].energy - night_drain).max(0.0);
-        }
-
-        // Winters are cold and summers warm; shelter softens both.
-        let temp = self.grid.temp_at(cx, cy) + self.season_temperature_now();
-        let resilience = self.organisms[idx].traits.resilience;
-        if !(10.0..=30.0).contains(&temp) {
-            let stress = if temp < 10.0 {
-                (10.0 - temp) / 40.0
-            } else {
-                (temp - 30.0) / 70.0
-            };
-            let temp_shelter = 1.0 - shelter_strength * 0.60;
-            let drain = stress * 0.003 * (1.1 - resilience * 0.2) * temp_shelter;
-            self.organisms[idx].energy = (self.organisms[idx].energy - drain).max(0.0);
-            if temp > 40.0 {
-                self.organisms[idx].hydration = (self.organisms[idx].hydration - drain * 0.5).max(0.0);
-            }
-        }
-        let inf = self.organisms[idx].infection;
-        if inf > 0.01 {
-            self.organisms[idx].energy = (self.organisms[idx].energy - 0.001 * inf).max(0.0);
-            if inf > 0.6 {
-                self.organisms[idx].health = (self.organisms[idx].health - 0.001 * (inf - 0.6)).max(0.0);
-                self.organisms[idx].mark_harm(crate::organism::organism::Harm::Sickness, self.tick_count);
-            }
-            if inf > 0.25
-                && matches!(
-                    self.organisms[idx].thought.as_str(),
-                    "exploring" | "observing" | "satisfied" | "on path"
-                )
-            {
-                self.organisms[idx].think("feeling weak", self.tick_count);
-            }
-            // Decay happens once, in the `med_mult` block below, which
-            // already defaults to 0.997. Applying it here as well made
-            // untreated infection recover at 0.997^2 and shifted every
-            // medicine tier by the extra factor.
-        }
-
-        if self.organisms[idx].infection > 0.01 {
-            let d = &self.organisms[idx].discoveries;
-            let med_mult = if d.contains("antibiotics") {
-                0.970
-            } else if d.contains("alchemy") {
-                0.982
-            } else if d.contains("medicine") || d.contains("medicine_lore") {
-                0.988
-            } else if d.contains("poultice") || d.contains("herbalism") {
-                0.992
-            } else {
-                0.997
-            };
-            self.organisms[idx].infection = (self.organisms[idx].infection * med_mult).max(0.0);
+        if !dormant {
+            let climate = self.climate(night);
+            drain_and_eat(
+                &mut self.organisms[idx],
+                &self.grid,
+                &climate,
+                cx,
+                cy,
+                shelter_strength,
+            );
+            self.apply_water_fatigue(idx, cx, cy);
+            weather_and_sickness(
+                &mut self.organisms[idx],
+                &self.grid,
+                &climate,
+                cx,
+                cy,
+                shelter_strength,
+            );
         }
 
         if self.organisms[idx].inv_water >= 2 && self.tick_count % 7 == (idx as u64 % 7) {
@@ -444,14 +337,8 @@ impl Simulation {
             }
         }
 
-        if night && self.organisms[idx].discoveries.has(Hot::Ritual) {
-            let (cx2, cy2) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
-            let near_fire = (-3i32..=3)
-                .any(|ddx| (-3i32..=3).any(|ddy| self.grid.get(cx2 + ddx, cy2 + ddy) == Tile::Campfire));
-            if near_fire {
-                self.organisms[idx].comfort = (self.organisms[idx].comfort + 0.003).min(1.0);
-                self.organisms[idx].loneliness = (self.organisms[idx].loneliness - 0.005).max(0.0);
-            }
+        if !dormant {
+            ritual_comfort(&mut self.organisms[idx], &self.grid, night);
         }
 
         {
@@ -469,29 +356,215 @@ impl Simulation {
             }
         }
 
-        if self.organisms[idx].infection < 0.8 {
+        if !dormant && self.organisms[idx].infection < 0.8 {
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
             spatial.query_into(sx as i32, sy as i32, 2, spatial_buf);
-            let res = self.organisms[idx].traits.resilience;
-            let prev_inf = self.organisms[idx].infection;
-            for &i in spatial_buf.iter() {
-                if i == idx {
-                    continue;
-                }
-                let o = &self.organisms[i];
-                if !(o.alive && o.infection >= 0.15 && (o.x - sx).abs() + (o.y - sy).abs() <= 2.0) {
-                    continue;
-                }
-                let other_inf = o.infection;
-                let spread = 0.015 * other_inf * (1.0 - res * 0.8);
-                self.organisms[idx].infection = (self.organisms[idx].infection + spread).min(1.0);
-            }
-            if prev_inf < 0.15 && self.organisms[idx].infection >= 0.15 {
+            let organisms = &self.organisms;
+            let caught = caught_infection(&organisms[idx], idx, spatial_buf, |i| {
+                let o = &organisms[i];
+                (o.x, o.y, o.infection, o.alive)
+            });
+            if set_infection(&mut self.organisms[idx], caught) {
                 self.history.sickness_events += 1;
             }
         }
 
         f.current_tile = current_tile;
-        f.resilience = resilience;
+        f.resilience = self.organisms[idx].traits.resilience;
     }
+
+    pub(super) fn climate(&self, night: bool) -> Climate {
+        let (heat_thirst, heat_tire) = if self.weather.heat_active(self.tick_count) {
+            (1.6, 1.25)
+        } else {
+            (1.0, 1.0)
+        };
+        Climate {
+            night,
+            heat_thirst,
+            heat_tire,
+            hunger: self.goals.difficulty.hunger_mult(),
+            season_temp: self.season_temperature_now(),
+            tick: self.tick_count,
+        }
+    }
+}
+
+pub(super) struct Climate {
+    pub(super) night: bool,
+    heat_thirst: f32,
+    heat_tire: f32,
+    hunger: f32,
+    season_temp: f32,
+    tick: u64,
+}
+
+pub(super) fn shelter_strength(grid: &WorldGrid, cx: i32, cy: i32) -> f32 {
+    let mut s = 0.0f32;
+    for ddx in -3i32..=3 {
+        for ddy in -3i32..=3 {
+            let nx = cx + ddx;
+            let ny = cy + ddy;
+            let t = grid.get(nx, ny);
+            if t == Tile::Campfire {
+                return 0.55;
+            }
+            if t == Tile::Hut {
+                return 0.90;
+            }
+            let st = grid.structure_at(nx, ny);
+            if st >= 0.35 {
+                s = s.max(st);
+            }
+        }
+    }
+    s
+}
+
+pub(super) fn shelter_comfort(o: &mut Organism, shelter: f32, roll: impl FnOnce() -> f32) {
+    if shelter <= 0.0 {
+        return;
+    }
+    o.energy = (o.energy + (0.0008 + shelter * 0.0022)).min(1.0);
+    o.health = (o.health + (0.0006 + shelter * 0.0010)).min(1.0);
+    if o.infection > 0.01 {
+        let inf_mult = 0.992 - shelter * 0.006;
+        o.infection = (o.infection * inf_mult.max(0.980)).max(0.0);
+    }
+    if o.fear_level > 0.0 {
+        o.fear_level = (o.fear_level - shelter * 0.008).max(0.0);
+    }
+    if o.grief_ticks > 0 && roll() < shelter * 0.12 {
+        o.grief_ticks = o.grief_ticks.saturating_sub(3);
+    }
+}
+
+fn drain_mult(shelter: f32) -> f32 {
+    if shelter > 0.0 {
+        (1.0 - shelter * 0.35).max(0.65)
+    } else {
+        1.0
+    }
+}
+
+pub(super) fn drain_and_eat(
+    o: &mut Organism,
+    grid: &WorldGrid,
+    climate: &Climate,
+    cx: i32,
+    cy: i32,
+    shelter: f32,
+) {
+    let water_near =
+        (-4i32..=4).any(|ddx| (-4i32..=4).any(|ddy| grid.get(cx + ddx, cy + ddy) == Tile::Water));
+    let hydration_mult = if water_near { 0.5 } else { 1.0 };
+    o.energy = (o.energy - 0.0022 * drain_mult(shelter) * climate.heat_tire * climate.hunger).max(0.0);
+    o.hydration = (o.hydration - 0.0014 * hydration_mult * climate.heat_thirst).max(0.0);
+    let (used_food_reserve, _) = use_needed_reserves(o, climate.tick);
+    if used_food_reserve {
+        o.think("eating stored food", climate.tick);
+    }
+}
+
+pub(super) fn weather_and_sickness(
+    o: &mut Organism,
+    grid: &WorldGrid,
+    climate: &Climate,
+    cx: i32,
+    cy: i32,
+    shelter: f32,
+) {
+    if climate.night {
+        let night_base = if o.discoveries.has(Hot::Torch) {
+            0.0002
+        } else {
+            0.0005
+        };
+        o.energy = (o.energy - night_base * drain_mult(shelter)).max(0.0);
+    }
+    let temp = grid.temp_at(cx, cy) + climate.season_temp;
+    if !(10.0..=30.0).contains(&temp) {
+        let stress = if temp < 10.0 {
+            (10.0 - temp) / 40.0
+        } else {
+            (temp - 30.0) / 70.0
+        };
+        let drain = stress * 0.003 * (1.1 - o.traits.resilience * 0.2) * (1.0 - shelter * 0.60);
+        o.energy = (o.energy - drain).max(0.0);
+        if temp > 40.0 {
+            o.hydration = (o.hydration - drain * 0.5).max(0.0);
+        }
+    }
+    let inf = o.infection;
+    if inf > 0.01 {
+        o.energy = (o.energy - 0.001 * inf).max(0.0);
+        if inf > 0.6 {
+            o.health = (o.health - 0.001 * (inf - 0.6)).max(0.0);
+            o.mark_harm(crate::organism::organism::Harm::Sickness, climate.tick);
+        }
+        if inf > 0.25
+            && matches!(
+                o.thought.as_str(),
+                "exploring" | "observing" | "satisfied" | "on path"
+            )
+        {
+            o.think("feeling weak", climate.tick);
+        }
+    }
+    if o.infection > 0.01 {
+        let d = &o.discoveries;
+        let med_mult = if d.contains("antibiotics") {
+            0.970
+        } else if d.contains("alchemy") {
+            0.982
+        } else if d.contains("medicine") || d.contains("medicine_lore") {
+            0.988
+        } else if d.contains("poultice") || d.contains("herbalism") {
+            0.992
+        } else {
+            0.997
+        };
+        o.infection = (o.infection * med_mult).max(0.0);
+    }
+}
+
+pub(super) fn ritual_comfort(o: &mut Organism, grid: &WorldGrid, night: bool) {
+    if !night || !o.discoveries.has(Hot::Ritual) {
+        return;
+    }
+    let (cx, cy) = (o.x as i32, o.y as i32);
+    let near_fire =
+        (-3i32..=3).any(|ddx| (-3i32..=3).any(|ddy| grid.get(cx + ddx, cy + ddy) == Tile::Campfire));
+    if near_fire {
+        o.comfort = (o.comfort + 0.003).min(1.0);
+        o.loneliness = (o.loneliness - 0.005).max(0.0);
+    }
+}
+
+pub(super) fn caught_infection(
+    o: &Organism,
+    idx: usize,
+    candidates: &[usize],
+    neighbour: impl Fn(usize) -> (f32, f32, f32, bool),
+) -> f32 {
+    let (sx, sy) = (o.x, o.y);
+    let res = o.traits.resilience;
+    let mut infection = o.infection;
+    for &i in candidates {
+        if i == idx {
+            continue;
+        }
+        let (x, y, other_inf, alive) = neighbour(i);
+        if !(alive && other_inf >= 0.15 && (x - sx).abs() + (y - sy).abs() <= 2.0) {
+            continue;
+        }
+        infection = (infection + 0.015 * other_inf * (1.0 - res * 0.8)).min(1.0);
+    }
+    infection
+}
+
+pub(super) fn set_infection(o: &mut Organism, infection: f32) -> bool {
+    let fell_sick = o.infection < 0.15 && infection >= 0.15;
+    o.infection = infection;
+    fell_sick
 }

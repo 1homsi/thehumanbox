@@ -30,6 +30,34 @@ where
     }
 }
 
+pub(crate) fn map_mut<E, S, T, I, F>(items: &mut [E], init: I, f: F) -> Vec<T>
+where
+    E: Send,
+    T: Send,
+    I: Fn() -> S + Sync + Send,
+    F: Fn(&mut S, usize, &mut E) -> T + Sync + Send,
+{
+    #[cfg(feature = "parallel")]
+    {
+        use rayon::prelude::*;
+        items
+            .par_iter_mut()
+            .enumerate()
+            .with_min_len(MIN_BATCH)
+            .map_init(&init, |scratch, (i, item)| f(scratch, i, item))
+            .collect()
+    }
+    #[cfg(not(feature = "parallel"))]
+    {
+        let mut scratch = init();
+        items
+            .iter_mut()
+            .enumerate()
+            .map(|(i, item)| f(&mut scratch, i, item))
+            .collect()
+    }
+}
+
 // Several cores read the world at once, so it must be safe to share: a `RefCell` or `Rc` in it fails here.
 const _: fn() = || {
     fn shareable<T: Sync>() {}
@@ -50,6 +78,21 @@ mod tests {
             seen.push(i);
             i * 2
         });
+        assert_eq!(out, (0..1000).map(|i| i * 2).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn each_item_is_changed_once_and_answers_in_order() {
+        let mut items: Vec<usize> = (0..1000).collect();
+        let out = map_mut(
+            &mut items,
+            || (),
+            |_, i, item| {
+                *item += 1;
+                i * 2
+            },
+        );
+        assert_eq!(items, (1..=1000).collect::<Vec<_>>());
         assert_eq!(out, (0..1000).map(|i| i * 2).collect::<Vec<_>>());
     }
 

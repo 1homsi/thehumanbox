@@ -8,7 +8,10 @@ impl Simulation {
         let spatial = f.spatial;
         let spatial_buf = &mut *f.spatial_buf;
 
-        if self.organisms[idx].energy > 0.82 && self.tick_count - self.organisms[idx].last_fed_kin >= 180 {
+        if self.organisms[idx].energy > 0.82
+            && self.tick_count - self.organisms[idx].last_fed_kin >= 180
+            && f.plan.as_ref().and_then(|p| p.feeds_kin) != Some(false)
+        {
             social::share_food(
                 idx,
                 &mut self.organisms,
