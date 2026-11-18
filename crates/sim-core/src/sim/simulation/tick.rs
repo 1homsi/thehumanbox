@@ -395,6 +395,7 @@ impl Simulation {
         // threats, which write to them); then they all choose at once, on all cores (see `sim::par`), from
         // the world as the choosing begins; then each acts on their choice, in order, as before.
         let n = self.organisms.len();
+        let mut perceived = self.perceive_all(&spatial, &animal_spatial);
         let mut sensed: Vec<Option<organism_tick::Sensed>> = Vec::with_capacity(n);
         {
             let cx = organism_tick::TurnContext {
@@ -405,7 +406,14 @@ impl Simulation {
             };
             for i in 0..n {
                 sensed.push(self.organisms[i].alive.then(|| {
-                    self.org_sense(i, population_slots_used, &cx, &mut buffers, &mut lineage_members)
+                    self.org_sense(
+                        i,
+                        population_slots_used,
+                        &cx,
+                        &mut buffers,
+                        &mut lineage_members,
+                        perceived[i].take(),
+                    )
                 }));
             }
         }
@@ -475,6 +483,8 @@ impl Simulation {
                 }
             }
         }
+
+        self.learn_from_the_tick(&spatial);
 
         const VEL_EMA_ALPHA: f32 = 0.4;
         const MAX_PER_TICK: f32 = 2.0;

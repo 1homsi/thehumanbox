@@ -102,6 +102,96 @@ impl OrgFrame<'_> {
     }
 }
 
+pub(crate) struct PendingLearn {
+    idx: usize,
+    perception: String,
+    action: usize,
+    reward: f32,
+    succeeded: bool,
+    terminal: bool,
+    night: bool,
+    animal_near: bool,
+}
+
+impl Simulation {
+    pub(super) fn perceive_all(
+        &self,
+        spatial: &SpatialIndex,
+        animal_spatial: &SpatialIndex,
+    ) -> Vec<Option<String>> {
+        let night = self.is_night();
+        crate::sim::par::map_with(
+            self.organisms.len(),
+            || (Vec::with_capacity(32), Vec::with_capacity(32)),
+            |(perception_buf, animal_buf), i| {
+                let org = &self.organisms[i];
+                if !org.alive {
+                    return None;
+                }
+                let (ox, oy) = (org.x, org.y);
+                animal_spatial.query_into(ox as i32, oy as i32, 8, animal_buf);
+                let animal_near = animal_buf.iter().any(|&a| {
+                    let a = &self.animals[a];
+                    a.alive && (a.x - ox).abs() + (a.y - oy).abs() <= 8.0
+                });
+                Some(org.perceive_into(
+                    &self.grid,
+                    &self.organisms,
+                    night,
+                    animal_near,
+                    spatial,
+                    perception_buf,
+                ))
+            },
+        )
+    }
+
+    pub(super) fn learn_from_the_tick(&mut self, spatial: &SpatialIndex) {
+        let pending = std::mem::take(&mut self.pending_learning);
+        let sim = &*self;
+        let best = crate::sim::par::map_with(
+            pending.len(),
+            || (Vec::with_capacity(32), Vec::with_capacity(32)),
+            |(perception_buf, spatial_buf), k| {
+                let p = &pending[k];
+                if p.terminal {
+                    return 0.0;
+                }
+                let org = &sim.organisms[p.idx];
+                let next = org.perceive_into(
+                    &sim.grid,
+                    &sim.organisms,
+                    p.night,
+                    p.animal_near,
+                    spatial,
+                    perception_buf,
+                );
+                org.q_table.get(&next).map_or(0.0, |row| {
+                    crate::sim::actions::best_next_q(
+                        sim,
+                        p.idx,
+                        org.x as i32,
+                        org.y as i32,
+                        spatial,
+                        spatial_buf,
+                        row,
+                    )
+                })
+            },
+        );
+        for (p, best_next) in pending.into_iter().zip(best) {
+            self.organisms[p.idx].learn_from_best_next(
+                &p.perception,
+                p.action,
+                p.reward,
+                best_next,
+                Some(p.succeeded),
+                p.terminal,
+            );
+        }
+    }
+}
+
 /// Locals that outlive a single phase of one organism's tick. A phase binds the
 /// ones it needs on entry and writes back the ones it changed on exit.
 pub(super) struct OrgFrame<'a> {
@@ -130,13 +220,13 @@ pub(super) struct OrgFrame<'a> {
     pub(super) loneliness: f32,
     pub(super) movement_reward: f32,
     pub(super) new_thought: Option<String>,
-    pub(super) next_best: f32,
     pub(super) night: bool,
     pub(super) ox: f32,
     pub(super) ox_2: f32,
     pub(super) oy: f32,
     pub(super) oy_2: f32,
     pub(super) perception: String,
+    pub(super) pre_perception: Option<String>,
     pub(super) prev_energy: f32,
     pub(super) prev_hydration: f32,
     pub(super) prev_health: f32,
@@ -198,13 +288,13 @@ fn new_frame<'a>(
         loneliness: 0.0,
         movement_reward: 0.0,
         new_thought: None,
-        next_best: 0.0,
         night: false,
         ox: 0.0,
         ox_2: 0.0,
         oy: 0.0,
         oy_2: 0.0,
         perception: String::new(),
+        pre_perception: None,
         prev_energy: 0.0,
         prev_hydration: 0.0,
         prev_health: 0.0,
@@ -240,6 +330,7 @@ impl Simulation {
         cx: &TurnContext<'_>,
         buffers: &mut TickBuffers,
         lineage_members: &mut FxHashMap<String, Vec<usize>>,
+        perception: Option<String>,
     ) -> Sensed {
         let mut f = new_frame(
             idx,
@@ -251,6 +342,7 @@ impl Simulation {
             cx.org_idx_by_id,
             lineage_members,
         );
+        f.pre_perception = perception;
         self.org_setup(&mut f);
         self.org_threats(&mut f);
         let sensed = f.take_sensed();
@@ -349,7 +441,7 @@ impl Simulation {
             animal_spatial,
             org_idx_by_id,
         };
-        let sensed = self.org_sense(idx, population_slots_used, &cx, buffers, lineage_members);
+        let sensed = self.org_sense(idx, population_slots_used, &cx, buffers, lineage_members, None);
         let rng = decide::choice_rng(self.rng.random(), idx);
         let choice = {
             let mut available = Vec::new();
@@ -363,5 +455,6 @@ impl Simulation {
             buffers,
             lineage_members,
         );
+        self.learn_from_the_tick(spatial);
     }
 }

@@ -210,6 +210,7 @@ impl Simulation {
             hard_winter_ahead: state.hard_winter_ahead,
             story_history: state.story_history.into_iter().collect(),
             pending_memory_flushes: Vec::new(),
+            pending_learning: Vec::new(),
             lineage_strategies: state.lineage_strategies,
             lineage_strategy_objectives: state.lineage_strategy_objectives,
             lineage_strategy_history: state.lineage_strategy_history.into_iter().collect(),

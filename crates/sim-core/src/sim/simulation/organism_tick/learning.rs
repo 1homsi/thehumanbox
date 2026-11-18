@@ -16,15 +16,16 @@ impl Simulation {
             || org.hydration <= 0.0
             || org.health <= 0.0
             || (org.max_age > 0 && org.age >= mortality::lifespan(org));
-        let best_next = if terminal { 0.0 } else { f.next_best };
-        self.organisms[idx].learn_from_best_next(
-            &perception,
+        self.pending_learning.push(PendingLearn {
+            idx,
+            perception,
             action,
             reward,
-            best_next,
-            Some(f.action_succeeded),
+            succeeded: f.action_succeeded,
             terminal,
-        );
+            night: f.night,
+            animal_near: f.animal_near,
+        });
 
         if self.organisms[idx].energy > 0.7 && self.organisms[idx].hydration > 0.7 {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
