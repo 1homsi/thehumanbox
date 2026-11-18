@@ -35,6 +35,7 @@ pub(super) struct Sensed {
     pub(super) threat_summoned: bool,
     pub(super) summoned_threat: Option<(f32, f32, f32)>,
     pub(super) dormant: bool,
+    pub(super) strangers_near: bool,
 }
 
 impl OrgFrame<'_> {
@@ -58,6 +59,7 @@ impl OrgFrame<'_> {
             threat_summoned: self.threat_summoned,
             summoned_threat: self.summoned_threat,
             dormant: false,
+            strangers_near: false,
         }
     }
 
@@ -82,6 +84,7 @@ impl OrgFrame<'_> {
             threat_summoned: self.threat_summoned,
             summoned_threat: self.summoned_threat,
             dormant: false,
+            strangers_near: false,
         }
     }
 
@@ -120,18 +123,86 @@ const LOD_EVERY: u64 = 16;
 
 const LORE_EVERY: u64 = 60;
 
-const LORE_CHANCE_PERCENT: u64 = 10;
+const LORE_CHANCE_PERCENT: u64 = 20;
+
+const LORE_ROOM: usize = 48;
+
+const LORE: &[&str] = &[
+    "fire",
+    "shelter",
+    "hunt",
+    "woodcutting",
+    "cooking",
+    "foraging",
+    "language",
+    "farm",
+    "agriculture",
+    "writing",
+    "fishing",
+    "pottery",
+    "smelting",
+    "weaving",
+    "barter",
+    "currency",
+    "animal_hides",
+    "axe",
+    "borders",
+    "cartography",
+    "food_preservation",
+    "forestry",
+    "herbalism",
+    "knife",
+    "leatherwork",
+    "masonry",
+    "ritual",
+    "ritual_dance",
+    "salt_harvesting",
+    "spear",
+    "star_charts",
+    "stone_tools",
+    "territory",
+    "textiles",
+    "tool_making",
+    "torch",
+    "trap",
+    "medicine",
+];
 
 const COMMAND_FOCUS_REACH: i32 = 24;
 
 const BATTLE_FOCUS_REACH: i32 = 20;
 
-const REST: usize = 17;
+const HOLD: usize = usize::MAX;
+
+const CHALLENGE_COOLDOWN: u64 = 80;
+
+const DORMANT_CHALLENGE_PER_MILLE: u64 = 4;
 
 impl Simulation {
-    pub(super) fn lod_awake(&self, animal_spatial: &SpatialIndex, buf: &mut Vec<usize>) -> Vec<bool> {
+    pub(super) fn lod_awake(
+        &self,
+        animal_spatial: &SpatialIndex,
+        buf: &mut Vec<usize>,
+    ) -> (Vec<bool>, Vec<bool>) {
         let storm = self.weather.kind >= 2;
-        self.organisms
+        let mut strangers = vec![false; self.organisms.len()];
+        let riders: crate::hashing::FxHashSet<&str> = self
+            .vehicles
+            .iter()
+            .flat_map(|v| v.occupants.iter().map(String::as_str))
+            .collect();
+        let mut tribes_by_cell: crate::hashing::FxHashMap<(i32, i32), (&str, bool)> = Default::default();
+        for o in self.organisms.iter().filter(|o| o.alive) {
+            let cell = ((o.x as i32).div_euclid(10), (o.y as i32).div_euclid(10));
+            let entry = tribes_by_cell
+                .entry(cell)
+                .or_insert((o.lineage_id.as_str(), false));
+            if entry.0 != o.lineage_id.as_str() {
+                entry.1 = true;
+            }
+        }
+        let awake = self
+            .organisms
             .iter()
             .enumerate()
             .map(|(i, o)| {
@@ -140,11 +211,13 @@ impl Simulation {
                 }
                 if storm
                     || (self.tick_count + i as u64).is_multiple_of(LOD_EVERY)
-                    || o.energy < 0.35
+                    || o.energy < 0.40
                     || o.hydration < 0.35
                     || o.health < 0.6
                     || o.infection > 0.3
                     || o.water_ticks > 0
+                    || o.mounted_vehicle.is_some()
+                    || riders.contains(o.id.as_str())
                     || o.last_action.is_none()
                 {
                     return true;
@@ -162,12 +235,23 @@ impl Simulation {
                     return true;
                 }
                 animal_spatial.query_into(x, y, 12, buf);
-                buf.iter().any(|&a| {
+                if buf.iter().any(|&a| {
                     let a = &self.animals[a];
                     a.alive && a.kind.hostile() && (a.x - o.x).abs() + (a.y - o.y).abs() <= 14.0
-                })
+                }) {
+                    return true;
+                }
+                strangers[i] = (-1..=1).any(|dy| {
+                    (-1..=1).any(|dx| {
+                        tribes_by_cell
+                            .get(&(x.div_euclid(10) + dx, y.div_euclid(10) + dy))
+                            .is_some_and(|&(first, mixed)| mixed || first != o.lineage_id.as_str())
+                    })
+                });
+                false
             })
-            .collect()
+            .collect();
+        (awake, strangers)
     }
 
     pub(super) fn lineage_lore(&mut self, awake: &[bool]) {
@@ -176,20 +260,37 @@ impl Simulation {
         }
         let mut lore: std::collections::BTreeMap<String, std::collections::BTreeSet<String>> =
             std::collections::BTreeMap::new();
+        let mut near: std::collections::BTreeMap<(i32, i32), std::collections::BTreeSet<String>> =
+            std::collections::BTreeMap::new();
         for o in self.organisms.iter().filter(|o| o.alive) {
-            lore.entry(o.lineage_id.clone())
+            let core = || {
+                o.discoveries
+                    .iter()
+                    .filter(|d| LORE.contains(&d.as_str()))
+                    .cloned()
+            };
+            lore.entry(o.lineage_id.clone()).or_default().extend(core());
+            near.entry(((o.x as i32).div_euclid(10), (o.y as i32).div_euclid(10)))
                 .or_default()
-                .extend(o.discoveries.iter().cloned());
+                .extend(core());
         }
         let tick = self.tick_count;
         for (i, o) in self.organisms.iter_mut().enumerate() {
             if !o.alive || awake.get(i).copied().unwrap_or(true) {
                 continue;
             }
-            let Some(known) = lore.get(&o.lineage_id) else {
-                continue;
-            };
+            let (cx, cy) = ((o.x as i32).div_euclid(10), (o.y as i32).div_euclid(10));
+            let mut known: std::collections::BTreeSet<&String> =
+                lore.get(&o.lineage_id).into_iter().flatten().collect();
+            for dy in -1..=1 {
+                for dx in -1..=1 {
+                    known.extend(near.get(&(cx + dx, cy + dy)).into_iter().flatten());
+                }
+            }
             for d in known {
+                if o.discoveries.len() >= LORE_ROOM {
+                    break;
+                }
                 if o.discoveries.contains(d.as_str()) {
                     continue;
                 }
@@ -207,7 +308,7 @@ impl Simulation {
         }
     }
 
-    pub(super) fn dormant_sensed(&self, idx: usize) -> Sensed {
+    pub(super) fn dormant_sensed(&self, idx: usize, strangers_near: bool) -> Sensed {
         let o = &self.organisms[idx];
         Sensed {
             idx,
@@ -228,6 +329,7 @@ impl Simulation {
             threat_summoned: false,
             summoned_threat: None,
             dormant: true,
+            strangers_near,
         }
     }
 
@@ -243,7 +345,8 @@ impl Simulation {
                 let here = (o.x as i32, o.y as i32);
                 match goal.filter(|&t| t != here && o.wander_target == Some(t)) {
                     Some(target) => o.toward(target, &self.grid),
-                    None => REST,
+                    None if self.is_night() => 17,
+                    None => HOLD,
                 }
             }
         };
@@ -549,6 +652,7 @@ impl Simulation {
             lineage_members,
         );
         let sensed_dormant = sensed.dormant;
+        let sensed_strangers = sensed.strangers_near;
         f.dormant = sensed_dormant;
         f.put_sensed(sensed);
         // Others may have acted since sensing. Attribute only health changes
@@ -561,11 +665,31 @@ impl Simulation {
             return;
         }
         let dormant = sensed_dormant;
-        self.org_apply_choice(&mut f, choice);
-        self.org_act(&mut f);
+        let f_holds = choice.action == HOLD;
+        if !f_holds {
+            self.org_apply_choice(&mut f, choice);
+            self.org_act(&mut f);
+        }
         self.org_vitals(&mut f);
         self.org_ageing(&mut f);
         if dormant {
+            let tick = self.tick_count;
+            let roll = (tick ^ (f.idx as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15))
+                .wrapping_mul(0xBF58_476D_1CE4_E5B9)
+                >> 32;
+            if sensed_strangers
+                && tick.saturating_sub(self.organisms[f.idx].last_challenged) >= CHALLENGE_COOLDOWN
+                && roll % 1000 < DORMANT_CHALLENGE_PER_MILLE
+            {
+                crate::sim::agents::social::challenge_stranger(
+                    f.idx,
+                    &mut self.organisms,
+                    f.spatial,
+                    tick,
+                    &mut self.events,
+                    &mut self.history,
+                );
+            }
             self.org_routines(&mut f);
             self.org_pairing(&mut f);
             self.org_mortality(&mut f);
