@@ -39,13 +39,18 @@ describe('yardRects', () => {
 
   it('clears the footprint the simulation sends for a 2x2 house', () => {
     const id = Array.from({ length: 50 }, (_, i) => i).find((i) => hasYard(home(i)))!
-    const house = { ...home(id, 'House', 10, 20), footprint: [2, 2] } as Building
-    const rects = yardRects([house], 0, 0)
-    expect(rects.length).toBeGreaterThan(0)
-    for (const r of rects) {
-      const overlaps = r.x < 12 * TILE && r.x + r.w > 10 * TILE && r.y < 22 * TILE && r.y + r.h > 20 * TILE
-      expect(overlaps).toBe(false)
-      expect(r.x).toBeGreaterThanOrEqual(12 * TILE)
+    const sized = [
+      { ...home(id, 'House', 10, 20), footprint: [2, 2] },
+      { ...home(id, 'House', 10, 20), fw: 2, fh: 2 },
+    ] as Building[]
+    for (const house of sized) {
+      const rects = yardRects([house], 0, 0)
+      expect(rects.length).toBeGreaterThan(0)
+      for (const r of rects) {
+        const overlaps = r.x < 12 * TILE && r.x + r.w > 10 * TILE && r.y < 22 * TILE && r.y + r.h > 20 * TILE
+        expect(overlaps).toBe(false)
+        expect(r.x).toBeGreaterThanOrEqual(12 * TILE)
+      }
     }
   })
 

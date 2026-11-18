@@ -161,6 +161,7 @@ impl Simulation {
                         "condition": b.condition,
                         "construction_progress": b.condition,
                         "damage": b.damage_fraction(),
+                        "decorative": b.decorative,
                         "integrity": b.integrity(),
                         "ruined": b.is_ruined(),
                         "repairing": b.is_repairing_at(self.tick_count),

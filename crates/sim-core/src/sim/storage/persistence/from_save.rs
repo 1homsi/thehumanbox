@@ -129,7 +129,7 @@ impl Simulation {
 
         let next_animal_id = repaired_next_animal_id(state.next_animal_id, &state.animals);
         let mut buildings = state.buildings;
-        let next_building_id = repaired_next_u32_id(state.next_building_id, buildings.iter().map(|b| b.id));
+        let next_building_id = repaired_building_ids(&mut buildings, state.next_building_id);
         for building in &mut buildings {
             if building.damage_fraction() >= 1.0 && building.ruined_at_tick.is_none() {
                 building.ruined_at_tick = Some(building.last_damage_tick.unwrap_or(state.tick_count));

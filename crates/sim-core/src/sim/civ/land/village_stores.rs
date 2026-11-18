@@ -337,13 +337,8 @@ pub(crate) fn place(sim: &mut Simulation, tribe: &Tribe, kind: BuildingKind) {
 }
 
 fn place_at(sim: &mut Simulation, tribe: &Tribe, kind: BuildingKind, x: i32, y: i32) {
-    let id = sim
-        .buildings
-        .iter()
-        .map(|b| b.id)
-        .max()
-        .unwrap_or(0)
-        .saturating_add(1);
+    let id = sim.next_building_id;
+    sim.next_building_id = id.saturating_add(1);
     let tick = sim.tick_count;
     let mut building = Building::new(id, kind, x, y, Some(tribe.lineage.clone()), tick);
     building.condition = 1.0;
@@ -633,6 +628,20 @@ mod tests {
         let (mut dry, dry_tribe) = tribe_by_a_house(5_202, &[]);
         assert!(!place_watermill(&mut dry, &dry_tribe), "no river, no watermill");
         assert!(dry.buildings.is_empty());
+    }
+
+    #[test]
+    fn placing_a_store_advances_the_building_id_counter() {
+        let (mut sim, tribe) = tribe_by_a_house(5_205, &[]);
+        sim.next_building_id = 7;
+        place_at(&mut sim, &tribe, BuildingKind::Granary, 126, 120);
+        place_at(&mut sim, &tribe, BuildingKind::Windmill, 126, 122);
+        let ids: Vec<u32> = sim.buildings.iter().map(|b| b.id).collect();
+        assert_eq!(ids, vec![7, 8], "each store takes the next id");
+        assert_eq!(
+            sim.next_building_id, 9,
+            "and leaves the counter clear of every id it gave out"
+        );
     }
 
     #[test]

@@ -253,6 +253,26 @@ fn building_wire_contract_separates_construction_from_damage() {
 }
 
 #[test]
+fn the_wire_sends_the_decorative_flag_for_props() {
+    use crate::sim::buildings::{Building, BuildingKind};
+
+    let mut sim = Simulation::new(422);
+    sim.buildings.clear();
+    let mut prop = Building::new(3, BuildingKind::Lamppost, 40, 41, Some("wire".into()), 1);
+    prop.condition = 1.0;
+    prop.decorative = true;
+    sim.buildings.push(prop);
+    let mut house = Building::new(4, BuildingKind::House, 44, 41, Some("wire".into()), 1);
+    house.condition = 1.0;
+    sim.buildings.push(house);
+
+    let payload = sim.state_json();
+
+    assert_eq!(payload["buildings"][0]["decorative"].as_bool(), Some(true));
+    assert_eq!(payload["buildings"][1]["decorative"].as_bool(), Some(false));
+}
+
+#[test]
 fn incremental_payload_only_resends_buildings_after_state_changes() {
     let mut sim = Simulation::new(421);
     sim.tick_count = 5;
