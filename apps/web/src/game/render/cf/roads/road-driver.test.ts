@@ -7,16 +7,23 @@ import { TILE_ID } from '../../../model/terrain-ids'
 import { CellAtlas, type AtlasPageSlot } from '../atlas/cell-atlas'
 import { makeFrame } from '../frame'
 import { TradePathPlanner } from '../../trade-paths'
-import { ROAD_CLASSES, RoadDriver, resolveCell } from './road-driver'
+import { ROAD_CLASSES, RoadDriver, resolveCell, stationCells } from './road-driver'
 import {
+  CORNER_NE,
+  CORNER_SW,
   ROAD_BRIDGE,
   ROAD_CANAL,
+  ROAD_NW,
+  ROAD_SE,
   ROAD_E,
   ROAD_N,
   ROAD_RAIL,
+  ROAD_S,
   ROAD_TRACK,
   ROAD_W,
   railCellKey,
+  railCornersKey,
+  railJoinKey,
   roadCellKey,
 } from './road-art'
 
@@ -215,5 +222,61 @@ describe('road driver with planned trade routes', () => {
     expect(cells.has('20,6')).toBe(true)
     expect(a.get(railCellKey(true))).toBeDefined()
     expect(a.get(railCellKey(false))).toBeUndefined()
+  })
+})
+
+describe('road driver with diagonal railways', () => {
+  const staircase = () => {
+    const roads = Array.from({ length: H }, () => Array(W).fill(0))
+    for (let i = 0; i < 8; i++) roads[2 + i]![10 + i] = ROAD_RAIL
+    return roads
+  }
+
+  it('joins a staircase of rail cells across the corners and draws the corners it cuts', () => {
+    const l = layer()
+    const a = atlas()
+    const driver = new RoadDriver(l, a, new TradePathPlanner())
+    driver.update(frame(world({ trade_routes: [] }, staircase())))
+    expect(a.get(railJoinKey(ROAD_NW | ROAD_SE))).toBeDefined()
+    expect(a.get(railCornersKey(CORNER_SW))).toBeDefined()
+    expect(a.get(railCornersKey(CORNER_NE))).toBeDefined()
+    expect(drawn(l).has('11,2')).toBe(true)
+    expect(drawn(l).has('10,3')).toBe(true)
+  })
+
+  it('keeps the tiling while only the window moves, and tiles again when the roads change', () => {
+    const l = layer()
+    const driver = new RoadDriver(l, atlas(), new TradePathPlanner())
+    const w = world({ trade_routes: [] }, staircase())
+    const at = (x: number) =>
+      makeFrame(w, undefined, { x, y: (H * TILE) / 2, zoom: 8 }, { w: 800, h: 300 }, 1000, 2, 1)
+    driver.update(at(10 * TILE))
+    const blocks = driver.stats.blocks
+    expect(blocks).toBeGreaterThan(0)
+    expect(driver.update(at(14 * TILE))).toBe(true)
+    expect(driver.stats.blocks).toBe(blocks)
+    const roads = staircase()
+    roads[0]![0] = ROAD_RAIL
+    driver.update(frame({ ...w, grid: { ...w.grid, roads, road_revision: 2 } }))
+    expect(driver.stats.blocks).toBeGreaterThan(blocks)
+  })
+
+  it('runs the end of a line into the train station beside it', () => {
+    const roads = Array.from({ length: H }, () => Array(W).fill(0))
+    roads[8]![10] = ROAD_RAIL
+    roads[9]![10] = ROAD_RAIL
+    const station = { id: 1, kind: 'train_station', x: 5, y: 4, footprint: [5, 4] }
+    expect(stationCells([station] as never, 0, 0, W).cells.has(7 * W + 9)).toBe(true)
+    const a = atlas()
+    const w = world({ trade_routes: [], buildings: [station] } as unknown as Partial<WorldState>, roads)
+    new RoadDriver(layer(), a, new TradePathPlanner()).update(frame(w))
+    expect(a.get(railJoinKey(ROAD_S | ROAD_NW))).toBeDefined()
+    const ruined = world(
+      { trade_routes: [], buildings: [{ ...station, ruined_at_tick: 10 }] } as unknown as Partial<WorldState>,
+      roads,
+    )
+    const b = atlas()
+    new RoadDriver(layer(), b, new TradePathPlanner()).update(frame(ruined))
+    expect(b.get(railJoinKey(ROAD_S | ROAD_NW))).toBeUndefined()
   })
 })

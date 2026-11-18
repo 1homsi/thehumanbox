@@ -1,29 +1,35 @@
 import type { SpriteLayer } from 'xipjs'
+import type { Building } from '../../../../shared/types'
 import { TILE } from '../../../model/palette'
+import { resolveBuildingFootprint } from '../../building-draw/footprints'
 import { CELL_GUTTER, type CellAtlas } from '../atlas/cell-atlas'
 import { WHITE, writeSprite, type CfDriver, type CfFrame } from '../frame'
 import {
   ROAD_BRIDGE,
   ROAD_CANAL,
   ROAD_RAIL,
-  ROAD_N,
-  ROAD_E,
-  ROAD_S,
-  ROAD_W,
   ROAD_TRACK,
   bridgeCellKey,
   bridgeIsVertical,
   canalCellKey,
+  isStraightRail,
   paintBridgeCell,
   paintCanalCell,
   paintRailCell,
+  paintRailCorners,
+  paintRailJoinCell,
   paintRoadCell,
+  paintRoadCorners,
   railCellKey,
+  railCornersKey,
+  railJoinKey,
   roadCellKey,
+  roadCornersKey,
   roadStyle,
   roadStyleOfCode,
   type RoadStyle,
 } from './road-art'
+import { CODE_CORNERS, CODE_KIND_SHIFT, CODE_STYLE_SHIFT, tileBlock, type RoadCells } from './road-tiling'
 import { PLANNED_BRIDGE, tradePaths, type TradePathPlanner } from '../../trade-paths'
 
 const SPEC_JOIN_SIM = 1
@@ -55,6 +61,55 @@ export const ROAD_CLASSES: ReadonlyArray<readonly [number, number]> = [[TILE + 2
 const JOIN_BITS = 0xf
 const STYLES: readonly RoadStyle[] = ['track', 'cobble', 'paved']
 
+const BLOCK = 32
+
+interface Look {
+  key: string
+  paint: (ctx: CanvasRenderingContext2D) => void
+}
+
+function lookOf(code: number): Look {
+  const kind = (code >> CODE_KIND_SHIFT) & 0xf
+  const cellStyle = STYLES[(code >> CODE_STYLE_SHIFT) & 3]!
+  const mask = code & 0xff
+  if (code & CODE_CORNERS) {
+    if (kind === ROAD_RAIL) return { key: railCornersKey(mask), paint: (ctx) => paintRailCorners(ctx, mask) }
+    return { key: roadCornersKey(cellStyle, mask), paint: (ctx) => paintRoadCorners(ctx, cellStyle, mask) }
+  }
+  const orth = mask & JOIN_BITS
+  if (kind === ROAD_BRIDGE) {
+    const vertical = bridgeIsVertical(orth)
+    return { key: bridgeCellKey(vertical), paint: (ctx) => paintBridgeCell(ctx, vertical) }
+  }
+  if (kind === ROAD_RAIL) {
+    if (!isStraightRail(mask)) return { key: railJoinKey(mask), paint: (ctx) => paintRailJoinCell(ctx, mask) }
+    const vertical = bridgeIsVertical(orth)
+    return { key: railCellKey(vertical), paint: (ctx) => paintRailCell(ctx, vertical) }
+  }
+  if (kind === ROAD_CANAL) return { key: canalCellKey(orth), paint: (ctx) => paintCanalCell(ctx, orth) }
+  return { key: roadCellKey(cellStyle, mask), paint: (ctx) => paintRoadCell(ctx, cellStyle, mask) }
+}
+
+export function stationCells(
+  buildings: readonly Building[] | undefined,
+  ox: number,
+  oy: number,
+  width: number,
+) {
+  const cells = new Set<number>()
+  const parts: number[] = []
+  for (const b of buildings ?? []) {
+    if (b.ruined || b.ruined_at_tick != null || b.kind.replace(/_/g, '').toLowerCase() !== 'trainstation')
+      continue
+    const [fw, fh] = resolveBuildingFootprint(b)
+    const c0 = b.x - ox
+    const r0 = b.y - oy
+    parts.push(c0, r0, fw, fh)
+    for (let r = r0; r < r0 + fh; r++) for (let c = c0; c < c0 + fw; c++) cells.add(r * width + c)
+  }
+  return { cells, sig: parts.join(',') }
+}
+
 /**
  * Roads and bridges on the ground: one tile sprite per road cell in the visible window, joined to its
  * neighbours. The simulation sends the road kinds on each static frame; the trade routes are planned over
@@ -63,7 +118,7 @@ const STYLES: readonly RoadStyle[] = ['track', 'cobble', 'paved']
  * routes, the era, the window or the atlas changes.
  */
 export class RoadDriver implements CfDriver {
-  stats = { roads: 0, rebuilds: 0, ms: 0 }
+  stats = { roads: 0, rebuilds: 0, blocks: 0, ms: 0 }
   /** Planning of the trade routes, for the stats readout. */
   get plan() {
     return this.planner.stats
@@ -72,8 +127,13 @@ export class RoadDriver implements CfDriver {
   private readonly atlas: CellAtlas
   private readonly planner: TradePathPlanner
   private sig = ''
-  private cells: number[] = []
-  private codes: number[] = []
+  private tilingSig = ''
+  private readonly blocks = new Map<number, number[]>()
+  private readonly looks = new Map<number, Look>()
+  private readonly visible: number[][] = []
+  private stationsFor: readonly Building[] | undefined = undefined
+  private stationsAt = ''
+  private stations = stationCells(undefined, 0, 0, 0)
 
   constructor(layer: SpriteLayer, atlas: CellAtlas, planner: TradePathPlanner = tradePaths) {
     this.layer = layer
@@ -96,95 +156,108 @@ export class RoadDriver implements CfDriver {
       this.sig = ''
       return true
     }
+    const width = grid.width
+    const height = grid.height
+    const stationsAt = `${f.ox},${f.oy},${width}`
+    if (this.stationsFor !== f.world.buildings || this.stationsAt !== stationsAt) {
+      this.stationsFor = f.world.buildings
+      this.stationsAt = stationsAt
+      this.stations = stationCells(f.world.buildings, f.ox, f.oy, width)
+    }
     const style = roadStyle(f.world.current_era)
     const baseStyle = STYLES.indexOf(style)
     const revision = grid.road_revision ?? 0
+    const tilingSig = `${revision}|${style}|${planner.revision}|${planned ? 1 : 0}|${width}x${height}|${this.stations.sig}`
+    if (tilingSig !== this.tilingSig) {
+      this.tilingSig = tilingSig
+      this.blocks.clear()
+    }
     const { c0, c1, r0, r1 } = f.win
-    const sig = `${revision}|${style}|${planner.revision}|${planned ? 1 : 0}|${c0},${c1},${r0},${r1}|${this.atlas.epoch}`
+    const sig = `${tilingSig}|${c0},${c1},${r0},${r1}|${this.atlas.epoch}`
     if (sig === this.sig) return false
     const t0 = performance.now()
     this.sig = sig
-    const cells = this.cells
-    const codes = this.codes
-    cells.length = 0
-    codes.length = 0
-    const width = grid.width
-    const height = grid.height
-    const simAt = (r: number, c: number) =>
-      r >= 0 && c >= 0 && r < height && c < width ? (roads?.[r]?.[c] ?? 0) : 0
-    const planAt = (r: number, c: number) =>
-      planned && r >= 0 && c >= 0 && r < height && c < width ? planned[r * width + c]! : 0
-    for (let r = Math.max(0, r0); r < Math.min(height, r1); r++) {
-      const simRow = roads?.[r]
-      const planRow = planned ? r * width : -1
-      for (let c = Math.max(0, c0); c < Math.min(width, c1); c++) {
-        // Most of the map has no road: skip it before the cell is resolved (a whole-world view is 320k cells).
-        const sim = simRow?.[c] ?? 0
-        const plan = planRow >= 0 ? planned![planRow + c]! : 0
-        if (sim === 0 && plan === 0) continue
-        const spec = resolveCell(sim, plan, baseStyle)
-        if (spec < 0) continue
-        const kind = (spec >> 4) & 0xf
-        const joinSim = (spec & SPEC_JOIN_SIM) !== 0
-        const joinPlanned = (spec & SPEC_JOIN_PLANNED) !== 0
-        const joins = (r2: number, c2: number) =>
-          (joinSim && simAt(r2, c2) !== 0) || (joinPlanned && planAt(r2, c2) !== 0)
-        let mask = 0
-        if (joins(r - 1, c)) mask |= ROAD_N
-        if (joins(r, c + 1)) mask |= ROAD_E
-        if (joins(r + 1, c)) mask |= ROAD_S
-        if (joins(r, c - 1)) mask |= ROAD_W
-        cells.push(r * width + c)
-        codes.push(((spec >> 8) << 8) | (kind << 4) | mask)
+    const inMap = (r: number, c: number) => r >= 0 && c >= 0 && r < height && c < width
+    const simAt = (r: number, c: number) => (inMap(r, c) ? (roads?.[r]?.[c] ?? 0) : 0)
+    const planAt = (r: number, c: number) => (planned && inMap(r, c) ? planned[r * width + c]! : 0)
+    const stationSet = this.stations.cells
+    const cells: RoadCells = {
+      width,
+      height,
+      spec: (r, c) => {
+        const sim = simAt(r, c)
+        const plan = planAt(r, c)
+        return sim === 0 && plan === 0 ? -1 : resolveCell(sim, plan, baseStyle)
+      },
+      joins: (spec, r, c) =>
+        ((spec & SPEC_JOIN_SIM) !== 0 && simAt(r, c) !== 0) ||
+        ((spec & SPEC_JOIN_PLANNED) !== 0 && planAt(r, c) !== 0),
+      station: (r, c) => inMap(r, c) && stationSet.has(r * width + c),
+    }
+    const rLo = Math.max(0, r0)
+    const rHi = Math.min(height, r1)
+    const cLo = Math.max(0, c0)
+    const cHi = Math.min(width, c1)
+    const blocksWide = Math.ceil(width / BLOCK)
+    let built = 0
+    let upper = 0
+    const visible = this.visible
+    visible.length = 0
+    for (let br = Math.floor(rLo / BLOCK); br * BLOCK < rHi; br++) {
+      for (let bc = Math.floor(cLo / BLOCK); bc * BLOCK < cHi; bc++) {
+        let entries = this.blocks.get(br * blocksWide + bc)
+        if (!entries) {
+          entries = []
+          const br0 = br * BLOCK
+          const bc0 = bc * BLOCK
+          tileBlock(cells, br0, Math.min(height, br0 + BLOCK), bc0, Math.min(width, bc0 + BLOCK), entries)
+          this.blocks.set(br * blocksWide + bc, entries)
+          built++
+        }
+        visible.push(entries)
+        upper += entries.length / 2
       }
     }
-    this.layer.resize(cells.length)
+    this.layer.resize(upper)
     let n = 0
-    for (let i = 0; i < cells.length; i++) {
-      const idx = cells[i]!
-      const code = codes[i]!
-      const kind = (code >> 4) & 0xf
-      const mask = code & JOIN_BITS
-      const cellStyle = STYLES[code >> 8]!
-      const r = Math.floor(idx / grid.width)
-      const c = idx - r * grid.width
-      let key: string
-      let paint: (ctx: CanvasRenderingContext2D) => void
-      if (kind === ROAD_BRIDGE) {
-        const vertical = bridgeIsVertical(mask)
-        key = bridgeCellKey(vertical)
-        paint = (ctx) => paintBridgeCell(ctx, vertical)
-      } else if (kind === ROAD_RAIL) {
-        const vertical = bridgeIsVertical(mask)
-        key = railCellKey(vertical)
-        paint = (ctx) => paintRailCell(ctx, vertical)
-      } else if (kind === ROAD_CANAL) {
-        key = canalCellKey(mask)
-        paint = (ctx) => paintCanalCell(ctx, mask)
-      } else {
-        key = roadCellKey(cellStyle, mask)
-        paint = (ctx) => paintRoadCell(ctx, cellStyle, mask)
+    for (const entries of visible) {
+      for (let i = 0; i < entries.length; i += 2) {
+        const idx = entries[i]!
+        const r = Math.floor(idx / width)
+        const c = idx - r * width
+        if (r < rLo || r >= rHi || c < cLo || c >= cHi) continue
+        const code = entries[i + 1]!
+        let look = this.looks.get(code)
+        if (!look) {
+          look = lookOf(code)
+          this.looks.set(code, look)
+        }
+        const cell = this.atlas.get(look.key) ?? this.atlas.bake(look.key, TILE, TILE, look.paint)
+        if (!cell) continue
+        writeSprite(
+          this.layer,
+          n++,
+          c * TILE - CELL_GUTTER + cell.cw / 2,
+          r * TILE - CELL_GUTTER + cell.ch / 2,
+          cell.cw,
+          cell.ch,
+          cell.atlas,
+          cell.frame,
+          WHITE,
+          0,
+          0,
+          0,
+        )
       }
-      const cell = this.atlas.get(key) ?? this.atlas.bake(key, TILE, TILE, paint)
-      if (!cell) continue
-      writeSprite(
-        this.layer,
-        n++,
-        c * TILE - CELL_GUTTER + cell.cw / 2,
-        r * TILE - CELL_GUTTER + cell.ch / 2,
-        cell.cw,
-        cell.ch,
-        cell.atlas,
-        cell.frame,
-        WHITE,
-        0,
-        0,
-        0,
-      )
     }
     this.layer.resize(n)
     this.layer.touch()
-    this.stats = { roads: n, rebuilds: this.stats.rebuilds + 1, ms: performance.now() - t0 }
+    this.stats = {
+      roads: n,
+      rebuilds: this.stats.rebuilds + 1,
+      blocks: this.stats.blocks + built,
+      ms: performance.now() - t0,
+    }
     return true
   }
 }
