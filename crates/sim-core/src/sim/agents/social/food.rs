@@ -31,7 +31,7 @@ pub(super) fn food_recipient_order(
 /// strongly trusted people within reach; orphaned minors first, then the
 /// giver's kin, then the hungriest, ties going to the lowest population index.
 /// `candidates` is scratch space for the spatial query.
-pub(super) fn pick_food_recipient(
+pub fn pick_food_recipient(
     org_idx: usize,
     organisms: &[Organism],
     spatial: &SpatialIndex,

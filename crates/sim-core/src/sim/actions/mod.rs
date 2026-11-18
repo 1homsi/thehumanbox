@@ -102,6 +102,18 @@ pub fn try_apply(
     iy: i32,
     spatial: &crate::sim::spatial::SpatialIndex,
 ) -> Option<f32> {
+    try_apply_with(sim, idx, action, ix, iy, spatial, None)
+}
+
+pub fn try_apply_with(
+    sim: &mut Simulation,
+    idx: usize,
+    action: usize,
+    ix: i32,
+    iy: i32,
+    spatial: &crate::sim::spatial::SpatialIndex,
+    neighbours: Option<(Vec<usize>, Vec<usize>)>,
+) -> Option<f32> {
     let semantic_requirement = if action_requires_semantic_validation(action) {
         Some(eligible_band_for_action(sim, idx, action, ix, iy, spatial)?)
     } else {
@@ -160,7 +172,7 @@ pub fn try_apply(
             }
         }
     }
-    let mut ctx = ActionCtx::new(sim, idx, ix, iy, spatial);
+    let mut ctx = ActionCtx::with_neighbours(sim, idx, ix, iy, spatial, neighbours);
     let healing = matches!(action, 246..=260 | 1320..=1369);
     // Who a remedy could reach, and their health before it, so a practised
     // healer's extra good lands on whoever the remedy actually helped.

@@ -425,6 +425,10 @@ impl Simulation {
                 }));
             }
         }
+        let dormant: Vec<bool> = sensed
+            .iter()
+            .map(|s| s.as_ref().is_some_and(|s| s.dormant))
+            .collect();
         let tick_seed: u64 = self.rng.random();
         let mut choices = self.choose_all(&sensed, &spatial, tick_seed);
         for i in 0..n {
@@ -492,6 +496,7 @@ impl Simulation {
             }
         }
 
+        self.dormant_upkeep(&dormant, &spatial, &animal_spatial);
         self.learn_from_the_tick(&spatial);
 
         const VEL_EMA_ALPHA: f32 = 0.4;

@@ -108,6 +108,12 @@ impl OrgFrame<'_> {
     }
 }
 
+pub(in crate::sim::simulation) struct DormantPlan {
+    at: (f32, f32),
+    neighbours: Option<(Vec<usize>, Vec<usize>)>,
+    feeds_kin: Option<bool>,
+}
+
 pub(crate) struct PendingLearn {
     idx: usize,
     perception: String,
@@ -333,7 +339,13 @@ impl Simulation {
         }
     }
 
-    pub(super) fn dormant_choice(&self, s: &Sensed, rng: decide::ChoiceRng) -> Choice {
+    pub(super) fn dormant_choice(
+        &self,
+        s: &Sensed,
+        rng: decide::ChoiceRng,
+        spatial: &SpatialIndex,
+        buf: &mut Vec<usize>,
+    ) -> Choice {
         let o = &self.organisms[s.idx];
         let action = match o.last_action.map(usize::from) {
             Some(a) if a >= 8 => a,
@@ -350,6 +362,14 @@ impl Simulation {
                 }
             }
         };
+        let tick = self.tick_count;
+        let plan = DormantPlan {
+            at: (o.x, o.y),
+            neighbours: (action >= 26 && action != HOLD)
+                .then(|| crate::sim::actions::ctx::near_and_kin(&self.organisms, s.idx, spatial)),
+            feeds_kin: (o.energy > 0.82 && tick - o.last_fed_kin >= 180)
+                .then(|| social::pick_food_recipient(s.idx, &self.organisms, spatial, tick, buf).is_some()),
+        };
         Choice {
             action,
             thought: None,
@@ -357,6 +377,7 @@ impl Simulation {
             at: (o.x as i32, o.y as i32),
             rng,
             flight: None,
+            plan: Some(plan),
         }
     }
 
@@ -391,6 +412,62 @@ impl Simulation {
                 ))
             },
         )
+    }
+
+    pub(super) fn dormant_upkeep(
+        &mut self,
+        dormant: &[bool],
+        spatial: &SpatialIndex,
+        animal_spatial: &SpatialIndex,
+    ) {
+        let neighbours: Vec<(f32, f32, f32, bool)> = self
+            .organisms
+            .iter()
+            .map(|o| (o.x, o.y, o.infection, o.alive))
+            .collect();
+        let climate = self.climate(self.is_night());
+        let tick = self.tick_count;
+        let grid = &self.grid;
+        let animals = &self.animals;
+        let outcomes = crate::sim::par::map_mut(
+            &mut self.organisms[..dormant.len()],
+            || (Vec::with_capacity(32), Vec::with_capacity(32)),
+            |(animal_buf, spatial_buf), i, o| {
+                if !dormant[i] || !o.alive {
+                    return (false, false);
+                }
+                let (cx, cy) = (o.x as i32, o.y as i32);
+                let tile = grid.get(cx, cy);
+                verify_local_resource_memory(o, grid, cx, cy);
+                verify_local_danger_memory(o, grid, animals, animal_spatial, animal_buf, cx, cy);
+                let shelter = vitals::shelter_strength(grid, cx, cy);
+                vitals::shelter_comfort(o, shelter, || upkeep_roll(tick, i));
+                vitals::drain_and_eat(o, grid, &climate, cx, cy, shelter);
+                let in_water = tile == Tile::Water;
+                if !in_water {
+                    o.water_ticks = 0;
+                }
+                vitals::weather_and_sickness(o, grid, &climate, cx, cy, shelter);
+                vitals::ritual_comfort(o, grid, climate.night);
+                let mut fell_sick = false;
+                if o.infection < 0.8 {
+                    spatial.query_into(cx, cy, 2, spatial_buf);
+                    let caught = vitals::caught_infection(o, i, spatial_buf, |j| neighbours[j]);
+                    fell_sick = vitals::set_infection(o, caught);
+                }
+                ageing::body_ageing(o, tile == Tile::Fire, tick);
+                (in_water, fell_sick)
+            },
+        );
+        for (i, (in_water, fell_sick)) in outcomes.into_iter().enumerate() {
+            if fell_sick {
+                self.history.sickness_events += 1;
+            }
+            if in_water {
+                let (x, y) = (self.organisms[i].x as i32, self.organisms[i].y as i32);
+                self.apply_water_fatigue(i, x, y);
+            }
+        }
     }
 
     pub(super) fn learn_from_the_tick(&mut self, spatial: &SpatialIndex) {
@@ -437,6 +514,14 @@ impl Simulation {
             );
         }
     }
+}
+
+fn upkeep_roll(tick: u64, idx: usize) -> f32 {
+    let mut z = tick.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ (idx as u64).wrapping_add(0xD1B5_4A32_D192_ED03);
+    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    z ^= z >> 31;
+    (z >> 40) as f32 / (1u64 << 24) as f32
 }
 
 /// Locals that outlive a single phase of one organism's tick. A phase binds the
@@ -491,6 +576,7 @@ pub(super) struct OrgFrame<'a> {
     pub(super) threat_summoned: bool,
     /// The nearest summoned wolf within the alarm radius, whatever else is near (see `flight_threat`).
     pub(super) summoned_threat: Option<(f32, f32, f32)>,
+    pub(super) plan: Option<DormantPlan>,
 }
 
 /// The shared values of one person's turn, with every per-phase local at its starting value.
@@ -558,6 +644,7 @@ fn new_frame<'a>(
         wolf_threat: None,
         threat_summoned: false,
         summoned_threat: None,
+        plan: None,
     }
 }
 
@@ -615,7 +702,12 @@ impl Simulation {
             |(available, nearby), i| {
                 let s = sensed[i].as_ref()?;
                 if s.dormant {
-                    return Some(self.dormant_choice(s, decide::choice_rng(tick_seed, s.idx)));
+                    return Some(self.dormant_choice(
+                        s,
+                        decide::choice_rng(tick_seed, s.idx),
+                        spatial,
+                        nearby,
+                    ));
                 }
                 Some(self.org_choose(
                     s,
@@ -635,7 +727,7 @@ impl Simulation {
     pub(super) fn org_turn(
         &mut self,
         sensed: Sensed,
-        choice: Choice,
+        mut choice: Choice,
         population_slots_used: usize,
         cx: &TurnContext<'_>,
         buffers: &mut TickBuffers,
@@ -666,12 +758,12 @@ impl Simulation {
         }
         let dormant = sensed_dormant;
         let f_holds = choice.action == HOLD;
+        f.plan = choice.plan.take();
         if !f_holds {
             self.org_apply_choice(&mut f, choice);
             self.org_act(&mut f);
         }
         self.org_vitals(&mut f);
-        self.org_ageing(&mut f);
         if dormant {
             let tick = self.tick_count;
             let roll = (tick ^ (f.idx as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15))
@@ -695,6 +787,7 @@ impl Simulation {
             self.org_mortality(&mut f);
             return;
         }
+        self.org_ageing(&mut f);
         self.org_bonds(&mut f);
         self.org_learning(&mut f);
         self.org_routines(&mut f);

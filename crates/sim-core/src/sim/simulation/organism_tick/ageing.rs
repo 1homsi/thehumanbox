@@ -21,40 +21,11 @@ impl Simulation {
         let prev_inv_food = f.prev_inv_food;
         let prev_inv_water = f.prev_inv_water;
 
-        let senescence_start = if self.organisms[idx].max_age > 0 {
-            (self.organisms[idx].max_age as f32 * 0.65) as u32
-        } else {
-            u32::MAX
-        };
-        let well_nourished = self.organisms[idx].energy > 0.6 && self.organisms[idx].hydration > 0.6;
-        if well_nourished && current_tile != Tile::Fire && self.organisms[idx].infection < 0.3 {
-            let regen = if self.organisms[idx].age < senescence_start {
-                0.001
-            } else {
-                0.0003
-            };
-            self.organisms[idx].health = (self.organisms[idx].health + regen).min(1.0);
-        }
-        if self.organisms[idx].max_age > 0 && self.organisms[idx].age > senescence_start {
-            let decline = ((self.organisms[idx].age - senescence_start) as f32
-                / (self.organisms[idx].max_age - senescence_start).max(1) as f32)
-                .min(1.0);
-            self.organisms[idx].energy = (self.organisms[idx].energy - 0.001 * decline).max(0.0);
-        }
-
-        self.organisms[idx].age += 1;
-        if self.organisms[idx].age.is_multiple_of(100) {
-            self.organisms[idx].decay_memory(self.tick_count);
-        }
-
-        if self.organisms[idx].nursing_until > self.tick_count {
-            if self.organisms[idx].energy < 0.85 {
-                self.organisms[idx].energy = (self.organisms[idx].energy + 0.012).min(1.0);
-            }
-            if self.organisms[idx].hydration < 0.85 {
-                self.organisms[idx].hydration = (self.organisms[idx].hydration + 0.010).min(1.0);
-            }
-        }
+        body_ageing(
+            &mut self.organisms[idx],
+            current_tile == Tile::Fire,
+            self.tick_count,
+        );
 
         let mut reward = (self.organisms[idx].energy - prev_energy) * 2.0
             + (self.organisms[idx].hydration - prev_hydration) * 2.0;
@@ -71,6 +42,38 @@ impl Simulation {
         }
 
         f.reward = reward;
+    }
+}
+
+pub(super) fn body_ageing(o: &mut Organism, on_fire: bool, tick: u64) {
+    let senescence_start = if o.max_age > 0 {
+        (o.max_age as f32 * 0.65) as u32
+    } else {
+        u32::MAX
+    };
+    let well_nourished = o.energy > 0.6 && o.hydration > 0.6;
+    if well_nourished && !on_fire && o.infection < 0.3 {
+        let regen = if o.age < senescence_start { 0.001 } else { 0.0003 };
+        o.health = (o.health + regen).min(1.0);
+    }
+    if o.max_age > 0 && o.age > senescence_start {
+        let decline =
+            ((o.age - senescence_start) as f32 / (o.max_age - senescence_start).max(1) as f32).min(1.0);
+        o.energy = (o.energy - 0.001 * decline).max(0.0);
+    }
+
+    o.age += 1;
+    if o.age.is_multiple_of(100) {
+        o.decay_memory(tick);
+    }
+
+    if o.nursing_until > tick {
+        if o.energy < 0.85 {
+            o.energy = (o.energy + 0.012).min(1.0);
+        }
+        if o.hydration < 0.85 {
+            o.hydration = (o.hydration + 0.010).min(1.0);
+        }
     }
 }
 

@@ -14,6 +14,7 @@ pub(in crate::sim::simulation) struct Choice {
     pub(super) rng: ChoiceRng,
     /// Fleeing a threat: where to keep running, and the fear it put them in.
     pub(super) flight: Option<(Option<(i32, i32)>, f32)>,
+    pub(super) plan: Option<super::DormantPlan>,
 }
 
 /// An action, its thought, where the choice came from, and a flight's course and fear.
@@ -100,6 +101,7 @@ impl Simulation {
             at,
             rng,
             flight,
+            plan: None,
         }
     }
 

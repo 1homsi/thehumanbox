@@ -187,6 +187,10 @@ fn staged_world() -> (Simulation, Stage) {
     // One of the crowd has just died, for the revive tool.
     sim.organisms[near[4]].health = -1.0;
     sim.tick();
+    for i in [m, w] {
+        sim.organisms[i].x += 0.3;
+        sim.organisms[i].y += 0.3;
+    }
     let at = |i: usize| (sim.organisms[i].x, sim.organisms[i].y);
     // The tools are checked against what the world holds, not against where this seed happens to put it:
     // the wooded tile nearest the crowd, wherever its people settled.

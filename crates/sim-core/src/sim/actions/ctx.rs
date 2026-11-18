@@ -23,36 +23,50 @@ pub struct ActionCtx<'a> {
     pub sy: f32,
 }
 
+pub fn near_and_kin(organisms: &[Organism], idx: usize, spatial: &SpatialIndex) -> (Vec<usize>, Vec<usize>) {
+    let me = &organisms[idx];
+    let (sx, sy) = (me.x, me.y);
+    let mut cand: Vec<usize> = Vec::with_capacity(16);
+    spatial.query_into(sx as i32, sy as i32, 6, &mut cand);
+    let mut near: Vec<usize> = Vec::with_capacity(cand.len());
+    let mut kin: Vec<usize> = Vec::with_capacity(cand.len() / 2);
+    for &i in &cand {
+        if i == idx {
+            continue;
+        }
+        let o = &organisms[i];
+        if !o.alive {
+            continue;
+        }
+        if (o.x - sx).abs() + (o.y - sy).abs() > 6.0 {
+            continue;
+        }
+        near.push(i);
+        if o.lineage_id == me.lineage_id {
+            kin.push(i);
+        }
+    }
+    (near, kin)
+}
+
 impl<'a> ActionCtx<'a> {
     pub fn new(sim: &'a mut Simulation, idx: usize, ix: i32, iy: i32, spatial: &SpatialIndex) -> Self {
+        Self::with_neighbours(sim, idx, ix, iy, spatial, None)
+    }
+
+    pub fn with_neighbours(
+        sim: &'a mut Simulation,
+        idx: usize,
+        ix: i32,
+        iy: i32,
+        spatial: &SpatialIndex,
+        neighbours: Option<(Vec<usize>, Vec<usize>)>,
+    ) -> Self {
         let tick = sim.tick_count;
         let (sx, sy) = (sim.organisms[idx].x, sim.organisms[idx].y);
         let lid = sim.organisms[idx].lineage_id.clone();
         let tile = sim.grid.get(ix, iy);
-
-        // Use the per-tick spatial index instead of scanning the full
-        // organism list. The previous O(N) double-scan was the heaviest
-        // bit of work in try_apply when populations grow.
-        let mut cand: Vec<usize> = Vec::with_capacity(16);
-        spatial.query_into(sx as i32, sy as i32, 6, &mut cand);
-        let mut near: Vec<usize> = Vec::with_capacity(cand.len());
-        let mut kin: Vec<usize> = Vec::with_capacity(cand.len() / 2);
-        for &i in &cand {
-            if i == idx {
-                continue;
-            }
-            let o = &sim.organisms[i];
-            if !o.alive {
-                continue;
-            }
-            if (o.x - sx).abs() + (o.y - sy).abs() > 6.0 {
-                continue;
-            }
-            near.push(i);
-            if o.lineage_id == lid {
-                kin.push(i);
-            }
-        }
+        let (near, kin) = neighbours.unwrap_or_else(|| near_and_kin(&sim.organisms, idx, spatial));
         let rock_near = [
             (-1, 0),
             (1, 0),

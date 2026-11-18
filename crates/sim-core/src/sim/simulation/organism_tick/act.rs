@@ -501,7 +501,15 @@ impl Simulation {
             self.organisms[idx].think("marking territory", self.tick_count);
             signal_reward += 0.008;
         } else if action >= 26 {
-            if let Some(r) = crate::sim::actions::try_apply(self, idx, action, ix, iy, spatial) {
+            let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
+            let neighbours = f
+                .plan
+                .as_mut()
+                .filter(|p| p.at == (sx, sy))
+                .and_then(|p| p.neighbours.take());
+            if let Some(r) =
+                crate::sim::actions::try_apply_with(self, idx, action, ix, iy, spatial, neighbours)
+            {
                 action_succeeded = r > 0.0;
                 signal_reward += r;
                 self.organisms[idx].energy = (self.organisms[idx].energy - 0.0015).max(0.0);
