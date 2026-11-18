@@ -264,42 +264,44 @@ impl Simulation {
         if !self.tick_count.is_multiple_of(LORE_EVERY) {
             return;
         }
-        let mut lore: std::collections::BTreeMap<String, std::collections::BTreeSet<String>> =
-            std::collections::BTreeMap::new();
-        let mut near: std::collections::BTreeMap<(i32, i32), std::collections::BTreeSet<String>> =
-            std::collections::BTreeMap::new();
-        for o in self.organisms.iter().filter(|o| o.alive) {
-            let core = || {
-                o.discoveries
-                    .iter()
-                    .filter(|d| LORE.contains(&d.as_str()))
-                    .cloned()
-            };
-            lore.entry(o.lineage_id.clone()).or_default().extend(core());
-            near.entry(((o.x as i32).div_euclid(10), (o.y as i32).div_euclid(10)))
-                .or_default()
-                .extend(core());
+        let names = lore_in_order();
+        let mut lore: FxHashMap<&str, u64> = FxHashMap::default();
+        let mut near: FxHashMap<(i32, i32), u64> = FxHashMap::default();
+        let mut own: Vec<u64> = vec![0; self.organisms.len()];
+        for (i, o) in self.organisms.iter().enumerate().filter(|(_, o)| o.alive) {
+            let known = lore_known(names, &o.discoveries);
+            own[i] = known;
+            *lore.entry(o.lineage_id.as_str()).or_default() |= known;
+            *near
+                .entry(((o.x as i32).div_euclid(10), (o.y as i32).div_euclid(10)))
+                .or_default() |= known;
         }
         let tick = self.tick_count;
-        for (i, o) in self.organisms.iter_mut().enumerate() {
+        let mut learn: Vec<(usize, u64)> = Vec::new();
+        for (i, o) in self.organisms.iter().enumerate() {
             if !o.alive || awake.get(i).copied().unwrap_or(true) {
                 continue;
             }
             let (cx, cy) = ((o.x as i32).div_euclid(10), (o.y as i32).div_euclid(10));
-            let mut known: std::collections::BTreeSet<&String> =
-                lore.get(&o.lineage_id).into_iter().flatten().collect();
+            let mut known = lore.get(o.lineage_id.as_str()).copied().unwrap_or(0);
             for dy in -1..=1 {
                 for dx in -1..=1 {
-                    known.extend(near.get(&(cx + dx, cy + dy)).into_iter().flatten());
+                    known |= near.get(&(cx + dx, cy + dy)).copied().unwrap_or(0);
                 }
             }
-            for d in known {
+            let unknown = known & !own[i];
+            if unknown != 0 {
+                learn.push((i, unknown));
+            }
+        }
+        for (i, mut unknown) in learn {
+            let o = &mut self.organisms[i];
+            while unknown != 0 {
                 if o.discoveries.len() >= LORE_ROOM {
                     break;
                 }
-                if o.discoveries.contains(d.as_str()) {
-                    continue;
-                }
+                let d = names[unknown.trailing_zeros() as usize];
+                unknown &= unknown - 1;
                 let roll = d
                     .bytes()
                     .chain(tick.to_le_bytes())
@@ -514,6 +516,33 @@ impl Simulation {
             );
         }
     }
+}
+
+fn lore_in_order() -> &'static [&'static str] {
+    static NAMES: std::sync::OnceLock<Vec<&'static str>> = std::sync::OnceLock::new();
+    NAMES.get_or_init(|| {
+        let mut names = LORE.to_vec();
+        names.sort_unstable();
+        names
+    })
+}
+
+fn lore_known(names: &[&str], discoveries: &std::collections::BTreeSet<String>) -> u64 {
+    let mut known = 0u64;
+    let mut next = 0;
+    for d in discoveries {
+        while next < names.len() && names[next] < d.as_str() {
+            next += 1;
+        }
+        if next == names.len() {
+            break;
+        }
+        if names[next] == d.as_str() {
+            known |= 1 << next;
+            next += 1;
+        }
+    }
+    known
 }
 
 fn upkeep_roll(tick: u64, idx: usize) -> f32 {
@@ -831,5 +860,39 @@ impl Simulation {
             lineage_members,
         );
         self.learn_from_the_tick(spatial);
+    }
+}
+
+#[cfg(test)]
+mod lore_tests {
+    use super::*;
+
+    #[test]
+    fn the_lore_mask_holds_exactly_the_core_discoveries_known_in_name_order() {
+        let names = lore_in_order();
+        assert!(names.windows(2).all(|w| w[0] < w[1]));
+        let known: std::collections::BTreeSet<String> = [
+            "aaa",
+            "fire",
+            "medicine",
+            "zzz",
+            "language",
+            "trap",
+            "fishing_net",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+        let mask = lore_known(names, &known);
+        let from_mask: Vec<&str> = (0..names.len())
+            .filter(|&b| mask & (1 << b) != 0)
+            .map(|b| names[b])
+            .collect();
+        let plain: Vec<&str> = known
+            .iter()
+            .map(String::as_str)
+            .filter(|d| LORE.contains(d))
+            .collect();
+        assert_eq!(from_mask, plain);
     }
 }

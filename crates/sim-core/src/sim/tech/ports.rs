@@ -142,20 +142,17 @@ pub(crate) fn tick_ports(sim: &mut Simulation) {
         return;
     }
     let mut fleet_total = sim.vehicles.iter().filter(|v| v.harbour.is_some()).count();
-    let mut tribes: Vec<String> = Vec::new();
-    for o in sim.organisms.iter().filter(|o| o.alive) {
-        if !tribes.contains(&o.lineage_id) {
-            tribes.push(o.lineage_id.clone());
-        }
+    let mut tribes: Vec<(String, Vec<usize>)> = Vec::new();
+    let mut slot: crate::hashing::FxHashMap<&str, usize> = Default::default();
+    for (i, o) in sim.organisms.iter().enumerate().filter(|(_, o)| o.alive) {
+        let k = *slot.entry(o.lineage_id.as_str()).or_insert_with(|| {
+            tribes.push((o.lineage_id.clone(), Vec::new()));
+            tribes.len() - 1
+        });
+        tribes[k].1.push(i);
     }
-    for tribe in tribes {
-        let members: Vec<usize> = sim
-            .organisms
-            .iter()
-            .enumerate()
-            .filter(|(_, o)| o.alive && o.lineage_id == tribe)
-            .map(|(i, _)| i)
-            .collect();
+    drop(slot);
+    for (tribe, members) in tribes {
         let fisher = members
             .iter()
             .any(|&i| sim.organisms[i].discoveries.contains("fishing"));
