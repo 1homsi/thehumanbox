@@ -11,6 +11,15 @@ pub mod world;
 #[cfg(all(target_arch = "wasm32", feature = "wasm-threads"))]
 pub use wasm_bindgen_rayon::init_thread_pool;
 
+#[cfg(all(target_arch = "wasm32", feature = "wasm-threads"))]
+#[wasm_bindgen::prelude::wasm_bindgen(js_name = reserveHeap)]
+pub fn reserve_heap(megabytes: u32) {
+    let blocks: Vec<Vec<u8>> = (0..megabytes as usize * 16)
+        .map(|_| Vec::with_capacity(64 * 1024))
+        .collect();
+    drop(blocks);
+}
+
 #[cfg(any(target_arch = "wasm32", test))]
 use crate::sim::serialize::FramePayload;
 

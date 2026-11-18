@@ -9,6 +9,8 @@ const CORES_FOR_PAGE_AND_RENDERER = 2
  */
 export const POOL_START_MS = 10_000
 
+export const WEBKIT_HEAP_RESERVE_MB = 768
+
 /**
  * How long fetching and compiling the threaded module may take. It is about 5 MB, so this is longer than the pool
  * start; past it the worker falls back to the single-thread engine.

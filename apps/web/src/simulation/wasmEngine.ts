@@ -3,6 +3,7 @@ import wasmUrl from '../wasm/sim-core/sim_core_bg.wasm?url'
 import initThreadedWasm, {
   Sim as ThreadedSim,
   initThreadPool,
+  reserveHeap,
 } from '../wasm/sim-core-threads/sim_core_threads.js'
 import threadedWasmUrl from '../wasm/sim-core-threads/sim_core_threads_bg.wasm?url'
 import { logger } from '../shared/logger'
@@ -13,6 +14,7 @@ import {
   THREADS_HEAD_START_MS,
   threadCount,
   wantsThreads,
+  WEBKIT_HEAP_RESERVE_MB,
   webkitEngine,
   withTimeout,
   type SingleThreadReason,
@@ -41,11 +43,12 @@ export async function startSimEngine(): Promise<SimEngine> {
     return { Sim, threads: 1 }
   }
   if (!wantsThreads(self)) return { ...(await startSingle()), fallback: 'not_isolated' }
-  if (webkitEngine(navigator.userAgent)) return { ...(await startSingle()), fallback: 'webkit' }
 
   const threads = threadCount(navigator.hardwareConcurrency)
+  const reserve = webkitEngine(navigator.userAgent)
   const threaded = (async () => {
     await withTimeout(initThreadedWasm({ module_or_path: threadedWasmUrl }), THREADED_WASM_START_MS)
+    if (reserve) reserveHeap(WEBKIT_HEAP_RESERVE_MB)
     // wasm-bindgen-rayon keeps its spawned workers in module state with no way to stop them, so a stalled pool
     // stays as idle workers beside the single-thread engine; the timeout only stops the wait.
     await withTimeout(initThreadPool(threads), POOL_START_MS)
