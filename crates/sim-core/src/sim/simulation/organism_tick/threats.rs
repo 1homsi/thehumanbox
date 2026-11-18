@@ -71,14 +71,17 @@ impl Simulation {
             }
         }
 
-        let perception = self.organisms[idx].perceive_into(
-            &self.grid,
-            &self.organisms,
-            night,
-            animal_near,
-            spatial,
-            perception_buf,
-        );
+        let perception = match f.pre_perception.take() {
+            Some(perception) => perception,
+            None => self.organisms[idx].perceive_into(
+                &self.grid,
+                &self.organisms,
+                night,
+                animal_near,
+                spatial,
+                perception_buf,
+            ),
+        };
         let prior_lineage = self.organisms[idx].lineage_id.clone();
         self.validate_or_assign_wander_target_indexed(idx, spatial, lineage_members);
         if self.organisms[idx].lineage_id != prior_lineage {

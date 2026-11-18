@@ -5,12 +5,9 @@ impl Simulation {
     pub(super) fn org_bonds(&mut self, f: &mut OrgFrame<'_>) {
         let action = f.action;
         let action_succeeded = f.action_succeeded;
-        let animal_near = f.animal_near;
         let idx = f.idx;
         let lineage_members = &mut *f.lineage_members;
         let movement_reward = f.movement_reward;
-        let night = f.night;
-        let perception_buf = &mut *f.perception_buf;
         let mut reward = f.reward;
         let signal_reward = f.signal_reward;
         let spatial = f.spatial;
@@ -193,30 +190,6 @@ impl Simulation {
             self.record_strategy_progress(&lineage_id, &strategy);
         }
 
-        let next_perception = self.organisms[idx].perceive_into(
-            &self.grid,
-            &self.organisms,
-            night,
-            animal_near,
-            spatial,
-            perception_buf,
-        );
-        // The actions open from the new state only bound the best value learned for that state. With nothing
-        // learned for it yet that value is 0 whatever they are, so they are not worked out (most of a tick's
-        // second pass over the action gates, for a state seen for the first time).
-        let next_best = match self.organisms[idx].q_table.get(&next_perception) {
-            Some(row) => crate::sim::actions::best_next_q(
-                self,
-                idx,
-                self.organisms[idx].x as i32,
-                self.organisms[idx].y as i32,
-                spatial,
-                spatial_buf,
-                row,
-            ),
-            None => 0.0,
-        };
-
         f.reward = reward;
         f.boredom = boredom;
         f.comfort = comfort;
@@ -224,7 +197,6 @@ impl Simulation {
         f.kin_sum = kin_sum;
         f.lineage = lineage;
         f.loneliness = loneliness;
-        f.next_best = next_best;
         f.ox_2 = ox;
         f.oy_2 = oy;
     }
