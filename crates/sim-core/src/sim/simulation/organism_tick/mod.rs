@@ -125,13 +125,15 @@ pub(crate) struct PendingLearn {
     animal_near: bool,
 }
 
-const LOD_EVERY: u64 = 16;
+const LOD_EVERY: u64 = 32;
 
 const LORE_EVERY: u64 = 60;
 
 const LORE_CHANCE_PERCENT: u64 = 20;
 
 const LORE_ROOM: usize = 48;
+
+const MEDICINE_FOUND_PER_10K: u64 = 4;
 
 const LORE: &[&str] = &[
     "fire",
@@ -184,7 +186,7 @@ const HOLD: usize = usize::MAX;
 
 const CHALLENGE_COOLDOWN: u64 = 80;
 
-const DORMANT_CHALLENGE_PER_MILLE: u64 = 4;
+const DORMANT_CHALLENGE_PER_MILLE: u64 = 2;
 
 impl Simulation {
     pub(super) fn lod_awake(
@@ -221,7 +223,7 @@ impl Simulation {
                 }
                 if storm
                     || (self.tick_count + i as u64).is_multiple_of(LOD_EVERY)
-                    || o.energy < 0.40
+                    || o.energy < 0.35
                     || o.hydration < 0.35
                     || o.health < 0.6
                     || o.infection > 0.3
@@ -284,10 +286,23 @@ impl Simulation {
                 .or_default() |= known;
         }
         let tick = self.tick_count;
+        let bit = |name: &str| names.iter().position(|&n| n == name).map_or(0, |b| 1u64 << b);
+        let (fire, medicine) = (bit("fire"), bit("medicine"));
+        let mut founders: Vec<usize> = Vec::new();
+        let mut founded: crate::hashing::FxHashSet<&str> = Default::default();
         let mut learn: Vec<(usize, u64)> = Vec::new();
         for (i, o) in self.organisms.iter().enumerate() {
             if !o.alive || awake.get(i).copied().unwrap_or(true) {
                 continue;
+            }
+            let tribe = lore.get(o.lineage_id.as_str()).copied().unwrap_or(0);
+            if tribe & medicine == 0
+                && own[i] & fire != 0
+                && o.discoveries.len() < LORE_ROOM
+                && lore_roll(b"found medicine", tick, i) % 10_000 < MEDICINE_FOUND_PER_10K
+                && founded.insert(o.lineage_id.as_str())
+            {
+                founders.push(i);
             }
             let (cx, cy) = ((o.x as i32).div_euclid(10), (o.y as i32).div_euclid(10));
             let mut known = lore.get(o.lineage_id.as_str()).copied().unwrap_or(0);
@@ -301,6 +316,9 @@ impl Simulation {
                 learn.push((i, unknown));
             }
         }
+        for i in founders {
+            self.organisms[i].discover("medicine");
+        }
         for (i, mut unknown) in learn {
             let o = &mut self.organisms[i];
             while unknown != 0 {
@@ -309,14 +327,7 @@ impl Simulation {
                 }
                 let d = names[unknown.trailing_zeros() as usize];
                 unknown &= unknown - 1;
-                let roll = d
-                    .bytes()
-                    .chain(tick.to_le_bytes())
-                    .chain((i as u64).to_le_bytes())
-                    .fold(0xcbf2_9ce4_8422_2325u64, |h, b| {
-                        (h ^ u64::from(b)).wrapping_mul(0x0000_0100_0000_01b3)
-                    });
-                if roll % 100 < LORE_CHANCE_PERCENT {
+                if lore_roll(d.as_bytes(), tick, i) % 100 < LORE_CHANCE_PERCENT {
                     o.discover(d);
                 }
             }
@@ -523,6 +534,16 @@ impl Simulation {
             );
         }
     }
+}
+
+fn lore_roll(name: &[u8], tick: u64, i: usize) -> u64 {
+    name.iter()
+        .copied()
+        .chain(tick.to_le_bytes())
+        .chain((i as u64).to_le_bytes())
+        .fold(0xcbf2_9ce4_8422_2325u64, |h, b| {
+            (h ^ u64::from(b)).wrapping_mul(0x0000_0100_0000_01b3)
+        })
 }
 
 fn lore_in_order() -> &'static [&'static str] {

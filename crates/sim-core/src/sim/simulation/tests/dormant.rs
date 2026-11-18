@@ -52,3 +52,46 @@ fn a_dormant_body_tires_and_ages_in_the_upkeep_and_nobody_else_does() {
         }
     }
 }
+
+#[test]
+fn a_tribe_that_knows_fire_works_out_medicine_while_dormant_and_spreads_it() {
+    let mut sim = Simulation::new(5);
+    sim.tick_n(10);
+    let lineage = sim
+        .organisms
+        .iter()
+        .find(|o| o.alive)
+        .expect("someone alive")
+        .lineage_id
+        .clone();
+    for o in sim.organisms.iter_mut().filter(|o| o.alive) {
+        o.lineage_id = lineage.clone();
+        o.discoveries.remove("medicine");
+        o.discover("fire");
+    }
+    let awake = vec![false; sim.organisms.len()];
+    sim.tick_count = 600;
+    let knowers = |sim: &Simulation| {
+        sim.organisms
+            .iter()
+            .filter(|o| o.alive && o.discoveries.contains("medicine"))
+            .count()
+    };
+    let mut steps = 0;
+    while knowers(&sim) == 0 && steps < 20_000 {
+        sim.tick_count += 60;
+        sim.lineage_lore(&awake);
+        steps += 1;
+    }
+    assert!(knowers(&sim) > 0, "nobody worked out medicine");
+    for _ in 0..40 {
+        sim.tick_count += 60;
+        sim.lineage_lore(&awake);
+    }
+    let alive = sim.organisms.iter().filter(|o| o.alive).count();
+    assert!(
+        knowers(&sim) * 2 > alive,
+        "medicine reached {} of {alive}",
+        knowers(&sim)
+    );
+}
