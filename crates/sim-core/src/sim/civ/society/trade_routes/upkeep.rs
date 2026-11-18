@@ -139,12 +139,30 @@ pub fn tick(sim: &mut Simulation) {
         .filter(|caravan| caravan.arrives_tick <= latest_arrival)
         .map(|caravan| caravan.receiver_lineage.clone())
         .collect();
+    if due_lineages.is_empty() {
+        return;
+    }
+    let mut members: crate::hashing::FxHashMap<&str, Vec<usize>> = due_lineages
+        .iter()
+        .map(|lineage| (lineage.as_str(), Vec::new()))
+        .collect();
+    for (idx, organism) in sim.organisms.iter().enumerate().filter(|(_, o)| o.alive) {
+        if let Some(tribe) = members.get_mut(organism.lineage_id.as_str()) {
+            tribe.push(idx);
+        }
+    }
     let mut remaining = MAX_AUTOMATIC_DELIVERIES_PER_TICK;
-    for lineage in due_lineages {
+    for lineage in &due_lineages {
         if remaining == 0 {
             break;
         }
-        let delivered = deliver_due_for_lineage(sim, &lineage, latest_arrival, remaining);
+        let delivered = deliver_due_for_lineage(
+            sim,
+            lineage,
+            latest_arrival,
+            remaining,
+            members.get(lineage.as_str()).map(Vec::as_slice),
+        );
         remaining = remaining.saturating_sub(delivered);
     }
 }

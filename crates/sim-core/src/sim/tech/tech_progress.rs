@@ -74,6 +74,13 @@ pub fn tick_tech_progress(
     // on `max_by`'s internal comparison pattern; that is hoisted out too.)
     tribes.sort_by(|a, b| a.0.cmp(&b.0));
     let neighbours_farm = farming_neighbours(&tribes, buildings);
+    let mut owned: HashMap<&str, Vec<&Building>> = HashMap::default();
+    for building in buildings.iter().filter(|building| building.is_operational()) {
+        if let Some(owner) = building.owner_lineage.as_deref() {
+            owned.entry(owner).or_default().push(building);
+        }
+    }
+    let evidence_kinds = node_evidence_kinds();
     for (lid, disc, members) in &tribes {
         let pop = members.len();
         if pop == 0 {
@@ -81,9 +88,15 @@ pub fn tick_tech_progress(
         }
 
         let pop_factor = (0.75 + pop as f32 / 6.0).clamp(0.75, 6.0);
-        let profile = research_profile(tick, lid, members, organisms, buildings, governments.get(lid));
+        let profile = owned_research_profile(
+            tick,
+            members,
+            organisms,
+            owned.get(lid.as_str()).map_or(&[], Vec::as_slice),
+            governments.get(lid),
+        );
 
-        for node in tech.iter() {
+        for (node, &evidence_kind) in tech.iter().zip(evidence_kinds) {
             if disc.contains(node.name) {
                 continue;
             }
@@ -94,7 +107,7 @@ pub fn tick_tech_progress(
                 continue;
             }
 
-            let evidence = evidence_multiplier(node.name, &profile);
+            let evidence = evidence_from(evidence_kind, &profile);
             let learned_from_neighbours =
                 node.name == "agriculture" && neighbours_farm.contains(lid.as_str());
             let boost = if learned_from_neighbours {
@@ -283,12 +296,27 @@ fn discovery_skill(discovery: &str) -> Option<Skill> {
     }
 }
 
+#[cfg(test)]
 fn research_profile(
     tick: u64,
     lineage_id: &str,
     members: &[usize],
     organisms: &[Organism],
     buildings: &[Building],
+    government: Option<&Government>,
+) -> ResearchProfile {
+    let owned: Vec<&Building> = buildings
+        .iter()
+        .filter(|building| building.owner_lineage.as_deref() == Some(lineage_id) && building.is_operational())
+        .collect();
+    owned_research_profile(tick, members, organisms, &owned, government)
+}
+
+fn owned_research_profile(
+    tick: u64,
+    members: &[usize],
+    organisms: &[Organism],
+    owned: &[&Building],
     government: Option<&Government>,
 ) -> ResearchProfile {
     let mut literacy = 0.0;
@@ -319,25 +347,21 @@ fn research_profile(
     let literacy_avg = literacy / count;
     let curiosity_avg = curiosity / count;
     let specialist_ratio = (scholars + makers) as f32 / count;
-    let research_sites = buildings
+    let research_sites = owned
         .iter()
-        .filter(|building| building.owner_lineage.as_deref() == Some(lineage_id) && building.is_operational())
         .map(|building| research_site_weight(building.kind))
         .sum::<f32>();
-    let laboratory_capacity = buildings
+    let laboratory_capacity = owned
         .iter()
-        .filter(|building| building.owner_lineage.as_deref() == Some(lineage_id) && building.is_operational())
         .map(|building| laboratory_weight(building.kind))
         .sum::<f32>();
-    let dwellings = buildings
+    let dwellings = owned
         .iter()
         .filter(|building| {
-            building.owner_lineage.as_deref() == Some(lineage_id)
-                && building.is_operational()
-                && matches!(
-                    building.kind,
-                    BuildingKind::Hut | BuildingKind::House | BuildingKind::Longhouse
-                )
+            matches!(
+                building.kind,
+                BuildingKind::Hut | BuildingKind::House | BuildingKind::Longhouse
+            )
         })
         .count() as f32;
     let settled = (dwellings / count).min(1.0);
@@ -440,21 +464,33 @@ fn research_requirements_met(era: crate::sim::civ::era::Era, profile: &ResearchP
     }
 }
 
+#[cfg(test)]
 fn evidence_multiplier(discovery: &str, profile: &ResearchProfile) -> f32 {
+    evidence_from(evidence_kind(discovery), profile)
+}
+
+#[derive(Clone, Copy)]
+enum Evidence {
+    Health,
+    Food,
+    Machines,
+    Learning,
+}
+
+fn evidence_kind(discovery: &str) -> Evidence {
     let lower = discovery.to_ascii_lowercase();
-    let practice = if lower.contains("medicine")
+    if lower.contains("medicine")
         || lower.contains("health")
         || lower.contains("surgery")
         || lower.contains("vaccine")
     {
-        profile.healers as f32 * 0.08 + profile.research_sites * 0.20
+        Evidence::Health
     } else if lower.contains("farm")
         || lower.contains("crop")
         || lower.contains("food")
         || lower.contains("agri")
     {
-        // Settled tribes (a house for most of the people) learn to sow.
-        profile.food_workers as f32 * 0.06 + profile.settled * 0.6
+        Evidence::Food
     } else if lower.contains("engine")
         || lower.contains("machine")
         || lower.contains("space")
@@ -462,9 +498,23 @@ fn evidence_multiplier(discovery: &str, profile: &ResearchProfile) -> f32 {
         || lower.contains("quantum")
         || lower.contains("computer")
     {
-        profile.makers as f32 * 0.07 + profile.research_sites * 0.22
+        Evidence::Machines
     } else {
-        (profile.scholars + profile.makers) as f32 * 0.025
+        Evidence::Learning
+    }
+}
+
+fn node_evidence_kinds() -> &'static [Evidence] {
+    static KINDS: std::sync::OnceLock<Vec<Evidence>> = std::sync::OnceLock::new();
+    KINDS.get_or_init(|| all_tech().iter().map(|node| evidence_kind(node.name)).collect())
+}
+
+fn evidence_from(kind: Evidence, profile: &ResearchProfile) -> f32 {
+    let practice = match kind {
+        Evidence::Health => profile.healers as f32 * 0.08 + profile.research_sites * 0.20,
+        Evidence::Food => profile.food_workers as f32 * 0.06 + profile.settled * 0.6,
+        Evidence::Machines => profile.makers as f32 * 0.07 + profile.research_sites * 0.22,
+        Evidence::Learning => (profile.scholars + profile.makers) as f32 * 0.025,
     };
     let experimentation = (profile.recent_experiments as f32 * 0.05).min(0.30);
     (0.20 + profile.literacy * 0.35 + practice + experimentation).clamp(0.10, 1.8)

@@ -55,20 +55,34 @@ pub(super) fn add_cargo(sim: &mut Simulation, organism_idx: usize, cargo: &str, 
     accepted
 }
 
+fn tribe_members(sim: &Simulation, lineage_id: &str) -> Vec<usize> {
+    sim.organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, organism)| organism.alive && organism.lineage_id == lineage_id)
+        .map(|(idx, _)| idx)
+        .collect()
+}
+
 pub(super) fn ordered_recipients(
     sim: &Simulation,
     lineage_id: &str,
     destination: [i32; 2],
     cargo: &str,
 ) -> Vec<usize> {
-    let mut recipients: Vec<usize> = sim
-        .organisms
+    ordered_recipients_among(sim, &tribe_members(sim, lineage_id), destination, cargo)
+}
+
+fn ordered_recipients_among(
+    sim: &Simulation,
+    members: &[usize],
+    destination: [i32; 2],
+    cargo: &str,
+) -> Vec<usize> {
+    let mut recipients: Vec<usize> = members
         .iter()
-        .enumerate()
-        .filter(|(idx, organism)| {
-            organism.alive && organism.lineage_id == lineage_id && cargo_room(sim, *idx, cargo) > 0
-        })
-        .map(|(idx, _)| idx)
+        .copied()
+        .filter(|&idx| cargo_room(sim, idx, cargo) > 0)
         .collect();
     recipients.sort_by(|left, right| {
         let left_org = &sim.organisms[*left];
@@ -104,7 +118,7 @@ pub(super) fn closest_sender(sim: &Simulation, caravan: &Caravan) -> Option<usiz
         .map(|(index, _)| index)
 }
 
-pub(super) fn deliver_caravan(sim: &mut Simulation, caravan_id: u32) -> bool {
+pub(super) fn deliver_caravan(sim: &mut Simulation, caravan_id: u32, members: Option<&[usize]>) -> bool {
     let Some(caravan_index) = sim.caravans.iter().position(|caravan| caravan.id == caravan_id) else {
         return false;
     };
@@ -113,7 +127,10 @@ pub(super) fn deliver_caravan(sim: &mut Simulation, caravan_id: u32) -> bool {
         return false;
     }
 
-    let recipients = ordered_recipients(sim, &caravan.receiver_lineage, caravan.to, &caravan.cargo);
+    let recipients = match members {
+        Some(members) => ordered_recipients_among(sim, members, caravan.to, &caravan.cargo),
+        None => ordered_recipients(sim, &caravan.receiver_lineage, caravan.to, &caravan.cargo),
+    };
     let Some(&primary_recipient) = recipients.first() else {
         return false;
     };
@@ -270,6 +287,7 @@ pub(super) fn deliver_due_for_lineage(
     lineage_id: &str,
     latest_arrival: u64,
     limit: usize,
+    members: Option<&[usize]>,
 ) -> usize {
     let mut due_ids: Vec<(u64, u32)> = sim
         .caravans
@@ -281,7 +299,7 @@ pub(super) fn deliver_due_for_lineage(
     due_ids
         .into_iter()
         .take(limit)
-        .filter(|(_, caravan_id)| deliver_caravan(sim, *caravan_id))
+        .filter(|(_, caravan_id)| deliver_caravan(sim, *caravan_id, members))
         .count()
 }
 
@@ -289,7 +307,7 @@ pub fn receive_due_for_lineage(sim: &mut Simulation, lineage_id: &str) -> bool {
     if lineage_id.is_empty() {
         return false;
     }
-    deliver_due_for_lineage(sim, lineage_id, sim.tick_count, 1) > 0
+    deliver_due_for_lineage(sim, lineage_id, sim.tick_count, 1, None) > 0
 }
 
 pub(super) fn can_receive_due_for_lineage(sim: &Simulation, lineage_id: &str) -> bool {
