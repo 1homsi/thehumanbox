@@ -221,6 +221,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     smog: parsed.smog ?? base?.smog,
     volcanoes: parsed.volcanoes ?? base?.volcanoes,
     settlements: parsed.settlements ?? base?.settlements,
+    towns: parsed.towns ?? base?.towns,
     vehicles: parsed.vehicles ?? base?.vehicles,
     carcasses: parsed.carcasses ?? base?.carcasses,
     festivals: parsed.festivals ?? base?.festivals,

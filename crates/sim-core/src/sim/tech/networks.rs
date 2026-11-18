@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::hashing::FxHashSet;
+use crate::hashing::{FxHashMap, FxHashSet};
 use crate::sim::civ::civ_tick::town::town_reserved;
 use crate::sim::simulation::Simulation;
 use crate::sim::tech::buildings::{Building, BuildingKind};
@@ -24,6 +24,8 @@ const STATION_REACH: i32 = 4;
 const RAIL_TO_TRACK_DAYS: u8 = 1;
 const REMNANT_GONE_DAYS: u8 = 4;
 pub(crate) const ORPHAN_WEAR: f32 = 0.35;
+pub(crate) const CLUTTER_WEAR: f32 = 0.05;
+const PROP_REACH: i32 = 16;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RailRemnant {
@@ -106,28 +108,72 @@ fn unpowered(b: &Building, powered: &FxHashSet<&str>) -> bool {
     b.owner_lineage.as_deref().is_none_or(|l| !powered.contains(l))
 }
 
+#[cfg(test)]
 pub(crate) fn orphaned_infrastructure(sim: &Simulation) -> FxHashSet<u32> {
-    let mut out = FxHashSet::default();
-    if !sim
-        .buildings
-        .iter()
-        .any(|b| !b.decorative && matches!(b.kind, BuildingKind::TrainStation | BuildingKind::Substation))
-    {
-        return out;
-    }
+    orphans(sim).into_keys().collect()
+}
+
+fn kept_in_use(kind: BuildingKind) -> bool {
+    crate::sim::civ::vacancy::is_home(kind)
+        || kind.needs_shore()
+        || matches!(
+            kind,
+            BuildingKind::Shipyard | BuildingKind::Warehouse | BuildingKind::Well | BuildingKind::Bridge
+        )
+}
+
+pub(crate) fn orphans(sim: &Simulation) -> FxHashMap<u32, f32> {
+    let mut out = FxHashMap::default();
     let ends: Vec<[i32; 2]> = sim.rail_lines.iter().flat_map(|l| [l.a, l.b]).collect();
     let powered = powered_lineages(sim);
-    for b in sim.buildings.iter().filter(|b| !b.decorative) {
-        let orphan = match b.kind {
-            BuildingKind::TrainStation => !near_a_line_end(stop_of(b), &ends),
-            BuildingKind::Substation => unpowered(b, &powered),
-            _ => false,
+    let living = living_lineages(sim);
+    let towns: FxHashMap<u32, &crate::sim::civ::civ_tick::town::Town> =
+        sim.towns.iter().map(|t| (t.id, t)).collect();
+    let settled: FxHashSet<&str> = sim.towns.iter().map(|t| t.lineage.as_str()).collect();
+    for b in &sim.buildings {
+        let owner = b.owner_lineage.as_deref();
+        let unanchored = owner.is_some_and(|l| living.contains(l) && !settled.contains(l));
+        let wear = if b.decorative {
+            let near = b
+                .town
+                .and_then(|id| towns.get(&id))
+                .is_some_and(|t| t.distance(b.x, b.y) <= PROP_REACH);
+            (!near && !unanchored).then_some(CLUTTER_WEAR)
+        } else {
+            match b.kind {
+                BuildingKind::TrainStation if !near_a_line_end(stop_of(b), &ends) => Some(ORPHAN_WEAR),
+                BuildingKind::Substation if unpowered(b, &powered) => Some(ORPHAN_WEAR),
+                kind if b.town.is_none()
+                    && !kept_in_use(kind)
+                    && owner.is_some_and(|l| settled.contains(l) && living.contains(l)) =>
+                {
+                    Some(CLUTTER_WEAR)
+                }
+                _ => None,
+            }
         };
-        if orphan {
-            out.insert(b.id);
+        if let Some(wear) = wear {
+            out.insert(b.id, wear);
         }
     }
     out
+}
+
+pub fn unowned_infrastructure(sim: &Simulation) -> Vec<(BuildingKind, i32, i32)> {
+    let living = living_lineages(sim);
+    let fading = orphans(sim);
+    let settled = 2 * crate::sim::cosmos::DAY_LENGTH;
+    sim.buildings
+        .iter()
+        .filter(|b| !b.decorative && !b.is_ruined() && !kept_in_use(b.kind))
+        .filter(|b| b.owner_lineage.as_deref().is_some_and(|l| living.contains(l)))
+        .filter(|b| sim.tick_count.saturating_sub(b.built_at_tick) > settled)
+        .filter(|b| {
+            let orphan = b.town.is_none() || fading.contains_key(&b.id);
+            orphan && !(fading.contains_key(&b.id) && b.damage_fraction() > 0.0)
+        })
+        .map(|b| (b.kind, b.x, b.y))
+        .collect()
 }
 
 pub(crate) fn way_blocks(kind: BuildingKind, road: u8) -> bool {
@@ -313,6 +359,55 @@ mod tests {
         b.condition = 1.0;
         sim.buildings.push(b);
         id
+    }
+
+    #[test]
+    fn scenery_far_from_any_town_fades_while_town_scenery_stays() {
+        let mut sim = grassland();
+        let owner = sim.organisms[0].lineage_id.clone();
+        sim.towns.push(crate::sim::civ::civ_tick::town::Town {
+            id: 1,
+            lineage: owner.clone(),
+            center: [50, 50],
+            streets: Vec::new(),
+            founded_tick: 0,
+            planned: false,
+            growth: 0,
+        });
+        let kept = standing(&mut sim, BuildingKind::Bench, 52, 50, &owner);
+        let stray = standing(&mut sim, BuildingKind::Bench, 80, 80, &owner);
+        let site = standing(&mut sim, BuildingKind::Castle, 120, 120, &owner);
+        for b in sim.buildings.iter_mut() {
+            b.decorative = b.kind == BuildingKind::Bench;
+            b.town = (b.id == kept).then_some(1);
+        }
+        sim.buildings.iter_mut().find(|b| b.id == site).unwrap().condition = 0.2;
+        for day in 1..=45u64 {
+            sim.tick_count = day * crate::sim::cosmos::DAY_LENGTH;
+            crate::sim::civ::vacancy::tick_vacancy(&mut sim);
+        }
+        assert!(sim.buildings.iter().any(|b| b.id == kept), "town scenery stays");
+        assert!(
+            !sim.buildings.iter().any(|b| b.id == stray),
+            "a stray prop crumbles away"
+        );
+        assert!(
+            !sim.buildings.iter().any(|b| b.id == site),
+            "an abandoned far site is cleared"
+        );
+    }
+
+    #[test]
+    fn a_seeded_world_has_no_unowned_infrastructure() {
+        for seed in [3, 9] {
+            let mut sim = Simulation::new(seed);
+            while sim.tick_count < 6_000 {
+                sim.tick();
+            }
+            let unowned = unowned_infrastructure(&sim);
+            assert!(unowned.is_empty(), "seed {seed}: {unowned:?}");
+            assert_eq!(network_strays(&sim).stray_rail, 0, "seed {seed}");
+        }
     }
 
     #[test]

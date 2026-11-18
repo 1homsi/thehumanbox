@@ -60,6 +60,8 @@ pub(super) fn reconcile_prop_sites(sim: &mut Simulation) -> HashSet<(i32, i32)> 
     occupied
 }
 
+const MIN_TOWN_PROPS: usize = 16;
+
 pub(super) fn tick_scatter_props(sim: &mut Simulation) {
     use BuildingKind::*;
     let mut occupied = reconcile_prop_sites(sim);
@@ -190,33 +192,28 @@ pub(super) fn tick_scatter_props(sim: &mut Simulation) {
         let seed = sim.next_building_id as usize;
         let kind = palette[seed % palette.len()];
 
-        // Scatter within a 16-tile radius around the lineage center using
-        // a small deterministic offset table for spread.
-        let offsets = [
-            (-7, -3),
-            (5, -6),
-            (-4, 6),
-            (8, 2),
-            (-9, 1),
-            (3, 7),
-            (6, -5),
-            (-2, -8),
-            (1, 5),
-            (-6, -1),
-            (4, -2),
-            (-8, 4),
-            (2, -7),
-            (7, 6),
-            (-3, 8),
-            (9, -3),
-            (-5, 5),
-            (0, 9),
-        ];
-        let Some((site_x, site_y)) = (0..offsets.len()).find_map(|offset| {
-            let (dx, dy) = offsets[(seed + offset) % offsets.len()];
-            let (x, y) = (cx + dx, cy + dy);
-            prop_site_is_clear(&sim.grid, &occupied, kind, x, y).then_some((x, y))
-        }) else {
+        let town = super::town::town_for(sim, &lid, kind).map(|i| sim.towns[i].clone());
+        if let Some(town) = &town {
+            let room = if town.planned {
+                town.reserved_tiles().len()
+            } else {
+                MIN_TOWN_PROPS
+            };
+            let standing = sim
+                .buildings
+                .iter()
+                .chain(new_buildings.iter())
+                .filter(|b| b.decorative && b.town == Some(town.id))
+                .count();
+            if standing >= room.max(MIN_TOWN_PROPS) {
+                continue;
+            }
+        }
+        let site = match &town {
+            Some(town) => town_prop_site(sim, &occupied, kind, town, seed),
+            None => scatter_site(sim, &occupied, kind, (cx, cy), seed),
+        };
+        let Some((site_x, site_y)) = site else {
             continue;
         };
         // Scenery wells still look like wells: one per neighbourhood.
@@ -232,6 +229,7 @@ pub(super) fn tick_scatter_props(sim: &mut Simulation) {
         let mut prop = Building::new(id, kind, site_x, site_y, Some(lid.clone()), sim.tick_count);
         prop.condition = 1.0;
         prop.decorative = true;
+        prop.town = town.as_ref().map(|t| t.id);
         new_buildings.push(prop);
     }
     if !new_buildings.is_empty() {
@@ -239,4 +237,79 @@ pub(super) fn tick_scatter_props(sim: &mut Simulation) {
         sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
     }
     cap_buildings(sim);
+}
+
+fn scatter_site(
+    sim: &Simulation,
+    occupied: &HashSet<(i32, i32)>,
+    kind: BuildingKind,
+    (cx, cy): (i32, i32),
+    seed: usize,
+) -> Option<(i32, i32)> {
+    let offsets = [
+        (-7, -3),
+        (5, -6),
+        (-4, 6),
+        (8, 2),
+        (-9, 1),
+        (3, 7),
+        (6, -5),
+        (-2, -8),
+        (1, 5),
+        (-6, -1),
+        (4, -2),
+        (-8, 4),
+        (2, -7),
+        (7, 6),
+        (-3, 8),
+        (9, -3),
+        (-5, 5),
+        (0, 9),
+    ];
+    (0..offsets.len()).find_map(|offset| {
+        let (dx, dy) = offsets[(seed + offset) % offsets.len()];
+        let (x, y) = (cx + dx, cy + dy);
+        prop_site_is_clear(&sim.grid, occupied, kind, x, y).then_some((x, y))
+    })
+}
+
+fn town_prop_site(
+    sim: &Simulation,
+    occupied: &HashSet<(i32, i32)>,
+    kind: BuildingKind,
+    town: &super::town::Town,
+    seed: usize,
+) -> Option<(i32, i32)> {
+    let [cx, cy] = town.center;
+    let mut candidates: Vec<(i32, i32, i32)> = Vec::new();
+    if town.planned {
+        let paved: HashSet<(i32, i32)> = town.reserved_tiles().into_iter().collect();
+        for &(x, y) in &paved {
+            for (dx, dy) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+                let (nx, ny) = (x + dx, y + dy);
+                if !paved.contains(&(nx, ny)) {
+                    candidates.push((town.distance(nx, ny), ny, nx));
+                }
+            }
+        }
+    } else {
+        for d in 2i32..=6 {
+            for dy in -d..=d {
+                for dx in -d..=d {
+                    if dx.abs().max(dy.abs()) == d {
+                        candidates.push((d, cy + dy, cx + dx));
+                    }
+                }
+            }
+        }
+    }
+    candidates.sort_unstable();
+    candidates.dedup();
+    let n = candidates.len();
+    (0..n).find_map(|k| {
+        let (_, y, x) = candidates[(seed + k) % n];
+        (prop_site_is_clear(&sim.grid, occupied, kind, x, y)
+            && footprint_cells(kind, x, y).all(|(tx, ty)| !super::town::town_reserved(sim, tx, ty)))
+        .then_some((x, y))
+    })
 }

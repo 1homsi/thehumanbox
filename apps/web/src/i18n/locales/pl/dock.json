@@ -546,6 +546,8 @@
     "hazardTip": "Blizny niebezpieczeństwa — przemoc i śmierć",
     "history": "historia",
     "historyTip": "Dryf każdego rodu w ostatnich około 60 dniach symulacji",
+    "owners": "własność",
+    "ownersTip": "Do czego należy każdy budynek: zielony miasto, niebieski ozdoba miasta, pomarańczowy niszczeje, czerwony bez powodu, szary ruiny",
     "perf": "wydajność",
     "perfTip": "Liczba klatek na sekundę i czas klatek",
     "nerdOverlays": "dla zaawansowanych",

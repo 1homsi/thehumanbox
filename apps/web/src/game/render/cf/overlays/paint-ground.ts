@@ -15,12 +15,40 @@ import { firstCellAtRow, specialTileIndex } from '../../special-tiles'
 import { OCEAN } from '../../art-palette'
 import { emitShimmerRects, emitStarRects, emitWaveletRects, waterCellIndex } from '../../water-fx'
 import type { CfFrame } from './frame'
+import { OWNER_COLOURS, ownerReason } from './owner-reason'
 
 type Ctx = CanvasRenderingContext2D
 
 /** Clouds drifting over the ground (they were part of `draw_overlays`). */
 export function paintClouds(ctx: Ctx, f: CfFrame): void {
   drawClouds(ctx, f.W, f.H, f.world.weather, f.t)
+}
+
+export function paintOwners(ctx: Ctx, f: CfFrame): void {
+  const { world, ox, oy } = f
+  ctx.save()
+  for (const b of world.buildings ?? []) {
+    const fw = b.fw ?? 1
+    const fh = b.fh ?? 1
+    const x = (b.x - ox) * TILE
+    const y = (b.y - oy) * TILE
+    if (x + fw * TILE < 0 || y + fh * TILE < 0 || x > f.W || y > f.H) continue
+    const colour = OWNER_COLOURS[ownerReason(b)]
+    ctx.fillStyle = colour
+    ctx.fillRect(x, y, fw * TILE, fh * TILE)
+    ctx.strokeStyle = colour.replace(/[\d.]+\)$/, '1)')
+    ctx.strokeRect(x + 0.5, y + 0.5, fw * TILE - 1, fh * TILE - 1)
+  }
+  ctx.lineWidth = 1.5
+  for (const town of world.towns ?? []) {
+    const cx = (town.center[0] - ox) * TILE + TILE / 2
+    const cy = (town.center[1] - oy) * TILE + TILE / 2
+    ctx.strokeStyle = lineageColor(town.lineage_id)
+    ctx.beginPath()
+    ctx.arc(cx, cy, town.planned ? 6 : 4, 0, Math.PI * 2)
+    ctx.stroke()
+  }
+  ctx.restore()
 }
 
 /** Lineage track lines and the player-facing partner links. */

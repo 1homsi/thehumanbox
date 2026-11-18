@@ -546,6 +546,8 @@
     "hazardTip": "Tehlike izleri: şiddet ve ölüm",
     "history": "tarih",
     "historyTip": "Son ~60 simülasyon gününde her soy hattının değişimi",
+    "owners": "sahipler",
+    "ownersTip": "Her yapının neye ait olduğu: yeşil bir kasaba, mavi kasaba süsü, turuncu çürüyor, kırmızı sebepsiz, gri harabe",
     "perf": "perf",
     "perfTip": "Saniyedeki kare sayısı ve kare süresi",
     "nerdOverlays": "ayrıntılı",

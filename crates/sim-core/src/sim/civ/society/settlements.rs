@@ -173,6 +173,18 @@ pub fn snapshots(sim: &Simulation) -> Vec<SettlementSnapshot> {
 /// `snapshots`, taken once per tick and shared: the trade checks ask for the settlements once for every
 /// person and each neighbour from another tribe, and building them walks every person and building.
 /// Within a tick they describe the world as the first asker found it.
+pub(crate) fn at_town_centres(
+    sim: &Simulation,
+    mut snapshots: Vec<SettlementSnapshot>,
+) -> Vec<SettlementSnapshot> {
+    for s in &mut snapshots {
+        if let Some(town) = crate::sim::civ::civ_tick::town::main_town(sim, &s.lineage_id) {
+            s.center = town.center;
+        }
+    }
+    snapshots
+}
+
 pub fn snapshots_this_tick(sim: &Simulation) -> std::sync::Arc<Vec<SettlementSnapshot>> {
     let mut cache = sim
         .settlement_snapshots

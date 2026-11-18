@@ -28,7 +28,7 @@ pub(super) fn mark_caravan_roads(sim: &mut Simulation) {
 }
 
 pub(super) fn refresh_route_centers(sim: &mut Simulation) {
-    let snapshots = settlements::snapshots(sim);
+    let snapshots = settlements::at_town_centres(sim, settlements::snapshots(sim));
     let valid_lineages: HashSet<&str> = snapshots
         .iter()
         .filter(|settlement| settlement.tier >= 1)

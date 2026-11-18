@@ -546,6 +546,8 @@
     "hazardTip": "Cicatrices de danger : violence et mort",
     "history": "histoire",
     "historyTip": "Dérive par lignée sur les ~60 derniers jours simulés",
+    "owners": "propriété",
+    "ownersTip": "À quoi appartient chaque bâtiment : vert une ville, bleu décor de ville, orange en déclin, rouge sans raison, gris ruines",
     "perf": "perf",
     "perfTip": "Images par seconde et temps d'image",
     "nerdOverlays": "pour experts",

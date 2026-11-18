@@ -740,6 +740,8 @@ impl Simulation {
                             "building_count": settlement.building_count,
                             "capacity": settlement.capacity,
                             "score": settlement.score,
+                            "town_center": crate::sim::civ::civ_tick::town::main_town(self, &settlement.lineage_id)
+                                .map(|town| town.center),
                         })
                     })
                     .collect();
@@ -747,6 +749,19 @@ impl Simulation {
                     "settlements".to_string(),
                     serde_json::Value::Array(settlements_json),
                 );
+                let towns_json: Vec<serde_json::Value> = self
+                    .towns
+                    .iter()
+                    .map(|town| {
+                        json!({
+                            "id": town.id,
+                            "lineage_id": town.lineage,
+                            "center": town.center,
+                            "planned": town.planned,
+                        })
+                    })
+                    .collect();
+                obj.insert("towns".to_string(), serde_json::Value::Array(towns_json));
 
                 let gov_json: Vec<serde_json::Value> = self
                     .governments

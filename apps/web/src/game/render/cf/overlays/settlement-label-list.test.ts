@@ -91,6 +91,16 @@ describe('settlement labels without the building painter', () => {
     expect(peril!.sub.startsWith('⚠')).toBe(true)
   })
 
+  it('hangs a name on its town centre when the town has one', () => {
+    const w = world()
+    w.settlements![0] = { ...w.settlements![0], town_center: [20, 10] }
+    const [moved, kept] = collectSettlementLabels(w, bounds, 1)
+    const [still] = collectSettlementLabels(world(), bounds, 1)
+    expect(moved.x).not.toBe(still.x)
+    expect(moved.y).toBeLessThan(still.y)
+    expect(kept.title).toBe('MALA')
+  })
+
   it('places nearby labels without overlap, most important first', () => {
     const labels = collectSettlementLabels(world(), bounds, 1)
     const placed = placeLabels(labels, 1, (t) => t.length * 6, 1600, 800)

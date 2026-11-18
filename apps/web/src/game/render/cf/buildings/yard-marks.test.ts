@@ -66,4 +66,10 @@ describe('yardRects', () => {
     const bad = { id: 1, kind: 'House' } as unknown as Building
     expect(yardRects([bad], 0, 0)).toHaveLength(0)
   })
+
+  it('gives no yard to a ruined home or to scenery', () => {
+    const home = Array.from({ length: 30 }, (_, i) => ({ id: i + 1, kind: 'house' })).find((b) => hasYard(b))!
+    expect(hasYard({ ...home, ruined: true })).toBe(false)
+    expect(hasYard({ ...home, decorative: true })).toBe(false)
+  })
 })

@@ -546,6 +546,8 @@
     "hazardTip": "Cicatrices de peligro: violencia y muerte",
     "history": "historia",
     "historyTip": "Deriva por linaje en los últimos ~60 días de simulación",
+    "owners": "dueños",
+    "ownersTip": "A qué pertenece cada edificio: verde un pueblo, azul adorno del pueblo, naranja en declive, rojo sin motivo, gris ruinas",
     "perf": "rend.",
     "perfTip": "Fotogramas por segundo y tiempo por fotograma",
     "nerdOverlays": "para expertos",

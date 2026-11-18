@@ -33,8 +33,8 @@ const POST = rgba(132, 96, 56, 255)
 const RAIL = rgba(108, 78, 46, 255)
 
 /** Whether this building gets a yard at all (homes only, about two in three of them). */
-export function hasYard(b: Pick<Building, 'kind' | 'id'>): boolean {
-  return HOME_KINDS.has(normKind(b.kind)) && landscapeHash(b.id, 41) % 3 !== 0
+export function hasYard(b: Pick<Building, 'kind' | 'id' | 'decorative' | 'ruined'>): boolean {
+  return !b.decorative && !b.ruined && HOME_KINDS.has(normKind(b.kind)) && landscapeHash(b.id, 41) % 3 !== 0
 }
 
 /**

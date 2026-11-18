@@ -61,6 +61,8 @@ pub struct BuildingJson {
     /// empty and on every other building, so it costs the frame nothing there.
     #[serde(skip_serializing_if = "Option::is_none")]
     slip: Option<u8>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    town: Option<u32>,
     x: i32,
     y: i32,
 }
@@ -86,6 +88,7 @@ impl BuildingJson {
             ruined: b.is_ruined(),
             ruined_at_tick: b.ruined_at_tick,
             slip: crate::sim::tech::ports::slip_stage(b.hull_work),
+            town: b.town,
             x: b.x,
             y: b.y,
         }
