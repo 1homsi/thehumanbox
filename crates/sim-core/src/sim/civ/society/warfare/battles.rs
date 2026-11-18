@@ -37,6 +37,7 @@ const WITHDRAW_AT: f32 = 0.25;
 /// goes, and a side that loses enough of its fighters, dead or gone, breaks.
 fn withdraw_wounded(
     ids: &mut Vec<String>,
+    index: &HashMap<String, usize>,
     organisms: &mut [crate::organism::organism::Organism],
     health_before: &HashMap<String, f32>,
     tick: u64,
@@ -45,7 +46,7 @@ fn withdraw_wounded(
     use rand::RngExt;
     let mut left = 0;
     ids.retain(|id| {
-        let Some(i) = organism_index(organisms, id) else {
+        let Some(&i) = index.get(id) else {
             return true;
         };
         let o = &mut organisms[i];
@@ -77,6 +78,26 @@ pub fn tick_battles(
 ) {
     use rand::RngExt;
     let mut signed: Vec<(String, String, TreatyKind)> = Vec::new();
+    let index: HashMap<String, usize> = {
+        let wanted: HashSet<&str> = battles
+            .iter()
+            .filter(|battle| battle.ended_tick.is_none())
+            .flat_map(|battle| {
+                battle
+                    .attacker_orgs
+                    .iter()
+                    .chain(&battle.defender_orgs)
+                    .map(String::as_str)
+            })
+            .collect();
+        let mut index = HashMap::default();
+        for (i, o) in organisms.iter().enumerate() {
+            if wanted.contains(o.id.as_str()) {
+                index.entry(o.id.clone()).or_insert(i);
+            }
+        }
+        index
+    };
     for battle in battles.iter_mut() {
         if battle.ended_tick.is_some() {
             continue;
@@ -85,13 +106,13 @@ pub fn tick_battles(
         let att_alive: Vec<usize> = battle
             .attacker_orgs
             .iter()
-            .filter_map(|id| organism_index(organisms, id))
+            .filter_map(|id| index.get(id).copied())
             .filter(|&i| organisms[i].alive)
             .collect();
         let def_alive: Vec<usize> = battle
             .defender_orgs
             .iter()
-            .filter_map(|id| organism_index(organisms, id))
+            .filter_map(|id| index.get(id).copied())
             .filter(|&i| organisms[i].alive)
             .collect();
 
@@ -183,19 +204,33 @@ pub fn tick_battles(
             }
         }
 
-        withdraw_wounded(&mut battle.attacker_orgs, organisms, &health_before, tick, rng);
-        withdraw_wounded(&mut battle.defender_orgs, organisms, &health_before, tick, rng);
+        withdraw_wounded(
+            &mut battle.attacker_orgs,
+            &index,
+            organisms,
+            &health_before,
+            tick,
+            rng,
+        );
+        withdraw_wounded(
+            &mut battle.defender_orgs,
+            &index,
+            organisms,
+            &health_before,
+            tick,
+            rng,
+        );
 
         let att_now = battle
             .attacker_orgs
             .iter()
-            .filter_map(|id| organism_index(organisms, id))
+            .filter_map(|id| index.get(id).copied())
             .filter(|&i| organisms[i].alive)
             .count() as f32;
         let def_now = battle
             .defender_orgs
             .iter()
-            .filter_map(|id| organism_index(organisms, id))
+            .filter_map(|id| index.get(id).copied())
             .filter(|&i| organisms[i].alive)
             .count() as f32;
         let a_frac = att_now / battle.initial_a.max(1) as f32;
@@ -307,10 +342,6 @@ pub fn tick_battles(
         }
     }
     let _ = active_finished;
-}
-
-pub(super) fn organism_index(organisms: &[crate::organism::organism::Organism], id: &str) -> Option<usize> {
-    organisms.iter().position(|o| o.id == id)
 }
 
 pub(super) fn combat_style_for(org: &crate::organism::organism::Organism, era: Era) -> CombatStyle {
