@@ -6,6 +6,7 @@ import {
   withTimeout,
   wantsThreads,
   webkitEngine,
+  mobileWebKit,
 } from './wasmThreads'
 
 describe('wantsThreads', () => {
@@ -52,6 +53,26 @@ describe('webkitEngine', () => {
       webkitEngine('Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:150.0) Gecko/20100101 Firefox/150.0'),
     ).toBe(false)
     expect(webkitEngine(undefined)).toBe(false)
+  })
+})
+
+describe('mobileWebKit', () => {
+  const mac =
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15'
+  const iphone =
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
+  const chromeMac =
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36'
+
+  it('finds iPhones and iPads, including an iPad that says it is a Mac', () => {
+    expect(mobileWebKit(iphone, false)).toBe(true)
+    expect(mobileWebKit(mac, true)).toBe(true)
+  })
+
+  it('leaves desktop Safari and other browsers on threads', () => {
+    expect(mobileWebKit(mac, false)).toBe(false)
+    expect(mobileWebKit(chromeMac, true)).toBe(false)
+    expect(mobileWebKit(undefined, true)).toBe(false)
   })
 })
 

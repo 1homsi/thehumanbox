@@ -46,6 +46,7 @@ type StartMsg = {
   autosaveEveryMs?: number
   reset?: boolean
   recoveryId?: string | null
+  touch?: boolean
 }
 type InMsg =
   | StartMsg
@@ -739,7 +740,7 @@ async function start(msg: StartMsg) {
   const since = (from: number) => Math.round(performance.now() - from)
   let engine: SimEngine
   try {
-    engine = await startSimEngine()
+    engine = await startSimEngine({ touch: msg.touch === true })
     Sim = engine.Sim
   } catch (e) {
     postError('engine_failed', 'wasm init failed', { error: e, fatal: true, phase: 'engine' })

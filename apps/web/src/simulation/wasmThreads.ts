@@ -9,7 +9,9 @@ const CORES_FOR_PAGE_AND_RENDERER = 2
  */
 export const POOL_START_MS = 10_000
 
-export const WEBKIT_HEAP_RESERVE_MB = 768
+export const WEBKIT_HEAP_RESERVE_MB = 640
+
+export const WEBKIT_MAX_THREADS = 4
 
 /**
  * How long fetching and compiling the threaded module may take. It is about 5 MB, so this is longer than the pool
@@ -87,6 +89,10 @@ export function webkitEngine(userAgent: string | undefined): boolean {
     /AppleWebKit[/]/.test(userAgent) &&
     !/(Chrome|Chromium)[/]/.test(userAgent)
   )
+}
+
+export function mobileWebKit(userAgent: string | undefined, touch: boolean): boolean {
+  return webkitEngine(userAgent) && (touch || /(iPhone|iPad|iPod|Mobile)[/; ]/.test(userAgent ?? ''))
 }
 
 export function threadCount(cores: number | undefined): number {
