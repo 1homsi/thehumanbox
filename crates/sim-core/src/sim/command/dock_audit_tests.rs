@@ -27,6 +27,7 @@ fn digest(sim: &Simulation) -> u64 {
 struct Stage {
     /// The middle of the biggest crowd.
     crowd: (f32, f32),
+    beast: (f32, f32),
     /// A small lake beside it, and the water at its near shore.
     lake: (f32, f32),
     shore: (f32, f32),
@@ -194,8 +195,20 @@ fn staged_world() -> (Simulation, Stage) {
         .map(|(dx, dy, _)| (cx + dx, cy + dy))
         .find(|&(x, y)| WorldGrid::in_bounds(x, y) && sim.grid.biome_at(x, y).wooded())
         .map_or(crowd, |(x, y)| (x as f32, y as f32));
+    let beast = sim
+        .animals
+        .iter()
+        .filter(|a| a.alive && matches!(a.kind, AnimalKind::Wolf | AnimalKind::Bear))
+        .map(|a| (a.x, a.y))
+        .min_by(|a, b| {
+            (a.0 - crowd.0)
+                .hypot(a.1 - crowd.1)
+                .total_cmp(&(b.0 - crowd.0).hypot(b.1 - crowd.1))
+        })
+        .unwrap_or(crowd);
     let stage = Stage {
         crowd,
+        beast,
         lake: ((cx + 8) as f32, cy as f32),
         shore: ((cx + 7) as f32, cy as f32),
         wood,
@@ -247,6 +260,7 @@ fn targets(tool: &str, cmd: &Value, s: &Stage) -> Vec<Value> {
         "frost" | "bless_river" | "tsunami" => s.lake,
         "douse" | "rain_patch" => s.fire,
         "repair" => s.building,
+        "tame" => s.beast,
         _ => s.crowd,
     };
     // Open ground around the crowd, for tools that need a free footprint or a particular ground.

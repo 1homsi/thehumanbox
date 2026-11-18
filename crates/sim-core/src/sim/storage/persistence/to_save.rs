@@ -62,6 +62,7 @@ impl Simulation {
             events: self.events.iter().rev().take(200).rev().cloned().collect(),
             organisms: self.organisms.iter().map(org_to_save).collect(),
             animals: self.animals.iter().map(animal_to_save).collect(),
+            focus_points: self.focus_points.clone(),
             game_wariness: {
                 let mut patches: Vec<(i32, i32, f32)> =
                     self.game_wariness.iter().map(|(&(x, y), &w)| (x, y, w)).collect();
