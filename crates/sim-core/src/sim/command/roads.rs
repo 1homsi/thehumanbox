@@ -7,7 +7,7 @@ impl Simulation {
     /// lake water (not the ocean's edge), and an erase clears either, wherever it is.
     pub(super) fn cmd_road(&mut self, x: i32, y: i32, radius: i32, kind: String) -> bool {
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
-        let r = radius.clamp(0, 24);
+        let r = radius.clamp(0, MAX_BRUSH_RADIUS);
         let want_for = |sim: &Simulation, nx: i32, ny: i32| -> Option<u8> {
             match kind.as_str() {
                 "erase" => Some(ROAD_NONE),

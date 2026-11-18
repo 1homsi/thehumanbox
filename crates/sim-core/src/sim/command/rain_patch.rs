@@ -1,4 +1,4 @@
-use super::{cmd_tile, Simulation};
+use super::{cmd_tile, Simulation, MAX_BRUSH_REACH};
 use crate::math::DetMath;
 use crate::sim::world_events::push_event;
 use crate::world::grid::WorldGrid;
@@ -6,7 +6,6 @@ use crate::world::tiles::Tile;
 
 /// How wide a rain cloud's patch is, in tiles, unless the radius says otherwise.
 const DEFAULT_RADIUS: f32 = 6.0;
-const MAX_RADIUS: f32 = 20.0;
 /// How much of a drink a person in the patch takes from the rain (hydration is capped at full).
 const DRINK: f32 = 0.5;
 
@@ -18,7 +17,7 @@ impl Simulation {
             return false;
         }
         let reach = if radius > 0.0 {
-            radius.min(MAX_RADIUS)
+            radius.min(MAX_BRUSH_REACH)
         } else {
             DEFAULT_RADIUS
         };

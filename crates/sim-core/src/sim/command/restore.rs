@@ -7,7 +7,7 @@ impl Simulation {
     /// the biome does not hold turns to grass. Rock, buildings and food stay.
     pub(super) fn cmd_restore(&mut self, x: i32, y: i32, radius: i32) -> bool {
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
-        let r = radius.clamp(0, 24);
+        let r = radius.clamp(0, MAX_BRUSH_RADIUS);
         let mut restored = 0;
         for dx in -r..=r {
             for dy in -r..=r {

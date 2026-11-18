@@ -7,7 +7,11 @@ impl Simulation {
         // Clamp the upper bound too: `radius: 1e30` parses to
         // `f32::INFINITY`, which made `d <= r` true for every
         // organism in the world.
-        let r = if radius <= 0.0 { 3.0 } else { radius.min(32.0) };
+        let r = if radius <= 0.0 {
+            3.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let nearest_person = self
             .organisms
             .iter()
@@ -264,7 +268,11 @@ impl Simulation {
     }
 
     pub(super) fn cmd_poison(&mut self, x: f32, y: f32, radius: f32) -> bool {
-        let r = if radius <= 0.0 { 3.0 } else { radius.min(32.0) };
+        let r = if radius <= 0.0 {
+            3.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let mut poisoned = 0;
         for o in self.organisms.iter_mut() {
             if o.alive && (o.x - x).det_hypot(o.y - y) <= r {
@@ -415,7 +423,11 @@ impl Simulation {
     }
 
     pub(super) fn cmd_banish(&mut self, x: f32, y: f32, radius: f32) -> bool {
-        let r = if radius <= 0.0 { 6.0 } else { radius.min(32.0) };
+        let r = if radius <= 0.0 {
+            6.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let mut banished = 0;
         for a in self.animals.iter_mut() {
             if a.alive && a.kind.hostile() && (a.x - x).det_hypot(a.y - y) <= r {
@@ -438,7 +450,11 @@ impl Simulation {
 
     pub(super) fn cmd_blight(&mut self, x: i32, y: i32, radius: i32) -> bool {
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
-        let r = if radius <= 0 { 5 } else { radius.min(24) };
+        let r = if radius <= 0 {
+            5
+        } else {
+            radius.min(MAX_BRUSH_RADIUS)
+        };
         let mut withered = 0;
         for dx in -r..=r {
             for dy in -r..=r {
@@ -478,7 +494,11 @@ impl Simulation {
     }
 
     pub(super) fn cmd_frenzy(&mut self, x: f32, y: f32, radius: f32) -> bool {
-        let r = if radius <= 0.0 { 4.0 } else { radius.min(24.0) };
+        let r = if radius <= 0.0 {
+            4.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let mut maddened = 0;
         for o in self.organisms.iter_mut() {
             if !o.alive || (o.x - x).det_hypot(o.y - y) > r {
@@ -669,7 +689,11 @@ impl Simulation {
 
     pub(super) fn cmd_flood(&mut self, x: i32, y: i32, radius: i32) -> bool {
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
-        let r = if radius <= 0 { 4 } else { radius.min(20) };
+        let r = if radius <= 0 {
+            4
+        } else {
+            radius.min(MAX_BRUSH_RADIUS)
+        };
         let ruined = village_failure::ruin(self, &[(x, y)], r, Blow::Flood);
         let mut flooded = 0;
         for dx in -r..=r {
@@ -735,7 +759,11 @@ impl Simulation {
 
     pub(super) fn cmd_blizzard(&mut self, x: i32, y: i32, radius: i32) -> bool {
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
-        let r = if radius <= 0 { 6 } else { radius.min(24) };
+        let r = if radius <= 0 {
+            6
+        } else {
+            radius.min(MAX_BRUSH_RADIUS)
+        };
         let mut frozen = 0;
         for dx in -r..=r {
             for dy in -r..=r {
@@ -838,7 +866,11 @@ impl Simulation {
     }
 
     pub(super) fn cmd_thunder(&mut self, x: f32, y: f32, radius: f32) -> bool {
-        let r = if radius <= 0.0 { 8.0 } else { radius.min(32.0) };
+        let r = if radius <= 0.0 {
+            8.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let mut struck = false;
         for _ in 0..6 {
             let angle = self.rng.random::<f32>() * std::f32::consts::TAU;
@@ -949,7 +981,11 @@ impl Simulation {
     }
 
     pub(super) fn cmd_meteor_shower(&mut self, x: f32, y: f32, radius: f32) -> bool {
-        let r = if radius <= 0.0 { 10.0 } else { radius.min(40.0) };
+        let r = if radius <= 0.0 {
+            10.0
+        } else {
+            radius.min(MAX_BRUSH_REACH)
+        };
         let mut hit = false;
         for _ in 0..5 {
             let angle = self.rng.random::<f32>() * std::f32::consts::TAU;

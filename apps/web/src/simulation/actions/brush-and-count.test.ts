@@ -37,10 +37,10 @@ describe('region-sized brushes', () => {
   })
 
   it('reach a region with the powers the sim lets reach that far', () => {
-    expect(radiusAt('heal', 63)).toBe(32)
-    expect(radiusAt('cure', 63)).toBe(48)
+    expect(radiusAt('heal', 63)).toBe(64)
+    expect(radiusAt('cure', 63)).toBe(64)
     expect(radiusAt('nuke', 63)).toBe(34)
-    expect(radiusAt('grass', 63)).toBe(24)
+    expect(radiusAt('grass', 63)).toBe(63)
     expect(radiusAt('sinkhole', 63)).toBe(13)
   })
 })

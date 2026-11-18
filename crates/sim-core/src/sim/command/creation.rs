@@ -169,7 +169,7 @@ impl Simulation {
         // overflow `i32` (and panic in debug builds, which run the
         // command handler while holding the sim mutex).
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
-        let r = radius.clamp(0, 24);
+        let r = radius.clamp(0, MAX_BRUSH_RADIUS);
         // Pouring the sea or raising rock over a building wrecks it.
         let wrecks = match t {
             Tile::Water => Some(crate::sim::civ::building_damage::DamageCause::Flood),
@@ -327,7 +327,11 @@ impl Simulation {
             _ => return false,
         };
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
-        let r = if radius <= 0 { 4 } else { radius.min(24) };
+        let r = if radius <= 0 {
+            4
+        } else {
+            radius.min(MAX_BRUSH_RADIUS)
+        };
         let mut painted = 0;
         for dx in -r..=r {
             for dy in -r..=r {
