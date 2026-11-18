@@ -79,6 +79,14 @@ fn get_varint(bytes: &[u8], at: &mut usize) -> Option<u64> {
 }
 
 fn encode<T: Cell>(values: &[T]) -> String {
+    let raw = encode_raw(values);
+    let mut out = String::with_capacity(PREFIX.len() + raw.len().div_ceil(3) * 4);
+    out.push_str(PREFIX);
+    base64_encode(&raw, &mut out);
+    out
+}
+
+fn encode_raw<T: Cell>(values: &[T]) -> Vec<u8> {
     let mut raw = Vec::with_capacity(values.len() / 8 + 16);
     let mut i = 0;
     while i < values.len() {
@@ -91,10 +99,7 @@ fn encode<T: Cell>(values: &[T]) -> String {
         values[i].write(&mut raw);
         i += run;
     }
-    let mut out = String::with_capacity(PREFIX.len() + raw.len().div_ceil(3) * 4);
-    out.push_str(PREFIX);
-    base64_encode(&raw, &mut out);
-    out
+    raw
 }
 
 fn decode<T: Cell>(text: &str) -> Result<Vec<T>, String> {
@@ -102,11 +107,14 @@ fn decode<T: Cell>(text: &str) -> Result<Vec<T>, String> {
         let head: String = text.chars().take(8).collect();
         format!("unknown grid layer encoding {head:?}")
     })?;
-    let raw = base64_decode(body)?;
+    decode_raw(&base64_decode(body)?)
+}
+
+fn decode_raw<T: Cell>(raw: &[u8]) -> Result<Vec<T>, String> {
     let mut values = Vec::new();
     let mut at = 0;
     while at < raw.len() {
-        let run = get_varint(&raw, &mut at).ok_or("grid layer run count is cut off")?;
+        let run = get_varint(raw, &mut at).ok_or("grid layer run count is cut off")?;
         let bytes = raw.get(at..at + T::SIZE).ok_or("grid layer value is cut off")?;
         at += T::SIZE;
         let value = T::read(bytes);
@@ -192,6 +200,10 @@ impl<'de, T: Cell + Deserialize<'de>> Visitor<'de> for LayerVisitor<T> {
         decode(text).map_err(E::custom)
     }
 
+    fn visit_bytes<E: de::Error>(self, raw: &[u8]) -> Result<Vec<T>, E> {
+        decode_raw(raw).map_err(E::custom)
+    }
+
     fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Vec<T>, A::Error> {
         let mut values = Vec::with_capacity(seq.size_hint().unwrap_or(0));
         while let Some(value) = seq.next_element()? {
@@ -201,16 +213,104 @@ impl<'de, T: Cell + Deserialize<'de>> Visitor<'de> for LayerVisitor<T> {
     }
 }
 
+const TAG_RUNS: u8 = 0;
+const TAG_PLANES: u8 = 1;
+
+fn encode_binary(values: &[f32]) -> Vec<u8> {
+    let runs = encode_raw(values);
+    if runs.len() <= values.len() * 2 {
+        let mut out = Vec::with_capacity(runs.len() + 1);
+        out.push(TAG_RUNS);
+        out.extend_from_slice(&runs);
+        out
+    } else {
+        encode_planes(values)
+    }
+}
+
+fn decode_binary(raw: &[u8]) -> Result<Vec<f32>, String> {
+    match raw.split_first() {
+        Some((&TAG_RUNS, runs)) => decode_raw(runs),
+        Some((&TAG_PLANES, _)) => decode_planes(raw),
+        _ => Err("unknown grid layer encoding".into()),
+    }
+}
+
+fn encode_planes(values: &[f32]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(values.len() * 4 + 6);
+    out.push(TAG_PLANES);
+    put_varint(&mut out, values.len() as u64);
+    let deltas: Vec<u32> = values
+        .iter()
+        .scan(0u32, |prev, v| {
+            let bits = v.to_bits();
+            let delta = bits ^ *prev;
+            *prev = bits;
+            Some(delta)
+        })
+        .collect();
+    for shift in [24, 16, 8, 0] {
+        out.extend(deltas.iter().map(|d| (d >> shift) as u8));
+    }
+    out
+}
+
+fn decode_planes(raw: &[u8]) -> Result<Vec<f32>, String> {
+    let mut at = 1;
+    let len = get_varint(raw, &mut at).ok_or("grid layer length is cut off")?;
+    let len = usize::try_from(len).map_err(|_| "grid layer is too long")?;
+    if len > MAX_CELLS {
+        return Err("grid layer is larger than any world".into());
+    }
+    let planes = raw.get(at..).ok_or("grid layer is cut off")?;
+    if planes.len() != len * 4 {
+        return Err("grid layer is cut off".into());
+    }
+    let mut prev = 0u32;
+    Ok((0..len)
+        .map(|i| {
+            let delta = u32::from(planes[i]) << 24
+                | u32::from(planes[len + i]) << 16
+                | u32::from(planes[2 * len + i]) << 8
+                | u32::from(planes[3 * len + i]);
+            prev ^= delta;
+            f32::from_bits(prev)
+        })
+        .collect())
+}
+
+struct PlanesVisitor;
+
+impl<'de> Visitor<'de> for PlanesVisitor {
+    type Value = Vec<f32>;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("a float grid layer in byte planes")
+    }
+
+    fn visit_bytes<E: de::Error>(self, raw: &[u8]) -> Result<Vec<f32>, E> {
+        decode_binary(raw).map_err(E::custom)
+    }
+}
+
 /// `#[serde(with = "packed::f32s")]` for a float layer.
 pub(crate) mod f32s {
     use super::*;
 
     pub(crate) fn serialize<S: Serializer>(values: &[f32], serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(&encode(values))
+        if serializer.is_human_readable() {
+            serializer.serialize_str(&encode(values))
+        } else {
+            serializer.serialize_bytes(&encode_binary(values))
+        }
     }
 
     pub(crate) fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<f32>, D::Error> {
-        deserializer.deserialize_any(LayerVisitor::<f32>(PhantomData))
+        if deserializer.is_human_readable() {
+            deserializer.deserialize_any(LayerVisitor::<f32>(PhantomData))
+        } else {
+            deserializer.deserialize_bytes(PlanesVisitor)
+        }
     }
 }
 
@@ -219,7 +319,11 @@ pub(crate) mod u8s {
     use super::*;
 
     pub(crate) fn serialize<S: Serializer>(values: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(&encode(values))
+        if serializer.is_human_readable() {
+            serializer.serialize_str(&encode(values))
+        } else {
+            serializer.serialize_bytes(&encode_raw(values))
+        }
     }
 
     pub(crate) fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<u8>, D::Error> {

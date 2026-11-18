@@ -14,6 +14,7 @@ use crate::sim::world_events::{DroughtState, WeatherState};
 use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
 use crate::world::tiles::Tile;
 
+mod compact;
 mod file_io;
 mod from_save;
 mod organism;

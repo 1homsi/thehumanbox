@@ -25,6 +25,6 @@ fn main() {
     while sim.tick_count < ticks {
         sim.tick();
     }
-    let bytes = serde_json::to_vec(&sim.to_save_state()).expect("save serializes");
+    let bytes = sim.to_save_state().to_bytes();
     println!("{:#018x}", save_fnv1a64(&bytes));
 }

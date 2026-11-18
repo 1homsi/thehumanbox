@@ -21,6 +21,7 @@ pub(crate) struct OrgSave {
     pub(super) water_memory: HashMap<String, f32>,
     pub(super) danger_memory: HashMap<String, f32>,
     pub(super) thought_history: Vec<crate::organism::organism::ThoughtEntry>,
+    #[serde(with = "compact::q_table")]
     pub(super) q_table: FxHashMap<String, Vec<(u16, f32)>>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(super) learning_trace: Vec<(String, u16)>,

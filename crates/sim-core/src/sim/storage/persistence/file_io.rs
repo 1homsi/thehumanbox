@@ -60,13 +60,7 @@ pub fn write_save_to_disk(state: &SaveState, path: &str) -> io::Result<()> {
     let written = (|| -> io::Result<()> {
         let file = std::fs::File::create(&tmp_path)?;
         let mut out = io::BufWriter::with_capacity(1 << 20, file);
-        serde_json::to_writer(&mut out, state).map_err(|e| {
-            if e.is_io() {
-                io::Error::from(e)
-            } else {
-                io::Error::new(io::ErrorKind::InvalidData, e)
-            }
-        })?;
+        io::Write::write_all(&mut out, &state.to_bytes())?;
         let file = out.into_inner().map_err(|e| e.into_error())?;
         file.sync_all()
     })();
@@ -105,7 +99,7 @@ impl Simulation {
     pub fn load_strict(seed: u64, path: &str) -> Result<Self, String> {
         let data = read_save(path).map_err(|err| err.to_string())?;
         let state: SaveState =
-            serde_json::from_slice(&data).map_err(|err| format!("not a saved world: {err}"))?;
+            SaveState::from_bytes(&data).map_err(|err| format!("not a saved world: {err}"))?;
         if state.version > SAVE_SCHEMA_VERSION {
             return Err(format!(
                 "saved by a newer build (schema v{}, this build reads up to v{})",
@@ -146,7 +140,7 @@ impl Simulation {
                 );
                 Self::new(seed)
             }
-            Ok(data) => match serde_json::from_slice::<SaveState>(&data) {
+            Ok(data) => match SaveState::from_bytes(&data) {
                 Ok(state) => {
                     if state.version != 0 && state.version > SAVE_SCHEMA_VERSION {
                         // Newer schema than this binary supports - back up and

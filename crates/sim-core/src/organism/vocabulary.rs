@@ -471,6 +471,8 @@ pub fn gen_phoneme_word(rng: &mut impl Rng) -> String {
 /// word the organism speaks.
 const LAST_USED_KEY: &str = "__thb_last_used";
 
+const WORD_SEPARATOR: char = '\u{1}';
+
 /// One slot of a vocabulary. Words are a syllable or two, so the letters sit
 /// in the slot itself instead of in a heap string per concept: a vocabulary
 /// is ~300 slots, and hundreds of organisms (the dead included) each carry one.
@@ -889,6 +891,25 @@ impl Serialize for Vocabulary {
     /// not change.
     fn serialize<S: Serializer>(&self, ser: S) -> Result<S::Ok, S::Error> {
         use std::fmt::Write as _;
+        if !ser.is_human_readable() {
+            let mut words = String::new();
+            for i in 0..self.slots.len().min(CONCEPTS.len()) {
+                if i > 0 {
+                    words.push(WORD_SEPARATOR);
+                }
+                words.push_str(self.text(i));
+            }
+            let mut clocks: Vec<(u64, u32)> = Vec::new();
+            if self.last_used.iter().any(|&t| t != 0) {
+                for &t in &self.last_used {
+                    match clocks.last_mut() {
+                        Some((value, run)) if *value == t => *run += 1,
+                        _ => clocks.push((t, 1)),
+                    }
+                }
+            }
+            return (words, clocks).serialize(ser);
+        }
         let mut out: HashMap<&str, &str> =
             HashMap::with_capacity_and_hasher(self.slots.len(), Default::default());
         for i in 0..self.slots.len() {
@@ -915,7 +936,29 @@ impl Serialize for Vocabulary {
 
 impl<'de> Deserialize<'de> for Vocabulary {
     fn deserialize<D: Deserializer<'de>>(deser: D) -> Result<Self, D::Error> {
-        let map = HashMap::<String, String>::deserialize(deser)?;
+        if deser.is_human_readable() {
+            let map = HashMap::<String, String>::deserialize(deser)?;
+            return Ok(Vocabulary::from_hashmap(&map));
+        }
+        let (words, clocks): (String, Vec<(u64, u32)>) = Deserialize::deserialize(deser)?;
+        let mut map = HashMap::<String, String>::default();
+        for (concept, word) in CONCEPTS.iter().zip(words.split(WORD_SEPARATOR)) {
+            if !word.is_empty() {
+                map.insert((*concept).to_string(), word.to_string());
+            }
+        }
+        if !clocks.is_empty() {
+            let mut packed = String::new();
+            for (value, run) in clocks {
+                for _ in 0..run.min(1 << 16) {
+                    if !packed.is_empty() {
+                        packed.push(',');
+                    }
+                    packed.push_str(&value.to_string());
+                }
+            }
+            map.insert(LAST_USED_KEY.to_string(), packed);
+        }
         Ok(Vocabulary::from_hashmap(&map))
     }
 }
