@@ -528,7 +528,7 @@ impl Simulation {
                     if compressed >= to_compress {
                         break;
                     }
-                    if !o.alive && !growth::is_pending_birth(o) && !o.q_table.is_empty() {
+                    if !o.alive && !growth::is_pending_birth(o) && !o.archived {
                         self.pending_memory_flushes
                             .extend(PendingMemoryFlush::of(o, tick_now));
                         o.compress_for_archive();

@@ -167,6 +167,24 @@ impl MemoryStore {
         touched
     }
 
+    pub fn kept_for_the_dead(&self) -> MemoryStore {
+        let keep = crate::sim::simulation::PendingMemoryFlush::KEEP;
+        let top: Vec<*const MemoryEntry> = self
+            .top(keep)
+            .into_iter()
+            .map(|e| e as *const MemoryEntry)
+            .collect();
+        MemoryStore {
+            entries: self
+                .entries
+                .iter()
+                .filter(|e| top.contains(&(*e as *const MemoryEntry)))
+                .cloned()
+                .collect(),
+            last_decay_tick: self.last_decay_tick,
+        }
+    }
+
     pub fn top(&self, n: usize) -> Vec<&MemoryEntry> {
         let mut v: Vec<&MemoryEntry> = self.entries.iter().collect();
         v.sort_by(|a, b| {

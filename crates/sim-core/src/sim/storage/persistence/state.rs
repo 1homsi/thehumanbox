@@ -248,6 +248,15 @@ pub struct SaveState {
 
 impl SaveState {
     pub fn to_bytes(&self) -> Vec<u8> {
+        self.encode(compact::MAGIC, false)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn to_bytes_v1(&self) -> Vec<u8> {
+        self.encode(compact::MAGIC_V1, true)
+    }
+
+    fn encode(&self, magic: &[u8; 8], wide: bool) -> Vec<u8> {
         let mut seen = crate::hashing::FxHashSet::default();
         let mut keys: Vec<String> = Vec::new();
         for o in &self.organisms {
@@ -257,21 +266,30 @@ impl SaveState {
                 }
             }
         }
-        let mut out = compact::MAGIC.to_vec();
-        compact::q_table::writing_with(&keys, || {
+        let mut out = magic.to_vec();
+        compact::q_table::writing_with(&keys, wide, || {
             rmp_serde::encode::write_named(&mut out, &(&keys, self)).expect("a save state always encodes");
         });
         out
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
-        let Some(body) = bytes.strip_prefix(compact::MAGIC.as_slice()) else {
+        let (body, wide) = if let Some(body) = bytes.strip_prefix(compact::MAGIC.as_slice()) {
+            (body, false)
+        } else if let Some(body) = bytes.strip_prefix(compact::MAGIC_V1.as_slice()) {
+            (body, true)
+        } else {
             return serde_json::from_slice(bytes).map_err(|err| err.to_string());
         };
+        WIDE.with(|w| w.set(wide));
         let out = rmp_serde::from_slice::<Compact>(body).map(|c| c.0);
         compact::q_table::reading_done();
         out.map_err(|err| err.to_string())
     }
+}
+
+thread_local! {
+    static WIDE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 struct Compact(SaveState);
@@ -288,7 +306,7 @@ impl<'de> Deserialize<'de> for Compact {
                 let keys: Vec<String> = seq
                     .next_element()?
                     .ok_or_else(|| serde::de::Error::custom("a compact save has no q_table keys"))?;
-                compact::q_table::reading_with(keys);
+                compact::q_table::reading_with(keys, WIDE.with(std::cell::Cell::get));
                 let state: SaveState = seq
                     .next_element()?
                     .ok_or_else(|| serde::de::Error::custom("a compact save has no world"))?;

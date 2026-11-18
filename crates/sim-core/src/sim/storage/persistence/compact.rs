@@ -2,7 +2,9 @@ use serde::de::{self, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 
-pub(crate) const MAGIC: &[u8; 8] = b"THBSAVE\x01";
+pub(crate) const MAGIC_V1: &[u8; 8] = b"THBSAVE\x01";
+
+pub(crate) const MAGIC: &[u8; 8] = b"THBSAVE\x02";
 
 pub(crate) struct Bytes<'a>(pub(crate) &'a [u8]);
 
@@ -120,6 +122,31 @@ pub(crate) fn f16_to_f32(half: u16) -> f32 {
     f32::from_bits(bits)
 }
 
+pub(crate) fn f32_to_byte(value: f32) -> u8 {
+    let half = f32_to_f16(value);
+    if half & 0x7c00 == 0x7c00 {
+        return (half >> 8) as u8;
+    }
+    let (high, low) = (half >> 8, half & 0xff);
+    let mut out = high;
+    if low > 0x80 || (low == 0x80 && high & 1 == 1) {
+        out += 1;
+    }
+    if out & 0x7c == 0x7c {
+        out -= 1;
+    }
+    out as u8
+}
+
+pub(crate) fn byte_to_f32(byte: u8) -> f32 {
+    f16_to_f32(u16::from(byte) << 8)
+}
+
+#[cfg(test)]
+pub(crate) fn quantize_byte(value: f32) -> f32 {
+    byte_to_f32(f32_to_byte(value))
+}
+
 #[cfg(test)]
 pub(crate) fn quantize(value: f32) -> f32 {
     f16_to_f32(f32_to_f16(value))
@@ -133,24 +160,24 @@ pub(crate) mod q_table {
     type Table = FxHashMap<String, Vec<(u16, f32)>>;
 
     thread_local! {
-        static WRITING: RefCell<Option<FxHashMap<String, u32>>> = const { RefCell::new(None) };
-        static READING: RefCell<Option<Vec<String>>> = const { RefCell::new(None) };
+        static WRITING: RefCell<Option<(FxHashMap<String, u32>, bool)>> = const { RefCell::new(None) };
+        static READING: RefCell<Option<(Vec<String>, bool)>> = const { RefCell::new(None) };
     }
 
-    pub(crate) fn writing_with<R>(keys: &[String], f: impl FnOnce() -> R) -> R {
+    pub(crate) fn writing_with<R>(keys: &[String], wide: bool, f: impl FnOnce() -> R) -> R {
         let index = keys
             .iter()
             .enumerate()
             .map(|(i, k)| (k.clone(), i as u32))
             .collect();
-        WRITING.with_borrow_mut(|w| *w = Some(index));
+        WRITING.with_borrow_mut(|w| *w = Some((index, wide)));
         let out = f();
         WRITING.with_borrow_mut(|w| *w = None);
         out
     }
 
-    pub(crate) fn reading_with(keys: Vec<String>) {
-        READING.with_borrow_mut(|r| *r = Some(keys));
+    pub(crate) fn reading_with(keys: Vec<String>, wide: bool) {
+        READING.with_borrow_mut(|r| *r = Some((keys, wide)));
     }
 
     pub(crate) fn reading_done() {
@@ -161,8 +188,8 @@ pub(crate) mod q_table {
         if serializer.is_human_readable() || WRITING.with_borrow(Option::is_none) {
             return table.serialize(serializer);
         }
-        let blob = WRITING.with_borrow(|index| -> Result<Vec<u8>, String> {
-            let index = index.as_ref().ok_or("q_table keys were not gathered")?;
+        let blob = WRITING.with_borrow(|writing| -> Result<Vec<u8>, String> {
+            let (index, wide) = writing.as_ref().ok_or("q_table keys were not gathered")?;
             let entries: usize = table.values().map(Vec::len).sum();
             let mut blob = Vec::with_capacity(4 + table.len() * 3 + entries * 4);
             put_varint(&mut blob, table.len() as u64);
@@ -173,15 +200,14 @@ pub(crate) mod q_table {
                 put_varint(&mut blob, u64::from(*at));
                 put_varint(&mut blob, row.len() as u64);
             }
-            let words = || {
-                table
-                    .values()
-                    .flatten()
-                    .flat_map(|&(action, value)| [action, f32_to_f16(value)])
-            };
-            for plane in 0..4 {
-                let (which, shift) = (plane / 2, (plane % 2) * 8);
-                blob.extend(words().skip(which).step_by(2).map(|w| (w >> shift) as u8));
+            let entries = || table.values().flatten();
+            blob.extend(entries().map(|&(action, _)| action as u8));
+            blob.extend(entries().map(|&(action, _)| (action >> 8) as u8));
+            if *wide {
+                blob.extend(entries().map(|&(_, value)| f32_to_f16(value) as u8));
+                blob.extend(entries().map(|&(_, value)| (f32_to_f16(value) >> 8) as u8));
+            } else {
+                blob.extend(entries().map(|&(_, value)| f32_to_byte(value)));
             }
             Ok(blob)
         });
@@ -194,10 +220,11 @@ pub(crate) mod q_table {
             return Table::deserialize(deserializer);
         }
         let blob = ByteBuf::deserialize(deserializer)?.0;
-        READING.with_borrow(|keys| {
-            let keys = keys
+        READING.with_borrow(|reading| {
+            let (keys, wide) = reading
                 .as_ref()
                 .ok_or_else(|| de::Error::custom("q_table keys were not read"))?;
+            let width = if *wide { 4 } else { 3 };
             let cut = || de::Error::custom("q_table is cut off");
             let mut at = 0;
             let rows = get_varint(&blob, &mut at).ok_or_else(cut)?;
@@ -216,7 +243,7 @@ pub(crate) mod q_table {
                 shape.push((key, len));
             }
             let planes = blob.get(at..).ok_or_else(cut)?;
-            if entries.checked_mul(4) != Some(planes.len()) {
+            if entries.checked_mul(width) != Some(planes.len()) {
                 return Err(cut());
             }
             let byte = |plane: usize, i: usize| u16::from(planes[plane * entries + i]);
@@ -226,8 +253,12 @@ pub(crate) mod q_table {
                 let row = (i..i + len)
                     .map(|e| {
                         let action = byte(0, e) | byte(1, e) << 8;
-                        let value = byte(2, e) | byte(3, e) << 8;
-                        (action, f16_to_f32(value))
+                        let value = if *wide {
+                            f16_to_f32(byte(2, e) | byte(3, e) << 8)
+                        } else {
+                            byte_to_f32(byte(2, e) as u8)
+                        };
+                        (action, value)
                     })
                     .collect();
                 i += len;
@@ -261,6 +292,21 @@ mod tests {
             assert!((back - v).abs() <= v.abs() * 0.0005 + 6e-8, "{v} -> {back}");
             assert_eq!(quantize(back).to_bits(), back.to_bits(), "{v} is stable");
         }
+        for v in [
+            0.0f32,
+            -0.0,
+            1.0,
+            -0.2039,
+            0.109,
+            -85.774475,
+            0.0015029005,
+            15.622549,
+        ] {
+            let back = quantize_byte(v);
+            assert!((back - v).abs() <= v.abs() * 0.13 + 1e-7, "{v} -> {back}");
+            assert_eq!(quantize_byte(back).to_bits(), back.to_bits(), "{v} is stable");
+        }
+        assert_eq!(quantize_byte(1e6), 57344.0);
         assert!(quantize(f32::NAN).is_nan());
         assert_eq!(quantize(f32::INFINITY), f32::INFINITY);
         assert_eq!(quantize(1e6), 65504.0);

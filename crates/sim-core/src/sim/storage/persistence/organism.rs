@@ -55,6 +55,8 @@ pub(crate) struct OrgSave {
     pub(super) attracted_to: Option<String>,
     pub(super) attraction_tick: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) archived: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(super) last_action: Option<u16>,
     pub(super) pregnant: bool,
     pub(super) pregnancy_start: u64,
@@ -248,6 +250,7 @@ pub(super) fn mem_decode(m: HashMap<String, f32>) -> FxHashMap<(i32, i32), f32> 
 }
 
 pub(super) fn org_to_save(o: &Organism) -> OrgSave {
+    let slim = !o.alive && !crate::sim::growth::is_pending_birth(o);
     OrgSave {
         id: o.id.clone(),
         name: o.name.clone(),
@@ -267,7 +270,11 @@ pub(super) fn org_to_save(o: &Organism) -> OrgSave {
         water_memory: mem_encode(&o.water_memory),
         danger_memory: mem_encode(&o.danger_memory),
         thought_history: o.thought_history.iter().cloned().collect(),
-        q_table: o.q_table.clone(),
+        q_table: if slim {
+            Default::default()
+        } else {
+            o.q_table.clone()
+        },
         learning_trace: o.learning_trace.clone(),
         last_reproduced: o.last_reproduced,
         last_challenged: o.last_challenged,
@@ -278,7 +285,11 @@ pub(super) fn org_to_save(o: &Organism) -> OrgSave {
         infection: o.infection,
         carrying: o.carrying,
         carrying_type: o.carrying_type,
-        vocabulary: o.vocabulary.clone(),
+        vocabulary: if slim {
+            Default::default()
+        } else {
+            o.vocabulary.clone()
+        },
         last_story_tick: o.last_story_tick,
         life_log_legacy: Vec::new(),
         life_log: o.life_log.iter().cloned().collect(),
@@ -293,10 +304,15 @@ pub(super) fn org_to_save(o: &Organism) -> OrgSave {
         sex: o.sex.as_str().to_string(),
         attracted_to: o.attracted_to.clone(),
         attraction_tick: o.attraction_tick,
+        archived: (!o.alive).then_some(o.archived),
         last_action: o.last_action,
         pregnant: o.pregnant,
         pregnancy_start: o.pregnancy_start,
-        conversations: o.conversations.iter().cloned().collect(),
+        conversations: if slim {
+            Vec::new()
+        } else {
+            o.conversations.iter().cloned().collect()
+        },
         father_id: o.father_id.clone(),
         surname: o.surname.clone(),
         custom_name: o.custom_name.clone(),
@@ -323,7 +339,11 @@ pub(super) fn org_to_save(o: &Organism) -> OrgSave {
         inv_stone: o.inv_stone,
         friends: o.friends.clone(),
         anchor_events: o.anchor_events.clone(),
-        memories: o.memories.clone(),
+        memories: if slim {
+            o.memories.kept_for_the_dead()
+        } else {
+            o.memories.clone()
+        },
         zodiac: o.zodiac.clone(),
         birth_tick: o.birth_tick,
         mood: o.mood,
@@ -372,7 +392,7 @@ pub(super) fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
         let id_seed = s.id.bytes().fold(0u64, |a, b| a.wrapping_add(b as u64));
         lid_seed ^ id_seed
     };
-    let needs_vocab = s.vocabulary.is_empty();
+    let needs_vocab = s.vocabulary.is_empty() && s.alive;
     let saved_vocab = s.vocabulary;
     let mut o = Organism::new(
         s.id,
@@ -437,6 +457,7 @@ pub(super) fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
     o.sex = crate::organism::organism::Sex::from_str(&s.sex);
     o.attracted_to = s.attracted_to;
     o.attraction_tick = s.attraction_tick;
+    o.archived = s.archived.unwrap_or(!s.alive && o.q_table.is_empty());
     o.last_action = s.last_action;
     o.pregnant = s.pregnant;
     o.pregnancy_start = s.pregnancy_start;
