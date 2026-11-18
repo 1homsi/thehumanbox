@@ -13,6 +13,50 @@ export const ROAD_E = 2
 export const ROAD_S = 4
 export const ROAD_W = 8
 
+export const ROAD_NE = 16
+export const ROAD_SE = 32
+export const ROAD_SW = 64
+export const ROAD_NW = 128
+
+export const CORNER_NE = 1
+export const CORNER_SE = 2
+export const CORNER_SW = 4
+export const CORNER_NW = 8
+
+const ORTH_BITS = ROAD_N | ROAD_E | ROAD_S | ROAD_W
+const MID = (TILE - 1) / 2
+
+type Link = readonly [ax: number, ay: number, bx: number, by: number]
+
+const OWN_LINKS: readonly (readonly [number, Link])[] = [
+  [ROAD_NE, [MID, MID, MID + TILE, MID - TILE]],
+  [ROAD_SE, [MID, MID, MID + TILE, MID + TILE]],
+  [ROAD_SW, [MID - TILE, MID + TILE, MID, MID]],
+  [ROAD_NW, [MID - TILE, MID - TILE, MID, MID]],
+]
+
+const CORNER_LINKS: readonly (readonly [number, Link])[] = [
+  [CORNER_NE, [MID, MID - TILE, MID + TILE, MID]],
+  [CORNER_SE, [MID, MID + TILE, MID + TILE, MID]],
+  [CORNER_SW, [MID - TILE, MID, MID, MID + TILE]],
+  [CORNER_NW, [MID - TILE, MID, MID, MID - TILE]],
+]
+
+function linksOf(diag: number, corners: number): Link[] {
+  const out: Link[] = []
+  for (const [bit, link] of OWN_LINKS) if (diag & bit) out.push(link)
+  for (const [bit, link] of CORNER_LINKS) if (corners & bit) out.push(link)
+  return out
+}
+
+function onLink(link: Link, x: number, y: number): { along: number; across: number } | null {
+  const [ax, ay, , by] = link
+  const dy = Math.sign(by - ay)
+  const along = x - ax + (y - ay) * dy
+  if (along < 0 || along > 2 * TILE) return null
+  return { along, across: (x - ax) * dy - (y - ay) }
+}
+
 /** A dirt track in the early ages, cobbles from the classical age, asphalt from industry on. */
 export type RoadStyle = 'track' | 'cobble' | 'paved'
 
@@ -79,6 +123,15 @@ export function isRoadPixel(style: RoadStyle, mask: number, x: number, y: number
   return false
 }
 
+function isDiagonalRoadPixel(style: RoadStyle, links: readonly Link[], x: number, y: number): boolean {
+  const half = (TILE - 2 * inset(style)) / 2
+  for (const link of links) {
+    const at = onLink(link, x, y)
+    if (at && Math.abs(at.across) <= half) return true
+  }
+  return false
+}
+
 const TRACK_COLORS = ['#a88a5c', '#8a6c44', '#c3a77a'] as const
 const COBBLE_COLORS = ['#9b968b', '#8c877c', '#a7a295'] as const
 const MORTAR = '#6e675c'
@@ -98,7 +151,13 @@ function isPavedDash(mask: number, x: number, y: number): boolean {
 }
 
 /** The colour of road pixel (x, y): deterministic in the position and the mask, so a cell always looks the same. */
-function roadPixelColor(style: RoadStyle, mask: number, x: number, y: number): string {
+function roadPixelColor(
+  style: RoadStyle,
+  mask: number,
+  x: number,
+  y: number,
+  inside: (x: number, y: number) => boolean,
+): string {
   if (style === 'track') {
     // Worn ruts and pale stones scattered over the dirt.
     if ((x * 7 + y * 13 + mask * 5) % 11 === 0) return TRACK_COLORS[1]
@@ -108,8 +167,8 @@ function roadPixelColor(style: RoadStyle, mask: number, x: number, y: number): s
   if (style === 'paved') {
     // A dash on straight runs; the road's rim is a shade lighter, most on the sides facing the light.
     if (isPavedDash(mask, x, y)) return ASPHALT_LINE
-    if (!isRoadPixel(style, mask, x - 1, y) || !isRoadPixel(style, mask, x, y - 1)) return ASPHALT_EDGE_LIT
-    if (!isRoadPixel(style, mask, x + 1, y) || !isRoadPixel(style, mask, x, y + 1)) return ASPHALT_EDGE
+    if (!inside(x - 1, y) || !inside(x, y - 1)) return ASPHALT_EDGE_LIT
+    if (!inside(x + 1, y) || !inside(x, y + 1)) return ASPHALT_EDGE
     return (x * 7 + y * 13 + mask * 3) % 11 === 0 ? ASPHALT_GRIT : ASPHALT
   }
   // Cobbles: rows of stones with a mortar line every other row, the joints staggered.
@@ -120,10 +179,29 @@ function roadPixelColor(style: RoadStyle, mask: number, x: number, y: number): s
 
 /** Every painted pixel of a road cell, as `[x, y, colour]`. Pure, so the art can be checked without a canvas. */
 export function roadCellPixels(style: RoadStyle, mask: number): [number, number, string][] {
+  const links = linksOf(mask & 0xf0, 0)
+  const orth = mask & ORTH_BITS
+  const square = orth !== 0 || links.length === 0
+  const inside = (x: number, y: number) =>
+    (square && isRoadPixel(style, orth, x, y)) ||
+    (links.length > 0 && isDiagonalRoadPixel(style, links, x, y))
+  return paintedPixels(inside, (x, y) => roadPixelColor(style, mask, x, y, inside))
+}
+
+export function roadCornerPixels(style: RoadStyle, corners: number): [number, number, string][] {
+  const links = linksOf(0, corners)
+  const inside = (x: number, y: number) => isDiagonalRoadPixel(style, links, x, y)
+  return paintedPixels(inside, (x, y) => roadPixelColor(style, corners << 8, x, y, inside))
+}
+
+function paintedPixels(
+  inside: (x: number, y: number) => boolean,
+  color: (x: number, y: number) => string,
+): [number, number, string][] {
   const out: [number, number, string][] = []
   for (let y = 0; y < TILE; y++) {
     for (let x = 0; x < TILE; x++) {
-      if (isRoadPixel(style, mask, x, y)) out.push([x, y, roadPixelColor(style, mask, x, y)])
+      if (inside(x, y)) out.push([x, y, color(x, y)])
     }
   }
   return out
@@ -184,6 +262,109 @@ export function paintRailCell(ctx: CanvasRenderingContext2D, vertical: boolean):
 /** The atlas key of a railway cell: which way its track runs. */
 export function railCellKey(vertical: boolean): string {
   return vertical ? 'L|v' : 'L|h'
+}
+
+const RAIL_GAUGE = TILE / 2 - 1.5
+const RAIL_WIDTH = 0.75
+const SLEEPER_ANGLES = [Math.PI / 6, Math.PI / 3]
+
+export function isRailBend(mask: number): boolean {
+  const orth = mask & ORTH_BITS
+  return (
+    mask >> 4 === 0 &&
+    (orth === (ROAD_N | ROAD_E) ||
+      orth === (ROAD_E | ROAD_S) ||
+      orth === (ROAD_S | ROAD_W) ||
+      orth === (ROAD_W | ROAD_N))
+  )
+}
+
+export function isStraightRail(mask: number): boolean {
+  return mask >> 4 === 0 && !isRailBend(mask)
+}
+
+type TrackAt = { dist: number; sleeper: boolean }
+
+function bendAt(mask: number, x: number, y: number): TrackAt {
+  const cx = mask & ROAD_E ? TILE - 0.5 : -0.5
+  const cy = mask & ROAD_N ? -0.5 : TILE - 0.5
+  const r = Math.hypot(x - cx, y - cy)
+  const angle = Math.atan2(Math.abs(y - cy), Math.abs(x - cx))
+  const sleeper = SLEEPER_ANGLES.some((a) => Math.abs(r * Math.sin(angle - a)) < 0.5)
+  return { dist: Math.abs(r - TILE / 2), sleeper }
+}
+
+function trackAt(mask: number, links: readonly Link[], join: boolean, x: number, y: number): TrackAt {
+  let best: TrackAt = { dist: Infinity, sleeper: false }
+  const take = (dist: number, sleeper: boolean) => {
+    if (dist < best.dist) best = { dist, sleeper }
+  }
+  if (mask & ROAD_N && y <= MID) take(Math.abs(x - MID), y % 3 === 1)
+  if (mask & ROAD_S && y >= MID) take(Math.abs(x - MID), y % 3 === 1)
+  if (mask & ROAD_W && x <= MID) take(Math.abs(y - MID), x % 3 === 1)
+  if (mask & ROAD_E && x >= MID) take(Math.abs(y - MID), x % 3 === 1)
+  for (const link of links) {
+    const at = onLink(link, x, y)
+    if (at) take(Math.abs(at.across) / Math.SQRT2, at.along % 4 === 1)
+  }
+  if (join) take(Math.hypot(x - MID, y - MID), false)
+  return best
+}
+
+function trackPixels(at: (x: number, y: number) => TrackAt): [number, number, string][] {
+  const out: [number, number, string][] = []
+  for (let y = 0; y < TILE; y++) {
+    for (let x = 0; x < TILE; x++) {
+      const { dist, sleeper } = at(x, y)
+      if (dist >= RAIL_GAUGE - 0.5 && dist < RAIL_GAUGE - 0.5 + RAIL_WIDTH) out.push([x, y, RAIL_STEEL])
+      else if (dist < RAIL_GAUGE - 0.5 && sleeper) out.push([x, y, RAIL_TIE])
+    }
+  }
+  return out
+}
+
+export function railJoinPixels(mask: number): [number, number, string][] {
+  if (isRailBend(mask)) return trackPixels((x, y) => bendAt(mask, x, y))
+  const links = linksOf(mask & 0xf0, 0)
+  let joins = 0
+  for (let m = mask; m; m &= m - 1) joins++
+  return trackPixels((x, y) => trackAt(mask & ORTH_BITS, links, joins >= 2, x, y))
+}
+
+export function railCornerPixels(corners: number): [number, number, string][] {
+  const links = linksOf(0, corners)
+  return trackPixels((x, y) => trackAt(0, links, false, x, y))
+}
+
+function paintPixels(ctx: CanvasRenderingContext2D, pixels: readonly [number, number, string][]): void {
+  for (const [x, y, color] of pixels) {
+    ctx.fillStyle = color
+    ctx.fillRect(x, y, 1, 1)
+  }
+}
+
+export function paintRailJoinCell(ctx: CanvasRenderingContext2D, mask: number): void {
+  paintPixels(ctx, railJoinPixels(mask))
+}
+
+export function paintRailCorners(ctx: CanvasRenderingContext2D, corners: number): void {
+  paintPixels(ctx, railCornerPixels(corners))
+}
+
+export function paintRoadCorners(ctx: CanvasRenderingContext2D, style: RoadStyle, corners: number): void {
+  paintPixels(ctx, roadCornerPixels(style, corners))
+}
+
+export function railJoinKey(mask: number): string {
+  return `L|${mask}`
+}
+
+export function railCornersKey(corners: number): string {
+  return `L|c${corners}`
+}
+
+export function roadCornersKey(style: RoadStyle, corners: number): string {
+  return `R|${style}|c${corners}`
 }
 
 /** Paint one road cell at the context origin (one canvas pixel per tile pixel). */
