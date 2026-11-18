@@ -106,7 +106,19 @@
     "night": "夜晚",
     "weather": "天气",
     "droughtTag": "· {label}",
-    "tribes": "部落"
+    "tribes": "部落",
+    "engine": "引擎",
+    "engineThreads": {
+      "one": "{count} 个线程",
+      "other": "{count} 个线程"
+    },
+    "engineSingle": "单线程：{reason}",
+    "engineReasons": {
+      "notIsolated": "浏览器未隔离",
+      "webkit": "此浏览器暂不支持多线程",
+      "failed": "线程启动失败",
+      "slow": "线程启动太慢"
+    }
   },
   "weather": {
     "clear": "晴朗",

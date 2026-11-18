@@ -106,7 +106,19 @@
     "night": "夜",
     "weather": "天候",
     "droughtTag": "· {label}",
-    "tribes": "部族"
+    "tribes": "部族",
+    "engine": "エンジン",
+    "engineThreads": {
+      "one": "{count}スレッド",
+      "other": "{count}スレッド"
+    },
+    "engineSingle": "シングルスレッド: {reason}",
+    "engineReasons": {
+      "notIsolated": "ブラウザが分離されていない",
+      "webkit": "このブラウザはまだスレッド非対応",
+      "failed": "スレッドの起動に失敗",
+      "slow": "スレッドの起動が遅すぎた"
+    }
   },
   "weather": {
     "clear": "晴れ",

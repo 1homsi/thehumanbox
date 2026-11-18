@@ -106,7 +106,19 @@
     "night": "noche",
     "weather": "clima",
     "droughtTag": "· {label}",
-    "tribes": "tribus"
+    "tribes": "tribus",
+    "engine": "motor",
+    "engineThreads": {
+      "one": "{count} hilo",
+      "other": "{count} hilos"
+    },
+    "engineSingle": "un solo hilo: {reason}",
+    "engineReasons": {
+      "notIsolated": "navegador no aislado",
+      "webkit": "este navegador aún no admite hilos",
+      "failed": "los hilos no arrancaron",
+      "slow": "los hilos tardaron demasiado"
+    }
   },
   "weather": {
     "clear": "despejado",

@@ -106,7 +106,21 @@
     "night": "noc",
     "weather": "pogoda",
     "droughtTag": "· {label}",
-    "tribes": "plemiona"
+    "tribes": "plemiona",
+    "engine": "silnik",
+    "engineThreads": {
+      "one": "{count} wątek",
+      "few": "{count} wątki",
+      "many": "{count} wątków",
+      "other": "{count} wątku"
+    },
+    "engineSingle": "jeden wątek: {reason}",
+    "engineReasons": {
+      "notIsolated": "przeglądarka nie jest izolowana",
+      "webkit": "ta przeglądarka nie obsługuje jeszcze wątków",
+      "failed": "wątki się nie uruchomiły",
+      "slow": "wątki startowały zbyt wolno"
+    }
   },
   "weather": {
     "clear": "bezchmurnie",

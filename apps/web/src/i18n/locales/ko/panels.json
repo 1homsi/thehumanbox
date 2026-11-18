@@ -106,7 +106,19 @@
     "night": "밤",
     "weather": "날씨",
     "droughtTag": "· {label}",
-    "tribes": "부족"
+    "tribes": "부족",
+    "engine": "엔진",
+    "engineThreads": {
+      "one": "스레드 {count}개",
+      "other": "스레드 {count}개"
+    },
+    "engineSingle": "단일 스레드: {reason}",
+    "engineReasons": {
+      "notIsolated": "브라우저가 격리되지 않음",
+      "webkit": "이 브라우저는 아직 스레드를 지원하지 않음",
+      "failed": "스레드 시작 실패",
+      "slow": "스레드 시작이 너무 느림"
+    }
   },
   "weather": {
     "clear": "맑음",

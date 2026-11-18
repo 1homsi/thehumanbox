@@ -106,7 +106,19 @@
     "night": "noite",
     "weather": "clima",
     "droughtTag": "· {label}",
-    "tribes": "tribos"
+    "tribes": "tribos",
+    "engine": "motor",
+    "engineThreads": {
+      "one": "{count} thread",
+      "other": "{count} threads"
+    },
+    "engineSingle": "uma só thread: {reason}",
+    "engineReasons": {
+      "notIsolated": "navegador não isolado",
+      "webkit": "este navegador ainda não suporta threads",
+      "failed": "as threads não iniciaram",
+      "slow": "threads lentas demais para iniciar"
+    }
   },
   "weather": {
     "clear": "limpo",

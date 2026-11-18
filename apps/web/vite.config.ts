@@ -101,7 +101,8 @@ function preloadSimAssets(): Plugin {
         // made in the browser; it is a file, not inline, so the desktop app's script policy allows it.
         const pick = [
           '(function () {',
-          "  var threads = self.crossOriginIsolated === true && typeof SharedArrayBuffer === 'function';",
+          '  var webkit = /AppleWebKit[/]/.test(navigator.userAgent) && !/(Chrome|Chromium)[/]/.test(navigator.userAgent);',
+          "  var threads = self.crossOriginIsolated === true && typeof SharedArrayBuffer === 'function' && !webkit;",
           "  var link = document.createElement('link');",
           "  link.rel = 'preload';",
           "  link.as = 'fetch';",
@@ -144,8 +145,26 @@ const APP_VERSION: string = JSON.parse(
   readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'package.json'), 'utf8'),
 ).version
 
+function isolationHeaders(): Record<string, string> {
+  const text = readFileSync(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), 'public', '_headers'),
+    'utf8',
+  )
+  const headers: Record<string, string> = {}
+  let inRoot = false
+  for (const line of text.split('\n')) {
+    if (/^\S/.test(line)) inRoot = /^\/\*$/.test(line.trim())
+    const header = inRoot ? /^\s+(Cross-Origin-[A-Za-z-]+):\s*(.+)$/.exec(line) : null
+    if (header) headers[header[1]] = header[2].trim()
+  }
+  return headers
+}
+const ISOLATION_HEADERS = isolationHeaders()
+
 export default defineConfig({
   plugins: [react(), emitVersionJson(), preloadSimAssets()],
+  server: { headers: ISOLATION_HEADERS },
+  preview: { headers: ISOLATION_HEADERS },
   define: {
     __SPRITE_VERSIONS__: JSON.stringify(SPRITE_VERSIONS),
     __APP_VERSION__: JSON.stringify(APP_VERSION),

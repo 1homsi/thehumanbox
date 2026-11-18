@@ -1,5 +1,7 @@
 /** Most threads the browser sim runs on, so a laptop keeps cores free for the rest of the machine. */
-export const MAX_SIM_THREADS = 4
+export const MAX_SIM_THREADS = 6
+
+const CORES_FOR_PAGE_AND_RENDERER = 2
 
 /**
  * How long the worker pool may take to start. A pool that starts takes milliseconds; one whose worker never
@@ -22,7 +24,7 @@ export const THREADED_WASM_START_MS = 30_000
 export const THREADS_HEAD_START_MS = 3_000
 
 /** Why the single-thread engine runs: the page cannot share memory, the threaded start failed, or it was slower. */
-export type SingleThreadReason = 'not_isolated' | 'failed' | 'slow'
+export type SingleThreadReason = 'not_isolated' | 'webkit' | 'failed' | 'slow'
 
 export interface EngineChoice<T> {
   engine: T
@@ -77,11 +79,15 @@ export function wantsThreads(scope: { crossOriginIsolated?: boolean; SharedArray
   return scope.crossOriginIsolated === true && typeof scope.SharedArrayBuffer === 'function'
 }
 
-/**
- * How many threads the pool gets: every core but one (the page's own), never more than MAX_SIM_THREADS, and
- * at least one. An unknown core count gets one thread.
- */
+export function webkitEngine(userAgent: string | undefined): boolean {
+  return (
+    typeof userAgent === 'string' &&
+    /AppleWebKit[/]/.test(userAgent) &&
+    !/(Chrome|Chromium)[/]/.test(userAgent)
+  )
+}
+
 export function threadCount(cores: number | undefined): number {
   const known = typeof cores === 'number' && Number.isFinite(cores) ? Math.floor(cores) : 1
-  return Math.max(1, Math.min(known - 1, MAX_SIM_THREADS))
+  return Math.max(1, Math.min(known - CORES_FOR_PAGE_AND_RENDERER, MAX_SIM_THREADS))
 }

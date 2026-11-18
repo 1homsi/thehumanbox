@@ -106,7 +106,21 @@
     "night": "ніч",
     "weather": "погода",
     "droughtTag": "· {label}",
-    "tribes": "племена"
+    "tribes": "племена",
+    "engine": "рушій",
+    "engineThreads": {
+      "one": "{count} потік",
+      "few": "{count} потоки",
+      "many": "{count} потоків",
+      "other": "{count} потоку"
+    },
+    "engineSingle": "один потік: {reason}",
+    "engineReasons": {
+      "notIsolated": "браузер не ізольований",
+      "webkit": "цей браузер поки не підтримує потоки",
+      "failed": "потоки не запустилися",
+      "slow": "потоки запускалися надто довго"
+    }
   },
   "weather": {
     "clear": "ясно",
