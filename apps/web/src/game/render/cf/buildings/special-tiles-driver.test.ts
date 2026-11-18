@@ -71,9 +71,13 @@ function frame(w: WorldState, now: number) {
   )
 }
 
+function layer() {
+  return new SpriteLayer({
+    atlases: [{ dynamicSrc: 'a' }, { dynamicSrc: 'b' }, { dynamicSrc: 'c' }],
+  })
+}
+
 function driver() {
-  const layer = () =>
-    new SpriteLayer({ atlases: [{ dynamicSrc: 'a' }, { dynamicSrc: 'b' }, { dynamicSrc: 'c' }] })
   return new SpecialTilesDriver(layer(), atlas(PROP_CLASSES), layer(), atlas(GLOW_CLASSES))
 }
 
@@ -125,7 +129,7 @@ describe('special tiles driver', () => {
     expect(d.stats.updates).toBe(3)
   })
 
-  it('draws a crowded world of villages and their halls quickly, every night frame', () => {
+  it('draws a crowded world of villages and their halls with bounded work every night frame', () => {
     const width = 800
     const height = 400
     const tiles = Array.from({ length: height }, () => Array<number>(width).fill(TILE_ID.GRASS))
@@ -145,7 +149,9 @@ describe('special tiles driver', () => {
       buildings: [],
       organisms: [],
     } as unknown as WorldState
-    const d = driver()
+    const props = layer()
+    const glow = layer()
+    const d = new SpecialTilesDriver(props, atlas(PROP_CLASSES), glow, atlas(GLOW_CLASSES))
     const view = (now: number) =>
       makeFrame(
         w,
@@ -156,12 +162,25 @@ describe('special tiles driver', () => {
         2,
         1,
       )
-    d.update(view(1000))
+    expect(d.update(view(1000))).toBe(true)
     expect(d.stats.townHalls).toBe(villages)
     expect(d.stats.huts).toBe(villages * 4)
-    const started = performance.now()
-    for (let i = 1; i <= 3; i++) d.update(view(1000 + i * 17))
-    expect((performance.now() - started) / 3).toBeLessThan(100)
+    // Work per frame is counted, not timed, so a busy CI machine cannot fail it. The first frame
+    // bakes the sprites; after that every night frame must reuse every baked cell and write only
+    // the view's huts (a glow and a sprite each at this zoom) and one hall each: a constant,
+    // view-sized amount that does not grow with the world.
+    const baked = d.stats.bakes
+    const perFrame = d.stats.huts * 2 + d.stats.townHalls
+    expect(baked).toBeGreaterThan(0)
+    expect(perFrame).toBeGreaterThan(villages * 4)
+    expect(glow.count).toBe(0)
+    for (let i = 1; i <= 3; i++) {
+      expect(d.update(view(1000 + i * 17))).toBe(true)
+      expect(props.count).toBe(perFrame)
+      expect(d.stats.bakes).toBe(baked)
+      expect(d.stats.resets).toBe(0)
+    }
+    expect(d.stats.updates).toBe(4)
   })
 
   it('rewrites when the day ends, even if the inputs match', () => {
