@@ -2,6 +2,8 @@ use super::*;
 
 pub const SAVE_SCHEMA_VERSION: u32 = 7;
 
+pub const COMMAND_FOCUS_TICKS: u64 = 600;
+
 /// Whether a system that runs every `period` ticks runs on `tick`, at `phase` in its cycle. The heavy periodic
 /// systems each take their own phase: on round periods (240, 600, 1200) they all fell on the same ticks, and a
 /// late world's every-1200th tick ran them together at three to four times an ordinary tick's cost, a stall

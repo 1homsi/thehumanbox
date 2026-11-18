@@ -821,6 +821,13 @@ impl Simulation {
         self.command_report = None;
         let disaster = self.disaster_before(&cmd);
         let applied = self.apply_command_inner(cmd);
+        if let (true, Some((x, y))) = (applied, answers.as_ref().and_then(|(_, at)| *at)) {
+            self.focus_points.push((
+                x as i32,
+                y as i32,
+                self.tick_count + crate::sim::simulation::COMMAND_FOCUS_TICKS,
+            ));
+        }
         // A disaster says whom it hit, counted from what changed (see `report_disaster`).
         if applied {
             if let Some(before) = disaster {

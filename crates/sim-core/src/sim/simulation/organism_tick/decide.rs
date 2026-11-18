@@ -260,6 +260,7 @@ impl Simulation {
             (choice.action, choice.thought, choice.origin)
         };
         *self.decision_counts.entry(decision_origin).or_insert(0) += 1;
+        self.organisms[idx].last_action = u16::try_from(action).ok();
         if let Some(ref t) = new_thought {
             self.organisms[idx].think(t, self.tick_count);
         }

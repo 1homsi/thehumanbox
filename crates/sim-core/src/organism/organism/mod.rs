@@ -148,6 +148,7 @@ pub struct Organism {
 
     pub attracted_to: Option<String>,
     pub attraction_tick: u64,
+    pub last_action: Option<u16>,
 
     pub pregnant: bool,
     pub pregnancy_start: u64,
@@ -301,6 +302,7 @@ impl Organism {
             sex: Sex::Male,
             attracted_to: None,
             attraction_tick: 0,
+            last_action: None,
             pregnant: false,
             pregnancy_start: 0,
             inv_water: 0,

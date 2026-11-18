@@ -34,6 +34,7 @@ pub(super) struct Sensed {
     pub(super) wolf_threat: Option<(f32, f32, f32)>,
     pub(super) threat_summoned: bool,
     pub(super) summoned_threat: Option<(f32, f32, f32)>,
+    pub(super) dormant: bool,
 }
 
 impl OrgFrame<'_> {
@@ -56,6 +57,7 @@ impl OrgFrame<'_> {
             wolf_threat: self.wolf_threat,
             threat_summoned: self.threat_summoned,
             summoned_threat: self.summoned_threat,
+            dormant: false,
         }
     }
 
@@ -79,6 +81,7 @@ impl OrgFrame<'_> {
             wolf_threat: self.wolf_threat,
             threat_summoned: self.threat_summoned,
             summoned_threat: self.summoned_threat,
+            dormant: false,
         }
     }
 
@@ -113,11 +116,118 @@ pub(crate) struct PendingLearn {
     animal_near: bool,
 }
 
+const LOD_EVERY: u64 = 8;
+
+const COURTING_EVERY: u64 = 2;
+
+const COMMAND_FOCUS_REACH: i32 = 24;
+
+const BATTLE_FOCUS_REACH: i32 = 20;
+
+const REST: usize = 17;
+
 impl Simulation {
+    pub(super) fn lod_awake(&self, animal_spatial: &SpatialIndex, buf: &mut Vec<usize>) -> Vec<bool> {
+        let storm = self.weather.kind >= 2;
+        self.organisms
+            .iter()
+            .enumerate()
+            .map(|(i, o)| {
+                if !o.alive {
+                    return false;
+                }
+                if storm
+                    || (self.tick_count + i as u64).is_multiple_of(LOD_EVERY)
+                    || o.energy < 0.35
+                    || o.hydration < 0.35
+                    || o.health < 0.6
+                    || o.infection > 0.3
+                    || o.water_ticks > 0
+                    || o.is_elder
+                    || (o.partner_id.is_none()
+                        && o.age > 1000
+                        && o.traits.social_tendency > 0.15
+                        && (self.tick_count + i as u64).is_multiple_of(COURTING_EVERY))
+                    || o.last_action.is_none()
+                {
+                    return true;
+                }
+                let (x, y) = (o.x as i32, o.y as i32);
+                if self
+                    .focus_points
+                    .iter()
+                    .any(|&(fx, fy, _)| (fx - x).abs().max((fy - y).abs()) <= COMMAND_FOCUS_REACH)
+                    || self.battles.iter().any(|b| {
+                        b.ended_tick.is_none()
+                            && (b.location.0 - x).abs().max((b.location.1 - y).abs()) <= BATTLE_FOCUS_REACH
+                    })
+                {
+                    return true;
+                }
+                animal_spatial.query_into(x, y, 12, buf);
+                buf.iter().any(|&a| {
+                    let a = &self.animals[a];
+                    a.alive && a.kind.hostile() && (a.x - o.x).abs() + (a.y - o.y).abs() <= 14.0
+                })
+            })
+            .collect()
+    }
+
+    pub(super) fn dormant_sensed(&self, idx: usize) -> Sensed {
+        let o = &self.organisms[idx];
+        Sensed {
+            idx,
+            epsilon: 0.0,
+            night: self.is_night(),
+            prev_energy: o.energy,
+            prev_hydration: o.hydration,
+            prev_inv_food: o.inv_food,
+            prev_inv_water: o.inv_water,
+            animal_near: false,
+            fear_trait: o.traits.fear,
+            ox: o.x,
+            oy: o.y,
+            perception: String::new(),
+            storm_build: None,
+            threat_kind: AnimalKind::Wolf,
+            wolf_threat: None,
+            threat_summoned: false,
+            summoned_threat: None,
+            dormant: true,
+        }
+    }
+
+    pub(super) fn dormant_choice(&self, s: &Sensed, rng: decide::ChoiceRng) -> Choice {
+        let o = &self.organisms[s.idx];
+        let action = match o.last_action.map(usize::from) {
+            Some(a) if a >= 8 => a,
+            _ => {
+                let goal = {
+                    let route = o.route.borrow();
+                    (route.next < route.steps.len()).then_some(route.goal)
+                };
+                let here = (o.x as i32, o.y as i32);
+                match goal.filter(|&t| t != here && o.wander_target == Some(t)) {
+                    Some(target) => o.toward(target, &self.grid),
+                    None => REST,
+                }
+            }
+        };
+        Choice {
+            action,
+            thought: None,
+            origin: "dormant",
+            at: (o.x as i32, o.y as i32),
+            rng,
+            flight: None,
+        }
+    }
+
     pub(super) fn perceive_all(
         &self,
         spatial: &SpatialIndex,
         animal_spatial: &SpatialIndex,
+        awake: &[bool],
     ) -> Vec<Option<String>> {
         let night = self.is_night();
         crate::sim::par::map_with(
@@ -125,7 +235,7 @@ impl Simulation {
             || (Vec::with_capacity(32), Vec::with_capacity(32)),
             |(perception_buf, animal_buf), i| {
                 let org = &self.organisms[i];
-                if !org.alive {
+                if !org.alive || !awake[i] {
                     return None;
                 }
                 let (ox, oy) = (org.x, org.y);
@@ -365,6 +475,9 @@ impl Simulation {
             || (Vec::with_capacity(256), Vec::with_capacity(32)),
             |(available, nearby), i| {
                 let s = sensed[i].as_ref()?;
+                if s.dormant {
+                    return Some(self.dormant_choice(s, decide::choice_rng(tick_seed, s.idx)));
+                }
                 Some(self.org_choose(
                     s,
                     spatial,
@@ -399,6 +512,7 @@ impl Simulation {
             cx.org_idx_by_id,
             lineage_members,
         );
+        let sensed_dormant = sensed.dormant;
         f.put_sensed(sensed);
         // Others may have acted since sensing. Attribute only health changes
         // during this person's own turn to their decision.
@@ -409,10 +523,17 @@ impl Simulation {
             self.org_mortality(&mut f);
             return;
         }
+        let dormant = sensed_dormant;
         self.org_apply_choice(&mut f, choice);
         self.org_act(&mut f);
         self.org_vitals(&mut f);
         self.org_ageing(&mut f);
+        if dormant {
+            self.org_routines(&mut f);
+            self.org_pairing(&mut f);
+            self.org_mortality(&mut f);
+            return;
+        }
         self.org_bonds(&mut f);
         self.org_learning(&mut f);
         self.org_routines(&mut f);

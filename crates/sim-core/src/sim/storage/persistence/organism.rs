@@ -54,6 +54,8 @@ pub(crate) struct OrgSave {
     pub(super) sex: String,
     pub(super) attracted_to: Option<String>,
     pub(super) attraction_tick: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) last_action: Option<u16>,
     pub(super) pregnant: bool,
     pub(super) pregnancy_start: u64,
     pub(super) conversations: Vec<crate::organism::organism::ConversationEntry>,
@@ -291,6 +293,7 @@ pub(super) fn org_to_save(o: &Organism) -> OrgSave {
         sex: o.sex.as_str().to_string(),
         attracted_to: o.attracted_to.clone(),
         attraction_tick: o.attraction_tick,
+        last_action: o.last_action,
         pregnant: o.pregnant,
         pregnancy_start: o.pregnancy_start,
         conversations: o.conversations.iter().cloned().collect(),
@@ -434,6 +437,7 @@ pub(super) fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
     o.sex = crate::organism::organism::Sex::from_str(&s.sex);
     o.attracted_to = s.attracted_to;
     o.attraction_tick = s.attraction_tick;
+    o.last_action = s.last_action;
     o.pregnant = s.pregnant;
     o.pregnancy_start = s.pregnancy_start;
     o.conversations = s.conversations.into_iter().collect();
