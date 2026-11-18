@@ -47,7 +47,7 @@ impl Simulation {
             }
         }
         let lineage = self.organisms[idx].lineage_id.clone();
-        let Some(plaza) = self.town_plazas.iter().find(|p| p.lineage == lineage) else {
+        let Some(plaza) = self.towns.iter().find(|p| p.lineage == lineage) else {
             return;
         };
         let center = (plaza.center[0], plaza.center[1]);

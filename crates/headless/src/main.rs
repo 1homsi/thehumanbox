@@ -317,7 +317,7 @@ fn main() {
             .iter()
             .filter(|b| b.kind.name() == "market" && !b.decorative && !b.is_ruined())
             .count(),
-        sim.town_plazas.len()
+        sim.towns.len()
     );
     print_history(&sim, thought_freq);
     print_economy(&sim);

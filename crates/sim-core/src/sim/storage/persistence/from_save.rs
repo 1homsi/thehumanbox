@@ -330,7 +330,8 @@ impl Simulation {
             rail_lines: state.rail_lines,
             rail_remnants: state.rail_remnants,
             cart_grain: state.cart_grain,
-            town_plazas: state.town_plazas,
+            towns: state.towns,
+            next_town_id: state.next_town_id,
             caravans: state.caravans,
             next_trade_route_id,
             next_caravan_id,
@@ -419,6 +420,7 @@ impl Simulation {
         // stale rows disappear immediately on load without emitting events.
         crate::sim::civ::settlements::rebuild_tiers(&mut sim);
         crate::sim::civ::trade_routes::repair_loaded_state(&mut sim);
+        crate::sim::civ::civ_tick::town::settle_loaded_towns(&mut sim);
         sim
     }
 

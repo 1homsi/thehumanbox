@@ -207,7 +207,7 @@ fn shift_coordinates(s: &mut SaveState, dx: i32, dy: i32) {
     for grain in &mut s.cart_grain {
         shift_array(&mut grain.at, dx, dy);
     }
-    for plaza in &mut s.town_plazas {
+    for plaza in &mut s.towns {
         shift_array(&mut plaza.center, dx, dy);
         for p in &mut plaza.streets {
             shift_array(p, dx, dy);

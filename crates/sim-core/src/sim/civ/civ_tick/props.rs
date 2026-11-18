@@ -91,7 +91,9 @@ pub(super) fn tick_scatter_props(sim: &mut Simulation) {
             continue;
         }
         let era = lineage_era(sim, &lid);
-        let (cx, cy) = lineage_center(sim, &lid);
+        let (cx, cy) = super::town::main_town(sim, &lid)
+            .map(|t| (t.center[0], t.center[1]))
+            .unwrap_or_else(|| lineage_center(sim, &lid));
         if cx == 0 && cy == 0 {
             continue;
         }

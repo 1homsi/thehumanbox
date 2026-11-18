@@ -108,9 +108,11 @@ pub(super) fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
         } else {
             format!("repairing our {}", kind.name())
         };
+        let parent = crate::sim::civ::civ_tick::town::parent_for(sim, &lineage, x, y);
         let building = &mut sim.buildings[building_index];
         if reclaimable {
             building.owner_lineage = Some(lineage.clone());
+            building.town = parent;
         }
         let was_ruined = building.is_ruined();
         if was_ruined && building.ruined_at_tick.is_none() {

@@ -330,7 +330,9 @@ pub(crate) fn fits(
 
 pub(crate) fn place(sim: &mut Simulation, tribe: &Tribe, kind: BuildingKind) {
     let occupied = occupied_tiles(sim);
-    let Some((x, y)) = site(sim, &tribe.dwellings, kind, &occupied) else {
+    let Some((x, y)) = edge_site(sim, &tribe.lineage, kind, &occupied)
+        .or_else(|| site(sim, &tribe.dwellings, kind, &occupied))
+    else {
         return;
     };
     place_at(sim, tribe, kind, x, y);
@@ -397,6 +399,30 @@ fn open_grass(sim: &Simulation, x: i32, y: i32, occupied: &FxHashSet<(i32, i32)>
         && !occupied.contains(&(x, y))
         && matches!(sim.grid.get(x, y), Tile::Grass)
         && sim.grid.road_at(x, y) == crate::world::grid::ROAD_NONE
+}
+
+fn edge_site(
+    sim: &Simulation,
+    lineage: &str,
+    kind: BuildingKind,
+    occupied: &FxHashSet<(i32, i32)>,
+) -> Option<(i32, i32)> {
+    use crate::sim::civ::civ_tick::town::{main_town, Zone};
+    let [cx, cy] = main_town(sim, lineage)?.center;
+    let (lo, _) = Zone::Edge.ring()?;
+    for reach in lo..=lo + 6 {
+        for dy in -reach..=reach {
+            for dx in -reach..=reach {
+                if dx.abs().max(dy.abs()) != reach {
+                    continue;
+                }
+                if fits(sim, cx + dx, cy + dy, kind, occupied) {
+                    return Some((cx + dx, cy + dy));
+                }
+            }
+        }
+    }
+    None
 }
 
 /// The first open grass tile 2 to 4 tiles from a house, off the roads and off the fields.
