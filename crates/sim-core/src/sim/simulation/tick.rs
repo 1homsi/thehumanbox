@@ -397,7 +397,7 @@ impl Simulation {
         let n = self.organisms.len();
         let now = self.tick_count;
         self.focus_points.retain(|&(_, _, until)| until > now);
-        let awake = self.lod_awake(&animal_spatial, &mut buffers.spatial);
+        let (awake, strangers) = self.lod_awake(&animal_spatial, &mut buffers.spatial);
         self.lineage_lore(&awake);
         let mut perceived = self.perceive_all(&spatial, &animal_spatial, &awake);
         let mut sensed: Vec<Option<organism_tick::Sensed>> = Vec::with_capacity(n);
@@ -410,7 +410,7 @@ impl Simulation {
             };
             for i in 0..n {
                 if self.organisms[i].alive && !awake[i] {
-                    sensed.push(Some(self.dormant_sensed(i)));
+                    sensed.push(Some(self.dormant_sensed(i, strangers[i])));
                     continue;
                 }
                 sensed.push(self.organisms[i].alive.then(|| {
