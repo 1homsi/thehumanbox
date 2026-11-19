@@ -156,9 +156,9 @@ impl Simulation {
             ordered_nearby_filtered(&self.organisms, spatial, sx, sy, 3, spatial_buf, |i, o| {
                 i != idx
                     && o.alive
-                    && o.lineage_id == *lid
                     && o.hydration < 0.30
                     && (o.x - sx).abs() + (o.y - sy).abs() < 2.5
+                    && o.lineage_id == *lid
             });
             let recipient = spatial_buf
                 .iter()
@@ -209,9 +209,9 @@ impl Simulation {
                 ordered_nearby_filtered(&self.organisms, spatial, fx, fy, 4, spatial_buf, |i, o| {
                     i != idx
                         && o.alive
-                        && o.lineage_id == *lid
                         && o.age < 1800
                         && (o.x - fx).abs() + (o.y - fy).abs() < 3.5
+                        && o.lineage_id == *lid
                 });
                 let listener = spatial_buf
                     .iter()
@@ -522,13 +522,13 @@ pub(super) fn weather_and_sickness(
     }
     if o.infection > 0.01 {
         let d = &o.discoveries;
-        let med_mult = if d.contains("antibiotics") {
+        let med_mult = if d.has(Hot::Antibiotics) {
             0.970
-        } else if d.contains("alchemy") {
+        } else if d.has(Hot::Alchemy) {
             0.982
-        } else if d.contains("medicine") || d.contains("medicine_lore") {
+        } else if d.has(Hot::Medicine) || d.has(Hot::MedicineLore) {
             0.988
-        } else if d.contains("poultice") || d.contains("herbalism") {
+        } else if d.has(Hot::Poultice) || d.has(Hot::Herbalism) {
             0.992
         } else {
             0.997

@@ -80,12 +80,11 @@ impl Simulation {
         }
 
         let season = self.season();
-        if scarcity_driven_migration_season(season) {
+        if scarcity_driven_migration_season(season) && self.organisms[idx].food_memory.len() < 8 {
             let (ox2, oy2) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             let food_near = (-8i32..=8)
                 .any(|ddx| (-8i32..=8).any(|ddy| self.grid.get(ox2 + ddx, oy2 + ddy) == Tile::Food));
             if !food_near
-                && self.organisms[idx].food_memory.len() < 8
                 && self.rng.random::<f32>() < crate::sim::simulation::town_lod::chance(0.0015, f.dt)
                 && self.organisms[idx].wander_target.is_none()
                 && self.organisms[idx].energy > 0.4
