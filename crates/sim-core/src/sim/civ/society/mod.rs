@@ -16,6 +16,7 @@ pub mod orphans;
 pub mod refugees;
 pub mod relations;
 pub mod relief;
+pub mod rulers;
 pub mod settlements;
 pub mod store_thefts;
 pub mod supply;

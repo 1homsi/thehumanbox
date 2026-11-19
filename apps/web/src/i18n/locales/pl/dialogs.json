@@ -272,6 +272,17 @@
         "peace": "pokój: {name}",
         "friendly": "przyjaźń: {name}",
         "wary": "nieufność: {name}"
+      },
+      "ruler": "rządzi {name} z rodu {house}",
+      "generation": "pokolenie {count} rodu",
+      "claim": "rości sobie prawo do tronu {name}",
+      "claimPressed": "dochodzi swoich praw do {name}",
+      "trait": {
+        "warlike": "wojowniczy",
+        "peaceful": "pokojowy",
+        "diplomat": "swat",
+        "builder": "budowniczy",
+        "pious": "pobożny"
       }
     },
     "buildings": {

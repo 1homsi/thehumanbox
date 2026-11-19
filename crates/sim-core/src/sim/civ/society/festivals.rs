@@ -7,6 +7,7 @@
 use crate::math::DetMath;
 use crate::sim::civ::culture::{Festival, FestivalKind};
 use crate::sim::civ::land::village_stores;
+use crate::sim::civ::society::relations::MemoryKind;
 use crate::sim::config::SEASON_LENGTH;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
@@ -23,6 +24,7 @@ const REACH: f32 = 30.0;
 const JOY: u32 = 50;
 const LONELINESS_RELIEF: f32 = 0.03;
 const FEAR_RELIEF: f32 = 0.02;
+const SHARED_JOY: f32 = 0.03;
 /// The Harvest Feast waits until the year's fields are in (they ripen about 300 ticks into autumn).
 pub(crate) const HARVEST_FEAST_AT: u64 = 600;
 /// Measures of grain a tribe must have in its granaries for a feast after the harvest. A thin harvest
@@ -78,6 +80,14 @@ impl Simulation {
                     continue;
                 }
                 let home = self.lineage_homes[&lineage];
+                let realm = self
+                    .nation_of(&lineage)
+                    .filter(|n| n.ruler == lineage && n.members.len() > 1)
+                    .map(|n| (n.name.clone(), n.capital, n.members.clone()));
+                let at = realm
+                    .as_ref()
+                    .and_then(|(_, capital, _)| self.towns.iter().find(|t| t.id == *capital))
+                    .map_or([home[0], home[1]], |t| t.center);
                 let id = self.next_festival_id;
                 self.next_festival_id += 1;
                 self.festivals.push(Festival {
@@ -87,8 +97,18 @@ impl Simulation {
                     kind,
                     start_tick: now,
                     duration_ticks: FESTIVAL_TICKS,
-                    center: [home[0], home[1]],
+                    center: at,
                 });
+                if let Some((realm, _, members)) = realm {
+                    self.diplomacy.stats.shared_festivals += 1;
+                    for member in members.iter().filter(|m| **m != lineage) {
+                        self.remember_both(&lineage, member, MemoryKind::Festival, SHARED_JOY);
+                    }
+                    let line = format!(
+                        "\u{1F389} {realm} held its {name} at its capital, and its tribes came together."
+                    );
+                    push_event(&mut self.events, now, "milestone", &realm, &line);
+                }
                 self.festival_last.insert(lineage.clone(), now);
                 let tribe = self
                     .lineage_names
@@ -112,9 +132,12 @@ impl Simulation {
             .collect();
         for (lineage, c) in active {
             let (cx, cy) = (c[0] as f32, c[1] as f32);
+            let shared = self.nation_of(&lineage).is_some_and(|n| n.ruler == lineage);
             for i in 0..self.organisms.len() {
                 let o = &self.organisms[i];
-                if !o.alive || o.lineage_id != lineage {
+                if !o.alive
+                    || (o.lineage_id != lineage && !(shared && self.same_side(&o.lineage_id, &lineage)))
+                {
                     continue;
                 }
                 let dist = (o.x - cx).det_hypot(o.y - cy);

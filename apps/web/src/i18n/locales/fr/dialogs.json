@@ -263,6 +263,17 @@
         "peace": "en paix avec {name}",
         "friendly": "amicale envers {name}",
         "wary": "méfiante envers {name}"
+      },
+      "ruler": "gouvernée par {name} de la maison {house}",
+      "generation": "génération {count} de la maison",
+      "claim": "revendique le trône de {name}",
+      "claimPressed": "fait valoir ses droits sur {name}",
+      "trait": {
+        "warlike": "belliqueux",
+        "peaceful": "pacifique",
+        "diplomat": "marieur",
+        "builder": "bâtisseur",
+        "pious": "pieux"
       }
     },
     "buildings": {

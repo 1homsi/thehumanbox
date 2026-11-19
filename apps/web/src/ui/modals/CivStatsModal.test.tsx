@@ -114,6 +114,8 @@ describe('CivStatsModal nations', () => {
             { with: 'n:4', name: 'Kezeria', opinion: -0.6, status: 'war' },
             { with: 'X', name: 'Xan', opinion: 0.01, status: '' },
           ],
+          sovereign: { name: 'Ada', house: 'Bero', generation: 3, since: 50, traits: ['warlike', 'builder'] },
+          claims: [{ on: 'Rize', pressed: true }],
         },
       ],
     }
@@ -128,6 +130,10 @@ describe('CivStatsModal nations', () => {
     expect(row?.textContent).toContain(t('dialogs.civ.nations.towns', { count: '2' }))
     expect(row?.textContent).toContain(t('dialogs.civ.nations.relation.war', { name: 'Kezeria' }))
     expect(row?.textContent).not.toContain('Xan')
+    expect(row?.textContent).toContain(t('dialogs.civ.nations.ruler', { name: 'Ada', house: 'Bero' }))
+    expect(row?.textContent).toContain(t('dialogs.civ.nations.generation', { count: 3 }))
+    expect(row?.textContent).toContain(t('dialogs.civ.nations.trait.warlike'))
+    expect(row?.textContent).toContain(t('dialogs.civ.nations.claimPressed', { name: 'Rize' }))
     expect((row?.querySelector('.civ-nation-swatch') as HTMLElement | null)?.style.background).not.toBe('')
   })
 

@@ -62,6 +62,7 @@ fn nation(sim: &mut Simulation, members: &[&str]) {
         colour: 1,
         founded_tick: 0,
         cohesion: 1.0,
+        sovereign: None,
     });
     sim.index_nations();
 }

@@ -19,6 +19,7 @@ import { paintEraFlourish } from './paint-era-flourish'
 import { EraWatch } from '../../../model/era-flourish'
 import { paintArtworks } from './paint-artworks'
 import { paintNationBorders } from './paint-nations'
+import { paintTownBanners } from './paint-banners'
 import {
   paintClouds,
   paintFireGlow,
@@ -433,6 +434,7 @@ export class CfOverlayRenderer {
       paintArtworks(this.roads.asContext(), f)
       // Remains of prey lie on the ground too, under the buildings and the people.
       paintCarcasses(this.roads.asContext(), f)
+      paintTownBanners(this.roads.asContext(), f)
       this.roads.end()
     }
     // Caravans travel the roads at every zoom; the trade roads and rails above show only with the lens.

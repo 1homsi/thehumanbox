@@ -178,6 +178,7 @@ fn a_far_and_bitter_member_breaks_away_in_a_civil_war() {
         colour: 3,
         founded_tick: 0,
         cohesion: 1.0,
+        sovereign: None,
     });
     sim.diplomacy.next_nation_id = 8;
     sim.index_nations();
@@ -217,6 +218,7 @@ fn nations_survive_a_save_and_are_found_again_by_their_members() {
         colour: 5,
         founded_tick: 10,
         cohesion: 0.8,
+        sovereign: None,
     });
     sim.diplomacy.next_nation_id = 4;
     sim.index_nations();

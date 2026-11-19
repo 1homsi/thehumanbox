@@ -83,6 +83,14 @@ function hasEnterableBuilding(world: WorldState, kinds: ReadonlySet<string>, lin
   return matching.length === 0 || matching.some((building) => getBuildingState(building).isOperational)
 }
 
+const TRAIT_KEY: Record<'warlike' | 'peaceful' | 'diplomat' | 'builder' | 'pious', MessageKey> = {
+  warlike: 'dialogs.civ.nations.trait.warlike',
+  peaceful: 'dialogs.civ.nations.trait.peaceful',
+  diplomat: 'dialogs.civ.nations.trait.diplomat',
+  builder: 'dialogs.civ.nations.trait.builder',
+  pious: 'dialogs.civ.nations.trait.pious',
+}
+
 const RELATION_KEY: Record<RelationTone, MessageKey> = {
   war: 'dialogs.civ.nations.relation.war',
   allied: 'dialogs.civ.nations.relation.allied',
@@ -801,6 +809,20 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                     {t('dialogs.civ.nations.capital', { name: capital })} ·{' '}
                     {nation.members.map(lineageById).join(', ')}
                   </span>
+                  {nation.sovereign && (
+                    <span className="civ-row-sub">
+                      {t('dialogs.civ.nations.ruler', {
+                        name: nation.sovereign.name,
+                        house: nation.sovereign.house,
+                      })}
+                      {nation.sovereign.generation > 1
+                        ? ` · ${t('dialogs.civ.nations.generation', { count: nation.sovereign.generation })}`
+                        : ''}
+                      {nation.sovereign.traits.length > 0
+                        ? ` · ${nation.sovereign.traits.map((trait) => t(TRAIT_KEY[trait])).join(', ')}`
+                        : ''}
+                    </span>
+                  )}
                   <span className="civ-row-tag">
                     {t('dialogs.civ.nations.towns', { count: formatNumber(nation.towns.length) })}
                   </span>
@@ -809,6 +831,16 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                       percent: formatNumber(Math.round(nation.cohesion * 100)),
                     })}
                   </span>
+                  {(nation.claims ?? []).map((claim) => (
+                    <span
+                      key={`claim-${claim.on}`}
+                      className={`civ-row-tag civ-nation-tie civ-nation-tie--${claim.pressed ? 'war' : 'friendly'}`}
+                    >
+                      {t(claim.pressed ? 'dialogs.civ.nations.claimPressed' : 'dialogs.civ.nations.claim', {
+                        name: claim.on,
+                      })}
+                    </span>
+                  ))}
                   {ties.map(({ relation, tone }) => (
                     <span
                       key={relation.with}

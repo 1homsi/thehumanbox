@@ -857,6 +857,7 @@ fn full_payload_carries_each_nation_with_its_towns_and_relations() {
         colour: 4,
         founded_tick: 7,
         cohesion: 0.9,
+        sovereign: None,
     });
     sim.index_nations();
     sim.diplomacy
@@ -878,6 +879,8 @@ fn full_payload_carries_each_nation_with_its_towns_and_relations() {
         "founded_tick",
         "cohesion",
         "relations",
+        "sovereign",
+        "claims",
     ]
     .into_iter()
     .collect();

@@ -761,6 +761,30 @@ pub(super) fn print_progress(sim: &Simulation) {
             grades[1],
             grades[2]
         );
+        let mut traits: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
+        for s in d.nations.iter().filter_map(|n| n.sovereign.as_ref()) {
+            for t in &s.traits {
+                *traits.entry(t.name()).or_insert(0) += 1;
+            }
+        }
+        println!(
+            "Rulers at end: nations with a ruler {}, traits [{}], longest house {} generations, successions {}, new houses {}, royal marriages {}, claims {} (pressed {}), succession wars {}, faith converts {}, shared festivals {}",
+            d.nations.iter().filter(|n| n.sovereign.is_some()).count(),
+            traits.iter().map(|(k, v)| format!("{k}={v}")).collect::<Vec<_>>().join(" "),
+            d.nations
+                .iter()
+                .filter_map(|n| n.sovereign.as_ref().map(|s| s.generation))
+                .max()
+                .unwrap_or(0),
+            d.stats.successions,
+            d.stats.new_dynasties,
+            d.stats.royal_marriages,
+            d.claims.len(),
+            d.stats.claims_pressed,
+            d.stats.succession_wars,
+            d.stats.faith_converts,
+            d.stats.shared_festivals
+        );
         let land = &sim.land.stats;
         let mut stages = [0usize; 4];
         for ruin in &sim.land.ruins {

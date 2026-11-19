@@ -49,6 +49,8 @@ pub struct Nation {
     pub founded_tick: u64,
     #[serde(default = "whole")]
     pub cohesion: f32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sovereign: Option<crate::sim::civ::society::rulers::Sovereign>,
 }
 
 #[derive(Default)]
@@ -222,6 +224,7 @@ impl Simulation {
             colour: self.free_colour(id),
             founded_tick: self.tick_count,
             cohesion: 1.0,
+            sovereign: None,
         };
         self.diplomacy.nations.push(nation);
         self.diplomacy.stats.nations_formed += 1;
@@ -543,8 +546,13 @@ impl Simulation {
             if chebyshev(cx, cy) > UNION_REACH {
                 continue;
             }
-            if self.actor_opinion(census, &xs, &ys) < UNION_WARMTH
-                || self.actor_opinion(census, &ys, &xs) < UNION_WARMTH
+            let diplomat = crate::sim::civ::society::rulers::RulerTrait::Diplomat;
+            let warmth = if self.ruled_by(&a, diplomat) || self.ruled_by(&b, diplomat) {
+                UNION_WARMTH - crate::sim::civ::society::rulers::DIPLOMAT_WARMTH
+            } else {
+                UNION_WARMTH
+            };
+            if self.actor_opinion(census, &xs, &ys) < warmth || self.actor_opinion(census, &ys, &xs) < warmth
             {
                 continue;
             }
@@ -632,7 +640,16 @@ impl Simulation {
         let weary = self.war_weariness(member) * 0.5;
         let grudge = (-self.opinion_in(census, member, &nation.ruler)).max(0.0) * 0.8;
         let stretch = nation.members.len().saturating_sub(COMFORTABLE_SIZE) as f32 * 0.01;
-        1.0 - far - unrest - weary - grudge - stretch
+        let calm = if nation
+            .sovereign
+            .as_ref()
+            .is_some_and(|s| s.has(crate::sim::civ::society::rulers::RulerTrait::Peaceful))
+        {
+            crate::sim::civ::society::rulers::PEACEFUL_COHESION
+        } else {
+            0.0
+        };
+        1.0 - far - unrest - weary - grudge - stretch + calm
     }
 
     fn split_nations(&mut self, census: &Census) {
@@ -820,6 +837,26 @@ impl Simulation {
                     "founded_tick": n.founded_tick,
                     "cohesion": (n.cohesion * 100.0).round() / 100.0,
                     "relations": relations,
+                    "sovereign": n.sovereign.as_ref().map(|s| serde_json::json!({
+                        "name": s.name,
+                        "house": s.house,
+                        "generation": s.generation,
+                        "since": s.since,
+                        "traits": s.traits.iter().map(|t| t.name()).collect::<Vec<_>>(),
+                    })),
+                    "claims": self
+                        .diplomacy
+                        .claims
+                        .iter()
+                        .filter(|c| c.holder == n.id)
+                        .filter_map(|c| {
+                            self.diplomacy
+                                .nations
+                                .iter()
+                                .find(|o| o.id == c.on)
+                                .map(|o| serde_json::json!({ "on": o.name, "pressed": c.pressed }))
+                        })
+                        .collect::<Vec<_>>(),
                 })
             })
             .collect();

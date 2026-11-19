@@ -260,6 +260,17 @@
         "peace": "barış: {name}",
         "friendly": "dostça: {name}",
         "wary": "tedirgin: {name}"
+      },
+      "ruler": "{house} hanedanından {name} yönetiyor",
+      "generation": "hanedanın {count}. kuşağı",
+      "claim": "{name} tahtında hak iddia ediyor",
+      "claimPressed": "{name} üzerindeki hakkını kovalıyor",
+      "trait": {
+        "warlike": "savaşçı",
+        "peaceful": "barışsever",
+        "diplomat": "çöpçatan",
+        "builder": "inşaatçı",
+        "pious": "dindar"
       }
     },
     "buildings": {

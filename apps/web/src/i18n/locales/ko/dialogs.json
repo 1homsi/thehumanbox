@@ -260,6 +260,17 @@
         "peace": "{name}와(과) 평화",
         "friendly": "{name}에 우호적",
         "wary": "{name}을(를) 경계"
+      },
+      "ruler": "{house} 가문의 {name}이(가) 다스림",
+      "generation": "가문의 {count}대",
+      "claim": "{name}의 왕위를 주장함",
+      "claimPressed": "{name}에 대한 계승권을 내세움",
+      "trait": {
+        "warlike": "호전적",
+        "peaceful": "평화를 사랑함",
+        "diplomat": "중매쟁이",
+        "builder": "건설자",
+        "pious": "독실함"
       }
     },
     "buildings": {
