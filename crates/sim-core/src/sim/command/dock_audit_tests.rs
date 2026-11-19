@@ -43,6 +43,7 @@ struct Stage {
     other: (f32, f32),
     /// The damaged building nearest the crowd.
     building: (f32, f32),
+    pupil: (f32, f32),
 }
 
 fn alive_near(sim: &Simulation, x: f32, y: f32, r: f32) -> usize {
@@ -218,6 +219,21 @@ fn staged_world() -> (Simulation, Stage) {
                 .total_cmp(&(b.0 - crowd.0).hypot(b.1 - crowd.1))
         })
         .unwrap_or(crowd);
+    let pupil = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive)
+        .map(|o| (o.x, o.y))
+        .filter(|&(x, y)| {
+            sim.nearest_in_reach(x, y, 4.0)
+                .is_some_and(|i| sim.next_missing_discovery(&sim.organisms[i].lineage_id).is_some())
+        })
+        .min_by(|a, b| {
+            (a.0 - crowd.0)
+                .hypot(a.1 - crowd.1)
+                .total_cmp(&(b.0 - crowd.0).hypot(b.1 - crowd.1))
+        })
+        .unwrap_or(crowd);
     let stage = Stage {
         crowd,
         beast,
@@ -230,6 +246,7 @@ fn staged_world() -> (Simulation, Stage) {
         woman: at(w),
         other: at(before),
         building,
+        pupil,
     };
     (sim, stage)
 }
@@ -275,6 +292,7 @@ fn targets(tool: &str, cmd: &Value, s: &Stage) -> Vec<Value> {
         "repair" => s.building,
         "tame" => s.beast,
         "heal_one" => s.hurt,
+        "teach_tribe" => s.pupil,
         _ => s.crowd,
     };
     // Open ground around the crowd, for tools that need a free footprint or a particular ground.

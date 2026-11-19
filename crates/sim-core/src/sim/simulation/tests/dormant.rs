@@ -128,3 +128,39 @@ fn a_tribe_that_knows_fire_works_out_medicine_while_dormant_and_spreads_it() {
         knowers(&sim)
     );
 }
+
+#[test]
+fn an_unsheltered_person_in_a_storm_wakes_on_their_storm_slot_only() {
+    let mut sim = Simulation::new(5);
+    sim.tick_n(50);
+    sim.animals.clear();
+    sim.battles.clear();
+    sim.focus_points.clear();
+    sim.weather.kind = 2;
+    let idx = sim.organisms.iter().position(|o| o.alive).expect("someone alive");
+    {
+        let o = &mut sim.organisms[idx];
+        o.routine = None;
+        o.energy = 0.9;
+        o.hydration = 0.9;
+        o.health = 1.0;
+        o.infection = 0.0;
+        o.water_ticks = 0;
+        o.mounted_vehicle = None;
+        o.last_action = Some(17);
+    }
+    let animal_spatial = SpatialIndex::build_animals(&sim.animals, 10);
+    let towns = vec![None; sim.organisms.len()];
+    let start = sim.tick_count;
+    let woken: Vec<u64> = (start..start + 16)
+        .filter(|&tick| {
+            sim.tick_count = tick;
+            sim.lod_awake(&animal_spatial, &mut Vec::new(), &towns).0[idx]
+        })
+        .collect();
+    assert_eq!(woken.len(), 4, "{woken:?}");
+    assert!(
+        woken.iter().all(|&t| (t + idx as u64).is_multiple_of(4)),
+        "{woken:?}"
+    );
+}
