@@ -27,11 +27,14 @@ impl Simulation {
             .iter()
             .flat_map(|v| v.occupants.iter().map(String::as_str))
             .collect();
-        let held: Vec<bool> = self
-            .organisms
-            .iter()
-            .map(|o| aboard.contains(o.id.as_str()))
-            .collect();
+        let held: Vec<bool> = if aboard.is_empty() {
+            vec![false; self.organisms.len()]
+        } else {
+            self.organisms
+                .iter()
+                .map(|o| aboard.contains(o.id.as_str()))
+                .collect()
+        };
         drop(aboard);
         for i in 0..self.organisms.len() {
             if !self.organisms[i].alive {
@@ -39,6 +42,10 @@ impl Simulation {
             }
             let (xi, yi) = (self.organisms[i].x, self.organisms[i].y);
             index.query_into(xi as i32, yi as i32, 1, &mut near);
+            near.retain(|&j| j > i);
+            if near.is_empty() {
+                continue;
+            }
             near.sort_unstable();
             for &j in &near {
                 if j <= i || !self.organisms[j].alive {

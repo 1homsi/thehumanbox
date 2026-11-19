@@ -121,6 +121,50 @@ impl SpatialIndex {
         }
     }
 
+    pub fn subset(&self, keep: impl Fn(usize) -> bool) -> Self {
+        let buckets = match &self.buckets {
+            Buckets::Dense {
+                min_x,
+                min_y,
+                width,
+                height,
+                starts,
+                items,
+            } => {
+                let mut kept_starts = Vec::with_capacity(starts.len());
+                let mut kept = Vec::new();
+                kept_starts.push(0u32);
+                for bucket in starts.windows(2) {
+                    kept.extend(
+                        items[bucket[0] as usize..bucket[1] as usize]
+                            .iter()
+                            .copied()
+                            .filter(|&i| keep(i)),
+                    );
+                    kept_starts.push(kept.len() as u32);
+                }
+                Buckets::Dense {
+                    min_x: *min_x,
+                    min_y: *min_y,
+                    width: *width,
+                    height: *height,
+                    starts: kept_starts,
+                    items: kept,
+                }
+            }
+            Buckets::Sparse(buckets) => Buckets::Sparse(
+                buckets
+                    .iter()
+                    .map(|(&cell, bucket)| (cell, bucket.iter().copied().filter(|&i| keep(i)).collect()))
+                    .collect(),
+            ),
+        };
+        Self {
+            buckets,
+            bucket_size: self.bucket_size,
+        }
+    }
+
     /// Population-ordered candidates including one tick of movement padding.
     /// Callers retain their exact current-position and state predicates.
     pub fn ordered_nearby<'a>(
@@ -234,6 +278,34 @@ mod tests {
         org.y = y;
         org
     }
+    #[test]
+    fn a_subset_answers_every_query_with_the_kept_members_in_the_same_order() {
+        let people: Vec<_> = (0..300)
+            .map(|i| person(i, (i * 7 % 120) as f32, (i * 13 % 90) as f32))
+            .collect();
+        let keep = |i: usize| i.is_multiple_of(3) || i % 7 == 1;
+        for bucket in [4, 10] {
+            let full = SpatialIndex::build(&people, bucket);
+            let part = full.subset(keep);
+            for &(x, y, r) in &[(0, 0, 5), (60, 45, 8), (119, 89, 12), (30, 70, 1), (-20, 200, 9)] {
+                let expected: Vec<usize> = full.query(x, y, r).into_iter().filter(|&i| keep(i)).collect();
+                assert_eq!(
+                    part.query(x, y, r),
+                    expected,
+                    "bucket {bucket} at ({x}, {y}) r {r}"
+                );
+            }
+        }
+        let mut far = people;
+        far[5].x = 400_000.0;
+        let sparse = SpatialIndex::build(&far, 1);
+        let part = sparse.subset(keep);
+        for &(x, y, r) in &[(0, 0, 5), (60, 45, 8), (400_000, 0, 3)] {
+            let expected: Vec<usize> = sparse.query(x, y, r).into_iter().filter(|&i| keep(i)).collect();
+            assert_eq!(part.query(x, y, r), expected);
+        }
+    }
+
     #[test]
     fn first_contact_matches_full_scan_across_bucket_boundaries_and_movement() {
         let mut people: Vec<_> = (0..100)

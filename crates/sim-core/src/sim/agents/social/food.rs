@@ -1,5 +1,7 @@
 use super::*;
 
+pub const FOOD_RECIPIENT_ENERGY: f32 = 0.30;
+
 /// Orphaned minors first, then the giver's kin, then the hungriest.
 pub(super) fn food_recipient_order(
     a: &Organism,
@@ -48,7 +50,7 @@ pub fn pick_food_recipient(
         let o = &organisms[i];
         i != org_idx
             && o.alive
-            && o.energy < 0.30
+            && o.energy < FOOD_RECIPIENT_ENERGY
             && (o.lineage_id == me.lineage_id
                 || me.friends.contains_key(&o.id)
                 || me.org_trust.get(&o.id).is_some_and(|&v| v >= 0.55))
