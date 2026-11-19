@@ -6,6 +6,7 @@ import { buildingSprites } from './buildings'
 import { peopleSprites } from './people'
 import { timeSprites } from './time'
 import { catastropheSprites } from './catastrophes'
+import { natureSprites } from './nature'
 
 export { palette } from './palette'
 
@@ -18,4 +19,5 @@ export const sprites = {
   ...peopleSprites,
   ...timeSprites,
   ...catastropheSprites,
+  ...natureSprites,
 }

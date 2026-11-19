@@ -191,6 +191,29 @@ pub enum Command {
         y: f32,
         era: String,
     },
+    ShapeLand {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+        by: f32,
+    },
+    BlessSoil {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    Spring {
+        x: i32,
+        y: i32,
+    },
+    BountifulHunt {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
     /// A rare gift for the living person nearest the point: a talent that lifts one of their traits for good.
     Talent {
         x: f32,
@@ -644,6 +667,8 @@ fn tile_from_name(name: &str) -> Option<Tile> {
         "lava" => Tile::Lava,
         "snow" => Tile::Snow,
         "ash" => Tile::Ash,
+        "ice" => Tile::Ice,
+        "mineral" => Tile::Mineral,
         "fire" => Tile::Fire,
         "campfire" => Tile::Campfire,
         "hut" => Tile::Hut,
@@ -727,6 +752,8 @@ fn prayer_answers(cmd: &Command) -> Option<PrayerAnswer> {
         }
         Command::Paint { x, y, tile, .. } if tile == "food" => (&[Hunger], at(*x as f32, *y as f32)),
         Command::Paint { x, y, tile, .. } if tile == "water" => (&[Thirst], at(*x as f32, *y as f32)),
+        Command::Spring { x, y } => (&[Thirst], at(*x as f32, *y as f32)),
+        Command::BlessSoil { x, y, .. } | Command::BountifulHunt { x, y, .. } => (&[Hunger], at(*x, *y)),
         Command::Paint { x, y, tile, .. } if tile == "hut" || tile == "campfire" => {
             (&[Shelter], at(*x as f32, *y as f32))
         }
@@ -794,6 +821,9 @@ mod roads_tests;
 mod speak_like_tests;
 mod teach_nearby;
 mod teleport;
+mod terraform;
+#[cfg(test)]
+mod terraform_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]

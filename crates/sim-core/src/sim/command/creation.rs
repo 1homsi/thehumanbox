@@ -179,13 +179,18 @@ impl Simulation {
         if let Some(cause) = wrecks {
             crate::sim::civ::building_damage::strike_buildings(self, x, y, r as f32 + 0.5, 1.0, 1.0, cause);
         }
+        let mut painted = 0;
         for dx in -r..=r {
             for dy in -r..=r {
                 if dx * dx + dy * dy > r * r {
                     continue;
                 }
                 let (nx, ny) = (x + dx, y + dy);
+                if t == Tile::Ice && self.grid.get(nx, ny) != Tile::Water {
+                    continue;
+                }
                 if WorldGrid::in_bounds(nx, ny) && !protected(self.grid.get(nx, ny)) {
+                    painted += 1;
                     self.grid.set(nx, ny, t);
                     if matches!(t, Tile::Fire | Tile::Campfire) {
                         *self.grid.fire_intensity_mut(nx, ny) = 1.0;
@@ -199,7 +204,7 @@ impl Simulation {
                 }
             }
         }
-        true
+        t != Tile::Ice || painted > 0
     }
 
     /// Release animals of one kind on ground they can use. `count` is how many
@@ -324,6 +329,7 @@ impl Simulation {
             "savanna" => Biome::Savanna,
             "taiga" => Biome::Taiga,
             "badlands" => Biome::Badlands,
+            "volcanic" => Biome::Volcanic,
             _ => return false,
         };
         let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
@@ -356,6 +362,7 @@ impl Simulation {
                     Biome::Desert | Biome::Badlands => Tile::Sand,
                     Biome::Tundra if roll < 0.4 => Tile::Snow,
                     Biome::Taiga if roll < 0.15 => Tile::Snow,
+                    Biome::Volcanic if roll < 0.3 => Tile::Ash,
                     Biome::Jungle | Biome::Forest if roll < kind.initial_food_chance() => Tile::Food,
                     _ => Tile::Grass,
                 };

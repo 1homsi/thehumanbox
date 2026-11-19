@@ -52,6 +52,10 @@ registry! {
     "bless_river" => BlessRiver { x, y, radius } => cmd_bless_river(x, y, radius);
     "bless_forest" => BlessForest { x, y, radius } => cmd_bless_forest(x, y, radius);
     "talent" => Talent { x, y, radius } => cmd_talent(x, y, radius);
+    "shape_land" => ShapeLand { x, y, radius, by } => cmd_shape_land(x, y, radius, by);
+    "bless_soil" => BlessSoil { x, y, radius } => cmd_bless_soil(x, y, radius);
+    "spring" => Spring { x, y } => cmd_spring(x, y);
+    "bountiful_hunt" => BountifulHunt { x, y, radius } => cmd_bountiful_hunt(x, y, radius);
     "era_tribe" => EraTribe { x, y, era } => cmd_era_tribe(x, y, era);
     "tribe_gift" => TribeGift { x, y, radius, what } => cmd_tribe_gift(x, y, radius, what);
     "migrate_tribe" => MigrateTribe { x, y, radius } => cmd_migrate_tribe(x, y, radius);
