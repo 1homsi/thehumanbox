@@ -627,6 +627,10 @@ pub enum Command {
     Composite {
         steps: Vec<Command>,
     },
+    SetWorldMods {
+        #[serde(default)]
+        mods: Vec<world_mods::WorldMod>,
+    },
 }
 
 /// Natural breeding stops near 1000 animals (see `tick_animals`), so the
@@ -838,6 +842,7 @@ mod tsunami_tests;
 mod weather_tests;
 #[cfg(test)]
 mod wildfire_tests;
+pub mod world_mods;
 
 impl Simulation {
     pub fn apply_command_json(&mut self, json: &str) -> bool {

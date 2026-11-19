@@ -14,6 +14,7 @@ const SENT_OUTSIDE_THE_DOCK: &[(&str, &str)] = &[
     ("follow", "the follow button on a person's card"),
     ("guide", "the tribe card"),
     ("composite", "mod actions"),
+    ("set_world_mods", "the mods a world carries in its save"),
 ];
 
 fn dock_commands() -> Vec<Value> {

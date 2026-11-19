@@ -8,6 +8,7 @@ import { useWorldReplaced } from '../state/world-replaced'
 import { clearSavedCamera } from '../game/model/saved-camera'
 import { binaryFramesReady, fetchSnapshotWithProgress, loadBinaryFrameDecoder, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
+import { forgetWorldMods, receiveWorldMods } from './actions/world-mods'
 import { signalSimFrame } from './frame-signal'
 import { onFreshFrameRequest } from './fresh-frame'
 import { t } from '../i18n'
@@ -299,6 +300,7 @@ export function useSimulation(source: WorldSource = 'native'): {
             prevWorld: mergeBaseResetRef.current ? null : currentWorldRef.current,
           }
           const { next, grid } = mergeFrame(parsed, caches)
+          if (parsed.world_mods !== undefined) receiveWorldMods(parsed.world_mods)
           mergeBaseResetRef.current = false
           organismCache.current = caches.organisms
           animalCache.current = caches.animals
@@ -423,6 +425,7 @@ export function useSimulation(source: WorldSource = 'native'): {
             })
           }
         } else if (m.type === 'world_replaced') {
+          forgetWorldMods()
           queuedMsgs.current = []
           organismCache.current = new Map()
           animalCache.current = new Map()

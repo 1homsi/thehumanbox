@@ -507,6 +507,10 @@ impl Simulation {
         }
         if include_cold {
             if let Some(obj) = payload.as_object_mut() {
+                obj.insert(
+                    "world_mods".to_string(),
+                    serde_json::to_value(&self.world_mods.mods).unwrap_or_default(),
+                );
                 obj.insert("events".to_string(), serde_json::to_value(&self.events).unwrap());
                 obj.insert(
                     "history".to_string(),

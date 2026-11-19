@@ -57,6 +57,7 @@ registry! {
     "spring" => Spring { x, y } => cmd_spring(x, y);
     "bountiful_hunt" => BountifulHunt { x, y, radius } => cmd_bountiful_hunt(x, y, radius);
     "era_tribe" => EraTribe { x, y, era } => cmd_era_tribe(x, y, era);
+    "set_world_mods" => SetWorldMods { mods } => cmd_set_world_mods(mods);
     "tribe_gift" => TribeGift { x, y, radius, what } => cmd_tribe_gift(x, y, radius, what);
     "migrate_tribe" => MigrateTribe { x, y, radius } => cmd_migrate_tribe(x, y, radius);
     "trade_gift" => TradeGift { ax, ay, bx, by } => cmd_trade_gift(ax, ay, bx, by);

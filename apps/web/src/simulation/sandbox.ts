@@ -109,6 +109,7 @@ export type SandboxCommand =
   | { cmd: 'place_building'; x: number; y: number; kind: string }
   | { cmd: 'place_boat'; x: number; y: number }
   | { cmd: 'composite'; steps: SandboxCommand[] }
+  | { cmd: 'set_world_mods'; mods: { raw: string; enabled: boolean }[] }
   | {
       cmd: 'guide'
       lineage: string
