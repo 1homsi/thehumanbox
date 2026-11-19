@@ -71,6 +71,29 @@ interface Rule {
 const RULES: readonly Rule[] = [
   { kind: 'war', scope: 'world', test: /^The (.+?) conquered \d+ tiles? of /, actor: (m) => m[1] },
   { kind: 'war', scope: 'world', test: /^The (.+?) declared war on the (.+?) /, actor: (m) => m[1] },
+  {
+    kind: 'war',
+    scope: 'world',
+    test: /^Civil war: the (.+?) rose against (.+?) and broke away/,
+    actor: (m) => m[1],
+  },
+  { kind: 'rule', scope: 'world', test: /^The (.+?) founded the nation of (.+?)\.?$/, actor: (m) => m[1] },
+  { kind: 'rule', scope: 'world', test: /^The (.+?) and the (.+?) united as (.+?)\.?$/, actor: (m) => m[1] },
+  { kind: 'rule', scope: 'world', test: /^The nation of (.+?) joined (.+?)\.?$/, actor: (m) => m[2] },
+  {
+    kind: 'rule',
+    scope: 'world',
+    test: /^The (.+?) sought the protection of the (.+?) and joined /,
+    actor: (m) => m[2],
+  },
+  {
+    kind: 'rule',
+    scope: 'world',
+    test: /^The (.+?) now belong to (.+?), the realm of the /,
+    actor: (m) => m[1],
+  },
+  { kind: 'peace', scope: 'world', test: /^The (.+?) left (.+?) in peace\.?$/, actor: (m) => m[1] },
+  { kind: 'fall', scope: 'world', test: /^The nation of (.+?) is no more/ },
   { kind: 'peace', scope: 'world', test: /^The (.+?) went to war with the (.+?) .*?; /, actor: (m) => m[1] },
   { kind: 'war', scope: 'world', test: /^The (.+?) marched to the aid of the /, actor: (m) => m[1] },
   {

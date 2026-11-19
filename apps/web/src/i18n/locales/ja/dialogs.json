@@ -246,6 +246,22 @@
       "pair": "{a} と {b}",
       "treaty": "条約"
     },
+    "nations": {
+      "heading": "国家",
+      "empty": "まだ国家はありません",
+      "capital": "首都 {name}",
+      "towns": "町 {count}",
+      "cohesion": "結束 {percent}%",
+      "relation": {
+        "war": "{name}と交戦中",
+        "allied": "{name}と同盟",
+        "vassal": "{name}が貢納",
+        "overlord": "{name}に貢納",
+        "peace": "{name}と和平",
+        "friendly": "{name}と友好的",
+        "wary": "{name}を警戒"
+      }
+    },
     "buildings": {
       "heading": "建物",
       "empty": "まだ建物はありません"

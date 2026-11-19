@@ -312,6 +312,10 @@ impl Simulation {
 
     pub(crate) fn same_side(&self, a: &str, b: &str) -> bool {
         a == b
+            || matches!(
+                (self.diplomacy.nation_of.get(a), self.diplomacy.nation_of.get(b)),
+                (Some(x), Some(y)) if x == y
+            )
     }
 
     fn allied_with(&self, a: &str, b: &str) -> bool {
@@ -772,6 +776,9 @@ impl Simulation {
         *self.diplomacy.stats.outcomes.entry(outcome.name()).or_insert(0) += 1;
         self.diplomacy.stats.towns_ceded += towns;
         self.prune_wars();
+        if outcome == WarOutcome::Absorption && !absorbed {
+            self.annex(&w, &l);
+        }
     }
 
     fn prune_wars(&mut self) {

@@ -10,6 +10,7 @@ pub mod government;
 pub mod graves;
 pub mod hard_winters;
 pub mod inequality;
+pub mod nations;
 pub mod orphans;
 pub mod refugees;
 pub mod relations;

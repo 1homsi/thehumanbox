@@ -291,12 +291,15 @@ impl Simulation {
         }
         let quarrels = std::mem::take(&mut self.history.tribe_quarrels);
         for (wronged, wrongdoer) in quarrels {
-            if living.contains(&wronged) && living.contains(&wrongdoer) {
+            if living.contains(&wronged)
+                && living.contains(&wrongdoer)
+                && !self.same_side(&wronged, &wrongdoer)
+            {
                 self.remember(&wronged, &wrongdoer, MemoryKind::Border, -0.02);
             }
         }
         for (a, b) in self.border_contacts() {
-            if living.contains(&a) && living.contains(&b) {
+            if living.contains(&a) && living.contains(&b) && !self.same_side(&a, &b) {
                 self.remember(&a, &b, MemoryKind::Border, -0.02);
             }
         }

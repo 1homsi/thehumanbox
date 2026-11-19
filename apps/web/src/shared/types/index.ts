@@ -315,6 +315,27 @@ export interface TownInfo {
   planned: boolean
 }
 
+export interface NationRelationInfo {
+  with: string
+  name: string
+  opinion: number
+  status: '' | 'war' | 'allied' | 'vassal' | 'overlord' | 'peace'
+}
+
+export interface NationInfo {
+  id: number
+  name: string
+  colour: number
+  capital: number
+  capital_at: [number, number] | null
+  ruler: string
+  members: string[]
+  towns: number[]
+  founded_tick: number
+  cohesion: number
+  relations: NationRelationInfo[]
+}
+
 interface CarcassInfo {
   x: number
   y: number
@@ -799,6 +820,7 @@ export interface WorldState {
   tribes_in_peril?: TribePeril[]
   settlements?: SettlementInfo[]
   towns?: TownInfo[]
+  nations?: NationInfo[]
   net_edges?: NetEdgeInfo[]
   vehicles?: VehicleInfo[]
   /** Prey a predator killed, where birds gather: how long ago, and how much is picked over (0 to 40). */

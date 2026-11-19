@@ -171,3 +171,31 @@ describe('settlement lettering fades in and out', () => {
     expect(held.get('rok')).toBe(placed[0].slot)
   })
 })
+
+describe('nation names', () => {
+  it('names each nation once, above its capital, before any town name', () => {
+    const nations = [
+      {
+        id: 7,
+        name: 'Ovarra',
+        colour: 1,
+        capital: 1,
+        capital_at: [40, 30],
+        ruler: 'a',
+        members: ['a', 'b'],
+        towns: [1, 2],
+        founded_tick: 0,
+        cohesion: 1,
+        relations: [],
+      },
+      { ...{ id: 8, name: 'Far', capital_at: [400, 30], members: ['z'] } },
+    ] as unknown as WorldState['nations']
+    const labels = collectSettlementLabels(world({ nations }), bounds, 1)
+    const named = labels.filter((l) => l.key?.startsWith('nation:'))
+    expect(named.map((l) => l.title)).toEqual(['OVARRA'])
+    const rok = labels.find((l) => l.title === 'ROK')!
+    expect(named[0]!.x).toBe(rok.x)
+    expect(named[0]!.y).toBeLessThan(rok.y)
+    expect(named[0]!.priority).toBeGreaterThan(rok.priority)
+  })
+})

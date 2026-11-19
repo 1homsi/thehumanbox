@@ -246,6 +246,25 @@
       "pair": "{a} et {b}",
       "treaty": "traité"
     },
+    "nations": {
+      "heading": "Nations",
+      "empty": "Aucune nation pour l'instant",
+      "capital": "capitale {name}",
+      "towns": {
+        "one": "{count} ville",
+        "other": "{count} villes"
+      },
+      "cohesion": "cohésion {percent} %",
+      "relation": {
+        "war": "en guerre contre {name}",
+        "allied": "alliée de {name}",
+        "vassal": "{name} paie tribut",
+        "overlord": "paie tribut à {name}",
+        "peace": "en paix avec {name}",
+        "friendly": "amicale envers {name}",
+        "wary": "méfiante envers {name}"
+      }
+    },
     "buildings": {
       "heading": "Bâtiments",
       "empty": "Rien de construit pour l'instant"

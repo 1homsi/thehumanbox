@@ -252,6 +252,25 @@
       "pair": "{a} & {b}",
       "treaty": "treaty"
     },
+    "nations": {
+      "heading": "Nations",
+      "empty": "No nations yet",
+      "capital": "capital {name}",
+      "towns": {
+        "one": "{count} town",
+        "other": "{count} towns"
+      },
+      "cohesion": "cohesion {percent}%",
+      "relation": {
+        "war": "at war with {name}",
+        "allied": "allied with {name}",
+        "vassal": "{name} pays tribute",
+        "overlord": "pays tribute to {name}",
+        "peace": "at peace with {name}",
+        "friendly": "friendly with {name}",
+        "wary": "wary of {name}"
+      }
+    },
     "buildings": {
       "heading": "Buildings",
       "empty": "Nothing built yet"

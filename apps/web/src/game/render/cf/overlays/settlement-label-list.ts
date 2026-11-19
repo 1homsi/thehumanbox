@@ -17,6 +17,8 @@ import {
  * moving to xipjs in another change). Only the authoritative `settlements` list is read; the
  * legacy cluster fallback for old snapshots is left out.
  */
+const NATION_LABEL_LIFT = 4
+
 export function collectSettlementLabels(
   world: WorldState,
   bounds: { c0: number; c1: number; r0: number; r1: number },
@@ -58,6 +60,24 @@ export function collectSettlementLabels(
       alpha: peril ? 1 : fade,
       priority: (peril ? 1_000_000 : 0) + rank * 10000 + s.population,
       alert: !!peril,
+    })
+  }
+  for (const nation of world.nations ?? []) {
+    if (!nation.capital_at) continue
+    const [cx, cy] = nation.capital_at
+    if (cx - ox < bounds.c0 - MARGIN || cx - ox > bounds.c1 + MARGIN) continue
+    if (cy - oy < bounds.r0 - MARGIN || cy - oy > bounds.r1 + MARGIN) continue
+    out.push({
+      key: `nation:${nation.id}`,
+      x: (cx - ox) * TILE,
+      y: (cy - oy - NATION_LABEL_LIFT) * TILE,
+      title: nation.name.toUpperCase(),
+      sub: '',
+      major: true,
+      rank: 5,
+      alpha: 1,
+      priority: 2_000_000 + nation.members.length,
+      alert: false,
     })
   }
   return out
