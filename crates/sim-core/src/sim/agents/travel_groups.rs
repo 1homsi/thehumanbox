@@ -37,7 +37,7 @@ impl Simulation {
             }
         }
         let here = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
-        let lineage = self.organisms[idx].lineage_id.clone();
+        let lineage = self.organisms[idx].lineage_id;
         let leader = spatial
             .query(here.0, here.1, FOLLOW_RANGE)
             .into_iter()

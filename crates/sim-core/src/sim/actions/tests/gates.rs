@@ -55,7 +55,7 @@ fn pre_stone_adult_does_not_receive_late_era_or_specialist_catalogue() {
 fn era_and_profession_unlock_modern_technology_actions() {
     let mut sim = Simulation::new(12);
     let idx = 0;
-    let lineage = sim.organisms[idx].lineage_id.clone();
+    let lineage = sim.organisms[idx].lineage_id;
     sim.organisms[idx].age = sim.organisms[idx].max_age / 2;
     sim.organisms[idx].specialty = Some("engineer".to_string());
     sim.organisms[idx].discoveries.insert("electricity".to_string());
@@ -63,7 +63,7 @@ fn era_and_profession_unlock_modern_technology_actions() {
     assert!(!actions_for(&sim, idx)
         .iter()
         .any(|action| (840..=889).contains(action)));
-    sim.lineage_eras.insert(lineage, Era::Modern);
+    sim.lineage_eras.insert(lineage.to_string().into(), Era::Modern);
     assert!(actions_for(&sim, idx)
         .iter()
         .any(|action| (840..=889).contains(action)));
@@ -73,8 +73,9 @@ fn era_and_profession_unlock_modern_technology_actions() {
 fn research_actions_require_an_operational_owned_workspace() {
     let mut sim = Simulation::new(13);
     let idx = 0;
-    let lineage = sim.organisms[idx].lineage_id.clone();
-    sim.lineage_eras.insert(lineage.clone(), Era::Information);
+    let lineage = sim.organisms[idx].lineage_id;
+    sim.lineage_eras
+        .insert(lineage.to_string().into(), Era::Information);
     sim.organisms[idx].age = sim.organisms[idx].max_age / 2;
     sim.organisms[idx].specialty = Some("programmer".to_string());
     sim.organisms[idx].literacy = 0.8;
@@ -86,7 +87,7 @@ fn research_actions_require_an_operational_owned_workspace() {
         BuildingKind::ResearchLab,
         x + 1,
         y,
-        Some(lineage),
+        Some(lineage.to_string()),
         sim.tick_count,
     );
     assert!(!actions_for(&sim, idx)
@@ -101,12 +102,12 @@ fn research_actions_require_an_operational_owned_workspace() {
         .any(|action| (5520..=5569).contains(action)));
 
     sim.buildings[0].decorative = false;
-    sim.buildings[0].owner_lineage = Some("other-lineage".to_string());
+    sim.buildings[0].owner_lineage = Some("other-lineage".to_string().into());
     assert!(!actions_for(&sim, idx)
         .iter()
         .any(|action| (5520..=5569).contains(action)));
 
-    sim.buildings[0].owner_lineage = Some(sim.organisms[idx].lineage_id.clone());
+    sim.buildings[0].owner_lineage = Some(sim.organisms[idx].lineage_id);
     assert!(actions_for(&sim, idx)
         .iter()
         .any(|action| (5520..=5569).contains(action)));
@@ -157,8 +158,8 @@ fn advanced_crafts_do_not_cross_professions_or_skip_prerequisites() {
 fn formal_astronomy_and_cartography_require_era_training_and_context() {
     let mut sim = Simulation::new(0xA570);
     let idx = 0;
-    let lineage = sim.organisms[idx].lineage_id.clone();
-    sim.lineage_eras.insert(lineage.clone(), Era::Iron);
+    let lineage = sim.organisms[idx].lineage_id;
+    sim.lineage_eras.insert(lineage.to_string().into(), Era::Iron);
     sim.organisms[idx].age = sim.organisms[idx].max_age / 2;
     sim.organisms[idx].specialty = Some("scholar".to_string());
     sim.organisms[idx].literacy = 0.4;
@@ -174,7 +175,7 @@ fn formal_astronomy_and_cartography_require_era_training_and_context() {
         BuildingKind::Observatory,
         x + 1,
         y,
-        Some(lineage),
+        Some(lineage.to_string()),
         sim.tick_count,
     );
     observatory.condition = 1.0;
@@ -204,8 +205,8 @@ fn stranger_gated_actions_in_the_436_range_are_reachable_without_kin() {
 
     let mut sim = Simulation::new(0xB0A7);
     let idx = 0;
-    let lineage = sim.organisms[idx].lineage_id.clone();
-    sim.lineage_eras.insert(lineage.clone(), Era::Medieval);
+    let lineage = sim.organisms[idx].lineage_id;
+    sim.lineage_eras.insert(lineage.to_string().into(), Era::Medieval);
 
     // Adult, wealthy enough to qualify, with the two discoveries band 446
     // requires. `move_other_organisms_far_away` clears the default roster
@@ -229,7 +230,7 @@ fn stranger_gated_actions_in_the_436_range_are_reachable_without_kin() {
     );
 
     // A stranger, and no kin.
-    sim.organisms[1].lineage_id = "lineage-stranger".to_string();
+    sim.organisms[1].lineage_id = "lineage-stranger".to_string().into();
     sim.organisms[1].alive = true;
     sim.organisms[1].x = x as f32 + 1.0;
     sim.organisms[1].y = y as f32;
@@ -244,7 +245,7 @@ fn stranger_gated_actions_in_the_436_range_are_reachable_without_kin() {
 fn pre_stone_cannot_bypass_advanced_build_farming_or_siege_gates() {
     let mut sim = Simulation::new(0xA11CE);
     let idx = 0;
-    let lineage = sim.organisms[idx].lineage_id.clone();
+    let lineage = sim.organisms[idx].lineage_id;
     sim.organisms[idx].age = sim.organisms[idx].max_age / 2;
     sim.organisms[idx].literacy = 1.0;
     sim.organisms[idx].is_leader = true;
@@ -271,7 +272,7 @@ fn pre_stone_cannot_bypass_advanced_build_farming_or_siege_gates() {
         .map(str::to_string),
     );
     let (x, y) = (sim.organisms[idx].x as i32, sim.organisms[idx].y as i32);
-    sim.organisms[1].lineage_id = lineage.clone();
+    sim.organisms[1].lineage_id = lineage;
     sim.organisms[1].x = x as f32 + 1.0;
     sim.organisms[1].y = y as f32;
     sim.grid.set(x, y, Tile::Grass);
@@ -282,7 +283,7 @@ fn pre_stone_cannot_bypass_advanced_build_farming_or_siege_gates() {
         BuildingKind::Barracks,
         x - 1,
         y,
-        Some(lineage),
+        Some(lineage.to_string()),
         sim.tick_count,
     );
     barracks.condition = 1.0;

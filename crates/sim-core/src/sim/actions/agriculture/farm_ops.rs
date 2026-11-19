@@ -191,7 +191,7 @@ pub(crate) fn prepare_plot(sim: &mut Simulation, idx: usize, x: i32, y: i32) -> 
     if !can_prepare_plot(sim, idx, x, y) {
         return None;
     }
-    let lineage_id = sim.organisms[idx].lineage_id.clone();
+    let lineage_id = sim.organisms[idx].lineage_id;
     let tick = sim.tick_count;
 
     if let Some(farm_idx) = farm_index_at(sim, x, y) {
@@ -203,7 +203,7 @@ pub(crate) fn prepare_plot(sim: &mut Simulation, idx: usize, x: i32, y: i32) -> 
             return None;
         }
         let farm = &mut sim.farms[farm_idx];
-        farm.owner_lineage = lineage_id;
+        farm.owner_lineage = lineage_id.to_string();
         farm.prepared = true;
         farm.planted_tick = tick;
         farm.ready_tick = tick;
@@ -217,7 +217,7 @@ pub(crate) fn prepare_plot(sim: &mut Simulation, idx: usize, x: i32, y: i32) -> 
         id,
         x,
         y,
-        owner_lineage: lineage_id,
+        owner_lineage: lineage_id.to_string(),
         crop: CropKind::Wheat,
         planted_tick: tick,
         ready_tick: tick,
@@ -243,7 +243,7 @@ pub(crate) fn plant_crop(
     if !can_plant_crop(sim, idx, x, y, crop, require_prepared) {
         return None;
     }
-    let lineage_id = sim.organisms[idx].lineage_id.clone();
+    let lineage_id = sim.organisms[idx].lineage_id;
 
     let existing_idx = farm_index_at(sim, x, y);
     if let Some(farm_idx) = existing_idx {
@@ -266,7 +266,7 @@ pub(crate) fn plant_crop(
     let ready_tick = tick.saturating_add(crop.growth_ticks() as u64);
     if let Some(farm_idx) = existing_idx {
         let farm = &mut sim.farms[farm_idx];
-        farm.owner_lineage = lineage_id;
+        farm.owner_lineage = lineage_id.to_string();
         farm.crop = crop;
         farm.planted_tick = tick;
         farm.ready_tick = ready_tick;
@@ -280,7 +280,7 @@ pub(crate) fn plant_crop(
             id,
             x,
             y,
-            owner_lineage: lineage_id,
+            owner_lineage: lineage_id.to_string(),
             crop,
             planted_tick: tick,
             ready_tick,
@@ -330,7 +330,7 @@ pub(crate) fn harvest_crop(sim: &mut Simulation, idx: usize, x: i32, y: i32) -> 
     if !can_harvest_crop(sim, idx, x, y) {
         return None;
     }
-    let lineage_id = sim.organisms[idx].lineage_id.clone();
+    let lineage_id = sim.organisms[idx].lineage_id;
     let farm_idx = farm_index_at(sim, x, y).expect("validated farm plot");
     let farm = &sim.farms[farm_idx];
 
@@ -369,8 +369,9 @@ mod tests {
         sim.organisms[idx].x = x as f32;
         sim.organisms[idx].y = y as f32;
         sim.organisms[idx].inv_food = 2;
-        let lineage_id = sim.organisms[idx].lineage_id.clone();
-        sim.lineage_eras.insert(lineage_id, Era::Bronze);
+        let lineage_id = sim.organisms[idx].lineage_id;
+        sim.lineage_eras
+            .insert(lineage_id.to_string().into(), Era::Bronze);
         sim.grid.set(x, y, Tile::Grass);
         sim.grid.biome[WorldGrid::idx(x, y)] = Biome::Grassland as u8;
         sim.grid.fertility[WorldGrid::idx(x, y)] = 0.8;

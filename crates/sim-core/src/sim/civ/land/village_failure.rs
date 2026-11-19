@@ -61,7 +61,7 @@ pub(crate) fn ruin(sim: &mut Simulation, points: &[(i32, i32)], reach: i32, blow
         if b.kind != BuildingKind::Granary || !near(points, b.x, b.y, reach) {
             continue;
         }
-        let Some(owner) = b.owner_lineage.clone() else {
+        let Some(owner) = b.owner_lineage else {
             continue;
         };
         match blow {
@@ -69,7 +69,7 @@ pub(crate) fn ruin(sim: &mut Simulation, points: &[(i32, i32)], reach: i32, blow
             Blow::Blight | Blow::Flood => b.stock /= 2,
         }
         b.spoiled_tick = Some(now);
-        grain.insert(owner, true);
+        grain.insert(owner.to_string(), true);
     }
     let ruined: usize = fields.values().sum();
     let mut owners: Vec<String> = fields.keys().cloned().collect();

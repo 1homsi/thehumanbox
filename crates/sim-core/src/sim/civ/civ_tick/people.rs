@@ -186,7 +186,7 @@ pub(super) fn tick_specialties(sim: &mut Simulation) {
             let (fw, fh) = b.kind.footprint();
             let bx = b.x as f32 + fw as f32 / 2.0;
             let by = b.y as f32 + fh as f32 / 2.0;
-            Some((bx, by, b.owner_lineage.clone(), s))
+            Some((bx, by, b.owner_lineage.map(String::from), s))
         })
         .collect();
 
@@ -204,7 +204,7 @@ pub(super) fn tick_specialties(sim: &mut Simulation) {
                     o.traits.curiosity,
                     o.traits.aggression,
                     o.traits.social_tendency,
-                    o.lineage_id.clone(),
+                    o.lineage_id.to_string(),
                     o.discoveries.contains("writing"),
                 ))
             } else {
@@ -214,7 +214,7 @@ pub(super) fn tick_specialties(sim: &mut Simulation) {
         .collect();
 
     for (i, ox, oy, curiosity, aggression, social, lid, has_writing) in traits_clone {
-        let era = era_map.get(&lid).copied().unwrap_or(Era::PreStone);
+        let era = era_map.get(lid.as_str()).copied().unwrap_or(Era::PreStone);
         let mut nearest_workshop: Option<(f32, Specialty)> = None;
         for (sx, sy, slid, spec) in &workshops {
             if let Some(slid) = slid {
@@ -290,7 +290,7 @@ pub(super) fn tick_merchant_drift(sim: &mut Simulation) {
                 && b.kind.function() == crate::sim::tech::buildings::BuildingFunction::Trade
         })
         .filter_map(|b| {
-            let lid = b.owner_lineage.clone()?;
+            let lid = b.owner_lineage.map(String::from)?;
             let (fw, fh) = b.kind.footprint();
             Some((b.x as f32 + fw as f32 / 2.0, b.y as f32 + fh as f32 / 2.0, lid))
         })
@@ -320,7 +320,7 @@ pub(super) fn tick_merchant_drift(sim: &mut Simulation) {
         .iter()
         .filter(|org| org.alive && org.specialty.as_deref() == Some("farmer"))
     {
-        *farmers.entry(org.lineage_id.clone()).or_insert(0) += 1;
+        *farmers.entry(org.lineage_id.to_string()).or_insert(0) += 1;
     }
     for i in 0..sim.organisms.len() {
         let org = &sim.organisms[i];
@@ -333,7 +333,7 @@ pub(super) fn tick_merchant_drift(sim: &mut Simulation) {
         let drifts = match org.specialty.as_deref() {
             None => true,
             Some("farmer") => {
-                farmers.get(&org.lineage_id).copied().unwrap_or(0) > MERCHANT_DRIFT_FARMERS_KEPT
+                farmers.get(org.lineage_id.as_str()).copied().unwrap_or(0) > MERCHANT_DRIFT_FARMERS_KEPT
             }
             Some("artist" | "priest" | "carpenter" | "builder" | "weaver" | "baker" | "smith" | "brewer") => {
                 true
@@ -402,14 +402,14 @@ pub(super) fn tick_apprenticeships(sim: &mut Simulation) {
         let Some((_, j)) = best else { continue };
         let trade = sim.organisms[j].specialty.clone().unwrap_or_default();
         let parent_name = sim.organisms[j].name.clone();
-        let parent_id = sim.organisms[j].id.clone();
+        let parent_id = sim.organisms[j].id;
         let name = sim.organisms[i].name.clone();
         sim.organisms[i].specialty = Some(trade.clone());
         sim.organisms[i].log_life_rel(
             tick,
             "apprenticeship",
             format!("apprenticed to {parent_name} and took up their trade as a {trade}"),
-            Some(parent_id),
+            Some(parent_id.to_string()),
             Some(parent_name.clone()),
         );
         push_event(
@@ -548,7 +548,7 @@ pub(super) fn tick_education(sim: &mut Simulation) {
             (
                 b.x + b.kind.footprint().0 as i32 / 2,
                 b.y + b.kind.footprint().1 as i32 / 2,
-                b.owner_lineage.clone().unwrap_or_default(),
+                b.owner_lineage.map(String::from).unwrap_or_default(),
             )
         })
         .collect();
@@ -560,7 +560,7 @@ pub(super) fn tick_education(sim: &mut Simulation) {
             (
                 b.x + b.kind.footprint().0 as i32 / 2,
                 b.y + b.kind.footprint().1 as i32 / 2,
-                b.owner_lineage.clone().unwrap_or_default(),
+                b.owner_lineage.map(String::from).unwrap_or_default(),
             )
         })
         .collect();
@@ -601,7 +601,10 @@ pub(super) fn tick_education(sim: &mut Simulation) {
             org.university_ticks = org.university_ticks.saturating_add(300);
             if org.university_ticks >= 1800 && org.degrees.len() < 3 {
                 org.university_ticks = 0;
-                let era = era_map.get(&org.lineage_id).copied().unwrap_or(Era::Stone);
+                let era = era_map
+                    .get(org.lineage_id.as_str())
+                    .copied()
+                    .unwrap_or(Era::Stone);
                 let deg = pick_degree(era, tick + (org.id.len() as u64));
                 if !org.degrees.contains(&deg.to_string()) {
                     org.add_degree(deg);
@@ -646,13 +649,13 @@ mod apprentice_tests {
 
     fn person(id: &str, age: u32, x: f32, y: f32) -> Organism {
         let mut o = Organism::new(
-            id.into(),
+            id,
             id.into(),
             x,
             y,
             0,
             String::new(),
-            "lin".into(),
+            "lin",
             9000,
             Traits::default(),
         );

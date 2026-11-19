@@ -179,7 +179,7 @@ fn compute_summary(
     let top_era = sim.current_era.clone();
     let mut lineage_counts: HashMap<String, usize> = HashMap::new();
     for o in sim.organisms.iter().filter(|o| o.alive) {
-        *lineage_counts.entry(o.lineage_id.clone()).or_insert(0) += 1;
+        *lineage_counts.entry(o.lineage_id.to_string()).or_insert(0) += 1;
     }
     let lineage_count = lineage_counts.len();
     let (top_lid, top_pop) = lineage_counts

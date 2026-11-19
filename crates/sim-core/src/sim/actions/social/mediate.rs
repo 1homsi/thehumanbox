@@ -6,8 +6,8 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         return 0.0;
     }
     let (a, b) = (ctx.near[0], ctx.near[1]);
-    let la = ctx.sim.organisms[a].lineage_id.clone();
-    let lb = ctx.sim.organisms[b].lineage_id.clone();
+    let la = ctx.sim.organisms[a].lineage_id;
+    let lb = ctx.sim.organisms[b].lineage_id;
     if la == lb {
         ctx.think("settling a quarrel");
         return 0.0;

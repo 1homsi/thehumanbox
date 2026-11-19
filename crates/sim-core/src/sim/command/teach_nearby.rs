@@ -9,7 +9,7 @@ impl Simulation {
             self.report("none_here", 0, None);
             return false;
         };
-        let lineage = self.organisms[i].lineage_id.clone();
+        let lineage = self.organisms[i].lineage_id;
         let name = self.organisms[i].name.clone();
         let taught = self.teach_tribe(&lineage);
         if taught {
@@ -35,9 +35,9 @@ mod tests {
         sim.organisms[0].x = 90.0;
         sim.organisms[0].y = 90.0;
         let lineage = "tribe-teach".to_string();
-        sim.organisms[0].lineage_id = lineage.clone();
+        sim.organisms[0].lineage_id = lineage.clone().into();
         sim.lineage_eras
-            .insert(lineage.clone(), crate::sim::era::Era::PreStone);
+            .insert(lineage.clone().into(), crate::sim::era::Era::PreStone);
         let secret = sim
             .next_missing_discovery(&lineage)
             .expect("a new tribe lacks something");

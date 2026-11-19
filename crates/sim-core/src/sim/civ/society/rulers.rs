@@ -189,7 +189,7 @@ impl Simulation {
             });
             let (dynasty, house, generation) = match &before {
                 Some(s) if heir => (s.dynasty.clone(), s.house.clone(), s.generation.saturating_add(1)),
-                _ => (o.id.clone(), o.name.clone(), 1),
+                _ => (o.id.to_string(), o.name.clone(), 1),
             };
             let name = o.name.clone();
             let realm = nation.name.clone();
@@ -208,7 +208,7 @@ impl Simulation {
             };
             lines.push((realm, line));
             self.diplomacy.nations[n].sovereign = Some(Sovereign {
-                person: self.organisms[i].id.clone(),
+                person: self.organisms[i].id.to_string(),
                 name,
                 dynasty,
                 house,
@@ -322,9 +322,9 @@ impl Simulation {
             return false;
         };
         let now = self.tick_count;
-        let (gid, bid) = (self.organisms[groom].id.clone(), self.organisms[bride].id.clone());
-        self.organisms[groom].partner_id = Some(bid.clone());
-        self.organisms[bride].partner_id = Some(gid.clone());
+        let (gid, bid) = (self.organisms[groom].id, self.organisms[bride].id);
+        self.organisms[groom].partner_id = Some(bid.to_string());
+        self.organisms[bride].partner_id = Some(gid.to_string());
         self.organisms[bride].home_x = home[0] as f32;
         self.organisms[bride].home_y = home[1] as f32;
         let names = [
@@ -476,12 +476,7 @@ impl Simulation {
                 })
                 .map(|(i, _)| i)
                 .collect();
-            ids.sort_by_key(|&i| {
-                (
-                    self.organisms[i].religion_id.is_some(),
-                    self.organisms[i].id.clone(),
-                )
-            });
+            ids.sort_by_key(|&i| (self.organisms[i].religion_id.is_some(), self.organisms[i].id));
             for i in ids {
                 if left == 0 {
                     break;

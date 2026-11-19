@@ -37,7 +37,7 @@ fn store_for_winter(
     use crate::sim::civ::society::hard_winters::REMEMBERED;
     for o in organisms.iter_mut().filter(|o| o.alive && o.inv_food >= 3) {
         // A tribe that remembers a hungry winter lays food by as if warned.
-        let memory = memories.get(&o.lineage_id).map_or(0.0, |m| m.strength);
+        let memory = memories.get(o.lineage_id.as_str()).map_or(0.0, |m| m.strength);
         let remembering = memory >= REMEMBERED;
         let chance = if eager {
             0.8
@@ -202,7 +202,7 @@ impl Simulation {
         let mut tribes: std::collections::BTreeMap<String, Vec<usize>> = Default::default();
         for (i, o) in self.organisms.iter().enumerate() {
             if o.alive && !o.lineage_id.is_empty() {
-                tribes.entry(o.lineage_id.clone()).or_default().push(i);
+                tribes.entry(o.lineage_id.to_string()).or_default().push(i);
             }
         }
         for (lineage, members) in tribes {
@@ -316,9 +316,9 @@ mod tests {
     #[test]
     fn crowded_winter_camps_catch_fevers() {
         let mut sim = Simulation::new(4);
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let lineage = sim.organisms[0].lineage_id;
         for o in sim.organisms.iter_mut() {
-            o.lineage_id = lineage.clone();
+            o.lineage_id = lineage;
             o.infection = 0.0;
             o.discoveries.remove("medicine");
         }

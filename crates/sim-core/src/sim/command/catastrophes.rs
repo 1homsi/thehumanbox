@@ -309,7 +309,7 @@ mod tests {
             .zip(&was_alive)
             .filter(|(o, &was)| was && o.alive)
             .map(|(o, _)| o)
-            .map(|o| (o.id.clone(), o.health))
+            .map(|o| (o.id, o.health))
             .collect();
         assert!(left.is_empty(), "the swallowed die: {left:?}");
         assert!(sim.history.deaths_disaster >= deaths + n as u64);

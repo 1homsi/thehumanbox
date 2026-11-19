@@ -11,7 +11,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         .iter()
         .filter(|o| o.alive && o.lineage_id != lid)
         .filter(|o| (o.x - sx).abs() + (o.y - sy).abs() <= 18.0)
-        .map(|o| (o.x as i32, o.y as i32, o.lineage_id.clone()))
+        .map(|o| (o.x as i32, o.y as i32, o.lineage_id.to_string()))
         .collect();
     let mut spotted = 0u32;
     for (hx, hy, lineage_id) in hostiles {

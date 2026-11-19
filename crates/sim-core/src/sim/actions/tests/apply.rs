@@ -5,15 +5,22 @@ use super::*;
 fn advanced_craft_revalidates_context_and_reserves_materials_atomically() {
     let mut sim = Simulation::new(17);
     let idx = 0;
-    let lineage = sim.organisms[idx].lineage_id.clone();
-    sim.lineage_eras.insert(lineage.clone(), Era::Iron);
+    let lineage = sim.organisms[idx].lineage_id;
+    sim.lineage_eras.insert(lineage.to_string().into(), Era::Iron);
     sim.organisms[idx].age = sim.organisms[idx].max_age / 2;
     sim.organisms[idx].specialty = Some("smith".to_string());
     sim.organisms[idx].discoveries.insert("ironworking".to_string());
     sim.organisms[idx].inv_stone = 2;
     sim.organisms[idx].wealth = 2;
     let (x, y) = (sim.organisms[idx].x as i32, sim.organisms[idx].y as i32);
-    let mut forge = Building::new(100, BuildingKind::Forge, x + 1, y, Some(lineage), sim.tick_count);
+    let mut forge = Building::new(
+        100,
+        BuildingKind::Forge,
+        x + 1,
+        y,
+        Some(lineage.to_string()),
+        sim.tick_count,
+    );
     forge.condition = 1.0;
     sim.buildings.push(forge);
     let spatial = SpatialIndex::build(&sim.organisms, 10);
@@ -32,9 +39,10 @@ fn advanced_craft_revalidates_context_and_reserves_materials_atomically() {
 fn successful_experiments_record_recent_research_but_generic_study_does_not() {
     let mut sim = Simulation::new(18);
     let idx = 0;
-    let lineage = sim.organisms[idx].lineage_id.clone();
+    let lineage = sim.organisms[idx].lineage_id;
     sim.tick_count = 777;
-    sim.lineage_eras.insert(lineage.clone(), Era::Classical);
+    sim.lineage_eras
+        .insert(lineage.to_string().into(), Era::Classical);
     sim.organisms[idx].age = sim.organisms[idx].max_age / 2;
     sim.organisms[idx].specialty = Some("scholar".to_string());
     sim.organisms[idx].literacy = 0.4;
@@ -46,7 +54,7 @@ fn successful_experiments_record_recent_research_but_generic_study_does_not() {
         BuildingKind::ResearchLab,
         x + 1,
         y,
-        Some(lineage),
+        Some(lineage.to_string()),
         sim.tick_count,
     );
     lab.condition = 1.0;
@@ -81,8 +89,9 @@ fn experiment_evidence_excludes_documentation_teaching_and_observation() {
 fn advanced_buildings_revalidate_era_training_knowledge_and_materials() {
     let mut sim = Simulation::new(0xB011D);
     let idx = 0;
-    let lineage = sim.organisms[idx].lineage_id.clone();
-    sim.lineage_eras.insert(lineage, Era::Classical);
+    let lineage = sim.organisms[idx].lineage_id;
+    sim.lineage_eras
+        .insert(lineage.to_string().into(), Era::Classical);
     sim.organisms[idx].age = sim.organisms[idx].max_age / 2;
     sim.organisms[idx].literacy = 0.8;
     sim.organisms[idx].inv_wood = 10;
@@ -103,7 +112,7 @@ fn advanced_buildings_revalidate_era_training_knowledge_and_materials() {
     let (x, y) = (sim.organisms[idx].x as i32, sim.organisms[idx].y as i32);
     sim.organisms[idx].home_x = x as f32;
     sim.organisms[idx].home_y = y as f32;
-    sim.organisms[1].lineage_id = sim.organisms[idx].lineage_id.clone();
+    sim.organisms[1].lineage_id = sim.organisms[idx].lineage_id;
     sim.organisms[1].x = x as f32 + 1.0;
     sim.organisms[1].y = y as f32;
     sim.grid.set(x, y, Tile::Grass);
@@ -137,8 +146,9 @@ fn bridge_action_requires_the_exact_buildable_crossing_it_will_use() {
     sim.organisms.truncate(1);
     let idx = 0;
     let (x, y) = (120, 120);
-    let lineage = sim.organisms[idx].lineage_id.clone();
-    sim.lineage_eras.insert(lineage, Era::Classical);
+    let lineage = sim.organisms[idx].lineage_id;
+    sim.lineage_eras
+        .insert(lineage.to_string().into(), Era::Classical);
     let bridge_cost = BuildingKind::Bridge.construction_cost();
     let builder = &mut sim.organisms[idx];
     builder.x = x as f32;
@@ -186,8 +196,8 @@ fn bridge_action_requires_the_exact_buildable_crossing_it_will_use() {
 fn immediate_infrastructure_commits_its_declared_resource_once() {
     let mut sim = Simulation::new(0xAC71_0042);
     let idx = 0;
-    let lineage = sim.organisms[idx].lineage_id.clone();
-    sim.lineage_eras.insert(lineage, Era::Iron);
+    let lineage = sim.organisms[idx].lineage_id;
+    sim.lineage_eras.insert(lineage.to_string().into(), Era::Iron);
     let builder = &mut sim.organisms[idx];
     builder.age = builder.max_age / 2;
     builder.specialty = Some("builder".into());
@@ -210,8 +220,8 @@ fn immediate_infrastructure_commits_its_declared_resource_once() {
 fn greenhouse_and_siege_require_their_exact_semantic_context_at_apply_time() {
     let mut sim = Simulation::new(0x51E6E);
     let idx = 0;
-    let lineage = sim.organisms[idx].lineage_id.clone();
-    sim.lineage_eras.insert(lineage.clone(), Era::Medieval);
+    let lineage = sim.organisms[idx].lineage_id;
+    sim.lineage_eras.insert(lineage.to_string().into(), Era::Medieval);
     sim.organisms[idx].age = sim.organisms[idx].max_age / 2;
     sim.organisms[idx].inv_wood = 3;
     sim.organisms[idx].inv_stone = 3;
@@ -237,7 +247,7 @@ fn greenhouse_and_siege_require_their_exact_semantic_context_at_apply_time() {
         BuildingKind::Barracks,
         x + 1,
         y + 1,
-        Some(lineage),
+        Some(lineage.to_string()),
         sim.tick_count,
     );
     barracks.condition = 1.0;
@@ -253,7 +263,7 @@ fn greenhouse_and_siege_require_their_exact_semantic_context_at_apply_time() {
 fn base_communication_revalidates_era_knowledge_profession_and_workspace() {
     let mut sim = Simulation::new(19);
     let idx = 0;
-    let lineage = sim.organisms[idx].lineage_id.clone();
+    let lineage = sim.organisms[idx].lineage_id;
     sim.organisms[idx].age = sim.organisms[idx].max_age / 2;
     sim.organisms[idx].specialty = Some("scholar".to_string());
     sim.organisms[idx].literacy = 0.8;
@@ -264,7 +274,8 @@ fn base_communication_revalidates_era_knowledge_profession_and_workspace() {
     let spatial = SpatialIndex::build(&sim.organisms, 10);
 
     assert!(try_apply(&mut sim, idx, 418, x, y, &spatial).is_none());
-    sim.lineage_eras.insert(lineage.clone(), Era::Classical);
+    sim.lineage_eras
+        .insert(lineage.to_string().into(), Era::Classical);
     assert!(try_apply(&mut sim, idx, 418, x, y, &spatial).is_none());
 
     let mut library = Building::new(
@@ -272,7 +283,7 @@ fn base_communication_revalidates_era_knowledge_profession_and_workspace() {
         BuildingKind::Library,
         x + 1,
         y,
-        Some(lineage),
+        Some(lineage.to_string()),
         sim.tick_count,
     );
     library.condition = 1.0;
@@ -285,8 +296,9 @@ fn base_communication_revalidates_era_knowledge_profession_and_workspace() {
 fn formal_science_requires_an_operational_research_workspace_at_apply_time() {
     let mut sim = Simulation::new(20);
     let idx = 0;
-    let lineage = sim.organisms[idx].lineage_id.clone();
-    sim.lineage_eras.insert(lineage.clone(), Era::Renaissance);
+    let lineage = sim.organisms[idx].lineage_id;
+    sim.lineage_eras
+        .insert(lineage.to_string().into(), Era::Renaissance);
     sim.organisms[idx].age = sim.organisms[idx].max_age / 2;
     sim.organisms[idx].specialty = Some("scholar".to_string());
     sim.organisms[idx].literacy = 0.8;
@@ -300,7 +312,7 @@ fn formal_science_requires_an_operational_research_workspace_at_apply_time() {
         BuildingKind::ResearchLab,
         x + 1,
         y,
-        Some(lineage),
+        Some(lineage.to_string()),
         sim.tick_count,
     );
     lab.condition = 1.0;
@@ -315,8 +327,8 @@ fn formal_science_requires_an_operational_research_workspace_at_apply_time() {
 fn butchery_consumes_one_carried_food_for_each_successful_output() {
     let mut sim = Simulation::new(21);
     let idx = 0;
-    let lineage = sim.organisms[idx].lineage_id.clone();
-    sim.lineage_eras.insert(lineage.clone(), Era::Medieval);
+    let lineage = sim.organisms[idx].lineage_id;
+    sim.lineage_eras.insert(lineage.to_string().into(), Era::Medieval);
     sim.organisms[idx].age = sim.organisms[idx].max_age / 2;
     sim.organisms[idx].specialty = Some("hunter".to_string());
     sim.organisms[idx].discoveries.insert("hunting".to_string());
@@ -327,7 +339,7 @@ fn butchery_consumes_one_carried_food_for_each_successful_output() {
         BuildingKind::Butcher,
         x + 1,
         y,
-        Some(lineage),
+        Some(lineage.to_string()),
         sim.tick_count,
     );
     butcher.condition = 1.0;
@@ -366,8 +378,9 @@ fn school_and_academy_require_a_hut_and_their_exact_kin_counts() {
     let idx = 0;
     assert!(sim.organisms.len() >= 4);
     move_other_organisms_far_away(&mut sim, idx);
-    let lineage = sim.organisms[idx].lineage_id.clone();
-    sim.lineage_eras.insert(lineage.clone(), Era::Renaissance);
+    let lineage = sim.organisms[idx].lineage_id;
+    sim.lineage_eras
+        .insert(lineage.to_string().into(), Era::Renaissance);
     sim.organisms[idx].x = 100.0;
     sim.organisms[idx].y = 100.0;
     sim.organisms[idx].age = sim.organisms[idx].max_age.saturating_mul(4) / 5;
@@ -408,8 +421,9 @@ fn interfaith_needs_both_groups_and_teach_language_needs_a_stranger() {
     let idx = 0;
     assert!(sim.organisms.len() >= 3);
     move_other_organisms_far_away(&mut sim, idx);
-    let lineage = sim.organisms[idx].lineage_id.clone();
-    sim.lineage_eras.insert(lineage.clone(), Era::Classical);
+    let lineage = sim.organisms[idx].lineage_id;
+    sim.lineage_eras
+        .insert(lineage.to_string().into(), Era::Classical);
     sim.organisms[idx].x = 100.0;
     sim.organisms[idx].y = 100.0;
     sim.organisms[idx].age = sim.organisms[idx].max_age / 2;
@@ -422,7 +436,7 @@ fn interfaith_needs_both_groups_and_teach_language_needs_a_stranger() {
     sim.organisms[1].x = 101.0;
     sim.organisms[1].y = 100.0;
     sim.organisms[2].alive = true;
-    sim.organisms[2].lineage_id = "visiting-lineage".to_string();
+    sim.organisms[2].lineage_id = "visiting-lineage".to_string().into();
     sim.organisms[2].x = 102.0;
     sim.organisms[2].y = 100.0;
 
@@ -431,11 +445,18 @@ fn interfaith_needs_both_groups_and_teach_language_needs_a_stranger() {
         BuildingKind::Temple,
         99,
         100,
-        Some(lineage.clone()),
+        Some(lineage.to_string()),
         sim.tick_count,
     );
     temple.condition = 1.0;
-    let mut school = Building::new(105, BuildingKind::School, 100, 101, Some(lineage), sim.tick_count);
+    let mut school = Building::new(
+        105,
+        BuildingKind::School,
+        100,
+        101,
+        Some(lineage.to_string()),
+        sim.tick_count,
+    );
     school.condition = 1.0;
     sim.buildings.extend([temple, school]);
 
@@ -458,8 +479,8 @@ fn religion_actions_filter_and_revalidate_canonical_membership_requirements() {
     let idx = 0;
     assert!(sim.organisms.len() >= 3);
     move_other_organisms_far_away(&mut sim, idx);
-    let lineage = sim.organisms[idx].lineage_id.clone();
-    sim.lineage_eras.insert(lineage.clone(), Era::Stone);
+    let lineage = sim.organisms[idx].lineage_id;
+    sim.lineage_eras.insert(lineage.to_string().into(), Era::Stone);
     sim.organisms[idx].alive = true;
     sim.organisms[idx].x = 100.0;
     sim.organisms[idx].y = 100.0;
@@ -484,7 +505,7 @@ fn religion_actions_filter_and_revalidate_canonical_membership_requirements() {
     assert!(try_apply(&mut sim, idx, 456, 100, 100, &spatial).is_none());
 
     sim.organisms[3].alive = true;
-    sim.organisms[3].lineage_id = "foreign-faith-lineage".to_string();
+    sim.organisms[3].lineage_id = "foreign-faith-lineage".to_string().into();
     sim.organisms[3].x = 103.0;
     sim.organisms[3].y = 100.0;
     let mut temple = Building::new(
@@ -492,7 +513,7 @@ fn religion_actions_filter_and_revalidate_canonical_membership_requirements() {
         BuildingKind::Temple,
         100,
         100,
-        Some(lineage.clone()),
+        Some(lineage.to_string()),
         sim.tick_count,
     );
     temple.condition = 1.0;
@@ -582,7 +603,7 @@ fn a_practised_healer_restores_more_health_with_the_same_remedy() {
     let restored = |level: f32| {
         let mut sim = Simulation::new(17);
         let idx = 0;
-        let lineage = sim.organisms[idx].lineage_id.clone();
+        let lineage = sim.organisms[idx].lineage_id;
         let (x, y) = (sim.organisms[idx].x, sim.organisms[idx].y);
         let patient = (1..sim.organisms.len())
             .find(|&i| sim.organisms[i].alive)
@@ -591,7 +612,7 @@ fn a_practised_healer_restores_more_health_with_the_same_remedy() {
             let o = &mut sim.organisms[i];
             o.alive = true;
             o.age = o.max_age / 2;
-            o.lineage_id = lineage.clone();
+            o.lineage_id = lineage;
         }
         sim.organisms[patient].x = x + 1.0;
         sim.organisms[patient].y = y;

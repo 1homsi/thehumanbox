@@ -163,7 +163,7 @@ impl Simulation {
     fn census(&self) -> FxHashMap<String, Census> {
         let mut census: FxHashMap<String, Census> = FxHashMap::default();
         for o in self.organisms.iter().filter(|o| o.alive) {
-            let c = census.entry(o.lineage_id.clone()).or_default();
+            let c = census.entry(o.lineage_id.to_string()).or_default();
             c.population += 1;
             c.sick += u32::from(o.infection > 0.3 || !o.diseases.is_empty());
             c.hungry += u32::from(o.energy < 0.45);
@@ -380,13 +380,13 @@ mod cause_tests {
             }
         }
         let mut o = Organism::new(
-            "v".into(),
+            "v",
             "v".into(),
             100.0,
             100.0,
             0,
             String::new(),
-            "clan".into(),
+            "clan",
             20_000,
             Default::default(),
         );

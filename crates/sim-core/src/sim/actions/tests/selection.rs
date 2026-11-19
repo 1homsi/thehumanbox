@@ -4,7 +4,7 @@ use super::*;
 #[test]
 fn local_place_cache_matches_building_checks_and_refreshes_after_world_changes() {
     let mut sim = Simulation::new(0xcace);
-    let lineage = sim.organisms[0].lineage_id.clone();
+    let lineage = sim.organisms[0].lineage_id.to_string();
     let (x, y) = (sim.organisms[0].x as i32, sim.organisms[0].y as i32);
     sim.buildings.clear();
 
@@ -76,7 +76,7 @@ fn local_place_cache_matches_building_checks_and_refreshes_after_world_changes()
     }
 
     sim.buildings.clear();
-    let mut market = Building::new(7, BuildingKind::Market, x + 1, y, Some(lineage.clone()), 0);
+    let mut market = Building::new(7, BuildingKind::Market, x + 1, y, Some(lineage.to_string()), 0);
     market.condition = 1.0;
     sim.buildings.push(market);
     assert!(LocalPlaceCache::new().workspace(&sim, &lineage, x, y, Workspace::Trade));
@@ -100,7 +100,7 @@ fn local_place_cache_matches_building_checks_and_refreshes_after_world_changes()
 fn reused_action_buffers_match_fresh_results_across_context_changes() {
     let mut sim = Simulation::new(0xa110);
     let idx = 0;
-    let lineage = sim.organisms[idx].lineage_id.clone();
+    let lineage = sim.organisms[idx].lineage_id;
     let mut actions = Vec::new();
     let mut nearby = Vec::new();
 
@@ -111,7 +111,7 @@ fn reused_action_buffers_match_fresh_results_across_context_changes() {
         (90, Era::Information, Tile::Food),
     ] {
         sim.tick_count = phase;
-        sim.lineage_eras.insert(lineage.clone(), era);
+        sim.lineage_eras.insert(lineage.to_string().into(), era);
         let (x, y) = (sim.organisms[idx].x as i32, sim.organisms[idx].y as i32);
         sim.grid.set(x, y, tile);
         let spatial = SpatialIndex::build(&sim.organisms, 10);
@@ -319,9 +319,11 @@ fn band_gate_masks_agree_with_the_gate_by_gate_check() {
                         org.home_y = org.y + (next(30) as f32 - 15.0);
                     }
                 }
-                let lineage = sim.organisms[idx].lineage_id.clone();
-                sim.lineage_eras
-                    .insert(lineage.clone(), LADDER[next(LADDER.len() as u64) as usize]);
+                let lineage = sim.organisms[idx].lineage_id;
+                sim.lineage_eras.insert(
+                    lineage.to_string().into(),
+                    LADDER[next(LADDER.len() as u64) as usize],
+                );
                 let (ix, iy) = (sim.organisms[idx].x as i32, sim.organisms[idx].y as i32);
                 let mut nearby = Vec::new();
                 let context = EligibilityContext::gather(&sim, idx, ix, iy, &spatial, &mut nearby);

@@ -369,7 +369,7 @@ impl Simulation {
             }
             self.organisms[idx].energy = (self.organisms[idx].energy - 0.003).max(0.0);
         } else if action == 20 {
-            let lid = self.organisms[idx].lineage_id.clone();
+            let lid = self.organisms[idx].lineage_id;
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
             let kin: Vec<usize> = spatial
                 .ordered_nearby(&self.organisms, sx, sy, 5)
@@ -521,7 +521,7 @@ impl Simulation {
                     // receives the cargo. Preserve the dispatch perception on
                     // this exact shipment so delivery can reinforce the
                     // originating Q-table row, including across save/reload.
-                    let sender_id = self.organisms[idx].id.clone();
+                    let sender_id = self.organisms[idx].id;
                     if let Some(caravan) = self.caravans.iter_mut().rev().find(|caravan| {
                         caravan.sender_org_id == sender_id
                             && caravan.departed_tick == self.tick_count

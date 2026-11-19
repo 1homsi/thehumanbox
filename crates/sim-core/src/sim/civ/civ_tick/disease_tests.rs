@@ -3,9 +3,9 @@ use super::*;
 /// One tribe living close together, every member sick with plague.
 fn plague_camp(seed: u64) -> Simulation {
     let mut sim = Simulation::new(seed);
-    let lineage = sim.organisms[0].lineage_id.clone();
+    let lineage = sim.organisms[0].lineage_id;
     sim.organisms.retain(|o| o.lineage_id == lineage);
-    sim.lineage_eras.insert(lineage, Era::Iron);
+    sim.lineage_eras.insert(lineage.to_string().into(), Era::Iron);
     for (k, o) in sim.organisms.iter_mut().enumerate() {
         o.x = 100.0 + (k % 4) as f32;
         o.y = 100.0 + (k / 4) as f32;

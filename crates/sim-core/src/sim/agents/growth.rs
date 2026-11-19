@@ -26,18 +26,16 @@ pub fn population_slots_used(organisms: &[Organism]) -> usize {
         .count()
 }
 
-pub fn lineage_population_slots(organisms: &[Organism]) -> crate::hashing::FxHashMap<String, usize> {
-    let mut counts: crate::hashing::FxHashMap<String, usize> = crate::hashing::FxHashMap::default();
+pub fn lineage_population_slots(
+    organisms: &[Organism],
+) -> crate::hashing::FxHashMap<crate::intern::Sym, usize> {
+    let mut counts: crate::hashing::FxHashMap<crate::intern::Sym, usize> =
+        crate::hashing::FxHashMap::default();
     for organism in organisms
         .iter()
         .filter(|organism| organism.alive || is_pending_birth(organism))
     {
-        // Copy a lineage's id only the first time it appears.
-        if let Some(count) = counts.get_mut(&organism.lineage_id) {
-            *count += 1;
-        } else {
-            counts.insert(organism.lineage_id.clone(), 1);
-        }
+        *counts.entry(organism.lineage_id).or_insert(0) += 1;
     }
     counts
 }
@@ -122,7 +120,7 @@ pub fn spawn_organism_as(
 fn reproduction_partner_index(
     org_idx: usize,
     organisms: &[Organism],
-    org_idx_by_id: &FxHashMap<String, usize>,
+    org_idx_by_id: &FxHashMap<crate::intern::Sym, usize>,
     critical: bool,
     partner_dist: f32,
 ) -> Option<usize> {
@@ -146,7 +144,7 @@ fn reproduction_partner_index(
             })
             .map(|(idx, _)| idx)
     } else {
-        let partner_idx = *org_idx_by_id.get(org.partner_id.as_ref()?)?;
+        let partner_idx = *org_idx_by_id.get(org.partner_id.as_deref()?)?;
         let partner = &organisms[partner_idx];
         // The index is shared for the tick, but movement and death can happen
         // between residents' decisions. Recheck the partner's current state.
@@ -162,8 +160,8 @@ fn reproduction_partner_index(
 pub struct ReproductionPopulation<'a> {
     pub slots_used: usize,
     pub limit: usize,
-    pub lineage_counts: &'a FxHashMap<String, usize>,
-    pub org_idx_by_id: &'a FxHashMap<String, usize>,
+    pub lineage_counts: &'a FxHashMap<crate::intern::Sym, usize>,
+    pub org_idx_by_id: &'a FxHashMap<crate::intern::Sym, usize>,
 }
 
 #[allow(clippy::if_same_then_else)]
@@ -188,7 +186,7 @@ pub fn try_reproduce(
     let lineage_limit = natural_lineage_limit(population.limit);
     if population
         .lineage_counts
-        .get(&org.lineage_id)
+        .get(org.lineage_id.as_str())
         .copied()
         .unwrap_or(0)
         >= lineage_limit
@@ -226,7 +224,7 @@ pub fn try_reproduce(
     ) else {
         return;
     };
-    let partner_id = organisms[partner_idx].id.clone();
+    let partner_id = organisms[partner_idx].id;
 
     let biome = grid.biome_at(org_x as i32, org_y as i32);
     let biome_mult = match biome {
@@ -307,8 +305,8 @@ pub fn try_reproduce(
         }
     }
     let child_name = child_name;
-    let parent_id = organisms[org_idx].id.clone();
-    let lineage_id = organisms[org_idx].lineage_id.clone();
+    let parent_id = organisms[org_idx].id;
+    let lineage_id = organisms[org_idx].lineage_id;
     let generation = organisms[org_idx].generation + 1;
 
     let mut child = Organism::new(
@@ -317,7 +315,7 @@ pub fn try_reproduce(
         sx as f32,
         sy as f32,
         generation,
-        parent_id,
+        parent_id.to_string(),
         lineage_id,
         max_age,
         child_traits_sexed,
@@ -423,7 +421,7 @@ pub fn try_reproduce(
     }
 
     for (lid, &att) in &organisms[org_idx].lineage_attitudes {
-        child.lineage_attitudes.insert(lid.clone(), att * 0.7);
+        child.lineage_attitudes.insert(*lid, att * 0.7);
     }
     for (oid, &trust) in &organisms[org_idx].org_trust {
         child.org_trust.insert(oid.clone(), trust * 0.4);
@@ -506,7 +504,7 @@ pub fn try_reproduce(
 
     child.alive = false;
     child.age = 0;
-    child.father_id = Some(partner_id.clone());
+    child.father_id = Some(partner_id.to_string());
     // A child grows up with some of the caution their parents learned.
     child.lessons = crate::organism::lessons::Lessons::inherited(
         &organisms[org_idx].lessons,
@@ -574,7 +572,7 @@ fn unborn_cancellations_reference(organisms: &[Organism]) -> Vec<(usize, Option<
         .iter()
         .enumerate()
         .filter(|(_, organism)| organism.sex == Sex::Female)
-        .map(|(index, organism)| (organism.id.clone(), index))
+        .map(|(index, organism)| (organism.id.to_string(), index))
         .collect();
     organisms
         .iter()
@@ -667,7 +665,7 @@ pub fn deliver_births(
         if organisms[mi].children_count == 0 {
             organisms[mi].add_anchor(tick, format!("first child {}", child_name), 0.8);
             use crate::organism::memory::{MemoryEntry, MemoryKind};
-            let child_id_for_mem = organisms[ci].id.clone();
+            let child_id_for_mem = organisms[ci].id;
             organisms[mi].memories.insert(
                 MemoryEntry::new(
                     MemoryKind::Bond,
@@ -682,13 +680,13 @@ pub fn deliver_births(
         organisms[mi].children_count += 1;
         organisms[mi].think(&format!("gave birth: {}", child_name), tick);
         organisms[mi].joy_ticks = (organisms[mi].joy_ticks + 400).min(1200);
-        let ci_id = organisms[ci].id.clone();
+        let ci_id = organisms[ci].id;
         let cn = child_name.clone();
         organisms[mi].log_life_rel(
             tick,
             "birth",
             format!("gave birth to {}", child_name),
-            Some(ci_id.clone()),
+            Some(ci_id.to_string()),
             Some(cn.clone()),
         );
 
@@ -704,7 +702,7 @@ pub fn deliver_births(
                         tick,
                         "birth",
                         format!("welcomed {} into the world", cn),
-                        Some(ci_id.clone()),
+                        Some(ci_id.to_string()),
                         Some(cn.clone()),
                     );
                     if was_first {
@@ -717,7 +715,7 @@ pub fn deliver_births(
                             )
                             .with_salience(0.96)
                             .with_emotion(3)
-                            .with_related(ci_id.clone()),
+                            .with_related(ci_id),
                         );
                     }
                     break;
@@ -734,7 +732,7 @@ pub fn deliver_births(
         );
         history.births += 1;
         history.record_birth(tick);
-        born.push((organisms[ci].lineage_id.clone(), generation));
+        born.push((organisms[ci].lineage_id.to_string(), generation));
     }
     born
 }
@@ -795,12 +793,12 @@ mod tests {
         child
     }
 
-    fn living_index(organisms: &[Organism]) -> FxHashMap<String, usize> {
+    fn living_index(organisms: &[Organism]) -> FxHashMap<crate::intern::Sym, usize> {
         organisms
             .iter()
             .enumerate()
             .filter(|(_, o)| o.alive)
-            .map(|(i, o)| (o.id.clone(), i))
+            .map(|(i, o)| (o.id, i))
             .collect()
     }
 
@@ -1035,7 +1033,7 @@ mod tests {
             for c in 0..(round % 5) as usize {
                 let mother = format!("adult-{}", (round as usize + c * 3) % (adults + 2));
                 let mut child = pending_child(&mother, &mut rng);
-                child.id = format!("child-{c}");
+                child.id = format!("child-{c}").into();
                 organisms.push(child);
             }
             let any = organisms.iter().any(is_pending_birth);

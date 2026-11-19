@@ -145,7 +145,7 @@ impl Simulation {
             .iter()
             .map(|t| Place {
                 id: t.id,
-                lineage: t.lineage.clone(),
+                lineage: t.lineage.to_string(),
                 centre: t.center,
                 ..Default::default()
             })
@@ -329,7 +329,7 @@ impl Simulation {
                 .iter()
                 .map(|&idx| {
                     let o = &self.organisms[idx];
-                    ((o.energy * 1000.0) as u32, o.id.clone(), idx)
+                    ((o.energy * 1000.0) as u32, o.id.to_string(), idx)
                 })
                 .collect();
             group.sort_unstable();
@@ -397,7 +397,7 @@ impl Simulation {
             .iter()
             .enumerate()
             .filter(|(_, o)| o.alive && wanted.contains(o.id.as_str()))
-            .map(|(i, o)| (o.id.clone(), i))
+            .map(|(i, o)| (o.id.to_string(), i))
             .collect();
         let mut arrived: Vec<usize> = Vec::new();
         let mut empty: Vec<usize> = Vec::new();
@@ -492,7 +492,7 @@ impl Simulation {
             let host_lineage = migration.host.clone();
             for &i in &walkers {
                 let o = &mut self.organisms[i];
-                o.lineage_id = host_lineage.clone();
+                o.lineage_id = host_lineage.clone().into();
                 o.journey = None;
                 o.wander_target = None;
             }

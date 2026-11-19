@@ -64,7 +64,7 @@ fn nation(sim: &mut Simulation, id: u32, name: &str, members: &[&str], capital: 
 
 fn crown(sim: &mut Simulation, lineage: &str, person: usize) {
     let mut g = Government::new(lineage.into(), GovernmentKind::Monarchy, 0);
-    g.leader_id = Some(sim.organisms[person].id.clone());
+    g.leader_id = Some(sim.organisms[person].id.to_string());
     sim.governments.insert(lineage.into(), g);
 }
 
@@ -91,7 +91,7 @@ fn a_ruler_takes_the_throne_with_their_character_and_their_child_carries_the_hou
     let facts = sim.tribe_facts();
     assert!(facts["crown"].ambition >= WARLIKE_AMBITION);
 
-    sim.organisms[2].parent_id = sim.organisms[0].id.clone();
+    sim.organisms[2].parent_id = sim.organisms[0].id.to_string();
     sim.organisms[2].traits.aggression = 0.2;
     crown(&mut sim, "crown", 2);
     pass(&mut sim, 2);

@@ -952,7 +952,7 @@ impl Organism {
                         .iter()
                         .take(if friends_listed { 0 } else { organisms.len() }),
                 )
-                .filter(|o| !std::ptr::eq(*o, self) && o.alive && self.friends.contains_key(&o.id))
+                .filter(|o| !std::ptr::eq(*o, self) && o.alive && self.friends.contains_key(o.id.as_str()))
                 .map(|o| {
                     let d = ((o.x - self.x).abs() + (o.y - self.y).abs()) as i32;
                     (o.x as i32, o.y as i32, d)

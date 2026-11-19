@@ -12,13 +12,13 @@ pub(super) fn learning_test_org(
     resilience: f32,
 ) -> Organism {
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "Learner".into(),
         0.0,
         0.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         Traits {
             memory_strength,

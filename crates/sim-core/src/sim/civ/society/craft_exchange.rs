@@ -27,7 +27,7 @@ impl Simulation {
             .unwrap_or(0.0)
             .max(KNOWN_FOR);
         let tribe_name = self.tribe_name(sender_lineage);
-        let buyer_lineage = self.organisms[buyer].lineage_id.clone();
+        let buyer_lineage = self.organisms[buyer].lineage_id;
         if buyer_lineage == sender_lineage {
             return;
         }

@@ -32,10 +32,7 @@ pub(super) fn apply_damage(sim: &mut Simulation) -> HashSet<usize> {
         if !was_ruined && building.damage_fraction() >= 1.0 {
             building.ruined_at_tick = Some(sim.tick_count);
             ruined_events.push((
-                building
-                    .owner_lineage
-                    .clone()
-                    .unwrap_or_else(|| "world".to_string()),
+                building.owner_lineage.unwrap_or_else(|| "world".into()),
                 building.kind,
                 building.x,
                 building.y,
@@ -58,7 +55,7 @@ pub(super) fn apply_damage(sim: &mut Simulation) -> HashSet<usize> {
 
 pub(super) fn announce_ruins(
     sim: &mut Simulation,
-    ruins: Vec<(String, BuildingKind, i32, i32, DamageCause)>,
+    ruins: Vec<(crate::intern::Sym, BuildingKind, i32, i32, DamageCause)>,
 ) {
     let mut groups: Vec<(String, DamageCause, BuildingKind, usize, bool)> = Vec::new();
     for (lineage, kind, x, y, cause) in ruins {
@@ -75,7 +72,7 @@ pub(super) fn announce_ruins(
                 group.3 += 1;
                 group.4 &= home;
             }
-            None => groups.push((lineage, cause, kind, 1, home)),
+            None => groups.push((lineage.to_string(), cause, kind, 1, home)),
         }
     }
     for (lineage, cause, kind, count, homes) in groups {
@@ -142,10 +139,7 @@ pub(crate) fn strike_buildings(
             building.ruined_at_tick = Some(tick);
             let (fw, fh) = building.footprint();
             ruined.push((
-                building
-                    .owner_lineage
-                    .clone()
-                    .unwrap_or_else(|| "world".to_string()),
+                building.owner_lineage.unwrap_or_else(|| "world".into()),
                 building.kind,
                 (building.x, building.y, i32::from(fw), i32::from(fh)),
                 building.occupants.clone(),
@@ -167,7 +161,7 @@ pub(crate) fn strike_buildings(
                 o.mark_harm(crate::organism::organism::Harm::Disaster, sim.tick_count);
                 o.fear_level = (o.fear_level + 0.4).min(1.0);
             }
-            if inside || occupants.contains(&o.id) {
+            if inside || occupants.iter().any(|id| o.id == *id) {
                 o.hope = (o.hope - 0.15).max(0.0);
                 o.think("our home was destroyed", tick);
             }

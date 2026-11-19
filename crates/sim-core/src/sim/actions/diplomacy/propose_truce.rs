@@ -10,7 +10,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("looking for a quarrel to settle");
         return 0.0;
     };
-    let their = ctx.sim.organisms[ki].lineage_id.clone();
+    let their = ctx.sim.organisms[ki].lineage_id;
     ctx.sim.organisms[ctx.idx].update_attitude(&their, 0.08);
     ctx.sim.organisms[ki].update_attitude(&lid, 0.06);
     ctx.think("proposing a truce");

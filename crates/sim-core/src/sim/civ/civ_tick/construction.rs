@@ -1045,7 +1045,7 @@ fn abandon_stalled_palisade(sim: &mut Simulation) {
                 && is_palisade_piece(b.kind)
                 && now.saturating_sub(b.last_work_tick.unwrap_or(b.built_at_tick)) >= PALISADE_STALL_TICKS
         })
-        .filter_map(|(index, b)| Some((index, b.owner_lineage.clone()?, b.kind)))
+        .filter_map(|(index, b)| Some((index, b.owner_lineage.map(String::from)?, b.kind)))
         .collect();
     for (index, lineage, kind) in stalled.iter().rev() {
         refund_palisade_piece(sim, lineage, *kind);
@@ -1217,7 +1217,7 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
         .organisms
         .iter()
         .filter(|o| o.alive)
-        .map(|o| o.lineage_id.clone())
+        .map(|o| o.lineage_id.to_string())
         .collect();
     alive_lineages.sort();
     alive_lineages.dedup();
@@ -1730,7 +1730,7 @@ pub(super) fn tick_building_progress(sim: &mut Simulation) {
                 }
                 effort += worker.effort;
                 working.push((worker.index, building.kind, building_index));
-                building.occupants.push(organisms[worker.index].id.clone());
+                building.occupants.push(organisms[worker.index].id.to_string());
             }
             if effort == 0.0 {
                 continue;
@@ -1985,7 +1985,7 @@ mod palisade_tests {
             y,
             0,
             String::new(),
-            "clan".into(),
+            "clan",
             20_000,
             Traits::default(),
         );

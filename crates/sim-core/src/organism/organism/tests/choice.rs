@@ -78,13 +78,13 @@ fn hungry_organism_filters_learned_choice_to_survival_actions() {
         }
     }
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "Hungry".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -121,13 +121,13 @@ fn injured_organism_filters_learned_choice_to_recovery_actions() {
         }
     }
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "Injured".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -165,13 +165,13 @@ fn active_directive_does_not_override_stronger_learned_choice() {
         }
     }
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "SelfDirected".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -211,13 +211,13 @@ fn active_directive_biases_tie_without_forcing_action() {
         }
     }
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "Influenced".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -265,7 +265,7 @@ fn equal_q_actions_do_not_always_choose_the_highest_id() {
             50.0,
             0,
             "".into(),
-            "lin".into(),
+            "lin",
             5000,
             traits,
         );
@@ -320,7 +320,7 @@ fn untried_actions_are_not_ranked_by_numeric_id() {
             50.0,
             0,
             "".into(),
-            "lin".into(),
+            "lin",
             5000,
             traits,
         );
@@ -378,13 +378,13 @@ fn wander_target_does_not_override_stronger_learned_choice() {
         }
     }
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "SelfDirectedWanderer".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -424,13 +424,13 @@ fn wander_target_biases_tie_without_forcing_action() {
         }
     }
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "SuggestibleWanderer".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -470,13 +470,13 @@ fn at_night_a_person_walks_home_and_sleeps_there_not_in_any_shelter() {
         }
     }
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "Homeward".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         9000,
         traits,
     );
@@ -541,17 +541,7 @@ fn parched_at(tiles: &[((i32, i32), Tile)], hydration: f32) -> (Organism, WorldG
     for &((x, y), t) in tiles {
         grid.set(x, y, t);
     }
-    let mut org = Organism::new(
-        "dry".into(),
-        "Dry".into(),
-        50.0,
-        50.0,
-        0,
-        "".into(),
-        "lin".into(),
-        5000,
-        traits,
-    );
+    let mut org = Organism::new("dry", "Dry".into(), 50.0, 50.0, 0, "".into(), "lin", 5000, traits);
     org.energy = 0.8;
     org.hydration = hydration;
     (org, grid)
@@ -687,17 +677,7 @@ fn worker_on_sand(name: &str) -> (Organism, WorldGrid, StdRng) {
     }
     // A pool close by, so fishing is a choice they can make here.
     grid.set(52, 52, Tile::Water);
-    let mut org = Organism::new(
-        "id".into(),
-        name.into(),
-        50.0,
-        50.0,
-        0,
-        "".into(),
-        "lin".into(),
-        5000,
-        traits,
-    );
+    let mut org = Organism::new("id", name.into(), 50.0, 50.0, 0, "".into(), "lin", 5000, traits);
     org.energy = 0.80;
     org.hydration = 0.95;
     org.health = 0.90;
@@ -804,13 +784,13 @@ fn passing_over_food_across_the_water_they_go_for_food_they_can_reach() {
     grid.set(50, 52, Tile::Food);
     grid.set(45, 50, Tile::Food);
     let mut org = Organism::new(
-        "weak".into(),
+        "weak",
         "Weak".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -855,13 +835,13 @@ fn someone_too_weak_to_swim_does_not_wade_toward_food_across_the_water() {
     grid.set(50, 52, Tile::Water);
     grid.set(50, 53, Tile::Food);
     let mut org = Organism::new(
-        "weak".into(),
+        "weak",
         "Weak".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -903,13 +883,13 @@ fn someone_who_saw_a_burning_flees_a_fire_even_at_night() {
     }
     grid.set(52, 50, Tile::Fire);
     let mut org = Organism::new(
-        "wary".into(),
+        "wary",
         "Wary".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -951,13 +931,13 @@ fn hungry_with_nothing_known(tile_here: Tile, grass_at: Option<(i32, i32)>) -> (
         grid.set(x, y, Tile::Grass);
     }
     let mut org = Organism::new(
-        "hungry".into(),
+        "hungry",
         "Hungry".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -1008,13 +988,13 @@ fn fire_beside_remembered_food(energy: f32) -> (usize, Option<String>) {
     }
     grid.set(52, 50, Tile::Fire);
     let mut org = Organism::new(
-        "starving".into(),
+        "starving",
         "Starving".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -1070,13 +1050,13 @@ fn grass_across_the_water_is_no_place_to_dig_for_someone_too_weak_to_swim() {
     grid.set(50, 51, Tile::Water);
     grid.set(50, 52, Tile::Grass);
     let mut org = Organism::new(
-        "weak".into(),
+        "weak",
         "Weak".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );

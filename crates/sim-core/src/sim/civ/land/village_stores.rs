@@ -542,7 +542,7 @@ mod tests {
         sim.buildings.clear();
         sim.buildings.push(granary(1, "t", 3));
         let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
-        sim.organisms[idx].lineage_id = "t".to_string();
+        sim.organisms[idx].lineage_id = "t".to_string().into();
         sim.organisms[idx].inv_food = 0;
         let tribe = Tribe {
             lineage: "t".to_string(),
@@ -701,12 +701,13 @@ mod tests {
             });
         }
         // The Iron-age watermill comes first, on the river bank.
-        sim.lineage_eras.insert(tribe.lineage.clone(), Era::Iron);
+        sim.lineage_eras.insert(tribe.lineage.clone().into(), Era::Iron);
         build_stores(&mut sim, &tribe);
         assert!(owns(&sim, &tribe.lineage, BuildingKind::Watermill));
         assert!(!owns(&sim, &tribe.lineage, BuildingKind::Windmill));
         // The Medieval era brings the windmill beside it, and each mill adds its own half.
-        sim.lineage_eras.insert(tribe.lineage.clone(), Era::Medieval);
+        sim.lineage_eras
+            .insert(tribe.lineage.clone().into(), Era::Medieval);
         build_stores(&mut sim, &tribe);
         assert!(owns(&sim, &tribe.lineage, BuildingKind::Windmill));
         assert!((yield_factor(&sim, &tribe.lineage) - 2.25).abs() < 1e-6);
@@ -732,12 +733,12 @@ mod bread_tests {
     /// A farming tribe with a house, a granary holding `grain`, and optionally a bakery and a mill.
     fn village(seed: u64, grain: u32, bakery: bool, mill: Option<BuildingKind>) -> (Simulation, Tribe) {
         let mut sim = Simulation::new(seed);
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let lineage = sim.organisms[0].lineage_id;
         for o in sim.organisms.iter_mut().filter(|o| o.lineage_id == lineage) {
             o.discoveries.insert("agriculture".to_string());
             o.inv_food = 0;
         }
-        sim.lineage_eras.insert(lineage.clone(), Era::Medieval);
+        sim.lineage_eras.insert(lineage.to_string().into(), Era::Medieval);
         for dy in -6..=6 {
             for dx in -6..=6 {
                 sim.grid.set(120 + dx, 120 + dy, Tile::Grass);
@@ -745,25 +746,25 @@ mod bread_tests {
         }
         sim.farms.clear();
         sim.buildings.clear();
-        let mut house = Building::new(900, BuildingKind::House, 120, 120, Some(lineage.clone()), 0);
+        let mut house = Building::new(900, BuildingKind::House, 120, 120, Some(lineage.to_string()), 0);
         house.condition = 1.0;
         sim.buildings.push(house);
-        let mut granary = Building::new(901, BuildingKind::Granary, 121, 121, Some(lineage.clone()), 0);
+        let mut granary = Building::new(901, BuildingKind::Granary, 121, 121, Some(lineage.to_string()), 0);
         granary.condition = 1.0;
         granary.stock = grain;
         sim.buildings.push(granary);
         if bakery {
-            let mut oven = Building::new(902, BuildingKind::Bakery, 117, 117, Some(lineage.clone()), 0);
+            let mut oven = Building::new(902, BuildingKind::Bakery, 117, 117, Some(lineage.to_string()), 0);
             oven.condition = 1.0;
             sim.buildings.push(oven);
         }
         if let Some(kind) = mill {
-            let mut m = Building::new(903, kind, 117, 121, Some(lineage.clone()), 0);
+            let mut m = Building::new(903, kind, 117, 121, Some(lineage.to_string()), 0);
             m.condition = 1.0;
             sim.buildings.push(m);
         }
         let tribe = Tribe {
-            lineage: lineage.clone(),
+            lineage: lineage.to_string(),
             members: sim
                 .organisms
                 .iter()

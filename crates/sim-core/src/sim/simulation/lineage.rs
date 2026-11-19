@@ -14,12 +14,12 @@ impl Simulation {
         self.lineage_aggregates.reserve(self.lineage_names.len().max(8));
         // Copy a lineage's id only the first time the tick meets it.
         for org in self.organisms.iter().filter(|org| org.alive) {
-            if let Some(entry) = self.lineage_aggregates.get_mut(&org.lineage_id) {
+            if let Some(entry) = self.lineage_aggregates.get_mut(org.lineage_id.as_str()) {
                 add_member(entry, org);
             } else {
                 let mut entry = LineageAggregate::default();
                 add_member(&mut entry, org);
-                self.lineage_aggregates.insert(org.lineage_id.clone(), entry);
+                self.lineage_aggregates.insert(org.lineage_id.to_string(), entry);
             }
         }
         // A tribe counted at the last rebuild with no one alive now has died out since then.
@@ -101,10 +101,10 @@ impl Simulation {
             if now.saturating_sub(self.organisms[idx].last_ancestral_thought) < COOLDOWN_TICKS {
                 continue;
             }
-            let org_lid = self.organisms[idx].lineage_id.clone();
+            let org_lid = self.organisms[idx].lineage_id;
             let ox = self.organisms[idx].x;
             let oy = self.organisms[idx].y;
-            let Some(samples) = self.lineage_centroid_history.get(&org_lid) else {
+            let Some(samples) = self.lineage_centroid_history.get(org_lid.as_str()) else {
                 continue;
             };
             let mut matched: Option<i32> = None;
@@ -180,7 +180,7 @@ impl Simulation {
         let mut agg: HashMap<String, (HashSet<String>, usize)> = HashMap::default();
         for org in self.organisms.iter().filter(|o| o.alive) {
             let entry = agg
-                .entry(org.lineage_id.clone())
+                .entry(org.lineage_id.to_string())
                 .or_insert_with(|| (HashSet::default(), 0));
             entry.1 += 1;
             for d in org.discoveries.iter() {
@@ -191,7 +191,11 @@ impl Simulation {
         let mut max_era: Option<Era> = None;
         let alive_lineages: HashSet<String> = agg.keys().cloned().collect();
         for (lid, (discoveries, _lineage_population)) in agg.iter() {
-            let prev = self.lineage_eras.get(lid).copied().unwrap_or(Era::PreStone);
+            let prev = self
+                .lineage_eras
+                .get(lid.as_str())
+                .copied()
+                .unwrap_or(Era::PreStone);
             let discovered_era =
                 determine_era_for_lineage(discoveries, world_population, self.population_limit());
             let new_era = discovered_era.max(prev);
@@ -211,7 +215,7 @@ impl Simulation {
                 let home = self.chronicle_home(lid);
                 self.chronicle(lid, "era", None, Some(new_era.name()), home);
             }
-            self.lineage_eras.insert(lid.clone(), new_era);
+            self.lineage_eras.insert(lid.clone().into(), new_era);
             max_era = Some(match max_era {
                 Some(m) => {
                     if new_era > m {
@@ -223,7 +227,8 @@ impl Simulation {
                 None => new_era,
             });
         }
-        self.lineage_eras.retain(|k, _| alive_lineages.contains(k));
+        self.lineage_eras
+            .retain(|k, _| alive_lineages.contains(k.as_str()));
         if let Some(m) = max_era {
             let mname = m.name().to_string();
             if mname != self.current_era {

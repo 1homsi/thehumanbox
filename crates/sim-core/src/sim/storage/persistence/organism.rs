@@ -28,7 +28,7 @@ pub(crate) struct OrgSave {
     pub(super) last_reproduced: u64,
     pub(super) last_challenged: u64,
     pub(super) water_ticks: u32,
-    pub(super) lineage_attitudes: std::collections::BTreeMap<String, f32>,
+    pub(super) lineage_attitudes: std::collections::BTreeMap<crate::intern::Sym, f32>,
     pub(super) org_trust: std::collections::BTreeMap<String, f32>,
     pub(super) traits: crate::organism::traits::Traits,
     pub(super) infection: f32,
@@ -252,7 +252,7 @@ pub(super) fn mem_decode(m: HashMap<String, f32>) -> FxHashMap<(i32, i32), f32> 
 pub(super) fn org_to_save(o: &Organism) -> OrgSave {
     let slim = !o.alive && !crate::sim::growth::is_pending_birth(o);
     OrgSave {
-        id: o.id.clone(),
+        id: o.id.to_string(),
         name: o.name.clone(),
         x: o.x,
         y: o.y,
@@ -264,7 +264,7 @@ pub(super) fn org_to_save(o: &Organism) -> OrgSave {
         thought: o.thought.clone(),
         generation: o.generation,
         parent_id: o.parent_id.clone(),
-        lineage_id: o.lineage_id.clone(),
+        lineage_id: o.lineage_id.to_string(),
         max_age: o.max_age,
         food_memory: mem_encode(&o.food_memory),
         water_memory: mem_encode(&o.water_memory),

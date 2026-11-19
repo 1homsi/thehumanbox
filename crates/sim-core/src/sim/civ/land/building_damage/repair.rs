@@ -7,7 +7,7 @@ pub(super) fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
         .organisms
         .iter()
         .filter(|o| o.alive)
-        .map(|o| o.lineage_id.clone())
+        .map(|o| o.lineage_id.to_string())
         .collect();
     let orphans = crate::sim::tech::networks::orphans(sim);
 
@@ -32,7 +32,7 @@ pub(super) fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
             && building
                 .owner_lineage
                 .as_ref()
-                .is_none_or(|owner| !living_lineages.contains(owner));
+                .is_none_or(|owner| !living_lineages.contains(owner.as_str()));
         let (x, y, kind) = (building.x, building.y, building.kind);
         let Some(worker_index) = sim
             .organisms
@@ -56,7 +56,7 @@ pub(super) fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
         else {
             continue;
         };
-        let lineage = sim.organisms[worker_index].lineage_id.clone();
+        let lineage = sim.organisms[worker_index].lineage_id;
         let plan = repair_plan(kind);
         let Some(unit) = plan.next_unit(building.damage_fraction()) else {
             continue;
@@ -111,7 +111,7 @@ pub(super) fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
         let parent = crate::sim::civ::civ_tick::town::parent_for(sim, &lineage, x, y);
         let building = &mut sim.buildings[building_index];
         if reclaimable {
-            building.owner_lineage = Some(lineage.clone());
+            building.owner_lineage = Some(lineage.to_string().into());
             building.town = parent;
         }
         let was_ruined = building.is_ruined();
@@ -138,7 +138,11 @@ pub(super) fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
             &lineage,
             &format!("rebuilt the {} ruins at ({},{})", kind.name(), x, y),
         );
-        let lineage_name = sim.lineage_names.get(&lineage).cloned().unwrap_or(lineage);
+        let lineage_name = sim
+            .lineage_names
+            .get(lineage.as_str())
+            .cloned()
+            .unwrap_or(lineage.to_string());
         sim.headlines.push_back((
             sim.tick_count,
             format!(

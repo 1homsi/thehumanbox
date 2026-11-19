@@ -81,7 +81,7 @@ impl Simulation {
                         let db = (b.x - ox).abs() + (b.y - oy).abs();
                         da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
                     })
-                    .map(|o| o.lineage_id.clone());
+                    .map(|o| o.lineage_id.to_string());
                 if let Some(lid) = nearest_lid {
                     if self.organisms[idx].attitude_toward(&lid) >= 0.25 {
                         self.organisms[idx].think("coexisting peacefully", self.tick_count);
@@ -109,7 +109,7 @@ impl Simulation {
             if let Some(stranger_lid) = unknown_lid {
                 self.organisms[idx]
                     .lineage_attitudes
-                    .insert(stranger_lid.clone(), 0.001);
+                    .insert(stranger_lid.clone().into(), 0.001);
             }
         }
 

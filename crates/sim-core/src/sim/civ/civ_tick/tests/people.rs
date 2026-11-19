@@ -32,7 +32,7 @@ fn cross_lineage_learning_uses_nearby_contact_without_snapshot_clones() {
 #[test]
 fn deep_grief_sets_a_withdrawal_directive() {
     let mut sim = Simulation::new(7);
-    let id = sim.organisms[0].id.clone();
+    let id = sim.organisms[0].id;
     for _ in 0..20 {
         {
             let org = sim.organisms.iter_mut().find(|o| o.id == id).unwrap();
@@ -63,7 +63,7 @@ fn deep_grief_sets_a_withdrawal_directive() {
 #[test]
 fn good_mood_is_computed_positive() {
     let mut sim = Simulation::new(7);
-    let id = sim.organisms[0].id.clone();
+    let id = sim.organisms[0].id;
     {
         let org = sim.organisms.iter_mut().find(|o| o.id == id).unwrap();
         org.grief_ticks = 0;

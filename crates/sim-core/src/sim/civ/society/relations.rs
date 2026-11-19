@@ -286,7 +286,7 @@ impl Simulation {
             .organisms
             .iter()
             .filter(|o| o.alive)
-            .map(|o| o.lineage_id.clone())
+            .map(|o| o.lineage_id.to_string())
             .collect();
         self.diplomacy.relations.forget_gone(&living);
         let gifts = std::mem::take(&mut self.history.tribe_gifts);
@@ -313,10 +313,10 @@ impl Simulation {
 
     pub(crate) fn border_contacts(&self) -> BTreeSet<(String, String)> {
         let mut contacts: BTreeSet<(String, String)> = BTreeSet::new();
-        let mut lineages: Vec<&String> = self.territory.keys().collect();
+        let mut lineages: Vec<&crate::intern::Sym> = self.territory.keys().collect();
         lineages.sort();
         for lid in lineages {
-            let Some(tiles) = self.territory.get(lid) else {
+            let Some(tiles) = self.territory.get(lid.as_str()) else {
                 continue;
             };
             let mut seen: BTreeSet<&str> = BTreeSet::new();
@@ -330,8 +330,8 @@ impl Simulation {
                 }
             }
             for other in seen {
-                contacts.insert((lid.clone(), other.to_string()));
-                contacts.insert((other.to_string(), lid.clone()));
+                contacts.insert((lid.to_string(), other.to_string()));
+                contacts.insert((other.to_string(), lid.to_string()));
             }
         }
         contacts

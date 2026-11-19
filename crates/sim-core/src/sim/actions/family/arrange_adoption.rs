@@ -11,7 +11,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("no child to adopt");
         return 0.0;
     };
-    let their_lid = ctx.sim.organisms[ki].lineage_id.clone();
+    let their_lid = ctx.sim.organisms[ki].lineage_id;
     ctx.sim.organisms[ctx.idx].update_attitude(&their_lid, 0.10);
     ctx.sim.organisms[ki].comfort = (ctx.sim.organisms[ki].comfort + 0.10).min(1.0);
     ctx.sim.organisms[ctx.idx].comfort = (ctx.sim.organisms[ctx.idx].comfort + 0.06).min(1.0);

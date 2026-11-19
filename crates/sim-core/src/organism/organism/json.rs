@@ -33,7 +33,7 @@ impl Organism {
 
     pub fn to_json_with(&self, include_cold: bool) -> OrgJson {
         OrgJson {
-            id: self.id.clone(),
+            id: self.id.to_string(),
             x: (self.x * 10.0).round() / 10.0,
             y: (self.y * 10.0).round() / 10.0,
             energy: (self.energy * 1000.0).round() / 1000.0,
@@ -56,7 +56,7 @@ impl Organism {
                     self.lineage_attitudes
                         .iter()
                         .filter(|(_, &v)| v.abs() > 0.1)
-                        .map(|(k, &v)| (k.clone(), (v * 100.0).round() / 100.0))
+                        .map(|(k, &v)| (k.to_string(), (v * 100.0).round() / 100.0))
                         .collect(),
                 )
             } else {
@@ -236,7 +236,7 @@ impl Organism {
                 None
             },
             lineage_id: if include_cold {
-                Some(self.lineage_id.clone())
+                Some(self.lineage_id.to_string())
             } else {
                 None
             },
@@ -384,7 +384,7 @@ impl Organism {
                     self.lineage_attitudes
                         .iter()
                         .filter(|(_, &v)| v.abs() > 0.1)
-                        .map(|(k, &v)| (k.clone(), r2(v)))
+                        .map(|(k, &v)| (k.to_string(), r2(v)))
                         .collect(),
                 ),
             );
@@ -674,11 +674,11 @@ impl Organism {
             .collect();
 
         OrgLifeJson {
-            id: self.id.clone(),
+            id: self.id.to_string(),
             name: self.name.clone(),
             age_ticks: self.age,
             generation: self.generation,
-            lineage_id: self.lineage_id.clone(),
+            lineage_id: self.lineage_id.to_string(),
             sex: self.sex.as_str().to_string(),
             alive: self.alive,
             is_elder: self.is_elder,
@@ -861,7 +861,7 @@ impl OrgsHotSoa {
             None => (i16::MIN, i16::MIN),
         };
         let idx = self.ids.len() as u32;
-        self.ids.push(o.id.clone());
+        self.ids.push(o.id.to_string());
         self.xs.push(q_pos(pred_x));
         self.ys.push(q_pos(pred_y));
         self.vxs.push(enc_vx);

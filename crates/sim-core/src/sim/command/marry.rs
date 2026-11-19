@@ -21,9 +21,9 @@ impl Simulation {
         if self.organisms[a].sex == self.organisms[b].sex {
             return false;
         }
-        let (id_a, id_b) = (self.organisms[a].id.clone(), self.organisms[b].id.clone());
-        self.organisms[a].partner_id = Some(id_b);
-        self.organisms[b].partner_id = Some(id_a);
+        let (id_a, id_b) = (self.organisms[a].id, self.organisms[b].id);
+        self.organisms[a].partner_id = Some(id_b.to_string());
+        self.organisms[b].partner_id = Some(id_a.to_string());
         // Ready for children now rather than after the usual wait, as with the love blessing.
         self.organisms[a].last_reproduced = 0;
         self.organisms[b].last_reproduced = 0;
@@ -70,8 +70,8 @@ mod tests {
     #[test]
     fn marry_pairs_the_two_people_nearest_the_points() {
         let mut sim = two_adults(Sex::Male);
-        let id0 = sim.organisms[0].id.clone();
-        let id1 = sim.organisms[1].id.clone();
+        let id0 = sim.organisms[0].id;
+        let id1 = sim.organisms[1].id;
         assert!(sim.apply_command_json(r#"{"cmd":"marry","ax":60.0,"ay":60.0,"bx":62.0,"by":60.0}"#));
         assert_eq!(sim.organisms[0].partner_id.as_deref(), Some(id1.as_str()));
         assert_eq!(sim.organisms[1].partner_id.as_deref(), Some(id0.as_str()));

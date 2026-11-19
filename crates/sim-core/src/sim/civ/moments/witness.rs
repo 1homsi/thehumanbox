@@ -25,7 +25,7 @@ pub(in crate::sim::civ) fn tick_witnessed_events(sim: &mut Simulation) {
             continue;
         }
         by_name.insert(o.name.clone(), i);
-        by_lineage.entry(o.lineage_id.clone()).or_default().push(i);
+        by_lineage.entry(o.lineage_id.to_string()).or_default().push(i);
     }
 
     // Pull recent broadcast-worthy events.
@@ -68,9 +68,9 @@ pub(in crate::sim::civ) fn tick_witnessed_events(sim: &mut Simulation) {
             continue;
         };
         let (ax, ay) = (sim.organisms[actor_idx].x, sim.organisms[actor_idx].y);
-        let lineage = sim.organisms[actor_idx].lineage_id.clone();
-        let actor_id = sim.organisms[actor_idx].id.clone();
-        let Some(kin) = by_lineage.get(&lineage) else {
+        let lineage = sim.organisms[actor_idx].lineage_id;
+        let actor_id = sim.organisms[actor_idx].id;
+        let Some(kin) = by_lineage.get(lineage.as_str()) else {
             continue;
         };
 
@@ -103,7 +103,7 @@ pub(in crate::sim::civ) fn tick_witnessed_events(sim: &mut Simulation) {
                 tick,
                 "witnessed",
                 phrase.clone(),
-                Some(actor_id.clone()),
+                Some(actor_id.to_string()),
                 Some(actor_name.clone()),
             );
             // Witnessing big moments stirs mood.

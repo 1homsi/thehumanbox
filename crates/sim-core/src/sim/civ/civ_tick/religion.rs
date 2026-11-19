@@ -49,7 +49,7 @@ pub(super) fn tick_religion_schism(sim: &mut Simulation) {
         return;
     }
 
-    let founder_lineage = sim.organisms[chosen[0]].lineage_id.clone();
+    let founder_lineage = sim.organisms[chosen[0]].lineage_id;
     let tick = sim.tick_count;
     let name_seed = tick.wrapping_add(chosen.len() as u64).wrapping_add(7);
     let sect_id = create_religion(sim, kind, &founder_lineage, tick, name_seed);
@@ -86,7 +86,7 @@ pub(super) fn tick_religion_founding(sim: &mut Simulation) {
         .organisms
         .iter()
         .filter(|o| o.alive)
-        .map(|o| o.lineage_id.clone())
+        .map(|o| o.lineage_id.to_string())
         .collect::<HashSet<_>>()
         .into_iter()
         .collect();
@@ -196,7 +196,7 @@ pub(super) fn tick_religion_adherents(sim: &mut Simulation) {
         if org.religion_id.is_some() {
             continue;
         }
-        if let Some(rid) = religion_by_lineage.get(&org.lineage_id) {
+        if let Some(rid) = religion_by_lineage.get(org.lineage_id.as_str()) {
             if sim.rng.random::<f32>() < convert_chance * (0.4 + org.traits.social_tendency) {
                 org.religion_id = Some(rid.clone());
                 org.piety = 0.20 + org.traits.social_tendency * 0.20;
@@ -231,10 +231,11 @@ pub(super) fn forget_vanished_tribes(sim: &mut Simulation) {
         .organisms
         .iter()
         .filter(|o| o.alive)
-        .map(|o| o.lineage_id.clone())
+        .map(|o| o.lineage_id.to_string())
         .collect();
     let before = sim.territory.len();
-    sim.territory.retain(|lineage, _| living.contains(lineage));
+    sim.territory
+        .retain(|lineage, _| living.contains(lineage.as_str()));
     sim.lineage_homes.retain(|lineage, _| living.contains(lineage));
     if sim.territory.len() != before {
         // Rebuild the map's territory on the next snapshot.
@@ -305,7 +306,7 @@ pub(super) fn tick_religion_effects(sim: &mut Simulation) {
             (
                 b.x as f32 + fw as f32 / 2.0,
                 b.y as f32 + fh as f32 / 2.0,
-                b.owner_lineage.clone(),
+                b.owner_lineage.map(String::from),
             )
         })
         .collect();

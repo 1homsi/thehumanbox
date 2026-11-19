@@ -688,12 +688,15 @@ fn tick_tech_progress_reference(
         if !org.alive {
             continue;
         }
-        let entry = lineage_discoveries.entry(org.lineage_id.clone()).or_default();
+        let entry = lineage_discoveries.entry(org.lineage_id.to_string()).or_default();
         for d in org.discoveries.iter() {
             entry.insert(d.clone());
         }
-        *lineage_pop.entry(org.lineage_id.clone()).or_insert(0) += 1;
-        lineage_members.entry(org.lineage_id.clone()).or_default().push(i);
+        *lineage_pop.entry(org.lineage_id.to_string()).or_insert(0) += 1;
+        lineage_members
+            .entry(org.lineage_id.to_string())
+            .or_default()
+            .push(i);
     }
 
     let tech = all_tech();
@@ -803,7 +806,7 @@ mod tests {
     #[test]
     fn tribal_knowledge_spreads_to_members_who_lack_it() {
         let mut sim = Simulation::new(1);
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let lineage = sim.organisms[0].lineage_id;
         let members: Vec<usize> = sim
             .organisms
             .iter()
@@ -841,16 +844,16 @@ mod tests {
             .enumerate()
             .filter_map(|(index, org)| org.alive.then_some(index))
             .collect();
-        let lineage = sim.organisms[indices[0]].lineage_id.clone();
+        let lineage = sim.organisms[indices[0]].lineage_id;
         let baseline = research_profile(10_000, &lineage, &indices, &sim.organisms, &[], None).capacity;
 
         for &index in &indices {
             sim.organisms[index].literacy = 0.85;
             sim.organisms[index].specialty = Some("scholar".into());
         }
-        let mut library = Building::new(1, BuildingKind::Library, 5, 5, Some(lineage.clone()), 1);
+        let mut library = Building::new(1, BuildingKind::Library, 5, 5, Some(lineage.to_string()), 1);
         library.condition = 1.0;
-        let mut government = Government::new(lineage.clone(), GovernmentKind::Republic, 1);
+        let mut government = Government::new(lineage.to_string(), GovernmentKind::Republic, 1);
         government.treasury = 100;
         government.laws.push(Law {
             kind: LawKind::Education,
@@ -903,28 +906,8 @@ mod tests {
     #[test]
     fn the_skilled_hand_is_credited_with_the_discovery() {
         let traits = crate::organism::traits::Traits::default();
-        let mut novice = Organism::new(
-            "a".into(),
-            "A".into(),
-            0.0,
-            0.0,
-            0,
-            "".into(),
-            "l".into(),
-            5000,
-            traits.clone(),
-        );
-        let mut master = Organism::new(
-            "b".into(),
-            "B".into(),
-            0.0,
-            0.0,
-            0,
-            "".into(),
-            "l".into(),
-            5000,
-            traits,
-        );
+        let mut novice = Organism::new("a", "A".into(), 0.0, 0.0, 0, "".into(), "l", 5000, traits.clone());
+        let mut master = Organism::new("b", "B".into(), 0.0, 0.0, 0, "".into(), "l", 5000, traits);
         novice.literacy = 0.3;
         master.literacy = 0.3;
         master.skills.set(Skill::Quarrying, 0.9);

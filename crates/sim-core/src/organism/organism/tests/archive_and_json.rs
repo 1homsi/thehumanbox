@@ -7,13 +7,13 @@ fn compress_for_archive_clears_heavy_state_but_keeps_skeleton() {
     let mut rng = StdRng::seed_from_u64(0);
     let traits = Traits::random(&mut rng);
     let mut org = Organism::new(
-        "abc12345".into(),
+        "abc12345",
         "Testname".into(),
         10.0,
         20.0,
         3,
         "parent99".into(),
-        "lineage1".into(),
+        "lineage1",
         5000,
         traits.clone(),
     );
@@ -53,17 +53,7 @@ fn compress_for_archive_clears_heavy_state_but_keeps_skeleton() {
 fn compress_for_archive_skips_live_organisms() {
     let mut rng = StdRng::seed_from_u64(0);
     let traits = Traits::random(&mut rng);
-    let mut org = Organism::new(
-        "id".into(),
-        "Live".into(),
-        0.0,
-        0.0,
-        0,
-        "".into(),
-        "lin".into(),
-        5000,
-        traits,
-    );
+    let mut org = Organism::new("id", "Live".into(), 0.0, 0.0, 0, "".into(), "lin", 5000, traits);
     org.q_table.insert("s".into(), vec![(0, 0.0), (1, 0.0)]);
     org.alive = true;
     org.compress_for_archive();

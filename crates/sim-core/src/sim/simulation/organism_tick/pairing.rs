@@ -51,7 +51,7 @@ impl Simulation {
                         && o.sex != my_sex
                         && o.age > 1000
                         && o.partner_id.is_none()
-                        && my_trust.get(&o.id).is_none_or(|&t| t > RIVAL_TRUST)
+                        && my_trust.get(o.id.as_str()).is_none_or(|&t| t > RIVAL_TRUST)
                 })
                 .map(|(i, o)| {
                     let dist = (o.x - ox).det_hypot(o.y - oy);
@@ -62,9 +62,9 @@ impl Simulation {
                     let lineage_att = if o.lineage_id == *my_lid {
                         0.3
                     } else {
-                        my_atts.get(&o.lineage_id).copied().unwrap_or(0.0)
+                        my_atts.get(o.lineage_id.as_str()).copied().unwrap_or(0.0)
                     };
-                    let trust = my_trust.get(&o.id).copied().unwrap_or(0.0);
+                    let trust = my_trust.get(o.id.as_str()).copied().unwrap_or(0.0);
                     let age_gap = (my_age - o.age as f32).abs();
                     let age_score = (1.0 - age_gap / 6000.0).clamp(0.0, 1.0);
                     let dist_score = (1.0 - dist / 30.0).clamp(0.0, 1.0);
@@ -108,7 +108,7 @@ impl Simulation {
                 .keys()
                 .filter_map(|fid| {
                     org_idx_by_id
-                        .get(fid)
+                        .get(fid.as_str())
                         .map(|&i| &self.organisms[i])
                         .filter(|o| o.alive)
                 })
@@ -125,7 +125,11 @@ impl Simulation {
             let departed_friends: Vec<String> = self.organisms[idx]
                 .friends
                 .keys()
-                .filter(|id| !org_idx_by_id.get(*id).is_some_and(|&i| self.organisms[i].alive))
+                .filter(|id| {
+                    !org_idx_by_id
+                        .get(id.as_str())
+                        .is_some_and(|&i| self.organisms[i].alive)
+                })
                 .cloned()
                 .collect();
             for id in departed_friends {
@@ -153,19 +157,19 @@ impl Simulation {
                         && o.sex != my_sex
                         && self.organisms[idx]
                             .org_trust
-                            .get(&o.id)
+                            .get(o.id.as_str())
                             .is_none_or(|&t| t > RIVAL_TRUST)
                         && (o.x - ox).det_hypot(o.y - oy) < 120.0
                 })
                 .map(|(i, _)| i)
                 .min();
             if let Some(ci) = candidate {
-                let cid = self.organisms[ci].id.clone();
+                let cid = self.organisms[ci].id;
                 let cname = self.organisms[ci].name.clone();
-                let my_id = self.organisms[idx].id.clone();
-                self.organisms[idx].attracted_to = Some(cid.clone());
+                let my_id = self.organisms[idx].id;
+                self.organisms[idx].attracted_to = Some(cid.to_string());
                 self.organisms[idx].attraction_tick = tc;
-                self.organisms[ci].attracted_to = Some(my_id);
+                self.organisms[ci].attracted_to = Some(my_id.to_string());
                 self.organisms[ci].attraction_tick = tc;
                 self.organisms[idx].think(&format!("drawn to {}", cname), tc);
             }
@@ -176,7 +180,7 @@ impl Simulation {
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
                 let attraction_age = tc.saturating_sub(self.organisms[idx].attraction_tick);
                 let reach = if f.dormant { 40.0 } else { 8.0 };
-                let partner_close = org_idx_by_id.get(&aid).is_some_and(|&i| {
+                let partner_close = org_idx_by_id.get(aid.as_str()).is_some_and(|&i| {
                     let o = &self.organisms[i];
                     o.alive && (o.x - ox).det_hypot(o.y - oy) < reach
                 });
@@ -185,13 +189,13 @@ impl Simulation {
                     && self.rng.random::<f32>() < crate::sim::simulation::town_lod::chance(0.08, f.dt)
                 {
                     if let Some(pi) = org_idx_by_id
-                        .get(&aid)
+                        .get(aid.as_str())
                         .copied()
                         .filter(|&i| self.organisms[i].alive)
                     {
-                        let pid = self.organisms[pi].id.clone();
+                        let pid = self.organisms[pi].id;
                         let pname = self.organisms[pi].name.clone();
-                        let oid = self.organisms[idx].id.clone();
+                        let oid = self.organisms[idx].id;
                         let oname = self.organisms[idx].name.clone();
                         let (conv_a, conv_b) = courtship::generate_conversation_pair(
                             &self.organisms[idx],
@@ -204,8 +208,8 @@ impl Simulation {
                         self.organisms[pi].vocabulary.touch_all_known(tc);
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[pi].store_conversation(conv_b);
-                        let a_lid = self.organisms[idx].lineage_id.clone();
-                        let b_lid = self.organisms[pi].lineage_id.clone();
+                        let a_lid = self.organisms[idx].lineage_id;
+                        let b_lid = self.organisms[pi].lineage_id;
                         self.organisms[idx].record_conversation_outcome(
                             &pid,
                             &b_lid,
@@ -222,12 +226,12 @@ impl Simulation {
                             None,
                             tc,
                         );
-                        self.organisms[idx].partner_id = Some(pid.clone());
+                        self.organisms[idx].partner_id = Some(pid.to_string());
                         self.share_home(idx, pi);
                         self.gather_wedding(idx, pi);
                         self.join_tribes_by_marriage(idx, pi);
                         self.organisms[idx].attracted_to = None;
-                        self.organisms[pi].partner_id = Some(oid.clone());
+                        self.organisms[pi].partner_id = Some(oid.to_string());
                         self.organisms[pi].attracted_to = None;
                         self.organisms[idx].joy_ticks = (self.organisms[idx].joy_ticks + 500).min(1200);
                         self.organisms[pi].joy_ticks = (self.organisms[pi].joy_ticks + 500).min(1200);
@@ -236,14 +240,14 @@ impl Simulation {
                             tc,
                             "love",
                             format!("fell in love with {}", pname),
-                            Some(pid.clone()),
+                            Some(pid.to_string()),
                             Some(pname.clone()),
                         );
                         self.organisms[pi].log_life_rel(
                             tc,
                             "love",
                             format!("fell in love with {}", oname),
-                            Some(oid),
+                            Some(oid.to_string()),
                             Some(oname.clone()),
                         );
                     }
@@ -259,7 +263,7 @@ impl Simulation {
             if let Some(pid) = self.organisms[idx].partner_id.clone() {
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
                 if let Some(pi) = org_idx_by_id
-                    .get(&pid)
+                    .get(pid.as_str())
                     .copied()
                     .filter(|&i| self.organisms[i].alive)
                 {
@@ -275,11 +279,11 @@ impl Simulation {
                         self.organisms[pi].vocabulary.touch_all_known(tc);
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[pi].store_conversation(conv_b);
-                        let a_id = self.organisms[idx].id.clone();
+                        let a_id = self.organisms[idx].id;
                         let a_name = self.organisms[idx].name.clone();
-                        let a_lid = self.organisms[idx].lineage_id.clone();
+                        let a_lid = self.organisms[idx].lineage_id;
                         let b_name = self.organisms[pi].name.clone();
-                        let b_lid = self.organisms[pi].lineage_id.clone();
+                        let b_lid = self.organisms[pi].lineage_id;
                         self.organisms[idx]
                             .record_conversation_outcome(&pid, &b_lid, &b_name, "bonded", None, tc);
                         self.organisms[pi]
@@ -311,11 +315,11 @@ impl Simulation {
                         .map(|(i, _)| i)
                 };
                 if let Some(ci) = chat_target {
-                    let their_lid = self.organisms[ci].lineage_id.clone();
+                    let their_lid = self.organisms[ci].lineage_id;
                     let att = self.organisms[idx].attitude_toward(&their_lid);
                     let combined_energy = self.organisms[idx].energy + self.organisms[ci].energy;
                     let gossip_target: Option<(String, f32)> = {
-                        let cid = self.organisms[ci].id.clone();
+                        let cid = self.organisms[ci].id;
                         self.organisms[idx]
                             .org_trust
                             .iter()
@@ -348,10 +352,10 @@ impl Simulation {
                         self.organisms[ci].vocabulary.touch_all_known(tc);
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[ci].store_conversation(conv_b);
-                        let a_id = self.organisms[idx].id.clone();
+                        let a_id = self.organisms[idx].id;
                         let a_name = self.organisms[idx].name.clone();
-                        let a_lid = self.organisms[idx].lineage_id.clone();
-                        let c_id = self.organisms[ci].id.clone();
+                        let a_lid = self.organisms[idx].lineage_id;
+                        let c_id = self.organisms[ci].id;
                         let c_name = self.organisms[ci].name.clone();
                         self.organisms[idx]
                             .record_conversation_outcome(&c_id, &their_lid, &c_name, kind, None, tc);

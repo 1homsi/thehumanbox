@@ -64,7 +64,7 @@ impl<'a> ActionCtx<'a> {
     ) -> Self {
         let tick = sim.tick_count;
         let (sx, sy) = (sim.organisms[idx].x, sim.organisms[idx].y);
-        let lid = sim.organisms[idx].lineage_id.clone();
+        let lid = sim.organisms[idx].lineage_id;
         let tile = sim.grid.get(ix, iy);
         let (near, kin) = neighbours.unwrap_or_else(|| near_and_kin(&sim.organisms, idx, spatial));
         let rock_near = [
@@ -98,7 +98,7 @@ impl<'a> ActionCtx<'a> {
             fire_near,
             kin,
             near,
-            lid,
+            lid: lid.to_string(),
             tick,
             sx,
             sy,
@@ -244,7 +244,7 @@ impl<'a> ActionCtx<'a> {
     pub fn lineage_era_at_least(&self, era: crate::sim::era::Era) -> bool {
         self.sim
             .lineage_eras
-            .get(&self.lid)
+            .get(self.lid.as_str())
             .is_some_and(|&lineage_era| lineage_era >= era)
     }
 

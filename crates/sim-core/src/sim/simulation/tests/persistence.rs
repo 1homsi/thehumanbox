@@ -79,12 +79,11 @@ fn save_load_preserves_social_continuity_and_rng_stream() {
         .iter()
         .find(|organism| organism.alive)
         .unwrap()
-        .lineage_id
-        .clone();
+        .lineage_id;
     sim.lineage_strategies
-        .insert(guided_lineage.clone(), ("settle".to_string(), 13_000));
+        .insert(guided_lineage.to_string(), ("settle".to_string(), 13_000));
     sim.lineage_strategy_objectives.insert(
-        guided_lineage.clone(),
+        guided_lineage.to_string(),
         StrategyObjective {
             strategy: "settle".to_string(),
             started_tick: 12_000,
@@ -116,10 +115,13 @@ fn save_load_preserves_social_continuity_and_rng_stream() {
     let mut loaded = Simulation::load_or_new(999, &path_s);
 
     assert_eq!(
-        loaded.lineage_strategies.get(&guided_lineage),
+        loaded.lineage_strategies.get(guided_lineage.as_str()),
         Some(&("settle".to_string(), 13_000))
     );
-    let objective = loaded.lineage_strategy_objectives.get(&guided_lineage).unwrap();
+    let objective = loaded
+        .lineage_strategy_objectives
+        .get(guided_lineage.as_str())
+        .unwrap();
     assert_eq!(objective.strategy, "settle");
     assert_eq!(objective.started_tick, 12_000);
     assert_eq!(objective.expires_tick, 13_000);
@@ -155,7 +157,7 @@ fn save_load_preserves_experiment_evidence() {
     sim.tick_count = 50_000;
     let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
     sim.organisms[idx].last_experiment_tick = 3_000;
-    let org_id = sim.organisms[idx].id.clone();
+    let org_id = sim.organisms[idx].id;
 
     sim.save_result(&path_s).unwrap();
     let loaded = Simulation::load_or_new(999, &path_s);
@@ -244,7 +246,7 @@ fn save_load_preserves_civilization_and_personal_progress() {
     });
 
     let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
-    let org_id = sim.organisms[idx].id.clone();
+    let org_id = sim.organisms[idx].id;
     sim.organisms[idx].wealth = 321;
     sim.organisms[idx].literacy = 0.84;
     sim.organisms[idx].mood = 0.73;

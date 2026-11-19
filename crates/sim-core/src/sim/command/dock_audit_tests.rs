@@ -100,19 +100,19 @@ fn staged_world() -> (Simulation, Stage) {
     }
     sim.organisms[near[0]].health = 0.4;
     sim.organisms[near[1]].infection = 0.9;
-    let lineage = sim.organisms[near[2]].lineage_id.clone();
+    let lineage = sim.organisms[near[2]].lineage_id;
     for &i in &near {
-        sim.organisms[i].lineage_id = lineage.clone();
+        sim.organisms[i].lineage_id = lineage;
     }
     let far: Vec<usize> = (0..sim.organisms.len())
         .filter(|&i| sim.organisms[i].alive && dist(&sim.organisms[i]) > 20.0)
         .take(2)
         .collect();
     for i in far {
-        sim.organisms[i].lineage_id = lineage.clone();
+        sim.organisms[i].lineage_id = lineage;
     }
     sim.lineage_eras
-        .entry(lineage.clone())
+        .entry(lineage.to_string().into())
         .or_insert(crate::sim::era::Era::PreStone);
     let (m, w) = (near[2], near[3]);
     for (i, sex) in [(m, Sex::Male), (w, Sex::Female)] {
@@ -120,13 +120,13 @@ fn staged_world() -> (Simulation, Stage) {
         o.sex = sex;
         // Grown, and well short of old age.
         o.age = o.max_age / 2;
-        o.lineage_id = lineage.clone();
+        o.lineage_id = lineage;
         o.partner_id = None;
         // Food to spare, for the tribe's trade gift.
         o.inv_food = o.inv_food.max(3);
     }
     // Clear the old partners' side of any marriage the two were in.
-    let ids = [sim.organisms[m].id.clone(), sim.organisms[w].id.clone()];
+    let ids = [sim.organisms[m].id.to_string(), sim.organisms[w].id.to_string()];
     for o in sim.organisms.iter_mut() {
         if o.partner_id.as_ref().is_some_and(|p| ids.contains(p)) {
             o.partner_id = None;

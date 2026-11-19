@@ -33,7 +33,12 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     // A tribe whose era has houses raises the best home it can pay for; a hut
     // is the fallback while it cannot, so growth never waits on timber and stone.
     let lid = ctx.lid.clone();
-    let era = ctx.sim.lineage_eras.get(&lid).copied().unwrap_or(Era::PreStone);
+    let era = ctx
+        .sim
+        .lineage_eras
+        .get(lid.as_str())
+        .copied()
+        .unwrap_or(Era::PreStone);
     // A rich tribe of the Medieval age or later raises a manor first.
     let population = ctx
         .sim

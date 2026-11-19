@@ -35,7 +35,7 @@ pub fn tribe_mood(
         .collect();
     for o in &alive {
         for (lid, &att) in &o.lineage_attitudes {
-            *sums.entry(lid.clone()).or_insert(0.0) += att;
+            *sums.entry(lid.to_string()).or_insert(0.0) += att;
         }
     }
     let n = alive.len().max(1) as f32;
@@ -50,7 +50,7 @@ pub fn try_spawn_raids(
     tick: u64,
     rng: &mut rand_chacha::ChaCha8Rng,
     organisms: &[crate::organism::organism::Organism],
-    _territory: &HashMap<String, HashSet<(i32, i32)>>,
+    _territory: &HashMap<crate::intern::Sym, HashSet<(i32, i32)>>,
     treaties: &[Treaty],
     active_battles: &[Battle],
     events: &mut std::collections::VecDeque<crate::sim::simulation::Event>,
@@ -68,7 +68,10 @@ pub fn try_spawn_raids(
         if !o.alive {
             continue;
         }
-        pop_per_lineage.entry(o.lineage_id.clone()).or_default().push(i);
+        pop_per_lineage
+            .entry(o.lineage_id.to_string())
+            .or_default()
+            .push(i);
     }
 
     let mut already_engaged: HashSet<String> = HashSet::default();
@@ -202,7 +205,7 @@ pub fn try_spawn_border_wars(
     tick: u64,
     rng: &mut rand_chacha::ChaCha8Rng,
     organisms: &[crate::organism::organism::Organism],
-    territory: &HashMap<String, HashSet<(i32, i32)>>,
+    territory: &HashMap<crate::intern::Sym, HashSet<(i32, i32)>>,
     treaties: &[Treaty],
     active_battles: &[Battle],
     events: &mut std::collections::VecDeque<crate::sim::simulation::Event>,
@@ -220,7 +223,10 @@ pub fn try_spawn_border_wars(
         if !o.alive {
             continue;
         }
-        pop_per_lineage.entry(o.lineage_id.clone()).or_default().push(i);
+        pop_per_lineage
+            .entry(o.lineage_id.to_string())
+            .or_default()
+            .push(i);
     }
 
     let mut already_engaged: HashSet<String> = HashSet::default();
@@ -244,7 +250,7 @@ pub fn try_spawn_border_wars(
         if a_pop < BORDER_WAR_MIN_POP || already_engaged.contains(a_lid) {
             continue;
         }
-        let Some(a_terr) = territory.get(a_lid) else {
+        let Some(a_terr) = territory.get(a_lid.as_str()) else {
             continue;
         };
         if a_terr.is_empty() {
@@ -264,7 +270,7 @@ pub fn try_spawn_border_wars(
             if b_pop < BORDER_WAR_MIN_POP {
                 continue;
             }
-            let Some(b_terr) = territory.get(b_lid) else {
+            let Some(b_terr) = territory.get(b_lid.as_str()) else {
                 continue;
             };
             if b_terr.is_empty() {
@@ -402,7 +408,7 @@ pub(super) fn pick_combatants(
             .map(|&i| {
                 let dx = organisms[i].x - near.0 as f32;
                 let dy = organisms[i].y - near.1 as f32;
-                (organisms[i].id.clone(), (dx * dx + dy * dy).sqrt())
+                (organisms[i].id.to_string(), (dx * dx + dy * dy).sqrt())
             })
             .collect(),
         None => return Vec::new(),

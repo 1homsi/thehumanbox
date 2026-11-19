@@ -311,10 +311,10 @@ impl Simulation {
             }
             let a = start_idx + k;
             let b = start_idx + k + 1;
-            let aid = self.organisms[a].id.clone();
-            let bid = self.organisms[b].id.clone();
-            self.organisms[a].partner_id = Some(bid);
-            self.organisms[b].partner_id = Some(aid);
+            let aid = self.organisms[a].id;
+            let bid = self.organisms[b].id;
+            self.organisms[a].partner_id = Some(bid.to_string());
+            self.organisms[b].partner_id = Some(aid.to_string());
         }
 
         push_event(
@@ -359,14 +359,14 @@ impl Simulation {
         let founder_name = self.organisms[idx].name.clone();
         let old_name = self
             .lineage_names
-            .get(&self.organisms[idx].lineage_id)
+            .get(self.organisms[idx].lineage_id.as_str())
             .cloned()
             .unwrap_or_default();
 
         // A founder leaves with a small band (partner first, then nearby
         // adult kin) and they travel together. Lone founders rarely had
         // anyone to raise a family with, so most new tribes died out.
-        let old_lid = self.organisms[idx].lineage_id.clone();
+        let old_lid = self.organisms[idx].lineage_id;
         let (fx, fy) = (self.organisms[idx].x, self.organisms[idx].y);
         let partner = self.organisms[idx].partner_id.clone();
         let mut band: Vec<(bool, f32, usize)> = self
@@ -394,7 +394,7 @@ impl Simulation {
         let tick = self.tick_count;
         for &member in std::iter::once(&idx).chain(followers.iter()) {
             let o = &mut self.organisms[member];
-            o.lineage_id = new_lid.clone();
+            o.lineage_id = new_lid.clone().into();
             o.home_x = anchor_x as f32;
             o.home_y = anchor_y as f32;
             o.begin_journey((anchor_x, anchor_y), "founding new tribe", tick);

@@ -21,7 +21,7 @@ pub(in crate::sim::civ) fn tick_spiritual_pilgrimage(sim: &mut Simulation) {
             (
                 b.x as f32 + 0.5,
                 b.y as f32 + 0.5,
-                b.owner_lineage.clone().unwrap_or_default(),
+                b.owner_lineage.map(String::from).unwrap_or_default(),
             )
         })
         .collect();
@@ -94,7 +94,7 @@ pub(in crate::sim::civ) fn tick_storyteller(sim: &mut Simulation) {
                 })
                 .map(|m| m.text.clone())
                 .unwrap_or_default();
-            (i, o.lineage_id.clone(), o.x, o.y, pick)
+            (i, o.lineage_id.to_string(), o.x, o.y, pick)
         })
         .filter(|(_, _, _, _, text)| !text.is_empty())
         .collect();
@@ -150,7 +150,7 @@ pub(in crate::sim::civ) fn tick_funerals(sim: &mut Simulation) {
             let since = tick.saturating_sub(o.last_story_tick);
             since > 0 && since < 80
         })
-        .map(|o| (o.lineage_id.clone(), o.x, o.y))
+        .map(|o| (o.lineage_id.to_string(), o.x, o.y))
         .collect();
     if recent_deaths.is_empty() {
         return;
@@ -201,7 +201,7 @@ pub(in crate::sim::civ) fn tick_naming_ceremonies(sim: &mut Simulation) {
         .iter()
         .enumerate()
         .filter(|(_, o)| o.alive && o.age == 40)
-        .map(|(i, o)| (i, o.lineage_id.clone(), o.name.clone(), o.x, o.y))
+        .map(|(i, o)| (i, o.lineage_id.to_string(), o.name.clone(), o.x, o.y))
         .collect();
     if candidates.is_empty() {
         return;
@@ -268,7 +268,7 @@ pub(in crate::sim::civ) fn tick_festivals(sim: &mut Simulation) {
         if !o.alive {
             continue;
         }
-        let e = lineage_stats.entry(o.lineage_id.clone()).or_insert((0, 0, 0));
+        let e = lineage_stats.entry(o.lineage_id.to_string()).or_insert((0, 0, 0));
         e.0 += 1;
         if o.joy_ticks > 200 {
             e.1 += 1;
@@ -334,7 +334,7 @@ pub(in crate::sim::civ) fn tick_birth_celebrations(sim: &mut Simulation) {
         .iter()
         .enumerate()
         .filter(|(_, o)| o.alive && o.age > 0 && o.age <= 6)
-        .map(|(i, o)| (i, o.lineage_id.clone(), o.x, o.y))
+        .map(|(i, o)| (i, o.lineage_id.to_string(), o.x, o.y))
         .collect();
     if newborns.is_empty() {
         return;
@@ -398,7 +398,7 @@ pub(in crate::sim::civ) fn tick_coming_of_age(sim: &mut Simulation) {
                 && o.age_stage() == AgeStage::Adult
                 && AgeStage::from_age(o.age - COMING_OF_AGE_STEP, o.max_age) != AgeStage::Adult
         })
-        .map(|(i, o)| (i, o.lineage_id.clone(), o.x, o.y))
+        .map(|(i, o)| (i, o.lineage_id.to_string(), o.x, o.y))
         .collect();
     if arrivals.is_empty() {
         return;
@@ -555,13 +555,13 @@ mod coming_of_age_tests {
 
     fn person(id: &str, x: f32, age: u32) -> Organism {
         let mut o = Organism::new(
-            id.into(),
+            id,
             id.into(),
             x,
             50.0,
             0,
             String::new(),
-            "clan".into(),
+            "clan",
             20_000,
             Traits::default(),
         );

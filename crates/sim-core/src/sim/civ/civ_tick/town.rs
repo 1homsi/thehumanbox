@@ -68,7 +68,7 @@ fn planned_by_default() -> bool {
 pub struct Town {
     #[serde(default)]
     pub id: u32,
-    pub lineage: String,
+    pub lineage: crate::intern::Sym,
     pub center: [i32; 2],
     #[serde(default)]
     pub streets: Vec<[i32; 2]>,
@@ -147,7 +147,7 @@ fn chebyshev(a: [i32; 2], b: [i32; 2]) -> i32 {
 fn homes_by_lineage(sim: &Simulation) -> HomesByLineage {
     let mut out = HomesByLineage::new();
     for o in sim.organisms.iter().filter(|o| o.alive) {
-        out.entry(o.lineage_id.clone())
+        out.entry(o.lineage_id.to_string())
             .or_default()
             .push([o.home_x as i32, o.home_y as i32]);
     }
@@ -161,7 +161,7 @@ fn settled_points(sim: &Simulation, homes: &HomesByLineage) -> HomesByLineage {
         .iter()
         .filter(|b| !b.decorative && !b.is_ruined() && crate::sim::civ::vacancy::is_home(b.kind))
     {
-        if let Some(points) = b.owner_lineage.as_ref().and_then(|l| out.get_mut(l)) {
+        if let Some(points) = b.owner_lineage.as_ref().and_then(|l| out.get_mut(l.as_str())) {
             points.extend(std::iter::repeat_n([b.x, b.y], HOME_WEIGHT));
         }
     }
@@ -262,7 +262,7 @@ pub(crate) fn tick_towns(sim: &mut Simulation) {
         .collect();
     let (kept, dropped): (Vec<Town>, Vec<Town>) =
         std::mem::take(&mut sim.towns).into_iter().partition(|town| {
-            homes.contains_key(&town.lineage)
+            homes.contains_key(town.lineage.as_str())
                 && (people.get(&town.id).copied().unwrap_or(0) > 0 || standing.contains(&town.id))
         });
     sim.towns = kept;
@@ -328,7 +328,7 @@ fn found_towns(sim: &mut Simulation, homes: &HomesByLineage) {
         sim.next_town_id = id + 1;
         sim.towns.push(Town {
             id,
-            lineage,
+            lineage: lineage.into(),
             center,
             streets: Vec::new(),
             founded_tick: now,
@@ -342,7 +342,14 @@ fn found_towns(sim: &mut Simulation, homes: &HomesByLineage) {
 fn plan_towns(sim: &mut Simulation, people: &HashMap<u32, usize>) {
     for i in 0..sim.towns.len() {
         let town = &sim.towns[i];
-        if town.planned || sim.settlement_tiers.get(&town.lineage).copied().unwrap_or(0) < TOWN_TIER {
+        if town.planned
+            || sim
+                .settlement_tiers
+                .get(town.lineage.as_str())
+                .copied()
+                .unwrap_or(0)
+                < TOWN_TIER
+        {
             continue;
         }
         let first = !sim.towns.iter().any(|t| t.planned && t.lineage == town.lineage);
@@ -420,13 +427,13 @@ pub(crate) fn assign_parents(sim: &mut Simulation) {
     let mut by_lineage: HashMap<String, Vec<(u32, [i32; 2])>> = HashMap::default();
     for t in &sim.towns {
         by_lineage
-            .entry(t.lineage.clone())
+            .entry(t.lineage.to_string())
             .or_default()
             .push((t.id, t.center));
     }
     let mut changed = false;
     for b in sim.buildings.iter_mut() {
-        let towns = b.owner_lineage.as_ref().and_then(|l| by_lineage.get(l));
+        let towns = b.owner_lineage.as_ref().and_then(|l| by_lineage.get(l.as_str()));
         let keep = b
             .town
             .is_some_and(|id| towns.is_some_and(|ts| ts.iter().any(|t| t.0 == id)));
@@ -933,7 +940,7 @@ pub fn lineage_centres(sim: &Simulation) -> Vec<(String, [i32; 2])> {
         .organisms
         .iter()
         .filter(|o| o.alive)
-        .map(|o| o.lineage_id.clone())
+        .map(|o| o.lineage_id.to_string())
         .collect();
     lineages.sort();
     lineages.dedup();
@@ -972,7 +979,7 @@ mod tests {
                 48.0 + (id / 5) as f32,
                 0,
                 String::new(),
-                "clan".into(),
+                "clan",
                 20_000,
                 Traits::default(),
             );

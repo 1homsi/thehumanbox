@@ -112,7 +112,7 @@ pub struct Simulation {
     /// tiles today; future work can derive it from the historical
     /// spread of centroids.
     pub lineage_homes: HashMap<String, [i32; 3]>,
-    pub lineage_eras: HashMap<String, super::era::Era>,
+    pub lineage_eras: HashMap<crate::intern::Sym, super::era::Era>,
     /// The highest generation born in each tribe, counted from 1 for the founders.
     pub lineage_generations_reached: HashMap<String, u32>,
     /// Unrest building in each tribe whose wealth gap is stark (civ/society/unrest.rs).
@@ -259,12 +259,12 @@ pub struct Simulation {
     pub(crate) settlement_tiers: HashMap<String, u8>,
     // lineage_id → set of claimed tiles. Kept for serialisation, draw
     // overlays, and territory-size eviction logic.
-    pub territory: HashMap<String, HashSet<(i32, i32)>>,
+    pub territory: HashMap<crate::intern::Sym, HashSet<(i32, i32)>>,
     // Inverse of `territory`: tile → most-recent-claimer lineage_id.
     // Avoids the O(L × T) scan of the forward map for per-org rival
     // lookups every tick. "Most recent wins" is fine for our attitude-
     // decay use - we just need *a* rival, not the full conflict set.
-    pub(crate) tile_owner: HashMap<(i32, i32), String>,
+    pub(crate) tile_owner: HashMap<(i32, i32), crate::intern::Sym>,
     pub(crate) cached_territory: serde_json::Value,
 }
 

@@ -73,7 +73,7 @@ fn non_empty(id: &str) -> Option<&str> {
 fn entry(id: &str, relation: &'static str, found: Option<&Organism>) -> FamilyWordsJson {
     match found {
         Some(o) => FamilyWordsJson {
-            id: o.id.clone(),
+            id: o.id.to_string(),
             name: o
                 .custom_name
                 .as_deref()
@@ -122,13 +122,13 @@ mod tests {
     ) -> Organism {
         let mut rng = StdRng::seed_from_u64(7);
         let mut o = Organism::new(
-            id.into(),
+            id,
             name.into(),
             0.0,
             0.0,
             0,
             parent_id.into(),
-            "lin".into(),
+            "lin",
             5000,
             Traits::random(&mut rng),
         );

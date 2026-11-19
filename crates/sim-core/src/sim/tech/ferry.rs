@@ -261,7 +261,7 @@ impl Simulation {
             if c == u32::MAX {
                 continue;
             }
-            let list = kin.entry(o.lineage_id.clone()).or_default();
+            let list = kin.entry(o.lineage_id.to_string()).or_default();
             if !list.contains(&c) {
                 list.push(c);
             }
@@ -531,7 +531,7 @@ impl Simulation {
                 o.wander_target = None;
                 o.x = here.0 as f32;
                 o.y = here.1 as f32;
-                self.vehicles[vi].occupants.push(o.id.clone());
+                self.vehicles[vi].occupants.push(o.id.to_string());
                 self.ferry_queues.aboard.entry(vid).or_default().push(p);
             }
         }
@@ -539,10 +539,10 @@ impl Simulation {
             return;
         }
         for o in self.organisms.iter_mut().filter(|o| o.alive) {
-            if let Some(&(x, y)) = riding.get(&o.id) {
+            if let Some(&(x, y)) = riding.get(o.id.as_str()) {
                 o.x = x as f32;
                 o.y = y as f32;
-            } else if let Some(l) = landed.get(&o.id) {
+            } else if let Some(l) = landed.get(o.id.as_str()) {
                 o.x = l.shore.0 as f32;
                 o.y = l.shore.1 as f32;
                 o.journey = None;
@@ -615,7 +615,7 @@ impl Simulation {
             let cooling = self
                 .ferry_queues
                 .cooldown
-                .get(&o.id)
+                .get(o.id.as_str())
                 .is_some_and(|&until| now < until);
             let carried = piers
                 .iter()
@@ -663,7 +663,7 @@ impl Simulation {
             }
             let passenger = Passenger {
                 idx: oi,
-                id: o.id.clone(),
+                id: o.id.to_string(),
                 goal,
                 description,
                 since: now,
@@ -727,7 +727,7 @@ mod tests {
         }
         for (i, o) in sim.organisms.iter_mut().take(8).enumerate() {
             o.alive = true;
-            o.lineage_id = "kin".to_string();
+            o.lineage_id = "kin".to_string().into();
             o.x = if i < 4 {
                 88.0 + i as f32
             } else {
@@ -855,7 +855,7 @@ mod tests {
         // Sixteen more people on the west shore: with the four already there, twenty want the far shore.
         for (k, o) in sim.organisms.iter_mut().filter(|o| !o.alive).take(16).enumerate() {
             o.alive = true;
-            o.lineage_id = "kin".to_string();
+            o.lineage_id = "kin".to_string().into();
             o.discover("fishing");
             o.journey = None;
             o.wander_target = None;
@@ -919,7 +919,7 @@ mod tests {
     fn someone_who_waits_too_long_gives_up_and_may_not_queue_again_at_once() {
         let mut sim = strait_world();
         sim.organisms[0].begin_journey((105, 100), "exploring distant land", 200);
-        let id = sim.organisms[0].id.clone();
+        let id = sim.organisms[0].id;
         sim.tick_count = 200;
         sim.tick_ferries();
         run(&mut sim, 201, 204);
@@ -939,7 +939,7 @@ mod tests {
             .get(&(vid, 0))
             .is_some_and(|q| q.is_empty()));
         assert!(sim.organisms[0].journey.is_none(), "back to their own life");
-        assert!(sim.ferry_queues.cooldown.contains_key(&id));
+        assert!(sim.ferry_queues.cooldown.contains_key(id.as_str()));
         // Their errand still takes them across, but they may not queue again until the cooldown ends:
         // while they cool off, the errand is refused and dropped, so they go on with their life.
         sim.organisms[0].begin_journey((105, 100), "exploring distant land", gave_up);

@@ -192,7 +192,7 @@ fn a_wild_cat_that_stays_by_a_person_takes_to_them() {
         100.0,
         AnimalKind::Cat,
     ));
-    let owner = sim.organisms[0].id.clone();
+    let owner = sim.organisms[0].id;
     for _ in 0..4000 {
         // Keep the person and the cat beside each other, so only the chance decides the bond.
         sim.organisms[0].x = 100.0;

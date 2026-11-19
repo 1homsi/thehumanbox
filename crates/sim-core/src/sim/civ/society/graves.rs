@@ -267,13 +267,13 @@ mod tests {
         sim.organisms.clear();
         for (id, age) in [("adult", 9_000u32), ("child", 1_000)] {
             let mut o = Organism::new(
-                id.into(),
+                id,
                 id.into(),
                 100.0,
                 100.0,
                 0,
                 String::new(),
-                "clan".into(),
+                "clan",
                 20_000,
                 Default::default(),
             );

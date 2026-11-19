@@ -15,17 +15,15 @@ fn member_index_matches_the_cloning_version() {
     for seed in [7u64, 42] {
         let sim = lived_in(seed, 1_500);
         let fast = lineage_member_index(&sim.organisms);
-        let mut original: FxHashMap<String, Vec<usize>> = FxHashMap::default();
+        let mut original: FxHashMap<crate::intern::Sym, Vec<usize>> = FxHashMap::default();
         for (idx, org) in sim.organisms.iter().enumerate() {
             if org.alive {
-                original.entry(org.lineage_id.clone()).or_default().push(idx);
+                original.entry(org.lineage_id).or_default().push(idx);
             }
         }
         // The same keys in the same table order, each with the same members.
-        let flatten = |map: &FxHashMap<String, Vec<usize>>| {
-            map.iter()
-                .map(|(k, v)| (k.clone(), v.clone()))
-                .collect::<Vec<_>>()
+        let flatten = |map: &FxHashMap<crate::intern::Sym, Vec<usize>>| {
+            map.iter().map(|(k, v)| (*k, v.clone())).collect::<Vec<_>>()
         };
         assert_eq!(flatten(&fast), flatten(&original), "seed {seed}");
         assert!(fast.len() > 3);
@@ -45,16 +43,17 @@ fn population_slots_match_the_cloning_version() {
             }
         }
         let fast = growth::lineage_population_slots(&sim.organisms);
-        let mut original: FxHashMap<String, usize> = FxHashMap::default();
+        let mut original: FxHashMap<crate::intern::Sym, usize> = FxHashMap::default();
         for organism in sim
             .organisms
             .iter()
             .filter(|organism| organism.alive || growth::is_pending_birth(organism))
         {
-            *original.entry(organism.lineage_id.clone()).or_insert(0) += 1;
+            *original.entry(organism.lineage_id).or_insert(0) += 1;
         }
-        let flatten =
-            |map: &FxHashMap<String, usize>| map.iter().map(|(k, v)| (k.clone(), *v)).collect::<Vec<_>>();
+        let flatten = |map: &FxHashMap<crate::intern::Sym, usize>| {
+            map.iter().map(|(k, v)| (k.to_string(), *v)).collect::<Vec<_>>()
+        };
         assert_eq!(flatten(&fast), flatten(&original), "seed {seed}");
         assert!(fast.values().sum::<usize>() > 50);
     }
@@ -67,7 +66,7 @@ fn lineage_aggregates_match_the_cloning_version() {
         sim.rebuild_lineage_aggregates();
         let mut original: HashMap<String, LineageAggregate> = HashMap::default();
         for org in sim.organisms.iter().filter(|org| org.alive) {
-            let entry = original.entry(org.lineage_id.clone()).or_default();
+            let entry = original.entry(org.lineage_id.to_string()).or_default();
             entry.population += 1;
             entry.x_sum += org.x;
             entry.y_sum += org.y;
@@ -122,14 +121,14 @@ fn territory_state(sim: &Simulation) -> TerritoryState {
         .map(|(lineage, tiles)| {
             let mut sorted: Vec<(i32, i32)> = tiles.iter().copied().collect();
             sorted.sort_unstable();
-            (lineage.clone(), sorted)
+            (lineage.to_string(), sorted)
         })
         .collect();
     lineages.sort();
     let mut owners: Vec<((i32, i32), String)> = sim
         .tile_owner
         .iter()
-        .map(|(&tile, owner)| (tile, owner.clone()))
+        .map(|(&tile, owner)| (tile, owner.to_string()))
         .collect();
     owners.sort();
     (lineages, owners)
@@ -148,7 +147,7 @@ fn territory_claims_match_the_sorting_version() {
             }
         }
         let lineages: Vec<String> = {
-            let mut ids: Vec<String> = fast.organisms.iter().map(|o| o.lineage_id.clone()).collect();
+            let mut ids: Vec<String> = fast.organisms.iter().map(|o| o.lineage_id.to_string()).collect();
             ids.sort();
             ids.dedup();
             ids
@@ -167,7 +166,7 @@ fn territory_claims_match_the_sorting_version() {
             let cx = 150 + (next() % 50) as i32 + if step % 97 == 0 { -190 } else { 0 };
             let cy = 100 + (next() % 40) as i32;
             let radius = [1, 3, 4, 6, 6][(next() % 5) as usize];
-            let before = fast.territory.get(lineage).map_or(0, |t| t.len());
+            let before = fast.territory.get(lineage.as_str()).map_or(0, |t| t.len());
             fast.claim_territory(lineage, cx, cy, radius);
             original.claim_territory_reference(lineage, cx, cy, radius);
             evicting_claims += usize::from(before + 1 > 400 && radius >= 3);

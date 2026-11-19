@@ -122,8 +122,8 @@ pub(super) fn open_merchant_routes(sim: &mut Simulation) {
         if sim.trade_routes.len() >= MAX_TRADE_ROUTES {
             break;
         }
-        let lineage = sim.organisms[merchant_idx].lineage_id.clone();
-        let Some(&center) = centers.get(&lineage) else {
+        let lineage = sim.organisms[merchant_idx].lineage_id;
+        let Some(&center) = centers.get(lineage.as_str()) else {
             continue;
         };
         let mut best: Option<(u64, &String)> = None;
@@ -234,7 +234,7 @@ fn gather_for_merchant(sim: &mut Simulation, sender: &str, merchant_idx: usize, 
         .filter(|(idx, org)| *idx != merchant_idx && org.alive && org.lineage_id == sender)
         .map(|(idx, org)| {
             let distance = manhattan_distance([mx as i32, my as i32], [org.x as i32, org.y as i32]);
-            (distance, org.id.clone(), idx)
+            (distance, org.id.to_string(), idx)
         })
         .collect();
     donors.sort();

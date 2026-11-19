@@ -57,7 +57,7 @@ impl Simulation {
                 .organisms
                 .iter()
                 .filter(|o| o.alive && (o.x - x).det_hypot(o.y - y) <= radius)
-                .map(|o| o.lineage_id.clone())
+                .map(|o| o.lineage_id.to_string())
                 .collect();
             tribes.sort();
             tribes.dedup();
@@ -184,7 +184,7 @@ mod tests {
                 100.0,
                 0,
                 String::new(),
-                "clan".into(),
+                "clan",
                 20_000,
                 Default::default(),
             );

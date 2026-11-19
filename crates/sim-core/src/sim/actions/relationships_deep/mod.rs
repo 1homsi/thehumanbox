@@ -160,13 +160,13 @@ mod tests {
         sim.organisms.clear();
         for (id, name, x) in [("a", "Ari", 40.0), ("b", "Bea", 41.0)] {
             let mut person = Organism::new(
-                id.into(),
+                id,
                 name.into(),
                 x,
                 40.0,
                 1,
                 String::new(),
-                "kin".into(),
+                "kin",
                 100_000,
                 Traits::default(),
             );

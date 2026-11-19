@@ -222,7 +222,7 @@ impl Simulation {
         let mut sums: BTreeMap<&str, (f64, f64)> = BTreeMap::new();
         let mut faiths: BTreeMap<&str, BTreeMap<&str, u32>> = BTreeMap::new();
         for o in self.organisms.iter().filter(|o| o.alive) {
-            let f = facts.entry(o.lineage_id.clone()).or_default();
+            let f = facts.entry(o.lineage_id.to_string()).or_default();
             f.pop += 1;
             if o.inv_food == 0 && o.energy < 0.4 {
                 f.hungry += 1.0;
@@ -258,7 +258,7 @@ impl Simulation {
                 ((sx / f.pop as f64) as i32, (sy / f.pop as f64) as i32),
                 |(_, c)| (c[0], c[1]),
             );
-            f.land = self.territory.get(lid).map_or(0, |t| t.len());
+            f.land = self.territory.get(lid.as_str()).map_or(0, |t| t.len());
             if self.ruled_by(lid, crate::sim::civ::society::rulers::RulerTrait::Warlike) {
                 f.ambition = (f.ambition + crate::sim::civ::society::rulers::WARLIKE_AMBITION).min(1.0);
             } else if self.ruled_by(lid, crate::sim::civ::society::rulers::RulerTrait::Peaceful) {
@@ -444,7 +444,7 @@ impl Simulation {
         let front = battle.location;
         let mut pops: BTreeMap<String, Vec<usize>> = BTreeMap::new();
         for (i, o) in self.organisms.iter().enumerate().filter(|(_, o)| o.alive) {
-            pops.entry(o.lineage_id.clone()).or_default().push(i);
+            pops.entry(o.lineage_id.to_string()).or_default().push(i);
         }
         let candidates: Vec<String> = pops
             .iter()
@@ -842,12 +842,12 @@ impl Simulation {
                 set.swap_remove(t);
             }
         }
-        let set = self.territory.entry(to.to_string()).or_default();
+        let set = self.territory.entry(to.to_string().into()).or_default();
         for &t in tiles {
             set.insert(t);
         }
         for &t in tiles {
-            self.tile_owner.insert(t, to.to_string());
+            self.tile_owner.insert(t, to.to_string().into());
         }
     }
 
@@ -882,11 +882,11 @@ impl Simulation {
         let Some(town) = self.towns.iter_mut().find(|t| t.id == id) else {
             return;
         };
-        town.lineage = to.to_string();
+        town.lineage = to.to_string().into();
         let centre = town.center;
         for b in self.buildings.iter_mut() {
             if b.town == Some(id) && b.owner_lineage.as_deref() == Some(from) {
-                b.owner_lineage = Some(to.to_string());
+                b.owner_lineage = Some(to.to_string().into());
             }
         }
         self.building_state_revision = self.building_state_revision.wrapping_add(1);
@@ -895,7 +895,7 @@ impl Simulation {
                 && o.lineage_id == from
                 && chebyshev([o.home_x as i32, o.home_y as i32], centre) <= TOWN_PEOPLE_REACH
             {
-                o.lineage_id = to.to_string();
+                o.lineage_id = to.to_string().into();
             }
         }
         let land: Vec<(i32, i32)> = self.territory.get(from).map_or_else(Vec::new, |tiles| {
@@ -916,7 +916,7 @@ impl Simulation {
             .iter_mut()
             .filter(|o| o.alive && o.lineage_id == from)
         {
-            o.lineage_id = to.to_string();
+            o.lineage_id = to.to_string().into();
         }
         let land: Vec<(i32, i32)> = self.territory.get(from).map_or_else(Vec::new, |tiles| {
             let mut v: Vec<(i32, i32)> = tiles.iter().copied().collect();
@@ -926,7 +926,7 @@ impl Simulation {
         self.move_tiles(from, to, &land);
         for b in self.buildings.iter_mut() {
             if b.owner_lineage.as_deref() == Some(from) {
-                b.owner_lineage = Some(to.to_string());
+                b.owner_lineage = Some(to.to_string().into());
             }
         }
         self.building_state_revision = self.building_state_revision.wrapping_add(1);

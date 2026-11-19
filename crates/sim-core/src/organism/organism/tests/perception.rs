@@ -51,13 +51,13 @@ fn perception_encodes_remembered_resource_direction() {
     let grid = WorldGrid::new(3);
     let spatial = crate::sim::spatial::SpatialIndex::build(&[], 10);
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "Rememberer".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -77,13 +77,13 @@ fn perception_ignores_dangerous_remembered_resource() {
     let grid = WorldGrid::new(4);
     let spatial = crate::sim::spatial::SpatialIndex::build(&[], 10);
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "Cautious".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -108,13 +108,13 @@ fn perception_encodes_carried_food_and_water_reserves() {
     let grid = WorldGrid::new(5);
     let spatial = crate::sim::spatial::SpatialIndex::build(&[], 10);
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "Prepared".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -212,7 +212,7 @@ fn shared_perception_query_preserves_social_and_attitude_fields() {
                     y + shift,
                     1,
                     String::new(),
-                    lineage.into(),
+                    lineage,
                     10_000,
                     Traits::default(),
                 );

@@ -36,10 +36,10 @@ impl Simulation {
             self.report("none_dead", 0, None);
             return false;
         };
-        let lineage = self.organisms[i].lineage_id.clone();
+        let lineage = self.organisms[i].lineage_id;
         if self
             .revive_cooldown
-            .get(&lineage)
+            .get(lineage.as_str())
             .is_some_and(|&t| now.saturating_sub(t) < REVIVE_COOLDOWN)
         {
             self.report("revive_cooldown", 0, None);
@@ -54,14 +54,14 @@ impl Simulation {
         o.fear_level = 0.0;
         o.think("returned from death by the gods", now);
         let name = o.name.clone();
-        let id = o.id.clone();
+        let id = o.id;
         self.fallen.retain(|(f, _)| f != &id);
-        self.revive_cooldown.insert(lineage.clone(), now);
+        self.revive_cooldown.insert(lineage.to_string(), now);
         // A miracle: the tribe's faith in its gods grows.
         self.adjust_faith(&lineage, 2);
         let tribe = self
             .lineage_names
-            .get(&lineage)
+            .get(lineage.as_str())
             .cloned()
             .unwrap_or_else(|| "a tribe".to_string());
         push_event(
@@ -83,13 +83,13 @@ mod tests {
 
     fn dead_person(sim: &mut Simulation, id: &str, age: u32, died: u64) {
         let mut o = Organism::new(
-            id.into(),
+            id,
             id.into(),
             50.0,
             50.0,
             0,
             String::new(),
-            "clan".into(),
+            "clan",
             20_000,
             Default::default(),
         );
@@ -146,7 +146,7 @@ mod tests {
     fn deaths_are_remembered_as_they_happen() {
         let mut sim = Simulation::new(67);
         let i = sim.organisms.iter().position(|o| o.alive).unwrap();
-        let id = sim.organisms[i].id.clone();
+        let id = sim.organisms[i].id;
         sim.organisms[i].health = -1.0;
         for _ in 0..30 {
             sim.tick();

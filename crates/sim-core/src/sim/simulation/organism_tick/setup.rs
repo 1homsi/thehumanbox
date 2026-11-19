@@ -58,8 +58,8 @@ impl Simulation {
 
         {
             let my_lid = &self.organisms[idx].lineage_id;
-            let intruders: Vec<String> = if let Some(elder_id) = self.lineage_elders.get(my_lid) {
-                if let Some(&elder_idx) = org_idx_by_id.get(elder_id) {
+            let intruders: Vec<String> = if let Some(elder_id) = self.lineage_elders.get(my_lid.as_str()) {
+                if let Some(&elder_idx) = org_idx_by_id.get(elder_id.as_str()) {
                     let ex = self.organisms[elder_idx].home_x;
                     let ey = self.organisms[elder_idx].home_y;
                     let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
@@ -75,7 +75,7 @@ impl Simulation {
                                 continue;
                             }
                             if (o.x - ex).abs() + (o.y - ey).abs() < 12.0 {
-                                v.push(o.lineage_id.clone());
+                                v.push(o.lineage_id.to_string());
                             }
                         }
                         v
@@ -91,7 +91,7 @@ impl Simulation {
             for intruder_lid in intruders {
                 let att = self.organisms[idx]
                     .lineage_attitudes
-                    .entry(intruder_lid)
+                    .entry(intruder_lid.into())
                     .or_insert(0.0);
                 *att = (*att - 0.0015).max(-1.0);
             }
@@ -106,7 +106,7 @@ impl Simulation {
                 self.organisms[idx].home_x as i32,
                 self.organisms[idx].home_y as i32,
             );
-            let lid = self.organisms[idx].lineage_id.clone();
+            let lid = self.organisms[idx].lineage_id;
             let radius = if has_borders { 4 } else { 1 };
             self.claim_territory(&lid, hx, hy, radius);
         }
@@ -117,11 +117,11 @@ impl Simulation {
         // lineage's claimed tile set.
         {
             let (ox_i, oy_i) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
-            let rival_lid: Option<String> = self
+            let rival_lid: Option<crate::intern::Sym> = self
                 .tile_owner
                 .get(&(ox_i, oy_i))
-                .filter(|lid| lid.as_str() != self.organisms[idx].lineage_id)
-                .cloned();
+                .filter(|lid| **lid != self.organisms[idx].lineage_id)
+                .copied();
             if let Some(rival) = rival_lid {
                 let att = self.organisms[idx].lineage_attitudes.entry(rival).or_insert(0.0);
                 *att = (*att - 0.002).max(-1.0);

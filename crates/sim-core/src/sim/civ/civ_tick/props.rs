@@ -72,7 +72,7 @@ pub(super) fn tick_scatter_props(sim: &mut Simulation) {
         .organisms
         .iter()
         .filter(|o| o.alive)
-        .map(|o| o.lineage_id.clone())
+        .map(|o| o.lineage_id.to_string())
         .collect();
     alive_lineages.sort();
     alive_lineages.dedup();

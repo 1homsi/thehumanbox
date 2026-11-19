@@ -33,13 +33,13 @@ impl Simulation {
             self.report("none_here", 0, None);
             return false;
         };
-        let lineage = self.organisms[i].lineage_id.clone();
-        let person_id = self.organisms[i].id.clone();
+        let lineage = self.organisms[i].lineage_id;
+        let person_id = self.organisms[i].id;
         // A band with no one to lead it gathers around the one the gods crowned: it becomes a chiefdom.
         let tick = self.tick_count;
-        let government = self.governments.entry(lineage.clone()).or_insert_with(|| {
+        let government = self.governments.entry(lineage.to_string()).or_insert_with(|| {
             crate::sim::government::Government::new(
-                lineage.clone(),
+                lineage.to_string(),
                 crate::sim::government::GovernmentKind::Tribal,
                 tick,
             )
@@ -48,7 +48,7 @@ impl Simulation {
             government.transition_to(crate::sim::government::GovernmentKind::Chiefdom, tick);
             let tribe = self
                 .lineage_names
-                .get(&lineage)
+                .get(lineage.as_str())
                 .cloned()
                 .unwrap_or_else(|| "a tribe".to_string());
             crate::sim::world_events::push_event(
@@ -59,10 +59,10 @@ impl Simulation {
                 "gathered around a chief the gods crowned",
             );
         }
-        let Some(government) = self.governments.get_mut(&lineage) else {
+        let Some(government) = self.governments.get_mut(lineage.as_str()) else {
             return false;
         };
-        let previous = government.leader_id.replace(person_id);
+        let previous = government.leader_id.replace(person_id.to_string());
         if let Some(previous) = previous {
             if let Some(old) = self.organisms.iter_mut().find(|o| o.id == previous) {
                 old.is_leader = false;
@@ -94,7 +94,7 @@ mod tests {
         );
         for (k, age) in [(0usize, 9000u32), (1, 9000)] {
             sim.organisms[k].alive = true;
-            sim.organisms[k].lineage_id = lineage.clone();
+            sim.organisms[k].lineage_id = lineage.clone().into();
             sim.organisms[k].age = age;
             sim.organisms[k].max_age = 14000;
         }
@@ -102,7 +102,7 @@ mod tests {
         sim.organisms[0].y = 80.0;
         sim.organisms[1].x = 150.0;
         sim.organisms[1].y = 150.0;
-        let person_id = sim.organisms[0].id.clone();
+        let person_id = sim.organisms[0].id;
 
         assert!(sim.apply_command_json(r#"{"cmd":"make_leader","x":81.0,"y":81.0}"#));
         assert_eq!(
@@ -126,7 +126,7 @@ mod tests {
             Government::new(lineage.clone(), GovernmentKind::Tribal, tick),
         );
         sim.organisms[0].alive = true;
-        sim.organisms[0].lineage_id = lineage.clone();
+        sim.organisms[0].lineage_id = lineage.clone().into();
         sim.organisms[0].age = 9000;
         sim.organisms[0].max_age = 14000;
         sim.organisms[0].x = 80.0;

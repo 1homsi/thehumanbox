@@ -146,7 +146,7 @@ pub(crate) fn tick_ports(sim: &mut Simulation) {
     let mut slot: crate::hashing::FxHashMap<&str, usize> = Default::default();
     for (i, o) in sim.organisms.iter().enumerate().filter(|(_, o)| o.alive) {
         let k = *slot.entry(o.lineage_id.as_str()).or_insert_with(|| {
-            tribes.push((o.lineage_id.clone(), Vec::new()));
+            tribes.push((o.lineage_id.to_string(), Vec::new()));
             tribes.len() - 1
         });
         tribes[k].1.push(i);
@@ -386,9 +386,9 @@ mod tests {
         }
         sim.organisms.truncate(40);
         assert_eq!(sim.organisms.len(), 40, "the world starts with forty people");
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let lineage = sim.organisms[0].lineage_id;
         for o in sim.organisms.iter_mut() {
-            o.lineage_id = lineage.clone();
+            o.lineage_id = lineage;
             o.alive = true;
             o.home_x = 89.0;
             o.home_y = 100.0;
@@ -397,7 +397,7 @@ mod tests {
         }
         sim.organisms[0].discover("fishing");
         sim.vehicles.clear();
-        (sim, lineage)
+        (sim, lineage.to_string())
     }
 
     /// Runs the harbour works at each check tick from `from` to `to`, inclusive.
@@ -416,7 +416,7 @@ mod tests {
     #[test]
     fn a_harbour_town_shares_one_shipyard() {
         let (mut sim, lineage) = coastal_sim();
-        sim.lineage_eras.insert(lineage.clone(), Era::Bronze);
+        sim.lineage_eras.insert(lineage.clone().into(), Era::Bronze);
         for o in sim.organisms.iter_mut() {
             o.inv_wood = 9;
         }
@@ -441,7 +441,7 @@ mod tests {
     #[test]
     fn a_shipyard_stands_on_the_shore_with_open_water_along_its_side() {
         let (mut sim, lineage) = coastal_sim();
-        sim.lineage_eras.insert(lineage.clone(), Era::Bronze);
+        sim.lineage_eras.insert(lineage.clone().into(), Era::Bronze);
         run_works(&mut sim, 0, 100);
         let i = building_within(&sim, BuildingKind::Shipyard, &lineage, (90, 100), PORT_REACH)
             .expect("a bronze fishing tribe raises a yard");
@@ -458,7 +458,7 @@ mod tests {
     #[test]
     fn no_shipyard_before_the_bronze_age_and_no_boat_without_one() {
         let (mut sim, lineage) = coastal_sim();
-        sim.lineage_eras.insert(lineage.clone(), Era::PreStone);
+        sim.lineage_eras.insert(lineage.clone().into(), Era::PreStone);
         for o in sim.organisms.iter_mut() {
             o.inv_wood = 9;
         }
@@ -474,7 +474,7 @@ mod tests {
     #[test]
     fn a_bronze_tribe_raises_a_shipyard_and_builds_its_next_boat_from_wood_and_time() {
         let (mut sim, lineage) = coastal_sim();
-        sim.lineage_eras.insert(lineage.clone(), Era::Bronze);
+        sim.lineage_eras.insert(lineage.clone().into(), Era::Bronze);
         for o in sim.organisms.iter_mut() {
             o.inv_wood = 10;
         }
@@ -544,7 +544,7 @@ mod tests {
     #[test]
     fn laying_growing_and_launching_a_hull_resend_the_buildings() {
         let (mut sim, lineage) = coastal_sim();
-        sim.lineage_eras.insert(lineage.clone(), Era::Bronze);
+        sim.lineage_eras.insert(lineage.clone().into(), Era::Bronze);
         for o in sim.organisms.iter_mut() {
             o.inv_wood = 10;
         }
@@ -613,7 +613,7 @@ mod tests {
     #[test]
     fn a_warehouse_takes_another_tribes_goods_and_gives_them_back_to_its_own_tribe() {
         let (mut sim, lineage) = coastal_sim();
-        sim.lineage_eras.insert(lineage.clone(), Era::Iron);
+        sim.lineage_eras.insert(lineage.clone().into(), Era::Iron);
         run_works(&mut sim, 0, 0);
         assert!(building_within(&sim, BuildingKind::Warehouse, &lineage, (90, 100), PORT_REACH).is_some());
         assert_eq!(

@@ -78,7 +78,7 @@ fn border_battle(attacker: &str, defender: &str, at: (i32, i32), sim: &Simulatio
             .iter()
             .filter(|o| o.alive && o.lineage_id == l)
             .take(4)
-            .map(|o| o.id.clone())
+            .map(|o| o.id.to_string())
             .collect()
     };
     let attacker_orgs = pick(attacker);

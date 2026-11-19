@@ -237,8 +237,8 @@ impl Simulation {
             let (Some(ta), Some(tb)) = (town(edge.from_town), edge.to_town.and_then(town)) else {
                 continue;
             };
-            let a = (ta.lineage.clone(), ta.center);
-            let b = (tb.lineage.clone(), tb.center);
+            let a = (ta.lineage.to_string(), ta.center);
+            let b = (tb.lineage.to_string(), tb.center);
             let (owner, a, b) = if self.era(&a.0) >= RAIL_ERA {
                 (a.0.clone(), a, b)
             } else if self.era(&b.0) >= RAIL_ERA {
@@ -249,7 +249,7 @@ impl Simulation {
             candidates.push((
                 std::cmp::Reverse(edge.traffic),
                 edge.id,
-                owner,
+                owner.to_string(),
                 a,
                 b,
                 edge.path.clone(),
@@ -593,7 +593,7 @@ impl Simulation {
             return;
         }
         for o in self.organisms.iter_mut().filter(|o| o.alive) {
-            if let Some(&((x, y), alight)) = riders.get(&o.id) {
+            if let Some(&((x, y), alight)) = riders.get(o.id.as_str()) {
                 o.x = x as f32;
                 o.y = y as f32;
                 if alight {
@@ -640,8 +640,8 @@ impl Simulation {
             o.wander_target = None;
             o.x = here[0] as f32;
             o.y = here[1] as f32;
-            let id = o.id.clone();
-            self.vehicles[vi].occupants.push(id);
+            let id = o.id;
+            self.vehicles[vi].occupants.push(id.to_string());
         }
         // Grain goes across when the far town's stores are emptier by more than the margin.
         let origin = grain_near(self, &town, here);
@@ -685,7 +685,7 @@ mod tests {
         sim.organisms.truncate(40);
         for (i, o) in sim.organisms.iter_mut().enumerate() {
             o.alive = true;
-            o.lineage_id = if i < 20 { OWNER } else { PARTNER }.to_string();
+            o.lineage_id = (if i < 20 { OWNER } else { PARTNER }.to_string()).into();
             o.x = 60.0;
             o.y = 60.0;
         }
@@ -694,8 +694,9 @@ mod tests {
             o.home_x = home;
             o.home_y = 96.0;
         }
-        sim.lineage_eras.insert(OWNER.to_string(), Era::Industrial);
-        sim.lineage_eras.insert(PARTNER.to_string(), Era::Industrial);
+        sim.lineage_eras.insert(OWNER.to_string().into(), Era::Industrial);
+        sim.lineage_eras
+            .insert(PARTNER.to_string().into(), Era::Industrial);
         for (id, x, owner) in [(9003u32, 92, OWNER), (9004, 149, PARTNER)] {
             let mut b = Building::new(id, BuildingKind::Granary, x, 104, Some(owner.to_string()), 0);
             b.condition = 1.0;
@@ -707,7 +708,7 @@ mod tests {
     fn town(id: u32, lineage: &str, center: [i32; 2]) -> Town {
         Town {
             id,
-            lineage: lineage.to_string(),
+            lineage: lineage.to_string().into(),
             center,
             streets: Vec::new(),
             founded_tick: 0,
@@ -767,8 +768,9 @@ mod tests {
     #[test]
     fn no_track_before_the_industrial_age() {
         let mut sim = two_towns();
-        sim.lineage_eras.insert(OWNER.to_string(), Era::Classical);
-        sim.lineage_eras.insert(PARTNER.to_string(), Era::Classical);
+        sim.lineage_eras.insert(OWNER.to_string().into(), Era::Classical);
+        sim.lineage_eras
+            .insert(PARTNER.to_string().into(), Era::Classical);
         busy_road(&mut sim, RAIL_TRAFFIC * 2);
         sim.tick_count = RAIL_STEP;
         sim.plan_rail_lines();
@@ -911,7 +913,7 @@ mod tests {
         sim.organisms[rider].x = a[0] as f32;
         sim.organisms[rider].y = a[1] as f32;
         sim.organisms[rider].begin_journey((a[0], a[1]), WAIT_FOR_TRAIN, RAIL_STEP);
-        let id = sim.organisms[rider].id.clone();
+        let id = sim.organisms[rider].id.to_string();
         run_to(&mut sim, RAIL_STEP + DWELL_TICKS + 2);
         let train = sim
             .vehicles

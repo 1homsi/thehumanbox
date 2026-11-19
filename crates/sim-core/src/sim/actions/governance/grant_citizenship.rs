@@ -11,7 +11,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("no stranger to welcome as a citizen");
         return 0.0;
     };
-    let their = ctx.sim.organisms[ki].lineage_id.clone();
+    let their = ctx.sim.organisms[ki].lineage_id;
     ctx.sim.organisms[ctx.idx].update_attitude(&their, 0.2);
     ctx.think("granting citizenship");
     ctx.event("bond", "welcomed a stranger into the tribe as a citizen");

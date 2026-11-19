@@ -71,7 +71,7 @@ fn deterministic_foreign_partners(ctx: &ActionCtx) -> Vec<usize> {
     });
 
     let mut seen_lineages = std::collections::BTreeSet::new();
-    partners.retain(|&index| seen_lineages.insert(ctx.sim.organisms[index].lineage_id.clone()));
+    partners.retain(|&index| seen_lineages.insert(ctx.sim.organisms[index].lineage_id));
     partners
 }
 

@@ -1,7 +1,7 @@
 use super::*;
 
 pub struct BattleInstitutions<'a> {
-    pub lineage_eras: &'a HashMap<String, Era>,
+    pub lineage_eras: &'a HashMap<crate::intern::Sym, Era>,
     pub governments: &'a HashMap<String, Government>,
     pub buildings: &'a [Building],
     pub field_fortifications: &'a [FieldFortification],
@@ -94,7 +94,7 @@ pub fn tick_battles(
         let mut index = HashMap::default();
         for (i, o) in organisms.iter().enumerate() {
             if wanted.contains(o.id.as_str()) {
-                index.entry(o.id.clone()).or_insert(i);
+                index.entry(o.id.to_string()).or_insert(i);
             }
         }
         index
@@ -129,12 +129,12 @@ pub fn tick_battles(
         let att_era = battle
             .attackers
             .first()
-            .and_then(|lid| institutions.lineage_eras.get(lid).copied())
+            .and_then(|lid| institutions.lineage_eras.get(lid.as_str()).copied())
             .unwrap_or(Era::PreStone);
         let def_era = battle
             .defenders
             .first()
-            .and_then(|lid| institutions.lineage_eras.get(lid).copied())
+            .and_then(|lid| institutions.lineage_eras.get(lid.as_str()).copied())
             .unwrap_or(Era::PreStone);
         let att_policy_bonus = battle
             .attackers
@@ -151,7 +151,7 @@ pub fn tick_battles(
         let health_before: HashMap<String, f32> = att_alive
             .iter()
             .chain(def_alive.iter())
-            .map(|&i| (organisms[i].id.clone(), organisms[i].health))
+            .map(|&i| (organisms[i].id.to_string(), organisms[i].health))
             .collect();
 
         // A combatant can die to fire, illness, or another system between

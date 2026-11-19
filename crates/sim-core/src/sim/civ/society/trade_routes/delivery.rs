@@ -157,7 +157,7 @@ pub(super) fn deliver_caravan(sim: &mut Simulation, caravan_id: u32, members: Op
     // coin, and no coin changes hands.
     let bartering = sim
         .lineage_eras
-        .get(&caravan.sender_lineage)
+        .get(caravan.sender_lineage.as_str())
         .is_none_or(|era| *era < crate::sim::era::Era::Bronze);
     let paid = if let Some(sender_idx) = sender_idx {
         if bartering {
@@ -186,11 +186,11 @@ pub(super) fn deliver_caravan(sim: &mut Simulation, caravan_id: u32, members: Op
             .or_insert(0) += u64::from(paid);
     }
 
-    let buyer_id = sim.organisms[primary_recipient].id.clone();
+    let buyer_id = sim.organisms[primary_recipient].id;
     let buyer_name = sim.organisms[primary_recipient].name.clone();
     let seller_id = sender_idx
-        .map(|index| sim.organisms[index].id.clone())
-        .unwrap_or_else(|| caravan.sender_org_id.clone());
+        .map(|index| sim.organisms[index].id)
+        .unwrap_or_else(|| caravan.sender_org_id.clone().into());
     if caravan.sender_lineage != caravan.receiver_lineage {
         sim.organisms[primary_recipient].update_attitude(&caravan.sender_lineage, 0.025);
         if let Some(sender_idx) = sender_idx {
@@ -201,8 +201,8 @@ pub(super) fn deliver_caravan(sim: &mut Simulation, caravan_id: u32, members: Op
 
     sim.trades.push_back(Trade {
         tick: sim.tick_count,
-        buyer_id,
-        seller_id,
+        buyer_id: buyer_id.to_string(),
+        seller_id: seller_id.to_string(),
         good: caravan.cargo.clone(),
         amount: delivered,
         price: paid,

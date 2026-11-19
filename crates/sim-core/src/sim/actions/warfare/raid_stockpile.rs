@@ -16,7 +16,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         return 0.0;
     };
     ctx.sim.organisms[v].inv_food -= 1;
-    let their = ctx.sim.organisms[v].lineage_id.clone();
+    let their = ctx.sim.organisms[v].lineage_id;
     ctx.sim.organisms[v].update_attitude(&lineage, -0.05);
     let o = &mut ctx.sim.organisms[me];
     o.inv_food = o.inv_food.saturating_add(1);

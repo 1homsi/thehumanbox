@@ -371,10 +371,10 @@ mod tests {
     #[test]
     fn scenery_far_from_any_town_fades_while_town_scenery_stays() {
         let mut sim = grassland();
-        let owner = sim.organisms[0].lineage_id.clone();
+        let owner = sim.organisms[0].lineage_id;
         sim.towns.push(crate::sim::civ::civ_tick::town::Town {
             id: 1,
-            lineage: owner.clone(),
+            lineage: owner.to_string().into(),
             center: [50, 50],
             streets: Vec::new(),
             founded_tick: 0,
@@ -422,7 +422,7 @@ mod tests {
     #[test]
     fn a_substation_is_an_orphan_until_its_tribe_has_a_power_source() {
         let mut sim = grassland();
-        let owner = sim.organisms[0].lineage_id.clone();
+        let owner = sim.organisms[0].lineage_id;
         let sub = standing(&mut sim, BuildingKind::Substation, 42, 42, &owner);
         assert!(orphaned_infrastructure(&sim).contains(&sub));
         assert_eq!(network_strays(&sim).substations_without_grid, 1);
@@ -466,7 +466,7 @@ mod tests {
     #[test]
     fn buildings_on_ways_are_counted_but_gates_and_fountains_are_not() {
         let mut sim = grassland();
-        let owner = sim.organisms[0].lineage_id.clone();
+        let owner = sim.organisms[0].lineage_id;
         for x in 40..=60 {
             sim.grid.road[WorldGrid::idx(x, 45)] = ROAD_TRACK;
         }

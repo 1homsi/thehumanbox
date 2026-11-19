@@ -194,7 +194,7 @@ pub struct SaveState {
     #[serde(default)]
     pub(super) lineage_homes: HashMap<String, [i32; 3]>,
     #[serde(default)]
-    pub(super) lineage_eras: HashMap<String, crate::sim::era::Era>,
+    pub(super) lineage_eras: HashMap<crate::intern::Sym, crate::sim::era::Era>,
     #[serde(default)]
     pub(super) lineage_generations_reached: HashMap<String, u32>,
     #[serde(default)]
@@ -235,7 +235,7 @@ pub struct SaveState {
     #[serde(default)]
     pub(super) hard_winter_ahead: bool,
     #[serde(default)]
-    pub(super) territory: HashMap<String, Vec<[i32; 2]>>,
+    pub(super) territory: HashMap<crate::intern::Sym, Vec<[i32; 2]>>,
     #[serde(default)]
     pub(super) last_immigration_tick: u64,
     #[serde(default)]

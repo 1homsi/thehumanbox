@@ -14,7 +14,7 @@ fn viewport_state_includes_all_alive_when_viewport_spans_world() {
     let near_idx = sim.organisms.iter().position(|o| o.alive).unwrap();
     sim.organisms[near_idx].x = 10.0;
     sim.organisms[near_idx].y = 10.0;
-    let near_id = sim.organisms[near_idx].id.clone();
+    let near_id = sim.organisms[near_idx].id.to_string();
 
     let far_idx = sim
         .organisms
@@ -25,7 +25,7 @@ fn viewport_state_includes_all_alive_when_viewport_spans_world() {
         .unwrap();
     sim.organisms[far_idx].x = (WIDTH - 10) as f32;
     sim.organisms[far_idx].y = (HEIGHT - 10) as f32;
-    let far_id = sim.organisms[far_idx].id.clone();
+    let far_id = sim.organisms[far_idx].id.to_string();
 
     let state = sim.state_json_at(10, 10);
     let ids: Vec<String> = state["organisms_hot"]["ids"]

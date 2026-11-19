@@ -10,7 +10,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("no one in need of a pardon");
         return 0.0;
     };
-    let their = ctx.sim.organisms[ki].lineage_id.clone();
+    let their = ctx.sim.organisms[ki].lineage_id;
     ctx.sim.organisms[ctx.idx].update_attitude(&their, 0.15);
     ctx.think("granting a pardon");
     ctx.event(

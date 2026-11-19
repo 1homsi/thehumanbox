@@ -95,7 +95,7 @@ impl Simulation {
             .filter(|(o, &was)| was && !o.alive && o.is_leader)
             .map(|(o, _)| {
                 (
-                    o.lineage_id.clone(),
+                    o.lineage_id.to_string(),
                     o.name.clone(),
                     (o.x.round() as i32, o.y.round() as i32),
                 )

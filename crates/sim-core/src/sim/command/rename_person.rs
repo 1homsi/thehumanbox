@@ -32,8 +32,8 @@ mod tests {
         }
         sim.organisms[0].alive = true;
         sim.organisms[1].alive = true;
-        let ids = (sim.organisms[0].id.clone(), sim.organisms[1].id.clone());
-        (sim, ids.0, ids.1)
+        let ids = (sim.organisms[0].id, sim.organisms[1].id);
+        (sim, ids.0.to_string(), ids.1.to_string())
     }
 
     #[test]

@@ -52,8 +52,8 @@ pub fn pick_food_recipient(
             && o.alive
             && o.energy < FOOD_RECIPIENT_ENERGY
             && (o.lineage_id == me.lineage_id
-                || me.friends.contains_key(&o.id)
-                || me.org_trust.get(&o.id).is_some_and(|&v| v >= 0.55))
+                || me.friends.contains_key(o.id.as_str())
+                || me.org_trust.get(o.id.as_str()).is_some_and(|&v| v >= 0.55))
             && (o.x - ox).abs() + (o.y - oy).abs() <= 6.0
     });
     candidates.sort_unstable();
@@ -73,7 +73,7 @@ pub(super) fn pick_food_recipient_reference(
     spatial: &SpatialIndex,
     tick: u64,
 ) -> Option<usize> {
-    let org_lineage = organisms[org_idx].lineage_id.clone();
+    let org_lineage = organisms[org_idx].lineage_id;
     let (ox, oy) = (organisms[org_idx].x, organisms[org_idx].y);
 
     let friend_ids: crate::hashing::FxHashSet<String> = organisms[org_idx].friends.keys().cloned().collect();
@@ -89,12 +89,14 @@ pub(super) fn pick_food_recipient_reference(
     // of all other candidates (they need adoption-tier care, not just
     // food).
     let my_parent_id = organisms[org_idx].parent_id.clone();
-    let my_id = organisms[org_idx].id.clone();
+    let my_id = organisms[org_idx].id;
     spatial
         .ordered_nearby(organisms, ox, oy, 6)
         .filter(|(i, o)| *i != org_idx && o.alive && o.energy < 0.30)
         .filter(|(_, o)| {
-            o.lineage_id == org_lineage || friend_ids.contains(&o.id) || high_trust.contains(&o.id)
+            o.lineage_id == org_lineage
+                || friend_ids.contains(o.id.as_str())
+                || high_trust.contains(o.id.as_str())
         })
         .filter(|(_, o)| (o.x - ox).abs() + (o.y - oy).abs() <= 6.0)
         .min_by(|(_, a), (_, b)| {
@@ -146,17 +148,17 @@ pub fn share_food(
     organisms[ti].energy = (organisms[ti].energy + share).min(1.0);
     organisms[org_idx].last_fed_kin = tick;
 
-    let org_id2 = organisms[org_idx].id.clone();
+    let org_id2 = organisms[org_idx].id;
     let org_name = organisms[org_idx].name.clone();
-    let target_id = organisms[ti].id.clone();
-    let t = organisms[ti].org_trust.entry(org_id2.clone()).or_insert(0.0);
+    let target_id = organisms[ti].id;
+    let t = organisms[ti].org_trust.entry(org_id2.to_string()).or_insert(0.0);
     *t = (*t + 0.10).min(1.0);
     let received_trust = *t;
     // A shared meal builds trust both ways, so people who eat together become
     // friends (the friend line is the same one the other bonds use).
     let g = organisms[org_idx]
         .org_trust
-        .entry(target_id.clone())
+        .entry(target_id.to_string())
         .or_insert(0.0);
     *g = (*g + 0.04).min(1.0);
     let given_trust = *g;

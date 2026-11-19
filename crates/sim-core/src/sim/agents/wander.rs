@@ -13,7 +13,7 @@ impl Simulation {
         &mut self,
         idx: usize,
         spatial: &SpatialIndex,
-        lineage_members: &FxHashMap<String, Vec<usize>>,
+        lineage_members: &FxHashMap<crate::intern::Sym, Vec<usize>>,
     ) {
         self.validate_or_assign_wander_target(idx, Some((spatial, lineage_members)));
     }
@@ -21,7 +21,7 @@ impl Simulation {
     pub(crate) fn validate_or_assign_wander_target(
         &mut self,
         idx: usize,
-        indexed: Option<(&SpatialIndex, &FxHashMap<String, Vec<usize>>)>,
+        indexed: Option<(&SpatialIndex, &FxHashMap<crate::intern::Sym, Vec<usize>>)>,
     ) {
         if let Some(journey) = self.organisms[idx].journey.clone() {
             let org = &self.organisms[idx];
@@ -74,7 +74,7 @@ impl Simulation {
             return;
         }
 
-        let lid = self.organisms[idx].lineage_id.clone();
+        let lid = self.organisms[idx].lineage_id;
         let (mx, my) = (self.organisms[idx].x, self.organisms[idx].y);
         let mut sumx = 0.0f32;
         let mut sumy = 0.0f32;
@@ -105,7 +105,7 @@ impl Simulation {
             let age = self.organisms[idx].age;
             let lineage_total = if let Some((_, lineage_members)) = indexed {
                 lineage_members
-                    .get(&lid)
+                    .get(lid.as_str())
                     .into_iter()
                     .flatten()
                     .filter(|&&member_idx| {

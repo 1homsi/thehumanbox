@@ -11,12 +11,12 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("hoping for a friend");
         return 0.0;
     };
-    let their = ctx.sim.organisms[ki].lineage_id.clone();
-    let oid = ctx.sim.organisms[ki].id.clone();
+    let their = ctx.sim.organisms[ki].lineage_id;
+    let oid = ctx.sim.organisms[ki].id;
     ctx.sim.organisms[ctx.idx].update_attitude(&their, 0.05);
     {
         let me = &mut ctx.sim.organisms[ctx.idx];
-        let t = me.org_trust.entry(oid).or_insert(0.0);
+        let t = me.org_trust.entry(oid.to_string()).or_insert(0.0);
         *t = (*t + 0.08).min(1.0);
     }
     ctx.think("making a friend");

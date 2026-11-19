@@ -268,7 +268,7 @@ mod tests {
     /// sheep and cow a few steps away.
     fn herding_tribe(seed: u64) -> (Simulation, Tribe) {
         let mut sim = Simulation::new(seed);
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let lineage = sim.organisms[0].lineage_id;
         for o in sim.organisms.iter_mut().filter(|o| o.lineage_id == lineage) {
             o.discoveries.insert("animal_domestication".to_string());
         }
@@ -282,7 +282,7 @@ mod tests {
         sim.farms.clear();
         sim.buildings.clear();
         sim.animals.clear();
-        let mut house = Building::new(900, BuildingKind::Hut, hx, hy, Some(lineage.clone()), 0);
+        let mut house = Building::new(900, BuildingKind::Hut, hx, hy, Some(lineage.to_string()), 0);
         house.condition = 1.0;
         sim.buildings.push(house);
         sim.animals
@@ -297,7 +297,7 @@ mod tests {
             .map(|(i, _)| i)
             .collect();
         let tribe = Tribe {
-            lineage,
+            lineage: lineage.to_string(),
             members,
             dwellings: vec![(hx, hy)],
         };

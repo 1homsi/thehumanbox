@@ -55,11 +55,7 @@ fn main() {
     }
     let initial_lineages = growth::lineage_population_slots(&organisms);
     // The main simulation already builds this once before resident decisions.
-    let org_idx_by_id = organisms
-        .iter()
-        .enumerate()
-        .map(|(i, o)| (o.id.clone(), i))
-        .collect();
+    let org_idx_by_id = organisms.iter().enumerate().map(|(i, o)| (o.id, i)).collect();
     let mut events = VecDeque::new();
     let mut times = Vec::with_capacity(rounds);
     let mut pregnancies = 0;
@@ -94,7 +90,7 @@ fn main() {
                 },
             );
             if organisms.len() > previous_len {
-                *lineage_counts.entry(organisms[i].lineage_id.clone()).or_default() += 1;
+                *lineage_counts.entry(organisms[i].lineage_id).or_default() += 1;
             }
         }
         times.push(start.elapsed().as_secs_f64() * 1000.0);

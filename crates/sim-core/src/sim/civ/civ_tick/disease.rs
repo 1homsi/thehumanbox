@@ -197,7 +197,7 @@ pub(super) fn tick_disease_spread(sim: &mut Simulation) {
         if !o.alive {
             continue;
         }
-        let era = eras.get(&o.lineage_id).copied().unwrap_or(Era::PreStone);
+        let era = eras.get(o.lineage_id.as_str()).copied().unwrap_or(Era::PreStone);
         let healer = if o.discoveries.contains("medicine") {
             0.6
         } else {
@@ -244,7 +244,7 @@ pub(super) fn announce_outbreaks(sim: &mut Simulation) {
     let mut cases: std::collections::BTreeMap<(String, String), (u32, f32, f32)> = Default::default();
     for o in sim.organisms.iter().filter(|o| o.alive) {
         for (d, _) in &o.diseases {
-            let e = cases.entry((o.lineage_id.clone(), d.clone())).or_default();
+            let e = cases.entry((o.lineage_id.to_string(), d.clone())).or_default();
             e.0 += 1;
             e.1 += o.x;
             e.2 += o.y;

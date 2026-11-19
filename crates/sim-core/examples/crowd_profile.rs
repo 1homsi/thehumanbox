@@ -36,7 +36,7 @@ fn main() {
             Traits::default(),
         );
         person.age = 40_000;
-        person.id = format!("crowd-{i}");
+        person.id = format!("crowd-{i}").into();
         person.x = 40.0 + (i * 17 % 400) as f32;
         person.y = 40.0 + (i * 7 % 200) as f32;
         if building_count > 0 {
@@ -118,7 +118,8 @@ fn main() {
         }
         sim.next_building_id = building_count as u32 + 1;
         for i in 0..20 {
-            sim.lineage_eras.insert(format!("clan-{i}"), Era::Information);
+            sim.lineage_eras
+                .insert(format!("clan-{i}").into(), Era::Information);
         }
     }
     if let Some(animal_count) = animal_count {

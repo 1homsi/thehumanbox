@@ -69,8 +69,14 @@ mod tests {
     #[test]
     fn the_player_renames_a_living_tribe_and_it_sticks_across_a_save() {
         let mut sim = Simulation::new(97);
-        let lineage = sim.organisms.iter().find(|o| o.alive).unwrap().lineage_id.clone();
-        let old = sim.lineage_names.get(&lineage).cloned().unwrap();
+        let lineage = sim
+            .organisms
+            .iter()
+            .find(|o| o.alive)
+            .unwrap()
+            .lineage_id
+            .to_string();
+        let old = sim.lineage_names.get(lineage.as_str()).cloned().unwrap();
         let json = format!(r#"{{"cmd":"rename_tribe","lineage":"{lineage}","name":"The Dawn Walkers"}}"#);
         assert!(sim.apply_command_json(&json));
         assert_eq!(sim.lineage_names[&lineage], "The Dawn Walkers");
@@ -91,7 +97,13 @@ mod tests {
     fn a_dead_or_unknown_tribe_cannot_be_renamed() {
         let mut sim = Simulation::new(98);
         assert!(!sim.rename_tribe("no-such-tribe", "Ghosts"));
-        let lineage = sim.organisms.iter().find(|o| o.alive).unwrap().lineage_id.clone();
+        let lineage = sim
+            .organisms
+            .iter()
+            .find(|o| o.alive)
+            .unwrap()
+            .lineage_id
+            .to_string();
         assert!(!sim.rename_tribe(&lineage, "   "));
     }
 }

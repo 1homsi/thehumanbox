@@ -15,7 +15,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         let extra = ctx.practised(Skill::Farming, true);
         // The crop goes to the tribe's stores (with the granary's bonus), as when
         // the village brings it in; what the stores cannot take stays in hand.
-        let lineage = ctx.org().lineage_id.clone();
+        let lineage = ctx.org().lineage_id;
         let units = harvest.yield_units.saturating_add(extra);
         let grain = (units as f32 * crate::sim::civ::land::village_stores::yield_factor(ctx.sim, &lineage))
             .round() as u32;
@@ -55,16 +55,16 @@ mod tests {
     fn bringing_a_field_into_the_granary_leaves_the_worker_their_own_food() {
         let mut sim = Simulation::new(5_001);
         sim.buildings.clear();
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let lineage = sim.organisms[0].lineage_id;
         let (x, y) = (sim.organisms[0].x as i32, sim.organisms[0].y as i32);
-        let mut granary = Building::new(1, BuildingKind::Granary, x + 3, y, Some(lineage.clone()), 0);
+        let mut granary = Building::new(1, BuildingKind::Granary, x + 3, y, Some(lineage.to_string()), 0);
         granary.condition = 1.0;
         sim.buildings.push(granary);
         sim.farms.push(Farm {
             id: 1,
             x,
             y,
-            owner_lineage: lineage,
+            owner_lineage: lineage.to_string(),
             crop: CropKind::Wheat,
             planted_tick: 0,
             ready_tick: 1,

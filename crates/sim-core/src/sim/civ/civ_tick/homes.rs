@@ -14,7 +14,7 @@ pub(super) fn tick_home_furnishing(sim: &mut Simulation) {
             continue;
         }
         let era = era_map
-            .get(&o.lineage_id)
+            .get(o.lineage_id.as_str())
             .copied()
             .unwrap_or(crate::sim::era::Era::PreStone);
         let era_name = era.name();
@@ -146,7 +146,7 @@ pub(super) fn tick_building_auras(sim: &mut Simulation) {
             let (fw, fh) = b.kind.footprint();
             let bx = b.x as f32 + fw as f32 / 2.0;
             let by = b.y as f32 + fh as f32 / 2.0;
-            Some((bx, by, b.owner_lineage.clone(), kind))
+            Some((bx, by, b.owner_lineage.map(String::from), kind))
         })
         .collect();
 

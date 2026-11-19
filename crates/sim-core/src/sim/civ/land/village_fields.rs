@@ -230,7 +230,7 @@ fn farm_belts(sim: &Simulation) -> std::collections::BTreeMap<String, Vec<(i32, 
         if t.role == crate::sim::civ::society::town_roles::TownRole::Farming
             && residents.get(&t.id).copied().unwrap_or(0) >= BELT_PEOPLE
         {
-            out.entry(t.lineage.clone())
+            out.entry(t.lineage.to_string())
                 .or_default()
                 .push((t.center[0], t.center[1]));
         }
@@ -363,12 +363,12 @@ mod tests {
     /// A tribe that knows farming, with one house and open grass round it.
     fn farming_tribe(seed: u64) -> (Simulation, String, (i32, i32)) {
         let mut sim = Simulation::new(seed);
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let lineage = sim.organisms[0].lineage_id;
         for o in sim.organisms.iter_mut().filter(|o| o.lineage_id == lineage) {
             o.discoveries.insert("agriculture".to_string());
             o.inv_food = 3;
         }
-        sim.lineage_eras.insert(lineage.clone(), Era::Bronze);
+        sim.lineage_eras.insert(lineage.to_string().into(), Era::Bronze);
         let (hx, hy) = (120, 120);
         for dy in -8..=8 {
             for dx in -8..=8 {
@@ -378,10 +378,10 @@ mod tests {
         }
         sim.farms.clear();
         sim.buildings.clear();
-        let mut house = Building::new(900, BuildingKind::Hut, hx, hy, Some(lineage.clone()), 0);
+        let mut house = Building::new(900, BuildingKind::Hut, hx, hy, Some(lineage.to_string()), 0);
         house.condition = 1.0;
         sim.buildings.push(house);
-        (sim, lineage, (hx, hy))
+        (sim, lineage.to_string(), (hx, hy))
     }
 
     /// Tick of the first spring pass in the second year (season "recovery").

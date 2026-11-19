@@ -74,7 +74,7 @@ impl Simulation {
         }
     }
 
-    pub(super) fn tick_animals(&mut self, org_idx_by_id: &FxHashMap<String, usize>) {
+    pub(super) fn tick_animals(&mut self, org_idx_by_id: &FxHashMap<crate::intern::Sym, usize>) {
         self.tick_animal_census();
         // Passive respawn floor. Without this, a transient extinction
         // (drought + hunting + wolves eating prey then starving) leaves
@@ -134,7 +134,7 @@ impl Simulation {
                 let home = animal
                     .bonded_org
                     .as_ref()
-                    .and_then(|bid| org_idx_by_id.get(bid))
+                    .and_then(|bid| org_idx_by_id.get(bid.as_str()))
                     .map(|&oi| &self.organisms[oi])
                     .filter(|o| o.alive);
                 animal.sleeping = home
@@ -343,9 +343,9 @@ impl Simulation {
             if self.animals[ai].bonded_org.is_some() {
                 continue;
             }
-            let owner_id = self.organisms[oi].id.clone();
+            let owner_id = self.organisms[oi].id;
             let cat_name = crate::organism::animal::pick_dog_name(&mut self.rng);
-            self.animals[ai].bonded_org = Some(owner_id);
+            self.animals[ai].bonded_org = Some(owner_id.to_string());
             self.animals[ai].name = Some(cat_name.clone());
             self.animals[ai].energy = (self.animals[ai].energy + 0.20).min(1.0);
             let oname = self.organisms[oi].name.clone();
@@ -361,7 +361,7 @@ impl Simulation {
         }
         for (ai, oi) in tames {
             self.animals[ai].kind = AnimalKind::Dog;
-            self.animals[ai].bonded_org = Some(self.organisms[oi].id.clone());
+            self.animals[ai].bonded_org = Some(self.organisms[oi].id.to_string());
             self.animals[ai].energy = (self.animals[ai].energy + 0.30).min(1.0);
             let dog_name = crate::organism::animal::pick_dog_name(&mut self.rng);
             self.animals[ai].name = Some(dog_name.clone());
@@ -390,7 +390,7 @@ impl Simulation {
             if let Some(bid) = bonded {
                 let (ax, ay) = (self.animals[ai].x, self.animals[ai].y);
                 let mut owner_idx: Option<usize> = None;
-                if let Some(oi) = org_idx_by_id.get(&bid).copied() {
+                if let Some(oi) = org_idx_by_id.get(bid.as_str()).copied() {
                     let o = &self.organisms[oi];
                     if !o.alive || o.id != bid {
                         continue;
@@ -577,7 +577,7 @@ impl Simulation {
             // People fight back: the victim and nearby kin strike at the
             // wolf. Weapons, numbers and boldness decide whether it dies.
             let (ax, ay) = (self.animals[ai].x, self.animals[ai].y);
-            let victim_lineage = self.organisms[oi].lineage_id.clone();
+            let victim_lineage = self.organisms[oi].lineage_id;
             ordered_human_candidates(&human_spatial, ax, ay, 3, &mut wolf_candidates);
             let defenders: Vec<usize> = wolf_candidates
                 .iter()
@@ -996,7 +996,7 @@ impl Simulation {
             let has_tools = self.organisms[oi].discoveries.contains("stone_tools")
                 || self.organisms[oi].discoveries.contains("spear");
             let tool_bonus = if has_tools { 0.10 } else { 0.0 };
-            let hunter_lid = self.organisms[oi].lineage_id.clone();
+            let hunter_lid = self.organisms[oi].lineage_id;
             let hunter_x = self.organisms[oi].x;
             let hunter_y = self.organisms[oi].y;
             let pack_kin = organism_spatial
@@ -1115,7 +1115,9 @@ impl Simulation {
                 v.kind == crate::sim::transportation::TransportKind::Boat
                     && v.x == x
                     && v.y == y
-                    && v.occupants.first() == Some(&self.organisms[idx].id)
+                    && v.occupants
+                        .first()
+                        .is_some_and(|id| self.organisms[idx].id == *id)
             })
         {
             self.organisms[idx].water_ticks = 0;

@@ -3,12 +3,12 @@
 use super::*;
 use crate::math::DetMath;
 
-fn alive_resident_indices(sim: &Simulation) -> FxHashMap<String, usize> {
+fn alive_resident_indices(sim: &Simulation) -> FxHashMap<crate::intern::Sym, usize> {
     sim.organisms
         .iter()
         .enumerate()
         .filter(|(_, resident)| resident.alive)
-        .map(|(index, resident)| (resident.id.clone(), index))
+        .map(|(index, resident)| (resident.id, index))
         .collect()
 }
 
@@ -25,7 +25,7 @@ fn local_human_queries_preserve_animal_moves_and_rng() {
             40.0 + (i * 11 % 25) as f32,
             1,
             String::new(),
-            "lineage-a".into(),
+            "lineage-a",
             10_000,
             crate::organism::traits::Traits::default(),
         );
@@ -223,13 +223,13 @@ fn bonded_dog_still_comforts_living_owner_but_ignores_stale_dead_owner_entry() {
     flatten_test_area(&mut sim, 50, 50);
     sim.organisms.clear();
     let mut owner = Organism::new(
-        "owner".into(),
+        "owner",
         "Owner".into(),
         51.0,
         50.0,
         1,
         String::new(),
-        "lineage-a".into(),
+        "lineage-a",
         10_000,
         crate::organism::traits::Traits::default(),
     );
@@ -268,7 +268,7 @@ fn archive_compaction_keeps_bonded_dog_owner_index_valid() {
             20.0,
             1,
             String::new(),
-            "old-lineage".into(),
+            "old-lineage",
             10_000,
             crate::organism::traits::Traits::default(),
         );
@@ -276,13 +276,13 @@ fn archive_compaction_keeps_bonded_dog_owner_index_valid() {
         sim.organisms.push(archived);
     }
     let owner = Organism::new(
-        "owner".into(),
+        "owner",
         "Owner".into(),
         51.0,
         50.0,
         1,
         String::new(),
-        "lineage-a".into(),
+        "lineage-a",
         10_000,
         crate::organism::traits::Traits::default(),
     );
@@ -308,7 +308,7 @@ fn archive_compaction_keeps_bonded_dog_owner_index_valid() {
 fn armed_kin_fight_back_and_kill_attacking_wolves() {
     use crate::organism::animal::{Animal, AnimalKind};
     let mut sim = Simulation::new(3);
-    let lineage = sim.organisms[0].lineage_id.clone();
+    let lineage = sim.organisms[0].lineage_id;
     let mut killed = 0;
     for round in 0..60 {
         let group: Vec<usize> = sim
@@ -423,13 +423,13 @@ fn family_dogs_walk_home_and_sleep_by_the_hearth_at_night() {
     flatten_test_area(&mut sim, 50, 50);
     sim.organisms.clear();
     let mut owner = Organism::new(
-        "owner".into(),
+        "owner",
         "Owner".into(),
         58.0,
         56.0,
         1,
         String::new(),
-        "lineage-a".into(),
+        "lineage-a",
         10_000,
         crate::organism::traits::Traits::default(),
     );

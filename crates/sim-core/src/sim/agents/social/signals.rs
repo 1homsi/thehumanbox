@@ -10,8 +10,8 @@ pub fn signal_food(
     rng: &mut impl Rng,
 ) -> f32 {
     let (ix, iy) = (organisms[org_idx].x as i32, organisms[org_idx].y as i32);
-    let org_lineage = organisms[org_idx].lineage_id.clone();
-    let org_id = organisms[org_idx].id.clone();
+    let org_lineage = organisms[org_idx].lineage_id;
+    let org_id = organisms[org_idx].id;
     // `word_for` falls back to the English concept name when the word has
     // been forgotten, so two organisms who both forgot "food" would compare
     // equal and count as recognising each other's signal. Capture the real
@@ -60,7 +60,7 @@ pub fn signal_food(
             signal_word.is_some() && organisms[ni].vocabulary.known_word("food") == signal_word.as_deref();
         organisms[ni].vocabulary.touch_concept("food", tick);
         let is_kin = organisms[ni].lineage_id == org_lineage;
-        let trust = *organisms[ni].org_trust.get(&org_id).unwrap_or(&0.0);
+        let trust = *organisms[ni].org_trust.get(org_id.as_str()).unwrap_or(&0.0);
 
         let base_strength = if is_kin {
             (0.5 * (0.5 + trust)).max(0.20)
@@ -114,7 +114,7 @@ pub fn sound_alarm(
     rng: &mut impl Rng,
 ) -> f32 {
     let (ix, iy) = (organisms[org_idx].x as i32, organisms[org_idx].y as i32);
-    let org_lineage = organisms[org_idx].lineage_id.clone();
+    let org_lineage = organisms[org_idx].lineage_id;
     let on_fire = grid.get(ix, iy) == Tile::Fire;
     let concept = if on_fire { "fire" } else { "danger" };
     let signal_word = organisms[org_idx]

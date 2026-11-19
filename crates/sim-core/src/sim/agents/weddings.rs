@@ -22,10 +22,7 @@ impl Simulation {
     /// `a` and `b` have married: if they are of two tribes, the tribes are bound.
     pub(crate) fn join_tribes_by_marriage(&mut self, a: usize, b: usize) {
         use crate::sim::civ::warfare::{establish_treaty, has_active_treaty, tribe_mood, TreatyKind};
-        let (la, lb) = (
-            self.organisms[a].lineage_id.clone(),
-            self.organisms[b].lineage_id.clone(),
-        );
+        let (la, lb) = (self.organisms[a].lineage_id, self.organisms[b].lineage_id);
         if la == lb || la.is_empty() || lb.is_empty() {
             return;
         }
@@ -39,8 +36,14 @@ impl Simulation {
                 .collect()
         };
         let (ma, mb) = (members(&la), members(&lb));
-        let mood_a = tribe_mood(&self.organisms, &ma).get(&lb).copied().unwrap_or(0.0);
-        let mood_b = tribe_mood(&self.organisms, &mb).get(&la).copied().unwrap_or(0.0);
+        let mood_a = tribe_mood(&self.organisms, &ma)
+            .get(lb.as_str())
+            .copied()
+            .unwrap_or(0.0);
+        let mood_b = tribe_mood(&self.organisms, &mb)
+            .get(la.as_str())
+            .copied()
+            .unwrap_or(0.0);
         for &i in &ma {
             self.organisms[i].update_attitude(&lb, MARRIAGE_WARMTH);
         }
@@ -78,7 +81,7 @@ impl Simulation {
     pub(crate) fn gather_wedding(&mut self, a: usize, b: usize) {
         let tick = self.tick_count;
         let home = (self.organisms[a].home_x as i32, self.organisms[a].home_y as i32);
-        let lineage = self.organisms[a].lineage_id.clone();
+        let lineage = self.organisms[a].lineage_id;
         let mut guests: Vec<(i32, usize)> = Vec::new();
         for (i, o) in self.organisms.iter().enumerate() {
             if i == a
@@ -112,7 +115,7 @@ impl Simulation {
         if came > 0 {
             let name = self
                 .lineage_names
-                .get(&lineage)
+                .get(lineage.as_str())
                 .cloned()
                 .unwrap_or_else(|| "A tribe".to_string());
             let detail = format!("a wedding at home: {came} came to see the couple wed");

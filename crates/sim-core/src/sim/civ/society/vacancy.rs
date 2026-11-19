@@ -144,7 +144,7 @@ fn take_over(
     drop(tribes);
     let (_, i) = best?;
     let kind = sim.buildings[i].kind;
-    sim.buildings[i].owner_lineage = Some(lineage.to_string());
+    sim.buildings[i].owner_lineage = Some(lineage.to_string().into());
     sim.buildings[i].town =
         crate::sim::civ::civ_tick::town::parent_for(sim, lineage, sim.buildings[i].x, sim.buildings[i].y);
     sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
@@ -256,7 +256,7 @@ pub(crate) fn tick_vacancy(sim: &mut Simulation) {
     }));
     let mut people: FxHashMap<String, u32> = FxHashMap::default();
     for o in sim.organisms.iter().filter(|o| o.alive) {
-        *people.entry(o.lineage_id.clone()).or_insert(0) += 1;
+        *people.entry(o.lineage_id.to_string()).or_insert(0) += 1;
     }
     // Empty homes of a village that is dying out fall in sooner, so its ruins show.
     let fast: Vec<bool> = neglected
@@ -289,7 +289,7 @@ pub(crate) fn tick_vacancy(sim: &mut Simulation) {
         .organisms
         .iter()
         .filter(|o| o.alive)
-        .map(|o| o.lineage_id.clone())
+        .map(|o| o.lineage_id.to_string())
         .collect();
     // A tribe still short of room may yet rebuild its fallen homes.
     let needs_room: FxHashSet<String> = living_tribes(sim)

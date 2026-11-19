@@ -32,7 +32,7 @@ pub use json::*;
 pub use records::*;
 
 pub struct Organism {
-    pub id: String,
+    pub id: crate::intern::Sym,
     pub name: String,
     pub x: f32,
     pub y: f32,
@@ -60,7 +60,7 @@ pub struct Organism {
     pub surname: String,
     /// A name the player gave this person. Shown in place of the generated first name when set.
     pub custom_name: Option<String>,
-    pub lineage_id: String,
+    pub lineage_id: crate::intern::Sym,
     pub max_age: u32,
 
     pub food_memory: FxHashMap<(i32, i32), f32>,
@@ -76,7 +76,7 @@ pub struct Organism {
     pub last_reproduced: u64,
     pub last_challenged: u64,
 
-    pub lineage_attitudes: BTreeMap<String, f32>,
+    pub lineage_attitudes: BTreeMap<crate::intern::Sym, f32>,
     pub org_trust: BTreeMap<String, f32>,
 
     pub traits: Traits,
@@ -212,18 +212,18 @@ pub struct Organism {
 
 impl Organism {
     pub fn new(
-        id: String,
+        id: impl Into<crate::intern::Sym>,
         name: String,
         x: f32,
         y: f32,
         generation: u32,
         parent_id: String,
-        lineage_id: String,
+        lineage_id: impl Into<crate::intern::Sym>,
         max_age: u32,
         traits: Traits,
     ) -> Self {
         Organism {
-            id,
+            id: id.into(),
             name,
             x,
             y,
@@ -243,7 +243,7 @@ impl Organism {
             father_id: None,
             surname: String::new(),
             custom_name: None,
-            lineage_id,
+            lineage_id: lineage_id.into(),
             max_age,
             food_memory: FxHashMap::default(),
             water_memory: FxHashMap::default(),

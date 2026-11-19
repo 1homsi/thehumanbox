@@ -114,16 +114,16 @@ fn learned_perception_for_first_org(sim: &Simulation, animal_near: bool) -> Stri
 
 fn tick_first_org(sim: &mut Simulation) {
     let mut lineage_counts = FxHashMap::default();
-    lineage_counts.insert("lineage-a".to_string(), 1);
+    lineage_counts.insert(crate::intern::Sym::new("lineage-a"), 1);
     let spatial = SpatialIndex::build(&sim.organisms, 10);
     let animal_spatial = SpatialIndex::build_animals(&sim.animals, 10);
     let mut buffers = TickBuffers::new();
-    let org_idx_by_id: FxHashMap<String, usize> = sim
+    let org_idx_by_id: FxHashMap<crate::intern::Sym, usize> = sim
         .organisms
         .iter()
         .enumerate()
         .filter(|(_, o)| o.alive)
-        .map(|(i, o)| (o.id.clone(), i))
+        .map(|(i, o)| (o.id, i))
         .collect();
     let mut lineage_members = lineage_member_index(&sim.organisms);
     sim.tick_organism(
@@ -385,7 +385,7 @@ fn pacing_share(seed: u64) -> (usize, usize) {
     let mut tracks: std::collections::BTreeMap<String, Vec<(f32, f32)>> = Default::default();
     for _ in 0..window {
         for o in sim.organisms.iter().filter(|o| o.alive) {
-            tracks.entry(o.id.clone()).or_default().push((o.x, o.y));
+            tracks.entry(o.id.to_string()).or_default().push((o.x, o.y));
         }
         sim.tick();
     }

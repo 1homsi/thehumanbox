@@ -84,7 +84,12 @@ mod tests {
     use super::*;
 
     fn lineage_of(sim: &Simulation) -> String {
-        sim.organisms.iter().find(|o| o.alive).unwrap().lineage_id.clone()
+        sim.organisms
+            .iter()
+            .find(|o| o.alive)
+            .unwrap()
+            .lineage_id
+            .to_string()
     }
 
     #[test]
@@ -92,7 +97,7 @@ mod tests {
         let mut sim = Simulation::new(99);
         let lineage = lineage_of(&sim);
         sim.lineage_eras
-            .insert(lineage.clone(), crate::sim::civ::eras::Era::PreStone);
+            .insert(lineage.clone().into(), crate::sim::civ::eras::Era::PreStone);
         let secret = sim
             .next_missing_discovery(&lineage)
             .expect("a new tribe lacks something");

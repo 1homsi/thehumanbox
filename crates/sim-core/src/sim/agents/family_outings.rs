@@ -47,7 +47,7 @@ impl Simulation {
         &mut self,
         idx: usize,
         spatial: &SpatialIndex,
-        org_idx_by_id: &FxHashMap<String, usize>,
+        org_idx_by_id: &FxHashMap<crate::intern::Sym, usize>,
     ) {
         {
             let o = &self.organisms[idx];
@@ -70,7 +70,11 @@ impl Simulation {
     }
 
     /// The living mother, or else the father, if either is alive.
-    fn living_guardian(&self, idx: usize, org_idx_by_id: &FxHashMap<String, usize>) -> Option<usize> {
+    fn living_guardian(
+        &self,
+        idx: usize,
+        org_idx_by_id: &FxHashMap<crate::intern::Sym, usize>,
+    ) -> Option<usize> {
         let o = &self.organisms[idx];
         [Some(o.parent_id.as_str()), o.father_id.as_deref()]
             .into_iter()
@@ -89,15 +93,15 @@ impl Simulation {
         &mut self,
         idx: usize,
         spatial: &SpatialIndex,
-        org_idx_by_id: &FxHashMap<String, usize>,
+        org_idx_by_id: &FxHashMap<crate::intern::Sym, usize>,
         may_play: bool,
     ) {
         let tick = self.tick_count;
         let here = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
         // In school hours a child's anchor is the school of its tribe (see `working_day`), not its mother.
-        let lid = self.organisms[idx].lineage_id.clone();
+        let lid = self.organisms[idx].lineage_id;
         let school = if may_play {
-            self.school_places.get(&lid).copied()
+            self.school_places.get(lid.as_str()).copied()
         } else {
             None
         };
@@ -171,7 +175,7 @@ impl Simulation {
         if !at_fire {
             return;
         }
-        let lid = self.organisms[idx].lineage_id.clone();
+        let lid = self.organisms[idx].lineage_id;
         let pupils: Vec<usize> = spatial
             .query(here.0, here.1, LESSON_RANGE + 1)
             .into_iter()
@@ -226,7 +230,7 @@ impl Simulation {
             return;
         }
         let tick = self.tick_count;
-        let elder_id = self.organisms[idx].id.clone();
+        let elder_id = self.organisms[idx].id;
         let elder_name = self.organisms[idx].name.clone();
         let thought = format!("telling the children how {} is done", skill.name());
         self.organisms[idx].think(&thought, tick);
@@ -253,7 +257,7 @@ impl Simulation {
                     tick,
                     "learned",
                     format!("{} {}", told, elder_name),
-                    Some(elder_id.clone()),
+                    Some(elder_id.to_string()),
                     Some(elder_name.clone()),
                 );
             }
@@ -303,11 +307,11 @@ mod tests {
     }
 
     fn make_child(sim: &mut Simulation, child: usize, mother: usize) {
-        let mother_id = sim.organisms[mother].id.clone();
-        let lineage = sim.organisms[mother].lineage_id.clone();
+        let mother_id = sim.organisms[mother].id;
+        let lineage = sim.organisms[mother].lineage_id;
         let (hx, hy) = (sim.organisms[mother].x, sim.organisms[mother].y);
         let o = &mut sim.organisms[child];
-        o.parent_id = mother_id;
+        o.parent_id = mother_id.to_string();
         o.father_id = None;
         o.lineage_id = lineage;
         o.max_age = 4000;
@@ -316,12 +320,8 @@ mod tests {
         o.home_y = hy;
     }
 
-    fn index_of(sim: &Simulation) -> FxHashMap<String, usize> {
-        sim.organisms
-            .iter()
-            .enumerate()
-            .map(|(i, o)| (o.id.clone(), i))
-            .collect()
+    fn index_of(sim: &Simulation) -> FxHashMap<crate::intern::Sym, usize> {
+        sim.organisms.iter().enumerate().map(|(i, o)| (o.id, i)).collect()
     }
 
     /// A tick that is in the same cadence slot as `idx` for `modulus`, near `base`.
@@ -360,7 +360,7 @@ mod tests {
         place(&mut sim, mate, 103.0, 102.0);
         make_child(&mut sim, child, mother);
         make_child(&mut sim, mate, mother);
-        sim.organisms[mate].lineage_id = sim.organisms[mother].lineage_id.clone();
+        sim.organisms[mate].lineage_id = sim.organisms[mother].lineage_id;
         sim.tick_count = cadence_tick(5000, 120, child);
         let spatial = SpatialIndex::build(&sim.organisms, 10);
         let ids = index_of(&sim);

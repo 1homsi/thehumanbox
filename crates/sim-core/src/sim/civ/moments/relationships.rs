@@ -43,10 +43,15 @@ pub(in crate::sim::civ) fn tick_grudge_recall(sim: &mut Simulation) {
             if (other.x - x).abs() + (other.y - y).abs() > 6.0 {
                 continue;
             }
-            if foes.contains(&other.id) {
-                let warmed = sim.organisms[i].org_trust.get(&other.id).copied().unwrap_or(0.0) > 0.15;
+            if foes.contains(other.id.as_str()) {
+                let warmed = sim.organisms[i]
+                    .org_trust
+                    .get(other.id.as_str())
+                    .copied()
+                    .unwrap_or(0.0)
+                    > 0.15;
                 if warmed {
-                    reconciled.push((other.id.clone(), other.name.clone()));
+                    reconciled.push((other.id.to_string(), other.name.clone()));
                 } else {
                     bumps += 1;
                 }
@@ -131,7 +136,7 @@ pub(in crate::sim::civ) fn tick_partner_pillow_talk(sim: &mut Simulation) {
 
         if let Some((text, emotion)) = from_a {
             let a_name = sim.organisms[a].name.clone();
-            let a_id = sim.organisms[a].id.clone();
+            let a_id = sim.organisms[a].id;
             let lower = text.trim_end_matches('.').to_lowercase();
             let entry = MemoryEntry::new(
                 MemoryKind::Bond,
@@ -146,7 +151,7 @@ pub(in crate::sim::civ) fn tick_partner_pillow_talk(sim: &mut Simulation) {
         }
         if let Some((text, emotion)) = from_b {
             let b_name = sim.organisms[b].name.clone();
-            let b_id = sim.organisms[b].id.clone();
+            let b_id = sim.organisms[b].id;
             let lower = text.trim_end_matches('.').to_lowercase();
             let entry = MemoryEntry::new(
                 MemoryKind::Bond,
@@ -196,8 +201,8 @@ pub(in crate::sim::civ) fn tick_arguments(sim: &mut Simulation) {
             if (p.x - o.x).abs() + (p.y - o.y).abs() > 2.0 {
                 continue;
             }
-            let trust_io = o.org_trust.get(&p.id).copied().unwrap_or(0.0);
-            let trust_oi = p.org_trust.get(&o.id).copied().unwrap_or(0.0);
+            let trust_io = o.org_trust.get(p.id.as_str()).copied().unwrap_or(0.0);
+            let trust_oi = p.org_trust.get(o.id.as_str()).copied().unwrap_or(0.0);
             if trust_io > -0.2 && trust_oi > -0.2 {
                 continue;
             }
@@ -213,9 +218,9 @@ pub(in crate::sim::civ) fn tick_arguments(sim: &mut Simulation) {
         let n2 = sim.organisms[j].name.clone();
         for idx in [i, j] {
             let other_id = if idx == i {
-                sim.organisms[j].id.clone()
+                sim.organisms[j].id
             } else {
-                sim.organisms[i].id.clone()
+                sim.organisms[i].id
             };
             let entry = MemoryEntry::new(
                 MemoryKind::Episode,
@@ -224,11 +229,14 @@ pub(in crate::sim::civ) fn tick_arguments(sim: &mut Simulation) {
             )
             .with_salience(0.65)
             .with_emotion(-2)
-            .with_related(other_id.clone());
+            .with_related(other_id);
             sim.organisms[idx].memories.insert(entry);
             sim.organisms[idx].regret = (sim.organisms[idx].regret + 0.04).min(1.0);
             sim.organisms[idx].fear_level = (sim.organisms[idx].fear_level + 0.02).min(1.0);
-            let trust = sim.organisms[idx].org_trust.entry(other_id).or_insert(0.0);
+            let trust = sim.organisms[idx]
+                .org_trust
+                .entry(other_id.to_string())
+                .or_insert(0.0);
             *trust = (*trust - 0.08).max(-1.0);
         }
         push_event(
@@ -269,7 +277,7 @@ pub(in crate::sim::civ) fn tick_reconciliations(sim: &mut Simulation) {
             p.alive
                 && p.lineage_id == o.lineage_id
                 && (p.x - o.x).abs() + (p.y - o.y).abs() <= 2.0
-                && o.org_trust.get(&p.id).copied().unwrap_or(0.0) < -0.1
+                && o.org_trust.get(p.id.as_str()).copied().unwrap_or(0.0) < -0.1
         });
         if let Some(j) = candidate {
             if sim.rng.random::<f32>() < 0.06 {
@@ -282,9 +290,9 @@ pub(in crate::sim::civ) fn tick_reconciliations(sim: &mut Simulation) {
         let n2 = sim.organisms[j].name.clone();
         for idx in [i, j] {
             let other_id = if idx == i {
-                sim.organisms[j].id.clone()
+                sim.organisms[j].id
             } else {
-                sim.organisms[i].id.clone()
+                sim.organisms[i].id
             };
             let entry = MemoryEntry::new(
                 MemoryKind::Episode,
@@ -293,12 +301,15 @@ pub(in crate::sim::civ) fn tick_reconciliations(sim: &mut Simulation) {
             )
             .with_salience(0.78)
             .with_emotion(2)
-            .with_related(other_id.clone());
+            .with_related(other_id);
             sim.organisms[idx].memories.insert(entry);
             sim.organisms[idx].regret = (sim.organisms[idx].regret * 0.4).max(0.0);
             sim.organisms[idx].joy_ticks = (sim.organisms[idx].joy_ticks + 30).min(1200);
             sim.organisms[idx].gratitude = (sim.organisms[idx].gratitude + 0.15).min(1.0);
-            let trust = sim.organisms[idx].org_trust.entry(other_id).or_insert(0.0);
+            let trust = sim.organisms[idx]
+                .org_trust
+                .entry(other_id.to_string())
+                .or_insert(0.0);
             *trust = (*trust + 0.18).min(1.0);
         }
         push_event(
@@ -317,7 +328,7 @@ pub(in crate::sim::civ) fn tick_separations(sim: &mut Simulation) {
     let mut by_id: HashMap<String, usize> = HashMap::default();
     for (i, o) in sim.organisms.iter().enumerate() {
         if o.alive {
-            by_id.insert(o.id.clone(), i);
+            by_id.insert(o.id.to_string(), i);
         }
     }
     let mut seen: HashSet<(usize, usize)> = HashSet::default();
@@ -336,8 +347,8 @@ pub(in crate::sim::civ) fn tick_separations(sim: &mut Simulation) {
             continue;
         }
         let p = &sim.organisms[j];
-        let a_trust = o.org_trust.get(&p.id).copied().unwrap_or(0.0);
-        let b_trust = p.org_trust.get(&o.id).copied().unwrap_or(0.0);
+        let a_trust = o.org_trust.get(p.id.as_str()).copied().unwrap_or(0.0);
+        let b_trust = p.org_trust.get(o.id.as_str()).copied().unwrap_or(0.0);
         if a_trust < -0.05 || b_trust < -0.05 {
             strained.push((i, j, o.name.clone(), p.name.clone()));
         }
@@ -346,25 +357,25 @@ pub(in crate::sim::civ) fn tick_separations(sim: &mut Simulation) {
         if sim.rng.random::<f32>() >= 0.05 {
             continue;
         }
-        let lid = sim.organisms[i].lineage_id.clone();
+        let lid = sim.organisms[i].lineage_id;
         sim.organisms[i].partner_id = None;
         sim.organisms[j].partner_id = None;
         sim.organisms[i].comfort = (sim.organisms[i].comfort - 0.1).max(0.0);
         sim.organisms[j].comfort = (sim.organisms[j].comfort - 0.1).max(0.0);
-        let bid = sim.organisms[j].id.clone();
-        let aid = sim.organisms[i].id.clone();
+        let bid = sim.organisms[j].id;
+        let aid = sim.organisms[i].id;
         sim.organisms[i].log_life_rel(
             tick,
             "farewell",
             format!("parted ways with {}", b_name),
-            Some(bid),
+            Some(bid.to_string()),
             Some(b_name.clone()),
         );
         sim.organisms[j].log_life_rel(
             tick,
             "farewell",
             format!("parted ways with {}", a_name),
-            Some(aid),
+            Some(aid.to_string()),
             Some(a_name.clone()),
         );
         let h = format!("\u{1F494} {} and {} parted ways.", a_name, b_name);
@@ -389,7 +400,7 @@ pub(in crate::sim::civ) fn tick_weddings(sim: &mut Simulation) {
         let mut by_id: HashMap<String, usize> = HashMap::default();
         for (i, o) in sim.organisms.iter().enumerate() {
             if o.alive {
-                by_id.insert(o.id.clone(), i);
+                by_id.insert(o.id.to_string(), i);
             }
         }
         for (i, o) in sim.organisms.iter().enumerate() {
@@ -424,7 +435,13 @@ pub(in crate::sim::civ) fn tick_weddings(sim: &mut Simulation) {
             if tick % 30_000 != slot {
                 continue;
             }
-            out.push((i, j, o.lineage_id.clone(), (o.x + p.x) * 0.5, (o.y + p.y) * 0.5));
+            out.push((
+                i,
+                j,
+                o.lineage_id.to_string(),
+                (o.x + p.x) * 0.5,
+                (o.y + p.y) * 0.5,
+            ));
         }
         out
     };
@@ -591,7 +608,7 @@ pub(in crate::sim::civ) fn tick_teaching(sim: &mut Simulation) {
         if elder.discoveries.is_empty() {
             continue;
         }
-        let elder_lid = elder.lineage_id.clone();
+        let elder_lid = elder.lineage_id;
         let elder_x = elder.x;
         let elder_y = elder.y;
         let teach_strength = elder.traits.social_tendency * 0.5 + 0.3;

@@ -25,7 +25,8 @@ fn lineage_era_does_not_regress_when_population_dips() {
     survivor.discoveries.insert("stone_tools".to_string());
     survivor.discoveries.insert("shelter".to_string());
     sim.organisms.push(survivor);
-    sim.lineage_eras.insert("lineage-a".to_string(), Era::Classical);
+    sim.lineage_eras
+        .insert("lineage-a".to_string().into(), Era::Classical);
     sim.current_era = "classical".to_string();
 
     sim.update_lineage_eras();
@@ -45,8 +46,7 @@ fn prepare_atomic_population_gate_world(
         .iter()
         .find(|org| org.alive)
         .expect("founder exists")
-        .lineage_id
-        .clone();
+        .lineage_id;
     let lineage_population = sim
         .organisms
         .iter()
@@ -80,9 +80,10 @@ fn prepare_atomic_population_gate_world(
     assert_eq!(living, desired_world_population);
 
     sim.lineage_eras.clear();
-    sim.lineage_eras.insert(lineage_id.clone(), Era::Information);
+    sim.lineage_eras
+        .insert(lineage_id.to_string().into(), Era::Information);
     sim.current_era = Era::Information.name().to_string();
-    (lineage_id, lineage_population)
+    (lineage_id.to_string(), lineage_population)
 }
 
 #[test]
@@ -96,7 +97,7 @@ fn small_lineage_advances_when_living_world_meets_population_gate() {
     sim.update_lineage_eras();
 
     assert!(lineage_population < atomic_gate);
-    assert_eq!(sim.lineage_eras.get(&lineage_id), Some(&Era::Atomic));
+    assert_eq!(sim.lineage_eras.get(lineage_id.as_str()), Some(&Era::Atomic));
     assert_eq!(sim.current_era, Era::Atomic.name());
     assert!(sim
         .lineage_eras
@@ -119,7 +120,7 @@ fn small_lineage_cannot_advance_before_living_world_meets_population_gate() {
         sim.organisms.iter().filter(|org| org.alive).count(),
         below_atomic_gate
     );
-    assert_eq!(sim.lineage_eras.get(&lineage_id), Some(&Era::Information));
+    assert_eq!(sim.lineage_eras.get(lineage_id.as_str()), Some(&Era::Information));
     assert_eq!(sim.current_era, Era::Information.name());
 }
 
@@ -128,7 +129,7 @@ fn prepare_technological_era_boundary(sim: &mut Simulation, era: crate::sim::era
         .organisms
         .iter()
         .filter(|org| org.alive)
-        .map(|org| org.lineage_id.clone())
+        .map(|org| org.lineage_id.to_string())
         .collect();
 
     // The tick before an era pass (see `ERAS_PHASE`).
@@ -136,7 +137,7 @@ fn prepare_technological_era_boundary(sim: &mut Simulation, era: crate::sim::era
     sim.current_era = era.name().to_string();
     sim.lineage_eras.clear();
     for lineage_id in alive_lineages {
-        sim.lineage_eras.insert(lineage_id, era);
+        sim.lineage_eras.insert(lineage_id.into(), era);
     }
     sim.events.clear();
     sim.headlines.clear();

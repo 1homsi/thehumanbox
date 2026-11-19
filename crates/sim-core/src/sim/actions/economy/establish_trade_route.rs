@@ -9,7 +9,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     }
 
     for partner_index in partners {
-        let partner_lineage = ctx.sim.organisms[partner_index].lineage_id.clone();
+        let partner_lineage = ctx.sim.organisms[partner_index].lineage_id;
         if establish_route(ctx.sim, ctx.idx, partner_index) {
             ctx.think(&format!("negotiating a trade route with {partner_lineage}"));
             ctx.discover("trade_route", "established a trade route with a foreign lineage");

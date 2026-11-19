@@ -51,8 +51,8 @@ impl Simulation {
     /// Kin and friends close enough to see the work learn from it.
     fn teach_by_example(&mut self, idx: usize, skill: Skill, level: f32, nearby: &[usize]) {
         let (wx, wy) = (self.organisms[idx].x, self.organisms[idx].y);
-        let worker_id = self.organisms[idx].id.clone();
-        let worker_lineage = self.organisms[idx].lineage_id.clone();
+        let worker_id = self.organisms[idx].id;
+        let worker_lineage = self.organisms[idx].lineage_id;
         let watchers: Vec<usize> = nearby
             .iter()
             .copied()
@@ -66,7 +66,7 @@ impl Simulation {
                     // Their own child learns from them whichever line the child
                     // was born into.
                     && (o.lineage_id == worker_lineage
-                        || o.friends.contains_key(&worker_id)
+                        || o.friends.contains_key(worker_id.as_str())
                         || o.parent_id == worker_id
                         || o.father_id.as_deref() == Some(worker_id.as_str()))
             })
@@ -93,7 +93,7 @@ impl Simulation {
                     tick,
                     "learned",
                     format!("began to learn {} by watching {}", skill.name(), teacher),
-                    Some(worker_id.clone()),
+                    Some(worker_id.to_string()),
                     Some(teacher),
                 );
             }
@@ -127,13 +127,13 @@ mod tests {
 
     fn village() -> Simulation {
         let mut sim = Simulation::new(5);
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let lineage = sim.organisms[0].lineage_id;
         for (i, o) in sim.organisms.iter_mut().enumerate().take(4) {
             o.alive = true;
             o.x = 50.0 + i as f32;
             o.y = 50.0;
             o.age = o.max_age / 3;
-            o.lineage_id = lineage.clone();
+            o.lineage_id = lineage;
             o.skills = Default::default();
         }
         sim
@@ -178,12 +178,12 @@ mod tests {
     fn a_child_born_into_another_line_still_learns_from_their_father() {
         let mut sim = village();
         sim.organisms[0].skills.set(Skill::Fishing, 0.8);
-        let father = sim.organisms[0].id.clone();
+        let father = sim.organisms[0].id;
         for i in [1, 2] {
             sim.organisms[i].lineage_id = "mothers_line".into();
             sim.organisms[i].friends.clear();
         }
-        sim.organisms[1].father_id = Some(father);
+        sim.organisms[1].father_id = Some(father.to_string());
         for _ in 0..20 {
             sim.practise_skill(0, Skill::Fishing, true, &[1, 2]);
         }

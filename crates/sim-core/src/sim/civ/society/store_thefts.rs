@@ -48,7 +48,7 @@ impl Simulation {
         for bi in granaries {
             let granary = (self.buildings[bi].x, self.buildings[bi].y);
             let stock = self.buildings[bi].stock;
-            let lid = self.buildings[bi].owner_lineage.clone().unwrap_or_default();
+            let lid = self.buildings[bi].owner_lineage.unwrap_or_default();
             let people = self
                 .organisms
                 .iter()
@@ -101,7 +101,7 @@ impl Simulation {
             let caught = self.rng.random::<f32>() < CATCH_CHANCE;
             let name = self
                 .lineage_names
-                .get(&lid)
+                .get(lid.as_str())
                 .cloned()
                 .unwrap_or_else(|| "A tribe".to_string());
 

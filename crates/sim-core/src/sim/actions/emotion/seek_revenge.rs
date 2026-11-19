@@ -11,7 +11,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("no enemy in sight");
         return 0.0;
     };
-    let their_lid = ctx.sim.organisms[ki].lineage_id.clone();
+    let their_lid = ctx.sim.organisms[ki].lineage_id;
     ctx.sim.organisms[ctx.idx].update_attitude(&their_lid, -0.15);
     ctx.think("harbouring a burning grudge");
     ctx.event("warfare", "plotted revenge against a rival group");

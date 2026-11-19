@@ -167,7 +167,7 @@ fn main() {
                 .iter()
                 .filter(|o| !o.alive && o.death_cause == cause)
             {
-                if !reported.insert(o.id.clone()) {
+                if !reported.insert(o.id.to_string()) {
                     continue;
                 }
                 let last: Vec<&str> = o

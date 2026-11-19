@@ -278,7 +278,7 @@ impl Simulation {
             .organisms
             .iter()
             .filter(|organism| organism.alive || growth::is_pending_birth(organism))
-            .map(|organism| organism.lineage_id.clone())
+            .map(|organism| organism.lineage_id.to_string())
             .collect();
         let extinct_objectives: Vec<(String, StrategyObjective)> = self
             .lineage_strategy_objectives

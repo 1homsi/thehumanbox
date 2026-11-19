@@ -178,7 +178,7 @@ mod tests {
         // Three tribes of eight living people each; everyone else is dead.
         for (i, o) in sim.organisms.iter_mut().enumerate() {
             o.alive = i < 3 * MIN_TRIBE;
-            o.lineage_id = format!("tribe-{}", i / MIN_TRIBE);
+            o.lineage_id = format!("tribe-{}", i / MIN_TRIBE).into();
         }
         for year in 1..=SURVIVAL_YEARS as u64 {
             sim.tick_count = year * YEAR_LENGTH_TICKS;

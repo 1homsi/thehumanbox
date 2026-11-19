@@ -129,7 +129,7 @@ mod tests {
         let mut sim = Simulation::new(0xEC_0002);
         sim.organisms.truncate(1);
         sim.buildings.clear();
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let lineage = sim.organisms[0].lineage_id;
         let (x, y) = (160, 160);
         let cost = BuildingKind::MarketStall.construction_cost();
         let builder = &mut sim.organisms[0];

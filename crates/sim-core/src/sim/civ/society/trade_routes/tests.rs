@@ -180,7 +180,7 @@ fn load_repair_rejects_unsafe_ids_points_and_per_route_overflow() {
             route_id: valid_route.id,
             sender_lineage: "river".into(),
             receiver_lineage: "hill".into(),
-            sender_org_id: sim.organisms[0].id.clone(),
+            sender_org_id: sim.organisms[0].id.to_string(),
             cargo: "wood".into(),
             amount: 1,
             unit_price: 1,
@@ -226,13 +226,13 @@ fn load_repair_drops_future_and_unbounded_caravan_clocks() {
     assert!(establish_route(&mut sim, 0, 2));
     let route = sim.trade_routes[0].clone();
     let (from, to, receiver_lineage) = route_direction(&route, "river").unwrap();
-    let sender_org_id = sim.organisms[0].id.clone();
+    let sender_org_id = sim.organisms[0].id;
     let caravan = |id, departed_tick, arrives_tick| Caravan {
         id,
         route_id: route.id,
         sender_lineage: "river".into(),
         receiver_lineage: receiver_lineage.clone(),
-        sender_org_id: sender_org_id.clone(),
+        sender_org_id: sender_org_id.to_string(),
         cargo: "wood".into(),
         amount: 1,
         unit_price: 1,

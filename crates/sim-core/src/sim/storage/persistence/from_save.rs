@@ -362,7 +362,7 @@ impl Simulation {
             let mut owner = crate::hashing::FxHashMap::default();
             for (lid, tiles) in sim.territory.iter() {
                 for &p in tiles {
-                    owner.insert(p, lid.clone());
+                    owner.insert(p, *lid);
                 }
             }
             sim.tile_owner = owner;
@@ -376,7 +376,7 @@ impl Simulation {
             .organisms
             .iter()
             .filter(|organism| organism.alive || crate::sim::agents::growth::is_pending_birth(organism))
-            .map(|organism| organism.lineage_id.clone())
+            .map(|organism| organism.lineage_id.to_string())
             .collect();
         let loaded_tick = sim.tick_count;
         sim.lineage_strategies

@@ -75,7 +75,11 @@ fn pass(sim: &mut Simulation, n: u64) {
 fn arrive(sim: &mut Simulation) {
     let to = sim.land.migrations[0].to;
     let members = sim.land.migrations[0].members.clone();
-    for o in sim.organisms.iter_mut().filter(|o| members.contains(&o.id)) {
+    for o in sim
+        .organisms
+        .iter_mut()
+        .filter(|o| members.iter().any(|v| o.id == *v))
+    {
         o.x = to[0] as f32;
         o.y = to[1] as f32;
     }
@@ -95,7 +99,11 @@ fn a_starving_town_sends_a_group_down_the_road_to_a_fed_town_of_its_nation() {
     assert_eq!(m.members.len(), 3);
     assert_eq!(m.path.first(), Some(&[100, 100]));
     assert_eq!(m.path.last(), Some(&[140, 100]));
-    for o in sim.organisms.iter().filter(|o| m.members.contains(&o.id)) {
+    for o in sim
+        .organisms
+        .iter()
+        .filter(|o| m.members.iter().any(|v| o.id == *v))
+    {
         assert_eq!((o.home_x as i32, o.home_y as i32), (140, 100));
     }
     sim.tick_count += MOVE_STEP - sim.tick_count % MOVE_STEP + MOVE_PHASE;
@@ -103,7 +111,7 @@ fn a_starving_town_sends_a_group_down_the_road_to_a_fed_town_of_its_nation() {
     let walking = sim
         .organisms
         .iter()
-        .filter(|o| m.members.contains(&o.id) && o.journey.is_some())
+        .filter(|o| m.members.iter().any(|v| o.id == *v) && o.journey.is_some())
         .count();
     assert_eq!(walking, 3, "the group sets out together");
     pass(&mut sim, 3);
@@ -113,7 +121,7 @@ fn a_starving_town_sends_a_group_down_the_road_to_a_fed_town_of_its_nation() {
     let joined = sim
         .organisms
         .iter()
-        .filter(|o| m.members.contains(&o.id) && o.lineage_id == "fed")
+        .filter(|o| m.members.iter().any(|v| o.id == *v) && o.lineage_id == "fed")
         .count();
     assert_eq!(joined, 3, "the nation takes them in");
     assert_eq!(sim.land.stats.welcomed, 1);

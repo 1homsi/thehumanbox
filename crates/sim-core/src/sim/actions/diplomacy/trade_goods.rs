@@ -22,7 +22,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.sim.organisms[ki].inv_stone -= 1;
         ctx.sim.organisms[ctx.idx].inv_stone = ctx.sim.organisms[ctx.idx].inv_stone.saturating_add(1);
     }
-    let their = ctx.sim.organisms[ki].lineage_id.clone();
+    let their = ctx.sim.organisms[ki].lineage_id;
     ctx.sim.organisms[ctx.idx].update_attitude(&their, 0.04);
     ctx.think("trading goods");
     ctx.discover("trade", "opened trade with another tribe");

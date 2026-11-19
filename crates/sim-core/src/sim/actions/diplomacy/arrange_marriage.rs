@@ -15,16 +15,16 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         return 0.0;
     }
     let (a, b) = (mates[0], mates[1]);
-    let bid = ctx.sim.organisms[b].id.clone();
-    let aid = ctx.sim.organisms[a].id.clone();
+    let bid = ctx.sim.organisms[b].id;
+    let aid = ctx.sim.organisms[a].id;
     {
         let oa = &mut ctx.sim.organisms[a];
-        let t = oa.org_trust.entry(bid).or_insert(0.0);
+        let t = oa.org_trust.entry(bid.to_string()).or_insert(0.0);
         *t = (*t + 0.20).min(1.0);
     }
     {
         let ob = &mut ctx.sim.organisms[b];
-        let t2 = ob.org_trust.entry(aid).or_insert(0.0);
+        let t2 = ob.org_trust.entry(aid.to_string()).or_insert(0.0);
         *t2 = (*t2 + 0.20).min(1.0);
     }
     ctx.think("arranging a marriage");

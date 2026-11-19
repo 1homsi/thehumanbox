@@ -12,7 +12,7 @@ pub(super) fn tick_diplomacy(sim: &mut Simulation) {
                 continue;
             }
             let e = sums
-                .entry((o.lineage_id.clone(), other.clone()))
+                .entry((o.lineage_id.to_string(), other.to_string()))
                 .or_insert((0.0, 0));
             e.0 += *att;
             e.1 += 1;
@@ -26,7 +26,7 @@ pub(super) fn tick_diplomacy(sim: &mut Simulation) {
         .organisms
         .iter()
         .filter(|o| o.alive)
-        .map(|o| o.lineage_id.clone())
+        .map(|o| o.lineage_id.to_string())
         .collect::<HashSet<_>>()
         .into_iter()
         .collect();
@@ -80,7 +80,7 @@ pub(super) fn tick_diplomacy(sim: &mut Simulation) {
 pub(super) fn tick_dynasty_watch(sim: &mut Simulation) {
     let mut pop_now: HashMap<String, u32> = HashMap::default();
     for o in sim.organisms.iter().filter(|o| o.alive) {
-        *pop_now.entry(o.lineage_id.clone()).or_insert(0) += 1;
+        *pop_now.entry(o.lineage_id.to_string()).or_insert(0) += 1;
     }
     let tick = sim.tick_count;
     let tracked: Vec<String> = sim.lineage_peak_pop.keys().cloned().collect();
@@ -131,7 +131,7 @@ pub(super) fn tick_governments(sim: &mut Simulation) {
         .organisms
         .iter()
         .filter(|o| o.alive)
-        .map(|o| o.lineage_id.clone())
+        .map(|o| o.lineage_id.to_string())
         .collect::<HashSet<_>>()
         .into_iter()
         .collect();
@@ -247,11 +247,11 @@ pub(super) fn tick_leader_influence(sim: &mut Simulation) {
             let mut entries: Vec<(String, f32)> = Vec::new();
             for (lid, &att) in o.lineage_attitudes.iter() {
                 if att.abs() > 0.05 {
-                    entries.push((lid.clone(), att));
+                    entries.push((lid.to_string(), att));
                 }
             }
             if !entries.is_empty() {
-                out.insert(o.lineage_id.clone(), entries);
+                out.insert(o.lineage_id.to_string(), entries);
             }
         }
         out
@@ -263,15 +263,19 @@ pub(super) fn tick_leader_influence(sim: &mut Simulation) {
         if !o.alive || o.is_leader {
             continue;
         }
-        let Some(entries) = leader_attitudes.get(&o.lineage_id) else {
+        let Some(entries) = leader_attitudes.get(o.lineage_id.as_str()) else {
             continue;
         };
         for (target_lid, leader_att) in entries.iter() {
-            let cur = o.lineage_attitudes.get(target_lid).copied().unwrap_or(0.0);
+            let cur = o
+                .lineage_attitudes
+                .get(target_lid.as_str())
+                .copied()
+                .unwrap_or(0.0);
             let diff = leader_att - cur;
             let new_val = cur + diff * 0.10;
             o.lineage_attitudes
-                .insert(target_lid.clone(), new_val.clamp(-1.0, 1.0));
+                .insert(target_lid.clone().into(), new_val.clamp(-1.0, 1.0));
         }
     }
 }
@@ -298,7 +302,7 @@ pub(super) fn pick_leaders(sim: &mut Simulation, lineages: &[String]) {
         let score =
             o.traits.social_tendency + o.traits.memory_strength + o.traits.curiosity + (o.literacy * 0.5);
         candidates_by_lineage
-            .entry(o.lineage_id.clone())
+            .entry(o.lineage_id.to_string())
             .or_default()
             .push((i, score));
     }
@@ -343,10 +347,11 @@ pub(super) fn pick_leaders(sim: &mut Simulation, lineages: &[String]) {
             }
         } else if coup {
             // Highest-scoring challenger who is not the deposed ruler.
-            if let Some(c) = candidates
-                .iter()
-                .find(|c| Some(&sim.organisms[c.0].id) != prev_leader_id.as_ref())
-            {
+            if let Some(c) = candidates.iter().find(|c| {
+                prev_leader_id
+                    .as_ref()
+                    .is_none_or(|p| sim.organisms[c.0].id != *p)
+            }) {
                 primary_idx = c.0;
             }
             event = Some("seized power in a coup");
@@ -374,13 +379,16 @@ pub(super) fn pick_leaders(sim: &mut Simulation, lineages: &[String]) {
             .filter(|&i| i != primary_idx)
             .take(want.saturating_sub(1))
             .collect();
-        let leader_id = sim.organisms[primary_idx].id.clone();
+        let leader_id = sim.organisms[primary_idx].id;
 
         sim.organisms[primary_idx].is_leader = true;
         for &ci in &council_idx {
             sim.organisms[ci].is_leader = true;
         }
-        let council_ids: Vec<String> = council_idx.iter().map(|&i| sim.organisms[i].id.clone()).collect();
+        let council_ids: Vec<String> = council_idx
+            .iter()
+            .map(|&i| sim.organisms[i].id.to_string())
+            .collect();
 
         if let Some(verb) = event {
             let lname = sim.lineage_names.get(lid).cloned().unwrap_or_else(|| lid.clone());
@@ -392,7 +400,7 @@ pub(super) fn pick_leaders(sim: &mut Simulation, lineages: &[String]) {
         }
 
         if let Some(g) = sim.governments.get_mut(lid) {
-            g.leader_id = Some(leader_id);
+            g.leader_id = Some(leader_id.to_string());
             g.council_ids = council_ids;
         }
     }

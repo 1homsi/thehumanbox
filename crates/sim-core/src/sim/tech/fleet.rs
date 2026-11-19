@@ -425,22 +425,22 @@ mod tests {
     /// Eight people of one tribe, a fisher among them, living on the shore at (89, 100).
     fn coastal_tribe(sim: &mut Simulation) -> String {
         sim.organisms.truncate(8);
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let lineage = sim.organisms[0].lineage_id;
         for o in sim.organisms.iter_mut() {
-            o.lineage_id = lineage.clone();
+            o.lineage_id = lineage;
             o.alive = true;
             o.home_x = 89.0;
             o.home_y = 100.0;
         }
         sim.organisms[0].discover("fishing");
-        lineage
+        lineage.to_string()
     }
 
     /// Raises a tribe's shipyard in the Bronze age and gives its people wood, then runs the harbour
     /// works every fifty ticks until the first hull is launched.
     fn build_first_boat(sim: &mut Simulation, lineage: &str) {
         sim.lineage_eras
-            .insert(lineage.to_string(), crate::sim::era::Era::Bronze);
+            .insert(lineage.to_string().into(), crate::sim::era::Era::Bronze);
         for o in sim.organisms.iter_mut() {
             o.inv_wood = 4;
             o.x = 89.0;
@@ -696,8 +696,8 @@ mod ship_tests {
         sim.vehicles.clear();
         moored(&mut sim, "old");
         moored(&mut sim, "young");
-        sim.lineage_eras.insert("old".to_string(), Era::Classical);
-        sim.lineage_eras.insert("young".to_string(), Era::Iron);
+        sim.lineage_eras.insert("old".to_string().into(), Era::Classical);
+        sim.lineage_eras.insert("young".to_string().into(), Era::Iron);
         sim.refit_ships();
         assert_eq!(sim.vehicles[0].kind, TransportKind::Ship);
         assert_eq!(sim.vehicles[1].kind, TransportKind::Boat);
@@ -710,7 +710,8 @@ mod ship_tests {
         let mut sim = Simulation::new(42);
         sim.vehicles.clear();
         moored(&mut sim, "iron");
-        sim.lineage_eras.insert("iron".to_string(), Era::Industrial);
+        sim.lineage_eras
+            .insert("iron".to_string().into(), Era::Industrial);
         sim.refit_ships();
         let frame = sim.state_json();
         assert_eq!(frame["vehicles"][0]["kind"], "ship");

@@ -5,13 +5,13 @@ use super::*;
 fn person(id: &str, surname: &str) -> Organism {
     let mut rng = StdRng::seed_from_u64(7);
     let mut o = Organism::new(
-        id.into(),
+        id,
         "Ama".into(),
         0.0,
         0.0,
         0,
         String::new(),
-        "lin".into(),
+        "lin",
         9000,
         Traits::random(&mut rng),
     );

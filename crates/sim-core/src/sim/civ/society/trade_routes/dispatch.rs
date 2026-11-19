@@ -95,7 +95,7 @@ pub(super) fn dispatch_route_index(
         return None;
     }
 
-    let actor_lineage = actor.lineage_id.clone();
+    let actor_lineage = actor.lineage_id;
     let mut candidates: Vec<(usize, usize, u64, u32)> = sim
         .trade_routes
         .iter()
@@ -163,8 +163,8 @@ pub(super) fn dispatch_cargo_on_route_index(
     let Some(actor) = sim.organisms.get(actor_idx).filter(|organism| organism.alive) else {
         return false;
     };
-    let actor_lineage = actor.lineage_id.clone();
-    let actor_id = actor.id.clone();
+    let actor_lineage = actor.lineage_id;
+    let actor_id = actor.id;
     let actor_name = actor.name.clone();
     let Some(route) = sim.trade_routes.get(route_index) else {
         return false;
@@ -182,7 +182,7 @@ pub(super) fn dispatch_cargo_on_route_index(
         return false;
     };
     let (canonical_a, canonical_a_center, canonical_b, canonical_b_center) = canonical_endpoints(
-        actor_lineage.clone(),
+        actor_lineage.to_string(),
         actor_center,
         receiver_lineage,
         receiver_center,
@@ -254,7 +254,7 @@ pub(super) fn dispatch_cargo_on_route_index(
     }
     let era = sim
         .lineage_eras
-        .get(&actor_lineage)
+        .get(actor_lineage.as_str())
         .copied()
         .unwrap_or(crate::sim::era::Era::Iron);
     let unit_price = PriceTable::for_era(era).price_for(era, &cargo).clamp(1, 100);
@@ -263,9 +263,9 @@ pub(super) fn dispatch_cargo_on_route_index(
     sim.caravans.push(Caravan {
         id,
         route_id,
-        sender_lineage: actor_lineage,
+        sender_lineage: actor_lineage.to_string(),
         receiver_lineage: receiver_lineage.clone(),
-        sender_org_id: actor_id,
+        sender_org_id: actor_id.to_string(),
         cargo: cargo.clone(),
         amount,
         unit_price,
@@ -310,7 +310,7 @@ pub fn dispatch_caravan(sim: &mut Simulation, actor_idx: usize, partner_idx: usi
     if actor.lineage_id == partner.lineage_id {
         return false;
     }
-    let partner_lineage = partner.lineage_id.clone();
+    let partner_lineage = partner.lineage_id;
     let Some(route_index) = dispatch_route_index(sim, actor_idx, Some(&partner_lineage), true) else {
         return false;
     };
@@ -339,9 +339,9 @@ pub fn action_is_possible(sim: &Simulation, actor_idx: usize, action: usize, nea
                     return false;
                 };
                 let (lineage_a, _, lineage_b, _) = canonical_endpoints(
-                    actor.lineage_id.clone(),
+                    actor.lineage_id.to_string(),
                     actor_center,
-                    partner.lineage_id.clone(),
+                    partner.lineage_id.to_string(),
                     partner_center,
                 );
                 !sim.trade_routes

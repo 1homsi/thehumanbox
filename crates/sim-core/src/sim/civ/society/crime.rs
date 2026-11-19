@@ -257,13 +257,13 @@ mod tests {
 
     fn person(id: &str, lid: &str, wealth: u32) -> Organism {
         let mut o = Organism::new(
-            id.into(),
+            id,
             id.into(),
             0.0,
             0.0,
             0,
             String::new(),
-            lid.into(),
+            lid,
             9000,
             Traits::default(),
         );

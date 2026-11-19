@@ -5,14 +5,14 @@ use super::*;
 #[test]
 fn devout_tribes_raise_a_place_of_worship_first() {
     let mut sim = Simulation::new(3);
-    let lid = sim.organisms[0].lineage_id.clone();
+    let lid = sim.organisms[0].lineage_id;
     let none = HashSet::default();
     assert_eq!(
         devout_target(&sim, &lid, Era::Stone, 10, &none),
         None,
         "not devout yet"
     );
-    sim.prayers.faith.insert(lid.clone(), DEVOUT_FAITH);
+    sim.prayers.faith.insert(lid.to_string(), DEVOUT_FAITH);
     assert_eq!(
         devout_target(&sim, &lid, Era::Stone, 10, &none),
         Some(BuildingKind::Shrine)
@@ -731,7 +731,7 @@ fn check_site_search_parity(seed: u64, from: u64, to: u64, every: u64) -> (usize
             .organisms
             .iter()
             .filter(|o| o.alive)
-            .map(|o| o.lineage_id.clone())
+            .map(|o| o.lineage_id.to_string())
             .collect();
         lineages.sort();
         lineages.dedup();

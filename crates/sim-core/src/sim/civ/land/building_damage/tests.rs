@@ -14,8 +14,8 @@ fn dry_footprint(sim: &mut Simulation, building: &Building) {
 }
 
 fn completed_house(sim: &mut Simulation, x: i32, y: i32) -> usize {
-    let lineage = sim.organisms[0].lineage_id.clone();
-    let mut building = Building::new(900, BuildingKind::House, x, y, Some(lineage), 1);
+    let lineage = sim.organisms[0].lineage_id;
+    let mut building = Building::new(900, BuildingKind::House, x, y, Some(lineage.to_string()), 1);
     building.condition = 1.0;
     dry_footprint(sim, &building);
     sim.buildings.push(building);
@@ -23,8 +23,8 @@ fn completed_house(sim: &mut Simulation, x: i32, y: i32) -> usize {
 }
 
 fn completed_building(sim: &mut Simulation, id: u32, kind: BuildingKind, x: i32, y: i32) -> usize {
-    let lineage = sim.organisms[0].lineage_id.clone();
-    let mut building = Building::new(id, kind, x, y, Some(lineage), 1);
+    let lineage = sim.organisms[0].lineage_id;
+    let mut building = Building::new(id, kind, x, y, Some(lineage.to_string()), 1);
     building.condition = 1.0;
     dry_footprint(sim, &building);
     sim.buildings.push(building);

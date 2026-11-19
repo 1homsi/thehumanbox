@@ -104,8 +104,8 @@ mod tests {
         let mut sim = Simulation::new(8_008);
         let idx = sim.organisms.iter().position(|org| org.alive).unwrap();
         let (x, y) = (120, 120);
-        let lineage = sim.organisms[idx].lineage_id.clone();
-        sim.lineage_eras.insert(lineage, Era::Bronze);
+        let lineage = sim.organisms[idx].lineage_id;
+        sim.lineage_eras.insert(lineage.to_string().into(), Era::Bronze);
         sim.organisms[idx].inv_food = 2;
         sim.grid.set(x, y, Tile::Grass);
         sim.grid.fertility[WorldGrid::idx(x, y)] = 0.8;

@@ -14,12 +14,12 @@ const SPRING: u64 = 9_000;
 /// A tribe that farms by a house, with open grass round it and a granary holding `stock`.
 fn farming_village(seed: u64, stock: u32) -> (Simulation, String, (i32, i32)) {
     let mut sim = Simulation::new(seed);
-    let lineage = sim.organisms[0].lineage_id.clone();
+    let lineage = sim.organisms[0].lineage_id;
     for o in sim.organisms.iter_mut().filter(|o| o.lineage_id == lineage) {
         o.discoveries.insert("agriculture".to_string());
         o.inv_food = 0;
     }
-    sim.lineage_eras.insert(lineage.clone(), Era::Bronze);
+    sim.lineage_eras.insert(lineage.to_string().into(), Era::Bronze);
     let (hx, hy) = (120, 120);
     for dy in -12..=12 {
         for dx in -12..=12 {
@@ -29,7 +29,7 @@ fn farming_village(seed: u64, stock: u32) -> (Simulation, String, (i32, i32)) {
     }
     sim.farms.clear();
     sim.buildings.clear();
-    let mut house = Building::new(900, BuildingKind::Hut, hx, hy, Some(lineage.clone()), 0);
+    let mut house = Building::new(900, BuildingKind::Hut, hx, hy, Some(lineage.to_string()), 0);
     house.condition = 1.0;
     sim.buildings.push(house);
     let mut granary = Building::new(
@@ -37,13 +37,13 @@ fn farming_village(seed: u64, stock: u32) -> (Simulation, String, (i32, i32)) {
         BuildingKind::Granary,
         hx + 1,
         hy + 1,
-        Some(lineage.clone()),
+        Some(lineage.to_string()),
         0,
     );
     granary.condition = 1.0;
     granary.stock = stock;
     sim.buildings.push(granary);
-    (sim, lineage, (hx, hy))
+    (sim, lineage.to_string(), (hx, hy))
 }
 
 fn field(id: u32, x: i32, y: i32, owner: &str, ready: u64) -> Farm {
@@ -99,7 +99,7 @@ fn a_plough_sows_more_plots_in_a_spring_than_the_hand() {
         for o in sim.organisms.iter_mut().filter(|o| o.lineage_id == lineage) {
             o.inv_food = 5;
         }
-        sim.lineage_eras.insert(lineage.clone(), era);
+        sim.lineage_eras.insert(lineage.clone().into(), era);
         sim.tick_count = SPRING;
         tick_village_fields(&mut sim);
         sim.farms.iter().filter(|f| f.owner_lineage == lineage).count()

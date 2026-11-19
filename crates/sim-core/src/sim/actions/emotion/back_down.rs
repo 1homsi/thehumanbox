@@ -11,7 +11,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("no confrontation to step away from");
         return 0.0;
     };
-    let their_lid = ctx.sim.organisms[ki].lineage_id.clone();
+    let their_lid = ctx.sim.organisms[ki].lineage_id;
     ctx.org_mut().comfort = (ctx.org().comfort - 0.02).max(0.0);
     ctx.sim.organisms[ctx.idx].update_attitude(&their_lid, 0.03);
     ctx.think("choosing peace over pride");

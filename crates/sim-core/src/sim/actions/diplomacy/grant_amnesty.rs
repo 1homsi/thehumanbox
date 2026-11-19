@@ -4,7 +4,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let lid = ctx.lid.clone();
     for i in 0..ctx.near.len() {
         let ki = ctx.near[i];
-        let their = ctx.sim.organisms[ki].lineage_id.clone();
+        let their = ctx.sim.organisms[ki].lineage_id;
         if their != lid {
             ctx.sim.organisms[ctx.idx].update_attitude(&their, 0.05);
         }
