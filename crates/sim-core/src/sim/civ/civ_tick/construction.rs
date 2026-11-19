@@ -525,6 +525,8 @@ fn find_zone_site(
     fallback
 }
 
+const ROLE_TRIES: usize = 2;
+
 fn jitter(sim: &Simulation) -> (i32, i32) {
     (
         (sim.next_building_id as i32 * 3) % 16 - 8,
@@ -538,7 +540,18 @@ pub(super) fn try_start_in_town(
     kind: BuildingKind,
     failed: &mut FailedSites,
 ) -> bool {
-    let Some(index) = super::town::town_for(sim, lineage, kind) else {
+    let index = super::town::town_for(sim, lineage, kind);
+    try_start_in_town_at(sim, lineage, kind, index, failed)
+}
+
+pub(super) fn try_start_in_town_at(
+    sim: &mut Simulation,
+    lineage: &str,
+    kind: BuildingKind,
+    index: Option<usize>,
+    failed: &mut FailedSites,
+) -> bool {
+    let Some(index) = index else {
         let (cx, cy) = lineage_center(sim, lineage);
         if (cx, cy) == (0, 0) {
             return false;
@@ -566,7 +579,7 @@ pub(super) fn try_start_in_town(
         let (ox, oy) = jitter(sim);
         try_start_building_with(sim, lineage, kind, cx + ox, cy + oy, failed)
     } else if zone == super::town::Zone::Civic && town.planned {
-        super::town::civic_anchors(sim, lineage, kind)
+        super::town::civic_anchors_in(sim, lineage, kind, Some(index))
             .into_iter()
             .any(|(x, y)| try_start_building_with(sim, lineage, kind, x, y, failed))
     } else if !construction_cost_available(sim, lineage, kind) || failed.covers(kind, cx, cy) {
@@ -1399,6 +1412,18 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
                         || try_start_in_town(sim, &lid, kind, &mut failed_sites)
                     {
                         started = Some(kind);
+                    }
+                }
+            }
+            if started.is_none() && project_index == 0 {
+                for (index, kind) in super::town::role_targets(sim, &lid, era, agriculture)
+                    .into_iter()
+                    .take(ROLE_TRIES)
+                {
+                    if try_start_in_town_at(sim, &lid, kind, Some(index), &mut failed_sites) {
+                        sim.diplomacy.stats.role_buildings += 1;
+                        started = Some(kind);
+                        break;
                     }
                 }
             }

@@ -90,7 +90,7 @@ export function TerritoryHoverCard({
     }
   }, [container, cameraRef, viewport, enabled])
 
-  const facts = hover ? territoryCardFacts(world, hover.lineage, hover.contested) : null
+  const facts = hover ? territoryCardFacts(world, hover.lineage, hover.contested, hover) : null
   const settlement = hover ? world.settlements?.find((item) => item.lineage_id === hover.lineage) : null
   // The ground under the pointer, in one line, so the tribe's card also says what the land is.
   const ground = hover ? groundLine(world, hover.x + 0.5, hover.y + 0.5) : null
@@ -130,6 +130,7 @@ function TribeFacts({
         />
         {facts.name}
       </div>
+      {facts.town && <div style={{ color: '#cfe8ff' }}>{facts.town}</div>}
       {ground && <div>{ground}</div>}
       <div>
         {t('panels.tribe.people', { count: facts.people })}

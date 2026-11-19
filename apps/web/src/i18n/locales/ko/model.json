@@ -366,7 +366,13 @@
     "caravan": {
       "title": "대상 행렬",
       "load": "{amount} {cargo} 운반 중",
-      "route": "{from}에서 {to}까지"
+      "route": "{from}에서 {to}까지",
+      "kind": {
+        "supply": "보급 대상",
+        "relief": "구호 대상",
+        "tribute": "공물 대상"
+      },
+      "need": "부족한 마을로"
     }
   },
   "terrain": {
@@ -1043,5 +1049,18 @@
     "war": "전쟁이 일어남",
     "famine": "{names}: 굶주리는 중",
     "extinct": "{names}: 대가 끊김"
+  },
+  "town": {
+    "role": {
+      "mixed": "장터 마을",
+      "farming": "농사 마을",
+      "harbour": "항구 마을",
+      "mining": "광산 마을",
+      "timber": "벌목 마을",
+      "trade": "교역 거점",
+      "capital": "수도"
+    },
+    "short": "{goods} 부족",
+    "spare": "{goods} 여유"
   }
 }

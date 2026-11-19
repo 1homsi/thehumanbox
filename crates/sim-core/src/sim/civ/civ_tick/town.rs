@@ -64,7 +64,7 @@ fn planned_by_default() -> bool {
     true
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Town {
     #[serde(default)]
     pub id: u32,
@@ -78,6 +78,22 @@ pub struct Town {
     pub planned: bool,
     #[serde(default)]
     pub growth: u8,
+    #[serde(default)]
+    pub role: crate::sim::civ::society::town_roles::TownRole,
+    #[serde(default, skip_serializing_if = "is_zero_tick")]
+    pub role_tick: u64,
+    #[serde(default, skip_serializing_if = "is_zero_mask")]
+    pub short: u8,
+    #[serde(default, skip_serializing_if = "is_zero_mask")]
+    pub spare: u8,
+}
+
+fn is_zero_tick(v: &u64) -> bool {
+    *v == 0
+}
+
+fn is_zero_mask(v: &u8) -> bool {
+    *v == 0
 }
 
 impl Town {
@@ -257,6 +273,7 @@ pub(crate) fn tick_towns(sim: &mut Simulation) {
     plan_towns(sim, &people);
     grow_towns(sim, &people);
     assign_parents(sim);
+    sim.score_town_roles();
 }
 
 fn found_towns(sim: &mut Simulation, homes: &HomesByLineage) {
@@ -302,6 +319,7 @@ fn found_towns(sim: &mut Simulation, homes: &HomesByLineage) {
             founded_tick: now,
             planned: false,
             growth: 0,
+            ..Default::default()
         });
     }
 }
@@ -651,6 +669,47 @@ pub(crate) fn town_for(sim: &Simulation, lineage: &str, kind: BuildingKind) -> O
     })
 }
 
+const ROLE_PEOPLE: usize = 8;
+const ROLE_REACH: i32 = 16;
+
+pub(super) fn role_targets(
+    sim: &Simulation,
+    lineage: &str,
+    era: Era,
+    agriculture: bool,
+) -> Vec<(usize, BuildingKind)> {
+    let people = residents_of(sim, lineage);
+    let mut out = Vec::new();
+    for (i, town) in sim.towns.iter().enumerate().filter(|(_, t)| t.lineage == lineage) {
+        if people.get(&town.id).copied().unwrap_or(0) < ROLE_PEOPLE {
+            continue;
+        }
+        for &(from, kind) in town.role.buildings() {
+            if era < from
+                || (!agriculture
+                    && matches!(
+                        kind,
+                        BuildingKind::Mill | BuildingKind::Windmill | BuildingKind::Silo
+                    ))
+            {
+                continue;
+            }
+            let has = sim.buildings.iter().any(|b| {
+                b.kind == kind
+                    && !b.decorative
+                    && !b.is_ruined()
+                    && b.owner_lineage.as_deref() == Some(lineage)
+                    && (b.town == Some(town.id) || town.distance(b.x, b.y) <= ROLE_REACH)
+            });
+            if !has {
+                out.push((i, kind));
+                break;
+            }
+        }
+    }
+    out
+}
+
 pub(crate) fn main_town<'a>(sim: &'a Simulation, lineage: &str) -> Option<&'a Town> {
     town_for(sim, lineage, BuildingKind::Market).map(|i| &sim.towns[i])
 }
@@ -681,10 +740,16 @@ fn corner_anchor(town: &Town, kind: BuildingKind, corner: usize) -> (i32, i32) {
 }
 
 pub(super) fn civic_anchors(sim: &Simulation, lineage: &str, kind: BuildingKind) -> Vec<(i32, i32)> {
-    let Some(town) = town_for(sim, lineage, kind)
-        .map(|i| &sim.towns[i])
-        .filter(|t| t.planned)
-    else {
+    civic_anchors_in(sim, lineage, kind, town_for(sim, lineage, kind))
+}
+
+pub(super) fn civic_anchors_in(
+    sim: &Simulation,
+    lineage: &str,
+    kind: BuildingKind,
+    index: Option<usize>,
+) -> Vec<(i32, i32)> {
+    let Some(town) = index.map(|i| &sim.towns[i]).filter(|t| t.planned) else {
         return Vec::new();
     };
     let first = owned_count(sim, lineage, &CIVIC_KINDS) % 4;
@@ -1134,6 +1199,49 @@ mod tests {
             "most homes front a street: {on_street} of {}",
             homes.len()
         );
+    }
+
+    #[test]
+    fn a_mining_town_raises_its_quarry_and_a_farming_town_its_granary() {
+        use crate::sim::civ::society::town_roles::TownRole;
+        let mut sim = clan_sim(12, TOWN_TIER);
+        sim.lineage_eras.insert("clan".into(), Era::Bronze);
+        for y in 30..=70 {
+            for x in 30..=70 {
+                if !(40..=60).contains(&x) || !(40..=60).contains(&y) {
+                    sim.grid.set(x, y, Tile::Rock);
+                }
+            }
+        }
+        tick_towns(&mut sim);
+        assert_eq!(sim.towns[0].role, TownRole::Mining);
+        assert_eq!(
+            role_targets(&sim, "clan", Era::Bronze, false),
+            vec![(0, BuildingKind::Quarry)]
+        );
+        sim.towns[0].role = TownRole::Farming;
+        assert_eq!(
+            role_targets(&sim, "clan", Era::Bronze, false),
+            vec![(0, BuildingKind::Granary)]
+        );
+        assert!(role_targets(&sim, "clan", Era::Stone, false).is_empty());
+        sim.towns[0].role = TownRole::Mining;
+        let mut started = Vec::new();
+        for _ in 0..30 {
+            sim.towns[0].role = TownRole::Mining;
+            sim.towns[0].role_tick = sim.tick_count.max(1);
+            tick_buildings_construct(&mut sim);
+            for building in sim.buildings.iter_mut() {
+                building.condition = 1.0;
+            }
+            sim.tick_count += 240;
+            started = sim.buildings.iter().map(|b| b.kind).collect();
+            if started.contains(&BuildingKind::Quarry) {
+                break;
+            }
+        }
+        assert!(started.contains(&BuildingKind::Quarry), "built {started:?}");
+        assert!(sim.diplomacy.stats.role_buildings >= 1);
     }
 
     #[test]

@@ -48,6 +48,7 @@ const MASTER_REACH: i32 = 16;
 const DRAWN_TO: f32 = 0.6;
 /// A tribe holding less than this much grain per person is short of food.
 const LEAN_STORES_PER_HEAD: u32 = 2;
+const ROLE_PULL: f32 = 0.12;
 
 /// The kinds of everyday work, with the skill each one practises.
 const WORK: [Skill; 6] = [
@@ -224,7 +225,7 @@ impl Simulation {
     }
 
     /// How much `idx` wants to do `skill` today: skill, liking, and need.
-    fn work_score(&self, idx: usize, skill: Skill, food_short: bool) -> f32 {
+    fn work_score(&self, idx: usize, skill: Skill, food_short: bool, role: Option<Skill>) -> f32 {
         let o = &self.organisms[idx];
         let need = match skill {
             Skill::Fishing | Skill::Foraging | Skill::Hunting if food_short => 0.3,
@@ -241,6 +242,10 @@ impl Simulation {
         // The tribe's own craft pulls a little: it is what everyone around them does.
         let tradition = if self.tribe_craft(&o.lineage_id) == Some(skill) {
             0.1
+        } else {
+            0.0
+        } + if role == Some(skill) && (!food_short || skill.feeds()) {
+            ROLE_PULL
         } else {
             0.0
         };
@@ -313,9 +318,10 @@ impl Simulation {
         let food_short = village_stores::stock_of(self, &lineage) < members * LEAN_STORES_PER_HEAD
             || self.organisms[idx].energy < 0.75
             || laying_by;
+        let role = self.home_town_role(idx).skill();
         let mut ranked: Vec<(Skill, f32)> = WORK
             .into_iter()
-            .map(|s| (s, self.work_score(idx, s, food_short)))
+            .map(|s| (s, self.work_score(idx, s, food_short, role)))
             .collect();
         ranked.sort_by(|a, b| b.1.total_cmp(&a.1).then(a.0.cmp(&b.0)));
         for (skill, _) in ranked {

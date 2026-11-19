@@ -377,7 +377,13 @@
     "caravan": {
       "title": "caravane",
       "load": "transporte {amount} {cargo}",
-      "route": "de {from} à {to}"
+      "route": "de {from} à {to}",
+      "kind": {
+        "supply": "caravane de ravitaillement",
+        "relief": "caravane de secours",
+        "tribute": "caravane de tribut"
+      },
+      "need": "vers un bourg qui en manque"
     }
   },
   "terrain": {
@@ -1054,5 +1060,18 @@
     "war": "une guerre a éclaté",
     "famine": "{names} meurt de faim",
     "extinct": "{names} s'est éteint"
+  },
+  "town": {
+    "role": {
+      "mixed": "un bourg de marché",
+      "farming": "un bourg agricole",
+      "harbour": "un port",
+      "mining": "une ville minière",
+      "timber": "un bourg forestier",
+      "trade": "un carrefour marchand",
+      "capital": "la capitale"
+    },
+    "short": "manque de {goods}",
+    "spare": "{goods} en surplus"
   }
 }

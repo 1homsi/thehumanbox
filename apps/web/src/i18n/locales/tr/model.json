@@ -366,7 +366,13 @@
     "caravan": {
       "title": "kervan",
       "load": "{amount} {cargo} taşıyor",
-      "route": "{from} ile {to} arası"
+      "route": "{from} ile {to} arası",
+      "kind": {
+        "supply": "ikmal kervanı",
+        "relief": "yardım kervanı",
+        "tribute": "haraç kervanı"
+      },
+      "need": "buna ihtiyacı olan bir kasabaya"
     }
   },
   "terrain": {
@@ -1043,5 +1049,18 @@
     "war": "bir savaş çıktı",
     "famine": "{names} açlık çekiyor",
     "extinct": "{names} tükendi"
+  },
+  "town": {
+    "role": {
+      "mixed": "bir pazar kasabası",
+      "farming": "bir tarım kasabası",
+      "harbour": "bir liman kasabası",
+      "mining": "bir maden kasabası",
+      "timber": "bir kereste kasabası",
+      "trade": "bir ticaret kavşağı",
+      "capital": "başkent"
+    },
+    "short": "{goods} sıkıntısı",
+    "spare": "{goods} fazlası"
   }
 }

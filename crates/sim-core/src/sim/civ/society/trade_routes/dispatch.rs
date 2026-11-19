@@ -364,7 +364,26 @@ pub fn send_shipment(
     amount: u32,
     kind: CaravanKind,
 ) -> bool {
-    if amount == 0 || sender == receiver || !valid_world_point(from) || !valid_world_point(to) {
+    send_cargo(sim, sender, receiver, from, to, "food", amount, kind)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn send_cargo(
+    sim: &mut Simulation,
+    sender: &str,
+    receiver: &str,
+    from: [i32; 2],
+    to: [i32; 2],
+    cargo: &str,
+    amount: u32,
+    kind: CaravanKind,
+) -> bool {
+    if amount == 0
+        || (kind != CaravanKind::Supply && sender == receiver)
+        || (kind == CaravanKind::Supply && from == to)
+        || !valid_world_point(from)
+        || !valid_world_point(to)
+    {
         return false;
     }
     let used: HashSet<u32> = sim.caravans.iter().map(|caravan| caravan.id).collect();
@@ -403,7 +422,7 @@ pub fn send_shipment(
         sender_lineage: sender.to_string(),
         receiver_lineage: receiver.to_string(),
         sender_org_id: String::new(),
-        cargo: "food".to_string(),
+        cargo: cargo.to_string(),
         amount,
         unit_price: 0,
         departed_tick: sim.tick_count,

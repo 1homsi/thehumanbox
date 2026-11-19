@@ -380,7 +380,13 @@
     "caravan": {
       "title": "caravan",
       "load": "carrying {amount} {cargo}",
-      "route": "from {from} to {to}"
+      "route": "from {from} to {to}",
+      "kind": {
+        "supply": "supply caravan",
+        "relief": "relief caravan",
+        "tribute": "tribute caravan"
+      },
+      "need": "to a town short of it"
     }
   },
   "terrain": {
@@ -1057,5 +1063,18 @@
     "war": "a war broke out",
     "famine": "{names} are starving",
     "extinct": "{names} died out"
+  },
+  "town": {
+    "role": {
+      "mixed": "a market town",
+      "farming": "a farming town",
+      "harbour": "a harbour town",
+      "mining": "a mining town",
+      "timber": "a timber town",
+      "trade": "a trade hub",
+      "capital": "the capital"
+    },
+    "short": "short of {goods}",
+    "spare": "{goods} to spare"
   }
 }

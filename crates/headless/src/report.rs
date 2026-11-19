@@ -715,6 +715,52 @@ pub(super) fn print_progress(sim: &Simulation) {
             d.stats.tribute_shipments,
             d.stats.towns_ceded
         );
+        let mut roles: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
+        for town in &sim.towns {
+            *roles.entry(town.role.name()).or_insert(0) += 1;
+        }
+        let mask = |pick: fn(&sim_core::sim::civ::civ_tick::town::Town) -> u8| {
+            sim_core::sim::civ::society::supply::GOODS
+                .iter()
+                .enumerate()
+                .map(|(i, g)| {
+                    format!(
+                        "{g}={}",
+                        sim.towns.iter().filter(|t| pick(t) & (1 << i) != 0).count()
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(" ")
+        };
+        let mut grades = [0usize; 3];
+        for edge in sim
+            .road_net
+            .edges
+            .iter()
+            .filter(|e| e.kind == sim_core::sim::civ::land::road_net::NetKind::Road)
+        {
+            grades[usize::from(edge.grade).min(2)] += 1;
+        }
+        println!(
+            "Towns at end: towns {}, roles [{}], short [{}], spare [{}], role changes {}, role buildings {}, supply sent {} (food {} wood {} stone {}), on roads {}, delivered {}, within a tribe {}, between tribes {}, road grades track {} cobbled {} paved {}",
+            sim.towns.len(),
+            roles.iter().map(|(k, v)| format!("{k}={v}")).collect::<Vec<_>>().join(" "),
+            mask(|t| t.short),
+            mask(|t| t.spare),
+            d.stats.role_changes,
+            d.stats.role_buildings,
+            d.stats.supply_sent,
+            d.stats.supply_units[0],
+            d.stats.supply_units[1],
+            d.stats.supply_units[2],
+            d.stats.supply_on_roads,
+            d.stats.supply_delivered,
+            d.stats.supply_within,
+            d.stats.supply_between,
+            grades[0],
+            grades[1],
+            grades[2]
+        );
         let living: std::collections::BTreeSet<&str> = sim
             .organisms
             .iter()

@@ -697,7 +697,7 @@ export class TradePathPlanner {
   }
 }
 
-function simCells(
+export function simCells(
   way: readonly [number, boolean][],
   edges: ReadonlyMap<number, NetEdgeInfo>,
   ox: number,

@@ -339,6 +339,7 @@ fn a_full_project_limit_does_not_keep_a_farming_tribe_from_the_bakery_it_lacks()
         founded_tick: 0,
         planned: true,
         growth: 0,
+        ..Default::default()
     });
     let mut market = Building::new(7, BuildingKind::Market, 36, 36, Some("lineage-a".into()), 0);
     market.condition = 1.0;
@@ -831,6 +832,7 @@ fn a_house_site_skips_the_plaza_it_was_placed_on() {
         founded_tick: 0,
         planned: true,
         growth: 0,
+        ..Default::default()
     });
     let expected = reference_site(&sim, "plaza-town", BuildingKind::House, cx, cy);
     let found = find_construction_site(&sim, "plaza-town", BuildingKind::House, cx, cy);
@@ -914,6 +916,7 @@ fn plaza_town(seed: u64, lineage: &str, era: Era) -> Simulation {
         founded_tick: 0,
         planned: true,
         growth: 0,
+        ..Default::default()
     });
     sim.lineage_eras.insert(lineage.into(), era);
     sim
@@ -1217,6 +1220,7 @@ fn a_town_street_on_the_shore_is_passed_over() {
         founded_tick: 0,
         planned: true,
         growth: 0,
+        ..Default::default()
     });
     let point = super::town::shore_point(&sim, BuildingKind::Dock, (80, 80)).expect("a shore");
     assert!(

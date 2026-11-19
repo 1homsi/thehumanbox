@@ -174,17 +174,26 @@ function vehicleCard(world: WorldState, vehicle: VehicleInfo): ThingCard {
   return { title: capitalise(vehicleKindWord(vehicle.kind)), lines }
 }
 
+const CARAVAN_KINDS: Record<'relief' | 'tribute' | 'supply', MessageKey> = {
+  relief: 'model.thing.caravan.kind.relief',
+  tribute: 'model.thing.caravan.kind.tribute',
+  supply: 'model.thing.caravan.kind.supply',
+}
+
 function caravanCard(world: WorldState, caravan: CaravanInfo): ThingCard {
   const name = (lineage: string) => world.lineage_names?.[lineage] ?? lineage
+  const kind = caravan.kind && caravan.kind !== 'trade' ? CARAVAN_KINDS[caravan.kind] : undefined
+  const lines = [
+    t('model.thing.caravan.load', { amount: caravan.amount, cargo: goodWord(caravan.cargo) }),
+    t('model.thing.caravan.route', {
+      from: name(caravan.sender_lineage),
+      to: name(caravan.receiver_lineage),
+    }),
+  ]
+  if (caravan.kind === 'supply') lines.push(t('model.thing.caravan.need'))
   return {
-    title: capitalise(t('model.thing.caravan.title')),
-    lines: [
-      t('model.thing.caravan.load', { amount: caravan.amount, cargo: goodWord(caravan.cargo) }),
-      t('model.thing.caravan.route', {
-        from: name(caravan.sender_lineage),
-        to: name(caravan.receiver_lineage),
-      }),
-    ],
+    title: capitalise(t(kind ?? 'model.thing.caravan.title')),
+    lines,
   }
 }
 

@@ -3,6 +3,7 @@ import { t, type MessageKey } from '../../i18n'
 import { eraWord } from '../../shared/era-words'
 import { wealthGapOf } from './inequality'
 import { leadershipOf } from './leadership'
+import { townLine, townNear } from './town-role'
 
 /** The town a tribe is known for, by its specialty good. Keys, read with t() where they are shown. */
 const TOWNS = new Map<string, MessageKey>([
@@ -24,6 +25,7 @@ export interface TerritoryCardFacts {
   wealthGap: string | null
   trade: string | null
   goods: string | null
+  town: string | null
   contested: boolean
 }
 
@@ -101,6 +103,7 @@ export function territoryCardFacts(
   world: WorldState,
   lineage: string,
   contested: boolean,
+  at?: { x: number; y: number },
 ): TerritoryCardFacts {
   const leadership = leadershipOf(world, lineage)
   return {
@@ -113,6 +116,7 @@ export function territoryCardFacts(
     trade:
       [specialtyOfTribe(world, lineage), tradeOfTribe(world, lineage)].filter(Boolean).join(' · ') || null,
     goods: goodsOfTribe(world, lineage),
+    town: at ? townLine(townNear(world, lineage, at.x, at.y)) : null,
     contested,
   }
 }

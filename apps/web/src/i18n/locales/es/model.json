@@ -377,7 +377,13 @@
     "caravan": {
       "title": "caravana",
       "load": "lleva {amount} {cargo}",
-      "route": "de {from} a {to}"
+      "route": "de {from} a {to}",
+      "kind": {
+        "supply": "caravana de suministros",
+        "relief": "caravana de socorro",
+        "tribute": "caravana de tributo"
+      },
+      "need": "a un pueblo al que le falta"
     }
   },
   "terrain": {
@@ -1054,5 +1060,18 @@
     "war": "estalló una guerra",
     "famine": "{names} pasa hambre",
     "extinct": "{names} se extinguió"
+  },
+  "town": {
+    "role": {
+      "mixed": "un pueblo de mercado",
+      "farming": "un pueblo agrícola",
+      "harbour": "un pueblo portuario",
+      "mining": "un pueblo minero",
+      "timber": "un pueblo maderero",
+      "trade": "un nudo comercial",
+      "capital": "la capital"
+    },
+    "short": "le falta {goods}",
+    "spare": "le sobra {goods}"
   }
 }

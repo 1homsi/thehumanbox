@@ -191,11 +191,13 @@ pub(super) fn deliver_caravan(sim: &mut Simulation, caravan_id: u32, members: Op
     let seller_id = sender_idx
         .map(|index| sim.organisms[index].id.clone())
         .unwrap_or_else(|| caravan.sender_org_id.clone());
-    sim.organisms[primary_recipient].update_attitude(&caravan.sender_lineage, 0.025);
-    if let Some(sender_idx) = sender_idx {
-        sim.organisms[sender_idx].update_attitude(&caravan.receiver_lineage, 0.025);
+    if caravan.sender_lineage != caravan.receiver_lineage {
+        sim.organisms[primary_recipient].update_attitude(&caravan.sender_lineage, 0.025);
+        if let Some(sender_idx) = sender_idx {
+            sim.organisms[sender_idx].update_attitude(&caravan.receiver_lineage, 0.025);
+        }
+        sim.share_craft_by_trade(&caravan.sender_lineage, primary_recipient, sender_idx);
     }
-    sim.share_craft_by_trade(&caravan.sender_lineage, primary_recipient, sender_idx);
 
     sim.trades.push_back(Trade {
         tick: sim.tick_count,

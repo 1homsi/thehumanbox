@@ -86,7 +86,12 @@ impl Simulation {
         larders
     }
 
-    fn befriends(&self, donor: &str, needy: &str, moods: &BTreeMap<String, BTreeMap<String, f32>>) -> bool {
+    pub(crate) fn befriends(
+        &self,
+        donor: &str,
+        needy: &str,
+        moods: &BTreeMap<String, BTreeMap<String, f32>>,
+    ) -> bool {
         let mood = moods
             .get(donor)
             .and_then(|m| m.get(needy))
@@ -285,6 +290,12 @@ impl Simulation {
             CaravanKind::Tribute => {
                 self.remember(sender, receiver, MemoryKind::Tribute, -0.05);
                 self.remember(receiver, sender, MemoryKind::Tribute, 0.03);
+            }
+            CaravanKind::Supply => {
+                self.diplomacy.stats.supply_delivered += 1;
+                if sender != receiver {
+                    self.remember_both(sender, receiver, MemoryKind::Trade, 0.02);
+                }
             }
         }
     }

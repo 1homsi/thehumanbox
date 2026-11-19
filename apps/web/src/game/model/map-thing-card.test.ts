@@ -240,6 +240,32 @@ describe('caravan cards', () => {
     })
     expect(mapThingCard(world(), { kind: 'caravan', id: 8 })).toBeNull()
   })
+
+  it('names a supply caravan and says it goes where the good is short', () => {
+    const caravan = {
+      id: 9,
+      route_id: 0,
+      sender_lineage: 'red',
+      receiver_lineage: 'red',
+      sender_org_id: '',
+      cargo: 'stone',
+      amount: 12,
+      unit_price: 0,
+      departed_tick: 0,
+      arrives_tick: 10,
+      from: [0, 0],
+      to: [5, 5],
+      kind: 'supply',
+    } as unknown as CaravanInfo
+    expect(mapThingCard(world({ caravans: [caravan] }), { kind: 'caravan', id: 9 })).toEqual({
+      title: 'Supply caravan',
+      lines: ['carrying 12 stone', 'from The Reds to The Reds', 'to a town short of it'],
+    })
+    const relief = { ...caravan, kind: 'relief', cargo: 'food' } as CaravanInfo
+    expect(mapThingCard(world({ caravans: [relief] }), { kind: 'caravan', id: 9 })?.title).toBe(
+      'Relief caravan',
+    )
+  })
 })
 
 describe('animal cards', () => {

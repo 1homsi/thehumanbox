@@ -59,6 +59,32 @@ export function drawTraffic(
 }
 
 /** A caravan in pixels: an ox cart in early ages, a truck from industry on. */
+const PENNANTS: Record<'relief' | 'tribute' | 'supply', [string, string]> = {
+  relief: ['#f4f1e8', '#c8352b'],
+  tribute: ['#9c6ad0', '#f2d36b'],
+  supply: ['#e9b949', '#6b4a1e'],
+}
+
+export function drawCaravanPennant(
+  ctx: Ctx,
+  x: number,
+  y: number,
+  kind: 'relief' | 'tribute' | 'supply',
+  tile: number,
+) {
+  const colors = PENNANTS[kind]
+  if (!colors) return
+  const u = Math.max(1, tile / 5)
+  const px = Math.round(x - u * 3)
+  const py = Math.round(y - u * 9)
+  ctx.fillStyle = '#3b2a1a'
+  ctx.fillRect(px, py, u, u * 6)
+  ctx.fillStyle = colors[0]
+  ctx.fillRect(px + u, py, u * 4, u * 3)
+  ctx.fillStyle = colors[1]
+  ctx.fillRect(px + u * 2, py + u, u * 2, u)
+}
+
 export function drawCaravanSprite(
   ctx: Ctx,
   x: number,

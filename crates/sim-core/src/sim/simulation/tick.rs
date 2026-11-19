@@ -647,6 +647,7 @@ impl Simulation {
         self.tick_war_weariness();
         self.tick_relations();
         self.tick_relief();
+        self.tick_supply();
         self.tick_nations();
         self.tick_wild_food();
         self.check_animal_catches();

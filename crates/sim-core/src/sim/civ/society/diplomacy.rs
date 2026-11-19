@@ -24,6 +24,14 @@ pub struct DiplomacyStats {
     pub protected: u32,
     pub secessions: u32,
     pub civil_wars: u32,
+    pub role_changes: u32,
+    pub role_buildings: u32,
+    pub supply_sent: u32,
+    pub supply_delivered: u32,
+    pub supply_within: u32,
+    pub supply_between: u32,
+    pub supply_on_roads: u32,
+    pub supply_units: [u32; 3],
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]

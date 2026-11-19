@@ -377,7 +377,13 @@
     "caravan": {
       "title": "caravana",
       "load": "levando {amount} {cargo}",
-      "route": "de {from} para {to}"
+      "route": "de {from} para {to}",
+      "kind": {
+        "supply": "caravana de suprimentos",
+        "relief": "caravana de socorro",
+        "tribute": "caravana de tributo"
+      },
+      "need": "para uma vila que precisa disso"
     }
   },
   "terrain": {
@@ -1054,5 +1060,18 @@
     "war": "uma guerra estourou",
     "famine": "{names} está passando fome",
     "extinct": "{names} se extinguiu"
+  },
+  "town": {
+    "role": {
+      "mixed": "uma vila de mercado",
+      "farming": "uma vila agrícola",
+      "harbour": "uma vila portuária",
+      "mining": "uma vila mineira",
+      "timber": "uma vila madeireira",
+      "trade": "um polo comercial",
+      "capital": "a capital"
+    },
+    "short": "falta {goods}",
+    "spare": "sobra {goods}"
   }
 }

@@ -38,6 +38,7 @@ pub enum CaravanKind {
     Trade,
     Relief,
     Tribute,
+    Supply,
 }
 
 impl CaravanKind {
@@ -50,6 +51,7 @@ impl CaravanKind {
             CaravanKind::Trade => "trade",
             CaravanKind::Relief => "relief",
             CaravanKind::Tribute => "tribute",
+            CaravanKind::Supply => "supply",
         }
     }
 }
