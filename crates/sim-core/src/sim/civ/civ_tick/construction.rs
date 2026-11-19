@@ -603,6 +603,16 @@ pub(super) fn try_start_in_town_at(
     started
 }
 
+pub(crate) fn construction_capped(sim: &Simulation) -> bool {
+    let functional_count = sim
+        .buildings
+        .iter()
+        .filter(|building| !building.decorative)
+        .count();
+    functional_count >= FUNCTIONAL_BUILDINGS_CAP
+        && abandoned_ruin_candidates(sim).len() < functional_count - FUNCTIONAL_BUILDINGS_CAP + 1
+}
+
 pub(super) fn start_building_at_valid_site(
     sim: &mut Simulation,
     lineage: &str,
@@ -610,7 +620,8 @@ pub(super) fn start_building_at_valid_site(
     site_x: i32,
     site_y: i32,
 ) -> bool {
-    if !construction_site_is_valid(sim, kind, site_x, site_y)
+    if construction_capped(sim)
+        || !construction_site_is_valid(sim, kind, site_x, site_y)
         || !construction_site_has_reachable_worker(sim, lineage, site_x, site_y)
         || !construction_cost_available(sim, lineage, kind)
     {
@@ -622,11 +633,7 @@ pub(super) fn start_building_at_valid_site(
         .filter(|building| !building.decorative)
         .count();
     if functional_count >= FUNCTIONAL_BUILDINGS_CAP {
-        let needed = functional_count - FUNCTIONAL_BUILDINGS_CAP + 1;
-        if abandoned_ruin_candidates(sim).len() < needed {
-            return false;
-        }
-        prune_abandoned_ruins(sim, needed);
+        prune_abandoned_ruins(sim, functional_count - FUNCTIONAL_BUILDINGS_CAP + 1);
     }
     if sim
         .buildings
@@ -1502,13 +1509,7 @@ pub(super) fn is_wonder(kind: BuildingKind) -> bool {
 
 pub(super) fn abandoned_ruin_candidates(sim: &Simulation) -> Vec<(u64, u32, usize)> {
     let now = sim.tick_count;
-    let living_lineages: HashSet<String> = sim
-        .organisms
-        .iter()
-        .filter(|organism| organism.alive)
-        .map(|organism| organism.lineage_id.clone())
-        .collect();
-    let mut candidates: Vec<(u64, u32, usize)> = sim
+    let old_ruins: Vec<(u64, u32, usize, Option<&str>)> = sim
         .buildings
         .iter()
         .enumerate()
@@ -1516,10 +1517,6 @@ pub(super) fn abandoned_ruin_candidates(sim: &Simulation) -> Vec<(u64, u32, usiz
             if !building.is_ruined() || is_wonder(building.kind) {
                 return None;
             }
-            let owner_abandoned = building
-                .owner_lineage
-                .as_ref()
-                .is_none_or(|owner| !living_lineages.contains(owner));
             let ruin_origin = building
                 .ruined_at_tick
                 .or(building.last_damage_tick)
@@ -1528,8 +1525,44 @@ pub(super) fn abandoned_ruin_candidates(sim: &Simulation) -> Vec<(u64, u32, usiz
             let recently_repaired = building
                 .last_repair_tick
                 .is_some_and(|repair_tick| now.saturating_sub(repair_tick) <= REPAIR_GRACE_TICKS);
-            (owner_abandoned && old_enough && !recently_repaired).then_some((ruin_origin, building.id, index))
+            (old_enough && !recently_repaired).then_some((
+                ruin_origin,
+                building.id,
+                index,
+                building.owner_lineage.as_deref(),
+            ))
         })
+        .collect();
+    if old_ruins.is_empty() {
+        return Vec::new();
+    }
+    let mut owners: Vec<(&str, bool)> = Vec::new();
+    for &(_, _, _, owner) in &old_ruins {
+        if let Some(owner) = owner {
+            if !owners.iter().any(|&(o, _)| o == owner) {
+                owners.push((owner, false));
+            }
+        }
+    }
+    let mut unseen = owners.len();
+    for organism in sim.organisms.iter().filter(|organism| organism.alive) {
+        if unseen == 0 {
+            break;
+        }
+        if let Some(entry) = owners
+            .iter_mut()
+            .find(|(owner, seen)| !*seen && *owner == organism.lineage_id.as_str())
+        {
+            entry.1 = true;
+            unseen -= 1;
+        }
+    }
+    let mut candidates: Vec<(u64, u32, usize)> = old_ruins
+        .into_iter()
+        .filter(|&(_, _, _, owner)| {
+            owner.is_none_or(|owner| owners.iter().any(|&(o, living)| o == owner && !living))
+        })
+        .map(|(origin, id, index, _)| (origin, id, index))
         .collect();
     candidates.sort_unstable();
     candidates

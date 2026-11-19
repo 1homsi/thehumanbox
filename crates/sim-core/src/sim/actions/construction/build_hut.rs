@@ -14,6 +14,9 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("there is room enough at home");
         return 0.0;
     }
+    if crate::sim::civ::civ_tick::construction_capped(ctx.sim) {
+        return 0.0;
+    }
 
     // Reward scales with environmental need: storm exposure and poor health
     let weather_kind = ctx.sim.weather.kind;
