@@ -38,10 +38,18 @@ pub(super) fn tick_diplomacy(sim: &mut Simulation) {
                 break;
             }
             let (a, b) = (&lineages[i], &lineages[j]);
-            if has_active_treaty(&sim.treaties, a, b, tick) || has_active_battle_between(&sim.battles, a, b) {
+            if has_active_treaty(&sim.treaties, a, b, tick)
+                || has_active_battle_between(&sim.battles, a, b)
+                || sim.same_side(a, b)
+            {
                 continue;
             }
-            let warm = matches!((avg(a, b), avg(b, a)), (Some(x), Some(y)) if x > 0.35 && y > 0.35);
+            let (ab, ba) = (avg(a, b), avg(b, a));
+            if ab.is_none() && ba.is_none() && sim.diplomacy.relations.memories(a, b).is_empty() {
+                continue;
+            }
+            let warm = sim.opinion_with_mood(a, b, ab.unwrap_or(0.0)) > 0.35
+                && sim.opinion_with_mood(b, a, ba.unwrap_or(0.0)) > 0.35;
             if !warm {
                 continue;
             }

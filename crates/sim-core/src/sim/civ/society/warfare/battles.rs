@@ -6,6 +6,7 @@ pub struct BattleInstitutions<'a> {
     pub buildings: &'a [Building],
     pub field_fortifications: &'a [FieldFortification],
     pub grid: &'a WorldGrid,
+    pub in_war: &'a HashSet<String>,
 }
 
 /// A person killed in a battle. Battle deaths skip the mortality phase, so
@@ -279,7 +280,8 @@ pub fn tick_battles(
                 BattleOutcome::DefenderVictory => Some((a_lid.clone(), b_lid.clone())),
                 BattleOutcome::Stalemate => None,
             };
-            if let Some((loser_lid, winner_lid)) = loser {
+            if let Some((loser_lid, winner_lid)) = loser.filter(|_| !institutions.in_war.contains(&battle.id))
+            {
                 let dominance = if outcome == BattleOutcome::AttackerVictory {
                     a_frac
                 } else {

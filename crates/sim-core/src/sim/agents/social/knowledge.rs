@@ -138,6 +138,9 @@ pub fn gift_knowledge(
         ),
     );
     history.gifts_total += 1;
+    history
+        .tribe_gifts
+        .push((org_lineage.clone(), target_lid.clone()));
     reward_add
 }
 

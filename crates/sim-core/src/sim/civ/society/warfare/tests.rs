@@ -362,6 +362,7 @@ fn battle_deaths_are_counted_in_their_year_and_written_into_the_life_story() {
             buildings: &[],
             field_fortifications: &[],
             grid: &sim.grid,
+            in_war: &HashSet::default(),
         },
     );
 
@@ -398,10 +399,19 @@ fn tribes_with_grudges(grudges: usize) -> Simulation {
 
 fn raids_over_a_while(sim: &Simulation) -> usize {
     let mut events = std::collections::VecDeque::new();
+    let facts = sim.tribe_facts();
+    let at_war = Default::default();
+    let minds = WarMinds {
+        relations: &sim.diplomacy.relations,
+        facts: &facts,
+        sides: &NO_SIDES,
+        at_war: &at_war,
+    };
     (1..=40u64)
         .map(|n| {
             let mut rng = <rand_chacha::ChaCha8Rng as SeedableRng>::seed_from_u64(n);
-            try_spawn_raids(
+            let mut reasons = Vec::new();
+            let raids = try_spawn_raids(
                 n * RAID_CHECK_INTERVAL,
                 &mut rng,
                 &sim.organisms,
@@ -409,15 +419,29 @@ fn raids_over_a_while(sim: &Simulation) -> usize {
                 &[],
                 &[],
                 &mut events,
-            )
-            .len()
+                &minds,
+                &mut reasons,
+            );
+            assert_eq!(reasons.len(), raids.len(), "every raid has its reason");
+            raids.len()
         })
         .sum()
 }
 
+fn quarrelling(mut sim: Simulation) -> Simulation {
+    sim.diplomacy.relations.remember(
+        "river",
+        "hill",
+        crate::sim::civ::society::relations::MemoryKind::Border,
+        -0.2,
+        0,
+    );
+    sim
+}
+
 #[test]
 fn one_persons_grudge_does_not_send_the_tribe_raiding() {
-    let sim = tribes_with_grudges(1);
+    let sim = quarrelling(tribes_with_grudges(1));
     assert_eq!(raids_over_a_while(&sim), 0);
     let mood = tribe_mood(&sim.organisms, &(0..10).collect::<Vec<_>>());
     assert!((mood["hill"] + 0.1).abs() < 1e-6, "{:?}", mood);
@@ -425,8 +449,14 @@ fn one_persons_grudge_does_not_send_the_tribe_raiding() {
 
 #[test]
 fn a_tribe_that_resents_another_as_a_whole_raids_it() {
-    let sim = tribes_with_grudges(7);
+    let sim = quarrelling(tribes_with_grudges(7));
     assert!(raids_over_a_while(&sim) > 0);
+}
+
+#[test]
+fn a_tribe_with_no_reason_to_fight_does_not_raid_however_its_people_feel() {
+    let sim = tribes_with_grudges(10);
+    assert_eq!(raids_over_a_while(&sim), 0);
 }
 
 #[test]
@@ -484,6 +514,7 @@ fn the_badly_wounded_leave_the_battle_alive_and_go_home() {
             buildings: &[],
             field_fortifications: &[],
             grid: &sim.grid,
+            in_war: &HashSet::default(),
         },
     );
     let hurt = &sim.organisms[0];
@@ -548,6 +579,7 @@ fn a_fighter_who_is_not_at_the_battle_is_not_hurt_by_it() {
             buildings: &[],
             field_fortifications: &[],
             grid: &sim.grid,
+            in_war: &HashSet::default(),
         },
     );
     assert!(sim.organisms[1].alive, "the one at home lived");

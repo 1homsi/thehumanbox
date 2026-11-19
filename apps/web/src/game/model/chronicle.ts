@@ -70,6 +70,15 @@ interface Rule {
 
 const RULES: readonly Rule[] = [
   { kind: 'war', scope: 'world', test: /^The (.+?) conquered \d+ tiles? of /, actor: (m) => m[1] },
+  { kind: 'war', scope: 'world', test: /^The (.+?) declared war on the (.+?) /, actor: (m) => m[1] },
+  { kind: 'peace', scope: 'world', test: /^The (.+?) went to war with the (.+?) .*?; /, actor: (m) => m[1] },
+  { kind: 'war', scope: 'world', test: /^The (.+?) marched to the aid of the /, actor: (m) => m[1] },
+  {
+    kind: 'peace',
+    scope: 'world',
+    test: /^The (.+?) sent \d+ measures? of grain to the starving /,
+    actor: (m) => m[1],
+  },
   { kind: 'peace', scope: 'world', test: /^(.+?) and (.+?) forged an alliance/, actor: (m) => m[1] },
   { kind: 'fall', scope: 'world', test: /^The (.+?) dynasty has died out/, actor: (m) => m[1] },
   {

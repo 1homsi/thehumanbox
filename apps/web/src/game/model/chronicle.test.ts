@@ -9,6 +9,14 @@ describe('readHeadline', () => {
   it.each([
     ['⚔️ The Gelup conquered 12 tiles of Dozo land.', 'war', 'Gelup'],
     ['🤝 Tare and Towep forged an alliance.', 'peace', 'Tare'],
+    ['⚔️ The Wagepu declared war on the Kezeziv over the water after three raids.', 'war', 'Wagepu'],
+    [
+      '🕊️ The Wagepu went to war with the Kezeziv over the water after three raids; the Kezeziv ceded two villages.',
+      'peace',
+      'Wagepu',
+    ],
+    ['🛡️ The Ostaro marched to the aid of the Kezeziv against the Wagepu.', 'war', 'Ostaro'],
+    ['🌾 The Ostaro sent 23 measures of grain to the starving Kezeziv.', 'peace', 'Ostaro'],
     ['👑 Huwo of the Gelup seized power in a coup.', 'rule', 'Huwo'],
     ['✊ the poor of Dozo rose up and shared out the wealth of Ada.', 'uprising', 'Dozo'],
     ['🏛️ The Gelup completed a temple — a wonder of their age.', 'wonder', 'Gelup'],

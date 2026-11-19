@@ -1,6 +1,7 @@
 pub mod craft_exchange;
 pub mod crime;
 pub mod culture;
+pub mod diplomacy;
 pub mod economy;
 pub mod economy_tick;
 pub mod festivals;
@@ -11,6 +12,8 @@ pub mod hard_winters;
 pub mod inequality;
 pub mod orphans;
 pub mod refugees;
+pub mod relations;
+pub mod relief;
 pub mod settlements;
 pub mod store_thefts;
 pub mod trade_routes;
