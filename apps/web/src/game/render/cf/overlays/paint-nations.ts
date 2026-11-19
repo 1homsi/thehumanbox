@@ -1,30 +1,28 @@
 import type { WorldState } from '../../../../shared/types'
 import { TILE } from '../../../model/palette'
-import { territoryTileKey } from '../../../model/territory'
-import { nationColour, nationLands } from '../../../model/nations'
+import { nationChunks, nationColour, type NationChunks } from '../../../model/nations'
 
-const EDGE = 2
+let cached: { territory: unknown; nations: unknown; chunks: NationChunks } | null = null
+
+export function nationChunksFor(world: Pick<WorldState, 'nations' | 'territory'>): NationChunks {
+  if (cached && cached.territory === world.territory && cached.nations === world.nations) return cached.chunks
+  const chunks = nationChunks(world, TILE)
+  cached = { territory: world.territory, nations: world.nations, chunks }
+  return chunks
+}
 
 export function paintNationBorders(ctx: CanvasRenderingContext2D, world: WorldState): void {
-  const nations = world.nations
-  if (!nations?.length) return
-  const ox = world.grid.origin_x ?? 0
-  const oy = world.grid.origin_y ?? 0
-  const lands = nationLands(world)
-  for (const nation of nations) {
-    const land = lands.get(nation.id)
-    if (!land) continue
-    ctx.fillStyle = nationColour(nation.colour, 0.12)
-    for (const [tx, ty] of land.tiles) ctx.fillRect((tx - ox) * TILE, (ty - oy) * TILE, TILE, TILE)
-    ctx.fillStyle = nationColour(nation.colour, 0.85)
-    const owns = (x: number, y: number) => land.keys.has(territoryTileKey(x, y))
-    for (const [tx, ty] of land.tiles) {
-      const px = (tx - ox) * TILE
-      const py = (ty - oy) * TILE
-      if (!owns(tx, ty - 1)) ctx.fillRect(px, py, TILE, EDGE)
-      if (!owns(tx + 1, ty)) ctx.fillRect(px + TILE - EDGE, py, EDGE, TILE)
-      if (!owns(tx, ty + 1)) ctx.fillRect(px, py + TILE - EDGE, TILE, EDGE)
-      if (!owns(tx - 1, ty)) ctx.fillRect(px, py, EDGE, TILE)
+  if (!world.nations?.length || !world.territory) return
+  const dx = -(world.grid.origin_x ?? 0) * TILE
+  const dy = -(world.grid.origin_y ?? 0) * TILE
+  for (const paints of nationChunksFor(world).values()) {
+    for (const paint of paints) {
+      ctx.fillStyle = nationColour(paint.colour, 0.12)
+      for (let i = 0; i < paint.tint.length; i += 4)
+        ctx.fillRect(paint.tint[i]! + dx, paint.tint[i + 1]! + dy, paint.tint[i + 2]!, paint.tint[i + 3]!)
+      ctx.fillStyle = nationColour(paint.colour, 0.85)
+      for (let i = 0; i < paint.edge.length; i += 4)
+        ctx.fillRect(paint.edge[i]! + dx, paint.edge[i + 1]! + dy, paint.edge[i + 2]!, paint.edge[i + 3]!)
     }
   }
 }

@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { NationInfo, WorldState } from '../../shared/types'
-import {
-  NATION_PALETTE,
-  TOWN_LAND_REACH,
-  nationColour,
-  nationLands,
-  nationRgb,
-  relationTone,
-} from './nations'
+import { NATION_PALETTE, nationChunks, nationColour, nationLands, nationRgb, relationTone } from './nations'
 
 function nation(id: number, members: string[], colour = 0): NationInfo {
   return {
@@ -66,18 +59,26 @@ describe('nations', () => {
     ])
   })
 
-  it('counts the ground round each member town as part of the nation, but not the water', () => {
-    const tiles = Array.from({ length: 40 }, () => Array.from({ length: 40 }, (_, x) => (x >= 25 ? 2 : 0)))
+  it('cuts the land of a nation into chunks with one border round all its members and none between them', () => {
     const world = {
-      nations: [nation(2, ['a'])],
-      towns: [{ id: 1, lineage_id: 'a', center: [20, 20], planned: true }],
-      grid: { origin_x: 0, origin_y: 0, tiles },
-    } as unknown as Parameters<typeof nationLands>[0]
-    const land = nationLands(world).get(2)!
-    expect(land.keys.has('20,20')).toBe(true)
-    expect(land.keys.has(`${20 - TOWN_LAND_REACH},${20 + TOWN_LAND_REACH}`)).toBe(true)
-    expect(land.keys.has('26,20')).toBe(false)
-    expect(land.keys.has(`20,${21 + TOWN_LAND_REACH}`)).toBe(false)
+      nations: [nation(1, ['a', 'b'], 3)],
+      territory: {
+        claimed: [
+          { lid: 'a', tiles: [[31, 0]] },
+          { lid: 'b', tiles: [[32, 0]] },
+        ],
+        contested: [],
+      },
+    } as unknown as Pick<WorldState, 'nations' | 'territory'>
+    const chunks = nationChunks(world, 8)
+    expect([...chunks.keys()].sort()).toEqual(['0,0', '1,0'])
+    const left = chunks.get('0,0')![0]!
+    const right = chunks.get('1,0')![0]!
+    expect(left.colour).toBe(3)
+    expect(left.tint).toEqual([248, 0, 8, 8])
+    expect(left.edge.length / 4).toBe(3)
+    expect(right.edge.length / 4).toBe(3)
+    expect(left.edge.some((_, i) => i % 4 === 0 && left.edge[i] === 254)).toBe(false)
   })
 
   it('reads a treaty or war first, then warmth or wariness', () => {

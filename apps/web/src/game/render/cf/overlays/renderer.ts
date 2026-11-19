@@ -170,7 +170,6 @@ export class CfOverlayRenderer {
   private outlineStructure: unknown = null
   private territoryRef: unknown = null
   private nationsRef: unknown = null
-  private townsRef: unknown = null
   private contestedKey = ''
   private groundKey = ''
   private stillKey = ''
@@ -747,8 +746,7 @@ export class CfOverlayRenderer {
     if (
       key === this.staticKey &&
       world.territory === this.territoryRef &&
-      world.nations === this.nationsRef &&
-      world.towns === this.townsRef
+      world.nations === this.nationsRef
     ) {
       if (
         !outline ||
@@ -759,7 +757,6 @@ export class CfOverlayRenderer {
     this.staticKey = key
     this.territoryRef = world.territory
     this.nationsRef = world.nations
-    this.townsRef = world.towns
     this.outlineRevision = structureRevision
     this.outlineStructure = world.grid.structure ?? null
     this.groundStatic.begin({ zoom: f.zoom, dpr: f.dpr })
