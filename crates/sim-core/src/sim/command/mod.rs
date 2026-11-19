@@ -514,6 +514,10 @@ pub enum Command {
         id: String,
         name: String,
     },
+    Follow {
+        #[serde(default)]
+        id: Option<String>,
+    },
     Marry {
         ax: f32,
         ay: f32,
@@ -755,6 +759,7 @@ mod disasters;
 #[cfg(test)]
 mod dock_audit_tests;
 mod era_tribe;
+mod follow;
 mod frost;
 mod gift;
 mod hail;

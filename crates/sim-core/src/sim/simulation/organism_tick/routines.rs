@@ -25,7 +25,7 @@ impl Simulation {
         // Any organism with knowledge can teach nearby kin - not just elders.
         // Stagger by idx so not all organisms try to teach on the same tick.
         let can_teach = !self.organisms[idx].discoveries.is_empty() || self.organisms[idx].is_elder;
-        if can_teach && self.tick_count % 120 == (idx as u64 % 120) {
+        if can_teach && crate::sim::simulation::town_lod::due(self.tick_count, f.dt, 120, idx as u64) {
             social::teach(
                 idx,
                 &mut self.organisms,
@@ -36,8 +36,16 @@ impl Simulation {
             );
         }
 
+        self.keep_routine(idx);
         // Children keep close to their mother and play near home; elders sit by the fire after dark.
-        if !f.dormant || (self.tick_count + idx as u64).is_multiple_of(DORMANT_ROUTINE_EVERY) {
+        if !f.dormant
+            || crate::sim::simulation::town_lod::due(
+                self.tick_count,
+                f.dt,
+                DORMANT_ROUTINE_EVERY,
+                DORMANT_ROUTINE_EVERY - idx as u64 % DORMANT_ROUTINE_EVERY,
+            )
+        {
             self.assign_family_outing(idx, spatial, org_idx_by_id);
             self.assign_working_day(idx);
             self.assign_daily_work(idx);
@@ -49,7 +57,7 @@ impl Simulation {
             self.care_for_elder_parent(idx, org_idx_by_id);
         }
 
-        if self.tick_count % 2000 == (idx as u64 % 2000) {
+        if crate::sim::simulation::town_lod::due(self.tick_count, f.dt, 2000, idx as u64) {
             {
                 let org = &mut self.organisms[idx];
                 if org.danger_memory.len() > 15 {
@@ -77,7 +85,7 @@ impl Simulation {
                 .any(|ddx| (-8i32..=8).any(|ddy| self.grid.get(ox2 + ddx, oy2 + ddy) == Tile::Food));
             if !food_near
                 && self.organisms[idx].food_memory.len() < 8
-                && self.rng.random::<f32>() < 0.0015
+                && self.rng.random::<f32>() < crate::sim::simulation::town_lod::chance(0.0015, f.dt)
                 && self.organisms[idx].wander_target.is_none()
                 && self.organisms[idx].energy > 0.4
             {

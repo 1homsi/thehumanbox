@@ -12,6 +12,8 @@ use crate::sim::tech::buildings::{Building, BuildingKind};
 use crate::sim::world_events::push_event;
 
 const TICK_INTERVAL: u64 = 40;
+
+const SEEN_SETS: usize = 4;
 const BASE_RATE: f32 = 0.012;
 /// Tiles between a tribe's dwellings and a farming tribe's dwellings for the farming to carry over.
 const FARMING_NEIGHBOUR_REACH: i32 = 24;
@@ -36,6 +38,7 @@ pub fn tick_tech_progress(
     struct Tribe<'a> {
         discoveries: HashSet<&'a str>,
         members: Vec<usize>,
+        seen: Vec<&'a crate::organism::organism::Discoveries>,
     }
     let mut tribes: HashMap<&str, Tribe> = HashMap::default();
     for (i, org) in organisms.iter().enumerate() {
@@ -45,11 +48,19 @@ pub fn tick_tech_progress(
         let tribe = tribes.entry(org.lineage_id.as_str()).or_insert_with(|| Tribe {
             discoveries: HashSet::default(),
             members: Vec::new(),
+            seen: Vec::new(),
         });
+        tribe.members.push(i);
+        if tribe.seen.iter().any(|known| ***known == *org.discoveries) {
+            continue;
+        }
+        if tribe.seen.len() == SEEN_SETS {
+            tribe.seen.remove(0);
+        }
+        tribe.seen.push(&org.discoveries);
         for d in org.discoveries.iter() {
             tribe.discoveries.insert(d.as_str());
         }
-        tribe.members.push(i);
     }
     // The research loop below changes `organisms`, so the tribes it walks must
     // own their names.

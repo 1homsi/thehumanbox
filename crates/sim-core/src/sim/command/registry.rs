@@ -105,6 +105,7 @@ registry! {
     "love" => Love { x, y, radius } => cmd_love(x, y, radius);
     "marry" => Marry { ax, ay, bx, by } => cmd_marry(ax, ay, bx, by);
     "rename_person" => RenamePerson { id, name } => cmd_rename_person(id, name);
+    "follow" => Follow { id } => cmd_follow(id);
     "tame" => Tame { x, y, radius } => cmd_tame(x, y, radius);
     "road" => Road { x, y, radius, kind } => cmd_road(x, y, radius, kind);
     "demolish" => Demolish { x, y, radius } => cmd_demolish(x, y, radius);

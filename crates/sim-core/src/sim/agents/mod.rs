@@ -9,6 +9,7 @@ pub mod lessons;
 pub mod memory_pressure;
 pub mod newcomers;
 pub mod relations;
+pub mod routine;
 pub mod service;
 pub mod skills;
 pub mod social;

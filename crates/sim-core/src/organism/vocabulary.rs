@@ -747,6 +747,11 @@ impl Vocabulary {
         }
     }
 
+    pub fn word(&self, concept: &str) -> Option<&str> {
+        let i = *concept_index().get(concept)?;
+        Some(self.text(i)).filter(|w| !w.is_empty())
+    }
+
     pub fn word_for<'a>(&'a self, concept: &'a str) -> &'a str {
         let idx = concept_index();
         if let Some(&i) = idx.get(concept) {

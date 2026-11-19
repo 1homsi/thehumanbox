@@ -58,6 +58,7 @@ fn main() {
         save,
         crowd,
         crowd_at,
+        full,
     } = args::parse();
 
     if world_report {
@@ -108,6 +109,7 @@ fn main() {
         }),
         None => Simulation::new(seed),
     };
+    sim.lod = !full;
     let mut peak_pop = 0usize;
     let mut thought_freq: HashMap<String, u64> = HashMap::new();
     let mut trace_writer = trace_out.as_ref().map(|path| {

@@ -24,6 +24,7 @@ pub(super) struct Args {
     pub(super) save: Option<String>,
     pub(super) crowd: u32,
     pub(super) crowd_at: u64,
+    pub(super) full: bool,
 }
 
 pub(super) fn parse() -> Args {
@@ -130,6 +131,7 @@ pub(super) fn parse() -> Args {
         .unwrap_or(0);
     let load = path_after("--load");
     let save = path_after("--save");
+    let full = args.iter().any(|a| a == "--full");
     Args {
         seed,
         max_ticks,
@@ -151,5 +153,6 @@ pub(super) fn parse() -> Args {
         save,
         crowd,
         crowd_at,
+        full,
     }
 }

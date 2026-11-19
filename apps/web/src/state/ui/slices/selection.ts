@@ -1,6 +1,12 @@
 import type { StateCreator } from 'zustand'
 import type { UIState } from '../types'
 import { trackEvent } from '../../../shared/observability'
+import { sendSandboxCommand } from '../../../simulation/commandBus'
+
+function tellFollowed(prev: string | null, next: string | null): void {
+  if (prev === next) return
+  void sendSandboxCommand(next == null ? { cmd: 'follow' } : { cmd: 'follow', id: next })
+}
 
 export interface SelectionSlice {
   selectedOrgId: string | null
@@ -26,6 +32,8 @@ export const createSelectionSlice: StateCreator<UIState, [], [], SelectionSlice>
     }
     // An edit belongs to the person it started on: selecting anyone else abandons it.
     const renamingOrgId = id === get().renamingOrgId ? id : null
+    const followed = get().followOrgId
+    tellFollowed(followed, id == null || followed !== id ? null : id)
     set(
       id == null
         ? { selectedOrgId: null, followOrgId: null, renamingOrgId }
@@ -40,6 +48,7 @@ export const createSelectionSlice: StateCreator<UIState, [], [], SelectionSlice>
     if (id != null && id !== get().followOrgId) {
       trackEvent('org_follow', { org_id: id })
     }
+    tellFollowed(get().followOrgId, id)
     set({ followOrgId: id })
   },
 })

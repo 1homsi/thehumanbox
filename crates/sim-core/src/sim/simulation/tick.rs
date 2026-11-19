@@ -433,7 +433,10 @@ impl Simulation {
         let n = self.organisms.len();
         let now = self.tick_count;
         self.focus_points.retain(|&(_, _, until)| until > now);
-        let (awake, strangers) = self.lod_awake(&animal_spatial, &mut buffers.spatial);
+        self.refresh_calm_towns();
+        let towns = self.calm_town_of_each();
+        let (awake, strangers) = self.lod_awake(&animal_spatial, &mut buffers.spatial, &towns);
+        let tiers = self.town_tiers(&towns, &awake);
         self.lineage_lore(&awake);
         let mut perceived = self.perceive_all(&spatial, &animal_spatial, &awake);
         let mut sensed: Vec<Option<organism_tick::Sensed>> = Vec::with_capacity(n);
@@ -445,8 +448,13 @@ impl Simulation {
                 org_idx_by_id: &org_idx_by_id,
             };
             for i in 0..n {
+                if tiers[i] == town_lod::Tier::Idle {
+                    sensed.push(None);
+                    continue;
+                }
                 if self.organisms[i].alive && !awake[i] {
-                    sensed.push(Some(self.dormant_sensed(i, strangers[i])));
+                    let dt = self.turn_gap(i);
+                    sensed.push(Some(self.dormant_sensed(i, strangers[i], dt)));
                     continue;
                 }
                 sensed.push(self.organisms[i].alive.then(|| {
@@ -461,10 +469,20 @@ impl Simulation {
                 }));
             }
         }
-        let dormant: Vec<bool> = sensed
+        let dormant: Vec<u64> = sensed
             .iter()
-            .map(|s| s.as_ref().is_some_and(|s| s.dormant))
+            .enumerate()
+            .map(|(i, s)| match s {
+                Some(s) if s.dormant => s.dt,
+                Some(_) => self.turn_gap(i) - 1,
+                None => 0,
+            })
             .collect();
+        for (o, s) in self.organisms.iter_mut().zip(&sensed) {
+            if s.is_some() {
+                o.lod_turn = now;
+            }
+        }
         let tick_seed: u64 = self.rng.random();
         self.choosing_tribes = Some(crate::sim::civ::fields::tribe_people_and_plots(self));
         let mut choices = self.choose_all(&sensed, &spatial, tick_seed);
@@ -535,6 +553,7 @@ impl Simulation {
         }
 
         self.dormant_upkeep(&dormant, &spatial, &animal_spatial);
+        self.glide(&tiers);
         self.learn_from_the_tick(&spatial);
 
         const VEL_EMA_ALPHA: f32 = 0.4;

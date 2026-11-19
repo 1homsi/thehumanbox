@@ -1,3 +1,4 @@
+use super::town_lod::{due, TOWN_STEP};
 use super::*;
 
 mod act;
@@ -36,6 +37,7 @@ pub(super) struct Sensed {
     pub(super) summoned_threat: Option<(f32, f32, f32)>,
     pub(super) dormant: bool,
     pub(super) strangers_near: bool,
+    pub(super) dt: u64,
 }
 
 impl OrgFrame<'_> {
@@ -60,6 +62,7 @@ impl OrgFrame<'_> {
             summoned_threat: self.summoned_threat,
             dormant: false,
             strangers_near: false,
+            dt: 1,
         }
     }
 
@@ -85,6 +88,7 @@ impl OrgFrame<'_> {
             summoned_threat: self.summoned_threat,
             dormant: false,
             strangers_near: false,
+            dt: 1,
         }
     }
 
@@ -129,7 +133,7 @@ const LOD_EVERY: u64 = 32;
 
 const LORE_EVERY: u64 = 60;
 
-const LORE_CHANCE_PERCENT: u64 = 20;
+const LORE_CHANCE_PERCENT: u64 = 12;
 
 const LORE_ROOM: usize = 48;
 
@@ -186,13 +190,14 @@ const HOLD: usize = usize::MAX;
 
 const CHALLENGE_COOLDOWN: u64 = 80;
 
-const DORMANT_CHALLENGE_PER_MILLE: u64 = 2;
+const DORMANT_CHALLENGE_PER_MILLE: u64 = 3;
 
 impl Simulation {
     pub(super) fn lod_awake(
         &self,
         animal_spatial: &SpatialIndex,
         buf: &mut Vec<usize>,
+        towns: &[Option<u32>],
     ) -> (Vec<bool>, Vec<bool>) {
         let storm = self.weather.kind >= 2;
         let mut strangers = vec![false; self.organisms.len()];
@@ -221,8 +226,20 @@ impl Simulation {
                 if !o.alive {
                     return false;
                 }
-                if storm
-                    || (self.tick_count + i as u64).is_multiple_of(LOD_EVERY)
+                if !self.lod
+                    || storm
+                    || match towns[i] {
+                        None => (self.tick_count + i as u64).is_multiple_of(LOD_EVERY),
+                        Some(town) => {
+                            (self.tick_count + u64::from(town)).is_multiple_of(TOWN_STEP)
+                                && due(
+                                    self.tick_count,
+                                    TOWN_STEP,
+                                    LOD_EVERY,
+                                    LOD_EVERY - i as u64 % LOD_EVERY,
+                                )
+                        }
+                    }
                     || o.energy < 0.35
                     || o.hydration < 0.35
                     || o.health < 0.6
@@ -334,7 +351,7 @@ impl Simulation {
         }
     }
 
-    pub(super) fn dormant_sensed(&self, idx: usize, strangers_near: bool) -> Sensed {
+    pub(super) fn dormant_sensed(&self, idx: usize, strangers_near: bool, dt: u64) -> Sensed {
         let o = &self.organisms[idx];
         Sensed {
             idx,
@@ -356,6 +373,7 @@ impl Simulation {
             summoned_threat: None,
             dormant: true,
             strangers_near,
+            dt,
         }
     }
 
@@ -367,8 +385,11 @@ impl Simulation {
         buf: &mut Vec<usize>,
     ) -> Choice {
         let o = &self.organisms[s.idx];
-        let action = match o.last_action.map(usize::from) {
-            Some(a) if a >= 8 && !stirs_others(a) => a,
+        let step = self.routine_step(s.idx);
+        let thought = step.as_ref().and_then(|r| r.thought).map(str::to_string);
+        let action = match (step, o.last_action.map(usize::from)) {
+            (Some(step), _) => step.action,
+            (None, Some(a)) if a >= 8 && !stirs_others(a) => a,
             _ => {
                 let goal = {
                     let route = o.route.borrow();
@@ -392,7 +413,7 @@ impl Simulation {
         };
         Choice {
             action,
-            thought: None,
+            thought,
             origin: "dormant",
             at: (o.x as i32, o.y as i32),
             rng,
@@ -436,7 +457,7 @@ impl Simulation {
 
     pub(super) fn dormant_upkeep(
         &mut self,
-        dormant: &[bool],
+        dormant: &[u64],
         spatial: &SpatialIndex,
         animal_spatial: &SpatialIndex,
     ) {
@@ -453,7 +474,8 @@ impl Simulation {
             &mut self.organisms[..dormant.len()],
             || (Vec::with_capacity(32), Vec::with_capacity(32)),
             |(animal_buf, spatial_buf), i, o| {
-                if !dormant[i] || !o.alive {
+                let dt = dormant[i];
+                if dt == 0 || !o.alive {
                     return (false, false);
                 }
                 let (cx, cy) = (o.x as i32, o.y as i32);
@@ -461,21 +483,32 @@ impl Simulation {
                 verify_local_resource_memory(o, grid, cx, cy);
                 verify_local_danger_memory(o, grid, animals, animal_spatial, animal_buf, cx, cy);
                 let shelter = vitals::shelter_strength(grid, cx, cy);
-                vitals::shelter_comfort(o, shelter, || upkeep_roll(tick, i));
-                vitals::drain_and_eat(o, grid, &climate, cx, cy, shelter);
                 let in_water = tile == Tile::Water;
                 if !in_water {
                     o.water_ticks = 0;
                 }
-                vitals::weather_and_sickness(o, grid, &climate, cx, cy, shelter);
-                vitals::ritual_comfort(o, grid, climate.night);
                 let mut fell_sick = false;
-                if o.infection < 0.8 {
+                if o.infection < 0.8 || dt > 1 {
                     spatial.query_into(cx, cy, 2, spatial_buf);
-                    let caught = vitals::caught_infection(o, i, spatial_buf, |j| neighbours[j]);
-                    fell_sick = vitals::set_infection(o, caught);
                 }
-                ageing::body_ageing(o, tile == Tile::Fire, tick);
+                let water_near = vitals::water_near(grid, cx, cy);
+                let ritual = climate.night && o.discoveries.has(Hot::Ritual);
+                let fire_near = ritual && vitals::campfire_near(grid, cx, cy);
+                for back in (0..dt).rev() {
+                    let at = tick - back;
+                    let climate = climate.at(at);
+                    vitals::shelter_comfort(o, shelter, || upkeep_roll(at, i));
+                    vitals::drain_and_eat(o, water_near, &climate, shelter);
+                    vitals::weather_and_sickness(o, grid, &climate, cx, cy, shelter);
+                    if ritual {
+                        vitals::ritual_warmth(o, fire_near);
+                    }
+                    if o.infection < 0.8 {
+                        let caught = vitals::caught_infection(o, i, spatial_buf, |j| neighbours[j]);
+                        fell_sick |= vitals::set_infection(o, caught);
+                    }
+                    ageing::body_ageing(o, tile == Tile::Fire, at);
+                }
                 (in_water, fell_sick)
             },
         );
@@ -579,6 +612,40 @@ fn stirs_others(action: usize) -> bool {
 
 pub(super) const DORMANT_ROUTINE_EVERY: u64 = 8;
 
+struct Yield {
+    energy: f32,
+    hydration: f32,
+    goods: [u8; 4],
+}
+
+impl Yield {
+    fn of(o: &Organism) -> Self {
+        Yield {
+            energy: o.energy,
+            hydration: o.hydration,
+            goods: [o.inv_food, o.inv_water, o.inv_wood, o.inv_stone],
+        }
+    }
+
+    fn repeat(&self, o: &mut Organism, times: u64) {
+        let times = times as f32;
+        o.energy = (o.energy + (o.energy - self.energy).max(0.0) * times).min(1.0);
+        o.hydration = (o.hydration + (o.hydration - self.hydration).max(0.0) * times).min(1.0);
+        for (k, before) in self.goods.into_iter().enumerate() {
+            let now = [o.inv_food, o.inv_water, o.inv_wood, o.inv_stone][k];
+            let more = (f32::from(now.saturating_sub(before)) * times) as u32;
+            let add = o.carry_room().min(more).min(u32::from(u8::MAX)) as u8;
+            let slot = match k {
+                0 => &mut o.inv_food,
+                1 => &mut o.inv_water,
+                2 => &mut o.inv_wood,
+                _ => &mut o.inv_stone,
+            };
+            *slot = slot.saturating_add(add);
+        }
+    }
+}
+
 fn upkeep_roll(tick: u64, idx: usize) -> f32 {
     let mut z = tick.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ (idx as u64).wrapping_add(0xD1B5_4A32_D192_ED03);
     z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
@@ -640,6 +707,7 @@ pub(super) struct OrgFrame<'a> {
     /// The nearest summoned wolf within the alarm radius, whatever else is near (see `flight_threat`).
     pub(super) summoned_threat: Option<(f32, f32, f32)>,
     pub(super) plan: Option<DormantPlan>,
+    pub(super) dt: u64,
 }
 
 /// The shared values of one person's turn, with every per-phase local at its starting value.
@@ -708,6 +776,7 @@ fn new_frame<'a>(
         threat_summoned: false,
         summoned_threat: None,
         plan: None,
+        dt: 1,
     }
 }
 
@@ -808,6 +877,7 @@ impl Simulation {
         );
         let sensed_dormant = sensed.dormant;
         let sensed_strangers = sensed.strangers_near;
+        f.dt = sensed.dt;
         f.dormant = sensed_dormant;
         f.put_sensed(sensed);
         // Others may have acted since sensing. Attribute only health changes
@@ -823,8 +893,14 @@ impl Simulation {
         let f_holds = choice.action == HOLD;
         f.plan = choice.plan.take();
         if !f_holds {
+            let before = Yield::of(&self.organisms[f.idx]);
             self.org_apply_choice(&mut f, choice);
             self.org_act(&mut f);
+            if f.dt > 1 && f.action >= 8 {
+                before.repeat(&mut self.organisms[f.idx], f.dt - 1);
+            }
+        } else if let Some(thought) = choice.thought.as_deref() {
+            self.organisms[f.idx].think(thought, self.tick_count);
         }
         self.org_vitals(&mut f);
         if dormant {
@@ -834,7 +910,7 @@ impl Simulation {
                 >> 32;
             if sensed_strangers
                 && tick.saturating_sub(self.organisms[f.idx].last_challenged) >= CHALLENGE_COOLDOWN
-                && roll % 1000 < DORMANT_CHALLENGE_PER_MILLE
+                && roll % 1000 < DORMANT_CHALLENGE_PER_MILLE * f.dt
             {
                 crate::sim::agents::social::challenge_stranger(
                     f.idx,
