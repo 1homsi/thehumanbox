@@ -1,5 +1,11 @@
 import { lineageEraTiers } from '../draw-helpers'
-import type { CaravanInfo, NetEdgeInfo, TradeRouteInfo, WorldState } from '../../../shared/types'
+import type {
+  CaravanInfo,
+  MigrationInfo,
+  NetEdgeInfo,
+  TradeRouteInfo,
+  WorldState,
+} from '../../../shared/types'
 import { lineageColor } from '../../../shared/constants'
 import { drawCaravanPennant, drawCaravanSprite, drawTraffic } from '../roads'
 import {
@@ -112,7 +118,7 @@ export function drawTradeNetwork2D(
   planner: TradePathPlanner = tradePaths,
 ) {
   caravansDrawn = 0
-  if (!world.trade_routes?.length && !world.caravans?.length) return
+  if (!world.trade_routes?.length && !world.caravans?.length && !world.migrations?.length) return
 
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
@@ -178,6 +184,8 @@ export function drawTradeNetwork2D(
     return
   }
 
+  for (const migration of world.migrations ?? []) drawMigration(ctx, migration, ox, oy, isVisible)
+
   let seen = 0
   for (const caravan of world.caravans ?? []) {
     if (!isFinitePoint(caravan.from) || !isFinitePoint(caravan.to)) continue
@@ -232,4 +240,37 @@ export function drawTradeNetwork2D(
     )
     if (caravan.kind && caravan.kind !== 'trade') drawCaravanPennant(ctx, px, py, caravan.kind, TILE)
   }
+}
+
+const TRAIL_EVERY = 3
+
+export function drawMigration(
+  ctx: CanvasRenderingContext2D,
+  migration: MigrationInfo,
+  ox: number,
+  oy: number,
+  isVisible: (x: number, y: number) => boolean,
+) {
+  const color = lineageColor(migration.lineage_id)
+  const path = migration.path
+  const dot = Math.max(1, Math.round(TILE * 0.25))
+  ctx.fillStyle = color
+  for (let i = 0; i + 1 < path.length; i += 2 * TRAIL_EVERY) {
+    const x = path[i]! - ox
+    const y = path[i + 1]! - oy
+    if (!isVisible(x, y)) continue
+    ctx.fillRect(Math.round((x + 0.5) * TILE - dot / 2), Math.round((y + 0.5) * TILE - dot / 2), dot, dot)
+  }
+  const tx = migration.to[0] - ox
+  const ty = migration.to[1] - oy
+  if (!isVisible(tx, ty)) return
+  const u = Math.max(1, Math.round(TILE / 5))
+  const px = Math.round((tx + 0.5) * TILE)
+  const py = Math.round((ty + 0.5) * TILE)
+  ctx.fillStyle = '#3b2a1a'
+  ctx.fillRect(px, py - u * 8, u, u * 8)
+  ctx.fillStyle = color
+  ctx.fillRect(px + u, py - u * 8, u * 4, u * 3)
+  ctx.fillStyle = migration.cause === 'war' ? '#c8352b' : '#e9b949'
+  ctx.fillRect(px + u * 2, py - u * 7, u * 2, u)
 }

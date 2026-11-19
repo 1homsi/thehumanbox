@@ -1062,5 +1062,13 @@
     },
     "short": "{goods}が不足",
     "spare": "{goods}に余裕"
+  },
+  "ruin": {
+    "title": "{name}の廃墟",
+    "stage": {
+      "empty": "無人",
+      "ruined": "崩れ落ちた",
+      "foundations": "土台だけが残る"
+    }
   }
 }

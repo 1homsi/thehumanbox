@@ -1076,5 +1076,13 @@
     },
     "short": "short of {goods}",
     "spare": "{goods} to spare"
+  },
+  "ruin": {
+    "title": "ruins of the {name}",
+    "stage": {
+      "empty": "standing empty",
+      "ruined": "fallen in",
+      "foundations": "only foundations left"
+    }
   }
 }

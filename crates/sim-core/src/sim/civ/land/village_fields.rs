@@ -46,6 +46,9 @@ const SOW_PER_PASS: usize = 2;
 /// Fields per dwelling a tribe may hold. Ground is cheap, so a village with
 /// houses keeps a few plots for its people.
 const PLOTS_PER_DWELLING: usize = 2;
+const BELT_PEOPLE: usize = 8;
+const BELT_PLOTS: usize = 4;
+const BELT_REACH: (i32, i32) = (9, 14);
 /// Soil below this is left alone (the same bar the farming actions use).
 const SOW_MIN_FERTILITY: f32 = 0.30;
 
@@ -148,6 +151,7 @@ pub(crate) fn irrigated(sim: &Simulation, x: i32, y: i32) -> bool {
 pub(crate) fn tick_village_fields(sim: &mut Simulation) {
     let now = sim.tick_count;
     let tribes = tribes_with_dwellings(sim);
+    let belts = farm_belts(sim);
     for tribe in &tribes {
         let knows = tribe
             .members
@@ -158,7 +162,12 @@ pub(crate) fn tick_village_fields(sim: &mut Simulation) {
         }
         village_failure::dry_spell(sim, tribe);
         harvest_ripe(sim, tribe);
-        sow_fields(sim, tribe, now);
+        sow_fields(
+            sim,
+            tribe,
+            now,
+            belts.get(&tribe.lineage).map_or(&[][..], Vec::as_slice),
+        );
         crate::sim::civ::land::village_irrigation::dig_for_fields(sim, tribe);
         village_stores::bake(sim, tribe);
         village_stores::ration(sim, tribe);
@@ -214,7 +223,48 @@ fn harvest_ripe(sim: &mut Simulation, tribe: &Tribe) {
     }
 }
 
-fn sow_fields(sim: &mut Simulation, tribe: &Tribe, now: u64) {
+fn farm_belts(sim: &Simulation) -> std::collections::BTreeMap<String, Vec<(i32, i32)>> {
+    let residents = crate::sim::civ::civ_tick::town::town_residents(sim);
+    let mut out: std::collections::BTreeMap<String, Vec<(i32, i32)>> = std::collections::BTreeMap::new();
+    for t in &sim.towns {
+        if t.role == crate::sim::civ::society::town_roles::TownRole::Farming
+            && residents.get(&t.id).copied().unwrap_or(0) >= BELT_PEOPLE
+        {
+            out.entry(t.lineage.clone())
+                .or_default()
+                .push((t.center[0], t.center[1]));
+        }
+    }
+    out
+}
+
+fn belt_site(sim: &Simulation, belts: &[(i32, i32)], occupied: &FxHashSet<(i32, i32)>) -> Option<(i32, i32)> {
+    for &(cx, cy) in belts {
+        for reach in BELT_REACH.0..=BELT_REACH.1 {
+            for dy in -reach..=reach {
+                for dx in -reach..=reach {
+                    if dx.abs().max(dy.abs()) != reach {
+                        continue;
+                    }
+                    let (x, y) = (cx + dx, cy + dy);
+                    if !in_bounds(x, y) || occupied.contains(&(x, y)) {
+                        continue;
+                    }
+                    if !matches!(sim.grid.get(x, y), Tile::Grass)
+                        || sim.grid.road_at(x, y) != ROAD_NONE
+                        || sim.grid.fertility_at(x, y) < SOW_MIN_FERTILITY
+                    {
+                        continue;
+                    }
+                    return Some((x, y));
+                }
+            }
+        }
+    }
+    None
+}
+
+fn sow_fields(sim: &mut Simulation, tribe: &Tribe, now: u64, belts: &[(i32, i32)]) {
     // Fields are sown in spring only; a fallow plot waits for the next spring.
     if sim.season() != SOWING_SEASON {
         return;
@@ -222,7 +272,8 @@ fn sow_fields(sim: &mut Simulation, tribe: &Tribe, now: u64) {
     // A plough breaks more ground in a pass and lets each dwelling keep more plots.
     let plough = plough_for(sim.era(&tribe.lineage));
     let per_dwelling = PLOTS_PER_DWELLING + plough.map_or(0, Plough::extra_plots_per_dwelling);
-    let cap = (tribe.dwellings.len() * per_dwelling).max(1);
+    let home_cap = (tribe.dwellings.len() * per_dwelling).max(1);
+    let cap = home_cap + belts.len() * BELT_PLOTS;
     let per_pass = plough.map_or(SOW_PER_PASS, Plough::sows_per_pass);
     let mut sowed = 0usize;
     let mut first_ever = false;
@@ -245,7 +296,18 @@ fn sow_fields(sim: &mut Simulation, tribe: &Tribe, now: u64) {
                 // Every tile a building covers, not only its origin: a 2x2 house or barn
                 // keeps its whole footprint clear, so no field is sown under it.
                 let occupied = village_stores::occupied_tiles(sim);
-                field_site(sim, &tribe.dwellings, &occupied)
+                let near = if plots < home_cap {
+                    field_site(sim, &tribe.dwellings, &occupied)
+                } else {
+                    None
+                };
+                near.or_else(|| {
+                    let site = belt_site(sim, belts, &occupied);
+                    if site.is_some() {
+                        sim.land.stats.belt_fields += 1;
+                    }
+                    site
+                })
             }
             None => None,
         };
@@ -338,6 +400,28 @@ mod tests {
     }
 
     #[test]
+    fn a_farming_town_opens_new_fields_in_its_belt_when_the_ground_by_the_houses_is_taken() {
+        let (mut sim, lineage, (hx, hy)) = farming_tribe(7);
+        for dy in -16..=16 {
+            for dx in -16..=16 {
+                sim.grid.set(hx + dx, hy + dy, Tile::Grass);
+                sim.grid.fertility[WorldGrid::idx(hx + dx, hy + dy)] = 0.8;
+            }
+        }
+        let mut occupied = village_stores::occupied_tiles(&sim);
+        for dy in -8..=8 {
+            for dx in -8..=8 {
+                occupied.insert((hx + dx, hy + dy));
+            }
+        }
+        assert_eq!(field_site(&sim, &[(hx, hy)], &occupied), None);
+        let site = belt_site(&sim, &[(hx, hy)], &occupied).expect("a belt field");
+        let ring = (site.0 - hx).abs().max((site.1 - hy).abs());
+        assert!((BELT_REACH.0..=BELT_REACH.1).contains(&ring), "ring {ring}");
+        assert!(!farm_belts(&sim).contains_key(&lineage), "no farming town yet");
+    }
+
+    #[test]
     fn a_tribe_sows_its_first_field_in_spring_and_times_it_to_autumn() {
         let (mut sim, lineage, (hx, hy)) = farming_tribe(4_242);
         sim.tick_count = SPRING;
@@ -395,7 +479,7 @@ mod tests {
             members,
             dwellings: vec![(hx, hy)],
         };
-        sow_fields(&mut sim, &tribe, SPRING);
+        sow_fields(&mut sim, &tribe, SPRING, &[]);
         for farm in &sim.farms {
             for building in &sim.buildings {
                 let (fw, fh) = building.kind.footprint();

@@ -247,6 +247,10 @@ fn residents_of(sim: &Simulation, lineage: &str) -> HashMap<u32, usize> {
     out
 }
 
+pub(crate) fn town_residents(sim: &Simulation) -> HashMap<u32, usize> {
+    residents(sim, &homes_by_lineage(sim))
+}
+
 pub(crate) fn tick_towns(sim: &mut Simulation) {
     let homes = homes_by_lineage(sim);
     let people = residents(sim, &homes);
@@ -268,6 +272,7 @@ pub(crate) fn tick_towns(sim: &mut Simulation) {
         .map(|(x, y)| [x, y])
         .collect();
     crate::sim::civ::land::road_net::wear_cells(sim, &paving);
+    sim.note_abandoned_towns(&dropped);
     found_towns(sim, &homes);
     let people = residents(sim, &homes);
     plan_towns(sim, &people);
@@ -307,6 +312,16 @@ fn found_towns(sim: &mut Simulation, homes: &HomesByLineage) {
             founded.push((lineage.clone(), centre));
         }
     }
+    let founded: Vec<(String, [i32; 2])> = founded
+        .into_iter()
+        .map(|(lineage, centre)| {
+            let centre = sim
+                .resettle_ruin(&lineage, centre)
+                .and_then(|ruin| find_plaza_site(sim, &covered, ruin[0], ruin[1], 0))
+                .unwrap_or(centre);
+            (lineage, centre)
+        })
+        .collect();
     let now = sim.tick_count;
     for (lineage, center) in founded {
         let id = sim.next_town_id.max(1);

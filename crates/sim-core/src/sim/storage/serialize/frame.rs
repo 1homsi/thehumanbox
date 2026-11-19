@@ -473,6 +473,33 @@ impl Simulation {
                 })
                 .collect();
             obj.insert("caravans".to_string(), serde_json::Value::Array(caravans));
+            let alive: crate::hashing::FxHashSet<&str> = self
+                .organisms
+                .iter()
+                .filter(|o| o.alive)
+                .map(|o| o.id.as_str())
+                .collect();
+            let migrations: Vec<serde_json::Value> = self
+                .land
+                .migrations
+                .iter()
+                .map(|m| {
+                    let path: Vec<i32> = m.path.iter().flat_map(|&[x, y]| [x, y]).collect();
+                    json!({
+                        "id": m.id,
+                        "lineage_id": m.lineage,
+                        "host": m.host,
+                        "cause": m.cause.name(),
+                        "people": m.members.iter().filter(|id| alive.contains(id.as_str())).count(),
+                        "members": m.members,
+                        "from": m.from,
+                        "to": m.to,
+                        "path": path,
+                        "departed_tick": m.departed,
+                    })
+                })
+                .collect();
+            obj.insert("migrations".to_string(), serde_json::Value::Array(migrations));
             // The land goods each tribe holds, summed over its living people, so
             // the tribe card can name what its ground has given it.
             let mut land_goods: std::collections::BTreeMap<&str, std::collections::BTreeMap<&str, u32>> =
@@ -788,6 +815,22 @@ impl Simulation {
                     .collect();
                 obj.insert("towns".to_string(), serde_json::Value::Array(towns_json));
                 obj.insert("nations".to_string(), self.nations_json());
+                let now = self.tick_count;
+                let ruins_json: Vec<serde_json::Value> = self
+                    .land
+                    .ruins
+                    .iter()
+                    .map(|ruin| {
+                        json!({
+                            "id": ruin.id,
+                            "name": ruin.name,
+                            "center": ruin.center,
+                            "stage": crate::sim::civ::land::land_memory::TownRuin::stage_name(ruin.stage(now)),
+                            "abandoned_tick": ruin.abandoned_tick,
+                        })
+                    })
+                    .collect();
+                obj.insert("ruins".to_string(), serde_json::Value::Array(ruins_json));
                 let edges_json: Vec<serde_json::Value> = self
                     .road_net
                     .edges

@@ -1062,5 +1062,13 @@
     },
     "short": "{goods} 부족",
     "spare": "{goods} 여유"
+  },
+  "ruin": {
+    "title": "{name}의 폐허",
+    "stage": {
+      "empty": "비어 있음",
+      "ruined": "무너짐",
+      "foundations": "주춧돌만 남음"
+    }
   }
 }

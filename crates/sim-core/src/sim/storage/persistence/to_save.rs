@@ -160,6 +160,7 @@ impl Simulation {
             rail_lines: self.rail_lines.clone(),
             rail_remnants: self.rail_remnants.clone(),
             road_net: self.road_net.clone(),
+            land: self.land.clone(),
             diplomacy: self.diplomacy.clone(),
             cart_grain: self.cart_grain.clone(),
             towns: self.towns.clone(),

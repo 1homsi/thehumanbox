@@ -1062,5 +1062,13 @@
     },
     "short": "缺{goods}",
     "spare": "{goods}有余"
+  },
+  "ruin": {
+    "title": "{name}的废墟",
+    "stage": {
+      "empty": "空无一人",
+      "ruined": "已经倒塌",
+      "foundations": "只剩地基"
+    }
   }
 }

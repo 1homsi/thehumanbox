@@ -335,6 +335,7 @@ impl Simulation {
             rail_lines: state.rail_lines,
             rail_remnants: state.rail_remnants,
             road_net: state.road_net,
+            land: state.land,
             diplomacy: state.diplomacy,
             cart_grain: state.cart_grain,
             towns: state.towns,

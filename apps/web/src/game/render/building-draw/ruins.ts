@@ -7,6 +7,7 @@ import { C, hexOf } from '../pixel-art/palette.ts'
 export const RUIN_CRUMBLE_TICKS = 12_000
 
 const INK = hexOf(C.gold0)
+export const FOUNDATIONS_AGE = 0.5
 const FLOOR = hexOf(C.tan1)
 const FLOOR_EDGE = hexOf(C.tan0)
 const BEAM = hexOf(C.gold1)
@@ -67,7 +68,18 @@ export function drawRuinedBuilding(
   ctx.fillStyle = FLOOR_EDGE
   ctx.fillRect(x + unit, bottom - unit, Math.max(1, width - unit * 2), unit)
 
-  if (detail !== 'overview') {
+  if (detail !== 'overview' && age >= FOUNDATIONS_AGE) {
+    ctx.fillStyle = INK
+    ctx.fillRect(x, floorTop - unit, width, unit)
+    ctx.fillRect(x, bottom - unit, width, unit)
+    ctx.fillRect(x, floorTop - unit, unit, bottom - floorTop + unit)
+    ctx.fillRect(x + width - unit, floorTop - unit, unit, bottom - floorTop + unit)
+    for (let c = unit; c < width - unit; c += unit * 2) {
+      const gone = visualHash(building, 60 + c) < age * 0.6
+      ctx.fillStyle = gone ? GRASS_DARK : material.top
+      ctx.fillRect(x + c, floorTop - unit, unit, unit)
+    }
+  } else if (detail !== 'overview') {
     // Broken wall stubs at either end, with ragged tops, worn lower with age.
     const wear = 1 - age * 0.45
     const stubs: Array<[number, number, number]> = [

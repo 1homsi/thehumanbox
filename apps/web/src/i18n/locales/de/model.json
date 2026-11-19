@@ -1073,5 +1073,13 @@
     },
     "short": "knapp an {goods}",
     "spare": "{goods} übrig"
+  },
+  "ruin": {
+    "title": "Ruinen der {name}",
+    "stage": {
+      "empty": "steht leer",
+      "ruined": "eingestürzt",
+      "foundations": "nur noch Grundmauern"
+    }
   }
 }

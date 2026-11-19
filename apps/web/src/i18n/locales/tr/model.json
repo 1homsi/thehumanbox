@@ -1062,5 +1062,13 @@
     },
     "short": "{goods} sıkıntısı",
     "spare": "{goods} fazlası"
+  },
+  "ruin": {
+    "title": "{name} harabeleri",
+    "stage": {
+      "empty": "boş duruyor",
+      "ruined": "çökmüş",
+      "foundations": "yalnızca temeller kaldı"
+    }
   }
 }
