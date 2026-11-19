@@ -14,7 +14,7 @@ fn save_result_writes_schema_version_and_cleans_temp_file() {
     let sim = Simulation::new(11);
     sim.save_result(&path_s).unwrap();
 
-    let saved = std::fs::read(&path_s).unwrap();
+    let saved = crate::sim::persistence::container::unpack(std::fs::read(&path_s).unwrap()).unwrap();
     let parsed = crate::sim::persistence::SaveState::from_bytes(&saved).unwrap();
     assert_eq!(parsed.version, SAVE_SCHEMA_VERSION);
     assert!(!std::path::Path::new(&tmp_s).exists());
@@ -44,8 +44,10 @@ fn streamed_save_matches_the_in_memory_document() {
     crate::sim::persistence::write_save_to_disk(&state, &path_s).unwrap();
     let written = std::fs::read(&path_s).unwrap();
     assert!(written.len() > 100_000, "the world should produce a real save");
+    assert_eq!(&written[..6], &[0x89, b'T', b'H', b'B', 1, 1]);
+    assert!(written.len() < expected.len());
     assert!(
-        written == expected,
+        crate::sim::persistence::container::unpack(written).unwrap() == expected,
         "streamed save differs from the in-memory one"
     );
     assert!(!std::path::Path::new(&tmp_s).exists());
@@ -282,4 +284,60 @@ fn save_load_preserves_civilization_and_personal_progress() {
 
     let _ = std::fs::remove_file(&path_s);
     let _ = std::fs::remove_file(format!("{}.tmp", path_s));
+}
+
+#[test]
+fn an_old_plain_save_loads_and_is_migrated_to_the_container_on_the_next_save() {
+    let mut path = std::env::temp_dir();
+    path.push(format!("thehumanbox-migrate-test-{}.save", std::process::id()));
+    let path_s = path.to_string_lossy().to_string();
+    let tmp_s = format!("{}.tmp", path_s);
+    let mut sim = Simulation::new(29);
+    sim.tick_n(50);
+    let plain = sim.to_save_state().to_bytes();
+    std::fs::write(&path_s, &plain).unwrap();
+
+    let loaded = Simulation::load_strict(29, &path_s).unwrap();
+    assert_eq!(loaded.tick_count, sim.tick_count);
+    assert_eq!(
+        std::fs::read(&path_s).unwrap(),
+        plain,
+        "loading leaves the old file as it was"
+    );
+
+    let resaved = loaded.to_save_state().to_bytes();
+    loaded.save_result(&path_s).unwrap();
+    let migrated = std::fs::read(&path_s).unwrap();
+    assert!(migrated.starts_with(&crate::sim::persistence::container::SAVE_MAGIC));
+    assert!(crate::sim::persistence::container::unpack(migrated).unwrap() == resaved);
+    assert!(!std::path::Path::new(&tmp_s).exists());
+    assert_eq!(
+        Simulation::load_strict(29, &path_s).unwrap().tick_count,
+        sim.tick_count
+    );
+
+    let json = serde_json::to_vec(&sim.to_save_state()).unwrap();
+    std::fs::write(&path_s, &json).unwrap();
+    assert_eq!(
+        Simulation::load_strict(29, &path_s).unwrap().tick_count,
+        sim.tick_count
+    );
+    let _ = std::fs::remove_file(&path_s);
+}
+
+#[test]
+fn a_bare_gzip_save_loads() {
+    use std::io::Write;
+    let mut path = std::env::temp_dir();
+    path.push(format!("thehumanbox-gzip-test-{}.save", std::process::id()));
+    let path_s = path.to_string_lossy().to_string();
+    let sim = Simulation::new(31);
+    let mut gzip = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+    gzip.write_all(&sim.to_save_state().to_bytes()).unwrap();
+    std::fs::write(&path_s, gzip.finish().unwrap()).unwrap();
+    assert_eq!(
+        Simulation::load_strict(31, &path_s).unwrap().world_seed,
+        sim.world_seed
+    );
+    let _ = std::fs::remove_file(&path_s);
 }

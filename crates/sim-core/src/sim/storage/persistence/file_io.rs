@@ -8,7 +8,7 @@ fn read_save(path: &str) -> io::Result<Vec<u8>> {
             Err(error) if is_transient_read_error(&error) && attempt < MAX_RETRIES => {
                 std::thread::sleep(std::time::Duration::from_millis(10 << attempt));
             }
-            result => return result,
+            result => return result.and_then(super::container::unpack),
         }
     }
 
@@ -49,20 +49,36 @@ fn backup_path(path: &str, reason: &str) -> String {
     candidate
 }
 
-/// Standalone IO so it can be called from a blocking task off the
-/// main runtime. Atomic rename + parent-dir fsync mirror the
-/// previous in-line behaviour.
 pub fn write_save_to_disk(state: &SaveState, path: &str) -> io::Result<()> {
+    write_payload_to_disk(&state.to_bytes(), path)
+}
+
+fn stored_as_container(path: &str) -> bool {
+    let mut head = [0u8; 4];
+    std::fs::File::open(path)
+        .and_then(|mut file| io::Read::read_exact(&mut file, &mut head))
+        .is_ok_and(|()| head == super::container::SAVE_MAGIC)
+}
+
+pub fn write_payload_to_disk(payload: &[u8], path: &str) -> io::Result<()> {
     let tmp_path = format!("{}.tmp", path);
-    // Stream the JSON into the file instead of building the whole document
-    // in memory first: a save is tens of MB, and the intermediate `String`
-    // (grown by doubling) briefly cost about twice that again in RSS.
+    let migrating = std::path::Path::new(path).exists() && !stored_as_container(path);
     let written = (|| -> io::Result<()> {
         let file = std::fs::File::create(&tmp_path)?;
-        let mut out = io::BufWriter::with_capacity(1 << 20, file);
-        io::Write::write_all(&mut out, &state.to_bytes())?;
+        let out = io::BufWriter::with_capacity(1 << 20, file);
+        let out = super::container::write_packed(out, payload)?;
         let file = out.into_inner().map_err(|e| e.into_error())?;
-        file.sync_all()
+        file.sync_all()?;
+        if migrating {
+            let back = super::container::unpack(std::fs::read(&tmp_path)?)?;
+            if back != payload {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "the packed save read back differently; the old save is kept",
+                ));
+            }
+        }
+        Ok(())
     })();
     if let Err(error) = written {
         let _ = std::fs::remove_file(&tmp_path);
