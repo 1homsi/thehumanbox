@@ -65,7 +65,9 @@ export interface DesktopBridge {
       previousFolderKept?: string
     }>
     exportActive(): Promise<{ exported: boolean; filePath?: string; hash?: string }>
-    resetLocal(): Promise<{ reset: boolean; exported?: boolean; filePath?: string; port?: number }>
+    resetLocal(options?: {
+      empty?: boolean
+    }): Promise<{ reset: boolean; exported?: boolean; filePath?: string; port?: number }>
   }
   on(
     channel: 'updater:available' | 'updater:downloaded',

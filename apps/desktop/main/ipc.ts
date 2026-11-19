@@ -21,6 +21,7 @@ import {
   startSimWithDataRootLock,
   stopSim,
 } from "./sim-process";
+import { wantsEmptyWorld } from "./sim-env";
 import { acquireDataRootLock, type DataRootLock } from "./data-lock";
 import { loadRenderer } from "./renderer-load";
 import {
@@ -475,7 +476,8 @@ export function registerIpc(
 
   ipc.handle(
     "world:resetLocal",
-    exclusiveIpcHandler("reset the local world", async () => {
+    exclusiveIpcHandler("reset the local world", async (_e, payload: unknown) => {
+      const empty = wantsEmptyWorld(payload);
       const win = getWindow();
       if (!win) throw new Error("desktop window is unavailable");
       const settings = loadSettings();
@@ -540,9 +542,15 @@ export function registerIpc(
         syncDirectoryBestEffort(path.dirname(world.markerPath));
         const handedLock = operationLock;
         operationLock = null;
-        const sim = await startSimWithDataRootLock(settings, handedLock);
+        const sim = await startSimWithDataRootLock(settings, handedLock, {
+          blankWorld: empty,
+        });
         await verifyFreshWorldLoaded(sim.port, settings, world.hash);
-        await loadLocalRenderer(getWindow, sim, { reset: "1" });
+        await loadLocalRenderer(
+          getWindow,
+          sim,
+          empty ? { reset: "1", empty: "1" } : { reset: "1" },
+        );
         fs.unlinkSync(parkedMarker);
         syncDirectoryBestEffort(path.dirname(world.markerPath));
         return {

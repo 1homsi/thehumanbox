@@ -1,3 +1,4 @@
+mod blank;
 mod worldgen;
 // Tests read the worlds they generate again from disk (see test_worlds.rs).
 #[cfg(test)]
@@ -117,8 +118,15 @@ impl WorldGrid {
     }
 
     pub(crate) fn new_sized<const W: usize, const H: usize>(seed: u64, legacy: bool) -> Self {
+        let mut g = Self::bare::<W, H>();
+        g.generate_sized::<W, H>(seed, legacy);
+        g.enforce_ocean_border_sized::<W, H>(legacy);
+        g
+    }
+
+    fn bare<const W: usize, const H: usize>() -> Self {
         let size = W * H;
-        let mut g = WorldGrid {
+        WorldGrid {
             tiles: vec![Tile::Grass as i8; size],
             fire_intensity: vec![0.0; size],
             food_trail: vec![0.0; size],
@@ -137,10 +145,7 @@ impl WorldGrid {
             depth: vec![0.0f32; size],
             road: vec![ROAD_NONE; size],
             trail_dirty: crate::hashing::FxHashSet::default(),
-        };
-        g.generate_sized::<W, H>(seed, legacy);
-        g.enforce_ocean_border_sized::<W, H>(legacy);
-        g
+        }
     }
 
     /// Every volcano on the map: those of world generation, then those raised since.

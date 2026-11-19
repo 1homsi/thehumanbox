@@ -4,7 +4,9 @@ import {
   type LocalWorldReloadDetail,
   reloadAppSafely,
   requestOwnWorldRecovery,
+  clearOwnWorldResetRequest,
   getOwnWorldSeed,
+  hasOwnWorldEmptyRequest,
   requestOwnWorldReset,
   resolvePlayerWorldKind,
   setOwnWorldSeed,
@@ -178,6 +180,36 @@ describe('local-world storage transitions', () => {
     expect(storage.getItem('thb-wasm-reset-pending')).toBeNull()
     expect(storage.getItem('thb-wasm-recovery-pending')).toBe('browser-own:recovery:older')
     expect(target.location.reload).not.toHaveBeenCalled()
+  })
+
+  it('asks for an empty world, opens it on the Nature tab and forgets the ask once the reset is done', () => {
+    const storage = memoryStorage({ 'thb-wasm-seed': '12345' })
+    const target = installReloadWindow(storage)
+    target.addEventListener(LOCAL_WORLD_RELOAD_EVENT, (event) => event.preventDefault())
+
+    expect(requestOwnWorldReset(undefined, { empty: true })).toBe(true)
+    expect(hasOwnWorldEmptyRequest()).toBe(true)
+    expect(storage.getItem('thb-sandbox-category')).toBe('nature')
+    expect(storage.getItem('thb-wasm-seed')).toBeNull()
+
+    clearOwnWorldResetRequest()
+    expect(hasOwnWorldEmptyRequest()).toBe(false)
+    expect(storage.getItem('thb-wasm-reset-pending')).toBeNull()
+  })
+
+  it('starts a plain new world without the empty ask, and restores the ask when an empty reset fails', () => {
+    const storage = memoryStorage({ 'thb-wasm-reset-empty': '1' })
+    const target = installReloadWindow(storage)
+    target.addEventListener(LOCAL_WORLD_RELOAD_EVENT, (event) => event.preventDefault())
+
+    expect(requestOwnWorldReset()).toBe(true)
+    expect(hasOwnWorldEmptyRequest()).toBe(false)
+
+    const failing = memoryStorage({})
+    installReloadWindow(failing)
+    expect(requestOwnWorldReset(undefined, { empty: true })).toBe(false)
+    expect(failing.getItem('thb-wasm-reset-empty')).toBeNull()
+    expect(failing.getItem('thb-wasm-reset-pending')).toBeNull()
   })
 
   it('restores a pending reset when recovery cannot checkpoint', () => {

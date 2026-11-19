@@ -49,3 +49,12 @@ export function buildLocalSimEnv(
 
   return env
 }
+
+export function wantsEmptyWorld(payload: unknown): boolean {
+  return typeof payload === 'object' && payload !== null && (payload as { empty?: unknown }).empty === true
+}
+
+export function withBlankWorld(env: NodeJS.ProcessEnv, blank: boolean): NodeJS.ProcessEnv {
+  if (!blank) return env
+  return { ...env, THB_BLANK_WORLD: '1' }
+}

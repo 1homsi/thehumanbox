@@ -72,6 +72,12 @@ mod wasm_facade {
             }
         }
 
+        pub fn blank(seed: u64) -> Sim {
+            Sim {
+                inner: Simulation::new_blank(seed),
+            }
+        }
+
         #[wasm_bindgen(js_name = fromSerialized)]
         pub fn from_serialized(seed: u64, bytes: &[u8]) -> Result<Sim, JsValue> {
             let state = SaveState::from_bytes(bytes)

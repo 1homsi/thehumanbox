@@ -10,7 +10,7 @@ import { CHECKPOINT_FAILED_ERROR } from "./sim-errors";
 import type { Settings } from "./settings";
 import { SIM_START_TIMEOUT_MS, waitForSimulation } from "./sim-ready";
 import { effectiveDataRoot, prepareDataRoot } from "./settings";
-import { buildLocalSimEnv } from "./sim-env";
+import { buildLocalSimEnv, withBlankWorld } from "./sim-env";
 import {
   acquireDataRootLock,
   type DataRootLock,
@@ -404,6 +404,7 @@ export async function startSim(settings: Settings): Promise<RunningSim> {
 export async function startSimWithDataRootLock(
   settings: Settings,
   dataLock: DataRootLock,
+  options: SimStartOptions = {},
 ): Promise<RunningSim> {
   if (current || startInFlight || stopInFlight) {
     dataLock.release();
@@ -415,7 +416,7 @@ export async function startSimWithDataRootLock(
     dataLock.release();
     throw new Error("data-root lock does not match the simulation save folder");
   }
-  const attempt = startSimOnce(settings, dataLock);
+  const attempt = startSimOnce(settings, dataLock, options);
   startInFlight = attempt;
   try {
     return await attempt;
@@ -424,9 +425,14 @@ export async function startSimWithDataRootLock(
   }
 }
 
+export interface SimStartOptions {
+  blankWorld?: boolean;
+}
+
 async function startSimOnce(
   settings: Settings,
   suppliedLock?: DataRootLock,
+  options: SimStartOptions = {},
 ): Promise<RunningSim> {
   if (current) {
     suppliedLock?.release();
@@ -501,7 +507,10 @@ async function startSimOnce(
     throw error;
   }
 
-  const env = buildLocalSimEnv(settings, port);
+  const env = withBlankWorld(
+    buildLocalSimEnv(settings, port),
+    options.blankWorld === true,
+  );
   env.THB_DATA_LOCK_TOKEN = dataLock.token;
   env.THB_DESKTOP_PARENT_PID = String(process.pid);
   const commandToken = randomUUID();

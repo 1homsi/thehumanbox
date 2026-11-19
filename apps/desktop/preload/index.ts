@@ -39,7 +39,7 @@ export interface DesktopBridge {
       filePath?: string;
       hash?: string;
     }>;
-    resetLocal(): Promise<{
+    resetLocal(options?: { empty?: boolean }): Promise<{
       reset: boolean;
       exported?: boolean;
       filePath?: string;
@@ -108,7 +108,8 @@ const bridge: DesktopBridge = {
     migrateDataRoot: (payload) =>
       ipcRenderer.invoke("world:migrateDataRoot", payload),
     exportActive: () => ipcRenderer.invoke("world:exportActive"),
-    resetLocal: () => ipcRenderer.invoke("world:resetLocal"),
+    resetLocal: (options?: { empty?: boolean }) =>
+      ipcRenderer.invoke("world:resetLocal", { empty: options?.empty === true }),
   },
 
   on(channel, cb) {

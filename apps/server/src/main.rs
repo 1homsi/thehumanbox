@@ -72,7 +72,13 @@ async fn main() {
     let live_hash = startup::resolve_live_world(fresh_seed);
     let live_save_path = crate::world_store::world_save_path(&live_hash);
     let save_path_str = live_save_path.to_string_lossy().to_string();
-    let mut loaded_sim = Simulation::load_or_new(fresh_seed, &save_path_str);
+    let start_blank = blank_world_requested(env_flag("THB_BLANK_WORLD"), live_save_path.exists());
+    let mut loaded_sim = if start_blank {
+        tracing::info!(target: "world", "starting an empty world at {}", save_path_str);
+        Simulation::new_blank(fresh_seed)
+    } else {
+        Simulation::load_or_new(fresh_seed, &save_path_str)
+    };
     let population_limit = configured_population_limit().map(|requested| {
         let applied = loaded_sim.set_population_limit(requested);
         tracing::info!(target: "world", "population limit: {} (requested {})", applied, requested);
@@ -98,6 +104,7 @@ async fn main() {
     let low_memory_mode = env_flag("THB_LOW_MEMORY");
     let (shutdown_tx, shutdown_rx) = watch::channel(false);
     let runtime_control = Arc::new(RuntimeControl::new(*TICK_MS));
+    runtime_control.set_paused(start_blank);
     let save_gate: SaveGate = Arc::new(tokio::sync::Mutex::new(()));
     let pending_save_task: Arc<std::sync::Mutex<Option<tokio::task::JoinHandle<()>>>> =
         Arc::new(std::sync::Mutex::new(None));
@@ -285,6 +292,10 @@ fn is_loopback_host(host: &str) -> bool {
             .is_ok_and(|ip| ip.is_loopback())
 }
 
+fn blank_world_requested(asked: bool, save_exists: bool) -> bool {
+    asked && !save_exists
+}
+
 #[cfg(test)]
 mod bind_tests {
     use super::*;
@@ -299,5 +310,17 @@ mod bind_tests {
         assert!(is_loopback_host("localhost"));
         assert!(!is_loopback_host("0.0.0.0"));
         assert!(!is_loopback_host("192.168.1.10"));
+    }
+}
+
+#[cfg(test)]
+mod blank_world_tests {
+    use super::blank_world_requested;
+
+    #[test]
+    fn an_empty_world_starts_only_when_asked_for_and_no_save_is_there() {
+        assert!(blank_world_requested(true, false));
+        assert!(!blank_world_requested(true, true));
+        assert!(!blank_world_requested(false, false));
     }
 }

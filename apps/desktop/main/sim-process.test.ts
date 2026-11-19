@@ -135,7 +135,10 @@ function loadSimProcess(child: FakeChild, onSpawn: () => void) {
               }),
           };
         case "./sim-env":
-          return { buildLocalSimEnv: () => ({}) };
+          return {
+            buildLocalSimEnv: () => ({}),
+            withBlankWorld: (env: NodeJS.ProcessEnv) => env,
+          };
         case "./data-lock":
           return {
             acquireDataRootLock: () => lock,

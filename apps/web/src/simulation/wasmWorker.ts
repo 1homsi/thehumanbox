@@ -45,6 +45,7 @@ type StartMsg = {
   stepsPerEmit?: number
   autosaveEveryMs?: number
   reset?: boolean
+  empty?: boolean
   recoveryId?: string | null
   touch?: boolean
 }
@@ -486,12 +487,13 @@ async function retryReadStorage(): Promise<boolean> {
   return persist()
 }
 
-async function retryResetStorage(resetSeed: string): Promise<boolean> {
+async function retryResetStorage(resetSeed: string, empty = false): Promise<boolean> {
   const recoveryId = await archiveAndDeleteWorld(worldId)
-  const candidate = new Sim(BigInt(resetSeed))
+  const candidate = empty ? Sim.blank(BigInt(resetSeed)) : new Sim(BigInt(resetSeed))
   replaceSimulation(candidate, resetSeed)
+  if (empty) manuallyPaused = true
   markStorageReady(false)
-  post({ type: 'reset_done', recoveryId })
+  post({ type: 'reset_done', recoveryId, paused: manuallyPaused })
   emit(true)
   return persist()
 }
@@ -788,7 +790,7 @@ async function start(msg: StartMsg) {
       post({ type: 'reset_done', recoveryId })
     } catch (e) {
       storageReady = false
-      rememberRetry({ kind: 'reset', seed: msg.seed })
+      rememberRetry({ kind: 'reset', seed: msg.seed, empty: msg.empty === true })
       postError('reset_failed', 'could not reset local save', { error: e, retryable: true })
     }
   }
@@ -893,7 +895,9 @@ async function start(msg: StartMsg) {
   startupPhase = 'generate'
   const generateAt = performance.now()
   if (!sim) {
-    sim = new Sim(BigInt(seed))
+    const empty = resetApplied && msg.empty === true
+    sim = empty ? Sim.blank(BigInt(seed)) : new Sim(BigInt(seed))
+    if (empty) manuallyPaused = true
   }
   const startup: WorkerStartup = {
     engine: engine.fallback === null ? 'threads' : 'single',
@@ -908,7 +912,14 @@ async function start(msg: StartMsg) {
   logger.info('wasm', 'world started', startup)
 
   startupPhase = 'ready'
-  post({ type: 'ready', restored, tick: Number(sim.tickCount()), persistenceReady: storageReady, startup })
+  post({
+    type: 'ready',
+    restored,
+    tick: Number(sim.tickCount()),
+    persistenceReady: storageReady,
+    paused: manuallyPaused,
+    startup,
+  })
 
   emit(true)
   beginLoop(autosaveEveryMs)
